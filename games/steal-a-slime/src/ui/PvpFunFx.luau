@@ -9,9 +9,12 @@
 	ends early). Motion is tweens and client-only physics (lobbed balloons and bombs); there is no frame loop here.
 	`tick(now)` runs on the client's 10 Hz loop and checks bubbles / pads against wild slimes.
 
-	Squashes and floats of slimes and of a pancaked player use a proxy: a stripped, anchored clone of the model that
-	is tweened instead of the original, while the original is hidden through LocalTransparencyModifier. The slime
-	models, their life rigs and VisualsClient are never touched; at most PVP_FUN.PROXIES_MAX proxies exist at once.
+	Squashes and floats of slimes and of a pancaked player use a proxy: a stripped clone of the model that is tweened
+	instead of the original, while the original is hidden through LocalTransparencyModifier. The clone's pieces are
+	welded to one root part; a slime's root is welded to its anchored Body, so a lane slime's proxy walks on with
+	it (and with its label, which sits on the Body) instead of standing where it was hit. Any other root is anchored.
+	The slime models, their life rigs and VisualsClient are never touched; at most PVP_FUN.PROXIES_MAX proxies exist
+	at once.
 
 	Use poses come from the ui/PvpAnim handle (`pop`, `blow`, `bonk`, `throw`, `blast` for another player's use; the
 	local player's own use already played on the click), `dance` / `flip` / `hit` on the affected player.
@@ -85,8 +88,8 @@ type Worn = { models: { Model }, untilAt: number, head: BasePart }
 type Proxy = {
 	model: Model,
 	clone: Model,
-	basis: CFrame,
-	pieces: { { part: BasePart, rel: CFrame, size: Vector3, mesh: SpecialMesh?, meshScale: Vector3? } },
+	root: BasePart, -- the clone's frame: anchored where it started, or welded to a slime's Body so it walks on with it
+	pieces: { { part: BasePart, weld: Weld, rel: CFrame, size: Vector3, mesh: SpecialMesh?, meshScale: Vector3? } },
 	hidden: { [Instance]: number },
 	tweens: { Tween },
 	released: boolean,
@@ -459,10 +462,32 @@ function PvpFunFx.start(opts: Options): Handle
 			return nil
 		end
 		local basis = basisOf(model)
+		local root = Instance.new("Part")
+		root.Name = "ProxyRoot"
+		root.Size = Vector3.one
+		root.Transparency = 1
+		root.CanCollide = false
+		root.CanQuery = false
+		root.CanTouch = false
+		root.Massless = true
+		root.CFrame = basis
+		-- A slime's Body is anchored and moved by the server along its lane: ride on it. A character (or a slime
+		-- being carried) moves under physics, so its proxy stays put.
+		local body = model:FindFirstChild("Body")
+		if body and body:IsA("BasePart") and body.Anchored then
+			root.Anchored = false
+			local ride = Instance.new("Weld")
+			ride.Part0 = body
+			ride.Part1 = root
+			ride.C0 = body.CFrame:ToObjectSpace(basis)
+			ride.Parent = root
+		else
+			root.Anchored = true
+		end
 		local proxy: Proxy = {
 			model = model,
 			clone = clone,
-			basis = basis,
+			root = root,
 			pieces = {},
 			hidden = {},
 			tweens = {},
@@ -470,7 +495,8 @@ function PvpFunFx.start(opts: Options): Handle
 		}
 		for _, d in clone:GetDescendants() do
 			if d:IsA("BasePart") then
-				d.Anchored = true
+				d.Anchored = false
+				d.Massless = true
 				d.CanCollide = false
 				d.CanQuery = false
 				d.CanTouch = false
@@ -483,9 +509,16 @@ function PvpFunFx.start(opts: Options): Handle
 					m.Parent = d
 				end
 				local fileMesh = if mesh and mesh.MeshType == Enum.MeshType.FileMesh then mesh else nil
+				local rel = basis:ToObjectSpace(d.CFrame)
+				local weld = Instance.new("Weld")
+				weld.Part0 = root
+				weld.Part1 = d
+				weld.C0 = rel
+				weld.Parent = root
 				table.insert(proxy.pieces, {
 					part = d,
-					rel = basis:ToObjectSpace(d.CFrame),
+					weld = weld,
+					rel = rel,
 					size = d.Size,
 					mesh = fileMesh,
 					meshScale = if fileMesh then fileMesh.Scale else nil,
@@ -493,6 +526,7 @@ function PvpFunFx.start(opts: Options): Handle
 			end
 		end
 		proxy.hidden = hideOriginal(model)
+		root.Parent = clone
 		clone.Parent = folder
 		proxies[model] = proxy
 		proxyTotal += 1
@@ -519,7 +553,8 @@ function PvpFunFx.start(opts: Options): Handle
 		end
 	end
 
-	-- Tweens every proxy piece to the pose `key` (scale about the basis, then offset).
+	-- Tweens every proxy piece to the pose `key` (scale about the root, then offset): the weld offsets, so the pose
+	-- rides along when the root moves.
 	local function poseTo(proxy: Proxy, key: Logic.Key)
 		if proxy.released then
 			return
@@ -531,7 +566,7 @@ function PvpFunFx.start(opts: Options): Handle
 			(Enum.EasingDirection :: any)[key.dir] or Enum.EasingDirection.Out
 		)
 		table.clear(proxy.tweens)
-		local shift = proxy.basis * CFrame.new(o[1], o[2], o[3])
+		local shift = CFrame.new(o[1], o[2], o[3])
 		for _, piece in proxy.pieces do
 			local rel = piece.rel
 			local p = rel.Position
@@ -544,9 +579,12 @@ function PvpFunFx.start(opts: Options): Handle
 			}
 			local f = Logic.axisScale(axes, s)
 			local size = piece.size * Vector3.new(f[1], f[2], f[3])
-			local tween = TweenService:Create(piece.part, info, { CFrame = target, Size = size })
+			local tween = TweenService:Create(piece.weld, info, { C0 = target })
 			tween:Play()
 			table.insert(proxy.tweens, tween)
+			local grow = TweenService:Create(piece.part, info, { Size = size })
+			grow:Play()
+			table.insert(proxy.tweens, grow)
 			if piece.mesh and piece.meshScale then
 				local mt =
 					TweenService:Create(piece.mesh, info, { Scale = piece.meshScale * Vector3.new(f[1], f[2], f[3]) })
@@ -630,7 +668,7 @@ function PvpFunFx.start(opts: Options): Handle
 				return
 			end
 			if i >= 2 and model.Parent then
-				local here = proxy.basis:PointToObjectSpace(basisOf(model).Position)
+				local here = proxy.root.CFrame:PointToObjectSpace(basisOf(model).Position)
 				key = table.clone(key)
 				key.offset = { here.X, key.offset[2], here.Z }
 			end
