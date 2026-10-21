@@ -1,5 +1,6 @@
 -- SlimeCam scenario (Client): the player walks beside an affordable hopper on the goo lane, 3.5 studs to its side,
--- with the normal follow camera. Waits up to 90 s for such a slime; keeps walking for 40 s.
+-- with the normal follow camera. _G.SlimeCamWant picks the gait instead ("Waddle", "Float", ...) or "Egg" for a
+-- wild Mystery Egg. Waits up to 90 s for such a slime; keeps walking for 40 s.
 local CS = game:GetService("CollectionService")
 local RS = game:GetService("RunService")
 local P = require(game.ReplicatedStorage.Shared.SlimePersona)
@@ -16,14 +17,13 @@ while not target and os.clock() - t1 < 90 do
 	for _, m in CS:GetTagged("Slime") do
 		local sp = m:GetAttribute("Species")
 		local untilAt = m:GetAttribute("LaneUntil")
+		local kind = if want == "Egg" then m:GetAttribute("EggKind") ~= nil else sp ~= nil and P.of(sp).gait == want
 		if
 			m:GetAttribute("State") == "Wild"
-			and sp
-			and P.of(sp).gait == want
+			and kind
 			and ((m:GetAttribute("Price") or 1e9) <= cash or os.clock() - t1 > 20) -- affordable first, any after 20 s
 			and not m:GetAttribute("Riding")
-			and untilAt
-			and untilAt - workspace:GetServerTimeNow() > 20
+			and (want == "Egg" or (untilAt and untilAt - workspace:GetServerTimeNow() > 20)) -- eggs carry no lane times
 		then
 			target = m
 			break
@@ -50,4 +50,4 @@ conn = RS.RenderStepped:Connect(function()
 	hum:MoveTo(bp + side * 3.5 + look * 0.5)
 end)
 task.wait(1.5) -- settle in beside it
-return { species = target:GetAttribute("Species") }
+return { species = target:GetAttribute("Species") or target:GetAttribute("EggKind") }

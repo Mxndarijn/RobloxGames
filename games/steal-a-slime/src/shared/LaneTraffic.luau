@@ -10,7 +10,9 @@
 	      radii plus GAP; it waits and then catches up at most CATCH_SPEED x its
 	      pace. It never walks backwards, and `floor` (the caller lets the hold
 	      shrink to 0 before the drain) keeps the drain on time. `state[id]` is
-	      the lane distance it is drawn at, carried from frame to frame.
+	      the lane distance it is drawn at, carried from frame to frame. It is
+	      held at most MAX_HOLD behind its plan (less than RESET, which
+	      restarts a slime at its plan in one jump).
 	  LaneTraffic.push(x, z, radius, others) -> (dx, dz)
 	      An off-lane walker (a slime walking back to the lane) steps out of the
 	      way: the smallest move that clears every body in `others`.
@@ -28,6 +30,9 @@ local LaneTraffic = {}
 LaneTraffic.GAP = 0.6 -- studs of air between two slimes
 LaneTraffic.CATCH_SPEED = ParadeChoreo.CATCH_SPEED + 0.2 -- x pace: a held slime catches up a little faster than a beat
 LaneTraffic.RESET = 12 -- studs: drawn this far from its plan (a rejoin, a rebuild) it starts over at the plan
+-- studs: a queued slime is held at most this far behind its plan, then walks on with it (pressing on the one ahead;
+-- the client's drawn spacing keeps them apart). Below RESET, so a long hold never ends in a jump.
+LaneTraffic.MAX_HOLD = 10
 
 export type Walker = {
 	id: string,
@@ -83,6 +88,11 @@ function LaneTraffic.step(walkers: { Walker }, state: { [string]: number }, dt: 
 		end
 		if w.floor and s < w.floor then
 			s = math.min(w.floor, w.s)
+		end
+		-- Held too long: it walks on (at most at the catch-up speed, so this never jumps either).
+		local hold = w.s - LaneTraffic.MAX_HOLD
+		if s < hold then
+			s = math.max(s, math.min(hold, prev + LaneTraffic.CATCH_SPEED * w.pace * math.max(dt, 0)))
 		end
 		state[w.id] = s
 		table.insert(placed, w)
