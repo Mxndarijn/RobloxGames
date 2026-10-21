@@ -5,6 +5,13 @@
     "height": 11,
     "width": 8
   },
+  "doorSwing": {
+    "angle": -100,
+    "hinge": [
+      -4.75,
+      -0.5
+    ]
+  },
   "doorway": {
     "zInner": -29,
     "zOuter": -32.5
@@ -309,18 +316,6 @@
     "hole": 6,
     "outer": 5.5,
     "post": 1.5
-  },
-  "stopperOpen": {
-    "out": 0.6,
-    "turn": 20
-  },
-  "stopperTrack": {
-    "from": -91,
-    "height": 0.9,
-    "inner": 32.4,
-    "outer": 35.4,
-    "to": -120,
-    "top": 10.6
   },
   "vatSpot": {
     "angle": 106,

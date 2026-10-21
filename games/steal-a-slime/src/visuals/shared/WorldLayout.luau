@@ -212,15 +212,11 @@ WorldLayout.VAT_SPOT = table.freeze({ angle = 106, radius = 22.5 })
 WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ 6.2, 21.6 }) -- in the back bay beside the vat (angle 74, radius 22.5)
 WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
 WorldLayout.NAME_BOARD = table.freeze({ width = 9, height = 2.4, y = 10.7 }) -- above the LockSign, on its post
-WorldLayout.BANNER_ANGLES = table.freeze({ -128, -52 }) -- clear of the parked plug on its track
--- While the plot is open the cork plug slides out of the doorway along the glass and parks on a curved track (part of
--- the door mesh): turned STOPPER_OPEN.turn degrees round the jar from the door (its edge just clear of the door
--- ring), pushed STOPPER_OPEN.out studs off the glass. STOPPER_TRACK is that track (plot-local degrees and radii): a
--- runner from under the door ring whose top is where the plug's rim rests (0.9 above the floor, the same height it
--- hangs at in the doorway), and a brass top rail at `top` along the glass over the plug.
-WorldLayout.STOPPER_OPEN = table.freeze({ turn = 20, out = 0.6 })
-WorldLayout.STOPPER_TRACK =
-	table.freeze({ from = -91, to = -120, inner = 32.4, outer = 35.4, height = 0.9, top = 10.6 })
+WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
+-- Jar 1's door is a round plank door on two hinges on its left (-X). Locked, it sits shut in the doorway (StopperShut);
+-- open, it swings DOOR_SWING.angle degrees into the jar round its hinge pin (StopperParked). hinge = the pin's plot x
+-- and its z offset from the shut door's inner face (the door is 1 stud thick, the pin in its middle).
+WorldLayout.DOOR_SWING = table.freeze({ hinge = { -4.75, -0.5 }, angle = -100 })
 WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
 WorldLayout.TROPHY_SPOTS = table.freeze({ { -31, 31 }, { 31, 31 }, { -31, -31 } })
 -- The plot SlimeDex board skins the two-sided phoenix_top_earners_board at
@@ -1577,7 +1573,7 @@ local function plot(i: number): WorldNode
 	-- jar 1's mesh looks (decor slots) beside the solid Jar
 	table.insert(children, { name = "JarLooks", class = "Model", children = jarLooks(1, at, yaw) })
 	-- the round door, its lock ring (MeshTint: PlotDecor turns it red while locked) and the two stopper looks
-	-- (PlotDecor shows StopperShut while locked, StopperParked while open)
+	-- (PlotDecor shows the door shut, StopperShut, while locked and swung open, StopperParked, while open)
 	table.insert(children, jarLook("DoorLook", "goo_jar_door", { 0, f1, 0 }, at, yaw))
 	local ring = jarLook("DoorRing", "goo_jar_door_ring", { 0, f1, 0 }, at, yaw)
 	ring.color = { 168, 148, 110 }
@@ -1587,13 +1583,15 @@ local function plot(i: number): WorldNode
 	table.insert(children, ring)
 	local dz = WorldLayout.doorway().zOuter + 0.6
 	local dy = WorldLayout.DOOR.height / 2 + 0.1
-	local plugY = f1 + dy - 4.6
-	table.insert(children, jarLook("StopperShut", "goo_jar_stopper", { 0, plugY, dz + 0.3 }, at, yaw))
-	-- open: slid round the glass onto its track (STOPPER_OPEN), the same plug turned with the jar's curve
-	local open = WorldLayout.STOPPER_OPEN
-	local z0, t = dz + 0.3 - open.out, math.rad(open.turn)
-	local parked = { z0 * math.sin(t), plugY, z0 * math.cos(t) }
-	table.insert(children, jarLook("StopperParked", "goo_jar_stopper", parked, at, yaw, open.turn))
+	local doorY, doorZ = f1 + dy - 4.6, dz + 0.3
+	table.insert(children, jarLook("StopperShut", "goo_jar_stopper", { 0, doorY, doorZ }, at, yaw))
+	-- open: the same door swung into the jar round its hinge pin (DOOR_SWING)
+	local swing = WorldLayout.DOOR_SWING
+	local hx, hz = swing.hinge[1], doorZ + swing.hinge[2]
+	local t = math.rad(swing.angle)
+	local ax, az = -hx, doorZ - hz
+	local open = { hx + ax * math.cos(t) + az * math.sin(t), doorY, hz - ax * math.sin(t) + az * math.cos(t) }
+	table.insert(children, jarLook("StopperParked", "goo_jar_stopper", open, at, yaw, swing.angle))
 
 	local vat = WorldLayout.VAT_SPOT
 	local vx, vz = polar(vat.radius, vat.angle)

@@ -274,33 +274,22 @@ def door_center():
 
 
 def jar_door():
-    """Jar 1's round door: a wooden frame ring round the doorway with a goo line along its top, the sill, and the
-    curved track the cork plug slides out along while the base is open."""
+    """Jar 1's door frame: a wooden frame ring round the doorway with a goo line along its top, the sill, and the
+    brass hinge knuckles (on a pin) the round door hangs on, on the left."""
     cx, cy, cz = door_center()
     rad = D["door"]["width"] / 2 + 0.9
     out = [loop("Frame", rad, 0.9, (cx, cy, cz), "y", WOOD_D, segs=32)]
     out.append(painted(loop("Goo", rad, 0.75, (cx, cy - 0.65, cz), "y", GOO, segs=32, arc=(25, 155)), shade(GOO, 0.9), GOO_HI))
     out.append(painted(box("Sill", (D["door"]["width"] + 2, 2.4, 0.6), (cx, cy, 0.3), WOOD), shade(WOOD, 0.9), WOOD))
-    # the curved track the plug slides out along while the base is open (it parks at the far end, on the brass cap):
-    # a wooden runner round the glass with a brass top coming out from under the door ring, a stop at the far end, and
-    # a brass top rail on brackets along the glass over the plug, from the ring's side to past the stop
-    t = D["stopperTrack"]
-    ri, ro, h = t["inner"], t["outer"], t["height"]
-    out.append(painted(lathe("Runner", [(ro, 0.0), (ro, h - 0.12), (ri, h - 0.12), (ri, 0.0)], WOOD_D, t["to"], t["from"], double=False),
-                       shade(WOOD_D, 0.85), WOOD_D))
-    out.append(lathe("RunnerCap", [(ro - 0.25, h - 0.12), (ro - 0.25, h), (ri + 0.25, h), (ri + 0.25, h - 0.12)], METAL, t["to"], t["from"], double=False))
-    rm = (ri + ro) / 2
-    for name, deg, size in (("Start", t["from"] - 0.4, (ro - ri, 0.8, h)), ("Stop", t["to"] - 0.9, (ro - ri + 0.4, 1.2, h + 0.9))):
-        a = math.radians(deg)
-        out.append(box(name, size, (rm * math.cos(a), rm * math.sin(a), size[2] / 2), METAL if name == "Stop" else WOOD_D, rot=(0, 0, deg)))
-    glass_out = radius(1) + 1.0
-    top_r, top_z = (ri + ro) / 2, t["top"]
-    ring_side = -90 - math.degrees(math.asin((D["door"]["width"] / 2 + 2.2) / glass_out))
-    out.append(loop("TopRail", top_r, 0.28, (0, 0, top_z), "z", METAL, segs=360, arc=(t["to"] - 1.5, ring_side)))
-    for k, deg in enumerate((ring_side - 1.0, (ring_side + t["to"]) / 2, t["to"] - 1.0)):
-        a = math.radians(deg)
-        mid = (glass_out + top_r) / 2
-        out.append(box(f"Bracket{k}", (top_r - glass_out + 0.4, 0.5, 0.5), (mid * math.cos(a), mid * math.sin(a), top_z), METAL, rot=(0, 0, deg)))
+    # the hinge knuckles on the frame's left, above and below each of the door's own knuckles, on a pin
+    hx, hy = D["doorSwing"]["hinge"][0], cy + 0.3 + D["doorSwing"]["hinge"][1]
+    for k, dz in enumerate((-2.8, 2.8)):
+        z = cz + dz
+        for j, off in enumerate((-0.85, 0.85)):
+            out.append(cylinder(f"Knuckle{k}{j}", 0.36, 0.75, (hx, hy, z + off - 0.375), METAL, segs=12))
+        out.append(cylinder(f"Pin{k}", 0.14, 2.6, (hx, hy, z - 1.3), shade(METAL, 0.7), segs=8))
+        edge = -math.sqrt(max(0.0, (D["door"]["width"] / 2 + 0.9) ** 2 - dz * dz))
+        out.append(box(f"Leaf{k}", (abs(hx - edge) + 0.3, 0.2, 2.4), ((hx + edge) / 2, hy - 0.45, z), METAL))
     return out
 
 
@@ -311,10 +300,27 @@ def jar_door_ring():
 
 
 def jar_stopper():
-    """The cork stopper that plugs the door while locked (it is parked beside it while open). Faces -Y."""
-    return [painted(cylinder("Cork", 4.6, 3.4, (0, 0, 4.6), CORK, segs=28, r_top=4.2, rot=(90, 0, 0)), shade(CORK, 0.85), CORK),
-            cylinder("Band", 4.7, 0.6, (0, -1.2, 4.6), METAL, segs=28, rot=(90, 0, 0)),
-            blob("Grip", 1.4, (0, -3.6, 4.6), METAL, subdiv=2, squash=(1, 0.6, 1), jitter=0)]
+    """Jar 1's round door (the game shows it shut in the doorway while locked, swung into the jar on its hinges while
+    open): a round plank door, inner face at y = 0, outer face at -Y (toward the bridge), with a cork rim, goo
+    dripping over its top, two brass hinge straps reaching to the hinge pin on its left (-X) and a brass ring pull on
+    the right. Bottom at z = 0."""
+    r, t = 4.6, 1.0
+    hx, hy = D["doorSwing"]["hinge"][0], D["doorSwing"]["hinge"][1]
+    out = [painted(cylinder("Door", r, t, (0, 0, r), WOOD, segs=32, rot=(90, 0, 0)), shade(WOOD, 0.82), WOOD)]
+    for k, x in enumerate((-2.3, 0.0, 2.3)):
+        h = 2 * math.sqrt(r * r - x * x) - 0.7
+        out.append(box(f"Groove{k}", (0.16, 0.08, h), (x, -t - 0.02, r), WOOD_D))
+    out.append(painted(loop("Rim", r - 0.12, 0.3, (0, -t + 0.05, r), "y", CORK, segs=32), shade(CORK, 0.85), CORK))
+    out.append(painted(loop("Goo", r - 0.05, 0.33, (0, -t - 0.12, r), "y", GOO, segs=32, arc=(32, 148)), shade(GOO, 0.9), GOO_HI))
+    for k, x in enumerate((-1.4, 1.9)):
+        out += teardrop(f"Drip{k}", x, -t - 0.3, r + math.sqrt(r * r - x * x) - 0.35, 0.9 + 0.3 * k, 0.26)
+    for k, dz in enumerate((-2.8, 2.8)):
+        z = r + dz
+        out.append(box(f"Strap{k}", (abs(hx) - 0.9, 0.16, 0.6), ((hx - 0.9) / 2 - 0.0, -t - 0.08, z), METAL))
+        out.append(cylinder(f"Knuckle{k}", 0.36, 0.9, (hx, hy, z - 0.45), METAL, segs=12))
+    out.append(loop("Pull", 0.55, 0.12, (2.9, -t - 0.25, r), "y", METAL, segs=16))
+    out.append(blob("PullBoss", 0.28, (2.9, -t - 0.1, r + 0.55), METAL, subdiv=1, jitter=0))
+    return out
 
 
 def lock_button():

@@ -68,10 +68,13 @@ place(ring, dz=top(1))
 cx, cy, cz = door_center()
 if LOCKED:
     place(jar_stopper(), dx=0, dy=cy + 0.3, dz=top(1) + cz - 4.6)
-else:  # slid round the glass onto its track (WorldLayout STOPPER_OPEN)
-    op = D["stopperOpen"]
-    z0, t = cy + 0.3 - op["out"], math.radians(op["turn"])
-    place(jar_stopper(), dx=z0 * math.sin(t), dy=z0 * math.cos(t), dz=top(1) + cz - 4.6, rz=-op["turn"])
+else:  # swung into the jar round its hinge pin (WorldLayout DOOR_SWING)
+    sw = D["doorSwing"]
+    hx, hy = sw["hinge"][0], cy + 0.3 + sw["hinge"][1]
+    t = math.radians(sw["angle"])
+    ax, ay = -hx, cy + 0.3 - hy
+    ox, oy = hx + ax * math.cos(t) + ay * math.sin(t), hy - ax * math.sin(t) + ay * math.cos(t)
+    place(jar_stopper(), dx=ox, dy=oy, dz=top(1) + cz - 4.6, rz=-sw["angle"])
 bx, bz = D["lockButtonSpot"]
 place(lock_button(), dx=bx, dy=bz, dz=top(1))
 

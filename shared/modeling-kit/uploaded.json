@@ -342,15 +342,15 @@
   "goo_jar_door": {
     "assetId": "139300292465170",
     "assetType": "Model",
-    "meshId": "rbxassetid://70555732883562",
+    "meshId": "rbxassetid://74526508452664",
     "meshSize": [
-      24.593,
+      11.596,
       11.6,
-      8.27
+      2.6
     ],
-    "sha256": "0a4fd38bc07ea01a",
-    "uploadedAt": "2026-10-21T16:05:14Z",
-    "versions": 3
+    "sha256": "c7065e505eb432a4",
+    "uploadedAt": "2026-10-21T16:25:35Z",
+    "versions": 4
   },
   "goo_jar_door_ring": {
     "assetId": "104855077088726",
@@ -498,15 +498,15 @@
   "goo_jar_stopper": {
     "assetId": "121171735307209",
     "assetType": "Model",
-    "meshId": "rbxassetid://133585692355026",
+    "meshId": "rbxassetid://98488330645221",
     "meshSize": [
-      9.4,
-      9.4,
-      4.44
+      9.889,
+      9.66,
+      1.508
     ],
-    "sha256": "59b0cc4fe4f35843",
-    "uploadedAt": "2026-10-20T19:32:11Z",
-    "versions": 1
+    "sha256": "9a74af84c00fd0f4",
+    "uploadedAt": "2026-10-21T16:25:22Z",
+    "versions": 2
   },
   "goo_jar_trim_1_mid": {
     "assetId": "125609985796662",
