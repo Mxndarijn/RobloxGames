@@ -274,12 +274,24 @@ def door_center():
 
 
 def jar_door():
-    """Jar 1's round door: a wooden frame ring round the doorway with a goo line along its top, and the sill."""
+    """Jar 1's round door: a wooden frame ring round the doorway with a goo line along its top, the sill, and the
+    curved track the cork plug slides out along while the base is open."""
     cx, cy, cz = door_center()
     rad = D["door"]["width"] / 2 + 0.9
     out = [loop("Frame", rad, 0.9, (cx, cy, cz), "y", WOOD_D, segs=32)]
     out.append(painted(loop("Goo", rad, 0.75, (cx, cy - 0.65, cz), "y", GOO, segs=32, arc=(25, 155)), shade(GOO, 0.9), GOO_HI))
     out.append(painted(box("Sill", (D["door"]["width"] + 2, 2.4, 0.6), (cx, cy, 0.3), WOOD), shade(WOOD, 0.9), WOOD))
+    # the curved track the plug slides out along while the base is open (it parks at the far end, on the brass cap):
+    # a wooden runner round the glass with a brass top, a cap where it leaves the sill and a stop at the far end
+    t = D["stopperTrack"]
+    ri, ro, h = t["inner"], t["outer"], t["height"]
+    out.append(painted(lathe("Runner", [(ro, 0.0), (ro, h - 0.12), (ri, h - 0.12), (ri, 0.0)], WOOD_D, t["to"], t["from"], double=False),
+                       shade(WOOD_D, 0.85), WOOD_D))
+    out.append(lathe("RunnerCap", [(ro - 0.25, h - 0.12), (ro - 0.25, h), (ri + 0.25, h), (ri + 0.25, h - 0.12)], METAL, t["to"], t["from"], double=False))
+    rm = (ri + ro) / 2
+    for name, deg, size in (("Start", t["from"] - 0.4, (ro - ri, 0.8, h)), ("Stop", t["to"] - 0.9, (ro - ri + 0.4, 1.2, h + 0.9))):
+        a = math.radians(deg)
+        out.append(box(name, size, (rm * math.cos(a), rm * math.sin(a), size[2] / 2), METAL if name == "Stop" else WOOD_D, rot=(0, 0, deg)))
     return out
 
 

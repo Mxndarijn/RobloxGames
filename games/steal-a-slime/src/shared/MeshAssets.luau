@@ -402,7 +402,7 @@ entries["goo_jar_deck_3"] =
 entries["goo_jar_deck_4"] =
 	{ assetId = 130699055260662, meshId = "rbxassetid://115829631257177", size = { 42.2, 1.73, 42.2 } }
 entries["goo_jar_door"] =
-	{ assetId = 139300292465170, meshId = "rbxassetid://132323286639653", size = { 11.596, 11.6, 2.6 } }
+	{ assetId = 139300292465170, meshId = "rbxassetid://119537382892793", size = { 25.329, 11.6, 8.319 } }
 entries["goo_jar_door_ring"] =
 	{ assetId = 104855077088726, meshId = "rbxassetid://85299355296782", size = { 12.898, 12.9, 0.9 } }
 entries["goo_jar_foot"] =

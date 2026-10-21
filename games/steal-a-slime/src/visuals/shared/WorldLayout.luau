@@ -212,7 +212,13 @@ WorldLayout.VAT_SPOT = table.freeze({ angle = 106, radius = 22.5 })
 WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ 6.2, 21.6 }) -- in the back bay beside the vat (angle 74, radius 22.5)
 WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
 WorldLayout.NAME_BOARD = table.freeze({ width = 9, height = 2.4, y = 10.7 }) -- above the LockSign, on its post
-WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
+WorldLayout.BANNER_ANGLES = table.freeze({ -128, -52 }) -- clear of the parked plug on its track
+-- While the plot is open the cork plug slides out of the doorway along the glass and parks on a curved track (part of
+-- the door mesh): turned STOPPER_OPEN.turn degrees round the jar from the door, pushed STOPPER_OPEN.out studs off the
+-- glass. STOPPER_TRACK is that track (plot-local degrees and radii; its top is where the plug's rim rests, 0.9 above
+-- the floor, the same height it hangs at in the doorway).
+WorldLayout.STOPPER_OPEN = table.freeze({ turn = 21, out = 1 })
+WorldLayout.STOPPER_TRACK = table.freeze({ from = -95, to = -121, inner = 32.8, outer = 35.8, height = 0.9 })
 WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
 WorldLayout.TROPHY_SPOTS = table.freeze({ { -31, 31 }, { 31, 31 }, { -31, -31 } })
 -- The plot SlimeDex board skins the two-sided phoenix_top_earners_board at
@@ -1579,8 +1585,13 @@ local function plot(i: number): WorldNode
 	table.insert(children, ring)
 	local dz = WorldLayout.doorway().zOuter + 0.6
 	local dy = WorldLayout.DOOR.height / 2 + 0.1
-	table.insert(children, jarLook("StopperShut", "goo_jar_stopper", { 0, f1 + dy - 4.6, dz + 0.3 }, at, yaw))
-	table.insert(children, jarLook("StopperParked", "goo_jar_stopper", { -8.5, f1, dz - 3.2 }, at, yaw))
+	local plugY = f1 + dy - 4.6
+	table.insert(children, jarLook("StopperShut", "goo_jar_stopper", { 0, plugY, dz + 0.3 }, at, yaw))
+	-- open: slid round the glass onto its track (STOPPER_OPEN), the same plug turned with the jar's curve
+	local open = WorldLayout.STOPPER_OPEN
+	local z0, t = dz + 0.3 - open.out, math.rad(open.turn)
+	local parked = { z0 * math.sin(t), plugY, z0 * math.cos(t) }
+	table.insert(children, jarLook("StopperParked", "goo_jar_stopper", parked, at, yaw, open.turn))
 
 	local vat = WorldLayout.VAT_SPOT
 	local vx, vz = polar(vat.radius, vat.angle)

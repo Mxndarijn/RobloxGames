@@ -58,6 +58,8 @@ local function dims(): { [string]: any }
 		dropLanding = WorldLayout.dropLanding(),
 		vatSpot = WorldLayout.VAT_SPOT,
 		lockButtonSpot = WorldLayout.LOCK_BUTTON_SPOT,
+		stopperOpen = WorldLayout.STOPPER_OPEN,
+		stopperTrack = WorldLayout.STOPPER_TRACK,
 		floors = floors,
 	}
 end

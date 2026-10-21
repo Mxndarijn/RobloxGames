@@ -310,6 +310,17 @@
     "outer": 5.5,
     "post": 1.5
   },
+  "stopperOpen": {
+    "out": 1,
+    "turn": 21
+  },
+  "stopperTrack": {
+    "from": -95,
+    "height": 0.9,
+    "inner": 32.8,
+    "outer": 35.8,
+    "to": -121
+  },
   "vatSpot": {
     "angle": 106,
     "radius": 22.5

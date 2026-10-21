@@ -1471,9 +1471,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-0.0019989014</X>
+            <X>-6.8690033</X>
             <Y>6.600006</Y>
-            <Z>108</Z>
+            <Z>108.481</Z>
             <R00>-1</R00>
             <R01>0</R01>
             <R02>-0</R02>
@@ -1491,9 +1491,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
+            <X>25.328995</X>
             <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <Z>8.319</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -1576,18 +1576,18 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAGdvb19qYXJfc3RvcHBlcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-8.5</X>
-            <Y>5.600006</Y>
-            <Z>102.68001</Z>
-            <R00>-1</R00>
+            <X>-12.478378</X>
+            <Y>6.600006</Y>
+            <Z>107.49274</Z>
+            <R00>-0.9335785</R00>
             <R01>0</R01>
-            <R02>-0</R02>
+            <R02>-0.35836792</R02>
             <R10>0</R10>
             <R11>1</R11>
             <R12>0</R12>
-            <R20>0</R20>
+            <R20>0.35836792</R20>
             <R21>0</R21>
-            <R22>-1</R22>
+            <R22>-0.9335785</R22>
           </CoordinateFrame>
           <bool name="CanCollide">false</bool>
           <bool name="CanQuery">false</bool>
@@ -2268,18 +2268,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-9.919449</X>
+              <X>-19.762741</X>
               <Y>8.5</Y>
-              <Z>109.471085</Z>
-              <R00>-0.9510498</R00>
+              <Z>114.704865</Z>
+              <R00>-0.78800964</R00>
               <R01>0</R01>
-              <R02>-0.309021</R02>
+              <R02>-0.6156616</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.309021</R20>
+              <R20>0.6156616</R20>
               <R21>0</R21>
-              <R22>-0.9510498</R22>
+              <R22>-0.78800964</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -2302,18 +2302,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>9.919449</X>
+              <X>19.762741</X>
               <Y>8.5</Y>
-              <Z>109.471085</Z>
-              <R00>-0.9510498</R00>
+              <Z>114.704865</Z>
+              <R00>-0.78800964</R00>
               <R01>0</R01>
-              <R02>0.309021</R02>
+              <R02>0.6156616</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.309021</R20>
+              <R20>-0.6156616</R20>
               <R21>0</R21>
-              <R22>-0.9510498</R22>
+              <R22>-0.78800964</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -3839,9 +3839,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>76.36612</X>
+            <X>71.85054</X>
             <Y>6.600006</Y>
-            <Z>76.36896</Z>
+            <Z>81.56477</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
             <R02>-0.70710754</R02>
@@ -3859,9 +3859,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
+            <X>25.328995</X>
             <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <Z>8.319</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -3944,18 +3944,18 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAGdvb19qYXJfc3RvcHBlcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>66.59532</X>
-            <Y>5.600006</Y>
-            <Z>78.616135</Z>
-            <R00>-0.70710754</R00>
+            <X>67.1853</X>
+            <Y>6.600006</Y>
+            <Z>84.83238</Z>
+            <R00>-0.40673828</R00>
             <R01>0</R01>
-            <R02>-0.70710754</R02>
+            <R02>-0.9135437</R02>
             <R10>0</R10>
             <R11>1</R11>
             <R12>0</R12>
-            <R20>0.70710754</R20>
+            <R20>0.9135437</R20>
             <R21>0</R21>
-            <R22>-0.70710754</R22>
+            <R22>-0.40673828</R22>
           </CoordinateFrame>
           <bool name="CanCollide">false</bool>
           <bool name="CanQuery">false</bool>
@@ -4636,18 +4636,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>70.39365</X>
+              <X>67.13422</X>
               <Y>8.5</Y>
-              <Z>84.42186</Z>
-              <R00>-0.45399475</R00>
+              <Z>95.08295</Z>
+              <R00>-0.12187195</R00>
               <R01>0</R01>
-              <R02>-0.89100647</R02>
+              <R02>-0.9925537</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.89100647</R20>
+              <R20>0.9925537</R20>
               <R21>0</R21>
-              <R22>-0.45399475</R22>
+              <R22>-0.12187195</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -4670,18 +4670,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>84.42186</X>
+              <X>95.08295</X>
               <Y>8.5</Y>
-              <Z>70.39365</Z>
-              <R00>-0.89100647</R00>
+              <Z>67.13422</Z>
+              <R00>-0.9925537</R00>
               <R01>0</R01>
-              <R02>-0.45399475</R02>
+              <R02>-0.12187195</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.45399475</R20>
+              <R20>0.12187195</R20>
               <R21>0</R21>
-              <R22>-0.89100647</R22>
+              <R22>-0.9925537</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -6207,9 +6207,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>108</X>
+            <X>108.481</X>
             <Y>6.600006</Y>
-            <Z>0.0019989014</Z>
+            <Z>6.8690033</Z>
             <R00>0</R00>
             <R01>0</R01>
             <R02>-1</R02>
@@ -6227,9 +6227,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
+            <X>25.328995</X>
             <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <Z>8.319</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -6312,18 +6312,18 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAGdvb19qYXJfc3RvcHBlcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>102.68001</X>
-            <Y>5.600006</Y>
-            <Z>8.5</Z>
-            <R00>0</R00>
+            <X>107.49274</X>
+            <Y>6.600006</Y>
+            <Z>12.478378</Z>
+            <R00>0.35836792</R00>
             <R01>0</R01>
-            <R02>-1</R02>
+            <R02>-0.9335785</R02>
             <R10>0</R10>
             <R11>1</R11>
             <R12>0</R12>
-            <R20>1</R20>
+            <R20>0.9335785</R20>
             <R21>0</R21>
-            <R22>0</R22>
+            <R22>0.35836792</R22>
           </CoordinateFrame>
           <bool name="CanCollide">false</bool>
           <bool name="CanQuery">false</bool>
@@ -7004,18 +7004,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>109.471085</X>
+              <X>114.704865</X>
               <Y>8.5</Y>
-              <Z>9.919449</Z>
-              <R00>0.309021</R00>
+              <Z>19.762741</Z>
+              <R00>0.6156616</R00>
               <R01>0</R01>
-              <R02>-0.9510498</R02>
+              <R02>-0.78800964</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.9510498</R20>
+              <R20>0.78800964</R20>
               <R21>0</R21>
-              <R22>0.309021</R22>
+              <R22>0.6156616</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -7038,18 +7038,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>109.471085</X>
+              <X>114.704865</X>
               <Y>8.5</Y>
-              <Z>-9.919449</Z>
-              <R00>-0.309021</R00>
+              <Z>-19.762741</Z>
+              <R00>-0.6156616</R00>
               <R01>0</R01>
-              <R02>-0.9510498</R02>
+              <R02>-0.78800964</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.9510498</R20>
+              <R20>0.78800964</R20>
               <R21>0</R21>
-              <R22>-0.309021</R22>
+              <R22>-0.6156616</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -8575,9 +8575,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>76.36896</X>
+            <X>81.56477</X>
             <Y>6.600006</Y>
-            <Z>-76.36612</Z>
+            <Z>-71.85054</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
             <R02>-0.70710754</R02>
@@ -8595,9 +8595,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
+            <X>25.328995</X>
             <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <Z>8.319</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -8680,18 +8680,18 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAGdvb19qYXJfc3RvcHBlcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>78.616135</X>
-            <Y>5.600006</Y>
-            <Z>-66.59532</Z>
-            <R00>0.70710754</R00>
+            <X>84.83238</X>
+            <Y>6.600006</Y>
+            <Z>-67.1853</Z>
+            <R00>0.9135437</R00>
             <R01>0</R01>
-            <R02>-0.70710754</R02>
+            <R02>-0.40673828</R02>
             <R10>0</R10>
             <R11>1</R11>
             <R12>0</R12>
-            <R20>0.70710754</R20>
+            <R20>0.40673828</R20>
             <R21>0</R21>
-            <R22>0.70710754</R22>
+            <R22>0.9135437</R22>
           </CoordinateFrame>
           <bool name="CanCollide">false</bool>
           <bool name="CanQuery">false</bool>
@@ -9372,18 +9372,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>84.42186</X>
+              <X>95.08295</X>
               <Y>8.5</Y>
-              <Z>-70.39365</Z>
-              <R00>0.89100647</R00>
+              <Z>-67.13422</Z>
+              <R00>0.9925537</R00>
               <R01>0</R01>
-              <R02>-0.45399475</R02>
+              <R02>-0.12187195</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.45399475</R20>
+              <R20>0.12187195</R20>
               <R21>0</R21>
-              <R22>0.89100647</R22>
+              <R22>0.9925537</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -9406,18 +9406,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>70.39365</X>
+              <X>67.13422</X>
               <Y>8.5</Y>
-              <Z>-84.42186</Z>
-              <R00>0.45399475</R00>
+              <Z>-95.08295</Z>
+              <R00>0.12187195</R00>
               <R01>0</R01>
-              <R02>-0.89100647</R02>
+              <R02>-0.9925537</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.89100647</R20>
+              <R20>0.9925537</R20>
               <R21>0</R21>
-              <R22>0.45399475</R22>
+              <R22>0.12187195</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -10943,9 +10943,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>0.0019989014</X>
+            <X>6.8690033</X>
             <Y>6.600006</Y>
-            <Z>-108</Z>
+            <Z>-108.481</Z>
             <R00>1</R00>
             <R01>0</R01>
             <R02>0</R02>
@@ -10963,9 +10963,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
+            <X>25.328995</X>
             <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <Z>8.319</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -11048,18 +11048,18 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAGdvb19qYXJfc3RvcHBlcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>8.5</X>
-            <Y>5.600006</Y>
-            <Z>-102.68001</Z>
-            <R00>1</R00>
+            <X>12.478378</X>
+            <Y>6.600006</Y>
+            <Z>-107.49274</Z>
+            <R00>0.9335785</R00>
             <R01>0</R01>
-            <R02>0</R02>
+            <R02>0.35836792</R02>
             <R10>0</R10>
             <R11>1</R11>
             <R12>0</R12>
-            <R20>-0</R20>
+            <R20>-0.35836792</R20>
             <R21>0</R21>
-            <R22>1</R22>
+            <R22>0.9335785</R22>
           </CoordinateFrame>
           <bool name="CanCollide">false</bool>
           <bool name="CanQuery">false</bool>
@@ -11740,18 +11740,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>9.919449</X>
+              <X>19.762741</X>
               <Y>8.5</Y>
-              <Z>-109.471085</Z>
-              <R00>0.9510498</R00>
+              <Z>-114.704865</Z>
+              <R00>0.78800964</R00>
               <R01>0</R01>
-              <R02>0.309021</R02>
+              <R02>0.6156616</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.309021</R20>
+              <R20>-0.6156616</R20>
               <R21>0</R21>
-              <R22>0.9510498</R22>
+              <R22>0.78800964</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -11774,18 +11774,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-9.919449</X>
+              <X>-19.762741</X>
               <Y>8.5</Y>
-              <Z>-109.471085</Z>
-              <R00>0.9510498</R00>
+              <Z>-114.704865</Z>
+              <R00>0.78800964</R00>
               <R01>0</R01>
-              <R02>-0.309021</R02>
+              <R02>-0.6156616</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.309021</R20>
+              <R20>0.6156616</R20>
               <R21>0</R21>
-              <R22>0.9510498</R22>
+              <R22>0.78800964</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -13311,9 +13311,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-76.36612</X>
+            <X>-71.85054</X>
             <Y>6.600006</Y>
-            <Z>-76.36896</Z>
+            <Z>-81.56477</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
             <R02>0.70710754</R02>
@@ -13331,9 +13331,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
+            <X>25.328995</X>
             <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <Z>8.319</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -13416,18 +13416,18 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAGdvb19qYXJfc3RvcHBlcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-66.59532</X>
-            <Y>5.600006</Y>
-            <Z>-78.616135</Z>
-            <R00>0.70710754</R00>
+            <X>-67.1853</X>
+            <Y>6.600006</Y>
+            <Z>-84.83238</Z>
+            <R00>0.40673828</R00>
             <R01>0</R01>
-            <R02>0.70710754</R02>
+            <R02>0.9135437</R02>
             <R10>0</R10>
             <R11>1</R11>
             <R12>0</R12>
-            <R20>-0.70710754</R20>
+            <R20>-0.9135437</R20>
             <R21>0</R21>
-            <R22>0.70710754</R22>
+            <R22>0.40673828</R22>
           </CoordinateFrame>
           <bool name="CanCollide">false</bool>
           <bool name="CanQuery">false</bool>
@@ -14108,18 +14108,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-70.39365</X>
+              <X>-67.13422</X>
               <Y>8.5</Y>
-              <Z>-84.42186</Z>
-              <R00>0.45399475</R00>
+              <Z>-95.08295</Z>
+              <R00>0.12187195</R00>
               <R01>0</R01>
-              <R02>0.89100647</R02>
+              <R02>0.9925537</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.89100647</R20>
+              <R20>-0.9925537</R20>
               <R21>0</R21>
-              <R22>0.45399475</R22>
+              <R22>0.12187195</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -14142,18 +14142,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-84.42186</X>
+              <X>-95.08295</X>
               <Y>8.5</Y>
-              <Z>-70.39365</Z>
-              <R00>0.89100647</R00>
+              <Z>-67.13422</Z>
+              <R00>0.9925537</R00>
               <R01>0</R01>
-              <R02>0.45399475</R02>
+              <R02>0.12187195</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.45399475</R20>
+              <R20>-0.12187195</R20>
               <R21>0</R21>
-              <R22>0.89100647</R22>
+              <R22>0.9925537</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -15679,9 +15679,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-108</X>
+            <X>-108.481</X>
             <Y>6.600006</Y>
-            <Z>-0.0019989014</Z>
+            <Z>-6.8690033</Z>
             <R00>0</R00>
             <R01>0</R01>
             <R02>1</R02>
@@ -15699,9 +15699,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
+            <X>25.328995</X>
             <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <Z>8.319</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -15784,18 +15784,18 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAGdvb19qYXJfc3RvcHBlcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-102.68001</X>
-            <Y>5.600006</Y>
-            <Z>-8.5</Z>
-            <R00>0</R00>
+            <X>-107.49274</X>
+            <Y>6.600006</Y>
+            <Z>-12.478378</Z>
+            <R00>-0.35836792</R00>
             <R01>0</R01>
-            <R02>1</R02>
+            <R02>0.9335785</R02>
             <R10>0</R10>
             <R11>1</R11>
             <R12>0</R12>
-            <R20>-1</R20>
+            <R20>-0.9335785</R20>
             <R21>0</R21>
-            <R22>0</R22>
+            <R22>-0.35836792</R22>
           </CoordinateFrame>
           <bool name="CanCollide">false</bool>
           <bool name="CanQuery">false</bool>
@@ -16476,18 +16476,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-109.471085</X>
+              <X>-114.704865</X>
               <Y>8.5</Y>
-              <Z>-9.919449</Z>
-              <R00>-0.309021</R00>
+              <Z>-19.762741</Z>
+              <R00>-0.6156616</R00>
               <R01>0</R01>
-              <R02>0.9510498</R02>
+              <R02>0.78800964</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.9510498</R20>
+              <R20>-0.78800964</R20>
               <R21>0</R21>
-              <R22>-0.309021</R22>
+              <R22>-0.6156616</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -16510,18 +16510,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-109.471085</X>
+              <X>-114.704865</X>
               <Y>8.5</Y>
-              <Z>9.919449</Z>
-              <R00>0.309021</R00>
+              <Z>19.762741</Z>
+              <R00>0.6156616</R00>
               <R01>0</R01>
-              <R02>0.9510498</R02>
+              <R02>0.78800964</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.9510498</R20>
+              <R20>-0.78800964</R20>
               <R21>0</R21>
-              <R22>0.309021</R22>
+              <R22>0.6156616</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -18047,9 +18047,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-76.36896</X>
+            <X>-81.56477</X>
             <Y>6.600006</Y>
-            <Z>76.36612</Z>
+            <Z>71.85054</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
             <R02>0.70710754</R02>
@@ -18067,9 +18067,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
+            <X>25.328995</X>
             <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <Z>8.319</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -18152,18 +18152,18 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAGdvb19qYXJfc3RvcHBlcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-78.616135</X>
-            <Y>5.600006</Y>
-            <Z>66.59532</Z>
-            <R00>-0.70710754</R00>
+            <X>-84.83238</X>
+            <Y>6.600006</Y>
+            <Z>67.1853</Z>
+            <R00>-0.9135437</R00>
             <R01>0</R01>
-            <R02>0.70710754</R02>
+            <R02>0.40673828</R02>
             <R10>0</R10>
             <R11>1</R11>
             <R12>0</R12>
-            <R20>-0.70710754</R20>
+            <R20>-0.40673828</R20>
             <R21>0</R21>
-            <R22>-0.70710754</R22>
+            <R22>-0.9135437</R22>
           </CoordinateFrame>
           <bool name="CanCollide">false</bool>
           <bool name="CanQuery">false</bool>
@@ -18844,18 +18844,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-84.42186</X>
+              <X>-95.08295</X>
               <Y>8.5</Y>
-              <Z>70.39365</Z>
-              <R00>-0.89100647</R00>
+              <Z>67.13422</Z>
+              <R00>-0.9925537</R00>
               <R01>0</R01>
-              <R02>0.45399475</R02>
+              <R02>0.12187195</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.45399475</R20>
+              <R20>-0.12187195</R20>
               <R21>0</R21>
-              <R22>-0.89100647</R22>
+              <R22>-0.9925537</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -18878,18 +18878,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-70.39365</X>
+              <X>-67.13422</X>
               <Y>8.5</Y>
-              <Z>84.42186</Z>
-              <R00>-0.45399475</R00>
+              <Z>95.08295</Z>
+              <R00>-0.12187195</R00>
               <R01>0</R01>
-              <R02>0.89100647</R02>
+              <R02>0.9925537</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.89100647</R20>
+              <R20>-0.9925537</R20>
               <R21>0</R21>
-              <R22>-0.45399475</R22>
+              <R22>-0.12187195</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
