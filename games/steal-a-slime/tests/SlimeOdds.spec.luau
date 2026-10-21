@@ -114,10 +114,8 @@ end)
 
 describe("Spawner drop rule over the open families", function()
 	-- Drops the way spawnOne does with FEATURES.FountainTiers on (the flag is passed, the default stays off).
-	local function speciesSeen(fountainTier: number, n: number): { [string]: boolean }
-		local world = ServerFixtures.world()
-		world.fountainTier = fountainTier
-		local families = Spawner.familyPool(world, true)
+	local function speciesSeen(n: number): { [string]: boolean }
+		local families = Spawner.familyPool(true)
 		local rng = Rng.new(19)
 		local seen = {}
 		for i = 1, n do
@@ -129,23 +127,16 @@ describe("Spawner drop rule over the open families", function()
 		return seen
 	end
 
-	it("every species of every open family can drop, at every tier", function()
-		local seen = speciesSeen(FountainTiers.MAX_TIER, 200)
+	it("every species of every family can drop, at every tier", function()
+		local seen = speciesSeen(200)
 		for _, entry in SlimeRoster.ofKind("spawn") do
 			expect(seen[entry.id]).toBe(true)
-		end
-	end)
-	it("a locked family's species never drop", function()
-		local seen = speciesSeen(2, 200)
-		for _, entry in SlimeRoster.ofKind("spawn") do
-			local open = entry.family == nil or entry.family == "orchard"
-			expect(seen[entry.id] == true).toBe(open)
 		end
 	end)
 	it("with the feature off the server drops Classic species only", function()
 		local world = ServerFixtures.world()
 		world.fountainTier = FountainTiers.MAX_TIER
-		expect(Spawner.familyPool(world, false)).toBeNil()
+		expect(Spawner.familyPool(false)).toBeNil()
 		for _ = 1, 300 do
 			local id = Spawner.spawnOne(world, T0)
 			local family = SlimeRoster.get(world.wild[id].slime.species :: string).family

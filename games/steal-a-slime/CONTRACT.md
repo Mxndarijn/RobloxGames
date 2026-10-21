@@ -405,7 +405,7 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §15 | [plot-skins.md](contract/plot-skins.md) | Gaps #15: plot skins unlocked by collection (2026-10-16, Archer) |
 | §17 | [steal-alerts.md](contract/steal-alerts.md) | v21: full steal alerts (2026-10-16) |
 | §18 | [weekly-event-rotation.md](contract/weekly-event-rotation.md) | v21: weekly event rotation (2026-10-16) |
-| §19 | [fountain-tiers.md](contract/fountain-tiers.md) | v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`) |
+| §19 | [fountain-tiers.md](contract/fountain-tiers.md) | v19: fountain tiers + slime families (`FEATURES.FountainTiers`) |
 | §21 | [merge-vat3.md](contract/merge-vat3.md) | v19: 3-slime merge vat (`FEATURES.MergeVat3`) |
 | §22 | [restocking-shop.md](contract/restocking-shop.md) | v29 #13: restocking consumables shop (2026-10-16) |
 | §24 | [welcome-back.md](contract/welcome-back.md) | v20: welcome-back card (2026-10-17) |
@@ -424,4 +424,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §37 | [slime-walk.md](contract/slime-walk.md) | Slime walk: wild slimes glide the lane and walk back to it when dropped |
 | §38 | [slime-labels.md](contract/slime-labels.md) | Slime labels: a tag above every loose slime, a sign on every pad |
 | §39 | [slime-life.md](contract/slime-life.md) | Slime life: species gaits, hops, lane beats and reactions |
-| §40 | [mystery-egg.md](contract/mystery-egg.md) | Mystery Eggs: wild eggs that incubate on a pad, can be stolen, hatch into a slime (`FEATURES.MysteryEggs`) |
+| §40 | [mystery-egg.md](contract/mystery-egg.md) | Mystery Eggs: wild eggs that incubate on a pad, can be stolen, hatch into a slime in a show on the pad, lucky eggs and a lucky meter (`FEATURES.MysteryEggs`) |

@@ -59,7 +59,7 @@ export type Session = {
 	stealWaitSince: number?, -- tutorial Steal step: since when no other plot had a slime to steal, runtime only
 	friends: number?, -- friends in this server (Friends.refresh), runtime only
 	blessedUntil: number?, -- when the co-op ritual's Blessed bonus (data.ritualBonus) ends (RitualService), runtime only
-	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch for the reveal banner (never saved)
+	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch (State.egg, never saved)
 	home: boolean?, -- standing in their own HomeZone (the adapter sets it); warms their Mystery Eggs, runtime only
 	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
@@ -113,6 +113,18 @@ export type AdminEvent = {
 	modifier: CycleModifier.Modifier,
 }
 
+-- A Mystery Egg hatch whose show is playing (contract/mystery-egg.md §40.6), by the hatched slime's id.
+export type Hatch = {
+	at: number, -- server time of the hatch (model attribute HatchedAt)
+	kind: string, -- egg kind id (HatchedFrom)
+	lucky: boolean, -- a lucky egg or a full lucky meter (HatchLucky)
+	userId: number, -- who hatched it
+	text: string, -- the owner's toast, sent at the reveal
+	announce: string?, -- the server toast, sent at the reveal (HATCH_ANNOUNCE_TIER+)
+	sound: string,
+	told: boolean, -- the toasts went out
+}
+
 export type World = {
 	sessions: { [number]: Session },
 	plots: { [number]: number }, -- plotIndex -> userId
@@ -122,6 +134,7 @@ export type World = {
 	escaping: { [string]: number }, -- slimeId -> time its bounce home ends
 	rng: Rng.Rng,
 	eggRng: Rng.Rng, -- FEATURES.MysteryEggs rolls, apart from `rng` so the fountain's slime sequence doesn't shift
+	hatches: { [string]: Hatch }, -- Mystery Egg hatches whose show is playing, runtime only (MysteryEgg.step forgets them)
 	newId: () -> string,
 	startedAt: number,
 	nextSpawnAt: number,
@@ -166,6 +179,7 @@ function World.new(options: Options): World
 		escaping = {},
 		rng = Rng.new(options.seed or 1),
 		eggRng = Rng.new((options.seed or 1) + 7919),
+		hatches = {},
 		newId = options.newId or function()
 			counter += 1
 			return `s{counter}`

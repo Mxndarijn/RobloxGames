@@ -48,6 +48,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local EggKind = if script then require(script.Parent.EggKind) else require("./EggKind")
 local AudioSettings = if script then require(script.Parent.AudioSettings) else require("./AudioSettings")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local HotbarOrder = if script then require(script.Parent.HotbarOrder) else require("./HotbarOrder")
@@ -76,6 +77,23 @@ local MAX_CASH = 1e15
 -- Lines saved as a best tier; Goo Traps (TRAP_LINE) are saved as charges per trap id.
 local PVP_LINES = { "Knockback", "Blaster" }
 local TRAP_LINE = "Trap"
+
+-- The Mystery Egg lucky meter of a raw save (read) or of PlayerData (write): known kind ids with a whole
+-- number of misses in 0 .. pity - 1. Missing / junk -> empty.
+function SaveData.cleanEggLuck(raw: any): { [string]: number }
+	local out: { [string]: number } = {}
+	if type(raw) ~= "table" then
+		return out
+	end
+	for id, n in raw do
+		local kind = EggKind.get(id)
+		local misses = tonumber(n)
+		if kind and misses and misses == misses then
+			out[id] = math.clamp(math.floor(misses), 0, kind.pity - 1)
+		end
+	end
+	return out
+end
 
 -- Boss trophies of a raw save (read) or of PlayerData (write): sanitized slimes of a boss species (SlimeRoster kind
 -- "boss"), the first one per species, never on a pad. Missing / junk -> none.
@@ -564,6 +582,7 @@ function SaveData.deserialize(stored: any): Data
 	data.pvp = SaveData.cleanPvp(raw.pvp) -- FEATURES.PvP (missing -> nothing owned)
 	data.trophies = SaveData.cleanTrophies(raw.trophies) -- boss trophies (no version bump: missing -> none)
 	data.hotbar = HotbarOrder.clean(raw.hotbar) -- hotbar order (no version bump: missing / junk -> nil)
+	data.eggLuck = SaveData.cleanEggLuck(raw.eggLuck) -- Mystery Egg lucky meter (no version bump: missing -> empty)
 	for _, trophy in data.trophies do
 		PlayerData.discover(data, trophy) -- an owned boss always counts in the SlimeDex
 	end
@@ -628,7 +647,9 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			species = slime.species, -- optional (v28), dropped on load if unknown
 			growth = slime.growth, -- optional (FEATURES.GrowingSlimes): missing = 0, no version bump
 			keep = if slime.keep == true then true else nil, -- optional (CONTRACT.md §21.1): missing = not kept, no version bump
-			egg = if slime.egg then { kind = slime.egg.kind, hatchAt = slime.egg.hatchAt } else nil, -- optional (contract/mystery-egg.md): missing = a slime, no version bump
+			egg = if slime.egg
+				then { kind = slime.egg.kind, hatchAt = slime.egg.hatchAt, lucky = slime.egg.lucky }
+				else nil, -- optional (contract/mystery-egg.md): missing = a slime, no version bump
 		})
 	end
 	local found = {}
@@ -684,6 +705,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		pvp = { tiers = pvp.tiers, traps = pvp.traps, fun = pvpFun },
 		trophies = SaveData.cleanTrophies(data.trophies),
 		hotbar = HotbarOrder.clean(data.hotbar), -- nil until set: the key is left out
+		eggLuck = SaveData.cleanEggLuck(data.eggLuck),
 	}
 end
 

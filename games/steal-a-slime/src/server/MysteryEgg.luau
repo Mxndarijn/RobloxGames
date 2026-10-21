@@ -3,10 +3,13 @@
 	MysteryEgg (server)
 
 	Wild Mystery Eggs (contract/mystery-egg.md): `hatch` is the `HatchEgg`
-	action and the owner's HatchPrompt (the hatch goes to the reveal banner,
-	State.egg); `step` (once a second) starts the clock of any pad egg without
-	one, warms the eggs of owners standing at home and toasts the owner once
-	when an egg turns ready. Pure: no Roblox APIs.
+	action and the owner's HatchPrompt. It records the hatch in
+	`world.hatches` for the hatch show (WorldView tags the new slime model with
+	HatchedAt / HatchedFrom / HatchLucky) and holds the toasts until the show
+	reveals the slime. `step` (once a second) sends those toasts, forgets old
+	hatches, starts the clock of any pad egg without one, warms the eggs of
+	owners standing at home and toasts the owner once when an egg turns ready.
+	Pure: no Roblox APIs.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -21,10 +24,21 @@ type Session = World.Session
 
 local MysteryEgg = {}
 
-local function reveal(world: World, session: Session, slime: Genome.Slime, now: number)
-	session.egg = { slime = slime, at = now }
-	World.markDirty(session)
-	World.notify(world, session.userId, `Your egg hatched: {Genome.displayName(slime)}!`, "good", "Cash", "MysteryEgg")
+-- The owner's toast for a hatch: "Lucky egg! Your egg hatched: Legendary Honey Queen!".
+function MysteryEgg.hatchText(slime: Genome.Slime, hatch: SharedEgg.Hatch): string
+	local prefix = if hatch.guaranteed then "Lucky meter full! " elseif hatch.lucky then "Lucky egg! " else ""
+	return `{prefix}Your egg hatched: {Genome.displayName(slime)}!`
+end
+
+-- The owner's toast when an egg turns ready; it names a full lucky meter.
+function MysteryEgg.readyText(data: any, slime: Genome.Slime): string
+	local text = `Your {Genome.displayName(slime)} is ready to hatch! Hold Hatch on it.`
+	local kind = EggKind.of(slime)
+	if kind and SharedEgg.guaranteed(data, kind) then
+		local top = Genome.rarity(EggKind.topTier(kind)).name
+		text ..= ` Your lucky meter is full: it hatches a {top} or better!`
+	end
+	return text
 end
 
 --[[
@@ -35,35 +49,55 @@ function MysteryEgg.hatch(world: World, session: Session, slimeId: string, now: 
 	if World.isBusy(world, slimeId) then
 		return false, "egg is being stolen"
 	end
-	local ok, value = SharedEgg.hatchEgg(session.data, slimeId, now)
-	if not ok then
+	local ok, value, info = SharedEgg.hatchEgg(session.data, slimeId, now, world.eggRng)
+	if not ok or not info then
 		return false, value :: string
 	end
 	local slime = value :: Genome.Slime
 	if session.eggsReady then
 		session.eggsReady[slimeId] = nil
 	end
-	reveal(world, session, slime, now)
-	World.effect(world, "Merge", { slimeId = slimeId, userId = session.userId })
-	if slime.tier >= Config.MYSTERY_EGG.HATCH_ANNOUNCE_TIER then
-		local sound = if slime.tier >= Config.SECRET_TIER then "Secret" else "Rare"
-		World.notify(
-			world,
-			nil,
-			`{session.name} hatched a {Genome.displayName(slime)} from a Mystery Egg!`,
-			"good",
-			sound
-		)
-	end
+	session.egg = { slime = slime, at = now }
+	World.markDirty(session)
+	world.hatches[slimeId] = {
+		at = now,
+		kind = info.kind,
+		lucky = info.lucky or info.guaranteed,
+		userId = session.userId,
+		text = MysteryEgg.hatchText(slime, info),
+		announce = if slime.tier >= Config.MYSTERY_EGG.HATCH_ANNOUNCE_TIER
+			then `{session.name} hatched a {Genome.displayName(slime)} from a Mystery Egg!`
+			else nil,
+		sound = if slime.tier >= Config.SECRET_TIER then "Secret" else "Rare",
+		told = false,
+	}
 	return true, nil
 end
 
+-- Sends the toasts of hatches the show has revealed and forgets hatches whose show is over.
+function MysteryEgg.stepHatches(world: World, now: number)
+	local cfg = Config.MYSTERY_EGG
+	for id, hatch in world.hatches do
+		if not hatch.told and now >= hatch.at + cfg.HATCH_REVEAL_SECONDS then
+			hatch.told = true
+			World.notify(world, hatch.userId, hatch.text, "good", hatch.sound, "MysteryEgg")
+			if hatch.announce then
+				World.notify(world, nil, hatch.announce, "good", hatch.sound)
+			end
+		end
+		if hatch.told and now >= hatch.at + cfg.HATCH_FX_SECONDS then
+			world.hatches[id] = nil
+		end
+	end
+end
+
 --[[
-	Once a second: every pad egg gets a hatch clock, the eggs of owners at home
-	(`session.home`) incubate WARM_SPEED x, and an owner hears once when one of
-	their eggs is ready. Eggs being carried off are left alone.
+	Once a second: revealed hatches are toasted, every pad egg gets a hatch clock,
+	the eggs of owners at home (`session.home`) incubate WARM_SPEED x, and an owner
+	hears once when one of their eggs is ready. Eggs being carried off are left alone.
 ]]
 function MysteryEgg.step(world: World, seconds: number, now: number)
+	MysteryEgg.stepHatches(world, now)
 	for _, session in world.sessions do
 		local data = session.data
 		local any = false
@@ -83,14 +117,7 @@ function MysteryEgg.step(world: World, seconds: number, now: number)
 				if EggKind.isReady(slime, now) and not told[slime.id] and not world.carriedBy[slime.id] then
 					told[slime.id] = true
 					World.markDirty(session)
-					World.notify(
-						world,
-						session.userId,
-						`Your {Genome.displayName(slime)} is ready to hatch! Hold Hatch on it.`,
-						"good",
-						"Rare",
-						"MysteryEgg"
-					)
+					World.notify(world, session.userId, MysteryEgg.readyText(data, slime), "good", "Rare", "MysteryEgg")
 				end
 			end
 		end

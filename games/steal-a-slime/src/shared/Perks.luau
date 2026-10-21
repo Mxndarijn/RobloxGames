@@ -15,7 +15,6 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
-local FountainTiers = if script then require(script.Parent.FountainTiers) else require("./FountainTiers")
 
 -- The fields Perks reads (a PlayerData.Data satisfies it).
 export type Progress = {
@@ -81,10 +80,6 @@ function Perks.tierText(tier: Config.RebirthTier): string
 	end
 	if tier.income then
 		table.insert(parts, `+{math.floor(tier.income * 100 + 0.5)}% income`)
-	end
-	-- Only with the feature on: a rank card never promises a family the server won't drop.
-	if tier.family and Config.FEATURES.FountainTiers then
-		table.insert(parts, FountainTiers.rankText(tier.family))
 	end
 	return table.concat(parts, ", ")
 end

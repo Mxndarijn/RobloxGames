@@ -7,8 +7,8 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-local ALL: MergeRecipes.Ctx = { unlocked = MergeRecipes.unlockedFor(math.huge) }
-local CLASSIC: MergeRecipes.Ctx = { unlocked = MergeRecipes.unlockedFor(0) }
+local ALL: MergeRecipes.Ctx = { unlocked = MergeRecipes.everySpecies }
+local CLASSIC: MergeRecipes.Ctx = { unlocked = MergeRecipes.classicOnly }
 
 local function inputs(tier: number, species: { string? }): { MergeRecipes.Input }
 	return {

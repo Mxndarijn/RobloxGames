@@ -3,7 +3,6 @@ local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
-local FountainTiers = require("../src/shared/FountainTiers")
 local MergeRecipes = require("../src/shared/MergeRecipes")
 local PlayerData = require("../src/shared/PlayerData")
 local Progression = require("../src/shared/Progression")
@@ -14,20 +13,6 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
-
--- Rebirths a player needs before slimes of `id` can be caught (a hybrid: its recipe's inputs).
-local function openAt(id: string): number
-	local entry = assert(SlimeRoster.get(id), `unknown species {id}`)
-	if entry.kind == "hybrid" then
-		local recipe = assert(MergeRecipes.recipeFor(id), `no recipe for {id}`)
-		local most = 0
-		for _, input in recipe.inputs do
-			most = math.max(most, openAt(input))
-		end
-		return most
-	end
-	return if entry.family then assert(FountainTiers.rebirthsFor(entry.family)) else 0
-end
 
 describe("Rebirth.rebirth", function()
 	it("wipes cash and slimes, keeps the favourite, adds a rebirth", function()
@@ -85,14 +70,6 @@ describe("Rebirth slime requirement", function()
 			local key = MergeRecipes.key(list)
 			expect(`{key}: {seen[key] or "new"}`).toBe(`{key}: new`)
 			seen[key] = level
-		end
-	end)
-	it("only asks for slimes a player of that rank can catch or merge", function()
-		for level, list in Config.REBIRTH_SLIMES do
-			for _, id in list do
-				-- Rebirth `level` is done at level - 1 rebirths.
-				expect(`{level} {id}: {openAt(id) <= level - 1}`).toBe(`{level} {id}: true`)
-			end
 		end
 	end)
 	it("gets harder: the best rarity asked for never drops by more than two tiers", function()

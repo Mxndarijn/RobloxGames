@@ -4,14 +4,13 @@
 
 	Which slime three slimes of one tier make in the vat. Three spawning species of tier T that form a recipe
 	(a multiset: order doesn't matter, repeats count) give that recipe's hybrid of tier T + 1. Anything else
-	falls back to a random spawning species of the next tier from the player's unlocked families, capped at
+	falls back to a random spawning species of the next tier from every family, capped at
 	Config.MERGE_MAX_TIER, with a +2 jump only up to Config.MERGE_JUMP_MAX_TIER and the merge assist (a share
 	of results from the species the player hasn't found). `resolve` draws no randomness: TripleMerge rolls
 	from its outcome, and the merge menu previews it.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
-local FountainTiers = if script then require(script.Parent.FountainTiers) else require("./FountainTiers")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 export type Recipe = {
@@ -24,7 +23,7 @@ export type Recipe = {
 export type Input = { tier: number, species: string? }
 
 export type Ctx = {
-	unlocked: (entry: SlimeRoster.Entry) -> boolean,
+	unlocked: (entry: SlimeRoster.Entry) -> boolean, -- which species a random merge may give (everySpecies / classicOnly)
 	found: { [string]: boolean }?,
 }
 
@@ -148,11 +147,14 @@ function MergeRecipes.foundOf(slimes: { any }?, found: { [string]: boolean }?): 
 	return out
 end
 
--- Classic always; a family once a player of `rebirths` may catch it.
-function MergeRecipes.unlockedFor(rebirths: number): (entry: SlimeRoster.Entry) -> boolean
-	return function(entry: SlimeRoster.Entry): boolean
-		return FountainTiers.catchBlock(rebirths, entry.family) == nil
-	end
+-- Every species may come out of a merge: no rank gate on slimes.
+function MergeRecipes.everySpecies(_entry: SlimeRoster.Entry): boolean
+	return true
+end
+
+-- Classic species only: the pool of a merge with no player context.
+function MergeRecipes.classicOnly(entry: SlimeRoster.Entry): boolean
+	return entry.family == nil
 end
 
 -- The unlocked spawning species of `tier` (roster order), and those of them not found yet.
