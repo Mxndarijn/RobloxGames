@@ -76,6 +76,7 @@ local SlimeLife = require(script.Parent:WaitForChild("SlimeLife"))
 local SlimeLod = require(script.Parent:WaitForChild("SlimeLod"))
 local SlimeMotor = require(script.Parent:WaitForChild("SlimeMotor"))
 local SlimeReact = require(script.Parent:WaitForChild("SlimeReact"))
+local SlimeSpacing = require(script.Parent:WaitForChild("SlimeSpacing"))
 
 local SELECT_EVERY = 0.25
 local ACQUIRE_PER_TICK = 8
@@ -155,6 +156,9 @@ local stateAt: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -
 -- A put-down plays only if the rig comes this soon after the State change (a slime rigged later just sits there).
 local PUT_DOWN_WINDOW = 0.3
 local nextSelect = 0
+local lastFrameAt = os.clock()
+local spacing: { SlimeSpacing.Item } = {} -- reused every frame
+local spaced: { MotorRig } = {}
 -- Contract/slime-life.md social reactions: how far away neighbours notice a slime leaving.
 local DRAIN_WATCH_DISTANCE = 20
 local DRAIN_WATCH_SECONDS = 1.6
@@ -480,6 +484,10 @@ local function releaseMotor(model: Model)
 	end
 	if rig.actor then
 		pcall(SlimeActor.release, rig.actor)
+	end
+	local anchor = rig.motor.body:FindFirstChild(Constants.TAG_ANCHOR)
+	if anchor and anchor:IsA("Attachment") then
+		anchor.Position = Vector3.zero -- the tag back on the Body
 	end
 	pcall(SlimeMotor.release, rig.motor)
 	if rig.sparkle then
@@ -981,18 +989,49 @@ RunService.RenderStepped:Connect(function()
 		readFrame()
 	end
 	local serverNow = workspace:GetServerTimeNow()
+	local dt = math.clamp(now - lastFrameAt, 0, 0.1)
+	lastFrameAt = now
+	-- First pass: every actor places its slime. Every tier, every frame: the Transform carries the smooth lane
+	-- anchor, so skipping a frame would show the Body's replication step. The full life only on the near tier.
+	table.clear(spacing)
+	table.clear(spaced)
+	for model, rig in motorRigs do
+		local actor = rig.actor
+		if model.Parent and actor then
+			local ok, err = pcall(SlimeActor.update, actor, lifeFrame, now, serverNow, math.random, rig.tier == "near")
+			if ok then
+				local r = rig.motor.body.Size.X / 2
+				table.insert(
+					spacing,
+					{ x = actor.visible.X, z = actor.visible.Z, r = r, px = actor.pushX, pz = actor.pushZ }
+				)
+				table.insert(spaced, rig)
+			else
+				warn(`[SlimeLife] actor: {err}`)
+				noMotor[model] = true
+				releaseMotor(model)
+			end
+		end
+	end
+	-- Second pass: drawn slimes never sink into each other (SlimeSpacing), then each tag follows its slime.
+	SlimeSpacing.step(spacing, dt)
+	for i, rig in spaced do
+		local actor = rig.actor :: SlimeActor.Actor
+		local item = spacing[i]
+		SlimeActor.settle(actor, item.px, item.pz, dt)
+		local body = rig.motor.body
+		local anchor = body:FindFirstChild(Constants.TAG_ANCHOR)
+		if anchor and anchor:IsA("Attachment") then
+			anchor.Position = body.CFrame:VectorToObjectSpace(actor.tagOffset)
+		end
+	end
 	for model, rig in motorRigs do
 		if model.Parent then
 			local tier = rig.tier
 			local ok, result = true, false :: any
 			local actor = rig.actor
 			if actor then
-				-- Every tier, every frame: the Transform carries the smooth lane anchor, so skipping a frame
-				-- would show the Body's replication step. The full life only on the near tier.
-				ok, result = pcall(SlimeActor.update, actor, lifeFrame, now, serverNow, math.random, tier == "near")
-				if ok then
-					ok, result = pcall(SlimeMotor.step, rig.motor, now, math.random, actor.mods)
-				end
+				ok, result = pcall(SlimeMotor.step, rig.motor, now, math.random, actor.mods)
 			elseif tier == "near" then
 				ok, result = pcall(SlimeMotor.step, rig.motor, now, math.random)
 			elseif SlimeLod.due(tier, frame, rig.slot, lodConfig) then

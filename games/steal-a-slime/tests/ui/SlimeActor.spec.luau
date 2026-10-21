@@ -28,11 +28,11 @@ local function lcg(seed: number): () -> number
 end
 
 -- A rigged slime standing at `at` in State `state`.
-local function slime(state: string, at: any): any
+local function slime(state: string, at: any, species: string?): any
 	local model = new("Model")
 	model:SetAttribute("Tier", 2)
 	model:SetAttribute("State", state)
-	model:SetAttribute("Species", "gummy")
+	model:SetAttribute("Species", species or "gummy")
 	local body = new("Part")
 	body.Name = "Body"
 	body.Size = Vector3.new(2, 2, 2)
@@ -55,8 +55,8 @@ end
 
 type Rig = { model: any, body: any, motor: any, actor: any, rand: () -> number }
 
-local function rig(state: string, at: any, prevState: string?): Rig
-	local model = slime(state, at)
+local function rig(state: string, at: any, prevState: string?, species: string?): Rig
+	local model = slime(state, at, species)
 	local r = lcg(5)
 	local motor = SlimeMotor.attach(model, 0, r)
 	local actor = SlimeActor.attach(model, motor, 0, prevState)
@@ -185,5 +185,62 @@ describe("SlimeActor on pads (FEATURES.SlimeAlive)", function()
 			end
 		end
 		expect(moved > FPS).toBe(true)
+	end)
+end)
+
+describe("SlimeActor on the move (clean lane)", function()
+	-- A wild slime walking +X in 30 Hz steps; `player` stands `side` studs to its left the whole way.
+	local function walk(species: string, seconds: number, fn: (r: Rig, t: number) -> ())
+		local r = rig("Wild", Vector3.new(0, 3, 0), nil, species)
+		r.actor.feet = new("Attachment") -- no particle effects here (the mock has no Emit)
+		local speed = 3
+		for f = 1, math.floor(seconds * FPS) do
+			local t = f / FPS
+			if f % 2 == 0 then
+				r.body.CFrame = CFrame.lookAt(Vector3.new(speed * t, 3, 0), Vector3.new(speed * t + 1, 3, 0))
+			end
+			local p = r.body.CFrame.Position
+			local near = { player = Vector3.new(p.X, 3, p.Z - 4), cash = 1e9, userId = 1 }
+			SlimeActor.update(r.actor, near, t, t, r.rand, true)
+			SlimeActor.settle(r.actor, 0, 0, 1 / FPS)
+			fn(r, t)
+		end
+	end
+
+	it("only glances at a player beside it while it walks; a hopper jumps nose first", function()
+		local worstGround, worstAir = 0, 0
+		walk("gummy", 6, function(r: Rig, t: number)
+			if t < 1 then
+				return
+			end
+			local m = r.actor.mods
+			-- the drawn turn from the Body's heading (the Body faces the way it walks)
+			local turn = math.abs(m.yaw * math.clamp(m.yawWeight, 0, 1))
+			if r.actor.gait.stage == "air" then
+				worstAir = math.max(worstAir, turn)
+			else
+				worstGround = math.max(worstGround, turn)
+			end
+		end)
+		expect(worstGround <= SlimeActor.GLANCE + 1e-6).toBe(true)
+		expect(worstAir < 0.25).toBe(true)
+	end)
+
+	it("hangs the tag over the drawn slime and moves it evenly while the Body steps", function()
+		local last, worstStep, worstGap = nil, 0, 0
+		walk("moo", 4, function(r: Rig, t: number)
+			local tag = r.body.CFrame.Position + r.actor.tagOffset
+			if t > 1 then
+				local spot = r.actor.visible
+				worstGap = math.max(worstGap, math.sqrt((tag.X - spot.X) ^ 2 + (tag.Z - spot.Z) ^ 2))
+				if last then
+					-- 3 studs / s is 0.05 studs a frame; the Body itself moves 0.1, then 0
+					worstStep = math.max(worstStep, math.abs((tag.X - last.X) - 3 / FPS))
+				end
+			end
+			last = tag
+		end)
+		expect(worstGap < 0.6).toBe(true)
+		expect(worstStep < 0.02).toBe(true)
 	end)
 end)

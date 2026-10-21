@@ -32,6 +32,9 @@ local SlimeGait = {}
 SlimeGait.CROUCH = 0.13 -- seconds of anticipation squat before every jump
 SlimeGait.MAX_GAP = 9 -- studs between the visible body and the anchor before it snaps back
 SlimeGait.MIN_SPEED = 0.3 -- studs / s: slower than this counts as standing (no new jump)
+-- studs: a hopper this far behind its anchor catches up: it cuts a long landing (a belly flop's lie-down) short and
+-- jumps even when the anchor has stopped (a lane beat), so it never sits stranded behind where it should be
+SlimeGait.CATCH_UP = 2
 SlimeGait.VELOCITY_RATE = 5 -- 1 / s: how fast the anchor velocity estimate follows (the Body replicates in steps)
 SlimeGait.STILL_AFTER = 0.25 -- seconds without a Body update before the slime counts as standing
 SlimeGait.STRING_SHARE = 0.28 -- share of the air time the goo string hangs on
@@ -319,7 +322,9 @@ local function hop(
 	p.kind = st.kind
 	local settle = style.settle + (if st.kind == "belly" then 0.75 elseif st.kind == "boing" then 0.35 else 0)
 	local ahead = (x - st.visX) * fx + (z - st.visZ) * fz
-	if since > settle and speed > SlimeGait.MIN_SPEED and ahead > style.wait * shy then
+	local behind = (x - st.visX) ^ 2 + (z - st.visZ) ^ 2 > SlimeGait.CATCH_UP ^ 2
+	local rested = since > settle or (behind and since > style.settle)
+	if rested and (speed > SlimeGait.MIN_SPEED or behind) and (ahead > style.wait * shy or behind) then
 		st.nextKind = nextKind(persona, st, rand)
 		st.stage = "crouch"
 		st.t0 = now

@@ -9,3 +9,4 @@ sourcemap.json
 !/world/*.rbxmx
 /tests/.cache/
 !animations/*.rbxmx
+tools/slimesim/out/
