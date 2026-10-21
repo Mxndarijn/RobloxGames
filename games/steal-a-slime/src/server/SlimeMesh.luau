@@ -350,7 +350,7 @@ function SlimeMesh.pendingKit(self: SlimeMesh, slimeData: Types.SlimeData): stri
 end
 
 function SlimeMesh.hasKit(self: SlimeMesh, kit: string): boolean
-	return self.kits[kit] ~= nil
+	return if self.kits[kit] then true else false
 end
 
 return SlimeMesh
