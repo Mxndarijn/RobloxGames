@@ -1,13 +1,12 @@
 --!strict
 --[[
 	Carry overlay (bottom centre) while state.carrying is set: slime, kind,
-	escape countdown for stolen slimes, Drop -> Request("Drop").
+	Drop -> Request("Drop"). There is no time limit on a carry.
 
 	Thieves are hit with the default Bat Tool (server/BatTool), not a button here.
 ]]
 
 local UI = script.Parent.Parent
-local Format = require(UI.Format)
 local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
@@ -52,7 +51,6 @@ function Carry.new(parent: Instance, ctx: any)
 		Position = UDim2.fromOffset(70, 34),
 		Parent = frame,
 	})
-	local _, setBar = Widgets.bar(frame, Theme.Bad, UDim2.new(1, -24, 0, 10), UDim2.new(0, 12, 1, -22))
 
 	local drop = Widgets.button(
 		{
@@ -87,24 +85,10 @@ function Carry.new(parent: Instance, ctx: any)
 			local slime = carrying.slime
 			swatch.BackgroundColor3 = Widgets.color3(slime.color)
 			name.Text = ctx.Genome.displayName(slime)
-			border.Color = if carrying.kind == "stolen" then Theme.Bad else Theme.Warn
-		end
-		self.tick(ctx.serverNow())
-	end
-
-	function self.tick(now: number)
-		if carrying == nil then
-			return
-		end
-		if carrying.kind == "stolen" and carrying.escapeAt then
-			local left = Format.remainingSeconds(carrying.escapeAt, now)
-			sub.Text = `STOLEN - escapes in {Format.formatDuration(left)}! Run home!`
-			sub.TextColor3 = if left < 5 then Theme.Bad else Theme.Warn
-			setBar(1 - Format.progress(carrying.startedAt, carrying.escapeAt, now))
-		else
-			sub.Text = "Wild slime - bring it to your plot"
-			sub.TextColor3 = Theme.Muted
-			setBar(1)
+			local stolen = carrying.kind == "stolen"
+			border.Color = if stolen then Theme.Bad else Theme.Warn
+			sub.Text = if stolen then "STOLEN - run it home to your plot!" else "Wild slime - bring it to your plot"
+			sub.TextColor3 = if stolen then Theme.Warn else Theme.Muted
 		end
 	end
 

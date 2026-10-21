@@ -3,8 +3,8 @@
 	RevengeFx (VisualsClient module, FEATURES.Revenge)
 
 	The server sets Player attribute RevengePlots (Constants.REVENGE_PLOTS_ATTRIBUTE,
-	"3,5") on the victim only: the plots of thieves who robbed them in the last
-	Config.REVENGE_SECONDS. This draws one Highlight (AlwaysOnTop, named
+	"3,5") on the victim only: the plots of players carrying one of their slimes
+	right now. This draws one Highlight (AlwaysOnTop, named
 	RevengeHighlight) on the Base of each of those plots, for the local player only.
 	Highlights are local to this client; nothing is sent to the server and a
 	highlight disappears as soon as the attribute drops the plot.

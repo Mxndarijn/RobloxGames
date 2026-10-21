@@ -4,7 +4,7 @@
 
 	Everything time-driven, in one call per frame: the fountain and Slime Rain
 	(Spawner), the boss event (BossEvent), escape bounces and lock expiry (StealService.step), and once a
-	second income (Income.step), wriggle / timeout escapes, goal / SlimeDex
+	second income (Income.step), goal / SlimeDex
 	rewards (Milestones.step) and Mystery Egg incubation (MysteryEgg.step).
 ]]
 
@@ -26,7 +26,6 @@ function GameLoop.step(world: World.World, now: number)
 	if elapsed >= 1 then
 		world.lastSecondAt = now
 		Income.step(world, elapsed, now)
-		StealService.tickEscapes(world, now)
 		StealService.tickTutorial(world, now)
 		Milestones.step(world, now)
 		MysteryEgg.step(world, elapsed, now)

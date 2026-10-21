@@ -2,8 +2,7 @@
 --[[
 	StealService (pure)
 
-	Plot locks, stealing a pad slime, the escape-home timer, slapping and lock
-	expiry. Rules come from Shared.Steal; this module applies them to the
+	Plot locks, stealing a pad slime, slapping and lock expiry. Rules come from Shared.Steal; this module applies them to the
 	World and queues toasts.
 
 	* steal: the thief starts carrying a slime that stays in the victim's data
@@ -91,15 +90,15 @@ function StealService.steal(
 	World.markDirty(thief)
 	World.markDirty(owner)
 	World.notify(world, owner.userId, `{thief.name} is stealing your {Genome.displayName(slime)}!`, "bad", "Alarm")
-	World.notify(world, thief.userId, "Run home before it wriggles free!", "info", "Grab")
+	World.notify(world, thief.userId, "Run it home to your plot!", "info", "Grab")
 	World.effect(world, "Steal", { slimeId = slimeId, userId = thief.userId })
 	World.tutorial(world, thief, "Steal")
 	return true, nil
 end
 
 --[[
-	Ends a stolen carry: the slime bounces home. `reason` is "wriggle" |
-	"timeout" | "slap" | "drop" | "left". Returns the slime id or nil.
+	Ends a stolen carry: the slime bounces home. `reason` is "slap" | "drop" |
+	"left". Returns the slime id or nil.
 ]]
 function StealService.escape(world: World, carrier: Session, now: number, reason: string): string?
 	local carry = carrier.carry
@@ -128,7 +127,7 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 	if reason == "slap" then
 		World.notify(world, carrier.userId, `You got bonked! The {name} bounced home.`, "bad", "Slap", "Slap")
 	elseif reason ~= "left" then
-		World.notify(world, carrier.userId, `The {name} wriggled free!`, "bad", "Escape")
+		World.notify(world, carrier.userId, `You dropped the {name}. It went home.`, "bad", "Escape")
 	end
 	World.notify(world, owner.userId, `Your {name} escaped back to you!`, "good", "Escape")
 	return carry.slimeId
@@ -159,21 +158,6 @@ function StealService.slap(
 	World.notify(world, slapper.userId, `You bonked {target.name} with your bat!`, "good", "Slap", "Slap")
 	World.tutorial(world, slapper, "Steal")
 	return true, nil
-end
-
--- Call once per second with the world's rng: wriggles and timeouts.
-function StealService.tickEscapes(world: World, now: number)
-	for _, session in world.sessions do
-		local carry = session.carry
-		if carry and carry.kind == "stolen" then
-			if Steal.shouldEscape(carry.timer, now, world.rng:float()) then
-				local timedOut = carry.timer.escapeAt ~= nil and now >= carry.timer.escapeAt
-				StealService.escape(world, session, now, if timedOut then "timeout" else "wriggle")
-			else
-				World.markDirty(session) -- walkSpeed ramps up while held
-			end
-		end
-	end
 end
 
 -- True when some other player has a slime on a pad (a possible Steal target).

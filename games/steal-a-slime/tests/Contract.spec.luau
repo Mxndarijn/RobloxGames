@@ -43,14 +43,6 @@ describe("Remotes", function()
 end)
 
 describe("Config matches the design", function()
-	it("gives escape timers between 15 and 25 s, shorter for rarer slimes", function()
-		local last = math.huge
-		for _, rarity in Config.RARITIES do
-			expect(rarity.escapeTime >= 15 and rarity.escapeTime <= 25).toBeTruthy()
-			expect(rarity.escapeTime <= last).toBeTruthy()
-			last = rarity.escapeTime
-		end
-	end)
 	it("caps offline income", function()
 		expect(Config.OFFLINE_CAP_SECONDS > 0).toBeTruthy()
 		expect(Config.OFFLINE_RATE > 0 and Config.OFFLINE_RATE <= 1).toBeTruthy()

@@ -38,6 +38,7 @@ local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local TripleMerge = require(Shared:WaitForChild("TripleMerge"))
 local Types = require(Shared:WaitForChild("Types"))
 
+local CarryFade = require(script.CarryFade)
 local DexJarView = require(script.DexJarView)
 local Format = require(script.Format)
 local Hint = require(script.Hint)
@@ -791,6 +792,14 @@ local slimeMove = if Config.FEATURES.MoveSlime == true
 	})
 	else nil
 
+-- The slime you are stealing turns see-through for you, like a Move.
+CarryFade.start({
+	player = player,
+	carryingAttribute = Constants.CARRYING_ATTRIBUTE,
+	slimeTag = Constants.SLIME_TAG,
+	collection = game:GetService("CollectionService"),
+})
+
 -- Your slimes are managed at their pads with keys: R Favorite, X hold to Sell (Hatch stays the server's F prompt),
 -- E Move with FEATURES.MoveSlime.
 local slimeKeys = SlimeKeys.start({
@@ -1170,7 +1179,7 @@ leaderboardEvent.OnClientEvent:Connect(function(board: Types.Leaderboard)
 	worldBoards.setBoard(board)
 end)
 
--- Local countdowns (lock, rain, escape) between State pushes.
+-- Local countdowns (lock, rain) between State pushes.
 task.spawn(function()
 	while true do
 		task.wait(0.1)
@@ -1178,7 +1187,6 @@ task.spawn(function()
 			local now = serverNow()
 			hud.tick(now)
 			inventory.tick()
-			carry.tick(now)
 			bossMeter.tick(now)
 			panelByKey.Codes.tick(now)
 			if panelByKey.WorldShop then

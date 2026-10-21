@@ -103,7 +103,7 @@ local function stepPlayers(loop: Loop, t: number)
 				Actions.shopTick(session, ctx) -- out of range / died / flag off closes the shop
 			end
 			PlayerAttributes.syncOpenShop(world, player)
-			WorldView.setRevengePlots(player, Revenge.plotsFor(world, userId, t))
+			WorldView.setRevengePlots(player, Revenge.plotsFor(world, userId))
 			LeaderboardView.updateStats(player, session)
 		end
 	end

@@ -90,66 +90,24 @@ describe("Steal.canSteal", function()
 end)
 
 describe("Steal carry", function()
-	it("rarer slimes escape sooner (15-25 s)", function()
-		expect(Steal.escapeTime(1)).toBe(25)
-		expect(Steal.escapeTime(Config.MAX_TIER)).toBe(15)
-		for t = 2, Config.MAX_TIER do
-			expect(Steal.escapeTime(t) <= Steal.escapeTime(t - 1)).toBeTruthy()
-		end
-	end)
-	it("wild carries never escape and have no timer", function()
-		local c = Steal.newCarry("wild", 6, 0)
-		expect(c.escapeAt).toBeNil()
-		expect(Steal.shouldEscape(c, 9999, 0)).toBe(false)
-		expect(Steal.wriggleChance(c, 9999)).toBe(0)
+	it("carries have no time limit", function()
+		local c = Steal.newCarry("stolen", Config.MAX_TIER, 0)
+		expect((c :: any).escapeAt).toBeNil()
+		expect(c.kind).toBe("stolen")
+		expect(c.startedAt).toBe(0)
 	end)
 	it("rarer slimes slow you more", function()
-		local slowCommon = Steal.carrySlow(Steal.newCarry("wild", 1, 0), 0)
-		local slowMythic = Steal.carrySlow(Steal.newCarry("wild", 6, 0), 0)
+		local slowCommon = Steal.carrySlow(Steal.newCarry("wild", 1, 0))
+		local slowMythic = Steal.carrySlow(Steal.newCarry("wild", 6, 0))
 		expect(slowMythic > slowCommon).toBeTruthy()
-		expect(Steal.walkSpeed(nil, 0)).toBe(Config.BASE_WALK_SPEED)
-		expect(Steal.walkSpeed(Steal.newCarry("wild", 1, 0), 0)).toBeCloseTo(16 * 0.95)
+		expect(Steal.walkSpeed(nil)).toBe(Config.BASE_WALK_SPEED)
+		expect(Steal.walkSpeed(Steal.newCarry("wild", 1, 0))).toBeCloseTo(16 * 0.95)
 	end)
-	it("stolen slimes slow you progressively, capped", function()
-		local c = Steal.newCarry("stolen", 3, 0)
-		local early = Steal.carrySlow(c, 0)
-		local late = Steal.carrySlow(c, Steal.escapeTime(3))
-		expect(early).toBeCloseTo(Config.RARITIES[3].carrySlow)
-		expect(late).toBeCloseTo(Config.RARITIES[3].carrySlow + Config.STOLEN_EXTRA_SLOW)
-		local m = Steal.newCarry("stolen", 6, 0)
-		expect(Steal.carrySlow(m, 100) <= Config.MAX_CARRY_SLOW).toBeTruthy()
-	end)
-	it("wriggle chance starts at 0 and grows to WRIGGLE_MAX_CHANCE", function()
-		local c = Steal.newCarry("stolen", 1, 0)
-		expect(Steal.wriggleChance(c, 0)).toBe(0)
-		local mid = Steal.wriggleChance(c, 12.5)
-		expect(mid).toBeCloseTo(Config.WRIGGLE_MAX_CHANCE * 0.25)
-		expect(Steal.wriggleChance(c, 25)).toBeCloseTo(Config.WRIGGLE_MAX_CHANCE)
-	end)
-	it("escapes on a lucky roll or when the timer runs out", function()
-		local c = Steal.newCarry("stolen", 1, 0)
-		expect(Steal.shouldEscape(c, 1, 0.5)).toBe(false)
-		expect(Steal.shouldEscape(c, 20, 0.0001)).toBe(true)
-		expect(Steal.shouldEscape(c, 20, 0.99)).toBe(false)
-		expect(Steal.shouldEscape(c, 25, 0.99)).toBe(true)
-	end)
-	it("simulated thieves escape within the timer at a sensible rate", function()
-		-- Seeded walk: thieves who need the full timer always lose the slime;
-		-- some slimes wriggle free early.
-		local rng = require("../src/shared/Rng").new(4)
-		local early = 0
-		for _ = 1, 500 do
-			local c = Steal.newCarry("stolen", 3, 0)
-			local t = 0
-			while not Steal.shouldEscape(c, t, rng:float()) do
-				t += 1
-			end
-			expect(t <= Steal.escapeTime(3)).toBeTruthy()
-			if t < Steal.escapeTime(3) then
-				early += 1
-			end
+	it("a stolen slime slows you by its rarity only, the same however long you hold it", function()
+		for tier = 1, Config.MAX_TIER do
+			local c = Steal.newCarry("stolen", tier, 0)
+			expect(Steal.carrySlow(c)).toBeCloseTo(math.min(Config.RARITIES[tier].carrySlow, Config.MAX_CARRY_SLOW))
 		end
-		expect(early > 50 and early < 450).toBeTruthy()
 	end)
 end)
 

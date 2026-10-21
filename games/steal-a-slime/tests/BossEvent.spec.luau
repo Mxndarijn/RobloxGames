@@ -215,7 +215,7 @@ describe("BossEvent haul", function()
 		local s = w.sessions[1]
 		s.data.speedCoil = true
 		expect((Carry.grab(w, 1, id, 1, t))).toBe(true)
-		expect(Carry.walkSpeed(s, t + 1)).toBeCloseTo(Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW), 1e-9)
+		expect(Carry.walkSpeed(s)).toBeCloseTo(Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW), 1e-9)
 		expect(Snapshot.build(w, s, t + 1).carrying.walkSpeed).toBeCloseTo(
 			Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW),
 			1e-9

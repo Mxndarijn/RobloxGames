@@ -2,12 +2,14 @@
 --[[
 	Revenge (pure, FEATURES.Revenge, CONTRACT.md §16)
 
-	When a thief finishes robbing a player (Carry.deposit of a stolen slime),
-	the victim gets a window of Config.REVENGE_SECONDS against that thief:
-	  * the victim sees the thief's plot highlighted (Player attribute
-	    RevengePlots, drawn by VisualsClient/RevengeFx for the victim only)
-	  * the thief's lock costs Config.REVENGE_LOCK_COST_MULT x while any
-	    victim's window on them is open (not stacked: two victims still x2)
+	* While a thief is carrying one of your slimes, you see the thief's plot
+	  highlighted (Player attribute RevengePlots, drawn by VisualsClient/RevengeFx
+	  for the victim only). It clears the moment the carry ends: the slime is
+	  stolen, goes home, or either side leaves.
+	* When a thief finishes robbing a player (Carry.deposit of a stolen slime),
+	  the victim gets a window of Config.REVENGE_SECONDS against that thief: the
+	  thief's lock costs Config.REVENGE_LOCK_COST_MULT x while any victim's window
+	  on them is open (not stacked: two victims still x2).
 	Marks live in world.revenge[victimId][thiefId] = window end. Robbing the
 	same victim again refreshes (does not add up). Windows end by expiry or
 	when either side leaves (Revenge.forget).
@@ -58,17 +60,16 @@ function Revenge.lockMultiplier(world: World, thiefId: number, now: number): num
 	return 1
 end
 
--- Plot indexes (ascending) of the thieves in the victim's open windows who are still in the server.
-function Revenge.plotsFor(world: World, victimId: number, now: number): { number }
+-- Plot indexes (ascending) of the players carrying one of the victim's slimes right now.
+function Revenge.plotsFor(world: World, victimId: number): { number }
 	local plots = {}
-	local marks = world.revenge[victimId]
-	if not marks or not Revenge.enabled() then
+	if not Revenge.enabled() then
 		return plots
 	end
-	for thiefId, untilT in marks do
-		local thief = world.sessions[thiefId]
-		if thief and now < untilT then
-			table.insert(plots, thief.plotIndex)
+	for _, session in world.sessions do
+		local carry = session.carry
+		if carry and carry.kind == "stolen" and carry.ownerUserId == victimId and session.userId ~= victimId then
+			table.insert(plots, session.plotIndex)
 		end
 	end
 	table.sort(plots)

@@ -68,8 +68,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			kind = carry.kind,
 			ownerUserId = carry.ownerUserId,
 			startedAt = carry.timer.startedAt,
-			escapeAt = carry.timer.escapeAt,
-			walkSpeed = Carry.walkSpeed(session, now),
+			walkSpeed = Carry.walkSpeed(session),
 		}
 	end
 

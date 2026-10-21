@@ -13,7 +13,6 @@ export type Rarity = {
 	weight: number, -- relative fountain drop weight
 	color: { number }, -- UI colour (RGB 0..255)
 	carrySlow: number, -- base WalkSpeed fraction lost while carrying
-	escapeTime: number, -- seconds a thief may hold it before it escapes for sure
 }
 
 -- A restocking consumable (FEATURES.Consumables, Config.CONSUMABLES).
@@ -133,7 +132,6 @@ local RARITIES: { Rarity } = {
 		weight = 52,
 		color = { 170, 220, 170 },
 		carrySlow = 0.05,
-		escapeTime = 25,
 	},
 	{
 		tier = 2,
@@ -142,7 +140,6 @@ local RARITIES: { Rarity } = {
 		weight = 28,
 		color = { 90, 200, 255 },
 		carrySlow = 0.1,
-		escapeTime = 23,
 	},
 	{
 		tier = 3,
@@ -151,7 +148,6 @@ local RARITIES: { Rarity } = {
 		weight = 13,
 		color = { 60, 110, 255 },
 		carrySlow = 0.15,
-		escapeTime = 21,
 	},
 	{
 		tier = 4,
@@ -160,7 +156,6 @@ local RARITIES: { Rarity } = {
 		weight = 5.2,
 		color = { 180, 80, 255 },
 		carrySlow = 0.2,
-		escapeTime = 19,
 	},
 	{
 		tier = 5,
@@ -169,7 +164,6 @@ local RARITIES: { Rarity } = {
 		weight = 1.2,
 		color = { 255, 190, 40 },
 		carrySlow = 0.25,
-		escapeTime = 17,
 	},
 	{
 		tier = 6,
@@ -178,7 +172,6 @@ local RARITIES: { Rarity } = {
 		weight = 0.2,
 		color = { 255, 60, 90 },
 		carrySlow = 0.3,
-		escapeTime = 15,
 	},
 	{
 		-- Secret: ~1 in 2000 wild spawns (0.05 / 99.65); announced to everyone.
@@ -188,7 +181,6 @@ local RARITIES: { Rarity } = {
 		weight = 0.05,
 		color = { 20, 240, 220 },
 		carrySlow = 0.35,
-		escapeTime = 15,
 	},
 }
 
@@ -715,8 +707,6 @@ local Config = {
 		CLOSE_STUDS = 3, -- closer than this the facing check is skipped (hugging a thief)
 		SWING_GAP = 0.4, -- seconds between swing events (a whiff never spends the SLAP_COOLDOWN)
 	}),
-	WRIGGLE_MAX_CHANCE = 0.12, -- per-second escape chance as the escape timer runs out
-	STOLEN_EXTRA_SLOW = 0.25, -- extra slowdown, ramps up the longer a stolen slime is held
 	MAX_CARRY_SLOW = 0.6,
 	BASE_WALK_SPEED = 16,
 
@@ -793,7 +783,7 @@ local Config = {
 		AdminEvents = true, -- admin-only timed Luck surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		CoopRitual = true, -- 2-4 players stand on the ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
 		PlotSkins = true, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
-		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
+		Revenge = true, -- while a thief carries your slime you see their plot highlighted; for REVENGE_SECONDS after they rob you their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
 		StealAlerts = true, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
 		WeeklyEvents = true, -- a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no event, no attribute
 		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)
