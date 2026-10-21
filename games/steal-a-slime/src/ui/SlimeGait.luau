@@ -204,7 +204,8 @@ function SlimeGait.shape(stage: string, u: number, height: number, kind: string)
 			local flop = if w < 0.55 then 0.3 * -math.cos(math.pi * w) else 1.35 * smooth((w - 0.55) / 0.45)
 			o.tilt = flop + (-0.18 - -0.3) * fade
 			o.face = if w > 0.55 then "surprised" else "happy"
-		elseif w > 0.18 and w < 0.82 then
+		elseif kind == "big" and w > 0.25 and w < 0.75 then
+			-- shut happy eyes only for a big joyful leap: on every hop they hid the eyes a third of the time
 			o.face = "happy"
 		end
 	else
@@ -235,8 +236,8 @@ function SlimeGait.shape(stage: string, u: number, height: number, kind: string)
 			o.sy = fallY + (1 - a * math.exp(-14 * u) - fallY) * ramp
 			o.sx = 1 / math.sqrt(math.max(0.4, o.sy))
 			o.tilt = (if kind == "boing" then 0 else 0.18) * math.exp(-u / SlimeGait.LEVEL_OUT)
-			if u < 0.12 then
-				o.face = "squeeze"
+			if u < 0.12 and (kind == "big" or kind == "boing") then
+				o.face = "squeeze" -- a hard landing only; a plain hop lands with its eyes open
 			elseif kind == "boing" and u < 0.6 then
 				o.face = "smug"
 			end
