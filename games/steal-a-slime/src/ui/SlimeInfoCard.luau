@@ -20,6 +20,7 @@
 ]]
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local SlimeLabel = require(Shared:WaitForChild("SlimeLabel"))
 local SlimePadSign = require(script.Parent.SlimePadSign)
@@ -215,6 +216,7 @@ for _, name in SlimeLabel.ATTRIBUTES do
 	WATCHED[name] = true
 end
 WATCHED[Constants.LABEL_HEIGHT_ATTRIBUTE] = true
+WATCHED[Constants.HATCHED_AT_ATTRIBUTE] = true
 
 export type Options = {
 	collection: CollectionService,
@@ -260,6 +262,15 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 			return
 		end
 		local view = SlimeLabel.view(SlimeInfoCard.read(model))
+		-- A slime that just hatched keeps its label hidden until the hatch show reveals it.
+		local hatchedAt = model:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE)
+		if view and hatchedAt ~= nil and SlimeLabel.hiddenByHatch(hatchedAt, workspace:GetServerTimeNow()) then
+			view = nil
+			local wait = (hatchedAt :: number) + Config.MYSTERY_EGG.HATCH_REVEAL_SECONDS - workspace:GetServerTimeNow()
+			task.delay(math.max(0.05, wait), function()
+				refresh(model)
+			end)
+		end
 		local pad = if view and view.pad then SlimePadSign.findPad(model, view.pad) else nil
 		if view and pad then
 			SlimeInfoCard.render(entry.gui, nil, nil)

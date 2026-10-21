@@ -97,7 +97,7 @@ function Spawner.rareText(slime: Genome.Slime): string
 end
 
 -- FEATURES.FountainTiers: raises world.fountainTier to the best rank on the server (it never drops again while
--- the server lives, so the look and the pool don't flap when a high-rank player leaves) and tells everyone.
+-- the server lives, so the look doesn't flap when a high-rank player leaves) and tells everyone.
 -- Returns true when the tier rose. `enabled` (tests) overrides FEATURES.FountainTiers.
 function Spawner.stepFountainTier(world: World, enabled: boolean?): boolean
 	if not (if enabled == nil then Config.FEATURES.FountainTiers else enabled) then
@@ -120,12 +120,13 @@ function Spawner.stepFountainTier(world: World, enabled: boolean?): boolean
 	return true
 end
 
--- Family ids whose species the fountain can drop besides Classic (nil with the feature off: Classic only).
-function Spawner.familyPool(world: World, enabled: boolean?): { string }?
+-- Family ids whose species the fountain drops besides Classic: every family, whatever the ranks on the server
+-- (nil with the feature off: Classic only).
+function Spawner.familyPool(enabled: boolean?): { string }?
 	if not (if enabled == nil then Config.FEATURES.FountainTiers else enabled) then
 		return nil
 	end
-	return FountainTiers.pool(world.fountainTier)
+	return FountainTiers.allFamilies()
 end
 
 -- Loose Mystery Eggs (on the lane, dropped or carried).
@@ -254,7 +255,7 @@ function Spawner.spawnSlime(world: World, now: number): string
 		world.raining,
 		Spawner.pityTier(world.pity),
 		luckMult,
-		Spawner.familyPool(world),
+		Spawner.familyPool(),
 		if unix then EventSecrets.extraSpecies(unix) else nil
 	)
 	local tier = drop.slime.tier

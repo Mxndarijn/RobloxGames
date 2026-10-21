@@ -951,6 +951,11 @@ function WorldView.reconcile(
 		record.prompt.Enabled = entry.promptEnabled
 		record.prompt:SetAttribute(Constants.PROMPT_HIDE_ATTRIBUTE, entry.hideFromUserId)
 		record.prompt.HoldDuration = entry.promptHold
+		-- The hatch show (contract/mystery-egg.md §40.6): set before a new model is parented in place().
+		local hatched = entry.hatch
+		setAttr(record.model, Constants.HATCHED_AT_ATTRIBUTE, hatched and hatched.at)
+		setAttr(record.model, Constants.HATCHED_FROM_ATTRIBUTE, hatched and hatched.kind)
+		setAttr(record.model, Constants.HATCH_LUCKY_ATTRIBUTE, if hatched and hatched.lucky then true else nil)
 		if record.egg then
 			local egg = entry.slime.egg :: EggKind.Egg
 			local kind = EggKind.get(egg.kind)
@@ -961,6 +966,10 @@ function WorldView.reconcile(
 			if hatch then
 				if hatch.Enabled ~= entry.hatchReady then
 					hatch.Enabled = entry.hatchReady
+				end
+				local text = entry.hatchText or Genome.displayName(entry.slime)
+				if hatch.ObjectText ~= text then
+					hatch.ObjectText = text
 				end
 				-- Owner tag only while ready: PromptHide re-enables an owner prompt when its owner becomes the
 				-- local player, which would show Hatch on an egg that isn't ready (a stolen one, say).

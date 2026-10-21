@@ -119,6 +119,14 @@ function SlimeLabel.eggStatus(slime: Genome.Slime, now: number): string?
 	return `Hatches in {SlimeLabel.clock(hatchAt - now)}`
 end
 
+-- Whether the label of a model hatched at server time `hatchedAt` (its HatchedAt attribute) waits for the hatch
+-- show's reveal at `now` (contract/mystery-egg.md §40.6).
+function SlimeLabel.hiddenByHatch(hatchedAt: any, now: number): boolean
+	return type(hatchedAt) == "number"
+		and now >= hatchedAt - 1
+		and now < hatchedAt + Config.MYSTERY_EGG.HATCH_REVEAL_SECONDS
+end
+
 -- Label values from the attributes; nil when the model carries no LabelName yet.
 function SlimeLabel.view(attrs: Attributes): View?
 	if type(attrs.name) ~= "string" or attrs.name == "" then
