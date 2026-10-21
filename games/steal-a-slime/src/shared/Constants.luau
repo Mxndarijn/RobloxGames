@@ -80,9 +80,6 @@ return table.freeze({
 	PLOT_PADS_UNLOCKED_ATTRIBUTE = "PadsUnlocked", -- Plot_<i>: owner's unlocked pads, 0 = free plot
 	PLOT_NEXT_PAD_COST_ATTRIBUTE = "NextPadCost", -- Plot_<i>: nil when maxed / free
 	PAD_UNLOCKED_ATTRIBUTE = "Unlocked", -- Pad_<j>: j <= PadsUnlocked
-	PLOT_DEX_COUNT_ATTRIBUTE = "DexCount", -- Plot_<i>: owner's discovered dex entries, 0 = free plot
-	PLOT_DEX_TOTAL_ATTRIBUTE = "DexTotal", -- Plot_<i>: SlimeDex entries (SpeciesDex.TOTAL, State.dex.total)
-	PLOT_DEX_TIER_MASK_ATTRIBUTE = "DexTierMask", -- Plot_<i>: bit k-1 set = owner discovered a tier-k slime
 	PLOT_SKIN_ATTRIBUTE = "PlotSkin", -- Plot_<i>: owner's equipped Config.PLOT_SKINS id (FEATURES.PlotSkins only)
 	PLOT_PRICE_ATTRIBUTE = "PlotPrice", -- Plot_<i>: reserved; nil while plots are free (v13)
 	RARE_ATTRIBUTE = "RareSpawn", -- wild slime model: tier, only on Legendary+ drops

@@ -244,7 +244,7 @@ describe("Goals and SlimeDex rewards", function()
 		expect(view[1].done).toBe(false)
 		expect(view[1].nextTitle).toBe(Goals.title(Config.GOALS[1], Config.GOALS[1].targets[5]))
 	end)
-	it("builds the plot DexTierMask from found species tiers", function()
+	it("builds the tier mask from found species tiers", function()
 		local data = Fixtures.data()
 		expect(SpeciesDex.tierMask(data)).toBe(0)
 		data.found.gummy = true -- 1

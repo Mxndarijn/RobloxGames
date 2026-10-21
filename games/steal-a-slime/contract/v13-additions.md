@@ -63,9 +63,9 @@ Every field above is in every snapshot (the server never leaves one out); only t
 | `Plot_<i>` | `NextPadCost` (`PLOT_NEXT_PAD_COST_ATTRIBUTE`) | `number?`, nil when maxed or free |
 | `Pad_<j>` | `Unlocked` (`PAD_UNLOCKED_ATTRIBUTE`) | `boolean`, `j <= PadsUnlocked` (false on a free plot) |
 | `Plot_<i>` | `OwnerUserId`, `LockUntil`, `Rebirths` (§5.2) | set by the server on every reconcile (`WorldView.updatePlots`); Archer's PlotDecor reads them with `Locked`. Wild slime models carry `Tier` (factory), `State = "Wild"` and `RareSpawn` (below), which PlotVisuals/RareSpawn read. |
-| `Plot_<i>` | `DexCount` (`PLOT_DEX_COUNT_ATTRIBUTE`) | `number`, owner's discovered Slimedex entries (0 = free plot) |
-| `Plot_<i>` | `DexTotal` (`PLOT_DEX_TOTAL_ATTRIBUTE`) | `number`, always 1152 (= `State.dexTotal`) |
-| `Plot_<i>` | `DexTierMask` (`PLOT_DEX_TIER_MASK_ATTRIBUTE`) | `number`, optional for readers: bit k-1 set when the owner has discovered any tier-k slime (0 = free plot) |
+| ~~`Plot_<i>`~~ | ~~`DexCount`~~ | removed 2026-10-21 with the plot SlimeDex board (goo jar tower remodel) |
+| ~~`Plot_<i>`~~ | ~~`DexTotal`~~ | removed 2026-10-21 with the plot SlimeDex board (goo jar tower remodel) |
+| ~~`Plot_<i>`~~ | ~~`DexTierMask`~~ | removed 2026-10-21 with the plot SlimeDex board (goo jar tower remodel) |
 | `Plot_<i>` | `PlotPrice` (`PLOT_PRICE_ATTRIBUTE`) | `number?`, reserved for paid plots; **never set in v13** (plots are free), so readers show no price |
 | slime model (server SlimeMesh) | `Species` (`SPECIES_ATTRIBUTE`) | `string?`, the SlimeRoster id of a typed slime (v28); nil for untyped / older slimes. Its colour and material come from `Shared.SlimeLooks`. |
 | wild slime model | `RareSpawn` (`RARE_ATTRIBUTE`) | `number?`, the tier, only on wild Legendary+ (tier >= `RARE_ANNOUNCE_TIER`) drops |

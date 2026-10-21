@@ -47,7 +47,6 @@ local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
-local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local PlotLockGuard = require(script.Parent.PlotLockGuard)
 local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
@@ -65,7 +64,6 @@ local Scene = require(script.Parent.Scene)
 local SlimeLabelView = require(script.Parent.SlimeLabelView)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
-local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local StackGuard = require(script.Parent.StackGuard)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
 local World = require(script.Parent.World)
@@ -1031,19 +1029,6 @@ local function stylePad(pad: BasePart, unlocked: boolean)
 	end
 end
 
--- DexTierMask per plot, recomputed only when the owner or dex count changes.
-local dexMasks: { [number]: { userId: number, count: number, mask: number } } = {}
-
-local function dexMask(index: number, session: World.Session, count: number): number
-	local cached = dexMasks[index]
-	if cached and cached.userId == session.userId and cached.count == count then
-		return cached.mask
-	end
-	local fresh = { userId = session.userId, count = count, mask = SpeciesDex.tierMask(session.data) }
-	dexMasks[index] = fresh
-	return fresh.mask
-end
-
 -- Lock enforcement. The LockBarrier panels ship non-colliding (client cosmetics); the server makes
 -- them solid while the plot is locked. Panels sit in PlotLock_<i>, the owner's character in
 -- PlotOwner_<i>, and that pair does not collide, so the owner walks through. The barrier is one-way: a non-owner
@@ -1240,14 +1225,6 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 					if session then PlotSkins.current(session.data) else Config.PLOT_SKIN_DEFAULT
 				)
 			end
-			local dexCount = if session then PlayerData.dexCount(session.data) else 0
-			setIfChanged(plot, Constants.PLOT_DEX_COUNT_ATTRIBUTE, dexCount)
-			setIfChanged(plot, Constants.PLOT_DEX_TOTAL_ATTRIBUTE, SpeciesDex.TOTAL)
-			setIfChanged(
-				plot,
-				Constants.PLOT_DEX_TIER_MASK_ATTRIBUTE,
-				if session then dexMask(index, session, dexCount) else 0
-			)
 			for pad = 1, Config.PADS_MAX do
 				local part = WorldView.pad(index, pad)
 				if part then
