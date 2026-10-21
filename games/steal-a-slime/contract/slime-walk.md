@@ -36,6 +36,20 @@ When a carry of a wild slime ends (`Carry.release`: the carrier drops it, is sla
    the lane again and walks on from the merge point at the same pace (no jump: the lane pose at `arriveAt` is the
    plan's end point).
 5. It stays grabbable the whole way (`Grab` / `Buy $` prompt, `Carry.grab` ends the walk).
+6. It walks round things, not through them. While it falls, the server (`WorldView.routeHome`) finds its path from
+   the landing spot to the nearest lane point and swaps it in with `Carry.reroute(world, id, startAt, route, now)`:
+   - Dropped on an upper jar floor: `JarRoute.down` (pure, from WorldLayout) walks it round the deck on
+     `DECK_RADIUS`, onto the top of the spiral stair, down it (`floor - 1` turns at `RAMP.walk`) and off at its
+     foot on the ground floor. Roblox pathfinding can't use that stair (finer than its navmesh).
+   - From there, or from any other drop spot: `PathfindingService` (`WorldView.PATH_AGENT`) round walls and props,
+     out of the jar door and over the moat bridge. The lock barrier carries a pass-through `PathfindingModifier`,
+     so a shut door never blocks it.
+   - `ParadeLane.reroute(plan, route)` keeps the start, `startAt`, pace and merge point; the slime walks the route
+     (`route` / `routeLength` on the plan, facing `RETURN_LOOK` studs ahead), then the Bezier from the route's last
+     point onto the lane. `length` / `arriveAt` grow with the detour and `rejoin` re-runs, so it still lands on the
+     merge point exactly when the lane takes over.
+   - Only the walk planned at `startAt`, only once, and only up to `REROUTE_GRACE` after `startAt`; a carried slime
+     is never rerouted. No path found: it keeps the straight walk.
 
 A drop spot without numeric `X` / `Z` (tests, a missing character), or more than `RETURN_MAX_GAP` studs from the lane
 (off the ground, over the void), keeps the old rule: it rests where it was put with

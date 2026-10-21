@@ -253,3 +253,110 @@ describe("Carry.release + Spawner: a dropped wild slime walks back and rejoins t
 		expect(wild.expiresAt).toBe(T0 + 25 + LIFE)
 	end)
 end)
+
+describe("ParadeLane.reroute + Carry.reroute: the walk back along the server's path", function()
+	local LATERAL = 0.5
+
+	local function carried()
+		local world = ServerFixtures.world()
+		ServerFixtures.join(world, 1, nil, 0)
+		local id = Spawner.spawnOne(world, T0)
+		world.wild[id].price = 0
+		expect((Carry.grab(world, 1, id, 3, T0 + 20))).toBe(true)
+		return world, id
+	end
+
+	local function planned()
+		local x, z = offLane(ParadeLane.LENGTH / 2, 40)
+		return ParadeLane.returnPlan(x, z, LATERAL, LIFE, T0)
+	end
+
+	-- A detour round something in the way: 20 studs sideways, forwards, then back onto the straight line.
+	local function detour(plan)
+		local fx, fz = plan.fromX, plan.fromZ
+		local dx, dz = plan.x1 - fx, plan.z1 - fz
+		local len = math.sqrt(dx * dx + dz * dz)
+		local ux, uz = dx / len, dz / len
+		local sx, sz = -uz * 20, ux * 20
+		return {
+			fx + sx,
+			fz + sz,
+			fx + sx + ux * len * 0.7,
+			fz + sz + uz * len * 0.7,
+			fx + ux * len * 0.85,
+			fz + uz * len * 0.85,
+		}
+	end
+
+	it("walks every route point in order at a steady pace, then merges onto the lane at the same point", function()
+		local plan = planned()
+		local path = detour(plan)
+		local walk = ParadeLane.reroute(plan, path)
+		expect(walk.startAt).toBe(plan.startAt)
+		expect(walk.s).toBe(plan.s)
+		expect(walk.length > plan.length + 20).toBe(true)
+		expect(walk.arriveAt - walk.startAt).toBeCloseTo(walk.length / walk.speed + ParadeLane.RETURN_EASE / 2, 1e-6)
+		local x0, z0 = ParadeLane.returnPose(walk, walk.startAt)
+		expect(hdist(x0, z0, plan.fromX, plan.fromZ) < 1e-6).toBe(true)
+		local nextPoint, px, pz = 1, x0, z0
+		for t = walk.startAt, walk.arriveAt, 1 / FPS do
+			local x, z = ParadeLane.returnPose(walk, t)
+			expect(hdist(x, z, px, pz) <= walk.speed / FPS * 1.05).toBe(true) -- never a jump (Bezier chords: within 5%)
+			px, pz = x, z
+			if nextPoint <= #path and hdist(x, z, path[nextPoint], path[nextPoint + 1]) < walk.speed / FPS then
+				nextPoint += 2
+			end
+		end
+		expect(nextPoint).toBe(#path + 1)
+		local ex, ez = ParadeLane.returnPose(walk, walk.arriveAt)
+		local mx, mz = ParadeLane.offsetAt(walk.s, LATERAL)
+		expect(hdist(ex, ez, mx, mz) < 1e-6).toBe(true)
+	end)
+	it("turns smoothly round the route's corners", function()
+		local plan = planned()
+		local walk = ParadeLane.reroute(plan, detour(plan))
+		local _, _, phx, phz = ParadeLane.returnPose(walk, walk.startAt)
+		for t = walk.startAt, walk.arriveAt, 1 / FPS do
+			local _, _, hx, hz = ParadeLane.returnPose(walk, t)
+			local turn = math.deg(math.acos(math.clamp(hx * phx + hz * phz, -1, 1)))
+			expect(turn < 12).toBe(true)
+			phx, phz = hx, hz
+		end
+	end)
+	it("an empty route leaves the plan as it was", function()
+		local plan = planned()
+		expect(ParadeLane.reroute(plan, {})).toBe(plan)
+	end)
+	it("Carry.reroute swaps the walk in once, and its lane times follow the longer walk", function()
+		local world, id = carried()
+		local x, z = offLane(ParadeLane.LENGTH / 3, 30)
+		Carry.release(world, 1, T0 + 25, spot(x, z), "drop")
+		local wild = world.wild[id]
+		local plan = wild.returning
+		expect(Carry.reroute(world, id, plan.startAt, detour(plan), T0 + 25.2)).toBe(true)
+		local walk = wild.returning
+		expect(walk.route ~= nil and walk.arriveAt > plan.arriveAt).toBe(true)
+		expect(wild.expiresAt - wild.spawnedAt).toBeCloseTo(Fountain.wildLifetime(wild.slime), 1e-9)
+		expect(ParadeLane.distance(wild.spawnedAt, wild.expiresAt, walk.arriveAt)).toBeCloseTo(walk.s, 1e-6)
+		expect(Carry.reroute(world, id, plan.startAt, detour(plan), T0 + 25.3)).toBe(false)
+		Spawner.step(world, plan.arriveAt + 0.01)
+		expect(wild.returning).toBe(walk) -- still on its longer path
+		Spawner.step(world, walk.arriveAt)
+		expect(wild.returning).toBe(nil)
+		expect(ParadeLane.onLane(wild, false)).toBe(true)
+	end)
+	it("Carry.reroute ignores a stale path: another walk, well under way, grabbed again, or gone", function()
+		local world, id = carried()
+		local x, z = offLane(ParadeLane.LENGTH / 3, 30)
+		Carry.release(world, 1, T0 + 25, spot(x, z), "drop")
+		local plan = world.wild[id].returning
+		local path = detour(plan)
+		expect(Carry.reroute(world, id, plan.startAt - 1, path, T0 + 25.2)).toBe(false)
+		expect(Carry.reroute(world, id, plan.startAt, path, plan.startAt + ParadeLane.REROUTE_GRACE + 0.01)).toBe(false)
+		expect(world.wild[id].returning).toBe(plan)
+		ServerFixtures.join(world, 2, nil, 0)
+		expect((Carry.grab(world, 2, id, 3, T0 + 25.3))).toBe(true)
+		expect(Carry.reroute(world, id, plan.startAt, path, T0 + 25.4)).toBe(false)
+		expect(Carry.reroute(world, "nobody", plan.startAt, path, T0 + 25.4)).toBe(false)
+	end)
+end)
