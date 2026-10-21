@@ -1,6 +1,6 @@
 --!strict
 -- The boss event over World (src/server/BossEvent.luau, contract/boss-event.md): the schedule and its Slime Rain skip,
--- the rotation, the boss in the plaza, sheds, the haul through Carry, the trophy, the burst and State.boss.
+-- the rotation, the boss in the plaza, sheds, the haul through Carry, the trophy, the escape and State.boss.
 local BossEvent = require("../src/server/BossEvent")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
@@ -175,7 +175,7 @@ describe("BossEvent fight", function()
 		end
 		expect(crowdHits).toBe(BOSS.POINTS_PER_PLAYER * 4)
 	end)
-	it("a fight that runs out bursts into BURST_COUNT wild slimes", function()
+	it("a fight that runs out lets the boss get away without dropping slimes", function()
 		local w = world()
 		local id = arrive(w)
 		BossEvent.hit(w, w.sessions[1], T0 + BOSS.WARNING_SECONDS)
@@ -183,25 +183,15 @@ describe("BossEvent fight", function()
 		BossEvent.step(w, T0 + BOSS.WARNING_SECONDS + BOSS.FIGHT_SECONDS)
 		expect(w.wild[id]).toBeNil()
 		expect(w.boss.fight.phase).toBe("failed")
-		expect(wildCount(w)).toBe(before - 1 + BOSS.BURST_COUNT)
+		expect(wildCount(w)).toBe(before - 1)
+		local texts = ServerFixtures.notifications(w, nil)
+		expect(texts[#texts]).toBe("The boss got away! Fill the meter faster next time.")
 		BossEvent.step(w, T0 + BOSS.WARNING_SECONDS + BOSS.FIGHT_SECONDS + BOSS.LINGER_SECONDS)
 		expect(w.boss).toBeNil()
 	end)
 end)
 
 describe("BossEvent haul", function()
-	it("filling the meter hands out nothing: no egg, no slime for the helpers", function()
-		local w = world(3)
-		arrive(w)
-		local t = T0 + BOSS.WARNING_SECONDS
-		BossEvent.hit(w, w.sessions[3], t)
-		fill(w, 1, 2)
-		expect(w.boss.fight.phase).toBe("haul")
-		for userId = 1, 3 do
-			expect(#w.sessions[userId].data.slimes).toBe(0)
-			expect(w.sessions[userId].egg).toBeNil()
-		end
-	end)
 	it("pops to carry size; the top contributor grabs first, then anyone", function()
 		local w = world()
 		local id = arrive(w)
@@ -225,7 +215,7 @@ describe("BossEvent haul", function()
 		local s = w.sessions[1]
 		s.data.speedCoil = true
 		expect((Carry.grab(w, 1, id, 1, t))).toBe(true)
-		expect(Carry.walkSpeed(s, t + 1)).toBeCloseTo(Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW), 1e-9)
+		expect(Carry.walkSpeed(s)).toBeCloseTo(Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW), 1e-9)
 		expect(Snapshot.build(w, s, t + 1).carrying.walkSpeed).toBeCloseTo(
 			Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW),
 			1e-9
@@ -283,7 +273,7 @@ describe("BossEvent haul", function()
 		local texts = ServerFixtures.notifications(w, nil)
 		expect(texts[#texts]).toBe("P1 brought Goozilla home!")
 	end)
-	it("a haul that runs out bursts the boss out of the carrier's arms", function()
+	it("a haul that runs out lets the boss get away from the carrier's arms", function()
 		local w = world()
 		local id = arrive(w)
 		local t = fill(w, 1)
@@ -293,8 +283,10 @@ describe("BossEvent haul", function()
 		expect(w.sessions[1].carry).toBeNil()
 		expect(w.wild[id]).toBeNil()
 		expect(w.carriedBy[id]).toBeNil()
-		expect(wildCount(w)).toBe(before - 1 + BOSS.BURST_COUNT)
+		expect(wildCount(w)).toBe(before - 1)
 		expect(w.boss.fight.failReason).toBe("haul")
+		local texts = ServerFixtures.notifications(w, nil)
+		expect(texts[#texts]).toBe("Nobody brought the boss home! It got away.")
 	end)
 end)
 

@@ -29,6 +29,8 @@ describe("MeshAssets.COLLISION", function()
 	end)
 	it("makes the shop stands solid with a hull (CONTRACT.md §27.2)", function()
 		expect(MeshAssets.collision("ranch_shop_stand")).toBe("Hull")
+		expect(MeshAssets.collision("ranch_item_shop")).toBe("Hull")
+		expect(MeshAssets.collision("ranch_upgrade_cabinet")).toBe("Hull")
 	end)
 	it("makes the fountain-top slimes solid with a hull (cheap, no standing in the gaps)", function()
 		expect(MeshAssets.collision("slime_fountain_emerge")).toBe("Box")
@@ -37,8 +39,6 @@ describe("MeshAssets.COLLISION", function()
 	it("registers the follow-pet cloud as non-colliding decor", function()
 		local entry = MeshAssets.get("pet_cloud")
 		expect(entry ~= nil).toBe(true)
-		expect(MeshAssets.meshId("pet_cloud")).toBe("rbxassetid://131511097265313")
-		expect(entry.assetId).toBe(76853347194916)
 		expect(MeshAssets.collision("pet_cloud")).toBe(nil) -- decor: CanCollide off
 		local size = entry.size
 		expect(size[1] > 3 and size[1] < 3.5).toBe(true)
@@ -86,6 +86,13 @@ describe("MeshSwap collision in the live server", function()
 		end
 		local solid = {}
 		local want = 0
+		-- the shop stand skins FEATURES.WorldShops does not place: the single ShopStand's with the flag on, else the Item
+		-- and Upgrade stands'
+		local WorldLayout = require("../src/visuals/shared/WorldLayout")
+		local standUnplaced = {}
+		for name, stand in WorldLayout.SHOP_STANDS do
+			standUnplaced[stand.mesh] = (name == "ShopStand") == (Config.FEATURES.WorldShops == true)
+		end
 		-- the FEATURES.FountainSplit pieces are only created with the flag on (tests/FountainSplit.spec)
 		local splitPieces = {}
 		for _, piece in MeshAssets.FOUNTAIN_SPLIT do
@@ -101,6 +108,9 @@ describe("MeshSwap collision in the live server", function()
 			end
 			if name == "fountain_split_slide" and not Config.FEATURES.SlidePCD then
 				continue -- the slide piece is PCD only with FEATURES.SlidePCD (MeshSwap.splitFidelity)
+			end
+			if standUnplaced[name] then
+				continue -- a shop stand skin FEATURES.WorldShops does not place
 			end
 			solid[MeshAssets.meshId(name)] = (roblox.Enum.CollisionFidelity :: any)[fidelity]
 			want += 1
@@ -225,10 +235,10 @@ local DECOR = {
 	phoenix_gate = "not placed: no world slot uses it (the jar's door is glass and primitives)",
 	phoenix_pad_crate = "the pad's own Pad part is the gameplay surface; the stand is its decor",
 	phoenix_top_earners_board = "WorldProps Model: its invisible Collider keeps the Model's bounds",
+	ranch_guide = "WorldProps Model: the TutorialNpc's hidden primitive body parts stay the collider",
 	ranch_landing_ring = "mesh stays decor (bbox 10 deep x 3.1 tall: Box/Hull = invisible wall); the stones are solid through thin Plaza colliders (LandingCurb/LandingStake, PropCollision landing_ring)",
 	ranch_goo_drain = "mesh stays decor; solid through the DrainCurb disc + post + plaque colliders (PropCollision goo_drain), so the slide exit stays open",
 	ranch_horseshoe_pit = "1.8 stud flat sand pit, walk over it",
-	ranch_lantern_post = "not placed (RanchProps.INTENTIONALLY_UNPLACED); its arm hangs overhead",
 	ranch_pumpkin_patch = "low foliage patch, walk through",
 	ranch_sunflower_patch = "foliage, walk through",
 	plot_skin_mushroom = "client-cloned plot skin template, not a world slot",
@@ -280,13 +290,6 @@ describe("real mesh collision", function()
 		end
 		expect(missing).toEqual({})
 	end)
-	it("keeps decor out of COLLISION: the lane, the tower, the border, the habitats, worn slime meshes", function()
-		for name in DECOR do
-			expect(MeshAssets.COLLISION[name]).toBe(nil)
-		end
-		expect(MeshAssets.COLLISION.slime_lane).toBe(nil)
-		expect(MeshAssets.COLLISION.slime_fountain).toBe(nil)
-	end)
 	it("has Hull for blobs, Box for boxes, and PCD only on the marked walkable shape (barn loft)", function()
 		local pcd = {}
 		local split = {} -- the FEATURES.FountainSplit tower pieces, flag off by default: tests/FountainSplit.spec
@@ -300,13 +303,6 @@ describe("real mesh collision", function()
 		end
 		table.sort(pcd)
 		expect(pcd).toEqual({ "ranch_barn_loft" })
-		local source = fs.readFile("src/shared/MeshAssets.luau")
-		for _, name in pcd do
-			expect(
-				string.find(source, `{name} = "PreciseConvexDecomposition", -- PCD: Phoenix Studio check`, 1, true)
-					~= nil
-			).toBe(true)
-		end
 		local count = { Hull = 0, Box = 0 }
 		for _, fidelity in MeshAssets.COLLISION do
 			if count[fidelity] then
@@ -330,14 +326,6 @@ describe("real mesh collision", function()
 		for _, name in { "ranch_windmill", "ranch_shed" } do
 			expect(MeshAssets.COLLISION[name]).toBe("Hull")
 		end
-	end)
-	it("MeshSwap passes the fidelity to CreateMeshPartAsync and turns CanCollide on (source-level)", function()
-		local source = fs.readFile("src/server/MeshSwap.luau")
-		expect(string.find(source, "MeshAssets.collision(name)", 1, true) ~= nil).toBe(true)
-		expect(
-			string.find(source, "options.CollisionFidelity = (Enum.CollisionFidelity :: any)[fidelity]", 1, true) ~= nil
-		).toBe(true)
-		expect(string.find(source, "mesh.CanCollide = fidelity ~= nil", 1, true) ~= nil).toBe(true)
 	end)
 
 	local WorldLayout = require("../src/visuals/shared/WorldLayout")

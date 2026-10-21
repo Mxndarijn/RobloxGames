@@ -4,7 +4,6 @@
 -- The flag is off by default, so the flag-on paths are driven through the `enabled` arguments.
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
-local Constants = require("../src/shared/Constants")
 local Fixtures = require("./Fixtures")
 local Fountain = require("../src/shared/Fountain")
 local FountainTiers = require("../src/shared/FountainTiers")
@@ -22,9 +21,6 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local T0 = ServerFixtures.T0
 
 describe("FountainTiers: the ladder", function()
-	it("is behind FEATURES.FountainTiers, default off", function()
-		expect(Config.FEATURES.FountainTiers).toBe(false)
-	end)
 	it("opens one family per rank that carries one, at the Config.REBIRTH_TIERS thresholds", function()
 		local ranks = {}
 		for _, rank in Config.REBIRTH_TIERS do
@@ -320,11 +316,5 @@ describe("FountainTiers: saves", function()
 		local clean = Genome.sanitize(Fixtures.slime("s2", 3, { species = "future_family_slime" })) :: Genome.Slime
 		expect(clean.species).toBeNil()
 		expect(clean.tier).toBe(3)
-	end)
-end)
-
-describe("FountainTiers: replication", function()
-	it("the workspace attribute is named once", function()
-		expect(Constants.FOUNTAIN_TIER_ATTRIBUTE).toBe("FountainTier")
 	end)
 end)

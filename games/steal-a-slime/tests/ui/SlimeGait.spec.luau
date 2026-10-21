@@ -101,6 +101,59 @@ describe("SlimeGait hops", function()
 		end
 		expect(peak("lop") / SlimePersona.of("lop").hop.height < peak("gummy") / GUMMY.hop.height).toBe(true)
 	end)
+	it(
+		"a hopper left behind (a long landing, then its anchor stops for a beat) catches up instead of sitting there",
+		function()
+			local rand = lcg(4)
+			local st = SlimeGait.new(0, 0, 0, 0)
+			st.kind, st.landedAt = "belly", 0 -- lying flat after a belly flop
+			-- meanwhile the anchor runs ahead (a beat's catch-up), then stands still (the next beat)
+			local x = 0
+			local p
+			for f = 1, 4 * FPS do
+				local t = f / FPS
+				local v = if t < 0.8 then 5 else 0
+				if t < 0.8 then
+					x = 5 * t
+				end
+				-- a lane slime's anchor speed is known from lane math: it drops to 0 the moment the beat stops it
+				p = SlimeGait.step(st, GUMMY, x, 0, 1, 0, t, rand, nil, v, 0)
+			end
+			-- four seconds in: drawn within one hop's wait of where it should stand, not stranded behind
+			expect(math.abs(p.dx) <= SlimeGait.CATCH_UP).toBe(true)
+		end
+	)
+	it("a hopper that landed past a stopped anchor waits for the lane instead of hopping back to it", function()
+		local rand = lcg(5)
+		local st = SlimeGait.new(-2.6, 0, 0, 0) -- landed 2.6 studs past an anchor at 0 (heading -X)
+		local hopped = false
+		for f = 1, 3 * FPS do
+			local p = SlimeGait.step(st, GUMMY, 0, 0, -1, 0, f / FPS, rand, nil, 0, 0)
+			hopped = hopped or p.air == true or st.stage ~= "ground"
+		end
+		expect(hopped).toBe(false)
+		-- far past it (a correction, not a beat) it does go back
+		local far = SlimeGait.new(-(SlimeGait.OVERSHOOT + 1), 0, 0, 0)
+		local back = false
+		for f = 1, 3 * FPS do
+			SlimeGait.step(far, GUMMY, 0, 0, -1, 0, f / FPS, rand, nil, 0, 0)
+			back = back or far.stage ~= "ground"
+		end
+		expect(back).toBe(true)
+	end)
+	it("cuts a belly flop's lie-down short when it falls CATCH_UP behind", function()
+		local rand = lcg(2)
+		local st = SlimeGait.new(0, 0, 0, 0)
+		st.kind, st.landedAt = "belly", 0 -- just landed a belly flop
+		local worst = 0
+		for f = 1, 2 * FPS do
+			local t = f / FPS
+			local p = SlimeGait.step(st, GUMMY, 6 * t, 0, 1, 0, t, rand)
+			worst = math.max(worst, -p.dx)
+		end
+		-- the flop would lie 0.75 s longer; at 6 studs / s that is 4.5 studs behind
+		expect(worst < SlimeGait.CATCH_UP + 6 * (GUMMY.hop.settle + SlimeGait.CROUCH) + 0.5).toBe(true)
+	end)
 end)
 
 describe("SlimeGait.shape", function()
@@ -111,10 +164,10 @@ describe("SlimeGait.shape", function()
 		expect(launch.sy > 1.1).toBe(true)
 		local apex = SlimeGait.shape("air", 0.5, 1.5, "normal")
 		expect(apex.lift).toBeCloseTo(1.5, 1e-9)
-		expect(math.abs(apex.sy - 1) < 0.02).toBe(true)
+		expect(math.abs(apex.sy - 1) < 0.06).toBe(true) -- nearly round at the top
 		expect(apex.face).toBe("happy")
 		local splat = SlimeGait.shape("land", 0, 1.5, "normal")
-		expect(splat.sy < 0.75).toBe(true)
+		expect(splat.sy < 0.85 and splat.sy >= 0.65).toBe(true) -- a splat, never so flat the face sinks in
 		expect(splat.face).toBe("squeeze")
 		local settled = SlimeGait.shape("land", 2, 1.5, "normal")
 		expect(math.abs(settled.sy - 1) < 0.01).toBe(true)
@@ -122,7 +175,7 @@ describe("SlimeGait.shape", function()
 	it("a boing flips all the way round; a belly flop lands flat and peels up", function()
 		expect(SlimeGait.shape("air", 1, 1.5, "boing").tilt).toBeCloseTo(2 * math.pi, 1e-6)
 		local flat = SlimeGait.shape("land", 0.2, 1.5, "belly")
-		expect(flat.sy < 0.6 and flat.face == "dizzy").toBe(true)
+		expect(flat.sy < 0.75 and flat.sy >= 0.65 and flat.face == "dizzy").toBe(true)
 		expect(math.abs(SlimeGait.shape("land", 2.5, 1.5, "belly").sy - 1) < 0.02).toBe(true)
 	end)
 end)

@@ -43,14 +43,18 @@ local function call(world: any, userId: number, action: string, ...: any)
 	return Actions.handle(world, userId, action, table.pack(...), T0 + 100, ctx)
 end
 
-describe("Rebirth cost past 5", function()
-	it("is unchanged up to 5 rebirths, then doubles", function()
+describe("Rebirth cost", function()
+	it("grows by the early factor up to REBIRTH_LATE_FROM, then by the late one", function()
 		for r = 0, Config.REBIRTH_LATE_FROM do
 			expect(Economy.rebirthCost(r)).toBe(math.floor(Config.REBIRTH_BASE_COST * Config.REBIRTH_COST_GROWTH ^ r))
 		end
-		local five = Economy.rebirthCost(5)
-		expect(Economy.rebirthCost(6)).toBe(five * 2)
-		expect(Economy.rebirthCost(10)).toBe(five * 32)
+		local late = Economy.rebirthCost(Config.REBIRTH_LATE_FROM)
+		expect(Economy.rebirthCost(Config.REBIRTH_LATE_FROM + 1)).toBe(
+			math.floor(late * Config.REBIRTH_COST_GROWTH_LATE)
+		)
+		expect(Economy.rebirthCost(Config.REBIRTH_LATE_FROM + 5)).toBe(
+			math.floor(late * Config.REBIRTH_COST_GROWTH_LATE ^ 5)
+		)
 	end)
 end)
 
@@ -70,7 +74,7 @@ describe("Perks: rebirth ranks", function()
 		end
 		expect(past5 >= 6).toBe(true)
 	end)
-	it("takes the best unlocked value of keep / income / lock", function()
+	it("takes the best unlocked value of keep / income", function()
 		expect(Perks.title(0)).toBe("Slime Rookie")
 		expect(Perks.title(6)).toBe("Goo Tycoon")
 		expect(Perks.keepCount(5)).toBe(1)
@@ -78,9 +82,13 @@ describe("Perks: rebirth ranks", function()
 		expect(Perks.keepCount(11)).toBe(3)
 		expect(Perks.rankIncomeBonus(6)).toBe(0)
 		expect(Perks.rankIncomeBonus(7)).toBe(0.1)
-		expect(Perks.rankIncomeBonus(12)).toBe(0.25)
-		expect(Perks.lockBonus(8)).toBe(30)
-		expect(Steal.lockDuration(8, 0)).toBe(Config.LOCK_SECONDS + 8 * Config.LOCK_SECONDS_PER_REBIRTH + 30)
+		expect(Perks.rankIncomeBonus(8)).toBe(0.15)
+		expect(Perks.rankIncomeBonus(11)).toBe(0.25)
+		expect(Perks.rankIncomeBonus(12)).toBe(0.35)
+		for _, tier in Config.REBIRTH_TIERS do
+			expect((tier :: any).lock).toBeNil()
+		end
+		expect(Steal.lockDuration(8)).toBe(Config.LOCK_SECONDS + 8 * Config.LOCK_SECONDS_PER_REBIRTH)
 		expect(Perks.nextTier(30)).toBeNil()
 		expect((Perks.nextTier(6) :: any).title).toBe("Jelly Magnate")
 	end)
@@ -90,7 +98,8 @@ describe("Perks: rebirth ranks", function()
 			Fixtures.slime("fav", 2),
 			Fixtures.slime("best", 6),
 			Fixtures.slime("second", 5),
-			Fixtures.slime("need", 1, { species = "king" }),
+			Fixtures.slime("need1", 1, { species = Config.REBIRTH_SLIMES[7][1] }),
+			Fixtures.slime("need2", 1, { species = Config.REBIRTH_SLIMES[7][2] }),
 		}, 1e12)
 		data.rebirths = 6
 		data.favoriteId = "fav"
@@ -106,7 +115,11 @@ describe("Perks: rebirth ranks", function()
 	end)
 	it("announces a new rank on the rebirth that reaches it", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1, { species = "octo" }) }, 1e12)
+		local slimes = {}
+		for i, species in Config.REBIRTH_SLIMES[6] do
+			table.insert(slimes, Fixtures.slime(`need{i}`, 1, { species = species }))
+		end
+		local s = ServerFixtures.join(world, 1, slimes, 1e12)
 		s.data.rebirths = 5
 		expect(call(world, 1, "Rebirth").ok).toBe(true)
 		local texts = table.concat(ServerFixtures.notifications(world, 1), "\n")
@@ -154,8 +167,8 @@ describe("Upgrades (BuyUpgrade)", function()
 		world.wild[x].slime.tier, world.wild[y].slime.tier = 6, 6
 		Carry.grab(world, 1, x, 1, T0)
 		Carry.grab(world, 2, y, 1, T0)
-		local slowA = 1 - Carry.walkSpeed(a, T0) / Config.BASE_WALK_SPEED
-		local slowB = 1 - Carry.walkSpeed(b, T0) / Config.BASE_WALK_SPEED
+		local slowA = 1 - Carry.walkSpeed(a) / Config.BASE_WALK_SPEED
+		local slowB = 1 - Carry.walkSpeed(b) / Config.BASE_WALK_SPEED
 		expect(slowB).toBeCloseTo(slowA * 0.4, 1e-6)
 		local data = Fixtures.data({ Fixtures.slime("s", 1) }, 0)
 		data.upgrades.OfflineCap = 2
@@ -346,7 +359,7 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 			dex = dex,
 			totalEarned = 3000000,
 			totalStolen = 12,
-			lockLevel = 2,
+			lockLevel = 2, -- the removed lock upgrade: read past, not kept
 			speedCoil = true,
 			tutorialStep = 5, -- v12 step 5 = Steal
 		}
@@ -359,7 +372,7 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		expect(d.rebirths).toBe(5)
 		expect(#d.slimes).toBe(8)
 		expect(d.favoriteId).toBe("v12-3")
-		expect(d.lockLevel).toBe(2)
+		expect((d :: any).lockLevel).toBeNil()
 		expect(d.speedCoil).toBe(true)
 		expect(d.daily.streak).toBe(4)
 		expect(PlayerData.dexCount(d)).toBe(0) -- old combination keys are ignored; these slimes have no species

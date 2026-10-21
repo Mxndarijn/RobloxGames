@@ -33,11 +33,7 @@ local function gap(p: { number }): number
 end
 
 describe("slime path touches the goo drain", function()
-	it("has no curb ramp or pour decor, and its end is narrower than the curb", function()
-		expect(ParadeLane.drainStrips).toBe(nil)
-		for _, strip in ParadeLane.strips() do
-			expect(string.find(strip.name, "Drain") == nil and string.find(strip.name, "Pour") == nil).toBe(true)
-		end
+	it("its end is narrower than the curb", function()
 		expect(ParadeLane.END_HALF_WIDTH < radius - 0.1).toBe(true)
 		expect(ParadeLane.END_HALF_WIDTH < HW).toBe(true)
 	end)

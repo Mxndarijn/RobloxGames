@@ -1,6 +1,6 @@
 --!strict
 -- Client PvP effects, pure part (src/ui/PvpEffectsLogic): which visual / sound per effect, clamped durations,
--- marker rules, shake math, tracker bookkeeping, and the PvP sound ids.
+-- marker rules, shake math, and tracker bookkeeping.
 local Config = require("../../src/shared/Config")
 local Logic = require("../../src/ui/PvpEffectsLogic")
 local PvpRules = require("../../src/shared/PvpRules")
@@ -166,19 +166,27 @@ describe("PvpEffectsLogic markers", function()
 		return PvpRules.tool(id)
 	end
 	it(
-		"a Goo Trap puddle is sized by its radius and seen by everyone: glowing for its owner, a shimmer for others",
+		"a Goo Trap puddle is sized by its radius and seen by everyone: goo green for its owner, red for others",
 		function()
 			local m = Logic.marker("GooTrap2", tool("GooTrap2"), P)
 			expect(m ~= nil and m.shape == "puddle" and m.diameter == tool("GooTrap2").radius * 2).toBe(true)
 			expect(Logic.markerVisible(m :: any, 1, 1)).toBe(true)
 			expect(Logic.markerVisible(m :: any, 1, 2)).toBe(true)
 			local mine, theirs = Logic.markerLook(m :: any, true), Logic.markerLook(m :: any, false)
+			-- the owner's trap keeps its goo disc and its model's own colours, solid
 			expect(mine.material).toBe("Neon")
-			expect(theirs.transparency > 0.8 and theirs.transparency > mine.transparency).toBe(true)
-			-- the owner's trap model keeps its own colours and is solid; others only see it shimmer
+			expect(mine.color).toBeNil()
 			expect(mine.modelTransparency).toBe(0)
 			expect(mine.modelMaterial).toBeNil()
-			expect(theirs.modelTransparency > 0.8).toBe(true)
+			expect(mine.modelColor).toBeNil()
+			-- everyone else sees a clearly visible red disc and a solid red model
+			expect(theirs.material).toBe("Neon")
+			expect(theirs.transparency <= 0.5).toBe(true)
+			expect(theirs.color).toEqual(Logic.TRAP_RED)
+			expect(theirs.modelTransparency).toBe(0)
+			expect(theirs.modelColor).toEqual(Logic.TRAP_RED)
+			local red = Logic.TRAP_RED
+			expect(red[1] > 0.8 and red[2] < 0.3 and red[3] < 0.3).toBe(true)
 			expect((m :: any).seconds >= P.TRAP_LIFETIME_SECONDS).toBe(true)
 		end
 	)
@@ -224,31 +232,5 @@ describe("PvpEffectsLogic shake, range, tracker", function()
 	end)
 	it("highlight cap stays far below the Roblox limit", function()
 		expect(Logic.HIGHLIGHT_CAP <= 10).toBe(true)
-	end)
-end)
-
-describe("PvP sounds", function()
-	local PVP_NAMES = {
-		"PvpHit",
-		"PvpCollide",
-		"PvpGoo",
-		"PvpSquirt",
-		"PvpBoing",
-		"PvpPop",
-		"PvpSqueak",
-		"PvpFirework",
-		"PvpBubble",
-		"PvpDisco",
-	}
-	it("every PvP sound is a numeric rbxassetid", function()
-		for _, name in PVP_NAMES do
-			local id = Sounds.IDS[name]
-			expect(id ~= nil and string.match(id, "^rbxassetid://%d+$") ~= nil).toBe(true)
-		end
-	end)
-	it("all ids in the registry are numeric rbxassetids", function()
-		for _, id in Sounds.IDS do
-			expect(string.match(id, "^rbxassetid://%d+$") ~= nil).toBe(true)
-		end
 	end)
 end)

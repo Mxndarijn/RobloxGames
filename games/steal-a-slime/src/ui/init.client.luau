@@ -27,6 +27,7 @@ local SoundService = game:GetService("SoundService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
+local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
 local FriendBonus = require(Shared:WaitForChild("FriendBonus"))
 local Genome = require(Shared:WaitForChild("Genome"))
 local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
@@ -38,6 +39,8 @@ local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local TripleMerge = require(Shared:WaitForChild("TripleMerge"))
 local Types = require(Shared:WaitForChild("Types"))
 
+local CarryFade = require(script.CarryFade)
+local DexJarView = require(script.DexJarView)
 local Format = require(script.Format)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
@@ -54,6 +57,9 @@ local PopupQueue = require(script.PopupQueue)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
 local SlimeInfoCard = require(script.SlimeInfoCard)
+local SlimeKeyCard = require(script.SlimeKeyCard)
+local SlimeKeys = require(script.SlimeKeys)
+local SlimeMove = require(script.SlimeMove)
 local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
@@ -72,7 +78,6 @@ local GuidePanel = require(Panels.Guide)
 local HintOverlay = require(Panels.HintOverlay)
 local LeaderboardPanel = require(Panels.Leaderboard)
 local MergePanel = require(Panels.Merge)
-local PlotPanel = require(Panels.Plot)
 local RebirthPanel = require(Panels.Rebirth)
 local ShopPanel = require(Panels.Shop)
 local SoundPanel = require(Panels.Sound)
@@ -260,11 +265,6 @@ local ctx: { [string]: any } = {
 	serverNow = serverNow,
 	playerName = playerName,
 	itemIcons = itemIcons,
-	-- The HUD's Shield slot: the local player's new-player shield end (server time), nil when not shielded.
-	shieldUntil = function(): number?
-		local value = player:GetAttribute(Constants.PVP_SHIELD_ATTRIBUTE)
-		return if type(value) == "number" then value else nil
-	end,
 	buildSlime = if modelFactory then buildSlime else nil,
 	-- SlimeDex cards: species names / colours and the species mesh preview.
 	SlimeRoster = SlimeRoster,
@@ -275,13 +275,6 @@ local ctx: { [string]: any } = {
 }
 
 local hud = Hud.new(gui, ctx)
--- The shield badge over every new player's head (CONTRACT.md §26.7); the attribute is only set with FEATURES.PvP on.
-local shieldBadges = require(script.PvpShield).start({
-	attribute = Constants.PVP_SHIELD_ATTRIBUTE,
-	registry = itemIcons,
-	serverNow = serverNow,
-	parent = player:WaitForChild("PlayerGui"),
-})
 -- S3 hotbar + inventory panel (replaces the default Roblox backpack bar).
 InventoryTools.hideDefaultBackpack()
 local inventory = Inventory.new(gui, {
@@ -309,6 +302,7 @@ local stealFx = StealAlertFx.new(gui, {
 	Config = Config,
 	Constants = Constants,
 	StealAlert = StealAlert,
+	EdgeArrow = EdgeArrow,
 	serverNow = serverNow,
 })
 local carry = CarryPanel.new(gui, ctx)
@@ -325,21 +319,15 @@ SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = C
 -- The dimmed full-window backdrop (Layout.backdrop: the whole viewport, top bar included, square) behind an open menu card (screen.panel).
 -- Made before the panels so their cards draw over it; a tap on it closes
 -- the menu, like the X.
-local backdrop = Widgets.create("TextButton", {
+local backdrop = Widgets.backdrop({
 	Name = "MenuBackdrop",
-	Text = "",
-	AutoButtonColor = false,
-	BackgroundColor3 = Color3.new(0, 0, 0),
-	BackgroundTransparency = 0.45,
-	Visible = false,
 	Parent = gui,
-}) :: TextButton
+})
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
--- order: Plot, Rebirth, Goals, SlimeDex, Codes) or a world prompt, closed with their X, the backdrop, Esc or
+-- order: Rebirth, Goals, SlimeDex, Codes) or a world prompt, closed with their X, the backdrop, Esc or
 -- gamepad B.
 local panelByKey: { [string]: any } = {
-	Plot = PlotPanel.new(gui, ctx),
 	Merge = MergePanel.new(gui, ctx),
 	Shop = ShopPanel.new(gui, ctx),
 	WorldShop = if Config.FEATURES.WorldShops == true then WorldShopPanel.new(gui, ctx) else nil,
@@ -357,8 +345,8 @@ for _, navEntry in Nav.ENTRIES do
 		table.insert(panels, { key = navEntry.key, nav = navEntry, panel = panel })
 	end
 end
--- Every menu: the nav ones plus the cards without a nav button: Merge, Shop (opened by the ShopStand prompt;
--- the in-world shops reuse it) and Top (H1 HUD: Merijn removed their buttons), the Guide and Welcome cards.
+-- Every menu: the nav ones plus the cards without a nav button: Merge, Shop (opened by the ShopStand prompt; the in-world shops reuse it) and Top (H1 HUD: Merijn
+-- removed their buttons), the Guide and Welcome cards.
 local allPanels: { PanelEntry } = table.clone(panels)
 for _, key in { "Merge", "Shop", "Leaders" } do
 	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
@@ -396,6 +384,7 @@ type NavButton = {
 	icon: any, -- ItemIconView handle
 	stroke: UIStroke,
 	badge: TextLabel,
+	jar: DexJarView.View?, -- the SlimeDex tile's slime jar
 }
 
 local NAV_TILE_COLOR = Color3.fromRGB(58, 36, 110) -- the money plate's purple, like the reference tiles
@@ -408,16 +397,15 @@ local applyLayout: () -> ()
 local refreshHint: () -> ()
 local pumpPopups: (state: Types.State) -> ()
 local layoutCards: () -> ()
--- Panels that change their own height (Plot's Appraise screen) ask for a card relayout.
-ctx.relayout = function()
-	layoutCards()
-end
 
 local function styleNav(btn: NavButton, selected: boolean)
 	btn.tile.BackgroundColor3 = if selected then Theme.Accent else NAV_TILE_COLOR
 	btn.label.TextColor3 = if selected then Theme.Accent else Theme.Text
 	btn.stroke.Color = if selected then Color3.new(1, 1, 1) else Color3.fromRGB(10, 10, 20)
 	btn.stroke.Thickness = if selected then 4 else 3
+	if btn.jar then
+		btn.jar.setSelected(selected)
+	end
 end
 
 -- Open state is derived from the cards' own Visible: the backdrop, nav
@@ -590,42 +578,18 @@ end
 
 local function panelState(key: string, realState: any): any
 	local state = forceWelcome(forcePlotSkins(forceFriends(realState)))
-	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
-		-- Studio-only: one fake owned slime so the My Plot row shows its Appraise button.
-		local view = table.clone(state)
-		view.slimes = {
-			{
-				slime = {
-					id = "pcw-plot",
-					name = "Blorp",
-					tier = 3,
-					color = { 90, 200, 120 },
-					size = 1.2,
-					pattern = "None",
-					eyes = "Round",
-					mouth = "Smile",
-					pad = 1,
-				},
-				income = 12,
-				sellPrice = 450,
-				appraiseCost = 135,
-			},
-		}
-		view.padsUnlocked = math.max(1, state.padsUnlocked or 1)
-		-- ... which is also the favourite, so its row shows the follow-pet perk chip.
-		view.favoriteId = "pcw-plot"
-		view.petPerk = { kind = "luck", value = 0.03, icon = "🍀", text = "+3% luck" }
-		return view
-	end
 	local force = if isStudio and key == "Rebirth" then gui:GetAttribute("PcwRebirthSlime") else nil
-	local need = state.rebirthSlime
-	if (force ~= "owned" and force ~= "missing") or type(need) ~= "table" then
+	local needs = state.rebirthSlimes
+	if (force ~= "owned" and force ~= "missing") or type(needs) ~= "table" then
 		return state
 	end
 	local view = table.clone(state)
-	view.rebirthSlime = table.clone(need)
-	view.rebirthSlime.owned = force == "owned"
-	view.canRebirth = view.rebirthSlime.owned and state.cash >= state.rebirthCost
+	view.rebirthSlimes = {}
+	for i, need in needs do
+		view.rebirthSlimes[i] = table.clone(need)
+		view.rebirthSlimes[i].owned = force == "owned"
+	end
+	view.canRebirth = force == "owned" and state.cash >= state.rebirthCost
 	return view
 end
 
@@ -703,6 +667,12 @@ if soundPanel then
 	player:GetAttributeChangedSignal("AudioMuted"):Connect(refreshIcon)
 end
 
+-- Reduced Motion: Roblox's own setting or the game's (the LocalPlayer attribute HabitatFx reads too).
+local function reducedMotion(): boolean
+	return (GuiService :: any).ReducedMotionEnabled == true
+		or player:GetAttribute(Config.HABITAT_ANIM.REDUCED_ATTRIBUTE) == true
+end
+
 for _, entry in panels do
 	local navEntry = entry.nav :: Nav.Entry
 	local button = Widgets.create("TextButton", {
@@ -726,6 +696,7 @@ for _, entry in panels do
 		Name = "Icon",
 		Id = navEntry.item,
 		Size = Layout.NAV.tile - Layout.NAV.iconInset * 2,
+		ZIndex = Layout.NAV_TILE_Z.icon,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Parent = tile,
@@ -775,6 +746,7 @@ for _, entry in panels do
 		icon = icon,
 		stroke = stroke,
 		badge = badge,
+		jar = if entry.key == "Dex" then DexJarView.new(tile, reducedMotion) else nil,
 	}
 end
 
@@ -801,6 +773,60 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 		setOpen(key)
 	end
 end)
+
+-- FEATURES.MoveSlime: E "Move" on your pad slimes starts move mode (pick up, see-through, place or swap).
+local slimeMove = if Config.FEATURES.MoveSlime == true
+	then SlimeMove.new(gui, ctx, {
+		plots = workspace:WaitForChild("Plots"),
+		player = player,
+		camera = function(): Camera?
+			return workspace.CurrentCamera
+		end,
+		ghostParent = function(): Instance
+			return workspace.CurrentCamera or workspace
+		end,
+		raycast = function(origin: Vector3, direction: Vector3, params: RaycastParams): RaycastResult?
+			return workspace:Raycast(origin, direction, params)
+		end,
+		uis = game:GetService("UserInputService"),
+		cas = ContextActionService,
+		prompts = ProximityPromptService,
+	})
+	else nil
+
+-- The slime you are stealing turns see-through for you, like a Move.
+CarryFade.start({
+	player = player,
+	carryingAttribute = Constants.CARRYING_ATTRIBUTE,
+	slimeTag = Constants.SLIME_TAG,
+	collection = game:GetService("CollectionService"),
+})
+
+-- Your slimes are managed at their pads with keys: R Favorite, X hold to Sell (Hatch stays the server's F prompt),
+-- E Move with FEATURES.MoveSlime.
+local slimeKeys = SlimeKeys.start({
+	root = workspace,
+	localUserId = player.UserId,
+	newPrompt = function(): ProximityPrompt
+		return Instance.new("ProximityPrompt")
+	end,
+	favoriteKey = { keyboard = Enum.KeyCode.R, gamepad = Enum.KeyCode.DPadUp },
+	sellKey = { keyboard = Enum.KeyCode.X, gamepad = Enum.KeyCode.DPadDown },
+	distance = Config.PLOT_PAD_PROMPT_DISTANCE,
+	holdSeconds = Config.HOLD_CONFIRM_SECONDS,
+	formatCash = Format.formatCash,
+	send = send,
+	style = Enum.ProximityPromptStyle.Custom,
+	moveKey = if slimeMove then { keyboard = Enum.KeyCode.E, gamepad = Enum.KeyCode.ButtonX } else nil,
+	onMove = if slimeMove then slimeMove.start else nil,
+})
+
+-- One card over the slime draws those prompts (they use the Custom style), instead of three stacked bubbles.
+SlimeKeyCard.start({
+	prompts = ProximityPromptService,
+	playerGui = player:WaitForChild("PlayerGui"),
+	tweens = game:GetService("TweenService"),
+})
 
 -- World shops (FEATURES.WorldShops, CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
 -- this client with ShopEvent and the OpenShop attribute; the card closes on ShopEvent Close / attribute nil, and
@@ -849,6 +875,9 @@ local function layoutNav(s: Layout.Screen)
 		btn.label.Position = UDim2.fromOffset(0, tileSize + N.labelGap)
 		btn.label.Size = UDim2.fromOffset(math.round(b.w), labelH)
 		btn.label.TextSize = if s.compact then N.clabelSize else N.labelSize
+		if btn.jar then
+			btn.jar.relayout()
+		end
 	end
 end
 
@@ -896,12 +925,15 @@ function applyLayout()
 	local s = Layout.screen(size.X, size.Y)
 	screen = s
 	hud.layout(s)
-	inventory.layout(s)
+	inventory.layout(s, GuiService:GetGuiInset())
 	stealFx.layout(s, hud.bannerHeight)
 	bossMeter.layout(s, hud.bannerHeight)
 	carry.layout(s)
+	if slimeMove then
+		slimeMove.layout(s)
+	end
 	tutorial.layout(s)
-	dailyPopup.layout(s)
+	dailyPopup.layout(s, GuiService:GetGuiInset())
 	layoutNav(s)
 	syncMenus() -- the nav's phone / desktop visibility follows the new size
 	if soundButton then
@@ -934,12 +966,15 @@ if game:GetService("RunService"):IsStudio() then
 		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
 	end)
-	gui:GetAttributeChangedSignal("PcwPlotSlime"):Connect(function()
-		for _, entry in allPanels do
-			if entry.key == "Plot" and latest and entry.panel.frame.Visible then
-				entry.panel.update(panelState(entry.key, latest))
-			end
+	-- "PcwMove" = "place" / "cancel" presses Place / Cancel in move mode (scripts can't send key presses).
+	gui:GetAttributeChangedSignal("PcwMove"):Connect(function()
+		local press = gui:GetAttribute("PcwMove")
+		if slimeMove and press == "place" then
+			slimeMove.place()
+		elseif slimeMove and press == "cancel" then
+			slimeMove.cancel()
 		end
+		gui:SetAttribute("PcwMove", nil)
 	end)
 	gui:GetAttributeChangedSignal("PcwRebirthSlime"):Connect(function()
 		for _, entry in allPanels do
@@ -992,8 +1027,11 @@ local function updateBadges(state: Types.State)
 		btn.badge.Visible = text ~= nil
 		if text then
 			btn.badge.Text = text
-			btn.badge.BackgroundColor3 = if text == "!" then Theme.Bad else Theme.Info
 		end
+	end
+	local dex = navButtons.Dex
+	if dex and dex.jar then
+		dex.jar.update(DexJarView.progress(state))
 	end
 end
 
@@ -1016,6 +1054,10 @@ local function render(realState: Types.State)
 		forceWelcome(forceStealAlert(forceDex(forceWeekend(forceBlessed(forceAdminEvent(forceFriends(realState)))))))
 	hud.update(state)
 	inventory.update(state)
+	slimeKeys.update(state)
+	if slimeMove then
+		slimeMove.update(state)
+	end
 	stealFx.update(state)
 	carry.update(state)
 	bossMeter.update(state)
@@ -1139,16 +1181,14 @@ leaderboardEvent.OnClientEvent:Connect(function(board: Types.Leaderboard)
 	worldBoards.setBoard(board)
 end)
 
--- Local countdowns (lock, rain, escape) between State pushes.
+-- Local countdowns (lock, rain) between State pushes.
 task.spawn(function()
 	while true do
 		task.wait(0.1)
 		if latest then
 			local now = serverNow()
 			hud.tick(now)
-			shieldBadges.tick(now)
 			inventory.tick()
-			carry.tick(now)
 			bossMeter.tick(now)
 			panelByKey.Codes.tick(now)
 			if panelByKey.WorldShop then
@@ -1156,6 +1196,9 @@ task.spawn(function()
 			end
 			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
 			pvpFunFx.tick(now)
+			if slimeMove then
+				slimeMove.tick()
+			end
 		end
 	end
 end)

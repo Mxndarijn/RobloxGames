@@ -32,9 +32,7 @@ local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Trophies = if Shared then require(Shared.Trophies) else require("../shared/Trophies")
 local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
-local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
-local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -155,11 +153,7 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	if world.wild[slimeId] then
 		return Carry.grabWild(world, session, slimeId, distance, now)
 	end
-	local ok, reason = StealService.steal(world, session, slimeId, distance, now)
-	if ok then
-		PvpService.onSteal(session, now) -- stealing ends the new-player shield
-	end
-	return ok, reason
+	return StealService.steal(world, session, slimeId, distance, now)
 end
 
 -- The boss carrier got home: the boss goes on the trophy stand (Trophies.award) and the fight is won.
@@ -185,9 +179,8 @@ end
 
 --[[
 	The carrier reached their own HomeZone. Wild slimes go on a free pad;
-	stolen ones move to the thief with Steal.complete (and, given `now`, open the
-	victim's Revenge window). A full plot keeps the
-	slime in your arms (and the escape timer keeps running).
+	stolen ones move to the thief with Steal.complete. A full plot keeps the
+	slime in your arms.
 ]]
 -- Server toast when a Mythic or Secret wild slime is brought home ("Merijn caught Cosmo!"), else nil.
 function Carry.catchText(playerName: string, slime: Genome.Slime): string?
@@ -279,9 +272,6 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 	end
 	World.notify(world, userId, `You stole a {name}!`, "good", "Stolen")
 	World.notify(world, owner.userId, `{session.name} stole your {name}!`, "bad", "Stolen")
-	if now then
-		Revenge.mark(world, owner.userId, userId, now) -- FEATURES.Revenge: the victim's window opens
-	end
 	World.effect(world, "Collect", { userId = userId })
 	World.tutorial(world, session, "Deposit")
 	return true, nil
@@ -374,7 +364,7 @@ end
 -- so the Speed Coil helps while carrying too (CONTRACT.md §8.10).
 -- Strong Arms (Perks.carrySlowFactor) shrinks the slowdown.
 -- The hauled boss is the exception: BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW), no Speed Coil, no Strong Arms.
-function Carry.walkSpeed(session: Session, now: number): number
+function Carry.walkSpeed(session: Session): number
 	local carry = session.carry
 	local base = Shop.walkSpeed(session.data)
 	if not carry then
@@ -383,14 +373,14 @@ function Carry.walkSpeed(session: Session, now: number): number
 	if carry.boss then
 		return Config.BASE_WALK_SPEED * (1 - Config.BOSS.CARRY_SLOW)
 	end
-	return base * (1 - Steal.carrySlow(carry.timer, now) * Perks.carrySlowFactor(session.data))
+	return base * (1 - Steal.carrySlow(carry.timer) * Perks.carrySlowFactor(session.data))
 end
 
 -- The WalkSpeed the server enforces right now (Player attribute TargetWalkSpeed).
 -- PvP holds / slows (PvpSlow: Goo Traps, Goo Blasters; PvpFun: the Goo Balloon slow; FEATURES.PvP, CONTRACT.md §26)
 -- multiply in; 1 with the flag off.
 function Carry.targetWalkSpeed(session: Session, now: number): number
-	local speed = if session.carry then Carry.walkSpeed(session, now) else Shop.walkSpeed(session.data)
+	local speed = if session.carry then Carry.walkSpeed(session) else Shop.walkSpeed(session.data)
 	return speed * PvpSlow.walkFactor(session, now) * PvpFun.walkFactor(session, now)
 end
 

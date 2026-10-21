@@ -92,12 +92,11 @@ describe("meadow: budget and determinism", function()
 			expect((p.attributes or {}).MeshAsset).toBe(nil)
 		end
 	end)
-	it("stays inside Meadow.PART_BUDGET and the world's PART_BUDGET of 1400", function()
+	it("stays inside Meadow.PART_BUDGET and below the world's PART_BUDGET", function()
 		local n = #allParts()
 		expect(n <= Meadow.PART_BUDGET).toBe(true)
 		-- fills the budget: the band is the point of it
 		expect(n >= Meadow.PART_BUDGET - 40).toBe(true)
-		expect(WorldLayout.PART_BUDGET).toBe(1400)
 		expect(Meadow.PART_BUDGET < WorldLayout.PART_BUDGET).toBe(true)
 	end)
 	it("is seeded: the same world every build", function()

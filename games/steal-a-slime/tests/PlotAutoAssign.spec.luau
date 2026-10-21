@@ -3,14 +3,12 @@
 -- leave / rejoin); there is no ClaimPrompt, no PlotClaim module and no claim reservation.
 -- Also State.lockStartedAt (CONTRACT.md §9.3), which lived in the old PlotClaim spec.
 local Config = require("../src/shared/Config")
-local Constants = require("../src/shared/Constants")
 local ServerFixtures = require("./ServerFixtures")
 local Sessions = require("../src/server/Sessions")
 local Snapshot = require("../src/server/Snapshot")
 local StealService = require("../src/server/StealService")
 local TestRunner = require("./TestRunner")
 local World = require("../src/server/World")
-local fs = require("@lune/fs")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
@@ -34,14 +32,6 @@ describe("plots auto-assign on join (no claim)", function()
 		expect(ServerFixtures.join(world, 2).plotIndex).toBe(2)
 		Sessions.leave(world, 1, T0)
 		expect(ServerFixtures.join(world, 9).plotIndex).toBe(1)
-	end)
-	it("has no claim reservation state on the world", function()
-		local world = ServerFixtures.world() :: any
-		expect(world.claims).toBeNil()
-	end)
-	it("has no PlotClaim module and no CLAIM_PROMPT_NAME constant", function()
-		expect(fs.isFile("src/server/PlotClaim.luau")).toBe(false)
-		expect((Constants :: any).CLAIM_PROMPT_NAME).toBeNil()
 	end)
 end)
 

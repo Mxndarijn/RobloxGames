@@ -125,7 +125,7 @@ function PerfMeasure.measure(): { [string]: any }
 	}
 	UiHarness.ui("Hud").new(gui, ctx)
 	local panels: { [string]: any } = {}
-	for _, key in { "Plot", "Merge", "Shop", "Rebirth", "Goals", "Dex", "Leaderboard", "Codes", "Guide", "Welcome" } do
+	for _, key in { "Merge", "Shop", "Rebirth", "Goals", "Dex", "Leaderboard", "Codes", "Guide", "Welcome" } do
 		local module = UiHarness.ui(`Panels/{key}`)
 		panels[key] = module.new(gui, ctx)
 	end
@@ -133,6 +133,7 @@ function PerfMeasure.measure(): { [string]: any }
 		Config = Config,
 		Constants = Constants,
 		StealAlert = require("../../src/shared/StealAlert"),
+		EdgeArrow = require("../../src/shared/EdgeArrow"),
 		serverNow = ctx.serverNow,
 	})
 	UiHarness.ui("Panels/Carry").new(gui, ctx)

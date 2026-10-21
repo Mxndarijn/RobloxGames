@@ -152,7 +152,7 @@ local function row(shopId: string, item: Shops.Item, fields: { [string]: any }):
 	return out :: Row
 end
 
--- Static items (Lock, Longer locks, Speed Coil): ShopCatalog.view.
+-- Static items (Speed Coil): ShopCatalog.view.
 local function staticRow(shopId: string, item: Shops.Item, state: any, actions: any, config: any): Row?
 	local catalogItem = ShopCatalog.find(item.id)
 	if not catalogItem then

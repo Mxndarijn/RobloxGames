@@ -390,12 +390,6 @@ local function stepFx(t: number, cameraPos: Vector3)
 			if model:GetAttribute("Tier") == TopTierFx.SECRET_TIER then
 				secretWild = true
 			end
-			if model:GetAttribute("Tier") == 6 then
-				local beam = model:FindFirstChild("Beam")
-				if beam and beam:IsA("BasePart") then
-					beam.Color = Color3.fromHSV((t * 0.15) % 1, 0.55, 1)
-				end
-			end
 		elseif model.Parent then
 			model.Parent = nil
 		end

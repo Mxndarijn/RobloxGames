@@ -8,7 +8,6 @@ local TestRunner = require("../TestRunner")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local EXPECTED = {
-	"Lock",
 	"SpeedCoil",
 	"Consumable_LuckPotion",
 	"Consumable_WeatherTotem",
@@ -31,7 +30,6 @@ local EXPECTED = {
 	"Pvp_FunHatLauncher",
 	"Pvp_FunDanceBomb",
 	"Pvp_FunFireworks",
-	"LockUpgrade",
 	"Upgrade_Income",
 	"Upgrade_CarrySpeed",
 	"Upgrade_OfflineCap",
@@ -58,7 +56,7 @@ describe("shop item icons", function()
 		end
 	end)
 
-	it("shopIconId yields exactly the 31 expected ids, in shop order", function()
+	it("shopIconId yields exactly the expected ids, in shop order", function()
 		local got: { string } = {}
 		for _, item in allItems() do
 			table.insert(got, ItemIcons.shopIconId(item))

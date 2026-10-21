@@ -309,7 +309,17 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 			return
 		end
 		local gui = SlimeInfoCard.build()
-		gui.Adornee = body
+		-- The tag hangs on the TagAnchor, which SlimeLifeRunner moves after the drawn slime (it never steps with the
+		-- replicated Body); at the Body's centre until a rig moves it.
+		local anchor = body:FindFirstChild(Constants.TAG_ANCHOR)
+		if not (anchor and anchor:IsA("Attachment")) then
+			local made = Instance.new("Attachment")
+			made.Name = Constants.TAG_ANCHOR
+			made.Archivable = false
+			made.Parent = body
+			anchor = made
+		end
+		gui.Adornee = anchor
 		local conn = model.AttributeChanged:Connect(function(name: string)
 			if WATCHED[name] then
 				refresh(model)

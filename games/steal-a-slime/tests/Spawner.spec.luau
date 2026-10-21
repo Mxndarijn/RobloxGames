@@ -182,8 +182,30 @@ describe("Spawner and the boss event", function()
 		expect(#ids).toBe(Config.BOSS.SHED_COUNT)
 		expect(Spawner.wildCount(world)).toBe(Config.MAX_WILD_SLIMES + Config.BOSS.SHED_COUNT)
 		for _, id in ids do
-			expect(world.wild[id].price).toBe(0)
-			expect(world.wild[id].expiresAt).toBe(T0 + Fountain.wildLifetime(world.wild[id].slime))
+			local wild = world.wild[id]
+			expect(wild.price).toBe(0)
+			expect(wild.expiresAt).toBe(wild.spawnedAt + Fountain.wildLifetime(wild.slime))
 		end
+	end)
+	it("drops take turns on the fountain slide: never two within SLIDE_GAP, bonus drops included", function()
+		if not Config.FEATURES.Parade then
+			return
+		end
+		local BONUS = 3 * Config.BOSS.SHED_COUNT -- every shed share crossed in one step
+		local world = ServerFixtures.world()
+		Spawner.spawnOne(world, T0)
+		local ids = Spawner.spawnBonus(world, T0, BONUS, Config.BOSS.DROP_LUCK)
+		Spawner.spawnOne(world, T0 + 1)
+		local times = {}
+		for _, wild in world.wild do
+			table.insert(times, wild.spawnedAt)
+		end
+		table.sort(times)
+		expect(#times).toBe(BONUS + 2)
+		expect(times[1]).toBe(T0)
+		for i = 2, #times do
+			expect(times[i] - times[i - 1] >= Spawner.SLIDE_GAP - 1e-4).toBe(true) -- server-time sized floats
+		end
+		expect(#ids).toBe(BONUS)
 	end)
 end)

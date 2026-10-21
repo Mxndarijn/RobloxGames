@@ -19,12 +19,12 @@ describe("Nav.ENTRIES", function()
 			expect(#entry.label > 0 and #entry.label <= 8).toBe(true)
 		end
 	end)
-	it("is exactly Plot, Rebirth, Goals, SlimeDex, Codes (H1 HUD: Merge, Shop and Top have no button)", function()
+	it("is exactly Rebirth, Goals, SlimeDex, Codes (Plot, Merge, Shop and Top have no button)", function()
 		local keys = {}
 		for _, entry in Nav.ENTRIES do
 			table.insert(keys, entry.key)
 		end
-		expect(table.concat(keys, ",")).toBe("Plot,Rebirth,Goals,Dex,Codes")
+		expect(table.concat(keys, ",")).toBe("Rebirth,Goals,Dex,Codes")
 	end)
 	it("shows the Dex entry as SlimeDex (internal key stays Dex)", function()
 		local labels = {}
@@ -54,28 +54,27 @@ describe("Nav.shopAffordable", function()
 end)
 
 describe("Nav.badges", function()
-	it("flags stolen slimes, rebirth and dex % (no Merge / Shop badges: those buttons are gone)", function()
+	it("flags rebirth (no Plot / Merge / Shop badges: those buttons are gone, the dex is a jar)", function()
 		local badges = Nav.badges({
 			cash = 600,
 			slimes = { view("a", 1, 7), view("b", 2), view("c", 2) },
 			shop = {
-				LockUpgrade = { price = 500, level = 0, maxLevel = 5 },
 				SpeedCoil = { price = 1500, owned = false },
 			},
 			canRebirth = true,
 			dex = { found = 2, total = 50 },
 		})
-		expect(badges.Plot).toBe("!")
+		expect(badges.Plot).toBeNil()
 		expect(badges.Merge).toBeNil()
 		expect(badges.Shop).toBeNil()
 		expect(badges.Rebirth).toBe("!")
-		expect(badges.Dex).toBe("4%")
+		expect(badges.Dex).toBeNil()
 	end)
 	it("stays quiet when there is nothing to do", function()
 		local badges = Nav.badges({
 			cash = 10,
 			slimes = { view("a", 1) },
-			shop = { LockUpgrade = { price = nil, level = 5, maxLevel = 5 }, SpeedCoil = { price = 1500 } },
+			shop = { SpeedCoil = { price = 1500 } },
 			canRebirth = false,
 			dex = { found = 0, total = 0 },
 		})

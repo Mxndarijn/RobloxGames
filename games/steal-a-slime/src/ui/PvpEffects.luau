@@ -7,7 +7,7 @@
 	built-ins), all transient: each is destroyed within its plan's `seconds` (PvpEffectsLogic.plan) and counted, so
 	`activeCount()` is 0 once the effects ended. Zero BaseParts when idle: emitters sit on the characters' existing parts
 	or on an Attachment under Workspace.Terrain. The Parts are the client-only marker of a placed Goo Trap (seen by
-	everyone: glowing for its owner, a faint shimmer for others; the PvpModels placeholder or its uploaded mesh),
+	everyone: glowing green for its owner, red for others; the PvpModels placeholder or its uploaded mesh),
 	destroyed on TrapCleared, and the flat goo splat a Goo Blaster blob leaves, gone after its seconds. A goo blob is
 	one particle flying the server's arc (PvpEffectsLogic.blobVelocity); its impact waits for the flight. Glove specials:
 	a BONK! / CHOMP! popup, lightning to a chained player, the Bounce Glove pogo (the victim's own client bounces), gold
@@ -17,7 +17,7 @@
 
 	Animations ride the same events (CONTRACT.md §26.3): the attacker of a use plays its item's animation (not the
 	local player, whose own client already played it on the click; not the Bat, whose swing comes from BatSwingAt),
-	the owner of a placed trap plays the throw and a pushed target plays the `hit` recoil (ui/PvpAnim).
+	the owner of a placed trap plays the throw (not for a `replay` sent to a joiner) and a pushed target plays the `hit` recoil (ui/PvpAnim).
 
 	Fun item events (CONTRACT.md §26.8) go to the `fun` handle (ui/PvpFunFx), which uses `applyLaunch` / `playSound`.
 
@@ -51,7 +51,7 @@ local PvpEffects = {}
 local LOOK = table.freeze({
 	popupPx = Vector2.new(140, 48), -- the BONK! / CHOMP! label
 	popupText = 34,
-	popupY = 4, -- studs above the head (over the shield badge)
+	popupY = 4, -- studs above the head
 	popupRise = 2, -- studs it floats up while fading
 	boltWidth = 0.5,
 	boltCurve = 3, -- studs of random bend at each end of the lightning
@@ -642,6 +642,7 @@ end
 -- placeholder pieces (PvpModels.markerParts) while there is none, centred on `center`.
 local function markerModel(itemId: string, center: CFrame, look: Logic.MarkerLook, model: Model)
 	local material = if look.modelMaterial then (Enum.Material :: any)[look.modelMaterial] else nil
+	local tint = if look.modelColor then color3(look.modelColor) else nil
 	local meshName = PvpModels.markerMesh(itemId)
 	local function quiet(part: BasePart)
 		part.Anchored = true
@@ -651,6 +652,9 @@ local function markerModel(itemId: string, center: CFrame, look: Logic.MarkerLoo
 		part.CastShadow = false
 		if material then
 			part.Material = material
+		end
+		if tint then
+			part.Color = tint
 		end
 		part.Transparency = math.max(part.Transparency, look.modelTransparency)
 		part.Parent = model
@@ -715,7 +719,7 @@ local function placeMarker(payload: { [string]: any })
 	part.Shape = Enum.PartType.Cylinder
 	part.Size = Vector3.new(0.2, marker.diameter, marker.diameter)
 	part.CFrame = CFrame.new(position + Vector3.new(0, 0.1, 0)) * CFrame.Angles(0, 0, math.pi / 2)
-	part.Color = color3(marker.color)
+	part.Color = color3(look.color or marker.color)
 	part.Material = (Enum.Material :: any)[look.material] or Enum.Material.SmoothPlastic
 	part.Transparency = look.transparency
 	part.Anchored = true
@@ -751,7 +755,7 @@ function PvpEffects.play(payload: any)
 	end
 	local kind = payload.kind
 	if kind == "TrapPlaced" then
-		if anim and payload.owner ~= Players.LocalPlayer.UserId then
+		if anim and not payload.replay and payload.owner ~= Players.LocalPlayer.UserId then
 			anim.playItem(payload.owner, payload.itemId)
 		end
 		placeMarker(payload)

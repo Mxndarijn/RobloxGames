@@ -4,7 +4,6 @@
 -- ONE shop menu opened by the ShopStand prompt, a Rebirth card that shows
 -- only the next rebirth, and a Guide NPC that opens a next-goal / tips card.
 -- Real panels under tests/ui/UiHarness.luau; pure modules directly.
-local fs = require("@lune/fs")
 local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
@@ -29,10 +28,6 @@ local UDim2, Vector3 = roblox.UDim2, roblox.Vector3
 local RARITY_NAMES = {}
 for i, rarity in Config.RARITIES do
 	RARITY_NAMES[i] = rarity.name
-end
-
-local function read(path: string): string
-	return fs.readFile(path)
 end
 
 local function has(text: string, needle: string): boolean
@@ -82,20 +77,6 @@ describe("v28 item 1: friendlier, content-sized menus", function()
 		expect(panel.frame:FindFirstChild("Band").BackgroundColor3).toBe(Widgets.Theme.Band)
 		expect(panel.frame.ZIndex).toBe(Layout.ZINDEX.Menu)
 	end)
-	it("every panel passes an icon to Widgets.panel", function()
-		for _, file in { "Plot", "Merge", "Shop", "Rebirth", "Goals", "Dex", "Leaderboard", "Codes", "Guide" } do
-			local src = read(`src/ui/Panels/{file}.luau`)
-			local call = string.match(src, 'Widgets%.panel%(parent, "%a+", "[^"]+", "([^"]+)"')
-			expect(call ~= nil and #call > 0).toBe(true)
-		end
-	end)
-	it("Esc / gamepad B close menus; so do the X and a tap on the dimmed backdrop", function()
-		expect(Layout.CLOSE_WITH_ESCAPE).toBe(true)
-		local src = read("src/ui/init.client.luau")
-		expect(has(src, 'Name = "MenuBackdrop"')).toBe(true)
-		expect(has(src, "backdrop.Activated:Connect(function()\n\tsetOpen(nil)")).toBe(true)
-		expect(has(src, "for _, entry in allPanels do\n\tentry.panel.close.Activated:Connect")).toBe(true)
-	end)
 	it("cards are smaller than the full-window backdrop on desktop and span it on phones", function()
 		local desk = Layout.screen(1920, 1080)
 		local phone = Layout.screen(390, 844)
@@ -106,11 +87,6 @@ describe("v28 item 1: friendlier, content-sized menus", function()
 			expect(p.w).toBe(phone.panel.w)
 			expect(p.h <= phone.panel.h).toBe(true)
 		end
-	end)
-	it("shorter copy: Merge / Goals / Plot lines lost their sentences", function()
-		expect(has(read("src/ui/Panels/Merge.luau"), "Both are used up")).toBe(false)
-		expect(has(read("src/ui/Panels/Goals.luau"), "Local goals from your stats")).toBe(false)
-		expect(has(read("src/ui/Panels/Plot.luau"), "BEING STOLEN")).toBe(false)
 	end)
 end)
 
@@ -190,35 +166,9 @@ describe("v28 item 2: SlimeDex pictures are real slime renders", function()
 		expect(preview.Visible).toBe(true)
 		expect(UiHarness.find(preview, "Body") ~= nil).toBe(true)
 	end)
-	it("init.client builds Dex models with Visuals.ModelFactory and strips their tags", function()
-		local src = read("src/ui/init.client.luau")
-		expect(has(src, 'visuals:FindFirstChild("ModelFactory")')).toBe(true)
-		expect(has(src, "model:RemoveTag(tag)")).toBe(true)
-		expect(has(src, "buildSlime = if modelFactory then buildSlime else nil")).toBe(true)
-	end)
 end)
 
 describe("v28 item 3: one shop menu from the ShopStand prompt", function()
-	it("the server places ONE 'Open Shop' prompt and buys nothing from it", function()
-		local src = read("src/server/WorldProps.luau")
-		expect(has(src, "ShopPrompt_SpeedCoil")).toBe(false)
-		expect(has(src, "ShopPrompt_LockUpgrade")).toBe(false)
-		-- FEATURES.WorldShops (CONTRACT.md §27.3): the only server-side Triggered hook opens a world shop, nothing is bought
-		expect(has(src, "Triggered:Connect(function(player: Player)\n\t\t\t\t\t\tonShop(player, shopId)")).toBe(true)
-		expect(
-			has(
-				read("src/server/init.server.luau"),
-				"WorldProps.addShopPrompts(function(player: Player, shopId: string)"
-			)
-		).toBe(true)
-		expect(Constants.SHOP_PROMPT_NAME).toBe("ShopPrompt")
-	end)
-	it("the client opens the Shop (and the Guide) for its own prompt triggers only", function()
-		local src = read("src/ui/init.client.luau")
-		expect(has(src, "MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME,")).toBe(true)
-		expect(has(read("src/ui/MenuClose.luau"), '[shopPrompt] = "Shop", [guidePrompt] = "Guide"')).toBe(true)
-		expect(has(src, "if key and who == player then\n\t\tsetOpen(key)")).toBe(true)
-	end)
 	it("the Shop panel lists every item flat in one scroll list, a Buy button per row", function()
 		local Shop = UiHarness.ui("Panels/Shop")
 		local panel = Shop.new(UiHarness.root(), ctx())
@@ -289,7 +239,6 @@ describe("v28 item 4: Rebirth shows only the next rebirth", function()
 		local panel = Rebirth.new(UiHarness.root(), ctx())
 		local cost = Economy.rebirthCost(0)
 		panel.update(rebirthState(0, cost / 2))
-		expect(UiHarness.find(panel.frame, "Tier1")).toBeNil()
 		expect(panel.frame:FindFirstChild("Title").Text).toBe("Rebirth 1")
 		expect(UiHarness.find(panel.frame, "Cost").Text).toBe(Format.formatCash(cost))
 		expect(UiHarness.find(panel.frame, "CashTick").Visible).toBe(false)
@@ -315,25 +264,33 @@ describe("v28 item 4: Rebirth shows only the next rebirth", function()
 	end)
 end)
 
-describe("v29 item 5: Rebirth needs a specific slime", function()
+describe("Rebirth needs specific slimes and uses them up", function()
+	local SPROUT = { id = "sprout", name = "Sprout Slime", tier = 2, color = { 90, 200, 90 } }
+	local ZAP = { id = "zap", name = "Zap", tier = 4, color = { 90, 90, 200 } }
+	local function need(base: any, owned: boolean): any
+		local row = table.clone(base)
+		row.owned = owned
+		return row
+	end
 	local function stateWith(owned: boolean, cash: number): any
 		local state = rebirthState(0, cash)
-		state.rebirthSlime = { id = "sprout", name = "Sprout Slime", tier = 2, color = { 90, 200, 90 }, owned = owned }
+		state.rebirthSlimes = { need(SPROUT, owned) }
 		state.canRebirth = owned and cash >= Economy.rebirthCost(0)
 		return state
 	end
-	it("Progress.nextRebirth carries the requirement and flags a missing slime", function()
+	it("Progress.nextRebirth carries the requirement and lists the missing slimes", function()
 		local missing = Progress.nextRebirth(stateWith(false, 1e9), Config)
-		expect(missing.slime ~= nil and missing.slime.name == "Sprout Slime").toBe(true)
-		expect(missing.slimeMissing).toBe(true)
+		expect(#missing.slimes).toBe(1)
+		expect(missing.slimes[1].name).toBe("Sprout Slime")
+		expect(#missing.missing).toBe(1)
 		expect(missing.ready).toBe(false)
 		local owned = Progress.nextRebirth(stateWith(true, 1e9), Config)
-		expect(owned.slimeMissing).toBe(false)
+		expect(#owned.missing).toBe(0)
 		expect(owned.ready).toBe(true)
-		expect(Progress.nextRebirth(rebirthState(0, 0), Config).slime).toBeNil()
+		expect(#Progress.nextRebirth(rebirthState(0, 0), Config).slimes).toBe(0)
 		local state = stateWith(false, 0)
 		state.rebirths = Config.MAX_REBIRTHS
-		expect(Progress.nextRebirth(state, Config).slime).toBeNil()
+		expect(#Progress.nextRebirth(state, Config).slimes).toBe(0)
 	end)
 	it("the panel shows Missing + the reason instead of the button, then a tick and the button", function()
 		local Rebirth = UiHarness.ui("Panels/Rebirth")
@@ -353,19 +310,55 @@ describe("v29 item 5: Rebirth needs a specific slime", function()
 		panel.update(stateWith(true, 1e9))
 		expect(stamp.Visible).toBe(false)
 		expect(tick.Visible).toBe(true)
+		expect(UiHarness.find(panel.frame, "SlimeDesc").Text).toBe("Used up on rebirth")
 		expect(reason.Visible).toBe(false)
 		expect(button.Visible).toBe(true)
 		expect(button.Text).toBe("♻️ Rebirth!")
 		panel.update(rebirthState(0, 0))
 		expect(UiHarness.find(panel.frame, "SlimeNeed").Visible).toBe(false)
 	end)
+	it("two slimes get a row each with its own tick, and the reason names the missing ones", function()
+		local Rebirth = UiHarness.ui("Panels/Rebirth")
+		local panel = Rebirth.new(UiHarness.root(), ctx())
+		local state = rebirthState(0, 1e9)
+		state.rebirthSlimes = { need(SPROUT, true), need(ZAP, false) }
+		state.canRebirth = false
+		panel.update(state)
+		local card = UiHarness.find(panel.frame, "SlimeNeed")
+		expect(UiHarness.find(card, "Label").Text).toBe("These slimes")
+		local first = UiHarness.find(card, "Need1")
+		local second = UiHarness.find(card, "Need2")
+		expect(first.Visible and second.Visible).toBe(true)
+		expect(UiHarness.find(first, "SlimeName").Text).toBe("Sprout Slime")
+		expect(UiHarness.find(second, "SlimeName").Text).toBe("Zap")
+		expect(UiHarness.find(first, "Tick").Visible).toBe(true)
+		expect(UiHarness.find(second, "Tick").Visible).toBe(false)
+		expect(UiHarness.find(card, "SlimeState").Visible).toBe(true)
+		expect(UiHarness.find(panel.frame, "Reason").Text).toBe("🔒 Get Zap to rebirth")
+		state.rebirthSlimes = { need(SPROUT, false), need(ZAP, false) }
+		panel.update(state)
+		expect(UiHarness.find(panel.frame, "Reason").Text).toBe("🔒 Get Sprout Slime and Zap to rebirth")
+		-- Back to one slime: the rows hide, the big picture returns.
+		panel.update(stateWith(false, 1e9))
+		expect(first.Visible or second.Visible).toBe(false)
+		expect(UiHarness.find(card, "Label").Text).toBe("This slime")
+	end)
+	it("the lock tile says Max once locks can't grow", function()
+		local Rebirth = UiHarness.ui("Panels/Rebirth")
+		local panel = Rebirth.new(UiHarness.root(), ctx())
+		local state = rebirthState(20, 0)
+		state.lockDuration = Config.LOCK_MAX_REMAINING
+		panel.update(state)
+		expect(UiHarness.find(UiHarness.find(panel.frame, "LockTime"), "Value").Text).toBe("Max")
+		state.lockDuration = Config.LOCK_SECONDS
+		panel.update(state)
+		expect(UiHarness.find(UiHarness.find(panel.frame, "LockTime"), "Value").Text).toBe(
+			`+{Config.LOCK_SECONDS_PER_REBIRTH}s`
+		)
+	end)
 end)
 
 describe("v28 item 5: the Guide NPC opens a next-goal + tips card", function()
-	it("the TutorialNpc gets a 'Talk' prompt (CONTRACT §5.3)", function()
-		expect(Constants.GUIDE_PROMPT_NAME).toBe("GuidePrompt")
-		expect(has(read("CONTRACT.md"), "ProximityPrompt `GuidePrompt`")).toBe(true)
-	end)
 	it("next goal: the tutorial step first", function()
 		local view = GuideTips.view({ tutorialStepId = "Lock", slimes = {} }, RARITY_NAMES, 0)
 		expect(view.goal).toBe(GuideTips.STEP_GOALS.Lock)

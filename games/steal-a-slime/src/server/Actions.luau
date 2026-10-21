@@ -15,7 +15,6 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
-local Appraise = if Shared then require(Shared.Appraise) else require("../shared/Appraise")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
@@ -51,7 +50,7 @@ type Result = Types.RequestResult
 export type Context = {
 	distanceBetween: (a: number, b: number) -> number, -- math.huge if unknown
 	positionOf: (userId: number) -> any?, -- opaque, stored on dropped wild slimes; also PvP's positionOf
-	rng: Rng.Rng?, -- Appraise rolls; nil = seeded from the clock and the player
+	rng: Rng.Rng?, -- consumable rolls; nil = seeded from the clock and the player
 	-- Config.FEATURES overrides by flag name (tests); a flag not listed reads Config.FEATURES.
 	features: { [string]: boolean }?,
 	-- PvP engine access, the fields of PvpService.Context (nil = can't)
@@ -200,6 +199,17 @@ local function sell(world: World, session: Session, id: string): Result
 	return OK
 end
 
+local function moveSlime(world: World, session: Session, id: string, pad: number, ctx: Context): Result
+	if not feature(ctx, "MoveSlime") then
+		return fail("moving slimes is off")
+	end
+	local other = PlayerData.slimeOnPad(session.data, pad)
+	if World.isBusy(world, id) or (other ~= nil and World.isBusy(world, other.id)) then
+		return fail("slime is busy")
+	end
+	return result(PlayerData.moveSlime(session.data, id, pad))
+end
+
 local function buyPad(world: World, session: Session): Result
 	local ok, reason = PlayerData.buyPad(session.data)
 	if ok then
@@ -246,23 +256,6 @@ local function redeem(world: World, session: Session, text: string, now: number)
 		then `{reward.mult}x income for {reward.minutes} min`
 		else `${Economy.formatNumber(reward.amount or 0)}`
 	World.notify(world, session.userId, `Code redeemed: {what}!`, "good", "Cash", "Gift")
-	return OK
-end
-
-local function buyLockUpgrade(world: World, session: Session): Result
-	local ok, value = Shop.buyLockUpgrade(session.data)
-	if not ok then
-		return fail(value :: string)
-	end
-	local level = session.data.lockLevel
-	World.notify(
-		world,
-		session.userId,
-		`Longer locks level {level}! Locks last longer now.`,
-		"good",
-		"Cash",
-		"LockUpgrade"
-	)
 	return OK
 end
 
@@ -319,27 +312,6 @@ local function setAudioSettings(session: Session, music: number, sfx: number, mu
 	end
 	session.data.settings = AudioSettings.clean({ musicVolume = music, sfxVolume = sfx, muted = muted })
 	return OK
-end
-
-local function appraise(world: World, session: Session, id: string, kind: string, now: number, ctx: Context): Result
-	if World.isBusy(world, id) then
-		return fail("slime is busy")
-	end
-	local rng = ctx.rng or Rng.new(math.floor(now * 1000) + session.userId)
-	local ok, value = Appraise.reroll(session.data, id, kind, rng)
-	if not ok then
-		return fail(value :: string)
-	end
-	local appraisal = value :: Types.Appraisal
-	World.notify(
-		world,
-		session.userId,
-		`Appraised for ${Economy.formatNumber(appraisal.cost)}`,
-		"good",
-		"Cash",
-		"Appraise"
-	)
-	return { ok = true, appraisal = appraisal }
 end
 
 local function buyConsumable(
@@ -460,9 +432,6 @@ end
 
 -- Level after a purchase, for ShopEvent Purchased (leveled upgrades only).
 local function levelOf(session: Session, itemId: string): number?
-	if itemId == "LockUpgrade" then
-		return session.data.lockLevel
-	end
 	local level = session.data.upgrades[itemId]
 	return if Perks.upgradeDef(itemId) then level or 0 else nil
 end
@@ -524,9 +493,11 @@ local function strictGate(session: Session, action: string, ctx: Context): Resul
 	if ctx.strictBypass or not (ctx.shopAccess and strictOn(ctx)) then
 		return nil
 	end
-	-- The HUD Lock button also works while standing at the owner's own lock pad (same check as the pad prompt).
-	if action == "Lock" and ctx.plotPadAccess and not PlotPadGuard.check(ctx.plotPadAccess(session.userId, "Lock")) then
-		return nil
+	-- Locks are not sold in a shop: the HUD Lock button works while standing at the owner's own lock pad
+	-- (same check as the pad prompt).
+	if action == "Lock" then
+		local code = if ctx.plotPadAccess then PlotPadGuard.check(ctx.plotPadAccess(session.userId, "Lock")) else nil
+		return if code then fail(PlotPadGuard.MESSAGES[code]) else nil
 	end
 	local shopId = Shops.shopOfAction(action)
 	if not shopId then
@@ -586,6 +557,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 			return fail("not your slime")
 		end
 		return OK
+	elseif action == "MoveSlime" then
+		return moveSlime(world, session, args[1], args[2], ctx)
 	elseif action == "HatchEgg" then
 		return result(MysteryEgg.hatch(world, session, args[1], now))
 	elseif action == "BuyPad" then
@@ -596,8 +569,6 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return claimQuest(world, session, args[1], now)
 	elseif action == "Redeem" then
 		return redeem(world, session, args[1], now)
-	elseif action == "BuyLockUpgrade" then
-		return buyLockUpgrade(world, session)
 	elseif action == "BuySpeedCoil" then
 		return buySpeedCoil(world, session)
 	elseif action == "BuyUpgrade" then
@@ -606,8 +577,6 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return equipPlotSkin(world, session, args[1], ctx)
 	elseif action == "SetAudioSettings" then
 		return setAudioSettings(session, args[1], args[2], args[3], ctx)
-	elseif action == "Appraise" then
-		return appraise(world, session, args[1], args[2], now, ctx)
 	elseif action == "BuyConsumable" then
 		return buyConsumable(world, session, args[1], args[2], now, ctx)
 	elseif action == "UseConsumable" then

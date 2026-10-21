@@ -97,9 +97,9 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Merge:** `Request("Merge", a, b)` takes two slimes of the same tier and gives one slime of tier + 1 (`Merge.apply`).
 - **Steal and lock:**
   - On join, the plot is locked for `JOIN_LOCK_SECONDS` (45).
-  - `Request("Lock")` buys `60 + 10 × rebirths` s, capped at `LOCK_MAX_REMAINING` (`Steal.buyLock`).
+  - `Request("Lock")` buys `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s; one purchase and the stacked lock are both capped at `LOCK_MAX_REMAINING` (3 min) (`Steal.lockDuration`, `Steal.buyLock`). Locks are bought only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button; under `WorldShopsStrict` the HUD button needs the player at their lock pad). No shop sells locks or longer locks.
   - Stealing pings the owner (Notify `"bad"` plus `SlimeView.stolenBy`).
-  - **Escape home:** each second the slime may wriggle free (`Steal.shouldEscape`). At `escapeAt` it always escapes, after 15–25 s depending on rarity. It also escapes when the carrier is slapped (`Request("Slap")`). An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
+  - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is slapped (Bat or a PvP knockback), drops it, dies / respawns or leaves. While it is carried the thief sees it see-through (client-only `ui/CarryFade`, the Move fade). An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
   - If the thief reaches their own `HomeZone` first, `Steal.complete` moves the slime to the thief.
 - **Rebirth:** `Progression.rebirth` wipes cash and slimes but keeps the favourite (or the best slime). It adds +`REBIRTH_MULTIPLIER_STEP` income and +10 s lock.
 - **DataStore:**
@@ -114,7 +114,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Leaderboard:**
   - `leaderstats` holds IntValues `Cash`, `Rebirths` and `Steals`.
   - A global OrderedDataStore `Constants.LEADERBOARD_STORE` (`"StealASlime_TotalEarned"`, key `"u_<UserId>"`) ranks by `totalEarned`. It's written on every save. It's refreshed every `LEADERBOARD_INTERVAL` and pushed to all clients (§3). A joining player gets the latest board right away. In memory mode the board is also refreshed when someone joins.
-- **Shop:** `src/shared/Shop.luau` (pure). The Shop panel's "Lock base" row is the `"Lock"` action; `"BuyLockUpgrade"` is a permanent upgrade (§3); `"BuySpeedCoil"` buys an **item** (Item Shop, 2026-10-18: it works while held, so it has a hotbar slot; §27.1). Prices and levels are in `State.shop` (§5.1). The lock upgrade adds to `Steal.lockDuration` (so `State.lockDuration` already includes it); the lock is still capped at `LOCK_MAX_REMAINING`.
+- **Shop:** `src/shared/Shop.luau` (pure). `"BuySpeedCoil"` buys an **item** (Item Shop, 2026-10-18: it works while held, so it has a hotbar slot; §27.1). Its price is in `State.shop` (§5.1).
 - **Speed Coil** (v13: also while carrying, always enforced, see §8.10): owning it (`data.speedCoil`) sets WalkSpeed to `SPEED_COIL_WALK_SPEED` whenever you're not carrying (equipped or not). While you own it the server keeps one `SpeedCoil` Tool (`Props.speedCoil()`, a `Handle` Part plus welded decor, unanchored, CanCollide false) in your Backpack or character, re-adding it after respawns. It's cosmetic; carrying still unequips it.
 - **Tutorial** (v13: 7 steps with `BuyPad` as step 4, see §8.3): `src/shared/TutorialProgress.luau` (pure). The server owns the step; the client only shows it (`State.tutorialStep`, Player attribute `TutorialStep`). Steps (1-based, same order as the UI's `Tutorial.STEPS`):
   1. `Grab`: grab or buy a wild slime.
@@ -163,14 +163,13 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. |
 | `"Favorite"` | `slimeId: string?` | Sets the rebirth keeper. `nil` clears it. |
 | `"BuyPad"` | none | Unlocks the next pad (`Economy.padCost`). |
+| `"MoveSlime"` | `slimeId: string, pad: number` | `FEATURES.MoveSlime`: moves that owned, not-busy slime to `pad` (an unlocked pad, `1..padsUnlocked`, a whole number). If another slime sits there, the two swap pads; that slime must not be busy either. Moving to its own pad is a no-op. Fails with `"moving slimes is off"`, `"not your slime"`, `"pad is locked"`, `"slime is busy"`. Only `slime.pad` changes (no save change); the slime models re-place on the next world refresh. |
 | `"Daily"` | none | Claims the daily reward (`Progression.claimDaily`). |
 | `"ClaimQuest"` | `slot: number` | Claims daily quest `slot` (1..`DAILY_QUESTS.count`) once finished (`Quests.claim`): cash x rebirth multiplier or an income boost. `State.dailyQuests` has the 3 quests rolled per UTC day (progress = gained since the roll, saved as `quests`; missing = nothing rolled). |
-| `"BuyLockUpgrade"` | none | Buys the next lock-time upgrade level for `Shop.lockUpgradeCost(level)`. Each level makes every bought lock last `LOCK_UPGRADE_SECONDS` longer, up to `LOCK_UPGRADE_MAX` levels. Permanent: saved and kept on rebirth. |
 | `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While you're not carrying, WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Saved and kept on rebirth. An **item**, not an upgrade (Item Shop row, §27.1; a `SpeedCoil` Tool in the Backpack, hotbar slot, inventory panel). |
 | `"BuyConsumable"` | `itemId: string, slimeId: string?` | `FEATURES.Consumables`. Buys one Luck Potion / Weather Totem: checks the restock allowance, cash and the held cap (`CONSUMABLE_HELD_MAX`), then **adds one to the held stack** (`data.consumables.held`). Nothing is applied on purchase; `slimeId` is ignored. See [restocking-shop.md](contract/restocking-shop.md). |
 | `"UseConsumable"` | `itemId: string, slimeId: string?` | `FEATURES.Consumables`. Uses one held consumable: the server checks the item and that the stack is at least 1, runs the effect (spray onto the owned idle `slimeId`, luck potion, weather totem) and only then takes one off the stack. A refused effect keeps the stack. Rate limit 0.5 s. |
 | `"Drop"` | none | Drops what you're carrying. Wild → falls to the ground; stolen → escapes home. |
-| `"Appraise"` | `slimeId: string, kind: "size"` | Pays `Appraise.cost` (`APPRAISE_COST_FRACTION` = 30% of `Economy.sellPrice`) to reroll that owned, not-busy slime's size. Only `size` changes. Success returns `{ ok = true, appraisal = Types.Appraisal }`: `cost`, `beforeSize` / `afterSize`, `incomeBefore` / `incomeAfter` (`PlayerData.slimeIncome`) and `costAfter` (the next price), the values the next State sends. Fails with `"not your slime"`, `"not enough cash"`, `"slime is busy"`. `SlimeView.appraiseCost` is the current price. |
 | `"SetHotbar"` | `order: string` | Saves the player's hotbar order (`Shared.HotbarOrder`): up to 9 slot keys joined by `","`, slot 1 first; fewer parts = the rest empty, `""` = an empty slot. A key is the client's inventory entry key: `tool:<ToolName>`, `pvp:<Config.PVP_TOOLS id>` or `consumable:<Config.CONSUMABLES id>`, id up to 32 chars of ASCII letters, digits, space, `_ - . '` (no leading / trailing space). A `pvp:` / `consumable:` id must be a catalog id; a Tool name is free-form, but a Tool whose name has any other character (non-ASCII included) can't be placed on the bar. Example: `"tool:Bat,pvp:KnockGlove1,,consumable:LuckPotion"`. Refused with `"bad argument"`: not a string, longer than 400 chars, more than 9 parts, a malformed key, an unknown pvp / consumable id or the same key twice. Ownership is not checked (the client skips keys it doesn't hold). Stored as `hotbar` in the save (9 strings, no version bump) and sent back as `State.hotbar`; a stored key that is no longer legal loads as an empty slot. An all-empty order is stored as 9 `""`. Rate limit 0.3 s per player; a faster one answers `"too fast"` (the client sends the order again after the gap). |
 | `"Sync"` | none | The server re-sends `State` right away. The UI calls it once on start. At most one per `STATE_MIN_INTERVAL` (0.25 s); a faster one answers `"too fast"`. |
 
@@ -247,17 +246,17 @@ The client always replaces its copy and never diffs.
 	serverTime: number, plotIndex: number,
 	cash: number, incomePerSec: number,
 	rebirths: number, rebirthMultiplier: number, rebirthCost: number, canRebirth: boolean,
+	rebirthSlimes: { { id: string, name: string, tier: number, color: { number }, owned: boolean } }, -- §8.8a, empty at max
 	padsUnlocked: number, padsMax: number, nextPadCost: number?,
 	slimes: { { slime: SlimeData, income: number, sellPrice: number, stolenBy: number? } },
 	favoriteId: string?,
 	lockUntil: number, lockCost: number, lockDuration: number,
 	carrying: { slime: SlimeData, kind: "wild" | "stolen", ownerUserId: number?,
-	            startedAt: number, escapeAt: number?, walkSpeed: number }?,
+	            startedAt: number, walkSpeed: number }?,
 	rain: { active: boolean, endsAt: number?, nextAt: number? },
 	dex: DexView,                               -- species Dex (§36.4)
 	daily: { available: boolean, streak: number, amount: number, day: number },
 	shop: {
-		LockUpgrade: { price: number?, level: number, maxLevel: number },  -- price nil = maxed
 		SpeedCoil: { price: number?, owned: boolean },                      -- price nil = owned
 	},
 	egg: { hatched: { slime: SlimeData, at: number }? },  -- newest Mystery Egg hatch, never saved
@@ -267,7 +266,7 @@ The client always replaces its copy and never diffs.
 ```
 
 - `daily.day` is the streak day the pending claim pays (1..`DAILY_STREAK_CAP`, `amount = DAILY_BASE × day × rebirthMultiplier`). When nothing is pending, it's the day the last claim paid.
-- `egg.hatched` is the newest Mystery Egg the player hatched (`HatchEgg`, [mystery-egg.md](contract/mystery-egg.md)), shown in the reveal banner for `MYSTERY_EGG_REVEAL_SECONDS`.
+- `egg.hatched` is the newest Mystery Egg the player hatched (`HatchEgg`, [mystery-egg.md](contract/mystery-egg.md)). The HUD shows no banner for it.
 - `shop` keys are the UI's `ShopCatalog` item ids. Prices are final (what `Request` charges).
 - `hotbar` is what the last successful `Request("SetHotbar", order)` stored (§3), saved across sessions and rebirths. Keys may name items the player no longer holds; the client skips those.
 
@@ -289,7 +288,10 @@ The client always replaces its copy and never diffs.
     ```
   - Client side: Jolt's `src/ui/PromptHide` implements this rule (matches only `GrabPrompt`, reads only `HideFromUserId`).
   - Server-side safety net: `Carry.grab` refuses the owner, so a client that ignores the attribute only shows a useless prompt.
-- **Player:** `Carrying: string?` (`Constants.CARRYING_ATTRIBUTE`). The carried slime's id, set on pickup (grab or steal). Cleared (nil) on drop, deposit, a failed steal (wriggle, timeout or slap escape; the owner leaving), death / respawn and leave. A full plot doesn't clear it: the slime stays in your arms. The server derives it from `Carry.carryingId` after every action and every tick.
+  - Owner side: `src/ui/SlimeKeys` adds two **client-only** ProximityPrompts on the Body of every slime model whose `OwnerUserId` is the local player and `State` is `"Pad"`: `FavoritePrompt` (R, gamepad DPadUp, tap: "Favorite" / "Unfavorite", sends `Favorite(slimeId)` / `Favorite(nil)`; the favourite's prompt shows `State.petPerk`; none on Mystery Eggs, models with `EggKind`) and `SellPrompt` (X, gamepad DPadDown, hold `HOLD_CONFIRM_SECONDS`: "Sell $price" from `State.slimes[i].sellPrice`, sends `Sell(slimeId)`). Hatch stays the server's `HatchPrompt` (F). E is left free on owned pad slimes. The server never creates or sees these prompts; there is no slime card and no Plot nav button.
+  - `FEATURES.MoveSlime`: SlimeKeys also adds `MovePrompt` (E, gamepad ButtonX, tap, "Move") to those slimes. It starts client-only move mode (`src/ui/SlimeMove`): the slime turns see-through for this player, a see-through copy sits on the target pad (the pad under the mouse or tap, else the unlocked pad nearest the character), the pad is tinted green (empty), yellow (swap) or red (locked). Click / tap a pad, E or gamepad ButtonX sends `MoveSlime(slimeId, pad)`; Q, gamepad ButtonB, the Cancel button, leaving the home zone or the slime leaving its pad cancels. Every ProximityPrompt is off for this player while moving.
+  - These SlimeKeys prompts use `ProximityPromptStyle.Custom`: `src/ui/SlimeKeyCard` draws one card over the slime (its name, the favourite's perk, one row per shown prompt with its key, a fill while a hold prompt is held) instead of Roblox's stacked bubbles. A click or tap on a row holds that prompt.
+- **Player:** `Carrying: string?` (`Constants.CARRYING_ATTRIBUTE`). The carried slime's id, set on pickup (grab or steal). Cleared (nil) on drop, deposit, a failed steal (slap escape; the owner leaving), death / respawn and leave. A full plot doesn't clear it: the slime stays in your arms. The server derives it from `Carry.carryingId` after every action and every tick.
 - **`workspace`:**
   - `SlimeRain: boolean` (`Constants.RAIN_ATTRIBUTE`): `true` during Slime Rain, `false` otherwise (set at server start). VisualsClient keys its rain particles off it.
   - `DataStoreStatus: string` (`Constants.DATASTORE_STATUS_ATTRIBUTE`): `"Ok" | "Memory" | "Unavailable" | "Error"`, see §2 Persistence.
@@ -349,18 +351,15 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | Key | Value | Design source |
 |---|---|---|
 | `JOIN_LOCK_SECONDS` / `LOCK_SECONDS` / `LOCK_SECONDS_PER_REBIRTH` | 45 / 60 / 10 | "45 s on join, then a 60 s lock button, +10 s per rebirth" |
-| `RARITIES[i].escapeTime` | 25, 23, 21, 19, 17, 15 | "15–25 s by rarity" |
-| `RARITIES[i].carrySlow` (+`STOLEN_EXTRA_SLOW` ramp, max `MAX_CARRY_SLOW`) | 0.05…0.30 (+0.25, ≤0.6) | "slows the carrier more the rarer it is" |
+| `RARITIES[i].carrySlow` (max `MAX_CARRY_SLOW`) | 0.05…0.35 (≤0.6) | "slows the carrier more the rarer it is" |
 | `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × growth |
 | `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 5 | "every hour … for 3 minutes" |
 | `PADS_START` / `PADS_PER_FLOOR` / `BASE_FLOORS` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 4 floors / 32 (`#BASE_FLOORS * PADS_PER_FLOOR`) / 8 | a base grows by floors of 8 pads; each `BASE_FLOORS` row prices its floor's pads (`Economy.padCost`) |
 | `OFFLINE_RATE` / `OFFLINE_CAP_SECONDS` | 0.5 / 7200 | capped offline income |
-| `REBIRTH_BASE_COST` / `REBIRTH_COST_GROWTH` / `REBIRTH_MULTIPLIER_STEP` | 5000 / 3 / 0.5 | rebirth gives a multiplier, keeps one favourite |
+| `REBIRTH_BASE_COST` / `REBIRTH_COST_GROWTH` / `REBIRTH_MULTIPLIER_STEP` | see `Config` | rebirth gives a multiplier, keeps one favourite (§8.8) |
 | `SPAWN_INTERVAL` / `MAX_WILD_SLIMES` / `FREE_DROP_CHANCE` / `WILD_PRICE_SECONDS` | 4 / 18 / 0.25 / 20 | "buy cheap ones … or grab a free drop" |
 | `STATE_MIN_INTERVAL` / `LEADERBOARD_INTERVAL` | 0.25 / 60 | §5.1, §2 |
 
-| `LOCK_UPGRADE_MAX` / `LOCK_UPGRADE_SECONDS` / `LOCK_UPGRADE_COSTS` | 5 / 15 / 500, 2 000, 8 000, 30 000, 100 000 | shop: longer locks |
-| `MYSTERY_EGG_REVEAL_SECONDS` | 6 | Mystery Egg hatch banner |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
 | `FEATURES` | every flag and its value live in `Config.FEATURES` only; not restated here | §2 Extras |
@@ -404,7 +403,6 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §13 | [coop-ritual.md](contract/coop-ritual.md) | v29 #12: co-op ritual circle (2026-10-16, Jolt) |
 | §14 | [follow-pet-passives.md](contract/follow-pet-passives.md) | v29 #14: follow-pet passives (2026-10-16, Jolt) |
 | §15 | [plot-skins.md](contract/plot-skins.md) | Gaps #15: plot skins unlocked by collection (2026-10-16, Archer) |
-| §16 | [revenge-steal.md](contract/revenge-steal.md) | Revenge steal (`FEATURES.Revenge`) |
 | §17 | [steal-alerts.md](contract/steal-alerts.md) | v21: full steal alerts (2026-10-16) |
 | §18 | [weekly-event-rotation.md](contract/weekly-event-rotation.md) | v21: weekly event rotation (2026-10-16) |
 | §19 | [fountain-tiers.md](contract/fountain-tiers.md) | v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`) |
@@ -412,7 +410,7 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §22 | [restocking-shop.md](contract/restocking-shop.md) | v29 #13: restocking consumables shop (2026-10-16) |
 | §24 | [welcome-back.md](contract/welcome-back.md) | v20: welcome-back card (2026-10-17) |
 | §25 | [server-profiler.md](contract/server-profiler.md) | v23: server performance profiler (`FEATURES.ServerProfiler`) |
-| §26 | [pvp.md](contract/pvp.md) | PvP: rules, shield, gloves, traps, blasters, fun items (`FEATURES.PvP`) |
+| §26 | [pvp.md](contract/pvp.md) | PvP: rules, gloves, traps, blasters, fun items (`FEATURES.PvP`) |
 | §27 | [world-shops.md](contract/world-shops.md) | World shops: Item Shop and Upgrade Shop (`FEATURES.WorldShops`) |
 | §28 | [fountain-split.md](contract/fountain-split.md) | Fountain split: PCD tower pieces (`FEATURES.FountainSplit`) |
 | §29 | [inventory.md](contract/inventory.md) | S3: inventory hotbar + panel (client only, 2026-10-18) |

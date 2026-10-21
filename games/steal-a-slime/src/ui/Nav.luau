@@ -2,10 +2,11 @@
 --[[
 	Nav
 
-	Left-bar entries and their badges (H1 HUD: Plot, Rebirth, Goals, SlimeDex, Codes; the Merge, Shop and
-	Top menus have no button, see init.client panelByKey). Shown as a grid of rounded tiles, icon over label (B5). Pure (tests/ui/Nav.spec.luau); the
+	Left-bar entries and their badges (H1 HUD: Rebirth, Goals, SlimeDex, Codes; the Merge, Shop and
+	Top menus have no button, your slimes are managed at their pads with keys (SlimeKeys), see init.client panelByKey). Shown as a grid of rounded tiles, icon over label (B5). Pure (tests/ui/Nav.spec.luau); the
 	buttons themselves are built in init.client.luau. Badges are short hints
-	derived from the latest State ("!" = something to do there).
+	derived from the latest State ("!" = something to do there); the SlimeDex tile shows its completion as a
+	slime jar instead (DexJarView).
 ]]
 
 -- `item` = the ItemIcons registry id of the tile's picture (B5); `icon` = the plain glyph for text (hint bubbles).
@@ -14,7 +15,6 @@ export type Entry = { key: string, icon: string, label: string, item: string }
 local Nav = {}
 
 Nav.ENTRIES = table.freeze({
-	table.freeze({ key = "Plot", icon = "🏠", label = "Plot", item = "PlotSkin_classic" }),
 	table.freeze({ key = "Rebirth", icon = "♻️", label = "Rebirth", item = "Rebirth" }),
 	table.freeze({ key = "Goals", icon = "🎯", label = "Goals", item = "Quest" }),
 	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex", item = "Dex_50" }),
@@ -74,21 +74,8 @@ function Nav.badges(state: any): { [string]: string }
 	if type(state) ~= "table" then
 		return out
 	end
-	if type(state.slimes) == "table" then
-		for _, view in state.slimes do
-			if type(view) == "table" and view.stolenBy ~= nil then
-				out.Plot = "!"
-				break
-			end
-		end
-	end
 	if state.canRebirth == true then
 		out.Rebirth = "!"
-	end
-	local dex = if type(state.dex) == "table" then state.dex else {}
-	local total = num(dex.total)
-	if total > 0 then
-		out.Dex = `{math.floor(num(dex.found) / total * 100)}%`
 	end
 	return out
 end

@@ -48,7 +48,7 @@ describe("PropCollision inventory", function()
 			expect(PropCollision.FIDELITIES[e.collision] == true or COLLISIONS[e.collision] == true).toBe(true)
 			expect(type(e.reason) == "string" and #e.reason > 10).toBe(true)
 			expect(type(e.now) == "string" and #e.now > 0).toBe(true)
-			expect(e.count >= 1).toBe(true)
+			expect(e.count >= 1 or (e.flag ~= nil and e.flag.off >= 1)).toBe(true) -- or it exists with its flag off
 			expect(e.mesh == "part" or MeshAssets.get(e.mesh) ~= nil).toBe(true)
 		end
 		expect(#ENTRIES > 100).toBe(true)
@@ -99,6 +99,9 @@ describe("PropCollision inventory", function()
 			end
 			for _, mesh in WorldLayout.PROP_MESHES do
 				placed[mesh] = true
+			end
+			for _, stand in WorldLayout.SHOP_STANDS do -- whichever stands FEATURES.WorldShops places
+				placed[stand.mesh] = true
 			end
 			placed[VatDecor.MESH] = true
 			local inventory = {}

@@ -66,7 +66,7 @@ local function definitions(): { [string]: string }
 	for kind in Config.PET_PASSIVES.KINDS do
 		out[`Perk_{kind}`] = "Config.PET_PASSIVES"
 	end
-	for _, id in { "Lock", "Slap", "Appraise", "Daily", "Rebirth", "Cash", "Gift", "Quest" } do
+	for _, id in { "Lock", "Slap", "Daily", "Rebirth", "Cash", "Gift", "Quest" } do
 		out[id] = "gear / misc"
 	end
 	return out
@@ -117,9 +117,7 @@ describe("ItemIcons registry", function()
 		for _, u in Config.UPGRADES do
 			expect(registry.get(`Upgrade_{u.id}`) ~= nil).toBe(true)
 		end
-		for _, id in
-			{ "FillPads", "AllPads", "Daily", "BestTier", "Rebirth", "Dex", "LockUpgrade", "SpeedCoil", "Catch" }
-		do
+		for _, id in { "FillPads", "AllPads", "Daily", "BestTier", "Rebirth", "Dex", "SpeedCoil", "Catch" } do
 			expect(registry.byId[ItemIcons.forGoal(registry, id)] ~= nil).toBe(true)
 		end
 		expect(ItemIcons.forGoal(registry, "Catch")).toBe("Goal_Catch")
@@ -226,7 +224,7 @@ describe("uploaded item icon images", function()
 				)
 			end
 		end
-		expect(n).toBe(48)
+		expect(n).toBe(47)
 	end)
 	it("ids awaiting an upload are real drawn-group ids with a UI-drawn scene", function()
 		local ItemIconArt = UiHarness.ui("ItemIconArt")
@@ -447,10 +445,8 @@ describe("item icons on the surfaces", function()
 		panel.update({
 			cash = 1e6,
 			shop = {
-				LockUpgrade = { price = 5, level = 0, maxLevel = 5 },
 				SpeedCoil = { price = 9 },
 			},
-			lockCost = 50,
 			upgrades = {
 				{
 					id = "Income",
@@ -479,7 +475,7 @@ describe("item icons on the surfaces", function()
 				expect(registry.byId[inst:GetAttribute("ItemId")] ~= nil).toBe(true)
 			end
 		end
-		expect(seen).toBe(5)
+		expect(seen).toBe(3) -- the Speed Coil and the two upgrades
 	end)
 
 	it("Codes, Goals and the Daily popup draw item icons", function()
@@ -531,33 +527,6 @@ describe("item icons: server ids, Dex skins, gear", function()
 		expect(seen.PlotSkin_classic and seen.PlotSkin_candy).toBe(true)
 	end)
 
-	it("the HUD draws the Mystery Egg banner icon (the Lock button and its icon went with the top bar)", function()
-		local hud = fs.readFile("src/ui/Hud.luau")
-		expect(string.find(hud, 'Name = "EggIcon",\n\t\tId = "MysteryEgg"', 1, true) ~= nil).toBe(true)
-		expect(string.find(hud, "LockIcon", 1, true)).toBeNil()
-	end)
-
-	it("source scan: every item surface renders its icons with ItemIconView (no emoji-only item badges)", function()
-		local surfaces = {
-			["src/ui/Panels/Shop.luau"] = true,
-			["src/ui/Panels/Codes.luau"] = true,
-			["src/ui/Panels/Goals.luau"] = true,
-			["src/ui/Panels/DailyPopup.luau"] = true,
-			["src/ui/Panels/Plot.luau"] = true,
-			["src/ui/Panels/Dex.luau"] = true,
-			["src/ui/Hud.luau"] = true,
-		}
-		for path in surfaces do
-			local src = fs.readFile(path)
-			expect(`{path}: {if string.find(src, "ItemIconView.new", 1, true) then "ItemIconView" else "none"}`).toBe(
-				`{path}: ItemIconView`
-			)
-		end
-		-- Item cards must not fall back to a bare emoji glyph for plot skins any more.
-		local dex = fs.readFile("src/ui/Panels/Dex.luau")
-		expect(string.find(dex, '"🏡"', 1, true)).toBe(nil)
-	end)
-
 	it("every server Notify that names an item passes its id, and each id resolves in the registry", function()
 		local ids = {}
 		for _, file in { "Actions", "MysteryEgg", "Rebirth", "StealService" } do
@@ -568,9 +537,7 @@ describe("item icons: server ids, Dex skins, gear", function()
 				end
 			end
 		end
-		for _, id in
-			{ "Daily", "Gift", "LockUpgrade", "SpeedCoil", "Appraise", "MysteryEgg", "Rebirth", "Lock", "Slap" }
-		do
+		for _, id in { "Daily", "Gift", "SpeedCoil", "MysteryEgg", "Rebirth", "Lock", "Slap" } do
 			expect(`{id}: {ids[id] == true}`).toBe(`{id}: true`)
 		end
 	end)

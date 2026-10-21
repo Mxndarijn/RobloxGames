@@ -12,7 +12,6 @@
 	`layout(screen)` from init.client places everything. No boss, rare-drop or weekend notices any more.
 ]]
 
-local EggReveal = require(script.Parent.EggReveal)
 local HudClusters = require(script.Parent.HudClusters)
 local ItemIconView = require(script.Parent.ItemIconView)
 local ItemIcons = require(script.Parent.ItemIcons)
@@ -320,20 +319,6 @@ function Hud.new(parent: Instance, ctx: any)
 		Parent = parent,
 	}, { Widgets.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center) })
 	local steal = banner(banners, "StealAlert", Theme.Bad, 1)
-	local egg = banner(banners, "EggReveal", Color3.fromRGB(190, 120, 30), 6)
-	egg.TextSize = 17
-	-- The Mystery Egg's item icon sits at the banner's left edge (the text drops its egg emoji).
-	local EGG_ICON = 28
-	local eggPad = egg:FindFirstChildOfClass("UIPadding") :: UIPadding
-	eggPad.PaddingLeft = UDim.new(0, 10 + EGG_ICON + 6)
-	local eggIcon = ItemIconView.new({
-		Name = "EggIcon",
-		Id = "MysteryEgg",
-		Size = EGG_ICON,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, -(EGG_ICON + 6), 0.5, 0),
-		Parent = egg,
-	}, registry)
 
 	-- Workspace rain attributes, kept fresh by change signals (read in tick).
 	local rainAttrs: RainTimer.Rain? = nil
@@ -575,8 +560,8 @@ function Hud.new(parent: Instance, ctx: any)
 			friends = current.friends,
 			friendsEnabled = ctx.Config.FEATURES.FriendBonus == true,
 			blessed = current.blessed,
+			petPerk = current.petPerk,
 			featuredSecret = current.featuredSecret,
-			shieldUntil = if ctx.shieldUntil then ctx.shieldUntil() else nil,
 		}, now, Layout.STATUS.count)
 		local parts = {}
 		for _, slot in slots do
@@ -611,14 +596,6 @@ function Hud.new(parent: Instance, ctx: any)
 				entry.frame.Visible = true
 			end
 			refreshTooltip() -- the open slot's timer, or closed when its slot is gone
-		end
-
-		local eggText =
-			EggReveal.banner(current.egg, now, ctx.Config.MYSTERY_EGG_REVEAL_SECONDS, ctx.Genome.displayName)
-		egg.Visible = eggText ~= nil
-		eggIcon.setActive(eggText ~= nil)
-		if eggText then
-			egg.Text = string.gsub(eggText, "^🥚 ", "")
 		end
 	end
 

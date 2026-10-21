@@ -115,11 +115,6 @@ describe("Config", function()
 			end
 		end
 	end)
-	it("escape times stay within the 15-25 s design range", function()
-		for _, r in Config.RARITIES do
-			expect(r.escapeTime >= 15 and r.escapeTime <= 25).toBeTruthy()
-		end
-	end)
 end)
 
 describe("DayNight.clockTime", function()

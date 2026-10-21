@@ -11,7 +11,6 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
-local Appraise = if Shared then require(Shared.Appraise) else require("../shared/Appraise")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
@@ -37,7 +36,6 @@ local BossEvent = if script then require(script.Parent.BossEvent) else require("
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local DexSources = if script then require(script.Parent.DexSources) else require("./DexSources")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
-local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -57,7 +55,6 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			slime = EggKind.mask(slime), -- an egg never shows the slime inside (contract/mystery-egg.md)
 			income = if carrier then 0 else PlayerData.slimeIncome(data, slime),
 			sellPrice = Economy.sellPrice(slime, rebirths),
-			appraiseCost = Appraise.cost(slime, rebirths),
 			stolenBy = carrier,
 		})
 	end
@@ -70,8 +67,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			kind = carry.kind,
 			ownerUserId = carry.ownerUserId,
 			startedAt = carry.timer.startedAt,
-			escapeAt = carry.timer.escapeAt,
-			walkSpeed = Carry.walkSpeed(session, now),
+			walkSpeed = Carry.walkSpeed(session),
 		}
 	end
 
@@ -91,7 +87,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		rebirthMultiplier = Economy.rebirthMultiplier(rebirths),
 		rebirthCost = Economy.rebirthCost(rebirths),
 		canRebirth = canRebirth,
-		rebirthSlime = Progression.requiredSlime(data),
+		rebirthSlimes = Progression.requiredSlimes(data),
 		padsUnlocked = data.padsUnlocked,
 		padsMax = Config.PADS_MAX,
 		nextPadCost = Economy.padCost(data.padsUnlocked),
@@ -99,8 +95,8 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		favoriteId = data.favoriteId,
 		lockUntil = session.lockUntil,
 		lockStartedAt = session.lockStartedAt,
-		lockCost = Economy.lockCost(income) * Revenge.lockMultiplier(world, session.userId, now),
-		lockDuration = Steal.lockDuration(rebirths, data.lockLevel),
+		lockCost = Economy.lockCost(income),
+		lockDuration = Steal.lockDuration(rebirths),
 		carrying = carrying,
 		rain = { active = rainActive, endsAt = endsAt, nextAt = nextAt },
 		dex = SpeciesDex.view(data, now, DexSources),

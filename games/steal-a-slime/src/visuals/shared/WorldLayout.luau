@@ -229,16 +229,40 @@ WorldLayout.TROPHY_SPOTS = table.freeze({ { -31, 31 }, { 31, 31 }, { -31, -31 } 
 -- box centre. (Named for the plot SlimeDex board that used to wear the same
 -- mesh; Props / PropMesh.spec still lay the board's text out on it.)
 WorldLayout.DEX_FACE = table.freeze({ x = -0.35, y = 11.53, front = 0.4, width = 12.9, height = 11.5 })
--- The plaza ShopStand skins ranch_shop_stand at BUY_STAND_SCALE (9.6 x
--- 11.3 x 6, about the old primitive stand). BUY_STAND_FACE = its butter SHOP
--- sign face and BUY_STAND_COUNTER = its counter, at native size from the kit
--- source (models/ranch_shop_stand.py) in the mesh's own frame (front +Z):
--- centre x, centre y up from the bottom, z from the box centre (+ = front);
--- `front` is the sign's front face.
-WorldLayout.BUY_STAND_MESH = "ranch_shop_stand"
-WorldLayout.BUY_STAND_SCALE = 0.8
-WorldLayout.BUY_STAND_FACE = table.freeze({ x = 0, y = 12.2, front = -2.42, width = 7.6, height = 2 })
-WorldLayout.BUY_STAND_COUNTER = table.freeze({ x = 0, z = 0.53, width = 11, depth = 4.2, top = 4.1 })
+-- The shop stands (WorldProps Models, Props.shopStand) by model name. Each skins its own kit mesh at `scale`:
+-- ItemShopStand a pink market stall (models/ranch_item_shop.py), UpgradeShopStand a blue and gold cabinet that shows
+-- the upgrades (models/ranch_upgrade_cabinet.py), ShopStand (FEATURES.WorldShops off) the plain ranch_shop_stand.
+-- `face` = the sign face the SHOP text goes on and `counter` = the counter the Counter part fills, at native size
+-- from the kit source in the mesh's own frame (front +Z): centre x, y up from the bottom, z from the box centre
+-- (+ = front); `front` is the sign's front face, `top` the counter top. The stand's pivot is its box's bottom centre.
+-- 0.7 is the largest scale at which the Upgrade cabinet (11.5 x 10.7 x 7.0) fits its spot between plots 1 and 2
+-- (PropClearance); the Item stall wears the same scale so the two counters match.
+type StandFace = { x: number, y: number, front: number, width: number, height: number }
+type StandCounter = { x: number, z: number, width: number, depth: number, top: number }
+export type ShopStand = { mesh: string, scale: number, face: StandFace, counter: StandCounter }
+local function shopStand(mesh: string, scale: number, face: StandFace, counter: StandCounter): ShopStand
+	return table.freeze({ mesh = mesh, scale = scale, face = table.freeze(face), counter = table.freeze(counter) })
+end
+WorldLayout.SHOP_STANDS = table.freeze({
+	ShopStand = shopStand(
+		"ranch_shop_stand",
+		0.8,
+		{ x = 0, y = 12.2, front = -2.42, width = 7.6, height = 2 },
+		{ x = 0, z = 0.53, width = 11, depth = 4.2, top = 4.1 }
+	),
+	ItemShopStand = shopStand(
+		"ranch_item_shop",
+		0.7,
+		{ x = 0, y = 11.533, front = -2.275, width = 7.6, height = 2 },
+		{ x = 0, z = 0.675, width = 11, depth = 4.2, top = 4.233 }
+	),
+	UpgradeShopStand = shopStand(
+		"ranch_upgrade_cabinet",
+		0.7,
+		{ x = 0, y = 12.5, front = 4.685, width = 7.6, height = 1.6 },
+		{ x = 0, z = 1.535, width = 11, depth = 3.6, top = 4.1 }
+	),
+}) :: { [string]: ShopStand }
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
@@ -814,9 +838,10 @@ WorldLayout.PLAZA_PROPS = table.freeze({
 	plazaProp("Podium_3", "phoenix_plaza_podium_3", 165, 68, 0.7),
 })
 WorldLayout.PROP_MESHES = table.freeze({
-	ItemShopStand = WorldLayout.BUY_STAND_MESH,
-	UpgradeShopStand = WorldLayout.BUY_STAND_MESH,
+	ItemShopStand = WorldLayout.SHOP_STANDS.ItemShopStand.mesh,
+	UpgradeShopStand = WorldLayout.SHOP_STANDS.UpgradeShopStand.mesh,
 	LeaderboardBoard = "phoenix_top_earners_board",
+	TutorialNpc = "ranch_guide",
 })
 
 local function visualMesh(node: WorldNode, mesh: string): WorldNode

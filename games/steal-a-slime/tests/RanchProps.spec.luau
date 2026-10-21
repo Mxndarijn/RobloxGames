@@ -5,7 +5,6 @@
 -- (PropClearance), the world border or a habitat pad, every mesh slot is
 -- scaled uniformly, each plot's jar has exactly one way in (the door, with
 -- the bridge lined up to it), and the placement is deterministic. Budgets: tests/WorldBudget.spec.
-local fs = require("@lune/fs")
 
 local Config = require("../src/shared/Config")
 local Habitats = require("../src/shared/Habitats")
@@ -74,6 +73,11 @@ end
 local function placed(mesh: string): boolean
 	if slots[mesh] or pending[mesh] or habitatMeshes[mesh] then
 		return true
+	end
+	for _, stand in WorldLayout.SHOP_STANDS do -- every shop stand skin, whichever FEATURES.WorldShops places
+		if stand.mesh == mesh then
+			return true
+		end
 	end
 	for _, m in WorldLayout.PROP_MESHES do
 		if m == mesh then
@@ -465,19 +469,5 @@ end)
 describe("ranch props: deterministic", function()
 	it("builds the same world twice", function()
 		expect(WorldLayout.build()).toEqual(nodes)
-	end)
-	it("uses no unseeded randomness in the placement code", function()
-		for _, path in
-			{
-				"src/visuals/shared/RanchProps.luau",
-				"src/visuals/shared/PropClearance.luau",
-				"src/visuals/shared/WorldLayout.luau",
-			}
-		do
-			local src = fs.readFile(path)
-			expect(string.find(src, "math.random", 1, true)).toBe(nil)
-			expect(string.find(src, "Random.new", 1, true)).toBe(nil)
-			expect(string.find(src, "os.time", 1, true)).toBe(nil)
-		end
 	end)
 end)

@@ -15,13 +15,13 @@
 	stock and takes one off the stack). An equipped PvP item is used the same way: the click becomes
 	Request("UsePvpItem", id, targetUserId?, aim?, charged?) (InventoryCore.pvpUseRequest from deps.aim's sample);
 	a glove, the Goo Cannon, the Confetti Popper and Goo Fireworks fire on the release (pressHeld / releaseHeld), so a
-	hold is a power punch / an aimed lob / a mega pop / a volley. A refusal (cooldown, shield, out of reach) shows as a short tip above the slot. The last cell is the bag: it opens the inventory panel, a grid of everything
+	hold is a power punch / an aimed lob / a mega pop / a volley. A refusal (cooldown, out of reach) shows as a short tip above the slot. The last cell is the bag: it opens the inventory panel, a grid of everything
 	held (also the items that did not fit the bar on a narrow phone). Hidden while carrying (the server
 	unequips tools then) and while a menu is open. Client-only: the stack counts come from State.consumables.
 
 	The bag panel (built on first open) shows the hotbar on a plate (the 9 slots on two rows, empty ones as Ink
 	wells with their key) over the bag: every owned item as a hotbar-style cell with the name under the picture
-	and, when it is on the bar, a gold tag with its key; empty Ink slots fill the grid to whole rows
+	and, when it is a stack, a gold tag with how many are held; empty Ink slots fill the grid to whole rows
 	(InventoryLayout.CELL) and the card is sized to its content. A tap / click on a cell or plate slot equips like
 	the hotbar and closes the panel. Pressing one and moving past DRAG.threshold drags it instead: a ghost follows
 	the pointer, the plate slot under it gets a gold ring, and the drop rearranges the hotbar
@@ -70,8 +70,9 @@ Inventory.PANEL = table.freeze({
 	headingRoom = 120, -- width a heading keeps left of its hint / count chip
 	plateRadius = 18,
 	plateStroke = 3,
-	tagSize = 12, -- the gold key tag on a bag cell that is on the bar
+	tagSize = 12, -- the gold amount tag on a bag cell that holds a stack
 	tagW = 22,
+	tagWide = 30, -- for "99+"
 	tagH = 18,
 	tagInset = 5,
 })
@@ -151,7 +152,7 @@ type Slot = {
 	cooldown: TextLabel,
 	entry: Entry?,
 	name: TextLabel?, -- panel cells: the name under the picture
-	tag: TextLabel?, -- bag cells: the gold key tag
+	tag: TextLabel?, -- bag cells: the gold amount tag
 	from: InventoryCore.DragFrom?, -- panel cells: what a drag from here moves
 }
 type Entry = InventoryCore.Entry
@@ -300,7 +301,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			Visible = false,
 			Font = Theme.Font,
 			TextSize = 18,
-			BackgroundColor3 = Color3.new(0, 0, 0),
+			BackgroundColor3 = Theme.Ink,
 			BackgroundTransparency = 0.45,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextTruncate = Enum.TextTruncate.None,
@@ -631,16 +632,11 @@ function Inventory.new(parent: Instance, deps: Deps)
 	end
 
 	-- Inventory panel -------------------------------------------------------------------------------
-	local backdrop = create("TextButton", {
+	local backdrop = Widgets.backdrop({
 		Name = "InventoryBackdrop",
-		Text = "",
-		AutoButtonColor = false,
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.45,
-		Visible = false,
 		ZIndex = Layout.ZINDEX.Menu,
 		Parent = parent,
-	}) :: TextButton
+	})
 	local panel = Widgets.panel(parent, "InventoryPanel", "Inventory", "🎒")
 
 	local function bodyWidth(): number
@@ -830,7 +826,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 
 	local function makeTag(slot: Slot): TextLabel
 		local tag = Widgets.label({
-			Name = "OnBar",
+			Name = "Amount",
 			Visible = false,
 			Font = Theme.Font,
 			TextSize = P.tagSize,
@@ -920,12 +916,13 @@ function Inventory.new(parent: Instance, deps: Deps)
 			end
 			styleSlot(slot, entry, now)
 			slot.from = { kind = "bag", key = entry.key }
-			local onBar = InventoryCore.slotOf(keys, entry.key)
+			-- the amount shows on the gold tag, not as the slot's own count
+			local amount = InventoryCore.countText(entry.count)
 			local tag = slot.tag :: TextLabel
-			tag.Visible = onBar ~= nil
-			tag.Text = if onBar then tostring(onBar) else ""
-			-- the stack count steps down under the tag
-			slot.count.Position = UDim2.new(1, -6, 0, if onBar then P.tagInset + P.tagH + 2 else 4)
+			tag.Visible = amount ~= nil
+			tag.Text = amount or ""
+			tag.Size = fromOffset(if amount and #amount > 2 then P.tagWide else P.tagW, P.tagH)
+			slot.count.Visible = false
 			slot.button.Visible = true
 			slot.button.Position = at(i)
 			sizeCell(slot, size)
@@ -1253,9 +1250,10 @@ function Inventory.new(parent: Instance, deps: Deps)
 		setPanelOpen(false)
 	end)
 
-	function self.layout(s: Layout.Screen)
+	-- `guiInset` (GuiService:GetGuiInset) lets the dim reach under the Roblox top bar.
+	function self.layout(s: Layout.Screen, guiInset: Vector2?)
 		screen = s
-		local back = Layout.backdrop(s, 0, 0)
+		local back = Layout.backdrop(s, if guiInset then guiInset.X else 0, if guiInset then guiInset.Y else 0)
 		backdrop.Position = fromOffset(back.x, back.y)
 		backdrop.Size = fromOffset(back.w, back.h)
 		sync(true)

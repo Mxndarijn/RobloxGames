@@ -2251,6 +2251,19 @@
     "uploadedAt": "2026-10-16T07:06:26Z",
     "versions": 1
   },
+  "ranch_item_shop": {
+    "assetId": "105082858859876",
+    "assetType": "Model",
+    "meshId": "rbxassetid://135059318016634",
+    "meshSize": [
+      15.391,
+      16.558,
+      8.15
+    ],
+    "sha256": "ffbadc566e677a04",
+    "uploadedAt": "2026-10-20T21:33:44Z",
+    "versions": 1
+  },
   "ranch_landing_ring": {
     "assetId": "126479458852729",
     "assetType": "Model",
@@ -2471,6 +2484,19 @@
     "sha256": "13f620fe5e099af5",
     "uploadedAt": "2026-10-16T07:09:57Z",
     "versions": 1
+  },
+  "ranch_upgrade_cabinet": {
+    "assetId": "112507254723244",
+    "assetType": "Model",
+    "meshId": "rbxassetid://139845226619480",
+    "meshSize": [
+      16.407,
+      15.29,
+      9.93
+    ],
+    "sha256": "d7c1d15661a34181",
+    "uploadedAt": "2026-10-20T22:08:02Z",
+    "versions": 3
   },
   "ranch_wagon": {
     "assetId": "91242028044762",
@@ -3091,5 +3117,18 @@
     "sha256": "586b7b1cbc7700f1",
     "uploadedAt": "2026-10-20T12:59:06Z",
     "versions": 3
+  },
+  "ranch_guide": {
+    "assetId": "106088623869567",
+    "assetType": "Model",
+    "meshId": "rbxassetid://120047572318324",
+    "meshSize": [
+      4.765,
+      7.987,
+      3.481
+    ],
+    "sha256": "7953fc49413fd60f",
+    "uploadedAt": "2026-10-20T21:30:51Z",
+    "versions": 1
   }
 }

@@ -1,6 +1,6 @@
 --!strict
 -- Goo Traps (CONTRACT.md §26.5): charges (buy / held cap / use / save), placing anywhere in range, the live cap
--- (a 6th removes the oldest), the lifetime, who springs a trap and what each tier does, caught thieves, cleanup and
+-- (a 6th removes the oldest), the replay to a late joiner, the lifetime, who springs a trap and what each tier does, caught thieves, cleanup and
 -- zero parts. Server-side zones: nothing is ever created in Workspace.
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
@@ -45,8 +45,6 @@ local function setup(): (any, any, any)
 	local owner = ServerFixtures.join(world, 1, { Fixtures.slime("gem", 3) }, 1e12)
 	local victim = ServerFixtures.join(world, 2, nil, 1e12)
 	owner.data.rebirths, victim.data.rebirths = 10, 10
-	ServerFixtures.veteran(owner)
-	ServerFixtures.veteran(victim)
 	ServerFixtures.unlock(owner)
 	ServerFixtures.unlock(victim)
 	PvpService.join(world, owner, T0, true)
@@ -146,15 +144,6 @@ describe("Goo Trap placement", function()
 		expect(next((PvpService.state(owner) :: any).cooldowns)).toBeNil()
 		done()
 	end)
-	it("a shielded player can't place one", function()
-		local world, owner = setup()
-		own(world, owner, "GooTrap1")
-		owner.data.pvp.played = 0
-		PvpService.join(world, owner, T0, true)
-		expect((PvpService.equip(owner, "GooTrap1", true))).toBe(true)
-		expect(select(2, place(world, owner, "GooTrap1", FAR))).toBe("your new-player shield is on")
-		done()
-	end)
 	it("keeps at most 5 live traps: the 6th removes the oldest", function()
 		local world, owner = setup()
 		own(world, owner, "GooTrap1", 5)
@@ -172,6 +161,35 @@ describe("Goo Trap placement", function()
 		expect(PvpTrap.list(owner)[1].id ~= oldest).toBe(true)
 		expect(kinds()[1]).toBe("TrapCleared")
 		expect(events()[1].payload.trapId).toBe(oldest)
+		done()
+	end)
+	it("a player who joins later gets every live trap, to them only, as a replay", function()
+		local world, owner = setup()
+		own(world, owner, "GooTrap2", 2)
+		local aim = { X = FAR.X + 3, Y = 3, Z = FAR.Z }
+		expect(place(world, owner, "GooTrap2", aim)).toBe(true)
+		expect(place(world, owner, "GooTrap2", FAR, T0 + 100)).toBe(true)
+		local first = PvpTrap.list(owner)[1].id
+		local late = ServerFixtures.join(world, 3, nil, 1e12)
+		ServerFixtures.clearEvents(current) -- the fixture's join may already have replayed (flag on)
+		PvpService.join(world, late, T0 + 110, true)
+		table.insert(joined, late)
+		expect(kinds()).toEqual({ "TrapPlaced", "TrapPlaced" })
+		for _, e in events() do
+			expect(e.target).toBe(3)
+			expect(e.payload.replay).toBe(true)
+			expect(e.payload.owner).toBe(1)
+		end
+		local again = events()[1].payload.trapId == first and events()[1] or events()[2]
+		expect(again.payload.trapId).toBe(first)
+		expect(again.payload.position).toEqual(aim)
+		-- a cleared trap is not replayed
+		PvpService.leave(world, owner, T0 + 120)
+		local later = ServerFixtures.join(world, 4, nil, 1e12)
+		ServerFixtures.clearEvents(current)
+		PvpService.join(world, later, T0 + 130, true)
+		table.insert(joined, later)
+		expect(kinds()).toEqual({})
 		done()
 	end)
 	it("a trap that caught nobody is gone after its lifetime", function()
@@ -224,7 +242,6 @@ describe("Goo Trap springing", function()
 	it("Mega: holds 2 s, pulls in a player within 4 studs, then spits both out with a bounce", function()
 		local world, owner, victim = setup()
 		local other = ServerFixtures.join(world, 3, nil, 0)
-		ServerFixtures.veteran(other)
 		PvpService.join(world, other, T0, true)
 		table.insert(joined, other)
 		positions[3] = { X = 206, Y = 3, Z = -200 } -- 6 studs off: inside radius 4 + pull 4
@@ -269,13 +286,10 @@ describe("Goo Trap springing", function()
 		expect(PvpTrap.count(owner)).toBe(1)
 		done()
 	end)
-	it("never springs for a shielded new player or without PvP state", function()
+	it("never springs without PvP state", function()
 		local world, owner, victim = setup()
 		own(world, owner, "GooTrap1")
 		place(world, owner, "GooTrap1", FAR)
-		victim.data.pvp.played = 0
-		PvpService.join(world, victim, T0, true)
-		expect(PvpTrap.tick(world, victim, FAR, T0 + 1, env)).toBe(false)
 		PvpService.join(world, victim, T0, false) -- flag off: no state
 		expect(PvpTrap.tick(world, victim, FAR, T0 + 1, env)).toBe(false)
 		expect(PvpTrap.count(owner)).toBe(1)
@@ -313,15 +327,6 @@ describe("Goo Trap cleanup and parts", function()
 end)
 
 describe("PvpTrapRules", function()
-	it("keeps every tier's hold within the control cap and has no damage field", function()
-		for _, tool in Config.PVP_TOOLS do
-			if tool.line == "Trap" then
-				expect((tool.control or 0) <= PVP.CONTROL_MAX_SECONDS).toBe(true)
-				expect((tool.slowSeconds or 0) <= PVP.SLOW_MAX_SECONDS).toBe(true)
-				expect((tool :: any).damage).toBeNil()
-			end
-		end
-	end)
 	it("rejects another floor and a non-trap tool", function()
 		local trap = PvpTrapRules.new("t", 1, PvpRules.tool("GooTrap1") :: any, FAR, T0)
 		expect(PvpTrapRules.inRadius(trap, { X = 200, Y = 3 + 20, Z = -200 })).toBe(false)

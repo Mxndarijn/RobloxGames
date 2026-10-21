@@ -443,6 +443,7 @@ UiHarness.stats = {
 	disconnects = { RenderStepped = 0, Heartbeat = 0, Stepped = 0 } :: { [string]: number },
 	tweensCreated = 0,
 	tweensPlayed = 0,
+	tweensCancelled = 0,
 	wakeups = 0,
 }
 
@@ -510,6 +511,9 @@ services.TweenService = {
 			Play = function()
 				UiHarness.stats.tweensPlayed += 1
 			end,
+			Cancel = function()
+				UiHarness.stats.tweensCancelled += 1
+			end,
 		}
 	end,
 }
@@ -525,16 +529,23 @@ services.CollectionService = {
 	end,
 }
 services.Debris = { AddItem = function() end }
--- ReplicatedStorage:WaitForChild("Shared") -> src/shared.
+-- ReplicatedStorage:WaitForChild("Shared") -> src/shared, "Visuals" -> src/visuals/shared, "Lib" -> shared/luau/src.
+local REPLICATED = {
+	Shared = "src/shared",
+	Visuals = "src/visuals/shared",
+	Lib = "../../shared/luau/src",
+}
 services.ReplicatedStorage = setmetatable({}, {
 	__index = function(_, key: string): any
 		if key == "WaitForChild" or key == "FindFirstChild" then
 			return function(_this: any, name: string)
-				assert(name == "Shared", `ReplicatedStorage.{name} is not mapped`)
-				return pathOf("src/shared")
+				local path = REPLICATED[name]
+				assert(path, `ReplicatedStorage.{name} is not mapped`)
+				return pathOf(path)
 			end
 		end
-		return nil
+		local path = REPLICATED[key] -- ReplicatedStorage.Shared (the dual require pattern)
+		return if path then pathOf(path) else nil
 	end,
 })
 
@@ -560,6 +571,7 @@ globals = {
 		end,
 	}, { __index = os }),
 	workspace = {
+		Terrain = newInstance("Folder"), -- a parent for world attachments (SlimeActor's goo string)
 		GetAttribute = function(_self: any, name: string): any
 			return UiHarness.workspaceAttributes[name]
 		end,

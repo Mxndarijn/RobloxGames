@@ -29,7 +29,11 @@ trap 'rm -rf "$tmp"' EXIT
 
 cp -r "$root/default.project.json" "$root/rokit.toml" "$root/src" "$root/world" "$tmp/"
 rm -rf "$tmp/src/visuals/static" # Archer's build-map output, not in the Rojo tree
-find "$tmp/src" -name '*.luau' -print0 | xargs -0 perl -pi -e '
+# ReplicatedStorage.Lib is the repo's shared/luau library, outside this folder: copy it in and point the project at the copy.
+mkdir -p "$tmp/lib"
+cp -r "$root/../../shared/luau/src" "$tmp/lib/"
+perl -pi -e 's#"\.\./\.\./shared/luau/src"#"lib/src"#' "$tmp/default.project.json"
+find "$tmp/src" "$tmp/lib" -name '*.luau' -print0 | xargs -0 perl -pi -e '
 	s/if (?:Shared|script) then (require\([^)]*\)) else require\("[^"]+"\)/$1/g;
 	s/^local Shared = if script then \(game:GetService\("ReplicatedStorage"\) :: any\)\.Shared else nil/local Shared = game:GetService("ReplicatedStorage").Shared/;
 '

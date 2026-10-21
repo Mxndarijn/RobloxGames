@@ -42,7 +42,7 @@
      "shots": ["*sound*", "*audio*"]},
     {"name": "H1 HUD (bottom clusters, left column)",
      "paths": ["{G}/src/ui/Hud.luau", "{G}/src/ui/HudClusters.luau", "{G}/src/ui/Nav.luau", "{G}/src/ui/FriendBadge.luau",
-               "{G}/src/ui/ModifierBadge.luau", "{G}/src/ui/RainTimer.luau", "{G}/src/ui/NextSpawn.luau", "{G}/src/ui/WeekendBadge.luau"],
+               "{G}/src/ui/ModifierBadge.luau", "{G}/src/ui/RainTimer.luau", "{G}/src/ui/WeekendBadge.luau"],
      "shots": ["*hud*", "*chip*", "*banner*", "*weekend*", "*modifier*", "*admin-event*", "*friend*"], "steps": ["devices"]},
     {"name": "tutorial / hints / guide / banners",
      "paths": ["{G}/src/ui/Panels/TutorialOverlay.luau", "{G}/src/ui/Tutorial.luau", "{G}/src/ui/Hint*.luau", "{G}/src/ui/Panels/HintOverlay.luau",

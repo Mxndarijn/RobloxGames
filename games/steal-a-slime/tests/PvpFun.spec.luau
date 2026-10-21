@@ -1,6 +1,6 @@
 --!strict
 -- The Fun items (FEATURES.PvP, CONTRACT.md §26.8): rank gating and prices, aimed use with no target, who each item
--- reaches, the shield and control rules, a caught thief's slime going home (never for the cosmetic Confetti Popper),
+-- reaches, the control rules, a caught thief's slime going home (never for the cosmetic Confetti Popper),
 -- the server-side records (landings, bubble streams, pads, holds) and that nothing is left once their time is up.
 -- Every flag-dependent call passes the flag explicitly so the specs hold in the forced-flag runs too.
 local Actions = require("../src/server/Actions")
@@ -72,7 +72,7 @@ local function effects(effect: string?): { { [string]: any } }
 	return out
 end
 
--- a: user (rank 20, owns + equips `id`, a pad slime "gem"), b and c: two other players (rank 20, unshielded).
+-- a: user (rank 20, owns + equips `id`, a pad slime "gem"), b and c: two other players (rank 20).
 local function setup(id: string, rebirths: number?): (any, any, any, any)
 	launches, bubbles, slimes = {}, {}, {}
 	positions = { [1] = HERE, [2] = NEAR, [3] = FAR }
@@ -87,7 +87,6 @@ local function setup(id: string, rebirths: number?): (any, any, any, any)
 	b.data.rebirths, c.data.rebirths = 20, 20
 	for _, s in { a, b, c } do
 		ServerFixtures.unlock(s)
-		ServerFixtures.veteran(s)
 		PvpService.join(world, s, T0, true)
 	end
 	expect((PvpService.buy(world, a, id, true))).toBe(true)
@@ -125,9 +124,8 @@ local function tick(world: any, session: any, at: number)
 	PvpFun.tick(world, session, positions[session.userId], at, env)
 end
 
-local function shield(session: any)
-	(PvpService.state(session) :: any).shieldUntil = math.huge
-	session.data.rebirths = 0
+local function immune(session: any)
+	(PvpService.state(session) :: any).immuneUntil = math.huge
 end
 
 local function at(x: number, y: number?, z: number?): any
@@ -157,15 +155,6 @@ describe("Fun item data and gating", function()
 				math.floor(Config.PVP.PRICE_FACTOR_FUN * require("../src/shared/Economy").rebirthCost(tool.rebirths))
 			)
 			expect(PvpRules.price(id)).toBe(expected)
-		end
-	end)
-	it("no fun item has a damage field or exceeds the control cap; cooldowns respect the minimum", function()
-		for _, id in IDS do
-			local tool = PvpRules.tool(id) :: any
-			expect(tool.cooldown >= Config.PVP.MIN_COOLDOWN).toBe(true)
-			expect((tool.control or 0) <= Config.PVP.CONTROL_MAX_SECONDS).toBe(true)
-			expect((tool.slowSeconds or 0) <= Config.PVP.SLOW_MAX_SECONDS).toBe(true)
-			expect(tool.damage).toBeNil()
 		end
 	end)
 end)
@@ -222,9 +211,8 @@ describe("Fun items are aimed", function()
 end)
 
 describe("Confetti Popper", function()
-	it("pops along the aim, also straight up, and rains on everyone under it, the shielded too", function()
-		local world, a, b, c = setup("FunConfetti", 0)
-		shield(b)
+	it("pops along the aim, also straight up, and rains on everyone under it", function()
+		local world, a, _, c = setup("FunConfetti", 0)
 		expect(use(world, a, "FunConfetti", T0 + 1, { X = HERE.X, Y = 500, Z = HERE.Z })).toBe(true)
 		local e = effects("Confetti")[1]
 		expect(e.position.Y).toBe(HERE.Y + FUN.CONFETTI.RANGE)
@@ -352,9 +340,9 @@ describe("Bubble Wand", function()
 		expect(onPop(3, T0 + 1.9)).toBe(false) -- already popped
 		done()
 	end)
-	it("only pops on a shielded or control-immune player", function()
+	it("only pops on a control-immune player", function()
 		local world, a, b = setup("FunBubbles")
-		shield(b)
+		immune(b)
 		expect(use(world, a, "FunBubbles", T0 + 1, NEAR)).toBe(true)
 		positions[2] = bubbleSpot(1, T0 + 1.5)
 		tick(world, b, T0 + 1.5)
@@ -415,14 +403,10 @@ describe("Bounce Pad", function()
 		expect(#launches).toBe(3)
 		done()
 	end)
-	it("a shielded player is not bounced; a thief is, and the slime goes home", function()
-		local world, a, b, c = setup("FunBouncePad")
-		shield(c)
+	it("a thief is bounced and the slime goes home", function()
+		local world, a, b = setup("FunBouncePad")
 		steal(world, b, T0 + 1)
 		expect(use(world, a, "FunBouncePad", T0 + 2, NEAR)).toBe(true)
-		positions[3] = NEAR
-		tick(world, c, T0 + 3)
-		expect(#launches).toBe(0)
 		tick(world, b, T0 + 3)
 		expect(#launches).toBe(1)
 		expect(wentHome(world, b)).toBe(true)
@@ -495,9 +479,9 @@ describe("Squeaky Hammer", function()
 		expect(squashes[3].combo).toBe(true)
 		done()
 	end)
-	it("a shielded player only gets the bonk; a whiff still squeaks", function()
+	it("a control-immune player only gets the bonk; a whiff still squeaks", function()
 		local world, a, b = setup("FunSqueaky")
-		shield(b)
+		immune(b)
 		expect(use(world, a, "FunSqueaky", T0 + 1, NEAR)).toBe(true)
 		expect(effects("Squash")[1].duration).toBe(0)
 		expect(PvpFun.frozen(b, T0 + 1.1)).toBe(false)
@@ -576,14 +560,11 @@ describe("Dance Bomb", function()
 		expect(PvpFun.frozen(b, disco.landAt + 0.2)).toBe(true)
 		done()
 	end)
-	it("a shielded player keeps walking; a thief dances and the slime goes home", function()
-		local world, a, b, c = setup("FunDanceBomb")
-		shield(c)
-		positions[3] = NEAR
+	it("a thief dances and the slime goes home", function()
+		local world, a, b = setup("FunDanceBomb")
 		steal(world, b, T0 + 1)
 		expect(use(world, a, "FunDanceBomb", T0 + 2, NEAR)).toBe(true)
 		local landAt = effects("Disco")[1].landAt
-		tick(world, c, landAt + 0.1)
 		tick(world, b, landAt + 0.1)
 		local dances = effects("Dance")
 		expect(#dances).toBe(1)

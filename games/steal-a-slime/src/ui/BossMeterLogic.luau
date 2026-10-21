@@ -75,9 +75,9 @@ function BossMeterLogic.view(boss: any, now: number): View?
 		}
 	elseif phase == "failed" then
 		return {
-			icon = "💥",
-			title = `{name} burst!`,
-			detail = "Grab the wild slimes it left behind!",
+			icon = "💨",
+			title = `{name} got away!`,
+			detail = "Better luck with the next one!",
 			meter = meter,
 			timer = nil,
 			tone = "bad",

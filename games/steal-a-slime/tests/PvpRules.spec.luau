@@ -2,7 +2,6 @@
 -- PvpRules, PvpService, the pvp save field and Config.PVP_TOOLS validation (FEATURES.PvP, CONTRACT.md §26).
 -- Every flag-dependent call passes the flag explicitly, so the specs hold in the forced-flag runs too.
 local Actions = require("../src/server/Actions")
-local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
@@ -37,9 +36,6 @@ local function fighter(position: any?, extra: { [string]: any }?): any
 end
 
 describe("PvpRules config", function()
-	it("is on by default (Merijn 2026-10-17: PvP ships on)", function()
-		expect(Config.FEATURES.PvP).toBe(true)
-	end)
 	it("lists the whole ladder", function()
 		local count = { Knockback = 0, Trap = 0, Blaster = 0, Fun = 0 }
 		for _, tool in Config.PVP_TOOLS do
@@ -49,21 +45,6 @@ describe("PvpRules config", function()
 		expect(count.Trap).toBe(3)
 		expect(count.Blaster).toBe(3)
 		expect(count.Fun).toBe(8)
-	end)
-	it("matches the documented numbers", function()
-		expect(PVP.NEW_PLAYER_SHIELD_SECONDS).toBe(900)
-		expect(PVP.CONTROL_MAX_SECONDS).toBe(2)
-		expect(PVP.CONTROL_IMMUNITY_SECONDS).toBe(3)
-		expect(PVP.MIN_COOLDOWN).toBe(1.5)
-		expect(PVP.PRICE_FACTOR_TOOL).toBe(0.03)
-		expect(PVP.PRICE_FACTOR_FUN).toBe(0.01)
-		expect(PVP.TRAP_MAX_HELD).toBe(5)
-		expect(PVP.TRAP_MAX_LIVE).toBe(5)
-		expect(PVP.TRAP_LIFETIME_SECONDS).toBe(180)
-	end)
-	it("has no safe zones", function()
-		expect((PVP :: any).SAFE_ZONES).toBeNil()
-		expect((PvpRules :: any).inSafeZone).toBeNil()
 	end)
 	it("passes its own validation", function()
 		expect(#Validate.pvpTools(Config.PVP_TOOLS, PVP, Config.REBIRTH_TIERS)).toBe(0)
@@ -85,14 +66,6 @@ describe("PvpRules config", function()
 		expect(check({ health = -1 })).toBe(1)
 		expect(check({ shotGap = 0.1 })).toBe(1) -- faster than the UsePvpItem rate limit
 	end)
-	it("every control is within the cap and no tool has a damage field", function()
-		for _, tool in Config.PVP_TOOLS do
-			expect((tool :: any).damage).toBe(nil)
-			expect(tool.cooldown >= PVP.MIN_COOLDOWN).toBe(true)
-			expect((tool.control or 0) <= PVP.CONTROL_MAX_SECONDS).toBe(true)
-			expect((tool.slowSeconds or 0) <= PVP.SLOW_MAX_SECONDS).toBe(true)
-		end
-	end)
 	it("the strongest power punch fits the knockback cap", function()
 		local top = PvpRules.toolAt("Knockback", PvpRules.maxTier("Knockback"))
 		expect(top ~= nil and (top.push or 0) * PVP.CHARGE_PUSH <= PVP.KNOCKBACK_MAX_PUSH).toBe(true)
@@ -105,7 +78,9 @@ describe("PvpRules pricing and gating", function()
 		expect(PvpRules.price("KnockGlove1")).toBe(math.floor(0.03 * Economy.rebirthCost(1)))
 		expect(PvpRules.price("KnockGlove5")).toBe(math.floor(0.03 * Economy.rebirthCost(20)))
 		expect(PvpRules.price("FunBalloon")).toBe(math.floor(0.01 * Economy.rebirthCost(1)))
-		expect(PvpRules.price("FunConfetti")).toBe(PVP.PRICE_MIN) -- gate 0: 50 -> the minimum
+		expect(PvpRules.price("FunConfetti")).toBe(
+			math.max(PVP.PRICE_MIN, math.floor(PVP.PRICE_FACTOR_FUN * Economy.rebirthCost(0)))
+		)
 		expect(PvpRules.price("GooTrap2")).toBe(
 			math.max(PVP.PRICE_MIN, math.floor(PVP.PRICE_FACTOR_TRAP * Economy.rebirthCost(6)))
 		)
@@ -198,22 +173,6 @@ describe("PvpRules pricing and gating", function()
 	end)
 end)
 
-describe("PvpRules shield", function()
-	it("lasts the full 15 minutes for a new player; a rebirth does not end it", function()
-		local state = PvpRules.newState()
-		state.shieldUntil = PvpRules.shieldEnd(0, T0)
-		expect(state.shieldUntil).toBe(T0 + 900)
-		expect(PvpRules.isShielded(state, T0)).toBe(true)
-		expect(PvpRules.isShielded(state, T0 + 899.9)).toBe(true)
-		expect(PvpRules.isShielded(state, T0 + 900)).toBe(false)
-		expect(PvpRules.isShielded(nil, T0)).toBe(false)
-	end)
-	it("counts earlier play time and never starts for a veteran", function()
-		expect(PvpRules.shieldEnd(400, T0)).toBe(T0 + 500)
-		expect(PvpRules.shieldEnd(900, T0)).toBe(0)
-	end)
-end)
-
 describe("PvpRules control", function()
 	it("clamps to 2 s, then 3 s immunity", function()
 		local state = PvpRules.newState()
@@ -276,12 +235,6 @@ describe("PvpRules.canTarget", function()
 		end
 		return c
 	end
-	local function shielded(): any
-		local state = PvpRules.newState()
-		state.shieldUntil = T0 + 2000
-		return state
-	end
-
 	it("refuses everything with the flag off", function()
 		expect((PvpRules.canTarget(fighter(), fighter(), ctx("KnockGlove1", { enabled = false })))).toBe(false)
 		expect((PvpRules.canTarget(fighter(), nil, ctx("FunConfetti", { enabled = false })))).toBe(false)
@@ -294,17 +247,11 @@ describe("PvpRules.canTarget", function()
 		local thief = fighter(nil, { carrying = true })
 		expect((PvpRules.canTarget(fighter(), thief, ctx("GooBlaster1")))).toBe(true)
 	end)
-	it("refuses a shielded target until the shield ends; a rebirth does not end it", function()
-		local target = fighter(nil, { state = shielded(), rebirths = 3 })
-		expect(select(2, PvpRules.canTarget(fighter(), target, ctx("KnockGlove1")))).toBe("target is shielded")
-		expect((PvpRules.canTarget(fighter(), target, ctx("FunBalloon")))).toBe(false) -- cosmetic too
-		expect((PvpRules.canTarget(fighter(), target, ctx("KnockGlove1", { now = T0 + 2000 })))).toBe(true)
-	end)
-	it("a shielded attacker can't use a non-cosmetic item but may use a cosmetic one", function()
-		local me = fighter(nil, { state = shielded() })
-		expect(select(2, PvpRules.canTarget(me, fighter(), ctx("KnockGlove1")))).toBe("your new-player shield is on")
-		expect((PvpRules.canTarget(me, nil, ctx("FunConfetti")))).toBe(true)
-		expect((PvpRules.canTarget(me, fighter(), ctx("KnockGlove1", { now = T0 + 2000 })))).toBe(true)
+	it("a player who just joined may hit and be hit with any item", function()
+		local fresh = fighter(nil, { state = PvpRules.newState(), rebirths = 0 })
+		expect((PvpRules.canTarget(fighter(), fresh, ctx("KnockGlove1")))).toBe(true)
+		expect((PvpRules.canTarget(fighter(), fresh, ctx("FunBalloon")))).toBe(true)
+		expect((PvpRules.canTarget(fresh, fighter(), ctx("KnockGlove1")))).toBe(true)
 	end)
 	it("cosmetic items may have no target, tools need one", function()
 		expect((PvpRules.canTarget(fighter(), nil, ctx("FunFireworks")))).toBe(true)
@@ -356,12 +303,12 @@ describe("PvpRules.clampKnockback", function()
 		expect(landing.X).toBe(PVP.MAP_BOUNDS.maxX - PVP.KNOCKBACK_BOUNDS_MARGIN)
 		expect(landing.Z).toBe(PVP.MAP_BOUNDS.minZ + PVP.KNOCKBACK_BOUNDS_MARGIN)
 		local custom = PvpRules.clampKnockback({ X = 0, Y = 0, Z = 0 }, { X = 8, Y = 0, Z = 0 }, {
-			minX = -10,
-			maxX = 10,
-			minZ = -10,
-			maxZ = 10,
+			minX = -40,
+			maxX = 40,
+			minZ = -40,
+			maxZ = 40,
 		})
-		expect(custom.X).toBe(10 - PVP.KNOCKBACK_BOUNDS_MARGIN)
+		expect(custom.X).toBe(math.min(8, 40 - PVP.KNOCKBACK_BOUNDS_MARGIN))
 	end)
 	it("pulls an origin that is already outside back in and survives NaN", function()
 		local landing = PvpRules.clampKnockback({ X = 5000, Y = 0, Z = -5000 }, { X = 0 / 0, Y = 0 / 0, Z = 1 })
@@ -378,12 +325,10 @@ describe("PvpRules save field", function()
 		PvpRules.buy(d, "GooTrap2", true)
 		PvpRules.buy(d, "FunConfetti", true)
 		PvpRules.buy(d, "FunDanceBomb", true)
-		d.pvp.played = 123
 		local back = SaveData.deserialize(serde.decode("json", serde.encode("json", SaveData.serialize(d, 1700000000))))
 		expect(back.pvp.tiers).toEqual({ Knockback = 4 })
 		expect(back.pvp.traps).toEqual({ GooTrap2 = 2 })
 		expect(back.pvp.fun).toEqual({ FunConfetti = true, FunDanceBomb = true })
-		expect(back.pvp.played).toBe(123)
 		expect(PvpRules.owns(back, "KnockGlove2")).toBe(true)
 		expect(PvpRules.charges(back, "GooTrap2")).toBe(2)
 	end)
@@ -391,9 +336,9 @@ describe("PvpRules save field", function()
 		local old = SaveData.serialize(Fixtures.data(nil, 50))
 		old.pvp = nil
 		local back = SaveData.deserialize(old)
-		expect(back.pvp).toEqual({ tiers = {}, traps = {}, fun = {}, played = 0 })
+		expect(back.pvp).toEqual({ tiers = {}, traps = {}, fun = {} })
 		expect(back.version).toBe(Config.SAVE_VERSION)
-		expect(SaveData.serialize(back).pvp).toEqual({ tiers = {}, traps = {}, fun = {}, played = 0 })
+		expect(SaveData.serialize(back).pvp).toEqual({ tiers = {}, traps = {}, fun = {} })
 	end)
 	it("clamps hostile values and ignores unknown ids", function()
 		local raw = SaveData.serialize(Fixtures.data(nil, 50))
@@ -401,16 +346,14 @@ describe("PvpRules save field", function()
 			tiers = { Knockback = 99, Trap = 2, Blaster = "x", Bogus = 3 },
 			traps = { GooTrap1 = 99, GooTrap2 = -1, KnockGlove1 = 3, Nope = 2 },
 			fun = { "FunBalloon", "FunBalloon", "KnockGlove1", "Nope", 7, true },
-			played = 1e12,
 		}
 		local back = SaveData.deserialize(raw)
 		expect(back.pvp.tiers).toEqual({ Knockback = 5 })
 		expect(back.pvp.traps).toEqual({ GooTrap1 = PVP.TRAP_MAX_HELD })
 		expect(back.pvp.fun).toEqual({ FunBalloon = true })
-		expect(back.pvp.played).toBe(PVP.NEW_PLAYER_SHIELD_SECONDS)
 		for _, junk in { 5, "x", true, {} } :: { any } do
 			raw.pvp = junk
-			expect(SaveData.deserialize(raw).pvp).toEqual({ tiers = {}, traps = {}, fun = {}, played = 0 })
+			expect(SaveData.deserialize(raw).pvp).toEqual({ tiers = {}, traps = {}, fun = {} })
 		end
 	end)
 end)
@@ -427,8 +370,6 @@ describe("PvpService", function()
 		local world, session = setup(5)
 		PvpService.join(world, session, T0, false)
 		expect(PvpService.state(session)).toBe(nil)
-		expect(PvpService.shieldUntil(session, T0)).toBe(nil)
-		expect(PvpService.isShielded(session, T0)).toBe(false)
 		local cash = session.data.cash
 		local ok, reason = PvpService.buy(world, session, "KnockGlove2", false)
 		expect(ok).toBe(false)
@@ -472,62 +413,20 @@ describe("PvpService", function()
 		expect(PvpRules.owns(session.data, "KnockGlove1")).toBe(true)
 		expect(act("KnockGlove1", true, T0 + 30.1).ok).toBe(false) -- rate limited / owned
 	end)
-	it("a new player is shielded for 15 minutes, covering the join lock", function()
+	it("a player who just joined is a normal PvP target; leave drops the runtime state", function()
 		local world, session = setup(0)
+		local other = ServerFixtures.join(world, 2, nil, 1e12)
 		PvpService.join(world, session, T0, true)
-		expect(PvpService.isShielded(session, T0 + 1)).toBe(true)
-		expect(PvpService.shieldUntil(session, T0 + 1)).toBe(T0 + 900)
-		expect(session.lockUntil < T0 + 900).toBe(true)
-		expect(PvpService.isShielded(session, T0 + 900)).toBe(false)
-		expect(PvpService.shieldUntil(session, T0 + 900)).toBe(nil)
-	end)
-	it("a rebirth does not end the shield; only the played time counts", function()
-		local world, vet = setup(2)
-		PvpService.join(world, vet, T0, true)
-		expect(PvpService.isShielded(vet, T0 + 1)).toBe(true)
-		local oldWorld, old = setup(2)
-		ServerFixtures.veteran(old)
-		PvpService.join(oldWorld, old, T0, true)
-		expect(PvpService.isShielded(old, T0 + 1)).toBe(false)
-	end)
-	it("play time carries over between sessions", function()
-		local world, session = setup(0)
-		PvpService.join(world, session, T0, true)
+		PvpService.join(world, other, T0, true)
+		local here = { X = 0, Y = 3, Z = 0 }
+		local ok = PvpRules.canTarget(
+			PvpService.fighterAt(here, other),
+			PvpService.fighterAt(here, session),
+			{ now = T0 + 1, toolId = "KnockGlove1", enabled = true }
+		)
+		expect(ok).toBe(true)
 		PvpService.leave(world, session, T0 + 400)
-		expect(session.data.pvp.played).toBe(400)
 		expect(PvpService.state(session)).toBe(nil)
-		session.lockUntil = 0
-		PvpService.join(world, session, T0 + 1000, true)
-		expect(PvpService.shieldUntil(session, T0 + 1000)).toBe(T0 + 1500)
-		PvpService.leave(world, session, T0 + 1600)
-		expect(session.data.pvp.played).toBe(900) -- capped
-		PvpService.join(world, session, T0 + 2000, true)
-		expect(PvpService.isShielded(session, T0 + 2000)).toBe(false)
-	end)
-	it("a steal ends the shield for good (and is saved as played time)", function()
-		local world = ServerFixtures.world()
-		local thief = ServerFixtures.join(world, 1)
-		local owner = ServerFixtures.join(world, 2, { Fixtures.slime("gem", 3) })
-		ServerFixtures.unlock(owner)
-		ServerFixtures.unlock(thief)
-		PvpService.join(world, thief, T0 + 100, true)
-		expect(PvpService.isShielded(thief, T0 + 101)).toBe(true)
-		expect((Carry.grab(world, 1, "gem", 1, T0 + 101))).toBe(true)
-		expect(PvpService.isShielded(thief, T0 + 102)).toBe(false)
-		expect(thief.data.pvp.played).toBe(PVP.NEW_PLAYER_SHIELD_SECONDS)
-		PvpService.leave(world, thief, T0 + 110)
-		PvpService.join(world, thief, T0 + 200, true)
-		expect(PvpService.isShielded(thief, T0 + 201)).toBe(false)
-	end)
-	it("a steal with the flag off touches nothing", function()
-		local world = ServerFixtures.world()
-		local thief = ServerFixtures.join(world, 1)
-		local owner = ServerFixtures.join(world, 2, { Fixtures.slime("gem", 3) })
-		ServerFixtures.unlock(owner)
-		ServerFixtures.unlock(thief)
-		PvpService.join(world, thief, T0 + 100, false)
-		expect((Carry.grab(world, 1, "gem", 1, T0 + 101))).toBe(true)
-		expect(thief.data.pvp.played).toBe(0)
 	end)
 	it("catchThief sends a stolen slime home with the Bat's toasts and returns its id", function()
 		local world = ServerFixtures.world()

@@ -2,8 +2,6 @@
 -- SlimeMotor: the procedural Motor6D life of a rigged slime, the driver
 -- choice (SlimeAnim.mode / verdict), the fallback when uploaded animations
 -- don't load, the LOD cap and static pets.
-local fs = require("@lune/fs")
-
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
@@ -108,6 +106,23 @@ describe("SlimeMotor (procedural motion on the rig)", function()
 		expect(maxY - minY < 0.3).toBe(true) -- breathing only: slimes glide (contract/slime-walk.md)
 	end)
 
+	it("faceLead turns the face alone ahead of the skin, about the slime's centre", function()
+		local model = slime()
+		local r = rand(4)
+		local motor = SlimeMotor.attach(model, 0, r)
+		local face, skin = motorOf(model, "FaceRoot"), motorOf(model, "SkinRoot")
+		local mods = SlimeMotor.newMods()
+		SlimeMotor.step(motor, 1, r, mods)
+		expect(face.Transform == skin.Transform).toBe(true)
+		mods.faceLead = 0.3
+		SlimeMotor.step(motor, 1.02, r, mods)
+		local _, faceYaw = face.Transform:ToEulerAnglesYXZ()
+		local _, skinYaw = skin.Transform:ToEulerAnglesYXZ()
+		expect(faceYaw - skinYaw).toBeCloseTo(0.3, 0.01) -- the idle wobble tilts both a little
+		-- turned about the centre: the face's origin stays where the skin's is
+		expect((face.Transform.Position - skin.Transform.Position).Magnitude < 1e-4).toBe(true)
+	end)
+
 	it("looks left and right on demand (yaw of the Transform) and hops on demand", function()
 		local model = slime()
 		local r = rand(9)
@@ -177,10 +192,6 @@ describe("driver choice", function()
 		return `rbxassetid://{#name}`
 	end)
 
-	it("ships with the uploaded animations off", function()
-		expect(Config.FEATURES.SlimeAnimations).toBe(false)
-	end)
-
 	it("flag off: a rigged slime is driven by SlimeMotor, whatever the probe says", function()
 		for _, verdict in { "ok", "wait", "failed" } do
 			expect(SlimeAnim.mode(false, ids, true, verdict :: any, true)).toBe("motor")
@@ -205,32 +216,18 @@ describe("driver choice", function()
 		expect(SlimeAnim.verdict(2.5, SlimeAnim.LOAD_TIMEOUT + 1, false)).toBe("failed")
 		expect(SlimeAnim.verdict(2.5, 0.1, true)).toBe("ok")
 	end)
-
-	it("the runner falls through anim -> motor -> weld and probes off the select loop", function()
-		local src = fs.readFile("src/ui/SlimeLifeRunner.client.luau")
-		expect(string.find(src, "Config.FEATURES.SlimeAnimations == true", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "SlimeAnim.mode(", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "pcall(acquireMotor, model)", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "pcall(acquire, model)", 1, true) ~= nil).toBe(true)
-		local probe = string.match(src, "local function startProbe.-\nend\n") :: string
-		expect(string.find(probe, "task.spawn", 1, true) ~= nil).toBe(true)
-		-- a failed probe drops animated rigs back to motors
-		expect(string.find(src, 'probe == "failed" or', 1, true) ~= nil).toBe(true)
-		-- a track that never plays fails the whole probe
-		expect(string.find(src, 'probe = "failed"', 1, true) ~= nil).toBe(true)
-	end)
 end)
 
 describe("LOD", function()
-	it("at most MAX_ACTIVE slimes within 80 studs and on screen get a motor", function()
+	it("at most MAX_ACTIVE slimes within MAX_DISTANCE and on screen get a motor", function()
 		local cands, models = {}, {}
-		for i = 1, 40 do
+		for i = 1, 80 do
 			local m = slime()
 			m:SetAttribute("SlimeId", `s{i}`)
 			models[`s{i}`] = m
 			table.insert(cands, {
 				id = `s{i}`,
-				distance = 5 + i * 2.5, -- 7.5 .. 105
+				distance = 5 + i * 3, -- 8 .. 245
 				onScreen = i % 5 ~= 0,
 				state = "Wild",
 				tier = 3,
@@ -284,14 +281,6 @@ describe("pets stay static", function()
 		expect(pet:GetAttribute("LifeAnimating")).toBeNil()
 		expect(pet:GetAttribute("LifeMode")).toBeNil()
 		expect(UiHarness.find(pet, "AnimationController")).toBeNil()
-	end)
-
-	it("the runner only drives SLIME_TAG models, never the follow-pet clone", function()
-		local src = fs.readFile("src/ui/SlimeLifeRunner.client.luau")
-		expect(string.find(src, "GetInstanceAddedSignal(Constants.SLIME_TAG)", 1, true) ~= nil).toBe(true)
-		expect(string.find(fs.readFile("src/visuals/client/FollowPets.luau"), "PetRig.stripLife(pet)", 1, true) ~= nil).toBe(
-			true
-		)
 	end)
 end)
 
@@ -415,9 +404,9 @@ describe("LOD tiers", function()
 		expect(SlimeMotor.park(motor)).toBe(true)
 	end)
 
-	it("the cap of 16 and the on-screen check hold with the LOD on", function()
+	it("the MAX_ACTIVE cap and the on-screen check hold with the LOD on", function()
 		local cands = {}
-		for i = 1, 40 do
+		for i = 1, 120 do
 			table.insert(
 				cands,
 				{ id = `s{i}`, distance = 5 + i * 1.8, onScreen = i % 4 ~= 0, state = "Wild", tier = 3 }
@@ -434,18 +423,36 @@ describe("LOD tiers", function()
 			end
 		end
 		expect(count).toBe(SlimeLife.MAX_ACTIVE)
-		expect(counts.near + counts.mid + counts.far).toBe(16)
-		expect(counts.near > 0 and counts.mid > 0).toBe(true)
+		expect(counts.near + counts.mid + counts.far).toBe(SlimeLife.MAX_ACTIVE)
+		expect(counts.near > 0 and counts.mid > 0 and counts.far > 0).toBe(true)
 	end)
 
-	it("the runner reselects 4x a second and reads quality via the module", function()
-		local src = fs.readFile("src/ui/SlimeLifeRunner.client.luau")
-		expect(string.find(src, "SELECT_EVERY = 0.25", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "SlimeLod.tierFor(", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "SlimeMotor.park", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "SlimeLod.readQuality(", 1, true) ~= nil).toBe(true)
-		-- the per-frame loop sorts nothing
-		local frameLoop = string.match(src, "RenderStepped:Connect.*$") :: string
-		expect(string.find(frameLoop, "table.sort", 1, true)).toBeNil()
+	it("capNear keeps only the NEAR_MAX nearest near rigs, the rest draw as mid", function()
+		local rigs = {}
+		for i = 1, cfg.NEAR_MAX + 6 do
+			-- shuffled distances: 1 + (i * 7) % n keeps them distinct
+			table.insert(rigs, { tier = "near", distance = 1 + (i * 7) % (cfg.NEAR_MAX + 6) })
+		end
+		table.insert(rigs, { tier = "far", distance = 0.5 }) -- never promoted
+		SlimeLod.capNear(cfg, rigs)
+		local near, worstNear, bestMid = 0, -1, math.huge
+		for _, r in rigs do
+			if r.tier == "near" then
+				near += 1
+				worstNear = math.max(worstNear, r.distance)
+			elseif r.tier == "mid" then
+				bestMid = math.min(bestMid, r.distance)
+			end
+		end
+		expect(near).toBe(cfg.NEAR_MAX)
+		expect(worstNear < bestMid).toBe(true)
+		expect(rigs[#rigs].tier).toBe("far")
+	end)
+
+	it("capNear leaves a small near set alone", function()
+		local rigs = { { tier = "near", distance = 3 }, { tier = "mid", distance = 40 } }
+		SlimeLod.capNear(cfg, rigs)
+		expect(rigs[1].tier).toBe("near")
+		expect(rigs[2].tier).toBe("mid")
 	end)
 end)

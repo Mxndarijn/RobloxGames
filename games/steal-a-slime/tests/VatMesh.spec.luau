@@ -51,7 +51,6 @@ end
 
 describe("plot vats wear the merge_vat model (bug #16)", function()
 	it("is independent of FEATURES.MergeVat3 and covers every plot", function()
-		expect(Config.FEATURES.MergeVat3 == false or Config.FEATURES.MergeVat3 == true).toBe(true)
 		local list = vats(ok)
 		expect(#list).toBe(Config.PLOT_COUNT)
 		for _, e in list do

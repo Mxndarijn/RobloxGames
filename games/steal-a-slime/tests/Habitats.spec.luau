@@ -119,9 +119,6 @@ describe("Habitats table", function()
 			end
 		end
 	end)
-	it("ships with the Habitats feature on", function()
-		expect(Config.FEATURES.Habitats).toBe(true)
-	end)
 	it("draws the placeholder for an overlay with no uploaded meshId", function()
 		local entry = MeshAssets.get("habitat_candy_patch_overlay") :: MeshAssets.Entry
 		local saved = entry.meshId

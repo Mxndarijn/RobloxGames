@@ -42,6 +42,7 @@ local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
+local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
 local MeshSwap = require(script.Parent.MeshSwap)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
@@ -59,12 +60,13 @@ local PvpHeld = require(script.Parent.PvpHeld)
 local PvpService = require(script.Parent.PvpService)
 local PvpTrap = require(script.Parent.PvpTrap)
 local Rescue = require(script.Parent.Rescue)
-local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
+local SafeCall = require(script.Parent.SafeCall)
 local Scene = require(script.Parent.Scene)
 local SlimeLabelView = require(script.Parent.SlimeLabelView)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
 local StackGuard = require(script.Parent.StackGuard)
+local StealGhost = require(script.Parent.StealGhost)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
 local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
@@ -79,11 +81,15 @@ type Record = {
 	key: string,
 	weld: WeldConstraint?,
 	rideUntil: number, -- os.clock() when the fountain ride lands (0 = not riding)
+	ghost: Model?, -- StealGhost: the see-through copy left on the pad while a thief carries it
 }
 
 local WorldView = {}
 
 local records: { [string]: Record } = {}
+-- Lane slimes walking the parade (followLane): one loop pivots them all.
+type LaneWalk = { key: string, wild: World.Wild }
+local laneWalks: { [string]: LaneWalk } = {}
 local failed: { [string]: boolean } = {}
 local modelFactory: any = nil
 local plotCache: { [number]: Instance? } = {}
@@ -327,7 +333,10 @@ local function animate(id: string, key: string, seconds: number, path: (t: numbe
 			local t = math.min((os.clock() - start) / seconds, 1)
 			record.model:PivotTo(path(t))
 			if t >= 1 then
-				record.model:SetAttribute(Constants.RIDING_ATTRIBUTE, nil)
+				-- A lane walker stays Riding through the lead-in; the lane loop clears it there.
+				if not laneWalks[id] then
+					record.model:SetAttribute(Constants.RIDING_ATTRIBUTE, nil)
+				end
 				return
 			end
 			RunService.Heartbeat:Wait()
@@ -375,8 +384,12 @@ local function laneAhead(wild: World.Wild, now: number): number
 	return ParadeChoreo.offset(plan, now - startAt) * ParadeLane.walkSpeed(wild.expiresAt - wild.spawnedAt)
 end
 
-local function laneCFrame(wild: World.Wild, now: number): CFrame
-	local pose = ParadeLane.pose(wild.spawnedAt, wild.expiresAt, laneLateral(wild), now, laneAhead(wild, now))
+-- `drawn` (LaneTraffic): the lane distance the queue lets it walk at, when that differs from its plan.
+local function laneCFrame(wild: World.Wild, now: number, drawn: number?): CFrame
+	local ahead = if drawn
+		then drawn - ParadeLane.distance(wild.spawnedAt, wild.expiresAt, now)
+		else laneAhead(wild, now)
+	local pose = ParadeLane.pose(wild.spawnedAt, wild.expiresAt, laneLateral(wild), now, ahead)
 	local p, h = pose.position, pose.heading
 	local at = Vector3.new(p[1], p[2], p[3])
 	return CFrame.lookAt(at, at + Vector3.new(h[1], 0, h[2]))
@@ -397,25 +410,67 @@ local function laneRide(wild: World.Wild): (number, (t: number) -> CFrame)
 			return CFrame.lookAt(at, at + Vector3.new(dir[1], dir[2], dir[3]))
 		end
 end
--- Pivots a lane slime along the parade every frame (after its ride lands)
--- until its record changes (grabbed, dropped) or the model is gone.
+-- Lane slimes walking the parade: one loop pivots them all each Heartbeat, after LaneTraffic has queued them
+-- (a slime never walks into the one ahead), until a record changes (grabbed, dropped) or the model is gone.
+local laneDrawn: { [string]: number } = {} -- LaneTraffic state: the lane distance each walker is drawn at
+local laneLoop = false
+
+local function laneWalker(id: string, wild: World.Wild, now: number): LaneTraffic.Walker
+	local lifetime = wild.expiresAt - wild.spawnedAt
+	local pace = ParadeLane.walkSpeed(lifetime)
+	local s = ParadeLane.distance(wild.spawnedAt, wild.expiresAt, now) + laneAhead(wild, now)
+	local left = wild.expiresAt - ParadeLane.DRAIN_SECONDS - now
+	return {
+		id = id,
+		s = s,
+		lateral = laneLateral(wild),
+		radius = Config.SLIME_BASE_DIAMETER * (wild.slime.size or 1) / 2,
+		pace = pace,
+		floor = s - LaneTraffic.holdLimit(left, pace),
+	}
+end
+
+local function stepLanes(dt: number)
+	local now = workspace:GetServerTimeNow()
+	local clock = os.clock()
+	local walkers: { LaneTraffic.Walker } = {}
+	for id, walk in laneWalks do
+		local record = records[id]
+		if not record or record.key ~= walk.key or not record.model.Parent then
+			laneWalks[id] = nil
+		elseif
+			clock >= record.rideUntil and ParadeLane.phase(walk.wild.spawnedAt, walk.wild.expiresAt, now) == "Walk"
+		then
+			table.insert(walkers, laneWalker(id, walk.wild, now))
+		end
+	end
+	LaneTraffic.step(walkers, laneDrawn, dt)
+	for id, walk in laneWalks do
+		local record = records[id]
+		if record and clock >= record.rideUntil then
+			local wild = walk.wild
+			record.model:PivotTo(laneCFrame(wild, now, laneDrawn[id]))
+			-- still Riding through the lead-in from the slide mouth (it crosses the landing ring's gap), queue included
+			local leading = (laneDrawn[id] or ParadeLane.distance(wild.spawnedAt, wild.expiresAt, now)) < 0
+			if (record.model:GetAttribute(Constants.RIDING_ATTRIBUTE) == true) ~= leading then
+				record.model:SetAttribute(Constants.RIDING_ATTRIBUTE, if leading then true else nil)
+			end
+		end
+	end
+end
+
 local function followLane(id: string, key: string, wild: World.Wild)
+	laneWalks[id] = { key = key, wild = wild }
+	if laneLoop then
+		return
+	end
+	laneLoop = true
 	task.spawn(function()
+		local safeCall = SafeCall.new(warn)
+		local dt = 0
 		while true do
-			local record = records[id]
-			if not record or record.key ~= key or not record.model.Parent then
-				return
-			end
-			if os.clock() >= record.rideUntil then
-				local now = workspace:GetServerTimeNow()
-				record.model:PivotTo(laneCFrame(wild, now))
-				-- still Riding through the lead-in from the slide mouth (it crosses the landing ring's gap)
-				local leading = ParadeLane.distance(wild.spawnedAt, wild.expiresAt, now) < 0
-				if (record.model:GetAttribute(Constants.RIDING_ATTRIBUTE) == true) ~= leading then
-					record.model:SetAttribute(Constants.RIDING_ATTRIBUTE, if leading then true else nil)
-				end
-			end
-			RunService.Heartbeat:Wait()
+			safeCall("lane step", stepLanes, dt)
+			dt = RunService.Heartbeat:Wait()
 		end
 	end)
 end
@@ -472,10 +527,28 @@ end
 -- Walks a dropped slime back to the parade lane (contract/slime-walk.md): the server pivots it along
 -- ParadeLane.returnPose every Heartbeat, on the ground under it, until its record changes (grabbed, or arrived:
 -- Spawner clears wild.returning and the lane takes over) or the model is gone.
+WorldView.STEP_ASIDE_RATE = 4 -- 1 / s: how fast a walking slime steps round a slime or the boss in its way
+
+-- The other slime bodies near (x, z), for LaneTraffic.push.
+local function bodiesNear(self: string, x: number, z: number, reach: number): { LaneTraffic.Body }
+	local out = {}
+	for otherId, record in records do
+		if otherId ~= self and record.model.Parent and not record.egg then
+			local p = record.body.Position
+			local dx, dz = p.X - x, p.Z - z
+			if dx * dx + dz * dz < reach * reach then
+				table.insert(out, { x = p.X, z = p.Z, radius = record.body.Size.X / 2 * record.model:GetScale() })
+			end
+		end
+	end
+	return out
+end
+
 local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0: number)
 	task.spawn(function()
 		local y = y0
 		local dt = 0
+		local asideX, asideZ = 0, 0 -- steps round other slimes and the boss
 		while true do
 			local record = records[id]
 			if not record or record.key ~= key or not record.model.Parent then
@@ -484,9 +557,18 @@ local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0
 			if os.clock() >= record.rideUntil then
 				local now = workspace:GetServerTimeNow()
 				local x, z = ParadeLane.returnPose(plan, now)
+				-- Step round anything in the way, easing back onto the path once it is clear (gone by arrival).
+				local radius = record.body.Size.X / 2
+				local px, pz = LaneTraffic.push(x, z, radius, bodiesNear(id, x, z, radius + 12))
+				local k = math.min(1, dt * WorldView.STEP_ASIDE_RATE)
+				local fade = math.clamp((plan.arriveAt - now) / 1.5, 0, 1)
+				asideX += (px * fade - asideX) * k
+				asideZ += (pz * fade - asideZ) * k
+				x, z = x + asideX, z + asideZ
 				local target = walkHeight(plan, x, z, y, now)
 				y += (target - y) * math.min(1, dt * WorldView.WALK_Y_RATE)
-				record.model:PivotTo(returnCFrame(plan, y, now))
+				local cf = returnCFrame(plan, y, now)
+				record.model:PivotTo(cf + Vector3.new(asideX, 0, asideZ))
 			end
 			dt = RunService.Heartbeat:Wait()
 		end
@@ -596,6 +678,31 @@ local function unweld(record: Record)
 	record.body.Anchored = true
 end
 
+local function clearGhost(record: Record)
+	if record.ghost then
+		record.ghost:Destroy()
+		record.ghost = nil
+	end
+end
+
+-- Leaves a see-through copy on the pad while a thief carries the slime off (before the model moves to them).
+local function syncGhost(record: Record, entry: Scene.Entry)
+	if not StealGhost.wants(entry) then
+		clearGhost(record)
+		return
+	end
+	if record.ghost and record.ghost.Parent then
+		return
+	end
+	local plotIndex, pad = entry.plotIndex :: number, entry.pad :: number
+	local plot = WorldView.plot(plotIndex)
+	local target = padTop(plotIndex, pad)
+	if not plot or not target then
+		return
+	end
+	record.ghost = StealGhost.build(record.model, target, plot, Config.STEAL_GHOST_TRANSPARENCY)
+end
+
 -- Returns false when the model couldn't be placed yet (retried next reconcile).
 local function place(record: Record, entry: Scene.Entry, previous: string?): boolean
 	local model = record.model
@@ -625,6 +732,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	model:SetAttribute(Constants.LANE_UNTIL_ATTRIBUTE, if choreo and entry.wild then entry.wild.expiresAt else nil)
 	model:SetAttribute(Constants.RARE_ATTRIBUTE, entry.rare)
 
+	syncGhost(record, entry)
 	if entry.state == "Carried" then
 		local carrier = entry.carrierUserId and Players:GetPlayerByUserId(entry.carrierUserId)
 		local root = WorldView.rootPart(carrier)
@@ -822,6 +930,7 @@ function WorldView.reconcile(
 	for id, record in records do
 		local entry = entries[id]
 		if not entry or record.egg ~= EggKind.isEgg(entry.slime) then
+			clearGhost(record)
 			record.model:Destroy()
 			records[id] = nil
 			bossPlans[id] = nil
@@ -854,7 +963,9 @@ function WorldView.reconcile(
 				if hatch.Enabled ~= entry.hatchReady then
 					hatch.Enabled = entry.hatchReady
 				end
-				setAttr(hatch, Constants.PROMPT_OWNER_ATTRIBUTE, entry.ownerUserId)
+				-- Owner tag only while ready: PromptHide re-enables an owner prompt when its owner becomes the
+				-- local player, which would show Hatch on an egg that isn't ready (a stolen one, say).
+				setAttr(hatch, Constants.PROMPT_OWNER_ATTRIBUTE, if entry.hatchReady then entry.ownerUserId else nil)
 			end
 		end
 		-- Every reconcile, not only in place(): the telegraph window opens without a key change.
@@ -1383,12 +1494,10 @@ function WorldView.updatePlayer(
 	setAttribute(player, Constants.SPEED_COIL_ATTRIBUTE, if data.speedCoil then true else nil)
 	setAttribute(player, Constants.REBIRTH_TITLE_ATTRIBUTE, Perks.title(data.rebirths))
 	if Config.FEATURES.PvP then
-		setAttribute(player, Constants.PVP_SHIELD_ATTRIBUTE, PvpService.shieldUntil(session, now))
 		setAttribute(player, Constants.PVP_EQUIPPED_ATTRIBUTE, PvpService.equipped(session))
 		-- the held model (CONTRACT.md §26.3): put away while carrying, like the Tools
 		PvpHeld.sync(character, if carry then nil else PvpService.equipped(session))
 		local root = WorldView.rootPart(player)
-		PvpService.tick(world, session, root and root.Position, now)
 		PvpTrap.tick(world, session, root and root.Position, now, ctx)
 		PvpBlaster.tick(world, session, root and root.Position, now, ctx)
 		PvpFun.tick(world, session, root and root.Position, now, ctx)
@@ -1421,11 +1530,6 @@ function WorldView.setCarrying(player: Player, slimeId: string?)
 	if player:GetAttribute(Constants.CARRYING_ATTRIBUTE) ~= slimeId then
 		player:SetAttribute(Constants.CARRYING_ATTRIBUTE, slimeId)
 	end
-end
-
--- Player attribute `RevengePlots` (FEATURES.Revenge): thief plot indexes, "3,5", nil = none. Victim only.
-function WorldView.setRevengePlots(player: Player, plots: { number })
-	setAttribute(player, Constants.REVENGE_PLOTS_ATTRIBUTE, RevengePlots.format(plots))
 end
 
 function WorldView.setRain(active: boolean, endsAt: number?, nextAt: number?)

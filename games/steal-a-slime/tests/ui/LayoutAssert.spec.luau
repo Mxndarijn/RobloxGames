@@ -131,8 +131,6 @@ describe("v18 viewports", function()
 		expect(s.short).toBe(false)
 		expect(s.navColumns).toBe(2)
 		expect(s.scale).toBe(Layout.MIN_SCALE)
-		expect((s :: any).hud).toBeNil()
-		expect((s :: any).toasts).toBeNil()
 		expect(s.bottomInset * s.scale >= Layout.TOUCH_CONTROLS_HEIGHT).toBe(true)
 	end)
 	it("desktop: a 2-column tile nav, scale 1", function()
@@ -185,9 +183,9 @@ describe("v18 viewports", function()
 				local col = (i - 1) % 2
 				expect(b.x).toBe(s.nav.x + col * (b.w + Layout.navGap(s.compact)))
 			end
-			expect(s.navButtons[2].y).toBe(s.navButtons[1].y) -- row 1: Plot, Rebirth
-			expect(s.navButtons[3].y > s.navButtons[2].y).toBe(true) -- row 2: Goals, SlimeDex
-			expect(s.navButtons[5].x).toBe(s.navButtons[1].x) -- row 3: Codes alone
+			expect(s.navButtons[2].y).toBe(s.navButtons[1].y) -- row 1: Rebirth, Goals
+			expect(s.navButtons[3].y > s.navButtons[2].y).toBe(true) -- row 2: SlimeDex, Codes
+			expect(s.navButtons[3].x).toBe(s.navButtons[1].x)
 		end
 	end)
 	it("the bottom clusters are bigger than the H1 sizes (B4) and clear the touch controls", function()
@@ -394,73 +392,12 @@ describe("landscape phone (v27 gate N1)", function()
 		expect(has(check.report(), "screen.column")).toBe(true)
 		expect(has(check.report(), "Dex list is")).toBe(true)
 	end)
-	it("init.client places panels via panel.layout", function()
-		expect(has(read("src/ui/init.client.luau"), "entry.panel.layout(r, s)")).toBe(true)
-	end)
 end)
 
 describe("ZIndex order", function()
 	it("Daily < Tutorial < Carry, banners / hint over the side panels", function()
 		expect(LayoutAssert.zOrder({ "Base", "Banners", "Daily", "Tutorial", "Carry" })).toBeNil()
 		expect(LayoutAssert.zOrder({ "Tutorial", "Daily" })).toBeTruthy()
-	end)
-	it("is what the hint overlay uses", function()
-		local src = read("src/ui/Panels/HintOverlay.luau")
-		expect(has(src, "Layout.ZINDEX.Banners")).toBe(true)
-	end)
-end)
-
-describe("init.client applies Layout for every viewport", function()
-	local src = read("src/ui/init.client.luau")
-	it("lays everything out from Layout.screen and re-runs it on resize", function()
-		expect(has(src, "Layout.screen(size.X, size.Y)")).toBe(true)
-		expect(has(src, 'GetPropertyChangedSignal("AbsoluteSize"):Connect(applyLayout)')).toBe(true)
-		for _, call in
-			{
-				"hud.layout(s)",
-				"carry.layout(s)",
-				"tutorial.layout(s)",
-				"dailyPopup.layout(s)",
-			}
-		do
-			expect(has(src, call)).toBe(true)
-		end
-		expect(has(src, "Layout.panelFor(s, entry.key, Widgets.contentHeight(")).toBe(true)
-		expect(has(src, "NAV_WIDTH")).toBe(false) -- no hard-coded nav width left
-	end)
-	it("closes the open menu from its X, gamepad B and Esc (CLOSE_WITH_ESCAPE on)", function()
-		expect(Layout.CLOSE_WITH_ESCAPE).toBe(true)
-		expect(has(src, "entry.panel.close.Activated:Connect(function()\n\t\tsetOpen(nil)")).toBe(true)
-		-- Binding itself is MenuClose (tests/ui/MenuClose.spec drives it).
-		expect(has(src, "MenuClose.bind(ContextActionService, Layout.CLOSE_WITH_ESCAPE")).toBe(true)
-		local _, escapes = string.gsub(src, "Enum%.KeyCode%.Escape", "")
-		expect(escapes).toBe(0)
-	end)
-	it("builds the nav as rounded tiles with the label under them, no collapse toggle", function()
-		expect(has(src, 'Name = "Tile"')).toBe(true)
-		expect(has(src, "Layout.navTile(s.compact, b)")).toBe(true)
-		expect(has(src, "NavToggle")).toBe(false)
-		expect(has(src, "navCollapsed")).toBe(false)
-	end)
-	it("queues the daily popup behind the tutorial (no direct auto-open)", function()
-		expect(has(src, 'popups.update(state, openKey == "Welcome")')).toBe(true)
-		expect(has(src, 'next == "Daily"')).toBe(true)
-		expect(has(src, "shouldAutoOpen")).toBe(false)
-	end)
-end)
-
-describe("touch-size buttons in the overlays", function()
-	it("Drop / Claim / Close / Hide use Layout sizes", function()
-		expect(has(read("src/ui/Panels/Carry.luau"), "Size = UDim2.fromOffset(100, Layout.BUTTON)")).toBe(true)
-		expect(has(read("src/ui/Panels/Carry.luau"), "Slap")).toBe(false) -- the Bat Tool replaced the button
-		local daily = read("src/ui/Panels/DailyPopup.luau")
-		expect(has(daily, "Size = UDim2.new(1, 0, 0, Layout.BUTTON)")).toBe(true)
-		-- The close X comes from the shared panel frame (PANEL_CHROME.close = MIN_TOUCH_DESIGN).
-		expect(has(daily, 'Widgets.panel(backdrop, "Card", "Daily Reward"')).toBe(true)
-		expect(Layout.PANEL_CHROME.close >= Layout.MIN_TOUCH_DESIGN).toBe(true)
-		expect(has(read("src/ui/Panels/TutorialOverlay.luau"), "Size = UDim2.fromOffset(72, Layout.MIN_TOUCH_DESIGN)")).toBe(
-			true
-		)
 	end)
 end)
 
@@ -474,44 +411,13 @@ describe("Config-backed numbers", function()
 		fake.SPEED_COIL_WALK_SPEED = 31
 		expect(has(ShopCatalog.speedCoilText(fake) :: string, "→ 31")).toBe(true)
 	end)
-	it("UI sources read these values through Config (checklist)", function()
-		local checklist = {
-			{ "src/ui/ShopCatalog.luau", "config.BASE_WALK_SPEED" },
-			{ "src/ui/ShopCatalog.luau", "config.SPEED_COIL_WALK_SPEED" },
-			{ "src/ui/Panels/DailyPopup.luau", "ctx.Config.DAILY_STREAK_CAP" },
-			{ "src/ui/Panels/DailyPopup.luau", "ctx.Config.DAILY_BASE" },
-		}
-		for _, item in checklist do
-			local src = read(item[1])
-			if not has(src, item[2]) then
-				error(`{item[1]} no longer reads {item[2]}`)
-			end
-		end
-	end)
-	it("no hard-coded walk speeds or lock cap in UI copy", function()
-		for _, path in { "src/ui/ShopCatalog.luau", "src/ui/Tutorial.luau", "src/ui/Hint.luau" } do
-			local src = read(path)
-			expect(has(src, "16 → 22")).toBe(false)
-			expect(has(src, "→ 22")).toBe(false)
-			expect(has(src, "5:00 cap")).toBe(false)
-		end
-	end)
 end)
 
 describe("phone nav + panels", function()
-	it("an open menu hides the nav tiles on phones: the card gets their width (init.client syncMenus)", function()
-		local src = read("src/ui/init.client.luau")
-		expect(has(src, "nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)")).toBe(true)
+	it("a phone card gets the nav tiles' width; on desktop it sits beside the nav", function()
 		local s = Layout.screen(390, 844)
 		expect(s.panel.x).toBe(Layout.MARGIN)
 		local desktop = Layout.screen(1920, 1080)
 		expect(desktop.panel.x).toBe(desktop.nav.x + desktop.nav.w + Layout.GAP)
-	end)
-	it("Shop rows (v28): compact 68 px rows, two description lines, a touch-size Buy", function()
-		local src = read("src/ui/Panels/Shop.luau")
-		expect(has(src, "Shop.ROW = 68")).toBe(true)
-		expect(has(src, "Shop.DESC_H = 32")).toBe(true)
-		expect(has(src, "Size = UDim2.fromOffset(Shop.BUY_W, Layout.BUTTON)")).toBe(true)
-		expect(has(src, "6 + Shop.NAME_H + 2")).toBe(true) -- name 6..28, description 30..62 in a 68 px row
 	end)
 end)

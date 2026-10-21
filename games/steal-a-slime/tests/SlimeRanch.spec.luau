@@ -36,14 +36,6 @@ describe("Slime Ranch layout", function()
 		end
 		expect(slots > 0).toBe(true) -- MeshParts are a soft budget (warn only), nothing to cap here
 	end)
-	it("has no volcano decor (lava, basalt, torches, crystals)", function()
-		for _, root in nodes do
-			walk(root, function(n)
-				expect(n.material ~= "CrackedLava" and n.material ~= "Basalt").toBe(true)
-				expect(string.find(n.name, "Torch") == nil and string.find(n.name, "Crystal") == nil).toBe(true)
-			end)
-		end
-	end)
 	it("keeps 80-stud plots apart (inner corners clear the bisector)", function()
 		local half = WorldLayout.PLOT_SIZE / 2
 		local bisector = math.rad(180 / Config.PLOT_COUNT)

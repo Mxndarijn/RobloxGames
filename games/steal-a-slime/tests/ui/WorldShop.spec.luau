@@ -66,7 +66,6 @@ local function baseState(extra: { [string]: any }?): any
 		lockCost = 200,
 		lockDuration = 70,
 		shop = {
-			LockUpgrade = { price = 750, level = 2, maxLevel = 5 },
 			SpeedCoil = { price = 4000, owned = false },
 		},
 		upgrades = upgrades,
@@ -99,8 +98,8 @@ local function baseState(extra: { [string]: any }?): any
 		},
 		pvp = { rank = 3, owned = { KnockGlove1 = true }, best = {}, cooldowns = {} },
 		slimes = {
-			{ slime = { id = "s1", tier = 2 }, income = 1, sellPrice = 1, appraiseCost = 1 },
-			{ slime = { id = "s2", tier = 5 }, income = 1, sellPrice = 1, appraiseCost = 1 },
+			{ slime = { id = "s1", tier = 2 }, income = 1, sellPrice = 1 },
+			{ slime = { id = "s2", tier = 5 }, income = 1, sellPrice = 1 },
 		},
 		favoriteId = nil,
 	}
@@ -142,7 +141,7 @@ describe("WorldShopLogic.rows", function()
 	it("filters rows by feature flags", function()
 		local off = features({ Consumables = false, PvP = false })
 		local itemRows = ids(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, off, Config))
-		expect(table.concat(itemRows, ",")).toBe("Lock,SpeedCoil")
+		expect(table.concat(itemRows, ",")).toBe("SpeedCoil")
 		local upgradeRows = ids(WorldShopLogic.rows("UpgradeShop", baseState(), ACTIONS, off, Config))
 		expect(table.find(upgradeRows, "Income")).toBeTruthy()
 		local all = ids(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config))
@@ -162,14 +161,21 @@ describe("WorldShopLogic.rows", function()
 		end
 	end)
 
-	it("Lock shows its price and buy state", function()
-		local rows = WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config)
-		local lock = find(rows, "Lock")
-		expect(lock.status).toBe("buy")
-		expect(lock.buttonText).toBe("$200")
-		expect(lock.enabled).toBe(true)
+	it("has no Lock or lock-upgrade row: locks are bought on the plot", function()
+		for _, shopId in Shops.ORDER do
+			local rowIds = ids(WorldShopLogic.rows(shopId, baseState(), ACTIONS, features(), Config))
+			expect(table.find(rowIds, "Lock")).toBeNil()
+			expect(table.find(rowIds, "LockUpgrade")).toBeNil()
+		end
+	end)
+
+	it("the Speed Coil shows its price, disabled when the player cannot afford it", function()
+		local coil = find(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config), "SpeedCoil")
+		expect(coil.status).toBe("buy")
+		expect(coil.buttonText).toBe("$4K")
+		expect(coil.enabled).toBe(true)
 		local broke =
-			find(WorldShopLogic.rows("ItemShop", baseState({ cash = 5 }), ACTIONS, features(), Config), "Lock")
+			find(WorldShopLogic.rows("ItemShop", baseState({ cash = 5 }), ACTIONS, features(), Config), "SpeedCoil")
 		expect(broke.enabled).toBe(false)
 		expect(broke.status).toBe("buy")
 	end)
@@ -185,16 +191,11 @@ describe("WorldShopLogic.rows", function()
 		expect(coil.enabled).toBe(false)
 	end)
 
-	it("upgrades: level x/5, maxed, rank-locked Rebirth N (the Speed Coil is not one)", function()
+	it("upgrades: level x/max, maxed, rank-locked Rebirth N (the Speed Coil is not one)", function()
 		local state = baseState()
-		state.shop.LockUpgrade = { price = 750, level = 2, maxLevel = 5 }
 		state.upgrades[1] = upgradeEntry("Income", { level = 10, maxLevel = 10 })
 		state.upgrades[2] = upgradeEntry("CarrySpeed", { unlocked = false, requires = 7, price = nil })
 		local rows = WorldShopLogic.rows("UpgradeShop", state, ACTIONS, features(), Config)
-		local lockUp = find(rows, "LockUpgrade")
-		expect(lockUp.levelText).toBe("Lv 2/5")
-		expect(lockUp.status).toBe("buy")
-		expect(lockUp.enabled).toBe(true)
 		expect(table.find(ids(rows), "SpeedCoil")).toBeNil() -- an item now, listed in the Item Shop
 		local income = find(rows, "Income")
 		expect(income.status).toBe("maxed")
@@ -207,8 +208,8 @@ describe("WorldShopLogic.rows", function()
 		local luck = find(rows, "Luck")
 		expect(luck.status).toBe("buy")
 		expect(luck.enabled).toBe(true)
-		expect(string.match(luck.levelText or "", "^Lv %d+/%d+$") ~= nil).toBe(true)
-		expect(lockUp.progress).toBeCloseTo(2 / 5, 4)
+		expect(luck.levelText).toBe(`Lv 1/{luck.maxLevel}`)
+		expect(luck.progress).toBeCloseTo(1 / (luck.maxLevel :: number), 4)
 		expect(income.progress).toBe(1)
 	end)
 
@@ -303,13 +304,13 @@ describe("WorldShopLogic.slot", function()
 		local up = WorldShopLogic.rows("UpgradeShop", state, ACTIONS, features(), Config)
 		expect(find(up, "Income").level).toBe(3)
 		expect(find(up, "Income").maxLevel).toBe(10)
-		expect(find(up, "LockUpgrade").level).toBe(2)
-		expect(find(up, "LockUpgrade").maxLevel).toBe(5)
+		expect(find(up, "Luck").level).toBe(1)
+		expect(find(up, "Luck").maxLevel).toBe(upgradeEntry("Luck").maxLevel)
 		local items = WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config)
 		expect(find(items, "WeatherTotem").stockText).toBe("2/3 left")
 		expect(find(items, "WeatherTotem").maxLevel).toBeNil()
-		expect(find(items, "Lock").maxLevel).toBeNil()
-		expect(find(items, "Lock").stockText).toBeNil()
+		expect(find(items, "SpeedCoil").maxLevel).toBeNil()
+		expect(find(items, "SpeedCoil").stockText).toBeNil()
 	end)
 end)
 
@@ -320,10 +321,10 @@ describe("WorldShopLogic.buyArgs", function()
 		expect(totem[1]).toBe("ItemShop")
 		expect(totem[2]).toBe("WeatherTotem")
 		expect(totem[3]).toBeNil()
-		local lock = WorldShopLogic.buyArgs(find(rows, "Lock"))
-		expect(lock[1]).toBe("ItemShop")
-		expect(lock[2]).toBe("Lock")
-		expect(lock[3]).toBeNil()
+		local coil = WorldShopLogic.buyArgs(find(rows, "SpeedCoil"))
+		expect(coil[1]).toBe("ItemShop")
+		expect(coil[2]).toBe("SpeedCoil")
+		expect(coil[3]).toBeNil()
 		local up = WorldShopLogic.rows("UpgradeShop", baseState(), ACTIONS, features(), Config)
 		expect(WorldShopLogic.buyArgs(find(up, "Income"))[1]).toBe("UpgradeShop")
 		expect(Remotes.ACTIONS.ShopBuy).toBeTruthy()
@@ -506,10 +507,10 @@ describe("WorldShopLogic.controller", function()
 
 	it("Purchased toasts '<name> bought!' (+ level for upgrades) with the item's icon", function()
 		local log = newController()
-		log.controller.onEvent({ kind = "Purchased", shopId = "ItemShop", itemId = "Lock", price = 200 })
-		expect(log.toasts[1].text).toBe("Lock base bought!")
+		log.controller.onEvent({ kind = "Purchased", shopId = "ItemShop", itemId = "SpeedCoil", price = 200 })
+		expect(log.toasts[1].text).toBe("Speed Coil bought!")
 		expect(log.toasts[1].kind).toBe("good")
-		expect(log.toasts[1].itemId).toBe("Lock")
+		expect(log.toasts[1].itemId).toBe("SpeedCoil")
 		log.controller.onEvent({ kind = "Purchased", shopId = "UpgradeShop", itemId = "Income", price = 9, level = 3 })
 		expect(log.toasts[2].text).toBe("Slime Snacks bought! Lv 3")
 		expect(log.toasts[2].itemId).toBe("Upgrade_Income")
@@ -523,7 +524,7 @@ describe("WorldShopLogic.controller", function()
 		log.controller.onEvent({
 			kind = "Denied",
 			shopId = "ItemShop",
-			itemId = "Lock",
+			itemId = "SpeedCoil",
 			code = "NoCash",
 			message = "not enough cash",
 		})
@@ -569,12 +570,11 @@ describe("Panels/WorldShop", function()
 		local list = UiHarness.find(panel.frame, "List")
 		local want = #WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config)
 		expect(#list:GetChildren() >= want).toBe(true)
-		expect(UiHarness.find(panel.frame, "Lock") ~= nil).toBe(true)
 		expect(UiHarness.find(panel.frame, "SpeedCoil") ~= nil).toBe(true)
+		expect(UiHarness.find(panel.frame, "Lock")).toBeNil()
 		panel.setShop("UpgradeShop")
 		expect(UiHarness.find(panel.frame, "Title").Text).toBe("Upgrade Shop")
 		expect(UiHarness.find(panel.frame, "RestockTimer").Visible).toBe(false)
-		expect(UiHarness.find(panel.frame, "Lock")).toBeNil()
 		expect(UiHarness.find(panel.frame, "SpeedCoil")).toBeNil()
 		expect(UiHarness.find(panel.frame, "Income") ~= nil).toBe(true)
 	end)
@@ -595,10 +595,9 @@ describe("Panels/WorldShop", function()
 		expect(restock.Text).toBe("Restocks in 3:10")
 		expect(restock.TextColor3).toBe(Theme.Muted)
 		expect(UiHarness.find(panel.frame, "Tagline").Visible).toBe(false)
-		local lock = UiHarness.find(panel.frame, "Lock")
-		expect(lock.BackgroundColor3).toBe(Theme.Row)
-		expect(lock:FindFirstChild("Levels")).toBeNil()
-		expect(UiHarness.find(lock, "LevelBar")).toBeNil()
+		local coil = UiHarness.find(panel.frame, "SpeedCoil")
+		expect(coil.BackgroundColor3).toBe(Theme.Row)
+		expect(coil:FindFirstChild("Levels")).toBeNil()
 		panel.setShop("UpgradeShop")
 		expect(panel.frame.BackgroundColor3).toBe(Theme.Bg)
 		expect(UiHarness.find(panel.frame, "IconTile"):FindFirstChild("Icon").Text).toBe(WorldShop.ICON.UpgradeShop)
@@ -614,14 +613,14 @@ describe("Panels/WorldShop", function()
 		local panel = WorldShop.new(UiHarness.root(), ctx())
 		panel.update(baseState())
 		panel.setShop("ItemShop")
-		local lock = UiHarness.find(panel.frame, "Lock")
-		local buy = lock:FindFirstChild("Buy")
+		local coil = UiHarness.find(panel.frame, "SpeedCoil")
+		local buy = coil:FindFirstChild("Buy")
 		expect(buy.Visible).toBe(true)
-		expect(buy.Text).toBe("$200")
+		expect(buy.Text).toBe("$4K")
 		expect(buy.BackgroundColor3).toBe(Theme.Good)
 		expect(buy.TextColor3).toBe(Theme.Ink)
 		expect(buy:GetAttribute("HoldConfirm") ~= nil).toBe(true)
-		expect(lock:FindFirstChild("Stock").Visible).toBe(false)
+		expect(coil:FindFirstChild("Stock").Visible).toBe(false)
 		local totem = UiHarness.find(panel.frame, "WeatherTotem")
 		local stock = totem:FindFirstChild("Stock")
 		expect(stock.Visible).toBe(true)
@@ -661,8 +660,8 @@ describe("Panels/WorldShop", function()
 		local want = WorldShop.statusWidth(WorldShopLogic.slot({ status = "locked", buttonText = "Rebirth 8" }))
 		expect(bomb:FindFirstChild("Status").Size.X.Offset).toBe(want)
 		local name = bomb:FindFirstChild("ItemName")
-		local lockName = UiHarness.find(panel.frame, "Lock"):FindFirstChild("ItemName")
-		expect(name.Size.X.Offset - lockName.Size.X.Offset).toBe(WorldShop.BUY_W - want)
+		local coilName = UiHarness.find(panel.frame, "SpeedCoil"):FindFirstChild("ItemName")
+		expect(name.Size.X.Offset - coilName.Size.X.Offset).toBe(WorldShop.BUY_W - want)
 	end)
 
 	it("upgrade rows: one pip per level, gold MAX stamp when maxed, the buyable one highlighted", function()
@@ -676,7 +675,6 @@ describe("Panels/WorldShop", function()
 		panel.setShop("UpgradeShop")
 		local income = UiHarness.find(panel.frame, "Income")
 		expect(income.Size.Y.Offset).toBe(WorldShop.ROW_LEVELS)
-		expect(UiHarness.find(income, "LevelBar")).toBeNil()
 		local pips = income:FindFirstChild("Levels")
 		expect(#pips:GetChildren()).toBe(10)
 		local on = 0
@@ -749,23 +747,6 @@ describe("Panels/WorldShop", function()
 end)
 
 describe("init.client wiring", function()
-	local init = fs.readFile("src/ui/init.client.luau")
-	local function has(text: string, needle: string): boolean
-		return string.find(text, needle, 1, true) ~= nil
-	end
-
-	it("builds the world shop card only with FEATURES.WorldShops and joins it to the menu system", function()
-		expect(
-			has(init, "WorldShop = if Config.FEATURES.WorldShops == true then WorldShopPanel.new(gui, ctx) else nil")
-		).toBe(true)
-		expect(has(init, '{ key = "WorldShop", nav = nil, panel = panelByKey.WorldShop }')).toBe(true)
-		expect(has(init, "WorldShopLogic.controller({")).toBe(true)
-		expect(has(init, "Constants.SHOP_EVENT")).toBe(true)
-		expect(has(init, "Constants.OPEN_SHOP_ATTRIBUTE")).toBe(true)
-		expect(has(init, "worldShop.failed(result)")).toBe(true)
-		expect(has(init, 'setOpen("WorldShop")')).toBe(true)
-	end)
-
 	it("the shop prompt opens the old combined Shop only with the flag off", function()
 		expect(
 			MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, false)[Constants.SHOP_PROMPT_NAME]
@@ -776,25 +757,15 @@ describe("init.client wiring", function()
 		local on = MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, true)
 		expect(on[Constants.SHOP_PROMPT_NAME]).toBeNil()
 		expect(on[Constants.GUIDE_PROMPT_NAME]).toBe("Guide")
-		expect(has(init, "Constants.GUIDE_PROMPT_NAME, Config.FEATURES.WorldShops == true)")).toBe(true)
-		expect(fs.isFile("src/ui/Panels/Shop.luau")).toBe(true) -- kept for the flag-off HUD
-	end)
-
-	it("buys through ShopBuy from a hold button, never a direct buy action", function()
-		local panel = fs.readFile("src/ui/Panels/WorldShop.luau")
-		expect(has(panel, 'ctx.send("ShopBuy"')).toBe(true)
-		expect(has(panel, "Widgets.holdButton(")).toBe(true)
-		expect(has(panel, "ItemIconView.new")).toBe(true)
-		expect(has(panel, "Instance.new(")).toBe(false)
 	end)
 
 	it("the world shop card follows the one-open-menu state", function()
-		local keys = { "Plot", "WorldShop", "Shop" }
+		local keys = { "Merge", "WorldShop", "Shop" }
 		local view = MenuState.view("WorldShop", keys)
 		expect(view.backdrop).toBe(true)
 		expect(view.cards.WorldShop).toBe(true)
 		expect(view.cards.Shop).toBe(false)
-		expect(view.cards.Plot).toBe(false)
+		expect(view.cards.Merge).toBe(false)
 		expect(MenuState.view(nil, keys).cards.WorldShop).toBe(false)
 	end)
 end)

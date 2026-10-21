@@ -16,11 +16,18 @@ local function near(a: number, b: number): boolean
 end
 
 describe("Knockback launch velocity", function()
-	it("covers the push in KNOCKBACK_SECONDS times the friction boost, and rises the arc", function()
+	it("covers the push in its flight time times the friction boost, and rises the arc", function()
 		local v = PvpKnockbackRules.velocity({ X = 5, Y = 2, Z = 0 }, 196.2)
-		expect(near(v.X, 5 / P.KNOCKBACK_SECONDS * P.KNOCKBACK_FRICTION_BOOST)).toBe(true)
+		local t = PvpKnockbackRules.flightSeconds({ X = 5, Y = 2, Z = 0 }, 196.2)
+		expect(near(v.X, 5 / t * P.KNOCKBACK_FRICTION_BOOST)).toBe(true)
 		expect(near(v.Y, math.sqrt(2 * 196.2 * 2))).toBe(true)
 		expect(v.Z).toBe(0)
+	end)
+	it("a high arc stays in the air longer, so it flies slower; a flat push takes KNOCKBACK_SECONDS", function()
+		expect(PvpKnockbackRules.flightSeconds({ X = 5, Y = 0, Z = 0 }, 196.2)).toBe(P.KNOCKBACK_SECONDS)
+		local high = PvpKnockbackRules.flightSeconds({ X = 5, Y = 8, Z = 0 }, 196.2)
+		expect(near(high, 2 * math.sqrt(2 * 8 / 196.2))).toBe(true)
+		expect(high > P.KNOCKBACK_SECONDS).toBe(true)
 	end)
 	it("defaults to Roblox gravity", function()
 		expect(near(PvpKnockbackRules.velocity({ X = 0, Y = 2, Z = 0 }).Y, math.sqrt(2 * 196.2 * 2))).toBe(true)
@@ -75,27 +82,6 @@ describe("Knockback client clamp", function()
 end)
 
 describe("Trap hold and blaster slow values (docs/PVP.md)", function()
-	local function tool(id: string): any
-		return PvpRules.tool(id)
-	end
-	it("Puddle slows 50 % for 2 s; Sticky holds 1.5 s; Mega holds 2 s and pulls in 4 studs", function()
-		expect(tool("GooTrap1").control).toBeNil()
-		expect(tool("GooTrap1").slow).toBe(0.5)
-		expect(tool("GooTrap1").slowSeconds).toBe(2)
-		expect(tool("GooTrap2").control).toBe(1.5)
-		expect(tool("GooTrap3").control).toBe(2)
-		expect(tool("GooTrap3").pull).toBe(4)
-	end)
-	it(
-		"the Squirter fires 6 shots per tank, the Blaster 3 blobs, the Cannon splashes 6 studs with a 4 s pool",
-		function()
-			expect(tool("GooBlaster1").shots).toBe(6)
-			expect(tool("GooBlaster2").blobs).toBe(3)
-			expect(tool("GooBlaster3").splash).toBe(6)
-			expect(tool("GooBlaster3").poolSeconds).toBe(4)
-			expect(P.SPLAT_SECONDS).toBe(5)
-		end
-	)
 	it("applyControl / applySlow clamp to the Config caps, then immunity", function()
 		local s = PvpRules.newState()
 		expect(PvpRules.applyControl(s, 99, 100)).toBe(P.CONTROL_MAX_SECONDS)

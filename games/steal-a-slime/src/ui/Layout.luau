@@ -334,7 +334,7 @@ Layout.MONEY_TIGHT = table.freeze({
 Layout.STATUS_TIGHT = table.freeze({ slot = 44, icon = 34, label = 15, labelSize = 10, overlap = 5, pillPad = 3 })
 
 -- Slot ids, left to right (HudClusters.STATUS_IDS lists the same). At most STATUS.count show at once.
-Layout.STATUS_SLOTS = table.freeze({ "Shield", "Rain", "Event", "Friend", "Blessed", "Secret" })
+Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend", "Blessed", "Pet", "Secret" })
 
 -- One size class of the money block: coin diameter, chip height, chip overlap under the pill, the tab under
 -- the income chip, and how far the coin protrudes above / below the pill (`pad`).
@@ -604,6 +604,9 @@ Layout.NAV = table.freeze({
 	count = #Nav.ENTRIES,
 })
 
+-- Draw order inside a nav tile: the SlimeDex jar's goo under the item icon, its percent over it (DexJarView).
+Layout.NAV_TILE_Z = table.freeze({ goo = 0, icon = 1, text = 2 })
+
 -- Nav badge chip: top-right corner of its button, inset so it never leaves the
 -- button (init.client builds the same numbers).
 Layout.NAV_BADGE = table.freeze({ inset = 2, height = 16, minWidth = 16, textSize = 11, padding = 4 })
@@ -715,7 +718,6 @@ Layout.PANEL_CHROME = table.freeze({
 -- same column; heights per Nav key (design px), clamped to the backdrop.
 Layout.MENU_WIDTH = 560
 Layout.MENU_HEIGHTS = table.freeze({
-	Plot = 520,
 	Merge = 520,
 	Shop = 520,
 	WorldShop = 520,

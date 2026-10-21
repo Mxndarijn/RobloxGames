@@ -1,9 +1,8 @@
 --!strict
--- H1 HUD layout (Merijn, 2026-10-17, hud_design_ref.png): left column = Plot, Rebirth, Goals, SlimeDex, Codes
+-- H1 HUD layout (Merijn, 2026-10-17, hud_design_ref.png): left column = Rebirth, Goals, SlimeDex, Codes (slimes are managed at their pads)
 -- (Oct 18: a 2-column grid of rounded tiles, B5); bottom-left = Money / Income / Rebirths; bottom-right = status
 -- icons with timers (events, friend boost), never the weekend boost, with a tooltip on hover / tap (B8); both
 -- clusters bigger (B4); no top bar (B7), no toasts (B6), no boss / specific-slime notifications.
-local fs = require("@lune/fs")
 local Enum = require("@lune/roblox").Enum
 
 local Config = require("../../src/shared/Config")
@@ -12,21 +11,12 @@ local Genome = require("../../src/shared/Genome")
 local HudClusters = require("../../src/ui/HudClusters")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
-local MenuClose = require("../../src/ui/MenuClose")
 local Nav = require("../../src/ui/Nav")
 local Remotes = require("../../src/shared/Remotes")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
-
-local function read(path: string): string
-	return fs.readFile(path)
-end
-
-local function has(text: string, needle: string): boolean
-	return string.find(text, needle, 1, true) ~= nil
-end
 
 -- Config with the two features behind the status slots on, whatever the flag defaults / the flags-off run say.
 local flagsOn = table.clone(Config) :: any
@@ -99,14 +89,7 @@ local function setAttributes(attrs: { [string]: any }?)
 end
 
 describe("H1 HUD: left button column", function()
-	it("has exactly Plot, Rebirth, Goals, SlimeDex, Codes", function()
-		local labels = {}
-		for _, entry in Nav.ENTRIES do
-			table.insert(labels, entry.label)
-		end
-		expect(table.concat(labels, ",")).toBe("Plot,Rebirth,Goals,SlimeDex,Codes")
-	end)
-	it("lays out those five buttons at every gate and landscape viewport", function()
+	it("lays out the four nav buttons at every gate and landscape viewport", function()
 		local viewports = {}
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
 			table.insert(viewports, vp)
@@ -115,32 +98,9 @@ describe("H1 HUD: left button column", function()
 			table.insert(viewports, vp)
 		end
 		for _, vp in viewports do
-			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: 5`)
+			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: 4`)
 		end
 	end)
-	it("has no Merge / Shop / Top badges and no HUD Shop button", function()
-		local badges = Nav.badges({
-			cash = 1e9,
-			slimes = { { slime = { id = "a", tier = 1 } }, { slime = { id = "b", tier = 1 } } },
-			upgrades = { { id = "Income", price = 1, unlocked = true } },
-		})
-		expect(next(badges)).toBeNil()
-		expect(has(read("src/ui/Hud.luau"), '"Shop"')).toBe(false)
-	end)
-	it(
-		"keeps the Merge, Shop and Top menus as panels without a nav button; the Shop still opens from its prompt",
-		function()
-			local init = read("src/ui/init.client.luau")
-			expect(has(init, 'for _, key in { "Merge", "Shop", "Leaders" } do')).toBe(true)
-			expect(has(init, "nav = nil, panel = panelByKey[key]")).toBe(true)
-			expect(
-				MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME)[Constants.SHOP_PROMPT_NAME]
-			).toBe("Shop")
-			expect(has(read("src/ui/Panels/Shop.luau"), "setOpen")).toBe(true)
-			expect(has(read("src/ui/Panels/Merge.luau"), "function Merge.new")).toBe(true)
-			expect(has(read("src/ui/Panels/Leaderboard.luau"), "setBoard")).toBe(true)
-		end
-	)
 end)
 
 describe("H1 HUD: HudClusters (pure)", function()
@@ -200,27 +160,26 @@ describe("H1 HUD: HudClusters (pure)", function()
 		end
 		expect(table.concat(HudClusters.STATUS_IDS, ",")).toBe(table.concat(Layout.STATUS_SLOTS, ","))
 	end)
-	it("the new-player shield is the first slot with its m:ss countdown, and five things still show four", function()
+	it("five things running still show four: the featured Secret makes way", function()
 		local slots = HudClusters.status(
 			{
-				shieldUntil = 1000 + 754,
 				rain = { active = true, endsAt = 1030 },
 				modifier = { label = "Dawn", luck = 2, endsAt = 1100 },
 				modifierEnabled = true,
 				friends = { count = 1, bonus = 0.1 },
 				friendsEnabled = true,
+				blessed = { bonus = 0.3, endsAt = 1179 },
 				featuredSecret = { id = "x", name = "Glim", endsAt = 1000 + 3600 },
 			} :: any,
 			1000,
 			Layout.STATUS.count
 		)
 		expect(#slots).toBe(Layout.STATUS.count)
-		expect(slots[1].id).toBe("Shield")
-		expect(slots[1].text).toBe("12:34")
-		expect(slots[1].icon).toBe("Shield")
-		expect(HudClusters.tooltip(slots[1]).time).toBe("Time left: 12:34")
-		expect(HudClusters.shield(999, 1000)).toBeNil()
-		expect(HudClusters.shield(nil, 1000)).toBeNil()
+		local ids = {}
+		for _, slot in slots do
+			table.insert(ids, slot.id)
+		end
+		expect(table.concat(ids, ",")).toBe("Rain,Event,Friend,Blessed")
 	end)
 end)
 
@@ -246,16 +205,6 @@ describe("H1 HUD: bottom-left cluster (mounted Hud)", function()
 		expect(UiHarness.find(UiHarness.find(UiHarness.find(money, "Rebirths"), "Multiplier"), "Value").Text).toBe(
 			"x1.5"
 		)
-	end)
-	it("has no top bar any more (B7): no Hud bar, lock block, Lock, Buy pad, Daily, Pads or Shop", function()
-		local _, gui = mount(1920, 1080)
-		for _, name in { "Hud", "LockStatus", "Lock", "BuyPad", "Daily", "Cash.Pads", "Pads", "Shop", "PadHint" } do
-			expect(`{name}: {UiHarness.find(gui, name) ~= nil}`).toBe(`{name}: false`)
-		end
-		local src = read("src/ui/Hud.luau")
-		for _, needle in { "LockHud", "holdButton", "openDaily", "LockStatus" } do
-			expect(`{needle}: {has(src, needle)}`).toBe(`{needle}: false`)
-		end
 	end)
 	it("sits in the bottom-left corner box of Layout.screen", function()
 		local hud, gui, screen = mount(1920, 1080)
@@ -324,17 +273,6 @@ describe("H1 HUD: bottom-right cluster (mounted Hud)", function()
 		for _, node in UiHarness.descendants(gui) do
 			expect(string.find(string.lower(node.Name), "weekend", 1, true)).toBeNil()
 		end
-		expect(has(read("src/ui/Hud.luau"), "WeekendBadge")).toBe(false)
-	end)
-	it("an event shown here is gone from the old top banners", function()
-		setAttributes({ RainActive = true, RainEndsAt = 1097 })
-		local hud, gui = mount(1920, 1080)
-		hud.update(state({ friends = { count = 1, bonus = 0.1 } }))
-		local banners = UiHarness.find(gui, "Banners")
-		for _, name in { "RainBanner", "ModifierBadge", "FriendBadge", "WeekendChip", "NextSpawnChip", "RareBanner" } do
-			expect(UiHarness.find(banners, name)).toBeNil()
-		end
-		setAttributes()
 	end)
 end)
 
@@ -418,6 +356,66 @@ describe("H1 HUD: featured Secret status slot", function()
 		expect(ids(all)).toBe("Rain,Event,Friend,Blessed")
 		all.blessed = nil
 		expect(ids(all)).toBe("Rain,Event,Friend,Secret")
+	end)
+
+	it("shows the follow pet's perk as an untimed Pet slot with its own icon and tooltip", function()
+		local luck = HudClusters.pet({ kind = "luck", value = 0.03, icon = "x", text = "+3% luck" }) :: HudClusters.Slot
+		expect(luck.id).toBe("Pet")
+		expect(luck.text).toBe("+3%")
+		expect(luck.icon).toBe(HudClusters.ICONS.Pet)
+		local tip = HudClusters.tooltip(luck)
+		expect(tip.title).toBe("Pet bonus")
+		expect(string.find(tip.body, "+3% luck", 1, true) ~= nil).toBe(true)
+		expect(tip.time).toBe("Active while your pet follows you")
+		local income = HudClusters.pet({ kind = "income", value = 0.08, icon = "x", text = "+8% income" }) :: any
+		expect(income.text).toBe("+8%")
+		expect(string.find(income.effect, "+8% income", 1, true) ~= nil).toBe(true)
+		expect(HudClusters.pet(nil)).toBeNil()
+		expect(HudClusters.pet({ kind = "luck", value = 0, icon = "x", text = "" })).toBeNil()
+		expect(HudClusters.pet({ kind = "luck", value = 0 / 0, icon = "x", text = "" } :: any)).toBeNil()
+		expect(HudClusters.pet({ kind = "speed", value = 0.03, icon = "x", text = "" })).toBeNil()
+	end)
+
+	it("the Pet slot makes way after the featured Secret when the row is full", function()
+		local all: any = {
+			rain = { active = true, endsAt = 1097 },
+			modifier = { name = "Admin_luck", label = "Luck", luck = 3, endsAt = 1540 },
+			modifierEnabled = true,
+			friends = { count = 1, bonus = 0.1 },
+			friendsEnabled = true,
+			blessed = { bonus = 0.3, endsAt = 1179 },
+			petPerk = { kind = "luck", value = 0.03, icon = "x", text = "+3% luck" },
+			featuredSecret = FEATURED,
+		}
+		local function ids(): string
+			local out = {}
+			for _, s in HudClusters.status(all, 1000, Layout.STATUS.count) do
+				table.insert(out, s.id)
+			end
+			return table.concat(out, ",")
+		end
+		expect(ids()).toBe("Rain,Event,Friend,Blessed")
+		all.blessed = nil
+		expect(ids()).toBe("Rain,Event,Friend,Pet")
+		all.rain = nil
+		expect(ids()).toBe("Event,Friend,Pet,Secret")
+	end)
+
+	it("the mounted Pet slot sits between Blessed and the featured Secret", function()
+		local hud, gui = mount(1920, 1080)
+		hud.update(state({
+			blessed = { bonus = 0.3, endsAt = 1179 },
+			petPerk = { kind = "income", value = 0.05, icon = "x", text = "+5% income" },
+			featuredSecret = FEATURED,
+		}))
+		local pet = slot(gui, "Pet")
+		expect(pet.Visible).toBe(true)
+		expect(UiHarness.find(pet, "Timer").Text).toBe("+5%")
+		expect(UiHarness.find(pet, "Icon"):GetAttribute("ItemId")).toBe(HudClusters.ICONS.Pet)
+		expect(slot(gui, "Blessed").Position.X.Offset < pet.Position.X.Offset).toBe(true)
+		expect(pet.Position.X.Offset < slot(gui, "Secret").Position.X.Offset).toBe(true)
+		hud.update(state({ featuredSecret = FEATURED }))
+		expect(pet.Visible).toBe(false)
 	end)
 
 	it("the mounted Blessed slot sits between the friend boost and the featured Secret", function()
@@ -507,45 +505,10 @@ describe("H1 HUD: featured Secret status slot", function()
 end)
 
 describe("H1 HUD: nothing new top-right / top-middle", function()
-	local KEPT_BANNERS = "EggReveal,StealAlert" -- top centre; the featured Secret is a status slot
+	local KEPT_BANNERS = "StealAlert" -- top centre; the featured Secret is a status slot
 	it("the top banner stack holds only the kept (no-slot) notices", function()
 		local _, gui = mount(1920, 1080)
 		expect(table.concat(names(UiHarness.find(gui, "Banners")), ",")).toBe(`{KEPT_BANNERS}`)
-	end)
-	it("the featured Secret has no top banner, whatever State.featuredSecret says", function()
-		local hud, gui = mount(1920, 1080)
-		hud.update(
-			state({ featuredSecret = { id = "kitsune", name = "Kitsune", endsAt = 1000 + 3 * 86400 + 4 * 3600 } })
-		)
-		expect(UiHarness.find(UiHarness.find(gui, "Banners"), "FeaturedSecret")).toBeNil()
-		for _, node in UiHarness.descendants(UiHarness.find(gui, "Banners")) do
-			if node:IsA("TextLabel") then
-				expect(string.find(node.Text, "Featured Secret", 1, true)).toBeNil()
-			end
-		end
-	end)
-	it("there are no toasts: no Toasts frame, no toast code in the client (B6)", function()
-		local _, gui = mount(1920, 1080)
-		expect(UiHarness.find(gui, "Toasts")).toBeNil()
-		local init = read("src/ui/init.client.luau")
-		for _, needle in { "toasts.", "Toasts", "ToastQueue", "ctx.toast", "PcwBadgeToast" } do
-			expect(`{needle}: {has(init, needle)}`).toBe(`{needle}: false`)
-		end
-		for _, path in { "src/ui/Toasts.luau", "src/ui/ToastQueue.luau", "src/ui/LockHud.luau" } do
-			expect(`{path}: {pcall(fs.readFile, path)}`).toBe(`{path}: false`)
-		end
-	end)
-	it("boss / specific-slime notices are gone: no Hud.onNotify, the Notify handler drops RareAnnounce news", function()
-		local hud = mount(1920, 1080)
-		expect(hud.onNotify).toBeNil()
-		local init = read("src/ui/init.client.luau")
-		expect(has(init, "if RareAnnounce.classify(message, sound) then\n\t\treturn\n\tend")).toBe(true)
-		expect(has(init, "playNotifySound(sound)")).toBe(true) -- a Notify still plays its sound, nothing is drawn
-		expect(has(init, "hud.onNotify")).toBe(false)
-		local hudSrc = read("src/ui/Hud.luau")
-		for _, needle in { "RareAnnounce", "BOSS_ATTRIBUTE", "NextSpawn", "RARE_SPAWN" } do
-			expect(`{needle}: {has(hudSrc, needle)}`).toBe(`{needle}: false`)
-		end
 	end)
 	it("both clusters sit on the bottom line (the touch-controls floor), the desktop events row above it", function()
 		local viewports = {}
@@ -621,25 +584,6 @@ describe("H1 HUD: layout rules for the new clusters", function()
 end)
 
 describe("H1 HUD: Studio hooks keep working", function()
-	it("the Pcw attributes that drive the HUD are still handled (and PcwRain fakes the rain slot)", function()
-		local init = read("src/ui/init.client.luau")
-		for _, attr in
-			{
-				"PcwFriendBonus",
-				"PcwAdminEvent",
-				"PcwWeekend",
-				"PcwStealAlert",
-				"PcwWelcome",
-				"PcwRain",
-				"PcwBlessed",
-				"PcwOpen",
-				"PcwTooltip",
-			}
-		do
-			expect(`{attr}: {has(init, `"{attr}"`)}`).toBe(`{attr}: true`)
-		end
-		expect(has(init, "ctx.forcedRain = forcedRain")).toBe(true)
-	end)
 	it("a forced rain wins over the workspace attributes", function()
 		setAttributes({ RainActive = false })
 		local c = ctx()
@@ -842,19 +786,7 @@ describe("H1 HUD: bigger clusters and the nav tile grid (B4, B5)", function()
 		expect(Layout.MONEY.cplate > 40 and Layout.MONEY.camountSize > 22).toBe(true) -- H1 phone: 40 px, size 22
 		setAttributes()
 	end)
-	it("the nav is built from rounded Tile frames with an item icon and the label under them", function()
-		local init = read("src/ui/init.client.luau")
-		for _, needle in
-			{
-				'Name = "Tile"',
-				"Id = navEntry.item",
-				"Widgets.corner(16)",
-				'Name = "Label"',
-				"Layout.navTile(s.compact, b)",
-			}
-		do
-			expect(`{needle}: {has(init, needle)}`).toBe(`{needle}: true`)
-		end
+	it("every nav tile's item has an icon", function()
 		for _, entry in Nav.ENTRIES do
 			expect(UiHarness.ui("ItemIcons").build(Config).byId[entry.item] ~= nil).toBe(true)
 		end

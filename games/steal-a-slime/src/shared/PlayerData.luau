@@ -31,13 +31,11 @@ export type Stats = { caught: number, merges: number, locks: number, sold: numbe
 export type Consumables = { slot: number, bought: { [string]: number }, held: { [string]: number } }
 
 -- FEATURES.PvP purchases: best owned tier per line (Knockback / Blaster), Goo Trap charges per trap id (at most
--- Config.PVP.TRAP_MAX_HELD each), owned fun item ids, play seconds counted towards the new-player shield (capped at
--- Config.PVP.NEW_PLAYER_SHIELD_SECONDS).
+-- Config.PVP.TRAP_MAX_HELD each) and owned fun item ids.
 export type Pvp = {
 	tiers: { [string]: number },
 	traps: { [string]: number },
 	fun: { [string]: boolean },
-	played: number,
 }
 
 export type Data = {
@@ -53,7 +51,6 @@ export type Data = {
 	found: { [string]: boolean }, -- SlimeDex species found (SpeciesDex, CONTRACT.md §36)
 	totalEarned: number,
 	totalStolen: number,
-	lockLevel: number, -- Shop: lock upgrade level 0..LOCK_UPGRADE_MAX
 	speedCoil: boolean, -- Shop: Speed Coil owned
 	tutorialStep: number, -- TutorialProgress: 1..#STEPS, 0 = finished
 	-- v3 (CONTRACT.md §8.9)
@@ -93,7 +90,6 @@ function PlayerData.new(): Data
 		found = {},
 		totalEarned = 0,
 		totalStolen = 0,
-		lockLevel = 0,
 		speedCoil = false,
 		tutorialStep = 1,
 		upgrades = {},
@@ -107,7 +103,7 @@ function PlayerData.new(): Data
 		stealLog = {},
 		settings = AudioSettings.defaults(),
 		consumables = { slot = 0, bought = {}, held = {} },
-		pvp = { tiers = {}, traps = {}, fun = {}, played = 0 },
+		pvp = { tiers = {}, traps = {}, fun = {} },
 		trophies = {},
 	}
 end
@@ -177,6 +173,26 @@ function PlayerData.addSlime(data: Data, slime: Slime, pad: number?): (boolean, 
 	table.insert(data.slimes, slime)
 	PlayerData.discover(data, slime)
 	return true, target
+end
+
+-- Moves slime `id` to unlocked pad `pad`; a slime already there takes `id`'s old pad (a swap).
+function PlayerData.moveSlime(data: Data, id: string, pad: number): (boolean, string?)
+	local slime = PlayerData.findSlime(data, id)
+	if not slime or slime.pad == nil then
+		return false, "not your slime"
+	end
+	if pad ~= math.floor(pad) or pad < 1 or pad > data.padsUnlocked then
+		return false, "pad is locked"
+	end
+	if slime.pad == pad then
+		return true, nil
+	end
+	local other = PlayerData.slimeOnPad(data, pad)
+	if other then
+		other.pad = slime.pad
+	end
+	slime.pad = pad
+	return true, nil
 end
 
 function PlayerData.removeSlime(data: Data, id: string): Slime?

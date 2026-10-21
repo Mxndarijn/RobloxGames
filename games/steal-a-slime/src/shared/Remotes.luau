@@ -41,15 +41,14 @@ Remotes.ACTIONS = table.freeze({
 	Rebirth = table.freeze({ args = {} }),
 	Sell = table.freeze({ args = { "string" } }), -- slimeId
 	Favorite = table.freeze({ args = { "string?" } }), -- slimeId, nil clears
+	MoveSlime = table.freeze({ args = { "string", "number" } }), -- slimeId, target pad
 	HatchEgg = table.freeze({ args = { "string" } }), -- slime id of the owner's ready Mystery Egg (contract/mystery-egg.md)
 	BuyPad = table.freeze({ args = {} }),
 	Daily = table.freeze({ args = {} }),
 	ClaimQuest = table.freeze({ args = { "number" } }), -- daily quest slot 1..Config.DAILY_QUESTS.count (Quests.claim)
-	BuyLockUpgrade = table.freeze({ args = {} }),
 	BuySpeedCoil = table.freeze({ args = {} }),
 	BuyUpgrade = table.freeze({ args = { "string" } }), -- Config.UPGRADES id (CONTRACT.md §8.1)
 	Drop = table.freeze({ args = {} }),
-	Appraise = table.freeze({ args = { "string", "string" } }), -- slimeId, "size"
 	Redeem = table.freeze({ args = { "code" } }), -- typed code text (Codes.normalize on the server)
 	EquipPlotSkin = table.freeze({ args = { "string" } }), -- Config.PLOT_SKINS id (FEATURES.PlotSkins, CONTRACT.md §15)
 	BuyConsumable = table.freeze({ args = { "string", "string?" } }), -- Config.CONSUMABLES id, slimeId (ignored: buying only adds to the held stack) (FEATURES.Consumables)

@@ -32,9 +32,6 @@ local function three(tier: number, extra: { [string]: any }?): { Genome.Slime }
 end
 
 describe("TripleMerge: rules", function()
-	it("is behind FEATURES.MergeVat3, default off", function()
-		expect(Config.FEATURES.MergeVat3).toBe(false)
-	end)
 	it("takes exactly three different slimes of one rarity", function()
 		expect((TripleMerge.canMerge(three(2)))).toBe(true)
 		expect(select(2, TripleMerge.canMerge({ slime("a", 2), slime("b", 2) }))).toBe("need three slimes")

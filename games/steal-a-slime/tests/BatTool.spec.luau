@@ -176,10 +176,6 @@ describe("BatTool.swing with PvP on", function()
 		local world, owner, thief, bystander = setup(dx)
 		for _, s in { owner, thief, bystander } do
 			PvpService.join(world, s, T0, true)
-			local state = PvpService.state(s)
-			if state then
-				state.shieldUntil = 0 -- past the new-player shield unless a test wants it
-			end
 		end
 		return world, owner, thief, bystander
 	end
@@ -202,7 +198,7 @@ describe("BatTool.swing with PvP on", function()
 		expect(knocks).toBe(1)
 		done()
 	end)
-	it("a non-thief on your own plot is pushed (no damage), sharing the slap cooldown", function()
+	it("a non-thief is pushed (no damage), sharing the slap cooldown", function()
 		local world, owner = pvpSetup()
 		local hit, why = BatTool.swing(world, owner, T0 + 101, bat, true)
 		expect(why).toBeNil()
@@ -218,21 +214,24 @@ describe("BatTool.swing with PvP on", function()
 		expect(#moves).toBe(1)
 		done()
 	end)
-	it("a non-thief off your plot, or with either player under the new-player shield, is not hit", function()
-		local world, owner, _, bystander = pvpSetup()
+	it("a player who just joined is pushed like anyone else", function()
+		local world, owner = pvpSetup()
+		local hit, why = BatTool.swing(world, owner, T0 + 0.1, bat, true) -- both joined at T0
+		expect(why).toBeNil()
+		expect(hit).toBe(true)
+		expect(#moves).toBe(1)
+		expect(moves[1].userId).toBe(3)
+		done()
+	end)
+	it("a non-thief off your plot is hit too: there are no safe zones", function()
+		local world, owner = pvpSetup()
 		plot = false
-		expect(select(2, BatTool.swing(world, owner, T0 + 101, bat, true))).toBe("not on your plot")
+		local hit, why = BatTool.swing(world, owner, T0 + 101, bat, true)
 		plot = true
-		local shield = PvpService.state(bystander).shieldUntil
-		PvpService.state(bystander).shieldUntil = T0 + 1000
-		expect(select(2, BatTool.swing(world, owner, T0 + 110, bat, true))).toBe("shielded")
-		PvpService.state(bystander).shieldUntil = shield
-		local mine = PvpService.state(owner).shieldUntil
-		PvpService.state(owner).shieldUntil = T0 + 1000
-		expect(select(2, BatTool.swing(world, owner, T0 + 120, bat, true))).toBe("shielded")
-		PvpService.state(owner).shieldUntil = mine
-		expect(#moves).toBe(0)
-		expect(owner.lastSlapAt < T0).toBe(true)
+		expect(why).toBeNil()
+		expect(hit).toBe(true)
+		expect(#moves).toBe(1)
+		expect(moves[1].userId).toBe(3)
 		done()
 	end)
 	it("a controlled (immune) thief still drops the slime but is not pushed twice", function()

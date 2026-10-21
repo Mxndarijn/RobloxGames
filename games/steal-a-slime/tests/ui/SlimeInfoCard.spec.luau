@@ -184,7 +184,7 @@ describe("SlimeInfoCard.start", function()
 			[Constants.LABEL_HEIGHT_ATTRIBUTE] = 3.25,
 		}
 	end
-	it("puts one card on each tagged slime's Body, anchored at LabelHeight", function()
+	it("puts one card on each tagged slime's Body, on its TagAnchor, at LabelHeight", function()
 		local a, b = slimeModel(attrs()), slimeModel(attrs())
 		local collection = fakeCollection({ a })
 		local stop = SlimeInfoCard.start({ collection = collection, tag = Constants.SLIME_TAG })
@@ -196,7 +196,10 @@ describe("SlimeInfoCard.start", function()
 			for _, child in body:GetChildren() do
 				if child.Name == SlimeInfoCard.NAME then
 					cards += 1
-					expect(child.Adornee).toBe(body)
+					-- the TagAnchor on the Body: SlimeLifeRunner moves it after the drawn slime
+					local anchor = body:FindFirstChild(Constants.TAG_ANCHOR)
+					expect(anchor ~= nil and anchor:IsA("Attachment")).toBe(true)
+					expect(child.Adornee).toBe(anchor)
 					expect(child.StudsOffsetWorldSpace.Y).toBe(3.25)
 				end
 			end
@@ -340,17 +343,6 @@ describe("SlimePadSign", function()
 		local plot = pad.Parent
 		model.Parent = plot -- parented to the plot itself, no Slimes folder
 		expect(SlimePadSign.findPad(model, 3)).toBe(pad)
-	end)
-end)
-
-describe("SlimeInfoCard.start heights", function()
-	it("puts every tag at the same height above its slime", function()
-		local models = { slimeModel({}), slimeModel({}), slimeModel({}) }
-		local stop = SlimeInfoCard.start({ collection = fakeCollection(models), tag = Constants.SLIME_TAG })
-		for _, m in models do
-			expect(m:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME).SizeOffset.Y).toBe(0.5)
-		end
-		stop()
 	end)
 end)
 

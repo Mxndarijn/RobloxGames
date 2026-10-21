@@ -42,15 +42,6 @@ describe("PadStyle (v17)", function()
 		end
 	end)
 
-	it("lock then unlock returns the stored base look (transition)", function()
-		local lockedRgb, lockedMat = PadStyle.look(base, "SmoothPlastic", false)
-		expect(lockedMat).toBe("Slate")
-		expect(lockedRgb[1] ~= base[1]).toBe(true)
-		local rgb, material = PadStyle.look(base, "SmoothPlastic", true)
-		expect(rgb[2]).toBe(200)
-		expect(material).toBe("SmoothPlastic")
-	end)
-
 	it("free plot: every pad keeps the base look; owned: only locked pads are styled; leaving restores", function()
 		local function padLook(owned: boolean, pad: number, padsUnlocked: number)
 			return PadStyle.look(base, "SmoothPlastic", PadStyle.showsUnlocked(owned, pad <= padsUnlocked))

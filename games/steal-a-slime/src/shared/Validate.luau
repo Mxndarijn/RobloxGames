@@ -20,15 +20,14 @@ Validate.ACTIONS = table.freeze({
 	Rebirth = 2,
 	Sell = 0.25,
 	Favorite = 0.25,
+	MoveSlime = 0.25,
 	HatchEgg = 0.5,
 	BuyPad = 0.5,
 	Daily = 1,
 	ClaimQuest = 0.3,
-	BuyLockUpgrade = 0.5,
 	BuySpeedCoil = 0.5,
 	BuyUpgrade = 0.5,
 	Drop = 0.3,
-	Appraise = 0.5,
 	Redeem = 2,
 	EquipPlotSkin = 0.5,
 	BuyConsumable = 0.5,
@@ -109,7 +108,8 @@ function Validate.pvpTools(tools: { any }, pvp: any, ranks: { any }): { string }
 			table.insert(problems, `{id}: slow longer than {pvp.SLOW_MAX_SECONDS}s`)
 		end
 		if
-			tool.shotGap ~= nil and not (type(tool.shotGap) == "number" and tool.shotGap >= Validate.ACTIONS.UsePvpItem)
+			tool.shotGap ~= nil
+			and not (type(tool.shotGap) == "number" and tool.shotGap >= Validate.ACTIONS.UsePvpItem)
 		then
 			table.insert(problems, `{id}: shot gap below the UsePvpItem rate limit`)
 		end

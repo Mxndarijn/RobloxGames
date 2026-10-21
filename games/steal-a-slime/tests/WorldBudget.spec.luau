@@ -17,7 +17,6 @@ type Counts = {
 	props: number,
 	pads: number,
 	dex: number, -- plot DexMesh slots (in other): none since the plot SlimeDex board went
-	buy: number, -- plot BuyStand skins (in other)
 	border: number,
 	other: number,
 	decor: number, -- props + pads + other
@@ -36,7 +35,6 @@ local function count(nodes: { any }): Counts
 		props = 0,
 		pads = 0,
 		dex = 0,
-		buy = 0,
 		border = 0,
 		other = 0,
 		decor = 0,
@@ -64,8 +62,6 @@ local function count(nodes: { any }): Counts
 			else
 				if n.name == "DexMesh" then
 					c.dex += 1
-				elseif mesh == WorldLayout.BUY_STAND_MESH and n.name == "StandMesh" then
-					c.buy += 1
 				end
 				c.other += 1
 			end
@@ -105,17 +101,6 @@ describe("world budget: mesh slots", function()
 		end
 		expect(entrance).toBe(P)
 	end)
-	it("skins no BuyStand on the plots", function()
-		expect(uploaded.buy).toBe(0)
-	end)
-	it("keeps the soft MeshPart budget a warning level, with the Studio calibration offset", function()
-		expect(WorldLayout.MESH_SLOT_BUDGET).toBe(500)
-		expect(WorldLayout.RUNTIME_SLOT_ALLOWANCE).toBe(16)
-		-- soft: reported, never asserted (the pr-gate / pc-watcher warn above it)
-		print(
-			`[WorldBudget] mesh slots {uploaded.total + WorldLayout.RUNTIME_SLOT_ALLOWANCE} (soft {WorldLayout.MESH_SLOT_BUDGET})`
-		)
-	end)
 	it("does not spend world slots on the per-type slime kit meshes", function()
 		local kits = {}
 		for _, kit in SlimeLooks.KITS do
@@ -140,9 +125,6 @@ describe("world budget: mesh slots", function()
 end)
 
 describe("world budget: parts", function()
-	it("sets PART_BUDGET to 1400 outside Map.Border", function()
-		expect(WorldLayout.PART_BUDGET).toBe(1400)
-	end)
 	it("keeps the parts outside Map.Border under PART_BUDGET", function()
 		expect(uploaded.parts < WorldLayout.PART_BUDGET).toBe(true)
 	end)

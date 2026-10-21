@@ -1749,8 +1749,6 @@ def step_shots(run):
                 if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
                     res["dex_weather"] = run.need_luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=True)
                     time.sleep(0.6)  # State push
-                if shot.get("plot_slime"):  # fake owned slime so the Appraise button shows
-                    res["plot_slime"] = run.need_luau("plot_slime", "Client", timeout=15, state="1")
                 opened = open_panel(run, key) if key else None
                 if shot.get("welcome_back"):  # v20: the welcome-back card from a faked State.welcomeBack (Studio only)
                     wb = res["welcome_back"] = run.need_luau("welcome_back", "Client", timeout=15, on=True)
@@ -1817,8 +1815,6 @@ def step_shots(run):
                     run.luau("steal_alert", "Client", timeout=15, on=False)
                 if shot.get("plot_skin"):
                     run.luau("plot_skin", "Client", timeout=15, skin="classic")
-                if shot.get("plot_slime"):
-                    run.luau("plot_slime", "Client", timeout=15, state="")
                 if shot.get("dex_rows"):
                     run.luau("dex_rows", "Client", timeout=15, count=0)
                 if shot.get("daily_popup"):
@@ -1925,14 +1921,6 @@ def step_shots(run):
                                                    cover=float(shot.get("snow_cover", -1)))
                     if not res["weather"].get("ok"):
                         run.note("shot %s: no weather emitter active (%s)" % (sid, res["weather"].get("rates")))
-                if shot.get("revenge_plot"):
-                    # v21 Revenge: the Client gets RevengePlots (client-only Player attribute) and must draw ONE
-                    # RevengeHighlight on that plot's Base
-                    res["revenge"] = run.need_luau("revenge_set", "Client", timeout=30, plot=int(shot["revenge_plot"]),
-                                                   wait=float(shot.get("wait", 1.5)))
-                    if not res["revenge"].get("ok"):
-                        run.note("shot %s: no single RevengeHighlight on plot %s (%s)" % (
-                            sid, shot["revenge_plot"], res["revenge"].get("highlights")))
                 if shot.get("motion") and (res.get("target") or {}).get("path"):
                     # motion proof: the Client plays Idle / Hop / LookLeft / LookRight on the pad's slime through
                     # SlimeLifeRunner (SlimeMotor on the Motor6Ds) and compares the pose before / `wait` s later;
@@ -2002,10 +1990,10 @@ def step_shots(run):
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
                                                 anim=shot["anim"], id=shot["animId"], wait=float(shot.get("wait", 0.5)))
                 if shot.get("tutorial_arrow"):
-                    # v30 C11: force a TutorialArrow towards a far target; fx_streaks below must see it capped
+                    # v30 C11: force the tutorial guide on; fx_streaks below must see no long neon
                     res["tutorial_arrow"] = run.need_luau("arrow_step", "Client", timeout=30, step=shot["tutorial_arrow"])
                     if not res["tutorial_arrow"].get("found"):
-                        run.note("shot %s: no TutorialArrow Beam for step %s" % (sid, shot["tutorial_arrow"]))
+                        run.note("shot %s: no tutorial guide trail for step %s" % (sid, shot["tutorial_arrow"]))
                 if shot.get("fx_streaks"):
                     # v30 C11 night proof: no Beam / Trail / Neon part longer than `fx_streaks` studs anywhere in the workspace
                     res["fx_streaks"] = run.need_luau("fx_streaks", "Client", timeout=30, max=float(shot["fx_streaks"]))
@@ -2044,11 +2032,6 @@ def step_shots(run):
         pass
     if cur_device and cur_device != run.cfg["devices"][0][0] and run.hwnd:
         converge_viewport(run, run.hwnd, tuple(run.cfg["devices"][0][1:]))  # back to the first (desktop) size
-    if any(shot.get("revenge_plot") for shot in shots):
-        try:
-            run.luau("revenge_set", "Client", timeout=15, plot=0, wait=0.1)  # drop the RevengePlots preview
-        except Exception:
-            pass
     used_flags = sorted({f for shot in shots if not shot_flags_error(shot) for f in shot_flags(shot)})
     if used_flags:
         try:

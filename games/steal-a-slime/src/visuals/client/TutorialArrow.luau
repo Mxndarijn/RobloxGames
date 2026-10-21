@@ -2,50 +2,57 @@
 --[[
 	TutorialArrow (VisualsClient module)
 
-	Client-only Beam (Props.tutorialArrow) from the local character's
-	HumanoidRootPart to the target of the current tutorial step (CONTRACT.md
-	§8.3): Grab Map.Volcano.Crater, Deposit own HomeZone, Lock own LockButton,
-	BuyPad own pad carrying BuyPadPrompt, Merge own MergeVat, Steal another
-	owned plot's Base, Rebirth / nil none. Keyed on the Player attribute
-	TutorialStepId; falls back to TutorialStep via TutorialProgress.STEPS.
-	Re-checked every POLL seconds; reads attributes only.
+	Leads the local player to the target of the current tutorial step
+	(CONTRACT.md §8.3) with the shared ground guide (Lib.guide.GuideView):
+	neon chevrons on the ground, a ring and a labelled marker on the target,
+	an outline and a screen-edge pointer.
 
-	Look: Neon chevrons (Props.tutorialChevrons, under the camera) flow along
-	the beam's curve and a big marker chevron bobs over the target; the beam
-	itself carries moving bright bands (Props.arrowBands). Both animate on
-	RenderStepped, FLOW chevron spacings per second.
+	  Grab     the closest wild slime the player can afford, else the
+	           cheapest one ("Need $X") (TutorialTargets.grab)
+	  Deposit  own HomeZone          Lock   own LockButton
+	  BuyPad   closest own pad with an enabled BuyPadPrompt
+	  Merge    own MergeVat
+	  Steal    closest slime with an enabled steal prompt on another
+	           player's unlocked plot
+	  Rebirth  none (ui/Hint rings the Rebirth menu button)
+
+	Keyed on the Player attribute TutorialStepId (falls back to TutorialStep
+	via TutorialProgress.STEPS). The target is re-picked every POLL seconds;
+	GuideTarget keeps the current pick unless another is clearly closer.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
-local Props = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("Props"))
 local TutorialProgress = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TutorialProgress"))
+local TutorialTargets = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("TutorialTargets"))
+local Guide = ReplicatedStorage:WaitForChild("Lib"):WaitForChild("guide")
+local GuideTarget = require(Guide:WaitForChild("GuideTarget"))
+local GuideView = require(Guide:WaitForChild("GuideView"))
 
 local TutorialArrow = {}
 
-TutorialArrow.POLL = 0.5
-TutorialArrow.FLOW = 0.8
-TutorialArrow.OWN_PLOT_TARGETS = table.freeze({ Deposit = "HomeZone", Lock = "LockButton", Merge = "MergeVat" })
+TutorialArrow.POLL = 0.25
+TutorialArrow.OWN_PLOT_TARGETS = table.freeze({
+	Deposit = table.freeze({ part = "HomeZone", label = "Bring it home" }),
+	Lock = table.freeze({ part = "LockButton", label = "Lock base" }),
+	Merge = table.freeze({ part = "MergeVat", label = "Merge" }),
+})
 
-local function part(instance: Instance?): BasePart?
-	if instance and instance:IsA("BasePart") then
-		return instance
-	end
-	return nil
-end
+type Choice = { target: PVInstance, key: string, label: string? }
 
--- The own plot's Pad_<j> holding an enabled BuyPadPrompt (nil when all pads are bought).
-local function buyPad(plot: Instance): BasePart?
-	for _, child in plot:GetChildren() do
-		local prompt = child:FindFirstChild(Constants.BUY_PAD_PROMPT_NAME)
-		if prompt and prompt:IsA("ProximityPrompt") and prompt.Enabled then
-			return part(child)
-		end
+-- A stable key per Instance (two slimes can share a name).
+local keys: { [Instance]: string } = setmetatable({}, { __mode = "k" }) :: any
+local nextKey = 0
+local function keyOf(instance: Instance): string
+	local key = keys[instance]
+	if not key then
+		nextKey += 1
+		key = tostring(nextKey)
+		keys[instance] = key
 	end
-	return nil
+	return key
 end
 
 local function stepId(player: Player): string?
@@ -57,102 +64,141 @@ local function stepId(player: Player): string?
 	return if type(step) == "number" then TutorialProgress.STEPS[step] else nil
 end
 
-local function target(id: string?, userId: number): BasePart?
+local function cash(player: Player): number
+	local stats = player:FindFirstChild("leaderstats")
+	local value = stats and stats:FindFirstChild("Cash")
+	return if value and value:IsA("ValueBase") then tonumber((value :: any).Value) or 0 else 0
+end
+
+local function enabledPrompt(model: Instance, name: string): ProximityPrompt?
+	local prompt = model:FindFirstChild(name, true)
+	return if prompt and prompt:IsA("ProximityPrompt") and prompt.Enabled then prompt else nil
+end
+
+local function closest(list: { GuideTarget.Candidate<Choice> }, from: Vector3, currentKey: string?): Choice?
+	local picked = GuideTarget.pick(list, { x = from.X, z = from.Z }, currentKey)
+	return if picked then picked.value else nil
+end
+
+local function candidate(target: PVInstance, key: string, label: string?): GuideTarget.Candidate<Choice>
+	local at = target:GetPivot().Position
+	return { key = key, x = at.X, z = at.Z, value = { target = target, key = key, label = label } }
+end
+
+local function grab(player: Player, from: Vector3, currentKey: string?): Choice?
+	local folder = workspace:FindFirstChild(Constants.WILD_FOLDER)
+	if not folder then
+		return nil
+	end
+	local wild: { TutorialTargets.Wild } = {}
+	for _, model in folder:GetChildren() do
+		if
+			model:IsA("Model")
+			and model:GetAttribute(Constants.RIDING_ATTRIBUTE) ~= true
+			and enabledPrompt(model, Constants.GRAB_PROMPT_NAME)
+		then
+			local at = model:GetPivot().Position
+			local price = model:GetAttribute("Price")
+			table.insert(wild, {
+				key = keyOf(model),
+				x = at.X,
+				z = at.Z,
+				price = if type(price) == "number" then price else 0,
+				value = model,
+			})
+		end
+	end
+	local slime, label = TutorialTargets.grab(wild, cash(player), { x = from.X, z = from.Z }, currentKey)
+	return if slime then { target = slime.value, key = slime.key, label = label } else nil
+end
+
+local function choose(player: Player, id: string?, from: Vector3, currentKey: string?): Choice?
 	if id == "Grab" then
-		local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
-		local volcano = map and map:FindFirstChild("Volcano")
-		return part(volcano and volcano:FindFirstChild("Crater"))
+		return grab(player, from, currentKey)
 	end
 	local plots = workspace:FindFirstChild(Constants.PLOTS_FOLDER)
 	if not plots or not id then
 		return nil
 	end
+	local list: { GuideTarget.Candidate<Choice> } = {}
 	local own = TutorialArrow.OWN_PLOT_TARGETS[id]
 	for _, plot in plots:GetChildren() do
 		local owner = plot:GetAttribute("OwnerUserId")
-		if owner == userId and id == "BuyPad" then
-			return buyPad(plot)
-		elseif own and owner == userId then
-			return part(plot:FindFirstChild(own))
-		elseif id == "Steal" and type(owner) == "number" and owner ~= 0 and owner ~= userId then
-			return part(plot:FindFirstChild("Base"))
-		end
-	end
-	return nil
-end
-
-function TutorialArrow.start()
-	local player = Players.LocalPlayer
-	local current: { Instance }? = nil
-	local beam: Beam? = nil
-	local chevrons: Model? = nil
-	local from: BasePart? = nil
-	local to: BasePart? = nil
-	local tip: Attachment? = nil
-	local function clear()
-		if current then
-			for _, instance in current do
-				instance:Destroy()
+		if owner == player.UserId and own then
+			local part = plot:FindFirstChild(own.part)
+			if part and part:IsA("PVInstance") then
+				table.insert(list, candidate(part, keyOf(part), own.label))
+			end
+		elseif owner == player.UserId and id == "BuyPad" then
+			for _, pad in plot:GetChildren() do
+				local prompt = enabledPrompt(pad, Constants.BUY_PAD_PROMPT_NAME)
+				if prompt and pad:IsA("PVInstance") then
+					table.insert(list, candidate(pad, keyOf(pad), prompt.ActionText))
+				end
+			end
+		elseif
+			id == "Steal"
+			and type(owner) == "number"
+			and owner ~= 0
+			and owner ~= player.UserId
+			and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) ~= true
+		then
+			local slimes = plot:FindFirstChild(Constants.PLOT_SLIMES_FOLDER)
+			for _, model in if slimes then slimes:GetChildren() else {} do
+				if model:IsA("Model") and enabledPrompt(model, Constants.GRAB_PROMPT_NAME) then
+					table.insert(list, candidate(model, keyOf(model), "Steal"))
+				end
 			end
 		end
-		current, from, to, beam, chevrons, tip = nil, nil, nil, nil, nil, nil
 	end
-	local function animate(now: number)
-		local camera = workspace.CurrentCamera
-		if not (beam and chevrons and camera and beam.Parent) then
-			return
-		end
-		if tip and from and to then
-			Props.arrowAim(tip, from, to) -- the capped end follows the character / target
-		end
-		local phase = (now * TutorialArrow.FLOW) % 1
-		Props.placeChevrons(chevrons, Props.arrowCurve(beam), phase, camera.CFrame.Position, now)
-		beam.Transparency = Props.arrowBands(phase)
+	return closest(list, from, currentKey)
+end
+
+-- Folders whose models the ground trail must not land on (walking slimes, pad slimes).
+local function ignoreList(): { Instance }
+	local out: { Instance } = {}
+	local wild = workspace:FindFirstChild(Constants.WILD_FOLDER)
+	if wild then
+		table.insert(out, wild)
 	end
+	local plots = workspace:FindFirstChild(Constants.PLOTS_FOLDER)
+	for _, plot in if plots then plots:GetChildren() else {} do
+		local slimes = plot:FindFirstChild(Constants.PLOT_SLIMES_FOLDER)
+		if slimes then
+			table.insert(out, slimes)
+		end
+	end
+	return out
+end
+
+function TutorialArrow.start(): () -> ()
+	local player = Players.LocalPlayer
+	local guide = GuideView.new({ getIgnore = ignoreList })
+	local currentKey: string? = nil
+	local running = true
 	local function update()
 		local character = player.Character
-		local root = part(character and character:FindFirstChild("HumanoidRootPart"))
-		local goal = target(stepId(player), player.UserId)
-		if not root or not goal then
-			clear()
-			return
-		end
-		-- rebuild when the target crosses the cap distance (the end attachment lives on the goal when near, on the root when far)
-		local near = (goal.Position - root.Position).Magnitude <= Props.ARROW_MAX_LENGTH
-		if
-			root == from
-			and goal == to
-			and current
-			and current[1].Parent
-			and (tip ~= nil and (tip.Parent == goal) == near)
-		then
-			return
-		end
-		clear()
-		local newBeam, a0, a1 = Props.tutorialArrow(root, goal)
-		local newChevrons = Props.tutorialChevrons()
-		newChevrons.Parent = workspace.CurrentCamera or workspace
-		current, from, to = { newBeam, a0, a1, newChevrons }, root, goal
-		beam, chevrons, tip = newBeam, newChevrons, a1
-		animate(os.clock())
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		local choice = if root and root:IsA("BasePart")
+			then choose(player, stepId(player), root.Position, currentKey)
+			else nil
+		currentKey = if choice then choice.key else nil
+		guide:setTarget(if choice then choice.target else nil, if choice then choice.label else nil)
 	end
-	RunService.RenderStepped:Connect(function()
-		local ok, err = pcall(animate, os.clock())
-		if not ok then
-			warn(`[VisualsClient] tutorial arrow: {err}`)
-			clear()
-		end
-	end)
 	task.spawn(function()
-		while true do
+		while running do
 			local ok, err = pcall(update)
 			if not ok then
 				warn(`[VisualsClient] tutorial arrow: {err}`)
-				clear()
+				guide:clear()
 			end
 			task.wait(TutorialArrow.POLL)
 		end
 	end)
+	return function()
+		running = false
+		guide:destroy()
+	end
 end
 
 return TutorialArrow

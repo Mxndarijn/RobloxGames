@@ -3,7 +3,7 @@
 	PvpFun (FEATURES.PvP, CONTRACT.md §26.8)
 
 	The `Fun` line handler for PvpService.registerLine (FunConfetti .. FunFireworks). PvpService has already checked
-	the flag, ownership, the equipped item, the cooldown and the user's new-player shield. Every item is aimed (`aim`,
+	the flag, ownership, the equipped item and the cooldown. Every item is aimed (`aim`,
 	plus `charged` for the Confetti Popper's mega pop and the Goo Fireworks volley); none takes a target player, so the
 	handler picks who is hit.
 
@@ -14,10 +14,9 @@
 	off (PvpService.onCleanup). The look is client FX (ui/PvpFunFx) from PvpEvent "Effect"; the one server-made part
 	is the bubble around a lifted player (`ctx.funBubble`, server/PvpFunView).
 
-	Shielded players only get the cosmetic part (confetti, paint, hats); control goes through PvpRules.applyControl
-	(cap, then immunity). A thief carrying a stolen slime who is splashed, lifted, bounced, bonked, hatted or made to
-	dance loses it: PvpService.catchThief bounces the slime back to its owner. The Confetti Popper is purely cosmetic and
-	never catches. No Humanoid health is ever changed.
+	Control goes through PvpRules.applyControl (cap, then immunity). A thief carrying a stolen slime who is splashed,
+	lifted, bounced, bonked, hatted or made to dance loses it: PvpService.catchThief bounces the slime back to its owner.
+	The Confetti Popper is purely cosmetic and never catches. No Humanoid health is ever changed.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -81,10 +80,10 @@ local function fire(world: World.World, now: number, payload: { [string]: any })
 	PvpService.fireEffect(world, payload, now, true) -- PvpService.use only calls a handler with the flag on
 end
 
--- Not shielded, has PvP state and is free of control and immunity.
+-- Has PvP state and is free of control and immunity.
 local function controllable(session: Session, now: number): (boolean, PvpRules.State?)
 	local state = PvpService.state(session)
-	if not state or PvpService.isShielded(session, now) then
+	if not state then
 		return false, state
 	end
 	return PvpRules.canControl(state, now), state
@@ -134,7 +133,7 @@ local function noTarget(call: PvpService.UseCall): (boolean, string?)
 	return true, nil
 end
 
--- Confetti Popper: a burst along the aim (also straight up) that rains on everyone under it, shielded players too.
+-- Confetti Popper: a burst along the aim (also straight up) that rains on everyone under it.
 -- Purely cosmetic: it never catches a thief and never controls.
 local function confetti(call: PvpService.UseCall): (boolean, string?)
 	local cfg = FUN.CONFETTI
@@ -304,8 +303,8 @@ end
 
 --[[
 	Squeaky Hammer: bonks the player or slime nearest the aim (within AIM_RADIUS of it and the tool's reach of the
-	user). A player squashes flat for `control` seconds, then springs back with a push (`tick`); a shielded or immune
-	player only gets the bonk. A slime squashes and springs back: cosmetic only. A whiff still squeaks.
+	user). A player squashes flat for `control` seconds, then springs back with a push (`tick`); an immune player
+	only gets the bonk. A slime squashes and springs back: cosmetic only. A whiff still squeaks.
 ]]
 local function squeaky(call: PvpService.UseCall): (boolean, string?)
 	local cfg = FUN.HAMMER
@@ -385,9 +384,7 @@ local function hatLauncher(call: PvpService.UseCall): (boolean, string?)
 	local stack = 0
 	local seconds = call.tool.hatSeconds or 0
 	if target then
-		if not PvpService.isShielded(target, call.now) then
-			PvpService.catchThief(call.world, target, call.session, call.now)
-		end
+		PvpService.catchThief(call.world, target, call.session, call.now)
 		local worn = hats[target]
 		stack = PvpFunRules.hatStack(if worn then worn.count else 0, worn ~= nil and call.now < worn.untilTime)
 		hats[target] = { count = stack, untilTime = call.now + seconds }
@@ -540,7 +537,7 @@ local function stepLandings(world: World.World, session: Session, position: Vec,
 							slows[session] = { factor = 1 - (tool.slow or 0), untilTime = now + applied }
 						end
 					end
-					if session ~= landing.owner and not PvpService.isShielded(session, now) then
+					if session ~= landing.owner then
 						PvpService.catchThief(world, session, landing.owner, now)
 					end
 					fire(world, now, {
@@ -557,9 +554,7 @@ local function stepLandings(world: World.World, session: Session, position: Vec,
 				if PvpFunRules.inArea(landing.position, FUN.DANCE.RADIUS, AREA_HEIGHT, position) then
 					landing.hit[session] = true
 					local tool = PvpRules.tool("FunDanceBomb") :: Config.PvpTool
-					if not PvpService.isShielded(session, now) then
-						PvpService.catchThief(world, session, landing.owner, now)
-					end
+					PvpService.catchThief(world, session, landing.owner, now)
 					local free, state = controllable(session, now)
 					local applied = if free and state then PvpRules.applyControl(state, tool.control or 0, now) else 0
 					if applied > 0 then
@@ -594,9 +589,7 @@ local function stepStreams(world: World.World, session: Session, position: Vec, 
 					local tool = PvpRules.tool("FunBubbles") :: Config.PvpTool
 					local free, state = controllable(session, now)
 					local applied = 0
-					if not PvpService.isShielded(session, now) then
-						PvpService.catchThief(world, session, stream.owner, now)
-					end
+					PvpService.catchThief(world, session, stream.owner, now)
 					local bubble = ctx.funBubble
 					if free and state and bubble then
 						applied = PvpRules.applyControl(state, tool.control or 0, now)
@@ -625,7 +618,7 @@ local function stepStreams(world: World.World, session: Session, position: Vec, 
 	end
 end
 
--- Bounce Pads under `session`: launches them (the owner higher, with a flip). Shielded players are not bounced.
+-- Bounce Pads under `session`: launches them (the owner higher, with a flip).
 local function stepPads(world: World.World, session: Session, position: Vec, now: number, ctx: PvpService.Context)
 	local cfg = FUN.BOUNCE_PAD
 	local launch = ctx.launch
@@ -643,27 +636,25 @@ local function stepPads(world: World.World, session: Session, position: Vec, now
 				and now - (lastBounce[session] or -math.huge) >= cfg.RETRIGGER
 			then
 				local isOwner = owner == session
-				if isOwner or not PvpService.isShielded(session, now) then
-					lastBounce[session] = now
-					if not isOwner then
-						PvpService.catchThief(world, session, owner, now)
-					end
-					local lift = { X = 0, Y = if isOwner then tool.height or cfg.HEIGHT else cfg.HEIGHT, Z = 0 }
-					if launch(session.userId, lift) then
-						fire(world, now, {
-							attacker = owner.userId,
-							target = session.userId,
-							itemId = tool.id,
-							effect = "Bounce",
-							trapId = pad.id,
-							position = out(ctx, pad.position),
-							velocity = PvpKnockbackRules.velocity(lift),
-							flip = isOwner,
-							duration = 0,
-						})
-					end
-					return
+				lastBounce[session] = now
+				if not isOwner then
+					PvpService.catchThief(world, session, owner, now)
 				end
+				local lift = { X = 0, Y = if isOwner then tool.height or cfg.HEIGHT else cfg.HEIGHT, Z = 0 }
+				if launch(session.userId, lift) then
+					fire(world, now, {
+						attacker = owner.userId,
+						target = session.userId,
+						itemId = tool.id,
+						effect = "Bounce",
+						trapId = pad.id,
+						position = out(ctx, pad.position),
+						velocity = PvpKnockbackRules.velocity(lift),
+						flip = isOwner,
+						duration = 0,
+					})
+				end
+				return
 			end
 		end
 	end

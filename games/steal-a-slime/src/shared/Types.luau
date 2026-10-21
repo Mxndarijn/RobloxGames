@@ -18,27 +18,17 @@ local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require
 export type SlimeData = Genome.Slime
 
 -- Return value of every `Request` invoke.
-export type RequestResult = { ok: boolean, message: string?, appraisal: Appraisal?, code: string? } -- code: ShopEvent deny code (OpenShop / ShopBuy, CONTRACT.md §27.7)
-
--- Result of a successful Appraise (shared/Appraise): what was rerolled, before and after.
-export type Appraisal = {
-	slimeId: string,
-	kind: "size",
-	cost: number, -- what this reroll cost
-	beforeSize: number,
-	afterSize: number,
-	incomeBefore: number, -- cash/sec (PlayerData.slimeIncome), as SlimeView.income
-	incomeAfter: number,
-	costAfter: number, -- the next reroll's price (Appraise.cost), as SlimeView.appraiseCost
-}
+export type RequestResult = { ok: boolean, message: string?, code: string? } -- code: ShopEvent deny code (OpenShop / ShopBuy, CONTRACT.md §27.7)
 
 export type NotifyKind = "info" | "good" | "bad" | "badge"
+
+-- One slime the next rebirth needs (State.rebirthSlimes). A species asked for twice is two rows.
+export type RebirthSlimeView = { id: string, name: string, tier: number, color: { number }, owned: boolean }
 
 export type SlimeView = {
 	slime: SlimeData,
 	income: number, -- cash/sec incl. rebirth multiplier (0 while stolenBy ~= nil)
 	sellPrice: number,
-	appraiseCost: number?, -- Appraise price (Appraise.cost)
 	stolenBy: number?, -- UserId of the player currently carrying it away
 }
 
@@ -47,7 +37,6 @@ export type CarryView = {
 	kind: "wild" | "stolen",
 	ownerUserId: number?, -- victim, only when kind == "stolen"
 	startedAt: number,
-	escapeAt: number?, -- only when kind == "stolen"
 	walkSpeed: number, -- current server-applied WalkSpeed
 }
 
@@ -94,7 +83,6 @@ export type DailyView = { available: boolean, streak: number, amount: number, da
 
 -- Keys are the UI's ShopCatalog item ids. price nil = maxed / owned.
 export type ShopView = {
-	LockUpgrade: { price: number?, level: number, maxLevel: number },
 	SpeedCoil: { price: number?, owned: boolean },
 }
 
@@ -105,7 +93,6 @@ export type PvpView = {
 	best: { [string]: string }, -- Knockback / Trap / Blaster -> best owned item id
 	equipped: string?,
 	cooldowns: { [string]: number }, -- item id -> server time it is ready again
-	shieldUntil: number?,
 	charges: { [string]: number }, -- Goo Trap id -> charges held
 }
 
@@ -211,7 +198,7 @@ export type State = {
 	rebirthMultiplier: number,
 	rebirthCost: number,
 	canRebirth: boolean,
-	rebirthSlime: { id: string, name: string, tier: number, color: { number }, owned: boolean }?, -- v29: species the next rebirth also needs (nil at max)
+	rebirthSlimes: { RebirthSlimeView }, -- the slimes the next rebirth needs and uses up, one row per slime (empty at max)
 	padsUnlocked: number,
 	padsMax: number,
 	nextPadCost: number?, -- nil when every pad is unlocked

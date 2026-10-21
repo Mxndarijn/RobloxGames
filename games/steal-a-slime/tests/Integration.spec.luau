@@ -81,31 +81,12 @@ describe("Carrying attribute (Carry.carryingId)", function()
 		expect(select(2, Carry.deposit(world, 1))).toBe("plot full")
 		expect(Carry.carryingId(world, 1)).toBe(id)
 	end)
-	it("clears when a stolen slime escapes (timeout or slap)", function()
-		local world, _, thief = stealSetup()
-		Carry.grab(world, 2, "gem", 1, T0)
-		local carry = thief.carry
-		assert(carry, "carry")
-		StealService.tickEscapes(world, carry.timer.escapeAt :: number)
-		expect(Carry.carryingId(world, 2)).toBeNil()
-
+	it("clears when a stolen slime escapes after a slap", function()
 		local world2 = stealSetup()
 		Carry.grab(world2, 2, "gem", 1, T0)
 		local slapper = ServerFixtures.join(world2, 3)
 		expect((StealService.slap(world2, slapper, 2, 1, T0 + 1))).toBe(true)
 		expect(Carry.carryingId(world2, 2)).toBeNil()
-	end)
-	it("clears when a stolen slime wriggles free", function()
-		local world, _, thief = stealSetup()
-		Carry.grab(world, 2, "gem", 1, T0)
-		world.rng = {
-			float = function()
-				return 0
-			end,
-		} :: any
-		StealService.tickEscapes(world, T0 + 1)
-		expect(thief.carry).toBeNil()
-		expect(Carry.carryingId(world, 2)).toBeNil()
 	end)
 	it("clears on death (released as a drop)", function()
 		local world = stealSetup()
@@ -181,8 +162,6 @@ describe("WorldLayout matches the server's expectations", function()
 	end
 
 	it("uses the shared folder names", function()
-		expect(Constants.MAP_FOLDER).toBe("Map")
-		expect(Constants.PLOT_SLIMES_FOLDER).toBe("Slimes")
 		expect(WorldLayout.MAP_NAME).toBe(Constants.MAP_FOLDER)
 		expect(WorldLayout.SLIMES_FOLDER).toBe(Constants.PLOT_SLIMES_FOLDER)
 		expect(layout[1].name).toBe(Constants.MAP_FOLDER)

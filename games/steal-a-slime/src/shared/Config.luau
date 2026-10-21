@@ -13,7 +13,6 @@ export type Rarity = {
 	weight: number, -- relative fountain drop weight
 	color: { number }, -- UI colour (RGB 0..255)
 	carrySlow: number, -- base WalkSpeed fraction lost while carrying
-	escapeTime: number, -- seconds a thief may hold it before it escapes for sure
 }
 
 -- A restocking consumable (FEATURES.Consumables, Config.CONSUMABLES).
@@ -34,7 +33,6 @@ export type RebirthTier = {
 	unlock: string?, -- upgrade id this rank unlocks (also Config.UPGRADES[i].requires)
 	keep: number?, -- slimes kept on rebirth
 	income: number?, -- income bonus (0.25 = +25 %)
-	lock: number?, -- extra seconds per bought lock
 	family: string?, -- FountainTiers family id this rank opens (FEATURES.FountainTiers; FountainTiers.FAMILIES)
 }
 
@@ -134,7 +132,6 @@ local RARITIES: { Rarity } = {
 		weight = 52,
 		color = { 170, 220, 170 },
 		carrySlow = 0.05,
-		escapeTime = 25,
 	},
 	{
 		tier = 2,
@@ -143,7 +140,6 @@ local RARITIES: { Rarity } = {
 		weight = 28,
 		color = { 90, 200, 255 },
 		carrySlow = 0.1,
-		escapeTime = 23,
 	},
 	{
 		tier = 3,
@@ -152,7 +148,6 @@ local RARITIES: { Rarity } = {
 		weight = 13,
 		color = { 60, 110, 255 },
 		carrySlow = 0.15,
-		escapeTime = 21,
 	},
 	{
 		tier = 4,
@@ -161,7 +156,6 @@ local RARITIES: { Rarity } = {
 		weight = 5.2,
 		color = { 180, 80, 255 },
 		carrySlow = 0.2,
-		escapeTime = 19,
 	},
 	{
 		tier = 5,
@@ -170,7 +164,6 @@ local RARITIES: { Rarity } = {
 		weight = 1.2,
 		color = { 255, 190, 40 },
 		carrySlow = 0.25,
-		escapeTime = 17,
 	},
 	{
 		tier = 6,
@@ -179,7 +172,6 @@ local RARITIES: { Rarity } = {
 		weight = 0.2,
 		color = { 255, 60, 90 },
 		carrySlow = 0.3,
-		escapeTime = 15,
 	},
 	{
 		-- Secret: ~1 in 2000 wild spawns (0.05 / 99.65); announced to everyone.
@@ -189,29 +181,69 @@ local RARITIES: { Rarity } = {
 		weight = 0.05,
 		color = { 20, 240, 220 },
 		carrySlow = 0.35,
-		escapeTime = 15,
 	},
 }
 
--- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player
--- to own one slime of this SlimeRoster species (data.slimes, i.e. on a pad).
--- Not consumed: the normal rebirth wipe applies, so keep it as the keeper if
--- the next level needs it again. Rarity escalates; a level without an entry
--- uses the last entry below it (Progression.requiredSpecies).
-local REBIRTH_SLIMES: { [number]: string } = {
-	[1] = "bumble", -- Uncommon
-	[2] = "froggo",
-	[3] = "lop", -- Rare
-	[4] = "moo",
-	[5] = "blaze", -- Epic
-	[6] = "octo",
-	[7] = "king", -- Legendary
-	[8] = "ninja",
-	[9] = "cosmo", -- Mythic
-	[10] = "cosmo",
-	[15] = "midas", -- Secret
-	[20] = "eclipse",
+-- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player to own these SlimeRoster
+-- species (data.slimes, i.e. on a pad; a repeated id needs that many). Every level has its own list, and
+-- the rebirth uses them up: those slimes are gone, even the favourite (Progression.rebirth). A family
+-- species only shows up once that family is open (FountainTiers), merge hybrids follow their recipe's
+-- inputs, and event Secrets are never asked for.
+local REBIRTH_SLIMES: { { string } } = {
+	{ "bumble" }, -- 1
+	{ "froggo" },
+	{ "whiskers" },
+	{ "prickles" },
+	{ "lop" }, -- 5
+	{ "flan", "bumble" },
+	{ "moo", "mushie" },
+	{ "blaze" },
+	{ "pengoo", "chomp" },
+	{ "octo" }, -- 10
+	{ "moo_shroom" },
+	{ "frostbite", "whiskers" },
+	{ "zap", "lop" },
+	{ "imp" },
+	{ "king" }, -- 15
+	{ "drako", "froggo" },
+	{ "bloom", "honey_toad" },
+	{ "ninja" },
+	{ "truffle", "rocky_road" },
+	{ "robo" }, -- 20
+	{ "snow_bunny", "catfish" },
+	{ "blaze", "octo" },
+	{ "sushi" },
+	{ "frostbite", "zap", "imp" },
+	{ "cosmo" }, -- 25
+	{ "steam" },
+	{ "king", "ninja" },
+	{ "kraken" },
+	{ "drako", "imp", "octo" },
+	{ "seraph" }, -- 30
+	{ "thunderbee" },
+	{ "robo", "king" },
+	{ "amethyst" },
+	{ "steam", "kraken" },
+	{ "prism" }, -- 35
+	{ "dragon_king" },
+	{ "seraph", "amethyst" },
+	{ "cyber_ninja" },
+	{ "cosmo", "prism" },
+	{ "midas" }, -- 40
+	{ "goozilla" },
+	{ "dragon_king", "cyber_ninja" },
+	{ "queen_jelly" },
+	{ "boo" },
+	{ "cosmo", "seraph", "amethyst" }, -- 45
+	{ "eclipse" },
+	{ "nightwing" },
+	{ "midas", "boo" },
+	{ "mecha_goo" },
+	{ "eclipse", "nightwing", "mecha_goo" }, -- 50
 }
+for _, list in REBIRTH_SLIMES do
+	table.freeze(list)
+end
 
 local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 0, title = "Slime Rookie" },
@@ -220,9 +252,9 @@ local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 5, title = "Blob Baron", unlock = "Luck" },
 	{ rebirths = 6, title = "Goo Tycoon", keep = 2, family = "frost" },
 	{ rebirths = 7, title = "Jelly Magnate", income = 0.1 },
-	{ rebirths = 8, title = "Ooze Overlord", lock = 30 },
+	{ rebirths = 8, title = "Ooze Overlord", income = 0.15 },
 	{ rebirths = 10, title = "Slime Sovereign", keep = 3, income = 0.25, family = "starlight" },
-	{ rebirths = 12, title = "Gel Emperor", lock = 60 },
+	{ rebirths = 12, title = "Gel Emperor", income = 0.35 },
 	{ rebirths = 15, title = "Gelatinous Legend", keep = 4, income = 0.5 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1 },
 	{ rebirths = 30, title = "Slime Deity", keep = 5, income = 2 },
@@ -505,16 +537,16 @@ local function fun(
 	return tool
 end
 local PVP_TOOLS: { PvpTool } = {
-	knock("KnockGlove1", "Bonk Glove", 1, 1, 5, { special = "bonk" }),
-	knock("KnockGlove2", "Bounce Glove", 2, 5, 6, { special = "bounce", pogo = { 6, 4, 2 } }),
-	knock("KnockGlove3", "Boom Glove", 3, 8, 7, { special = "boom", blastRadius = 5, blastPush = 4 }),
-	knock("KnockGlove4", "Thunder Glove", 4, 12, 7.5, {
+	knock("KnockGlove1", "Bonk Glove", 1, 1, 12, { special = "bonk" }),
+	knock("KnockGlove2", "Bounce Glove", 2, 5, 15, { special = "bounce", pogo = { 6, 4, 2 } }),
+	knock("KnockGlove3", "Boom Glove", 3, 8, 18, { special = "boom", blastRadius = 6, blastPush = 8 }),
+	knock("KnockGlove4", "Thunder Glove", 4, 12, 22, {
 		special = "thunder",
 		chain = 2,
 		chainRange = 12,
 		chainFactor = 0.5,
 	}),
-	knock("KnockGlove5", "Royal Glove", 5, 20, 10, { special = "royal", arc = 6 }),
+	knock("KnockGlove5", "Royal Glove", 5, 20, 26, { special = "royal", arc = 8 }),
 	trap("GooTrap1", "Goo Puddle", 1, 3, { radius = 3, slow = 0.5, slowSeconds = 2 }),
 	trap("GooTrap2", "Sticky Trap", 2, 6, { radius = 3.5, control = 1.5, slow = 0.5, slowSeconds = 1.5 }),
 	trap("GooTrap3", "Mega Trap", 3, 10, { radius = 4, control = 2, pull = 4, push = 4, spitArc = 3 }),
@@ -643,13 +675,13 @@ local Config = {
 	WELCOME_BACK_MIN_SECONDS = 4 * 60 * 60, -- away at least this long = a welcome-back card on join
 
 	-- Rebirth
-	REBIRTH_BASE_COST = 5000,
-	REBIRTH_COST_GROWTH = 3,
+	REBIRTH_BASE_COST = 40000,
+	REBIRTH_COST_GROWTH = 4.5,
 	REBIRTH_MULTIPLIER_STEP = 0.5, -- +50 % income per rebirth
 	MAX_REBIRTHS = 50,
-	REBIRTH_LATE_FROM = 5, -- from this many rebirths on, the cost grows by REBIRTH_COST_GROWTH_LATE
-	REBIRTH_COST_GROWTH_LATE = 2,
-	REBIRTH_SLIMES = table.freeze(REBIRTH_SLIMES), -- required species per rebirth level
+	REBIRTH_LATE_FROM = 4, -- from this many rebirths on, the cost grows by REBIRTH_COST_GROWTH_LATE
+	REBIRTH_COST_GROWTH_LATE = 2.25,
+	REBIRTH_SLIMES = table.freeze(REBIRTH_SLIMES), -- species each rebirth needs and uses up, one list per level
 	REBIRTH_TIERS = table.freeze(REBIRTH_TIERS), -- ranks (CONTRACT.md §8.8)
 
 	-- Permanent upgrades (Request("BuyUpgrade", id)), goals and SlimeDex rewards (CONTRACT.md §8.8)
@@ -664,11 +696,9 @@ local Config = {
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 45,
 	LOCK_SECONDS = 60,
-	LOCK_SECONDS_PER_REBIRTH = 10,
-	LOCK_MAX_REMAINING = 300, -- extending can never push the lock past 5 min
+	LOCK_SECONDS_PER_REBIRTH = 10, -- a bought lock lasts this much longer per rebirth, up to LOCK_MAX_REMAINING
+	LOCK_MAX_REMAINING = 180, -- the longest lock: one purchase or several stacked never go past 3 min
 	LOCK_BASE_COST = 25,
-	REVENGE_SECONDS = 60, -- FEATURES.Revenge: how long a robbed player sees the thief's plot, and the thief pays more for locks
-	REVENGE_LOCK_COST_MULT = 2, -- FEATURES.Revenge: lock price multiplier for a thief inside any victim's window
 	LOCK_INCOME_SECONDS = 15, -- lock costs this many seconds of plot income (or base cost)
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
@@ -686,15 +716,10 @@ local Config = {
 		CLOSE_STUDS = 3, -- closer than this the facing check is skipped (hugging a thief)
 		SWING_GAP = 0.4, -- seconds between swing events (a whiff never spends the SLAP_COOLDOWN)
 	}),
-	WRIGGLE_MAX_CHANCE = 0.12, -- per-second escape chance as the escape timer runs out
-	STOLEN_EXTRA_SLOW = 0.25, -- extra slowdown, ramps up the longer a stolen slime is held
 	MAX_CARRY_SLOW = 0.6,
 	BASE_WALK_SPEED = 16,
 
 	-- Shop (permanent, kept on rebirth)
-	LOCK_UPGRADE_MAX = 5,
-	LOCK_UPGRADE_SECONDS = 15, -- every bought lock lasts this much longer per level
-	LOCK_UPGRADE_COSTS = table.freeze({ 500, 2000, 8000, 30000, 100000 }), -- price of level 1..MAX
 	SPEED_COIL_PRICE = 1500,
 	SPEED_COIL_WALK_SPEED = 22, -- base WalkSpeed; the carry slowdown applies to it
 
@@ -707,10 +732,6 @@ local Config = {
 	MERGE_ASSIST_CHANCE = 0.35, -- share of random merge results drawn from the species the player hasn't found
 	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
 	AUTO_MERGE_MAX = 25, -- most groups of three one Request("AutoMerge") merges (MergePlan, CONTRACT.md §21.1)
-
-	-- Appraise: reroll one owned slime's size
-	APPRAISE_COST_FRACTION = 0.3, -- of the slime's current value (Economy.sellPrice)
-	APPRAISE_SIZE_DECIMALS = 2, -- a rerolled size is rounded to this many decimals (Appraise.rollSize)
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = SPAWN_INTERVAL,
@@ -771,7 +792,6 @@ local Config = {
 		AdminEvents = true, -- admin-only timed Luck surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		CoopRitual = true, -- 2-4 players stand on the ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
 		PlotSkins = true, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
-		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
 		StealAlerts = true, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
 		WeeklyEvents = true, -- a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no event, no attribute
 		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)
@@ -781,12 +801,14 @@ local Config = {
 		Consumables = true, -- restocking Shop section: luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
 		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Audio = true, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
-		PvP = true, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, new-player shield, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
+		PvP = true, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
 		WorldShops = true, -- CONTRACT.md §27: Item Shop + Upgrade Shop stands (ItemShopStand / UpgradeShopStand), Request OpenShop / CloseShop / ShopBuy, ShopEvent, range checks; false = the single ShopStand and the HUD Shop as before
 		WorldShopsStrict = true, -- CONTRACT.md §27.6: the old buy actions also need an open shop in range ("NotOpen"); on since the HUD Shop button is gone in HUD v2. Needs WorldShops
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 		MysteryEggs = true, -- the fountain sometimes drops a Mystery Egg that incubates on a pad, can be stolen and hatches into a slime (MysteryEgg, EggKind, contract/mystery-egg.md); false = no egg drops (eggs already on plots still hatch)
+		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
 		SlimeChoreo = true, -- species gaits and hops, lane beats and reactions to players (SlimePersona, ParadeChoreo, ui/SlimeGait, contract/slime-life.md); false = every slime glides the lane at one pace
+		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
 	}),
 
 	-- Server profiler (FEATURES.ServerProfiler, server/Profiler). BUDGET_MS = p95 ms per frame / call.
@@ -835,13 +857,15 @@ local Config = {
 		NIGHT_ONESHOT_MIN_LEVEL = 0.9, -- calls only once the night has (nearly) faded in
 	}),
 
+	-- A slime being stolen leaves a see-through copy on its pad until the steal ends (server/StealGhost).
+	STEAL_GHOST_TRANSPARENCY = 0.6,
+
 	-- Full steal alerts (FEATURES.StealAlerts, StealAlert / ui/StealAlertFx). Client timings in seconds.
 	STEAL_ALERT = table.freeze({
 		FLASH_SECONDS = 1.2, -- red screen-edge flash when a theft starts
 		FLASH_PULSES = 2,
 		ALARM_REPEAT = 3, -- the toast already plays the first Alarm; it sounds again this often ...
 		ALARM_REPEATS = 2, -- ... at most this many extra times per theft
-		ARROW_MARGIN = 56, -- px from the viewport edge the direction arrow stays inside
 		PING_HIDE_STUDS = 14, -- thief ping hides inside this distance (you can see them)
 		TRAIL_LIFETIME = 0.6, -- the thief's trail (under the 2 s fx cap)
 		SLAP_FX_SECONDS = 0.5,
@@ -862,6 +886,7 @@ local Config = {
 		MID_EVERY = 3,
 		MID_AMPLITUDE = 0.5,
 		HYSTERESIS = 0.1, -- share of a radius a slime must cross back to change tier again (selection runs 4x a second)
+		NEAR_MAX = 16, -- near rigs with the full life (reactions, emotes, effects); further near ones draw as mid
 	}),
 
 	-- Habitat morph feel (HabitatFx / HabitatMorph, HABITATS.md "Animation"). Client only.
@@ -897,8 +922,7 @@ local Config = {
 		DRAIN_GRACE = 1, -- seconds without a hit before the drain starts
 		SHED_EVERY = 0.25, -- meter share between sheds
 		SHED_COUNT = 2, -- wild slimes per shed
-		BURST_COUNT = 6, -- wild slimes when the boss fails
-		DROP_LUCK = 3, -- luck multiplier on shed and burst slimes
+		DROP_LUCK = 3, -- luck multiplier on shed slimes
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
@@ -965,7 +989,6 @@ local Config = {
 		}),
 	}),
 
-	MYSTERY_EGG_REVEAL_SECONDS = 6, -- how long the Mystery Egg hatch banner stays up
 	-- Wild Mystery Eggs (FEATURES.MysteryEggs, contract/mystery-egg.md). Each KINDS entry: `id` (saved, never rename),
 	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
 	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `price` (cash to
@@ -1172,7 +1195,6 @@ local Config = {
 
 	-- PvP (FEATURES.PvP, CONTRACT.md §26, docs/PVP.md). PvP works everywhere: there are no safe zones.
 	PVP = table.freeze({
-		NEW_PLAYER_SHIELD_SECONDS = 900, -- shield until this much play time (summed over sessions); ends early when the player steals
 		CONTROL_MAX_SECONDS = 2, -- longest hard crowd control (hold, dance, bounce) on one player
 		SLOW_MAX_SECONDS = 3, -- longest slow (a stacked Squirter slow included, counted from its first hit)
 		CONTROL_IMMUNITY_SECONDS = 3, -- after any control ends, the target cannot be controlled again for this long
@@ -1182,12 +1204,12 @@ local Config = {
 		PRICE_FACTOR_TRAP = 0.006, -- one Goo Trap charge (used up when it catches someone)
 		PRICE_MIN = 100,
 		-- Knockback: the push is capped, the arc is capped, and the landing point stays inside the map.
-		KNOCKBACK_MAX_PUSH = 15, -- studs (the Royal Glove power punch, 10 x CHARGE_PUSH)
-		KNOCKBACK_ARC_HEIGHT = 6, -- studs of vertical arc at most (Royal Glove, the first Bounce Glove pogo)
-		KNOCKBACK_DEFAULT_ARC = 2, -- studs of arc of a glove row without its own `arc`
-		KNOCKBACK_BOUNDS_MARGIN = 10, -- studs kept clear of the map edge (covers the friction-boost overshoot of a max push)
+		KNOCKBACK_MAX_PUSH = 40, -- studs (the Royal Glove power punch, 26 x CHARGE_PUSH); gloves push 2.4-5x the Bat
+		KNOCKBACK_ARC_HEIGHT = 8, -- studs of vertical arc at most (Royal Glove)
+		KNOCKBACK_DEFAULT_ARC = 3, -- studs of arc of a glove row without its own `arc`
+		KNOCKBACK_BOUNDS_MARGIN = 20, -- studs kept clear of the map edge (covers the friction-boost overshoot of a max push)
 		KNOCKBACK_SECONDS = 0.35, -- the launch covers the push in this long
-		KNOCKBACK_FRICTION_BOOST = 1.5, -- horizontal launch speed x this, ground friction eats the rest (the landing stays clamped inside the map margin)
+		KNOCKBACK_FRICTION_BOOST = 1, -- horizontal launch speed x this; 1 = the target lands about `push` studs away (Studio-measured: PlatformStand keeps friction off during the push)
 		KNOCKBACK_MAX_SPEED_Y = 110, -- studs/s: client-side cap on a launch's vertical speed (Bounce Pad 25 studs needs ~99)
 		LAUNCH_GUARD_SECONDS = 5, -- after a PvP launch / while under control the void guard (Rescue.PVP_SAFE_Y) is armed
 		KNOCKBACK_CONTROL_SECONDS = 0.6, -- a knockback counts as control (PvpRules.applyControl), then immunity

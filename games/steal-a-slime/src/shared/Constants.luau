@@ -11,7 +11,7 @@ return table.freeze({
 	NOTIFY = "Notify",
 	-- Server -> client: global TotalEarned board (Types.Leaderboard)
 	LEADERBOARD = "Leaderboard",
-	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / shield / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
+	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
 
 	SLIME_TAG = "Slime",
 	DATASTORE_NAME = "StealASlime_v1",
@@ -32,7 +32,6 @@ return table.freeze({
 	PAD_INDEX_ATTRIBUTE = "PadIndex", -- Pad_<j> part: j
 	HOME_ZONE = "HomeZone",
 	-- Instance attributes (CONTRACT.md §5.2)
-	REVENGE_PLOTS_ATTRIBUTE = "RevengePlots", -- Player (victim only): "3,5" = plot indexes of thieves inside the revenge window (FEATURES.Revenge), nil = none
 	RITUAL_PHASE_ATTRIBUTE = "Phase", -- Map.RitualCircle: Ritual phase, "Idle" | "Charging" | "Cooldown"
 	RITUAL_CHARGE_ENDS_ATTRIBUTE = "ChargeEndsAt", -- Map.RitualCircle: server time the hold completes (Charging only, else nil)
 	RITUAL_READY_AT_ATTRIBUTE = "ReadyAt", -- Map.RitualCircle: server time the rest ends (Cooldown only, else nil)
@@ -73,7 +72,6 @@ return table.freeze({
 	WALK_SPEED_ATTRIBUTE = "TargetWalkSpeed", -- Player: WalkSpeed the server enforces right now
 	PVP_EQUIPPED_ATTRIBUTE = "PvpEquipped", -- Player: equipped PvP item id (FEATURES.PvP only; nil = none, CONTRACT.md §26.1)
 	BAT_SWING_ATTRIBUTE = "BatSwingAt", -- Player: server time of the last Bat swing (every client plays the swing, CONTRACT.md §26.2)
-	PVP_SHIELD_ATTRIBUTE = "PvpShieldUntil", -- Player: server time the new-player shield ends (FEATURES.PvP only; nil = not shielded, CONTRACT.md §26)
 	REBIRTH_TITLE_ATTRIBUTE = "RebirthTitle", -- Player: rank title (Config.REBIRTH_TIERS)
 	PLOT_LOCKED_ATTRIBUTE = "Locked", -- Plot_<i>: true while LockUntil > now
 	PLOT_LOCK_COST_ATTRIBUTE = "LockCost", -- Plot_<i>: owner's lock price, 0 = free plot
@@ -100,6 +98,8 @@ return table.freeze({
 	HATCH_PROMPT_NAME = "HatchPrompt", -- owner-only ProximityPrompt on a ready Mystery Egg
 	LABEL_PAD_ATTRIBUTE = "LabelPad", -- slime model: pad index while it rests on a pad (the label is the pad sign), else nil
 	LABEL_HEIGHT_ATTRIBUTE = "LabelHeight", -- slime model: studs from the Body centre to the card's bottom edge
+	TAG_ANCHOR = "TagAnchor", -- client-only Attachment on a slime's Body: the name tag and the Buy card hang on it;
+	-- SlimeLifeRunner moves it after the drawn slime (contract/slime-life.md "Clean lane")
 	GROWTH_OVERRIDE_ATTRIBUTE = "PcwGrowth", -- slime model: Studio-only whole percent shown instead of the real growth (pc-watcher shot)
 	FOUNTAIN_TIER_ATTRIBUTE = "FountainTier", -- workspace: fountain tier 1..4 (FEATURES.FountainTiers, FountainTiers); clients draw the ring / crest / glow from it
 	RARE_SPAWN_ID_ATTRIBUTE = "RareSpawnId", -- workspace: latest rare drop

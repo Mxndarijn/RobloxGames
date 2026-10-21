@@ -6,8 +6,8 @@
 	client adapter is ui/StealAlertFx.
 
 	* Direction: `bearing` turns two ground positions and the camera's look
-	  vector into an angle (0 = ahead, clockwise positive) and a distance;
-	  `edgePoint` puts that angle on the screen edge (an ellipse inside a margin).
+	  vector into an angle (0 = ahead, clockwise positive) and a distance.
+	  The on-screen arrow itself is shared/EdgeArrow.
 	* Flash: `flashAlpha` is the red edge flash's opacity over time (pulses).
 	* Alarm: `alarmDue` says when the toast's first Alarm should sound again.
 	* Log: `record` appends a completed theft to the owner's saved `stealLog`
@@ -50,19 +50,6 @@ function StealAlert.bearing(origin: Vec2, target: Vec2, look: Vec2): (number, nu
 	local right = dx * -lz + dz * lx
 	-- right is the sine side of the angle: atan2(right, forward) is clockwise-positive from above.
 	return math.atan2(right, forward), distance
-end
-
--- Screen position (pixels, origin top-left) of the arrow for `angle` inside a viewport:
--- on the ellipse that touches the margin, so it hugs the edge in every direction.
-function StealAlert.edgePoint(angle: number, width: number, height: number, margin: number): (number, number)
-	local rx = math.max(0, width / 2 - margin)
-	local ry = math.max(0, height / 2 - margin)
-	return width / 2 + math.sin(angle) * rx, height / 2 - math.cos(angle) * ry
-end
-
--- Rotation (degrees, clockwise) for an up-pointing arrow glyph so it points along `angle`.
-function StealAlert.arrowRotation(angle: number): number
-	return math.deg(angle)
 end
 
 ---------------------------------------------------------------------------

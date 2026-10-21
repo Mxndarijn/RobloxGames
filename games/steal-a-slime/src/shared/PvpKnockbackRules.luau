@@ -62,10 +62,19 @@ function PvpKnockbackRules.horizontal(push: Vec): number
 	return math.sqrt(push.X * push.X + push.Z * push.Z)
 end
 
--- Launch velocity that covers `push` horizontally in Config.PVP.KNOCKBACK_SECONDS (x KNOCKBACK_FRICTION_BOOST: ground
--- friction eats part of a short launch) and rises its arc (gravity in studs/s^2; default 196.2).
+-- Seconds the push takes: the time in the air of its arc (up and back down), at least Config.PVP.KNOCKBACK_SECONDS.
+-- A high arc keeps the target airborne (no friction) for longer, so the horizontal speed must drop with it or the
+-- target overshoots (measured in Studio: a Royal power punch flew 2.4x its push with a fixed KNOCKBACK_SECONDS).
+function PvpKnockbackRules.flightSeconds(push: Vec, gravity: number?): number
+	local g = math.max(1e-6, gravity or 196.2)
+	local air = 2 * math.sqrt(2 * math.max(0, push.Y) / g)
+	return math.max(Config.PVP.KNOCKBACK_SECONDS, if air == air then air else 0)
+end
+
+-- Launch velocity that covers `push` horizontally in flightSeconds (x KNOCKBACK_FRICTION_BOOST) and rises its arc
+-- (gravity in studs/s^2; default 196.2).
 function PvpKnockbackRules.velocity(push: Vec, gravity: number?): Vec
-	local t = Config.PVP.KNOCKBACK_SECONDS
+	local t = PvpKnockbackRules.flightSeconds(push, gravity)
 	local boost = Config.PVP.KNOCKBACK_FRICTION_BOOST
 	return {
 		X = push.X / t * boost,
@@ -74,7 +83,8 @@ function PvpKnockbackRules.velocity(push: Vec, gravity: number?): Vec
 	}
 end
 
--- The most horizontal speed a launch may have (client clamp uses it): MAX_PUSH over KNOCKBACK_SECONDS x boost.
+-- The most horizontal speed a launch may have (client clamp uses it): MAX_PUSH over KNOCKBACK_SECONDS x boost
+-- (flightSeconds is never shorter than KNOCKBACK_SECONDS, so no launch is faster).
 function PvpKnockbackRules.maxHorizontalSpeed(): number
 	return Config.PVP.KNOCKBACK_MAX_PUSH / Config.PVP.KNOCKBACK_SECONDS * Config.PVP.KNOCKBACK_FRICTION_BOOST
 end

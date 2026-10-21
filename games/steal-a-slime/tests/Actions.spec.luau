@@ -37,7 +37,15 @@ describe("Actions.handle guards", function()
 		expect(call(world, 1, "Sell", 5).message).toBe("bad argument")
 		expect(call(world, 1, "Sell", "bad id!").message).toBe("bad argument")
 		expect(call(world, 1, "Merge", "a").message).toBe("bad argument")
-		expect(call(world, 1, "Slap", 2).message).toBe("unknown action") -- the on-screen Slap is gone: the Bat Tool hits server-side
+	end)
+	it("has no Appraise: a reroll request is an unknown action and leaves the slime and cash alone", function()
+		local world = ServerFixtures.world()
+		local session = ServerFixtures.join(world, 1)
+		PlayerData.addSlime(session.data, Fixtures.slime("goo", 3, { size = 1.2 }))
+		session.data.cash = 10_000
+		expect(call(world, 1, "Appraise", "goo", "size").message).toBe("unknown action")
+		expect((PlayerData.findSlime(session.data, "goo") :: any).size).toBe(1.2)
+		expect(session.data.cash).toBe(10_000)
 	end)
 	it("parseArgs accepts every declared action shape", function()
 		for action, def in Remotes.ACTIONS do

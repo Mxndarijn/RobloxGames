@@ -43,7 +43,6 @@ local ItemIcons = {}
 ItemIcons.HELD_TOOLS = table.freeze({ Bat = "Pvp_Bat" })
 
 ItemIcons.IMAGES = {
-	Appraise = 83435847821482,
 	Badge_Dex100 = 126553682019734,
 	Badge_Dex25 = 103035902991477,
 	Badge_Dex50 = 132537225738577,
@@ -77,10 +76,10 @@ ItemIcons.IMAGES = {
 	Goal_Rebirth = 123035773985810,
 	Goal_Steal = 94010775081099,
 	Lock = 80470044151843,
-	LockUpgrade = 127943211946057,
 	MysteryEgg = 140462029142577,
 	Perk_income = 94766482619711,
 	Perk_luck = 80060700315838,
+	Pet = 118993346386827,
 	PlotSkin_candy = 75125399713715,
 	PlotSkin_classic = 75405645541984,
 	PlotSkin_crystal = 91231773101915,
@@ -137,7 +136,7 @@ ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 
 -- Items an artist must still render: in a DRAWN group but with no recipe worth shipping. Empty now.
 -- The H1 HUD icons (group "hud", not drawn) keep their tile + glyph until Archer renders them.
-ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost", "Shield" } :: { string })
+ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
 
 -- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
 -- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet.
@@ -165,14 +164,6 @@ local HAND: { Hand } = {
 		color = { 90, 140, 230 },
 		glyph = "🔒",
 		brief = "Chunky brass padlock, closed, shackle up, blue enamel face plate; 3/4 view from front-left, soft shadow underneath. Defence gear.",
-	},
-	{
-		id = "LockUpgrade",
-		name = "Longer locks",
-		group = "shop",
-		color = { 70, 180, 200 },
-		glyph = "⏱️",
-		brief = "The brass padlock with a small stopwatch hung on its shackle and a little green up-arrow; 3/4 view, teal accents.",
 	},
 	{
 		id = "SpeedCoil",
@@ -279,6 +270,14 @@ local HAND: { Hand } = {
 		brief = "A green clover leaf with a ladybug on it, front view.",
 	},
 	{
+		id = "Pet",
+		name = "Pet bonus",
+		group = "boost",
+		color = { 255, 150, 60 },
+		glyph = "💗",
+		brief = "An orange slime with a red collar and a gold heart tag, riding a small light-blue cloud; front view.",
+	},
+	{
 		id = "Event_luck",
 		name = "Luck Event",
 		group = "boost",
@@ -293,14 +292,6 @@ local HAND: { Hand } = {
 		color = { 80, 170, 255 },
 		glyph = "🌧",
 		brief = "A blue storm cloud raining green slime droplets; front view.",
-	},
-	{
-		id = "Appraise",
-		name = "Appraise",
-		group = "misc",
-		color = { 120, 190, 220 },
-		glyph = "🔍",
-		brief = "A big magnifying glass with a gold frame over a sparkling slime; 3/4 view.",
 	},
 	{
 		id = "Daily",
@@ -341,14 +332,6 @@ local HAND: { Hand } = {
 		color = { 90, 200, 120 },
 		glyph = "👥",
 		brief = "Two smiling slimes (green and pink) side by side with a small gold plus sign; front view.",
-	},
-	{
-		id = "Shield",
-		name = "New-player shield",
-		group = "hud",
-		color = { 90, 170, 240 },
-		glyph = "🛡",
-		brief = "A rounded blue kite shield with a gold rim and a small smiling slime emblem in the middle; front view.",
 	},
 	{
 		id = "Gift",

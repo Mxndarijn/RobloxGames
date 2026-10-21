@@ -5,11 +5,8 @@
 	Server side of PvP. With the flag OFF nothing here does anything: `buy` refuses, no runtime state is created,
 	no attribute is published. With it ON:
 	  * `buy` is the `BuyPvpItem` action (Shared.PvpRules.buy + a toast)
-	  * one PvpRules.State per session (shield, control immunity, cooldowns), kept in a weak table keyed by the
+	  * one PvpRules.State per session (control immunity, cooldowns), kept in a weak table keyed by the
 	    session and never saved; the lines (knockback, traps, blasters, fun items) read it through `state`
-	  * the new-player shield: from join until Config.PVP.NEW_PLAYER_SHIELD_SECONDS of play time (counted across
-	    sessions in data.pvp.played); rebirths don't end it, stealing ends it for good. The join lock
-	    (JOIN_LOCK_SECONDS) is separate and stays: a shielded player is protected at least as long as it.
 	  * `catchThief`: the one way a PvP item sends a stolen slime home (StealService.escape, the Bat's path)
 	There are no safe zones. No code here ever lowers Humanoid health.
 
@@ -29,8 +26,8 @@ type Session = World.Session
 
 --[[
 	What a line handler (PvpService.registerLine) receives. It validates its own geometry (reach, aim) and
-	applies the effect; PvpService has already checked the flag, ownership, equipped item, cooldown and the
-	new-player shield (both sides, PvpRules.canTarget). Return (true) to spend the tool's cooldown,
+	applies the effect; PvpService has already checked the flag, ownership, equipped item and cooldown
+	(PvpRules.canTarget). Return (true) to spend the tool's cooldown,
 	(true, nil, seconds) for another cooldown (0 = none: a Squirter shot inside its tank), (false, reason) to refuse
 	without starting one.
 ]]
@@ -82,7 +79,7 @@ local PvpService = {}
 
 local states: { [Session]: PvpRules.State } = setmetatable({}, { __mode = "k" }) :: any
 -- Per-session bookkeeping that is not part of PvpRules.State (also never saved).
-type Extra = { equipped: string?, shieldSent: number | boolean }
+type Extra = { equipped: string? }
 local extras: { [Session]: Extra } = setmetatable({}, { __mode = "k" }) :: any
 local handlers: { [string]: LineHandler? } = {}
 -- Everything PvP puts in Workspace is tracked here and destroyed by `cleanup` (CONTRACT.md §26.1, zero net parts).
@@ -93,6 +90,15 @@ local cleanupHooks: { (world: World.World, session: Session) -> () } = {}
 
 function PvpService.onCleanup(hook: (world: World.World, session: Session) -> ())
 	table.insert(cleanupHooks, hook)
+end
+
+-- Called on every join with the flag on (after the session's PvP state exists): a line catches the joiner up.
+local joinHooks: { (world: World.World, session: Session, now: number) -> () } = {}
+
+function PvpService.onJoin(hook: (world: World.World, session: Session, now: number) -> ())
+	if not table.find(joinHooks, hook) then
+		table.insert(joinHooks, hook)
+	end
 end
 
 -- Queues a PvpEvent for `target` (nil = every client). The adapter stamps serverTime when `now` is nil.
@@ -151,13 +157,21 @@ function PvpService.fireEffect(world: World.World, payload: { [string]: any }, n
 end
 
 -- kind = "TrapPlaced" | "TrapCleared"; payload { owner, trapId, itemId, position }. No-op with the flag off.
-function PvpService.fireTrap(world: World.World, kind: string, payload: { [string]: any }, now: number?, flag: boolean?)
+-- `target` = one userId (a replay to a joiner), nil = every client.
+function PvpService.fireTrap(
+	world: World.World,
+	kind: string,
+	payload: { [string]: any },
+	now: number?,
+	flag: boolean?,
+	target: number?
+)
 	if not PvpRules.enabled(flag) then
 		return
 	end
 	local event = table.clone(payload)
 	event.kind = kind
-	send(world, nil, event, now)
+	send(world, target, event, now)
 end
 
 function PvpService.enabled(override: boolean?): boolean
@@ -169,15 +183,9 @@ function PvpService.state(session: Session): PvpRules.State?
 	return states[session]
 end
 
-local function start(session: Session, now: number)
-	local state = PvpRules.newState()
-	state.joinedAt = now
-	extras[session] = { equipped = nil, shieldSent = false }
-	local ends = PvpRules.shieldEnd(session.data.pvp.played, now)
-	if ends > 0 then
-		state.shieldUntil = math.max(ends, session.lockUntil) -- covers the join lock
-	end
-	states[session] = state
+local function start(session: Session)
+	extras[session] = { equipped = nil }
+	states[session] = PvpRules.newState()
 end
 
 -- Called by Sessions.join. `flag` overrides FEATURES.PvP (tests).
@@ -188,43 +196,19 @@ function PvpService.join(world: World.World, session: Session, now: number, flag
 		PvpService.cleanup(world, session)
 		return
 	end
-	start(session, now)
-end
-
--- Whether the session's player is under the new-player shield now.
-function PvpService.isShielded(session: Session, now: number): boolean
-	return PvpRules.isShielded(states[session], now)
-end
-
--- Shield end for the player attribute (Constants.PVP_SHIELD_ATTRIBUTE): nil when not shielded or the flag is off.
-function PvpService.shieldUntil(session: Session, now: number): number?
-	local state = states[session]
-	if state and PvpRules.isShielded(state, now) then
-		return state.shieldUntil
+	start(session)
+	for _, hook in joinHooks do
+		hook(world, session, now)
 	end
-	return nil
 end
 
--- Stealing a slime ends the shield for good.
-function PvpService.onSteal(session: Session, now: number)
-	local state = states[session]
-	if not state or not PvpRules.isShielded(state, now) then
-		return
-	end
-	state.shieldUntil = 0
-	session.data.pvp.played = Config.PVP.NEW_PLAYER_SHIELD_SECONDS
-	World.markDirty(session)
-end
-
--- Called by Sessions.leave before the save: play time counts towards the shield.
-function PvpService.leave(world: World.World, session: Session, now: number)
+-- Called by Sessions.leave before the save.
+function PvpService.leave(world: World.World, session: Session, _now: number)
 	local state = states[session]
 	if not state then
 		PvpService.cleanup(world, session)
 		return
 	end
-	local pvp = session.data.pvp
-	pvp.played = math.clamp(pvp.played + math.max(0, now - state.joinedAt), 0, Config.PVP.NEW_PLAYER_SHIELD_SECONDS)
 	states[session] = nil
 	extras[session] = nil
 	PvpSlow.clear(session)
@@ -259,7 +243,7 @@ local function runtime(session: Session, flag: boolean?): (PvpRules.State?, Extr
 		return nil, nil
 	end
 	if not states[session] then -- flag forced on by a test after join
-		start(session, 0)
+		start(session)
 	end
 	return states[session], extras[session]
 end
@@ -294,8 +278,8 @@ end
 
 --[[
 	UsePvpItem. Order: flag, item exists, equipped, line handler present ("Coming soon" starts no cooldown),
-	cooldown, the new-player shield on either side (PvpRules.canTarget for a targeted or cosmetic use; an aimed
-	non-cosmetic use checks the attacker's shield here), then the line handler. Only a handler success marks the
+	cooldown, PvpRules.canTarget for a targeted or cosmetic use (an aimed use leaves the rest to the handler),
+	then the line handler. Only a handler success marks the
 	cooldown (the handler may set its length, 0 = none) and sends the "Cooldown" PvpEvent. A use that spent the
 	item's last trap charge unequips it.
 ]]
@@ -354,8 +338,6 @@ function PvpService.use(
 		if not ok then
 			return false, reason
 		end
-	elseif PvpRules.isShielded(state, now) then -- aimed / placed items: the handler checks the rest
-		return false, "your new-player shield is on"
 	end
 	local used, why, cooldown = handler({
 		world = world,
@@ -388,20 +370,6 @@ function PvpService.use(
 		startedAt = now,
 	}, now)
 	return true, nil
-end
-
--- Per-player server tick (called from WorldView.updatePlayer, no loop of its own): sends Shield changes.
--- `_position` = the character's root position, nil without a character. No-op with the flag off.
-function PvpService.tick(world: World.World, session: Session, _position: any, now: number)
-	local extra = extras[session]
-	if not extra then
-		return
-	end
-	local shield = PvpService.shieldUntil(session, now)
-	if extra.shieldSent ~= (shield or false) then
-		extra.shieldSent = shield or false
-		send(world, session.userId, { kind = "Shield", endsAt = shield }, now)
-	end
 end
 
 -- State.pvp (CONTRACT.md §26.1): nil with the flag off.
@@ -443,7 +411,6 @@ function PvpService.view(session: Session, now: number): Types.PvpView?
 		best = best,
 		equipped = extra.equipped,
 		cooldowns = cooldowns,
-		shieldUntil = PvpService.shieldUntil(session, now),
 		charges = charges,
 	}
 end

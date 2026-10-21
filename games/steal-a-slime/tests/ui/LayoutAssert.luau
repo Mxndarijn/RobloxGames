@@ -7,7 +7,7 @@
 
 		local check = LayoutAssert.new("390x844 collapsed", screen)
 		check.onScreen("Nav", screen.nav)
-		check.touch("Nav.Plot", screen.navButtons[1])
+		check.touch("Nav.Rebirth", screen.navButtons[1])
 		check.text({ name = "Label", text = "SlimeDex", size = 14, bold = true, w = 78, h = 18 })
 		expect(check.report()).toBe("")
 
@@ -249,7 +249,7 @@ LayoutAssert.BIG_STATE = table.freeze({
 	padsMax = Config.PADS_MAX,
 	nextPadCost = 987.6e12,
 	lockCost = 987.6e12,
-	lockDuration = Config.LOCK_SECONDS + Config.MAX_REBIRTHS * Config.LOCK_SECONDS_PER_REBIRTH,
+	lockDuration = Config.LOCK_MAX_REMAINING,
 	lockUntil = 100 + Config.LOCK_MAX_REMAINING / 2,
 	slimes = {},
 	daily = { available = true, streak = Config.DAILY_STREAK_CAP or 7, amount = 987.6e12 },
@@ -726,7 +726,6 @@ end
 -- Panel titles as Widgets.panel shows them (Panels/*.luau), per menu key
 -- (the Nav keys plus the Guide card, which has no nav button).
 LayoutAssert.PANEL_TITLES = table.freeze({
-	Plot = "My Plot",
 	Merge = "Merge Vat",
 	Shop = "Shop",
 	Rebirth = "Rebirth", -- built with this; the open card shows "Rebirth 50" at most (rebirthTexts)
@@ -907,7 +906,7 @@ function LayoutAssert.navBadges(check: Checker)
 		local b = check.screen.navButtons[i]
 		local tile = Layout.navTile(check.screen.compact, b)
 		local label = Layout.rect(b.x, tile.y + tile.h, b.w, b.h - tile.h)
-		for _, text in { "!", "$", "100%" } do
+		for _, text in { "!" } do
 			local name = `Nav.{entry.key} badge "{text}"`
 			local r = Layout.navBadge(b, text)
 			check.inside(name, r, `Nav.{entry.key}`, b)

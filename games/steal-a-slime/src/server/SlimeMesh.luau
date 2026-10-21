@@ -160,6 +160,7 @@ local REPLACED_PREFIXES = {
 	"Stripe",
 	"Belly",
 	"Leaf",
+	"Sprout",
 	"Horn",
 	"Crown",
 	"Halo",
