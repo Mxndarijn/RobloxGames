@@ -735,7 +735,7 @@ local Config = {
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = SPAWN_INTERVAL,
-	MAX_WILD_SLIMES = 72,
+	MAX_WILD_SLIMES = 144,
 	SLIME_MOVE_SPEED_MULT = SLIME_MOVE_SPEED_MULT,
 	WILD_BASE_LIFETIME = WILD_BASE_LIFETIME,
 	WILD_LIFETIME = math.round(WILD_BASE_LIFETIME / SLIME_MOVE_SPEED_MULT), -- 115: walk + hop slower, drain still at expiry
