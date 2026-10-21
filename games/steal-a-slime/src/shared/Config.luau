@@ -846,6 +846,9 @@ local Config = {
 		NIGHT_ONESHOT_MIN_LEVEL = 0.9, -- calls only once the night has (nearly) faded in
 	}),
 
+	-- A slime being stolen leaves a see-through copy on its pad until the steal ends (server/StealGhost).
+	STEAL_GHOST_TRANSPARENCY = 0.6,
+
 	-- Full steal alerts (FEATURES.StealAlerts, StealAlert / ui/StealAlertFx). Client timings in seconds.
 	STEAL_ALERT = table.freeze({
 		FLASH_SECONDS = 1.2, -- red screen-edge flash when a theft starts

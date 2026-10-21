@@ -17,7 +17,6 @@
 	  * night sky (NightSky): Sky + Atmosphere, night look on ClockTime
 	  * follow pets (FollowPets) for the Player attribute PetSlimeId
 	  * despawn warning (DespawnTelegraphFx) on wild slimes with DespawnAt
-	  * thief plots (ThiefPlotFx): red highlight on the plots in the local Player attribute ThiefPlots
 	  * fountain tiers (FountainTierFx, FEATURES.FountainTiers): goo glow from the workspace attribute FountainTier
 	  * weather (WeatherFx, FEATURES.Weather): Rain / Snow / Starfall emitters + tint from the workspace attribute Weather
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
@@ -502,14 +501,6 @@ do
 	end)
 	if not ok then
 		warn(`[VisualsClient] despawn telegraph disabled: {err}`)
-	end
-end
-do
-	local ok, err = pcall(function()
-		require(script:WaitForChild("ThiefPlotFx")).start()
-	end)
-	if not ok then
-		warn(`[VisualsClient] thief plot highlight disabled: {err}`)
 	end
 end
 local homePlotMarker = nil
