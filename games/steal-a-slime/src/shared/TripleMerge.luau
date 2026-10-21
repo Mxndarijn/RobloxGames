@@ -68,15 +68,15 @@ function TripleMerge.odds(tier: number): Odds
 	}
 end
 
--- The recipe context of a player's save: families their rank opened, species they have found.
+-- The recipe context of a player's save: every species, and the ones they have found.
 function TripleMerge.ctxFor(data: PlayerData.Data): MergeRecipes.Ctx
 	return {
-		unlocked = MergeRecipes.unlockedFor(data.rebirths),
+		unlocked = MergeRecipes.everySpecies,
 		found = MergeRecipes.foundOf(data.slimes, (data :: any).found),
 	}
 end
 
-local CLASSIC_ONLY: MergeRecipes.Ctx = { unlocked = MergeRecipes.unlockedFor(0) }
+local CLASSIC_ONLY: MergeRecipes.Ctx = { unlocked = MergeRecipes.classicOnly }
 
 local function pickSpecies(list: { string }, roll: number): string?
 	if #list == 0 then

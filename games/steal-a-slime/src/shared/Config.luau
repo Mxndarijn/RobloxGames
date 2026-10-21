@@ -33,7 +33,7 @@ export type RebirthTier = {
 	unlock: string?, -- upgrade id this rank unlocks (also Config.UPGRADES[i].requires)
 	keep: number?, -- slimes kept on rebirth
 	income: number?, -- income bonus (0.25 = +25 %)
-	family: string?, -- FountainTiers family id this rank opens (FEATURES.FountainTiers; FountainTiers.FAMILIES)
+	family: string?, -- FountainTiers family id: this rank grows the fountain into its look (FEATURES.FountainTiers; FountainTiers.FAMILIES)
 }
 
 export type Upgrade = {
@@ -796,7 +796,7 @@ local Config = {
 		WeeklyEvents = true, -- a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no event, no attribute
 		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)
 		SlidePCD = true, -- the slide as a real collision mesh: MeshSwap makes fountain_split_slide PreciseConvexDecomposition (needs FountainSplit) and, once it is placed, FountainColliders drops the SlideColliders Post / Brace boxes it replaces; the floor slabs (the walk surface), rails and Skirt stay (docs/COLLISION.md); false = decor slide and every box
-		FountainTiers = true, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
+		FountainTiers = true, -- v19: the central fountain's look upgrades with the server's best rank (FountainTiers glow) and every slime family drops from it on every server, with no rank needed to catch one; false = one Meadow fountain, Classic drops only (needs frame review)
 		MergeVat3 = true, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Consumables = true, -- restocking Shop section: luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
 		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
