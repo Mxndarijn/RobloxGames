@@ -39,6 +39,7 @@ local function instance(className: string, name: string): any
 		ClassName = className,
 		children = {},
 		DescendantAdded = signal(),
+		ChildAdded = signal(),
 		AncestryChanged = signal(),
 		Triggered = signal(),
 		destroyed = false,
@@ -322,5 +323,30 @@ describe("SlimeKeys", function()
 		expect(again ~= nil).toBe(true)
 		keys.destroy()
 		expect(again.destroyed).toBe(true)
+	end)
+
+	it("gives the server's HatchPrompt the card style, so a ready egg's Hatch joins the card", function()
+		local root = instance("Workspace", "Workspace")
+		local model, body = slime("e", ME, "Pad", true)
+		local hatch = instance("ProximityPrompt", "HatchPrompt")
+		hatch.Style = "Default"
+		hatch.Parent = body
+		parent(root, model, root)
+		SlimeKeys.start({
+			root = root,
+			localUserId = ME,
+			newPrompt = function(): any
+				return instance("ProximityPrompt", "ProximityPrompt")
+			end,
+			favoriteKey = { keyboard = "R" :: any, gamepad = "DPadUp" :: any },
+			sellKey = { keyboard = "X" :: any, gamepad = "DPadDown" :: any },
+			distance = 10,
+			holdSeconds = 0.8,
+			formatCash = cash,
+			send = function() end,
+			style = "Custom" :: any,
+		})
+		expect(hatch.Style).toBe("Custom")
+		expect(sell(body).Style).toBe("Custom")
 	end)
 end)

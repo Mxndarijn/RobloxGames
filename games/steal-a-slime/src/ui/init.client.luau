@@ -55,6 +55,7 @@ local PopupQueue = require(script.PopupQueue)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
 local SlimeInfoCard = require(script.SlimeInfoCard)
+local SlimeKeyCard = require(script.SlimeKeyCard)
 local SlimeKeys = require(script.SlimeKeys)
 local SlimeMove = require(script.SlimeMove)
 local SoundController = require(script.SoundController)
@@ -804,8 +805,16 @@ local slimeKeys = SlimeKeys.start({
 	holdSeconds = Config.HOLD_CONFIRM_SECONDS,
 	formatCash = Format.formatCash,
 	send = send,
+	style = Enum.ProximityPromptStyle.Custom,
 	moveKey = if slimeMove then { keyboard = Enum.KeyCode.E, gamepad = Enum.KeyCode.ButtonX } else nil,
 	onMove = if slimeMove then slimeMove.start else nil,
+})
+
+-- One card over the slime draws those prompts (they use the Custom style), instead of three stacked bubbles.
+SlimeKeyCard.start({
+	prompts = ProximityPromptService,
+	playerGui = player:WaitForChild("PlayerGui"),
+	tweens = game:GetService("TweenService"),
 })
 
 -- World shops (FEATURES.WorldShops, CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
