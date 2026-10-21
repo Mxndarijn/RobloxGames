@@ -99,7 +99,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - On join, the plot is locked for `JOIN_LOCK_SECONDS` (45).
   - `Request("Lock")` buys `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s; one purchase and the stacked lock are both capped at `LOCK_MAX_REMAINING` (3 min) (`Steal.lockDuration`, `Steal.buyLock`). Locks are bought only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button; under `WorldShopsStrict` the HUD button needs the player at their lock pad). No shop sells locks or longer locks.
   - Stealing pings the owner (Notify `"bad"` plus `SlimeView.stolenBy`).
-  - **Escape home:** each second the slime may wriggle free (`Steal.shouldEscape`). At `escapeAt` it always escapes, after 15–25 s depending on rarity. It also escapes when the carrier is slapped (`Request("Slap")`). An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
+  - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is slapped (Bat or a PvP knockback), drops it, dies / respawns or leaves. While it is carried the thief sees it see-through (client-only `ui/CarryFade`, the Move fade). An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
   - If the thief reaches their own `HomeZone` first, `Steal.complete` moves the slime to the thief.
 - **Rebirth:** `Progression.rebirth` wipes cash and slimes but keeps the favourite (or the best slime). It adds +`REBIRTH_MULTIPLIER_STEP` income and +10 s lock.
 - **DataStore:**
@@ -252,7 +252,7 @@ The client always replaces its copy and never diffs.
 	favoriteId: string?,
 	lockUntil: number, lockCost: number, lockDuration: number,
 	carrying: { slime: SlimeData, kind: "wild" | "stolen", ownerUserId: number?,
-	            startedAt: number, escapeAt: number?, walkSpeed: number }?,
+	            startedAt: number, walkSpeed: number }?,
 	rain: { active: boolean, endsAt: number?, nextAt: number? },
 	dex: DexView,                               -- species Dex (§36.4)
 	daily: { available: boolean, streak: number, amount: number, day: number },
@@ -291,7 +291,7 @@ The client always replaces its copy and never diffs.
   - Owner side: `src/ui/SlimeKeys` adds two **client-only** ProximityPrompts on the Body of every slime model whose `OwnerUserId` is the local player and `State` is `"Pad"`: `FavoritePrompt` (R, gamepad DPadUp, tap: "Favorite" / "Unfavorite", sends `Favorite(slimeId)` / `Favorite(nil)`; the favourite's prompt shows `State.petPerk`; none on Mystery Eggs, models with `EggKind`) and `SellPrompt` (X, gamepad DPadDown, hold `HOLD_CONFIRM_SECONDS`: "Sell $price" from `State.slimes[i].sellPrice`, sends `Sell(slimeId)`). Hatch stays the server's `HatchPrompt` (F). E is left free on owned pad slimes. The server never creates or sees these prompts; there is no slime card and no Plot nav button.
   - `FEATURES.MoveSlime`: SlimeKeys also adds `MovePrompt` (E, gamepad ButtonX, tap, "Move") to those slimes. It starts client-only move mode (`src/ui/SlimeMove`): the slime turns see-through for this player, a see-through copy sits on the target pad (the pad under the mouse or tap, else the unlocked pad nearest the character), the pad is tinted green (empty), yellow (swap) or red (locked). Click / tap a pad, E or gamepad ButtonX sends `MoveSlime(slimeId, pad)`; Q, gamepad ButtonB, the Cancel button, leaving the home zone or the slime leaving its pad cancels. Every ProximityPrompt is off for this player while moving.
   - These SlimeKeys prompts use `ProximityPromptStyle.Custom`: `src/ui/SlimeKeyCard` draws one card over the slime (its name, the favourite's perk, one row per shown prompt with its key, a fill while a hold prompt is held) instead of Roblox's stacked bubbles. A click or tap on a row holds that prompt.
-- **Player:** `Carrying: string?` (`Constants.CARRYING_ATTRIBUTE`). The carried slime's id, set on pickup (grab or steal). Cleared (nil) on drop, deposit, a failed steal (wriggle, timeout or slap escape; the owner leaving), death / respawn and leave. A full plot doesn't clear it: the slime stays in your arms. The server derives it from `Carry.carryingId` after every action and every tick.
+- **Player:** `Carrying: string?` (`Constants.CARRYING_ATTRIBUTE`). The carried slime's id, set on pickup (grab or steal). Cleared (nil) on drop, deposit, a failed steal (slap escape; the owner leaving), death / respawn and leave. A full plot doesn't clear it: the slime stays in your arms. The server derives it from `Carry.carryingId` after every action and every tick.
 - **`workspace`:**
   - `SlimeRain: boolean` (`Constants.RAIN_ATTRIBUTE`): `true` during Slime Rain, `false` otherwise (set at server start). VisualsClient keys its rain particles off it.
   - `DataStoreStatus: string` (`Constants.DATASTORE_STATUS_ATTRIBUTE`): `"Ok" | "Memory" | "Unavailable" | "Error"`, see §2 Persistence.
@@ -346,8 +346,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | Key | Value | Design source |
 |---|---|---|
 | `JOIN_LOCK_SECONDS` / `LOCK_SECONDS` / `LOCK_SECONDS_PER_REBIRTH` | 45 / 60 / 10 | "45 s on join, then a 60 s lock button, +10 s per rebirth" |
-| `RARITIES[i].escapeTime` | 25, 23, 21, 19, 17, 15 | "15–25 s by rarity" |
-| `RARITIES[i].carrySlow` (+`STOLEN_EXTRA_SLOW` ramp, max `MAX_CARRY_SLOW`) | 0.05…0.30 (+0.25, ≤0.6) | "slows the carrier more the rarer it is" |
+| `RARITIES[i].carrySlow` (max `MAX_CARRY_SLOW`) | 0.05…0.35 (≤0.6) | "slows the carrier more the rarer it is" |
 | `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × growth |
 | `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 5 | "every hour … for 3 minutes" |
 | `PADS_START` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 8 | MVP "8 pads" |
