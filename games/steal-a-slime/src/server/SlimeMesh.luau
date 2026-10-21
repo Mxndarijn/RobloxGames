@@ -5,6 +5,8 @@
 	SlimeMesh.new({ factory, loadAsset, assetId?, warn? }) -> SlimeMesh
 	SlimeMesh.load(self) -> "Mesh" | "Procedural"   -- once, at server start
 	SlimeMesh.build(self, slimeData) -> Model        -- same contract as ModelFactory.build
+	SlimeMesh.pendingKit(self, slimeData) -> string? -- its species kit, while that is still loading
+	SlimeMesh.hasKit(self, kit) -> boolean
 
 	load() fetches the uploaded slime package (default Config.SLIME_MESH_ASSET_ID)
 	through `loadAsset` (InsertService:LoadAsset in a live server) inside a pcall
@@ -27,7 +29,9 @@
 	(isReplacedPart); the aura / glow shells wrap it;
 	it is worn at size-1 scale x the slime's size, placed from the bottom centre,
 	and keeps its Bones. A kit that fails to load or dress falls back to the
-	shared package mesh, then to the procedural ball. Kits are cloned per slime,
+	shared package mesh, then to the procedural ball. A slime built while its kit is
+	still loading wears the shared mesh too; pendingKit names that kit so the caller
+	can rebuild the slime once hasKit says it arrived. Kits are cloned per slime,
 	so they are not world mesh slots (WorldLayout.MESH_SLOT_BUDGET counts
 	MeshAsset tags only).
 
@@ -57,6 +61,7 @@ export type SlimeMesh = {
 	deps: Deps,
 	template: MeshPart?,
 	kits: { [string]: MeshPart },
+	failedKits: { [string]: boolean }, -- kits whose fetch failed: they never arrive
 	look: Look,
 }
 
@@ -65,7 +70,7 @@ local SlimeMesh = {}
 SlimeMesh.MESH_NAME = "Mesh"
 
 function SlimeMesh.new(deps: Deps): SlimeMesh
-	return { deps = deps, template = nil, kits = {}, look = "Procedural" }
+	return { deps = deps, template = nil, kits = {}, failedKits = {}, look = "Procedural" }
 end
 
 local function report(self: SlimeMesh, message: string)
@@ -117,6 +122,7 @@ function SlimeMesh.load(self: SlimeMesh): Look
 					self.deps.onKit(kit, kitMesh)
 				end
 			else
+				self.failedKits[kit] = true
 				table.insert(failed, kit)
 			end
 			pending -= 1
@@ -330,6 +336,21 @@ function SlimeMesh.build(self: SlimeMesh, slimeData: Types.SlimeData): Model
 		model = self.deps.factory.build(slimeData)
 	end
 	return finish(self, model, slimeData)
+end
+
+-- The species kit `slimeData` wears once it has loaded, while it is still loading; nil when it is in, failed or
+-- the slime has no kit. A slime built while this is set wears the shared mesh: rebuild it once hasKit(kit).
+function SlimeMesh.pendingKit(self: SlimeMesh, slimeData: Types.SlimeData): string?
+	local look = SlimeLooks.get(slimeData.species)
+	local kit = look and look.kit
+	if kit and not self.kits[kit] and not self.failedKits[kit] then
+		return kit
+	end
+	return nil
+end
+
+function SlimeMesh.hasKit(self: SlimeMesh, kit: string): boolean
+	return self.kits[kit] ~= nil
 end
 
 return SlimeMesh
