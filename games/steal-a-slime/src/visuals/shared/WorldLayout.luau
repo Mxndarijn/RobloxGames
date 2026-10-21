@@ -215,21 +215,19 @@ WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the 
 WorldLayout.NAME_BOARD = table.freeze({ width = 9, height = 2.4, y = 10.7 }) -- above the LockSign, on its post
 WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
 -- Jar 1's door is a round plank door on two hinges on its left (-X). Locked, it sits shut in the doorway (StopperShut);
--- open, it swings DOOR_SWING.angle degrees out of the jar round its hinge pin (StopperParked), folded back towards
--- the glass so its far edge stays on the plot (a 90 degree swing would reach past the plot's edge). hinge = the pin's
+-- open, it swings DOOR_SWING.angle degrees out of the jar round its hinge pin (StopperParked): past square, so it
+-- leans back over the moat on the hinge side and its far edge stays about a stud inside the plot's edge (a 90
+-- degree swing would reach past it; much more than 130 runs it into the glass and the rebirth banner). hinge = the pin's
 -- plot x and its z offset from the shut door's inner face (the door is 1 stud thick, the pin in its middle).
 WorldLayout.DOOR_SWING = table.freeze({ hinge = { -4.75, -0.5 }, angle = 130 })
 WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
 WorldLayout.TROPHY_SPOTS = table.freeze({ { -31, 31 }, { 31, 31 }, { -31, -31 } })
--- The plot SlimeDex board skins the two-sided phoenix_top_earners_board at
--- DEX_SCALE (14.8 x 14 x 2.9, about the gate's height). DEX_FACE = its front
--- cream panel at native size, measured on out/phoenix_top_earners_board.fbx
--- in the mesh's own frame (front +Z): centre x off the box centre, centre y
--- up from the bottom, front face z ahead of the box centre. The DexBoard
--- parts are laid out on that panel at DEX_CONTENT_SCALE of their old size.
-WorldLayout.DEX_MESH = "phoenix_top_earners_board"
-WorldLayout.DEX_SCALE = 0.7
-WorldLayout.DEX_CONTENT_SCALE = 0.6
+-- DEX_FACE = the front cream panel of phoenix_top_earners_board (the plaza
+-- Top Earners board's skin) at native size, measured on
+-- out/phoenix_top_earners_board.fbx in the mesh's own frame (front +Z): centre
+-- x off the box centre, centre y up from the bottom, front face z ahead of the
+-- box centre. (Named for the plot SlimeDex board that used to wear the same
+-- mesh; Props / PropMesh.spec still lay the board's text out on it.)
 WorldLayout.DEX_FACE = table.freeze({ x = -0.35, y = 11.53, front = 0.4, width = 12.9, height = 11.5 })
 -- The plaza ShopStand skins ranch_shop_stand at BUY_STAND_SCALE (9.6 x
 -- 11.3 x 6, about the old primitive stand). BUY_STAND_FACE = its butter SHOP
@@ -1156,9 +1154,10 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	return nodes
 end
 
--- Pad_<j> on its floor: the Pad stays the gameplay surface (collision, prompt, slimes rest on its top) from the
--- floor up to the stand's seat; the stand mesh sits on the floor at native size and the Pad hides under it once it
--- lands.
+-- Pad_<j> on its floor: the Pad stays the gameplay part (prompt, slimes rest on its top, raycasts) from the floor up
+-- to the stand's seat, but it doesn't collide: a round PadCollider (the dish's diameter, the same height) is what
+-- players walk into and stand on, so the stand collides as round as it looks. The stand mesh sits on the floor at
+-- native size and the Pad hides under it once it lands.
 local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): WorldNode
 	local x, z = WorldLayout.padOffset(j)
 	local y = WorldLayout.floorTop(WorldLayout.padFloor(j))
@@ -1168,9 +1167,17 @@ local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): Wo
 	local ps = WorldLayout.PAD_SIZE
 	local pad = block(`Pad_{j}`, { ps, seat, ps }, at({ x, y + seat / 2, z }), color, "SmoothPlastic", turn)
 	pad.attributes = { PadIndex = j }
+	pad.canCollide = false
 	standIn(pad, look)
 	local stand = meshSize(look, 1)
-	pad.children = { meshSlot(block("Stand", stand, at({ x, y + stand[2] / 2, z }), color, nil, turn), look, true) }
+	local collider =
+		disc("PadCollider", seat, 2 * WorldLayout.PAD_DECK.half, at({ x, y + seat / 2, z }), color, nil, yaw)
+	collider.transparency = 1
+	collider.canTouch = false
+	pad.children = {
+		meshSlot(block("Stand", stand, at({ x, y + stand[2] / 2, z }), color, nil, turn), look, true),
+		collider,
+	}
 	return pad
 end
 

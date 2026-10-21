@@ -185,8 +185,9 @@ local overlayEntry = meshAssets.entries.habitat_crystal_grotto_overlay
 local replicated = rt.game:GetService("ReplicatedStorage")
 local deck = rt:require(replicated.Visuals.WorldLayout).PAD_DECK
 local deckY = deck.y
--- One strip of the placeholder's octagon ring at full size (HabitatFx: FRAME_SIDES 8 round the rim band).
-local FRAME_LEN = (deck.half + deck.matHalf + deck.half - deck.matHalf) * math.tan(math.pi / 8)
+-- One strip of the placeholder's octagon ring at full size: the octagon's side at the dish edge (HabitatFx's
+-- FRAME_SIDES 8 strips reach out to deck.half).
+local FRAME_LEN = 2 * deck.half * math.tan(math.pi / 8)
 overlayEntry.meshId = "rbxassetid://123"
 part:SetAttribute("Habitat", "crystal_grotto")
 local meshConns = HabitatFx.attach(plots)

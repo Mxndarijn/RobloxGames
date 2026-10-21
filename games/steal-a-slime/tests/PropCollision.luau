@@ -716,7 +716,16 @@ mesh(
 	"mesh off, slot off",
 	"the cork button post; the Pedestal under it collides"
 )
-parts("plot_pads", "gojo", 64, "colliders", "Plots", { "^Pad_%d+$" }, "on", "the pad is the stand-on surface")
+parts(
+	"plot_pads",
+	"gojo",
+	64,
+	"colliders",
+	"Plots",
+	{ "^PadCollider$" },
+	"on",
+	"the round collider under each cork stand is the stand-on surface (the Pad box itself is off)"
+)
 parts(
 	"plot_base",
 	"gojo",

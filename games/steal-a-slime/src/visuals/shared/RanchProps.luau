@@ -146,8 +146,8 @@ polar("Planter", "ranch_flower_planter", "plaza", 56, 90, 180, 1.2)
 -- Entrances --------------------------------------------------------------
 -- A mailbox by the gate on every
 -- plot (v29 B2: odd plots used to get a lantern instead, so half the plots had
--- no mailbox). One each a plot paid for the plot DexBoard meshes
--- (the old decor slot cap, C6); the lanterns' slots became the odd plots' mailboxes,
+-- no mailbox). One each a plot paid for the old plot DexBoard meshes
+-- (the old decor slot cap, C6; the board is gone since the goo jar tower); the lanterns' slots became the odd plots' mailboxes,
 -- so the budget is unchanged. The mailbox door (kit front) faces the spoke path
 -- (plot-local x 0): yaw 270 = front towards plot -X. ENTRANCE_PATH_YAW keeps the
 -- lantern's old yaw for when it gets a slot again.

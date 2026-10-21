@@ -16,7 +16,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 type Counts = {
 	props: number,
 	pads: number,
-	dex: number, -- plot DexBoard skins (in other)
+	dex: number, -- plot DexMesh slots (in other): none since the plot SlimeDex board went
 	buy: number, -- plot BuyStand skins (in other)
 	border: number,
 	other: number,

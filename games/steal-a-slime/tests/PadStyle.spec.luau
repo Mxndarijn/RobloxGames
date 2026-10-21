@@ -71,7 +71,7 @@ describe("PadStyle (v17)", function()
 		expect(freedMat).toBe("SmoothPlastic")
 	end)
 
-	it("adds no parts: the pad stays one Pad + one Stand with the same size", function()
+	it("adds no parts: the pad stays one Pad + its Stand and round PadCollider, the same size", function()
 		local plots = WorldLayout.build()
 		local count, pads = 0, 0
 		local function walk(nodes: { WorldLayout.WorldNode }?)
@@ -86,6 +86,6 @@ describe("PadStyle (v17)", function()
 		end
 		walk(plots)
 		expect(pads > 0).toBe(true)
-		expect(count).toBe(pads)
+		expect(count).toBe(2 * pads)
 	end)
 end)

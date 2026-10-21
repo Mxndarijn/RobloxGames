@@ -398,7 +398,7 @@ local PLOT_MESHES = {
 	goo_drop_tube_goo_3 = false, -- goo jar tower look, the primitives under it collide
 	goo_drop_tube_goo_4 = false, -- goo jar tower look, the primitives under it collide
 	phoenix_pad_crate = false, -- Pad_<j> (8 x 2.4 x 8, solid) is the surface
-	phoenix_top_earners_board = false, -- shared with the world board (own Collider); the plot DexMesh slot box collides
+	phoenix_top_earners_board = false, -- the plaza Top Earners board's skin (the board keeps its own Collider)
 }
 
 describe("plot-level collision", function()
@@ -455,11 +455,15 @@ describe("plot-level collision", function()
 	it("the pads, pedestal, bridge, sign and the jar's glass, lintel and lid are solid; its moat is decor", function()
 		for _, plot in plots do
 			local n = byName(plot)
-			for _, name in { "Pad_1", "Pad_8", "Pedestal", "Bridge", "Sign" } do
+			for _, name in { "PadCollider", "Pedestal", "Bridge", "Sign" } do
 				expect(n[name].canCollide ~= false).toBe(true)
 			end
 			-- pads stay steppable: flat and low
 			expect(n.Pad_1.size[2] <= 3).toBe(true)
+			-- the pad box itself doesn't collide: its round collider (the dish's diameter) does
+			expect(n.Pad_1.canCollide).toBe(false)
+			expect(n.PadCollider.shape).toBe("Cylinder")
+			expect(n.PadCollider.size[2]).toBeCloseTo(2 * WorldLayout.PAD_DECK.half)
 			local walls, lintel, lid = 0, 0, 0
 			for _, part in n.Jar.children do
 				expect(part.canCollide ~= false).toBe(true)

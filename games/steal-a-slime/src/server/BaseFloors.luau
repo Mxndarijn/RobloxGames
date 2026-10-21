@@ -6,17 +6,20 @@
 	stands while Economy.floorsShown(padsUnlocked) >= f (0 pads on a free plot), and goes when that stops (the owner
 	left). `ctx.build` adds a floor's instances (WorldBuilder.buildFloor), `ctx.meshes` gives their slots the kit
 	meshes (MeshSwap.applyUnder, run in its own thread because it yields). Removing a floor parks the BuyPadPrompt
-	on floor 1 first, so the prompt record never points at a destroyed pad. A jar's lid (parts with the JarLid
+	on floor 1 first, so the prompt record never points at a destroyed pad, and sets anyone standing in that jar
+	down on floor 1 (straight below, on the plot's Base) so nobody falls through the tower. A jar's lid (parts with the JarLid
 	attribute) is hidden and non-colliding while the jar above it stands. Each new jar's DropHatch gets the
 	DropPrompt (anyone; `ctx.drop` runs the rule, Actions.useDropTube). Holds no gameplay rules.
 ]]
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local Economy = require(ReplicatedStorage.Shared.Economy)
 local PlotLookup = require(script.Parent.PlotLookup)
+local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
 local BaseFloors = {}
 
@@ -53,7 +56,32 @@ local function addDropPrompts(instances: { Instance }, plotIndex: number, ctx: C
 	end
 end
 
+-- Characters standing in jar `floor` (above its deck, inside its glass) are set down on the plot's Base straight
+-- below, just before that jar goes.
+local function evacuate(plot: Instance, floor: number)
+	local base = plot:FindFirstChild("Base")
+	if not (base and base:IsA("BasePart")) then
+		return
+	end
+	local floorY = base.Position.Y + base.Size.Y / 2
+	local deckY = floorY + WorldLayout.floorTop(floor) - WorldLayout.floorTop(1)
+	local reach = WorldLayout.jarRadius(floor) + 1
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if root and root:IsA("BasePart") then
+			local p = base.CFrame:PointToObjectSpace(root.Position)
+			if root.Position.Y >= deckY - 1 and math.sqrt(p.X * p.X + p.Z * p.Z) <= reach then
+				local at = root.Position
+				character:PivotTo(CFrame.new(at.X, floorY + 3, at.Z) * root.CFrame.Rotation)
+				root.AssemblyLinearVelocity = Vector3.zero
+			end
+		end
+	end
+end
+
 local function removeFloor(plot: Instance, floor: number)
+	evacuate(plot, floor)
 	local park =
 		PlotLookup.byIndex(plot, Constants.PAD_INDEX_ATTRIBUTE, Config.PADS_START + 1, `Pad_{Config.PADS_START + 1}`)
 	for j = (floor - 1) * Config.PADS_PER_FLOOR + 1, floor * Config.PADS_PER_FLOOR do

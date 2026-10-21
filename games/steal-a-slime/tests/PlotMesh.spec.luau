@@ -1,7 +1,7 @@
 --!strict
 -- Plot kit meshes: MeshSwap fits a mesh to its slot box, so every slot must be
 -- the mesh's native size times one scale, turned with the plot. Also the plot
--- Sign (the jar's name label) and the DexBoard placement.
+-- Sign (the name board on the LockSign's post).
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -79,7 +79,7 @@ describe("kit mesh slots keep the mesh's proportions", function()
 			end
 		end)
 		expect(table.concat(bad, "; ")).toBe("")
-		-- every plot's PADS_PER_FLOOR stands and DexBoard, + plaza + decor
+		-- every plot's PADS_PER_FLOOR stands and jar looks, + plaza + decor
 		expect(checked >= Config.PLOT_COUNT * (Config.PADS_PER_FLOOR + 1)).toBe(true)
 	end)
 	it("gives the ranch hay bale behind the plots its native proportions", function()
@@ -136,10 +136,16 @@ describe("pad stands", function()
 				local h = (pad.size :: Vec)[2]
 				expect(p[2] - h / 2).toBeCloseTo(BASE_TOP)
 				expect(p[2] + h / 2).toBeCloseTo(BASE_TOP + seat)
-				-- the primitive Pad hides once its stand mesh lands (it keeps collision and the prompt)
+				-- the primitive Pad hides once its stand mesh lands (it keeps the prompt); its round PadCollider, the
+				-- same height, is what collides
 				expect((pad.attributes :: any).MeshStandIn).toBe(look)
 				expect((pad.attributes :: any).PadIndex).toBe(j)
-				expect(pad.canCollide ~= false).toBe(true)
+				expect(pad.canCollide).toBe(false)
+				local collider = child(pad, "PadCollider")
+				expect(collider.canCollide ~= false).toBe(true)
+				expect(collider.canQuery ~= false).toBe(true) -- ground raycasts land dropped slimes on it
+				local c = toPlot(i, collider.pos :: Vec)
+				expect(c[2] + (collider.size :: Vec)[1] / 2).toBeCloseTo(BASE_TOP + seat)
 			end
 		end
 	end)

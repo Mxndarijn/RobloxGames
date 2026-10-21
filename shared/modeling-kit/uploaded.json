@@ -628,15 +628,15 @@
   "habitat_barn_crate_overlay": {
     "assetId": "118838784104356",
     "assetType": "Model",
-    "meshId": "rbxassetid://120438117175901",
+    "meshId": "rbxassetid://121184718923861",
     "meshSize": [
       7.5,
-      2.537,
+      1.85,
       7.5
     ],
-    "sha256": "7a63549a5e48ac43",
-    "uploadedAt": "2026-10-21T17:35:02Z",
-    "versions": 2
+    "sha256": "eadb5982f57398d6",
+    "uploadedAt": "2026-10-21T18:20:57Z",
+    "versions": 3
   },
   "habitat_candy_patch": {
     "assetId": "133666024913667",
@@ -654,15 +654,15 @@
   "habitat_candy_patch_overlay": {
     "assetId": "127018298955173",
     "assetType": "Model",
-    "meshId": "rbxassetid://120688168513336",
+    "meshId": "rbxassetid://100478183132156",
     "meshSize": [
-      7.5,
-      2.55,
+      7.521,
+      1.722,
       7.5
     ],
-    "sha256": "813180cd048f9563",
-    "uploadedAt": "2026-10-21T17:35:08Z",
-    "versions": 2
+    "sha256": "0d0652ffb0036664",
+    "uploadedAt": "2026-10-21T18:21:04Z",
+    "versions": 3
   },
   "habitat_crystal_grotto": {
     "assetId": "109901060316213",
@@ -680,15 +680,15 @@
   "habitat_crystal_grotto_overlay": {
     "assetId": "108153474046130",
     "assetType": "Model",
-    "meshId": "rbxassetid://121706631981850",
+    "meshId": "rbxassetid://73986018639306",
     "meshSize": [
-      7.58,
-      2.572,
-      7.58
+      7.5,
+      1.448,
+      7.5
     ],
-    "sha256": "8de50a6e07e6301a",
-    "uploadedAt": "2026-10-21T17:35:19Z",
-    "versions": 2
+    "sha256": "b1f462e695542657",
+    "uploadedAt": "2026-10-21T18:21:12Z",
+    "versions": 3
   },
   "habitat_flower_bed": {
     "assetId": "122318217311799",
@@ -706,15 +706,15 @@
   "habitat_flower_bed_overlay": {
     "assetId": "130689581528284",
     "assetType": "Model",
-    "meshId": "rbxassetid://84695191810140",
+    "meshId": "rbxassetid://126613454986754",
     "meshSize": [
       7.511,
       1.836,
       7.515
     ],
-    "sha256": "e2259ba9694e08ed",
-    "uploadedAt": "2026-10-21T17:35:26Z",
-    "versions": 2
+    "sha256": "877b281d92ae991e",
+    "uploadedAt": "2026-10-21T18:21:17Z",
+    "versions": 3
   },
   "habitat_hay_nest": {
     "assetId": "120365465161287",
@@ -732,15 +732,15 @@
   "habitat_hay_nest_overlay": {
     "assetId": "137655301198387",
     "assetType": "Model",
-    "meshId": "rbxassetid://82935948530487",
+    "meshId": "rbxassetid://104179250569700",
     "meshSize": [
       7.5,
       1.562,
       7.5
     ],
-    "sha256": "1b9300dd087b8f3e",
-    "uploadedAt": "2026-10-21T17:35:40Z",
-    "versions": 2
+    "sha256": "e9739163538af20e",
+    "uploadedAt": "2026-10-21T18:21:24Z",
+    "versions": 3
   },
   "habitat_mushroom_ring": {
     "assetId": "125411498762649",
@@ -758,15 +758,15 @@
   "habitat_mushroom_ring_overlay": {
     "assetId": "96204622852852",
     "assetType": "Model",
-    "meshId": "rbxassetid://95425399303368",
+    "meshId": "rbxassetid://125733398451227",
     "meshSize": [
       7.5,
-      2.085,
+      1.681,
       7.5
     ],
-    "sha256": "49898bcc0b4a7433",
-    "uploadedAt": "2026-10-21T17:35:50Z",
-    "versions": 2
+    "sha256": "9d804fad60dfdbf1",
+    "uploadedAt": "2026-10-21T18:21:31Z",
+    "versions": 3
   },
   "habitat_rodeo_barrel": {
     "assetId": "98071962509034",
@@ -784,15 +784,15 @@
   "habitat_rodeo_barrel_overlay": {
     "assetId": "139158157244798",
     "assetType": "Model",
-    "meshId": "rbxassetid://117161166523161",
+    "meshId": "rbxassetid://111490220492313",
     "meshSize": [
       7.5,
-      2.56,
+      1.86,
       7.5
     ],
-    "sha256": "3d4d22ba9bc546a2",
-    "uploadedAt": "2026-10-21T17:35:59Z",
-    "versions": 2
+    "sha256": "d226ec02242d48ad",
+    "uploadedAt": "2026-10-21T18:21:38Z",
+    "versions": 3
   },
   "habitat_show_stool": {
     "assetId": "74338867735483",
@@ -810,15 +810,15 @@
   "habitat_show_stool_overlay": {
     "assetId": "79817145042621",
     "assetType": "Model",
-    "meshId": "rbxassetid://87737185399629",
+    "meshId": "rbxassetid://79361559269361",
     "meshSize": [
       7.5,
       2.07,
       7.5
     ],
-    "sha256": "37127a774fc80420",
-    "uploadedAt": "2026-10-21T17:36:09Z",
-    "versions": 2
+    "sha256": "31e0d40f2d54c5a7",
+    "uploadedAt": "2026-10-21T18:21:43Z",
+    "versions": 3
   },
   "habitat_syrup_pool": {
     "assetId": "84228432405913",
@@ -836,15 +836,15 @@
   "habitat_syrup_pool_overlay": {
     "assetId": "137859014161776",
     "assetType": "Model",
-    "meshId": "rbxassetid://108552892601135",
+    "meshId": "rbxassetid://139488288315701",
     "meshSize": [
       7.586,
-      3.599,
+      3.362,
       7.586
     ],
-    "sha256": "e2c3f2aa005006a7",
-    "uploadedAt": "2026-10-21T17:36:20Z",
-    "versions": 2
+    "sha256": "0a612efd7240d246",
+    "uploadedAt": "2026-10-21T18:21:48Z",
+    "versions": 3
   },
   "merge_vat": {
     "assetId": "122090902536570",

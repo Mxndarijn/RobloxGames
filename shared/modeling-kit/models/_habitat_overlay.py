@@ -120,15 +120,19 @@ def round_point(x, y):
 
 
 RIGID = 1.6  # parts no wider than this move whole (keep their shape); wider ones bend vertex by vertex
+GROUP = 0.7  # rigid parts this close to a group's first part move with it (a lollipop's stick and disc, a crystal cluster)
+STAND_FOOT = 3.9  # the cork stand's foot radius: props stay over the stand, never past it
+BEND_STEP = 1.2  # densify: the longest edge a bent part keeps (a 1.2 chord on the ring sags 0.06)
 
 
-def densify(p, step=0.4):
+def densify(p, step=BEND_STEP):
     """Splits the part's long edges (in x / y) until none is longer than step, so a straight bar (a trim, a
-    bolster) gets the in-between points it needs to bend round the ring."""
+    bolster) gets the in-between points it needs to bend round the ring. Kept coarse: each split costs triangles on
+    every pad that shows the overlay."""
     mw = p.matrix_world
     bm = bmesh.new()
     bm.from_mesh(p.data)
-    for _ in range(8):
+    for _ in range(6):
         long = [e for e in bm.edges if ((mw @ e.verts[0].co) - (mw @ e.verts[1].co)).xy.length > step]
         if not long:
             break
@@ -137,26 +141,64 @@ def densify(p, step=0.4):
     bm.free()
 
 
+def _groups(items):
+    """Rigid items that belong together: each joins the first group whose seed (first item) centre is within
+    GROUP of its own (no chaining, so a row of props along the band stays separate)."""
+    groups = []
+    for it in items:
+        for g in groups:
+            seed = g[0]["c"]
+            if math.hypot(it["c"][0] - seed[0], it["c"][1] - seed[1]) <= GROUP:
+                g.append(it)
+                break
+        else:
+            groups.append([it])
+    return groups
+
+
 def round_up(parts):
-    """Maps the square-authored overlay onto the round dish (see the header)."""
+    """Maps the square-authored overlay onto the round dish (see the header). Rigid props move whole, grouped with
+    their neighbours; a group that rises above the frame then fits between the slime's circle (radius INNER / 2) and
+    the stand's foot (STAND_FOOT): shrunk if it is wider than that ring, and pushed out until it clears the slime."""
+    rigid = []
     for p in parts:
         mw = p.matrix_world
-        inv = mw.inverted()
         ws = [mw @ v.co for v in p.data.vertices]
         if not ws:
             continue
         xs, ys = [w.x for w in ws], [w.y for w in ws]
         if max(max(xs) - min(xs), max(ys) - min(ys)) <= RIGID:
-            cx, cy = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
-            nx, ny = round_point(cx, cy)
-            moved = [Vector((w.x + nx - cx, w.y + ny - cy, w.z)) for w in ws]
-        else:
-            densify(p)
-            ws = [mw @ v.co for v in p.data.vertices]
-            moved = [Vector((*round_point(w.x, w.y), w.z)) for w in ws]
-        for v, w in zip(p.data.vertices, moved):
-            v.co = inv @ w
+            rigid.append({"p": p, "ws": ws, "c": ((max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2)})
+            continue
+        densify(p)
+        inv = mw.inverted()
+        for v in p.data.vertices:
+            w = mw @ v.co
+            v.co = inv @ Vector((*round_point(w.x, w.y), w.z))
         p.data.update()
+    for group in _groups(rigid):
+        allw = [w for it in group for w in it["ws"]]
+        xs, ys = [w.x for w in allw], [w.y for w in allw]
+        cx, cy = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
+        nx, ny = round_point(cx, cy)
+        r = math.hypot(nx, ny)
+        tall = max(w.z for w in allw) > FRAME_H + 0.3
+        k = 1.0
+        if tall and r > 1e-6:
+            # between the slime's circle and the stand's foot: shrink a group too wide for that ring, then centre it
+            # in the room it has
+            half = max(math.hypot(w.x - cx, w.y - cy) for w in allw)
+            room = (STAND_FOOT - INNER / 2) / 2
+            k = min(1.0, room / half) if half > 0 else 1.0
+            half *= k
+            want = min(max(r, INNER / 2 + half), STAND_FOOT - half)
+            nx, ny = nx * want / r, ny * want / r
+        for it in group:
+            p = it["p"]
+            inv = p.matrix_world.inverted()
+            for v, w in zip(p.data.vertices, it["ws"]):
+                v.co = inv @ Vector((nx + (w.x - cx) * k, ny + (w.y - cy) * k, w.z * k))
+            p.data.update()
 
 
 def overlay_finish(name, parts, drop=0.0):
