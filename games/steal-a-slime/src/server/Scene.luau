@@ -113,15 +113,20 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				then "Carried"
 				elseif world.escaping[slime.id] then "Escaping"
 				else "Pad"
-			local ready = state == "Pad" and EggKind.isReady(slime, now)
+			-- A slime hatched moments ago still shows as its egg until the show's burst (contract/mystery-egg.md §40.6).
+			local hatch = world.hatches[slime.id]
+			local shown = if hatch and now < hatch.at + Config.MYSTERY_EGG.HATCH_BURST_SECONDS
+				then MysteryEgg.shell(slime, hatch.kind, hatch.at)
+				else slime
+			local ready = shown == slime and state == "Pad" and EggKind.isReady(slime, now)
 			local kind = EggKind.of(slime)
 			entries[slime.id] = {
 				id = slime.id,
-				slime = slime,
+				slime = shown,
 				state = state,
 				ownerUserId = session.userId,
 				price = nil,
-				income = PlayerData.slimeIncome(session.data, slime),
+				income = PlayerData.slimeIncome(session.data, shown),
 				plotIndex = session.plotIndex,
 				pad = slime.pad,
 				carrierUserId = carrier,
@@ -138,7 +143,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				hatchText = if ready and kind
 					then `{EggKind.displayName(kind)} · {MysteryEgg.meterText(session.data, kind)}`
 					else nil,
-				hatch = world.hatches[slime.id],
+				hatch = hatch,
 				key = `{state}|{carrier or 0}|{session.plotIndex}|{slime.pad or 0}`,
 			}
 		end

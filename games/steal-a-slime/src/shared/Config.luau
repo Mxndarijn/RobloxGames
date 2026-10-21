@@ -1004,8 +1004,9 @@ local Config = {
 		LUCKY_CHANCE = 0.05, -- share of eggs whose slime inside is one tier higher than its roll (capped at Secret)
 		HATCH_SIZE_MIN = 1.0, -- a hatchling's size is HATCH_SIZE_MIN + up to HATCH_SIZE_SPAN (wild: MIN_SIZE + 0.6)
 		HATCH_SIZE_SPAN = 0.6,
-		HATCH_REVEAL_SECONDS = 2.6, -- the hatch show reveals the slime this long after the hatch (label, toasts)
-		HATCH_FX_SECONDS = 5, -- the hatched slime's model carries HatchedAt / HatchedFrom / HatchLucky this long
+		HATCH_BURST_SECONDS = 3, -- the pad keeps showing the egg this long after a hatch (the show's wobble), then the slime
+		HATCH_REVEAL_SECONDS = 4.2, -- the hatch toasts go out and the slime's label returns this long after the hatch
+		HATCH_FX_SECONDS = 8, -- the model on the pad carries HatchedAt / HatchedFrom / HatchLucky / HatchTier this long
 		KINDS = table.freeze({
 			table.freeze({
 				id = "speckled",

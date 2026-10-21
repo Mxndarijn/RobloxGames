@@ -2,20 +2,21 @@
 --[[
 	EggHatchFx (client only, contract/mystery-egg.md §40.6)
 
-	The Mystery Egg hatch show on the pad, for every viewer near it. The
-	server tags the new slime model with HatchedAt / HatchedFrom / HatchLucky
-	for a few seconds after a hatch; this module plays Visuals.EggHatchTimeline
-	from those attributes and the server clock:
-	  * a local copy of the egg (a clone of the ready egg taken before the
-	    hatch, else EggModel.build) rocks three times while its glow climbs the
-	    rarity colours, shivers, and bursts into shards with a flash, a ring and
-	    sparks in the hatch's rarity colour;
-	  * the slime model, kept tiny until the burst (Model:ScaleTo, local only),
-	    pops up with an overshoot; Epic and up get a light pillar;
-	  * a rarity title ("LEGENDARY!", "LUCKY! MYTHIC!") floats up; the hatching
-	    owner's camera eases in a little over the hold.
-	Everything it makes is local (never replicates), decides nothing and is
-	gone by EggHatchTimeline.END or when the model goes.
+	The Mystery Egg hatch show on the pad, for every viewer near it, from
+	Visuals.EggHatchTimeline:
+	  * Egg: for HATCH_BURST_SECONDS after a hatch the server keeps the egg
+	    model on the pad with HatchedAt / HatchedFrom / HatchLucky / HatchTier.
+	    The real egg is hidden locally and a local copy plays the wobble: three
+	    rocks with a hop, a new set of glowing cracks each time, a glow that
+	    climbs the rarity colours to the tier inside, then a swelling shake.
+	  * Burst (egg time BURST, or when the egg model goes): shards, the egg's top
+	    flying off, a flash, a ring and sparks in the rarity colour.
+	  * Pop: the hatched slime's model is hidden locally (LocalTransparencyModifier)
+	    while a local copy of it springs up from tiny; then the real one shows
+	    again. Nothing ever rescales the real model, so whatever the server adds
+	    to it (a species mesh arriving late) keeps its size. Epic and up get a
+	    light pillar; a rarity title floats up; the owner's camera eases in.
+	Everything it makes is local (never replicates) and decides nothing.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -36,30 +37,55 @@ EggHatchFx.FOLDER = "EggHatchFx"
 local GOLD = Color3.fromRGB(255, 214, 90)
 local SPARK_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
 
-type Cached = { copy: Model, pivot: CFrame }
+-- Glowing cracks, one set per rock: points on the shell as (yaw, height -1..1) joined into a zig-zag.
+local CRACKS = {
+	{ { 0.2, 0.75 }, { 0.45, 0.45 }, { 0.15, 0.2 }, { 0.5, -0.05 }, { 0.3, -0.3 } },
+	{ { 2.3, 0.6 }, { 2.0, 0.3 }, { 2.4, 0.05 }, { 2.1, -0.25 }, { 2.5, -0.45 } },
+	{ { 4.3, 0.8 }, { 4.0, 0.5 }, { 4.4, 0.25 }, { 4.1, 0 }, { 4.5, -0.3 }, { 4.2, -0.55 } },
+}
 
-type Show = {
-	model: Model,
+type EggShow = {
+	original: Model,
+	id: string,
 	hatchedAt: number,
 	tier: number,
 	lucky: boolean,
 	steps: { number },
-	pivot: CFrame, -- the pad spot: the slime's (and the egg's) bottom centre
-	baseScale: number?, -- the slime's own scale, nil if it could not be scaled
-	egg: Model?,
-	eggBody: BasePart?,
+	pivot: CFrame,
+	copy: Model?,
+	body: BasePart?,
 	glow: PointLight?,
 	sparks: ParticleEmitter?,
-	burst: Folder?,
-	shards: { BasePart },
-	ring: BasePart?,
-	flash: PointLight?,
+	cracks: { { BasePart } },
+	shellColor: Color3,
+	owner: boolean,
+	burst: boolean,
+}
+
+type Pop = {
+	original: Model,
+	startedAt: number, -- os.clock() when it began
+	tier: number,
+	lucky: boolean,
+	pivot: CFrame,
+	copy: Model?,
+	baseScale: number,
+	folder: Folder,
 	beam: BasePart?,
 	title: BasePart?,
 	label: TextLabel?,
-	popped: boolean, -- the slime is back at its own scale
-	owner: boolean, -- the local player hatched it
-	fov: number?, -- the camera's field of view before the zoom, while zoomed
+	hiddenConn: RBXScriptConnection?,
+	done: boolean, -- the copy is gone and the real slime shows again
+}
+
+type Burst = {
+	startedAt: number,
+	pivot: CFrame,
+	folder: Folder,
+	shards: { BasePart },
+	lid: BasePart?,
+	ring: BasePart?,
+	flash: PointLight?,
 }
 
 local function rarityColor(tier: number): Color3
@@ -67,7 +93,7 @@ local function rarityColor(tier: number): Color3
 	return Color3.fromRGB(c[1], c[2], c[3])
 end
 
-local function lowestDrop(kindId: string): number
+local function lowestDrop(kindId: any): number
 	local kind = EggKind.get(kindId)
 	local low = Config.MAX_TIER
 	if kind then
@@ -92,15 +118,43 @@ local function localPart(props: { [string]: any }): Part
 	return part
 end
 
--- A copy of an egg model that nothing else treats as a slime: no tags, prompts, labels, scripts or nest.
-local function strip(copy: Model)
-	for _, tag in copy:GetTags() do
-		copy:RemoveTag(tag)
+local function inNest(d: Instance, model: Instance): boolean
+	local nest = model:FindFirstChild("Nest")
+	return nest ~= nil and d:IsDescendantOf(nest)
+end
+
+-- Hides (or shows again) a model on this client only: parts, decals, and the lights and sparkles on it (EggFx's
+-- ready glow). The egg's nest stays.
+local function setHidden(model: Model, hidden: boolean)
+	local value = if hidden then 1 else 0
+	for _, d in model:GetDescendants() do
+		if inNest(d, model) then
+			continue
+		elseif d:IsA("BasePart") or d:IsA("Decal") then
+			(d :: any).LocalTransparencyModifier = value
+		elseif d:IsA("Light") or d:IsA("ParticleEmitter") then
+			(d :: any).Enabled = not hidden
+		end
 	end
-	for name in copy:GetAttributes() do
-		copy:SetAttribute(name, nil)
+end
+
+-- A local copy of a model that nothing else treats as a slime: no tags, attributes, prompts, guis, scripts or nest.
+local function copyOf(model: Model): Model?
+	local was = model.Archivable
+	model.Archivable = true
+	local ok, copy = pcall(model.Clone, model)
+	model.Archivable = was
+	if not ok or not copy then
+		return nil
 	end
-	for _, d in copy:GetDescendants() do
+	local c = copy :: Model
+	for _, tag in c:GetTags() do
+		c:RemoveTag(tag)
+	end
+	for name in c:GetAttributes() do
+		c:SetAttribute(name, nil)
+	end
+	for _, d in c:GetDescendants() do
 		for _, tag in d:GetTags() do
 			d:RemoveTag(tag)
 		end
@@ -111,116 +165,291 @@ local function strip(copy: Model)
 			d.CanCollide = false
 			d.CanTouch = false
 			d.CanQuery = false
+			d.LocalTransparencyModifier = 0
+		elseif d:IsA("Decal") then
+			d.LocalTransparencyModifier = 0
 		end
 	end
-	local nest = copy:FindFirstChild("Nest")
+	local nest = c:FindFirstChild("Nest")
 	if nest then
 		nest:Destroy()
 	end
-	copy.Archivable = false
+	c.Archivable = false
+	return c
 end
 
-local function cloneEgg(model: Model): Model?
-	local wasArchivable = model.Archivable
-	model.Archivable = true
-	local ok, copy = pcall(model.Clone, model)
-	model.Archivable = wasArchivable
-	if not ok or not copy then
+-- The glowing crack sets on the egg copy, hidden until their rock.
+local function addCracks(show: EggShow)
+	local body = show.body
+	local copy = show.copy
+	if not body or not copy then
+		return
+	end
+	local rx, ry = EggModel.WIDTH / 2, EggModel.HEIGHT / 2
+	local function onShell(yaw: number, h: number): (Vector3, Vector3)
+		local ring = math.sqrt(math.max(0, 1 - h * h)) * rx
+		local pos = Vector3.new(math.cos(yaw) * ring, h * ry, math.sin(yaw) * ring)
+		local normal = Vector3.new(pos.X / (rx * rx), pos.Y / (ry * ry), pos.Z / (rx * rx)).Unit
+		return pos + normal * 0.04, normal
+	end
+	for set, points in CRACKS do
+		local parts = {}
+		for i = 1, #points - 1 do
+			local a, na = onShell(points[i][1], points[i][2])
+			local b = onShell(points[i + 1][1], points[i + 1][2])
+			local mid = (a + b) / 2
+			local length = (b - a).Magnitude
+			local crack = localPart({
+				Name = `GlowCrack{set}_{i}`,
+				Size = Vector3.new(0.24, length + 0.1, 0.08),
+				Material = Enum.Material.Neon,
+				Color = Color3.new(1, 1, 1),
+				Transparency = 1,
+			})
+			-- Up along the segment, facing out of the shell.
+			local up = (b - a).Unit
+			local out = (na - up * na:Dot(up)).Unit
+			crack.CFrame = body.CFrame * CFrame.fromMatrix(mid, up:Cross(out), up, -out)
+			crack.Parent = copy
+			table.insert(parts, crack)
+		end
+		show.cracks[set] = parts
+	end
+end
+
+local function startEgg(egg: Model, folder: Folder, player: Player?): EggShow?
+	local hatchedAt = egg:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE)
+	local id = egg:GetAttribute("SlimeId")
+	if type(hatchedAt) ~= "number" or type(id) ~= "string" then
 		return nil
 	end
-	strip(copy :: Model)
-	return copy :: Model
-end
-
-local function buildEgg(id: string, kindId: string): Model?
-	local ok, copy = pcall(EggModel.build, id, kindId, nil)
-	if not ok or typeof(copy) ~= "Instance" then
+	local t = workspace:GetServerTimeNow() - hatchedAt
+	if t >= Timeline.BURST then
 		return nil
 	end
-	strip(copy :: Model)
-	return copy :: Model
+	local tier = egg:GetAttribute(Constants.HATCH_TIER_ATTRIBUTE)
+	-- Until HatchTier arrives the glow stays at the kind's lowest drop.
+	tier = if type(tier) == "number" then tier else lowestDrop(egg:GetAttribute(Constants.HATCHED_FROM_ATTRIBUTE))
+	local copy = copyOf(egg)
+	local show: EggShow = {
+		original = egg,
+		id = id,
+		hatchedAt = hatchedAt,
+		tier = tier,
+		lucky = egg:GetAttribute(Constants.HATCH_LUCKY_ATTRIBUTE) == true,
+		steps = Timeline.steps(lowestDrop(egg:GetAttribute(Constants.HATCHED_FROM_ATTRIBUTE)), tier),
+		pivot = egg:GetPivot(),
+		copy = copy,
+		cracks = {},
+		shellColor = Color3.fromRGB(255, 240, 205),
+		owner = player ~= nil and egg:GetAttribute("OwnerUserId") == player.UserId,
+		burst = false,
+	}
+	if copy then
+		local body = copy:FindFirstChild("Body")
+		if body and body:IsA("BasePart") then
+			show.body = body
+			show.shellColor = body.Color
+			for _, old in body:GetChildren() do
+				if old:IsA("PointLight") or old:IsA("ParticleEmitter") then
+					old:Destroy()
+				end
+			end
+			local glow = Instance.new("PointLight")
+			glow.Range = 14
+			glow.Shadows = false
+			glow.Parent = body
+			show.glow = glow
+			local sparks = Instance.new("ParticleEmitter")
+			sparks.Texture = SPARK_TEXTURE
+			sparks.LightEmission = 1
+			sparks.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) })
+			sparks.Lifetime = NumberRange.new(0.4, 0.9)
+			sparks.Speed = NumberRange.new(3, 7)
+			sparks.SpreadAngle = Vector2.new(180, 180)
+			sparks.Rate = 0
+			sparks.Parent = body
+			show.sparks = sparks
+		end
+		copy:PivotTo(show.pivot)
+		copy.Parent = folder
+		addCracks(show)
+		setHidden(egg, true)
+	end
+	return show
 end
 
-local function scaleTo(show: Show, factor: number)
-	local base = show.baseScale
-	if base then
-		pcall(show.model.ScaleTo, show.model, math.max(base * factor, 0.01))
+local function stepEgg(show: EggShow, t: number)
+	local copy = show.copy
+	if not copy then
+		return
+	end
+	-- HatchTier / HatchLucky can replicate a frame after HatchedAt: follow them while the egg is here.
+	local egg = show.original
+	local tier = egg:GetAttribute(Constants.HATCH_TIER_ATTRIBUTE)
+	if type(tier) == "number" and tier ~= show.tier then
+		show.tier = tier
+		show.steps = Timeline.steps(lowestDrop(egg:GetAttribute(Constants.HATCHED_FROM_ATTRIBUTE)), tier)
+	end
+	if egg:GetAttribute(Constants.HATCH_LUCKY_ATTRIBUTE) == true then
+		show.lucky = true
+	end
+	local tilt = Timeline.tilt(t)
+	copy:PivotTo(show.pivot * CFrame.new(0, Timeline.hop(t), 0) * CFrame.Angles(tilt, 0, tilt * 0.45))
+	pcall(copy.ScaleTo, copy, Timeline.swell(t))
+	local color = if show.lucky and Timeline.luckyFlash(t) then GOLD else rarityColor(Timeline.glowTier(t, show.steps))
+	local glow = show.glow
+	if glow then
+		glow.Color = color
+		glow.Brightness = Timeline.glow(t)
+	end
+	local sparks = show.sparks
+	if sparks then
+		sparks.Color = ColorSequence.new(color)
+		sparks.Rate = if t >= Timeline.WOBBLE_END then 60 else 8 * Timeline.crackSets(t)
+	end
+	local sets = Timeline.crackSets(t)
+	for set, parts in show.cracks do
+		for _, crack in parts do
+			crack.Transparency = if set <= sets then 0 else 1
+			crack.Color = color
+		end
 	end
 end
 
-local function cleanup(show: Show)
-	if show.egg then
-		show.egg:Destroy()
-	end
-	if show.burst then
-		show.burst:Destroy()
-	end
-	if not show.popped and show.model.Parent then
-		scaleTo(show, 1)
-	end
-	show.popped = true
-	local camera = workspace.CurrentCamera
-	if show.fov and camera then
-		camera.FieldOfView = show.fov
-	end
-	show.fov = nil
-end
-
-local function makeBurst(show: Show, folder: Instance)
-	local burst = Instance.new("Folder")
-	burst.Name = "Burst"
-	burst.Archivable = false
-	burst.Parent = folder
-	show.burst = burst
-	local color = rarityColor(show.tier)
-	local shellColor = if show.eggBody then show.eggBody.Color else Color3.fromRGB(255, 240, 205)
-	local centre = show.pivot.Position + Vector3.new(0, EggModel.HEIGHT / 2, 0)
+local function startBurst(pivot: CFrame, tier: number, shellColor: Color3, folder: Folder): Burst
+	local holder = Instance.new("Folder")
+	holder.Name = "Burst"
+	holder.Archivable = false
+	holder.Parent = folder
+	local color = rarityColor(tier)
+	local centre = pivot.Position + Vector3.new(0, EggModel.HEIGHT / 2, 0)
+	local burst: Burst = { startedAt = os.clock(), pivot = pivot, folder = holder, shards = {} }
 	for i = 1, Timeline.SHARDS do
 		local shard = localPart({
 			Name = `Shard{i}`,
-			Size = Vector3.new(0.9, 0.7, 0.22),
+			Size = Vector3.new(1.1, 0.85, 0.25),
 			Color = shellColor,
 			Material = Enum.Material.SmoothPlastic,
 			CFrame = CFrame.new(centre),
 		})
-		shard.Parent = burst
-		table.insert(show.shards, shard)
+		shard.Parent = holder
+		table.insert(burst.shards, shard)
 	end
+	local lid = localPart({
+		Name = "Lid",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(EggModel.WIDTH * 0.9, EggModel.HEIGHT * 0.45, EggModel.WIDTH * 0.9),
+		Color = shellColor,
+		Material = Enum.Material.SmoothPlastic,
+		CFrame = CFrame.new(pivot.Position + Vector3.new(0, EggModel.HEIGHT * 0.85, 0)),
+	})
+	lid.Parent = holder
+	burst.lid = lid
 	local ring = localPart({
 		Name = "Ring",
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(0.2, 2, 2),
 		Color = color,
 		Material = Enum.Material.Neon,
-		Transparency = 0.2,
-		CFrame = CFrame.new(show.pivot.Position + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Transparency = 0.15,
+		CFrame = CFrame.new(pivot.Position + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 	})
-	ring.Parent = burst
-	show.ring = ring
+	ring.Parent = holder
+	burst.ring = ring
 	local core =
 		localPart({ Name = "Core", Size = Vector3.new(0.2, 0.2, 0.2), Transparency = 1, CFrame = CFrame.new(centre) })
-	core.Parent = burst
+	core.Parent = holder
 	local flash = Instance.new("PointLight")
 	flash.Color = color
-	flash.Range = 18
-	flash.Brightness = 8
+	flash.Range = 16
+	flash.Brightness = 6
 	flash.Shadows = false
 	flash.Parent = core
-	show.flash = flash
+	burst.flash = flash
 	local sparks = Instance.new("ParticleEmitter")
 	sparks.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
 	sparks.LightEmission = 1
 	sparks.Texture = SPARK_TEXTURE
-	sparks.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
+	sparks.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.8), NumberSequenceKeypoint.new(1, 0) })
 	sparks.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1) })
-	sparks.Lifetime = NumberRange.new(0.5, 1.2)
-	sparks.Speed = NumberRange.new(8, 18)
+	sparks.Lifetime = NumberRange.new(0.6, 1.4)
+	sparks.Speed = NumberRange.new(10, 22)
 	sparks.SpreadAngle = Vector2.new(180, 180)
-	sparks.Acceleration = Vector3.new(0, -12, 0)
+	sparks.Acceleration = Vector3.new(0, -14, 0)
 	sparks.Rate = 0
 	sparks.Parent = core
-	sparks:Emit(if show.tier >= Timeline.BEAM_TIER then 60 else 36)
-	if show.tier >= Timeline.BEAM_TIER then
+	sparks:Emit(if tier >= Timeline.BEAM_TIER then 80 else 50)
+	return burst
+end
+
+-- Returns false once the burst pieces are done.
+local function stepBurst(burst: Burst): boolean
+	local s = os.clock() - burst.startedAt
+	if s >= Timeline.SHARD_SECONDS + 0.4 then
+		burst.folder:Destroy()
+		return false
+	end
+	for i, shard in burst.shards do
+		local x, y, z = Timeline.shard(i, #burst.shards, s)
+		shard.CFrame = CFrame.new(burst.pivot.Position + Vector3.new(x, y, z))
+			* CFrame.Angles(s * (3 + i), s * (2 + i * 0.5), 0)
+		shard.Transparency = math.clamp((s - Timeline.SHARD_SECONDS + 0.3) / 0.3, 0, 1)
+	end
+	local lid = burst.lid
+	if lid then
+		local height, spin = Timeline.lid(s)
+		lid.CFrame = CFrame.new(burst.pivot.Position + Vector3.new(0.8 * s, height, 0))
+			* CFrame.Angles(spin, 0, spin * 0.6)
+		lid.Transparency = math.clamp((s - Timeline.SHARD_SECONDS + 0.3) / 0.3, 0, 1)
+	end
+	local ring = burst.ring
+	if ring then
+		local u = math.clamp(s / 0.5, 0, 1)
+		ring.Size = Vector3.new(0.2, 2 + 16 * u, 2 + 16 * u)
+		ring.Transparency = 0.15 + 0.85 * u
+	end
+	local flash = burst.flash
+	if flash then
+		flash.Brightness = math.max(0, 6 * (1 - s / 0.5))
+	end
+	return true
+end
+
+local function startPop(slime: Model, tier: number, lucky: boolean, folder: Folder): Pop
+	local holder = Instance.new("Folder")
+	holder.Name = "Pop"
+	holder.Archivable = false
+	holder.Parent = folder
+	local pivot = slime:GetPivot()
+	local okScale, scale = pcall(slime.GetScale, slime)
+	local pop: Pop = {
+		original = slime,
+		startedAt = os.clock(),
+		tier = tier,
+		lucky = lucky,
+		pivot = pivot,
+		baseScale = if okScale and type(scale) == "number" then scale else 1,
+		folder = holder,
+		done = false,
+	}
+	local copy = copyOf(slime)
+	if copy then
+		copy:PivotTo(pivot)
+		pcall(copy.ScaleTo, copy, pop.baseScale * Timeline.HIDDEN_SCALE)
+		copy.Parent = holder
+		pop.copy = copy
+		slime:SetAttribute(Constants.HATCH_POPPING_ATTRIBUTE, true)
+		setHidden(slime, true)
+		-- Parts the server adds while the copy plays (a species mesh arriving) stay hidden until the end.
+		pop.hiddenConn = slime.DescendantAdded:Connect(function(d)
+			if d:IsA("BasePart") or d:IsA("Decal") then
+				(d :: any).LocalTransparencyModifier = 1
+			end
+		end)
+	end
+	local color = rarityColor(tier)
+	if tier >= Timeline.BEAM_TIER then
 		local beam = localPart({
 			Name = "Beam",
 			Shape = Enum.PartType.Cylinder,
@@ -228,20 +457,20 @@ local function makeBurst(show: Show, folder: Instance)
 			Color = color,
 			Material = Enum.Material.Neon,
 			Transparency = 0.55,
-			CFrame = CFrame.new(show.pivot.Position + Vector3.new(0, 20, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			CFrame = CFrame.new(pivot.Position + Vector3.new(0, 20, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 		})
-		beam.Parent = burst
-		show.beam = beam
+		beam.Parent = holder
+		pop.beam = beam
 	end
 	local anchor = localPart({
 		Name = "Title",
 		Size = Vector3.new(0.2, 0.2, 0.2),
 		Transparency = 1,
-		CFrame = CFrame.new(show.pivot.Position + Vector3.new(0, EggModel.HEIGHT + 3, 0)),
+		CFrame = CFrame.new(pivot.Position + Vector3.new(0, 7, 0)),
 	})
-	anchor.Parent = burst
+	anchor.Parent = holder
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(340, 64)
+	gui.Size = UDim2.fromOffset(360, 70)
 	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
 	gui.MaxDistance = EggHatchFx.MAX_DISTANCE
@@ -251,102 +480,67 @@ local function makeBurst(show: Show, folder: Instance)
 	label.Size = UDim2.fromScale(1, 1)
 	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
-	label.Text = Timeline.title(show.tier, show.lucky)
+	label.Text = Timeline.title(tier, lucky)
 	label.TextColor3 = color
-	label.TextTransparency = 1
 	label.Parent = gui
 	local stroke = Instance.new("UIStroke")
 	stroke.Thickness = 3
 	stroke.Color = Color3.fromRGB(20, 14, 30)
 	stroke.Parent = label
-	show.title = anchor
-	show.label = label
+	pop.title = anchor
+	pop.label = label
+	return pop
 end
 
-local function step(show: Show, t: number, camera: Camera?, folder: Instance)
-	-- Egg: rock, glow, shiver until the burst.
-	if t < Timeline.BURST then
-		local egg = show.egg
-		if egg then
-			local tilt = Timeline.tilt(t)
-			egg:PivotTo(show.pivot * CFrame.Angles(tilt, 0, tilt * 0.4))
-		end
-		local glow = show.glow
-		if glow then
-			glow.Color = if show.lucky and Timeline.luckyFlash(t)
-				then GOLD
-				else rarityColor(Timeline.glowTier(t, show.steps))
-			glow.Brightness = Timeline.glow(t)
-		end
-		local sparks = show.sparks
-		if sparks then
-			sparks.Color = ColorSequence.new(rarityColor(Timeline.glowTier(t, show.steps)))
-			sparks.Rate = if t >= Timeline.WOBBLE_END then 40 else 10
-		end
-	elseif not show.burst then
-		if show.egg then
-			show.egg:Destroy()
-			show.egg = nil
-		end
-		makeBurst(show, folder)
+local function finishPop(pop: Pop)
+	if pop.done then
+		return
 	end
-	-- Burst pieces.
-	if show.burst then
-		local s = t - Timeline.BURST
-		for i, shard in show.shards do
-			if s < Timeline.SHARD_SECONDS then
-				local x, y, z = Timeline.shard(i, #show.shards, s)
-				shard.CFrame = CFrame.new(show.pivot.Position + Vector3.new(x, y, z))
-					* CFrame.Angles(s * (3 + i), s * (2 + i * 0.5), 0)
-				shard.Transparency = math.clamp((s - 0.6) / 0.3, 0, 1)
-			else
-				shard.Transparency = 1
-			end
-		end
-		local ring = show.ring
-		if ring then
-			local u = math.clamp(s / 0.5, 0, 1)
-			ring.Size = Vector3.new(0.2, 2 + 14 * u, 2 + 14 * u)
-			ring.Transparency = 0.2 + 0.8 * u
-		end
-		local flash = show.flash
-		if flash then
-			flash.Brightness = math.max(0, 8 * (1 - s / 0.6))
-		end
-		local beam = show.beam
-		if beam then
-			beam.Transparency = Timeline.beam(t, show.tier) or 1
-		end
-		local rise, fade = Timeline.titleLook(t)
-		local label = show.label
-		local title = show.title
-		if label and title then
-			label.TextTransparency = fade or 1
-			if rise then
-				title.CFrame = CFrame.new(show.pivot.Position + Vector3.new(0, EggModel.HEIGHT + 3 + rise, 0))
-			end
+	pop.done = true
+	if pop.copy then
+		pop.copy:Destroy()
+		pop.copy = nil
+	end
+	if pop.hiddenConn then
+		pop.hiddenConn:Disconnect()
+	end
+	if pop.original.Parent then
+		setHidden(pop.original, false)
+		pop.original:SetAttribute(Constants.HATCH_POPPING_ATTRIBUTE, nil)
+	end
+end
+
+-- Returns false once the pop and its title are over.
+local function stepPop(pop: Pop): boolean
+	local s = os.clock() - pop.startedAt
+	if not pop.done then
+		local copy = pop.copy
+		if s >= Timeline.POP_SECONDS or not pop.original.Parent then
+			finishPop(pop)
+		elseif copy then
+			pcall(copy.ScaleTo, copy, pop.baseScale * Timeline.popScale(s))
 		end
 	end
-	-- Slime: tiny, then the pop.
-	if not show.popped then
-		if t >= Timeline.REVEAL then
-			scaleTo(show, 1)
-			show.popped = true
-		elseif t >= Timeline.BURST then
-			scaleTo(show, Timeline.slimeScale(t))
+	local beam = pop.beam
+	if beam then
+		beam.Transparency = Timeline.beam(s, pop.tier) or 1
+	end
+	local rise, fade = Timeline.titleLook(s)
+	if pop.label and pop.title then
+		pop.label.TextTransparency = fade or 1
+		if pop.label:FindFirstChildOfClass("UIStroke") then
+			(pop.label:FindFirstChildOfClass("UIStroke") :: UIStroke).Transparency = fade or 1
+		end
+		if rise then
+			pop.title.CFrame = CFrame.new(pop.pivot.Position + Vector3.new(0, 7 + rise, 0))
 		end
 	end
-	-- The hatching owner's camera eases in over the hold.
-	if show.owner and camera then
-		local zoom = Timeline.zoom(t)
-		if zoom > 0 then
-			show.fov = show.fov or camera.FieldOfView
-			camera.FieldOfView = (show.fov :: number) - zoom
-		elseif show.fov then
-			camera.FieldOfView = show.fov
-			show.fov = nil
-		end
+	if s >= Timeline.TITLE_SECONDS then
+		finishPop(pop)
+		pop.folder:Destroy()
+		return false
 	end
+	return true
 end
 
 export type Controller = { tick: (camera: Camera?) -> (), stop: () -> () }
@@ -357,112 +551,120 @@ function EggHatchFx.start(): Controller
 	folder.Name = EggHatchFx.FOLDER
 	folder.Archivable = false
 	folder.Parent = workspace
-	local eggs: { [Model]: true } = {} -- egg models on this client
-	local cache: { [string]: Cached } = {} -- slime id -> a copy of its ready egg, taken before the hatch
-	local shows: { [Model]: Show } = {}
-	local conns: { RBXScriptConnection } = {}
 	local player = Players.LocalPlayer
+	local eggShows: { [Model]: EggShow } = {}
+	local bursts: { Burst } = {}
+	local pops: { [Model]: Pop } = {}
+	local burstDone: { [string]: { at: number, tier: number, lucky: boolean } } = {} -- slime id -> its burst
+	local watched: { [Instance]: RBXScriptConnection } = {}
+	local conns: { RBXScriptConnection } = {}
+	local fov: number? = nil
 
-	local function begin(model: Model)
-		if shows[model] then
-			return
-		end
-		local hatchedAt = model:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE)
-		local kindId = model:GetAttribute(Constants.HATCHED_FROM_ATTRIBUTE)
-		if type(hatchedAt) ~= "number" or type(kindId) ~= "string" then
-			return
-		end
-		local t = workspace:GetServerTimeNow() - hatchedAt
-		if t >= Timeline.REVEAL or t < -1 then
-			return
-		end
+	local function near(model: Model): boolean
 		local camera = workspace.CurrentCamera
-		local pivot = model:GetPivot()
-		if camera and (camera.CFrame.Position - pivot.Position).Magnitude > EggHatchFx.MAX_DISTANCE then
+		return camera == nil
+			or (camera.CFrame.Position - model:GetPivot().Position).Magnitude <= EggHatchFx.MAX_DISTANCE
+	end
+
+	local function burstOf(show: EggShow)
+		if show.burst then
 			return
 		end
-		local id = model:GetAttribute("SlimeId")
-		local tier = model:GetAttribute("Tier") or model:GetAttribute(Constants.LABEL_TIER_ATTRIBUTE)
-		tier = if type(tier) == "number" then tier else 1
-		local cached = if type(id) == "string" then cache[id] else nil
-		if cached and type(id) == "string" then
-			cache[id] = nil
+		show.burst = true
+		if show.copy then
+			show.copy:Destroy()
+			show.copy = nil
 		end
-		local okScale, scale = pcall(model.GetScale, model)
-		local show: Show = {
-			model = model,
-			hatchedAt = hatchedAt,
-			tier = tier,
-			lucky = model:GetAttribute(Constants.HATCH_LUCKY_ATTRIBUTE) == true,
-			steps = Timeline.steps(lowestDrop(kindId), tier),
-			pivot = if cached then cached.pivot else pivot,
-			baseScale = if okScale and type(scale) == "number" then scale else nil,
-			shards = {},
-			popped = false,
-			owner = player ~= nil and model:GetAttribute("OwnerUserId") == player.UserId,
-		}
-		shows[model] = show
-		if t < Timeline.BURST then
-			local egg = if cached then cached.copy else buildEgg(if type(id) == "string" then id else "hatch", kindId)
-			if egg then
-				egg:PivotTo(show.pivot)
-				egg.Parent = folder
-				show.egg = egg
-				local body = egg:FindFirstChild("Body")
-				if body and body:IsA("BasePart") then
-					show.eggBody = body
-					local old = body:FindFirstChildOfClass("PointLight")
-					if old then
-						old:Destroy()
-					end
-					local glow = Instance.new("PointLight")
-					glow.Range = 12
-					glow.Shadows = false
-					glow.Parent = body
-					show.glow = glow
-					local sparks = body:FindFirstChildOfClass("ParticleEmitter") or Instance.new("ParticleEmitter")
-					sparks.Texture = SPARK_TEXTURE
-					sparks.LightEmission = 1
-					sparks.Lifetime = NumberRange.new(0.4, 0.8)
-					sparks.Speed = NumberRange.new(2, 5)
-					sparks.SpreadAngle = Vector2.new(180, 180)
-					sparks.Parent = body
-					show.sparks = sparks
+		if show.original.Parent then
+			setHidden(show.original, false)
+		end
+		table.insert(bursts, startBurst(show.pivot, show.tier, show.shellColor, folder))
+		burstDone[show.id] = { at = os.clock(), tier = show.tier, lucky = show.lucky }
+	end
+
+	local function tryEgg(egg: Model)
+		if eggShows[egg] or egg:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE) == nil or not near(egg) then
+			return
+		end
+		local show = startEgg(egg, folder, player)
+		if show then
+			eggShows[egg] = show
+		end
+	end
+
+	local function trySlime(slime: Model)
+		if pops[slime] then
+			return
+		end
+		local hatchedAt = slime:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE)
+		local id = slime:GetAttribute("SlimeId")
+		if type(hatchedAt) ~= "number" or type(id) ~= "string" or not near(slime) then
+			return
+		end
+		if workspace:GetServerTimeNow() - hatchedAt > Timeline.BURST + Timeline.LATE then
+			return
+		end
+		local tier = slime:GetAttribute("Tier")
+		tier = if type(tier) == "number" then tier else 1
+		local lucky = slime:GetAttribute(Constants.HATCH_LUCKY_ATTRIBUTE) == true
+		-- The egg went in the same moment the slime came (or this client never saw the egg's show): burst here.
+		if not burstDone[id] then
+			for egg, show in eggShows do
+				if show.id == id then
+					burstOf(show)
+					eggShows[egg] = nil
 				end
 			end
-		elseif cached then
-			cached.copy:Destroy()
+			if not burstDone[id] then
+				table.insert(bursts, startBurst(slime:GetPivot(), tier, Color3.fromRGB(255, 240, 205), folder))
+				burstDone[id] = { at = os.clock(), tier = tier, lucky = lucky }
+			end
 		end
-		if not show.popped then
-			scaleTo(show, if t >= Timeline.BURST then Timeline.slimeScale(t) else Timeline.HIDDEN_SCALE)
-		end
+		pops[slime] = startPop(slime, tier, lucky, folder)
 	end
 
 	local function added(instance: Instance)
-		if not instance:IsA("Model") then
+		if not instance:IsA("Model") or watched[instance] then
 			return
 		end
-		if instance:GetAttribute(Constants.EGG_KIND_ATTRIBUTE) ~= nil then
-			eggs[instance] = true
-		elseif instance:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE) ~= nil then
-			-- Scale before the first frame draws it, if its parts are here; else once they stream in.
-			if instance.PrimaryPart or instance:FindFirstChild("Body") then
-				begin(instance)
+		local model = instance :: Model
+		local isEgg = model:GetAttribute(Constants.EGG_KIND_ATTRIBUTE) ~= nil
+		-- HatchedAt can arrive on an egg already on the pad (the owner just hatched it).
+		watched[model] = model:GetAttributeChangedSignal(Constants.HATCHED_AT_ATTRIBUTE):Connect(function()
+			if isEgg then
+				tryEgg(model)
 			else
-				task.spawn(function()
-					if instance:WaitForChild("Body", 5) then
-						begin(instance)
-					end
-				end)
+				trySlime(model)
 			end
+		end)
+		if isEgg then
+			tryEgg(model)
+		elseif model.PrimaryPart or model:FindFirstChild("Body") then
+			trySlime(model)
+		else
+			task.spawn(function()
+				if model:WaitForChild("Body", 5) then
+					trySlime(model)
+				end
+			end)
 		end
 	end
+
 	local function removed(instance: Instance)
-		eggs[instance :: Model] = nil
-		local show = shows[instance :: Model]
+		local conn = watched[instance]
+		if conn then
+			conn:Disconnect()
+			watched[instance] = nil
+		end
+		local show = eggShows[instance :: Model]
 		if show then
-			shows[instance :: Model] = nil
-			cleanup(show)
+			-- The server swapped the egg for the slime: the burst plays now.
+			eggShows[instance :: Model] = nil
+			burstOf(show)
+		end
+		local pop = pops[instance :: Model]
+		if pop then
+			finishPop(pop)
 		end
 	end
 
@@ -472,66 +674,47 @@ function EggHatchFx.start(): Controller
 		added(model)
 	end
 
-	-- Keeps a copy of every ready egg resting on a pad near the camera (re-taken if it moved).
-	local function refreshCache(now: number, eye: Vector3?)
-		for model in eggs do
-			local id = model:GetAttribute("SlimeId")
-			local hatchAt = model:GetAttribute(Constants.EGG_HATCH_AT_ATTRIBUTE)
-			if
-				type(id) ~= "string"
-				or not model.Parent
-				or model:GetAttribute("State") ~= "Pad"
-				or type(hatchAt) ~= "number"
-				or hatchAt > now
-			then
-				continue
-			end
-			local pivot = model:GetPivot()
-			if eye and (pivot.Position - eye).Magnitude > EggHatchFx.MAX_DISTANCE then
-				continue
-			end
-			local cached = cache[id]
-			if cached and (cached.pivot.Position - pivot.Position).Magnitude < 0.5 then
-				continue
-			end
-			if cached then
-				cached.copy:Destroy()
-			end
-			local copy = cloneEgg(model)
-			cache[id] = if copy then { copy = copy, pivot = pivot } else nil
-		end
-		for id, cached in cache do
-			local alive = false
-			for model in eggs do
-				if model:GetAttribute("SlimeId") == id then
-					alive = true
-					break
-				end
-			end
-			-- Kept a moment after its egg goes: the hatched slime's model may replicate just after.
-			if not alive and not cached.copy:GetAttribute("GoneAt") then
-				cached.copy:SetAttribute("GoneAt", now)
-			elseif not alive and now - (cached.copy:GetAttribute("GoneAt") :: number) > 3 then
-				cached.copy:Destroy()
-				cache[id] = nil
-			end
-		end
-	end
-
-	local lastCache = 0
 	local function tick(camera: Camera?)
 		local now = workspace:GetServerTimeNow()
-		if os.clock() - lastCache > 0.5 then
-			lastCache = os.clock()
-			refreshCache(now, camera and camera.CFrame.Position)
-		end
-		for model, show in shows do
+		local zoom = 0
+		for egg, show in eggShows do
 			local t = now - show.hatchedAt
-			if not model.Parent or t >= Timeline.END then
-				shows[model] = nil
-				cleanup(show)
+			if t >= Timeline.BURST then
+				eggShows[egg] = nil
+				burstOf(show)
 			else
-				step(show, t, camera, folder)
+				stepEgg(show, t)
+			end
+			if show.owner then
+				zoom = math.max(zoom, Timeline.zoom(t))
+			end
+		end
+		for i = #bursts, 1, -1 do
+			if not stepBurst(bursts[i]) then
+				table.remove(bursts, i)
+			end
+		end
+		for slime, pop in pops do
+			if not stepPop(pop) then
+				pops[slime] = nil
+			end
+			local hatchedAt = slime:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE)
+			if player and slime:GetAttribute("OwnerUserId") == player.UserId and type(hatchedAt) == "number" then
+				zoom = math.max(zoom, Timeline.zoom(now - hatchedAt))
+			end
+		end
+		for id, b in burstDone do
+			if os.clock() - b.at > 30 then
+				burstDone[id] = nil
+			end
+		end
+		if camera then
+			if zoom > 0 then
+				fov = fov or camera.FieldOfView
+				camera.FieldOfView = (fov :: number) - zoom
+			elseif fov then
+				camera.FieldOfView = fov
+				fov = nil
 			end
 		end
 	end
@@ -542,12 +725,20 @@ function EggHatchFx.start(): Controller
 			for _, c in conns do
 				c:Disconnect()
 			end
-			for model, show in shows do
-				shows[model] = nil
-				cleanup(show)
+			for _, c in watched do
+				c:Disconnect()
 			end
-			for _, cached in cache do
-				cached.copy:Destroy()
+			for _, show in eggShows do
+				if show.original.Parent then
+					setHidden(show.original, false)
+				end
+			end
+			for _, pop in pops do
+				finishPop(pop)
+			end
+			local camera = workspace.CurrentCamera
+			if fov and camera then
+				camera.FieldOfView = fov
 			end
 			folder:Destroy()
 		end,
