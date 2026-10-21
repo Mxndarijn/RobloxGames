@@ -43,12 +43,14 @@ SlimeMotor.MODE_ATTRIBUTE = "LifeMode"
 -- yaw: target turn from the heading (+ = left), taken by yawWeight 0..1; tilt (+ = nose down) and roll
 -- (+ = lean right): radians; sx / sy: squash multipliers; lean: studs sideways (+ = right); jiggle, air, vy, closed,
 -- pop: SlimeBones.Extra. dy: world studs up (the smooth track off the lane); heading: radians added after the look
--- mix (turns the drawn slime from the Body's stepwise yaw to the smooth one).
+-- mix (turns the drawn slime from the Body's stepwise yaw to the smooth one). faceLead: radians the face alone turns
+-- further (about the slime's centre): the eyes lead a turn and dart in glances while the body follows.
 export type Mods = {
 	dx: number,
 	dy: number,
 	dz: number,
 	heading: number,
+	faceLead: number,
 	lift: number,
 	yaw: number,
 	yawWeight: number,
@@ -72,6 +74,7 @@ function SlimeMotor.newMods(): Mods
 		dy = 0,
 		dz = 0,
 		heading = 0,
+		faceLead = 0,
 		lift = 0,
 		yaw = 0,
 		yawWeight = 0,
@@ -203,7 +206,8 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand, mods: Mods?): bo
 		* CFrame.Angles(0, pose.yaw, 0)
 		* CFrame.Angles(pose.pitch, 0, pose.roll)
 		* CFrame.new(0, if bones then r else r * pose.sy, 0)
-	motor.face.Transform = transform
+	local lead = if mods then mods.faceLead else 0
+	motor.face.Transform = if lead ~= 0 then transform * CFrame.Angles(0, lead, 0) else transform
 	motor.skinJoint.Transform = transform
 	if bones then
 		SlimeBones.step(bones, motor.params, motor.clock, pose, now, rand, mods)

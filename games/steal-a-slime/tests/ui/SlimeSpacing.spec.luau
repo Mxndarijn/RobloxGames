@@ -69,4 +69,15 @@ describe("SlimeSpacing", function()
 			expect(math.sqrt(item.px ^ 2 + item.pz ^ 2) <= SlimeSpacing.MAX_PUSH + 1e-6).toBe(true)
 		end
 	end)
+
+	it("steps round the player, who never moves", function()
+		local a = { x = 1, z = 0, r = 1.5, px = 0, pz = 0 }
+		local player = { x = 0, z = 0, r = 1 }
+		for _ = 1, 20 do
+			SlimeSpacing.step({ a }, DT, { player })
+		end
+		local d = math.sqrt((a.x + a.px - player.x) ^ 2 + (a.z + a.pz - player.z) ^ 2)
+		expect(d > a.r + player.r - 0.1).toBe(true)
+		expect(player.x).toBe(0)
+	end)
 end)

@@ -9,8 +9,11 @@
 	is the target of a filter that grows fast and eases back slowly, so a slime slides aside instead of sinking in
 	and slides back when the other has passed. No Roblox APIs; tests/ui/SlimeSpacing.spec covers it.
 
-	  SlimeSpacing.step(items, dt)   items: { { x, z, r, px, pz } }: drawn spot (before the push), radius, and the
-	                                 push carried from the last frame (filled in place)
+	  SlimeSpacing.step(items, dt, solid?)
+	      items: { { x, z, r, px, pz } }: drawn spot (before the push), radius, and the push carried from the last
+	             frame (filled in place)
+	      solid: { { x, z, r } }: things a slime steps round but never moves (the local character): the slime takes
+	             the whole push
 ]]
 
 local SlimeSpacing = {}
@@ -20,11 +23,31 @@ SlimeSpacing.RATE = 40 -- 1 / s: how fast a push grows while an overlap grows (a
 SlimeSpacing.RELAX = 6 -- 1 / s: how fast it eases back once the other slime has passed
 SlimeSpacing.MAX_PUSH = 2.5 -- studs: never pushed further than this from where the actor drew it
 
-export type Item = { x: number, z: number, r: number, px: number, pz: number }
+export type Item = { x: number, z: number, r: number, px: number, pz: number, rooted: boolean? }
+-- rooted = true: solids don't push it (a slime on its pad stays put when you walk past)
 
-function SlimeSpacing.step(items: { Item }, dt: number)
+export type Solid = { x: number, z: number, r: number }
+
+function SlimeSpacing.step(items: { Item }, dt: number, solid: { Solid }?)
 	local n = #items
 	local wantX, wantZ = table.create(n, 0), table.create(n, 0)
+	for i = 1, n do
+		local a = items[i]
+		for _, s in if a.rooted then {} else solid or {} do
+			local dx, dz = a.x - s.x, a.z - s.z
+			local room = a.r + s.r + SlimeSpacing.GAP
+			local d2 = dx * dx + dz * dz
+			if d2 < room * room then
+				local d = math.sqrt(d2)
+				local ux, uz = 1, 0
+				if d > 1e-4 then
+					ux, uz = dx / d, dz / d
+				end
+				wantX[i] += ux * (room - d)
+				wantZ[i] += uz * (room - d)
+			end
+		end
+	end
 	for i = 1, n do
 		local a = items[i]
 		for j = i + 1, n do

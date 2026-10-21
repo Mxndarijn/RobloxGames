@@ -106,6 +106,23 @@ describe("SlimeMotor (procedural motion on the rig)", function()
 		expect(maxY - minY < 0.3).toBe(true) -- breathing only: slimes glide (contract/slime-walk.md)
 	end)
 
+	it("faceLead turns the face alone ahead of the skin, about the slime's centre", function()
+		local model = slime()
+		local r = rand(4)
+		local motor = SlimeMotor.attach(model, 0, r)
+		local face, skin = motorOf(model, "FaceRoot"), motorOf(model, "SkinRoot")
+		local mods = SlimeMotor.newMods()
+		SlimeMotor.step(motor, 1, r, mods)
+		expect(face.Transform == skin.Transform).toBe(true)
+		mods.faceLead = 0.3
+		SlimeMotor.step(motor, 1.02, r, mods)
+		local _, faceYaw = face.Transform:ToEulerAnglesYXZ()
+		local _, skinYaw = skin.Transform:ToEulerAnglesYXZ()
+		expect(faceYaw - skinYaw).toBeCloseTo(0.3, 0.01) -- the idle wobble tilts both a little
+		-- turned about the centre: the face's origin stays where the skin's is
+		expect((face.Transform.Position - skin.Transform.Position).Magnitude < 1e-4).toBe(true)
+	end)
+
 	it("looks left and right on demand (yaw of the Transform) and hops on demand", function()
 		local model = slime()
 		local r = rand(9)

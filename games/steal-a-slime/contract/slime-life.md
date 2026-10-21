@@ -159,3 +159,23 @@ against the server's lane, queue and replication; `lune run tools/slimesim <scen
   slowly, at most `MAX_PUSH`. Then `SlimeActor.settle` adds the push and moves the tag; then the motors step.
 - **A hopper never sits stranded.** More than `SlimeGait.CATCH_UP` studs behind its anchor, it cuts a long landing (a
   belly flop's lie-down) short and jumps even while its anchor stands still for a beat.
+
+## Alive attention and jelly (client only, `FEATURES.SlimeAlive`)
+
+Reviewed frame by frame from the real renderer with `tools/slimecam` (records every rendered frame of a playtest,
+then replays and captures it).
+
+- **Watching is never a frozen stare (`ui/SlimeAttention`, pure).** While a slime reacts to the local player its look
+  darts in quick glances round them (`SACCADE`, every `SACCADE_EVERY` seconds) and it tilts its head now and then
+  (`TILT`); scaled by how engaged it is (the reaction's weight). Pad slimes and wild slimes alike.
+- **The eyes lead.** The face turns on its own (`SlimeMotor` `Mods.faceLead`, about the slime's centre) by
+  `SlimeActor.FACE_LEAD_SHARE` of the turn the body still has to make, plus the attention glances, capped at
+  `SlimeActor.FACE_LEAD`: the eyes look first and the body follows, and a glance moves only the eyes.
+- **Fidget mood.** A pad slime within `SlimeReact.NEAR` of the local player is in mood `"near"`: it greets them within
+  `SlimeFidget.GREET` seconds, then fidgets every `SlimeFidget.NEAR_EVERY` seconds from `WEIGHTS_NEAR` (no naps). A
+  curious `tilt` fidget joins the set. A pad slime leans at most `SlimeActor.PAD_LEAN` towards you (it stays on its pad).
+- **Hop jelly.** The hop pose (`SlimeGait.shape`) squats deeper before a jump, shoots out tall at take-off and splats
+  on landing; the wobble after it is the actor's squash spring, kicked on take-off and landing
+  (`SlimeActor.HOP_JELLY`), so it rings on through the next squat instead of restarting every hop.
+- **The player is solid.** `SlimeSpacing.step` takes the local character as a solid: a walking slime steps round you
+  instead of sinking into your legs. Pad slimes are `rooted` (you don't shove them off their pads).

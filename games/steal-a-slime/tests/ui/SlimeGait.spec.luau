@@ -146,7 +146,7 @@ describe("SlimeGait.shape", function()
 		expect(launch.sy > 1.1).toBe(true)
 		local apex = SlimeGait.shape("air", 0.5, 1.5, "normal")
 		expect(apex.lift).toBeCloseTo(1.5, 1e-9)
-		expect(math.abs(apex.sy - 1) < 0.02).toBe(true)
+		expect(math.abs(apex.sy - 1) < 0.06).toBe(true) -- nearly round at the top
 		expect(apex.face).toBe("happy")
 		local splat = SlimeGait.shape("land", 0, 1.5, "normal")
 		expect(splat.sy < 0.85 and splat.sy >= 0.65).toBe(true) -- a splat, never so flat the face sinks in

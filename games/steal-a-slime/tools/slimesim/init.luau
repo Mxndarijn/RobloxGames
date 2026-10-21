@@ -278,7 +278,11 @@ for f = 0, frames do
 		})
 	end
 	if twoPass then
-		SlimeSpacing.step(items, 1 / FPS)
+		SlimeSpacing.step(
+			items,
+			1 / FPS,
+			if process.env.SLIMESIM_NO_SOLID then nil else { { x = playerPos.X, z = playerPos.Z, r = 1.2 } }
+		)
 		for k, id in order do
 			SlimeActor.settle(clients[id].actor, items[k].px, items[k].pz, 1 / FPS)
 		end
