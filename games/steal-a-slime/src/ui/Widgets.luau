@@ -10,7 +10,7 @@ local Layout = require(script.Parent.Layout)
 
 local Widgets = {}
 
--- The Goo palette (UI-STYLEGUIDE.md): deep teal glass panels, a mint header band, ink outlines, gold money.
+-- The Goo palette: deep teal glass panels, a mint header band, ink outlines, gold money.
 -- Button colours carry meaning: Gold collects a reward, Good acts (buy, merge, redeem), Info is a side action,
 -- Bad loses something or closes. Only things you can press are jelly; something you can't press yet is a
 -- sunken Ink well with the same outline (Widgets.status / a disabled button).
@@ -29,6 +29,7 @@ Widgets.Theme = table.freeze({
 	Warn = Color3.fromRGB(255, 190, 60),
 	Disabled = Color3.fromRGB(8, 38, 42),
 	Gold = Color3.fromRGB(255, 210, 63),
+	Shine = Color3.new(1, 1, 1), -- the glint on jelly and the dot on goo drops
 	Font = Enum.Font.FredokaOne, -- titles, numbers, buttons, labels
 	FontBody = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold), -- sentences (a FontFace)
 })
@@ -166,12 +167,12 @@ function Widgets.shine(parent: GuiObject): Frame
 	return create("Frame", {
 		Name = "Shine",
 		Active = false,
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundColor3 = Theme.Shine,
 		BackgroundTransparency = Widgets.KIT.shine,
 		BorderSizePixel = 0,
-		Position = UDim2.new(s.x, s.offsetX, s.y, 0),
+		Position = UDim2.new(s.x, s.offsetX, 0, s.offsetY),
 		Size = UDim2.fromOffset(s.w, s.h),
-		Rotation = -24,
+		Rotation = s.rotation,
 		ZIndex = parent.ZIndex,
 		Parent = parent,
 	})
@@ -465,8 +466,8 @@ function Widgets.gooEdge(parent: GuiObject, y: number, color: Color3)
 			Name = "Neck" .. i,
 			BackgroundColor3 = color,
 			BorderSizePixel = 0,
-			Position = UDim2.new(x, math.round(w * 0.18), 0, 0),
-			Size = UDim2.fromOffset(math.round(w * 0.64), len),
+			Position = UDim2.new(x, math.round(w * (1 - g.neckWidth) / 2), 0, 0),
+			Size = UDim2.fromOffset(math.round(w * g.neckWidth), len),
 			ZIndex = parent.ZIndex,
 			Parent = edge,
 		}, { Widgets.pill() })
@@ -474,18 +475,18 @@ function Widgets.gooEdge(parent: GuiObject, y: number, color: Color3)
 			Name = "Drop" .. i,
 			BackgroundColor3 = color,
 			BorderSizePixel = 0,
-			Position = UDim2.new(x, 0, 0, len - math.round(w * 0.4)),
+			Position = UDim2.new(x, 0, 0, len - math.round(w * g.dropRise)),
 			Size = UDim2.fromOffset(w, w),
 			ZIndex = parent.ZIndex,
 			Parent = edge,
 		}, { Widgets.pill() })
 		create("Frame", {
 			Name = "Dot",
-			BackgroundColor3 = Color3.new(1, 1, 1),
-			BackgroundTransparency = 0.35,
+			BackgroundColor3 = Theme.Shine,
+			BackgroundTransparency = g.dotTransparency,
 			BorderSizePixel = 0,
-			Position = UDim2.fromScale(0.24, 0.2),
-			Size = UDim2.fromScale(0.28, 0.28),
+			Position = UDim2.fromScale(g.dotAt, g.dotAt),
+			Size = UDim2.fromScale(g.dot, g.dot),
 			ZIndex = parent.ZIndex,
 			Parent = drop,
 		}, { Widgets.pill() })
@@ -534,14 +535,21 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 	})
 	-- One goo edge per ScreenGui, moved into whichever menu is shown: only one menu is open at a time, so
 	-- the lip and drips cost their instances once, not once per panel (ui-perf-budget.json).
-	local edge = sharedEdges[parent]
-	if edge == nil then
-		edge = Widgets.gooEdge(frame, bandH, Theme.Band)
-		sharedEdges[parent] = edge
+	-- A destroyed panel takes the edge with it (Parent nil); the next panel then builds a fresh one.
+	local function claimEdge()
+		local edge = sharedEdges[parent]
+		if edge == nil or edge.Parent == nil then
+			sharedEdges[parent] = Widgets.gooEdge(frame, bandH, Theme.Band)
+		elseif edge.Parent ~= frame then
+			edge.Parent = frame
+		end
+	end
+	if sharedEdges[parent] == nil or (sharedEdges[parent] :: Frame).Parent == nil then
+		claimEdge()
 	end
 	frame:GetPropertyChangedSignal("Visible"):Connect(function()
-		if frame.Visible and edge.Parent ~= frame then
-			edge.Parent = frame
+		if frame.Visible then
+			claimEdge()
 		end
 	end)
 	local tile = create("Frame", {

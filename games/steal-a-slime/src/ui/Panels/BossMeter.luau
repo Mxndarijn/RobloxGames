@@ -39,7 +39,7 @@ local TONES = table.freeze({
 	fight = Theme.Bad,
 	haul = Theme.Gold,
 	good = Theme.Good,
-	bad = Theme.Band,
+	bad = Theme.Info, -- a muted teal: the boss got away, nothing to celebrate
 })
 
 local BossMeter = {}
@@ -149,7 +149,7 @@ function BossMeter.new(parent: Instance, ctx: any)
 		local tone = TONES[view.tone]
 		tile.BackgroundColor3 = tone
 		if fill then
-			fill.BackgroundColor3 = if view.tone == "bad" then Theme.Muted else tone
+			fill.BackgroundColor3 = tone
 		end
 		icon.Text = view.icon
 		title.Text = view.title

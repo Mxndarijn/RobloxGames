@@ -201,8 +201,8 @@ function Layout.drawsAbove(top: string, below: string): boolean
 end
 
 -- Text estimate ----------------------------------------------------------------
--- A char-width heuristic for Gotham (em fractions), good enough to catch
--- labels that would truncate. Bold is ~6% wider.
+-- A char-width heuristic (em fractions), good enough to catch labels that would truncate. Body text is
+-- Nunito Bold, measured about 5% wider than this table; labels (`bold`, Fredoka One) about 6%.
 
 local NARROW = "ilIjtfr!.,:;'|/ ()[]"
 local WIDE = "mwMW%@"
@@ -234,7 +234,7 @@ function Layout.lineWidth(line: string, size: number, bold: boolean?): number
 			em += charWidth(codepoint)
 		end
 	end
-	return em * size * (if bold then 1.06 else 1)
+	return em * size * (if bold then 1.06 else 1.05)
 end
 
 -- Widest line of `text` and its line count ("\n" separated, no wrapping).
@@ -717,13 +717,19 @@ Layout.PANEL_CHROME = table.freeze({
 -- length + 0.6 * width, kept under PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over
 -- the corner icon tile (x < 0.14).
 -- The glint on a jelly (Widgets.shine): a fixed w x h px frame near the top-left, at a fraction of the jelly's
--- width plus a few px so it sits inside a pill's rounded end.
-Layout.SHINE = table.freeze({ x = 0.08, offsetX = 6, y = 0.16, w = 14, h = 4 })
+-- width plus a few px so it sits inside a pill's rounded end, and a few px under the top edge so it stays
+-- above a centred label.
+Layout.SHINE = table.freeze({ x = 0.08, offsetX = 6, offsetY = 4, w = 14, h = 4, rotation = -24 })
 
 Layout.GOO_EDGE = table.freeze({
 	inset = 18,
 	scallops = 16,
 	lip = 6,
+	neckWidth = 0.64, -- a drip's neck, as a fraction of its drop width, centred on the drop
+	dropRise = 0.4, -- how far the drop's top overlaps the neck's end, as a fraction of its width
+	dot = 0.28, -- the drop's shine dot, as a fraction of the drop
+	dotAt = 0.22,
+	dotTransparency = 0.35,
 	drips = table.freeze({
 		table.freeze({ 0.2, 10, 6 }),
 		table.freeze({ 0.33, 8, 3 }),
