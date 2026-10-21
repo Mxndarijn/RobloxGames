@@ -48,9 +48,9 @@ describe("Lucky eggs and hatchlings", function()
 		local n, lucky = 4000, 0
 		for i = 1, n do
 			local slime, k = MysteryEgg.rollWild(rng, `e{i}`)
-			local egg = assert(slime.egg)
+			local sealed = assert(slime.egg, "egg")
 			local probs = EggKind.probabilities(k)
-			if egg.lucky then
+			if sealed.lucky then
 				lucky += 1
 				local below = probs[slime.tier - 1] ~= nil
 				local capped = slime.tier == Config.MAX_TIER and probs[Config.MAX_TIER] ~= nil
@@ -148,7 +148,7 @@ describe("Hatch show record", function()
 	it("records the hatch for the show and toasts the owner only at the reveal", function()
 		local world, session = owner({ egg("e", "golden", 4, T0, true) })
 		expect(Actions.handle(world, 1, "HatchEgg", table.pack("e"), T0, ctx).ok).toBe(true)
-		local hatch = assert(world.hatches.e)
+		local hatch = assert(world.hatches.e, "hatch")
 		expect(hatch.at).toBe(T0)
 		expect(hatch.kind).toBe("golden")
 		expect(hatch.lucky).toBe(true)
