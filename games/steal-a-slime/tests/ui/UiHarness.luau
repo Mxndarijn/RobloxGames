@@ -439,8 +439,24 @@ local services: { [string]: any } = { Players = players }
 -- Live counters for tests/ui/PerfMeasure: frame-event connections (connects minus disconnects, per
 -- event), TweenService:Create / Play calls and task wakeups. Always on; a counter costs one add.
 UiHarness.stats = {
-	connects = { RenderStepped = 0, Heartbeat = 0, Stepped = 0 } :: { [string]: number },
-	disconnects = { RenderStepped = 0, Heartbeat = 0, Stepped = 0 } :: { [string]: number },
+	connects = {
+		RenderStepped = 0,
+		Heartbeat = 0,
+		Stepped = 0,
+		PreAnimation = 0,
+		PreRender = 0,
+		PreSimulation = 0,
+		PostSimulation = 0,
+	} :: { [string]: number },
+	disconnects = {
+		RenderStepped = 0,
+		Heartbeat = 0,
+		Stepped = 0,
+		PreAnimation = 0,
+		PreRender = 0,
+		PreSimulation = 0,
+		PostSimulation = 0,
+	} :: { [string]: number },
 	tweensCreated = 0,
 	tweensPlayed = 0,
 	tweensCancelled = 0,
@@ -483,6 +499,10 @@ services.RunService = {
 	RenderStepped = frameEvent("RenderStepped"),
 	Heartbeat = frameEvent("Heartbeat"),
 	Stepped = frameEvent("Stepped"),
+	PreAnimation = frameEvent("PreAnimation"),
+	PreRender = frameEvent("PreRender"),
+	PreSimulation = frameEvent("PreSimulation"),
+	PostSimulation = frameEvent("PostSimulation"),
 }
 -- Toasts: no sound playback, tweens are inert.
 services.SoundService = {

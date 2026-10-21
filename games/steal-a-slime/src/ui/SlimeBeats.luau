@@ -23,6 +23,7 @@ export type Emote = "love" | "alert" | "ask" | "star" | "note" | "dots" | "sleep
 
 export type Pose = {
 	yaw: number?, -- radians from the heading (+ = left), nil = no turn
+	spin: number?, -- radians of a spin on top of the heading (0 .. 2 pi), nil = none
 	lean: number, -- studs sideways (+ = right)
 	tilt: number, -- radians, + = nose down
 	roll: number, -- radians, + = lean right
@@ -45,6 +46,7 @@ end
 local function reset(out: Pose?): Pose
 	local p: Pose = out or {} :: any
 	p.yaw, p.lean, p.tilt, p.roll, p.lift, p.sx, p.sy, p.face, p.emote = nil, 0, 0, 0, 0, 1, 1, nil, nil
+	p.spin = nil
 	return p
 end
 
@@ -132,7 +134,7 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 			if u < 0.6 then
 				local v = u / 0.6
 				p.lift = 2.4 * math.sin(math.pi * v)
-				p.yaw = 2 * math.pi * smooth(v)
+				p.spin = 2 * math.pi * smooth(v)
 				p.sy = 1 + 0.12 * math.sin(math.pi * v)
 				p.face = "excited"
 			else

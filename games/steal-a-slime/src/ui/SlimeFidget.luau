@@ -44,6 +44,7 @@ export type Pose = {
 	roll: number,
 	yaw: number,
 	yawWeight: number,
+	spin: number, -- radians of a spin on top of the heading (0 .. 2 pi): plays as given, never chased
 	carry: number,
 	face: string?,
 	emote: string?,
@@ -129,6 +130,7 @@ end
 local function blank(out: Pose?): Pose
 	local p: Pose = out or {} :: any
 	p.lift, p.sx, p.sy, p.tilt, p.roll, p.yaw, p.yawWeight, p.carry = 0, 1, 1, 0, 0, 0, 0, 0
+	p.spin = 0
 	p.face, p.emote, p.splat = nil, nil, 0
 	return p
 end
@@ -201,7 +203,7 @@ function SlimeFidget.pose(kind: string, u: number, out: Pose?): Pose
 		hopAt(p, u, 0, 0.14, 0.54, 1.1)
 		local q = math.clamp((u - 0.14) / 0.54, 0, 1)
 		if q > 0 and q < 1 then
-			p.yaw, p.yawWeight = 2 * math.pi * smooth(q), 1
+			p.spin = 2 * math.pi * smooth(q)
 		end
 		p.face = if u > 0.14 then "excited" else nil
 		p.emote = "star"

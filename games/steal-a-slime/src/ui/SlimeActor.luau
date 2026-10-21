@@ -70,10 +70,10 @@ SlimeActor.SNAP_JUMP = 60 -- studs: further than this a pad move is a teleport, 
 -- spot (gain rad per stud / s^2, capped at max), so a slime rocks back as it sets off and forward as it stops.
 -- Squash: kicked by landings (kick = squash speed per unit of splat), capped at max either way.
 SlimeActor.LEAN = table.freeze({ f = 2.2, zeta = 0.32, r = 0, gain = 0.018, max = 0.3 })
-SlimeActor.SQUASH = table.freeze({ f = 2.6, zeta = 0.2, r = 0, kick = 1.3, max = 0.3 })
+SlimeActor.SQUASH = table.freeze({ f = 2.6, zeta = 0.32, r = 0, kick = 1.3, max = 0.3 })
 -- A hop's jelly: squash speed kicked into the squash spring per unit of landing (down) and take-off (up), so the
 -- body rings two or three times after every jump.
-SlimeActor.HOP_JELLY = table.freeze({ land = 1.9, launch = 1.1 })
+SlimeActor.HOP_JELLY = table.freeze({ land = 1.3, launch = 0.7 })
 SlimeActor.ESCAPE_SPEED = 10 -- studs / s: an escaping slime this fast leans and stretches fully
 -- A slime on the move faces where it goes: a reaction (the player, nerves, a fright) only turns it this far
 -- (radians), a glance; it turns round to face you only while it stands still.
@@ -533,6 +533,7 @@ function SlimeActor.update(
 	mods.air = if g.air then 1 else 0
 	mods.vy = g.vy
 	mods.yaw, mods.yawWeight, mods.lean = 0, 0, 0
+	local spin = 0 -- a spin beat / fidget: added on top of the smoothed heading, never chased (no jump mid-spin)
 	local faceGlance = 0 -- SlimeAttention glances, for the face alone
 	mods.closed, mods.pop = 0, 0
 	local faceName: string? = g.face
@@ -563,6 +564,9 @@ function SlimeActor.update(
 				standing = phase == "stop"
 				if b.yaw then
 					mods.yaw, mods.yawWeight = b.yaw, 1
+				end
+				if b.spin then
+					spin = b.spin
 				end
 				mods.lean += b.lean
 				mods.tilt += b.tilt
@@ -668,6 +672,9 @@ function SlimeActor.update(
 			mods.roll += fp.roll
 			if fp.yawWeight > 0 then
 				mods.yaw, mods.yawWeight = fp.yaw, fp.yawWeight
+			end
+			if fp.spin ~= 0 then
+				spin = fp.spin
 			end
 			mods.dx += actor.moveX * fp.carry
 			mods.dz += actor.moveZ * fp.carry
@@ -796,6 +803,9 @@ function SlimeActor.update(
 		actor.yawWeight += (mods.yawWeight - actor.yawWeight) * k
 	end
 	mods.yaw, mods.yawWeight = actor.yaw, actor.yawWeight
+	if spin ~= 0 then
+		mods.yaw, mods.yawWeight = actor.yaw + spin, 1
+	end
 
 	face(mods, faceName)
 	actor.emote = if detailed then emote else nil

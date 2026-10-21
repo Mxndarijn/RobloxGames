@@ -174,6 +174,26 @@ describe("SlimeActor on pads (FEATURES.SlimeAlive)", function()
 		expect(top > 0.4).toBe(true)
 	end)
 
+	it("a spin turns smoothly all the way round: the heading never jumps from one frame to the next", function()
+		local r = rig("Pad", Vector3.new(0, 3, 0))
+		step(r, 0)
+		r.actor.yaw = -0.4 -- it was looking a little aside when the spin starts
+		SlimeFidget.play(r.actor.fidget, "spin", 0.1)
+		local prev, worst, turned = nil, 0, 0
+		for f = 7, 2 * 60 do
+			local t = f / 60
+			step(r, t)
+			local yaw = r.actor.mods.yaw
+			if prev then
+				local d = math.abs((yaw - prev + math.pi) % (2 * math.pi) - math.pi)
+				worst = math.max(worst, d)
+				turned += d
+			end
+			prev = yaw
+		end
+		expect(worst < 0.3).toBe(true)
+		expect(turned > 2 * math.pi - 0.3).toBe(true)
+	end)
 	it("a pad slime does not stand still: it fidgets within a few seconds", function()
 		local r = rig("Pad", Vector3.new(0, 3, 0))
 		local moved = 0
