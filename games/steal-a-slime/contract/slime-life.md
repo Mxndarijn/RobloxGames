@@ -152,7 +152,9 @@ against the server's lane, queue and replication; `lune run tools/slimesim <scen
 - **The tag follows the slime.** The name tag (`SlimeInfoCard`) and the Buy card (`SlimeKeyCard`) hang on
   `Constants.TAG_ANCHOR`, a client-only Attachment on the Body that `SlimeInfoCard` makes. `SlimeLifeRunner` moves it
   every frame to where the slime is drawn, through a spring (`SlimeActor.TAG`), so it never steps with the replicated
-  Body and glides along with a hopper's leaps. Released rigs put it back on the Body.
+  Body and glides along with a hopper's leaps. It also rises with the slime's lift (a float's hover, a fidget or
+  reaction that rises) through a softer spring (`SlimeActor.TAG_LIFT`), leaving out the hop arc, so a slime never
+  rises into its own label and a tag never bobs with every hop. Released rigs put it back on the Body.
 - **On the move it faces where it goes.** A wild slime faster than `SlimeActor.MOVING` only glances at the player
   (`SlimeActor.GLANCE`), also for nerves and watching a carrier; it turns round to you only while it stands. A hopper
   lets go of look turns while it squats and flies (`SlimeActor.AIR_TURN`): it jumps nose first.

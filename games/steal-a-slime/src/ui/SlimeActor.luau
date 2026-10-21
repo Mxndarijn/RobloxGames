@@ -84,6 +84,9 @@ SlimeActor.AIR_RATE = 14 -- 1 / s: how fast that share fades in and out
 -- The name tag and the Buy card hang on a TagAnchor that follows the drawn slime through this spring (Lib Spring:
 -- f Hz, zeta, r): it glides along with a hopper's leaps instead of jumping, and never steps with the Body.
 SlimeActor.TAG = table.freeze({ f = 3, zeta = 1, r = 0.5 })
+-- The tag rises with the slime (a float, a slow rise in a fidget) through a softer spring, so a quick hop only nudges
+-- it and the slime never rises into its own label.
+SlimeActor.TAG_LIFT = table.freeze({ f = 1.2, zeta = 1, r = 0 })
 SlimeActor.PAD_LEAN = 0.3 -- studs: a pad slime leans towards you at most this far (it stays on its pad)
 -- Eyes lead: the face turns ahead of the body by this share of the turn still to go (at most FACE_LEAD radians), and
 -- takes the attention glances on its own, so the eyes move first and the body follows.
@@ -174,6 +177,8 @@ export type Actor = {
 	pushZ: number,
 	tagX: Spring.Spring, -- where the tag hangs (world x / z), following the drawn slime
 	tagZ: Spring.Spring,
+	tagY: Spring.Spring, -- how far the tag rises with the slime's lift (studs)
+	hopLift: number, -- this frame's hop arc (part of mods.lift the tag leaves out)
 	hasTag: boolean,
 	tagOffset: Vector3, -- the TagAnchor's offset from the Body (world axes)
 }
@@ -297,6 +302,8 @@ function SlimeActor.attach(
 		pushZ = 0,
 		tagX = Spring.new(SlimeActor.TAG.f, SlimeActor.TAG.zeta, SlimeActor.TAG.r, p.X),
 		tagZ = Spring.new(SlimeActor.TAG.f, SlimeActor.TAG.zeta, SlimeActor.TAG.r, p.Z),
+		tagY = Spring.new(SlimeActor.TAG_LIFT.f, SlimeActor.TAG_LIFT.zeta, SlimeActor.TAG_LIFT.r, 0),
+		hopLift = 0,
 		hasTag = false,
 		tagOffset = Vector3.zero,
 	}
@@ -517,6 +524,8 @@ function SlimeActor.update(
 	g.dx += ax - pos.X
 	g.dz += az - pos.Z
 	mods.dx, mods.dz, mods.lift = g.dx, g.dz, g.lift
+	-- the hop arc itself doesn't lift the tag (it would bob with every hop); a float's hover and slow rises do
+	actor.hopLift = if actor.persona.gait == "Hop" then g.lift else 0
 	mods.dy = ay - pos.Y
 	mods.heading = wrap(actor.heading - bodyYaw)
 	mods.sx, mods.sy, mods.tilt, mods.roll = g.sx, g.sy, g.tilt, g.roll
@@ -807,15 +816,19 @@ function SlimeActor.settle(actor: Actor, pushX: number, pushZ: number, dt: numbe
 	local right = actor.motor.body.CFrame.RightVector
 	local x, z = pos.X + mods.dx + right.X * mods.lean, pos.Z + mods.dz + right.Z * mods.lean
 	actor.visible = Vector3.new(x, actor.visible.Y, z)
+	local size = (actor.model:GetAttribute("Size") :: number?) or 1
+	local lift = math.max(mods.lift - actor.hopLift, 0) * size
 	if not actor.hasTag or dt <= 0 then
 		Spring.reset(actor.tagX, x)
 		Spring.reset(actor.tagZ, z)
+		Spring.reset(actor.tagY, lift)
 		actor.hasTag = true
 	else
 		Spring.step(actor.tagX, dt, x)
 		Spring.step(actor.tagZ, dt, z)
+		Spring.step(actor.tagY, dt, lift)
 	end
-	actor.tagOffset = Vector3.new(actor.tagX.y - pos.X, mods.dy, actor.tagZ.y - pos.Z)
+	actor.tagOffset = Vector3.new(actor.tagX.y - pos.X, mods.dy + math.max(actor.tagY.y, 0), actor.tagZ.y - pos.Z)
 end
 
 function SlimeActor.frighten(actor: Actor, now: number, watch: Vector3, delay: number)
