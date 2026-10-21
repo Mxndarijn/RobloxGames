@@ -32,7 +32,7 @@ An egg is never merged (Merge Vat, 3-slime vat, merge assist), never counts for 
 
 ## 40.4 Hatching
 
-- **Request `HatchEgg(slimeId: string)`**: the caller's own egg, on a pad, not being carried, `hatchAt <= now`. Clears `egg`, records the SlimeDex, sets `State.egg.hatched` (the existing reveal banner) and toasts. A hatch of `HATCH_ANNOUNCE_TIER`+ toasts the server. Refusals: "not your egg", "egg is not ready", "egg is being stolen".
+- **Request `HatchEgg(slimeId: string)`**: the caller's own egg, on a pad, not being carried, `hatchAt <= now`. Clears `egg`, records the SlimeDex, sets `State.egg.hatched` (no HUD banner) and toasts. A hatch of `HATCH_ANNOUNCE_TIER`+ toasts the server. Refusals: "not your egg", "egg is not ready", "egg is being stolen".
 - **`HatchPrompt`** (ProximityPrompt on the egg's Body, `ShowOnlyToUserId` = owner, hold `HOLD_CONFIRM_SECONDS`), enabled while the egg is ready on its pad: the same rule.
 - When an egg turns ready while the owner is in the server, the owner gets one toast.
 

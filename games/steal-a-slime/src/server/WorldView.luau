@@ -937,7 +937,9 @@ function WorldView.reconcile(
 				if hatch.Enabled ~= entry.hatchReady then
 					hatch.Enabled = entry.hatchReady
 				end
-				setAttr(hatch, Constants.PROMPT_OWNER_ATTRIBUTE, entry.ownerUserId)
+				-- Owner tag only while ready: PromptHide re-enables an owner prompt when its owner becomes the
+				-- local player, which would show Hatch on an egg that isn't ready (a stolen one, say).
+				setAttr(hatch, Constants.PROMPT_OWNER_ATTRIBUTE, if entry.hatchReady then entry.ownerUserId else nil)
 			end
 		end
 		-- Every reconcile, not only in place(): the telegraph window opens without a key change.
