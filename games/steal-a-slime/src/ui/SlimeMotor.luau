@@ -198,7 +198,9 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand, mods: Mods?): bo
 	end
 	local size = (motor.model:GetAttribute("Size") :: number?) or 1
 	local r = motor.body.Size.Y / 2
-	local lift = pose.lift * size
+	-- the model's scale since attach (the despawn shrink, a client ScaleTo): the skin and the hop scale with it
+	local grown = motor.body.Size.Y / math.max(motor.bodySize.Y, 1e-6)
+	local lift = pose.lift * size * grown
 	local bones = motor.bones
 	-- Rock and turn around the bottom centre; the squashed centre sits r * sy up
 	-- (bones squash the mesh from its foot, so a boned skin keeps its centre).
@@ -215,7 +217,7 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand, mods: Mods?): bo
 	end
 	local scale = Vector3.new(pose.sx, pose.sy, pose.sz)
 	if motor.skin and motor.skinSize then
-		motor.skin.Size = motor.skinSize * scale
+		motor.skin.Size = motor.skinSize * grown * scale
 	end
 	if motor.squash then
 		motor.squash.Scale = scale
@@ -237,12 +239,13 @@ function SlimeMotor.stepSquish(motor: Motor, now: number, amp: number)
 	end
 	local sxz = 1 / math.sqrt(sy)
 	local r = motor.body.Size.Y / 2
+	local grown = motor.body.Size.Y / math.max(motor.bodySize.Y, 1e-6)
 	local transform = CFrame.new(0, r * (sy - 1), 0)
 	motor.face.Transform = transform
 	motor.skinJoint.Transform = transform
 	local scale = Vector3.new(sxz, sy, sxz)
 	if motor.skin and motor.skinSize then
-		motor.skin.Size = motor.skinSize * scale
+		motor.skin.Size = motor.skinSize * grown * scale
 	end
 	if motor.squash then
 		motor.squash.Scale = scale

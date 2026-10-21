@@ -10,7 +10,7 @@
 	no Roblox APIs, so tests/ui/SlimeLife.spec.luau covers it under Lune.
 
 	  SlimeLife.params(tier, state) -> Params   tier 1..7, state "Wild" | "Pad"
-	  SlimeLife.eligible(info) -> boolean       state / despawn / distance rule
+	  SlimeLife.eligible(info) -> boolean       state / screen / distance rule
 	  SlimeLife.select(cands, active) -> { [id]: true }
 	                                            nearest first, at most MAX_ACTIVE,
 	                                            with distance hysteresis
@@ -133,7 +133,9 @@ function SlimeLife.params(tier: number?, state: string?): Params
 end
 
 function SlimeLife.eligible(c: Candidate, wasActive: boolean?): boolean
-	if not (c.state and SlimeLife.STATES[c.state]) or c.despawning then
+	-- A despawning slime (the last DESPAWN_TELEGRAPH_SECONDS of its walk, shrinking) stays alive to the drain: dropping
+	-- its rig there snapped it onto its Body and slid it on lifeless to the end of the lane.
+	if not (c.state and SlimeLife.STATES[c.state]) then
 		return false
 	end
 	if c.onScreen == false then

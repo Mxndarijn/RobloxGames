@@ -122,9 +122,7 @@ describe("SlimeFidget poses", function()
 		local most = 0
 		for u = 0, SlimeFidget.SECONDS.spin, 0.01 do
 			local p = SlimeFidget.pose("spin", u)
-			if p.yawWeight > 0 then
-				most = math.max(most, p.yaw)
-			end
+			most = math.max(most, p.spin)
 		end
 		expect(most > 2 * math.pi - 0.2).toBe(true)
 	end)

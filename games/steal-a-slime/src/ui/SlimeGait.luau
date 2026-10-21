@@ -30,6 +30,10 @@ local SlimePersona = if Shared then require(Shared.SlimePersona) else require(".
 local SlimeGait = {}
 
 SlimeGait.CROUCH = 0.15 -- seconds of anticipation squat before every jump
+SlimeGait.PUSH = 0.1 -- share of the flight over which it springs out of the squat into the take-off stretch
+SlimeGait.FALL_STRETCH = 0.08 -- how long it is as it lands (x k): small, so the splat isn't a jump in height
+SlimeGait.SPLAT_IN = 0.025 -- seconds over which the landing splat comes in
+SlimeGait.LEVEL_OUT = 0.06 -- seconds over which the landing tilt eases level
 SlimeGait.MAX_GAP = 9 -- studs between the visible body and the anchor before it snaps back
 SlimeGait.MIN_SPEED = 0.3 -- studs / s: slower than this counts as standing (no new jump)
 -- studs: a hopper this far behind its anchor catches up: it cuts a long landing (a belly flop's lie-down) short and
@@ -175,15 +179,18 @@ function SlimeGait.shape(stage: string, u: number, height: number, kind: string)
 		local c = smooth(u)
 		o.sy = 1 - 0.26 * k * c -- a deep squat: the anticipation reads before every jump
 		o.sx = 1 + 0.2 * k * c
-		o.tilt = -0.12 * c -- leans back, loading the spring
+		o.tilt = -0.18 * c -- leans back, loading the spring (as far as the take-off starts, so it doesn't snap)
 		o.face = if kind == "boing" then "excited" else nil
 	elseif stage == "air" then
 		o.lift = height * 4 * u * (1 - u)
 		o.vy = height * 4 * (1 - 2 * u)
-		-- shot out tall at take-off, round at the top, a little long again as it drops onto its feet
-		local st = 0.3 * (1 - u) ^ 3 + 0.14 * u ^ 4
-		o.sy = 1 + k * st
-		o.sx = 1 - 0.5 * k * st
+		-- shot out tall at take-off (eased out of the squat over the first PUSH of the flight, never a one-frame
+		-- snap), round at the top, a little long again as it drops onto its feet
+		local st = 0.3 * (1 - u) ^ 3 + SlimeGait.FALL_STRETCH * u ^ 4
+		local push = smooth(math.min(u / SlimeGait.PUSH, 1))
+		local squatY, squatX = 1 - 0.26 * k, 1 + 0.2 * k
+		o.sy = squatY + (1 + k * st - squatY) * push
+		o.sx = squatX + (1 - 0.5 * k * st - squatX) * push
 		o.tilt = 0.18 * -math.cos(math.pi * u) -- nose up going up, nose down coming down
 		if kind == "boing" then
 			o.tilt = 2 * math.pi * smooth((u - 0.12) / 0.72) -- a full forward flip
@@ -196,6 +203,8 @@ function SlimeGait.shape(stage: string, u: number, height: number, kind: string)
 		end
 	else
 		if kind == "belly" then
+			-- flat on its belly: the flop's forward tip eases out instead of snapping upright
+			o.tilt = 1.35 * math.exp(-u / (3 * SlimeGait.LEVEL_OUT))
 			if u < 0.55 then
 				o.sy = 0.68 + 0.04 * math.sin(u * 12) * (1 - u / 0.55)
 				o.sx = 1.22
@@ -210,8 +219,13 @@ function SlimeGait.shape(stage: string, u: number, height: number, kind: string)
 			-- the impact splat; the jelly wobble after it comes from the actor's squash spring (kicked on landing),
 			-- which rings on through the next squat and jump instead of restarting every hop
 			local a = (if kind == "boing" then 0.4 elseif kind == "small" then 0.18 else 0.3) * k
-			o.sy = 1 - a * math.exp(-14 * u)
+			-- it lands still a little long and tipped nose down (the end of the flight): the splat comes in over
+			-- SPLAT_IN seconds and the tilt eases level, so the landing frame never snaps the pose
+			local ramp = 1 - math.exp(-u / SlimeGait.SPLAT_IN)
+			local fallY = 1 + k * SlimeGait.FALL_STRETCH
+			o.sy = fallY + (1 - a * math.exp(-14 * u) - fallY) * ramp
 			o.sx = 1 / math.sqrt(math.max(0.4, o.sy))
+			o.tilt = (if kind == "boing" then 0 else 0.18) * math.exp(-u / SlimeGait.LEVEL_OUT)
 			if u < 0.12 then
 				o.face = "squeeze"
 			elseif kind == "boing" and u < 0.6 then
@@ -318,6 +332,10 @@ local function hop(
 		st.n += 1
 		p.launched = math.min(2, st.height / 1.2)
 		p.dx, p.dz = st.visX - x, st.visZ - z
+		-- the take-off frame draws the flight's first pose (a blank pose here blinked every hop)
+		local s0 = SlimeGait.shape("air", 0, st.height, st.kind)
+		p.lift, p.sx, p.sy, p.tilt, p.face = s0.lift, s0.sx, s0.sy, s0.tilt, s0.face
+		p.vy = s0.vy / st.dur
 		p.air = true
 		p.kind = st.kind
 		return
@@ -326,7 +344,7 @@ local function hop(
 	local since = now - st.landedAt
 	local s = SlimeGait.shape("land", since, st.height, st.kind)
 	p.dx, p.dz = st.visX - x, st.visZ - z
-	p.sx, p.sy, p.face = s.sx, s.sy, s.face
+	p.sx, p.sy, p.tilt, p.face = s.sx, s.sy, s.tilt, s.face
 	p.kind = st.kind
 	local settle = style.settle + (if st.kind == "belly" then 0.75 elseif st.kind == "boing" then 0.35 else 0)
 	local ahead = (x - st.visX) * fx + (z - st.visZ) * fz

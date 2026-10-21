@@ -79,7 +79,7 @@ def main():
         luau(s, sid, read(os.path.join(HERE, "recorder.luau")))
         prefix = "".join('_G.%s = "%s"\n' % tuple(kv.split("=", 1)) for kv in a.set)
         body = read(os.path.join(HERE, "scenarios", a.scenario + ".luau"))
-        print("scenario:", luau(s, sid, prefix + body, timeout=180))
+        print("scenario:", luau(s, sid, prefix + body, timeout=240))
         luau(s, sid, "return _G.SlimeCam.start(%s)" % a.radius)
         time.sleep(a.seconds)
         n = luau(s, sid, "return _G.SlimeCam.stop()")

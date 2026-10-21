@@ -160,17 +160,36 @@ describe("SlimeGait.shape", function()
 	it("squats, stretches in the air, is round at the top and splats on landing", function()
 		local crouch = SlimeGait.shape("crouch", 1, 1.5, "normal")
 		expect(crouch.sy < 1).toBe(true)
-		local launch = SlimeGait.shape("air", 0.05, 1.5, "normal")
+		local launch = SlimeGait.shape("air", 0.15, 1.5, "normal")
 		expect(launch.sy > 1.1).toBe(true)
 		local apex = SlimeGait.shape("air", 0.5, 1.5, "normal")
 		expect(apex.lift).toBeCloseTo(1.5, 1e-9)
 		expect(math.abs(apex.sy - 1) < 0.06).toBe(true) -- nearly round at the top
 		expect(apex.face).toBe("happy")
-		local splat = SlimeGait.shape("land", 0, 1.5, "normal")
-		expect(splat.sy < 0.85 and splat.sy >= 0.65).toBe(true) -- a splat, never so flat the face sinks in
+		local splat = SlimeGait.shape("land", 0.05, 1.5, "normal")
+		expect(splat.sy < 0.92 and splat.sy >= 0.65).toBe(true) -- a splat, never so flat the face sinks in
 		expect(splat.face).toBe("squeeze")
 		local settled = SlimeGait.shape("land", 2, 1.5, "normal")
 		expect(math.abs(settled.sy - 1) < 0.01).toBe(true)
+	end)
+	it("never snaps the pose: the squat flows into the take-off and the flight into the landing", function()
+		for _, kind in { "normal", "big", "small", "zig" } do
+			local crouchEnd = SlimeGait.shape("crouch", 1, 1.5, kind)
+			local takeOff = SlimeGait.shape("air", 0, 1.5, kind)
+			expect(math.abs(crouchEnd.sy - takeOff.sy) < 0.02).toBe(true)
+			expect(math.abs(crouchEnd.tilt - takeOff.tilt) < 0.02).toBe(true)
+			local fallEnd = SlimeGait.shape("air", 1, 1.5, kind)
+			local touchDown = SlimeGait.shape("land", 0, 1.5, kind)
+			expect(math.abs(fallEnd.sy - touchDown.sy) < 0.02).toBe(true)
+			expect(math.abs(fallEnd.tilt - touchDown.tilt) < 0.02).toBe(true)
+			-- at 60 frames a second no frame changes the height more than a quarter or the tilt more than 0.1 rad
+			local prev = SlimeGait.shape("land", 0, 1.5, kind)
+			for f = 1, 30 do
+				local cur = SlimeGait.shape("land", f / 60, 1.5, kind)
+				expect(math.abs(cur.sy - prev.sy) < 0.25 and math.abs(cur.tilt - prev.tilt) < 0.1).toBe(true)
+				prev = cur
+			end
+		end
 	end)
 	it("a boing flips all the way round; a belly flop lands flat and peels up", function()
 		expect(SlimeGait.shape("air", 1, 1.5, "boing").tilt).toBeCloseTo(2 * math.pi, 1e-6)

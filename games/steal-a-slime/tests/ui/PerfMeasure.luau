@@ -16,7 +16,8 @@ local UiHarness = require("./UiHarness")
 
 local PerfMeasure = {}
 
-local EVENTS = { "RenderStepped", "Heartbeat", "Stepped" }
+local EVENTS =
+	{ "RenderStepped", "Heartbeat", "Stepped", "PreAnimation", "PreRender", "PreSimulation", "PostSimulation" }
 
 local function liveConns(): number
 	local stats = UiHarness.stats

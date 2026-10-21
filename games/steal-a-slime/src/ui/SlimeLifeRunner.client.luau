@@ -340,11 +340,18 @@ local function acquire(model: Model): Rig?
 		rig.dirty = true
 	end
 	table.insert(rig.conns, model:GetAttributeChangedSignal("State"):Connect(drop))
-	table.insert(rig.conns, model:GetAttributeChangedSignal(Constants.DESPAWN_AT_ATTRIBUTE):Connect(drop))
 	table.insert(rig.conns, body:GetPropertyChangedSignal("Anchored"):Connect(drop))
 	-- A server ScaleTo (the boss's fight / haul size, growth) leaves every measured size, offset and bone rest
-	-- frame stale: drop the rig, the next select builds it again at the new size.
-	table.insert(rig.conns, body:GetPropertyChangedSignal("Size"):Connect(drop))
+	-- frame stale: drop the rig, the next select builds it again at the new size. The despawn telegraph's shrink
+	-- (a client ScaleTo while DespawnAt is set) is not that: the rig scales with it and stays alive to the drain.
+	table.insert(
+		rig.conns,
+		body:GetPropertyChangedSignal("Size"):Connect(function()
+			if model:GetAttribute(Constants.DESPAWN_AT_ATTRIBUTE) == nil then
+				drop()
+			end
+		end)
+	)
 	table.insert(
 		rig.conns,
 		model.ChildAdded:Connect(function(child)
@@ -461,11 +468,18 @@ local function acquireAnim(model: Model): AnimRig?
 		releaseAnim(model)
 	end
 	table.insert(rig.conns, model:GetAttributeChangedSignal("State"):Connect(drop))
-	table.insert(rig.conns, model:GetAttributeChangedSignal(Constants.DESPAWN_AT_ATTRIBUTE):Connect(drop))
 	table.insert(rig.conns, body:GetPropertyChangedSignal("Anchored"):Connect(drop))
 	-- A server ScaleTo (the boss's fight / haul size, growth) leaves every measured size, offset and bone rest
-	-- frame stale: drop the rig, the next select builds it again at the new size.
-	table.insert(rig.conns, body:GetPropertyChangedSignal("Size"):Connect(drop))
+	-- frame stale: drop the rig, the next select builds it again at the new size. The despawn telegraph's shrink
+	-- (a client ScaleTo while DespawnAt is set) is not that: the rig scales with it and stays alive to the drain.
+	table.insert(
+		rig.conns,
+		body:GetPropertyChangedSignal("Size"):Connect(function()
+			if model:GetAttribute(Constants.DESPAWN_AT_ATTRIBUTE) == nil then
+				drop()
+			end
+		end)
+	)
 	return rig
 end
 
@@ -567,11 +581,18 @@ local function acquireMotor(model: Model): MotorRig?
 			SlimeActor.setState(rig.actor :: SlimeActor.Actor, prev :: string?, state :: string, os.clock())
 		end)
 	)
-	table.insert(rig.conns, model:GetAttributeChangedSignal(Constants.DESPAWN_AT_ATTRIBUTE):Connect(drop))
 	table.insert(rig.conns, body:GetPropertyChangedSignal("Anchored"):Connect(drop))
 	-- A server ScaleTo (the boss's fight / haul size, growth) leaves every measured size, offset and bone rest
-	-- frame stale: drop the rig, the next select builds it again at the new size.
-	table.insert(rig.conns, body:GetPropertyChangedSignal("Size"):Connect(drop))
+	-- frame stale: drop the rig, the next select builds it again at the new size. The despawn telegraph's shrink
+	-- (a client ScaleTo while DespawnAt is set) is not that: the rig scales with it and stays alive to the drain.
+	table.insert(
+		rig.conns,
+		body:GetPropertyChangedSignal("Size"):Connect(function()
+			if model:GetAttribute(Constants.DESPAWN_AT_ATTRIBUTE) == nil then
+				drop()
+			end
+		end)
+	)
 	return rig
 end
 
@@ -1067,7 +1088,12 @@ for _, model in CollectionService:GetTagged(Constants.SLIME_TAG) do
 	onSlime(model)
 end
 
-RunService.RenderStepped:Connect(function()
+-- PreAnimation, not RenderStepped: the engine applies a Motor6D Transform in the animation step after it, and the
+-- Body's replicated CFrame lands between RenderStepped and PreAnimation. Written in RenderStepped, a Transform that
+-- cancels the Body's network step was applied to the Body after its next step: every replication step showed as a
+-- one-frame jerk of the drawn slime (0.15-0.2 studs, 20-30 times a second, on every slime). Written here, the
+-- Transform always meets the Body it was computed for.
+RunService.PreAnimation:Connect(function()
 	local camera = workspace.CurrentCamera
 	if not camera then
 		return
