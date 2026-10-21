@@ -10,20 +10,14 @@
 	`wants` is the rule (tests/StealGhost.spec.luau). `build` only touches Roblox APIs when called.
 ]]
 
+local Scene = if script then require(script.Parent.Scene) else require("./Scene")
+
 local StealGhost = {}
 
 StealGhost.NAME = "StealGhost"
 
-export type EntryLike = {
-	state: string,
-	ownerUserId: number,
-	carrierUserId: number?,
-	plotIndex: number?,
-	pad: number?,
-}
-
 -- A ghost shows on the pad only while someone other than the owner carries a pad slime.
-function StealGhost.wants(entry: EntryLike): boolean
+function StealGhost.wants(entry: Scene.Entry): boolean
 	return entry.state == "Carried"
 		and entry.plotIndex ~= nil
 		and entry.pad ~= nil

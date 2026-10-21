@@ -33,9 +33,12 @@ describe("StealGhost.wants", function()
 		expect(StealGhost.wants(e)).toBe(false)
 	end)
 	it("never shows when the owner carries their own slime", function()
-		expect(StealGhost.wants({ state = "Carried", ownerUserId = 1, carrierUserId = 1, plotIndex = 1, pad = 1 })).toBe(
-			false
-		)
+		local world = ServerFixtures.world()
+		ServerFixtures.join(world, 1, { Fixtures.slime("a", 2) })
+		local e = table.clone(Scene.describe(world, T0)["a"])
+		e.state = "Carried"
+		e.carrierUserId = 1
+		expect(StealGhost.wants(e)).toBe(false)
 	end)
 end)
 
