@@ -166,10 +166,13 @@ describe("SlimeGait.shape", function()
 		local apex = SlimeGait.shape("air", SlimeGait.PUSH + (1 - SlimeGait.PUSH) / 2, 1.5, "normal")
 		expect(apex.lift).toBeCloseTo(1.5, 1e-9)
 		expect(math.abs(apex.sy - 1) < 0.06).toBe(true) -- nearly round at the top
-		expect(apex.face).toBe("happy")
+		expect(apex.face).toBeNil() -- a plain hop keeps its eyes open
+		local bigApex = SlimeGait.shape("air", SlimeGait.PUSH + (1 - SlimeGait.PUSH) / 2, 1.5, "big")
+		expect(bigApex.face).toBe("happy") -- a big leap: happy shut eyes
 		local splat = SlimeGait.shape("land", 0.05, 1.5, "normal")
 		expect(splat.sy < 0.92 and splat.sy >= 0.65).toBe(true) -- a splat, never so flat the face sinks in
-		expect(splat.face).toBe("squeeze")
+		expect(splat.face).toBeNil() -- eyes open on a plain landing
+		expect(SlimeGait.shape("land", 0.05, 1.5, "big").face).toBe("squeeze") -- a hard landing squeezes them
 		local settled = SlimeGait.shape("land", 2, 1.5, "normal")
 		expect(math.abs(settled.sy - 1) < 0.01).toBe(true)
 	end)

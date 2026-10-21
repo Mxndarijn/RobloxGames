@@ -2,14 +2,15 @@
 --[[
 	FountainTiers (FEATURES.FountainTiers, CONTRACT.md §19)
 
-	The central fountain upgrades with rank. Rank thresholds are the Config.REBIRTH_TIERS entries that carry a
-	`family`: Slime Wrangler (3 rebirths) opens Garden, Goo Tycoon (6) Frost & Sea, Slime Sovereign (10) Starlight.
+	The central fountain's look upgrades with rank. Rank thresholds are the Config.REBIRTH_TIERS entries that carry a
+	`family`: Slime Wrangler (3 rebirths) grows the Garden Fountain, Goo Tycoon (6) Frost & Sea, Slime Sovereign (10)
+	Starlight.
 	  * Fountain tier (1..4): the best rank seen on this server since it started (World.fountainTier, never
 	    goes back down while the server lives). It drives the look (goo glow; client FountainTierFx
-	    reads the workspace attribute Constants.FOUNTAIN_TIER_ATTRIBUTE) and the drop pool.
-	  * Drop pool: Classic (Meadow) always, plus every family the tier has opened. A drop rolls its rarity first,
-	    then a species uniformly over that tier's species in the pool (Genome.speciesPool, contract/slime-odds.md).
-	  * Catching a family slime needs your own rank to have opened it (a stolen one is already owned).
+	    reads the workspace attribute Constants.FOUNTAIN_TIER_ATTRIBUTE).
+	  * Drop pool: Classic (Meadow) plus every family (allFamilies), on every server at every rank. A drop rolls
+	    its rarity first, then a species uniformly over that tier's species in the pool (Genome.speciesPool,
+	    contract/slime-odds.md). No slime needs rebirths to catch, buy, steal or merge into.
 	No income multiplier and no price: a family slime sells / earns like a Classic one of the same tier,
 	and size (the economy is untouched). Species are SlimeRoster entries with `family` set, so a
 	save only stores a species id it already knew how to store (Genome.sanitize).
@@ -21,7 +22,7 @@ local Config = if script then require(script.Parent.Config) else require("./Conf
 export type Family = {
 	id: string, -- permanent: SlimeRoster Entry.family and Config.REBIRTH_TIERS[i].family
 	name: string,
-	tier: number, -- fountain tier that opens it (2..4)
+	tier: number, -- fountain tier named after it (2..4)
 }
 
 export type Look = {
@@ -80,59 +81,25 @@ function FountainTiers.tierFor(rebirths: number): number
 	return math.min(tier, FountainTiers.MAX_TIER)
 end
 
--- Rebirths a family's rank needs (its Config.REBIRTH_TIERS entry), nil for an unknown family.
-function FountainTiers.rebirthsFor(id: string): number?
-	for _, rank in Config.REBIRTH_TIERS do
-		if rank.family == id then
-			return rank.rebirths
-		end
-	end
-	return nil
-end
-
 function FountainTiers.look(tier: number): Look
 	return FountainTiers.LOOKS[math.clamp(math.floor(tier), 1, FountainTiers.MAX_TIER)]
 end
 
--- Family ids open at fountain `tier`, in FAMILIES order.
-function FountainTiers.pool(tier: number): { string }
+-- Every family id, in FAMILIES order: the fountain drops them all on every server.
+function FountainTiers.allFamilies(): { string }
 	local out = {}
 	for _, family in FAMILIES do
-		if tier >= family.tier then
-			table.insert(out, family.id)
-		end
+		table.insert(out, family.id)
 	end
 	return out
 end
 
--- Failure text when a player of `rebirths` can't catch a slime of family `id` (nil family = Classic), else nil.
-function FountainTiers.catchBlock(rebirths: number, id: string?): string?
-	local needed = if id then FountainTiers.rebirthsFor(id) else nil
-	local family = FountainTiers.family(id)
-	if not family or not needed or rebirths >= needed then
-		return nil
-	end
-	local title = ""
-	for _, rank in Config.REBIRTH_TIERS do
-		if rank.rebirths == needed then
-			title = rank.title
-		end
-	end
-	return `Reach {title} ({needed} rebirths) to catch {family.name} slimes`
-end
-
--- "Garden slimes now drop" for a toast when the fountain reaches `tier` (nil at tier 1).
+-- "The fountain grew into the Garden Fountain!" for a toast when the fountain reaches `tier` (nil at tier 1).
 function FountainTiers.upgradeText(tier: number): string?
 	if tier <= 1 then
 		return nil
 	end
-	local l = FountainTiers.look(tier)
-	for _, family in FAMILIES do
-		if family.tier == tier then
-			return `The fountain grew into the {l.name}! {family.name} slimes now drop.`
-		end
-	end
-	return `The fountain grew into the {l.name}!`
+	return `The fountain grew into the {FountainTiers.look(tier).name}!`
 end
 
 -- The best rank on a server: the highest rebirth count among `rebirthsList`.
@@ -142,12 +109,6 @@ function FountainTiers.best(rebirthsList: { number }): number
 		best = math.max(best, r)
 	end
 	return best
-end
-
--- Rank text for Perks.tierText ("opens the Garden slimes").
-function FountainTiers.rankText(familyId: string): string
-	local family = FountainTiers.family(familyId)
-	return if family then `opens the {family.name} slimes` else ""
 end
 
 return table.freeze(FountainTiers)

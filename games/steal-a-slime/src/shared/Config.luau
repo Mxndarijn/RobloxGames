@@ -33,7 +33,7 @@ export type RebirthTier = {
 	unlock: string?, -- upgrade id this rank unlocks (also Config.UPGRADES[i].requires)
 	keep: number?, -- slimes kept on rebirth
 	income: number?, -- income bonus (0.25 = +25 %)
-	family: string?, -- FountainTiers family id this rank opens (FEATURES.FountainTiers; FountainTiers.FAMILIES)
+	family: string?, -- FountainTiers family id: this rank grows the fountain into its look (FEATURES.FountainTiers; FountainTiers.FAMILIES)
 }
 
 export type Upgrade = {
@@ -735,7 +735,7 @@ local Config = {
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = SPAWN_INTERVAL,
-	MAX_WILD_SLIMES = 72,
+	MAX_WILD_SLIMES = 144,
 	SLIME_MOVE_SPEED_MULT = SLIME_MOVE_SPEED_MULT,
 	WILD_BASE_LIFETIME = WILD_BASE_LIFETIME,
 	WILD_LIFETIME = math.round(WILD_BASE_LIFETIME / SLIME_MOVE_SPEED_MULT), -- 115: walk + hop slower, drain still at expiry
@@ -796,7 +796,7 @@ local Config = {
 		WeeklyEvents = true, -- a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no event, no attribute
 		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)
 		SlidePCD = true, -- the slide as a real collision mesh: MeshSwap makes fountain_split_slide PreciseConvexDecomposition (needs FountainSplit) and, once it is placed, FountainColliders drops the SlideColliders Post / Brace boxes it replaces; the floor slabs (the walk surface), rails and Skirt stay (docs/COLLISION.md); false = decor slide and every box
-		FountainTiers = true, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
+		FountainTiers = true, -- v19: the central fountain's look upgrades with the server's best rank (FountainTiers glow) and every slime family drops from it on every server, with no rank needed to catch one; false = one Meadow fountain, Classic drops only (needs frame review)
 		MergeVat3 = true, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Consumables = true, -- restocking Shop section: luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
 		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
@@ -1000,7 +1000,12 @@ local Config = {
 		MAX_WILD = 1, -- loose eggs at once (on the lane or dropped)
 		RAIN_MAX_WILD = 2,
 		WARM_SPEED = 1.5, -- incubation speed while the owner stands in their HomeZone
-		HATCH_ANNOUNCE_TIER = 6, -- a hatch of this tier or higher is toasted to the whole server
+		HATCH_ANNOUNCE_TIER = 5, -- a hatch of this tier or higher is toasted to the whole server (at the reveal)
+		LUCKY_CHANCE = 0.05, -- share of eggs whose slime inside is one tier higher than its roll (capped at Secret)
+		HATCH_SIZE_MIN = 1.0, -- a hatchling's size is HATCH_SIZE_MIN + up to HATCH_SIZE_SPAN (wild: MIN_SIZE + 0.6)
+		HATCH_SIZE_SPAN = 0.6,
+		HATCH_REVEAL_SECONDS = 2.6, -- the hatch show reveals the slime this long after the hatch (label, toasts)
+		HATCH_FX_SECONDS = 5, -- the hatched slime's model carries HatchedAt / HatchedFrom / HatchLucky this long
 		KINDS = table.freeze({
 			table.freeze({
 				id = "speckled",
@@ -1008,6 +1013,7 @@ local Config = {
 				tier = 3,
 				weight = 60,
 				hatchSeconds = 3 * 60,
+				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
 				price = 60,
 				sell = 40,
 				announce = false,
@@ -1023,6 +1029,7 @@ local Config = {
 				tier = 4,
 				weight = 27,
 				hatchSeconds = 6 * 60,
+				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
 				price = 250,
 				sell = 150,
 				announce = false,
@@ -1038,6 +1045,7 @@ local Config = {
 				tier = 5,
 				weight = 10,
 				hatchSeconds = 10 * 60,
+				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
 				price = 900,
 				sell = 600,
 				announce = true,
@@ -1049,6 +1057,7 @@ local Config = {
 				tier = 6,
 				weight = 3,
 				hatchSeconds = 15 * 60,
+				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
 				price = 3000,
 				sell = 2000,
 				announce = true,
