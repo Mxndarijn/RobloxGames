@@ -31,7 +31,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local BaseFloors = require(script.Parent.BaseFloors)
+local BossArea = require(ReplicatedStorage.Shared.BossArea)
 local BossChoreo = require(ReplicatedStorage.Shared.BossChoreo)
+local BossFxView = require(script.Parent.BossFxView)
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
@@ -697,6 +699,46 @@ local function syncGhost(record: Record, entry: Scene.Entry)
 	record.ghost = StealGhost.build(record.model, target, plot, Config.STEAL_GHOST_TRANSPARENCY)
 end
 
+-- The carried boss drips a goo trail, so chasers can find the carrier; it goes when the boss is put down.
+local GOO_TRAIL = "BossGooTrail"
+local function syncGooTrail(record: Record, on: boolean)
+	local body = record.body
+	local trail = body:FindFirstChild(GOO_TRAIL)
+	if not on then
+		if trail then
+			trail:Destroy()
+		end
+		for _, name in { "GooTrailA", "GooTrailB" } do
+			local a = body:FindFirstChild(name)
+			if a then
+				a:Destroy()
+			end
+		end
+		return
+	end
+	if trail then
+		return
+	end
+	local half = body.Size.X * 0.35
+	local a0 = Instance.new("Attachment")
+	a0.Name = "GooTrailA"
+	a0.Position = Vector3.new(-half, -body.Size.Y / 2, 0)
+	a0.Parent = body
+	local a1 = Instance.new("Attachment")
+	a1.Name = "GooTrailB"
+	a1.Position = Vector3.new(half, -body.Size.Y / 2, 0)
+	a1.Parent = body
+	local t = Instance.new("Trail")
+	t.Name = GOO_TRAIL
+	t.Attachment0, t.Attachment1 = a0, a1
+	t.Color = ColorSequence.new(Color3.fromRGB(110, 210, 90))
+	t.Transparency = NumberSequence.new(0.2, 1)
+	t.Lifetime = 2.5
+	t.LightEmission = 0.3
+	t.FaceCamera = true
+	t.Parent = body
+end
+
 -- Returns false when the model couldn't be placed yet (retried next reconcile).
 local function place(record: Record, entry: Scene.Entry, previous: string?): boolean
 	local model = record.model
@@ -716,6 +758,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	model:SetAttribute(Constants.RARE_ATTRIBUTE, entry.rare)
 
 	syncGhost(record, entry)
+	syncGooTrail(record, entry.boss and entry.state == "Carried")
 	if entry.state == "Carried" then
 		local carrier = entry.carrierUserId and Players:GetPlayerByUserId(entry.carrierUserId)
 		local root = WorldView.rootPart(carrier)
@@ -929,6 +972,21 @@ function WorldView.reconcile(
 			failed[id] = nil
 		end
 	end
+	-- The boss's guards, goo puddles and the attributes its telegraphs are drawn from.
+	local bossId = world.boss and world.boss.slimeId
+	local bossRecord = if bossId then records[bossId] else nil
+	local bossWild = if bossId then world.wild[bossId] else nil
+	local tint = bossWild and bossWild.slime.color
+	local origin = crater()
+	local hx, hz = BossArea.home()
+	local ground = surfaceBelow(Vector3.new(origin.X + hx, origin.Y + 200, origin.Z + hz), 400)
+	BossFxView.sync(
+		world,
+		if bossRecord then bossRecord.model else nil,
+		origin,
+		if ground then ground.Y else 0,
+		if tint then Color3.fromRGB(tint[1], tint[2], tint[3]) else nil
+	)
 end
 
 -- A slime model's Body (Effects target), or nil if it has no model.

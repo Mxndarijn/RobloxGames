@@ -135,6 +135,9 @@ function BatTool.swing(
 	if not origin or not look then
 		return false, "can't find you"
 	end
+	if BossEvent.stunned(session, now) then
+		return false, "stunned" -- a boss attack knocked the bat out of their hands for a moment
+	end
 	local pvp = PvpService.enabled(flag)
 	local thieves: { BatRules.Candidate } = {}
 	local others: { BatRules.Candidate } = {}
@@ -180,8 +183,11 @@ function BatTool.swing(
 		knock(world, ctx, session, target, origin, positions[targetId], now)
 		return true, nil
 	end
+	if BossEvent.hitGuard(world, session, now, origin, look, ctx :: any) then
+		return true, nil
+	end
 	if bossInReach(world, ctx, session, origin, look) then
-		return BossEvent.hit(world, session, now)
+		return BossEvent.hit(world, session, now, origin, ctx :: any)
 	end
 	targetId = BatRules.pickTarget(origin, look, others, session.userId)
 	local target = if targetId then world.sessions[targetId] else nil

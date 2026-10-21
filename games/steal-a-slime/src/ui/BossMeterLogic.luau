@@ -3,7 +3,8 @@
 	BossMeterLogic (pure, contract/boss-event.md)
 
 	What the boss card shows for `State.boss` at server time `now`: the heads-up while the boss is on its way, the goo
-	meter with your hits during the fight, who may grab or carries it in the haul, and the result. Nil = no card.
+	meter with your hits during the fight (or what the boss is doing: winding up, dazed, out of reach, or that it got
+	you), who may grab or carries it in the haul, and the result. Nil = no card.
 	Panels/BossMeter renders it; tests/ui/BossMeter.spec checks it.
 ]]
 
@@ -49,6 +50,18 @@ function BossMeterLogic.view(boss: any, now: number): View?
 		local yours = if points > 0
 			then `Your hits: {points} ({percent(boss.yourShare or 0)}% of the top helper)`
 			else "Hit it with your bat to fill the goo meter!"
+		-- What the boss is doing right now beats the running total: you were hit, it is open, or it is about to strike.
+		local moveLive = type(boss.moveEndsAt) ~= "number" or now < boss.moveEndsAt
+		if type(boss.stunnedUntil) == "number" and now < boss.stunnedUntil then
+			yours = "You got hit! Your bat is back in a moment."
+		elseif moveLive and boss.move == "dazed" then
+			yours = `DAZED! Every hit counts x{boss.multiplier or 3}. Go go go!`
+		elseif moveLive and boss.move == "rise" then
+			local left = if type(boss.guardsLeft) == "number" then boss.guardsLeft else 0
+			yours = `It's out of reach! Bonk its guards: {left} left.`
+		elseif moveLive and (boss.move == "windup" or boss.move == "attack") then
+			yours = "Watch out! Get out of the red!"
+		end
 		return {
 			icon = "👑",
 			title = `{name}: goo meter {percent(meter)}%`,

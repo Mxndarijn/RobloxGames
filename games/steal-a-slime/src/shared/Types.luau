@@ -168,6 +168,11 @@ export type BossView = {
 	priorityUntil: number?,
 	winnerName: string?, -- "won": who brought it home
 	trophies: number, -- this player's boss trophies
+	move: string?, -- fight: the boss's move kind (BossChoreo: "windup", "attack", "dazed", "rise", ...)
+	moveEndsAt: number?, -- server time that move ends
+	multiplier: number?, -- dazed: meter points per bat hit (more on a vent from behind)
+	guardsLeft: number?, -- rise: guards still standing
+	stunnedUntil: number?, -- this player can't hit until then (a boss attack got them)
 }
 
 export type ModifierView = {

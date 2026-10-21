@@ -109,6 +109,11 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 			local p = WorldView.slimePosition(slimeId)
 			return p and { X = p.X, Y = p.Y, Z = p.Z }
 		end,
+		airborne = function(userId: number): boolean
+			local root = rootOf(userId)
+			local humanoid = root and root.Parent and root.Parent:FindFirstChildOfClass("Humanoid")
+			return humanoid ~= nil and humanoid.FloorMaterial == Enum.Material.Air
+		end,
 		-- The boss's plaza coordinates are round the fountain centre (BossEvent.Context).
 		plazaOrigin = function()
 			local p = WorldView.plazaOrigin()

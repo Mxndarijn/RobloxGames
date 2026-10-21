@@ -911,11 +911,11 @@ local Config = {
 		WARNING_SECONDS = 60, -- heads-up before the boss arrives
 		RAIN_GAP = 3 * 60, -- skip when Slime Rain runs or is due this close to the arrival
 		SKIP_DELAY = 5 * 60, -- a skipped arrival moves this much later
-		FIGHT_SECONDS = 90,
+		FIGHT_SECONDS = 120,
 		HAUL_SECONDS = 90,
 		LINGER_SECONDS = 6, -- the won / failed result stays in State.boss
 		PRIORITY_SECONDS = 5, -- head start for the top contributor in the haul
-		POINTS_PER_PLAYER = 25, -- meter target = this x players on the server
+		POINTS_PER_PLAYER = 45, -- meter target = this x players on the server (dazed hits count DAZED_MULTIPLIER)
 		HIT_GAP = 0.4, -- one meter point per player per this many seconds
 		HIT_REACH = 13, -- studs from the swinger's root to the boss Body (about the boss's radius at SCALE + a bat's reach)
 		DRAIN_PER_SECOND = 0.02, -- share of the target lost per second with nobody hitting
@@ -923,6 +923,8 @@ local Config = {
 		SHED_EVERY = 0.25, -- meter share between sheds
 		SHED_COUNT = 2, -- wild slimes per shed
 		DROP_LUCK = 3, -- luck multiplier on shed slimes
+		WIN_SHARE = 0.1, -- a player with at least this share of the top hitter's points helped win
+		WIN_SHOWER = 1, -- lucky slimes (DROP_LUCK) spilled per helper when the boss is brought home
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
@@ -951,6 +953,39 @@ local Config = {
 		GUARD_SECONDS = 12, -- longest a guard call lasts (it lands when every guard is popped)
 		SHRINK_SECONDS = 0.6, -- the meter is full: it shrinks to carry size over this long before it can be grabbed
 		MOVE_PIVOT_INTERVAL = 0.2, -- seconds between the server's pivots of the boss Body (clients draw every frame)
+		-- Attacks (Shared.BossAttacks): dodge the telegraphed attack, then punish it while it is dazed.
+		FIRST_ATTACK = 6, -- seconds after it lands before its first attack
+		ATTACK_GAP = table.freeze({ 5, 8 }), -- seconds from one attack's daze to the next windup (÷ the stage speed-up)
+		STAGE_SPEEDUP = 0.1, -- +10 % move and attack pace at every SHED_EVERY of the meter
+		PHASE_AT = 0.5, -- meter share from which its `phase` attacks join its `start` ones
+		DAZED_MULTIPLIER = 3, -- a hit while it is dazed counts this many meter points
+		STUN_SECONDS = 1.5, -- a player hit by an attack can't land bat hits or slaps for this long
+		HIT_ARC = 8, -- studs high an attack's knockback throws a player
+		RING_WIDTH = 3.5, -- studs: how thick the stomp's goo ring is (jump over it)
+		CONE_HIT_AT = 0.25, -- seconds into a cone attack its push lands
+		PUDDLE_RADIUS = 4.5, -- studs: a goo spit puddle; standing in it slows you
+		SPIT_SPREAD = 6, -- studs: a spit with nobody to aim at lands this far round the boss
+		GUARD_RADIUS = 11, -- studs from the boss its guards stand
+		GUARD_REACH = 8, -- studs from a swinger's root to a guard for a bat hit
+		GUARD_POINTS = 2, -- meter points per popped guard
+		GUARD_SIZE = 3.2, -- studs: a guard's body
+		-- Per boss species: `start` attacks from the first one, `phase` from PHASE_AT. Kinds: ring { radius, speed, push },
+		-- spit { count, slowSeconds, slow }, guards { count }, cone { radius, angle (degrees), push },
+		-- charge { distance, speed, width, push }, vent { multiplier } (passive: hits on its back while dazed).
+		MOVES = table.freeze({
+			goozilla = table.freeze({
+				start = table.freeze({ table.freeze({ kind = "ring", radius = 22, speed = 22, push = 40 }) }),
+				phase = table.freeze({ table.freeze({ kind = "spit", count = 3, slowSeconds = 6, slow = 0.5 }) }),
+			}),
+			queen_jelly = table.freeze({
+				start = table.freeze({ table.freeze({ kind = "guards", count = 3 }) }),
+				phase = table.freeze({ table.freeze({ kind = "cone", radius = 18, angle = 90, push = 45 }) }),
+			}),
+			mecha_goo = table.freeze({
+				start = table.freeze({ table.freeze({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50 }) }),
+				phase = table.freeze({ table.freeze({ kind = "vent", multiplier = 5 }) }),
+			}),
+		}),
 		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",

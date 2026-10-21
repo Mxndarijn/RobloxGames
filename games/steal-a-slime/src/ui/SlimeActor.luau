@@ -187,6 +187,7 @@ export type Actor = {
 	bossText: string?, -- the boss: its BossMove attribute as last decoded
 	bossMove: BossChoreo.Move?, -- the boss: its current move (nil for every other slime)
 	bossKicked: number, -- the boss: the move number whose landing squash already played
+	bossHitAt: number?, -- the boss: the last BossHitAt it squashed for
 }
 
 local function rootOf(motor: SlimeMotor.Motor): BasePart?
@@ -316,6 +317,7 @@ function SlimeActor.attach(
 		bossText = nil,
 		bossMove = nil,
 		bossKicked = 0,
+		bossHitAt = nil,
 	}
 	local state = model:GetAttribute("State")
 	actor.state = if type(state) == "string" then state else nil
@@ -432,6 +434,14 @@ local function bossPose(actor: Actor, move: BossChoreo.Move, t: number, now: num
 	local size = (actor.model:GetAttribute("Size") :: number?) or 1
 	local _, _, _, _, lift, u = BossChoreo.pose(move, t)
 	mods.lift += lift / math.max(size, 1e-3)
+	-- every counted bat hit squashes it (BossHitAt changes)
+	local hitAt = actor.model:GetAttribute(Constants.BOSS_HIT_AT_ATTRIBUTE)
+	if type(hitAt) == "number" and hitAt ~= actor.bossHitAt then
+		if actor.bossHitAt ~= nil then
+			Spring.kick(actor.squash, -0.9 * SlimeActor.SQUASH.kick)
+		end
+		actor.bossHitAt = hitAt
+	end
 	local since = t - move.at
 	local kind = move.kind
 	if kind == "arrive" then

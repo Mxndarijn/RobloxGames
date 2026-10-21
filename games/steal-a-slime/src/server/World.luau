@@ -66,6 +66,8 @@ export type Session = {
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
 	openShop: string?, -- FEATURES.WorldShops: the shop id the player has open (Request OpenShop), runtime only
 	awayLog: { StealAlert.Entry }?, -- FEATURES.StealAlerts: the saved thefts read at join, for the join notice (never saved)
+	bossStunUntil: number?, -- hit by a boss attack: no bat hits or slaps until then (BossEvent), runtime only
+	bossSlow: { factor: number, untilTime: number }?, -- in a boss goo puddle: walk speed x factor until then, runtime only
 }
 
 export type Wild = {
@@ -111,6 +113,16 @@ export type BossEvent = {
 	slimeId: string?,
 	lastStepAt: number,
 	rng: Rng.Rng, -- the boss's own choices (where it strolls), apart from world.rng
+	nextAttackAt: number, -- server time its next attack may wind up (math.huge while one runs)
+	attackIndex: number, -- rotation through BossAttacks.available
+	struck: { [number]: boolean }, -- players the current attack move already hit
+	struckMove: number, -- the move number `struck` is for
+	targets: { { number } }, -- spit: plaza spots picked at the windup (they land there)
+	spits: { { x: number, z: number, landAt: number, seconds: number, slow: number } }, -- spit blobs in the air
+	puddles: { { x: number, z: number, untilAt: number, slow: number } }, -- goo puddles on the ground
+	guards: { { x: number, z: number, alive: boolean } }, -- the guards of the current rise
+	lastHit: { userId: number, points: number, at: number }?, -- the latest counted bat hit (clients squash it, pop points)
+	rewarded: boolean, -- the win's victory shower has spilled
 }
 
 export type AdminEvent = {
