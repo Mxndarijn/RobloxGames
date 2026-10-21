@@ -214,11 +214,13 @@ WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the 
 WorldLayout.NAME_BOARD = table.freeze({ width = 9, height = 2.4, y = 10.7 }) -- above the LockSign, on its post
 WorldLayout.BANNER_ANGLES = table.freeze({ -128, -52 }) -- clear of the parked plug on its track
 -- While the plot is open the cork plug slides out of the doorway along the glass and parks on a curved track (part of
--- the door mesh): turned STOPPER_OPEN.turn degrees round the jar from the door, pushed STOPPER_OPEN.out studs off the
--- glass. STOPPER_TRACK is that track (plot-local degrees and radii; its top is where the plug's rim rests, 0.9 above
--- the floor, the same height it hangs at in the doorway).
-WorldLayout.STOPPER_OPEN = table.freeze({ turn = 21, out = 1 })
-WorldLayout.STOPPER_TRACK = table.freeze({ from = -95, to = -121, inner = 32.8, outer = 35.8, height = 0.9 })
+-- the door mesh): turned STOPPER_OPEN.turn degrees round the jar from the door (its edge just clear of the door
+-- ring), pushed STOPPER_OPEN.out studs off the glass. STOPPER_TRACK is that track (plot-local degrees and radii): a
+-- runner from under the door ring whose top is where the plug's rim rests (0.9 above the floor, the same height it
+-- hangs at in the doorway), and a brass top rail at `top` along the glass over the plug.
+WorldLayout.STOPPER_OPEN = table.freeze({ turn = 20, out = 0.6 })
+WorldLayout.STOPPER_TRACK =
+	table.freeze({ from = -91, to = -120, inner = 32.4, outer = 35.4, height = 0.9, top = 10.6 })
 WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
 WorldLayout.TROPHY_SPOTS = table.freeze({ { -31, 31 }, { 31, 31 }, { -31, -31 } })
 -- The plot SlimeDex board skins the two-sided phoenix_top_earners_board at

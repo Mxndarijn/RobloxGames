@@ -342,15 +342,15 @@
   "goo_jar_door": {
     "assetId": "139300292465170",
     "assetType": "Model",
-    "meshId": "rbxassetid://119537382892793",
+    "meshId": "rbxassetid://70555732883562",
     "meshSize": [
-      25.329,
+      24.593,
       11.6,
-      8.319
+      8.27
     ],
-    "sha256": "8faa2b61d05ee799",
-    "uploadedAt": "2026-10-21T15:54:11Z",
-    "versions": 2
+    "sha256": "0a4fd38bc07ea01a",
+    "uploadedAt": "2026-10-21T16:05:14Z",
+    "versions": 3
   },
   "goo_jar_door_ring": {
     "assetId": "104855077088726",

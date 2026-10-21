@@ -282,7 +282,8 @@ def jar_door():
     out.append(painted(loop("Goo", rad, 0.75, (cx, cy - 0.65, cz), "y", GOO, segs=32, arc=(25, 155)), shade(GOO, 0.9), GOO_HI))
     out.append(painted(box("Sill", (D["door"]["width"] + 2, 2.4, 0.6), (cx, cy, 0.3), WOOD), shade(WOOD, 0.9), WOOD))
     # the curved track the plug slides out along while the base is open (it parks at the far end, on the brass cap):
-    # a wooden runner round the glass with a brass top, a cap where it leaves the sill and a stop at the far end
+    # a wooden runner round the glass with a brass top coming out from under the door ring, a stop at the far end, and
+    # a brass top rail on brackets along the glass over the plug, from the ring's side to past the stop
     t = D["stopperTrack"]
     ri, ro, h = t["inner"], t["outer"], t["height"]
     out.append(painted(lathe("Runner", [(ro, 0.0), (ro, h - 0.12), (ri, h - 0.12), (ri, 0.0)], WOOD_D, t["to"], t["from"], double=False),
@@ -292,6 +293,14 @@ def jar_door():
     for name, deg, size in (("Start", t["from"] - 0.4, (ro - ri, 0.8, h)), ("Stop", t["to"] - 0.9, (ro - ri + 0.4, 1.2, h + 0.9))):
         a = math.radians(deg)
         out.append(box(name, size, (rm * math.cos(a), rm * math.sin(a), size[2] / 2), METAL if name == "Stop" else WOOD_D, rot=(0, 0, deg)))
+    glass_out = radius(1) + 1.0
+    top_r, top_z = (ri + ro) / 2, t["top"]
+    ring_side = -90 - math.degrees(math.asin((D["door"]["width"] / 2 + 2.2) / glass_out))
+    out.append(loop("TopRail", top_r, 0.28, (0, 0, top_z), "z", METAL, segs=360, arc=(t["to"] - 1.5, ring_side)))
+    for k, deg in enumerate((ring_side - 1.0, (ring_side + t["to"]) / 2, t["to"] - 1.0)):
+        a = math.radians(deg)
+        mid = (glass_out + top_r) / 2
+        out.append(box(f"Bracket{k}", (top_r - glass_out + 0.4, 0.5, 0.5), (mid * math.cos(a), mid * math.sin(a), top_z), METAL, rot=(0, 0, deg)))
     return out
 
 
