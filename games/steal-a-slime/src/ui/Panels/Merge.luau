@@ -391,7 +391,7 @@ function Merge.new(parent: Instance, ctx: any)
 			})
 			local countChip = Widgets.chip({
 				Name = "Count",
-				Font = Theme.FontBody,
+				FontFace = Theme.FontBody,
 				TextSize = SIZE.headerChipSize,
 				AnchorPoint = Vector2.new(0, 0.5),
 				Size = UDim2.fromOffset(0, SIZE.headerChipH),

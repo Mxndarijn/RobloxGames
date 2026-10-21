@@ -10,26 +10,28 @@ local Layout = require(script.Parent.Layout)
 
 local Widgets = {}
 
--- The HUD's palette (Hud money block) for every panel: ink outlines, deep purple plates, gold money.
--- Button colours carry meaning: Gold collects a reward, Good spends cash, Info is a side action, Bad sells
--- or closes. Something you can't press yet is a sunken Ink well (Widgets.status / a disabled button).
+-- The Goo palette: deep teal glass panels, a mint header band, ink outlines, gold money.
+-- Button colours carry meaning: Gold collects a reward, Good acts (buy, merge, redeem), Info is a side action,
+-- Bad loses something or closes. Only things you can press are jelly; something you can't press yet is a
+-- sunken Ink well with the same outline (Widgets.status / a disabled button).
 Widgets.Theme = table.freeze({
-	Ink = Color3.fromRGB(30, 18, 51), -- every outline, dark text on bright buttons, sunken wells
-	Bg = Color3.fromRGB(43, 27, 77), -- panel body
-	Row = Color3.fromRGB(59, 36, 102), -- rows and cards
-	BgLight = Color3.fromRGB(76, 48, 130), -- highlighted rows, the header band's bottom
-	Band = Color3.fromRGB(98, 68, 174), -- the header band's top, the corner icon tile
-	Text = Color3.fromRGB(246, 241, 255),
-	Muted = Color3.fromRGB(184, 166, 227),
-	Accent = Color3.fromRGB(126, 217, 87),
-	Good = Color3.fromRGB(126, 217, 87),
-	Bad = Color3.fromRGB(238, 79, 99),
-	Info = Color3.fromRGB(169, 139, 240),
+	Ink = Color3.fromRGB(8, 38, 42), -- every outline, dark text on bright jelly, sunken wells
+	Bg = Color3.fromRGB(12, 52, 54), -- glass panel body
+	Row = Color3.fromRGB(28, 72, 73), -- rows and cards on the glass
+	BgLight = Color3.fromRGB(40, 96, 96), -- highlighted rows
+	Band = Color3.fromRGB(108, 242, 194), -- the mint header band, its lip and drips
+	Text = Color3.fromRGB(241, 255, 249),
+	Muted = Color3.fromRGB(191, 235, 221),
+	Accent = Color3.fromRGB(108, 242, 194),
+	Good = Color3.fromRGB(108, 242, 194),
+	Bad = Color3.fromRGB(238, 84, 118),
+	Info = Color3.fromRGB(56, 120, 112),
 	Warn = Color3.fromRGB(255, 190, 60),
-	Disabled = Color3.fromRGB(30, 18, 51),
-	Gold = Color3.fromRGB(255, 217, 59),
-	Font = Enum.Font.FredokaOne,
-	FontBody = Enum.Font.GothamMedium,
+	Disabled = Color3.fromRGB(8, 38, 42),
+	Gold = Color3.fromRGB(255, 210, 63),
+	Shine = Color3.new(1, 1, 1), -- the glint on jelly and the dot on goo drops
+	Font = Enum.Font.FredokaOne, -- titles, numbers, buttons, labels
+	FontBody = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold), -- sentences (a FontFace)
 })
 
 local Theme = Widgets.Theme
@@ -110,11 +112,17 @@ function Widgets.list(direction: Enum.FillDirection?, spacing: number?, align: E
 	})
 end
 
+-- The label property that takes `font`: Theme.Font is an Enum.Font ("Font"), Theme.FontBody a Font ("FontFace").
+function Widgets.fontKey(font: any): string
+	return if typeof(font) == "Font" then "FontFace" else "Font"
+end
+
+-- Body text (Nunito) unless the caller picks a font. Setting both Font and FontFace would let table
+-- order decide which wins, so the default FontFace is only added when neither is given.
 function Widgets.label(props: { [string]: any }): TextLabel
-	local base = {
+	local base: { [string]: any } = {
 		BackgroundTransparency = 1,
 		TextColor3 = Theme.Text,
-		Font = Theme.FontBody,
 		TextSize = 16,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
@@ -122,6 +130,9 @@ function Widgets.label(props: { [string]: any }): TextLabel
 	}
 	for k, v in props do
 		base[k] = v
+	end
+	if base.Font == nil and base.FontFace == nil then
+		base.FontFace = Theme.FontBody
 	end
 	return create("TextLabel", base)
 end
@@ -135,12 +146,37 @@ export type Button = {
 
 -- Chunky sizes shared by every panel part (design px).
 Widgets.KIT = table.freeze({
-	stroke = 3, -- ink outline on buttons, the panel and its tiles
+	stroke = 3, -- ink outline on buttons, wells, the panel and its tiles: every slot has the same footprint
 	rowStroke = 2, -- ink outline on rows and cards
-	radius = 13, -- buttons, wells, icon tiles
-	rowRadius = 15,
-	shadeBottom = 0.8, -- a button's bottom brightness under its top (the HUD chips' lip)
+	radius = 13, -- icon badges
+	rowRadius = 18,
+	panelRadius = 30,
+	shadeBottom = 0.78, -- a jelly's bottom brightness under its top
+	shine = 0.4, -- the glint's transparency
 })
+
+-- Buttons, wells, chips and bubbles are pills or circles: one uniform UICorner each.
+function Widgets.pill(): UICorner
+	return create("UICorner", { CornerRadius = UDim.new(1, 0) })
+end
+
+-- The glint of light top-left on a jelly: one small rotated white frame, the same size on every jelly so a
+-- wide button gets a glint, not a streak. One instance per jelly (ui-perf-budget.json). It never takes input.
+function Widgets.shine(parent: GuiObject): Frame
+	local s = Layout.SHINE
+	return create("Frame", {
+		Name = "Shine",
+		Active = false,
+		BackgroundColor3 = Theme.Shine,
+		BackgroundTransparency = Widgets.KIT.shine,
+		BorderSizePixel = 0,
+		Position = UDim2.new(s.x, s.offsetX, 0, s.offsetY),
+		Size = UDim2.fromOffset(s.w, s.h),
+		Rotation = s.rotation,
+		ZIndex = parent.ZIndex,
+		Parent = parent,
+	})
+end
 
 -- A top-light to bottom-dark UIGradient (the HUD chips' depth). A UIGradient multiplies the frame's own
 -- colour, so the stops are grey brightness factors.
@@ -172,8 +208,9 @@ function Widgets.inkOn(label: TextLabel | TextButton, fill: Color3)
 	end
 end
 
--- A chunky TextButton: fill, ink outline, a darker bottom. Disabled it turns into a sunken Ink well with
--- muted text and no outline, so it never reads as pressable. Clicks while disabled are ignored.
+-- A jelly pill TextButton: fill, ink outline, a darker bottom and a shine. Disabled it turns into a sunken
+-- Ink well with muted text and no shine (the outline stays, so its size never jumps), so it never reads as
+-- pressable. Clicks while disabled are ignored.
 function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () -> ()): Button
 	local kit = Widgets.KIT
 	local baseColor = color or Theme.Info
@@ -188,10 +225,11 @@ function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () ->
 	for k, v in props do
 		base[k] = v
 	end
-	local inst = create("TextButton", base, { Widgets.corner(kit.radius) }) :: TextButton
+	local inst = create("TextButton", base, { Widgets.pill() }) :: TextButton
 	local stroke = Widgets.stroke(Theme.Ink, kit.stroke)
 	stroke.Parent = inst
 	Widgets.shade(inst)
+	local shine = Widgets.shine(inst)
 	Widgets.inkOn(inst, baseColor)
 	inst.Activated:Connect(function()
 		if enabled then
@@ -204,7 +242,7 @@ function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () ->
 		inst.AutoButtonColor = enabled
 		inst:SetAttribute("ClickMuted", if enabled then nil else true) -- ButtonClicks stays quiet
 		inst.BackgroundColor3 = if enabled then baseColor else Theme.Disabled
-		stroke.Transparency = if enabled then 0 else 1
+		shine.Visible = enabled
 		if enabled then
 			Widgets.inkOn(inst, baseColor)
 		else
@@ -243,7 +281,8 @@ function Widgets.status(props: { [string]: any }): TextLabel
 		base[k] = v
 	end
 	local label = Widgets.label(base)
-	Widgets.corner(Widgets.KIT.radius).Parent = label
+	Widgets.pill().Parent = label
+	Widgets.stroke(Theme.Ink, Widgets.KIT.stroke).Parent = label
 	return label
 end
 
@@ -325,7 +364,7 @@ function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm:
 		ZIndex = inst.ZIndex + 1,
 		Active = false,
 		Parent = inst,
-	}, { Widgets.corner(Widgets.KIT.radius) })
+	}, { Widgets.pill() })
 	local enabled = true
 	local startedAt: number? = nil
 	local conn: RBXScriptConnection? = nil
@@ -395,60 +434,133 @@ end
 
 export type Panel = { frame: Frame, body: Frame, title: TextLabel, close: TextButton, icon: TextLabel }
 
--- A menu card (Layout.PANEL_CHROME), the same frame for every menu: a purple
--- header band with an ink rule under it, the menu's `icon` on a nav-style tile
--- poking up over the top-left corner, the title in chunky stroked type and the
--- red close "X" top-right; `body` fills the area under them. init.client sizes
--- the frame (Layout.panelFor) over the dimmed backdrop and wires `close` to
--- setOpen(nil).
+-- Goo edge under a band of colour `color` whose bottom is at `y` (design px), across `parent`'s full width:
+-- a lip of round scallops, then drips (a thin neck and a round drop with a dot of shine) at the fractions in
+-- Layout.GOO_EDGE.drips. Everything is sized by scale or a few px, so it fits any panel width; drips stay
+-- shorter than PANEL_CHROME.bodyGap so they only fall into the empty gap above the body.
+function Widgets.gooEdge(parent: GuiObject, y: number, color: Color3)
+	local g = Layout.GOO_EDGE
+	local edge = create("Frame", {
+		Name = "GooEdge",
+		BackgroundTransparency = 1,
+		Active = false,
+		Size = UDim2.new(1, -g.inset * 2, 0, 0),
+		Position = UDim2.fromOffset(g.inset, y),
+		ZIndex = parent.ZIndex,
+		Parent = parent,
+	})
+	for i = 0, g.scallops - 1 do
+		create("Frame", {
+			Name = "Lip" .. i,
+			BackgroundColor3 = color,
+			BorderSizePixel = 0,
+			Position = UDim2.new(i / g.scallops, 0, 0, -g.lip),
+			Size = UDim2.new(1 / g.scallops, 2, 0, g.lip * 2),
+			ZIndex = parent.ZIndex,
+			Parent = edge,
+		}, { Widgets.pill() })
+	end
+	for i, d in g.drips do
+		local x, w, len = d[1], d[2], d[3]
+		create("Frame", {
+			Name = "Neck" .. i,
+			BackgroundColor3 = color,
+			BorderSizePixel = 0,
+			Position = UDim2.new(x, math.round(w * (1 - g.neckWidth) / 2), 0, 0),
+			Size = UDim2.fromOffset(math.round(w * g.neckWidth), len),
+			ZIndex = parent.ZIndex,
+			Parent = edge,
+		}, { Widgets.pill() })
+		local drop = create("Frame", {
+			Name = "Drop" .. i,
+			BackgroundColor3 = color,
+			BorderSizePixel = 0,
+			Position = UDim2.new(x, 0, 0, len - math.round(w * g.dropRise)),
+			Size = UDim2.fromOffset(w, w),
+			ZIndex = parent.ZIndex,
+			Parent = edge,
+		}, { Widgets.pill() })
+		create("Frame", {
+			Name = "Dot",
+			BackgroundColor3 = Theme.Shine,
+			BackgroundTransparency = g.dotTransparency,
+			BorderSizePixel = 0,
+			Position = UDim2.fromScale(g.dotAt, g.dotAt),
+			Size = UDim2.fromScale(g.dot, g.dot),
+			ZIndex = parent.ZIndex,
+			Parent = drop,
+		}, { Widgets.pill() })
+	end
+	return edge
+end
+
+-- The goo edge each ScreenGui's menus share (weak keys: a destroyed gui frees its edge).
+local sharedEdges: { [Instance]: Frame } = setmetatable({}, { __mode = "k" }) :: any
+
+-- A menu card (Layout.PANEL_CHROME), the same frame for every menu: deep teal
+-- glass with a mint header band that drips goo, the menu's `icon` on a white
+-- jelly tile poking up over the top-left corner, the title in ink on the mint
+-- and the round pink close "X" top-right; `body` fills the area under them.
+-- init.client sizes the frame (Layout.panelFor) over the dimmed backdrop and
+-- wires `close` to setOpen(nil).
 function Widgets.panel(parent: Instance, name: string, titleText: string, icon: string?): Panel
 	local c = Layout.PANEL_CHROME
 	local kit = Widgets.KIT
-	local radius = 20
+	local radius = kit.panelRadius
 	local frame = create("Frame", {
 		Name = name,
 		Visible = false, -- shown only by setOpen / the menu manager
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Theme.Bg,
-		BackgroundTransparency = 0,
+		BackgroundTransparency = 0.04,
 		ZIndex = Layout.ZINDEX.Menu,
 		Parent = parent,
 	}, { Widgets.corner(radius), Widgets.stroke(Theme.Ink, kit.stroke) })
 	-- The band: rounded on top, square at the bottom (a second, unrounded strip covers the lower corners).
-	local bandH = c.header - c.bodyGap - kit.stroke
-	local bandShade = 0.78 -- the band's bottom brightness; the square foot strip matches it
-	local band = create("Frame", {
+	local bandH = c.header - c.bodyGap
+	create("Frame", {
 		Name = "Band",
 		BorderSizePixel = 0,
 		BackgroundColor3 = Theme.Band,
 		Size = UDim2.new(1, 0, 0, bandH),
 		Parent = frame,
 	}, { Widgets.corner(radius) })
-	Widgets.shade(band, bandShade)
 	create("Frame", {
 		Name = "BandFoot",
 		BorderSizePixel = 0,
-		BackgroundColor3 = Theme.Band:Lerp(Color3.new(0, 0, 0), 1 - bandShade),
+		BackgroundColor3 = Theme.Band,
 		Size = UDim2.new(1, 0, 0, radius),
 		Position = UDim2.fromOffset(0, bandH - radius),
 		Parent = frame,
 	})
-	create("Frame", {
-		Name = "BandRule",
-		BorderSizePixel = 0,
-		BackgroundColor3 = Theme.Ink,
-		Size = UDim2.new(1, 0, 0, kit.stroke),
-		Position = UDim2.fromOffset(0, bandH),
-		Parent = frame,
-	})
+	-- One goo edge per ScreenGui, moved into whichever menu is shown: only one menu is open at a time, so
+	-- the lip and drips cost their instances once, not once per panel (ui-perf-budget.json).
+	-- A destroyed panel takes the edge with it (Parent nil); the next panel then builds a fresh one.
+	local function claimEdge()
+		local edge = sharedEdges[parent]
+		if edge == nil or edge.Parent == nil then
+			sharedEdges[parent] = Widgets.gooEdge(frame, bandH, Theme.Band)
+		elseif edge.Parent ~= frame then
+			edge.Parent = frame
+		end
+	end
+	if sharedEdges[parent] == nil or (sharedEdges[parent] :: Frame).Parent == nil then
+		claimEdge()
+	end
+	frame:GetPropertyChangedSignal("Visible"):Connect(function()
+		if frame.Visible then
+			claimEdge()
+		end
+	end)
 	local tile = create("Frame", {
 		Name = "IconTile",
-		BackgroundColor3 = Theme.Band,
+		BackgroundColor3 = Theme.Text,
 		Size = UDim2.fromOffset(c.icon, c.icon),
 		Position = UDim2.fromOffset(c.pad, -c.iconRise),
 		Parent = frame,
-	}, { Widgets.corner(17), Widgets.stroke(Theme.Ink, kit.stroke) })
+	}, { Widgets.pill(), Widgets.stroke(Theme.Ink, kit.stroke) })
 	Widgets.shade(tile)
+	Widgets.shine(tile)
 	local iconLabel = Widgets.label({
 		Name = "Icon",
 		Text = icon or "",
@@ -464,9 +576,7 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		Text = titleText,
 		Font = Theme.Font,
 		TextSize = c.titleSize,
-		TextColor3 = Theme.Text,
-		TextStrokeColor3 = Theme.Ink,
-		TextStrokeTransparency = 0,
+		TextColor3 = Theme.Ink,
 		Size = UDim2.new(1, -(titleX + c.close + c.closeInset * 2), 0, c.close),
 		Position = UDim2.fromOffset(titleX, c.closeInset),
 		Parent = frame,
@@ -486,8 +596,9 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		Size = UDim2.fromOffset(c.close, c.close),
 		ZIndex = 2,
 		Parent = frame,
-	}, { Widgets.corner(kit.radius), Widgets.stroke(Theme.Ink, kit.stroke) }) :: TextButton
+	}, { Widgets.pill(), Widgets.stroke(Theme.Ink, kit.stroke) }) :: TextButton
 	Widgets.shade(close)
+	Widgets.shine(close)
 	local body = create("Frame", {
 		Name = "Body",
 		BackgroundTransparency = 1,

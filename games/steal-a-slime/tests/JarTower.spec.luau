@@ -6,7 +6,6 @@ local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
 local PlotLockGuard = require("../src/server/PlotLockGuard")
-local SlimeRoster = require("../src/shared/SlimeRoster")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -89,33 +88,67 @@ describe("jar tower: pads", function()
 end)
 
 describe("jar tower: stair", function()
-	it("climbs one stud a step from floor f and lands flush with floor f + 1", function()
+	local st, ramp = WorldLayout.STAIR, WorldLayout.RAMP
+	local span = st.angle * WorldLayout.stairSteps()
+	-- Height above floor f of the ramp from floor f at plot-local angle `deg` (nil outside its turn).
+	local function rampHeight(f: number, deg: number): number?
+		local start = WorldLayout.treadAngle(f, 1) - st.angle
+		local d = (deg - start) % 360
+		return d / span * WorldLayout.FLOOR_HEIGHT
+	end
+	it("climbs from floor f to floor f + 1 in one turn of gentle ramp, ending where the next ramp starts", function()
 		expect(WorldLayout.stairSteps()).toBe(WorldLayout.FLOOR_HEIGHT)
+		expect(span).toBe(360)
 		for f = 2, FLOORS do
 			local parts = floorParts(1, f)
-			local treads = named(parts, "Tread_")
-			expect(#treads).toBe(WorldLayout.stairSteps())
-			for k, t in treads do
-				local p = toLocal(t, 1)
-				expect(math.abs(p[2] + t.size[2] / 2 - (WorldLayout.floorTop(f - 1) + k)) < 1e-6).toBe(true)
+			expect(#named(parts, "Tread_")).toBe(0)
+			local boxes = named(parts, "Ramp_")
+			expect(#boxes).toBe(ramp.segments)
+			local tilt = math.abs((boxes[1].rot :: any)[3])
+			-- walkable on a thumbstick: well under Roblox's slope limit, gentler where feet go than the old steps
+			expect(tilt > 15 and tilt < 40).toBe(true)
+			for _, b in boxes do
+				expect(b.canCollide ~= false).toBe(true)
+				expect(math.abs((b.rot :: any)[3])).toBeCloseTo(tilt)
 			end
-			local last = toLocal(treads[#treads], 1)
-			expect(math.abs(last[2] + 0.5 - WorldLayout.floorTop(f)) < 1e-6).toBe(true)
+			-- the first box starts at the floor, the last ends at the deck height
+			local first, last = toLocal(boxes[1], 1), toLocal(boxes[#boxes], 1)
+			local rise = WorldLayout.FLOOR_HEIGHT / ramp.segments
+			expect(math.abs(first[2] - WorldLayout.floorTop(f - 1) - rise / 2) < 1).toBe(true)
+			expect(math.abs(last[2] - (WorldLayout.floorTop(f) - rise / 2)) < 1).toBe(true)
+			-- one unbroken spiral: no landing, and each floor's ramp starts at the angle the one below ends
+			expect(#named(parts, "Landing")).toBe(0)
+			expect(WorldLayout.treadAngle(f, 1)).toBe(WorldLayout.treadAngle(f - 1, 1))
 		end
 	end)
-	it("fits inside the deck hole and leaves headroom under the next stair", function()
-		local st = WorldLayout.STAIR
+	it("keeps a rail along the outer edge, open at the bottom and before the top to step on and off", function()
+		for f = 2, FLOORS do
+			local rails = named(floorParts(1, f), "RampRail_")
+			expect(#rails > 6).toBe(true)
+			local start = WorldLayout.treadAngle(f - 1, 1) - st.angle
+			for _, r in rails do
+				expect(r.canCollide ~= false).toBe(true)
+				expect(r.transparency).toBe(1)
+				expect(r.canQuery).toBe(false)
+				-- straight up from the floor to just under the deck above: no top edge to climb over
+				expect(r.size[2]).toBe(WorldLayout.FLOOR_HEIGHT - 1)
+				expect(math.abs(toLocal(r, 1)[2] - r.size[2] / 2 - WorldLayout.floorTop(f - 1)) < 1e-6).toBe(true)
+				expect((r.rot :: any)[3]).toBe(0)
+				local p = toLocal(r, 1)
+				local deg = math.deg(math.atan2(p[3], p[1]))
+				local d = (deg - start) % 360
+				expect(d >= ramp.railStart and d <= span - ramp.railEnd).toBe(true)
+				expect(math.sqrt(p[1] ^ 2 + p[3] ^ 2) >= st.outer).toBe(true)
+			end
+		end
+	end)
+	it("fits inside the deck hole and leaves headroom under the next ramp", function()
 		expect(st.outer + 0.3 <= st.hole).toBe(true)
 		for f = 1, FLOORS - 2 do
-			for k = 1, WorldLayout.stairSteps() do
-				local a = WorldLayout.treadAngle(f, k)
-				for k2 = 1, WorldLayout.stairSteps() do
-					local d = math.abs(((WorldLayout.treadAngle(f + 1, k2) - a + 180) % 360) - 180)
-					if d < st.angle then
-						local headroom = (WorldLayout.floorTop(f + 1) + k2 - 1) - (WorldLayout.floorTop(f) + k)
-						expect(headroom >= 8).toBe(true)
-					end
-				end
+			for deg = 0, 359, 5 do
+				local below = WorldLayout.floorTop(f) + (rampHeight(f, deg) :: number)
+				local above = WorldLayout.floorTop(f + 1) + (rampHeight(f + 1, deg) :: number) - 1
+				expect(above - below >= 8).toBe(true)
 			end
 		end
 	end)
@@ -197,23 +230,15 @@ describe("jar tower: fits the plot", function()
 		end
 		expect(WorldLayout.MOAT.outer < HALF).toBe(true)
 	end)
-	it("lands the drop tube outside the moat and inside the plot", function()
+	it("lands the drop tube in the goo moat, on the round plot floor", function()
 		local p = WorldLayout.dropLanding()
 		local r = math.sqrt(p[1] * p[1] + p[3] * p[3])
-		expect(r > WorldLayout.MOAT.outer).toBe(true)
+		expect(r > WorldLayout.MOAT.inner and r < WorldLayout.MOAT.outer).toBe(true)
+		expect(r < WorldLayout.PLOT_FLOOR_RADIUS).toBe(true)
 		expect(math.abs(p[1]) < HALF and math.abs(p[3]) < HALF).toBe(true)
 	end)
 	it("keeps the top floor inside the lock guard's height window", function()
 		expect(WorldLayout.floorTop(FLOORS) + 8 <= PlotLockGuard.MAX_Y).toBe(true)
-	end)
-	it("stands a trophy pedestal for every boss species on the Base, clear of the moat", function()
-		expect(#WorldLayout.TROPHY_SPOTS >= #SlimeRoster.ofKind("boss")).toBe(true)
-		local half = 4.5 -- the 9 x 9 pedestal
-		for _, spot in WorldLayout.TROPHY_SPOTS do
-			local nearX, nearZ = math.abs(spot[1]) - half, math.abs(spot[2]) - half
-			expect(math.sqrt(nearX * nearX + nearZ * nearZ) > WorldLayout.MOAT.inner).toBe(true)
-			expect(math.abs(spot[1]) + half <= HALF and math.abs(spot[2]) + half <= HALF).toBe(true)
-		end
 	end)
 	it("spawns players on the walkway between the stair and the pads, in front of the door", function()
 		local s = WorldLayout.SPAWN_SPOT

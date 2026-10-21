@@ -31,6 +31,9 @@
 	  stage, kind, fidget, emote, yawW, spin   what the slime is doing (gait stage, hop kind, fidget, emote, turn
 	                  weight, spin angle): only in a test build whose SlimeActor writes Dbg* attributes for a model
 	                  with the PcwLog attribute (slimelog sets it); blank otherwise
+	  eyesIn, lidsOut how far the Eyes bone has sunk in and the Lids bone slid out (a shut eye: both > 0)
+	  eyePartsHidden  eye parts (EyeWhite*, Pupil*) hidden by Transparency / LocalTransparencyModifier, of all
+	  face, closed    the expression the actor asks for and its closed amount (test build Dbg* attributes)
 ]]
 local CS = game:GetService("CollectionService")
 local RS = game:GetService("RunService")
@@ -74,6 +77,21 @@ local bones = {}
 for _, d in target:GetDescendants() do
 	if d:IsA("Bone") then
 		table.insert(bones, d)
+	end
+end
+-- the eyes: bone-skinned faces sink their Eyes bone in and slide the Lids bone out to shut; part faces have eye parts
+local eyeBone, lidBone = nil, nil
+for _, b in bones do
+	if b.Name == "Eyes" then
+		eyeBone = b
+	elseif b.Name == "Lids" then
+		lidBone = b
+	end
+end
+local eyeParts = {}
+for _, d in target:GetDescendants() do
+	if d:IsA("BasePart") and (string.find(d.Name, "^EyeWhite") or string.find(d.Name, "^Pupil")) then
+		table.insert(eyeParts, d)
 	end
 end
 local squashMesh = nil
@@ -167,6 +185,19 @@ conn = RS.RenderStepped:Connect(function()
 			tostring(target:GetAttribute("DbgEmote") or ""),
 			tostring(target:GetAttribute("DbgYawW") or ""),
 			tostring(target:GetAttribute("DbgSpin") or ""),
+			if eyeBone then r3(eyeBone.Transform.Position.Magnitude) else "",
+			if lidBone then r3(lidBone.Transform.Position.Magnitude) else "",
+			(function()
+				local hidden = 0
+				for _, e in eyeParts do
+					if e.LocalTransparencyModifier > 0.5 or e.Transparency > 0.5 then
+						hidden += 1
+					end
+				end
+				return tostring(hidden) .. "/" .. tostring(#eyeParts)
+			end)(),
+			tostring(target:GetAttribute("DbgFace") or ""),
+			tostring(target:GetAttribute("DbgClosed") or ""),
 		})
 	end)
 end)
@@ -175,7 +206,7 @@ function log.csv(): string
 	local lines = {
 		"t,left,state,tier,bx,by,bz,dx,dy,dz,yaw,pitch,roll,faceYaw,meshY,meshX,scale,despawn,"
 			.. "bodyX,bodyY,meshZ,mx,my,mz,meshLTM,skinTx,skinTy,skinTz,faceTy,squashY,squashX,bones,boneMax,tagX,tagY,tagZ,"
-			.. "stage,kind,fidget,emote,yawW,spin",
+			.. "stage,kind,fidget,emote,yawW,spin,eyesIn,lidsOut,eyePartsHidden,face,closed",
 	}
 	for _, row in log.rows do
 		table.insert(lines, table.concat(row, ","))

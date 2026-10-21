@@ -289,10 +289,10 @@ function Hud.new(parent: Instance, ctx: any)
 		ZIndex = Layout.ZINDEX.Banners,
 		Parent = parent,
 	}, { Widgets.corner(10), Widgets.stroke(Theme.Gold, 2) })
-	local function tipLabel(name: string, size: number, color: Color3, font: Enum.Font): TextLabel
+	local function tipLabel(name: string, size: number, color: Color3, font: any): TextLabel
 		return Widgets.label({
 			Name = name,
-			Font = font,
+			[Widgets.fontKey(font)] = font,
 			TextSize = size,
 			TextColor3 = color,
 			TextWrapped = true,
