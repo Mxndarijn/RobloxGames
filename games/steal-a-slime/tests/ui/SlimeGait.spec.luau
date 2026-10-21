@@ -123,6 +123,24 @@ describe("SlimeGait hops", function()
 			expect(math.abs(p.dx) <= SlimeGait.CATCH_UP).toBe(true)
 		end
 	)
+	it("a hopper that landed past a stopped anchor waits for the lane instead of hopping back to it", function()
+		local rand = lcg(5)
+		local st = SlimeGait.new(-2.6, 0, 0, 0) -- landed 2.6 studs past an anchor at 0 (heading -X)
+		local hopped = false
+		for f = 1, 3 * FPS do
+			local p = SlimeGait.step(st, GUMMY, 0, 0, -1, 0, f / FPS, rand, nil, 0, 0)
+			hopped = hopped or p.air == true or st.stage ~= "ground"
+		end
+		expect(hopped).toBe(false)
+		-- far past it (a correction, not a beat) it does go back
+		local far = SlimeGait.new(-(SlimeGait.OVERSHOOT + 1), 0, 0, 0)
+		local back = false
+		for f = 1, 3 * FPS do
+			SlimeGait.step(far, GUMMY, 0, 0, -1, 0, f / FPS, rand, nil, 0, 0)
+			back = back or far.stage ~= "ground"
+		end
+		expect(back).toBe(true)
+	end)
 	it("cuts a belly flop's lie-down short when it falls CATCH_UP behind", function()
 		local rand = lcg(2)
 		local st = SlimeGait.new(0, 0, 0, 0)

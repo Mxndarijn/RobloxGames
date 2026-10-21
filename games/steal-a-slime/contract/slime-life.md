@@ -160,7 +160,9 @@ against the server's lane, queue and replication; `lune run tools/slimesim <scen
   `SlimeSpacing.step` eases overlapping pairs apart: half the overlap each, a push that grows fast and eases back
   slowly, at most `MAX_PUSH`. Then `SlimeActor.settle` adds the push and moves the tag; then the motors step.
 - **A hopper never sits stranded.** More than `SlimeGait.CATCH_UP` studs behind its anchor, it cuts a long landing (a
-  belly flop's lie-down) short and jumps even while its anchor stands still for a beat.
+  belly flop's lie-down) short and jumps even while its anchor stands still for a beat. A hopper never hops
+  backwards: one that landed past its anchor (it leapt as the lane stopped) waits for the lane to catch up, unless it
+  is more than `SlimeGait.OVERSHOOT` studs past it.
 
 ## Alive attention and jelly (client only, `FEATURES.SlimeAlive`)
 

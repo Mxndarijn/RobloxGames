@@ -365,6 +365,8 @@ for f = 0, frames do
 			full,
 			r2(b.X),
 			r2(b.Z), -- the replicated Body
+			tostring(c.actor.gait.kind), -- hop kind (zig, belly, ...)
+			r2(math.sqrt((c.actor.pushX or 0) ^ 2 + (c.actor.pushZ or 0) ^ 2)), -- SlimeSpacing push
 		}
 	end
 end
