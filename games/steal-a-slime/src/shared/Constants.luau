@@ -96,6 +96,9 @@ return table.freeze({
 	EGG_HATCH_AT_ATTRIBUTE = "EggHatchAt", -- Mystery Egg model: server time it is ready; nil while not incubating
 	EGG_HATCH_SECONDS_ATTRIBUTE = "EggHatchSeconds", -- Mystery Egg model: its kind's full incubation time
 	HATCH_PROMPT_NAME = "HatchPrompt", -- owner-only ProximityPrompt on a ready Mystery Egg
+	HATCHED_AT_ATTRIBUTE = "HatchedAt", -- slime model, for MYSTERY_EGG.HATCH_FX_SECONDS after a hatch: server time of the hatch
+	HATCHED_FROM_ATTRIBUTE = "HatchedFrom", -- slime model, with HatchedAt: the egg kind id it hatched from
+	HATCH_LUCKY_ATTRIBUTE = "HatchLucky", -- slime model, with HatchedAt: true for a lucky egg or a full lucky meter
 	LABEL_PAD_ATTRIBUTE = "LabelPad", -- slime model: pad index while it rests on a pad (the label is the pad sign), else nil
 	LABEL_HEIGHT_ATTRIBUTE = "LabelHeight", -- slime model: studs from the Body centre to the card's bottom edge
 	TAG_ANCHOR = "TagAnchor", -- client-only Attachment on a slime's Body: the name tag and the Buy card hang on it;

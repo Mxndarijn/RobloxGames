@@ -14,7 +14,7 @@ Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing
 
 ```luau
 {
-	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 22 with the Speed Coil)
+	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 24 with the Speed Coil)
 	incomeMultiplier: number,      -- total income multiplier: rebirth x upgrade x rank x dex (>= rebirthMultiplier)
 	rebirthTitle: string,          -- current rank title, e.g. "Slime Rookie"
 	rebirthTiers: { { rebirths: number, title: string, text: string, unlocked: boolean } },  -- every rank, ascending

@@ -128,7 +128,12 @@ describe("Spawner Slime Rain", function()
 			GameLoop.step(world, t)
 			t += 0.25
 		end
-		expect(Spawner.wildCount(world) > Config.MAX_WILD_SLIMES).toBeTruthy()
+		-- Unclaimed drops expire after WILD_LIFETIME, so the crowd levels off at about lifetime / interval.
+		local steady = math.floor(Config.WILD_LIFETIME / Config.RAIN_SPAWN_INTERVAL)
+		expect(Spawner.wildCount(world) >= math.min(steady, Fountain.wildCap(true)) - 1).toBeTruthy()
+		expect(
+			Spawner.wildCount(world) > math.min(Config.WILD_LIFETIME / Config.SPAWN_INTERVAL, Config.MAX_WILD_SLIMES)
+		).toBeTruthy()
 		expect(Spawner.wildCount(world) <= Fountain.wildCap(true)).toBeTruthy()
 	end)
 	it("rain drops are luckier than normal drops", function()

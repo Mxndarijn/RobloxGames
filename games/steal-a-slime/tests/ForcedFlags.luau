@@ -62,11 +62,8 @@ ForcedFlags.on = {
 -- switch on every built feature). They only make sense with that flag off, so they run in the
 -- all-flags-off mode alone and are skipped in the default and the all-on runs (and in the cloud tests).
 ForcedFlags.needOff = {
-	["FountainTiers: the ladder > rank cards only mention a family with the feature on (off: tierText is unchanged)"] = "FountainTiers",
 	["FountainTiers: server > the world starts at tier 1 and the tier step is a no-op with the feature off"] = "FountainTiers",
 	["FountainTiers: server > a spawned drop is Classic with the feature off even at tier 4"] = "FountainTiers",
-	["FountainTiers: server > the catch gate: a family slime needs the family's rank, Classic and stolen slimes never do"] = "FountainTiers",
-	["FountainTiers: server > a refused family grab costs nothing and a rank-ready player grabs it"] = "FountainTiers",
 	["plot skins: equip > the Request refuses a locked skin, and equips an unlocked one"] = "PlotSkins",
 	["plot skins: equip > with the flag off the Request is refused, even for an unlocked skin"] = "PlotSkins",
 	["plot skins: equip > flag off: State carries no plot skin fields"] = "PlotSkins",

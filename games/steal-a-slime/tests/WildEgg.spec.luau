@@ -177,7 +177,9 @@ describe("fountain eggs", function()
 			local k = assert(EggKind.of(wild.slime))
 			expect(wild.slime.egg and wild.slime.egg.hatchAt).toBeNil()
 			expect(wild.price == 0 or wild.price == k.price).toBe(true)
-			expect(EggKind.probabilities(k)[wild.slime.tier] ~= nil).toBe(true)
+			-- A lucky egg holds one tier above its roll.
+			local rolled = if wild.slime.egg and wild.slime.egg.lucky then wild.slime.tier - 1 else wild.slime.tier
+			expect(EggKind.probabilities(k)[rolled] ~= nil).toBe(true)
 			world.wild[id] = nil
 		end
 	end)
@@ -315,8 +317,12 @@ describe("HatchEgg", function()
 		expect(PlayerData.incomePerSecond(owner.data) > 0).toBe(true)
 		local state = Snapshot.build(world, owner, T0 + 200)
 		expect((state.egg :: any).hatched.slime.id).toBe("e")
-		-- A Mythic+ hatch is toasted to the whole server.
+		-- The toasts wait for the hatch show to reveal the slime; a Legendary+ hatch is toasted to the whole server.
+		expect(#ServerFixtures.notifications(world, nil)).toBe(0)
+		expect(#ServerFixtures.notifications(world, 1)).toBe(0)
+		ServerEgg.step(world, 1, T0 + 200 + Config.MYSTERY_EGG.HATCH_REVEAL_SECONDS)
 		expect(#ServerFixtures.notifications(world, nil)).toBe(1)
+		expect(#ServerFixtures.notifications(world, 1)).toBe(1)
 	end)
 	it("refuses another player's egg and a slime that is not an egg", function()
 		local world = twoPlayers({ egg("e", "speckled", 2, T0), Fixtures.slime("s", 2) })

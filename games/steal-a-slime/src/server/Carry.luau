@@ -21,11 +21,9 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
-local FountainTiers = if Shared then require(Shared.FountainTiers) else require("../shared/FountainTiers")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
-local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
@@ -65,17 +63,6 @@ function Carry.holdDuration(price: number?): number
 	return Config.HOLD_CONFIRM_SECONDS
 end
 
--- FEATURES.FountainTiers: failure text when a player of `rebirths` can't catch this wild slime because its
--- family is not open to their rank yet, else nil. `enabled` (tests) overrides the flag.
-function Carry.familyBlock(rebirths: number, slime: Genome.Slime, enabled: boolean?): string?
-	if not (if enabled == nil then Config.FEATURES.FountainTiers else enabled) then
-		return nil
-	end
-	local species = slime.species
-	local entry = if species then SlimeRoster.get(species) else nil
-	return if entry then FountainTiers.catchBlock(rebirths, entry.family) else nil
-end
-
 function Carry.grabWild(
 	world: World,
 	session: Session,
@@ -107,11 +94,6 @@ function Carry.grabWild(
 		if not ok then
 			return false, reason
 		end
-	end
-	-- Checked before the price is charged, so a refused grab costs nothing.
-	local block = Carry.familyBlock(session.data.rebirths, wild.slime)
-	if block then
-		return false, block
 	end
 	if wild.price > 0 and not PlayerData.spend(session.data, wild.price) then
 		return false, `need ${Economy.formatNumber(wild.price)}`

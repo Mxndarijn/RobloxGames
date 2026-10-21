@@ -109,7 +109,7 @@ describe("TripleMerge: recipes, caps and the assist", function()
 		end
 		return out
 	end
-	local everything: MergeRecipes.Ctx = { unlocked = MergeRecipes.unlockedFor(math.huge) }
+	local everything: MergeRecipes.Ctx = { unlocked = MergeRecipes.everySpecies }
 
 	it("a recipe hit gives its hybrid one tier up, never a jump, whatever the seed", function()
 		for _, recipe in MergeRecipes.RECIPES do
@@ -174,7 +174,7 @@ describe("TripleMerge: recipes, caps and the assist", function()
 		local b = TripleMerge.merge(trio(1, { "gummy", "gummy", "pebble" }), Rng.new(5), "x", everything)
 		expect(a).toEqual(b)
 	end)
-	it("apply reads the save: rank-opened families and the owned species", function()
+	it("apply reads the save: every family at any rank, and the owned species", function()
 		local d = Fixtures.data({
 			slime("a", 1, { species = "bubbles" }),
 			slime("b", 1, { species = "gummy" }),
@@ -182,9 +182,7 @@ describe("TripleMerge: recipes, caps and the assist", function()
 		})
 		local ctx = TripleMerge.ctxFor(d)
 		expect(ctx.found and ctx.found.bubbles).toBe(true)
-		expect(ctx.unlocked(SlimeRoster.get("prickles") :: any)).toBe(false)
-		d.rebirths = 100
-		expect(TripleMerge.ctxFor(d).unlocked(SlimeRoster.get("prickles") :: any)).toBe(true)
+		expect(ctx.unlocked(SlimeRoster.get("prickles") :: any)).toBe(true)
 		local ok, child = TripleMerge.apply(d, { "a", "b", "c" }, nil, Rng.new(1), "n")
 		expect(ok).toBe(true)
 		expect((child :: Genome.Slime).species).toBe("soda")

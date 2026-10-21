@@ -34,7 +34,6 @@ describe("FountainTiers: the ladder", function()
 			local family = FountainTiers.FAMILIES[i]
 			expect(rank.family).toBe(family.id)
 			expect(family.tier).toBe(i + 1)
-			expect(FountainTiers.rebirthsFor(family.id)).toBe(rank.rebirths)
 		end
 	end)
 	it("tierFor steps at 3 / 6 / 10 rebirths and never leaves 1..MAX_TIER", function()
@@ -61,16 +60,17 @@ describe("FountainTiers: the ladder", function()
 			expect(tier >= 1).toBe(true)
 		end
 	end)
-	it("the pool grows with the tier and always lists open families in order", function()
-		expect(#FountainTiers.pool(1)).toBe(0)
-		expect(FountainTiers.pool(2)).toEqual({ "orchard" })
-		expect(FountainTiers.pool(4)).toEqual({ "orchard", "frost", "starlight" })
+	it("every family is in the drop pool, in order", function()
+		expect(FountainTiers.allFamilies()).toEqual({ "orchard", "frost", "starlight" })
 	end)
-	it("rank cards only mention a family with the feature on (off: tierText is unchanged)", function()
+	it("rank cards never mention a family: no slime needs a rank", function()
 		local wrangler = Perks.tier(3)
 		expect(wrangler.family).toBe("orchard")
 		expect(string.find(Perks.tierText(wrangler), "Garden", 1, true)).toBeNil()
-		expect(FountainTiers.rankText("orchard")).toBe("opens the Garden slimes")
+	end)
+	it("the fountain upgrade toast names the fountain only", function()
+		expect(FountainTiers.upgradeText(1)).toBeNil()
+		expect(FountainTiers.upgradeText(2)).toBe("The fountain grew into the Garden Fountain!")
 	end)
 	it("shows the families as Meadow, Garden, Frost & Sea and Starlight", function()
 		expect(FountainTiers.CLASSIC_NAME).toBe("Meadow")
@@ -176,13 +176,13 @@ describe("FountainTiers: drops", function()
 		end
 	end)
 	it("families never change the rolled tier: the same seed gives the same tiers", function()
-		local a, b = drops(nil, 400), drops(FountainTiers.pool(FountainTiers.MAX_TIER), 400)
+		local a, b = drops(nil, 400), drops(FountainTiers.allFamilies(), 400)
 		for i = 1, 400 do
 			expect(a[i].tier).toBe(b[i].tier)
 		end
 	end)
 	it("a full pool drops every spawning species of the tiers rolled, family slimes at their uniform share", function()
-		local pool = FountainTiers.pool(FountainTiers.MAX_TIER)
+		local pool = FountainTiers.allFamilies()
 		local seen: { [string]: number } = {}
 		local family, total = 0, 6000
 		for _, slime in drops(pool, total) do
@@ -217,11 +217,6 @@ describe("FountainTiers: drops", function()
 			expect(f == nil or f == "orchard").toBe(true)
 		end
 	end)
-	it("a locked family never drops", function()
-		for _, slime in drops(FountainTiers.pool(3), 3000) do
-			expect(SlimeRoster.get(slime.species :: string).family ~= "starlight").toBe(true)
-		end
-	end)
 	it("extra species join only the pool of their own tier", function()
 		local event = SlimeRoster.ofKind("event")[1]
 		expect(event.tier).toBe(SlimeRoster.SECRET_TIER)
@@ -247,7 +242,7 @@ describe("FountainTiers: server", function()
 		expect(world.fountainTier).toBe(1)
 		expect(Spawner.stepFountainTier(world)).toBe(false)
 		expect(world.fountainTier).toBe(1)
-		expect(Spawner.familyPool(world)).toBeNil()
+		expect(Spawner.familyPool()).toBeNil()
 	end)
 	it("the tier follows the best rank on the server, only ever rises, and announces once", function()
 		local world = ServerFixtures.world()
@@ -257,7 +252,7 @@ describe("FountainTiers: server", function()
 		high.data.rebirths = 6
 		expect(Spawner.stepFountainTier(world, true)).toBe(true)
 		expect(world.fountainTier).toBe(3)
-		expect(Spawner.familyPool(world, true)).toEqual({ "orchard", "frost" })
+		expect(Spawner.familyPool(true)).toEqual({ "orchard", "frost", "starlight" })
 		expect(Spawner.stepFountainTier(world, true)).toBe(false)
 		local told = ServerFixtures.notifications(world, nil)
 		expect(#told).toBe(1)
@@ -277,29 +272,16 @@ describe("FountainTiers: server", function()
 			world.wild[id] = nil
 		end
 	end)
-	it("the catch gate: a family slime needs the family's rank, Classic and stolen slimes never do", function()
-		local plum = Fixtures.slime("p", 2, { species = "prickles" })
-		local classic = Fixtures.slime("c", 2, { species = "bumble" })
-		local merged = Fixtures.slime("m", 4)
-		expect(Carry.familyBlock(0, plum, true)).toBe("Reach Slime Wrangler (3 rebirths) to catch Garden slimes")
-		expect(Carry.familyBlock(2, plum, true) ~= nil).toBe(true)
-		expect(Carry.familyBlock(3, plum, true)).toBeNil()
-		expect(Carry.familyBlock(0, classic, true)).toBeNil()
-		expect(Carry.familyBlock(0, merged, true)).toBeNil()
-		expect(Carry.familyBlock(5, Fixtures.slime("g", 5, { species = "ninja" }), true)).toBe(
-			"Reach Goo Tycoon (6 rebirths) to catch Frost & Sea slimes"
-		)
-		expect(Carry.familyBlock(0, plum)).toBeNil() -- flag off
-	end)
-	it("a refused family grab costs nothing and a rank-ready player grabs it", function()
-		local world = ServerFixtures.world()
-		local rookie = ServerFixtures.join(world, 1, nil, 1e9)
-		local id = Spawner.spawnOne(world, T0)
-		world.wild[id].slime.species = "prickles"
-		world.wild[id].price = 100
-		-- feature off: the gate is not applied
-		expect((Carry.grab(world, 1, id, 5, T0 + 1))).toBe(true)
-		expect(rookie.data.cash < 1e9).toBe(true)
+	it("a player with no rebirths catches a slime of any family", function()
+		for _, species in { "prickles", "ninja", "seraph" } do
+			local world = ServerFixtures.world()
+			local rookie = ServerFixtures.join(world, 1, nil, 1e9)
+			local id = Spawner.spawnOne(world, T0)
+			world.wild[id].slime.species = species
+			world.wild[id].price = 100
+			expect((Carry.grab(world, 1, id, 5, T0 + 1))).toBe(true)
+			expect(rookie.data.cash < 1e9).toBe(true)
+		end
 	end)
 end)
 
