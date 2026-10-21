@@ -10,7 +10,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 
-export type Egg = { kind: string, hatchAt: number? }
+export type Egg = { kind: string, hatchAt: number?, lucky: boolean? } -- lucky: never sent to a client
 export type Drop = { tier: number, weight: number }
 export type Kind = {
 	id: string,
@@ -18,6 +18,7 @@ export type Kind = {
 	tier: number,
 	weight: number,
 	hatchSeconds: number,
+	pity: number, -- lucky meter size: this many hatches in a row without the top tier and the last one gets it
 	price: number,
 	sell: number,
 	announce: boolean,
@@ -111,6 +112,15 @@ function EggKind.rollTier(kind: Kind, roll: number): number
 	return kind.drops[pick(weights, roll)].tier
 end
 
+-- The best tier a kind can hold: its highest drop (the lucky meter's guarantee).
+function EggKind.topTier(kind: Kind): number
+	local top = 1
+	for _, drop in kind.drops do
+		top = math.max(top, drop.tier)
+	end
+	return top
+end
+
 -- Chance of each inner tier: { [tier] = probability }; sums to 1.
 function EggKind.probabilities(kind: Kind): { [number]: number }
 	local total = 0
@@ -124,7 +134,7 @@ function EggKind.probabilities(kind: Kind): { [number]: number }
 	return out
 end
 
--- Cleans an untrusted `egg` field (saves): a known kind and a finite hatchAt, else nil.
+-- Cleans an untrusted `egg` field (saves): a known kind, a finite hatchAt and `lucky` only when true, else nil.
 function EggKind.sanitize(raw: any): Egg?
 	if type(raw) ~= "table" or not EggKind.get(raw.kind) then
 		return nil
@@ -133,7 +143,7 @@ function EggKind.sanitize(raw: any): Egg?
 	if hatchAt and (hatchAt ~= hatchAt or hatchAt == math.huge or hatchAt == -math.huge) then
 		hatchAt = nil
 	end
-	return { kind = raw.kind, hatchAt = hatchAt }
+	return { kind = raw.kind, hatchAt = hatchAt, lucky = if raw.lucky == true then true else nil }
 end
 
 --[[
@@ -152,7 +162,8 @@ function EggKind.mask(slime: any): any
 	copy.growth = nil
 	local color = Config.RARITIES[kind.tier].color
 	copy.color = { color[1], color[2], color[3] }
-	copy.egg = table.clone(slime.egg :: Egg)
+	local egg = slime.egg :: Egg
+	copy.egg = { kind = egg.kind, hatchAt = egg.hatchAt } -- never `lucky`: the show reveals it
 	return copy
 end
 

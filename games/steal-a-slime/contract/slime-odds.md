@@ -11,13 +11,12 @@ still multiplies tiers >= 3; pity (`PITY_EPIC`, `PITY_LEGENDARY`) is unchanged.
 ## Drop rule
 
 A fountain drop rolls the **tier first**, then picks **uniformly** among the spawning species (`kind == "spawn"`) of that
-tier in Classic plus every family open on the server (`FountainTiers.pool(world.fountainTier)`). A family that has no
+tier in Classic plus every family (`FountainTiers.allFamilies()`), on every server and at every rank. A family that has no
 species at the tier adds none; Classic has at least one at every tier, so the pool is never empty.
 
 - Removed: `Config.FAMILY_DROP_CHANCE`, `FountainTiers.roll`, `FountainTiers.luck`, `Family.weight`, `Family.luck`.
   Families give no extra luck: the tier is rolled before the species.
-- Kept: the catch gate `FountainTiers.catchBlock` / `Carry.familyBlock` (your own rank must have opened the family; a
-  stolen slime or a merge result is never gated).
+- No rank gate: any player can catch, buy, steal or merge into a slime of any family at any rebirth count.
 - `FEATURES.FountainTiers` off: no families, Classic species only.
 - Family display names (`FountainTiers.FAMILIES[i].name`, ids unchanged): `orchard` **Garden**, `frost` **Frost & Sea**,
   `starlight` **Starlight**; Classic is **Meadow**. Fountain looks: Meadow / Garden / Frost & Sea / Starlight Fountain.

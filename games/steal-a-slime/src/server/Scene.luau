@@ -21,6 +21,7 @@ local DespawnTelegraph = if Shared then require(Shared.DespawnTelegraph) else re
 local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
@@ -50,6 +51,8 @@ export type Entry = {
 	rare: number?, -- tier of an announced Legendary+ wild drop (model attribute RareSpawn)
 	despawnAt: number?, -- uncarried wild only, inside the telegraph window (model attribute DespawnAt)
 	hatchReady: boolean, -- a ready Mystery Egg resting on its owner's pad: the owner-only HatchPrompt is on
+	hatchText: string?, -- a ready egg: the HatchPrompt ObjectText, the egg name and the owner's lucky meter
+	hatch: World.Hatch?, -- a slime hatched moments ago: its show (model attributes HatchedAt / HatchedFrom / HatchLucky)
 	key: string, -- changes whenever the model must be re-placed
 }
 
@@ -96,6 +99,8 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 					Config.FEATURES.DespawnTelegraph
 				),
 			hatchReady = false,
+			hatchText = nil,
+			hatch = nil,
 			key = `{state}|{carrier or 0}|{wild.position ~= nil}|{wild.spawnedAt}|{bossScale or 1}`,
 		}
 	end
@@ -108,6 +113,8 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				then "Carried"
 				elseif world.escaping[slime.id] then "Escaping"
 				else "Pad"
+			local ready = state == "Pad" and EggKind.isReady(slime, now)
+			local kind = EggKind.of(slime)
 			entries[slime.id] = {
 				id = slime.id,
 				slime = slime,
@@ -127,7 +134,11 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				bossScale = nil,
 				rare = nil,
 				despawnAt = nil,
-				hatchReady = state == "Pad" and EggKind.isReady(slime, now),
+				hatchReady = ready,
+				hatchText = if ready and kind
+					then `{EggKind.displayName(kind)} · {MysteryEgg.meterText(session.data, kind)}`
+					else nil,
+				hatch = world.hatches[slime.id],
 				key = `{state}|{carrier or 0}|{session.plotIndex}|{slime.pad or 0}`,
 			}
 		end

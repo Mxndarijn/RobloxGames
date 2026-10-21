@@ -22,6 +22,7 @@
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
 	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
+	  * the Mystery Egg hatch show on the pad (EggHatchFx) from a hatched slime's HatchedAt / HatchedFrom / HatchLucky
 	  * home plot marker (HomePlotMarker): beacon, floor rim, "YOUR PLOT" tag and edge arrow on the local player's own plot
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
@@ -564,6 +565,15 @@ do
 		warn(`[VisualsClient] egg fx disabled: {err}`)
 	end
 end
+local eggHatchFx: any = nil
+do
+	local ok, err = pcall(function()
+		eggHatchFx = require(script:WaitForChild("EggHatchFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] egg hatch show disabled: {err}`)
+	end
+end
 
 CollectionService:GetInstanceAddedSignal(Constants.SLIME_TAG):Connect(onSlime)
 CollectionService:GetInstanceRemovedSignal(Constants.SLIME_TAG):Connect(onSlimeRemoved)
@@ -589,6 +599,9 @@ RunService.RenderStepped:Connect(function()
 	end
 	if eggFx then
 		eggFx.tick(camera)
+	end
+	if eggHatchFx then
+		eggHatchFx.tick(camera)
 	end
 	if ritualFx then
 		ritualFx.tick(camera)
