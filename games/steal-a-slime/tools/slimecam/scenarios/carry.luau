@@ -13,8 +13,14 @@ while not target and os.clock() - t1 < 90 do
 	local cash = lp.leaderstats.Cash.Value
 	for _, m in CS:GetTagged("Slime") do
 		local p = m:FindFirstChildWhichIsA("ProximityPrompt", true)
-		if m:GetAttribute("State") == "Wild" and not m:GetAttribute("Riding") and (m:GetAttribute("Price") or 1e9) <= cash
-			and m.PrimaryPart and p and p.Enabled then
+		if
+			m:GetAttribute("State") == "Wild"
+			and not m:GetAttribute("Riding")
+			and (m:GetAttribute("Price") or 1e9) <= cash
+			and m.PrimaryPart
+			and p
+			and p.Enabled
+		then
 			target = m
 			break
 		end

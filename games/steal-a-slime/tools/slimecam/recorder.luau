@@ -141,9 +141,14 @@ local guis = {}
 
 local function strip(clone)
 	for _, d in clone:GetDescendants() do
-		if d:IsA("BaseScript") or d:IsA("ProximityPrompt") or d:IsA("JointInstance") or d:IsA("WeldConstraint") then
-			d:Destroy()
-		elseif d:IsA("BillboardGui") or d:IsA("SurfaceGui") then
+		if
+			d:IsA("BaseScript")
+			or d:IsA("ProximityPrompt")
+			or d:IsA("JointInstance")
+			or d:IsA("WeldConstraint")
+			or d:IsA("BillboardGui")
+			or d:IsA("SurfaceGui")
+		then
 			d:Destroy()
 		elseif d:IsA("BasePart") then
 			d.Anchored = true
@@ -253,8 +258,20 @@ end
 -- The look of the sky and light, frozen for the replay: weather / night scripts keep changing it while the slow
 -- capture runs, which would flicker from frame to frame.
 local LIGHT_PROPS = {
-	Lighting = { "ClockTime", "Brightness", "Ambient", "OutdoorAmbient", "ColorShift_Top", "ColorShift_Bottom",
-		"ExposureCompensation", "EnvironmentDiffuseScale", "EnvironmentSpecularScale", "FogColor", "FogEnd", "FogStart" },
+	Lighting = {
+		"ClockTime",
+		"Brightness",
+		"Ambient",
+		"OutdoorAmbient",
+		"ColorShift_Top",
+		"ColorShift_Bottom",
+		"ExposureCompensation",
+		"EnvironmentDiffuseScale",
+		"EnvironmentSpecularScale",
+		"FogColor",
+		"FogEnd",
+		"FogStart",
+	},
 	Atmosphere = { "Density", "Offset", "Color", "Decay", "Glare", "Haze" },
 	ColorCorrectionEffect = { "Enabled", "Brightness", "Contrast", "Saturation", "TintColor" },
 	BloomEffect = { "Enabled", "Intensity", "Size", "Threshold" },

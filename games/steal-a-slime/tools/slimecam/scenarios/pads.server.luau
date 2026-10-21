@@ -53,8 +53,6 @@ local function run(model, seconds, path)
 end
 
 do
-
-
 	player:SetAttribute("PcwGrowth", 60)
 	for _, m in CS:GetTagged("Slime") do
 		if m:GetAttribute("PcwFill") then
@@ -68,7 +66,13 @@ do
 	for _, gait in want do
 		for _, m in CS:GetTagged("Slime") do
 			local sp = m:GetAttribute("Species")
-			if m:GetAttribute("State") == "Wild" and sp and not used[m] and Persona.of(sp).gait == gait and m.PrimaryPart then
+			if
+				m:GetAttribute("State") == "Wild"
+				and sp
+				and not used[m]
+				and Persona.of(sp).gait == gait
+				and m.PrimaryPart
+			then
 				used[m] = true
 				table.insert(picked, m)
 				break
@@ -88,7 +92,19 @@ do
 	for i, src in picked do
 		local pad = i + 1
 		local m = src:Clone()
-		for _, k in { "LaneAt", "LaneUntil", "ChoreoSeed", "Riding", "DespawnAt", "Price", "LifeMode", "LifeTier", "LifeAnimating" } do
+		for _, k in
+			{
+				"LaneAt",
+				"LaneUntil",
+				"ChoreoSeed",
+				"Riding",
+				"DespawnAt",
+				"Price",
+				"LifeMode",
+				"LifeTier",
+				"LifeAnimating",
+			}
+		do
 			m:SetAttribute(k, nil)
 		end
 		for _, d in m:GetDescendants() do

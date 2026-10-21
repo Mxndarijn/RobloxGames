@@ -85,6 +85,10 @@ SlimeActor.AIR_RATE = 14 -- 1 / s: how fast that share fades in and out
 -- f Hz, zeta, r): it glides along with a hopper's leaps instead of jumping, and never steps with the Body.
 SlimeActor.TAG = table.freeze({ f = 3, zeta = 1, r = 0.5 })
 SlimeActor.PAD_LEAN = 0.3 -- studs: a pad slime leans towards you at most this far (it stays on its pad)
+-- Eyes lead: the face turns ahead of the body by this share of the turn still to go (at most FACE_LEAD radians), and
+-- takes the attention glances on its own, so the eyes move first and the body follows.
+SlimeActor.FACE_LEAD_SHARE = 0.5
+SlimeActor.FACE_LEAD = 0.22 -- more and the face parts of a side-on slime (Gummy) slide off its silhouette
 SlimeActor.BUMP_SECONDS = 0.35
 SlimeActor.BUMPED_SECONDS = 0.5
 -- Face -> bones: lids shut (closed) or eyes bulging (pop), SlimeBones.Extra.
@@ -520,6 +524,7 @@ function SlimeActor.update(
 	mods.air = if g.air then 1 else 0
 	mods.vy = g.vy
 	mods.yaw, mods.yawWeight, mods.lean = 0, 0, 0
+	local faceGlance = 0 -- SlimeAttention glances, for the face alone
 	mods.closed, mods.pop = 0, 0
 	local faceName: string? = g.face
 	local emote: string? = nil
@@ -601,7 +606,7 @@ function SlimeActor.update(
 		end
 		if r.weight > 0 then
 			local glance, headTilt = SlimeAttention.step(actor.attention, now, rand, r.weight)
-			r.yaw += glance
+			faceGlance = glance
 			mods.roll += headTilt * (if standing then 0.35 else 1) * (if g.air then 0 else 1)
 		end
 		if r.weight > 0 then
@@ -680,8 +685,9 @@ function SlimeActor.update(
 					-- watching is never a frozen stare: quick glances round you and a head tilt now and then
 					local glance, headTilt = SlimeAttention.step(actor.attention, now, rand, r.weight)
 					if r.weight * keep > mods.yawWeight then
-						mods.yaw, mods.yawWeight = r.yaw + glance, r.weight * keep
+						mods.yaw, mods.yawWeight = r.yaw, r.weight * keep
 					end
+					faceGlance = glance
 					mods.roll += headTilt * keep
 					mods.lift += r.lift * keep
 					mods.sy *= 1 + (r.sy - 1) * keep
@@ -767,6 +773,10 @@ function SlimeActor.update(
 	-- Turn smoothly, the shortest way round and never faster than MAX_TURN. A spin (a turn past half a circle)
 	-- plays as given.
 	local k = 1 - math.exp(-dt * SlimeActor.TURN_RATE)
+	-- the eyes lead: the face is already turned part of the way the body is still turning, and glances on its own
+	local toGo = if math.abs(mods.yaw) > math.pi + 1e-3 then 0 else wrap(wrap(mods.yaw) - actor.yaw) * mods.yawWeight
+	mods.faceLead =
+		math.clamp(toGo * SlimeActor.FACE_LEAD_SHARE + faceGlance, -SlimeActor.FACE_LEAD, SlimeActor.FACE_LEAD)
 	if math.abs(mods.yaw) > math.pi + 1e-3 then
 		actor.yaw, actor.yawWeight = mods.yaw, mods.yawWeight
 	else

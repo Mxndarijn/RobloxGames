@@ -168,6 +168,9 @@ then replays and captures it).
 - **Watching is never a frozen stare (`ui/SlimeAttention`, pure).** While a slime reacts to the local player its look
   darts in quick glances round them (`SACCADE`, every `SACCADE_EVERY` seconds) and it tilts its head now and then
   (`TILT`); scaled by how engaged it is (the reaction's weight). Pad slimes and wild slimes alike.
+- **The eyes lead.** The face turns on its own (`SlimeMotor` `Mods.faceLead`, about the slime's centre) by
+  `SlimeActor.FACE_LEAD_SHARE` of the turn the body still has to make, plus the attention glances, capped at
+  `SlimeActor.FACE_LEAD`: the eyes look first and the body follows, and a glance moves only the eyes.
 - **Fidget mood.** A pad slime within `SlimeReact.NEAR` of the local player is in mood `"near"`: it greets them within
   `SlimeFidget.GREET` seconds, then fidgets every `SlimeFidget.NEAR_EVERY` seconds from `WEIGHTS_NEAR` (no naps). A
   curious `tilt` fidget joins the set. A pad slime leans at most `SlimeActor.PAD_LEAN` towards you (it stays on its pad).
