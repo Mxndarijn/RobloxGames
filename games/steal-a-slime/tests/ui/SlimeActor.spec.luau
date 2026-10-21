@@ -243,4 +243,28 @@ describe("SlimeActor on the move (clean lane)", function()
 		expect(worstGap < 0.6).toBe(true)
 		expect(worstStep < 0.02).toBe(true)
 	end)
+
+	it("lifts the tag with a floating slime, so it never rises into its own label; a hop only nudges it", function()
+		-- a Float slime hovers: after a moment the tag sits as high above the Body as the slime does
+		local floatGap = 0
+		walk("bumble", 4, function(r: Rig, t: number)
+			if t > 3 then
+				local size = (r.model:GetAttribute("Size") :: number?) or 1
+				floatGap =
+					math.max(floatGap, math.abs(r.actor.tagOffset.Y - r.actor.mods.dy - r.actor.mods.lift * size))
+			end
+		end)
+		expect(floatGap < 0.35).toBe(true)
+		-- a hopper's tag rises far less than its hops
+		local hopTop, tagTop = 0, 0
+		walk("gummy", 4, function(r: Rig, t: number)
+			if t > 1 then
+				local size = (r.model:GetAttribute("Size") :: number?) or 1
+				hopTop = math.max(hopTop, r.actor.mods.lift * size)
+				tagTop = math.max(tagTop, r.actor.tagOffset.Y - r.actor.mods.dy)
+			end
+		end)
+		expect(hopTop > 0.5).toBe(true)
+		expect(tagTop < hopTop * 0.3).toBe(true)
+	end)
 end)
