@@ -14,29 +14,28 @@ describe("Rebirth", function()
 		expect((Progression.rebirth(data))).toBe(false)
 		expect(data.rebirths).toBe(0)
 	end)
-	it("wipes cash and slimes but keeps the favourite on pad 1", function()
+	it("resets cash, uses up the required slime and keeps every other slime on its pad", function()
 		local data = Fixtures.data(
 			{ slime("a", 1), slime("b", 5), slime("c", 2), slime("d", 2, { species = "bumble" }) },
 			Config.REBIRTH_BASE_COST + 50
 		)
 		data.padsUnlocked = 7
 		data.favoriteId = "c"
-		local ok, kept = Progression.rebirth(data)
-		expect(ok).toBe(true)
-		assert(type(kept) == "table", "precondition")
-		expect(kept.id).toBe("c")
+		local pads = {}
+		for _, s in data.slimes do
+			pads[s.id] = s.pad
+		end
+		expect((Progression.rebirth(data))).toBe(true)
 		expect(data.rebirths).toBe(1)
 		expect(data.cash).toBe(Config.STARTING_CASH)
-		expect(#data.slimes).toBe(1)
-		expect(data.slimes[1].pad).toBe(1)
+		local ids = {}
+		for _, s in data.slimes do
+			table.insert(ids, s.id)
+			expect(s.pad).toBe(pads[s.id])
+		end
+		expect(ids).toEqual({ "a", "b", "c" })
+		expect(data.favoriteId).toBe("c")
 		expect(data.padsUnlocked).toBe(7)
-	end)
-	it("keeps the best slime when no favourite is set, skipping excluded ones", function()
-		local data =
-			Fixtures.data({ slime("a", 1), slime("b", 5), slime("c", 3), slime("d", 2, { species = "bumble" }) }, 1e9)
-		local _, kept = Progression.rebirth(data, { b = true })
-		assert(type(kept) == "table", "precondition")
-		expect(kept.id).toBe("c")
 	end)
 	it("works with just the required slime, uses it up and raises the income multiplier", function()
 		local data = Fixtures.data({ slime("x", 2, { species = "bumble" }) }, 1e9)

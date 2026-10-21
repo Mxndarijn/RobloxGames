@@ -6,9 +6,8 @@
 
 	Rebirth: costs Economy.rebirthCost(rebirths) cash and needs the
 	Config.REBIRTH_SLIMES species of that level on the player's pads. Those
-	slimes are used up. Then it wipes cash (back to STARTING_CASH) and every
-	other slime except the rank's keepers: the favourite first, then the
-	highest-income slimes. Pads stay unlocked. Gives +REBIRTH_MULTIPLIER_STEP
+	slimes are used up and cash goes back to STARTING_CASH; every other slime
+	stays on its pad. Pads stay unlocked. Gives +REBIRTH_MULTIPLIER_STEP
 	income multiplier and a longer lock (Steal.lockDuration).
 ]]
 
@@ -17,7 +16,6 @@ local Economy = if script then require(script.Parent.Economy) else require("./Ec
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local SlimeLooks = if script then require(script.Parent.SlimeLooks) else require("./SlimeLooks")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
-local Perks = if script then require(script.Parent.Perks) else require("./Perks")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 
 type Slime = Genome.Slime
@@ -129,49 +127,34 @@ function Progression.keeper(data: PlayerData.Data, exclude: { [string]: boolean 
 	return best
 end
 
--- Up to `count` keepers: the favourite first, then the best by income (none of `exclude`).
-function Progression.keepers(data: PlayerData.Data, count: number, exclude: { [string]: boolean }?): { Slime }
-	local kept: { Slime } = {}
-	local skip = table.clone(exclude or {})
-	for _ = 1, count do
-		local keep = Progression.keeper(data, skip)
-		if not keep then
-			break
-		end
-		table.insert(kept, keep)
-		skip[keep.id] = true
-	end
-	return kept
-end
-
 --[[
-	Applies a rebirth in place. `exclude` lists slime ids that can't be kept
-	(e.g. currently being stolen). The required slimes (Progression.payment) are
-	used up and can't be kept either; of the rest the rank's Perks.keepCount
-	slimes stay (favourite first). Returns (ok, firstKeptSlimeOrReason).
+	Applies a rebirth in place: the required slimes (Progression.payment) are
+	used up, cash goes back to STARTING_CASH and every other slime stays where
+	it is. The favourite is cleared only when it was used up.
+	Returns (ok, reason).
 ]]
-function Progression.rebirth(data: PlayerData.Data, exclude: { [string]: boolean }?): (boolean, Slime? | string)
+function Progression.rebirth(data: PlayerData.Data): (boolean, string?)
 	local ok, reason = Progression.canRebirth(data)
 	if not ok then
 		return false, reason
 	end
-	local skip = table.clone(exclude or {})
+	local used: { [string]: boolean } = {}
 	for _, slime in Progression.payment(data) do
-		skip[slime.id] = true
+		used[slime.id] = true
 	end
-	local kept = Progression.keepers(data, Perks.keepCount(data.rebirths), skip)
+	local kept: { Slime } = {}
+	for _, slime in data.slimes do
+		if not used[slime.id] then
+			table.insert(kept, slime)
+		end
+	end
+	data.slimes = kept
+	if data.favoriteId and used[data.favoriteId] then
+		data.favoriteId = nil
+	end
 	data.rebirths += 1
 	data.cash = Config.STARTING_CASH
-	data.slimes = {}
-	data.favoriteId = nil
-	for i, slime in kept do
-		slime.pad = i
-		table.insert(data.slimes, slime)
-	end
-	if kept[1] then
-		data.favoriteId = kept[1].id
-	end
-	return true, kept[1]
+	return true, nil
 end
 
 ---------------------------------------------------------------------------
