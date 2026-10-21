@@ -154,6 +154,30 @@ describe("SlimeMotor (procedural motion on the rig)", function()
 		expect(top - base > 0.2).toBe(true)
 	end)
 
+	it(
+		"turns about its bottom on the ground and about its middle high in the air (a flip tumbles, no hinge)",
+		function()
+			local model = slime()
+			local r = rand(4)
+			local motor = SlimeMotor.attach(model, 0, r)
+			local face = motorOf(model, "FaceRoot")
+			local radius = model.PrimaryPart.Size.Y / 2
+			local mods = SlimeMotor.newMods()
+			-- upside down mid-flip, well off the ground: the centre stays on top of the arc
+			mods.lift, mods.tilt = 3, math.pi
+			SlimeMotor.step(motor, 10, r, mods)
+			local flipped = face.Transform.Position.Y
+			mods.tilt = 0
+			SlimeMotor.step(motor, 10.02, r, mods)
+			local upright = face.Transform.Position.Y
+			expect(math.abs(flipped - upright) < 0.05 * radius).toBe(true)
+			-- on the ground, a small rock pivots on the foot: the centre swings forward (about r sin 0.2)
+			mods.lift, mods.tilt = 0, 0.2
+			SlimeMotor.step(motor, 10.04, r, mods)
+			expect(math.abs(face.Transform.Position.Z) > 0.1 * radius).toBe(true)
+		end
+	)
+
 	it("release puts Transforms and the skin Size back", function()
 		local model = slime()
 		local r = rand(2)
