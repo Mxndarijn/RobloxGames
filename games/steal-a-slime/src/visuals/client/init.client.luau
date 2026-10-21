@@ -23,6 +23,7 @@
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
 	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
+	  * home plot marker (HomePlotMarker): beacon, floor rim, "YOUR PLOT" tag and edge arrow on the local player's own plot
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
 	  * slime fountain (still Map.Volcano.Crater): goo spray ("Smoke"),
@@ -474,6 +475,17 @@ do
 		warn(`[VisualsClient] thief plot highlight disabled: {err}`)
 	end
 end
+local homePlotMarker = nil
+do
+	local ok, err = pcall(function()
+		local module = require(script:WaitForChild("HomePlotMarker"))
+		module.start()
+		homePlotMarker = module
+	end)
+	if not ok then
+		warn(`[VisualsClient] home plot marker disabled: {err}`)
+	end
+end
 do
 	local ok, err = pcall(function()
 		require(script:WaitForChild("PlotVisuals")).start()
@@ -544,6 +556,9 @@ RunService.RenderStepped:Connect(function()
 	local cameraPos = camera.CFrame.Position
 	local now = os.clock()
 	stepVolcano(now)
+	if homePlotMarker then
+		homePlotMarker.step(now, camera)
+	end
 	if eggFx then
 		eggFx.tick(camera)
 	end
