@@ -1,6 +1,6 @@
 --!strict
 -- Lune only (copies the tree, spawns lune): Config.FEATURES is frozen, so the flag-flipped mode of
--- the Revenge / Consumables / StealAlerts hardening specs runs in a temp copy of src/ + tests/ whose
+-- the Consumables / StealAlerts hardening specs runs in a temp copy of src/ + tests/ whose
 -- Config has that one flag inverted. The hardening specs assert both modes, so each must pass flipped.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -10,7 +10,6 @@ local TestRunner = require("./TestRunner")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local FEATURES = {
-	{ flag = "Revenge", spec = "RevengeHardening" },
 	{ flag = "Consumables", spec = "ConsumablesHardening" },
 	{ flag = "StealAlerts", spec = "StealAlertHardening" },
 }

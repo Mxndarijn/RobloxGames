@@ -17,7 +17,6 @@ local EggKind = if Shared then require(Shared.EggKind) else require("../shared/E
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
-local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -30,13 +29,7 @@ function StealService.isLocked(session: Session, now: number): boolean
 end
 
 function StealService.buyLock(world: World, session: Session, now: number): (boolean, string?)
-	local ok, lockUntil, result = Steal.buyLock(
-		session.data,
-		session.lockUntil,
-		now,
-		World.incomeOf(world, session),
-		Revenge.lockMultiplier(world, session.userId, now)
-	)
+	local ok, lockUntil, result = Steal.buyLock(session.data, session.lockUntil, now, World.incomeOf(world, session))
 	if not ok then
 		return false, result :: string
 	end
@@ -190,9 +183,22 @@ function StealService.tickTutorial(world: World, now: number)
 	end
 end
 
+-- Plot indexes (ascending) of the players carrying one of the victim's slimes right now: the victim sees
+-- these plots in red (Player attribute ThiefPlots, CONTRACT.md §16) until the steal ends.
+function StealService.thiefPlots(world: World, victimId: number): { number }
+	local plots = {}
+	for _, session in world.sessions do
+		local carry = session.carry
+		if carry and carry.kind == "stolen" and carry.ownerUserId == victimId and session.userId ~= victimId then
+			table.insert(plots, session.plotIndex)
+		end
+	end
+	table.sort(plots)
+	return plots
+end
+
 -- Call every frame: finishes escape bounces and pushes State on lock expiry.
 function StealService.step(world: World, now: number)
-	Revenge.prune(world, now)
 	for id, untilTime in world.escaping do
 		if now >= untilTime then
 			world.escaping[id] = nil

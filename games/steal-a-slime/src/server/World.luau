@@ -119,7 +119,6 @@ export type World = {
 	wild: { [string]: Wild },
 	carriedBy: { [string]: number }, -- slimeId -> carrier userId
 	escaping: { [string]: number }, -- slimeId -> time its bounce home ends
-	revenge: { [number]: { [number]: number } }, -- FEATURES.Revenge: victim userId -> thief userId -> window end (server/Revenge)
 	rng: Rng.Rng,
 	eggRng: Rng.Rng, -- FEATURES.MysteryEggs rolls, apart from `rng` so the fountain's slime sequence doesn't shift
 	newId: () -> string,
@@ -164,7 +163,6 @@ function World.new(options: Options): World
 		wild = {},
 		carriedBy = {},
 		escaping = {},
-		revenge = {},
 		rng = Rng.new(options.seed or 1),
 		eggRng = Rng.new((options.seed or 1) + 7919),
 		newId = options.newId or function()

@@ -18,7 +18,6 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
-local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local World = if script then require(script.Parent.World) else require("./World")
 
 export type Prompt = { actionText: string, objectText: string, enabled: boolean }
@@ -66,7 +65,7 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 	local data = session.data
 	local locked = Steal.isLocked(session.lockUntil, now)
 	local remaining = Steal.lockRemaining(session.lockUntil, now)
-	local cost = Economy.lockCost(World.incomeOf(world, session)) * Revenge.lockMultiplier(world, session.userId, now)
+	local cost = Economy.lockCost(World.incomeOf(world, session))
 	local price = `${Economy.formatNumber(cost)}`
 	local lockText = if remaining >= Config.LOCK_MAX_REMAINING - 1
 		then "Lock is maxed"

@@ -5,7 +5,7 @@
 	The server's one Heartbeat: the kill plane (Rescue, with the PvP void guard) and GameLoop.step every frame;
 	every VIEW_INTERVAL the day / night clock, the per-player step (lock enforcement, HomeZone deposits with one
 	"plot full" toast per visit, WorldView.updatePlayer incl. the PvP ticks, the open world shop's range check,
-	revenge plots, leaderstats), the co-op ritual, world attributes, the view refresh and the State pushes.
+	thief plots, leaderstats), the co-op ritual, world attributes, the view refresh and the State pushes.
 	Each stage runs through safeCall so one failing player or model never stops the pushes. Profiler
 	(FEATURES.ServerProfiler) times the stages.
 ]]
@@ -26,12 +26,12 @@ local PlayerAttributes = require(script.Parent.PlayerAttributes)
 local Profiler = require(script.Parent.Profiler)
 local PvpLaunch = require(script.Parent.PvpLaunch)
 local PvpService = require(script.Parent.PvpService)
-local Revenge = require(script.Parent.Revenge)
 local Ritual = require(ReplicatedStorage.Shared.Ritual)
 local RitualService = require(script.Parent.RitualService)
 local RitualView = require(script.Parent.RitualView)
 local SafeCall = require(script.Parent.SafeCall)
 local Spawner = require(script.Parent.Spawner)
+local StealService = require(script.Parent.StealService)
 local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
 
@@ -103,7 +103,7 @@ local function stepPlayers(loop: Loop, t: number)
 				Actions.shopTick(session, ctx) -- out of range / died / flag off closes the shop
 			end
 			PlayerAttributes.syncOpenShop(world, player)
-			WorldView.setRevengePlots(player, Revenge.plotsFor(world, userId))
+			WorldView.setThiefPlots(player, StealService.thiefPlots(world, userId))
 			LeaderboardView.updateStats(player, session)
 		end
 	end

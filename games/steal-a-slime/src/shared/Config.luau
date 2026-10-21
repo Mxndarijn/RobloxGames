@@ -688,8 +688,6 @@ local Config = {
 	LOCK_SECONDS_PER_REBIRTH = 10, -- a bought lock lasts this much longer per rebirth, up to LOCK_MAX_REMAINING
 	LOCK_MAX_REMAINING = 180, -- the longest lock: one purchase or several stacked never go past 3 min
 	LOCK_BASE_COST = 25,
-	REVENGE_SECONDS = 60, -- FEATURES.Revenge: how long a robbed player sees the thief's plot, and the thief pays more for locks
-	REVENGE_LOCK_COST_MULT = 2, -- FEATURES.Revenge: lock price multiplier for a thief inside any victim's window
 	LOCK_INCOME_SECONDS = 15, -- lock costs this many seconds of plot income (or base cost)
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
@@ -783,7 +781,6 @@ local Config = {
 		AdminEvents = true, -- admin-only timed Luck surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		CoopRitual = true, -- 2-4 players stand on the ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
 		PlotSkins = true, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
-		Revenge = true, -- while a thief carries your slime you see their plot highlighted; for REVENGE_SECONDS after they rob you their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
 		StealAlerts = true, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
 		WeeklyEvents = true, -- a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no event, no attribute
 		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)

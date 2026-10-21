@@ -33,7 +33,6 @@ local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal
 local Trophies = if Shared then require(Shared.Trophies) else require("../shared/Trophies")
 local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
-local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -180,8 +179,7 @@ end
 
 --[[
 	The carrier reached their own HomeZone. Wild slimes go on a free pad;
-	stolen ones move to the thief with Steal.complete (and, given `now`, open the
-	victim's Revenge window). A full plot keeps the
+	stolen ones move to the thief with Steal.complete. A full plot keeps the
 	slime in your arms.
 ]]
 -- Server toast when a Mythic or Secret wild slime is brought home ("Merijn caught Cosmo!"), else nil.
@@ -274,9 +272,6 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 	end
 	World.notify(world, userId, `You stole a {name}!`, "good", "Stolen")
 	World.notify(world, owner.userId, `{session.name} stole your {name}!`, "bad", "Stolen")
-	if now then
-		Revenge.mark(world, owner.userId, userId, now) -- FEATURES.Revenge: the victim's window opens
-	end
 	World.effect(world, "Collect", { userId = userId })
 	World.tutorial(world, session, "Deposit")
 	return true, nil
