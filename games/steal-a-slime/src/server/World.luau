@@ -21,6 +21,7 @@ local CycleModifier = if Shared then require(Shared.CycleModifier) else require(
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
+local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
@@ -279,6 +280,13 @@ function World.carriedSet(world: World): { [string]: boolean }
 		set[id] = true
 	end
 	return set
+end
+
+-- The slime that follows this player as a pet (Player attribute PetSlimeId): the
+-- favourite, or the best slime. A slime a thief is carrying away is skipped, so a
+-- stolen pet stops following its owner; it comes back if it escapes home.
+function World.pet(world: World, session: Session): Slime?
+	return Progression.keeper(session.data, World.carriedSet(world))
 end
 
 -- The session that owns a pad slime, and the slime itself.
