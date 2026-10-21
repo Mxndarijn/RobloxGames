@@ -244,16 +244,53 @@ def jar_foot():
 
 
 def jar_stair():
-    """The spiral stair from a floor up to the next: the goo centre post and one cork tread per stud of height, tread 1
-    at the first tread angle of floor 1 (the game turns the mesh for higher floors)."""
-    st = D["stair"]
-    angles = D["floors"][0]["treads"]
-    out = [painted(cylinder("Post", st["post"], FLOOR_H, (0, 0, 0), GOO, segs=16), shade(GOO, 0.85), mix(GOO, GOO_HI, 0.4))]
-    mid = (st["post"] + st["outer"]) / 2
-    for k, deg in enumerate(angles, start=1):
+    """The stair from a floor up to the next, as a smooth spiral ramp (WorldLayout.RAMP): the goo centre post, a cork
+    ramp climbing FLOOR_H in one turn from half a step before floor 1's first tread angle, a flat landing at the top, a
+    goo line along the inner edge and a brass hand rail on balusters along the outer edge (open where the game's rail
+    is open, at the bottom and before the top). The game turns the mesh for higher floors."""
+    import bmesh
+    from lib.shapes import obj_from_bm
+    st, rp = D["stair"], D["ramp"]
+    start = D["floors"][0]["treads"][0] - st["angle"]
+    span = st["angle"] * round(FLOOR_H)
+    post, outer = st["post"], st["outer"]
+    out = [painted(cylinder("Post", post, FLOOR_H, (0, 0, 0), GOO, segs=16), shade(GOO, 0.85), mix(GOO, GOO_HI, 0.4))]
+
+    def at(r, deg, z):
         a = math.radians(deg)
-        out.append(painted(box(f"Tread{k}", (st["outer"] - st["post"] + 0.4, 2.2, 1.0), (mid * math.cos(a), mid * math.sin(a), k - 0.5), CORK,
-                               rot=(0, 0, deg)), shade(CORK, 0.85), CORK))
+        return (r * math.cos(a), r * math.sin(a), z)
+
+    def surface(deg):
+        return min(FLOOR_H, max(0.0, (deg - start) / span * FLOOR_H))
+
+    n = 72
+    angles = [start + span * i / n for i in range(n + 1)] + [start + span + st["angle"] * j / 4 for j in (1, 2, 3, 4)]
+    bm = bmesh.new()
+    rows = []
+    for deg in angles:
+        z = surface(deg)
+        rows.append([bm.verts.new(at(post, deg, z)), bm.verts.new(at(outer, deg, z)),
+                     bm.verts.new(at(outer, deg, z - 0.6)), bm.verts.new(at(post, deg, z - 0.6))])
+    for k in range(len(rows) - 1):
+        a, b = rows[k], rows[k + 1]
+        bm.faces.new((a[0], a[1], b[1], b[0]))  # top
+        bm.faces.new((a[1], a[2], b[2], b[1]))  # outer side
+        bm.faces.new((a[2], a[3], b[3], b[2]))  # underside
+    bm.faces.new(tuple(reversed(rows[0])))
+    bm.faces.new(tuple(rows[-1]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    out.append(painted(obj_from_bm("Ramp", bm, CORK), shade(CORK, 0.82), CORK))
+    # goo line along the inner edge
+    inner = [at(post + 0.2, deg, surface(deg) + 0.08) for deg in angles[::3]]
+    out.append(painted(tube("GooEdge", inner, [0.2] * len(inner), GOO, segs=6), shade(GOO, 0.9), GOO_HI))
+    # the brass rail where the game's rail wall stands
+    r0, r1 = start + rp["railStart"], start + span - rp["railEnd"]
+    steps = max(2, int((r1 - r0) / 7.5))
+    rail_angles = [r0 + (r1 - r0) * i / steps for i in range(steps + 1)]
+    rail = [at(outer - 0.15, deg, surface(deg) + 1.5) for deg in rail_angles]
+    out.append(tube("Rail", rail, [0.14] * len(rail), METAL, segs=8))
+    for k, deg in enumerate(rail_angles[::2]):
+        out.append(cylinder(f"Baluster{k}", 0.08, 1.5, at(outer - 0.15, deg, surface(deg)), METAL, segs=6))
     return out
 
 

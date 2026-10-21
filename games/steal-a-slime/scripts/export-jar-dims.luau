@@ -49,6 +49,7 @@ local function dims(): { [string]: any }
 		padSeatY = WorldLayout.PAD_SEAT_Y,
 		padDeck = WorldLayout.PAD_DECK,
 		stair = WorldLayout.STAIR,
+		ramp = WorldLayout.RAMP,
 		door = WorldLayout.DOOR,
 		doorway = { zOuter = doorway.zOuter, zInner = doorway.zInner },
 		moat = WorldLayout.MOAT,

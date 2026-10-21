@@ -434,7 +434,7 @@ entries["goo_jar_glass_4_top"] =
 entries["goo_jar_mascot"] =
 	{ assetId = 98686118721094, meshId = "rbxassetid://71405131358303", size = { 2.2, 1.567, 2.138 } }
 entries["goo_jar_stair"] =
-	{ assetId = 98196001176088, meshId = "rbxassetid://140624281565813", size = { 11.4, 16.0, 11.4 } }
+	{ assetId = 98196001176088, meshId = "rbxassetid://86738719353582", size = { 10.99, 16.853, 10.995 } }
 entries["goo_jar_stopper"] =
 	{ assetId = 121171735307209, meshId = "rbxassetid://98488330645221", size = { 9.889, 9.66, 1.508 } }
 entries["goo_jar_trim_1_mid"] =

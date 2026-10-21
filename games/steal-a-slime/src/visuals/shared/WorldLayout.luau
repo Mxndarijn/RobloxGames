@@ -195,6 +195,13 @@ WorldLayout.JAR_WALL_SEGMENTS = 12
 WorldLayout.DECK_SEGMENTS = 16
 WorldLayout.DOOR = table.freeze({ angle = -90, width = 8, height = 11 }) -- no wider than one glass segment
 WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22.5, firstAngle = 90 })
+-- The stair is a smooth spiral ramp (easy on a thumbstick): `segments` sloped boxes climb FLOOR_HEIGHT over one turn,
+-- from half a step before tread 1's angle (WorldLayout.treadAngle) to tread FLOOR_HEIGHT's angle, then a flat
+-- landing one STAIR.angle long, flush with the deck above. The boxes slope as the helix does at radius `walk` (where
+-- feet go). The rail is an invisible wall along the outer edge, straight up from floor f to just under the deck
+-- above (a sloped or stepped top edge is something a Humanoid can climb over, onto the floor above), open for
+-- `railStart` degrees at the bottom and `railEnd` degrees before the top, so you step on and off the side.
+WorldLayout.RAMP = table.freeze({ segments = 24, walk = 4.2, railStart = 30, railEnd = 45 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; every upper jar's hatch sits at this angle, the splash pool outside the moat.
 -- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
@@ -1298,26 +1305,58 @@ local function jarDeck(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	return out
 end
 
--- The spiral stair from floor f up to floor f + 1: the centre post and one tread per stud of height.
+-- The spiral stair from floor f up to floor f + 1: the centre post, the sloped ramp boxes, the landing at the top and
+-- the rail along the outer edge (WorldLayout.RAMP). Plot-local yaw: a box's local X runs along the ring towards lower
+-- angles, so a negative Z tilt makes it climb as the angle grows.
 local function jarStair(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local st = WorldLayout.STAIR
 	local base = WorldLayout.floorTop(f)
 	local h = WorldLayout.FLOOR_HEIGHT
+	local ramp = WorldLayout.RAMP
 	local out = { disc("StairPost", h, st.post * 2, at({ 0, base + h / 2, 0 }), JAR_GOO, "SmoothPlastic", yaw) }
 	local mid = (st.post + st.outer) / 2
-	for k = 1, WorldLayout.stairSteps() do
-		local node = radial(
-			`Tread_{k}`,
-			{ 2.9, 1, st.outer - st.post + 0.4 },
-			mid,
-			WorldLayout.treadAngle(f, k),
-			base + k - 0.5,
-			at,
-			yaw
-		)
+	local width = st.outer - st.post + 0.4
+	local start = WorldLayout.treadAngle(f, 1) - st.angle
+	local span = st.angle * WorldLayout.stairSteps()
+	local n = ramp.segments
+	local seg, rise = span / n, h / n
+	local slope = math.atan(rise / (math.rad(seg) * ramp.walk))
+	-- long enough to cover the outer edge's chord along the slope, overlapping the next box a little
+	local length = 2 * st.outer * math.sin(math.rad(seg) / 2) / math.cos(slope) + 0.3
+	local function sloped(name: string, size: Vec, r: number, deg: number, y: number): WorldNode
+		local node = radial(name, size, r, deg, y, at, yaw)
+		local rot = node.rot :: Vec
+		node.rot = { rot[1], rot[2], -math.deg(slope) }
+		return node
+	end
+	for i = 1, n do
+		-- the top face's middle sits on the helix: centre half a box lower, along the box's own up
+		local deg = start + (i - 0.5) * seg
+		local node = sloped(`Ramp_{i}`, { length, 1, width }, mid, deg, base + (i - 0.5) * rise - 0.5 / math.cos(slope))
 		node.color = JAR_CORK
 		node.material = "Wood"
 		table.insert(out, node)
+	end
+	local landing = radial("Landing", { 2.9, 1, width }, mid, start + span + st.angle / 2, base + h - 0.5, at, yaw)
+	landing.color = JAR_CORK
+	landing.material = "Wood"
+	table.insert(out, landing)
+	-- the rail: upright wall pieces two ramp boxes wide, from the floor to just under the deck above, from railStart
+	-- to railEnd degrees before the top
+	local railR = st.outer + 0.15
+	local pair = 2 * seg
+	local railLength = 2 * (railR + 0.15) * math.sin(math.rad(pair) / 2) + 0.2
+	local railHeight = h - 1
+	local k = 0
+	local deg = start + ramp.railStart + pair / 2
+	while deg + pair / 2 <= start + span - ramp.railEnd + 1e-6 do
+		k += 1
+		local rail = radial(`RampRail_{k}`, { railLength, railHeight, 0.3 }, railR, deg, base + railHeight / 2, at, yaw)
+		rail.transparency = 1
+		rail.canQuery = false
+		rail.canTouch = false
+		table.insert(out, rail)
+		deg += pair
 	end
 	return out
 end

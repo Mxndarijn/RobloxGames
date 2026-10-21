@@ -89,33 +89,66 @@ describe("jar tower: pads", function()
 end)
 
 describe("jar tower: stair", function()
-	it("climbs one stud a step from floor f and lands flush with floor f + 1", function()
+	local st, ramp = WorldLayout.STAIR, WorldLayout.RAMP
+	local span = st.angle * WorldLayout.stairSteps()
+	-- Height above floor f of the ramp from floor f at plot-local angle `deg` (nil outside its turn).
+	local function rampHeight(f: number, deg: number): number?
+		local start = WorldLayout.treadAngle(f, 1) - st.angle
+		local d = (deg - start) % 360
+		return d / span * WorldLayout.FLOOR_HEIGHT
+	end
+	it("climbs from floor f to floor f + 1 in one turn of gentle ramp, then a landing flush with the deck", function()
 		expect(WorldLayout.stairSteps()).toBe(WorldLayout.FLOOR_HEIGHT)
+		expect(span).toBe(360)
 		for f = 2, FLOORS do
 			local parts = floorParts(1, f)
-			local treads = named(parts, "Tread_")
-			expect(#treads).toBe(WorldLayout.stairSteps())
-			for k, t in treads do
-				local p = toLocal(t, 1)
-				expect(math.abs(p[2] + t.size[2] / 2 - (WorldLayout.floorTop(f - 1) + k)) < 1e-6).toBe(true)
+			expect(#named(parts, "Tread_")).toBe(0)
+			local boxes = named(parts, "Ramp_")
+			expect(#boxes).toBe(ramp.segments)
+			local tilt = math.abs((boxes[1].rot :: any)[3])
+			-- walkable on a thumbstick: well under Roblox's slope limit, gentler where feet go than the old steps
+			expect(tilt > 15 and tilt < 40).toBe(true)
+			for _, b in boxes do
+				expect(b.canCollide ~= false).toBe(true)
+				expect(math.abs((b.rot :: any)[3])).toBeCloseTo(tilt)
 			end
-			local last = toLocal(treads[#treads], 1)
-			expect(math.abs(last[2] + 0.5 - WorldLayout.floorTop(f)) < 1e-6).toBe(true)
+			-- the first box starts at the floor, the last ends at the deck height
+			local first, last = toLocal(boxes[1], 1), toLocal(boxes[#boxes], 1)
+			local rise = WorldLayout.FLOOR_HEIGHT / ramp.segments
+			expect(math.abs(first[2] - WorldLayout.floorTop(f - 1) - rise / 2) < 1).toBe(true)
+			expect(math.abs(last[2] - (WorldLayout.floorTop(f) - rise / 2)) < 1).toBe(true)
+			local landing = toLocal(named(parts, "Landing")[1], 1)
+			expect(math.abs(landing[2] + 0.5 - WorldLayout.floorTop(f)) < 1e-6).toBe(true)
 		end
 	end)
-	it("fits inside the deck hole and leaves headroom under the next stair", function()
-		local st = WorldLayout.STAIR
+	it("keeps a rail along the outer edge, open at the bottom and before the top to step on and off", function()
+		for f = 2, FLOORS do
+			local rails = named(floorParts(1, f), "RampRail_")
+			expect(#rails > 6).toBe(true)
+			local start = WorldLayout.treadAngle(f - 1, 1) - st.angle
+			for _, r in rails do
+				expect(r.canCollide ~= false).toBe(true)
+				expect(r.transparency).toBe(1)
+				expect(r.canQuery).toBe(false)
+				-- straight up from the floor to just under the deck above: no top edge to climb over
+				expect(r.size[2]).toBe(WorldLayout.FLOOR_HEIGHT - 1)
+				expect(math.abs(toLocal(r, 1)[2] - r.size[2] / 2 - WorldLayout.floorTop(f - 1)) < 1e-6).toBe(true)
+				expect((r.rot :: any)[3]).toBe(0)
+				local p = toLocal(r, 1)
+				local deg = math.deg(math.atan2(p[3], p[1]))
+				local d = (deg - start) % 360
+				expect(d >= ramp.railStart and d <= span - ramp.railEnd).toBe(true)
+				expect(math.sqrt(p[1] ^ 2 + p[3] ^ 2) >= st.outer).toBe(true)
+			end
+		end
+	end)
+	it("fits inside the deck hole and leaves headroom under the next ramp", function()
 		expect(st.outer + 0.3 <= st.hole).toBe(true)
 		for f = 1, FLOORS - 2 do
-			for k = 1, WorldLayout.stairSteps() do
-				local a = WorldLayout.treadAngle(f, k)
-				for k2 = 1, WorldLayout.stairSteps() do
-					local d = math.abs(((WorldLayout.treadAngle(f + 1, k2) - a + 180) % 360) - 180)
-					if d < st.angle then
-						local headroom = (WorldLayout.floorTop(f + 1) + k2 - 1) - (WorldLayout.floorTop(f) + k)
-						expect(headroom >= 8).toBe(true)
-					end
-				end
+			for deg = 0, 359, 5 do
+				local below = WorldLayout.floorTop(f) + (rampHeight(f, deg) :: number)
+				local above = WorldLayout.floorTop(f + 1) + (rampHeight(f + 1, deg) :: number) - 1
+				expect(above - below >= 8).toBe(true)
 			end
 		end
 	end)

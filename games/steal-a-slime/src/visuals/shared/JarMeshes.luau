@@ -26,7 +26,7 @@ local JarMeshes = {
 	goo_jar_glass_3_top = { size = { 48.000, 16.520, 48.000 }, centre = { 0.000, 7.060, 0.000 } },
 	goo_jar_glass_4_top = { size = { 43.000, 16.520, 43.000 }, centre = { 0.000, 7.060, 0.000 } },
 	goo_jar_mascot = { size = { 2.200, 1.567, 2.138 }, centre = { 0.017, 0.778, -0.015 } },
-	goo_jar_stair = { size = { 11.400, 16.000, 11.400 }, centre = { 0.000, 8.000, 0.000 } },
+	goo_jar_stair = { size = { 10.990, 16.853, 10.995 }, centre = { 0.000, 7.827, 0.003 } },
 	goo_jar_stopper = { size = { 9.889, 9.660, 1.508 }, centre = { -0.166, 4.650, -0.754 } },
 	goo_jar_trim_1_mid = { size = { 60.321, 15.088, 58.307 }, centre = { 1.004, 7.744, 0.000 } },
 	goo_jar_trim_1_top = { size = { 60.321, 22.688, 58.307 }, centre = { 1.004, 11.544, 0.000 } },
