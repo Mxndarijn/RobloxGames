@@ -3,9 +3,11 @@
 	HabitatPads (pure, FEATURES.Habitats, HABITATS.md)
 
 	The server owns every pad's habitat. targets(world) gives each pad of each
-	plot its habitat id: the slime resting on it (Scene state "Pad": not
-	carried, not escaping home) picks it via Habitats.forSlime, anything else
-	is Habitats.BASE. step() keeps a { [plot|pad]: PadState } table in
+	plot its habitat id: the slime that owns the pad picks it via
+	Habitats.forSlime, anything else is Habitats.BASE. A slime being stolen
+	(carried off, or bouncing home) still owns its pad, so the habitat stays
+	and only the slime leaves; the pad reverts once the slime is gone (stolen,
+	sold, merged, moved). step() keeps a { [plot|pad]: PadState } table in
 	sync and returns the pads that changed; WorldView writes them as the
 	Habitat / HabitatFrom / HabitatAt attributes on Pad_<j>.
 	With the flag off step() changes nothing and returns nothing.
@@ -43,13 +45,7 @@ function HabitatPads.targets(world: World): { [number]: { [number]: string } }
 		if pads then
 			for _, slime in session.data.slimes do
 				local pad = slime.pad
-				if
-					pad
-					and pads[pad]
-					and not slime.egg
-					and not world.carriedBy[slime.id]
-					and not world.escaping[slime.id]
-				then
+				if pad and pads[pad] and not slime.egg then
 					pads[pad] = Habitats.forSlime(slime)
 				end
 			end
