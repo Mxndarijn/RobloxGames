@@ -2,7 +2,7 @@
 
 **Status:** overlays; `Config.FEATURES.Habitats` is the only place the flag is set. **Owners:** data + pad state Phoenix (`src/shared`, `src/server`), habitat FX Archer (`src/visuals`).
 
-The pad never changes. When a slime sits on a pad, that slime's habitat **overlay** rises out of the crate deck in about 1 s (a themed frame round the mat plus rim props round the slime). When the pad empties (slime stolen, carried off, sold, merged, owner leaves) the overlay sinks away and the bare crate pad is left. Swapping one slime for another crossfades the two overlays on the same pad.
+The pad never changes. When a slime sits on a pad, that slime's habitat **overlay** rises out of the crate deck in about 1 s (a themed frame round the mat plus rim props round the slime). While a thief carries the slime off (or it bounces home) the overlay stays: only the slime leaves. When the pad empties (steal completed, sold, merged, owner leaves) the overlay sinks away and the bare crate pad is left. Swapping one slime for another crossfades the two overlays on the same pad.
 
 ## Data: `src/shared/Habitats.luau` (pure)
 
@@ -32,7 +32,7 @@ The pad never changes. When a slime sits on a pad, that slime's habitat **overla
 
 ## Server owns pad state: `src/server/HabitatPads.luau` (pure) + `WorldView.updatePlots`
 
-- Each view tick the server works out every pad's target: the slime whose `pad` is that pad and whose Scene state is `Pad` (not carried, not escaping) gives `forSlime(slime)`; anything else is `base`. Free plots are all `base`.
+- Each view tick the server works out every pad's target: the slime whose `pad` is that pad gives `forSlime(slime)`, also while it is carried off or escaping home; anything else is `base`. Free plots are all `base`.
 - On a change it stamps the pad and `WorldView` writes three attributes on `Pad_<j>` (`Constants.HABITAT_*`): `Habitat` (id), `HabitatFrom` (previous id), `HabitatAt` (server time of the change). Nothing is saved and no remote is added.
 - The server never waits for the animation: gameplay (income, steal prompt, pad top height) is unchanged.
 

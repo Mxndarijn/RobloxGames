@@ -1,7 +1,8 @@
 --!nocheck
 -- FEATURES.Habitats on, through the REAL server Script (tools/livetest/Runtime,
 -- memory store): WorldView writes Habitat / HabitatFrom / HabitatAt on the
--- owner's Pad_<j> and flips it back to base when the slime is carried off.
+-- owner's Pad_<j>, keeps it while a thief carries the slime off and flips it
+-- back to base once the slime is gone from the plot.
 -- The shipped Config has the flag on; the spec checks the built place's
 -- Config source before it runs.
 local fs = require("@lune/fs")
@@ -61,9 +62,25 @@ table.insert(session.data.slimes, {
 rt:advance(1)
 local placed = read(pad(3))
 local placedAt = pad(3):GetAttribute("HabitatAt")
-world.carriedBy.hab1 = 999 -- carried off by a thief
+world.carriedBy.hab1 = 999 -- carried off by a thief: the habitat stays
 rt:advance(1)
-local stolen = read(pad(3))
+local carried = read(pad(3))
+world.carriedBy.hab1 = nil
+local hab1
+local function takeAway() -- the slime leaves the plot (steal completed, sold, merged)
+	for i, slime in session.data.slimes do
+		if slime.id == "hab1" then
+			hab1 = table.remove(session.data.slimes, i)
+			return
+		end
+	end
+end
+local function putBack() -- lands on pad 3 again
+	table.insert(session.data.slimes, hab1)
+end
+takeAway()
+rt:advance(1)
+local gone = read(pad(3))
 
 -- Client lifecycle smoke (HabitatFx, the VisualsClient module) on the same
 -- runtime. The fake runtime doesn't fire attribute / descendant signals by
@@ -123,12 +140,12 @@ local function burstsOf(p)
 end
 local maxLooks, maxBursts = 0, 0
 for _ = 1, 5 do
-	world.carriedBy.hab1 = nil -- enters (lands on pad 3)
+	putBack() -- enters
 	rt:advance(0.5)
 	fire()
 	frames(0.4) -- mid-transform
 	maxLooks, maxBursts = math.max(maxLooks, looksOf(part)), math.max(maxBursts, burstsOf(part))
-	world.carriedBy.hab1 = 999 -- leaves
+	takeAway() -- leaves
 	rt:advance(0.5)
 	fire()
 	frames(0.3)
@@ -136,7 +153,7 @@ for _ = 1, 5 do
 end
 frames(1.5)
 local settledLooks = looksOf(part)
-world.carriedBy.hab1 = nil -- back on the pad, fully grown
+putBack() -- back on the pad, fully grown
 rt:advance(0.5)
 fire()
 frames(1.5)
@@ -377,8 +394,11 @@ describe("Habitats live (FEATURES.Habitats on, fake runtime)", function()
 		expect(placed).toEqual({ "crystal_grotto", "base" })
 		expect(type(placedAt)).toBe("number")
 	end)
-	it("reverts the pad to base when the slime is carried off", function()
-		expect(stolen).toEqual({ "base", "crystal_grotto" })
+	it("keeps the habitat while a thief carries the slime off", function()
+		expect(carried).toEqual({ "crystal_grotto", "base" })
+	end)
+	it("reverts the pad to base once the slime is gone from the plot", function()
+		expect(gone).toEqual({ "base", "crystal_grotto" })
 		expect(pad(3):GetAttribute("HabitatAt") > placedAt).toBe(true)
 	end)
 end)
