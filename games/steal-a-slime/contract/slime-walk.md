@@ -48,9 +48,13 @@ glides there flat (eased, facing the pad) instead of an arc; the client adds no 
 
 ## Client life (no hops)
 
+Walking hops, pad fidgets and put-downs came later: see contract/slime-life.md. What stays from here: escaping
+slimes glide flat, with no bounce.
+
 - `SlimeLife` schedules no hops: wild and pad slimes breathe (squash), wobble, glance and blink. Wild slimes also
   sway (`params.sway`: a small side-to-side roll and yaw while they walk). A hop plays only when forced through the
   client-only test hook `LifeForce` (`SlimeMotor.FORCE_ATTRIBUTE`).
 - `SlimeAnim.tick` emits glances only (`"LookLeft"` / `"LookRight"`); the uploaded `SlimeHop` track is not needed.
 - `SlimeBones` keeps the squash, tilt, blink and accessory sway; its hop terms only show on a forced hop.
-- `VisualsClient` keeps the gentle idle bob and tilt; `"Escaping"` gets no bounce.
+- `VisualsClient` keeps the gentle idle bob and tilt on slimes the life runner does not animate; `"Escaping"` gets no
+  bounce.
