@@ -10,7 +10,10 @@
 
 	near = full motion every frame; mid = squish only, smaller, every
 	cfg.MID_EVERY frames (staggered by `slot`); far = reset once, then skipped.
-	Pure and allocation-free: `cfg` is Config.SLIME_LOD.
+	With FEATURES.SlimeChoreo the runner instead draws mid and far every frame
+	with the light SlimeActor detail (smooth lane glide, gait, beats); only the
+	NEAR_MAX nearest near rigs get the full life (reactions, emotes, effects).
+	Pure: `cfg` is Config.SLIME_LOD.
 ]]
 
 local SlimeLod = {}
@@ -25,7 +28,10 @@ export type Cfg = {
 	MID_EVERY: number,
 	MID_AMPLITUDE: number,
 	HYSTERESIS: number,
+	NEAR_MAX: number,
 }
+
+export type Ranked = { tier: Tier, distance: number }
 
 -- `settings` = UserSettings():GetService("UserGameSettings") (or a mock). SavedQualityLevel is a
 -- QualityLevel enum item (.Value 0 = Automatic, 1..21) or a plain number; any failure reads as unknown.
@@ -80,6 +86,26 @@ function SlimeLod.due(tier: Tier, frame: number, slot: number, cfg: Cfg): boolea
 		return (frame + slot) % cfg.MID_EVERY == 0
 	end
 	return false
+end
+
+-- At most cfg.NEAR_MAX entries stay "near": the nearest ones (ties keep list order). The rest of the near
+-- ones become "mid". Changes `rigs` in place; the list order is untouched.
+function SlimeLod.capNear(cfg: Cfg, rigs: { Ranked })
+	local near: { Ranked } = {}
+	for _, r in rigs do
+		if r.tier == "near" then
+			table.insert(near, r)
+		end
+	end
+	if #near <= cfg.NEAR_MAX then
+		return
+	end
+	table.sort(near, function(a, b)
+		return a.distance < b.distance
+	end)
+	for i = cfg.NEAR_MAX + 1, #near do
+		near[i].tier = "mid"
+	end
 end
 
 return SlimeLod

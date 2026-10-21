@@ -29,9 +29,11 @@
 
 local SlimeLife = {}
 
-SlimeLife.MAX_ACTIVE = 16 -- rigged slimes at once (nearest first)
-SlimeLife.MAX_DISTANCE = 80 -- studs from the camera to start animating
-SlimeLife.KEEP_DISTANCE = 95 -- an active slime stays active up to here (no flicker at the edge)
+-- Rigged slimes at once (nearest first). Only SLIME_LOD.NEAR_MAX of them get the full near life; the rest draw
+-- the light detail (smooth lane glide, gait, beats), so a slime across the plaza moves smoothly and still hops.
+SlimeLife.MAX_ACTIVE = 40
+SlimeLife.MAX_DISTANCE = 200 -- studs from the camera to start animating
+SlimeLife.KEEP_DISTANCE = 220 -- an active slime stays active up to here (no flicker at the edge)
 SlimeLife.MAX_SPARKLING = 6 -- sparkle emitters at once (rarest first)
 SlimeLife.MAX_TIER = 7 -- Secret
 SlimeLife.SPARKLE_LIFETIME = { 0.6, 1.1 } -- seconds, per particle

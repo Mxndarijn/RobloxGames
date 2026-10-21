@@ -885,6 +885,7 @@ local Config = {
 		MID_EVERY = 3,
 		MID_AMPLITUDE = 0.5,
 		HYSTERESIS = 0.1, -- share of a radius a slime must cross back to change tier again (selection runs 4x a second)
+		NEAR_MAX = 16, -- near rigs with the full life (reactions, emotes, effects); further near ones draw as mid
 	}),
 
 	-- Habitat morph feel (HabitatFx / HabitatMorph, HABITATS.md "Animation"). Client only.
