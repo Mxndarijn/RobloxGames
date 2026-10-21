@@ -275,13 +275,13 @@ describe("prop facing audit (TODO #11)", function()
 			end
 		end
 	end)
-	it("faces gates out of the entrance and dex boards at it", function()
+	it("faces each plot's name board out of the plot", function()
 		for i = 1, Config.PLOT_COUNT do
-			local centre, plotYaw = WorldLayout.plotCentre(i)
-			local gate = find(`/Plots/Plot_{i}/Gate/GateMesh`)
-			expect(math.abs(angleDiff(slotYaw(gate), plotYaw + 180)) < 0.01).toBe(true)
-			local dex = find(`/Plots/Plot_{i}/DexBoard/DexMesh`)
-			expect(math.abs(angleDiff(slotYaw(dex), bearing(dex.pos :: Vec, centre))) < FACE_TOL).toBe(true)
+			local centre = WorldLayout.plotCentre(i)
+			-- the Sign's text is on its Front face (local -Z), half a turn from a kit front
+			local sign = find(`/Plots/Plot_{i}/Sign`)
+			local out = bearing(centre, sign.pos :: Vec)
+			expect(math.abs(angleDiff(slotYaw(sign) + 180, out)) < 45).toBe(true)
 		end
 	end)
 end)
@@ -305,12 +305,16 @@ describe("ground contact (TODO #9)", function()
 		local bad, n = {}, 0
 		walk(world, function(node, path)
 			local a = node.attributes
-			local mesh = a and (a.MeshAsset or a.BorderMesh or a.FenceMesh)
+			local mesh = a and (a.MeshAsset or a.BorderMesh)
 			if node.class ~= "Part" or not mesh then
 				return
 			end
 			-- the emerge slimes sit in the fountain's goo crown, by design
 			if mesh == "slime_fountain_emerge" then
+				return
+			end
+			-- the goo jar tower's looks sit on jars and lids or round the door, by design (the stands and button stand)
+			if string.match(mesh, "^goo_jar_") or string.match(mesh, "^goo_drop_") then
 				return
 			end
 			n += 1

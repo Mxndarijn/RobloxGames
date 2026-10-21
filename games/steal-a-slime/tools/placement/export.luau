@@ -1,14 +1,12 @@
 --!strict
 -- lune run tools/placement/export  (from games/steal-a-slime)
--- Writes sheets/placement/placement.json: the kit prop placement, plot fences
--- (20-stud panels + 10-stud segments), the world border (wall ring + edge
--- pieces) and keep-clear zones, in world studs (x, z), for
--- tools/placement/render.py.
+-- Writes sheets/placement/placement.json: the kit prop placement, the plots'
+-- ground jars (glass, moat, door), the world border (wall ring + edge pieces)
+-- and keep-clear zones, in world studs (x, z), for tools/placement/render.py.
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
 
 local Config = require("../../src/shared/Config")
-local MeshAssets = require("../../src/shared/MeshAssets")
 local PropClearance = require("../../src/visuals/shared/PropClearance")
 local WorldBorder = require("../../src/visuals/shared/WorldBorder")
 local WorldLayout = require("../../src/visuals/shared/WorldLayout")
@@ -22,45 +20,17 @@ local function rect(cx: number, cz: number, hx: number, hz: number, yaw: number)
 	return { cx = cx, cz = cz, hx = hx, hz = hz, yaw = yaw }
 end
 
-local function walk(node: any, visit: (any) -> ())
-	visit(node)
-	for _, c in node.children or {} do
-		walk(c, visit)
-	end
-end
-
 local plots = {}
-for i, plot in WorldLayout.build()[2].children do
+for i in WorldLayout.build()[2].children do
 	local centre, yaw = WorldLayout.plotCentre(i)
-	local fence, walls = {}, {}
-	-- One rect per fence piece, the same in both modes (a 20-stud panel is one
-	-- slot once ranch_fence_20 is uploaded, two segments until then).
-	local ux, uz, px, pz = axes(yaw)
-	local depth = (MeshAssets.get(WorldLayout.FENCE_SEGMENT) :: any).size[3] * WorldLayout.FENCE_SCALE
-	for _, seg in WorldLayout.fenceSegments() do
-		local f = rect(
-			centre[1] + ux * seg.x + px * seg.z,
-			centre[3] + uz * seg.x + pz * seg.z,
-			seg.length / 2,
-			depth / 2,
-			yaw + seg.yaw
-		)
-		f.length = seg.length
-		table.insert(fence, f)
-	end
-	walk(plot, function(n)
-		if n.attributes and n.attributes.FenceCollider then
-			table.insert(walls, rect(n.pos[1], n.pos[3], n.size[1] / 2, n.size[3] / 2, n.rot[2]))
-		end
-	end)
 	local _, _, vx, vz = axes(yaw)
-	local gz = -WorldLayout.PLOT_SIZE / 2
+	local dz = -(WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL)
 	table.insert(plots, {
 		index = i,
 		rect = rect(centre[1], centre[3], WorldLayout.PLOT_SIZE / 2, WorldLayout.PLOT_SIZE / 2, yaw),
-		gate = { x = centre[1] + vx * gz, z = centre[3] + vz * gz, slot = WorldLayout.GATE_SLOT, yaw = yaw },
-		fence = fence,
-		walls = walls,
+		jar = { x = centre[1], z = centre[3], radius = WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL },
+		moat = WorldLayout.MOAT.outer,
+		door = { x = centre[1] + vx * dz, z = centre[3] + vz * dz, width = WorldLayout.DOOR.width, yaw = yaw },
 	})
 end
 
@@ -101,7 +71,6 @@ local data = {
 	edge = PropClearance.EDGE_RADIUS,
 	wallRadius = WorldBorder.RADIUS,
 	border = border,
-	fenceUploaded = WorldLayout.fenceUploaded(),
 	margin = PropClearance.MARGIN,
 	plots = plots,
 	props = props,

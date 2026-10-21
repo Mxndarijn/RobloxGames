@@ -43,6 +43,11 @@ describe("Remotes", function()
 end)
 
 describe("Config matches the design", function()
+	it("grows a base by floors of 8 pads up to 32", function()
+		expect(Config.PADS_PER_FLOOR).toBe(8)
+		expect(#Config.BASE_FLOORS).toBe(4)
+		expect(Config.PADS_MAX).toBe(32)
+	end)
 	it("caps offline income", function()
 		expect(Config.OFFLINE_CAP_SECONDS > 0).toBeTruthy()
 		expect(Config.OFFLINE_RATE > 0 and Config.OFFLINE_RATE <= 1).toBeTruthy()
@@ -63,17 +68,5 @@ describe("UI gaps closed (docs/archive/UI-CONTRACT-GAPS.md)", function()
 			Constants.RAIN_ENDS_AT_ATTRIBUTE,
 			Constants.RAIN_NEXT_AT_ATTRIBUTE,
 		}).toEqual(RainTimer.ATTRIBUTES)
-	end)
-	it("names the plot attributes Archer's PlotDecor reads (CONTRACT.md §8.4)", function()
-		local source = (require("@lune/fs") :: any).readFile("src/visuals/shared/PlotDecor.luau")
-		for _, name in
-			{
-				Constants.PLOT_DEX_COUNT_ATTRIBUTE,
-				Constants.PLOT_DEX_TOTAL_ATTRIBUTE,
-				Constants.PLOT_DEX_TIER_MASK_ATTRIBUTE,
-			}
-		do
-			expect(string.find(source, `"{name}"`, 1, true) ~= nil).toBe(true)
-		end
 	end)
 end)

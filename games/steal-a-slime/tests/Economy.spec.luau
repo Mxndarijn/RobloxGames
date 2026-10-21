@@ -81,9 +81,35 @@ describe("Economy prices", function()
 		local first = Economy.padCost(Config.PADS_START)
 		local second = Economy.padCost(Config.PADS_START + 1)
 		assert(first and second, "precondition")
-		expect(first).toBe(Config.PAD_BASE_COST)
+		expect(first).toBe(Config.BASE_FLOORS[1].firstPadCost)
 		expect(second > first).toBeTruthy()
 		expect(Economy.padCost(Config.PADS_MAX)).toBeNil()
+	end)
+	it("prices every pad up to PADS_MAX higher than the one before, a new floor jumping up", function()
+		local last = 0
+		for owned = Config.PADS_START, Config.PADS_MAX - 1 do
+			local cost = Economy.padCost(owned) :: number
+			expect(cost > last).toBeTruthy()
+			local nextPad = owned + 1
+			if nextPad > Config.PADS_PER_FLOOR and nextPad % Config.PADS_PER_FLOOR == 1 then
+				expect(cost).toBe(Config.BASE_FLOORS[Economy.floorOf(nextPad)].firstPadCost)
+				expect(cost > 2 * last).toBeTruthy()
+			end
+			last = cost
+		end
+	end)
+	it("shows the floors with unlocked pads plus the next one once the top floor is full", function()
+		local per = Config.PADS_PER_FLOOR
+		expect(Config.PADS_MAX).toBe(#Config.BASE_FLOORS * per)
+		expect(Economy.floorOf(1)).toBe(1)
+		expect(Economy.floorOf(per)).toBe(1)
+		expect(Economy.floorOf(per + 1)).toBe(2)
+		expect(Economy.floorOf(Config.PADS_MAX)).toBe(#Config.BASE_FLOORS)
+		expect(Economy.floorsShown(0)).toBe(1)
+		expect(Economy.floorsShown(per - 1)).toBe(1)
+		expect(Economy.floorsShown(per)).toBe(2)
+		expect(Economy.floorsShown(per + 1)).toBe(2)
+		expect(Economy.floorsShown(Config.PADS_MAX)).toBe(#Config.BASE_FLOORS)
 	end)
 	it("rebirth cost grows geometrically", function()
 		expect(Economy.rebirthCost(0)).toBe(Config.REBIRTH_BASE_COST)
@@ -137,7 +163,7 @@ describe("PlayerData plot", function()
 		data.cash = 1000
 		expect((PlayerData.buyPad(data))).toBe(true)
 		expect(data.padsUnlocked).toBe(Config.PADS_START + 1)
-		expect(data.cash).toBe(1000 - Config.PAD_BASE_COST)
+		expect(data.cash).toBe(1000 - Config.BASE_FLOORS[1].firstPadCost)
 	end)
 	it("sells slimes for cash and clears the favourite", function()
 		local data = Fixtures.data({ Fixtures.slime("a", 2) }, 0)

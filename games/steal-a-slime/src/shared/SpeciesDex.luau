@@ -129,7 +129,7 @@ function SpeciesDex.tierCount(data: Data, tier: number): number
 	return n
 end
 
--- Bit k-1 set when a found entry has tier k (plot attribute DexTierMask, badges).
+-- Bit k-1 set when a found entry has tier k (badges).
 function SpeciesDex.tierMask(data: Data): number
 	local mask = 0
 	for _, entry in ENTRIES do

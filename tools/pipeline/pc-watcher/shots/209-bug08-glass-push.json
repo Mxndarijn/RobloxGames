@@ -1,0 +1,20 @@
+{
+  "id": "bug08-glass-push",
+  "todo": "bug 8",
+  "kind": "world",
+  "target": "Plot_2",
+  "from": "centre",
+  "dist": 100,
+  "height": 55,
+  "bug_probe": {
+    "bug": 8,
+    "title": "Locked base: real character pushing into the jar glass at wall middles and joints round the jar (glass_push)",
+    "luau": "bug08_lock_enter",
+    "ctx": "Server",
+    "args": {
+      "PART": "glass_push"
+    },
+    "timeout": 45
+  },
+  "note": "bug 8 (advisory): real character vs the locked foreign jar, one wall check per call (luau/bug08_lock_enter PART=glass_push; every call < 40 s)"
+}

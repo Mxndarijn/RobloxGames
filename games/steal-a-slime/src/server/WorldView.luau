@@ -30,6 +30,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local BaseFloors = require(script.Parent.BaseFloors)
 local BossWander = require(ReplicatedStorage.Shared.BossWander)
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -47,7 +48,6 @@ local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
-local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local PlotLockGuard = require(script.Parent.PlotLockGuard)
 local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
@@ -65,7 +65,6 @@ local Scene = require(script.Parent.Scene)
 local SlimeLabelView = require(script.Parent.SlimeLabelView)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
-local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local StackGuard = require(script.Parent.StackGuard)
 local StealGhost = require(script.Parent.StealGhost)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
@@ -104,15 +103,19 @@ WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart
 -- World lookup
 ---------------------------------------------------------------------------
 
-function WorldView.setup()
+-- Returns the WorldBuilder module when it built the world (nil on the greybox): its buildFloor adds upper floors.
+function WorldView.setup(): any?
 	-- The world ships static in the place (world/*.rbxmx); WorldBuilder is idempotent and reuses it.
 	-- Build before anything that yields (LoadAsset below): characters may already be spawning.
 	-- Greybox only if the builder is missing or fails.
 	local visuals = ReplicatedStorage:FindFirstChild("Visuals")
 	local builder = visuals and visuals:FindFirstChild("WorldBuilder")
+	local built: any? = nil
 	if builder then
 		local ok, err = pcall(function()
-			(require(builder :: ModuleScript) :: any).build(workspace)
+			local module = require(builder :: ModuleScript) :: any
+			module.build(workspace)
+			built = module
 		end)
 		if not ok then
 			warn(`[Server] WorldBuilder.build failed: {err}`)
@@ -120,6 +123,7 @@ function WorldView.setup()
 	end
 	if not workspace:FindFirstChild(Constants.PLOTS_FOLDER) then
 		FallbackWorld.build()
+		built = nil
 	end
 	-- FallenPartsDestroyHeight is plugin-only to write; default.project.json sets it.
 	if workspace.FallenPartsDestroyHeight > Rescue.KILL_PLANE_Y then
@@ -170,6 +174,7 @@ function WorldView.setup()
 		folder.Name = Constants.WILD_FOLDER
 		folder.Parent = workspace
 	end
+	return built
 end
 
 -- Plot model with PlotIndex == index (cached while it stays in workspace.Plots).
@@ -841,22 +846,15 @@ local TROPHY_PEDESTAL = Vector3.new(9, 2, 9)
 local TROPHY_COLOR = Color3.fromRGB(255, 205, 70)
 local trophyModels: { [string]: Instance } = {}
 
--- Pedestal `slot` (1-based) of `plotIndex`, on the Base in front of the back wall and facing the gate (the Base's -Z):
--- slot 1 left of the Dex board, slot 2 right of it, slot 3 further left, Config.BOSS.TROPHY_GAP apart.
+-- Pedestal `slot` (1-based) of `plotIndex`: WorldLayout.TROPHY_SPOTS on the Base, clear of the jar and the moat.
 local function trophySpot(plotIndex: number, slot: number): CFrame?
 	local plot = WorldView.plot(plotIndex)
 	local base = plot and plot:FindFirstChild("Base")
-	local board = plot and plot:FindFirstChild("DexBoard")
-	if not (base and base:IsA("BasePart") and board and board:IsA("Model")) then
+	local spot = WorldLayout.TROPHY_SPOTS[slot]
+	if not (base and base:IsA("BasePart") and spot) then
 		return nil
 	end
-	local boardAt, boardSize = board:GetBoundingBox()
-	local boardLocal = base.CFrame:PointToObjectSpace(boardAt.Position)
-	local ring = math.ceil(slot / 2) -- 1, 1, 2
-	local side = if slot % 2 == 1 then -1 else 1
-	local x = boardLocal.X + side * (boardSize.X / 2 + Config.BOSS.TROPHY_GAP * (ring - 0.5))
-	local z = boardLocal.Z - boardSize.Z / 2 - TROPHY_PEDESTAL.Z / 2
-	return base.CFrame * CFrame.new(x, base.Size.Y / 2, z)
+	return base.CFrame * CFrame.new(spot[1], base.Size.Y / 2, spot[2])
 end
 
 local function buildTrophy(slime: Genome.Slime, spot: CFrame, parent: Instance): Instance?
@@ -1142,19 +1140,6 @@ local function stylePad(pad: BasePart, unlocked: boolean)
 	end
 end
 
--- DexTierMask per plot, recomputed only when the owner or dex count changes.
-local dexMasks: { [number]: { userId: number, count: number, mask: number } } = {}
-
-local function dexMask(index: number, session: World.Session, count: number): number
-	local cached = dexMasks[index]
-	if cached and cached.userId == session.userId and cached.count == count then
-		return cached.mask
-	end
-	local fresh = { userId = session.userId, count = count, mask = SpeciesDex.tierMask(session.data) }
-	dexMasks[index] = fresh
-	return fresh.mask
-end
-
 -- Lock enforcement. The LockBarrier panels ship non-colliding (client cosmetics); the server makes
 -- them solid while the plot is locked. Panels sit in PlotLock_<i>, the owner's character in
 -- PlotOwner_<i>, and that pair does not collide, so the owner walks through. The barrier is one-way: a non-owner
@@ -1213,8 +1198,9 @@ function setBarrierSolid(plot: Instance, index: number, solid: boolean)
 	end
 end
 
--- Plot-local z of the front LockBarrier slab's outer face (the real layout constant).
-local FRONT_Z = WorldLayout.frontBarrier().zOuter
+-- Jar 1's doorway passage (the real layout constants): the lock guard's "inside" includes it.
+local DOORWAY = WorldLayout.doorway()
+local DOOR: PlotLockGuard.Door = { halfWidth = DOORWAY.halfWidth, zOuter = DOORWAY.zOuter }
 
 local function setPartGroup(part: Instance, group: string)
 	if part:IsA("BasePart") and part.CollisionGroup ~= group then
@@ -1301,8 +1287,8 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 					p.X,
 					p.Y,
 					p.Z,
-					base.Size.X / 2,
-					FRONT_Z,
+					WorldLayout.jarRadius(WorldLayout.floorAt(p.Y + base.Size.Y / 2)),
+					DOOR,
 					wasIn == index
 				)
 			then
@@ -1322,7 +1308,8 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 	ejectFromStack(character, root)
 end
 
-function WorldView.updatePlots(world: World.World, now: number)
+-- `floors` (nil on the greybox) builds and removes the plots' upper floors (BaseFloors).
+function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloors.Context?)
 	local habitatsOn = Config.FEATURES.Habitats
 	HabitatPads.step(habitats, world, now, habitatsOn)
 	for index = 1, world.plotCount do
@@ -1330,6 +1317,9 @@ function WorldView.updatePlots(world: World.World, now: number)
 		if plot then
 			local userId = world.plots[index]
 			local session = userId and world.sessions[userId]
+			if floors then
+				BaseFloors.sync(plot, index, if session then session.data.padsUnlocked else 0, floors)
+			end
 			local view = PlotPrompts.describe(world, index, now)
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)
 			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
@@ -1346,14 +1336,6 @@ function WorldView.updatePlots(world: World.World, now: number)
 					if session then PlotSkins.current(session.data) else Config.PLOT_SKIN_DEFAULT
 				)
 			end
-			local dexCount = if session then PlayerData.dexCount(session.data) else 0
-			setIfChanged(plot, Constants.PLOT_DEX_COUNT_ATTRIBUTE, dexCount)
-			setIfChanged(plot, Constants.PLOT_DEX_TOTAL_ATTRIBUTE, SpeciesDex.TOTAL)
-			setIfChanged(
-				plot,
-				Constants.PLOT_DEX_TIER_MASK_ATTRIBUTE,
-				if session then dexMask(index, session, dexCount) else 0
-			)
 			for pad = 1, Config.PADS_MAX do
 				local part = WorldView.pad(index, pad)
 				if part then
@@ -1403,7 +1385,27 @@ function WorldView.pointInHomeZone(position: Vector3, plotIndex: number): boolea
 	end
 	local p = zone.CFrame:PointToObjectSpace(position)
 	local half = zone.Size / 2
-	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= half.Y + 8
+	local reachUp = zone:GetAttribute("ReachUp")
+	local top = half.Y + 8 + (if type(reachUp) == "number" then reachUp else 0)
+	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
+end
+
+-- Drop tube (CONTRACT.md §5.3): puts the player's character in plot `plotIndex`'s splash pool, still. False when
+-- there is no character or no plot.
+function WorldView.dropDown(userId: number, plotIndex: number): boolean
+	local player = Players:GetPlayerByUserId(userId)
+	local character = player and player.Character
+	local root = WorldView.rootPart(player)
+	local plot = WorldView.plot(plotIndex)
+	local base = plot and plot:FindFirstChild("Base")
+	if not (character and root and base and base:IsA("BasePart")) then
+		return false
+	end
+	local land = WorldLayout.dropLanding()
+	local y = land[2] - WorldLayout.PLOT_FLOOR_TOP + base.Size.Y / 2
+	character:PivotTo(base.CFrame * CFrame.new(land[1], y, land[3]))
+	root.AssemblyLinearVelocity = Vector3.zero
+	return true
 end
 
 -- Spawn point on top of the plot's Base.
@@ -1411,7 +1413,8 @@ function WorldView.plotSpawn(plotIndex: number): CFrame?
 	local plot = WorldView.plot(plotIndex)
 	local base = plot and plot:FindFirstChild("Base")
 	if base and base:IsA("BasePart") then
-		return base.CFrame * CFrame.new(0, base.Size.Y / 2 + 4, 0)
+		local spot = WorldLayout.SPAWN_SPOT
+		return base.CFrame * CFrame.new(spot[1], base.Size.Y / 2 + 4, spot[2])
 	end
 	return nil
 end

@@ -4,9 +4,9 @@
 
 	Every Pad_<j> with the attribute Habitat (Constants.HABITAT_ATTRIBUTE,
 	set by the server) gets a client-only overlay per habitat in a local
-	workspace folder "ClientHabitats". The pad and its crate Stand never
-	change: an overlay (themed frame and rim props) rests on the crate deck
-	(WorldLayout.PAD_DECK) round the slime. Each overlay has a weight
+	workspace folder "ClientHabitats". The pad and its round cork Stand never
+	change: an overlay (themed frame ring and rim props) rests on the stand's
+	dish (WorldLayout.PAD_DECK) round the slime. Each overlay has a weight
 	(Shared.Habitats.stepWeights): the current habitat grows to 1 and every
 	other overlay shrinks to 0 over Habitats.TRANSFORM_SECONDS, so a swap
 	crossfades on the same pad, with a sparkle burst when a change starts.
@@ -132,12 +132,15 @@ local function templateFor(name: string?): BasePart?
 	return if t and t:IsA("BasePart") then t else nil
 end
 
--- Offsets are from the crate deck centre (pad local space, +Y up). The rim
--- band runs between the crate mat and the deck edge; the slime sits inside.
+-- Offsets are from the dish centre (pad local space, +Y up). The rim band is
+-- a ring between the slime (radius MAT_EDGE) and the dish edge (DECK_EDGE).
 local DECK_EDGE = WorldLayout.PAD_DECK.half
 local MAT_EDGE = WorldLayout.PAD_DECK.matHalf
 local BAND = (DECK_EDGE + MAT_EDGE) / 2
-local CORNERS = { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }
+local FRAME_SIDES = 8 -- the placeholder ring: an octagon of flat strips
+-- the placeholder's four props on the ring, on the diagonals
+local DIAG = BAND / math.sqrt(2)
+local CORNERS = { { DIAG, DIAG }, { DIAG, -DIAG }, { -DIAG, DIAG }, { -DIAG, -DIAG } }
 
 local function buildLook(pad: BasePart, id: string): Look?
 	local habitat = Habitats.get(id)
@@ -155,28 +158,26 @@ local function buildLook(pad: BasePart, id: string): Look?
 	end
 	local color, accent = rgb(habitat.color), rgb(habitat.accent)
 	local pieces: { Piece } = {}
-	-- Frame: four flat strips on the deck round the mat.
+	-- Frame: an octagon of flat strips on the dish round the slime, each as long as its side of the ring.
 	local width = DECK_EDGE - MAT_EDGE
-	for k, side in { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } } do
-		local alongX = side[2] ~= 0
-		local size = if alongX
-			then Vector3.new(DECK_EDGE * 2, 0.14, width)
-			else Vector3.new(width, 0.14, DECK_EDGE * 2 - width * 2)
+	local length = 2 * BAND * math.tan(math.pi / FRAME_SIDES) + width * math.tan(math.pi / FRAME_SIDES)
+	for k = 1, FRAME_SIDES do
+		local a = (k - 1) * 2 * math.pi / FRAME_SIDES
 		table.insert(
 			pieces,
 			piece(
 				model,
 				`Frame{k}`,
 				Enum.PartType.Block,
-				size,
-				CFrame.new(side[1] * BAND, 0.07, side[2] * BAND),
+				Vector3.new(length, 0.14, width),
+				CFrame.Angles(0, a, 0) * CFrame.new(0, 0.07, BAND),
 				color,
 				Enum.Material.SmoothPlastic
 			)
 		)
 	end
 	for k, c in CORNERS do
-		local at = CFrame.new(c[1] * BAND, 0, c[2] * BAND)
+		local at = CFrame.new(c[1], 0, c[2])
 		if id == "crystal_grotto" then
 			local h = 1.6 + (k % 2) * 0.8
 			table.insert(

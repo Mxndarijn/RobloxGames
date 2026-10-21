@@ -4,10 +4,9 @@
 
 	Writes the owner and stats onto each plot's `Sign` part. The static world
 	(world/Plots.rbxmx, WorldLayout) ships the Sign as a bare board with no
-	SurfaceGui, so the server adds one on its Front face (the gate board's
-	cream face, out of the entrance) with a Title and a Stats TextLabel and
-	updates them from the plot's session. No Back face: behind the board is
-	the gate beam, and text there floated off the mesh (v28 playtest).
+	SurfaceGui, so the server adds one on its Front face (jar 1's name label,
+	facing out of the jar) with a Title and a Stats TextLabel and updates
+	them from the plot's session. No Back face: it lies against the glass.
 	Server-side so the text replicates to every client.
 
 	PlotSigns.lines(plotIndex, session?) -> { title, stats }   -- pure

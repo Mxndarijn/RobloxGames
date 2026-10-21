@@ -79,7 +79,7 @@ describe("plot skins: config", function()
 			if i > 1 then
 				expect(s.set ~= nil and s.set >= 1 and s.set <= Config.MAX_TIER).toBe(true)
 				expect(s.threshold).toBe(0.75)
-				expect(s.floor ~= nil and s.fence ~= nil).toBe(true)
+				expect(s.floor ~= nil and s.trim ~= nil).toBe(true)
 				local entry = MeshAssets.get(s.decor :: string)
 				expect(entry ~= nil and entry.meshId ~= nil and entry.size ~= nil).toBe(true)
 			end
@@ -289,7 +289,7 @@ local function look(plot: any): { [string]: any }
 end
 
 describe("plot skins: visuals applied per plot", function()
-	it("paints one plot's floor, fence and decor and leaves the others as built", function()
+	it("paints one plot's floor, cork and trim and decor and leaves the others as built", function()
 		local p1, p2 = plots:FindFirstChild("Plot_1"), plots:FindFirstChild("Plot_2")
 		local slot = decor:FindFirstChild("Mailbox_1")
 		local classic1, classic2 = look(p1), look(p2)
@@ -304,15 +304,22 @@ describe("plot skins: visuals applied per plot", function()
 			expect(base.Color).toBe(Color3.fromRGB(floor.color[1], floor.color[2], floor.color[3]))
 			expect(base.Material.Name).toBe(floor.material)
 			local tinted = 0
-			for _, name in { "Fence", "Gate" } do
-				for _, d in p1:FindFirstChild(name):GetDescendants() do
-					if d:IsA("BasePart") and d.Transparency < 1 then
-						tinted += 1
-						expect(d.Color ~= classic1[d:GetFullName()][1]).toBe(true)
-					end
+			local parts = {}
+			for _, name in PlotDecor.TRIM_PARTS do
+				table.insert(parts, p1:FindFirstChild(name))
+			end
+			for _, d in p1:GetDescendants() do
+				if d:GetAttribute("JarLid") ~= nil then
+					table.insert(parts, d)
 				end
 			end
-			expect(tinted > 0).toBe(true)
+			for _, d in parts do
+				if d:IsA("BasePart") and d.Transparency < 1 then
+					tinted += 1
+					expect(d.Color ~= classic1[d:GetFullName()][1]).toBe(true)
+				end
+			end
+			expect(tinted).toBe(#PlotDecor.TRIM_PARTS) -- the lid is an invisible roof now; its look is the jar trim mesh
 			local mesh = slot:FindFirstChild(PlotDecor.SKIN_DECOR_NAME)
 			expect(mesh ~= nil and mesh:GetAttribute("Skin") == s.decor).toBe(true)
 			expect(slot.Transparency).toBe(1)
@@ -399,12 +406,7 @@ describe("plot skins: mesh budget", function()
 		end
 		expect(mailboxes).toBe(Config.PLOT_COUNT)
 		-- every plot wearing a skin: still one visible mesh in that slot, so the count is the same
-		expect(WorldBudget.uploaded.total).toBe(
-			WorldBudget.uploaded.fence
-				+ WorldBudget.uploaded.posts
-				+ WorldBudget.uploaded.decor
-				+ WorldBudget.uploaded.border
-		)
+		expect(WorldBudget.uploaded.total).toBe(WorldBudget.uploaded.decor + WorldBudget.uploaded.border)
 	end)
 	it("keeps the parts under 1400 even with a skin decor part on every plot", function()
 		expect(WorldBudget.uploaded.parts + Config.PLOT_COUNT < WorldLayout.PART_BUDGET).toBe(true)

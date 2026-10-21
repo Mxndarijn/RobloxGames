@@ -5,7 +5,8 @@
 	  * PlotDecor.apply on every workspace.Plots.Plot_<i> at UPDATE_RATE Hz
 	    against workspace:GetServerTimeNow() (lock barrier + countdown sign,
 	    rebirth trim / pillars / banners, SlimeDex board),
-	    plus a bobbing, spinning Crown on top-band plots.
+	    plus a bobbing, spinning Crown on top-band plots, and the jar tower's
+	    mascot and goo ooze (PlotMascot).
 	  * RareSpawn effects on wild slimes (State == "Wild") by the RareSpawn
 	    attribute (CONTRACT §8.4, Legendary+) or else Tier, kept in a
 	    local workspace folder "ClientRareFx" and posed on the slime's pivot
@@ -31,6 +32,7 @@ local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild(
 local Visuals = ReplicatedStorage:WaitForChild("Visuals")
 local Effects = require(Visuals:WaitForChild("Effects"))
 local PlotDecor = require(Visuals:WaitForChild("PlotDecor"))
+local PlotMascot = require(Visuals:WaitForChild("PlotMascot"))
 local RareSpawn = require(Visuals:WaitForChild("RareSpawn"))
 local TopTierFx = require(Visuals:WaitForChild("TopTierFx"))
 
@@ -106,6 +108,10 @@ local function refreshPlots(now: number)
 			local ok, err = pcall(PlotDecor.apply, plot, now)
 			if not ok then
 				warn(`[VisualsClient] PlotDecor {plot.Name}: {err}`)
+			end
+			local mascotOk, mascotErr = pcall(PlotMascot.apply, plot)
+			if not mascotOk then
+				warn(`[VisualsClient] PlotMascot {plot.Name}: {mascotErr}`)
 			end
 			local skinOk, skinErr = pcall(refreshSkin, plot)
 			if not skinOk then

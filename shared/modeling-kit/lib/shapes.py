@@ -94,16 +94,24 @@ def blob(name, radius, pos=(0, 0, 0), color=None, seed=0, subdiv=1, squash=(1, 1
     return obj_from_bm(name, bm, color)
 
 
-def tube(name, points, radii, color=None, segs=6, seed=0, jitter=0.0):
+def tube(name, points, radii, color=None, segs=6, seed=0, jitter=0.0, twist_free=False):
     """Tapered tube along a polyline (branches, roots, horns). points: list of (x,y,z);
-    radii: one per point. Capped at both ends, rings oriented along the path."""
+    radii: one per point. Capped at both ends, rings oriented along the path.
+    twist_free: carry each ring's orientation on from the last (parallel transport) instead of re-aiming it per
+    point; to_track_quat can roll a ring up to 180 degrees where a long path bends (e.g. vertical to sloped), which
+    pinches the tube into an X there."""
     r = rng(seed)
     pts = [Vector(p) for p in points]
     bm = bmesh.new()
     rings = []
+    q, prev = None, None
     for i, (p, rad) in enumerate(zip(pts, radii)):
         d = (pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]).normalized()
-        q = d.to_track_quat("Z", "Y")
+        if twist_free and q is not None:
+            q = prev.rotation_difference(d) @ q
+        else:
+            q = d.to_track_quat("Z", "Y")
+        prev = d
         ring = []
         for k in range(segs):
             a = k * math.tau / segs

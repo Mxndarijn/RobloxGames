@@ -1,48 +1,51 @@
 -- Server datamodel: bug probe 8 (ADVISORY), a locked base: the owner walks in, everybody else is kept out (PlotLockGuard + WorldView.enforceLocks,
--- #251). The REAL test player (the only real Player) owns one plot; the lock is driven through the game's own code:
+-- #251). Each plot is a goo jar tower (CONTRACT.md §5.3): jar 1's glass wall (Plot_<i>.Jar: Wall_2..Wall_24 + DoorLintel over the doorway at plot-local
+-- -Z) and ONE lock part, LockBarrier.Stopper, that fills the doorway. The REAL test player (the only real Player) owns one plot; the lock is driven
+-- through the game's own code:
 --   * enforceLocks(world, player) is the real WorldView function. The live `world` is a local of init.server and is not reachable, so a
 --     MIRROR pure World (World.new + Sessions.join, as server_steal_sim does) holds the same owner of the player's plot (real PlotIndex) and a
 --     fake owner (userId -9001) of a plot the player does not own. The driver calls the real enforceLocks(mirror, player) every physics step
 --     (RunService.Stepped), so the group assignment (owner / PlotLeaver / Default) is the shipped code, not a reimplementation.
 --   * the lock itself is the plot attribute Locked (what enforceLocks reads; the live 10 Hz updatePlots rewrites it, so the driver re-asserts
---     it every step) and the LockBarrier panels (CanCollide + CollisionGroup PlotLock_<i> exactly as WorldView.setBarrierSolid leaves them; that
+--     it every step) and the LockBarrier parts (CanCollide + CollisionGroup PlotLock_<i> exactly as WorldView.setBarrierSolid leaves them; that
 --     function is file-local, so it is mirrored). The collision groups PlotLock_<i> / PlotOwner_<i> and the character's group come from the game.
 --   * a plot own to the player that the live server has locked right now (join lock, first 45 s) is reported as live_own_panels (the real
 --     setBarrierSolid result, read before the driver touches anything).
+-- "Inside" is the shipped rule: PlotLockGuard.inside with the jar's inner radius at the character's height (WorldLayout.jarRadius(floorAt(y)));
+-- "trapped" adds the doorway passage (WorldLayout.doorway()), as enforceLocks does.
 -- The real character is unanchored for the probe (network ownership to the server) and restored: CFrame, Anchored, owner, WalkSpeed.
--- Checks (ok = every non-nil check of the PART true; PART "base" = the first five, each other PART = the one wall check of that name):
---   owner_passes             own plot locked: the character walks (Humanoid:MoveTo) from 8 studs outside the entrance to inside (PlotLockGuard.inside)
+-- Checks (ok = every non-nil check of the PART true; PART "base" = the first five, each other PART = the one check of that name):
+--   owner_passes             own plot locked: the character walks (Humanoid:MoveTo) from 8 studs outside the plot, over the bridge and through the
+--                            doorway, to the spawn spot inside the jar (PlotLockGuard.inside)
 --   owner_passes_after_respawn  player:LoadCharacter(), the same walk with the new character
---   non_owner_blocked        a locked plot the player does not own: MoveTo from outside for 4 s never gets inside; its panels are CanCollide and in a
+--   non_owner_blocked        a locked plot the player does not own: the same walk for 4 s never gets inside; its LockBarrier parts are CanCollide and in a
 --                            group that collides with the character's. n/a when the unlocked control walk cannot reach the inside either
---   leaves_freely            the barrier is one-way, nobody is ever moved: teleported (probe setup) into that locked plot the character gets the PlotLeaver
---                            group, walks out through the gate (MoveTo, up to 14 s) and ends outside the front slab; every 0.05 s sample moves
---                            <= 3 studs (no teleport / throw); then it MoveTos back in for 4 s and never gets inside (the barrier collides again)
---   thrown_slime_not_stuck   a free clone of a real slime body (its size / CollisionGroup, CanCollide forced on) is launched at a solid panel: after
---                            3 s it must not rest suspended in the air next to a panel (within 1.5 studs of a face) nor inside the panel
--- Real-character wall checks (#277 removed the invisible Wall* blocks: the fence meshes are the only barrier besides the LockBarrier panels). Against the
--- locked FOREIGN plot, the real character (unanchored, server-owned, the game's own WalkSpeed 16 and Humanoid jump settings, never raised) tries to get in.
--- Every attempt samples the root every 0.05 s: ever_inside (PlotLockGuard.inside), first_inside_s, max_penetration (studs past the fence plane, plot-local),
--- jumped (a position jump > 10 studs: nothing may move the character, so any is reported). An attempt FAILS when ever_inside is true. The fence is found by the
--- attribute FenceCollider or the names ranch_fence_20 / phoenix_fence_segment / phoenix_corner_post (and GatePost / GatePostL / GatePostR) among the plot's
--- descendants; the fence lines, panel middles / joints, gate seams and corners are computed from their real CFrames and sizes in the Base's frame. ok = every
--- attempt stayed outside, false = any got inside, n/a = geometry not found or no time left (each check is its own PART with a 32 s attempt budget, most
--- important attempts first; attempts end early when the character stalls for 1.5 s). Reset between attempts: teleport outside, zero velocity, wait 0.3 s.
---   fence_jump_over          back + one side fence line: start 6 studs outside, MoveTo 10 studs inside for 4 s with hum.Jump every 0.25 s; plus a running start from 16 studs
---   fence_push_through       back and both side lines at a panel middle AND a panel joint, plus both gate-side phoenix_fence_segments: MoveTo straight in, no jumping
---   gate_post_squeeze        at the gate: FIRST the strict jumps (fail on max_penetration > 0, i.e. any root past the front fence line, not only ever_inside) from
---                            plot-local (post.x ~ 10.8, front - 6 ~ -45.5) at the gate-side phoenix_corner_post and its mirror at the left gate segment post
---                            (x ~ -10.8), then the seams between the LockBarrier front panel / gate posts / phoenix_corner_post, straight (no jump, jumping) and 45 degree approaches
---   corner_squeeze           the four plot corners, where the fence meshes meet the thin LockBarrier panels (no jumping): per corner a 45 degree
---                            approach at the fence corner, then straight in on both sides at the seam (the end of the fence mesh nearest the corner,
---                            else 0.8 studs in from the corner), then a diagonal at the panel corner when it sits > 0.75 studs from the fence corner;
---                            info.junctions has the fence corner, the panel corner and the fence-end / panel-end gap per corner
---   corner_jump              the same corner attempts, jumping every 0.25 s
---   owner_gate               (#291 deeper front slab) own plot locked: the OWNER walks through the gate IN and back OUT on three lanes (centre and
---                            x = +-4.5, the carry width), each walk MoveTo up to 5 s; plus carry_clearance: no part that collides with the owner's
---                            character group (CanCollide, RespectCanCollide) inside a 7 x 7 stud box through the gate opening (plot-local y 1..8,
---                            z front-4..front+4), i.e. the slab / posts leave the owner's walk and slime-carry route through the gate open
--- Everything made is destroyed; the lock attributes / panels are restored; the character ends where it started, with its Anchored states.
+--   leaves_freely            the stopper is one-way, nobody is ever moved: teleported (probe setup) onto the spawn spot inside that locked jar the
+--                            character gets the PlotLeaver group, walks out through the door (MoveTo, up to 14 s) and ends clear of the jar and the
+--                            doorway; every 0.05 s sample moves <= 3 studs (no teleport / throw); then it MoveTos back in for 4 s and never gets inside
+--   thrown_slime_not_stuck   a free clone of a real slime body (its size / CollisionGroup, CanCollide forced on) is lobbed from the bridge at the solid
+--                            stopper: after 3 s it must not rest suspended in the air next to it (within 1.5 studs of a face) nor inside it
+--   leave_on_lock            (shot 222) the character stands on the spawn spot of a free plot, the plot is locked with it inside: the same walk out as
+--                            leaves_freely (PlotLeaver, no step > 3 studs, ends clear, flips back, cannot walk back in)
+--   owner_door               own plot locked: the OWNER walks through the doorway IN (to 6 studs past it, short of the pads) and back OUT on three lanes (x = 0, +-1.5),
+--                            each walk MoveTo up to 5 s; plus carry_clearance: no part that collides with the owner's character group (CanCollide,
+--                            RespectCanCollide) inside a 7 x 7 stud box through the doorway (plot-local y 1.5..8.5, the stopper's depth + 2 each side),
+--                            i.e. the glass and lintel leave the owner's walk and slime-carry route open; the stopper is in the owner's pass group
+-- Real-character wall checks against the locked FOREIGN plot: the real character (unanchored, server-owned, the game's own WalkSpeed 16 and Humanoid jump
+-- settings, never raised) tries to get in. Every attempt samples the root every 0.05 s: ever_inside (PlotLockGuard.inside), first_inside_s,
+-- max_penetration (studs the root centre got inside the glass's outer surface, the radius measured from the real Wall_* parts; a blocked root stays
+-- >= 0.5 outside it), jumped (a position jump > 10 studs: nothing may move the character, so any is reported). An attempt FAILS when ever_inside is true or
+-- max_penetration > 0. ok = every attempt stayed out, false = any got in, n/a = geometry not found or no time left (each check is its own PART with a 32 s
+-- attempt budget, most important attempts first; attempts end early when the character stalls for 1.5 s). Reset between attempts: teleport, zero
+-- velocity, wait 0.3 s. Door attempts aim at the stopper's real CFrame / size; glass spots at the real Wall_* centres (middle) and between two neighbours
+-- (joint).
+--   door_walk                from the bridge, no jumping: straight at the stopper centre and at both stopper / glass seams (x = +-(half width - 1.6)),
+--                            then 45 degree approaches at both seams (from the opening side and from the glass side)
+--   door_jump                the same straight lanes jumping every 0.25 s, plus a running jump from 16 studs out
+--   glass_push               the glass round the jar, no jumping: a wall middle and a joint on the right side (plot-local angle ~0), the same on the left
+--                            (~180) and a middle at the back-left (~150); start 4 studs outside the glass, MoveTo 8 studs inside the jar
+--   glass_jump               the same spots, jumping every 0.25 s
+-- Everything made is destroyed; the lock attributes / LockBarrier parts are restored; the character ends where it started, with its Anchored states.
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -67,9 +70,9 @@ end)
 if not reqOk then
 	return { ok = false, summary = "require failed: " .. tostring(mods), detail = {} }
 end
-local World, Sessions, WorldView, Guard = mods.World, mods.Sessions, mods.WorldView, mods.Guard
+local World, Sessions, WorldView, Guard, WL = mods.World, mods.Sessions, mods.WorldView, mods.Guard, mods.WorldLayout
 local LOCKED = mods.Constants.PLOT_LOCKED_ATTRIBUTE
--- PART = "base" (the five old checks, ~50 s) | "fence_jump_over" | "fence_push_through" | "gate_post_squeeze" | "corner_squeeze" | "corner_jump" | "owner_gate" (that one wall check
+-- PART = "base" (the five checks, ~50 s) | "door_walk" | "door_jump" | "glass_push" | "glass_jump" | "owner_door" | "leave_on_lock" (that one check
 -- only, 32 s attempt budget): a single execute_luau call must stay well under 60 s, so the checks are split over several calls.
 local PART = %%PART%%
 local BASE_ORDER = { "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "leaves_freely", "thrown_slime_not_stuck" }
@@ -134,7 +137,7 @@ end
 local saved = { attr = {}, panels = {} }
 local made = {}
 local alive = true
-local locks = {} -- plot index -> true: the driver keeps these plots locked + their panels solid
+local locks = {} -- plot index -> true: the driver keeps these plots locked + their LockBarrier parts solid
 local driver
 local function register(i)
 	local lock, owner = Guard.lockGroup(i), Guard.ownerGroup(i)
@@ -247,30 +250,49 @@ local function teleport(cf)
 	root.AssemblyLinearVelocity = Vector3.zero
 end
 
--- geometry helpers --------------------------------------------------------------------------------------------------------------------------
+-- geometry helpers (Base frame = plot-local, door at -Z) -------------------------------------------------------------------------------------
+local DOORWAY = WL.doorway()
+local DOOR = { halfWidth = DOORWAY.halfWidth, zOuter = DOORWAY.zOuter }
+local SPAWN_Z = WL.SPAWN_SPOT[2]
+local function r1(x)
+	return math.floor(x * 10 + 0.5) / 10
+end
+local function r2(v)
+	return { r1(v.X), r1(v.Z) }
+end
 local function frameOf(i)
 	local base = plotByIndex[i].Base
-	return base.CFrame, base.Size.X / 2
+	return base.CFrame, base.Size.X / 2, base.Size.Y / 2
 end
 local function localPos(i)
 	local cf = frameOf(i)
-	local p = cf:PointToObjectSpace(root.Position)
-	return p
+	return cf:PointToObjectSpace(root.Position)
+end
+-- Inner radius of the jar at Base-frame height y (enforceLocks: jarRadius(floorAt(y + Base half height))).
+local function radiusAt(i, y)
+	local _, _, halfY = frameOf(i)
+	return WL.jarRadius(WL.floorAt(y + halfY))
 end
 local function insideNow(i)
-	local _, half = frameOf(i)
 	local p = localPos(i)
-	return Guard.inside(p.X, p.Y, p.Z, half)
+	return Guard.inside(p.X, p.Y, p.Z, radiusAt(i, p.Y))
+end
+local function trappedNow(i)
+	local p = localPos(i)
+	return Guard.trapped(p.X, p.Y, p.Z, radiusAt(i, p.Y), DOOR)
+end
+local function outsidePoint(i, x)
+	local cf, half = frameOf(i)
+	return cf * CFrame.new(x or 0, 4, -(half + 8)) * CFrame.Angles(0, math.pi, 0)
 end
 local function placeOutside(i)
-	local cf, half = frameOf(i)
-	teleport(cf * CFrame.new(0, 4, -(half + 8)) * CFrame.Angles(0, math.pi, 0))
+	teleport(outsidePoint(i))
 	task.wait(0.4)
 end
--- Walk from outside the entrance towards the plot interior. Returns {inside, ever_inside, secs}.
+-- Walk from outside the plot, over the bridge and through the doorway, to the spawn spot. Returns {inside, ever_inside, secs}.
 local function walkIn(i, secs, stopWhenInside)
-	local cf, half = frameOf(i)
-	local target = cf:PointToWorldSpace(Vector3.new(0, 4, -(half - 8)))
+	local cf = frameOf(i)
+	local target = cf:PointToWorldSpace(Vector3.new(0, 4, SPAWN_Z))
 	local t0 = os.clock()
 	local ever = false
 	while os.clock() - t0 < secs do
@@ -290,109 +312,81 @@ local function walkIn(i, secs, stopWhenInside)
 end
 
 -- real-character wall checks -------------------------------------------------------------------------------------------------------------
-local FENCE_NAMES = { ranch_fence_20 = true, phoenix_fence_segment = true, phoenix_corner_post = true }
-local SEARCHED = "attribute FenceCollider, names ranch_fence_20 / phoenix_fence_segment / phoenix_corner_post / GatePost"
-local SIDE_N = { back = Vector3.new(0, 0, -1), front = Vector3.new(0, 0, 1), left = Vector3.new(1, 0, 0), right = Vector3.new(-1, 0, 0) } -- inward normals
-local function r1(x)
-	return math.floor(x * 10 + 0.5) / 10
+local SEARCHED = "Plot_<i>.Jar Wall_* / DoorLintel and LockBarrier.Stopper"
+local function polar(r, deg)
+	local a = math.rad(deg)
+	return Vector3.new(r * math.cos(a), 0, r * math.sin(a))
 end
-local function r2(v)
-	return { r1(v.X), r1(v.Z) }
+local function angleOf(v)
+	return math.deg(math.atan2(v.Z, v.X))
 end
--- Fence geometry of plot i in the Base frame: segments per side {s, len, line, name}, posts, gate stand-ins.
-local function fenceGeometry(i)
+local function angleDiff(a, b)
+	return (a - b + 180) % 360 - 180
+end
+-- Jar 1 of plot i in the Base frame, from the real parts: walls {name, angle, radius, can_collide}, the glass outer radius, the stopper box.
+local function jarGeometry(i)
 	local plot = plotByIndex[i]
-	local cf, half = frameOf(i)
-	local sides = { back = {}, front = {}, left = {}, right = {} }
-	local posts, stubs, count = {}, {}, 0
-	for _, d in plot:GetDescendants() do
-		if d:IsA("BasePart") and d:FindFirstAncestor("LockBarrier") == nil then
-			local isPost = d.Name == "phoenix_corner_post" or d.Name == "GatePost"
-			if d.Name == "GatePostL" or d.Name == "GatePostR" then
-				local rel = cf:ToObjectSpace(d.CFrame)
-				local ex = math.abs(rel.RightVector.X) * d.Size.X / 2 + math.abs(rel.LookVector.X) * d.Size.Z / 2
-				table.insert(stubs, { x = rel.Position.X, z = rel.Position.Z, ex = ex })
-			elseif isPost or d:GetAttribute("FenceCollider") or FENCE_NAMES[d.Name] then
-				local rel = cf:ToObjectSpace(d.CFrame)
-				local sz = d.Size
-				local ex = math.abs(rel.RightVector.X) * sz.X / 2 + math.abs(rel.UpVector.X) * sz.Y / 2 + math.abs(rel.LookVector.X) * sz.Z / 2
-				local ez = math.abs(rel.RightVector.Z) * sz.X / 2 + math.abs(rel.UpVector.Z) * sz.Y / 2 + math.abs(rel.LookVector.Z) * sz.Z / 2
-				local c = rel.Position
-				if isPost or math.max(ex, ez) < 3 then
-					local dup = false
-					for _, p in posts do
-						dup = dup or (math.abs(p.x - c.X) < 1.5 and math.abs(p.z - c.Z) < 1.5)
-					end
-					if not dup then
-						table.insert(posts, { x = c.X, z = c.Z, ex = ex, ez = ez })
-					end
-				elseif d.Size.Y > 2 or d:GetAttribute("FenceCollider") then
-					local alongX = ex >= ez
-					local side = if alongX then (if c.Z > 0 then "back" else "front") else (if c.X < 0 then "left" else "right")
-					local s, line, len = if alongX then c.X else c.Z, if alongX then c.Z else c.X, 2 * (if alongX then ex else ez)
-					local dup = false
-					for _, o in sides[side] do
-						dup = dup or (math.abs(o.s - s) < 1.5 and math.abs(o.line - line) < 1.5)
-					end
-					if not dup then
-						count += 1
-						table.insert(sides[side], { s = s, len = len, line = line, name = d.Name })
-					end
-				end
+	local cf = frameOf(i)
+	local jar = plot:FindFirstChild("Jar")
+	local walls, outer, n = {}, 0, 0
+	if jar then
+		for _, w in jar:GetChildren() do
+			if w:IsA("BasePart") and (string.match(w.Name, "^Wall_%d+$") or w.Name == "DoorLintel") then
+				local rel = cf:ToObjectSpace(w.CFrame)
+				local c = Vector3.new(rel.Position.X, 0, rel.Position.Z)
+				local thick = math.min(w.Size.X, w.Size.Z)
+				table.insert(walls, { name = w.Name, angle = angleOf(c), radius = c.Magnitude, can_collide = w.CanCollide, lintel = w.Name == "DoorLintel" })
+				outer += c.Magnitude + thick / 2
+				n += 1
 			end
 		end
 	end
-	local lines = {}
-	for side, list in sides do
-		table.sort(list, function(a, b)
-			return a.s < b.s
-		end)
-		if #list > 0 then
-			local sum = 0
-			for _, sg in list do
-				sum += sg.line
-			end
-			lines[side] = sum / #list
-		else
-			lines[side] = (if side == "back" or side == "right" then 1 else -1) * (half - 0.5)
-		end
+	table.sort(walls, function(a, b)
+		return a.angle < b.angle
+	end)
+	local stopper
+	local s = plot.LockBarrier:FindFirstChild("Stopper")
+	if s and s:IsA("BasePart") then
+		local rel = cf:ToObjectSpace(s.CFrame)
+		local ex = math.abs(rel.RightVector.X) * s.Size.X / 2 + math.abs(rel.UpVector.X) * s.Size.Y / 2 + math.abs(rel.LookVector.X) * s.Size.Z / 2
+		local ez = math.abs(rel.RightVector.Z) * s.Size.X / 2 + math.abs(rel.UpVector.Z) * s.Size.Y / 2 + math.abs(rel.LookVector.Z) * s.Size.Z / 2
+		stopper = { x = rel.Position.X, half = ex, zOuter = rel.Position.Z - ez, zInner = rel.Position.Z + ez }
 	end
-	-- LockBarrier panels in the Base frame: side -> { line, lo, hi } (Front / Back along X at -z / +z, Left / Right along Z at -x / +x)
-	local panels = {}
-	local barrier = plot:FindFirstChild("LockBarrier")
-	if barrier then
-		for _, pnl in barrier:GetChildren() do
-			if pnl:IsA("BasePart") then
-				local rel = cf:ToObjectSpace(pnl.CFrame)
-				local sz = pnl.Size
-				local ex = math.abs(rel.RightVector.X) * sz.X / 2 + math.abs(rel.UpVector.X) * sz.Y / 2 + math.abs(rel.LookVector.X) * sz.Z / 2
-				local ez = math.abs(rel.RightVector.Z) * sz.X / 2 + math.abs(rel.UpVector.Z) * sz.Y / 2 + math.abs(rel.LookVector.Z) * sz.Z / 2
-				local c = rel.Position
-				if ex >= ez then
-					panels[if c.Z > 0 then "back" else "front"] = { line = c.Z, lo = c.X - ex, hi = c.X + ex, thick = 2 * ez }
-				else
-					panels[if c.X < 0 then "left" else "right"] = { line = c.X, lo = c.Z - ez, hi = c.Z + ez, thick = 2 * ex }
-				end
-			end
-		end
-	end
-	return { sides = sides, lines = lines, posts = posts, stubs = stubs, count = count, half = half, cf = cf, panels = panels }
+	return {
+		walls = walls,
+		count = n,
+		glassOuter = if n > 0 then outer / n else WL.jarRadius(1) + WL.JAR_WALL,
+		inner = WL.jarRadius(1),
+		stopper = stopper,
+	}
 end
--- plot-local point of a side: tangent coordinate s, `out` studs outside the fence centre plane
-local function sidePoint(g, side, s, out)
-	local n = SIDE_N[side]
-	local alongX = side == "back" or side == "front"
-	local p = if alongX then Vector3.new(s, 0, g.lines[side]) else Vector3.new(g.lines[side], 0, s)
-	return p - n * out
-end
-local function sidePlane(g, side)
-	local n = SIDE_N[side]
-	return { n = n, d = n:Dot(sidePoint(g, side, 0, 0)) }
+-- Wall nearest plot-local angle `deg` (DoorLintel excluded) and, for a joint, its neighbour on the side of `deg`.
+local function wallSpot(g, deg, joint)
+	local best, bestK, bestD = nil, nil, math.huge
+	for k, w in g.walls do
+		local d = math.abs(angleDiff(w.angle, deg))
+		if not w.lintel and d < bestD then
+			best, bestK, bestD = w, k, d
+		end
+	end
+	if not best then
+		return nil
+	end
+	if not joint then
+		return best.angle, best.name
+	end
+	local m = #g.walls
+	local side = if angleDiff(deg, best.angle) >= 0 then 1 else -1
+	local nb = g.walls[(bestK - 1 + side) % m + 1]
+	if not nb or nb.lintel then
+		return nil
+	end
+	return best.angle + angleDiff(nb.angle, best.angle) / 2, best.name .. "|" .. nb.name
 end
 
 local checkStart
--- One attempt: from startL to targetL (plot-local x, z), MoveTo for up to 4 s. planes = {{n, d}} measure penetration (min over the planes).
-local function attempt(i, label, startL, targetL, jump, planes)
+-- One attempt: from startL to targetL (plot-local x, z), MoveTo for up to 4 s. Penetration = studs the root centre is inside the glass's outer surface.
+local function attempt(i, g, label, startL, targetL, jump)
 	local cf = frameOf(i)
 	local y = 4
 	teleport(cf * CFrame.lookAt(Vector3.new(startL.X, y, startL.Z), Vector3.new(targetL.X, y, targetL.Z)))
@@ -421,11 +415,7 @@ local function attempt(i, label, startL, targetL, jump, planes)
 		end
 		last = pos
 		local lp = cf:PointToObjectSpace(pos)
-		local pen = math.huge
-		for _, pl in planes do
-			pen = math.min(pen, pl.n:Dot(lp) - pl.d)
-		end
-		rec.max_penetration = math.max(rec.max_penetration, pen)
+		rec.max_penetration = math.max(rec.max_penetration, g.glassOuter - Vector3.new(lp.X, 0, lp.Z).Magnitude)
 		if insideNow(i) and not rec.ever_inside then
 			rec.ever_inside, rec.first_inside_s, insideAt = true, r1(t), t
 		end
@@ -447,13 +437,12 @@ local function attempt(i, label, startL, targetL, jump, planes)
 	return rec
 end
 -- Runs the attempt list builder for one check and sets the result. Attempts (sorted by pri, then build order) that do not fit the budget are skipped.
-local cornerJunctions -- set by the corner builders: per-corner fence / panel geometry for the report
 local function runCheck(name, i, build)
 	checkStart = os.clock()
 	local deadline = checkStart + ATTEMPT_BUDGET
-	local okG, g = pcall(fenceGeometry, i)
-	if not okG or g.count == 0 then
-		set(name, nil, "no fence parts found under the plot (searched: " .. SEARCHED .. ")" .. (if okG then "" else " " .. tostring(g)))
+	local okG, g = pcall(jarGeometry, i)
+	if not okG or g.count == 0 or not g.stopper then
+		set(name, nil, "jar geometry not found under the plot (searched: " .. SEARCHED .. ")" .. (if okG then "" else " " .. tostring(g)))
 		return
 	end
 	local list = build(g)
@@ -468,7 +457,7 @@ local function runCheck(name, i, build)
 		return x.idx < y.idx
 	end)
 	if #list == 0 then
-		set(name, nil, "fence geometry incomplete (needed sides / gate posts not found); fence parts: " .. tostring(g.count))
+		set(name, nil, "jar geometry incomplete (no glass spot found); glass parts: " .. tostring(g.count))
 		return
 	end
 	local recs, skipped, anyIn = {}, 0, false
@@ -476,14 +465,13 @@ local function runCheck(name, i, build)
 		if os.clock() + 4.7 > deadline then -- an attempt takes up to 0.3 + 4 s plus the reset
 			skipped += 1
 		else
-			local okA, rec = pcall(attempt, i, a.label, a.start, a.target, a.jump, a.planes)
+			local okA, rec = pcall(attempt, i, g, a.label, a.start, a.target, a.jump)
 			if okA then
+				rec.wall = a.wall
 				table.insert(recs, rec)
-				rec.strict = a.strict
-				anyIn = anyIn or rec.ever_inside or (a.strict and rec.max_penetration > 0)
+				anyIn = anyIn or rec.ever_inside or rec.max_penetration > 0
 				if rec.ever_inside or rec.ended_inside then
-					local cf, half = frameOf(i)
-					teleport(cf * CFrame.new(0, 4, -(half + 8)))
+					teleport(outsidePoint(i))
 				end
 			else
 				table.insert(recs, { label = a.label, error = tostring(rec) })
@@ -494,209 +482,84 @@ local function runCheck(name, i, build)
 	for _, r in recs do
 		ran += if r.error then 0 else 1
 	end
-	local info = { attempts = recs, skipped_for_time = skipped, fence_parts = g.count, seconds = r1(os.clock() - checkStart) }
-	if cornerJunctions then
-		info.junctions = cornerJunctions
+	local solid = 0
+	for _, w in g.walls do
+		solid += if w.can_collide then 1 else 0
 	end
+	local info = {
+		attempts = recs,
+		skipped_for_time = skipped,
+		glass_parts = g.count,
+		glass_colliding = solid,
+		glass_outer_radius = r1(g.glassOuter),
+		stopper = { x = r1(g.stopper.x), half_width = r1(g.stopper.half), z_outer = r1(g.stopper.zOuter), z_inner = r1(g.stopper.zInner) },
+		seconds = r1(os.clock() - checkStart),
+	}
 	if skipped > 0 then
 		info.note = skipped .. " attempt(s) did not fit the " .. ATTEMPT_BUDGET .. " s budget (n/a)"
 	end
 	set(name, if anyIn then false elseif ran > 0 then true else nil, info)
-	local cf, half = frameOf(i)
-	teleport(cf * CFrame.new(0, 4, -(half + 8)))
+	teleport(outsidePoint(i))
 end
 
-local function jumpOverList(g)
+-- The doorway from the bridge: straight lanes at the stopper centre and its two seams with the glass, 45 degree approaches at the seams.
+local function doorList(g, jump)
+	local st = g.stopper
 	local list = {}
-	local sides = { "back" }
-	for _, side in { "left", "right" } do
-		if #g.sides[side] > 0 and #sides < 2 then
-			table.insert(sides, side)
-		end
+	local tag = if jump then " jump" else ""
+	local seam = math.max(st.half - 1.6, 0)
+	local zStart, zIn = st.zOuter - 4, st.zInner + 12
+	for k, x in { st.x, st.x - seam, st.x + seam } do
+		local nm = if k == 1 then "centre" elseif k == 2 then "left seam" else "right seam"
+		table.insert(list, { label = "door " .. nm .. " straight" .. tag, start = Vector3.new(x, 0, zStart), target = Vector3.new(x, 0, zIn), jump = jump, pri = if k == 1 then 1 else 2 })
 	end
-	for k, side in sides do
-		if #g.sides[side] > 0 then
-			local pl = { sidePlane(g, side) }
-			local target = sidePoint(g, side, 0, -10)
-			table.insert(list, { label = side .. " jump 6 out", start = sidePoint(g, side, 0, 6), target = target, jump = true, planes = pl })
-			if k == 1 then
-				table.insert(list, { label = side .. " running jump 16 out", start = sidePoint(g, side, 0, 16), target = target, jump = true, planes = pl })
-			end
-		end
-	end
-	return list
-end
-local function pushList(g)
-	local list = {}
-	for _, side in { "back", "left", "right" } do
-		local segs = g.sides[side]
-		if #segs > 0 then
-			local pl = { sidePlane(g, side) }
-			local mid = segs[1]
-			for _, sg in segs do
-				if sg.len > mid.len + 0.5 then
-					mid = sg
-				end
-			end
-			local jointS, jointD = nil, math.huge
-			for k = 1, #segs - 1 do
-				local b = (segs[k].s + segs[k].len / 2 + segs[k + 1].s - segs[k + 1].len / 2) / 2
-				if math.abs(b) < jointD then
-					jointS, jointD = b, math.abs(b)
-				end
-			end
-			local function add(label, s, pri)
-				table.insert(list, { label = label, start = sidePoint(g, side, s, 4), target = sidePoint(g, side, s, -8), jump = false, planes = pl, pri = pri })
-			end
-			add(side .. " panel middle (" .. mid.name .. ")", mid.s, 3)
-			if jointS then
-				add(side .. " joint", jointS, 1) -- panel joints first
-			end
-		end
-	end
-	local front = g.sides.front
-	local pl = { sidePlane(g, "front") }
-	for _, sign in { -1, 1 } do
-		local best
-		for _, sg in front do
-			if sg.s * sign > 0 and (not best or math.abs(sg.s) < math.abs(best.s)) then
-				best = sg
-			end
-		end
-		if best then
-			table.insert(list, {
-				label = "gate-side segment " .. (if sign < 0 then "left" else "right") .. " (" .. best.name .. ")",
-				start = sidePoint(g, "front", best.s, 4), target = sidePoint(g, "front", best.s, -8), jump = false, planes = pl, pri = 2, -- gate-side segments second
-			})
-		end
-	end
-	return list
-end
-local function squeezeList(g)
-	local list = {}
-	local front = g.lines.front
-	local pl = { sidePlane(g, "front") }
-	local inner, outerX = {}, {}
-	for _, st in g.stubs do
-		local sign = if st.x < 0 then -1 else 1
-		inner[sign] = math.abs(st.x) - st.ex
-		outerX[sign] = math.abs(st.x) + st.ex
-	end
-	for _, sign in { -1, 1 } do
-		if not inner[sign] then -- no GatePost stand-ins: the fence segments' inner ends are the opening
-			local best
-			for _, sg in g.sides.front do
-				if sg.s * sign > 0 and (not best or math.abs(sg.s) < math.abs(best.s)) then
-					best = sg
-				end
-			end
-			if best then
-				inner[sign] = math.abs(best.s) - best.len / 2
-			end
-		end
-	end
-	for _, sign in { -1, 1 } do
-		local nm = if sign < 0 then "left" else "right"
-		if inner[sign] then
-			local x = sign * inner[sign]
-			local function add(label, from, to, jump, pri)
-				table.insert(list, { label = label, start = from, target = to, jump = jump, planes = pl, pri = pri })
-			end
-			for _, jump in { false, true } do
-				local tag = if jump then " jump" else ""
-				add("gate " .. nm .. " post inner edge straight" .. tag, Vector3.new(x, 0, front - 6), Vector3.new(x, 0, front + 10), jump, if jump then 2 else 1) -- both seams straight, then jumping
-				for _, from in { -1, 1 } do -- 45 degrees, coming from the opening side (from = sign * -1) or from the post side
-					local d = Vector3.new(from, 0, 1).Unit
-					local aim = Vector3.new(x, 0, front)
-					add("gate " .. nm .. " post inner edge diag from " .. (if from == -sign then "opening" else "post") .. tag, aim - d * (6 / d.Z), aim + d * 10, jump, if jump then 5 else 4)
-				end
-			end
-		end
-	end
-	-- Bug #8 follow-up (shot 189): the jump from (post.x, front - 6) at the gate-side phoenix_corner_post got +1.7 past the front fence line (the thin
-	-- LockBarrier panel was pierced by the post). FIRST in the list and STRICT: it fails on any root past the fence line (max_penetration > 0), not
-	-- only on ever_inside. The mirror (x = -post.x, the left gate segment's post) goes right after it.
-	for _, post in g.posts do
-		if math.abs(post.z - front) < 4 and post.x > 0 then
-			for k, x in { post.x, -post.x } do
+	if jump then
+		table.insert(list, { label = "door running jump 16 out", start = Vector3.new(st.x, 0, st.zOuter - 16), target = Vector3.new(st.x, 0, zIn), jump = true, pri = 1 })
+	else
+		for _, sign in { -1, 1 } do
+			local aim = Vector3.new(st.x + sign * seam, 0, st.zOuter)
+			for _, from in { -1, 1 } do -- from = -sign: coming from the opening side; from = sign: from the glass side
+				local d = Vector3.new(-from, 0, 1).Unit
 				table.insert(list, {
-					label = (if k == 1 then "phoenix_corner_post jump" else "left gate segment post jump (mirror)") .. " x=" .. r1(x),
-					start = Vector3.new(x, 0, front - 6), target = Vector3.new(x, 0, front + 10), jump = true, planes = pl, pri = 0, strict = true,
+					label = "door " .. (if sign < 0 then "left" else "right") .. " seam diag from " .. (if from == -sign then "opening" else "glass"),
+					start = aim - d * (4 / d.Z), target = aim + d * 12, jump = false, pri = 3,
 				})
 			end
 		end
 	end
-	for _, post in g.posts do
-		if math.abs(post.z - front) < 4 then
+	return list
+end
+local function doorWalkList(g)
+	return doorList(g, false)
+end
+local function doorJumpList(g)
+	return doorList(g, true)
+end
+-- The glass round the jar: a wall middle and a joint on each side, a middle at the back-left; start 4 studs outside, aim 8 studs inside.
+local GLASS_SPOTS = { { 0, false, 1 }, { 0, true, 1 }, { 180, false, 2 }, { 180, true, 2 }, { 150, false, 3 } }
+local function glassList(g, jump)
+	local list = {}
+	local tag = if jump then " jump" else ""
+	for _, spot in GLASS_SPOTS do
+		local deg, name = wallSpot(g, spot[1], spot[2])
+		if deg then
 			table.insert(list, {
-				label = "phoenix_corner_post straight", start = Vector3.new(post.x, 0, front - 6),
-				target = Vector3.new(post.x, 0, front + 10), jump = false, planes = pl, pri = 2,
+				label = "glass " .. (if spot[2] then "joint" else "middle") .. " at " .. r1(deg % 360) .. " deg" .. tag,
+				wall = name,
+				start = polar(g.glassOuter + 4, deg),
+				target = polar(g.inner - 8, deg),
+				jump = jump,
+				pri = spot[3],
 			})
 		end
 	end
 	return list
 end
--- Corner attempts (#277 + LockBarrier panels): where the fence meshes meet the thin panels, at all four corners.
-local CORNERS = { { "back", "left" }, { "back", "right" }, { "front", "left" }, { "front", "right" } }
-local function seamS(g, side, cornerS) -- tangent coordinate of the fence end on `side` nearest the corner at tangent cornerS
-	local best, bestD = nil, math.huge
-	for _, sg in g.sides[side] do
-		for _, e in { sg.s - sg.len / 2, sg.s + sg.len / 2 } do
-			local d = math.abs(e - cornerS)
-			if d < bestD then
-				best, bestD = e, d
-			end
-		end
-	end
-	if best and bestD <= 4 then
-		return best
-	end
-	return cornerS - (if cornerS > 0 then 1 else -1) * 0.8
+local function glassPushList(g)
+	return glassList(g, false)
 end
-local function cornerAttempts(g, jump)
-	local list = {}
-	cornerJunctions = {}
-	local tag = if jump then " jump" else ""
-	for _, v in CORNERS do
-		local a, b = v[1], v[2] -- a along X (back / front), b along Z (left / right)
-		local corner = Vector3.new(g.lines[b], 0, g.lines[a])
-		local inward = (SIDE_N[a] + SIDE_N[b]).Unit
-		local planes = { sidePlane(g, a), sidePlane(g, b) }
-		local cname = a .. "-" .. b
-		table.insert(list, { pri = 1, label = cname .. " corner diag" .. tag, start = corner - inward * 5, target = corner + inward * 10, jump = jump, planes = planes })
-		local sa, sb = seamS(g, a, corner.X), seamS(g, b, corner.Z)
-		table.insert(list, { pri = 2, label = cname .. " seam on " .. a .. " at s=" .. r1(sa) .. tag, start = sidePoint(g, a, sa, 4), target = sidePoint(g, a, sa, -8), jump = jump, planes = planes })
-		table.insert(list, { pri = 2, label = cname .. " seam on " .. b .. " at s=" .. r1(sb) .. tag, start = sidePoint(g, b, sb, 4), target = sidePoint(g, b, sb, -8), jump = jump, planes = planes })
-		local pa, pb = g.panels[a], g.panels[b]
-		local j = { fence_corner = r2(corner), fence_end_on = { [a] = r1(sa), [b] = r1(sb) } }
-		if pa and pb then
-			local pc = Vector3.new(pb.line, 0, pa.line)
-			j.panel_corner = r2(pc)
-			-- gap between the panel's end and the fence end it should meet, along each side (negative = overlap)
-			local endA = if corner.X > 0 then pa.hi else pa.lo
-			local endB = if corner.Z > 0 then pb.hi else pb.lo
-			j.panel_end_vs_fence_end = { [a] = r1(math.abs(sa) - math.abs(endA)), [b] = r1(math.abs(sb) - math.abs(endB)) }
-			j.panel_vs_fence_line = { [a] = r1(pa.line - g.lines[a]), [b] = r1(pb.line - g.lines[b]) }
-			if (pc - corner).Magnitude > 0.75 then
-				table.insert(list, { pri = 3, label = cname .. " panel-corner diag" .. tag, start = pc - inward * 5, target = pc + inward * 10, jump = jump, planes = planes })
-			end
-		else
-			j.panel_corner = "no LockBarrier panels on " .. a .. " / " .. b
-		end
-		cornerJunctions[cname] = j
-	end
-	return list
-end
-local function cornerList(g)
-	return cornerAttempts(g, false)
-end
-local function cornerJumpList(g)
-	return cornerAttempts(g, true)
-end
-
-local function charChecks(i)
-	local builders = { fence_jump_over = jumpOverList, fence_push_through = pushList, gate_post_squeeze = squeezeList, corner_squeeze = cornerList, corner_jump = cornerJumpList }
-	runCheck(PART, i, builders[PART])
+local function glassJumpList(g)
+	return glassList(g, true)
 end
 
 local function runWall()
@@ -707,11 +570,12 @@ local function runWall()
 	end
 	lockPlot(foreignIndex, true)
 	placeOutside(foreignIndex)
-	charChecks(foreignIndex)
+	local builders = { door_walk = doorWalkList, door_jump = doorJumpList, glass_push = glassPushList, glass_jump = glassJumpList }
+	runCheck(PART, foreignIndex, builders[PART])
 	lockPlot(foreignIndex, false)
 end
 
--- owner_gate: the owner through the locked gate both ways + carry clearance in the opening (#291 deeper front slab) -------------------
+-- owner_door: the owner through the locked doorway both ways + carry clearance in the doorway -----------------------------------------------
 local function walkTo(i, xL, zL, secs)
 	local cf = frameOf(i)
 	local target = cf:PointToWorldSpace(Vector3.new(xL, 4, zL))
@@ -728,12 +592,12 @@ local function walkTo(i, xL, zL, secs)
 		end
 	end
 	local l = cf:PointToObjectSpace(root.Position)
-	return { end_local = { math.floor(l.X * 10 + 0.5) / 10, math.floor(l.Z * 10 + 0.5) / 10 }, secs = math.floor((os.clock() - t0) * 10 + 0.5) / 10 }
+	return { end_local = { r1(l.X), r1(l.Z) }, secs = r1(os.clock() - t0) }
 end
-local function runOwnerGate()
+local function runOwnerDoor()
 	free()
 	if not ownIndex then
-		set("owner_gate", nil, "the test player owns no plot (no OwnerUserId match)")
+		set("owner_door", nil, "the test player owns no plot (no OwnerUserId match)")
 		return
 	end
 	local i = ownIndex
@@ -741,59 +605,58 @@ local function runOwnerGate()
 	lockPlot(i, true)
 	task.wait(0.2)
 	local lanes, allOk, info = {}, true, { plot = i, owner_group = nil }
-	for _, x in { 0, -4.5, 4.5 } do
-		teleport(cf * CFrame.new(x, 4, -(half + 8)) * CFrame.Angles(0, math.pi, 0))
+	for _, x in { 0, -1.5, 1.5 } do
+		teleport(outsidePoint(i, x))
 		task.wait(0.4)
 		info.owner_group = root.CollisionGroup
-		local rin = walkTo(i, x, -(half - 8), 5)
+		local rin = walkTo(i, x, DOORWAY.zInner + 6, 5) -- inside the jar, short of the pad ring
 		rin.inside = insideNow(i)
 		local rout = walkTo(i, x, -(half + 8), 5)
-		local lz = cf:PointToObjectSpace(root.Position).Z
-		rout.outside = (not insideNow(i)) and lz < -(half + 2)
+		local lz = localPos(i).Z
+		rout.outside = (not trappedNow(i)) and lz < DOOR.zOuter - 2
 		lanes["x=" .. x] = { walk_in = rin, walk_out = rout }
 		allOk = allOk and rin.inside and rout.outside
 	end
 	info.lanes = lanes
-	-- carry clearance: parts colliding with the owner's character group in the gate opening
+	-- carry clearance: parts colliding with the owner's character group in the doorway
 	local op = OverlapParams.new()
 	op.FilterType = Enum.RaycastFilterType.Exclude
 	op.FilterDescendantsInstances = { char }
 	op.RespectCanCollide = true
 	op.CollisionGroup = root.CollisionGroup
-	local box = cf * CFrame.new(0, 4.5, -half)
+	local depth = DOORWAY.zInner - DOORWAY.zOuter + 4
+	local box = cf * CFrame.new(0, 4.5, (DOORWAY.zOuter + DOORWAY.zInner) / 2)
 	local hits = {}
-	for _, part in workspace:GetPartBoundsInBox(box, Vector3.new(7, 7, 8), op) do
+	for _, part in workspace:GetPartBoundsInBox(box, Vector3.new(7, 7, depth), op) do
 		if part.CanCollide and PhysicsService:CollisionGroupsAreCollidable(part.CollisionGroup, root.CollisionGroup) then
 			table.insert(hits, part:GetFullName() .. " [" .. part.CollisionGroup .. "]")
 		end
 	end
-	info.carry_clearance = { blocking = hits, box = "7 x 7 x 8 studs at the gate (plot-local x -3.5..3.5, y 1..8, z front-4..front+4)" }
+	info.carry_clearance = {
+		blocking = hits,
+		box = string.format("7 x 7 x %.1f studs through the doorway (plot-local x -3.5..3.5, y 1.5..8.5, z %.1f..%.1f)", depth, DOORWAY.zOuter - 2, DOORWAY.zInner + 2),
+	}
 	lockPlot(i, false)
-	set("owner_gate", allOk and #hits == 0, info)
+	set("owner_door", allOk and #hits == 0, info)
 end
 
--- leave_on_lock / leaves_freely: the barrier is one-way and nobody is ever moved. The character stands inside plot i (probe setup teleport, or it was
--- there when the owner locked: `lockAfter`), has the PlotLeaver group, walks out through the gate and ends outside the front slab with no sample step
--- > 3 studs (a teleport / throw would be 10+), then walks back in and is blocked (never trappedNow again).
+-- leave_on_lock / leaves_freely: the stopper is one-way and nobody is ever moved. The character stands on the spawn spot inside jar i (probe setup
+-- teleport, or it was there when the owner locked: `lockAfter`), has the PlotLeaver group, walks out through the door and ends clear of the jar and
+-- the doorway with no sample step > 3 studs (a teleport / throw would be 10+), then walks back in and is blocked (never trapped again).
 local function leaveWalk(i, lockAfter)
-	local cf, half = frameOf(i)
-	local frontZ = mods.WorldLayout.frontBarrier().zOuter
-	local function trappedNow()
-		local p = localPos(i)
-		return Guard.trapped(p.X, p.Y, p.Z, half, frontZ)
-	end
+	local cf = frameOf(i)
 	lockPlot(i, not lockAfter)
-	teleport(cf * CFrame.new(0, 4, 0)) -- probe setup: the character is in the plot
+	teleport(cf * CFrame.new(0, 4, SPAWN_Z)) -- probe setup: the character is in the jar
 	task.wait(0.4)
-	local startedInside = trappedNow()
+	local startedInside = trappedNow(i)
 	if lockAfter then
 		lockPlot(i, true) -- the owner locks while the character stands inside
 		task.wait(0.4)
 	end
 	local groupInside = root.CollisionGroup
-	local out = cf:PointToWorldSpace(Vector3.new(0, 4, frontZ - 10))
+	local out = cf:PointToWorldSpace(Vector3.new(0, 4, DOOR.zOuter - 10))
 	local t0, last, maxStep, samples = os.clock(), root.Position, 0, 0
-	while os.clock() - t0 < 14 and trappedNow() do
+	while os.clock() - t0 < 14 and trappedNow(i) do
 		hum:MoveTo(out)
 		task.wait(0.05)
 		maxStep = math.max(maxStep, (root.Position - last).Magnitude)
@@ -801,7 +664,7 @@ local function leaveWalk(i, lockAfter)
 		samples += 1
 	end
 	local walkSecs = os.clock() - t0
-	local outside = not trappedNow()
+	local outside = not trappedNow(i)
 	t0 = os.clock()
 	while os.clock() - t0 < 1 do -- settle past the exit margin so the group flips back
 		hum:MoveTo(out)
@@ -811,10 +674,11 @@ local function leaveWalk(i, lockAfter)
 	end
 	local groupOutside = root.CollisionGroup
 	local back = walkIn(i, 4, false)
-	local okAll = startedInside and groupInside == Guard.LEAVER_GROUP and outside and maxStep <= 3 and not back.ever_inside and not trappedNow()
+	local okAll = startedInside and groupInside == Guard.LEAVER_GROUP and outside and maxStep <= 3 and not back.ever_inside and not trappedNow(i)
 	return okAll, {
 		started_inside = startedInside, group_inside = groupInside, group_outside = groupOutside, outside = outside, max_step = r1(maxStep),
-		samples = samples, walk_secs = r1(walkSecs), reentered = back.ever_inside, locked_after_entering = lockAfter, half = half,
+		samples = samples, walk_secs = r1(walkSecs), reentered = back.ever_inside, locked_after_entering = lockAfter, jar_radius = WL.jarRadius(1),
+		door_z_outer = r1(DOOR.zOuter),
 	}
 end
 local function runLeaveOnLock()
@@ -833,8 +697,8 @@ local function run()
 		runLeaveOnLock()
 		return
 	end
-	if PART == "owner_gate" then
-		runOwnerGate()
+	if PART == "owner_door" then
+		runOwnerDoor()
 		return
 	end
 	if PART ~= "base" then
@@ -878,6 +742,7 @@ local function run()
 	-- ---- c) non-owner blocked ----
 	local panelsInfo
 	if foreignIndex then
+		local cf = frameOf(foreignIndex)
 		lockPlot(foreignIndex, true)
 		placeOutside(foreignIndex)
 		local r = walkIn(foreignIndex, 4, false)
@@ -907,7 +772,7 @@ local function run()
 		else
 			set("non_owner_blocked", false, r)
 		end
-		-- ---- d) leaves freely (one-way barrier, never moved) ----
+		-- ---- d) leaves freely (one-way stopper, never moved) ----
 		local lfOk, lfInfo = leaveWalk(foreignIndex, false)
 		set("leaves_freely", lfOk, lfInfo)
 		-- ---- e) thrown slime ----
@@ -938,11 +803,12 @@ local function run()
 			slime.Material = body.Material
 		end
 		slime.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.1, 1, 1)
+		local _, half = frameOf(foreignIndex)
 		teleport(cf * CFrame.new(0, 4, -(half + 40))) -- the character out of the way
-		slime.CFrame = cf * CFrame.new(-6, 6, -(half + 12))
+		slime.CFrame = cf * CFrame.new(0, 6, DOOR.zOuter - 14)
 		slime.Parent = workspace
 		table.insert(made, slime)
-		slime.AssemblyLinearVelocity = cf:VectorToWorldSpace(Vector3.new(4, 12, 38)) -- lobbed at the entrance panel
+		slime.AssemblyLinearVelocity = cf:VectorToWorldSpace(Vector3.new(0, 28, 50)) -- lobbed from the bridge at the stopper, ~mid height
 		task.wait(3)
 		local bestGap, bestPanel = math.huge, nil
 		local radius = slime.Size.Y / 2

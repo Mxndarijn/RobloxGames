@@ -70,14 +70,14 @@ export type DailyQuest = {
 export type DexMilestone = { count: number, reward: number, bonus: number }
 
 -- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15). `set` = rarity tier whose SlimeDex set must be
--- `threshold` complete. Colours are RGB 0..255; `fence` multiplies the fence / gate mesh colours (white = none).
+-- `threshold` complete. Colours are RGB 0..255; `trim` multiplies the jar's cork and trim colours (white = none).
 export type PlotSkin = {
 	id: string, -- permanent save id; never rename
 	name: string,
 	set: number?, -- Config.RARITIES tier; nil = always unlocked
 	threshold: number?,
 	floor: { color: { number }, material: string }?, -- plot Base; nil = leave as built
-	fence: { number }?,
+	trim: { number }?,
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
 }
 
@@ -336,8 +336,8 @@ local GOALS: { Goal } = {
 		id = "Pads",
 		title = "Unlock <n> pad<s>",
 		stat = "pads",
-		targets = { 5, 6, 7, 8 },
-		rewards = { 200, 1000, 5000, 20000 },
+		targets = { 6, 8, 16, 24, 32 },
+		rewards = { 500, 5000, 100000, 10000000, 1000000000 },
 	},
 	{
 		id = "Earn",
@@ -437,7 +437,7 @@ local PLOT_SKINS: { PlotSkin } = {
 		set = 1,
 		threshold = 0.75,
 		floor = { color = { 112, 150, 72 }, material = "Grass" },
-		fence = { 255, 214, 196 },
+		trim = { 255, 214, 196 },
 		decor = "plot_skin_mushroom",
 	},
 	{
@@ -446,7 +446,7 @@ local PLOT_SKINS: { PlotSkin } = {
 		set = 2,
 		threshold = 0.75,
 		floor = { color = { 224, 142, 172 }, material = "Sand" },
-		fence = { 255, 190, 214 },
+		trim = { 255, 190, 214 },
 		decor = "plot_skin_candy",
 	},
 	{
@@ -455,7 +455,7 @@ local PLOT_SKINS: { PlotSkin } = {
 		set = 3,
 		threshold = 0.75,
 		floor = { color = { 148, 124, 190 }, material = "Slate" },
-		fence = { 214, 196, 255 },
+		trim = { 214, 196, 255 },
 		decor = "plot_skin_crystal",
 	},
 }
@@ -600,8 +600,8 @@ for _, skin in PLOT_SKINS do
 		table.freeze(skin.floor.color)
 		table.freeze(skin.floor)
 	end
-	if skin.fence then
-		table.freeze(skin.fence)
+	if skin.trim then
+		table.freeze(skin.trim)
 	end
 	table.freeze(skin)
 end
@@ -625,6 +625,17 @@ end
 -- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
 -- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
 local SLIME_MOVE_SPEED_MULT = 0.65
+-- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). Row f prices floor f's pads: its first pad you
+-- buy costs `firstPadCost`, every next one on that floor `growth` times the one before. Floor 1's first bought pad is
+-- pad PADS_START + 1; on a higher floor it is the floor's first pad, so its price is also the price of the new floor.
+-- Adding a row adds a floor.
+local PADS_PER_FLOOR = 8
+local BASE_FLOORS = table.freeze({
+	table.freeze({ firstPadCost = 100, growth = 2.5 }),
+	table.freeze({ firstPadCost = 25_000, growth = 1.6 }),
+	table.freeze({ firstPadCost = 2_500_000, growth = 1.6 }),
+	table.freeze({ firstPadCost = 250_000_000, growth = 1.6 }),
+})
 local SPAWN_INTERVAL = 4 -- seconds between fountain drops; Slime Rain keeps this pace
 local RITUAL_MIN_PLAYERS = 2 -- Config.RITUAL.MIN_PLAYERS; also the number of stand spots
 local WILD_BASE_LIFETIME = 75 -- seconds at the old pace
@@ -655,9 +666,9 @@ local Config = {
 	-- Economy
 	STARTING_CASH = 25,
 	PADS_START = 4,
-	PADS_MAX = 8, -- design MVP: 8 pads per plot
-	PAD_BASE_COST = 100,
-	PAD_COST_GROWTH = 2.5,
+	PADS_PER_FLOOR = PADS_PER_FLOOR,
+	BASE_FLOORS = BASE_FLOORS,
+	PADS_MAX = #BASE_FLOORS * PADS_PER_FLOOR,
 	SELL_SECONDS = 30, -- a slime sells for this many seconds of its income
 	OFFLINE_RATE = 0.5, -- fraction of income earned while offline
 	OFFLINE_CAP_SECONDS = 2 * 60 * 60, -- offline income stops accruing after 2 h
@@ -922,7 +933,6 @@ local Config = {
 		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
-		TROPHY_GAP = 12, -- studs between trophy pedestals beside the Dex board (a MAX_SIZE boss mesh is about 9 wide)
 	}),
 
 	-- Day / night (DayNight)

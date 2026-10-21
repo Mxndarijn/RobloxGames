@@ -257,7 +257,7 @@ describe("Goals and SlimeDex rewards", function()
 		expect(view[1].done).toBe(false)
 		expect(view[1].nextTitle).toBe(Goals.title(Config.GOALS[1], Config.GOALS[1].targets[5]))
 	end)
-	it("builds the plot DexTierMask from found species tiers", function()
+	it("builds the tier mask from found species tiers", function()
 		local data = Fixtures.data()
 		expect(SpeciesDex.tierMask(data)).toBe(0)
 		data.found.gummy = true -- 1
@@ -391,7 +391,7 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		assert(s, "session")
 		expect(s.data.goals.Catch).toBe(1) -- 1 (8 caught)
 		expect(s.data.goals.Steal).toBe(2) -- 1, 10
-		expect(s.data.goals.Pads).toBe(4)
+		expect(s.data.goals.Pads).toBe(2) -- 6, 8
 		expect(s.data.goals.Earn).toBe(2) -- 10K, 1M
 		expect(s.data.goals.Rebirth).toBe(2) -- 1, 3
 		expect(s.data.speciesRewards).toBe(0) -- no species found

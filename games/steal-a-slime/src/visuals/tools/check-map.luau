@@ -12,7 +12,7 @@
 
 	Asserts: Map.Ground (anchored, CanCollide, covers every plot part),
 	Map.Volcano.Crater, Plot_1..PLOT_COUNT (PlotIndex) with Base,
-	Pad_1..PADS_MAX (PadIndex, exactly PADS_MAX), HomeZone (no collide,
+	Pad_1..PADS_PER_FLOOR (PadIndex, exactly floor 1; upper floors are built at runtime), HomeZone (no collide,
 	invisible), MergeVat, LockButton, Sign, an empty Slimes folder, and every
 	BasePart anchored. Exits 1 on any failure.
 ]]
@@ -96,12 +96,12 @@ for i = 1, Config.PLOT_COUNT do
 		for _, name in { "Base", "MergeVat", "LockButton", "Sign" } do
 			check(plot:FindFirstChild(name), `Plot_{i}.{name}`)
 		end
-		for j = 1, Config.PADS_MAX do
+		for j = 1, Config.PADS_PER_FLOOR do
 			local pad = plot:FindFirstChild(`Pad_{j}`)
 			check(pad and pad:IsA("BasePart"), `Plot_{i}.Pad_{j}`)
 			check(pad and pad:GetAttribute(Constants.PAD_INDEX_ATTRIBUTE) == j, `Plot_{i}.Pad_{j} PadIndex`)
 		end
-		check(plot:FindFirstChild(`Pad_{Config.PADS_MAX + 1}`) == nil, `Plot_{i} has exactly PADS_MAX pads`)
+		check(plot:FindFirstChild(`Pad_{Config.PADS_PER_FLOOR + 1}`) == nil, `Plot_{i} has exactly floor 1's pads`)
 		local zone = plot:FindFirstChild(Constants.HOME_ZONE)
 		check(
 			zone and zone:IsA("BasePart") and not zone.CanCollide and zone.Transparency == 1,

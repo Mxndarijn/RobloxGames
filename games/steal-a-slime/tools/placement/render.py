@@ -29,7 +29,7 @@ OUT = ROOT / "sheets/placement/placement_map.png"
 CLUSTER = {"plaza": "#2a78d6", "entrance": "#eb6834", "farm": "#1baf7a"}
 INK, MUTED, SURFACE = "#2b2b29", "#8a897f", "#fbfaf7"
 GRASS, SAND, GOO, PLOT = "#e6eedb", "#eadfc8", "#cfeedd", "#f1efe9"
-FENCE, FENCE_SHORT, WALL, KEEP = "#8a5a36", "#c79a6b", "#2b2b29", "#d8d6cf"
+GLASS, MOAT, KEEP = "#8fc9cf", "#6ee2aa", "#d8d6cf"
 BORDER, BORDER_ACCENT = "#a9b99a", "#6f7f60"
 
 
@@ -77,12 +77,10 @@ def draw(ax, d, zoom):
 
     for p in d["plots"]:
         ax.add_patch(Polygon(corners(p["rect"]), closed=True, facecolor=PLOT, edgecolor="none", zorder=3))
-        for w in p["walls"]:
-            ax.add_patch(Polygon(corners(w), closed=True, facecolor=WALL, edgecolor="none", zorder=6, alpha=0.35))
-        for f in p["fence"]:
-            color = FENCE if f["length"] >= 20 else FENCE_SHORT
-            ax.add_patch(Polygon(corners(f), closed=True, facecolor=color, edgecolor=SURFACE, lw=0.4, zorder=7))
-        g = p["gate"]
+        j = p["jar"]
+        ax.add_patch(Circle((j["x"], j["z"]), p["moat"], facecolor=MOAT, edgecolor="none", zorder=5, alpha=0.6))
+        ax.add_patch(Circle((j["x"], j["z"]), j["radius"], facecolor=PLOT, edgecolor=GLASS, lw=1.2, zorder=6))
+        g = p["door"]
         ax.plot(g["x"], g["z"], marker="v", ms=4 if zoom else 2.5, color=INK, zorder=8)
         cx, cz = p["rect"]["cx"], p["rect"]["cz"]
         ax.annotate(f"Plot {p['index']}", (cx, cz), fontsize=7 if zoom else 6, color=INK, ha="center", va="center",
@@ -114,19 +112,15 @@ def main():
     draw(axes[0], d, False)
     draw(axes[1], d, True)
     counts = {c: sum(1 for p in d["props"] if p["cluster"] == c) for c in CLUSTER}
-    fence = [f for p in d["plots"] for f in p["fence"]]
-    panels = sum(1 for f in fence if f["length"] >= 20)
-    mode = "uploaded" if d["fenceUploaded"] else "two 10-stud segments each until uploaded"
     axes[0].set_title(f"Whole world: {len(d['props'])} kit props, {len(d['border'])} border pieces\n"
-                      f"{panels} fence panels ({mode}) + {len(fence) - panels} gate-side segments",
+                      f"{len(d['plots'])} plots, each a ground jar in a goo moat",
                       fontsize=10, color=INK, loc="left")
     axes[1].set_title("Plaza edge and plot entrances (r < 140)", fontsize=10, color=INK, loc="left")
     handles = [Patch(facecolor=CLUSTER[c], label=f"{c} props ({counts[c]})") for c in CLUSTER]
     handles += [
-        Patch(facecolor=FENCE, label="ranch_fence_20 panel (20-stud grid)"),
-        Patch(facecolor=FENCE_SHORT, label="10-stud segment beside the gate"),
-        Patch(facecolor=WALL, alpha=0.35, label="invisible wall collider"),
-        Line2D([], [], marker="v", ls="none", color=INK, label="gate slot (20, 14 clear)"),
+        Patch(facecolor=PLOT, edgecolor=GLASS, label="ground jar (glass wall)"),
+        Patch(facecolor=MOAT, alpha=0.6, label="goo moat"),
+        Line2D([], [], marker="v", ls="none", color=INK, label="jar door"),
         Patch(facecolor="none", edgecolor=MUTED, hatch="////", label="entrance corridor (keep clear)"),
         Patch(facecolor=KEEP, edgecolor=MUTED, label="prop spot / showpiece / buy stand"),
         Patch(facecolor=GOO, label="parade lane r64.75-71.25 (gate +Z)"),

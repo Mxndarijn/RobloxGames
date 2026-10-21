@@ -274,7 +274,7 @@ add({
 	count = 1,
 	collision = "colliders",
 	now = "Collider + Frame + PostL/PostR on (Collider widened to the skin's 20.6 x 19.5)",
-	reason = "the board Model keeps its own Collider; MeshSwap widens it to the skin's width and height (20.6 x 19.5; depth and front unchanged) so the overhanging sides are solid. Not a COLLISION entry: the same mesh is the plots' DexMesh (Gojo)",
+	reason = "the board Model keeps its own Collider; MeshSwap widens it to the skin's width and height (20.6 x 19.5; depth and front unchanged) so the overhanging sides are solid. Not a COLLISION entry: the plots used the same mesh for their SlimeDex board (removed)",
 	find = { under = MAP, names = { "^LeaderboardBoard$" } },
 	was = "Collider 15 x 17 x 1.6 under a 20.6 wide mesh: 2.8 studs each side walkable",
 })
@@ -646,49 +646,8 @@ mesh(
 --------------------------------------------------------------------------------------------------------------------
 
 mesh(
-	"plot_fence_20",
-	"ranch_fence_20",
-	"gojo",
-	112,
-	"Box",
-	"Plots",
-	ON_MESH,
-	"22x9x1.8 panel, a flat wall (replaces the old Wall* blocks)"
-)
-mesh("plot_fence_segment", "phoenix_fence_segment", "gojo", 16, "Box", "Plots", ON_MESH, "half panel beside the gate")
-mesh(
-	"plot_gate_corner_post",
-	"phoenix_corner_post",
-	"gojo",
-	8,
-	"Box",
-	"Plots",
-	ON_MESH,
-	"square post at the gate's right stub"
-)
-mesh(
-	"plot_gate_mesh",
-	"phoenix_gate",
-	"gojo",
-	8,
-	"off",
-	"Plots",
-	"mesh off, slot off",
-	"a Box or Hull would close the 14-stud gate opening; the GatePostL/R stand-ins keep the posts"
-)
-parts(
-	"plot_gate_posts",
-	"gojo",
-	16,
-	"colliders",
-	"Plots",
-	{ "^GatePostL$", "^GatePostR$" },
-	"on",
-	"the gate's posts as simple blocks (the gate mesh is decor)"
-)
-mesh(
 	"plot_pad_stand",
-	"phoenix_pad_crate",
+	"goo_cork_stand",
 	"gojo",
 	64,
 	"off",
@@ -696,7 +655,96 @@ mesh(
 	"mesh off, slot off",
 	"the Pad part is the walkable surface"
 )
-parts("plot_pads", "gojo", 64, "colliders", "Plots", { "^Pad_%d+$" }, "on", "the pad is the stand-on surface")
+mesh(
+	"plot_jar_foot",
+	"goo_jar_foot",
+	"gojo",
+	8,
+	"off",
+	"Plots",
+	"mesh off, slot off",
+	"jar 1's wooden foot, goo moat and pool lie on the Base, which is the floor"
+)
+mesh(
+	"plot_jar_glass_look",
+	"goo_jar_glass_1_top",
+	"gojo",
+	8,
+	"off",
+	"Plots",
+	"mesh off, slot off",
+	"jar 1's glass look; the wall segments under it are the colliders"
+)
+mesh(
+	"plot_jar_trim",
+	"goo_jar_trim_1_top",
+	"gojo",
+	8,
+	"off",
+	"Plots",
+	"mesh off, slot off",
+	"ribs, cork stopper and goo ooze; the lid part under it is the roof collider"
+)
+mesh(
+	"plot_jar_mascot",
+	"goo_jar_mascot",
+	"gojo",
+	8,
+	"off",
+	"Plots",
+	"mesh off, slot off",
+	"the slime mascot on the top cork, out of reach"
+)
+mesh(
+	"plot_jar_door",
+	"goo_jar_door",
+	"gojo",
+	8,
+	"off",
+	"Plots",
+	"mesh off, slot off",
+	"the round door frame round the open doorway; the jambs and lintel collide"
+)
+mesh(
+	"plot_jar_door_ring",
+	"goo_jar_door_ring",
+	"gojo",
+	8,
+	"off",
+	"Plots",
+	"mesh off, slot off",
+	"the lock ring round the door frame"
+)
+mesh(
+	"plot_jar_stopper",
+	"goo_jar_stopper",
+	"gojo",
+	16,
+	"off",
+	"Plots",
+	"mesh off, slot off",
+	"the stopper looks (shut and parked); the Stopper box is the lock collider"
+)
+mesh(
+	"plot_lock_button_look",
+	"goo_lock_button",
+	"gojo",
+	8,
+	"off",
+	"Plots",
+	"mesh off, slot off",
+	"the cork button post; the Pedestal under it collides"
+)
+parts(
+	"plot_pads",
+	"gojo",
+	64,
+	"colliders",
+	"Plots",
+	{ "^PadCollider$" },
+	"on",
+	"the round collider under each cork stand is the stand-on surface (the Pad box itself is off)"
+)
 parts(
 	"plot_base",
 	"gojo",
@@ -711,12 +759,55 @@ parts(
 parts(
 	"plot_sign",
 	"gojo",
-	32,
+	8,
 	"colliders",
 	"Plots",
-	{ "^Sign$", "^Beam$", "^PostL$", "^PostR$" },
-	"on (board, beam, two posts)",
-	"plot name sign on posts"
+	{ "^Sign$" },
+	"on",
+	"the plot name board, 0.3 thick, flat on jar 1's glass"
+)
+parts(
+	"plot_jar_glass",
+	"gojo",
+	8 * 14,
+	"colliders",
+	"Plots",
+	{ "^Wall_%d+$", "^DoorLintel$", "^DoorJamb[LR]$" },
+	"on (canQuery / canTouch off)",
+	"jar 1's glass wall segments and the lintel over the door: the tower's walls, open only at the doorway",
+	{ walk = false }
+)
+parts(
+	"plot_jar_lid",
+	"gojo",
+	8,
+	"colliders",
+	"Plots",
+	{ "^Lid$" },
+	"on",
+	"the cork lid on jar 1, the roof over the glass",
+	{ walk = false }
+)
+parts(
+	"plot_bridge",
+	"gojo",
+	8,
+	"colliders",
+	"Plots",
+	{ "^Bridge$" },
+	"on (canQuery off)",
+	"0.4 stud plank walkway over the moat to the door, a stand-on surface",
+	{ walk = false }
+)
+parts(
+	"plot_jar_decor",
+	"gojo",
+	24,
+	"off",
+	"Plots",
+	{ "^Moat$", "^JarFloor$", "^ParkedStopper$" },
+	"off",
+	"flat goo moat and cork floor discs on the Base (the Base is the floor), and the parked cork lying in the moat"
 )
 parts(
 	"plot_lock_button",
@@ -741,38 +832,18 @@ parts(
 parts(
 	"plot_lock_barrier",
 	"gojo",
-	32,
-	"off",
-	"Plots",
-	{ "^Right$", "^Left$", "^Back$", "^Front$" },
-	"off (client-toggled while the base is locked)",
-	"locked-base barrier (Gojo, B1): a one-way panel toggled with the lock; it only blocks entering and nobody is ejected, so it is no prop to walk into",
-	{ walk = false }
-)
-mesh(
-	"plot_dex_mesh",
-	"phoenix_top_earners_board",
-	"gojo",
 	8,
-	"colliders",
-	"Plots",
-	"mesh off; slot box on (canQuery / canTouch off)",
-	"the plot's SlimeDex board skin is decor (phoenix_top_earners_board is shared with the world board and has no fidelity): the slot box is its collider, flat against the back wall (WorldLayout B9 plot audit); its frame and legs are primitives (plot_dex_board)"
-)
-parts(
-	"plot_dex_board",
-	"gojo",
-	112,
 	"off",
 	"Plots",
-	{ "^Gem_%d+$", "^BarFill$", "^BarBack$", "^Shelf$", "^LegR$", "^LegL$", "^Frame$", "^Board$" },
-	"off",
-	"SlimeDex board primitives, all decor today (legs are 0.4 studs thick)"
+	{ "^Stopper$" },
+	"off (server-toggled while the base is locked)",
+	"the cork Stopper filling jar 1's doorway: hidden and off while the plot is open, made solid only while it is locked, so it is no prop to walk into",
+	{ walk = false }
 )
 parts(
 	"plot_rebirth_decor",
 	"gojo",
-	112,
+	96,
 	"off",
 	"Plots",
 	{ "^Crown$", "^Banner_[RL]$", "^PillarCap_%d+$", "^Pillar_%d+$", "^Trim_%a+$" },
@@ -848,6 +919,103 @@ local UNPLACED: { [string]: { string } } = {
 		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
 	},
 	slime_lane = { "jolt", "the parade lane strip (entry parade_lane), laid by ParadeView, not a MeshAsset slot" },
+	phoenix_gate = { "gojo", "no world slot: the plot's way in is jar 1's glass doorway (primitives)" },
+	phoenix_pad_crate = { "gojo", "no world slot: the jar tower's pads stand on round cork stands (goo_cork_stand)" },
+	goo_jar_glass_1_mid = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_glass_2_mid = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_glass_3_mid = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_glass_2_top = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_glass_3_top = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_glass_4_top = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_trim_1_mid = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_trim_2_mid = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_trim_3_mid = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_trim_2_top = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_trim_3_top = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_trim_4_top = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_deck_2 = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_deck_3 = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_deck_4 = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_stair = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_jar_crown = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_drop_tube_glass_2 = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_drop_tube_glass_3 = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_drop_tube_glass_4 = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_drop_tube_goo_2 = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_drop_tube_goo_3 = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+	goo_drop_tube_goo_4 = {
+		"gojo",
+		"upper jars only: server/BaseFloors builds them (WorldLayout.floor) once a plot owner has the pads",
+	},
+
+	ranch_fence_20 = { "gojo", "no world slot: plots are a goo jar tower, not a fenced yard" },
+	phoenix_fence_segment = { "gojo", "no world slot: plots are a goo jar tower, not a fenced yard" },
 }
 
 PropCollision.ENTRIES = entries

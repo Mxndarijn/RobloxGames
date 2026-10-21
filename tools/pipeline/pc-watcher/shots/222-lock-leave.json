@@ -8,7 +8,7 @@
   "height": 22,
   "bug_probe": {
     "bug": 8,
-    "title": "Plot locks with a non-owner inside: the barrier is one-way, they walk out through the gate (never moved), then cannot walk back in",
+    "title": "Plot locks with a non-owner inside: the stopper is one-way, they walk out through the door (never moved), then cannot walk back in",
     "luau": "bug08_lock_enter",
     "ctx": "Server",
     "args": {
@@ -16,5 +16,5 @@
     },
     "timeout": 45
   },
-  "note": "locked-base trap rework (advisory): luau/bug08_lock_enter PART=leave_on_lock stands the real player in a free plot, locks it, and asserts PlotLeaver group, a walk out through the gate with no sample step > 3 studs (no teleport / throw), ends outside the front slab, then MoveTo back in never gets inside"
+  "note": "locked-base trap rework (advisory): luau/bug08_lock_enter PART=leave_on_lock stands the real player on the spawn spot of a free jar, locks it, and asserts PlotLeaver group, a walk out through the door (no sample step > 3 studs: no teleport / throw), ends clear of the jar and the doorway, then MoveTo back in never gets inside"
 }

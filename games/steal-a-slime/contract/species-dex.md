@@ -47,7 +47,7 @@ is permanent (`Perks.dexBonus` = the sum of paid milestones). The ladder adds up
 - Plot skins (§15): a skin's `set` tier unlocks at `threshold` of that tier's entries found
   (`SpeciesDex.tierCount / tierSize`). `PlotSkinView.owned / total / needed` count entries.
 - Badges: `dexPercent` = `found x 100 >= value x 50`; `tier` = a found entry of that tier.
-- Plot attributes: `DexCount` = found (0..50), `DexTotal` = 50, `DexTierMask` = `SpeciesDex.tierMask`.
+- Plot attributes: none any more. `DexCount`, `DexTotal` and `DexTierMask` went with the plot SlimeDex board (goo jar tower remodel, 2026-10-21); `SpeciesDex.tierMask` still feeds the badges.
 
 ## 36.4 State
 

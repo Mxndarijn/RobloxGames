@@ -449,14 +449,12 @@ scenario("ui", function()
 	local dexRewards = Progress.dexRewards(st)
 	local badges = Nav.badges(st)
 	check(
-		"ui: SlimeDex panel, nav badge and plot Dex attributes agree",
+		"ui: SlimeDex panel and nav badge agree; the plot carries no Dex attributes",
 		dexRewards.next ~= nil
 			and badges.Dex ~= nil
-			and plot:GetAttribute("DexCount") == st.dex.found
-			and plot:GetAttribute("DexTotal") == 50
-			and type(plot:GetAttribute("DexTierMask")) == "number"
+			and plot:GetAttribute("DexCount") == nil
 			and plot:GetAttribute("PlotPrice") == nil,
-		`DexCount={plot:GetAttribute("DexCount")}/{plot:GetAttribute("DexTotal")} mask={plot:GetAttribute("DexTierMask")}; "{dexRewards.next}"`
+		`found {st.dex.found}/{st.dex.total}; "{dexRewards.next}"`
 	)
 	session.lockUntil = now() - 1
 	st = state()

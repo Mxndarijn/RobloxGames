@@ -9,17 +9,14 @@
 
 	Plot attributes read (CONTRACT.md §5.2 + new ones, all optional):
 	  OwnerUserId  0 = free      -> LockSign shows no text
-	  LockUntil    server time   -> LockBarrier + LockSign "LOCKED m:ss" / "UNLOCKED"
+	  LockUntil    server time   -> LockBarrier stopper / ParkedStopper + LockSign "LOCKED m:ss" / "UNLOCKED"
 	  Locked       boolean (§8.4) -> used only when LockUntil is missing
 	  Rebirths                   -> RebirthDecor by PlotDecor.band (bands start at
 	                                the §8.8 ranks Goo Getter / Slime Wrangler /
 	                                Goo Tycoon / Slime Sovereign / Mythic Monarch)
-	  DexCount / DexTotal        -> DexBoard text + bar (DexTotal default 1152)
-	  DexTierMask  number?       -> DexBoard gem k lit when bit k-1 is set;
-	                                absent = gems light by progress (k/6 of total)
 
-	PlotDecor.locked(lockUntil, now) / band(rebirths) / clock(seconds) /
-	dexGems(count, total, mask?) are pure (Lune-safe, used by the render proof).
+	PlotDecor.locked(lockUntil, now) / band(rebirths) / clock(seconds) are pure
+	(Lune-safe, used by the render proof).
 	PlotDecor.apply builds its SurfaceGuis on first use and only writes
 	properties that changed, so calling it every frame is cheap.
 ]]
@@ -32,11 +29,6 @@ local MeshAssets = if script
 
 local PlotDecor = {}
 
-PlotDecor.BARRIER_HEIGHT = 16
-PlotDecor.BARRIER_COLOR = { 90, 200, 255 }
-PlotDecor.BARRIER_TRANSPARENCY = 0.35 -- ForceField: lower = denser shimmer
-PlotDecor.GEM_OFF = { 70, 72, 84 }
-PlotDecor.DEX_TOTAL = 50 -- one entry per species (State.dexTotal)
 PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
 PlotDecor.UNLOCKED_COLOR = { 90, 220, 110 }
 PlotDecor.FREE_COLOR = { 255, 205, 60 }
@@ -73,19 +65,6 @@ end
 function PlotDecor.clock(seconds: number): string
 	local s = math.max(0, math.ceil(seconds))
 	return string.format("%d:%02d", s // 60, s % 60)
-end
-
--- Which of the tier gems are lit.
-function PlotDecor.dexGems(count: number, total: number, mask: number?): { boolean }
-	local lit = {}
-	for k = 1, #Config.RARITIES do
-		if mask then
-			lit[k] = bit32.btest(mask, bit32.lshift(1, k - 1))
-		else
-			lit[k] = total > 0 and count >= math.ceil(total * k / #Config.RARITIES)
-		end
-	end
-	return lit
 end
 
 local function rgb(c: { number }): Color3
@@ -139,12 +118,32 @@ local function labels(part: Instance, rows: { number }): { TextLabel }
 	return out
 end
 
+-- The swapped mesh under a jar tower look slot (server/MeshSwap names it "Mesh"), or nil before it lands.
+local function lookMesh(plot: Instance, name: string): BasePart?
+	local slot = plot:FindFirstChild(name)
+	local mesh = slot and slot:FindFirstChild("Mesh")
+	return if mesh and mesh:IsA("BasePart") then mesh else nil
+end
+
 local function applyLock(plot: Instance, owned: boolean, locked: boolean, remaining: number)
+	local shut = owned and locked
 	local barrier = plot:FindFirstChild("LockBarrier")
+	-- With the stopper meshes in, they are the look (the Stopper box stays the invisible collider); before they land,
+	-- the primitive stopper and parked stopper show.
+	local meshes = lookMesh(plot, "StopperShut")
 	if barrier then
-		for _, panel in barrier:GetChildren() do
-			show(panel, owned and locked, PlotDecor.BARRIER_TRANSPARENCY)
+		for _, part in barrier:GetChildren() do
+			show(part, shut and meshes == nil)
 		end
+	end
+	show(plot:FindFirstChild("ParkedStopper"), not shut and meshes == nil)
+	if meshes then
+		show(meshes, shut)
+		show(lookMesh(plot, "StopperParked"), not shut)
+	end
+	local ring = lookMesh(plot, "DoorRing")
+	if ring then
+		set(ring, "Color", if shut then rgb(PlotDecor.LOCKED_COLOR) else rgb(PlotDecor.RING_COLOR))
 	end
 	local sign = plot:FindFirstChild("LockSign")
 	if not sign then
@@ -209,49 +208,6 @@ local function applyRebirth(plot: Instance, band: number)
 	end
 end
 
-local function applyDex(plot: Instance, owned: boolean)
-	local dex = plot:FindFirstChild("DexBoard")
-	if not dex then
-		return
-	end
-	local total = plot:GetAttribute("DexTotal")
-	total = if type(total) == "number" and total > 0 then total else PlotDecor.DEX_TOTAL
-	local count = plot:GetAttribute("DexCount")
-	count = if owned and type(count) == "number" then math.clamp(count, 0, total) else 0
-	local mask = plot:GetAttribute("DexTierMask")
-	local frac = count / total
-
-	local board = dex:FindFirstChild("Board")
-	if board then
-		local lines = labels(board, { 0.3, 0.32 })
-		set(lines[1], "Text", "SLIMEDEX")
-		set(lines[2], "Text", if owned then `{count} / {total}  ({math.floor(frac * 100)}%)` else "")
-	end
-	local back, fill = dex:FindFirstChild("BarBack"), dex:FindFirstChild("BarFill")
-	if back and fill and back:IsA("BasePart") and fill:IsA("BasePart") then
-		local width = back.Size.X * frac
-		show(fill, width > 0.05)
-		if width > 0.05 then
-			set(fill, "Size", Vector3.new(width, fill.Size.Y, fill.Size.Z))
-			-- Grow from the viewer's left: the Front face reads along local -X,
-			-- so anchor at the +X edge, keeping fill's own Z offset.
-			local rel = back.CFrame:ToObjectSpace(fill.CFrame)
-			local target = back.CFrame * CFrame.new(back.Size.X / 2 - width / 2, 0, rel.Position.Z)
-			if (fill.CFrame.Position - target.Position).Magnitude > 1e-3 then
-				fill.CFrame = target
-			end
-		end
-	end
-	local lit = PlotDecor.dexGems(count, total, if owned and type(mask) == "number" then mask else nil)
-	for k, on in lit do
-		local gem = dex:FindFirstChild(`Gem_{k}`)
-		if gem and gem:IsA("BasePart") then
-			set(gem, "Color", rgb(if on then Config.RARITIES[k].color else PlotDecor.GEM_OFF))
-			set(gem, "Material", if on then Enum.Material.Neon else Enum.Material.Glass)
-		end
-	end
-end
-
 -- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15) ---------------------------------
 
 PlotDecor.SKIN_DECOR_NAME = "SkinDecor"
@@ -285,22 +241,25 @@ local function recall(part: BasePart)
 	end
 end
 
--- Fence panels, gate and gate post as they show: kit Mesh children, or the primitive
--- placeholders while no mesh landed (hidden placeholders are skipped).
-local function eachFencePart(plot: Instance, visit: (BasePart) -> ())
-	for _, name in { "Fence", "Gate" } do
-		local group = plot:FindFirstChild(name)
-		if group then
-			for _, d in group:GetDescendants() do
-				if d:IsA("BasePart") and d.Transparency < 1 then
-					visit(d)
-				end
-			end
+-- The jar's cork and trim as they show: the bridge, the jar floor, the parked stopper and every jar lid (hidden
+-- parts, like a lid under an upper jar, are skipped).
+PlotDecor.TRIM_PARTS = table.freeze({ "Bridge", "JarFloor", "ParkedStopper" })
+PlotDecor.RING_COLOR = { 168, 148, 110 } -- the door's lock ring while open (ranch_metal brass)
+local function eachTrimPart(plot: Instance, visit: (BasePart) -> ())
+	for _, name in PlotDecor.TRIM_PARTS do
+		local part = plot:FindFirstChild(name)
+		if part and part:IsA("BasePart") and part.Transparency < 1 then
+			visit(part)
+		end
+	end
+	for _, d in plot:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("JarLid") ~= nil and d.Transparency < 1 then
+			visit(d)
 		end
 	end
 end
 
--- Floor colour / material, fence + gate tint and the decor mesh of one plot for skin `id`.
+-- Floor colour / material, cork and trim tint and the decor mesh of one plot for skin `id`.
 -- `slot` = the plot's Mailbox_<i> kit slot (Map.Decor) and `templates` =
 -- ReplicatedStorage.PlotSkinMeshes: the skin decor is a clone of its template standing where the
 -- slot's own mesh stands (that mesh is only hidden), so no world mesh slot is added. Idempotent;
@@ -318,8 +277,8 @@ function PlotDecor.applySkin(plot: Instance, id: any, slot: Instance?, templates
 			recall(base)
 		end
 	end
-	local tint = skin.fence
-	eachFencePart(plot, function(part)
+	local tint = skin.trim
+	eachTrimPart(plot, function(part)
 		if tint then
 			remember(part)
 			local own = part:GetAttribute(ORIG_COLOR)
@@ -392,7 +351,6 @@ function PlotDecor.apply(plot: Instance, now: number)
 	local rebirths = plot:GetAttribute("Rebirths")
 	applyLock(plot, owned, locked, remaining)
 	applyRebirth(plot, if owned and type(rebirths) == "number" then PlotDecor.band(rebirths) else 0)
-	applyDex(plot, owned)
 end
 
 return table.freeze(PlotDecor)

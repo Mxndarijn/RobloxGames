@@ -90,14 +90,28 @@ function Economy.sellPrice(slime: Slime, rebirths: number): number
 	return math.max(1, math.floor(Economy.slimeIncome(slime, rebirths) * Config.SELL_SECONDS))
 end
 
--- Price of the next pad, or nil when every pad is unlocked.
+-- The floor pad `pad` stands on: 1 for pads 1..PADS_PER_FLOOR, 2 for the next PADS_PER_FLOOR, and so on.
+function Economy.floorOf(pad: number): number
+	return math.max(1, math.ceil(pad / Config.PADS_PER_FLOOR))
+end
+
+-- How many floors a plot shows: every floor with an unlocked pad, plus the next one once the top one is full
+-- (its pads locked, so the next pad can be bought there). Never more than #BASE_FLOORS.
+function Economy.floorsShown(padsUnlocked: number): number
+	return math.min(#Config.BASE_FLOORS, count(padsUnlocked) // Config.PADS_PER_FLOOR + 1)
+end
+
+-- Price of the next pad, or nil when every pad is unlocked (Config.BASE_FLOORS).
 function Economy.padCost(padsUnlocked: number): number?
 	local owned = count(padsUnlocked)
 	if owned >= Config.PADS_MAX then
 		return nil
 	end
-	local bought = math.max(0, owned - Config.PADS_START)
-	return math.floor(Config.PAD_BASE_COST * Config.PAD_COST_GROWTH ^ bought)
+	local nextPad = owned + 1
+	local floor = Economy.floorOf(nextPad)
+	local row = Config.BASE_FLOORS[floor]
+	local first = if floor == 1 then Config.PADS_START + 1 else (floor - 1) * Config.PADS_PER_FLOOR + 1
+	return math.floor(row.firstPadCost * row.growth ^ math.max(0, nextPad - first))
 end
 
 -- x REBIRTH_COST_GROWTH per rebirth up to REBIRTH_LATE_FROM, then x REBIRTH_COST_GROWTH_LATE.

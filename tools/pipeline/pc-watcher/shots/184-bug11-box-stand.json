@@ -9,8 +9,7 @@
   "mesh_stand": [
     "ranch_crate",
     "ranch_wagon",
-    "phoenix_plaza_podium_1",
-    "ranch_fence_20"
+    "phoenix_plaza_podium_1"
   ],
-  "note": "bug 11 part 1 (advisory): balls dropped onto and pushed into the Box-collision props ranch_crate, ranch_wagon, phoenix_plaza_podium_1, ranch_fence_20 must rest on the mesh and not pass through it (luau/mesh_stand) ; v196 follow-up: probe at walking speed, FAIL only when the ball core overlaps the mesh"
+  "note": "bug 11 part 1 (advisory): balls dropped onto and pushed into the Box-collision props ranch_crate, ranch_wagon and phoenix_plaza_podium_1 must rest on the mesh and not pass through it (luau/mesh_stand) ; v196 follow-up: probe at walking speed, FAIL only when the ball core overlaps the mesh"
 }

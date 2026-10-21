@@ -30,6 +30,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Actions = require(script.Actions)
 local AdminEventsService = require(script.AdminEventsService)
 local Badges = require(script.Badges)
+local BaseFloors = require(script.BaseFloors)
 local BorderTerrainView = require(script.BorderTerrainView)
 local Carry = require(script.Carry)
 local EffectsView = require(script.EffectsView)
@@ -72,7 +73,16 @@ local safeCall = SafeCall.new(warn)
 ---------------------------------------------------------------------------
 
 Remotes.setup()
-WorldView.setup()
+local worldBuilder = WorldView.setup()
+-- Upper base floors (BaseFloors): only on the WorldLayout world, not on the greybox.
+local floors: BaseFloors.Context? = if worldBuilder and worldBuilder.buildFloor
+	then {
+		build = worldBuilder.buildFloor,
+		meshes = function(instances: { Instance })
+			MeshSwap.applyUnder(instances)
+		end,
+	}
+	else nil
 safeCall("GroundTerrainView.place", GroundTerrainView.place) -- voxel ground first, before anything stands on it
 safeCall("WorldProps.place", WorldProps.place)
 local ritual = Ritual.new() -- co-op ritual circle in the plaza (CONTRACT.md §13)
@@ -184,7 +194,7 @@ local function refreshView(t: number)
 	end, function(player: Player, slimeId: string)
 		Actions.triggerHatchPrompt(world, player.UserId, slimeId, now(), ctx)
 	end)
-	WorldView.updatePlots(world, t)
+	WorldView.updatePlots(world, t, floors)
 	PlayerAttributes.syncCarrying(world)
 	Outbox.flush(world, outbox)
 end
@@ -216,6 +226,14 @@ WorldView.addPlotPrompts(function(player: Player, index: number, kind: string)
 	Actions.triggerPlotPrompt(world, player.UserId, index, kind, now(), ctx)
 	refreshView(now())
 end)
+
+-- The drop tube on every upper jar (BaseFloors adds the DropPrompt as each jar is built).
+if floors then
+	floors.drop = function(player: Player, index: number)
+		Actions.useDropTube(world, player.UserId, index, ctx)
+		refreshView(now())
+	end
+end
 
 -- "Open Shop" (ShopStand) and "Talk" (TutorialNpc) prompts: the client opens
 -- the Shop / Guide menu; purchases go through Request from the Shop menu.

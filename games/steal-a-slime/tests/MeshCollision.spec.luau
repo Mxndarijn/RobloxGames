@@ -13,6 +13,7 @@ local MeshAssets = require("../src/shared/MeshAssets")
 local PvpModels = require("../src/shared/PvpModels")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
+local VatDecor = require("../src/visuals/shared/VatDecor")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -73,6 +74,16 @@ describe("MeshSwap collision in the live server", function()
 	it("asks CreateMeshPartAsync for the fidelity, and only for meshes that have one", function()
 		local emerge = MeshAssets.meshId("slime_fountain_emerge")
 		expect(asked[emerge]).toBe(roblox.Enum.CollisionFidelity.Box)
+		-- the meshes the world places: every MeshAsset slot under Map and Plots, and the vat mesh MeshSwap adds
+		local placed = { [VatDecor.MESH] = true }
+		for _, root in { rt.workspace.Map, rt.workspace.Plots } do
+			for _, d in root:GetDescendants() do
+				local name = d:GetAttribute("MeshAsset")
+				if type(name) == "string" then
+					placed[name] = true
+				end
+			end
+		end
 		local solid = {}
 		local want = 0
 		-- the shop stand skins FEATURES.WorldShops does not place: the single ShopStand's with the flag on, else the Item
@@ -88,8 +99,12 @@ describe("MeshSwap collision in the live server", function()
 			splitPieces[piece] = true
 		end
 		for name, fidelity in MeshAssets.COLLISION do
-			if splitPieces[name] and not Config.FEATURES.FountainSplit then
-				continue
+			if splitPieces[name] then
+				if not Config.FEATURES.FountainSplit then
+					continue
+				end
+			elseif not placed[name] then
+				continue -- no world slot asks for it
 			end
 			if name == "fountain_split_slide" and not Config.FEATURES.SlidePCD then
 				continue -- the slide piece is PCD only with FEATURES.SlidePCD (MeshSwap.splitFidelity)
@@ -128,7 +143,7 @@ describe("MeshSwap collision in the live server", function()
 		expect(mesh.CanQuery).toBe(false)
 		expect(mesh.CanTouch).toBe(false)
 	end)
-	it("every plot's merge vat is a solid Hull MeshPart over its disc (bug #16)", function()
+	it("every plot's merge vat is a solid Hull MeshPart over its disc", function()
 		expect(MeshAssets.collision("merge_vat")).toBe("Hull")
 		local vats = 0
 		for _, plot in rt.workspace.Plots:GetChildren() do
@@ -179,13 +194,45 @@ describe("MeshSwap collision in the live server", function()
 	end)
 end)
 
--- bug #11 part 1 ------------------------------------------------------------------------------------------------
+-- Every mesh has a collision decision --------------------------------------------------------------------------
 -- Every MeshAssets name is either solid (COLLISION) or listed here as decor with its reason, so a new mesh forces a decision.
 local DECOR = {
+	goo_cork_stand = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_foot = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_stair = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_door = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_door_ring = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_stopper = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_lock_button = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_mascot = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_crown = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_1_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_2_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_3_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_1_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_2_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_3_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_4_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_1_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_2_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_3_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_1_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_2_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_3_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_4_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_deck_2 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_deck_3 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_deck_4 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_glass_2 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_glass_3 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_glass_4 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_goo_2 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_goo_3 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_goo_4 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
 	slime_fountain = "the tower: hand-placed Basin / Trim / Silo / Top + SlideColliders stay (docs/COLLISION.md, #252)",
 	ranch_floor_deck = "B11 floor: flat timber plaza deck, 0.21 studs on the terrain; the terrain is the walk surface",
 	ranch_floor_paths = "B11 floor: flat boardwalk ring + spokes, 0.21 studs on the terrain; the terrain is the walk surface (the gate ramps are parts)",
-	phoenix_gate = "the entrance: a Box would close the 14-stud opening, the GatePost stand-ins keep the posts (PCD would be the mesh route)",
+	phoenix_gate = "not placed: no world slot uses it (the jar's door is glass and primitives)",
 	phoenix_pad_crate = "the pad's own Pad part is the gameplay surface; the stand is its decor",
 	phoenix_top_earners_board = "WorldProps Model: its invisible Collider keeps the Model's bounds",
 	ranch_guide = "WorldProps Model: the TutorialNpc's hidden primitive body parts stay the collider",
@@ -223,16 +270,7 @@ do
 	end
 end
 
--- The invisible colliders bug #11 removed: each plot's five Wall* blocks, as plot-local (centre x, z, size x, z).
-local REMOVED_COLLIDERS = {
-	{ name = "WallBack", x = 0, z = 39.5, sx = 80, sz = 1 },
-	{ name = "WallLeft", x = -39.5, z = 0, sx = 1, sz = 80 },
-	{ name = "WallRight", x = 39.5, z = 0, sx = 1, sz = 80 },
-	{ name = "WallFrontL", x = -25, z = -39.5, sx = 30, sz = 1 },
-	{ name = "WallFrontR", x = 25, z = -39.5, sx = 30, sz = 1 },
-}
-
-describe("bug #11 part 1: real mesh collision", function()
+describe("real mesh collision", function()
 	it("gives every COLLISION mesh a real Enum.CollisionFidelity name", function()
 		local n = 0
 		for name, fidelity in MeshAssets.COLLISION do
@@ -275,8 +313,6 @@ describe("bug #11 part 1: real mesh collision", function()
 		expect(count.Box >= 15).toBe(true)
 		for _, name in
 			{
-				"ranch_fence_20",
-				"phoenix_fence_segment",
 				"phoenix_corner_post",
 				"ranch_crate",
 				"ranch_wagon",
@@ -293,73 +329,15 @@ describe("bug #11 part 1: real mesh collision", function()
 	end)
 
 	local WorldLayout = require("../src/visuals/shared/WorldLayout")
-	local nodes = WorldLayout.build()
-	local plots = nodes[2].children
 	local function walk(node: any, visit: (any) -> ())
 		visit(node)
 		for _, c in node.children or {} do
 			walk(c, visit)
 		end
 	end
-	it("covers every removed collider's footprint with a colliding Box fence slot (no walk-through gap)", function()
-		local s = WorldLayout.PLOT_SIZE
-		expect(s).toBe(80)
-		for i, plot in plots do
-			local centre, yaw = WorldLayout.plotCentre(i)
-			local a = math.rad(yaw)
-			local function toLocal(x: number, z: number): (number, number)
-				local dx, dz = x - centre[1], z - centre[3]
-				return dx * math.cos(a) - dz * math.sin(a), dx * math.sin(a) + dz * math.cos(a)
-			end
-			local slots = {}
-			walk(plot, function(n)
-				local mesh = n.attributes and n.attributes.MeshAsset
-				if n.class == "Part" and n.attributes and n.attributes.FenceCollider then
-					expect(n.canCollide ~= false).toBe(true) -- the placeholder box collides until the mesh lands
-					expect(MeshAssets.collision(mesh)).toBe("Box")
-					-- the wall was WALL_HEIGHT tall from y = 1; the panel is at least as tall and starts there
-					expect(n.size[2] >= WorldLayout.WALL_HEIGHT).toBe(true)
-					expect(math.abs(n.pos[2] - n.size[2] / 2 - 1) < 0.01).toBe(true)
-					local lx, lz = toLocal(n.pos[1], n.pos[3])
-					table.insert(
-						slots,
-						{ x = lx, z = lz, hx = n.size[1] / 2, hz = n.size[3] / 2, yaw = math.rad(n.rot[2]) - a }
-					)
-				end
-			end)
-			expect(#slots > 0).toBe(true)
-			local function covered(px: number, pz: number): boolean
-				for _, b in slots do
-					local dx, dz = px - b.x, pz - b.z
-					local c, sn = math.cos(b.yaw), math.sin(b.yaw)
-					local lx, lz = dx * c + dz * sn, -dx * sn + dz * c
-					if math.abs(lx) <= b.hx + 1e-6 and math.abs(lz) <= b.hz + 1e-6 then
-						return true
-					end
-				end
-				return false
-			end
-			for _, w in REMOVED_COLLIDERS do
-				-- walk the old wall's centre line in 0.25 steps, across its whole span
-				local alongX = w.sx > w.sz
-				local half = (if alongX then w.sx else w.sz) / 2
-				local t = -half
-				while t <= half + 1e-9 do
-					local px = if alongX then w.x + t else w.x
-					local pz = if alongX then w.z else w.z + t
-					expect(covered(px, pz)).toBe(true)
-					t += 0.25
-				end
-			end
-			-- and the gate opening stays open: nothing covers the middle of the entrance
-			expect(covered(0, -39.5)).toBe(false)
-			expect(covered(WorldLayout.GATE_CLEAR / 2 - 0.5, -39.5)).toBe(false)
-			expect(covered(-(WorldLayout.GATE_CLEAR / 2 - 0.5), -39.5)).toBe(false)
-		end
-	end)
 	it("leaves the fountain and slide colliders alone", function()
 		local found = {}
-		walk(nodes[1], function(n)
+		walk(WorldLayout.build()[1], function(n)
 			found[n.name] = true
 		end)
 		for _, name in { "BasinCollider", "TrimCollider", "SiloCollider", "TopCollider1" } do
@@ -372,18 +350,47 @@ describe("bug #11 part 1: real mesh collision", function()
 	end)
 end)
 
--- B9 plot-level half: every plot mesh has a decided collision --------------------------------------------------
--- mesh -> expected MeshAssets.COLLISION fidelity (nil = decor mesh; its collision is then a stand-in / the slot box).
+-- Plot-level collision: every plot mesh has a decided collision, and the goo jar keeps the owner's way in open ----
+-- mesh -> expected MeshAssets.COLLISION fidelity (false = decor mesh; its collision is then the slot box / a part).
 local PLOT_MESHES = {
-	ranch_fence_20 = "Box",
-	phoenix_fence_segment = "Box",
-	phoenix_corner_post = "Box",
-	phoenix_gate = false, -- a Box/Hull would close the 14-stud opening; GatePostL / GatePostR stand-ins keep the posts
+	goo_cork_stand = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_foot = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_stair = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_door = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_door_ring = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_stopper = false, -- goo jar tower look, the primitives under it collide
+	goo_lock_button = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_mascot = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_crown = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_1_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_2_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_3_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_1_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_2_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_3_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_4_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_1_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_2_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_3_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_1_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_2_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_3_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_4_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_deck_2 = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_deck_3 = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_deck_4 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_glass_2 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_glass_3 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_glass_4 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_goo_2 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_goo_3 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_goo_4 = false, -- goo jar tower look, the primitives under it collide
 	phoenix_pad_crate = false, -- Pad_<j> (8 x 2.4 x 8, solid) is the surface
-	phoenix_top_earners_board = false, -- shared with the world board (own Collider); the plot DexMesh slot box collides
+	phoenix_top_earners_board = false, -- the plaza Top Earners board's skin (the board keeps its own Collider)
 }
 
-describe("B9: plot-level collision", function()
+describe("plot-level collision", function()
+	local LayoutMath = require("../src/visuals/shared/LayoutMath")
 	local WorldLayout = require("../src/visuals/shared/WorldLayout")
 	local plots = WorldLayout.build()[2].children
 	local function walk(node: any, visit: (any) -> ())
@@ -392,6 +399,31 @@ describe("B9: plot-level collision", function()
 			walk(c, visit)
 		end
 	end
+	local function byName(plot: any): { [string]: any }
+		local out = {}
+		walk(plot, function(n)
+			out[n.name] = n
+		end)
+		return out
+	end
+	-- True when plot-local (x, y, z) of plot i lies inside the part node (a yaw-turned block, or an upright disc).
+	local function inside(node: any, i: number, x: number, y: number, z: number): boolean
+		local centre, yaw = WorldLayout.plotCentre(i)
+		local p = LayoutMath.apply(
+			LayoutMath.orientation({ 0, -yaw, 0 }),
+			{ node.pos[1] - centre[1], node.pos[2] - centre[2], node.pos[3] - centre[3] }
+		)
+		local dx, dy, dz = x - p[1], y - p[2], z - p[3]
+		local s = node.size
+		if node.shape == "Cylinder" then
+			return math.abs(dy) <= s[1] / 2 + 1e-6 and dx * dx + dz * dz <= (s[2] / 2) ^ 2 + 1e-6
+		end
+		local a = math.rad(node.rot[2] - yaw)
+		local lx = dx * math.cos(a) - dz * math.sin(a)
+		local lz = dx * math.sin(a) + dz * math.cos(a)
+		return math.abs(lx) <= s[1] / 2 + 1e-6 and math.abs(dy) <= s[2] / 2 + 1e-6 and math.abs(lz) <= s[3] / 2 + 1e-6
+	end
+
 	it("every mesh slot on a plot is classified, with the expected fidelity and no PCD", function()
 		local seen = 0
 		for _, plot in plots do
@@ -408,37 +440,112 @@ describe("B9: plot-level collision", function()
 		end
 		expect(seen > 0).toBe(true)
 	end)
-	it("the gate stays open for the owner; its posts, the pads and the dex board are solid", function()
+	it("the pads, pedestal, bridge, sign and the jar's glass, lintel and lid are solid; its moat is decor", function()
 		for _, plot in plots do
-			local byName = {}
-			walk(plot, function(n)
-				byName[n.name] = n
-			end)
-			expect(byName.GateMesh.canCollide).toBe(false) -- the mesh slot would close the opening
-			for _, name in { "GatePostL", "GatePostR", "GatePost", "DexMesh", "Pad_1", "Pad_8", "Pedestal" } do
-				expect(byName[name].canCollide ~= false).toBe(true)
+			local n = byName(plot)
+			for _, name in { "PadCollider", "Pedestal", "Bridge", "Sign" } do
+				expect(n[name].canCollide ~= false).toBe(true)
 			end
-			expect(byName.DexMesh.canQuery).toBe(false)
-			expect(byName.DexMesh.canTouch).toBe(false)
 			-- pads stay steppable: flat and low
-			expect(byName.Pad_1.size[2] <= 3).toBe(true)
+			expect(n.Pad_1.size[2] <= 3).toBe(true)
+			-- the pad box itself doesn't collide: its round collider (the dish's diameter) does
+			expect(n.Pad_1.canCollide).toBe(false)
+			expect(n.PadCollider.shape).toBe("Cylinder")
+			expect(n.PadCollider.size[2]).toBeCloseTo(2 * WorldLayout.PAD_DECK.half)
+			local walls, lintel, lid = 0, 0, 0
+			for _, part in n.Jar.children do
+				expect(part.canCollide ~= false).toBe(true)
+				if string.match(part.name, "^Wall_%d+$") then
+					walls += 1
+					expect(part.canQuery).toBe(false) -- prompts and raycasts reach through the glass
+				elseif part.name == "DoorLintel" then
+					lintel += 1
+				elseif part.name == "Lid" then
+					lid += 1
+					expect(part.attributes.JarLid).toBe(1)
+				end
+			end
+			expect(walls).toBe(WorldLayout.JAR_WALL_SEGMENTS - 1)
+			expect(lintel).toBe(1)
+			expect(lid).toBe(1)
+			for _, name in { "Moat", "JarFloor", "ParkedStopper" } do
+				expect(n[name].canCollide).toBe(false)
+			end
+			expect(n.Stopper.canCollide).toBe(false) -- shipped unlocked; the server makes it solid while locked
 		end
 	end)
-	it("only the gate-side stand-ins sit beside the opening: nothing solid spans the walk-in", function()
-		local clear = WorldLayout.GATE_CLEAR / 2
-		for _, plot in plots do
-			walk(plot, function(n)
-				if n.class == "Part" and n.canCollide ~= false and n.pos and n.name ~= "Base" then
-					local centre, yaw = WorldLayout.plotCentre(tonumber(string.match(plot.name, "%d+")) :: number)
-					local a = math.rad(yaw)
-					local dx, dz = n.pos[1] - centre[1], n.pos[3] - centre[3]
-					local lx, lz = dx * math.cos(a) - dz * math.sin(a), dx * math.sin(a) + dz * math.cos(a)
-					-- a low solid part (< 8 studs up) centred on the entrance line inside the clear width = blocked gate
-					if math.abs(lz + 39.5) < 0.9 and math.abs(lx) < clear - 0.5 and n.pos[2] - n.size[2] / 2 < 8 then
-						error(`{plot.name}.{n.name} blocks the gate opening`)
+	it("closes jar 1's glass all the way round, open only at the doorway, and the lid sits on it", function()
+		local f1 = WorldLayout.floorTop(1)
+		local r = WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL / 2
+		local door = WorldLayout.doorway()
+		for i, plot in plots do
+			local jar = byName(plot).Jar.children
+			local function covered(x: number, y: number, z: number): boolean
+				for _, part in jar do
+					if inside(part, i, x, y, z) then
+						return true
 					end
 				end
+				return false
+			end
+			for _, h in { 0.5, 7, WorldLayout.FLOOR_HEIGHT - 1.5 } do
+				for deg = 0, 359.5, 0.5 do
+					local x, z = WorldLayout.jarWallPoint(1, deg)
+					local inDoor = z < 0 and math.abs(x) < door.halfWidth and h < WorldLayout.DOOR.height
+					if inDoor and math.abs(x) < door.halfWidth - 0.5 then
+						expect(covered(x, f1 + h, z)).toBe(false)
+					elseif not inDoor then
+						expect(covered(x, f1 + h, z)).toBe(true)
+					end
+				end
+			end
+			-- the lid caps the glass: over the whole wall ring, from the wall top up
+			for deg = 0, 359, 3 do
+				local x, z = WorldLayout.polar(r, deg)
+				expect(covered(x, f1 + WorldLayout.FLOOR_HEIGHT - 0.5, z)).toBe(true)
+			end
+		end
+	end)
+	it("the doorway is clear for the owner: no solid part but the Stopper inside WorldLayout.doorway()", function()
+		local door = WorldLayout.doorway()
+		local f1 = WorldLayout.PLOT_FLOOR_TOP
+		local clear = door.halfWidth - 0.5 -- the glass either side may reach a few tenths into the box's edges
+		expect(clear * 2 >= 6).toBe(true) -- still wide enough for a character
+		for i, plot in plots do
+			local solid = {}
+			walk(plot, function(n)
+				if n.class == "Part" and n.canCollide ~= false and n.name ~= "Stopper" then
+					table.insert(solid, n)
+				end
 			end)
+			local blocked = {}
+			local seen = {}
+			-- above the floor and the bridge planks (a step), under the lintel
+			for y = f1 + 0.5, f1 + WorldLayout.DOOR.height - 0.25, 1 do
+				for x = -clear, clear + 1e-9, 0.5 do
+					for z = door.zOuter, door.zInner + 1e-9, 0.5 do
+						for _, n in solid do
+							if not seen[n] and inside(n, i, x, y, z) then
+								seen[n] = true
+								table.insert(blocked, `{plot.name}.{n.name}`)
+							end
+						end
+					end
+				end
+			end
+			expect(blocked).toEqual({})
+		end
+	end)
+	it("the bridge spans the moat from the plot edge to the door", function()
+		local door = WorldLayout.doorway()
+		for i, plot in plots do
+			local bridge = byName(plot).Bridge
+			local top = WorldLayout.PLOT_FLOOR_TOP + 0.3
+			for z = -(WorldLayout.PLOT_SIZE / 2 - 0.1), door.zOuter, 0.5 do
+				for _, x in { -door.halfWidth, 0, door.halfWidth } do
+					expect(inside(bridge, i, x, top, z)).toBe(true)
+				end
+			end
 		end
 	end)
 end)

@@ -53,9 +53,9 @@ the field has none; `SaveData.cleanTrophies` keeps sanitized slimes of a boss sp
 - A trophy slime: the boss species (its name, colour and mesh), the boss tier, size `MAX_SIZE`.
 - Trophies earn income (added to `PlayerData.incomePerSecond` like a pad slime) and are not in `data.slimes`, so they
   can't be stolen, merged, sold or placed on a pad.
-- Shown inside the owner's plot on gold pedestals beside the Dex board at the back, facing the gate (server
-  `WorldView`, boss mesh through `SlimeMesh`): slot 1 left of the board, slot 2 right, slot 3 further left, each
-  `BOSS.TROPHY_GAP` apart.
+- Shown on the owner's plot on gold pedestals at `WorldLayout.TROPHY_SPOTS` (server `WorldView`, boss mesh through
+  `SlimeMesh`): slots 1 and 2 on the back corners either side of the Dex board, slot 3 on a front corner, all on the
+  Base clear of the jar and its moat.
 
 ## `State.boss` (`Types.BossView`, in every snapshot)
 

@@ -200,11 +200,9 @@ def geometry_verdict(raw, checks):
             if name == "silo_centred":
                 it["pass"] = it.get("dist") is not None and it["dist"] <= cfg["max_dist"]
             elif name == "plot_signs":
-                gd = it.get("dot_gate_front")
+                face = cfg.get("face")
                 it["pass"] = (it.get("dot_out", -1) >= cfg["min_dot"] and not it.get("mirrored", True)
-                              and gd is not None and gd >= cfg["min_dot"] and bool(it.get("enabled", True)))
-                if gd is None:
-                    errors.append("%s: no gate front to compare" % it.get("name"))
+                              and bool(it.get("enabled", True)) and (not face or it.get("face") == face))
             else:
                 it["pass"] = it.get("dot", -1) >= cfg["min_dot"]
         out[name] = {"pass": bool(items) and not errors and all(i["pass"] for i in items),
@@ -1862,7 +1860,7 @@ def step_shots(run):
                     # optional uploaded-animation check: a rigged slime must sit on the pad (PcwPad clone)
                     pad_seat = run.need_luau("pad_seat", "Server", timeout=30, path=res["target"]["path"])
                     res["pad_seat"] = pad_seat
-                if shot.get("plot_skin"):  # gaps #15: Plot_1 wears the skin (floor, fence tint, decor mesh), Studio only
+                if shot.get("plot_skin"):  # gaps #15: Plot_1 wears the skin (floor, cork and trim tint, decor mesh), Studio only
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
                 if shot.get("fountain_tier"):  # v19: the fountain wears this tier's glow, Studio only
                     res["fountain_tier"] = run.need_luau("fountain_tier", "Client", timeout=15, tier=int(shot["fountain_tier"]))

@@ -61,6 +61,30 @@ RanchProps.CLUSTERS = table.freeze({ "plaza", "entrance", "farm", "yard" })
 -- every MeshAssets entry has a slot today. Add { mesh = reason } here rather
 -- than leaving an asset silently unused (tests/RanchProps.spec enforces it).
 RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
+	goo_jar_glass_1_mid = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_glass_2_mid = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_glass_3_mid = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_glass_2_top = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_glass_3_top = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_glass_4_top = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_trim_1_mid = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_trim_2_mid = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_trim_3_mid = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_trim_2_top = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_trim_3_top = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_trim_4_top = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_deck_2 = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_deck_3 = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_deck_4 = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_stair = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_jar_crown = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_drop_tube_glass_2 = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_drop_tube_glass_3 = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_drop_tube_glass_4 = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_drop_tube_goo_2 = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_drop_tube_goo_3 = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	goo_drop_tube_goo_4 = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
+	phoenix_pad_crate = "plot pad crate: the goo jar tower's pads stand on round cork stands (goo_cork_stand)",
 	ranch_border_fence_broken = "border v3 slot trim: merged into a sibling design to stay under the 400 mesh-slot gate; mesh kept uploaded",
 	ranch_border_hedge_stepped = "border v3 slot trim: merged into a sibling design to stay under the 400 mesh-slot gate; mesh kept uploaded",
 	ranch_border_pine_twin = "border v3 slot trim: merged into a sibling design to stay under the 400 mesh-slot gate; mesh kept uploaded",
@@ -73,6 +97,9 @@ RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
 	merge_vat = "plot merge vat: MeshSwap.swapPlotVats stands it over every plot's MergeVat disc, no world slot",
 	pet_cloud = "follow pet cloud (FollowPets): the client clones the server-published ReplicatedStorage.PetCloudMeshes template under the owner's pet slime, decor, no world slot",
 	ranch_bat = "default melee Bat: the Handle mesh of Tool 'Bat' (held, no collision), no world slot",
+	ranch_fence_20 = "plot fence panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
+	phoenix_fence_segment = "plot fence half panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
+	phoenix_gate = "plot gate: the goo jar tower's door and bridge are the plot entrance (CONTRACT.md §5.3), no gate slot",
 }) :: { [string]: string }
 
 local rows: { Placement } = {}
@@ -126,8 +153,8 @@ polar("GuideLantern", "ranch_lantern_post", "plaza", 250.5, 96, 180, 1)
 -- Entrances --------------------------------------------------------------
 -- A mailbox by the gate on every
 -- plot (v29 B2: odd plots used to get a lantern instead, so half the plots had
--- no mailbox). One each a plot paid for the plot DexBoard meshes
--- (the old decor slot cap, C6); the lanterns' slots became the odd plots' mailboxes,
+-- no mailbox). One each a plot paid for the old plot DexBoard meshes
+-- (the old decor slot cap, C6; the board is gone since the goo jar tower); the lanterns' slots became the odd plots' mailboxes,
 -- so the budget is unchanged. The mailbox door (kit front) faces the spoke path
 -- (plot-local x 0): yaw 270 = front towards plot -X. ENTRANCE_PATH_YAW keeps the
 -- lantern's old yaw for when it gets a slot again.

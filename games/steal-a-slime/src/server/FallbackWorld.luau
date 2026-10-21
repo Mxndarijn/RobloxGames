@@ -82,14 +82,15 @@ local function buildPlot(index: number, parent: Instance)
 	local base = part("Base", Vector3.new(size, 1, size), origin, Color3.fromRGB(200, 200, 210), plot)
 	plot.PrimaryPart = base
 
-	local perRow = math.ceil(Config.PADS_MAX / 2)
+	-- Every pad flat on the Base (no upper floors in the greybox), one floor's worth per row.
+	local perRow = Config.PADS_PER_FLOOR
 	for pad = 1, Config.PADS_MAX do
-		local row = if pad <= perRow then 0 else 1
+		local row = (pad - 1) // perRow
 		local col = (pad - 1) % perRow
-		local x = (col - (perRow - 1) / 2) * 8
-		local z = 6 + row * 9
+		local x = (col - (perRow - 1) / 2) * 5
+		local z = 2 + row * 5
 		local padPart =
-			part(`Pad_{pad}`, Vector3.new(6, 1, 6), origin * CFrame.new(x, 1, z), Color3.fromRGB(150, 220, 255), plot)
+			part(`Pad_{pad}`, Vector3.new(4, 1, 4), origin * CFrame.new(x, 1, z), Color3.fromRGB(150, 220, 255), plot)
 		padPart:SetAttribute(Constants.PAD_INDEX_ATTRIBUTE, pad)
 	end
 

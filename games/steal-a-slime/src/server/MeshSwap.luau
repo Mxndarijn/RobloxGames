@@ -277,6 +277,29 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	if not target:IsA("Model") and target:GetAttribute("MeshTint") == true then
 		mesh.Color = target.Color
 	end
+	-- MeshMaterial / MeshTransparency (the jar tower's glass): the mesh wears that material and transparency instead of
+	-- opaque SmoothPlastic, so a glass shell stays see-through.
+	local material = target:GetAttribute("MeshMaterial")
+	if typeof(material) == "string" then
+		local ok, value = pcall(function()
+			return (Enum.Material :: any)[material]
+		end)
+		if ok and value then
+			mesh.Material = value
+		end
+	end
+	local clear = target:GetAttribute("MeshTransparency")
+	if typeof(clear) == "number" then
+		mesh.Transparency = math.clamp(clear, 0, 1)
+	end
+	-- MeshCastShadow = false (the jar and tube glass): see-through glass casts no shadow, so the jars stay light inside.
+	if target:GetAttribute("MeshCastShadow") == false then
+		mesh.CastShadow = false
+	end
+	-- JarHidden: a jar look that is not showing right now (server/BaseFloors shows it when its jar changes).
+	if target:GetAttribute("JarHidden") == true then
+		mesh.Transparency = 1
+	end
 	-- B9: a skinned Model whose solid is its own invisible "Collider" part (the Top Earners board) widens that part to the
 	-- skin's width and height, keeping its depth and front (the hand collider was 15 wide under a 20.6 wide mesh). A mesh
 	-- that has a fidelity is the collider itself.
@@ -457,7 +480,7 @@ end
 
 -- Bug #16: every plot's MergeVat disc wears the merge_vat model (1 MeshPart per plot, child "VatMesh" of the disc),
 -- independent of FEATURES.MergeVat3 (the 3-slime gameplay stays behind its flag; only the look changes). The disc
--- keeps its name, position, collision and MergePrompt; it and its Goo are only made invisible, and only once the
+-- keeps its name, position, collision and MergePrompt; it is only made invisible, and only once the
 -- mesh is placed (template not loaded = the cylinder stays). Idempotent. Yields; returns how many vats got the model.
 local VAT_MESH_NAME = "VatMesh"
 function MeshSwap.swapPlotVats(): number
@@ -489,10 +512,6 @@ function MeshSwap.swapPlotVats(): number
 			mesh.CanTouch = false
 			mesh.Parent = vat
 			hide(vat)
-			local goo = vat:FindFirstChild("Goo")
-			if goo and goo:IsA("BasePart") then
-				hide(goo)
-			end
 			count += 1
 		end
 	end
@@ -581,21 +600,40 @@ function MeshSwap.applyAll(): number
 	return placed
 end
 
+-- Swaps every slot in `instances` and their descendants; `scope` is the Map or Plots root they sit under.
+local function applyTo(instances: { Instance }, scope: Instance): number
+	local count = 0
+	for _, top in instances do
+		local list = { top }
+		for _, d in top:GetDescendants() do
+			table.insert(list, d)
+		end
+		for _, inst in list do
+			local name = inst:GetAttribute("MeshAsset")
+			if
+				(inst:IsA("BasePart") or inst:IsA("Model"))
+				and typeof(name) == "string"
+				and swap(inst :: any, name, scope)
+			then
+				count += 1
+			end
+		end
+	end
+	return count
+end
+
+-- Meshes for slots added after boot (server/BaseFloors' upper floors). Yields while a template loads.
+function MeshSwap.applyUnder(instances: { Instance }): number
+	local plots = workspace:FindFirstChild("Plots")
+	return if plots then applyTo(instances, plots) else 0
+end
+
 -- Returns how many placeholders got a mesh.
 function MeshSwap.apply(): number
 	local count = 0
 	for _, root in { workspace:FindFirstChild("Map"), workspace:FindFirstChild("Plots") } do
 		if root then
-			for _, inst in root:GetDescendants() do
-				local name = inst:GetAttribute("MeshAsset")
-				if
-					(inst:IsA("BasePart") or inst:IsA("Model"))
-					and typeof(name) == "string"
-					and swap(inst :: any, name, root)
-				then
-					count += 1
-				end
-			end
+			count += applyTo(root:GetChildren(), root)
 		end
 	end
 	if slidePcdPlaced then

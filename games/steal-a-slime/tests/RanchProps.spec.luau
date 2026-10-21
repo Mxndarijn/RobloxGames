@@ -3,9 +3,9 @@
 -- is placed, placed awaiting upload (a pending tag) or listed as
 -- intentionally unplaced, no prop footprint enters a keep-clear zone
 -- (PropClearance), the world border or a habitat pad, every mesh slot is
--- scaled uniformly, each plot fence has exactly one opening (the gate) with
--- 20-stud panels (or their two-segment fallback) on the grid, and the
--- placement is deterministic. Budgets: tests/WorldBudget.spec.
+-- scaled uniformly, each plot's jar has exactly one way in (the door, with
+-- the bridge lined up to it), and the placement is deterministic. Budgets: tests/WorldBudget.spec.
+
 local Config = require("../src/shared/Config")
 local Habitats = require("../src/shared/Habitats")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -47,9 +47,8 @@ end
 local slots = slotsByMesh()
 
 -- Slots placed but waiting for an upload: their mesh name rides on a pending
--- tag instead of MeshAsset (WorldBorder's BorderMesh pieces, the plot fence's
--- FenceMesh slots while ranch_fence_20 has no asset id).
-local PENDING_TAGS = { "BorderMesh", "FenceMesh" }
+-- tag instead of MeshAsset (WorldBorder's BorderMesh pieces).
+local PENDING_TAGS = { "BorderMesh" }
 local pending: { [string]: number } = {}
 for _, root in nodes do
 	walk(root, function(n)
@@ -216,7 +215,7 @@ describe("ranch props: keep-clear zones", function()
 		}
 		local c1 = WorldLayout.plotCentre(1)
 		table.insert(probes, { { c1[1], 2, c1[3] }, "plot 1" })
-		-- just in front of plot 1's gate, inside the corridor
+		-- just in front of plot 1's bridge, inside the corridor
 		table.insert(probes, { { 0, 2, c1[3] - 48 }, "plot 1 entrance" })
 		for _, probe in probes do
 			local hits = PropClearance.conflicts({ pos = probe[1], size = size, yaw = 0 })
@@ -276,7 +275,7 @@ describe("ranch props: keep-clear zones", function()
 			local a = math.rad(yaw)
 			for j = 1, Config.PADS_MAX do
 				local x, z = WorldLayout.padOffset(j)
-				-- inside the fence, so props outside it can't reach a habitat
+				-- inside the plot, so props outside it can't reach a habitat
 				expect(math.abs(x) + half < s / 2 - 1 and math.abs(z) + half < s / 2 - 1).toBe(true)
 				local pad = {
 					cx = centre[1] + x * math.cos(a) + z * math.sin(a),
@@ -342,49 +341,62 @@ local function plotChild(plot: any, name: string): any
 	return nil
 end
 
-describe("plot fence", function()
+describe("plot jar", function()
 	local plots = nodes[2].children
 	local s = WorldLayout.PLOT_SIZE
-	local line = s / 2 - 0.5
+	local floor = WorldLayout.PLOT_FLOOR_TOP
 
-	it("has exactly one opening per enclosure: the gate slot on the front", function()
+	-- Collidable Parts under `root` whose height span covers plot-local height y.
+	local function collidersAt(root: any, y: number): { any }
+		local out = {}
+		walk(root, function(n)
+			if n.class == "Part" and n.canCollide ~= false then
+				local h = if n.shape == "Cylinder" then n.size[1] else n.size[2]
+				if math.abs(n.pos[2] - y) <= h / 2 then
+					table.insert(out, n)
+				end
+			end
+		end)
+		return out
+	end
+
+	-- Does any of `parts` cover plot-local point (x, z)? Upright cylinders by radius, the rest as rotated boxes.
+	local function covered(i: number, parts: { any }, x: number, z: number): boolean
+		local probe = { cx = x, cz = z, hx = 0.01, hz = 0.01, yaw = 0 }
+		for _, n in parts do
+			if n.shape == "Cylinder" then
+				local px, pz = toLocal(i, n.pos[1], n.pos[3])
+				if (px - x) ^ 2 + (pz - z) ^ 2 <= (n.size[2] / 2) ^ 2 then
+					return true
+				end
+			elseif PropClearance.rectsOverlap(localRect(i, n), probe) then
+				return true
+			end
+		end
+		return false
+	end
+
+	it("closes jar 1's glass all round except one doorway at -Z, inside the stopper's span", function()
+		local door = WorldLayout.doorway()
+		local r = WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL / 2
+		local step = 0.25
+		local n = math.ceil(2 * math.pi * r / step)
 		for i, plot in plots do
-			local blockers: { PropClearance.Rect } = {}
-			walk(plot, function(n)
-				local name = n.name :: string
-				if
-					n.class == "Part"
-					and n.canCollide ~= false
-					and ((n.attributes :: any) and (n.attributes :: any).FenceCollider or name:match("^GatePost"))
-				then
-					table.insert(blockers, localRect(i, n))
+			local jar = plotChild(plot, "Jar")
+			expect(jar ~= nil).toBe(true)
+			local lintels = 0
+			for _, c in jar.children do
+				if c.name == "DoorLintel" then
+					lintels += 1
 				end
-			end)
-			-- walk the fence line once round (back, right, front, left), 0.25 steps
+			end
+			expect(lintels).toBe(1)
+			-- walking height: one open run (the door), centred on the -Z axis, no wider than the stopper
+			local walls = collidersAt(jar, floor + 2.5)
 			local samples = {}
-			local step = 0.25
-			local function sample(x: number, z: number)
-				local p = { cx = x, cz = z, hx = 0.01, hz = 0.01, yaw = 0 }
-				local closed = false
-				for _, b in blockers do
-					if PropClearance.rectsOverlap(b, p) then
-						closed = true
-						break
-					end
-				end
-				table.insert(samples, { x = x, z = z, closed = closed })
-			end
-			for t = -line, line - step, step do
-				sample(t, line)
-			end
-			for t = line, -line + step, -step do
-				sample(line, t)
-			end
-			for t = line, -line + step, -step do
-				sample(t, -line)
-			end
-			for t = -line, line - step, step do
-				sample(-line, t)
+			for k = 0, n - 1 do
+				local x, z = WorldLayout.jarWallPoint(1, k * 360 / n)
+				table.insert(samples, { x = x, z = z, closed = covered(i, walls, x, z) })
 			end
 			local runs, open = 0, {}
 			for k, smp in samples do
@@ -397,221 +409,60 @@ describe("plot fence", function()
 				end
 			end
 			expect(runs).toBe(1)
-			local width = #open * step
-			expect(width >= WorldLayout.GATE_CLEAR - 0.5 and width <= WorldLayout.GATE_SLOT).toBe(true)
+			local width = #open * 2 * math.pi * r / n
+			expect(width >= 4).toBe(true) -- a character fits through
 			for _, smp in open do
-				expect(smp.z).toBeCloseTo(-line)
-				expect(math.abs(smp.x) < WorldLayout.GATE_SLOT / 2).toBe(true)
+				expect(smp.z < 0).toBe(true)
+				expect(math.abs(smp.x) <= door.halfWidth).toBe(true)
+			end
+			-- above the door the lintel closes the ring
+			local above = collidersAt(jar, floor + WorldLayout.DOOR.height + 0.5)
+			for _, smp in samples do
+				expect(covered(i, above, smp.x, smp.z)).toBe(true)
 			end
 		end
 	end)
-	-- Fence pieces of one build, checked for either mode: a ranch_fence_20 slot
-	-- (uploaded) or a FenceMesh Model of two phoenix_fence_segment halves
-	-- (fallback) per 20-stud panel, and 10-stud segments beside the gate.
-	local function checkFence(built: { any }, uploadedMode: boolean)
-		local g, h = WorldLayout.FENCE_GRID, WorldLayout.FENCE_SEGMENT_GRID
-		expect(g).toBe(20)
-		expect(h).toBe(10)
-		local function native(mesh: string): Vec
-			return (MeshAssets.get(mesh) :: any).size :: Vec
-		end
-		local function onGrid(v: number, step: number): boolean
-			local f = (v / step) % 1
-			return f < 1e-6 or f > 1 - 1e-6
-		end
-		for i, plot in built[2].children do
-			local fence = plotChild(plot, "Fence")
-			expect(fence ~= nil).toBe(true)
-			local spans: { [string]: { { number } } } = { Back = {}, Left = {}, Right = {}, Front = {} }
-			local panels, segments = 0, 0
-			local function slot(n: any, mesh: string, length: number)
-				expect(n.class).toBe("Part")
-				expect(n.attributes.MeshAsset).toBe(mesh)
-				expect(n.canCollide ~= false).toBe(true) -- the Box collider until the mesh lands (bug #11)
-				expect(n.size[1]).toBeCloseTo(length)
-				expect(n.size[2] / native(mesh)[2]).toBeCloseTo(WorldLayout.FENCE_SCALE)
-				expect(n.size[2]).toBeCloseTo(native(WorldLayout.FENCE_SEGMENT)[2] * WorldLayout.FENCE_SCALE)
+	it("lays one bridge from the plot edge over the moat to the door, lined up with it", function()
+		local door = WorldLayout.doorway()
+		for i, plot in plots do
+			local bridges = 0
+			for _, c in plot.children do
+				if c.name == "Bridge" then
+					bridges += 1
+				end
 			end
-			for _, seg in fence.children do
-				if seg.name == "GatePost" then
-					continue -- checked in "shows one post at every joint"
-				end
-				local side = string.match(seg.name, "^Segment(%a+)_%d+$") :: string
-				expect(spans[side] ~= nil).toBe(true)
-				local cx, cz, length
-				if seg.class == "Model" then
-					-- fallback panel: two halves on the 10 grid, 10 apart
-					expect(uploadedMode).toBe(false)
-					expect(seg.attributes.FenceMesh).toBe(WorldLayout.FENCE_MESH)
-					expect(#seg.children).toBe(2)
-					local a, b = seg.children[1], seg.children[2]
-					slot(a, WorldLayout.FENCE_SEGMENT, h)
-					slot(b, WorldLayout.FENCE_SEGMENT, h)
-					local ax, az = toLocal(i, a.pos[1], a.pos[3])
-					local bx, bz = toLocal(i, b.pos[1], b.pos[3])
-					expect(math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2)).toBeCloseTo(h)
-					cx, cz, length = (ax + bx) / 2, (az + bz) / 2, g
-					panels += 1
-				elseif seg.attributes.MeshAsset == WorldLayout.FENCE_MESH then
-					expect(uploadedMode).toBe(true)
-					slot(seg, WorldLayout.FENCE_MESH, g)
-					cx, cz = toLocal(i, seg.pos[1], seg.pos[3])
-					length = g
-					panels += 1
-				else
-					slot(seg, WorldLayout.FENCE_SEGMENT, h)
-					cx, cz = toLocal(i, seg.pos[1], seg.pos[3])
-					length = h
-					segments += 1
-				end
-				local along = if side == "Back" or side == "Front" then cx else cz
-				local across = if side == "Back" or side == "Front" then cz else cx
-				expect(math.abs(across)).toBeCloseTo(line)
-				-- ends on the grid: panels on the 20 grid from the corner, segments on the 10 grid
-				local lo, hi = along - length / 2, along + length / 2
-				expect(onGrid(lo, h) and onGrid(hi, h)).toBe(true)
-				if length == g then
-					expect(onGrid(lo + s / 2, g) or onGrid(s / 2 - hi, g)).toBe(true)
-				end
-				table.insert(spans[side], { lo, hi })
-			end
-			expect(panels).toBe(14)
-			expect(segments).toBe(2)
-			-- every side covered end to end without overlap; the front leaves the gate slot
-			for side, list in spans do
-				table.sort(list, function(a, b)
-					return a[1] < b[1]
-				end)
-				local covered = 0
-				for k, span in list do
-					covered += span[2] - span[1]
-					if k > 1 then
-						expect(span[1] >= list[k - 1][2] - 1e-6).toBe(true)
-					end
-					if side == "Front" then
-						expect(
-							span[2] <= -WorldLayout.GATE_SLOT / 2 + 1e-6 or span[1] >= WorldLayout.GATE_SLOT / 2 - 1e-6
-						).toBe(true)
-					end
-				end
-				expect(covered).toBeCloseTo(if side == "Front" then s - WorldLayout.GATE_SLOT else s)
-				expect(#list).toBe(4)
-			end
+			expect(bridges).toBe(1)
+			local bridge = plotChild(plot, "Bridge")
+			expect(bridge.canCollide ~= false).toBe(true)
+			local rect = localRect(i, bridge)
+			expect(math.abs(math.sin(math.rad(rect.yaw)))).toBeCloseTo(0)
+			-- straddles the door's span
+			expect(math.abs(rect.cx) + door.halfWidth <= rect.hx + 1e-6).toBe(true)
+			-- from the plot edge, over the moat, up to the glass
+			expect(rect.cz - rect.hz >= -s / 2 - 1e-6).toBe(true)
+			expect(rect.cz - rect.hz <= -WorldLayout.MOAT.outer).toBe(true)
+			expect(rect.cz + rect.hz >= -(WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL)).toBe(true)
+			-- a step up from the Base a character walks onto
+			local top = bridge.pos[2] + bridge.size[2] / 2 - floor
+			expect(top >= 0 and top <= 0.5).toBe(true)
 		end
-	end
-	it("lines the walls with 20-stud fence panels, two 10-stud segments beside the open gate slot", function()
-		checkFence(nodes, WorldLayout.fenceUploaded())
 	end)
-	it("builds the uploaded layout too: one ranch_fence_20 slot per panel", function()
-		local entry = MeshAssets.entries[WorldLayout.FENCE_MESH] :: any
-		local was = entry.meshId
-		entry.meshId = "rbxassetid://0"
-		local ok, built = pcall(WorldLayout.build)
-		entry.meshId = was
-		expect(ok).toBe(true)
-		checkFence(built, true)
-	end)
-	it("builds the fallback layout too: two phoenix_fence_segment per panel", function()
-		local entry = MeshAssets.entries[WorldLayout.FENCE_MESH] :: any
-		local was = entry.meshId
-		entry.meshId = nil
-		local ok, built = pcall(WorldLayout.build)
-		entry.meshId = was
-		expect(ok).toBe(true)
-		checkFence(built, false)
-	end)
-	-- Kit pieces carry one post, at their -X end (+ the panel's mid post).
-	-- Round the loop each joint and corner gets the next piece's post and the
-	-- gate's right stub gets the GatePost: exactly one post at every piece end,
-	-- never two side by side, in both fence modes.
-	local function checkPosts(built: { any })
-		local inset = WorldLayout.FENCE_POST_INSET
-		-- An upload comes in turned 180 from the kit axes (kit x -> import -x)
-		-- and MeshSwap turns each Part slot's mesh MeshAssets.IMPORT_YAW back,
-		-- so a kit -X post must land on the slot's -X end.
-		local turn = math.cos(math.rad(MeshAssets.IMPORT_YAW))
-		local function slotX(kitX: number): number
-			return turn * -kitX
-		end
-		for i, plot in built[2].children do
-			local _, plotYaw = WorldLayout.plotCentre(i)
-			local posts: { { number } } = {}
-			local ends: { { number } } = {}
-			local gatePosts = 0
-			local function piece(n: any, mid: boolean)
-				local x, z = toLocal(i, n.pos[1], n.pos[3])
-				local a = math.rad(n.rot[2] - plotYaw)
-				local dx, dz = math.cos(a), -math.sin(a)
-				local half = n.size[1] / 2
-				local post = slotX(inset - half)
-				table.insert(posts, { x + dx * post, z + dz * post })
-				if mid then
-					local m = slotX(inset)
-					table.insert(posts, { x + dx * m, z + dz * m })
-				end
-				table.insert(ends, { x - dx * half, z - dz * half })
-				table.insert(ends, { x + dx * half, z + dz * half })
-			end
-			for _, n in plotChild(plot, "Fence").children do
-				if n.name == "GatePost" then
-					expect(n.attributes.MeshAsset).toBe(WorldLayout.GATE_POST_MESH)
-					expect(n.canCollide ~= false).toBe(true)
-					local x, z = toLocal(i, n.pos[1], n.pos[3])
-					table.insert(posts, { x, z })
-					gatePosts += 1
-					-- mirrors the left gate segment's post across the gate
-					expect(x).toBeCloseTo(WorldLayout.GATE_SLOT / 2 + inset)
-					expect(z).toBeCloseTo(-line)
-				elseif n.class == "Model" then
-					piece(n.children[1], false)
-					piece(n.children[2], false)
-				else
-					piece(n, n.attributes.MeshAsset == WorldLayout.FENCE_MESH)
-				end
-			end
-			expect(gatePosts).toBe(1)
-			-- every piece end (joints, corners, both gate stubs): one post within 1.5
-			for _, e in ends do
-				local near = 0
-				for _, p in posts do
-					if (p[1] - e[1]) ^ 2 + (p[2] - e[2]) ^ 2 < 1.5 ^ 2 then
-						near += 1
+	it("keeps the walk from the plot edge over the bridge and through the door free of colliders", function()
+		local inside = -(WorldLayout.jarRadius(1) - WorldLayout.DOOR_INNER_INSET - 1)
+		local blocked = {}
+		for i, plot in plots do
+			for y = floor + 0.5, floor + 5, 0.5 do
+				local parts = collidersAt(plot, y)
+				for z = -s / 2, inside, 0.25 do
+					for x = -1.5, 1.5, 0.5 do
+						if covered(i, parts, x, z) then
+							table.insert(blocked, `plot {i} at ({x}, {y}, {z})`)
+						end
 					end
 				end
-				expect(near).toBe(1)
-			end
-			-- no doubled posts anywhere: posts at least a post width apart
-			for a = 1, #posts do
-				for b = a + 1, #posts do
-					local d = math.sqrt((posts[a][1] - posts[b][1]) ^ 2 + (posts[a][2] - posts[b][2]) ^ 2)
-					expect(d > 2).toBe(true)
-				end
-			end
-			-- and one at each gate stub, mirrored
-			for _, sx in { -1, 1 } do
-				local near = 0
-				for _, p in posts do
-					if
-						math.abs(p[1] - sx * (WorldLayout.GATE_SLOT / 2 + inset)) < 1e-6
-						and math.abs(p[2] + line) < 1e-6
-					then
-						near += 1
-					end
-				end
-				expect(near).toBe(1)
 			end
 		end
-	end
-	it("shows one post at every joint, corner and gate stub (uploaded and fallback)", function()
-		local entry = MeshAssets.entries[WorldLayout.FENCE_MESH] :: any
-		local was = entry.meshId
-		for _, up in { true, false } do
-			entry.meshId = if up then "rbxassetid://0" else nil
-			local ok, built = pcall(WorldLayout.build)
-			entry.meshId = was
-			expect(ok).toBe(true)
-			checkPosts(built)
-		end
+		expect(blocked).toEqual({})
 	end)
 end)
 

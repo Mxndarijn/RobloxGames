@@ -71,8 +71,9 @@ describe("PropCollision inventory", function()
 				end
 			end
 		end
+		-- a solid mesh no world slot places has nothing to collide: it is listed as unplaced instead
 		for name, fidelity in MeshAssets.COLLISION do
-			local found = false
+			local found = PropCollision.UNPLACED[name] ~= nil
 			for _, e in ENTRIES do
 				found = found or (e.mesh == name and e.collision == fidelity)
 			end
@@ -321,7 +322,8 @@ describe("PropCollision against the booted world", function()
 		)
 	end)
 	it("puts no spawn, plot spawn or other prop's centre inside a collidable prop", function()
-		local floors = { ground_and_hub_spawn = true, plot_base = true, plot_pads = true, terrain = true }
+		local floors =
+			{ ground_and_hub_spawn = true, plot_base = true, plot_pads = true, plot_bridge = true, terrain = true }
 		local Vector3 = roblox.Vector3
 		local blockers = {} -- { kind, inst, part }
 		local centres = {} -- { name, inst, pos }

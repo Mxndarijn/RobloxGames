@@ -7,7 +7,8 @@
 	Instances:
 	  * LockPrompt on LockButton: "Lock base $<cost>" / "Extend lock $<cost>" /
 	    "Lock is maxed", ObjectText "<name>'s base: OPEN" / "... LOCKED m:ss";
-	  * BuyPadPrompt on the lowest locked pad: "Buy pad $<cost>", "Pad <j> of <max>";
+	  * BuyPadPrompt on the lowest locked pad: "Buy pad $<cost>" ("Build floor <f> $<cost>" on a floor's first pad),
+	    "Pad <j> of <max>";
 	  * MergePrompt on MergeVat: "Open vat" (the client opens the merge menu; FEATURES.MergeVat3) or "Auto-merge"
 	    (the pair vat merges the cheapest pair), "Merge vat";
 	  * plot attributes Locked / LockCost / PadsUnlocked / NextPadCost.
@@ -75,6 +76,10 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 
 	local padCost = Economy.padCost(data.padsUnlocked)
 	local nextPad = math.min(data.padsUnlocked + 1, Config.PADS_MAX)
+	local floor = Economy.floorOf(nextPad)
+	local buyText = if floor > 1 and nextPad == (floor - 1) * Config.PADS_PER_FLOOR + 1
+		then `Build floor {floor}`
+		else "Buy pad"
 	return {
 		ownerUserId = session.userId,
 		locked = locked,
@@ -83,7 +88,7 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 		nextPadCost = padCost,
 		lock = { actionText = lockText, objectText = `{session.name}'s base: {status}`, enabled = true },
 		buyPad = {
-			actionText = if padCost then `Buy pad ${Economy.formatNumber(padCost)}` else "All pads unlocked",
+			actionText = if padCost then `{buyText} ${Economy.formatNumber(padCost)}` else "All pads unlocked",
 			objectText = `Pad {nextPad} of {Config.PADS_MAX}`,
 			enabled = padCost ~= nil,
 			pad = nextPad,

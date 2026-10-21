@@ -481,7 +481,7 @@ function ItemIcons.build(config: any)
 			id = `PlotSkin_{s.id}`,
 			name = s.name,
 			group = "skin",
-			color = if s.fence then s.fence else { 200, 200, 200 },
+			color = if s.trim then s.trim else { 200, 200, 200 },
 			glyph = "🏡",
 			model = if mesh then { kind = "mesh", mesh = mesh } else nil,
 			brief = `Mini diorama of the '{s.name}' plot (floor, fence and decor); 3/4 view from above.`,

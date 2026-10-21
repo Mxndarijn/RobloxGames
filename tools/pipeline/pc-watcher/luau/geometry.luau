@@ -147,7 +147,8 @@ do
 	out.silo_centred = { items = items, errors = errors }
 end
 
--- d) plot signs
+-- d) plot signs: the name label on jar 1's glass. Each SurfaceGui must sit on the configured face, point out of the
+-- jar (away from the plot centre, the Base) and not read mirrored.
 do
 	local c, items, errors = cfg.plot_signs, {}, {}
 	local folder = workspace:FindFirstChild(c.plots_folder)
@@ -160,9 +161,8 @@ do
 			if not (sign and sign:IsA("BasePart") and base) then
 				table.insert(errors, `{plot.Name}: no {c.sign} part or no PrimaryPart`)
 			else
-				local out_dir = flat(sign.Position - base.Position)
-				local gate = plot:FindFirstChild(c.gate, true)
-				local gateFront = gate and front(gate)
+				local offset = sign.Position - base.Position
+				local out_dir = flat(offset)
 				local cf = sign.CFrame
 				local det = cf.RightVector:Cross(cf.UpVector):Dot(-cf.LookVector)
 				local guis = {}
@@ -189,15 +189,13 @@ do
 						normal = v3(n),
 						dot_out = r(dotOut),
 						angle_out_deg = r(angOut),
+						radius = r(Vector3.new(offset.X, 0, offset.Z).Magnitude),
 						text = texts,
 						enabled = g.Enabled,
 						frame_det = r(det),
 						mirrored = det < 0.5,
 						size = v3(sign.Size),
 					}
-					if gateFront then
-						item.dot_gate_front = r(flat(n):Dot(flat(gateFront)))
-					end
 					table.insert(items, item)
 				end
 			end

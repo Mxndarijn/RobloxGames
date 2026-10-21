@@ -392,6 +392,23 @@ def apply_roblox_materials(objs):
         ca = me.color_attributes.active_color or (me.color_attributes[0] if len(me.color_attributes) else None)
         saved.append((me, [m for m in me.materials]))
         new = [roblox_material(m, ca.name if ca else None) for m in me.materials] or [roblox_material(None, ca.name if ca else None)]
+        # Opt-in for previews of Parts with Transparency (Glass): object property rbx_transparency (0..1) mixes in a
+        # Transparent BSDF the way Roblox blends a transparent part. Meshes for upload never set it.
+        t = o.get("rbx_transparency")
+        if t:
+            # several glass layers stack up (a jar's outer and inner surface, the jars behind it): let rays through them
+            cyc = bpy.context.scene.cycles
+            cyc.transparent_max_bounces = max(cyc.transparent_max_bounces, 24)
+            for m in new:
+                nt = m.node_tree
+                out = nt.nodes["Material Output"]
+                shader = out.inputs["Surface"].links[0].from_socket
+                clear = nt.nodes.new("ShaderNodeBsdfTransparent")
+                mix = nt.nodes.new("ShaderNodeMixShader")
+                mix.inputs["Fac"].default_value = float(t)
+                nt.links.new(shader, mix.inputs[1])
+                nt.links.new(clear.outputs["BSDF"], mix.inputs[2])
+                nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
         me.materials.clear()
         for m in new:
             me.materials.append(m)

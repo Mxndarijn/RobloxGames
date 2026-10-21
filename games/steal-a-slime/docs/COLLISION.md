@@ -136,10 +136,10 @@ floor part); it needs no call site and touches no terrain-height file.
 
 | Fidelity | Meshes |
 |---|---|
-| `Box` | `slime_fountain_emerge` (bug #10, main), `ranch_fence_20`, `phoenix_fence_segment`, `phoenix_corner_post` (the plot fence), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_bench`, `ranch_compost_bin`, `ranch_flower_planter`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_wagon`, `ranch_water_trough`, `ranch_barrel`, `ranch_well`, `ranch_fence_stile` (v196 follow-up) |
+| `Box` | `slime_fountain_emerge` (bug #10, main), `phoenix_corner_post` (the stile post), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_bench`, `ranch_compost_bin`, `ranch_flower_planter`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_wagon`, `ranch_water_trough`, `ranch_barrel`, `ranch_well`, `ranch_fence_stile` (v196 follow-up) |
 | `Hull` | `merge_vat`, `ranch_shop_stand` (already; and the Item / Upgrade stands' `ranch_item_shop`, `ranch_upgrade_cabinet`), `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_slime_coop`, `ranch_water_pump`, `ranch_weathervane`, `ranch_wheelbarrow`, `ranch_windmill` |
 | `PreciseConvexDecomposition` | `ranch_barn_loft` (loft over an open floor), marked "PCD: Phoenix Studio check" |
-| none (decor) | `slime_fountain` (tower, hand colliders stay; the split pieces are in `MeshAssets.COLLISION`, the slide only with `SlidePCD`), `phoenix_gate` (a Box/Hull would close the 14-stud opening; its GatePost stand-ins keep the posts; PCD is the later mesh route), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring` and `ranch_goo_drain` (decor meshes, solid through the thin `PlazaColliders` parts, see the last section), `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, every slime kit mesh, `slime_lane` |
+| none (decor) | `slime_fountain` (tower, hand colliders stay; the split pieces are in `MeshAssets.COLLISION`, the slide only with `SlidePCD`), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring` and `ranch_goo_drain` (decor meshes, solid through the thin `PlazaColliders` parts, see the last section), `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, every slime kit mesh, `slime_lane` |
 
 `tests/MeshCollision.spec` makes every mesh name either solid or decor-with-a-reason.
 
@@ -148,10 +148,9 @@ What changed besides the list:
 - **Slot boxes.** A WorldLayout slot is a primitive box that used to stay as an invisible collider under its mesh. Now a decor
   ranch prop slot never collides, and a Part slot whose mesh has a fidelity turns its box off once the mesh is placed
   (`MeshSwap.swap`): the mesh is the collider. While the mesh loads (or fails) the box still collides.
-- **Plot fence.** The five invisible `Wall*` blocks per plot (40 parts for 8 plots) are removed. The fence panels (`ranch_fence_20`
-  20 x 8.2 x 1.64, `phoenix_fence_segment` 10 x 8.2 x 1.64 beside the gate, `phoenix_corner_post` at the gate stub) are `Box` and
-  carry `FenceCollider`; their slot boxes collide until the mesh lands. The spec walks every old wall's centre line in 0.25 steps
-  and requires a Box slot at each point, at least as tall as the wall and starting at its base, with the gate opening still open.
+- **Plot jar.** The plot is the goo jar tower (CONTRACT.md §5.3): jar 1's glass wall (24 colliding segments and the door
+  lintel), its lid and the bridge are plain Parts, no mesh. The spec sweeps the glass all the way round at three heights: closed
+  everywhere except the doorway, which is clear for the owner (only the `LockBarrier.Stopper` sits in it).
 - Left alone on purpose: `slime_fountain` and its Basin / Trim / Silo / Top colliders, `SlideColliders`, `FountainColliders`,
   the World Border wall ring, the Leaderboard board's `Collider`.
 
@@ -164,8 +163,8 @@ What changed besides the list:
   collision exists at all for the scaled mesh (the engine may fall back to a coarser one), and the physics step cost.
 - **Stand-on surfaces and fall-through.** Stand on the three podiums (rigs from `PodiumRigs`), crates, wagon, picnic table, shed
   roof ledge: no fall-through, no float above the visual top, no stuck feet in a Hull's filled concavity.
-- **Fence.** Walk the whole fence line of one plot, corner to gate: no gap at joints, corners or the gate stubs; the gate opening
-  stays open; if a `Box` mesh fails to generate, the placeholder box (same footprint) is the fallback.
+- **Jar.** Walk round jar 1's glass and push at the joints: no gap; the doorway stays open for the owner and closes for others
+  while locked (the stopper).
 - **Pass-through and clearance.** The walk-through `ranch_*` decor (patches, pit, border, habitats) stays passable.
 - Shots `183-bug11-hull-stand`, `184-bug11-box-stand`, `185-bug11-pcd-stand` (`luau/mesh_stand`) drop and push balls at these
   meshes; they do not replace a Studio walk with a real character.
@@ -221,13 +220,13 @@ left off as decisions for Merijn; he decided they are solid, see the last sectio
 
 ## Plot-level audit (B9)
 
-Every plot mesh slot has a decided collision (`tests/MeshCollision.spec` "B9: plot-level collision"): fence panels, fence
-segments and the gate-side corner post are `Box`; `merge_vat` is `Hull`; no PCD on a plot. `phoenix_gate` stays decor (a Box would
-close the 14-stud opening): its `GatePostL` / `GatePostR` stand-ins keep collision after the mesh lands. `phoenix_pad_crate`
+Every plot mesh slot has a decided collision (`tests/MeshCollision.spec` "plot-level collision"): `merge_vat` is `Hull`; no PCD
+on a plot. The jar's glass, lintel, lid and bridge are colliding Parts; the moat, jar floor and parked stopper are decor. `phoenix_pad_crate`
 is decor: `Pad_<j>` (8 x 2.4 x 8) is the solid, steppable surface. `phoenix_top_earners_board` is shared with the world board
 (own Collider), so the plot's `DexMesh` slot box (canCollide on, canQuery / canTouch off) is the dex board's collider.
-Client-toggled cosmetics (LockBarrier panels, LockSign, RebirthDecor, habitats, skins) stay non-colliding: hidden
-colliders would be invisible walls, and the Pad / PlotLockGuard already cover those areas.
+Client-toggled cosmetics (LockSign, RebirthDecor, the jar mascot and ooze, habitats, skins) stay non-colliding: hidden
+colliders would be invisible walls, and the Pad / PlotLockGuard already cover those areas. The `LockBarrier.Stopper` is the one
+exception: hidden and non-colliding while open, the server makes it solid while the plot is locked.
 
 ## B9 follow-up: the landing ring and the goo drain are solid (Merijn: nobody walks through any object)
 

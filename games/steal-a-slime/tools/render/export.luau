@@ -6,9 +6,9 @@
 -- MeshStandIn parts hidden), stages a few habitat pads, and writes every
 -- visible part and mesh with its world CFrame to tools/render/out/scene.json
 -- for render_world.py. --skin <id> wears a Config.PLOT_SKINS skin on Plot_1 (real PlotDecor.applySkin
--- floor, fence / gate tint on the meshes, the skin decor in the Mailbox_1 slot) and writes
+-- floor, cork and trim tint, the skin decor in the Mailbox_1 slot) and writes
 -- scene[_pending]_skin_<id>.json. --pending also swaps meshes that are in the kit but
--- not uploaded yet (ranch_fence_20, the BorderMesh ring): the intended look. (default) stands the merge_vat model
+-- not uploaded yet (the BorderMesh ring): the intended look. (default) stands the merge_vat model
 -- (real VatDecor.pose) over every plot's MergeVat disc; --cylinder keeps the old primitive and writes scene[_pending]_cylinder.json. --fountain-tier <1..4> shows the
 -- FEATURES.FountainTiers look (FountainTiers.LOOKS glow on the CraterGlow light) and writes
 -- scene[_pending]_tier_<n>.json.
@@ -153,7 +153,7 @@ for _, scope in { built.map, built.plots } do
 	swapped[scope] = {}
 	for _, inst in scope:GetDescendants() do
 		local name = inst:GetAttribute("MeshAsset")
-			or (PENDING and (inst:GetAttribute("BorderMesh") or inst:GetAttribute("FenceMesh")))
+			or (PENDING and inst:GetAttribute("BorderMesh"))
 		if typeof(name) == "string" and (inst:IsA("BasePart") or inst:IsA("Model")) and swappable(name) then
 			local cf, box
 			local size, scale, drop

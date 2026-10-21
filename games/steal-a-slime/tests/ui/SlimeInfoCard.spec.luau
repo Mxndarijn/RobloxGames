@@ -1,6 +1,6 @@
 --!strict
 -- Slime labels (contract/slime-labels.md): one floating tag per loose slime, rows stacked inside it, bottom edge
--- above the mesh top at the same height for every slime, culled by distance; a goo-dipped plank on the pad crate
+-- above the mesh top at the same height for every slime, culled by distance; a goo-dipped sign in front of the pad's cork stand
 -- for a pad slime; both re-rendered only on label attribute changes.
 local roblox = require("@lune/roblox") :: any
 
@@ -246,7 +246,7 @@ end)
 
 local SlimePadSign = UiHarness.ui("SlimePadSign")
 
--- A plot with one pad crate (PadIndex `index`) and a slime model resting in its Slimes folder.
+-- A plot with one pad (PadIndex `index`) and a slime model resting in its Slimes folder.
 local function plotWithSlime(index: number, attrs: { [string]: any }): (any, any, any)
 	local plot = UiHarness.Instance.new("Model")
 	plot.Name = "Plot_1"
@@ -265,24 +265,30 @@ local function plotWithSlime(index: number, attrs: { [string]: any }): (any, any
 end
 
 describe("SlimePadSign", function()
-	it("is a plank on the crate's entrance side that never collides, is never queried and is never cloned", function()
-		local sign = SlimePadSign.build()
-		expect(sign.ClassName).toBe("Part")
-		expect(sign.Anchored).toBe(true)
-		expect(sign.CanCollide).toBe(false)
-		expect(sign.CanQuery).toBe(false)
-		expect(sign.CanTouch).toBe(false)
-		expect(sign.Archivable).toBe(false)
-		expect(sign:FindFirstChild("Face").Face).toBe(roblox.Enum.NormalId.Front)
-		local _, pad = plotWithSlime(2, {})
-		local at = SlimePadSign.cframe(pad)
-		local s = SlimePadSign.SIZE
-		-- CFrames are float32: compare positions to 1e-4.
-		local here = pad.CFrame:PointToObjectSpace(at.Position)
-		expect(math.abs(here.Z + s.front + s.thickness / 2) < 1e-4).toBe(true) -- -Z: towards the plot entrance
-		expect(math.abs(here.Y - (s.centreY - pad.Size.Y / 2)) < 1e-4).toBe(true)
-		expect(math.abs(here.X) < 1e-4).toBe(true)
-	end)
+	it(
+		"is a sign on a stake in front of the stand that never collides, is never queried and is never cloned",
+		function()
+			local sign = SlimePadSign.build()
+			expect(sign.ClassName).toBe("Part")
+			expect(sign.Anchored).toBe(true)
+			expect(sign.CanCollide).toBe(false)
+			expect(sign.CanQuery).toBe(false)
+			expect(sign.CanTouch).toBe(false)
+			expect(sign.Archivable).toBe(false)
+			expect(sign:FindFirstChild("Face").Face).toBe(roblox.Enum.NormalId.Front)
+			local stake = sign:FindFirstChild("Stake")
+			expect(stake ~= nil and stake.CanCollide == false and stake.CanQuery == false).toBe(true)
+			expect(math.abs(stake.Size.Y - SlimePadSign.SIZE.centreY) < 1e-4).toBe(true) -- floor to the plank's middle
+			local _, pad = plotWithSlime(2, {})
+			local at = SlimePadSign.cframe(pad)
+			local s = SlimePadSign.SIZE
+			-- CFrames are float32: compare positions to 1e-4.
+			local here = pad.CFrame:PointToObjectSpace(at.Position)
+			expect(math.abs(here.Z + s.front + s.thickness / 2) < 1e-4).toBe(true) -- -Z: towards the plot entrance
+			expect(math.abs(here.Y - (s.centreY - pad.Size.Y / 2)) < 1e-4).toBe(true)
+			expect(math.abs(here.X) < 1e-4).toBe(true)
+		end
+	)
 	it("is a wooden plank dipped in goo of the rarity colour, with the name, income and a goo tube", function()
 		local sign = SlimePadSign.build()
 		expect(sign.Material).toBe(roblox.Enum.Material.WoodPlanks)

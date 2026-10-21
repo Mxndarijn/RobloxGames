@@ -2,17 +2,17 @@
 --[[
 	SlimePadSign (contract/slime-labels.md)
 
-	The label of a slime resting on a pad: a wooden plank nailed to the front
-	of the pad crate (the side facing the plot entrance), dipped in goo of
-	the slime's rarity colour. The goo runs along the top edge with the
+	The label of a slime resting on a pad: a little wooden sign on a stake in
+	front of the pad's cork stand (the side facing the jar's centre, where
+	players walk), dipped in goo of the slime's rarity colour. The goo runs along the top edge with the
 	rarity written in it and drips down both ends; the name and income are
 	painted on the wood, and the growth fills a goo tube. Built and filled by
 	SlimeInfoCard, which owns the lifecycle; this module only makes the part
 	and draws a SlimeLabel.View on it.
 
-	Client only, nothing replicates. The plank never collides, is never
-	queried or touched and casts no shadow, so it can't block a prompt or a
-	walk-in.
+	Client only, nothing replicates. The plank (and its stake) never collides,
+	is never queried or touched and casts no shadow, so it can't block a
+	prompt or a walk-in.
 ]]
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -27,13 +27,14 @@ local SlimePadSign = {}
 
 SlimePadSign.NAME = "SlimePadSign"
 
--- Plank size and where it sits on the pad crate (studs, pad-local: -Z is the plot entrance side).
+-- Plank size and where it stands in front of the cork stand (studs, pad-local: -Z faces the jar's centre).
 SlimePadSign.SIZE = table.freeze({
 	width = 4.6,
 	height = 1.5,
 	thickness = 0.14,
-	front = 3.8, -- studs from the pad centre to the plank's back face (the crate side)
-	centreY = 1.25, -- studs above the pad's bottom
+	front = 4.15, -- studs from the pad centre to the plank's back face (stake and all clear of the stand's foot, r 3.9)
+	centreY = 1.45, -- studs above the pad's bottom (the plank's top stays under the dish rim and the slime)
+	stake = 0.22, -- the square stake under the plank, from the floor to its middle
 	pixelsPerStud = 80,
 	maxDistance = 45, -- studs: the plank is too small to read beyond this
 	corner = 6,
@@ -196,7 +197,7 @@ function SlimePadSign.findPad(model: Instance, pad: number): BasePart?
 	return (if grand then padIn(grand, pad) else nil) or padIn(parent, pad)
 end
 
--- Where the plank sits for a pad part: on the crate's entrance side, facing out.
+-- Where the plank sits for a pad part: in front of the stand, facing the jar's centre.
 function SlimePadSign.cframe(pad: BasePart): CFrame
 	local s = SlimePadSign.SIZE
 	return pad.CFrame * CFrame.new(0, s.centreY - pad.Size.Y / 2, -(s.front + s.thickness / 2))
@@ -217,6 +218,19 @@ function SlimePadSign.build(): Part
 		Color = c.wood,
 		Size = Vector3.new(s.width, s.height, s.thickness),
 	}) :: Part
+	create("Part", {
+		Name = "Stake",
+		Archivable = false,
+		Anchored = true,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		CastShadow = false,
+		Material = Enum.Material.Wood,
+		Color = c.edge,
+		Size = Vector3.new(s.stake, s.centreY, s.stake),
+		Parent = part,
+	})
 	local gui = create("SurfaceGui", {
 		Name = "Face",
 		Face = Enum.NormalId.Front,
@@ -344,7 +358,13 @@ end
 
 -- Puts the plank on `pad` (in `parent`, a client-only folder).
 function SlimePadSign.place(part: Part, pad: BasePart, parent: Instance)
+	local s = SlimePadSign.SIZE
 	part.CFrame = SlimePadSign.cframe(pad)
+	local stake = part:FindFirstChild("Stake")
+	if stake and stake:IsA("BasePart") then
+		-- behind the plank, from the floor up to its middle
+		stake.CFrame = part.CFrame * CFrame.new(0, -s.centreY / 2, (s.thickness + s.stake) / 2)
+	end
 	part.Parent = parent
 end
 

@@ -3,7 +3,7 @@
 	VatDecor (owner: Archer; used by server MeshSwap.swapPlotVats)
 
 	Where the merge_vat mesh stands over a plot's primitive MergeVat disc. Pure: no Roblox APIs (Lune-safe).
-	The disc (WorldLayout plot: dia 9, 4 tall, centre 3 above the plot floor, i.e. bottom at the floor + 1) keeps
+	The disc (WorldLayout plot MergeVat: DISC_DIAMETER wide, DISC_HEIGHT tall, standing on the plot floor) keeps
 	the ProximityPrompt and stays; it is only hidden. The mesh stands on the disc's bottom at BODY / MESH scale so
 	its copper belly covers the disc and its spouts reach past it.
 ]]
@@ -17,7 +17,7 @@ export type Pose = { size: { number }, position: { number } }
 local VatDecor = {}
 
 VatDecor.MESH = "merge_vat"
-VatDecor.DISC_DIAMETER = 9 -- WorldLayout plot MergeVat disc
+VatDecor.DISC_DIAMETER = 9 -- the WorldLayout plot MergeVat disc is built from these
 VatDecor.DISC_HEIGHT = 4
 VatDecor.BODY_DIAMETER = 9.3 -- the cauldron's belly in the mesh (merge_vat.py: r 4.65)
 VatDecor.SCALE = VatDecor.DISC_DIAMETER / VatDecor.BODY_DIAMETER

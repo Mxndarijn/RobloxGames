@@ -56,9 +56,9 @@ PropClearance.LANE_INNER = ParadeLane.LANE_RADIUS - 3.25
 PropClearance.LANE_OUTER = ParadeLane.LANE_RADIUS + 3.25
 PropClearance.LANE_POSTS_INNER = 62.25
 PropClearance.LANE_POSTS_OUTER = 73.75
--- Entrance corridor: the gate slot, from the front fence out to the ring
--- path centreline, in plot-local coordinates.
-PropClearance.CORRIDOR_HALF = WorldLayout.GATE_SLOT / 2
+-- Entrance corridor in front of the bridge, from the plot's front edge out to
+-- the ring path centreline, in plot-local coordinates.
+PropClearance.CORRIDOR_HALF = WorldLayout.ENTRANCE_CLEAR / 2
 
 -- Unit axes of a slot turned `yaw` degrees (Roblox: +Z -> (sin, cos)).
 local function axes(yaw: number): (number, number, number, number)

@@ -4,7 +4,7 @@
 
 	Data table: slime type / family -> habitat id, and each habitat's overlay.
 	The pad itself never changes: a pad whose slime sits on it gets that
-	slime's habitat overlay (a themed frame and rim props on the crate deck);
+	slime's habitat overlay (a themed frame ring and rim props on the cork stand's dish);
 	an empty pad is BASE (no overlay). Habitat ids are never saved.
 
 	  Habitats.forSlime(slime)     type (SlimeRoster id) > tier family > BASE
@@ -28,7 +28,7 @@ export type Habitat = {
 	id: string,
 	name: string,
 	overlay: string?, -- shared/modeling-kit overlay mesh (habitat_<id>_overlay); nil = BASE, no overlay
-	drop: number, -- studs the overlay hangs below the crate deck (drips over the edge); 0 = rests on the deck
+	drop: number, -- studs the overlay hangs below the dish rim (drips down the stand); 0 = rests on the rim
 	color: { number }, -- placeholder primitive colour and puff, RGB 0..255
 	accent: { number }, -- placeholder accent and puff colour
 }
@@ -59,7 +59,7 @@ local LIST: { Habitat } = {
 	h("flower_bed", "Flower Bed", 0, { 120, 85, 55 }, { 255, 140, 190 }),
 	h("barn_crate", "Barn Crate", 0, { 170, 120, 70 }, { 150, 50, 40 }),
 	h("rodeo_barrel", "Rodeo Barrel", 0, { 140, 90, 50 }, { 120, 220, 110 }),
-	h("syrup_pool", "Syrup Pool", 1.058, { 230, 150, 40 }, { 255, 210, 120 }),
+	h("syrup_pool", "Syrup Pool", 1.049, { 230, 150, 40 }, { 255, 210, 120 }),
 	h("show_stool", "Show Stool", 0, { 70, 110, 200 }, { 255, 215, 80 }),
 	h("candy_patch", "Candy Patch", 0, { 255, 170, 210 }, { 120, 230, 200 }),
 	h("crystal_grotto", "Crystal Grotto", 0, { 110, 100, 130 }, { 190, 150, 255 }),

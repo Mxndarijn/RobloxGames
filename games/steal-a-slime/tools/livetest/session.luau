@@ -668,19 +668,17 @@ scenario("ui", function()
 			or "no goals"
 	)
 
-	-- SlimeDex: panel text, nav badge and the plot DexBoard attributes agree.
+	-- SlimeDex: panel text and nav badge agree; plots no longer carry Dex attributes (the board is gone).
 	local dexRewards = Progress.dexRewards(state)
 	local badges = Nav.badges(state)
 	check(
-		"ui: SlimeDex panel, nav badge and plot DexCount/DexTotal/DexTierMask agree",
+		"ui: SlimeDex panel and nav badge agree; the plot carries no Dex attributes",
 		dexRewards.next ~= nil
 			and badges.Dex ~= nil
-			and plot:GetAttribute("DexCount") == state.dex.found
-			and plot:GetAttribute("DexTotal") == state.dex.total
 			and state.dex.total == 50
-			and (plot:GetAttribute("DexTierMask") or 0) > 0
+			and plot:GetAttribute("DexCount") == nil
 			and plot:GetAttribute("PlotPrice") == nil,
-		`DexCount={plot:GetAttribute("DexCount")}/{plot:GetAttribute("DexTotal")} mask={plot:GetAttribute("DexTierMask")} badge={badges.Dex}; "{dexRewards.next}"`
+		`found {state.dex.found}/{state.dex.total} badge={badges.Dex}; "{dexRewards.next}"`
 	)
 
 	-- Lock / pad HUD buttons match the plot prompts.
