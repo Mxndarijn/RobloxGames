@@ -53,7 +53,6 @@ local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
-local Progression = require(ReplicatedStorage.Shared.Progression)
 local PvpBlaster = require(script.Parent.PvpBlaster)
 local PvpFun = require(script.Parent.PvpFun)
 local PvpHeld = require(script.Parent.PvpHeld)
@@ -1502,7 +1501,7 @@ function WorldView.updatePlayer(
 		PvpBlaster.tick(world, session, root and root.Position, now, ctx)
 		PvpFun.tick(world, session, root and root.Position, now, ctx)
 	end
-	local pet = Progression.keeper(data)
+	local pet = World.pet(world, session) -- a stolen pet stops following
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
 	if data.speedCoil then
 		ensureSpeedCoil(player)
