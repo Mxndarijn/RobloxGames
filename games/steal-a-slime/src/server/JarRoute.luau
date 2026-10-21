@@ -14,9 +14,9 @@
 	plot in: jar centre at the origin, angle a at (cos a, sin a).
 ]]
 
-local WorldLayout = if script
-	then require((game:GetService("ReplicatedStorage") :: any).Visuals.WorldLayout)
-	else require("../visuals/shared/WorldLayout")
+local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Layout = if Shared then require(Shared.Parent.Visuals.WorldLayout) else require("../visuals/shared/WorldLayout")
+local WorldLayout = Layout
 
 local JarRoute = {}
 

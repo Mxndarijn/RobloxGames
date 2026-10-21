@@ -254,40 +254,41 @@ describe("Carry.release + Spawner: a dropped wild slime walks back and rejoins t
 	end)
 end)
 
-describe("ParadeLane.reroute + Carry.reroute: the walk back along the server's path", function()
-	local LATERAL = 0.5
+-- The walk back along the server's path (ParadeLane.reroute / Carry.reroute).
+local LATERAL = 0.5
 
-	local function carried()
-		local world = ServerFixtures.world()
-		ServerFixtures.join(world, 1, nil, 0)
-		local id = Spawner.spawnOne(world, T0)
-		world.wild[id].price = 0
-		expect((Carry.grab(world, 1, id, 3, T0 + 20))).toBe(true)
-		return world, id
-	end
+local function carried()
+	local world = ServerFixtures.world()
+	ServerFixtures.join(world, 1, nil, 0)
+	local id = Spawner.spawnOne(world, T0)
+	world.wild[id].price = 0
+	expect((Carry.grab(world, 1, id, 3, T0 + 20))).toBe(true)
+	return world, id
+end
 
-	local function planned()
-		local x, z = offLane(ParadeLane.LENGTH / 2, 40)
-		return ParadeLane.returnPlan(x, z, LATERAL, LIFE, T0)
-	end
+local function planned()
+	local x, z = offLane(ParadeLane.LENGTH / 2, 40)
+	return ParadeLane.returnPlan(x, z, LATERAL, LIFE, T0)
+end
 
-	-- A detour round something in the way: 20 studs sideways, forwards, then back onto the straight line.
-	local function detour(plan)
-		local fx, fz = plan.fromX, plan.fromZ
-		local dx, dz = plan.x1 - fx, plan.z1 - fz
-		local len = math.sqrt(dx * dx + dz * dz)
-		local ux, uz = dx / len, dz / len
-		local sx, sz = -uz * 20, ux * 20
-		return {
-			fx + sx,
-			fz + sz,
-			fx + sx + ux * len * 0.7,
-			fz + sz + uz * len * 0.7,
-			fx + ux * len * 0.85,
-			fz + uz * len * 0.85,
-		}
-	end
+-- A detour round something in the way: 20 studs sideways, forwards, then back onto the straight line.
+local function detour(plan)
+	local fx, fz = plan.fromX, plan.fromZ
+	local dx, dz = plan.x1 - fx, plan.z1 - fz
+	local len = math.sqrt(dx * dx + dz * dz)
+	local ux, uz = dx / len, dz / len
+	local sx, sz = -uz * 20, ux * 20
+	return {
+		fx + sx,
+		fz + sz,
+		fx + sx + ux * len * 0.7,
+		fz + sz + uz * len * 0.7,
+		fx + ux * len * 0.85,
+		fz + uz * len * 0.85,
+	}
+end
 
+describe("ParadeLane.reroute: the walk back along the server's path", function()
 	it("walks every route point in order at a steady pace, then merges onto the lane at the same point", function()
 		local plan = planned()
 		local path = detour(plan)
@@ -327,6 +328,9 @@ describe("ParadeLane.reroute + Carry.reroute: the walk back along the server's p
 		local plan = planned()
 		expect(ParadeLane.reroute(plan, {})).toBe(plan)
 	end)
+end)
+
+describe("Carry.reroute: the server's path swapped into a dropped slime's walk", function()
 	it("Carry.reroute swaps the walk in once, and its lane times follow the longer walk", function()
 		local world, id = carried()
 		local x, z = offLane(ParadeLane.LENGTH / 3, 30)

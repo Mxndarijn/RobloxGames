@@ -642,14 +642,14 @@ end
 -- Finds the path for a slime that was just dropped at `start` and swaps it in (Carry.reroute) while it falls.
 local function routeHome(world: World.World, id: string, plan: ParadeLane.Return, start: Vector3)
 	task.spawn(function()
-		local route = {}
+		local route: { number } = {}
 		local tower, foot = towerLeg(start)
-		for _, v in tower or {} do
-			table.insert(route, v)
+		if tower then
+			table.move(tower, 1, #tower, 1, route)
 		end
 		local ground = groundLeg(foot or start, Vector3.new(plan.x1, ParadeLane.LANE_Y, plan.z1))
-		for _, v in ground or {} do
-			table.insert(route, v)
+		if ground then
+			table.move(ground, 1, #ground, #route + 1, route)
 		end
 		Carry.reroute(world, id, plan.startAt, route, workspace:GetServerTimeNow())
 	end)
