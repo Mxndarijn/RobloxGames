@@ -67,8 +67,9 @@ HYBRID_TIER = {  # result tier; checked against the input tier below
     "snow_bunny": 4, "catfish": 4, "sushi": 4, "steam": 5, "kraken": 5, "thunderbee": 5,
     "dragon_king": 6, "cyber_ninja": 6, "nightwing": 7,
 }
-BOSSES = {"goozilla": 6, "queen_jelly": 6, "mecha_goo": 7}
-BOSS_ROTATION = ["goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo"]
+BOSSES = {"goozilla": 6, "queen_jelly": 6, "klawdius": 6, "pumpking": 6, "mecha_goo": 7, "goomancer": 7}
+BOSS_ROTATION = ["goozilla", "queen_jelly", "klawdius", "pumpking", "mecha_goo",
+                 "goozilla", "queen_jelly", "klawdius", "pumpking", "goomancer"]
 
 
 def load_species() -> dict[str, int]:
@@ -413,7 +414,7 @@ class Sim:
     def boss(self):
         kind = BOSS_ROTATION[self.boss_count % len(BOSS_ROTATION)]
         self.boss_count += 1
-        if kind == "mecha_goo" and self.fountain_ranks() < 10:
+        if BOSSES[kind] == 7 and self.fountain_ranks() < 10:
             kind = "goozilla"
         # Team fight, then a carry race: modelled as an even chance for every player on the server.
         winner = self.rng.choice(self.players)
@@ -538,8 +539,8 @@ def summarize(sc: Scenario, results: list[dict], hours_cap: float) -> str:
         )
     goal("first hybrid", lambda r: first_of(r, list(RECIPES)))
     goal("all 15 hybrids", lambda r: all_of(r, list(RECIPES)))
-    goal("all 3 bosses", lambda r: all_of(r, list(BOSSES)))
-    goal("full Dex (50)", lambda r: all_of(r, ALL_DEX))
+    goal(f"all {len(BOSSES)} bosses", lambda r: all_of(r, list(BOSSES)))
+    goal(f"full Dex ({len(ALL_DEX)})", lambda r: all_of(r, ALL_DEX))
 
     lines += ["", "<details><summary>Per species: median hours to first catch, and how it was first found</summary>", ""]
     lines += ["| Species | Tier | Family | median h | p90 h | wild / merge / steal / recipe / boss |", "|---|---|---|---:|---:|---|"]

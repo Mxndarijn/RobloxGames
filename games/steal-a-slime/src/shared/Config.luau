@@ -416,7 +416,7 @@ for _, quest in DAILY_QUEST_POOL do
 	table.freeze(quest)
 end
 
--- SlimeDex ladder (CONTRACT.md §36.3): species found (of 50).
+-- SlimeDex ladder (CONTRACT.md §36.3): species found (of SpeciesDex.TOTAL).
 -- `reward` is cash x rebirthMultiplier, `bonus` a permanent income bonus (the ladder adds up to 0.45).
 local DEX_MILESTONES: { species: { DexMilestone } } = {
 	species = {
@@ -930,7 +930,19 @@ local Config = {
 		WANDER_ARC = math.rad(45), -- the boss wanders within this either side of SPOT_ANGLE (BossWander; the lane and drain fence it in)
 		WANDER_SPEED = 4, -- studs per second: it walks the whole fight without stopping
 		WANDER_CLEARANCE = 6.25, -- studs from its centre to the parade lane's edge and the goo drain's lip
-		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
+		-- every tier-6 boss twice and each Secret once per lap
+		ROTATION = table.freeze({
+			"goozilla",
+			"queen_jelly",
+			"klawdius",
+			"pumpking",
+			"mecha_goo",
+			"goozilla",
+			"queen_jelly",
+			"klawdius",
+			"pumpking",
+			"goomancer",
+		}),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
 	}),

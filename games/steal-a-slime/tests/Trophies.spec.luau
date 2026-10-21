@@ -7,6 +7,7 @@ local PlayerData = require("../src/shared/PlayerData")
 local Rng = require("../src/shared/Rng")
 local SaveData = require("../src/shared/SaveData")
 local SlimeLooks = require("../src/shared/SlimeLooks")
+local SlimeRoster = require("../src/shared/SlimeRoster")
 local TestRunner = require("./TestRunner")
 local Trophies = require("../src/shared/Trophies")
 
@@ -15,11 +16,12 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 describe("Trophies.bossSlime", function()
 	it("makes every boss species at MAX_SIZE with its name, tier and colour", function()
 		for seed = 1, 30 do
-			for _, species in { "goozilla", "queen_jelly", "mecha_goo" } do
+			for _, boss in SlimeRoster.ofKind("boss") do
+				local species = boss.id
 				local slime = Trophies.bossSlime(Rng.new(seed), `b{seed}`, species) :: Genome.Slime
 				expect(slime.species).toBe(species)
 				expect(slime.size).toBe(Config.MAX_SIZE)
-				expect(slime.tier).toBe(if species == "mecha_goo" then Config.SECRET_TIER else 6)
+				expect(slime.tier).toBe(boss.tier)
 				local look = SlimeLooks.get(species)
 				if look then
 					expect(slime.color[1]).toBe(look.color[1])
