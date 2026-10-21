@@ -721,7 +721,7 @@ local Config = {
 
 	-- Shop (permanent, kept on rebirth)
 	SPEED_COIL_PRICE = 1500,
-	SPEED_COIL_WALK_SPEED = 22, -- base WalkSpeed; the carry slowdown applies to it
+	SPEED_COIL_WALK_SPEED = 24, -- base WalkSpeed (1.5x BASE_WALK_SPEED); the carry slowdown applies to it
 
 	-- Merge
 	MERGE_SIZE_BONUS = 0.1,
