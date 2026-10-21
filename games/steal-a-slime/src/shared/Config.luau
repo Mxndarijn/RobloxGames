@@ -31,7 +31,6 @@ export type RebirthTier = {
 	rebirths: number, -- reached at this many rebirths
 	title: string,
 	unlock: string?, -- upgrade id this rank unlocks (also Config.UPGRADES[i].requires)
-	keep: number?, -- slimes kept on rebirth
 	income: number?, -- income bonus (0.25 = +25 %)
 	family: string?, -- FountainTiers family id: this rank grows the fountain into its look (FEATURES.FountainTiers; FountainTiers.FAMILIES)
 }
@@ -250,14 +249,14 @@ local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed" },
 	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard" },
 	{ rebirths = 5, title = "Blob Baron", unlock = "Luck" },
-	{ rebirths = 6, title = "Goo Tycoon", keep = 2, family = "frost" },
+	{ rebirths = 6, title = "Goo Tycoon", income = 0.05, family = "frost" },
 	{ rebirths = 7, title = "Jelly Magnate", income = 0.1 },
 	{ rebirths = 8, title = "Ooze Overlord", income = 0.15 },
-	{ rebirths = 10, title = "Slime Sovereign", keep = 3, income = 0.25, family = "starlight" },
+	{ rebirths = 10, title = "Slime Sovereign", income = 0.25, family = "starlight" },
 	{ rebirths = 12, title = "Gel Emperor", income = 0.35 },
-	{ rebirths = 15, title = "Gelatinous Legend", keep = 4, income = 0.5 },
+	{ rebirths = 15, title = "Gelatinous Legend", income = 0.5 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1 },
-	{ rebirths = 30, title = "Slime Deity", keep = 5, income = 2 },
+	{ rebirths = 30, title = "Slime Deity", income = 2 },
 }
 
 local UPGRADES: { Upgrade } = {
