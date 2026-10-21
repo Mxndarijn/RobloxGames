@@ -649,7 +649,7 @@ function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
 		{ name = "Rebirth button", text = "♻️ Rebirth!", size = 22, bold = true, w = w, h = rows.button.h },
 		{
 			name = "Rebirth note",
-			text = "Resets cash and slimes. Keeps ★ slimes, pads and upgrades.",
+			text = "Uses up these slimes and resets cash. Pads and upgrades stay.",
 			size = 12,
 			w = w,
 			h = rows.note.h,
