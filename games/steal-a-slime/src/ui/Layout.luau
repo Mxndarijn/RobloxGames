@@ -713,10 +713,6 @@ Layout.PANEL_CHROME = table.freeze({
 	header = Layout.MIN_TOUCH_DESIGN + 12 + 16, -- the band (closeInset above and below the X) plus bodyGap
 })
 
--- The goo edge under a panel's band (Widgets.gooEdge): a lip of `scallops` round bumps hanging `lip` px,
--- and drips { x (fraction of the width), drop width, neck length } px. A drip's lowest point is
--- length + 0.6 * width, kept under PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over
--- the corner icon tile (x < 0.14).
 -- Notices (tooltip, tutorial card, carry card, boss meter): one corner radius for their Gold or danger ring.
 Layout.NOTICE_RADIUS = 18
 
@@ -728,6 +724,10 @@ Layout.STATUS_BUBBLE = table.freeze({ transparency = 0.8 })
 -- above a centred label.
 Layout.SHINE = table.freeze({ x = 0.08, offsetX = 6, offsetY = 4, w = 14, h = 4, rotation = -24 })
 
+-- The goo edge under a panel's band (Widgets.gooEdge): a lip of `scallops` round bumps hanging `lip` px,
+-- and drips { x (fraction of the width), drop width, neck length } px. A drip's lowest point is
+-- length + 0.6 * width, kept under PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over
+-- the corner icon tile (x < 0.14).
 Layout.GOO_EDGE = table.freeze({
 	inset = 18,
 	scallops = 16,

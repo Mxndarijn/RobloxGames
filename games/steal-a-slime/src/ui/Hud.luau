@@ -37,7 +37,8 @@ local COIN_SHADE = Theme.GoldDeep
 local CHIP = Theme.Ink -- the income and rebirth chips: facts, not buttons
 local CHUNKY = Theme.Font
 
--- A flat Ink pill chip that Hud.layout sizes; `label` is its chunky text in `textColor`.
+-- A flat Ink pill chip that Hud.layout sizes; `label` is its chunky text in `textColor`. No outline: an Ink
+-- stroke on an Ink fill would draw nothing.
 local function chip(parent: Instance, name: string, color: Color3, textColor: Color3)
 	local frame = create("Frame", {
 		Name = name,
@@ -45,8 +46,6 @@ local function chip(parent: Instance, name: string, color: Color3, textColor: Co
 		ZIndex = 2,
 		Parent = parent,
 	}, { Widgets.pill() })
-	local stroke = Widgets.stroke(INK, 3)
-	stroke.Parent = frame
 	local value = Widgets.label({
 		Name = "Value",
 		Text = "-",
@@ -57,7 +56,7 @@ local function chip(parent: Instance, name: string, color: Color3, textColor: Co
 		ZIndex = 3,
 		Parent = frame,
 	})
-	return frame, value, stroke
+	return frame, value
 end
 
 -- Banners wrap and grow taller instead of truncating (v15: the boss
@@ -181,10 +180,8 @@ function Hud.new(parent: Instance, ctx: any)
 		ZIndex = 1,
 		Parent = moneyRoot,
 	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-	local incomeTabStroke = Widgets.stroke(INK, 3)
-	incomeTabStroke.Parent = incomeTab
-	local incomeChip, incomeLabel, incomeStroke = chip(moneyRoot, "Income", CHIP, Theme.Good)
-	local rebirthChip, rebirthLabel, rebirthStroke = chip(moneyRoot, "Rebirths", CHIP, Theme.Text)
+	local incomeChip, incomeLabel = chip(moneyRoot, "Income", CHIP, Theme.Good)
+	local rebirthChip, rebirthLabel = chip(moneyRoot, "Rebirths", CHIP, Theme.Text)
 	incomeLabel.TextXAlignment = Enum.TextXAlignment.Center
 	-- The rebirth emblem: no tile, filling the chip's height at its left end.
 	local rebirthIcon = ItemIconView.new({
@@ -459,12 +456,8 @@ function Hud.new(parent: Instance, ctx: any)
 		moneyRoot.Size = UDim2.fromOffset(mw, mh)
 		-- Outline weights scale down with the block: 4 PC, 3 phone, 2 tight.
 		local line = if tight then 2 elseif compact then 3 else 4
-		local chipLine = if tight then 2 else 3
 		for _, stroke in { pillStroke, coinEdgeStroke } do
 			stroke.Thickness = line
-		end
-		for _, stroke in { incomeStroke, rebirthStroke, incomeTabStroke } do
-			stroke.Thickness = chipLine
 		end
 		badgeStroke.Thickness = if tight then 1 else 2
 		-- Coin + pill zone: the coin (full height) at the left, the pill a little shorter, starting mid-coin.
@@ -490,10 +483,6 @@ function Hud.new(parent: Instance, ctx: any)
 			local frame, r = entry[1] :: Frame, entry[2] :: Layout.Rect
 			frame.Position = UDim2.fromOffset(math.round(r.x - m.rect.x), math.round(r.y - m.rect.y))
 			frame.Size = UDim2.fromOffset(math.round(r.w), math.round(r.h))
-			local cl = frame:FindFirstChildOfClass("UICorner")
-			if cl then
-				cl.CornerRadius = UDim.new(0, math.max(4, math.round(r.h * 0.3)))
-			end
 			local tleft, twidth = Layout.moneyTextBox(r, entry[4] :: "income" | "rebirths", compact, tight)
 			local label = entry[3] :: TextLabel
 			label.Position = UDim2.fromOffset(tleft, 0)
@@ -605,7 +594,7 @@ function Hud.new(parent: Instance, ctx: any)
 				entry.label.Text = slot.text
 				entry.label.Size =
 					UDim2.fromOffset(Layout.statusPillWidth(slot.text, compact, statusTight), entry.label.Size.Y.Offset)
-				entry.label.TextColor3 = if slot.kind == "soon" then Theme.Muted else Theme.Text
+				entry.label.TextColor3 = if slot.kind == "soon" then Theme.Muted else Theme.Good
 				entry.frame:SetAttribute("Kind", slot.kind)
 				entry.frame.Visible = true
 			end

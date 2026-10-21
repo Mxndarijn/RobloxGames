@@ -53,6 +53,7 @@ local Layout = require(script.Layout)
 local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
+local NavTile = require(script.NavTile)
 local PopupQueue = require(script.PopupQueue)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
@@ -387,8 +388,6 @@ type NavButton = {
 	jar: DexJarView.View?, -- the SlimeDex tile's slime jar
 }
 
-local NAV_TILE_COLOR = Theme.Good -- mint jelly tiles (Goo kit); the open menu's tile wears the Gold ring
-
 local openKey: string? = nil
 local soundButton: any = nil -- FEATURES.Audio only
 local navButtons: { [string]: NavButton } = {}
@@ -399,10 +398,7 @@ local pumpPopups: (state: Types.State) -> ()
 local layoutCards: () -> ()
 
 local function styleNav(btn: NavButton, selected: boolean)
-	btn.tile.BackgroundColor3 = NAV_TILE_COLOR
-	btn.label.TextColor3 = if selected then Theme.Gold else Theme.Text
-	btn.stroke.Color = if selected then Theme.Gold else Theme.Ink
-	btn.stroke.Thickness = if selected then 4 else 3
+	NavTile.paint(btn.tile, btn.stroke, btn.label, selected)
 end
 
 -- Open state is derived from the cards' own Visible: the backdrop, nav
@@ -682,15 +678,11 @@ for _, entry in panels do
 	}) :: TextButton
 	local tile = Widgets.create("Frame", {
 		Name = "Tile",
-		BackgroundColor3 = NAV_TILE_COLOR,
 		Size = UDim2.fromOffset(Layout.NAV.tile, Layout.NAV.tile),
 		Position = UDim2.fromOffset((Layout.NAV.cell - Layout.NAV.tile) // 2, 0),
 		Parent = button,
-	}, { Widgets.corner(Layout.NAV.radius) })
-	local stroke = Widgets.stroke(Theme.Ink, 3)
-	stroke.Parent = tile
-	Widgets.shade(tile)
-	Widgets.shine(tile)
+	})
+	local stroke = NavTile.dress(tile)
 	local icon = ItemIconView.new({
 		Name = "Icon",
 		Id = navEntry.item,

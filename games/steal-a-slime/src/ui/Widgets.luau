@@ -152,6 +152,8 @@ Widgets.KIT = table.freeze({
 	radius = 13, -- icon badges
 	rowRadius = 18,
 	panelRadius = 30,
+	plateRadius = 18, -- the hotbar plate
+	slotRadius = 16, -- hotbar slots and the Bag button
 	shadeBottom = 0.78, -- a jelly's bottom brightness under its top
 	shine = 0.4, -- the glint's transparency
 })

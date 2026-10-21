@@ -205,7 +205,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		BackgroundTransparency = 0.05,
 		ZIndex = Layout.ZINDEX.Base,
 		Parent = parent,
-	}, { Widgets.corner(18), Widgets.stroke(C.stroke, 3) })
+	}, { Widgets.corner(Widgets.KIT.plateRadius), Widgets.stroke(C.stroke, Widgets.KIT.stroke) })
 
 	local tip = Widgets.label({
 		Name = "Tip",
@@ -255,7 +255,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			BackgroundColor3 = C.slot,
 			Size = fromOffset(size, size),
 			Parent = host,
-		}, { Widgets.corner(16), Widgets.stroke(C.stroke, 3) }) :: TextButton
+		}, { Widgets.corner(Widgets.KIT.slotRadius), Widgets.stroke(C.stroke, Widgets.KIT.stroke) }) :: TextButton
 		local icon = ItemIconView.new({
 			Name = "Icon",
 			Id = "Unknown",
@@ -460,7 +460,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		AutoButtonColor = false,
 		BackgroundColor3 = Theme.BgLight,
 		Parent = root,
-	}, { Widgets.corner(16), Widgets.stroke(C.stroke, 3) }) :: TextButton
+	}, { Widgets.corner(Widgets.KIT.slotRadius), Widgets.stroke(C.stroke, Widgets.KIT.stroke) }) :: TextButton
 	local bagIcon = Widgets.label({
 		Name = "Glyph",
 		Text = "🎒",
