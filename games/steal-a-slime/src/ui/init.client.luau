@@ -387,7 +387,7 @@ type NavButton = {
 	jar: DexJarView.View?, -- the SlimeDex tile's slime jar
 }
 
-local NAV_TILE_COLOR = Color3.fromRGB(58, 36, 110) -- the money plate's purple, like the reference tiles
+local NAV_TILE_COLOR = Theme.Good -- mint jelly tiles (Goo kit); the open menu's tile wears the Gold ring
 
 local openKey: string? = nil
 local soundButton: any = nil -- FEATURES.Audio only
@@ -399,13 +399,10 @@ local pumpPopups: (state: Types.State) -> ()
 local layoutCards: () -> ()
 
 local function styleNav(btn: NavButton, selected: boolean)
-	btn.tile.BackgroundColor3 = if selected then Theme.Accent else NAV_TILE_COLOR
-	btn.label.TextColor3 = if selected then Theme.Accent else Theme.Text
-	btn.stroke.Color = if selected then Color3.new(1, 1, 1) else Color3.fromRGB(10, 10, 20)
+	btn.tile.BackgroundColor3 = NAV_TILE_COLOR
+	btn.label.TextColor3 = if selected then Theme.Gold else Theme.Text
+	btn.stroke.Color = if selected then Theme.Gold else Theme.Ink
 	btn.stroke.Thickness = if selected then 4 else 3
-	if btn.jar then
-		btn.jar.setSelected(selected)
-	end
 end
 
 -- Open state is derived from the cards' own Visible: the backdrop, nav
@@ -689,9 +686,11 @@ for _, entry in panels do
 		Size = UDim2.fromOffset(Layout.NAV.tile, Layout.NAV.tile),
 		Position = UDim2.fromOffset((Layout.NAV.cell - Layout.NAV.tile) // 2, 0),
 		Parent = button,
-	}, { Widgets.corner(16) })
-	local stroke = Widgets.stroke(Color3.fromRGB(10, 10, 20), 3)
+	}, { Widgets.corner(Layout.NAV.radius) })
+	local stroke = Widgets.stroke(Theme.Ink, 3)
 	stroke.Parent = tile
+	Widgets.shade(tile)
+	Widgets.shine(tile)
 	local icon = ItemIconView.new({
 		Name = "Icon",
 		Id = navEntry.item,

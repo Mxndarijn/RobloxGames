@@ -27,43 +27,31 @@ local create = Widgets.create
 
 local Hud = {}
 
--- Money block palette (Merijn's reference money_block_reference.png): chunky cartoon, bold dark outlines.
-local INK = Color3.fromRGB(30, 18, 51) -- outlines, chip text, the "$"
-local PILL = Color3.fromRGB(59, 36, 102)
-local AMOUNT = Color3.fromRGB(255, 217, 59)
-local COIN = Color3.fromRGB(247, 196, 40)
-local COIN_SHADE = Color3.fromRGB(196, 135, 14)
-local GREEN = Color3.fromRGB(126, 217, 87)
-local LILAC = Color3.fromRGB(169, 139, 240)
-local BADGE = Color3.fromRGB(43, 27, 77)
-local CHUNKY = Enum.Font.FredokaOne
+-- Money block in the Goo kit: a glass pill with the gold amount, a gold jelly coin, and flat Ink chips for
+-- the facts under it (income, rebirths): only things you can press are jelly.
+local INK = Theme.Ink -- outlines, the "$"
+local PILL = Theme.Bg
+local AMOUNT = Theme.Gold
+local COIN = Theme.Gold
+local COIN_SHADE = Theme.GoldDeep
+local CHIP = Theme.Ink -- the income and rebirth chips: facts, not buttons
+local CHUNKY = Theme.Font
 
--- A top-light to bottom-dark UIGradient for depth. A UIGradient multiplies the frame's own colour, so the
--- two stops are grey brightness factors (1 = the colour as is), not colours.
-local function shade(parent: Instance, top: number, bottom: number)
-	create("UIGradient", {
-		Rotation = 90,
-		Color = ColorSequence.new(Color3.new(top, top, top), Color3.new(bottom, bottom, bottom)),
-		Parent = parent,
-	})
-end
-
--- A rounded chip (outlined, shaded) that Hud.layout sizes; `label` is its dark chunky text.
-local function chip(parent: Instance, name: string, color: Color3)
+-- A flat Ink pill chip that Hud.layout sizes; `label` is its chunky text in `textColor`.
+local function chip(parent: Instance, name: string, color: Color3, textColor: Color3)
 	local frame = create("Frame", {
 		Name = name,
 		BackgroundColor3 = color,
 		ZIndex = 2,
 		Parent = parent,
-	}, { Widgets.corner(8) })
-	shade(frame, 1, 0.82)
+	}, { Widgets.pill() })
 	local stroke = Widgets.stroke(INK, 3)
 	stroke.Parent = frame
 	local value = Widgets.label({
 		Name = "Value",
 		Text = "-",
 		Font = CHUNKY,
-		TextColor3 = INK,
+		TextColor3 = textColor,
 		TextSize = Layout.MONEY.chipSize,
 		TextTruncate = Enum.TextTruncate.None,
 		ZIndex = 3,
@@ -125,7 +113,7 @@ function Hud.new(parent: Instance, ctx: any)
 		BackgroundColor3 = PILL,
 		Parent = cashPlate,
 	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-	shade(pill, 1, 0.8)
+	Widgets.shade(pill, 0.8)
 	local pillStroke = Widgets.stroke(INK, 4)
 	pillStroke.Parent = pill
 	local cashLabel = Widgets.label({
@@ -163,7 +151,8 @@ function Hud.new(parent: Instance, ctx: any)
 		ZIndex = 4,
 		Parent = coin,
 	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-	shade(coinFace, 1, 0.88)
+	Widgets.shade(coinFace, 0.88)
+	Widgets.shine(coinFace)
 	local coinRing = create("Frame", {
 		Name = "Ring",
 		BackgroundTransparency = 1,
@@ -188,14 +177,14 @@ function Hud.new(parent: Instance, ctx: any)
 	})
 	local incomeTab = create("Frame", {
 		Name = "IncomeTab",
-		BackgroundColor3 = GREEN,
+		BackgroundColor3 = CHIP,
 		ZIndex = 1,
 		Parent = moneyRoot,
 	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 	local incomeTabStroke = Widgets.stroke(INK, 3)
 	incomeTabStroke.Parent = incomeTab
-	local incomeChip, incomeLabel, incomeStroke = chip(moneyRoot, "Income", GREEN)
-	local rebirthChip, rebirthLabel, rebirthStroke = chip(moneyRoot, "Rebirths", LILAC)
+	local incomeChip, incomeLabel, incomeStroke = chip(moneyRoot, "Income", CHIP, Theme.Good)
+	local rebirthChip, rebirthLabel, rebirthStroke = chip(moneyRoot, "Rebirths", CHIP, Theme.Text)
 	incomeLabel.TextXAlignment = Enum.TextXAlignment.Center
 	-- The rebirth emblem: no tile, filling the chip's height at its left end.
 	local rebirthIcon = ItemIconView.new({
@@ -212,18 +201,18 @@ function Hud.new(parent: Instance, ctx: any)
 	rebirthIcon.setActive(true)
 	local badge = create("Frame", {
 		Name = "Multiplier",
-		BackgroundColor3 = BADGE,
+		BackgroundColor3 = Theme.Row,
 		AnchorPoint = Vector2.new(1, 0.5),
 		ZIndex = 3,
 		Parent = rebirthChip,
-	}, { Widgets.corner(6) })
+	}, { Widgets.pill() })
 	local badgeStroke = Widgets.stroke(INK, 2)
 	badgeStroke.Parent = badge
 	local badgeLabel = Widgets.label({
 		Name = "Value",
 		Text = "x1",
 		Font = CHUNKY,
-		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextColor3 = Theme.Gold,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextTruncate = Enum.TextTruncate.None,
 		Size = UDim2.fromScale(1, 1),
@@ -240,7 +229,7 @@ function Hud.new(parent: Instance, ctx: any)
 		Size = UDim2.fromOffset(Layout.statusWidth(false), Layout.statusHeight(false)),
 		Parent = parent,
 	})
-	type Slot = { frame: TextButton, icon: any, label: TextLabel }
+	type Slot = { frame: TextButton, icon: any, label: TextLabel, bubble: Frame, ring: UIStroke }
 	local statusSlots: { [string]: Slot } = {}
 	local shownSlots: { HudClusters.Slot } = {}
 	for _, id in HudClusters.STATUS_IDS do
@@ -253,6 +242,19 @@ function Hud.new(parent: Instance, ctx: any)
 			Size = UDim2.fromOffset(Layout.STATUS.slot, Layout.statusHeight(false)),
 			Parent = statusRoot,
 		}) :: TextButton
+		-- A glass bubble behind the icon (made first, so the icon draws over it); its ring turns Gold while
+		-- this slot's tooltip is open.
+		local bubble = create("Frame", {
+			Name = "Bubble",
+			BackgroundColor3 = Theme.Text,
+			BackgroundTransparency = Layout.STATUS_BUBBLE.transparency,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(0.5, 0),
+			Size = UDim2.fromOffset(Layout.STATUS.icon, Layout.STATUS.icon),
+			Parent = frame,
+		}, { Widgets.pill() })
+		local ring = Widgets.stroke(Theme.Ink, Widgets.KIT.stroke)
+		ring.Parent = bubble -- no glint: it would sit under the icon and cost an instance per slot
 		local icon = ItemIconView.new({
 			Name = "Icon",
 			Size = Layout.STATUS.icon,
@@ -268,16 +270,17 @@ function Hud.new(parent: Instance, ctx: any)
 			TextStrokeTransparency = 0.6,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextTruncate = Enum.TextTruncate.None,
-			BackgroundColor3 = Theme.Bg,
-			BackgroundTransparency = 0.12,
+			TextColor3 = Theme.Good,
+			BackgroundColor3 = Theme.Ink,
+			BackgroundTransparency = 0,
 			AnchorPoint = Vector2.new(0.5, 0),
 			Size = UDim2.fromOffset(sm.slot, sm.pill),
 			Position = UDim2.new(0.5, 0, 0, sm.icon - sm.overlap),
 			Parent = frame,
 		})
-		create("UICorner", { CornerRadius = UDim.new(0.5, 0), Parent = label })
-		Widgets.stroke(Theme.BgLight, 1.5).Parent = label
-		statusSlots[id] = { frame = frame, icon = icon, label = label }
+		Widgets.pill().Parent = label
+		Widgets.stroke(Theme.Ink, 2).Parent = label
+		statusSlots[id] = { frame = frame, icon = icon, label = label, bubble = bubble, ring = ring }
 	end
 
 	-- Status tooltip (B8): name, effect and the live time left, over the open slot.
@@ -288,7 +291,8 @@ function Hud.new(parent: Instance, ctx: any)
 		BackgroundTransparency = 0.04,
 		ZIndex = Layout.ZINDEX.Banners,
 		Parent = parent,
-	}, { Widgets.corner(10), Widgets.stroke(Theme.Gold, 2) })
+	}, { Widgets.corner(Layout.NOTICE_RADIUS) })
+	Widgets.ring(tip, Theme.Gold, Layout.NOTICE_RADIUS)
 	local function tipLabel(name: string, size: number, color: Color3, font: any): TextLabel
 		return Widgets.label({
 			Name = name,
@@ -345,6 +349,13 @@ function Hud.new(parent: Instance, ctx: any)
 		return UserInputService:GetLastInputType() == Enum.UserInputType.Touch
 	end
 
+	-- The open slot's bubble wears the Gold info ring; the rest keep Ink.
+	local function paintRings()
+		for id, entry in statusSlots do
+			entry.ring.Color = if tip.Visible and id == tipId then Theme.Gold else Theme.Ink
+		end
+	end
+
 	-- Draws (or hides) the tooltip for `tipId` with the live timer; called on every open / close and tick.
 	local function refreshTooltip()
 		local slot: HudClusters.Slot? = nil
@@ -358,6 +369,7 @@ function Hud.new(parent: Instance, ctx: any)
 			if slot == nil then
 				tipId = nil
 			end
+			paintRings()
 			return
 		end
 		local text = HudClusters.tooltip(slot)
@@ -381,6 +393,7 @@ function Hud.new(parent: Instance, ctx: any)
 		end
 		tipBody.TextSize = if compact then t.cbodySize else t.bodySize
 		tip.Visible = true
+		paintRings()
 	end
 
 	local function setTooltip(id: string?)
@@ -506,6 +519,7 @@ function Hud.new(parent: Instance, ctx: any)
 		for _, entry in statusSlots do
 			entry.frame.Size = UDim2.fromOffset(sm.slot, Layout.statusHeight(compact, tight))
 			entry.icon.instance.Size = UDim2.fromOffset(sm.icon, sm.icon)
+			entry.bubble.Size = UDim2.fromOffset(sm.icon, sm.icon)
 			entry.label.TextSize = sm.textSize
 			entry.label.Size = UDim2.fromOffset(Layout.statusPillWidth(entry.label.Text, compact, tight), sm.pill)
 			entry.label.Position = UDim2.new(0.5, 0, 0, sm.icon - sm.overlap)

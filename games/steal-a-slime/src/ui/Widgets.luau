@@ -29,6 +29,7 @@ Widgets.Theme = table.freeze({
 	Warn = Color3.fromRGB(255, 190, 60),
 	Disabled = Color3.fromRGB(8, 38, 42),
 	Gold = Color3.fromRGB(255, 210, 63),
+	GoldDeep = Color3.fromRGB(224, 168, 18), -- the coin's edge and ring
 	Shine = Color3.new(1, 1, 1), -- the glint on jelly and the dot on goo drops
 	Font = Enum.Font.FredokaOne, -- titles, numbers, buttons, labels
 	FontBody = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold), -- sentences (a FontFace)
@@ -176,6 +177,30 @@ function Widgets.shine(parent: GuiObject): Frame
 		ZIndex = parent.ZIndex,
 		Parent = parent,
 	})
+end
+
+-- A notice's two rings: `color` (Gold = info or guidance, Bad = danger) on the card's own UIStroke and a
+-- transparent wrapper `stroke` px larger carrying the Ink ring, as one UIStroke per frame allows. `radius`
+-- is the card's corner radius (offset px) or nil for a pill. Returns the card's stroke and the wrapper.
+function Widgets.ring(card: GuiObject, color: Color3, radius: number?): (UIStroke, Frame)
+	local kit = Widgets.KIT
+	local stroke = card:FindFirstChildOfClass("UIStroke") or Widgets.stroke(color, kit.stroke)
+	stroke.Color = color
+	stroke.Thickness = kit.stroke
+	stroke.Parent = card
+	local wrap = create("Frame", {
+		Name = "InkRing",
+		Active = false,
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(-kit.stroke, -kit.stroke),
+		Size = UDim2.new(1, kit.stroke * 2, 1, kit.stroke * 2),
+		ZIndex = card.ZIndex,
+		Parent = card,
+	}, {
+		if radius then Widgets.corner(radius + kit.stroke) else Widgets.pill(),
+		Widgets.stroke(Theme.Ink, kit.stroke),
+	})
+	return stroke, wrap
 end
 
 -- A top-light to bottom-dark UIGradient (the HUD chips' depth). A UIGradient multiplies the frame's own

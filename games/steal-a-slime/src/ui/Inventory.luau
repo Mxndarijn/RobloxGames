@@ -51,13 +51,13 @@ Inventory.LONG_PRESS = 0.4 -- seconds a finger holds a slot to see its name
 Inventory.TIP_SECONDS = 1.6
 Inventory.USE_GAP = 0.5 -- seconds between two uses (the server's own limit for UseConsumable)
 
--- The HUD tile palette (Hud money plates): rounded purple with the dark stroke.
+-- The hotbar in the Goo kit: a glass plate, glass-row slots, the equipped slot lighter with the Gold ring.
 Inventory.COLORS = table.freeze({
-	plate = Color3.fromRGB(58, 36, 110),
-	slot = Color3.fromRGB(84, 58, 150),
-	selected = Color3.fromRGB(128, 86, 224),
-	stroke = Color3.fromRGB(10, 10, 20),
-	ring = Color3.fromRGB(255, 255, 255),
+	plate = Theme.Bg,
+	slot = Theme.Row,
+	selected = Theme.BgLight,
+	stroke = Theme.Ink,
+	ring = Theme.Gold,
 })
 
 -- Bag panel text sizes and the empty slot's see-through Ink.
@@ -205,7 +205,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		BackgroundTransparency = 0.05,
 		ZIndex = Layout.ZINDEX.Base,
 		Parent = parent,
-	}, { Widgets.corner(14), Widgets.stroke(C.stroke, 2) })
+	}, { Widgets.corner(18), Widgets.stroke(C.stroke, 3) })
 
 	local tip = Widgets.label({
 		Name = "Tip",
@@ -255,7 +255,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			BackgroundColor3 = C.slot,
 			Size = fromOffset(size, size),
 			Parent = host,
-		}, { Widgets.corner(10), Widgets.stroke(C.stroke, 2) }) :: TextButton
+		}, { Widgets.corner(16), Widgets.stroke(C.stroke, 3) }) :: TextButton
 		local icon = ItemIconView.new({
 			Name = "Icon",
 			Id = "Unknown",
@@ -460,7 +460,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		AutoButtonColor = false,
 		BackgroundColor3 = Theme.BgLight,
 		Parent = root,
-	}, { Widgets.corner(10), Widgets.stroke(C.stroke, 2) }) :: TextButton
+	}, { Widgets.corner(16), Widgets.stroke(C.stroke, 3) }) :: TextButton
 	local bagIcon = Widgets.label({
 		Name = "Glyph",
 		Text = "🎒",

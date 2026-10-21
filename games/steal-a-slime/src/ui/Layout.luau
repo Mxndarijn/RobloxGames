@@ -594,6 +594,7 @@ Layout.NAV = table.freeze({
 	cell = 78, -- tile + label width: fits the longest label ("SlimeDex") at labelSize
 	ccell = 70,
 	tile = 66, -- the rounded square
+	radius = 22, -- the tile's jelly corner (one uniform radius: DexJarView reads it for the SlimeDex jar)
 	ctile = 58, -- 58 x 0.8 = 46 screen px >= MIN_TOUCH
 	label = 20, -- label row under the tile
 	clabel = 17,
@@ -716,6 +717,12 @@ Layout.PANEL_CHROME = table.freeze({
 -- and drips { x (fraction of the width), drop width, neck length } px. A drip's lowest point is
 -- length + 0.6 * width, kept under PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over
 -- the corner icon tile (x < 0.14).
+-- Notices (tooltip, tutorial card, carry card, boss meter): one corner radius for their Gold or danger ring.
+Layout.NOTICE_RADIUS = 18
+
+-- The glass bubble behind each status icon (Hud): white at this transparency over the world.
+Layout.STATUS_BUBBLE = table.freeze({ transparency = 0.8 })
+
 -- The glint on a jelly (Widgets.shine): a fixed w x h px frame near the top-left, at a fraction of the jelly's
 -- width plus a few px so it sits inside a pill's rounded end, and a few px under the top edge so it stays
 -- above a centred label.
