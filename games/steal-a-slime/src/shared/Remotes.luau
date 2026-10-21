@@ -41,6 +41,7 @@ Remotes.ACTIONS = table.freeze({
 	Rebirth = table.freeze({ args = {} }),
 	Sell = table.freeze({ args = { "string" } }), -- slimeId
 	Favorite = table.freeze({ args = { "string?" } }), -- slimeId, nil clears
+	MoveSlime = table.freeze({ args = { "string", "number" } }), -- slimeId, target pad
 	HatchEgg = table.freeze({ args = { "string" } }), -- slime id of the owner's ready Mystery Egg (contract/mystery-egg.md)
 	BuyPad = table.freeze({ args = {} }),
 	Daily = table.freeze({ args = {} }),

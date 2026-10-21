@@ -56,6 +56,7 @@ local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
 local SlimeInfoCard = require(script.SlimeInfoCard)
 local SlimeKeys = require(script.SlimeKeys)
+local SlimeMove = require(script.SlimeMove)
 local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
@@ -769,7 +770,28 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 	end
 end)
 
--- Your slimes are managed at their pads with keys: R Favorite, X hold to Sell (Hatch stays the server's F prompt).
+-- FEATURES.MoveSlime: E "Move" on your pad slimes starts move mode (pick up, see-through, place or swap).
+local slimeMove = if Config.FEATURES.MoveSlime == true
+	then SlimeMove.new(gui, ctx, {
+		plots = workspace:WaitForChild("Plots"),
+		player = player,
+		camera = function(): Camera?
+			return workspace.CurrentCamera
+		end,
+		ghostParent = function(): Instance
+			return workspace.CurrentCamera or workspace
+		end,
+		raycast = function(origin: Vector3, direction: Vector3, params: RaycastParams): RaycastResult?
+			return workspace:Raycast(origin, direction, params)
+		end,
+		uis = game:GetService("UserInputService"),
+		cas = ContextActionService,
+		prompts = ProximityPromptService,
+	})
+	else nil
+
+-- Your slimes are managed at their pads with keys: R Favorite, X hold to Sell (Hatch stays the server's F prompt),
+-- E Move with FEATURES.MoveSlime.
 local slimeKeys = SlimeKeys.start({
 	root = workspace,
 	localUserId = player.UserId,
@@ -782,6 +804,8 @@ local slimeKeys = SlimeKeys.start({
 	holdSeconds = Config.HOLD_CONFIRM_SECONDS,
 	formatCash = Format.formatCash,
 	send = send,
+	moveKey = if slimeMove then { keyboard = Enum.KeyCode.E, gamepad = Enum.KeyCode.ButtonX } else nil,
+	onMove = if slimeMove then slimeMove.start else nil,
 })
 
 -- World shops (FEATURES.WorldShops, CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
@@ -885,6 +909,9 @@ function applyLayout()
 	stealFx.layout(s, hud.bannerHeight)
 	bossMeter.layout(s, hud.bannerHeight)
 	carry.layout(s)
+	if slimeMove then
+		slimeMove.layout(s)
+	end
 	tutorial.layout(s)
 	dailyPopup.layout(s, GuiService:GetGuiInset())
 	layoutNav(s)
@@ -918,6 +945,16 @@ if game:GetService("RunService"):IsStudio() then
 			return
 		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
+	end)
+	-- "PcwMove" = "place" / "cancel" presses Place / Cancel in move mode (scripts can't send key presses).
+	gui:GetAttributeChangedSignal("PcwMove"):Connect(function()
+		local press = gui:GetAttribute("PcwMove")
+		if slimeMove and press == "place" then
+			slimeMove.place()
+		elseif slimeMove and press == "cancel" then
+			slimeMove.cancel()
+		end
+		gui:SetAttribute("PcwMove", nil)
 	end)
 	gui:GetAttributeChangedSignal("PcwRebirthSlime"):Connect(function()
 		for _, entry in allPanels do
@@ -998,6 +1035,9 @@ local function render(realState: Types.State)
 	hud.update(state)
 	inventory.update(state)
 	slimeKeys.update(state)
+	if slimeMove then
+		slimeMove.update(state)
+	end
 	stealFx.update(state)
 	carry.update(state)
 	bossMeter.update(state)
@@ -1137,6 +1177,9 @@ task.spawn(function()
 			end
 			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
 			pvpFunFx.tick(now)
+			if slimeMove then
+				slimeMove.tick()
+			end
 		end
 	end
 end)

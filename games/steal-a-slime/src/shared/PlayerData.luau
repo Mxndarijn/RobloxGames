@@ -175,6 +175,26 @@ function PlayerData.addSlime(data: Data, slime: Slime, pad: number?): (boolean, 
 	return true, target
 end
 
+-- Moves slime `id` to unlocked pad `pad`; a slime already there takes `id`'s old pad (a swap).
+function PlayerData.moveSlime(data: Data, id: string, pad: number): (boolean, string?)
+	local slime = PlayerData.findSlime(data, id)
+	if not slime or slime.pad == nil then
+		return false, "not your slime"
+	end
+	if pad ~= math.floor(pad) or pad < 1 or pad > data.padsUnlocked then
+		return false, "pad is locked"
+	end
+	if slime.pad == pad then
+		return true, nil
+	end
+	local other = PlayerData.slimeOnPad(data, pad)
+	if other then
+		other.pad = slime.pad
+	end
+	slime.pad = pad
+	return true, nil
+end
+
 function PlayerData.removeSlime(data: Data, id: string): Slime?
 	local slime, index = PlayerData.findSlime(data, id)
 	if not slime or not index then

@@ -9,8 +9,10 @@
 	    favourite's prompt shows its follow-pet perk (State.petPerk). Mystery Eggs (models with `EggKind`) get none:
 	    an egg can't be the favourite.
 	  * `SellPrompt` (X; hold to confirm): "Sell $450" from State.slimes[i].sellPrice, sends Sell(slimeId).
+	  * `MovePrompt` (E; tap), only with `moveKey` / `onMove` (FEATURES.MoveSlime): "Move" calls
+	    `onMove(slimeId, model)`, which starts move mode (SlimeMove).
 
-	Hatch stays the server's HatchPrompt (F) and E stays free on your pad slimes. The server's GrabPrompt on the same
+	Hatch stays the server's HatchPrompt (F). The server's GrabPrompt on the same
 	Body is hidden from the owner (PromptHide). Prompts go when the slime leaves the pad (carried, escaping, sold,
 	merged) and come back when it returns. `update(state)` refreshes their texts from the latest State.
 
@@ -30,6 +32,8 @@ export type Options = {
 	holdSeconds: number, -- Sell's hold (Config.HOLD_CONFIRM_SECONDS)
 	formatCash: (n: number) -> string, -- Format.formatCash
 	send: (action: string, ...any) -> (), -- Request through the client's sender
+	moveKey: Key?, -- FEATURES.MoveSlime: the Move prompt's keys; nil = no Move prompt
+	onMove: ((slimeId: string, model: Model) -> ())?,
 }
 
 export type Labels = {
@@ -46,6 +50,8 @@ local SlimeKeys = {}
 
 SlimeKeys.FAVORITE_PROMPT = "FavoritePrompt"
 SlimeKeys.SELL_PROMPT = "SellPrompt"
+SlimeKeys.MOVE_PROMPT = "MovePrompt"
+SlimeKeys.MOVE_TEXT = "Move"
 SlimeKeys.PAD_STATE = "Pad"
 
 local OWNER_ATTRIBUTE = "OwnerUserId"
@@ -108,6 +114,7 @@ function SlimeKeys.start(opts: Options): Handle
 		conns: { RBXScriptConnection },
 		favorite: ProximityPrompt?,
 		sell: ProximityPrompt?,
+		move: ProximityPrompt?,
 		triggers: { [string]: RBXScriptConnection }, -- each prompt's Triggered, by entry key
 	}
 	local bound: { [Instance]: Entry } = {}
@@ -160,7 +167,7 @@ function SlimeKeys.start(opts: Options): Handle
 		end
 	end
 
-	local function drop(entry: Entry, key: "favorite" | "sell")
+	local function drop(entry: Entry, key: "favorite" | "sell" | "move")
 		local prompt: ProximityPrompt? = (entry :: any)[key]
 		if prompt then
 			prompt:Destroy();
@@ -176,6 +183,7 @@ function SlimeKeys.start(opts: Options): Handle
 	local function clear(entry: Entry)
 		drop(entry, "favorite")
 		drop(entry, "sell")
+		drop(entry, "move")
 	end
 
 	local function apply(body: BasePart)
@@ -217,6 +225,19 @@ function SlimeKeys.start(opts: Options): Handle
 			end)
 			entry.sell = prompt
 			entry.triggers.sell = conn
+		end
+		local moveKey, onMove = opts.moveKey, opts.onMove
+		if moveKey and onMove and not entry.move then
+			local prompt, conn = makePrompt(body, SlimeKeys.MOVE_PROMPT, moveKey, 0, function()
+				local id = idOf(model)
+				if id and SlimeKeys.wants(model, opts.localUserId) then
+					onMove(id, model)
+				end
+			end)
+			prompt.ActionText = SlimeKeys.MOVE_TEXT
+			prompt.ObjectText = ""
+			entry.move = prompt
+			entry.triggers.move = conn
 		end
 		label(body, entry)
 	end

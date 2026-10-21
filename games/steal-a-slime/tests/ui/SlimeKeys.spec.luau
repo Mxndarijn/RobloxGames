@@ -146,7 +146,7 @@ local function cash(n: number): string
 	return `${n}`
 end
 
-local function start(root: any, sent: { string }): SlimeKeys.Handle
+local function start(root: any, sent: { string }, moved: { string }?): SlimeKeys.Handle
 	return SlimeKeys.start({
 		root = root,
 		localUserId = ME,
@@ -161,6 +161,12 @@ local function start(root: any, sent: { string }): SlimeKeys.Handle
 		send = function(action: string, id: string?)
 			table.insert(sent, `{action}:{id or "nil"}`)
 		end,
+		moveKey = if moved then { keyboard = "E" :: any, gamepad = "ButtonX" :: any } else nil,
+		onMove = if moved
+			then function(id: string, model: any)
+				table.insert(moved, `{id}:{model.Name}`)
+			end
+			else nil,
 	})
 end
 
@@ -288,5 +294,33 @@ describe("SlimeKeys", function()
 		keys.destroy()
 		expect(f2.destroyed).toBe(true)
 		expect(s2.destroyed).toBe(true)
+	end)
+
+	it("adds E Move only with FEATURES.MoveSlime's keys, and Move starts move mode for that slime", function()
+		local root = instance("Workspace", "Workspace")
+		local model, body = slime("a", ME, "Pad")
+		parent(root, model, root)
+		start(root, {})
+		expect(body:FindFirstChild(SlimeKeys.MOVE_PROMPT)).toBeNil()
+
+		local root2 = instance("Workspace", "Workspace")
+		local moved = {}
+		local model2, body2 = slime("a", ME, "Pad")
+		parent(root2, model2, root2)
+		local keys = start(root2, {}, moved)
+		local move = body2:FindFirstChild(SlimeKeys.MOVE_PROMPT)
+		expect(move.ActionText).toBe("Move")
+		expect(move.KeyboardKeyCode).toBe("E")
+		expect(move.GamepadKeyCode).toBe("ButtonX")
+		expect(move.HoldDuration).toBe(0)
+		move.Triggered:Fire()
+		expect(table.concat(moved, ",")).toBe("a:Slime_a")
+		model2:SetAttribute("State", "Carried")
+		expect(move.destroyed).toBe(true)
+		model2:SetAttribute("State", "Pad")
+		local again = body2:FindFirstChild(SlimeKeys.MOVE_PROMPT)
+		expect(again ~= nil).toBe(true)
+		keys.destroy()
+		expect(again.destroyed).toBe(true)
 	end)
 end)

@@ -196,6 +196,17 @@ local function sell(world: World, session: Session, id: string): Result
 	return OK
 end
 
+local function moveSlime(world: World, session: Session, id: string, pad: number, ctx: Context): Result
+	if not feature(ctx, "MoveSlime") then
+		return fail("moving slimes is off")
+	end
+	local other = PlayerData.slimeOnPad(session.data, pad)
+	if World.isBusy(world, id) or (other ~= nil and World.isBusy(world, other.id)) then
+		return fail("slime is busy")
+	end
+	return result(PlayerData.moveSlime(session.data, id, pad))
+end
+
 local function buyPad(world: World, session: Session): Result
 	local ok, reason = PlayerData.buyPad(session.data)
 	if ok then
@@ -543,6 +554,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 			return fail("not your slime")
 		end
 		return OK
+	elseif action == "MoveSlime" then
+		return moveSlime(world, session, args[1], args[2], ctx)
 	elseif action == "HatchEgg" then
 		return result(MysteryEgg.hatch(world, session, args[1], now))
 	elseif action == "BuyPad" then
