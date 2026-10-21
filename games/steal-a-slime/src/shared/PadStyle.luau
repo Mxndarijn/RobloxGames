@@ -1,7 +1,7 @@
 --!strict
 --[[
 	PadStyle (v17): locked plot pads look "not available" with ONLY a colour + material change on the existing
-	Pad_<j> / Stand parts (no new parts, no meshes; shape, size and the red rectangle stay as they are).
+	Pad_<j> / Stand parts (no new parts, no meshes; the cork stand's shape and size stay as they are).
 	Locked = the plot colour desaturated toward grey and darkened, in Slate; unlocked = the stored base look.
 	Pure maths on 0..255 triples so the Lune tests can pin it; WorldView applies it on the Unlocked attribute.
 ]]

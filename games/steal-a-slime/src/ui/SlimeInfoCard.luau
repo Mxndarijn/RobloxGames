@@ -7,7 +7,7 @@
 	panel. The species name in white edged in the rarity colour, the rarity
 	word filled with a gradient of that colour, the income per second and,
 	while it is for sale, the price. A slime resting on a pad (LabelPad set)
-	shows no tag: its label is a goo-dipped plank on the pad crate (SlimePadSign). The
+	shows no tag: its label is a goo-dipped sign on a stake in front of the pad's cork stand (SlimePadSign). The
 	server writes the values as model attributes; the text is
 	Shared.SlimeLabel. Client only, nothing replicates.
 

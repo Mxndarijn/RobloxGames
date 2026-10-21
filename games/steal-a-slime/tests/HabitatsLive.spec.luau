@@ -180,10 +180,13 @@ HabitatFx.clear()
 -- Same pad once habitat_crystal_grotto_overlay has a meshId (set on the
 -- runtime's MeshAssets copy only for this case): placeholder until the
 -- server's template lands in ReplicatedStorage.HabitatMeshes, then one clone
--- of that MeshPart at native size, its bottom on the crate deck.
+-- of that MeshPart at native size, its bottom on the stand's dish rim.
 local overlayEntry = meshAssets.entries.habitat_crystal_grotto_overlay
 local replicated = rt.game:GetService("ReplicatedStorage")
-local deckY = rt:require(replicated.Visuals.WorldLayout).PAD_DECK.y
+local deck = rt:require(replicated.Visuals.WorldLayout).PAD_DECK
+local deckY = deck.y
+-- One strip of the placeholder's octagon ring at full size (HabitatFx: FRAME_SIDES 8 round the rim band).
+local FRAME_LEN = (deck.half + deck.matHalf + deck.half - deck.matHalf) * math.tan(math.pi / 8)
 overlayEntry.meshId = "rbxassetid://123"
 part:SetAttribute("Habitat", "crystal_grotto")
 local meshConns = HabitatFx.attach(plots)
@@ -265,7 +268,7 @@ local emitsBefore = emits
 setHabitat("crystal_grotto")
 frames(0.2)
 local early = lookOf(part, "crystal_grotto")
-local stagger = { early.Frame1.Size.X > 3, early.Crystal4.Size.Y < 0.3 } -- frame up, last prop not started
+local stagger = { early.Frame1.Size.X > FRAME_LEN * 0.4, early.Crystal4.Size.Y < 0.3 } -- frame up, last prop not started
 local peak = 0
 for _ = 1, 18 do
 	frames(0.05)
@@ -278,7 +281,7 @@ local enterSettled = { standHidden(), looksOf(part), emits - emitsBefore }
 setHabitat("base")
 frames(0.5)
 local leaveMid = lookOf(part, "crystal_grotto")
-local leaving = leaveMid ~= nil and leaveMid.Frame1.Size.X < 7.5 and standHidden() == 0
+local leaving = leaveMid ~= nil and leaveMid.Frame1.Size.X < FRAME_LEN and standHidden() == 0
 frames(1.2)
 local leftBase = atBase()
 local partsAfterLeave, meshesAfterLeave = worldParts()
@@ -328,7 +331,7 @@ HabitatFx.clear()
 describe("Habitat morph (HabitatFx + HabitatMorph, fake runtime)", function()
 	it("rises with stagger and overshoots while the pad itself never changes", function()
 		expect(stagger).toEqual({ true, true })
-		expect(peak > 7.5).toBe(true)
+		expect(peak > FRAME_LEN).toBe(true)
 		expect(midUntouched).toBe(true)
 	end)
 	it("settles to exactly the late-join static habitat", function()

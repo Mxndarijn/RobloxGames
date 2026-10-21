@@ -1,5 +1,5 @@
-# habitat_syrup_pool_overlay: syrup dressing for the crate pad: a glossy amber syrup frame round the mat with
-# drips running over all four edges and down the crate sides (to DROP below the deck), a pancake stack with a
+# habitat_syrup_pool_overlay: syrup dressing for the cork stand pad: a glossy amber syrup ring on the dish with
+# drips running over the rim and down the dish's sloping side onto the cork body (to DROP below the deck), a pancake stack with a
 # butter pat at the front left, a honey pot with a dipper at the back right, and syrup bubbles on the other corners.
 # The drips put the mesh bottom below the deck: finish() moves that bottom to z=0, so the game must lift the
 # overlay by the printed DROP. deck_check() prints the deck-relative bbox before finish (the helper's check runs
@@ -16,9 +16,18 @@ SYR, SYR_HI, SYR_D = rgb(236, 150, 40), rgb(255, 205, 100), rgb(216, 128, 42)
 CAKE, CAKE_D = rgb(240, 188, 108), rgb(208, 146, 78)
 parts = [frame("Syrup", shade(SYR, 1.08), SYR_D, seed=3, wobble=0.1)]
 
-# drips: lip lens on the frame's outer edge -> chain down the crate side -> fat drop. 2 per side, mirrored
-# positions on opposite sides so the bbox stays centred. Crate: top board edge 3.7 (deck-0.4..0), slats 3.8 below.
-EDGE_X = 3.83  # drip centre line off the crate side
+# drips: lip lens on the frame's outer edge -> chain down the stand's side -> fat drop. 2 per side, mirrored
+# positions on opposite sides so the bbox stays centred. Authored square: round_up puts each "out" distance on the
+# circle of that radius. The dish slopes in from the rim (r 3.75 at the deck) to the cork body (r 3.0, 0.45 below),
+# so a drip hugs that slope, then runs straight down the body.
+DISH, BODY, SLOPE = D["padDeck"]["half"], D["padDeck"]["half"] - 0.75, 0.45
+
+
+def side_r(z):
+    """The stand's radius at deck-relative height z (<= 0), plus the drip's own thickness."""
+    return max(BODY, DISH + z * (DISH - BODY) / SLOPE) + 0.08
+
+
 DRIPS = [(-1.6, 0.85), (1.1, 0.55)]  # (along-edge offset, length below the deck)
 balls = []
 for side in range(4):
@@ -31,12 +40,12 @@ for side in range(4):
         base = lat * t
         balls.append(Ball(base + out * 3.55 + Vector((0, 0, 0.14)), (0.55, 0.22, 0.1),
                           rot=frame_quat(lat, out, Vector((0, 0, 1)))))
-        balls.append(Ball(base + out * 3.78 + Vector((0, 0, 0.0)), (0.32, 0.22, 0.1), rot=q))
+        balls.append(Ball(base + out * side_r(0.0) + Vector((0, 0, 0.0)), (0.32, 0.22, 0.1), rot=q))
         n = 3
         for j in range(1, n + 1):
             z = -ln * j / (n + 1)
-            balls.append(Ball(base + out * EDGE_X + Vector((0, 0, z)), (0.22 - 0.03 * j, 0.2, 0.065), rot=q))
-        balls.append(Ball(base + out * (EDGE_X + 0.01) + Vector((0, 0, -ln)), (0.17, 0.19, 0.09), rot=q))
+            balls.append(Ball(base + out * side_r(z) + Vector((0, 0, z)), (0.22 - 0.03 * j, 0.2, 0.065), rot=q))
+        balls.append(Ball(base + out * (side_r(-ln) + 0.01) + Vector((0, 0, -ln)), (0.17, 0.19, 0.09), rot=q))
 drip = metaball_mesh("Drips", balls, resolution=0.07, tris=280)
 paint_goo(drip, lambda co, n: mix(SYR, SYR_HI, max(0.0, min(1.0, 0.35 + 0.65 * n.z))), smooth=False)
 parts.append(drip)
@@ -92,4 +101,4 @@ for i, (s, t) in enumerate(((1, -1), (-1, 1))):
     parts.append(blob(f"Bub{i}c", 0.2, (x + s * 0.15, y - t * 0.45, 0.2), shade(SYR_HI, 1.04), subdiv=1, squash=(1, 1, 0.8), jitter=0, seed=i + 8))
 
 
-overlay_finish("habitat_syrup_pool_overlay", parts, drop=1.06)  # drips run down the crate sides
+overlay_finish("habitat_syrup_pool_overlay", parts, drop=1.06)  # drips run down the stand's side

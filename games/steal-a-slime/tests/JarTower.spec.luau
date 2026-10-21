@@ -4,6 +4,7 @@
 -- character through, and every jar stays inside the plot and the lock guard's height window.
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
+local MeshAssets = require("../src/shared/MeshAssets")
 local PlotLockGuard = require("../src/server/PlotLockGuard")
 local SlimeRoster = require("../src/shared/SlimeRoster")
 local TestRunner = require("./TestRunner")
@@ -15,39 +16,8 @@ local FLOORS = #Config.BASE_FLOORS
 local PER = Config.PADS_PER_FLOOR
 local HALF = WorldLayout.PLOT_SIZE / 2
 
-type Pt = { x: number, z: number }
-
--- The four corners (plot-local x, z) of pad j's 8 x 8 box, turned to face the jar's centre.
-local function padCorners(j: number): { Pt }
-	local cx, cz = WorldLayout.padOffset(j)
-	local a = math.rad(WorldLayout.padAngle(j))
-	local rx, rz = math.cos(a), math.sin(a) -- radial
-	local tx, tz = -rz, rx -- tangential
-	local out = {}
-	for _, s in { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } } do
-		local h = WorldLayout.PAD_SIZE / 2
-		table.insert(out, { x = cx + h * s[1] * rx + h * s[2] * tx, z = cz + h * s[1] * rz + h * s[2] * tz })
-	end
-	return out
-end
-
-local function segDist(p: Pt, a: Pt, b: Pt): number
-	local dx, dz = b.x - a.x, b.z - a.z
-	local t = math.clamp(((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz), 0, 1)
-	return math.sqrt((p.x - a.x - t * dx) ^ 2 + (p.z - a.z - t * dz) ^ 2)
-end
-
-local function polyDist(p: { Pt }, q: { Pt }): number
-	local d = math.huge
-	for _, pair in { { p, q }, { q, p } } do
-		for _, pt in pair[1] do
-			for i = 1, 4 do
-				d = math.min(d, segDist(pt, pair[2][i], pair[2][i % 4 + 1]))
-			end
-		end
-	end
-	return d
-end
+-- The round cork stand every pad wears: its foot's radius (the widest part, native size).
+local STAND = (MeshAssets.get(WorldLayout.PAD_MESH) :: any).size[1] / 2
 
 -- A part node in plot i's local frame: centre (x, y, z), size, and its local axes' yaw.
 local function toLocal(node: any, i: number): ({ number }, number)
@@ -85,27 +55,29 @@ local function named(list: { any }, prefix: string): { any }
 end
 
 describe("jar tower: pads", function()
-	it("keeps a 2.5-stud walkway between neighbouring pads, and their habitat decks apart, on every jar", function()
-		for f = 1, FLOORS do
-			for k = 1, PER do
-				local j = (f - 1) * PER + k
-				local nxt = (f - 1) * PER + k % PER + 1
-				expect(polyDist(padCorners(j), padCorners(nxt)) >= 2.5).toBe(true)
-				local ax, az = WorldLayout.padOffset(j)
-				local bx, bz = WorldLayout.padOffset(nxt)
-				local deck = WorldLayout.PAD_DECK.half * math.sqrt(2) -- an overlay's corner reach
-				expect(math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2) >= 2 * deck).toBe(true)
+	it(
+		"keeps a 2.5-stud walkway between neighbouring stands, and their habitat overlays apart, on every jar",
+		function()
+			for f = 1, FLOORS do
+				for k = 1, PER do
+					local j = (f - 1) * PER + k
+					local nxt = (f - 1) * PER + k % PER + 1
+					local ax, az = WorldLayout.padOffset(j)
+					local bx, bz = WorldLayout.padOffset(nxt)
+					local apart = math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2)
+					expect(apart - 2 * STAND >= 2.5).toBe(true)
+					expect(apart >= 2 * WorldLayout.PAD_DECK.half).toBe(true) -- an overlay is a ring on the dish
+				end
 			end
 		end
-	end)
-	it("keeps every pad 2.5 studs clear of the stair hole and 3.5 studs from the glass", function()
+	)
+	it("keeps every stand 2.5 studs clear of the stair hole and 3.5 studs from the glass", function()
 		for j = 1, Config.PADS_MAX do
 			local f = WorldLayout.padFloor(j)
-			for _, c in padCorners(j) do
-				local r = math.sqrt(c.x * c.x + c.z * c.z)
-				expect(r >= WorldLayout.STAIR.hole + 2.5).toBe(true)
-				expect(r <= WorldLayout.jarRadius(f) - 3.5).toBe(true)
-			end
+			local x, z = WorldLayout.padOffset(j)
+			local r = math.sqrt(x * x + z * z)
+			expect(r - STAND >= WorldLayout.STAIR.hole + 2.5).toBe(true)
+			expect(r + STAND <= WorldLayout.jarRadius(f) - 3.5).toBe(true)
 		end
 	end)
 	it("never puts a pad in front of the door", function()

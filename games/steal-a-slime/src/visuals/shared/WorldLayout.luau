@@ -166,16 +166,17 @@ WorldLayout.RUNTIME_SLOT_ALLOWANCE = 16
 WorldLayout.PART_BUDGET = 1400
 WorldLayout.BORDER_PART_BUDGET = 700
 
--- Every slime spot uses the one square crate pad (red mat rectangle); only
--- the habitat on top changes per slime type (Habitats / HabitatFx).
+-- Every slime spot uses the one round cork stand; only the habitat on top
+-- changes per slime type (Habitats / HabitatFx).
 WorldLayout.PAD_MESH = "goo_cork_stand"
 -- Where a slime sits on the stand at native size (kit model header): the Pad
 -- top goes here, so slimes rest on the mesh instead of sinking into it.
 WorldLayout.PAD_SEAT_Y = 2.4
--- The crate's deck (models/_pad_crate.py, native size, from the stand bottom):
--- habitat overlays rest on it at height y, on the rim band between the mat
--- (half side matHalf) and the deck edge (half side half).
-WorldLayout.PAD_DECK = table.freeze({ y = 2.5, half = 3.75, matHalf = 2.6 })
+-- The stand's dish (models/_goo_jar.py cork_stand, native size, from the
+-- stand bottom): habitat overlays rest on its rim at height y (the seat), on
+-- the rim band between the slime (radius matHalf) and the dish edge (radius
+-- half).
+WorldLayout.PAD_DECK = table.freeze({ y = 2.4, half = 3.75, matHalf = 2.6 })
 -- The goo jar tower (CONTRACT.md §5.3): floor f is the inside of glass jar f, FLOOR_HEIGHT above floor f - 1.
 -- Plot-local angles: a point at angle a (degrees) and radius r is (r cos a, r sin a) in (x, z), so -90 is the
 -- entrance side (-Z), where jar 1's door is. Jars shrink upwards; each jar's pads sit on PAD_RINGS[f] facing the
@@ -185,7 +186,7 @@ WorldLayout.PAD_DECK = table.freeze({ y = 2.5, half = 3.75, matHalf = 2.6 })
 -- arrived. Upper floors (Config.BASE_FLOORS beyond 1) are built at runtime by server/BaseFloors.
 WorldLayout.FLOOR_HEIGHT = 16
 WorldLayout.JAR_RADII = table.freeze({ 31, 27, 24, 21.5 })
-WorldLayout.PAD_RINGS = table.freeze({ 19, 17, 15.5, 14.3 })
+WorldLayout.PAD_RINGS = table.freeze({ 19, 17, 15.5, 14.1 })
 -- The gameplay Pad box (collision, prompt, PivotTo top) under each round cork stand; the stand's dish keeps the
 -- crate deck's size (PAD_DECK.half), so the habitat overlays still fit on it.
 WorldLayout.PAD_SIZE = 6.4
