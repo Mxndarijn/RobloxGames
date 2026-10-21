@@ -10,7 +10,7 @@
 	  * Tag: an always-on-top "YOUR PLOT" billboard with the avatar headshot.
 	  * Arrow: a 🏠 badge on the screen edge pointing home while the plot is
 	    off screen.
-	Beacon, tag and arrow fade out while standing on the plot. Numbers and math
+	Beacon, tag and arrow fade out while your character stands on the plot. Numbers and math
 	live in Visuals.HomePlotMarker; this file only builds Instances.
 	Reads attributes only; never fires remotes. Local changes only.
 
@@ -40,7 +40,8 @@ type Built = {
 	plot: Model,
 	folder: Folder,
 	centre: Vector3, -- plot floor centre
-	size: number, -- plot floor width, studs
+	floor: CFrame, -- plot floor centre and facing
+	half: Vector2, -- half the floor size (X, Z), studs
 	core: BasePart,
 	halo: BasePart,
 	sparkles: ParticleEmitter,
@@ -238,7 +239,8 @@ local function build(plot: Model): Built?
 		plot = plot,
 		folder = folder,
 		centre = floor,
-		size = math.max(base.Size.X, base.Size.Z),
+		floor = base.CFrame,
+		half = Vector2.new(base.Size.X / 2, base.Size.Z / 2),
 		core = core,
 		halo = halo,
 		sparkles = sparkles,
@@ -365,9 +367,13 @@ function HomePlotMarker.step(now: number, camera: Camera)
 		end
 		return
 	end
-	local here = camera.CFrame.Position
-	local flat = Vector3.new(here.X - b.centre.X, 0, here.Z - b.centre.Z).Magnitude
-	local fade = Look.fade(flat, b.size)
+	-- Where the character stands, not the camera: the camera trails behind and
+	-- would count as off the plot near its edge.
+	local character = Players.LocalPlayer and Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local here = if root and root:IsA("BasePart") then root.Position else camera.CFrame.Position
+	local rel = b.floor:PointToObjectSpace(here)
+	local fade = Look.fade(Look.pastEdge(rel.X, rel.Z, b.half.X, b.half.Y))
 	local pulse = Look.pulse(now)
 
 	b.core.Transparency = 1 - (1 - CORE_ALPHA) * fade
@@ -376,7 +382,7 @@ function HomePlotMarker.step(now: number, camera: Camera)
 	for _, strip in b.rim do
 		strip.Transparency = 0.15 + 0.45 * pulse
 	end
-	b.tag.Enabled = fade > 0.05
+	b.tag.Enabled = fade > 0
 	b.tag.StudsOffsetWorldSpace = Vector3.new(0, Look.TAG_HEIGHT + math.sin(now * 2) * 0.8, 0)
 	stepArrow(b, camera, fade)
 end
