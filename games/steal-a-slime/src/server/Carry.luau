@@ -95,6 +95,9 @@ function Carry.grabWild(
 			return false, reason
 		end
 	end
+	if wild.price > 0 and not wild.boss and not PlayerData.freePad(session.data) then
+		return false, "plot full" -- it could not be brought home, so don't take the cash
+	end
 	if wild.price > 0 and not PlayerData.spend(session.data, wild.price) then
 		return false, `need ${Economy.formatNumber(wild.price)}`
 	end
