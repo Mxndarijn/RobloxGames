@@ -398,7 +398,7 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §13 | [coop-ritual.md](contract/coop-ritual.md) | v29 #12: co-op ritual circle (2026-10-16, Jolt) |
 | §14 | [follow-pet-passives.md](contract/follow-pet-passives.md) | v29 #14: follow-pet passives (2026-10-16, Jolt) |
 | §15 | [plot-skins.md](contract/plot-skins.md) | Gaps #15: plot skins unlocked by collection (2026-10-16, Archer) |
-| §16 | [revenge-steal.md](contract/revenge-steal.md) | Revenge steal (`FEATURES.Revenge`) |
+| §16 | [thief-plot.md](contract/thief-plot.md) | Thief plot highlight during a steal |
 | §17 | [steal-alerts.md](contract/steal-alerts.md) | v21: full steal alerts (2026-10-16) |
 | §18 | [weekly-event-rotation.md](contract/weekly-event-rotation.md) | v21: weekly event rotation (2026-10-16) |
 | §19 | [fountain-tiers.md](contract/fountain-tiers.md) | v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`) |
