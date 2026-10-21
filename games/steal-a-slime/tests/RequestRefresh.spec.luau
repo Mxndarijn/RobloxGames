@@ -20,7 +20,7 @@ local rt = Runtime.new(path, {})
 fs.removeFile(path)
 rt.workspace:SetAttribute("DataStoreMode", "Memory") -- in-memory store only (CLAUDE.md hard rule)
 local server = rt.game:GetService("ServerScriptService"):FindFirstChild("Server")
-server.Source = server.Source .. "\n_G.__requestRefresh = { world = world, WorldView = WorldView }\n"
+server.Source = server.Source .. "\n_G.__requestRefresh = { world = world, WorldView = WorldView, World = World }\n"
 rt:boot()
 rt:advance(1)
 -- selene: allow(global_usage)
@@ -70,6 +70,47 @@ results.limited.reconciles = reconciles(function()
 	end
 end)
 
+-- A dispatched action that is refused changes nothing: no reconcile, but a toast it queued still goes out.
+local function notifies(text: string): number
+	local n = 0
+	for _, record in rt.records do
+		if record.kind == "FireClient" and record.name == "Notify" and record.args[1] == text then
+			n += 1
+		end
+	end
+	return n
+end
+results.refused = { notOk = 0, reconciles = 0 }
+for _ = 1, 5 do
+	rt:advance(0.3) -- past the Sell limiter
+	results.refused.reconciles += reconciles(function()
+		if invoke("Sell", "not-a-slime-of-mine").ok == false then
+			results.refused.notOk += 1
+		end
+	end)
+end
+rt:advance(0.3)
+S.World.notify(S.world, USER_ID, "refused-toast", "info", nil)
+invoke("Sell", "not-a-slime-of-mine")
+results.refused.toasts = notifies("refused-toast")
+
+rt:advance(1)
+-- Tool.Activated spam: only a swing that ran may refresh the world.
+local bat
+for _, item in player:FindFirstChildOfClass("Backpack"):GetChildren() do
+	if item.Name == "Bat" then
+		bat = item
+	end
+end
+results.bat = { found = bat ~= nil }
+if bat then
+	results.bat.reconciles = reconciles(function()
+		for _ = 1, 30 do
+			Runtime.signalOf(bat, "Activated"):Fire()
+		end
+	end)
+end
+
 rt:advance(1)
 -- A Heartbeat push in the last 0.25 s would coalesce the Sync push; start from a quiet, already-pushed session.
 session.dirty, session.lastPushAt = false, -math.huge
@@ -102,6 +143,15 @@ describe("Request refresh guard (server Script)", function()
 		expect(results.limited.first).toBe(true)
 		expect(results.limited.tooFast).toBe(50)
 		expect(results.limited.reconciles).toBe(1)
+	end)
+	it("skips the world refresh for a refused action but still delivers its toast", function()
+		expect(results.refused.notOk).toBe(5)
+		expect(results.refused.reconciles).toBe(0)
+		expect(results.refused.toasts).toBe(1)
+	end)
+	it("refreshes at most once for a burst of Bat Activated events", function()
+		expect(results.bat.found).toBe(true)
+		expect(results.bat.reconciles <= 1).toBe(true)
 	end)
 	it("throttles Sync to one per STATE_MIN_INTERVAL and still pushes State on the allowed one", function()
 		expect(results.sync.first).toBe(true)

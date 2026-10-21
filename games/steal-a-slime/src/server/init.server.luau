@@ -199,6 +199,15 @@ local function refreshView(t: number)
 	Outbox.flush(world, outbox)
 end
 
+-- After a prompt: a refused trigger only needs its toast delivered, the world-wide refresh is for what changed.
+local function refreshAfter(changed: boolean)
+	if changed then
+		refreshView(now())
+	else
+		safeCall("outbox after prompt", Outbox.flush, world, outbox)
+	end
+end
+
 request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.RequestResult
 	Profiler.count(profiler, "Request")
 	local args = table.pack(...)
@@ -212,6 +221,12 @@ request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.
 		return res
 	end
 	PlayerAttributes.syncOpenShop(world, player)
+	-- A dispatched action that was refused changed nothing: only its queued toasts go out now, the next tick
+	-- does the rest.
+	if not res.ok then
+		safeCall(`outbox after {action}`, Outbox.flush, world, outbox)
+		return res
+	end
 	-- Never error to the client: a view hiccup must not turn a done action into a failure.
 	local t = now()
 	safeCall(`push after {action}`, function()
@@ -223,15 +238,15 @@ end
 
 -- Owner-only plot prompts (CONTRACT.md §8.5): LockPrompt, BuyPadPrompt, MergePrompt.
 WorldView.addPlotPrompts(function(player: Player, index: number, kind: string)
-	Actions.triggerPlotPrompt(world, player.UserId, index, kind, now(), ctx)
-	refreshView(now())
+	local res = Actions.triggerPlotPrompt(world, player.UserId, index, kind, now(), ctx)
+	refreshAfter(res.ok)
 end)
 
 -- The drop tube on every upper jar (BaseFloors adds the DropPrompt as each jar is built).
 if floors then
 	floors.drop = function(player: Player, index: number)
-		Actions.useDropTube(world, player.UserId, index, ctx)
-		refreshView(now())
+		local res = Actions.useDropTube(world, player.UserId, index, ctx)
+		refreshAfter(res.ok)
 	end
 end
 
