@@ -288,6 +288,26 @@ local function surfaceBelow(origin: Vector3, depth: number): CFrame?
 	return nil
 end
 
+WorldView.BOSS_RAY_UP = 60 -- studs above an attack's centre the floor probe starts (over the boss, under nothing)
+WorldView.BOSS_EYE = 4 -- studs above the arena floor the line-of-sight ray starts (over curbs and puddles)
+
+--[[
+	Whether a boss attack centred on `from` (x / z; Y = a hint for where the arena floor is) can strike the character
+	whose root is `root`: the root is at most `height` studs above the floor under the attack (and not under it), and
+	a ray from just above that floor to the root hits nothing solid (slimes, the boss, characters and non-collidable
+	parts never block). Nothing found under the attack = no floor to measure from, so only the line is checked.
+]]
+function WorldView.bossExposed(from: Vector3, root: Vector3, height: number): boolean
+	local params = groundParams()
+	local floor = surfaceBelow(Vector3.new(from.X, from.Y + WorldView.BOSS_RAY_UP, from.Z), WorldView.BOSS_RAY_UP * 2)
+	local floorY = if floor then floor.Position.Y else from.Y
+	if root.Y - floorY > height or root.Y < floorY - 2 then
+		return false
+	end
+	local eye = Vector3.new(from.X, floorY + WorldView.BOSS_EYE, from.Z)
+	return workspace:Raycast(eye, root - eye, params) == nil
+end
+
 WorldView.DROP_RAY_UP = 4 -- studs above the carrier's root the drop ray starts (below canopies)
 WorldView.DROP_RAY_DEPTH = 200
 
