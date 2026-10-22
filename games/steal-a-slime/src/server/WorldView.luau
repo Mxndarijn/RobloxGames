@@ -103,7 +103,7 @@ local habitats = HabitatPads.new() -- FEATURES.Habitats pad state (never saved)
 local eggMeshes: { [string]: MeshPart | false } = {} -- uploaded Mystery Egg meshes (MeshAssets mystery_egg_*), by name
 
 WorldView.FALL_SECONDS = 0.3 -- a dropped slime falls to the ground
-WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart
+WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart when the character has no Head
 
 ---------------------------------------------------------------------------
 -- World lookup
@@ -340,6 +340,19 @@ function WorldView.rootPart(player: Player?): BasePart?
 		return root
 	end
 	return nil
+end
+
+-- Where a carried slime sits: its bottom (the model pivot) on top of the carrier's Head, welded to the Head so it
+-- bobs with it. Without a Head it sits CARRY_HEIGHT above the root.
+function WorldView.carrySeat(root: BasePart): (BasePart, CFrame)
+	local character = root.Parent
+	local head = character and character:FindFirstChild("Head")
+	if head and head:IsA("BasePart") then
+		local up = root.CFrame.UpVector
+		local top = head.Position + up * (head.Size.Y / 2)
+		return head, root.CFrame.Rotation + top
+	end
+	return root, root.CFrame * CFrame.new(0, WorldView.CARRY_HEIGHT, 0)
 end
 
 ---------------------------------------------------------------------------
@@ -871,9 +884,10 @@ local function place(world: World.World, record: Record, entry: Scene.Entry, pre
 			return false
 		end
 		unweld(record)
-		model:PivotTo(root.CFrame * CFrame.new(0, WorldView.CARRY_HEIGHT, 0))
+		local anchor, seat = WorldView.carrySeat(root)
+		model:PivotTo(seat)
 		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = root
+		weld.Part0 = anchor
 		weld.Part1 = record.body
 		weld.Parent = record.body
 		record.weld = weld
