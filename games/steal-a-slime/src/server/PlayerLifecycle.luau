@@ -134,6 +134,10 @@ local function onPlayerRemoving(deps: Deps, player: Player)
 	local userId = player.UserId
 	BatTool.forget(userId)
 	local session = Sessions.leave(world, userId, now())
+	if session then
+		-- Before anything that can fail: the save must not depend on the view refresh.
+		task.spawn(Persistence.save, deps.persistence, userId, session.data, true)
+	end
 	WorldView.setCarrying(player, nil)
 	ServerLoop.forget(deps.loop, userId)
 	deps.badges.release(userId)
@@ -141,8 +145,12 @@ local function onPlayerRemoving(deps: Deps, player: Player)
 	RitualService.leave(deps.ritual, userId)
 	task.spawn(deps.refreshFriends)
 	if session then
-		deps.refreshView(now()) -- a stolen slime in their arms bounces home
-		Persistence.save(deps.persistence, userId, session.data, true)
+		local ok, err = pcall(function() -- a stolen slime in their arms bounces home
+			deps.refreshView(now())
+		end)
+		if not ok then
+			warn(`[Server] view refresh after {userId} left failed: {err}`)
+		end
 	end
 end
 
