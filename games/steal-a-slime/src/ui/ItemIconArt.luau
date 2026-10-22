@@ -339,6 +339,11 @@ RECIPES.Boost_Blessed = function(p)
 	sparkle(p, 0.84, 0.5, 0.2)
 end
 
+RECIPES.Boost_Mvp = function(p)
+	coinPile(p)
+	p:text("👑", 0.5, 0.16, 0.4, GOLD)
+end
+
 RECIPES.Boost_Weekend = function(p)
 	local colors = { RED, BLUE, GREEN, PURPLE, GOLD }
 	for i = 1, 10 do
