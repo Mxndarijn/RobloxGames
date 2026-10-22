@@ -29,6 +29,7 @@ local PlayerData = if Shared then require(Shared.PlayerData) else require("../sh
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
+local CarryDrop = if script then require(script.Parent.CarryDrop) else require("./CarryDrop")
 local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
@@ -271,65 +272,8 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 	return true, nil
 end
 
--- World x / z of an adapter-defined drop position, when it has them (a Vector3 does; test stand-ins may not).
-local function spotOf(position: any?): (number?, number?)
-	if position == nil or type(position) == "string" then
-		return nil, nil
-	end
-	local x, z = position.X, position.Z
-	if type(x) == "number" and type(z) == "number" then
-		return x, z
-	end
-	return nil, nil
-end
-
---[[
-	Ends any carry. Wild -> lands at `position` (opaque, adapter-defined; a
-	Vector3 in the server). A position with numeric X / Z walks back to the
-	parade lane (FEATURES.Parade); any other rests there with a fresh
-	lifetime. Stolen -> escapes home. `reason` is passed to
-	StealService.escape ("drop", "left", ...).
-]]
-function Carry.release(world: World, userId: number, now: number, position: any?, reason: string): boolean
-	local session = World.session(world, userId)
-	local carry = session and session.carry
-	if not session or not carry then
-		return false
-	end
-	if carry.kind == "stolen" then
-		StealService.escape(world, session, now, reason)
-		return true
-	end
-	session.carry = nil
-	world.carriedBy[carry.slimeId] = nil
-	local wild = world.wild[carry.slimeId]
-	if wild then
-		wild.position = position
-		if wild.boss then
-			-- The hauled boss lies on the spot; the haul deadline (expiresAt) stays.
-			if world.boss then
-				BossFight.drop(world.boss.fight)
-			end
-			World.markAllDirty(world)
-		else
-			local lifetime = Fountain.wildLifetime(wild.slime)
-			local x, z = spotOf(position)
-			local plan = if ParadeLane.enabled()
-					and x
-					and z
-				then ParadeLane.returnPlan(x, z, ParadeLane.wildLateral(wild.radius), lifetime, now)
-				else nil
-			if plan then
-				wild.returning = plan
-				wild.spawnedAt, wild.expiresAt = ParadeLane.rejoin(plan.s, lifetime, plan.arriveAt)
-			else
-				wild.expiresAt = now + lifetime
-			end
-		end
-	end
-	World.markDirty(session)
-	return true
-end
+-- Ends any carry without a deposit (CarryDrop.release: wild lands at `position`, the boss lies there, stolen escapes).
+Carry.release = CarryDrop.release
 
 --[[
 	Swaps a dropped slime's straight walk back for the `route` the server's
@@ -381,13 +325,13 @@ function Carry.carryingId(world: World, userId: number): string?
 	return carry and carry.slimeId
 end
 
--- WalkSpeed while carrying: the carry slowdown applies to the player's own base speed,
--- so the Speed Coil helps while carrying too (CONTRACT.md §8.10).
+-- WalkSpeed while carrying: the carry slowdown applies to the player's own base speed
+-- (the Speed Coil only counts while held, and carrying puts tools away, CONTRACT.md §8.10).
 -- Strong Arms (Perks.carrySlowFactor) shrinks the slowdown.
 -- The hauled boss is the exception: BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW), no Speed Coil, no Strong Arms.
 function Carry.walkSpeed(session: Session): number
 	local carry = session.carry
-	local base = Shop.walkSpeed(session.data)
+	local base = Shop.walkSpeed(session.data, session.coilHeld)
 	if not carry then
 		return base
 	end
@@ -401,8 +345,10 @@ end
 -- PvP holds / slows (PvpSlow: Goo Traps, Goo Blasters; PvpFun: the Goo Balloon slow; FEATURES.PvP, CONTRACT.md §26)
 -- multiply in; 1 with the flag off.
 function Carry.targetWalkSpeed(session: Session, now: number): number
-	local speed = if session.carry then Carry.walkSpeed(session) else Shop.walkSpeed(session.data)
-	return speed * PvpSlow.walkFactor(session, now) * PvpFun.walkFactor(session, now)
+	local speed = if session.carry then Carry.walkSpeed(session) else Shop.walkSpeed(session.data, session.coilHeld)
+	local goo = session.bossSlow -- a boss goo puddle (BossEvent)
+	local bossFactor = if goo and now < goo.untilTime then goo.factor else 1
+	return speed * PvpSlow.walkFactor(session, now) * PvpFun.walkFactor(session, now) * bossFactor
 end
 
 return Carry

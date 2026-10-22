@@ -1,5 +1,6 @@
 --!strict
--- The owner's key prompts on their pad slimes (src/ui/SlimeKeys.luau): R Favorite, X hold Sell, through mock instances.
+-- The owner's key prompts on their pad slimes (src/ui/SlimeKeys.luau): R Favorite, X hold Sell (none on a Mystery Egg),
+-- through mock instances.
 local SlimeKeys = require("../../src/ui/SlimeKeys")
 local TestRunner = require("../TestRunner")
 
@@ -247,15 +248,31 @@ describe("SlimeKeys", function()
 		expect(table.concat(sent, ",")).toBe("Favorite:a,Favorite:nil,Sell:a")
 	end)
 
-	it("gives a Mystery Egg Sell (named) but no Favorite", function()
+	it("gives a Mystery Egg neither Sell nor Favorite, and both once it hatches", function()
 		local root = instance("Workspace", "Workspace")
 		local keys = start(root, {})
 		local model, body = slime("e", ME, "Pad", true)
 		parent(root, model, root)
 		keys.update(state(nil))
 		expect(fav(body)).toBeNil()
+		expect(sell(body)).toBeNil()
+		model:SetAttribute("EggKind", nil)
+		expect(fav(body)).toBeTruthy()
 		expect(sell(body).ActionText).toBe("Sell $90")
-		expect(sell(body).ObjectText).toBe("Blorp")
+	end)
+
+	it("never sends Sell for a Mystery Egg", function()
+		local root = instance("Workspace", "Workspace")
+		local sent = {}
+		local keys = start(root, sent)
+		local model, body = slime("a", ME, "Pad")
+		parent(root, model, root)
+		keys.update(state(nil))
+		local prompt = sell(body)
+		model:SetAttribute("EggKind", "Golden")
+		expect(sell(body)).toBeNil()
+		prompt.Triggered:Fire()
+		expect(#sent).toBe(0)
 	end)
 
 	it("drops the prompts while the slime is carried and brings them back on the pad", function()
@@ -332,6 +349,8 @@ describe("SlimeKeys", function()
 		hatch.Style = "Default"
 		hatch.Parent = body
 		parent(root, model, root)
+		local plainModel, plain = slime("a", ME, "Pad")
+		parent(root, plainModel, root)
 		SlimeKeys.start({
 			root = root,
 			localUserId = ME,
@@ -347,6 +366,6 @@ describe("SlimeKeys", function()
 			style = "Custom" :: any,
 		})
 		expect(hatch.Style).toBe("Custom")
-		expect(sell(body).Style).toBe("Custom")
+		expect(sell(plain).Style).toBe("Custom")
 	end)
 end)

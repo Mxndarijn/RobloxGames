@@ -12,7 +12,7 @@
 	  * plot attributes OwnerUserId / LockUntil (CONTRACT.md §5.2);
 	    with FEATURES.Habitats, Pad Habitat / HabitatFrom / HabitatAt (HabitatPads)
 	    and the owner / stats text on each plot Sign (PlotSigns);
-	  * per-player WalkSpeed (Speed Coil when not carrying), unequipped
+	  * per-player WalkSpeed (Speed Coil while held), unequipped
 	    tools, the SpeedCoil tool and the `Carrying` / `TutorialStep` /
 	    `SpeedCoil` attributes;
 	  * the workspace `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt`
@@ -32,7 +32,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local BaseFloors = require(script.Parent.BaseFloors)
+local BossArea = require(ReplicatedStorage.Shared.BossArea)
 local BossChoreo = require(ReplicatedStorage.Shared.BossChoreo)
+local BossFxView = require(script.Parent.BossFxView)
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
@@ -206,6 +208,19 @@ function WorldView.pad(plotIndex: number, pad: number): BasePart?
 	return nil
 end
 
+-- Pads 1..Config.PADS_MAX of a plot with one scan of the plot's children (same result as WorldView.pad per index).
+local function plotPads(plotIndex: number): { [number]: BasePart }
+	local found =
+		PlotLookup.allByIndex(WorldView.plot(plotIndex), Constants.PAD_INDEX_ATTRIBUTE, Config.PADS_MAX, "Pad_")
+	local pads: { [number]: BasePart } = {}
+	for index, part in found do
+		if part:IsA("BasePart") then
+			pads[index] = part
+		end
+	end
+	return pads
+end
+
 -- Top surface of a pad. Slime models pivot at the bottom centre (ModelFactory sets
 -- Body.PivotOffset), so model:PivotTo(padTop) rests the slime on the pad.
 local function padTop(plotIndex: number, pad: number): CFrame?
@@ -226,9 +241,19 @@ local function crater(): Vector3
 	return Vector3.new(0, 20, 0)
 end
 
+WorldView.GROUND_PARAMS_TTL = 0.1 -- s: how long the ground ray filter is reused (characters and slime folders change rarely)
+
+local groundCache: { params: RaycastParams, builtAt: number }? = nil
+
 -- Slime models and characters never count as ground (a ray that hits the carrier's head made
--- dropped slimes float, CONTRACT.md §8.11).
+-- dropped slimes float, CONTRACT.md §8.11). Built at most once per GROUND_PARAMS_TTL: every returning slime rays
+-- every Heartbeat.
 local function groundParams(): RaycastParams
+	local clock = os.clock()
+	local cached = groundCache
+	if cached and clock - cached.builtAt < WorldView.GROUND_PARAMS_TTL then
+		return cached.params
+	end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.RespectCanCollide = true -- canopies, HomeZones and other triggers are not ground
@@ -250,6 +275,7 @@ local function groundParams(): RaycastParams
 		end
 	end
 	params.FilterDescendantsInstances = exclude
+	groundCache = { params = params, builtAt = clock }
 	return params
 end
 
@@ -718,7 +744,9 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		p.Name = Constants.HATCH_PROMPT_NAME
 		p.ActionText = "Hatch!"
 		p.ObjectText = Genome.displayName(entry.slime)
-		p.KeyboardKeyCode = Enum.KeyCode.F
+		local keys = Constants.SLIME_PROMPT_KEYS.hatch
+		p.KeyboardKeyCode = (Enum.KeyCode :: any)[keys.keyboard]
+		p.GamepadKeyCode = (Enum.KeyCode :: any)[keys.gamepad]
 		p.RequiresLineOfSight = false
 		p.HoldDuration = Config.HOLD_CONFIRM_SECONDS
 		p.MaxActivationDistance = Config.STEAL_REACH - 2
@@ -776,6 +804,46 @@ local function syncGhost(record: Record, entry: Scene.Entry)
 	record.ghost = StealGhost.build(record.model, target, plot, Config.STEAL_GHOST_TRANSPARENCY)
 end
 
+-- The carried boss drips a goo trail, so chasers can find the carrier; it goes when the boss is put down.
+local GOO_TRAIL = "BossGooTrail"
+local function syncGooTrail(record: Record, on: boolean)
+	local body = record.body
+	local trail = body:FindFirstChild(GOO_TRAIL)
+	if not on then
+		if trail then
+			trail:Destroy()
+		end
+		for _, name in { "GooTrailA", "GooTrailB" } do
+			local a = body:FindFirstChild(name)
+			if a then
+				a:Destroy()
+			end
+		end
+		return
+	end
+	if trail then
+		return
+	end
+	local half = body.Size.X * 0.35
+	local a0 = Instance.new("Attachment")
+	a0.Name = "GooTrailA"
+	a0.Position = Vector3.new(-half, -body.Size.Y / 2, 0)
+	a0.Parent = body
+	local a1 = Instance.new("Attachment")
+	a1.Name = "GooTrailB"
+	a1.Position = Vector3.new(half, -body.Size.Y / 2, 0)
+	a1.Parent = body
+	local t = Instance.new("Trail")
+	t.Name = GOO_TRAIL
+	t.Attachment0, t.Attachment1 = a0, a1
+	t.Color = ColorSequence.new(Color3.fromRGB(110, 210, 90))
+	t.Transparency = NumberSequence.new(0.2, 1)
+	t.Lifetime = 2.5
+	t.LightEmission = 0.3
+	t.FaceCamera = true
+	t.Parent = body
+end
+
 -- Returns false when the model couldn't be placed yet (retried next reconcile).
 local function place(world: World.World, record: Record, entry: Scene.Entry, previous: string?): boolean
 	local model = record.model
@@ -795,6 +863,7 @@ local function place(world: World.World, record: Record, entry: Scene.Entry, pre
 	model:SetAttribute(Constants.RARE_ATTRIBUTE, entry.rare)
 
 	syncGhost(record, entry)
+	syncGooTrail(record, entry.boss and entry.state == "Carried")
 	if entry.state == "Carried" then
 		local carrier = entry.carrierUserId and Players:GetPlayerByUserId(entry.carrierUserId)
 		local root = WorldView.rootPart(carrier)
@@ -1024,6 +1093,21 @@ function WorldView.reconcile(
 			failed[id] = nil
 		end
 	end
+	-- The boss's guards, goo puddles and the attributes its telegraphs are drawn from.
+	local bossId = world.boss and world.boss.slimeId
+	local bossRecord = if bossId then records[bossId] else nil
+	local bossWild = if bossId then world.wild[bossId] else nil
+	local tint = bossWild and bossWild.slime.color
+	local origin = crater()
+	local hx, hz = BossArea.home()
+	local ground = surfaceBelow(Vector3.new(origin.X + hx, origin.Y + 200, origin.Z + hz), 400)
+	BossFxView.sync(
+		world,
+		if bossRecord then bossRecord.model else nil,
+		origin,
+		if ground then ground.Y else 0,
+		if tint then Color3.fromRGB(tint[1], tint[2], tint[3]) else nil
+	)
 end
 
 -- A slime model's Body (Effects target), or nil if it has no model.
@@ -1366,8 +1450,9 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 					if session then PlotSkins.current(session.data) else Config.PLOT_SKIN_DEFAULT
 				)
 			end
+			local pads = plotPads(index)
 			for pad = 1, Config.PADS_MAX do
-				local part = WorldView.pad(index, pad)
+				local part = pads[pad]
 				if part then
 					local unlocked = pad <= view.padsUnlocked
 					setIfChanged(part, Constants.PAD_UNLOCKED_ATTRIBUTE, unlocked)
@@ -1386,7 +1471,7 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 				applyPrompt(prompts[Constants.LOCK_PROMPT_NAME], view.lock, view.ownerUserId)
 				applyPrompt(prompts[Constants.MERGE_PROMPT_NAME], view.merge, view.ownerUserId)
 				local buyPad = prompts[Constants.BUY_PAD_PROMPT_NAME]
-				local padPart = WorldView.pad(index, view.buyPad.pad)
+				local padPart = pads[view.buyPad.pad] or WorldView.pad(index, view.buyPad.pad)
 				if buyPad and padPart and buyPad.Parent ~= padPart then
 					buyPad.Parent = padPart
 				end
@@ -1518,7 +1603,7 @@ local function ensureSpeedCoil(player: Player)
 	end
 	local tool = WorldProps.speedCoil()
 	if tool then
-		tool.ToolTip = "Speed Coil: always on"
+		tool.ToolTip = "Speed Coil: hold to run faster"
 		tool.Parent = backpack
 	end
 end
@@ -1552,6 +1637,12 @@ function WorldView.updatePlayer(
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
 	if data.speedCoil then
 		ensureSpeedCoil(player)
+	end
+	-- The coil only works while held (Merijn 2026-10-22): equipped = the Tool sits in the character.
+	local coilHeld = data.speedCoil and character ~= nil and character:FindFirstChild(Constants.SPEED_COIL_TOOL) ~= nil
+	if (session.coilHeld == true) ~= coilHeld then
+		session.coilHeld = coilHeld
+		World.markDirty(session) -- State.walkSpeed changes
 	end
 	local target = Carry.targetWalkSpeed(session, now) -- PvP holds / slows multiply in (PvpSlow, PvpFun)
 	if Config.FEATURES.PvP and PvpFun.frozen(session, now) then

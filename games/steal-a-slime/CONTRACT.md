@@ -83,7 +83,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 
 - **Spawner:** a wild slime drops every `SPAWN_INTERVAL`, up to `MAX_WILD_SLIMES` alive (`Fountain.roll`). Each lives for `WILD_LIFETIME`.
   - `FREE_DROP_CHANCE` of drops are free.
-  - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab.
+  - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab. A Mystery Egg is always free (contract/mystery-egg.md).
   - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Drops come twice as fast (`RAIN_SPAWN_INTERVAL` = `SPAWN_INTERVAL / 2`), the wild cap is ×2 and luck is ×5 (`Progression.rainStatus`, `Fountain.wildCap`).
 - **Carry:** grabbing and stealing use a **ProximityPrompt** (`GrabPrompt`) that the server puts on each slime's `Body`. There is no remote for this.
   - The prompt's `ActionText` is `"Grab"`, `"Buy $<price>"` (`Economy.formatNumber`) or `"Steal"`. `ObjectText` is `Genome.displayName`.
@@ -99,7 +99,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - On join, the plot is locked for `JOIN_LOCK_SECONDS` (45).
   - `Request("Lock")` buys `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s; one purchase and the stacked lock are both capped at `LOCK_MAX_REMAINING` (3 min) (`Steal.lockDuration`, `Steal.buyLock`). Locks are bought only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button; under `WorldShopsStrict` the HUD button needs the player at their lock pad). No shop sells locks or longer locks.
   - Stealing pings the owner (Notify `"bad"` plus `SlimeView.stolenBy`).
-  - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is slapped (Bat or a PvP knockback), drops it, dies / respawns or leaves. While it is carried the thief sees it see-through (client-only `ui/CarryFade`, the Move fade). An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
+  - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is hit (the Bat or any PvP item that touches them), drops it, dies / respawns or leaves. A carried wild slime is dropped by the same hits and lands at the carrier's feet. The carried slime stays solid for everyone, the thief included. An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
   - If the thief reaches their own `HomeZone` first, `Steal.complete` moves the slime to the thief.
   - **Both saves must be writable:** each player is saved on their own, so a theft needs this server to save both the thief and the owner (`World.canSave`, from `Persistence.canSave`: not read-only, session not taken over by another server, not a Studio fallback profile). Otherwise `Steal.canSteal` refuses ("your progress can't be saved on this server" / "their slimes can't be saved on this server"). If either save stops being writable during the carry, delivery sends the slime home instead (escape reason `"unsaved"`, the thief gets a `"bad"` Notify).
 - **Rebirth:** `Progression.rebirth` uses up the slimes the rebirth needs (§8.8a) and resets cash to `STARTING_CASH`. Every other slime stays on its pad. It adds +`REBIRTH_MULTIPLIER_STEP` income and a longer lock.
@@ -116,7 +116,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - `leaderstats` holds IntValues `Cash`, `Rebirths` and `Steals`.
   - A global OrderedDataStore `Constants.LEADERBOARD_STORE` (`"StealASlime_TotalEarned"`, key `"u_<UserId>"`) ranks by `totalEarned`. It's written on every save. It's refreshed every `LEADERBOARD_INTERVAL` and pushed to all clients (§3). A joining player gets the latest board right away. In memory mode the board is also refreshed when someone joins.
 - **Shop:** `src/shared/Shop.luau` (pure). `"BuySpeedCoil"` buys an **item** (Item Shop, 2026-10-18: it works while held, so it has a hotbar slot; §27.1). Its price is in `State.shop` (§5.1).
-- **Speed Coil** (v13: also while carrying, always enforced, see §8.10): owning it (`data.speedCoil`) sets WalkSpeed to `SPEED_COIL_WALK_SPEED` whenever you're not carrying (equipped or not). While you own it the server keeps one `SpeedCoil` Tool (`Props.speedCoil()`, a `Handle` Part plus welded decor, unanchored, CanCollide false) in your Backpack or character, re-adding it after respawns. It's cosmetic; carrying still unequips it.
+- **Speed Coil** (2026-10-22: only while held, see §8.10): owning it (`data.speedCoil`) keeps one `SpeedCoil` Tool (`Props.speedCoil()`, a `Handle` Part plus welded decor, unanchored, CanCollide false) in your Backpack or character, re-added after respawns. While that Tool is **equipped** (in the character) the server sets WalkSpeed to `SPEED_COIL_WALK_SPEED`; in the Backpack it does nothing. Carrying puts tools away, so the coil never helps while carrying.
 - **Tutorial** (v13: 7 steps with `BuyPad` as step 4, see §8.3): `src/shared/TutorialProgress.luau` (pure). The server owns the step; the client only shows it (`State.tutorialStep`, Player attribute `TutorialStep`). Steps (1-based, same order as the UI's `Tutorial.STEPS`):
   1. `Grab`: grab or buy a wild slime.
   2. `Deposit`: bring any carried slime home onto a pad.
@@ -161,13 +161,13 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"KeepSlime"` | `slimeId: string, keep: boolean` | Marks an owned slime as kept (never merged) or clears it (§21.1). |
 | `"Lock"` | none | Buys or extends the plot lock. Costs `Economy.lockCost(income)`. |
 | `"Rebirth"` | none | Rebirths if `Progression.canRebirth`. |
-| `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. |
+| `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. A Mystery Egg can't be sold: "eggs can't be sold". |
 | `"Favorite"` | `slimeId: string?` | Sets the favourite (the follow pet; a rebirth uses it up only when no other slime of a required species is there). `nil` clears it. |
 | `"BuyPad"` | none | Unlocks the next pad (`Economy.padCost`). |
 | `"MoveSlime"` | `slimeId: string, pad: number` | `FEATURES.MoveSlime`: moves that owned, not-busy slime to `pad` (an unlocked pad, `1..padsUnlocked`, a whole number). If another slime sits there, the two swap pads; that slime must not be busy either. Moving to its own pad is a no-op. Fails with `"moving slimes is off"`, `"not your slime"`, `"pad is locked"`, `"slime is busy"`. Only `slime.pad` changes (no save change); the slime models re-place on the next world refresh. |
 | `"Daily"` | none | Claims the daily reward (`Progression.claimDaily`). |
 | `"ClaimQuest"` | `slot: number` | Claims daily quest `slot` (1..`DAILY_QUESTS.count`) once finished (`Quests.claim`): cash x rebirth multiplier or an income boost. `State.dailyQuests` has the 3 quests rolled per UTC day (progress = gained since the roll, saved as `quests`; missing = nothing rolled). |
-| `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While you're not carrying, WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Saved and kept on rebirth. An **item**, not an upgrade (Item Shop row, §27.1; a `SpeedCoil` Tool in the Backpack, hotbar slot, inventory panel). |
+| `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While the coil is held (equipped), WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Saved and kept on rebirth. An **item**, not an upgrade (Item Shop row, §27.1; a `SpeedCoil` Tool in the Backpack, hotbar slot, inventory panel). |
 | `"BuyConsumable"` | `itemId: string, slimeId: string?` | `FEATURES.Consumables`. Buys one Luck Potion / Weather Totem: checks the restock allowance, cash and the held cap (`CONSUMABLE_HELD_MAX`), then **adds one to the held stack** (`data.consumables.held`). Nothing is applied on purchase; `slimeId` is ignored. See [restocking-shop.md](contract/restocking-shop.md). |
 | `"UseConsumable"` | `itemId: string, slimeId: string?` | `FEATURES.Consumables`. Uses one held consumable: the server checks the item and that the stack is at least 1, runs the effect (spray onto the owned idle `slimeId`, luck potion, weather totem) and only then takes one off the stack. A refused effect keeps the stack. Rate limit 0.5 s. |
 | `"Drop"` | none | Drops what you're carrying. Wild → falls to the ground; stolen → escapes home. |
@@ -249,7 +249,7 @@ The client always replaces its copy and never diffs.
 	rebirths: number, rebirthMultiplier: number, rebirthCost: number, canRebirth: boolean,
 	rebirthSlimes: { { id: string, name: string, tier: number, color: { number }, owned: boolean } }, -- §8.8a, empty at max
 	padsUnlocked: number, padsMax: number, nextPadCost: number?,
-	slimes: { { slime: SlimeData, income: number, sellPrice: number, stolenBy: number? } },
+	slimes: { { slime: SlimeData, income: number, sellPrice: number?, stolenBy: number? } }, -- sellPrice nil for a Mystery Egg
 	favoriteId: string?,
 	lockUntil: number, lockCost: number, lockDuration: number,
 	carrying: { slime: SlimeData, kind: "wild" | "stolen", ownerUserId: number?,
@@ -290,8 +290,8 @@ The client always replaces its copy and never diffs.
     ```
   - Client side: Jolt's `src/ui/PromptHide` implements this rule (matches only `GrabPrompt`, reads only `HideFromUserId`).
   - Server-side safety net: `Carry.grab` refuses the owner, so a client that ignores the attribute only shows a useless prompt.
-  - Owner side: `src/ui/SlimeKeys` adds two **client-only** ProximityPrompts on the Body of every slime model whose `OwnerUserId` is the local player and `State` is `"Pad"`: `FavoritePrompt` (R, gamepad DPadUp, tap: "Favorite" / "Unfavorite", sends `Favorite(slimeId)` / `Favorite(nil)`; the favourite's prompt shows `State.petPerk`; none on Mystery Eggs, models with `EggKind`) and `SellPrompt` (X, gamepad DPadDown, hold `HOLD_CONFIRM_SECONDS`: "Sell $price" from `State.slimes[i].sellPrice`, sends `Sell(slimeId)`). Hatch stays the server's `HatchPrompt` (F). E is left free on owned pad slimes. The server never creates or sees these prompts; there is no slime card and no Plot nav button.
-  - `FEATURES.MoveSlime`: SlimeKeys also adds `MovePrompt` (E, gamepad ButtonX, tap, "Move") to those slimes. It starts client-only move mode (`src/ui/SlimeMove`): the slime turns see-through for this player, a see-through copy sits on the target pad (the pad under the mouse or tap, else the unlocked pad nearest the character), the pad is tinted green (empty), yellow (swap) or red (locked). Click / tap a pad, E or gamepad ButtonX sends `MoveSlime(slimeId, pad)`; Q, gamepad ButtonB, the Cancel button, leaving the home zone or the slime leaving its pad cancels. Every ProximityPrompt is off for this player while moving.
+  - Owner side: `src/ui/SlimeKeys` adds two **client-only** ProximityPrompts on the Body of every slime model whose `OwnerUserId` is the local player and `State` is `"Pad"`: `FavoritePrompt` (R, gamepad DPadUp, tap: "Favorite" / "Unfavorite", sends `Favorite(slimeId)` / `Favorite(nil)`; the favourite's prompt shows `State.petPerk`; none on Mystery Eggs, models with `EggKind`) and `SellPrompt` (X, gamepad DPadDown, hold `HOLD_CONFIRM_SECONDS`: "Sell $price" from `State.slimes[i].sellPrice`, sends `Sell(slimeId)`; none on Mystery Eggs). Hatch stays the server's `HatchPrompt` (F, gamepad ButtonX). All four prompts' keys come from `Constants.SLIME_PROMPT_KEYS`, where no two share a keyboard key or a gamepad button. The server never creates or sees these prompts; there is no slime card and no Plot nav button.
+  - `FEATURES.MoveSlime`: SlimeKeys also adds `MovePrompt` (E, gamepad DPadRight, tap, "Move") to those slimes. It starts client-only move mode (`src/ui/SlimeMove`): the slime turns see-through for this player, a see-through copy sits on the target pad (the pad under the mouse or tap, else the unlocked pad nearest the character), the pad is tinted green (empty), yellow (swap) or red (locked). Click / tap a pad, E or gamepad ButtonX sends `MoveSlime(slimeId, pad)`; Q, gamepad ButtonB, the Cancel button, leaving the home zone or the slime leaving its pad cancels. Every ProximityPrompt is off for this player while moving.
   - These SlimeKeys prompts use `ProximityPromptStyle.Custom`: `src/ui/SlimeKeyCard` draws one card over the slime (its name, the favourite's perk, one row per shown prompt with its key, a fill while a hold prompt is held) instead of Roblox's stacked bubbles. A click or tap on a row holds that prompt.
 - **Player:** `Carrying: string?` (`Constants.CARRYING_ATTRIBUTE`). The carried slime's id, set on pickup (grab or steal). Cleared (nil) on drop, deposit, a failed steal (slap escape; the owner leaving), death / respawn and leave. A full plot doesn't clear it: the slime stays in your arms. The server derives it from `Carry.carryingId` after every action and every tick.
 - **`workspace`:**
@@ -362,7 +362,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `SPAWN_INTERVAL` / `MAX_WILD_SLIMES` / `FREE_DROP_CHANCE` / `WILD_PRICE_SECONDS` | 4 / 144 / 0.25 / 20 | "buy cheap ones … or grab a free drop" |
 | `STATE_MIN_INTERVAL` / `LEADERBOARD_INTERVAL` | 0.25 / 60 | §5.1, §2 |
 
-| `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 24 | shop: speed coil |
+| `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 28 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
 | `FEATURES` | every flag and its value live in `Config.FEATURES` only; not restated here | §2 Extras |
 | `BOSS` | table | boss event (§33) |

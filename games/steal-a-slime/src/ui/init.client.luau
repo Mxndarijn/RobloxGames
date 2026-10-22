@@ -39,7 +39,6 @@ local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local TripleMerge = require(Shared:WaitForChild("TripleMerge"))
 local Types = require(Shared:WaitForChild("Types"))
 
-local CarryFade = require(script.CarryFade)
 local DexJarView = require(script.DexJarView)
 local Format = require(script.Format)
 local Hint = require(script.Hint)
@@ -785,30 +784,22 @@ local slimeMove = if Config.FEATURES.MoveSlime == true
 	})
 	else nil
 
--- The slime you are stealing turns see-through for you, like a Move.
-CarryFade.start({
-	player = player,
-	carryingAttribute = Constants.CARRYING_ATTRIBUTE,
-	slimeTag = Constants.SLIME_TAG,
-	collection = game:GetService("CollectionService"),
-})
-
--- Your slimes are managed at their pads with keys: R Favorite, X hold to Sell (Hatch stays the server's F prompt),
--- E Move with FEATURES.MoveSlime.
+-- Your slimes are managed at their pads with keys (Constants.SLIME_PROMPT_KEYS): Favorite, hold to Sell, and Move
+-- with FEATURES.MoveSlime; Hatch stays the server's prompt.
 local slimeKeys = SlimeKeys.start({
 	root = workspace,
 	localUserId = player.UserId,
 	newPrompt = function(): ProximityPrompt
 		return Instance.new("ProximityPrompt")
 	end,
-	favoriteKey = { keyboard = Enum.KeyCode.R, gamepad = Enum.KeyCode.DPadUp },
-	sellKey = { keyboard = Enum.KeyCode.X, gamepad = Enum.KeyCode.DPadDown },
+	favoriteKey = SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.favorite),
+	sellKey = SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.sell),
 	distance = Config.PLOT_PAD_PROMPT_DISTANCE,
 	holdSeconds = Config.HOLD_CONFIRM_SECONDS,
 	formatCash = Format.formatCash,
 	send = send,
 	style = Enum.ProximityPromptStyle.Custom,
-	moveKey = if slimeMove then { keyboard = Enum.KeyCode.E, gamepad = Enum.KeyCode.ButtonX } else nil,
+	moveKey = if slimeMove then SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.move) else nil,
 	onMove = if slimeMove then slimeMove.start else nil,
 })
 

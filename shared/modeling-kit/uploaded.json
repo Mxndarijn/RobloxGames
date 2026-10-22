@@ -2840,6 +2840,13 @@
     "uploadedAt": "2026-10-20T12:51:30Z",
     "versions": 3
   },
+  "slime_goomancer": {
+    "assetId": "118089713951424",
+    "assetType": "Model",
+    "sha256": "4592a5c421dfa095",
+    "uploadedAt": "2026-10-22T10:50:21Z",
+    "versions": 1
+  },
   "slime_goozilla": {
     "assetId": "95597031533993",
     "assetType": "Model",
@@ -2901,6 +2908,13 @@
     "sha256": "6ef4748172092074",
     "uploadedAt": "2026-10-20T12:52:48Z",
     "versions": 3
+  },
+  "slime_klawdius": {
+    "assetId": "110829970779610",
+    "assetType": "Model",
+    "sha256": "5e2e0a96744155de",
+    "uploadedAt": "2026-10-22T10:50:04Z",
+    "versions": 1
   },
   "slime_kraken": {
     "assetId": "70503828098080",
@@ -3026,6 +3040,13 @@
     "sha256": "fae27a26b0000923",
     "uploadedAt": "2026-10-20T12:56:16Z",
     "versions": 3
+  },
+  "slime_pumpking": {
+    "assetId": "95135050927158",
+    "assetType": "Model",
+    "sha256": "d8faa789abd6620b",
+    "uploadedAt": "2026-10-22T10:50:16Z",
+    "versions": 1
   },
   "slime_queen_jelly": {
     "assetId": "108716301261458",

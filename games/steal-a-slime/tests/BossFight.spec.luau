@@ -150,7 +150,7 @@ describe("BossFight haul", function()
 	local function hauled(): (BossFight.State, number)
 		local state = fighting()
 		local t = T0
-		for i = 1, 20 do
+		for i = 1, BOSS.POINTS_PER_PLAYER - 5 do -- with players 2 and 3 that fills the one-player meter
 			BossFight.hit(state, 1, t)
 			if i <= 6 then
 				BossFight.hit(state, 2, t)
@@ -191,7 +191,7 @@ describe("BossFight haul", function()
 	it("each player's share is their points over the top contribution", function()
 		local state = hauled()
 		expect(BossFight.share(state, 1)).toBe(1)
-		expect(BossFight.share(state, 2)).toBeCloseTo(6 / 20, 1e-9)
+		expect(BossFight.share(state, 2)).toBeCloseTo(6 / (BOSS.POINTS_PER_PLAYER - 5), 1e-9)
 		expect(BossFight.share(state, 99)).toBe(0)
 	end)
 	it("a win ends the event with the winner", function()

@@ -40,9 +40,50 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   - `down`: the meter filled; it stands where it was while it shrinks.
   A move is: number, kind, slot, start time, length, start and end spot (plaza coordinates round the fountain centre),
   end heading, and the plaza origin in world studs. Hits, the Body and every client use the same pose from server time.
-- **Hits.** The Bat (`BatTool.swing`, no remote): a carrying thief or boss carrier in reach is tried first (the slap);
-  otherwise the boss in the fight phase is hit when its move's pose is within `BOSS.HIT_REACH` and in front
-  (`BatRules`).
+- **Hits.** The Bat (`BatTool.swing`, no remote): anyone carrying a slime (stolen, wild or the boss) in reach is tried
+  first (the slap);
+  otherwise a guard in `BOSS.GUARD_REACH` and in front is popped (`BossEvent.hitGuard`); otherwise the boss in the
+  fight phase is hit when its move's pose is within `BOSS.HIT_REACH` and in front (`BatRules`). A hit counts
+  `BossAttacks.hitValue` points: 1, `BOSS.DAZED_MULTIPLIER` while it is dazed, a vent's `multiplier` from behind while
+  dazed once the phase is on, none while it floats (`rise` / `land`: "it's out of reach"). A stunned player's swings do
+  nothing (no hits, no slaps). The latest counted hit is `world.boss.lastHit`.
+- **Attacks (`Shared.BossAttacks`, pure; `Config.BOSS.MOVES` per species).** From `BOSS.FIRST_ATTACK` after it lands,
+  and `BOSS.ATTACK_GAP` (÷ the stage speed-up) after each daze, the next attack winds up from a `look` stop, rotating
+  through `BossAttacks.available` (its `start` set, plus its `phase` set from `BOSS.PHASE_AT` of the meter; `vent` is
+  passive). Every attack is `windup` (`BOSS.WINDUP_SECONDS`, facing its target: the top hitter for a charge, else the
+  nearest player) → `attack` → `dazed` (`BOSS.DAZED_SECONDS`):
+  - `ring` { radius, speed, push }: from `BOSS.RING_DELAY` a band `BOSS.RING_WIDTH` thick runs out from where it
+    stomped; it strikes grounded players it passes (a jump clears it).
+  - `cone` { radius, angle, push }: at `BOSS.CONE_HIT_AT`, players inside the wedge in front.
+  - `charge` { distance, speed, width, push }: it rams along its heading up to `distance` (stopping at the area's
+    edge); it strikes anyone within its Body radius + width / 2.
+  - `spit` { count, slowSeconds, slow }: the windup picks `count` landing spots (the nearest players, then spots
+    `BOSS.SPIT_SPREAD` round it); they land `BOSS.SPIT_FLIGHT` into the attack as puddles of `BOSS.PUDDLE_RADIUS` that
+    last `slowSeconds`; a player in one walks at `slow` x speed (`Session.bossSlow`, `Carry.targetWalkSpeed`).
+  - `guards` { count }: instead of an attack it `rise`s (`BOSS.RISE_HEIGHT`) for up to `BOSS.GUARD_SECONDS` with
+    `count` guards `BOSS.GUARD_RADIUS` round it, each `BOSS.GUARD_POINTS` meter points to pop. The last pop makes it
+    `land` (slot `daze`) then `dazed`; a timeout lands it without the daze.
+  - `hops` { count, distance, radius, speed, push }: `count` legs of move `hop`, each a leap of `distance` toward the
+    top hitter (else the nearest player) over `BOSS.HOP_SECONDS`, `BOSS.HOP_HEIGHT` high, then a ring of `radius` at
+    `speed` from where it landed; then `dazed`.
+- **Signature attacks.** Every boss has one attack only it has, set by options on the primitives:
+  - Goozilla, double stomp: ring `waves = 2`; each next wave starts `waveGap` later, `waveSpeedUp` x faster. A player
+    can be struck once per wave.
+  - Queen Jelly, royal guards: guards `heal`. If any guard is still up when the call runs out she gets `heal` x the
+    meter target back (a server toast says so).
+  - Mecha Goo, ricochet charge: charge `bounces = 1`. After each leg it winds up again (`BOSS.LEG_WINDUP_SECONDS`,
+    slot `<slot>#<leg>`) and rams the top hitter.
+  - Klawdius, scuttle: charge `sideways`, `backAndForth`, `bounces = 2`. It travels to its right (it faces the
+    player, so it runs across them like a crab), and each next leg runs back the way it came.
+  - Pumpking, bouncing stomps: `hops`.
+  - Goomancer, rune puddles: spit `burst` { delay, radius, speed, push }. `delay` after landing, each puddle bursts
+    into a ring of its own (puddle `burstAt`).
+  A struck player is knocked `push` studs away from the boss, `BOSS.HIT_ARC` high (`ctx.launch` + a PvpEvent
+  Knockback, live whatever `FEATURES.PvP` says), stunned for `BOSS.STUN_SECONDS` (`Session.bossStunUntil`) and toasted.
+  Each attack strikes a player once. The meter never drains during `windup`, `attack`, `hop`, `rise` or `land`. Every
+  `BOSS.SHED_EVERY` of the meter reached speeds its moves and attack gaps by `BOSS.STAGE_SPEEDUP`.
+- **Victory shower.** When it is brought home, `BOSS.WIN_SHOWER` lucky slimes (luck `BOSS.DROP_LUCK`) spill from the
+  fountain for every player with at least `BOSS.WIN_SHARE` of the top hitter's points.
 - **Haul.** For the first `BOSS.PRIORITY_SECONDS` only the top contributor may grab it (if still on the server); then
   anyone. The carrier walks at `BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW)`: no Speed Coil, no Strong Arms
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
@@ -74,7 +115,7 @@ passes 50 %. They are built only from the boss-attack primitives: `ring` (a goo 
 `spit` (puddles land at players and slow them), `guards` (the boss floats out of reach and calls small guards; bonking
 them all drops it dazed), `cone` (a push in front of it), `charge` (a ram along a telegraphed lane at the top hitter) and
 `vent` (a weak spot on its back while it is dazed). The numbers below are the design's starting values; the attack
-system's own table is where they live once it is built.
+values live in `Config.BOSS.MOVES` (Attacks, below).
 
 ### Klawdius
 
@@ -155,8 +196,24 @@ boss: {
 	priorityUntil: number?,
 	winnerName: string?, -- "won": who brought it home
 	badges: number, -- boss badges this player has earned
+	move: string?, -- fight: the boss's move kind (BossChoreo)
+	moveEndsAt: number?, -- server time that move ends
+	multiplier: number?, -- dazed: points per bat hit
+	guardsLeft: number?, -- rise: guards still standing
+	guardsTotal: number?, -- rise: guards it called
+	stunnedUntil: number?, -- this player can't hit until then
 }
 ```
+
+## Attack view (server `BossFxView`, client `visuals/client/BossTelegraph`)
+
+- `workspace.BossFx`: one guard model per live guard (attribute `BossGuard = true`) and one goo puddle per puddle.
+- Boss model attributes: `BossTargets` ("x,z;..." world spots a spit windup will hit), `BossSpits` ("x,z,landAt;..."),
+  `BossRunes` ("x,z,burstAt,radius,speed;..." rune puddles that burst into a ring),
+  `BossHitAt` / `BossHitBy` / `BossHitPoints` (the latest counted bat hit: the boss squashes, the hitter sees a "+n").
+- Clients draw from the same `BossAttacks` geometry: a pulsing red outline during the windup (the ring, the wedge, the
+  charge lane, the spit spots), the goo ring running out, spits in flight, and stars over it while it is dazed. Local
+  parts only.
 
 Every phase change, meter change and grab / drop pushes State to every player (`World.markAllDirty`).
 
@@ -179,8 +236,9 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT DROP_LUCK CARRY_SLOW
 SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_CLEARANCE STROLL_* LOOK_SECONDS ARRIVE_* WINDUP_SECONDS CHARGE_EASE
 STRIKE_SECONDS RING_DELAY SPIT_FLIGHT DAZED_SECONDS RISE_* LAND_SECONDS GUARD_SECONDS SHRINK_SECONDS
-MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK WIN_SHARE`, and the badge list `Config.BOSS_BADGES`.
-Values live in `Config.luau` only.
+MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK WIN_SHARE WIN_SHOWER FIRST_ATTACK ATTACK_GAP
+STAGE_SPEEDUP PHASE_AT DAZED_MULTIPLIER STUN_SECONDS HIT_ARC RING_WIDTH CONE_HIT_AT PUDDLE_RADIUS SPIT_SPREAD GUARD_*
+MOVES`, and the badge list `Config.BOSS_BADGES`. Values live in `Config.luau` only.
 
 ## World / Scene
 
