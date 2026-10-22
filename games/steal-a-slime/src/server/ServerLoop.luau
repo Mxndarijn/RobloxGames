@@ -59,6 +59,8 @@ export type Loop = Deps & {
 
 local ServerLoop = {}
 
+ServerLoop.VIEW_INTERVAL = VIEW_INTERVAL
+
 function ServerLoop.new(deps: Deps): Loop
 	local loop: any = table.clone(deps)
 	loop.homeZoneFull = {}
