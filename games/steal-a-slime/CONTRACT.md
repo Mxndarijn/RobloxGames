@@ -91,6 +91,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - A wild slime is paid for once: if it's dropped, the next grab is free.
   - While carrying, WalkSpeed = `Steal.walkSpeed`, tools are unequipped, and you can carry 1 slime at a time.
   - Entering your own plot's `HomeZone` deposits the carried slime on a free pad. If the plot is full you keep carrying it (Notify "bad").
+  - The home ground is the round plot floor: a `HomeZone` part with a `Radius` attribute (`PLOT_FLOOR_RADIUS`) counts inside that circle only, from 4 studs under the part to 8 over it plus its `ReachUp` (`Shared.HomeZone`); a part without `Radius` counts its whole box.
   - Dying or respawning while carrying counts as `Drop`; leaving while carrying a stolen slime sends it home.
   - Players spawn on their plot's `Base`. Owner-only prompts (v13 names and texts: §8.5): `LockButton` ("Lock base", same as `Request("Lock")`) and `MergeVat` ("Auto-merge", `Merge.findPair` then `Request("Merge")`).
 - **Income:** `Economy.tickIncome` runs every second. On load, the server pays `Economy.offlineIncome`, which is `OFFLINE_RATE` of income, capped at `OFFLINE_CAP_SECONDS`. A slime being carried away pays its owner nothing.
@@ -264,6 +265,7 @@ The client always replaces its copy and never diffs.
 	egg: { hatched: { slime: SlimeData, at: number }? },  -- newest Mystery Egg hatch, never saved
 	tutorialStep: number?,   -- 1..6 (§2 Tutorial); nil = finished
 	hotbar: { string }?,     -- saved hotbar order: exactly 9 slot keys ("" = empty), nil until the player first sends SetHotbar
+	boards: { [string]: number }, -- my own value on each global board, keyed by stat ("TotalEarned", "WeeklyEarned", "Steals", "Dex", "Merges")
 	boss: BossView,          -- the boss event and this player's part in it (§33)
 	bossBadges: { { key: string, earnedAt: number } }, -- earned boss badges, Config.BOSS_BADGES order (§33)
 }
@@ -272,6 +274,7 @@ The client always replaces its copy and never diffs.
 - `daily.day` is the streak day the pending claim pays (1..`DAILY_STREAK_CAP`, `amount = DAILY_BASE × day × rebirthMultiplier`). When nothing is pending, it's the day the last claim paid.
 - `egg.hatched` is the newest Mystery Egg the player hatched (`HatchEgg`, [mystery-egg.md](contract/mystery-egg.md)). The HUD shows no banner for it.
 - `shop` keys are the UI's `ShopCatalog` item ids. Prices are final (what `Request` charges).
+- `boards` holds the same values the saves write to the global boards (§2 Leaderboard), so the client can show "You" under a board's top 10.
 - `hotbar` is what the last successful `Request("SetHotbar", order)` stored (§3), saved across sessions and rebirths. Keys may name items the player no longer holds; the client skips those.
 
 ### 5.2 Instance attributes (read by UI billboards and visuals)

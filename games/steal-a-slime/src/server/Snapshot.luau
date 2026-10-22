@@ -20,6 +20,8 @@ local Economy = if Shared then require(Shared.Economy) else require("../shared/E
 local Weekend = if Shared then require(Shared.Weekend) else require("../shared/Weekend")
 local EventSecrets = if Shared then require(Shared.EventSecrets) else require("../shared/EventSecrets")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
+local Leaderboards = if Shared then require(Shared.Leaderboards) else require("../shared/Leaderboards")
+local WeeklyEvents = if Shared then require(Shared.WeeklyEvents) else require("../shared/WeeklyEvents")
 local Quests = if Shared then require(Shared.Quests) else require("../shared/Quests")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
@@ -44,6 +46,16 @@ type World = World.World
 type Session = World.Session
 
 local Snapshot = {}
+
+-- My own value on each global board (what the world boards and the Leaderboard panel show under the top 10).
+function Snapshot.boards(data: PlayerData.Data, now: number): { [string]: number }
+	local week = WeeklyEvents.weekIndex(now)
+	local out: { [string]: number } = {}
+	for _, def in Leaderboards.BOARDS do
+		out[def.stat] = math.floor(Leaderboards.value(def.stat, data, week))
+	end
+	return out
+end
 
 function Snapshot.build(world: World, session: Session, now: number): Types.State
 	local data = session.data
@@ -125,6 +137,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		stealAway = if Config.FEATURES.StealAlerts then StealAlert.summary(session.awayLog) else nil,
 		welcomeBack = session.welcome,
 		hotbar = if data.hotbar then table.clone(data.hotbar) else nil,
+		boards = Snapshot.boards(data, now),
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		blessed = if data.ritualBonus and session.blessedUntil
 			then { bonus = data.ritualBonus, endsAt = session.blessedUntil }

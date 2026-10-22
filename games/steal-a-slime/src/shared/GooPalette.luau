@@ -33,6 +33,8 @@ return table.freeze({
 	Gold = rgb(255, 210, 63),
 	GoldHi = rgb(255, 244, 194), -- the top of a gold jelly
 	GoldDeep = rgb(224, 168, 18), -- the coin's edge and ring, the bottom of a gold jelly
+	Silver = rgb(206, 216, 232), -- second place on a leaderboard
+	Bronze = rgb(232, 150, 92), -- third place on a leaderboard
 	Wood = rgb(138, 90, 52), -- a plank under a goo band
 	White = rgb(255, 255, 255),
 	GLASS_TRANSPARENCY = 0.91,

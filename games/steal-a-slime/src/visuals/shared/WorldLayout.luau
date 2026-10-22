@@ -1031,8 +1031,57 @@ function WorldLayout.plazaColliders(): { WorldNode }
 	return colliders
 end
 
-local function plaza(): WorldNode
+-- The Hall of Fame's dressing as kit mesh slots (Map.Plaza.HallOfFame): lanterns round the rim between the boards,
+-- benches facing the boards and flower planters along both sides of the path. `HALL_DECOR` rows: mesh, plaza-local
+-- x / y (WorldLayout.hallPoint), scale and what the kit front faces ("centre" of the plaza or "path").
+export type HallDecor = { mesh: string, x: number, y: number, scale: number, face: string }
+WorldLayout.HALL_DECOR = table.freeze((function(): { HallDecor }
+	local hall = WorldLayout.HALL_OF_FAME
+	local rows: { HallDecor } = {}
+	local rim = hall.radius - 1.5
+	for _, deg in { -145, -120, -71, -24, 24, 71, 120, 145 } do
+		local a = math.rad(deg)
+		table.insert(
+			rows,
+			{ mesh = "ranch_lantern_post", x = math.sin(a) * rim, y = math.cos(a) * rim, scale = 1, face = "centre" }
+		)
+	end
+	for _, deg in { -150, -128, 128, 150 } do
+		local a = math.rad(deg)
+		table.insert(
+			rows,
+			{ mesh = "ranch_bench", x = math.sin(a) * 34, y = math.cos(a) * 34, scale = 1.2, face = "centre" }
+		)
+	end
+	local side = hall.pathWidth / 2 + 4
+	for _, y in { -62, -84, -106 } do
+		for _, x in { -side, side } do
+			table.insert(rows, { mesh = "ranch_flower_planter", x = x, y = y, scale = 1.2, face = "path" })
+		end
+	end
+	return rows
+end)())
+
+local function hallDecor(): WorldNode
 	local children: { WorldNode } = {}
+	local centre = WorldLayout.hallPoint(0, 0)
+	for i, row in WorldLayout.HALL_DECOR do
+		local mesh = row.mesh
+		local size = meshSize(mesh, row.scale)
+		local pos = WorldLayout.hallPoint(row.x, row.y)
+		local target = if row.face == "path" then WorldLayout.hallPoint(0, row.y) else centre
+		local yaw = math.deg(math.atan2(target[1] - pos[1], target[3] - pos[3])) % 360 -- kit front (+Z) at the target
+		local slot = block(`Hall_{mesh}_{i}`, size, { pos[1], size[2] / 2, pos[3] }, STONE, "Slate", { 0, yaw, 0 })
+		if MeshAssets.collision(mesh) == nil then
+			slot.canCollide = false
+		end
+		table.insert(children, meshSlot(slot, mesh))
+	end
+	return { name = "HallOfFame", class = "Folder", children = children }
+end
+
+local function plaza(): WorldNode
+	local children: { WorldNode } = { hallDecor() }
 	for _, def in WorldLayout.PLAZA_PROPS do
 		local size = def.size :: Vec
 		local pos = onPolar(def.yaw, def.r, size[2] / 2)
@@ -1804,8 +1853,12 @@ local function plot(i: number): WorldNode
 	zone.transparency = 1
 	zone.canCollide = false
 	zone.canQuery = false
-	-- The zone check reaches up over every upper floor (CONTRACT.md §5.3).
-	zone.attributes = { ReachUp = (#Config.BASE_FLOORS - 1) * WorldLayout.FLOOR_HEIGHT }
+	-- The zone check reaches up over every upper floor and is the round plot floor, not the square (CONTRACT.md §5.3):
+	-- the corners outside the jar, by the Hall of Fame path, are no one's home.
+	zone.attributes = {
+		ReachUp = (#Config.BASE_FLOORS - 1) * WorldLayout.FLOOR_HEIGHT,
+		Radius = WorldLayout.PLOT_FLOOR_RADIUS,
+	}
 	table.insert(children, zone)
 
 	-- Jar 1 (the static part of the tower): the goo moat and the cork floor inside it (decor on the Base, which stays

@@ -286,14 +286,12 @@ describe("prop facing audit (TODO #11)", function()
 	end)
 end)
 
--- Floor under (x, z): a plot Base top (1) inside a plot square, else the
+-- Floor under (x, z): a plot's round floor top (1) inside its PLOT_FLOOR_RADIUS, else the
 -- Ground top (0). The plaza disc and paths are <= 0.25 sand overlays.
 local function floorAt(x: number, z: number): number
 	for i = 1, Config.PLOT_COUNT do
-		local c, yaw = WorldLayout.plotCentre(i)
-		local l = LayoutMath.apply(LayoutMath.orientation({ 0, -yaw, 0 }), { x - c[1], 0, z - c[3] })
-		local h = WorldLayout.PLOT_SIZE / 2
-		if math.abs(l[1]) <= h and math.abs(l[3]) <= h then
+		local c = WorldLayout.plotCentre(i)
+		if (x - c[1]) ^ 2 + (z - c[3]) ^ 2 <= WorldLayout.PLOT_FLOOR_RADIUS ^ 2 then
 			return 1
 		end
 	end

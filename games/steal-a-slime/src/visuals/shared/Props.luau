@@ -697,9 +697,9 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	header.BackgroundColor3 = if def then ink(def.accent) else ink(Props.BOARD_PALETTE.Title)
 	header.BorderSizePixel = 0
 	header.Parent = content
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0.25, 0)
-	corner.Parent = header
+	local headerCorner = Instance.new("UICorner")
+	headerCorner.CornerRadius = UDim.new(0.25, 0)
+	headerCorner.Parent = header
 	local title = label(header, "Title", if def then def.title else Props.LEADERBOARD_TITLE, rgb(255, 255, 255))
 	title.Position = UDim2.fromScale(0.04, 0.12)
 	title.Size = UDim2.fromScale(0.92, 0.76)
@@ -708,9 +708,30 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	local rows = Instance.new("Frame")
 	rows.Name = "Rows"
 	rows.Position = UDim2.fromScale(0, 0.24)
-	rows.Size = UDim2.fromScale(1, 0.76)
+	rows.Size = UDim2.fromScale(1, 0.66)
 	rows.BackgroundTransparency = 1
 	rows.Parent = content
+	-- The viewer's own line under the top 10 ("You  $1.2K"), filled and shown by each client (ui/WorldLeaderboard)
+	-- when they are not in the list.
+	local you = Instance.new("Frame")
+	you.Name = "You"
+	you.Position = UDim2.fromScale(0, 0.91)
+	you.Size = UDim2.fromScale(1, 0.08)
+	you.BackgroundColor3 = ink(Props.BOARD_PALETTE.Me)
+	you.BorderSizePixel = 0
+	you.Visible = false
+	you.Parent = content
+	local youCorner = Instance.new("UICorner")
+	youCorner.CornerRadius = UDim.new(0.3, 0)
+	youCorner.Parent = you
+	local youName = label(you, "Name", "You", ink(Props.BOARD_PALETTE.Text))
+	youName.Position = UDim2.fromScale(0.04, 0)
+	youName.Size = UDim2.fromScale(0.5, 1)
+	youName.TextXAlignment = Enum.TextXAlignment.Left
+	local youValue = label(you, "Value", "", ink(Props.BOARD_PALETTE.Value))
+	youValue.Position = UDim2.fromScale(0.56, 0)
+	youValue.Size = UDim2.fromScale(0.4, 1)
+	youValue.TextXAlignment = Enum.TextXAlignment.Right
 	local list = Instance.new("UIListLayout")
 	list.SortOrder = Enum.SortOrder.LayoutOrder
 	list.Padding = UDim.new(0.01, 0)

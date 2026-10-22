@@ -72,6 +72,20 @@ function WorldLeaderboard.rows(board: any, myUserId: number?, max: number?): { R
 	return out
 end
 
+-- The "You" line under a board's top 10: my value as the board shows it, or nil when I am in the rows already or
+-- my value is unknown.
+function WorldLeaderboard.youText(rows: { Row }, stat: any, myValue: any): string?
+	for _, row in rows do
+		if row.isMe then
+			return nil
+		end
+	end
+	if type(myValue) ~= "number" or myValue ~= myValue then
+		return nil
+	end
+	return Leaderboards.format(stat, myValue)
+end
+
 -- Roblox side ---------------------------------------------------------------
 
 -- Text colours (RGB) on the board skin's cream face; the same values as Props.BOARD_PALETTE (a spec keeps them equal).
@@ -214,7 +228,24 @@ function WorldLeaderboard.render(gui: SurfaceGui, rows: { Row })
 	end
 end
 
-export type Handle = { setBoard: (board: any) -> (), boards: () -> { SurfaceGui } }
+-- Fills (or hides) the board's "You" frame (Props.leaderboardBoard) with `text`.
+function WorldLeaderboard.renderYou(gui: SurfaceGui, text: string?)
+	local you = gui:FindFirstChild("You", true)
+	if not (you and you:IsA("GuiObject")) then
+		return
+	end
+	you.Visible = text ~= nil
+	local value = you:FindFirstChild("Value")
+	if text and value and value:IsA("TextLabel") then
+		value.Text = text
+	end
+end
+
+export type Handle = {
+	setBoard: (board: any) -> (),
+	setMine: (boards: any) -> (),
+	boards: () -> { SurfaceGui },
+}
 
 -- Binds every board under `root` (now and later) and returns a setter for
 -- new Leaderboard payloads.
@@ -232,6 +263,17 @@ end
 function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
 	local bound: { [SurfaceGui]: string } = {} -- gui -> stat
 	local latest: { [string]: { Row } } = {}
+	local mine: { [string]: number } = {} -- my own value per stat (State.boards)
+
+	local function showYou(gui: SurfaceGui, stat: string)
+		local text = WorldLeaderboard.youText(latest[stat] or {}, stat, mine[stat])
+		local ok, err = pcall(function()
+			WorldLeaderboard.renderYou(gui, text)
+		end)
+		if not ok then
+			warn("[UI] world leaderboard You line failed:", err)
+		end
+	end
 
 	local function consider(inst: Instance)
 		if not inst:IsA("SurfaceGui") or bound[inst] then
@@ -252,6 +294,7 @@ function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
 			local stat = bound[inst]
 			if stat then
 				WorldLeaderboard.render(inst, latest[stat] or {})
+				showYou(inst, stat)
 			end
 		end)
 	end
@@ -275,6 +318,25 @@ function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
 					if not ok then
 						warn("[UI] world leaderboard render failed:", err)
 					end
+					showYou(gui, stat)
+				end
+			end
+		end,
+		setMine = function(boards: any)
+			if type(boards) ~= "table" then
+				return
+			end
+			local changed = false
+			for _, def in Leaderboards.BOARDS do
+				local value = boards[def.stat]
+				if type(value) == "number" and mine[def.stat] ~= value then
+					mine[def.stat] = value
+					changed = true
+				end
+			end
+			if changed then
+				for gui, stat in bound do
+					showYou(gui, stat)
 				end
 			end
 		end,
