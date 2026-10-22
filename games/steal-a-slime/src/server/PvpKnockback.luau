@@ -3,15 +3,15 @@
 	PvpKnockback (FEATURES.PvP, CONTRACT.md §26.4)
 
 	The `Knockback` line handler for PvpService.registerLine (KnockGlove1-5). PvpService has already checked the
-	flag, ownership, equipped item and cooldown. Here: reach, catching a thief
-	(PvpService.catchThief, every tier, also when the push is refused), the push (control immunity respected), the
+	flag, ownership, equipped item and cooldown. Here: reach, knocking a carried slime loose
+	(PvpService.hitCarrier, every tier, also when the push is refused), the push (control immunity respected), the
 	power punch (`call.charged`: push x CHARGE_PUSH, cooldown x CHARGE_COOLDOWN), the glove's special and the
 	PvpEvent "Effect"s. The server creates NOTHING in Workspace (the look is client FX from the events).
 
 	Specials (`tool.special`): bonk (a clean punch, clients pop "BONK!"), bounce (the victim's client pogo-bounces
 	`tool.pogo`), boom (everyone else within `blastRadius` of the target is pushed `blastPush` away from it), thunder
 	(up to `chain` other players within `chainRange` of the target take `push x chainFactor`), royal (a long push in a
-	high `arc`). A blast / chain victim is caught when carrying a stolen slime and skips immune players.
+	high `arc`). A blast / chain victim drops any slime they carry and skips immune players.
 
 	The push goes through `ctx.launch` (init.server passes the Roblox one; Lune tests pass a recorder). No Humanoid
 	health is ever changed; Roblox has no fall damage and Rescue puts anyone who still reaches the void back.
@@ -79,9 +79,9 @@ local function nearby(
 	return found
 end
 
--- A blast / chain victim: caught when a thief, pushed when it may be controlled; fires its own Knockback effect.
+-- A blast / chain victim: drops any carried slime, pushed when it may be controlled; fires its own Knockback effect.
 local function splash(call: PvpService.UseCall, victim: Session, position: Vec, from: Vec, push: number)
-	local caught = PvpService.catchThief(call.world, victim, call.session, call.now) ~= nil
+	local caught = PvpService.hitCarrier(call.world, victim, call.session, call.now, call.ctx) ~= nil
 	local landing, applied = PvpKnockbackRules.away(from, position, push, PVP.KNOCKBACK_DEFAULT_ARC)
 	local pushed = launch(call, victim, applied, landing)
 	if not caught and not pushed then
@@ -116,7 +116,7 @@ local function handler(call: PvpService.UseCall): (boolean, string?, number?)
 	if tool.pogo and tool.pogo[1] then
 		push = { X = push.X, Y = math.min(tool.pogo[1], PVP.KNOCKBACK_ARC_HEIGHT), Z = push.Z }
 	end
-	local caught = PvpService.catchThief(call.world, target, call.session, call.now) ~= nil
+	local caught = PvpService.hitCarrier(call.world, target, call.session, call.now, call.ctx) ~= nil
 	local pushed = launch(call, target, push, landing)
 	if not caught and not pushed then
 		local state = PvpService.state(target)

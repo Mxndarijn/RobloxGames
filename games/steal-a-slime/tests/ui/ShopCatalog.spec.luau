@@ -75,10 +75,10 @@ describe("ShopCatalog Speed Coil copy", function()
 	local function has(text: string, needle: string): boolean
 		return string.find(text, needle, 1, true) ~= nil
 	end
-	it("shows the Config walk speeds and that it helps while carrying", function()
+	it("shows the Config walk speeds and that you have to hold it", function()
 		local view = ShopCatalog.view(item("SpeedCoil"), { cash = 0 }, ALL, Config)
 		expect(has(view.description, `{Config.BASE_WALK_SPEED} → {Config.SPEED_COIL_WALK_SPEED}`)).toBe(true)
-		expect(has(view.description, "while carrying")).toBe(true)
+		expect(has(view.description, "Hold it")).toBe(true)
 		local viaViews = ShopCatalog.views({ cash = 0 }, ALL, Config)
 		for _, v in viaViews do
 			if v.item.id == "SpeedCoil" then
@@ -86,7 +86,7 @@ describe("ShopCatalog Speed Coil copy", function()
 			end
 		end
 	end)
-	it("never claims it only works when not carrying", function()
+	it("never claims it works without holding it", function()
 		for _, config in { Config, {} } do
 			local view = ShopCatalog.view(item("SpeedCoil"), { cash = 0 }, ALL, config)
 			expect(has(view.description, "not carrying")).toBe(false)

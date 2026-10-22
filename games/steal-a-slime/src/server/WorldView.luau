@@ -12,7 +12,7 @@
 	  * plot attributes OwnerUserId / LockUntil (CONTRACT.md §5.2);
 	    with FEATURES.Habitats, Pad Habitat / HabitatFrom / HabitatAt (HabitatPads)
 	    and the owner / stats text on each plot Sign (PlotSigns);
-	  * per-player WalkSpeed (Speed Coil when not carrying), unequipped
+	  * per-player WalkSpeed (Speed Coil while held), unequipped
 	    tools, the SpeedCoil tool and the `Carrying` / `TutorialStep` /
 	    `SpeedCoil` attributes;
 	  * the workspace `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt`
@@ -228,9 +228,19 @@ local function crater(): Vector3
 	return Vector3.new(0, 20, 0)
 end
 
+WorldView.GROUND_PARAMS_TTL = 0.1 -- s: how long the ground ray filter is reused (characters and slime folders change rarely)
+
+local groundCache: { params: RaycastParams, builtAt: number }? = nil
+
 -- Slime models and characters never count as ground (a ray that hits the carrier's head made
--- dropped slimes float, CONTRACT.md §8.11).
+-- dropped slimes float, CONTRACT.md §8.11). Built at most once per GROUND_PARAMS_TTL: every returning slime rays
+-- every Heartbeat.
 local function groundParams(): RaycastParams
+	local clock = os.clock()
+	local cached = groundCache
+	if cached and clock - cached.builtAt < WorldView.GROUND_PARAMS_TTL then
+		return cached.params
+	end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.RespectCanCollide = true -- canopies, HomeZones and other triggers are not ground
@@ -252,6 +262,7 @@ local function groundParams(): RaycastParams
 		end
 	end
 	params.FilterDescendantsInstances = exclude
+	groundCache = { params = params, builtAt = clock }
 	return params
 end
 
@@ -720,7 +731,9 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		p.Name = Constants.HATCH_PROMPT_NAME
 		p.ActionText = "Hatch!"
 		p.ObjectText = Genome.displayName(entry.slime)
-		p.KeyboardKeyCode = Enum.KeyCode.F
+		local keys = Constants.SLIME_PROMPT_KEYS.hatch
+		p.KeyboardKeyCode = (Enum.KeyCode :: any)[keys.keyboard]
+		p.GamepadKeyCode = (Enum.KeyCode :: any)[keys.gamepad]
 		p.RequiresLineOfSight = false
 		p.HoldDuration = Config.HOLD_CONFIRM_SECONDS
 		p.MaxActivationDistance = Config.STEAL_REACH - 2
@@ -1576,7 +1589,7 @@ local function ensureSpeedCoil(player: Player)
 	end
 	local tool = WorldProps.speedCoil()
 	if tool then
-		tool.ToolTip = "Speed Coil: always on"
+		tool.ToolTip = "Speed Coil: hold to run faster"
 		tool.Parent = backpack
 	end
 end
@@ -1610,6 +1623,12 @@ function WorldView.updatePlayer(
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
 	if data.speedCoil then
 		ensureSpeedCoil(player)
+	end
+	-- The coil only works while held (Merijn 2026-10-22): equipped = the Tool sits in the character.
+	local coilHeld = data.speedCoil and character ~= nil and character:FindFirstChild(Constants.SPEED_COIL_TOOL) ~= nil
+	if (session.coilHeld == true) ~= coilHeld then
+		session.coilHeld = coilHeld
+		World.markDirty(session) -- State.walkSpeed changes
 	end
 	local target = Carry.targetWalkSpeed(session, now) -- PvP holds / slows multiply in (PvpSlow, PvpFun)
 	if Config.FEATURES.PvP and PvpFun.frozen(session, now) then
