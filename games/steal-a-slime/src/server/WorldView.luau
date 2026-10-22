@@ -727,7 +727,9 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		p.Name = Constants.HATCH_PROMPT_NAME
 		p.ActionText = "Hatch!"
 		p.ObjectText = Genome.displayName(entry.slime)
-		p.KeyboardKeyCode = Enum.KeyCode.F
+		local keys = Constants.SLIME_PROMPT_KEYS.hatch
+		p.KeyboardKeyCode = (Enum.KeyCode :: any)[keys.keyboard]
+		p.GamepadKeyCode = (Enum.KeyCode :: any)[keys.gamepad]
 		p.RequiresLineOfSight = false
 		p.HoldDuration = Config.HOLD_CONFIRM_SECONDS
 		p.MaxActivationDistance = Config.STEAL_REACH - 2
