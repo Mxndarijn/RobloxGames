@@ -490,6 +490,9 @@ function Runtime.new(placePath, opts)
 	self.stores = {}
 	self.modules = {}
 	self.rng = Random.new(self.opts.seed or 1)
+	-- Seeds for the game's own unseeded Random.new() calls: from the run's seed, never the wall clock, so a live
+	-- spec replays the same world (the server seeds its generators from Random.new()).
+	self.randomSeeds = Random.new((self.opts.seed or 1) + 1)
 	self.game = roblox.deserializePlace(fs.readFile(placePath))
 	self.workspace = self.game:GetService("Workspace")
 	-- Reflected properties without a default: implementProperty can't override them, set values instead.
@@ -757,7 +760,11 @@ function Runtime:env(script)
 		ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
 		PhysicalProperties = roblox.PhysicalProperties,
 		Font = roblox.Font,
-		Random = Random,
+		Random = {
+			new = function(seed)
+				return Random.new(seed or self.randomSeeds:NextInteger(1, 2147483646))
+			end,
+		},
 		RaycastParams = {
 			new = function()
 				return {

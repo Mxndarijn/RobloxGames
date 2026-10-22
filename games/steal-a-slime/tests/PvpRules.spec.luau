@@ -2,6 +2,7 @@
 -- PvpRules, PvpService, the pvp save field and Config.PVP_TOOLS validation (FEATURES.PvP, CONTRACT.md §26).
 -- Every flag-dependent call passes the flag explicitly, so the specs hold in the forced-flag runs too.
 local Actions = require("../src/server/Actions")
+local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
@@ -11,6 +12,7 @@ local PvpService = require("../src/server/PvpService")
 local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
 local Sessions = require("../src/server/Sessions")
+local Spawner = require("../src/server/Spawner")
 local StealService = require("../src/server/StealService")
 local TestRunner = require("./TestRunner")
 local Validate = require("../src/shared/Validate")
@@ -428,16 +430,16 @@ describe("PvpService", function()
 		PvpService.leave(world, session, T0 + 400)
 		expect(PvpService.state(session)).toBe(nil)
 	end)
-	it("catchThief sends a stolen slime home with the Bat's toasts and returns its id", function()
+	it("hitCarrier sends a stolen slime home with the Bat's toasts and returns its id", function()
 		local world = ServerFixtures.world()
 		local thief = ServerFixtures.join(world, 1)
 		local owner = ServerFixtures.join(world, 2, { Fixtures.slime("gem", 3) })
 		local hunter = ServerFixtures.join(world, 3)
 		ServerFixtures.unlock(owner)
 		ServerFixtures.unlock(thief)
-		expect(PvpService.catchThief(world, thief, hunter, T0 + 100)).toBe(nil) -- carries nothing
+		expect(PvpService.hitCarrier(world, thief, hunter, T0 + 100)).toBe(nil) -- carries nothing
 		expect((StealService.steal(world, thief, "gem", 1, T0 + 101))).toBe(true)
-		expect(PvpService.catchThief(world, thief, hunter, T0 + 102)).toBe("gem")
+		expect(PvpService.hitCarrier(world, thief, hunter, T0 + 102)).toBe("gem")
 		expect(thief.carry).toBe(nil)
 		expect(world.carriedBy.gem).toBe(nil)
 		expect(world.escaping.gem ~= nil).toBe(true) -- bounces home
@@ -452,6 +454,27 @@ describe("PvpService", function()
 			true
 		)
 		expect(#ServerFixtures.notifications(world, 2) > 0).toBe(true) -- the owner hears it escaped
+	end)
+	it("hitCarrier makes a wild slime carrier drop it where they stand", function()
+		local world = ServerFixtures.world()
+		local carrier = ServerFixtures.join(world, 1)
+		local hunter = ServerFixtures.join(world, 3)
+		local id = Spawner.spawnOne(world, T0)
+		world.wild[id].price = 0
+		expect((Carry.grab(world, 1, id, 1, T0))).toBe(true)
+		local spot = { X = 12, Y = 3, Z = -40 }
+		local ctx = {
+			positionOf = function(): any
+				return spot
+			end,
+		}
+		expect(PvpService.hitCarrier(world, carrier, hunter, T0 + 1, ctx)).toBe(id)
+		expect(carrier.carry).toBe(nil)
+		expect(world.carriedBy[id]).toBe(nil)
+		expect(world.wild[id] ~= nil).toBe(true) -- free for anyone to grab
+		expect(table.find(ServerFixtures.notifications(world, 3), "You hit P1! They dropped the slime.") ~= nil).toBe(
+			true
+		)
 	end)
 	it("leaving a never-joined session is harmless", function()
 		local world = ServerFixtures.world()

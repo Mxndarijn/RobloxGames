@@ -3,32 +3,40 @@
 	Widgets
 
 	Small Instance.new helpers and the UI theme. Only creates Instances when a
-	function is called (nothing at require time).
+	function is called. At require time it waits for ReplicatedStorage.Shared
+	(the theme's colours come from Shared.GooPalette).
 ]]
 
+local Goo = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("GooPalette"))
 local Layout = require(script.Parent.Layout)
 
 local Widgets = {}
 
--- The Goo palette: deep teal glass panels, a mint header band, ink outlines, gold money.
+-- The Goo palette (Shared.GooPalette): deep teal glass panels, a mint header band, ink outlines, gold money.
 -- Button colours carry meaning: Gold collects a reward, Good acts (buy, merge, redeem), Info is a side action,
 -- Bad loses something or closes. Only things you can press are jelly; something you can't press yet is a
 -- sunken Ink well with the same outline (Widgets.status / a disabled button).
+local function fromPalette(c: { number }): Color3
+	return Color3.fromRGB(c[1], c[2], c[3])
+end
+
 Widgets.Theme = table.freeze({
-	Ink = Color3.fromRGB(8, 38, 42), -- every outline, dark text on bright jelly, sunken wells
-	Bg = Color3.fromRGB(12, 52, 54), -- glass panel body
-	Row = Color3.fromRGB(28, 72, 73), -- rows and cards on the glass
-	BgLight = Color3.fromRGB(40, 96, 96), -- highlighted rows
-	Band = Color3.fromRGB(108, 242, 194), -- the mint header band, its lip and drips
-	Text = Color3.fromRGB(241, 255, 249),
-	Muted = Color3.fromRGB(191, 235, 221),
-	Accent = Color3.fromRGB(108, 242, 194),
-	Good = Color3.fromRGB(108, 242, 194),
-	Bad = Color3.fromRGB(238, 84, 118),
-	Info = Color3.fromRGB(56, 120, 112),
-	Warn = Color3.fromRGB(255, 190, 60),
-	Disabled = Color3.fromRGB(8, 38, 42),
-	Gold = Color3.fromRGB(255, 210, 63),
+	Ink = fromPalette(Goo.Ink), -- every outline, dark text on bright jelly, sunken wells
+	Bg = fromPalette(Goo.Bg), -- glass panel body
+	Row = fromPalette(Goo.Row), -- rows and cards on the glass
+	BgLight = fromPalette(Goo.BgLight), -- highlighted rows
+	Band = fromPalette(Goo.Mint), -- the mint header band, its lip and drips
+	Text = fromPalette(Goo.Text),
+	Muted = fromPalette(Goo.Muted),
+	Accent = fromPalette(Goo.Mint),
+	Good = fromPalette(Goo.Mint),
+	Bad = fromPalette(Goo.Bad),
+	Info = fromPalette(Goo.Info),
+	Warn = fromPalette(Goo.Warn),
+	Disabled = fromPalette(Goo.Ink),
+	Gold = fromPalette(Goo.Gold),
+	GoldDeep = fromPalette(Goo.GoldDeep), -- the coin's edge and ring
+	Glass = fromPalette(Goo.Glass), -- a glass row on a card (at Goo.GLASS_TRANSPARENCY)
 	Shine = Color3.new(1, 1, 1), -- the glint on jelly and the dot on goo drops
 	Font = Enum.Font.FredokaOne, -- titles, numbers, buttons, labels
 	FontBody = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold), -- sentences (a FontFace)
@@ -151,6 +159,8 @@ Widgets.KIT = table.freeze({
 	radius = 13, -- icon badges
 	rowRadius = 18,
 	panelRadius = 30,
+	plateRadius = 18, -- the hotbar plate
+	slotRadius = 16, -- hotbar slots and the Bag button
 	shadeBottom = 0.78, -- a jelly's bottom brightness under its top
 	shine = 0.4, -- the glint's transparency
 })
@@ -176,6 +186,30 @@ function Widgets.shine(parent: GuiObject): Frame
 		ZIndex = parent.ZIndex,
 		Parent = parent,
 	})
+end
+
+-- A notice's two rings: `color` (Gold = info or guidance, Bad = danger) on the card's own UIStroke and a
+-- transparent wrapper `stroke` px larger carrying the Ink ring, as one UIStroke per frame allows. `radius`
+-- is the card's corner radius (offset px) or nil for a pill. Returns the card's stroke and the wrapper.
+function Widgets.ring(card: GuiObject, color: Color3, radius: number?): (UIStroke, Frame)
+	local kit = Widgets.KIT
+	local stroke = card:FindFirstChildOfClass("UIStroke") or Widgets.stroke(color, kit.stroke)
+	stroke.Color = color
+	stroke.Thickness = kit.stroke
+	stroke.Parent = card
+	local wrap = create("Frame", {
+		Name = "InkRing",
+		Active = false,
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(-kit.stroke, -kit.stroke),
+		Size = UDim2.new(1, kit.stroke * 2, 1, kit.stroke * 2),
+		ZIndex = card.ZIndex,
+		Parent = card,
+	}, {
+		if radius then Widgets.corner(radius + kit.stroke) else Widgets.pill(),
+		Widgets.stroke(Theme.Ink, kit.stroke),
+	})
+	return stroke, wrap
 end
 
 -- A top-light to bottom-dark UIGradient (the HUD chips' depth). A UIGradient multiplies the frame's own

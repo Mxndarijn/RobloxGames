@@ -163,12 +163,12 @@ local function rebirthNeeds(bot: Bot): ({ [string]: boolean }, { [string]: boole
 	return keep, missing, recipeIds
 end
 
--- The pad slime this bot would give up first, and its value. Kept slimes and the favourite stay.
+-- The pad slime this bot would give up first, and its value. Kept slimes, eggs (unsellable) and the favourite stay.
 local function weakest(world: World, bot: Bot, keep: { [string]: boolean }): (Slime?, number)
 	local busy = World.busySet(world)
 	local worst, worstValue = nil, math.huge
 	for _, s in bot.data.slimes do
-		if not keep[s.id] and not busy[s.id] and s.id ~= bot.data.favoriteId then
+		if not keep[s.id] and not busy[s.id] and not s.egg and s.id ~= bot.data.favoriteId then
 			local v = value(s)
 			if v < worstValue then
 				worst, worstValue = s, v

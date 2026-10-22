@@ -282,7 +282,7 @@ describe("Goals and SlimeDex rewards", function()
 		expect(#Collection.check(data)).toBe(0)
 		expect(#Collection.check(data)).toBe(0) -- paid once
 	end)
-	it("the ladder follows the design: 8 .. 50 species, +45 % income in all", function()
+	it("the ladder follows the design: 8 .. 50 species, within the Dex, +45 % income in all", function()
 		local total = 0
 		local ladder = Config.DEX_MILESTONES.species
 		for i, m in ladder do
@@ -292,7 +292,7 @@ describe("Goals and SlimeDex rewards", function()
 				expect(m.reward > ladder[i - 1].reward).toBe(true)
 			end
 		end
-		expect(ladder[#ladder].count).toBe(SpeciesDex.TOTAL)
+		expect(ladder[#ladder].count <= SpeciesDex.TOTAL).toBe(true)
 		expect(total).toBeCloseTo(0.45)
 	end)
 	it("puts every v13 field in State", function()

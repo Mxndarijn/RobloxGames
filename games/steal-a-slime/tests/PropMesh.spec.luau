@@ -1,6 +1,6 @@
 --!nocheck
 -- WorldProps skins keep their mesh proportions (v27 gate B3). MeshSwap used
--- to fit Map.LeaderboardBoard and Map.ShopStand to their Model's bounding box
+-- to fit Map.LeaderboardBoard and the shop stand to their Model's bounding box
 -- per axis (board 0.711 / 0.978 / 0.317 = anisotropy 3.08, stand 1.17).
 -- Booted in the fake runtime with every mesh upload answered, each skin is
 -- native x one scale (WorldLayout.meshSize), as tall as its Model and
@@ -8,7 +8,6 @@
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
-local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
 local MeshAssets = require("../src/shared/MeshAssets")
 local Runtime = require("../tools/livetest/Runtime")
@@ -56,10 +55,8 @@ local function modelBottom(model): number
 	return lo
 end
 
--- The stands WorldProps places: the single ShopStand, or the Item + Upgrade stands with FEATURES.WorldShops on.
-local STANDS = if Config.FEATURES.WorldShops
-	then { Constants.SHOP_STAND_ITEM, Constants.SHOP_STAND_UPGRADE }
-	else { Constants.SHOP_STAND }
+-- The stands WorldProps places.
+local STANDS = { Constants.SHOP_STAND_ITEM, Constants.SHOP_STAND_UPGRADE }
 
 describe("WorldProps skins keep their mesh proportions (gate B3)", function()
 	local names = { Constants.LEADERBOARD_BOARD }

@@ -1,14 +1,13 @@
 --!nocheck
 -- Every mesh MeshSwap puts in the world keeps its native proportions (one
 -- uniform scale, MeshAssets.fit), including the WorldProps-built Models
--- (Map.ShopStand, Map.LeaderboardBoard): their bounding box is the primitive
+-- (Map.ItemShopStand, Map.UpgradeShopStand, Map.LeaderboardBoard): their bounding box is the primitive
 -- prop's, and stretching the mesh to it squashed the board 3.08:1 and the
 -- shop stand 1.17:1 (Phoenix gate B3). Booted in the fake runtime with every
 -- CreateMeshPartAsync answered, so every uploaded slot swaps.
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
-local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
 local MeshAssets = require("../src/shared/MeshAssets")
 local Runtime = require("../tools/livetest/Runtime")
@@ -105,12 +104,6 @@ describe("MeshSwap uniform scale (live boot, every upload answered)", function()
 		local seen = 0
 		for name, mesh in WorldLayout.PROP_MESHES do
 			local model = rt.workspace.Map:FindFirstChild(name)
-			-- the single ShopStand exists with FEATURES.WorldShops off, the Item / Upgrade stands with it on
-			local isWorldStand = name == Constants.SHOP_STAND_ITEM or name == Constants.SHOP_STAND_UPGRADE
-			if isWorldStand and not Config.FEATURES.WorldShops then
-				expect(model).toBeNil()
-				continue
-			end
 			expect(model ~= nil).toBe(true)
 			expect(model:GetAttribute("MeshAsset")).toBe(mesh)
 			local m = model:FindFirstChild("Mesh")
@@ -147,7 +140,7 @@ describe("MeshSwap uniform scale (live boot, every upload answered)", function()
 				print(name, ratios)
 			end
 		end
-		expect(seen).toBe(if Config.FEATURES.WorldShops then 4 else 2)
+		expect(seen).toBe(4)
 		expect(WorldLayout.PROP_MESHES[Constants.SHOP_STAND_ITEM] ~= nil).toBe(true)
 		expect(WorldLayout.PROP_MESHES[Constants.LEADERBOARD_BOARD] ~= nil).toBe(true)
 	end)

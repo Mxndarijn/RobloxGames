@@ -97,7 +97,10 @@ local ROSTER: { Entry } = {
 	-- Boss slimes (the boss event, docs/SLIME-ECONOMY.md §3).
 	k("boss", "goozilla", "Goozilla", 6, "roaring kaiju slime"),
 	k("boss", "queen_jelly", "Queen Jelly", 6, "jellyfish queen with a tiara"),
+	k("boss", "klawdius", "Klawdius", 6, "hermit crab in a spiral shell with a giant claw"),
+	k("boss", "pumpking", "Pumpking", 6, "jack-o'-lantern with a glowing grin and a crown"),
 	k("boss", "mecha_goo", "Mecha Goo", SECRET_TIER, "mech with a tiny slime pilot"),
+	k("boss", "goomancer", "Goomancer", SECRET_TIER, "wizard with a tall star hat, beard and orb staff"),
 	-- Event Secrets: one is featured at a time.
 	k("event", "glitch", "Gl1tch", SECRET_TIER, "corrupted video-frame slime"),
 	k("event", "doodle", "Doodle", SECRET_TIER, "hand-drawn ink slime"),

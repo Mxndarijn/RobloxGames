@@ -165,6 +165,11 @@ end
 -- any scale the UI can reach.
 Layout.MIN_TOUCH_DESIGN = Layout.minTouchDesignSize(Layout.MIN_SCALE)
 Layout.BUTTON = 56
+-- The smallest TextSize any menu text may use (design px). A hint that needs less is cut, not shrunk.
+Layout.MIN_TEXT = 14
+-- The fixed right slot of a list row (design px): the reward well, a Claim / Buy / Equip button or a state
+-- well, the same size in every row so the column lines up.
+Layout.ROW_SLOT = table.freeze({ w = 196, h = 52 })
 
 function Layout.isCompact(width: number, height: number): boolean
 	return width < Layout.COMPACT_WIDTH or Layout.uiScale(width, height) < 1
@@ -594,6 +599,7 @@ Layout.NAV = table.freeze({
 	cell = 78, -- tile + label width: fits the longest label ("SlimeDex") at labelSize
 	ccell = 70,
 	tile = 66, -- the rounded square
+	radius = 22, -- the tile's jelly corner (one uniform radius: DexJarView reads it for the SlimeDex jar)
 	ctile = 58, -- 58 x 0.8 = 46 screen px >= MIN_TOUCH
 	label = 20, -- label row under the tile
 	clabel = 17,
@@ -712,15 +718,21 @@ Layout.PANEL_CHROME = table.freeze({
 	header = Layout.MIN_TOUCH_DESIGN + 12 + 16, -- the band (closeInset above and below the X) plus bodyGap
 })
 
--- The goo edge under a panel's band (Widgets.gooEdge): a lip of `scallops` round bumps hanging `lip` px,
--- and drips { x (fraction of the width), drop width, neck length } px. A drip's lowest point is
--- length + 0.6 * width, kept under PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over
--- the corner icon tile (x < 0.14).
+-- Notices (tooltip, tutorial card, carry card, boss meter): one corner radius for their Gold or danger ring.
+Layout.NOTICE_RADIUS = 18
+
+-- The glass bubble behind each status icon (Hud): white at this transparency over the world.
+Layout.STATUS_BUBBLE = table.freeze({ transparency = 0.8 })
+
 -- The glint on a jelly (Widgets.shine): a fixed w x h px frame near the top-left, at a fraction of the jelly's
 -- width plus a few px so it sits inside a pill's rounded end, and a few px under the top edge so it stays
 -- above a centred label.
 Layout.SHINE = table.freeze({ x = 0.08, offsetX = 6, offsetY = 4, w = 14, h = 4, rotation = -24 })
 
+-- The goo edge under a panel's band (Widgets.gooEdge): a lip of `scallops` round bumps hanging `lip` px,
+-- and drips { x (fraction of the width), drop width, neck length } px. A drip's lowest point is
+-- length + 0.6 * width, kept under PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over
+-- the corner icon tile (x < 0.14).
 Layout.GOO_EDGE = table.freeze({
 	inset = 18,
 	scallops = 16,
@@ -746,13 +758,11 @@ Layout.GOO_EDGE = table.freeze({
 Layout.MENU_WIDTH = 560
 Layout.MENU_HEIGHTS = table.freeze({
 	Merge = 520,
-	Shop = 520,
 	WorldShop = 520,
 	Inventory = 460,
-	Rebirth = 470,
+	Rebirth = 650, -- three slimes (Panels/Rebirth.plan)
 	Goals = 500,
 	Dex = 600,
-	Leaders = 460,
 	Codes = 300,
 	Sound = 291,
 	Guide = 380,

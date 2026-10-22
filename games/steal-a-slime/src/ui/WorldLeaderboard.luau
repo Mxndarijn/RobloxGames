@@ -2,8 +2,8 @@
 --[[
 	WorldLeaderboard
 
-	Fills in-world leaderboard SurfaceGuis from the `Leaderboard` RemoteEvent
-	(same board as Panels/Leaderboard). Client-local: each player renders the
+	Fills in-world leaderboard SurfaceGuis from the `Leaderboard` RemoteEvent.
+	Client-local: each player renders the
 	board themselves and their own row is highlighted.
 
 	A SurfaceGui under workspace is a board when it's named "Leaderboard", or

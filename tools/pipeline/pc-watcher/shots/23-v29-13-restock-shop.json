@@ -2,7 +2,8 @@
   "id": "v29-13-restock-shop",
   "todo": "v29 13",
   "kind": "ui",
-  "open": "shop",
+  "open": "worldshop",
+  "world_shop": "ItemShop",
   "scroll_to": "Consumable_LuckPotion",
   "note": "v29 #13: Shop menu restocking consumables section (FEATURES.Consumables): Mutation Spray / Luck Potion / Weather Totem rows with 'x left' chips and the 'Restocks in m:ss' countdown"
 }

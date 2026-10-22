@@ -42,6 +42,8 @@ local PvpService = if script then require(script.Parent.PvpService) else require
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
+local Layout = if Shared then require(Shared.Parent.Visuals.WorldLayout) else require("../visuals/shared/WorldLayout")
+local WorldLayout = Layout
 
 type World = World.World
 type Session = World.Session
@@ -61,6 +63,8 @@ export type Context = {
 	pose: ((userId: number) -> (any?, any?))?,
 	toVector3: ((position: any) -> any)?,
 	slimePosition: ((slimeId: string) -> any?)?,
+	plazaOrigin: (() -> any)?, -- the fountain centre (BossEvent.Context)
+	airborne: ((userId: number) -> boolean)?, -- off the ground: a jump clears a boss ring (BossEvent.Context)
 	groundBelow: ((point: any) -> any?)?,
 	funBubble: ((
 		userId: number,
@@ -69,7 +73,7 @@ export type Context = {
 		onPop: (byUserId: number, now: number) -> boolean
 	) -> boolean)?,
 	-- What the adapter measured for `shopId`: the character's distance to the stand's Counter and whether it is
-	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, strict never applies.
+	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, the shop gate never applies.
 	shopAccess: ((userId: number, shopId: string) -> ShopGuard.Access)?,
 	-- What the adapter measured for the owner's plot prompt `kind` ("Lock" | "BuyPad" | "Merge"): the character's distance to the
 	-- part that prompt sits on and whether it is alive. nil = no world: Actions.handlePlotPad skips the range check.
@@ -81,6 +85,9 @@ export type Context = {
 	-- Drop tube (CONTRACT.md §5.3): moves the player's character to plot `plotIndex`'s splash pool; false = no
 	-- character or no plot. nil = no world: the drop is refused.
 	dropDown: ((userId: number, plotIndex: number) -> boolean)?,
+	-- The player's character root in plot `plotIndex`'s plot-local frame (the frame WorldLayout builds a plot in, y
+	-- on WorldLayout.floorTop's scale), or nil without a character or plot. nil = no world: the drop is refused.
+	plotPointOf: ((userId: number, plotIndex: number) -> { number }?)?,
 }
 
 local Actions = {}
@@ -341,24 +348,16 @@ local function useConsumable(
 end
 
 ---------------------------------------------------------------------------
--- World shops (FEATURES.WorldShops, CONTRACT.md §27): validation lives in ShopGuard, the purchases are the
+-- World shops (CONTRACT.md §27): validation lives in ShopGuard, the purchases are the
 -- existing handlers (dispatch), nothing is priced or charged here.
 ---------------------------------------------------------------------------
-
-local function worldShopsOn(ctx: Context): boolean
-	return feature(ctx, "WorldShops")
-end
-
-local function strictOn(ctx: Context): boolean
-	return worldShopsOn(ctx) and feature(ctx, "WorldShopsStrict")
-end
 
 local function accessOf(ctx: Context, userId: number, shopId: string): ShopGuard.Access?
 	return if ctx.shopAccess then ctx.shopAccess(userId, shopId) else nil
 end
 
 local function shopEvent(ctx: Context, userId: number, payload: { [string]: any })
-	if ctx.shopEvent and worldShopsOn(ctx) then
+	if ctx.shopEvent then
 		ctx.shopEvent(userId, payload)
 	end
 end
@@ -385,13 +384,13 @@ function Actions.closeShop(session: Session, reason: string, ctx: Context)
 	shopEvent(ctx, session.userId, { kind = "Close", shopId = shopId, reason = reason })
 end
 
--- Throttled by the caller: closes the open shop when it left range, died or the flag went off.
+-- Throttled by the caller: closes the open shop when it left range or died.
 function Actions.shopTick(session: Session, ctx: Context)
 	local shopId = session.openShop
 	if shopId == nil then
 		return
 	end
-	local reason = ShopGuard.closeReason(shopId, worldShopsOn(ctx), accessOf(ctx, session.userId, shopId))
+	local reason = ShopGuard.closeReason(shopId, accessOf(ctx, session.userId, shopId))
 	if reason then
 		Actions.closeShop(session, reason, ctx)
 	end
@@ -399,8 +398,6 @@ end
 
 local function openShop(session: Session, shopId: string, ctx: Context): Result
 	local code = ShopGuard.check({
-		worldShops = worldShopsOn(ctx),
-		strict = false,
 		shopId = shopId,
 		openShop = session.openShop,
 		access = accessOf(ctx, session.userId, shopId),
@@ -424,9 +421,7 @@ function Actions.openFromPrompt(world: World, userId: number, shopId: string, ct
 end
 
 local function closeShopAction(session: Session, ctx: Context): Result
-	if worldShopsOn(ctx) then
-		Actions.closeShop(session, "closed", ctx)
-	end
+	Actions.closeShop(session, "closed", ctx)
 	return OK
 end
 
@@ -449,8 +444,6 @@ local function shopBuy(
 ): Result
 	local userId = session.userId
 	local code = ShopGuard.check({
-		worldShops = worldShopsOn(ctx),
-		strict = strictOn(ctx),
 		shopId = shopId,
 		itemId = itemId,
 		openShop = session.openShop,
@@ -487,10 +480,10 @@ local function shopBuy(
 	return res
 end
 
--- Strict mode (FEATURES.WorldShopsStrict): the old buy actions need the matching shop open and in range.
--- Only applies where the adapter measures ranges (ctx.shopAccess).
+-- The old buy actions need the matching shop open and in range. Only applies where the adapter measures
+-- ranges (ctx.shopAccess).
 local function strictGate(session: Session, action: string, ctx: Context): Result?
-	if ctx.strictBypass or not (ctx.shopAccess and strictOn(ctx)) then
+	if ctx.strictBypass or not ctx.shopAccess then
 		return nil
 	end
 	-- Locks are not sold in a shop: the HUD Lock button works while standing at the owner's own lock pad
@@ -504,8 +497,6 @@ local function strictGate(session: Session, action: string, ctx: Context): Resul
 		return nil
 	end
 	local code = ShopGuard.check({
-		worldShops = true,
-		strict = true,
 		shopId = shopId,
 		itemId = nil,
 		openShop = session.openShop,
@@ -647,7 +638,7 @@ end
 
 -- The owner-only plot prompts (LockPrompt, BuyPadPrompt, MergePrompt). The caller has already checked that the player owns the
 -- plot; here the character must stand within PlotPadGuard.range() of THAT prompt's part. They never go through the world-shop
--- strict gate (the Item Shop stand is nowhere near the pad), but every other rule of the action still applies.
+-- gate (the Item Shop stand is nowhere near the pad), but every other rule of the action still applies.
 function Actions.handlePlotPad(
 	world: World,
 	userId: number,
@@ -721,8 +712,15 @@ function Actions.triggerPlotPrompt(
 	return res
 end
 
--- A player took plot `plotIndex`'s drop tube (any upper jar's DropPrompt, CONTRACT.md §5.3). Anyone may, except a
--- player carrying a slime: they must walk out through the door.
+-- True when plot-local point (x, y, z) is inside jar `f`: within its glass and at or above its deck (a character's
+-- root stands about 3 studs up; the slack lets a jump off the deck count).
+function Actions.insideJar(f: number, x: number, y: number, z: number): boolean
+	return math.sqrt(x * x + z * z) < WorldLayout.jarRadius(f) and y >= WorldLayout.floorTop(f) - 1
+end
+
+-- A player took plot `plotIndex`'s drop tube (the top jar's DropPrompt, CONTRACT.md §5.3). Only the owner, standing
+-- inside the top jar (never from outside its glass, on the jar below), and not while carrying a slime: they must walk
+-- out through the door.
 function Actions.useDropTube(world: World, userId: number, plotIndex: number, ctx: Context): Result
 	local session = World.session(world, userId)
 	if not session then
@@ -736,6 +734,13 @@ function Actions.useDropTube(world: World, userId: number, plotIndex: number, ct
 	end
 	if Carry.carryingId(world, userId) then
 		local text = "You can't take the goo tube while carrying a slime. Walk out through the door!"
+		World.notify(world, userId, text, "bad", nil)
+		return fail(text)
+	end
+	local top = Economy.floorsShown(session.data.padsUnlocked)
+	local at = ctx.plotPointOf and ctx.plotPointOf(userId, plotIndex)
+	if top < 2 or not at or not Actions.insideJar(top, at[1], at[2], at[3]) then
+		local text = "Stand inside the top jar to take the goo tube!"
 		World.notify(world, userId, text, "bad", nil)
 		return fail(text)
 	end
