@@ -36,8 +36,9 @@ local function set(species: string, name: string): { Attack }
 	return if moves and moves[name] then moves[name] else {}
 end
 
+-- `slot` may carry a leg ("start.1#2", BossChoreo.slotLeg): every leg is the same attack.
 function BossAttacks.get(species: string, slot: string): Attack?
-	local name, index = string.match(slot, "^(%a+)%.(%d+)$")
+	local name, index = string.match(BossChoreo.slotLeg(slot), "^(%a+)%.(%d+)$")
 	if not name or not index then
 		return nil
 	end
@@ -73,63 +74,104 @@ local function dist(ax: number, az: number, bx: number, bz: number): number
 	return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2)
 end
 
--- Where a charge from (x, z) along unit (hx, hz) stops: its distance, or the edge of the boss area.
+-- Where a charge from (x, z) facing unit (hx, hz) stops: its distance along the way it travels (ahead, or to its
+-- right for a sideways scuttle), or the edge of the boss area.
 function BossAttacks.chargeEnd(x: number, z: number, hx: number, hz: number, attack: Attack): (number, number)
-	local ex, ez = BossArea.reach(x, z, hx, hz, attack.distance or 30)
+	local ux, uz = BossChoreo.travel(attack, hx, hz)
+	local ex, ez = BossArea.reach(x, z, ux, uz, attack.distance or 30)
 	return ex, ez
 end
 
 --[[
-	True when attack move `move` (definition `attack`) struck `player` between server times t0 and t1. A ring is a
-	band RING_WIDTH thick running out from where the boss stomped (from RING_DELAY on, at `speed`, up to `radius`); a
-	jumping player clears it. A cone pushes once at CONE_HIT_AT, inside `radius` and `angle` of its heading. A charge
-	hits anyone the boss's Body (plus `width` / 2) passes. Spits, guards and vents never strike here.
+	True when a goo ring centred on (cx, cz), running out from server time `start` at `speed` up to `radius`, passed
+	`player` between t0 and t1. The ring is a band RING_WIDTH thick; a jumping player clears it.
 ]]
-function BossAttacks.strikes(move: BossChoreo.Move, attack: Attack, t0: number, t1: number, player: Target): boolean
-	if move.kind ~= "attack" or t1 < move.at then
+function BossAttacks.ringBand(
+	cx: number,
+	cz: number,
+	start: number,
+	speed: number,
+	radius: number,
+	t0: number,
+	t1: number,
+	player: Target
+): boolean
+	if player.airborne or t1 < start then
 		return false
+	end
+	local r0 = math.max(0, speed * (t0 - start))
+	local r1 = speed * (t1 - start)
+	if r0 > radius then
+		return false
+	end
+	local d = dist(player.x, player.z, cx, cz)
+	local half = BOSS.RING_WIDTH / 2
+	return d >= r0 - half and d <= math.min(r1, radius) + half
+end
+
+-- The rings of a ring attack: { start, speed } per wave (each wave `waveGap` later and `waveSpeedUp` x faster).
+function BossAttacks.waves(move: BossChoreo.Move, attack: Attack): { { number } }
+	local out = {}
+	for w = 0, math.max(1, attack.waves or 1) - 1 do
+		table.insert(out, {
+			move.at + BOSS.RING_DELAY + w * (attack.waveGap or 0.7),
+			(attack.speed or 20) * (attack.waveSpeedUp or 1) ^ w,
+		})
+	end
+	return out
+end
+
+--[[
+	Whether attack move `move` (definition `attack`) struck `player` between server times t0 and t1, and which part
+	struck (a ring's wave; 0 otherwise), so a player can be hit once per part. A ring is a band running out from where
+	the boss stomped (BossAttacks.ringBand), once per wave. A hop's ring runs out from where it lands, once it has
+	landed. A cone pushes once at CONE_HIT_AT, inside `radius` and `angle` of its heading. A charge hits anyone the
+	boss's Body (plus `width` / 2) passes. Spits, guards and vents never strike here.
+]]
+function BossAttacks.strikes(
+	move: BossChoreo.Move,
+	attack: Attack,
+	t0: number,
+	t1: number,
+	player: Target
+): (boolean, number)
+	if (move.kind ~= "attack" and move.kind ~= "hop") or t1 < move.at then
+		return false, 0
 	end
 	local kind = attack.kind
 	if kind == "ring" then
-		if player.airborne then
-			return false
+		for w, wave in BossAttacks.waves(move, attack) do
+			if BossAttacks.ringBand(move.fx, move.fz, wave[1], wave[2], attack.radius or 20, t0, t1, player) then
+				return true, w
+			end
 		end
-		local speed, radius = attack.speed or 20, attack.radius or 20
-		local start = move.at + BOSS.RING_DELAY
-		if t1 < start then
-			return false
-		end
-		local r0 = math.max(0, speed * (t0 - start))
-		local r1 = speed * (t1 - start)
-		if r0 > radius then
-			return false
-		end
-		local d = dist(player.x, player.z, move.fx, move.fz)
-		local half = BOSS.RING_WIDTH / 2
-		return d >= r0 - half and d <= math.min(r1, radius) + half
+		return false, 0
+	elseif kind == "hops" then
+		local start = move.at + BOSS.HOP_SECONDS
+		return BossAttacks.ringBand(move.tx, move.tz, start, attack.speed or 24, attack.radius or 12, t0, t1, player), 0
 	elseif kind == "cone" then
 		local at = move.at + BOSS.CONE_HIT_AT
 		if not (t0 < at and at <= t1) then
-			return false
+			return false, 0
 		end
 		local dx, dz = player.x - move.fx, player.z - move.fz
 		local d = math.sqrt(dx * dx + dz * dz)
 		if d > (attack.radius or 18) then
-			return false
+			return false, 0
 		end
 		if d < 1e-6 then
-			return true
+			return true, 0
 		end
 		local cos = (dx * move.hx + dz * move.hz) / d
-		return cos >= math.cos(math.rad((attack.angle or 90) / 2))
+		return cos >= math.cos(math.rad((attack.angle or 90) / 2)), 0
 	elseif kind == "charge" then
 		if t0 > move.at + move.seconds then
-			return false
+			return false, 0
 		end
 		local x, z = BossChoreo.pose(move, math.min(t1, move.at + move.seconds))
-		return dist(player.x, player.z, x, z) <= BossArea.BODY_RADIUS + (attack.width or 8) / 2
+		return dist(player.x, player.z, x, z) <= BossArea.BODY_RADIUS + (attack.width or 8) / 2, 0
 	end
-	return false
+	return false, 0
 end
 
 --[[

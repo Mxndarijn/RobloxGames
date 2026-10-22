@@ -941,6 +941,9 @@ local Config = {
 		ARRIVE_FALL = 0.6, -- of which the fall
 		ARRIVE_HEIGHT = 24, -- studs it drops from
 		WINDUP_SECONDS = 1.2, -- the telegraph before an attack
+		LEG_WINDUP_SECONDS = 0.7, -- the shorter telegraph before each next leg of a multi-leg charge
+		HOP_SECONDS = 0.55, -- a hops attack's leap
+		HOP_HEIGHT = 6, -- studs high it leaps
 		CHARGE_EASE = 0.25, -- seconds a charge takes to reach full speed and to stop
 		STRIKE_SECONDS = 0.7, -- a cone or the spit's throw
 		RING_DELAY = 0.35, -- the stomp lands this long into a ring attack, then the ring runs out
@@ -970,26 +973,54 @@ local Config = {
 		GUARD_SIZE = 3.2, -- studs: a guard's body
 		-- Per boss species: `start` attacks from the first one, `phase` from PHASE_AT. Kinds: ring { radius, speed, push },
 		-- spit { count, slowSeconds, slow }, guards { count }, cone { radius, angle (degrees), push },
-		-- charge { distance, speed, width, push }, vent { multiplier } (passive: hits on its back while dazed).
+		-- charge { distance, speed, width, push }, vent { multiplier } (passive: hits on its back while dazed),
+		-- hops { count, distance, radius, speed, push } (it leaps at you, a small ring on every landing).
+		-- Signature options, one per boss: ring `waves` (+ `waveGap` s, `waveSpeedUp` x), guards `heal` (meter share it
+		-- gets back if its guards outlast the call), charge `bounces` (it charges again at the top hitter) with
+		-- `sideways` + `backAndForth` (a crab's scuttle), spit `burst` { delay, radius, speed, push } (each puddle
+		-- bursts into a ring).
 		MOVES = table.freeze({
 			goozilla = table.freeze({
-				start = table.freeze({ table.freeze({ kind = "ring", radius = 22, speed = 22, push = 40 }) }),
+				-- signature: a double stomp, the second ring faster
+				start = table.freeze({
+					table.freeze({
+						kind = "ring",
+						radius = 22,
+						speed = 22,
+						push = 40,
+						waves = 2,
+						waveGap = 0.7,
+						waveSpeedUp = 1.4,
+					}),
+				}),
 				phase = table.freeze({ table.freeze({ kind = "spit", count = 3, slowSeconds = 6, slow = 0.5 }) }),
 			}),
 			queen_jelly = table.freeze({
-				start = table.freeze({ table.freeze({ kind = "guards", count = 3 }) }),
+				-- signature: royal guards; if they outlast the call she heals 15 % of the meter
+				start = table.freeze({ table.freeze({ kind = "guards", count = 3, heal = 0.15 }) }),
 				phase = table.freeze({ table.freeze({ kind = "cone", radius = 18, angle = 90, push = 45 }) }),
 			}),
 			mecha_goo = table.freeze({
+				-- signature: a ricochet charge, then it turns and rams the top hitter again
 				start = table.freeze({
-					table.freeze({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50 }),
+					table.freeze({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50, bounces = 1 }),
 				}),
 				phase = table.freeze({ table.freeze({ kind = "vent", multiplier = 5 }) }),
 			}),
 			klawdius = table.freeze({
 				start = table.freeze({
 					table.freeze({ kind = "cone", radius = 16, angle = 70, push = 35 }),
-					table.freeze({ kind = "charge", distance = 35, speed = 32, width = 7, push = 45 }),
+					-- signature: a sideways scuttle, back and forth three times
+					table.freeze({
+						kind = "charge",
+						distance = 24,
+						speed = 30,
+						width = 7,
+						push = 40,
+						sideways = true,
+						backAndForth = true,
+						bounces = 2,
+					}),
 				}),
 				phase = table.freeze({
 					table.freeze({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.55 }),
@@ -997,7 +1028,10 @@ local Config = {
 				}),
 			}),
 			pumpking = table.freeze({
-				start = table.freeze({ table.freeze({ kind = "ring", radius = 24, speed = 20, push = 40 }) }),
+				-- signature: bouncing stomps, three hops at you with a ring on every landing
+				start = table.freeze({
+					table.freeze({ kind = "hops", count = 3, distance = 7, radius = 12, speed = 24, push = 32 }),
+				}),
 				phase = table.freeze({
 					table.freeze({ kind = "guards", count = 3 }),
 					table.freeze({ kind = "vent", multiplier = 3 }),
@@ -1005,7 +1039,14 @@ local Config = {
 			}),
 			goomancer = table.freeze({
 				start = table.freeze({
-					table.freeze({ kind = "spit", count = 4, slowSeconds = 6, slow = 0.5 }),
+					-- signature: rune puddles that burst into a ring a moment after they land
+					table.freeze({
+						kind = "spit",
+						count = 4,
+						slowSeconds = 6,
+						slow = 0.5,
+						burst = table.freeze({ delay = 1.6, radius = 10, speed = 16, push = 35 }),
+					}),
 					table.freeze({ kind = "cone", radius = 20, angle = 100, push = 40 }),
 				}),
 				phase = table.freeze({

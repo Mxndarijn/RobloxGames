@@ -163,6 +163,20 @@ function BossTelegraph.start()
 				arc(to, BOSS.PUDDLE_RADIUS, 0, 2 * math.pi, 0.5, RED, 0.3)
 			end
 		end
+		-- Rune puddles: a red outline pulses faster and faster until each bursts into its own ring.
+		for _, rune in spots(model:GetAttribute(Constants.BOSS_RUNES_ATTRIBUTE)) do
+			local at = Vector3.new(rune[1], y, rune[2])
+			local burstAt, radius, speed = rune[3], rune[4], rune[5]
+			local left = burstAt - serverNow
+			if left > 0 then
+				arc(at, radius, 0, 2 * math.pi, 0.5, RED, 0.45 + 0.3 * math.sin(now * (6 + 12 / math.max(left, 0.2))))
+			else
+				local r = speed * -left
+				if r <= radius then
+					arc(at, math.max(r, 0.5), 0, 2 * math.pi, BOSS.RING_WIDTH, GOO, 0.1)
+				end
+			end
+		end
 		if not move then
 			return
 		end
@@ -179,17 +193,20 @@ function BossTelegraph.start()
 				if warn then
 					arc(centre, radius, 0, 2 * math.pi, 0.6, RED, pulse)
 				else
-					local r = (attack.speed or 20) * (since - BOSS.RING_DELAY)
-					if r > 0 and r <= radius then
-						arc(
-							Vector3.new(move.fx + move.ox, y, move.fz + move.oz),
-							r,
-							0,
-							2 * math.pi,
-							BOSS.RING_WIDTH,
-							GOO,
-							0.1
-						)
+					-- every wave of the stomp (a double stomp's second ring runs faster)
+					for _, wave in BossAttacks.waves(move, attack) do
+						local r = wave[2] * (serverNow - wave[1])
+						if r > 0 and r <= radius then
+							arc(
+								Vector3.new(move.fx + move.ox, y, move.fz + move.oz),
+								r,
+								0,
+								2 * math.pi,
+								BOSS.RING_WIDTH,
+								GOO,
+								0.1
+							)
+						end
 					end
 				end
 			elseif attack.kind == "cone" then
@@ -211,6 +228,18 @@ function BossTelegraph.start()
 				local from = Vector3.new(fx + move.ox, y, fz + move.oz)
 				local to = Vector3.new(ex + move.ox, y, ez + move.oz)
 				line(from, to, (attack.width or 8) + 2 * BossArea.BODY_RADIUS, RED, if warn then pulse + 0.2 else 0.4)
+			end
+		elseif move.kind == "hop" and attack then
+			-- a bouncing stomp: where it lands glows red in the air, then the ring runs out from there
+			local radius = attack.radius or 12
+			local landing = Vector3.new(move.tx + move.ox, y, move.tz + move.oz)
+			if since < BOSS.HOP_SECONDS then
+				arc(landing, radius, 0, 2 * math.pi, 0.6, RED, 0.35 + 0.2 * math.sin(now * 14))
+			else
+				local r = (attack.speed or 24) * (since - BOSS.HOP_SECONDS)
+				if r <= radius then
+					arc(landing, math.max(r, 0.5), 0, 2 * math.pi, BOSS.RING_WIDTH, GOO, 0.1)
+				end
 			end
 		elseif move.kind == "dazed" then
 			local top = centre + Vector3.new(0, model:GetExtentsSize().Y + 1, 0)

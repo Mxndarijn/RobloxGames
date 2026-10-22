@@ -135,6 +135,24 @@ function BossFxView.sync(world: World.World, model: Model?, origin: Vector3, gro
 			end
 			setAttr(model, Constants.BOSS_TARGETS_ATTRIBUTE, spotsText(targets))
 			setAttr(model, Constants.BOSS_SPITS_ATTRIBUTE, spotsText(spits))
+			local runes = {}
+			for _, p in event.puddles do
+				local burst = p.burst
+				if burst and p.burstAt then
+					table.insert(
+						runes,
+						string.format(
+							"%.2f,%.2f,%.3f,%.2f,%.2f",
+							p.x + origin.X,
+							p.z + origin.Z,
+							p.burstAt,
+							burst.radius or 10,
+							burst.speed or 16
+						)
+					)
+				end
+			end
+			setAttr(model, Constants.BOSS_RUNES_ATTRIBUTE, spotsText(runes))
 			local hit = event.lastHit
 			setAttr(model, Constants.BOSS_HIT_AT_ATTRIBUTE, hit and hit.at)
 			setAttr(model, Constants.BOSS_HIT_BY_ATTRIBUTE, hit and hit.userId)

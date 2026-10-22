@@ -461,6 +461,19 @@ local function bossPose(actor: Actor, move: BossChoreo.Move, t: number, now: num
 		mods.roll += 0.04 * math.sin(now * 40) * u
 		mods.tilt -= 0.08 * u
 		return "angry"
+	elseif kind == "hop" then
+		-- a bouncing stomp: stretched in the air, a splat on landing (its ring runs out from there)
+		if since < Config.BOSS.HOP_SECONDS then
+			mods.sy *= 1.12
+			mods.sx *= 0.94
+		elseif actor.bossKicked ~= move.n then
+			actor.bossKicked = move.n
+			Spring.kick(actor.squash, -1.3 * SlimeActor.SQUASH.kick)
+			if actor.splat then
+				actor.splat:Emit(16)
+			end
+		end
+		return "angry"
 	elseif kind == "attack" then
 		if move.fx ~= move.tx or move.fz ~= move.tz then
 			mods.tilt += 0.22 -- a charge: head down

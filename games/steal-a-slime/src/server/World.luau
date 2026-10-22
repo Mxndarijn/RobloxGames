@@ -107,6 +107,19 @@ export type Event = {
 	payload: { [string]: any }?, -- PvpEvent: the remote payload (CONTRACT.md §26.1)
 }
 
+-- A spit attack's `burst` (Config.BOSS.MOVES): its puddle bursts into a ring `delay` s after it lands.
+export type BossBurst = { delay: number?, radius: number?, speed: number?, push: number? }
+export type BossSpit = { x: number, z: number, landAt: number, seconds: number, slow: number, burst: BossBurst? }
+export type BossPuddle = {
+	x: number,
+	z: number,
+	untilAt: number,
+	slow: number,
+	burstAt: number?, -- a rune puddle: server time its ring starts
+	burst: BossBurst?,
+	struck: { [number]: boolean }, -- players its ring already hit
+}
+
 -- The running boss event: the pure fight and the wild boss slime once it has arrived.
 export type BossEvent = {
 	fight: BossFight.State,
@@ -115,11 +128,11 @@ export type BossEvent = {
 	rng: Rng.Rng, -- the boss's own choices (where it strolls), apart from world.rng
 	nextAttackAt: number, -- server time its next attack may wind up (math.huge while one runs)
 	attackIndex: number, -- rotation through BossAttacks.available
-	struck: { [number]: boolean }, -- players the current attack move already hit
+	struck: { [string]: boolean }, -- "<userId>:<part>" the current attack move already hit (a part: a ring's wave)
 	struckMove: number, -- the move number `struck` is for
 	targets: { { number } }, -- spit: plaza spots picked at the windup (they land there)
-	spits: { { x: number, z: number, landAt: number, seconds: number, slow: number } }, -- spit blobs in the air
-	puddles: { { x: number, z: number, untilAt: number, slow: number } }, -- goo puddles on the ground
+	spits: { BossSpit }, -- spit blobs in the air
+	puddles: { BossPuddle }, -- goo puddles on the ground
 	guards: { { x: number, z: number, alive: boolean } }, -- the guards of the current rise
 	lastHit: { userId: number, points: number, at: number }?, -- the latest counted bat hit (clients squash it, pop points)
 	rewarded: boolean, -- the win's victory shower has spilled
