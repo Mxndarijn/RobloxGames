@@ -35,10 +35,12 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local FountainColliders = require(script.Parent.FountainColliders)
 local Habitats = require(ReplicatedStorage.Shared.Habitats)
+local JarMeshes = require(ReplicatedStorage.Visuals.JarMeshes)
 local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
 local PetCloud = require(ReplicatedStorage.Visuals.PetCloud)
 local PvpModels = require(ReplicatedStorage.Shared.PvpModels)
 local Retry = require(ReplicatedStorage.Shared.Retry)
+local ThemeMeshes = require(ReplicatedStorage.Shared.ThemeMeshes)
 local VatDecor = require(ReplicatedStorage.Visuals.VatDecor)
 
 local MeshSwap = {}
@@ -52,6 +54,10 @@ local cache: { [string]: MeshPart | false } = {}
 -- Keys whose CreateMeshPartAsync is running, with the threads waiting for it: a second ask for the same template
 -- waits for the first fetch instead of starting its own.
 local inflight: { [string]: { thread } } = {}
+
+-- The mesh child of a swapped slot ("Mesh", or a companion's "ThemeExtra") carries the name it shows in this attribute.
+MeshSwap.LOOK_ATTRIBUTE = "MeshLook"
+MeshSwap.EXTRA_NAME = "ThemeExtra"
 
 -- `fidelity` (an Enum.CollisionFidelity name, MeshAssets.collision) goes into the CreateMeshPartAsync options: a game
 -- script cannot write MeshPart.CollisionFidelity afterwards, and clones keep the collision made here. One template per
@@ -218,6 +224,76 @@ local function swapFountainSplit(target: BasePart, name: string, scope: Instance
 	return true
 end
 
+-- The plot skin of the plot `inst` stands in (Plot_<i>.PlotSkin), or nil outside the plots.
+local function skinOf(inst: Instance): any
+	local plots = workspace:FindFirstChild("Plots")
+	local node: Instance? = inst
+	while node and node.Parent ~= plots do
+		node = node.Parent
+	end
+	return if node and plots then node:GetAttribute(Constants.PLOT_SKIN_ATTRIBUTE) else nil
+end
+
+local function uploaded(name: string): boolean
+	return MeshAssets.meshId(name) ~= nil
+end
+
+-- The mesh a slot for `name` shows: its plot skin's themed piece when that is uploaded, else `name`.
+local function lookOf(target: Instance, name: string): string
+	return ThemeMeshes.look(name, skinOf(target), uploaded)
+end
+
+-- A mascot slot with the crown beside it (the last jar, WorldLayout jarLooks): no hat there.
+local function crowned(target: Instance): boolean
+	local parent = target.Parent
+	if not (parent and target:GetAttribute("MeshAsset") == "goo_jar_mascot") then
+		return false
+	end
+	for _, sibling in parent:GetChildren() do
+		if sibling:GetAttribute("MeshAsset") == "goo_jar_crown" then
+			return true
+		end
+	end
+	return false
+end
+
+-- A theme's companion mesh on a piece slot (the props on the foot, the hat on each mascot), as the slot's
+-- ThemeExtra child: placed from the JarMeshes boxes, hidden while the slot's jar is (JarHidden, BaseFloors). Yields.
+local function addCompanion(target: BasePart, name: string)
+	local extra = target:FindFirstChild(MeshSwap.EXTRA_NAME)
+	if extra then
+		extra:Destroy()
+	end
+	local companion = ThemeMeshes.companion(name, skinOf(target), uploaded)
+	if crowned(target) then
+		companion = nil -- the last jar's mascot wears the crown instead of the theme's hat
+	end
+	local piece = (JarMeshes :: any)[name]
+	local box = companion and (JarMeshes :: any)[companion]
+	local meshId = companion and MeshAssets.meshId(companion)
+	local base = meshId and template(meshId)
+	if not (base and piece and box) then
+		return
+	end
+	local size, offset = ThemeMeshes.place(piece, box, target.Size.X / piece.size[1])
+	local mesh = base:Clone()
+	mesh.Name = MeshSwap.EXTRA_NAME
+	mesh:SetAttribute(MeshSwap.LOOK_ATTRIBUTE, companion)
+	mesh.Size = Vector3.new(size[1], size[2], size[3])
+	mesh.CFrame = target.CFrame
+		* CFrame.new(offset[1], offset[2], offset[3])
+		* CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
+	mesh.Anchored = true
+	mesh.CanCollide = false
+	mesh.CanQuery = false
+	mesh.CanTouch = false
+	mesh.CastShadow = target:GetAttribute("MeshCastShadow") ~= false
+	if target:GetAttribute("JarHidden") == true then
+		mesh.Transparency = 1
+	end
+	mesh.Parent = target
+end
+
 -- A part slot or a whole Model (WorldProps skins: its parts keep collision,
 -- prompts and SurfaceGuis, only their look is hidden).
 local function swap(target: BasePart | Model, name: string, scope: Instance): boolean
@@ -232,12 +308,19 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 			return true
 		end
 	end
-	local meshId = MeshAssets.meshId(name)
+	-- under a plot skin a jar slot shows the themed piece (ThemeMeshes); collision and stand-ins stay the piece's own.
+	-- The template load yields: if the plot's skin changed meanwhile, load the new look; if another swap placed a
+	-- mesh meanwhile, leave it.
 	local fidelity = MeshAssets.collision(name)
-	local base = meshId and template(meshId, fidelity)
-	if not base then
-		return false
-	end
+	local look: string, base: MeshPart?
+	repeat
+		look = lookOf(target, name)
+		local meshId = MeshAssets.meshId(look)
+		base = meshId and template(meshId, fidelity)
+		if not base or target:FindFirstChild("Mesh") then
+			return false
+		end
+	until lookOf(target, name) == look
 	local cf, box
 	local fixed = nil
 	if target:IsA("Model") then
@@ -261,11 +344,12 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 		-- Model's bounding box is the primitive prop's, not the mesh's, and
 		-- stretching to it squashed the board 3.08:1 (WorldLayout slots are
 		-- native x scale already, so they fit exactly).
-		local fit, _, below = MeshAssets.fit(name, { box.X, box.Y, box.Z })
+		local fit, _, below = MeshAssets.fit(look, { box.X, box.Y, box.Z })
 		size, drop = fit, below
 	end
-	local mesh = base:Clone()
+	local mesh = (base :: MeshPart):Clone() -- the loop above only ends with a template
 	mesh.Name = "Mesh"
+	mesh:SetAttribute(MeshSwap.LOOK_ATTRIBUTE, look)
 	mesh.Size = Vector3.new(size[1], size[2], size[3])
 	-- WorldLayout slots (Parts) assume the kit's documented axes; turn the
 	-- imported mesh back onto them (MeshAssets.IMPORT_YAW, about the box's own
@@ -330,6 +414,9 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	end
 	hideStandIns(scope, name)
 	mesh.Parent = target
+	if target:IsA("BasePart") then
+		addCompanion(target, name)
+	end
 	if target:GetAttribute("MeshStandInsCollide") == false then
 		MeshSwap.setMeshCollision(scope, name, true)
 	end
@@ -626,6 +713,37 @@ end
 function MeshSwap.applyUnder(instances: { Instance }): number
 	local plots = workspace:FindFirstChild("Plots")
 	return if plots then applyTo(instances, plots) else 0
+end
+
+-- After `plot`'s PlotSkin changed (claim, equip, leave): every swapped slot under it whose look is not what the skin
+-- wants now gets the right mesh and companion (CONTRACT.md §15). The new template loads before the old mesh goes, so
+-- a failed load keeps the old look. Slots not swapped yet get the skin's look when MeshSwap reaches them. Yields;
+-- returns how many slots changed.
+function MeshSwap.themePlot(plot: Instance): number
+	local count = 0
+	for _, slot in plot:GetDescendants() do
+		local name = slot:GetAttribute("MeshAsset")
+		local mesh = slot:FindFirstChild("Mesh")
+		if not (slot:IsA("BasePart") and typeof(name) == "string" and mesh) then
+			continue
+		end
+		local want = lookOf(slot, name)
+		local extra = slot:FindFirstChild(MeshSwap.EXTRA_NAME)
+		local companion = if crowned(slot) then nil else ThemeMeshes.companion(name, skinOf(slot), uploaded)
+		local hasExtra = if extra then extra:GetAttribute(MeshSwap.LOOK_ATTRIBUTE) else nil
+		if (mesh :: Instance):GetAttribute(MeshSwap.LOOK_ATTRIBUTE) == want and hasExtra == companion then
+			continue
+		end
+		local meshId = MeshAssets.meshId(want)
+		if not (meshId and template(meshId, MeshAssets.collision(name))) then
+			continue
+		end
+		mesh:Destroy()
+		if swap(slot :: BasePart, name, plot) then
+			count += 1
+		end
+	end
+	return count
 end
 
 -- Returns how many placeholders got a mesh.
