@@ -243,8 +243,10 @@ boss: {
 - `workspace.BossFx`: one guard model per live guard (attribute `BossGuard = true`) and one goo puddle per puddle. A
   guard is a mini copy of its boss (`BOSS.GUARD_SIZE` across), built by WorldView's slime model factory from the boss's
   own slime data (`BossFxView.sync`'s `look`), with every slime tag removed so nothing treats it as a slime; it faces
-  away from the boss. Without a factory (tests, a failed build) it is the plain crowned ball. Clients make guards hop
-  in place, out of step with each other (`BossTelegraph`).
+  away from the boss. Without a factory (tests, a failed build) it is the plain crowned ball. Every guard and puddle
+  stands on the floor right under it (`WorldView.bossFloor`, the probe `bossExposed` uses), the guard's lowest point
+  (tentacles, feet) on it. Clients make guards hop in place, at most 0.9 studs, out of step with each other
+  (`BossTelegraph`, from the pivot the server placed).
 - Boss model attributes: `BossTargets` ("x,z;..." world spots a spit windup will hit), `BossSpits` ("x,z,landAt;..."),
   `BossRunes` ("x,z,burstAt,radius,speed;..." rune puddles that burst into a ring),
   `BossHitAt` / `BossHitBy` / `BossHitPoints` (the latest counted bat hit: the boss squashes, the hitter sees a "+n").

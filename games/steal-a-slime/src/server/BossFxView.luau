@@ -82,6 +82,12 @@ local function buildLookGuard(index: number, at: Vector3, face: Vector3, look: L
 	local away = Vector3.new(2 * at.X - face.X, at.Y, 2 * at.Z - face.Z)
 	local base = CFrame.lookAt(at, away)
 	model:PivotTo(base)
+	-- stand it on the floor: its lowest point (tentacles, feet), not its pivot, touches `at`
+	local box, size = model:GetBoundingBox()
+	local lift = at.Y - (box.Position.Y - size.Y / 2)
+	if math.abs(lift) > 0.01 then
+		model:PivotTo(base + Vector3.new(0, lift, 0))
+	end
 	model:SetAttribute(Constants.BOSS_GUARD_ATTRIBUTE, true)
 	model:SetAttribute("GuardBaseY", at.Y)
 	model.Parent = folder()
@@ -141,7 +147,9 @@ end
 
 --[[
 	`model` is the boss model (nil = none in the world), `origin` the plaza origin, `groundY` the plaza's ground
-	height, `color` the boss's colour, `look` how to build its guards as mini copies of it (nil = plain balls).
+	height, `color` the boss's colour, `look` how to build its guards as mini copies of it (nil = plain balls),
+	`floorAt` the floor height at a world x / z (each guard and puddle stands on the floor right under it; nil =
+	`groundY` everywhere).
 ]]
 function BossFxView.sync(
 	world: World.World,
@@ -149,8 +157,13 @@ function BossFxView.sync(
 	origin: Vector3,
 	groundY: number,
 	color: Color3?,
-	look: Look?
+	look: Look?,
+	floorAt: ((x: number, z: number) -> number?)?
 )
+	local function floorY(x: number, z: number): number
+		local y = if floorAt then floorAt(x, z) else nil
+		return y or groundY
+	end
 	local event = world.boss
 	local liveGuards: { [string]: boolean } = {}
 	local livePuddles: { [string]: boolean } = {}
@@ -161,8 +174,8 @@ function BossFxView.sync(
 				local key = string.format("%.2f|%.2f", g.x, g.z) -- a new guard call never reuses an old model
 				liveGuards[key] = true
 				if not guards[key] or not guards[key].Parent then
-					guards[key] =
-						buildGuard(i, Vector3.new(g.x + origin.X, groundY, g.z + origin.Z), bossAt, color or GOO, look)
+					local x, z = g.x + origin.X, g.z + origin.Z
+					guards[key] = buildGuard(i, Vector3.new(x, floorY(x, z), z), bossAt, color or GOO, look)
 				end
 			end
 		end
@@ -170,7 +183,8 @@ function BossFxView.sync(
 			local key = string.format("%.2f|%.2f|%.2f", p.x, p.z, p.untilAt)
 			livePuddles[key] = true
 			if not puddles[key] then
-				puddles[key] = buildPuddle(Vector3.new(p.x + origin.X, groundY, p.z + origin.Z))
+				local x, z = p.x + origin.X, p.z + origin.Z
+				puddles[key] = buildPuddle(Vector3.new(x, floorY(x, z), z))
 			end
 		end
 		if model then
