@@ -112,7 +112,14 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 		airborne = function(userId: number): boolean
 			local root = rootOf(userId)
 			local humanoid = root and root.Parent and root.Parent:FindFirstChildOfClass("Humanoid")
-			return humanoid ~= nil and humanoid.FloorMaterial == Enum.Material.Air
+			if not humanoid then
+				return false
+			end
+			-- a character the engine can't answer for counts as on the ground (never stops the boss loop)
+			local ok, floor = pcall(function()
+				return humanoid.FloorMaterial
+			end)
+			return ok and floor == Enum.Material.Air
 		end,
 		-- The boss's plaza coordinates are round the fountain centre (BossEvent.Context).
 		plazaOrigin = function()
