@@ -17,7 +17,8 @@
 ]]
 
 export type Opts = {
-	locked: boolean?,
+	locked: boolean?, -- the dark silhouette (an unknown SlimeDex species)
+	greyed: boolean?, -- every colour washed to grey: a known slime you don't have (a rebirth's missing slime)
 }
 
 local SlimePreview = {}
@@ -27,6 +28,14 @@ local SlimePreview = {}
 SlimePreview.MAX_LIVE = 24
 
 SlimePreview.SILHOUETTE = Color3.fromRGB(28, 30, 38)
+SlimePreview.GREYED = Color3.fromRGB(150, 156, 160) -- the body of a greyed ball preview
+
+-- `color` washed to grey, keeping its lightness so the slime's markings still read.
+function SlimePreview.greyOf(color: Color3): Color3
+	local l = 0.3 * color.R + 0.59 * color.G + 0.11 * color.B
+	local v = 0.35 + 0.4 * l
+	return Color3.new(v, v, v)
+end
 
 local WHITE = Color3.fromRGB(245, 248, 255)
 local INK = Color3.fromRGB(20, 22, 30)
@@ -107,7 +116,8 @@ function SlimePreview.build(colorRgb: { number }, opts: Opts?): Model
 	local locked = opts ~= nil and opts.locked == true
 	local model = templateFor(locked):Clone()
 	local body = model:FindFirstChild("Body") :: Part
-	body.Color = if locked then SlimePreview.SILHOUETTE else rgb(colorRgb)
+	local greyed = opts ~= nil and opts.greyed == true
+	body.Color = if locked then SlimePreview.SILHOUETTE elseif greyed then SlimePreview.GREYED else rgb(colorRgb)
 	return model
 end
 
@@ -143,11 +153,12 @@ end
 -- Puts an already built slime Model (Visuals.ModelFactory: pivot at the
 -- bottom centre, front = -Z) into `viewport`, framed from the front-above.
 -- Every part is anchored (a viewport runs no physics) and lights /
--- sparkles are dropped; `locked` paints it as the dark silhouette. Returns
+-- sparkles are dropped; `locked` paints it as the dark silhouette, `greyed` washes every part to grey. Returns
 -- false on failure (caller falls back to SlimePreview.mount).
 function SlimePreview.mountModel(viewport: Instance, model: Model, opts: Opts?): boolean
 	local ok, err = pcall(function()
 		local locked = opts ~= nil and opts.locked == true
+		local greyed = opts ~= nil and opts.greyed == true
 		for _, inst in model:GetDescendants() do
 			if inst:IsA("BasePart") then
 				local part = inst :: BasePart
@@ -155,6 +166,9 @@ function SlimePreview.mountModel(viewport: Instance, model: Model, opts: Opts?):
 				if locked then
 					part.Color = SlimePreview.SILHOUETTE
 					part.Material = Enum.Material.SmoothPlastic
+					part.Reflectance = 0
+				elseif greyed then
+					part.Color = SlimePreview.greyOf(part.Color)
 					part.Reflectance = 0
 				end
 			elseif inst:IsA("Light") or inst:IsA("Sparkles") or inst:IsA("ParticleEmitter") then

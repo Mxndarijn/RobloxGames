@@ -1,6 +1,7 @@
 --!strict
 -- The goo jar tower's drop tube (CONTRACT.md §5.3): every upper jar has a DropHatch on the back with a tube down to
--- the splash pool outside the moat. Only the plot's owner may take it, and not while carrying a slime.
+-- the splash pool outside the moat. Only the plot's owner may take it, from inside the top jar, and not while carrying
+-- a slime.
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
@@ -10,10 +11,20 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
+-- An owner with jar 2 standing (one full floor of pads), stood in jar `f` at radius `r` (plot-local, the drop
+-- hatch's side), root 3 studs over that floor.
+local TOP = 2
+local function at(f: number, r: number): { number }
+	local a = math.rad(WorldLayout.DROP_ANGLE)
+	return { r * math.cos(a), WorldLayout.floorTop(f) + 3, r * math.sin(a) }
+end
+
 local function setup()
 	local world = ServerFixtures.world()
 	local session = ServerFixtures.join(world, 1, { Fixtures.slime("a") })
+	session.data.padsUnlocked = Config.PADS_PER_FLOOR * (TOP - 1)
 	local drops: { { number } } = {}
+	local stand: { number }? = at(TOP, WorldLayout.jarRadius(TOP) - 3)
 	local ctx: Actions.Context = {
 		distanceBetween = function()
 			return 2
@@ -25,8 +36,14 @@ local function setup()
 			table.insert(drops, { userId, plotIndex })
 			return true
 		end,
+		plotPointOf = function(): { number }?
+			return stand
+		end,
 	}
-	return world, session, ctx, drops
+	local function standAt(p: { number }?)
+		stand = p
+	end
+	return world, session, ctx, drops, standAt
 end
 
 local function notices(world: any, userId: number): { any }
@@ -63,6 +80,32 @@ describe("Actions.useDropTube", function()
 		expect(#said).toBe(1)
 		expect(said[1].kind).toBe("bad")
 	end)
+	it("refuses an owner outside the top jar's glass, on the deck ledge over the jar below, with a toast", function()
+		local world, session, ctx, drops, standAt = setup()
+		local ledge = (WorldLayout.jarRadius(TOP) + WorldLayout.JAR_WALL + WorldLayout.jarRadius(TOP - 1)) / 2
+		expect(ledge > WorldLayout.jarRadius(TOP) + WorldLayout.JAR_WALL).toBe(true)
+		standAt(at(TOP, ledge))
+		expect(Actions.useDropTube(world, 1, session.plotIndex, ctx).ok).toBe(false)
+		expect(#drops).toBe(0)
+		local said = notices(world, 1)
+		expect(#said).toBe(1)
+		expect(said[1].kind).toBe("bad")
+	end)
+	it("refuses an owner in a lower jar, under the top jar's hatch", function()
+		local world, session, ctx, drops, standAt = setup()
+		standAt(at(TOP - 1, WorldLayout.jarRadius(TOP) - 3))
+		expect(Actions.useDropTube(world, 1, session.plotIndex, ctx).ok).toBe(false)
+		expect(#drops).toBe(0)
+	end)
+	it("refuses with only jar 1 standing, and with no character to place", function()
+		local world, session, ctx, drops, standAt = setup()
+		standAt(nil)
+		expect(Actions.useDropTube(world, 1, session.plotIndex, ctx).ok).toBe(false)
+		standAt(at(1, 10))
+		session.data.padsUnlocked = 0
+		expect(Actions.useDropTube(world, 1, session.plotIndex, ctx).ok).toBe(false)
+		expect(#drops).toBe(0)
+	end)
 	it("refuses with no world to move the character in, and for a player who is not loaded", function()
 		local world, session, ctx = setup()
 		ctx.dropDown = nil
@@ -93,6 +136,25 @@ describe("drop tube geometry", function()
 			expect(named(parts, "SplashPool") ~= nil).toBe(f == 2)
 		end
 	end)
+	it(
+		"shields the hatch from outside the glass: queryable, invisible, never collides, either side of the hatch",
+		function()
+			for f = 2, #Config.BASE_FLOORS do
+				local shields = 0
+				for _, node in WorldLayout.floor(1, f)[1].children do
+					if string.match(node.name, "^DropShield_%d$") then
+						shields += 1
+						expect(node.canQuery ~= false).toBe(true)
+						expect(node.canCollide).toBe(false)
+						expect(node.transparency).toBe(1)
+					end
+				end
+				expect(shields).toBe(2)
+			end
+			local angles = WorldLayout.dropShieldAngles()
+			expect(angles[1] < WorldLayout.DROP_ANGLE and WorldLayout.DROP_ANGLE < angles[2]).toBe(true)
+		end
+	)
 	it("runs the tube outside jar 1's glass and inside the plot, and lands in the goo moat", function()
 		local tube = WorldLayout.DROP_TUBE
 		expect(tube.radius - tube.width / 2 > WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL).toBe(true)

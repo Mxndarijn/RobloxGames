@@ -4,14 +4,16 @@
 
 	Attribute-driven plot cosmetics. WorldLayout ships the parts (anchored,
 	non-colliding, CanQuery off) in their neutral state; VisualsClient calls
-	PlotDecor.apply(plot, workspace:GetServerTimeNow()) a few times a second
-	and only changes them locally (nothing replicates, no remotes).
+	PlotDecor.apply(plot, workspace:GetServerTimeNow(), viewerUserId) a few times
+	a second and only changes them locally (nothing replicates, no remotes).
+	The shut door shows half see-through (OWNER_DOOR_TRANSPARENCY) to the plot's
+	owner only (viewerUserId == OwnerUserId), who walks through it.
 
 	Plot attributes read (CONTRACT.md §5.2 + new ones, all optional):
 	  OwnerUserId  0 = free      -> LockSign shows no text
 	  LockUntil    server time   -> LockBarrier stopper / ParkedStopper + LockSign "LOCKED m:ss" / "UNLOCKED"
 	  Locked       boolean (§8.4) -> used only when LockUntil is missing
-	Rebirths never change the base: nothing here reads the Rebirths attribute.
+	Rebirths never change the base.
 
 	PlotDecor.locked(lockUntil, now) / clock(seconds) are pure
 	(Lune-safe, used by the render proof).
@@ -30,6 +32,8 @@ local PlotDecor = {}
 PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
 PlotDecor.UNLOCKED_COLOR = { 90, 220, 110 }
 PlotDecor.FREE_COLOR = { 255, 205, 60 }
+-- The locked door as the plot's owner sees it: they pass through it, so it shows half see-through.
+PlotDecor.OWNER_DOOR_TRANSPARENCY = 0.5
 
 function PlotDecor.locked(lockUntil: number?, now: number): (boolean, number)
 	local remaining = (lockUntil or 0) - now
@@ -102,20 +106,21 @@ local function lookMesh(plot: Instance, name: string): BasePart?
 	return if mesh and mesh:IsA("BasePart") then mesh else nil
 end
 
-local function applyLock(plot: Instance, owned: boolean, locked: boolean, remaining: number)
+local function applyLock(plot: Instance, owned: boolean, locked: boolean, remaining: number, mine: boolean)
 	local shut = owned and locked
+	local door = if mine then PlotDecor.OWNER_DOOR_TRANSPARENCY else nil
 	local barrier = plot:FindFirstChild("LockBarrier")
 	-- With the stopper meshes in, they are the look (the Stopper box stays the invisible collider); before they land,
 	-- the primitive stopper and parked stopper show.
 	local meshes = lookMesh(plot, "StopperShut")
 	if barrier then
 		for _, part in barrier:GetChildren() do
-			show(part, shut and meshes == nil)
+			show(part, shut and meshes == nil, door)
 		end
 	end
 	show(plot:FindFirstChild("ParkedStopper"), not shut and meshes == nil)
 	if meshes then
-		show(meshes, shut)
+		show(meshes, shut, door)
 		show(lookMesh(plot, "StopperParked"), not shut)
 	end
 	local ring = lookMesh(plot, "DoorRing")
@@ -271,8 +276,8 @@ function PlotDecor.applySkinDecor(slot: Instance?, meshName: string?, templates:
 	end
 end
 
--- Applies every cosmetic of one Plot_<i> model for server time `now`.
-function PlotDecor.apply(plot: Instance, now: number)
+-- Applies every cosmetic of one Plot_<i> model for server time `now`, as player `viewerUserId` sees it.
+function PlotDecor.apply(plot: Instance, now: number, viewerUserId: number?)
 	local owner = plot:GetAttribute("OwnerUserId")
 	local owned = type(owner) == "number" and owner ~= 0
 	local lockUntil = plot:GetAttribute("LockUntil")
@@ -280,7 +285,7 @@ function PlotDecor.apply(plot: Instance, now: number)
 	if type(lockUntil) ~= "number" and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) == true then
 		locked = true
 	end
-	applyLock(plot, owned, locked, remaining)
+	applyLock(plot, owned, locked, remaining, owned and owner == viewerUserId)
 end
 
 return table.freeze(PlotDecor)

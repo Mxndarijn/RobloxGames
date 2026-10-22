@@ -17,7 +17,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 -- (the terrain itself adds none).
 local BASELINE_MESH_SLOTS = 397 -- the goo jar tower's 9 look slots a plot (foot, glass, trim, mascot, door, ring, two stoppers, button; no SlimeDex board), the border's 86 slots, the Upgrade Shop stand (CONTRACT.md §27.2), the Guide skin and its 6-prop corner, the floor's deck and boardwalk and the sand yard's dressing (YardProps: 66 props) included
 -- Part nodes outside Map.Border: 1332 (main, after the SlideExit strip went) minus the 41 path / plaza parts that became GroundTerrain voxels, minus the 40 invisible plot Wall* blocks (bug #11).
-local BASELINE_PARTS = 1247 -- the goo jar tower plots (12 collision segments + door jambs, the look slots, a lamp per jar, a round PadCollider per pad, the round PlotFloor; the SlimeDex board and the rebirth decor gone) + the Guide's 6-prop corner + 1251 + the B11 floor (FloorLayout: 3 field discs, plaza disc, 2 mesh slots, 8 gate ramps, 32 lawn blocks) and the meadow it moved + the sand yard's 66 props (YardProps) minus the scattered rocks / mushrooms that made room
+local BASELINE_PARTS = 1255 -- the goo jar tower plots (12 collision segments + door jambs, the open door collider, the look slots, a lamp per jar, a round PadCollider per pad, the round PlotFloor; the SlimeDex board and the rebirth decor gone) + the Guide's 6-prop corner + 1251 + the B11 floor (FloorLayout: 3 field discs, plaza disc, 2 mesh slots, 8 gate ramps, 32 lawn blocks) and the meadow it moved + the sand yard's 66 props (YardProps) minus the scattered rocks / mushrooms that made room
 
 local field = BorderTerrain.field()
 local INNER = BorderTerrain.INNER
