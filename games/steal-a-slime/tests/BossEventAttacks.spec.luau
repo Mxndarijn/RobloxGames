@@ -148,7 +148,7 @@ describe("BossEvent attacks", function()
 		wild.move = BossChoreo.hold("look", wild.move, t, 0.05)
 		w.boss.nextAttackAt = t
 		w.boss.attackIndex = 1 -- the second available attack: Goozilla's spit (its phase attack)
-		w.boss.fight.points = BOSS.POINTS_PER_PLAYER * BOSS.PHASE_AT -- the phase is on
+		w.boss.fight.points = BOSS.POINTS_PER_PLAYER * BOSS.PHASE_AT + 2 -- the phase is on (with room for the drain)
 		w.boss.fight.shed = 2
 		BossEvent.step(w, t + 0.1, ctx)
 		expect(wild.move.kind).toBe("windup")

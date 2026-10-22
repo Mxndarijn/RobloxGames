@@ -63,7 +63,13 @@ local function buildGuard(index: number, at: Vector3, face: Vector3, color: Colo
 		local eye = part("Eye", Enum.PartType.Ball, Vector3.one * s * 0.22, Color3.fromRGB(25, 25, 35), model)
 		eye.CFrame = cf * CFrame.new(side * s * 0.18, s * 0.08, -s * 0.42)
 	end
-	local crown = part("Crown", Enum.PartType.Cylinder, Vector3.new(s * 0.18, s * 0.5, s * 0.5), Color3.fromRGB(255, 205, 70), model)
+	local crown = part(
+		"Crown",
+		Enum.PartType.Cylinder,
+		Vector3.new(s * 0.18, s * 0.5, s * 0.5),
+		Color3.fromRGB(255, 205, 70),
+		model
+	)
 	crown.Material = Enum.Material.Neon
 	crown.CFrame = cf * CFrame.new(0, s * 0.46, 0) * CFrame.Angles(0, 0, math.pi / 2)
 	model.PrimaryPart = body
@@ -106,7 +112,8 @@ function BossFxView.sync(world: World.World, model: Model?, origin: Vector3, gro
 				local key = string.format("%.2f|%.2f", g.x, g.z) -- a new guard call never reuses an old model
 				liveGuards[key] = true
 				if not guards[key] or not guards[key].Parent then
-					guards[key] = buildGuard(i, Vector3.new(g.x + origin.X, groundY, g.z + origin.Z), bossAt, color or GOO)
+					guards[key] =
+						buildGuard(i, Vector3.new(g.x + origin.X, groundY, g.z + origin.Z), bossAt, color or GOO)
 				end
 			end
 		end

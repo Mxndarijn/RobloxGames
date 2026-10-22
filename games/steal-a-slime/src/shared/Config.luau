@@ -982,7 +982,9 @@ local Config = {
 				phase = table.freeze({ table.freeze({ kind = "cone", radius = 18, angle = 90, push = 45 }) }),
 			}),
 			mecha_goo = table.freeze({
-				start = table.freeze({ table.freeze({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50 }) }),
+				start = table.freeze({
+					table.freeze({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50 }),
+				}),
 				phase = table.freeze({ table.freeze({ kind = "vent", multiplier = 5 }) }),
 			}),
 		}),

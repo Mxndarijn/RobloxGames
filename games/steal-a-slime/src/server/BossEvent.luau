@@ -253,7 +253,13 @@ local function speedOf(event: World.BossEvent): number
 end
 
 -- A spit's landing spots, picked at its windup: the players nearest the boss, then spots round it.
-local function spitTargets(event: World.BossEvent, players: { { number } }, x: number, z: number, count: number): { { number } }
+local function spitTargets(
+	event: World.BossEvent,
+	players: { { number } },
+	x: number,
+	z: number,
+	count: number
+): { { number } }
 	local sorted = table.clone(players)
 	table.sort(sorted, function(a, b)
 		return (a[1] - x) ^ 2 + (a[2] - z) ^ 2 < (b[1] - x) ^ 2 + (b[2] - z) ^ 2
@@ -320,9 +326,7 @@ local function advance(world: World, event: World.BossEvent, now: number, all: {
 		local start = if now - endAt < 0.5 then endAt else now
 		local players, target = fighters(event, all, move.tx, move.tz)
 		local slots = BossAttacks.available(species, BossFight.meter(event.fight, playerCount(world)))
-		local due = if start >= event.nextAttackAt and #slots > 0
-			then slots[event.attackIndex % #slots + 1]
-			else nil
+		local due = if start >= event.nextAttackAt and #slots > 0 then slots[event.attackIndex % #slots + 1] else nil
 		local prev = move
 		move = BossChoreo.after(prev, {
 			now = start,
@@ -466,7 +470,13 @@ function BossEvent.step(world: World, now: number, ctx: Context?)
 		end
 		if helpers > 0 then
 			Spawner.spawnBonus(world, now, helpers * BOSS.WIN_SHOWER, BOSS.DROP_LUCK)
-			World.notify(world, nil, "Victory shower! Lucky slimes spill from the fountain for the team!", "good", "Rain")
+			World.notify(
+				world,
+				nil,
+				"Victory shower! Lucky slimes spill from the fountain for the team!",
+				"good",
+				"Rain"
+			)
 		end
 	end
 	local t0 = event.lastStepAt

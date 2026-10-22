@@ -181,7 +181,15 @@ function BossTelegraph.start()
 				else
 					local r = (attack.speed or 20) * (since - BOSS.RING_DELAY)
 					if r > 0 and r <= radius then
-						arc(Vector3.new(move.fx + move.ox, y, move.fz + move.oz), r, 0, 2 * math.pi, BOSS.RING_WIDTH, GOO, 0.1)
+						arc(
+							Vector3.new(move.fx + move.ox, y, move.fz + move.oz),
+							r,
+							0,
+							2 * math.pi,
+							BOSS.RING_WIDTH,
+							GOO,
+							0.1
+						)
 					end
 				end
 			elseif attack.kind == "cone" then
@@ -212,7 +220,6 @@ function BossTelegraph.start()
 			end
 		end
 	end
-
 
 	local self = {}
 

@@ -57,8 +57,8 @@ function BossMeterLogic.view(boss: any, now: number): View?
 		elseif moveLive and boss.move == "dazed" then
 			yours = `DAZED! Every hit counts x{boss.multiplier or 3}. Go go go!`
 		elseif moveLive and boss.move == "rise" then
-			local left = if type(boss.guardsLeft) == "number" then boss.guardsLeft else 0
-			yours = `It's out of reach! Bonk its guards: {left} left.`
+			local guards = if type(boss.guardsLeft) == "number" then boss.guardsLeft else 0
+			yours = `It's out of reach! Bonk its guards: {guards} left.`
 		elseif moveLive and (boss.move == "windup" or boss.move == "attack") then
 			yours = "Watch out! Get out of the red!"
 		end

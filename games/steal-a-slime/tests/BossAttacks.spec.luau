@@ -11,7 +11,14 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local BOSS = Config.BOSS
 local T0 = 1000
 
-local function attackMove(kind: string, fx: number, fz: number, tx: number, tz: number, seconds: number): BossChoreo.Move
+local function attackMove(
+	kind: string,
+	fx: number,
+	fz: number,
+	tx: number,
+	tz: number,
+	seconds: number
+): BossChoreo.Move
 	return {
 		n = 5,
 		kind = kind :: any,
@@ -63,7 +70,9 @@ describe("BossAttacks.strikes", function()
 		local player = { x = 10, z = 0, airborne = false }
 		expect(BossAttacks.strikes(move, ring, T0, at10 - 0.2, player)).toBe(false) -- not there yet
 		expect(BossAttacks.strikes(move, ring, at10 - 0.02, at10 + 0.02, player)).toBe(true)
-		expect(BossAttacks.strikes(move, ring, at10 - 0.02, at10 + 0.02, { x = 10, z = 0, airborne = true })).toBe(false)
+		expect(BossAttacks.strikes(move, ring, at10 - 0.02, at10 + 0.02, { x = 10, z = 0, airborne = true })).toBe(
+			false
+		)
 		expect(BossAttacks.strikes(move, ring, at10 + 0.3, at10 + 0.35, player)).toBe(false) -- it has passed
 		expect(BossAttacks.strikes(move, ring, T0, T0 + 5, { x = 30, z = 0 })).toBe(false) -- past its radius
 	end)
