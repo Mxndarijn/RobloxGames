@@ -31,9 +31,13 @@
 	v7: v6 minus everything mutation related: slimes[i].mutation / .mutations, the Dex `stamps` and
 	`stampRewards`, the MutationSpray consumable and the RainMagnet upgrade level. v6 -> v7 (migrateV6) strips them
 	from the stored table; pure, idempotent. Unknown or legacy values never error.
-	v8 (current): Goo Traps are charges, not an owned tier: pvp.traps = { [GooTrapN] = charges }. v7 -> v8
+	v8: Goo Traps are charges, not an owned tier: pvp.traps = { [GooTrapN] = charges }. v7 -> v8
 	(migrateV7) turns an owned trap tier (pvp.tiers.Trap = n) into Config.PVP.TRAP_MAX_HELD charges of GooTrap<n>
 	and drops tiers.Trap; pure, idempotent.
+	v9 (current): the boss record `boss = { hits, wins = { [species] = n }, hauls, mvps, badges = { [key] = unix } }`
+	(BossBadges, contract/boss-event.md) replaces the boss trophy list `trophies`. v8 -> v9 (migrateV8) turns each
+	trophy of a boss species into wins[species] = 1 and drops `trophies`; pure, idempotent. deserialize grants the
+	badges the record has reached (stamped with lastOnline) and counts every won boss species as found.
 	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, speciesRewards = milestones paid;
 	missing -> empty / 0, unknown ids dropped, owned slimes always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
 	pvp (FEATURES.PvP, CONTRACT.md §26) is optional: { tiers = { Knockback = tier, Blaster = tier }, traps = { [id] = charges },
@@ -50,6 +54,7 @@
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local EggKind = if script then require(script.Parent.EggKind) else require("./EggKind")
 local AudioSettings = if script then require(script.Parent.AudioSettings) else require("./AudioSettings")
+local BossBadges = if script then require(script.Parent.BossBadges) else require("./BossBadges")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local HotbarOrder = if script then require(script.Parent.HotbarOrder) else require("./HotbarOrder")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
@@ -90,28 +95,6 @@ function SaveData.cleanEggLuck(raw: any): { [string]: number }
 		local misses = tonumber(n)
 		if kind and misses and misses == misses then
 			out[id] = math.clamp(math.floor(misses), 0, kind.pity - 1)
-		end
-	end
-	return out
-end
-
--- Boss trophies of a raw save (read) or of PlayerData (write): sanitized slimes of a boss species (SlimeRoster kind
--- "boss"), the first one per species, never on a pad. Missing / junk -> none.
-function SaveData.cleanTrophies(raw: any): { Slime }
-	local out: { Slime } = {}
-	if type(raw) ~= "table" then
-		return out
-	end
-	local seen: { [string]: boolean } = {}
-	for _, rawSlime in raw do
-		local slime = Genome.sanitize(rawSlime)
-		local species = slime and slime.species
-		local entry = if species then SlimeRoster.get(species) else nil
-		if slime and species and entry and entry.kind == "boss" and not seen[species] then
-			seen[species] = true
-			slime.pad = nil
-			slime.keep = nil
-			table.insert(out, slime)
 		end
 	end
 	return out
@@ -381,6 +364,34 @@ function SaveData.migrateV7(raw: { [string]: any }): { [string]: any }
 	return out
 end
 
+-- v8 -> v9: the boss trophy list becomes the boss record. Each trophy of a boss species is one win of that species
+-- (a player held at most one per species); anything else in the list is dropped. A save that already has `boss`
+-- keeps it.
+function SaveData.migrateV8(raw: { [string]: any }): { [string]: any }
+	local out = table.clone(raw)
+	local from = tonumber(raw.version)
+	if from == nil or from ~= from then
+		from = 0
+	end
+	out.migratedFrom = raw.migratedFrom or from
+	if out.boss == nil then
+		local wins = {}
+		if type(raw.trophies) == "table" then
+			for _, trophy in raw.trophies do
+				local species = if type(trophy) == "table" then trophy.species else nil
+				local entry = if type(species) == "string" then SlimeRoster.get(species) else nil
+				if entry and entry.kind == "boss" then
+					wins[entry.id] = 1
+				end
+			end
+		end
+		out.boss = { hits = 0, wins = wins, hauls = 0, mvps = 0, badges = {} }
+	end
+	out.trophies = nil
+	out.version = 9
+	return out
+end
+
 -- Daily quests: keeps only slots whose pool id still exists (a rolled day with none left re-rolls).
 function SaveData.cleanQuests(raw: any): PlayerData.DailyQuests
 	local out: PlayerData.DailyQuests = { day = 0, slots = {} }
@@ -463,6 +474,9 @@ function SaveData.migrate(raw: any): { [string]: any }?
 	end
 	if version < 8 then
 		migrated = SaveData.migrateV7(migrated)
+	end
+	if version < 9 then
+		migrated = SaveData.migrateV8(migrated)
 	end
 	return migrated
 end
@@ -580,11 +594,12 @@ function SaveData.deserialize(stored: any): Data
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
 	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
 	data.pvp = SaveData.cleanPvp(raw.pvp) -- FEATURES.PvP (missing -> nothing owned)
-	data.trophies = SaveData.cleanTrophies(raw.trophies) -- boss trophies (no version bump: missing -> none)
+	data.boss = BossBadges.clean(raw.boss) -- boss record and badges (missing / junk -> zeros)
 	data.hotbar = HotbarOrder.clean(raw.hotbar) -- hotbar order (no version bump: missing / junk -> nil)
 	data.eggLuck = SaveData.cleanEggLuck(raw.eggLuck) -- Mystery Egg lucky meter (no version bump: missing -> empty)
-	for _, trophy in data.trophies do
-		PlayerData.discover(data, trophy) -- an owned boss always counts in the SlimeDex
+	BossBadges.grant(data, data.lastOnline) -- badges the record reached before they existed or were saved
+	for species in data.boss.wins do
+		SpeciesDex.record(data, { species = species }) -- a won boss always counts in the SlimeDex
 	end
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
@@ -704,7 +719,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			held = table.clone(data.consumables.held),
 		},
 		pvp = { tiers = pvp.tiers, traps = pvp.traps, fun = pvpFun },
-		trophies = SaveData.cleanTrophies(data.trophies),
+		boss = BossBadges.clean(data.boss),
 		hotbar = HotbarOrder.clean(data.hotbar), -- nil until set: the key is left out
 		eggLuck = SaveData.cleanEggLuck(data.eggLuck),
 	}

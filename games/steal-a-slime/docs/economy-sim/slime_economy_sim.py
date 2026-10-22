@@ -206,7 +206,6 @@ class Player:
     dex: dict = field(default_factory=dict)  # species -> first time (s)
     source: dict = field(default_factory=dict)  # species -> how it was first found
     inv: list = field(default_factory=list)  # slimes on pads
-    trophies: set = field(default_factory=set)  # boss species on the trophy stand (no pad, can't be stolen)
     ready_at: float = 0.0
     carrying: Slime | None = None
     deposit_at: float = 0.0
@@ -398,7 +397,7 @@ class Sim:
         if not victims:
             return
         v = self.rng.choice(victims)
-        loot = v.inv  # hybrids can be stolen like any slime; boss trophies are not on pads
+        loot = v.inv  # hybrids can be stolen like any slime
         s = max(loot, key=lambda x: x.tier) if self.rng.random() < 0.5 else self.rng.choice(loot)
         v.inv.remove(s)
         thief.steals += 1
@@ -415,10 +414,10 @@ class Sim:
         self.boss_count += 1
         if kind == "mecha_goo" and self.fountain_ranks() < 10:
             kind = "goozilla"
-        # Team fight, then a carry race: modelled as an even chance for every player on the server.
-        winner = self.rng.choice(self.players)
-        winner.trophies.add(kind)
-        self.record(winner, Slime(BOSSES[kind], kind), "boss")
+        # Team fight, then a carry race, always won in this model. Every player helps, so every player gets the win
+        # (the species in their Dex and the boss badges); the boss slime itself goes to nobody and earns nothing.
+        for p in self.players:
+            self.record(p, Slime(BOSSES[kind], kind), "boss")
         for _ in range(self.sc.boss_shower):
             self.spawn(self.sc.rain_luck)
 

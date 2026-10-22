@@ -953,6 +953,65 @@ local Config = {
 		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
+		WIN_SHARE = 0.1, -- a player with at least this share of the top contributor's hits is credited with the win
+	}),
+
+	-- Boss badges kept in the save (Shared.BossBadges, contract/boss-event.md), not Roblox badges. `trigger` + `value`
+	-- are read by BossBadges.reached: "hits" / "hauls" / "mvps" (data.boss counters), "win" (wins of `species`),
+	-- "wins" (wins of every species summed). A new boss species gets its own "win" line.
+	BOSS_BADGES = table.freeze({
+		table.freeze({
+			key = "BossBrawler",
+			name = "Boss Brawler",
+			description = "Land a hit on a boss.",
+			trigger = "hits",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossGoozilla",
+			name = "Goozilla Tamer",
+			description = "Help bring Goozilla home.",
+			trigger = "win",
+			value = 1,
+			species = "goozilla",
+		}),
+		table.freeze({
+			key = "BossQueenJelly",
+			name = "Dethroned",
+			description = "Help bring Queen Jelly home.",
+			trigger = "win",
+			value = 1,
+			species = "queen_jelly",
+		}),
+		table.freeze({
+			key = "BossMechaGoo",
+			name = "Scrap Metal",
+			description = "Help bring Mecha Goo home.",
+			trigger = "win",
+			value = 1,
+			species = "mecha_goo",
+		}),
+		table.freeze({
+			key = "BossHauler",
+			name = "Heavy Lifter",
+			description = "Carry a boss home yourself.",
+			trigger = "hauls",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossMvp",
+			name = "Boss MVP",
+			description = "Land the most hits on a boss that gets brought home.",
+			trigger = "mvps",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossHunter10",
+			name = "Boss Hunter",
+			description = "Help win 10 boss fights.",
+			trigger = "wins",
+			value = 10,
+		}),
 	}),
 
 	-- Day / night (DayNight)
@@ -1331,7 +1390,7 @@ local Config = {
 	}),
 
 	-- Persistence
-	SAVE_VERSION = 8, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7)
+	SAVE_VERSION = 9, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7; v9: boss record replaces trophies, SaveData.migrateV8)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
 	SAVE_DRAIN_SECONDS = 20, -- a load waits at most this long for the same player's saves still in flight

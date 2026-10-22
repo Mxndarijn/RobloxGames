@@ -23,7 +23,7 @@ local NumberFormat = if Shared then require(Shared.NumberFormat) else require(".
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 
 export type Lines = { title: string, stats: string, owned: boolean }
-export type Owner = { name: string, data: PlayerData.Data } -- reads slimes, trophies, rebirths, totalStolen
+export type Owner = { name: string, data: PlayerData.Data } -- reads slimes, rebirths, totalStolen
 type Deps = GooBoard.Deps
 
 local PlotSigns = {}
