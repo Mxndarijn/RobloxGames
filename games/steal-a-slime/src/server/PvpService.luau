@@ -7,7 +7,7 @@
 	  * `buy` is the `BuyPvpItem` action (Shared.PvpRules.buy + a toast)
 	  * one PvpRules.State per session (control immunity, cooldowns), kept in a weak table keyed by the
 	    session and never saved; the lines (knockback, traps, blasters, fun items) read it through `state`
-	  * `catchThief`: the one way a PvP item sends a stolen slime home (StealService.escape, the Bat's path)
+	  * `hitCarrier`: the one way a PvP item makes a carrier drop their slime (CarryDrop.knockLoose, the Bat's path)
 	There are no safe zones. No code here ever lowers Humanoid health.
 
 	PvpEvents go into world.outbox (World.Event type "PvpEvent"); init.server fires the remote when it drains it.
@@ -19,7 +19,7 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local PvpRules = if Shared then require(Shared.PvpRules) else require("../shared/PvpRules")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
-local StealService = if script then require(script.Parent.StealService) else require("./StealService")
+local CarryDrop = if script then require(script.Parent.CarryDrop) else require("./CarryDrop")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type Session = World.Session
@@ -220,18 +220,29 @@ function PvpService.leave(world: World.World, session: Session, _now: number)
 end
 
 --[[
-	A PvP item hit or caught `thief`. When they carry a stolen slime it bounces home exactly like a Bat hit
-	(StealService.escape "slap": drop, bounce home, the carrier's and owner's toasts, the SlapHitAt StealAlerts FX)
-	and `attacker` (nil for nobody to tell) gets a toast. Returns the slime id, or nil when nothing stolen was carried.
+	A PvP item hit `victim`. Whatever they carry drops exactly like a Bat hit (CarryDrop.knockLoose): a stolen slime
+	bounces home (drop, bounce home, the carrier's and owner's toasts, the SlapHitAt StealAlerts FX), a wild slime or
+	the boss lands where they stand (`ctx.positionOf`). `attacker` (nil for nobody to tell) gets a toast. Returns the
+	slime id, or nil when nothing was carried.
 ]]
-function PvpService.catchThief(world: World.World, thief: Session, attacker: Session?, now: number): string?
-	local carry = thief.carry
-	if not carry or carry.kind ~= "stolen" then
+function PvpService.hitCarrier(
+	world: World.World,
+	victim: Session,
+	attacker: Session?,
+	now: number,
+	ctx: Context?
+): string?
+	local carry = victim.carry
+	if not carry then
 		return nil
 	end
-	StealService.escape(world, thief, now, "slap")
-	if attacker and attacker ~= thief then
-		World.notify(world, attacker.userId, `You caught {thief.name}! The slime went home.`, "good", "Slap", "Slap")
+	local positionOf = ctx and ctx.positionOf
+	CarryDrop.knockLoose(world, victim, now, if positionOf then positionOf(victim.userId) else nil)
+	if attacker and attacker ~= victim then
+		local text = if carry.kind == "stolen"
+			then `You caught {victim.name}! The slime went home.`
+			else `You hit {victim.name}! They dropped the slime.`
+		World.notify(world, attacker.userId, text, "good", "Slap", "Slap")
 	end
 	return carry.slimeId
 end

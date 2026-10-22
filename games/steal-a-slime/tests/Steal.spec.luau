@@ -143,7 +143,7 @@ describe("Steal.canSlap", function()
 		expect((Steal.canSlap(slap({ targetId = 1 })))).toBe(false)
 		expect((Steal.canSlap(slap({ lastSlapAt = 9.5 })))).toBe(false)
 		expect((Steal.canSlap(slap({ distance = 50 })))).toBe(false)
-		expect((Steal.canSlap(slap({ targetCarry = Steal.newCarry("wild", 1, 0) })))).toBe(false)
+		expect((Steal.canSlap(slap({ targetCarry = Steal.newCarry("wild", 1, 0) })))).toBe(true) -- any carried slime
 		expect((Steal.canSlap(slap({ targetCarry = false })))).toBe(false)
 	end)
 end)
