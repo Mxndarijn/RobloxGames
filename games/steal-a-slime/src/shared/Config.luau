@@ -716,9 +716,9 @@ local Config = {
 
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 45,
-	LOCK_SECONDS = 60,
+	LOCK_SECONDS = 120,
 	LOCK_SECONDS_PER_REBIRTH = 10, -- a bought lock lasts this much longer per rebirth, up to LOCK_MAX_REMAINING
-	LOCK_MAX_REMAINING = 180, -- the longest lock: one purchase or several stacked never go past 3 min
+	LOCK_MAX_REMAINING = 240, -- the longest lock: one purchase or several stacked never go past 4 min
 	LOCK_BASE_COST = 25,
 	LOCK_INCOME_SECONDS = 15, -- lock costs this many seconds of plot income (or base cost)
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
