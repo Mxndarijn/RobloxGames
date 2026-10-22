@@ -346,7 +346,9 @@ end
 -- multiply in; 1 with the flag off.
 function Carry.targetWalkSpeed(session: Session, now: number): number
 	local speed = if session.carry then Carry.walkSpeed(session) else Shop.walkSpeed(session.data, session.coilHeld)
-	return speed * PvpSlow.walkFactor(session, now) * PvpFun.walkFactor(session, now)
+	local goo = session.bossSlow -- a boss goo puddle (BossEvent)
+	local bossFactor = if goo and now < goo.untilTime then goo.factor else 1
+	return speed * PvpSlow.walkFactor(session, now) * PvpFun.walkFactor(session, now) * bossFactor
 end
 
 return Carry

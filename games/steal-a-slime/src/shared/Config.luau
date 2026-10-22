@@ -623,6 +623,12 @@ end
 -- v30 C9: wild slimes moved too fast. Every wild-slime pace (the parade lane walk, its hop rate) scales by this;
 -- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
 -- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
+-- One boss attack (Config.BOSS.MOVES): a frozen table typed loosely, since every attack kind has its own fields
+-- (Shared.BossAttacks reads them by kind).
+local function bossAttack(def: { [string]: any }): { [string]: any }
+	return table.freeze(def)
+end
+
 local SLIME_MOVE_SPEED_MULT = 0.65
 -- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). Row f prices floor f's pads: its first pad you
 -- buy costs `firstPadCost`, every next one on that floor `growth` times the one before. Floor 1's first bought pad is
@@ -908,11 +914,11 @@ local Config = {
 		WARNING_SECONDS = 60, -- heads-up before the boss arrives
 		RAIN_GAP = 3 * 60, -- skip when Slime Rain runs or is due this close to the arrival
 		SKIP_DELAY = 5 * 60, -- a skipped arrival moves this much later
-		FIGHT_SECONDS = 90,
+		FIGHT_SECONDS = 120,
 		HAUL_SECONDS = 90,
 		LINGER_SECONDS = 6, -- the won / failed result stays in State.boss
 		PRIORITY_SECONDS = 5, -- head start for the top contributor in the haul
-		POINTS_PER_PLAYER = 25, -- meter target = this x players on the server
+		POINTS_PER_PLAYER = 45, -- meter target = this x players on the server (dazed hits count DAZED_MULTIPLIER)
 		HIT_GAP = 0.4, -- one meter point per player per this many seconds
 		HIT_REACH = 13, -- studs from the swinger's root to the boss Body (about the boss's radius at SCALE + a bat's reach)
 		DRAIN_PER_SECOND = 0.02, -- share of the target lost per second with nobody hitting
@@ -920,6 +926,8 @@ local Config = {
 		SHED_EVERY = 0.25, -- meter share between sheds
 		SHED_COUNT = 2, -- wild slimes per shed
 		DROP_LUCK = 3, -- luck multiplier on shed slimes
+		WIN_SHARE = 0.1, -- a player with at least this share of the top hitter's points helped win
+		WIN_SHOWER = 1, -- lucky slimes (DROP_LUCK) spilled per helper when the boss is brought home
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
@@ -937,7 +945,11 @@ local Config = {
 		ARRIVE_FALL = 0.6, -- of which the fall
 		ARRIVE_HEIGHT = 24, -- studs it drops from
 		WINDUP_SECONDS = 1.2, -- the telegraph before an attack
+		LEG_WINDUP_SECONDS = 0.7, -- the shorter telegraph before each next leg of a multi-leg charge
+		HOP_SECONDS = 0.55, -- a hops attack's leap
+		HOP_HEIGHT = 6, -- studs high it leaps
 		CHARGE_EASE = 0.25, -- seconds a charge takes to reach full speed and to stop
+		CHARGE_MIN = 8, -- studs: a charge aimed this short (off the thin boss area) runs along the area instead
 		STRIKE_SECONDS = 0.7, -- a cone or the spit's throw
 		RING_DELAY = 0.35, -- the stomp lands this long into a ring attack, then the ring runs out
 		SPIT_FLIGHT = 0.7, -- seconds a goo spit flies before it lands
@@ -948,6 +960,106 @@ local Config = {
 		GUARD_SECONDS = 12, -- longest a guard call lasts (it lands when every guard is popped)
 		SHRINK_SECONDS = 0.6, -- the meter is full: it shrinks to carry size over this long before it can be grabbed
 		MOVE_PIVOT_INTERVAL = 0.2, -- seconds between the server's pivots of the boss Body (clients draw every frame)
+		-- Attacks (Shared.BossAttacks): dodge the telegraphed attack, then punish it while it is dazed.
+		FIRST_ATTACK = 6, -- seconds after it lands before its first attack
+		ATTACK_GAP = table.freeze({ 5, 8 }), -- seconds from one attack's daze to the next windup (÷ the stage speed-up)
+		STAGE_SPEEDUP = 0.1, -- +10 % move and attack pace at every SHED_EVERY of the meter
+		PHASE_AT = 0.5, -- meter share from which its `phase` attacks join its `start` ones
+		DAZED_MULTIPLIER = 3, -- a hit while it is dazed counts this many meter points
+		STUN_SECONDS = 1.5, -- a player hit by an attack can't land bat hits or slaps for this long
+		HIT_ARC = 8, -- studs high an attack's knockback throws a player
+		RING_WIDTH = 3.5, -- studs: how thick the stomp's goo ring is (jump over it)
+		CONE_HIT_AT = 0.25, -- seconds into a cone attack its push lands
+		PUDDLE_RADIUS = 4.5, -- studs: a goo spit puddle; standing in it slows you
+		SPIT_SPREAD = 6, -- studs: a spit with nobody to aim at lands this far round the boss
+		GUARD_RADIUS = 11, -- studs from the boss its guards stand
+		GUARD_REACH = 8, -- studs from a swinger's root to a guard for a bat hit
+		GUARD_POINTS = 2, -- meter points per popped guard
+		GUARD_SIZE = 3.2, -- studs: a guard's body
+		-- Per boss species: `start` attacks from the first one, `phase` from PHASE_AT. Kinds: ring { radius, speed, push },
+		-- spit { count, slowSeconds, slow }, guards { count }, cone { radius, angle (degrees), push },
+		-- charge { distance, speed, width, push }, vent { multiplier } (passive: hits on its back while dazed),
+		-- hops { count, distance, radius, speed, push } (it leaps at you, a small ring on every landing).
+		-- Signature options, one per boss: ring `waves` (+ `waveGap` s, `waveSpeedUp` x), guards `heal` (meter share it
+		-- gets back if its guards outlast the call), charge `bounces` (it charges again at the top hitter) with
+		-- `sideways` + `backAndForth` (a crab's scuttle), spit `burst` { delay, radius, speed, push } (each puddle
+		-- bursts into a ring).
+		MOVES = table.freeze({
+			goozilla = table.freeze({
+				-- signature: a double stomp, the second ring faster
+				start = table.freeze({
+					bossAttack({
+						kind = "ring",
+						radius = 22,
+						speed = 22,
+						push = 40,
+						waves = 2,
+						waveGap = 0.7,
+						waveSpeedUp = 1.4,
+					}),
+				}),
+				phase = table.freeze({ bossAttack({ kind = "spit", count = 3, slowSeconds = 6, slow = 0.5 }) }),
+			}),
+			queen_jelly = table.freeze({
+				-- signature: royal guards; if they outlast the call she heals 15 % of the meter
+				start = table.freeze({ bossAttack({ kind = "guards", count = 3, heal = 0.15 }) }),
+				phase = table.freeze({ bossAttack({ kind = "cone", radius = 18, angle = 90, push = 45 }) }),
+			}),
+			mecha_goo = table.freeze({
+				-- signature: a ricochet charge, then it turns and rams the top hitter again
+				start = table.freeze({
+					bossAttack({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50, bounces = 1 }),
+				}),
+				phase = table.freeze({ bossAttack({ kind = "vent", multiplier = 5 }) }),
+			}),
+			klawdius = table.freeze({
+				start = table.freeze({
+					bossAttack({ kind = "cone", radius = 16, angle = 70, push = 35 }),
+					-- signature: a sideways scuttle, back and forth three times
+					bossAttack({
+						kind = "charge",
+						distance = 24,
+						speed = 30,
+						width = 7,
+						push = 40,
+						sideways = true,
+						backAndForth = true,
+						bounces = 2,
+					}),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.55 }),
+					bossAttack({ kind = "vent", multiplier = 4 }),
+				}),
+			}),
+			pumpking = table.freeze({
+				-- signature: bouncing stomps, three hops at you with a ring on every landing
+				start = table.freeze({
+					bossAttack({ kind = "hops", count = 3, distance = 7, radius = 12, speed = 24, push = 32 }),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "guards", count = 3 }),
+					bossAttack({ kind = "vent", multiplier = 3 }),
+				}),
+			}),
+			goomancer = table.freeze({
+				start = table.freeze({
+					-- signature: rune puddles that burst into a ring a moment after they land
+					bossAttack({
+						kind = "spit",
+						count = 4,
+						slowSeconds = 6,
+						slow = 0.5,
+						burst = table.freeze({ delay = 1.6, radius = 10, speed = 16, push = 35 }),
+					}),
+					bossAttack({ kind = "cone", radius = 20, angle = 100, push = 40 }),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "ring", radius = 28, speed = 26, push = 45 }),
+					bossAttack({ kind = "vent", multiplier = 5 }),
+				}),
+			}),
+		}),
 		-- every tier-6 boss twice and each Secret once per lap
 		ROTATION = table.freeze({
 			"goozilla",
@@ -963,7 +1075,6 @@ local Config = {
 		}),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
-		WIN_SHARE = 0.1, -- a player with at least this share of the top contributor's hits is credited with the win
 	}),
 
 	-- Boss badges kept in the save (Shared.BossBadges, contract/boss-event.md), not Roblox badges. `trigger` + `value`
@@ -1104,9 +1215,8 @@ local Config = {
 
 	-- Wild Mystery Eggs (FEATURES.MysteryEggs, contract/mystery-egg.md). Each KINDS entry: `id` (saved, never rename),
 	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
-	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `price` (cash to
-	-- grab a non-free one), `sell` (cash when sold, x the rebirth multiplier), `announce` (server toast on spawn) and
-	-- `drops` (tier weights of the slime inside).
+	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `announce` (server
+	-- toast on spawn) and `drops` (tier weights of the slime inside). A wild egg is free to grab and can't be sold.
 	MYSTERY_EGG = table.freeze({
 		DROP_CHANCE = 0.015, -- share of fountain drops that are an egg
 		RAIN_MULT = 3, -- DROP_CHANCE multiplier during Slime Rain
@@ -1128,8 +1238,6 @@ local Config = {
 				weight = 60,
 				hatchSeconds = 3 * 60,
 				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
-				price = 60,
-				sell = 40,
 				announce = false,
 				drops = table.freeze({
 					{ tier = 2, weight = 55 },
@@ -1144,8 +1252,6 @@ local Config = {
 				weight = 27,
 				hatchSeconds = 6 * 60,
 				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
-				price = 250,
-				sell = 150,
 				announce = false,
 				drops = table.freeze({
 					{ tier = 3, weight = 50 },
@@ -1160,8 +1266,6 @@ local Config = {
 				weight = 10,
 				hatchSeconds = 10 * 60,
 				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
-				price = 900,
-				sell = 600,
 				announce = true,
 				drops = table.freeze({ { tier = 4, weight = 55 }, { tier = 5, weight = 40 }, { tier = 6, weight = 5 } }),
 			}),
@@ -1172,8 +1276,6 @@ local Config = {
 				weight = 3,
 				hatchSeconds = 15 * 60,
 				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
-				price = 3000,
-				sell = 2000,
 				announce = true,
 				drops = table.freeze({ { tier = 5, weight = 60 }, { tier = 6, weight = 35 }, { tier = 7, weight = 5 } }),
 			}),

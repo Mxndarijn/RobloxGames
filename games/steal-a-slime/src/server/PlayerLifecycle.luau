@@ -67,8 +67,11 @@ local function onCharacter(deps: Deps, player: Player, character: Model)
 	BatTool.give(player, function()
 		local current = World.session(world, player.UserId)
 		if current then
-			BatTool.swing(world, current, now(), deps.ctx)
-			deps.refreshView(now())
+			local _, reason = BatTool.swing(world, current, now(), deps.ctx)
+			-- A swing refused for being too fast did nothing: no world-wide refresh for a spammed Activated.
+			if reason ~= "too fast" then
+				deps.refreshView(now())
+			end
 		end
 	end)
 	local humanoid = character:WaitForChild("Humanoid", 10)

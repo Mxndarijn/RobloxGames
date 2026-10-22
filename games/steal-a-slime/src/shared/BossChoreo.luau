@@ -14,7 +14,9 @@
 	  look      stands and turns to a player
 	  arrive    drops onto the boss spot from BOSS.ARRIVE_HEIGHT and splats
 	  windup    stands facing its target; `slot` names the attack (Config.BOSS.MOVES)
-	  attack    the attack itself; a charge runs from start to end, the rest stand
+	  attack    the attack itself; a charge runs from start to end (facing ahead, or sideways for a scuttle), the rest
+	            stand. A multi-leg charge winds up again (LEG_WINDUP_SECONDS) before each leg; slot "<slot>#<leg>"
+	  hop       one leg of a hops attack: it leaps to its end spot over HOP_SECONDS, then a ring runs out from there
 	  dazed     stands, dizzy (hits count more, BossFight)
 	  rise      floats up BOSS.RISE_HEIGHT while its guards are out
 	  land      floats back down; slot "daze" = dazed after it
@@ -34,7 +36,7 @@ local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 
 local BOSS = Config.BOSS
 
-export type Kind = "stroll" | "look" | "arrive" | "windup" | "attack" | "dazed" | "rise" | "land" | "down"
+export type Kind = "stroll" | "look" | "arrive" | "windup" | "attack" | "hop" | "dazed" | "rise" | "land" | "down"
 
 export type Move = {
 	n: number, -- move counter: a new number is a new move
@@ -73,6 +75,7 @@ local KINDS: { [string]: boolean } = {
 	arrive = true,
 	windup = true,
 	attack = true,
+	hop = true,
 	dazed = true,
 	rise = true,
 	land = true,
@@ -161,7 +164,14 @@ function BossChoreo.pose(move: Move, t: number): (number, number, number, number
 		local ease = if kind == "stroll" then BOSS.STROLL_EASE else BOSS.CHARGE_EASE
 		local s = walked(t - move.at, move.seconds, ease)
 		x, z = move.fx + (move.tx - move.fx) * s, move.fz + (move.tz - move.fz) * s
-		hx, hz = unit(move.tx - move.fx, move.tz - move.fz, hx, hz)
+		if kind == "stroll" then
+			hx, hz = unit(move.tx - move.fx, move.tz - move.fz, hx, hz)
+		end -- a charge keeps its facing: a crab scuttles sideways
+	elseif kind == "hop" then
+		local k = math.clamp((t - move.at) / BOSS.HOP_SECONDS, 0, 1)
+		local s = smooth(k)
+		x, z = move.fx + (move.tx - move.fx) * s, move.fz + (move.tz - move.fz) * s
+		lift = BOSS.HOP_HEIGHT * 4 * k * (1 - k)
 	elseif kind == "arrive" then
 		local fall = BOSS.ARRIVE_FALL / move.seconds
 		local k = math.clamp(u / fall, 0, 1)
@@ -253,21 +263,129 @@ local function stroll(prev: Move, input: Input): Move
 	return make(prev.n + 1, "stroll", input.now, seconds, x, z, tx, tz, hx, hz, prev.ox, prev.oz)
 end
 
+-- "start.1#2" -> ("start.1", 2): an attack slot and which leg of it (1 without a suffix).
+function BossChoreo.slotLeg(slot: string): (string, number)
+	local base, leg = string.match(slot, "^(.-)#(%d+)$")
+	if base and leg then
+		return base, tonumber(leg) :: number
+	end
+	return slot, 1
+end
+
+local function withLeg(slot: string, leg: number): string
+	local base = BossChoreo.slotLeg(slot)
+	return if leg <= 1 then base else `{base}#{leg}`
+end
+
+-- How many legs attack `attack` runs: a charge 1 + bounces, hops `count`, anything else 1.
+function BossChoreo.legs(attack: Attack): number
+	if attack.kind == "charge" then
+		return 1 + math.max(0, attack.bounces or 0)
+	elseif attack.kind == "hops" then
+		return math.max(1, attack.count or 3)
+	end
+	return 1
+end
+
+-- The way a charge travels for facing (hx, hz): straight ahead, or to its right for a sideways scuttle.
+function BossChoreo.travel(attack: Attack, hx: number, hz: number): (number, number)
+	if attack.sideways then
+		return -hz, hx
+	end
+	return hx, hz
+end
+
+-- The facing that makes `attack` travel along unit (ux, uz) (the inverse of `travel`).
+local function facingFor(attack: Attack, ux: number, uz: number): (number, number)
+	if attack.sideways then
+		return uz, -ux
+	end
+	return ux, uz
+end
+
 local function windup(prev: Move, input: Input, slot: string, attack: Attack): Move
 	local x, z = prev.tx, prev.tz
-	local aim = if attack.kind == "charge" then input.target else nil
-	aim = aim or nearest(input.players, x, z)
-	local hx, hz = prev.hx, prev.hz
-	if aim then
-		hx, hz = unit(aim[1] - x, aim[2] - z, hx, hz)
+	local _, leg = BossChoreo.slotLeg(slot)
+	local ux, uz = BossChoreo.travel(attack, prev.hx, prev.hz)
+	if leg > 1 and attack.backAndForth then
+		ux, uz = unit(prev.fx - prev.tx, prev.fz - prev.tz, -ux, -uz) -- runs back the way it came
+	elseif attack.sideways then
+		-- a scuttle runs along the boss area (a thin strip round the fountain), toward the side its target is on
+		local rx, rz = unit(x, z, 1, 0)
+		ux, uz = -rz, rx
+		local aim = input.target or nearest(input.players, x, z)
+		if aim and (aim[1] - x) * ux + (aim[2] - z) * uz < 0 then
+			ux, uz = -ux, -uz
+		end
+	else
+		local aim = if attack.kind == "charge" then input.target else nil
+		aim = aim or nearest(input.players, x, z)
+		if aim then
+			ux, uz = unit(aim[1] - x, aim[2] - z, ux, uz)
+		elseif leg > 1 then
+			ux, uz = -ux, -uz
+		end
+		-- the area is a thin strip: a charge that would stop within CHARGE_MIN runs along the strip instead
+		if attack.kind == "charge" then
+			local ex, ez = BossArea.reach(x, z, ux, uz, attack.distance or 30)
+			if (ex - x) ^ 2 + (ez - z) ^ 2 < BOSS.CHARGE_MIN ^ 2 then
+				local rx, rz = unit(x, z, 1, 0)
+				local tx, tz = -rz, rx
+				if ux * tx + uz * tz < 0 then
+					tx, tz = -tx, -tz
+				end
+				ux, uz = tx, tz
+			end
+		end
 	end
-	return make(prev.n + 1, "windup", input.now, BOSS.WINDUP_SECONDS, x, z, x, z, hx, hz, prev.ox, prev.oz, slot)
+	local hx, hz = facingFor(attack, ux, uz)
+	local seconds = if leg > 1 then BOSS.LEG_WINDUP_SECONDS else BOSS.WINDUP_SECONDS
+	return make(prev.n + 1, "windup", input.now, seconds, x, z, x, z, hx, hz, prev.ox, prev.oz, slot)
+end
+
+-- One hop of a `hops` attack: toward the target (or the nearest player) by `distance`, inside the area.
+local function hop(prev: Move, input: Input, attack: Attack, leg: number): Move
+	local x, z = prev.tx, prev.tz
+	local aim = input.target or nearest(input.players, x, z)
+	local ux, uz = prev.hx, prev.hz
+	if aim then
+		ux, uz = unit(aim[1] - x, aim[2] - z, ux, uz)
+	end
+	local distance = attack.distance or 7
+	local ex, ez = BossArea.reach(x, z, ux, uz, distance)
+	if (ex - x) ^ 2 + (ez - z) ^ 2 < (distance / 2) ^ 2 then
+		-- aimed off the thin strip: hop along it instead, toward the target's side
+		local rx, rz = unit(x, z, 1, 0)
+		local tx, tz = -rz, rx
+		if ux * tx + uz * tz < 0 then
+			tx, tz = -tx, -tz
+		end
+		ux, uz = tx, tz
+		ex, ez = BossArea.reach(x, z, ux, uz, distance)
+	end
+	local seconds = BOSS.HOP_SECONDS + (attack.radius or 12) / (attack.speed or 24)
+	return make(prev.n + 1, "hop", input.now, seconds, x, z, ex, ez, ux, uz, prev.ox, prev.oz, withLeg(prev.slot, leg))
+end
+
+-- How long a ring attack runs: until its last wave has run out (a wave starts `waveGap` after the last, `waveSpeedUp`
+-- times as fast).
+function BossChoreo.ringSeconds(attack: Attack): number
+	local longest = 0
+	for w = 0, math.max(1, attack.waves or 1) - 1 do
+		local start = w * (attack.waveGap or 0.7)
+		local speed = (attack.speed or 20) * (attack.waveSpeedUp or 1) ^ w
+		longest = math.max(longest, start + (attack.radius or 20) / speed)
+	end
+	return BOSS.RING_DELAY + longest
 end
 
 -- How long attack `attack` runs, and where it ends (only a charge moves).
-local function attackMove(prev: Move, input: Input, attack: Attack): Move
+local function attackMove(prev: Move, input: Input, attack: Attack, leg: number): Move
 	local x, z = prev.tx, prev.tz
 	local kind = attack.kind
+	if kind == "hops" then
+		return hop(prev, input, attack, leg)
+	end
 	if kind == "guards" then
 		return make(
 			prev.n + 1,
@@ -286,7 +404,8 @@ local function attackMove(prev: Move, input: Input, attack: Attack): Move
 		)
 	end
 	if kind == "charge" then
-		local ex, ez = BossArea.reach(x, z, prev.hx, prev.hz, attack.distance or 30)
+		local ux, uz = BossChoreo.travel(attack, prev.hx, prev.hz)
+		local ex, ez = BossArea.reach(x, z, ux, uz, attack.distance or 30)
 		local distance = math.sqrt((ex - x) ^ 2 + (ez - z) ^ 2)
 		local seconds = distance / (attack.speed or 30) + BOSS.CHARGE_EASE
 		return make(
@@ -307,7 +426,7 @@ local function attackMove(prev: Move, input: Input, attack: Attack): Move
 	end
 	local seconds = BOSS.STRIKE_SECONDS
 	if kind == "ring" then
-		seconds = BOSS.RING_DELAY + (attack.radius or 20) / (attack.speed or 20)
+		seconds = BossChoreo.ringSeconds(attack)
 	elseif kind == "spit" then
 		seconds = BOSS.SPIT_FLIGHT + BOSS.STRIKE_SECONDS
 	end
@@ -322,10 +441,20 @@ function BossChoreo.after(prev: Move, input: Input): Move
 	elseif kind == "windup" then
 		local attack = input.resolve(prev.slot)
 		if attack then
-			return attackMove(prev, input, attack)
+			local _, leg = BossChoreo.slotLeg(prev.slot)
+			return attackMove(prev, input, attack, leg)
 		end
 		return look(prev, input)
-	elseif kind == "attack" then
+	elseif kind == "attack" or kind == "hop" then
+		-- the next leg: a charge winds up again (a short one), a hop springs straight on
+		local attack = input.resolve(prev.slot)
+		local _, leg = BossChoreo.slotLeg(prev.slot)
+		if attack and leg < BossChoreo.legs(attack) then
+			if attack.kind == "hops" then
+				return hop(prev, input, attack, leg + 1)
+			end
+			return windup(prev, input, withLeg(prev.slot, leg + 1), attack)
+		end
 		return make(
 			prev.n + 1,
 			"dazed",

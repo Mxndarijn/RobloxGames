@@ -60,6 +60,7 @@ local WeatherService = require(script.WeatherService)
 local WeeklyEventService = require(script.WeeklyEventService)
 local World = require(script.World)
 local WorldProps = require(script.WorldProps)
+local WorldSeed = require(script.WorldSeed)
 local WorldView = require(script.WorldView)
 
 local function now(): number
@@ -111,10 +112,15 @@ local leaderboardEvent = Remotes.get(Constants.LEADERBOARD) :: RemoteEvent
 -- World, saves, ctx
 ---------------------------------------------------------------------------
 
+local random = Random.new()
+local seeds = WorldSeed.pick(function(min, max)
+	return random:NextInteger(min, max)
+end)
 local persistence = Persistence.new()
 local world = World.new({
 	now = now(),
-	seed = math.floor(os.clock() * 1e6) + os.time(),
+	seed = seeds.world,
+	eggSeed = seeds.egg,
 	newId = function()
 		return HttpService:GenerateGUID(false)
 	end,
@@ -205,6 +211,15 @@ local function refreshView(t: number)
 	Outbox.flush(world, outbox)
 end
 
+-- After a prompt: a refused trigger only needs its toast delivered, the world-wide refresh is for what changed.
+local function refreshAfter(changed: boolean)
+	if changed then
+		refreshView(now())
+	else
+		safeCall("outbox after prompt", Outbox.flush, world, outbox)
+	end
+end
+
 request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.RequestResult
 	Profiler.count(profiler, "Request")
 	local args = table.pack(...)
@@ -218,6 +233,12 @@ request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.
 		return res
 	end
 	PlayerAttributes.syncOpenShop(world, player)
+	-- A dispatched action that was refused changed nothing: only its queued toasts go out now, the next tick
+	-- does the rest.
+	if not res.ok then
+		safeCall(`outbox after {action}`, Outbox.flush, world, outbox)
+		return res
+	end
 	-- Never error to the client: a view hiccup must not turn a done action into a failure.
 	local t = now()
 	-- A client can only make the server refresh as often as the Heartbeat does: the next view tick shows the rest.
@@ -232,15 +253,15 @@ end
 
 -- Owner-only plot prompts (CONTRACT.md §8.5): LockPrompt, BuyPadPrompt, MergePrompt.
 WorldView.addPlotPrompts(function(player: Player, index: number, kind: string)
-	Actions.triggerPlotPrompt(world, player.UserId, index, kind, now(), ctx)
-	refreshView(now())
+	local res = Actions.triggerPlotPrompt(world, player.UserId, index, kind, now(), ctx)
+	refreshAfter(res.ok)
 end)
 
 -- The drop tube on every upper jar (BaseFloors adds the DropPrompt as each jar is built).
 if floors then
 	floors.drop = function(player: Player, index: number)
-		Actions.useDropTube(world, player.UserId, index, ctx)
-		refreshView(now())
+		local res = Actions.useDropTube(world, player.UserId, index, ctx)
+		refreshAfter(res.ok)
 	end
 end
 
