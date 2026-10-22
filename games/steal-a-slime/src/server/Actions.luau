@@ -42,6 +42,8 @@ local PvpService = if script then require(script.Parent.PvpService) else require
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
+local Layout = if Shared then require(Shared.Parent.Visuals.WorldLayout) else require("../visuals/shared/WorldLayout")
+local WorldLayout = Layout
 
 type World = World.World
 type Session = World.Session
@@ -81,6 +83,9 @@ export type Context = {
 	-- Drop tube (CONTRACT.md §5.3): moves the player's character to plot `plotIndex`'s splash pool; false = no
 	-- character or no plot. nil = no world: the drop is refused.
 	dropDown: ((userId: number, plotIndex: number) -> boolean)?,
+	-- The player's character root in plot `plotIndex`'s plot-local frame (the frame WorldLayout builds a plot in, y
+	-- on WorldLayout.floorTop's scale), or nil without a character or plot. nil = no world: the drop is refused.
+	plotPointOf: ((userId: number, plotIndex: number) -> { number }?)?,
 }
 
 local Actions = {}
@@ -721,8 +726,15 @@ function Actions.triggerPlotPrompt(
 	return res
 end
 
--- A player took plot `plotIndex`'s drop tube (any upper jar's DropPrompt, CONTRACT.md §5.3). Anyone may, except a
--- player carrying a slime: they must walk out through the door.
+-- True when plot-local point (x, y, z) is inside jar `f`: within its glass and at or above its deck (a character's
+-- root stands about 3 studs up; the slack lets a jump off the deck count).
+function Actions.insideJar(f: number, x: number, y: number, z: number): boolean
+	return math.sqrt(x * x + z * z) < WorldLayout.jarRadius(f) and y >= WorldLayout.floorTop(f) - 1
+end
+
+-- A player took plot `plotIndex`'s drop tube (the top jar's DropPrompt, CONTRACT.md §5.3). Only the owner, standing
+-- inside the top jar (never from outside its glass, on the jar below), and not while carrying a slime: they must walk
+-- out through the door.
 function Actions.useDropTube(world: World, userId: number, plotIndex: number, ctx: Context): Result
 	local session = World.session(world, userId)
 	if not session then
@@ -736,6 +748,13 @@ function Actions.useDropTube(world: World, userId: number, plotIndex: number, ct
 	end
 	if Carry.carryingId(world, userId) then
 		local text = "You can't take the goo tube while carrying a slime. Walk out through the door!"
+		World.notify(world, userId, text, "bad", nil)
+		return fail(text)
+	end
+	local top = Economy.floorsShown(session.data.padsUnlocked)
+	local at = ctx.plotPointOf and ctx.plotPointOf(userId, plotIndex)
+	if top < 2 or not at or not Actions.insideJar(top, at[1], at[2], at[3]) then
+		local text = "Stand inside the top jar to take the goo tube!"
 		World.notify(world, userId, text, "bad", nil)
 		return fail(text)
 	end
