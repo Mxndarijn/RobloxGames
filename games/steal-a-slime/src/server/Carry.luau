@@ -12,7 +12,7 @@
 	  (contract/slime-walk.md); otherwise its lifetime restarts there.
 	* Pad slime of another player: StealService.steal. Dropped -> escapes home.
 	* The hauled boss (contract/boss-event.md): grabbed only in the haul phase (top contributor first), carried at
-	  the boss carry slow, dropped on the spot, and deposited as a trophy (data.trophies; no pad needed).
+	  the boss carry slow, dropped on the spot, and brought home to win (BossCredit.win; no pad needed).
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -28,7 +28,7 @@ local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
-local Trophies = if Shared then require(Shared.Trophies) else require("../shared/Trophies")
+local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
@@ -94,6 +94,13 @@ function Carry.grabWild(
 		if not ok then
 			return false, reason
 		end
+		local move = wild.move
+		if move and move.kind == "down" and now < move.at + Config.BOSS.SHRINK_SECONDS then
+			return false, "it's still shrinking"
+		end
+	end
+	if wild.price > 0 and not wild.boss and not PlayerData.freePad(session.data) then
+		return false, "plot full" -- it could not be brought home, so don't take the cash
 	end
 	if wild.price > 0 and not PlayerData.spend(session.data, wild.price) then
 		return false, `need ${Economy.formatNumber(wild.price)}`
@@ -138,7 +145,8 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	return StealService.steal(world, session, slimeId, distance, now)
 end
 
--- The boss carrier got home: the boss goes on the trophy stand (Trophies.award) and the fight is won.
+-- The boss carrier got home: the fight is won and every helper is credited (BossCredit.win). The boss slime is
+-- removed; it never joins anyone's slimes.
 function Carry.depositBoss(world: World, session: Session, carry: World.CarryState, now: number): (boolean, string?)
 	world.wild[carry.slimeId] = nil
 	world.carriedBy[carry.slimeId] = nil
@@ -147,13 +155,11 @@ function Carry.depositBoss(world: World, session: Session, carry: World.CarrySta
 	if fight then
 		BossFight.win(fight, session.userId, now)
 	end
-	local result, trophy = Trophies.award(session.data, carry.slime)
 	World.markAllDirty(world)
 	World.notify(world, nil, `{session.name} brought {carry.slime.name} home!`, "good", "Rain")
-	if result == "owned" then
-		World.notify(world, session.userId, `You already have the {trophy.name} trophy.`, "info", "Cash")
-	else
-		World.notify(world, session.userId, `{trophy.name} trophy won!`, "good", "Deposit")
+	World.notify(world, session.userId, `You brought {carry.slime.name} home!`, "good", "Deposit")
+	if fight then
+		BossCredit.win(world, fight, session, carry.slime, now)
 	end
 	World.effect(world, "Collect", { userId = session.userId })
 	return true, nil
@@ -162,7 +168,8 @@ end
 --[[
 	The carrier reached their own HomeZone. Wild slimes go on a free pad;
 	stolen ones move to the thief with Steal.complete. A full plot keeps the
-	slime in your arms.
+	slime in your arms. A stolen slime goes home instead when either player's
+	save is no longer writable (World.canSave).
 ]]
 -- Server toast when a Mythic or Secret wild slime is brought home ("Merijn caught Cosmo!"), else nil.
 function Carry.catchText(playerName: string, slime: Genome.Slime): string?
@@ -241,6 +248,11 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		World.markDirty(session)
 		return false, "slime is gone"
 	end
+	-- A save that stopped being writable since the grab (lost lock, ...) would dupe or lose the slime: send it home.
+	if not World.canSave(world, userId) or not World.canSave(world, owner.userId) then
+		StealService.escape(world, session, now or 0, "unsaved")
+		return false, "can't be saved"
+	end
 	local ok, result = Steal.complete(owner.data, session.data, carry.slimeId)
 	if not ok then
 		return false, result :: string
@@ -316,6 +328,33 @@ function Carry.release(world: World, userId: number, now: number, position: any?
 		end
 	end
 	World.markDirty(session)
+	return true
+end
+
+--[[
+	Swaps a dropped slime's straight walk back for the `route` the server's
+	pathfinding found (ParadeLane.reroute: round walls, through doorways, down
+	stairs). Only the walk planned at `startAt` (a later drop has its own),
+	only once, and only while it has barely started (REROUTE_GRACE). Its lane
+	times follow the longer walk. False when nothing changed.
+]]
+function Carry.reroute(world: World, slimeId: string, startAt: number, route: { number }, now: number): boolean
+	local wild = world.wild[slimeId]
+	local plan = wild and wild.returning
+	if
+		not wild
+		or not plan
+		or plan.startAt ~= startAt
+		or plan.route ~= nil
+		or world.carriedBy[slimeId] ~= nil
+		or now > plan.startAt + ParadeLane.REROUTE_GRACE
+		or #route < 2
+	then
+		return false
+	end
+	local walk = ParadeLane.reroute(plan, route)
+	wild.returning = walk
+	wild.spawnedAt, wild.expiresAt = ParadeLane.rejoin(walk.s, Fountain.wildLifetime(wild.slime), walk.arriveAt)
 	return true
 end
 

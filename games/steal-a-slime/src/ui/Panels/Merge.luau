@@ -51,7 +51,7 @@ local SIZE = table.freeze({
 	chipGap = 6,
 	headerH = 30,
 	headerChipH = 22,
-	headerChipSize = 12,
+	headerChipSize = Layout.MIN_TEXT,
 	rowInset = 10, -- row width = list width - inset (room for the scroll bar)
 	rowH = Layout.MIN_TOUCH_DESIGN + 12,
 	rowPad = 8,
@@ -75,7 +75,7 @@ local SIZE = table.freeze({
 	textBig = 22,
 	textTitle = 16,
 	text = 14,
-	textSmall = 12,
+	textSmall = Layout.MIN_TEXT,
 	celebrate = 0.45, -- seconds the slots take to fly into the result
 	reveal = 4, -- seconds the result card shows the new slime
 	pendingTimeout = 6, -- seconds to wait for State to bring the new slime
@@ -104,7 +104,7 @@ local Merge = {}
 function Merge.new(parent: Instance, ctx: any)
 	local Config = ctx.Config
 	local Genome = ctx.Genome
-	local panel = Widgets.panel(parent, "MergePanel", "Merge Vat", "🧪")
+	local panel = Widgets.panel(parent, "MergePanel", "Merge vat", "🧪")
 	local body = panel.body
 
 	local function rarity(tier: number): any
@@ -342,7 +342,7 @@ function Merge.new(parent: Instance, ctx: any)
 		end
 	end)
 	local mergeBtn = Widgets.holdButton(
-		{ Name = "MergeButton", Text = "🧪 MERGE", TextSize = SIZE.textTitle + 2 },
+		{ Name = "MergeButton", Text = "🧪 Merge", TextSize = SIZE.textTitle + 2 },
 		Theme.Good,
 		sendMerge,
 		Config.HOLD_CONFIRM_SECONDS
@@ -850,7 +850,7 @@ function Merge.new(parent: Instance, ctx: any)
 			resultTitle.Text = reveal.title
 			resultTitle.TextColor3 = Widgets.color3(r.color)
 			resultOdds.Text = reveal.sub
-			resultKeeps.Text = "Check your plot!"
+			resultKeeps.Text = "Check your plot"
 			return
 		end
 		local picks = {}
@@ -1034,10 +1034,10 @@ function Merge.new(parent: Instance, ctx: any)
 		local ok, why = Selection.vatLoad(slimes, selected, count, rarityName)
 		mergeBtn.setEnabled(ok)
 		if ok then
-			reason.Text = "Hold MERGE to brew!"
+			reason.Text = "Hold Merge to brew"
 			reason.TextColor3 = Theme.Good
 		elseif reveal and #selected == 0 and reveal.untilAt > now then
-			reason.Text = "Merged! Pick more slimes to go again"
+			reason.Text = "Merged. Pick more slimes to go again"
 			reason.TextColor3 = Theme.Gold
 		elseif #slimes < count then
 			reason.Text = `You need {count} slimes of one rarity`

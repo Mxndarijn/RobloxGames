@@ -10,6 +10,7 @@
 	untextured terrain that filled in over the first seconds. LoadingGate
 	decides the bar, the label and when to lift; the screen never holds a
 	player longer than LoadingGate.MAX_WAIT and offers a skip button.
+	LoadingScreen draws it; this script only wires it to LoadingGate.
 ]]
 
 local ContentProvider = game:GetService("ContentProvider")
@@ -20,77 +21,18 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local LoadingGate = require(script:WaitForChild("LoadingGate"))
+local LoadingScreen = require(script:WaitForChild("LoadingScreen"))
 
-local LOOK = require(script:WaitForChild("LoadingLook"))
 local BATCH = 40 -- assets per PreloadAsync call: keeps the bar moving
 
 ReplicatedFirst:RemoveDefaultLoadingScreen()
 
 local player = Players.LocalPlayer
-local gui = Instance.new("ScreenGui")
-gui.Name = "LoadingScreen"
-gui.IgnoreGuiInset = true
-gui.ResetOnSpawn = false
-gui.DisplayOrder = LOOK.displayOrder
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-local bg = Instance.new("Frame")
-bg.Name = "Background"
-bg.Size = UDim2.fromScale(1, 1)
-bg.BackgroundColor3 = LOOK.bg
-bg.BorderSizePixel = 0
-bg.Parent = gui
-
-local function label(name: string, text: string, size: number, color: Color3, y: number): TextLabel
-	local l = Instance.new("TextLabel")
-	l.Name = name
-	l.AnchorPoint = Vector2.new(0.5, 0.5)
-	l.Position = UDim2.new(0.5, 0, 0.5, y)
-	l.Size = UDim2.fromOffset(600, size + 8)
-	l.BackgroundTransparency = 1
-	l.Font = LOOK.font
-	l.Text = text
-	l.TextSize = size
-	l.TextColor3 = color
-	l.Parent = bg
-	return l
-end
-
-label("Title", "Steal a Slime", LOOK.titleSize, LOOK.text, -60)
-local status = label("Status", LoadingGate.LABELS.place, LOOK.labelSize, LOOK.muted, 50)
-
-local barBack = Instance.new("Frame")
-barBack.Name = "Bar"
-barBack.AnchorPoint = Vector2.new(0.5, 0.5)
-barBack.Position = UDim2.new(0.5, 0, 0.5, 14)
-barBack.Size = LOOK.barSize
-barBack.BackgroundColor3 = LOOK.barBack
-barBack.BorderSizePixel = 0
-barBack.Parent = bg
-Instance.new("UICorner", barBack).CornerRadius = UDim.new(1, 0)
-local fill = Instance.new("Frame")
-fill.Name = "Fill"
-fill.Size = UDim2.fromScale(0, 1)
-fill.BackgroundColor3 = LOOK.bar
-fill.BorderSizePixel = 0
-fill.Parent = barBack
-Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-local skip = Instance.new("TextButton")
-skip.Name = "Skip"
-skip.AnchorPoint = Vector2.new(0.5, 0.5)
-skip.Position = UDim2.new(0.5, 0, 0.5, 100)
-skip.Size = UDim2.fromOffset(120, 36)
-skip.BackgroundColor3 = LOOK.barBack
-skip.Font = LOOK.font
-skip.Text = "Skip"
-skip.TextSize = LOOK.labelSize
-skip.TextColor3 = LOOK.text
-skip.Visible = false
-skip.Parent = bg
-Instance.new("UICorner", skip).CornerRadius = UDim.new(0, 10)
-
-gui.Parent = player:WaitForChild("PlayerGui")
+local screen = LoadingScreen.build()
+screen.setStatus(LoadingGate.LABELS.place)
+local camera = workspace.CurrentCamera
+screen.layout(if camera then camera.ViewportSize.Y else 720)
+screen.gui.Parent = player:WaitForChild("PlayerGui")
 
 local state: LoadingGate.Status = {
 	gameLoaded = game:IsLoaded(),
@@ -100,7 +42,7 @@ local state: LoadingGate.Status = {
 	preloadDone = false,
 }
 local skipped = false
-skip.Activated:Connect(function()
+screen.skip.Activated:Connect(function()
 	skipped = true
 end)
 
@@ -163,23 +105,16 @@ end)
 local started = os.clock()
 while true do
 	local view = LoadingGate.step(state, os.clock() - started)
-	fill.Size = UDim2.fromScale(view.progress, 1)
-	status.Text = view.label
-	skip.Visible = view.canSkip
+	screen.setProgress(view.progress)
+	screen.setStatus(view.label)
+	screen.setSkip(view.canSkip)
+	screen.layout(screen.gui.AbsoluteSize.Y)
 	if view.lift or skipped then
 		break
 	end
 	task.wait(0.1)
 end
 
-local info = TweenInfo.new(LOOK.fade)
-TweenService:Create(bg, info, { BackgroundTransparency = 1 }):Play()
-for _, d in bg:GetDescendants() do
-	if d:IsA("TextLabel") or d:IsA("TextButton") then
-		TweenService:Create(d, info, { TextTransparency = 1, BackgroundTransparency = 1 }):Play()
-	elseif d:IsA("Frame") then
-		TweenService:Create(d, info, { BackgroundTransparency = 1 }):Play()
-	end
-end
-task.wait(LOOK.fade)
-gui:Destroy()
+screen.fade(TweenService)
+task.wait(LoadingScreen.FADE)
+screen.gui:Destroy()

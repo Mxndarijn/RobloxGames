@@ -663,6 +663,23 @@ describe("H1 HUD: status icon tooltip (B8)", function()
 		setAttributes()
 	end)
 
+	it("the open slot's bubble wears the Gold ring while its tooltip shows, and timers read mint", function()
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+		local Theme = UiHarness.ui("Widgets").Theme
+		local _, gui = running(1920, 1080)
+		local function ring(id: string): any
+			return UiHarness.find(slot(gui, id), "Bubble"):FindFirstChildOfClass("UIStroke")
+		end
+		expect(ring("Event").Color).toBe(Theme.Ink)
+		UiHarness.fire(slot(gui, "Event"), "MouseEnter")
+		expect(ring("Event").Color).toBe(Theme.Gold)
+		expect(ring("Rain").Color).toBe(Theme.Ink)
+		UiHarness.fire(slot(gui, "Event"), "MouseLeave")
+		expect(ring("Event").Color).toBe(Theme.Ink)
+		expect(UiHarness.find(slot(gui, "Rain"), "Timer").TextColor3).toBe(Theme.Good)
+		setAttributes()
+	end)
+
 	it("a tap opens it, a second tap closes it, a tap elsewhere closes it (touch)", function()
 		UiHarness.lastInputType = Enum.UserInputType.Touch
 		local _, gui, screen = running(390, 844)

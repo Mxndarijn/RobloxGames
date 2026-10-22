@@ -41,9 +41,6 @@ WorldProps.SHOP_PROMPTS = table.freeze({
 		actionText = "Browse upgrades",
 	}),
 })
--- The sign text of each stand (the Props sign says SHOP).
-local STAND_SIGNS: { [string]: string } = { ItemShop = "ITEM SHOP", UpgradeShop = "UPGRADE SHOP" }
-
 WorldProps.GUIDE_PROMPT = table.freeze({
 	name = Constants.GUIDE_PROMPT_NAME,
 	objectText = "Guide",
@@ -103,7 +100,7 @@ function WorldProps.worldShops(): boolean
 	return Config.FEATURES.WorldShops == true
 end
 
--- A shop stand builder: Props.shopStand with the skin and sign of `shopId` (Props.STAND_STYLES), renamed, its sign text set.
+-- A shop stand builder: Props.shopStand with the skin and sign (name included) of `shopId` (Props.STAND_STYLES), renamed.
 local function standBuilder(Props: any, name: string, shopId: string?): (() -> Instance)?
 	if not (Props and Props.shopStand) then
 		return nil
@@ -111,10 +108,6 @@ local function standBuilder(Props: any, name: string, shopId: string?): (() -> I
 	return function()
 		local model = Props.shopStand(shopId)
 		model.Name = name
-		local text = shopId and model:FindFirstChild("Text", true)
-		if text and text:IsA("TextLabel") then
-			text.Text = STAND_SIGNS[shopId :: string]
-		end
 		return model
 	end
 end

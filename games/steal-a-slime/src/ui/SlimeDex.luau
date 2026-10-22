@@ -330,6 +330,7 @@ export type SkinRow = {
 	locked: boolean,
 	title: string, -- the skin's name
 	detail: string, -- the set, or for a locked skin what unlocks it
+	found: string?, -- a locked skin's count toward it ("3/5 found")
 	fraction: number, -- set progress (1 once unlocked)
 	color: { number },
 	skin: { id: string, unlocked: boolean, equipped: boolean },
@@ -351,16 +352,14 @@ function SlimeDex.skinRows(plotSkins: any, config: any): { SkinRow }
 			local needed = if type(skin.needed) == "number" then skin.needed else 0
 			local detail = if unlocked
 				then (if skin.setName then `{skin.setName} set` else "Default look")
-				else `Find {needed} {if skin.setName then `{skin.setName} ` else ""}species ({math.min(
-					owned,
-					needed
-				)}/{needed})`
+				else `Find {needed} {if skin.setName then `{skin.setName} ` else ""}species`
 			table.insert(out, {
 				key = `skin:{skin.id}`,
 				tier = skin.tier or 0,
 				locked = not unlocked,
-				title = if type(skin.name) == "string" then skin.name else skin.id,
+				title = Format.sentenceCase(if type(skin.name) == "string" then skin.name else skin.id),
 				detail = detail,
+				found = if unlocked then nil else `{math.min(owned, needed)}/{needed} found`,
 				fraction = if unlocked then 1 elseif needed > 0 then math.clamp(owned / needed, 0, 1) else 0,
 				color = floors[skin.id] or SlimeDex.SILHOUETTE,
 				skin = { id = skin.id, unlocked = unlocked, equipped = equipped },

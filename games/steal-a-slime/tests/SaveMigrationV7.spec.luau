@@ -135,7 +135,7 @@ describe("SaveData.deserialize of a v6 save with mutations", function()
 		expect(d.consumables.bought.MutationSpray).toBeNil()
 		expect(d.consumables.held.MutationSpray).toBeNil()
 		expect(d.consumables.held.LuckPotion).toBe(1)
-		expect(#d.trophies).toBe(0) -- t1 is not a boss species
+		expect(next(d.boss.wins)).toBeNil() -- t1 is not a boss species
 	end)
 	it("serializes with no mutation, stamp or removed-item fields and re-serializes equal", function()
 		local d = SaveData.deserialize(v6Save())

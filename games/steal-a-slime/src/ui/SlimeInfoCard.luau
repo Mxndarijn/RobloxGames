@@ -3,13 +3,14 @@
 	SlimeInfoCard (contract/slime-labels.md)
 
 	The label of every slime model (tag Constants.SLIME_TAG). A wild, carried
-	or escaping slime gets a floating tag above its mesh: outlined text, no
-	panel. The species name in white edged in the rarity colour, the rarity
-	word filled with a gradient of that colour, the income per second and,
-	while it is for sale, the price. A slime resting on a pad (LabelPad set)
-	shows no tag: its label is a goo-dipped sign on a stake in front of the pad's cork stand (SlimePadSign). The
-	server writes the values as model attributes; the text is
-	Shared.SlimeLabel. Client only, nothing replicates.
+	or escaping slime gets a floating tag above its mesh (canvas
+	GooWorldLabels "Wild slime tag"), no panel: the rarity on a goo pill in
+	the rarity colour (a rainbow for Secret), the species name in white
+	outlined in Ink, the income per second in mint and, while it is for sale,
+	a "Buy $price" chip. A slime resting on a pad (LabelPad set) shows no tag:
+	its label is a goo-dipped sign on a stake in front of the pad's cork stand
+	(SlimePadSign). The server writes the values as model attributes; the text
+	is Shared.SlimeLabel. Client only, nothing replicates.
 
 	Cost: a BillboardGui per slime with MaxDistance (the engine culls it), sized
 	in studs plus pixels so it shrinks with distance and stays readable, and a
@@ -34,57 +35,50 @@ local SlimeInfoCard = {}
 SlimeInfoCard.NAME = "SlimeInfoCard"
 SlimeInfoCard.SIGN_FOLDER = "SlimePadSigns"
 
--- Tag size: studs (shrinks with distance) plus pixels (keeps it readable far away).
+-- Tag size: studs (shrinks with distance) plus pixels (keeps it readable far away: the name row stays about
+-- rowPx * its weight px tall at the edge of maxDistance).
 SlimeInfoCard.SIZE = table.freeze({
 	widthStuds = 3.4,
-	widthPx = 72,
+	widthPx = 160,
 	rowStuds = 0.4, -- one weight-1 row
-	rowPx = 14, -- the pixel floor: a far row stays about this tall on a phone
+	rowPx = 20, -- the pixel floor of a weight-1 row
 	maxDistance = 60, -- studs: hidden beyond
 	maxTextSize = 72,
-	stroke = 2, -- px outline round every row
+	stroke = 2, -- px Ink outline round the text and the pills
+	pill = 0.86, -- a pill's height, fraction of its row (the rest is the gap to the next row)
+	pillPad = 0.14, -- a pill's text inset top and bottom, fraction of its height
 })
 
--- Rows, top to bottom, with heights relative to one row. The name is the largest; the price is next, so it
--- reads as the thing to act on.
+-- Rows, top to bottom, with heights relative to one row. The name is the largest; the price chip is next, so
+-- it reads as the thing to act on.
 SlimeInfoCard.ROWS = table.freeze({
+	{ name = "Rarity", weight = 0.8 },
 	{ name = "Title", weight = 1.3 },
-	{ name = "Rarity", weight = 1 },
 	{ name = "Income", weight = 0.95 },
-	{ name = "Price", weight = 1.1 },
-})
-
--- Text and outline colours: each row keeps a dark edge of its own hue, so it reads on sand, goo and sky alike.
-SlimeInfoCard.INK = table.freeze({
-	rarityStroke = Color3.fromRGB(26, 14, 46),
-	income = Theme.Accent,
-	incomeStroke = Color3.fromRGB(22, 70, 18),
-	price = Theme.Gold,
-	priceStroke = Color3.fromRGB(96, 52, 0),
-	nameDarken = 0.6, -- the name's outline: the rarity colour mixed this far towards black
+	{ name = "Price", weight = 1 },
 })
 
 export type Row = { name: string, y: number, h: number } -- y / h: fractions of the tag's height
 
 local rgb = SlimePadSign.rgb
 
--- Outline colour of the name row: the rarity colour, darkened.
-function SlimeInfoCard.nameStroke(color: { number }): Color3
-	return rgb(color):Lerp(Color3.new(0, 0, 0), SlimeInfoCard.INK.nameDarken)
+-- Width / height of a pill holding `text`: Fredoka glyphs are about 0.4 of the pill's height wide at the
+-- pill's text size, plus half a height of goo at each end. Too long a text only shrinks (TextScaled).
+function SlimeInfoCard.pillAspect(text: string): number
+	return 0.4 * (utf8.len(text) or #text) + 1
 end
 
--- Fill of the rarity word: light at the top, the rarity colour at the bottom (never darker, so deep blues and
--- reds stay readable on the dark outline); a rainbow for Secret.
-function SlimeInfoCard.rarityGradient(view: SlimeLabel.View): ColorSequence
+-- The rarity pill's look: its fill colour, the gradient over it (a rainbow for Secret, plain white otherwise,
+-- which leaves the fill as it is) and the text colours that read on it.
+function SlimeInfoCard.pillLook(view: SlimeLabel.View): (Color3, ColorSequence, Color3, number)
 	if SlimeLabel.isRainbow(view) then
-		return SlimePadSign.rainbow()
+		return Color3.new(1, 1, 1), SlimePadSign.rainbow(), Theme.Ink, 1
 	end
-	local base = rgb(view.rarityColor)
-	return ColorSequence.new({
-		ColorSequenceKeypoint.new(0, base:Lerp(Color3.new(1, 1, 1), 0.6)),
-		ColorSequenceKeypoint.new(0.55, base:Lerp(Color3.new(1, 1, 1), 0.15)),
-		ColorSequenceKeypoint.new(1, base),
-	})
+	local fill = rgb(view.rarityColor)
+	if Widgets.isBright(fill) then
+		return fill, ColorSequence.new(Color3.new(1, 1, 1)), Theme.Ink, 1
+	end
+	return fill, ColorSequence.new(Color3.new(1, 1, 1)), Theme.Text, 0
 end
 
 -- The rows shown for `count` rows (3 = not for sale, 4 = with the price), stacked top to bottom.
@@ -113,7 +107,8 @@ function SlimeInfoCard.size(count: number): UDim2
 	return UDim2.new(s.widthStuds, s.widthPx, weight * s.rowStuds, math.floor(weight * s.rowPx + 0.5))
 end
 
-local function row(name: string, color: Color3, stroke: Color3, parent: Instance): TextLabel
+-- Outlined text: the colour edged in Ink.
+local function text(name: string, color: Color3, parent: Instance): TextLabel
 	return create("TextLabel", {
 		Name = name,
 		BackgroundTransparency = 1,
@@ -126,15 +121,50 @@ local function row(name: string, color: Color3, stroke: Color3, parent: Instance
 		create("UIStroke", {
 			Name = "Stroke",
 			Thickness = SlimeInfoCard.SIZE.stroke,
-			Color = stroke,
+			Color = Theme.Ink,
 			LineJoinMode = Enum.LineJoinMode.Round,
 		}),
 	})
 end
 
+-- A pill: text on a rounded fill, as wide as its text (UIAspectRatioConstraint "Fit", set on render) and
+-- never wider than the tag.
+local function pill(name: string, fill: Color3, color: Color3, parent: Instance): TextLabel
+	local s = SlimeInfoCard.SIZE
+	return create(
+		"TextLabel",
+		{
+			Name = name,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = fill,
+			BackgroundTransparency = 0,
+			Font = Theme.Font,
+			TextColor3 = color,
+			TextStrokeColor3 = Theme.Ink,
+			TextStrokeTransparency = 1,
+			TextScaled = true,
+			Parent = parent,
+		},
+		{
+			Widgets.pill(),
+			create("UIStroke", {
+				Name = "Stroke",
+				Thickness = s.stroke,
+				Color = Theme.Ink,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			}),
+			create("UIAspectRatioConstraint", { Name = "Fit", AspectRatio = 3 }),
+			create("UIPadding", {
+				PaddingTop = UDim.new(s.pillPad, 0),
+				PaddingBottom = UDim.new(s.pillPad, 0),
+			}),
+			create("UITextSizeConstraint", { MaxTextSize = s.maxTextSize }),
+		} :: { Instance }
+	)
+end
+
 -- An empty tag (call `render` to fill it).
 function SlimeInfoCard.build(): BillboardGui
-	local ink = SlimeInfoCard.INK
 	local gui = create("BillboardGui", {
 		Name = SlimeInfoCard.NAME,
 		Archivable = false,
@@ -150,13 +180,15 @@ function SlimeInfoCard.build(): BillboardGui
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
-	row("Title", Color3.new(1, 1, 1), ink.rarityStroke, tag)
-	local rarity = row("Rarity", Color3.new(1, 1, 1), ink.rarityStroke, tag)
-	create("UIGradient", { Name = "Fill", Rotation = 90, Parent = rarity })
-	row("Income", ink.income, ink.incomeStroke, tag)
-	row("Price", ink.price, ink.priceStroke, tag)
+	local rarity = pill("Rarity", Color3.new(1, 1, 1), Theme.Ink, tag)
+	create("UIGradient", { Name = "Fill", Parent = rarity })
+	text("Title", Color3.new(1, 1, 1), tag)
+	text("Income", Theme.Good, tag)
+	pill("Price", Theme.Ink, Theme.Gold, tag)
 	return gui
 end
+
+local PILLS = table.freeze({ Rarity = true, Price = true })
 
 -- Shows `view` on a built tag and places it `height` studs above its Adornee (nil = hide the tag).
 function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height: number?)
@@ -172,7 +204,7 @@ function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height:
 		Title = view.name,
 		Rarity = view.rarity,
 		Income = view.income,
-		Price = view.price,
+		Price = if view.price then `Buy {view.price}` else nil,
 	}
 	local shown: { [string]: Row } = {}
 	for _, r in SlimeInfoCard.rows(count) do
@@ -183,17 +215,26 @@ function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height:
 		local r = shown[spec.name]
 		label.Visible = r ~= nil
 		if r then
-			label.Position = UDim2.fromScale(0, r.y)
-			label.Size = UDim2.fromScale(1, r.h)
-			label.Text = texts[spec.name] or ""
+			local value = texts[spec.name] or ""
+			label.Text = value
+			if PILLS[spec.name] then
+				local h = r.h * SlimeInfoCard.SIZE.pill
+				label.Position = UDim2.fromScale(0.5, r.y + r.h / 2)
+				label.Size = UDim2.fromScale(1, h);
+				(label:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(value)
+			else
+				label.Position = UDim2.fromScale(0, r.y)
+				label.Size = UDim2.fromScale(1, r.h)
+			end
 		end
 	end
-	local title = tag:FindFirstChild("Title") :: TextLabel
-	local nameStroke = title:FindFirstChild("Stroke") :: UIStroke
-	nameStroke.Color = SlimeInfoCard.nameStroke(view.rarityColor)
 	local rarity = tag:FindFirstChild("Rarity") :: TextLabel
-	local fill = rarity:FindFirstChild("Fill") :: UIGradient
-	fill.Color = SlimeInfoCard.rarityGradient(view)
+	local fill, shading, ink, strokeHidden = SlimeInfoCard.pillLook(view)
+	rarity.BackgroundColor3 = fill
+	rarity.TextColor3 = ink
+	rarity.TextStrokeTransparency = strokeHidden
+	local gradient = rarity:FindFirstChild("Fill") :: UIGradient
+	gradient.Color = shading
 end
 
 -- The label attributes of a model, as SlimeLabel reads them.
