@@ -9,6 +9,7 @@
 	toward the bots that played most.
 ]]
 
+local Bot = require("./Bot")
 local Config = require("../../../src/shared/Config")
 local Economy = require("../../../src/shared/Economy")
 local Profiles = require("./Profiles")
@@ -81,6 +82,7 @@ local function byProfile(records: { Record }): { [string]: { Record } }
 	return out
 end
 
+-- Profiles in the order of Profiles.LIST, then the late joiners ("late-<profile>") by name.
 local function profilesIn(groups: { [string]: { Record } }): { string }
 	local out = {}
 	for _, name in Profiles.names() do
@@ -88,6 +90,14 @@ local function profilesIn(groups: { [string]: { Record } }): { string }
 			table.insert(out, name)
 		end
 	end
+	local extra = {}
+	for name in groups do
+		if not table.find(out, name) then
+			table.insert(extra, name)
+		end
+	end
+	table.sort(extra)
+	table.move(extra, 1, #extra, #out + 1, out)
 	return out
 end
 
@@ -119,7 +129,278 @@ export type Meta = {
 	mix: { [string]: number },
 	stagger: number,
 	checkpoints: { number },
+	late: { Server.Late }?,
 }
+
+local function botCount(meta: Meta, name: string): number
+	for _, late in meta.late or {} do
+		if `late-{late.profile}` == name then
+			return late.count
+		end
+	end
+	return meta.mix[name] or 0
+end
+
+local function ratio(a: number, b: number): number
+	return if b > 0 then a / b else 0
+end
+
+local MILESTONES = {
+	"Rare",
+	"Epic",
+	"Legendary",
+	"Mythic",
+	"Secret",
+	"firstSteal",
+	"firstLock",
+	"firstEgg",
+}
+
+-- Time to the milestones that are not a rebirth: the first slime of each rarity on a pad, pad floors, SlimeDex counts.
+local function milestoneTable(lines: { string }, groups: { [string]: { Record } }, names: { string })
+	local keys = table.clone(MILESTONES)
+	for floor = 1, #Config.BASE_FLOORS do
+		table.insert(keys, `pads{floor * Config.PADS_PER_FLOOR}`)
+	end
+	for _, m in Config.DEX_MILESTONES.species do
+		table.insert(keys, `dex{m.count}`)
+	end
+	local header, rule = { "| First |" }, { "|---|" }
+	for _, name in names do
+		table.insert(header, ` {name} |`)
+		table.insert(rule, "---|")
+	end
+	table.insert(lines, table.concat(header))
+	table.insert(lines, table.concat(rule))
+	for _, key in keys do
+		local cells = { `| {key} |` }
+		local anyone = false
+		for _, name in names do
+			local snaps = {}
+			for _, r in groups[name] do
+				if r.milestones[key] then
+					table.insert(snaps, r.milestones[key])
+				end
+			end
+			anyone = anyone or #snaps > 0
+			if #snaps == 0 then
+				table.insert(cells, " - |")
+			else
+				local days = Report.percentile(field(snaps, "days"), 0.5) :: number
+				local share = math.floor(#snaps / #groups[name] * 100 + 0.5)
+				table.insert(
+					cells,
+					` {Report.spread(field(snaps, "played"), hours)} / day {string.format("%.1f", days)}, {share}% |`
+				)
+			end
+		end
+		if anyone then
+			table.insert(lines, table.concat(cells))
+		end
+	end
+end
+
+local SOURCES = { "active", "offline", "sell", "goal", "dex", "quest", "daily", "code", "other" }
+local SINKS = { "wild", "pad", "upgrade", "coil", "lock", "consumable", "rebirth", "pvp", "other" }
+
+-- Share of all cash earned / spent by source: the sum over the profile's bots, so the rich bots weigh more.
+local function ledgerTable(lines: { string }, groups: { [string]: { Record } }, names: { string })
+	for _, kind in { "earned", "spent" } do
+		local keys = if kind == "earned" then SOURCES else SINKS
+		local header = { `| Profile ({kind}) | Total |` }
+		local rule = { "|---|---|" }
+		for _, key in keys do
+			table.insert(header, ` {key} |`)
+			table.insert(rule, "---|")
+		end
+		table.insert(lines, table.concat(header))
+		table.insert(lines, table.concat(rule))
+		for _, name in names do
+			local totals: { [string]: number } = {}
+			local all = 0
+			for _, r in groups[name] do
+				for key, v in (if kind == "earned" then r.earnedBy else r.spentBy) do
+					totals[key] = (totals[key] or 0) + v
+					all += v
+				end
+			end
+			local cells = { `| {name} | {money(all)} |` }
+			for _, key in keys do
+				table.insert(cells, string.format(" %.1f%% |", ratio(totals[key] or 0, all) * 100))
+			end
+			table.insert(lines, table.concat(cells))
+		end
+		table.insert(lines, "")
+	end
+end
+
+-- Cash/s added per minute of trips, wild against steal, summed over the profile's bots.
+local function tripTable(lines: { string }, groups: { [string]: { Record } }, names: { string })
+	table.insert(
+		lines,
+		"| Profile | Trip | Tries | Worked | Sec/try | Slime income/s per worked trip | Sell value per worked trip | Paid per try | Income/s gained per trip-minute |"
+	)
+	table.insert(lines, "|---|---|---|---|---|---|---|---|---|")
+	for _, name in names do
+		for _, kind in { "wild", "steal" } do
+			local tries, ok, secs, gain, sell, paid = 0, 0, 0, 0, 0, 0
+			for _, r in groups[name] do
+				local a = (r.stats :: any)[kind] :: Bot.Agg
+				tries += a.tries
+				ok += a.ok
+				secs += a.secs
+				gain += a.gainIncome
+				sell += a.gainSell
+				paid += a.paid
+			end
+			if tries > 0 then
+				table.insert(
+					lines,
+					`| {name} | {kind} | {tries} | {string.format("%.0f%%", ratio(ok, tries) * 100)} | {string.format(
+						"%.0f",
+						ratio(secs, tries)
+					)} | {money(ratio(gain, ok))} | {money(ratio(sell, ok))} | {money(ratio(paid, tries))} | {money(
+						ratio(gain, secs / 60)
+					)} |`
+				)
+			end
+		end
+	end
+end
+
+-- Flips (wild slime bought and sold at once) by rebirth level: what they earn per hour against the plot's income.
+local function flipTable(lines: { string }, groups: { [string]: { Record } }, names: { string })
+	local any = false
+	for _, name in names do
+		for _, r in groups[name] do
+			any = any or r.stats.flip.tries > 0
+		end
+	end
+	if not any then
+		return
+	end
+	table.insert(lines, "## Flips by rebirth level")
+	table.insert(lines, "")
+	table.insert(
+		lines,
+		"| Profile | Level | Bots | Online h | Flips | Sec/try | Profit/flip | Flip profit per trip-hour | Flip profit per online hour | Plot income per online hour | Flip / plot | Pad sales |"
+	)
+	table.insert(lines, "|---|---|---|---|---|---|---|---|---|---|---|---|")
+	for _, name in names do
+		local byLevel: { [number]: { bots: number, l: Bot.LevelStats } } = {}
+		for _, r in groups[name] do
+			for key, l in r.stats.levels do
+				local level = tonumber(key) :: number
+				local row = byLevel[level]
+				if not row then
+					row = {
+						bots = 0,
+						l = {
+							secs = 0,
+							incomeSum = 0,
+							samples = 0,
+							flips = 0,
+							flipTries = 0,
+							flipSecs = 0,
+							revenue = 0,
+							paid = 0,
+							padSales = 0,
+						},
+					}
+					byLevel[level] = row
+				end
+				row.bots += 1
+				for field, v in l do
+					(row.l :: any)[field] += v
+				end
+			end
+		end
+		local levels = {}
+		for level, row in byLevel do
+			if row.l.flipTries > 0 then
+				table.insert(levels, level)
+			end
+		end
+		table.sort(levels)
+		for _, level in levels do
+			local row = byLevel[level]
+			local l = row.l
+			local profit = l.revenue - l.paid
+			local perTrip = ratio(profit, l.flipSecs / 3600)
+			local perOnline = ratio(profit, l.secs / 3600)
+			local plot = ratio(l.incomeSum, l.samples) * 3600
+			table.insert(
+				lines,
+				`| {name} | r{level} | {row.bots} | {string.format("%.0f", l.secs / 3600)} | {l.flips} | {string.format(
+					"%.0f",
+					ratio(l.flipSecs, l.flipTries)
+				)} | {money(ratio(profit, l.flips))} | {money(perTrip)} | {money(perOnline)} | {money(plot)} | {string.format(
+					"%.0f%%",
+					ratio(perOnline, plot) * 100
+				)} | {l.padSales} |`
+			)
+		end
+	end
+	table.insert(lines, "")
+end
+
+-- What stealing costs the victims and what locks cost and save them.
+local function victimTable(lines: { string }, groups: { [string]: { Record } }, names: { string })
+	table.insert(
+		lines,
+		"| Profile | Bots | Targeted per bot | Stolen from per bot | Lost income/s per theft | Lost sell value per bot | Locks bought per bot | Lock spend per bot | Lock spend / earned | Locked share of online time | Est. loss a lock prevents (per bot) |"
+	)
+	table.insert(lines, "|---|---|---|---|---|---|---|---|---|---|---|")
+	for _, name in names do
+		local rs = groups[name]
+		local n = #rs
+		local function total(pick: (Record) -> number): number
+			local t = 0
+			for _, r in rs do
+				t += pick(r)
+			end
+			return t
+		end
+		local targeted = total(function(r)
+			return r.stats.targeted
+		end)
+		local stolen = total(function(r)
+			return r.stats.stolenFrom
+		end)
+		local lossIncome = total(function(r)
+			return r.stats.stolenIncome
+		end)
+		local lossSell = total(function(r)
+			return r.stats.stolenSell
+		end)
+		local locks = total(function(r)
+			return r.stats.lockBuys
+		end)
+		local spent = total(function(r)
+			return r.stats.lockSpent
+		end)
+		local earned = total(function(r)
+			return r.final.earned
+		end)
+		local locked = total(function(r)
+			return r.stats.lockedSeconds
+		end)
+		local unlocked = total(function(r)
+			return r.stats.unlockedSeconds
+		end)
+		-- Thefts per unlocked online second, applied to the seconds the base was locked: what the locks held back.
+		local prevented = ratio(lossSell, unlocked) * locked
+		table.insert(
+			lines,
+			`| {name} | {n} | {string.format("%.1f", targeted / n)} | {string.format("%.1f", stolen / n)} | {money(
+				ratio(lossIncome, stolen)
+			)} | {money(lossSell / n)} | {string.format("%.1f", locks / n)} | {money(spent / n)} | {string.format(
+				"%.2f%%",
+				ratio(spent, earned) * 100
+			)} | {string.format("%.0f%%", ratio(locked, locked + unlocked) * 100)} | {money(prevented / n)} |`
+		)
+	end
+end
 
 function Report.markdown(records: { Record }, meta: Meta): string
 	local groups = byProfile(records)
@@ -127,7 +408,7 @@ function Report.markdown(records: { Record }, meta: Meta): string
 	local lines: { string } = {}
 	local mixText = {}
 	for _, name in names do
-		table.insert(mixText, `{meta.mix[name]} {name}`)
+		table.insert(mixText, `{botCount(meta, name)} {name}`)
 	end
 	table.insert(lines, "# Steal a Slime pacing")
 	table.insert(lines, "")
@@ -262,7 +543,89 @@ function Report.markdown(records: { Record }, meta: Meta): string
 		)
 	end
 	table.insert(lines, "")
+	table.insert(lines, "## Other milestones (played hours / calendar days, share of players who got there)")
+	table.insert(lines, "")
+	milestoneTable(lines, groups, names)
+	table.insert(lines, "")
+	table.insert(lines, "## Where the cash came from and went (share of the profile's total)")
+	table.insert(lines, "")
+	ledgerTable(lines, groups, names)
+	table.insert(lines, "## Trips: farming against stealing")
+	table.insert(lines, "")
+	tripTable(lines, groups, names)
+	table.insert(lines, "")
+	flipTable(lines, groups, names)
+	table.insert(lines, "## Victims and locks")
+	table.insert(lines, "")
+	victimTable(lines, groups, names)
+	table.insert(lines, "")
 	return table.concat(lines, "\n")
+end
+
+-- NaN and infinity have no JSON form: they are left out.
+local function clean(value: any): any
+	if type(value) == "number" then
+		return if value ~= value or value == math.huge or value == -math.huge then nil else value
+	elseif type(value) == "table" then
+		local out = {}
+		for k, v in value do
+			out[k] = clean(v)
+		end
+		return out
+	end
+	return value
+end
+
+local function snaps(map: { [number]: Snap }, keyName: string): { any }
+	local keys = {}
+	for k in map do
+		table.insert(keys, k)
+	end
+	table.sort(keys)
+	local out = {}
+	for _, k in keys do
+		local row = table.clone(map[k]) :: any
+		row[keyName] = k
+		table.insert(out, row)
+	end
+	return out
+end
+
+-- Everything per bot as plain tables for net.jsonEncode: time series, milestones, ledger, steal events.
+function Report.json(records: { Record }, meta: Meta): any
+	local bots = {}
+	for _, r in records do
+		table.insert(bots, {
+			seed = r.seed,
+			id = r.id,
+			profile = r.profile,
+			joinDay = r.joinDay,
+			plannedSeconds = r.planned,
+			final = r.final,
+			tutorial = r.tutorialAt,
+			milestones = r.milestones,
+			rebirths = snaps(r.rebirthAt, "level"),
+			rebirthLog = r.rebirthLog,
+			checkpoints = snaps(r.hours, "index"),
+			days = snaps(r.days, "day"),
+			series = r.series,
+			earnedBy = r.earnedBy,
+			spentBy = r.spentBy,
+			stats = r.stats,
+			stealEvents = r.events,
+		})
+	end
+	return clean({
+		meta = {
+			seeds = meta.seeds,
+			days = meta.days,
+			mix = meta.mix,
+			late = meta.late,
+			stagger = meta.stagger,
+			checkpoints = meta.checkpoints,
+		},
+		bots = bots,
+	})
 end
 
 return Report
