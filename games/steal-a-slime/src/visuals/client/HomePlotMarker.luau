@@ -43,7 +43,8 @@ local INK = rgb(GooPalette.Ink)
 local WHITE = rgb(GooPalette.White)
 
 -- The "Your plot" label in px: the badge, the words under it, and the Ink outlines.
-HomePlotMarker.TAG = table.freeze({ w = 170, badge = 62, gap = 4, text = 32, textSize = 26, stroke = 3, textStroke = 2.5 })
+HomePlotMarker.TAG =
+	table.freeze({ w = 170, badge = 62, gap = 4, text = 32, textSize = 26, stroke = 3, textStroke = 2.5 })
 -- The edge arrow: the badge and the "Your plot" words under it, in px.
 HomePlotMarker.ARROW = table.freeze({ badge = 58, gap = 6, textW = 110, textH = 20, textSize = 18 })
 local CORE_ALPHA = 0.35 -- beacon core transparency at full fade
@@ -188,7 +189,11 @@ local function outlined(parent: Instance, name: string, text: string, size: numb
 		TextSize = size,
 		TextColor3 = WHITE,
 	}, parent)
-	make("UIStroke", { Color = INK, Thickness = HomePlotMarker.TAG.textStroke, LineJoinMode = Enum.LineJoinMode.Round }, label)
+	make(
+		"UIStroke",
+		{ Color = INK, Thickness = HomePlotMarker.TAG.textStroke, LineJoinMode = Enum.LineJoinMode.Round },
+		label
+	)
 	return label
 end
 
