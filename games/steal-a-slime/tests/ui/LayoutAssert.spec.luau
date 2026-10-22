@@ -11,6 +11,7 @@ local LayoutAssert = require("./LayoutAssert")
 local Nav = require("../../src/ui/Nav")
 local ShopCatalog = require("../../src/ui/ShopCatalog")
 local TestRunner = require("../TestRunner")
+local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -87,23 +88,32 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 			)
 		end
 	end)
-	it("mirrors the panels' row geometry (Shop, Rebirth, Guide)", function()
+	it("mirrors the panels' row geometry (Shop, Guide)", function()
 		local shop = read("src/ui/Panels/Shop.luau")
 		expect(has(shop, "Shop.BADGE = 48")).toBe(true)
 		expect(has(shop, "Shop.BUY_W = 110")).toBe(true)
-		expect(has(shop, "Shop.DESC_H = 32")).toBe(true)
+		expect(has(shop, "Shop.DESC_H = 34")).toBe(true)
 		local guide = read("src/ui/Panels/Guide.luau")
 		expect(has(guide, "Guide.TIP_H = 44")).toBe(true)
-		local rebirth = read("src/ui/Panels/Rebirth.luau")
-		expect(has(rebirth, "need = { y = 24, h = 128 }")).toBe(true)
-		expect(has(rebirth, "gives = { y = 180, h = 50 }")).toBe(true)
-		expect(has(rebirth, "button = { y = 276, h = Layout.BUTTON }")).toBe(true)
-		expect(has(rebirth, "note = { y = 338, h = 18 }")).toBe(true)
+	end)
+	it("the Rebirth sizes and copy it measures are the panel's own", function()
+		local real = UiHarness.ui("Panels/Rebirth")
+		local function same(copy: { [string]: any }, source: { [string]: any }, path: string)
+			for k, v in copy do
+				if type(v) == "table" then
+					same(v, source[k], `{path}.{k}`)
+				elseif source[k] ~= v then
+					error(`LayoutAssert's {path}.{k} is {v}, Panels/Rebirth has {source[k]}`)
+				end
+			end
+		end
+		same(LayoutAssert.REBIRTH, real, "Rebirth")
 	end)
 	it("every card fits its content at the tallest gate viewport (no scroll on desktop)", function()
 		local s = Layout.screen(1920, 1080)
 		local chrome = Layout.PANEL_CHROME.header + Layout.PANEL_CHROME.pad
-		expect(Layout.panelFor(s, "Rebirth").h >= chrome + 356).toBe(true) -- Rebirth.CONTENT_H
+		local rebirth = UiHarness.ui("Panels/Rebirth").plan(3, 3 * 14 * Layout.LINE_HEIGHT) -- the tallest: three slimes
+		expect(Layout.panelFor(s, "Rebirth").h >= chrome + rebirth.height).toBe(true)
 		expect(Layout.panelFor(s, "Guide").h >= chrome + 96 + 8 + 3 * (44 + 8)).toBe(true) -- Guide.CONTENT_H
 		for _, key in LayoutAssert.menuKeys() do
 			local r = Layout.panelFor(s, key)

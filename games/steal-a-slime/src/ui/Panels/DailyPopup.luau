@@ -3,7 +3,7 @@
 	Daily reward popup: a centred modal card (the shared Widgets.panel frame) with the streak
 	track, today's amount and Claim (`Request("Daily")`). Opens by itself when a claim becomes
 	available and the tutorial is done (PopupQueue, init.client) and from the HUD Daily button.
-	Once the server reports it claimed, it shows "Claimed!" and closes.
+	Once the server reports it claimed, it shows "Claimed" and closes.
 ]]
 
 local UI = script.Parent.Parent
@@ -22,7 +22,7 @@ local DailyPopup = {}
 -- Body rows top to bottom (design px; the body is Layout.panelBody of a Layout.DAILY card).
 -- Claim is pinned to the body's bottom edge.
 DailyPopup.ROWS = table.freeze({
-	top = { y = 0, h = 26, size = 15, chipSize = 13 }, -- streak line + "Come back tomorrow" chip
+	top = { y = 0, h = 26, size = 15, chipSize = Layout.MIN_TEXT }, -- streak line + "Come back tomorrow" chip
 	track = { y = 34, h = 70 },
 	amount = { y = 110, h = 46, size = 40 },
 	claimSize = 22,
@@ -33,16 +33,16 @@ DailyPopup.TILE = table.freeze({
 	lastWeight = 1.6,
 	labelY = 4,
 	labelH = 17,
-	labelSize = 12,
+	labelSize = Layout.MIN_TEXT,
 	lastLabelSize = 14,
 	iconY = 22,
 	icon = 24,
 	lastIcon = 30,
 	amountH = 16,
 	amountInset = 5, -- amount line above the tile's bottom edge
-	amountSize = 13,
+	amountSize = Layout.MIN_TEXT,
 	lastAmountSize = 15,
-	minAmountSize = 8,
+	minAmountSize = Layout.MIN_TEXT,
 })
 -- Share of the top line the chip may take; the streak line gets the rest.
 DailyPopup.CHIP_SHARE = 0.58
@@ -68,7 +68,7 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		Parent = parent,
 	})
 
-	local panel = Widgets.panel(backdrop, "Card", "Daily Reward", "📅")
+	local panel = Widgets.panel(backdrop, "Card", "Daily reward", "📅")
 	local card = panel.frame
 	card.Visible = true -- the backdrop shows and hides the popup
 	card.Active = true -- a tap on the card is not a tap outside it
@@ -184,7 +184,7 @@ function DailyPopup.new(parent: Instance, ctx: any)
 	local claim = Widgets.button(
 		{
 			Name = "Claim",
-			Text = "Claim!",
+			Text = "Claim",
 			TextSize = rows.claimSize,
 			Position = UDim2.new(0, 0, 1, -Layout.BUTTON),
 			Size = UDim2.new(1, 0, 0, Layout.BUTTON),
@@ -262,9 +262,9 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		local tomorrow = if base > 0 then Daily.reward(math.min(day + 1, cap), base, mult) else 0
 		chip.Text = `Come back tomorrow for {Format.formatCash(tomorrow)}`
 		chip.Visible = tomorrow > 0
-		amount.Text = if available then `+{Format.formatCash(daily.amount)}` else "Claimed!"
+		amount.Text = if available then `+{Format.formatCash(daily.amount)}` else "Claimed"
 		claim.setEnabled(available)
-		claim.setText(if available then "Claim!" else "Claimed")
+		claim.setText(if available then "Claim" else "Claimed")
 
 		if wasAvailable == true and not available and backdrop.Visible then
 			-- Just claimed: let the "Claimed!" state show, then close.
