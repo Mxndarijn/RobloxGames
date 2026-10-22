@@ -11,6 +11,8 @@ local ServerFixtures = require("../ServerFixtures")
 local Spawner = require("../../src/server/Spawner")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
+local roblox = require("@lune/roblox") :: any
+local Enum = roblox.Enum
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
@@ -49,6 +51,44 @@ describe("B1: hold-to-confirm buttons", function()
 		expect(fill ~= nil).toBe(true)
 		expect(fill.Visible).toBe(false)
 		expect(fill.Size.X.Scale).toBe(0)
+	end)
+	it("a hold stops when its panel is hidden or the button is destroyed, and never confirms", function()
+		local Widgets = UiHarness.ui("Widgets")
+		UiHarness.virtualTime(true)
+		local confirms = 0
+		local function build(): (any, any)
+			local root = UiHarness.root()
+			local panel = UiHarness.Instance.new("Frame")
+			panel.Parent = root
+			local btn = Widgets.holdButton({ Name = "T", Parent = panel }, nil, function()
+				confirms += 1
+			end, 0.5)
+			return btn.instance, panel
+		end
+		-- baseline: a full hold confirms
+		local inst, _ = build()
+		UiHarness.fire(inst, "InputBegan", { UserInputType = Enum.UserInputType.MouseButton1 })
+		UiHarness.advance(0.6)
+		UiHarness.renderStep()
+		expect(confirms).toBe(1)
+		-- panel hidden mid-hold
+		local inst2, panel2 = build()
+		UiHarness.fire(inst2, "InputBegan", { UserInputType = Enum.UserInputType.MouseButton1 })
+		panel2.Visible = false
+		UiHarness.advance(0.6)
+		UiHarness.renderStep()
+		expect(confirms).toBe(1)
+		expect(inst2:FindFirstChild("HoldFill").Visible).toBe(false)
+		-- button destroyed mid-hold
+		local inst3, _ = build()
+		UiHarness.fire(inst3, "InputBegan", { UserInputType = Enum.UserInputType.MouseButton1 })
+		inst3.Parent = nil
+		UiHarness.advance(0.6)
+		UiHarness.renderStep()
+		expect(confirms).toBe(1)
+		-- the hold also dies if it is hidden at the moment it would confirm
+		expect(Widgets.holdAlive(inst3)).toBe(false)
+		UiHarness.virtualTime(false)
 	end)
 	it("hold progress runs 0 -> 1 over the duration", function()
 		local Widgets = UiHarness.ui("Widgets")
