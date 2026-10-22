@@ -4,7 +4,7 @@
 
 	Shows the local player where their own plot is (client only, see
 	client/HomePlotMarker): a light beacon over the plot, a glowing ring along
-	the round plot floor's edge, a "Your plot" tag (a mint house badge) and an edge-of-screen arrow
+	the round plot floor's edge, a "Your plot" tag (your avatar in a mint badge) and an edge-of-screen arrow
 	while the plot is off screen. This module holds the look numbers and the
 	math; it touches no Roblox API.
 
