@@ -113,7 +113,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		consumables = Consumables.view(data, now, Config.FEATURES.Weather, world.potionUntil),
 		pvp = PvpService.view(session, now),
 		tutorialStep = TutorialProgress.current(data),
-		walkSpeed = Shop.walkSpeed(data),
+		walkSpeed = Shop.walkSpeed(data, session.coilHeld),
 		tutorialStepId = TutorialProgress.currentId(data),
 		incomeMultiplier = Perks.incomeMultiplier(data),
 		petPerk = Perks.petPassive(data),

@@ -12,7 +12,7 @@
 	  * plot attributes OwnerUserId / LockUntil (CONTRACT.md §5.2);
 	    with FEATURES.Habitats, Pad Habitat / HabitatFrom / HabitatAt (HabitatPads)
 	    and the owner / stats text on each plot Sign (PlotSigns);
-	  * per-player WalkSpeed (Speed Coil when not carrying), unequipped
+	  * per-player WalkSpeed (Speed Coil while held), unequipped
 	    tools, the SpeedCoil tool and the `Carrying` / `TutorialStep` /
 	    `SpeedCoil` attributes;
 	  * the workspace `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt`
@@ -1531,7 +1531,7 @@ local function ensureSpeedCoil(player: Player)
 	end
 	local tool = WorldProps.speedCoil()
 	if tool then
-		tool.ToolTip = "Speed Coil: always on"
+		tool.ToolTip = "Speed Coil: hold to run faster"
 		tool.Parent = backpack
 	end
 end
@@ -1565,6 +1565,12 @@ function WorldView.updatePlayer(
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
 	if data.speedCoil then
 		ensureSpeedCoil(player)
+	end
+	-- The coil only works while held (Merijn 2026-10-22): equipped = the Tool sits in the character.
+	local coilHeld = data.speedCoil and character ~= nil and character:FindFirstChild(Constants.SPEED_COIL_TOOL) ~= nil
+	if (session.coilHeld == true) ~= coilHeld then
+		session.coilHeld = coilHeld
+		World.markDirty(session) -- State.walkSpeed changes
 	end
 	local target = Carry.targetWalkSpeed(session, now) -- PvP holds / slows multiply in (PvpSlow, PvpFun)
 	if Config.FEATURES.PvP and PvpFun.frozen(session, now) then
