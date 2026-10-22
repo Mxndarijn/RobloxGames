@@ -151,7 +151,6 @@ function Hud.new(parent: Instance, ctx: any)
 		Parent = coin,
 	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 	Widgets.shade(coinFace, 0.88)
-	Widgets.shine(coinFace)
 	local coinRing = create("Frame", {
 		Name = "Ring",
 		BackgroundTransparency = 1,

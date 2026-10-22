@@ -286,7 +286,6 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 			Parent = rowFrame,
 		}, { Widgets.pill(), Widgets.stroke(Theme.Ink, C.rowStroke) })
 		Widgets.shade(chip)
-		Widgets.shine(chip)
 		local keyText = Widgets.label({
 			Name = "KeyText",
 			Text = SlimeKeyCard.keyLabel(

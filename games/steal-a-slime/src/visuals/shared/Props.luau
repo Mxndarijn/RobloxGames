@@ -29,6 +29,7 @@
 ]]
 
 local Goo = if script then require(script.Parent.Parent.Shared.GooPalette) else require("../../shared/GooPalette")
+local GooIcons = if script then require(script.Parent.Parent.Shared.GooIcons) else require("../../shared/GooIcons")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
 local Props = {}
@@ -115,7 +116,8 @@ end
 type StandStyle = {
 	stand: string, -- the WorldLayout.SHOP_STANDS entry: the kit mesh the stand skins, its sign face and counter
 	title: string, -- the name on the sign
-	icon: string, -- the emoji on the sign's white badge (the minimap pins use the same ones)
+	icon: string, -- the emoji on the sign's white badge (the minimap pins use the same ones), "" when drawn
+	drawn: string?, -- a GooIcons drawing on the badge instead of the emoji
 	jelly: { { number } }, -- the sign's jelly gradient, top, middle, bottom (GooPalette)
 }
 
@@ -128,13 +130,14 @@ Props.STAND_STYLES = table.freeze({
 		title = "Item shop",
 		icon = "🛒",
 		jelly = table.freeze({ Goo.MintHi, Goo.Mint, Goo.MintLo }),
-	}),
+	} :: StandStyle),
 	UpgradeShop = table.freeze({
 		stand = "UpgradeShopStand",
 		title = "Upgrade shop",
-		icon = "⬆️",
+		icon = "",
+		drawn = "upArrow",
 		jelly = table.freeze({ Goo.GoldHi, Goo.Gold, Goo.GoldDeep }),
-	}),
+	} :: StandStyle),
 }) :: { [string]: StandStyle }
 
 -- The jelly sign on the stand's sign face, as fractions of the face: the jelly across the top, the badge on its
@@ -210,17 +213,16 @@ function Props.standSign(sign: BasePart, look: StandStyle, aspect: number): Surf
 	local hi, mid, lo = tone(look.jelly[1]), tone(look.jelly[2]), tone(look.jelly[3])
 	local top = j.y + j.h
 	for i, d in S.drips do
+		-- One finger of goo with a round end, from under the jelly down onto the face.
 		local dropH = d.w * aspect -- round in px
-		local neck = frame(
+		local drip = frame(
 			gui,
-			`Neck{i}`,
+			`Drip{i}`,
 			lo,
-			UDim2.fromScale(d.x - d.w * 0.32, top - 0.05),
-			UDim2.fromScale(d.w * 0.64, d.len + 0.05 + dropH * 0.4)
+			UDim2.fromScale(d.x - d.w / 2, top - dropH),
+			UDim2.fromScale(d.w, d.len + dropH * 2)
 		)
-		corner(neck, UDim.new(1, 0))
-		local drop = frame(gui, `Drop{i}`, lo, UDim2.fromScale(d.x - d.w / 2, top + d.len), UDim2.fromScale(d.w, dropH))
-		corner(drop, UDim.new(1, 0))
+		corner(drip, UDim.new(1, 0))
 	end
 	local jelly = frame(gui, "Jelly", Color3.new(1, 1, 1), UDim2.fromScale(j.x, j.y), UDim2.fromScale(j.w, j.h))
 	jelly.ZIndex = 2 -- over the drips' necks
@@ -236,12 +238,6 @@ function Props.standSign(sign: BasePart, look: StandStyle, aspect: number): Surf
 	shade.Parent = jelly
 	-- The jelly's width in units of its height, to place things left to right in height units.
 	local wide = j.w * aspect / j.h
-	local shine =
-		frame(jelly, "Shine", Color3.new(1, 1, 1), UDim2.fromScale(0.3 / wide, 0.1), UDim2.fromScale(0.4 / wide, 0.1))
-	shine.BackgroundTransparency = 0.35
-	shine.Rotation = -24
-	shine.ZIndex = 2
-	corner(shine, UDim.new(1, 0))
 	local inset = (1 - S.badge) / 2
 	local badge = frame(
 		jelly,
@@ -253,10 +249,19 @@ function Props.standSign(sign: BasePart, look: StandStyle, aspect: number): Surf
 	badge.ZIndex = 2
 	corner(badge, UDim.new(1, 0))
 	inkStroke(badge, S.stroke - 1)
-	local icon = label(badge, "Icon", look.icon, tone(Goo.Ink))
-	icon.Size = UDim2.fromScale(0.72, 0.72)
-	icon.Position = UDim2.fromScale(0.14, 0.14)
-	icon.ZIndex = 3
+	if look.drawn == "upArrow" then
+		GooIcons.upArrow(
+			badge,
+			{ Instance = Instance, UDim = UDim, UDim2 = UDim2, Vector2 = Vector2 },
+			tone(Goo.Ink),
+			3
+		)
+	else
+		local icon = label(badge, "Icon", look.icon, tone(Goo.Ink))
+		icon.Size = UDim2.fromScale(0.72, 0.72)
+		icon.Position = UDim2.fromScale(0.14, 0.14)
+		icon.ZIndex = 3
+	end
 	local text = label(jelly, "Text", look.title, tone(Goo.Ink))
 	local textX = (inset * 2.4 + S.badge) / wide
 	text.Position = UDim2.fromScale(textX, 0.17)

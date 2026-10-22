@@ -112,7 +112,7 @@ local pvpFunFx = require(script.PvpFunFx).start({
 require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent, pvpAnim, pvpFunFx)
 
 local gui = Widgets.create("ScreenGui", {
-	Name = "SlimeUI",
+	Name = Constants.UI_GUI_NAME,
 	ResetOnSpawn = false,
 	IgnoreGuiInset = false,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -632,6 +632,8 @@ local function syncMenus()
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
 	syncTutorial()
+	-- Visuals' edge arrows and the Your plot tag step aside while a menu or popup covers the screen.
+	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, visibleKey ~= nil or dailyPopup.isOpen())
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)

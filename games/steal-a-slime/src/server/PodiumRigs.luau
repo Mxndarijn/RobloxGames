@@ -41,8 +41,6 @@ PodiumRigs.BOARD_PX = table.freeze({ w = 120, h = 61, lift = 2.2, maxDistance = 
 PodiumRigs.BOARD = table.freeze({
 	band = 0.44,
 	radius = 0.22,
-	lip = 0.05,
-	scallops = 10,
 	drips = table.freeze({
 		table.freeze({ x = 0.08, w = 0.05, len = 0.06 }),
 		table.freeze({ x = 0.9, w = 0.044, len = 0.03 }),

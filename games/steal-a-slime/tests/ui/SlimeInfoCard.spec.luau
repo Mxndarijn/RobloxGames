@@ -337,10 +337,7 @@ describe("SlimePadSign", function()
 			local c = Config.RARITIES[3].color
 			local goo = band:FindFirstChild("Goo").Color.Keypoints
 			expect(goo[2].Value).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
-			-- the lip and the drips continue the band's bottom colour, so there is no seam
-			for i = 1, SlimePadSign.LIP.scallops do
-				expect(band:FindFirstChild(`Lip{i}`).BackgroundColor3).toBe(goo[#goo].Value)
-			end
+			-- the drips continue the band's bottom colour, so there is no seam
 			for i, d in SlimePadSign.DRIPS do
 				local drip = band:FindFirstChild(`Drip{i}`)
 				expect(drip.BackgroundColor3).toBe(goo[#goo].Value)

@@ -190,7 +190,7 @@ describe("SlimeKeyCard", function()
 			expect(row.BackgroundColor3).toBe(Theme.Glass)
 			local chip = row:FindFirstChild("Key")
 			expect(chip.BackgroundColor3).toBe(color)
-			expect(chip:FindFirstChild("Shine") ~= nil).toBe(true)
+			expect(chip:FindFirstChild("Shine")).toBeNil()
 			expect(chip:FindFirstChildOfClass("UIStroke").Color).toBe(Theme.Ink)
 			-- only the hold prompt says "Hold"
 			expect(row:FindFirstChild("Hint") ~= nil).toBe(name == "SellPrompt")

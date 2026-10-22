@@ -37,7 +37,6 @@ Widgets.Theme = table.freeze({
 	Gold = fromPalette(Goo.Gold),
 	GoldDeep = fromPalette(Goo.GoldDeep), -- the coin's edge and ring
 	Glass = fromPalette(Goo.Glass), -- a glass row on a card (at Goo.GLASS_TRANSPARENCY)
-	Shine = Color3.new(1, 1, 1), -- the glint on jelly and the dot on goo drops
 	Font = Enum.Font.FredokaOne, -- titles, numbers, buttons, labels
 	FontBody = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold), -- sentences (a FontFace)
 })
@@ -162,30 +161,11 @@ Widgets.KIT = table.freeze({
 	plateRadius = 18, -- the hotbar plate
 	slotRadius = 16, -- hotbar slots and the Bag button
 	shadeBottom = 0.78, -- a jelly's bottom brightness under its top
-	shine = 0.4, -- the glint's transparency
 })
 
 -- Buttons, wells, chips and bubbles are pills or circles: one uniform UICorner each.
 function Widgets.pill(): UICorner
 	return create("UICorner", { CornerRadius = UDim.new(1, 0) })
-end
-
--- The glint of light top-left on a jelly: one small rotated white frame, the same size on every jelly so a
--- wide button gets a glint, not a streak. One instance per jelly (ui-perf-budget.json). It never takes input.
-function Widgets.shine(parent: GuiObject): Frame
-	local s = Layout.SHINE
-	return create("Frame", {
-		Name = "Shine",
-		Active = false,
-		BackgroundColor3 = Theme.Shine,
-		BackgroundTransparency = Widgets.KIT.shine,
-		BorderSizePixel = 0,
-		Position = UDim2.new(s.x, s.offsetX, 0, s.offsetY),
-		Size = UDim2.fromOffset(s.w, s.h),
-		Rotation = s.rotation,
-		ZIndex = parent.ZIndex,
-		Parent = parent,
-	})
 end
 
 -- A notice's two rings: `color` (Gold = info or guidance, Bad = danger) on the card's own UIStroke and a
@@ -242,9 +222,8 @@ function Widgets.inkOn(label: TextLabel | TextButton, fill: Color3)
 	end
 end
 
--- A jelly pill TextButton: fill, ink outline, a darker bottom and a shine. Disabled it turns into a sunken
--- Ink well with muted text and no shine (the outline stays, so its size never jumps), so it never reads as
--- pressable. Clicks while disabled are ignored.
+-- A jelly pill TextButton: fill, ink outline and a darker bottom. Disabled it turns into a sunken Ink well
+-- with muted text (the outline stays, so its size never jumps), so it never reads as pressable. Clicks while disabled are ignored.
 function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () -> ()): Button
 	local kit = Widgets.KIT
 	local baseColor = color or Theme.Info
@@ -263,7 +242,6 @@ function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () ->
 	local stroke = Widgets.stroke(Theme.Ink, kit.stroke)
 	stroke.Parent = inst
 	Widgets.shade(inst)
-	local shine = Widgets.shine(inst)
 	Widgets.inkOn(inst, baseColor)
 	inst.Activated:Connect(function()
 		if enabled then
@@ -276,7 +254,6 @@ function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () ->
 		inst.AutoButtonColor = enabled
 		inst:SetAttribute("ClickMuted", if enabled then nil else true) -- ButtonClicks stays quiet
 		inst.BackgroundColor3 = if enabled then baseColor else Theme.Disabled
-		shine.Visible = enabled
 		if enabled then
 			Widgets.inkOn(inst, baseColor)
 		else
@@ -490,8 +467,7 @@ end
 export type Panel = { frame: Frame, body: Frame, title: TextLabel, close: TextButton, icon: TextLabel }
 
 -- Goo edge under a band of colour `color` whose bottom is at `y` (design px), across `parent`'s full width:
--- a lip of round scallops, then drips (a thin neck and a round drop with a dot of shine) at the fractions in
--- Layout.GOO_EDGE.drips. Everything is sized by scale or a few px, so it fits any panel width; drips stay
+-- drips at the fractions in Layout.GOO_EDGE.drips, each one finger of goo with a round end. Everything is sized by scale or a few px, so it fits any panel width; drips stay
 -- shorter than PANEL_CHROME.bodyGap so they only fall into the empty gap above the body.
 function Widgets.gooEdge(parent: GuiObject, y: number, color: Color3)
 	local g = Layout.GOO_EDGE
@@ -504,46 +480,17 @@ function Widgets.gooEdge(parent: GuiObject, y: number, color: Color3)
 		ZIndex = parent.ZIndex,
 		Parent = parent,
 	})
-	for i = 0, g.scallops - 1 do
-		create("Frame", {
-			Name = "Lip" .. i,
-			BackgroundColor3 = color,
-			BorderSizePixel = 0,
-			Position = UDim2.new(i / g.scallops, 0, 0, -g.lip),
-			Size = UDim2.new(1 / g.scallops, 2, 0, g.lip * 2),
-			ZIndex = parent.ZIndex,
-			Parent = edge,
-		}, { Widgets.pill() })
-	end
 	for i, d in g.drips do
-		local x, w, len = d[1], d[2], d[3]
+		local x, w, hang = d[1], d[2], d[3]
+		-- Its round top hides in the band (same colour), so only the hanging part and its round end show.
 		create("Frame", {
-			Name = "Neck" .. i,
+			Name = "Drip" .. i,
 			BackgroundColor3 = color,
 			BorderSizePixel = 0,
-			Position = UDim2.new(x, math.round(w * (1 - g.neckWidth) / 2), 0, 0),
-			Size = UDim2.fromOffset(math.round(w * g.neckWidth), len),
+			Position = UDim2.new(x, 0, 0, -w),
+			Size = UDim2.fromOffset(w, hang + w),
 			ZIndex = parent.ZIndex,
 			Parent = edge,
-		}, { Widgets.pill() })
-		local drop = create("Frame", {
-			Name = "Drop" .. i,
-			BackgroundColor3 = color,
-			BorderSizePixel = 0,
-			Position = UDim2.new(x, 0, 0, len - math.round(w * g.dropRise)),
-			Size = UDim2.fromOffset(w, w),
-			ZIndex = parent.ZIndex,
-			Parent = edge,
-		}, { Widgets.pill() })
-		create("Frame", {
-			Name = "Dot",
-			BackgroundColor3 = Theme.Shine,
-			BackgroundTransparency = g.dotTransparency,
-			BorderSizePixel = 0,
-			Position = UDim2.fromScale(g.dotAt, g.dotAt),
-			Size = UDim2.fromScale(g.dot, g.dot),
-			ZIndex = parent.ZIndex,
-			Parent = drop,
 		}, { Widgets.pill() })
 	end
 	return edge
@@ -615,7 +562,6 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		Parent = frame,
 	}, { Widgets.pill(), Widgets.stroke(Theme.Ink, kit.stroke) })
 	Widgets.shade(tile)
-	Widgets.shine(tile)
 	local iconLabel = Widgets.label({
 		Name = "Icon",
 		Text = icon or "",
@@ -653,7 +599,6 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		Parent = frame,
 	}, { Widgets.pill(), Widgets.stroke(Theme.Ink, kit.stroke) }) :: TextButton
 	Widgets.shade(close)
-	Widgets.shine(close)
 	local body = create("Frame", {
 		Name = "Body",
 		BackgroundTransparency = 1,

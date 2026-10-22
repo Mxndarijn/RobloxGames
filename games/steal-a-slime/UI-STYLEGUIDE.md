@@ -28,7 +28,6 @@ Decided by Merijn on 2026-10-21; the Goo look was chosen the same week. Mockups 
 | `Bad` | **Losing something** (Drop, Sell), the ring on danger notices, alarms, "Missing" chips, the close X | Anything that only needs attention |
 | `Warn` | Timers running out, locked-until hints | Buttons |
 | `Info` | Secondary buttons (Pick for me, Auto-merge), counts and badges, the boss meter's goo | Main actions |
-| `Shine` | The glint on jelly and the dot on goo drops | Text, fills |
 
 `Good`, `Accent` and `Band` are the same mint on purpose: income, the main action and the header share it. Never write a raw `Color3` in a panel or a world script; add the colour to `GooPalette` (and a `Theme` token for screen UI) if none fits.
 
@@ -53,9 +52,9 @@ Decided by Merijn on 2026-10-21; the Goo look was chosen the same week. Mockups 
 
 - **Pills and circles** for buttons, wells, chips, badges and status bubbles (`Widgets.pill`). Panels use `KIT.panelRadius`, rows and cards `KIT.rowRadius`, icon tiles `KIT.radius`, the hotbar plate and its slots `KIT.plateRadius` / `KIT.slotRadius`.
 - Outlines are always `Ink`: `KIT.stroke` on panels, buttons and tiles, `KIT.rowStroke` on rows.
-- **Jelly** is `Widgets.shade` (top light, bottom dark) plus one `Widgets.shine` glint top-left. Only pressable things get it.
+- **Jelly** is `Widgets.shade` (top light, bottom dark). No white glint lines. Only pressable things get it.
 - **Glass** is `Bg` or `Glass` with transparency, never blur. The HUD's status bubbles are glass (`Layout.STATUS_BUBBLE`).
-- **Goo edge**: a panel's band drips onto the body (`Widgets.gooEdge`, sized by `Layout.GOO_EDGE`). Every menu in one ScreenGui shares one edge, moved into whichever panel is open, to stay inside the UI budget.
+- **Goo edge**: a panel's band drips onto the body (`Widgets.gooEdge`, sized by `Layout.GOO_EDGE`): each drip is one blob, a soft shoulder under the band, a thick neck and a round drop. No dotted lip, no shine dots. Every menu in one ScreenGui shares one edge, moved into whichever panel is open, to stay inside the UI budget.
 - **Notice rings**: `Widgets.ring` puts the colour ring (Gold or Bad) inside an Ink ring. Notices use `Layout.NOTICE_RADIUS`.
 - No drop shadows and no glows on screen UI.
 
@@ -64,7 +63,7 @@ Decided by Merijn on 2026-10-21; the Goo look was chosen the same week. Mockups 
 - One `UICorner` per frame, the same on every corner. A shape with different corners is two frames.
 - One `UIStroke` per frame. A second ring needs a wrapper frame (that is what `Widgets.ring` does).
 - A `UIGradient` multiplies the frame's colour, so shading stops are grey brightness factors.
-- Every instance counts against `ui-perf-budget.json`. Share parts (the goo edge) and keep decoration to one frame (the glint) instead of stacking layers.
+- Every instance counts against `ui-perf-budget.json`. Share parts (the goo edge) instead of stacking decoration layers.
 
 ## Buttons
 
@@ -106,13 +105,15 @@ Notices appear on their own; menus are opened by the player.
 - Fixed clusters: menu tiles left, money bottom-left, status icons bottom-right, hotbar bottom-centre, sound button top-right. Nothing new goes on the HUD without a slot in `Layout`.
 - Status icons sit in glass bubbles with a mint timer pill under them, all the same way. A bubble's ring turns `Gold` while its tooltip shows.
 - Menu tiles are mint jelly (`NavTile`); money is a glass pill with the gold coin.
+- Edge arrows (home, tutorial) hide while a menu or popup is open (`Constants.MENU_OPEN_ATTRIBUTE`).
 - Badges on menu tiles: `Bad` "!" for something to do, `Info` for a count or percentage.
 
 ## World UI
 
 - World scripts read colours from `Shared/GooPalette` directly (the server and the visuals have no `Widgets`).
 - Text is outlined Fredoka: white with an Ink edge, Ink on bright goo.
-- Boards (plot signs, podiums, the ritual sign) are a `GooBoard`: a glass card with an Ink edge and a mint band that drips. Shop stands carry a jelly sign (`Props.standSign`): mint for the Item shop, gold for the Upgrade shop.
+- Boards (plot signs, podiums, the ritual sign) are a `GooBoard`: a glass card with an Ink edge and a mint band that drips. Shop stands carry a jelly sign (`Props.standSign`): mint for the Item shop, gold for the Upgrade shop. Icons that clash as emoji are drawn instead (`Shared/GooIcons`, the Upgrade shop's arrow).
+- On your own plot the next pad you can buy has a mint outline and a "Buy pad $X" tag (`NextPadMarker`); gold "Next pad $X" while you can't afford it.
 - Slime tags (`SlimeInfoCard`): the rarity on a pill of its colour, the name, the income in mint, and a gold "Buy" chip while it is for sale. Pad planks (`SlimePadSign`) are wood dipped in goo of the rarity colour.
 - The key card over your own pad slime is the one screen-style card in the world, because it stands in for Roblox's prompt bubbles: glass rows with jelly key chips.
 - The "Your plot" tag is your avatar in a mint jelly badge; the edge arrow home uses the same badge with a house.

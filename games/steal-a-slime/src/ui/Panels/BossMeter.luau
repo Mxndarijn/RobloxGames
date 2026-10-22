@@ -47,8 +47,8 @@ local SIZE = table.freeze({
 -- Drips under the band: { x (fraction of the width), drop width, neck length } px; each one's lowest point stays
 -- inside SIZE.rowTop, clear of the row.
 local DRIPS = table.freeze({
-	table.freeze({ 0.63, 12, 8 }),
-	table.freeze({ 0.74, 9, 4 }),
+	table.freeze({ 0.63, 12, 12 }),
+	table.freeze({ 0.74, 9, 7 }),
 })
 
 local HEIGHT = SIZE.band + SIZE.rowTop + SIZE.row + SIZE.bottom
@@ -102,28 +102,16 @@ function BossMeter.new(parent: Instance, ctx: any)
 	})
 	local goo: { Frame } = {}
 	for i, d in DRIPS do
-		local x, w, len = d[1], d[2], d[3]
-		local g = Layout.GOO_EDGE
+		local x, w, hang = d[1], d[2], d[3]
+		-- One finger of goo (the Layout.GOO_EDGE recipe): its round top hides in the band.
 		table.insert(
 			goo,
 			create("Frame", {
-				Name = "Neck" .. i,
+				Name = "Drip" .. i,
 				BorderSizePixel = 0,
 				BackgroundColor3 = Theme.Bad,
-				Position = UDim2.new(x, math.round(w * (1 - g.neckWidth) / 2), 0, SIZE.band - 2),
-				Size = UDim2.fromOffset(math.round(w * g.neckWidth), len + 2),
-				ZIndex = z,
-				Parent = frame,
-			}, { Widgets.pill() })
-		)
-		table.insert(
-			goo,
-			create("Frame", {
-				Name = "Drop" .. i,
-				BorderSizePixel = 0,
-				BackgroundColor3 = Theme.Bad,
-				Position = UDim2.new(x, 0, 0, SIZE.band + len - math.round(w * g.dropRise)),
-				Size = UDim2.fromOffset(w, w),
+				Position = UDim2.new(x, 0, 0, SIZE.band - w),
+				Size = UDim2.fromOffset(w, hang + w),
 				ZIndex = z,
 				Parent = frame,
 			}, { Widgets.pill() })
@@ -159,7 +147,6 @@ function BossMeter.new(parent: Instance, ctx: any)
 		Parent = frame,
 	}, { Widgets.pill(), Widgets.stroke(Theme.Ink, KIT.stroke) })
 	Widgets.shade(tile)
-	Widgets.shine(tile)
 	local icon = Widgets.label({
 		Name = "Icon",
 		Text = BossMeterLogic.ICON,
