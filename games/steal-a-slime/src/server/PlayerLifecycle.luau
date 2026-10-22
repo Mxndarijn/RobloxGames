@@ -9,7 +9,8 @@
 	  * spawn: the character goes to its plot spawn, gets exactly one Bat (the server picks the target, the
 	    client sends none), gets its walk speed at once and drops a carried slime on death;
 	  * leave: Sessions.leave (a stolen slime bounces home), per-player caches forgotten, save + release;
-	  * shutdown (BindToClose): every session leaves and saves, waiting up to SHUTDOWN_TIMEOUT seconds;
+	  * shutdown (BindToClose): every session leaves and saves, and a load still in flight releases its lock
+	    when it finishes; waits up to SHUTDOWN_TIMEOUT seconds for all of them;
 	  * autosave every Config.AUTOSAVE_INTERVAL.
 ]]
 
@@ -160,6 +161,7 @@ function PlayerLifecycle.start(deps: Deps)
 
 	game:BindToClose(function()
 		local world, persistence = deps.world, deps.persistence
+		Persistence.close(persistence)
 		for userId in world.sessions do
 			local session = Sessions.leave(world, userId, deps.now())
 			if session then
