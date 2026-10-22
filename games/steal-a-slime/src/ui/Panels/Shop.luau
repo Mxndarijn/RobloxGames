@@ -29,7 +29,7 @@ Shop.BADGE = 48
 Shop.BUY_W = 110
 Shop.TOP_H = WorldShop.TOP_H
 Shop.NAME_H = 22
-Shop.DESC_H = 32
+Shop.DESC_H = 34
 
 local SIZE = WorldShop.SIZE
 local EDGE, GAP = WorldShop.EDGE, WorldShop.GAP
@@ -149,7 +149,7 @@ function Shop.new(parent: Instance, ctx: any)
 		})
 		local stamp = WorldShop.tag({
 			Name = "MaxStamp",
-			Text = "MAX",
+			Text = "Max",
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -EDGE, 0.5, 0),
 			Visible = false,

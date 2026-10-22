@@ -16,6 +16,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local BossChoreo = if Shared then require(Shared.BossChoreo) else require("../shared/BossChoreo")
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
@@ -77,7 +78,7 @@ export type Wild = {
 	position: any?, -- set when a carrier drops it somewhere else (adapter-defined)
 	returning: ParadeLane.Return?, -- FEATURES.Parade: its walk back to the lane after a drop (contract/slime-walk.md)
 	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts toward the wild cap
-	wanderUntil: number?, -- the boss: server time the haul started; its BossWander pose stays there
+	move: BossChoreo.Move?, -- the boss: its current move (BossChoreo; model attribute BossMove)
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
 	choreo: { seed: number }?, -- FEATURES.SlimeChoreo: seed of its lane beats (ParadeChoreo); nil once it leaves the lane
 }
@@ -95,7 +96,7 @@ export type Event = {
 	slimeId: string?,
 	ownerUserId: number?,
 	carrierUserId: number?,
-	reason: string?, -- Escaped: "slap" | "drop" | "left"
+	reason: string?, -- Escaped: "slap" | "drop" | "left" | "unsaved"
 	active: boolean?,
 	effect: string?, -- Effect: Effects.KINDS name ("Collect" | "Steal" | "Merge" | "Rebirth")
 	plotIndex: number?, -- Effect: plot whose MergeVat is the target
@@ -105,7 +106,12 @@ export type Event = {
 }
 
 -- The running boss event: the pure fight and the wild boss slime once it has arrived.
-export type BossEvent = { fight: BossFight.State, slimeId: string?, lastStepAt: number }
+export type BossEvent = {
+	fight: BossFight.State,
+	slimeId: string?,
+	lastStepAt: number,
+	rng: Rng.Rng, -- the boss's own choices (where it strolls), apart from world.rng
+}
 
 export type AdminEvent = {
 	def: { id: string, label: string, icon: string },
@@ -137,6 +143,7 @@ export type World = {
 	eggRng: Rng.Rng, -- FEATURES.MysteryEggs rolls, apart from `rng` so the fountain's slime sequence doesn't shift
 	hatches: { [string]: Hatch }, -- Mystery Egg hatches whose show is playing, runtime only (MysteryEgg.step forgets them)
 	newId: () -> string,
+	canSave: (userId: number) -> boolean, -- the adapter's save check (World.canSave)
 	startedAt: number,
 	nextSpawnAt: number,
 	slideFreeAt: number, -- FEATURES.Parade: the next free fountain-slide slot (Spawner.slot): drops never stack
@@ -163,6 +170,7 @@ export type Options = {
 	seed: number?,
 	eggSeed: number?, -- the hatch generator's own seed; nil = derived from `seed` (tests)
 	newId: (() -> string)?,
+	canSave: ((userId: number) -> boolean)?, -- false while this server can't write that player's save; default: always
 	plotCount: number?,
 }
 
@@ -185,6 +193,9 @@ function World.new(options: Options): World
 		newId = options.newId or function()
 			counter += 1
 			return `s{counter}`
+		end,
+		canSave = options.canSave or function(_userId: number): boolean
+			return true
 		end,
 		startedAt = options.now,
 		nextSpawnAt = options.now,
@@ -211,6 +222,15 @@ end
 
 function World.session(world: World, userId: number): Session?
 	return world.sessions[userId]
+end
+
+--[[
+	True when this server saves `userId`'s progress. A read-only session (a save from a newer version) or one
+	another server took over keeps its stored record, so a slime moved into or out of it in memory would be
+	duplicated or lost: thefts need both players to be saveable.
+]]
+function World.canSave(world: World, userId: number): boolean
+	return world.canSave(userId)
 end
 
 function World.markDirty(session: Session?)

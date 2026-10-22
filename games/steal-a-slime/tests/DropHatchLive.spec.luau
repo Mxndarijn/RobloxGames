@@ -44,7 +44,7 @@ local function hatches()
 		local floor = plot():FindFirstChild(`Floor_{f}`)
 		local hatch = floor and floor:FindFirstChild("DropHatch")
 		if hatch then
-			local prompt = hatch:FindFirstChild("DropPrompt")
+			local prompt = hatch:FindFirstChild("DropPrompt", true)
 			out[f] = { hatch.Transparency < 1, hatch.CanCollide, prompt ~= nil and prompt.Enabled }
 		end
 	end

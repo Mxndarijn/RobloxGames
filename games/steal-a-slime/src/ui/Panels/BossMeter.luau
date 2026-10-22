@@ -55,7 +55,8 @@ function BossMeter.new(parent: Instance, ctx: any)
 		BackgroundColor3 = Theme.Bg,
 		ZIndex = z,
 		Parent = parent,
-	}, { Widgets.corner(SIZE.radius), Widgets.stroke(Theme.Ink, KIT.stroke) })
+	}, { Widgets.corner(SIZE.radius) })
+	Widgets.ring(frame, Theme.Bad, SIZE.radius) -- a boss is a danger notice: the pink ring
 	local tile = create("Frame", {
 		Name = "IconTile",
 		AnchorPoint = Vector2.new(0, 0.5),
@@ -64,8 +65,9 @@ function BossMeter.new(parent: Instance, ctx: any)
 		BackgroundColor3 = Theme.Warn,
 		ZIndex = z,
 		Parent = frame,
-	}, { Widgets.corner(KIT.radius), Widgets.stroke(Theme.Ink, KIT.stroke) })
+	}, { Widgets.pill(), Widgets.stroke(Theme.Ink, KIT.stroke) })
 	Widgets.shade(tile)
+	Widgets.shine(tile)
 	local icon = Widgets.label({
 		Name = "Icon",
 		TextSize = SIZE.tileText,

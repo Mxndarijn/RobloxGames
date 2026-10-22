@@ -116,6 +116,7 @@ local random = Random.new()
 local seeds = WorldSeed.pick(function(min, max)
 	return random:NextInteger(min, max)
 end)
+local persistence = Persistence.new()
 local world = World.new({
 	now = now(),
 	seed = seeds.world,
@@ -123,9 +124,11 @@ local world = World.new({
 	newId = function()
 		return HttpService:GenerateGUID(false)
 	end,
+	canSave = function(userId: number): boolean
+		return Persistence.canSave(persistence, userId)
+	end,
 	plotCount = Config.PLOT_COUNT,
 })
-local persistence = Persistence.new()
 local ctx = ServerContext.new(world, shopEventRemote, now)
 local leaderboard = LeaderboardView.new(world, persistence.orderedStore, leaderboardEvent)
 local profiler = Profiler.new() -- FEATURES.ServerProfiler (CONTRACT.md §25); off = every call is a no-op
@@ -329,6 +332,7 @@ PlayerLifecycle.start({
 	friends = friendCache,
 	badges = badges,
 	ritual = ritual,
+	safeCall = safeCall,
 	now = now,
 	refreshView = refreshView,
 	refreshFriends = refreshFriends,

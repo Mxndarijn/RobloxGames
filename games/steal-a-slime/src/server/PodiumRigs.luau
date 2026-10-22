@@ -3,12 +3,15 @@
 	PodiumRigs: the Roblox adapter for PodiumAvatars. Builds R15 rigs from
 	HumanoidDescriptions and stands them on workspace Podium_<rank> parts
 	(the plaza mesh slots), anchored, non-colliding, facing the fountain like
-	the podium, with a name + stat BillboardGui. Rigs live in
-	workspace.PodiumAvatars.
+	the podium, with a Goo name board (name on a gold band, the stat under it).
+	Rigs live in workspace.PodiumAvatars.
 ]]
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GooBoard = require(ReplicatedStorage.Shared.GooBoard)
+local GooPalette = require(ReplicatedStorage.Shared.GooPalette)
 local PodiumAvatars = require(script.Parent.PodiumAvatars)
 
 local PodiumRigs = {}
@@ -31,6 +34,24 @@ local function podium(rank: number): BasePart?
 	return if part and part:IsA("BasePart") then part else nil
 end
 
+-- The name board over a podium rig (canvas GooWorldSigns): glass with a gold band holding the name in Ink, the
+-- total earned in outlined gold under it. Pixel-sized and small: it stays the same size on screen at any distance.
+PodiumRigs.BOARD_PX = table.freeze({ w = 150, h = 76, lift = 2.2, maxDistance = 160 })
+PodiumRigs.BOARD = table.freeze({
+	band = 0.44,
+	radius = 0.22,
+	lip = 0.05,
+	scallops = 10,
+	drips = table.freeze({
+		table.freeze({ x = 0.08, w = 0.05, len = 0.06 }),
+		table.freeze({ x = 0.9, w = 0.044, len = 0.03 }),
+	}),
+	stroke = 2,
+	glassTransparency = 0.06,
+} :: GooBoard.Spec)
+
+local DEPS: GooBoard.Deps = { Instance = Instance, Enum = Enum, UDim = UDim, UDim2 = UDim2, Color3 = Color3 }
+
 -- An empty text (empty podium) means no label at all: none is created, an existing one is removed.
 local function label(rig: Model, text: string)
 	local gui = rig:FindFirstChild("NameLabel") :: BillboardGui?
@@ -40,31 +61,37 @@ local function label(rig: Model, text: string)
 		end
 		return
 	end
+	local px = PodiumRigs.BOARD_PX
 	if not gui then
 		local made = Instance.new("BillboardGui")
 		made.Name = "NameLabel"
-		made.Size = UDim2.fromOffset(180, 46)
-		made.StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0)
-		made.MaxDistance = 90
+		made.Size = UDim2.fromOffset(px.w, px.h)
+		made.SizeOffset = Vector2.new(0, 0.5) -- the board's bottom edge sits over the head
+		made.StudsOffsetWorldSpace = Vector3.new(0, px.lift, 0)
+		made.MaxDistance = px.maxDistance
+		made.LightInfluence = 0
 		local adornee = rig:FindFirstChild("Head") or rig.PrimaryPart
 		if adornee then
 			made.Adornee = adornee
 		end
-		local textLabel = Instance.new("TextLabel")
-		textLabel.Name = "Text"
-		textLabel.BackgroundTransparency = 1
-		textLabel.Size = UDim2.fromScale(1, 1)
-		textLabel.Font = Enum.Font.GothamBold
-		textLabel.TextScaled = true
-		textLabel.TextColor3 = Color3.new(1, 1, 1)
-		textLabel.TextStrokeTransparency = 0.4
-		textLabel.Parent = made
+		local card = GooBoard.build(made, DEPS, PodiumRigs.BOARD, px.w / px.h)
+		GooBoard.paint(card, DEPS, GooPalette.Gold)
+		local name = GooBoard.text(card, DEPS, "Name", GooPalette.Ink)
+		name.Position = UDim2.fromScale(0.06, 0.07)
+		name.Size = UDim2.fromScale(0.88, 0.31)
+		local value = GooBoard.text(card, DEPS, "Value", GooPalette.Gold, 1.5)
+		value.Position = UDim2.fromScale(0.1, 0.57)
+		value.Size = UDim2.fromScale(0.8, 0.33)
 		made.Parent = rig
 		gui = made
 	end
-	local textLabel = (gui :: BillboardGui):FindFirstChild("Text") :: TextLabel?
-	if textLabel then
-		textLabel.Text = text
+	local card = (gui :: BillboardGui):FindFirstChild(GooBoard.CARD)
+	if card then
+		local name, value = PodiumAvatars.splitLabel(text)
+		local nameLabel = card:FindFirstChild("Name") :: TextLabel
+		local valueLabel = card:FindFirstChild("Value") :: TextLabel
+		nameLabel.Text = name
+		valueLabel.Text = value
 	end
 end
 

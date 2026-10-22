@@ -5,14 +5,15 @@
 	Your own slimes are managed at their pads with keys, no card: every slime model on a pad whose `OwnerUserId`
 	is the local player gets two client-only ProximityPrompts on its Body:
 
-	  * `FavoritePrompt` (R; tap): "Favorite" or "Unfavorite", sends Favorite(slimeId) / Favorite(nil). The
+	  * `FavoritePrompt` (R, gamepad DPadUp; tap): "Favorite" or "Unfavorite", sends Favorite(slimeId) / Favorite(nil). The
 	    favourite's prompt shows its follow-pet perk (State.petPerk). Mystery Eggs (models with `EggKind`) get none:
 	    an egg can't be the favourite.
-	  * `SellPrompt` (X; hold to confirm): "Sell $450" from State.slimes[i].sellPrice, sends Sell(slimeId).
-	  * `MovePrompt` (E; tap), only with `moveKey` / `onMove` (FEATURES.MoveSlime): "Move" calls
+	  * `SellPrompt` (X, gamepad DPadDown; hold to confirm): "Sell $450" from State.slimes[i].sellPrice, sends Sell(slimeId).
+	  * `MovePrompt` (E, gamepad DPadRight; tap), only with `moveKey` / `onMove` (FEATURES.MoveSlime): "Move" calls
 	    `onMove(slimeId, model)`, which starts move mode (SlimeMove).
 
-	Hatch stays the server's HatchPrompt (F). The server's GrabPrompt on the same
+	Hatch stays the server's HatchPrompt (F, gamepad ButtonX). Every key comes from Constants.SLIME_PROMPT_KEYS, where
+	no two prompts share one. The server's GrabPrompt on the same
 	Body is hidden from the owner (PromptHide). Prompts go when the slime leaves the pad (carried, escaping, sold,
 	merged) and come back when it returns. `update(state)` refreshes their texts from the latest State.
 
@@ -21,6 +22,7 @@
 ]]
 
 export type Key = { keyboard: Enum.KeyCode, gamepad: Enum.KeyCode }
+export type KeyNames = { keyboard: string, gamepad: string } -- Enum.KeyCode names (Constants.SLIME_PROMPT_KEYS)
 
 export type Options = {
 	root: Instance, -- workspace
@@ -54,6 +56,12 @@ SlimeKeys.SELL_PROMPT = "SellPrompt"
 SlimeKeys.MOVE_PROMPT = "MovePrompt"
 SlimeKeys.MOVE_TEXT = "Move"
 SlimeKeys.PAD_STATE = "Pad"
+
+-- The Enum.KeyCode pair named by `names` (an entry of Constants.SLIME_PROMPT_KEYS).
+function SlimeKeys.keyOf(names: KeyNames): Key
+	local codes = Enum.KeyCode :: any
+	return { keyboard = codes[names.keyboard], gamepad = codes[names.gamepad] }
+end
 
 local OWNER_ATTRIBUTE = "OwnerUserId"
 local STATE_ATTRIBUTE = "State"

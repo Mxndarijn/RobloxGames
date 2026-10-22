@@ -29,8 +29,7 @@ local DexJarView = {}
 -- Goo heights are tile fractions, the rest design px.
 local JAR = table.freeze({
 	puddle = 0.12, -- goo height at 0%
-	goo = 0.25, -- goo transparency: the tile's purple tints it a deeper green
-	selectedGoo = 0.45, -- on the selected (Accent green) tile the goo is Ink, a darker slime
+	goo = 0.25, -- goo transparency: a darker teal slime that shows on the mint jelly tile
 	rim = 3, -- surface highlight
 	rimTransparency = 0.35,
 	textSize = 18,
@@ -81,7 +80,6 @@ end
 
 export type View = {
 	update: (progress: Progress?) -> (),
-	setSelected: (selected: boolean) -> (),
 	-- Re-checks the rim after the layout resized the tile.
 	relayout: () -> (),
 	level: () -> number,
@@ -109,7 +107,7 @@ function DexJarView.new(tile: Frame, reducedMotion: (() -> boolean)?): View
 	})
 	local goo = create("Frame", {
 		Name = "Goo",
-		BackgroundColor3 = Theme.Good,
+		BackgroundColor3 = Theme.Info,
 		BackgroundTransparency = JAR.goo,
 		BorderSizePixel = 0,
 		AnchorPoint = Vector2.new(0, 1),
@@ -196,10 +194,6 @@ function DexJarView.new(tile: Frame, reducedMotion: (() -> boolean)?): View
 			end
 		end,
 		relayout = syncRim,
-		setSelected = function(selected: boolean)
-			goo.BackgroundColor3 = if selected then Theme.Ink else Theme.Good
-			goo.BackgroundTransparency = if selected then JAR.selectedGoo else JAR.goo
-		end,
 		-- The goo's target height (tile fraction); the tween may still be on its way there.
 		level = function(): number
 			return current or DexJarView.level(0)

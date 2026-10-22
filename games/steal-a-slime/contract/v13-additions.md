@@ -62,7 +62,7 @@ Every field above is in every snapshot (the server never leaves one out); only t
 | `Plot_<i>` | `PadsUnlocked` (`PLOT_PADS_UNLOCKED_ATTRIBUTE`) | `number`, owner's unlocked pads (0 = free plot) |
 | `Plot_<i>` | `NextPadCost` (`PLOT_NEXT_PAD_COST_ATTRIBUTE`) | `number?`, nil when maxed or free |
 | `Pad_<j>` | `Unlocked` (`PAD_UNLOCKED_ATTRIBUTE`) | `boolean`, `j <= PadsUnlocked` (false on a free plot) |
-| `Plot_<i>` | `OwnerUserId`, `LockUntil`, `Rebirths` (§5.2) | set by the server on every reconcile (`WorldView.updatePlots`); Archer's PlotDecor reads them with `Locked`. Wild slime models carry `Tier` (factory), `State = "Wild"` and `RareSpawn` (below), which PlotVisuals/RareSpawn read. |
+| `Plot_<i>` | `OwnerUserId`, `LockUntil` (§5.2) | set by the server on every reconcile (`WorldView.updatePlots`); Archer's PlotDecor reads them with `Locked`. Rebirths never change the base, so plots carry no `Rebirths` attribute. Wild slime models carry `Tier` (factory), `State = "Wild"` and `RareSpawn` (below), which PlotVisuals/RareSpawn read. |
 | ~~`Plot_<i>`~~ | ~~`DexCount`~~ | removed 2026-10-21 with the plot SlimeDex board (goo jar tower remodel) |
 | ~~`Plot_<i>`~~ | ~~`DexTotal`~~ | removed 2026-10-21 with the plot SlimeDex board (goo jar tower remodel) |
 | ~~`Plot_<i>`~~ | ~~`DexTierMask`~~ | removed 2026-10-21 with the plot SlimeDex board (goo jar tower remodel) |
