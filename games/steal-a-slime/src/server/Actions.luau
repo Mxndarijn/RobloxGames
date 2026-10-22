@@ -42,9 +42,8 @@ local PvpService = if script then require(script.Parent.PvpService) else require
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
-local WorldLayout = if Shared
-	then require(Shared.Parent.Visuals.WorldLayout)
-	else require("../visuals/shared/WorldLayout")
+local Layout = if Shared then require(Shared.Parent.Visuals.WorldLayout) else require("../visuals/shared/WorldLayout")
+local WorldLayout = Layout
 
 type World = World.World
 type Session = World.Session
