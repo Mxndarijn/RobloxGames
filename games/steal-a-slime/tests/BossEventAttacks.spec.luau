@@ -7,6 +7,7 @@ local BossEvent = require("../src/server/BossEvent")
 local BossFight = require("../src/shared/BossFight")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
+local ParadeLane = require("../src/shared/ParadeLane")
 local Scene = require("../src/server/Scene")
 local ServerFixtures = require("./ServerFixtures")
 local Shop = require("../src/shared/Shop")
@@ -186,6 +187,10 @@ describe("BossEvent attacks", function()
 			end
 		end
 		expect(#shed).toBe(BOSS.SHED_COUNT)
+		if not ParadeLane.enabled() then
+			expect(#w.boss.bursts).toBe(0) -- no parade lane: they drop from the fountain as before
+			return
+		end
 		expect(#w.boss.bursts).toBe(BOSS.SHED_COUNT)
 		for _, wild in shed do
 			local d = math.sqrt((wild.position.X - bx) ^ 2 + (wild.position.Z - bz) ^ 2)
