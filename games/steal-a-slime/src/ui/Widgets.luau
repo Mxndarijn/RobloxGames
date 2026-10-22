@@ -384,6 +384,21 @@ local HOLD_INPUTS = {
 	does nothing. Used for every UI action that spends cash or changes ownership
 	(Lock / Extend, Buy pad, Sell, Rebirth, shop Buy). The server still checks.
 ]]
+-- True while `inst` can still be pressed: every GuiObject up the chain is Visible and it reaches an enabled
+-- ScreenGui. A hidden card/panel or a destroyed button (Parent nil) is not.
+function Widgets.holdAlive(inst: Instance): boolean
+	local node: Instance? = inst
+	while node do
+		if node:IsA("GuiObject") and not (node :: GuiObject).Visible then
+			return false
+		elseif node:IsA("LayerCollector") then
+			return (node :: LayerCollector).Enabled
+		end
+		node = node.Parent
+	end
+	return false
+end
+
 function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm: () -> (), duration: number): Button
 	local btn = Widgets.button(props, color, function() end)
 	local inst = btn.instance
@@ -420,6 +435,10 @@ function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm:
 		startedAt = began
 		fill.Visible = true
 		conn = game:GetService("RunService").RenderStepped:Connect(function()
+			if not Widgets.holdAlive(inst) then
+				stop() -- hidden or destroyed mid-hold: never confirms
+				return
+			end
 			local p, paused = Widgets.holdPause(Widgets.holdProgress(began, os.clock(), duration), pauseAt)
 			fill.Size = UDim2.fromScale(p, 1)
 			if paused then
@@ -430,7 +449,9 @@ function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm:
 				end
 			elseif p >= 1 then
 				stop()
-				onConfirm()
+				if Widgets.holdAlive(inst) then
+					onConfirm()
+				end
 			end
 		end)
 	end

@@ -63,6 +63,7 @@ local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
 local StealAlertFx = require(script.StealAlertFx)
+local TickGuard = require(script.TickGuard)
 local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
 local WorldShopLogic = require(script.WorldShopLogic)
@@ -1153,28 +1154,47 @@ leaderboardEvent.OnClientEvent:Connect(function(board: Types.Leaderboard)
 	worldBoards.setBoard(board)
 end)
 
--- Local countdowns (lock, rain) between State pushes.
+-- Local countdowns (lock, rain) between State pushes. Each tick runs under its own pcall so one failing
+-- component cannot kill the loop; the error is logged once per component.
+local guardedTick = TickGuard.new(warn)
 local dailyWasOpen = false
+
 task.spawn(function()
 	while true do
 		task.wait(0.1)
 		if latest then
 			local now = serverNow()
 			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.
-			if dailyWasOpen ~= dailyPopup.isOpen() then
-				dailyWasOpen = dailyPopup.isOpen()
-				syncMenus()
-			end
-			hud.tick(now)
-			inventory.tick()
-			bossMeter.tick(now)
-			panelByKey.Codes.tick(now)
-			panelByKey.WorldShop.tick()
-			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen()))
-			pvpFunFx.tick(now)
-			if slimeMove then
-				slimeMove.tick()
-			end
+			guardedTick("dailyPopup", function()
+				if dailyWasOpen ~= dailyPopup.isOpen() then
+					dailyWasOpen = dailyPopup.isOpen()
+					syncMenus()
+				end
+			end)
+			guardedTick("hud", function()
+				hud.tick(now)
+			end)
+			guardedTick("inventory", inventory.tick)
+			guardedTick("bossMeter", function()
+				bossMeter.tick(now)
+			end)
+			guardedTick("codes", function()
+				panelByKey.Codes.tick(now)
+			end)
+			guardedTick("worldShop", function()
+				panelByKey.WorldShop.tick()
+			end)
+			guardedTick("hint", function()
+				hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen()))
+			end)
+			guardedTick("pvpFun", function()
+				pvpFunFx.tick(now)
+			end)
+			guardedTick("slimeMove", function()
+				if slimeMove then
+					slimeMove.tick()
+				end
+			end)
 		end
 	end
 end)
