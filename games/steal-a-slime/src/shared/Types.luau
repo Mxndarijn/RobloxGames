@@ -254,6 +254,15 @@ export type State = {
 	welcomeBack: { away: number, cash: number, grown: number }?, -- join report (seconds away, offline cash paid, pad slimes grown); nil = none (CONTRACT.md §19)
 	stealAway: string?, -- FEATURES.StealAlerts: "While you were away N slimes were stolen by ..." from the saved steal log; nil = none (CONTRACT.md §17)
 	hotbar: { string }?, -- saved hotbar order (HotbarOrder, CONTRACT.md §5.1): 9 slot keys, "" = empty; nil = never set
+	vat: VatView, -- the plot's merge vat (VatState, CONTRACT.md §21)
+}
+
+export type VatView = {
+	ids: { string }, -- slime ids in the vat, spot order (each also in `slimes`, still on its pad)
+	tier: number?, -- the rarity it takes; nil while empty
+	endsAt: number?, -- unix seconds the brew is done; nil = not brewing
+	startedAt: number?, -- unix seconds the brew started
+	seconds: number?, -- how long a brew of `tier` takes now (Quick Brew applied); nil while empty
 }
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }

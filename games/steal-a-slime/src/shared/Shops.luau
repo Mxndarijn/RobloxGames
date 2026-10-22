@@ -64,7 +64,8 @@ for _, tool in Config.PVP_TOOLS do
 end
 
 local upgradeRows: { Item } = {}
-local UPGRADE_ICONS: { [string]: string } = { Income = "🍪", CarrySpeed = "💪", OfflineCap = "🌙", Luck = "🍀" }
+local UPGRADE_ICONS: { [string]: string } =
+	{ Income = "🍪", CarrySpeed = "💪", OfflineCap = "🌙", Luck = "🍀", QuickBrew = "⚡" }
 for _, def in Config.UPGRADES do
 	table.insert(
 		upgradeRows,

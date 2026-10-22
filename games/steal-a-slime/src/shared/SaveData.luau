@@ -45,6 +45,8 @@
 	numbers are clamped (SaveData.cleanPvp).
 	hotbar (CONTRACT.md §5.1) is optional and needs no version bump: 9 slot keys, "" = empty; missing / not a list -> nil,
 	bad or repeated keys -> empty slots, entries past slot 9 dropped (HotbarOrder.clean).
+	vat (CONTRACT.md §21) is optional and needs no version bump: { ids = { slimeId } (up to Config.VAT_SIZE), endsAt = unix
+	seconds? }; junk -> nil, ids that are not owned pad slimes are dropped and a brew without three inputs stops (VatState).
 	Unknown/newer versions are read field-by-field with the current sanitizer.
 	SaveData.check tells DataService whether a stored record may be overwritten:
 	"newer" (version above Config.SAVE_VERSION, e.g. a rolling update) and
@@ -62,6 +64,7 @@ local PlotSkins = if script then require(script.Parent.PlotSkins) else require("
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require("./SpeciesDex")
 local StealAlert = if script then require(script.Parent.StealAlert) else require("./StealAlert")
+local VatState = if script then require(script.Parent.VatState) else require("./VatState")
 local TutorialProgress = if script then require(script.Parent.TutorialProgress) else require("./TutorialProgress")
 
 type Data = PlayerData.Data
@@ -597,6 +600,8 @@ function SaveData.deserialize(stored: any): Data
 	data.boss = BossBadges.clean(raw.boss) -- boss record and badges (missing / junk -> zeros)
 	data.hotbar = HotbarOrder.clean(raw.hotbar) -- hotbar order (no version bump: missing / junk -> nil)
 	data.eggLuck = SaveData.cleanEggLuck(raw.eggLuck) -- Mystery Egg lucky meter (no version bump: missing -> empty)
+	data.vat = VatState.sanitize(raw.vat) -- merge vat (no version bump: missing / junk -> empty vat)
+	VatState.prune(data)
 	BossBadges.grant(data, data.lastOnline) -- badges the record reached before they existed or were saved
 	for species in data.boss.wins do
 		SpeciesDex.record(data, { species = species }) -- a won boss always counts in the SlimeDex
@@ -662,7 +667,6 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			pad = slime.pad,
 			species = slime.species, -- optional (v28), dropped on load if unknown
 			growth = slime.growth, -- optional (FEATURES.GrowingSlimes): missing = 0, no version bump
-			keep = if slime.keep == true then true else nil, -- optional (CONTRACT.md §21.1): missing = not kept, no version bump
 			egg = if slime.egg
 				then { kind = slime.egg.kind, hatchAt = slime.egg.hatchAt, lucky = slime.egg.lucky }
 				else nil, -- optional (contract/mystery-egg.md): missing = a slime, no version bump
@@ -722,6 +726,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		boss = BossBadges.clean(data.boss),
 		hotbar = HotbarOrder.clean(data.hotbar), -- nil until set: the key is left out
 		eggLuck = SaveData.cleanEggLuck(data.eggLuck),
+		vat = VatState.sanitize(data.vat), -- nil while empty: the key is left out
 	}
 end
 

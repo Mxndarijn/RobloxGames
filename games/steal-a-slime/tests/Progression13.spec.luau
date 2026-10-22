@@ -219,9 +219,19 @@ end)
 describe("Goals and SlimeDex rewards", function()
 	it("pays stages as stats grow, x rebirthMultiplier, and tracks real actions", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("m1", 1), Fixtures.slime("m2", 1) }, 1e6)
+		local s = ServerFixtures.join(
+			world,
+			1,
+			{ Fixtures.slime("m1", 1), Fixtures.slime("m2", 1), Fixtures.slime("m3", 1) },
+			1e6
+		)
 		s.lockUntil = 0
-		expect(call(world, 1, "Merge", "m1", "m2").ok).toBe(true)
+		for _, id in { "m1", "m2", "m3" } do
+			expect(call(world, 1, "VatAdd", id).ok).toBe(true)
+		end
+		expect(call(world, 1, "VatStart").ok).toBe(true)
+		s.data.vat.endsAt = 0 -- the brew is done
+		expect(call(world, 1, "VatCollect").ok).toBe(true)
 		expect(call(world, 1, "Lock").ok).toBe(true)
 		expect(s.data.stats.merges).toBe(1)
 		expect(s.data.stats.locks).toBe(1)

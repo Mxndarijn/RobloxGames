@@ -21,7 +21,7 @@ src/shared/      -> ReplicatedStorage.Shared       (ModuleScripts; pure, Lune-sa
   Constants.luau   remote / folder / tag / DataStore names                      shared
   Remotes.luau     remote definitions + Request action arg types; setup()/get()  shared
   Types.luau       network payload types (State, SlimeData, ...)                 shared
-  Genome, Rng, Merge, Economy, PlayerData, SaveData, SessionLock,
+  Genome, Rng, TripleMerge, VatState, Economy, PlayerData, SaveData, SessionLock,
   Steal, Progression, Fountain (legacy alias `Volcano`), Validate, Shop, TutorialProgress, DayNight,
   Perks, Upgrades, Goals, Collection (v13, §8.8), Habitats (FEATURES.Habitats)
                    pure gameplay rules                                          Phoenix
@@ -92,9 +92,9 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - While carrying, WalkSpeed = `Steal.walkSpeed`, tools are unequipped, and you can carry 1 slime at a time.
   - Entering your own plot's `HomeZone` deposits the carried slime on a free pad. If the plot is full you keep carrying it (Notify "bad").
   - Dying or respawning while carrying counts as `Drop`; leaving while carrying a stolen slime sends it home.
-  - Players spawn on their plot's `Base`. Owner-only prompts (v13 names and texts: §8.5): `LockButton` ("Lock base", same as `Request("Lock")`) and `MergeVat` ("Auto-merge", `Merge.findPair` then `Request("Merge")`).
+  - Players spawn on their plot's `Base`. Owner-only prompts (v13 names and texts: §8.5): `LockButton` ("Lock base", same as `Request("Lock")`) and `MergeVat` ("Manage vat": the owner's client opens the merge vat menu, §21).
 - **Income:** `Economy.tickIncome` runs every second. On load, the server pays `Economy.offlineIncome`, which is `OFFLINE_RATE` of income, capped at `OFFLINE_CAP_SECONDS`. A slime being carried away pays its owner nothing.
-- **Merge:** `Request("Merge", a, b)` takes two slimes of the same tier and gives one slime of tier + 1 (`Merge.apply`).
+- **Merge:** the plot's merge vat brews three slimes of one rarity into one of a higher rarity (`VatState`, `TripleMerge`, §21).
 - **Steal and lock:**
   - On join, the plot is locked for `JOIN_LOCK_SECONDS` (120).
   - `Request("Lock")` buys `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s; one purchase and the stacked lock are both capped at `LOCK_MAX_REMAINING` (4 min) (`Steal.lockDuration`, `Steal.buyLock`). Locks are bought only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button, which needs the player at their lock pad). No shop sells locks or longer locks.
@@ -106,6 +106,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **DataStore:**
   - Store `Constants.DATASTORE_NAME`, key `"u_<UserId>"`.
   - The record is `SessionLock` wrapped around `SaveData.serialize`.
+  - The merge vat is the optional field `vat` (no version bump, left out while empty): §21.4.
   - Autosave every `AUTOSAVE_INTERVAL`, plus on leave and on `BindToClose` (waits up to 25 s for pending saves).
   - Load retries 5 times with `SessionLock.backoff`. In a live server a failed load kicks the player; in Studio they get an unsaved fresh profile.
   - A save retries 3 times. If another server took the session over, this server stops saving that player.
@@ -121,7 +122,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   1. `Grab`: grab or buy a wild slime.
   2. `Deposit`: bring any carried slime home onto a pad.
   3. `Lock`: buy a lock (`Request("Lock")` or the LockButton).
-  4. `Merge`: merge two slimes.
+  4. `Merge`: collect a merge from the vat.
   5. `Steal`: start a steal or hit a thief with the Bat.
   6. `Rebirth`: rebirth.
   Doing a step's action finishes that step and every step before it (so a rebirth finishes the tutorial). Doing an *earlier* step's action again does nothing. After step 6 the tutorial is done (`tutorialStep = nil`). New profiles start at 1. Saves made before the field existed start at 1 if they have no slimes and no rebirths, otherwise done. Saved as `tutorialStep` (0 = done) and kept on rebirth.
@@ -137,7 +138,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - `SlimeAnimations`: `true` lets the client play the uploaded KeyframeSequences (`MeshAssets.ANIMATIONS`) on a slime's Animator, but only after a probe load of `SlimeIdleSquish` reports `Length > 0`; a failed or slow probe, or a track that never plays, keeps every slime on the procedural motion. `false`: rigged slimes are driven in code by `ui/SlimeMotor` (squish, wobble, sway, look on the FaceRoot / SkinRoot Motor6D `Transform`; no hops, §37), same LOD (nearest 16 within 80 studs, on screen). Client-only; nothing replicates.
   - `Parade`: the goo parade replaces the plain wild despawn. A fresh wild rides the fountain slide onto the head of a goo lane (`Shared.ParadeLane.WAYPOINTS`, laid on the plaza as `Map.Plaza.ParadeLane` by `server/ParadeView`). The drawn lane starts exactly at the slide mouth (`ParadeLane.MOUTH` = the end of `WorldLayout.SLIDE_PATH`) and leads out to `ENTRY` through a gap in `Plaza.LandingRing` (seven of its 18 tiles are left out, yaw 320..80, where the slide's last stretch runs and the lane leaves); the strips are mitred, flush and opaque (`ParadeLane.strips`, tests/SlimePath.spec). Slime ride physics and the walk are unchanged that loops counter-clockwise round the plaza from just past the goo drain (+Z), dipping inside the hub SpawnLocation and the leaderboard podiums / signpost, and ends at the drain. Its spot is time left: `progress = 1 - (expiresAt - now) / lifetime`; it rides the slide for `RIDE_SECONDS`, glides along the lane linearly in time left (no hop, heading eased through the bends), and in the last `DRAIN_SECONDS` climbs over the drain curb and sinks. The server removes it at `expiresAt` as before and emits World event `Drained` (`slimeId`), which plays a goo splash at the drain. Lane slimes stay grabbable / buyable (same `Grab` / `Buy $` prompt; `Carry.grab`); a grabbed slime leaves the lane at once, and a dropped one walks back to the nearest point of the lane and rejoins the flow with its lifetime kept (§37, [slime-walk.md](contract/slime-walk.md)). `wild.angle` / `wild.radius` keep the `Fountain.roll` values (`radius` sets the slime's sideways offset on the lane). Spawn cadence, cap and lifetimes don't change. The ring warning is the `DespawnTelegraph` window (`"leaving! N"`), which opens while the slime is still walking beside the drain. With the flag off, wilds land in the `Fountain.MIN_RADIUS..MAX_RADIUS` band (`Volcano` is a thin alias) as before.
   - `Habitats` (`HABITATS.md`): a pad whose slime rests on it gets that slime's habitat overlay on the unchanged pad (`Shared.Habitats.forSlime`: type, then tier family, else `base`); empty / stolen / escaping = `base`. Server state in `HabitatPads` (never saved), written as the `Pad_<j>` attributes below; `VisualsClient.HabitatFx` tweens a local overlay on the crate deck in `workspace.ClientHabitats` over 1 s, cloned from the server's MeshPart templates in `ReplicatedStorage.HabitatMeshes`. Flag off = no attributes, no parts.
-- **Out of MVP scope:** sticky floor / bouncer upgrades, Robux products. (Fountain tiers and the 3-slime vat came later: §19, §21.)
+- **Out of MVP scope:** sticky floor / bouncer upgrades, Robux products. (Fountain tiers and the merge vat: §19, §21.)
 
 ## 3. Remotes
 
@@ -154,16 +155,17 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 
 | Action | Args | Effect / `message` on failure |
 |---|---|---|
-| `"Merge"` | `slimeIdA: string, slimeIdB: string` | Merges two owned, not-busy slimes of the same tier. |
-| `"Merge3"` | `slimeIdA: string, slimeIdB: string, slimeIdC: string` | `FEATURES.MergeVat3`: three owned, not-busy, not-kept slimes of one rarity become one of a higher rarity (§21). |
-| `"AutoMerge"` | `tierMask: number` | `FEATURES.MergeVat3`: merges every group of three the server's `MergePlan` finds in the chosen rarities (bit `t - 1` = rarity `t`), lowest income first, never the favourite or kept slimes (§21.1). `"nothing to merge"` when there is none. |
-| `"KeepSlime"` | `slimeId: string, keep: boolean` | Marks an owned slime as kept (never merged) or clears it (§21.1). |
+| `"VatAdd"` | `slimeId: string` | Move mode puts that owned pad slime in the next free spot of the plot's merge vat; it keeps its pad (§21). `"The vat is full"`, `"The vat takes <Rarity> slimes"`, `"The vat is brewing"`. |
+| `"VatRemove"` | `slimeId: string` | Takes it out of the vat; it stays on its own pad. `"Cancel the brew first"` while brewing. |
+| `"VatStart"` | none | Starts the brew of a full vat (`Config.MERGE_BREW_SECONDS` by rarity, Quick Brew applied). `"Add <n> more <Rarity>"` while not full. |
+| `"VatCancel"` | none | Stops the brew; the slimes stay in the vat. |
+| `"VatCollect"` | none | Once the brew is done, merges the three (`TripleMerge`) onto the first input's pad. `"still brewing"` before that. |
 | `"Lock"` | none | Buys or extends the plot lock. Costs `Economy.lockCost(income)`. |
 | `"Rebirth"` | none | Rebirths if `Progression.canRebirth`. |
-| `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. A Mystery Egg can't be sold: "eggs can't be sold". |
+| `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. A Mystery Egg can't be sold: "eggs can't be sold". A slime brewing in the vat can't either: "That slime is brewing in the vat". |
 | `"Favorite"` | `slimeId: string?` | Sets the favourite (the follow pet; a rebirth uses it up only when no other slime of a required species is there). `nil` clears it. |
 | `"BuyPad"` | none | Unlocks the next pad (`Economy.padCost`). |
-| `"MoveSlime"` | `slimeId: string, pad: number` | `FEATURES.MoveSlime`: moves that owned, not-busy slime to `pad` (an unlocked pad, `1..padsUnlocked`, a whole number). If another slime sits there, the two swap pads; that slime must not be busy either. Moving to its own pad is a no-op. Fails with `"moving slimes is off"`, `"not your slime"`, `"pad is locked"`, `"slime is busy"`. Only `slime.pad` changes (no save change); the slime models re-place on the next world refresh. |
+| `"MoveSlime"` | `slimeId: string, pad: number` | `FEATURES.MoveSlime`: moves that owned, not-busy slime to `pad` (an unlocked pad, `1..padsUnlocked`, a whole number). If another slime sits there, the two swap pads; that slime must not be busy either. Moving to its own pad is a no-op. Fails with `"moving slimes is off"`, `"not your slime"`, `"pad is locked"`, `"slime is busy"`, `"That slime is brewing in the vat"`. Only `slime.pad` changes (no save change); the slime models re-place on the next world refresh. |
 | `"Daily"` | none | Claims the daily reward (`Progression.claimDaily`). |
 | `"ClaimQuest"` | `slot: number` | Claims daily quest `slot` (1..`DAILY_QUESTS.count`) once finished (`Quests.claim`): cash x rebirth multiplier or an income boost. `State.dailyQuests` has the 3 quests rolled per UTC day (progress = gained since the roll, saved as `quests`; missing = nothing rolled). |
 | `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While the coil is held (equipped), WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Saved and kept on rebirth. An **item**, not an upgrade (Item Shop row, §27.1; a `SpeedCoil` Tool in the Backpack, hotbar slot, inventory panel). |
@@ -248,7 +250,7 @@ The client always replaces its copy and never diffs.
 	rebirths: number, rebirthMultiplier: number, rebirthCost: number, canRebirth: boolean,
 	rebirthSlimes: { { id: string, name: string, tier: number, color: { number }, owned: boolean } }, -- §8.8a, empty at max
 	padsUnlocked: number, padsMax: number, nextPadCost: number?,
-	slimes: { { slime: SlimeData, income: number, sellPrice: number?, stolenBy: number? } }, -- sellPrice nil for a Mystery Egg
+	slimes: { { slime: SlimeData, income: number, sellPrice: number?, stolenBy: number? } }, -- sellPrice nil for a Mystery Egg; income 0 while brewing in the vat (§21)
 	favoriteId: string?,
 	lockUntil: number, lockCost: number, lockDuration: number,
 	carrying: { slime: SlimeData, kind: "wild" | "stolen", ownerUserId: number?,
@@ -264,6 +266,7 @@ The client always replaces its copy and never diffs.
 	hotbar: { string }?,     -- saved hotbar order: exactly 9 slot keys ("" = empty), nil until the player first sends SetHotbar
 	boss: BossView,          -- the boss event and this player's part in it (§33)
 	bossBadges: { { key: string, earnedAt: number } }, -- earned boss badges, Config.BOSS_BADGES order (§33)
+	vat: VatView,            -- the plot's merge vat: ids in spot order, rarity, brew window (§21.4)
 }
 ```
 
@@ -406,7 +409,7 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §17 | [steal-alerts.md](contract/steal-alerts.md) | v21: full steal alerts (2026-10-16) |
 | §18 | [weekly-event-rotation.md](contract/weekly-event-rotation.md) | v21: weekly event rotation (2026-10-16) |
 | §19 | [fountain-tiers.md](contract/fountain-tiers.md) | v19: fountain tiers + slime families (`FEATURES.FountainTiers`) |
-| §21 | [merge-vat3.md](contract/merge-vat3.md) | v19: 3-slime merge vat (`FEATURES.MergeVat3`) |
+| §21 | [merge-vat.md](contract/merge-vat.md) | Merge vat: three slimes of one rarity brew into one |
 | §22 | [restocking-shop.md](contract/restocking-shop.md) | v29 #13: restocking consumables shop (2026-10-16) |
 | §24 | [welcome-back.md](contract/welcome-back.md) | v20: welcome-back card (2026-10-17) |
 | §25 | [server-profiler.md](contract/server-profiler.md) | v23: server performance profiler (`FEATURES.ServerProfiler`) |

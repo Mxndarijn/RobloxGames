@@ -36,7 +36,6 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local SlimeLooks = require(Shared:WaitForChild("SlimeLooks"))
 local SlimeRoster = require(Shared:WaitForChild("SlimeRoster"))
 local StealAlert = require(Shared:WaitForChild("StealAlert"))
-local TripleMerge = require(Shared:WaitForChild("TripleMerge"))
 local Types = require(Shared:WaitForChild("Types"))
 
 local DexJarView = require(script.DexJarView)
@@ -250,11 +249,6 @@ local ctx: { [string]: any } = {
 	Config = Config,
 	Constants = Constants,
 	Genome = Genome,
-	TripleMerge = TripleMerge,
-	-- Studio only: SlimeUI.PcwMergeVat = true shows the 3-slime vat panel with FEATURES.MergeVat3 off (pc-watcher shot).
-	vat3Forced = function(): boolean
-		return game:GetService("RunService"):IsStudio() and gui:GetAttribute("PcwMergeVat") == true
-	end,
 	actions = Remotes.ACTIONS,
 	send = send,
 	request = invoke,
@@ -771,10 +765,8 @@ end)
 -- "Talk" at the Guide NPC (CONTRACT.md §5.3): the server only places the prompt; this client opens the menu.
 -- The shop stands' prompts open nothing here: the server opens the shop (ShopEvent Open).
 local PROMPT_MENUS = MenuClose.promptMenus(Constants.GUIDE_PROMPT_NAME)
--- The 3-slime vat prompt (owner only) opens the merge menu (CONTRACT.md §21.1).
-if Config.FEATURES.MergeVat3 then
-	PROMPT_MENUS[Constants.MERGE_PROMPT_NAME] = "Merge"
-end
+-- The vat's "Manage vat" prompt (owner only) opens the merge vat menu (CONTRACT.md §21).
+PROMPT_MENUS[Constants.MERGE_PROMPT_NAME] = "Merge"
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, who: Player)
 	local key = PROMPT_MENUS[prompt.Name]
 	if key and who == player then
@@ -1094,7 +1086,6 @@ if isStudio then
 			"PcwPlotSkin",
 			"PcwDexRows",
 			"PcwStealAlert",
-			"PcwMergeVat",
 			"PcwWelcome",
 			"PcwRain",
 			"PcwBlessed",
@@ -1223,6 +1214,9 @@ task.spawn(function()
 			end)
 			guardedTick("codes", function()
 				panelByKey.Codes.tick(now)
+			end)
+			guardedTick("merge", function()
+				panelByKey.Merge.tick(now)
 			end)
 			guardedTick("worldShop", function()
 				panelByKey.WorldShop.tick()

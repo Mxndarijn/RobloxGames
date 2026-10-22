@@ -237,6 +237,15 @@ RECIPES.Upgrade_OfflineCap = function(p)
 	end
 end
 
+RECIPES.Upgrade_QuickBrew = function(p)
+	p:shape(0.5, 0.66, 0.7, 0.46, rgb(200, 120, 60), { round = 0.45 })
+	p:shape(0.5, 0.46, 0.76, 0.14, rgb(110, 60, 30), { round = 0.5 })
+	p:shape(0.5, 0.46, 0.62, 0.08, GREEN, { round = 0.5, stroke = false })
+	-- A gold bolt over the goo: two slanted bars.
+	p:shape(0.56, 0.16, 0.14, 0.26, GOLD, { rot = 25, round = 0.2 })
+	p:shape(0.46, 0.3, 0.14, 0.26, GOLD, { rot = 25, round = 0.2 })
+end
+
 RECIPES.Upgrade_Luck = function(p)
 	clover(p, 0.5, 0.48, 0.9, rgb(70, 190, 90))
 	p:circle(0.5, 0.48, 0.3, GOLD)

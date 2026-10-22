@@ -25,19 +25,19 @@ local function num(value: any): number
 	return if type(value) == "number" and value == value then value else 0
 end
 
--- True when two slimes that aren't being stolen share a tier.
+-- True when three slimes that aren't being stolen share a tier (a full merge vat load).
 function Nav.canMerge(slimes: any): boolean
 	if type(slimes) ~= "table" then
 		return false
 	end
-	local seen: { [number]: boolean } = {}
+	local seen: { [number]: number } = {}
 	for _, view in slimes do
 		if type(view) == "table" and view.stolenBy == nil and type(view.slime) == "table" then
 			local tier = view.slime.tier
-			if seen[tier] then
+			seen[tier] = (seen[tier] or 0) + 1
+			if seen[tier] >= 3 then
 				return true
 			end
-			seen[tier] = true
 		end
 	end
 	return false

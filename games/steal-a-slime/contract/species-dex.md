@@ -9,7 +9,7 @@ without the Dex fields starts it empty and is re-seeded from the slimes it owns 
   order (`SpeciesDex.ENTRIES`, `SpeciesDex.TOTAL = 53`). The 7 `"event"` Secrets are **bonus entries**
   (`SpeciesDex.BONUS`): they show on the Dex and count in `bonusFound`, never in `found` / `total` or a milestone.
 - **Found.** `data.found[species] = true` the first time the player owns a slime of that species, from any source:
-  catch (Carry), steal, merge (pair or triple, recipe or random), a Mystery Egg hatch, consumables / appraisal, a boss win.
+  catch (Carry), steal, merge (recipe or random), a Mystery Egg hatch, consumables / appraisal, a boss win.
   All of them go through `PlayerData.discover(data, slime)` (`PlayerData.addSlime` calls it). A system that credits a
   species without `addSlime` (a boss win) must call `PlayerData.discover` itself. Loading a save calls it for
   every owned slime, so owned species are always found.

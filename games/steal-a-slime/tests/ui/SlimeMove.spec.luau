@@ -61,8 +61,42 @@ describe("SlimeMove texts", function()
 		expect(SlimeMove.statusText(nil, nil)).toBe("Point at one of your pads")
 	end)
 	it("tells each input how to place and cancel", function()
-		expect(SlimeMove.hintText("keyboard")).toBe("Click a pad or press E to place · Q to cancel")
-		expect(SlimeMove.hintText("touch")).toBe("Tap a pad to place it there")
-		expect(SlimeMove.hintText("gamepad")).toBe("X: place on the lit pad · B: cancel")
+		expect(SlimeMove.hintText("keyboard")).toBe("Click a pad or the vat, or press E to place · Q to cancel")
+		expect(SlimeMove.hintText("touch")).toBe("Tap a pad or the vat to place it there")
+		expect(SlimeMove.hintText("gamepad")).toBe("X: place on the lit pad or vat · B: cancel")
+	end)
+end)
+
+describe("SlimeMove into the merge vat", function()
+	local function slime(id: string, tier: number, extra: { [string]: any }?): any
+		local s = { id = id, tier = tier, name = "Blorp" }
+		for k, v in extra or {} do
+			s[k] = v
+		end
+		return s
+	end
+	it("an empty vat or one of the same rarity with room takes the slime", function()
+		expect(SlimeMove.vatClass({ ids = {} }, slime("a", 1))).toBe("vat")
+		expect(SlimeMove.vatClass({ ids = { "x" }, tier = 1 }, slime("a", 1))).toBe("vat")
+		expect(SlimeMove.vatStatus("vat", "Gummy", 1)).toBe("Merge vat: adds Gummy (2/3)")
+	end)
+	it("a full vat, another rarity, a brew or an egg say why", function()
+		local function reason(vat: any, s: any): string?
+			local class, why = SlimeMove.vatClass(vat, s)
+			expect(class).toBe("vatRefused")
+			return why
+		end
+		expect(reason({ ids = { "x", "y", "z" }, tier = 1 }, slime("a", 1))).toBe("The vat is full")
+		expect(reason({ ids = { "x" }, tier = 1 }, slime("a", 3))).toBe("The vat takes Common slimes")
+		expect(reason({ ids = { "x", "y", "z" }, tier = 1, endsAt = 5 }, slime("a", 1))).toBe("The vat is brewing")
+		expect(reason({ ids = {} }, slime("a", 1, { egg = { kind = "shiny" } }))).toBe("Eggs can't go in the vat")
+		expect(reason({ ids = { "a" }, tier = 1 }, slime("a", 1))).toBe("Already in the vat")
+	end)
+	it("the vat counts as a target for the nearest pick", function()
+		local spots = {
+			{ index = 1, position = Vector3.new(10, 0, 0) },
+			{ index = SlimeMove.VAT, position = Vector3.new(1, 0, 0) },
+		}
+		expect(SlimeMove.nearest(spots, Vector3.new(0, 0, 0), 4)).toBe(SlimeMove.VAT)
 	end)
 end)

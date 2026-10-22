@@ -14,7 +14,8 @@
 	    RunService.Heartbeat, workspace:GetServerTimeNow(). advance(60) runs a
 	    minute of server time in well under a second;
 	  * shims for engine APIs Lune lacks: events (Triggered, PlayerAdded,
-	    Died, ...), WaitForChild, PivotTo / GetPivot, ScaleTo / GetScale, BasePart.Position,
+	    Died, ...), WaitForChild, PivotTo / GetPivot, ScaleTo / GetScale, GetBoundingBox /
+	    GetExtentsSize, BasePart.Position,
 	    Raycast (axis-aligned boxes, enough for "find the ground"), Players,
 	    in-memory DataStores, HttpService GUIDs, InsertService (fails by
 	    default, like a place that can't load the mesh asset), Debris.
@@ -281,6 +282,10 @@ local function installShims()
 			return getPivot(self), Vector3.zero
 		end
 		return CFrame.new((lo + hi) / 2), hi - lo
+	end)
+	impl("Model", "GetExtentsSize", function(self)
+		local _, size = self:GetBoundingBox()
+		return size
 	end)
 	impl("BasePart", "GetPivot", getPivot)
 	storedProperty("Model", "WorldPivot", CFrame.new())

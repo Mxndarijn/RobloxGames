@@ -33,6 +33,7 @@ local TutorialProgress = if Shared then require(Shared.TutorialProgress) else re
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local DexSources = if script then require(script.Parent.DexSources) else require("./DexSources")
@@ -54,7 +55,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		local carrier = world.carriedBy[slime.id]
 		table.insert(slimes, {
 			slime = EggKind.mask(slime), -- an egg never shows the slime inside (contract/mystery-egg.md)
-			income = if carrier then 0 else PlayerData.slimeIncome(data, slime),
+			income = if carrier or VatState.isLocked(data, slime.id) then 0 else PlayerData.slimeIncome(data, slime),
 			sellPrice = Economy.sellPrice(slime, rebirths),
 			stolenBy = carrier,
 		})
@@ -125,6 +126,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		stealAway = if Config.FEATURES.StealAlerts then StealAlert.summary(session.awayLog) else nil,
 		welcomeBack = session.welcome,
 		hotbar = if data.hotbar then table.clone(data.hotbar) else nil,
+		vat = VatState.view(data, Perks.brewFactor(data)) :: any,
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		blessed = if data.ritualBonus and session.blessedUntil
 			then { bonus = data.ritualBonus, endsAt = session.blessedUntil }

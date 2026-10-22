@@ -43,6 +43,7 @@ export type Upgrade = {
 	base: number, -- price of level 1
 	growth: number, -- price of level n+1 = base * growth^n
 	requires: number, -- rebirths needed
+	levelRequires: { number }?, -- rebirths needed for each level (level n needs levelRequires[n]); nil = `requires` for all
 	step: number, -- effect per level (meaning depends on id)
 	flag: string?, -- Config.FEATURES name that must be on for the upgrade to be listed, bought or have any effect
 }
@@ -304,6 +305,17 @@ local UPGRADES: { Upgrade } = {
 		growth = 3,
 		requires = 5,
 		step = 0.04,
+	},
+	{
+		id = "QuickBrew",
+		name = "Quick Brew",
+		text = "-15% merge vat brew time",
+		maxLevel = 4,
+		base = 25000,
+		growth = 3,
+		requires = 2,
+		levelRequires = { 2, 4, 6, 8 },
+		step = 0.15,
 	},
 }
 
@@ -763,15 +775,15 @@ local Config = {
 	SPEED_COIL_PRICE = 1500,
 	SPEED_COIL_WALK_SPEED = 28, -- WalkSpeed while the coil is held (1.75x BASE_WALK_SPEED)
 
-	-- Merge
-	MERGE_SIZE_BONUS = 0.1,
-	-- 3-slime merge (FEATURES.MergeVat3, TripleMerge)
+	-- Merge vat (VatState, TripleMerge, CONTRACT.md §21): three slimes of one rarity brew into one of a higher rarity
+	VAT_SIZE = 3, -- spots in a plot's vat
+	-- seconds one brew takes, by the rarity going in (before Quick brew)
+	MERGE_BREW_SECONDS = table.freeze({ 30, 60, 120, 300, 600, 1200, 1800 }) :: { number },
 	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (up to MERGE_JUMP_MAX_TIER)
 	MERGE_MAX_TIER = 6, -- a random merge result is at most Mythic (Secret only from recipes and finds)
 	MERGE_JUMP_MAX_TIER = 5, -- a +2 jump lands on Legendary at most
 	MERGE_ASSIST_CHANCE = 0.35, -- share of random merge results drawn from the species the player hasn't found
 	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
-	AUTO_MERGE_MAX = 25, -- most groups of three one Request("AutoMerge") merges (MergePlan, CONTRACT.md §21.1)
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = SPAWN_INTERVAL,
@@ -833,7 +845,6 @@ local Config = {
 		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)
 		SlidePCD = true, -- the slide as a real collision mesh: MeshSwap makes fountain_split_slide PreciseConvexDecomposition (needs FountainSplit) and, once it is placed, FountainColliders drops the SlideColliders Post / Brace boxes it replaces; the floor slabs (the walk surface), rails and Skirt stay (docs/COLLISION.md); false = decor slide and every box
 		FountainTiers = true, -- v19: the central fountain's look upgrades with the server's best rank (FountainTiers glow) and every slime family drops from it on every server, with no rank needed to catch one; false = one Meadow fountain, Classic drops only (needs frame review)
-		MergeVat3 = true, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Consumables = true, -- restocking Shop section: luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
 		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Audio = true, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle

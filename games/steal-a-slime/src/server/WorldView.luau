@@ -71,6 +71,7 @@ local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
 local StackGuard = require(script.Parent.StackGuard)
 local StealGhost = require(script.Parent.StealGhost)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
+local VatView = require(script.Parent.VatView)
 local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 local WorldProps = require(script.Parent.WorldProps)
@@ -1113,13 +1114,15 @@ function WorldView.reconcile(
 			end
 		end
 		-- After place(): the boss scale is applied there, and the label height is measured on the final scale.
+		local owner = if entry.state == "Pad" then world.sessions[entry.ownerUserId] else nil
 		SlimeLabelView.apply(
 			record.model,
 			record.body,
 			entry.slime,
 			entry.income,
 			if entry.state == "Pad" then entry.pad else nil,
-			now
+			now,
+			if owner then VatView.labelStatus(owner.data, id) else nil
 		)
 	end
 	for id in failed do
@@ -1146,6 +1149,11 @@ function WorldView.reconcile(
 end
 
 -- A slime model's Body (Effects target), or nil if it has no model.
+local function modelOf(id: string): Model?
+	local record = records[id]
+	return if record then record.model else nil
+end
+
 function WorldView.slimeBody(id: string): BasePart?
 	local record = records[id]
 	return record and record.body
@@ -1206,8 +1214,8 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 			local prompt = Instance.new("ProximityPrompt")
 			prompt.Name = name
 			prompt.KeyboardKeyCode = Enum.KeyCode.E
-			-- The 3-slime vat prompt only opens the merge menu (the menu confirms each merge), so it is instant.
-			local opensMenu = kind == "Merge" and Config.FEATURES.MergeVat3
+			-- The vat prompt only opens the merge vat menu (the menu confirms each step), so it is instant.
+			local opensMenu = kind == "Merge"
 			prompt.HoldDuration = if opensMenu then 0 else Config.HOLD_CONFIRM_SECONDS
 			prompt.RequiresLineOfSight = false
 			prompt.MaxActivationDistance = Config.PLOT_PAD_PROMPT_DISTANCE
@@ -1536,6 +1544,7 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 				end
 				applyPrompt(buyPad, view.buyPad, view.ownerUserId)
 			end
+			VatView.sync(plot, index, if session then session.data else nil, now, modelOf, world.carriedBy)
 			local sign = plot:FindFirstChild("Sign")
 			if sign then
 				PlotSigns.apply(
