@@ -8,9 +8,10 @@
 	model:PivotTo(CFrame)). Suggested spots: WorldLayout.PROP_SPOTS.
 
 	  Props.shopStand(style?): Model     "ShopStand"; PrimaryPart "Counter"
-	      (ProximityPrompt parent), striped awning, "SHOP" sign. Anchored.
-	      `style` "ItemShop" | "UpgradeShop" (Props.STAND_STYLES) picks the
-	      stand's kit skin (WorldLayout.SHOP_STANDS) and its sign colours; the
+	      (ProximityPrompt parent), striped awning, a Goo jelly sign with the
+	      shop's name. Anchored. `style` "ItemShop" | "UpgradeShop"
+	      (Props.STAND_STYLES) picks the stand's kit skin
+	      (WorldLayout.SHOP_STANDS) and its sign (mint or gold jelly); the
 	      Model's box is the skin's box.
 	  Props.speedCoil(): Tool            "SpeedCoil"; "Handle" Part with
 	      welded coil rings, all Massless, CanCollide false, unanchored.
@@ -27,6 +28,7 @@
 	      Value labels), at most Props.LEADERBOARD_ROWS.
 ]]
 
+local Goo = if script then require(script.Parent.Parent.Shared.GooPalette) else require("../../shared/GooPalette")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
 local Props = {}
@@ -106,44 +108,56 @@ end
 
 -- Shop stand ---------------------------------------------------------------
 
-local SIGN_BACK = rgb(58, 38, 26) -- dark wood board
-local SIGN_TEXT = rgb(255, 240, 200) -- cream
-local SIGN_STROKE = rgb(30, 18, 10)
+local function tone(c: { number }): Color3
+	return Color3.fromRGB(c[1], c[2], c[3])
+end
 
 type StandStyle = {
 	stand: string, -- the WorldLayout.SHOP_STANDS entry: the kit mesh the stand skins, its sign face and counter
-	signBack: Color3,
-	signText: Color3,
-	signStroke: Color3,
-	signPlate: boolean, -- the board colour is painted behind the text, over the kit's own sign face
+	title: string, -- the name on the sign
+	icon: string, -- the emoji on the sign's white badge (the minimap pins use the same ones)
+	jelly: { { number } }, -- the sign's jelly gradient, top, middle, bottom (GooPalette)
 }
 
 -- Per-shop look (CONTRACT.md §27.2). The two kit meshes carry the shops' own look (a pink market stall full of goods,
--- a blue and gold cabinet showing the six upgrades); the stands only add the sign colours.
+-- a blue and gold cabinet showing the six upgrades); the stands only add the sign (canvas GooWorldSigns): the item
+-- shop on mint jelly, the upgrade shop on gold.
 Props.STAND_STYLES = table.freeze({
 	ItemShop = table.freeze({
 		stand = "ItemShopStand",
-		signBack = SIGN_BACK,
-		signText = SIGN_TEXT,
-		signStroke = SIGN_STROKE,
-		signPlate = false,
+		title = "Item shop",
+		icon = "🛒",
+		jelly = table.freeze({ Goo.MintHi, Goo.Mint, Goo.MintLo }),
 	}),
 	UpgradeShop = table.freeze({
 		stand = "UpgradeShopStand",
-		signBack = rgb(26, 36, 78), -- navy plate on the cabinet's blue sign face
-		signText = rgb(255, 214, 90), -- gold
-		signStroke = rgb(10, 14, 36),
-		signPlate = true,
+		title = "Upgrade shop",
+		icon = "⬆️",
+		jelly = table.freeze({ Goo.GoldHi, Goo.Gold, Goo.GoldDeep }),
 	}),
 }) :: { [string]: StandStyle }
 
 -- The single ShopStand (FEATURES.WorldShops off).
 local PLAIN_STAND: StandStyle = table.freeze({
 	stand = "ShopStand",
-	signBack = SIGN_BACK,
-	signText = SIGN_TEXT,
-	signStroke = SIGN_STROKE,
-	signPlate = false,
+	title = "Shop",
+	icon = "🛒",
+	jelly = Props.STAND_STYLES.ItemShop.jelly,
+})
+
+-- The jelly sign on the stand's sign face, as fractions of the face: the jelly across the top, the badge on its
+-- left, short drips (x, drop width, neck length) falling from its bottom edge onto the empty face under it.
+Props.STAND_SIGN = table.freeze({
+	pixelsPerStud = 80,
+	jelly = table.freeze({ x = 0.03, y = 0.04, w = 0.94, h = 0.7 }),
+	radius = 0.28, -- of the jelly's height
+	stroke = 4, -- px Ink outline
+	badge = 0.78, -- of the jelly's height
+	drips = table.freeze({
+		table.freeze({ x = 0.16, w = 0.035, len = 0.06 }),
+		table.freeze({ x = 0.55, w = 0.026, len = 0.02 }),
+		table.freeze({ x = 0.84, w = 0.032, len = 0.04 }),
+	}),
 })
 
 -- How far the Sign's front stands in front of the skin's sign face: closer, the text loses the depth test to the
@@ -162,6 +176,101 @@ local function marker(m: Model, name: string, at: Vector3)
 	})
 	p.CanQuery = false
 	p.CanTouch = false
+end
+
+local function corner(parent: Instance, radius: UDim)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = radius
+	c.Parent = parent
+end
+
+local function frame(parent: Instance, name: string, color: Color3, pos: UDim2, size: UDim2): Frame
+	local f = Instance.new("Frame")
+	f.Name = name
+	f.BackgroundColor3 = color
+	f.BorderSizePixel = 0
+	f.Position = pos
+	f.Size = size
+	f.Parent = parent
+	return f
+end
+
+local function inkStroke(parent: Instance, thickness: number)
+	local s = Instance.new("UIStroke")
+	s.Color = tone(Goo.Ink)
+	s.Thickness = thickness
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.Parent = parent
+end
+
+-- Draws the shop's jelly sign on `sign` (its Front face), for a face `aspect` = width / height: a jelly pill with
+-- an Ink outline, a white badge with the shop's icon, the name in Ink, and a few drips under it.
+function Props.standSign(sign: BasePart, look: StandStyle, aspect: number): SurfaceGui
+	local S = Props.STAND_SIGN
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "SignGui"
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = S.pixelsPerStud
+	gui.LightInfluence = 0 -- unlit: the sign stays readable at night
+	gui.Parent = sign
+	local j = S.jelly
+	local hi, mid, lo = tone(look.jelly[1]), tone(look.jelly[2]), tone(look.jelly[3])
+	local top = j.y + j.h
+	for i, d in S.drips do
+		local dropH = d.w * aspect -- round in px
+		local neck = frame(
+			gui,
+			`Neck{i}`,
+			lo,
+			UDim2.fromScale(d.x - d.w * 0.32, top - 0.05),
+			UDim2.fromScale(d.w * 0.64, d.len + 0.05 + dropH * 0.4)
+		)
+		corner(neck, UDim.new(1, 0))
+		local drop = frame(gui, `Drop{i}`, lo, UDim2.fromScale(d.x - d.w / 2, top + d.len), UDim2.fromScale(d.w, dropH))
+		corner(drop, UDim.new(1, 0))
+	end
+	local jelly = frame(gui, "Jelly", Color3.new(1, 1, 1), UDim2.fromScale(j.x, j.y), UDim2.fromScale(j.w, j.h))
+	jelly.ZIndex = 2 -- over the drips' necks
+	corner(jelly, UDim.new(S.radius, 0))
+	inkStroke(jelly, S.stroke)
+	local shade = Instance.new("UIGradient")
+	shade.Rotation = 90
+	shade.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, hi),
+		ColorSequenceKeypoint.new(0.45, mid),
+		ColorSequenceKeypoint.new(1, lo),
+	})
+	shade.Parent = jelly
+	-- The jelly's width in units of its height, to place things left to right in height units.
+	local wide = j.w * aspect / j.h
+	local shine =
+		frame(jelly, "Shine", Color3.new(1, 1, 1), UDim2.fromScale(0.3 / wide, 0.1), UDim2.fromScale(0.4 / wide, 0.1))
+	shine.BackgroundTransparency = 0.35
+	shine.Rotation = -24
+	shine.ZIndex = 2
+	corner(shine, UDim.new(1, 0))
+	local inset = (1 - S.badge) / 2
+	local badge = frame(
+		jelly,
+		"Badge",
+		tone(Goo.White),
+		UDim2.fromScale(inset * 1.4 / wide, inset),
+		UDim2.fromScale(S.badge / wide, S.badge)
+	)
+	badge.ZIndex = 2
+	corner(badge, UDim.new(1, 0))
+	inkStroke(badge, S.stroke - 1)
+	local icon = label(badge, "Icon", look.icon, tone(Goo.Ink))
+	icon.Size = UDim2.fromScale(0.72, 0.72)
+	icon.Position = UDim2.fromScale(0.14, 0.14)
+	icon.ZIndex = 3
+	local text = label(jelly, "Text", look.title, tone(Goo.Ink))
+	local textX = (inset * 2.4 + S.badge) / wide
+	text.Position = UDim2.fromScale(textX, 0.17)
+	text.Size = UDim2.fromScale(0.97 - textX, 0.66)
+	text.ZIndex = 2
+	return gui
 end
 
 function Props.shopStand(style: string?): Model
@@ -228,34 +337,12 @@ function Props.shopStand(style: string?): Model
 		"Sign",
 		Vector3.new(face.width * k, face.height * k, SIGN_THICK),
 		CFrame.new(face.x * k, face.y * k, signFront + SIGN_THICK / 2),
-		look.signBack,
-		{}
+		tone(look.jelly[2]),
+		{ canCollide = false }
 	)
-	local gui = Instance.new("SurfaceGui")
-	gui.Name = "SignGui"
-	gui.Face = Enum.NormalId.Front
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 40
-	gui.LightInfluence = 0 -- unlit: the SHOP text stays readable at night
-	gui.Parent = sign
-	local text = label(gui, "Text", "SHOP", look.signText)
-	text.Size = UDim2.fromScale(1, 1)
-	-- Light text with a dark stroke, inset so no post of the skin covers a letter from a front-diagonal view.
-	text.TextStrokeColor3 = look.signStroke
-	if look.signPlate then
-		text.BackgroundColor3 = look.signBack
-		text.BackgroundTransparency = 0
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0.18, 0)
-		corner.Parent = text
-	end
-	text.TextStrokeTransparency = 0
-	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft = UDim.new(0.12, 0)
-	pad.PaddingRight = UDim.new(0.12, 0)
-	pad.PaddingTop = UDim.new(0.08, 0)
-	pad.PaddingBottom = UDim.new(0.08, 0)
-	pad.Parent = text
+	sign.Transparency = 1 -- only the jelly draws; the kit's own sign face shows round it
+	sign.CanQuery = false
+	Props.standSign(sign, look, face.width / face.height)
 	-- A few goo jars on the counter.
 	for i, color in { rgb(120, 255, 140), rgb(255, 130, 220), rgb(120, 200, 255) } do
 		local jar = part(
@@ -436,15 +523,20 @@ function Props.tutorialNpc(): Model
 	bounds.CanTouch = false
 	local tag = Instance.new("BillboardGui")
 	tag.Name = "NameTag"
-	tag.Size = UDim2.fromOffset(160, 40)
+	tag.Size = UDim2.fromOffset(170, 44)
 	-- Straight above the head, clear of the slime on the hat.
 	tag.StudsOffset = Vector3.new(0, (GUIDE_TOP - 5.375) * GUIDE_SCALE + 0.9, 0)
 	tag.AlwaysOnTop = false
 	tag.MaxDistance = 80
 	tag.Parent = head
-	local text = label(tag, "Text", "Guide", rgb(255, 255, 255))
+	-- Outlined white Fredoka, like every world label (canvas GooWorldSigns "Guide").
+	local text = label(tag, "Text", "Guide", tone(Goo.White))
 	text.Size = UDim2.fromScale(1, 1)
-	text.TextStrokeTransparency = 0.3
+	local outline = Instance.new("UIStroke")
+	outline.Color = tone(Goo.Ink)
+	outline.Thickness = 2.5
+	outline.LineJoinMode = Enum.LineJoinMode.Round
+	outline.Parent = text
 	return finish(m, root)
 end
 

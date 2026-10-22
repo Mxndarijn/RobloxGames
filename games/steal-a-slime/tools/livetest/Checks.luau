@@ -114,14 +114,14 @@ function Checks.plotSigns(rt, owner)
 			if #texts == 0 then
 				table.insert(blank, sign:GetFullName())
 			end
-			if owner and table.find(texts, `{owner}'s Plot`) then
+			if owner and table.find(texts, `{owner}'s plot`) then
 				owned = true
 			end
 		end
 	end
 	local detail = `{total} plot sign(s), {#blank} blank`
 	if owner then
-		detail ..= if owned then `; {owner}'s Plot shown` else `; no sign shows {owner}'s Plot`
+		detail ..= if owned then `; {owner}'s plot shown` else `; no sign shows {owner}'s plot`
 	end
 	return {
 		name = "plot signs have text",

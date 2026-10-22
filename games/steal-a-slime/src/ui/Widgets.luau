@@ -6,30 +6,36 @@
 	function is called (nothing at require time).
 ]]
 
+local Goo = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("GooPalette"))
 local Layout = require(script.Parent.Layout)
 
 local Widgets = {}
 
--- The Goo palette: deep teal glass panels, a mint header band, ink outlines, gold money.
+-- The Goo palette (Shared.GooPalette): deep teal glass panels, a mint header band, ink outlines, gold money.
 -- Button colours carry meaning: Gold collects a reward, Good acts (buy, merge, redeem), Info is a side action,
 -- Bad loses something or closes. Only things you can press are jelly; something you can't press yet is a
 -- sunken Ink well with the same outline (Widgets.status / a disabled button).
+local function fromPalette(c: { number }): Color3
+	return Color3.fromRGB(c[1], c[2], c[3])
+end
+
 Widgets.Theme = table.freeze({
-	Ink = Color3.fromRGB(8, 38, 42), -- every outline, dark text on bright jelly, sunken wells
-	Bg = Color3.fromRGB(12, 52, 54), -- glass panel body
-	Row = Color3.fromRGB(28, 72, 73), -- rows and cards on the glass
-	BgLight = Color3.fromRGB(40, 96, 96), -- highlighted rows
-	Band = Color3.fromRGB(108, 242, 194), -- the mint header band, its lip and drips
-	Text = Color3.fromRGB(241, 255, 249),
-	Muted = Color3.fromRGB(191, 235, 221),
-	Accent = Color3.fromRGB(108, 242, 194),
-	Good = Color3.fromRGB(108, 242, 194),
-	Bad = Color3.fromRGB(238, 84, 118),
-	Info = Color3.fromRGB(56, 120, 112),
-	Warn = Color3.fromRGB(255, 190, 60),
-	Disabled = Color3.fromRGB(8, 38, 42),
-	Gold = Color3.fromRGB(255, 210, 63),
-	GoldDeep = Color3.fromRGB(224, 168, 18), -- the coin's edge and ring
+	Ink = fromPalette(Goo.Ink), -- every outline, dark text on bright jelly, sunken wells
+	Bg = fromPalette(Goo.Bg), -- glass panel body
+	Row = fromPalette(Goo.Row), -- rows and cards on the glass
+	BgLight = fromPalette(Goo.BgLight), -- highlighted rows
+	Band = fromPalette(Goo.Mint), -- the mint header band, its lip and drips
+	Text = fromPalette(Goo.Text),
+	Muted = fromPalette(Goo.Muted),
+	Accent = fromPalette(Goo.Mint),
+	Good = fromPalette(Goo.Mint),
+	Bad = fromPalette(Goo.Bad),
+	Info = fromPalette(Goo.Info),
+	Warn = fromPalette(Goo.Warn),
+	Disabled = fromPalette(Goo.Ink),
+	Gold = fromPalette(Goo.Gold),
+	GoldDeep = fromPalette(Goo.GoldDeep), -- the coin's edge and ring
+	Glass = fromPalette(Goo.Glass), -- a glass row on a card (at Goo.GLASS_TRANSPARENCY)
 	Shine = Color3.new(1, 1, 1), -- the glint on jelly and the dot on goo drops
 	Font = Enum.Font.FredokaOne, -- titles, numbers, buttons, labels
 	FontBody = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold), -- sentences (a FontFace)
