@@ -22,6 +22,7 @@
 ]]
 
 local UI = script.Parent
+local InputKind = require(UI.InputKind)
 local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
@@ -325,14 +326,8 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		return if root and root:IsA("BasePart") then root else nil
 	end
 
-	local function inputKind(): "keyboard" | "touch" | "gamepad"
-		local last = deps.uis:GetLastInputType()
-		if last == Enum.UserInputType.Touch then
-			return "touch"
-		elseif last.Name:sub(1, 7) == "Gamepad" then
-			return "gamepad"
-		end
-		return "keyboard"
+	local function inputKind(): InputKind.Kind
+		return InputKind.kind(deps.uis)
 	end
 
 	-- Ends move mode and puts everything back (`keepGhost` = the server is moving the slime: the ghost and the

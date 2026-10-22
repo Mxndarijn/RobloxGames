@@ -31,6 +31,7 @@
 	item the player no longer holds (InventoryCore.placeNew), so a new purchase still lands on the bar.
 ]]
 
+local InputKind = require(script.Parent.InputKind)
 local InventoryCore = require(script.Parent.InventoryCore)
 local InventoryLayout = require(script.Parent.InventoryLayout)
 local ItemIconView = require(script.Parent.ItemIconView)
@@ -162,6 +163,8 @@ type Deps = {
 	keyboard: boolean?, -- show number keys (default true)
 	-- UserInputService (InputChanged / InputEnded follow a drag); default the real service.
 	input: any?,
+	-- GuiService (SelectedObject: the gamepad focus); default the real service.
+	gui: any?,
 }
 
 type Slot = {
@@ -196,6 +199,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local MAX = InventoryLayout.MAX_SLOTS
 	local keyboard = deps.keyboard ~= false
 	local userInput: any = deps.input or game:GetService("UserInputService")
+	local guiService: any = deps.gui or game:GetService("GuiService")
 	local footerText = Inventory.footerText(keyboard)
 
 	local state: any = nil -- latest State
@@ -1289,6 +1293,18 @@ function Inventory.new(parent: Instance, deps: Deps)
 		end
 	end
 
+	-- A gamepad has no pointer: the first hotbar-plate slot (else the first bag item) takes the focus.
+	local function focusPanel()
+		local p = parts
+		if not (p and InputKind.gamepadActive(userInput)) then
+			return
+		end
+		local first = p.plateSlots[1] or gridCells[1]
+		if first then
+			guiService.SelectedObject = first.button
+		end
+	end
+
 	function setPanelOpen(open: boolean)
 		panelOpen = open
 		panel.frame.Visible = open
@@ -1297,8 +1313,13 @@ function Inventory.new(parent: Instance, deps: Deps)
 			hideTip()
 			sync(true)
 			refreshPanel(deps.serverNow())
+			focusPanel()
 		else
 			endPress()
+			local selected = guiService.SelectedObject
+			if selected and selected:IsDescendantOf(panel.frame) then
+				guiService.SelectedObject = nil
+			end
 		end
 	end
 	self.setPanelOpen = setPanelOpen
@@ -1381,6 +1402,37 @@ function Inventory.new(parent: Instance, deps: Deps)
 		if entry then
 			perform(entry)
 			return true
+		end
+		return false
+	end
+
+	-- The gamepad bumpers: the previous (`step` -1) / next (1) filled hotbar slot after the one in hand, wrapping;
+	-- selects it like its number key. With nothing in hand the first / last one. False when there is nothing to pick.
+	function self.cycleSlot(step: number): boolean
+		if menuOpen or carrying or panelOpen then
+			return false
+		end
+		local shown = applyBar().shown
+		local current = 0
+		for n = 1, shown do
+			local entry = slots[n]
+			if entry and entry.equipped then
+				current = n
+			end
+		end
+		if current == 0 and step < 0 then
+			current = shown + 1
+		end
+		for offset = 1, shown do
+			local n = (current - 1 + step * offset) % shown + 1
+			local entry = InventoryCore.byKey(slots, shown, n)
+			if entry then
+				if n ~= current then
+					perform(entry)
+					return true
+				end
+				return false
+			end
 		end
 		return false
 	end

@@ -90,7 +90,7 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
   spot; anyone can grab it again. Dropping never resets the haul deadline.
 - **Win.** The carrier reaches their HomeZone (`Carry.depositBoss`, no free pad needed): a server-wide toast names the
-  winner and every helper is credited in their boss record (below). The boss slime is removed; it never goes into
+  winner, who alone gets the win; helpers are credited in their boss record (below). The boss slime is removed; it never goes into
   `data.slimes` or anywhere else in the save.
 - **Fail.** Meter not full by the fight deadline, or not home by the haul deadline: the boss (carried or not) is removed:
   it gets away. No slimes drop; the sheds are the fight's reward.
@@ -153,7 +153,7 @@ A later build shows them in the base or a panel; for now they are saved, in Stat
 ```lua
 data.boss = {
 	hits: number, -- counted Bat hits on any boss (BossFight.hit returned true)
-	wins: { [string]: number }, -- boss species id -> wins helped
+	wins: { [string]: number }, -- boss species id -> times carried home
 	hauls: number, -- bosses this player carried home
 	mvps: number, -- won bosses where this player was the top contributor
 	badges: { [string]: number }, -- Config.BOSS_BADGES key -> unix seconds (server time) it was earned
@@ -161,10 +161,9 @@ data.boss = {
 ```
 
 - **Triggers (`server/BossCredit`).** A counted hit in `BossEvent.hit` records a hit. When the boss is brought home,
-  every player on the server whose `BossFight.share` is at least `BOSS.WIN_SHARE` gets a win for that species. The
-  carrier gets a haul (and a win only through their own share). The top contributor (`BossFight.top`), if still on the
-  server, gets an MVP. Every winner and the carrier get the species in their SlimeDex (`PlayerData.discover` with the
-  boss slime).
+  only the carrier gets a win for that species (so its boss badge) and a haul. The top contributor (`BossFight.top`),
+  if still on the server, gets an MVP. The carrier and every player whose `BossFight.share` is at least
+  `BOSS.WIN_SHARE` get the species in their SlimeDex (`PlayerData.discover` with the boss slime).
 - **Badges (`Config.BOSS_BADGES`, `Shared.BossBadges`).** Each entry: `key`, `name`, `description`, `trigger`, `value`,
   optional `species`. Triggers: `hits` (record.hits >= value), `win` (wins[species] >= value), `wins` (all species
   summed >= value), `hauls`, `mvps`. A per-species badge is one `win` line with its `species`. After each recorded event

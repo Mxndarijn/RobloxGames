@@ -292,34 +292,40 @@ describe("BossEvent haul", function()
 		expect(texts[#texts]).toBe("P1 brought Goozilla home!")
 		expect(table.find(ServerFixtures.notifications(w, 1), "You brought Goozilla home!") ~= nil).toBe(true)
 	end)
-	it("a win credits helpers by share, the carrier with a haul and the top hitter with an MVP", function()
-		local w = world(3)
-		local id = arrive(w)
-		local t = fill(w, 1, 2) -- P1 hits twice as often as P2; P3 never hits
-		local p1, p2, p3 = w.sessions[1], w.sessions[2], w.sessions[3]
-		expect((Carry.grab(w, 3, id, 1, t + BOSS.PRIORITY_SECONDS))).toBe(true)
-		expect((Carry.deposit(w, 3, t + BOSS.PRIORITY_SECONDS + 2))).toBe(true)
-		expect(p1.data.boss.wins.goozilla).toBe(1)
-		expect(p2.data.boss.wins.goozilla).toBe(1)
-		expect(p3.data.boss.wins.goozilla).toBeNil() -- no hits: below WIN_SHARE
-		expect(p3.data.boss.hauls).toBe(1)
-		expect(p1.data.boss.hauls).toBe(0)
-		expect(p1.data.boss.mvps).toBe(1)
-		expect(p2.data.boss.mvps).toBe(0)
-		expect(p1.data.found.goozilla).toBe(true)
-		expect(p2.data.found.goozilla).toBe(true)
-		expect(p3.data.found.goozilla).toBe(true) -- the carrier held it
-		for _, key in { "BossBrawler", "BossGoozilla", "BossMvp" } do
-			expect(p1.data.boss.badges[key] ~= nil).toBe(true)
+	it(
+		"only the carrier wins (badge and haul); the top hitter gets an MVP; helpers by share get the SlimeDex",
+		function()
+			local w = world(3)
+			local id = arrive(w)
+			local t = fill(w, 1, 2) -- P1 hits twice as often as P2; P3 never hits
+			local p1, p2, p3 = w.sessions[1], w.sessions[2], w.sessions[3]
+			expect((Carry.grab(w, 3, id, 1, t + BOSS.PRIORITY_SECONDS))).toBe(true)
+			expect((Carry.deposit(w, 3, t + BOSS.PRIORITY_SECONDS + 2))).toBe(true)
+			expect(p1.data.boss.wins.goozilla).toBeNil() -- the top hitter didn't carry it
+			expect(p2.data.boss.wins.goozilla).toBeNil()
+			expect(p3.data.boss.wins.goozilla).toBe(1) -- the carrier wins, even with no hits
+			expect(p3.data.boss.hauls).toBe(1)
+			expect(p1.data.boss.hauls).toBe(0)
+			expect(p1.data.boss.mvps).toBe(1)
+			expect(p2.data.boss.mvps).toBe(0)
+			expect(p1.data.found.goozilla).toBe(true)
+			expect(p2.data.found.goozilla).toBe(true)
+			expect(p3.data.found.goozilla).toBe(true) -- the carrier held it
+			for _, key in { "BossBrawler", "BossMvp" } do
+				expect(p1.data.boss.badges[key] ~= nil).toBe(true)
+			end
+			expect(p1.data.boss.badges.BossGoozilla).toBeNil()
+			expect(p2.data.boss.badges.BossMvp).toBeNil()
+			expect(p2.data.boss.badges.BossGoozilla).toBeNil()
+			expect(p3.data.boss.badges.BossHauler ~= nil).toBe(true)
+			expect(p3.data.boss.badges.BossGoozilla ~= nil).toBe(true)
+			local toasts = ServerFixtures.notifications(w, 1)
+			expect(table.find(toasts, "Badge earned: Goozilla Tamer!")).toBeNil()
+			expect(table.find(toasts, "Badge earned: Boss MVP!") ~= nil).toBe(true)
+			expect(table.find(ServerFixtures.notifications(w, 3), "Badge earned: Goozilla Tamer!") ~= nil).toBe(true)
+			expect(table.find(ServerFixtures.notifications(w, 3), "Badge earned: Heavy Lifter!") ~= nil).toBe(true)
 		end
-		expect(p2.data.boss.badges.BossMvp).toBeNil()
-		expect(p3.data.boss.badges.BossHauler ~= nil).toBe(true)
-		expect(p3.data.boss.badges.BossGoozilla).toBeNil()
-		local toasts = ServerFixtures.notifications(w, 1)
-		expect(table.find(toasts, "Badge earned: Goozilla Tamer!") ~= nil).toBe(true)
-		expect(table.find(toasts, "Badge earned: Boss MVP!") ~= nil).toBe(true)
-		expect(table.find(ServerFixtures.notifications(w, 3), "Badge earned: Heavy Lifter!") ~= nil).toBe(true)
-	end)
+	)
 	it("the first counted hit earns Boss Brawler once, with a toast", function()
 		local w = world()
 		arrive(w)
