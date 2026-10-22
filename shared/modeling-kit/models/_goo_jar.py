@@ -19,14 +19,22 @@ KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(os.path.join(KIT, "inputs", "goo_jar_dims.json")) as fh:
     D = json.load(fh)
 
-P = PALETTE
-WOOD, WOOD_D, CREAM = P["ranch_wood"], P["ranch_wood_dark"], P["ranch_cream"]
-GOO, GOO_HI, METAL = P["ranch_goo"], P["ranch_goo_hi"], P["ranch_metal"]
-PINK, LILAC, BUTTER = P["ranch_pink"], P["ranch_lilac"], P["ranch_butter"]
-PATH = P["ranch_path"]
-GLASS = rgb(200, 240, 244)
-CORK = rgb(214, 170, 116)
-RED = rgb(240, 70, 60)
+from models._goo_jar_themes import THEMES
+
+# The theme every piece is built in (models/_goo_jar_themes.py; default the tower as built).
+THEME_ID = os.environ.get("JAR_THEME", "classic")
+THEME = THEMES[THEME_ID]
+WOOD, WOOD_D, CREAM = THEME["wood"], THEME["wood_d"], THEME["cream"]
+GOO, GOO_HI, METAL = THEME["goo"], THEME["goo_hi"], THEME["metal"]
+PINK, LILAC, BUTTER = THEME["pink"], THEME["lilac"], THEME["butter"]
+PATH = THEME["path"]
+GLASS = THEME["glass"]
+CORK = THEME["cork"]
+SAND = THEME["sand"]
+STRIPE = THEME.get("stripe")  # a second rib colour: the ribs come out striped
+LEAVES = THEME.get("leaves")  # leaf colour: the ribs become leafy vines
+ICICLES = THEME.get("icicles", False)  # icicles hang from the lids
+RED = rgb(240, 70, 60)  # the lock button: a gameplay signal, the same in every theme
 TRIM = mix(LILAC, CREAM, 0.15)
 EYE_W, EYE_D = rgb(246, 250, 250), rgb(56, 42, 38)
 
@@ -149,7 +157,46 @@ def ooze(name, r, z_rim, thick, drops, seed):
         a = rr.uniform(0, math.tau)
         out += teardrop(f"{name}Drop{k}", (r + thick * 0.35) * math.cos(a), (r + thick * 0.35) * math.sin(a), z_rim - thick * 0.3,
                         rr.uniform(1.0, 2.6), thick)
+    if ICICLES:
+        ri = random.Random(seed + 500)
+        ice = mix(GOO_HI, CREAM, 0.5)
+        for k in range(drops * 3):
+            a, h = ri.uniform(0, math.tau), ri.uniform(1.5, 4.0)
+            x, y = (r + thick * 0.2) * math.cos(a), (r + thick * 0.2) * math.sin(a)
+            out.append(painted(cylinder(f"{name}Icicle{k}", 0.03, h, (x, y, z_rim - thick * 0.2 - h), ice, segs=6, r_top=0.45),
+                               GOO_HI, ice))
     return out
+
+
+def resample(pts, step):
+    """The polyline `pts` re-cut into points about `step` apart (keeping its ends)."""
+    out = [Vector(pts[0])]
+    for a, b in zip(pts, pts[1:]):
+        a, b = Vector(a), Vector(b)
+        n = max(1, round((b - a).length / step))
+        out += [a.lerp(b, i / n) for i in range(1, n + 1)]
+    return [tuple(p) for p in out]
+
+
+def rib(name, pts):
+    """One rib up the jar: a brass bar, striped in two colours (STRIPE) or a leafy vine (LEAVES) in some themes."""
+    if STRIPE:
+        dense = resample(pts, 1.2)
+        return [tube(f"{name}_{i}", dense[i:i + 2], [0.35, 0.35], METAL if i % 2 == 0 else STRIPE, segs=6)
+                for i in range(len(dense) - 1)]
+    if LEAVES:
+        dense = resample(pts, 1.0)
+        out = [painted(tube(name, dense, [0.3] * len(dense), METAL, segs=6, seed=len(name), jitter=0.06), shade(METAL, 0.85), METAL)]
+        for i in range(1, len(dense) - 1, 2):
+            p, q = Vector(dense[i]), Vector(dense[i + 1])
+            out_dir = Vector((p.x, p.y, 0)).normalized()
+            along = (q - p).normalized()
+            side = along.cross(out_dir).normalized() * (0.45 if i % 4 == 1 else -0.45)
+            c = p + out_dir * 0.25 + side
+            deg = math.degrees(math.atan2(out_dir.y, out_dir.x))
+            out.append(blob(f"{name}Leaf{i}", 0.55, tuple(c), LEAVES, subdiv=1, squash=(0.35, 1.0, 0.6), jitter=0, rot=(0, 0, deg)))
+        return out
+    return [tube(name, pts, [0.35] * len(pts), METAL, segs=6)]
 
 
 # --- Pieces --------------------------------------------------------------------------------------------------------
@@ -193,7 +240,7 @@ def jar_trim(f, top, crown=False):
             # radius, so the brass bars run unbroken up the tower
             ru = radius(f + 1) + 0.18
             pts += [(x * ru, y * ru, pts[-1][2] + 0.3), (x * ru, y * ru, FLOOR_H + 0.25)]
-        out.append(tube(f"Rib{k}", pts, [0.35] * len(pts), METAL, segs=6))
+        out += rib(f"Rib{k}", pts)
     lip_top = nz + (LIP if top else 0.0)
     for k in range(2):
         # brass rings round the neck: hollow, or under a covered jar they would read as a solid floor through the
@@ -249,9 +296,8 @@ def jar_foot():
     a stud thick, so feet hardly sink in."""
     r1, m = radius(1), D["moat"]
     edge = D["plotFloorRadius"]
-    sand = rgb(232, 214, 178)
-    out = [painted(lathe("Sand", [(edge, -1.0), (edge, 0.0), (edge - 0.4, 0.06), (m["outer"] - 0.2, 0.06)], sand, double=False),
-                   shade(sand, 0.82), sand),
+    out = [painted(lathe("Sand", [(edge, -1.0), (edge, 0.0), (edge - 0.4, 0.06), (m["outer"] - 0.2, 0.06)], SAND, double=False),
+                   shade(SAND, 0.82), SAND),
            painted(lathe("Rim", [(edge + 0.05, -0.15), (edge + 0.05, 0.12), (edge - 0.5, 0.12)], WOOD_D, double=False), shade(WOOD_D, 0.85), WOOD_D)]
     out.append(painted(cylinder("Foot", m["inner"], 0.3, (0, 0, 0), WOOD, segs=SEGS), shade(WOOD, 0.85), WOOD))
     out.append(painted(lathe("MoatBed", [(m["outer"], 0.0), (m["outer"], 0.06), (m["inner"], 0.06)], shade(PATH, 0.95), double=False)))
@@ -549,6 +595,80 @@ def crown():
         out.append(cone(f"Point{k}", s * 0.1, s * 0.3, (x, y, s * 0.16), BUTTER, segs=5))
         out.append(blob(f"Gem{k}", s * 0.05, (x, y, s * 0.47), PINK, subdiv=1, jitter=0))
     return out
+
+
+# --- Theme extras (concept: one more mesh per theme, placed on the plot floor / on the mascot) ---------------------
+PROP_ANGLES = (-45, -10, 25, 112, 150, 190, 228)  # round the foot, clear of the door (-90) and the drop tube (dropAngle)
+
+
+def theme_props():
+    """The theme's props on the ring between jar 1's glass and the moat (plot-local, floor 1 at z = 0): lollipops and
+    gumdrops (candy), ice crystals and snow mounds (frost), toadstools and ferns (forest). Classic has none."""
+    ring = (radius(1) + D["moat"]["inner"]) / 2 + 0.3
+    out = []
+    rr = random.Random(7)
+    for k, deg in enumerate(PROP_ANGLES):
+        a = math.radians(deg)
+        x, y = ring * math.cos(a), ring * math.sin(a)
+        n = f"Prop{k}"
+        if THEME_ID == "candy":
+            col = (PINK, BUTTER, LILAC, METAL)[k % 4]
+            h = rr.uniform(7.0, 9.0)
+            out.append(cylinder(n + "Stick", 0.3, h, (x, y, 0.2), CREAM, segs=8))
+            for j, (r, c) in enumerate(((2.4, col), (1.6, STRIPE), (0.8, col))):
+                out.append(blob(f"{n}Pop{j}", r, (x, y, h + 1.6), c, subdiv=2, squash=(1, 0.28 + 0.04 * j, 1), jitter=0, rot=(0, 0, deg + 90)))
+            for j in range(3):
+                b = a + rr.uniform(-0.12, 0.12)
+                d = ring + rr.uniform(-1.2, 1.2)
+                gc = (PINK, BUTTER, METAL, LILAC)[(k + j) % 4]
+                out.append(painted(blob(f"{n}Gum{j}", rr.uniform(0.8, 1.1), (d * math.cos(b), d * math.sin(b), 0.5), gc, subdiv=2,
+                                        squash=(1, 1, 0.85), jitter=0), shade(gc, 0.85), mix(gc, CREAM, 0.3)))
+        elif THEME_ID == "crystal":
+            ice = mix(GLASS, GOO, 0.35)
+            for j in range(4):
+                h = rr.uniform(4.0, 8.0)
+                tilt = rr.uniform(-22, 22)
+                out.append(painted(cylinder(f"{n}Shard{j}", rr.uniform(0.7, 1.1), h, (x + rr.uniform(-0.8, 0.8), y + rr.uniform(-0.8, 0.8), 0.1),
+                                            ice, segs=6, r_top=0.08, rot=(tilt, rr.uniform(-15, 15), rr.uniform(0, 60))),
+                                   shade(ice, 0.9), mix(ice, CREAM, 0.5)))
+            out.append(painted(blob(f"{n}Snow", 2.2, (x, y, 0.1), CREAM, subdiv=2, squash=(1.3, 1.0, 0.35), jitter=0.06, seed=k),
+                               mix(CREAM, GLASS, 0.6), CREAM))
+        elif THEME_ID == "mushroom":
+            for j, (dx, s) in enumerate(((0.0, 1.35), (1.8, 0.85))):
+                cx, cy = x + dx * math.cos(a + 1.6), y + dx * math.sin(a + 1.6)
+                cap = (BUTTER, PINK, LILAC)[(k + j) % 3]
+                h = 2.6 * s
+                out.append(painted(cylinder(f"{n}Stem{j}", 0.5 * s, h, (cx, cy, 0.1), CREAM, segs=10, r_top=0.4 * s), shade(CREAM, 0.85), CREAM))
+                out.append(painted(blob(f"{n}Cap{j}", 1.6 * s, (cx, cy, h), cap, subdiv=2, squash=(1, 1, 0.5), jitter=0), shade(cap, 0.8), cap))
+                for d in range(4):
+                    da = d * math.tau / 4 + 0.4
+                    out.append(blob(f"{n}Dot{j}{d}", 0.25 * s, (cx + 0.9 * s * math.cos(da), cy + 0.9 * s * math.sin(da), h + 0.55 * s), CREAM,
+                                    subdiv=1, squash=(1, 1, 0.5), jitter=0))
+            for j in range(3):
+                b = a + 0.25 + j * 0.08
+                out.append(blob(f"{n}Fern{j}", 1.3, ((ring + 0.6) * math.cos(b), (ring + 0.6) * math.sin(b), 0.5), LEAVES, subdiv=1,
+                                squash=(0.4, 1.0, 0.7), jitter=0.05, rot=(rr.uniform(-30, 30), 0, math.degrees(b))))
+    return out
+
+
+def mascot_hat():
+    """The theme's hat on the mascot (radius 1 like the mascot; the game scales it with the mascot): a cherry on cream
+    (candy), a knitted hat with a pompom (frost), a toadstool cap (forest). Classic has none."""
+    if THEME_ID == "candy":
+        return [blob("Cream", 0.5, (0, 0, 1.42), CREAM, subdiv=2, squash=(1, 1, 0.55), jitter=0.04),
+                blob("Cherry", 0.24, (0, 0, 1.78), mix(PINK, RED, 0.5), subdiv=2, jitter=0),
+                tube("CherryStem", [(0, 0, 1.95), (0.08, 0, 2.15), (0.22, 0, 2.3)], [0.04, 0.04, 0.03], WOOD_D, segs=5)]
+    if THEME_ID == "crystal":
+        return [painted(blob("Hat", 0.66, (0, 0, 1.3), METAL, subdiv=2, squash=(1, 1, 0.62), jitter=0), shade(METAL, 0.85), METAL),
+                cylinder("Band", 0.68, 0.16, (0, 0, 1.18), CREAM, segs=20),
+                blob("Pompom", 0.2, (0, 0, 1.74), CREAM, subdiv=2, jitter=0.08)]
+    if THEME_ID == "mushroom":
+        out = [painted(blob("Cap", 0.85, (0, 0, 1.38), PINK, subdiv=2, squash=(1, 1, 0.45), jitter=0), shade(PINK, 0.8), PINK)]
+        for d in range(5):
+            da = d * math.tau / 5
+            out.append(blob(f"Dot{d}", 0.12, (0.5 * math.cos(da), 0.5 * math.sin(da), 1.62), CREAM, subdiv=1, squash=(1, 1, 0.5), jitter=0))
+        return out
+    return []
 
 
 def mascot_size(version):
