@@ -1,10 +1,12 @@
 --!strict
 -- The boss event over World (src/server/BossEvent.luau, contract/boss-event.md): the schedule and its Slime Rain skip,
 -- the rotation, the boss in the plaza, sheds, the haul through Carry, the win and its boss badges, the escape and State.boss.
+local BossCredit = require("../src/server/BossCredit")
 local BossEvent = require("../src/server/BossEvent")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
+local Perks = require("../src/shared/Perks")
 local PlayerData = require("../src/shared/PlayerData")
 local Scene = require("../src/server/Scene")
 local ServerFixtures = require("./ServerFixtures")
@@ -287,45 +289,61 @@ describe("BossEvent haul", function()
 		expect(w.wild[id]).toBeNil()
 		expect(w.boss.fight.phase).toBe("won")
 		expect(w.boss.fight.winnerUserId).toBe(1)
-		expect(PlayerData.incomePerSecond(s.data)).toBe(income)
+		expect(PlayerData.incomePerSecond(s.data)).toBe(income * (1 + BOSS.MVP_BONUS)) -- only the MVP boost, no boss income
 		local texts = ServerFixtures.notifications(w, nil)
 		expect(texts[#texts]).toBe("P1 brought Goozilla home!")
 		expect(table.find(ServerFixtures.notifications(w, 1), "You brought Goozilla home!") ~= nil).toBe(true)
 	end)
-	it(
-		"only the carrier wins (badge and haul); the top hitter gets an MVP; helpers by share get the SlimeDex",
-		function()
-			local w = world(3)
-			local id = arrive(w)
-			local t = fill(w, 1, 2) -- P1 hits twice as often as P2; P3 never hits
-			local p1, p2, p3 = w.sessions[1], w.sessions[2], w.sessions[3]
-			expect((Carry.grab(w, 3, id, 1, t + BOSS.PRIORITY_SECONDS))).toBe(true)
-			expect((Carry.deposit(w, 3, t + BOSS.PRIORITY_SECONDS + 2))).toBe(true)
-			expect(p1.data.boss.wins.goozilla).toBeNil() -- the top hitter didn't carry it
-			expect(p2.data.boss.wins.goozilla).toBeNil()
-			expect(p3.data.boss.wins.goozilla).toBe(1) -- the carrier wins, even with no hits
-			expect(p3.data.boss.hauls).toBe(1)
-			expect(p1.data.boss.hauls).toBe(0)
-			expect(p1.data.boss.mvps).toBe(1)
-			expect(p2.data.boss.mvps).toBe(0)
-			expect(p1.data.found.goozilla).toBe(true)
-			expect(p2.data.found.goozilla).toBe(true)
-			expect(p3.data.found.goozilla).toBe(true) -- the carrier held it
-			for _, key in { "BossBrawler", "BossMvp" } do
-				expect(p1.data.boss.badges[key] ~= nil).toBe(true)
-			end
-			expect(p1.data.boss.badges.BossGoozilla).toBeNil()
-			expect(p2.data.boss.badges.BossMvp).toBeNil()
-			expect(p2.data.boss.badges.BossGoozilla).toBeNil()
-			expect(p3.data.boss.badges.BossHauler ~= nil).toBe(true)
-			expect(p3.data.boss.badges.BossGoozilla ~= nil).toBe(true)
-			local toasts = ServerFixtures.notifications(w, 1)
-			expect(table.find(toasts, "Badge earned: Goozilla Tamer!")).toBeNil()
-			expect(table.find(toasts, "Badge earned: Boss MVP!") ~= nil).toBe(true)
-			expect(table.find(ServerFixtures.notifications(w, 3), "Badge earned: Goozilla Tamer!") ~= nil).toBe(true)
-			expect(table.find(ServerFixtures.notifications(w, 3), "Badge earned: Heavy Lifter!") ~= nil).toBe(true)
-		end
-	)
+	it("only the carrier wins (badge, haul and SlimeDex); the top hitter gets the Boss MVP income boost", function()
+		local w = world(3)
+		local id = arrive(w)
+		local t = fill(w, 1, 2) -- P1 hits twice as often as P2; P3 never hits
+		local p1, p2, p3 = w.sessions[1], w.sessions[2], w.sessions[3]
+		expect((Carry.grab(w, 3, id, 1, t + BOSS.PRIORITY_SECONDS))).toBe(true)
+		expect((Carry.deposit(w, 3, t + BOSS.PRIORITY_SECONDS + 2))).toBe(true)
+		expect(p1.data.boss.wins.goozilla).toBeNil() -- the top hitter didn't carry it
+		expect(p2.data.boss.wins.goozilla).toBeNil()
+		expect(p3.data.boss.wins.goozilla).toBe(1) -- the carrier wins, even with no hits
+		expect(p3.data.boss.hauls).toBe(1)
+		expect(p1.data.boss.hauls).toBe(0)
+		expect(p1.data.boss.mvps).toBe(1)
+		expect(p2.data.boss.mvps).toBe(0)
+		expect(p1.data.found.goozilla).toBeNil() -- helpers get nothing for the boss itself
+		expect(p2.data.found.goozilla).toBeNil()
+		expect(p3.data.found.goozilla).toBe(true) -- the carrier held it
+		expect(p1.data.boss.badges.BossBrawler ~= nil).toBe(true)
+		expect(p1.data.boss.badges.BossGoozilla).toBeNil()
+		-- The top hitter's MVP is a timed income boost, not a badge.
+		local home = t + BOSS.PRIORITY_SECONDS + 2
+		expect(p1.data.mvpBonus).toBe(BOSS.MVP_BONUS)
+		expect(p1.mvpUntil).toBe(home + BOSS.MVP_SECONDS)
+		expect(p2.data.mvpBonus).toBeNil()
+		expect(p3.data.mvpBonus).toBeNil()
+		expect(math.abs(Perks.bonusMultiplier(p1.data) / Perks.bonusMultiplier(p2.data) - (1 + BOSS.MVP_BONUS)) < 1e-9).toBe(
+			true
+		)
+		expect(Snapshot.build(w, p1, home).mvpBoost).toEqual({
+			bonus = BOSS.MVP_BONUS,
+			endsAt = home + BOSS.MVP_SECONDS,
+		})
+		expect(Snapshot.build(w, p2, home).mvpBoost).toBeNil()
+		expect(p2.data.boss.badges.BossGoozilla).toBeNil()
+		expect(p3.data.boss.badges.BossHauler ~= nil).toBe(true)
+		expect(p3.data.boss.badges.BossGoozilla ~= nil).toBe(true)
+		local toasts = ServerFixtures.notifications(w, 1)
+		expect(table.find(toasts, "Badge earned: Goozilla Tamer!")).toBeNil()
+		expect(table.find(toasts, "Boss MVP! +50% income for 5 min") ~= nil).toBe(true)
+		-- It runs out after MVP_SECONDS.
+		BossCredit.expire(w, home + BOSS.MVP_SECONDS - 1)
+		expect(p1.data.mvpBonus).toBe(BOSS.MVP_BONUS)
+		BossCredit.expire(w, home + BOSS.MVP_SECONDS)
+		expect(p1.data.mvpBonus).toBeNil()
+		expect(p1.mvpUntil).toBeNil()
+		local after = ServerFixtures.notifications(w, 1)
+		expect(after[#after]).toBe("Your Boss MVP income boost ended")
+		expect(table.find(ServerFixtures.notifications(w, 3), "Badge earned: Goozilla Tamer!") ~= nil).toBe(true)
+		expect(table.find(ServerFixtures.notifications(w, 3), "Badge earned: Heavy Lifter!") ~= nil).toBe(true)
+	end)
 	it("the first counted hit earns Boss Brawler once, with a toast", function()
 		local w = world()
 		arrive(w)
@@ -400,7 +418,7 @@ describe("BossEvent State.boss", function()
 		expect(won.phase).toBe("won")
 		expect(won.active).toBe(false)
 		expect(won.winnerName).toBe("P1")
-		expect(BossEvent.view(w, w.sessions[1], t + 2).badges).toBe(4) -- Brawler, Goozilla Tamer, Heavy Lifter, MVP
+		expect(BossEvent.view(w, w.sessions[1], t + 2).badges).toBe(3) -- Brawler, Goozilla Tamer, Heavy Lifter (MVP is a boost)
 	end)
 	it("every phase change pushes State to every player", function()
 		local w = world()

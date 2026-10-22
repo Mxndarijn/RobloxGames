@@ -942,7 +942,8 @@ local Config = {
 		SHED_EVERY = 0.25, -- meter share between sheds
 		SHED_COUNT = 2, -- wild slimes per shed
 		DROP_LUCK = 3, -- luck multiplier on shed slimes
-		WIN_SHARE = 0.1, -- a player with at least this share of the top hitter's points helped win
+		MVP_BONUS = 0.5, -- the top hitter of a boss brought home: +50 % income ...
+		MVP_SECONDS = 5 * 60, -- ... for this long (runtime only, never saved; a new MVP restarts the timer)
 		BURST_FLIGHT = 0.8, -- seconds a shed slime flies out of the boss before it lands (it then walks to the lane)
 		BURST_DISTANCE = table.freeze({ 7, 14 }), -- studs from the boss a shed slime lands
 		BURST_HEIGHT = 10, -- studs high its arc goes
@@ -1159,13 +1160,6 @@ local Config = {
 			name = "Heavy Lifter",
 			description = "Carry a boss home yourself.",
 			trigger = "hauls",
-			value = 1,
-		}),
-		table.freeze({
-			key = "BossMvp",
-			name = "Boss MVP",
-			description = "Land the most hits on a boss that gets brought home.",
-			trigger = "mvps",
 			value = 1,
 		}),
 		table.freeze({

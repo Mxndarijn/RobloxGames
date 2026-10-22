@@ -507,6 +507,22 @@ local function forceBlessed(state: any): any
 	return view
 end
 
+-- Studio-only: the SlimeUI attribute "PcwMvp" = true fakes the Boss MVP boost (State.mvpBoost, BOSS.MVP_SECONDS
+-- left from the first read) for the bottom-right status slot.
+local forcedMvpEndsAt: number? = nil
+local function forceMvp(state: any): any
+	if not isStudio or gui:GetAttribute("PcwMvp") ~= true or type(state.serverTime) ~= "number" then
+		forcedMvpEndsAt = nil
+		return state
+	end
+	if forcedMvpEndsAt == nil or forcedMvpEndsAt < state.serverTime then
+		forcedMvpEndsAt = state.serverTime + Config.BOSS.MVP_SECONDS
+	end
+	local view = table.clone(state)
+	view.mvpBoost = { bonus = Config.BOSS.MVP_BONUS, endsAt = forcedMvpEndsAt }
+	return view
+end
+
 -- Studio-only: the SlimeUI attribute "PcwDexRows" = N marks the first N State.dex entries found (named)
 -- so the Dex grid can be shot with found cards and silhouettes side by side.
 local function forceDex(state: any): any
@@ -1035,8 +1051,9 @@ function pumpPopups(state: Types.State)
 end
 
 local function render(realState: Types.State)
-	local state: Types.State =
-		forceWelcome(forceStealAlert(forceDex(forceWeekend(forceBlessed(forceAdminEvent(forceFriends(realState)))))))
+	local state: Types.State = forceWelcome(
+		forceStealAlert(forceDex(forceWeekend(forceMvp(forceBlessed(forceAdminEvent(forceFriends(realState)))))))
+	)
 	hud.update(state)
 	inventory.update(state)
 	slimeKeys.update(state)
@@ -1072,6 +1089,7 @@ if isStudio then
 			"PcwWelcome",
 			"PcwRain",
 			"PcwBlessed",
+			"PcwMvp",
 		}
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
