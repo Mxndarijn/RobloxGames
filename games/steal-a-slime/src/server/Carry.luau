@@ -94,6 +94,10 @@ function Carry.grabWild(
 		if not ok then
 			return false, reason
 		end
+		local move = wild.move
+		if move and move.kind == "down" and now < move.at + Config.BOSS.SHRINK_SECONDS then
+			return false, "it's still shrinking"
+		end
 	end
 	if wild.price > 0 and not PlayerData.spend(session.data, wild.price) then
 		return false, `need ${Economy.formatNumber(wild.price)}`

@@ -800,7 +800,7 @@ scenario("boss", function()
 	local lastFightPos = bossPos
 	while world.boss.fight.phase == "fight" and swings < 400 do
 		swings += 1
-		bossPos = S.WorldView.slimePosition(id) or bossPos -- it wanders (BossWander)
+		bossPos = S.WorldView.slimePosition(id) or bossPos -- it moves (BossChoreo)
 		lastFightPos = bossPos
 		face(player, bossPos + Vector3.new(0, 0, 8), bossPos)
 		bat(player).Activated:Fire()
@@ -826,11 +826,12 @@ scenario("boss", function()
 		else math.huge
 	check(
 		"boss: the haul catches it where it stood (no snap back to the boss spot)",
-		moved < BOSS.WANDER_SPEED * (BOSS.HIT_GAP + 0.05) + 0.5, -- at most one swing round of walking
+		moved < BOSS.STROLL_SPEED * (BOSS.HIT_GAP + 0.05) + 0.5, -- at most one swing round of walking
 		`moved {moved} studs between the last swing and the haul`
 	)
+	rt:advance(BOSS.SHRINK_SECONDS + 0.3) -- it shrinks to carry size first
 	check(
-		"boss: it pops to carry size for the haul",
+		"boss: it shrinks to carry size for the haul",
 		math.abs(model:GetScale() - 1) < 1e-3 and body:FindFirstChild("GrabPrompt").Enabled == true,
 		`scale {model:GetScale()}`
 	)
