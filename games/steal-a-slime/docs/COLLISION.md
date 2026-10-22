@@ -224,7 +224,7 @@ Every plot mesh slot has a decided collision (`tests/MeshCollision.spec` "plot-l
 on a plot. The jar's glass, lintel, lid and bridge are colliding Parts; the moat, jar floor and parked stopper are decor. `phoenix_pad_crate`
 is decor: `Pad_<j>` (8 x 2.4 x 8) is the solid, steppable surface. `phoenix_top_earners_board` is shared with the world board
 (own Collider), so the plot's `DexMesh` slot box (canCollide on, canQuery / canTouch off) is the dex board's collider.
-Client-toggled cosmetics (LockSign, RebirthDecor, the jar mascot and ooze, habitats, skins) stay non-colliding: hidden
+Client-toggled cosmetics (LockSign, the jar mascot and ooze, habitats, skins) stay non-colliding: hidden
 colliders would be invisible walls, and the Pad / PlotLockGuard already cover those areas. The `LockBarrier.Stopper` is the one
 exception: hidden and non-colliding while open, the server makes it solid while the plot is locked.
 

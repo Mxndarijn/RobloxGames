@@ -12,6 +12,8 @@
 	* save: UpdateAsync + SessionLock.write, retried `saveAttempts` times on
 	  errors. If another server took the session over, the save is refused
 	  and this server stops saving that player (no duplicated slimes).
+	* load waits (bounded) for the same player's saves still in flight, so a rejoin on this server never reads
+	  a record the leave save is about to replace, and a late release never frees the new session's lock.
 	* release = true on leave / BindToClose frees the session lock.
 	* Read-only sessions: when the stored record is from a newer SAVE_VERSION
 	  (rolling update) or unreadable (SaveData.check), load still succeeds with
@@ -24,6 +26,7 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local SaveData = if Shared then require(Shared.SaveData) else require("../shared/SaveData")
 local SessionLock = if Shared then require(Shared.SessionLock) else require("../shared/SessionLock")
@@ -50,6 +53,7 @@ export type DataService = {
 	loadAttempts: number,
 	saveAttempts: number,
 	log: (message: string) -> (),
+	saving: { [number]: number? }, -- userId -> saves in flight (a load waits for them)
 	lost: { [number]: boolean }, -- userIds whose session another server took over
 	readOnly: { [number]: SaveData.Verdict }, -- userIds whose stored record must not be overwritten ("newer" / "unreadable")
 }
@@ -71,6 +75,7 @@ function DataService.new(options: Options): DataService
 		log = options.log or function(message: string)
 			warn(message)
 		end,
+		saving = {},
 		lost = {},
 		readOnly = {},
 	}
@@ -80,6 +85,11 @@ end
 function DataService.load(service: DataService, userId: number): (boolean, PlayerData.Data | string)
 	local key = DataService.key(userId)
 	local reason = "DataStore error"
+	local drained = 0
+	while service.saving[userId] and drained < Config.SAVE_DRAIN_SECONDS do
+		service.wait(Config.SAVE_DRAIN_STEP)
+		drained += Config.SAVE_DRAIN_STEP
+	end
 	for attempt = 1, service.loadAttempts do
 		local status: SessionLock.Status? = nil
 		local stored: any = nil
@@ -120,14 +130,7 @@ function DataService.canSave(service: DataService, userId: number): boolean
 	return not service.lost[userId] and service.readOnly[userId] == nil
 end
 
--- Returns (ok, reason?). Yields between retries. A read-only session returns (true, "read-only") once the lock is
--- refreshed / released; its stored data is written back as it was.
-function DataService.save(
-	service: DataService,
-	userId: number,
-	data: PlayerData.Data,
-	release: boolean
-): (boolean, string?)
+local function write(service: DataService, userId: number, data: PlayerData.Data, release: boolean): (boolean, string?)
 	if service.lost[userId] then
 		return false, "session lost"
 	end
@@ -157,6 +160,21 @@ function DataService.save(
 		end
 	end
 	return false, "DataStore error"
+end
+
+-- Returns (ok, reason?). Yields between retries. A read-only session returns (true, "read-only") once the lock is
+-- refreshed / released; its stored data is written back as it was.
+function DataService.save(
+	service: DataService,
+	userId: number,
+	data: PlayerData.Data,
+	release: boolean
+): (boolean, string?)
+	service.saving[userId] = (service.saving[userId] or 0) + 1
+	local ok, reason = write(service, userId, data, release)
+	local left = (service.saving[userId] or 1) - 1
+	service.saving[userId] = if left > 0 then left else nil
+	return ok, reason
 end
 
 -- In-memory backend for Studio without API access and for tests.

@@ -181,6 +181,7 @@ function Steal.complete(victim: PlayerData.Data, thief: PlayerData.Data, slimeId
 	end
 	PlayerData.removeSlime(victim, slimeId)
 	slime.pad = nil
+	slime.keep = nil -- a kept mark belongs to the previous owner
 	PlayerData.addSlime(thief, slime)
 	thief.totalStolen += 1
 	return true, slime

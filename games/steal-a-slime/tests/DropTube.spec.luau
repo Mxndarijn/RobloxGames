@@ -163,15 +163,11 @@ describe("drop tube geometry", function()
 		local r = math.sqrt(land[1] ^ 2 + land[3] ^ 2)
 		expect(r > WorldLayout.MOAT.inner and r < WorldLayout.MOAT.outer).toBe(true)
 	end)
-	it("keeps the landing clear of the lock button and the rebirth pillars", function()
+	it("keeps the landing clear of the lock button", function()
 		local land = WorldLayout.dropLanding()
 		local function far(x: number, z: number, clear: number)
 			return math.abs(land[1] - x) > clear or math.abs(land[3] - z) > clear
 		end
 		expect(far(WorldLayout.LOCK_BUTTON_SPOT[1], WorldLayout.LOCK_BUTTON_SPOT[2], 2.5 + 2)).toBe(true)
-		local h = WorldLayout.PLOT_SIZE / 2 - 1
-		for _, c in { { -h, h }, { h, h } } do
-			expect(far(c[1], c[2], 1.1 + 2)).toBe(true)
-		end
 	end)
 end)
