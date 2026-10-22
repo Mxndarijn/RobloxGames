@@ -118,12 +118,25 @@ local function paint(m: Marker, t: Look.Tag)
 end
 
 -- The pad carrying the local player's enabled BuyPadPrompt on `plot` (the server moves it to the next pad).
+local function carriesPrompt(pad: Instance?, plot: Model, userId: number): boolean
+	local prompt = pad and pad:FindFirstChild(Constants.BUY_PAD_PROMPT_NAME)
+	if not (prompt and prompt:IsA("ProximityPrompt") and prompt.Enabled and pad:IsDescendantOf(plot)) then
+		return false
+	end
+	local shownTo = prompt:GetAttribute(Constants.PROMPT_OWNER_ATTRIBUTE)
+	return shownTo == nil or shownTo == 0 or shownTo == userId
+end
+
+-- Keeps the marked pad while it still carries the prompt; only searches the plot when the prompt has moved.
 local function nextPad(plot: Model, userId: number): BasePart?
+	local current = marker and marker.pad
+	if current and carriesPrompt(current, plot, userId) then
+		return current
+	end
 	for _, d in plot:GetDescendants() do
-		if d:IsA("ProximityPrompt") and d.Name == Constants.BUY_PAD_PROMPT_NAME and d.Enabled then
-			local shownTo = d:GetAttribute(Constants.PROMPT_OWNER_ATTRIBUTE)
+		if d:IsA("ProximityPrompt") and d.Name == Constants.BUY_PAD_PROMPT_NAME then
 			local pad = d.Parent
-			if (shownTo == nil or shownTo == 0 or shownTo == userId) and pad and pad:IsA("BasePart") then
+			if pad and pad:IsA("BasePart") and carriesPrompt(pad, plot, userId) then
 				return pad
 			end
 		end
