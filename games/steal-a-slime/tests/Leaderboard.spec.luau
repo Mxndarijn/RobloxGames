@@ -26,6 +26,13 @@ describe("Leaderboard", function()
 		data.totalEarned = 1e300
 		expect(Leaderboard.storeValue(data)).toBe(Leaderboard.MAX_VALUE)
 	end)
+	it("writes the board only after a save that went through, and only when the value moved", function()
+		expect(Leaderboard.shouldWrite(true, false, nil, 10)).toBe(true)
+		expect(Leaderboard.shouldWrite(true, false, 5, 10)).toBe(true)
+		expect(Leaderboard.shouldWrite(true, false, 10, 10)).toBe(false) -- unchanged autosave
+		expect(Leaderboard.shouldWrite(false, false, nil, 10)).toBe(false) -- failed or lost-session save
+		expect(Leaderboard.shouldWrite(true, true, nil, 10)).toBe(false) -- read-only session
+	end)
 	it("builds ranked entries from a sorted page, skipping junk keys", function()
 		local board = Leaderboard.fromPage({
 			{ key = "u_10", value = 500 },
