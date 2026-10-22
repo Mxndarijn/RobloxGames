@@ -1354,6 +1354,28 @@ local function setCharacterGroup(character: Model, group: string)
 	end
 end
 
+-- Characters the server just moved itself (userId -> true), taken by SlimeGuardView so the movement check skips
+-- the jump. Runtime only.
+local serverMoves: { [number]: boolean } = {}
+
+function WorldView.markServerMove(userId: number)
+	serverMoves[userId] = true
+end
+
+-- True once after the server moved this player's character.
+function WorldView.takeServerMove(userId: number): boolean
+	local moved = serverMoves[userId] == true
+	serverMoves[userId] = nil
+	return moved
+end
+
+local function markCharacterMoved(character: Model)
+	local player = Players:GetPlayerFromCharacter(character)
+	if player then
+		WorldView.markServerMove(player.UserId)
+	end
+end
+
 -- Bug #10: a character whose root overlaps the fountain-top slime stack (Map.Volcano.EmergeMesh) is not pushed out by
 -- the solid mesh, so move it above the top (radially outside if something is overhead). True when it moved.
 local function ejectFromStack(character: Model, root: BasePart): boolean
@@ -1376,6 +1398,7 @@ local function ejectFromStack(character: Model, root: BasePart): boolean
 	local x, y, z = StackGuard.ejectPoint(p.X, p.Y, p.Z, half.X, half.Y, half.Z, blocked)
 	character:PivotTo(ref.CFrame * CFrame.new(x, y, z))
 	root.AssemblyLinearVelocity = Vector3.zero
+	markCharacterMoved(character)
 	return true
 end
 
@@ -1412,6 +1435,7 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 						* (base.CFrame.Rotation:Inverse() * root.CFrame.Rotation)
 				)
 				root.AssemblyLinearVelocity = Vector3.zero
+				WorldView.markServerMove(player.UserId)
 				break
 			end
 		end
@@ -1537,6 +1561,7 @@ function WorldView.dropDown(userId: number, plotIndex: number): boolean
 	local y = land[2] - WorldLayout.PLOT_FLOOR_TOP + base.Size.Y / 2
 	character:PivotTo(base.CFrame * CFrame.new(land[1], y, land[3]))
 	root.AssemblyLinearVelocity = Vector3.zero
+	WorldView.markServerMove(userId)
 	return true
 end
 
@@ -1577,6 +1602,7 @@ function WorldView.rescue(player: Player, plotIndex: number?, pvpGuard: boolean?
 	end
 	local plotSpawn = if plotIndex then WorldView.plotSpawn(plotIndex) else nil
 	character:PivotTo(Rescue.target(plotSpawn, WorldView.hubSpawn(), CFrame.new(0, 50, 0)))
+	WorldView.markServerMove(player.UserId)
 	for _, part in character:GetDescendants() do
 		if part:IsA("BasePart") then
 			part.AssemblyLinearVelocity = Vector3.zero

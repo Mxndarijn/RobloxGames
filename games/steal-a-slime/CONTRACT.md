@@ -96,7 +96,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Income:** `Economy.tickIncome` runs every second. On load, the server pays `Economy.offlineIncome`, which is `OFFLINE_RATE` of income, capped at `OFFLINE_CAP_SECONDS`. A slime being carried away pays its owner nothing.
 - **Merge:** `Request("Merge", a, b)` takes two slimes of the same tier and gives one slime of tier + 1 (`Merge.apply`).
 - **Steal and lock:**
-  - On join, the plot is locked for `JOIN_LOCK_SECONDS` (45).
+  - On join, the plot is locked for `JOIN_LOCK_SECONDS` (120).
   - `Request("Lock")` buys `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s; one purchase and the stacked lock are both capped at `LOCK_MAX_REMAINING` (4 min) (`Steal.lockDuration`, `Steal.buyLock`). Locks are bought only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button, which needs the player at their lock pad). No shop sells locks or longer locks.
   - Stealing pings the owner (Notify `"bad"` plus `SlimeView.stolenBy`).
   - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is hit (the Bat or any PvP item that touches them), drops it, dies / respawns or leaves. A carried wild slime is dropped by the same hits and lands at the carrier's feet. The carried slime stays solid for everyone, the thief included. An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
@@ -352,7 +352,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 
 | Key | Value | Design source |
 |---|---|---|
-| `JOIN_LOCK_SECONDS` / `LOCK_SECONDS` / `LOCK_SECONDS_PER_REBIRTH` | 45 / 120 / 10 | "45 s on join, then a 2 min lock button, +10 s per rebirth up to 4 min" |
+| `JOIN_LOCK_SECONDS` / `LOCK_SECONDS` / `LOCK_SECONDS_PER_REBIRTH` | 120 / 120 / 10 | "2 min on join, then a 2 min lock button, +10 s per rebirth up to 4 min" |
 | `RARITIES[i].carrySlow` (max `MAX_CARRY_SLOW`) | 0.05…0.35 (≤0.6) | "slows the carrier more the rarer it is" |
 | `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × growth |
 | `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 5 | "every hour … for 3 minutes" |
@@ -427,3 +427,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §38 | [slime-labels.md](contract/slime-labels.md) | Slime labels: a tag above every loose slime, a sign on every pad |
 | §39 | [slime-life.md](contract/slime-life.md) | Slime life: species gaits, hops, lane beats and reactions |
 | §40 | [mystery-egg.md](contract/mystery-egg.md) | Mystery Eggs: wild eggs that incubate on a pad, can be stolen, hatch into a slime in a show on the pad, lucky eggs and a lucky meter (`FEATURES.MysteryEggs`) |
+| §41 | [slime-guard.md](contract/slime-guard.md) | Slime Guard: anti-cheat for stealing, locked-base intruders, breather lock (`FEATURES.SlimeGuard`) |

@@ -715,7 +715,7 @@ local Config = {
 	PLOT_SKIN_DEFAULT = "classic",
 
 	-- Lock / steal
-	JOIN_LOCK_SECONDS = 45,
+	JOIN_LOCK_SECONDS = 120,
 	LOCK_SECONDS = 120,
 	LOCK_SECONDS_PER_REBIRTH = 10, -- a bought lock lasts this much longer per rebirth, up to LOCK_MAX_REMAINING
 	LOCK_MAX_REMAINING = 240, -- the longest lock: one purchase or several stacked never go past 4 min
@@ -726,6 +726,25 @@ local Config = {
 	HOLD_CONFIRM_SECONDS = 0.8,
 	TUTORIAL_STEAL_SKIP_SECONDS = 20, -- solo tutorial: Steal step skips itself after this long with nobody to steal from
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
+	-- SlimeGuard (FEATURES.SlimeGuard, CONTRACT.md §41). Movement thresholds live in the shared MovementGuard defaults.
+	SLIME_GUARD = table.freeze({
+		ENFORCE = false, -- false = watch mode: flags are logged and add points, nothing else happens; true = steals bounce, pause, kick
+		SAMPLE_SECONDS = 0.1, -- one position per player this often (the server's view tick)
+		LAUNCH_SPEED = 150, -- studs/s allowed while a PvP launch / control window is open (PvpLaunch.guardActive)
+		SERVER_MOVE_SECONDS = 1, -- after a server teleport or respawn the next second is not checked
+		TELEPORT_COOLDOWN = 3, -- seconds after a teleport flag in which the player can't steal
+		DEPOSIT_SPEED_SLACK = 1.5, -- a stolen slime may reach home at most this much faster than its carry speed allows
+		BREATHER_SECONDS = 20, -- a victim's base locks this long after a slime is stolen from it
+		UNDO_SECONDS = 600, -- a kick undoes the player's steals from this many seconds back
+		LOG_PER_MINUTE = 20, -- log lines per player per minute at most
+		POINTS = table.freeze({
+			teleport = 3,
+			lockedEntry = 3,
+			earlyDeposit = 3,
+			speed = 2,
+			fly = 2,
+		} :: { [string]: number }),
+	}),
 	SLAP_REACH = 10,
 	SLAP_COOLDOWN = 1.5,
 	-- The default melee Bat Tool (server/BatTool, every player, live, NOT behind FEATURES.PvP). A hit on anyone
@@ -828,6 +847,7 @@ local Config = {
 		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
 		SlimeChoreo = true, -- species gaits and hops, lane beats and reactions to players (SlimePersona, ParadeChoreo, ui/SlimeGait, contract/slime-life.md); false = every slime glides the lane at one pace
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
+		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders sent home; false = none of it
 	}),
 
 	-- Server profiler (FEATURES.ServerProfiler, server/Profiler). BUDGET_MS = p95 ms per frame / call.

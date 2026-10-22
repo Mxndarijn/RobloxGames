@@ -31,6 +31,8 @@ local Ritual = require(ReplicatedStorage.Shared.Ritual)
 local RitualService = require(script.Parent.RitualService)
 local RitualView = require(script.Parent.RitualView)
 local SafeCall = require(script.Parent.SafeCall)
+local SlimeGuard = require(script.Parent.SlimeGuard)
+local SlimeGuardView = require(script.Parent.SlimeGuardView)
 local Spawner = require(script.Parent.Spawner)
 local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
@@ -76,6 +78,8 @@ end
 function ServerLoop.forget(loop: Loop, userId: number)
 	loop.homeZoneFull[userId] = nil
 	loop.shopCheckedAt[userId] = nil
+	SlimeGuard.forget(loop.world, userId)
+	SlimeGuardView.forget(userId)
 end
 
 local function stepPlayers(loop: Loop, t: number)
@@ -86,10 +90,11 @@ local function stepPlayers(loop: Loop, t: number)
 	for userId, session in world.sessions do
 		local player = Players:GetPlayerByUserId(userId)
 		if player then
+			loop.safeCall("slime guard", SlimeGuardView.step, world, player, session, t) -- may end a stolen carry or send an intruder home
 			local carryId = session.carry and session.carry.slimeId
 			local home = WorldView.inHomeZone(player, session.plotIndex)
 			session.home = home -- warms the owner's Mystery Eggs (MysteryEgg.step)
-			if carryId and home then
+			if carryId and home and player.Parent and SlimeGuardView.depositAllowed(world, player, session, t) then
 				local ok, reason = Carry.deposit(world, userId, t)
 				-- Toast once per zone visit, not every tick while standing in a full plot.
 				if not ok and reason == "plot full" and loop.homeZoneFull[userId] ~= carryId then

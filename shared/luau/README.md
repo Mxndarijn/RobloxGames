@@ -19,6 +19,8 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | | `GuideTrail` | pure | Lays out ground-trail arrows along a route: spacing, scroll phase, fade at both ends, length and count caps |
 | | `GuideEdge` | pure | Screen-edge pointer position and angle for an off-screen target (flips targets behind the camera) |
 | | `GuideView` | adapter, client | Leads the local player to a target: neon chevrons snapped to the ground (optional pathfinding route), ring, labelled marker, Highlight outline, screen-edge pointer; colours, sizes and the arrow template can be overridden |
+| `src/anticheat` | `MovementGuard` | pure, server | Checks server-read character positions for teleports, speed hacks and flying; tolerates lag freezes, downhill runs and server-made moves (`allow`, `reset`) |
+| | `Suspicion` | pure, server | Points per player that drain over time and reach "pause" / "kick" levels |
 | `testing` | `TestRunner` | Lune only | describe / it / expect used by these specs; games can reuse it |
 
 ## Mounting in a game
