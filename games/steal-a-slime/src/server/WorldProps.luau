@@ -33,6 +33,13 @@ WorldProps.SHOP_PROMPTS = table.freeze({
 		actionText = "Browse upgrades",
 	}),
 })
+-- Professor Goo's prompt only opens the client's Leaderboards panel (the UI listens for PromptTriggered).
+WorldProps.LEADERBOARD_PROMPT = table.freeze({
+	name = Constants.LEADERBOARD_PROMPT_NAME,
+	objectText = "Professor Goo",
+	actionText = "View leaderboards",
+})
+WorldProps.LEADERBOARD_CLICK_DISTANCE = 32
 -- The Guide's prompt only opens a client menu (the UI listens for PromptTriggered).
 WorldProps.GUIDE_PROMPT = table.freeze({
 	name = Constants.GUIDE_PROMPT_NAME,
@@ -210,6 +217,19 @@ function WorldProps.addShopPrompts(onShop: ((player: Player, shopId: string) -> 
 	end
 	local npc = placed[Constants.TUTORIAL_NPC]
 	addPrompt(npc and (npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart), WorldProps.GUIDE_PROMPT)
+	-- Professor Goo: "View leaderboards" (E / tap) and a ClickDetector for a click or right-click; both only open
+	-- the client's Leaderboards panel.
+	local professor = placed[Constants.PROFESSOR_GOO]
+	addPrompt(
+		professor and (professor:FindFirstChild("HumanoidRootPart") or professor.PrimaryPart),
+		WorldProps.LEADERBOARD_PROMPT
+	)
+	if professor and not professor:FindFirstChild(Constants.LEADERBOARD_CLICK_NAME) then
+		local click = Instance.new("ClickDetector")
+		click.Name = Constants.LEADERBOARD_CLICK_NAME
+		click.MaxActivationDistance = WorldProps.LEADERBOARD_CLICK_DISTANCE
+		click.Parent = professor
+	end
 end
 
 -- Writes Leaderboard.boardRows into the Rows frame of the world board of `board.stat` (in place when the row

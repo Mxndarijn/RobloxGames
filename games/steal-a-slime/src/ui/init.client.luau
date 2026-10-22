@@ -770,6 +770,20 @@ end)
 local PROMPT_MENUS = MenuClose.promptMenus(Constants.GUIDE_PROMPT_NAME)
 -- The vat's "Manage vat" prompt (owner only) opens the merge vat menu (CONTRACT.md §21).
 PROMPT_MENUS[Constants.MERGE_PROMPT_NAME] = "Merge"
+-- Professor Goo's "View leaderboards" prompt, and a click or right-click on him, open the Leaderboards panel.
+PROMPT_MENUS[Constants.LEADERBOARD_PROMPT_NAME] = "Leaderboard"
+task.spawn(function()
+	local map = workspace:WaitForChild(Constants.MAP_FOLDER, 60)
+	local professor = map and map:WaitForChild(Constants.PROFESSOR_GOO, 60)
+	local click = professor and professor:WaitForChild(Constants.LEADERBOARD_CLICK_NAME, 60)
+	if click and click:IsA("ClickDetector") then
+		local function open()
+			setOpen("Leaderboard")
+		end
+		click.MouseClick:Connect(open)
+		click.RightMouseClick:Connect(open)
+	end
+end)
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, who: Player)
 	local key = PROMPT_MENUS[prompt.Name]
 	if key and who == player then
