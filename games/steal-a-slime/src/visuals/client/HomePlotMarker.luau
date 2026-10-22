@@ -12,7 +12,8 @@
 	    loads, or if it can't), the words in outlined Fredoka.
 	  * Arrow: the badge with the house on the screen edge pointing home while
 	    the plot is off screen.
-	Beacon, tag and arrow fade out while your character stands on the plot. Numbers and math
+	Beacon, tag and arrow fade out while your character stands on the plot; tag and arrow also hide while a
+	menu or popup is open. Numbers and math
 	live in Visuals.HomePlotMarker; this file only builds Instances.
 	Reads attributes only; never fires remotes. Local changes only.
 
@@ -450,7 +451,7 @@ function HomePlotMarker.step(now: number, camera: Camera)
 	for _, strip in b.rim do
 		strip.Transparency = 0.15 + 0.45 * pulse
 	end
-	b.tag.Enabled = fade > 0
+	b.tag.Enabled = fade > 0 and not menuOpen() -- always on top: it would show over an open menu
 	b.tag.StudsOffsetWorldSpace = Vector3.new(0, Look.TAG_HEIGHT + math.sin(now * 2) * 0.8, 0)
 	stepArrow(b, camera, fade)
 end
