@@ -19,6 +19,13 @@ describe("Leaderboard", function()
 		expect(Leaderboard.STATS).toEqual({ "Cash", "Rebirths", "Steals" })
 		expect(Leaderboard.stats(data)).toEqual({ Cash = 12, Rebirths = 3, Steals = 5 })
 	end)
+	it("a NaN totalEarned stores as 0", function()
+		local data = PlayerData.new()
+		data.totalEarned = 0 / 0
+		expect(Leaderboard.storeValue(data)).toBe(0)
+		data.totalEarned = math.huge
+		expect(Leaderboard.storeValue(data)).toBe(Leaderboard.MAX_VALUE)
+	end)
 	it("stores totalEarned as a clamped integer", function()
 		local data = PlayerData.new()
 		data.totalEarned = 10.9
