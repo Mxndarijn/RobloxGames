@@ -13,7 +13,8 @@
 	daily reward and the welcome-back card from everyone who had not rebirthed.
 	The daily popup is queued on its availability edge (Daily.shouldAutoOpen)
 	and dropped again when the claim goes away. The welcome-back card
-	(State.welcomeBack, once per join) queues the same way and goes first; while it is on screen (`busy`) the daily popup waits.
+	(State.welcomeBack, once per join) queues the same way and goes first;
+	while it is on screen (`busy`) the daily popup waits.
 ]]
 
 local Daily = if script then require(script.Parent.Daily) else require("./Daily")
