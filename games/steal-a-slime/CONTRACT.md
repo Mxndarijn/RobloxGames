@@ -47,15 +47,15 @@ src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts
   habitat state, FEATURES.Habitats), PodiumAvatars (top-3 podium rigs:
   description cache, fallback, debounced refresh; adapter injected)
   Roblox adapters: WorldView (models, prompts, plot attributes, HomeZone,
-  WalkSpeed, Speed Coil tool, kill-plane rescue), WorldProps (ShopStand,
-  LeaderboardBoard, TutorialNpc, §5.3), FallbackWorld (greybox §5.3 if
+  WalkSpeed, Speed Coil tool, kill-plane rescue), WorldProps (ItemShopStand,
+  UpgradeShopStand, LeaderboardBoard, TutorialNpc, §5.3, §27), FallbackWorld (greybox §5.3 if
   WorldBuilder is missing), PodiumRigs (R15 avatar rigs on Podium_1..3 in
   workspace.PodiumAvatars, BillboardGui NameLabel)
 src/visuals/shared/ -> ReplicatedStorage.Visuals   (ModuleScripts)              Archer
   ModelFactory.luau  slimeData -> Model (§4)
   WorldBuilder.luau  WorldBuilder.build(parent) -> Map, Plots (§5.3); layout in WorldLayout
                      (incl. PROP_SPOTS)
-  Props.luau         ShopStand / SpeedCoil / TutorialNpc / TutorialArrow / LeaderboardBoard builders
+  Props.luau         shop stand / SpeedCoil / TutorialNpc / TutorialArrow / LeaderboardBoard builders
   Effects.luau       Effects.play(kind, target) bursts + emitter / light presets (§5.4)
   MinimapData.luau   minimap points of interest (§2 Extras)
 src/visuals/client/ -> StarterPlayerScripts.VisualsClient (LocalScript)         Archer
@@ -97,7 +97,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Merge:** `Request("Merge", a, b)` takes two slimes of the same tier and gives one slime of tier + 1 (`Merge.apply`).
 - **Steal and lock:**
   - On join, the plot is locked for `JOIN_LOCK_SECONDS` (45).
-  - `Request("Lock")` buys `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s; one purchase and the stacked lock are both capped at `LOCK_MAX_REMAINING` (3 min) (`Steal.lockDuration`, `Steal.buyLock`). Locks are bought only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button; under `WorldShopsStrict` the HUD button needs the player at their lock pad). No shop sells locks or longer locks.
+  - `Request("Lock")` buys `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s; one purchase and the stacked lock are both capped at `LOCK_MAX_REMAINING` (3 min) (`Steal.lockDuration`, `Steal.buyLock`). Locks are bought only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button, which needs the player at their lock pad). No shop sells locks or longer locks.
   - Stealing pings the owner (Notify `"bad"` plus `SlimeView.stolenBy`).
   - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is hit (the Bat or any PvP item that touches them), drops it, dies / respawns or leaves. A carried wild slime is dropped by the same hits and lands at the carrier's feet. While it is carried the thief sees it see-through (client-only `ui/CarryFade`, the Move fade). An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
   - If the thief reaches their own `HomeZone` first, `Steal.complete` moves the slime to the thief.
@@ -328,7 +328,7 @@ The server finds plots by the `PlotIndex` attribute and pads by `PadIndex` (`Con
   - `MergeVat` (inside jar 1 at the back), `LockButton` (on the front corner by the bridge, with its `LockSign`), `Sign` (jar 1's name label on the glass, front-left of the door) and a `Slimes` folder. Players spawn on jar 1's walkway in front of the door (`WorldLayout.SPAWN_SPOT`).
   - **Jar decor (client only, `PlotMascot`).** A slime mascot sits on the top jar's lid, bigger with each jar standing and crowned on the full tower, and a goo ooze ring runs round the top of every standing jar. Local parts, never collide.
 - **Props** (`src/server/WorldProps.luau`, placed on start right after WorldBuilder): one of each Model below goes under `workspace.Map` at `WorldLayout.PROP_SPOTS[name]` (pivot `CFrame.new(pos) * CFrame.Angles(0, rad(yaw), 0)`, bottom centre on the Ground), unless a Model with that name already exists anywhere under `workspace` (so a future static copy wins). Built by Archer's `Props`; every part is Anchored. Names are in `Constants`.
-  - **`ShopStand`** (`Constants.SHOP_STAND`): PrimaryPart `Counter` holds ONE ProximityPrompt `ShopPrompt` (`Constants.SHOP_PROMPT_NAME`, E, ObjectText "Shop", ActionText "Open Shop"). v28: it buys nothing; the triggering client opens the Shop menu (every item, bought through `Request` there). The v27 per-item prompts `ShopPrompt_SpeedCoil` / `ShopPrompt_LockUpgrade` are gone.
+  - **`ItemShopStand`** / **`UpgradeShopStand`** (`Constants.SHOP_STAND_ITEM` / `SHOP_STAND_UPGRADE`): the shops, each with ONE ProximityPrompt `ShopPrompt` on its PrimaryPart `Counter` and a `ShopId` attribute; triggering it opens that shop on the server (§27).
   - **`LeaderboardBoard`** (`Constants.LEADERBOARD_BOARD`): `LeaderboardBoard` > `Board` (Part) > SurfaceGui `BoardGui` (Face Front) > Frame `Content` > TextLabel `Title` + Frame `Rows` (UIListLayout), plus `Frame`, `PostL` / `PostR`. **The server fills `Rows`** on every leaderboard refresh: `Row_<k>` Frames (k = 1..`LEADERBOARD_SIZE`, LayoutOrder k) with TextLabels `Rank` (`"#k"`), `Name`, `Value` (`"$" .. Economy.formatNumber`). Rows are updated in place when the count is unchanged (so client-side tweaks like the UI's own-row highlight survive), rebuilt otherwise; an empty board shows one `Row_1` "No entries yet". Clients may re-render the same rows locally (the UI's `WorldLeaderboard` does).
   - **`TutorialNpc`** (`Constants.TUTORIAL_NPC`): R6-style primitives, no Humanoid, PrimaryPart `HumanoidRootPart`, `NameTag` BillboardGui, Attachment `ArrowStart` in `SlimeHat` (start of the tutorial arrow). v28: `HumanoidRootPart` holds ProximityPrompt `GuidePrompt` (`Constants.GUIDE_PROMPT_NAME`, E, ObjectText "Guide", ActionText "Talk"); the triggering client opens the Guide card (next goal + tips, `src/ui/GuideTips.luau`). No server effect.
   - **`TutorialArrow`** (client-only Beam): VisualsClient draws `Props.tutorialArrow` from the local character's `HumanoidRootPart` to the target of the player's `TutorialStep` (§5.2) and removes it when the step is nil or has no target.
@@ -371,7 +371,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `REBIRTH_LATE_FROM` / `REBIRTH_COST_GROWTH_LATE` / `REBIRTH_TIERS` / `UPGRADES` / `GOALS` / `DEX_MILESTONES` | 5 / 2 / tables | v13 progression (§8.8) |
 | `SAVE_VERSION` | 9 | v13 schema (§8.9), v6 = `settings` + versioned `plotSkin` / `stealLog` (§8.9c), v7 = mutation fields stripped (§8.9d), v8 = Goo Trap charges ([pvp.md](contract/pvp.md)), v9 = trophies become the boss record `boss` ([boss-event.md](contract/boss-event.md)) |
 
-All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `WorldMeshesReady` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ShopStand` / `LeaderboardBoard` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
+All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `WorldMeshesReady` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ItemShopStand` / `UpgradeShopStand` / `LeaderboardBoard` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
 
 ## 7. Build and tests
 
@@ -413,7 +413,7 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §24 | [welcome-back.md](contract/welcome-back.md) | v20: welcome-back card (2026-10-17) |
 | §25 | [server-profiler.md](contract/server-profiler.md) | v23: server performance profiler (`FEATURES.ServerProfiler`) |
 | §26 | [pvp.md](contract/pvp.md) | PvP: rules, gloves, traps, blasters, fun items (`FEATURES.PvP`) |
-| §27 | [world-shops.md](contract/world-shops.md) | World shops: Item Shop and Upgrade Shop (`FEATURES.WorldShops`) |
+| §27 | [world-shops.md](contract/world-shops.md) | World shops: Item Shop and Upgrade Shop |
 | §28 | [fountain-split.md](contract/fountain-split.md) | Fountain split: PCD tower pieces (`FEATURES.FountainSplit`) |
 | §29 | [inventory.md](contract/inventory.md) | S3: inventory hotbar + panel (client only, 2026-10-18) |
 | §30 | [slime-pool.md](contract/slime-pool.md) | Slime pool: 32 species, one fully coloured mesh each |

@@ -625,7 +625,7 @@ globals = {
 	end,
 }
 
--- The src/ui module at `path` (e.g. "Panels/Shop", "Widgets").
+-- The src/ui module at `path` (e.g. "Panels/WorldShop", "Widgets").
 function UiHarness.ui(path: string): any
 	return load(`src/ui/{path}`)
 end

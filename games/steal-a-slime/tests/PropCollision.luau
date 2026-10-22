@@ -246,25 +246,22 @@ parts(
 entries[#entries].mesh = "merge_vat"
 
 -- The shop stands (CONTRACT §27.2): a solid counter, not a box to stand inside; the primitive counter parts stay
--- collidable under the mesh. FEATURES.WorldShops on: the Item and Upgrade stands, each with its own mesh; off: the
--- single ShopStand.
+-- collidable under the mesh. The Item and Upgrade stands each have their own mesh.
 for _, stand in
 	{
-		{ kind = "shop_stand", mesh = "ranch_shop_stand", name = "ShopStand", on = 0, off = 1 },
-		{ kind = "item_shop_stand", mesh = "ranch_item_shop", name = "ItemShopStand", on = 1, off = 0 },
-		{ kind = "upgrade_shop_stand", mesh = "ranch_upgrade_cabinet", name = "UpgradeShopStand", on = 1, off = 0 },
+		{ kind = "item_shop_stand", mesh = "ranch_item_shop", name = "ItemShopStand" },
+		{ kind = "upgrade_shop_stand", mesh = "ranch_upgrade_cabinet", name = "UpgradeShopStand" },
 	}
 do
 	add({
 		kind = stand.kind,
 		mesh = stand.mesh,
 		owner = "jolt",
-		count = stand.on,
+		count = 1,
 		collision = "Hull",
 		now = "Hull mesh on + primitive Counter / Back / Awning / Posts on",
 		reason = "solid counter (CONTRACT §27.2), not a box to stand inside; the primitive counter parts stay collidable under the mesh",
 		find = { under = MAP, names = { `^{stand.name}$` } },
-		flag = { name = "WorldShops", off = stand.off },
 	})
 end
 add({

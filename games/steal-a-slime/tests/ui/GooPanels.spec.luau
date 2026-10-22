@@ -91,16 +91,13 @@ local function tooSmall(root: any): { string }
 end
 
 describe("Goo menus: no text under Layout.MIN_TEXT", function()
-	local MENUS = { "Codes", "Dex", "Goals", "Guide", "Leaderboard", "Merge", "Rebirth", "Shop", "Welcome" }
+	local MENUS = { "Codes", "Dex", "Goals", "Guide", "Merge", "Rebirth", "Welcome" }
 	for _, key in MENUS do
 		it(`{key} on a real State`, function()
 			local panel = UiHarness.ui(`Panels/{key}`).new(UiHarness.root(), ctx())
 			local state = realState()
 			if panel.update then
 				panel.update(state)
-			end
-			if panel.setBoard then
-				panel.setBoard({ { rank = 1, name = "Tester", value = 1240 } })
 			end
 			if panel.setOpen then
 				panel.setOpen(true)

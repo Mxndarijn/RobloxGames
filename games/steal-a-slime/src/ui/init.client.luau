@@ -2,10 +2,9 @@
 --[[
 	UI (owner: Jolt) -> StarterPlayerScripts.UI
 
-	Code-built ScreenGui: HUD, plot / merge / shop / rebirth / goals /
-	SlimeDex / leaderboard menus (v28: content-sized cards over a dimmed
-	full-window backdrop) and the Guide card (opened by "Talk" at the
-	TutorialNpc; "Open Shop" at the ShopStand opens the Shop), carry overlay, daily reward popup, tutorial
+	Code-built ScreenGui: HUD, merge / world shop / rebirth / goals / SlimeDex menus (content-sized
+	cards over a dimmed full-window backdrop) and the Guide card (opened by "Talk" at the
+	TutorialNpc; the server opens a world shop at its stand), carry overlay, daily reward popup, tutorial
 	overlay; plus in-world leaderboard SurfaceGuis (WorldLeaderboard). Renders the latest `State`
 	snapshot (CONTRACT §5.1); every button calls
 	`Request:InvokeServer(action, ...)` (§3). The client never decides outcomes.
@@ -77,10 +76,8 @@ local DexPanel = require(Panels.Dex)
 local GoalsPanel = require(Panels.Goals)
 local GuidePanel = require(Panels.Guide)
 local HintOverlay = require(Panels.HintOverlay)
-local LeaderboardPanel = require(Panels.Leaderboard)
 local MergePanel = require(Panels.Merge)
 local RebirthPanel = require(Panels.Rebirth)
-local ShopPanel = require(Panels.Shop)
 local SoundPanel = require(Panels.Sound)
 local TutorialOverlay = require(Panels.TutorialOverlay)
 local WelcomePanel = require(Panels.Welcome)
@@ -184,7 +181,7 @@ end
 -- One in-flight call per action; failures only warn (no toasts any more). `onResult`
 -- (optional) gets the RequestResult of a call that reached the server.
 local busy: { [string]: boolean } = {}
-local worldShop: any = nil -- WorldShopLogic.controller, FEATURES.WorldShops only (made below, once setOpen exists)
+local worldShop: any = nil -- WorldShopLogic.controller (made below, once setOpen exists)
 -- `onFail` (optional) gets the { ok = false, message } of a call the server refused.
 local function call(action: string, onResult: ((any) -> ())?, onFail: ((any) -> ())?, ...: any)
 	assert(Remotes.ACTIONS[action], `unknown action {action}`)
@@ -308,7 +305,6 @@ local stealFx = StealAlertFx.new(gui, {
 })
 local carry = CarryPanel.new(gui, ctx)
 local bossMeter = BossMeterPanel.new(gui, ctx)
-local leaderboard = LeaderboardPanel.new(gui, ctx)
 local dailyPopup = DailyPopup.new(gui, ctx)
 local tutorial = TutorialOverlay.new(gui, ctx)
 local hintOverlay = HintOverlay.new(gui)
@@ -330,12 +326,10 @@ local backdrop = Widgets.backdrop({
 -- gamepad B.
 local panelByKey: { [string]: any } = {
 	Merge = MergePanel.new(gui, ctx),
-	Shop = ShopPanel.new(gui, ctx),
-	WorldShop = if Config.FEATURES.WorldShops == true then WorldShopPanel.new(gui, ctx) else nil,
+	WorldShop = WorldShopPanel.new(gui, ctx),
 	Rebirth = RebirthPanel.new(gui, ctx),
 	Goals = GoalsPanel.new(gui, ctx),
 	Dex = DexPanel.new(gui, ctx),
-	Leaders = leaderboard,
 	Codes = CodesPanel.new(gui, ctx),
 }
 type PanelEntry = { key: string, nav: Nav.Entry?, panel: any }
@@ -346,14 +340,11 @@ for _, navEntry in Nav.ENTRIES do
 		table.insert(panels, { key = navEntry.key, nav = navEntry, panel = panel })
 	end
 end
--- Every menu: the nav ones plus the cards without a nav button: Merge, Shop (opened by the ShopStand prompt; the in-world shops reuse it) and Top (H1 HUD: Merijn
--- removed their buttons), the Guide and Welcome cards.
+-- Every menu: the nav ones plus the cards without a nav button: Merge (opened at the vat), WorldShop (opened by the
+-- server at a shop stand), the Guide and Welcome cards.
 local allPanels: { PanelEntry } = table.clone(panels)
-for _, key in { "Merge", "Shop", "Leaders" } do
+for _, key in { "Merge", "WorldShop" } do
 	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
-end
-if panelByKey.WorldShop then
-	table.insert(allPanels, { key = "WorldShop", nav = nil, panel = panelByKey.WorldShop })
 end
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
 table.insert(allPanels, { key = "Welcome", nav = nil, panel = WelcomePanel.new(gui, ctx) })
@@ -750,10 +741,9 @@ backdrop.Activated:Connect(function()
 	setOpen(nil)
 end)
 
--- "Open Shop" at the ShopStand and "Talk" at the Guide NPC (CONTRACT.md
--- §5.3): the server only places the prompts; this client opens the menu.
-local PROMPT_MENUS =
-	MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, Config.FEATURES.WorldShops == true)
+-- "Talk" at the Guide NPC (CONTRACT.md §5.3): the server only places the prompt; this client opens the menu.
+-- The shop stands' prompts open nothing here: the server opens the shop (ShopEvent Open).
+local PROMPT_MENUS = MenuClose.promptMenus(Constants.GUIDE_PROMPT_NAME)
 -- The 3-slime vat prompt (owner only) opens the merge menu (CONTRACT.md §21.1).
 if Config.FEATURES.MergeVat3 then
 	PROMPT_MENUS[Constants.MERGE_PROMPT_NAME] = "Merge"
@@ -819,10 +809,10 @@ SlimeKeyCard.start({
 	tweens = game:GetService("TweenService"),
 })
 
--- World shops (FEATURES.WorldShops, CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
+-- World shops (CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
 -- this client with ShopEvent and the OpenShop attribute; the card closes on ShopEvent Close / attribute nil, and
 -- a close from this side (X, backdrop, Esc / B, another menu) sends Request("CloseShop").
-if panelByKey.WorldShop then
+do
 	worldShop = WorldShopLogic.controller({
 		open = function(shopId: string)
 			panelByKey.WorldShop.setShop(shopId)
@@ -949,7 +939,7 @@ setOpen(nil)
 if game:GetService("RunService"):IsStudio() then
 	gui:GetAttributeChangedSignal("PcwOpen"):Connect(function()
 		local key = gui:GetAttribute("PcwOpen")
-		if worldShop and key == "WorldShop" then
+		if key == "WorldShop" then
 			-- the world shop card as the stand's prompt opens it; the shop comes from the PcwWorldShop attribute
 			local shopId = gui:GetAttribute("PcwWorldShop")
 			worldShop.onEvent({ kind = "Open", shopId = if type(shopId) == "string" then shopId else "ItemShop" })
@@ -1168,7 +1158,6 @@ if isStudio then
 end
 
 leaderboardEvent.OnClientEvent:Connect(function(board: Types.Leaderboard)
-	leaderboard.setBoard(board)
 	worldBoards.setBoard(board)
 end)
 
@@ -1182,9 +1171,7 @@ task.spawn(function()
 			inventory.tick()
 			bossMeter.tick(now)
 			panelByKey.Codes.tick(now)
-			if panelByKey.WorldShop then
-				panelByKey.WorldShop.tick()
-			end
+			panelByKey.WorldShop.tick()
 			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
 			pvpFunFx.tick(now)
 			if slimeMove then

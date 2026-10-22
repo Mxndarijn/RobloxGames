@@ -54,7 +54,6 @@ return table.freeze({
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
 	BOSS_MOVE_ATTRIBUTE = "BossMove", -- boss model: its current move (BossChoreo.encode); clients draw it every frame
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
-	SHOP_STAND = "ShopStand", -- alias of the Item Shop while FEATURES.WorldShops is off (the single HUD-shop stand)
 	SHOP_STAND_ITEM = "ItemShopStand", -- CONTRACT.md §27.2
 	SHOP_STAND_UPGRADE = "UpgradeShopStand",
 	LEADERBOARD_BOARD = "LeaderboardBoard",
@@ -123,12 +122,12 @@ return table.freeze({
 	BUY_PAD_PROMPT_NAME = "BuyPadPrompt", -- on the lowest locked Pad_<j>
 	MERGE_PROMPT_NAME = "MergePrompt", -- on MergeVat
 	DROP_PROMPT_NAME = "DropPrompt", -- in every upper jar's DropHatch (CONTRACT.md §5.3): the owner, inside the top jar
-	-- v28 (CONTRACT.md §5.3): "Open Shop" (E) on ShopStand.Counter and "Talk" (E) on the
-	-- TutorialNpc. Client-only effect: the UI opens the Shop / Guide menu on PromptTriggered.
+	-- One ShopPrompt (E) on each shop stand's Counter (CONTRACT.md §27.3; the server opens that shop) and "Talk" (E)
+	-- on the TutorialNpc (CONTRACT.md §5.3; the UI opens the Guide menu on PromptTriggered).
 	SHOP_PROMPT_NAME = "ShopPrompt",
 	SHOP_EVENT = "ShopEvent", -- RemoteEvent, ServerToClient (CONTRACT.md §27.4)
-	OPEN_SHOP_ATTRIBUTE = "OpenShop", -- Player: shopId the server has open for them, nil = closed (FEATURES.WorldShops)
-	SHOP_ID_ATTRIBUTE = "ShopId", -- ItemShopStand / UpgradeShopStand: "ItemShop" | "UpgradeShop" (FEATURES.WorldShops)
+	OPEN_SHOP_ATTRIBUTE = "OpenShop", -- Player: shopId the server has open for them, nil = closed
+	SHOP_ID_ATTRIBUTE = "ShopId", -- ItemShopStand / UpgradeShopStand: "ItemShop" | "UpgradeShop"
 	GUIDE_PROMPT_NAME = "GuidePrompt",
 	-- Slime habitats (FEATURES.Habitats, HABITATS.md): Pad_<j> attributes, only set with the flag on.
 	HABITAT_ATTRIBUTE = "Habitat", -- Pad_<j>: Shared.Habitats id, "base" = empty pad

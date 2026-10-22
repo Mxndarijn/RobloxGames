@@ -28,7 +28,6 @@ describe("MeshAssets.COLLISION", function()
 		end
 	end)
 	it("makes the shop stands solid with a hull (CONTRACT.md §27.2)", function()
-		expect(MeshAssets.collision("ranch_shop_stand")).toBe("Hull")
 		expect(MeshAssets.collision("ranch_item_shop")).toBe("Hull")
 		expect(MeshAssets.collision("ranch_upgrade_cabinet")).toBe("Hull")
 	end)
@@ -86,13 +85,6 @@ describe("MeshSwap collision in the live server", function()
 		end
 		local solid = {}
 		local want = 0
-		-- the shop stand skins FEATURES.WorldShops does not place: the single ShopStand's with the flag on, else the Item
-		-- and Upgrade stands'
-		local WorldLayout = require("../src/visuals/shared/WorldLayout")
-		local standUnplaced = {}
-		for name, stand in WorldLayout.SHOP_STANDS do
-			standUnplaced[stand.mesh] = (name == "ShopStand") == (Config.FEATURES.WorldShops == true)
-		end
 		-- the FEATURES.FountainSplit pieces are only created with the flag on (tests/FountainSplit.spec)
 		local splitPieces = {}
 		for _, piece in MeshAssets.FOUNTAIN_SPLIT do
@@ -109,9 +101,6 @@ describe("MeshSwap collision in the live server", function()
 			if name == "fountain_split_slide" and not Config.FEATURES.SlidePCD then
 				continue -- the slide piece is PCD only with FEATURES.SlidePCD (MeshSwap.splitFidelity)
 			end
-			if standUnplaced[name] then
-				continue -- a shop stand skin FEATURES.WorldShops does not place
-			end
 			solid[MeshAssets.meshId(name)] = (roblox.Enum.CollisionFidelity :: any)[fidelity]
 			want += 1
 		end
@@ -125,8 +114,7 @@ describe("MeshSwap collision in the live server", function()
 		expect(count).toBe(want)
 	end)
 	it("the shop stands are solid Hull MeshParts (no extra collider boxes)", function()
-		local names = if Config.FEATURES.WorldShops then { "ItemShopStand", "UpgradeShopStand" } else { "ShopStand" }
-		for _, name in names do
+		for _, name in { "ItemShopStand", "UpgradeShopStand" } do
 			local mesh = rt.workspace.Map[name]:FindFirstChild("Mesh")
 			expect(mesh ~= nil).toBe(true)
 			expect(mesh.CanCollide).toBe(true)

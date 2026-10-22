@@ -1,45 +1,48 @@
 # UI styleguide (Steal a Slime)
 
-How every screen in the game looks and reads. The values live in code: colours and fonts in `Widgets.Theme`, radii and outlines in `Widgets.KIT`, sizes in `Layout`. This guide says **which one to use when**. It names tokens and never repeats their values; change a value in code, not here.
+How every screen in the game looks and reads. The look is **Goo**: the UI is made of slime. Glass panels, mint jelly buttons, Ink outlines, gold money. The values live in code: colours in `Shared/GooPalette` (screen UI reads them through `Widgets.Theme`), fonts in `Widgets.Theme`, radii and outlines in `Widgets.KIT`, sizes in `Layout`. This guide says **which one to use when**. It names tokens and never repeats their values; change a value in code, not here.
 
-Decided by Merijn on 2026-10-21. Screenshots of every screen as it is today: [UI gallery](https://claude.ai/artifact/S59FiwP847LSKKPTdJFCzS) (private to Merijn). What breaks these rules now is listed at the end.
+Decided by Merijn on 2026-10-21; the Goo look was chosen the same week. Mockups of every Goo screen and the kit recipes: [Goo canvas](https://claude.ai/artifact/VYUA8sfDux2gNnBHwf26M1). Screenshots from before the redesign: [UI gallery](https://claude.ai/artifact/S59FiwP847LSKKPTdJFCzS). Both are private to Merijn. What still breaks these rules is listed at the end.
 
 ## Principles
 
 1. **One look for everything on the screen.** Menus, HUD, notices, popups and the loading screen use the same tokens and the same parts from `Widgets`. A new screen starts from `Widgets.panel`, `button`, `chip`, `status` and `rowFrame`, not from a raw `Frame`.
 2. **Colour means something.** Each colour below has one job. If a colour is not doing that job, use the neutral ones (Bg, Row, Ink, Text, Muted).
-3. **The world has its own look.** Signs, pad planks and slime tags in the 3D world are wood, goo and outlined text. They don't copy the menu cards. Screen UI and world UI never mix: no menu card floats in the world, no wood plank sits in the HUD.
+3. **Only what you can press is jelly.** Buttons, menu tiles and the tabs you can tap are shaded, shiny jelly. Something you can't press (a state, a fact, a disabled button) is a flat sunken Ink well with the same outline.
+4. **The world wears the same goo, not the same cards.** Signs, pad planks and slime tags use the Goo colours and outlined text, on their own shapes (`GooBoard`, jelly signs, goo-dipped planks). No menu card floats in the world; no wood plank sits in the HUD.
 
 ## Colour roles
 
 | Token | Use it for | Never for |
 |---|---|---|
 | `Ink` | Every outline, dark text on bright fills, sunken wells (`status`, `chip`), disabled buttons | Body text on Bg |
-| `Bg` | Panel and card bodies | Buttons |
+| `Bg` | The glass panel and card bodies | Buttons |
 | `Row` | List rows and cards inside a panel | Panel bodies |
 | `BgLight` | The highlighted or selected row | Plain rows |
-| `Band` | A panel's header band and its corner icon tile | Rows, buttons |
+| `Band` | A panel's mint header band, its goo lip and drips, its corner icon tile | Rows, buttons |
+| `Glass` | A see-through row on a card (at `GooPalette.GLASS_TRANSPARENCY`): HUD status bubbles, key card rows | Panel bodies |
 | `Text` | Titles and body text | |
 | `Muted` | Subtitles, hints, disabled labels, "you have $25" lines | Anything the player must read to act |
-| `Gold` | Money: the coin, cash amounts, **collecting a reward** (Claim, Collect), info borders | Ordinary actions like Buy or Merge |
+| `Gold` / `GoldDeep` | Money: the coin (GoldDeep is its edge), cash amounts, **collecting a reward** (Claim, Collect), the ring on info and guidance notices | Ordinary actions like Buy or Merge |
 | `Accent` / `Good` | **The main action** on a card (Redeem, Buy, Merge), income, success ticks, progress fills | Rewards, warnings |
-| `Bad` | **Losing something** (Drop, Sell), danger borders, alarms, "Missing" chips, the close X | Anything that only needs attention |
+| `Bad` | **Losing something** (Drop, Sell), the ring on danger notices, alarms, "Missing" chips, the close X | Anything that only needs attention |
 | `Warn` | Timers running out, locked-until hints | Buttons |
-| `Info` | Secondary buttons (Pick for me, Auto-merge), counts and badges | Main actions |
+| `Info` | Secondary buttons (Pick for me, Auto-merge), counts and badges, the boss meter's goo | Main actions |
+| `Shine` | The glint on jelly and the dot on goo drops | Text, fills |
 
-`Good` and `Accent` are the same green on purpose: income and the main action share it. Never write a raw `Color3` in a panel; add a token to `Theme` if none fits.
+`Good`, `Accent` and `Band` are the same mint on purpose: income, the main action and the header share it. Never write a raw `Color3` in a panel or a world script; add the colour to `GooPalette` (and a `Theme` token for screen UI) if none fits.
 
 ## Type
 
 - **Fredoka One** (`Theme.Font`) for titles, buttons, numbers, chips and HUD labels.
-- **Gotham Medium** (`Theme.FontBody`) for sentences: descriptions, tutorial and tooltip body text.
+- **Nunito Bold** (`Theme.FontBody`, a `FontFace`) for sentences: descriptions, tutorial and tooltip body text. `Widgets.label` uses it unless a `Font` or `FontFace` is given.
 - Sizes come from `Layout` or a frozen table at the top of the panel (`PANEL_CHROME.titleSize` for panel titles). Keep to these steps, largest first: panel title, card title, button, row title and chip, body, hint.
 - **Nothing smaller than 14 design px on desktop**, and body text is never the smallest size on the card. A hint that has to be smaller than that is cut, not shrunk. Add the minimum as a `Layout` token when the first panel uses it.
 - Titles and buttons have the Ink text stroke on bright fills (`Widgets.inkOn` does this).
 
 ## Writing
 
-- **Sentence case** for every title, button, row and label: "Daily reward", "Welcome back", "Item shop", "Top earners", "Pick for me". Capitals only for names: SlimeDex, Goozilla, species names.
+- **Sentence case** for every title, button, row and label: "Daily reward", "Welcome back", "Item shop", "Upgrade shop", "Pick for me". Capitals only for names: SlimeDex, Goozilla, species names.
 - **ALL CAPS only for the two alarms**: "STOLEN!" and "BOSS INCOMING". Nothing else shouts.
 - **No "!" on buttons.** A button names what it does: "Claim", "Collect", "Redeem", "Sell $45". The result uses the same word ("Claimed").
 - A disabled button says why and what's missing: "Need $39.9K more", "Rebirth 3 to unlock".
@@ -48,9 +51,20 @@ Decided by Merijn on 2026-10-21. Screenshots of every screen as it is today: [UI
 
 ## Shapes and depth
 
-- Radii from `Widgets.KIT`: the panel's own radius for panels, `rowRadius` for rows and cards, `radius` for buttons, wells and icon tiles, full pills for chips and badges.
+- **Pills and circles** for buttons, wells, chips, badges and status bubbles (`Widgets.pill`). Panels use `KIT.panelRadius`, rows and cards `KIT.rowRadius`, icon tiles `KIT.radius`, the hotbar plate and its slots `KIT.plateRadius` / `KIT.slotRadius`.
 - Outlines are always `Ink`: `KIT.stroke` on panels, buttons and tiles, `KIT.rowStroke` on rows.
-- Depth comes from `Widgets.shade` (top light, bottom dark) on buttons, tiles and HUD chips. No drop shadows, no glows on screen UI.
+- **Jelly** is `Widgets.shade` (top light, bottom dark) plus one `Widgets.shine` glint top-left. Only pressable things get it.
+- **Glass** is `Bg` or `Glass` with transparency, never blur. The HUD's status bubbles are glass (`Layout.STATUS_BUBBLE`).
+- **Goo edge**: a panel's band drips onto the body (`Widgets.gooEdge`, sized by `Layout.GOO_EDGE`). Every menu in one ScreenGui shares one edge, moved into whichever panel is open, to stay inside the UI budget.
+- **Notice rings**: `Widgets.ring` puts the colour ring (Gold or Bad) inside an Ink ring. Notices use `Layout.NOTICE_RADIUS`.
+- No drop shadows and no glows on screen UI.
+
+### Roblox limits the look is built around
+
+- One `UICorner` per frame, the same on every corner. A shape with different corners is two frames.
+- One `UIStroke` per frame. A second ring needs a wrapper frame (that is what `Widgets.ring` does).
+- A `UIGradient` multiplies the frame's colour, so shading stops are grey brightness factors.
+- Every instance counts against `ui-perf-budget.json`. Share parts (the goo edge) and keep decoration to one frame (the glint) instead of stacking layers.
 
 ## Buttons
 
@@ -90,18 +104,23 @@ Notices appear on their own; menus are opened by the player.
 ## HUD
 
 - Fixed clusters: menu tiles left, money bottom-left, status icons bottom-right, hotbar bottom-centre, sound button top-right. Nothing new goes on the HUD without a slot in `Layout`.
-- Status icons are bare icons with a timer pill under them, all the same way. No tile behind one and not the others.
+- Status icons sit in glass bubbles with a mint timer pill under them, all the same way. A bubble's ring turns `Gold` while its tooltip shows.
+- Menu tiles are mint jelly (`NavTile`); money is a glass pill with the gold coin.
 - Badges on menu tiles: `Bad` "!" for something to do, `Info` for a count or percentage.
 
 ## World UI
 
-- Built from wood, goo in the rarity colour, and outlined `Theme.Font` text (white with an Ink edge), as `SlimeInfoCard`, `SlimePadSign` and `PlotSigns` do.
-- The key card over your own pad slime is the one screen-style card in the world, because it stands in for Roblox's prompt bubbles.
+- World scripts read colours from `Shared/GooPalette` directly (the server and the visuals have no `Widgets`).
+- Text is outlined Fredoka: white with an Ink edge, Ink on bright goo.
+- Boards (plot signs, podiums, the ritual sign) are a `GooBoard`: a glass card with an Ink edge and a mint band that drips. Shop stands carry a jelly sign (`Props.standSign`): mint for the Item shop, gold for the Upgrade shop.
+- Slime tags (`SlimeInfoCard`): the rarity on a pill of its colour, the name, the income in mint, and a gold "Buy" chip while it is for sale. Pad planks (`SlimePadSign`) are wood dipped in goo of the rarity colour.
+- The key card over your own pad slime is the one screen-style card in the world, because it stands in for Roblox's prompt bubbles: glass rows with jelly key chips.
+- The "Your plot" tag is your avatar in a mint jelly badge; the edge arrow home uses the same badge with a house.
 - Rarity colours come from `Config.RARITIES[tier].color`, never a local table.
 
 ## Loading screen
 
-The first thing players see. It runs before `Widgets` arrives, so `first/LoadingLook.luau` keeps a copy of the palette and `tests/LoadingLook.spec` checks it matches `Theme`. Its colours are already right; its treatment should match the menus too: a `Band` to `Bg` shade on the background, the title with the Ink text stroke, and the Skip button drawn like a secondary button (`Info` fill, Ink outline, shade).
+The first thing players see, built by `first/LoadingScreen.luau`: a `Bg` to `BgDeep` backdrop, the title in mint with the Ink stroke, a goo bar in an Ink tube, and Skip as a secondary jelly button. It runs before `Shared` replicates, so `first/LoadingLook.luau` keeps its own copy of the palette and `tests/ui/LoadingLook.spec` checks it still matches `GooPalette`.
 
 ## Checklist for a UI change
 
@@ -116,20 +135,6 @@ The first thing players see. It runs before `Widgets` arrives, so `first/Loading
 
 ## Where the game breaks these rules today
 
-From the screenshots of `main` at d2f4514d (desktop). Each line names the rule it breaks.
+The Goo redesign (the kit, the HUD and notices, copy and per-screen layouts, world labels and the loading screen, and the clean-up) fixed every line of the first audit: sentence case and no "!" everywhere, gold and pink notice rings, matching status bubbles, an empty Bag message, nothing under `Layout.MIN_TEXT`, the Goo loading screen, and the unreachable Top earners and old Shop cards are gone.
 
-| Screen | What is off | Rule |
-|---|---|---|
-| Codes, Guide, Merge, Upgrade shop, Top earners, Sound | Each floats at its own height; Sound is pinned to the top edge | Menus: shared top line |
-| Daily reward, Welcome back | "Claim!", "Collect!" | Writing: no "!" on buttons |
-| Daily reward, Item shop, Upgrade shop, Top earners, Merge vat, Welcome back! | Title Case titles, "!" in a title | Writing: sentence case |
-| Tutorial card | Green border | Notices: gold for guidance |
-| Boss meter | No border | Notices: red for danger |
-| Friend status icon | Green tile behind it, the other status icons have none | HUD: status icons all bare |
-| Bag | Empty panel with no message | Menus: empty state |
-| Top earners card, old Shop card | Nothing opens them in this build | Delete them or give them an entry point |
-| Goals, shops (row subtitles) | Text below the minimum size | Type: minimum size |
-| Loading screen | Flat background, title without stroke, dark Skip well instead of a button | Loading screen: same treatment |
-| Tutorial "Hide" button | Square tile style unlike other secondary buttons | Buttons: secondary is `Info` |
-
-Not checked yet: phone and tablet layouts, the STOLEN! banner, the hint ring and the move-slime bar.
+Not checked again since: the shared top line for every short card, the tutorial "Hide" button against the secondary button style, and phone and tablet layouts beyond the `LayoutAssert` viewports.

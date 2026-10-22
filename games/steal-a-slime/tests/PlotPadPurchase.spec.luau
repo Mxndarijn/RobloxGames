@@ -1,5 +1,5 @@
 --!strict
--- Owner-only plot pad purchases (LockPrompt / BuyPadPrompt / MergePrompt) with WorldShopsStrict ON: they are measured against
+-- Owner-only plot pad purchases (LockPrompt / BuyPadPrompt / MergePrompt) under the shop gate: they are measured against
 -- THEIR OWN prompt part (PlotPadGuard), never against the Item Shop stand, which is far from every plot.
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")
@@ -32,7 +32,6 @@ local function setup(slimes: { any }?)
 		positionOf = function()
 			return nil
 		end,
-		features = { WorldShops = true, WorldShopsStrict = true },
 		shopAccess = function()
 			return env.shop
 		end,
@@ -67,7 +66,7 @@ describe("PlotPadGuard", function()
 	end)
 end)
 
-describe("plot pad prompts under WorldShopsStrict", function()
+describe("plot pad prompts under the shop gate", function()
 	it("Request Lock never needs the shop: without a measured pad it is not gated", function()
 		local env = setup()
 		env.ctx.plotPadAccess = nil

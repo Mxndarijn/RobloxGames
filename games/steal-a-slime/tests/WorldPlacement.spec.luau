@@ -178,7 +178,7 @@ describe("fountain at the map centre (TODO #6)", function()
 end)
 
 describe("shops face the map centre (TODO #10)", function()
-	it("turns the plaza ShopStand's Props front (-Z) at the fountain", function()
+	it("turns the plaza shop stands' Props front (-Z) at the fountain", function()
 		for _, name in { Constants.SHOP_STAND_ITEM, Constants.SHOP_STAND_UPGRADE } do
 			local spot = WorldLayout.PROP_SPOTS[name]
 			-- Props front is local -Z: kit-front bearing = yaw + 180
@@ -368,8 +368,12 @@ describe("ground contact (TODO #9)", function()
 		local Props = StaticWorld.visual("Props")
 		for name, build in
 			{
-				[Constants.SHOP_STAND_ITEM] = Props.shopStand,
-				[Constants.SHOP_STAND_UPGRADE] = Props.shopStand,
+				[Constants.SHOP_STAND_ITEM] = function()
+					return Props.shopStand("ItemShop")
+				end,
+				[Constants.SHOP_STAND_UPGRADE] = function()
+					return Props.shopStand("UpgradeShop")
+				end,
 				[Constants.LEADERBOARD_BOARD] = Props.leaderboardBoard,
 				[Constants.TUTORIAL_NPC] = Props.tutorialNpc,
 			}

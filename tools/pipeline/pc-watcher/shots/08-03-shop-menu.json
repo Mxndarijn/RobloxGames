@@ -2,6 +2,7 @@
   "id": "03-shop-menu",
   "todo": "3",
   "kind": "ui",
-  "open": "shop",
+  "open": "worldshop",
+  "world_shop": "ItemShop",
   "note": "TODO 3: one shop menu"
 }
