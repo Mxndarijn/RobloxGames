@@ -1057,54 +1057,54 @@
   "goo_jar_trim_1_mid": {
     "assetId": "125609985796662",
     "assetType": "Model",
-    "meshId": "rbxassetid://130250921381000",
+    "meshId": "rbxassetid://82635741539209",
     "meshSize": [
       60.321,
       16.05,
       58.307
     ],
-    "sha256": "dcf4fda83a900220",
-    "uploadedAt": "2026-10-22T14:39:03Z",
-    "versions": 5
+    "sha256": "e61d60dcc430300a",
+    "uploadedAt": "2026-10-22T16:14:04Z",
+    "versions": 6
   },
   "goo_jar_trim_1_mid@crystal": {
     "assetId": "115480291139589",
     "assetType": "Model",
-    "meshId": "rbxassetid://122349768664773",
+    "meshId": "rbxassetid://90309558535544",
     "meshSize": [
       60.321,
       16.05,
       58.307
     ],
-    "sha256": "abde8665c030251b",
-    "uploadedAt": "2026-10-22T14:39:24Z",
-    "versions": 2
+    "sha256": "6b46543200afc25b",
+    "uploadedAt": "2026-10-22T16:14:27Z",
+    "versions": 3
   },
   "goo_jar_trim_1_mid@garden": {
     "assetId": "133479900619299",
     "assetType": "Model",
-    "meshId": "rbxassetid://110124354235370",
+    "meshId": "rbxassetid://119063277155206",
     "meshSize": [
       60.362,
       16.05,
       58.368
     ],
-    "sha256": "73ee4df7f1eeae92",
-    "uploadedAt": "2026-10-22T14:39:11Z",
-    "versions": 2
+    "sha256": "05ba2cfaf072bd5d",
+    "uploadedAt": "2026-10-22T16:14:09Z",
+    "versions": 3
   },
   "goo_jar_trim_1_mid@starlight": {
     "assetId": "96364752853027",
     "assetType": "Model",
-    "meshId": "rbxassetid://90562112689090",
+    "meshId": "rbxassetid://96994287099954",
     "meshSize": [
       60.362,
       16.05,
       58.368
     ],
-    "sha256": "223392dc35aeddb1",
-    "uploadedAt": "2026-10-22T14:39:32Z",
-    "versions": 2
+    "sha256": "82627705e7390516",
+    "uploadedAt": "2026-10-22T16:14:38Z",
+    "versions": 3
   },
   "goo_jar_trim_1_top": {
     "assetId": "81111284959159",
@@ -1161,54 +1161,54 @@
   "goo_jar_trim_2_mid": {
     "assetId": "98169175981967",
     "assetType": "Model",
-    "meshId": "rbxassetid://78257375971094",
+    "meshId": "rbxassetid://108791104087374",
     "meshSize": [
       53.091,
       16.05,
       50.916
     ],
-    "sha256": "71b6744d6d2593ad",
-    "uploadedAt": "2026-10-22T14:39:41Z",
-    "versions": 6
+    "sha256": "0eeff894a6da9d1b",
+    "uploadedAt": "2026-10-22T16:14:48Z",
+    "versions": 7
   },
   "goo_jar_trim_2_mid@crystal": {
     "assetId": "81967734291194",
     "assetType": "Model",
-    "meshId": "rbxassetid://72805624347606",
+    "meshId": "rbxassetid://81086317718081",
     "meshSize": [
       53.091,
       16.05,
       50.916
     ],
-    "sha256": "d0b5e3177e2c58ec",
-    "uploadedAt": "2026-10-22T14:40:04Z",
-    "versions": 2
+    "sha256": "7a017939ce40028a",
+    "uploadedAt": "2026-10-22T16:15:08Z",
+    "versions": 3
   },
   "goo_jar_trim_2_mid@garden": {
     "assetId": "104346736296801",
     "assetType": "Model",
-    "meshId": "rbxassetid://71422906220832",
+    "meshId": "rbxassetid://92139811679316",
     "meshSize": [
       53.132,
       16.05,
       50.977
     ],
-    "sha256": "954c51b9faf259aa",
-    "uploadedAt": "2026-10-22T14:39:48Z",
-    "versions": 2
+    "sha256": "cfece6e29e7e3b9c",
+    "uploadedAt": "2026-10-22T16:14:53Z",
+    "versions": 3
   },
   "goo_jar_trim_2_mid@starlight": {
     "assetId": "129237765174327",
     "assetType": "Model",
-    "meshId": "rbxassetid://124393873563487",
+    "meshId": "rbxassetid://97265728854130",
     "meshSize": [
       53.132,
       16.05,
       50.977
     ],
-    "sha256": "7b24a5bc8fcc58c2",
-    "uploadedAt": "2026-10-22T14:40:11Z",
-    "versions": 2
+    "sha256": "c715c7015df3684e",
+    "uploadedAt": "2026-10-22T16:15:26Z",
+    "versions": 3
   },
   "goo_jar_trim_2_top": {
     "assetId": "121872413785229",
@@ -1265,54 +1265,54 @@
   "goo_jar_trim_3_mid": {
     "assetId": "119020744731896",
     "assetType": "Model",
-    "meshId": "rbxassetid://98535027887211",
+    "meshId": "rbxassetid://117539065467529",
     "meshSize": [
       47.643,
       16.05,
       45.978
     ],
-    "sha256": "5279c3a385f98aeb",
-    "uploadedAt": "2026-10-22T14:40:20Z",
-    "versions": 6
+    "sha256": "8b269eba8a1b1737",
+    "uploadedAt": "2026-10-22T16:15:31Z",
+    "versions": 7
   },
   "goo_jar_trim_3_mid@crystal": {
     "assetId": "107677355249408",
     "assetType": "Model",
-    "meshId": "rbxassetid://79228628234060",
+    "meshId": "rbxassetid://71285991643478",
     "meshSize": [
       47.643,
       16.05,
       45.978
     ],
-    "sha256": "a762283f6bc42581",
-    "uploadedAt": "2026-10-22T14:40:43Z",
-    "versions": 2
+    "sha256": "168507fcbb58212a",
+    "uploadedAt": "2026-10-22T16:15:52Z",
+    "versions": 3
   },
   "goo_jar_trim_3_mid@garden": {
     "assetId": "73334973633975",
     "assetType": "Model",
-    "meshId": "rbxassetid://104273976810486",
+    "meshId": "rbxassetid://122813621830323",
     "meshSize": [
       47.643,
       16.05,
       45.978
     ],
-    "sha256": "82a6309d6ba8819b",
-    "uploadedAt": "2026-10-22T14:40:30Z",
-    "versions": 2
+    "sha256": "f56849a7964ceb9c",
+    "uploadedAt": "2026-10-22T16:15:47Z",
+    "versions": 3
   },
   "goo_jar_trim_3_mid@starlight": {
     "assetId": "85627208986479",
     "assetType": "Model",
-    "meshId": "rbxassetid://82153463206722",
+    "meshId": "rbxassetid://136067590554976",
     "meshSize": [
       47.643,
       16.05,
       45.978
     ],
-    "sha256": "e1a94dbd51cd763b",
-    "uploadedAt": "2026-10-22T14:41:01Z",
-    "versions": 2
+    "sha256": "72e03c70a9e626d7",
+    "uploadedAt": "2026-10-22T16:16:10Z",
+    "versions": 3
   },
   "goo_jar_trim_3_top": {
     "assetId": "115479272829253",
