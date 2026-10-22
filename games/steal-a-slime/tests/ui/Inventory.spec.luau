@@ -32,7 +32,12 @@ end
 
 local PVP = Config.PVP_TOOLS[1]
 
-local function mount(state: any, items: { { name: string, equipped: boolean } }?)
+-- GetLastInputType for an injected UserInputService stand-in: the mouse.
+local function mouseLast(): any
+	return { Name = "MouseMovement" }
+end
+
+local function mount(state: any, items: { { name: string, equipped: boolean } }?, extra: { [string]: any }?)
 	local gui = UiHarness.root()
 	local tools = fakeTools(items or { { name = "Bat", equipped = false } })
 	local sent: { { any } } = {}
@@ -47,6 +52,8 @@ local function mount(state: any, items: { { name: string, equipped: boolean } }?
 			return 100
 		end,
 		keyboard = true,
+		input = extra and extra.input,
+		gui = extra and extra.gui,
 	})
 	inv.layout(Layout.screen(1920, 1080))
 	if state then
@@ -562,7 +569,8 @@ describe("Inventory hotbar order and drag", function()
 		Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseMovement, Enum.UserInputType.Touch
 	local COIL = { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } }
 
-	-- UserInputService stand-in: InputChanged / InputEnded keep their handlers and Fire runs them.
+	-- UserInputService stand-in: InputChanged / InputEnded keep their handlers and Fire runs them; the last input
+	-- is the mouse.
 	local function fakeInput()
 		local function event()
 			local e = { handlers = {} :: { any } }
@@ -584,7 +592,7 @@ describe("Inventory hotbar order and drag", function()
 			end
 			return e
 		end
-		return { InputChanged = event(), InputEnded = event() }
+		return { InputChanged = event(), InputEnded = event(), GetLastInputType = mouseLast }
 	end
 
 	local function mountOrder(hotbar: { string }?, items: any?)
@@ -855,6 +863,7 @@ describe("Inventory hotbar order through request", function()
 		local dones: { (any) -> () } = {}
 		local handlers: { any } = {}
 		local input = {
+			GetLastInputType = mouseLast,
 			InputChanged = {
 				Connect = function(_self: any, h: any)
 					handlers.changed = h
@@ -1052,5 +1061,21 @@ describe("Inventory gamepad", function()
 		expect(gui.SelectedObject).toBe(other)
 		gui.SelectedObject = nil
 		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+	end)
+
+	it("reads the device from the injected input service and focuses through the injected gui service", function()
+		local fakeInput = table.clone(UiHarness.userInput)
+		fakeInput.GetLastInputType = function()
+			return Enum.UserInputType.Gamepad1
+		end
+		local fakeGui: any = { SelectedObject = nil }
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement -- the real service says mouse
+		local inv = mount(nil, nil, { input = fakeInput, gui = fakeGui })
+		inv.setPanelOpen(true)
+		expect(fakeGui.SelectedObject ~= nil).toBe(true)
+		expect(fakeGui.SelectedObject.Name).toBe("HotbarSlot1")
+		expect(UiHarness.guiService.SelectedObject).toBeNil()
+		inv.setPanelOpen(false)
+		expect(fakeGui.SelectedObject).toBeNil()
 	end)
 end)

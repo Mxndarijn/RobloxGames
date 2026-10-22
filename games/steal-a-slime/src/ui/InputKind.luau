@@ -1,7 +1,8 @@
 --!strict
 --[[
 	InputKind: which device the player is using right now, from UserInputService:GetLastInputType()
-	(touch, a gamepad, else keyboard / mouse). Pure apart from the service it is handed.
+	(touch, a gamepad, else keyboard / mouse), and where a pointerless gamepad aims. Pure apart from the service it
+	is handed.
 ]]
 
 export type Kind = "keyboard" | "touch" | "gamepad"
@@ -30,6 +31,13 @@ function InputKind.gamepadActive(uis: any): boolean
 		return true
 	end
 	return last.Name == "None" and uis.GamepadEnabled == true and uis.TouchEnabled ~= true
+end
+
+-- The true screen centre in the screen space Camera:ScreenPointToRay and input positions use: the viewport's centre
+-- moved up / left by the top-bar inset (GuiService:GetGuiInset()'s top-left), so a gamepad aims where the
+-- crosshair would be.
+function InputKind.screenCentre(viewport: Vector2, inset: Vector2): Vector2
+	return viewport / 2 - inset
 end
 
 return table.freeze(InputKind)

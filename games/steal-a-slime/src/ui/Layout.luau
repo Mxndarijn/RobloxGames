@@ -789,7 +789,7 @@ function Layout.tutorialHeight(width: number): number
 	local t = Layout.TUTORIAL
 	local body = 0
 	for _, step in Tutorial.STEPS do
-		for _, text in step.bodies do
+		for _, text in Tutorial.texts(step) do
 			body = math.max(body, Layout.wrappedHeight(text, t.bodyTextSize, width - t.padX * 2))
 		end
 	end

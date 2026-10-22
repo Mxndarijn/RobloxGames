@@ -6,8 +6,11 @@
 	The server still unequips while carrying (CONTRACT.md §8.10) and decides everything else.
 ]]
 
+local GuiService = game:GetService("GuiService")
 local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
+
+local InputKind = require(script.Parent.InputKind)
 
 local InventoryTools = {}
 
@@ -86,11 +89,11 @@ function InventoryTools.bindUse(
 	onPress: (screen: Vector2 | Vector3, alreadyHeld: number?) -> (),
 	onRelease: (screen: Vector2 | Vector3) -> ()
 )
-	-- A gamepad has no pointer: R2 aims from the screen centre (a Tool such as the Bat gets Tool.Activated from R2
+	-- A gamepad has no pointer: R2 aims from the true screen centre (InputKind.screenCentre) (a Tool such as the Bat gets Tool.Activated from R2
 	-- itself; onPress ignores it because only a consumable or a PvP item is used from here).
 	local function centre(): Vector2?
 		local camera = workspace.CurrentCamera
-		return if camera then camera.ViewportSize / 2 else nil
+		return if camera then InputKind.screenCentre(camera.ViewportSize, GuiService:GetGuiInset()) else nil
 	end
 	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
 		if processed then

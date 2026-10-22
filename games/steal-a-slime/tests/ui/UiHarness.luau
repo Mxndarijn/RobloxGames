@@ -540,6 +540,7 @@ services.GuiService = {
 	end,
 }
 UiHarness.guiService = services.GuiService
+UiHarness.userInput = services.UserInputService
 services.TweenService = {
 	Create = function()
 		UiHarness.stats.tweensCreated += 1

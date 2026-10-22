@@ -1296,7 +1296,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	-- A gamepad has no pointer: the first hotbar-plate slot (else the first bag item) takes the focus.
 	local function focusPanel()
 		local p = parts
-		if not (p and InputKind.gamepadActive(game:GetService("UserInputService"))) then
+		if not (p and InputKind.gamepadActive(userInput)) then
 			return
 		end
 		local first = p.plateSlots[1] or gridCells[1]
