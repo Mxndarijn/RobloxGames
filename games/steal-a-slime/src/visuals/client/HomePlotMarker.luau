@@ -252,7 +252,10 @@ local function buildTag(adornee: BasePart): BillboardGui
 		if ok and face.Parent then
 			face.Image = image
 			face.Visible = true
-			icon.House.Visible = false
+			local house = icon:FindFirstChild("House") :: Frame?
+			if house then
+				house.Visible = false
+			end
 		end
 	end)
 
