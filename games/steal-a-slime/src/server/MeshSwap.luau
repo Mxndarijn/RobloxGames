@@ -45,7 +45,7 @@ local VatDecor = require(ReplicatedStorage.Visuals.VatDecor)
 
 local MeshSwap = {}
 
--- Templates fetched at the same time by prefetch().
+-- Templates fetched at the same time (fetchAll: the boot prefetch(), and a theme switch or new jar's slots).
 MeshSwap.PREFETCH_WORKERS = 24
 -- Waits (seconds) between the tries of the pet cloud load: 1 try + #delays retries, then the pets keep their Mount.
 MeshSwap.PET_CLOUD_RETRY_DELAYS = { 2, 5, 15, 30, 60 }
