@@ -35,10 +35,9 @@ local function podium(rank: number): BasePart?
 end
 
 -- The name board over a podium rig (canvas GooWorldSigns): glass with a gold band holding the name in Ink, the
--- total earned in outlined gold under it. Sized in studs (about as wide as the avatar's shoulders), so it shrinks
--- with distance together with the avatar instead of staying one size on screen. `refPx` is the board height the
--- outline widths below were drawn for; the outlines scale with the board from there.
-PodiumRigs.BOARD_STUDS = table.freeze({ w = 3.6, h = 1.82, lift = 2.2, maxDistance = 160, refPx = 76 })
+-- total earned in outlined gold under it. Pixel-sized, so it is the same small size on screen however near or far
+-- you stand, and hidden past `maxDistance`: it is only for players close to the podium.
+PodiumRigs.BOARD_PX = table.freeze({ w = 120, h = 61, lift = 2.2, maxDistance = 50 })
 PodiumRigs.BOARD = table.freeze({
 	band = 0.44,
 	radius = 0.22,
@@ -48,7 +47,7 @@ PodiumRigs.BOARD = table.freeze({
 		table.freeze({ x = 0.08, w = 0.05, len = 0.06 }),
 		table.freeze({ x = 0.9, w = 0.044, len = 0.03 }),
 	}),
-	stroke = 2,
+	stroke = 1.5,
 	glassTransparency = 0.06,
 } :: GooBoard.Spec)
 
@@ -63,36 +62,27 @@ local function label(rig: Model, text: string)
 		end
 		return
 	end
-	local studs = PodiumRigs.BOARD_STUDS
+	local px = PodiumRigs.BOARD_PX
 	if not gui then
 		local made = Instance.new("BillboardGui")
 		made.Name = "NameLabel"
-		made.Size = UDim2.fromScale(studs.w, studs.h) -- scale on a BillboardGui is studs
+		made.Size = UDim2.fromOffset(px.w, px.h)
 		made.SizeOffset = Vector2.new(0, 0.5) -- the board's bottom edge sits over the head
-		made.StudsOffsetWorldSpace = Vector3.new(0, studs.lift, 0)
-		made.MaxDistance = studs.maxDistance
+		made.StudsOffsetWorldSpace = Vector3.new(0, px.lift, 0)
+		made.MaxDistance = px.maxDistance
 		made.LightInfluence = 0
 		local adornee = rig:FindFirstChild("Head") or rig.PrimaryPart
 		if adornee then
 			made.Adornee = adornee
 		end
-		local card = GooBoard.build(made, DEPS, PodiumRigs.BOARD, studs.w / studs.h)
+		local card = GooBoard.build(made, DEPS, PodiumRigs.BOARD, px.w / px.h)
 		GooBoard.paint(card, DEPS, GooPalette.Gold)
 		local name = GooBoard.text(card, DEPS, "Name", GooPalette.Ink)
 		name.Position = UDim2.fromScale(0.06, 0.07)
 		name.Size = UDim2.fromScale(0.88, 0.31)
-		local value = GooBoard.text(card, DEPS, "Value", GooPalette.Gold, 1.5)
+		local value = GooBoard.text(card, DEPS, "Value", GooPalette.Gold, 1.2)
 		value.Position = UDim2.fromScale(0.1, 0.57)
 		value.Size = UDim2.fromScale(0.8, 0.33)
-		-- Pixel outlines would swamp the board once it is small on screen: size them with what they edge.
-		for _, stroke in made:GetDescendants() do
-			if stroke:IsA("UIStroke") then
-				local edged = stroke.Parent :: GuiObject
-				local px = studs.refPx * (if edged == card then 1 else edged.Size.Y.Scale)
-				stroke.StrokeSizingMode = Enum.StrokeSizingMode.ScaledSize
-				stroke.Thickness /= px
-			end
-		end
 		made.Parent = rig
 		gui = made
 	end
