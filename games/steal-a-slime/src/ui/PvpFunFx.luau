@@ -56,6 +56,8 @@ local LOOK = table.freeze({
 	discoHeight = 5,
 	slimeBubble = 1.5, -- a floating slime's bubble is this many times the slime's largest side
 	slimeBubbleMin = 3, -- studs: never smaller than this
+	bubbleTransparency = 0.55, -- the Bubble Wand's glass bubbles (the stream and a floating slime's)
+	bubbleReflectance = 0.25,
 	splatThickness = 0.12,
 	rayDrop = 30, -- studs searched below a point for the ground
 	bomb_color = { 0.35, 0.2, 0.5 },
@@ -688,8 +690,8 @@ function PvpFunFx.start(opts: Options): Handle
 			CFrame = proxy.root.CFrame * CFrame.new(0, middle, 0),
 			Color = rgb(Logic.BUBBLE),
 			Material = Enum.Material.Glass,
-			Transparency = 0.55,
-			Reflectance = 0.25,
+			Transparency = LOOK.bubbleTransparency,
+			Reflectance = LOOK.bubbleReflectance,
 			Anchored = false,
 			Massless = true,
 			Parent = proxy.clone,
@@ -721,7 +723,11 @@ function PvpFunFx.start(opts: Options): Handle
 				bubble = nil
 			elseif bubble then
 				local o = key.offset
-				local info = TweenInfo.new(math.max(key.seconds, 0.01), Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+				local info = TweenInfo.new( -- the same easing as poseTo, so the slime stays centred in its bubble
+					math.max(key.seconds, 0.01),
+					(Enum.EasingStyle :: any)[key.style] or Enum.EasingStyle.Quad,
+					(Enum.EasingDirection :: any)[key.dir] or Enum.EasingDirection.Out
+				)
 				local tween = TweenService:Create(bubbleWeld, info, { C0 = CFrame.new(o[1], o[2] + middle, o[3]) })
 				tween:Play()
 				table.insert(proxy.tweens, tween)
@@ -979,8 +985,8 @@ function PvpFunFx.start(opts: Options): Handle
 					CFrame = CFrame.new(here.X, here.Y, here.Z),
 					Color = rgb(Logic.BUBBLE),
 					Material = Enum.Material.Glass,
-					Transparency = 0.55,
-					Reflectance = 0.25,
+					Transparency = LOOK.bubbleTransparency,
+					Reflectance = LOOK.bubbleReflectance,
 				})
 				live.bubbles[index] = bubble
 				local left = born + cfg.LIFETIME - math.max(now, born)
