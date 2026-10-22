@@ -1244,17 +1244,35 @@ end
 -- Jar f's glass wall collision: JAR_WALL_SEGMENTS collidable segments from floor f up to the deck (or lid) above (the
 -- glass mesh is the look; they show as glass until it lands). Jar 1's segment at DOOR.angle is the door: two jambs
 -- either side of the opening and the lintel over it. Glass never blocks prompts or raycasts.
-local function jarWall(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
+-- Height above floor f of jar f's straight glass while it is the top jar (the kit's wall_top): its dome starts here.
+-- Jar 1's clears its door.
+function WorldLayout.jarTopWallHeight(f: number): number
+	local wall = 0.2 + WorldLayout.JAR_SHAPE.topWall
+	if f == 1 then
+		wall = math.max(wall, WorldLayout.DOOR.height + 0.3)
+	end
+	return wall
+end
+
+-- Jar f's wall colliders, from `from` to `to` studs above floor f (`suffix` on the names): the segments round the
+-- glass, and on jar 1 the door's lintel and jambs where they reach.
+local function wallBand(
+	f: number,
+	from: number,
+	to: number,
+	suffix: string,
+	at: (Vec) -> Vec,
+	yaw: number
+): { WorldNode }
 	local out = {}
 	local n = WorldLayout.JAR_WALL_SEGMENTS
 	local r = WorldLayout.jarWallRadius(f)
 	local width = 2 * (r + WorldLayout.JAR_WALL / 2) * math.tan(math.pi / n) + 0.3
-	local h = WorldLayout.FLOOR_HEIGHT - 1
 	local base = WorldLayout.floorTop(f)
 	local t = WorldLayout.JAR_WALL
 	for k = 1, n do
 		local deg = WorldLayout.DOOR.angle + (k - 1) * 360 / n
-		local nodes
+		local nodes = {}
 		if f == 1 and k == 1 then
 			local dh, dw = WorldLayout.DOOR.height, WorldLayout.DOOR.width
 			local jw = (width - dw) / 2
@@ -1262,27 +1280,43 @@ local function jarWall(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 			local tx, tz = -math.sin(math.rad(deg)), math.cos(math.rad(deg))
 			local turn = { 0, yaw + 90 - deg, 0 }
 			local off = dw / 2 + jw / 2
-			nodes = {
-				radial("DoorLintel", { width, h - dh, t }, r, deg, base + dh + (h - dh) / 2, at, yaw),
-				block(
-					"DoorJambL",
-					{ jw, dh, t },
-					at({ x - tx * off, base + dh / 2, z - tz * off }),
-					JAR_GLASS,
-					"Glass",
-					turn
-				),
-				block(
-					"DoorJambR",
-					{ jw, dh, t },
-					at({ x + tx * off, base + dh / 2, z + tz * off }),
-					JAR_GLASS,
-					"Glass",
-					turn
-				),
-			}
+			local lo = math.max(from, dh)
+			if to > lo then
+				table.insert(
+					nodes,
+					radial(`DoorLintel{suffix}`, { width, to - lo, t }, r, deg, base + lo + (to - lo) / 2, at, yaw)
+				)
+			end
+			local top = math.min(to, dh)
+			if top > from then
+				local h = top - from
+				local y = base + from + h / 2
+				table.insert(
+					nodes,
+					block(
+						`DoorJambL{suffix}`,
+						{ jw, h, t },
+						at({ x - tx * off, y, z - tz * off }),
+						JAR_GLASS,
+						"Glass",
+						turn
+					)
+				)
+				table.insert(
+					nodes,
+					block(
+						`DoorJambR{suffix}`,
+						{ jw, h, t },
+						at({ x + tx * off, y, z + tz * off }),
+						JAR_GLASS,
+						"Glass",
+						turn
+					)
+				)
+			end
 		else
-			nodes = { radial(`Wall_{k}`, { width, h, t }, r, deg, base + h / 2, at, yaw) }
+			nodes =
+				{ radial(`Wall{suffix}_{k}`, { width, to - from, t }, r, deg, base + from + (to - from) / 2, at, yaw) }
 		end
 		for _, node in nodes do
 			node.transparency = WorldLayout.JAR_GLASS_TRANSPARENCY
@@ -1292,6 +1326,17 @@ local function jarWall(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		end
 	end
 	return out
+end
+
+-- Jar f's walls above the top jar's glass height, up to the deck of jar f + 1: they only stand while a jar sits on
+-- jar f, so they are built with that jar (WorldLayout.floor), and a top jar's dome has no invisible fence round it.
+local function jarUpperWalls(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
+	return wallBand(f, WorldLayout.jarTopWallHeight(f) + 0.5, WorldLayout.FLOOR_HEIGHT - 1, "Upper", at, yaw)
+end
+
+local function jarWall(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
+	-- up to the top jar's glass height, a little into its dome colliders (WorldLayout.topColliders)
+	return wallBand(f, 0, WorldLayout.jarTopWallHeight(f) + 0.5, "", at, yaw)
 end
 
 -- Floor f's deck (f >= 2): DECK_SEGMENTS boxes making a ring from the stair hole out over jar f - 1's glass, so it is
@@ -1384,6 +1429,7 @@ local function jarLid(f: number, at: (Vec) -> Vec, yaw: number): WorldNode
 	local lid = disc("Lid", 1, r * 2, at({ 0, WorldLayout.floorTop(f + 1) - 0.5, 0 }), JAR_CORK, "Wood", yaw)
 	lid.attributes = { JarLid = f }
 	lid.transparency = 1 -- the roof's look is the jar trim mesh (cork lid or stopper)
+	lid.canCollide = false -- the top jar's roof is its dome colliders (WorldLayout.topColliders), shaped like the glass
 	return lid
 end
 
@@ -1558,6 +1604,91 @@ function WorldLayout.dropShieldAngles(): { number }
 end
 
 -- Upper jar f (2..#BASE_FLOORS) of plot i, as the nodes the server adds under Plot_<i>: a Floor_<f> Model (deck,
+-- WorldLayout.TOP_DOME_ROWS tilted boxes per wall segment make the top jar's dome: they follow the kit's quarter
+-- ellipse (glass_profile) from the top of the straight glass in to the neck, their outer face on the glass. Above the
+-- neck the cork stopper (or the last jar's lid) is a cylinder and the mascot on it a ball. Like the fountain's profile
+-- colliders, checked against the kit's numbers (tests/JarTower.spec).
+WorldLayout.TOP_DOME_ROWS = 3
+
+-- The dome profile of jar f as the top jar, (radius, height above floor f): row edges from the glass wall top to the
+-- neck (WorldLayout.TOP_DOME_ROWS + 1 points).
+function WorldLayout.topDomeProfile(f: number): { { number } }
+	local sh = WorldLayout.JAR_SHAPE
+	local r = WorldLayout.jarRadius(f)
+	local nk = r * sh.topNeck
+	local wt = WorldLayout.jarTopWallHeight(f)
+	local out = {}
+	for i = 0, WorldLayout.TOP_DOME_ROWS do
+		local t = i / WorldLayout.TOP_DOME_ROWS * math.pi / 2
+		table.insert(out, { nk + (r - nk) * math.cos(t), wt + sh.topDome * math.sin(t) })
+	end
+	return out
+end
+
+-- The roof of plot i's tower while jar f is its top jar: one TopColliders folder (TopFloor = f) of invisible solid
+-- parts, the dome facets, the stopper and the mascot. server/BaseFloors keeps one per plot on its current top jar, so
+-- the map holds a single roof per plot, not one per jar.
+function WorldLayout.topColliders(i: number, f: number): WorldNode
+	local centre, yaw = WorldLayout.plotCentre(i)
+	local at = frame(centre, yaw)
+	local out = {}
+	local function add(node: WorldNode)
+		node.transparency = 1
+		node.canQuery = false
+		node.canTouch = false
+		table.insert(out, node)
+	end
+	local base = WorldLayout.floorTop(f)
+	local n = WorldLayout.JAR_WALL_SEGMENTS
+	local half = math.pi / n
+	local profile = WorldLayout.topDomeProfile(f)
+	for row = 1, #profile - 1 do
+		local a, b = profile[row], profile[row + 1]
+		local dr, dz = b[1] - a[1], b[2] - a[2]
+		local len = math.sqrt(dr * dr + dz * dz)
+		local nr, nz = dz / len, -dr / len -- outward (and up) normal of the glass
+		local rc = (a[1] + b[1]) / 2 - nr * 0.5 -- the box centre: its outer face on the glass
+		local yc = (a[2] + b[2]) / 2 - nz * 0.5
+		local tilt = math.deg(math.atan2(-dr, dz)) -- from upright, leaning in towards the jar's axis
+		local width = 2 * a[1] * math.tan(half) + 0.3
+		for k = 1, n do
+			local deg = WorldLayout.DOOR.angle + (k - 1) * 360 / n
+			-- a flat facet between the inscribed and the round glass, like the wall polygon
+			local node =
+				radial(`Dome_{row}_{k}`, { width, len + 0.4, 1 }, rc * math.cos(half / 2), deg, base + yc, at, yaw)
+			local rot = node.rot :: Vec
+			node.rot = { -tilt, rot[2], rot[3] }
+			add(node)
+		end
+	end
+	-- the stopper (or the last jar's lid) from the neck up to the mascot's seat
+	local sh = WorldLayout.JAR_SHAPE
+	local last = f >= #Config.BASE_FLOORS
+	local nk = WorldLayout.jarRadius(f) * sh.topNeck
+	local neck = base + WorldLayout.jarTopWallHeight(f) + sh.topDome - 0.5
+	local seat = base + jarNeckY(f) + (if last then sh.lid else sh.cork)
+	add(
+		disc(
+			"Cork",
+			seat - neck,
+			2 * (nk + (if last then 0.4 else 0.7)),
+			at({ 0, (neck + seat) / 2, 0 }),
+			JAR_CORK,
+			"Wood",
+			yaw
+		)
+	)
+	-- the mascot on the seat: a ball as tall as the mesh (goo_jar_mascot is 1.567 tall, centre 0.778 up, at size 1)
+	local m = WorldLayout.MASCOT
+	local size = m.base + m.grow * f
+	local d = 1.567 * size
+	local ball = { name = "Mascot", class = "Part", shape = "Ball", size = { d, d, d } } :: WorldNode
+	ball.pos, ball.rot, ball.color, ball.material =
+		at({ 0, seat + 0.778 * size, 0 }), { 0, yaw, 0 }, JAR_CORK, "Plastic"
+	add(ball)
+	return { name = "TopColliders", class = "Folder", attributes = { TopFloor = f }, children = out }
+end
+
 -- glass wall, the stair up from floor f - 1, the lid, the drop-tube hatch) and the jar's Pad_<j>.
 function WorldLayout.floor(i: number, f: number): { WorldNode }
 	assert(f >= 2 and f <= #Config.BASE_FLOORS, `floor {f} is not an upper floor`)
@@ -1569,7 +1700,8 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 	standIns(deck, `goo_jar_deck_{f}`)
 	standIns(wall, `goo_jar_glass_{f}_top`)
 	standIns(stair, "goo_jar_stair")
-	for _, list in { deck, wall, stair, stairTop(f, at, yaw), jarLooks(f, at, yaw) } do
+	-- jar f - 1's walls above its top-jar height stand while this jar does
+	for _, list in { deck, wall, jarUpperWalls(f - 1, at, yaw), stair, stairTop(f, at, yaw), jarLooks(f, at, yaw) } do
 		for _, node in list do
 			table.insert(children, node)
 		end
