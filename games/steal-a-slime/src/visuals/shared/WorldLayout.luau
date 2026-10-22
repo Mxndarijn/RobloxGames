@@ -204,6 +204,12 @@ WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22
 -- deck round the hole above free to walk. Open for `railStart` degrees at the bottom and `railEnd` degrees before the
 -- top, so you step on and off the side.
 WorldLayout.RAMP = table.freeze({ segments = 24, walk = 4.2, railStart = 30, railEnd = 45, railHeight = 2.5 })
+-- The top of the stair, on the top jar only (where the stair ends; a jar added above hides it, server/BaseFloors):
+-- the ramp goes on for `landing` more degrees, flat at floor height and out to the edge of the hole (no gap to the
+-- floor), so you arrive on a small platform instead of running straight off the end. No fence round the hole. The
+-- ramp below passes under it: at 120 degrees it still has about 9.7 studs of headroom there (tests/JarTower.spec keeps
+-- at least 6). Built in 15-degree pieces, so keep `landing` a multiple of 15.
+WorldLayout.STAIR_TOP = table.freeze({ landing = 120 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; the top jar's hatch sits at this angle, the tube lands in the goo moat.
 -- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
@@ -1431,6 +1437,33 @@ local function variant(node: WorldNode, floor: number, show: string): WorldNode
 	return node
 end
 
+-- The top of the stair that arrives on floor f (WorldLayout.STAIR_TOP): the flat landing's colliders, shown and
+-- solid only while jar f is the top jar (JarCollide: server/BaseFloors turns them off once a jar stands on
+-- it, because the next stair goes on from here). Their look is the top jar's trim mesh.
+local function stairTop(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
+	local st, top = WorldLayout.STAIR, WorldLayout.STAIR_TOP
+	local deck = WorldLayout.floorTop(f)
+	local start = WorldLayout.treadAngle(f - 1, 1) - st.angle
+	local out = {}
+	local function add(node: WorldNode)
+		node.transparency = 1
+		node.canTouch = false
+		local a = node.attributes or {}
+		a.JarCollide = true
+		node.attributes = a
+		table.insert(out, variant(node, f, "top"))
+	end
+	-- flat boxes from the post out to the hole's edge, on round from where the ramp arrives
+	local step = 15
+	local width = st.hole - st.post
+	for k = 1, top.landing // step do
+		local deg = start + (k - 0.5) * step
+		local chord = 2 * st.hole * math.sin(math.rad(step) / 2) + 0.3
+		add(radial(`StairLanding_{k}`, { chord, 1, width }, (st.post + st.hole) / 2, deg, deck - 0.5, at, yaw))
+	end
+	return out
+end
+
 -- An opaque jar look that casts no shadow (the decks, trim and stair): the floor under them stays light.
 local function noShadow(node: WorldNode): WorldNode
 	local a = node.attributes or {}
@@ -1536,7 +1569,7 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 	standIns(deck, `goo_jar_deck_{f}`)
 	standIns(wall, `goo_jar_glass_{f}_top`)
 	standIns(stair, "goo_jar_stair")
-	for _, list in { deck, wall, stair, jarLooks(f, at, yaw) } do
+	for _, list in { deck, wall, stair, stairTop(f, at, yaw), jarLooks(f, at, yaw) } do
 		for _, node in list do
 			table.insert(children, node)
 		end

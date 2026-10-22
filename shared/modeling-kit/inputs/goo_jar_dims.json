@@ -325,6 +325,9 @@
     "outer": 5.5,
     "post": 1.5
   },
+  "stairTop": {
+    "landing": 120
+  },
   "vatSpot": {
     "angle": -62,
     "radius": 24

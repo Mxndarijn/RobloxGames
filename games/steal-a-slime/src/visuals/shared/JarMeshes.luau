@@ -31,10 +31,10 @@ local JarMeshes = {
 	goo_jar_trim_1_mid = { size = { 60.321, 16.050, 58.307 }, centre = { 1.004, 8.225, 0.000 } },
 	goo_jar_trim_1_top = { size = { 60.321, 22.688, 58.307 }, centre = { 1.004, 11.544, 0.000 } },
 	goo_jar_trim_2_mid = { size = { 53.091, 16.050, 50.916 }, centre = { 1.084, 8.225, 0.000 } },
-	goo_jar_trim_2_top = { size = { 53.091, 19.447, 50.916 }, centre = { 1.084, 9.723, 0.000 } },
+	goo_jar_trim_2_top = { size = { 53.091, 20.047, 50.916 }, centre = { 1.084, 9.423, 0.000 } },
 	goo_jar_trim_3_mid = { size = { 47.643, 16.050, 45.978 }, centre = { 0.803, 8.225, -0.077 } },
-	goo_jar_trim_3_top = { size = { 47.314, 19.612, 45.373 }, centre = { 0.967, 9.806, 0.000 } },
-	goo_jar_trim_4_top = { size = { 41.082, 18.188, 40.753 }, centre = { 0.162, 9.094, 0.000 } },
+	goo_jar_trim_3_top = { size = { 47.314, 20.212, 45.373 }, centre = { 0.967, 9.506, 0.000 } },
+	goo_jar_trim_4_top = { size = { 41.082, 18.788, 40.753 }, centre = { 0.162, 8.794, 0.000 } },
 	goo_lock_button = { size = { 5.000, 3.966, 5.000 }, centre = { 0.000, 1.983, 0.000 } },
 }
 

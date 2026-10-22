@@ -206,6 +206,20 @@ def jar_trim(f, top, crown=False):
         out.append(painted(cylinder("Newel", post, 2.4, (0, 0, 0), GOO, segs=16), shade(GOO, 0.85), mix(GOO, GOO_HI, 0.4)))
         out.append(cylinder("NewelCollar", post + 0.15, 0.3, (0, 0, 2.1), METAL, segs=16))
         out.append(blob("NewelCap", post + 0.2, (0, 0, 2.6), GOO_HI, subdiv=2, squash=(1, 1, 0.8), jitter=0))
+        # the ramp goes on flat for a bit at floor height (WorldLayout.STAIR_TOP), dressed like it and out to the
+        # hole's edge, just under the deck's goo lip (no gap to the floor), so the stair ends on a small platform
+        st, stp = D["stair"], D["stairTop"]
+        start = D["floors"][0]["treads"][0] - st["angle"]
+        outer = st["hole"] + 0.15
+        a0, a1 = start, start + stp["landing"]
+        out.append(painted(lathe("Landing", [(outer, -0.6), (outer, 0.0), (post, 0.0)], CORK, a0=a0, a1=a1, segs=48, double=False),
+                           shade(CORK, 0.82), CORK))
+        out.append(painted(lathe("LandingUnder", [(post, -0.6), (outer, -0.6)], CORK, a0=a0, a1=a1, segs=48, double=False),
+                           shade(CORK, 0.7), CORK))
+        mid, ea = (post + outer) / 2, math.radians(a1)
+        out.append(painted(box("LandingEnd", (outer - post, 0.08, 0.6), (mid * math.cos(ea), mid * math.sin(ea), -0.3), CORK, rot=(0, 0, a1)),
+                           shade(CORK, 0.75), CORK))
+        out.append(painted(loop("LandingGoo", post + 0.2, 0.2, (0, 0, 0.08), "z", GOO, segs=24, arc=(a0, a1)), shade(GOO, 0.9), GOO_HI))
     if top and not crown:  # the top jar while growing: a tall cork stopper, wider at the top
         out.append(painted(cylinder("Cork", nk + 0.1, CORK_H, (0, 0, lip_top), CORK, segs=SEGS, r_top=nk + 0.9), shade(CORK, 0.8), CORK))
         out.append(cylinder("CorkRing", nk + 1.0, 0.5, (0, 0, lip_top + CORK_H - 0.8), shade(CORK, 0.88), segs=SEGS))
