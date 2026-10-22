@@ -29,6 +29,13 @@ local StealAlert = if Shared then require(Shared.StealAlert) else require("../sh
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
 local WelcomeBack = if Shared then require(Shared.WelcomeBack) else require("../shared/WelcomeBack")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local MovementGuard = if Lib
+	then require(Lib.anticheat.MovementGuard)
+	else require("../../../../shared/luau/src/anticheat/MovementGuard")
+local Suspicion = if Lib
+	then require(Lib.anticheat.Suspicion)
+	else require("../../../../shared/luau/src/anticheat/Suspicion")
 
 type Slime = Genome.Slime
 
@@ -87,6 +94,25 @@ export type Wild = {
 	choreo: { seed: number }?, -- FEATURES.SlimeChoreo: seed of its lane beats (ParadeChoreo); nil once it leaves the lane
 }
 
+-- SlimeGuard (CONTRACT.md §41): one player's movement check, suspicion points and where they are.
+export type GuardEntry = {
+	track: MovementGuard.Track,
+	suspicion: Suspicion.State,
+	lastMax: number, -- last tick's allowed flat speed
+	carry: { slimeId: string, x: number, z: number, maxSpeed: number }?, -- where the current stolen carry began
+	plot: { index: number, since: number }?, -- another player's jar the character is in, and since when
+	logMinute: number,
+	logCount: number,
+}
+-- A completed steal (SlimeGuard.recordSteal), kept so a kick can undo it.
+export type StealRecord = {
+	thiefId: number,
+	victimId: number,
+	slimeId: string,
+	name: string,
+	at: number,
+	undone: boolean,
+}
 -- Drops since the last Epic+ / Legendary+ (Spawner pity, CONTRACT.md §8.7).
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
@@ -100,7 +126,7 @@ export type Event = {
 	slimeId: string?,
 	ownerUserId: number?,
 	carrierUserId: number?,
-	reason: string?, -- Escaped: "slap" | "drop" | "left" | "unsaved"
+	reason: string?, -- Escaped: "slap" | "drop" | "left" | "unsaved" | "guard" (SlimeGuard)
 	active: boolean?,
 	effect: string?, -- Effect: Effects.KINDS name ("Collect" | "Steal" | "Merge" | "Rebirth")
 	plotIndex: number?, -- Effect: plot whose MergeVat is the target
@@ -190,6 +216,9 @@ export type World = {
 	pity: Pity,
 	fountainTier: number, -- FEATURES.FountainTiers: best rank tier seen on this server (FountainTiers), 1 = Meadow, only ever rises
 	outbox: { Event },
+	guard: { [number]: GuardEntry }, -- SlimeGuard per player, runtime only
+	stealLedger: { StealRecord }, -- SlimeGuard: completed steals of the last UNDO_SECONDS, runtime only
+	guardMode: ("off" | "watch" | "enforce")?, -- tests: overrides FEATURES.SlimeGuard / SLIME_GUARD.ENFORCE
 }
 
 export type Options = {
@@ -243,6 +272,9 @@ function World.new(options: Options): World
 		pity = { sinceEpic = 0, sinceLegendary = 0 },
 		fountainTier = 1,
 		outbox = {},
+		guard = {},
+		stealLedger = {},
+		guardMode = nil,
 	}
 	return world
 end

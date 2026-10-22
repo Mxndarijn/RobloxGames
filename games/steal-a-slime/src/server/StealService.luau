@@ -55,7 +55,8 @@ function StealService.steal(
 	thief: Session,
 	slimeId: string,
 	distance: number,
-	now: number
+	now: number,
+	guard: { recentTeleport: boolean, stealsPaused: boolean }? -- SlimeGuard.stealBlock (Carry.grab)
 ): (boolean, string?)
 	local owner, slime = World.ownerOf(world, slimeId)
 	if not owner or not slime then
@@ -71,6 +72,8 @@ function StealService.steal(
 		distance = distance,
 		thiefCanSave = World.canSave(world, thief.userId),
 		ownerCanSave = World.canSave(world, owner.userId),
+		recentTeleport = guard and guard.recentTeleport,
+		stealsPaused = guard and guard.stealsPaused,
 	})
 	if not ok then
 		return false, reason
@@ -94,7 +97,7 @@ end
 
 --[[
 	Ends a stolen carry: the slime bounces home. `reason` is "slap" | "drop" |
-	"left" | "unsaved" (a player's save stopped being writable mid-carry). Returns the slime id or nil.
+	"left" | "unsaved" (a player's save stopped being writable mid-carry) | "guard" (SlimeGuard). Returns the slime id or nil.
 ]]
 function StealService.escape(world: World, carrier: Session, now: number, reason: string): string?
 	local carry = carrier.carry
@@ -130,6 +133,8 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 			"bad",
 			"Escape"
 		)
+	elseif reason == "guard" then
+		World.notify(world, carrier.userId, `The {name} slipped away and went home.`, "bad", "Escape")
 	elseif reason ~= "left" then
 		World.notify(world, carrier.userId, `You dropped the {name}. It went home.`, "bad", "Escape")
 	end

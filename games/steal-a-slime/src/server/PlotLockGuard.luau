@@ -57,6 +57,41 @@ function PlotLockGuard.doorwayExit(door: Door): number
 	return door.zOuter - PlotLockGuard.EXIT_GAP
 end
 
+-- A plot's jar tower in plot-local terms: inner glass radius per floor, floor 1's walking height, storey height.
+export type Jar = { radii: { number }, floorTop: number, floorHeight: number, wall: number }
+
+PlotLockGuard.INSIDE_MARGIN = 1.5 -- studs in from the glass before a character counts as inside
+PlotLockGuard.OUTSIDE_MARGIN = 2.5 -- studs out past the glass before a character inside counts as out again
+
+--[[
+	True when a character at plot-local (x, y, z) (y on the floorTop scale) is inside one of the plot's `floors`
+	built jars. `wasInside` (last tick) keeps it inside until it is clearly past the glass, so standing against the
+	stopper does not flicker in and out.
+]]
+function PlotLockGuard.insideJar(x: number, y: number, z: number, jar: Jar, floors: number, wasInside: boolean): boolean
+	local built = math.min(floors, #jar.radii)
+	if built < 1 then
+		return false
+	end
+	local pad = if wasInside then 1 else 0
+	local top = jar.floorTop + built * jar.floorHeight
+	if y < jar.floorTop - 2 - pad or y > top + pad then
+		return false
+	end
+	local f = math.clamp(math.floor((y - jar.floorTop) / jar.floorHeight) + 1, 1, built)
+	local r = math.sqrt(x * x + z * z)
+	local limit = if wasInside
+		then jar.radii[f] + jar.wall + PlotLockGuard.OUTSIDE_MARGIN
+		else jar.radii[f] - PlotLockGuard.INSIDE_MARGIN
+	return r <= limit
+end
+
+-- True when a character that entered a plot at `enteredAt` got in after its current lock began: an intruder.
+-- One already inside when the lock started is trapped instead (the LockBarrier blocks both ways).
+function PlotLockGuard.intruder(enteredAt: number, lockStartedAt: number): boolean
+	return enteredAt > lockStartedAt
+end
+
 -- Collision group names (stopper of plot i / the owner's character, which passes it).
 function PlotLockGuard.lockGroup(index: number): string
 	return `PlotLock_{index}`
