@@ -6,7 +6,8 @@
 	carrying one at a time, depositing on your own plot (`deposit`, called
 	when the carrier enters their HomeZone) and dropping.
 
-	* Wild slime: free or costs its price, charged on grab. Dropped -> it
+	* Wild slime: free or costs its price, charged on every grab (a dropped
+	  slime costs its price again, even for whoever paid). Dropped -> it
 	  lands where the carrier stood. With FEATURES.Parade it then walks back
 	  to the lane and rejoins the flow with its lifetime kept
 	  (contract/slime-walk.md); otherwise its lifetime restarts there.
@@ -107,7 +108,7 @@ function Carry.grabWild(
 	if wild.price > 0 and not PlayerData.spend(session.data, wild.price) then
 		return false, `need ${Economy.formatNumber(wild.price)}`
 	end
-	wild.price = 0 -- paid for: dropping it doesn't charge the next grabber
+	-- wild.price stays: dropped, it costs the full price again, also for whoever paid (CONTRACT.md §Carry).
 	wild.returning = nil
 	wild.choreo = nil -- it walks back with a plain glide (contract/slime-life.md)
 	session.carry = {
