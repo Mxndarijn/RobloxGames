@@ -1093,7 +1093,7 @@ local Config = {
 		table.freeze({
 			key = "BossGoozilla",
 			name = "Goozilla Tamer",
-			description = "Help bring Goozilla home.",
+			description = "Carry Goozilla home yourself.",
 			trigger = "win",
 			value = 1,
 			species = "goozilla",
@@ -1101,7 +1101,7 @@ local Config = {
 		table.freeze({
 			key = "BossQueenJelly",
 			name = "Dethroned",
-			description = "Help bring Queen Jelly home.",
+			description = "Carry Queen Jelly home yourself.",
 			trigger = "win",
 			value = 1,
 			species = "queen_jelly",
@@ -1109,7 +1109,7 @@ local Config = {
 		table.freeze({
 			key = "BossKlawdius",
 			name = "Shell Shocked",
-			description = "Help bring Klawdius home.",
+			description = "Carry Klawdius home yourself.",
 			trigger = "win",
 			value = 1,
 			species = "klawdius",
@@ -1117,7 +1117,7 @@ local Config = {
 		table.freeze({
 			key = "BossPumpking",
 			name = "Pumpkin Smasher",
-			description = "Help bring Pumpking home.",
+			description = "Carry Pumpking home yourself.",
 			trigger = "win",
 			value = 1,
 			species = "pumpking",
@@ -1125,7 +1125,7 @@ local Config = {
 		table.freeze({
 			key = "BossGoomancer",
 			name = "Spellbreaker",
-			description = "Help bring Goomancer home.",
+			description = "Carry Goomancer home yourself.",
 			trigger = "win",
 			value = 1,
 			species = "goomancer",
@@ -1133,7 +1133,7 @@ local Config = {
 		table.freeze({
 			key = "BossMechaGoo",
 			name = "Scrap Metal",
-			description = "Help bring Mecha Goo home.",
+			description = "Carry Mecha Goo home yourself.",
 			trigger = "win",
 			value = 1,
 			species = "mecha_goo",
@@ -1155,7 +1155,7 @@ local Config = {
 		table.freeze({
 			key = "BossHunter10",
 			name = "Boss Hunter",
-			description = "Help win 10 boss fights.",
+			description = "Carry 10 bosses home.",
 			trigger = "wins",
 			value = 10,
 		}),
