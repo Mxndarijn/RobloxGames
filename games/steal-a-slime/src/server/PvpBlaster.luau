@@ -200,15 +200,17 @@ local function handler(call: PvpService.UseCall): (boolean, string?, number?)
 	if not PvpBlasterRules.direction(origin, aim) then
 		return false, "bad aim"
 	end
-	local tank = if tool.shots then tanks[call.session] else nil -- only the Squirter has a tank
+	local tank: Tank? = nil -- only the Squirter has a tank
 	if tool.shots then
-		if not tank then
-			tank = { left = tool.shots, lastShot = -math.huge }
-			tanks[call.session] = tank
+		local held = tanks[call.session]
+		if not held then
+			held = { left = tool.shots, lastShot = -math.huge }
+			tanks[call.session] = held
 		end
-		if now - tank.lastShot < (tool.shotGap or 0) then
+		if now - held.lastShot < (tool.shotGap or 0) then
 			return false, "too fast"
 		end
+		tank = held
 	end
 	local candidates: { PvpBlasterRules.Candidate } = {}
 	for userId, other in call.world.sessions do
