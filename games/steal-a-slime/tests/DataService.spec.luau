@@ -123,6 +123,7 @@ describe("DataService.save", function()
 		expect(ok).toBe(false)
 		expect(reason).toBe("session lost")
 		expect(svc.lost[9]).toBe(true)
+		expect(DataService.canSave(svc, 9)).toBe(false)
 		expect(select(2, DataService.save(svc, 9, Fixtures.data(nil, 1), true))).toBe("session lost")
 	end)
 end)
@@ -156,6 +157,7 @@ describe("DataService read-only sessions", function()
 		expect((data :: PlayerData.Data).cash).toBe(777) -- best-effort read
 		expect(DataService.readOnly(svc, 3)).toBe("newer")
 		expect(#logs).toBe(1)
+		expect(DataService.canSave(svc, 3)).toBe(false)
 		local played = data :: PlayerData.Data
 		played.cash = 1
 		local saved, reason = DataService.save(svc, 3, played, false)
@@ -190,6 +192,7 @@ describe("DataService read-only sessions", function()
 		local svc, logs = logged(backend)
 		DataService.load(svc, 6)
 		expect(DataService.readOnly(svc, 6)).toBeNil()
+		expect(DataService.canSave(svc, 6)).toBe(true)
 		local data = Fixtures.data(nil, 1)
 		data.cash = 12345
 		expect(select(2, DataService.save(svc, 6, data, false))).toBeNil()
@@ -199,5 +202,63 @@ describe("DataService read-only sessions", function()
 		local again = logged(backend, "job-A")
 		DataService.load(again, 6)
 		expect(DataService.readOnly(again, 6)).toBeNil()
+	end)
+end)
+
+describe("DataService save then reload on one server", function()
+	-- A backend whose first update after `stall()` suspends the caller before its transform runs, like a request
+	-- that is being retried while the player already rejoined.
+	local function stalling()
+		local inner = DataService.memoryBackend()
+		local stallNext = false
+		local backend = {
+			records = inner.records,
+			update = function(key: string, transform: any): any
+				if stallNext then
+					stallNext = false
+					coroutine.yield()
+				end
+				return inner.update(key, transform)
+			end,
+			stall = function()
+				stallNext = true
+			end,
+		}
+		return backend
+	end
+
+	it("a rejoin waits for the leave save in flight and keeps saving afterwards", function()
+		local backend = stalling()
+		local saver: thread? = nil
+		local svc = DataService.new({
+			backend = backend,
+			jobId = "job-A",
+			now = function()
+				return clock
+			end,
+			wait = function()
+				if saver and coroutine.status(saver) == "suspended" then
+					coroutine.resume(saver)
+				end
+			end,
+			loadAttempts = 3,
+			saveAttempts = 3,
+		})
+		DataService.load(svc, 5)
+		local data = Fixtures.data(nil, 999)
+		saver = coroutine.create(function()
+			DataService.save(svc, 5, data, true)
+		end)
+		backend.stall()
+		coroutine.resume(saver :: thread)
+
+		local ok, loaded = DataService.load(svc, 5)
+		expect(ok).toBe(true)
+		expect((loaded :: PlayerData.Data).cash).toBe(999)
+		if coroutine.status(saver :: thread) == "suspended" then
+			coroutine.resume(saver :: thread)
+		end
+		expect((DataService.save(svc, 5, loaded :: PlayerData.Data, false))).toBe(true)
+		expect(backend.records["u_5"].session.jobId).toBe("job-A")
 	end)
 end)

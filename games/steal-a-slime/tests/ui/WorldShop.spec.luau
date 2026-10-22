@@ -1,5 +1,5 @@
 --!strict
--- World shop client (FEATURES.WorldShops, contract/world-shops.md §27): WorldShopLogic rows / deny texts / open-close
+-- World shop client (contract/world-shops.md §27): WorldShopLogic rows / deny texts / open-close
 -- controller, the Panels/WorldShop card, the init.client wiring and the full-window layout at every gate size.
 local fs = require("@lune/fs")
 
@@ -172,12 +172,13 @@ describe("WorldShopLogic.rows", function()
 	it("the Speed Coil shows its price, disabled when the player cannot afford it", function()
 		local coil = find(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config), "SpeedCoil")
 		expect(coil.status).toBe("buy")
-		expect(coil.buttonText).toBe("$4K")
+		expect(coil.buttonText).toBe("Buy $4K")
 		expect(coil.enabled).toBe(true)
 		local broke =
 			find(WorldShopLogic.rows("ItemShop", baseState({ cash = 5 }), ACTIONS, features(), Config), "SpeedCoil")
 		expect(broke.enabled).toBe(false)
 		expect(broke.status).toBe("buy")
+		expect(string.match(broke.buttonText, "^Need %$.+ more$") ~= nil).toBe(true) -- a disabled button says what is missing
 	end)
 
 	it("the Speed Coil is an Item Shop row: price, then Owned", function()
@@ -285,7 +286,7 @@ describe("WorldShopLogic.slot", function()
 		expect(slot("buy", "$10K").kind).toBe("buy")
 		expect(slot("buy", "$10K").text).toBe("$10K")
 		expect(slot("maxed", "Max").kind).toBe("stamp")
-		expect(slot("maxed", "Max").text).toBe("MAX")
+		expect(slot("maxed", "Max").text).toBe("Max")
 		local owned = slot("owned", "Owned")
 		expect(owned.kind).toBe("status")
 		expect(owned.text).toBe("✅ Owned")
@@ -363,9 +364,7 @@ end
 describe("deny codes", function()
 	it("finds the codes in the server source and the contract", function()
 		local codes = serverCodes()
-		for _, code in
-			{ "FlagOff", "BadShop", "NotInShop", "NotOpen", "OutOfRange", "Dead", "NoCash", "Maxed", "Locked" }
-		do
+		for _, code in { "BadShop", "NotInShop", "NotOpen", "OutOfRange", "Dead", "NoCash", "Maxed", "Locked" } do
 			expect(`{code}: {codes[code] ~= nil}`).toBe(`{code}: true`)
 		end
 		for _, code in { "SoldOut", "Owned", "BadTarget", "Busy", "Unavailable" } do
@@ -387,7 +386,6 @@ describe("deny codes", function()
 
 	it("maps each code to the agreed text", function()
 		local want = {
-			FlagOff = "The shops are closed",
 			BadShop = "That shop doesn't exist",
 			NotInShop = "Not sold here",
 			NotOpen = "Open the shop first",
@@ -471,7 +469,7 @@ describe("WorldShopLogic.controller", function()
 	end)
 
 	it("closes on ShopEvent Close (every reason) and on the attribute going nil, without sending CloseShop", function()
-		for _, reason in { "closed", "range", "dead", "flag" } do
+		for _, reason in { "closed", "range", "dead" } do
 			local log = newController()
 			log.controller.onEvent({ kind = "Open", shopId = "ItemShop" })
 			log.controller.onEvent({ kind = "Close", shopId = "ItemShop", reason = reason })
@@ -505,17 +503,17 @@ describe("WorldShopLogic.controller", function()
 		expect(Remotes.ACTIONS.CloseShop).toBeTruthy()
 	end)
 
-	it("Purchased toasts '<name> bought!' (+ level for upgrades) with the item's icon", function()
+	it("Purchased toasts '<name> bought' (+ level for upgrades) with the item's icon", function()
 		local log = newController()
 		log.controller.onEvent({ kind = "Purchased", shopId = "ItemShop", itemId = "SpeedCoil", price = 200 })
-		expect(log.toasts[1].text).toBe("Speed Coil bought!")
+		expect(log.toasts[1].text).toBe("Speed coil bought")
 		expect(log.toasts[1].kind).toBe("good")
 		expect(log.toasts[1].itemId).toBe("SpeedCoil")
 		log.controller.onEvent({ kind = "Purchased", shopId = "UpgradeShop", itemId = "Income", price = 9, level = 3 })
-		expect(log.toasts[2].text).toBe("Slime Snacks bought! Lv 3")
+		expect(log.toasts[2].text).toBe("Slime snacks bought, Lv 3")
 		expect(log.toasts[2].itemId).toBe("Upgrade_Income")
 		log.controller.onEvent({ kind = "Purchased", shopId = "ItemShop", itemId = "WeatherTotem", price = 1 })
-		expect(log.toasts[3].text).toBe("Weather Totem bought!")
+		expect(log.toasts[3].text).toBe("Weather totem bought")
 		expect(log.toasts[3].itemId).toBe("Consumable_WeatherTotem")
 	end)
 
@@ -563,7 +561,7 @@ describe("Panels/WorldShop", function()
 		local panel = UiHarness.ui("Panels/WorldShop").new(UiHarness.root(), ctx())
 		panel.update(baseState())
 		panel.setShop("ItemShop")
-		expect(UiHarness.find(panel.frame, "Title").Text).toBe("Item Shop")
+		expect(UiHarness.find(panel.frame, "Title").Text).toBe("Item shop")
 		expect(panel.shop()).toBe("ItemShop")
 		expect(UiHarness.find(panel.frame, "RestockTimer").Visible).toBe(true)
 		expect(string.find(UiHarness.find(panel.frame, "Cash").Text, "1M", 1, true) ~= nil).toBe(true)
@@ -573,7 +571,7 @@ describe("Panels/WorldShop", function()
 		expect(UiHarness.find(panel.frame, "SpeedCoil") ~= nil).toBe(true)
 		expect(UiHarness.find(panel.frame, "Lock")).toBeNil()
 		panel.setShop("UpgradeShop")
-		expect(UiHarness.find(panel.frame, "Title").Text).toBe("Upgrade Shop")
+		expect(UiHarness.find(panel.frame, "Title").Text).toBe("Upgrade shop")
 		expect(UiHarness.find(panel.frame, "RestockTimer").Visible).toBe(false)
 		expect(UiHarness.find(panel.frame, "SpeedCoil")).toBeNil()
 		expect(UiHarness.find(panel.frame, "Income") ~= nil).toBe(true)
@@ -616,7 +614,7 @@ describe("Panels/WorldShop", function()
 		local coil = UiHarness.find(panel.frame, "SpeedCoil")
 		local buy = coil:FindFirstChild("Buy")
 		expect(buy.Visible).toBe(true)
-		expect(buy.Text).toBe("$4K")
+		expect(buy.Text).toBe("Buy $4K")
 		expect(buy.BackgroundColor3).toBe(Theme.Good)
 		expect(buy.TextColor3).toBe(Theme.Ink)
 		expect(buy:GetAttribute("HoldConfirm") ~= nil).toBe(true)
@@ -646,7 +644,7 @@ describe("Panels/WorldShop", function()
 
 	it("a locked well grows with its text and the name column gives way", function()
 		local WorldShop = UiHarness.ui("Panels/WorldShop")
-		local slot = WorldShopLogic.slot({ status = "locked", buttonText = "Rebirth 120" })
+		local slot = WorldShopLogic.slot({ status = "locked", buttonText = "Rebirth 120, rank Legend" })
 		local w = WorldShop.statusWidth(slot)
 		expect(w >= Layout.lineWidth(slot.text, WorldShop.SIZE.status, true) + WorldShop.SIZE.statusPad * 2).toBe(true)
 		expect(w > WorldShop.BUY_W).toBe(true)
@@ -696,7 +694,7 @@ describe("Panels/WorldShop", function()
 		expect(carry:FindFirstChild("Status").Visible).toBe(false)
 		local stamp = carry:FindFirstChild("MaxStamp")
 		expect(stamp.Visible).toBe(true)
-		expect(stamp.Text).toBe("MAX")
+		expect(stamp.Text).toBe("Max")
 		expect(stamp.BackgroundColor3).toBe(Theme.Gold)
 		expect(stamp.TextColor3).toBe(Theme.Ink)
 		local all = 0
@@ -747,24 +745,18 @@ describe("Panels/WorldShop", function()
 end)
 
 describe("init.client wiring", function()
-	it("the shop prompt opens the old combined Shop only with the flag off", function()
-		expect(
-			MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, false)[Constants.SHOP_PROMPT_NAME]
-		).toBe("Shop")
-		expect(
-			MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME)[Constants.SHOP_PROMPT_NAME]
-		).toBe("Shop")
-		local on = MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, true)
-		expect(on[Constants.SHOP_PROMPT_NAME]).toBeNil()
-		expect(on[Constants.GUIDE_PROMPT_NAME]).toBe("Guide")
+	it("the shop prompt opens no menu from the client (the server opens the shop); Talk opens the Guide", function()
+		local prompts = MenuClose.promptMenus(Constants.GUIDE_PROMPT_NAME)
+		expect(prompts[Constants.SHOP_PROMPT_NAME]).toBeNil()
+		expect(prompts[Constants.GUIDE_PROMPT_NAME]).toBe("Guide")
 	end)
 
 	it("the world shop card follows the one-open-menu state", function()
-		local keys = { "Merge", "WorldShop", "Shop" }
+		local keys = { "Merge", "WorldShop", "Guide" }
 		local view = MenuState.view("WorldShop", keys)
 		expect(view.backdrop).toBe(true)
 		expect(view.cards.WorldShop).toBe(true)
-		expect(view.cards.Shop).toBe(false)
+		expect(view.cards.Guide).toBe(false)
 		expect(view.cards.Merge).toBe(false)
 		expect(MenuState.view(nil, keys).cards.WorldShop).toBe(false)
 	end)

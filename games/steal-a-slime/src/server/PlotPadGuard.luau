@@ -4,7 +4,7 @@
 
 	The pure range check behind the owner-only plot pad prompts (LockPrompt, BuyPadPrompt, MergePrompt) and the HUD Lock
 	button while standing at the pad. These are measured against the plot's own prompt part, never against a world shop
-	stand (WorldShopsStrict only gates the shop purchases). Holds no state and no Roblox APIs; the adapter measures
+	stand (the shop gate only covers the shop purchases). Holds no state and no Roblox APIs; the adapter measures
 	`access` (distance from the HumanoidRootPart to the prompt's part, and whether the character is alive).
 ]]
 

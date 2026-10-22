@@ -5,10 +5,10 @@
 
 	Top line: the payout note and a green "n/m done" chip. The scroll list holds two sections: "Daily quests"
 	(with a "Resets in" chip) over highlighted quest rows, then "Milestones" over the goal rows. A row is the
-	goal's item icon, its name, the reward top-right (gold cash, lilac for an income boost), a thin green bar
-	and a muted meta line under it (progress and stage left, the next target right). A finished goal sinks to
-	the bottom of its section, faded, with a green tick in place of the reward; a finished quest waiting for
-	its Claim shows the gold Claim button there instead.
+	goal's item icon, its name, a thin green bar and a muted meta line under it (progress and stage left, the
+	next target right), and one fixed right slot (Layout.ROW_SLOT): the reward in a sunken Ink well, or for a
+	finished quest the gold "Claim $100" button. A finished goal sinks to the bottom of its section, faded,
+	with a green "Done" (or "Claimed") well in that slot.
 ]]
 
 local UI = script.Parent.Parent
@@ -27,23 +27,18 @@ GoalsPanel.ICON = 50 -- item icon tile at the row's left
 
 -- Design px and text sizes of the panel's parts.
 local ROW = table.freeze({
-	h = 70,
+	h = 74,
 	pad = 10,
-	gap = 12, -- icon to text
+	gap = 12, -- icon to text, text to the right slot
 	name = 17,
 	nameY = 8,
 	nameH = 20,
-	reward = 15,
-	rewardGap = 8, -- name to reward
-	barY = 32,
+	reward = 16, -- the reward well and the Claim button
+	barY = 33,
 	bar = 10,
-	meta = 12,
-	metaY = 46,
-	metaH = 14,
-	tick = 26,
-	claimW = 76,
-	claimH = 26,
-	claimText = 15,
+	meta = Layout.MIN_TEXT,
+	metaY = 49,
+	metaH = 17,
 	fade = 0.35, -- a finished row's background transparency
 	scrollBar = 10,
 	listGap = 8,
@@ -53,23 +48,29 @@ local TOP = table.freeze({
 	h = 26,
 	gap = 6, -- top line to list
 	summaryW = 130, -- room kept for the "n/m done" chip
-	note = 13,
+	note = Layout.MIN_TEXT,
 	chip = 15,
 	heading = 17,
 	headingH = 30,
-	resetChip = 12,
+	resetChip = Layout.MIN_TEXT,
 	resetChipH = 24,
 })
 
 -- Section order in the list: quests, then goals.
 local ORDER = table.freeze({ questHeader = -100, quest = -90, claimedQuest = -60, goalHeader = -10 })
 
--- The check inside the tick circle (ROW.tick px square): a short and a long ink stroke.
-local CHECK_LINE = 3
-local CHECK = table.freeze({
-	table.freeze({ name = "Short", x = 10, y = 15, length = 8, rotation = 45 }),
-	table.freeze({ name = "Long", x = 15, y = 12, length = 13, rotation = -50 }),
-})
+-- What a row's right slot says (Layout.ROW_SLOT).
+GoalsPanel.DONE = "✅ Done"
+GoalsPanel.CLAIMED = "✅ Claimed"
+
+-- The Claim button's label: the cash it pays ("Claim $100"), or "Claim boost" for a timed boost.
+function GoalsPanel.claimText(reward: string, boost: boolean): string
+	local cash = string.gsub(reward, "^%+", "")
+	if boost or cash == "" then
+		return if boost then "Claim boost" else "Claim"
+	end
+	return `Claim {cash}`
+end
 
 local function headingRow(name: string, text: string, order: number): (Frame, TextLabel)
 	local frame = create("Frame", {
@@ -92,8 +93,10 @@ local function headingRow(name: string, text: string, order: number): (Frame, Te
 	return frame, title
 end
 
--- A row's parts: icon tile, name, reward / tick / claim slot top-right, bar, meta line.
+-- A row's parts: icon tile, name, bar and meta line, and the right slot: a sunken Ink well holding the
+-- reward (or Done / Claimed once finished).
 local function rowParts(frame: Frame, titleName: string, iconId: string, ctx: any): any
+	local slot = Layout.ROW_SLOT
 	local icon = ItemIconView.new({
 		Name = "Icon",
 		Id = iconId,
@@ -103,55 +106,30 @@ local function rowParts(frame: Frame, titleName: string, iconId: string, ctx: an
 		Parent = frame,
 	}, ItemIcons.of(ctx))
 	local textX = ROW.pad + GoalsPanel.ICON + ROW.gap
+	local textW = -(textX + ROW.gap + slot.w + ROW.pad)
 	local title = Widgets.label({
 		Name = titleName,
 		Font = Theme.Font,
 		TextSize = ROW.name,
-		Size = UDim2.new(1, -(textX + ROW.pad), 0, ROW.nameH),
+		Size = UDim2.new(1, textW, 0, ROW.nameH),
 		Position = UDim2.fromOffset(textX, ROW.nameY),
 		Parent = frame,
 	})
-	local reward = Widgets.label({
+	local reward = Widgets.status({
 		Name = "Reward",
-		Font = Theme.Font,
 		TextSize = ROW.reward,
 		TextColor3 = Theme.Gold,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		TextTruncate = Enum.TextTruncate.None,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -ROW.pad, 0, ROW.nameY),
-		Size = UDim2.fromOffset(0, ROW.nameH),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -ROW.pad, 0.5, 0),
+		Size = UDim2.fromOffset(slot.w, slot.h),
 		Parent = frame,
 	})
-	-- The tick: a green circle with a check drawn from two ink strokes (no glyph, it renders everywhere).
-	local tick = create("Frame", {
-		Name = "Done",
-		BackgroundColor3 = Theme.Good,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -ROW.pad, 0, ROW.nameY + (ROW.nameH - ROW.tick) / 2),
-		Size = UDim2.fromOffset(ROW.tick, ROW.tick),
-		Visible = false,
-		Parent = frame,
-	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
-	for _, leg in CHECK do
-		create("Frame", {
-			Name = leg.name,
-			BorderSizePixel = 0,
-			BackgroundColor3 = Theme.Ink,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromOffset(leg.x, leg.y),
-			Size = UDim2.fromOffset(leg.length, CHECK_LINE),
-			Rotation = leg.rotation,
-			Parent = tick,
-		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
-	end
-	local _, setBar =
-		Widgets.bar(frame, Theme.Good, UDim2.new(1, -(textX + ROW.pad), 0, ROW.bar), UDim2.fromOffset(textX, ROW.barY))
+	local _, setBar = Widgets.bar(frame, Theme.Good, UDim2.new(1, textW, 0, ROW.bar), UDim2.fromOffset(textX, ROW.barY))
 	local detail = Widgets.label({
 		Name = "Detail",
 		TextSize = ROW.meta,
 		TextColor3 = Theme.Muted,
-		Size = UDim2.new(1, -(textX + ROW.pad), 0, ROW.metaH),
+		Size = UDim2.new(1, textW, 0, ROW.metaH),
 		Position = UDim2.fromOffset(textX, ROW.metaY),
 		Parent = frame,
 	})
@@ -162,7 +140,7 @@ local function rowParts(frame: Frame, titleName: string, iconId: string, ctx: an
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextTruncate = Enum.TextTruncate.None,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -ROW.pad, 0, ROW.metaY),
+		Position = UDim2.new(1, -(ROW.pad + slot.w + ROW.gap), 0, ROW.metaY),
 		Size = UDim2.fromOffset(0, ROW.metaH),
 		Parent = frame,
 	})
@@ -170,9 +148,9 @@ local function rowParts(frame: Frame, titleName: string, iconId: string, ctx: an
 		instance = frame,
 		icon = icon,
 		textX = textX,
+		textW = textW,
 		title = title,
 		reward = reward,
-		tick = tick,
 		setBar = setBar,
 		detail = detail,
 		nextStep = nextStep,
@@ -184,28 +162,19 @@ local function paintRow(row: any, name: string, done: boolean, fraction: number,
 	row.title.Text = name
 	row.title.TextColor3 = if done then Theme.Muted else Theme.Text
 	row.setBar(fraction)
-	row.tick.Visible = done
 	row.detail.Text = meta
 	row.nextStep.Text = nextText or ""
 	local nextW = if nextText then math.ceil(Layout.lineWidth(nextText, ROW.meta)) + 2 else 0
 	row.nextStep.Size = UDim2.fromOffset(nextW, ROW.metaH)
-	row.detail.Size = UDim2.new(1, -(row.textX + ROW.pad + nextW + (if nextW > 0 then 6 else 0)), 0, ROW.metaH)
+	row.detail.Size = UDim2.new(1, row.textW - (nextW + (if nextW > 0 then 6 else 0)), 0, ROW.metaH)
 	row.instance.BackgroundTransparency = if done then ROW.fade else 0
 end
 
--- Stops the name before whatever sits top-right (`rightW` px: reward, tick or Claim).
-local function fitRight(row: any, rightW: number)
-	row.title.Size =
-		UDim2.new(1, -(row.textX + ROW.pad + rightW + (if rightW > 0 then ROW.rewardGap else 0)), 0, ROW.nameH)
-end
-
-local function setReward(row: any, text: string?, color: Color3)
+-- The right slot's well: the reward in gold, Done / Claimed in green, hidden behind a Claim.
+local function setSlot(row: any, text: string?, color: Color3)
 	row.reward.Visible = text ~= nil
 	row.reward.Text = text or ""
 	row.reward.TextColor3 = color
-	local w = if text then math.ceil(Layout.lineWidth(text, ROW.reward, true)) + 2 else 0
-	row.reward.Size = UDim2.fromOffset(w, ROW.nameH)
-	return w
 end
 
 function GoalsPanel.new(parent: Instance, ctx: any)
@@ -261,8 +230,11 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		return row
 	end, function(row: any, g: Goals.Goal)
 		paintRow(row, g.title, g.done, g.fraction, g.meta or g.detail, g.nextShort)
-		local rewardW = setReward(row, if g.done then nil else g.reward, Theme.Gold)
-		fitRight(row, if g.done then ROW.tick else rewardW)
+		if g.done then
+			setSlot(row, GoalsPanel.DONE, Theme.Good)
+		else
+			setSlot(row, g.reward, Theme.Gold)
+		end
 	end)
 
 	local questRows = Widgets.keyedList(list, function(q: Goals.Quest)
@@ -277,14 +249,15 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		row.icon.setActive(isOpen)
 		icons[`Quest_{q.id}`] = row.icon
 		row.index = q.index
+		local slot = Layout.ROW_SLOT
 		row.claim = Widgets.button(
 			{
 				Name = "Claim",
 				Text = "Claim",
-				TextSize = ROW.claimText,
-				AnchorPoint = Vector2.new(1, 0),
-				Position = UDim2.new(1, -ROW.pad, 0, ROW.nameY - (ROW.claimH - ROW.nameH) / 2),
-				Size = UDim2.fromOffset(ROW.claimW, ROW.claimH),
+				TextSize = ROW.reward,
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -ROW.pad, 0.5, 0),
+				Size = UDim2.fromOffset(slot.w, slot.h),
 			},
 			Theme.Gold,
 			function()
@@ -300,9 +273,12 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		paintRow(row, q.title, q.claimed, q.fraction, q.detail, nil)
 		local claimable = q.done and not q.claimed
 		row.claim.instance.Visible = claimable
-		local rewardW =
-			setReward(row, if q.claimed or claimable then nil else q.reward, if q.boost then Theme.Info else Theme.Gold)
-		fitRight(row, if q.claimed then ROW.tick elseif claimable then ROW.claimW else rewardW)
+		row.claim.setText(GoalsPanel.claimText(q.reward, q.boost))
+		if q.claimed then
+			setSlot(row, GoalsPanel.CLAIMED, Theme.Good)
+		else
+			setSlot(row, if claimable then nil else q.reward, Theme.Gold)
+		end
 		row.instance.LayoutOrder = (if q.claimed then ORDER.claimedQuest else ORDER.quest) + index
 	end)
 

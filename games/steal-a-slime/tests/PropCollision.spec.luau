@@ -100,7 +100,7 @@ describe("PropCollision inventory", function()
 			for _, mesh in WorldLayout.PROP_MESHES do
 				placed[mesh] = true
 			end
-			for _, stand in WorldLayout.SHOP_STANDS do -- whichever stands FEATURES.WorldShops places
+			for _, stand in WorldLayout.SHOP_STANDS do -- both shop stands
 				placed[stand.mesh] = true
 			end
 			placed[VatDecor.MESH] = true

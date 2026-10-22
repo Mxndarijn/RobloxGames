@@ -77,7 +77,6 @@ local function buildPlot(index: number, parent: Instance)
 	plot:SetAttribute(Constants.PLOT_INDEX_ATTRIBUTE, index)
 	plot:SetAttribute("OwnerUserId", 0)
 	plot:SetAttribute("LockUntil", 0)
-	plot:SetAttribute("Rebirths", 0)
 
 	local base = part("Base", Vector3.new(size, 1, size), origin, Color3.fromRGB(200, 200, 210), plot)
 	plot.PrimaryPart = base

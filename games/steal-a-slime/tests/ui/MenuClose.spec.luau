@@ -1,7 +1,6 @@
 --!strict
--- Esc / gamepad B close every menu (v28 Esc audit): the nav menus, the Shop
--- opened by the ShopStand prompt and the Guide card, through the same
--- ContextActionService binding as the client (MenuClose), driven by a fake
+-- Esc / gamepad B close every menu: the nav menus, the world shop card and
+-- the Guide card, through the same ContextActionService binding as the client (MenuClose), driven by a fake
 -- service. Esc must also work when Roblox already processed the key.
 local roblox = require("@lune/roblox") :: any
 
@@ -30,7 +29,7 @@ local function newClient()
 		c.closes += 1
 		c.open = nil
 	end)
-	local prompts = MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME)
+	local prompts = MenuClose.promptMenus(Constants.GUIDE_PROMPT_NAME)
 	function c.trigger(promptName: string)
 		local key = prompts[promptName]
 		if key then
@@ -51,11 +50,12 @@ describe("MenuClose (Esc / gamepad B)", function()
 		expect(table.find(c.keys, Enum.KeyCode.ButtonB) ~= nil).toBe(true)
 		expect(table.find(c.keys, Enum.KeyCode.Escape) ~= nil).toBe(true)
 	end)
-	it("closes every menu, nav ones and Guide, and sinks the key", function()
+	it("closes every menu, nav ones, the world shop and Guide, and sinks the key", function()
 		local keys = {}
 		for _, entry in Nav.ENTRIES do
 			table.insert(keys, entry.key)
 		end
+		table.insert(keys, "WorldShop")
 		table.insert(keys, "Guide")
 		for _, key in keys do
 			local c = newClient()
@@ -64,23 +64,21 @@ describe("MenuClose (Esc / gamepad B)", function()
 			expect(c.open).toBe(nil)
 		end
 	end)
-	it("closes the Shop opened from the ShopStand prompt, the Guide from its Talk prompt", function()
+	it("closes the Guide opened from its Talk prompt; the shop prompt opens no menu from the client", function()
 		local c = newClient()
 		c.trigger(Constants.SHOP_PROMPT_NAME)
-		expect(c.open).toBe("Shop")
-		expect(c.press(Enum.UserInputState.Begin)).toBe(Enum.ContextActionResult.Sink)
 		expect(c.open).toBe(nil)
 		c.trigger(Constants.GUIDE_PROMPT_NAME)
 		expect(c.open).toBe("Guide")
-		c.press(Enum.UserInputState.Begin)
+		expect(c.press(Enum.UserInputState.Begin)).toBe(Enum.ContextActionResult.Sink)
 		expect(c.open).toBe(nil)
-		expect(c.closes).toBe(2)
+		expect(c.closes).toBe(1)
 	end)
 	it("passes the key on with no menu open, and ignores End / Change", function()
 		local c = newClient()
 		expect(c.press(Enum.UserInputState.Begin)).toBe(Enum.ContextActionResult.Pass)
-		c.trigger(Constants.SHOP_PROMPT_NAME)
+		c.trigger(Constants.GUIDE_PROMPT_NAME)
 		expect(c.press(Enum.UserInputState.End)).toBe(Enum.ContextActionResult.Pass)
-		expect(c.open).toBe("Shop")
+		expect(c.open).toBe("Guide")
 	end)
 end)

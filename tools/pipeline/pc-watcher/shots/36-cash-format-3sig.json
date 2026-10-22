@@ -2,6 +2,7 @@
   "id": "cash-format-3sig",
   "todo": "v18",
   "kind": "ui",
-  "open": "shop",
+  "open": "worldshop",
+  "world_shop": "ItemShop",
   "note": "v18: shared 3-significant-digit cash format ($1.25K, $12.5K, $125K) on the HUD cash pill and shop prices"
 }

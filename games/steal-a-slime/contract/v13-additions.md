@@ -14,7 +14,7 @@ Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing
 
 ```luau
 {
-	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 24 with the Speed Coil)
+	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 28 while the Speed Coil is held)
 	incomeMultiplier: number,      -- total income multiplier: rebirth x upgrade x rank x dex (>= rebirthMultiplier)
 	rebirthTitle: string,          -- current rank title, e.g. "Slime Rookie"
 	rebirthTiers: { { rebirths: number, title: string, text: string, unlocked: boolean } },  -- every rank, ascending
@@ -44,7 +44,7 @@ Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing
 
 Every field above is in every snapshot (the server never leaves one out); only the `?` fields can be nil. `boss` changes (spawn, expiry, catch, a dropped boss's new expiry) push State to everyone, like `rain`.
 
-`carrying.walkSpeed` now starts from `walkSpeed` (the Speed Coil also helps while carrying) and the CarrySpeed upgrade shrinks the slowdown.
+`carrying.walkSpeed` now starts from `walkSpeed` (2026-10-22: the Speed Coil no longer helps while carrying, see 8.10) and the CarrySpeed upgrade shrinks the slowdown.
 
 ## 8.3 Tutorial (replaces the §2 list)
 
@@ -62,7 +62,7 @@ Every field above is in every snapshot (the server never leaves one out); only t
 | `Plot_<i>` | `PadsUnlocked` (`PLOT_PADS_UNLOCKED_ATTRIBUTE`) | `number`, owner's unlocked pads (0 = free plot) |
 | `Plot_<i>` | `NextPadCost` (`PLOT_NEXT_PAD_COST_ATTRIBUTE`) | `number?`, nil when maxed or free |
 | `Pad_<j>` | `Unlocked` (`PAD_UNLOCKED_ATTRIBUTE`) | `boolean`, `j <= PadsUnlocked` (false on a free plot) |
-| `Plot_<i>` | `OwnerUserId`, `LockUntil`, `Rebirths` (§5.2) | set by the server on every reconcile (`WorldView.updatePlots`); Archer's PlotDecor reads them with `Locked`. Wild slime models carry `Tier` (factory), `State = "Wild"` and `RareSpawn` (below), which PlotVisuals/RareSpawn read. |
+| `Plot_<i>` | `OwnerUserId`, `LockUntil` (§5.2) | set by the server on every reconcile (`WorldView.updatePlots`); Archer's PlotDecor reads them with `Locked`. Rebirths never change the base, so plots carry no `Rebirths` attribute. Wild slime models carry `Tier` (factory), `State = "Wild"` and `RareSpawn` (below), which PlotVisuals/RareSpawn read. |
 | ~~`Plot_<i>`~~ | ~~`DexCount`~~ | removed 2026-10-21 with the plot SlimeDex board (goo jar tower remodel) |
 | ~~`Plot_<i>`~~ | ~~`DexTotal`~~ | removed 2026-10-21 with the plot SlimeDex board (goo jar tower remodel) |
 | ~~`Plot_<i>`~~ | ~~`DexTierMask`~~ | removed 2026-10-21 with the plot SlimeDex board (goo jar tower remodel) |
@@ -186,7 +186,7 @@ No new fields. `SaveData.migrateV6` (v6 -> v7, pure, idempotent) drops the `muta
 
 ## 8.10 Speed Coil (replaces the §2 bullet)
 
-Owning the coil makes the server enforce WalkSpeed `SPEED_COIL_WALK_SPEED` (22) when not carrying and `22 x (1 - slowdown)` while carrying (was: ignored while carrying). The server always enforces its target (Player attribute `TargetWalkSpeed`), every 0.1 s and on every `CharacterAdded`, instead of only overwriting speeds it recognised. The `SpeedCoil` tool still sits in the Backpack (cosmetic; `ToolTip` "Speed Coil: always on").
+**2026-10-22 (Merijn):** the coil works only while held. The server enforces WalkSpeed `SPEED_COIL_WALK_SPEED` (28) while the `SpeedCoil` Tool is equipped (in the character; runtime `session.coilHeld`, checked every tick) and `BASE_WALK_SPEED` otherwise. Carrying puts tools away, so carrying is at `BASE_WALK_SPEED x (1 - slowdown)`. The server always enforces its target (Player attribute `TargetWalkSpeed`), every tick and on every `CharacterAdded`. `ToolTip` "Speed Coil: hold to run faster".
 
 ## 8.11 Dropped slimes
 

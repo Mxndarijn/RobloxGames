@@ -4,7 +4,7 @@
 
 ## 9.1 No "claim free plot" (removed in v30 C6)
 
-Plots are **auto-assigned on join** (`Sessions.join`, lowest free plot) and freed on leave. The v16 `ClaimPrompt` on a free plot's `BuyStand`, `PlotClaim.luau`, `Constants.CLAIM_PROMPT_NAME`, `world.claims` and the per-plot `BuyStand` model are gone. `ranch_shop_stand` is used only by the plaza `ShopStand`.
+Plots are **auto-assigned on join** (`Sessions.join`, lowest free plot) and freed on leave. The v16 `ClaimPrompt` on a free plot's `BuyStand`, `PlotClaim.luau`, `Constants.CLAIM_PROMPT_NAME`, `world.claims` and the per-plot `BuyStand` model are gone.
 
 ## 9.2 Tutorial: no skipping steps you haven't done (finding #8)
 

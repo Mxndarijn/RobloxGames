@@ -25,7 +25,6 @@ local NAMES = {
 	"phoenix_pad_crate",
 	"phoenix_top_earners_board",
 	"ranch_plaza_signpost",
-	"ranch_shop_stand",
 	"ranch_item_shop",
 	"ranch_upgrade_cabinet",
 	"phoenix_plaza_podium_1",
@@ -197,8 +196,6 @@ entries["phoenix_top_earners_board"] =
 	{ assetId = 126155085567089, meshId = "rbxassetid://98390738410954", size = { 21.103, 19.934, 4.097 } }
 entries["ranch_plaza_signpost"] =
 	{ assetId = 131934867179344, meshId = "rbxassetid://73448923703025", size = { 12.648, 14.515, 7.55 } }
-entries["ranch_shop_stand"] =
-	{ assetId = 102942641234419, meshId = "rbxassetid://93701432819080", size = { 12.01, 14.15, 7.454 } }
 entries["ranch_item_shop"] =
 	{ assetId = 105082858859876, meshId = "rbxassetid://135059318016634", size = { 15.391, 16.558, 8.15 } }
 entries["ranch_upgrade_cabinet"] =
@@ -412,7 +409,7 @@ entries["goo_jar_deck_3"] =
 entries["goo_jar_deck_4"] =
 	{ assetId = 130699055260662, meshId = "rbxassetid://128065437982156", size = { 42.2, 1.78, 42.2 } }
 entries["goo_jar_door"] =
-	{ assetId = 139300292465170, meshId = "rbxassetid://74526508452664", size = { 11.596, 11.6, 2.6 } }
+	{ assetId = 139300292465170, meshId = "rbxassetid://98914647327097", size = { 14.521, 13.06, 3.419 } }
 entries["goo_jar_door_ring"] =
 	{ assetId = 104855077088726, meshId = "rbxassetid://85299355296782", size = { 12.898, 12.9, 0.9 } }
 entries["goo_jar_foot"] =
@@ -434,23 +431,23 @@ entries["goo_jar_glass_4_top"] =
 entries["goo_jar_mascot"] =
 	{ assetId = 98686118721094, meshId = "rbxassetid://71405131358303", size = { 2.2, 1.567, 2.138 } }
 entries["goo_jar_stair"] =
-	{ assetId = 98196001176088, meshId = "rbxassetid://81662598331092", size = { 10.99, 16.776, 10.99 } }
+	{ assetId = 98196001176088, meshId = "rbxassetid://88590636410277", size = { 10.99, 17.026, 10.99 } }
 entries["goo_jar_stopper"] =
 	{ assetId = 121171735307209, meshId = "rbxassetid://98488330645221", size = { 9.889, 9.66, 1.508 } }
 entries["goo_jar_trim_1_mid"] =
-	{ assetId = 125609985796662, meshId = "rbxassetid://130215893669639", size = { 60.321, 16.05, 58.307 } }
+	{ assetId = 125609985796662, meshId = "rbxassetid://120746714361280", size = { 60.321, 16.05, 58.307 } }
 entries["goo_jar_trim_1_top"] =
-	{ assetId = 81111284959159, meshId = "rbxassetid://125794987301481", size = { 60.321, 22.688, 58.307 } }
+	{ assetId = 81111284959159, meshId = "rbxassetid://84276978768660", size = { 60.321, 22.688, 58.307 } }
 entries["goo_jar_trim_2_mid"] =
-	{ assetId = 98169175981967, meshId = "rbxassetid://108375268575125", size = { 53.091, 16.05, 50.916 } }
+	{ assetId = 98169175981967, meshId = "rbxassetid://103483321777206", size = { 53.091, 16.05, 50.916 } }
 entries["goo_jar_trim_2_top"] =
-	{ assetId = 121872413785229, meshId = "rbxassetid://72836074236220", size = { 53.091, 19.247, 50.916 } }
+	{ assetId = 121872413785229, meshId = "rbxassetid://123429952879708", size = { 53.091, 19.447, 50.916 } }
 entries["goo_jar_trim_3_mid"] =
-	{ assetId = 119020744731896, meshId = "rbxassetid://103107135493684", size = { 47.643, 16.05, 45.978 } }
+	{ assetId = 119020744731896, meshId = "rbxassetid://134431318553611", size = { 47.643, 16.05, 45.978 } }
 entries["goo_jar_trim_3_top"] =
-	{ assetId = 115479272829253, meshId = "rbxassetid://75683994927695", size = { 47.314, 19.412, 45.373 } }
+	{ assetId = 115479272829253, meshId = "rbxassetid://75595505600225", size = { 47.314, 19.612, 45.373 } }
 entries["goo_jar_trim_4_top"] =
-	{ assetId = 118248174951144, meshId = "rbxassetid://96346362080902", size = { 41.082, 17.988, 40.753 } }
+	{ assetId = 118248174951144, meshId = "rbxassetid://80680084772684", size = { 41.082, 18.188, 40.753 } }
 entries["goo_lock_button"] =
 	{ assetId = 132032016681033, meshId = "rbxassetid://140087463794943", size = { 5.0, 3.966, 5.0 } }
 -- Border v5 giant trees (WorldBorder.giants; 3-5x the border pines, MeshPart.Color tints the canopy). Open Cloud size-check.
@@ -647,7 +644,12 @@ entries["slime_nightwing"] =
 entries["slime_goozilla"] = { assetId = 95597031533993, size = { 3.204, 3.927, 5.049 }, offset = { 0, 1.907, 0.617 } }
 entries["slime_queen_jelly"] =
 	{ assetId = 108716301261458, size = { 4.401, 4.653, 4.403 }, offset = { -0.032, 2.337, 0.024 } }
+entries["slime_klawdius"] =
+	{ assetId = 110829970779610, size = { 6.072, 5.294, 5.242 }, offset = { 0.445, 2.64, 1.028 } }
+entries["slime_pumpking"] = { assetId = 95135050927158, size = { 3.54, 4.066, 3.57 }, offset = { 0, 2.033, -0.015 } }
 entries["slime_mecha_goo"] = { assetId = 78640546070601, size = { 4.48, 3.5, 3.579 }, offset = { 0, 1.75, 0.091 } }
+entries["slime_goomancer"] =
+	{ assetId = 118089713951424, size = { 4.683, 6.309, 3.725 }, offset = { 0.447, 3.042, -0.075 } }
 entries["slime_glitch"] =
 	{ assetId = 112653965607800, size = { 5.349, 4.23, 3.122 }, offset = { -0.037, 2.115, -0.011 } }
 entries["slime_doodle"] = { assetId = 74559390612314, size = { 4.192, 4.199, 3.276 }, offset = { 0, 2.025, -0.041 } }
@@ -710,9 +712,7 @@ MeshAssets.COLLISION = table.freeze({
 	-- bug #16: every plot's merge vat (MeshSwap.swapPlotVats): a blobby cauldron players bump into, never walk inside;
 	-- the hull also closes the gaps under the funnel spouts. The MergeVat disc under it keeps its own collision.
 	merge_vat = "Hull",
-	-- the shop stands (CONTRACT.md §27.2): a solid counter, not a box to stand inside. ranch_shop_stand is the single
-	-- ShopStand (FEATURES.WorldShops off), ranch_item_shop / ranch_upgrade_cabinet the Item / Upgrade Shop stands
-	ranch_shop_stand = "Hull",
+	-- the Item / Upgrade Shop stands (CONTRACT.md §27.2): a solid counter, not a box to stand inside
 	ranch_item_shop = "Hull",
 	ranch_upgrade_cabinet = "Hull",
 

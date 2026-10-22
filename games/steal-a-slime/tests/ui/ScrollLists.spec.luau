@@ -1,7 +1,7 @@
 --!strict
--- v26: scroll list rows must not stack. Builds the real Shop, Goals, Merge,
--- Dex, Rebirth and Leaderboard panels (tests/ui/UiHarness.luau), feeds
--- them a server State while hidden (as setOpen did live) and checks every
+-- Scroll list rows must not stack. Builds the real world shop, Goals, Merge
+-- and Dex panels (tests/ui/UiHarness.luau), feeds them a server State while
+-- hidden (as setOpen does live) and checks every
 -- row's rect: Y = paddingTop + sum(previous heights + gaps), pairwise
 -- disjoint, inside the canvas, at the gate viewport sizes.
 local roblox = require("@lune/roblox") :: any
@@ -13,10 +13,10 @@ local Genome = require("../../src/shared/Genome")
 local Layout = require("../../src/ui/Layout")
 local Remotes = require("../../src/shared/Remotes")
 local ServerFixtures = require("../ServerFixtures")
-local ShopCatalog = require("../../src/ui/ShopCatalog")
 local Snapshot = require("../../src/server/Snapshot")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
+local WorldShopLogic = require("../../src/ui/WorldShopLogic")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local Enum, UDim2 = roblox.Enum, roblox.UDim2
@@ -122,22 +122,16 @@ local function state(): any
 	return Snapshot.build(world, session, ServerFixtures.T0)
 end
 
-local BOARD = {
-	entries = {
-		{ rank = 2, userId = 2, name = "B", value = 900 },
-		{ rank = 1, userId = 1, name = "A", value = 1000 },
-		{ rank = 3, userId = 3, name = "C", value = 10 },
-	},
-}
-
--- Builds panel `key`, hides it, places it in Layout.panelFor at w x h, feeds
--- it State, then shows it: the setOpen order live.
-local function openPanel(key: string, w: number, h: number): (any, Layout.Rect)
+-- Builds panel `key` (a world shop card shows `shopId`), hides it, places it in Layout.panelFor at w x h,
+-- feeds it State, then shows it: the setOpen order live.
+local function openPanel(key: string, w: number, h: number, shopId: string?): (any, Layout.Rect)
 	local module = UiHarness.ui(`Panels/{key}`)
 	local panel = module.new(UiHarness.root(), ctx())
 	panel.frame.Visible = false
-	local layoutKey = if key == "Leaderboard" then "Merge" else key
-	local raw = Layout.panelFor(Layout.screen(w, h), layoutKey)
+	if panel.setShop then
+		panel.setShop(shopId or "UpgradeShop")
+	end
+	local raw = Layout.panelFor(Layout.screen(w, h), key)
 	-- UDim offsets are integers (Roblox truncates; Lune rejects fractions).
 	local r = Layout.rect(math.floor(raw.x), math.floor(raw.y), math.floor(raw.w), math.floor(raw.h))
 	panel.frame.Size = UDim2.fromOffset(r.w, r.h)
@@ -149,9 +143,6 @@ local function openPanel(key: string, w: number, h: number): (any, Layout.Rect)
 	end
 	if panel.update then
 		panel.update(state())
-	end
-	if panel.setBoard then
-		panel.setBoard(BOARD)
 	end
 	panel.frame.Visible = true
 	return panel, r
@@ -219,7 +210,7 @@ describe("Widgets.scrollList", function()
 	end)
 end)
 
-local PANELS = { "Shop", "Goals", "Merge", "Dex", "Leaderboard" }
+local PANELS = { "WorldShop", "Goals", "Merge", "Dex" }
 
 describe("Scroll list panels (opened hidden, as setOpen did)", function()
 	for _, key in PANELS do
@@ -236,18 +227,19 @@ describe("Scroll list panels (opened hidden, as setOpen did)", function()
 		end
 	end
 
-	it("Shop lists every catalogue item as its own 68px row (v28)", function()
-		local panel, r = openPanel("Shop", 390, 844)
-		local g = geometry(panel, r)
-		expect(#g.rows).toBe(#ShopCatalog.views(state(), Remotes.ACTIONS, Config))
-		expect(#g.rows >= 5).toBe(true)
-		for i, row in g.rows do
-			expect(row.h).toBe(68)
-			if i > 1 then
-				expect(row.y - g.rows[i - 1].y).toBe(68 + g.gap)
+	for _, shopId in { "ItemShop", "UpgradeShop" } do
+		it(`{shopId} lists every row of the shop, ROW or ROW_LEVELS tall`, function()
+			local WorldShop = UiHarness.ui("Panels/WorldShop")
+			local panel, r = openPanel("WorldShop", 390, 844, shopId)
+			local g = geometry(panel, r)
+			expect(#g.rows).toBe(#WorldShopLogic.rows(shopId, state(), Remotes.ACTIONS, Config.FEATURES, Config))
+			expect(#g.rows >= 1).toBe(true)
+			for _, row in g.rows do
+				expect(row.h == WorldShop.ROW or row.h == WorldShop.ROW_LEVELS).toBe(true)
 			end
-		end
-	end)
+			expect(table.concat(rowProblems(g.rows, g.gap, g.canvasH, g.listW), "\n")).toBe("")
+		end)
+	end
 
 	it("Goals keeps rows apart after a second update (re-sync while open)", function()
 		local panel, r = openPanel("Goals", 1366, 768)
