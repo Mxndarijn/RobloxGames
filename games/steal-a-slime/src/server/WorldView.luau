@@ -203,6 +203,19 @@ function WorldView.pad(plotIndex: number, pad: number): BasePart?
 	return nil
 end
 
+-- Pads 1..Config.PADS_MAX of a plot with one scan of the plot's children (same result as WorldView.pad per index).
+local function plotPads(plotIndex: number): { [number]: BasePart }
+	local found =
+		PlotLookup.allByIndex(WorldView.plot(plotIndex), Constants.PAD_INDEX_ATTRIBUTE, Config.PADS_MAX, "Pad_")
+	local pads: { [number]: BasePart } = {}
+	for index, part in found do
+		if part:IsA("BasePart") then
+			pads[index] = part
+		end
+	end
+	return pads
+end
+
 -- Top surface of a pad. Slime models pivot at the bottom centre (ModelFactory sets
 -- Body.PivotOffset), so model:PivotTo(padTop) rests the slime on the pad.
 local function padTop(plotIndex: number, pad: number): CFrame?
@@ -1260,8 +1273,9 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 					if session then PlotSkins.current(session.data) else Config.PLOT_SKIN_DEFAULT
 				)
 			end
+			local pads = plotPads(index)
 			for pad = 1, Config.PADS_MAX do
-				local part = WorldView.pad(index, pad)
+				local part = pads[pad]
 				if part then
 					local unlocked = pad <= view.padsUnlocked
 					setIfChanged(part, Constants.PAD_UNLOCKED_ATTRIBUTE, unlocked)
@@ -1280,7 +1294,7 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 				applyPrompt(prompts[Constants.LOCK_PROMPT_NAME], view.lock, view.ownerUserId)
 				applyPrompt(prompts[Constants.MERGE_PROMPT_NAME], view.merge, view.ownerUserId)
 				local buyPad = prompts[Constants.BUY_PAD_PROMPT_NAME]
-				local padPart = WorldView.pad(index, view.buyPad.pad)
+				local padPart = pads[view.buyPad.pad] or WorldView.pad(index, view.buyPad.pad)
 				if buyPad and padPart and buyPad.Parent ~= padPart then
 					buyPad.Parent = padPart
 				end
