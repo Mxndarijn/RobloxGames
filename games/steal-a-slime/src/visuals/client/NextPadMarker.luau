@@ -110,7 +110,7 @@ end
 local function nextPad(plot: Model, userId: number): BasePart?
 	for _, d in plot:GetDescendants() do
 		if d:IsA("ProximityPrompt") and d.Name == Constants.BUY_PAD_PROMPT_NAME and d.Enabled then
-			local shownTo = (d :: any).ShowOnlyToUserId
+			local shownTo = d:GetAttribute(Constants.PROMPT_OWNER_ATTRIBUTE)
 			local pad = d.Parent
 			if (shownTo == nil or shownTo == 0 or shownTo == userId) and pad and pad:IsA("BasePart") then
 				return pad
