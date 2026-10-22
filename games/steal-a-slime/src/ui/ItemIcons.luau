@@ -80,10 +80,12 @@ ItemIcons.IMAGES = {
 	Perk_income = 94766482619711,
 	Perk_luck = 80060700315838,
 	Pet = 118993346386827,
-	PlotSkin_candy = 75125399713715,
-	PlotSkin_classic = 75405645541984,
-	PlotSkin_crystal = 91231773101915,
-	PlotSkin_mushroom = 110584867448733,
+	PlotSkin_candy = 98677550689246,
+	PlotSkin_classic = 105086598289035,
+	PlotSkin_crystal = 72221778465251,
+	PlotSkin_garden = 137369313958309,
+	PlotSkin_mushroom = 87372547969408,
+	PlotSkin_starlight = 72155200538920,
 	Pvp_Bat = 107609481658581, -- default melee Bat (Tool 'Bat', shared/BatModel.ICON_ID); not a Config.PVP_TOOLS item
 	Pvp_FunBalloon = 139662990313432,
 	Pvp_FunBouncePad = 127452735645388,
@@ -114,8 +116,7 @@ ItemIcons.IMAGES = {
 	Upgrade_OfflineCap = 119754785018464,
 } :: { [string]: number }
 
--- Groups whose items are UI-drawn (ItemIconArt recipe per id). Kit-mesh plot skins stay "model"
--- (live mesh) and show their drawn diorama while the mesh is missing.
+-- Groups whose items are UI-drawn (ItemIconArt recipe per id); an uploaded picture in IMAGES wins over the drawing.
 ItemIcons.DRAWN_GROUPS = table.freeze({
 	shop = true,
 	upgrade = true,
@@ -139,24 +140,19 @@ ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
 
 -- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
--- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet, plot skins without a picture and the Boss MVP boost.
+-- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet and the Boss MVP boost.
 ItemIcons.AWAITING_UPLOAD = table.freeze({
 	"Dex_8",
 	"Dex_15",
 	"Dex_20",
 	"Dex_32",
 	"Dex_40",
-	"PlotSkin_garden",
-	"PlotSkin_starlight",
 	"Boost_Mvp",
 } :: { string })
 
--- Kit meshes that exist in MeshAssets (shared/MeshAssets NAMES) and may back a "mesh" model.
-ItemIcons.MESHES = table.freeze({
-	PlotSkin_mushroom = "plot_skin_mushroom",
-	PlotSkin_candy = "plot_skin_candy",
-	PlotSkin_crystal = "plot_skin_crystal",
-})
+-- id -> MeshAssets name: an item that shows that kit mesh as a live model, with its picture as the fallback.
+-- Empty: the plot skins show their tower pictures (tools/icons/recipes_skin.py).
+ItemIcons.MESHES = {} :: { [string]: string }
 
 local function freeze(spec: any): Spec
 	return table.freeze(spec)
@@ -498,10 +494,10 @@ function ItemIcons.build(config: any)
 			id = `PlotSkin_{s.id}`,
 			name = s.name,
 			group = "skin",
-			color = if s.trim then s.trim else { 200, 200, 200 },
+			color = s.color or { 200, 200, 200 },
 			glyph = "🏡",
 			model = if mesh then { kind = "mesh", mesh = mesh } else nil,
-			brief = `Mini diorama of the '{s.name}' plot (floor, fence and decor); 3/4 view from above.`,
+			brief = `Top of the '{s.name}' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view.`,
 		})
 	end
 
