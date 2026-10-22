@@ -14,7 +14,7 @@ Tick each box; note anything odd with the time and what you did (the server prin
 ## New in v10 (try these first)
 
 - **Prettier map (Archer):** rim rocks around the crater, a ring path, rocks / crystals / mushrooms, torches, glowing lava cracks, edge boulders, lights. Client-side volcano smoke, embers and an **eruption burst** every 9–16 s (every 3–6 s during Slime Rain). Slime Rain now also drops big goo blobs and tints the screen.
-- **Shop stand** next to the volcano (striped awning, "SHOP" sign). Walk up: **E = Speed Coil ($1,500)**, **F = Longer locks**. The HUD **Shop** panel now has working **Longer locks** and **Speed Coil** rows (no more "Coming soon").
+- **Shop stand** next to the volcano (striped awning, jelly shop sign). Walk up: **E = Speed Coil ($1,500)**, **F = Longer locks**. The HUD **Shop** panel now has working **Longer locks** and **Speed Coil** rows (no more "Coming soon").
   - [ ] Buy the Speed Coil: a coil tool appears in your Backpack, you run faster (24 vs 16) whenever you're **not** carrying. It comes back after a reset and after rejoining; the row says **Owned**.
   - [ ] Buy Longer locks: each level (max 5, $500 → $100K) makes every Lock 15 s longer; the Lock row's duration goes up. Both upgrades survive a **rebirth** and a rejoin.
 - **Tutorial for new players:** a card (6 steps: grab → bring home → lock → merge → steal → rebirth) and a **yellow-green arrow beam** from you to the next target (volcano, your plot, LockButton, MergeVat, another player's plot). Each step completes from actually doing it; a later action skips ahead. A "Tutorial complete!" toast at the end. Players with older saves (slimes or rebirths) don't get it; use a fresh/alt account to see it.

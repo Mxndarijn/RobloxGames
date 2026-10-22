@@ -4,7 +4,7 @@
 
 	Shows the local player where their own plot is (client only, see
 	client/HomePlotMarker): a light beacon over the plot, a glowing ring along
-	the round plot floor's edge, a "YOUR PLOT" tag with the player's avatar and an edge-of-screen arrow
+	the round plot floor's edge, a "Your plot" tag (a mint house badge) and an edge-of-screen arrow
 	while the plot is off screen. This module holds the look numbers and the
 	math; it touches no Roblox API.
 
@@ -26,7 +26,7 @@ HomePlotMarker.COLOR = table.freeze({ 126, 217, 87 }) -- Widgets.Theme.Good: "yo
 HomePlotMarker.BEACON_HEIGHT = 220 -- studs above the plot floor
 HomePlotMarker.BEACON_WIDTH = 4 -- bright core
 HomePlotMarker.HALO_WIDTH = 11 -- soft glow around the core
-HomePlotMarker.TAG_HEIGHT = 30 -- "YOUR PLOT" tag, studs above the floor
+HomePlotMarker.TAG_HEIGHT = 30 -- "Your plot" tag, studs above the floor
 HomePlotMarker.RIM_WIDTH = 2 -- floor rim ring width, studs
 HomePlotMarker.RIM_SEGMENTS = 48 -- straight strips that make up the ring
 HomePlotMarker.FADE_BAND = 40 -- studs past the plot edge over which the beacon fades in

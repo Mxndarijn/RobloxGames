@@ -23,7 +23,7 @@
 	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
 	  * the Mystery Egg hatch show on the pad (EggHatchFx) from a hatched slime's HatchedAt / HatchedFrom / HatchLucky
-	  * home plot marker (HomePlotMarker): beacon, floor rim, "YOUR PLOT" tag and edge arrow on the local player's own plot
+	  * home plot marker (HomePlotMarker): beacon, floor rim, "Your plot" tag and edge arrow on the local player's own plot
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
 	  * slime fountain (still Map.Volcano.Crater): goo spray ("Smoke"),
