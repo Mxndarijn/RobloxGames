@@ -243,6 +243,20 @@ local function lookOf(target: Instance, name: string): string
 	return ThemeMeshes.look(name, skinOf(target), uploaded)
 end
 
+-- A mascot slot with the crown beside it (the last jar, WorldLayout jarLooks): no hat there.
+local function crowned(target: Instance): boolean
+	local parent = target.Parent
+	if not (parent and target:GetAttribute("MeshAsset") == "goo_jar_mascot") then
+		return false
+	end
+	for _, sibling in parent:GetChildren() do
+		if sibling:GetAttribute("MeshAsset") == "goo_jar_crown" then
+			return true
+		end
+	end
+	return false
+end
+
 -- A theme's companion mesh on a piece slot (the props on the foot, the hat on each mascot), as the slot's
 -- ThemeExtra child: placed from the JarMeshes boxes, hidden while the slot's jar is (JarHidden, BaseFloors). Yields.
 local function addCompanion(target: BasePart, name: string)
@@ -251,6 +265,9 @@ local function addCompanion(target: BasePart, name: string)
 		extra:Destroy()
 	end
 	local companion = ThemeMeshes.companion(name, skinOf(target), uploaded)
+	if crowned(target) then
+		companion = nil -- the last jar's mascot wears the crown instead of the theme's hat
+	end
 	local piece = (JarMeshes :: any)[name]
 	local box = companion and (JarMeshes :: any)[companion]
 	local meshId = companion and MeshAssets.meshId(companion)
@@ -707,7 +724,7 @@ function MeshSwap.themePlot(plot: Instance): number
 		end
 		local want = lookOf(slot, name)
 		local extra = slot:FindFirstChild(MeshSwap.EXTRA_NAME)
-		local companion = ThemeMeshes.companion(name, skinOf(slot), uploaded)
+		local companion = if crowned(slot) then nil else ThemeMeshes.companion(name, skinOf(slot), uploaded)
 		local hasExtra = if extra then extra:GetAttribute(MeshSwap.LOOK_ATTRIBUTE) else nil
 		if (mesh :: Instance):GetAttribute(MeshSwap.LOOK_ATTRIBUTE) == want and hasExtra == companion then
 			continue
