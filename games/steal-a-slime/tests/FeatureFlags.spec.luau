@@ -1,6 +1,6 @@
 --!strict
 -- Lune only (copies the tree, spawns lune): Config.FEATURES is frozen, so the flag-flipped mode of
--- the Consumables / StealAlerts hardening specs runs in a temp copy of src/ + tests/ whose
+-- the Consumables / StealAlerts hardening specs runs in a temp copy of src/ + tests/ (+ shared/luau/src) whose
 -- Config has that one flag inverted. The hardening specs assert both modes, so each must pass flipped.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -28,7 +28,12 @@ local function copyDir(from: string, to: string)
 end
 
 local function flipped(flag: string, spec: string): (boolean, string)
-	local root = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-flags-{flag}-{os.time()}-{math.floor(os.clock() * 1e6)}`
+	-- The copy keeps the repo layout so `Lib` requires (../../../../shared/luau/src) still resolve.
+	local base = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-flags-{flag}-{os.time()}-{math.floor(os.clock() * 1e6)}`
+	local root = `{base}/games/steal-a-slime`
+	fs.writeDir(`{base}/games`)
+	fs.writeDir(`{base}/shared/luau`)
+	copyDir("../../shared/luau/src", `{base}/shared/luau/src`)
 	copyDir("src", `{root}/src`)
 	fs.writeDir(`{root}/tests`)
 	for _, name in SUPPORT do
@@ -50,7 +55,7 @@ local function flipped(flag: string, spec: string): (boolean, string)
 	-- rokit resolves `lune` from the nearest manifest; the temp copy needs one too.
 	fs.writeFile(`{root}/rokit.toml`, fs.readFile("rokit.toml"))
 	local result = process.exec("lune", { "run", "tests/run" }, { cwd = root })
-	fs.removeDir(root)
+	fs.removeDir(base)
 	return result.ok, result.stdout .. result.stderr
 end
 

@@ -33,9 +33,12 @@ rm -rf "$tmp/src/visuals/static" # Archer's build-map output, not in the Rojo tr
 mkdir -p "$tmp/lib"
 cp -r "$root/../../shared/luau/src" "$tmp/lib/"
 perl -pi -e 's#"\.\./\.\./shared/luau/src"#"lib/src"#' "$tmp/default.project.json"
-find "$tmp/src" "$tmp/lib" -name '*.luau' -print0 | xargs -0 perl -pi -e '
-	s/if (?:Shared|script) then (require\([^)]*\)) else require\("[^"]+"\)/$1/g;
-	s/^local Shared = if script then \(game:GetService\("ReplicatedStorage"\) :: any\)\.Shared else nil/local Shared = game:GetService("ReplicatedStorage").Shared/;
+# Whole-file pass (-0) so a guard stylua wrapped over three lines is rewritten too; the newlines it spanned are
+# kept after the require, so line numbers stay the same.
+find "$tmp/src" "$tmp/lib" -name '*.luau' -print0 | xargs -0 perl -0pi -e '
+	s/if (?:Shared|script|Lib)(\s+)then (require\([^)]*\))(\s+)else require\("[^"]+"\)/$2 . ("\n" x (($1 . $3) =~ tr{\n}{}))/ge;
+	s/^local Shared = if script then \(game:GetService\("ReplicatedStorage"\) :: any\)\.Shared else nil/local Shared = game:GetService("ReplicatedStorage").Shared/mg;
+	s/^local Lib = if script then \(game:GetService\("ReplicatedStorage"\) :: any\)\.Lib else nil/local Lib = game:GetService("ReplicatedStorage").Lib/mg;
 '
 
 cd "$tmp"

@@ -33,6 +33,7 @@ local CarryDrop = if script then require(script.Parent.CarryDrop) else require("
 local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
+local SlimeGuard = if script then require(script.Parent.SlimeGuard) else require("./SlimeGuard")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -143,7 +144,7 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	if world.wild[slimeId] then
 		return Carry.grabWild(world, session, slimeId, distance, now)
 	end
-	return StealService.steal(world, session, slimeId, distance, now)
+	return StealService.steal(world, session, slimeId, distance, now, SlimeGuard.stealBlock(world, userId, now))
 end
 
 -- The boss carrier got home: the fight is won: the carrier wins, helpers are credited (BossCredit.win). The boss slime is
@@ -257,6 +258,9 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 	local ok, result = Steal.complete(owner.data, session.data, carry.slimeId)
 	if not ok then
 		return false, result :: string
+	end
+	if now then
+		SlimeGuard.recordSteal(world, userId, owner, result :: Genome.Slime, now)
 	end
 	session.carry = nil
 	world.carriedBy[carry.slimeId] = nil

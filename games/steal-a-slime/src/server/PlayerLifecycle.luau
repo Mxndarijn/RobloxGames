@@ -61,6 +61,7 @@ local function onCharacter(deps: Deps, player: Player, character: Model)
 		task.defer(function()
 			if character.Parent then
 				character:PivotTo(spawn)
+				WorldView.markServerMove(player.UserId)
 			end
 		end)
 	end

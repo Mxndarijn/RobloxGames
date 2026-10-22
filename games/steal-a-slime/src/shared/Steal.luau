@@ -44,6 +44,8 @@ export type StealContext = {
 	distance: number,
 	thiefCanSave: boolean, -- this server saves the thief's progress
 	ownerCanSave: boolean, -- this server saves the owner's progress
+	recentTeleport: boolean?, -- SlimeGuard (enforce): the thief teleported a moment ago
+	stealsPaused: boolean?, -- SlimeGuard (enforce): the thief's suspicion points paused their steals
 }
 
 export type SlapContext = {
@@ -117,6 +119,12 @@ function Steal.canSteal(ctx: StealContext): (boolean, string?)
 	end
 	if Steal.isLocked(ctx.lockUntil, ctx.now) then
 		return false, "base is locked"
+	end
+	if ctx.stealsPaused then
+		return false, "stealing is paused for a moment"
+	end
+	if ctx.recentTeleport then
+		return false, "too far away" -- the same text as a normal miss: a cheater learns nothing
 	end
 	if ctx.thiefCarrying then
 		return false, "already carrying a slime"
