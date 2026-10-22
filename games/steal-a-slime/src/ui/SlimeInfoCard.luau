@@ -217,6 +217,7 @@ for _, name in SlimeLabel.ATTRIBUTES do
 end
 WATCHED[Constants.LABEL_HEIGHT_ATTRIBUTE] = true
 WATCHED[Constants.HATCHED_AT_ATTRIBUTE] = true
+WATCHED[Constants.HATCH_POPPING_ATTRIBUTE] = true
 
 export type Options = {
 	collection: CollectionService,
@@ -264,7 +265,9 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 		local view = SlimeLabel.view(SlimeInfoCard.read(model))
 		-- A slime that just hatched keeps its label hidden until the hatch show reveals it.
 		local hatchedAt = model:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE)
-		if view and hatchedAt ~= nil and SlimeLabel.hiddenByHatch(hatchedAt, workspace:GetServerTimeNow()) then
+		if model:GetAttribute(Constants.HATCH_POPPING_ATTRIBUTE) == true then
+			view = nil
+		elseif view and hatchedAt ~= nil and SlimeLabel.hiddenByHatch(hatchedAt, workspace:GetServerTimeNow()) then
 			view = nil
 			local wait = (hatchedAt :: number) + Config.MYSTERY_EGG.HATCH_REVEAL_SECONDS - workspace:GetServerTimeNow()
 			task.delay(math.max(0.05, wait), function()

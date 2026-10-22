@@ -6,7 +6,7 @@
 
 Now and then the fountain drops a **Mystery Egg** instead of a slime. It rides the lane like a wild slime and is grabbed, bought, carried, dropped and slapped loose the same way. Once it is on a pad it **incubates**: after the egg's hatch time (real time, also while the owner is offline) it is **ready**, and the owner holds **Hatch** to get the slime inside. Incubating and ready eggs **can be stolen** like slimes, and the thief keeps the progress. While the owner stands in their own HomeZone, their eggs incubate `WARM_SPEED` x faster.
 
-The hatch is a show on the pad (40.6): the egg wobbles, cracks, bursts and the slime pops out, and every nearby player sees it.
+The hatch is a show on the pad (40.6): the egg rocks, cracks and bursts and the slime pops out, and every nearby player sees it.
 
 ## 40.2 Data
 
@@ -53,11 +53,11 @@ An egg is never merged (Merge Vat, 3-slime vat, merge assist), never counts for 
 
 ## 40.6 The hatch show
 
-- For `HATCH_FX_SECONDS` after a hatch the new slime model carries **`HatchedAt`** (server time of the hatch), **`HatchedFrom`** (the egg kind id) and **`HatchLucky`** (true for a lucky egg or a meter guarantee). Set before the model is parented, cleared after.
-- Client `EggHatchFx` (`src/visuals/client`, timeline in `Visuals.EggHatchTimeline`, pure) plays it for every client within `EggHatchFx.MAX_DISTANCE`, keyed on server time so every viewer sees the same moment; a late viewer joins mid-way, one after the end sees nothing:
-  1. **Wobble** (0 to 1.5 s): a local copy of the egg (the ready egg cloned before the hatch, else `EggModel.build`) rocks three times, harder each time; its glow steps through the rarity colours from the kind's lowest drop up to the hatch's tier.
-  2. **Hold** (1.5 to 2 s): a fast shiver and a bright glow; a lucky hatch flashes gold. The owner's camera eases in a little.
-  3. **Burst** (2 s): the copy is replaced by shell shards, a flash, a ring and sparks in the rarity colour.
-  4. **Pop** (2 to 2.6 s): the slime, kept tiny until now (client `Model:ScaleTo`), springs up with a squash-and-stretch. Epic and up add a light pillar.
-  5. **Reveal** (from 2.6 s, `HATCH_REVEAL_SECONDS`): a rarity title ("LEGENDARY!", "LUCKY!") floats up and the slime's label returns. `SlimeInfoCard` hides the label of a model whose `HatchedAt` is less than `HATCH_REVEAL_SECONDS` old.
-- Nothing in the show replicates or decides anything; the slime is already the server's.
+- **Server.** For `HATCH_BURST_SECONDS` after a hatch the pad still shows the egg: `Scene` describes the slime as its egg (`MysteryEgg.shell`: the egg name, no income, no Hatch prompt), so WorldView keeps the egg model, then swaps it for the slime model. For `HATCH_FX_SECONDS` the model on the pad carries **`HatchedAt`** (server time of the hatch), **`HatchedFrom`** (egg kind id) and **`HatchLucky`** (true for a lucky egg or a meter guarantee); while it is still the egg it also carries **`HatchTier`** (the tier inside, for the glow). The record itself is the slime from the hatch on (State, income, saves).
+- **Client** `EggHatchFx` (`src/visuals/client`, numbers in `Visuals.EggHatchTimeline`, pure) for every viewer within `EggHatchFx.MAX_DISTANCE`:
+  1. **Wobble** (egg time 0 to 2.3 s, server clock): the real egg is hidden locally and a local copy rocks three times with a hop, harder each time; each rock opens a new set of glowing cracks; the glow climbs the rarity colours from the kind's lowest drop to `HatchTier`.
+  2. **Hold** (2.3 s to the burst): the copy swells and shakes, glow at full; a lucky hatch flashes gold. The owner's camera eases in.
+  3. **Burst** (`HATCH_BURST_SECONDS`, or when the egg model goes): shards, the egg's top flying off, a flash, a ring and sparks in the rarity colour.
+  4. **Pop** (when the slime model reaches the client): the real slime is hidden locally (`LocalTransparencyModifier`; parts the server adds meanwhile too) and sets the client-local attribute **`HatchPopping`** while a local copy springs up from tiny with an overshoot; then the real one shows again. Nothing rescales the real model. Epic and up get a light pillar; a rarity title ("LEGENDARY!", "LUCKY! MYTHIC!") floats up.
+- `SlimeInfoCard` hides the label of a model whose `HatchedAt` is less than `HATCH_REVEAL_SECONDS` old or that has `HatchPopping`.
+- Nothing in the show replicates or decides anything.

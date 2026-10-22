@@ -108,16 +108,16 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 | 1 | Goo Getter | unlocks the CarrySpeed upgrade |
 | 3 | Slime Wrangler | unlocks the OfflineCap upgrade |
 | 5 | Blob Baron | unlocks the Luck upgrade |
-| 6 | Goo Tycoon | keep 2 slimes on rebirth |
+| 6 | Goo Tycoon | +5 % income |
 | 7 | Jelly Magnate | +10 % income |
 | 8 | Ooze Overlord | +15 % income |
-| 10 | Slime Sovereign | keep 3 slimes, +25 % income |
+| 10 | Slime Sovereign | +25 % income |
 | 12 | Gel Emperor | +35 % income |
-| 15 | Gelatinous Legend | keep 4 slimes, +50 % income |
+| 15 | Gelatinous Legend | +50 % income |
 | 20 | Mythic Monarch | +100 % income |
-| 30 | Slime Deity | keep 5 slimes, +200 % income |
+| 30 | Slime Deity | +200 % income |
 
-  Rebirth keeps the favourite first, then the best slimes by income, up to the rank's keep count (not busy ones).
+  Rebirth keeps every slime it doesn't use up (§8.8a), at every rank.
 - **Upgrades** (`Config.UPGRADES`, `src/shared/Upgrades.luau`; price of level n+1 = `base x growth^n`):
 
 | id | Name | Per level | Max | base / growth | Needs rebirths |
@@ -154,7 +154,7 @@ inputs can be caught, and event Secrets are never asked for. The cash cost stays
 
 The rebirth **uses those slimes up** (`Progression.payment`): for each listed species the
 matching slime cheapest to lose is taken (anything but the favourite first, then the lowest
-income). They can't be keepers; the normal wipe and keeper rule apply to the rest.
+income). Every other slime stays where it is; only cash resets.
 
 State has `rebirthSlimes: { { id, name, tier, color, owned } }`, one row per required slime
 (empty at `MAX_REBIRTHS`); `canRebirth` already includes the slime check.

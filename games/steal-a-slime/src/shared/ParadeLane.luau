@@ -61,7 +61,9 @@ local DespawnTelegraph = if script then require(script.Parent.DespawnTelegraph) 
 
 export type Phase = "Ride" | "Walk" | "Drain" | "Gone"
 -- A dropped slime's walk back to the lane: a quadratic Bezier (from, nearest lane point, merge point); `s` = lane
--- distance of the merge point, `length` its arc length in studs, `speed` studs / s.
+-- distance of the merge point, `length` its arc length in studs, `speed` studs / s. With a `route` (flat x, z
+-- waypoints the server's pathfinding found round walls and down stairs, see reroute) it first walks from the drop
+-- spot along those, `routeLength` studs, and the Bezier starts at the route's last point; `length` covers both.
 export type Return = {
 	fromX: number,
 	fromZ: number,
@@ -74,6 +76,8 @@ export type Return = {
 	arriveAt: number,
 	speed: number,
 	length: number,
+	route: { number }?,
+	routeLength: number?,
 }
 export type Pose = {
 	position: { number }, -- x, y (pivot = slime bottom), z
@@ -115,6 +119,8 @@ ParadeLane.RETURN_DELAY = 0.6 -- seconds from the drop to the first step (it fal
 ParadeLane.RETURN_EASE = 0.8 -- seconds to speed up from a stand to its lane pace
 ParadeLane.RETURN_MERGE = 8 -- studs past the nearest lane point where it merges onto the lane (at most half the walk)
 ParadeLane.RETURN_SAMPLES = 24 -- Bezier chords for its arc length
+ParadeLane.RETURN_LOOK = 3 -- studs ahead a slime on its route faces (turns ease round the waypoints)
+ParadeLane.REROUTE_GRACE = 0.5 -- seconds past startAt a route may still replace the straight walk (it has barely moved)
 -- Farther than this from the lane is off the map (the ground is 640 x 640 round the fountain, its corners ~385 studs
 -- from the lane): no walk, it goes back to its fountain spot like any drop over the void (CONTRACT.md §8.11).
 ParadeLane.RETURN_MAX_GAP = 400
@@ -672,15 +678,53 @@ function ParadeLane.rejoin(s: number, lifetime: number, at: number): (number, nu
 	return spawnedAt, spawnedAt + lifetime
 end
 
+-- Where the Bezier starts: the route's last point, or the drop spot.
+local function curveStart(plan: Return): (number, number)
+	local path = plan.route
+	if path and #path >= 2 then
+		return path[#path - 1], path[#path]
+	end
+	return plan.fromX, plan.fromZ
+end
+
 local function bezier(plan: Return, u: number): (number, number)
 	local a, b, c = (1 - u) * (1 - u), 2 * (1 - u) * u, u * u
-	return a * plan.fromX + b * plan.x1 + c * plan.x2, a * plan.fromZ + b * plan.z1 + c * plan.z2
+	local sx, sz = curveStart(plan)
+	return a * sx + b * plan.x1 + c * plan.x2, a * sz + b * plan.z1 + c * plan.z2
+end
+
+-- Spot `want` studs along the route leg (from the drop spot through every route point).
+local function routeAt(plan: Return, want: number): (number, number)
+	local path = plan.route or {}
+	local px, pz = plan.fromX, plan.fromZ
+	local walked = 0
+	for i = 1, #path - 1, 2 do
+		local x, z = path[i], path[i + 1]
+		local chord = math.sqrt((x - px) ^ 2 + (z - pz) ^ 2)
+		if walked + chord >= want then
+			local k = if chord > 1e-9 then (want - walked) / chord else 0
+			return px + (x - px) * k, pz + (z - pz) * k
+		end
+		walked += chord
+		px, pz = x, z
+	end
+	return px, pz
+end
+
+local function routeLength(fromX: number, fromZ: number, path: { number }): number
+	local length = 0
+	local px, pz = fromX, fromZ
+	for i = 1, #path - 1, 2 do
+		length += math.sqrt((path[i] - px) ^ 2 + (path[i + 1] - pz) ^ 2)
+		px, pz = path[i], path[i + 1]
+	end
+	return length
 end
 
 -- Bezier parameter `want` studs along the curve (the same RETURN_SAMPLES chords that measure its length).
 local function bezierAt(plan: Return, want: number): number
 	local walked = 0
-	local px, pz = plan.fromX, plan.fromZ
+	local px, pz = curveStart(plan)
 	for i = 1, ParadeLane.RETURN_SAMPLES do
 		local x, z = bezier(plan, i / ParadeLane.RETURN_SAMPLES)
 		local chord = math.sqrt((x - px) ^ 2 + (z - pz) ^ 2)
@@ -696,7 +740,7 @@ end
 
 local function bezierLength(plan: Return): number
 	local length = 0
-	local px, pz = plan.fromX, plan.fromZ
+	local px, pz = curveStart(plan)
 	for i = 1, ParadeLane.RETURN_SAMPLES do
 		local x, z = bezier(plan, i / ParadeLane.RETURN_SAMPLES)
 		length += math.sqrt((x - px) ^ 2 + (z - pz) ^ 2)
@@ -756,14 +800,58 @@ function ParadeLane.returnPlan(x: number, z: number, lateral: number, lifetime: 
 	return plan
 end
 
+--[[
+	The same walk along a pathfinding `path` (flat x, z waypoints from just
+	after the drop spot to near the nearest lane point, round walls, through
+	doorways and down stairs): same start, startAt, pace and merge point; it
+	walks the route, then the Bezier from the route's last point onto the
+	lane. `length` and `arriveAt` grow with the detour (the caller re-runs
+	rejoin). A route with no point returns the plan unchanged.
+]]
+function ParadeLane.reroute(plan: Return, path: { number }): Return
+	if #path < 2 then
+		return plan
+	end
+	local out = table.clone(plan)
+	out.route = table.clone(path)
+	out.routeLength = routeLength(plan.fromX, plan.fromZ, path)
+	out.length = (out.routeLength :: number) + bezierLength(out)
+	out.arriveAt = out.startAt + walkSeconds(out.length, out.speed)
+	return out
+end
+
+-- Spot `want` studs into the walk (route leg, then the Bezier).
+local function walkAt(plan: Return, want: number): (number, number)
+	local leg = plan.routeLength or 0
+	if want < leg then
+		return routeAt(plan, want)
+	end
+	local u = if want < plan.length then bezierAt(plan, want - leg) else 1
+	return bezier(plan, u)
+end
+
 -- Spot (x, z) and unit heading (hx, hz) of a returning slime at `now`: at the start until startAt, on the merge
--- point from arriveAt on. The heading is the curve's tangent (the lane's where the curve has none).
+-- point from arriveAt on. The heading is the curve's tangent (the lane's where the curve has none); on a rerouted
+-- walk it faces the spot RETURN_LOOK studs further on, so it turns smoothly round each waypoint.
 function ParadeLane.returnPose(plan: Return, now: number): (number, number, number, number)
 	local want = ParadeLane.returnTravelled(now - plan.startAt, plan.speed)
-	local u = if want < plan.length then bezierAt(plan, want) else 1
+	local leg = plan.routeLength or 0
+	local look = math.min(ParadeLane.RETURN_LOOK, plan.length - want)
+	if plan.route and look > 1e-3 then
+		-- the look ahead shrinks over the last RETURN_LOOK studs, so it hands over to the curve's tangent
+		local x, z = walkAt(plan, want)
+		local ax, az = walkAt(plan, want + look)
+		local dx, dz = ax - x, az - z
+		local d = math.sqrt(dx * dx + dz * dz)
+		if d > 1e-6 then
+			return x, z, dx / d, dz / d
+		end
+	end
+	local u = if want < plan.length then bezierAt(plan, math.max(0, want - leg)) else 1
 	local x, z = bezier(plan, u)
-	local hx = 2 * (1 - u) * (plan.x1 - plan.fromX) + 2 * u * (plan.x2 - plan.x1)
-	local hz = 2 * (1 - u) * (plan.z1 - plan.fromZ) + 2 * u * (plan.z2 - plan.z1)
+	local sx, sz = curveStart(plan)
+	local hx = 2 * (1 - u) * (plan.x1 - sx) + 2 * u * (plan.x2 - plan.x1)
+	local hz = 2 * (1 - u) * (plan.z1 - sz) + 2 * u * (plan.z2 - plan.z1)
 	local len = math.sqrt(hx * hx + hz * hz)
 	if len < 1e-6 then
 		local _, _, lx, lz = ParadeLane.pointAt(plan.s)
