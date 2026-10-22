@@ -62,9 +62,24 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   - `guards` { count }: instead of an attack it `rise`s (`BOSS.RISE_HEIGHT`) for up to `BOSS.GUARD_SECONDS` with
     `count` guards `BOSS.GUARD_RADIUS` round it, each `BOSS.GUARD_POINTS` meter points to pop. The last pop makes it
     `land` (slot `daze`) then `dazed`; a timeout lands it without the daze.
+  - `hops` { count, distance, radius, speed, push }: `count` legs of move `hop`, each a leap of `distance` toward the
+    top hitter (else the nearest player) over `BOSS.HOP_SECONDS`, `BOSS.HOP_HEIGHT` high, then a ring of `radius` at
+    `speed` from where it landed; then `dazed`.
+- **Signature attacks.** Every boss has one attack only it has, set by options on the primitives:
+  - Goozilla, double stomp: ring `waves = 2`; each next wave starts `waveGap` later, `waveSpeedUp` x faster. A player
+    can be struck once per wave.
+  - Queen Jelly, royal guards: guards `heal`. If any guard is still up when the call runs out she gets `heal` x the
+    meter target back (a server toast says so).
+  - Mecha Goo, ricochet charge: charge `bounces = 1`. After each leg it winds up again (`BOSS.LEG_WINDUP_SECONDS`,
+    slot `<slot>#<leg>`) and rams the top hitter.
+  - Klawdius, scuttle: charge `sideways`, `backAndForth`, `bounces = 2`. It travels to its right (it faces the
+    player, so it runs across them like a crab), and each next leg runs back the way it came.
+  - Pumpking, bouncing stomps: `hops`.
+  - Goomancer, rune puddles: spit `burst` { delay, radius, speed, push }. `delay` after landing, each puddle bursts
+    into a ring of its own (puddle `burstAt`).
   A struck player is knocked `push` studs away from the boss, `BOSS.HIT_ARC` high (`ctx.launch` + a PvpEvent
   Knockback, live whatever `FEATURES.PvP` says), stunned for `BOSS.STUN_SECONDS` (`Session.bossStunUntil`) and toasted.
-  Each attack strikes a player once. The meter never drains during `windup`, `attack`, `rise` or `land`. Every
+  Each attack strikes a player once. The meter never drains during `windup`, `attack`, `hop`, `rise` or `land`. Every
   `BOSS.SHED_EVERY` of the meter reached speeds its moves and attack gaps by `BOSS.STAGE_SPEEDUP`.
 - **Victory shower.** When it is brought home, `BOSS.WIN_SHOWER` lucky slimes (luck `BOSS.DROP_LUCK`) spill from the
   fountain for every player with at least `BOSS.WIN_SHARE` of the top hitter's points.
@@ -192,6 +207,7 @@ boss: {
 
 - `workspace.BossFx`: one guard model per live guard (attribute `BossGuard = true`) and one goo puddle per puddle.
 - Boss model attributes: `BossTargets` ("x,z;..." world spots a spit windup will hit), `BossSpits` ("x,z,landAt;..."),
+  `BossRunes` ("x,z,burstAt,radius,speed;..." rune puddles that burst into a ring),
   `BossHitAt` / `BossHitBy` / `BossHitPoints` (the latest counted bat hit: the boss squashes, the hitter sees a "+n").
 - Clients draw from the same `BossAttacks` geometry: a pulsing red outline during the windup (the ring, the wedge, the
   charge lane, the spit spots), the goo ring running out, spits in flight, and stars over it while it is dazed. Local
