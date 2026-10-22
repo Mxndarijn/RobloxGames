@@ -198,10 +198,12 @@ WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22
 -- The stair is a smooth spiral ramp (easy on a thumbstick): `segments` sloped boxes climb FLOOR_HEIGHT over one turn,
 -- from half a step before tread 1's angle (WorldLayout.treadAngle) to tread FLOOR_HEIGHT's angle, ending flush
 -- with the deck above, where the next floor's ramp goes on. The boxes slope as the helix does at radius `walk` (where
--- feet go). The rail is an invisible wall along the outer edge, straight up from floor f to just under the deck
--- above (a sloped or stepped top edge is something a Humanoid can climb over, onto the floor above), open for
--- `railStart` degrees at the bottom and `railEnd` degrees before the top, so you step on and off the side.
-WorldLayout.RAMP = table.freeze({ segments = 24, walk = 4.2, railStart = 30, railEnd = 45 })
+-- feet go). The rail is an invisible wall along the outer edge that follows the visible brass rail: from just under
+-- the ramp to `railHeight` studs above it (too tall to step over, so nobody walks off by accident; a deliberate jump
+-- clears it), never higher than just under the deck above. It leaves the floor under the ramp's high part and the
+-- deck round the hole above free to walk. Open for `railStart` degrees at the bottom and `railEnd` degrees before the
+-- top, so you step on and off the side.
+WorldLayout.RAMP = table.freeze({ segments = 24, walk = 4.2, railStart = 30, railEnd = 45, railHeight = 2.5 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; the top jar's hatch sits at this angle, the tube lands in the goo moat.
 -- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
@@ -1342,17 +1344,23 @@ local function jarStair(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		node.material = "Wood"
 		table.insert(out, node)
 	end
-	-- the rail: upright wall pieces two ramp boxes wide, from the floor to just under the deck above, from railStart
-	-- to railEnd degrees before the top
+	-- the rail: upright wall pieces two ramp boxes wide along the outer edge, from railStart to railEnd degrees before
+	-- the top, each from just under the ramp at its low end to railHeight above it at its high end
 	local railR = st.outer + 0.15
 	local pair = 2 * seg
 	local railLength = 2 * (railR + 0.15) * math.sin(math.rad(pair) / 2) + 0.2
-	local railHeight = h - 1
+	local function surface(d: number): number
+		return (d - start) / span * h
+	end
 	local k = 0
 	local deg = start + ramp.railStart + pair / 2
 	while deg + pair / 2 <= start + span - ramp.railEnd + 1e-6 do
 		k += 1
-		local rail = radial(`RampRail_{k}`, { railLength, railHeight, 0.3 }, railR, deg, base + railHeight / 2, at, yaw)
+		local bottom = math.max(0, surface(deg - pair / 2) - 1.5)
+		local top = math.min(surface(deg + pair / 2) + ramp.railHeight, h - 1)
+		local railHeight = top - bottom
+		local rail =
+			radial(`RampRail_{k}`, { railLength, railHeight, 0.3 }, railR, deg, base + bottom + railHeight / 2, at, yaw)
 		rail.transparency = 1
 		rail.canQuery = false
 		rail.canTouch = false
