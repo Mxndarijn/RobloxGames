@@ -26,6 +26,9 @@ return table.freeze({
 	WORLD_MESHES_READY_ATTRIBUTE = "WorldMeshesReady", -- workspace attribute set by the server: true once MeshSwap dressed Map / Plots (CONTRACT.md §5.2)
 	SLIME_LOOK_ATTRIBUTE = "SlimeLook", -- workspace attribute set by the server: "Mesh" | "Procedural"
 	SPECIES_ATTRIBUTE = "Species", -- slime model: SlimeRoster id (v28 typed slimes only; SlimeLooks)
+	-- On a part of a pad slime faded by the merge vat (server/VatView): its own transparency before the fade. A copy of
+	-- the model (steal ghost, vat spot, Move ghost) starts from this, so it never inherits the fade.
+	OWN_TRANSPARENCY_ATTRIBUTE = "VatFaded",
 	-- World folders. "Map" and "Slimes" are hardcoded in src/visuals (WorldLayout); keep them in sync.
 	MAP_FOLDER = "Map",
 	PLOTS_FOLDER = "Plots",

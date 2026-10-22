@@ -16,9 +16,9 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
 local GooPalette = if Shared then require(Shared.GooPalette) else require("../shared/GooPalette")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
-local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
 local VatDecor = if Shared then require(Shared.Parent.Visuals.VatDecor) else require("../visuals/shared/VatDecor")
 local StealGhost = if script then require(script.Parent.StealGhost) else require("./StealGhost")
 
@@ -32,7 +32,7 @@ VatView.SPOT_RADIUS = 2.2 -- studs from the vat's centre to each spot when the v
 VatView.SPOT_LIFT = 0.15 -- studs above the goo
 VatView.TAG_NAME = "VatTag"
 VatView.SPOTS_NAME = "VatSpots"
-VatView.FADED_ATTRIBUTE = "VatFaded" -- on a faded part: its own transparency before the fade
+VatView.FADED_ATTRIBUTE = Constants.OWN_TRANSPARENCY_ATTRIBUTE -- on a faded part: its own transparency before the fade
 VatView.TAG = table.freeze({ w = 220, h = 74, title = 30, titleSize = 26, gap = 4, line = 30, lineSize = 20, lift = 2 })
 
 export type Line = { text: string, color: "Mint" | "Gold" | "MutedWell" }
