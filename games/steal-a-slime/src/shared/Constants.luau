@@ -94,6 +94,15 @@ return table.freeze({
 	EGG_HATCH_AT_ATTRIBUTE = "EggHatchAt", -- Mystery Egg model: server time it is ready; nil while not incubating
 	EGG_HATCH_SECONDS_ATTRIBUTE = "EggHatchSeconds", -- Mystery Egg model: its kind's full incubation time
 	HATCH_PROMPT_NAME = "HatchPrompt", -- owner-only ProximityPrompt on a ready Mystery Egg
+	-- Keys of the prompts on your own pad slime, as Enum.KeyCode names: the server's HatchPrompt and SlimeKeys'
+	-- Move / Favorite / Sell prompts. No two share a key or a button, so a ready egg's prompts never collide.
+	-- Gamepad A jumps, B closes menus and Y opens the bag (ui/Inventory), so the one free face button, X, is Hatch's.
+	SLIME_PROMPT_KEYS = table.freeze({
+		hatch = table.freeze({ keyboard = "F", gamepad = "ButtonX" }),
+		move = table.freeze({ keyboard = "E", gamepad = "DPadRight" }),
+		favorite = table.freeze({ keyboard = "R", gamepad = "DPadUp" }),
+		sell = table.freeze({ keyboard = "X", gamepad = "DPadDown" }),
+	}),
 	HATCHED_AT_ATTRIBUTE = "HatchedAt", -- egg, then slime model, for MYSTERY_EGG.HATCH_FX_SECONDS after a hatch: server time of it
 	HATCHED_FROM_ATTRIBUTE = "HatchedFrom", -- slime model, with HatchedAt: the egg kind id it hatched from
 	HATCH_LUCKY_ATTRIBUTE = "HatchLucky", -- slime model, with HatchedAt: true for a lucky egg or a full lucky meter
