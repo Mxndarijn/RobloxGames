@@ -53,7 +53,7 @@ describe("BossAttacks config", function()
 		end
 	end)
 	it("every boss has at least two real attacks from the start, and more from PHASE_AT", function()
-		for species, moves in BOSS.MOVES do
+		for species in BOSS.MOVES do
 			local early = BossAttacks.available(species, 0)
 			expect(`{species}: {#early >= 2}`).toBe(`{species}: true`)
 			expect(`{species}: {#BossAttacks.available(species, BOSS.PHASE_AT) > #early}`).toBe(`{species}: true`)
