@@ -302,6 +302,14 @@ WorldView.BOSS_EYE = 4 -- studs above the arena floor the line-of-sight ray star
 	a ray from just above that floor to the root hits nothing solid (slimes, the boss, characters and non-collidable
 	parts never block). Nothing found under the attack = no floor to measure from, so only the line is checked.
 ]]
+-- The arena floor height at world (x, z): the first collidable surface below a probe BOSS_RAY_UP over the plaza
+-- origin (the same probe bossExposed uses), or nil when there is none. Guards and goo puddles stand on it.
+function WorldView.bossFloor(x: number, z: number): number?
+	local top = crater().Y + WorldView.BOSS_RAY_UP
+	local floor = surfaceBelow(Vector3.new(x, top, z), WorldView.BOSS_RAY_UP * 2)
+	return if floor then floor.Position.Y else nil
+end
+
 function WorldView.bossExposed(from: Vector3, root: Vector3, height: number): boolean
 	local params = groundParams()
 	local floor = surfaceBelow(Vector3.new(from.X, from.Y + WorldView.BOSS_RAY_UP, from.Z), WorldView.BOSS_RAY_UP * 2)
@@ -1155,7 +1163,8 @@ function WorldView.reconcile(
 		origin,
 		if ground then ground.Y else 0,
 		if tint then Color3.fromRGB(tint[1], tint[2], tint[3]) else nil,
-		if modelFactory and bossWild then { build = modelFactory.build, slime = bossWild.slime } else nil
+		if modelFactory and bossWild then { build = modelFactory.build, slime = bossWild.slime } else nil,
+		WorldView.bossFloor
 	)
 end
 
