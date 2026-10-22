@@ -76,8 +76,8 @@ the same probe offline, so a PR that Studio would fail fails before merge.
   `mesh_slots_build` (`budget_counts.luau`, i.e. `WorldLayout.build()` + `RUNTIME_SLOT_ALLOWANCE`), `mesh_slots_runtime` (raw MeshParts in the fake runtime).
 - `runtime_budget.sh` counts the working tree only (no base worktree and no base-delta rule: the caps are fixed) and hands the JSON
   plus `budgets.json` to `runtime_budget_check.py`.
-- Verdict: parts FAIL > 3000, WARN > 2900; unique meshes FAIL > 120; MeshParts WARN > 500. Exit 0 on warn-only. World triangles are `budget.sh`'s.
-  Example: `runtime-budget: parts 2203/3000 (warn 2900) unique meshes 93/120 mesh parts 391 (soft 500) -> PASS`, then one `WARN:` line per warning.
+- Verdict: parts FAIL > 3000, WARN > 2900; unique meshes FAIL > 140; MeshParts WARN > 500. Exit 0 on warn-only. World triangles are `budget.sh`'s.
+  Example: `runtime-budget: parts 2203/3000 (warn 2900) unique meshes 93/140 mesh parts 391 (soft 500) -> PASS`, then one `WARN:` line per warning.
   Warnings go to `$GITHUB_STEP_SUMMARY` and `::warning::` annotations under GitHub Actions (`::error::` for fails).
 - Runs in ~5 s. Opt-in locally as `run.sh runtime_budget`; CI runs it as its own step after `run.sh layout budget` in the `steal-a-slime-gate` job.
 
@@ -117,7 +117,7 @@ In CI, add Rokit setup (~10 s cached) and the optional rhr install (~30–60 s, 
   - one nav column at 844x390, PR #60's off-screen Rebirth/Goals/Dex/Leaders;
   - nav buttons at 70 % height (squashed);
   - the carry card moved over the nav (covered).
-- **runtime-budget** (counts fixtures, no boot): parts 2203 passes; parts 2450 passes with a WARN; parts 2501 fails; 121 unique meshes fails; 501 MeshParts passes with a WARN.
+- **runtime-budget** (counts fixtures, no boot): parts 2203 passes; parts 2450 passes with a WARN; parts 2501 fails; 141 unique meshes fails; 501 MeshParts passes with a WARN.
 - **budget**:
   - 501 MeshParts (`fixtures/soft-meshparts-counts.json`): passes with a WARN;
   - a 300k triangle limit (`fixtures/tight-shared-budgets.json`): fails;

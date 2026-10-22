@@ -71,7 +71,6 @@ function DailyPopup.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(backdrop, "Card", "Daily reward", "📅")
 	local card = panel.frame
 	card.Visible = true -- the backdrop shows and hides the popup
-	card.Active = true -- a tap on the card is not a tap outside it
 	card.AnchorPoint = Vector2.new(0.5, 0.5)
 	card.Position = UDim2.fromScale(0.5, 0.5)
 	card.Size = UDim2.fromOffset(Layout.DAILY.w, Layout.DAILY.h)

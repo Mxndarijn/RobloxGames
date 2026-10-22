@@ -22,6 +22,20 @@ describe("SlimeMove.classify", function()
 	end)
 end)
 
+describe("SlimeMove.withinZone", function()
+	local half = Vector3.new(30, 7, 30)
+	it("keeps move mode on up the tower's upper jars when the zone reaches up", function()
+		local upperJar = Vector3.new(5, 40, 5) -- well above the ground zone's 7 + 8 studs
+		expect(SlimeMove.withinZone(upperJar, half, nil)).toBe(false)
+		expect(SlimeMove.withinZone(upperJar, half, 48)).toBe(true)
+	end)
+	it("still ends move mode beside or above the plot", function()
+		expect(SlimeMove.withinZone(Vector3.new(31, 0, 0), half, 48)).toBe(false)
+		expect(SlimeMove.withinZone(Vector3.new(0, 7 + 8 + 48 + 1, 0), half, 48)).toBe(false)
+		expect(SlimeMove.withinZone(Vector3.new(0, -12, 0), half, 48)).toBe(false)
+	end)
+end)
+
 describe("SlimeMove.nearest", function()
 	local pads = {
 		{ index = 1, position = Vector3.new(0, 0, 0) },

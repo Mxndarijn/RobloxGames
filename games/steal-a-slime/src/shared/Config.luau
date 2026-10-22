@@ -1002,6 +1002,8 @@ local Config = {
 		CONE_HIT_AT = 0.25, -- seconds into a cone attack its push lands
 		PUDDLE_RADIUS = 4.5, -- studs: a goo spit puddle; standing in it slows you
 		SPIT_SPREAD = 6, -- studs: a spit with nobody to aim at lands this far round the boss
+		ATTACK_RANGE = 40, -- studs from the boss a spit or a jelly-rain drop may aim at a player (further = ignored)
+		STRIKE_HEIGHT = 9, -- studs a player's root may be above the arena floor and still be struck (roofs, the slide: no)
 		GUARD_RADIUS = 11, -- studs from the boss its guards stand
 		GUARD_REACH = 8, -- studs from a swinger's root to a guard for a bat hit
 		GUARD_POINTS = 2, -- meter points per popped guard

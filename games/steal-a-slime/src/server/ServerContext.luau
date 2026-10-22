@@ -13,6 +13,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actions = require(script.Parent.Actions)
+local Config = require(ReplicatedStorage.Shared.Config)
 local PlotPadGuard = require(script.Parent.PlotPadGuard)
 local PvpFunView = require(script.Parent.PvpFunView)
 local PvpLaunch = require(script.Parent.PvpLaunch)
@@ -121,6 +122,16 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 				return humanoid.FloorMaterial
 			end)
 			return ok and floor == Enum.Material.Air
+		end,
+		-- A boss attack reaches only players near the arena floor with nothing solid in between (BossEvent.Context).
+		exposed = function(userId: number, from): boolean
+			local root = rootOf(userId)
+			if not root then
+				return false
+			end
+			local at = Vector3.new(from.X, from.Y, from.Z)
+			local ok, clear = pcall(WorldView.bossExposed, at, root.Position, Config.BOSS.STRIKE_HEIGHT)
+			return not ok or clear -- an engine error never makes the boss harmless or crashes its loop
 		end,
 		-- The boss's plaza coordinates are round the fountain centre (BossEvent.Context).
 		plazaOrigin = function()
