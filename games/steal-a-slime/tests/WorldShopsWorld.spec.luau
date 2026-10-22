@@ -22,14 +22,14 @@ local STANDS = {
 		shopId = "ItemShop",
 		object = "Item Shop",
 		action = "Browse items",
-		sign = "ITEM SHOP",
+		sign = "Item shop",
 	},
 	{
 		model = Constants.SHOP_STAND_UPGRADE,
 		shopId = "UpgradeShop",
 		object = "Upgrade Shop",
 		action = "Browse upgrades",
-		sign = "UPGRADE SHOP",
+		sign = "Upgrade shop",
 	},
 }
 
@@ -126,18 +126,18 @@ local Props = StaticWorld.visual("Props")
 local map = rt.workspace.Map
 
 describe("shop stand sign", function()
-	it("has a high-contrast, inset, scaled label on the existing Sign part", function()
+	it("has a high-contrast, scaled, unlit label on the existing Sign part", function()
 		local stand = Props.shopStand()
 		local label = stand:FindFirstChild("Text", true)
 		expect(label.TextScaled).toBe(true)
-		expect(label.TextStrokeTransparency).toBe(0)
-		expect(label:FindFirstChildOfClass("UIPadding") ~= nil).toBe(true)
-		local sign = stand.Sign
+		local jelly = label.Parent
 		local function lum(c)
 			return 0.299 * c.R + 0.587 * c.G + 0.114 * c.B
 		end
-		expect(lum(label.TextColor3) - lum(sign.Color) > 0.5).toBe(true)
-		expect(label.Parent.LightInfluence).toBe(0)
+		-- Ink text on the jelly's middle colour (the Sign part carries it)
+		expect(lum(stand.Sign.Color) - lum(label.TextColor3) > 0.5).toBe(true)
+		expect(jelly.Name).toBe("Jelly")
+		expect(jelly.Parent.LightInfluence).toBe(0)
 	end)
 end)
 

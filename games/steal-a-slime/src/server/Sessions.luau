@@ -5,7 +5,10 @@
 	Player lifecycle on the World: `join` assigns the lowest free plot, locks
 	it for JOIN_LOCK_SECONDS and pays capped offline income; `leave` ends any
 	carry (a stolen slime bounces home), drops carries of the leaver's slimes
-	and frees the plot. Loading and saving data is DataService's job.
+	and frees the plot. Each of those steps runs through `safeCall`: one that
+	throws is logged and the session still leaves the World, so its save lock
+	is released and not kept fresh by autosave. Loading and saving data is
+	DataService's job.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -14,6 +17,7 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local SafeCall = if script then require(script.Parent.SafeCall) else require("./SafeCall")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Income = if script then require(script.Parent.Income) else require("./Income")
 local Milestones = if script then require(script.Parent.Milestones) else require("./Milestones")
@@ -23,6 +27,8 @@ type World = World.World
 type Session = World.Session
 
 local Sessions = {}
+
+local printCall = SafeCall.new(print)
 
 function Sessions.join(
 	world: World,
@@ -67,14 +73,16 @@ function Sessions.join(
 	return session, nil
 end
 
--- Returns the leaving session (so the caller can save its data) or nil.
-function Sessions.leave(world: World, userId: number, now: number): Session?
+-- Returns the leaving session (so the caller can save its data) or nil. `safeCall` (default: log with print)
+-- isolates each leave step, so a step that throws never keeps the session in the World.
+function Sessions.leave(world: World, userId: number, now: number, safeCall: SafeCall.Call?): Session?
 	local session = world.sessions[userId]
 	if not session then
 		return nil
 	end
-	Carry.release(world, userId, now, nil, "left")
-	PvpService.leave(world, session, now)
+	local call = safeCall or printCall
+	call("Carry.release on leave", Carry.release, world, userId, now, nil, "left")
+	call("PvpService.leave", PvpService.leave, world, session, now)
 	world.sessions[userId] = nil
 	if world.plots[session.plotIndex] == userId then
 		world.plots[session.plotIndex] = nil
@@ -82,7 +90,7 @@ function Sessions.leave(world: World, userId: number, now: number): Session?
 	for _, slime in session.data.slimes do
 		world.escaping[slime.id] = nil
 	end
-	Carry.cancelMissing(world)
+	call("Carry.cancelMissing on leave", Carry.cancelMissing, world)
 	return session
 end
 

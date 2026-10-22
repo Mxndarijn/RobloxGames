@@ -42,4 +42,10 @@ function Rescue.target<T>(plotSpawn: T?, hubSpawn: T?, fallback: T): T
 	return plotSpawn or hubSpawn or fallback
 end
 
+-- A rescue lands the player on their own plot, so only a plain wild catch may stay in their arms: a stolen slime
+-- or the boss would be "delivered" by the fall itself.
+function Rescue.dropsCarry(kind: string, boss: boolean?): boolean
+	return kind == "stolen" or boss == true
+end
+
 return table.freeze(Rescue)

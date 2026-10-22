@@ -165,6 +165,11 @@ end
 -- any scale the UI can reach.
 Layout.MIN_TOUCH_DESIGN = Layout.minTouchDesignSize(Layout.MIN_SCALE)
 Layout.BUTTON = 56
+-- The smallest TextSize any menu text may use (design px). A hint that needs less is cut, not shrunk.
+Layout.MIN_TEXT = 14
+-- The fixed right slot of a list row (design px): the reward well, a Claim / Buy / Equip button or a state
+-- well, the same size in every row so the column lines up.
+Layout.ROW_SLOT = table.freeze({ w = 196, h = 52 })
 
 function Layout.isCompact(width: number, height: number): boolean
 	return width < Layout.COMPACT_WIDTH or Layout.uiScale(width, height) < 1
@@ -756,7 +761,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Shop = 520,
 	WorldShop = 520,
 	Inventory = 460,
-	Rebirth = 470,
+	Rebirth = 650, -- three slimes (Panels/Rebirth.plan)
 	Goals = 500,
 	Dex = 600,
 	Leaders = 460,

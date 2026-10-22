@@ -3,7 +3,7 @@
 	RitualView (Roblox adapter, FEATURES.CoopRitual, CONTRACT.md §13)
 
 	Builds the plaza ritual circle from plain parts (a flat disc, one glowing spot disc per required
-	player (Config.RITUAL.SPOTS = MIN_PLAYERS), a hovering orb with a BillboardGui) under workspace.Map.RitualCircle, and keeps it in sync
+	player (Config.RITUAL.SPOTS = MIN_PLAYERS), a hovering orb with the Goo ritual label) under workspace.Map.RitualCircle, and keeps it in sync
 	with the Ritual state: spots glow green while someone stands on them, the sign reads
 	"n/2 players", then "Hold still! 5s", then "Ritual resting 3:20". The client effects
 	(visuals/client/RitualFx) read the attributes it sets: Phase, ChargeEndsAt and ReadyAt on the model,
@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local GooPalette = require(ReplicatedStorage.Shared.GooPalette)
 local Ritual = require(ReplicatedStorage.Shared.Ritual)
 local RitualLook = require(ReplicatedStorage.Visuals.RitualLook)
 
@@ -70,19 +71,55 @@ local function disc(
 	return part
 end
 
-local function textLabel(name: string, parent: Instance, y: number, h: number, size: number): TextLabel
-	local label = Instance.new("TextLabel")
-	label.Name = name
-	label.BackgroundTransparency = 1
-	label.Position = UDim2.fromScale(0, y)
-	label.Size = UDim2.fromScale(1, h)
-	label.Font = Enum.Font.FredokaOne
-	label.TextSize = size
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.TextStrokeColor3 = Color3.fromRGB(60, 30, 110)
-	label.TextStrokeTransparency = 0.2
-	label.Parent = parent
-	return label
+-- The orb's label (canvas GooWorldSigns "Ritual label"): the phase in outlined white Fredoka, the count or the
+-- timer on a flat Ink pill with a mint edge under it. Pixel-sized so it reads from across the plaza.
+RitualView.LABEL = table.freeze({ w = 300, h = 96, title = 34, titleSize = 30, line = 32, lineSize = 20, gap = 8 })
+
+local function corner(parent: Instance, radius: UDim)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = radius
+	c.Parent = parent
+end
+
+local function stroke(parent: Instance, color: Color3, thickness: number, transparency: number, contextual: boolean)
+	local s = Instance.new("UIStroke")
+	s.Color = color
+	s.Thickness = thickness
+	s.Transparency = transparency
+	s.ApplyStrokeMode = if contextual then Enum.ApplyStrokeMode.Contextual else Enum.ApplyStrokeMode.Border
+	s.LineJoinMode = Enum.LineJoinMode.Round
+	s.Parent = parent
+end
+
+local function buildLabel(gui: BillboardGui): (TextLabel, TextLabel)
+	local L = RitualView.LABEL
+	local head = Instance.new("TextLabel")
+	head.Name = "Title"
+	head.BackgroundTransparency = 1
+	head.Size = UDim2.new(1, 0, 0, L.title)
+	head.Font = Enum.Font.FredokaOne
+	head.TextSize = L.titleSize
+	head.TextColor3 = rgb(GooPalette.White)
+	stroke(head, rgb(GooPalette.Ink), 2.5, 0, true)
+	head.Parent = gui
+	local pill = Instance.new("TextLabel")
+	pill.Name = "Line"
+	pill.AnchorPoint = Vector2.new(0.5, 0)
+	pill.Position = UDim2.new(0.5, 0, 0, L.title + L.gap)
+	pill.Size = UDim2.fromOffset(0, L.line)
+	pill.AutomaticSize = Enum.AutomaticSize.X
+	pill.BackgroundColor3 = rgb(GooPalette.Ink)
+	pill.Font = Enum.Font.FredokaOne
+	pill.TextSize = L.lineSize
+	pill.TextColor3 = rgb(GooPalette.Mint)
+	corner(pill, UDim.new(1, 0))
+	stroke(pill, rgb(GooPalette.Mint), 2, 0.55, false)
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0, 14)
+	pad.PaddingRight = UDim.new(0, 14)
+	pad.Parent = pill
+	pill.Parent = gui
+	return head, pill
 end
 
 -- Creates the circle once (a copy already in workspace is reused). Returns the model, or nil when off.
@@ -126,14 +163,14 @@ function RitualView.setup(): Model?
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "RitualSign"
 	gui.Adornee = core
-	gui.Size = UDim2.fromOffset(220, 74)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 3.2, 0)
+	gui.Size = UDim2.fromOffset(RitualView.LABEL.w, RitualView.LABEL.h)
+	gui.SizeOffset = Vector2.new(0, 0.5) -- the label's bottom edge sits over the orb
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 2, 0)
 	gui.MaxDistance = 140
 	gui.AlwaysOnTop = false
 	gui.LightInfluence = 0
 	gui.Parent = core
-	title = textLabel("Title", gui, 0, 0.5, 26)
-	line = textLabel("Line", gui, 0.5, 0.5, 22)
+	title, line = buildLabel(gui)
 
 	-- One small board at the circle edge, facing the plaza, that explains the rule (text from Config).
 	local sx, sz = Ritual.signSpot()
@@ -142,7 +179,7 @@ function RitualView.setup(): Model?
 	board.Size = Vector3.new(6, 1.8, 0.3)
 	-- lookAt points the front (-Z) face at the fountain axis
 	board.CFrame = CFrame.lookAt(Vector3.new(sx, 1, sz), Vector3.new(0, 1, 0))
-	decor(board, Color3.fromRGB(60, 40, 110), Enum.Material.SmoothPlastic)
+	decor(board, rgb(GooPalette.Ink), Enum.Material.SmoothPlastic)
 	board.Parent = model
 	local face = Instance.new("SurfaceGui")
 	face.Name = "RuleText"
@@ -151,9 +188,26 @@ function RitualView.setup(): Model?
 	face.PixelsPerStud = 50
 	face.LightInfluence = 0
 	face.Parent = board
-	local rule = textLabel("Rule", face, 0, 1, 20)
+	-- A glass card with the rule in Nunito, like the canvas's rule card under the ritual label.
+	local card = Instance.new("Frame")
+	card.Name = "Card"
+	card.Size = UDim2.fromScale(1, 1)
+	card.BackgroundColor3 = rgb(GooPalette.Bg)
+	card.BorderSizePixel = 0
+	corner(card, UDim.new(0.3, 0))
+	stroke(card, rgb(GooPalette.Ink), 4, 0, false)
+	card.Parent = face
+	local rule = Instance.new("TextLabel")
+	rule.Name = "Rule"
+	rule.BackgroundTransparency = 1
+	rule.Position = UDim2.fromScale(0.06, 0.12)
+	rule.Size = UDim2.fromScale(0.88, 0.76)
+	rule.FontFace = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold)
+	rule.TextScaled = true
 	rule.TextWrapped = true
+	rule.TextColor3 = rgb(GooPalette.Text)
 	rule.Text = Ritual.signText()
+	rule.Parent = card
 
 	model:SetAttribute(Constants.RITUAL_PHASE_ATTRIBUTE, "Idle")
 	model.Parent = parent
