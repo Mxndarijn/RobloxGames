@@ -2,8 +2,8 @@
 --[[
 	ShopCatalog
 
-	Client-side catalogue for the Shop panel (Panels/Shop). Pure
-	(tests/ui/ShopCatalog.spec.luau). Every purchase is `Request(action, ...)`;
+	Client-side shop row logic behind the world shops (WorldShopLogic.rows,
+	Panels/WorldShop). Pure (tests/ui/ShopCatalog.spec.luau). Every purchase is `Request(action, ...)`;
 	the client never decides outcomes.
 
 	Locks are not sold here: the lock button on your own plot buys them. The
@@ -277,21 +277,6 @@ end
 function ShopCatalog.restockText(restockAt: number, now: number): string
 	local left = math.max(0, math.ceil(restockAt - now))
 	return `Restocks in {left // 60}:{string.format("%02d", left % 60)}`
-end
-
--- Static items, then the v13 upgrades, then the restocking consumables.
-function ShopCatalog.views(state: any, actions: { [string]: any }, config: any?): { ItemView }
-	local out = {}
-	for _, item in ShopCatalog.ITEMS do
-		table.insert(out, ShopCatalog.view(item, state, actions, config))
-	end
-	for _, view in ShopCatalog.upgradeViews(state, actions) do
-		table.insert(out, view)
-	end
-	for _, view in ShopCatalog.consumableViews(state, actions) do
-		table.insert(out, view)
-	end
-	return out
 end
 
 return table.freeze(ShopCatalog)

@@ -245,7 +245,7 @@ WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
 WorldLayout.DEX_FACE = table.freeze({ x = -0.35, y = 11.53, front = 0.4, width = 12.9, height = 11.5 })
 -- The shop stands (WorldProps Models, Props.shopStand) by model name. Each skins its own kit mesh at `scale`:
 -- ItemShopStand a pink market stall (models/ranch_item_shop.py), UpgradeShopStand a blue and gold cabinet that shows
--- the upgrades (models/ranch_upgrade_cabinet.py), ShopStand (FEATURES.WorldShops off) the plain ranch_shop_stand.
+-- the upgrades (models/ranch_upgrade_cabinet.py).
 -- `face` = the sign face the SHOP text goes on and `counter` = the counter the Counter part fills, at native size
 -- from the kit source in the mesh's own frame (front +Z): centre x, y up from the bottom, z from the box centre
 -- (+ = front); `front` is the sign's front face, `top` the counter top. The stand's pivot is its box's bottom centre.
@@ -258,12 +258,6 @@ local function shopStand(mesh: string, scale: number, face: StandFace, counter: 
 	return table.freeze({ mesh = mesh, scale = scale, face = table.freeze(face), counter = table.freeze(counter) })
 end
 WorldLayout.SHOP_STANDS = table.freeze({
-	ShopStand = shopStand(
-		"ranch_shop_stand",
-		0.8,
-		{ x = 0, y = 12.2, front = -2.42, width = 7.6, height = 2 },
-		{ x = 0, z = 0.53, width = 11, depth = 4.2, top = 4.1 }
-	),
 	ItemShopStand = shopStand(
 		"ranch_item_shop",
 		0.7,
@@ -289,8 +283,7 @@ local function propSpot(angle: number, faceVolcano: boolean?, radius: number?): 
 	local r, a = radius or 90, math.rad(angle)
 	return { pos = { math.sin(a) * r, 0, math.cos(a) * r }, yaw = if faceVolcano then angle else angle + 180 }
 end
--- ItemShopStand is the old ShopStand spot (WorldProps still places the single "ShopStand" there while
--- FEATURES.WorldShops is off); UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
+-- UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
 WorldLayout.PROP_SPOTS = table.freeze({
 	ItemShopStand = propSpot(67.5, true),
 	UpgradeShopStand = propSpot(34.5, true, 96),
@@ -840,8 +833,8 @@ local function decor(): WorldNode
 end
 
 -- Plaza showpieces between the drop ring (62) and the ring path, as kit mesh
--- slots. The Top Earners board and shop stand skin the live WorldProps models
--- (ShopStand / LeaderboardBoard, MeshAsset on the Model).
+-- slots. The Top Earners board and shop stands skin the live WorldProps models
+-- (ItemShopStand / UpgradeShopStand / LeaderboardBoard, MeshAsset on the Model).
 local function plazaProp(name: string, mesh: string, yaw: number, r: number, scale: number)
 	return { name = name, mesh = mesh, yaw = yaw, r = r, size = meshSize(mesh, scale) }
 end

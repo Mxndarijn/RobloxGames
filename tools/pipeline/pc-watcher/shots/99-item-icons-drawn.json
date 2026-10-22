@@ -2,7 +2,8 @@
   "id": "item-icons-drawn",
   "todo": "item-icons",
   "kind": "ui",
-  "open": "shop",
+  "open": "worldshop",
+  "world_shop": "ItemShop",
   "scroll_to": "Upgrade_Luck",
   "note": "Item icons part 1: shop gear (lock, longer locks, speed coil, egg) and upgrades (snacks, strong arms, night shift, clover, rain magnet) show UI-drawn icons instead of gradient glyph tiles; readable at 36px"
 }

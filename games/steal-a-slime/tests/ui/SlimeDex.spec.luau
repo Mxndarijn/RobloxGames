@@ -437,7 +437,7 @@ describe("SlimeDex.rewardCard", function()
 end)
 
 describe("menu close button (Widgets.panel)", function()
-	for _, name in { "Merge", "Shop", "Rebirth", "Goals", "Dex", "Leaderboard" } do
+	for _, name in { "Merge", "WorldShop", "Rebirth", "Goals", "Dex" } do
 		it(`{name}: an X top-right, MIN_TOUCH_DESIGN square, exposed as panel.close`, function()
 			local panel = UiHarness.ui(`Panels/{name}`).new(UiHarness.root(), ctx())
 			local close = panel.close

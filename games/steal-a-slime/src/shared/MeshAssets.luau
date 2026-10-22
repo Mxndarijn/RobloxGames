@@ -25,7 +25,6 @@ local NAMES = {
 	"phoenix_pad_crate",
 	"phoenix_top_earners_board",
 	"ranch_plaza_signpost",
-	"ranch_shop_stand",
 	"ranch_item_shop",
 	"ranch_upgrade_cabinet",
 	"phoenix_plaza_podium_1",
@@ -197,8 +196,6 @@ entries["phoenix_top_earners_board"] =
 	{ assetId = 126155085567089, meshId = "rbxassetid://98390738410954", size = { 21.103, 19.934, 4.097 } }
 entries["ranch_plaza_signpost"] =
 	{ assetId = 131934867179344, meshId = "rbxassetid://73448923703025", size = { 12.648, 14.515, 7.55 } }
-entries["ranch_shop_stand"] =
-	{ assetId = 102942641234419, meshId = "rbxassetid://93701432819080", size = { 12.01, 14.15, 7.454 } }
 entries["ranch_item_shop"] =
 	{ assetId = 105082858859876, meshId = "rbxassetid://135059318016634", size = { 15.391, 16.558, 8.15 } }
 entries["ranch_upgrade_cabinet"] =
@@ -715,9 +712,7 @@ MeshAssets.COLLISION = table.freeze({
 	-- bug #16: every plot's merge vat (MeshSwap.swapPlotVats): a blobby cauldron players bump into, never walk inside;
 	-- the hull also closes the gaps under the funnel spouts. The MergeVat disc under it keeps its own collision.
 	merge_vat = "Hull",
-	-- the shop stands (CONTRACT.md §27.2): a solid counter, not a box to stand inside. ranch_shop_stand is the single
-	-- ShopStand (FEATURES.WorldShops off), ranch_item_shop / ranch_upgrade_cabinet the Item / Upgrade Shop stands
-	ranch_shop_stand = "Hull",
+	-- the Item / Upgrade Shop stands (CONTRACT.md §27.2): a solid counter, not a box to stand inside
 	ranch_item_shop = "Hull",
 	ranch_upgrade_cabinet = "Hull",
 

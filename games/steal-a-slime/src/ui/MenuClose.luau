@@ -3,8 +3,8 @@
 	MenuClose
 
 	Gamepad B (and Esc while Layout.CLOSE_WITH_ESCAPE) closes whichever menu
-	is open: the nav menus, the Shop opened from the ShopStand prompt and the
-	Guide card all go through the one setOpen(nil) the client passes in.
+	is open: the nav menus, the world shop card and the Guide card all go
+	through the one setOpen(nil) the client passes in.
 	Bound through ContextActionService (not UserInputService) so it fires
 	whether or not Roblox already processed the key (gameProcessedEvent), and
 	it Sinks the key only while a menu is open, so Esc still reaches Roblox's
@@ -14,13 +14,10 @@
 
 local MenuClose = {}
 
--- Prompt name -> menu key: "Open Shop" at the ShopStand, "Talk" at the Guide NPC. With the world shops the server
--- opens a shop at its stand (ShopEvent Open), so the shop prompt opens no menu from here.
-function MenuClose.promptMenus(shopPrompt: string, guidePrompt: string, worldShops: boolean?): { [string]: string }
-	if worldShops then
-		return { [guidePrompt] = "Guide" }
-	end
-	return { [shopPrompt] = "Shop", [guidePrompt] = "Guide" }
+-- Prompt name -> menu key the client opens: "Talk" at the Guide NPC. The server opens a world shop at its stand
+-- (ShopEvent Open), so the shop prompts open no menu from here. A fresh table: the caller may add prompts.
+function MenuClose.promptMenus(guidePrompt: string): { [string]: string }
+	return { [guidePrompt] = "Guide" }
 end
 
 -- What Esc / B closes: the Daily popup sits over every card, so it wins; the bag panel only shows with no card open.

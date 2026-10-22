@@ -60,18 +60,34 @@ describe("UI performance budget", function()
 end)
 
 describe("event-driven loops", function()
-	it("Shop: the restock countdown ticks only while the card is open", function()
+	it("WorldShop: no loop of its own; the client tick moves the restock countdown only while it is open", function()
 		UiHarness.virtualTime(true)
-		local shop = UiHarness.ui("Panels/Shop").new(UiHarness.root(), ctx())
-		expect(sleeping()).toBe(0)
+		local now = 1000
+		local features = table.clone(Config.FEATURES) :: any
+		features.Consumables = true
+		local config = table.clone(Config) :: any
+		config.FEATURES = features
+		local shop = UiHarness.ui("Panels/WorldShop").new(
+			UiHarness.root(),
+			ctx({
+				Config = config,
+				serverNow = function()
+					return now
+				end,
+			})
+		)
+		shop.setShop("ItemShop")
+		shop.update({ cash = 0, consumables = { slot = 1, restockAt = 1190, items = {} } })
+		local timer = UiHarness.find(shop.frame, "RestockTimer")
+		local shown = timer.Text
+		now = 1010
+		shop.tick()
+		expect(timer.Text).toBe(shown) -- closed: the tick does nothing
 		shop.setOpen(true)
-		shop.setOpen(true)
-		expect(UiHarness.sleepers()["1"]).toBe(1)
-		shop.setOpen(false)
+		shop.tick()
+		expect(timer.Text ~= shown).toBe(true)
 		UiHarness.advance(2)
 		expect(sleeping()).toBe(0)
-		shop.setOpen(true)
-		expect(sleeping()).toBe(1)
 		shop.setOpen(false)
 		UiHarness.virtualTime(false)
 	end)

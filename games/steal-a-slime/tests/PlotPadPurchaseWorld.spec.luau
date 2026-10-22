@@ -1,5 +1,5 @@
 --!nocheck
--- The same bug on the real world: the booted server with WorldShopsStrict on, a stand-in owner and the real LockButton /
+-- The same bug on the real world: the booted server, a stand-in owner and the real LockButton /
 -- BuyPadPrompt / MergeVat prompt parts of every plot. The owner stands at THEIR pad, far from the Item Shop stand, and
 -- fires the real LockPrompt: it must lock. Far away, or someone else's prompt, it must not.
 local fs = require("@lune/fs")
@@ -44,7 +44,7 @@ end
 
 -- The scenarios run here, at load time: Runtime keeps only the most recently built runtime "current" (players, etc.),
 -- and the describe blocks run after every spec file has loaded.
-local stand = rt.workspace.Map:FindFirstChild("ItemShopStand") -- absent with WorldShops off (all-flags-off mode)
+local stand = rt.workspace.Map:FindFirstChild("ItemShopStand")
 local ItemCounter = stand and stand.Counter
 local results = {}
 local players = {}
@@ -93,7 +93,7 @@ for i = 1, Config.PLOT_COUNT do
 end
 local bootErrors = #rt.errors
 
-describe("plot pad prompts on the real world (WorldShopsStrict on)", function()
+describe("plot pad prompts on the real world", function()
 	it(
 		"every plot: the LockPrompt sits on the LockButton and the guard range covers its activation distance",
 		function()

@@ -1,10 +1,10 @@
 --!strict
 --[[
-	World shop panel (FEATURES.WorldShops, CONTRACT.md §27): the card of ONE in-world shop, "Item Shop" or
+	World shop panel (CONTRACT.md §27): the card of ONE in-world shop, "Item Shop" or
 	"Upgrade Shop". The server opens it at the stand's ShopPrompt (ShopEvent Open / attribute OpenShop);
 	init.client calls setShop(shopId) and shows the card like every other menu (setOpen("WorldShop"), X,
 	backdrop, Esc / B). Rows come from WorldShopLogic.rows (Shared.Shops + the live State); a Buy hold calls
-	Request("ShopBuy", shopId, itemId). Panels/Shop is the combined shop for FEATURES.WorldShops off.
+	Request("ShopBuy", shopId, itemId).
 
 	Both shops wear the shared panel purple; the title, the corner icon and the tagline chip tell them apart.
 	A row is the icon tile (a gold stock tag under it for restocking items), the name, a two-line description,

@@ -9,8 +9,6 @@ local ForcedFlags = {}
 
 -- All flags off: these need the named flag(s) on.
 ForcedFlags.off = {
-	["world shop stands in the booted server"] = "WorldShops",
-	["plot pad prompts on the real world (WorldShopsStrict on)"] = "WorldShopsStrict",
 	["AdminEvents gate"] = "AdminEvents",
 	["AdminEvents parse + validate"] = "AdminEvents",
 	["AdminEvents effects"] = "AdminEvents",

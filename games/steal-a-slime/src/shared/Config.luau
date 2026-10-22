@@ -807,8 +807,6 @@ local Config = {
 		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Audio = true, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
 		PvP = true, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
-		WorldShops = true, -- CONTRACT.md §27: Item Shop + Upgrade Shop stands (ItemShopStand / UpgradeShopStand), Request OpenShop / CloseShop / ShopBuy, ShopEvent, range checks; false = the single ShopStand and the HUD Shop as before
-		WorldShopsStrict = true, -- CONTRACT.md §27.6: the old buy actions also need an open shop in range ("NotOpen"); on since the HUD Shop button is gone in HUD v2. Needs WorldShops
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 		MysteryEggs = true, -- the fountain sometimes drops a Mystery Egg that incubates on a pad, can be stolen and hatches into a slime (MysteryEgg, EggKind, contract/mystery-egg.md); false = no egg drops (eggs already on plots still hatch)
 		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
@@ -1397,7 +1395,7 @@ local Config = {
 	}),
 	BADGE_RETRIES = 4, -- BadgeService attempts per badge (backoff 2, 4, 8 s)
 
-	-- World shops (FEATURES.WorldShops, CONTRACT.md §27): studs from the character's HumanoidRootPart to the stand's Counter,
+	-- World shops (CONTRACT.md §27): studs from the character's HumanoidRootPart to the stand's Counter,
 	-- checked on the server on OpenShop and on every purchase; out of range closes the shop.
 	SHOP_RANGE = 14,
 

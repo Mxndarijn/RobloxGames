@@ -31,11 +31,10 @@ end
 
 local MENUS = {
 	Merge = "Merge",
-	Shop = "Shop",
+	WorldShop = "WorldShop",
 	Rebirth = "Rebirth",
 	Goals = "Goals",
 	Dex = "Dex",
-	Leaders = "Leaderboard",
 	Codes = "Codes",
 	Guide = "Guide",
 	Welcome = "Welcome",

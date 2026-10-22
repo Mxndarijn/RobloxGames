@@ -82,17 +82,16 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 	end)
 	it("measures the titles the panels really show", function()
 		for key, title in LayoutAssert.PANEL_TITLES do
-			local file = if key == "Leaders" then "Leaderboard" else key
-			expect(has(read(`src/ui/Panels/{file}.luau`), `Widgets.panel(parent, "{file}Panel", "{title}", `)).toBe(
-				true
-			)
+			expect(has(read(`src/ui/Panels/{key}.luau`), `Widgets.panel(parent, "{key}Panel", "{title}", `)).toBe(true)
 		end
 	end)
-	it("mirrors the panels' row geometry (Shop, Guide)", function()
-		local shop = read("src/ui/Panels/Shop.luau")
-		expect(has(shop, "Shop.BADGE = 48")).toBe(true)
-		expect(has(shop, "Shop.BUY_W = 110")).toBe(true)
-		expect(has(shop, "Shop.DESC_H = 34")).toBe(true)
+	it("mirrors the panels' row geometry (WorldShop, Guide)", function()
+		local worldShop = UiHarness.ui("Panels/WorldShop")
+		local copy = LayoutAssert.WORLD_SHOP
+		for _, k in { "BADGE", "BUY_W", "DESC_H" } do
+			expect(copy[k]).toBe(worldShop[k])
+		end
+		expect(copy.SIZE.tagH).toBe(worldShop.SIZE.tagH)
 		local guide = read("src/ui/Panels/Guide.luau")
 		expect(has(guide, "Guide.TIP_H = 44")).toBe(true)
 	end)
@@ -166,7 +165,7 @@ describe("v18 viewports", function()
 	end)
 	it("phone menus use the full width (the nav steps aside while a menu is open)", function()
 		local s = Layout.screen(390, 844)
-		local a = Layout.panelFor(s, "Shop")
+		local a = Layout.panelFor(s, "WorldShop")
 		expect(a.w).toBe(s.column.w)
 		expect(a.x).toBe(Layout.MARGIN)
 		expect(s.panel.h > s.column.h).toBe(true) -- the backdrop runs on under the bottom cards

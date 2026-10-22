@@ -55,7 +55,7 @@ How to structure code (layers, module and panel templates, recipes, testing poli
 - **One DI pattern: `ctx`.** Pass engine access and test overrides in a `ctx` / `Context` argument (see `Actions.Context`). No new module-level `setEnv` / `setSink`-style singletons.
 - **Entry scripts only wire.** `init.server.luau` and `init.client.luau` create remotes, build modules and connect signals. Logic, and Studio-only review fakes, go in their own modules with tests.
 - **One client frame loop.** Per-frame client work hooks into the existing loop in `init.client.luau`, culls by distance and skips off-screen work. A client module's `start()` returns a cleanup function that disconnects everything it made.
-- **UI values from tables.** Colours from `Widgets.Theme`, draw order from `Layout.ZINDEX`, sizes and `TextSize` from `Layout` or a frozen table at the top of the panel. No raw `ZIndex` numbers.
+- **UI values from tables.** Colours from `Widgets.Theme`, draw order from `Layout.ZINDEX`, sizes and `TextSize` from `Layout` or a frozen table at the top of the panel. No raw `ZIndex` numbers. Which colour, button, size and wording to use where: [UI-STYLEGUIDE.md](UI-STYLEGUIDE.md).
 - **Delete dead code.** When a module's last caller goes, delete the module and its spec in the same PR.
 - **Generated files** are either gitignored or covered by a spec that fails when they are stale (like `tests/StaticWorld.spec.luau` for `world/*.rbxmx`).
 - **Test behaviour, not source text.** Use `Fixtures` / `ServerFixtures` / `UiHarness`. Source-text asserts are only for safety guards (TestHooks, DataStoreMode) and go through one shared helper.

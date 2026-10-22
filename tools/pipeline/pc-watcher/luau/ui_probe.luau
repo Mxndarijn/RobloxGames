@@ -51,7 +51,7 @@ end
 -- Fixed paths, plus every nav / HUD button (the nav is text-less icon buttons named by Nav.ENTRIES key)
 -- and every <Key>Panel with its Close.
 local paths =
-	{ "ShopPanel", "ShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" }
+	{ "WorldShopPanel", "WorldShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" }
 for _, holder in { "Nav", "Hud" } do
 	local h = gui:FindFirstChild(holder)
 	for _, c in (if h then h:GetChildren() else {}) do
@@ -93,7 +93,7 @@ return {
 	viewport = { vp.X, vp.Y },
 	gui_size = { gui.AbsoluteSize.X, gui.AbsoluteSize.Y },
 	overlays = overlays,
-	shop_open = targets.ShopPanel.found and targets.ShopPanel.shown,
+	shop_open = targets.WorldShopPanel.found and targets.WorldShopPanel.shown,
 	tutorial_visible = targets.TutorialOverlay.found and targets.TutorialOverlay.shown,
 	tutorial_counter = if counter then counter.Text else nil,
 	tutorial_title = if title then title.Text else nil,

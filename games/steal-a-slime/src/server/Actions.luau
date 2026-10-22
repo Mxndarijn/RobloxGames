@@ -73,7 +73,7 @@ export type Context = {
 		onPop: (byUserId: number, now: number) -> boolean
 	) -> boolean)?,
 	-- What the adapter measured for `shopId`: the character's distance to the stand's Counter and whether it is
-	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, strict never applies.
+	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, the shop gate never applies.
 	shopAccess: ((userId: number, shopId: string) -> ShopGuard.Access)?,
 	-- What the adapter measured for the owner's plot prompt `kind` ("Lock" | "BuyPad" | "Merge"): the character's distance to the
 	-- part that prompt sits on and whether it is alive. nil = no world: Actions.handlePlotPad skips the range check.
@@ -348,24 +348,16 @@ local function useConsumable(
 end
 
 ---------------------------------------------------------------------------
--- World shops (FEATURES.WorldShops, CONTRACT.md §27): validation lives in ShopGuard, the purchases are the
+-- World shops (CONTRACT.md §27): validation lives in ShopGuard, the purchases are the
 -- existing handlers (dispatch), nothing is priced or charged here.
 ---------------------------------------------------------------------------
-
-local function worldShopsOn(ctx: Context): boolean
-	return feature(ctx, "WorldShops")
-end
-
-local function strictOn(ctx: Context): boolean
-	return worldShopsOn(ctx) and feature(ctx, "WorldShopsStrict")
-end
 
 local function accessOf(ctx: Context, userId: number, shopId: string): ShopGuard.Access?
 	return if ctx.shopAccess then ctx.shopAccess(userId, shopId) else nil
 end
 
 local function shopEvent(ctx: Context, userId: number, payload: { [string]: any })
-	if ctx.shopEvent and worldShopsOn(ctx) then
+	if ctx.shopEvent then
 		ctx.shopEvent(userId, payload)
 	end
 end
@@ -392,13 +384,13 @@ function Actions.closeShop(session: Session, reason: string, ctx: Context)
 	shopEvent(ctx, session.userId, { kind = "Close", shopId = shopId, reason = reason })
 end
 
--- Throttled by the caller: closes the open shop when it left range, died or the flag went off.
+-- Throttled by the caller: closes the open shop when it left range or died.
 function Actions.shopTick(session: Session, ctx: Context)
 	local shopId = session.openShop
 	if shopId == nil then
 		return
 	end
-	local reason = ShopGuard.closeReason(shopId, worldShopsOn(ctx), accessOf(ctx, session.userId, shopId))
+	local reason = ShopGuard.closeReason(shopId, accessOf(ctx, session.userId, shopId))
 	if reason then
 		Actions.closeShop(session, reason, ctx)
 	end
@@ -406,8 +398,6 @@ end
 
 local function openShop(session: Session, shopId: string, ctx: Context): Result
 	local code = ShopGuard.check({
-		worldShops = worldShopsOn(ctx),
-		strict = false,
 		shopId = shopId,
 		openShop = session.openShop,
 		access = accessOf(ctx, session.userId, shopId),
@@ -431,9 +421,7 @@ function Actions.openFromPrompt(world: World, userId: number, shopId: string, ct
 end
 
 local function closeShopAction(session: Session, ctx: Context): Result
-	if worldShopsOn(ctx) then
-		Actions.closeShop(session, "closed", ctx)
-	end
+	Actions.closeShop(session, "closed", ctx)
 	return OK
 end
 
@@ -456,8 +444,6 @@ local function shopBuy(
 ): Result
 	local userId = session.userId
 	local code = ShopGuard.check({
-		worldShops = worldShopsOn(ctx),
-		strict = strictOn(ctx),
 		shopId = shopId,
 		itemId = itemId,
 		openShop = session.openShop,
@@ -494,10 +480,10 @@ local function shopBuy(
 	return res
 end
 
--- Strict mode (FEATURES.WorldShopsStrict): the old buy actions need the matching shop open and in range.
--- Only applies where the adapter measures ranges (ctx.shopAccess).
+-- The old buy actions need the matching shop open and in range. Only applies where the adapter measures
+-- ranges (ctx.shopAccess).
 local function strictGate(session: Session, action: string, ctx: Context): Result?
-	if ctx.strictBypass or not (ctx.shopAccess and strictOn(ctx)) then
+	if ctx.strictBypass or not ctx.shopAccess then
 		return nil
 	end
 	-- Locks are not sold in a shop: the HUD Lock button works while standing at the owner's own lock pad
@@ -511,8 +497,6 @@ local function strictGate(session: Session, action: string, ctx: Context): Resul
 		return nil
 	end
 	local code = ShopGuard.check({
-		worldShops = true,
-		strict = true,
 		shopId = shopId,
 		itemId = nil,
 		openShop = session.openShop,
@@ -654,7 +638,7 @@ end
 
 -- The owner-only plot prompts (LockPrompt, BuyPadPrompt, MergePrompt). The caller has already checked that the player owns the
 -- plot; here the character must stand within PlotPadGuard.range() of THAT prompt's part. They never go through the world-shop
--- strict gate (the Item Shop stand is nowhere near the pad), but every other rule of the action still applies.
+-- gate (the Item Shop stand is nowhere near the pad), but every other rule of the action still applies.
 function Actions.handlePlotPad(
 	world: World,
 	userId: number,

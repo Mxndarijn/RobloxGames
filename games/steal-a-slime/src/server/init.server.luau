@@ -265,8 +265,8 @@ if floors then
 	end
 end
 
--- "Open Shop" (ShopStand) and "Talk" (TutorialNpc) prompts: the client opens
--- the Shop / Guide menu; purchases go through Request from the Shop menu.
+-- The shop stands' "Open Shop" prompts open that shop on the server (CONTRACT.md §27.3), purchases go through
+-- Request ShopBuy; the TutorialNpc's "Talk" prompt opens the Guide menu on the client.
 WorldProps.addShopPrompts(function(player: Player, shopId: string)
 	Actions.openFromPrompt(world, player.UserId, shopId, ctx)
 	PlayerAttributes.syncOpenShop(world, player)

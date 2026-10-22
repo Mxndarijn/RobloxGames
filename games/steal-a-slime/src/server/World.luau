@@ -65,7 +65,7 @@ export type Session = {
 	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
 	coilHeld: boolean?, -- the SpeedCoil Tool is equipped (WorldView sets it each tick); runtime only
-	openShop: string?, -- FEATURES.WorldShops: the shop id the player has open (Request OpenShop), runtime only
+	openShop: string?, -- the shop id the player has open (Request OpenShop), runtime only
 	awayLog: { StealAlert.Entry }?, -- FEATURES.StealAlerts: the saved thefts read at join, for the join notice (never saved)
 	bossStunUntil: number?, -- hit by a boss attack: no bat hits or slaps until then (BossEvent), runtime only
 	bossSlow: { factor: number, untilTime: number }?, -- in a boss goo puddle: walk speed x factor until then, runtime only

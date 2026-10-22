@@ -1,8 +1,7 @@
 --!strict
 -- v28 menu pass (Merijn's playtest of v27, items 1-5): content-sized menu
 -- cards with an icon band and close X, real slime renders in the SlimeDex,
--- ONE shop menu opened by the ShopStand prompt, a Rebirth card that shows
--- only the next rebirth, and a Guide NPC that opens a next-goal / tips card.
+-- a Rebirth card that shows only the next rebirth, and a Guide NPC that opens a next-goal / tips card.
 -- Real panels under tests/ui/UiHarness.luau; pure modules directly.
 local roblox = require("@lune/roblox") :: any
 
@@ -16,7 +15,6 @@ local GuideTips = require("../../src/ui/GuideTips")
 local Layout = require("../../src/ui/Layout")
 local Progress = require("../../src/ui/Progress")
 local Remotes = require("../../src/shared/Remotes")
-local ShopCatalog = require("../../src/ui/ShopCatalog")
 local SlimeDex = require("../../src/ui/SlimeDex")
 local SlimeLayout = require("../../src/visuals/shared/SlimeLayout")
 local TestRunner = require("../TestRunner")
@@ -165,54 +163,6 @@ describe("v28 item 2: SlimeDex pictures are real slime renders", function()
 		local preview = card:FindFirstChild("Image"):FindFirstChild("Preview")
 		expect(preview.Visible).toBe(true)
 		expect(UiHarness.find(preview, "Body") ~= nil).toBe(true)
-	end)
-end)
-
-describe("v28 item 3: one shop menu from the ShopStand prompt", function()
-	it("the Shop panel lists every item flat in one scroll list, a Buy button per row", function()
-		local Shop = UiHarness.ui("Panels/Shop")
-		local panel = Shop.new(UiHarness.root(), ctx())
-		local state = {
-			cash = 5000,
-			lockCost = 25,
-			lockDuration = 60,
-			shop = {},
-			upgrades = {
-				{ id = "Income", name = "Slime Snacks", text = "+10% income", level = 0, maxLevel = 10, price = 2000 },
-				{
-					id = "Luck",
-					name = "Lucky Charm",
-					text = "+4% chance a slime you bring home is one rarity higher",
-					level = 0,
-					maxLevel = 5,
-					unlocked = false,
-					requires = 5,
-				},
-			},
-		}
-		panel.update(state)
-		local list = UiHarness.find(panel.frame, "List")
-		local rows = {}
-		for _, child in list:GetChildren() do
-			if child.ClassName == "Frame" then
-				table.insert(rows, child)
-				expect(child:FindFirstChild("Buy") ~= nil).toBe(true)
-				expect(child:FindFirstChild("Icon").Text ~= "").toBe(true)
-				expect(UiHarness.find(child, "List")).toBeNil() -- no nested menu
-			end
-		end
-		expect(#rows).toBe(#ShopCatalog.ITEMS + 2)
-		expect(UiHarness.find(panel.frame, "Cash").Text).toBe("💰 $5K")
-		local luck = list:FindFirstChild("Upgrade_Luck")
-		expect(luck:FindFirstChild("Description").Text).toBe("+4% rarity-up chance")
-		expect(luck:FindFirstChild("Level").Text).toBe("Lv 0/5")
-	end)
-	it("ShopCatalog.upgradeText keeps the number and shortens known upgrades only", function()
-		expect(ShopCatalog.upgradeText("Luck", "+4% chance a slime you bring home is one rarity higher")).toBe(
-			"+4% rarity-up chance"
-		)
-		expect(ShopCatalog.upgradeText("Income", "+10% income")).toBe("+10% income")
-		expect(ShopCatalog.upgradeText("Luck", "luckier")).toBe("luckier")
 	end)
 end)
 
