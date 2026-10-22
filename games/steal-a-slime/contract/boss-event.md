@@ -1,8 +1,8 @@
 # §33 Boss event: a server-wide fight, a haul race, boss badges
 
-Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"` species in `Shared.SlimeRoster`
-(`goozilla`, `queen_jelly` at tier 6, `mecha_goo` at tier 7). It replaces the old "first grab wins" Boss Slime
-(`Spawner.spawnBoss`, `BOSS_TIER`, `BOSS_LIFETIME`), which is gone.
+Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the six `kind = "boss"` species in `Shared.SlimeRoster`
+(`goozilla`, `queen_jelly`, `klawdius`, `pumpking` at tier 6, `mecha_goo`, `goomancer` at tier 7; see Bosses below).
+It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIER`, `BOSS_LIFETIME`), which is gone.
 
 ## Flow (server)
 
@@ -17,8 +17,9 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
   `BOSS.INTERVAL` after the previous arrival. The warning starts `BOSS.WARNING_SECONDS` before the arrival. If Slime Rain
   is still running at the arrival, or starts within `BOSS.RAIN_GAP` after it, the arrival moves `BOSS.SKIP_DELAY` later
   (checked again then). `world.nextBossAt` is the next arrival (workspace attribute `BossNextAt` as before).
-- **Rotation.** `BOSS.ROTATION` in order (`goozilla queen_jelly goozilla queen_jelly mecha_goo`), looping. A Secret-tier
-  slot (`mecha_goo`) needs `world.fountainTier >= BOSS.SECRET_FOUNTAIN_TIER` (Starlight); otherwise it is
+- **Rotation.** `BOSS.ROTATION` in order (`goozilla queen_jelly klawdius pumpking mecha_goo goozilla queen_jelly
+  klawdius pumpking goomancer`), looping: every tier-6 boss twice and each Secret once per lap. A Secret-tier slot
+  (`mecha_goo`, `goomancer`) needs `world.fountainTier >= BOSS.SECRET_FOUNTAIN_TIER` (Starlight); otherwise it is
   `BOSS.SECRET_FALLBACK`.
 - **Meter (`Shared.BossFight`, pure).** One point per Bat hit per player, at most one per `BOSS.HIT_GAP` seconds each.
   Target = `BOSS.POINTS_PER_PLAYER` x players on the server (at least 1), read live. With no hit for `BOSS.DRAIN_GRACE`
@@ -52,6 +53,55 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
 - **Fail.** Meter not full by the fight deadline, or not home by the haul deadline: the boss (carried or not) is removed:
   it gets away. No slimes drop; the sheds are the fight's reward.
 - Bosses never count toward the wild cap and are never a random merge or fountain result.
+
+## Bosses
+
+Each boss is a `kind = "boss"` species with its own mesh (`slime_<id>`, `shared/modeling-kit/models/pool`), look
+(`SlimeLooks`) and gait / temper (`SlimePersona`). In the fight it stands `BOSS.SCALE` x a MAX_SIZE slime, so every boss
+has one bold silhouette that reads across the plaza.
+
+| id | Name | Tier | Gait / temper | Theme |
+|---|---|---|---|---|
+| `goozilla` | Goozilla | 6 | Waddle / Feisty | roaring kaiju slime with glowing back plates |
+| `queen_jelly` | Queen Jelly | 6 | Float / Showoff | jellyfish queen with a tiara and ribbon tentacles |
+| `klawdius` | Klawdius | 6 | Scoot / Feisty | hermit crab in a spiral shell, one giant fiddler claw |
+| `pumpking` | Pumpking | 6 | Hop / Bouncy | ribbed jack-o'-lantern with a glowing carved grin, curly stem and a crown |
+| `mecha_goo` | Mecha Goo | 7 | Waddle / Feisty | mech with a tiny slime pilot |
+| `goomancer` | Goomancer | 7 | Float / Curious | wizard with a tall bent star hat, white beard and an orb staff |
+
+**Attacks (design).** Every boss has a start set of one or two attacks and one more that unlocks once the goo meter
+passes 50 %. They are built only from the boss-attack primitives: `ring` (a goo shockwave from the boss, jump over it),
+`spit` (puddles land at players and slow them), `guards` (the boss floats out of reach and calls small guards; bonking
+them all drops it dazed), `cone` (a push in front of it), `charge` (a ram along a telegraphed lane at the top hitter) and
+`vent` (a weak spot on its back while it is dazed). The numbers below are the design's starting values; the attack
+values live in `Config.BOSS.MOVES` (Attacks, below).
+
+### Klawdius
+
+A scuttling brawler: it fights up close and sideways, like a crab.
+- **Start:** a claw snap, a `cone` of radius 16 and 70 degrees (push 35) when players crowd its front, and a sideways
+  scuttle `charge` of 35 studs at 32 studs/s, 7 wide (push 45), at the top hitter.
+- **From 50 %:** it froths: `spit` of 4 sea-foam bubble puddles that slow to 0.55 x walk speed for 5 s.
+- **Dazed:** it flips onto its shell with its legs kicking, and the soft goo tail pokes out of the shell mouth on its
+  back: that is the `vent` (x4 for 4 s).
+
+### Pumpking
+
+A heavy hopper: every landing is a stomp.
+- **Start:** each big hop lands with a `ring` shockwave, radius 24 at 20 studs/s (push 40), to jump over.
+- **From 50 %:** it rises on a swirl of candle smoke out of reach and calls 3 gourdling `guards` (little pumpkins);
+  bonking all of them drops it.
+- **Dazed:** it thuds down, its candle sputters out so the grin goes dark, its crown slips crooked; steam leaks from a
+  split seam on its back: the `vent` (x3 for 5 s).
+
+### Goomancer
+
+A caster that keeps players moving: it hexes from range and blasts anyone in front of it.
+- **Start:** hex bolts, `spit` of 4 puddles that slow to 0.5 x walk speed for 6 s, and a staff blast `cone` of radius 20
+  and 100 degrees (push 40).
+- **From 50 %:** an arcane nova, a wide fast `ring` of radius 28 at 26 studs/s (push 45).
+- **Dazed:** its hat slides down over its eyes and the staff clatters to the ground; a rune patch glows on its back:
+  the `vent` (x5 for 3 s, a short window for the Secret boss).
 
 ## Boss record and badges: `data.boss` (save v9)
 

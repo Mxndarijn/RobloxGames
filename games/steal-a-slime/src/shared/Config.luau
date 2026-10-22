@@ -416,7 +416,7 @@ for _, quest in DAILY_QUEST_POOL do
 	table.freeze(quest)
 end
 
--- SlimeDex ladder (CONTRACT.md §36.3): species found (of 50).
+-- SlimeDex ladder (CONTRACT.md §36.3): species found (of SpeciesDex.TOTAL).
 -- `reward` is cash x rebirthMultiplier, `bonus` a permanent income bonus (the ladder adds up to 0.45).
 local DEX_MILESTONES: { species: { DexMilestone } } = {
 	species = {
@@ -987,8 +987,47 @@ local Config = {
 				}),
 				phase = table.freeze({ table.freeze({ kind = "vent", multiplier = 5 }) }),
 			}),
+			klawdius = table.freeze({
+				start = table.freeze({
+					table.freeze({ kind = "cone", radius = 16, angle = 70, push = 35 }),
+					table.freeze({ kind = "charge", distance = 35, speed = 32, width = 7, push = 45 }),
+				}),
+				phase = table.freeze({
+					table.freeze({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.55 }),
+					table.freeze({ kind = "vent", multiplier = 4 }),
+				}),
+			}),
+			pumpking = table.freeze({
+				start = table.freeze({ table.freeze({ kind = "ring", radius = 24, speed = 20, push = 40 }) }),
+				phase = table.freeze({
+					table.freeze({ kind = "guards", count = 3 }),
+					table.freeze({ kind = "vent", multiplier = 3 }),
+				}),
+			}),
+			goomancer = table.freeze({
+				start = table.freeze({
+					table.freeze({ kind = "spit", count = 4, slowSeconds = 6, slow = 0.5 }),
+					table.freeze({ kind = "cone", radius = 20, angle = 100, push = 40 }),
+				}),
+				phase = table.freeze({
+					table.freeze({ kind = "ring", radius = 28, speed = 26, push = 45 }),
+					table.freeze({ kind = "vent", multiplier = 5 }),
+				}),
+			}),
 		}),
-		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
+		-- every tier-6 boss twice and each Secret once per lap
+		ROTATION = table.freeze({
+			"goozilla",
+			"queen_jelly",
+			"klawdius",
+			"pumpking",
+			"mecha_goo",
+			"goozilla",
+			"queen_jelly",
+			"klawdius",
+			"pumpking",
+			"goomancer",
+		}),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
 	}),
@@ -1019,6 +1058,30 @@ local Config = {
 			trigger = "win",
 			value = 1,
 			species = "queen_jelly",
+		}),
+		table.freeze({
+			key = "BossKlawdius",
+			name = "Shell Shocked",
+			description = "Help bring Klawdius home.",
+			trigger = "win",
+			value = 1,
+			species = "klawdius",
+		}),
+		table.freeze({
+			key = "BossPumpking",
+			name = "Pumpkin Smasher",
+			description = "Help bring Pumpking home.",
+			trigger = "win",
+			value = 1,
+			species = "pumpking",
+		}),
+		table.freeze({
+			key = "BossGoomancer",
+			name = "Spellbreaker",
+			description = "Help bring Goomancer home.",
+			trigger = "win",
+			value = 1,
+			species = "goomancer",
 		}),
 		table.freeze({
 			key = "BossMechaGoo",
