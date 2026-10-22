@@ -623,6 +623,12 @@ end
 -- v30 C9: wild slimes moved too fast. Every wild-slime pace (the parade lane walk, its hop rate) scales by this;
 -- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
 -- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
+-- One boss attack (Config.BOSS.MOVES): a frozen table typed loosely, since every attack kind has its own fields
+-- (Shared.BossAttacks reads them by kind).
+local function bossAttack(def: { [string]: any }): { [string]: any }
+	return table.freeze(def)
+end
+
 local SLIME_MOVE_SPEED_MULT = 0.65
 -- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). Row f prices floor f's pads: its first pad you
 -- buy costs `firstPadCost`, every next one on that floor `growth` times the one before. Floor 1's first bought pad is
@@ -984,7 +990,7 @@ local Config = {
 			goozilla = table.freeze({
 				-- signature: a double stomp, the second ring faster
 				start = table.freeze({
-					table.freeze({
+					bossAttack({
 						kind = "ring",
 						radius = 22,
 						speed = 22,
@@ -994,25 +1000,25 @@ local Config = {
 						waveSpeedUp = 1.4,
 					}),
 				}),
-				phase = table.freeze({ table.freeze({ kind = "spit", count = 3, slowSeconds = 6, slow = 0.5 }) }),
+				phase = table.freeze({ bossAttack({ kind = "spit", count = 3, slowSeconds = 6, slow = 0.5 }) }),
 			}),
 			queen_jelly = table.freeze({
 				-- signature: royal guards; if they outlast the call she heals 15 % of the meter
-				start = table.freeze({ table.freeze({ kind = "guards", count = 3, heal = 0.15 }) }),
-				phase = table.freeze({ table.freeze({ kind = "cone", radius = 18, angle = 90, push = 45 }) }),
+				start = table.freeze({ bossAttack({ kind = "guards", count = 3, heal = 0.15 }) }),
+				phase = table.freeze({ bossAttack({ kind = "cone", radius = 18, angle = 90, push = 45 }) }),
 			}),
 			mecha_goo = table.freeze({
 				-- signature: a ricochet charge, then it turns and rams the top hitter again
 				start = table.freeze({
-					table.freeze({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50, bounces = 1 }),
+					bossAttack({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50, bounces = 1 }),
 				}),
-				phase = table.freeze({ table.freeze({ kind = "vent", multiplier = 5 }) }),
+				phase = table.freeze({ bossAttack({ kind = "vent", multiplier = 5 }) }),
 			}),
 			klawdius = table.freeze({
 				start = table.freeze({
-					table.freeze({ kind = "cone", radius = 16, angle = 70, push = 35 }),
+					bossAttack({ kind = "cone", radius = 16, angle = 70, push = 35 }),
 					-- signature: a sideways scuttle, back and forth three times
-					table.freeze({
+					bossAttack({
 						kind = "charge",
 						distance = 24,
 						speed = 30,
@@ -1024,35 +1030,35 @@ local Config = {
 					}),
 				}),
 				phase = table.freeze({
-					table.freeze({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.55 }),
-					table.freeze({ kind = "vent", multiplier = 4 }),
+					bossAttack({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.55 }),
+					bossAttack({ kind = "vent", multiplier = 4 }),
 				}),
 			}),
 			pumpking = table.freeze({
 				-- signature: bouncing stomps, three hops at you with a ring on every landing
 				start = table.freeze({
-					table.freeze({ kind = "hops", count = 3, distance = 7, radius = 12, speed = 24, push = 32 }),
+					bossAttack({ kind = "hops", count = 3, distance = 7, radius = 12, speed = 24, push = 32 }),
 				}),
 				phase = table.freeze({
-					table.freeze({ kind = "guards", count = 3 }),
-					table.freeze({ kind = "vent", multiplier = 3 }),
+					bossAttack({ kind = "guards", count = 3 }),
+					bossAttack({ kind = "vent", multiplier = 3 }),
 				}),
 			}),
 			goomancer = table.freeze({
 				start = table.freeze({
 					-- signature: rune puddles that burst into a ring a moment after they land
-					table.freeze({
+					bossAttack({
 						kind = "spit",
 						count = 4,
 						slowSeconds = 6,
 						slow = 0.5,
 						burst = table.freeze({ delay = 1.6, radius = 10, speed = 16, push = 35 }),
 					}),
-					table.freeze({ kind = "cone", radius = 20, angle = 100, push = 40 }),
+					bossAttack({ kind = "cone", radius = 20, angle = 100, push = 40 }),
 				}),
 				phase = table.freeze({
-					table.freeze({ kind = "ring", radius = 28, speed = 26, push = 45 }),
-					table.freeze({ kind = "vent", multiplier = 5 }),
+					bossAttack({ kind = "ring", radius = 28, speed = 26, push = 45 }),
+					bossAttack({ kind = "vent", multiplier = 5 }),
 				}),
 			}),
 		}),

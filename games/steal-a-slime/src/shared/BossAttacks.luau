@@ -47,7 +47,7 @@ end
 
 function BossAttacks.available(species: string, meter: number): { string }
 	local out = {}
-	local names = if meter >= BOSS.PHASE_AT then { "start", "phase" } else { "start" }
+	local names: { string } = if meter >= BOSS.PHASE_AT then { "start", "phase" } else { "start" }
 	for _, name in names do
 		for i, attack in set(species, name) do
 			if not PASSIVE[attack.kind] then
@@ -59,7 +59,7 @@ function BossAttacks.available(species: string, meter: number): { string }
 end
 
 function BossAttacks.vent(species: string, meter: number): Attack?
-	local names = if meter >= BOSS.PHASE_AT then { "start", "phase" } else { "start" }
+	local names: { string } = if meter >= BOSS.PHASE_AT then { "start", "phase" } else { "start" }
 	for _, name in names do
 		for _, attack in set(species, name) do
 			if attack.kind == "vent" then
