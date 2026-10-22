@@ -15,7 +15,7 @@ local Format = if script then require(script.Parent.Format) else require("./Form
 export type Tier = {
 	rebirth: number, -- rebirth count once reached
 	multiplier: number,
-	lockSeconds: number, -- lock bought at this tier (at most LOCK_MAX_REMAINING)
+	lockSeconds: number, -- lock bought at this tier (at most LOCK_MAX_SECONDS)
 	cost: number?, -- nil for the current tier
 	current: boolean,
 }
@@ -27,7 +27,7 @@ export type DexProgress = { count: number, total: number, fraction: number, perc
 export type Cfg = {
 	REBIRTH_MULTIPLIER_STEP: number,
 	LOCK_SECONDS_PER_REBIRTH: number,
-	LOCK_MAX_REMAINING: number,
+	LOCK_MAX_SECONDS: number,
 	MAX_REBIRTHS: number,
 }
 
@@ -52,7 +52,7 @@ function Progress.rebirthTiers(state: any, cfg: Cfg, costOf: (number) -> number,
 		table.insert(out, {
 			rebirth = r + k,
 			multiplier = mult + k * cfg.REBIRTH_MULTIPLIER_STEP,
-			lockSeconds = math.min(lock + k * cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_REMAINING),
+			lockSeconds = math.min(lock + k * cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_SECONDS),
 			cost = if k == 1 then num(state.rebirthCost) else costOf(r + k - 1),
 			current = false,
 		})
@@ -96,7 +96,7 @@ export type NextRebirth = {
 	need: string, -- "$3.7K more" / "Ready!" / "Max rebirths"
 	progress: string, -- "$1.2K / $5K"
 	multiplier: number, -- income multiplier after it
-	lockGain: number, -- extra lock seconds it adds (0 once locks are at LOCK_MAX_REMAINING)
+	lockGain: number, -- extra lock seconds it adds (0 once locks are at LOCK_MAX_SECONDS)
 	slimes: { SlimeNeed }, -- the slimes this rebirth needs and uses up (empty at max)
 	missing: { SlimeNeed }, -- the ones of `slimes` the player doesn't have yet
 }
@@ -142,7 +142,7 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 			else `{Format.formatCash(math.max(0, cost - have))} more`,
 		progress = `{Format.formatCash(have)} / {Format.formatCash(cost)}`,
 		multiplier = num(state.rebirthMultiplier) + cfg.REBIRTH_MULTIPLIER_STEP,
-		lockGain = math.max(0, math.min(lock + cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_REMAINING) - lock),
+		lockGain = math.max(0, math.min(lock + cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_SECONDS) - lock),
 		slimes = slimes,
 		missing = missing,
 	}

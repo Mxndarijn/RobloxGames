@@ -5,8 +5,7 @@
 	What each plot's owner-only prompts and lock / pad attributes should say
 	right now (CONTRACT.md §8.4-§8.5), so WorldView only copies values onto
 	Instances:
-	  * LockPrompt on LockButton: "Lock base $<cost>" / "Extend lock $<cost>" /
-	    "Lock is maxed", ObjectText "<name>'s base: OPEN" / "... LOCKED m:ss";
+	  * LockPrompt on LockButton: "Lock base" (disabled while a lock runs), ObjectText "<name>'s base: OPEN" / "... LOCKED m:ss";
 	  * BuyPadPrompt on the lowest locked pad: "Buy pad $<cost>" ("Build floor <f> $<cost>" on a floor's first pad),
 	    "Pad <j> of <max>";
 	  * FriendsPrompt on LockButton (FEATURES.FriendsInBase): "Allow friends" / "Block friends", ObjectText
@@ -81,10 +80,6 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 	local friendsAllowed = friendsOn and data.allowFriends == true
 	local locked = Steal.isLocked(session.lockUntil, now)
 	local remaining = Steal.lockRemaining(session.lockUntil, now)
-	local lockText = if remaining >= Config.LOCK_MAX_REMAINING - 1
-		then "Lock is maxed"
-		elseif locked then "Extend lock"
-		else "Lock base"
 	local status = if locked then `LOCKED {PlotPrompts.clock(remaining)}` else "OPEN"
 
 	local padCost = Economy.padCost(data.padsUnlocked)
@@ -99,7 +94,7 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 		friendsAllowed = friendsAllowed,
 		padsUnlocked = data.padsUnlocked,
 		nextPadCost = padCost,
-		lock = { actionText = lockText, objectText = `{session.name}'s base: {status}`, enabled = true },
+		lock = { actionText = "Lock base", objectText = `{session.name}'s base: {status}`, enabled = not locked },
 		friends = PlotPrompts.friendsPrompt(friendsAllowed, friendsOn),
 		buyPad = {
 			actionText = if padCost then `{buyText} ${Economy.formatNumber(padCost)}` else "All pads unlocked",

@@ -732,8 +732,8 @@ local Config = {
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 120,
 	LOCK_SECONDS = 120,
-	LOCK_SECONDS_PER_REBIRTH = 10, -- a bought lock lasts this much longer per rebirth, up to LOCK_MAX_REMAINING
-	LOCK_MAX_REMAINING = 240, -- the longest lock: one purchase or several stacked never go past 4 min
+	LOCK_SECONDS_PER_REBIRTH = 10, -- a lock lasts this much longer per rebirth, up to LOCK_MAX_SECONDS
+	LOCK_MAX_SECONDS = 240, -- the longest single lock (4 min); locks never stack or extend
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
 	HOLD_CONFIRM_SECONDS = 0.8,
