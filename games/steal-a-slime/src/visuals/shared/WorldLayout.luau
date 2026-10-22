@@ -196,7 +196,7 @@ WorldLayout.DECK_SEGMENTS = 16
 WorldLayout.DOOR = table.freeze({ angle = -90, width = 8, height = 11 }) -- no wider than one glass segment
 WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22.5, firstAngle = 90 })
 -- The stair is a smooth spiral ramp (easy on a thumbstick): `segments` sloped boxes climb FLOOR_HEIGHT over one turn,
--- from half a step before tread 1's angle (WorldLayout.treadAngle) to tread FLOOR_HEIGHT's angle, ending flush
+-- from one step before tread 1's angle (WorldLayout.treadAngle) to tread FLOOR_HEIGHT's angle, ending flush
 -- with the deck above, where the next floor's ramp goes on. The boxes slope as the helix does at radius `walk` (where
 -- feet go). The rail is an invisible wall along the outer edge that follows the visible brass rail: from just under
 -- the ramp to `railHeight` studs above it (too tall to step over, so nobody walks off by accident; a deliberate jump
