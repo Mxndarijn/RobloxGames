@@ -34,7 +34,7 @@ describe("StealService lock", function()
 		local world, victim = setup()
 		victim.data.cash = 1000
 		victim.data.rebirths = 2
-		local now = T0 + 100 -- join lock expired
+		local now = T0 + Config.JOIN_LOCK_SECONDS + 10 -- join lock expired
 		local cost = Economy.lockCost(World.incomeOf(world, victim))
 		expect((StealService.buyLock(world, victim, now))).toBe(true)
 		expect(victim.lockUntil).toBe(now + Config.LOCK_SECONDS + 2 * Config.LOCK_SECONDS_PER_REBIRTH)

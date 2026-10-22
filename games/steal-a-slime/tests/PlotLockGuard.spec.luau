@@ -62,3 +62,32 @@ describe("PlotLockGuard: locked both ways", function()
 		expect(PlotLockGuard.ownerGroup(3)).toBe("PlotOwner_3")
 	end)
 end)
+
+describe("PlotLockGuard.insideJar", function()
+	local JAR: PlotLockGuard.Jar = {
+		radii = WorldLayout.JAR_RADII,
+		floorTop = WorldLayout.PLOT_FLOOR_TOP,
+		floorHeight = WorldLayout.FLOOR_HEIGHT,
+		wall = WorldLayout.JAR_WALL,
+	}
+	local floor1 = WorldLayout.PLOT_FLOOR_TOP + 3
+	it("counts the middle of jar 1 as inside and the bridge as outside", function()
+		expect(PlotLockGuard.insideJar(0, floor1, 0, JAR, 1, false)).toBe(true)
+		expect(PlotLockGuard.insideJar(0, floor1, PlotLockGuard.doorwayExit(DOOR), JAR, 1, false)).toBe(false)
+	end)
+	it("keeps a character inside while it leans on the glass or the stopper", function()
+		local r = WorldLayout.jarRadius(1)
+		expect(PlotLockGuard.insideJar(0, floor1, -(r - 0.5), JAR, 1, false)).toBe(false)
+		expect(PlotLockGuard.insideJar(0, floor1, -(r - 0.5), JAR, 1, true)).toBe(true)
+		expect(PlotLockGuard.insideJar(0, floor1, PlotLockGuard.doorwayExit(DOOR) - 1, JAR, 1, true)).toBe(false)
+	end)
+	it("only counts floors that are built", function()
+		local floor2 = WorldLayout.floorTop(2) + 3
+		expect(PlotLockGuard.insideJar(0, floor2, 0, JAR, 1, false)).toBe(false)
+		expect(PlotLockGuard.insideJar(0, floor2, 0, JAR, 2, false)).toBe(true)
+	end)
+	it("calls a character that entered after the lock began an intruder", function()
+		expect(PlotLockGuard.intruder(105, 100)).toBe(true)
+		expect(PlotLockGuard.intruder(95, 100)).toBe(false)
+	end)
+end)
