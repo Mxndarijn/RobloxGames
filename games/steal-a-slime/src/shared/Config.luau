@@ -716,9 +716,9 @@ local Config = {
 
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 120,
-	LOCK_SECONDS = 60,
+	LOCK_SECONDS = 120,
 	LOCK_SECONDS_PER_REBIRTH = 10, -- a bought lock lasts this much longer per rebirth, up to LOCK_MAX_REMAINING
-	LOCK_MAX_REMAINING = 180, -- the longest lock: one purchase or several stacked never go past 3 min
+	LOCK_MAX_REMAINING = 240, -- the longest lock: one purchase or several stacked never go past 4 min
 	LOCK_BASE_COST = 25,
 	LOCK_INCOME_SECONDS = 15, -- lock costs this many seconds of plot income (or base cost)
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
@@ -728,7 +728,7 @@ local Config = {
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	-- SlimeGuard (FEATURES.SlimeGuard, CONTRACT.md §41). Movement thresholds live in the shared MovementGuard defaults.
 	SLIME_GUARD = table.freeze({
-		ENFORCE = false, -- false = watch mode: flags are logged and add points, nothing else happens; true = steals bounce, pause, kick
+		ENFORCE = true, -- false = watch mode: flags are logged and add points, nothing else happens; true = steals bounce, pause, kick
 		SAMPLE_SECONDS = 0.1, -- one position per player this often (the server's view tick)
 		LAUNCH_SPEED = 150, -- studs/s allowed while a PvP launch / control window is open (PvpLaunch.guardActive)
 		SERVER_MOVE_SECONDS = 1, -- after a server teleport or respawn the next second is not checked
