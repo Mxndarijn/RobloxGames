@@ -837,6 +837,7 @@ local Config = {
 		SlimeAnimations = true, -- slimes play the uploaded KeyframeSequences (MeshAssets.ANIMATIONS) once a probe track loads; false = procedural Motor6D motion (ui/SlimeMotor)
 		CycleModifier = true, -- a server modifier (Luck Surge, Golden Hour) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); false = no modifier
 		SlideCollision = true, -- invisible colliders along the FULL fountain slide, top to mouth (B6: players fell through above LOW_SLIDE_Y); false = low stretch only
+		FriendsInBase = true, -- the owner's lock-button switch lets their Roblox friends in this server through a locked base's stopper and steal there (PlotGuests, CONTRACT.md §42); false = no switch, locks block friends like anyone
 		FriendBonus = true, -- +FRIEND_BONUS_PER_FRIEND income per friend in the same server, up to FRIEND_BONUS_CAP (FriendBonus); false = no bonus
 		Weather = true, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md
 		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged

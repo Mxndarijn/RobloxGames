@@ -388,7 +388,7 @@ entries["ranch_fence_20"] =
 -- Plot vats (server MeshSwap.swapPlotVats, bug #16): stands over every plot's MergeVat disc, 1 MeshPart per plot.
 -- NOT a world slot.
 entries["merge_vat"] =
-	{ assetId = 122090902536570, meshId = "rbxassetid://94063238729318", size = { 10.808, 7.625, 10.764 } }
+	{ assetId = 122090902536570, meshId = "rbxassetid://90518138029994", size = { 10.808, 7.115, 10.764 } }
 -- Goo jar tower (shared/modeling-kit/models/_goo_jar.py; JarMeshes holds where each sits). Open Cloud size-check.
 entries["goo_cork_stand"] =
 	{ assetId = 73579765961535, meshId = "rbxassetid://118479492434509", size = { 7.8, 2.45, 7.8 } }

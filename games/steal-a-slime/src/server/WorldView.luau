@@ -53,6 +53,7 @@ local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
+local PlotGuests = require(script.Parent.PlotGuests)
 local PlotLockGuard = require(script.Parent.PlotLockGuard)
 local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
@@ -1063,6 +1064,8 @@ function WorldView.reconcile(
 		end
 		assert(record, "record")
 		record.prompt.ActionText = entry.promptText
+		-- GuestsOnly before Enabled: a client applies them in order, so the prompt never shows un-gated for a frame.
+		record.prompt:SetAttribute(Constants.PROMPT_GUESTS_ATTRIBUTE, entry.guestsOnly)
 		record.prompt.Enabled = entry.promptEnabled
 		record.prompt:SetAttribute(Constants.PROMPT_HIDE_ATTRIBUTE, entry.hideFromUserId)
 		record.prompt.HoldDuration = entry.promptHold
@@ -1189,6 +1192,7 @@ end
 
 local plotPromptParts: { [string]: string } = {
 	[Constants.LOCK_PROMPT_NAME] = "LockButton",
+	[Constants.FRIENDS_PROMPT_NAME] = "LockButton",
 	[Constants.MERGE_PROMPT_NAME] = "MergeVat",
 }
 local plotPrompts: { [number]: { [string]: ProximityPrompt } } = {}
@@ -1203,6 +1207,7 @@ local plotPrompts: { [number]: { [string]: ProximityPrompt } } = {}
 function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 	local kinds = {
 		[Constants.LOCK_PROMPT_NAME] = "Lock",
+		[Constants.FRIENDS_PROMPT_NAME] = "ToggleFriends",
 		[Constants.MERGE_PROMPT_NAME] = "Merge",
 		[Constants.BUY_PAD_PROMPT_NAME] = "BuyPad",
 	}
@@ -1225,6 +1230,17 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 			-- The vat prompt only opens the merge vat menu (the menu confirms each step), so it is instant.
 			local opensMenu = kind == "Merge"
 			prompt.HoldDuration = if opensMenu then 0 else Config.HOLD_CONFIRM_SECONDS
+			if kind == "Lock" or kind == "ToggleFriends" then
+				-- Both sit on the LockButton: Custom style, so the client's key card draws one card with a row each
+				-- instead of two Roblox bubbles on the same spot (ui/SlimeKeyCard).
+				prompt.Style = Enum.ProximityPromptStyle.Custom
+			end
+			if kind == "ToggleFriends" then
+				local keys = Constants.FRIENDS_PROMPT_KEYS
+				prompt.KeyboardKeyCode = (Enum.KeyCode :: any)[keys.keyboard]
+				prompt.GamepadKeyCode = (Enum.KeyCode :: any)[keys.gamepad]
+				prompt.HoldDuration = 0 -- free and undoable
+			end
 			prompt.RequiresLineOfSight = false
 			prompt.MaxActivationDistance = Config.PLOT_PAD_PROMPT_DISTANCE
 			prompt.Enabled = false
@@ -1237,10 +1253,11 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 	end
 end
 
--- The part plot `index`'s prompt `kind` ("Lock" | "Merge" | "BuyPad") currently sits on (BuyPad moves), or nil.
+-- The part plot `index`'s prompt `kind` ("Lock" | "ToggleFriends" | "Merge" | "BuyPad") sits on (BuyPad moves), or nil.
 function WorldView.plotPromptPart(index: number, kind: string): BasePart?
 	local name = if kind == "Lock"
 		then Constants.LOCK_PROMPT_NAME
+		elseif kind == "ToggleFriends" then Constants.FRIENDS_PROMPT_NAME
 		elseif kind == "Merge" then Constants.MERGE_PROMPT_NAME
 		elseif kind == "BuyPad" then Constants.BUY_PAD_PROMPT_NAME
 		else nil
@@ -1332,6 +1349,42 @@ local function ensureGroups()
 		end)
 		if not ok then
 			warn(`[WorldView] collision groups for plot {index}: {err}`)
+		end
+	end
+end
+
+-- Guests (PlotGuests): plot i's stopper also lets plot j's owner through while j's owner is a guest of plot i, by
+-- making PlotLock_<i> x PlotOwner_<j> non-colliding. Every player owns one plot, so PlotOwner_<j> is that player's
+-- group and no new groups are needed. Only pairs that changed are touched; the settings replicate to every client.
+local guestPairs: { [string]: { lock: string, owner: string } } = {}
+local function syncGuestPairs(world: World.World)
+	ensureGroups()
+	local wanted: { [string]: { lock: string, owner: string } } = {}
+	for i, guests in PlotGuests.pairs(world) do
+		for j in guests do
+			if i ~= j then
+				wanted[`{i}:{j}`] = { lock = PlotLockGuard.lockGroup(i), owner = PlotLockGuard.ownerGroup(j) }
+			end
+		end
+	end
+	for key, pair in guestPairs do
+		if not wanted[key] then
+			pcall(function()
+				PhysicsService:CollisionGroupSetCollidable(pair.lock, pair.owner, true)
+			end)
+			guestPairs[key] = nil
+		end
+	end
+	for key, pair in wanted do
+		if not guestPairs[key] then
+			local ok, err = pcall(function()
+				PhysicsService:CollisionGroupSetCollidable(pair.lock, pair.owner, false)
+			end)
+			if ok then
+				guestPairs[key] = pair
+			else
+				warn(`[WorldView] guest pair {key}: {err}`)
+			end
 		end
 	end
 end
@@ -1478,7 +1531,10 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 		then
 			local p = base.CFrame:PointToObjectSpace(root.Position)
 			local y = p.Y + base.Size.Y / 2
-			if PlotLockGuard.wedged(player.UserId, session.userId, true, p.X, y, p.Z, DOOR) then
+			if
+				not PlotGuests.isGuest(session, player.UserId)
+				and PlotLockGuard.wedged(player.UserId, session.userId, true, p.X, y, p.Z, DOOR)
+			then
 				character:PivotTo(
 					base.CFrame
 						* CFrame.new(p.X, p.Y, PlotLockGuard.doorwayExit(DOOR))
@@ -1501,6 +1557,7 @@ end
 function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloors.Context?)
 	local habitatsOn = Config.FEATURES.Habitats
 	HabitatPads.step(habitats, world, now, habitatsOn)
+	syncGuestPairs(world)
 	for index = 1, world.plotCount do
 		local plot = WorldView.plot(index)
 		if plot then
@@ -1513,6 +1570,7 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)
 			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
 			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
+			setIfChanged(plot, Constants.PLOT_FRIENDS_ALLOWED_ATTRIBUTE, if view.friendsAllowed then true else nil)
 			setBarrierSolid(plot, index, view.locked)
 			setOpenDoorSolid(plot, not view.locked)
 			setIfChanged(plot, Constants.PLOT_LOCK_COST_ATTRIBUTE, view.lockCost)
@@ -1544,6 +1602,7 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			local prompts = plotPrompts[index]
 			if prompts then
 				applyPrompt(prompts[Constants.LOCK_PROMPT_NAME], view.lock, view.ownerUserId)
+				applyPrompt(prompts[Constants.FRIENDS_PROMPT_NAME], view.friends, view.ownerUserId)
 				applyPrompt(prompts[Constants.MERGE_PROMPT_NAME], view.merge, view.ownerUserId)
 				local buyPad = prompts[Constants.BUY_PAD_PROMPT_NAME]
 				local padPart = pads[view.buyPad.pad] or WorldView.pad(index, view.buyPad.pad)

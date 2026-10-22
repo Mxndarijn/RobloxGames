@@ -4,17 +4,22 @@
 
 	While a thief carries a slime away, a see-through copy stays on its pad, so everyone can see which slime is
 	being taken while it is still "there". The copy is a plain snapshot of the slime model: no prompts, tags or
-	attributes, anchored, no collision or queries, faded to Config.STEAL_GHOST_TRANSPARENCY. WorldView builds it
+	attributes, anchored, no collision or queries, faded to Config.STEAL_GHOST_TRANSPARENCY from each part's own
+	transparency (a slime in the merge vat is not faded twice). WorldView builds it
 	when the slime is carried off and removes it when the slime is stolen or goes home.
 
 	`wants` is the rule (tests/StealGhost.spec.luau). `build` only touches Roblox APIs when called.
 ]]
 
+local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
 local Scene = if script then require(script.Parent.Scene) else require("./Scene")
 
 local StealGhost = {}
 
 StealGhost.NAME = "StealGhost"
+
+local OWN = Constants.OWN_TRANSPARENCY_ATTRIBUTE
 
 -- A ghost shows on the pad only while someone other than the owner carries a pad slime.
 function StealGhost.wants(entry: Scene.Entry): boolean
@@ -29,6 +34,12 @@ end
 -- Same look from either side: an already see-through part gets more see-through, never less.
 function StealGhost.fade(transparency: number, ghost: number): number
 	return 1 - (1 - transparency) * (1 - ghost)
+end
+
+-- A copied part's transparency before the ghost fade: its own one (Constants.OWN_TRANSPARENCY_ATTRIBUTE) when the
+-- merge vat has faded the slime, so a copy of a slime in the vat is not faded twice into nothing.
+function StealGhost.own(transparency: number, saved: any): number
+	return if type(saved) == "number" then saved else transparency
 end
 
 -- Copies `model` (its current pose) and rests the copy at `at` under `parent`.
@@ -68,9 +79,11 @@ function StealGhost.build(model: Model, at: CFrame, parent: Instance, ghost: num
 			d.CanTouch = false
 			d.CanQuery = false
 			d.CastShadow = false
-			d.Transparency = StealGhost.fade(d.Transparency, ghost)
+			d.Transparency = StealGhost.fade(StealGhost.own(d.Transparency, d:GetAttribute(OWN)), ghost)
+			d:SetAttribute(OWN, nil)
 		elseif d:IsA("Decal") then
-			d.Transparency = StealGhost.fade(d.Transparency, ghost)
+			d.Transparency = StealGhost.fade(StealGhost.own(d.Transparency, d:GetAttribute(OWN)), ghost)
+			d:SetAttribute(OWN, nil)
 		end
 	end
 	for _, d in doomed do

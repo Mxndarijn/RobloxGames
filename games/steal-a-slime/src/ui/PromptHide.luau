@@ -21,6 +21,13 @@
 	stay disabled locally unless `ShowOnlyToUserId` is the local UserId. When
 	it becomes nil (free plot) the server has disabled the prompt, so a prompt
 	we hid for this rule is not re-enabled; it is when it becomes us.
+
+	With `guestsAttribute` set (GuestsOnly, FEATURES.FriendsInBase): a locked
+	base that lets friends in keeps its Steal prompts on for everyone on the
+	server, with GuestsOnly = ",<id>,<id>,". Every client not in that list
+	keeps them disabled locally. The server writes GuestsOnly before Enabled,
+	so when the list goes the re-enable lands first and the server's own
+	Enabled = false (if the base stays shut) wins after it.
 ]]
 
 export type Options = {
@@ -28,6 +35,7 @@ export type Options = {
 	localUserId: number,
 	attribute: string, -- HideFromUserId (GrabPrompt only)
 	ownerAttribute: string?, -- ShowOnlyToUserId (any prompt), v13
+	guestsAttribute: string?, -- GuestsOnly (any prompt): ",<id>,<id>," of the only players who may use it
 }
 
 local PROMPT_NAME = "GrabPrompt"
@@ -38,8 +46,8 @@ function PromptHide.isGrabPrompt(inst: Instance): boolean
 	return inst.Name == PROMPT_NAME and inst:IsA("ProximityPrompt")
 end
 
--- Which rule hides `p` for this client: "grab", "owner" or nil.
-function PromptHide.reason(opts: Options, p: Instance): ("grab" | "owner")?
+-- Which rule hides `p` for this client: "grab", "owner", "guests" or nil.
+function PromptHide.reason(opts: Options, p: Instance): ("grab" | "owner" | "guests")?
 	if PromptHide.isGrabPrompt(p) and p:GetAttribute(opts.attribute) == opts.localUserId then
 		return "grab"
 	end
@@ -47,6 +55,12 @@ function PromptHide.reason(opts: Options, p: Instance): ("grab" | "owner")?
 		local owner = p:GetAttribute(opts.ownerAttribute)
 		if owner ~= nil and owner ~= opts.localUserId then
 			return "owner"
+		end
+	end
+	if opts.guestsAttribute then
+		local guests = p:GetAttribute(opts.guestsAttribute)
+		if type(guests) == "string" and not string.find(guests, `,{opts.localUserId},`, 1, true) then
+			return "guests"
 		end
 	end
 	return nil
@@ -75,7 +89,7 @@ function PromptHide.applier(opts: Options, hidden: { [Instance]: string }): (Pro
 end
 
 local function watched(opts: Options, inst: Instance): boolean
-	if opts.ownerAttribute then
+	if opts.ownerAttribute or opts.guestsAttribute then
 		return inst:IsA("ProximityPrompt")
 	end
 	return PromptHide.isGrabPrompt(inst)
@@ -101,14 +115,18 @@ function PromptHide.start(opts: Options): () -> ()
 				apply(p)
 			end),
 		}
-		if opts.ownerAttribute then
-			table.insert(
-				conns,
-				p:GetAttributeChangedSignal(opts.ownerAttribute):Connect(function()
-					apply(p)
-				end)
-			)
+		local function watchAttribute(name: string?)
+			if name then
+				table.insert(
+					conns,
+					p:GetAttributeChangedSignal(name):Connect(function()
+						apply(p)
+					end)
+				)
+			end
 		end
+		watchAttribute(opts.ownerAttribute)
+		watchAttribute(opts.guestsAttribute)
 		bound[p] = conns
 		apply(p)
 	end

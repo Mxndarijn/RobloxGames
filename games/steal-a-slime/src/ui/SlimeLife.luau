@@ -9,7 +9,7 @@
 	forced (SlimeMotor's LifeForce test hook, clock.hopAt). The Roblox side is SlimeLifeRunner.client.luau; this module has
 	no Roblox APIs, so tests/ui/SlimeLife.spec.luau covers it under Lune.
 
-	  SlimeLife.params(tier, state) -> Params   tier 1..7, state "Wild" | "Pad"
+	  SlimeLife.params(tier, state) -> Params   tier 1..7, state "Wild" | "Pad" | "Vat"
 	  SlimeLife.eligible(info) -> boolean       state / screen / distance rule
 	  SlimeLife.select(cands, active) -> { [id]: true }
 	                                            nearest first, at most MAX_ACTIVE,
@@ -39,7 +39,13 @@ SlimeLife.MAX_TIER = 7 -- Secret
 SlimeLife.SPARKLE_LIFETIME = { 0.6, 1.1 } -- seconds, per particle
 SlimeLife.SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds" -- built-in, same as Effects SPARK
 SlimeLife.MAX_SPARKLES_ALIVE = 16 -- per emitter, same limit as tests/Effects.spec
-SlimeLife.STATES = { Wild = true, Pad = true, Escaping = true }
+SlimeLife.STATES = { Wild = true, Pad = true, Escaping = true, Vat = true }
+
+-- A slime that sits still in one spot and lives there: on its pad, or on a merge vat seat (VatView's copies,
+-- State "Vat"). Wild and escaping slimes walk.
+function SlimeLife.seated(state: string?): boolean
+	return state == "Pad" or state == "Vat"
+end
 -- Each slime breathes at its own rate and depth: x (1 +- this), drawn once per clock, so pads never breathe in step.
 SlimeLife.RHYTHM_JITTER = 0.15
 
@@ -115,7 +121,7 @@ local LAND_BURST = { 0, 0, 0, 4, 6, 8, 10 }
 function SlimeLife.params(tier: number?, state: string?): Params
 	local t = clampTier(tier)
 	local k = t - 1 -- 0 (Common) .. 6 (Secret)
-	local pad = state == "Pad"
+	local pad = SlimeLife.seated(state)
 	return {
 		tier = t,
 		squishAmp = 0.035 + 0.008 * k,

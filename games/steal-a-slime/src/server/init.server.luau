@@ -294,8 +294,8 @@ end)
 ctx.areFriends = function(a: number, b: number, at: number): boolean -- Hat Launcher (FEATURES.PvP)
 	return Friends.areFriends(friendCache, a, b, at)
 end
-local function refreshFriends()
-	if Config.FEATURES.FriendBonus ~= true then
+local function refreshFriends() -- the friend bonus and the friends switch's guests (PlotGuests) both read it
+	if Config.FEATURES.FriendBonus ~= true and Config.FEATURES.FriendsInBase ~= true then
 		return
 	end
 	Friends.refresh(friendCache, world, now())

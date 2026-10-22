@@ -67,6 +67,7 @@ export type Session = {
 	lastPushAt: number,
 	stealWaitSince: number?, -- tutorial Steal step: since when no other plot had a slime to steal, runtime only
 	friends: number?, -- friends in this server (Friends.refresh), runtime only
+	friendIds: { [number]: boolean }?, -- user ids of those friends (Friends.refresh; PlotGuests), runtime only
 	blessedUntil: number?, -- when the co-op ritual's Blessed bonus (data.ritualBonus) ends (RitualService), runtime only
 	mvpUntil: number?, -- when the Boss MVP income boost (data.mvpBonus) ends (BossCredit), runtime only
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch (State.egg, never saved)

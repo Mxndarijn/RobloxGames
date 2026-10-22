@@ -164,6 +164,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"VatCancel"` | none | Stops the brew; the slimes stay in the vat. |
 | `"VatCollect"` | none | Once the brew is done, merges the three (`TripleMerge`) onto the first input's pad. `"still brewing"` before that. |
 | `"Lock"` | none | Buys or extends the plot lock. Costs `Economy.lockCost(income)`. |
+| `"ToggleFriends"` | none | `FEATURES.FriendsInBase`: flips the owner's friends switch (friends pass the locked stopper and may steal). See [friends-in-base.md](contract/friends-in-base.md). |
 | `"Rebirth"` | none | Rebirths if `Progression.canRebirth`. |
 | `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. A Mystery Egg can't be sold: "eggs can't be sold". A slime brewing in the vat can't either: "That slime is brewing in the vat". |
 | `"Favorite"` | `slimeId: string?` | Sets the favourite (the follow pet; a rebirth uses it up only when no other slime of a required species is there). `nil` clears it. |
@@ -438,3 +439,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §39 | [slime-life.md](contract/slime-life.md) | Slime life: species gaits, hops, lane beats and reactions |
 | §40 | [mystery-egg.md](contract/mystery-egg.md) | Mystery Eggs: wild eggs that incubate on a pad, can be stolen, hatch into a slime in a show on the pad, lucky eggs and a lucky meter (`FEATURES.MysteryEggs`) |
 | §41 | [slime-guard.md](contract/slime-guard.md) | Slime Guard: anti-cheat for stealing, locked-base intruders, breather lock (`FEATURES.SlimeGuard`) |
+| §42 | [friends-in-base.md](contract/friends-in-base.md) | Friends in your base: the lock button's switch lets friends through a locked base (`FEATURES.FriendsInBase`) |

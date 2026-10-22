@@ -4,6 +4,7 @@
 
 	Counts, per session, the friends who are in the same server and turns the
 	count into data.friendBonus (FriendBonus; Perks.bonusMultiplier applies it).
+	Their user ids go in session.friendIds (PlotGuests: who passes a locked base).
 	`check(a, b)` is Player:IsFriendsWith behind a pcall boundary: it yields and
 	may throw. Answers are cached per pair (FRIEND_CACHE_SECONDS); a failed check
 	keeps the last known answer (false when none) and isn't retried for
@@ -78,6 +79,17 @@ function Friends.count(cache: Cache, world: World, userId: number): number
 	return n
 end
 
+-- The user ids of `userId`'s friends among the sessions now in the world, from the cache only.
+function Friends.present(cache: Cache, world: World, userId: number): { [number]: boolean }
+	local ids = {}
+	for otherId in world.sessions do
+		if otherId ~= userId and Friends.cached(cache, userId, otherId) then
+			ids[otherId] = true
+		end
+	end
+	return ids
+end
+
 -- Recomputes every session's friend count and bonus. Phase 1 asks about the
 -- pairs that aren't cached yet (may yield; sessions can come and go meanwhile);
 -- phase 2 reads the cache for the sessions present *now* in one go, so the
@@ -101,6 +113,7 @@ function Friends.refresh(cache: Cache, world: World, now: number): { World.Sessi
 		local n = Friends.count(cache, world, userId)
 		local bonus = FriendBonus.bonus(n)
 		session.friends = n
+		session.friendIds = Friends.present(cache, world, userId)
 		if (session.data.friendBonus or 0) ~= bonus then
 			session.data.friendBonus = if bonus > 0 then bonus else nil
 			World.markDirty(session)

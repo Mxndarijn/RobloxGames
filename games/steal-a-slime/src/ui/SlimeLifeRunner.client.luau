@@ -1152,7 +1152,7 @@ RunService.PreAnimation:Connect(function()
 					pz = actor.pushZ,
 					-- a pad slime stays put when you walk past; the boss is never pushed aside (its hits are checked
 					-- where its move has it)
-					rooted = actor.state == "Pad" or actor.bossMove ~= nil,
+					rooted = SlimeLife.seated(actor.state) or actor.bossMove ~= nil,
 				})
 				table.insert(spaced, rig)
 			else

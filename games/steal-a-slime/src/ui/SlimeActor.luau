@@ -38,6 +38,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local ParadeChoreo = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ParadeChoreo"))
 local ParadeLane = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ParadeLane"))
+local SlimeLife = require(script.Parent:WaitForChild("SlimeLife"))
 local Lib = ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core")
 local SlimeAttention = require(script.Parent:WaitForChild("SlimeAttention"))
 local SlimeBeats = require(script.Parent:WaitForChild("SlimeBeats"))
@@ -588,7 +589,7 @@ function SlimeActor.update(
 	local look = body.CFrame.LookVector
 	local state = model:GetAttribute("State")
 	local wild = state == "Wild"
-	local pad = state == "Pad"
+	local pad = SlimeLife.seated(state)
 	local escaping = state == "Escaping"
 	-- On the fountain slide (Riding); the lead-in from the slide mouth also says Riding, but there it walks.
 	local laneAt = model:GetAttribute(Constants.LANE_AT_ATTRIBUTE)

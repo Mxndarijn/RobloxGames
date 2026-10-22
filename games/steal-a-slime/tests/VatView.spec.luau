@@ -3,6 +3,7 @@
 -- a slime in the vat and where the three spots sit.
 local Fixtures = require("./Fixtures")
 local TestRunner = require("./TestRunner")
+local VatDecor = require("../src/visuals/shared/VatDecor")
 local VatState = require("../src/shared/VatState")
 local VatView = require("../src/server/VatView")
 
@@ -58,5 +59,26 @@ describe("VatView.spotOffset", function()
 			local dx, dz = points[i][1] - points[j][1], points[i][2] - points[j][2]
 			expect(math.sqrt(dx * dx + dz * dz) >= VatView.SPOT_WIDTH).toBe(true)
 		end
+	end)
+end)
+
+describe("VatDecor.seatOffset", function()
+	it("puts the three seats in the cups: on the rim radius, at the cup's goo height, front cup facing +Z", function()
+		local pose = VatDecor.pose(0, 2, 0)
+		local bottom = -pose.size[2] / 2
+		local s = VatDecor.SCALE
+		for i = 1, VatDecor.SEATS do
+			local o = VatDecor.seatOffset(i, pose.size)
+			expect(math.abs(o[2] - (bottom + VatDecor.CUP_SEAT_Z * s)) < 1e-6).toBe(true)
+		end
+		-- the cups sit evenly round the vat's axis, which is off the mesh centre by the front cup's reach
+		local a, b, c =
+			VatDecor.seatOffset(1, pose.size), VatDecor.seatOffset(2, pose.size), VatDecor.seatOffset(3, pose.size)
+		local cx, cz = (a[1] + b[1] + c[1]) / 3, (a[3] + b[3] + c[3]) / 3
+		for _, o in { a, b, c } do
+			local r = math.sqrt((o[1] - cx) ^ 2 + (o[3] - cz) ^ 2)
+			expect(math.abs(r - VatDecor.CUP_RADIUS * s) < 1e-6).toBe(true)
+		end
+		expect(a[3] > cz).toBe(true) -- model +Y (cup 1) is the mesh's +Z
 	end)
 end)

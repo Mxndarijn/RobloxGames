@@ -4,7 +4,7 @@
 
 	The SlimeDex panel's content (Panels/Dex), pure (tests/ui/SlimeDex.spec). State.dex (CONTRACT.md §36.4)
 	becomes one card per species, grouped by rarity under a header line, the event Secrets last as a bonus
-	section. A card is found (full colour mesh, name) or a silhouette ("???", the hint, and for
+	section. A card is found (full colour mesh, name) or a silhouette (its name, the hint, and for
 	hybrids three ingredient slots that fill in as the player finds each ingredient). The server decides what is
 	revealed; this module only formats it. `lines` packs the cards into grid lines for a list width
 	(`grid`: as many columns as fit, one on a narrow phone), so the panel stacks lines like any scroll list.
@@ -17,7 +17,7 @@ export type Card = {
 	kind: string, -- "spawn" | "hybrid" | "boss" | "event"
 	tier: number,
 	found: boolean,
-	title: string, -- name, or "???"
+	title: string, -- the species name ("???" only if State left it out)
 	hint: string?,
 	badge: string?, -- "Merge-only" | "Boss" | "Event"
 	slots: { Slot }?, -- hybrids: the three ingredients
