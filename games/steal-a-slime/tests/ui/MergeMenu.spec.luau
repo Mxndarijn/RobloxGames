@@ -42,6 +42,7 @@ local function build(options: { triple: boolean?, buildSlime: ((any) -> any)? }?
 	}
 	local root = UiHarness.root()
 	local panel = UiHarness.ui("Panels/Merge").new(root, ctx)
+	panel.frame.Visible = true -- a hold only confirms while its panel is open
 	return panel, sent, root
 end
 

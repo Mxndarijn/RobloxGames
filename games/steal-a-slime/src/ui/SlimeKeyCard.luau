@@ -140,13 +140,17 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 
 	local shown: { [ProximityPrompt]: boolean } = {}
 	local gamepad = false
-	type Row = { frame: Frame, fill: Frame, conns: { RBXScriptConnection }, tween: Tween? }
+	type Row = { frame: Frame, fill: Frame, conns: { RBXScriptConnection }, tween: Tween?, holding: boolean }
 	local rows: { [ProximityPrompt]: Row } = {}
 	local watched: { [ProximityPrompt]: RBXScriptConnection } = {}
 	local render: () -> ()
 
 	local function clearRows()
-		for _, row in rows do
+		for prompt, row in rows do
+			if row.holding then
+				row.holding = false
+				prompt:InputHoldEnd() -- an un-ended hold would still fire (Sell) after the row is gone
+			end
 			if row.tween then
 				row.tween:Cancel()
 			end
@@ -208,21 +212,30 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 			Parent = rowFrame,
 		})
 		-- A click or tap holds the prompt like its key would.
-		local conns = {
+		local row: Row = { frame = rowFrame, fill = fill, conns = {}, tween = nil, holding = false }
+		row.conns = {
 			rowFrame.InputBegan:Connect(function(input: InputObject)
 				local t = input.UserInputType
 				if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
+					row.holding = true
 					prompt:InputHoldBegin()
 				end
 			end),
 			rowFrame.InputEnded:Connect(function(input: InputObject)
 				local t = input.UserInputType
 				if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
+					row.holding = false
 					prompt:InputHoldEnd()
 				end
 			end),
 		}
-		return { frame = rowFrame, fill = fill, conns = conns, tween = nil }
+		rowFrame.Destroying:Connect(function()
+			if row.holding then
+				row.holding = false
+				prompt:InputHoldEnd()
+			end
+		end)
+		return row
 	end
 
 	-- Redraws the card for the slime whose prompts are shown.
