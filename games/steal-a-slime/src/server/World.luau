@@ -29,6 +29,7 @@ local StealAlert = if Shared then require(Shared.StealAlert) else require("../sh
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
 local WelcomeBack = if Shared then require(Shared.WelcomeBack) else require("../shared/WelcomeBack")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
 local MovementGuard = if Lib
 	then require(Lib.anticheat.MovementGuard)
@@ -394,8 +395,17 @@ function World.ownerOf(world: World, slimeId: string): (Session?, Slime?)
 	return nil, nil
 end
 
+-- The slimes that earn nothing right now: carried away by a thief, or brewing in the owner's vat.
+function World.incomeSkip(world: World, session: Session): { [string]: boolean }
+	local skip = VatState.lockedSet(session.data)
+	for id in world.carriedBy do
+		skip[id] = true
+	end
+	return skip
+end
+
 function World.incomeOf(world: World, session: Session): number
-	return PlayerData.incomePerSecond(session.data, World.carriedSet(world))
+	return PlayerData.incomePerSecond(session.data, World.incomeSkip(world, session))
 end
 
 return World

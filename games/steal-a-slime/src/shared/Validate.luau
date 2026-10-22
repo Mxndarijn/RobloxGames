@@ -12,10 +12,11 @@ local Validate = {}
 export type Limiter = { [string]: number } -- action -> last allowed time
 
 Validate.ACTIONS = table.freeze({
-	Merge = 0.5,
-	Merge3 = 0.5,
-	AutoMerge = 1,
-	KeepSlime = 0.2,
+	VatAdd = 0.25,
+	VatRemove = 0.25,
+	VatStart = 0.5,
+	VatCancel = 0.5,
+	VatCollect = 0.5,
 	Lock = 0.5,
 	Rebirth = 2,
 	Sell = 0.25,

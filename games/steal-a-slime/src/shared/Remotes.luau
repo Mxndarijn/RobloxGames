@@ -33,10 +33,11 @@ Remotes.DEFINITIONS = table.freeze({
 } :: { RemoteDef })
 
 Remotes.ACTIONS = table.freeze({
-	Merge = table.freeze({ args = { "string", "string" } }), -- slimeIdA, slimeIdB
-	Merge3 = table.freeze({ args = { "string", "string", "string" } }), -- three slime ids (FEATURES.MergeVat3, CONTRACT.md §21)
-	AutoMerge = table.freeze({ args = { "number" } }), -- rarity bit mask, bit t - 1 = rarity t (CONTRACT.md §21.1)
-	KeepSlime = table.freeze({ args = { "string", "boolean" } }), -- slime id, keep (CONTRACT.md §21.1)
+	VatAdd = table.freeze({ args = { "string" } }), -- slimeId: Move mode placed this pad slime in the merge vat (CONTRACT.md §21)
+	VatRemove = table.freeze({ args = { "string" } }), -- slimeId: take it out of the vat (it stays on its pad)
+	VatStart = table.freeze({ args = {} }), -- start brewing the full vat
+	VatCancel = table.freeze({ args = {} }), -- stop the brew; the slimes stay in the vat
+	VatCollect = table.freeze({ args = {} }), -- merge a finished brew onto the first input's pad
 	Lock = table.freeze({ args = {} }),
 	Rebirth = table.freeze({ args = {} }),
 	Sell = table.freeze({ args = { "string" } }), -- slimeId

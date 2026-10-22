@@ -18,6 +18,7 @@ local EggKind = if Shared then require(Shared.EggKind) else require("../shared/E
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -61,6 +62,9 @@ function StealService.steal(
 	local owner, slime = World.ownerOf(world, slimeId)
 	if not owner or not slime then
 		return false, "slime is gone"
+	end
+	if VatState.isLocked(owner.data, slimeId) then
+		return false, "That slime is brewing in the vat"
 	end
 	local ok, reason = Steal.canSteal({
 		thiefId = thief.userId,

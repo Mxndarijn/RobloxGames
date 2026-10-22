@@ -24,6 +24,7 @@ local Genome = if Shared then require(Shared.Genome) else require("../shared/Gen
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -133,14 +134,16 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				state = state,
 				ownerUserId = session.userId,
 				price = nil,
-				income = PlayerData.slimeIncome(session.data, shown),
+				income = if VatState.isLocked(session.data, slime.id)
+					then 0
+					else PlayerData.slimeIncome(session.data, shown),
 				plotIndex = session.plotIndex,
 				pad = slime.pad,
 				carrierUserId = carrier,
 				wild = nil,
 				promptText = Carry.actionText(nil),
 				promptHold = Carry.holdDuration(nil),
-				promptEnabled = state == "Pad" and unlocked,
+				promptEnabled = state == "Pad" and unlocked and not VatState.isLocked(session.data, slime.id),
 				hideFromUserId = if state == "Pad" then session.userId else nil,
 				boss = false,
 				bossScale = nil,

@@ -140,7 +140,8 @@ ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
 
 -- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
--- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet and the Boss MVP boost.
+-- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet, the Boss MVP boost and the
+-- Quick Brew upgrade.
 ItemIcons.AWAITING_UPLOAD = table.freeze({
 	"Dex_8",
 	"Dex_15",
@@ -148,6 +149,7 @@ ItemIcons.AWAITING_UPLOAD = table.freeze({
 	"Dex_32",
 	"Dex_40",
 	"Boost_Mvp",
+	"Upgrade_QuickBrew",
 } :: { string })
 
 -- id -> MeshAssets name: an item that shows that kit mesh as a live model, with its picture as the fallback.
@@ -217,6 +219,14 @@ local HAND: { Hand } = {
 		color = { 90, 90, 190 },
 		glyph = "🌙",
 		brief = "A yellow crescent moon with a sleeping slime curled in it and 3 small stars; night-blue accent.",
+	},
+	{
+		id = "Upgrade_QuickBrew",
+		name = "Quick Brew",
+		group = "upgrade",
+		color = { 200, 120, 60 },
+		glyph = "⚡",
+		brief = "A copper merge vat full of mint goo with a gold lightning bolt over it; three-quarter view.",
 	},
 	{
 		id = "Upgrade_Luck",

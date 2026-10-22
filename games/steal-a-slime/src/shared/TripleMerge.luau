@@ -1,6 +1,6 @@
 --!strict
 --[[
-	TripleMerge (FEATURES.MergeVat3, CONTRACT.md §21)
+	TripleMerge (CONTRACT.md §21)
 
 	Three slimes of ONE rarity go into the vat and one slime of a higher rarity comes out (all three are
 	consumed). The rules are fixed; only the odds are rolled, from the server's Rng, so one seed always gives
@@ -14,7 +14,7 @@
 	              Config.MERGE_ASSIST_CHANCE of them from the species the player hasn't found yet.
 	  * size      mean of the three + Config.TRIPLE_MERGE_SIZE_BONUS.
 	  * traits    pattern / eyes / mouth each from one of the three.
-	Anti-dupe: `apply` checks everything first (three DIFFERENT ids, owned, not busy, not kept, same tier) and only then
+	Anti-dupe: `apply` checks everything first (three DIFFERENT ids, owned, not busy, same tier) and only then
 	removes the inputs and adds the child, so a refused merge changes nothing and an accepted one never leaves
 	an input behind. Pure: no Roblox APIs.
 ]]
@@ -171,9 +171,6 @@ function TripleMerge.apply(
 		local found = PlayerData.findSlime(data, id)
 		if not found then
 			return false, "missing slime"
-		end
-		if found.keep then
-			return false, "slime is kept"
 		end
 		slimes[i] = found
 	end

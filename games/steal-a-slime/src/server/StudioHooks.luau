@@ -5,7 +5,8 @@
 	Review hooks for the PC watcher shots. Player attributes change that player's real session data, so WorldView draws
 	the result with its own code: "PcwGrowth" (percent) the growth of the pad 1 slime, "PcwPlotSkin" (a skin id) finds
 	that skin's slimes and equips it (the tower turns to its theme), "PcwPads" (a count) the unlocked pads (the upper
-	jars build). ServerLoop's `pinClock` covers the
+	jars build), "PcwSlimes" (a tier) puts three slimes of that rarity on free pads (a merge vat load). ServerLoop's
+	`pinClock` covers the
 	Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
 ]]
@@ -55,6 +56,13 @@ local function apply(world: World.World, player: Player, refresh: () -> ())
 	if type(pads) == "number" then
 		profile.padsUnlocked = math.clamp(math.floor(pads), 1, Config.PADS_MAX)
 	end
+	local tier = player:GetAttribute("PcwSlimes")
+	if type(tier) == "number" then
+		for _ = 1, 3 do
+			local fresh: any = Genome.generate(world.rng, { id = HttpService:GenerateGUID(false), tier = tier })
+			PlayerData.addSlime(profile, fresh)
+		end
+	end
 	World.markDirty(session)
 	refresh()
 end
@@ -65,7 +73,7 @@ function StudioHooks.start(world: World.World, memoryMode: boolean, refresh: () 
 		return
 	end
 	local function watch(player: Player)
-		for _, name in { "PcwGrowth", "PcwPlotSkin", "PcwPads" } do
+		for _, name in { "PcwGrowth", "PcwPlotSkin", "PcwPads", "PcwSlimes" } do
 			player:GetAttributeChangedSignal(name):Connect(function()
 				pcall(apply, world, player, refresh)
 			end)

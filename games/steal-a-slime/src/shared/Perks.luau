@@ -200,6 +200,11 @@ function Perks.offlineCap(data: Progress): number
 	return Config.OFFLINE_CAP_SECONDS + upgradeEffect(data, "OfflineCap")
 end
 
+-- Multiplier on merge vat brew times (Quick Brew; 1 = full time).
+function Perks.brewFactor(data: Progress): number
+	return math.max(0, 1 - upgradeEffect(data, "QuickBrew"))
+end
+
 -- Chance that a wild slime this player deposits is one rarity higher.
 function Perks.luckChance(data: Progress): number
 	return upgradeEffect(data, "Luck") + petValue(data, "luck")

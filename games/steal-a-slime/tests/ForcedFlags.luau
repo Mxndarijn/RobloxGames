@@ -21,7 +21,6 @@ ForcedFlags.off = {
 	["Consumables purchase rules"] = "Consumables",
 	["Consumables effects"] = "Consumables",
 	["Consumables state and saves"] = "Consumables",
-	["Pacing server > bots merge in the 3-slime vat while MergeVat3 is on, so a Secret is not minutes away"] = "MergeVat3",
 	["CycleModifier odds"] = "CycleModifier",
 	["Spawner.stepModifier"] = "CycleModifier",
 	["FountainRide: the live server rides every spawned slime"] = "Parade",
@@ -69,7 +68,6 @@ ForcedFlags.needOff = {
 	["plot skins: equip > the Request refuses a locked skin, and equips an unlocked one"] = "PlotSkins",
 	["plot skins: equip > with the flag off the Request is refused, even for an unlocked skin"] = "PlotSkins",
 	["plot skins: equip > flag off: State carries no plot skin fields"] = "PlotSkins",
-	["TripleMerge: server action > is refused with the flag off and merges with it on"] = "MergeVat3",
 	-- FEATURES.FountainSplit on: the fountain is 5 PCD pieces and the hand-placed colliders stay off (tests/FountainSplit.spec);
 	-- these pin the single Mesh child and the colliders turned on by it
 	["fountain collider, mesh loading > stays that way while the fountain's CreateMeshPartAsync is in flight"] = "FountainSplit",

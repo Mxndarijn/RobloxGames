@@ -19,7 +19,6 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local HotbarOrder = if Shared then require(Shared.HotbarOrder) else require("../shared/HotbarOrder")
-local Merge = if Shared then require(Shared.Merge) else require("../shared/Merge")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
@@ -32,6 +31,7 @@ local Shops = if Shared then require(Shared.Shops) else require("../shared/Shops
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local PlotPadGuard = if script then require(script.Parent.PlotPadGuard) else require("./PlotPadGuard")
 local ShopGuard = if script then require(script.Parent.ShopGuard) else require("./ShopGuard")
@@ -199,6 +199,9 @@ local function sell(world: World, session: Session, id: string): Result
 	if World.isBusy(world, id) then
 		return fail("slime is busy")
 	end
+	if VatState.isLocked(session.data, id) then
+		return fail("That slime is brewing in the vat")
+	end
 	local ok, value = PlayerData.sell(session.data, id)
 	if not ok then
 		return fail(value :: string)
@@ -214,6 +217,9 @@ local function moveSlime(world: World, session: Session, id: string, pad: number
 	local other = PlayerData.slimeOnPad(session.data, pad)
 	if World.isBusy(world, id) or (other ~= nil and World.isBusy(world, other.id)) then
 		return fail("slime is busy")
+	end
+	if VatState.isLocked(session.data, id) or (other ~= nil and VatState.isLocked(session.data, other.id)) then
+		return fail("That slime is brewing in the vat")
 	end
 	return result(PlayerData.moveSlime(session.data, id, pad))
 end
@@ -285,20 +291,6 @@ local function buyUpgrade(world: World, session: Session, id: string): Result
 	local level = session.data.upgrades[id]
 	World.notify(world, session.userId, `{def and def.name or id} level {level}!`, "good", "Cash", `Upgrade_{id}`)
 	return OK
-end
-
-local function merge3(world: World, session: Session, args: { any }, ctx: Context): Result
-	if not feature(ctx, "MergeVat3") then
-		return fail("the 3-slime vat is off")
-	end
-	return result(MergeVat.merge3(world, session, { args[1], args[2], args[3] }))
-end
-
-local function autoMerge(world: World, session: Session, mask: number, ctx: Context): Result
-	if not feature(ctx, "MergeVat3") then
-		return fail("the 3-slime vat is off")
-	end
-	return result(MergeVat.autoMerge(world, session, mask))
 end
 
 local function equipPlotSkin(world: World, session: Session, id: string, ctx: Context): Result
@@ -530,14 +522,16 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	if blocked then
 		return blocked
 	end
-	if action == "Merge" then
-		return result(MergeVat.merge(world, session, args[1], args[2]))
-	elseif action == "Merge3" then
-		return merge3(world, session, args, ctx)
-	elseif action == "AutoMerge" then
-		return autoMerge(world, session, args[1], ctx)
-	elseif action == "KeepSlime" then
-		return result(MergeVat.setKeep(session, args[1], args[2]))
+	if action == "VatAdd" then
+		return result(MergeVat.add(world, session, args[1]))
+	elseif action == "VatRemove" then
+		return result(MergeVat.remove(world, session, args[1]))
+	elseif action == "VatStart" then
+		return result(MergeVat.start(world, session, now))
+	elseif action == "VatCancel" then
+		return result(MergeVat.cancel(world, session))
+	elseif action == "VatCollect" then
+		return result(MergeVat.collect(world, session, now))
 	elseif action == "Lock" then
 		return result(StealService.buyLock(world, session, now))
 	elseif action == "Rebirth" then
@@ -665,9 +659,8 @@ end
 
 --[[
 	A player triggered plot `plotIndex`'s owner-only prompt `kind` ("Lock" | "BuyPad" | "Merge"). Someone else's
-	(or a free) plot answers with a toast naming the owner. Merge does nothing with FEATURES.MergeVat3 (the
-	owner's client opens the merge menu); without it Merge picks the pair itself (Merge.findPair, the favourite
-	kept out) and toasts when there is none. A refused action toasts its reason. Returns the result.
+	(or a free) plot answers with a toast naming the owner. Merge does nothing on the server (the owner's
+	client opens the merge vat menu). A refused action toasts its reason. Returns the result.
 ]]
 -- The owner's HatchPrompt on a ready Mystery Egg: the HatchEgg action, with a toast when it is refused.
 function Actions.triggerHatchPrompt(world: World, userId: number, slimeId: string, now: number, ctx: Context): Result
@@ -694,19 +687,10 @@ function Actions.triggerPlotPrompt(
 		World.notify(world, userId, text, "info", nil)
 		return fail(text)
 	end
-	if kind == "Merge" and feature(ctx, "MergeVat3") then
-		return OK -- the owner's client opens the merge menu (CONTRACT.md §21.1)
-	end
-	local args = {}
 	if kind == "Merge" then
-		local a, b = Merge.findPair(session.data.slimes, World.busySet(world), session.data.favoriteId)
-		if not a or not b then
-			World.notify(world, userId, "Need two slimes of the same rarity", "info", nil)
-			return fail("no pair")
-		end
-		args = { a, b }
+		return OK -- the owner's client opens the merge vat menu (CONTRACT.md §21)
 	end
-	local res = Actions.handlePlotPad(world, userId, kind, args, now, ctx)
+	local res = Actions.handlePlotPad(world, userId, kind, {}, now, ctx)
 	if not res.ok and res.message then
 		World.notify(world, userId, res.message, "info", nil)
 	end

@@ -51,6 +51,20 @@ Why only the top three change: Common to Epic are what players catch and merge a
 - A random merge never makes a Secret. Mythic x3 gives a Mythic (a random Mythic species, assist below). Secret comes from the fountain, Slime Rain and the Nightwing recipe.
 - **Merge assist:** 35 % of random results come from the species of that tier you have not found yet (when there are any). It costs nothing to build (the server knows the player's Dex), it hides inside "random", and it cuts the long tail of the last missing species.
 
+**Brew time** (merge vat, contract/merge-vat.md): a merge is a timed brew, set by the rarity going in (`Config.MERGE_BREW_SECONDS`). Recipes take the same time as a random merge of that rarity. The brew runs on while the player is offline, and the three inputs earn nothing while they brew, so a merge also costs income.
+
+| Three of | Brew time | With Quick Brew 4 | Base income paused (3 slimes) |
+|---|---|---|---|
+| Common | 30 s | 12 s | $90 |
+| Uncommon | 1 min | 24 s | $540 |
+| Rare | 2 min | 48 s | $3.2K |
+| Epic | 5 min | 2 min | $24.3K |
+| Legendary | 10 min | 4 min | $144K |
+| Mythic | 20 min | 8 min | $900K |
+| Secret | 30 min | 12 min | $4.3M |
+
+Income paused = `Config.RARITIES[t].income` x 3 x brew seconds, before multipliers. **Quick Brew** (Upgrade Shop) takes 15 % off every brew per level, 4 levels; level n needs rebirth 2, 4, 6, 8.
+
 ### 1.3 Families: which species open when
 
 The existing `FountainTiers` machinery stays: a family opens at a rank, the server's fountain tier is the best rank on the server, and you can only catch a family slime once your own rank has opened it (`FountainTiers.catchBlock`). A stolen one is fine, and so is a merge result from your own unlocked pool. The family ids `orchard`, `frost` and `starlight` stay (they are in Config and in code); only their display names and members change.
@@ -118,13 +132,13 @@ Hybrid ids are new and permanent. None clashes with an old roster id.
 |---|---|
 | Not found, no ingredient found | Black silhouette of the hybrid (its real mesh, flat black), tier colour frame, name "???", a "Merge-only" badge, three "?" ingredient slots. |
 | Some ingredients found | Each slot whose species you have in the Dex shows that species' icon (x2 / x3 for repeats). |
-| All ingredients found ("known") | Name and hint line shown, all three slots shown. The merge menu can now name this recipe (below). |
+| All ingredients found ("known") | Name and hint line shown, all three slots shown. The merge vat menu still shows it as random until the hybrid is crafted (below). |
 | Crafted | Full-colour card, like any species. |
 
 - All 15 silhouettes are visible from the first Dex visit. That is the hook: players see a fish-cat silhouette and go looking.
 - The hint line only shows once the recipe is known, so it confirms more than it reveals. A variant: show it from the start as a riddle. That is up to the Dex/UI owner and changes nothing server-side.
 - **Server toast** on every craft: "<player> brewed a Steampuff!" (the existing `Rare` sound for Legendary+). It shows the hybrid, not the recipe.
-- **Merge menu** (the other session's UI): when the three picked slimes form a recipe the player **knows**, the preview says "Recipe: Soda Pop". When they form a recipe the player doesn't know yet, the preview looks like any random merge ("Uncommon, random species"), so the surprise stays and the menu can't be used to probe recipes for free. Auto-merge never uses up the last copies of a known, uncrafted recipe's ingredients unless it completes that recipe, and it crafts known recipes first.
+- **Merge vat menu:** when the three slimes in the vat form a recipe whose hybrid the player has **discovered**, the preview names the hybrid ("Soda Pop"). Any other load, a recipe the player hasn't crafted yet included, looks like any random merge ("Random slime" with an Uncommon pill), so the surprise stays and the vat can't be used to probe recipes for free.
 
 ### 2.4 Recipe lookup: the pure function
 
@@ -166,7 +180,7 @@ MergeRecipes.hint(recipe: Recipe, found): { revealed: { string? }, known: boolea
 3. T = 7: `random` with `tier = 7`, no jump, pool = the unlocked Secret species (the existing "stays Secret" path).
 4. Otherwise: `random` with `tier = min(T + 1, MERGE_MAX_TIER)` and the jump only when `T + 2 <= MERGE_JUMP_MAX_TIER`. The pool comes from `SlimeRoster.forTier` over the unlocked families, never hybrids or bosses.
 
-`resolve` draws no random numbers. `TripleMerge.merge` rolls from the outcome in a fixed order: jump, assist, species, then the trait draws. It always draws the jump and species numbers, even on a recipe hit, so one seed stays one result whatever the inputs. The menu calls `resolve` for its preview and shows "Recipe: X" only when `isKnown`. It never sees the roll.
+`resolve` draws no random numbers. `TripleMerge.merge` rolls from the outcome in a fixed order: jump, assist, species, then the trait draws. It always draws the jump and species numbers, even on a recipe hit, so one seed stays one result whatever the inputs. The menu previews the same outcome (`MergePreview`) and names the hybrid only once it is discovered (`isDiscovered`). It never sees the roll.
 
 Config additions (names for the contract): `MERGE_MAX_TIER = 6`, `MERGE_JUMP_MAX_TIER = 5`, `MERGE_ASSIST_CHANCE = 0.35`. `TRIPLE_MERGE_JUMP_CHANCE` (0.2) stays.
 
@@ -291,7 +305,7 @@ Each step is one PR on its own `feat/...` branch from `main`, with the contract 
 | 4 | `feat(steal-a-slime): save v7 and species Dex` | Phoenix, then Jolt for the UI | `SaveData.migrateV6`, `data.found` / `speciesRewards`, `Collection` species ladder, `State.dex` = species + hints, PlotSkins and Badges on the new counts. Jolt: Dex cards with silhouettes, and ingredient slots. | `SaveMigrationV7.spec`, SaveData round trip, Collection, Snapshot, UI Dex spec. |
 | 5 | `feat(steal-a-slime): new rarity odds and top-tier presentation` | Phoenix + Archer | Config weights, size floors, lifetime multipliers for 6/7, announcements; Archer: auras, beam, eruption, pedestal glow. | Contract "Config matches the design", Spawner and Fountain specs. Studio playtest for the visuals. |
 | 6 | `feat(steal-a-slime): boss fight` | Phoenix + Archer + Jolt | `BossFight` (pure: meter, contributions, phases, deadlines), Spawner schedule and rotation, haul via `Carry`, boss badges for helpers, `State.boss` fields, boss meter UI, giant boss visuals. Replaces today's `BossSlime` branch, so that flag's old path is deleted. | `BossFight.spec` (meter scales with players, drain, fail paths, top contributor priority, slap drop), Carry spec, livetest session with 2 stand-in players. |
-| 7 | `refactor(steal-a-slime): retire the pair merge` | Phoenix | Delete `Merge.luau`'s pair path (`Request("Merge")`) once `MergeVat3` expires. | Delete its specs. |
+| 7 | `feat(steal-a-slime): merge vat rework` | Phoenix + Jolt | Slimes go into the vat by Move and brew on a timer (contract/merge-vat.md). The pair merge (`Merge.luau`), `MergePlan`, kept slimes and the `Merge` / `Merge3` / `AutoMerge` / `KeepSlime` requests go. | `VatState.spec`, delete the old merge specs. |
 | 8 | `feat(steal-a-slime): progression telemetry` | Phoenix | AnalyticsService funnel events (rebirth n, first of tier, species count, recipe crafted), **no DataStore**, to check the sim's rebirth-pace assumption after launch. | Spec on the pure event builder. |
 
 Steps 2 to 5 should go live together, on one release with `SlimePool` on: the new Dex makes no sense on the old roster. Step 6 can follow a release later.

@@ -256,6 +256,15 @@ export type State = {
 	hotbar: { string }?, -- saved hotbar order (HotbarOrder, CONTRACT.md §5.1): 9 slot keys, "" = empty; nil = never set
 	boards: { [string]: number }, -- my own value on each global board, by Leaderboards stat (CONTRACT.md §5.1)
 	boardRanks: { [string]: number }, -- my rank on each board from the last refresh; -n = deeper than #n; absent = not ranked yet
+	vat: VatView, -- the plot's merge vat (VatState, CONTRACT.md §21)
+}
+
+export type VatView = {
+	ids: { string }, -- slime ids in the vat, spot order (each also in `slimes`, still on its pad)
+	tier: number?, -- the rarity it takes; nil while empty
+	endsAt: number?, -- unix seconds the brew is done; nil = not brewing
+	startedAt: number?, -- unix seconds the brew started
+	seconds: number?, -- how long a brew of `tier` takes now (Quick Brew applied); nil while empty
 }
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }

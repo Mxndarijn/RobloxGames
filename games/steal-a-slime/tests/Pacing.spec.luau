@@ -119,9 +119,7 @@ describe("Pacing server", function()
 		expect(records[1].final.rebirths).toBe(2)
 	end)
 
-	it("bots merge in the 3-slime vat while MergeVat3 is on, so a Secret is not minutes away", function()
-		local Config = require("../src/shared/Config")
-		expect(Config.FEATURES.MergeVat3).toBe(true)
+	it("bots merge in the plot vat, so a Secret is not minutes away", function()
 		local records =
 			Server.run({ seed = 3, days = 1, mix = { grinder = 2 }, stagger = 1, checkpoints = { 0.5 }, plots = 8 })
 		for _, r in records do

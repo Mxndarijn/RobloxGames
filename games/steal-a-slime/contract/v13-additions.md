@@ -6,7 +6,7 @@
 
 | Action | Args | Effect / `message` on failure |
 |---|---|---|
-| `"BuyUpgrade"` | `upgradeId: string` (one of `Config.UPGRADES[i].id`: `"Income"`, `"CarrySpeed"`, `"OfflineCap"`, `"Luck"`) | Buys the next level for `Upgrades.cost(id, level)`. Fails with `"unknown upgrade"`, `"locked: reach <n> rebirths"`, `"already maxed"` or `"not enough cash"`. Permanent: saved, kept on rebirth. Rate limit 0.5 s. Notify `"<Name> level <n>!"` (`"good"`, `"Cash"`). |
+| `"BuyUpgrade"` | `upgradeId: string` (one of `Config.UPGRADES[i].id`: `"Income"`, `"CarrySpeed"`, `"OfflineCap"`, `"QuickBrew"`, `"Luck"`) | Buys the next level for `Upgrades.cost(id, level)`. Fails with `"unknown upgrade"`, `"locked: reach <n> rebirths"`, `"already maxed"` or `"not enough cash"`. Permanent: saved, kept on rebirth. Rate limit 0.5 s. Notify `"<Name> level <n>!"` (`"good"`, `"Cash"`). |
 
 Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing else is added; every v12 action keeps its name and args.
 
@@ -23,7 +23,7 @@ Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing
 		id: string, name: string, text: string,  -- text = what the next level does, e.g. "+10% income"
 		level: number, maxLevel: number,
 		price: number?,            -- nil = maxed or locked
-		requires: number,          -- rebirths needed
+		requires: number,          -- rebirths needed for the next level
 		unlocked: boolean,
 	} },
 	goals: { {                     -- Config.GOALS order; chains of stages
@@ -83,9 +83,9 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 |---|---|---|---|---|
 | `LockPrompt` (`LOCK_PROMPT_NAME`) | `LockButton` | E | `"Lock base $<cost>"` while open, `"Extend lock $<cost>"` while locked, `"Lock is maxed"` at `LOCK_MAX_REMAINING` | `"<name>'s base: OPEN"` or `"<name>'s base: LOCKED m:ss"` (updated every reconcile) |
 | `BuyPadPrompt` (`BUY_PAD_PROMPT_NAME`) | the lowest locked `Pad_<j>`; moved as pads unlock; parked (disabled) on the last pad when all are unlocked | E | `"Buy pad $<cost>"`; `"Build floor <f> $<cost>"` when `j` is the first pad of floor `f >= 2` | `"Pad <j> of <PADS_MAX>"` |
-| `MergePrompt` (`MERGE_PROMPT_NAME`) | `MergeVat` | E | `"Auto-merge"` | `"Merge vat"` |
+| `MergePrompt` (`MERGE_PROMPT_NAME`) | `MergeVat` | E | `"Manage vat"` | `"Merge vat"` |
 
-`LockPrompt` = `Request("Lock")`, `BuyPadPrompt` = `Request("BuyPad")`, `MergePrompt` = `Merge.findPair` + `Request("Merge")`. Results are Notifies.
+`LockPrompt` = `Request("Lock")`, `BuyPadPrompt` = `Request("BuyPad")`, `MergePrompt` does nothing on the server: the owner's client opens the merge vat menu (§21). Lock and pad results are Notifies.
 
 ## 8.6 Notify sound names (added to §3)
 
@@ -125,7 +125,10 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 | `Income` | Slime Snacks | +10 % income | 10 | 2 000 / 2.5 | 0 |
 | `CarrySpeed` | Strong Arms | -15 % carry slowdown | 4 | 5 000 / 3 | 1 |
 | `OfflineCap` | Night Shift | +1 h offline income cap | 4 | 20 000 / 3 | 3 |
+| `QuickBrew` | Quick Brew | -15 % merge vat brew time (§21) | 4 | 25 000 / 3 | 2 / 4 / 6 / 8 (one per level, `levelRequires`) |
 | `Luck` | Lucky Charm | +4 % chance a wild slime you bring home is one rarity higher | 5 | 100 000 / 3 | 5 |
+
+An upgrade needs `requires` rebirths for every level, or, with the optional `levelRequires = { number }`, `levelRequires[n]` rebirths for level n (`Upgrades.requiresFor`).
 
 - **Income multiplier** = `rebirthMultiplier x (1 + 0.1 x Income level) x (1 + rank income bonus) x (1 + dexBonus)`. `SlimeView.income` and `incomePerSec` include it; sell prices don't.
 - **Goals** (`Config.GOALS`, `src/shared/Goals.luau`; titles are singular for a target of 1: "Catch 1 slime"): stage targets / base rewards; the paid reward is `base x rebirthMultiplier` at the time it's paid. Checked every second and on join, so old saves get past stages retroactively.

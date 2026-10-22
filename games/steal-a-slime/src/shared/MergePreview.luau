@@ -24,7 +24,7 @@ export type Recipe = {
 
 export type Preview = {
 	kind: "random" | "recipe",
-	title: string, -- "Random Rare slime" or the recipe hybrid's name
+	title: string, -- "Random slime" (with `rarity` beside it) or the recipe hybrid's name
 	tier: number,
 	rarity: string,
 	color: { number }, -- rarity colour
@@ -79,26 +79,19 @@ local function expectedSize(slimes: { Slime }, bonus: number): number
 	return math.floor(size * 100 + 0.5) / 100
 end
 
--- The preview for slimes of one rarity going into the vat that takes `vatSize` (2 = pair vat, 3 = TripleMerge;
--- default #slimes). Fewer picks than `vatSize` preview what the full load gives (size from the picks so far).
-function MergePreview.forSlimes(slimes: { Slime }, known: any?, vatSize: number?): Preview
-	local triple = (vatSize or #slimes) >= TripleMerge.COUNT
+-- The preview for one to three slimes of one rarity in the vat. A load short of three previews what the full
+-- load gives (size from the slimes so far; a recipe shows only once all three are in).
+function MergePreview.forSlimes(slimes: { Slime }, known: any?): Preview
 	local fromTier = slimes[1].tier
-	local tier, jumpTier, jumpChance, size
-	if triple then
-		local odds = TripleMerge.odds(fromTier)
-		tier, jumpTier, jumpChance = odds.tier, odds.jumpTier, odds.jumpChance
-		size = expectedSize(slimes, Config.TRIPLE_MERGE_SIZE_BONUS)
-	else
-		tier, jumpTier, jumpChance = math.min(fromTier + 1, Config.MAX_TIER), nil, 0
-		size = expectedSize(slimes, Config.MERGE_SIZE_BONUS)
-	end
-	local recipe = if triple then MergePreview.recipeFor(slimes, known) else nil
+	local odds = TripleMerge.odds(fromTier)
+	local tier, jumpTier, jumpChance = odds.tier, odds.jumpTier, odds.jumpChance
+	local size = expectedSize(slimes, Config.TRIPLE_MERGE_SIZE_BONUS)
+	local recipe = MergePreview.recipeFor(slimes, known)
 	if recipe then
 		tier, jumpTier, jumpChance = recipe.tier, nil, 0
 	end
 	local rarity = Genome.rarity(tier)
-	local title = if recipe then recipe.name else `Random {rarity.name} slime`
+	local title = if recipe then recipe.name else "Random slime"
 	return {
 		kind = if recipe then "recipe" else "random",
 		title = title,

@@ -200,7 +200,6 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		session.carry = nil
 		local slime = carry.slime
 		slime.pad = nil
-		slime.keep = nil -- a kept mark belongs to the previous owner
 		-- Lucky Charm (Perks.luckChance): one rarity higher on the way home. Never an egg: its slime is sealed.
 		local egg = slime.egg ~= nil
 		if not egg and slime.tier < Config.MAX_TIER and world.rng:float() < Perks.luckChance(session.data) then

@@ -9,8 +9,7 @@
 	    "Lock is maxed", ObjectText "<name>'s base: OPEN" / "... LOCKED m:ss";
 	  * BuyPadPrompt on the lowest locked pad: "Buy pad $<cost>" ("Build floor <f> $<cost>" on a floor's first pad),
 	    "Pad <j> of <max>";
-	  * MergePrompt on MergeVat: "Open vat" (the client opens the merge menu; FEATURES.MergeVat3) or "Auto-merge"
-	    (the pair vat merges the cheapest pair), "Merge vat";
+	  * MergePrompt on MergeVat: "Manage vat" (the owner's client opens the merge vat menu), "Merge vat";
 	  * plot attributes Locked / LockCost / PadsUnlocked / NextPadCost.
 	A free plot gets everything disabled and ShowOnlyToUserId = nil.
 ]]
@@ -42,9 +41,9 @@ function PlotPrompts.clock(seconds: number): string
 	return string.format("%d:%02d", s // 60, s % 60)
 end
 
--- The vat prompt's text: with the 3-slime vat it opens the merge menu (CONTRACT.md §21.1).
+-- The vat prompt's text: it opens the merge vat menu (CONTRACT.md §21).
 function PlotPrompts.mergeText(): string
-	return if Config.FEATURES.MergeVat3 then "Open vat" else "Auto-merge"
+	return "Manage vat"
 end
 
 function PlotPrompts.describe(world: World.World, plotIndex: number, now: number): Plot
