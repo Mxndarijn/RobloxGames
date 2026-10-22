@@ -8,9 +8,10 @@
 	    rising along it; seen from the hub and across the map.
 	  * Rim: a glowing green ring along the round plot floor's edge, pulsing.
 	  * Tag: an always-on-top "Your plot" label (canvas GooWorldSigns): a mint
-	    jelly badge with a house drawn in Ink, the words in outlined Fredoka.
-	  * Arrow: the same badge on the screen edge pointing home while the plot
-	    is off screen.
+	    jelly badge with your avatar's headshot (a house drawn in Ink until it
+	    loads, or if it can't), the words in outlined Fredoka.
+	  * Arrow: the badge with the house on the screen edge pointing home while
+	    the plot is off screen.
 	Beacon, tag and arrow fade out while your character stands on the plot. Numbers and math
 	live in Visuals.HomePlotMarker; this file only builds Instances.
 	Reads attributes only; never fires remotes. Local changes only.
@@ -45,8 +46,16 @@ local INK = rgb(GooPalette.Ink)
 local WHITE = rgb(GooPalette.White)
 
 -- The "Your plot" label in px: the badge, the words under it, and the Ink outlines.
-HomePlotMarker.TAG =
-	table.freeze({ w = 170, badge = 62, gap = 4, text = 32, textSize = 26, stroke = 3, textStroke = 2.5 })
+HomePlotMarker.TAG = table.freeze({
+	w = 170,
+	badge = 62,
+	gap = 4,
+	text = 32,
+	textSize = 26,
+	stroke = 3,
+	textStroke = 2.5,
+	avatarInset = 0.04,
+})
 -- The edge arrow: the badge and the "Your plot" words under it, in px.
 HomePlotMarker.ARROW = table.freeze({ badge = 58, gap = 6, textW = 110, textH = 20, textSize = 18 })
 local CORE_ALPHA = 0.35 -- beacon core transparency at full fade
@@ -177,7 +186,8 @@ local function homeBadge(parent: Instance, size: number): Frame
 		Rotation = -24,
 	}, circle)
 	make("UICorner", { CornerRadius = UDim.new(1, 0) }, shine)
-	drawHouse(circle, math.max(2, math.round(size / 20)))
+	local house = make("Frame", { Name = "House", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, circle)
+	drawHouse(house, math.max(2, math.round(size / 20)))
 	return circle
 end
 
@@ -218,6 +228,33 @@ local function buildTag(adornee: BasePart): BillboardGui
 	local title = outlined(tag, "Title", "Your plot", T.textSize)
 	title.Position = UDim2.fromOffset(0, T.badge + T.gap)
 	title.Size = UDim2.new(1, 0, 0, T.text)
+
+	-- Your avatar's headshot inside the mint ring, in place of the house once it loads (the house stays if it
+	-- cannot load).
+	local face = make("ImageLabel", {
+		Name = "Avatar",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromScale(T.avatarInset, T.avatarInset),
+		Size = UDim2.fromScale(1 - T.avatarInset * 2, 1 - T.avatarInset * 2),
+		Visible = false,
+		ZIndex = 2,
+	}, icon)
+	make("UICorner", { CornerRadius = UDim.new(1, 0) }, face)
+	local player = Players.LocalPlayer
+	task.spawn(function()
+		local ok, image = pcall(function()
+			return Players:GetUserThumbnailAsync(
+				player.UserId,
+				Enum.ThumbnailType.HeadShot,
+				Enum.ThumbnailSize.Size100x100
+			)
+		end)
+		if ok and face.Parent then
+			face.Image = image
+			face.Visible = true
+			icon.House.Visible = false
+		end
+	end)
 
 	tag.Parent = adornee
 	return tag
