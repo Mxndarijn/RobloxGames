@@ -599,6 +599,8 @@ end
 -- The tutorial card steps aside for an open menu card, the daily popup and the open bag panel.
 local function syncTutorial()
 	tutorial.setMenuOpen(not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
+	-- Visuals' edge arrows and the Your plot tag step aside while a menu, a popup or the bag covers the screen.
+	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, openKey ~= nil or dailyPopup.isOpen() or inventory.panelOpen())
 end
 
 local function syncMenus()
@@ -632,8 +634,6 @@ local function syncMenus()
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
 	syncTutorial()
-	-- Visuals' edge arrows and the Your plot tag step aside while a menu or popup covers the screen.
-	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, visibleKey ~= nil or dailyPopup.isOpen())
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
@@ -968,6 +968,13 @@ if game:GetService("RunService"):IsStudio() then
 			return
 		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
+	end)
+	-- "PcwBag" = true / false opens or closes the bag (scripts can't press its key or button).
+	gui:GetAttributeChangedSignal("PcwBag"):Connect(function()
+		local want = gui:GetAttribute("PcwBag")
+		if type(want) == "boolean" and want ~= inventory.panelOpen() then
+			inventory.toggleBag()
+		end
 	end)
 	-- "PcwMove" = "place" / "cancel" presses Place / Cancel in move mode (scripts can't send key presses).
 	gui:GetAttributeChangedSignal("PcwMove"):Connect(function()
