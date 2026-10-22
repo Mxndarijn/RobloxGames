@@ -56,7 +56,7 @@ ShopCatalog.ITEMS = table.freeze({
 		id = "SpeedCoil",
 		name = "Speed Coil",
 		icon = "⚡",
-		description = "Run faster, also while carrying",
+		description = "Hold it to run faster",
 		action = "BuySpeedCoil",
 		args = {},
 	}),
@@ -110,7 +110,7 @@ function ShopCatalog.speedCoilText(config: any): string?
 	if type(base) ~= "number" or type(coil) ~= "number" then
 		return nil
 	end
-	return `Speed {base} → {coil}, also while carrying`
+	return `Hold it: speed {base} → {coil}`
 end
 
 -- `config` (optional, Shared Config) fills in numbers for some descriptions.

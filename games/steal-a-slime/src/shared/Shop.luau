@@ -3,8 +3,8 @@
 	Shop
 
 	The Speed Coil, bought with Request("BuySpeedCoil") (CONTRACT.md §3), kept on rebirth:
-	  * SpeedCoil: bought once for SPEED_COIL_PRICE; base WalkSpeed is
-	    SPEED_COIL_WALK_SPEED (the carry slowdown applies to it, Carry.walkSpeed).
+	  * SpeedCoil: bought once for SPEED_COIL_PRICE; while the coil Tool is held,
+	    base WalkSpeed is SPEED_COIL_WALK_SPEED (Carry.walkSpeed).
 	`view` is State.shop. Pure: no Roblox APIs.
 ]]
 
@@ -33,9 +33,10 @@ function Shop.buySpeedCoil(data: Data): (boolean, number | string)
 	return true, cost
 end
 
--- Base WalkSpeed (Speed Coil included); Carry.walkSpeed applies the carry slowdown to it.
-function Shop.walkSpeed(data: Data): number
-	return if data.speedCoil then Config.SPEED_COIL_WALK_SPEED else Config.BASE_WALK_SPEED
+-- Base WalkSpeed: SPEED_COIL_WALK_SPEED only while the owned coil is held (equipped).
+-- Carry.walkSpeed applies the carry slowdown to it.
+function Shop.walkSpeed(data: Data, coilHeld: boolean?): number
+	return if data.speedCoil and coilHeld then Config.SPEED_COIL_WALK_SPEED else Config.BASE_WALK_SPEED
 end
 
 function Shop.view(data: Data): Types.ShopView

@@ -190,8 +190,11 @@ local function flushStates(t: number)
 	end
 end
 
+local lastRefreshAt = -math.huge
+
 -- Makes workspace match the World (slimes, plots, carry attributes), then plays the queued events.
 local function refreshView(t: number)
+	lastRefreshAt = t
 	WorldView.reconcile(world, t, function(player: Player, slimeId: string)
 		local root = WorldView.rootPart(player)
 		local position = WorldView.slimePosition(slimeId)
@@ -223,8 +226,11 @@ request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.
 	PlayerAttributes.syncOpenShop(world, player)
 	-- Never error to the client: a view hiccup must not turn a done action into a failure.
 	local t = now()
+	-- A client can only make the server refresh as often as the Heartbeat does: the next view tick shows the rest.
 	safeCall(`push after {action}`, function()
-		refreshView(t)
+		if t - lastRefreshAt >= ServerLoop.VIEW_INTERVAL then
+			refreshView(t)
+		end
 		flushStates(t)
 	end)
 	return res
