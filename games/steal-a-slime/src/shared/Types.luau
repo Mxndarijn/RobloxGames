@@ -28,7 +28,7 @@ export type RebirthSlimeView = { id: string, name: string, tier: number, color: 
 export type SlimeView = {
 	slime: SlimeData,
 	income: number, -- cash/sec incl. rebirth multiplier (0 while stolenBy ~= nil)
-	sellPrice: number,
+	sellPrice: number?, -- nil for a Mystery Egg (can't be sold)
 	stolenBy: number?, -- UserId of the player currently carrying it away
 }
 

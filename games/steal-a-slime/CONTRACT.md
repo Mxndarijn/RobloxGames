@@ -83,7 +83,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 
 - **Spawner:** a wild slime drops every `SPAWN_INTERVAL`, up to `MAX_WILD_SLIMES` alive (`Fountain.roll`). Each lives for `WILD_LIFETIME`.
   - `FREE_DROP_CHANCE` of drops are free.
-  - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab.
+  - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab. A Mystery Egg is always free (contract/mystery-egg.md).
   - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Drops come twice as fast (`RAIN_SPAWN_INTERVAL` = `SPAWN_INTERVAL / 2`), the wild cap is ×2 and luck is ×5 (`Progression.rainStatus`, `Fountain.wildCap`).
 - **Carry:** grabbing and stealing use a **ProximityPrompt** (`GrabPrompt`) that the server puts on each slime's `Body`. There is no remote for this.
   - The prompt's `ActionText` is `"Grab"`, `"Buy $<price>"` (`Economy.formatNumber`) or `"Steal"`. `ObjectText` is `Genome.displayName`.
@@ -160,7 +160,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"KeepSlime"` | `slimeId: string, keep: boolean` | Marks an owned slime as kept (never merged) or clears it (§21.1). |
 | `"Lock"` | none | Buys or extends the plot lock. Costs `Economy.lockCost(income)`. |
 | `"Rebirth"` | none | Rebirths if `Progression.canRebirth`. |
-| `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. |
+| `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. A Mystery Egg can't be sold: "eggs can't be sold". |
 | `"Favorite"` | `slimeId: string?` | Sets the favourite (the follow pet; a rebirth uses it up only when no other slime of a required species is there). `nil` clears it. |
 | `"BuyPad"` | none | Unlocks the next pad (`Economy.padCost`). |
 | `"MoveSlime"` | `slimeId: string, pad: number` | `FEATURES.MoveSlime`: moves that owned, not-busy slime to `pad` (an unlocked pad, `1..padsUnlocked`, a whole number). If another slime sits there, the two swap pads; that slime must not be busy either. Moving to its own pad is a no-op. Fails with `"moving slimes is off"`, `"not your slime"`, `"pad is locked"`, `"slime is busy"`. Only `slime.pad` changes (no save change); the slime models re-place on the next world refresh. |
@@ -248,7 +248,7 @@ The client always replaces its copy and never diffs.
 	rebirths: number, rebirthMultiplier: number, rebirthCost: number, canRebirth: boolean,
 	rebirthSlimes: { { id: string, name: string, tier: number, color: { number }, owned: boolean } }, -- §8.8a, empty at max
 	padsUnlocked: number, padsMax: number, nextPadCost: number?,
-	slimes: { { slime: SlimeData, income: number, sellPrice: number, stolenBy: number? } },
+	slimes: { { slime: SlimeData, income: number, sellPrice: number?, stolenBy: number? } }, -- sellPrice nil for a Mystery Egg
 	favoriteId: string?,
 	lockUntil: number, lockCost: number, lockDuration: number,
 	carrying: { slime: SlimeData, kind: "wild" | "stolen", ownerUserId: number?,
@@ -288,7 +288,7 @@ The client always replaces its copy and never diffs.
     ```
   - Client side: Jolt's `src/ui/PromptHide` implements this rule (matches only `GrabPrompt`, reads only `HideFromUserId`).
   - Server-side safety net: `Carry.grab` refuses the owner, so a client that ignores the attribute only shows a useless prompt.
-  - Owner side: `src/ui/SlimeKeys` adds two **client-only** ProximityPrompts on the Body of every slime model whose `OwnerUserId` is the local player and `State` is `"Pad"`: `FavoritePrompt` (R, gamepad DPadUp, tap: "Favorite" / "Unfavorite", sends `Favorite(slimeId)` / `Favorite(nil)`; the favourite's prompt shows `State.petPerk`; none on Mystery Eggs, models with `EggKind`) and `SellPrompt` (X, gamepad DPadDown, hold `HOLD_CONFIRM_SECONDS`: "Sell $price" from `State.slimes[i].sellPrice`, sends `Sell(slimeId)`). Hatch stays the server's `HatchPrompt` (F). E is left free on owned pad slimes. The server never creates or sees these prompts; there is no slime card and no Plot nav button.
+  - Owner side: `src/ui/SlimeKeys` adds two **client-only** ProximityPrompts on the Body of every slime model whose `OwnerUserId` is the local player and `State` is `"Pad"`: `FavoritePrompt` (R, gamepad DPadUp, tap: "Favorite" / "Unfavorite", sends `Favorite(slimeId)` / `Favorite(nil)`; the favourite's prompt shows `State.petPerk`; none on Mystery Eggs, models with `EggKind`) and `SellPrompt` (X, gamepad DPadDown, hold `HOLD_CONFIRM_SECONDS`: "Sell $price" from `State.slimes[i].sellPrice`, sends `Sell(slimeId)`; none on Mystery Eggs). Hatch stays the server's `HatchPrompt` (F). E is left free on owned pad slimes. The server never creates or sees these prompts; there is no slime card and no Plot nav button.
   - `FEATURES.MoveSlime`: SlimeKeys also adds `MovePrompt` (E, gamepad ButtonX, tap, "Move") to those slimes. It starts client-only move mode (`src/ui/SlimeMove`): the slime turns see-through for this player, a see-through copy sits on the target pad (the pad under the mouse or tap, else the unlocked pad nearest the character), the pad is tinted green (empty), yellow (swap) or red (locked). Click / tap a pad, E or gamepad ButtonX sends `MoveSlime(slimeId, pad)`; Q, gamepad ButtonB, the Cancel button, leaving the home zone or the slime leaving its pad cancels. Every ProximityPrompt is off for this player while moving.
   - These SlimeKeys prompts use `ProximityPromptStyle.Custom`: `src/ui/SlimeKeyCard` draws one card over the slime (its name, the favourite's perk, one row per shown prompt with its key, a fill while a hold prompt is held) instead of Roblox's stacked bubbles. A click or tap on a row holds that prompt.
 - **Player:** `Carrying: string?` (`Constants.CARRYING_ATTRIBUTE`). The carried slime's id, set on pickup (grab or steal). Cleared (nil) on drop, deposit, a failed steal (slap escape; the owner leaving), death / respawn and leave. A full plot doesn't clear it: the slime stays in your arms. The server derives it from `Carry.carryingId` after every action and every tick.

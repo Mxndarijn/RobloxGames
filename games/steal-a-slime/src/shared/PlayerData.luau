@@ -254,6 +254,9 @@ function PlayerData.sell(data: Data, id: string): (boolean, number | string)
 		return false, "not your slime"
 	end
 	local price = Economy.sellPrice(slime, data.rebirths)
+	if not price then
+		return false, "eggs can't be sold"
+	end
 	PlayerData.removeSlime(data, id)
 	PlayerData.earn(data, price)
 	data.stats.sold += 1
