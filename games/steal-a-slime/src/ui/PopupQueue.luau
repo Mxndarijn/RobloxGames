@@ -5,13 +5,16 @@
 	One modal at a time (v18). Pure (tests/ui/PopupQueue.spec.luau);
 	init.client opens what `update` returns.
 
-	The tutorial card (Tutorial.fromState(state) ~= nil) blocks every queued
-	popup: a new player no longer gets the daily reward on top of step 1
-	(v15 playtest). The daily popup is queued on its availability edge
-	(Daily.shouldAutoOpen), dropped again when the claim goes away, and opens
-	once the tutorial is finished. Opening it by hand (HUD Daily) is not
-	queued. The welcome-back card (State.welcomeBack, once per join) queues the same
-	way and goes first; while it is on screen (`busy`) the daily popup waits.
+	The early tutorial steps (BLOCKING_STEPS: Grab, Deposit, Lock, BuyPad) block
+	every queued popup: a new player no longer gets the daily reward on top of
+	step 1 (v15 playtest). From Merge onward the queue runs normally: the
+	tutorial only ends at the first Rebirth, and the daily popup is its only
+	opener (the HUD Daily button is gone), so blocking until then hid the
+	daily reward and the welcome-back card from everyone who had not rebirthed.
+	The daily popup is queued on its availability edge (Daily.shouldAutoOpen)
+	and dropped again when the claim goes away. The welcome-back card
+	(State.welcomeBack, once per join) queues the same way and goes first;
+	while it is on screen (`busy`) the daily popup waits.
 ]]
 
 local Daily = if script then require(script.Parent.Daily) else require("./Daily")
@@ -36,9 +39,18 @@ local function dailyAvailable(state: any): boolean
 	return type(state) == "table" and type(state.daily) == "table" and state.daily.available == true
 end
 
+-- Tutorial steps during which queued popups stay closed.
+PopupQueue.BLOCKING_STEPS = table.freeze({
+	Grab = true,
+	Deposit = true,
+	Lock = true,
+	BuyPad = true,
+} :: { [string]: boolean })
+
 -- What keeps queued popups closed right now ("Tutorial"), nil when free.
 function PopupQueue.blocker(state: any): string?
-	return if Tutorial.fromState(state) ~= nil then "Tutorial" else nil
+	local step = Tutorial.fromState(state)
+	return if step ~= nil and PopupQueue.BLOCKING_STEPS[step.id] then "Tutorial" else nil
 end
 
 function PopupQueue.new(): Queue

@@ -51,15 +51,41 @@ local function hatches()
 	return out
 end
 
+-- { [floor]: the stair-top landing is solid } for every upper jar standing now
+local function stairTops()
+	local out = {}
+	for f = 2, #Config.BASE_FLOORS do
+		local floor = plot():FindFirstChild(`Floor_{f}`)
+		local landing = floor and floor:FindFirstChild("StairLanding_1")
+		if landing then
+			out[f] = landing.CanCollide
+		end
+	end
+	return out
+end
+
+local tops = {}
 local function grow(floors)
 	session.data.padsUnlocked = (floors - 1) * Config.PADS_PER_FLOOR
 	rt:advance(2)
+	tops[floors] = stairTops()
 	return hatches()
 end
 
 local four = grow(#Config.BASE_FLOORS)
 local two = grow(2)
 local three = grow(3)
+
+describe("stair top (the flat landing stands only on the top jar)", function()
+	it("makes only the top jar's landing solid, and follows the top as the tower changes", function()
+		for f = 2, #Config.BASE_FLOORS do
+			expect(tops[#Config.BASE_FLOORS][f]).toBe(f == #Config.BASE_FLOORS)
+		end
+		expect(tops[2][2]).toBe(true)
+		expect(tops[3][2]).toBe(false)
+		expect(tops[3][3]).toBe(true)
+	end)
+end)
 
 describe("drop hatches (only the top jar drops you down the tube)", function()
 	it("opens only the top jar's hatch on a full tower", function()

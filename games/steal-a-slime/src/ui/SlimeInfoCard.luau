@@ -267,7 +267,9 @@ export type Options = {
 }
 
 type Entry = {
-	gui: BillboardGui,
+	body: BasePart,
+	anchor: Attachment,
+	gui: BillboardGui?, -- built on first need: a slime resting on a pad never has one
 	conn: RBXScriptConnection,
 	moved: RBXScriptConnection, -- AncestryChanged: the pad may only be findable once the model sits in its plot
 	sign: Part?,
@@ -317,7 +319,9 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 		end
 		local pad = if view and view.pad then SlimePadSign.findPad(model, view.pad) else nil
 		if view and pad then
-			SlimeInfoCard.render(entry.gui, nil, nil)
+			if entry.gui then
+				SlimeInfoCard.render(entry.gui, nil, nil)
+			end
 			if entry.signPad ~= pad then
 				dropSign(entry)
 				local sign = SlimePadSign.build()
@@ -329,7 +333,19 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 			return
 		end
 		dropSign(entry)
-		SlimeInfoCard.render(entry.gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE))
+		local gui = entry.gui
+		if not gui then
+			if not view then
+				return
+			end
+			gui = SlimeInfoCard.build()
+			gui.Adornee = entry.anchor
+			entry.gui = gui
+			SlimeInfoCard.render(gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE))
+			gui.Parent = entry.body
+			return
+		end
+		SlimeInfoCard.render(gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE))
 	end
 
 	local function remove(model: Instance)
@@ -343,7 +359,9 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 			cards[model] = nil
 			entry.conn:Disconnect()
 			entry.moved:Disconnect()
-			entry.gui:Destroy()
+			if entry.gui then
+				entry.gui:Destroy()
+			end
 			dropSign(entry)
 		end
 	end
@@ -363,7 +381,6 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 			end)
 			return
 		end
-		local gui = SlimeInfoCard.build()
 		-- The tag hangs on the TagAnchor, which SlimeLifeRunner moves after the drawn slime (it never steps with the
 		-- replicated Body); at the Body's centre until a rig moves it.
 		local anchor = body:FindFirstChild(Constants.TAG_ANCHOR)
@@ -374,7 +391,6 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 			made.Parent = body
 			anchor = made
 		end
-		gui.Adornee = anchor
 		local conn = model.AttributeChanged:Connect(function(name: string)
 			if WATCHED[name] then
 				refresh(model)
@@ -383,9 +399,8 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 		local moved = model.AncestryChanged:Connect(function()
 			refresh(model)
 		end)
-		cards[model] = { gui = gui, conn = conn, moved = moved }
+		cards[model] = { body = body, anchor = anchor :: Attachment, conn = conn, moved = moved }
 		refresh(model)
-		gui.Parent = body
 	end
 
 	local added = opts.collection:GetInstanceAddedSignal(opts.tag):Connect(add)

@@ -578,9 +578,9 @@ local function panelState(key: string, realState: any): any
 	return view
 end
 
--- The tutorial card steps aside for an open menu card and for the open bag panel.
+-- The tutorial card steps aside for an open menu card, the daily popup and the open bag panel.
 local function syncTutorial()
-	tutorial.setMenuOpen(not MenuState.tutorialVisible(openKey, inventory.panelOpen()))
+	tutorial.setMenuOpen(not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
 end
 
 local function syncMenus()
@@ -1164,6 +1164,7 @@ leaderboardEvent.OnClientEvent:Connect(function(board: Types.Leaderboard)
 end)
 
 -- Local countdowns (lock, rain) between State pushes.
+local dailyWasOpen = false
 task.spawn(function()
 	while true do
 		task.wait(0.1)
@@ -1172,12 +1173,20 @@ task.spawn(function()
 		end
 		if latest then
 			local now = serverNow()
+			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.
+			if dailyWasOpen ~= dailyPopup.isOpen() then
+				dailyWasOpen = dailyPopup.isOpen()
+				syncMenus()
+			end
 			hud.tick(now)
 			inventory.tick()
 			bossMeter.tick(now)
 			panelByKey.Codes.tick(now)
 			panelByKey.WorldShop.tick()
-			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey, inventory.panelOpen()))
+			hintOverlay.tick(
+				now,
+				tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+			)
 			pvpFunFx.tick(now)
 			if slimeMove then
 				slimeMove.tick()
