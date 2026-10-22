@@ -33,7 +33,7 @@ local Widgets = require(script.Parent.Widgets)
 local Theme = Widgets.Theme
 local create = Widgets.create
 
-local RED = Color3.fromRGB(235, 40, 50)
+local RED = Theme.Bad -- the Goo danger pink: flash, thief arrow, trail
 local TRAIL_POLL = 0.2 -- seconds between trail / slap-attribute sweeps
 
 local StealAlertFx = {}
@@ -80,7 +80,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			BackgroundColor3 = RED,
 			BorderSizePixel = 0,
 			ZIndex = Layout.ZINDEX.Banners + 1,
-		}, { create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2 }) })
+		}, { Widgets.stroke(Theme.Ink, Widgets.KIT.stroke) })
 	end
 	local arrow = create("Frame", {
 		Name = "ThiefArrow",
@@ -105,9 +105,9 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		Text = "Thief",
 		TextSize = 16,
 		Font = Theme.Font,
-		TextColor3 = Color3.new(1, 1, 1),
+		TextColor3 = Theme.Text,
 		TextStrokeTransparency = 0,
-		TextStrokeColor3 = RED,
+		TextStrokeColor3 = Theme.Ink,
 		Parent = root,
 	})
 

@@ -74,13 +74,10 @@ describe("Perks: rebirth ranks", function()
 		end
 		expect(past5 >= 6).toBe(true)
 	end)
-	it("takes the best unlocked value of keep / income", function()
+	it("takes the best unlocked income bonus", function()
 		expect(Perks.title(0)).toBe("Slime Rookie")
 		expect(Perks.title(6)).toBe("Goo Tycoon")
-		expect(Perks.keepCount(5)).toBe(1)
-		expect(Perks.keepCount(6)).toBe(2)
-		expect(Perks.keepCount(11)).toBe(3)
-		expect(Perks.rankIncomeBonus(6)).toBe(0)
+		expect(Perks.rankIncomeBonus(6)).toBe(0.05)
 		expect(Perks.rankIncomeBonus(7)).toBe(0.1)
 		expect(Perks.rankIncomeBonus(8)).toBe(0.15)
 		expect(Perks.rankIncomeBonus(11)).toBe(0.25)
@@ -92,7 +89,7 @@ describe("Perks: rebirth ranks", function()
 		expect(Perks.nextTier(30)).toBeNil()
 		expect((Perks.nextTier(6) :: any).title).toBe("Jelly Magnate")
 	end)
-	it("keeps the favourite plus the best slimes at Goo Tycoon, never a busy one", function()
+	it("keeps every slime it doesn't use up, at any rank", function()
 		local data = Fixtures.data({
 			Fixtures.slime("weak", 1),
 			Fixtures.slime("fav", 2),
@@ -103,15 +100,13 @@ describe("Perks: rebirth ranks", function()
 		}, 1e12)
 		data.rebirths = 6
 		data.favoriteId = "fav"
-		local ok = Progression.rebirth(data, { best = true })
-		expect(ok).toBe(true)
+		expect((Progression.rebirth(data))).toBe(true)
 		local ids = {}
 		for _, s in data.slimes do
 			table.insert(ids, s.id)
 		end
-		expect(ids).toEqual({ "fav", "second" })
+		expect(ids).toEqual({ "weak", "fav", "best", "second" })
 		expect(data.favoriteId).toBe("fav")
-		expect(data.slimes[2].pad).toBe(2)
 	end)
 	it("announces a new rank on the rebirth that reaches it", function()
 		local world = ServerFixtures.world()

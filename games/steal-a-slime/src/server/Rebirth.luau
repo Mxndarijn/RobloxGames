@@ -3,9 +3,8 @@
 	Rebirth (pure)
 
 	Request("Rebirth"): Shared.Progression.rebirth uses up the required slimes,
-	wipes cash and the other slimes but keeps the favourite (or the best slime)
-	and adds income multiplier and lock time. Slimes being carried or bouncing
-	home can't be the keeper, and any carry of a wiped slime ends.
+	resets cash and adds income multiplier and lock time. Every other slime
+	stays. Any carry or escape of a used-up slime ends.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -22,7 +21,7 @@ local Rebirth = {}
 
 function Rebirth.rebirth(world: World, session: Session): (boolean, string?)
 	local rank = Perks.tierIndex(session.data.rebirths)
-	local ok, result = Progression.rebirth(session.data, World.busySet(world))
+	local ok, result = Progression.rebirth(session.data)
 	if not ok then
 		return false, result :: string
 	end

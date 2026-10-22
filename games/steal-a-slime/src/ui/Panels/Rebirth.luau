@@ -5,7 +5,7 @@
 	have) and the slimes the rebirth uses up: one slime gets its picture, name
 	and Missing / done mark, two or three get one small row each (picture,
 	name, a tick once owned). Then what it gives (income multiplier, lock time),
-	the keeper and either a status line saying what is missing or the Rebirth
+	that every other slime stays and either a status line saying what is missing or the Rebirth
 	button (state.canRebirth, hold to confirm). Progress.nextRebirth has the
 	numbers.
 ]]
@@ -14,7 +14,6 @@ local UI = script.Parent.Parent
 local Format = require(UI.Format)
 local Layout = require(UI.Layout)
 local Progress = require(UI.Progress)
-local Selection = require(UI.Selection)
 local SlimePreview = require(UI.SlimePreview)
 local Widgets = require(UI.Widgets)
 
@@ -398,6 +397,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 
 	local keepLine = Widgets.chip({
 		Name = "Keeper",
+		Text = "★ Keeps all your other slimes",
 		FontFace = Theme.FontBody,
 		TextSize = T.keeperSize,
 		TextColor3 = Theme.Muted,
@@ -436,7 +436,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 
 	Widgets.label({
 		Name = "Note",
-		Text = "Uses up the slimes above. Keeps ★ slimes, pads and upgrades.",
+		Text = "Uses up these slimes and resets cash. Pads and upgrades stay.",
 		TextSize = T.noteSize,
 		TextColor3 = Theme.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -470,9 +470,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		lockTile.Visible = not nextUp.maxed
 		incomeValue.Text = Format.formatMultiplier(nextUp.multiplier)
 		lockValue.Text = if nextUp.lockGain > 0 then `+{nextUp.lockGain}s` else "Max"
-
-		local fav = Selection.findSlime(state.slimes, state.favoriteId)
-		keepLine.Text = `★ Keeps {if fav then ctx.Genome.displayName(fav.slime) else "your best slime"}`
+		keepLine.Visible = not nextUp.maxed
 
 		slimeCard.Visible = hasSlimes
 		if hasSlimes then
