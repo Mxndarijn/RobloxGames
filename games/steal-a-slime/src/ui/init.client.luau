@@ -40,6 +40,7 @@ local Types = require(Shared:WaitForChild("Types"))
 
 local DexJarView = require(script.DexJarView)
 local Format = require(script.Format)
+local FriendsLockIcon = require(script.FriendsLockIcon)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
 local Icons = require(script.Icons)
@@ -822,6 +823,19 @@ SlimeKeyCard.start({
 	playerGui = player:WaitForChild("PlayerGui"),
 	tweens = game:GetService("TweenService"),
 })
+
+-- FEATURES.FriendsInBase: the friend icon on the stopper and over the lock button of every base that lets friends in.
+if Config.FEATURES.FriendsInBase == true then
+	FriendsLockIcon.start({
+		plots = workspace:WaitForChild("Plots"),
+		playerGui = player:WaitForChild("PlayerGui"),
+		registry = itemIcons,
+		attributes = {
+			friendsAllowed = Constants.PLOT_FRIENDS_ALLOWED_ATTRIBUTE,
+			locked = Constants.PLOT_LOCKED_ATTRIBUTE,
+		},
+	})
+end
 
 -- World shops (CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
 -- this client with ShopEvent and the OpenShop attribute; the card closes on ShopEvent Close / attribute nil, and
