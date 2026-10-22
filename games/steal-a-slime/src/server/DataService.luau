@@ -125,6 +125,11 @@ function DataService.readOnly(service: DataService, userId: number): SaveData.Ve
 	return service.readOnly[userId]
 end
 
+-- True when this server still writes `userId`'s progress: the session is neither read-only nor taken over.
+function DataService.canSave(service: DataService, userId: number): boolean
+	return not service.lost[userId] and service.readOnly[userId] == nil
+end
+
 local function write(service: DataService, userId: number, data: PlayerData.Data, release: boolean): (boolean, string?)
 	if service.lost[userId] then
 		return false, "session lost"
