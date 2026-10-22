@@ -120,6 +120,10 @@ local gui = Widgets.create("ScreenGui", {
 	Parent = player:WaitForChild("PlayerGui"),
 })
 
+-- First person / shift lock pin the cursor to the screen centre: while a menu, a popup or the bag is
+-- open (syncTutorial below) Lib MenuMouse frees it so every button can be clicked.
+local menuMouse = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("MenuMouse")).new(gui)
+
 -- Phones: shrink the whole UI (Layout.uiScale; 1 on desktop). Set with the
 -- rest of the layout in applyLayout below.
 local uiScale = Widgets.create("UIScale", { Name = "ViewportScale", Parent = gui }) :: UIScale
@@ -598,7 +602,9 @@ end
 local function syncTutorial()
 	tutorial.setMenuOpen(not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
 	-- Visuals' edge arrows and the Your plot tag step aside while a menu, a popup or the bag covers the screen.
-	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, openKey ~= nil or dailyPopup.isOpen() or inventory.panelOpen())
+	local menuOpen = openKey ~= nil or dailyPopup.isOpen() or inventory.panelOpen()
+	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, menuOpen)
+	menuMouse.setOpen(menuOpen)
 end
 
 local function syncMenus()

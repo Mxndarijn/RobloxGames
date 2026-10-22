@@ -22,6 +22,7 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | `src/ranking` | `OrderedBoard` | pure, server | Top-N rankings in OrderedDataStores: value clamping, write-on-change, page → ranked entries, in-memory pages, one store per period (weekly boards) |
 | `src/anticheat` | `MovementGuard` | pure, server | Checks server-read character positions for teleports, speed hacks and flying; tolerates lag freezes, downhill runs and server-made moves (`allow`, `reset`) |
 | | `Suspicion` | pure, server | Points per player that drain over time and reach "pause" / "kick" levels |
+| `src/ui` | `MenuMouse` | adapter, client | Frees the cursor in first person / shift lock while the game says a menu is open (one hidden `Modal` button) |
 | `testing` | `TestRunner` | Lune only | describe / it / expect used by these specs; games can reuse it |
 
 ## Mounting in a game
