@@ -11,16 +11,20 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local BatRules = if Shared then require(Shared.BatRules) else require("../shared/BatRules")
+local BossAttacks = if Shared then require(Shared.BossAttacks) else require("../shared/BossAttacks")
 local BossBadges = if Shared then require(Shared.BossBadges) else require("../shared/BossBadges")
 local BossChoreo = if Shared then require(Shared.BossChoreo) else require("../shared/BossChoreo")
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local PvpKnockbackRules = if Shared then require(Shared.PvpKnockbackRules) else require("../shared/PvpKnockbackRules")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
 local BossSlime = if Shared then require(Shared.BossSlime) else require("../shared/BossSlime")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -35,6 +39,8 @@ type Vec = { X: number, Y: number, Z: number }
 export type Context = {
 	pose: ((userId: number) -> (Vec?, Vec?))?, -- a character's root position and look
 	plazaOrigin: (() -> Vec)?, -- the fountain centre in world studs (plaza coordinates are round it)
+	airborne: ((userId: number) -> boolean)?, -- off the ground (jumping clears a stomp's ring)
+	launch: ((userId: number, push: Vec, landing: Vec) -> boolean)?, -- an attack's knockback (PvpLaunch)
 }
 
 local BossEvent = {}
@@ -104,8 +110,21 @@ local function begin(world: World, now: number): string
 	world.bossIndex += 1
 	local fight = BossFight.new(species, now)
 	fight.endsAt = world.nextBossAt
-	world.boss =
-		{ fight = fight, slimeId = nil, lastStepAt = now, rng = Rng.new(world.bossIndex * 7919 + math.floor(now)) }
+	world.boss = {
+		fight = fight,
+		slimeId = nil,
+		lastStepAt = now,
+		rng = Rng.new(world.bossIndex * 7919 + math.floor(now)),
+		nextAttackAt = math.huge,
+		attackIndex = 0,
+		struck = {},
+		struckMove = 0,
+		targets = {},
+		spits = {},
+		puddles = {},
+		guards = {},
+		rewarded = false,
+	}
 	world.nextBossAt += BOSS.INTERVAL
 	local entry = SlimeRoster.get(species)
 	local name = if entry then entry.name else species
@@ -123,6 +142,7 @@ local function arrive(world: World, event: World.BossEvent, now: number, ctx: Co
 		return
 	end
 	local ox, oz = origin(ctx)
+	event.nextAttackAt = now + BOSS.FIRST_ATTACK
 	world.wild[id] = {
 		move = BossChoreo.first(now, ox, oz),
 		slime = slime,
@@ -180,67 +200,233 @@ local function escape(world: World, event: World.BossEvent, now: number, reason:
 	World.notify(world, nil, text, "info", "Rain")
 end
 
--- Plaza spots of the players within ENGAGE_RADIUS of (x, z), and the top hitter's spot if they are one of them.
-local function fighters(
-	world: World,
-	event: World.BossEvent,
-	ctx: Context?,
-	x: number,
-	z: number
-): ({ { number } }, { number }?)
-	local players: { { number } } = {}
+-- A player as the boss sees them: plaza spot, root height and whether they are off the ground.
+type Spot = { userId: number, x: number, y: number, z: number, airborne: boolean }
+
+-- Every player's plaza spot (none without ctx.pose).
+local function spots(world: World, ctx: Context?): { Spot }
+	local out: { Spot } = {}
 	local pose = ctx and ctx.pose
 	if not pose then
-		return players, nil
+		return out
 	end
 	local ox, oz = origin(ctx)
-	local top = BossFight.top(event.fight)
-	local target: { number }? = nil
+	local airborne = ctx and ctx.airborne
 	for userId in world.sessions do
 		local p = pose(userId)
 		if p then
-			local spot = { p.X - ox, p.Z - oz }
-			if (spot[1] - x) ^ 2 + (spot[2] - z) ^ 2 <= BossEvent.ENGAGE_RADIUS ^ 2 then
-				table.insert(players, spot)
-				if userId == top then
-					target = spot
-				end
+			table.insert(out, {
+				userId = userId,
+				x = p.X - ox,
+				y = p.Y,
+				z = p.Z - oz,
+				airborne = if airborne then airborne(userId) else false,
+			})
+		end
+	end
+	return out
+end
+
+-- Plaza spots of the players within ENGAGE_RADIUS of (x, z), and the top hitter's spot if they are one of them.
+local function fighters(event: World.BossEvent, all: { Spot }, x: number, z: number): ({ { number } }, { number }?)
+	local players: { { number } } = {}
+	local top = BossFight.top(event.fight)
+	local target: { number }? = nil
+	for _, s in all do
+		if (s.x - x) ^ 2 + (s.z - z) ^ 2 <= BossEvent.ENGAGE_RADIUS ^ 2 then
+			local spot = { s.x, s.z }
+			table.insert(players, spot)
+			if s.userId == top then
+				target = spot
 			end
 		end
 	end
 	return players, target
 end
 
-local function noAttack(_slot: string): BossChoreo.Attack?
-	return nil
+local function bossWild(world: World, event: World.BossEvent): World.Wild?
+	local id = event.slimeId
+	local wild = if id then world.wild[id] else nil
+	return if wild and wild.position == nil and not world.carriedBy[id :: string] then wild else nil
+end
+
+-- Move and attack pace: +STAGE_SPEEDUP for every stage of the meter reached.
+local function speedOf(event: World.BossEvent): number
+	return 1 + BOSS.STAGE_SPEEDUP * BossFight.stage(event.fight)
+end
+
+-- A spit's landing spots, picked at its windup: the players nearest the boss, then spots round it.
+local function spitTargets(
+	event: World.BossEvent,
+	players: { { number } },
+	x: number,
+	z: number,
+	count: number
+): { { number } }
+	local sorted = table.clone(players)
+	table.sort(sorted, function(a, b)
+		return (a[1] - x) ^ 2 + (a[2] - z) ^ 2 < (b[1] - x) ^ 2 + (b[2] - z) ^ 2
+	end)
+	local out = {}
+	for i = 1, count do
+		local p = sorted[i]
+		if p then
+			table.insert(out, { p[1], p[2] })
+		else
+			local a = event.rng:float() * 2 * math.pi
+			table.insert(out, { x + math.cos(a) * BOSS.SPIT_SPREAD, z + math.sin(a) * BOSS.SPIT_SPREAD })
+		end
+	end
+	return out
+end
+
+-- Things that start with a move: a windup picks spit targets, a spit attack throws them, a rise calls its guards.
+local function began(event: World.BossEvent, move: BossChoreo.Move, players: { { number } })
+	local species = event.fight.species
+	local attack = BossAttacks.get(species, move.slot)
+	if move.kind == "windup" and attack and attack.kind == "spit" then
+		event.targets = spitTargets(event, players, move.tx, move.tz, attack.count or 3)
+	elseif move.kind == "attack" and attack and attack.kind == "spit" then
+		for _, t in event.targets do
+			table.insert(event.spits, {
+				x = t[1],
+				z = t[2],
+				landAt = move.at + BOSS.SPIT_FLIGHT,
+				seconds = attack.slowSeconds or 6,
+				slow = attack.slow or 0.5,
+			})
+		end
+		event.targets = {}
+	elseif move.kind == "rise" and attack then
+		event.guards = {}
+		for _, p in BossAttacks.guardSpots(move.fx, move.fz, move.hx, move.hz, attack.count or 3) do
+			table.insert(event.guards, { x = p[1], z = p[2], alive = true })
+		end
+	end
+	if move.kind ~= "rise" then
+		event.guards = {}
+	end
 end
 
 -- The fighting boss's next move once its current one has ended. A move starts where the last one ended in time
--- (no gap for clients to fill), unless the server fell behind.
-local function advance(world: World, event: World.BossEvent, now: number, ctx: Context?)
-	local id = event.slimeId
-	local wild = if id then world.wild[id] else nil
+-- (no gap for clients to fill), unless the server fell behind. An attack winds up from a stop once it is due.
+local function advance(world: World, event: World.BossEvent, now: number, all: { Spot })
+	local wild = bossWild(world, event)
 	local move = wild and wild.move
 	if not wild or not move or event.fight.phase ~= "fight" then
 		return
+	end
+	local species = event.fight.species
+	local speed = speedOf(event)
+	local function resolve(slot: string): BossChoreo.Attack?
+		return BossAttacks.get(species, slot)
 	end
 	for _ = 1, 4 do
 		if not BossChoreo.ended(move, now) then
 			break
 		end
 		local endAt = move.at + move.seconds
-		local players, target = fighters(world, event, ctx, move.tx, move.tz)
-		move = BossChoreo.after(move, {
-			now = if now - endAt < 0.5 then endAt else now,
+		local start = if now - endAt < 0.5 then endAt else now
+		local players, target = fighters(event, all, move.tx, move.tz)
+		local slots = BossAttacks.available(species, BossFight.meter(event.fight, playerCount(world)))
+		local due = if start >= event.nextAttackAt and #slots > 0 then slots[event.attackIndex % #slots + 1] else nil
+		local prev = move
+		move = BossChoreo.after(prev, {
+			now = start,
 			rng = event.rng,
 			players = players,
 			target = target,
-			speed = 1,
-			attack = nil,
-			resolve = noAttack,
+			speed = speed,
+			attack = due,
+			resolve = resolve,
 		})
+		if move.kind == "windup" then
+			event.attackIndex += 1
+			event.nextAttackAt = math.huge
+		elseif prev.kind == "dazed" or prev.kind == "land" then
+			local gap = BOSS.ATTACK_GAP
+			event.nextAttackAt = start + (gap[1] + event.rng:float() * (gap[2] - gap[1])) / speed
+		end
+		began(event, move, players)
+		if move.kind ~= "stroll" and move.kind ~= "look" then
+			World.markAllDirty(world) -- State.boss shows the daze and the guards
+		end
 	end
 	wild.move = move
+end
+
+-- Knocks `spot`'s player away from the boss at plaza (bx, bz) and stuns their bat (Config.BOSS.STUN_SECONDS).
+local function strike(world: World, ctx: Context?, spot: Spot, bx: number, bz: number, push: number, now: number)
+	local session = world.sessions[spot.userId]
+	if not session then
+		return
+	end
+	local ox, oz = origin(ctx)
+	local from = { X = bx + ox, Y = spot.y, Z = bz + oz }
+	local at = { X = spot.x + ox, Y = spot.y, Z = spot.z + oz }
+	local landing, vector = PvpKnockbackRules.away(from, at, push, BOSS.HIT_ARC)
+	local launch = ctx and ctx.launch
+	if launch then
+		launch(spot.userId, vector, landing)
+	end
+	PvpService.fireEffect(world, {
+		attacker = 0,
+		target = spot.userId,
+		itemId = "Bat",
+		effect = "Knockback",
+		position = at,
+		push = PvpKnockbackRules.horizontal(vector),
+		velocity = PvpKnockbackRules.velocity(vector),
+		duration = Config.PVP.FX_SECONDS,
+	}, now, true) -- live for everyone, whatever FEATURES.PvP says
+	session.bossStunUntil = now + BOSS.STUN_SECONDS
+	local entry = SlimeRoster.get(world.boss and world.boss.fight.species or "")
+	World.notify(world, spot.userId, `{if entry then entry.name else "The boss"} got you! Dodge the red.`, "bad", nil)
+	World.markDirty(session)
+end
+
+-- The running attack between the last step and `now`: who it strikes, spits landing, puddles slowing players.
+local function attacks(world: World, event: World.BossEvent, now: number, t0: number, all: { Spot }, ctx: Context?)
+	local wild = bossWild(world, event)
+	local move = wild and wild.move
+	if move and event.fight.phase == "fight" then
+		if move.n ~= event.struckMove then
+			event.struckMove = move.n
+			event.struck = {}
+		end
+		local attack = if move.kind == "attack" then BossAttacks.get(event.fight.species, move.slot) else nil
+		if attack and move then
+			local bx, bz = BossChoreo.pose(move, now)
+			for _, s in all do
+				if not event.struck[s.userId] and BossAttacks.strikes(move, attack, t0, now, s) then
+					event.struck[s.userId] = true
+					strike(world, ctx, s, bx, bz, attack.push or 35, now)
+				end
+			end
+		end
+	end
+	for i = #event.spits, 1, -1 do
+		local spit = event.spits[i]
+		if now >= spit.landAt then
+			table.remove(event.spits, i)
+			table.insert(event.puddles, { x = spit.x, z = spit.z, untilAt = now + spit.seconds, slow = spit.slow })
+		end
+	end
+	for i = #event.puddles, 1, -1 do
+		local puddle = event.puddles[i]
+		if now >= puddle.untilAt then
+			table.remove(event.puddles, i)
+		else
+			for _, s in all do
+				if (s.x - puddle.x) ^ 2 + (s.z - puddle.z) ^ 2 <= BOSS.PUDDLE_RADIUS ^ 2 then
+					local session = world.sessions[s.userId]
+					if session then
+						session.bossSlow = { factor = puddle.slow, untilTime = now + 0.4 }
+					end
+				end
+			end
+		end
+	end
 end
 
 -- The boss's world position { X, Y = 0, Z } at `now` from its move, or nil when it has none (no fight, or dropped).
@@ -254,6 +440,8 @@ function BossEvent.spot(world: World, now: number): Vec?
 	local x, z = BossChoreo.world(move, now)
 	return { X = x, Y = 0, Z = z }
 end
+
+local settle: (world: World, event: World.BossEvent, now: number, ctx: Context?) -> ()
 
 -- Call every frame: the schedule, then the running event.
 function BossEvent.step(world: World, now: number, ctx: Context?)
@@ -274,10 +462,46 @@ function BossEvent.step(world: World, now: number, ctx: Context?)
 		World.markAllDirty(world)
 		return
 	end
+	if fight.phase == "won" and not event.rewarded then
+		-- A team win: a lucky slime spills from the fountain for every player who helped.
+		event.rewarded = true
+		local helpers = 0
+		for userId in world.sessions do
+			if BossFight.share(fight, userId) >= BOSS.WIN_SHARE then
+				helpers += 1
+			end
+		end
+		if helpers > 0 then
+			Spawner.spawnBonus(world, now, helpers * BOSS.WIN_SHOWER, BOSS.DROP_LUCK)
+			World.notify(
+				world,
+				nil,
+				"Victory shower! Lucky slimes spill from the fountain for the team!",
+				"good",
+				"Rain"
+			)
+		end
+	end
+	local t0 = event.lastStepAt
+	settle(world, event, now, ctx)
+	if world.boss ~= event then
+		return
+	end
+	local all = spots(world, ctx)
+	attacks(world, event, now, t0, all, ctx)
+	advance(world, event, now, all)
+end
+
+-- The meter, sheds and phase changes up to `now` (also after a hit, without moving the boss).
+function settle(world: World, event: World.BossEvent, now: number, ctx: Context?)
+	local fight = event.fight
 	local dt = math.max(0, now - event.lastStepAt)
 	event.lastStepAt = now
 	local before = BossFight.meter(fight, playerCount(world))
-	for _, e in BossFight.step(fight, now, dt, playerCount(world)) do
+	local wild = bossWild(world, event)
+	local kind = wild and wild.move and wild.move.kind
+	local paused = kind == "windup" or kind == "attack" or kind == "rise" or kind == "land"
+	for _, e in BossFight.step(fight, now, dt, playerCount(world), paused) do
 		if e.kind == "fight" then
 			arrive(world, event, now, ctx)
 		elseif e.kind == "shed" then
@@ -289,30 +513,106 @@ function BossEvent.step(world: World, now: number, ctx: Context?)
 		end
 		World.markAllDirty(world)
 	end
-	advance(world, event, now, ctx)
 	-- The drain moves the meter without an action: push when it shows a new percent.
 	if math.floor(BossFight.meter(fight, playerCount(world)) * 100) ~= math.floor(before * 100) then
 		World.markAllDirty(world)
 	end
 end
 
+-- True while `session` is stunned by a boss attack (no bat hits, no slaps).
+function BossEvent.stunned(session: Session, now: number): boolean
+	return session.bossStunUntil ~= nil and now < session.bossStunUntil
+end
+
+local function plaza(position: Vec?, ctx: Context?): { number }?
+	if not position then
+		return nil
+	end
+	local ox, oz = origin(ctx)
+	return { position.X - ox, position.Z - oz }
+end
+
 --[[
-	A Bat hit by `session` on the fighting boss (BatTool.swing checks reach and facing). Returns (counted, reason).
-	The meter and sheds settle on this same call, so a full meter starts the haul at once.
+	A Bat hit by `session` on the fighting boss (BatTool.swing checks reach and facing), swung from world `from`.
+	Returns (counted, reason). It counts BossAttacks.hitValue points: more while dazed, none while it floats out of
+	reach or while the swinger is stunned. The meter and sheds settle on this same call, so a full meter starts the
+	haul at once.
 ]]
-function BossEvent.hit(world: World, session: Session, now: number): (boolean, string?)
+function BossEvent.hit(world: World, session: Session, now: number, from: Vec?, ctx: Context?): (boolean, string?)
 	local event = world.boss
 	if not event or not BossEvent.bossId(world) then
 		return false, "no boss"
 	end
-	local ok, reason = BossFight.hit(event.fight, session.userId, now)
+	if BossEvent.stunned(session, now) then
+		return false, "stunned"
+	end
+	local wild = bossWild(world, event)
+	local meter = BossFight.meter(event.fight, playerCount(world))
+	local points, why = BossAttacks.hitValue(event.fight.species, meter, wild and wild.move, now, plaza(from, ctx))
+	if not points then
+		return false, why
+	end
+	local ok, reason = BossFight.hit(event.fight, session.userId, now, points)
 	if not ok then
 		return false, reason
 	end
+	event.lastHit = { userId = session.userId, points = points, at = now }
 	World.markAllDirty(world)
 	BossCredit.record(world, session, { kind = "hit" }, now)
-	BossEvent.step(world, now)
+	settle(world, event, now, ctx)
 	return true, nil
+end
+
+-- The live guards' world spots, for the view and the Bat (index -> { X, Y = 0, Z }).
+function BossEvent.guardSpots(world: World, ctx: Context?): { [number]: Vec }
+	local out: { [number]: Vec } = {}
+	local event = world.boss
+	if not event then
+		return out
+	end
+	local ox, oz = origin(ctx)
+	for i, g in event.guards do
+		if g.alive then
+			out[i] = { X = g.x + ox, Y = 0, Z = g.z + oz }
+		end
+	end
+	return out
+end
+
+--[[
+	A Bat swing by `session` from `from` facing `look` at the guards (reach BOSS.GUARD_REACH, in front). Pops the
+	nearest; each is BOSS.GUARD_POINTS meter points. The last one drops the boss down, dazed. Returns true on a pop.
+]]
+function BossEvent.hitGuard(world: World, session: Session, now: number, from: Vec, look: Vec, ctx: Context?): boolean
+	local event = world.boss
+	if not event or event.fight.phase ~= "fight" or #event.guards == 0 or BossEvent.stunned(session, now) then
+		return false
+	end
+	local candidates: { BatRules.Candidate } = {}
+	for i, p in BossEvent.guardSpots(world, ctx) do
+		table.insert(candidates, { userId = -i, position = { X = p.X, Y = from.Y, Z = p.Z }, carrying = true })
+	end
+	local picked = BatRules.pickTarget(from, look, candidates, session.userId, BOSS.GUARD_REACH)
+	if not picked then
+		return false
+	end
+	event.guards[-picked].alive = false
+	BossFight.add(event.fight, session.userId, BOSS.GUARD_POINTS, now)
+	local left = 0
+	for _, g in event.guards do
+		if g.alive then
+			left += 1
+		end
+	end
+	local wild = bossWild(world, event)
+	if left == 0 and wild and wild.move and wild.move.kind == "rise" then
+		wild.move = BossChoreo.hold("land", wild.move, now, BOSS.LAND_SECONDS, "daze")
+		event.guards = {}
+		World.notify(world, nil, "Every guard is down! The boss is dazed: hit it now!", "good", nil)
+	end
+	World.markAllDirty(world)
+	settle(world, event, now, ctx)
+	return true
 end
 
 --[[
@@ -362,6 +662,14 @@ function BossEvent.view(world: World, session: Session, now: number): Types.Boss
 	end
 	local fight = event.fight
 	local entry = SlimeRoster.get(fight.species)
+	local wild = if fight.phase == "fight" then bossWild(world, event) else nil
+	local move = wild and wild.move
+	local guardsLeft = 0
+	for _, g in event.guards do
+		if g.alive then
+			guardsLeft += 1
+		end
+	end
 	local haul = fight.phase == "haul"
 	local priorityOn = haul and fight.priorityUntil ~= nil and now < fight.priorityUntil
 	return {
@@ -380,6 +688,11 @@ function BossEvent.view(world: World, session: Session, now: number): Types.Boss
 		priorityUntil = if priorityOn then fight.priorityUntil else nil,
 		winnerName = if fight.phase == "won" then nameOf(world, fight.winnerUserId) else nil,
 		badges = badges,
+		move = move and move.kind,
+		moveEndsAt = move and move.at + move.seconds,
+		multiplier = if move and move.kind == "dazed" then BOSS.DAZED_MULTIPLIER else nil,
+		guardsLeft = if move and move.kind == "rise" then guardsLeft else nil,
+		stunnedUntil = if BossEvent.stunned(session, now) then session.bossStunUntil else nil,
 	}
 end
 

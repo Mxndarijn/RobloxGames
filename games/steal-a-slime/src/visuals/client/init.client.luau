@@ -557,6 +557,15 @@ do
 		warn(`[VisualsClient] egg hatch show disabled: {err}`)
 	end
 end
+local bossTelegraph: any = nil
+do
+	local ok, err = pcall(function()
+		bossTelegraph = require(script:WaitForChild("BossTelegraph")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] boss telegraphs disabled: {err}`)
+	end
+end
 
 CollectionService:GetInstanceAddedSignal(Constants.SLIME_TAG):Connect(onSlime)
 CollectionService:GetInstanceRemovedSignal(Constants.SLIME_TAG):Connect(onSlimeRemoved)
@@ -588,6 +597,9 @@ RunService.RenderStepped:Connect(function()
 	end
 	if ritualFx then
 		ritualFx.tick(camera)
+	end
+	if bossTelegraph then
+		bossTelegraph.tick(camera)
 	end
 	for model, track in tracks do
 		if model.Parent then
