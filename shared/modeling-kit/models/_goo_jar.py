@@ -206,6 +206,23 @@ def jar_trim(f, top, crown=False):
         out.append(painted(cylinder("Newel", post, 2.4, (0, 0, 0), GOO, segs=16), shade(GOO, 0.85), mix(GOO, GOO_HI, 0.4)))
         out.append(cylinder("NewelCollar", post + 0.15, 0.3, (0, 0, 2.1), METAL, segs=16))
         out.append(blob("NewelCap", post + 0.2, (0, 0, 2.6), GOO_HI, subdiv=2, squash=(1, 1, 0.8), jitter=0))
+        # a small platform where the ramp arrives (WorldLayout.STAIR_TOP) and a brass rail round the rest of the hole
+        st, stp = D["stair"], D["stairTop"]
+        start = D["floors"][0]["treads"][0] - st["angle"]
+        hole = st["hole"]
+        a0, a1 = start, start + stp["landing"]
+        out.append(painted(lathe("Landing", [(hole, -1.0), (hole, 0.0), (post, 0.0)], CORK, a0=a0, a1=a1, segs=48, double=False),
+                           shade(CORK, 0.82), CORK))
+        out.append(painted(lathe("LandingEdge", [(post + 0.05, -1.0), (post + 0.05, 0.0)], CORK, a0=a0, a1=a1, segs=48, double=False),
+                           shade(CORK, 0.7), CORK))
+        out.append(loop("LandingTrim", hole - 0.1, 0.25, (0, 0, 0.05), "z", METAL, segs=24, arc=(a0, a1)))
+        r0, r1 = start + stp["landing"], start + 360 - stp["open"]
+        rr, h = hole - 0.15, stp["railHeight"] - 0.2
+        out.append(loop("HoleRail", rr, 0.28, (0, 0, h), "z", METAL, segs=48, arc=(r0, r1)))
+        n = max(2, int((r1 - r0) / 15))
+        for k in range(n + 1):
+            a = math.radians(r0 + (r1 - r0) * k / n)
+            out.append(cylinder(f"HolePost{k}", 0.09 if 0 < k < n else 0.16, h, (rr * math.cos(a), rr * math.sin(a), 0), METAL, segs=6))
     if top and not crown:  # the top jar while growing: a tall cork stopper, wider at the top
         out.append(painted(cylinder("Cork", nk + 0.1, CORK_H, (0, 0, lip_top), CORK, segs=SEGS, r_top=nk + 0.9), shade(CORK, 0.8), CORK))
         out.append(cylinder("CorkRing", nk + 1.0, 0.5, (0, 0, lip_top + CORK_H - 0.8), shade(CORK, 0.88), segs=SEGS))
