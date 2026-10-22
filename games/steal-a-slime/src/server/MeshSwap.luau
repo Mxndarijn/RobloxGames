@@ -46,7 +46,7 @@ local VatDecor = require(ReplicatedStorage.Visuals.VatDecor)
 local MeshSwap = {}
 
 -- Templates fetched at the same time by prefetch().
-MeshSwap.PREFETCH_WORKERS = 8
+MeshSwap.PREFETCH_WORKERS = 24
 -- Waits (seconds) between the tries of the pet cloud load: 1 try + #delays retries, then the pets keep their Mount.
 MeshSwap.PET_CLOUD_RETRY_DELAYS = { 2, 5, 15, 30, 60 }
 
@@ -105,15 +105,49 @@ local function template(meshId: string, fidelity: string?): MeshPart?
 	return made
 end
 
--- Loads every template `slots` will need at the same time (each CreateMeshPartAsync is a network round trip, so
--- one after another a themed tower took 5-8 s), then returns once they are all in `cache`. `want(slot, name)`
--- gives the look a slot will show and its companion (or nil). Yields.
-local function prefetch(slots: { Instance }, want: (Instance, string) -> (string, string?))
-	local keys: { [string]: { string? } } = {}
+type Job = { meshId: string, fidelity: string? }
+
+-- Fetches `jobs`' templates on PREFETCH_WORKERS threads at once (each CreateMeshPartAsync is a network round trip,
+-- so one after another they add up) and returns once all have answered (a failed one is cached as failed). Places
+-- nothing. Yields; returns how many templates it asked for.
+local function fetchAll(jobs: { Job }): number
+	local workers = math.min(MeshSwap.PREFETCH_WORKERS, #jobs)
+	if workers == 0 then
+		return 0
+	end
+	local main = coroutine.running()
+	local nextJob, finished, parked = 1, 0, false
+	for _ = 1, workers do
+		task.spawn(function()
+			while nextJob <= #jobs do
+				local job = jobs[nextJob]
+				nextJob += 1
+				pcall(template, job.meshId, job.fidelity)
+			end
+			finished += 1
+			if finished == workers and parked then
+				task.spawn(main)
+			end
+		end)
+	end
+	if finished < workers then
+		parked = true
+		coroutine.yield()
+	end
+	return #jobs
+end
+
+-- Fetches every template `slots` will need before they are swapped (a themed tower one slot after another took
+-- 5-8 s). `want(slot, name)` gives the look a slot will show and its companion (or nil). Yields.
+local function prefetchSlots(slots: { Instance }, want: (Instance, string) -> (string, string?))
+	local jobs: { Job } = {}
+	local seen: { [string]: boolean } = {}
 	local function add(look: string?, fidelity: string?)
 		local meshId = look and MeshAssets.meshId(look)
-		if meshId then
-			keys[if fidelity then `{meshId}|{fidelity}` else meshId] = { meshId, fidelity }
+		local key = meshId and (if fidelity then `{meshId}|{fidelity}` else meshId)
+		if meshId and key and not seen[key] then
+			seen[key] = true
+			table.insert(jobs, { meshId = meshId, fidelity = fidelity })
 		end
 	end
 	for _, slot in slots do
@@ -124,25 +158,7 @@ local function prefetch(slots: { Instance }, want: (Instance, string) -> (string
 			add(companion, nil)
 		end
 	end
-	local pending = 0
-	for _ in keys do
-		pending += 1
-	end
-	-- a cached template returns without yielding, so only wake the caller once it is actually waiting
-	local waiter, waiting = coroutine.running(), false
-	for _, key in keys do
-		task.spawn(function()
-			pcall(template, key[1] :: string, key[2])
-			pending -= 1
-			if pending == 0 and waiting then
-				task.spawn(waiter)
-			end
-		end)
-	end
-	if pending > 0 then
-		waiting = true
-		coroutine.yield()
-	end
+	fetchAll(jobs)
 end
 
 local function hide(part: BasePart)
@@ -651,8 +667,6 @@ function MeshSwap.swapPlotVats(): number
 	return count
 end
 
-type Job = { meshId: string, fidelity: string? }
-
 -- Every template apply() and swapPlotVats() will ask for, once each.
 local function slotJobs(): { Job }
 	local jobs: { Job } = {}
@@ -689,31 +703,7 @@ end
 -- Fetches every slot template on PREFETCH_WORKERS threads and returns once all have answered (a failed one is
 -- cached as failed). Places nothing. Yields; returns how many templates it asked for.
 function MeshSwap.prefetch(): number
-	local jobs = slotJobs()
-	local workers = math.min(MeshSwap.PREFETCH_WORKERS, #jobs)
-	if workers == 0 then
-		return 0
-	end
-	local main = coroutine.running()
-	local nextJob, finished, parked = 1, 0, false
-	for _ = 1, workers do
-		task.spawn(function()
-			while nextJob <= #jobs do
-				local job = jobs[nextJob]
-				nextJob += 1
-				pcall(template, job.meshId, job.fidelity)
-			end
-			finished += 1
-			if finished == workers and parked then
-				task.spawn(main)
-			end
-		end)
-	end
-	if finished < workers then
-		parked = true
-		coroutine.yield()
-	end
-	return #jobs
+	return fetchAll(slotJobs())
 end
 
 -- The boot path: prefetch, place the slot meshes and the merge vats, then mark the world ready for the clients'
@@ -768,7 +758,7 @@ function MeshSwap.applyUnder(instances: { Instance }): number
 			table.insert(slots, d)
 		end
 	end
-	prefetch(slots, wanted)
+	prefetchSlots(slots, wanted)
 	return applyTo(instances, plots)
 end
 
@@ -777,9 +767,16 @@ end
 -- a failed load keeps the old look. Slots not swapped yet get the skin's look when MeshSwap reaches them. Yields;
 -- returns how many slots changed.
 function MeshSwap.themePlot(plot: Instance): number
-	prefetch(plot:GetDescendants(), wanted)
+	-- the slots first: swapping destroys old meshes and companions, which a live GetDescendants list still holds
+	local slots: { Instance } = {}
+	for _, d in plot:GetDescendants() do
+		if d:GetAttribute("MeshAsset") ~= nil then
+			table.insert(slots, d)
+		end
+	end
+	prefetchSlots(slots, wanted)
 	local count = 0
-	for _, slot in plot:GetDescendants() do
+	for _, slot in slots do
 		local name = slot:GetAttribute("MeshAsset")
 		local mesh = slot:FindFirstChild("Mesh")
 		if not (slot:IsA("BasePart") and typeof(name) == "string" and mesh) then
