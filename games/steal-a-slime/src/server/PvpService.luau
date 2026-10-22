@@ -67,6 +67,8 @@ export type Context = {
 	plazaOrigin: (() -> PvpRules.Vec)?,
 	-- the character is off the ground (a jump clears a boss stomp's ring; BossEvent.Context)
 	airborne: ((userId: number) -> boolean)?,
+	-- a boss attack centred on `from` can reach the player: low enough and nothing solid between (BossEvent.Context)
+	exposed: ((userId: number, from: PvpRules.Vec) -> boolean)?,
 	-- the ground point straight below `point` (a goo splat lands there); nil = keep the point
 	groundBelow: ((point: PvpRules.Vec) -> PvpRules.Vec?)?,
 	-- the Bubble Wand lift (server/PvpFunView): `userId` floats `lift` studs in a clickable bubble for `seconds`;
