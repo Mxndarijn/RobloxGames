@@ -3,7 +3,8 @@
 	Widgets
 
 	Small Instance.new helpers and the UI theme. Only creates Instances when a
-	function is called (nothing at require time).
+	function is called. At require time it waits for ReplicatedStorage.Shared
+	(the theme's colours come from Shared.GooPalette).
 ]]
 
 local Goo = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("GooPalette"))

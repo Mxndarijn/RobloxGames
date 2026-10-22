@@ -109,6 +109,12 @@ describe("PlotSigns.apply", function()
 		end
 		expect(GooBoard.gooBottom(PlotSigns.BOARD, PlotSigns.ASPECT) < 1).toBe(true)
 	end)
+	it("starts the lip where the card's round corner ends", function()
+		local B = PlotSigns.BOARD
+		-- The corner in px is radius * height on a wide card; the inset is that, as a fraction of the width.
+		expect(math.abs(GooBoard.lipInset(B, PlotSigns.ASPECT) - B.radius / PlotSigns.ASPECT) < 1e-9).toBe(true)
+		expect(GooBoard.lipInset(B, 0.5)).toBe(B.radius)
+	end)
 	it("updates in place when the owner changes (no duplicate guis)", function()
 		local sign = roblox.Instance.new("Part")
 		PlotSigns.apply(sign, PlotSigns.lines(1, nil), DEPS)

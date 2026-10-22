@@ -53,6 +53,12 @@ function GooBoard.dripBox(spec: Spec, d: Drip, aspect: number): (number, number,
 	return d.x - d.w / 2, spec.band + d.len, d.w, dropH
 end
 
+-- Where the lip starts and ends, as a fraction of the card width: one corner radius in from each side, where the
+-- card's round corner ends. `spec.radius` is a fraction of the shorter side, so it is turned into width units.
+function GooBoard.lipInset(spec: Spec, aspect: number): number
+	return spec.radius * math.min(1, 1 / aspect)
+end
+
 -- The lowest point any goo reaches, as a fraction of the card height, for a card `aspect` = width / height.
 function GooBoard.gooBottom(spec: Spec, aspect: number): number
 	local bottom = spec.band + spec.lip
@@ -99,7 +105,7 @@ function GooBoard.build(parent: any, deps: Deps, spec: Spec, aspect: number): an
 		Position = deps.UDim2.fromScale(0, 1),
 		Size = deps.UDim2.fromScale(1, 1 / spec.band), -- the card's height, so fractions below read as card fractions
 	}, band)
-	local inset = spec.radius * 0.5
+	local inset = GooBoard.lipInset(spec, aspect)
 	local step = (1 - inset * 2) / spec.scallops
 	for i = 0, spec.scallops - 1 do
 		local scallop = make(deps, "Frame", {

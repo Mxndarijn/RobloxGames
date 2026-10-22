@@ -43,8 +43,9 @@ local INK = rgb(GooPalette.Ink)
 local WHITE = rgb(GooPalette.White)
 
 -- The "Your plot" label in px: the badge, the words under it, and the Ink outlines.
-HomePlotMarker.TAG = table.freeze({ w = 170, badge = 62, gap = 4, text = 32, textSize = 26, stroke = 3 })
-HomePlotMarker.ARROW_BADGE = 58
+HomePlotMarker.TAG = table.freeze({ w = 170, badge = 62, gap = 4, text = 32, textSize = 26, stroke = 3, textStroke = 2.5 })
+-- The edge arrow: the badge and the "Your plot" words under it, in px.
+HomePlotMarker.ARROW = table.freeze({ badge = 58, gap = 6, textW = 110, textH = 20, textSize = 18 })
 local CORE_ALPHA = 0.35 -- beacon core transparency at full fade
 local HALO_ALPHA = 0.82
 
@@ -163,7 +164,7 @@ local function homeBadge(parent: Instance, size: number): Frame
 			ColorSequenceKeypoint.new(1, rgb(GooPalette.MintLo)),
 		}),
 	}, circle)
-	make("Frame", {
+	local shine = make("Frame", {
 		Name = "Shine",
 		BackgroundColor3 = WHITE,
 		BackgroundTransparency = 0.35,
@@ -172,6 +173,7 @@ local function homeBadge(parent: Instance, size: number): Frame
 		Size = UDim2.fromScale(0.24, 0.1),
 		Rotation = -24,
 	}, circle)
+	make("UICorner", { CornerRadius = UDim.new(1, 0) }, shine)
 	drawHouse(circle, math.max(2, math.round(size / 20)))
 	return circle
 end
@@ -186,7 +188,7 @@ local function outlined(parent: Instance, name: string, text: string, size: numb
 		TextSize = size,
 		TextColor3 = WHITE,
 	}, parent)
-	make("UIStroke", { Color = INK, Thickness = 2.5, LineJoinMode = Enum.LineJoinMode.Round }, label)
+	make("UIStroke", { Color = INK, Thickness = HomePlotMarker.TAG.textStroke, LineJoinMode = Enum.LineJoinMode.Round }, label)
 	return label
 end
 
@@ -309,12 +311,13 @@ local function buildArrow(): ScreenGui?
 	gui.IgnoreGuiInset = true
 	gui.Enabled = false
 
-	local frame = homeBadge(gui, HomePlotMarker.ARROW_BADGE)
+	local A = HomePlotMarker.ARROW
+	local frame = homeBadge(gui, A.badge)
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
-	local label = outlined(frame, "Label", "Your plot", 18)
+	local label = outlined(frame, "Label", "Your plot", A.textSize)
 	label.AnchorPoint = Vector2.new(0.5, 0)
-	label.Position = UDim2.new(0.5, 0, 1, 6)
-	label.Size = UDim2.fromOffset(110, 20)
+	label.Position = UDim2.new(0.5, 0, 1, A.gap)
+	label.Size = UDim2.fromOffset(A.textW, A.textH)
 
 	local tip = Instance.new("TextLabel")
 	tip.Name = "Pointer"
