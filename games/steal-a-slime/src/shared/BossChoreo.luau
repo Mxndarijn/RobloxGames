@@ -351,7 +351,18 @@ local function hop(prev: Move, input: Input, attack: Attack, leg: number): Move
 	if aim then
 		ux, uz = unit(aim[1] - x, aim[2] - z, ux, uz)
 	end
-	local ex, ez = BossArea.reach(x, z, ux, uz, attack.distance or 7)
+	local distance = attack.distance or 7
+	local ex, ez = BossArea.reach(x, z, ux, uz, distance)
+	if (ex - x) ^ 2 + (ez - z) ^ 2 < (distance / 2) ^ 2 then
+		-- aimed off the thin strip: hop along it instead, toward the target's side
+		local rx, rz = unit(x, z, 1, 0)
+		local tx, tz = -rz, rx
+		if ux * tx + uz * tz < 0 then
+			tx, tz = -tx, -tz
+		end
+		ux, uz = tx, tz
+		ex, ez = BossArea.reach(x, z, ux, uz, distance)
+	end
 	local seconds = BOSS.HOP_SECONDS + (attack.radius or 12) / (attack.speed or 24)
 	return make(prev.n + 1, "hop", input.now, seconds, x, z, ex, ez, ux, uz, prev.ox, prev.oz, withLeg(prev.slot, leg))
 end
