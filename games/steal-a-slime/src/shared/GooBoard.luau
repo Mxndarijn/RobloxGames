@@ -3,7 +3,8 @@
 	GooBoard (Instance builders, no Roblox API at load time)
 
 	The Goo board the world signs share (canvas GooWorldSigns): a glass card with an Ink outline and, on top,
-	a coloured band that drips goo into the empty strip under it (a lip of round scallops plus a few drips).
+	a coloured band that drips goo into the empty strip under it: each drip one blob, a soft shoulder under
+	the band, a thick neck and a round drop.
 	PlotSigns draws it on a plot's Sign (mint band, or no band on an empty plot) and PodiumRigs on the podium
 	name boards (gold band). Everything is sized by scale, so the same board fits a SurfaceGui or a
 	BillboardGui of any size; text goes on top through GooBoard.text.
@@ -18,8 +19,6 @@ export type Drip = { x: number, w: number, len: number } -- fractions of the car
 export type Spec = {
 	band: number, -- band height, fraction of the card
 	radius: number, -- corner radius, fraction of the card's shorter side
-	lip: number, -- scallop depth below the band, fraction of the card height
-	scallops: number,
 	drips: { Drip },
 	stroke: number, -- px Ink outline round the card
 	glassTransparency: number,
@@ -28,6 +27,9 @@ export type Spec = {
 local GooBoard = {}
 
 GooBoard.CARD = "GooCard"
+-- A drip's shape, as fractions of its drop: the neck's width, and the shoulder's width and how far it bulges under
+-- the band (Widgets' Layout.GOO_EDGE uses the same recipe on the menu bands).
+GooBoard.DRIP = table.freeze({ neck = 0.9, shoulder = 1.9, shoulderDrop = 0.5 })
 
 local function color(deps: Deps, c: { number }): any
 	return deps.Color3.fromRGB(c[1], c[2], c[3])
@@ -53,15 +55,9 @@ function GooBoard.dripBox(spec: Spec, d: Drip, aspect: number): (number, number,
 	return d.x - d.w / 2, spec.band + d.len, d.w, dropH
 end
 
--- Where the lip starts and ends, as a fraction of the card width: one corner radius in from each side, where the
--- card's round corner ends. `spec.radius` is a fraction of the shorter side, so it is turned into width units.
-function GooBoard.lipInset(spec: Spec, aspect: number): number
-	return spec.radius * math.min(1, 1 / aspect)
-end
-
 -- The lowest point any goo reaches, as a fraction of the card height, for a card `aspect` = width / height.
 function GooBoard.gooBottom(spec: Spec, aspect: number): number
-	local bottom = spec.band + spec.lip
+	local bottom = spec.band
 	for _, d in spec.drips do
 		local _, y, _, h = GooBoard.dripBox(spec, d, aspect)
 		bottom = math.max(bottom, y + h)
@@ -92,7 +88,7 @@ function GooBoard.build(parent: any, deps: Deps, spec: Spec, aspect: number): an
 		Size = deps.UDim2.fromScale(1, spec.band),
 	}, card)
 	round(deps, band, spec.radius / spec.band) -- the card's corner, measured against the band's shorter side
-	-- The band's lower corners are square: a foot covers them, the lip and drips hang under it.
+	-- The band's lower corners are square: a foot covers them, the drips hang under it.
 	make(deps, "Frame", {
 		Name = "Foot",
 		BorderSizePixel = 0,
@@ -105,24 +101,22 @@ function GooBoard.build(parent: any, deps: Deps, spec: Spec, aspect: number): an
 		Position = deps.UDim2.fromScale(0, 1),
 		Size = deps.UDim2.fromScale(1, 1 / spec.band), -- the card's height, so fractions below read as card fractions
 	}, band)
-	local inset = GooBoard.lipInset(spec, aspect)
-	local step = (1 - inset * 2) / spec.scallops
-	for i = 0, spec.scallops - 1 do
-		local scallop = make(deps, "Frame", {
-			Name = `Lip{i}`,
-			BorderSizePixel = 0,
-			Position = deps.UDim2.fromScale(inset + i * step, -spec.lip),
-			Size = deps.UDim2.fromScale(step, spec.lip * 2),
-		}, edge)
-		round(deps, scallop, 1)
-	end
+	local D = GooBoard.DRIP
 	for i, d in spec.drips do
 		local x, y, w, h = GooBoard.dripBox(spec, d, aspect)
+		local bulge = h * D.shoulderDrop
+		local shoulder = make(deps, "Frame", {
+			Name = `Shoulder{i}`,
+			BorderSizePixel = 0,
+			Position = deps.UDim2.fromScale(d.x - d.w * D.shoulder / 2, -bulge),
+			Size = deps.UDim2.fromScale(d.w * D.shoulder, bulge * 2),
+		}, edge)
+		round(deps, shoulder, 1)
 		local neck = make(deps, "Frame", {
 			Name = `Neck{i}`,
 			BorderSizePixel = 0,
-			Position = deps.UDim2.fromScale(d.x - d.w * 0.32, 0),
-			Size = deps.UDim2.fromScale(d.w * 0.64, d.len + h * 0.4),
+			Position = deps.UDim2.fromScale(d.x - d.w * D.neck / 2, 0),
+			Size = deps.UDim2.fromScale(d.w * D.neck, d.len + h * 0.5),
 		}, edge)
 		round(deps, neck, 1)
 		local drop = make(deps, "Frame", {

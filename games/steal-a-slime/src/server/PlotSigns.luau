@@ -34,12 +34,10 @@ PlotSigns.PIXELS_PER_STUD = 50
 -- The name board's width / height (WorldLayout.NAME_BOARD, 12 x 3.6 studs), so the goo drops come out round.
 PlotSigns.ASPECT = 12 / 3.6
 
--- The board: a mint band over the top half, a short lip and a drip at each end, clear of the stats line.
+-- The board: a mint band over the top half and a drip at each end, clear of the stats line.
 PlotSigns.BOARD = table.freeze({
 	band = 0.46,
 	radius = 0.24,
-	lip = 0.05,
-	scallops = 14,
 	drips = table.freeze({
 		table.freeze({ x = 0.05, w = 0.035, len = 0.08 }),
 		table.freeze({ x = 0.935, w = 0.028, len = 0.04 }),

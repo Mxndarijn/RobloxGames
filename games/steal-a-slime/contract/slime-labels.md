@@ -37,7 +37,7 @@ State field, no save-format change.
 - **Pad sign (`src/ui/SlimePadSign`, driven by `SlimeInfoCard`).** A thin non-colliding, non-queried WoodPlanks part with
   a `SurfaceGui` on the pad crate's entrance side (pad-local -Z), in a local `SlimePadSigns` folder. Goo of the rarity
   colour (a rainbow for Secret) runs along its top edge with the rarity written in it (Ink, or outlined white on deep
-  goo), hangs a lip of round scallops and drips down both ends; the plank has an Ink edge; the name (white) and income
+  goo) and drips down both ends; the plank has an Ink edge; the name (white) and income
   (mint) are written in Ink-outlined Fredoka on the wood; the growth fills an Ink tube with mint goo, its percent
   beside it.
   `MaxDistance` 45: the plank is too small to read beyond that. The pad is the plot's part with `PadIndex` =

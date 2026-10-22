@@ -36,10 +36,10 @@ return table.freeze({
 	gooShare = 0.24,
 	gooBand = 0.24,
 	gooGap = 16, -- px kept clear between the longest drip and the title
-	dripNeck = 0.8, -- a drip's neck, as a fraction of its drop width
+	dripNeck = 0.9, -- a drip's neck, as a fraction of its drop width
 	dripRise = 0.5, -- how far the drop's top overlaps the neck's end, as a fraction of its width
-	dripShoulder = 1.7, -- the shoulder's width, as a multiple of the drop width
-	dripShoulderDrop = 0.45, -- how far the shoulder bulges under the band, as a fraction of the drop width
+	dripShoulder = 1.9, -- the shoulder's width, as a multiple of the drop width
+	dripShoulderDrop = 0.5, -- how far the shoulder bulges under the band, as a fraction of the drop width
 	drips = table.freeze({
 		table.freeze({ x = 0.08, w = 0.11, len = 0.22 }),
 		table.freeze({ x = 0.24, w = 0.13, len = 0.4 }),

@@ -6,8 +6,7 @@
 	little wooden sign with an Ink edge on a stake in front of the pad's cork
 	stand (the side facing the jar's centre, where players walk), dipped in goo
 	of the slime's rarity colour. The goo runs along the top edge with the
-	rarity written in it, hangs a lip of round scallops and drips down both
-	ends; the name and income are written in outlined Fredoka on the wood, and
+	rarity written in it and drips down both ends; the name and income are written in outlined Fredoka on the wood, and
 	the growth fills an Ink tube with mint goo. Built and filled by
 	SlimeInfoCard, which owns the lifecycle; this module only makes the part
 	and draws a SlimeLabel.View on it.
@@ -65,9 +64,6 @@ SlimePadSign.LAYOUT = table.freeze({
 	tubeWidth = 0.62,
 })
 
--- The lip under the band: `scallops` round bumps hanging `depth` (fraction of the plank) between the end drips.
-SlimePadSign.LIP = table.freeze({ scallops = 7, depth = 0.07, from = 0.1, to = 0.9 })
-
 -- Goo drips running down both ends of the plank: centre x, width (px) and how far below the band they reach
 -- (fraction of the plank). The text keeps LAYOUT.inset clear of them.
 SlimePadSign.DRIPS = table.freeze({
@@ -99,7 +95,7 @@ function SlimePadSign.bandInk(view: SlimeLabel.View): (Color3, number)
 	return SlimePadSign.COLORS.paint, 0
 end
 
--- The goo's shading: a glossy light top over the rarity colour, flat from the middle down so the lip and drips
+-- The goo's shading: a glossy light top over the rarity colour, flat from the middle down so the drips
 -- hanging from it match; a rainbow for Secret.
 function SlimePadSign.gooGradient(view: SlimeLabel.View): ColorSequence
 	if SlimeLabel.isRainbow(view) then
@@ -151,7 +147,7 @@ local function paint(name: string, props: { [string]: any }, parent: Instance): 
 end
 
 -- A goo piece: a white frame, rounded by `corner` px (nil = square) and, when `shaded`, tinted by its gradient
--- so the shading lands on every piece the same way; unshaded pieces (the lip and drips) are coloured on render.
+-- so the shading lands on every piece the same way; unshaded pieces (the drips) are coloured on render.
 local function goo(name: string, props: { [string]: any }, parent: Instance, corner: number?, shaded: boolean): Frame
 	local frame = create("Frame", {
 		Name = name,
@@ -251,17 +247,9 @@ function SlimePadSign.build(): Part
 		}),
 	})
 	local band = goo("Band", { Size = UDim2.fromScale(1, l.band) }, board, s.corner, true)
-	-- The band's lower corners are square: a foot covers them. The lip and drips hang from its bottom edge; all
-	-- are children of the band (same goo, so the overlap is invisible).
+	-- The band's lower corners are square: a foot covers them. The drips hang from its bottom edge; all are
+	-- children of the band (same goo, so the overlap is invisible).
 	goo("Foot", { Position = UDim2.fromScale(0, 0.5), Size = UDim2.fromScale(1, 0.5) }, band, nil, true)
-	local lip = SlimePadSign.LIP
-	local step = (lip.to - lip.from) / lip.scallops
-	for i = 1, lip.scallops do
-		goo(`Lip{i}`, {
-			Position = UDim2.fromScale(lip.from + (i - 1) * step, 1 - lip.depth / l.band),
-			Size = UDim2.fromScale(step, 2 * lip.depth / l.band),
-		}, band, 100, false)
-	end
 	for i, d in SlimePadSign.DRIPS do
 		goo(`Drip{i}`, {
 			AnchorPoint = Vector2.new(0.5, 0),
@@ -339,12 +327,6 @@ function SlimePadSign.render(part: Part, view: SlimeLabel.View)
 		local shade = piece:FindFirstChild("Goo") :: UIGradient
 		shade.Color = SlimePadSign.gooGradient(view)
 		shade.Rotation = rotation
-	end
-	local lip = SlimePadSign.LIP
-	local step = (lip.to - lip.from) / lip.scallops
-	for i = 1, lip.scallops do
-		local scallop = band:FindFirstChild(`Lip{i}`) :: Frame
-		scallop.BackgroundColor3 = SlimePadSign.gooAt(view, lip.from + (i - 0.5) * step)
 	end
 	for i, d in SlimePadSign.DRIPS do
 		(band:FindFirstChild(`Drip{i}`) :: Frame).BackgroundColor3 = SlimePadSign.gooAt(view, d.x)

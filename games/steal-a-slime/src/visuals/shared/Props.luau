@@ -29,6 +29,7 @@
 ]]
 
 local Goo = if script then require(script.Parent.Parent.Shared.GooPalette) else require("../../shared/GooPalette")
+local GooBoard = if script then require(script.Parent.Parent.Shared.GooBoard) else require("../../shared/GooBoard")
 local GooIcons = if script then require(script.Parent.Parent.Shared.GooIcons) else require("../../shared/GooIcons")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
@@ -140,6 +141,9 @@ Props.STAND_STYLES = table.freeze({
 	} :: StandStyle),
 }) :: { [string]: StandStyle }
 
+-- A drip's shape, shared with the world boards: a soft shoulder under the jelly, a thick neck and a round drop.
+local DRIP = GooBoard.DRIP
+
 -- The jelly sign on the stand's sign face, as fractions of the face: the jelly across the top, the badge on its
 -- left, short drips (x, drop width, neck length) falling from its bottom edge onto the empty face under it.
 Props.STAND_SIGN = table.freeze({
@@ -214,12 +218,21 @@ function Props.standSign(sign: BasePart, look: StandStyle, aspect: number): Surf
 	local top = j.y + j.h
 	for i, d in S.drips do
 		local dropH = d.w * aspect -- round in px
+		local bulge = dropH * DRIP.shoulderDrop
+		local shoulder = frame(
+			gui,
+			`Shoulder{i}`,
+			lo,
+			UDim2.fromScale(d.x - d.w * DRIP.shoulder / 2, top - bulge),
+			UDim2.fromScale(d.w * DRIP.shoulder, bulge * 2)
+		)
+		corner(shoulder, UDim.new(1, 0))
 		local neck = frame(
 			gui,
 			`Neck{i}`,
 			lo,
-			UDim2.fromScale(d.x - d.w * 0.32, top - 0.05),
-			UDim2.fromScale(d.w * 0.64, d.len + 0.05 + dropH * 0.4)
+			UDim2.fromScale(d.x - d.w * DRIP.neck / 2, top - 0.05),
+			UDim2.fromScale(d.w * DRIP.neck, d.len + 0.05 + dropH * 0.5)
 		)
 		corner(neck, UDim.new(1, 0))
 		local drop = frame(gui, `Drop{i}`, lo, UDim2.fromScale(d.x - d.w / 2, top + d.len), UDim2.fromScale(d.w, dropH))

@@ -730,10 +730,10 @@ Layout.STATUS_BUBBLE = table.freeze({ transparency = 0.8 })
 -- goo never runs over the body. No drip sits over the corner icon tile (x < 0.14).
 Layout.GOO_EDGE = table.freeze({
 	inset = 18,
-	neckWidth = 0.8, -- a drip's neck, as a fraction of its drop width, centred on the drop
+	neckWidth = 0.9, -- a drip's neck, as a fraction of its drop width, centred on the drop
 	dropRise = 0.55, -- how far the drop's top overlaps the neck's end, as a fraction of its width
-	shoulder = 1.7, -- the shoulder's width, as a multiple of the drop width
-	shoulderDrop = 0.45, -- how far the shoulder bulges under the band, as a fraction of the drop width
+	shoulder = 1.9, -- the shoulder's width, as a multiple of the drop width
+	shoulderDrop = 0.5, -- how far the shoulder bulges under the band, as a fraction of the drop width
 	drips = table.freeze({
 		table.freeze({ 0.22, 10, 7 }),
 		table.freeze({ 0.4, 8, 4 }),
