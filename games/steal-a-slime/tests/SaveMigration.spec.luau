@@ -263,22 +263,67 @@ table.insert(fixtures, {
 	ids = { "v7-a" },
 })
 
--- Extra unknown fields on a current save.
+-- v8: trap charges, quests, boost, egg luck; boss trophies held as a slime list.
+local function trophyV8(id: string, species: string, tier: number): { [string]: any }
+	local t = slimeV2(id, tier, nil, { species = species, size = Config.MAX_SIZE })
+	t.pad = nil
+	return t
+end
 table.insert(fixtures, {
-	name = "v8 with unknown extra fields and junk types",
+	name = "v8 boss trophies",
 	save = {
 		version = 8,
+		cash = 42_000,
+		rebirths = 6,
+		padsUnlocked = 8,
+		slimes = { slimeV2("v8-a", 3, 1, { species = "gummy" }), slimeV2("v8-b", 2, 2) },
+		lastOnline = NOW - 60,
+		daily = { lastDay = 19600, streak = 4 },
+		found = { "gummy" },
+		totalEarned = 90_000,
+		totalStolen = 3,
+		speedCoil = true,
+		tutorialStep = 0,
+		upgrades = { Income = 2 },
+		stats = { caught = 9, merges = 2, locks = 1, sold = 0 },
+		goals = {},
+		speciesRewards = 0,
+		quests = { day = 0, slots = {} },
+		plotSkin = "classic",
+		stealLog = {},
+		settings = { musicVolume = 0.4, sfxVolume = 0.6, muted = false },
+		redeemed = {},
+		boost = { mult = 1, untilAt = 0 },
+		consumables = { slot = 0, bought = {}, held = {} },
+		pvp = { tiers = { Knockback = 1 }, traps = { GooTrap1 = 2 }, fun = {} },
+		trophies = {
+			trophyV8("t-1", "goozilla", 6),
+			trophyV8("t-2", "queen_jelly", 6),
+			trophyV8("t-3", "gummy", 1),
+		},
+		eggLuck = {},
+	},
+	cash = 42_000,
+	rebirths = 6,
+	ids = { "v8-a", "v8-b" },
+})
+
+-- Extra unknown fields on a current save.
+table.insert(fixtures, {
+	name = "current version with unknown extra fields and junk types",
+	save = {
+		version = Config.SAVE_VERSION,
 		cash = "5000",
 		rebirths = 2.7,
 		padsUnlocked = 4,
-		slimes = { slimeV2("v8-a", 1, 1), "junk", 5, slimeV2("v8-a", 1, 2), slimeV2("v8-b", 99, 99) },
+		slimes = { slimeV2("cur-a", 1, 1), "junk", 5, slimeV2("cur-a", 1, 2), slimeV2("cur-b", 99, 99) },
 		futureFeature = { a = 1 },
 		found = "notalist",
 		redeemed = { "OK", 5, {} },
 	},
 	cash = 5000,
 	rebirths = 2,
-	ids = { "v8-a", "v8-b" },
+	ids = { "cur-a", "cur-b" },
 })
 
 local function idSet(data: PlayerData.Data): { [string]: boolean }
@@ -420,9 +465,24 @@ describe("what old data becomes", function()
 		local d = SaveData.deserialize(fixtures[7].save)
 		expect(d.pvp.traps.GooTrap3).toBe(Config.PVP.TRAP_MAX_HELD)
 	end)
+	it("each boss trophy becomes one win of that species, with its badge earned and the species found", function()
+		local fx = fixtures[8]
+		local d = SaveData.deserialize(fx.save)
+		expect(d.boss.wins).toEqual({ goozilla = 1, queen_jelly = 1 })
+		expect(d.boss.badges).toEqual({ BossGoozilla = fx.save.lastOnline, BossQueenJelly = fx.save.lastOnline })
+		expect(d.found.goozilla).toBe(true)
+		expect(d.found.queen_jelly).toBe(true)
+		expect(d.found.gummy).toBe(true)
+		expect((d :: any).trophies).toBeNil()
+		expect(d.pvp.traps.GooTrap1).toBe(2)
+		expect(d.pvp.tiers.Knockback).toBe(1)
+		local saved = SaveData.serialize(d, NOW)
+		expect(saved.trophies).toBeNil()
+		expect(saved.boss.wins).toEqual({ goozilla = 1, queen_jelly = 1 })
+	end)
 	it("junk entries are dropped, duplicates collapse, out-of-range tier and pad are clamped", function()
-		local d = SaveData.deserialize(fixtures[8].save)
-		local b = PlayerData.findSlime(d, "v8-b")
+		local d = SaveData.deserialize(fixtures[9].save)
+		local b = PlayerData.findSlime(d, "cur-b")
 		expect(b and b.tier).toBe(Config.MAX_TIER)
 		expect(b and b.pad ~= nil).toBe(true)
 	end)
@@ -482,7 +542,7 @@ describe("newer and unreadable saves", function()
 		expect(backend.records["u_5"].data.foo).toBe(1)
 	end)
 	it("a numeric-string version is read as that version", function()
-		expect(SaveData.check({ version = "8", cash = 1 })).toBe("ok")
-		expect(SaveData.check({ version = "9", cash = 1 })).toBe("newer")
+		expect(SaveData.check({ version = tostring(Config.SAVE_VERSION), cash = 1 })).toBe("ok")
+		expect(SaveData.check({ version = tostring(Config.SAVE_VERSION + 1), cash = 1 })).toBe("newer")
 	end)
 end)
