@@ -266,7 +266,7 @@ local function slimeModel(): any
 end
 
 describe("SlimeMesh species kits", function()
-	it("wears a kit with an offset at size-1 scale, Color white, and hides the procedural face", function()
+	it("wears a kit with an offset at size-1 scale, Color white, and removes the procedural face", function()
 		local kit = "slime_gummy"
 		local entry = MeshAssets.get(kit) :: any
 		assert(entry and entry.offset and entry.size, "species kit entry with offset + size")
@@ -303,9 +303,9 @@ describe("SlimeMesh species kits", function()
 		expect(worn:FindFirstChildWhichIsA("Bone") ~= nil).toBe(true)
 		expect(worn:FindFirstChildWhichIsA("Weld")).toBeNil()
 		expect(model.Body.Transparency).toBe(1)
-		expect(model.EyeL.Transparency).toBe(1)
-		expect(model.MouthMid.Transparency).toBe(1)
-		expect(model.Puddle.Transparency).toBe(1)
+		expect(model:FindFirstChild("EyeL")).toBeNil()
+		expect(model:FindFirstChild("MouthMid")).toBeNil()
+		expect(model:FindFirstChild("Puddle")).toBeNil()
 		expect(SlimeMesh.isReplacedPart("EyeL") and SlimeMesh.isReplacedPart("MouthMid")).toBe(true)
 	end)
 end)
@@ -391,7 +391,7 @@ describe("SlimeMesh species foot", function()
 			local d = body.Size.X
 			local ground = body.CFrame.Position.Y - body.Size.Y / 2
 			local footHalf = math.min(worn.Size.X, worn.Size.Z) / 2
-			expect(model.Puddle.Transparency).toBe(1)
+			expect(model:FindFirstChild("Puddle")).toBeNil()
 			for _, part in model:GetDescendants() do
 				if part:IsA("BasePart") and part.Transparency < 1 and part ~= worn then
 					local low, high = bounds(part)
@@ -403,6 +403,17 @@ describe("SlimeMesh species foot", function()
 						local reach = math.max(high.X - body.CFrame.Position.X, body.CFrame.Position.X - low.X)
 						assert(reach <= footHalf + FOOT_MARGIN, `{label} sticks out around the foot`)
 					end
+				end
+			end
+		end
+	end)
+
+	it("keeps no replaced procedural part on a species slime of any tier", function()
+		for tier = 1, Config.SECRET_TIER do
+			local model = dressedSpecies("lop", tier)
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") then
+					assert(not SlimeMesh.isReplacedPart(part.Name), `{part.Name} (tier {tier}) is still built`)
 				end
 			end
 		end
