@@ -692,6 +692,7 @@ function BossEvent.view(world: World, session: Session, now: number): Types.Boss
 		moveEndsAt = move and move.at + move.seconds,
 		multiplier = if move and move.kind == "dazed" then BOSS.DAZED_MULTIPLIER else nil,
 		guardsLeft = if move and move.kind == "rise" then guardsLeft else nil,
+		guardsTotal = if move and move.kind == "rise" then #event.guards else nil,
 		stunnedUntil = if BossEvent.stunned(session, now) then session.bossStunUntil else nil,
 	}
 end
