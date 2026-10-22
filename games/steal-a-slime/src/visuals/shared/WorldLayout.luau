@@ -1241,9 +1241,10 @@ function WorldLayout.jarWallPoint(f: number, deg: number): (number, number)
 	return polar(WorldLayout.jarWallRadius(f) / math.cos(math.rad(off)), deg)
 end
 
--- Jar f's glass wall collision: JAR_WALL_SEGMENTS collidable segments from floor f up to the deck (or lid) above (the
--- glass mesh is the look; they show as glass until it lands). Jar 1's segment at DOOR.angle is the door: two jambs
--- either side of the opening and the lintel over it. Glass never blocks prompts or raycasts.
+-- Jar f's glass wall collision: JAR_WALL_SEGMENTS collidable segments round the glass (the glass mesh is the look; they
+-- show as glass until it lands), up to the top jar's glass height (jarWall) and from there up to the next deck once a
+-- jar stands on it (jarUpperWalls). Jar 1's segment at DOOR.angle is the door: two jambs either side of the opening
+-- and the lintel over it. Glass never blocks prompts or raycasts.
 -- Height above floor f of jar f's straight glass while it is the top jar (the kit's wall_top): its dome starts here.
 -- Jar 1's clears its door.
 function WorldLayout.jarTopWallHeight(f: number): number
@@ -1603,7 +1604,6 @@ function WorldLayout.dropShieldAngles(): { number }
 	return { below, below + step }
 end
 
--- Upper jar f (2..#BASE_FLOORS) of plot i, as the nodes the server adds under Plot_<i>: a Floor_<f> Model (deck,
 -- WorldLayout.TOP_DOME_ROWS tilted boxes per wall segment make the top jar's dome: they follow the kit's quarter
 -- ellipse (glass_profile) from the top of the straight glass in to the neck, their outer face on the glass. Above the
 -- neck the cork stopper (or the last jar's lid) is a cylinder and the mascot on it a ball. Like the fountain's profile
@@ -1689,7 +1689,9 @@ function WorldLayout.topColliders(i: number, f: number): WorldNode
 	return { name = "TopColliders", class = "Folder", attributes = { TopFloor = f }, children = out }
 end
 
--- glass wall, the stair up from floor f - 1, the lid, the drop-tube hatch) and the jar's Pad_<j>.
+-- Upper jar f (2..#BASE_FLOORS) of plot i, as the nodes the server adds under Plot_<i>: a Floor_<f> Model (deck,
+-- glass wall, jar f - 1's upper walls, the stair up from floor f - 1, the lid, the drop-tube hatch) and the jar's
+-- Pad_<j>.
 function WorldLayout.floor(i: number, f: number): { WorldNode }
 	assert(f >= 2 and f <= #Config.BASE_FLOORS, `floor {f} is not an upper floor`)
 	local centre, yaw = WorldLayout.plotCentre(i)
