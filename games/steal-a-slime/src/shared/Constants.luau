@@ -53,6 +53,12 @@ return table.freeze({
 	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FollowPets), nil = none
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
 	BOSS_MOVE_ATTRIBUTE = "BossMove", -- boss model: its current move (BossChoreo.encode); clients draw it every frame
+	BOSS_TARGETS_ATTRIBUTE = "BossTargets", -- boss model: "x,z;x,z" world spots its windup's spits will land on
+	BOSS_SPITS_ATTRIBUTE = "BossSpits", -- boss model: "x,z,landAt;..." spits in the air (server time they land)
+	BOSS_HIT_AT_ATTRIBUTE = "BossHitAt", -- boss model: server time of the latest counted bat hit (it squashes)
+	BOSS_HIT_BY_ATTRIBUTE = "BossHitBy", -- boss model: the UserId of that hit
+	BOSS_HIT_POINTS_ATTRIBUTE = "BossHitPoints", -- boss model: meter points that hit counted
+	BOSS_GUARD_ATTRIBUTE = "BossGuard", -- workspace.BossFx guard models: true
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
 	SHOP_STAND = "ShopStand", -- alias of the Item Shop while FEATURES.WorldShops is off (the single HUD-shop stand)
 	SHOP_STAND_ITEM = "ItemShopStand", -- CONTRACT.md §27.2
