@@ -81,7 +81,7 @@ function BossMeterLogic.view(boss: any, now: number): View?
 		return {
 			icon = "🏆",
 			title = `{who} brought {name} home!`,
-			detail = "It's on their trophy stand now.",
+			detail = "Everyone who helped shares the win!",
 			meter = 1,
 			timer = nil,
 			tone = "good",

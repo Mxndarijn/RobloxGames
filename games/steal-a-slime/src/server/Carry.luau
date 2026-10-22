@@ -12,7 +12,7 @@
 	  (contract/slime-walk.md); otherwise its lifetime restarts there.
 	* Pad slime of another player: StealService.steal. Dropped -> escapes home.
 	* The hauled boss (contract/boss-event.md): grabbed only in the haul phase (top contributor first), carried at
-	  the boss carry slow, dropped on the spot, and deposited as a trophy (data.trophies; no pad needed).
+	  the boss carry slow, dropped on the spot, and brought home to win (BossCredit.win; no pad needed).
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -28,7 +28,7 @@ local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
-local Trophies = if Shared then require(Shared.Trophies) else require("../shared/Trophies")
+local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
@@ -142,7 +142,8 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	return StealService.steal(world, session, slimeId, distance, now)
 end
 
--- The boss carrier got home: the boss goes on the trophy stand (Trophies.award) and the fight is won.
+-- The boss carrier got home: the fight is won and every helper is credited (BossCredit.win). The boss slime is
+-- removed; it never joins anyone's slimes.
 function Carry.depositBoss(world: World, session: Session, carry: World.CarryState, now: number): (boolean, string?)
 	world.wild[carry.slimeId] = nil
 	world.carriedBy[carry.slimeId] = nil
@@ -151,13 +152,11 @@ function Carry.depositBoss(world: World, session: Session, carry: World.CarrySta
 	if fight then
 		BossFight.win(fight, session.userId, now)
 	end
-	local result, trophy = Trophies.award(session.data, carry.slime)
 	World.markAllDirty(world)
 	World.notify(world, nil, `{session.name} brought {carry.slime.name} home!`, "good", "Rain")
-	if result == "owned" then
-		World.notify(world, session.userId, `You already have the {trophy.name} trophy.`, "info", "Cash")
-	else
-		World.notify(world, session.userId, `{trophy.name} trophy won!`, "good", "Deposit")
+	World.notify(world, session.userId, `You brought {carry.slime.name} home!`, "good", "Deposit")
+	if fight then
+		BossCredit.win(world, fight, session, carry.slime, now)
 	end
 	World.effect(world, "Collect", { userId = session.userId })
 	return true, nil

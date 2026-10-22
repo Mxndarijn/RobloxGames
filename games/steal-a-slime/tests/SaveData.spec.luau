@@ -64,12 +64,12 @@ describe("SaveData round trip", function()
 		local fresh = SaveData.deserialize({ version = 2, cash = 5, dex = { "1:None:Plain:Round" } })
 		expect(next(fresh.found)).toBeNil()
 	end)
-	it("a saved boss trophy counts as found", function()
+	it("a won boss species counts as found", function()
 		local raw = SaveData.serialize(Fixtures.data(nil, 0), 1700000000)
-		raw.trophies = { Fixtures.slime("t", 6, { species = "goozilla" }) }
+		raw.boss = { hits = 4, wins = { goozilla = 2 }, hauls = 0, mvps = 0, badges = {} }
 		raw.found = {}
 		local back = SaveData.deserialize(raw)
-		expect(#back.trophies).toBe(1)
+		expect(back.boss.wins.goozilla).toBe(2)
 		expect(back.found.goozilla).toBe(true)
 	end)
 	it("owned slimes are always found on load", function()

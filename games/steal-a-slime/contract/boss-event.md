@@ -1,4 +1,4 @@
-# §33 Boss event: a server-wide fight, a haul race, a trophy
+# §33 Boss event: a server-wide fight, a haul race, boss badges
 
 Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"` species in `Shared.SlimeRoster`
 (`goozilla`, `queen_jelly` at tier 6, `mecha_goo` at tier 7). It replaces the old "first grab wins" Boss Slime
@@ -46,23 +46,45 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
   anyone. The carrier walks at `BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW)`: no Speed Coil, no Strong Arms
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
   spot; anyone can grab it again. Dropping never resets the haul deadline.
-- **Win.** The carrier reaches their HomeZone (`Carry.deposit`, no free pad needed): the boss slime goes to
-  `data.trophies` (below), a server-wide toast names the winner.
+- **Win.** The carrier reaches their HomeZone (`Carry.depositBoss`, no free pad needed): a server-wide toast names the
+  winner and every helper is credited in their boss record (below). The boss slime is removed; it never goes into
+  `data.slimes` or anywhere else in the save.
 - **Fail.** Meter not full by the fight deadline, or not home by the haul deadline: the boss (carried or not) is removed:
   it gets away. No slimes drop; the sheds are the fight's reward.
 - Bosses never count toward the wild cap and are never a random merge or fountain result.
 
-## Trophies: `data.trophies` (save)
+## Boss record and badges: `data.boss` (save v9)
 
-`data.trophies: { Slime }`, at most one per boss species, saved in the profile. No `SAVE_VERSION` bump: a save without
-the field has none; `SaveData.cleanTrophies` keeps sanitized slimes of a boss species only (first per species, `pad` nil).
+Boss badges are kept in the player's save, not on Roblox (they are unrelated to `server/Badges` and `Config.BADGES`).
+A later build shows them in the base or a panel; for now they are saved, in State and toasted.
 
-- A trophy slime: the boss species (its name, colour and mesh), the boss tier, size `MAX_SIZE`.
-- Trophies earn income (added to `PlayerData.incomePerSecond` like a pad slime) and are not in `data.slimes`, so they
-  can't be stolen, merged, sold or placed on a pad.
-- Shown on the owner's plot on gold pedestals at `WorldLayout.TROPHY_SPOTS` (server `WorldView`, boss mesh through
-  `SlimeMesh`): slots 1 and 2 on the back corners either side of the Dex board, slot 3 on a front corner, all on the
-  Base clear of the jar and its moat.
+```lua
+data.boss = {
+	hits: number, -- counted Bat hits on any boss (BossFight.hit returned true)
+	wins: { [string]: number }, -- boss species id -> wins helped
+	hauls: number, -- bosses this player carried home
+	mvps: number, -- won bosses where this player was the top contributor
+	badges: { [string]: number }, -- Config.BOSS_BADGES key -> unix seconds (server time) it was earned
+}
+```
+
+- **Triggers (`server/BossCredit`).** A counted hit in `BossEvent.hit` records a hit. When the boss is brought home,
+  every player on the server whose `BossFight.share` is at least `BOSS.WIN_SHARE` gets a win for that species. The
+  carrier gets a haul (and a win only through their own share). The top contributor (`BossFight.top`), if still on the
+  server, gets an MVP. Every winner and the carrier get the species in their SlimeDex (`PlayerData.discover` with the
+  boss slime).
+- **Badges (`Config.BOSS_BADGES`, `Shared.BossBadges`).** Each entry: `key`, `name`, `description`, `trigger`, `value`,
+  optional `species`. Triggers: `hits` (record.hits >= value), `win` (wins[species] >= value), `wins` (all species
+  summed >= value), `hauls`, `mvps`. A per-species badge is one `win` line with its `species`. After each recorded event
+  `BossBadges.grant(data, now)` stamps every reached, unearned badge; each new one toasts that player
+  (`World.notify`, kind `"badge"`): `Badge earned: <name>!`. A badge, once earned, is never taken away.
+- **Save.** `SAVE_VERSION` 9. `SaveData.migrateV8` turns the old `trophies` list into `boss.wins[species] = 1` per boss
+  species held (unknown / non-boss species dropped) and removes `trophies`. `SaveData.deserialize` sanitizes `boss`
+  (`BossBadges.clean`: whole numbers clamped, unknown species and badge keys dropped, missing -> zeros), then grants
+  every badge the record has reached, stamped with the save's `lastOnline` (silently, no toast), and discovers every
+  boss species in `wins` in the SlimeDex. A boss badge added later is therefore granted on the next load to players
+  who already qualify.
+- Bosses earn no income and nothing about them can be stolen.
 
 ## `State.boss` (`Types.BossView`, in every snapshot)
 
@@ -82,11 +104,19 @@ boss: {
 	priorityName: string?, -- haul: the top contributor while their head start runs
 	priorityUntil: number?,
 	winnerName: string?, -- "won": who brought it home
-	trophies: number, -- this player's trophy count
+	badges: number, -- boss badges this player has earned
 }
 ```
 
 Every phase change, meter change and grab / drop pushes State to every player (`World.markAllDirty`).
+
+## `State.bossBadges` (`Types.BossBadgeView`, in every snapshot)
+
+```lua
+bossBadges: { { key: string, earnedAt: number } }, -- earned boss badges, in Config.BOSS_BADGES order
+```
+
+Names and descriptions come from `Config.BOSS_BADGES` by `key`. A newly earned badge marks the session dirty.
 
 ## Request actions
 
@@ -99,7 +129,9 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT DROP_LUCK CARRY_SLOW
 SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_CLEARANCE STROLL_* LOOK_SECONDS ARRIVE_* WINDUP_SECONDS CHARGE_EASE
 STRIKE_SECONDS RING_DELAY SPIT_FLIGHT DAZED_SECONDS RISE_* LAND_SECONDS GUARD_SECONDS SHRINK_SECONDS
-MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK`. Values live in `Config.luau` only.
+MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK WIN_SHARE WIN_SHOWER FIRST_ATTACK ATTACK_GAP
+STAGE_SPEEDUP PHASE_AT DAZED_MULTIPLIER STUN_SECONDS HIT_ARC RING_WIDTH CONE_HIT_AT PUDDLE_RADIUS SPIT_SPREAD GUARD_*
+MOVES`, and the badge list `Config.BOSS_BADGES`. Values live in `Config.luau` only.
 
 ## World / Scene
 
