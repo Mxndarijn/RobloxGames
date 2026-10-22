@@ -136,6 +136,7 @@ export type BossEvent = {
 	spits: { BossSpit }, -- spit blobs in the air
 	puddles: { BossPuddle }, -- goo puddles on the ground
 	guards: { { x: number, z: number, alive: boolean } }, -- the guards of the current rise
+	rainAt: number?, -- a guards `rain` attack: server time of its next goo drop volley while it floats
 	lastHit: { userId: number, points: number, at: number }?, -- the latest counted bat hit (clients squash it, pop points)
 }
 

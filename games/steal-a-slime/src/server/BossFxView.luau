@@ -2,12 +2,14 @@
 --[[
 	BossFxView (Roblox adapter, contract/boss-event.md "Attacks")
 
-	Makes workspace match the boss's attack state (world.boss): a guard model for every live guard, a goo puddle for
+	Makes workspace match the boss's attack state (world.boss): a guard model for every live guard (a mini copy of the
+	boss built by the slime model factory; plain crowned balls without a factory), a goo puddle for
 	every puddle, and attributes on the boss model that clients draw from: BossTargets (spit landing spots during the
 	windup), BossSpits (spits in the air) and BossHitAt / BossHitBy / BossHitPoints (the latest counted bat hit).
 	Holds no rules: BossEvent decides everything. Call from WorldView.reconcile.
 ]]
 
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -51,8 +53,47 @@ local function part(name: string, shape: Enum.PartType, size: Vector3, color: Co
 	return p
 end
 
+-- The slime model factory (WorldView's ModelFactory / SlimeMesh) and the boss's own slime data: guards are mini
+-- copies of it. Either nil = the plain ball guards.
+export type Look = { build: (slime: any) -> Model, slime: any }
+
+-- A guard as a mini copy of its boss (the factory's look), facing the boss's players (away from the boss).
+local function buildLookGuard(index: number, at: Vector3, face: Vector3, look: Look): Model?
+	local slime = table.clone(look.slime)
+	slime.id = `guard{index}`
+	slime.size = BOSS.GUARD_SIZE / Config.SLIME_BASE_DIAMETER
+	local ok, model = pcall(look.build, slime)
+	if not ok or typeof(model) ~= "Instance" or not model:IsA("Model") then
+		return nil
+	end
+	model.Name = `BossGuard{index}`
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanQuery = false
+			d.CanTouch = false
+		end
+	end
+	for _, tag in CollectionService:GetTags(model) do
+		CollectionService:RemoveTag(model, tag)
+	end
+	model:SetAttribute("SlimeId", nil)
+	local away = Vector3.new(2 * at.X - face.X, at.Y, 2 * at.Z - face.Z)
+	local base = CFrame.lookAt(at, away)
+	model:PivotTo(base)
+	model:SetAttribute(Constants.BOSS_GUARD_ATTRIBUTE, true)
+	model:SetAttribute("GuardBaseY", at.Y)
+	model.Parent = folder()
+	return model
+end
+
 -- A guard: a small round slime in the boss's colour with two eyes and a little crown, facing the boss.
-local function buildGuard(index: number, at: Vector3, face: Vector3, color: Color3): Model
+local function buildGuard(index: number, at: Vector3, face: Vector3, color: Color3, look: Look?): Model
+	local fromLook = if look then buildLookGuard(index, at, face, look) else nil
+	if fromLook then
+		return fromLook
+	end
 	local model = Instance.new("Model")
 	model.Name = `BossGuard{index}`
 	local s = BOSS.GUARD_SIZE
@@ -74,6 +115,7 @@ local function buildGuard(index: number, at: Vector3, face: Vector3, color: Colo
 	crown.CFrame = cf * CFrame.new(0, s * 0.46, 0) * CFrame.Angles(0, 0, math.pi / 2)
 	model.PrimaryPart = body
 	model:SetAttribute(Constants.BOSS_GUARD_ATTRIBUTE, true)
+	model:SetAttribute("GuardBaseY", at.Y)
 	model.Parent = folder()
 	return model
 end
@@ -99,9 +141,16 @@ end
 
 --[[
 	`model` is the boss model (nil = none in the world), `origin` the plaza origin, `groundY` the plaza's ground
-	height, `color` the boss's colour.
+	height, `color` the boss's colour, `look` how to build its guards as mini copies of it (nil = plain balls).
 ]]
-function BossFxView.sync(world: World.World, model: Model?, origin: Vector3, groundY: number, color: Color3?)
+function BossFxView.sync(
+	world: World.World,
+	model: Model?,
+	origin: Vector3,
+	groundY: number,
+	color: Color3?,
+	look: Look?
+)
 	local event = world.boss
 	local liveGuards: { [string]: boolean } = {}
 	local livePuddles: { [string]: boolean } = {}
@@ -113,7 +162,7 @@ function BossFxView.sync(world: World.World, model: Model?, origin: Vector3, gro
 				liveGuards[key] = true
 				if not guards[key] or not guards[key].Parent then
 					guards[key] =
-						buildGuard(i, Vector3.new(g.x + origin.X, groundY, g.z + origin.Z), bossAt, color or GOO)
+						buildGuard(i, Vector3.new(g.x + origin.X, groundY, g.z + origin.Z), bossAt, color or GOO, look)
 				end
 			end
 		end
