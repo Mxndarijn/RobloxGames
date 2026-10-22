@@ -82,6 +82,8 @@ type Record = {
 	hatch: ProximityPrompt?, -- Mystery Eggs: the owner-only HatchPrompt
 	egg: boolean, -- built as a Mystery Egg (a hatch rebuilds the model as its slime)
 	key: string,
+	placed: boolean, -- place() has succeeded once; until then the model stays out of workspace (it is built at the
+	-- world origin, the fountain axis)
 	weld: WeldConstraint?,
 	rideUntil: number, -- os.clock() when the fountain ride lands (0 = not riding)
 	ghost: Model?, -- StealGhost: the see-through copy left on the pad while a thief carries it
@@ -797,6 +799,7 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		hatch = hatch,
 		egg = isEgg,
 		key = "",
+		placed = false,
 		weld = nil,
 		rideUntil = 0,
 		walking = nil,
@@ -1000,11 +1003,13 @@ local function place(world: World.World, record: Record, entry: Scene.Entry, pre
 
 	local plot = entry.plotIndex and WorldView.plot(entry.plotIndex)
 	local folder = plot and plot:FindFirstChild(Constants.PLOT_SLIMES_FOLDER)
-	model.Parent = folder or plot
 	local target = entry.plotIndex and entry.pad and padTop(entry.plotIndex, entry.pad)
 	if not target then
-		return true
+		-- Its pad is not built yet (a join with slimes on upper floors: BaseFloors builds them after this
+		-- reconcile): retried next time, so it lands on the pad once it is there.
+		return false
 	end
+	model.Parent = folder or plot
 	if entry.state == "Escaping" and previous ~= nil then
 		animate(entry.id, entry.key, World.ESCAPE_BOUNCE_SECONDS, glide(from, target))
 	else
@@ -1047,14 +1052,12 @@ function WorldView.reconcile(
 	table.clear(bossMoves)
 	for id, entry in entries do
 		local record: Record? = records[id]
-		local isNew = false
 		if not record then
 			record = create(entry, onPrompt, onHatch)
 			if not record then
 				continue
 			end
 			records[id] = record
-			isNew = true
 		end
 		assert(record, "record")
 		record.prompt.ActionText = entry.promptText
@@ -1103,12 +1106,16 @@ function WorldView.reconcile(
 		end
 		SlimeLabelView.applyGrowth(record.model, entry.slime, now)
 		if record.key ~= entry.key then
-			local previous = if isNew then nil else record.key
+			local previous = if record.placed then record.key else nil
 			record.key = entry.key
-			if not place(world, record, entry, previous) then
+			if place(world, record, entry, previous) then
+				record.placed = true
+			else
 				record.key = "" -- retry next time
 			end
-			if isNew and not record.model.Parent then
+			-- A carried slime is welded on its carrier wherever its model sits; one never placed stays out of
+			-- workspace rather than show at its build spot.
+			if record.placed and not record.model.Parent then
 				record.model.Parent = workspace:FindFirstChild(Constants.WILD_FOLDER)
 			end
 		end
