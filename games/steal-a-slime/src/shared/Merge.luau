@@ -3,7 +3,7 @@
 	Merge
 
 	Two slimes of the same tier go into the merge vat and one slime of the next
-	tier comes out (both inputs are consumed). The child blends the parents'
+	tier comes out (both inputs are consumed; never a Secret from lower tiers). The child blends the parents'
 	colours, averages their size plus a bonus, inherits pattern / eyes / mouth
 	from either parent. Pure: no Roblox APIs.
 ]]
@@ -35,7 +35,7 @@ end
 
 function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string): Slime
 	local maxed = a.tier >= Config.MAX_TIER
-	local tier = math.min(a.tier + 1, Config.MAX_TIER)
+	local tier = if maxed then Config.MAX_TIER else math.min(a.tier + 1, Config.MERGE_MAX_TIER)
 
 	local color = {}
 	for i = 1, 3 do
