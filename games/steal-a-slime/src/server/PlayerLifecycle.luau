@@ -133,7 +133,7 @@ local function onPlayerAdded(deps: Deps, player: Player)
 	end
 	deps.refreshView(now())
 	task.spawn(deps.refreshFriends)
-	if not deps.persistence.orderedStore then
+	if not deps.persistence.boardStore then
 		task.spawn(LeaderboardView.refresh, deps.leaderboard) -- memory mode: rank the newcomer now, not in a minute
 	end
 end

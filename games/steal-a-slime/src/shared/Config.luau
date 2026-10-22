@@ -695,6 +695,9 @@ local Config = {
 	STATE_MIN_INTERVAL = 0.25, -- State snapshots are coalesced to at most 4/s per player
 	LEADERBOARD_INTERVAL = 60,
 	LEADERBOARD_SIZE = 10,
+	LEADERBOARD_PAGE = 100, -- entries per GetSortedAsync page (the top 10 shows; the rest give players their rank)
+	LEADERBOARD_RANK_DEPTH = 1000, -- how deep a refresh pages for the server's players' ranks; deeper = "1000+"
+	LEADERBOARD_RANK_RESERVE = 8, -- GetSortedAsync budget a deeper page must leave for the next refreshes
 
 	-- Economy
 	STARTING_CASH = 25,

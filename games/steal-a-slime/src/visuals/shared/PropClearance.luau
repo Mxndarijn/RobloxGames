@@ -12,10 +12,11 @@
 	         62.25-73.75), ring path (r 74-82)
 	  rect   each plot (80 x 80, props stay outside the fence) and its
 	         entrance corridor (the 20-stud gate slot out to the ring path)
-	  circle PROP_SPOTS (shop, leaderboard board: 12 like WorldLayout's
+	  circle PROP_SPOTS (shops, Hall of Fame boards, arch, Professor Goo: 12 like WorldLayout's
 	         decor; the tutorial NPC only its own footprint, SPOT_RADII, so its
 	         corner can be dressed), the plaza showpieces (signpost, podiums =
-	         the leaderboard stands)
+	         the leaderboard stands), the Hall of Fame plaza (r 50)
+	  rect   the Hall of Fame path from the ring path out to the plaza
 	  edge   the WorldBorder wall ring (inner face r 292) and its edge decor:
 	         props stay inside r EDGE_RADIUS (12 studs short of the walls)
 ]]
@@ -166,6 +167,19 @@ for _, def in WorldLayout.PLAZA_PROPS do
 		x = math.sin(a) * def.r,
 		z = math.cos(a) * def.r,
 		radius = math.sqrt(size[1] ^ 2 + size[3] ^ 2) / 2,
+	})
+end
+-- The Hall of Fame plaza and the path out to it.
+do
+	local hall = WorldLayout.HALL_OF_FAME
+	local centre = WorldLayout.hallPoint(0, 0)
+	table.insert(zones, { name = "Hall of Fame", kind = "circle", x = centre[1], z = centre[3], radius = hall.radius })
+	local from, to = ringOuter, hall.distance - hall.radius
+	local mid = WorldLayout.hallPoint(0, (from + to) / 2 - hall.distance)
+	table.insert(zones, {
+		name = "Hall of Fame path",
+		kind = "rect",
+		rect = { cx = mid[1], cz = mid[3], hx = hall.pathWidth / 2, hz = (to - from) / 2, yaw = hall.bearing },
 	})
 end
 PropClearance.ZONES = table.freeze(zones)

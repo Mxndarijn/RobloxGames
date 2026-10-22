@@ -71,6 +71,7 @@ local NAMES = {
 	"ranch_wheelbarrow",
 	"ranch_windmill",
 	"ranch_guide",
+	"guide_professor",
 	"slime_fountain_emerge",
 	"ranch_border_fence_straight",
 	"ranch_border_fence_broken",
@@ -295,6 +296,9 @@ entries["ranch_windmill"] =
 -- The Guide's skin (WorldProps TutorialNpc): decor only, the primitive body parts under it stay the collider.
 entries["ranch_guide"] =
 	{ assetId = 106088623869567, meshId = "rbxassetid://120047572318324", size = { 4.765, 7.987, 3.481 } }
+-- Professor Goo, the Hall of Fame greeter (WorldProps ProfessorGoo): decor only, his block body stays the collider.
+entries["guide_professor"] =
+	{ assetId = 125660278107523, meshId = "rbxassetid://94250583088999", size = { 3.719, 7.056, 2.98 } }
 entries["slime_fountain_emerge"] =
 	{ assetId = 100517882708695, meshId = "rbxassetid://74501501975558", size = { 19.436, 12.798, 11.353 } }
 -- World border v3 pieces (WorldBorder layers: fence/hedge inner, trees + rocks mid, hills outer): Open Cloud size-check.

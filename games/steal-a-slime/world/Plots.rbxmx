@@ -914,7 +914,7 @@
         <Properties>
           <string name="Name">HomeZone</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AQAAAAcAAABSZWFjaFVwBQAAQEI=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAYAAABSYWRpdXMFAAAgQgcAAABSZWFjaFVwBQAAQEI=</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>0</X>
@@ -3210,7 +3210,7 @@
         <Properties>
           <string name="Name">HomeZone</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AQAAAAcAAABSZWFjaFVwBQAAQEI=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAYAAABSYWRpdXMFAAAgQgcAAABSZWFjaFVwBQAAQEI=</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>98.99495</X>
@@ -5506,7 +5506,7 @@
         <Properties>
           <string name="Name">HomeZone</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AQAAAAcAAABSZWFjaFVwBQAAQEI=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAYAAABSYWRpdXMFAAAgQgcAAABSZWFjaFVwBQAAQEI=</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>140</X>
@@ -7802,7 +7802,7 @@
         <Properties>
           <string name="Name">HomeZone</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AQAAAAcAAABSZWFjaFVwBQAAQEI=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAYAAABSYWRpdXMFAAAgQgcAAABSZWFjaFVwBQAAQEI=</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>98.99495</X>
@@ -10098,7 +10098,7 @@
         <Properties>
           <string name="Name">HomeZone</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AQAAAAcAAABSZWFjaFVwBQAAQEI=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAYAAABSYWRpdXMFAAAgQgcAAABSZWFjaFVwBQAAQEI=</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>0</X>
@@ -12394,7 +12394,7 @@
         <Properties>
           <string name="Name">HomeZone</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AQAAAAcAAABSZWFjaFVwBQAAQEI=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAYAAABSYWRpdXMFAAAgQgcAAABSZWFjaFVwBQAAQEI=</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-98.99495</X>
@@ -14690,7 +14690,7 @@
         <Properties>
           <string name="Name">HomeZone</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AQAAAAcAAABSZWFjaFVwBQAAQEI=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAYAAABSYWRpdXMFAAAgQgcAAABSZWFjaFVwBQAAQEI=</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-140</X>
@@ -16986,7 +16986,7 @@
         <Properties>
           <string name="Name">HomeZone</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AQAAAAcAAABSZWFjaFVwBQAAQEI=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAYAAABSYWRpdXMFAAAgQgcAAABSZWFjaFVwBQAAQEI=</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-98.99495</X>

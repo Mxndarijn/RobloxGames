@@ -14,8 +14,10 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local Leaderboards = if Shared then require(Shared.Leaderboards) else require("../shared/Leaderboards")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
+local WeeklyEvents = if Shared then require(Shared.WeeklyEvents) else require("../shared/WeeklyEvents")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local SafeCall = if script then require(script.Parent.SafeCall) else require("./SafeCall")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
@@ -68,6 +70,7 @@ function Sessions.join(
 	end
 	PvpService.join(world, session, now)
 	Codes.expireBoost(session.data, now) -- a boost never pays for time spent offline
+	Leaderboards.rollWeek(session.data, WeeklyEvents.weekIndex(now)) -- offline pay below counts for this week
 	Income.applyOffline(world, session, now)
 	Milestones.check(world, session, now) -- old saves get past goal stages / dex milestones now
 	return session, nil

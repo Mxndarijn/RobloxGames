@@ -254,6 +254,8 @@ export type State = {
 	welcomeBack: { away: number, cash: number, grown: number }?, -- join report (seconds away, offline cash paid, pad slimes grown); nil = none (CONTRACT.md §19)
 	stealAway: string?, -- FEATURES.StealAlerts: "While you were away N slimes were stolen by ..." from the saved steal log; nil = none (CONTRACT.md §17)
 	hotbar: { string }?, -- saved hotbar order (HotbarOrder, CONTRACT.md §5.1): 9 slot keys, "" = empty; nil = never set
+	boards: { [string]: number }, -- my own value on each global board, by Leaderboards stat (CONTRACT.md §5.1)
+	boardRanks: { [string]: number }, -- my rank on each board from the last refresh; -n = deeper than #n; absent = not ranked yet
 	vat: VatView, -- the plot's merge vat (VatState, CONTRACT.md §21)
 }
 
@@ -267,7 +269,10 @@ export type VatView = {
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }
 
--- Payload of the `Leaderboard` RemoteEvent.
-export type Leaderboard = { stat: "TotalEarned", entries: { LeaderboardEntry } }
+-- Which board a payload is for (Leaderboards.BOARDS).
+export type LeaderboardStat = "TotalEarned" | "WeeklyEarned" | "Steals" | "Dex" | "Merges"
+
+-- Payload of the `Leaderboard` RemoteEvent: one board per call.
+export type Leaderboard = { stat: LeaderboardStat, entries: { LeaderboardEntry } }
 
 return {}

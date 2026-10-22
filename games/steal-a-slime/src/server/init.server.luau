@@ -133,7 +133,7 @@ local world = World.new({
 	plotCount = Config.PLOT_COUNT,
 })
 local ctx = ServerContext.new(world, shopEventRemote, now)
-local leaderboard = LeaderboardView.new(world, persistence.orderedStore, leaderboardEvent)
+local leaderboard = LeaderboardView.new(world, persistence.boardStore, leaderboardEvent)
 local profiler = Profiler.new() -- FEATURES.ServerProfiler (CONTRACT.md §25); off = every call is a no-op
 
 -- Roblox badges (Badges): BadgeService behind pcall + retries, off the game loop (grant yields).

@@ -267,21 +267,30 @@ local function installShims()
 				d.CFrame = pivot * (offset.Rotation + offset.Position * factor)
 			end
 		end
+		-- The pivot stays where it was (the primary part moved, so its pivot offset follows).
+		local primary = self.PrimaryPart
+		if primary then
+			primary.PivotOffset = primary.CFrame:ToObjectSpace(pivot)
+		end
 		extraOf(self).Scale = scale
 	end)
-	-- Axis-aligned (Roblox orients the box to the pivot; fine for the fake runtime).
+	-- Like Roblox: the box is oriented to the pivot (its rotation), sized round every part's corners in that frame.
 	impl("Model", "GetBoundingBox", function(self)
+		local pivot = getPivot(self)
+		local frame = pivot.Rotation
 		local lo, hi = Vector3.new(math.huge, math.huge, math.huge), Vector3.new(-math.huge, -math.huge, -math.huge)
 		for _, d in self:GetDescendants() do
 			if d:IsA("BasePart") then
-				local a, b = bounds(d)
-				lo, hi = lo:Min(a), hi:Max(b)
+				for _, c in corners(d) do
+					local l = frame:PointToObjectSpace(c)
+					lo, hi = lo:Min(l), hi:Max(l)
+				end
 			end
 		end
 		if lo.X > hi.X then
-			return getPivot(self), Vector3.zero
+			return pivot, Vector3.zero
 		end
-		return CFrame.new((lo + hi) / 2), hi - lo
+		return frame * CFrame.new((lo + hi) / 2), hi - lo
 	end)
 	impl("Model", "GetExtentsSize", function(self)
 		local _, size = self:GetBoundingBox()
