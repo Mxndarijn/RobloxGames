@@ -35,6 +35,4 @@ These show their UI-drawn scene (`src/ui/ItemIconArt.luau`) until a picture is u
 | Dex_20 | Dex 20 species | Gold trophy with a slime on top and the number 20 on the base; front view. |
 | Dex_32 | Dex 32 species | Gold trophy with a slime on top and the number 32 on the base; front view. |
 | Dex_40 | Dex 40 species | Gold trophy with a slime on top and the number 40 on the base; front view. |
-| PlotSkin_garden | Garden | Mini diorama of the 'Garden' plot (floor, fence and decor); 3/4 view from above. |
-| PlotSkin_starlight | Starlight | Mini diorama of the 'Starlight' plot (floor, fence and decor); 3/4 view from above. |
-| Boost_Mvp | Boss MVP boost | A gold crown sitting on a stack of gold coins; front view. |
+| Boost_Mvp | Boss MVP | A gold crown sitting on a stack of gold coins; front view. |

@@ -810,11 +810,11 @@ parts(
 	"plot_jar_lid",
 	"gojo",
 	8,
-	"colliders",
+	"off",
 	"Plots",
 	{ "^Lid$" },
-	"on",
-	"the cork lid on jar 1, the roof over the glass",
+	"off",
+	"the flat cork lid on jar 1: kept for raycasts; the roof is TopColliders, shaped like the dome",
 	{ walk = false }
 )
 parts(

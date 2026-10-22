@@ -440,13 +440,13 @@ def t_budgets():
         check("perf: 2203 parts / 93 unique / 391 MeshParts pass without warnings", st == "pass" and "warnings" not in det, (st, det))
         check("perf: report keys keep their meaning and add the new ones",
               r.perf["budget"] == 500 and r.perf["runtime_part_budget"] == 3000 and r.perf["runtime_part_warn"] == 2900
-              and r.perf["unique_mesh_budget"] == 120 and r.perf["triangles"] is None and r.perf["unique_meshes"] == 93, r.perf)
+              and r.perf["unique_mesh_budget"] == 140 and r.perf["triangles"] is None and r.perf["unique_meshes"] == 93, r.perf)
         st, det, r = perf(runtime_parts=2950)
         check("perf: 2950 parts passes with a warning", st == "pass" and len(det["warnings"]) == 1 and r.notes, (st, det))
         check("perf: 2900 parts is not yet a warning", "warnings" not in perf(runtime_parts=2900)[1])
         check("perf: 3000 parts passes (fail is strictly above)", perf(runtime_parts=3000)[0] == "pass")
         check("perf: 3001 parts fails", perf(runtime_parts=3001)[0] == "fail")
-        check("perf: 121 unique meshes fails", perf(unique_meshes=121)[0] == "fail")
+        check("perf: 141 unique meshes fails", perf(unique_meshes=141)[0] == "fail")
         st, det, _ = perf(mesh_slots=501)
         check("perf: 501 MeshParts only warns", st == "pass" and det["warnings"], (st, det))
         check("perf: unique_meshes absent (old probe) is unknown, not a failure",

@@ -518,6 +518,7 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		BackgroundColor3 = Theme.Bg,
 		BackgroundTransparency = 0.04,
 		ZIndex = Layout.ZINDEX.Menu,
+		Active = true, -- a tap on the card is not a tap on the backdrop behind it (which closes the menu)
 		Parent = parent,
 	}, { Widgets.corner(radius), Widgets.stroke(Theme.Ink, kit.stroke) })
 	-- The band: rounded on top, square at the bottom (a second, unrounded strip covers the lower corners).

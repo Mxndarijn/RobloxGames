@@ -329,32 +329,46 @@
     "uploadedAt": "2026-10-20T22:15:29Z"
   },
   "PlotSkin_candy": {
-    "assetId": "120970040244785",
+    "assetId": "105360446239954",
     "assetType": "Decal",
-    "imageId": "75125399713715",
-    "sha256": "a0b0a9a98c955870b78186cea883e0feb71c0c6be6325c48ef754c8a788494ca",
-    "uploadedAt": "2026-10-17T10:12:28Z"
+    "imageId": "98677550689246",
+    "sha256": "cb71d498ce8af6a5df92a124f9bd7e090fc6aaf03f0b65e4b91c627d4d97c24b",
+    "uploadedAt": "2026-10-22T16:09:33Z"
   },
   "PlotSkin_classic": {
-    "assetId": "100282350164092",
+    "assetId": "100417458254903",
     "assetType": "Decal",
-    "imageId": "75405645541984",
-    "sha256": "035203b4a97c6c465997a9ae4d5aa269ab93176090cd18eed6fe363189072104",
-    "uploadedAt": "2026-10-17T10:12:32Z"
+    "imageId": "105086598289035",
+    "sha256": "0e72d7ccb768ef11db05cf4d1bf3aabdff7f61069676ab4c40284f02d3ad0cda",
+    "uploadedAt": "2026-10-22T16:09:16Z"
   },
   "PlotSkin_crystal": {
-    "assetId": "74089309072170",
+    "assetId": "101104681746171",
     "assetType": "Decal",
-    "imageId": "91231773101915",
-    "sha256": "080c0d33a62bbce90c46b1eb97af3a06d86b3192c2d7679cfc167c12e6defd50",
-    "uploadedAt": "2026-10-17T10:12:37Z"
+    "imageId": "72221778465251",
+    "sha256": "7bb3e8efd5d978f04522100e80ccc5295ecb04dfae75b8a661cdcd9e5d275277",
+    "uploadedAt": "2026-10-22T16:09:25Z"
+  },
+  "PlotSkin_garden": {
+    "assetId": "71170233702231",
+    "assetType": "Decal",
+    "imageId": "137369313958309",
+    "sha256": "7497310941012a7aea02baa8d28db0605948b72a6782c42ba1797dc2d8662b94",
+    "uploadedAt": "2026-10-22T16:09:21Z"
   },
   "PlotSkin_mushroom": {
-    "assetId": "119343806680731",
+    "assetId": "79218942926639",
     "assetType": "Decal",
-    "imageId": "110584867448733",
-    "sha256": "508ae07db6e7fa81448c068ecf6dafacd33041145ef9c5401717164fce501c9e",
-    "uploadedAt": "2026-10-17T10:12:41Z"
+    "imageId": "87372547969408",
+    "sha256": "e2b7f45648dad83029e897bfa93478cf198f1852915cfdb2c97c46645df00881",
+    "uploadedAt": "2026-10-22T16:09:37Z"
+  },
+  "PlotSkin_starlight": {
+    "assetId": "100348518207460",
+    "assetType": "Decal",
+    "imageId": "72155200538920",
+    "sha256": "790a7cf3b3d324096bcf8a9565cdc489135f3ec727f64814c3d4644fde33a43e",
+    "uploadedAt": "2026-10-22T16:09:29Z"
   },
   "Pvp_Bat": {
     "assetId": "135025381744172",

@@ -80,6 +80,7 @@ local worldBuilder = WorldView.setup()
 local floors: BaseFloors.Context? = if worldBuilder and worldBuilder.buildFloor
 	then {
 		build = worldBuilder.buildFloor,
+		top = worldBuilder.buildTop,
 		meshes = function(instances: { Instance })
 			MeshSwap.applyUnder(instances)
 		end,

@@ -64,11 +64,25 @@ local function stairTops()
 	return out
 end
 
-local tops = {}
+-- the plot's roof colliders: how many TopColliders folders, and the floor of the one there
+local function roof(): (number, number?)
+	local count, floor = 0, nil
+	for _, c in plot():GetChildren() do
+		if c.Name == "TopColliders" then
+			count += 1
+			floor = c:GetAttribute("TopFloor")
+		end
+	end
+	return count, floor
+end
+
+local tops, roofs = {}, {}
+local initialRoofs, initialFloor = roof()
 local function grow(floors)
 	session.data.padsUnlocked = (floors - 1) * Config.PADS_PER_FLOOR
 	rt:advance(2)
 	tops[floors] = stairTops()
+	roofs[floors] = { roof() }
 	return hatches()
 end
 
@@ -84,6 +98,17 @@ describe("stair top (the flat landing stands only on the top jar)", function()
 		expect(tops[2][2]).toBe(true)
 		expect(tops[3][2]).toBe(false)
 		expect(tops[3][3]).toBe(true)
+	end)
+end)
+
+describe("roof colliders (one per plot, on its top jar)", function()
+	it("puts one roof on jar 1 from the start and moves it to the top jar as the tower grows and shrinks", function()
+		expect(initialRoofs).toBe(1)
+		expect(initialFloor).toBe(1)
+		expect(roofs[#Config.BASE_FLOORS][1]).toBe(1)
+		expect(roofs[#Config.BASE_FLOORS][2]).toBe(#Config.BASE_FLOORS)
+		expect(roofs[2][2]).toBe(2)
+		expect(roofs[3][2]).toBe(3)
 	end)
 end)
 
