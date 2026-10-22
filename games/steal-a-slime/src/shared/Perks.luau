@@ -68,15 +68,12 @@ local function upgradeDef(id: string): Config.Upgrade?
 	return nil
 end
 
--- "unlocks Strong Arms, keep 2 slimes, +25% income" (empty for the first rank).
+-- "unlocks Strong Arms, +25% income" (empty for the first rank).
 function Perks.tierText(tier: Config.RebirthTier): string
 	local parts = {}
 	if tier.unlock then
 		local def = upgradeDef(tier.unlock)
 		table.insert(parts, `unlocks the {if def then def.name else tier.unlock} upgrade`)
-	end
-	if tier.keep then
-		table.insert(parts, `keep {tier.keep} slimes on rebirth`)
 	end
 	if tier.income then
 		table.insert(parts, `+{math.floor(tier.income * 100 + 0.5)}% income`)
@@ -94,11 +91,6 @@ local function best(rebirths: number, field: string, default: number): number
 		end
 	end
 	return value
-end
-
--- Slimes kept on rebirth (favourite first, then the best).
-function Perks.keepCount(rebirths: number): number
-	return best(rebirths, "keep", 1)
 end
 
 function Perks.rankIncomeBonus(rebirths: number): number

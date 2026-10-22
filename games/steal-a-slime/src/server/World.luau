@@ -124,6 +124,7 @@ export type Hatch = {
 	at: number, -- server time of the hatch (model attribute HatchedAt)
 	kind: string, -- egg kind id (HatchedFrom)
 	lucky: boolean, -- a lucky egg or a full lucky meter (HatchLucky)
+	tier: number, -- the hatched slime's tier (HatchTier on the egg model while the show's wobble plays)
 	userId: number, -- who hatched it
 	text: string, -- the owner's toast, sent at the reveal
 	announce: string?, -- the server toast, sent at the reveal (HATCH_ANNOUNCE_TIER+)

@@ -537,7 +537,7 @@ scenario("loop", function()
 			TestHooks.grantCash(world, NEW_ID, 1e7)
 			ninvoke("BuyUpgrade", id)
 		end
-		grabAndBringHome() -- something to keep through the next rebirth
+		grabAndBringHome() -- a slime the next rebirth leaves on the plot
 	end
 	rt:advance(1.5)
 	local state = lastState() or {}
@@ -586,7 +586,7 @@ scenario("loop", function()
 		`{goalsPaid} goal toasts; incomeMultiplier={state.incomeMultiplier}; next rank={state.nextRebirthTier and state.nextRebirthTier.title}`
 	)
 	check(
-		"loop: Goo Tycoon keeps 2 slimes on rebirth",
+		"loop: rebirth keeps the slimes it does not use up",
 		has("New rank: Goo Tycoon") and #me.data.slimes >= 2,
 		`slimes on plot after the last rebirth + catch: {#me.data.slimes}`
 	)

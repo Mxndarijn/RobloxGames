@@ -63,6 +63,7 @@ function MysteryEgg.hatch(world: World, session: Session, slimeId: string, now: 
 		at = now,
 		kind = info.kind,
 		lucky = info.lucky or info.guaranteed,
+		tier = slime.tier,
 		userId = session.userId,
 		text = MysteryEgg.hatchText(slime, info),
 		announce = if slime.tier >= Config.MYSTERY_EGG.HATCH_ANNOUNCE_TIER
