@@ -1778,9 +1778,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-0.0019989014</X>
-            <Y>6.600006</Y>
-            <Z>108</Z>
+            <X>0</X>
+            <Y>7.330002</Y>
+            <Z>108.41</Z>
             <R00>-1</R00>
             <R01>0</R01>
             <R02>-0</R02>
@@ -1798,9 +1798,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
-            <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <X>14.520996</X>
+            <Y>13.059998</Y>
+            <Z>3.4190063</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -4487,9 +4487,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>76.36612</X>
-            <Y>6.600006</Y>
-            <Z>76.36896</Z>
+            <X>76.657455</X>
+            <Y>7.330002</Y>
+            <Z>76.657455</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
             <R02>-0.70710754</R02>
@@ -4507,9 +4507,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
-            <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <X>14.520996</X>
+            <Y>13.059998</Y>
+            <Z>3.4190063</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -7196,9 +7196,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>108</X>
-            <Y>6.600006</Y>
-            <Z>0.0019989014</Z>
+            <X>108.41</X>
+            <Y>7.330002</Y>
+            <Z>0</Z>
             <R00>0</R00>
             <R01>0</R01>
             <R02>-1</R02>
@@ -7216,9 +7216,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
-            <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <X>14.520996</X>
+            <Y>13.059998</Y>
+            <Z>3.4190063</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -9905,9 +9905,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>76.36896</X>
-            <Y>6.600006</Y>
-            <Z>-76.36612</Z>
+            <X>76.657455</X>
+            <Y>7.330002</Y>
+            <Z>-76.657455</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
             <R02>-0.70710754</R02>
@@ -9925,9 +9925,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
-            <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <X>14.520996</X>
+            <Y>13.059998</Y>
+            <Z>3.4190063</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -12614,9 +12614,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>0.0019989014</X>
-            <Y>6.600006</Y>
-            <Z>-108</Z>
+            <X>0</X>
+            <Y>7.330002</Y>
+            <Z>-108.41</Z>
             <R00>1</R00>
             <R01>0</R01>
             <R02>0</R02>
@@ -12634,9 +12634,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
-            <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <X>14.520996</X>
+            <Y>13.059998</Y>
+            <Z>3.4190063</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -15323,9 +15323,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-76.36612</X>
-            <Y>6.600006</Y>
-            <Z>-76.36896</Z>
+            <X>-76.657455</X>
+            <Y>7.330002</Y>
+            <Z>-76.657455</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
             <R02>0.70710754</R02>
@@ -15343,9 +15343,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
-            <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <X>14.520996</X>
+            <Y>13.059998</Y>
+            <Z>3.4190063</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -18032,9 +18032,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-108</X>
-            <Y>6.600006</Y>
-            <Z>-0.0019989014</Z>
+            <X>-108.41</X>
+            <Y>7.330002</Y>
+            <Z>-0</Z>
             <R00>0</R00>
             <R01>0</R01>
             <R02>1</R02>
@@ -18052,9 +18052,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
-            <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <X>14.520996</X>
+            <Y>13.059998</Y>
+            <Z>3.4190063</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
@@ -20741,9 +20741,9 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDAAAAGdvb19qYXJfZG9vcg==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-76.36896</X>
-            <Y>6.600006</Y>
-            <Z>76.36612</Z>
+            <X>-76.657455</X>
+            <Y>7.330002</Y>
+            <Z>76.657455</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
             <R02>0.70710754</R02>
@@ -20761,9 +20761,9 @@
           <token name="Material">272</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>11.595993</X>
-            <Y>11.600006</Y>
-            <Z>2.600006</Z>
+            <X>14.520996</X>
+            <Y>13.059998</Y>
+            <Z>3.4190063</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">1</float>
