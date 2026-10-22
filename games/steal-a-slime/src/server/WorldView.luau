@@ -9,7 +9,7 @@
 	    OwnerUserId / State / Price / DespawnAt, ProximityPrompt,
 	    pad placement, carry weld, volcano drop, the parade lane walk, a
 	    dropped slime's walk back to the lane and the escape-home glide);
-	  * plot attributes OwnerUserId / LockUntil / Rebirths (CONTRACT.md §5.2);
+	  * plot attributes OwnerUserId / LockUntil (CONTRACT.md §5.2);
 	    with FEATURES.Habitats, Pad Habitat / HabitatFrom / HabitatAt (HabitatPads)
 	    and the owner / stats text on each plot Sign (PlotSigns);
 	  * per-player WalkSpeed (Speed Coil when not carrying), unequipped
@@ -1192,6 +1192,7 @@ local function applyPrompt(prompt: ProximityPrompt?, view: PlotPrompts.Prompt, o
 end
 
 local setBarrierSolid: (Instance, number, boolean) -> ()
+local setOpenDoorSolid: (Instance, boolean) -> ()
 
 local function setIfChanged(instance: Instance, name: string, value: any)
 	if instance:GetAttribute(name) ~= value then
@@ -1282,6 +1283,15 @@ function setBarrierSolid(plot: Instance, index: number, solid: boolean)
 				end)
 			end
 		end
+	end
+end
+
+-- The open door (swung out on its hinges) is solid for everyone while the plot is open; while locked it is shut in
+-- the doorway (the LockBarrier), so its open-door collider goes.
+function setOpenDoorSolid(plot: Instance, solid: boolean)
+	local collider = plot:FindFirstChild("OpenDoorCollider")
+	if collider and collider:IsA("BasePart") and collider.CanCollide ~= solid then
+		collider.CanCollide = solid
 	end
 end
 
@@ -1401,9 +1411,9 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			local view = PlotPrompts.describe(world, index, now)
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)
 			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
-			setIfChanged(plot, "Rebirths", if session then session.data.rebirths else 0)
 			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
 			setBarrierSolid(plot, index, view.locked)
+			setOpenDoorSolid(plot, not view.locked)
 			setIfChanged(plot, Constants.PLOT_LOCK_COST_ATTRIBUTE, view.lockCost)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
 			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)
@@ -1442,7 +1452,10 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			end
 			local sign = plot:FindFirstChild("Sign")
 			if sign then
-				PlotSigns.apply(sign, PlotSigns.lines(index, session))
+				PlotSigns.apply(
+					sign,
+					PlotSigns.lines(index, session, if session then World.incomeOf(world, session) else nil)
+				)
 			end
 		end
 	end
@@ -1466,6 +1479,19 @@ function WorldView.pointInHomeZone(position: Vector3, plotIndex: number): boolea
 	local reachUp = zone:GetAttribute("ReachUp")
 	local top = half.Y + 8 + (if type(reachUp) == "number" then reachUp else 0)
 	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
+end
+
+-- The player's character root in plot `plotIndex`'s plot-local frame, y on WorldLayout.floorTop's scale (the Base's
+-- top is PLOT_FLOOR_TOP), or nil without a character or plot.
+function WorldView.plotPoint(userId: number, plotIndex: number): { number }?
+	local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
+	local plot = WorldView.plot(plotIndex)
+	local base = plot and plot:FindFirstChild("Base")
+	if not (root and base and base:IsA("BasePart")) then
+		return nil
+	end
+	local p = base.CFrame:PointToObjectSpace(root.Position)
+	return { p.X, p.Y - base.Size.Y / 2 + WorldLayout.PLOT_FLOOR_TOP, p.Z }
 end
 
 -- Drop tube (CONTRACT.md §5.3): puts the player's character in plot `plotIndex`'s splash pool, still. False when

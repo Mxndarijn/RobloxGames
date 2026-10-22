@@ -3,10 +3,8 @@
 	PlotVisuals (VisualsClient module)
 
 	  * PlotDecor.apply on every workspace.Plots.Plot_<i> at UPDATE_RATE Hz
-	    against workspace:GetServerTimeNow() (lock barrier + countdown sign,
-	    rebirth trim / pillars / banners, SlimeDex board),
-	    plus a bobbing, spinning Crown on top-band plots, and the jar tower's
-	    mascot and goo ooze (PlotMascot).
+	    against workspace:GetServerTimeNow() (lock barrier + countdown sign),
+	    and the jar tower's mascot and goo ooze (PlotMascot).
 	  * RareSpawn effects on wild slimes (State == "Wild") by the RareSpawn
 	    attribute (CONTRACT §8.4, Legendary+) or else Tier, kept in a
 	    local workspace folder "ClientRareFx" and posed on the slime's pivot
@@ -41,9 +39,6 @@ local PlotVisuals = {}
 PlotVisuals.UPDATE_RATE = 4 -- plot decor refreshes per second
 PlotVisuals.MAX_FX_DISTANCE = 150 -- beyond this the fx is unparented, never left behind at a stale spot
 
-type Crown = { part: BasePart, base: CFrame }
-
-local crowns: { [Instance]: Crown } = {}
 local fx: { [Model]: Model } = {} -- wild slime -> its RareFx model
 local pedestals: { [Model]: BasePart } = {} -- Mythic / Secret pad slime -> its pedestal disc
 local fxFolder: Folder? = nil
@@ -105,7 +100,8 @@ local function refreshPlots(now: number)
 	end
 	for _, plot in plots:GetChildren() do
 		if plot:IsA("Model") then
-			local ok, err = pcall(PlotDecor.apply, plot, now)
+			local viewer = Players.LocalPlayer
+			local ok, err = pcall(PlotDecor.apply, plot, now, if viewer then viewer.UserId else nil)
 			if not ok then
 				warn(`[VisualsClient] PlotDecor {plot.Name}: {err}`)
 			end
@@ -117,21 +113,7 @@ local function refreshPlots(now: number)
 			if not skinOk then
 				warn(`[VisualsClient] PlotSkin {plot.Name}: {skinErr}`)
 			end
-			local decor = plot:FindFirstChild("RebirthDecor")
-			local crown = decor and decor:FindFirstChild("Crown")
-			if crown and crown:IsA("BasePart") and not crowns[plot] then
-				crowns[plot] = { part = crown, base = crown.CFrame }
-			end
 		end
-	end
-end
-
-local function stepCrowns(t: number)
-	for plot, crown in crowns do
-		if not plot.Parent or crown.part.Transparency >= 1 then
-			continue
-		end
-		crown.part.CFrame = crown.base * CFrame.new(0, math.sin(t * 1.5) * 0.6, 0) * CFrame.Angles(0, t * 0.9, 0)
 	end
 end
 
@@ -427,7 +409,6 @@ function PlotVisuals.start()
 			nextSweep = t + 1
 			sweepOrphans()
 		end
-		stepCrowns(t)
 		local camera = workspace.CurrentCamera
 		if camera then
 			stepFx(t, camera.CFrame.Position)

@@ -35,6 +35,16 @@ describe("Merge.merge", function()
 			expect(child.tier).toBe(Config.MAX_TIER)
 		end
 	end)
+	it("never makes a Secret out of a lower pair (Mythic + Mythic stays Mythic)", function()
+		local rng = Rng.new(11)
+		for tier = 1, Config.MAX_TIER - 1 do
+			local child = Merge.merge(slime("a", tier), slime("b", tier), rng, `c{tier}`)
+			expect(child.tier).toBe(math.min(tier + 1, Config.MERGE_MAX_TIER))
+		end
+		local mythic = Merge.merge(slime("a", Config.MERGE_MAX_TIER), slime("b", Config.MERGE_MAX_TIER), rng, "m")
+		expect(mythic.tier).toBe(Config.MERGE_MAX_TIER)
+		expect(mythic.tier < Config.MAX_TIER).toBe(true)
+	end)
 	it("is deterministic for a seed", function()
 		local x = Merge.merge(slime("a", 1), slime("b", 1, { name = "Gloop" }), Rng.new(5), "c")
 		local y = Merge.merge(slime("a", 1), slime("b", 1, { name = "Gloop" }), Rng.new(5), "c")

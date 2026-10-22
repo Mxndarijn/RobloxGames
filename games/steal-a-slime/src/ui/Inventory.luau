@@ -63,14 +63,14 @@ Inventory.COLORS = table.freeze({
 -- Bag panel text sizes and the empty slot's see-through Ink.
 Inventory.PANEL = table.freeze({
 	hintSize = 14,
-	chipSize = 13,
+	chipSize = Layout.MIN_TEXT,
 	nameSize = 14,
 	headingSize = 18,
 	emptyTransparency = 0.45,
 	headingRoom = 120, -- width a heading keeps left of its hint / count chip
 	plateRadius = 18,
 	plateStroke = 3,
-	tagSize = 12, -- the gold amount tag on a bag cell that holds a stack
+	tagSize = Layout.MIN_TEXT, -- the gold amount tag on a bag cell that holds a stack
 	tagW = 22,
 	tagWide = 30, -- for "99+"
 	tagH = 18,
@@ -94,10 +94,30 @@ Inventory.ORDER_RETRY = table.freeze({ ["too fast"] = true, ["still loading"] = 
 Inventory.ORDER_RETRIES = 10
 Inventory.JOIN_GRACE = 10 -- seconds after the first State in which an arriving Tool is not new (placeNewItems)
 Inventory.HINT = "Drag items here" -- the plate heading's hint
+-- The bag panel holding nothing but the starting Bat (already on the hotbar): this message instead of the grid.
+Inventory.EMPTY = table.freeze({
+	title = "Your bag is empty",
+	body = "Items you buy at the Item shop and rewards from goals show up here.",
+	titleSize = 24,
+	titleH = 30,
+	bodySize = 16,
+	bodyH = 44,
+	gap = 8,
+})
 Inventory.ORDER_TEXT = table.freeze({
 	refused = "Couldn't save your hotbar",
 	blanked = "That item can't go on the hotbar",
 })
+
+-- True when the bag holds nothing but the Bat every player starts with.
+function Inventory.bagEmpty(entries: { InventoryCore.Entry }): boolean
+	for _, e in entries do
+		if not (e.kind == "tool" and e.itemId == InventoryCore.BAT) then
+			return false
+		end
+	end
+	return true
+end
 
 function Inventory.footerText(keyboard: boolean): string
 	return "Drag an item onto a hotbar slot to put it there. Drag it off the bar to take it off. "
@@ -869,10 +889,53 @@ function Inventory.new(parent: Instance, deps: Deps)
 		return x, y
 	end
 
+	-- The empty state in place of the bag grid: a title and one line on where items come from. Built on first use.
+	local emptyState: Frame? = nil
+	local function showEmpty(empty: boolean, y: number)
+		if empty and emptyState == nil then
+			local e = Inventory.EMPTY
+			local frame = create("Frame", {
+				Name = "EmptyBag",
+				BackgroundTransparency = 1,
+				Parent = panel.body,
+			})
+			Widgets.label({
+				Name = "Title",
+				Text = e.title,
+				Font = Theme.Font,
+				TextSize = e.titleSize,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Size = UDim2.new(1, 0, 0, e.titleH),
+				Parent = frame,
+			})
+			Widgets.label({
+				Name = "Body",
+				Text = e.body,
+				TextSize = e.bodySize,
+				TextColor3 = Theme.Muted,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Top,
+				TextWrapped = true,
+				TextTruncate = Enum.TextTruncate.None,
+				Position = UDim2.fromOffset(0, e.titleH + e.gap),
+				Size = UDim2.new(1, 0, 0, e.bodyH),
+				Parent = frame,
+			})
+			emptyState = frame
+		end
+		local frame = emptyState
+		if frame then
+			frame.Visible = empty
+			frame.Position = UDim2.fromOffset(0, y + Inventory.EMPTY.gap)
+			frame.Size = UDim2.new(1, 0, 0, Inventory.EMPTY.titleH + Inventory.EMPTY.gap + Inventory.EMPTY.bodyH)
+		end
+	end
+
 	local function refreshPanel(now: number)
 		local p = ensureParts()
 		local bodyW = bodyWidth()
 		local bodyH = placePanel()
+		local empty = Inventory.bagEmpty(entries)
 		-- Hotbar plate.
 		local slotSize = InventoryLayout.plateSlot(bodyW, bodyH)
 		local plateRect, plateRects = InventoryLayout.plate(bodyW, slotSize)
@@ -895,6 +958,9 @@ function Inventory.new(parent: Instance, deps: Deps)
 		-- Bag.
 		local headingY, gridY = InventoryLayout.bagTop(slotSize)
 		p.bagHeading.Position = fromOffset(0, headingY)
+		p.list.Visible = not empty
+		p.countChip.Visible = not empty
+		showEmpty(empty, gridY)
 		p.list.Position = fromOffset(0, gridY)
 		p.list.Size = UDim2.new(1, 0, 1, -gridY)
 		local cols = InventoryLayout.columns(bodyW)

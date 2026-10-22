@@ -41,20 +41,39 @@ local WorldShopLogic = require("../../src/ui/WorldShopLogic")
 
 -- Row geometry constants only (Panels/* build Instances in .new, never at load).
 local GuidePanel = { TIP_H = 44 }
+-- Panels/Rebirth's sizes and copy (LayoutAssert.spec checks this copy against the module).
 local RebirthPanel = {
-	ROWS = {
-		sub = { y = 0, h = 18 },
-		need = { y = 24, h = 128 },
-		gets = { y = 158, h = 18 },
-		gives = { y = 180, h = 50 },
-		keeper = { y = 240, h = 26 },
-		button = { y = 276, h = Layout.BUTTON },
-		note = { y = 338, h = 18 },
+	ROWS = { sub = { y = 0, h = 18 }, gap = 8, gets = 20 },
+	CARD = {
+		pad = 12,
+		labelSize = 14,
+		labelH = 18,
+		amountSize = 28,
+		amountH = 34,
+		haveH = 18,
+		textGap = 10,
+		nameSize = 19,
+		nameH = 24,
+		stateSize = 15,
+		stateH = 20,
+		descSize = 14,
 	},
-	CARD = { pad = 12, tick = 24 },
+	TEXT = {
+		subSize = 14,
+		gainSize = 22,
+		gainH = 26,
+		gainLabelSize = 14,
+		gainLabelH = 18,
+		keeperSize = 15,
+		statusSize = 18,
+		buttonSize = 22,
+	},
+	COPY = { keeper = "✅ Keeps your other slimes", button = "Hold to rebirth" },
 	SLIME_IMAGE = 52,
 }
-local ShopPanel = { BADGE = 48, BUY_W = 110, DESC_H = 32 }
+local ShopPanel = { BADGE = 48, BUY_W = 110, DESC_H = 34 }
+-- Panels/WorldShop: the buy column (WorldShop.BUY_W); tags and text at the minimum.
+local WorldShopPanel = { BUY_W = 170, TAG_H = 18 }
 
 type Rect = Layout.Rect
 
@@ -85,6 +104,9 @@ export type Checker = {
 }
 
 local LayoutAssert = {}
+
+-- The copied panel numbers, for the spec that checks them against the real panels.
+LayoutAssert.REBIRTH = RebirthPanel
 
 LayoutAssert.VIEWPORTS = table.freeze({
 	table.freeze({ name = "390x844", w = 390, h = 844 }),
@@ -421,7 +443,7 @@ function LayoutAssert.dailyTexts(screen: Layout.Screen): { TextDesc }
 		{ name = "Daily tile amount (full size)", text = "$3.5K", size = 13, bold = true, w = tileW - 4, h = 16 },
 		{
 			name = "Daily title",
-			text = "Daily Reward",
+			text = "Daily reward",
 			size = Layout.PANEL_CHROME.titleSize,
 			bold = true,
 			w = Layout.panelTitle(card).w,
@@ -482,7 +504,7 @@ type RowText = {
 	nameSize: number?,
 }
 
-local function rowTexts(prefix: string, rows: { RowText }, textW: number, out: { TextDesc })
+local function rowTexts(prefix: string, rows: { RowText }, textW: number, buyW: number, out: { TextDesc })
 	for _, view in rows do
 		table.insert(out, {
 			name = `{prefix} {view.id} name`,
@@ -493,14 +515,15 @@ local function rowTexts(prefix: string, rows: { RowText }, textW: number, out: {
 			h = 22,
 		})
 		if view.levelText then
-			local chip = { name = `{prefix} {view.id} level`, text = view.levelText, size = 11, bold = true }
-			chip.w, chip.h = ShopPanel.BADGE + 8, 14
+			local chip =
+				{ name = `{prefix} {view.id} level`, text = view.levelText, size = Layout.MIN_TEXT, bold = true }
+			chip.w, chip.h = ShopPanel.BADGE + 8, WorldShopPanel.TAG_H
 			table.insert(out, chip :: any)
 		end
 		table.insert(out, {
 			name = `{prefix} {view.id} desc`,
 			text = view.description,
-			size = 13,
+			size = Layout.MIN_TEXT,
 			w = textW,
 			h = ShopPanel.DESC_H,
 			wrapped = true,
@@ -510,7 +533,7 @@ local function rowTexts(prefix: string, rows: { RowText }, textW: number, out: {
 			text = view.buttonText,
 			size = 16,
 			bold = true,
-			w = ShopPanel.BUY_W,
+			w = buyW,
 			h = Layout.BUTTON,
 		})
 	end
@@ -555,13 +578,13 @@ function LayoutAssert.shopTexts(panel: Rect): { TextDesc }
 			buttonText = view.buttonText,
 		})
 	end
-	rowTexts("Shop", rows, textW, out)
+	rowTexts("Shop", rows, textW, ShopPanel.BUY_W, out)
 	return out
 end
 
 -- World shop rows (Panels/WorldShop): the same row geometry, worst-case numbers, every row of both shops.
 function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
-	local textW = panel.w - Layout.PANEL_CHROME.pad * 2 - 10 - (8 + ShopPanel.BADGE + 10) - (ShopPanel.BUY_W + 16)
+	local textW = panel.w - Layout.PANEL_CHROME.pad * 2 - 10 - (8 + ShopPanel.BADGE + 10) - (WorldShopPanel.BUY_W + 16)
 	local out: { TextDesc } = {}
 	local upgrades = {}
 	for _, u in Config.UPGRADES do
@@ -606,19 +629,20 @@ function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
 			text.nameSize = WorldShopLogic.nameSize(row.name)
 			table.insert(rows, text)
 		end
-		rowTexts(`World {shopId}`, rows, textW, out)
+		rowTexts(`World {shopId}`, rows, textW, WorldShopPanel.BUY_W, out)
 	end
 	return out
 end
 
--- Rebirth card texts (Panels/Rebirth.ROWS), worst-case numbers: body = card - 24.
+-- Rebirth card texts (Panels/Rebirth), worst-case numbers: body = card - 24. Two cards side by side, or
+-- with several slimes a full-width cash card over half-width slime cards.
 function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
 	local w = panel.w - Layout.PANEL_CHROME.pad * 2
-	local rows = RebirthPanel.ROWS
 	local c = RebirthPanel.CARD
-	local cardW = w / 2 - 4 -- two cards side by side
+	local t = RebirthPanel.TEXT
+	local cardW = w / 2 - RebirthPanel.ROWS.gap / 2
 	local inner = cardW - c.pad * 2
-	local nameW = cardW - (c.pad + RebirthPanel.SLIME_IMAGE + 10) - c.pad
+	local textW = cardW - (c.pad + RebirthPanel.SLIME_IMAGE + c.textGap) - c.pad
 	local title = Layout.panelTitle(panel)
 	return {
 		{
@@ -629,30 +653,37 @@ function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
 			w = title.w,
 			h = title.h,
 		},
-		{ name = "Rebirth sub", text = "To rebirth you need both:", size = 14, w = w, h = rows.sub.h },
-		{ name = "Rebirth slime label", text = "This slime", size = 14, w = inner - c.tick, h = 18 },
-		{ name = "Rebirth cost", text = "$987.6Qa", size = 28, bold = true, w = inner, h = 34 },
-		{ name = "Rebirth have", text = "You have $987.6Qa", size = 13, w = inner, h = 18 },
-		{ name = "Rebirth slime name", text = "Dragon King", size = 19, bold = true, w = nameW, h = 24 },
-		{ name = "Rebirth slime desc", text = "Catch or merge one first", size = 13, w = inner, h = 18 },
-		{ name = "Rebirth income", text = "x99.5", size = 22, bold = true, w = cardW, h = 26 },
-		{ name = "Rebirth lock", text = "lock time", size = 12, w = cardW, h = 16 },
+		{ name = "Rebirth sub", text = "You need all four:", size = t.subSize, w = w, h = RebirthPanel.ROWS.sub.h },
+		{ name = "Rebirth slime label", text = "This slime", size = c.labelSize, w = textW, h = c.labelH },
+		{ name = "Rebirth cost", text = "$987.6Qa", size = c.amountSize, bold = true, w = inner, h = c.amountH },
+		{ name = "Rebirth have", text = "You have $987.6Qa", size = c.descSize, w = inner, h = c.haveH },
+		{ name = "Rebirth slime name", text = "Dragon King", size = c.nameSize, bold = true, w = textW, h = c.nameH },
+		{ name = "Rebirth slime state", text = "✅ Owned", size = c.stateSize, bold = true, w = textW, h = c.stateH },
+		{ name = "Rebirth income", text = "x99.5", size = t.gainSize, bold = true, w = cardW, h = t.gainH },
+		{ name = "Rebirth lock", text = "lock time", size = t.gainLabelSize, w = cardW, h = t.gainLabelH },
+		{
+			name = "Rebirth keeper",
+			text = RebirthPanel.COPY.keeper,
+			size = t.keeperSize,
+			bold = true,
+			w = w * 0.6,
+			h = RebirthPanel.ROWS.gets,
+		},
 		{
 			name = "Rebirth reason",
-			text = "🔒 Get Dragon King to rebirth",
-			size = 18,
+			text = "Need $987.6Qa and a Dragon King",
+			size = t.statusSize,
 			bold = true,
 			w = w,
-			h = rows.button.h,
+			h = Layout.BUTTON,
 		},
-		{ name = "Rebirth need", text = "🔒 Need $987.6Qa more", size = 18, bold = true, w = w, h = rows.button.h },
-		{ name = "Rebirth button", text = "♻️ Rebirth!", size = 22, bold = true, w = w, h = rows.button.h },
 		{
-			name = "Rebirth note",
-			text = "Uses up these slimes and resets cash. Pads and upgrades stay.",
-			size = 12,
+			name = "Rebirth button",
+			text = RebirthPanel.COPY.button,
+			size = t.buttonSize,
+			bold = true,
 			w = w,
-			h = rows.note.h,
+			h = Layout.BUTTON,
 		},
 	}
 end
@@ -726,16 +757,16 @@ end
 -- Panel titles as Widgets.panel shows them (Panels/*.luau), per menu key
 -- (the Nav keys plus the Guide card, which has no nav button).
 LayoutAssert.PANEL_TITLES = table.freeze({
-	Merge = "Merge Vat",
+	Merge = "Merge vat",
 	Shop = "Shop",
 	Rebirth = "Rebirth", -- built with this; the open card shows "Rebirth 50" at most (rebirthTexts)
 	Goals = "Goals",
 	Dex = "SlimeDex",
-	Leaders = "Top Earners",
+	Leaders = "Top earners",
 	Codes = "Codes",
 	Sound = "Sound",
 	Guide = "Guide",
-	Welcome = "Welcome back!",
+	Welcome = "Welcome back",
 })
 
 -- Every menu key the UI opens: Nav.ENTRIES order, then "Guide", "Welcome".
