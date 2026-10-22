@@ -78,6 +78,7 @@ local DexPanel = require(Panels.Dex)
 local GoalsPanel = require(Panels.Goals)
 local GuidePanel = require(Panels.Guide)
 local HintOverlay = require(Panels.HintOverlay)
+local LeaderboardPanel = require(Panels.Leaderboard)
 local MergePanel = require(Panels.Merge)
 local RebirthPanel = require(Panels.Rebirth)
 local SoundPanel = require(Panels.Sound)
@@ -264,6 +265,7 @@ local ctx: { [string]: any } = {
 	end,
 	serverNow = serverNow,
 	playerName = playerName,
+	userId = player.UserId, -- the local player (their own row on the leaderboards)
 	itemIcons = itemIcons,
 	buildSlime = if modelFactory then buildSlime else nil,
 	-- SlimeDex cards: species names / colours and the species mesh preview.
@@ -325,7 +327,7 @@ local backdrop = Widgets.backdrop({
 })
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
--- order: Rebirth, Goals, SlimeDex, Codes) or a world prompt, closed with their X, the backdrop, Esc or
+-- order: Rebirth, Goals, SlimeDex, Codes, Leaders) or a world prompt, closed with their X, the backdrop, Esc or
 -- gamepad B.
 local panelByKey: { [string]: any } = {
 	Merge = MergePanel.new(gui, ctx),
@@ -334,6 +336,7 @@ local panelByKey: { [string]: any } = {
 	Goals = GoalsPanel.new(gui, ctx),
 	Dex = DexPanel.new(gui, ctx),
 	Codes = CodesPanel.new(gui, ctx),
+	Leaderboard = LeaderboardPanel.new(gui, ctx),
 }
 type PanelEntry = { key: string, nav: Nav.Entry?, panel: any }
 local panels: { PanelEntry } = {}
@@ -1160,6 +1163,9 @@ stateEvent.OnClientEvent:Connect(function(state: Types.State)
 		end)
 	end
 	latest = state
+	if worldBoards.setMine then
+		worldBoards.setMine(state.boards, state.boardRanks)
+	end
 	if type(state.serverTime) == "number" then
 		clockOffset = Format.clockOffset(state.serverTime, os.clock())
 	end
@@ -1190,6 +1196,7 @@ end
 
 leaderboardEvent.OnClientEvent:Connect(function(board: Types.Leaderboard)
 	worldBoards.setBoard(board)
+	panelByKey.Leaderboard.setBoard(board)
 end)
 
 -- Local countdowns (lock, rain) between State pushes. Each tick runs under its own pcall so one failing

@@ -48,14 +48,14 @@ src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts
   description cache, fallback, debounced refresh; adapter injected)
   Roblox adapters: WorldView (models, prompts, plot attributes, HomeZone,
   WalkSpeed, Speed Coil tool, kill-plane rescue), WorldProps (ItemShopStand,
-  UpgradeShopStand, LeaderboardBoard, TutorialNpc, §5.3, §27), FallbackWorld (greybox §5.3 if
+  UpgradeShopStand, the Hall of Fame boards, arch and ProfessorGoo, TutorialNpc, §5.3, §27), FallbackWorld (greybox §5.3 if
   WorldBuilder is missing), PodiumRigs (R15 avatar rigs on Podium_1..3 in
   workspace.PodiumAvatars, BillboardGui NameLabel)
 src/visuals/shared/ -> ReplicatedStorage.Visuals   (ModuleScripts)              Archer
   ModelFactory.luau  slimeData -> Model (§4)
   WorldBuilder.luau  WorldBuilder.build(parent) -> Map, Plots (§5.3); layout in WorldLayout
                      (incl. PROP_SPOTS)
-  Props.luau         shop stand / SpeedCoil / TutorialNpc / TutorialArrow / LeaderboardBoard builders
+  Props.luau         shop stand / SpeedCoil / TutorialNpc / TutorialArrow / leaderboard board / Hall of Fame arch / ProfessorGoo builders
   Effects.luau       Effects.play(kind, target) bursts + emitter / light presets (§5.4)
   MinimapData.luau   minimap points of interest (§2 Extras)
 src/visuals/client/ -> StarterPlayerScripts.VisualsClient (LocalScript)         Archer
@@ -91,6 +91,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - A wild slime is paid for once: if it's dropped, the next grab is free.
   - While carrying, WalkSpeed = `Steal.walkSpeed`, tools are unequipped, and you can carry 1 slime at a time.
   - Entering your own plot's `HomeZone` deposits the carried slime on a free pad. If the plot is full you keep carrying it (Notify "bad").
+  - The home ground is the round plot floor: a `HomeZone` part with a `Radius` attribute (`PLOT_FLOOR_RADIUS`) counts inside that circle only, from 4 studs under the part to 8 over it plus its `ReachUp` (`Shared.HomeZone`); a part without `Radius` counts its whole box.
   - Dying or respawning while carrying counts as `Drop`; leaving while carrying a stolen slime sends it home.
   - Players spawn on their plot's `Base`. Owner-only prompts (v13 names and texts: §8.5): `LockButton` ("Lock base", same as `Request("Lock")`) and `MergeVat` ("Auto-merge", `Merge.findPair` then `Request("Merge")`).
 - **Income:** `Economy.tickIncome` runs every second. On load, the server pays `Economy.offlineIncome`, which is `OFFLINE_RATE` of income, capped at `OFFLINE_CAP_SECONDS`. A slime being carried away pays its owner nothing.
@@ -114,7 +115,9 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - **Failures are visible:** the server sets the workspace attribute `DataStoreStatus` (`Constants.DATASTORE_STATUS_ATTRIBUTE`) and `warn`s `[Server] DataStoreStatus = ...` on every change to a bad state. Values: `"Ok"` (real DataStore, last load/save succeeded), `"Memory"` (`DataStoreMode = "Memory"`), `"Unavailable"` (`GetDataStore` failed at start; the server fell back to memory and **nothing saves**), `"Error"` (the last load or save hit a DataStore error after retries; goes back to `"Ok"` on the next success).
 - **Leaderboard:**
   - `leaderstats` holds IntValues `Cash`, `Rebirths` and `Steals`.
-  - A global OrderedDataStore `Constants.LEADERBOARD_STORE` (`"StealASlime_TotalEarned"`, key `"u_<UserId>"`) ranks by `totalEarned`. It's written on every save. It's refreshed every `LEADERBOARD_INTERVAL` and pushed to all clients (§3). A joining player gets the latest board right away. In memory mode the board is also refreshed when someone joins.
+  - Five global boards (`src/shared/Leaderboards.luau` `BOARDS`), each its own OrderedDataStore (key `"u_<UserId>"`): `TotalEarned` (`Constants.LEADERBOARD_STORE`, `"StealASlime_TotalEarned"`, `totalEarned`), `WeeklyEarned` (`Constants.WEEKLY_EARNED_STORE` + `"_<week>"`, a new store every Monday 00:00 UTC, `WeeklyEvents.weekIndex`; cash earned this week), `Steals` (`Constants.STEALS_STORE`, `totalStolen`), `Dex` (`Constants.DEX_STORE`, `PlayerData.dexCount`) and `Merges` (`Constants.MERGES_STORE`, `stats.merges`). A save writes each board value that changed since its last write. All boards are refreshed every `LEADERBOARD_INTERVAL` and each is pushed to all clients (§3); a joining player gets the latest boards right away. In memory mode the boards rank this server's players and are also refreshed when someone joins.
+  - Weekly earnings: the save keeps `weekly = { week, base }` (added without a version bump): `base` is `totalEarned` when the save was first seen in `week` (on join, before offline pay, and on every save). The weekly value is `totalEarned - base`.
+  - The podium (`Podium_1..3`, PodiumRigs) shows the `TotalEarned` top 3 only.
 - **Shop:** `src/shared/Shop.luau` (pure). `"BuySpeedCoil"` buys an **item** (Item Shop, 2026-10-18: it works while held, so it has a hotbar slot; §27.1). Its price is in `State.shop` (§5.1).
 - **Speed Coil** (2026-10-22: only while held, see §8.10): owning it (`data.speedCoil`) keeps one `SpeedCoil` Tool (`Props.speedCoil()`, a `Handle` Part plus welded decor, unanchored, CanCollide false) in your Backpack or character, re-added after respawns. While that Tool is **equipped** (in the character) the server sets WalkSpeed to `SPEED_COIL_WALK_SPEED`; in the Backpack it does nothing. Carrying puts tools away, so the coil never helps while carrying.
 - **Tutorial** (v13: 7 steps with `BuyPad` as step 4, see §8.3): `src/shared/TutorialProgress.luau` (pure). The server owns the step; the client only shows it (`State.tutorialStep`, Player attribute `TutorialStep`). Steps (1-based, same order as the UI's `Tutorial.STEPS`):
@@ -148,7 +151,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `Request` | RemoteFunction | client → server | `InvokeServer(action: Action, ...args)` → `RequestResult = { ok: boolean, message: string? }` |
 | `State` | RemoteEvent | server → client | `FireClient(player, state: Types.State)` (§5) |
 | `Notify` | RemoteEvent | server → client | `FireClient(player, text: string, kind: "info" \| "good" \| "bad", sound: string?, itemId: string?)`. `itemId` (optional) is the UI ItemIcons registry id the toast is about (`"SpeedCoil"`, `"Upgrade_Luck"`, `"PlotSkin_candy"`); absent/unknown ids fall back to the client text heuristic. Global toasts (Slime Rain) use `FireAllClients`. **Oct 18 (B6, Merijn): the client draws no toast any more; a Notify only plays its `sound`.** The server side is unchanged. |
-| `Leaderboard` | RemoteEvent | server → client | `FireClient/FireAllClients(board: { stat: "TotalEarned", entries: { { rank: number, userId: number, name: string, value: number } } })` |
+| `Leaderboard` | RemoteEvent | server → client | `FireClient/FireAllClients(board: { stat: "TotalEarned" \| "WeeklyEarned" \| "Steals" \| "Dex" \| "Merges", entries: { { rank: number, userId: number, name: string, value: number } } })`, one call per board |
 
 `Request` actions (from `Remotes.ACTIONS`; rate limits in `Validate.ACTIONS`):
 
@@ -262,6 +265,8 @@ The client always replaces its copy and never diffs.
 	egg: { hatched: { slime: SlimeData, at: number }? },  -- newest Mystery Egg hatch, never saved
 	tutorialStep: number?,   -- 1..6 (§2 Tutorial); nil = finished
 	hotbar: { string }?,     -- saved hotbar order: exactly 9 slot keys ("" = empty), nil until the player first sends SetHotbar
+	boards: { [string]: number }, -- my own value on each global board, keyed by stat ("TotalEarned", "WeeklyEarned", "Steals", "Dex", "Merges")
+	boardRanks: { [string]: number }, -- my rank on each board at the last refresh; -n = deeper than #n (not reached); absent = not on the board yet
 	boss: BossView,          -- the boss event and this player's part in it (§33)
 	bossBadges: { { key: string, earnedAt: number } }, -- earned boss badges, Config.BOSS_BADGES order (§33)
 }
@@ -270,6 +275,8 @@ The client always replaces its copy and never diffs.
 - `daily.day` is the streak day the pending claim pays (1..`DAILY_STREAK_CAP`, `amount = DAILY_BASE × day × rebirthMultiplier`). When nothing is pending, it's the day the last claim paid.
 - `egg.hatched` is the newest Mystery Egg the player hatched (`HatchEgg`, [mystery-egg.md](contract/mystery-egg.md)). The HUD shows no banner for it.
 - `shop` keys are the UI's `ShopCatalog` item ids. Prices are final (what `Request` charges).
+- `boards` holds the same values the saves write to the global boards (§2 Leaderboard), so the client can show "You" under a board's top 10.
+- `boardRanks`: each refresh reads the top `LEADERBOARD_PAGE` of every board and, while the GetSortedAsync budget stays above `LEADERBOARD_RANK_RESERVE`, further pages until every player in the server is found or `LEADERBOARD_RANK_DEPTH` entries are read. In memory mode the rank is among this server's players.
 - `hotbar` is what the last successful `Request("SetHotbar", order)` stored (§3), saved across sessions and rebirths. Keys may name items the player no longer holds; the client skips those.
 
 ### 5.2 Instance attributes (read by UI billboards and visuals)
@@ -328,7 +335,9 @@ The server finds plots by the `PlotIndex` attribute and pads by `PadIndex` (`Con
   - **Jar decor (client only, `PlotMascot`).** A slime mascot sits on the top jar's lid, bigger with each jar standing and crowned on the full tower, and a goo ooze ring runs round the top of every standing jar. Local parts, never collide.
 - **Props** (`src/server/WorldProps.luau`, placed on start right after WorldBuilder): one of each Model below goes under `workspace.Map` at `WorldLayout.PROP_SPOTS[name]` (pivot `CFrame.new(pos) * CFrame.Angles(0, rad(yaw), 0)`, bottom centre on the Ground), unless a Model with that name already exists anywhere under `workspace` (so a future static copy wins). Built by Archer's `Props`; every part is Anchored. Names are in `Constants`.
   - **`ItemShopStand`** / **`UpgradeShopStand`** (`Constants.SHOP_STAND_ITEM` / `SHOP_STAND_UPGRADE`): the shops, each with ONE ProximityPrompt `ShopPrompt` on its PrimaryPart `Counter` and a `ShopId` attribute; triggering it opens that shop on the server (§27).
-  - **`LeaderboardBoard`** (`Constants.LEADERBOARD_BOARD`): `LeaderboardBoard` > `Board` (Part) > SurfaceGui `BoardGui` (Face Front) > Frame `Content` > TextLabel `Title` + Frame `Rows` (UIListLayout), plus `Frame`, `PostL` / `PostR`. **The server fills `Rows`** on every leaderboard refresh: `Row_<k>` Frames (k = 1..`LEADERBOARD_SIZE`, LayoutOrder k) with TextLabels `Rank` (`"#k"`), `Name`, `Value` (`"$" .. Economy.formatNumber`). Rows are updated in place when the count is unchanged (so client-side tweaks like the UI's own-row highlight survive), rebuilt otherwise; an empty board shows one `Row_1` "No entries yet". Clients may re-render the same rows locally (the UI's `WorldLeaderboard` does).
+  - **The Hall of Fame boards** (`WorldLayout.HALL_OF_FAME`, a round plaza between plots 4 and 5 reached by a plank path from the ring path): `LeaderboardBoard` (`Constants.LEADERBOARD_BOARD`, Top Earners, 1.6x), `WeeklyEarnersBoard`, `TopStealsBoard`, `TopDexBoard`, `TopMergesBoard` (`Leaderboards.BOARDS` `model`). Each Model has attribute `LeaderboardStat` (`Constants.LEADERBOARD_STAT_ATTRIBUTE`) = the board's `stat`, and: `Board` (Part) > SurfaceGui `BoardGui` (Face Front) > Frame `Content` > Frame `Header` (the board's colour) > TextLabel `Title`, + Frame `Rows` (UIListLayout), plus `Frame`, `PostL` / `PostR`, `Collider`. **The server fills `Rows`** of each board on every leaderboard refresh: `Row_<k>` Frames (k = 1..`LEADERBOARD_SIZE`, LayoutOrder k) with TextLabels `Rank` (`"#k"`), `Name`, `Value` (`Leaderboards.format`: `"$1.5K"` on cash boards, `"1.5K"` on counts). Rows are updated in place when the count is unchanged (so client-side tweaks like the UI's own-row highlight survive), rebuilt otherwise; an empty board shows one `Row_1` "No entries yet". Clients may re-render the same rows locally (the UI's `WorldLeaderboard` does).
+  - **`HallOfFameArch`** (`Constants.HALL_ARCH`): two solid posts over the Hall of Fame path where it leaves the ring path, a beam and a red sign reading "HALL OF FAME" on both faces (decor, high above head height).
+  - **`ProfessorGoo`** (`Constants.PROFESSOR_GOO`): the Hall of Fame greeter at the plaza entrance. Block body (the collider), invisible `Bounds` (the skin's box), `NameTag` BillboardGui "Professor Goo"; skinned with the `guide_professor` mesh. No prompt.
   - **`TutorialNpc`** (`Constants.TUTORIAL_NPC`): R6-style primitives, no Humanoid, PrimaryPart `HumanoidRootPart`, `NameTag` BillboardGui, Attachment `ArrowStart` in `SlimeHat` (start of the tutorial arrow). v28: `HumanoidRootPart` holds ProximityPrompt `GuidePrompt` (`Constants.GUIDE_PROMPT_NAME`, E, ObjectText "Guide", ActionText "Talk"); the triggering client opens the Guide card (next goal + tips, `src/ui/GuideTips.luau`). No server effect.
   - **`TutorialArrow`** (client-only Beam): VisualsClient draws `Props.tutorialArrow` from the local character's `HumanoidRootPart` to the target of the player's `TutorialStep` (§5.2) and removes it when the step is nil or has no target.
 
@@ -369,7 +378,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `REBIRTH_LATE_FROM` / `REBIRTH_COST_GROWTH_LATE` / `REBIRTH_TIERS` / `UPGRADES` / `GOALS` / `DEX_MILESTONES` | 5 / 2 / tables | v13 progression (§8.8) |
 | `SAVE_VERSION` | 9 | v13 schema (§8.9), v6 = `settings` + versioned `plotSkin` / `stealLog` (§8.9c), v7 = mutation fields stripped (§8.9d), v8 = Goo Trap charges ([pvp.md](contract/pvp.md)), v9 = trophies become the boss record `boss` ([boss-event.md](contract/boss-event.md)) |
 
-All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `WorldMeshesReady` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ItemShopStand` / `UpgradeShopStand` / `LeaderboardBoard` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
+All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `WorldMeshesReady` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ItemShopStand` / `UpgradeShopStand` / the Hall of Fame boards / `HallOfFameArch` / `ProfessorGoo` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
 
 ## 7. Build and tests
 

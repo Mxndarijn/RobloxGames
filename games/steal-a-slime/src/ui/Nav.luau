@@ -2,7 +2,7 @@
 --[[
 	Nav
 
-	Left-bar entries and their badges (Rebirth, Goals, SlimeDex, Codes; the Merge and world shop
+	Left-bar entries and their badges (Rebirth, Goals, SlimeDex, Codes, Leaders; the Merge and world shop
 	menus have no button, your slimes are managed at their pads with keys (SlimeKeys), see init.client panelByKey). Shown as a grid of rounded tiles, icon over label (B5). Pure (tests/ui/Nav.spec.luau); the
 	buttons themselves are built in init.client.luau. Badges are short hints
 	derived from the latest State ("!" = something to do there); the SlimeDex tile shows its completion as a
@@ -19,6 +19,7 @@ Nav.ENTRIES = table.freeze({
 	table.freeze({ key = "Goals", icon = "🎯", label = "Goals", item = "Quest" }),
 	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex", item = "Dex_50" }),
 	table.freeze({ key = "Codes", icon = "🎁", label = "Codes", item = "Gift" }),
+	table.freeze({ key = "Leaderboard", icon = "🏆", label = "Leaders", item = "Badge_Millionaire" }),
 } :: { Entry })
 
 local function num(value: any): number

@@ -39,6 +39,9 @@ local MeshAssets = if script
 	then require(script.Parent.Parent.Shared.MeshAssets)
 	else require("../../shared/MeshAssets")
 local FloorLayout = if script then require(script.Parent.FloorLayout) else require("./FloorLayout")
+local Leaderboards = if script
+	then require(script.Parent.Parent.Shared.Leaderboards)
+	else require("../../shared/Leaderboards")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
 local Meadow = if script then require(script.Parent.Meadow) else require("./Meadow")
 local RanchProps = if script then require(script.Parent.RanchProps) else require("./RanchProps")
@@ -284,18 +287,118 @@ WorldLayout.SHOP_STANDS = table.freeze({
 -- front = local -Z; every shop faces the map centre, TODO v28 #10, v29 B3);
 -- the tutorial NPC stands behind the hub SpawnLocation (scripts/StaticWorld,
 -- same bearing) and faces it.
-local function propSpot(angle: number, faceVolcano: boolean?, radius: number?): { pos: Vec, yaw: number }
+-- A Props Model's spot: pivot position, yaw and (optionally) a uniform Model scale.
+export type Spot = { pos: Vec, yaw: number, scale: number? }
+
+local function propSpot(angle: number, faceVolcano: boolean?, radius: number?): Spot
 	-- Ring path outer edge is r 82 (78 + 8/2). 90 keeps a shop-sized prop off it.
 	local r, a = radius or 90, math.rad(angle)
 	return { pos = { math.sin(a) * r, 0, math.cos(a) * r }, yaw = if faceVolcano then angle else angle + 180 }
 end
+-- The Hall of Fame plaza in the yard between plots 4 and 5: a round plaza `distance` studs out at `bearing`, a plank
+-- path from the ring path out to it, an arch where the path leaves the ring path, the five global boards
+-- (Leaderboards.BOARDS, left to right as you walk in) on a ring just inside the plaza edge facing its centre, the
+-- Top Earners podium on a stage disc in front of the big board and Professor Goo at the plaza entrance.
+-- Plaza-local points: x to the right as you walk in, y towards the back (WorldLayout.hallPoint); board angles: 0 =
+-- straight back, positive = to the right. The plaza keeps >= 15 studs from both round plots and stops short of the
+-- border hedges (r ~277).
+WorldLayout.HALL_OF_FAME = table.freeze({
+	bearing = 157.5,
+	distance = 222, -- plaza centre from the map centre
+	radius = 50,
+	rim = 3,
+	boardRing = 46,
+	boardAngles = table.freeze({ -94, -48, 0, 48, 94 }), -- Leaderboards.BOARDS order
+	podiumBoardScale = 1.6, -- Top Earners: 1.6x the board
+	boardScale = 1.05,
+	stage = table.freeze({ x = 0, y = 31, radius = 16 }),
+	podiums = table.freeze({ -- Podium_1..3 on the stage
+		table.freeze({ x = 0, y = 32 }),
+		table.freeze({ x = -9.5, y = 33 }),
+		table.freeze({ x = 9.5, y = 33 }),
+	}),
+	pathWidth = 12,
+	archDistance = 88, -- the arch, from the map centre, just past the ring path
+	professor = table.freeze({ x = -9.5, y = -46, faceY = -72 }), -- left of the entrance, turned to the path
+})
+
+-- A Hall of Fame plaza-local point (x right as you walk in, y towards the back) in world studs (y = 0).
+function WorldLayout.hallPoint(x: number, y: number): Vec
+	local hall = WorldLayout.HALL_OF_FAME
+	local a = math.rad(hall.bearing)
+	local fx, fz = math.sin(a), math.cos(a)
+	local d = hall.distance + y
+	return { fx * d - fz * x, 0, fz * d + fx * x }
+end
+
+-- True when `pos` is on the Hall of Fame plaza or its path, grown by `pad` studs.
+function WorldLayout.inHallOfFame(pos: Vec, pad: number): boolean
+	local hall = WorldLayout.HALL_OF_FAME
+	local centre = WorldLayout.hallPoint(0, 0)
+	if (pos[1] - centre[1]) ^ 2 + (pos[3] - centre[3]) ^ 2 < (hall.radius + pad) ^ 2 then
+		return true
+	end
+	local a = math.rad(hall.bearing)
+	local along = pos[1] * math.sin(a) + pos[3] * math.cos(a)
+	local across = math.abs(-pos[1] * math.cos(a) + pos[3] * math.sin(a))
+	return along > WorldLayout.RING_PATH_RADIUS and along < hall.distance and across < hall.pathWidth / 2 + pad
+end
+
+-- The Hall of Fame floor for FloorLayout: the plaza, the stage disc and the path from the ring path's outer edge.
+function WorldLayout.hallFloor(): any
+	local hall = WorldLayout.HALL_OF_FAME
+	local centre = WorldLayout.hallPoint(0, 0)
+	local stage = WorldLayout.hallPoint(hall.stage.x, hall.stage.y)
+	local from = WorldLayout.RING_PATH_RADIUS + WorldLayout.RING_PATH_WIDTH / 2 - 0.5
+	local to = hall.distance - hall.radius + hall.rim
+	local mid = WorldLayout.hallPoint(0, (from + to) / 2 - hall.distance)
+	return {
+		x = centre[1],
+		z = centre[3],
+		radius = hall.radius,
+		rim = hall.rim,
+		stage = { x = stage[1], z = stage[3], radius = hall.stage.radius },
+		path = { x = mid[1], z = mid[3], width = hall.pathWidth, length = to - from, bearing = hall.bearing },
+	}
+end
+
+-- Yaw that turns a Props Model (front = local -Z) at `from` to face `to`.
+local function propYaw(from: Vec, to: Vec): number
+	return math.deg(math.atan2(-(to[1] - from[1]), -(to[3] - from[3]))) % 360
+end
+
+local function hallSpots(): { [string]: Spot }
+	local hall = WorldLayout.HALL_OF_FAME
+	local centre = WorldLayout.hallPoint(0, 0)
+	local spots: { [string]: Spot } = {}
+	for i, def in Leaderboards.BOARDS do
+		local a = math.rad(hall.boardAngles[i])
+		local pos = WorldLayout.hallPoint(math.sin(a) * hall.boardRing, math.cos(a) * hall.boardRing)
+		spots[def.model] = {
+			pos = pos,
+			yaw = propYaw(pos, centre),
+			scale = if def.podium then hall.podiumBoardScale else hall.boardScale,
+		}
+	end
+	local prof = hall.professor
+	local at = WorldLayout.hallPoint(prof.x, prof.y)
+	spots[Constants.PROFESSOR_GOO] = { pos = at, yaw = propYaw(at, WorldLayout.hallPoint(0, prof.faceY)) }
+	local b = math.rad(hall.bearing)
+	local arch = { math.sin(b) * hall.archDistance, 0, math.cos(b) * hall.archDistance }
+	spots[Constants.HALL_ARCH] = { pos = arch, yaw = hall.bearing } -- the sign faces the fountain
+	return spots
+end
+
 -- UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
-WorldLayout.PROP_SPOTS = table.freeze({
+local spots: { [string]: Spot } = {
 	ItemShopStand = propSpot(67.5, true),
 	UpgradeShopStand = propSpot(34.5, true, 96),
-	LeaderboardBoard = propSpot(157.5, true),
 	TutorialNpc = propSpot(247.5, true),
-}) :: { [string]: { pos: Vec, yaw: number } }
+}
+for name, spot in hallSpots() do
+	spots[name] = table.freeze(spot)
+end
+WorldLayout.PROP_SPOTS = table.freeze(spots) :: { [string]: Spot }
 
 -- Spiral the polished slime_fountain slide follows (models/slime_fountain.py):
 -- 1.75 turns, end r 35.5 at the front. Kit (x, y, z-up) -> Roblox (x, z, -y),
@@ -699,6 +802,9 @@ local function clearSpot(pos: Vec, radius: number): boolean
 			return false
 		end
 	end
+	if WorldLayout.inHallOfFame(pos, 4 + radius) then
+		return false
+	end
 	for _, prop in WorldLayout.RANCH_PROPS do
 		if (pos[1] - prop.pos[1]) ^ 2 + (pos[3] - prop.pos[3]) ^ 2 < (prop.radius + 2 + radius) ^ 2 then
 			return false
@@ -844,18 +950,31 @@ end
 local function plazaProp(name: string, mesh: string, yaw: number, r: number, scale: number)
 	return { name = name, mesh = mesh, yaw = yaw, r = r, size = meshSize(mesh, scale) }
 end
+-- A podium on the Hall of Fame stage as a plaza prop: its bearing and radius from the map centre (it faces the fountain,
+-- which from the plaza is straight back down the path to within 2 degrees).
+local function podiumProp(rank: number, mesh: string): any
+	local spot = WorldLayout.HALL_OF_FAME.podiums[rank]
+	local pos = WorldLayout.hallPoint(spot.x, spot.y)
+	local bearing = math.deg(math.atan2(pos[1], pos[3])) % 360
+	local r = math.sqrt(pos[1] ^ 2 + pos[3] ^ 2)
+	return plazaProp(`Podium_{rank}`, mesh, bearing, r, 0.7)
+end
 WorldLayout.PLAZA_PROPS = table.freeze({
 	plazaProp("Signpost", "ranch_plaza_signpost", 112.5, 68, 0.62),
-	plazaProp("Podium_1", "phoenix_plaza_podium_1", 157.5, 68, 0.7),
-	plazaProp("Podium_2", "phoenix_plaza_podium_2", 150, 68, 0.7),
-	plazaProp("Podium_3", "phoenix_plaza_podium_3", 165, 68, 0.7),
+	podiumProp(1, "phoenix_plaza_podium_1"),
+	podiumProp(2, "phoenix_plaza_podium_2"),
+	podiumProp(3, "phoenix_plaza_podium_3"),
 })
-WorldLayout.PROP_MESHES = table.freeze({
+local propMeshes: { [string]: string } = {
 	ItemShopStand = WorldLayout.SHOP_STANDS.ItemShopStand.mesh,
 	UpgradeShopStand = WorldLayout.SHOP_STANDS.UpgradeShopStand.mesh,
-	LeaderboardBoard = "phoenix_top_earners_board",
 	TutorialNpc = "ranch_guide",
-})
+	[Constants.PROFESSOR_GOO] = "guide_professor",
+}
+for _, def in Leaderboards.BOARDS do
+	propMeshes[def.model] = "phoenix_top_earners_board"
+end
+WorldLayout.PROP_MESHES = table.freeze(propMeshes)
 
 local function visualMesh(node: WorldNode, mesh: string): WorldNode
 	node.canCollide = false
@@ -912,8 +1031,57 @@ function WorldLayout.plazaColliders(): { WorldNode }
 	return colliders
 end
 
-local function plaza(): WorldNode
+-- The Hall of Fame's dressing as kit mesh slots (Map.Plaza.HallOfFame): lanterns round the rim between the boards,
+-- benches facing the boards and flower planters along both sides of the path. `HALL_DECOR` rows: mesh, plaza-local
+-- x / y (WorldLayout.hallPoint), scale and what the kit front faces ("centre" of the plaza or "path").
+export type HallDecor = { mesh: string, x: number, y: number, scale: number, face: string }
+WorldLayout.HALL_DECOR = table.freeze((function(): { HallDecor }
+	local hall = WorldLayout.HALL_OF_FAME
+	local rows: { HallDecor } = {}
+	local rim = hall.radius - 1.5
+	for _, deg in { -145, -120, -71, -24, 24, 71, 120, 145 } do
+		local a = math.rad(deg)
+		table.insert(
+			rows,
+			{ mesh = "ranch_lantern_post", x = math.sin(a) * rim, y = math.cos(a) * rim, scale = 1, face = "centre" }
+		)
+	end
+	for _, deg in { -150, -128, 128, 150 } do
+		local a = math.rad(deg)
+		table.insert(
+			rows,
+			{ mesh = "ranch_bench", x = math.sin(a) * 34, y = math.cos(a) * 34, scale = 1.2, face = "centre" }
+		)
+	end
+	local side = hall.pathWidth / 2 + 4
+	for _, y in { -62, -84, -106 } do
+		for _, x in { -side, side } do
+			table.insert(rows, { mesh = "ranch_flower_planter", x = x, y = y, scale = 1.2, face = "path" })
+		end
+	end
+	return rows
+end)())
+
+local function hallDecor(): WorldNode
 	local children: { WorldNode } = {}
+	local centre = WorldLayout.hallPoint(0, 0)
+	for i, row in WorldLayout.HALL_DECOR do
+		local mesh = row.mesh
+		local size = meshSize(mesh, row.scale)
+		local pos = WorldLayout.hallPoint(row.x, row.y)
+		local target = if row.face == "path" then WorldLayout.hallPoint(0, row.y) else centre
+		local yaw = math.deg(math.atan2(target[1] - pos[1], target[3] - pos[3])) % 360 -- kit front (+Z) at the target
+		local slot = block(`Hall_{mesh}_{i}`, size, { pos[1], size[2] / 2, pos[3] }, STONE, "Slate", { 0, yaw, 0 })
+		if MeshAssets.collision(mesh) == nil then
+			slot.canCollide = false
+		end
+		table.insert(children, meshSlot(slot, mesh))
+	end
+	return { name = "HallOfFame", class = "Folder", children = children }
+end
+
+local function plaza(): WorldNode
+	local children: { WorldNode } = { hallDecor() }
 	for _, def in WorldLayout.PLAZA_PROPS do
 		local size = def.size :: Vec
 		local pos = onPolar(def.yaw, def.r, size[2] / 2)
@@ -974,6 +1142,7 @@ local function map(): WorldNode
 			plotSize = WorldLayout.PLOT_SIZE,
 			plotFloorTop = WorldLayout.PLOT_FLOOR_TOP,
 			plots = Config.PLOT_COUNT,
+			hall = WorldLayout.hallFloor(),
 		})
 	do
 		table.insert(children, node :: any)
@@ -1818,8 +1987,12 @@ local function plot(i: number): WorldNode
 	zone.transparency = 1
 	zone.canCollide = false
 	zone.canQuery = false
-	-- The zone check reaches up over every upper floor (CONTRACT.md §5.3).
-	zone.attributes = { ReachUp = (#Config.BASE_FLOORS - 1) * WorldLayout.FLOOR_HEIGHT }
+	-- The zone check reaches up over every upper floor and is the round plot floor, not the square (CONTRACT.md §5.3):
+	-- the corners outside the jar, by the Hall of Fame path, are no one's home.
+	zone.attributes = {
+		ReachUp = (#Config.BASE_FLOORS - 1) * WorldLayout.FLOOR_HEIGHT,
+		Radius = WorldLayout.PLOT_FLOOR_RADIUS,
+	}
 	table.insert(children, zone)
 
 	-- Jar 1 (the static part of the tower): the goo moat and the cork floor inside it (decor on the Base, which stays

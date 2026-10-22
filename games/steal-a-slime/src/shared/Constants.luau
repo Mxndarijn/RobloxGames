@@ -9,13 +9,17 @@ return table.freeze({
 	STATE = "State",
 	-- Server -> client: toast message (text, kind: "info" | "good" | "bad", sound: string?)
 	NOTIFY = "Notify",
-	-- Server -> client: global TotalEarned board (Types.Leaderboard)
+	-- Server -> client: one global board per call (Types.Leaderboard; `stat` says which, Leaderboards.BOARDS)
 	LEADERBOARD = "Leaderboard",
 	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
 
 	SLIME_TAG = "Slime",
 	DATASTORE_NAME = "StealASlime_v1",
 	LEADERBOARD_STORE = "StealASlime_TotalEarned", -- OrderedDataStore, key "u_<UserId>"
+	WEEKLY_EARNED_STORE = "StealASlime_WeeklyEarned", -- OrderedDataStore per week: "<name>_<WeeklyEvents.weekIndex>", key "u_<UserId>"
+	STEALS_STORE = "StealASlime_TotalStolen", -- OrderedDataStore, key "u_<UserId>"
+	DEX_STORE = "StealASlime_SlimeDex", -- OrderedDataStore, key "u_<UserId>"
+	MERGES_STORE = "StealASlime_Merges", -- OrderedDataStore, key "u_<UserId>"
 	DATASTORE_MODE_ATTRIBUTE = "DataStoreMode", -- workspace attribute: "Memory" = no real DataStore
 	-- workspace attribute set by the server: "Ok" | "Memory" | "Unavailable" | "Error" (CONTRACT.md §2)
 	DATASTORE_STATUS_ATTRIBUTE = "DataStoreStatus",
@@ -63,7 +67,14 @@ return table.freeze({
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
 	SHOP_STAND_ITEM = "ItemShopStand", -- CONTRACT.md §27.2
 	SHOP_STAND_UPGRADE = "UpgradeShopStand",
-	LEADERBOARD_BOARD = "LeaderboardBoard",
+	LEADERBOARD_BOARD = "LeaderboardBoard", -- the Top Earners board (with the podium)
+	WEEKLY_EARNERS_BOARD = "WeeklyEarnersBoard",
+	TOP_STEALS_BOARD = "TopStealsBoard",
+	TOP_DEX_BOARD = "TopDexBoard",
+	TOP_MERGES_BOARD = "TopMergesBoard",
+	LEADERBOARD_STAT_ATTRIBUTE = "LeaderboardStat", -- on each board Model: the Types.Leaderboard `stat` it shows
+	PROFESSOR_GOO = "ProfessorGoo", -- the Hall of Fame greeter NPC under workspace.Map
+	HALL_ARCH = "HallOfFameArch", -- the Hall of Fame entrance arch under workspace.Map
 	TUTORIAL_NPC = "TutorialNpc",
 	SPEED_COIL_TOOL = "SpeedCoil", -- Tool in the Backpack while owned
 	-- ProximityPrompt on every slime's Body (grab / steal); Jolt's PromptHide matches this name.

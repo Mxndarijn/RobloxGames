@@ -45,6 +45,7 @@ local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
+local HomeZone = require(ReplicatedStorage.Shared.HomeZone)
 local JarRoute = require(script.Parent.JarRoute)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
 local MeshSwap = require(script.Parent.MeshSwap)
@@ -1568,10 +1569,15 @@ function WorldView.pointInHomeZone(position: Vector3, plotIndex: number): boolea
 		return false
 	end
 	local p = zone.CFrame:PointToObjectSpace(position)
-	local half = zone.Size / 2
-	local reachUp = zone:GetAttribute("ReachUp")
-	local top = half.Y + 8 + (if type(reachUp) == "number" then reachUp else 0)
-	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
+	local size = zone.Size
+	return HomeZone.contains(
+		p.X,
+		p.Y,
+		p.Z,
+		{ size.X, size.Y, size.Z },
+		zone:GetAttribute("Radius"),
+		zone:GetAttribute("ReachUp")
+	)
 end
 
 -- The player's character root in plot `plotIndex`'s plot-local frame, y on WorldLayout.floorTop's scale (the Base's

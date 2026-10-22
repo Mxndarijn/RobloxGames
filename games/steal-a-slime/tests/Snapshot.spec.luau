@@ -107,6 +107,32 @@ describe("Snapshot.build", function()
 	end)
 end)
 
+describe("Snapshot State.boards", function()
+	it("holds my value on every global board", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		s.data.totalEarned = 1234.7
+		s.data.totalStolen = 3
+		s.data.stats.merges = 8
+		local boards = Snapshot.build(world, s, T0).boards
+		expect(boards.TotalEarned).toBe(1234)
+		expect(boards.Steals).toBe(3)
+		expect(boards.Merges).toBe(8)
+		expect(type(boards.Dex)).toBe("number")
+		expect(type(boards.WeeklyEarned)).toBe("number")
+	end)
+	it("holds my rank per board from the last refresh", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		expect(Snapshot.build(world, s, T0).boardRanks).toEqual({})
+		s.boardRanks = { TotalEarned = 48, Steals = -1000 }
+		local ranks = Snapshot.build(world, s, T0).boardRanks
+		expect(ranks.TotalEarned).toBe(48)
+		expect(ranks.Steals).toBe(-1000)
+		expect(ranks ~= s.boardRanks).toBe(true) -- a copy
+	end)
+end)
+
 describe("Snapshot State.hotbar", function()
 	it("is nil until set, then the saved 9 keys", function()
 		local world = ServerFixtures.world()
