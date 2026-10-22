@@ -226,9 +226,19 @@ local function crater(): Vector3
 	return Vector3.new(0, 20, 0)
 end
 
+WorldView.GROUND_PARAMS_TTL = 0.1 -- s: how long the ground ray filter is reused (characters and slime folders change rarely)
+
+local groundCache: { params: RaycastParams, builtAt: number }? = nil
+
 -- Slime models and characters never count as ground (a ray that hits the carrier's head made
--- dropped slimes float, CONTRACT.md §8.11).
+-- dropped slimes float, CONTRACT.md §8.11). Built at most once per GROUND_PARAMS_TTL: every returning slime rays
+-- every Heartbeat.
 local function groundParams(): RaycastParams
+	local clock = os.clock()
+	local cached = groundCache
+	if cached and clock - cached.builtAt < WorldView.GROUND_PARAMS_TTL then
+		return cached.params
+	end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.RespectCanCollide = true -- canopies, HomeZones and other triggers are not ground
@@ -250,6 +260,7 @@ local function groundParams(): RaycastParams
 		end
 	end
 	params.FilterDescendantsInstances = exclude
+	groundCache = { params = params, builtAt = clock }
 	return params
 end
 
