@@ -241,9 +241,9 @@ scenario("drop", function()
 	end
 	local crater = workspace.Map.Volcano.Crater.Position
 	local spots = { { "volcano ring", Vector3.new(crater.X + 45, 0, crater.Z + 5) } }
-	local stand = workspace.Map:FindFirstChild("ShopStand")
+	local stand = workspace.Map:FindFirstChild("ItemShopStand")
 	if stand then
-		table.insert(spots, { "beside ShopStand", stand:GetPivot().Position + Vector3.new(6, 0, 6) })
+		table.insert(spots, { "beside ItemShopStand", stand:GetPivot().Position + Vector3.new(6, 0, 6) })
 	end
 	local other = S.WorldView.plot(if session.plotIndex == 1 then 2 else 1)
 	if other and other:FindFirstChild("Base") then

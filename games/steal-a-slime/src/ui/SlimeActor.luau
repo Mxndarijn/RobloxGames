@@ -187,6 +187,8 @@ export type Actor = {
 	bossText: string?, -- the boss: its BossMove attribute as last decoded
 	bossMove: BossChoreo.Move?, -- the boss: its current move (nil for every other slime)
 	bossKicked: number, -- the boss: the move number whose landing squash already played
+	bossHitAt: number?, -- the boss: the last BossHitAt it squashed for
+	bossBursts: string?, -- the boss: its BossBursts attribute as last seen (a new burst splats it)
 }
 
 local function rootOf(motor: SlimeMotor.Motor): BasePart?
@@ -316,6 +318,8 @@ function SlimeActor.attach(
 		bossText = nil,
 		bossMove = nil,
 		bossKicked = 0,
+		bossHitAt = nil,
+		bossBursts = nil,
 	}
 	local state = model:GetAttribute("State")
 	actor.state = if type(state) == "string" then state else nil
@@ -432,6 +436,26 @@ local function bossPose(actor: Actor, move: BossChoreo.Move, t: number, now: num
 	local size = (actor.model:GetAttribute("Size") :: number?) or 1
 	local _, _, _, _, lift, u = BossChoreo.pose(move, t)
 	mods.lift += lift / math.max(size, 1e-3)
+	-- a goo burst (it sheds slimes) splats it hard and sprays goo
+	local bursts = actor.model:GetAttribute(Constants.BOSS_BURSTS_ATTRIBUTE)
+	local burstText = if type(bursts) == "string" then bursts else nil
+	if burstText ~= actor.bossBursts then
+		if burstText and actor.bossBursts == nil then
+			Spring.kick(actor.squash, -1.8 * SlimeActor.SQUASH.kick)
+			if actor.splat then
+				actor.splat:Emit(30)
+			end
+		end
+		actor.bossBursts = burstText
+	end
+	-- every counted bat hit squashes it (BossHitAt changes)
+	local hitAt = actor.model:GetAttribute(Constants.BOSS_HIT_AT_ATTRIBUTE)
+	if type(hitAt) == "number" and hitAt ~= actor.bossHitAt then
+		if actor.bossHitAt ~= nil then
+			Spring.kick(actor.squash, -0.9 * SlimeActor.SQUASH.kick)
+		end
+		actor.bossHitAt = hitAt
+	end
 	local since = t - move.at
 	local kind = move.kind
 	if kind == "arrive" then
@@ -450,6 +474,19 @@ local function bossPose(actor: Actor, move: BossChoreo.Move, t: number, now: num
 		mods.sx *= 1 + 0.07 * u
 		mods.roll += 0.04 * math.sin(now * 40) * u
 		mods.tilt -= 0.08 * u
+		return "angry"
+	elseif kind == "hop" then
+		-- a bouncing stomp: stretched in the air, a splat on landing (its ring runs out from there)
+		if since < Config.BOSS.HOP_SECONDS then
+			mods.sy *= 1.12
+			mods.sx *= 0.94
+		elseif actor.bossKicked ~= move.n then
+			actor.bossKicked = move.n
+			Spring.kick(actor.squash, -1.3 * SlimeActor.SQUASH.kick)
+			if actor.splat then
+				actor.splat:Emit(16)
+			end
+		end
 		return "angry"
 	elseif kind == "attack" then
 		if move.fx ~= move.tx or move.fz ~= move.tz then

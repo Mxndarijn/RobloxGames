@@ -47,15 +47,15 @@ src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts
   habitat state, FEATURES.Habitats), PodiumAvatars (top-3 podium rigs:
   description cache, fallback, debounced refresh; adapter injected)
   Roblox adapters: WorldView (models, prompts, plot attributes, HomeZone,
-  WalkSpeed, Speed Coil tool, kill-plane rescue), WorldProps (ShopStand,
-  LeaderboardBoard, TutorialNpc, §5.3), FallbackWorld (greybox §5.3 if
+  WalkSpeed, Speed Coil tool, kill-plane rescue), WorldProps (ItemShopStand,
+  UpgradeShopStand, LeaderboardBoard, TutorialNpc, §5.3, §27), FallbackWorld (greybox §5.3 if
   WorldBuilder is missing), PodiumRigs (R15 avatar rigs on Podium_1..3 in
   workspace.PodiumAvatars, BillboardGui NameLabel)
 src/visuals/shared/ -> ReplicatedStorage.Visuals   (ModuleScripts)              Archer
   ModelFactory.luau  slimeData -> Model (§4)
   WorldBuilder.luau  WorldBuilder.build(parent) -> Map, Plots (§5.3); layout in WorldLayout
                      (incl. PROP_SPOTS)
-  Props.luau         ShopStand / SpeedCoil / TutorialNpc / TutorialArrow / LeaderboardBoard builders
+  Props.luau         shop stand / SpeedCoil / TutorialNpc / TutorialArrow / LeaderboardBoard builders
   Effects.luau       Effects.play(kind, target) bursts + emitter / light presets (§5.4)
   MinimapData.luau   minimap points of interest (§2 Extras)
 src/visuals/client/ -> StarterPlayerScripts.VisualsClient (LocalScript)         Archer
@@ -83,7 +83,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 
 - **Spawner:** a wild slime drops every `SPAWN_INTERVAL`, up to `MAX_WILD_SLIMES` alive (`Fountain.roll`). Each lives for `WILD_LIFETIME`.
   - `FREE_DROP_CHANCE` of drops are free.
-  - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab.
+  - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab. A Mystery Egg is always free (contract/mystery-egg.md).
   - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Drops come twice as fast (`RAIN_SPAWN_INTERVAL` = `SPAWN_INTERVAL / 2`), the wild cap is ×2 and luck is ×5 (`Progression.rainStatus`, `Fountain.wildCap`).
 - **Carry:** grabbing and stealing use a **ProximityPrompt** (`GrabPrompt`) that the server puts on each slime's `Body`. There is no remote for this.
   - The prompt's `ActionText` is `"Grab"`, `"Buy $<price>"` (`Economy.formatNumber`) or `"Steal"`. `ObjectText` is `Genome.displayName`.
@@ -97,9 +97,9 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Merge:** `Request("Merge", a, b)` takes two slimes of the same tier and gives one slime of tier + 1 (`Merge.apply`).
 - **Steal and lock:**
   - On join, the plot is locked for `JOIN_LOCK_SECONDS` (45).
-  - `Request("Lock")` buys `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s; one purchase and the stacked lock are both capped at `LOCK_MAX_REMAINING` (3 min) (`Steal.lockDuration`, `Steal.buyLock`). Locks are bought only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button; under `WorldShopsStrict` the HUD button needs the player at their lock pad). No shop sells locks or longer locks.
+  - `Request("Lock")` buys `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s; one purchase and the stacked lock are both capped at `LOCK_MAX_REMAINING` (3 min) (`Steal.lockDuration`, `Steal.buyLock`). Locks are bought only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button, which needs the player at their lock pad). No shop sells locks or longer locks.
   - Stealing pings the owner (Notify `"bad"` plus `SlimeView.stolenBy`).
-  - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is hit (the Bat or any PvP item that touches them), drops it, dies / respawns or leaves. A carried wild slime is dropped by the same hits and lands at the carrier's feet. While it is carried the thief sees it see-through (client-only `ui/CarryFade`, the Move fade). An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
+  - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is hit (the Bat or any PvP item that touches them), drops it, dies / respawns or leaves. A carried wild slime is dropped by the same hits and lands at the carrier's feet. The carried slime stays solid for everyone, the thief included. An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
   - If the thief reaches their own `HomeZone` first, `Steal.complete` moves the slime to the thief.
   - **Both saves must be writable:** each player is saved on their own, so a theft needs this server to save both the thief and the owner (`World.canSave`, from `Persistence.canSave`: not read-only, session not taken over by another server, not a Studio fallback profile). Otherwise `Steal.canSteal` refuses ("your progress can't be saved on this server" / "their slimes can't be saved on this server"). If either save stops being writable during the carry, delivery sends the slime home instead (escape reason `"unsaved"`, the thief gets a `"bad"` Notify).
 - **Rebirth:** `Progression.rebirth` uses up the slimes the rebirth needs (§8.8a) and resets cash to `STARTING_CASH`. Every other slime stays on its pad. It adds +`REBIRTH_MULTIPLIER_STEP` income and a longer lock.
@@ -161,7 +161,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"KeepSlime"` | `slimeId: string, keep: boolean` | Marks an owned slime as kept (never merged) or clears it (§21.1). |
 | `"Lock"` | none | Buys or extends the plot lock. Costs `Economy.lockCost(income)`. |
 | `"Rebirth"` | none | Rebirths if `Progression.canRebirth`. |
-| `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. |
+| `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. A Mystery Egg can't be sold: "eggs can't be sold". |
 | `"Favorite"` | `slimeId: string?` | Sets the favourite (the follow pet; a rebirth uses it up only when no other slime of a required species is there). `nil` clears it. |
 | `"BuyPad"` | none | Unlocks the next pad (`Economy.padCost`). |
 | `"MoveSlime"` | `slimeId: string, pad: number` | `FEATURES.MoveSlime`: moves that owned, not-busy slime to `pad` (an unlocked pad, `1..padsUnlocked`, a whole number). If another slime sits there, the two swap pads; that slime must not be busy either. Moving to its own pad is a no-op. Fails with `"moving slimes is off"`, `"not your slime"`, `"pad is locked"`, `"slime is busy"`. Only `slime.pad` changes (no save change); the slime models re-place on the next world refresh. |
@@ -249,7 +249,7 @@ The client always replaces its copy and never diffs.
 	rebirths: number, rebirthMultiplier: number, rebirthCost: number, canRebirth: boolean,
 	rebirthSlimes: { { id: string, name: string, tier: number, color: { number }, owned: boolean } }, -- §8.8a, empty at max
 	padsUnlocked: number, padsMax: number, nextPadCost: number?,
-	slimes: { { slime: SlimeData, income: number, sellPrice: number, stolenBy: number? } },
+	slimes: { { slime: SlimeData, income: number, sellPrice: number?, stolenBy: number? } }, -- sellPrice nil for a Mystery Egg
 	favoriteId: string?,
 	lockUntil: number, lockCost: number, lockDuration: number,
 	carrying: { slime: SlimeData, kind: "wild" | "stolen", ownerUserId: number?,
@@ -290,7 +290,7 @@ The client always replaces its copy and never diffs.
     ```
   - Client side: Jolt's `src/ui/PromptHide` implements this rule (matches only `GrabPrompt`, reads only `HideFromUserId`).
   - Server-side safety net: `Carry.grab` refuses the owner, so a client that ignores the attribute only shows a useless prompt.
-  - Owner side: `src/ui/SlimeKeys` adds two **client-only** ProximityPrompts on the Body of every slime model whose `OwnerUserId` is the local player and `State` is `"Pad"`: `FavoritePrompt` (R, gamepad DPadUp, tap: "Favorite" / "Unfavorite", sends `Favorite(slimeId)` / `Favorite(nil)`; the favourite's prompt shows `State.petPerk`; none on Mystery Eggs, models with `EggKind`) and `SellPrompt` (X, gamepad DPadDown, hold `HOLD_CONFIRM_SECONDS`: "Sell $price" from `State.slimes[i].sellPrice`, sends `Sell(slimeId)`). Hatch stays the server's `HatchPrompt` (F, gamepad ButtonX). All four prompts' keys come from `Constants.SLIME_PROMPT_KEYS`, where no two share a keyboard key or a gamepad button. The server never creates or sees these prompts; there is no slime card and no Plot nav button.
+  - Owner side: `src/ui/SlimeKeys` adds two **client-only** ProximityPrompts on the Body of every slime model whose `OwnerUserId` is the local player and `State` is `"Pad"`: `FavoritePrompt` (R, gamepad DPadUp, tap: "Favorite" / "Unfavorite", sends `Favorite(slimeId)` / `Favorite(nil)`; the favourite's prompt shows `State.petPerk`; none on Mystery Eggs, models with `EggKind`) and `SellPrompt` (X, gamepad DPadDown, hold `HOLD_CONFIRM_SECONDS`: "Sell $price" from `State.slimes[i].sellPrice`, sends `Sell(slimeId)`; none on Mystery Eggs). Hatch stays the server's `HatchPrompt` (F, gamepad ButtonX). All four prompts' keys come from `Constants.SLIME_PROMPT_KEYS`, where no two share a keyboard key or a gamepad button. The server never creates or sees these prompts; there is no slime card and no Plot nav button.
   - `FEATURES.MoveSlime`: SlimeKeys also adds `MovePrompt` (E, gamepad DPadRight, tap, "Move") to those slimes. It starts client-only move mode (`src/ui/SlimeMove`): the slime turns see-through for this player, a see-through copy sits on the target pad (the pad under the mouse or tap, else the unlocked pad nearest the character), the pad is tinted green (empty), yellow (swap) or red (locked). Click / tap a pad, E or gamepad ButtonX sends `MoveSlime(slimeId, pad)`; Q, gamepad ButtonB, the Cancel button, leaving the home zone or the slime leaving its pad cancels. Every ProximityPrompt is off for this player while moving.
   - These SlimeKeys prompts use `ProximityPromptStyle.Custom`: `src/ui/SlimeKeyCard` draws one card over the slime (its name, the favourite's perk, one row per shown prompt with its key, a fill while a hold prompt is held) instead of Roblox's stacked bubbles. A click or tap on a row holds that prompt.
 - **Player:** `Carrying: string?` (`Constants.CARRYING_ATTRIBUTE`). The carried slime's id, set on pickup (grab or steal). Cleared (nil) on drop, deposit, a failed steal (slap escape; the owner leaving), death / respawn and leave. A full plot doesn't clear it: the slime stays in your arms. The server derives it from `Carry.carryingId` after every action and every tick.
@@ -328,7 +328,7 @@ The server finds plots by the `PlotIndex` attribute and pads by `PadIndex` (`Con
   - `MergeVat` (inside jar 1 at the back), `LockButton` (on the front corner by the bridge, with its `LockSign`), `Sign` (jar 1's name label on the glass, front-left of the door) and a `Slimes` folder. Players spawn on jar 1's walkway in front of the door (`WorldLayout.SPAWN_SPOT`).
   - **Jar decor (client only, `PlotMascot`).** A slime mascot sits on the top jar's lid, bigger with each jar standing and crowned on the full tower, and a goo ooze ring runs round the top of every standing jar. Local parts, never collide.
 - **Props** (`src/server/WorldProps.luau`, placed on start right after WorldBuilder): one of each Model below goes under `workspace.Map` at `WorldLayout.PROP_SPOTS[name]` (pivot `CFrame.new(pos) * CFrame.Angles(0, rad(yaw), 0)`, bottom centre on the Ground), unless a Model with that name already exists anywhere under `workspace` (so a future static copy wins). Built by Archer's `Props`; every part is Anchored. Names are in `Constants`.
-  - **`ShopStand`** (`Constants.SHOP_STAND`): PrimaryPart `Counter` holds ONE ProximityPrompt `ShopPrompt` (`Constants.SHOP_PROMPT_NAME`, E, ObjectText "Shop", ActionText "Open Shop"). v28: it buys nothing; the triggering client opens the Shop menu (every item, bought through `Request` there). The v27 per-item prompts `ShopPrompt_SpeedCoil` / `ShopPrompt_LockUpgrade` are gone.
+  - **`ItemShopStand`** / **`UpgradeShopStand`** (`Constants.SHOP_STAND_ITEM` / `SHOP_STAND_UPGRADE`): the shops, each with ONE ProximityPrompt `ShopPrompt` on its PrimaryPart `Counter` and a `ShopId` attribute; triggering it opens that shop on the server (§27).
   - **`LeaderboardBoard`** (`Constants.LEADERBOARD_BOARD`): `LeaderboardBoard` > `Board` (Part) > SurfaceGui `BoardGui` (Face Front) > Frame `Content` > TextLabel `Title` + Frame `Rows` (UIListLayout), plus `Frame`, `PostL` / `PostR`. **The server fills `Rows`** on every leaderboard refresh: `Row_<k>` Frames (k = 1..`LEADERBOARD_SIZE`, LayoutOrder k) with TextLabels `Rank` (`"#k"`), `Name`, `Value` (`"$" .. Economy.formatNumber`). Rows are updated in place when the count is unchanged (so client-side tweaks like the UI's own-row highlight survive), rebuilt otherwise; an empty board shows one `Row_1` "No entries yet". Clients may re-render the same rows locally (the UI's `WorldLeaderboard` does).
   - **`TutorialNpc`** (`Constants.TUTORIAL_NPC`): R6-style primitives, no Humanoid, PrimaryPart `HumanoidRootPart`, `NameTag` BillboardGui, Attachment `ArrowStart` in `SlimeHat` (start of the tutorial arrow). v28: `HumanoidRootPart` holds ProximityPrompt `GuidePrompt` (`Constants.GUIDE_PROMPT_NAME`, E, ObjectText "Guide", ActionText "Talk"); the triggering client opens the Guide card (next goal + tips, `src/ui/GuideTips.luau`). No server effect.
   - **`TutorialArrow`** (client-only Beam): VisualsClient draws `Props.tutorialArrow` from the local character's `HumanoidRootPart` to the target of the player's `TutorialStep` (§5.2) and removes it when the step is nil or has no target.
@@ -371,7 +371,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `REBIRTH_LATE_FROM` / `REBIRTH_COST_GROWTH_LATE` / `REBIRTH_TIERS` / `UPGRADES` / `GOALS` / `DEX_MILESTONES` | 5 / 2 / tables | v13 progression (§8.8) |
 | `SAVE_VERSION` | 9 | v13 schema (§8.9), v6 = `settings` + versioned `plotSkin` / `stealLog` (§8.9c), v7 = mutation fields stripped (§8.9d), v8 = Goo Trap charges ([pvp.md](contract/pvp.md)), v9 = trophies become the boss record `boss` ([boss-event.md](contract/boss-event.md)) |
 
-All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `WorldMeshesReady` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ShopStand` / `LeaderboardBoard` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
+All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `WorldMeshesReady` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ItemShopStand` / `UpgradeShopStand` / `LeaderboardBoard` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
 
 ## 7. Build and tests
 
@@ -413,7 +413,7 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §24 | [welcome-back.md](contract/welcome-back.md) | v20: welcome-back card (2026-10-17) |
 | §25 | [server-profiler.md](contract/server-profiler.md) | v23: server performance profiler (`FEATURES.ServerProfiler`) |
 | §26 | [pvp.md](contract/pvp.md) | PvP: rules, gloves, traps, blasters, fun items (`FEATURES.PvP`) |
-| §27 | [world-shops.md](contract/world-shops.md) | World shops: Item Shop and Upgrade Shop (`FEATURES.WorldShops`) |
+| §27 | [world-shops.md](contract/world-shops.md) | World shops: Item Shop and Upgrade Shop |
 | §28 | [fountain-split.md](contract/fountain-split.md) | Fountain split: PCD tower pieces (`FEATURES.FountainSplit`) |
 | §29 | [inventory.md](contract/inventory.md) | S3: inventory hotbar + panel (client only, 2026-10-18) |
 | §30 | [slime-pool.md](contract/slime-pool.md) | Slime pool: 32 species, one fully coloured mesh each |

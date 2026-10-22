@@ -20,6 +20,12 @@
 	Rows are buttons too: a click or tap holds that prompt (InputHoldBegin / End), so touch players use the card.
 	The keys themselves still go through the prompts; the card only draws them.
 
+	A click or tap hold belongs to its prompt and its InputObject, not to the row: when the card redraws (a new
+	price, a prompt shown or hidden) while the press is down, the hold carries over to the new row, whose fill
+	resumes at the elapsed fraction. The hold ends when that input is released (InputObject.Changed to End or
+	Cancel, or a matching UserInputService.InputEnded) or when a redraw no longer shows its prompt; it never
+	outlives the card.
+
 	Pure helpers (ordered, keyLabel) are tested under Lune (tests/ui/SlimeKeyCard.spec.luau); `start` returns a
 	stop function that disconnects everything and removes the card.
 ]]
@@ -106,6 +112,8 @@ export type Options = {
 	prompts: ProximityPromptService,
 	playerGui: Instance, -- where the BillboardGui lives (input on its rows needs a PlayerGui parent)
 	tweens: TweenService,
+	userInput: UserInputService?, -- releases of a click/tap hold; defaults to the real service
+	clock: (() -> number)?, -- elapsed time of a hold's fill; defaults to os.clock
 }
 
 function SlimeKeyCard.start(opts: Options): () -> ()
@@ -154,7 +162,85 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 	local rows: { [ProximityPrompt]: Row } = {}
 	local watched: { [ProximityPrompt]: RBXScriptConnection } = {}
 	local render: () -> ()
+	local userInput: UserInputService = opts.userInput or game:GetService("UserInputService")
+	local clock = opts.clock or os.clock
 
+	-- Click/tap holds by prompt: the press's InputObject and the connection that watches it end.
+	type PointerHold = { input: InputObject, conn: RBXScriptConnection? }
+	local pointerHolds: { [ProximityPrompt]: PointerHold } = {}
+	-- When each prompt's hold began (PromptButtonHoldBegan), so a redrawn row's fill picks up where it was.
+	local holdStarted: { [ProximityPrompt]: number } = {}
+
+	local function endPointerHold(prompt: ProximityPrompt)
+		local hold = pointerHolds[prompt]
+		if not hold then
+			return
+		end
+		pointerHolds[prompt] = nil
+		if hold.conn then
+			hold.conn:Disconnect()
+		end
+		prompt:InputHoldEnd() -- an un-ended hold would still fire (Sell) after its button is gone
+	end
+
+	local function endAllPointerHolds()
+		for prompt in pointerHolds do
+			endPointerHold(prompt)
+		end
+	end
+
+	local function beginPointerHold(prompt: ProximityPrompt, input: InputObject)
+		if pointerHolds[prompt] then
+			return
+		end
+		local hold: PointerHold = { input = input, conn = nil }
+		pointerHolds[prompt] = hold
+		local changed = (input :: any).Changed
+		if changed then
+			hold.conn = changed:Connect(function(prop: string)
+				local state = input.UserInputState
+				if
+					prop == "UserInputState"
+					and (state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel)
+					and pointerHolds[prompt] == hold
+				then
+					endPointerHold(prompt)
+				end
+			end)
+		end
+		prompt:InputHoldBegin()
+	end
+
+	-- Ends the click/tap hold that `input` started, wherever it is released.
+	local function releasePointer(input: InputObject)
+		for prompt, hold in pointerHolds do
+			if hold.input == input then
+				endPointerHold(prompt)
+			end
+		end
+	end
+
+	-- Fills a hold prompt's row from the hold's elapsed fraction to full over the time that is left.
+	local function startFill(prompt: ProximityPrompt, row: Row)
+		local began = holdStarted[prompt]
+		if not began or prompt.HoldDuration <= 0 then
+			return
+		end
+		if row.tween then
+			row.tween:Cancel()
+		end
+		local fraction = math.clamp((clock() - began) / prompt.HoldDuration, 0, 1)
+		row.fill.Size = UDim2.fromScale(fraction, 1)
+		local tween = opts.tweens:Create(
+			row.fill,
+			TweenInfo.new(prompt.HoldDuration * (1 - fraction), Enum.EasingStyle.Linear),
+			{ Size = UDim2.fromScale(1, 1) }
+		)
+		row.tween = tween
+		tween:Play()
+	end
+
+	-- Removes the rows. Click/tap holds stay: render ends the ones whose prompt is no longer drawn.
 	local function clearRows()
 		for _, row in rows do
 			if row.tween then
@@ -241,22 +327,19 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 				Parent = rowFrame,
 			})
 		end
-		-- A click or tap holds the prompt like its key would.
-		local conns = {
+		-- A click or tap holds the prompt like its key would; the hold follows the input, not this row.
+		local row: Row = { frame = rowFrame, fill = fill, conns = {}, tween = nil }
+		row.conns = {
 			rowFrame.InputBegan:Connect(function(input: InputObject)
 				local t = input.UserInputType
 				if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
-					prompt:InputHoldBegin()
+					beginPointerHold(prompt, input)
 				end
 			end),
-			rowFrame.InputEnded:Connect(function(input: InputObject)
-				local t = input.UserInputType
-				if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
-					prompt:InputHoldEnd()
-				end
-			end),
+			rowFrame.InputEnded:Connect(releasePointer),
 		}
-		return { frame = rowFrame, fill = fill, conns = conns, tween = nil }
+		startFill(prompt, row) -- a hold that began before this redraw
+		return row
 	end
 
 	-- Redraws the card for the slime whose prompts are shown.
@@ -277,6 +360,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		if not best or not best:IsA("BasePart") then
 			card.Enabled = false
 			card.Adornee = nil
+			endAllPointerHolds()
 			return
 		end
 		local list = {}
@@ -300,6 +384,12 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		for _, prompt in list do
 			rows[prompt] = makeRow(prompt, y)
 			y += C.rowH + C.gap
+		end
+		-- A click/tap hold whose prompt is no longer drawn has lost its button: end it.
+		for prompt in pointerHolds do
+			if not rows[prompt] then
+				endPointerHold(prompt)
+			end
 		end
 		local height = y - C.gap + C.pad
 		card.Size = UDim2.fromOffset(C.w, height)
@@ -353,22 +443,14 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 			render()
 		end),
 		opts.prompts.PromptButtonHoldBegan:Connect(function(prompt: ProximityPrompt)
+			holdStarted[prompt] = clock()
 			local row = rows[prompt]
-			if row and prompt.HoldDuration > 0 then
-				if row.tween then
-					row.tween:Cancel()
-				end
-				row.fill.Size = UDim2.fromScale(0, 1)
-				local tween = opts.tweens:Create(
-					row.fill,
-					TweenInfo.new(prompt.HoldDuration, Enum.EasingStyle.Linear),
-					{ Size = UDim2.fromScale(1, 1) }
-				)
-				row.tween = tween
-				tween:Play()
+			if row then
+				startFill(prompt, row)
 			end
 		end),
 		opts.prompts.PromptButtonHoldEnded:Connect(function(prompt: ProximityPrompt)
+			holdStarted[prompt] = nil
 			local row = rows[prompt]
 			if row then
 				if row.tween then
@@ -378,6 +460,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 				row.fill.Size = UDim2.fromScale(0, 1)
 			end
 		end),
+		userInput.InputEnded:Connect(releasePointer),
 	}
 
 	return function()
@@ -387,6 +470,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		for prompt in watched do
 			unwatch(prompt)
 		end
+		endAllPointerHolds()
 		clearRows()
 		card:Destroy()
 	end

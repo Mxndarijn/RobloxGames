@@ -7,10 +7,10 @@
 	their bottom centre and face local -Z (put them down with
 	model:PivotTo(CFrame)). Suggested spots: WorldLayout.PROP_SPOTS.
 
-	  Props.shopStand(style?): Model     "ShopStand"; PrimaryPart "Counter"
-	      (ProximityPrompt parent), striped awning, a Goo jelly sign with the
-	      shop's name. Anchored. `style` "ItemShop" | "UpgradeShop"
-	      (Props.STAND_STYLES) picks the stand's kit skin
+	  Props.shopStand(style): Model      "ItemShopStand" | "UpgradeShopStand";
+	      PrimaryPart "Counter" (ProximityPrompt parent), striped awning, a Goo
+	      jelly sign with the shop's name. Anchored. `style` "ItemShop" |
+	      "UpgradeShop" (Props.STAND_STYLES) picks the stand's kit skin
 	      (WorldLayout.SHOP_STANDS) and its sign (mint or gold jelly); the
 	      Model's box is the skin's box.
 	  Props.speedCoil(): Tool            "SpeedCoil"; "Handle" Part with
@@ -136,14 +136,6 @@ Props.STAND_STYLES = table.freeze({
 		jelly = table.freeze({ Goo.GoldHi, Goo.Gold, Goo.GoldDeep }),
 	}),
 }) :: { [string]: StandStyle }
-
--- The single ShopStand (FEATURES.WorldShops off).
-local PLAIN_STAND: StandStyle = table.freeze({
-	stand = "ShopStand",
-	title = "Shop",
-	icon = "🛒",
-	jelly = Props.STAND_STYLES.ItemShop.jelly,
-})
 
 -- The jelly sign on the stand's sign face, as fractions of the face: the jelly across the top, the badge on its
 -- left, short drips (x, drop width, neck length) falling from its bottom edge onto the empty face under it.
@@ -273,8 +265,9 @@ function Props.standSign(sign: BasePart, look: StandStyle, aspect: number): Surf
 	return gui
 end
 
-function Props.shopStand(style: string?): Model
-	local look = if style then Props.STAND_STYLES[style] or PLAIN_STAND else PLAIN_STAND
+function Props.shopStand(style: string): Model
+	local look = Props.STAND_STYLES[style]
+	assert(look, `Props.shopStand: unknown style {style}`)
 	local def = WorldLayout.SHOP_STANDS[look.stand]
 	local k = def.scale
 	local native = WorldLayout.meshSize(def.mesh, 1)
@@ -285,7 +278,7 @@ function Props.shopStand(style: string?): Model
 	-- lands on the Counter part. Front = local -Z, the kit's +Z: the counter is c.z * k ahead of the box centre.
 	local cx, cz = c.x * k, -c.z * k
 	local m = Instance.new("Model")
-	m.Name = "ShopStand"
+	m.Name = look.stand
 	local half = MARKER / 2
 	marker(m, "BoxLow", Vector3.new(-w / 2 + half, half, -d / 2 + half))
 	marker(m, "BoxHigh", Vector3.new(w / 2 - half, h - half, d / 2 - half))

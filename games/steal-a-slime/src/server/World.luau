@@ -65,8 +65,10 @@ export type Session = {
 	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
 	coilHeld: boolean?, -- the SpeedCoil Tool is equipped (WorldView sets it each tick); runtime only
-	openShop: string?, -- FEATURES.WorldShops: the shop id the player has open (Request OpenShop), runtime only
+	openShop: string?, -- the shop id the player has open (Request OpenShop), runtime only
 	awayLog: { StealAlert.Entry }?, -- FEATURES.StealAlerts: the saved thefts read at join, for the join notice (never saved)
+	bossStunUntil: number?, -- hit by a boss attack: no bat hits or slaps until then (BossEvent), runtime only
+	bossSlow: { factor: number, untilTime: number }?, -- in a boss goo puddle: walk speed x factor until then, runtime only
 }
 
 export type Wild = {
@@ -82,6 +84,7 @@ export type Wild = {
 	move: BossChoreo.Move?, -- the boss: its current move (BossChoreo; model attribute BossMove)
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
 	choreo: { seed: number }?, -- FEATURES.SlimeChoreo: seed of its lane beats (ParadeChoreo); nil once it leaves the lane
+	landsAt: number?, -- a boss shed slime: still flying out of the boss until then (no model yet)
 }
 
 -- Drops since the last Epic+ / Legendary+ (Spawner pity, CONTRACT.md §8.7).
@@ -106,13 +109,39 @@ export type Event = {
 	payload: { [string]: any }?, -- PvpEvent: the remote payload (CONTRACT.md §26.1)
 }
 
+-- A spit attack's `burst` (Config.BOSS.MOVES): its puddle bursts into a ring `delay` s after it lands.
+export type BossBurst = { delay: number?, radius: number?, speed: number?, push: number? }
+export type BossSpit = { x: number, z: number, landAt: number, seconds: number, slow: number, burst: BossBurst? }
+export type BossPuddle = {
+	x: number,
+	z: number,
+	untilAt: number,
+	slow: number,
+	burstAt: number?, -- a rune puddle: server time its ring starts
+	burst: BossBurst?,
+	struck: { [number]: boolean }, -- players its ring already hit
+}
+
 -- The running boss event: the pure fight and the wild boss slime once it has arrived.
 export type BossEvent = {
 	fight: BossFight.State,
 	slimeId: string?,
 	lastStepAt: number,
 	rng: Rng.Rng, -- the boss's own choices (where it strolls), apart from world.rng
+	nextAttackAt: number, -- server time its next attack may wind up (math.huge while one runs)
+	attackIndex: number, -- rotation through BossAttacks.available
+	struck: { [string]: boolean }, -- "<userId>:<part>" the current attack move already hit (a part: a ring's wave)
+	struckMove: number, -- the move number `struck` is for
+	targets: { { number } }, -- spit: plaza spots picked at the windup (they land there)
+	spits: { BossSpit }, -- spit blobs in the air
+	puddles: { BossPuddle }, -- goo puddles on the ground
+	guards: { { x: number, z: number, alive: boolean } }, -- the guards of the current rise
+	lastHit: { userId: number, points: number, at: number }?, -- the latest counted bat hit (clients squash it, pop points)
+	bursts: { BossBurstBlob }, -- shed slimes flying out of the boss (clients draw their arcs)
 }
+
+-- One shed slime in the air: it leaves the boss at plaza (fromX, fromZ) at `at` and lands at (x, z) at `landAt`.
+export type BossBurstBlob = { fromX: number, fromZ: number, x: number, z: number, at: number, landAt: number }
 
 export type AdminEvent = {
 	def: { id: string, label: string, icon: string },
@@ -169,6 +198,7 @@ export type World = {
 export type Options = {
 	now: number,
 	seed: number?,
+	eggSeed: number?, -- the hatch generator's own seed; nil = derived from `seed` (tests)
 	newId: (() -> string)?,
 	canSave: ((userId: number) -> boolean)?, -- false while this server can't write that player's save; default: always
 	plotCount: number?,
@@ -188,7 +218,7 @@ function World.new(options: Options): World
 		carriedBy = {},
 		escaping = {},
 		rng = Rng.new(options.seed or 1),
-		eggRng = Rng.new((options.seed or 1) + 7919),
+		eggRng = Rng.new(options.eggSeed or (options.seed or 1) + 7919),
 		hatches = {},
 		newId = options.newId or function()
 			counter += 1

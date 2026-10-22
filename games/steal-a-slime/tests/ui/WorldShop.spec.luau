@@ -1,5 +1,5 @@
 --!strict
--- World shop client (FEATURES.WorldShops, contract/world-shops.md §27): WorldShopLogic rows / deny texts / open-close
+-- World shop client (contract/world-shops.md §27): WorldShopLogic rows / deny texts / open-close
 -- controller, the Panels/WorldShop card, the init.client wiring and the full-window layout at every gate size.
 local fs = require("@lune/fs")
 
@@ -364,9 +364,7 @@ end
 describe("deny codes", function()
 	it("finds the codes in the server source and the contract", function()
 		local codes = serverCodes()
-		for _, code in
-			{ "FlagOff", "BadShop", "NotInShop", "NotOpen", "OutOfRange", "Dead", "NoCash", "Maxed", "Locked" }
-		do
+		for _, code in { "BadShop", "NotInShop", "NotOpen", "OutOfRange", "Dead", "NoCash", "Maxed", "Locked" } do
 			expect(`{code}: {codes[code] ~= nil}`).toBe(`{code}: true`)
 		end
 		for _, code in { "SoldOut", "Owned", "BadTarget", "Busy", "Unavailable" } do
@@ -388,7 +386,6 @@ describe("deny codes", function()
 
 	it("maps each code to the agreed text", function()
 		local want = {
-			FlagOff = "The shops are closed",
 			BadShop = "That shop doesn't exist",
 			NotInShop = "Not sold here",
 			NotOpen = "Open the shop first",
@@ -472,7 +469,7 @@ describe("WorldShopLogic.controller", function()
 	end)
 
 	it("closes on ShopEvent Close (every reason) and on the attribute going nil, without sending CloseShop", function()
-		for _, reason in { "closed", "range", "dead", "flag" } do
+		for _, reason in { "closed", "range", "dead" } do
 			local log = newController()
 			log.controller.onEvent({ kind = "Open", shopId = "ItemShop" })
 			log.controller.onEvent({ kind = "Close", shopId = "ItemShop", reason = reason })
@@ -748,24 +745,18 @@ describe("Panels/WorldShop", function()
 end)
 
 describe("init.client wiring", function()
-	it("the shop prompt opens the old combined Shop only with the flag off", function()
-		expect(
-			MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, false)[Constants.SHOP_PROMPT_NAME]
-		).toBe("Shop")
-		expect(
-			MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME)[Constants.SHOP_PROMPT_NAME]
-		).toBe("Shop")
-		local on = MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, true)
-		expect(on[Constants.SHOP_PROMPT_NAME]).toBeNil()
-		expect(on[Constants.GUIDE_PROMPT_NAME]).toBe("Guide")
+	it("the shop prompt opens no menu from the client (the server opens the shop); Talk opens the Guide", function()
+		local prompts = MenuClose.promptMenus(Constants.GUIDE_PROMPT_NAME)
+		expect(prompts[Constants.SHOP_PROMPT_NAME]).toBeNil()
+		expect(prompts[Constants.GUIDE_PROMPT_NAME]).toBe("Guide")
 	end)
 
 	it("the world shop card follows the one-open-menu state", function()
-		local keys = { "Merge", "WorldShop", "Shop" }
+		local keys = { "Merge", "WorldShop", "Guide" }
 		local view = MenuState.view("WorldShop", keys)
 		expect(view.backdrop).toBe(true)
 		expect(view.cards.WorldShop).toBe(true)
-		expect(view.cards.Shop).toBe(false)
+		expect(view.cards.Guide).toBe(false)
 		expect(view.cards.Merge).toBe(false)
 		expect(MenuState.view(nil, keys).cards.WorldShop).toBe(false)
 	end)

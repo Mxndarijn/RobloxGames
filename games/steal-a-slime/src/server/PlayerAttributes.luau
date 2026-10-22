@@ -4,7 +4,7 @@
 
 	Player attributes that follow the World right away, not only on the 0.1 s view tick:
 	  * `Carrying` (and `Stealing` with FEATURES.StealAlerts): pickup, drop, deposit, escape, death;
-	  * `OpenShop` (FEATURES.WorldShops): the session's open world shop, nil = closed.
+	  * `OpenShop`: the session's open world shop, nil = closed.
 ]]
 
 local Players = game:GetService("Players")
@@ -33,9 +33,6 @@ function PlayerAttributes.syncCarrying(world: World.World)
 end
 
 function PlayerAttributes.syncOpenShop(world: World.World, player: Player)
-	if not Config.FEATURES.WorldShops then
-		return
-	end
 	local session = World.session(world, player.UserId)
 	local value = session and session.openShop
 	if player:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE) ~= value then

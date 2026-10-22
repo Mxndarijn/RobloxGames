@@ -758,13 +758,11 @@ Layout.GOO_EDGE = table.freeze({
 Layout.MENU_WIDTH = 560
 Layout.MENU_HEIGHTS = table.freeze({
 	Merge = 520,
-	Shop = 520,
 	WorldShop = 520,
 	Inventory = 460,
 	Rebirth = 650, -- three slimes (Panels/Rebirth.plan)
 	Goals = 500,
 	Dex = 600,
-	Leaders = 460,
 	Codes = 300,
 	Sound = 291,
 	Guide = 380,
@@ -791,7 +789,9 @@ function Layout.tutorialHeight(width: number): number
 	local t = Layout.TUTORIAL
 	local body = 0
 	for _, step in Tutorial.STEPS do
-		body = math.max(body, Layout.wrappedHeight(step.body, t.bodyTextSize, width - t.padX * 2))
+		for _, text in Tutorial.texts(step) do
+			body = math.max(body, Layout.wrappedHeight(text, t.bodyTextSize, width - t.padX * 2))
+		end
 	end
 	return math.ceil(t.bodyTop + body + t.padBottom)
 end

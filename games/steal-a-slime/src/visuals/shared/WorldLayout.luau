@@ -204,6 +204,12 @@ WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22
 -- deck round the hole above free to walk. Open for `railStart` degrees at the bottom and `railEnd` degrees before the
 -- top, so you step on and off the side.
 WorldLayout.RAMP = table.freeze({ segments = 24, walk = 4.2, railStart = 30, railEnd = 45, railHeight = 2.5 })
+-- The top of the stair, on the top jar only (where the stair ends; a jar added above hides it, server/BaseFloors):
+-- the ramp goes on for `landing` more degrees, flat at floor height and out to the edge of the hole (no gap to the
+-- floor), so you arrive on a small platform instead of running straight off the end. No fence round the hole. The
+-- ramp below passes under it: at 120 degrees it still has about 9.7 studs of headroom there (tests/JarTower.spec keeps
+-- at least 6). Built in 15-degree pieces, so keep `landing` a multiple of 15.
+WorldLayout.STAIR_TOP = table.freeze({ landing = 120 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; the top jar's hatch sits at this angle, the tube lands in the goo moat.
 -- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
@@ -245,7 +251,7 @@ WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
 WorldLayout.DEX_FACE = table.freeze({ x = -0.35, y = 11.53, front = 0.4, width = 12.9, height = 11.5 })
 -- The shop stands (WorldProps Models, Props.shopStand) by model name. Each skins its own kit mesh at `scale`:
 -- ItemShopStand a pink market stall (models/ranch_item_shop.py), UpgradeShopStand a blue and gold cabinet that shows
--- the upgrades (models/ranch_upgrade_cabinet.py), ShopStand (FEATURES.WorldShops off) the plain ranch_shop_stand.
+-- the upgrades (models/ranch_upgrade_cabinet.py).
 -- `face` = the sign face the SHOP text goes on and `counter` = the counter the Counter part fills, at native size
 -- from the kit source in the mesh's own frame (front +Z): centre x, y up from the bottom, z from the box centre
 -- (+ = front); `front` is the sign's front face, `top` the counter top. The stand's pivot is its box's bottom centre.
@@ -258,12 +264,6 @@ local function shopStand(mesh: string, scale: number, face: StandFace, counter: 
 	return table.freeze({ mesh = mesh, scale = scale, face = table.freeze(face), counter = table.freeze(counter) })
 end
 WorldLayout.SHOP_STANDS = table.freeze({
-	ShopStand = shopStand(
-		"ranch_shop_stand",
-		0.8,
-		{ x = 0, y = 12.2, front = -2.42, width = 7.6, height = 2 },
-		{ x = 0, z = 0.53, width = 11, depth = 4.2, top = 4.1 }
-	),
 	ItemShopStand = shopStand(
 		"ranch_item_shop",
 		0.7,
@@ -289,8 +289,7 @@ local function propSpot(angle: number, faceVolcano: boolean?, radius: number?): 
 	local r, a = radius or 90, math.rad(angle)
 	return { pos = { math.sin(a) * r, 0, math.cos(a) * r }, yaw = if faceVolcano then angle else angle + 180 }
 end
--- ItemShopStand is the old ShopStand spot (WorldProps still places the single "ShopStand" there while
--- FEATURES.WorldShops is off); UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
+-- UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
 WorldLayout.PROP_SPOTS = table.freeze({
 	ItemShopStand = propSpot(67.5, true),
 	UpgradeShopStand = propSpot(34.5, true, 96),
@@ -840,8 +839,8 @@ local function decor(): WorldNode
 end
 
 -- Plaza showpieces between the drop ring (62) and the ring path, as kit mesh
--- slots. The Top Earners board and shop stand skin the live WorldProps models
--- (ShopStand / LeaderboardBoard, MeshAsset on the Model).
+-- slots. The Top Earners board and shop stands skin the live WorldProps models
+-- (ItemShopStand / UpgradeShopStand / LeaderboardBoard, MeshAsset on the Model).
 local function plazaProp(name: string, mesh: string, yaw: number, r: number, scale: number)
 	return { name = name, mesh = mesh, yaw = yaw, r = r, size = meshSize(mesh, scale) }
 end
@@ -1438,6 +1437,33 @@ local function variant(node: WorldNode, floor: number, show: string): WorldNode
 	return node
 end
 
+-- The top of the stair that arrives on floor f (WorldLayout.STAIR_TOP): the flat landing's colliders, shown and
+-- solid only while jar f is the top jar (JarCollide: server/BaseFloors turns them off once a jar stands on
+-- it, because the next stair goes on from here). Their look is the top jar's trim mesh.
+local function stairTop(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
+	local st, top = WorldLayout.STAIR, WorldLayout.STAIR_TOP
+	local deck = WorldLayout.floorTop(f)
+	local start = WorldLayout.treadAngle(f - 1, 1) - st.angle
+	local out = {}
+	local function add(node: WorldNode)
+		node.transparency = 1
+		node.canTouch = false
+		local a = node.attributes or {}
+		a.JarCollide = true
+		node.attributes = a
+		table.insert(out, variant(node, f, "top"))
+	end
+	-- flat boxes from the post out to the hole's edge, on round from where the ramp arrives
+	local step = 15
+	local width = st.hole - st.post
+	for k = 1, top.landing // step do
+		local deg = start + (k - 0.5) * step
+		local chord = 2 * st.hole * math.sin(math.rad(step) / 2) + 0.3
+		add(radial(`StairLanding_{k}`, { chord, 1, width }, (st.post + st.hole) / 2, deg, deck - 0.5, at, yaw))
+	end
+	return out
+end
+
 -- An opaque jar look that casts no shadow (the decks, trim and stair): the floor under them stays light.
 local function noShadow(node: WorldNode): WorldNode
 	local a = node.attributes or {}
@@ -1543,7 +1569,7 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 	standIns(deck, `goo_jar_deck_{f}`)
 	standIns(wall, `goo_jar_glass_{f}_top`)
 	standIns(stair, "goo_jar_stair")
-	for _, list in { deck, wall, stair, jarLooks(f, at, yaw) } do
+	for _, list in { deck, wall, stair, stairTop(f, at, yaw), jarLooks(f, at, yaw) } do
 		for _, node in list do
 			table.insert(children, node)
 		end

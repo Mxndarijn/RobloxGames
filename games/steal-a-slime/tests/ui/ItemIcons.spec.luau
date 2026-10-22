@@ -440,44 +440,6 @@ describe("item icons on the surfaces", function()
 		}
 	end
 
-	it("every Shop row (items + upgrades) carries an icon with its registry id", function()
-		local panel = UiHarness.ui("Panels/Shop").new(UiHarness.root(), ctx())
-		panel.update({
-			cash = 1e6,
-			shop = {
-				SpeedCoil = { price = 9 },
-			},
-			upgrades = {
-				{
-					id = "Income",
-					name = "Slime Snacks",
-					text = "+10%",
-					level = 0,
-					maxLevel = 10,
-					price = 1,
-					unlocked = true,
-				},
-				{
-					id = "Luck",
-					name = "Lucky Charm",
-					text = "+4%",
-					level = 1,
-					maxLevel = 5,
-					price = 1,
-					unlocked = true,
-				},
-			},
-		})
-		local seen = 0
-		for _, inst in UiHarness.descendants(panel.frame) do
-			if inst.Name == "Icon" and inst:GetAttribute("ItemId") then
-				seen += 1
-				expect(registry.byId[inst:GetAttribute("ItemId")] ~= nil).toBe(true)
-			end
-		end
-		expect(seen).toBe(3) -- the Speed Coil and the two upgrades
-	end)
-
 	it("Codes, Goals and the Daily popup draw item icons", function()
 		local codes = UiHarness.ui("Panels/Codes").new(UiHarness.root(), ctx())
 		expect(find(codes.frame, "BoostIcon"):GetAttribute("ItemId")).toBe("Boost_Code")

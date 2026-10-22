@@ -102,7 +102,7 @@ local function stepPlayers(loop: Loop, t: number)
 			WorldView.updatePlayer(world, player, session, t, ctx)
 			if session.openShop and t - (loop.shopCheckedAt[userId] or 0) >= SHOP_CHECK_INTERVAL then
 				loop.shopCheckedAt[userId] = t
-				Actions.shopTick(session, ctx) -- out of range / died / flag off closes the shop
+				Actions.shopTick(session, ctx) -- out of range / died closes the shop
 			end
 			PlayerAttributes.syncOpenShop(world, player)
 			LeaderboardView.updateStats(player, session)

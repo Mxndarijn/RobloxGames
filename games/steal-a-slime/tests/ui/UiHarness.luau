@@ -147,6 +147,17 @@ function methods.PivotTo(self: any, cframe: any)
 	pivots[self] = cframe
 end
 
+function methods.IsDescendantOf(self: any, ancestor: any): boolean
+	local node = self.Parent
+	while node do
+		if node == ancestor then
+			return true
+		end
+		node = node.Parent
+	end
+	return false
+end
+
 function methods.GetPivot(self: any): any
 	return pivots[self] or roblox.CFrame.new()
 end
@@ -515,15 +526,21 @@ services.UserInputService = {
 	InputChanged = signal,
 	InputEnded = signal,
 	InputBegan = UiHarness.inputBegan,
+	LastInputTypeChanged = recordingSignal(),
+	GamepadEnabled = false,
+	TouchEnabled = false,
 	GetLastInputType = function(): any
 		return UiHarness.lastInputType
 	end,
 }
 services.GuiService = {
+	SelectedObject = nil,
 	GetGuiInset = function(): any
 		return { X = 0, Y = 0 }
 	end,
 }
+UiHarness.guiService = services.GuiService
+UiHarness.userInput = services.UserInputService
 services.TweenService = {
 	Create = function()
 		UiHarness.stats.tweensCreated += 1
@@ -625,7 +642,7 @@ globals = {
 	end,
 }
 
--- The src/ui module at `path` (e.g. "Panels/Shop", "Widgets").
+-- The src/ui module at `path` (e.g. "Panels/WorldShop", "Widgets").
 function UiHarness.ui(path: string): any
 	return load(`src/ui/{path}`)
 end

@@ -1,6 +1,6 @@
 --!strict
 --[[
-	WorldShopLogic (FEATURES.WorldShops, CONTRACT.md §27)
+	WorldShopLogic (CONTRACT.md §27)
 
 	Pure client side of the two in-world shops (Panels/WorldShop renders it; tests/ui/WorldShop.spec.luau):
 	  * rows(): the rows of one shop from Shared.Shops and the live State (price, level, owned / maxed,
@@ -46,7 +46,6 @@ WorldShopLogic.ICON_PREFIX = table.freeze({
 
 -- Deny code -> toast text (CONTRACT.md §27.7). Unavailable shows the server's message when there is one.
 WorldShopLogic.MESSAGES = table.freeze({
-	FlagOff = "The shops are closed",
 	BadShop = "That shop doesn't exist",
 	NotInShop = "Not sold here",
 	NotOpen = "Open the shop first",

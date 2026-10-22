@@ -28,7 +28,7 @@ export type RebirthSlimeView = { id: string, name: string, tier: number, color: 
 export type SlimeView = {
 	slime: SlimeData,
 	income: number, -- cash/sec incl. rebirth multiplier (0 while stolenBy ~= nil)
-	sellPrice: number,
+	sellPrice: number?, -- nil for a Mystery Egg (can't be sold)
 	stolenBy: number?, -- UserId of the player currently carrying it away
 }
 
@@ -168,6 +168,12 @@ export type BossView = {
 	priorityUntil: number?,
 	winnerName: string?, -- "won": who brought it home
 	badges: number, -- boss badges this player has earned
+	move: string?, -- fight: the boss's move kind (BossChoreo: "windup", "attack", "dazed", "rise", ...)
+	moveEndsAt: number?, -- server time that move ends
+	multiplier: number?, -- dazed: meter points per bat hit (more on a vent from behind)
+	guardsLeft: number?, -- rise: guards still standing
+	guardsTotal: number?, -- rise: guards it called
+	stunnedUntil: number?, -- this player can't hit until then (a boss attack got them)
 }
 -- State.bossBadges: one earned boss badge (Config.BOSS_BADGES key, unix seconds it was earned)
 export type BossBadgeView = { key: string, earnedAt: number }

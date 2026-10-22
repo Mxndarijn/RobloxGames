@@ -36,4 +36,12 @@ function MenuState.tutorialVisible(openKey: string?): boolean
 	return openKey == nil
 end
 
+-- The daily popup is not a menu key, but its card (z 5) sits under the tutorial
+-- card (z 15) and the card would cover its Claim button: it hides while the
+-- popup is open too. (The welcome-back card is a menu key, so tutorialVisible
+-- already covers it.)
+function MenuState.tutorialShown(openKey: string?, dailyOpen: boolean): boolean
+	return MenuState.tutorialVisible(openKey) and not dailyOpen
+end
+
 return MenuState

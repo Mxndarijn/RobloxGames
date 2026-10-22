@@ -41,14 +41,14 @@ Sim headline (proposed rules, active player, 6-player mixed server, medians of 2
 | Mythic | 4 | 0.35 | **0.2** | 1.8 | 0.45 |
 | Secret | 3 | 0.1 | **0.05** | 0.45 | 0.15 |
 
-(Spawns per hour use the 99.65 weight total and 900 rolls; Slime Rain, boss showers and luck add more at the top.)
+(Spawns per hour use the 99.65 weight total and 900 rolls; Slime Rain, boss goo bursts and luck add more at the top.)
 
 Why only the top three change: Common to Epic are what players catch and merge all the time. The sim shows their times are set by rebirth unlocks, not by the odds. Legendary loses one species (3 instead of 4), so each Legendary species gets *more* common at the old weight. Mythic gains a species and Secret one more, and both now come mostly from merges and bosses. Lowering them, together with the merge caps below, moves an active player's first Mythic from 0.6 h to 0.9 h and the first Secret from 1.4 h to 3.4 h (sim medians). The weights alone do little: merges and steals feed the top tiers more than the fountain does.
 
 **Merge caps** (`TripleMerge`, in the same PR as the weights):
 
 - A +2 jump may land on Legendary at most (today: up to Mythic). Rare x3 can still jump to Legendary; Epic x3 cannot jump to Mythic.
-- A random merge never makes a Secret. Mythic x3 gives a Mythic (a random Mythic species, assist below). Secret comes from the fountain, Slime Rain, boss showers and the Nightwing recipe.
+- A random merge never makes a Secret. Mythic x3 gives a Mythic (a random Mythic species, assist below). Secret comes from the fountain, Slime Rain, boss goo bursts and the Nightwing recipe.
 - **Merge assist:** 35 % of random results come from the species of that tier you have not found yet (when there are any). It costs nothing to build (the server knows the player's Dex), it hides inside "random", and it cuts the long tail of the last missing species.
 
 ### 1.3 Families: which species open when
@@ -180,7 +180,7 @@ Today `FEATURES.BossSlime` drops a free, max-size Epic+ wild slime every 15 min.
 |---|---|
 | Schedule | First boss 8 min after server start, then every **20 min** (`BOSS_INTERVAL` 1200). It skips (moves 5 min later) if Slime Rain is running or due within 3 min. A 60 s heads-up toast and fountain rumble come first. |
 | Which boss | Rotation Goozilla, Queen Jelly, Klawdius, Pumpking, **Mecha Goo**, Goozilla, Queen Jelly, Klawdius, Pumpking, **Goomancer** (`Config.BOSS.ROTATION`). The Secret-tier bosses (Mecha Goo, Goomancer) only come on a server whose fountain is Starlight (tier 4); otherwise that slot is Goozilla. The boss is tier 6 (Goozilla, Queen Jelly, Klawdius, Pumpking) or 7 (Mecha Goo, Goomancer), shown 1.5x a MAX_SIZE slime, wandering the plaza inside the parade lane near the boss spot. |
-| 1. Fight (max 90 s) | The boss sits in the plaza with a **goo meter**. Bat hits and slaps on it fill the meter, 1 point per hit per player, at most one hit per 0.4 s. The meter needs **25 x players on the server** points, so it takes about the same time on any server. With nobody hitting it drains 2 %/s. Every 25 % the boss sheds 2 wild slimes (luck x3). The server keeps each player's contribution. |
+| 1. Fight (max 120 s) | The boss roams the plaza with a **goo meter** and attacks (stomp rings, spit puddles, guards, cones, charges; telegraphed in red). Bat hits fill the meter, 1 point per hit per player (3 while it is dazed after an attack), at most one hit per 0.4 s. A player its attack hits is knocked back and can't hit for 1.5 s. The meter needs **45 x players on the server** points, so it takes about the same time on any server. With nobody hitting it drains 2 %/s. Every 25 % the boss sheds 2 wild slimes (luck x3). The server keeps each player's contribution. |
 | 2. Haul (max 90 s) | When the meter is full the boss pops down to carry size. The top contributor may grab it for the first 5 s, then anyone can. The carrier walks at the boss carry slow (`Config.BOSS.CARRY_SLOW`) and can't use the Speed Coil. A slap makes the carrier **drop it on the spot** (not "escape home": it has no home yet), and anyone can grab it again. That is the steal moment. |
 | Win | Bringing it home wins it for everyone who helped (at least `BOSS.WIN_SHARE` of the top hitter's hits): a win of that species in their boss record, the species in their Dex, and the **boss badges** they reach (first hit, a win per species, carrying it home, MVP, 10 wins; `Config.BOSS_BADGES`). The badges live in the save, to be shown in the base or a panel later. The boss slime goes to nobody and earns no income. |
 | Fail | Meter not full in 90 s, or nobody brings it home in 90 s: the boss gets away. No slimes drop: the sheds during the fight are the reward for helping, so losing never pays more than winning and nobody gains from spoiling a haul. |

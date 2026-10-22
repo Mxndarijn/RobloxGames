@@ -153,6 +153,11 @@ local function setLids(plot: Instance)
 			local covered = plot:FindFirstChild(`Floor_{f + 1}`) ~= nil
 			local hidden = (show == "top") == covered
 			d:SetAttribute("JarHidden", hidden)
+			if d:GetAttribute("JarCollide") == true then
+				-- a collider that only stands while its jar is shown (the top of the stair)
+				d.CanCollide = not hidden
+				d.CanQuery = not hidden
+			end
 			local mesh = d:FindFirstChild("Mesh")
 			if mesh and mesh:IsA("BasePart") then
 				local clear = d:GetAttribute("MeshTransparency")

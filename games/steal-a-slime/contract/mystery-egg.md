@@ -4,7 +4,7 @@
 
 ## 40.1 What it is
 
-Now and then the fountain drops a **Mystery Egg** instead of a slime. It rides the lane like a wild slime and is grabbed, bought, carried, dropped and slapped loose the same way. Once it is on a pad it **incubates**: after the egg's hatch time (real time, also while the owner is offline) it is **ready**, and the owner holds **Hatch** to get the slime inside. Incubating and ready eggs **can be stolen** like slimes, and the thief keeps the progress. While the owner stands in their own HomeZone, their eggs incubate `WARM_SPEED` x faster.
+Now and then the fountain drops a **Mystery Egg** instead of a slime. It rides the lane like a wild slime and is grabbed, carried, dropped and slapped loose the same way, but it is always **free to grab** and it **can't be sold** (so there is no buy-then-sell loop). Once it is on a pad it **incubates**: after the egg's hatch time (real time, also while the owner is offline) it is **ready**, and the owner holds **Hatch** to get the slime inside. Incubating and ready eggs **can be stolen** like slimes, and the thief keeps the progress. While the owner stands in their own HomeZone, their eggs incubate `WARM_SPEED` x faster.
 
 The hatch is a show on the pad (40.6): the egg rocks, cracks and bursts and the slime pops out, and every nearby player sees it.
 
@@ -25,13 +25,13 @@ The hatch is a show on the pad (40.6): the egg rocks, cracks and bursts and the 
 | Lucky egg | `LUCKY_CHANCE` of eggs: the slime inside is one tier higher than its roll (capped at Secret), `egg.lucky = true` |
 | Hatchling size | `HATCH_SIZE_MIN` + up to `HATCH_SIZE_SPAN` (bigger than a wild slime's `MIN_SIZE` + 0.6), never below the tier's size floor |
 | Top tier of a kind | its highest `drops` tier (`EggKind.topTier`) |
-| Grab price | free with `FREE_DROP_CHANCE`, else `KINDS[i].price` (flat) |
+| Grab price | always free (`price = 0`) |
 | Wild lifetime | `Fountain.wildLifetime` of the kind's `tier` |
 | Carry slowdown | the kind's `tier` (`Steal.newCarry`); never the hidden tier |
 | Hatch time | `KINDS[i].hatchSeconds`, set on the first deposit (`hatchAt = now + hatchSeconds`); a steal keeps `hatchAt` |
 | Warm-up | owner in HomeZone: every second `hatchAt -= (WARM_SPEED - 1)` |
 | Income | 0 (`Genome.baseIncome`) |
-| Sell | `KINDS[i].sell` x the rebirth multiplier (`Economy.sellPrice`) |
+| Sell | never: `Economy.sellPrice` is nil and `Sell` refuses with "eggs can't be sold" |
 | Announced | spawn of a kind with `announce = true` (Golden, Cosmic); a hatch of tier >= `HATCH_ANNOUNCE_TIER` (Legendary), sent when the show reveals it |
 
 An egg is never merged (Merge Vat, 3-slime vat, merge assist), never counts for the rebirth slime, the SlimeDex, badges, habitats, growth, the follow pet or a favourite, and the Lucky Charm never upgrades it. The SlimeDex records the species at the hatch.
@@ -46,7 +46,7 @@ An egg is never merged (Merge Vat, 3-slime vat, merge assist), never counts for 
 
 ## 40.5 What clients see
 
-- `State.slimes[i].slime` / `State.carrying.slime` for an egg is masked (`EggKind.mask`): `name` = egg name ("Golden Mystery Egg"), `tier` = the kind's `tier`, no `species`, `egg = { kind, hatchAt }` (never `lucky`). `income` 0, `sellPrice` = the egg sell price.
+- `State.slimes[i].slime` / `State.carrying.slime` for an egg is masked (`EggKind.mask`): `name` = egg name ("Golden Mystery Egg"), `tier` = the kind's `tier`, no `species`, `egg = { kind, hatchAt }` (never `lucky`). `income` 0, `sellPrice` nil. `SlimeKeys` gives an egg no `SellPrompt` (and no `FavoritePrompt`).
 - Egg models (`server/EggModel`) have `Body` plus model attributes **`EggKind`** (kind id), **`EggHatchAt`** (server time, nil while not incubating), **`EggHatchSeconds`** (the kind's hatch time) and the usual `OwnerUserId` / `State` / `Price`. The label attributes carry the egg name and kind tier. In `Pad` state the model shows its nest.
 - Mesh look: `MeshAssets` names `mystery_egg_<kind>` and `mystery_egg_nest`; until they have a `meshId`, the model is built from primitives.
 - Client `EggFx` (`src/visuals/client`): cracks at 1/3 and 2/3 of the incubation, a glow in the kind's colour that pulses faster near the hatch, a bright glow and sparkles when ready; the idle jiggle and carry wriggle are VisualsClient's, as for any slime. `SlimeLifeRunner` skips egg models. The label's income row reads the server's `LabelStatus` ("Hatches in m:ss", "Ready to hatch!").

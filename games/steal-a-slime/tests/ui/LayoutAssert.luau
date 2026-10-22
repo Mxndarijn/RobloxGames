@@ -33,7 +33,6 @@ local InventoryLayout = require("../../src/ui/InventoryLayout")
 local Layout = require("../../src/ui/Layout")
 local Nav = require("../../src/ui/Nav")
 local Remotes = require("../../src/shared/Remotes")
-local ShopCatalog = require("../../src/ui/ShopCatalog")
 local Shops = require("../../src/shared/Shops")
 local SlimeDex = require("../../src/ui/SlimeDex")
 local Tutorial = require("../../src/ui/Tutorial")
@@ -71,9 +70,9 @@ local RebirthPanel = {
 	COPY = { keeper = "✅ Keeps your other slimes", button = "Hold to rebirth" },
 	SLIME_IMAGE = 52,
 }
-local ShopPanel = { BADGE = 48, BUY_W = 110, DESC_H = 34 }
--- Panels/WorldShop: the buy column (WorldShop.BUY_W); tags and text at the minimum.
-local WorldShopPanel = { BUY_W = 170, TAG_H = 18 }
+-- Panels/WorldShop's row geometry (WorldShop.BADGE / BUY_W / DESC_H, SIZE.tagH; LayoutAssert.spec checks it
+-- against the module); tags and text at the minimum.
+local WorldShopPanel = { BADGE = 48, BUY_W = 170, DESC_H = 34, SIZE = { tagH = 18 } }
 
 type Rect = Layout.Rect
 
@@ -107,6 +106,7 @@ local LayoutAssert = {}
 
 -- The copied panel numbers, for the spec that checks them against the real panels.
 LayoutAssert.REBIRTH = RebirthPanel
+LayoutAssert.WORLD_SHOP = WorldShopPanel
 
 LayoutAssert.VIEWPORTS = table.freeze({
 	table.freeze({ name = "390x844", w = 390, h = 844 }),
@@ -410,14 +410,16 @@ function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 				out,
 				{ name = `{card[1]} {step.id} title`, text = step.title, size = 20, bold = true, w = r.w - 100, h = 24 }
 			)
-			table.insert(out, {
-				name = `{card[1]} {step.id} body`,
-				text = step.body,
-				size = t.bodyTextSize,
-				w = r.w - t.padX * 2,
-				h = r.h - t.bodyTop - t.padBottom,
-				wrapped = true,
-			})
+			for i, text in Tutorial.texts(step) do
+				table.insert(out, {
+					name = `{card[1]} {step.id} body ({i})`,
+					text = text,
+					size = t.bodyTextSize,
+					w = r.w - t.padX * 2,
+					h = r.h - t.bodyTop - t.padBottom,
+					wrapped = true,
+				})
+			end
 		end
 		table.insert(
 			out,
@@ -517,7 +519,7 @@ local function rowTexts(prefix: string, rows: { RowText }, textW: number, buyW: 
 		if view.levelText then
 			local chip =
 				{ name = `{prefix} {view.id} level`, text = view.levelText, size = Layout.MIN_TEXT, bold = true }
-			chip.w, chip.h = ShopPanel.BADGE + 8, WorldShopPanel.TAG_H
+			chip.w, chip.h = WorldShopPanel.BADGE + 8, WorldShopPanel.SIZE.tagH
 			table.insert(out, chip :: any)
 		end
 		table.insert(out, {
@@ -525,7 +527,7 @@ local function rowTexts(prefix: string, rows: { RowText }, textW: number, buyW: 
 			text = view.description,
 			size = Layout.MIN_TEXT,
 			w = textW,
-			h = ShopPanel.DESC_H,
+			h = WorldShopPanel.DESC_H,
 			wrapped = true,
 		})
 		table.insert(out, {
@@ -539,52 +541,15 @@ local function rowTexts(prefix: string, rows: { RowText }, textW: number, buyW: 
 	end
 end
 
--- Shop rows (Panels/Shop, v28): body = card - 24 (PANEL_CHROME.pad), row =
--- body - 10, text = row - badge column - Buy column; ROW-high rows, one
--- line of name, up to two of description, the level chip under the badge.
-function LayoutAssert.shopTexts(panel: Rect): { TextDesc }
-	local textW = panel.w - Layout.PANEL_CHROME.pad * 2 - 10 - (8 + ShopPanel.BADGE + 10) - (ShopPanel.BUY_W + 16)
-	local out: { TextDesc } = {}
-	local state = { cash = 0, lockCost = 987.6e12, lockDuration = 310, shop = {} }
-	local actions = { Lock = true, BuyLockUpgrade = true, BuySpeedCoil = true, BuyUpgrade = true }
-	local views = ShopCatalog.views(state, actions, Config)
-	for _, u in Config.UPGRADES do
-		table.insert(
-			views,
-			ShopCatalog.upgradeViews({
-				cash = 0,
-				upgrades = {
-					{
-						id = u.id,
-						name = u.name,
-						text = u.text,
-						level = 9,
-						maxLevel = 10,
-						price = 987.6e12,
-						unlocked = false,
-						requires = 50,
-					},
-				},
-			}, actions)[1]
-		)
-	end
-	local rows: { RowText } = {}
-	for _, view in views do
-		table.insert(rows, {
-			id = view.item.id,
-			name = view.item.name,
-			levelText = view.levelText,
-			description = view.description,
-			buttonText = view.buttonText,
-		})
-	end
-	rowTexts("Shop", rows, textW, ShopPanel.BUY_W, out)
-	return out
-end
-
--- World shop rows (Panels/WorldShop): the same row geometry, worst-case numbers, every row of both shops.
+-- World shop rows (Panels/WorldShop), worst-case numbers, every row of both shops: body = card - 24
+-- (PANEL_CHROME.pad), row = body - 10, text = row - icon column - Buy column; one line of name, up to two of
+-- description, the level chip under the icon.
 function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
-	local textW = panel.w - Layout.PANEL_CHROME.pad * 2 - 10 - (8 + ShopPanel.BADGE + 10) - (WorldShopPanel.BUY_W + 16)
+	local textW = panel.w
+		- Layout.PANEL_CHROME.pad * 2
+		- 10
+		- (8 + WorldShopPanel.BADGE + 10)
+		- (WorldShopPanel.BUY_W + 16)
 	local out: { TextDesc } = {}
 	local upgrades = {}
 	for _, u in Config.UPGRADES do
@@ -758,11 +723,9 @@ end
 -- (the Nav keys plus the Guide card, which has no nav button).
 LayoutAssert.PANEL_TITLES = table.freeze({
 	Merge = "Merge vat",
-	Shop = "Shop",
 	Rebirth = "Rebirth", -- built with this; the open card shows "Rebirth 50" at most (rebirthTexts)
 	Goals = "Goals",
 	Dex = "SlimeDex",
-	Leaders = "Top earners",
 	Codes = "Codes",
 	Sound = "Sound",
 	Guide = "Guide",
@@ -1018,7 +981,7 @@ function LayoutAssert.notSquashed(check: Checker)
 			Layout.statusHeight(screen.compact, screen.tight)
 		)
 	end
-	local close = Layout.panelClose(Layout.panelFor(screen, "Shop"))
+	local close = Layout.panelClose(Layout.panelFor(screen, "WorldShop"))
 	check.aspect("Panel.Close", close, Layout.PANEL_CHROME.close, Layout.PANEL_CHROME.close)
 end
 
@@ -1325,7 +1288,6 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			LayoutAssert.tutorialTexts(screen),
 			LayoutAssert.dailyTexts(screen),
 			LayoutAssert.carryTexts(screen),
-			LayoutAssert.shopTexts(Layout.panelFor(panelScreen, "Shop")),
 			LayoutAssert.worldShopTexts(Layout.panelFor(panelScreen, "WorldShop")),
 			LayoutAssert.rebirthTexts(Layout.panelFor(panelScreen, "Rebirth")),
 			LayoutAssert.guideTexts(Layout.panelFor(panelScreen, "Guide")),

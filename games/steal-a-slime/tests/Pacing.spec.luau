@@ -63,6 +63,72 @@ describe("Pacing server", function()
 		end
 	end)
 
+	it("keeps milestones, a time series, the cash ledger and steal events per bot", function()
+		local records = Server.run({
+			seed = 3,
+			days = 1,
+			mix = { grinder = 2, thief = 1 },
+			stagger = 1,
+			checkpoints = { 0.5 },
+			plots = 8,
+			codes = true,
+			seriesEvery = 300,
+		})
+		for _, r in records do
+			expect(#r.series > 0).toBe(true)
+			expect(r.milestones.Rare ~= nil).toBe(true)
+			expect((r.earnedBy.active or 0) > 0).toBe(true)
+			expect((r.earnedBy.code or 0) >= 1000).toBe(true)
+			expect((r.spentBy.pad or 0) > 0).toBe(true)
+		end
+		local json = Report.json(
+			records,
+			{ seeds = { 3 }, days = 1, mix = { grinder = 2, thief = 1 }, stagger = 1, checkpoints = { 0.5 } }
+		)
+		expect(#json.bots).toBe(3)
+	end)
+
+	it("late joiners arrive on their day and are reported under their own name", function()
+		local records = Server.run({
+			seed = 3,
+			days = 3,
+			mix = { grinder = 1 },
+			stagger = 1,
+			checkpoints = { 0.5 },
+			plots = 8,
+			late = { { profile = "casual", day = 2, count = 1 } },
+		})
+		expect(records[2].profile).toBe("late-casual")
+		expect(records[2].joinDay).toBe(2)
+		expect(records[2].series[1] == nil or records[2].series[1].days < 1).toBe(true)
+	end)
+
+	it("a flip probe buys wild slimes and sells them at once for more than they cost", function()
+		local records = Server.run({
+			seed = 3,
+			days = 1,
+			mix = { flipprobe = 1 },
+			stagger = 1,
+			checkpoints = { 1 },
+			plots = 8,
+			startLevel = 2,
+		})
+		local level = records[1].stats.levels["2"]
+		expect(level ~= nil and level.flips > 20).toBe(true)
+		expect(level.revenue > level.paid).toBe(true)
+		expect(records[1].final.rebirths).toBe(2)
+	end)
+
+	it("bots merge in the 3-slime vat while MergeVat3 is on, so a Secret is not minutes away", function()
+		local Config = require("../src/shared/Config")
+		expect(Config.FEATURES.MergeVat3).toBe(true)
+		local records =
+			Server.run({ seed = 3, days = 1, mix = { grinder = 2 }, stagger = 1, checkpoints = { 0.5 }, plots = 8 })
+		for _, r in records do
+			expect(r.milestones.Secret == nil or r.milestones.Secret.played > 600).toBe(true)
+		end
+	end)
+
 	it("is deterministic for a seed", function()
 		local a, b = run(), run()
 		for i, r in a do
