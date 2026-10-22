@@ -63,7 +63,6 @@ local function baseState(extra: { [string]: any }?): any
 	local state: any = {
 		cash = 1e6,
 		serverTime = 1000,
-		lockCost = 200,
 		lockDuration = 70,
 		shop = {
 			SpeedCoil = { price = 4000, owned = false },

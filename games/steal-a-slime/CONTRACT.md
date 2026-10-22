@@ -163,7 +163,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"VatStart"` | none | Starts the brew of a full vat (`Config.MERGE_BREW_SECONDS` by rarity, Quick Brew applied). `"Add <n> more <Rarity>"` while not full. |
 | `"VatCancel"` | none | Stops the brew; the slimes stay in the vat. |
 | `"VatCollect"` | none | Once the brew is done, merges the three (`TripleMerge`) onto the first input's pad. `"still brewing"` before that. |
-| `"Lock"` | none | Buys or extends the plot lock. Costs `Economy.lockCost(income)`. |
+| `"Lock"` | none | Starts or extends the plot lock. Free. |
 | `"ToggleFriends"` | none | `FEATURES.FriendsInBase`: flips the owner's friends switch (friends pass the locked stopper and may steal). See [friends-in-base.md](contract/friends-in-base.md). |
 | `"Rebirth"` | none | Rebirths if `Progression.canRebirth`. |
 | `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. A Mystery Egg can't be sold: "eggs can't be sold". A slime brewing in the vat can't either: "That slime is brewing in the vat". |
@@ -256,7 +256,7 @@ The client always replaces its copy and never diffs.
 	padsUnlocked: number, padsMax: number, nextPadCost: number?,
 	slimes: { { slime: SlimeData, income: number, sellPrice: number?, stolenBy: number? } }, -- sellPrice nil for a Mystery Egg; income 0 while brewing in the vat (§21)
 	favoriteId: string?,
-	lockUntil: number, lockCost: number, lockDuration: number,
+	lockUntil: number, lockDuration: number,
 	carrying: { slime: SlimeData, kind: "wild" | "stolen", ownerUserId: number?,
 	            startedAt: number, walkSpeed: number }?,
 	rain: { active: boolean, endsAt: number?, nextAt: number? },

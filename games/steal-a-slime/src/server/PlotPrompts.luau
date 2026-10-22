@@ -12,7 +12,7 @@
 	  * FriendsPrompt on LockButton (FEATURES.FriendsInBase): "Allow friends" / "Block friends", ObjectText
 	    "Friends: blocked" / "Friends can enter", and the plot attribute FriendsAllowed;
 	  * MergePrompt on MergeVat: "Manage vat" (the owner's client opens the merge vat menu), "Merge vat";
-	  * plot attributes Locked / LockCost / PadsUnlocked / NextPadCost.
+	  * plot attributes Locked / PadsUnlocked / NextPadCost.
 	A free plot gets everything disabled and ShowOnlyToUserId = nil.
 ]]
 
@@ -29,7 +29,6 @@ export type Plot = {
 	ownerUserId: number?, -- ShowOnlyToUserId on every prompt; nil = free plot
 	locked: boolean,
 	friendsAllowed: boolean, -- the owner's friends switch is on (and FEATURES.FriendsInBase)
-	lockCost: number, -- 0 on a free plot
 	padsUnlocked: number, -- 0 on a free plot
 	nextPadCost: number?,
 	lock: Prompt,
@@ -68,7 +67,6 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 			ownerUserId = nil,
 			locked = false,
 			friendsAllowed = false,
-			lockCost = 0,
 			padsUnlocked = 0,
 			nextPadCost = nil,
 			lock = { actionText = "Lock base", objectText = "Free plot", enabled = false },
@@ -83,12 +81,10 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 	local friendsAllowed = friendsOn and data.allowFriends == true
 	local locked = Steal.isLocked(session.lockUntil, now)
 	local remaining = Steal.lockRemaining(session.lockUntil, now)
-	local cost = Economy.lockCost(World.incomeOf(world, session))
-	local price = `${Economy.formatNumber(cost)}`
 	local lockText = if remaining >= Config.LOCK_MAX_REMAINING - 1
 		then "Lock is maxed"
-		elseif locked then `Extend lock {price}`
-		else `Lock base {price}`
+		elseif locked then "Extend lock"
+		else "Lock base"
 	local status = if locked then `LOCKED {PlotPrompts.clock(remaining)}` else "OPEN"
 
 	local padCost = Economy.padCost(data.padsUnlocked)
@@ -101,7 +97,6 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 		ownerUserId = session.userId,
 		locked = locked,
 		friendsAllowed = friendsAllowed,
-		lockCost = cost,
 		padsUnlocked = data.padsUnlocked,
 		nextPadCost = padCost,
 		lock = { actionText = lockText, objectText = `{session.name}'s base: {status}`, enabled = true },

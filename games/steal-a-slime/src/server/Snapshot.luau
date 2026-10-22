@@ -109,7 +109,6 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		favoriteId = data.favoriteId,
 		lockUntil = session.lockUntil,
 		lockStartedAt = session.lockStartedAt,
-		lockCost = Economy.lockCost(income),
 		lockDuration = Steal.lockDuration(rebirths),
 		carrying = carrying,
 		rain = { active = rainActive, endsAt = endsAt, nextAt = nextAt },

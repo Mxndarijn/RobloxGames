@@ -80,7 +80,7 @@ describe("plot pad prompts under the shop gate", function()
 		local res = prompt(env, "Lock")
 		expect(res.ok).toBe(true)
 		expect(env.session.lockUntil > T0 + 100).toBeTruthy()
-		expect(env.session.data.cash < cash).toBe(true)
+		expect(env.session.data.cash).toBe(cash) -- locking is free
 		expect(env.kinds[1]).toBe("Lock")
 	end)
 	it("Lock: too far from the pad, no character, or dead is refused without charging", function()
@@ -133,7 +133,7 @@ describe("plot pad prompts under the shop gate", function()
 		local cash = env.session.data.cash
 		env.pad = { distance = 2, alive = true }
 		expect(request(env, "Lock").ok).toBe(true)
-		expect(env.session.data.cash < cash).toBe(true)
+		expect(env.session.data.cash).toBe(cash) -- locking is free
 		env.session.lockUntil = 0
 		cash = env.session.data.cash
 		env.pad = { distance = RANGE + 1, alive = true }

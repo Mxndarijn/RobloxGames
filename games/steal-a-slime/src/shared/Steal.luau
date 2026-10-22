@@ -21,7 +21,6 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
-local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 
@@ -83,25 +82,16 @@ function Steal.lockRemaining(lockUntil: number, now: number): number
 end
 
 --[[
-	Buys / extends the plot lock. Charges Economy.lockCost(income).
-	Returns (ok, newLockUntil, costOrReason).
+	Starts / extends the plot lock. Locking is free.
+	Returns (ok, newLockUntil, reason?).
 ]]
-function Steal.buyLock(
-	data: PlayerData.Data,
-	lockUntil: number,
-	now: number,
-	incomePerSec: number
-): (boolean, number, number | string)
+function Steal.buyLock(data: PlayerData.Data, lockUntil: number, now: number): (boolean, number, string?)
 	local remaining = Steal.lockRemaining(lockUntil, now)
 	if remaining >= Config.LOCK_MAX_REMAINING - 1 then
 		return false, lockUntil, "lock is already at max"
 	end
-	local cost = Economy.lockCost(incomePerSec)
-	if not PlayerData.spend(data, cost) then
-		return false, lockUntil, "not enough cash"
-	end
 	local newRemaining = math.min(remaining + Steal.lockDuration(data.rebirths), Config.LOCK_MAX_REMAINING)
-	return true, now + newRemaining, cost
+	return true, now + newRemaining, nil
 end
 
 ---------------------------------------------------------------------------

@@ -32,9 +32,9 @@ function StealService.isLocked(session: Session, now: number): boolean
 end
 
 function StealService.buyLock(world: World, session: Session, now: number): (boolean, string?)
-	local ok, lockUntil, result = Steal.buyLock(session.data, session.lockUntil, now, World.incomeOf(world, session))
+	local ok, lockUntil, reason = Steal.buyLock(session.data, session.lockUntil, now)
 	if not ok then
-		return false, result :: string
+		return false, reason
 	end
 	if not Steal.isLocked(session.lockUntil, now) then
 		session.lockStartedAt = now -- a new lock; extending keeps the start
