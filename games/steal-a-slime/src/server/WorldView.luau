@@ -1424,8 +1424,6 @@ function WorldView.pointInHomeZone(position: Vector3, plotIndex: number): boolea
 	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
 end
 
--- Drop tube (CONTRACT.md §5.3): puts the player's character in plot `plotIndex`'s splash pool, still. False when
--- there is no character or no plot.
 -- The player's character root in plot `plotIndex`'s plot-local frame, y on WorldLayout.floorTop's scale (the Base's
 -- top is PLOT_FLOOR_TOP), or nil without a character or plot.
 function WorldView.plotPoint(userId: number, plotIndex: number): { number }?
@@ -1439,6 +1437,8 @@ function WorldView.plotPoint(userId: number, plotIndex: number): { number }?
 	return { p.X, p.Y - base.Size.Y / 2 + WorldLayout.PLOT_FLOOR_TOP, p.Z }
 end
 
+-- Drop tube (CONTRACT.md §5.3): puts the player's character in plot `plotIndex`'s splash pool, still. False when
+-- there is no character or no plot.
 function WorldView.dropDown(userId: number, plotIndex: number): boolean
 	local player = Players:GetPlayerByUserId(userId)
 	local character = player and player.Character
