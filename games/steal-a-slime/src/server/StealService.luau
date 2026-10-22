@@ -2,7 +2,7 @@
 --[[
 	StealService (pure)
 
-	Plot locks, stealing a pad slime, slapping and lock expiry. Rules come from Shared.Steal; this module applies them to the
+	Plot locks, stealing a pad slime, sending it home and lock expiry (a Bat slap is CarryDrop.slap). Rules come from Shared.Steal; this module applies them to the
 	World and queues toasts.
 
 	* steal: the thief starts carrying a slime that stays in the victim's data
@@ -135,33 +135,6 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 	end
 	World.notify(world, owner.userId, `Your {name} escaped back to you!`, "good", "Escape")
 	return carry.slimeId
-end
-
-function StealService.slap(
-	world: World,
-	slapper: Session,
-	targetUserId: number,
-	distance: number,
-	now: number
-): (boolean, string?)
-	local target = World.session(world, targetUserId)
-	local carry = target and target.carry
-	local ok, reason = Steal.canSlap({
-		now = now,
-		lastSlapAt = slapper.lastSlapAt,
-		distance = distance,
-		slapperId = slapper.userId,
-		targetId = targetUserId,
-		targetCarry = carry and carry.timer,
-	})
-	if not ok or not target then
-		return false, reason or "no such player"
-	end
-	slapper.lastSlapAt = now
-	StealService.escape(world, target, now, "slap")
-	World.notify(world, slapper.userId, `You bonked {target.name} with your bat!`, "good", "Slap", "Slap")
-	World.tutorial(world, slapper, "Steal")
-	return true, nil
 end
 
 -- True when some other player has a slime on a pad (a possible Steal target).
