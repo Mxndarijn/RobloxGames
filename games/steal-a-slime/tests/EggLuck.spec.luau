@@ -153,6 +153,17 @@ describe("Hatch show record", function()
 		expect(hatch.kind).toBe("golden")
 		expect(hatch.lucky).toBe(true)
 		expect(Scene.describe(world, T0).e.hatch).toBe(hatch)
+		-- The pad keeps showing the egg (its name, no income, no Hatch prompt) until the show's burst.
+		local during = Scene.describe(world, T0 + CFG.HATCH_BURST_SECONDS - 0.1).e
+		expect(during.slime.egg and during.slime.egg.kind).toBe("golden")
+		expect(Genome.displayName(during.slime)).toBe("Golden Mystery Egg")
+		expect(during.income).toBe(0)
+		expect(during.hatchReady).toBe(false)
+		expect(hatch.tier).toBe(4)
+		local after = Scene.describe(world, T0 + CFG.HATCH_BURST_SECONDS).e
+		expect(after.slime.egg).toBeNil()
+		expect(after.income > 0).toBe(true)
+		expect((PlayerData.findSlime(session.data, "e") :: Genome.Slime).egg).toBeNil()
 		expect(#ServerFixtures.notifications(world, 1)).toBe(0)
 		ServerEgg.step(world, 1, T0 + CFG.HATCH_REVEAL_SECONDS)
 		local notes = ServerFixtures.notifications(world, 1)

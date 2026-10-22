@@ -25,6 +25,7 @@
 ]]
 
 local InsertService = game:GetService("InsertService")
+local PathfindingService = game:GetService("PathfindingService")
 local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -44,6 +45,7 @@ local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
+local JarRoute = require(script.Parent.JarRoute)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
 local MeshSwap = require(script.Parent.MeshSwap)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
@@ -84,6 +86,7 @@ type Record = {
 	rideUntil: number, -- os.clock() when the fountain ride lands (0 = not riding)
 	ghost: Model?, -- StealGhost: the see-through copy left on the pad while a thief carries it
 	pendingKit: string?, -- built before this species kit loaded (shared mesh look): rebuilt once it arrives
+	walking: ParadeLane.Return?, -- the walk back it follows (a reroute of the same walk carries on, no new fall)
 }
 
 local WorldView = {}
@@ -570,6 +573,81 @@ local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0
 	end)
 end
 
+-- The walk back's path (contract/slime-walk.md): PathfindingService round walls, through doorways (the lock
+-- barrier is pass-through, setBarrierSolid) and over bridges; JarRoute down a jar tower's spiral stair first, which
+-- the navmesh can't see.
+WorldView.PATH_AGENT = table.freeze({
+	AgentRadius = 1.5,
+	AgentHeight = 4, -- above WALK_STEP_UP: nothing over the path is low enough for the ground ray to land on
+	AgentCanJump = true,
+	AgentCanClimb = false,
+	WaypointSpacing = 4,
+})
+
+local function plotFrame(index: number): CFrame
+	local centre, yaw = WorldLayout.plotCentre(index)
+	return CFrame.new(centre[1], centre[2], centre[3]) * CFrame.Angles(0, math.rad(yaw), 0)
+end
+
+local function append(route: { number }, x: number, z: number)
+	table.insert(route, x)
+	table.insert(route, z)
+end
+
+-- The tower leg (world x, z) when `at` is on an upper floor that stands, and the ground-floor spot it ends on.
+local function towerLeg(at: Vector3): ({ number }?, Vector3?)
+	for index = 1, Config.PLOT_COUNT do
+		local frame = plotFrame(index)
+		local p = frame:PointToObjectSpace(at)
+		local leg = JarRoute.down(p.X, p.Y, p.Z)
+		local plot = WorldView.plot(index)
+		if leg and plot and plot:FindFirstChild(`Floor_{WorldLayout.floorAt(p.Y)}`) then
+			local out = {}
+			for k = 1, #leg, 2 do
+				local w = frame:PointToWorldSpace(Vector3.new(leg[k], 0, leg[k + 1]))
+				append(out, w.X, w.Z)
+			end
+			local foot = Vector3.new(leg[#leg - 1], WorldLayout.floorTop(1), leg[#leg])
+			return out, frame:PointToWorldSpace(foot)
+		end
+	end
+	return nil, nil
+end
+
+-- PathfindingService waypoints (world x, z) between `from` and `goal`, both ends left out; nil when there is no path.
+local function groundLeg(from: Vector3, goal: Vector3): { number }?
+	local path = PathfindingService:CreatePath(WorldView.PATH_AGENT :: any)
+	local ok = pcall(function()
+		path:ComputeAsync(from, goal)
+	end)
+	if not ok or path.Status ~= Enum.PathStatus.Success then
+		return nil
+	end
+	local waypoints = path:GetWaypoints()
+	local out = {}
+	for k = 2, #waypoints - 1 do
+		local p = waypoints[k].Position
+		append(out, p.X, p.Z)
+	end
+	return out
+end
+
+-- Finds the path for a slime that was just dropped at `start` and swaps it in (Carry.reroute) while it falls.
+local function routeHome(world: World.World, id: string, plan: ParadeLane.Return, start: Vector3)
+	task.spawn(function()
+		local route: { number } = {}
+		local tower, foot = towerLeg(start)
+		if tower then
+			table.move(tower, 1, #tower, 1, route)
+		end
+		local ground = groundLeg(foot or start, Vector3.new(plan.x1, ParadeLane.LANE_Y, plan.z1))
+		if ground then
+			table.move(ground, 1, #ground, #route + 1, route)
+		end
+		Carry.reroute(world, id, plan.startAt, route, workspace:GetServerTimeNow())
+	end)
+end
+
 -- An escaped slime glides home flat (eased, facing its pad), no arc.
 local function glide(from: CFrame, to: CFrame): (t: number) -> CFrame
 	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
@@ -662,6 +740,7 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		key = "",
 		weld = nil,
 		rideUntil = 0,
+		walking = nil,
 		pendingKit = if slimeMesh and not isEgg then SlimeMesh.pendingKit(slimeMesh, entry.slime) else nil,
 	}
 end
@@ -740,7 +819,7 @@ local function syncGooTrail(record: Record, on: boolean)
 end
 
 -- Returns false when the model couldn't be placed yet (retried next reconcile).
-local function place(record: Record, entry: Scene.Entry, previous: string?): boolean
+local function place(world: World.World, record: Record, entry: Scene.Entry, previous: string?): boolean
 	local model = record.model
 	model:SetAttribute("OwnerUserId", entry.ownerUserId)
 	model:SetAttribute("State", entry.state)
@@ -777,6 +856,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	end
 
 	local from = model:GetPivot()
+	local fallUntil = record.rideUntil
 	unweld(record)
 	record.rideUntil = 0
 	model:SetAttribute(Constants.RIDING_ATTRIBUTE, nil)
@@ -801,12 +881,25 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 		if ParadeLane.enabled() and plan then
 			-- Dropped: it falls out of the carrier's arms, then walks back to the lane.
 			local start = returnStart(wild, plan)
-			if previous ~= nil then
+			local walking = record.walking
+			record.walking = plan
+			if previous ~= nil and walking and walking.startAt == plan.startAt then
+				-- The same walk on its new path (Carry.reroute): finish the fall it was in, then walk.
+				local left = fallUntil - os.clock()
+				if left > 0 then
+					record.rideUntil = os.clock() + left
+					animate(entry.id, entry.key, left, function(t: number): CFrame
+						return from:Lerp(start, t)
+					end)
+				end
+				followReturn(entry.id, entry.key, plan, if left > 0 then start.Y else from.Y)
+			elseif previous ~= nil then
 				record.rideUntil = os.clock() + WorldView.FALL_SECONDS
 				animate(entry.id, entry.key, WorldView.FALL_SECONDS, function(t: number): CFrame
 					return from:Lerp(start, t * t)
 				end)
 				followReturn(entry.id, entry.key, plan, start.Y)
+				routeHome(world, entry.id, plan, start.Position)
 			else
 				local now = workspace:GetServerTimeNow()
 				local y = if now > plan.startAt then ParadeLane.LANE_Y else start.Y
@@ -908,11 +1001,13 @@ function WorldView.reconcile(
 		record.prompt.Enabled = entry.promptEnabled
 		record.prompt:SetAttribute(Constants.PROMPT_HIDE_ATTRIBUTE, entry.hideFromUserId)
 		record.prompt.HoldDuration = entry.promptHold
-		-- The hatch show (contract/mystery-egg.md §40.6): set before a new model is parented in place().
+		-- The hatch show (contract/mystery-egg.md §40.6): on the egg model during the wobble, then on the slime
+		-- model (set before a new model is parented in place()).
 		local hatched = entry.hatch
 		setAttr(record.model, Constants.HATCHED_AT_ATTRIBUTE, hatched and hatched.at)
 		setAttr(record.model, Constants.HATCHED_FROM_ATTRIBUTE, hatched and hatched.kind)
 		setAttr(record.model, Constants.HATCH_LUCKY_ATTRIBUTE, if hatched and hatched.lucky then true else nil)
+		setAttr(record.model, Constants.HATCH_TIER_ATTRIBUTE, if hatched and record.egg then hatched.tier else nil)
 		if record.egg then
 			local egg = entry.slime.egg :: EggKind.Egg
 			local kind = EggKind.get(egg.kind)
@@ -950,7 +1045,7 @@ function WorldView.reconcile(
 		if record.key ~= entry.key then
 			local previous = if isNew then nil else record.key
 			record.key = entry.key
-			if not place(record, entry, previous) then
+			if not place(world, record, entry, previous) then
 				record.key = "" -- retry next time
 			end
 			if isNew and not record.model.Parent then
@@ -1171,6 +1266,12 @@ function setBarrierSolid(plot: Instance, index: number, solid: boolean)
 	ensureGroups()
 	for _, panel in barrier:GetChildren() do
 		if panel:IsA("BasePart") then
+			-- A dropped slime's path back to the lane goes through a shut door (routeHome).
+			if not panel:FindFirstChildOfClass("PathfindingModifier") then
+				local modifier = Instance.new("PathfindingModifier")
+				modifier.PassThrough = true
+				modifier.Parent = panel
+			end
 			if panel.CanCollide ~= solid then
 				panel.CanCollide = solid
 			end
