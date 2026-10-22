@@ -281,6 +281,55 @@ describe("Inventory panel", function()
 	end)
 end)
 
+describe("Inventory panel on a short landscape phone", function()
+	for _, vp in { { 844, 332 }, { 640, 360 }, { 844, 390 } } do
+		it(`{vp[1]}x{vp[2]}: the bag items are reachable cells of at least 44 screen px`, function()
+			local inv = mount(nil, { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } })
+			local s = Layout.screen(vp[1], vp[2])
+			inv.layout(s)
+			inv.setPanelOpen(true)
+			local grid = UiHarness.find(inv.panel.frame, "Grid")
+			local plate = UiHarness.find(inv.panel.frame, "HotbarPlate")
+			local frame = inv.panel.frame
+			local body = Layout.panelBody(
+				Layout.rect(frame.Position.X.Offset, frame.Position.Y.Offset, frame.Size.X.Offset, frame.Size.Y.Offset)
+			)
+			local gridH = body.h - grid.Position.Y.Offset
+			local items = {}
+			for _, cell in grid:GetChildren() do
+				if cell.Name == "Item" and cell.Visible then
+					table.insert(items, cell)
+				end
+			end
+			expect(#items).toBe(2)
+			for _, cell in items do
+				expect(cell.Size.X.Offset * s.scale >= Layout.MIN_TOUCH).toBe(true)
+				expect(cell.Size.Y.Offset * s.scale >= Layout.MIN_TOUCH).toBe(true)
+				expect(cell.Position.Y.Offset + cell.Size.Y.Offset <= gridH).toBe(true) -- the first row shows whole
+			end
+			expect(grid.Position.X.Offset >= plate.Position.X.Offset + plate.Size.X.Offset).toBe(true)
+		end)
+		it(`{vp[1]}x{vp[2]}: an empty bag's message sits in the grid column, clear of the hotbar plate`, function()
+			local inv = mount(nil)
+			local s = Layout.screen(vp[1], vp[2])
+			inv.layout(s)
+			inv.setPanelOpen(true)
+			local frame = inv.panel.frame
+			local plate = UiHarness.find(frame, "HotbarPlate")
+			local empty = UiHarness.find(frame, "EmptyBag")
+			expect(empty ~= nil and empty.Visible).toBe(true)
+			local body = Layout.panelBody(
+				Layout.rect(frame.Position.X.Offset, frame.Position.Y.Offset, frame.Size.X.Offset, frame.Size.Y.Offset)
+			)
+			local x, w = empty.Position.X.Offset, empty.Size.X.Offset
+			expect(empty.Size.X.Scale).toBe(0)
+			expect(x >= plate.Position.X.Offset + plate.Size.X.Offset).toBe(true)
+			expect(w > 0 and x + w <= body.w).toBe(true)
+			expect(x).toBe(UiHarness.find(frame, "Grid").Position.X.Offset)
+		end)
+	end
+end)
+
 describe("Inventory bag key", function()
 	local Enum = require("@lune/roblox").Enum
 

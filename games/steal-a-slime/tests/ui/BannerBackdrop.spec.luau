@@ -4,6 +4,7 @@
 -- (under the top bar too).
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
+local MenuState = require("../../src/ui/MenuState")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
@@ -33,6 +34,13 @@ end)
 -- landscape; the tutorial card and its hint ring / bubble hide while any menu is open.
 describe("tutorial UI never covers an open menu card", function()
 	local GRAB = { tutorialStepId = "Grab" }
+	it("the tutorial shows only with no menu card and no bag panel open", function()
+		expect(MenuState.tutorialVisible(nil, false)).toBe(true)
+		expect(MenuState.tutorialVisible(nil)).toBe(true)
+		expect(MenuState.tutorialVisible(nil, true)).toBe(false)
+		expect(MenuState.tutorialVisible("Shop", false)).toBe(false)
+		expect(MenuState.tutorialVisible("Shop", true)).toBe(false)
+	end)
 	it("TutorialOverlay hides with a menu open and returns on the same step", function()
 		local overlay = UiHarness.ui("Panels/TutorialOverlay").new(UiHarness.root(), {})
 		overlay.update(GRAB)

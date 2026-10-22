@@ -22,6 +22,7 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -64,6 +65,7 @@ local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
 local StealAlertFx = require(script.StealAlertFx)
 local TickGuard = require(script.TickGuard)
+local TouchControls = require(script.TouchControls)
 local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
 local WorldShopLogic = require(script.WorldShopLogic)
@@ -290,8 +292,8 @@ local inventory = Inventory.new(gui, {
 	end,
 	tools = InventoryTools.new(player),
 	serverNow = serverNow,
-	keyboard = game:GetService("UserInputService").KeyboardEnabled,
-	input = game:GetService("UserInputService"),
+	keyboard = UserInputService.KeyboardEnabled,
+	input = UserInputService,
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
 InventoryTools.bindBumpers(inventory.cycleSlot)
@@ -578,6 +580,11 @@ local function panelState(key: string, realState: any): any
 	return view
 end
 
+-- The tutorial card steps aside for an open menu card, the daily popup and the open bag panel.
+local function syncTutorial()
+	tutorial.setMenuOpen(not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
+end
+
 local function syncMenus()
 	local visibleKey: string? = nil
 	for _, entry in allPanels do
@@ -608,7 +615,7 @@ local function syncMenus()
 	end
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
-	tutorial.setMenuOpen(not MenuState.tutorialShown(visibleKey, dailyPopup.isOpen()))
+	syncTutorial()
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
@@ -629,6 +636,7 @@ end
 for _, entry in allPanels do
 	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
 end
+inventory.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncTutorial)
 
 -- Sound button (FEATURES.Audio): icon only, shown with no menu open; the open card has its own X.
 if soundPanel then
@@ -889,6 +897,9 @@ function layoutCards()
 	end
 end
 
+-- Roblox's touch jump button on screen or not (the status icons step left of it); polled in the frame loop.
+local touchControls = TouchControls.watch({ playerGui = player:WaitForChild("PlayerGui") })
+
 -- Every top-level box for the current ScreenGui size (and nav choice).
 function applyLayout()
 	local size = gui.AbsoluteSize
@@ -896,7 +907,7 @@ function applyLayout()
 		return
 	end
 	uiScale.Scale = Layout.uiScale(size.X, size.Y)
-	local s = Layout.screen(size.X, size.Y)
+	local s = Layout.screen(size.X, size.Y, { touch = touchControls.shown() })
 	screen = s
 	hud.layout(s)
 	inventory.layout(s, GuiService:GetGuiInset())
@@ -1162,6 +1173,11 @@ local dailyWasOpen = false
 task.spawn(function()
 	while true do
 		task.wait(0.1)
+		guardedTick("touchControls", function()
+			if touchControls.poll() then
+				applyLayout() -- the jump button came or went (input switched, touch controls toggled)
+			end
+		end)
 		if latest then
 			local now = serverNow()
 			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.
@@ -1185,7 +1201,10 @@ task.spawn(function()
 				panelByKey.WorldShop.tick()
 			end)
 			guardedTick("hint", function()
-				hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen()))
+				hintOverlay.tick(
+					now,
+					tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+				)
 			end)
 			guardedTick("pvpFun", function()
 				pvpFunFx.tick(now)
