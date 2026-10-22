@@ -195,7 +195,16 @@ def jar_trim(f, top, crown=False):
         out.append(tube(f"Rib{k}", pts, [0.35] * len(pts), METAL, segs=6))
     lip_top = nz + (LIP if top else 0.0)
     for k in range(2):
-        out.append(cylinder(f"Thread{k}", nk + 0.55, 0.4, (0, 0, lip_top - 0.75 + k * 0.55), METAL, segs=SEGS))
+        # brass rings round the neck: hollow, or under a covered jar they would read as a solid floor through the
+        # next jar's stair hole
+        out.append(loop(f"Thread{k}", nk + 0.35, 0.4, (0, 0, lip_top - 0.55 + k * 0.55), "z", METAL, segs=SEGS))
+    if top and f > 1:
+        # the top jar's stair ends here: the goo post goes on a little above the deck with a round cap and a brass
+        # collar, so the stair has a finish instead of a post cut off at the floor
+        post = D["stair"]["post"]
+        out.append(painted(cylinder("Newel", post, 2.4, (0, 0, 0), GOO, segs=16), shade(GOO, 0.85), mix(GOO, GOO_HI, 0.4)))
+        out.append(cylinder("NewelCollar", post + 0.15, 0.3, (0, 0, 2.1), METAL, segs=16))
+        out.append(blob("NewelCap", post + 0.2, (0, 0, 2.6), GOO_HI, subdiv=2, squash=(1, 1, 0.8), jitter=0))
     if top and not crown:  # the top jar while growing: a tall cork stopper, wider at the top
         out.append(painted(cylinder("Cork", nk + 0.1, CORK_H, (0, 0, lip_top), CORK, segs=SEGS, r_top=nk + 0.9), shade(CORK, 0.8), CORK))
         out.append(cylinder("CorkRing", nk + 1.0, 0.5, (0, 0, lip_top + CORK_H - 0.8), shade(CORK, 0.88), segs=SEGS))
@@ -299,10 +308,10 @@ def jar_stair():
     r0, r1 = start + rp["railStart"], start + span - rp["railEnd"]
     steps = max(2, int((r1 - r0) / 7.5))
     rail_angles = [r0 + (r1 - r0) * i / steps for i in range(steps + 1)]
-    rail = [at(outer - 0.15, deg, surface(deg) + 1.5) for deg in rail_angles]
+    rail = [at(outer - 0.15, deg, surface(deg) + rp["railHeight"] - 0.2) for deg in rail_angles]
     out.append(tube("Rail", rail, [0.14] * len(rail), METAL, segs=8))
     for k, deg in enumerate(rail_angles[::2]):
-        out.append(cylinder(f"Baluster{k}", 0.08, 1.5, at(outer - 0.15, deg, surface(deg)), METAL, segs=6))
+        out.append(cylinder(f"Baluster{k}", 0.08, rp["railHeight"] - 0.2, at(outer - 0.15, deg, surface(deg)), METAL, segs=6))
     return out
 
 

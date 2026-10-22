@@ -318,6 +318,33 @@ function Carry.release(world: World, userId: number, now: number, position: any?
 	return true
 end
 
+--[[
+	Swaps a dropped slime's straight walk back for the `route` the server's
+	pathfinding found (ParadeLane.reroute: round walls, through doorways, down
+	stairs). Only the walk planned at `startAt` (a later drop has its own),
+	only once, and only while it has barely started (REROUTE_GRACE). Its lane
+	times follow the longer walk. False when nothing changed.
+]]
+function Carry.reroute(world: World, slimeId: string, startAt: number, route: { number }, now: number): boolean
+	local wild = world.wild[slimeId]
+	local plan = wild and wild.returning
+	if
+		not wild
+		or not plan
+		or plan.startAt ~= startAt
+		or plan.route ~= nil
+		or world.carriedBy[slimeId] ~= nil
+		or now > plan.startAt + ParadeLane.REROUTE_GRACE
+		or #route < 2
+	then
+		return false
+	end
+	local walk = ParadeLane.reroute(plan, route)
+	wild.returning = walk
+	wild.spawnedAt, wild.expiresAt = ParadeLane.rejoin(walk.s, Fountain.wildLifetime(wild.slime), walk.arriveAt)
+	return true
+end
+
 -- Ends carries of a slime that no longer exists (sold, merged, wiped).
 function Carry.cancelMissing(world: World)
 	for slimeId, carrierId in world.carriedBy do

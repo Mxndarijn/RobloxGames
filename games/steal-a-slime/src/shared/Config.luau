@@ -31,7 +31,6 @@ export type RebirthTier = {
 	rebirths: number, -- reached at this many rebirths
 	title: string,
 	unlock: string?, -- upgrade id this rank unlocks (also Config.UPGRADES[i].requires)
-	keep: number?, -- slimes kept on rebirth
 	income: number?, -- income bonus (0.25 = +25 %)
 	family: string?, -- FountainTiers family id: this rank grows the fountain into its look (FEATURES.FountainTiers; FountainTiers.FAMILIES)
 }
@@ -250,14 +249,14 @@ local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed" },
 	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard" },
 	{ rebirths = 5, title = "Blob Baron", unlock = "Luck" },
-	{ rebirths = 6, title = "Goo Tycoon", keep = 2, family = "frost" },
+	{ rebirths = 6, title = "Goo Tycoon", income = 0.05, family = "frost" },
 	{ rebirths = 7, title = "Jelly Magnate", income = 0.1 },
 	{ rebirths = 8, title = "Ooze Overlord", income = 0.15 },
-	{ rebirths = 10, title = "Slime Sovereign", keep = 3, income = 0.25, family = "starlight" },
+	{ rebirths = 10, title = "Slime Sovereign", income = 0.25, family = "starlight" },
 	{ rebirths = 12, title = "Gel Emperor", income = 0.35 },
-	{ rebirths = 15, title = "Gelatinous Legend", keep = 4, income = 0.5 },
+	{ rebirths = 15, title = "Gelatinous Legend", income = 0.5 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1 },
-	{ rebirths = 30, title = "Slime Deity", keep = 5, income = 2 },
+	{ rebirths = 30, title = "Slime Deity", income = 2 },
 }
 
 local UPGRADES: { Upgrade } = {
@@ -1063,8 +1062,9 @@ local Config = {
 		LUCKY_CHANCE = 0.05, -- share of eggs whose slime inside is one tier higher than its roll (capped at Secret)
 		HATCH_SIZE_MIN = 1.0, -- a hatchling's size is HATCH_SIZE_MIN + up to HATCH_SIZE_SPAN (wild: MIN_SIZE + 0.6)
 		HATCH_SIZE_SPAN = 0.6,
-		HATCH_REVEAL_SECONDS = 2.6, -- the hatch show reveals the slime this long after the hatch (label, toasts)
-		HATCH_FX_SECONDS = 5, -- the hatched slime's model carries HatchedAt / HatchedFrom / HatchLucky this long
+		HATCH_BURST_SECONDS = 3, -- the pad keeps showing the egg this long after a hatch (the show's wobble), then the slime
+		HATCH_REVEAL_SECONDS = 4.2, -- the hatch toasts go out and the slime's label returns this long after the hatch
+		HATCH_FX_SECONDS = 8, -- the model on the pad carries HatchedAt / HatchedFrom / HatchLucky / HatchTier this long
 		KINDS = table.freeze({
 			table.freeze({
 				id = "speckled",
