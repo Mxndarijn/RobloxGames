@@ -181,6 +181,7 @@ export type World = {
 export type Options = {
 	now: number,
 	seed: number?,
+	eggSeed: number?, -- the hatch generator's own seed; nil = derived from `seed` (tests)
 	newId: (() -> string)?,
 	canSave: ((userId: number) -> boolean)?, -- false while this server can't write that player's save; default: always
 	plotCount: number?,
@@ -200,7 +201,7 @@ function World.new(options: Options): World
 		carriedBy = {},
 		escaping = {},
 		rng = Rng.new(options.seed or 1),
-		eggRng = Rng.new((options.seed or 1) + 7919),
+		eggRng = Rng.new(options.eggSeed or (options.seed or 1) + 7919),
 		hatches = {},
 		newId = options.newId or function()
 			counter += 1
