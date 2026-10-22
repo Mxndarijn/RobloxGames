@@ -16,7 +16,6 @@ local create = Widgets.create
 local Carry = {}
 
 function Carry.new(parent: Instance, ctx: any)
-	local border = Widgets.stroke(Theme.Warn, 2)
 	local frame = create("Frame", {
 		Name = "CarryOverlay",
 		Visible = false,
@@ -27,7 +26,9 @@ function Carry.new(parent: Instance, ctx: any)
 		BackgroundTransparency = 0.1,
 		ZIndex = Layout.ZINDEX.Carry, -- above the tutorial card: Drop stays clickable
 		Parent = parent,
-	}, { Widgets.corner(12), border })
+	}, { Widgets.corner(Layout.NOTICE_RADIUS) })
+	-- A notice: the Gold info ring while you carry a wild slime, the danger ring for a stolen one.
+	local border = Widgets.ring(frame, Theme.Gold, Layout.NOTICE_RADIUS)
 
 	local swatch = create("Frame", {
 		Size = UDim2.fromOffset(48, 48),
@@ -86,7 +87,7 @@ function Carry.new(parent: Instance, ctx: any)
 			swatch.BackgroundColor3 = Widgets.color3(slime.color)
 			name.Text = ctx.Genome.displayName(slime)
 			local stolen = carrying.kind == "stolen"
-			border.Color = if stolen then Theme.Bad else Theme.Warn
+			border.Color = if stolen then Theme.Bad else Theme.Gold
 			sub.Text = if stolen then "STOLEN - run it home to your plot!" else "Wild slime - bring it to your plot"
 			sub.TextColor3 = if stolen then Theme.Warn else Theme.Muted
 		end
