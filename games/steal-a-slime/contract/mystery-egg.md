@@ -49,7 +49,7 @@ An egg is never merged (Merge Vat, 3-slime vat, merge assist), never counts for 
 - `State.slimes[i].slime` / `State.carrying.slime` for an egg is masked (`EggKind.mask`): `name` = egg name ("Golden Mystery Egg"), `tier` = the kind's `tier`, no `species`, `egg = { kind, hatchAt }` (never `lucky`). `income` 0, `sellPrice` nil. `SlimeKeys` gives an egg no `SellPrompt` (and no `FavoritePrompt`).
 - Egg models (`server/EggModel`) have `Body` plus model attributes **`EggKind`** (kind id), **`EggHatchAt`** (server time, nil while not incubating), **`EggHatchSeconds`** (the kind's hatch time) and the usual `OwnerUserId` / `State` / `Price`. The label attributes carry the egg name and kind tier. In `Pad` state the model shows its nest.
 - Mesh look: `MeshAssets` names `mystery_egg_<kind>` and `mystery_egg_nest`; until they have a `meshId`, the model is built from primitives.
-- Client `EggFx` (`src/visuals/client`): cracks at 1/3 and 2/3 of the incubation, a glow in the kind's colour that pulses faster near the hatch, a bright glow and sparkles when ready; the idle jiggle and carry wriggle are VisualsClient's, as for any slime. `SlimeLifeRunner` skips egg models. The label's income row reads the server's `LabelStatus` ("Hatches in m:ss", "Ready to hatch!").
+- Client `EggFx` (`src/visuals/client`): no cracks while incubating (the hatch show cracks the shell), a glow in the kind's colour that pulses faster near the hatch, a bright glow and sparkles when ready; the idle jiggle and carry wriggle are VisualsClient's, as for any slime. `SlimeLifeRunner` skips egg models. The label's income row reads the server's `LabelStatus` ("Hatches in m:ss", "Ready to hatch!").
 
 ## 40.6 The hatch show
 
