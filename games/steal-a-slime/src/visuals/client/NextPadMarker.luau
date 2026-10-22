@@ -47,7 +47,8 @@ local function make(className: string, props: { [string]: any }, parent: Instanc
 	return inst
 end
 
--- What players see of the pad: the pad part is an invisible box, its mesh skin (MeshSwap) is a descendant.
+-- What players see of the pad: the pad part is an invisible box, its mesh skin (MeshSwap, possibly later) is a
+-- descendant.
 local function visibleOf(pad: BasePart): Instance
 	for _, d in pad:GetDescendants() do
 		if d:IsA("BasePart") and d.Transparency < 1 then
@@ -151,7 +152,13 @@ local function refresh()
 		clear()
 		marker = build(pad)
 	end
-	paint(marker :: Marker, t)
+	local m = marker :: Marker
+	-- The mesh skin can arrive after the marker: point the outline at whatever players see now.
+	local seen = visibleOf(pad)
+	if m.highlight.Adornee ~= seen then
+		m.highlight.Adornee = seen
+	end
+	paint(m, t)
 end
 
 function NextPadMarker.start(): () -> ()
