@@ -8,29 +8,12 @@ import bpy
 
 from models._goo_jar import *
 
-PIECES = {}
-for f in (1, 2, 3):
-    PIECES[f"goo_jar_glass_{f}_mid"] = lambda f=f: jar_glass(f, False)
-    PIECES[f"goo_jar_trim_{f}_mid"] = lambda f=f: jar_trim(f, False)
-for f in (1, 2, 3):
-    PIECES[f"goo_jar_glass_{f}_top"] = lambda f=f: jar_glass(f, True)
-    PIECES[f"goo_jar_trim_{f}_top"] = lambda f=f: jar_trim(f, True)
-PIECES["goo_jar_glass_4_top"] = lambda: jar_glass(4, True)
-PIECES["goo_jar_trim_4_top"] = lambda: jar_trim(4, True, crown=True)
-for f in (2, 3, 4):
-    PIECES[f"goo_jar_deck_{f}"] = lambda f=f: jar_deck(f)
-for v in (2, 3, 4):
-    PIECES[f"goo_drop_tube_glass_{v}"] = lambda v=v: drop_tube_glass(v)
-    PIECES[f"goo_drop_tube_goo_{v}"] = lambda v=v: drop_tube_goo(v)
-PIECES.update({
-    "goo_jar_foot": jar_foot, "goo_jar_stair": jar_stair, "goo_cork_stand": cork_stand, "goo_jar_door": jar_door,
-    "goo_jar_door_ring": jar_door_ring, "goo_jar_stopper": jar_stopper, "goo_lock_button": lock_button,
-    "goo_jar_mascot": mascot, "goo_jar_crown": crown,
-})
+# Themed pieces must keep their classic piece's box (the game puts them in the classic slot, fitted at one scale):
+# at most this much bigger or shifted on any axis, in studs.
+THEME_SLACK = 0.3
 
-rows = []
-for name in sorted(PIECES):
-    objs = PIECES[name]()
+
+def measure(objs):
     lo = [1e9, 1e9, 1e9]
     hi = [-1e9, -1e9, -1e9]
     for o in objs:
@@ -44,7 +27,35 @@ for name in sorted(PIECES):
     # blender (x, y, z) -> game plot-local (x, y, z) = (x, z, y)
     c = [(lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2, (lo[1] + hi[1]) / 2]
     s = [hi[0] - lo[0], hi[2] - lo[2], hi[1] - lo[1]]
-    rows.append(f'\t{name} = {{ size = {{ {s[0]:.3f}, {s[1]:.3f}, {s[2]:.3f} }}, centre = {{ {c[0]:.3f}, {c[1]:.3f}, {c[2]:.3f} }} }},')
+    return s, c
+
+
+def row(key, s, c):
+    return f'\t{key} = {{ size = {{ {s[0]:.3f}, {s[1]:.3f}, {s[2]:.3f} }}, centre = {{ {c[0]:.3f}, {c[1]:.3f}, {c[2]:.3f} }} }},'
+
+
+set_theme("classic")
+PIECES = jar_pieces()
+boxes, rows = {}, []
+for name in sorted(PIECES):
+    boxes[name] = measure(PIECES[name]())
+    rows.append(row(name, *boxes[name]))
+
+# every built theme: its pieces must fit their classic boxes, and its companions (props, hat) get their own boxes
+bad = []
+for theme in BUILT_THEMES:
+    set_theme(theme)
+    for name in themed_pieces():
+        s, c = measure(jar_pieces()[name]())
+        s0, c0 = boxes[name]
+        worst = max(max(abs(s[i] - s0[i]) for i in range(3)), max(abs(c[i] - c0[i]) for i in range(3)))
+        if worst > THEME_SLACK:
+            bad.append(f"{name}@{theme} off its classic box by {worst:.3f}")
+    for name, (_, build) in sorted(COMPANIONS.items()):
+        rows.append(row(f'["{name}@{theme}"]', *measure(build())))
+set_theme("classic")
+if bad:
+    raise SystemExit("themed pieces outside their classic box:\n  " + "\n  ".join(bad))
 
 out = os.path.join(KIT, "..", "..", "games", "steal-a-slime", "src", "visuals", "shared", "JarMeshes.luau")
 with open(out, "w", newline="\n") as fh:
@@ -52,6 +63,8 @@ with open(out, "w", newline="\n") as fh:
              "-- Every goo jar tower mesh's bounding box round its build anchor, in plot-local axes (x right, y up, z back):\n"
              "-- jar pieces round the jar axis with the jar's floor at y = 0, stands and buttons round their own centre on the\n"
              "-- floor, the door pieces and drop tubes at plot positions on floor 1. WorldLayout puts each mesh slot's box here.\n"
+             "-- A theme's companion meshes (\"<name>@<theme>\": props, hat) are measured round the anchor of the piece they\n"
+             "-- ride on (models/_goo_jar.py COMPANIONS); server/MeshSwap places them from that piece's slot.\n"
              "local JarMeshes = {\n" + "\n".join(rows) + "\n}\n\nreturn table.freeze(JarMeshes)\n")
 print("wrote", out, len(rows))
 box("Anchor", (1, 1, 1), (0, 0, 0.5), CORK)

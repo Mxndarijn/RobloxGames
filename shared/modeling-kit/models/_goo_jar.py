@@ -19,26 +19,33 @@ KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(os.path.join(KIT, "inputs", "goo_jar_dims.json")) as fh:
     D = json.load(fh)
 
-from models._goo_jar_themes import THEMES
+from models._goo_jar_themes import BUILT_THEMES, THEMES
 
-# The theme every piece is built in (models/_goo_jar_themes.py; default the tower as built).
-THEME_ID = os.environ.get("JAR_THEME", "classic")
-THEME = THEMES[THEME_ID]
-WOOD, WOOD_D, CREAM = THEME["wood"], THEME["wood_d"], THEME["cream"]
-GOO, GOO_HI, METAL = THEME["goo"], THEME["goo_hi"], THEME["metal"]
-PINK, LILAC, BUTTER = THEME["pink"], THEME["lilac"], THEME["butter"]
-PATH = THEME["path"]
-GLASS = THEME["glass"]
-CORK = THEME["cork"]
-SAND = THEME["sand"]
-STRIPE = THEME.get("stripe")  # a second rib colour: the ribs come out striped
-LEAVES = THEME.get("leaves")  # leaf colour: the ribs become leafy vines
-ICICLES = THEME.get("icicles", False)  # icicles hang from the lids
-GREEN = LEAVES or PALETTE["ranch_field_light"]  # stems and bushes on the props
-BUDS = THEME.get("buds")  # colours of little buds (flowers, sparkles) dotted up the ribs
 RED = rgb(240, 70, 60)  # the lock button: a gameplay signal, the same in every theme
-TRIM = mix(LILAC, CREAM, 0.15)
 EYE_W, EYE_D = rgb(246, 250, 250), rgb(56, 42, 38)
+
+
+def set_theme(theme_id):
+    """Build every piece from here on in theme `theme_id` (models/_goo_jar_themes.py): the builders read these colours
+    when they run, so one process can build several themes (models/_goo_jar_bounds.py does)."""
+    global THEME_ID, THEME, WOOD, WOOD_D, CREAM, GOO, GOO_HI, METAL, PINK, LILAC, BUTTER, PATH, GLASS, CORK, SAND
+    global STRIPE, LEAVES, ICICLES, GREEN, BUDS, TRIM
+    THEME_ID, THEME = theme_id, THEMES[theme_id]
+    t = THEME
+    WOOD, WOOD_D, CREAM = t["wood"], t["wood_d"], t["cream"]
+    GOO, GOO_HI, METAL = t["goo"], t["goo_hi"], t["metal"]
+    PINK, LILAC, BUTTER = t["pink"], t["lilac"], t["butter"]
+    PATH, GLASS, CORK, SAND = t["path"], t["glass"], t["cork"], t["sand"]
+    STRIPE = t.get("stripe")  # a second rib colour: the ribs come out striped
+    LEAVES = t.get("leaves")  # leaf colour: the ribs become leafy vines
+    ICICLES = t.get("icicles", False)  # icicles hang from the lids
+    GREEN = LEAVES or PALETTE["ranch_field_light"]  # stems and bushes on the props
+    BUDS = t.get("buds")  # colours of little buds (flowers, sparkles) dotted up the ribs
+    TRIM = mix(LILAC, CREAM, 0.15)
+
+
+# The theme every piece is built in (default the tower as built).
+set_theme(os.environ.get("JAR_THEME", "classic"))
 
 FLOOR_H = D["floorHeight"]
 FLOORS = len(D["floors"])
@@ -187,9 +194,10 @@ def rib(name, pts):
     if BUDS:
         dense = resample(pts, 1.0)
         for i in range(2, len(dense) - 1, 3):
+            # on the rib's sides, left and right in turn: the piece keeps its classic box (models/_goo_jar_bounds.py)
             p = Vector(dense[i])
-            c = p + Vector((p.x, p.y, 0)).normalized() * 0.3
-            out.append(blob(f"{name}Bud{i}", 0.34, tuple(c), BUDS[(i // 3) % len(BUDS)], subdiv=1, jitter=0, seed=i))
+            side = Vector((-p.y, p.x, 0)).normalized() * (0.32 if (i // 3) % 2 == 0 else -0.32)
+            out.append(blob(f"{name}Bud{i}", 0.3, tuple(p + side), BUDS[(i // 3) % len(BUDS)], subdiv=1, jitter=0, seed=i))
     return out
 
 
@@ -729,6 +737,43 @@ def mascot_hat():
 def mascot_size(version):
     """Mascot radius for a tower of `version` jars (the design: 3.4 + 1.3 per version)."""
     return D["mascot"]["base"] + D["mascot"]["grow"] * version
+
+
+def jar_pieces():
+    """Every goo jar tower game mesh: name -> builder (each models/goo_*.py script ships one of these)."""
+    pieces = {}
+    for f in (1, 2, 3):
+        pieces[f"goo_jar_glass_{f}_mid"] = lambda f=f: jar_glass(f, False)
+        pieces[f"goo_jar_trim_{f}_mid"] = lambda f=f: jar_trim(f, False)
+        pieces[f"goo_jar_glass_{f}_top"] = lambda f=f: jar_glass(f, True)
+        pieces[f"goo_jar_trim_{f}_top"] = lambda f=f: jar_trim(f, True)
+    pieces["goo_jar_glass_4_top"] = lambda: jar_glass(4, True)
+    pieces["goo_jar_trim_4_top"] = lambda: jar_trim(4, True, crown=True)
+    for f in (2, 3, 4):
+        pieces[f"goo_jar_deck_{f}"] = lambda f=f: jar_deck(f)
+    for v in (2, 3, 4):
+        pieces[f"goo_drop_tube_glass_{v}"] = lambda v=v: drop_tube_glass(v)
+        pieces[f"goo_drop_tube_goo_{v}"] = lambda v=v: drop_tube_goo(v)
+    pieces.update({
+        "goo_jar_foot": jar_foot, "goo_jar_stair": jar_stair, "goo_cork_stand": cork_stand, "goo_jar_door": jar_door,
+        "goo_jar_door_ring": jar_door_ring, "goo_jar_stopper": jar_stopper, "goo_lock_button": lock_button,
+        "goo_jar_mascot": mascot, "goo_jar_crown": crown,
+    })
+    return pieces
+
+
+# A themed tower swaps these pieces for "<name>@<theme>" (the same shape and box in the theme's colours). The glass,
+# the door ring (the game tints it) and the crown stay as they are in every theme.
+SHARED_PIECES = ("goo_jar_door_ring", "goo_jar_crown")
+
+
+def themed_pieces():
+    return sorted(n for n in jar_pieces() if "glass" not in n and n not in SHARED_PIECES)
+
+
+# A theme's extra meshes, each riding on one tower piece (the game places it from the piece's slot): the props on the
+# plot floor round jar 1, the hat on the mascot. Built round the same anchor as the piece they ride on.
+COMPANIONS = {"goo_jar_props": ("goo_jar_foot", theme_props), "goo_jar_hat": ("goo_jar_mascot", mascot_hat)}
 
 
 def ship(name, parts):
