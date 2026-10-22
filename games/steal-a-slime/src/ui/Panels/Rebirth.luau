@@ -320,14 +320,25 @@ function Rebirth.new(parent: Instance, ctx: any)
 		})
 	end
 
-	-- Puts `slime` into `view`: the real model (else a coloured blob), washed grey while missing.
+	-- Puts `slime` into `view` the way the SlimeDex shows it: the species mesh, else the generated model, else a
+	-- coloured blob, washed grey while missing. The look names whether the mesh was there, so a card that fell
+	-- back switches to the mesh once it replicates.
 	local function showSlime(card: SlimeCard, slime: Progress.SlimeNeed)
 		local view = card.view
-		local look = `{slime.id}:{slime.owned}`
-		if view:GetAttribute("Look") ~= look then
+		local species: Model? = nil
+		if ctx.buildSpecies then
+			local built, model = pcall(ctx.buildSpecies, slime.id)
+			species = if built then model else nil
+		end
+		local look = `{slime.id}:{slime.owned}:{species ~= nil}`
+		if view:GetAttribute("Look") == look then
+			if species then
+				species:Destroy()
+			end
+		else
 			local opts = { greyed = not slime.owned }
-			local ok = false
-			if ctx.buildSlime then
+			local ok = species ~= nil and SlimePreview.mountModel(view, species :: Model, opts)
+			if not ok and ctx.buildSlime then
 				local genome = {
 					id = `Rebirth_{slime.id}`,
 					name = slime.name,

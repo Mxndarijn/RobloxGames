@@ -183,7 +183,7 @@ describe("Snapshot State.dex", function()
 		expect(gummy.name).toBe("Gummy")
 		local moo = entry(state, "moo")
 		expect(moo.found).toBe(false)
-		expect(moo.name).toBeNil()
+		expect(moo.name).toBe("Moo")
 		expect(entry(state, "goozilla").hint).toBe(SpeciesDex.BOSS_HINT)
 		expect(entry(state, "glitch").kind).toBe("event")
 	end)
@@ -198,9 +198,9 @@ describe("Snapshot State.dex", function()
 		for i, input in recipe.inputs do
 			expect(soda.ingredients[i]).toBe(if input == "gummy" then "gummy" else "")
 		end
-		expect(soda.name).toBeNil()
+		expect(soda.name).toBe("Soda Pop")
 	end)
-	it("names this week's featured event Secret with its week; the others stay ???", function()
+	it("gives this week's featured event Secret its week; the others are named with no hint", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
 		local state = Snapshot.build(world, s, T0) :: any
@@ -211,7 +211,9 @@ describe("Snapshot State.dex", function()
 		expect(e.hint).toBe(`Featured Secret: week of {SpeciesDex.weekLabel(featured.startsAt)}`)
 		for _, other in SpeciesDex.BONUS do
 			if other.id ~= featured.id then
-				expect(entry(state, other.id).hint).toBe("???")
+				local o = entry(state, other.id)
+				expect(o.name).toBe(other.name)
+				expect(o.hint).toBeNil()
 			end
 		end
 	end)
