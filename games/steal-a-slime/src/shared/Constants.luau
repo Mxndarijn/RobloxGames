@@ -52,9 +52,7 @@ return table.freeze({
 	SPEED_COIL_ATTRIBUTE = "SpeedCoil", -- Player: true once the Speed Coil is owned
 	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FollowPets), nil = none
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
-	BOSS_WALK_SEED_ATTRIBUTE = "BossWalkSeed", -- boss model: BossWander seed of its walk (the client draws the walk)
-	BOSS_WALK_AT_ATTRIBUTE = "BossWalkAt", -- boss model: server time the walk starts (its arrival)
-	BOSS_WALK_UNTIL_ATTRIBUTE = "BossWalkUntil", -- boss model: server time the walk stopped (the haul); nil while it walks
+	BOSS_MOVE_ATTRIBUTE = "BossMove", -- boss model: its current move (BossChoreo.encode); clients draw it every frame
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
 	SHOP_STAND = "ShopStand", -- alias of the Item Shop while FEATURES.WorldShops is off (the single HUD-shop stand)
 	SHOP_STAND_ITEM = "ItemShopStand", -- CONTRACT.md §27.2
@@ -115,7 +113,7 @@ return table.freeze({
 	LOCK_PROMPT_NAME = "LockPrompt", -- on LockButton
 	BUY_PAD_PROMPT_NAME = "BuyPadPrompt", -- on the lowest locked Pad_<j>
 	MERGE_PROMPT_NAME = "MergePrompt", -- on MergeVat
-	DROP_PROMPT_NAME = "DropPrompt", -- on every upper jar's DropHatch (CONTRACT.md §5.3): anyone not carrying
+	DROP_PROMPT_NAME = "DropPrompt", -- in every upper jar's DropHatch (CONTRACT.md §5.3): the owner, inside the top jar
 	-- v28 (CONTRACT.md §5.3): "Open Shop" (E) on ShopStand.Counter and "Talk" (E) on the
 	-- TutorialNpc. Client-only effect: the UI opens the Shop / Guide menu on PromptTriggered.
 	SHOP_PROMPT_NAME = "ShopPrompt",

@@ -168,7 +168,7 @@ local function frame(loop: Loop)
 	local frameStart = if profiler.enabled then profiler.clock() else 0
 	local t = loop.now()
 	Profiler.time(profiler, "Rescue", safeCall, "rescue", rescueFallen, loop)
-	Profiler.time(profiler, "GameLoop", GameLoop.step, loop.world, t)
+	Profiler.time(profiler, "GameLoop", GameLoop.step, loop.world, t, loop.ctx :: any)
 	if t - loop.lastView < VIEW_INTERVAL then
 		reportProfiler(profiler, frameStart)
 		return

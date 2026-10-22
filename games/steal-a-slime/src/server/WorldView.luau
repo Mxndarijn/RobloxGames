@@ -32,7 +32,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local BaseFloors = require(script.Parent.BaseFloors)
-local BossWander = require(ReplicatedStorage.Shared.BossWander)
+local BossChoreo = require(ReplicatedStorage.Shared.BossChoreo)
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
@@ -277,26 +277,20 @@ local function volcanoLanding(wild: World.Wild): CFrame
 	return surfaceBelow(Vector3.new(spot.X, origin.Y + 200, spot.Z), 400) or CFrame.new(spot.X, 0, spot.Z)
 end
 
--- Each boss slime's walk (BossWander) by slime id, planned from its arrival.
-local bossPlans: { [string]: BossWander.Plan } = {}
+-- The fighting boss's wild record by slime id while it moves (BossChoreo), for its reach checks.
+local bossMoves: { [string]: World.Wild } = {}
 
-local function bossPlan(id: string, wild: World.Wild): BossWander.Plan
-	local plan = bossPlans[id]
-	if not plan then
-		plan = BossWander.plan(BossWander.seed(id), wild.spawnedAt, Config.BOSS.FIGHT_SECONDS)
-		bossPlans[id] = plan
-	end
-	return plan
+-- The boss at its move's pose at `now`, on the ground (its lift is drawn by clients), facing its heading.
+local function bossCFrame(move: BossChoreo.Move, now: number): CFrame
+	local x, z, hx, hz = BossChoreo.world(move, now)
+	local ground = surfaceBelow(Vector3.new(x, crater().Y + 200, z), 400) or CFrame.new(x, 0, z)
+	local at = ground.Position
+	return CFrame.lookAt(at, at + Vector3.new(hx, 0, hz))
 end
 
--- The boss on its walk at `now` (round the fountain centre), on the ground, facing where it walks.
-local function bossCFrame(plan: BossWander.Plan, now: number): CFrame
-	local origin = crater()
-	local p, face = BossWander.pose(plan, now)
-	local spot = origin + Vector3.new(p[1], 0, p[2])
-	local ground = surfaceBelow(Vector3.new(spot.X, origin.Y + 200, spot.Z), 400) or CFrame.new(spot.X, 0, spot.Z)
-	local at = ground.Position
-	return CFrame.lookAt(at, at + Vector3.new(face[1], 0, face[2]))
+-- The fountain centre in world studs: the boss's plaza coordinates are round it.
+function WorldView.plazaOrigin(): Vector3
+	return crater()
 end
 
 local function wildLanding(wild: World.Wild): CFrame
@@ -480,21 +474,18 @@ local function followLane(id: string, key: string, wild: World.Wild)
 	end)
 end
 
--- Walks the fighting boss along its plan every frame until its record changes (the haul pops it to carry size).
--- Never past `wild.wanderUntil`, so it can't walk on between the haul and the next reconcile.
-local function followBoss(id: string, key: string, plan: BossWander.Plan, wild: World.Wild)
+-- Keeps the boss Body near its move (BOSS.MOVE_PIVOT_INTERVAL) until its record changes. Clients draw the move
+-- itself every frame (BossMove attribute), so the Body only has to be close: the prompt, streaming and the label.
+local function followBoss(id: string, key: string, wild: World.Wild)
 	task.spawn(function()
 		while true do
 			local record = records[id]
-			if not record or record.key ~= key or not record.model.Parent then
+			local move = wild.move
+			if not record or record.key ~= key or not record.model.Parent or not move or wild.position ~= nil then
 				return
 			end
-			local now = workspace:GetServerTimeNow()
-			record.model:PivotTo(bossCFrame(plan, if wild.wanderUntil then math.min(now, wild.wanderUntil) else now))
-			if wild.wanderUntil then
-				return
-			end
-			RunService.Heartbeat:Wait()
+			record.model:PivotTo(bossCFrame(move, workspace:GetServerTimeNow()))
+			task.wait(Config.BOSS.MOVE_PIVOT_INTERVAL)
 		end
 	end)
 end
@@ -788,17 +779,6 @@ end
 -- Returns false when the model couldn't be placed yet (retried next reconcile).
 local function place(world: World.World, record: Record, entry: Scene.Entry, previous: string?): boolean
 	local model = record.model
-	-- An undropped wild boss walks its BossWander plan; the client draws that walk from these (no stutter from
-	-- replication). Anything else clears them.
-	local walk = if entry.boss
-			and entry.state == "Wild"
-			and entry.wild
-			and entry.wild.position == nil
-		then entry.wild
-		else nil
-	model:SetAttribute(Constants.BOSS_WALK_SEED_ATTRIBUTE, if walk then BossWander.seed(entry.id) else nil)
-	model:SetAttribute(Constants.BOSS_WALK_AT_ATTRIBUTE, if walk then walk.spawnedAt else nil)
-	model:SetAttribute(Constants.BOSS_WALK_UNTIL_ATTRIBUTE, if walk then walk.wanderUntil else nil)
 	model:SetAttribute("OwnerUserId", entry.ownerUserId)
 	model:SetAttribute("State", entry.state)
 	model:SetAttribute("Price", entry.price)
@@ -848,14 +828,10 @@ local function place(world: World.World, record: Record, entry: Scene.Entry, pre
 		if not wild then
 			return true
 		end
-		if entry.boss and wild.position == nil then
-			-- The boss wanders round its plaza spot while it fights (no parade lane, no fountain ride) and stays
-			-- where the haul caught it.
-			local plan = bossPlan(entry.id, wild)
-			model:PivotTo(bossCFrame(plan, wild.wanderUntil or workspace:GetServerTimeNow()))
-			if wild.wanderUntil == nil then
-				followBoss(entry.id, entry.key, plan, wild)
-			end
+		if entry.boss and wild.position == nil and wild.move then
+			-- The boss moves round its plaza spot (no parade lane, no fountain ride) and stands where the haul caught it.
+			model:PivotTo(bossCFrame(wild.move, workspace:GetServerTimeNow()))
+			followBoss(entry.id, entry.key, wild)
 			return true
 		end
 		local plan = wild.returning
@@ -963,9 +939,9 @@ function WorldView.reconcile(
 			clearGhost(record)
 			record.model:Destroy()
 			records[id] = nil
-			bossPlans[id] = nil
 		end
 	end
+	table.clear(bossMoves)
 	for id, entry in entries do
 		local record: Record? = records[id]
 		local isNew = false
@@ -1011,6 +987,17 @@ function WorldView.reconcile(
 		end
 		-- Every reconcile, not only in place(): the telegraph window opens without a key change.
 		record.model:SetAttribute(Constants.DESPAWN_AT_ATTRIBUTE, entry.despawnAt)
+		-- The boss's move changes without a key change; clients draw it from this (BossChoreo).
+		local move = if entry.boss
+				and entry.state == "Wild"
+				and entry.wild
+				and entry.wild.position == nil
+			then entry.wild.move
+			else nil
+		setAttr(record.model, Constants.BOSS_MOVE_ATTRIBUTE, if move then BossChoreo.encode(move) else nil)
+		if move and entry.wild then
+			bossMoves[id] = entry.wild
+		end
 		SlimeLabelView.applyGrowth(record.model, entry.slime, now)
 		if record.key ~= entry.key then
 			local previous = if isNew then nil else record.key
@@ -1048,7 +1035,17 @@ end
 -- Server-side position of a slime's Body (for reach checks).
 function WorldView.slimePosition(id: string): Vector3?
 	local record = records[id]
-	return record and record.body.Position
+	if not record then
+		return nil
+	end
+	-- The moving boss: where its move has it now, not where the Body was last pivoted.
+	local wild = bossMoves[id]
+	local move = wild and wild.move
+	if move and wild and wild.position == nil then
+		local x, z = BossChoreo.world(move, workspace:GetServerTimeNow())
+		return Vector3.new(x, record.body.Position.Y, z)
+	end
+	return record.body.Position
 end
 
 ---------------------------------------------------------------------------
@@ -1137,6 +1134,7 @@ local function applyPrompt(prompt: ProximityPrompt?, view: PlotPrompts.Prompt, o
 end
 
 local setBarrierSolid: (Instance, number, boolean) -> ()
+local setOpenDoorSolid: (Instance, boolean) -> ()
 
 local function setIfChanged(instance: Instance, name: string, value: any)
 	if instance:GetAttribute(name) ~= value then
@@ -1227,6 +1225,15 @@ function setBarrierSolid(plot: Instance, index: number, solid: boolean)
 				end)
 			end
 		end
+	end
+end
+
+-- The open door (swung out on its hinges) is solid for everyone while the plot is open; while locked it is shut in
+-- the doorway (the LockBarrier), so its open-door collider goes.
+function setOpenDoorSolid(plot: Instance, solid: boolean)
+	local collider = plot:FindFirstChild("OpenDoorCollider")
+	if collider and collider:IsA("BasePart") and collider.CanCollide ~= solid then
+		collider.CanCollide = solid
 	end
 end
 
@@ -1349,6 +1356,7 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			setIfChanged(plot, "Rebirths", if session then session.data.rebirths else 0)
 			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
 			setBarrierSolid(plot, index, view.locked)
+			setOpenDoorSolid(plot, not view.locked)
 			setIfChanged(plot, Constants.PLOT_LOCK_COST_ATTRIBUTE, view.lockCost)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
 			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)
@@ -1387,7 +1395,10 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			end
 			local sign = plot:FindFirstChild("Sign")
 			if sign then
-				PlotSigns.apply(sign, PlotSigns.lines(index, session))
+				PlotSigns.apply(
+					sign,
+					PlotSigns.lines(index, session, if session then World.incomeOf(world, session) else nil)
+				)
 			end
 		end
 	end
@@ -1411,6 +1422,19 @@ function WorldView.pointInHomeZone(position: Vector3, plotIndex: number): boolea
 	local reachUp = zone:GetAttribute("ReachUp")
 	local top = half.Y + 8 + (if type(reachUp) == "number" then reachUp else 0)
 	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
+end
+
+-- The player's character root in plot `plotIndex`'s plot-local frame, y on WorldLayout.floorTop's scale (the Base's
+-- top is PLOT_FLOOR_TOP), or nil without a character or plot.
+function WorldView.plotPoint(userId: number, plotIndex: number): { number }?
+	local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
+	local plot = WorldView.plot(plotIndex)
+	local base = plot and plot:FindFirstChild("Base")
+	if not (root and base and base:IsA("BasePart")) then
+		return nil
+	end
+	local p = base.CFrame:PointToObjectSpace(root.Position)
+	return { p.X, p.Y - base.Size.Y / 2 + WorldLayout.PLOT_FLOOR_TOP, p.Z }
 end
 
 -- Drop tube (CONTRACT.md §5.3): puts the player's character in plot `plotIndex`'s splash pool, still. False when

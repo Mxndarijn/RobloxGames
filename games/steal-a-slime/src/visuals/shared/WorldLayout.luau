@@ -233,6 +233,9 @@ WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
 -- degree swing would reach past it; much more than 130 runs it into the glass and the rebirth banner). hinge = the pin's
 -- plot x and its z offset from the shut door's inner face (the door is 1 stud thick, the pin in its middle).
 WorldLayout.DOOR_SWING = table.freeze({ hinge = { -4.75, -0.5 }, angle = 130 })
+-- The round door's disc (the goo_jar_stopper mesh's door: radius and thickness) and how far its OpenDoorCollider's
+-- hinge edge stays off the hinge pin, so the open door's collider never pokes onto the bridge.
+WorldLayout.DOOR_DISC = table.freeze({ radius = 4.6, thickness = 1, hingeClear = 1.3 })
 WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
 -- DEX_FACE = the front cream panel of phoenix_top_earners_board (the plaza
 -- Top Earners board's skin) at native size, measured on
@@ -1076,6 +1079,42 @@ function WorldLayout.doorway(): { size: Vec, centre: Vec, halfWidth: number, zOu
 	}
 end
 
+export type DoorSwing = {
+	shut: Vec, -- the goo_jar_stopper mesh's anchor (bottom of its inner face) with the door shut in the doorway
+	open: Vec, -- the same anchor with the door swung DOOR_SWING.angle out of the jar round its hinge pin
+	-- The open door's collider: a Roblox cylinder (its axis along the part's X) of `diameter` and `thickness` at
+	-- `centre`, turned `yaw` degrees (plot-local) so its axis is the swung door's normal.
+	collider: { centre: Vec, yaw: number, diameter: number, thickness: number },
+}
+
+-- Jar 1's round door, shut and swung open round its hinge pin (plot-local).
+function WorldLayout.doorSwing(): DoorSwing
+	local plate, swing = WorldLayout.DOOR_DISC, WorldLayout.DOOR_SWING
+	local doorY = WorldLayout.floorTop(1) + WorldLayout.DOOR.height / 2 + 0.1 - plate.radius
+	local doorZ = WorldLayout.doorway().zOuter + 0.9
+	local hx, hz = swing.hinge[1], doorZ + swing.hinge[2]
+	local t = math.rad(swing.angle)
+	-- turned round the pin: plot-local (dx, dz) from the pin goes to (dx cos t + dz sin t, -dx sin t + dz cos t)
+	local function turn(dx: number, dz: number): (number, number)
+		return hx + dx * math.cos(t) + dz * math.sin(t), hz - dx * math.sin(t) + dz * math.cos(t)
+	end
+	local ox, oz = turn(-hx, doorZ - hz)
+	-- the collider: the door's disc trimmed at its hinge edge (hingeClear off the pin), centred on the door's middle
+	local far = -hx + plate.radius -- the door's far edge, out from the pin
+	local diameter = far - plate.hingeClear
+	local cx, cz = turn(plate.hingeClear + diameter / 2, 0)
+	return {
+		shut = { 0, doorY, doorZ },
+		open = { ox, doorY, oz },
+		collider = {
+			centre = { cx, doorY + plate.radius, cz },
+			yaw = swing.angle - 90,
+			diameter = diameter,
+			thickness = plate.thickness,
+		},
+	}
+end
+
 -- The floor (jar) whose storey holds plot-local height y, clamped to the tower.
 function WorldLayout.floorAt(y: number): number
 	return math.clamp(
@@ -1515,6 +1554,13 @@ function WorldLayout.dropLanding(): Vec
 	return { x, WorldLayout.PLOT_FLOOR_TOP + 3, z }
 end
 
+-- The plot-local angles of the glass segments either side of the drop hatch (the DropShield's segments).
+function WorldLayout.dropShieldAngles(): { number }
+	local step = 360 / WorldLayout.JAR_WALL_SEGMENTS
+	local below = WorldLayout.DOOR.angle + math.floor((WorldLayout.DROP_ANGLE - WorldLayout.DOOR.angle) / step) * step
+	return { below, below + step }
+end
+
 -- Upper jar f (2..#BASE_FLOORS) of plot i, as the nodes the server adds under Plot_<i>: a Floor_<f> Model (deck,
 -- glass wall, the stair up from floor f - 1, the lid, the drop-tube hatch) and the jar's Pad_<j>.
 function WorldLayout.floor(i: number, f: number): { WorldNode }
@@ -1545,6 +1591,21 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 	hatch.color = JAR_CORK
 	hatch.material = "Wood"
 	table.insert(children, hatch)
+	-- The DropShield: invisible, never collides, but queryable, just outside the glass segments either side of the
+	-- hatch, so the DropPrompt's line of sight is blocked from outside the jar (glass never blocks prompts) and only
+	-- a player inside sees "Drop down". It covers the ledge round the glass on this floor's deck within the prompt's
+	-- reach.
+	for k, deg in WorldLayout.dropShieldAngles() do
+		local n = WorldLayout.JAR_WALL_SEGMENTS
+		local r = WorldLayout.jarWallRadius(f) + WorldLayout.JAR_WALL
+		local width = 2 * r * math.tan(math.pi / n) + 0.3
+		local h = WorldLayout.FLOOR_HEIGHT - 1
+		local shield = radial(`DropShield_{k}`, { width, h, 0.2 }, r, deg, WorldLayout.floorTop(f) + h / 2, at, yaw)
+		shield.canCollide = false
+		shield.canTouch = false
+		shield.transparency = 1
+		table.insert(children, shield)
+	end
 	-- The goo tube (decor, never collides): an arm from the hatch out through the glass, and this floor's length of
 	-- the upright tube down to the next arm below (floor 2's reaches the ground and its splash pool).
 	local tube = WorldLayout.DROP_TUBE
@@ -1668,17 +1729,29 @@ local function plot(i: number): WorldNode
 	ringAttrs.MeshTint = true
 	ring.attributes = ringAttrs
 	table.insert(children, ring)
-	local dz = WorldLayout.doorway().zOuter + 0.6
-	local dy = WorldLayout.DOOR.height / 2 + 0.1
-	local doorY, doorZ = f1 + dy - 4.6, dz + 0.3
-	table.insert(children, jarLook("StopperShut", "goo_jar_stopper", { 0, doorY, doorZ }, at, yaw))
+	local door = WorldLayout.doorSwing()
+	table.insert(children, jarLook("StopperShut", "goo_jar_stopper", door.shut, at, yaw))
 	-- open: the same door swung out of the jar round its hinge pin (DOOR_SWING)
-	local swing = WorldLayout.DOOR_SWING
-	local hx, hz = swing.hinge[1], doorZ + swing.hinge[2]
-	local t = math.rad(swing.angle)
-	local ax, az = -hx, doorZ - hz
-	local open = { hx + ax * math.cos(t) + az * math.sin(t), doorY, hz - ax * math.sin(t) + az * math.cos(t) }
-	table.insert(children, jarLook("StopperParked", "goo_jar_stopper", open, at, yaw, swing.angle))
+	table.insert(
+		children,
+		jarLook("StopperParked", "goo_jar_stopper", door.open, at, yaw, WorldLayout.DOOR_SWING.angle)
+	)
+	-- The open door's collider: solid while the plot is open (the server turns it off while locked, when the door is
+	-- shut), for everyone, the owner too; never queried, so it blocks no prompt or raycast.
+	local c = door.collider
+	local collider = block(
+		"OpenDoorCollider",
+		{ c.thickness, c.diameter, c.diameter },
+		at(c.centre),
+		JAR_CORK,
+		"Wood",
+		{ 0, yaw + c.yaw, 0 }
+	)
+	collider.shape = "Cylinder"
+	collider.transparency = 1
+	collider.canQuery = false
+	collider.canTouch = false
+	table.insert(children, collider)
 
 	local vat = WorldLayout.VAT_SPOT
 	local vx, vz = polar(vat.radius, vat.angle)

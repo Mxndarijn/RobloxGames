@@ -9,8 +9,8 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
 | Phase | Lasts | What happens |
 |---|---|---|
 | `"warning"` | `BOSS.WARNING_SECONDS` | Server-wide Notify (heads-up) and `State.boss.phase = "warning"`. No model yet. |
-| `"fight"` | up to `BOSS.FIGHT_SECONDS` | A wild slime with `boss = true` wanders the boss area round the plaza boss spot (below), `BOSS.SCALE` x its size, prompt disabled. Bat hits fill the goo meter. |
-| `"haul"` | up to `BOSS.HAUL_SECONDS` | The boss stops where it stood and pops to carry size (scale 1, prompt "Grab", hold 0). Carried through `Carry` like a wild slime. |
+| `"fight"` | up to `BOSS.FIGHT_SECONDS` | A wild slime with `boss = true` drops onto the plaza boss spot and moves round the boss area (Moves, below), `BOSS.SCALE` x its size, prompt disabled. Bat hits fill the goo meter. |
+| `"haul"` | up to `BOSS.HAUL_SECONDS` | The boss stops where it stood (move `down`) and shrinks to carry size over `BOSS.SHRINK_SECONDS`; then scale 1, prompt "Grab", hold 0. Carried through `Carry` like a wild slime. |
 | `"won"` / `"failed"` | `BOSS.LINGER_SECONDS` | Result shown in `State.boss`, then the event clears. |
 
 - **Schedule (`server/BossEvent`).** The first boss arrives `BOSS.FIRST_AT` after server start, then every
@@ -25,16 +25,23 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
   seconds it drains `BOSS.DRAIN_PER_SECOND` of the target per second. Every player's points are kept (they never drain).
   Each `BOSS.SHED_EVERY` of the meter crossed for the first time sheds `BOSS.SHED_COUNT` wild slimes (luck
   `BOSS.DROP_LUCK`, outside the wild cap). The full meter starts the haul.
-- **Wander (`Shared.BossWander`, pure).** In the fight the boss walks laps of one smooth loop without stopping, at
-  `BOSS.WANDER_SPEED` (it speeds up from a stand over its first second), in a direction seeded per boss. The loop is a
-  racetrack laid along the boss area's strip: two long sides half a track width either side of the strip's (smoothed)
-  middle, joined by round ends as wide as the track, so it never stops, snaps round or turns on the spot. It starts at
-  the loop point nearest the boss spot. The boss area is the plaza inside the parade lane, within `BOSS.WANDER_ARC`
-  radians either side of `BOSS.SPOT_ANGLE`: its Body (radius `SLIME_BASE_DIAMETER x MAX_SIZE x BOSS.SCALE / 2`) outside
-  the landing ring (`Fountain.LANDING_RING_OUTER`), its centre at least `BOSS.WANDER_CLEARANCE` from the lane's edge
-  and the goo drain's lip. Every point of the loop is in the area.
+- **Area (`Shared.BossArea`, pure).** The plaza inside the parade lane, within `BOSS.WANDER_ARC` radians either side of
+  `BOSS.SPOT_ANGLE`: its Body (radius `SLIME_BASE_DIAMETER x MAX_SIZE x BOSS.SCALE / 2`) outside the landing ring
+  (`Fountain.LANDING_RING_OUTER`), its centre at least `BOSS.WANDER_CLEARANCE` from the lane's edge and the goo drain's
+  lip. It is a long, thin strip round the fountain. Every point of every move is in it.
+- **Moves (`Shared.BossChoreo`, pure).** The boss moves one move at a time; `server/BossEvent` picks the next one when
+  the last ends, starting at that end time (no gap), from where the players near it (`BossEvent.ENGAGE_RADIUS`) stand:
+  - `arrive`: drops onto the boss spot from `BOSS.ARRIVE_HEIGHT` over `BOSS.ARRIVE_FALL`, splats (`ARRIVE_SECONDS`).
+  - `stroll`: a straight walk `BOSS.STROLL_MIN..STROLL_MAX` studs along the strip at `BOSS.STROLL_SPEED`, easing in
+    and out over `BOSS.STROLL_EASE`; with chance `BOSS.STROLL_TOWARD` it heads for the players' middle.
+  - `look`: stands `BOSS.LOOK_SECONDS` and turns to the nearest player.
+  - `windup` / `attack` / `dazed` / `rise` / `land`: the attacks (below).
+  - `down`: the meter filled; it stands where it was while it shrinks.
+  A move is: number, kind, slot, start time, length, start and end spot (plaza coordinates round the fountain centre),
+  end heading, and the plaza origin in world studs. Hits, the Body and every client use the same pose from server time.
 - **Hits.** The Bat (`BatTool.swing`, no remote): a carrying thief or boss carrier in reach is tried first (the slap);
-  otherwise the boss in the fight phase is hit when its Body is within `BOSS.HIT_REACH` and in front (`BatRules`).
+  otherwise the boss in the fight phase is hit when its move's pose is within `BOSS.HIT_REACH` and in front
+  (`BatRules`).
 - **Haul.** For the first `BOSS.PRIORITY_SECONDS` only the top contributor may grab it (if still on the server); then
   anyone. The carrier walks at `BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW)`: no Speed Coil, no Strong Arms
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
@@ -120,19 +127,20 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 
 `FIRST_AT INTERVAL WARNING_SECONDS RAIN_GAP SKIP_DELAY FIGHT_SECONDS HAUL_SECONDS LINGER_SECONDS PRIORITY_SECONDS
 POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT DROP_LUCK CARRY_SLOW
-SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_SPEED WANDER_CLEARANCE ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK
-WIN_SHARE`, and the badge list `Config.BOSS_BADGES`. Values live in `Config.luau` only.
+SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_CLEARANCE STROLL_* LOOK_SECONDS ARRIVE_* WINDUP_SECONDS CHARGE_EASE
+STRIKE_SECONDS RING_DELAY SPIT_FLIGHT DAZED_SECONDS RISE_* LAND_SECONDS GUARD_SECONDS SHRINK_SECONDS
+MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK WIN_SHARE`, and the badge list `Config.BOSS_BADGES`.
+Values live in `Config.luau` only.
 
 ## World / Scene
 
-- `world.boss: BossEvent? = { fight: BossFight.State, slimeId: string? }`, `world.bossIndex` (rotation position).
-- `Wild.wanderUntil: number?` on the boss slime: the server time the haul started (`BossEvent`); its wander pose is
-  frozen there.
-- `Scene.Entry.bossScale` (`BOSS.SCALE` in the fight phase, else nil = 1) and `promptEnabled` only in the haul phase.
-  WorldView walks an undropped boss along its `BossWander` plan (seeded from the slime id, starting at its arrival) every
-  frame of the fight and leaves it at the pose of `wanderUntil` in the haul; never on the parade lane or the fountain
-  ride. The model keeps attribute `Boss = true`.
-- While it walks (undropped, wild) the model also carries `BossWalkSeed` (`BossWander.seed` of its id), `BossWalkAt`
-  (its arrival, server time) and `BossWalkUntil` (the haul start, nil while it fights); any other state clears them. The
-  client builds the same plan and draws the pose at `GetServerTimeNow` every frame, so the walk runs at frame rate,
-  not at replication rate.
+- `world.boss: BossEvent? = { fight: BossFight.State, slimeId: string?, lastStepAt, rng }`, `world.bossIndex`
+  (rotation position). `rng` is the boss's own (where it strolls), so the fountain's sequence never shifts.
+- `Wild.move: BossChoreo.Move?` on the boss slime: its current move.
+- `Scene.Entry.bossScale` (`BOSS.SCALE` in the fight phase and the haul's first `BOSS.SHRINK_SECONDS`, else nil = 1)
+  and `promptEnabled` only in the haul phase after the shrink (`Carry.grab` refuses during it too). Never on the parade
+  lane or the fountain ride. The model keeps attribute `Boss = true`.
+- While it is wild and undropped the model carries `BossMove` (`BossChoreo.encode` of its move); anything else clears
+  it. The server pivots the Body to the move's pose every `BOSS.MOVE_PIVOT_INTERVAL` (the prompt, streaming, the label);
+  clients draw the move itself every frame: the life rig (`SlimeActor`, with the species gait, the boss always has a
+  rig) or, without one, the visuals client's pivot. Nothing on the client pushes the boss aside.
