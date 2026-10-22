@@ -35,6 +35,12 @@ function Leaderboard.storeValue(data: PlayerData.Data): number
 	return math.clamp(math.floor(data.totalEarned), 0, Leaderboard.MAX_VALUE)
 end
 
+-- Whether a save should also write the board: only a save that went through (a failed or lost-session one would
+-- rank stale progress over the live session's), not a read-only session's, and only when the value moved.
+function Leaderboard.shouldWrite(saved: boolean, readOnly: boolean, lastWritten: number?, value: number): boolean
+	return saved and not readOnly and lastWritten ~= value
+end
+
 -- "u_123" -> 123
 function Leaderboard.userIdFromKey(key: any): number?
 	if type(key) ~= "string" then
