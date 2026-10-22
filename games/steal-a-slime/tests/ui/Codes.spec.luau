@@ -57,4 +57,44 @@ describe("Codes panel", function()
 		expect(string.find(chip.Text, "income", 1, true) ~= nil).toBe(true)
 		expect(UiHarness.find(panel.frame, "BoostIcon").Visible).toBe(true)
 	end)
+	it("a refused code turns the box's outline pink and says why under it, until the box is edited again", function()
+		local Theme = UiHarness.ui("Widgets").Theme
+		local Codes = UiHarness.ui("Panels/Codes")
+		local asked = {}
+		local ctx: any = {
+			Config = Config,
+			send = function() end,
+			ask = function(action: string, done: any, ...: any)
+				table.insert(asked, { action = action, done = done, args = { ... } })
+			end,
+			serverNow = function()
+				return 0
+			end,
+		}
+		local panel = Codes.new(UiHarness.root(), ctx)
+		panel.update({ codes = { redeemed = 0, boostMult = 1, boostEndsAt = 0 } })
+		local box = UiHarness.find(panel.frame, "CodeBox")
+		local redeem = UiHarness.find(panel.frame, "RedeemButton")
+		local buttonY = redeem.Position.Y.Offset
+		box.Text = "SLIMEBOOST"
+		UiHarness.fire(redeem, "Activated")
+		expect(asked[1].action).toBe("Redeem")
+		expect(asked[1].args[1]).toBe("SLIMEBOOST")
+		asked[1].done({ ok = false, message = "You already used that code" })
+		local err = UiHarness.find(panel.frame, "Error")
+		expect(err.Visible).toBe(true)
+		expect(err.Text).toBe("You already used that code.")
+		expect(err.TextColor3).toBe(Theme.Bad)
+		expect(box:FindFirstChildOfClass("UIStroke").Color).toBe(Theme.Bad)
+		expect(redeem.Position.Y.Offset > buttonY).toBe(true) -- the line pushes the rows down, nothing overlaps
+		UiHarness.fire(box, "Focused")
+		expect(err.Visible).toBe(false)
+		expect(box:FindFirstChildOfClass("UIStroke").Color).toBe(Theme.Ink)
+		expect(redeem.Position.Y.Offset).toBe(buttonY)
+	end)
+	it("errorText makes the server's reason a sentence, with a fallback", function()
+		local Codes = UiHarness.ui("Panels/Codes")
+		expect(Codes.errorText({ ok = false, message = "That code has expired" })).toBe("That code has expired.")
+		expect(Codes.errorText({ ok = false })).toBe("That code doesn't work.")
+	end)
 end)

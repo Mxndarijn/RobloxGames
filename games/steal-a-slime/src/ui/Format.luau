@@ -78,4 +78,22 @@ function Format.progress(startedAt: number, endsAt: number, now: number): number
 	return math.clamp((now - startedAt) / span, 0, 1)
 end
 
+-- "Mushroom Meadow" -> "Mushroom meadow" for a title or label (the writing rule: sentence case). Only a
+-- plain capitalised word after the first is lowered; "SlimeDex", "XP" and numbers stay as they are.
+function Format.sentenceCase(text: string): string
+	local first = true
+	return (
+		string.gsub(text, "%S+", function(word: string): string
+			if first then
+				first = false
+				return word
+			end
+			if string.match(word, "^%u%l+%p?$") then
+				return string.lower(string.sub(word, 1, 1)) .. string.sub(word, 2)
+			end
+			return word
+		end)
+	)
+end
+
 return table.freeze(Format)

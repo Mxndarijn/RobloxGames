@@ -148,6 +148,53 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 	}
 end
 
+-- "a Flan", "an Imp".
+local function withArticle(name: string): string
+	return (if string.match(name, "^[AEIOUaeiou]") then "an " else "a ") .. name
+end
+
+-- "x", "x and y", "x, y and z".
+local function joinAnd(items: { string }): string
+	if #items <= 1 then
+		return items[1] or ""
+	end
+	return `{table.concat(items, ", ", 1, #items - 1)} and {items[#items]}`
+end
+
+-- "a Flan", "a Flan and an Imp", "a Zap, an Imp and an Octo".
+function Progress.slimeList(needs: { SlimeNeed }): string
+	local names = {}
+	for _, need in needs do
+		table.insert(names, withArticle(need.name))
+	end
+	return joinAnd(names)
+end
+
+-- What the disabled Rebirth well says is missing: "Need $178.8K more" (cash only), "Need a Flan" (slimes
+-- only), "Need $15.5M and a Flan" or "Need $15.5M, a Flan and an Imp" (both), "All rebirths done" at the top. "" once it is ready.
+function Progress.rebirthReason(nextUp: NextRebirth): string
+	if nextUp.maxed then
+		return "All rebirths done"
+	end
+	if nextUp.ready then
+		return ""
+	end
+	local short = math.max(0, nextUp.cost - nextUp.have)
+	local slimes = Progress.slimeList(nextUp.missing)
+	if short > 0 and slimes ~= "" then
+		local items = { Format.formatCash(short) }
+		for _, need in nextUp.missing do
+			table.insert(items, withArticle(need.name))
+		end
+		return `Need {joinAnd(items)}`
+	elseif slimes ~= "" then
+		return `Need {slimes}`
+	elseif short > 0 then
+		return `Need {Format.formatCash(short)} more`
+	end
+	return "Not ready yet" -- every need met but the server has not said so yet
+end
+
 -- State.dex (CONTRACT.md §36.4): species found over the 50 entries, and per rarity (event Secrets are bonus
 -- entries and count nowhere here).
 function Progress.dex(dex: any, tierNames: { string }): DexProgress
