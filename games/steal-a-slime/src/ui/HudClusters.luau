@@ -12,6 +12,7 @@
 	           time left;
 	    Friend the friend income bonus ("+10%", no timer);
 	    Blessed the co-op ritual's Blessed income bonus (State.blessed) with the time left;
+	    Mvp     the Boss MVP income boost (State.mvpBoost) with the time left;
 	    Pet    the follow pet's perk (State.petPerk: "+3%", no timer) while the favourite rides along on its cloud;
 	    Secret this week's featured event Secret (State.featuredSecret) with the time until it rotates ("4h 6m").
 	  The row has Layout.STATUS.count places, fewer than there are slots: the week-long Secret makes way
@@ -29,7 +30,7 @@ local RainTimer = if script then require(script.Parent.RainTimer) else require("
 
 export type Money = { cash: string, income: string, rebirths: string, rebirthCount: string, multiplier: string }
 export type Slot = {
-	id: string, -- "Rain" | "Event" | "Friend" | "Blessed" | "Pet" | "Secret"
+	id: string, -- "Rain" | "Event" | "Friend" | "Blessed" | "Mvp" | "Pet" | "Secret"
 	icon: string, -- ItemIcons id
 	text: string, -- the timer, or "+10%"
 	kind: string, -- "active" | "soon" | "boost" | "pet" | "week"
@@ -44,10 +45,12 @@ export type Inputs = {
 	friends: FriendBadge.View?,
 	friendsEnabled: boolean,
 	blessed: Blessed?,
+	mvpBoost: Blessed?,
 	petPerk: PetPerk?,
 	featuredSecret: FeaturedSecret?,
 }
--- State.blessed: the ritual's Blessed income bonus, `endsAt` in server time.
+-- State.blessed: the ritual's Blessed income bonus, `endsAt` in server time. State.mvpBoost (the Boss MVP boost) has
+-- the same shape.
 export type Blessed = { bonus: number, endsAt: number }
 -- State.petPerk: the favourite follow pet's passive (Perks.petPassive), `value` 0.03 = +3 %.
 export type PetPerk = { kind: string, value: number, icon: string, text: string }
@@ -57,7 +60,7 @@ export type FeaturedSecret = { id: string, name: string, endsAt: number }
 local HudClusters = {}
 
 -- Slot ids in display order, left to right (Layout.STATUS_SLOTS).
-HudClusters.STATUS_IDS = table.freeze({ "Rain", "Event", "Friend", "Blessed", "Pet", "Secret" })
+HudClusters.STATUS_IDS = table.freeze({ "Rain", "Event", "Friend", "Blessed", "Mvp", "Pet", "Secret" })
 
 HudClusters.ICONS = table.freeze({
 	Cash = "Cash",
@@ -66,6 +69,7 @@ HudClusters.ICONS = table.freeze({
 	Rain = "Event_rain",
 	Friend = "FriendBoost",
 	Blessed = "Boost_Blessed",
+	Mvp = "Boost_Mvp",
 	Pet = "Pet",
 	Secret = "Badge_FirstSecret",
 })
@@ -180,6 +184,19 @@ function HudClusters.blessed(view: Blessed?, now: number): Slot?
 	}
 end
 
+-- The Boss MVP slot (State.mvpBoost); nil when absent, malformed or over.
+function HudClusters.mvp(view: Blessed?, now: number): Slot?
+	local slot = HudClusters.blessed(view, now)
+	if not slot or type(view) ~= "table" then
+		return nil
+	end
+	slot.id = "Mvp"
+	slot.icon = HudClusters.ICONS.Mvp
+	slot.name = "Boss MVP"
+	slot.effect = `+{math.floor(view.bonus * 100 + 0.5)}% income for landing the most hits on a boss.`
+	return slot
+end
+
 -- The follow pet's perk slot; nil without a favourite, an unknown kind or a malformed value.
 function HudClusters.pet(view: PetPerk?): Slot?
 	if type(view) ~= "table" or type(view.value) ~= "number" or view.value ~= view.value or view.value <= 0 then
@@ -241,6 +258,10 @@ function HudClusters.status(input: Inputs, now: number, places: number): { Slot 
 	local blessed = HudClusters.blessed(input.blessed, now)
 	if blessed then
 		table.insert(out, blessed)
+	end
+	local mvp = HudClusters.mvp(input.mvpBoost, now)
+	if mvp then
+		table.insert(out, mvp)
 	end
 	local pet = HudClusters.pet(input.petPerk)
 	if pet then

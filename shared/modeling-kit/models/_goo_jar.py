@@ -19,16 +19,33 @@ KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(os.path.join(KIT, "inputs", "goo_jar_dims.json")) as fh:
     D = json.load(fh)
 
-P = PALETTE
-WOOD, WOOD_D, CREAM = P["ranch_wood"], P["ranch_wood_dark"], P["ranch_cream"]
-GOO, GOO_HI, METAL = P["ranch_goo"], P["ranch_goo_hi"], P["ranch_metal"]
-PINK, LILAC, BUTTER = P["ranch_pink"], P["ranch_lilac"], P["ranch_butter"]
-PATH = P["ranch_path"]
-GLASS = rgb(200, 240, 244)
-CORK = rgb(214, 170, 116)
-RED = rgb(240, 70, 60)
-TRIM = mix(LILAC, CREAM, 0.15)
+from models._goo_jar_themes import BUILT_THEMES, THEMES
+
+RED = rgb(240, 70, 60)  # the lock button: a gameplay signal, the same in every theme
 EYE_W, EYE_D = rgb(246, 250, 250), rgb(56, 42, 38)
+
+
+def set_theme(theme_id):
+    """Build every piece from here on in theme `theme_id` (models/_goo_jar_themes.py): the builders read these colours
+    when they run, so one process can build several themes (models/_goo_jar_bounds.py does)."""
+    global THEME_ID, THEME, WOOD, WOOD_D, CREAM, GOO, GOO_HI, METAL, PINK, LILAC, BUTTER, PATH, GLASS, CORK, SAND
+    global STRIPE, LEAVES, ICICLES, GREEN, BUDS, TRIM
+    THEME_ID, THEME = theme_id, THEMES[theme_id]
+    t = THEME
+    WOOD, WOOD_D, CREAM = t["wood"], t["wood_d"], t["cream"]
+    GOO, GOO_HI, METAL = t["goo"], t["goo_hi"], t["metal"]
+    PINK, LILAC, BUTTER = t["pink"], t["lilac"], t["butter"]
+    PATH, GLASS, CORK, SAND = t["path"], t["glass"], t["cork"], t["sand"]
+    STRIPE = t.get("stripe")  # a second rib colour: the ribs come out striped
+    LEAVES = t.get("leaves")  # leaf colour: the ribs become leafy vines
+    ICICLES = t.get("icicles", False)  # icicles hang from the lids
+    GREEN = LEAVES or PALETTE["ranch_field_light"]  # stems and bushes on the props
+    BUDS = t.get("buds")  # colours of little buds (flowers, sparkles) dotted up the ribs
+    TRIM = mix(LILAC, CREAM, 0.15)
+
+
+# The theme every piece is built in (default the tower as built).
+set_theme(os.environ.get("JAR_THEME", "classic"))
 
 FLOOR_H = D["floorHeight"]
 FLOORS = len(D["floors"])
@@ -149,7 +166,59 @@ def ooze(name, r, z_rim, thick, drops, seed):
         a = rr.uniform(0, math.tau)
         out += teardrop(f"{name}Drop{k}", (r + thick * 0.35) * math.cos(a), (r + thick * 0.35) * math.sin(a), z_rim - thick * 0.3,
                         rr.uniform(1.0, 2.6), thick)
+    if ICICLES:
+        ri = random.Random(seed + 500)
+        ice = mix(GOO_HI, CREAM, 0.5)
+        for k in range(drops * 3):
+            a, h = ri.uniform(0, math.tau), ri.uniform(1.5, 4.0)
+            x, y = (r + thick * 0.2) * math.cos(a), (r + thick * 0.2) * math.sin(a)
+            out.append(painted(cylinder(f"{name}Icicle{k}", 0.03, h, (x, y, z_rim - thick * 0.2 - h), ice, segs=6, r_top=0.45),
+                               GOO_HI, ice))
     return out
+
+
+def resample(pts, step):
+    """The polyline `pts` re-cut into points about `step` apart (keeping its ends)."""
+    out = [Vector(pts[0])]
+    for a, b in zip(pts, pts[1:]):
+        a, b = Vector(a), Vector(b)
+        n = max(1, round((b - a).length / step))
+        out += [a.lerp(b, i / n) for i in range(1, n + 1)]
+    return [tuple(p) for p in out]
+
+
+def rib(name, pts):
+    """One rib up the jar: a brass bar, striped in two colours (STRIPE) or a leafy vine (LEAVES) in some themes, with
+    buds (BUDS: flowers, sparkles) dotted up it."""
+    out = bar(name, pts)
+    if BUDS:
+        dense = resample(pts, 1.0)
+        for i in range(2, len(dense) - 1, 3):
+            # on the rib's sides, left and right in turn: the piece keeps its classic box (models/_goo_jar_bounds.py)
+            p = Vector(dense[i])
+            side = Vector((-p.y, p.x, 0)).normalized() * (0.32 if (i // 3) % 2 == 0 else -0.32)
+            out.append(blob(f"{name}Bud{i}", 0.3, tuple(p + side), BUDS[(i // 3) % len(BUDS)], subdiv=1, jitter=0, seed=i))
+    return out
+
+
+def bar(name, pts):
+    if STRIPE:
+        dense = resample(pts, 1.2)
+        return [tube(f"{name}_{i}", dense[i:i + 2], [0.35, 0.35], METAL if i % 2 == 0 else STRIPE, segs=6)
+                for i in range(len(dense) - 1)]
+    if LEAVES:
+        dense = resample(pts, 1.0)
+        out = [painted(tube(name, dense, [0.3] * len(dense), METAL, segs=6, seed=len(name), jitter=0.06), shade(METAL, 0.85), METAL)]
+        for i in range(1, len(dense) - 1, 2):
+            p, q = Vector(dense[i]), Vector(dense[i + 1])
+            out_dir = Vector((p.x, p.y, 0)).normalized()
+            along = (q - p).normalized()
+            side = along.cross(out_dir).normalized() * (0.45 if i % 4 == 1 else -0.45)
+            c = p + out_dir * 0.25 + side
+            deg = math.degrees(math.atan2(out_dir.y, out_dir.x))
+            out.append(blob(f"{name}Leaf{i}", 0.55, tuple(c), LEAVES, subdiv=1, squash=(0.35, 1.0, 0.6), jitter=0, rot=(0, 0, deg)))
+        return out
+    return [tube(name, pts, [0.35] * len(pts), METAL, segs=6)]
 
 
 # --- Pieces --------------------------------------------------------------------------------------------------------
@@ -193,7 +262,7 @@ def jar_trim(f, top, crown=False):
             # radius, so the brass bars run unbroken up the tower
             ru = radius(f + 1) + 0.18
             pts += [(x * ru, y * ru, pts[-1][2] + 0.3), (x * ru, y * ru, FLOOR_H + 0.25)]
-        out.append(tube(f"Rib{k}", pts, [0.35] * len(pts), METAL, segs=6))
+        out += rib(f"Rib{k}", pts)
     lip_top = nz + (LIP if top else 0.0)
     for k in range(2):
         # brass rings round the neck: hollow, or under a covered jar they would read as a solid floor through the
@@ -263,9 +332,8 @@ def jar_foot():
     a stud thick, so feet hardly sink in."""
     r1, m = radius(1), D["moat"]
     edge = D["plotFloorRadius"]
-    sand = rgb(232, 214, 178)
-    out = [painted(lathe("Sand", [(edge, -1.0), (edge, 0.0), (edge - 0.4, 0.06), (m["outer"] - 0.2, 0.06)], sand, double=False),
-                   shade(sand, 0.82), sand),
+    out = [painted(lathe("Sand", [(edge, -1.0), (edge, 0.0), (edge - 0.4, 0.06), (m["outer"] - 0.2, 0.06)], SAND, double=False),
+                   shade(SAND, 0.82), SAND),
            painted(lathe("Rim", [(edge + 0.05, -0.15), (edge + 0.05, 0.12), (edge - 0.5, 0.12)], WOOD_D, double=False), shade(WOOD_D, 0.85), WOOD_D)]
     out.append(painted(cylinder("Foot", m["inner"], 0.3, (0, 0, 0), WOOD, segs=SEGS), shade(WOOD, 0.85), WOOD))
     out.append(painted(lathe("MoatBed", [(m["outer"], 0.0), (m["outer"], 0.06), (m["inner"], 0.06)], shade(PATH, 0.95), double=False)))
@@ -565,9 +633,161 @@ def crown():
     return out
 
 
+# --- Theme extras (concept: one more mesh per theme, placed on the plot floor / on the mascot) ---------------------
+PROP_ANGLES = (-45, -10, 25, 112, 150, 190, 228)  # round the foot, clear of the door (-90) and the drop tube (dropAngle)
+
+
+def theme_props():
+    """The theme's props on the ring between jar 1's glass and the moat (plot-local, floor 1 at z = 0): lollipops and
+    gumdrops (candy), ice crystals and snow mounds (frost), toadstools and ferns (forest). Classic has none."""
+    ring = (radius(1) + D["moat"]["inner"]) / 2 + 0.3
+    out = []
+    rr = random.Random(7)
+    for k, deg in enumerate(PROP_ANGLES):
+        a = math.radians(deg)
+        x, y = ring * math.cos(a), ring * math.sin(a)
+        n = f"Prop{k}"
+        if THEME_ID == "candy":
+            col = (PINK, BUTTER, LILAC, METAL)[k % 4]
+            h = rr.uniform(7.0, 9.0)
+            out.append(cylinder(n + "Stick", 0.3, h, (x, y, 0.2), CREAM, segs=8))
+            for j, (r, c) in enumerate(((2.4, col), (1.6, STRIPE), (0.8, col))):
+                out.append(blob(f"{n}Pop{j}", r, (x, y, h + 1.6), c, subdiv=2, squash=(1, 0.28 + 0.04 * j, 1), jitter=0, rot=(0, 0, deg + 90)))
+            for j in range(3):
+                b = a + rr.uniform(-0.12, 0.12)
+                d = ring + rr.uniform(-1.2, 1.2)
+                gc = (PINK, BUTTER, METAL, LILAC)[(k + j) % 4]
+                out.append(painted(blob(f"{n}Gum{j}", rr.uniform(0.8, 1.1), (d * math.cos(b), d * math.sin(b), 0.5), gc, subdiv=2,
+                                        squash=(1, 1, 0.85), jitter=0), shade(gc, 0.85), mix(gc, CREAM, 0.3)))
+        elif THEME_ID == "crystal":
+            ice = mix(GLASS, GOO, 0.35)
+            for j in range(4):
+                h = rr.uniform(4.0, 8.0)
+                tilt = rr.uniform(-22, 22)
+                out.append(painted(cylinder(f"{n}Shard{j}", rr.uniform(0.7, 1.1), h, (x + rr.uniform(-0.8, 0.8), y + rr.uniform(-0.8, 0.8), 0.1),
+                                            ice, segs=6, r_top=0.08, rot=(tilt, rr.uniform(-15, 15), rr.uniform(0, 60))),
+                                   shade(ice, 0.9), mix(ice, CREAM, 0.5)))
+            out.append(painted(blob(f"{n}Snow", 2.2, (x, y, 0.1), CREAM, subdiv=2, squash=(1.3, 1.0, 0.35), jitter=0.06, seed=k),
+                               mix(CREAM, GLASS, 0.6), CREAM))
+        elif THEME_ID == "garden":
+            if k % 2 == 0:  # a sunflower
+                h = rr.uniform(8.0, 10.0)
+                out.append(painted(tube(f"{n}Stem", [(x, y, 0.1), (x + 0.3, y, h * 0.5), (x, y, h)], [0.36, 0.3, 0.26], GREEN, segs=6),
+                                   shade(GREEN, 0.8), GREEN))
+                for j in range(10):
+                    pa = j * math.tau / 10
+                    tx, ty = -math.sin(a), math.cos(a)  # the flower faces out of the plot
+                    px, py, pz = x + tx * 2.0 * math.cos(pa), y + ty * 2.0 * math.cos(pa), h + 2.0 * math.sin(pa)
+                    out.append(blob(f"{n}Petal{j}", 0.75, (px, py, pz), BUTTER, subdiv=1, jitter=0))
+                out.append(blob(f"{n}Head", 1.4, (x, y, h), WOOD_D, subdiv=2, squash=(1, 0.5, 1), jitter=0.03, rot=(0, 0, deg + 90)))
+            else:  # a potted fruit bush
+                pot = THEME.get("pot", CORK)
+                out.append(painted(cylinder(f"{n}Pot", 1.3, 1.8, (x, y, 0.1), pot, segs=12, r_top=1.7), shade(pot, 0.8), pot))
+                out.append(painted(blob(f"{n}Bush", 2.0, (x, y, 3.6), GREEN, subdiv=2, squash=(1, 1, 1.05), jitter=0.08, seed=k),
+                                   shade(GREEN, 0.75), GREEN))
+                for j in range(6):
+                    fa = j * math.tau / 6 + k
+                    out.append(blob(f"{n}Fruit{j}", 0.42, (x + 1.8 * math.cos(fa), y + 1.8 * math.sin(fa), 3.4 + 0.6 * math.sin(fa * 2)),
+                                    GOO if j % 2 else PINK, subdiv=1, jitter=0))
+        elif THEME_ID == "starlight":
+            h = rr.uniform(5.5, 8.0)
+            out.append(cylinder(f"{n}Pole", 0.2, h, (x, y, 0.1), WOOD_D, segs=6))
+            tx, ty = -math.sin(a), math.cos(a)
+            out.append(blob(f"{n}Core", 0.85, (x, y, h + 0.3), BUTTER, subdiv=2, squash=(1, 1, 1), jitter=0))
+            for j in range(5):  # a five-point star facing out of the plot
+                pa = math.pi / 2 + j * math.tau / 5
+                ex, ey, ez = x + tx * 2.3 * math.cos(pa), y + ty * 2.3 * math.cos(pa), h + 0.3 + 2.3 * math.sin(pa)
+                out.append(tube(f"{n}Point{j}", [(x, y, h + 0.3), (ex, ey, ez)], [0.8, 0.08], BUTTER, segs=5))
+            out.append(painted(blob(f"{n}Orb", 0.9, (x + 1.4 * math.cos(a + 1.7), y + 1.4 * math.sin(a + 1.7), 0.8), GOO_HI, subdiv=2, jitter=0),
+                               GOO, GOO_HI))
+        elif THEME_ID == "mushroom":
+            for j, (dx, s) in enumerate(((0.0, 1.35), (1.8, 0.85))):
+                cx, cy = x + dx * math.cos(a + 1.6), y + dx * math.sin(a + 1.6)
+                cap = (BUTTER, PINK, LILAC)[(k + j) % 3]
+                h = 2.6 * s
+                out.append(painted(cylinder(f"{n}Stem{j}", 0.5 * s, h, (cx, cy, 0.1), CREAM, segs=10, r_top=0.4 * s), shade(CREAM, 0.85), CREAM))
+                out.append(painted(blob(f"{n}Cap{j}", 1.6 * s, (cx, cy, h), cap, subdiv=2, squash=(1, 1, 0.5), jitter=0), shade(cap, 0.8), cap))
+                for d in range(4):
+                    da = d * math.tau / 4 + 0.4
+                    out.append(blob(f"{n}Dot{j}{d}", 0.25 * s, (cx + 0.9 * s * math.cos(da), cy + 0.9 * s * math.sin(da), h + 0.55 * s), CREAM,
+                                    subdiv=1, squash=(1, 1, 0.5), jitter=0))
+            for j in range(3):
+                b = a + 0.25 + j * 0.08
+                out.append(blob(f"{n}Fern{j}", 1.3, ((ring + 0.6) * math.cos(b), (ring + 0.6) * math.sin(b), 0.5), LEAVES, subdiv=1,
+                                squash=(0.4, 1.0, 0.7), jitter=0.05, rot=(rr.uniform(-30, 30), 0, math.degrees(b))))
+    return out
+
+
+def mascot_hat():
+    """The theme's hat on the mascot (radius 1 like the mascot; the game scales it with the mascot): a cherry on cream
+    (candy), a knitted hat with a pompom (frost), a toadstool cap (forest). Classic has none."""
+    if THEME_ID == "candy":
+        return [blob("Cream", 0.5, (0, 0, 1.42), CREAM, subdiv=2, squash=(1, 1, 0.55), jitter=0.04),
+                blob("Cherry", 0.24, (0, 0, 1.78), mix(PINK, RED, 0.5), subdiv=2, jitter=0),
+                tube("CherryStem", [(0, 0, 1.95), (0.08, 0, 2.15), (0.22, 0, 2.3)], [0.04, 0.04, 0.03], WOOD_D, segs=5)]
+    if THEME_ID == "crystal":
+        return [painted(blob("Hat", 0.66, (0, 0, 1.3), METAL, subdiv=2, squash=(1, 1, 0.62), jitter=0), shade(METAL, 0.85), METAL),
+                cylinder("Band", 0.68, 0.16, (0, 0, 1.18), CREAM, segs=20),
+                blob("Pompom", 0.2, (0, 0, 1.74), CREAM, subdiv=2, jitter=0.08)]
+    if THEME_ID == "garden":
+        return [painted(cylinder("Brim", 0.95, 0.08, (0, 0, 1.3), BUTTER, segs=24), shade(BUTTER, 0.85), BUTTER),
+                painted(blob("Crown", 0.5, (0, 0, 1.4), BUTTER, subdiv=2, squash=(1, 1, 0.7), jitter=0), shade(BUTTER, 0.85), BUTTER),
+                cylinder("Ribbon", 0.5, 0.1, (0, 0, 1.36), PINK, segs=16),
+                blob("Flower", 0.14, (0.42, -0.25, 1.5), PINK, subdiv=1, jitter=0)]
+    if THEME_ID == "starlight":
+        return [painted(cylinder("Brim", 0.8, 0.08, (0, 0, 1.3), CORK, segs=20), shade(CORK, 0.85), CORK),
+                painted(tube("Hat", [(0, 0, 1.3), (0.05, 0, 1.8), (0.25, 0, 2.25), (0.45, 0, 2.4)], [0.55, 0.35, 0.16, 0.05], CORK, segs=12),
+                        shade(CORK, 0.85), mix(CORK, LILAC, 0.4)),
+                blob("Star", 0.13, (0.15, -0.42, 1.65), BUTTER, subdiv=1, jitter=0)]
+    if THEME_ID == "mushroom":
+        out = [painted(blob("Cap", 0.85, (0, 0, 1.38), PINK, subdiv=2, squash=(1, 1, 0.45), jitter=0), shade(PINK, 0.8), PINK)]
+        for d in range(5):
+            da = d * math.tau / 5
+            out.append(blob(f"Dot{d}", 0.12, (0.5 * math.cos(da), 0.5 * math.sin(da), 1.62), CREAM, subdiv=1, squash=(1, 1, 0.5), jitter=0))
+        return out
+    return []
+
+
 def mascot_size(version):
     """Mascot radius for a tower of `version` jars (the design: 3.4 + 1.3 per version)."""
     return D["mascot"]["base"] + D["mascot"]["grow"] * version
+
+
+def jar_pieces():
+    """Every goo jar tower game mesh: name -> builder (each models/goo_*.py script ships one of these)."""
+    pieces = {}
+    for f in (1, 2, 3):
+        pieces[f"goo_jar_glass_{f}_mid"] = lambda f=f: jar_glass(f, False)
+        pieces[f"goo_jar_trim_{f}_mid"] = lambda f=f: jar_trim(f, False)
+        pieces[f"goo_jar_glass_{f}_top"] = lambda f=f: jar_glass(f, True)
+        pieces[f"goo_jar_trim_{f}_top"] = lambda f=f: jar_trim(f, True)
+    pieces["goo_jar_glass_4_top"] = lambda: jar_glass(4, True)
+    pieces["goo_jar_trim_4_top"] = lambda: jar_trim(4, True, crown=True)
+    for f in (2, 3, 4):
+        pieces[f"goo_jar_deck_{f}"] = lambda f=f: jar_deck(f)
+    for v in (2, 3, 4):
+        pieces[f"goo_drop_tube_glass_{v}"] = lambda v=v: drop_tube_glass(v)
+        pieces[f"goo_drop_tube_goo_{v}"] = lambda v=v: drop_tube_goo(v)
+    pieces.update({
+        "goo_jar_foot": jar_foot, "goo_jar_stair": jar_stair, "goo_cork_stand": cork_stand, "goo_jar_door": jar_door,
+        "goo_jar_door_ring": jar_door_ring, "goo_jar_stopper": jar_stopper, "goo_lock_button": lock_button,
+        "goo_jar_mascot": mascot, "goo_jar_crown": crown,
+    })
+    return pieces
+
+
+# A themed tower swaps these pieces for "<name>@<theme>" (the same shape and box in the theme's colours). The glass,
+# the door ring (the game tints it) and the crown stay as they are in every theme.
+SHARED_PIECES = ("goo_jar_door_ring", "goo_jar_crown")
+
+
+def themed_pieces():
+    return sorted(n for n in jar_pieces() if "glass" not in n and n not in SHARED_PIECES)
+
+
+# A theme's extra meshes, each riding on one tower piece (the game places it from the piece's slot): the props on the
+# plot floor round jar 1, the hat on the mascot. Built round the same anchor as the piece they ride on.
+COMPANIONS = {"goo_jar_props": ("goo_jar_foot", theme_props), "goo_jar_hat": ("goo_jar_mascot", mascot_hat)}
 
 
 def ship(name, parts):

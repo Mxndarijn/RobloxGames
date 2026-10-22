@@ -339,6 +339,11 @@ RECIPES.Boost_Blessed = function(p)
 	sparkle(p, 0.84, 0.5, 0.2)
 end
 
+RECIPES.Boost_Mvp = function(p)
+	coinPile(p)
+	p:text("👑", 0.5, 0.16, 0.4, GOLD)
+end
+
 RECIPES.Boost_Weekend = function(p)
 	local colors = { RED, BLUE, GREEN, PURPLE, GOLD }
 	for i = 1, 10 do
@@ -591,6 +596,30 @@ RECIPES.PlotSkin_crystal = function(p)
 		q:shape(0.36, 0.66, 0.14, 0.32, rgb(200, 150, 255), { rot = -20, round = 0.2 })
 		q:shape(0.66, 0.68, 0.14, 0.3, rgb(120, 200, 255), { rot = 22, round = 0.2 })
 		sparkle(q, 0.8, 0.3, 0.2)
+	end)
+end
+
+RECIPES.PlotSkin_garden = function(p)
+	diorama(p, rgb(132, 190, 100), rgb(246, 236, 214), function(q)
+		q:shape(0.5, 0.62, 0.05, 0.36, rgb(110, 170, 90), { round = 0.4 })
+		for i = 0, 7 do
+			local a = i * math.pi / 4
+			q:circle(0.5 + 0.13 * math.cos(a), 0.4 + 0.13 * math.sin(a), 0.08, GOLD, { stroke = false })
+		end
+		q:circle(0.5, 0.4, 0.09, rgb(150, 100, 60), { stroke = false })
+		q:shape(0.2, 0.78, 0.16, 0.12, rgb(222, 140, 102), { round = 0.3 })
+		q:circle(0.2, 0.68, 0.1, rgb(252, 176, 118))
+		q:circle(0.82, 0.76, 0.1, rgb(250, 150, 182))
+	end)
+end
+
+RECIPES.PlotSkin_starlight = function(p)
+	diorama(p, rgb(170, 158, 216), rgb(236, 196, 104), function(q)
+		q:shape(0.5, 0.64, 0.05, 0.32, rgb(126, 114, 176), { round = 0.4 })
+		q:shape(0.5, 0.4, 0.24, 0.24, GOLD, { rot = 45, round = 0.2 })
+		q:shape(0.5, 0.4, 0.12, 0.12, rgb(255, 240, 192), { rot = 45, round = 0.2 })
+		q:circle(0.22, 0.76, 0.1, rgb(255, 240, 192))
+		q:shape(0.82, 0.3, 0.12, 0.12, GOLD, { rot = 45, round = 0.2 })
 	end)
 end
 

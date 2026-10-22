@@ -163,6 +163,11 @@ local function setLids(plot: Instance)
 				local clear = d:GetAttribute("MeshTransparency")
 				mesh.Transparency = if hidden then 1 elseif typeof(clear) == "number" then clear else 0
 			end
+			-- a plot skin's companion on the slot (the mascot's hat, MeshSwap) shows with it
+			local extra = d:FindFirstChild("ThemeExtra")
+			if extra and extra:IsA("BasePart") then
+				extra.Transparency = if hidden then 1 else 0
+			end
 		end
 	end
 end

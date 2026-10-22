@@ -16,6 +16,8 @@ local Genome = if Shared then require(Shared.Genome) else require("../shared/Gen
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local World = if script then require(script.Parent.World) else require("./World")
 
+local BOSS = Config.BOSS
+
 type World = World.World
 type Session = World.Session
 
@@ -45,8 +47,8 @@ end
 
 --[[
 	The boss `slime` of `fight` was brought home by `carrier`. Only the carrier wins: a win of that species (its boss
-	badge) and a haul. The top contributor (if still on the server) gets an MVP. The carrier and every player with at
-	least Config.BOSS.WIN_SHARE of the top hits count the species in their SlimeDex.
+	badge), a haul and the species in their SlimeDex. The top contributor (if still on the server) counts an MVP and
+	gets the Boss MVP boost: +BOSS.MVP_BONUS income for BOSS.MVP_SECONDS (data.mvpBonus, session.mvpUntil).
 ]]
 function BossCredit.win(world: World, fight: BossFight.State, carrier: Session, slime: Genome.Slime, now: number)
 	local top = BossFight.top(fight)
@@ -58,11 +60,36 @@ function BossCredit.win(world: World, fight: BossFight.State, carrier: Session, 
 		end
 		if top ~= nil and session.userId == top then
 			BossBadges.record(session.data, { kind = "mvp" })
+			session.data.mvpBonus = BOSS.MVP_BONUS
+			session.mvpUntil = now + BOSS.MVP_SECONDS
+			World.markDirty(session)
+			World.notify(
+				world,
+				session.userId,
+				`Boss MVP! +{math.floor(BOSS.MVP_BONUS * 100 + 0.5)}% income for {math.floor(
+					BOSS.MVP_SECONDS / 60 + 0.5
+				)} min`,
+				"good",
+				"Cash"
+			)
 		end
-		if isCarrier or BossFight.share(fight, session.userId) >= Config.BOSS.WIN_SHARE then
+		if isCarrier then
 			PlayerData.discover(session.data, slime)
 		end
 		BossCredit.grant(world, session, now)
+	end
+end
+
+-- Ends every Boss MVP boost that has run out by `now`. Call every step (GameLoop).
+function BossCredit.expire(world: World, now: number)
+	for _, session in world.sessions do
+		local untilAt = session.mvpUntil
+		if untilAt and now >= untilAt then
+			session.mvpUntil = nil
+			session.data.mvpBonus = nil
+			World.markDirty(session)
+			World.notify(world, session.userId, "Your Boss MVP income boost ended", "info", nil)
+		end
 	end
 end
 

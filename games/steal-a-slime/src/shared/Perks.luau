@@ -27,6 +27,7 @@ export type Progress = {
 	favoriteId: string?, -- the follow pet; nil = no passive
 	weekendMult: number?, -- runtime x2 Weekend multiplier (Weekend, never saved), nil / 1 = none
 	ritualBonus: number?, -- runtime "Blessed" bonus from the co-op ritual (Ritual, never saved), nil / 0 = none
+	mvpBonus: number?, -- runtime Boss MVP bonus (BossCredit, never saved), nil / 0 = none
 }
 
 local Perks = {}
@@ -171,7 +172,8 @@ local function petValue(data: Progress, kind: string): number
 	return if perk and perk.kind == kind then perk.value else 0
 end
 
--- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual x pet x weekend.
+-- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual x boss MVP x pet x
+-- weekend.
 function Perks.bonusMultiplier(data: Progress): number
 	return (1 + upgradeEffect(data, "Income"))
 		* (1 + Perks.rankIncomeBonus(data.rebirths))
@@ -179,6 +181,7 @@ function Perks.bonusMultiplier(data: Progress): number
 		* math.max(data.boostMult or 1, 1)
 		* (1 + math.max(data.friendBonus or 0, 0))
 		* (1 + math.max(data.ritualBonus or 0, 0))
+		* (1 + math.max(data.mvpBonus or 0, 0))
 		* (1 + petValue(data, "income"))
 		* math.max(data.weekendMult or 1, 1)
 end
