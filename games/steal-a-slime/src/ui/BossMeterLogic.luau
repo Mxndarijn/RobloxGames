@@ -78,7 +78,7 @@ function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): Vie
 	local phase = boss.phase
 	local icon = BossMeterLogic.ICON
 	if phase == "warning" then
-		return {
+		local result: View = {
 			icon = icon,
 			title = "BOSS INCOMING",
 			timer = timer,
@@ -87,9 +87,10 @@ function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): Vie
 			pill = "To the plaza",
 			pillTone = "mint",
 		}
+		return result
 	elseif phase == "fight" then
 		local pill, pillTone, tone = fightPill(boss, now)
-		return {
+		local result: View = {
 			icon = icon,
 			title = name,
 			timer = timer,
@@ -98,6 +99,7 @@ function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): Vie
 			pill = pill,
 			pillTone = pillTone,
 		}
+		return result
 	elseif phase == "haul" then
 		local view: View = {
 			icon = icon,
@@ -121,7 +123,7 @@ function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): Vie
 		local gained = if type(badgesBefore) == "number" and type(boss.badges) == "number"
 			then boss.badges - badgesBefore
 			else 0
-		return {
+		local result: View = {
 			icon = icon,
 			title = "Brought home!",
 			timer = nil,
@@ -130,9 +132,10 @@ function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): Vie
 			pill = if gained > 0 then `+{gained} badge{if gained == 1 then "" else "s"}` else "Shared win",
 			pillTone = "gold",
 		}
+		return result
 	elseif phase == "failed" then
 		local nextLeft = Format.remainingSeconds(boss.nextAt, now)
-		return {
+		local result: View = {
 			icon = icon,
 			title = `{name} got away`,
 			timer = nil,
@@ -141,6 +144,7 @@ function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): Vie
 			pill = if type(boss.nextAt) == "number" then `Next {Format.formatDuration(nextLeft)}` else "Next time!",
 			pillTone = "muted",
 		}
+		return result
 	end
 	return nil
 end
