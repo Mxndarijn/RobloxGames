@@ -381,13 +381,13 @@ function Carry.carryingId(world: World, userId: number): string?
 	return carry and carry.slimeId
 end
 
--- WalkSpeed while carrying: the carry slowdown applies to the player's own base speed,
--- so the Speed Coil helps while carrying too (CONTRACT.md §8.10).
+-- WalkSpeed while carrying: the carry slowdown applies to the player's own base speed
+-- (the Speed Coil only counts while held, and carrying puts tools away, CONTRACT.md §8.10).
 -- Strong Arms (Perks.carrySlowFactor) shrinks the slowdown.
 -- The hauled boss is the exception: BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW), no Speed Coil, no Strong Arms.
 function Carry.walkSpeed(session: Session): number
 	local carry = session.carry
-	local base = Shop.walkSpeed(session.data)
+	local base = Shop.walkSpeed(session.data, session.coilHeld)
 	if not carry then
 		return base
 	end
@@ -401,7 +401,7 @@ end
 -- PvP holds / slows (PvpSlow: Goo Traps, Goo Blasters; PvpFun: the Goo Balloon slow; FEATURES.PvP, CONTRACT.md §26)
 -- multiply in; 1 with the flag off.
 function Carry.targetWalkSpeed(session: Session, now: number): number
-	local speed = if session.carry then Carry.walkSpeed(session) else Shop.walkSpeed(session.data)
+	local speed = if session.carry then Carry.walkSpeed(session) else Shop.walkSpeed(session.data, session.coilHeld)
 	return speed * PvpSlow.walkFactor(session, now) * PvpFun.walkFactor(session, now)
 end
 
