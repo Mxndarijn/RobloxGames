@@ -119,8 +119,8 @@ describe("BossChoreo moves", function()
 		expect(windup.hx * tx + windup.hz * tz > 0.99).toBe(true)
 		local charge = BossChoreo.after(windup, due)
 		expect(charge.kind).toBe("attack")
-		local run = math.sqrt((charge.tx - charge.fx) ^ 2 + (charge.tz - charge.fz) ^ 2)
-		expect(run >= BOSS.CHARGE_MIN).toBe(true)
+		local length = math.sqrt((charge.tx - charge.fx) ^ 2 + (charge.tz - charge.fz) ^ 2)
+		expect(length >= BOSS.CHARGE_MIN).toBe(true)
 		-- aimed straight off the thin strip, it runs along the strip instead of stopping short
 		local outward = input(look.at + look.seconds, rng)
 		outward.attack, outward.resolve = "start.1", due.resolve
