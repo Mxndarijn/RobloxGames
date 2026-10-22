@@ -105,6 +105,46 @@ local function template(meshId: string, fidelity: string?): MeshPart?
 	return made
 end
 
+-- Loads every template `slots` will need at the same time (each CreateMeshPartAsync is a network round trip, so
+-- one after another a themed tower took 5-8 s), then returns once they are all in `cache`. `want(slot, name)`
+-- gives the look a slot will show and its companion (or nil). Yields.
+local function prefetch(slots: { Instance }, want: (Instance, string) -> (string, string?))
+	local keys: { [string]: { string? } } = {}
+	local function add(look: string?, fidelity: string?)
+		local meshId = look and MeshAssets.meshId(look)
+		if meshId then
+			keys[if fidelity then `{meshId}|{fidelity}` else meshId] = { meshId, fidelity }
+		end
+	end
+	for _, slot in slots do
+		local name = slot:GetAttribute("MeshAsset")
+		if typeof(name) == "string" then
+			local look, companion = want(slot, name)
+			add(look, MeshAssets.collision(name))
+			add(companion, nil)
+		end
+	end
+	local pending = 0
+	for _ in keys do
+		pending += 1
+	end
+	-- a cached template returns without yielding, so only wake the caller once it is actually waiting
+	local waiter, waiting = coroutine.running(), false
+	for _, key in keys do
+		task.spawn(function()
+			pcall(template, key[1] :: string, key[2])
+			pending -= 1
+			if pending == 0 and waiting then
+				task.spawn(waiter)
+			end
+		end)
+	end
+	if pending > 0 then
+		waiting = true
+		coroutine.yield()
+	end
+end
+
 local function hide(part: BasePart)
 	part.Transparency = 1
 	for _, d in part:GetChildren() do
@@ -255,6 +295,12 @@ local function crowned(target: Instance): boolean
 		end
 	end
 	return false
+end
+
+-- The look and companion a slot for `name` will show under its plot's skin (prefetch).
+local function wanted(slot: Instance, name: string): (string, string?)
+	local companion = if crowned(slot) then nil else ThemeMeshes.companion(name, skinOf(slot), uploaded)
+	return lookOf(slot, name), companion
 end
 
 -- A theme's companion mesh on a piece slot (the props on the foot, the hat on each mascot), as the slot's
@@ -712,7 +758,18 @@ end
 -- Meshes for slots added after boot (server/BaseFloors' upper floors). Yields while a template loads.
 function MeshSwap.applyUnder(instances: { Instance }): number
 	local plots = workspace:FindFirstChild("Plots")
-	return if plots then applyTo(instances, plots) else 0
+	if not plots then
+		return 0
+	end
+	local slots = {}
+	for _, top in instances do
+		table.insert(slots, top)
+		for _, d in top:GetDescendants() do
+			table.insert(slots, d)
+		end
+	end
+	prefetch(slots, wanted)
+	return applyTo(instances, plots)
 end
 
 -- After `plot`'s PlotSkin changed (claim, equip, leave): every swapped slot under it whose look is not what the skin
@@ -720,6 +777,7 @@ end
 -- a failed load keeps the old look. Slots not swapped yet get the skin's look when MeshSwap reaches them. Yields;
 -- returns how many slots changed.
 function MeshSwap.themePlot(plot: Instance): number
+	prefetch(plot:GetDescendants(), wanted)
 	local count = 0
 	for _, slot in plot:GetDescendants() do
 		local name = slot:GetAttribute("MeshAsset")
