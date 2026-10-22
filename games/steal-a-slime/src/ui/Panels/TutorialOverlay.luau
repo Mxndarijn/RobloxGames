@@ -32,7 +32,8 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		BackgroundTransparency = 0.05,
 		ZIndex = Layout.ZINDEX.Tutorial,
 		Parent = parent,
-	}, { Widgets.corner(12), Widgets.stroke(Theme.Accent, 2) })
+	}, { Widgets.corner(Layout.NOTICE_RADIUS) })
+	Widgets.ring(card, Theme.Gold, Layout.NOTICE_RADIUS) -- guidance is a Gold-ringed notice
 
 	local counter = Widgets.label({
 		Name = "Counter",

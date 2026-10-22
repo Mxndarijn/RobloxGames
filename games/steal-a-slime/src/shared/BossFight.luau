@@ -97,8 +97,9 @@ function BossFight.share(state: State, userId: number): number
 	return math.clamp((state.contributions[userId] or 0) / top, 0, 1)
 end
 
--- One Bat hit by `userId`. Returns (counted, reason): one point at most every HIT_GAP seconds per player.
-function BossFight.hit(state: State, userId: number, now: number): (boolean, string?)
+-- One Bat hit by `userId` worth `amount` points (default 1; more while the boss is dazed). Returns (counted, reason):
+-- at most one hit every HIT_GAP seconds per player.
+function BossFight.hit(state: State, userId: number, now: number, amount: number?): (boolean, string?)
 	if state.phase ~= "fight" then
 		return false, "the boss isn't fighting"
 	end
@@ -107,11 +108,27 @@ function BossFight.hit(state: State, userId: number, now: number): (boolean, str
 	if last and now - last < BOSS.HIT_GAP - 1e-6 then
 		return false, "too fast"
 	end
+	local points = math.max(0, amount or 1)
 	state.lastHitAt[userId] = now
 	state.lastAnyHitAt = now
-	state.points += 1
-	state.contributions[userId] = (state.contributions[userId] or 0) + 1
+	state.points += points
+	state.contributions[userId] = (state.contributions[userId] or 0) + points
 	return true, nil
+end
+
+-- Meter points from something other than a Bat hit on the boss (a popped guard), credited to `userId`.
+function BossFight.add(state: State, userId: number, points: number, now: number)
+	if state.phase ~= "fight" then
+		return
+	end
+	state.lastAnyHitAt = now
+	state.points += points
+	state.contributions[userId] = (state.contributions[userId] or 0) + points
+end
+
+-- Stage 0..3: how many SHED_EVERY of the meter have been reached (the boss speeds up with each).
+function BossFight.stage(state: State): number
+	return state.shed
 end
 
 local function fail(state: State, now: number, reason: string, events: { Event })
@@ -127,7 +144,7 @@ end
 	for the caller, in order: "fight" (the boss arrives), "shed" (count = slimes to spawn), "haul" (the meter is full;
 	priority goes to the top contributor), "fail".
 ]]
-function BossFight.step(state: State, now: number, dt: number, players: number): { Event }
+function BossFight.step(state: State, now: number, dt: number, players: number, paused: boolean?): { Event }
 	local events: { Event } = {}
 	if state.phase == "warning" then
 		if now >= state.endsAt then
@@ -139,7 +156,8 @@ function BossFight.step(state: State, now: number, dt: number, players: number):
 	end
 	if state.phase == "fight" then
 		local target = BossFight.target(players)
-		if now - state.lastAnyHitAt >= BOSS.DRAIN_GRACE and dt > 0 then
+		-- `paused`: the boss is winding up or attacking, so dodging never costs the meter.
+		if not paused and now - state.lastAnyHitAt >= BOSS.DRAIN_GRACE and dt > 0 then
 			state.points = math.max(0, state.points - BOSS.DRAIN_PER_SECOND * target * dt)
 		end
 		local meter = math.clamp(state.points / target, 0, 1)

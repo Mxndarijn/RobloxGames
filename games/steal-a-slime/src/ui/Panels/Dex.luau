@@ -6,8 +6,9 @@
 	  * the reward card: the next species milestone and what it pays, one bar from 0 to the last milestone with
 	    every milestone marked to scale and numbered under it (the next one in gold), and the current income
 	    bonus as a muted line;
-	  * "Plot skins": one row per skin with its picture and name; the equipped one carries a green Equipped
-	    stamp, an unlocked one an Equip button, a locked one what unlocks it and a thin progress bar;
+	  * "Plot skins": one row per skin with its picture and name and one right slot (Layout.ROW_SLOT): a green
+	    Equipped well, an Equip button, or for a locked skin a well with the lock and its count ("3/5 found")
+	    beside what unlocks it and a thin progress bar;
 	  * one card per species grouped by rarity (SlimeDex.lines; a header in the rarity colour with a
 	    "n/m found" chip), the event Secrets last. A card shows the species mesh (`ctx.buildSpecies`, a
 	    ViewportFrame) in full colour when found and as a flat black silhouette when not, its name or "???",
@@ -44,14 +45,16 @@ local STYLE = table.freeze({
 	chipGap = 10, -- percent to the first chip
 	heading = 17,
 	headingH = 30,
-	softChip = 12,
+	softChip = Layout.MIN_TEXT,
 	softChipH = 24,
 	cardTitle = 15,
-	cardHint = 11,
-	badge = 11,
+	cardHint = Layout.MIN_TEXT,
+	badge = Layout.MIN_TEXT,
+	badgeW = 88, -- fits "Merge-only"
+	badgeH = 18,
 	glyph = 30,
 	slot = 24,
-	slotText = 11,
+	slotText = Layout.MIN_TEXT,
 	pad = 6,
 	wellRadius = 11,
 	listGap = 8,
@@ -66,9 +69,9 @@ local REWARD = table.freeze({
 	rewardH = 18,
 	bar = 14,
 	mark = 2, -- milestone mark on the bar
-	tick = 12,
+	tick = Layout.MIN_TEXT,
 	tickH = 14,
-	note = 12,
+	note = Layout.MIN_TEXT,
 	gap = 6,
 })
 
@@ -80,19 +83,16 @@ local SKIN = table.freeze({
 	gap = 12,
 	title = 17,
 	titleH = 20,
-	detail = 12,
-	detailH = 16,
+	detail = Layout.MIN_TEXT,
+	detailH = 17,
 	bar = 10,
-	lock = 14,
-	lockBox = 22,
-	equipW = 84,
-	equipH = 40,
-	equipText = 16,
-	stamp = 13,
-	stampW = 86,
-	stampH = 26,
-	stampRadius = 8,
+	slotText = 16, -- Equip, Equipped and the locked count in the right slot (Layout.ROW_SLOT)
+	lockedIcon = 0.6, -- a locked skin's picture fades this much
 })
+
+-- The right slot's wells.
+Dex.EQUIPPED = "✅ Equipped"
+Dex.LOCKED = "🔒"
 
 local C = SlimeDex.CARD
 local H = SlimeDex.HEADER
@@ -393,7 +393,7 @@ function Dex.new(parent: Instance, ctx: any)
 			BackgroundColor3 = Theme.Warn,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			Position = UDim2.fromOffset(STYLE.pad, STYLE.pad),
-			Size = UDim2.fromOffset(70, 16),
+			Size = UDim2.fromOffset(STYLE.badgeW, STYLE.badgeH),
 			Visible = false,
 			Parent = frame,
 		})
@@ -507,20 +507,6 @@ function Dex.new(parent: Instance, ctx: any)
 			Size = SKIN.image,
 			Parent = image,
 		}, icons)
-		local lock = Widgets.label({
-			Name = "Glyph",
-			Text = "🔒",
-			TextSize = SKIN.lock,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			TextTruncate = Enum.TextTruncate.None,
-			BackgroundTransparency = 0,
-			BackgroundColor3 = Theme.Ink,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(1, -4, 1, -4),
-			Size = UDim2.fromOffset(SKIN.lockBox, SKIN.lockBox),
-			Parent = image,
-		})
-		Widgets.corner(SKIN.stampRadius).Parent = lock
 		local textX = SKIN.pad + SKIN.image + SKIN.gap
 		local title = Widgets.label({
 			Name = "Title",
@@ -541,17 +527,18 @@ function Dex.new(parent: Instance, ctx: any)
 		local progress, setProgress =
 			Widgets.bar(frame, Theme.Good, UDim2.new(1, -(textX + SKIN.pad), 0, SKIN.bar), UDim2.fromOffset(textX, 0))
 		progress.Name = "Progress"
+		local slot = Layout.ROW_SLOT
 		local equip = Widgets.button(
 			{
 				Name = "Equip",
 				Text = "Equip",
-				TextSize = SKIN.equipText,
+				TextSize = SKIN.slotText,
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -SKIN.pad, 0.5, 0),
-				Size = UDim2.fromOffset(SKIN.equipW, SKIN.equipH),
+				Size = UDim2.fromOffset(slot.w, slot.h),
 				Parent = frame,
 			},
-			Theme.Good,
+			Theme.Accent,
 			function()
 				local id = frame:GetAttribute("SkinId")
 				if type(id) == "string" and ctx.request then
@@ -559,36 +546,27 @@ function Dex.new(parent: Instance, ctx: any)
 				end
 			end
 		)
-		local equipped = Widgets.label({
+		-- Equipped (green) or, while locked, the lock and the count toward it: a sunken well in the same slot.
+		local well = Widgets.status({
 			Name = "Equipped",
-			Text = "Equipped",
-			Font = Theme.Font,
-			TextSize = SKIN.stamp,
-			TextColor3 = Theme.Ink,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			TextTruncate = Enum.TextTruncate.None,
-			BackgroundTransparency = 0,
-			BackgroundColor3 = Theme.Good,
+			TextSize = SKIN.slotText,
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -SKIN.pad, 0.5, 0),
-			Size = UDim2.fromOffset(SKIN.stampW, SKIN.stampH),
+			Size = UDim2.fromOffset(slot.w, slot.h),
 			Visible = false,
 			Parent = frame,
 		})
-		Widgets.corner(SKIN.stampRadius).Parent = equipped
-		Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke).Parent = equipped
 		return {
 			instance = frame,
 			image = image,
 			skinIcon = skinIcon,
-			lock = lock,
 			textX = textX,
 			title = title,
 			detail = detail,
 			progress = progress,
 			setProgress = setProgress,
 			equip = equip,
-			equipped = equipped,
+			well = well,
 		}
 	end
 
@@ -597,9 +575,11 @@ function Dex.new(parent: Instance, ctx: any)
 		r.instance:SetAttribute("Locked", row.locked)
 		r.instance:SetAttribute("SkinId", skin.id)
 		r.equip.instance.Visible = skin.unlocked and not skin.equipped
-		r.equipped.Visible = skin.equipped
+		r.well.Visible = skin.equipped or not skin.unlocked
+		r.well.Text = if skin.equipped then Dex.EQUIPPED else `{Dex.LOCKED} {row.found or ""}`
+		r.well.TextColor3 = if skin.equipped then Theme.Good else Theme.Muted
 		r.image.BackgroundColor3 = Widgets.color3(row.color)
-		r.lock.Visible = not skin.unlocked
+		r.image.BackgroundTransparency = if skin.unlocked then 0 else SKIN.lockedIcon
 		r.skinIcon.setFrame(if skin.unlocked then nil else Theme.Muted)
 		r.skinIcon.setActive(open)
 		r.title.Text = row.title
@@ -607,9 +587,8 @@ function Dex.new(parent: Instance, ctx: any)
 		r.detail.Text = row.detail
 		r.progress.Visible = row.locked
 		r.setProgress(row.fraction)
-		-- Locked: name, unlock text and bar; otherwise name and set centred beside the button / stamp.
-		local right = if skin.equipped then SKIN.stampW elseif skin.unlocked then SKIN.equipW else 0
-		local textW = -(r.textX + SKIN.pad + (if right > 0 then right + SKIN.gap else 0))
+		-- Name and set (a locked skin: what unlocks it and a bar) centred beside the right slot.
+		local textW = -(r.textX + SKIN.pad + Layout.ROW_SLOT.w + SKIN.gap)
 		local blockH = SKIN.titleH + 2 + SKIN.detailH + (if row.locked then 6 + SKIN.bar else 0)
 		local y = (SKIN.h - blockH) // 2
 		r.title.Position = UDim2.fromOffset(r.textX, y)
@@ -617,6 +596,7 @@ function Dex.new(parent: Instance, ctx: any)
 		r.detail.Position = UDim2.fromOffset(r.textX, y + SKIN.titleH + 2)
 		r.detail.Size = UDim2.new(1, textW, 0, SKIN.detailH)
 		r.progress.Position = UDim2.fromOffset(r.textX, y + SKIN.titleH + 2 + SKIN.detailH + 6)
+		r.progress.Size = UDim2.new(1, textW, 0, SKIN.bar)
 	end
 
 	-- List rows: the plot skins heading and rows, rarity headers and card lines (SlimeDex.lines).
@@ -769,7 +749,7 @@ function Dex.new(parent: Instance, ctx: any)
 		local parts = table.create(#pendingCards + #pendingSkins + 1)
 		table.insert(parts, tostring(grid().columns))
 		for _, row in pendingSkins do
-			table.insert(parts, `{row.key}|{row.locked}|{row.detail}|{row.fraction}|{row.skin.equipped}`)
+			table.insert(parts, `{row.key}|{row.locked}|{row.detail}|{row.found}|{row.fraction}|{row.skin.equipped}`)
 		end
 		for _, card in pendingCards do
 			local slots = {}

@@ -36,11 +36,6 @@ function MysteryEgg.wildCap(raining: boolean): number
 	return if raining then cfg.RAIN_MAX_WILD else cfg.MAX_WILD
 end
 
--- Grab price of a wild egg: 0 when `roll` < FREE_DROP_CHANCE, else the kind's flat price.
-function MysteryEgg.price(kind: EggKind.Kind, roll: number): number
-	return if roll < Config.FREE_DROP_CHANCE then 0 else kind.price
-end
-
 -- Size of a hatchling of `tier` for one roll in [0, 1): bigger than a wild slime, never under the tier's floor.
 function MysteryEgg.hatchSize(tier: number, roll: number): number
 	local cfg = Config.MYSTERY_EGG

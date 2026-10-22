@@ -293,36 +293,27 @@ do
 			species = families,
 		})
 	end
-	render(
-		"Slimes by rarity (mean wild size, growth 0, 0 rebirths; sell is x rebirth multiplier)",
-		"rarities",
-		{
-			"Rarity",
-			"Income/s at size 1",
-			"Mean size",
-			"Mean income/s",
-			"Wild price",
-			"Sell at r=0",
-			"Sell / price at r=0",
-			"Drop share",
-			"Odds",
-			"Spawning species",
-		},
-		rows,
-		raw
-	)
+	render("Slimes by rarity (mean wild size, growth 0, 0 rebirths; sell is x rebirth multiplier)", "rarities", {
+		"Rarity",
+		"Income/s at size 1",
+		"Mean size",
+		"Mean income/s",
+		"Wild price",
+		"Sell at r=0",
+		"Sell / price at r=0",
+		"Drop share",
+		"Odds",
+		"Spawning species",
+	}, rows, raw)
 
 	local frows, fraw = {}, {}
 	for _, r in { 0, 1, 3, 5, 10, 15, 20, 30, 49 } do
 		local m = Economy.rebirthMultiplier(r)
-		table.insert(
-			frows,
-			{
-				tostring(r),
-				string.format("x%.1f", m),
-				string.format("x%.2f", Config.SELL_SECONDS * m / Config.WILD_PRICE_SECONDS),
-			}
-		)
+		table.insert(frows, {
+			tostring(r),
+			string.format("x%.1f", m),
+			string.format("x%.2f", Config.SELL_SECONDS * m / Config.WILD_PRICE_SECONDS),
+		})
 		table.insert(
 			fraw,
 			{ rebirths = r, multiplier = m, sellOverPrice = Config.SELL_SECONDS * m / Config.WILD_PRICE_SECONDS }
@@ -348,10 +339,13 @@ do
 			entry.family or "classic",
 			money(rarity.income * size),
 		})
-		table.insert(
-			sraw,
-			{ id = entry.id, tier = entry.tier, kind = entry.kind, family = entry.family, income = rarity.income * size }
-		)
+		table.insert(sraw, {
+			id = entry.id,
+			tier = entry.tier,
+			kind = entry.kind,
+			family = entry.family,
+			income = rarity.income * size,
+		})
 	end
 	render(
 		"Species (mean wild size, boss at MAX_SIZE)",
@@ -370,14 +364,11 @@ do
 		weightTotal += kind.weight
 	end
 	local rows, raw = {}, {}
-	local evByRebirth: { [number]: { profit: number, sell: number } } = {}
 	for _, kind in EggKind.list() do
 		local out = outcomes[kind.id]
 		local analytic = Eggs.expectedIncome(kind)
 		local row = {
 			kind.name,
-			money(kind.price),
-			money(kind.sell),
 			`{kind.hatchSeconds // 60} min`,
 			pct(kind.weight / weightTotal),
 			`{kind.pity}`,
@@ -398,8 +389,6 @@ do
 		table.insert(rows, row)
 		table.insert(raw, {
 			id = kind.id,
-			price = kind.price,
-			sell = kind.sell,
 			hatchSeconds = kind.hatchSeconds,
 			weight = kind.weight / weightTotal,
 			pity = kind.pity,
@@ -412,12 +401,10 @@ do
 		})
 	end
 	render(
-		`Mystery Egg kinds ({Config.MYSTERY_EGG.DROP_CHANCE * 100}% of fountain drops, {Config.MYSTERY_EGG.MAX_WILD} loose at a time, lucky egg {Config.MYSTERY_EGG.LUCKY_CHANCE * 100}%; Monte Carlo of {eggCount} hatches through MysteryEgg.rollWild / hatchEgg)`,
+		`Mystery Egg kinds (free to grab, can't be sold; {Config.MYSTERY_EGG.DROP_CHANCE * 100}% of fountain drops, {Config.MYSTERY_EGG.MAX_WILD} loose at a time, lucky egg {Config.MYSTERY_EGG.LUCKY_CHANCE * 100}%; Monte Carlo of {eggCount} hatches through MysteryEgg.rollWild / hatchEgg)`,
 		"eggs",
 		{
 			"Kind",
-			"Grab price",
-			"Sell (egg)",
 			"Incubation",
 			"Share of eggs",
 			"Lucky meter",
@@ -431,31 +418,33 @@ do
 		raw
 	)
 
-	-- What a hatched egg is worth against its price, by rebirth: sell of the mean hatchling vs the flat grab price.
+	-- What a free egg is worth once hatched, by rebirth: income and sell value of the mean hatchling.
 	local erows, eraw = {}, {}
 	for _, r in { 0, 3, 5, 10, 20 } do
 		local mult = Economy.rebirthMultiplier(r)
 		local row = { tostring(r) }
-		local weightedProfit, weightedPrice = 0, 0
+		local meanIncome = 0
 		for _, kind in EggKind.list() do
-			local out = outcomes[kind.id]
-			local sellHatch = out.income * Config.SELL_SECONDS * mult
-			local share = kind.weight / weightTotal
-			weightedProfit += share * (sellHatch - kind.price)
-			weightedPrice += share * kind.price
-			table.insert(row, `{money(sellHatch)} ({string.format("x%.1f", sellHatch / kind.price)})`)
+			local income = outcomes[kind.id].income * mult
+			meanIncome += kind.weight / weightTotal * income
+			table.insert(row, `{money(income)}/s, sells {money(income * Config.SELL_SECONDS)}`)
 		end
-		table.insert(row, money(weightedProfit))
+		table.insert(row, `{money(meanIncome)}/s, sells {money(meanIncome * Config.SELL_SECONDS)}`)
 		table.insert(erows, row)
-		table.insert(eraw, { rebirths = r, meanProfit = weightedProfit, meanPrice = weightedPrice })
-		evByRebirth[r] = { profit = weightedProfit, sell = weightedProfit + weightedPrice }
+		table.insert(eraw, { rebirths = r, meanIncome = meanIncome, meanSell = meanIncome * Config.SELL_SECONDS })
 	end
 	local header = { "Rebirths" }
 	for _, kind in EggKind.list() do
-		table.insert(header, `{kind.name}: sell of hatchling (x price)`)
+		table.insert(header, `{kind.name}: mean hatchling`)
 	end
-	table.insert(header, "Mean profit per egg grabbed")
-	render("Egg flip: sell value of the hatched slime against the flat grab price", "eggFlip", header, erows, eraw)
+	table.insert(header, "Mean egg grabbed")
+	render(
+		"Egg value: what a free egg hatches into (income and sell value of the hatchling)",
+		"eggValue",
+		header,
+		erows,
+		eraw
+	)
 end
 
 -- 7. Codes, friends, dailies, goals ---------------------------------------------------------------------------------

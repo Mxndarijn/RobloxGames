@@ -19,7 +19,7 @@
 	`--late casual@5x4` adds 4 casual bots that all join on day 5 (reported as late-casual); use more --days.
 	`--friends K` deals the bots into friend groups of K (Friends.refresh counts the ones online together,
 	`--party` puts a group on one schedule). `--no-codes` / `--no-eggs` turn off redeeming codes on the first
-	join / taking Mystery Eggs; `--merge pair|triple` picks the vat bots merge in (default: the 3-slime vat while FEATURES.MergeVat3 is on, as the UI only sends Merge3; `pair` models calling the Merge remote directly); `--flip full|always` makes every bot buy wild slimes to sell at once (profiles flipper / flipall do it for one bot kind; flipprobe + `--start-level N` is a 60 minute flip-only session at rebirth N with unlimited cash); `--consumables N` makes every bot buy and drink Luck Potions that cost under 1/N of its cash.
+	join / taking Mystery Eggs (free to grab, can't be sold); `--merge pair|triple` picks the vat bots merge in (default: the 3-slime vat while FEATURES.MergeVat3 is on, as the UI only sends Merge3; `pair` models calling the Merge remote directly); `--flip full|always` makes every bot buy wild slimes to sell at once (profiles flipper / flipall do it for one bot kind; flipprobe + `--start-level N` is a 60 minute flip-only session at rebirth N with unlimited cash); `--consumables N` makes every bot buy and drink Luck Potions that cost under 1/N of its cash.
 	Prints Markdown tables (Report); `--out` also writes them to a file; `--json` writes every bot's time
 	series, milestones, cash ledger and steal events (Report.json).
 ]]

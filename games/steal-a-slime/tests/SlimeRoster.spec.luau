@@ -37,11 +37,11 @@ describe("SlimeRoster", function()
 		end
 	)
 
-	it("adds 15 hybrids, 3 bosses and 7 event Secrets that never roll as a spawn", function()
+	it("adds 15 hybrids, 6 bosses and 7 event Secrets that never roll as a spawn", function()
 		expect(#SlimeRoster.ofKind("hybrid")).toBe(15)
-		expect(#SlimeRoster.ofKind("boss")).toBe(3)
+		expect(#SlimeRoster.ofKind("boss")).toBe(6)
 		expect(#SlimeRoster.ofKind("event")).toBe(7)
-		expect(#SlimeRoster.ROSTER).toBe(57)
+		expect(#SlimeRoster.ROSTER).toBe(60)
 		for _, entry in SlimeRoster.ROSTER do
 			expect(entry.family == nil or entry.kind == "spawn").toBe(true)
 			if entry.kind ~= "spawn" then

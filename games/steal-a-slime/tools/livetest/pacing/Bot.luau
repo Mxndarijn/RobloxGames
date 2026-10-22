@@ -302,12 +302,12 @@ local function rebirthNeeds(bot: Bot): ({ [string]: boolean }, { [string]: boole
 	return keep, missing, recipeIds
 end
 
--- The pad slime this bot would give up first, and its value. Kept slimes and the favourite stay.
+-- The pad slime this bot would give up first, and its value. Kept slimes, eggs (unsellable) and the favourite stay.
 local function weakest(world: World, bot: Bot, keep: { [string]: boolean }): (Slime?, number)
 	local busy = World.busySet(world)
 	local worst, worstValue = nil, math.huge
 	for _, s in bot.data.slimes do
-		if not keep[s.id] and not busy[s.id] and s.id ~= bot.data.favoriteId then
+		if not keep[s.id] and not busy[s.id] and not s.egg and s.id ~= bot.data.favoriteId then
 			local v = worth(bot, s)
 			if v < worstValue then
 				worst, worstValue = s, v
@@ -440,7 +440,7 @@ local function chores(world: World, bot: Bot, session: Session, t: number, keep:
 	drinkPotions(world, bot, t)
 end
 
--- Best wild slime this bot can afford, by value; a missing rebirth species wins outright.
+-- Best wild slime this bot can afford, by value (Mystery Eggs are free); a missing rebirth species wins outright.
 local function pickWild(world: World, bot: Bot, missing: { [string]: boolean }): (string?, number)
 	local options = {}
 	local best, bestScore, bestValue = nil, -1, 0
@@ -491,7 +491,7 @@ local function freePads(data: PlayerData.Data): number
 	return n
 end
 
--- Wild slime with the best sell-minus-price profit this bot can pay for (eggs included: they sell for a flat price).
+-- Wild slime with the best sell-minus-price profit this bot can pay for. Eggs can't be sold, so they are never a flip.
 local function pickFlip(world: World, bot: Bot): (string?, number)
 	local best, bestProfit = nil, 0
 	local ids = {}
@@ -501,8 +501,9 @@ local function pickFlip(world: World, bot: Bot): (string?, number)
 	table.sort(ids) -- table order is not stable across runs; ids are
 	for _, id in ids do
 		local wild = world.wild[id]
-		if not wild.boss and wild.price <= bot.data.cash and not world.carriedBy[id] then
-			local profit = Economy.sellPrice(wild.slime, bot.data.rebirths) - wild.price
+		local sell = Economy.sellPrice(wild.slime, bot.data.rebirths)
+		if sell and not wild.boss and wild.price <= bot.data.cash and not world.carriedBy[id] then
+			local profit = sell - wild.price
 			if profit > bestProfit then
 				best, bestProfit = id, profit
 			end
@@ -515,14 +516,14 @@ local function legSeconds(bot: Bot, speed: number): number
 	return bot.profile.walk / 2 * Config.BASE_WALK_SPEED / math.max(speed, 1)
 end
 
--- Cash/s a slime adds to `data`'s plot, and what it sells for there; an egg counts what it is expected to hatch into.
+-- Cash/s a slime adds to `data`'s plot, and what it sells for there. An egg counts what it is expected to hatch
+-- into and sells for nothing (eggs can't be sold).
 local function valueFor(bot: Bot, data: PlayerData.Data, slime: Slime): (number, number)
 	local kind = EggKind.of(slime)
 	if kind then
-		local income = Eggs.expectedIncome(kind) * Economy.rebirthMultiplier(data.rebirths)
-		return income, Economy.sellPrice(slime, data.rebirths)
+		return Eggs.expectedIncome(kind) * Economy.rebirthMultiplier(data.rebirths), 0
 	end
-	return PlayerData.slimeIncome(data, slime), Economy.sellPrice(slime, data.rebirths)
+	return PlayerData.slimeIncome(data, slime), Economy.sellPrice(slime, data.rebirths) or 0
 end
 
 local function newTask(

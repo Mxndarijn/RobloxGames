@@ -52,9 +52,14 @@ return table.freeze({
 	SPEED_COIL_ATTRIBUTE = "SpeedCoil", -- Player: true once the Speed Coil is owned
 	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FollowPets), nil = none
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
-	BOSS_WALK_SEED_ATTRIBUTE = "BossWalkSeed", -- boss model: BossWander seed of its walk (the client draws the walk)
-	BOSS_WALK_AT_ATTRIBUTE = "BossWalkAt", -- boss model: server time the walk starts (its arrival)
-	BOSS_WALK_UNTIL_ATTRIBUTE = "BossWalkUntil", -- boss model: server time the walk stopped (the haul); nil while it walks
+	BOSS_MOVE_ATTRIBUTE = "BossMove", -- boss model: its current move (BossChoreo.encode); clients draw it every frame
+	BOSS_TARGETS_ATTRIBUTE = "BossTargets", -- boss model: "x,z;x,z" world spots its windup's spits will land on
+	BOSS_SPITS_ATTRIBUTE = "BossSpits", -- boss model: "x,z,landAt;..." spits in the air (server time they land)
+	BOSS_RUNES_ATTRIBUTE = "BossRunes", -- boss model: "x,z,burstAt,radius,speed;..." rune puddles that burst into a ring
+	BOSS_HIT_AT_ATTRIBUTE = "BossHitAt", -- boss model: server time of the latest counted bat hit (it squashes)
+	BOSS_HIT_BY_ATTRIBUTE = "BossHitBy", -- boss model: the UserId of that hit
+	BOSS_HIT_POINTS_ATTRIBUTE = "BossHitPoints", -- boss model: meter points that hit counted
+	BOSS_GUARD_ATTRIBUTE = "BossGuard", -- workspace.BossFx guard models: true
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
 	SHOP_STAND = "ShopStand", -- alias of the Item Shop while FEATURES.WorldShops is off (the single HUD-shop stand)
 	SHOP_STAND_ITEM = "ItemShopStand", -- CONTRACT.md §27.2
@@ -96,6 +101,15 @@ return table.freeze({
 	EGG_HATCH_AT_ATTRIBUTE = "EggHatchAt", -- Mystery Egg model: server time it is ready; nil while not incubating
 	EGG_HATCH_SECONDS_ATTRIBUTE = "EggHatchSeconds", -- Mystery Egg model: its kind's full incubation time
 	HATCH_PROMPT_NAME = "HatchPrompt", -- owner-only ProximityPrompt on a ready Mystery Egg
+	-- Keys of the prompts on your own pad slime, as Enum.KeyCode names: the server's HatchPrompt and SlimeKeys'
+	-- Move / Favorite / Sell prompts. No two share a key or a button, so a ready egg's prompts never collide.
+	-- Gamepad A jumps, B closes menus and Y opens the bag (ui/Inventory), so the one free face button, X, is Hatch's.
+	SLIME_PROMPT_KEYS = table.freeze({
+		hatch = table.freeze({ keyboard = "F", gamepad = "ButtonX" }),
+		move = table.freeze({ keyboard = "E", gamepad = "DPadRight" }),
+		favorite = table.freeze({ keyboard = "R", gamepad = "DPadUp" }),
+		sell = table.freeze({ keyboard = "X", gamepad = "DPadDown" }),
+	}),
 	HATCHED_AT_ATTRIBUTE = "HatchedAt", -- egg, then slime model, for MYSTERY_EGG.HATCH_FX_SECONDS after a hatch: server time of it
 	HATCHED_FROM_ATTRIBUTE = "HatchedFrom", -- slime model, with HatchedAt: the egg kind id it hatched from
 	HATCH_LUCKY_ATTRIBUTE = "HatchLucky", -- slime model, with HatchedAt: true for a lucky egg or a full lucky meter
@@ -115,7 +129,7 @@ return table.freeze({
 	LOCK_PROMPT_NAME = "LockPrompt", -- on LockButton
 	BUY_PAD_PROMPT_NAME = "BuyPadPrompt", -- on the lowest locked Pad_<j>
 	MERGE_PROMPT_NAME = "MergePrompt", -- on MergeVat
-	DROP_PROMPT_NAME = "DropPrompt", -- on every upper jar's DropHatch (CONTRACT.md §5.3): anyone not carrying
+	DROP_PROMPT_NAME = "DropPrompt", -- in every upper jar's DropHatch (CONTRACT.md §5.3): the owner, inside the top jar
 	-- v28 (CONTRACT.md §5.3): "Open Shop" (E) on ShopStand.Counter and "Talk" (E) on the
 	-- TutorialNpc. Client-only effect: the UI opens the Shop / Guide menu on PromptTriggered.
 	SHOP_PROMPT_NAME = "ShopPrompt",

@@ -12,7 +12,7 @@
 	            Each hit stacks a little slow (PvpSlow.stack, capped by SLOW_MAX_SECONDS).
 	  Blaster   `blobs` in a fan `spreadDeg` apart; each player is hit at most once per shot.
 	  Cannon    one big lob: everyone within `splash` of the impact is slowed and a slowing pool stays `poolSeconds`.
-	Every player a blob, a splash, a pool or a splat hits is caught when carrying a stolen slime (PvpService.catchThief,
+	Every player a blob, a splash, a pool or a splat hits drops any slime they carry (PvpService.hitCarrier,
 	immunity or not). A blob that hits nobody leaves a slippery splat (SPLAT_*). Pools and splats are server-side zones
 	(no Instance) stepped in the per-player WorldView tick; they slow whoever walks in (not the shooter, immunity
 	respected). No Humanoid health is ever changed.
@@ -90,7 +90,7 @@ local function hitPlayer(call: PvpService.UseCall, victim: Session): (number, bo
 			PvpSlow.slow(victim, now, PvpBlasterRules.slowFactor(tool.slow), now + applied)
 		end
 	end
-	local caught = PvpService.catchThief(call.world, victim, call.session, now) ~= nil
+	local caught = PvpService.hitCarrier(call.world, victim, call.session, now, call.ctx) ~= nil
 	return applied, caught
 end
 
@@ -200,15 +200,17 @@ local function handler(call: PvpService.UseCall): (boolean, string?, number?)
 	if not PvpBlasterRules.direction(origin, aim) then
 		return false, "bad aim"
 	end
-	local tank = tanks[call.session]
+	local tank: Tank? = nil -- only the Squirter has a tank
 	if tool.shots then
-		if not tank then
-			tank = { left = tool.shots, lastShot = -math.huge }
-			tanks[call.session] = tank
+		local held = tanks[call.session]
+		if not held then
+			held = { left = tool.shots, lastShot = -math.huge }
+			tanks[call.session] = held
 		end
-		if now - tank.lastShot < (tool.shotGap or 0) then
+		if now - held.lastShot < (tool.shotGap or 0) then
 			return false, "too fast"
 		end
+		tank = held
 	end
 	local candidates: { PvpBlasterRules.Candidate } = {}
 	for userId, other in call.world.sessions do
@@ -268,7 +270,7 @@ function PvpBlaster.tick(
 	for _, list in zones do
 		for _, zone in list do
 			if zone.owner ~= victim.userId and PvpTrapRules.within(zone.position, zone.radius, position) then
-				PvpService.catchThief(world, victim, world.sessions[zone.owner], now)
+				PvpService.hitCarrier(world, victim, world.sessions[zone.owner], now, ctx)
 				if not PvpRules.canControl(state, now) then
 					return 0
 				end

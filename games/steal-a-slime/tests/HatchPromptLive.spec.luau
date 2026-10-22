@@ -1,7 +1,8 @@
 --!nocheck
 -- The owner's HatchPrompt on a Mystery Egg, through the REAL server Script (tools/livetest/Runtime,
 -- memory store): on only once the egg is ready, and the client prompt hider never turns it on for a
--- not-ready egg (a stolen egg changes owner while it is still incubating).
+-- not-ready egg (a stolen egg changes owner while it is still incubating). On the ready egg, Hatch and the owner's
+-- client prompts (the real SlimeKeys) each have their own keyboard key and gamepad button.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 
@@ -69,6 +70,34 @@ local incubating = read()
 egg.egg.hatchAt = 0 -- its time has come
 rt:advance(1)
 local ready = read()
+
+-- The owner's client on the ready egg: SlimeKeys adds Move and Sell next to the server's Hatch, wired like the game.
+local roblox = require("@lune/roblox")
+local SlimeKeys = rt:require(rt.game:GetService("StarterPlayer").StarterPlayerScripts.UI.SlimeKeys)
+local keys = Constants.SLIME_PROMPT_KEYS
+local ownerKeys = SlimeKeys.start({
+	root = rt.workspace,
+	localUserId = 3003,
+	newPrompt = function()
+		return roblox.Instance.new("ProximityPrompt")
+	end,
+	favoriteKey = SlimeKeys.keyOf(keys.favorite),
+	sellKey = SlimeKeys.keyOf(keys.sell),
+	distance = 10,
+	holdSeconds = 1,
+	formatCash = tostring,
+	send = function() end,
+	moveKey = SlimeKeys.keyOf(keys.move),
+	onMove = function() end,
+})
+-- Every prompt the owner can see on the egg (the GrabPrompt is hidden from its owner): name -> keys.
+local eggPrompts = {}
+for _, d in hatchPrompt().Parent:GetChildren() do
+	if d:IsA("ProximityPrompt") and d.Name ~= Constants.GRAB_PROMPT_NAME and d.Enabled then
+		eggPrompts[d.Name] = { keyboard = d.KeyboardKeyCode.Name, gamepad = d.GamepadKeyCode.Name }
+	end
+end
+ownerKeys.destroy()
 -- The thief takes it to their own pad, where it incubates again.
 for i, s in owner.data.slimes do
 	if s.id == "egg1" then
@@ -107,6 +136,18 @@ describe("Mystery Egg HatchPrompt", function()
 	end)
 	it("is on and owner-only once the egg is ready", function()
 		expect(ready).toEqual({ true, 3003 })
+	end)
+	it("shares no keyboard key or gamepad button with the owner's other prompts on the ready egg", function()
+		expect(eggPrompts.HatchPrompt).toEqual({ keyboard = keys.hatch.keyboard, gamepad = keys.hatch.gamepad })
+		expect(eggPrompts[SlimeKeys.MOVE_PROMPT]).toBeTruthy()
+		expect(eggPrompts[SlimeKeys.SELL_PROMPT]).toBeNil() -- an egg can't be sold
+		local seen = { keyboard = {}, gamepad = {} }
+		for name, k in eggPrompts do
+			for _, device in { "keyboard", "gamepad" } do
+				expect(seen[device][k[device]] or name).toBe(name)
+				seen[device][k[device]] = name
+			end
+		end
 	end)
 	it("goes off and untagged again on the thief's pad while it incubates", function()
 		expect(stolen).toEqual({ false, 0 })
