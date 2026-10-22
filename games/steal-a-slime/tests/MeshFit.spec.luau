@@ -116,9 +116,12 @@ describe("MeshSwap uniform scale (live boot, every upload answered)", function()
 			local native = MeshAssets.get(mesh).size
 			local ok, ratios = uniform({ m.Size.X, m.Size.Y, m.Size.Z }, native)
 			expect(ok).toBe(true)
-			-- The old stretch would have been off by more than 1 %: this test bites.
-			local stretched = uniform({ box.X, box.Y, box.Z }, native)
-			expect(stretched).toBe(false)
+			-- The Top Earners board's own box (posts, frame) is not the skin's shape, so stretching the skin to the box
+			-- would have been off by more than 1 %: this test bites. Shop stands and NPCs are built to their skin's box.
+			if name == "LeaderboardBoard" then
+				local stretched = uniform({ box.X, box.Y, box.Z }, native)
+				expect(stretched).toBe(false)
+			end
 			local rel = cf:ToObjectSpace(m.CFrame)
 			expect(rel.Position.X).toBeCloseTo(0, 3)
 			expect(rel.Position.Y - m.Size.Y / 2).toBeCloseTo(-box.Y / 2, 3)
@@ -140,7 +143,7 @@ describe("MeshSwap uniform scale (live boot, every upload answered)", function()
 				print(name, ratios)
 			end
 		end
-		expect(seen).toBe(4)
+		expect(seen).toBe(9) -- two shop stands, the Guide, Professor Goo and the five Hall of Fame boards
 		expect(WorldLayout.PROP_MESHES[Constants.SHOP_STAND_ITEM] ~= nil).toBe(true)
 		expect(WorldLayout.PROP_MESHES[Constants.LEADERBOARD_BOARD] ~= nil).toBe(true)
 	end)

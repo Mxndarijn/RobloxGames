@@ -47,10 +47,11 @@ describe("WorldLeaderboard.rows", function()
 	it("survives bad payloads", function()
 		expect(#WorldLeaderboard.rows(nil, 1)).toBe(0)
 		expect(#WorldLeaderboard.rows({ entries = "x" }, 1)).toBe(0)
-		local rows = WorldLeaderboard.rows({ entries = { { rank = 1 }, "junk" } }, 1)
+		local rows = WorldLeaderboard.rows({ stat = "TotalEarned", entries = { { rank = 1 }, "junk" } }, 1)
 		expect(#rows).toBe(1)
 		expect(rows[1].name).toBe("?")
 		expect(rows[1].value).toBe("$0")
+		expect(WorldLeaderboard.rows({ entries = { { rank = 1 } } }, 1)[1].value).toBe("0") -- no stat: a plain count
 	end)
 end)
 

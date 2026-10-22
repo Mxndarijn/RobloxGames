@@ -79,6 +79,14 @@ end
 
 local MAX_CASH = 1e15
 
+-- The Weekly Top Earners start point: a week number and a base no higher than `totalEarned` (junk -> week 0).
+function SaveData.cleanWeekly(raw: any, totalEarned: number): { week: number, base: number }
+	if type(raw) ~= "table" then
+		return { week = 0, base = 0 }
+	end
+	return { week = num(raw.week, 0, 0, 1e7), base = num(raw.base, 0, 0, math.max(0, totalEarned)) }
+end
+
 -- Lines saved as a best tier; Goo Traps (TRAP_LINE) are saved as charges per trap id.
 local PVP_LINES = { "Knockback", "Blaster" }
 local TRAP_LINE = "Trap"
@@ -597,6 +605,7 @@ function SaveData.deserialize(stored: any): Data
 	data.boss = BossBadges.clean(raw.boss) -- boss record and badges (missing / junk -> zeros)
 	data.hotbar = HotbarOrder.clean(raw.hotbar) -- hotbar order (no version bump: missing / junk -> nil)
 	data.eggLuck = SaveData.cleanEggLuck(raw.eggLuck) -- Mystery Egg lucky meter (no version bump: missing -> empty)
+	data.weekly = SaveData.cleanWeekly(raw.weekly, data.totalEarned) -- Weekly Top Earners (no version bump: missing -> week 0)
 	BossBadges.grant(data, data.lastOnline) -- badges the record reached before they existed or were saved
 	for species in data.boss.wins do
 		SpeciesDex.record(data, { species = species }) -- a won boss always counts in the SlimeDex
@@ -722,6 +731,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		boss = BossBadges.clean(data.boss),
 		hotbar = HotbarOrder.clean(data.hotbar), -- nil until set: the key is left out
 		eggLuck = SaveData.cleanEggLuck(data.eggLuck),
+		weekly = SaveData.cleanWeekly(data.weekly, data.totalEarned),
 	}
 end
 

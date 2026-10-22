@@ -6,10 +6,10 @@
 	Client-local: each player renders the
 	board themselves and their own row is highlighted.
 
-	A SurfaceGui under workspace is a board when it's named "Leaderboard", or
-	sits inside a Model named "LeaderboardBoard" (Archer's
-	Props.leaderboardBoard: Board > SurfaceGui "BoardGui" > Content > Rows)
-	or "Leaderboard". Rows go into its descendant Frame "Rows" if there is
+	Each payload is one board (`stat`, Leaderboards.BOARDS). A SurfaceGui under workspace is a board when it's
+	named "Leaderboard", or sits inside one of the Hall of Fame board Models (Props.leaderboardBoard: Board >
+	SurfaceGui "BoardGui" > Content > Rows) or a Model named "Leaderboard". It shows the stat in its Model's
+	LeaderboardStat attribute (else the board its Model name belongs to, else Top Earners). Rows go into its descendant Frame "Rows" if there is
 	one, else into a "Rows" frame created to fill the gui. Boards streamed
 	in later bind on DescendantAdded. Row frames are "Row_<k>" with Rank /
 	Name / Value labels, like Props.fillLeaderboard.
@@ -18,7 +18,8 @@
 	(tests/ui/WorldLeaderboard.spec.luau); `start` touches Roblox only when called.
 ]]
 
-local Format = if script then require(script.Parent.Format) else require("./Format")
+local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Leaderboards = if Shared then require(Shared.Leaderboards) else require("../shared/Leaderboards")
 
 export type Row = { rank: number, name: string, value: string, isMe: boolean }
 
@@ -26,7 +27,11 @@ local WorldLeaderboard = {}
 
 WorldLeaderboard.MAX_ROWS = 10
 WorldLeaderboard.GUI_NAMES = table.freeze({ "Leaderboard" })
-WorldLeaderboard.MODEL_NAMES = table.freeze({ "LeaderboardBoard", "Leaderboard" })
+local modelNames = { "Leaderboard" }
+for _, def in Leaderboards.BOARDS do
+	table.insert(modelNames, def.model)
+end
+WorldLeaderboard.MODEL_NAMES = table.freeze(modelNames)
 WorldLeaderboard.ROWS_NAME = "Rows"
 
 function WorldLeaderboard.matches(className: string, name: string, modelName: string?): boolean
@@ -42,6 +47,7 @@ end
 -- Board payload -> at most `max` display rows, sorted by rank. Bad payloads -> {}.
 function WorldLeaderboard.rows(board: any, myUserId: number?, max: number?): { Row }
 	local entries = if type(board) == "table" and type(board.entries) == "table" then board.entries else {}
+	local stat = if type(board) == "table" then board.stat else nil
 	local valid = {}
 	for _, entry in entries do
 		if type(entry) == "table" and type(entry.rank) == "number" then
@@ -59,7 +65,7 @@ function WorldLeaderboard.rows(board: any, myUserId: number?, max: number?): { R
 		table.insert(out, {
 			rank = entry.rank,
 			name = tostring(entry.name or "?"),
-			value = Format.formatCash(if type(entry.value) == "number" then entry.value else 0),
+			value = Leaderboards.format(stat, if type(entry.value) == "number" then entry.value else 0),
 			isMe = myUserId ~= nil and entry.userId == myUserId,
 		})
 	end
@@ -212,9 +218,20 @@ export type Handle = { setBoard: (board: any) -> (), boards: () -> { SurfaceGui 
 
 -- Binds every board under `root` (now and later) and returns a setter for
 -- new Leaderboard payloads.
+-- The stat a bound board shows: its Model's LeaderboardStat attribute, else its Model name's board, else the
+-- podium board (Top Earners).
+function WorldLeaderboard.statOf(model: Instance?): string
+	local stat = if model then model:GetAttribute("LeaderboardStat") else nil
+	if Leaderboards.get(stat) then
+		return stat :: string
+	end
+	local def = if model then Leaderboards.forModel(model.Name) else nil
+	return (def or Leaderboards.podium()).stat
+end
+
 function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
-	local bound: { [SurfaceGui]: boolean } = {}
-	local latest: { Row } = {}
+	local bound: { [SurfaceGui]: string } = {} -- gui -> stat
+	local latest: { [string]: { Row } } = {}
 
 	local function consider(inst: Instance)
 		if not inst:IsA("SurfaceGui") or bound[inst] then
@@ -224,7 +241,7 @@ function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
 		if not WorldLeaderboard.matches(inst.ClassName, inst.Name, if model then model.Name else nil) then
 			return
 		end
-		bound[inst] = true
+		bound[inst] = WorldLeaderboard.statOf(model)
 		inst.AncestryChanged:Connect(function()
 			if not inst:IsDescendantOf(root) then
 				bound[inst] = nil
@@ -232,8 +249,9 @@ function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
 		end)
 		-- Deferred so a freshly streamed-in board's own Rows frame can arrive first.
 		task.defer(function()
-			if bound[inst] then
-				WorldLeaderboard.render(inst, latest)
+			local stat = bound[inst]
+			if stat then
+				WorldLeaderboard.render(inst, latest[stat] or {})
 			end
 		end)
 	end
@@ -245,11 +263,18 @@ function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
 
 	return {
 		setBoard = function(board: any)
-			latest = WorldLeaderboard.rows(board, myUserId)
-			for gui in bound do
-				local ok, err = pcall(WorldLeaderboard.render, gui, latest)
-				if not ok then
-					warn("[UI] world leaderboard render failed:", err)
+			local def = Leaderboards.get(type(board) == "table" and board.stat)
+			if not def then
+				return
+			end
+			local rows = WorldLeaderboard.rows(board, myUserId)
+			latest[def.stat] = rows
+			for gui, stat in bound do
+				if stat == def.stat then
+					local ok, err = pcall(WorldLeaderboard.render, gui, rows)
+					if not ok then
+						warn("[UI] world leaderboard render failed:", err)
+					end
 				end
 			end
 		end,

@@ -258,7 +258,10 @@ export type State = {
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }
 
--- Payload of the `Leaderboard` RemoteEvent.
-export type Leaderboard = { stat: "TotalEarned", entries: { LeaderboardEntry } }
+-- Which board a payload is for (Leaderboards.BOARDS).
+export type LeaderboardStat = "TotalEarned" | "WeeklyEarned" | "Steals" | "Dex" | "Merges"
+
+-- Payload of the `Leaderboard` RemoteEvent: one board per call.
+export type Leaderboard = { stat: LeaderboardStat, entries: { LeaderboardEntry } }
 
 return {}

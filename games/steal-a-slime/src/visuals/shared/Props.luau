@@ -539,11 +539,120 @@ function Props.tutorialNpc(): Model
 	return finish(m, root)
 end
 
+-- Hall of Fame arch ---------------------------------------------------------
+
+-- Two wooden posts over the Hall of Fame path where it leaves the ring path, a beam and a red sign reading
+-- "HALL OF FAME" on both sides. Front = local -Z (towards the fountain). Only the posts are solid; the beam and the
+-- sign sit high above head height.
+Props.HALL_ARCH = table.freeze({ span = 22, height = 17, post = 2 })
+
+function Props.hallArch(): Model
+	local m = Instance.new("Model")
+	m.Name = "HallOfFameArch"
+	local A = Props.HALL_ARCH
+	local wood, beamWood, red = rgb(120, 72, 40), rgb(150, 96, 54), rgb(214, 66, 58)
+	local half = A.span / 2
+	local root = part(m, "PostL", Vector3.new(A.post, A.height, A.post), CFrame.new(-half, A.height / 2, 0), wood, {
+		material = "WoodPlanks",
+	})
+	part(m, "PostR", Vector3.new(A.post, A.height, A.post), CFrame.new(half, A.height / 2, 0), wood, {
+		material = "WoodPlanks",
+	})
+	local beam = part(
+		m,
+		"Beam",
+		Vector3.new(A.span + 4, 2.2, 1.8),
+		CFrame.new(0, A.height + 0.6, 0),
+		beamWood,
+		{ material = "WoodPlanks", canCollide = false }
+	)
+	beam.CanQuery = false
+	local sign = part(m, "Sign", Vector3.new(15, 3.2, 0.5), CFrame.new(0, A.height - 2.3, 0), red, {
+		canCollide = false,
+	})
+	sign.CanQuery = false
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = `SignGui{face.Name}`
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 0
+		gui.Adornee = sign
+		gui.Parent = sign
+		local text = label(gui, "Text", "HALL OF FAME", rgb(255, 244, 214))
+		text.Position = UDim2.fromScale(0.05, 0.12)
+		text.Size = UDim2.fromScale(0.9, 0.76)
+		local outline = Instance.new("UIStroke")
+		outline.Color = tone(Goo.Ink)
+		outline.Thickness = 3
+		outline.LineJoinMode = Enum.LineJoinMode.Round
+		outline.Parent = text
+	end
+	return finish(m, root)
+end
+
+-- Professor Goo -------------------------------------------------------------
+
+-- The Hall of Fame greeter, skinned with the guide_professor kit mesh (shared/modeling-kit/models/guide_professor.py,
+-- 3.72 x 7.06 x 2.98 studs, front -Z like the Guide). Plain blocks stand in for him until the skin loads and stay
+-- his collider; an invisible Bounds part pins the Model's box to the skin's, so MeshSwap centres the skin on it.
+Props.PROFESSOR_SIZE = table.freeze({ 3.719, 7.056, 2.98 })
+
+function Props.professorGoo(): Model
+	local m = Instance.new("Model")
+	m.Name = "ProfessorGoo"
+	local coat, pants, skin, hair = rgb(246, 236, 214), rgb(92, 90, 120), rgb(255, 210, 166), rgb(250, 250, 250)
+	local size = Props.PROFESSOR_SIZE
+	local root = part(
+		m,
+		"HumanoidRootPart",
+		Vector3.new(2.2, 2.4, 1.3),
+		CFrame.new(0, 3.3, 0),
+		coat,
+		{ transparency = 1, canCollide = false }
+	)
+	part(m, "Legs", Vector3.new(1.8, 2.1, 1.1), CFrame.new(0, 1.05, 0), pants, {})
+	part(m, "Coat", Vector3.new(2.4, 2.9, 1.4), CFrame.new(0, 3.5, 0), coat, {})
+	local head = part(m, "Head", Vector3.new(1.9, 1.7, 1.7), CFrame.new(0, 5.8, 0), skin, {})
+	local tuft = part(m, "Hair", Vector3.new(2.6, 0.9, 2.0), CFrame.new(0, 6.6, 0.1), hair, { canCollide = false })
+	tuft.CanQuery = false
+	local bounds = part(
+		m,
+		"Bounds",
+		Vector3.new(size[1], size[2], size[3]),
+		CFrame.new(0, size[2] / 2, 0),
+		coat,
+		{ transparency = 1, canCollide = false }
+	)
+	bounds.CanQuery = false
+	bounds.CanTouch = false
+	local tag = Instance.new("BillboardGui")
+	tag.Name = "NameTag"
+	tag.Size = UDim2.fromOffset(220, 44)
+	tag.StudsOffset = Vector3.new(0, size[2] - 5.8 + 1.1, 0)
+	tag.AlwaysOnTop = false
+	tag.MaxDistance = 80
+	tag.LightInfluence = 0
+	tag.Parent = head
+	local text = label(tag, "Text", "Professor Goo", tone(Goo.White))
+	text.Size = UDim2.fromScale(1, 1)
+	local outline = Instance.new("UIStroke")
+	outline.Color = tone(Goo.Ink)
+	outline.Thickness = 2.5
+	outline.LineJoinMode = Enum.LineJoinMode.Round
+	outline.Parent = text
+	return finish(m, root)
+end
+
 -- Leaderboard board --------------------------------------------------------
 
-function Props.leaderboardBoard(): Model
+export type BoardDef = { model: string, title: string, accent: { number } }
+
+-- One Hall of Fame board (Leaderboards.BOARDS entry `def`: Model name, title, header colour); nil = Top Earners.
+function Props.leaderboardBoard(def: BoardDef?): Model
 	local m = Instance.new("Model")
-	m.Name = "LeaderboardBoard"
+	m.Name = if def then def.model else "LeaderboardBoard"
 	local frameColor = rgb(70, 52, 50)
 	-- The text lies on the skin's own front cream panel (WorldProps skins this
 	-- Model with phoenix_top_earners_board, 19.5 tall so scale 0.978, its front
@@ -581,8 +690,19 @@ function Props.leaderboardBoard(): Model
 	local pad = UDim.new(0.04, 0)
 	padding.PaddingTop, padding.PaddingBottom, padding.PaddingLeft, padding.PaddingRight = pad, pad, pad, pad
 	padding.Parent = content
-	local title = label(content, "Title", Props.LEADERBOARD_TITLE, ink(Props.BOARD_PALETTE.Title))
-	title.Size = UDim2.fromScale(1, 0.12)
+	-- The title sits on a rounded strip in the board's own colour, white text on it.
+	local header = Instance.new("Frame")
+	header.Name = "Header"
+	header.Size = UDim2.fromScale(1, 0.15)
+	header.BackgroundColor3 = if def then ink(def.accent) else ink(Props.BOARD_PALETTE.Title)
+	header.BorderSizePixel = 0
+	header.Parent = content
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.25, 0)
+	corner.Parent = header
+	local title = label(header, "Title", if def then def.title else Props.LEADERBOARD_TITLE, rgb(255, 255, 255))
+	title.Position = UDim2.fromScale(0.04, 0.12)
+	title.Size = UDim2.fromScale(0.92, 0.76)
 	-- The skin's red divider runs 2.45 studs below the face top (about 0.21-0.23 of the Board), so the
 	-- rows start just under it and the title keeps the band above.
 	local rows = Instance.new("Frame")

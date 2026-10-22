@@ -2042,6 +2042,19 @@
     "uploadedAt": "2026-10-22T11:06:15Z",
     "versions": 1
   },
+  "guide_professor": {
+    "assetId": "125660278107523",
+    "assetType": "Model",
+    "meshId": "rbxassetid://94250583088999",
+    "meshSize": [
+      3.719,
+      7.056,
+      2.98
+    ],
+    "sha256": "674cd86c80203cd3",
+    "uploadedAt": "2026-10-22T16:16:15Z",
+    "versions": 1
+  },
   "habitat_barn_crate": {
     "assetId": "89583070931756",
     "assetType": "Model",

@@ -224,6 +224,7 @@ local DECOR = {
 	phoenix_pad_crate = "the pad's own Pad part is the gameplay surface; the stand is its decor",
 	phoenix_top_earners_board = "WorldProps Model: its invisible Collider keeps the Model's bounds",
 	ranch_guide = "WorldProps Model: the TutorialNpc's hidden primitive body parts stay the collider",
+	guide_professor = "WorldProps Model: ProfessorGoo's hidden block body stays the collider",
 	ranch_landing_ring = "mesh stays decor (bbox 10 deep x 3.1 tall: Box/Hull = invisible wall); the stones are solid through thin Plaza colliders (LandingCurb/LandingStake, PropCollision landing_ring)",
 	ranch_goo_drain = "mesh stays decor; solid through the DrainCurb disc + post + plaque colliders (PropCollision goo_drain), so the slide exit stays open",
 	ranch_horseshoe_pit = "1.8 stud flat sand pit, walk over it",
