@@ -14,6 +14,7 @@
 
 local UI = script.Parent.Parent
 local Format = require(UI.Format)
+local GooIcons = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("GooIcons"))
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
@@ -58,11 +59,14 @@ WorldShop.SIZE = table.freeze({
 	stampRadius = 8,
 })
 
--- Per shop: the corner icon; the title and tagline come from WorldShopLogic.
+-- Per shop: the corner icon (an emoji, or `drawn` = a GooIcons drawing in Ink) and its tile colour; the title
+-- and tagline come from WorldShopLogic.
 WorldShop.ICON = table.freeze({
-	ItemShop = "🛒",
-	UpgradeShop = "⬆️",
+	ItemShop = table.freeze({ text = "🛒" }),
+	UpgradeShop = table.freeze({ drawn = "upArrow", tile = "Gold" }),
 })
+
+local ICON_DEPS = { Instance = Instance, UDim = UDim, UDim2 = UDim2, Vector2 = Vector2 }
 
 local SIZE = WorldShop.SIZE
 
@@ -130,7 +134,10 @@ local function setPips(holder: Frame, level: number, maxLevel: number)
 end
 
 function WorldShop.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "WorldShopPanel", "Shop", WorldShop.ICON.ItemShop)
+	local panel = Widgets.panel(parent, "WorldShopPanel", "Shop", WorldShop.ICON.ItemShop.text)
+	local tile = panel.icon.Parent :: Frame
+	local arrow = GooIcons.upArrow(panel.icon, ICON_DEPS, Theme.Ink, panel.icon.ZIndex)
+	arrow.Visible = false
 
 	local cash = Widgets.chip({
 		Name = "Cash",
@@ -351,7 +358,10 @@ function WorldShop.new(parent: Instance, ctx: any)
 	function self.setShop(id: string)
 		shopId = id
 		panel.title.Text = WorldShopLogic.title(id)
-		panel.icon.Text = (WorldShop.ICON :: any)[id] or WorldShop.ICON.ItemShop
+		local look = (WorldShop.ICON :: any)[id] or WorldShop.ICON.ItemShop
+		panel.icon.Text = look.text or ""
+		arrow.Visible = look.drawn == "upArrow"
+		tile.BackgroundColor3 = (Theme :: any)[look.tile or "Text"]
 		tagline.Text = WorldShopLogic.tagline(id)
 		refresh()
 	end

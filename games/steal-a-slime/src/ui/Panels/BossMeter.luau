@@ -159,7 +159,6 @@ function BossMeter.new(parent: Instance, ctx: any)
 		Parent = frame,
 	}, { Widgets.pill(), Widgets.stroke(Theme.Ink, KIT.stroke) })
 	Widgets.shade(tile)
-	Widgets.shine(tile)
 	local icon = Widgets.label({
 		Name = "Icon",
 		Text = BossMeterLogic.ICON,

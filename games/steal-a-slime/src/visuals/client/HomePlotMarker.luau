@@ -116,6 +116,9 @@ local function ownPlot(): Model?
 	return if index then byIndex[index] else nil
 end
 
+-- The local player's own plot Model, or nil (NextPadMarker uses it too).
+HomePlotMarker.ownPlot = ownPlot
+
 local function make(className: string, props: { [string]: any }, parent: Instance?): any
 	local inst = Instance.new(className)
 	for k, v in props do
@@ -159,7 +162,7 @@ local function drawHouse(parent: Instance, line: number)
 	}, parent)
 end
 
--- The mint jelly badge with the house: a circle with an Ink ring, a top-light gradient and a glint.
+-- The mint jelly badge with the house: a circle with an Ink ring and a top-light gradient.
 local function homeBadge(parent: Instance, size: number): Frame
 	local circle = make("Frame", {
 		Name = "Badge",
@@ -176,16 +179,6 @@ local function homeBadge(parent: Instance, size: number): Frame
 			ColorSequenceKeypoint.new(1, rgb(GooPalette.MintLo)),
 		}),
 	}, circle)
-	local shine = make("Frame", {
-		Name = "Shine",
-		BackgroundColor3 = WHITE,
-		BackgroundTransparency = 0.35,
-		BorderSizePixel = 0,
-		Position = UDim2.fromScale(0.16, 0.14),
-		Size = UDim2.fromScale(0.24, 0.1),
-		Rotation = -24,
-	}, circle)
-	make("UICorner", { CornerRadius = UDim.new(1, 0) }, shine)
 	local house = make("Frame", { Name = "House", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) }, circle)
 	drawHouse(house, math.max(2, math.round(size / 20)))
 	return circle
@@ -399,12 +392,19 @@ local function refresh()
 	end
 end
 
+-- True while the UI has a menu or popup open (SlimeUI attribute MenuOpen): the arrow would sit on top of it.
+local function menuOpen(): boolean
+	local gui = Players.LocalPlayer and Players.LocalPlayer:FindFirstChild("PlayerGui")
+	local ui = gui and gui:FindFirstChild(Constants.UI_GUI_NAME)
+	return ui ~= nil and ui:GetAttribute(Constants.MENU_OPEN_ATTRIBUTE) == true
+end
+
 local function stepArrow(b: Built, camera: Camera, fade: number)
 	local gui, frame, tip = arrowGui, badge, pointer
 	if not (gui and frame and tip) then
 		return
 	end
-	if fade <= 0 then
+	if fade <= 0 or menuOpen() then
 		gui.Enabled = false
 		return
 	end

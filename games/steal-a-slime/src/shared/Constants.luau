@@ -135,6 +135,8 @@ return table.freeze({
 	SHOP_PROMPT_NAME = "ShopPrompt",
 	SHOP_EVENT = "ShopEvent", -- RemoteEvent, ServerToClient (CONTRACT.md §27.4)
 	OPEN_SHOP_ATTRIBUTE = "OpenShop", -- Player: shopId the server has open for them, nil = closed
+	MENU_OPEN_ATTRIBUTE = "MenuOpen", -- PlayerGui.SlimeUI (client only): a menu or popup is open; edge arrows hide
+	UI_GUI_NAME = "SlimeUI", -- the client's main ScreenGui in PlayerGui
 	SHOP_ID_ATTRIBUTE = "ShopId", -- ItemShopStand / UpgradeShopStand: "ItemShop" | "UpgradeShop"
 	GUIDE_PROMPT_NAME = "GuidePrompt",
 	-- Slime habitats (FEATURES.Habitats, HABITATS.md): Pad_<j> attributes, only set with the flag on.

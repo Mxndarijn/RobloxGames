@@ -53,7 +53,6 @@ SlimePadSign.COLORS = table.freeze({
 	paintStroke = Theme.Ink,
 	income = Theme.Good,
 	tube = Theme.Ink,
-	shine = Color3.new(1, 1, 1),
 })
 
 -- Layout as fractions of the plank (x across, y down). Text sits between the end drips.
@@ -270,16 +269,6 @@ function SlimePadSign.build(): Part
 			Size = UDim2.new(0, d.w, 0.5 + d.len / l.band, 0),
 		}, band, 100, false)
 	end
-	create("Frame", {
-		Name = "Shine",
-		Position = UDim2.fromScale(0.03, 0.12),
-		Size = UDim2.fromScale(0.94, 0.16),
-		BackgroundColor3 = c.shine,
-		BackgroundTransparency = 0.6,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-		Parent = band,
-	}, { Widgets.pill() })
 	local rarity = create("TextLabel", {
 		Name = "Rarity",
 		Position = UDim2.fromScale(l.inset, 0.16),

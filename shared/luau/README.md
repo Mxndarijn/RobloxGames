@@ -96,6 +96,7 @@ local guide = GuideView.new({
 	getIgnore = function() return { workspace.Enemies } end, -- the trail never lands on these
 })
 guide:setTarget(model, "Buy $40") -- any PVInstance; nil or guide:clear() hides everything
+guide:setEdgeHidden(true) -- hides only the screen-edge pointer (say, while a menu is open)
 guide:destroy()
 ```
 

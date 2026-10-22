@@ -24,6 +24,7 @@
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
 	  * the Mystery Egg hatch show on the pad (EggHatchFx) from a hatched slime's HatchedAt / HatchedFrom / HatchLucky
 	  * home plot marker (HomePlotMarker): beacon, floor rim, "Your plot" tag and edge arrow on the local player's own plot
+	  * next pad marker (NextPadMarker): a mint outline and a "Buy pad $X" tag on the next pad you can buy
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
 	  * slime fountain (still Map.Volcano.Crater): goo spray ("Smoke"),
@@ -496,6 +497,14 @@ do
 	end)
 	if not ok then
 		warn(`[VisualsClient] home plot marker disabled: {err}`)
+	end
+end
+do
+	local ok, err = pcall(function()
+		require(script:WaitForChild("NextPadMarker")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] next pad marker disabled: {err}`)
 	end
 end
 do

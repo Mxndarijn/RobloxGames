@@ -3,7 +3,7 @@
 	NavTile
 
 	The look of a left-menu tile in the Goo kit: a mint jelly square (one uniform corner, Layout.NAV.radius,
-	so DexJarView's jar maths holds) with an Ink outline, a darker bottom and a glint. The open menu's tile
+	so DexJarView's jar maths holds) with an Ink outline and a darker bottom. The open menu's tile
 	wears the Gold ring and a gold label; the tile itself stays mint. init.client builds the button and its
 	icon, label and badge; this module only dresses and paints the tile.
 ]]
@@ -25,7 +25,6 @@ function NavTile.dress(tile: Frame): UIStroke
 	local stroke = Widgets.stroke(Theme.Ink, NavTile.STROKE.normal)
 	stroke.Parent = tile
 	Widgets.shade(tile)
-	Widgets.shine(tile)
 	return stroke
 end
 

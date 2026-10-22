@@ -18,9 +18,9 @@ local function edges(root: any): { any }
 end
 
 describe("Goo kit", function()
-	it("every drip and the lip hang inside the gap between the band and the body", function()
+	it("every drip hangs inside the gap between the band and the body", function()
 		local g, gap = Layout.GOO_EDGE, Layout.PANEL_CHROME.bodyGap
-		expect(g.lip < gap).toBe(true)
+		expect(math.round(10 * g.shoulderDrop) < gap).toBe(true)
 		for i, d in g.drips do
 			local w, len = d[2], d[3]
 			local lowest = len - math.round(w * g.dropRise) + w

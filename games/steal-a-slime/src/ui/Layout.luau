@@ -724,30 +724,21 @@ Layout.NOTICE_RADIUS = 18
 -- The glass bubble behind each status icon (Hud): white at this transparency over the world.
 Layout.STATUS_BUBBLE = table.freeze({ transparency = 0.8 })
 
--- The glint on a jelly (Widgets.shine): a fixed w x h px frame near the top-left, at a fraction of the jelly's
--- width plus a few px so it sits inside a pill's rounded end, and a few px under the top edge so it stays
--- above a centred label.
-Layout.SHINE = table.freeze({ x = 0.08, offsetX = 6, offsetY = 4, w = 14, h = 4, rotation = -24 })
-
--- The goo edge under a panel's band (Widgets.gooEdge): a lip of `scallops` round bumps hanging `lip` px,
--- and drips { x (fraction of the width), drop width, neck length } px. A drip's lowest point is
--- length + 0.6 * width, kept under PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over
--- the corner icon tile (x < 0.14).
+-- The goo edge under a panel's band (Widgets.gooEdge): drips { x (fraction of the width), drop width, neck
+-- length } px. Each drip is one blob of goo: a wide soft shoulder where it leaves the band, a thick neck and a
+-- round drop. A drip's lowest point is length - dropRise * width + width, kept under PANEL_CHROME.bodyGap so
+-- goo never runs over the body. No drip sits over the corner icon tile (x < 0.14).
 Layout.GOO_EDGE = table.freeze({
 	inset = 18,
-	scallops = 16,
-	lip = 6,
-	neckWidth = 0.64, -- a drip's neck, as a fraction of its drop width, centred on the drop
-	dropRise = 0.4, -- how far the drop's top overlaps the neck's end, as a fraction of its width
-	dot = 0.28, -- the drop's shine dot, as a fraction of the drop
-	dotAt = 0.22,
-	dotTransparency = 0.35,
+	neckWidth = 0.8, -- a drip's neck, as a fraction of its drop width, centred on the drop
+	dropRise = 0.55, -- how far the drop's top overlaps the neck's end, as a fraction of its width
+	shoulder = 1.7, -- the shoulder's width, as a multiple of the drop width
+	shoulderDrop = 0.45, -- how far the shoulder bulges under the band, as a fraction of the drop width
 	drips = table.freeze({
-		table.freeze({ 0.2, 10, 6 }),
-		table.freeze({ 0.33, 8, 3 }),
-		table.freeze({ 0.52, 11, 7 }),
-		table.freeze({ 0.71, 8, 4 }),
-		table.freeze({ 0.86, 10, 6 }),
+		table.freeze({ 0.22, 10, 7 }),
+		table.freeze({ 0.4, 8, 4 }),
+		table.freeze({ 0.6, 11, 8 }),
+		table.freeze({ 0.8, 9, 5 }),
 	}),
 })
 
