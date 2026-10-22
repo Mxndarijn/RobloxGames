@@ -54,6 +54,10 @@ local LOOK = table.freeze({
 	padLegs = 4,
 	discoBall = 1.5,
 	discoHeight = 5,
+	slimeBubble = 1.5, -- a floating slime's bubble is this many times the slime's largest side
+	slimeBubbleMin = 3, -- studs: never smaller than this
+	bubbleTransparency = 0.55, -- the Bubble Wand's glass bubbles (the stream and a floating slime's)
+	bubbleReflectance = 0.25,
 	splatThickness = 0.12,
 	rayDrop = 30, -- studs searched below a point for the ground
 	bomb_color = { 0.35, 0.2, 0.5 },
@@ -648,6 +652,25 @@ function PvpFunFx.start(opts: Options): Handle
 		return true
 	end
 
+	local function popBubble(record: Record?, bubble: BasePart?, quiet: boolean?)
+		if not bubble or not bubble.Parent then
+			return
+		end
+		local r = record or newRecord(1)
+		local at = anchorAt(r, bubble.Position)
+		emit(r, at, {
+			count = 10,
+			colors = { Logic.BUBBLE, { 1, 1, 1 } },
+			speed = { 4, 9 },
+			size = 0.35,
+			lifetime = { 0.2, 0.45 },
+		})
+		if not quiet then
+			sound("PvpBubble", at, false, 1.4 + math.random() * 0.3, 0.6)
+		end
+		bubble:Destroy()
+	end
+
 	local function floatSlime(model: Model)
 		local proxy = makeProxy(model)
 		if not proxy then
@@ -656,6 +679,28 @@ function PvpFunFx.start(opts: Options): Handle
 		local seconds = FUN.BUBBLES.SLIME_FLOAT_SECONDS
 		-- the wild slime keeps walking its lane underneath: land where it will be (measured at the end)
 		local keys = Logic.float(FUN.BUBBLES.LIFT * 0.7, seconds, { 0, 0 })
+		-- The slime rides up inside a bubble (part of the proxy clone, so it goes with it) that pops as it drops.
+		local _, extents = model:GetBoundingBox()
+		local diameter = math.max(LOOK.slimeBubbleMin, math.max(extents.X, extents.Y, extents.Z) * LOOK.slimeBubble)
+		local middle = extents.Y / 2
+		local bubble: BasePart? = part(nil, {
+			Name = "FunSlimeBubble",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * diameter,
+			CFrame = proxy.root.CFrame * CFrame.new(0, middle, 0),
+			Color = rgb(Logic.BUBBLE),
+			Material = Enum.Material.Glass,
+			Transparency = LOOK.bubbleTransparency,
+			Reflectance = LOOK.bubbleReflectance,
+			Anchored = false,
+			Massless = true,
+			Parent = proxy.clone,
+		})
+		local bubbleWeld = Instance.new("Weld")
+		bubbleWeld.Part0 = proxy.root
+		bubbleWeld.Part1 = bubble
+		bubbleWeld.C0 = CFrame.new(0, middle, 0)
+		bubbleWeld.Parent = proxy.root
 		local i = 0
 		local function step()
 			i += 1
@@ -673,6 +718,20 @@ function PvpFunFx.start(opts: Options): Handle
 				key.offset = { here.X, key.offset[2], here.Z }
 			end
 			poseTo(proxy, key)
+			if bubble and key.offset[2] <= 0 then
+				popBubble(nil, bubble) -- the fall starts: pop, and the slime drops out
+				bubble = nil
+			elseif bubble then
+				local o = key.offset
+				local info = TweenInfo.new( -- the same easing as poseTo, so the slime stays centred in its bubble
+					math.max(key.seconds, 0.01),
+					(Enum.EasingStyle :: any)[key.style] or Enum.EasingStyle.Quad,
+					(Enum.EasingDirection :: any)[key.dir] or Enum.EasingDirection.Out
+				)
+				local tween = TweenService:Create(bubbleWeld, info, { C0 = CFrame.new(o[1], o[2] + middle, o[3]) })
+				tween:Play()
+				table.insert(proxy.tweens, tween)
+			end
 			task.delay(key.seconds, step)
 		end
 		step()
@@ -879,25 +938,6 @@ function PvpFunFx.start(opts: Options): Handle
 		task.delay(math.max(0, seconds - 1.2), check)
 	end
 
-	local function popBubble(record: Record?, bubble: BasePart?, quiet: boolean?)
-		if not bubble or not bubble.Parent then
-			return
-		end
-		local r = record or newRecord(1)
-		local at = anchorAt(r, bubble.Position)
-		emit(r, at, {
-			count = 10,
-			colors = { Logic.BUBBLE, { 1, 1, 1 } },
-			speed = { 4, 9 },
-			size = 0.35,
-			lifetime = { 0.2, 0.45 },
-		})
-		if not quiet then
-			sound("PvpBubble", at, false, 1.4 + math.random() * 0.3, 0.6)
-		end
-		bubble:Destroy()
-	end
-
 	local function bubbles(payload: any)
 		local origin = PvpFunRules.vec(payload.origin)
 		local direction = PvpFunRules.vec(payload.direction)
@@ -945,8 +985,8 @@ function PvpFunFx.start(opts: Options): Handle
 					CFrame = CFrame.new(here.X, here.Y, here.Z),
 					Color = rgb(Logic.BUBBLE),
 					Material = Enum.Material.Glass,
-					Transparency = 0.55,
-					Reflectance = 0.25,
+					Transparency = LOOK.bubbleTransparency,
+					Reflectance = LOOK.bubbleReflectance,
 				})
 				live.bubbles[index] = bubble
 				local left = born + cfg.LIFETIME - math.max(now, born)
