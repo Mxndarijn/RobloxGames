@@ -51,6 +51,7 @@ describe("BossMeterLogic.view", function()
 			return view(f)
 		end
 		expect(with({ move = "windup" }).pill).toBe("Dodge!")
+		expect(with({ move = "hop" }).pill).toBe("Dodge!") -- a bouncing stomp in the air
 		local dazed = with({ move = "dazed", multiplier = 3 })
 		expect(dazed.pill).toBe("Hits x3")
 		expect(dazed.tone).toBe("gold")

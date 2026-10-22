@@ -26,6 +26,7 @@ local function fight(players: number, index: number?): (any, any, { [number]: Ve
 		ServerFixtures.join(w, userId, nil, 0)
 	end
 	w.bossIndex = index or 1
+	w.fountainTier = BOSS.SECRET_FOUNTAIN_TIER -- the Secret bosses may come too
 	w.nextBossAt = T0 + BOSS.WARNING_SECONDS
 	local at: { [number]: Vec } = {}
 	local launched: { number } = {}
@@ -189,5 +190,129 @@ describe("BossEvent attacks", function()
 			after += 1
 		end
 		expect(after - before).toBe(2 * BOSS.WIN_SHOWER)
+	end)
+end)
+
+-- Steps the fight every 1/30 s for `seconds` from `t`; returns the moves it went through, in order, and the time.
+local function run(w: any, ctx: any, t: number, seconds: number): ({ any }, number)
+	local moves = {}
+	local last = -1
+	local stop = t + seconds
+	while t < stop do
+		t += 1 / 30
+		BossEvent.step(w, t, ctx)
+		local wild = bossOf(w)
+		local move = wild and wild.move
+		if move and move.n ~= last then
+			last = move.n
+			table.insert(moves, move)
+		end
+	end
+	return moves, t
+end
+
+local function kinds(moves: { any }): string
+	local out = {}
+	for _, m in moves do
+		table.insert(out, m.kind)
+	end
+	return table.concat(out, ",")
+end
+
+describe("BossEvent signature attacks: every boss has one of its own", function()
+	it("Goozilla's double stomp hits a grounded player once per ring", function()
+		local w, ctx, at, launched = fight(1)
+		expect(w.boss.fight.species).toBe("goozilla")
+		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+		BossEvent.step(w, t, ctx)
+		local move = force(w, "attack", "start.1", t, 3)
+		at[1] = { X = move.fx + 9, Y = 3, Z = move.fz }
+		run(w, ctx, t, 2.5)
+		expect(#launched).toBe(2)
+	end)
+
+	it("Queen Jelly heals when her guards outlast the call", function()
+		local w, ctx = fight(1, 2)
+		expect(w.boss.fight.species).toBe("queen_jelly")
+		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+		BossEvent.step(w, t, ctx)
+		force(w, "windup", "start.1", t, 0.05)
+		BossEvent.step(w, t + 0.1, ctx)
+		expect(bossOf(w).move.kind).toBe("rise")
+		w.boss.fight.points = 30
+		w.boss.fight.lastAnyHitAt = math.huge -- no drain in this test
+		BossEvent.step(w, t + 0.1 + BOSS.GUARD_SECONDS + 0.05, ctx)
+		expect(bossOf(w).move.kind).toBe("land")
+		expect(w.boss.fight.points).toBeCloseTo(30 - 0.15 * BOSS.POINTS_PER_PLAYER, 1e-6)
+	end)
+
+	it("Pumpking hops at you three times, a ring on every landing, then is dazed", function()
+		local w, ctx, at, launched = fight(1, 4)
+		expect(w.boss.fight.species).toBe("pumpking")
+		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+		BossEvent.step(w, t, ctx)
+		local move = force(w, "windup", "start.1", t, 0.05)
+		at[1] = { X = move.fx + 4, Y = 3, Z = move.fz + 4 }
+		local moves = run(w, ctx, t, 4)
+		expect(string.find(kinds(moves), "hop,hop,hop,dazed", 1, true) ~= nil).toBe(true)
+		expect(#launched >= 1).toBe(true)
+	end)
+
+	it("Mecha Goo's ricochet charge winds up again and rams a second time", function()
+		local w, ctx, at = fight(1, 5)
+		expect(w.boss.fight.species).toBe("mecha_goo")
+		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+		BossEvent.step(w, t, ctx)
+		local move = force(w, "windup", "start.1", t, 0.05)
+		at[1] = { X = move.fx + 20, Y = 3, Z = move.fz }
+		local moves = run(w, ctx, t, 6)
+		expect(string.find(kinds(moves), "attack,windup,attack,dazed", 1, true) ~= nil).toBe(true)
+	end)
+
+	it("Klawdius scuttles sideways, back and forth three times", function()
+		local w, ctx, at = fight(1, 3)
+		expect(w.boss.fight.species).toBe("klawdius")
+		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+		BossEvent.step(w, t, ctx)
+		local move = force(w, "windup", "start.2", t, 0.05)
+		at[1] = { X = move.fx + 15, Y = 3, Z = move.fz }
+		local moves = run(w, ctx, t, 8)
+		local legs = {}
+		for _, m in moves do
+			if m.kind == "attack" then
+				table.insert(legs, m)
+			end
+		end
+		expect(#legs).toBe(3)
+		for _, leg in legs do
+			local ux, uz = leg.tx - leg.fx, leg.tz - leg.fz
+			local len = math.sqrt(ux * ux + uz * uz)
+			if len > 0.5 then
+				expect(math.abs((ux * leg.hx + uz * leg.hz) / len) < 1e-6).toBe(true) -- sideways to its facing
+			end
+		end
+		local a = { legs[1].tx - legs[1].fx, legs[1].tz - legs[1].fz }
+		local b = { legs[2].tx - legs[2].fx, legs[2].tz - legs[2].fz }
+		if math.sqrt(a[1] ^ 2 + a[2] ^ 2) > 0.5 and math.sqrt(b[1] ^ 2 + b[2] ^ 2) > 0.5 then
+			expect(a[1] * b[1] + a[2] * b[2] < 0).toBe(true) -- the second leg runs back
+		end
+	end)
+
+	it("Goomancer's rune puddles burst into a ring that knocks back whoever is near", function()
+		local w, ctx, at, launched = fight(1, 10)
+		expect(w.boss.fight.species).toBe("goomancer")
+		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+		BossEvent.step(w, t, ctx)
+		local move = force(w, "look", "", t, 0.05)
+		w.boss.nextAttackAt = t
+		w.boss.attackIndex = 0 -- its first attack: the rune spit
+		at[1] = { X = move.fx + 12, Y = 3, Z = move.fz }
+		local burst = BOSS.MOVES.goomancer.start[1].burst
+		local _, thrown = run(w, ctx, t, 0.1 + BOSS.WINDUP_SECONDS + BOSS.SPIT_FLIGHT + 0.1)
+		expect(#w.boss.puddles >= 1).toBe(true)
+		at[1] = { X = w.boss.puddles[1].x + 5, Y = 3, Z = w.boss.puddles[1].z } -- step out of the slow, not far enough
+		local before = #launched
+		run(w, ctx, thrown, burst.delay + burst.radius / burst.speed + 0.2)
+		expect(#launched > before).toBe(true)
 	end)
 end)

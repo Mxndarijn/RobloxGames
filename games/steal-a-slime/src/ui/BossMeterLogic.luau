@@ -52,7 +52,7 @@ local function fightPill(boss: any, now: number): (string, PillTone, Tone)
 			local left = if type(boss.guardsLeft) == "number" then boss.guardsLeft else 0
 			local total = if type(boss.guardsTotal) == "number" then boss.guardsTotal else left
 			return `Guards {left}/{total}`, "plain", "fight"
-		elseif boss.move == "windup" or boss.move == "attack" then
+		elseif boss.move == "windup" or boss.move == "attack" or boss.move == "hop" then
 			return "Dodge!", "pink", "fight"
 		end
 	end

@@ -38,7 +38,7 @@ end
 
 describe("BossAttacks config", function()
 	it("every boss species in the roster has a start attack, and every attack has a known kind", function()
-		local known = { ring = true, spit = true, guards = true, cone = true, charge = true, vent = true }
+		local known = { ring = true, spit = true, guards = true, cone = true, charge = true, vent = true, hops = true }
 		for _, entry in SlimeRoster.ofKind("boss") do
 			do
 				local moves = (BOSS.MOVES :: any)[entry.id]

@@ -294,6 +294,7 @@ local function began(event: World.BossEvent, move: BossChoreo.Move, players: { {
 				landAt = move.at + BOSS.SPIT_FLIGHT,
 				seconds = attack.slowSeconds or 6,
 				slow = attack.slow or 0.5,
+				burst = attack.burst,
 			})
 		end
 		event.targets = {}
@@ -305,6 +306,32 @@ local function began(event: World.BossEvent, move: BossChoreo.Move, players: { {
 	end
 	if move.kind ~= "rise" then
 		event.guards = {}
+	end
+end
+
+-- A guard call that ran out with guards still standing: a `heal` attack (Queen Jelly) gets that share of the
+-- meter back.
+local function healIfGuardsHeld(world: World, event: World.BossEvent, rise: BossChoreo.Move)
+	local attack = BossAttacks.get(event.fight.species, rise.slot)
+	local heal = attack and attack.heal
+	if not heal then
+		return
+	end
+	for _, g in event.guards do
+		if g.alive then
+			local target = BossFight.target(playerCount(world))
+			event.fight.points = math.max(0, event.fight.points - heal * target)
+			local entry = SlimeRoster.get(event.fight.species)
+			World.notify(
+				world,
+				nil,
+				`The guards healed {if entry then entry.name else "the boss"}! Pop them faster.`,
+				"bad",
+				nil
+			)
+			World.markAllDirty(world)
+			return
+		end
 	end
 end
 
@@ -331,6 +358,9 @@ local function advance(world: World, event: World.BossEvent, now: number, all: {
 		local slots = BossAttacks.available(species, BossFight.meter(event.fight, playerCount(world)))
 		local due = if start >= event.nextAttackAt and #slots > 0 then slots[event.attackIndex % #slots + 1] else nil
 		local prev = move
+		if prev.kind == "rise" then
+			healIfGuardsHeld(world, event, prev)
+		end
 		move = BossChoreo.after(prev, {
 			now = start,
 			rng = event.rng,
@@ -394,12 +424,15 @@ local function attacks(world: World, event: World.BossEvent, now: number, t0: nu
 			event.struckMove = move.n
 			event.struck = {}
 		end
-		local attack = if move.kind == "attack" then BossAttacks.get(event.fight.species, move.slot) else nil
+		local attacking = move.kind == "attack" or move.kind == "hop"
+		local attack = if attacking then BossAttacks.get(event.fight.species, move.slot) else nil
 		if attack and move then
 			local bx, bz = BossChoreo.pose(move, now)
 			for _, s in all do
-				if not event.struck[s.userId] and BossAttacks.strikes(move, attack, t0, now, s) then
-					event.struck[s.userId] = true
+				local hit, part = BossAttacks.strikes(move, attack, t0, now, s)
+				local key = `{s.userId}:{part}`
+				if hit and not event.struck[key] then
+					event.struck[key] = true
 					strike(world, ctx, s, bx, bz, attack.push or 35, now)
 				end
 			end
@@ -409,11 +442,34 @@ local function attacks(world: World, event: World.BossEvent, now: number, t0: nu
 		local spit = event.spits[i]
 		if now >= spit.landAt then
 			table.remove(event.spits, i)
-			table.insert(event.puddles, { x = spit.x, z = spit.z, untilAt = now + spit.seconds, slow = spit.slow })
+			local burst = spit.burst
+			table.insert(event.puddles, {
+				x = spit.x,
+				z = spit.z,
+				untilAt = now + spit.seconds,
+				slow = spit.slow,
+				burstAt = if burst then now + (burst.delay or 1.5) else nil,
+				burst = burst,
+				struck = {},
+			})
 		end
 	end
 	for i = #event.puddles, 1, -1 do
 		local puddle = event.puddles[i]
+		-- a rune puddle (Goomancer) bursts into a ring of its own
+		local burst, burstAt = puddle.burst, puddle.burstAt
+		if burst and burstAt and now >= burstAt then
+			for _, s in all do
+				local speed, radius = burst.speed or 16, burst.radius or 10
+				if
+					not puddle.struck[s.userId]
+					and BossAttacks.ringBand(puddle.x, puddle.z, burstAt, speed, radius, t0, now, s)
+				then
+					puddle.struck[s.userId] = true
+					strike(world, ctx, s, puddle.x, puddle.z, burst.push or 30, now)
+				end
+			end
+		end
 		if now >= puddle.untilAt then
 			table.remove(event.puddles, i)
 		else
@@ -500,7 +556,7 @@ function settle(world: World, event: World.BossEvent, now: number, ctx: Context?
 	local before = BossFight.meter(fight, playerCount(world))
 	local wild = bossWild(world, event)
 	local kind = wild and wild.move and wild.move.kind
-	local paused = kind == "windup" or kind == "attack" or kind == "rise" or kind == "land"
+	local paused = kind == "windup" or kind == "attack" or kind == "hop" or kind == "rise" or kind == "land"
 	for _, e in BossFight.step(fight, now, dt, playerCount(world), paused) do
 		if e.kind == "fight" then
 			arrive(world, event, now, ctx)
