@@ -643,6 +643,7 @@ function SaveData.deserialize(stored: any): Data
 end
 
 -- JSON-safe table for DataStore:SetAsync / UpdateAsync.
+-- Numbers are sanitised like on load: a NaN/inf in the written table would make every UpdateAsync of this key fail.
 function SaveData.serialize(data: Data, now: number?): { [string]: any }
 	local slimes = {}
 	for i, slime in data.slimes do
@@ -685,15 +686,15 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 	table.sort(pvpFun)
 	return {
 		version = Config.SAVE_VERSION,
-		cash = math.floor(data.cash),
+		cash = num(data.cash, 0, 0, MAX_CASH),
 		rebirths = data.rebirths,
 		padsUnlocked = data.padsUnlocked,
 		slimes = slimes,
 		favoriteId = data.favoriteId,
-		lastOnline = math.floor(now or data.lastOnline),
+		lastOnline = num(now or data.lastOnline, 0, 0, 1e11),
 		daily = { lastDay = data.daily.lastDay, streak = data.daily.streak },
 		found = found,
-		totalEarned = math.floor(data.totalEarned),
+		totalEarned = num(data.totalEarned, 0, 0, MAX_CASH),
 		totalStolen = data.totalStolen,
 		speedCoil = data.speedCoil,
 		tutorialStep = data.tutorialStep,
@@ -711,7 +712,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		stealLog = StealAlert.clean(data.stealLog),
 		settings = AudioSettings.clean(data.settings),
 		redeemed = redeemed,
-		boost = { mult = data.boostMult, untilAt = math.floor(data.boostUntil) },
+		boost = { mult = data.boostMult, untilAt = num(data.boostUntil, 0, 0, 1e11) },
 		consumables = {
 			slot = data.consumables.slot,
 			bought = table.clone(data.consumables.bought),

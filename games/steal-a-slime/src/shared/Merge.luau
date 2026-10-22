@@ -35,7 +35,8 @@ end
 
 function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string): Slime
 	local maxed = a.tier >= Config.MAX_TIER
-	local tier = math.min(a.tier + 1, Config.MAX_TIER)
+	-- Like TripleMerge.odds: a merge never rolls past Mythic; only a slime already at MAX_TIER stays there.
+	local tier = if maxed then Config.MAX_TIER else math.min(a.tier + 1, Config.MERGE_MAX_TIER)
 
 	local color = {}
 	for i = 1, 3 do

@@ -7,8 +7,12 @@
 	this card shows the ones ProximityPromptService has shown:
 
 	  * title: the slime's name (its GrabPrompt's ObjectText), and the favourite's perk under it;
-	  * one row per shown prompt, in ORDER: a key chip (E / R / X, or the gamepad button) and the action text;
-	  * a hold prompt (Sell, Hatch) fills its row while the key is held (PromptButtonHoldBegan / Ended).
+	  * one glass row per shown prompt, in ORDER: a jelly key chip (E mint, R gold, X pink, or the gamepad
+	    button) and the action text, with "Hold" on the right of a hold prompt;
+	  * a hold prompt (Sell, Hatch) fills its row in its chip's colour while the key is held
+	    (PromptButtonHoldBegan / Ended).
+
+	The card is Goo glass (canvas GooWorldLabels "Slime key card"): deep teal with an Ink outline.
 
 	Hatch: the server's owner-only HatchPrompt on a Mystery Egg is on only while the egg is ready to hatch;
 	SlimeKeys gives it the Custom style too, so it gets a row exactly when it can be hatched.
@@ -21,7 +25,9 @@
 ]]
 
 local UI = script.Parent
-local Constants = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Constants"))
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Constants = require(Shared:WaitForChild("Constants"))
+local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -32,29 +38,33 @@ local SlimeKeyCard = {}
 -- Row order by prompt name (the server's HatchPrompt, SlimeKeys.MOVE_PROMPT / FAVORITE_PROMPT / SELL_PROMPT).
 SlimeKeyCard.ORDER =
 	table.freeze({ HatchPrompt = 1, MovePrompt = 2, FavoritePrompt = 3, SellPrompt = 4 } :: { [string]: number })
--- Key chip colour per row.
+-- Key chip colour per row: mint acts, gold is a favourite, pink loses the slime.
 SlimeKeyCard.CHIP = table.freeze({
-	HatchPrompt = Theme.Info,
+	HatchPrompt = Theme.Good,
 	MovePrompt = Theme.Good,
 	FavoritePrompt = Theme.Gold,
 	SellPrompt = Theme.Bad,
 } :: { [string]: Color3 })
 SlimeKeyCard.CARD = table.freeze({
-	w = 220,
-	pad = 8,
-	titleH = 22,
-	titleSize = 17,
-	perkH = 16,
-	perkSize = 13,
-	rowH = 32,
-	gap = 4,
-	keySize = 24,
-	keyTextSize = 15,
-	textSize = 16,
+	w = 236,
+	pad = 12,
+	titleH = 26,
+	titleSize = 19,
+	perkH = 18,
+	perkSize = 14,
+	rowH = 42,
+	gap = 6,
+	keySize = 34,
+	keyTextSize = 17,
+	textSize = 17,
+	hintSize = 14,
+	radius = 22, -- the card's corners
+	stroke = 3, -- Ink outline round the card and the key chips
+	rowStroke = 2,
 	lift = 1, -- studs above the slime's Body top
 	maxDistance = 40, -- studs; past this the card is not drawn
-	bgTransparency = 0.15,
-	fillTransparency = 0.55,
+	bgTransparency = 0.06,
+	fillTransparency = 0.65,
 })
 
 local GAMEPAD = table.freeze({
@@ -117,7 +127,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		BackgroundTransparency = C.bgTransparency,
 		Size = UDim2.fromScale(1, 1),
 		Parent = card,
-	}, { Widgets.corner(10), Widgets.stroke(Theme.Ink, 2) })
+	}, { Widgets.corner(C.radius), Widgets.stroke(Theme.Ink, C.stroke) })
 	local title = Widgets.label({
 		Name = "Title",
 		Font = Theme.Font,
@@ -132,7 +142,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		TextSize = C.perkSize,
 		TextColor3 = Theme.Good,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Position = UDim2.fromOffset(C.pad, C.pad - 2 + C.titleH),
+		Position = UDim2.fromOffset(C.pad, C.pad + C.titleH - 2),
 		Size = UDim2.new(1, -C.pad * 2, 0, C.perkH),
 		Visible = false,
 		Parent = frame,
@@ -159,33 +169,39 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 	end
 
 	local function makeRow(prompt: ProximityPrompt, y: number): Row
+		local chipColor = SlimeKeyCard.CHIP[prompt.Name] or Theme.Good
 		local rowFrame = create("TextButton", {
 			Name = prompt.Name,
 			Text = "",
 			AutoButtonColor = false,
-			BackgroundColor3 = Theme.Ink,
-			BackgroundTransparency = 0.35,
+			BackgroundColor3 = Theme.Glass,
+			BackgroundTransparency = GooPalette.GLASS_TRANSPARENCY,
+			ClipsDescendants = true,
 			Position = UDim2.fromOffset(C.pad, y),
 			Size = UDim2.new(1, -C.pad * 2, 0, C.rowH),
 			Parent = frame,
-		}, { Widgets.corner(8) }) :: TextButton
+		}, { Widgets.pill() }) :: TextButton
 		local fill = create("Frame", {
 			Name = "Fill",
 			BorderSizePixel = 0,
-			BackgroundColor3 = SlimeKeyCard.CHIP[prompt.Name] or Theme.Info,
+			BackgroundColor3 = chipColor,
 			BackgroundTransparency = C.fillTransparency,
 			Size = UDim2.fromScale(0, 1),
 			Parent = rowFrame,
-		}, { Widgets.corner(8) }) :: Frame
+		}, { Widgets.pill() }) :: Frame
+		local inset = (C.rowH - C.keySize) / 2
 		local chip = create("Frame", {
 			Name = "Key",
-			BackgroundColor3 = SlimeKeyCard.CHIP[prompt.Name] or Theme.Info,
+			BackgroundColor3 = chipColor,
 			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 4, 0.5, 0),
+			Position = UDim2.new(0, inset, 0.5, 0),
 			Size = UDim2.fromOffset(C.keySize, C.keySize),
+			ZIndex = 2,
 			Parent = rowFrame,
-		}, { Widgets.corner(6), Widgets.stroke(Theme.Ink, 2) })
-		Widgets.label({
+		}, { Widgets.pill(), Widgets.stroke(Theme.Ink, C.rowStroke) })
+		Widgets.shade(chip)
+		Widgets.shine(chip)
+		local keyText = Widgets.label({
 			Name = "KeyText",
 			Text = SlimeKeyCard.keyLabel(
 				if gamepad then prompt.GamepadKeyCode.Name else prompt.KeyboardKeyCode.Name,
@@ -193,20 +209,38 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 			),
 			Font = Theme.Font,
 			TextSize = C.keyTextSize,
-			TextColor3 = Theme.Ink,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			Size = UDim2.fromScale(1, 1),
+			ZIndex = 3,
 			Parent = chip,
 		})
+		Widgets.inkOn(keyText, chipColor)
+		local textX = inset + C.keySize + 10
+		local hold = prompt.HoldDuration > 0
 		Widgets.label({
 			Name = "Action",
 			Text = prompt.ActionText,
 			Font = Theme.Font,
 			TextSize = C.textSize,
-			Position = UDim2.fromOffset(C.keySize + 12, 0),
-			Size = UDim2.new(1, -(C.keySize + 16), 1, 0),
+			Position = UDim2.fromOffset(textX, 0),
+			Size = UDim2.new(1, -(textX + (if hold then 48 else 8)), 1, 0),
+			ZIndex = 2,
 			Parent = rowFrame,
 		})
+		if hold then
+			Widgets.label({
+				Name = "Hint",
+				Text = "Hold",
+				TextSize = C.hintSize,
+				TextColor3 = Theme.Muted,
+				TextXAlignment = Enum.TextXAlignment.Right,
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -12, 0, 0),
+				Size = UDim2.new(0, 40, 1, 0),
+				ZIndex = 2,
+				Parent = rowFrame,
+			})
+		end
 		-- A click or tap holds the prompt like its key would.
 		local conns = {
 			rowFrame.InputBegan:Connect(function(input: InputObject)
@@ -262,7 +296,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		local perkText = if fav and fav:IsA("ProximityPrompt") and fav.ObjectText ~= name then fav.ObjectText else ""
 		perk.Text = perkText
 		perk.Visible = perkText ~= ""
-		local y = C.pad - 2 + C.titleH + (if perk.Visible then C.perkH else 0) + C.gap
+		local y = C.pad + C.titleH + (if perk.Visible then C.perkH else 0) + C.gap
 		for _, prompt in list do
 			rows[prompt] = makeRow(prompt, y)
 			y += C.rowH + C.gap

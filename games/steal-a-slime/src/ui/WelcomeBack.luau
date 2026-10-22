@@ -70,7 +70,7 @@ function WelcomeBack.view(state: any): View?
 			end
 		end
 	end
-	return { title = "Welcome back!", away = `You were away {WelcomeBack.awayText(report.away)}`, rows = rows }
+	return { title = "Welcome back", away = `You were away {WelcomeBack.awayText(report.away)}`, rows = rows }
 end
 
 return table.freeze(WelcomeBack)

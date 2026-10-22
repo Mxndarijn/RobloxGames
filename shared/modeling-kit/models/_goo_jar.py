@@ -118,8 +118,9 @@ def lathe(name, profile, color, a0=0.0, a1=360.0, segs=SEGS, thick=0.15, double=
     return obj_from_bm(name, bm, color)
 
 
-def loop(name, r, thick, center, normal_axis, col, segs=28, arc=(0.0, 360.0)):
-    """A tube bent into a circle (or an arc) of radius r round `center`, in the plane normal to axis 'x', 'y' or 'z'."""
+def loop(name, r, thick, center, normal_axis, col, segs=28, arc=(0.0, 360.0), twist_free=False):
+    """A tube bent into a circle (or an arc) of radius r round `center`, in the plane normal to axis 'x', 'y' or 'z'.
+    twist_free: no pinched seam where a full circle closes (see lib tube)."""
     pts = []
     a0, a1 = arc
     n = segs if arc == (0.0, 360.0) else max(3, int(segs * (a1 - a0) / 360))
@@ -128,7 +129,7 @@ def loop(name, r, thick, center, normal_axis, col, segs=28, arc=(0.0, 360.0)):
         u, v = r * math.cos(a), r * math.sin(a)
         cx, cy, cz = center
         pts.append({"x": (cx, cy + u, cz + v), "y": (cx + u, cy, cz + v), "z": (cx + u, cy + v, cz)}[normal_axis])
-    return tube(name, pts, [thick] * len(pts), col, segs=8)
+    return tube(name, pts, [thick] * len(pts), col, segs=8, twist_free=twist_free)
 
 
 def teardrop(name, x, y, z_top, length, thick):
@@ -331,12 +332,46 @@ def door_center():
     return (0.0, D["doorway"]["zOuter"] + 0.6, D["door"]["height"] / 2 + 0.1)
 
 
+def door_surround(r_in, r_out, front_y, cz, segs=48):
+    """The wooden surround that seals the round door frame to jar 1's curved glass: a ring plate from r_in to r_out
+    round the door's centre (flat-bottomed at the floor), its front flat at front_y, its back on the glass cylinder
+    (a little inside it), so no gap shows between the frame and the glass. It also covers the corners of the glass's
+    square door cut."""
+    R = radius(1)
+    bm = bmesh.new()
+
+    def back_y(x):
+        return -math.sqrt(max(0.0, (R - 0.25) ** 2 - x * x))
+
+    rings = []
+    for k in range(segs):
+        a = k / segs * math.tau
+        pts = []
+        for r in (r_in, r_out):
+            x, z = r * math.cos(a), max(0.0, cz + r * math.sin(a))
+            pts.append((x, z))
+        rings.append([bm.verts.new((x, y, z)) for (x, z) in pts for y in (front_y, back_y(x))])
+    for k in range(segs):
+        a, b = rings[k], rings[(k + 1) % segs]
+        # vertex order per ring: inner front, inner back, outer front, outer back
+        bm.faces.new((a[0], a[2], b[2], b[0]))  # front (faces -Y, toward the bridge)
+        bm.faces.new((a[1], b[1], b[3], a[3]))  # back (toward the glass)
+        bm.faces.new((a[2], a[3], b[3], b[2]))  # outer rim
+        bm.faces.new((a[0], b[0], b[1], a[1]))  # inner rim (the doorway)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    col = mix(WOOD, WOOD_D, 0.45)
+    return painted(obj_from_bm("Surround", bm, col), shade(col, 0.8), col)
+
+
 def jar_door():
-    """Jar 1's door frame: a wooden frame ring round the doorway with a goo line along its top, the sill, and the
-    brass hinge knuckles (on a pin) the round door hangs on, on the left."""
+    """Jar 1's door frame: a wooden frame ring round the doorway with a goo line along its top, the sill, the brass
+    hinge knuckles (on a pin) the round door hangs on, on the left, and the surround that seals it to the glass."""
     cx, cy, cz = door_center()
     rad = D["door"]["width"] / 2 + 0.9
-    out = [loop("Frame", rad, 0.9, (cx, cy, cz), "y", WOOD_D, segs=32)]
+    out = [loop("Frame", rad, 0.9, (cx, cy, cz), "y", WOOD_D, segs=32, twist_free=True)]
+    # out to the square door cut's far corners (half width x door height round the centre), past the lock ring
+    corner = math.hypot(D["door"]["width"] / 2 + 0.3, max(cz, DOOR_H - cz))
+    out.append(door_surround(rad, max(corner, D["door"]["width"] / 2 + 2.45) + 0.2, cy - 0.1, cz))
     out.append(painted(loop("Goo", rad, 0.75, (cx, cy - 0.65, cz), "y", GOO, segs=32, arc=(25, 155)), shade(GOO, 0.9), GOO_HI))
     out.append(painted(box("Sill", (D["door"]["width"] + 2, 2.4, 0.6), (cx, cy, 0.3), WOOD), shade(WOOD, 0.9), WOOD))
     # the hinge knuckles on the frame's left, above and below each of the door's own knuckles, on a pin

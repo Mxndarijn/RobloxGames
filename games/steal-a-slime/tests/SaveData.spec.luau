@@ -296,3 +296,31 @@ describe("SaveData.check", function()
 		expect(SaveData.check({ version = 0 / 0 })).toBe("unreadable")
 	end)
 end)
+
+describe("SaveData.serialize numbers", function()
+	local function finite(n: number): boolean
+		return n == n and n ~= math.huge and n ~= -math.huge
+	end
+	it("NaN and infinite numbers are written as finite values", function()
+		local data = Fixtures.data(nil, 1234)
+		data.cash = 0 / 0
+		data.totalEarned = math.huge
+		data.lastOnline = -math.huge
+		data.boostUntil = 0 / 0
+		local saved = SaveData.serialize(data)
+		expect(saved.cash).toBe(0)
+		expect(finite(saved.totalEarned)).toBe(true)
+		expect(finite(saved.lastOnline)).toBe(true)
+		expect(finite(saved.boost.untilAt)).toBe(true)
+		expect(finite(serde.decode("json", serde.encode("json", saved)).cash)).toBe(true)
+	end)
+	it("ordinary numbers are unchanged", function()
+		local data = Fixtures.data(nil, 1234)
+		data.cash = 1234.9
+		data.totalEarned = 99.5
+		local saved = SaveData.serialize(data, 1700000000)
+		expect(saved.cash).toBe(1234)
+		expect(saved.totalEarned).toBe(99)
+		expect(saved.lastOnline).toBe(1700000000)
+	end)
+end)

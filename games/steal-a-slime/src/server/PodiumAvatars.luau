@@ -57,6 +57,12 @@ function PodiumAvatars.labelText(displayName: string?, value: number?): string
 	return `{displayName}\n${Economy.formatNumber(value or 0)}`
 end
 
+-- A label's two lines, the name and the stat (the name board puts them on the band and under it).
+function PodiumAvatars.splitLabel(text: string): (string, string)
+	local name, stat = string.match(text, "^(.-)\n(.*)$")
+	return name or text, stat or ""
+end
+
 local function entryAt(board: Types.Leaderboard?, rank: number): Types.LeaderboardEntry?
 	if not board then
 		return nil

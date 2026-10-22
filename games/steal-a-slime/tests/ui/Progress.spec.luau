@@ -145,3 +145,38 @@ describe("Progress v13 rank / dex rewards", function()
 		expect(Progress.dexMilestones({})).toBeNil()
 	end)
 end)
+
+describe("Progress.rebirthReason", function()
+	local function nextUp(cost: number, have: number, missing: { string }): any
+		local needs = {}
+		for _, name in missing do
+			table.insert(needs, { id = name, name = name, tier = 1, color = { 0, 0, 0 }, owned = false })
+		end
+		return {
+			maxed = false,
+			ready = false,
+			cost = cost,
+			have = have,
+			missing = needs,
+		}
+	end
+	it("says what is missing: cash, slimes, or both", function()
+		expect(Progress.rebirthReason(nextUp(180000, 1240, {}))).toBe(`Need {Format.formatCash(178760)} more`)
+		expect(Progress.rebirthReason(nextUp(100, 500, { "Flan" }))).toBe("Need a Flan")
+		expect(Progress.rebirthReason(nextUp(36.9e6, 21.4e6, { "Flan" }))).toBe(
+			`Need {Format.formatCash(15.5e6)} and a Flan`
+		)
+		expect(Progress.rebirthReason(nextUp(0, 0, { "Zap", "Imp", "Octo" }))).toBe("Need a Zap, an Imp and an Octo")
+		expect(Progress.rebirthReason(nextUp(36.9e6, 21.4e6, { "Flan", "Imp" }))).toBe(
+			`Need {Format.formatCash(15.5e6)}, a Flan and an Imp`
+		)
+	end)
+	it("is empty when ready and says done at the top", function()
+		local ready = nextUp(1, 1, {})
+		ready.ready = true
+		expect(Progress.rebirthReason(ready)).toBe("")
+		local maxed = nextUp(0, 0, {})
+		maxed.maxed = true
+		expect(Progress.rebirthReason(maxed)).toBe("All rebirths done")
+	end)
+end)

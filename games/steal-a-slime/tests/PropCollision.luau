@@ -841,16 +841,6 @@ parts(
 	{ walk = false }
 )
 parts(
-	"plot_rebirth_decor",
-	"gojo",
-	96,
-	"off",
-	"Plots",
-	{ "^Crown$", "^Banner_[RL]$", "^PillarCap_%d+$", "^Pillar_%d+$", "^Trim_%a+$" },
-	"off",
-	"rebirth cosmetics (pillars 2.2 studs, banners, trims): shown after rebirths"
-)
-parts(
 	"plot_home_zone",
 	"gojo",
 	8,
