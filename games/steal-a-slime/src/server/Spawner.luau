@@ -222,7 +222,7 @@ end
 Spawner.SLIDE_GAP = 1.6 -- seconds between two drops down the fountain slide: they never ride or walk inside each other
 
 -- The spawn time of a drop asked for at `now`: the next free slide slot (FEATURES.Parade), at least SLIDE_GAP after
--- the last one, so the slimes of a boss shed ride down one after another. A drop whose slot is still to come exists in
+-- the last one, so a burst of drops rides down one after another. A drop whose slot is still to come exists in
 -- World (it counts for the cap) but has no model yet (Scene.describe).
 function Spawner.slot(world: World, now: number): number
 	if not ParadeLane.enabled() then
@@ -285,7 +285,7 @@ function Spawner.spawnSlime(world: World, now: number): string
 	return id
 end
 
--- Bonus wild slimes outside the wild cap (the boss sheds, contract/boss-event.md): `luckMult` on the
+-- Bonus wild slimes outside the wild cap (unused by the boss since it stopped shedding): `luckMult` on the
 -- rarity roll, free, no pity, no rare announcement. Returns their ids.
 function Spawner.spawnBonus(world: World, now: number, count: number, luckMult: number): { string }
 	local ids = {}

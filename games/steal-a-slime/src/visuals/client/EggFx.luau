@@ -5,12 +5,12 @@
 	Looks on every Mystery Egg model (tag Constants.SLIME_TAG with the
 	EggKind attribute) resting on a pad, from its EggHatchAt /
 	EggHatchSeconds attributes and the server clock:
-	  * cracks: one set at 1/3 of the incubation, a second at 2/3;
 	  * a glow in the kind's colour that pulses faster the closer the hatch;
 	  * ready: a bright glow and sparkles until the owner hatches it.
 	Everything it adds is local (never replicates) and goes when the egg
 	leaves its pad or the model goes (a hatch rebuilds the model as its slime).
 	The idle jiggle and the carry wriggle come from VisualsClient like any slime.
+	No cracks while it incubates: the hatch show (EggHatchFx) cracks the shell.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -26,10 +26,9 @@ EggFx.MAX_DISTANCE = 140 -- studs: eggs further away skip the per-frame pulse
 type Egg = {
 	model: Model,
 	body: BasePart,
-	stage: number, -- 0 none, 1 first cracks, 2 more cracks, 3 ready
+	stage: number, -- 0..2 incubating (see EggFx.stage), 3 ready
 	light: PointLight?,
 	sparkles: ParticleEmitter?,
-	cracks: { BasePart },
 }
 
 -- Stage for a progress 0..1: 0, 1 (>= 1/3), 2 (>= 2/3), 3 (ready).
@@ -49,47 +48,7 @@ function EggFx.pulseRate(progress: number): number
 	return 0.4 + 2.6 * math.clamp(progress, 0, 1) ^ 2
 end
 
-local CRACK_COLOR = Color3.fromRGB(40, 24, 20)
--- Each crack: yaw round the egg, height on the shell (-1 bottom .. 1 top), tilt.
-local CRACKS = {
-	{ { 0.3, 0.35, 25 }, { 2.4, 0.1, -30 }, { 4.4, 0.45, 15 } },
-	{ { 1.2, -0.05, -20 }, { 3.3, 0.55, 35 }, { 5.4, 0.2, -10 } },
-}
-
-local function addCracks(egg: Egg, set: number)
-	local rx = EggModel.WIDTH / 2
-	local ry = EggModel.HEIGHT / 2
-	for i, c in CRACKS[set] do
-		local yaw, h, tilt = c[1], c[2], c[3]
-		local ring = math.sqrt(math.max(0, 1 - h * h)) * rx
-		local pos = Vector3.new(math.cos(yaw) * ring, h * ry, math.sin(yaw) * ring)
-		local normal = Vector3.new(pos.X / (rx * rx), pos.Y / (ry * ry), pos.Z / (rx * rx)).Unit
-		local at = pos + normal * 0.02
-		local crack = Instance.new("Part")
-		crack.Name = `EggCrack{set}_{i}`
-		crack.Size = Vector3.new(0.09, 0.85, 0.05)
-		crack.Color = CRACK_COLOR
-		crack.Material = Enum.Material.SmoothPlastic
-		crack.CanCollide = false
-		crack.CanTouch = false
-		crack.CanQuery = false
-		crack.Massless = true
-		crack.CastShadow = false
-		crack.CFrame = egg.body.CFrame * CFrame.lookAt(at, at + normal) * CFrame.Angles(0, 0, math.rad(tilt))
-		local weld = Instance.new("WeldConstraint")
-		weld.Part0 = egg.body
-		weld.Part1 = crack
-		weld.Parent = crack
-		crack.Parent = egg.model
-		table.insert(egg.cracks, crack)
-	end
-end
-
 local function clear(egg: Egg)
-	for _, crack in egg.cracks do
-		crack:Destroy()
-	end
-	table.clear(egg.cracks)
 	if egg.light then
 		egg.light:Destroy()
 		egg.light = nil
@@ -149,12 +108,6 @@ local function apply(egg: Egg, progress: number?, t: number, near: boolean)
 		if stage < egg.stage then
 			clear(egg)
 		end
-		if stage >= 1 and egg.stage < 1 then
-			addCracks(egg, 1)
-		end
-		if stage >= 2 and egg.stage < 2 then
-			addCracks(egg, 2)
-		end
 		if stage >= 3 then
 			ensureSparkles(egg)
 		end
@@ -203,7 +156,7 @@ function EggFx.start(): Controller
 				and instance:HasTag(Constants.SLIME_TAG)
 				and not eggs[instance :: Model]
 			then
-				eggs[instance :: Model] = { model = instance :: Model, body = body, stage = 0, cracks = {} }
+				eggs[instance :: Model] = { model = instance :: Model, body = body, stage = 0 }
 			end
 		end)
 	end

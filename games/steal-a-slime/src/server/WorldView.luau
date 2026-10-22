@@ -1106,7 +1106,8 @@ function WorldView.reconcile(
 		if bossRecord then bossRecord.model else nil,
 		origin,
 		if ground then ground.Y else 0,
-		if tint then Color3.fromRGB(tint[1], tint[2], tint[3]) else nil
+		if tint then Color3.fromRGB(tint[1], tint[2], tint[3]) else nil,
+		if modelFactory and bossWild then { build = modelFactory.build, slime = bossWild.slime } else nil
 	)
 end
 

@@ -1,8 +1,9 @@
 --!strict
 -- The boss event over World (src/server/BossEvent.luau, contract/boss-event.md): the schedule and its Slime Rain skip,
--- the rotation, the boss in the plaza, sheds, the haul through Carry, the win and its boss badges, the escape and State.boss.
+-- the rotation, the boss in the plaza, no slimes during the fight, the haul through Carry, the win and its boss badges, the escape and State.boss.
 local BossCredit = require("../src/server/BossCredit")
 local BossEvent = require("../src/server/BossEvent")
+local BossFight = require("../src/shared/BossFight")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
@@ -158,13 +159,13 @@ describe("BossEvent fight", function()
 		expect(entry.despawnAt).toBeNil()
 		expect((Carry.grab(w, 1, id, 1, T0 + BOSS.WARNING_SECONDS))).toBe(false)
 	end)
-	it("sheds SHED_COUNT wild slimes at every SHED_EVERY of the meter", function()
+	it("never drops wild slimes during the fight: filling the meter only speeds it up", function()
 		local w = world()
 		arrive(w)
 		local before = wildCount(w)
 		fill(w, 1)
-		local sheds = math.ceil(1 / BOSS.SHED_EVERY) - 1
-		expect(wildCount(w) - before).toBe(sheds * BOSS.SHED_COUNT)
+		expect(wildCount(w) - before).toBe(0)
+		expect(BossFight.stage(w.boss.fight)).toBe(math.ceil(1 / BOSS.STAGE_EVERY) - 1)
 	end)
 	it("the meter target scales with the players on the server", function()
 		local solo, crowd = world(1), world(4)

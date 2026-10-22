@@ -165,27 +165,6 @@ function BossTelegraph.start()
 				arc(to, BOSS.PUDDLE_RADIUS, 0, 2 * math.pi, 0.5, RED, 0.3)
 			end
 		end
-		-- A goo burst (the boss sheds slimes): a splash ring runs out of the boss, a goo blob arcs to every landing spot
-		-- and splats there, and the shed slime appears where it lands (the server spawns its model then).
-		local splashed = false
-		for _, b in spots(model:GetAttribute(Constants.BOSS_BURSTS_ATTRIBUTE)) do
-			local fromX, fromZ, x, z, at, landAt = b[1], b[2], b[3], b[4], b[5], b[6]
-			local since = serverNow - at
-			if not splashed and since >= 0 and since < 0.4 then
-				splashed = true
-				arc(Vector3.new(fromX, y, fromZ), 2 + 20 * since, 0, 2 * math.pi, 2, GOO, 0.15 + since)
-			end
-			local flight = math.max(landAt - at, 1e-3)
-			local k = since / flight
-			if k >= 0 and k < 1 then
-				local from = Vector3.new(fromX, y + 5, fromZ)
-				local to = Vector3.new(x, y + 1, z)
-				ball(from:Lerp(to, k) + Vector3.new(0, BOSS.BURST_HEIGHT * 4 * k * (1 - k), 0), 2.4, GOO, 0)
-			elseif k >= 1 and serverNow - landAt < 0.4 then
-				local u = (serverNow - landAt) / 0.4
-				arc(Vector3.new(x, y, z), 1.5 + 3 * u, 0, 2 * math.pi, 0.8, GOO, 0.2 + 0.8 * u)
-			end
-		end
 		-- Rune puddles: a red outline pulses faster and faster until each bursts into its own ring.
 		for _, rune in spots(model:GetAttribute(Constants.BOSS_RUNES_ATTRIBUTE)) do
 			local at = Vector3.new(rune[1], y, rune[2])
@@ -273,6 +252,26 @@ function BossTelegraph.start()
 		end
 	end
 
+	-- Guards (workspace.BossFx, BossGuard = true) hop in place, out of step with each other, so they look alive.
+	local guardBase: { [Model]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
+	local function bobGuards(now: number)
+		local fx = workspace:FindFirstChild("BossFx")
+		if not fx then
+			return
+		end
+		for i, guard in fx:GetChildren() do
+			if guard:IsA("Model") and guard:GetAttribute(Constants.BOSS_GUARD_ATTRIBUTE) == true then
+				local base = guardBase[guard]
+				if not base then
+					base = guard:GetPivot()
+					guardBase[guard] = base
+				end
+				local k = math.abs(math.sin(now * 4.2 + i * 1.7))
+				guard:PivotTo(base * CFrame.new(0, 0.9 * k, 0) * CFrame.Angles(0, 0.25 * math.sin(now * 2 + i), 0))
+			end
+		end
+	end
+
 	local self = {}
 
 	function self.tick(camera: Camera)
@@ -285,6 +284,7 @@ function BossTelegraph.start()
 		local model = boss
 		if model and (model:GetPivot().Position - camera.CFrame.Position).Magnitude <= BossTelegraph.MAX_DISTANCE then
 			draw(model, now, workspace:GetServerTimeNow())
+			bobGuards(now)
 			local hitAt = model:GetAttribute(Constants.BOSS_HIT_AT_ATTRIBUTE)
 			if type(hitAt) == "number" and hitAt ~= lastHitAt then
 				local fresh = lastHitAt ~= nil
