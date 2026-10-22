@@ -184,6 +184,7 @@ boss: {
 	moveEndsAt: number?, -- server time that move ends
 	multiplier: number?, -- dazed: points per bat hit
 	guardsLeft: number?, -- rise: guards still standing
+	guardsTotal: number?, -- rise: guards it called
 	stunnedUntil: number?, -- this player can't hit until then
 }
 ```

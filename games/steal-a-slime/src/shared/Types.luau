@@ -172,6 +172,7 @@ export type BossView = {
 	moveEndsAt: number?, -- server time that move ends
 	multiplier: number?, -- dazed: meter points per bat hit (more on a vent from behind)
 	guardsLeft: number?, -- rise: guards still standing
+	guardsTotal: number?, -- rise: guards it called
 	stunnedUntil: number?, -- this player can't hit until then (a boss attack got them)
 }
 -- State.bossBadges: one earned boss badge (Config.BOSS_BADGES key, unix seconds it was earned)
