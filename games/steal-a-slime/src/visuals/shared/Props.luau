@@ -528,6 +528,7 @@ function Props.tutorialNpc(): Model
 	tag.StudsOffset = Vector3.new(0, (GUIDE_TOP - 5.375) * GUIDE_SCALE + 0.9, 0)
 	tag.AlwaysOnTop = false
 	tag.MaxDistance = 80
+	tag.LightInfluence = 0 -- the white stays white in shade
 	tag.Parent = head
 	-- Outlined white Fredoka, like every world label (canvas GooWorldSigns "Guide").
 	local text = label(tag, "Text", "Guide", tone(Goo.White))

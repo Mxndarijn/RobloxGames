@@ -22,14 +22,14 @@ local STANDS = {
 		shopId = "ItemShop",
 		object = "Item Shop",
 		action = "Browse items",
-		sign = "ITEM SHOP",
+		sign = "Item shop",
 	},
 	{
 		model = Constants.SHOP_STAND_UPGRADE,
 		shopId = "UpgradeShop",
 		object = "Upgrade Shop",
 		action = "Browse upgrades",
-		sign = "UPGRADE SHOP",
+		sign = "Upgrade shop",
 	},
 }
 

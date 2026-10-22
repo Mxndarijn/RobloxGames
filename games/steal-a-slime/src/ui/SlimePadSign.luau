@@ -100,7 +100,8 @@ function SlimePadSign.bandInk(view: SlimeLabel.View): (Color3, number)
 	return SlimePadSign.COLORS.paint, 0
 end
 
--- The goo's shading: a glossy light top over the rarity colour; a rainbow for Secret.
+-- The goo's shading: a glossy light top over the rarity colour, flat from the middle down so the lip and drips
+-- hanging from it match; a rainbow for Secret.
 function SlimePadSign.gooGradient(view: SlimeLabel.View): ColorSequence
 	if SlimeLabel.isRainbow(view) then
 		return SlimePadSign.rainbow()
@@ -108,8 +109,8 @@ function SlimePadSign.gooGradient(view: SlimeLabel.View): ColorSequence
 	local base = rgb(view.rarityColor)
 	return ColorSequence.new({
 		ColorSequenceKeypoint.new(0, base:Lerp(Color3.new(1, 1, 1), 0.35)),
-		ColorSequenceKeypoint.new(0.4, base),
-		ColorSequenceKeypoint.new(1, base:Lerp(Color3.new(0, 0, 0), 0.12)),
+		ColorSequenceKeypoint.new(0.45, base),
+		ColorSequenceKeypoint.new(1, base),
 	})
 end
 
