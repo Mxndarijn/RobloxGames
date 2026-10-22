@@ -87,7 +87,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 			slime = wild.slime,
 			state = state,
 			ownerUserId = 0,
-			price = wild.price,
+			price = if carrier then 0 else wild.price, -- only for sale while nobody carries it
 			income = Economy.slimeIncome(wild.slime, 0),
 			plotIndex = nil,
 			pad = nil,

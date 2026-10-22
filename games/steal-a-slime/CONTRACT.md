@@ -88,7 +88,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Carry:** grabbing and stealing use a **ProximityPrompt** (`GrabPrompt`) that the server puts on each slime's `Body`. There is no remote for this.
   - The prompt's `ActionText` is `"Grab"`, `"Buy $<price>"` (`Economy.formatNumber`) or `"Steal"`. `ObjectText` is `Genome.displayName`.
   - Steal prompts (HoldDuration 0.4) are enabled only while the plot is unlocked. They are **hidden from the slime's owner**: the server sets the prompt attribute `HideFromUserId = <owner UserId>` (`Constants.PROMPT_HIDE_ATTRIBUTE`, §5.2) and the client hides it locally. If a client doesn't hide it, triggering it is still refused with "that's your own slime".
-  - A wild slime is paid for once: if it's dropped, the next grab is free.
+  - A wild slime is charged on every grab: if it's dropped (Drop, a bonk, dying), the next grab costs its full price again, also for the player who paid. Nothing is refunded.
   - While carrying, WalkSpeed = `Steal.walkSpeed`, tools are unequipped, and you can carry 1 slime at a time.
   - Entering your own plot's `HomeZone` deposits the carried slime on a free pad. If the plot is full you keep carrying it (Notify "bad").
   - The home ground is the round plot floor: a `HomeZone` part with a `Radius` attribute (`PLOT_FLOOR_RADIUS`) counts inside that circle only, from 4 studs under the part to 8 over it plus its `ReachUp` (`Shared.HomeZone`); a part without `Radius` counts its whole box.
