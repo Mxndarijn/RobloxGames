@@ -10,8 +10,8 @@ from lib import *
 
 P = PALETTE
 
-# The themes whose meshes ship in the game (models/_goo_jar_bounds.py checks them; the rest are concepts so far).
-BUILT_THEMES = ("garden", "crystal", "starlight")
+# The themes whose meshes ship in the game (models/_goo_jar_bounds.py checks them).
+BUILT_THEMES = ("garden", "crystal", "starlight", "candy", "mushroom")
 
 THEMES = {
     # The tower as built: warm wood and cork, green goo, brass.
