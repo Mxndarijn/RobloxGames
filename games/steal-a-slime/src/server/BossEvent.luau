@@ -357,9 +357,12 @@ local function began(event: World.BossEvent, move: BossChoreo.Move, players: { {
 		for _, p in BossAttacks.guardSpots(move.fx, move.fz, move.hx, move.hz, attack.count or 3) do
 			table.insert(event.guards, { x = p[1], z = p[2], alive = true })
 		end
+		-- a `rain` call drops its first volley once it has floated up
+		event.rainAt = if attack.rain then move.at + BOSS.RISE_SECONDS + 0.3 else nil
 	end
 	if move.kind ~= "rise" then
 		event.guards = {}
+		event.rainAt = nil
 	end
 end
 
@@ -490,6 +493,39 @@ local function attacks(world: World, event: World.BossEvent, now: number, t0: nu
 					strike(world, ctx, s, bx, bz, attack.push or 35, now)
 				end
 			end
+		end
+	end
+	-- A floating boss with a guards `rain` call drops goo on the nearest players every `every` seconds: each drop
+	-- lands where the player stood (a red circle while it falls) and splashes into a small ring a moment later.
+	local rainAt = event.rainAt
+	if move and move.kind == "rise" and rainAt and now >= rainAt and event.fight.phase == "fight" then
+		local attack = BossAttacks.get(event.fight.species, move.slot)
+		local rain = attack and attack.rain
+		if rain then
+			local bx, bz = BossChoreo.pose(move, now)
+			local near = {}
+			for _, s in all do
+				table.insert(near, { s.x, s.z })
+			end
+			for _, spot in spitTargets(event, near, bx, bz, math.min(rain.count or 2, math.max(#near, 1))) do
+				table.insert(event.spits, {
+					x = spot[1],
+					z = spot[2],
+					landAt = now + BOSS.SPIT_FLIGHT,
+					seconds = (rain.delay or 0.6) + 0.6,
+					slow = 0.7,
+					burst = {
+						delay = rain.delay or 0.6,
+						radius = rain.radius or 7,
+						speed = rain.speed or 16,
+						push = rain.push or 30,
+					},
+				})
+			end
+			event.rainAt = now + (rain.every or 1.5) / speedOf(event)
+			World.markAllDirty(world)
+		else
+			event.rainAt = nil
 		end
 	end
 	for i = #event.spits, 1, -1 do

@@ -52,10 +52,19 @@ describe("BossAttacks config", function()
 			end
 		end
 	end)
+	it("every boss has at least two real attacks from the start, and more from PHASE_AT", function()
+		for species, moves in BOSS.MOVES do
+			local early = BossAttacks.available(species, 0)
+			expect(`{species}: {#early >= 2}`).toBe(`{species}: true`)
+			expect(`{species}: {#BossAttacks.available(species, BOSS.PHASE_AT) > #early}`).toBe(`{species}: true`)
+		end
+	end)
 	it("adds the phase attacks from PHASE_AT, never a passive vent", function()
-		expect(table.concat(BossAttacks.available("goozilla", 0), ",")).toBe("start.1")
-		expect(table.concat(BossAttacks.available("goozilla", BOSS.PHASE_AT), ",")).toBe("start.1,phase.1")
-		expect(table.concat(BossAttacks.available("mecha_goo", 1), ",")).toBe("start.1")
+		expect(table.concat(BossAttacks.available("goozilla", 0), ",")).toBe("start.1,start.2")
+		expect(table.concat(BossAttacks.available("goozilla", BOSS.PHASE_AT), ",")).toBe(
+			"start.1,start.2,phase.1,phase.2"
+		)
+		expect(table.concat(BossAttacks.available("mecha_goo", 1), ",")).toBe("start.1,start.2,phase.1,phase.2")
 		expect(BossAttacks.vent("mecha_goo", 0)).toBeNil()
 		expect(BossAttacks.vent("mecha_goo", BOSS.PHASE_AT) ~= nil).toBe(true)
 		expect(BossAttacks.get("goozilla", "nope")).toBeNil()
