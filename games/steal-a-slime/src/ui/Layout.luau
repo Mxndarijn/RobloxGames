@@ -137,6 +137,13 @@ Layout.TOUCH_RISE = 40
 Layout.LANDSCAPE_BOTTOM_INSET = 10
 Layout.LANDSCAPE_INSET_MAX = 16
 
+-- Roblox's touch jump button (PlayerModule TouchJump), in screen px from the ScreenGui's top-left: bottom-right,
+-- 70 px at 95 / 25 px from the right and 90 / 20 px from the bottom when the smaller side is at most
+-- JUMP_SMALL_MAX, else 120 px at 170 / 50 px and 210 / 90 px. Layout.screen keeps the status cluster
+-- JUMP_CLEAR px clear of it while it is on screen.
+Layout.JUMP_SMALL_MAX = 500
+Layout.JUMP_CLEAR = 8
+
 Layout.MARGIN = 12
 Layout.TOP = 12 -- top margin: nav on short screens, the banner stack and the menu card area
 Layout.GAP = 12
@@ -877,13 +884,21 @@ local function centredIn(column: Rect, screenW: number, width: number): (number,
 	return x, w
 end
 
-export type ScreenOptions = {}
+export type ScreenOptions = { touch: boolean? } -- touch: Roblox's jump button is on screen (TouchControls)
 
 -- Bottom cards centred on the screen inside `row` (x / w only): carry on the
 -- bottom line, tutorial above the inset, and above the carry card while
 -- carrying, or (`beside`) the carry card at the row's left and the
 -- tutorial next to it. `cardMargin` (short screens): the tutorial card hugs the
 -- bottom edge that far up and, while carrying, sits next to the carry card.
+-- The jump button rect for a ScreenGui of viewportW x viewportH (screen px).
+function Layout.jumpRect(viewportW: number, viewportH: number): Rect
+	if math.min(viewportW, viewportH) <= Layout.JUMP_SMALL_MAX then
+		return Layout.rect(viewportW - 95, viewportH - 90, 70, 70)
+	end
+	return Layout.rect(viewportW - 170, viewportH - 210, 120, 120)
+end
+
 local function bottomCards(
 	row: Rect,
 	W: number,
@@ -916,7 +931,7 @@ end
 -- Every top-level box for a ScreenGui of viewportW x viewportH (see header).
 -- One pass in priority order: the bottom clusters, nav, bottom cards, then the menu column
 -- and overlays in what is left, so nothing has to be moved afterwards.
-function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOptions?): Screen
+function Layout.screen(viewportW: number, viewportH: number, options: ScreenOptions?): Screen
 	local scale = Layout.uiScale(viewportW, viewportH)
 	local W, H = viewportW / scale, viewportH / scale
 	local compact = Layout.isCompact(viewportW, viewportH)
@@ -946,7 +961,20 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	-- The events row stands STATUS.raise above the money line off phones (0: it shares that line); on phones it
 	-- always shares the bottom row.
 	local statusRaise = if phone then 0 else Layout.STATUS.raise
-	local status = Layout.statusCluster(compact, W - m, rowBottom - statusRaise, tight, phone)
+	local statusBottom = rowBottom - statusRaise
+	local status = Layout.statusCluster(compact, W - m, statusBottom, tight, phone)
+	local steppedLeft = false
+	if options and options.touch then
+		-- Touch: the status icons (they take taps) must not sit on Roblox's jump button; the row keeps its line and
+		-- steps left of it.
+		local jump = Layout.jumpRect(viewportW, viewportH)
+		local clear = Layout.JUMP_CLEAR
+		local keepOut = Layout.rect((jump.x - clear) / scale, (jump.y - clear) / scale, W, H)
+		if Layout.overlaps(status.rect, keepOut) then
+			status = Layout.statusCluster(compact, keepOut.x, statusBottom, tight, phone)
+			steppedLeft = true
+		end
+	end
 	local hotbarH = InventoryLayout.height(compact, Layout.MIN_TOUCH_DESIGN, tight)
 
 	-- 1. "Short" (landscape phone): the default two nav columns won't fit above the money cluster, so
@@ -956,7 +984,8 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	-- Narrower than the carry card plus both clusters (portrait phones): the bottom cards sit above
 	-- the clusters instead of beside them.
 	local clusterH = math.max(money.rect.h, status.rect.h + statusRaise, if phone then hotbarH else 0)
-	local lift = if not short and W < Layout.CARRY.w + money.rect.w + status.rect.w + 2 * (m + gap)
+	local cardW = math.max(Layout.CARRY.w, Layout.TUTORIAL.w)
+	local lift = if not short and W < cardW + money.rect.w + (W - m - status.rect.x) + 2 * (m + gap)
 		then rise + clusterH + gap
 		else 0
 	local cardInset = inset + lift
@@ -971,7 +1000,9 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 
 	-- 2. Nav: left, 2 columns, low (short: as many as it takes to fit from the top down to the money
 	-- cluster; the bottom cards then sit right of the money cluster, step 3).
-	local fullRow = Layout.rect(m, 0, W - m * 2, 0)
+	-- A status cluster stepped left of the jump button also pushes the bottom cards left of it, unless they sit above it.
+	local fullRowRight = if steppedLeft and lift == 0 then status.rect.x - gap else W - m
+	local fullRow = Layout.rect(m, 0, fullRowRight - m, 0)
 	local hotbarBottom = if phone then rowBottom else H - cardInset
 	-- Phones: the tutorial card already clears the row (portrait: the cards sit above it; landscape: the card hugs
 	-- the bottom edge, below the row), so only the desktop arrangement lifts it above the hotbar.
