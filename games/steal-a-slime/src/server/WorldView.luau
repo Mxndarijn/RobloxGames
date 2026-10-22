@@ -9,7 +9,7 @@
 	    OwnerUserId / State / Price / DespawnAt, ProximityPrompt,
 	    pad placement, carry weld, volcano drop, the parade lane walk, a
 	    dropped slime's walk back to the lane and the escape-home glide);
-	  * plot attributes OwnerUserId / LockUntil / Rebirths (CONTRACT.md §5.2);
+	  * plot attributes OwnerUserId / LockUntil (CONTRACT.md §5.2);
 	    with FEATURES.Habitats, Pad Habitat / HabitatFrom / HabitatAt (HabitatPads)
 	    and the owner / stats text on each plot Sign (PlotSigns);
 	  * per-player WalkSpeed (Speed Coil when not carrying), unequipped
@@ -1353,7 +1353,6 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			local view = PlotPrompts.describe(world, index, now)
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)
 			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
-			setIfChanged(plot, "Rebirths", if session then session.data.rebirths else 0)
 			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
 			setBarrierSolid(plot, index, view.locked)
 			setOpenDoorSolid(plot, not view.locked)
