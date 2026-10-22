@@ -32,7 +32,11 @@ function Leaderboard.stats(data: PlayerData.Data): { [string]: number }
 end
 
 function Leaderboard.storeValue(data: PlayerData.Data): number
-	return math.clamp(math.floor(data.totalEarned), 0, Leaderboard.MAX_VALUE)
+	local earned = data.totalEarned
+	if earned ~= earned then
+		return 0
+	end
+	return math.clamp(math.floor(earned), 0, Leaderboard.MAX_VALUE)
 end
 
 -- Whether a save should also write the board: only a save that went through (a failed or lost-session one would
