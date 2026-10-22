@@ -54,7 +54,7 @@ end
 
 local itemRows: { Item } = {
 	-- An item, not an upgrade: it works while it is held in the hand (a Tool in the Backpack, a hotbar slot).
-	item("SpeedCoil", "Speed Coil", "⚡", "Run faster, also while carrying", "BuySpeedCoil", false, nil),
+	item("SpeedCoil", "Speed Coil", "⚡", "Hold it to run faster", "BuySpeedCoil", false, nil),
 }
 for _, def in Config.CONSUMABLES do
 	table.insert(itemRows, item(def.id, def.name, def.icon, def.text, "BuyConsumable", true, "Consumables"))

@@ -19,8 +19,6 @@ export type Kind = {
 	weight: number,
 	hatchSeconds: number,
 	pity: number, -- lucky meter size: this many hatches in a row without the top tier and the last one gets it
-	price: number,
-	sell: number,
 	announce: boolean,
 	drops: { Drop },
 }

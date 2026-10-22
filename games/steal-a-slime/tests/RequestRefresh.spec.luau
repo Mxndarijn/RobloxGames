@@ -1,7 +1,8 @@
 --!nocheck
 -- Request spam must not buy world-wide work: the real server Script in the fake runtime only runs refreshView
 -- (WorldView.reconcile over every slime + updatePlots) and flushStates for calls that got past Actions.handle's
--- guards. Unknown actions, "too fast" calls and Sync faster than STATE_MIN_INTERVAL are refused for free.
+-- guards, and refreshView at most once per ServerLoop.VIEW_INTERVAL (the Heartbeat view tick shows the rest).
+-- Unknown actions, "too fast" calls and Sync faster than STATE_MIN_INTERVAL are refused for free.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
@@ -20,7 +21,7 @@ local rt = Runtime.new(path, {})
 fs.removeFile(path)
 rt.workspace:SetAttribute("DataStoreMode", "Memory") -- in-memory store only (CLAUDE.md hard rule)
 local server = rt.game:GetService("ServerScriptService"):FindFirstChild("Server")
-server.Source = server.Source .. "\n_G.__requestRefresh = { world = world, WorldView = WorldView }\n"
+server.Source = server.Source .. "\n_G.__requestRefresh = { world = world, WorldView = WorldView, World = World }\n"
 rt:boot()
 rt:advance(1)
 -- selene: allow(global_usage)
@@ -70,6 +71,47 @@ results.limited.reconciles = reconciles(function()
 	end
 end)
 
+-- A dispatched action that is refused changes nothing: no reconcile, but a toast it queued still goes out.
+local function notifies(text: string): number
+	local n = 0
+	for _, record in rt.records do
+		if record.kind == "FireClient" and record.name == "Notify" and record.args[1] == text then
+			n += 1
+		end
+	end
+	return n
+end
+results.refused = { notOk = 0, reconciles = 0 }
+for _ = 1, 5 do
+	rt:advance(0.3) -- past the Sell limiter
+	results.refused.reconciles += reconciles(function()
+		if invoke("Sell", "not-a-slime-of-mine").ok == false then
+			results.refused.notOk += 1
+		end
+	end)
+end
+rt:advance(0.3)
+S.World.notify(S.world, USER_ID, "refused-toast", "info", nil)
+invoke("Sell", "not-a-slime-of-mine")
+results.refused.toasts = notifies("refused-toast")
+
+rt:advance(1)
+-- Tool.Activated spam: only a swing that ran may refresh the world.
+local bat
+for _, item in player:FindFirstChildOfClass("Backpack"):GetChildren() do
+	if item.Name == "Bat" then
+		bat = item
+	end
+end
+results.bat = { found = bat ~= nil }
+if bat then
+	results.bat.reconciles = reconciles(function()
+		for _ = 1, 30 do
+			Runtime.signalOf(bat, "Activated"):Fire()
+		end
+	end)
+end
+
 rt:advance(1)
 -- A Heartbeat push in the last 0.25 s would coalesce the Sync push; start from a quiet, already-pushed session.
 session.dirty, session.lastPushAt = false, -math.huge
@@ -86,6 +128,40 @@ results.sync.reconciles = reconciles(function()
 end)
 rt:advance(Config.STATE_MIN_INTERVAL + 0.05)
 results.sync.later = invoke("Sync").ok
+
+-- One call per action passes its own rate limit, so 20 different actions in one frame all get past the guards.
+rt:advance(1)
+local burstCalls = {
+	{ "Favorite" },
+	{ "CloseShop" },
+	{ "SetHotbar", "" },
+	{ "SetAudioSettings", 0.5, 0.5, false },
+	{ "Daily" },
+	{ "Rebirth" },
+	{ "Lock" },
+	{ "BuyPad" },
+	{ "Drop" },
+	{ "BuySpeedCoil" },
+	{ "BuyUpgrade", "x" },
+	{ "Redeem", "x" },
+	{ "Sell", "x" },
+	{ "MoveSlime", "x", 1 },
+	{ "Merge", "a", "b" },
+	{ "HatchEgg", "x" },
+	{ "ClaimQuest", 1 },
+	{ "EquipPlotSkin", "x" },
+	{ "KeepSlime", "x", true },
+	{ "AutoMerge", 1 },
+}
+results.burst = { calls = #burstCalls }
+results.burst.reconciles = reconciles(function()
+	for _, call in burstCalls do
+		invoke(table.unpack(call))
+	end
+end)
+results.burst.nextTick = reconciles(function()
+	rt:advance(0.25)
+end)
 results.errors = #rt.errors
 rt:close()
 
@@ -98,17 +174,31 @@ describe("Request refresh guard (server Script)", function()
 		expect(results.junk.messages["bad argument"]).toBe(true)
 		expect(results.junk.reconciles).toBe(0)
 	end)
-	it("refreshes once for an action that ran, not for the rate-limited repeats", function()
+	it("refreshes at most once for an action that ran, not for the rate-limited repeats", function()
 		expect(results.limited.first).toBe(true)
 		expect(results.limited.tooFast).toBe(50)
-		expect(results.limited.reconciles).toBe(1)
+		expect(results.limited.reconciles <= 1).toBe(true)
+	end)
+	it("refreshes at most once for many different actions in one frame; the next view tick shows the rest", function()
+		expect(results.burst.calls).toBe(20)
+		expect(results.burst.reconciles <= 1).toBe(true)
+		expect(results.burst.nextTick >= 1).toBe(true)
+	end)
+	it("skips the world refresh for a refused action but still delivers its toast", function()
+		expect(results.refused.notOk).toBe(5)
+		expect(results.refused.reconciles).toBe(0)
+		expect(results.refused.toasts).toBe(1)
+	end)
+	it("refreshes at most once for a burst of Bat Activated events", function()
+		expect(results.bat.found).toBe(true)
+		expect(results.bat.reconciles <= 1).toBe(true)
 	end)
 	it("throttles Sync to one per STATE_MIN_INTERVAL and still pushes State on the allowed one", function()
 		expect(results.sync.first).toBe(true)
 		expect(results.sync.pushedAt > -math.huge).toBe(true)
 		expect(results.sync.tooFast).toBe(50)
 		expect(results.sync.pushedAfter).toBe(results.sync.pushedAt)
-		expect(results.sync.reconciles).toBe(1)
+		expect(results.sync.reconciles <= 1).toBe(true)
 		expect(results.sync.later).toBe(true)
 	end)
 	it("raises no script errors", function()

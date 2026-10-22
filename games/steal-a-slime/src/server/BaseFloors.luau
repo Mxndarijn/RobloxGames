@@ -32,6 +32,10 @@ export type Context = {
 
 BaseFloors.DROP_ACTION = "Drop down"
 BaseFloors.DROP_OBJECT = "Goo tube"
+-- The DropPrompt sits on an Attachment this far in from the hatch (toward the jar's centre): its line of sight is
+-- measured to there, clear of the glass the hatch sits in, so a player inside sees it and the DropShield outside the
+-- glass hides it from anyone on the ledge.
+BaseFloors.DROP_PROMPT_INSET = 1.5
 
 -- The DropPrompt on every DropHatch in `instances` (a freshly built floor).
 local function addDropPrompts(instances: { Instance }, plotIndex: number, ctx: Context)
@@ -41,14 +45,24 @@ local function addDropPrompts(instances: { Instance }, plotIndex: number, ctx: C
 	end
 	for _, root in instances do
 		for _, d in root:GetDescendants() do
-			if d.Name == "DropHatch" and d:IsA("BasePart") and not d:FindFirstChild(Constants.DROP_PROMPT_NAME) then
+			if
+				d.Name == "DropHatch"
+				and d:IsA("BasePart")
+				and not d:FindFirstChild(Constants.DROP_PROMPT_NAME, true)
+			then
+				-- the hatch's local +Z points out of the jar
+				local anchor = Instance.new("Attachment")
+				anchor.Name = "DropPromptAt"
+				anchor.Position = Vector3.new(0, 0, -BaseFloors.DROP_PROMPT_INSET)
+				anchor.Parent = d
 				local prompt = Instance.new("ProximityPrompt")
 				prompt.Name = Constants.DROP_PROMPT_NAME
 				prompt.ActionText = BaseFloors.DROP_ACTION
 				prompt.ObjectText = BaseFloors.DROP_OBJECT
 				prompt.KeyboardKeyCode = Enum.KeyCode.E
-				prompt.RequiresLineOfSight = false
-				prompt.Parent = d
+				-- the DropShield outside the glass blocks it, so a player outside the top jar does not see it
+				prompt.RequiresLineOfSight = true
+				prompt.Parent = anchor
 				prompt.Triggered:Connect(function(player: Player)
 					drop(player, plotIndex)
 				end)
@@ -118,7 +132,7 @@ local function setLids(plot: Instance)
 			local open = f == top
 			hatch.Transparency = if open then 0 else 1
 			hatch.CanCollide = open
-			local prompt = hatch:FindFirstChild(Constants.DROP_PROMPT_NAME)
+			local prompt = hatch:FindFirstChild(Constants.DROP_PROMPT_NAME, true)
 			if prompt and prompt:IsA("ProximityPrompt") then
 				prompt.Enabled = open
 			end

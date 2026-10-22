@@ -562,7 +562,12 @@ local rt = Runtime.new(placePath, {
 	end,
 })
 fs.removeFile(placePath)
+rt.workspace:SetAttribute("DataStoreMode", "Memory") -- in-memory store only (CLAUDE.md hard rule)
+-- Expose the server's world to this spec (in memory only, like tools/livetest/session.luau).
+local server = rt.game:GetService("ServerScriptService"):FindFirstChild("Server")
+server.Source = server.Source .. "\n_G.__paradeSpec = { world = world }\n"
 rt:boot()
+local TestHooks = rt:require(server:FindFirstChild("TestHooks"))
 local player = rt:addPlayer(901, "Parader", roblox.Vector3.new(0, 5, -200))
 local HZ = 15
 local SIM = LIFE + 6
@@ -603,7 +608,8 @@ for _ = 1, SIM * HZ do
 	if splash and not splashes[splash] then
 		splashes[splash] = rt.T
 	end
-	-- Live grab: at 30 s walk up to the second slime on the lane and press E.
+	-- Live grab: at 30 s walk up to the second slime on the lane and press E. Which drops are priced depends on the
+	-- server's seed, so the player carries enough cash for any of them.
 	if not grab and rt.T >= 30 then
 		local candidates = {}
 		for model, track in tracks do
@@ -619,6 +625,10 @@ for _ = 1, SIM * HZ do
 			local body = target.model.PrimaryPart
 			player.Character.HumanoidRootPart.CFrame =
 				roblox.CFrame.new(body.CFrame.Position + roblox.Vector3.new(2, 2, 0))
+			-- selene: allow(global_usage)
+			local liveWorld = _G.__paradeSpec.world
+			TestHooks.enable(liveWorld)
+			TestHooks.grantCash(liveWorld, player.UserId, 10_000_000)
 			body:FindFirstChild("GrabPrompt").Triggered:Fire(player)
 			grab = { model = target.model, at = rt.T }
 		end

@@ -47,15 +47,17 @@ local function effects(world: any): { string }
 end
 
 describe("Shop", function()
-	it("sells the Speed Coil once and speeds up walking", function()
+	it("sells the Speed Coil once; it speeds up walking only while held", function()
 		local data = PlayerData.new()
 		data.cash = Config.SPEED_COIL_PRICE - 1
 		expect(select(2, Shop.buySpeedCoil(data))).toBe("not enough cash")
 		expect(Shop.walkSpeed(data)).toBe(Config.BASE_WALK_SPEED)
+		expect(Shop.walkSpeed(data, true)).toBe(Config.BASE_WALK_SPEED) -- holding nothing you own
 		data.cash = Config.SPEED_COIL_PRICE
 		expect((Shop.buySpeedCoil(data))).toBe(true)
 		expect(data.cash).toBe(0)
-		expect(Shop.walkSpeed(data)).toBe(Config.SPEED_COIL_WALK_SPEED)
+		expect(Shop.walkSpeed(data)).toBe(Config.BASE_WALK_SPEED) -- owned, in the Backpack
+		expect(Shop.walkSpeed(data, true)).toBe(Config.SPEED_COIL_WALK_SPEED) -- held
 		expect(select(2, Shop.buySpeedCoil(data))).toBe("you already own the Speed Coil")
 	end)
 	it("view matches the UI's ShopCatalog item ids", function()

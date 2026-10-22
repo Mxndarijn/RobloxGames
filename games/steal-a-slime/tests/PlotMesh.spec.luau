@@ -199,11 +199,11 @@ describe("plot sign", function()
 end)
 
 describe("plot stands", function()
-	it("has no BuyStand / claim model on any plot (plots auto-assign; the stand is the plaza shop only)", function()
+	it("has no BuyStand / claim model on any plot (plots auto-assign)", function()
 		for _, plot in plots do
 			local found = 0
 			walk({ plot }, function(node)
-				if node.name == "BuyStand" or node.name == "StandMesh" or meshOf(node) == "ranch_shop_stand" then
+				if node.name == "BuyStand" or node.name == "StandMesh" then
 					found += 1
 				end
 			end)

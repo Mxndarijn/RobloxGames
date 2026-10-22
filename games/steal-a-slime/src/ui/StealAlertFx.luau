@@ -33,7 +33,7 @@ local Widgets = require(script.Parent.Widgets)
 local Theme = Widgets.Theme
 local create = Widgets.create
 
-local RED = Color3.fromRGB(235, 40, 50)
+local RED = Theme.Bad -- the Goo danger pink: flash, thief arrow, trail
 local TRAIL_POLL = 0.2 -- seconds between trail / slap-attribute sweeps
 
 local StealAlertFx = {}
@@ -80,7 +80,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			BackgroundColor3 = RED,
 			BorderSizePixel = 0,
 			ZIndex = Layout.ZINDEX.Banners + 1,
-		}, { create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2 }) })
+		}, { Widgets.stroke(Theme.Ink, Widgets.KIT.stroke) })
 	end
 	local arrow = create("Frame", {
 		Name = "ThiefArrow",
@@ -105,9 +105,9 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		Text = "Thief",
 		TextSize = 16,
 		Font = Theme.Font,
-		TextColor3 = Color3.new(1, 1, 1),
+		TextColor3 = Theme.Text,
 		TextStrokeTransparency = 0,
-		TextStrokeColor3 = RED,
+		TextStrokeColor3 = Theme.Ink,
 		Parent = root,
 	})
 
@@ -237,7 +237,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			Attachment0 = a,
 			Attachment1 = b,
 			Lifetime = cfg.TRAIL_LIFETIME,
-			Color = ColorSequence.new(RED, Color3.fromRGB(255, 150, 60)),
+			Color = ColorSequence.new(RED, Theme.Warn), -- danger pink fading to warm orange
 			Transparency = NumberSequence.new(0.1, 1),
 			WidthScale = NumberSequence.new(1, 0),
 			LightEmission = 0.4,
@@ -272,7 +272,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			Text = "BONK!",
 			TextSize = 30,
 			Font = Theme.Font,
-			TextColor3 = Color3.fromRGB(255, 230, 80),
+			TextColor3 = Theme.Gold,
 			TextStrokeTransparency = 0,
 			TextStrokeColor3 = RED,
 		})
@@ -296,7 +296,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			Speed = NumberRange.new(14, 22),
 			SpreadAngle = Vector2.new(180, 180),
 			Size = NumberSequence.new(0.7, 0),
-			Color = ColorSequence.new(Color3.fromRGB(255, 240, 120), RED),
+			Color = ColorSequence.new(Theme.Gold, RED),
 			LightEmission = 0.6,
 			Parent = attachment,
 		})

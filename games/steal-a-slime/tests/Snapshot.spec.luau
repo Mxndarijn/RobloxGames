@@ -78,7 +78,8 @@ describe("Snapshot.build", function()
 		expect(state.boss.phase).toBeNil()
 		expect(state.boss.endsAt).toBeNil()
 		expect(state.boss.nextAt).toBe(T0 + Config.BOSS.FIRST_AT)
-		expect(state.boss.trophies).toBe(0)
+		expect(state.boss.badges).toBe(0)
+		expect(state.bossBadges).toEqual({})
 		expect(state.slimes[1].income).toBe(3)
 		expect(state.slimes[1].stolenBy).toBeNil()
 	end)
@@ -188,11 +189,11 @@ describe("Snapshot State.dex", function()
 			end
 		end
 	end)
-	it("State.dex totals match the roster: 32 spawn + 15 hybrids + 3 bosses", function()
+	it("State.dex totals match the roster: 32 spawn + 15 hybrids + 6 bosses", function()
 		expect(#SlimeRoster.ofKind("spawn") + #SlimeRoster.ofKind("hybrid") + #SlimeRoster.ofKind("boss")).toBe(
 			SpeciesDex.TOTAL
 		)
-		expect(SpeciesDex.TOTAL).toBe(50)
+		expect(SpeciesDex.TOTAL).toBe(53)
 		expect(#SpeciesDex.BONUS).toBe(#SlimeRoster.ofKind("event"))
 	end)
 end)

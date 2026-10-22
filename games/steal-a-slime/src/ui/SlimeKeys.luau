@@ -5,14 +5,16 @@
 	Your own slimes are managed at their pads with keys, no card: every slime model on a pad whose `OwnerUserId`
 	is the local player gets two client-only ProximityPrompts on its Body:
 
-	  * `FavoritePrompt` (R; tap): "Favorite" or "Unfavorite", sends Favorite(slimeId) / Favorite(nil). The
+	  * `FavoritePrompt` (R, gamepad DPadUp; tap): "Favorite" or "Unfavorite", sends Favorite(slimeId) / Favorite(nil). The
 	    favourite's prompt shows its follow-pet perk (State.petPerk). Mystery Eggs (models with `EggKind`) get none:
 	    an egg can't be the favourite.
-	  * `SellPrompt` (X; hold to confirm): "Sell $450" from State.slimes[i].sellPrice, sends Sell(slimeId).
-	  * `MovePrompt` (E; tap), only with `moveKey` / `onMove` (FEATURES.MoveSlime): "Move" calls
+	  * `SellPrompt` (X, gamepad DPadDown; hold to confirm): "Sell $450" from State.slimes[i].sellPrice, sends Sell(slimeId).
+	    Mystery Eggs get none: an egg can't be sold.
+	  * `MovePrompt` (E, gamepad DPadRight; tap), only with `moveKey` / `onMove` (FEATURES.MoveSlime): "Move" calls
 	    `onMove(slimeId, model)`, which starts move mode (SlimeMove).
 
-	Hatch stays the server's HatchPrompt (F). The server's GrabPrompt on the same
+	Hatch stays the server's HatchPrompt (F, gamepad ButtonX). Every key comes from Constants.SLIME_PROMPT_KEYS, where
+	no two prompts share one. The server's GrabPrompt on the same
 	Body is hidden from the owner (PromptHide). Prompts go when the slime leaves the pad (carried, escaping, sold,
 	merged) and come back when it returns. `update(state)` refreshes their texts from the latest State.
 
@@ -21,6 +23,7 @@
 ]]
 
 export type Key = { keyboard: Enum.KeyCode, gamepad: Enum.KeyCode }
+export type KeyNames = { keyboard: string, gamepad: string } -- Enum.KeyCode names (Constants.SLIME_PROMPT_KEYS)
 
 export type Options = {
 	root: Instance, -- workspace
@@ -39,7 +42,7 @@ export type Options = {
 
 export type Labels = {
 	favorite: { action: string, object: string }?, -- nil: no Favorite prompt (an egg)
-	sell: { action: string, object: string },
+	sell: { action: string, object: string }?, -- nil: no Sell prompt (an egg)
 }
 
 export type Handle = {
@@ -54,6 +57,12 @@ SlimeKeys.SELL_PROMPT = "SellPrompt"
 SlimeKeys.MOVE_PROMPT = "MovePrompt"
 SlimeKeys.MOVE_TEXT = "Move"
 SlimeKeys.PAD_STATE = "Pad"
+
+-- The Enum.KeyCode pair named by `names` (an entry of Constants.SLIME_PROMPT_KEYS).
+function SlimeKeys.keyOf(names: KeyNames): Key
+	local codes = Enum.KeyCode :: any
+	return { keyboard = codes[names.keyboard], gamepad = codes[names.gamepad] }
+end
 
 local OWNER_ATTRIBUTE = "OwnerUserId"
 local STATE_ATTRIBUTE = "State"
@@ -90,23 +99,22 @@ local function viewOf(state: any, id: string): any?
 	return nil
 end
 
--- Prompt texts for slime `id` named `name` (`isEgg` from the model) in `state` (nil before the first State).
+-- Prompt texts for slime `id` named `name` (`isEgg` from the model) in `state` (nil before the first State). An egg
+-- gets neither prompt: it can't be the favourite or be sold.
 function SlimeKeys.labels(id: string, name: string, isEgg: boolean, state: any, formatCash: (number) -> string): Labels
+	if isEgg then
+		return { favorite = nil, sell = nil }
+	end
 	local view = viewOf(state, id)
 	local price = if view and type(view.sellPrice) == "number" then view.sellPrice else nil
-	local favorite = nil
-	if not isEgg then
-		local isFav = type(state) == "table" and state.favoriteId == id
-		local perk = if isFav and type(state.petPerk) == "table" then state.petPerk else nil
+	local isFav = type(state) == "table" and state.favoriteId == id
+	local perk = if isFav and type(state.petPerk) == "table" then state.petPerk else nil
+	return {
 		favorite = {
 			action = if isFav then "Unfavorite" else "Favorite",
 			object = if perk then `{perk.icon} {perk.text}` else name,
-		}
-	end
-	return {
-		favorite = favorite,
-		-- The Favorite prompt already names a slime; an egg's Sell names it instead.
-		sell = { action = if price then `Sell {formatCash(price)}` else "Sell", object = if isEgg then name else "" },
+		},
+		sell = { action = if price then `Sell {formatCash(price)}` else "Sell", object = "" },
 	}
 end
 
@@ -166,7 +174,7 @@ function SlimeKeys.start(opts: Options): Handle
 			entry.favorite.ActionText = l.favorite.action
 			entry.favorite.ObjectText = l.favorite.object
 		end
-		if entry.sell then
+		if entry.sell and l.sell then
 			entry.sell.ActionText = l.sell.action
 			entry.sell.ObjectText = l.sell.object
 		end
@@ -205,6 +213,7 @@ function SlimeKeys.start(opts: Options): Handle
 		local isEgg = model:GetAttribute(EGG_ATTRIBUTE) ~= nil
 		if isEgg then
 			drop(entry, "favorite")
+			drop(entry, "sell")
 		end
 		if not isEgg and not entry.favorite then
 			local prompt, conn = makePrompt(body, SlimeKeys.FAVORITE_PROMPT, opts.favoriteKey, 0, function()
@@ -221,10 +230,10 @@ function SlimeKeys.start(opts: Options): Handle
 			entry.favorite = prompt
 			entry.triggers.favorite = conn
 		end
-		if not entry.sell then
+		if not isEgg and not entry.sell then
 			local prompt, conn = makePrompt(body, SlimeKeys.SELL_PROMPT, opts.sellKey, opts.holdSeconds, function()
 				local id = idOf(model)
-				if id and SlimeKeys.wants(model, opts.localUserId) then
+				if id and SlimeKeys.wants(model, opts.localUserId) and model:GetAttribute(EGG_ATTRIBUTE) == nil then
 					opts.send("Sell", id)
 				end
 			end)

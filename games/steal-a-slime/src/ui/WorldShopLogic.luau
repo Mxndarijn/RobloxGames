@@ -1,6 +1,6 @@
 --!strict
 --[[
-	WorldShopLogic (FEATURES.WorldShops, CONTRACT.md §27)
+	WorldShopLogic (CONTRACT.md §27)
 
 	Pure client side of the two in-world shops (Panels/WorldShop renders it; tests/ui/WorldShop.spec.luau):
 	  * rows(): the rows of one shop from Shared.Shops and the live State (price, level, owned / maxed,
@@ -46,7 +46,6 @@ WorldShopLogic.ICON_PREFIX = table.freeze({
 
 -- Deny code -> toast text (CONTRACT.md §27.7). Unavailable shows the server's message when there is one.
 WorldShopLogic.MESSAGES = table.freeze({
-	FlagOff = "The shops are closed",
 	BadShop = "That shop doesn't exist",
 	NotInShop = "Not sold here",
 	NotOpen = "Open the shop first",
@@ -125,7 +124,7 @@ end
 
 function WorldShopLogic.title(shopId: string): string
 	local shop = Shops.shop(shopId)
-	return if shop then shop.name else "Shop"
+	return if shop then Format.sentenceCase(shop.name) else "Shop"
 end
 
 -- The ItemIcons registry id of a shop item.
@@ -149,6 +148,7 @@ local function row(shopId: string, item: Shops.Item, fields: { [string]: any }):
 	for key, value in fields do
 		out[key] = value
 	end
+	out.name = Format.sentenceCase(out.name)
 	return out :: Row
 end
 
@@ -303,10 +303,24 @@ function WorldShopLogic.rows(
 			built = staticRow(shopId, item, state, actions, config)
 		end
 		if built then
+			built.buttonText = WorldShopLogic.buyText(built, cashOf(state))
 			table.insert(out, built)
 		end
 	end
 	return out
+end
+
+-- A buyable row's button: "Buy $1.5K" when you can pay, "Need $10.8K more" (disabled) when you can't. Any
+-- other row keeps its state text ("Owned", "Rebirth 5").
+function WorldShopLogic.buyText(r: Row, cash: number): string
+	if r.status ~= "buy" or type(r.price) ~= "number" then
+		return r.buttonText
+	end
+	local price = r.price :: number
+	if cash < price then
+		return `Need {Format.formatCash(price - cash)} more`
+	end
+	return `Buy {Format.formatCash(price)}`
 end
 
 -- The restock time (unix seconds) shown in the Item Shop header; nil when the shop has no consumables.
@@ -332,7 +346,7 @@ function WorldShopLogic.slot(r: { status: Status, buttonText: string }): Slot
 	if status == "buy" then
 		return { kind = "buy", text = r.buttonText }
 	elseif status == "maxed" then
-		return { kind = "stamp", text = "MAX" }
+		return { kind = "stamp", text = "Max" }
 	elseif status == "owned" then
 		return { kind = "status", text = "✅ Owned", good = true }
 	elseif status == "locked" then
@@ -346,14 +360,14 @@ function WorldShopLogic.buyArgs(r: Row): { any }
 	return { r.shopId, r.id }
 end
 
--- "Lock base bought!" / "Slime Snacks bought! Lv 3" for ShopEvent Purchased.
+-- "Speed coil bought" / "Slime snacks bought, Lv 3" for ShopEvent Purchased (the row's sentence-case name).
 function WorldShopLogic.purchasedText(shopId: any, itemId: any, level: any): string
 	local item = Shops.find(shopId, itemId)
-	local name = if item then item.name else "Item"
+	local name = Format.sentenceCase(if item then item.name else "Item")
 	if type(level) == "number" then
-		return `{name} bought! Lv {level}`
+		return `{name} bought, Lv {level}`
 	end
-	return `{name} bought!`
+	return `{name} bought`
 end
 
 export type Deps = {

@@ -105,15 +105,14 @@ describe("ShopGuard range", function()
 		expect(ShopGuard.access({ distance = 100, alive = false })).toBe("Dead")
 		expect(ShopGuard.access({ distance = RANGE, alive = true })).toBeNil()
 	end)
-	it("closes an open shop for range, death or the flag, and stays open otherwise", function()
+	it("closes an open shop for range or death, and stays open otherwise", function()
 		local near = { distance = 3, alive = true }
-		expect(ShopGuard.closeReason(nil, true, nil)).toBeNil()
-		expect(ShopGuard.closeReason("ItemShop", true, near)).toBeNil()
-		expect(ShopGuard.closeReason("ItemShop", true, { distance = RANGE, alive = true })).toBeNil()
-		expect(ShopGuard.closeReason("ItemShop", true, { distance = RANGE + 1, alive = true })).toBe("range")
-		expect(ShopGuard.closeReason("ItemShop", true, nil)).toBe("range")
-		expect(ShopGuard.closeReason("ItemShop", true, { distance = 3, alive = false })).toBe("dead")
-		expect(ShopGuard.closeReason("ItemShop", false, near)).toBe("flag")
+		expect(ShopGuard.closeReason(nil, nil)).toBeNil()
+		expect(ShopGuard.closeReason("ItemShop", near)).toBeNil()
+		expect(ShopGuard.closeReason("ItemShop", { distance = RANGE, alive = true })).toBeNil()
+		expect(ShopGuard.closeReason("ItemShop", { distance = RANGE + 1, alive = true })).toBe("range")
+		expect(ShopGuard.closeReason("ItemShop", nil)).toBe("range")
+		expect(ShopGuard.closeReason("ItemShop", { distance = 3, alive = false })).toBe("dead")
 	end)
 end)
 
@@ -121,11 +120,9 @@ describe("ShopGuard validation order", function()
 	local near = { distance = 3, alive = true }
 	local function check(over: { [string]: any }): string?
 		local c = {
-			worldShops = true,
-			strict = false,
 			shopId = "ItemShop",
 			itemId = "SpeedCoil",
-			openShop = nil,
+			openShop = "ItemShop",
 			access = near,
 		}
 		for k, v in over do
@@ -136,22 +133,20 @@ describe("ShopGuard validation order", function()
 	it("passes a valid purchase", function()
 		expect(check({})).toBeNil()
 	end)
-	it("flag, shop id, membership, open (strict only), alive, range in that order", function()
-		expect(check({ worldShops = false, shopId = "Nope" })).toBe("FlagOff")
+	it("shop id, membership, open, alive, range in that order", function()
+		local dead = { distance = 99, alive = false }
 		expect(check({ shopId = "Nope", itemId = "Zzz" })).toBe("BadShop")
 		expect(check({ shopId = 5 })).toBe("BadShop")
-		expect(check({ itemId = "Lock", strict = true, access = { distance = 99, alive = false } })).toBe("NotInShop")
-		expect(check({ itemId = "Income", strict = true, access = { distance = 99, alive = false } })).toBe("NotInShop")
-		expect(check({ strict = true, access = { distance = 99, alive = false } })).toBe("NotOpen")
-		expect(check({ strict = true, openShop = "UpgradeShop" })).toBe("NotOpen")
-		expect(check({ strict = true, openShop = "ItemShop", access = { distance = 99, alive = false } })).toBe("Dead")
-		expect(check({ strict = true, openShop = "ItemShop", access = { distance = RANGE + 1, alive = true } })).toBe(
-			"OutOfRange"
-		)
-		expect(check({ strict = true, openShop = "ItemShop" })).toBeNil()
+		expect(check({ itemId = "Lock", openShop = "UpgradeShop", access = dead })).toBe("NotInShop")
+		expect(check({ itemId = "Income", openShop = "UpgradeShop", access = dead })).toBe("NotInShop")
+		expect(ShopGuard.check({ shopId = "ItemShop", itemId = "SpeedCoil", access = dead })).toBe("NotOpen")
+		expect(check({ openShop = "UpgradeShop", access = dead })).toBe("NotOpen")
+		expect(check({ access = dead })).toBe("Dead")
+		expect(check({ access = { distance = RANGE + 1, alive = true } })).toBe("OutOfRange")
+		expect(check({})).toBeNil()
 	end)
-	it("OpenShop (no item) needs only flag, shop and range", function()
-		local open = { worldShops = true, strict = true, shopId = "ItemShop", openShop = nil, access = near }
+	it("OpenShop (no item) needs only the shop and range", function()
+		local open: ShopGuard.Check = { shopId = "ItemShop", openShop = nil, access = near }
 		expect(ShopGuard.check(open)).toBeNil()
 		open.access = nil
 		expect(ShopGuard.check(open)).toBe("OutOfRange")
@@ -199,7 +194,6 @@ local function setup(cash: number?)
 		positionOf = function()
 			return nil
 		end,
-		features = { WorldShops = true, WorldShopsStrict = false },
 		shopAccess = function()
 			return env.access
 		end,
@@ -213,6 +207,12 @@ end
 local function call(env: any, action: string, ...: any)
 	env.session.limiter = {}
 	return Actions.handle(env.world, 1, action, table.pack(...), T0 + 100, env.ctx)
+end
+
+-- ShopBuy with that shop open (ShopBuy needs the matching shop open, NotOpen otherwise).
+local function buy(env: any, shopId: string, itemId: string, ...: any)
+	env.session.openShop = shopId
+	return call(env, "ShopBuy", shopId, itemId, ...)
 end
 
 local function lastEvent(env: any): { [string]: any }
@@ -263,24 +263,12 @@ describe("Request OpenShop / CloseShop", function()
 		expect(call(env, "OpenShop", "ItemShop").code).toBe("Dead")
 		expect(call(env, "OpenShop", "ItemShop").message).toBe(ShopGuard.MESSAGES.Dead)
 	end)
-	it("flag off: 'the shops are closed', no events, nothing opens", function()
-		local env = setup()
-		env.ctx.features.WorldShops = false
-		local res = call(env, "OpenShop", "ItemShop")
-		expect(res.ok).toBe(false)
-		expect(res.message).toBe("the shops are closed")
-		expect(res.code).toBe("FlagOff")
-		expect(call(env, "ShopBuy", "ItemShop", "SpeedCoil").code).toBe("FlagOff")
-		expect(call(env, "CloseShop").ok).toBe(true)
-		expect(#env.events).toBe(0)
-		expect(env.session.openShop).toBeNil()
-	end)
 	it("validates the shopId argument as a string", function()
 		local env = setup()
 		expect(call(env, "OpenShop", 5).ok).toBe(false)
 		expect(call(env, "OpenShop").ok).toBe(false)
 	end)
-	it("shopTick closes on range, death and flag with the contract reasons, and leaves a shop in range open", function()
+	it("shopTick closes on range and death with the contract reasons, and leaves a shop in range open", function()
 		local env = setup()
 		call(env, "OpenShop", "ItemShop")
 		Actions.shopTick(env.session, env.ctx)
@@ -294,13 +282,6 @@ describe("Request OpenShop / CloseShop", function()
 		env.access = { distance = 1, alive = false }
 		Actions.shopTick(env.session, env.ctx)
 		expect(lastEvent(env).reason).toBe("dead")
-		env.access = { distance = 1, alive = true }
-		call(env, "OpenShop", "UpgradeShop")
-		local fired = #env.events
-		env.ctx.features.WorldShops = false
-		Actions.shopTick(env.session, env.ctx)
-		expect(env.session.openShop).toBeNil()
-		expect(#env.events).toBe(fired) -- flag off: no ShopEvent
 	end)
 	it("the prompt opens the shop on the server without the OpenShop rate limit", function()
 		local env = setup()
@@ -318,7 +299,7 @@ describe("Request ShopBuy", function()
 	it("delegates to the existing handler and fires Purchased with price and level", function()
 		local env = setup()
 		local before = env.session.data.cash
-		local res = call(env, "ShopBuy", "UpgradeShop", "Income")
+		local res = buy(env, "UpgradeShop", "Income")
 		expect(res.ok).toBe(true)
 		expect(env.session.data.upgrades.Income).toBe(1)
 		local event = lastEvent(env)
@@ -328,16 +309,16 @@ describe("Request ShopBuy", function()
 		expect(event.price).toBe(before - env.session.data.cash)
 		expect(event.price > 0).toBe(true)
 		expect(event.level).toBe(1)
-		expect(call(env, "ShopBuy", "UpgradeShop", "Income").ok).toBe(true)
+		expect(buy(env, "UpgradeShop", "Income").ok).toBe(true)
 		expect(env.session.data.upgrades.Income).toBe(2)
 		expect(lastEvent(env).level).toBe(2)
 	end)
 	it("buys the Speed Coil once, then answers Maxed", function()
 		local env = setup()
-		expect(call(env, "ShopBuy", "ItemShop", "SpeedCoil").ok).toBe(true)
+		expect(buy(env, "ItemShop", "SpeedCoil").ok).toBe(true)
 		expect(env.session.data.speedCoil).toBe(true)
 		expect(lastEvent(env).level).toBeNil()
-		local res = call(env, "ShopBuy", "ItemShop", "SpeedCoil")
+		local res = buy(env, "ItemShop", "SpeedCoil")
 		expect(res.ok).toBe(false)
 		expect(res.code).toBe("Maxed")
 		expect(res.message).toBe("you already own the Speed Coil")
@@ -349,23 +330,23 @@ describe("Request ShopBuy", function()
 		env.session.lockUntil = 0
 		local before = env.session.data.cash
 		for _, shopId in { "ItemShop", "UpgradeShop" } do
-			local res = call(env, "ShopBuy", shopId, "Lock")
+			local res = buy(env, shopId, "Lock")
 			expect(res.ok).toBe(false)
 			expect(res.code).toBe("NotInShop")
 		end
-		expect(call(env, "ShopBuy", "UpgradeShop", "LockUpgrade").code).toBe("NotInShop")
+		expect(buy(env, "UpgradeShop", "LockUpgrade").code).toBe("NotInShop")
 		expect(env.session.lockUntil).toBe(0)
 		expect(env.session.data.cash).toBe(before)
 	end)
 	it("maps delegated failures: NoCash, Locked", function()
 		local env = setup(0)
-		expect(call(env, "ShopBuy", "ItemShop", "SpeedCoil").code).toBe("NoCash")
+		expect(buy(env, "ItemShop", "SpeedCoil").code).toBe("NoCash")
 		local poor = lastEvent(env)
 		expect(poor.code).toBe("NoCash")
 		expect(poor.itemId).toBe("SpeedCoil")
 		expect(poor.message).toBe("not enough cash")
 		env.session.data.cash = 10_000_000
-		local res = call(env, "ShopBuy", "UpgradeShop", "Luck")
+		local res = buy(env, "UpgradeShop", "Luck")
 		expect(res.ok).toBe(false)
 		expect(res.code).toBe("Locked")
 		expect(env.session.data.cash).toBe(10_000_000)
@@ -374,39 +355,40 @@ describe("Request ShopBuy", function()
 		local env = setup()
 		expect(Config.UPGRADES[1].id).toBe("Income")
 		env.session.data.upgrades.Income = Config.UPGRADES[1].maxLevel
-		expect(call(env, "ShopBuy", "UpgradeShop", "Income").code).toBe("Maxed")
+		expect(buy(env, "UpgradeShop", "Income").code).toBe("Maxed")
 	end)
 	it("rejects an item the shop does not sell and an unknown shop", function()
 		local env = setup()
-		local res = call(env, "ShopBuy", "UpgradeShop", "SpeedCoil")
+		local res = buy(env, "UpgradeShop", "SpeedCoil")
 		expect(res.code).toBe("NotInShop") -- the Speed Coil is an Item Shop row now
 		expect(env.session.data.speedCoil).toBe(false)
-		expect(call(env, "ShopBuy", "UpgradeShop", "Lock").code).toBe("NotInShop")
-		expect(call(env, "ShopBuy", "Nope", "Lock").code).toBe("BadShop")
-		expect(call(env, "ShopBuy", "ItemShop", "NoSuchItem").code).toBe("NotInShop")
+		expect(buy(env, "UpgradeShop", "Lock").code).toBe("NotInShop")
+		expect(buy(env, "Nope", "Lock").code).toBe("BadShop")
+		expect(buy(env, "ItemShop", "NoSuchItem").code).toBe("NotInShop")
 	end)
 	it("range is checked on every purchase: boundary, no character, dead", function()
 		local env = setup()
 		env.access = { distance = RANGE, alive = true }
-		expect(call(env, "ShopBuy", "UpgradeShop", "Income").ok).toBe(true)
+		expect(buy(env, "UpgradeShop", "Income").ok).toBe(true)
 		env.access = { distance = RANGE + 0.01, alive = true }
 		local before = env.session.data.cash
-		expect(call(env, "ShopBuy", "UpgradeShop", "Income").code).toBe("OutOfRange")
+		expect(buy(env, "UpgradeShop", "Income").code).toBe("OutOfRange")
 		env.access = { distance = nil, alive = true }
-		expect(call(env, "ShopBuy", "UpgradeShop", "Income").code).toBe("OutOfRange")
+		expect(buy(env, "UpgradeShop", "Income").code).toBe("OutOfRange")
 		env.access = { distance = 1, alive = false }
-		expect(call(env, "ShopBuy", "UpgradeShop", "Income").code).toBe("Dead")
+		expect(buy(env, "UpgradeShop", "Income").code).toBe("Dead")
 		expect(env.session.data.cash).toBe(before)
 		expect(env.session.data.upgrades.Income).toBe(1)
 	end)
 	it("no shopAccess in the context means no stand: out of range", function()
 		local env = setup()
 		env.ctx.shopAccess = nil
-		expect(call(env, "ShopBuy", "UpgradeShop", "Income").code).toBe("OutOfRange")
+		expect(buy(env, "UpgradeShop", "Income").code).toBe("OutOfRange")
 	end)
 	it("keeps the delegated action's own rate limit (Busy)", function()
 		local env = setup()
 		env.session.limiter = { BuyUpgrade = T0 + 100 }
+		env.session.openShop = "UpgradeShop"
 		local res = Actions.handle(env.world, 1, "ShopBuy", { "UpgradeShop", "Income" }, T0 + 100.1, env.ctx)
 		expect(res.ok).toBe(false)
 		expect(res.code).toBe("Busy")
@@ -414,6 +396,7 @@ describe("Request ShopBuy", function()
 	end)
 	it("ShopBuy itself is rate limited", function()
 		local env = setup()
+		env.session.openShop = "UpgradeShop"
 		expect(Actions.handle(env.world, 1, "ShopBuy", { "UpgradeShop", "Income" }, T0 + 100, env.ctx).ok).toBe(true)
 		local again = Actions.handle(env.world, 1, "ShopBuy", { "UpgradeShop", "Income" }, T0 + 100.1, env.ctx)
 		expect(again.ok).toBe(false)
@@ -421,7 +404,7 @@ describe("Request ShopBuy", function()
 	end)
 	it("a consumable is bought without a slime", function()
 		local env = setup()
-		local res = call(env, "ShopBuy", "ItemShop", "LuckPotion")
+		local res = buy(env, "ItemShop", "LuckPotion")
 		if Config.FEATURES.Consumables then
 			expect(res.ok or res.code == "SoldOut").toBe(true)
 			expect(res.code ~= "BadTarget").toBe(true)
@@ -432,17 +415,9 @@ describe("Request ShopBuy", function()
 	end)
 end)
 
-describe("WorldShopsStrict", function()
-	it("non-strict: ShopBuy works without an open shop and the old actions are unchanged", function()
+describe("shop gate", function()
+	it("ShopBuy needs the matching shop open (NotOpen), then works in range", function()
 		local env = setup()
-		expect(env.session.openShop).toBeNil()
-		expect(call(env, "ShopBuy", "UpgradeShop", "Income").ok).toBe(true)
-		env.access = { distance = 999, alive = true }
-		expect(call(env, "BuySpeedCoil").ok).toBe(true) -- far away, but the old path is not gated
-	end)
-	it("strict: ShopBuy needs the matching shop open (NotOpen), then works in range", function()
-		local env = setup()
-		env.ctx.features.WorldShopsStrict = true
 		local res = call(env, "ShopBuy", "UpgradeShop", "Income")
 		expect(res.code).toBe("NotOpen")
 		call(env, "OpenShop", "ItemShop")
@@ -452,44 +427,32 @@ describe("WorldShopsStrict", function()
 		env.access = { distance = RANGE + 1, alive = true }
 		expect(call(env, "ShopBuy", "UpgradeShop", "Income").code).toBe("OutOfRange")
 	end)
-	it(
-		"strict: the old buy actions answer 'open the <Item|Upgrade> Shop first' until the right shop is open",
-		function()
-			local env = setup()
-			env.ctx.features.WorldShopsStrict = true
-			local res = call(env, "BuyUpgrade", "Income")
-			expect(res.ok).toBe(false)
-			expect(res.message).toBe("open the Upgrade Shop first")
-			expect(res.code).toBe("NotOpen")
-			expect(call(env, "BuySpeedCoil").message).toBe("open the Item Shop first")
-			expect(env.session.data.upgrades.Income or 0).toBe(0)
-			call(env, "OpenShop", "UpgradeShop")
-			expect(call(env, "BuyUpgrade", "Income").ok).toBe(true)
-			expect(call(env, "BuySpeedCoil").code).toBe("NotOpen") -- the Speed Coil is an Item Shop thing
-			call(env, "OpenShop", "ItemShop")
-			env.access = { distance = RANGE + 1, alive = true }
-			expect(call(env, "BuySpeedCoil").code).toBe("OutOfRange")
-			expect(call(env, "Sell", "nope").code).toBeNil() -- other actions are never gated
-		end
-	)
-	it("strict: Lock never needs a shop (without a measured plot pad it is not gated)", function()
+	it("the old buy actions answer 'open the <Item|Upgrade> Shop first' until the right shop is open", function()
 		local env = setup()
-		env.ctx.features.WorldShopsStrict = true
+		local res = call(env, "BuyUpgrade", "Income")
+		expect(res.ok).toBe(false)
+		expect(res.message).toBe("open the Upgrade Shop first")
+		expect(res.code).toBe("NotOpen")
+		expect(call(env, "BuySpeedCoil").message).toBe("open the Item Shop first")
+		expect(env.session.data.upgrades.Income or 0).toBe(0)
+		call(env, "OpenShop", "UpgradeShop")
+		expect(call(env, "BuyUpgrade", "Income").ok).toBe(true)
+		expect(call(env, "BuySpeedCoil").code).toBe("NotOpen") -- the Speed Coil is an Item Shop thing
+		call(env, "OpenShop", "ItemShop")
+		env.access = { distance = RANGE + 1, alive = true }
+		expect(call(env, "BuySpeedCoil").code).toBe("OutOfRange")
+		expect(call(env, "Sell", "nope").code).toBeNil() -- other actions are never gated
+	end)
+	it("Lock never needs a shop (without a measured plot pad it is not gated)", function()
+		local env = setup()
 		env.access = { distance = 999, alive = true }
 		env.session.lockUntil = 0
 		local res = call(env, "Lock")
 		expect(res.ok).toBe(true)
 		expect(env.session.lockUntil > T0 + 100).toBe(true)
 	end)
-	it("strict needs WorldShops: with the flag off the old actions are untouched", function()
+	it("does not gate the old buy actions where the adapter measures nothing (no shopAccess)", function()
 		local env = setup()
-		env.ctx.features.WorldShops = false
-		env.ctx.features.WorldShopsStrict = true
-		expect(call(env, "BuyUpgrade", "Income").ok).toBe(true)
-	end)
-	it("strict does not apply where the adapter measures nothing (no shopAccess)", function()
-		local env = setup()
-		env.ctx.features.WorldShopsStrict = true
 		env.ctx.shopAccess = nil
 		expect(call(env, "BuyUpgrade", "Income").ok).toBe(true)
 	end)

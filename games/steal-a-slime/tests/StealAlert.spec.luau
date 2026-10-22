@@ -3,6 +3,7 @@
 -- the join notice, and the server wiring (log on theft, notice on join, slap reason). The server
 -- wiring asserts both modes of the flag (Config.FEATURES is frozen), so the suite passes either way.
 local Carry = require("../src/server/Carry")
+local CarryDrop = require("../src/server/CarryDrop")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local PlayerData = require("../src/shared/PlayerData")
@@ -194,7 +195,7 @@ describe("StealAlert server wiring", function()
 		local world, victim, thief = theft()
 		World.drain(world)
 		thief.lastSlapAt = -math.huge
-		expect((StealService.slap(world, victim, 2, 3, T0 + 101))).toBe(true)
+		expect((CarryDrop.slap(world, victim, 2, 3, T0 + 101))).toBe(true)
 		local reasons = {}
 		for _, event in World.drain(world) do
 			if event.type == "Escaped" then

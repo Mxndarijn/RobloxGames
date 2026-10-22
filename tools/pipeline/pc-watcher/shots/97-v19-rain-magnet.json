@@ -14,7 +14,8 @@
     "id": "19-rain-magnet-shop",
     "todo": "v19",
     "kind": "ui",
-    "open": "shop",
+    "open": "worldshop",
+    "world_shop": "UpgradeShop",
     "rain_magnet": true,
     "note": "v19 Rain Magnet: the shop's upgrade list gains a Rain Magnet row (magnet badge, Lv 2/5, '+5% weather mutation chance', price) (forced with SlimeUI.PcwRainMagnet, FEATURES.RainMagnet off)"
   }

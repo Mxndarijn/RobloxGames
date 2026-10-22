@@ -70,6 +70,22 @@ local function visibleSlots(inv: any): { any }
 end
 
 describe("Inventory hotbar", function()
+	it("a bag with only the starting Bat says it is empty and where items come from, instead of the grid", function()
+		local inv = mount(nil)
+		inv.setPanelOpen(true)
+		local empty = UiHarness.find(inv.panel.frame, "EmptyBag")
+		expect(empty ~= nil and empty.Visible).toBe(true)
+		expect(UiHarness.find(empty, "Title").Text).toBe("Your bag is empty")
+		expect(UiHarness.find(empty, "Body").Text).toBe(Inventory.EMPTY.body)
+		expect(UiHarness.find(inv.panel.frame, "Grid").Visible).toBe(false)
+		expect(UiHarness.find(inv.panel.frame, "HotbarPlate").Visible).toBe(true) -- the Bat stays on the plate
+		expect(UiHarness.find(inv.panel.frame, "Count").Visible).toBe(false)
+		inv.setPanelOpen(false)
+		local full = mount(nil, { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } })
+		full.setPanelOpen(true)
+		expect(UiHarness.find(full.panel.frame, "EmptyBag")).toBeNil()
+		expect(UiHarness.find(full.panel.frame, "Grid").Visible).toBe(true)
+	end)
 	it("shows the Bat slot, a bag cell, and a picture for each", function()
 		local inv = mount(nil)
 		local slots = visibleSlots(inv)
@@ -285,6 +301,24 @@ describe("Inventory panel on a short landscape phone", function()
 				expect(cell.Position.Y.Offset + cell.Size.Y.Offset <= gridH).toBe(true) -- the first row shows whole
 			end
 			expect(grid.Position.X.Offset >= plate.Position.X.Offset + plate.Size.X.Offset).toBe(true)
+		end)
+		it(`{vp[1]}x{vp[2]}: an empty bag's message sits in the grid column, clear of the hotbar plate`, function()
+			local inv = mount(nil)
+			local s = Layout.screen(vp[1], vp[2])
+			inv.layout(s)
+			inv.setPanelOpen(true)
+			local frame = inv.panel.frame
+			local plate = UiHarness.find(frame, "HotbarPlate")
+			local empty = UiHarness.find(frame, "EmptyBag")
+			expect(empty ~= nil and empty.Visible).toBe(true)
+			local body = Layout.panelBody(
+				Layout.rect(frame.Position.X.Offset, frame.Position.Y.Offset, frame.Size.X.Offset, frame.Size.Y.Offset)
+			)
+			local x, w = empty.Position.X.Offset, empty.Size.X.Offset
+			expect(empty.Size.X.Scale).toBe(0)
+			expect(x >= plate.Position.X.Offset + plate.Size.X.Offset).toBe(true)
+			expect(w > 0 and x + w <= body.w).toBe(true)
+			expect(x).toBe(UiHarness.find(frame, "Grid").Position.X.Offset)
 		end)
 	end
 end)

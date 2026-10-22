@@ -9,8 +9,6 @@ local ForcedFlags = {}
 
 -- All flags off: these need the named flag(s) on.
 ForcedFlags.off = {
-	["world shop stands in the booted server"] = "WorldShops",
-	["plot pad prompts on the real world (WorldShopsStrict on)"] = "WorldShopsStrict",
 	["AdminEvents gate"] = "AdminEvents",
 	["AdminEvents parse + validate"] = "AdminEvents",
 	["AdminEvents effects"] = "AdminEvents",
@@ -26,9 +24,11 @@ ForcedFlags.off = {
 	["Spawner.stepModifier"] = "CycleModifier",
 	["FountainRide: the live server rides every spawned slime"] = "Parade",
 	["ParadeLane: handoff to the goo drain"] = "Parade",
+	["ground rays of returning slimes"] = "Parade",
 	["ParadeLane: the despawn telegraph stays readable"] = "Parade",
 	["ParadeLane in the live server"] = "Parade",
 	["Carry.release + Spawner: a dropped wild slime walks back and rejoins the lane"] = "Parade",
+	["Carry.reroute: the server's path swapped into a dropped slime's walk"] = "Parade",
 	["runtime part budget > boots with no server errors and spawns the parade lane and slide colliders"] = "Parade / SlideCollision",
 	["FriendBonus math"] = "FriendBonus",
 	["Friends.refresh"] = "FriendBonus",

@@ -17,7 +17,6 @@ local ShopGuard = {}
 
 -- ShopEvent Denied.code -> the text shown (CONTRACT.md §27.7). Codes from a delegated action keep their own text.
 ShopGuard.MESSAGES = table.freeze({
-	FlagOff = "the shops are closed",
 	BadShop = "no such shop",
 	NotInShop = "that isn't sold here",
 	NotOpen = "open the shop first",
@@ -49,27 +48,22 @@ function ShopGuard.access(access: Access?, range: number?): string?
 end
 
 export type Check = {
-	worldShops: boolean,
-	strict: boolean,
 	shopId: any,
 	itemId: any?, -- ShopBuy only
 	openShop: string?, -- the session's open shop
 	access: Access?,
 }
 
--- Validation order of OpenShop (no itemId) and ShopBuy: flag, shop id, item membership, open (strict only),
--- alive, range. Returns nil when everything holds, else the deny code.
+-- Validation order of OpenShop (no itemId) and ShopBuy: shop id, item membership, open (ShopBuy only), alive,
+-- range. Returns nil when everything holds, else the deny code.
 function ShopGuard.check(c: Check): string?
-	if not c.worldShops then
-		return "FlagOff"
-	end
 	if Shops.shop(c.shopId) == nil then
 		return "BadShop"
 	end
 	if c.itemId ~= nil and Shops.find(c.shopId, c.itemId) == nil then
 		return "NotInShop"
 	end
-	if c.itemId ~= nil and c.strict and c.openShop ~= c.shopId then
+	if c.itemId ~= nil and c.openShop ~= c.shopId then
 		return "NotOpen"
 	end
 	return ShopGuard.access(c.access)
@@ -104,13 +98,10 @@ function ShopGuard.classify(message: string?): string
 end
 
 -- The OpenShop attribute / session state after the shop left range, died or was closed: the Close reason,
--- or nil to stay open. `flagOn` = FEATURES.WorldShops.
-function ShopGuard.closeReason(openShop: string?, flagOn: boolean, access: Access?, range: number?): string?
+-- or nil to stay open.
+function ShopGuard.closeReason(openShop: string?, access: Access?, range: number?): string?
 	if openShop == nil then
 		return nil
-	end
-	if not flagOn then
-		return "flag"
 	end
 	local code = ShopGuard.access(access, range)
 	if code == "Dead" then

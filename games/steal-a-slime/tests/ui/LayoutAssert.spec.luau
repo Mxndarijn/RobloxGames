@@ -11,6 +11,7 @@ local LayoutAssert = require("./LayoutAssert")
 local Nav = require("../../src/ui/Nav")
 local ShopCatalog = require("../../src/ui/ShopCatalog")
 local TestRunner = require("../TestRunner")
+local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -81,29 +82,37 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 	end)
 	it("measures the titles the panels really show", function()
 		for key, title in LayoutAssert.PANEL_TITLES do
-			local file = if key == "Leaders" then "Leaderboard" else key
-			expect(has(read(`src/ui/Panels/{file}.luau`), `Widgets.panel(parent, "{file}Panel", "{title}", `)).toBe(
-				true
-			)
+			expect(has(read(`src/ui/Panels/{key}.luau`), `Widgets.panel(parent, "{key}Panel", "{title}", `)).toBe(true)
 		end
 	end)
-	it("mirrors the panels' row geometry (Shop, Rebirth, Guide)", function()
-		local shop = read("src/ui/Panels/Shop.luau")
-		expect(has(shop, "Shop.BADGE = 48")).toBe(true)
-		expect(has(shop, "Shop.BUY_W = 110")).toBe(true)
-		expect(has(shop, "Shop.DESC_H = 32")).toBe(true)
+	it("mirrors the panels' row geometry (WorldShop, Guide)", function()
+		local worldShop = UiHarness.ui("Panels/WorldShop")
+		local copy = LayoutAssert.WORLD_SHOP
+		for _, k in { "BADGE", "BUY_W", "DESC_H" } do
+			expect(copy[k]).toBe(worldShop[k])
+		end
+		expect(copy.SIZE.tagH).toBe(worldShop.SIZE.tagH)
 		local guide = read("src/ui/Panels/Guide.luau")
 		expect(has(guide, "Guide.TIP_H = 44")).toBe(true)
-		local rebirth = read("src/ui/Panels/Rebirth.luau")
-		expect(has(rebirth, "need = { y = 24, h = 128 }")).toBe(true)
-		expect(has(rebirth, "gives = { y = 180, h = 50 }")).toBe(true)
-		expect(has(rebirth, "button = { y = 276, h = Layout.BUTTON }")).toBe(true)
-		expect(has(rebirth, "note = { y = 338, h = 18 }")).toBe(true)
+	end)
+	it("the Rebirth sizes and copy it measures are the panel's own", function()
+		local real = UiHarness.ui("Panels/Rebirth")
+		local function same(copy: { [string]: any }, source: { [string]: any }, path: string)
+			for k, v in copy do
+				if type(v) == "table" then
+					same(v, source[k], `{path}.{k}`)
+				elseif source[k] ~= v then
+					error(`LayoutAssert's {path}.{k} is {v}, Panels/Rebirth has {source[k]}`)
+				end
+			end
+		end
+		same(LayoutAssert.REBIRTH, real, "Rebirth")
 	end)
 	it("every card fits its content at the tallest gate viewport (no scroll on desktop)", function()
 		local s = Layout.screen(1920, 1080)
 		local chrome = Layout.PANEL_CHROME.header + Layout.PANEL_CHROME.pad
-		expect(Layout.panelFor(s, "Rebirth").h >= chrome + 356).toBe(true) -- Rebirth.CONTENT_H
+		local rebirth = UiHarness.ui("Panels/Rebirth").plan(3, 3 * 14 * Layout.LINE_HEIGHT) -- the tallest: three slimes
+		expect(Layout.panelFor(s, "Rebirth").h >= chrome + rebirth.height).toBe(true)
 		expect(Layout.panelFor(s, "Guide").h >= chrome + 96 + 8 + 3 * (44 + 8)).toBe(true) -- Guide.CONTENT_H
 		for _, key in LayoutAssert.menuKeys() do
 			local r = Layout.panelFor(s, key)
@@ -156,7 +165,7 @@ describe("v18 viewports", function()
 	end)
 	it("phone menus use the full width (the nav steps aside while a menu is open)", function()
 		local s = Layout.screen(390, 844)
-		local a = Layout.panelFor(s, "Shop")
+		local a = Layout.panelFor(s, "WorldShop")
 		expect(a.w).toBe(s.column.w)
 		expect(a.x).toBe(Layout.MARGIN)
 		expect(s.panel.h > s.column.h).toBe(true) -- the backdrop runs on under the bottom cards

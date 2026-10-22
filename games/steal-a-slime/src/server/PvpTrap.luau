@@ -10,7 +10,7 @@
 
 	Anyone but the owner springs a trap. Puddle: slowed. Sticky: held, then slowed. Mega: held,
 	everyone else within `pull` is pulled in and held too, and they are spat out with a small bounce when the hold
-	ends. A thief is always caught (PvpService.catchThief: the slime goes home). Holds / slows go through PvpRules
+	ends. A carrier always drops their slime (PvpService.hitCarrier; a stolen one goes home). Holds / slows go through PvpRules
 	(clamped, then immunity) and PvpSlow (the walk speed); a player who is immune and carries nothing passes and the
 	trap stays. A trap that caught someone, or that is TRAP_LIFETIME_SECONDS old, is removed. No damage, ever.
 	A player who joins later gets every live trap re-sent to them only (`replay`), so everyone sees every trap.
@@ -130,7 +130,7 @@ local function spring(
 	if not state or not tool then
 		return false
 	end
-	local caught = PvpService.catchThief(world, victim, owner, now) ~= nil
+	local caught = PvpService.hitCarrier(world, victim, owner, now, ctx) ~= nil
 	local effect = PvpTrapRules.effect(tool)
 	local held, slowed = 0, 0
 	if effect.hold > 0 then

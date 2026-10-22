@@ -8,6 +8,7 @@
 
 local UI = script.Parent.Parent
 local GuideTips = require(UI.GuideTips)
+local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -42,9 +43,9 @@ function Guide.new(parent: Instance, ctx: any)
 	}, "🎯", Theme.BgLight, 60)
 	Widgets.label({
 		Name = "Heading",
-		Text = "NEXT GOAL",
+		Text = "Next goal",
 		Font = Theme.Font,
-		TextSize = 13,
+		TextSize = Layout.MIN_TEXT,
 		TextColor3 = Theme.Accent,
 		Position = UDim2.fromOffset(82, 10),
 		Size = UDim2.new(1, -92, 0, 16),
@@ -63,7 +64,7 @@ function Guide.new(parent: Instance, ctx: any)
 	})
 	local goalDetail = Widgets.label({
 		Name = "GoalDetail",
-		TextSize = 13,
+		TextSize = Layout.MIN_TEXT,
 		TextColor3 = Theme.Muted,
 		Position = UDim2.fromOffset(82, 72),
 		Size = UDim2.new(1, -92, 0, 16),
