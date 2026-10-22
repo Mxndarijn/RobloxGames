@@ -297,10 +297,12 @@ def jar_trim(f, top, crown=False):
         out.append(painted(cylinder("Lid", nk + 0.4, LID_H, (0, 0, lip_top), CORK, segs=SEGS), shade(CORK, 0.85), CORK))
         lid_top = lip_top + LID_H
     else:  # a cork ring the next jar stands in (its deck covers the middle, the stair comes up through it)
+        # it reaches up to the underside of the next jar's deck (FLOOR_H - 1): at nz + LID_H it stopped short and left an
+        # open band all round the joint, seen through the next jar's glass foot
         inner = radius(f + 1) - 1.2
-        out.append(painted(lathe("Lid", [(nk + 0.3, nz), (nk + 0.3, nz + LID_H), (inner, nz + LID_H)], CORK, double=False),
+        lid_top = max(nz + LID_H, FLOOR_H - 1.0)
+        out.append(painted(lathe("Lid", [(nk + 0.3, nz), (nk + 0.3, lid_top), (inner, lid_top)], CORK, double=False),
                            shade(CORK, 0.85), CORK))
-        lid_top = nz + LID_H
     out += ooze("Ooze", nk + 0.6, lid_top - (0.4 if not top else 0.2), 1.0 + 0.15 * f, 7 + f, seed=40 + f)
     rr = random.Random(70 + f)
     for k in range(2):
