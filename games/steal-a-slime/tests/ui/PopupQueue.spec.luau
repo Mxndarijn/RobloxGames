@@ -1,5 +1,5 @@
 --!strict
--- One modal at a time; the tutorial holds the daily popup back (src/ui/PopupQueue.luau).
+-- One modal at a time; the early tutorial steps hold the daily popup back (src/ui/PopupQueue.luau).
 local PopupQueue = require("../../src/ui/PopupQueue")
 local TestRunner = require("../TestRunner")
 
@@ -13,9 +13,13 @@ local function state(step: string?, daily: boolean?): any
 end
 
 describe("PopupQueue.blocker", function()
-	it("is the tutorial while a step is shown, nil when finished", function()
-		expect(PopupQueue.blocker(state("Grab"))).toBe("Tutorial")
-		expect(PopupQueue.blocker(state("Rebirth"))).toBe("Tutorial")
+	it("is the tutorial during Grab..BuyPad, nil from Merge onward and when finished", function()
+		for _, id in { "Grab", "Deposit", "Lock", "BuyPad" } do
+			expect(PopupQueue.blocker(state(id))).toBe("Tutorial")
+		end
+		for _, id in { "Merge", "Steal", "Rebirth" } do
+			expect(PopupQueue.blocker(state(id))).toBeNil()
+		end
 		expect(PopupQueue.blocker(state(nil))).toBeNil()
 		expect(PopupQueue.blocker({ tutorialStep = 2 })).toBe("Tutorial") -- v12 numeric steps
 		expect(PopupQueue.blocker({ tutorialStepId = "Done" })).toBeNil() -- unknown = finished
@@ -35,10 +39,28 @@ describe("PopupQueue.update", function()
 		expect(q.update(state("Grab", true))).toBeNil()
 		expect(q.has("Daily")).toBe(true)
 		expect(q.update(state("Lock", true))).toBeNil()
-		expect(q.update(state("Rebirth", true))).toBeNil()
+		expect(q.update(state("BuyPad", true))).toBeNil()
 		expect(q.queued()[1]).toBe("Daily")
 		expect(q.update(state(nil, true))).toBe("Daily")
 		expect(q.update(state(nil, true))).toBeNil()
+	end)
+	it("opens the queued daily popup during Merge, Steal and Rebirth", function()
+		for _, id in { "Merge", "Steal", "Rebirth" } do
+			local q = PopupQueue.new()
+			expect(q.update(state("Grab", true))).toBeNil()
+			expect(q.update(state(id, true))).toBe("Daily")
+			expect(q.update(state(id, true))).toBeNil()
+		end
+	end)
+	it("opens the welcome-back card from Merge onward, before the daily popup", function()
+		local q = PopupQueue.new()
+		local s = state("BuyPad", true)
+		s.welcomeBack = {}
+		expect(q.update(s)).toBeNil()
+		s.tutorialStepId = "Merge"
+		expect(q.update(s)).toBe("Welcome")
+		expect(q.update(s, true)).toBeNil()
+		expect(q.update(s)).toBe("Daily")
 	end)
 	it("drops the queued daily when the claim goes away (claimed from the HUD)", function()
 		local q = PopupQueue.new()

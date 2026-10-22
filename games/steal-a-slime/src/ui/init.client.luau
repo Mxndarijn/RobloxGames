@@ -606,7 +606,7 @@ local function syncMenus()
 	end
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
-	tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))
+	tutorial.setMenuOpen(not MenuState.tutorialShown(visibleKey, dailyPopup.isOpen()))
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
@@ -1153,17 +1153,23 @@ leaderboardEvent.OnClientEvent:Connect(function(board: Types.Leaderboard)
 end)
 
 -- Local countdowns (lock, rain) between State pushes.
+local dailyWasOpen = false
 task.spawn(function()
 	while true do
 		task.wait(0.1)
 		if latest then
 			local now = serverNow()
+			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.
+			if dailyWasOpen ~= dailyPopup.isOpen() then
+				dailyWasOpen = dailyPopup.isOpen()
+				syncMenus()
+			end
 			hud.tick(now)
 			inventory.tick()
 			bossMeter.tick(now)
 			panelByKey.Codes.tick(now)
 			panelByKey.WorldShop.tick()
-			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
+			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen()))
 			pvpFunFx.tick(now)
 			if slimeMove then
 				slimeMove.tick()
