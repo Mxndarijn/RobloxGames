@@ -1387,7 +1387,10 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			end
 			local sign = plot:FindFirstChild("Sign")
 			if sign then
-				PlotSigns.apply(sign, PlotSigns.lines(index, session))
+				PlotSigns.apply(
+					sign,
+					PlotSigns.lines(index, session, if session then World.incomeOf(world, session) else nil)
+				)
 			end
 		end
 	end

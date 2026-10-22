@@ -9,7 +9,7 @@
 	is plain glass with "Plot n" and "Empty plot". No Back face: it lies against the glass. Server-side so the
 	text replicates to every client.
 
-	PlotSigns.lines(plotIndex, owner?) -> { title, stats, owned }   -- pure
+	PlotSigns.lines(plotIndex, owner?, income?) -> { title, stats, owned }   -- pure
 	PlotSigns.ensure(sign, deps?) -> { TextLabel }                  -- idempotent
 	PlotSigns.apply(sign, lines, deps?)                             -- writes on change
 
@@ -60,14 +60,16 @@ local function plural(n: number, word: string): string
 	return `{NumberFormat.short(n)} {word}{if n == 1 then "" else "s"}`
 end
 
-function PlotSigns.lines(plotIndex: number, owner: Owner?): Lines
+-- `income` is the owner's income per second as the HUD shows it (World.incomeOf); without it, the plot's
+-- full income (PlayerData.incomePerSecond).
+function PlotSigns.lines(plotIndex: number, owner: Owner?, income: number?): Lines
 	if not owner then
 		return { title = `Plot {plotIndex}`, stats = "Empty plot", owned = false }
 	end
 	local data = owner.data
 	return {
 		title = `{owner.name}'s plot`,
-		stats = `+{NumberFormat.rate(PlayerData.incomePerSecond(data))}, {plural(data.rebirths, "rebirth")}, {plural(
+		stats = `+{NumberFormat.rate(income or PlayerData.incomePerSecond(data))}, {plural(data.rebirths, "rebirth")}, {plural(
 			data.totalStolen,
 			"steal"
 		)}`,
