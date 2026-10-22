@@ -47,11 +47,21 @@ local function make(className: string, props: { [string]: any }, parent: Instanc
 	return inst
 end
 
+-- What players see of the pad: the pad part is an invisible box, its mesh skin (MeshSwap) is a descendant.
+local function visibleOf(pad: BasePart): Instance
+	for _, d in pad:GetDescendants() do
+		if d:IsA("BasePart") and d.Transparency < 1 then
+			return d
+		end
+	end
+	return pad
+end
+
 local function build(pad: BasePart): Marker
 	local L = Look.LOOK
 	local highlight = make("Highlight", {
 		Name = "NextPadHighlight",
-		Adornee = pad,
+		Adornee = visibleOf(pad),
 		FillColor = MINT,
 		FillTransparency = L.fillTransparency,
 		OutlineColor = MINT,

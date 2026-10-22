@@ -446,8 +446,7 @@ end
 export type Panel = { frame: Frame, body: Frame, title: TextLabel, close: TextButton, icon: TextLabel }
 
 -- Goo edge under a band of colour `color` whose bottom is at `y` (design px), across `parent`'s full width:
--- drips at the fractions in Layout.GOO_EDGE.drips, each a soft shoulder under the band, a thick neck and a
--- round drop. Everything is sized by scale or a few px, so it fits any panel width; drips stay
+-- drips at the fractions in Layout.GOO_EDGE.drips, each one finger of goo with a round end. Everything is sized by scale or a few px, so it fits any panel width; drips stay
 -- shorter than PANEL_CHROME.bodyGap so they only fall into the empty gap above the body.
 function Widgets.gooEdge(parent: GuiObject, y: number, color: Color3)
 	local g = Layout.GOO_EDGE
@@ -461,32 +460,14 @@ function Widgets.gooEdge(parent: GuiObject, y: number, color: Color3)
 		Parent = parent,
 	})
 	for i, d in g.drips do
-		local x, w, len = d[1], d[2], d[3]
-		local sw, sh = math.round(w * g.shoulder), math.round(w * g.shoulderDrop) * 2
+		local x, w, hang = d[1], d[2], d[3]
+		-- Its round top hides in the band (same colour), so only the hanging part and its round end show.
 		create("Frame", {
-			Name = "Shoulder" .. i,
+			Name = "Drip" .. i,
 			BackgroundColor3 = color,
 			BorderSizePixel = 0,
-			Position = UDim2.new(x, math.round((w - sw) / 2), 0, -sh // 2),
-			Size = UDim2.fromOffset(sw, sh),
-			ZIndex = parent.ZIndex,
-			Parent = edge,
-		}, { Widgets.pill() })
-		create("Frame", {
-			Name = "Neck" .. i,
-			BackgroundColor3 = color,
-			BorderSizePixel = 0,
-			Position = UDim2.new(x, math.round(w * (1 - g.neckWidth) / 2), 0, 0),
-			Size = UDim2.fromOffset(math.round(w * g.neckWidth), len),
-			ZIndex = parent.ZIndex,
-			Parent = edge,
-		}, { Widgets.pill() })
-		create("Frame", {
-			Name = "Drop" .. i,
-			BackgroundColor3 = color,
-			BorderSizePixel = 0,
-			Position = UDim2.new(x, 0, 0, len - math.round(w * g.dropRise)),
-			Size = UDim2.fromOffset(w, w),
+			Position = UDim2.new(x, 0, 0, -w),
+			Size = UDim2.fromOffset(w, hang + w),
 			ZIndex = parent.ZIndex,
 			Parent = edge,
 		}, { Widgets.pill() })

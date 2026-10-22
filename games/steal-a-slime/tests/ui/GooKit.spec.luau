@@ -20,10 +20,8 @@ end
 describe("Goo kit", function()
 	it("every drip hangs inside the gap between the band and the body", function()
 		local g, gap = Layout.GOO_EDGE, Layout.PANEL_CHROME.bodyGap
-		expect(math.round(10 * g.shoulderDrop) < gap).toBe(true)
 		for i, d in g.drips do
-			local w, len = d[2], d[3]
-			local lowest = len - math.round(w * g.dropRise) + w
+			local lowest = d[3]
 			expect(`drip {i}: {lowest < gap}`).toBe(`drip {i}: true`)
 			expect(`drip {i} clear of the icon tile: {d[1] >= 0.14}`).toBe(`drip {i} clear of the icon tile: true`)
 		end

@@ -724,21 +724,16 @@ Layout.NOTICE_RADIUS = 18
 -- The glass bubble behind each status icon (Hud): white at this transparency over the world.
 Layout.STATUS_BUBBLE = table.freeze({ transparency = 0.8 })
 
--- The goo edge under a panel's band (Widgets.gooEdge): drips { x (fraction of the width), drop width, neck
--- length } px. Each drip is one blob of goo: a wide soft shoulder where it leaves the band, a thick neck and a
--- round drop. A drip's lowest point is length - dropRise * width + width, kept under PANEL_CHROME.bodyGap so
--- goo never runs over the body. No drip sits over the corner icon tile (x < 0.14).
+-- The goo edge under a panel's band (Widgets.gooEdge): drips { x (fraction of the width), width, hang } px. Each
+-- drip is one finger of goo with a round end, hanging `hang` px under the band; that stays under
+-- PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over the corner icon tile (x < 0.14).
 Layout.GOO_EDGE = table.freeze({
 	inset = 18,
-	neckWidth = 0.9, -- a drip's neck, as a fraction of its drop width, centred on the drop
-	dropRise = 0.55, -- how far the drop's top overlaps the neck's end, as a fraction of its width
-	shoulder = 1.9, -- the shoulder's width, as a multiple of the drop width
-	shoulderDrop = 0.5, -- how far the shoulder bulges under the band, as a fraction of the drop width
 	drips = table.freeze({
-		table.freeze({ 0.22, 10, 7 }),
-		table.freeze({ 0.4, 8, 4 }),
-		table.freeze({ 0.6, 11, 8 }),
-		table.freeze({ 0.8, 9, 5 }),
+		table.freeze({ 0.22, 10, 10 }),
+		table.freeze({ 0.4, 8, 6 }),
+		table.freeze({ 0.6, 11, 13 }),
+		table.freeze({ 0.8, 9, 8 }),
 	}),
 })
 

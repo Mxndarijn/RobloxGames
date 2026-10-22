@@ -30,23 +30,19 @@ return table.freeze({
 	skipGlass = 0.88, -- transparency of the Skip button's glass
 	stroke = 3, -- Ink outlines
 
-	-- The goo across the top: a band, then drips (x across the screen, drop width and neck length as fractions of the
-	-- goo's height). Each drip is one blob: a wide soft shoulder under the band, a thick neck and a round drop.
-	-- The goo is gooShare of the screen tall, but never reaches the title (LoadingScreen.gooHeight).
+	-- The goo across the top: a band, then drips (x across the screen, width and how far it hangs under the band as
+	-- fractions of the goo's height). Each drip is one finger of goo with a round end. The goo is gooShare of the
+	-- screen tall, but never reaches the title (LoadingScreen.gooHeight).
 	gooShare = 0.24,
 	gooBand = 0.24,
 	gooGap = 16, -- px kept clear between the longest drip and the title
-	dripNeck = 0.9, -- a drip's neck, as a fraction of its drop width
-	dripRise = 0.5, -- how far the drop's top overlaps the neck's end, as a fraction of its width
-	dripShoulder = 1.9, -- the shoulder's width, as a multiple of the drop width
-	dripShoulderDrop = 0.5, -- how far the shoulder bulges under the band, as a fraction of the drop width
 	drips = table.freeze({
-		table.freeze({ x = 0.08, w = 0.11, len = 0.22 }),
-		table.freeze({ x = 0.24, w = 0.13, len = 0.4 }),
-		table.freeze({ x = 0.41, w = 0.09, len = 0.12 }),
-		table.freeze({ x = 0.57, w = 0.12, len = 0.3 }),
-		table.freeze({ x = 0.75, w = 0.14, len = 0.44 }),
-		table.freeze({ x = 0.91, w = 0.09, len = 0.16 }),
+		table.freeze({ x = 0.08, w = 0.11, hang = 0.28 }),
+		table.freeze({ x = 0.24, w = 0.13, hang = 0.48 }),
+		table.freeze({ x = 0.41, w = 0.09, hang = 0.16 }),
+		table.freeze({ x = 0.57, w = 0.12, hang = 0.36 }),
+		table.freeze({ x = 0.75, w = 0.14, hang = 0.52 }),
+		table.freeze({ x = 0.91, w = 0.09, hang = 0.2 }),
 	}),
 	-- Faint goo bubbles low on the screen: x, y as fractions of the screen, size in px.
 	bubbles = table.freeze({

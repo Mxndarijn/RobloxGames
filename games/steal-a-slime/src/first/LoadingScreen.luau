@@ -42,7 +42,7 @@ end
 function LoadingScreen.dripBottom(): number
 	local bottom = LOOK.gooBand
 	for _, d in LOOK.drips do
-		bottom = math.max(bottom, LOOK.gooBand + d.len - d.w * LOOK.dripRise + d.w)
+		bottom = math.max(bottom, LOOK.gooBand + d.hang)
 	end
 	return bottom
 end
@@ -96,7 +96,7 @@ local function title(name: string, color: Color3, y: number, parent: Instance): 
 	return label
 end
 
--- The goo along the top edge: a full-width band, then drips of a soft shoulder, a thick neck and a round drop.
+-- The goo along the top edge: a full-width band, then drips, each one finger of goo with a round end.
 local function goo(parent: Instance): Frame
 	local layer = make("Frame", {
 		Name = "Goo",
@@ -110,38 +110,18 @@ local function goo(parent: Instance): Frame
 		Size = UDim2.fromScale(1, LOOK.gooBand),
 	}, layer)
 	for i, d in LOOK.drips do
-		-- Sizes are fractions of the layer's height (SizeConstraint RelativeYY), x is a fraction of the width.
-		local bulge = d.w * LOOK.dripShoulderDrop
-		local shoulder = make("Frame", {
-			Name = `Shoulder{i}`,
+		-- Sizes are fractions of the layer's height (SizeConstraint RelativeYY), x is a fraction of the width. The
+		-- finger's round top hides in the band.
+		local drip = make("Frame", {
+			Name = `Drip{i}`,
 			BackgroundColor3 = LOOK.band,
 			BorderSizePixel = 0,
 			AnchorPoint = Vector2.new(0.5, 0),
 			SizeConstraint = Enum.SizeConstraint.RelativeYY,
-			Position = UDim2.fromScale(d.x, LOOK.gooBand - bulge),
-			Size = UDim2.fromScale(d.w * LOOK.dripShoulder, bulge * 2),
+			Position = UDim2.fromScale(d.x, LOOK.gooBand - d.w),
+			Size = UDim2.fromScale(d.w, d.hang + d.w),
 		}, layer)
-		pill(shoulder)
-		local neck = make("Frame", {
-			Name = `Neck{i}`,
-			BackgroundColor3 = LOOK.band,
-			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(0.5, 0),
-			SizeConstraint = Enum.SizeConstraint.RelativeYY,
-			Position = UDim2.fromScale(d.x, LOOK.gooBand - 0.05),
-			Size = UDim2.fromScale(d.w * LOOK.dripNeck, d.len + 0.05),
-		}, layer)
-		pill(neck)
-		local drop = make("Frame", {
-			Name = `Drop{i}`,
-			BackgroundColor3 = LOOK.band,
-			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(0.5, 0),
-			SizeConstraint = Enum.SizeConstraint.RelativeYY,
-			Position = UDim2.fromScale(d.x, LOOK.gooBand + d.len - d.w * LOOK.dripRise),
-			Size = UDim2.fromScale(d.w, d.w),
-		}, layer)
-		pill(drop)
+		pill(drip)
 	end
 	return layer
 end

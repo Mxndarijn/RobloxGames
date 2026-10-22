@@ -111,7 +111,7 @@ describe("Props placed by WorldProps", function()
 			end
 			expect(jelly:FindFirstChildOfClass("UIStroke") ~= nil).toBe(true)
 			for _, d in gui:GetChildren() do
-				if d:IsA("Frame") and string.sub(d.Name, 1, 4) == "Drop" then
+				if d:IsA("Frame") and string.sub(d.Name, 1, 4) == "Drip" then
 					expect(d.Position.Y.Scale + d.Size.Y.Scale <= 1).toBe(true) -- inside the face
 				end
 			end

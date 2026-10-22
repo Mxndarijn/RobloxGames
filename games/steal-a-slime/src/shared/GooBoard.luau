@@ -3,8 +3,7 @@
 	GooBoard (Instance builders, no Roblox API at load time)
 
 	The Goo board the world signs share (canvas GooWorldSigns): a glass card with an Ink outline and, on top,
-	a coloured band that drips goo into the empty strip under it: each drip one blob, a soft shoulder under
-	the band, a thick neck and a round drop.
+	a coloured band that drips goo into the empty strip under it: each drip one finger of goo with a round end.
 	PlotSigns draws it on a plot's Sign (mint band, or no band on an empty plot) and PodiumRigs on the podium
 	name boards (gold band). Everything is sized by scale, so the same board fits a SurfaceGui or a
 	BillboardGui of any size; text goes on top through GooBoard.text.
@@ -27,9 +26,6 @@ export type Spec = {
 local GooBoard = {}
 
 GooBoard.CARD = "GooCard"
--- A drip's shape, as fractions of its drop: the neck's width, and the shoulder's width and how far it bulges under
--- the band (Widgets' Layout.GOO_EDGE uses the same recipe on the menu bands).
-GooBoard.DRIP = table.freeze({ neck = 0.9, shoulder = 1.9, shoulderDrop = 0.5 })
 
 local function color(deps: Deps, c: { number }): any
 	return deps.Color3.fromRGB(c[1], c[2], c[3])
@@ -101,31 +97,16 @@ function GooBoard.build(parent: any, deps: Deps, spec: Spec, aspect: number): an
 		Position = deps.UDim2.fromScale(0, 1),
 		Size = deps.UDim2.fromScale(1, 1 / spec.band), -- the card's height, so fractions below read as card fractions
 	}, band)
-	local D = GooBoard.DRIP
 	for i, d in spec.drips do
+		-- One finger of goo whose round end is the drop (GooBoard.dripBox); its round top hides in the band.
 		local x, y, w, h = GooBoard.dripBox(spec, d, aspect)
-		local bulge = h * D.shoulderDrop
-		local shoulder = make(deps, "Frame", {
-			Name = `Shoulder{i}`,
+		local drip = make(deps, "Frame", {
+			Name = `Drip{i}`,
 			BorderSizePixel = 0,
-			Position = deps.UDim2.fromScale(d.x - d.w * D.shoulder / 2, -bulge),
-			Size = deps.UDim2.fromScale(d.w * D.shoulder, bulge * 2),
+			Position = deps.UDim2.fromScale(x, -h),
+			Size = deps.UDim2.fromScale(w, y - spec.band + h * 2),
 		}, edge)
-		round(deps, shoulder, 1)
-		local neck = make(deps, "Frame", {
-			Name = `Neck{i}`,
-			BorderSizePixel = 0,
-			Position = deps.UDim2.fromScale(d.x - d.w * D.neck / 2, 0),
-			Size = deps.UDim2.fromScale(d.w * D.neck, d.len + h * 0.5),
-		}, edge)
-		round(deps, neck, 1)
-		local drop = make(deps, "Frame", {
-			Name = `Drop{i}`,
-			BorderSizePixel = 0,
-			Position = deps.UDim2.fromScale(x, y - spec.band),
-			Size = deps.UDim2.fromScale(w, h),
-		}, edge)
-		round(deps, drop, 1)
+		round(deps, drip, 1)
 	end
 	return card
 end
