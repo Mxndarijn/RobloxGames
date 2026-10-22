@@ -60,6 +60,7 @@ local WeatherService = require(script.WeatherService)
 local WeeklyEventService = require(script.WeeklyEventService)
 local World = require(script.World)
 local WorldProps = require(script.WorldProps)
+local WorldSeed = require(script.WorldSeed)
 local WorldView = require(script.WorldView)
 
 local function now(): number
@@ -111,10 +112,15 @@ local leaderboardEvent = Remotes.get(Constants.LEADERBOARD) :: RemoteEvent
 -- World, saves, ctx
 ---------------------------------------------------------------------------
 
+local random = Random.new()
+local seeds = WorldSeed.pick(function(min, max)
+	return random:NextInteger(min, max)
+end)
 local persistence = Persistence.new()
 local world = World.new({
 	now = now(),
-	seed = math.floor(os.clock() * 1e6) + os.time(),
+	seed = seeds.world,
+	eggSeed = seeds.egg,
 	newId = function()
 		return HttpService:GenerateGUID(false)
 	end,

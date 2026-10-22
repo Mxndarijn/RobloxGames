@@ -2,32 +2,72 @@
 --[[
 	BossMeterLogic (pure, contract/boss-event.md)
 
-	What the boss card shows for `State.boss` at server time `now`: the heads-up while the boss is on its way, the goo
-	meter with your hits during the fight (or what the boss is doing: winding up, dazed, out of reach, or that it got
-	you), who may grab or carries it in the haul, and the result. Nil = no card.
-	Panels/BossMeter renders it; tests/ui/BossMeter.spec checks it.
+	What the boss card shows for `State.boss` at server time `now`, in as few words as possible: a band with the
+	title and the time left, and one row under it with the goo meter (or a name, when there is no meter to show) and
+	one pill saying what matters right now: your hits, "Dodge!", "Hits x3", the guards left, that you got hit, who
+	grabs or carries it, the result. Nil = no card. Panels/BossMeter renders it; tests/ui/BossMeter.spec checks it.
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
 
-export type Tone = "warn" | "fight" | "haul" | "good" | "bad"
+-- Band and ring colour: pink while you fight it, gold when it is your moment (dazed, down, won), muted when it
+-- got away.
+export type Tone = "fight" | "gold" | "mute"
+
+-- Pill text colour: plain, gold (a bonus), pink (danger), mint (a fact to act on), muted.
+export type PillTone = "plain" | "gold" | "pink" | "mint" | "muted"
 
 export type View = {
-	icon: string, -- emoji on the card's tile
-	title: string,
-	detail: string,
-	meter: number, -- 0..1 bar fill
+	icon: string, -- on the jelly tile
+	title: string, -- in the band
 	timer: string?, -- "1:05" left in the phase; nil = none
 	tone: Tone,
+	meter: number?, -- 0..1 goo meter; nil = show `who` instead
+	who: string?, -- a name or a short line where the meter goes
+	pill: string,
+	pillTone: PillTone,
 }
 
 local BossMeterLogic = {}
 
-local function percent(x: number): number
+BossMeterLogic.ICON = "👑"
+
+function BossMeterLogic.percent(x: number): number
 	return math.floor(math.clamp(x, 0, 1) * 100 + 0.5)
 end
 
-function BossMeterLogic.view(boss: any, now: number): View?
+local function live(boss: any, now: number): boolean
+	return type(boss.moveEndsAt) ~= "number" or now < boss.moveEndsAt
+end
+
+-- The fight's pill: what the boss is doing to you, else your hits.
+local function fightPill(boss: any, now: number): (string, PillTone, Tone)
+	if type(boss.stunnedUntil) == "number" and now < boss.stunnedUntil then
+		return `Ouch! {math.max(1, math.ceil(boss.stunnedUntil - now))}s`, "pink", "fight"
+	end
+	if live(boss, now) then
+		if boss.move == "dazed" then
+			return `Hits x{boss.multiplier or 3}`, "gold", "gold"
+		elseif boss.move == "rise" then
+			local left = if type(boss.guardsLeft) == "number" then boss.guardsLeft else 0
+			local total = if type(boss.guardsTotal) == "number" then boss.guardsTotal else left
+			return `Guards {left}/{total}`, "plain", "fight"
+		elseif boss.move == "windup" or boss.move == "attack" or boss.move == "hop" then
+			return "Dodge!", "pink", "fight"
+		end
+	end
+	local points = if type(boss.yourPoints) == "number" then boss.yourPoints else 0
+	if points > 0 then
+		return `You {points}`, "plain", "fight"
+	end
+	return "Hit it!", "mint", "fight"
+end
+
+--[[
+	`badgesBefore`: the player's boss badge count before this fight (the panel remembers it), so a win can say how
+	many badges it brought; nil = unknown.
+]]
+function BossMeterLogic.view(boss: any, now: number, badgesBefore: number?): View?
 	if type(boss) ~= "table" or type(boss.phase) ~= "string" then
 		return nil
 	end
@@ -35,66 +75,76 @@ function BossMeterLogic.view(boss: any, now: number): View?
 	local left = Format.remainingSeconds(boss.endsAt, now)
 	local timer = if type(boss.endsAt) == "number" then Format.formatDuration(left) else nil
 	local meter = if type(boss.meter) == "number" then boss.meter else 0
-	local points = if type(boss.yourPoints) == "number" then boss.yourPoints else 0
 	local phase = boss.phase
+	local icon = BossMeterLogic.ICON
 	if phase == "warning" then
-		return {
-			icon = "👑",
-			title = `BOSS INCOMING: {name}`,
-			detail = "Head to the plaza and grab your bat!",
-			meter = 0,
-			timer = timer,
-			tone = "warn",
-		}
-	elseif phase == "fight" then
-		local yours = if points > 0
-			then `Your hits: {points} ({percent(boss.yourShare or 0)}% of the top helper)`
-			else "Hit it with your bat to fill the goo meter!"
-		-- What the boss is doing right now beats the running total: you were hit, it is open, or it is about to strike.
-		local moveLive = type(boss.moveEndsAt) ~= "number" or now < boss.moveEndsAt
-		if type(boss.stunnedUntil) == "number" and now < boss.stunnedUntil then
-			yours = "You got hit! Your bat is back in a moment."
-		elseif moveLive and boss.move == "dazed" then
-			yours = `DAZED! Every hit counts x{boss.multiplier or 3}. Go go go!`
-		elseif moveLive and boss.move == "rise" then
-			local guards = if type(boss.guardsLeft) == "number" then boss.guardsLeft else 0
-			yours = `It's out of reach! Bonk its guards: {guards} left.`
-		elseif moveLive and (boss.move == "windup" or boss.move == "attack" or boss.move == "hop") then
-			yours = "Watch out! Get out of the red!"
-		end
-		return {
-			icon = "👑",
-			title = `{name}: goo meter {percent(meter)}%`,
-			detail = yours,
-			meter = meter,
+		local result: View = {
+			icon = icon,
+			title = "BOSS INCOMING",
 			timer = timer,
 			tone = "fight",
+			who = name,
+			pill = "To the plaza",
+			pillTone = "mint",
 		}
-	elseif phase == "haul" then
-		local detail = if type(boss.carrierName) == "string"
-			then `{boss.carrierName} is carrying it! Bonk them to make them drop it!`
-			elseif type(boss.priorityName) == "string" then `{boss.priorityName} grabs first, then anyone!`
-			else "It's down! Grab it and carry it home!"
-		return { icon = "👑", title = `{name} is down!`, detail = detail, meter = 1, timer = timer, tone = "haul" }
-	elseif phase == "won" then
-		local who = if type(boss.winnerName) == "string" then boss.winnerName else "Someone"
-		return {
-			icon = "🏆",
-			title = `{who} brought {name} home!`,
-			detail = "Everyone who helped shares the win!",
-			meter = 1,
-			timer = nil,
-			tone = "good",
-		}
-	elseif phase == "failed" then
-		return {
-			icon = "💨",
-			title = `{name} got away!`,
-			detail = "Better luck with the next one!",
+		return result
+	elseif phase == "fight" then
+		local pill, pillTone, tone = fightPill(boss, now)
+		local result: View = {
+			icon = icon,
+			title = name,
+			timer = timer,
+			tone = tone,
 			meter = meter,
-			timer = nil,
-			tone = "bad",
+			pill = pill,
+			pillTone = pillTone,
 		}
+		return result
+	elseif phase == "haul" then
+		local view: View = {
+			icon = icon,
+			title = `{name} is down!`,
+			timer = timer,
+			tone = "gold",
+			who = "Grab it!",
+			pill = "Carry it home",
+			pillTone = "mint",
+		}
+		if type(boss.carrierName) == "string" then
+			view.who = `{boss.carrierName} has it`
+			view.pill, view.pillTone = "Bonk!", "pink"
+		elseif type(boss.priorityName) == "string" then
+			view.who = `{boss.priorityName} grabs first`
+			view.pill = Format.formatDuration(Format.remainingSeconds(boss.priorityUntil, now))
+		end
+		return view
+	elseif phase == "won" then
+		local who = if type(boss.winnerName) == "string" then `{boss.winnerName} + team` else "The team"
+		local gained = if type(badgesBefore) == "number" and type(boss.badges) == "number"
+			then boss.badges - badgesBefore
+			else 0
+		local result: View = {
+			icon = icon,
+			title = "Brought home!",
+			timer = nil,
+			tone = "gold",
+			who = who,
+			pill = if gained > 0 then `+{gained} badge{if gained == 1 then "" else "s"}` else "Shared win",
+			pillTone = "gold",
+		}
+		return result
+	elseif phase == "failed" then
+		local nextLeft = Format.remainingSeconds(boss.nextAt, now)
+		local result: View = {
+			icon = icon,
+			title = `{name} got away`,
+			timer = nil,
+			tone = "mute",
+			meter = meter,
+			pill = if type(boss.nextAt) == "number" then `Next {Format.formatDuration(nextLeft)}` else "Next time!",
+			pillTone = "muted",
+		}
+		return result
 	end
 	return nil
 end
