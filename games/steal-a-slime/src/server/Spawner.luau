@@ -2,12 +2,11 @@
 --[[
 	Spawner (pure)
 
-	The fountain: drops a wild slime every SPAWN_INTERVAL while fewer than
-	MAX_WILD_SLIMES are alive, expires unclaimed ones after their lifetime
+	The fountain: drops a wild slime every SPAWN_INTERVAL (no cap on how many
+	are alive), expires unclaimed ones after their lifetime
 	(Fountain.wildLifetime: WILD_LIFETIME, longer for Mythic / Secret) and
 	runs the Slime Rain schedule (every RAIN_INTERVAL for RAIN_DURATION:
-	RAIN_SPAWN_INTERVAL, RAIN_LUCK, a raised cap), with a heads-up
-	toast RAIN_WARNING_SECONDS before each rain.
+	RAIN_SPAWN_INTERVAL, RAIN_LUCK).
 
 	FEATURES.Parade: a wild's spot is a pure function of time left
 	(ParadeLane: ride, glide along the goo lane round the plaza, slide into
@@ -55,7 +54,7 @@ function Spawner.price(slime: Genome.Slime, roll: number): number
 	return math.max(1, math.floor(Genome.baseIncome(slime) * Config.WILD_PRICE_SECONDS))
 end
 
--- Wild slimes that count toward the cap (the boss never does).
+-- Wild slimes on the plaza (the boss never counts).
 function Spawner.wildCount(world: World): number
 	local n = 0
 	for _, wild in world.wild do
@@ -223,7 +222,7 @@ Spawner.SLIDE_GAP = 1.6 -- seconds between two drops down the fountain slide: th
 
 -- The spawn time of a drop asked for at `now`: the next free slide slot (FEATURES.Parade), at least SLIDE_GAP after
 -- the last one, so a burst of drops rides down one after another. A drop whose slot is still to come exists in
--- World (it counts for the cap) but has no model yet (Scene.describe).
+-- World (it counts in wildCount) but has no model yet (Scene.describe).
 function Spawner.slot(world: World, now: number): number
 	if not ParadeLane.enabled() then
 		return now
@@ -285,7 +284,7 @@ function Spawner.spawnSlime(world: World, now: number): string
 	return id
 end
 
--- Bonus wild slimes outside the wild cap (unused by the boss since it stopped shedding): `luckMult` on the
+-- Bonus wild slimes on top of the fountain drops (unused by the boss since it stopped shedding): `luckMult` on the
 -- rarity roll, free, no pity, no rare announcement. Returns their ids.
 function Spawner.spawnBonus(world: World, now: number, count: number, luckMult: number): { string }
 	local ids = {}
@@ -359,13 +358,8 @@ end
 function Spawner.step(world: World, now: number)
 	Spawner.stepModifier(world, now)
 	Spawner.stepFountainTier(world)
-	local raining, _, nextAt = Spawner.rain(world, now)
-	if not raining and nextAt and nextAt - now <= Config.RAIN_WARNING_SECONDS and not world.rainWarned then
-		world.rainWarned = true
-		World.notify(world, nil, "Slime Rain in 1 minute! Head to the fountain.", "info", nil)
-	end
+	local raining = Spawner.rain(world, now)
 	if raining ~= world.raining then
-		world.rainWarned = false
 		world.raining = raining
 		World.emit(world, { type = "Rain", active = raining })
 		if raining then
@@ -400,9 +394,7 @@ function Spawner.step(world: World, now: number)
 
 	if now >= world.nextSpawnAt then
 		world.nextSpawnAt = now + Fountain.spawnInterval(raining)
-		if Fountain.canSpawn(Spawner.wildCount(world), raining) then
-			Spawner.spawnOne(world, now)
-		end
+		Spawner.spawnOne(world, now)
 	end
 end
 

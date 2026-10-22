@@ -142,7 +142,7 @@ describe("BossEvent rotation", function()
 end)
 
 describe("BossEvent fight", function()
-	it("the boss arrives as a free MAX_SIZE boss slime outside the wild cap, at BOSS.SCALE, no prompt", function()
+	it("the boss arrives as a free MAX_SIZE boss slime outside wildCount, at BOSS.SCALE, no prompt", function()
 		local w = world()
 		local id = arrive(w)
 		local boss = w.wild[id]
