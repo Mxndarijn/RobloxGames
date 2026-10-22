@@ -13,8 +13,8 @@
 	* Carry: carrying slows you by the rarity's carrySlow. There is no time
 	  limit: a stolen slime stays in your arms until you reach home, drop it,
 	  get slapped, die or leave.
-	* Slap: hitting a carrier of a stolen slime within SLAP_REACH makes them
-	  drop it, and it bounces home.
+	* Slap: hitting anyone carrying a slime within SLAP_REACH makes them
+	  drop it; a stolen one bounces home.
 	No Roblox APIs.
 ]]
 
@@ -150,8 +150,8 @@ function Steal.canSlap(ctx: SlapContext): (boolean, string?)
 	if ctx.distance ~= ctx.distance or ctx.distance > Config.SLAP_REACH then
 		return false, "too far away"
 	end
-	if not ctx.targetCarry or ctx.targetCarry.kind ~= "stolen" then
-		return false, "target isn't carrying a stolen slime"
+	if not ctx.targetCarry then
+		return false, "target isn't carrying a slime"
 	end
 	return true, nil
 end

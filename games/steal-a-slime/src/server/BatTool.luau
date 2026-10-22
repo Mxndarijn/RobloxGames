@@ -4,12 +4,12 @@
 
 	The default melee Tool every player has instead of the old on-screen Slap button. `Tool.Activated` (tap on mobile,
 	click on desktop) fires on the server; the CLIENT SENDS NO TARGET and no remote is used. `BatTool.swing` takes the
-	swinger's own position and look vector, picks the nearest carrying thief in reach and in front (BatRules.pickTarget),
-	and routes the hit into the same StealService.slap the button used (reach SLAP_REACH, slap cooldown
-	Session.lastSlapAt, drop + bounce home + notifications + StealAlerts FX), then adds a knockback
+	swinger's own position and look vector, picks the nearest player carrying a slime in reach and in front
+	(BatRules.pickTarget), and routes the hit into CarryDrop.slap (reach SLAP_REACH, slap cooldown Session.lastSlapAt; a
+	stolen slime drops and bounces home with its notifications + StealAlerts FX, a wild one drops on the spot), then adds a knockback
 	push (PvpKnockbackRules.plan / PvpLaunch through `ctx.launch`; the victim's client applies the launch from the
-	PvpEvent "Knockback" effect). Swinging at nothing or at a non-thief does nothing with FEATURES.PvP off; with it ON a
-	non-thief anywhere on the map is pushed under the glove rules (no safe zones) (no damage, ever; Humanoid health is never touched). A whiff never spends the slap cooldown; swings are only rate limited to Config.BAT.SWING_GAP.
+	PvpEvent "Knockback" effect). Swinging at nothing or at a non-carrier does nothing with FEATURES.PvP off; with it ON a
+	non-carrier anywhere on the map is pushed under the glove rules (no safe zones) (no damage, ever; Humanoid health is never touched). A whiff never spends the slap cooldown; swings are only rate limited to Config.BAT.SWING_GAP.
 
 	The Tool: one per player (give() replaces any old copy), given on every spawn, CanBeDropped = false, single
 	collision-free handle Part (a few parts per player, only while equipped, never in the world part budget).
@@ -20,13 +20,13 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local BatModel = if Shared then require(Shared.BatModel) else require("../shared/BatModel")
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
+local CarryDrop = if script then require(script.Parent.CarryDrop) else require("./CarryDrop")
 local BatRules = if Shared then require(Shared.BatRules) else require("../shared/BatRules")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
 local PvpKnockbackRules = if Shared then require(Shared.PvpKnockbackRules) else require("../shared/PvpKnockbackRules")
 local PvpRules = if Shared then require(Shared.PvpRules) else require("../shared/PvpRules")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
-local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type Vec = PvpRules.Vec
@@ -77,9 +77,9 @@ local function knock(
 	return true
 end
 
--- A slap target: a thief carrying a stolen slime, or the boss carrier (the slap drops the boss on the spot).
-local function isThief(s: World.Session): boolean
-	return s.carry ~= nil and (s.carry.kind == "stolen" or s.carry.boss == true)
+-- A slap target: anyone carrying a slime (stolen, wild or the boss); the slap makes them drop it.
+local function isCarrier(s: World.Session): boolean
+	return s.carry ~= nil
 end
 
 -- The fighting boss in reach and in front: its Body position from `ctx.slimePosition`, reach Config.BOSS.HIT_REACH.
@@ -108,11 +108,12 @@ end
 	FEATURES.PvP (tests).
 	  * The boss carrier in reach (any flag): BossEvent.slapCarrier drops the boss on the spot, then the knockback.
 	  * The fighting boss in reach (Config.BOSS.HIT_REACH, in front): BossEvent.hit fills the goo meter.
-	  * A carrying thief in reach (any flag): StealService.slap (reach, shared cooldown, drop, bounce home, notifications,
-	    StealAlerts FX), then the knockback. Exactly one drop and one push per hit.
+	  * Anyone else carrying a slime in reach (any flag): CarryDrop.slap (reach, shared cooldown; a stolen slime drops and
+	    bounces home with its notifications + StealAlerts FX, a wild one drops at their feet), then the knockback.
+	    Exactly one drop and one push per hit.
 	  * Flag OFF, anything else: nothing happens (no damage, no push), (false, "nothing in reach").
-	  * Flag ON, a non-thief: anywhere (no safe zones), not a controlled / immune one, and the shared slap
-	    cooldown; the effect is the knockback only. No damage ever. A thief is always tried first.
+	  * Flag ON, a non-carrier: anywhere (no safe zones), not a controlled / immune one, and the shared slap
+	    cooldown; the effect is the knockback only. No damage ever. A carrier is always tried first.
 	A whiff never spends the slap cooldown. Never errors for a swing at nothing.
 ]]
 function BatTool.swing(
@@ -145,7 +146,7 @@ function BatTool.swing(
 			if position then
 				positions[userId] = position
 				local entry = { userId = userId, position = position, carrying = true }
-				if isThief(other) then
+				if isCarrier(other) then
 					table.insert(thieves, entry)
 				elseif pvp then
 					table.insert(others, entry)
@@ -173,11 +174,13 @@ function BatTool.swing(
 	end
 	if targetId then
 		local target = world.sessions[targetId]
-		local ok, reason = StealService.slap(world, session, targetId, distance, now)
+		local spot = positions[targetId]
+		local ok, reason =
+			CarryDrop.slap(world, session, targetId, distance, now, if ctx.toVector3 then ctx.toVector3(spot) else spot)
 		if not ok then
 			return false, reason
 		end
-		knock(world, ctx, session, target, origin, positions[targetId], now)
+		knock(world, ctx, session, target, origin, spot, now)
 		return true, nil
 	end
 	if bossInReach(world, ctx, session, origin, look) then
@@ -259,7 +262,7 @@ end
 function BatTool.build(onSwing: () -> ()): any
 	local tool = Instance.new("Tool")
 	tool.Name = Config.BAT.TOOL_NAME
-	tool.ToolTip = "Hit a thief to make them drop your slime"
+	tool.ToolTip = "Hit someone carrying a slime to make them drop it"
 	tool.CanBeDropped = false
 	tool.RequiresHandle = true
 	local icon = BatModel.ICON_ID
