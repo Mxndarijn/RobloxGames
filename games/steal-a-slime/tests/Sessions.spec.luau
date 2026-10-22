@@ -3,6 +3,7 @@ local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local PlayerData = require("../src/shared/PlayerData")
+local SafeCall = require("../src/server/SafeCall")
 local ServerFixtures = require("./ServerFixtures")
 local Sessions = require("../src/server/Sessions")
 local Spawner = require("../src/server/Spawner")
@@ -10,6 +11,19 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
+
+-- Runs `fn` while Carry.release throws, restoring it afterwards even when `fn` fails.
+local function withThrowingCarryRelease(fn: () -> ())
+	local original = Carry.release
+	Carry.release = function(): boolean
+		error("carry state broken")
+	end
+	local ok, err = pcall(fn)
+	Carry.release = original
+	if not ok then
+		error(err, 0)
+	end
+end
 
 describe("Sessions", function()
 	it("assigns the lowest free plot and reuses freed plots", function()
@@ -68,5 +82,22 @@ describe("Sessions", function()
 		expect(world.wild[id] ~= nil).toBeTruthy()
 		expect(world.carriedBy[id]).toBeNil()
 		expect(Sessions.leave(world, 1, T0)).toBeNil()
+	end)
+	it("a leave step that throws is logged; the session still leaves and frees its plot", function()
+		local world = ServerFixtures.world()
+		local session = ServerFixtures.join(world, 1)
+		local logs = {}
+		local safeCall = SafeCall.new(function(message)
+			table.insert(logs, message)
+		end)
+		local left
+		withThrowingCarryRelease(function()
+			left = Sessions.leave(world, 1, T0, safeCall)
+		end)
+		expect(left).toBe(session)
+		expect(world.sessions[1]).toBeNil()
+		expect(world.plots[session.plotIndex]).toBeNil()
+		expect(#logs).toBe(1)
+		expect(string.find(logs[1], "carry state broken", 1, true) ~= nil).toBeTruthy()
 	end)
 end)

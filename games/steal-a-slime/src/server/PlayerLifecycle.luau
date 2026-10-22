@@ -8,7 +8,8 @@
 	    hooks, a view refresh, the friend bonus refresh and (memory mode) a leaderboard refresh;
 	  * spawn: the character goes to its plot spawn, gets exactly one Bat (the server picks the target, the
 	    client sends none), gets its walk speed at once and drops a carried slime on death;
-	  * leave: Sessions.leave (a stolen slime bounces home), per-player caches forgotten, save + release;
+	  * leave: PlayerLeave.run (Sessions.leave, per-player caches forgotten, save + release; a step that throws
+	    is logged and never skips the save);
 	  * shutdown (BindToClose): every session leaves and saves, waiting up to SHUTDOWN_TIMEOUT seconds;
 	  * autosave every Config.AUTOSAVE_INTERVAL.
 ]]
@@ -23,7 +24,9 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Friends = require(script.Parent.Friends)
 local LeaderboardView = require(script.Parent.LeaderboardView)
 local Persistence = require(script.Parent.Persistence)
+local PlayerLeave = require(script.Parent.PlayerLeave)
 local RitualService = require(script.Parent.RitualService)
+local SafeCall = require(script.Parent.SafeCall)
 local ServerLoop = require(script.Parent.ServerLoop)
 local Sessions = require(script.Parent.Sessions)
 local World = require(script.Parent.World)
@@ -40,6 +43,7 @@ export type Deps = {
 	friends: Friends.Cache,
 	badges: { release: (userId: number) -> () },
 	ritual: any,
+	safeCall: SafeCall.Call,
 	now: () -> number,
 	refreshView: (t: number) -> (),
 	refreshFriends: () -> (),
@@ -130,20 +134,58 @@ local function onPlayerAdded(deps: Deps, player: Player)
 end
 
 local function onPlayerRemoving(deps: Deps, player: Player)
-	local world, now = deps.world, deps.now
 	local userId = player.UserId
-	BatTool.forget(userId)
-	local session = Sessions.leave(world, userId, now())
-	WorldView.setCarrying(player, nil)
-	ServerLoop.forget(deps.loop, userId)
-	deps.badges.release(userId)
-	Friends.forget(deps.friends, userId)
-	RitualService.leave(deps.ritual, userId)
-	task.spawn(deps.refreshFriends)
-	if session then
-		deps.refreshView(now()) -- a stolen slime in their arms bounces home
-		Persistence.save(deps.persistence, userId, session.data, true)
-	end
+	PlayerLeave.run(deps.world, userId, deps.now(), {
+		safeCall = deps.safeCall,
+		cleanup = {
+			{
+				name = "BatTool.forget",
+				run = function()
+					BatTool.forget(userId)
+				end,
+			},
+			{
+				name = "WorldView.setCarrying on leave",
+				run = function()
+					WorldView.setCarrying(player, nil)
+				end,
+			},
+			{
+				name = "ServerLoop.forget",
+				run = function()
+					ServerLoop.forget(deps.loop, userId)
+				end,
+			},
+			{
+				name = "badges.release",
+				run = function()
+					deps.badges.release(userId)
+				end,
+			},
+			{
+				name = "Friends.forget",
+				run = function()
+					Friends.forget(deps.friends, userId)
+				end,
+			},
+			{
+				name = "RitualService.leave",
+				run = function()
+					RitualService.leave(deps.ritual, userId)
+				end,
+			},
+			{
+				name = "refreshFriends on leave",
+				run = function()
+					task.spawn(deps.refreshFriends)
+				end,
+			},
+		},
+		refreshView = deps.refreshView,
+		save = function(session)
+			Persistence.save(deps.persistence, userId, session.data, true)
+		end,
+	})
 end
 
 -- Connects join / leave (and runs join for players already in), shutdown and the autosave loop.
@@ -161,7 +203,7 @@ function PlayerLifecycle.start(deps: Deps)
 	game:BindToClose(function()
 		local world, persistence = deps.world, deps.persistence
 		for userId in world.sessions do
-			local session = Sessions.leave(world, userId, deps.now())
+			local session = Sessions.leave(world, userId, deps.now(), deps.safeCall)
 			if session then
 				task.spawn(Persistence.save, persistence, userId, session.data, true)
 			end
