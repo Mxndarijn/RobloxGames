@@ -38,7 +38,7 @@ describe("Carry.grab (wild)", function()
 		s.data.cash = 100
 		expect((Carry.grab(world, 1, id, 5, T0))).toBe(true)
 		expect(s.data.cash).toBe(20)
-		expect(world.wild[id].price).toBe(0)
+		expect(world.wild[id].price).toBe(80)
 	end)
 	it("refuses a paid slime before charging when the plot has no free pad", function()
 		local world = ServerFixtures.world()

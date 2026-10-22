@@ -86,3 +86,27 @@ describe("CarryDrop.knockLoose", function()
 		expect(CarryDrop.knockLoose(world, thief, T0 + 5, nil)).toBeNil()
 	end)
 end)
+
+describe("a dropped wild slime is for sale again", function()
+	it("charges its full price on every grab, also to the player who paid", function()
+		local world, victim, thief = setup()
+		local id = Spawner.spawnOne(world, T0)
+		world.wild[id].price = 80
+		thief.data.cash, victim.data.cash = 200, 200
+		expect((Carry.grab(world, 2, id, 1, T0))).toBe(true)
+		expect(thief.data.cash).toBe(120)
+		expect(world.wild[id].price).toBe(80)
+		-- Dropped on purpose: the buyer pays again, nothing was refunded.
+		expect((CarryDrop.release(world, 2, T0 + 1, "here", "drop"))).toBe(true)
+		expect(thief.data.cash).toBe(120)
+		expect((Carry.grab(world, 2, id, 1, T0 + 2))).toBe(true)
+		expect(thief.data.cash).toBe(40)
+		-- Bonked loose: the next grabber pays the price too.
+		CarryDrop.knockLoose(world, thief, T0 + 3, "there")
+		expect((Carry.grab(world, 1, id, 1, T0 + 4))).toBe(true)
+		expect(victim.data.cash).toBe(120)
+		-- The buyer, now short of the price, can't take it back for free.
+		CarryDrop.release(world, 1, T0 + 5, "here", "drop")
+		expect(select(2, Carry.grab(world, 2, id, 1, T0 + 6))).toBe("need $80")
+	end)
+end)
