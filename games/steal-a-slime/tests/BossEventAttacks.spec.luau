@@ -143,6 +143,38 @@ describe("BossEvent attacks", function()
 		expect(wild.move.kind).toBe("dazed")
 	end)
 
+	it(
+		"while her guards stand, Queen Jelly rains jelly on the nearest players: stand still and it knocks you",
+		function()
+			local w, ctx, at, launched = fight(2, 2)
+			local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+			BossEvent.step(w, t, ctx)
+			local wild = bossOf(w)
+			at[1] = { X = wild.move.tx + 14, Y = 3, Z = wild.move.tz }
+			at[2] = { X = wild.move.tx - 14, Y = 3, Z = wild.move.tz }
+			wild.move = BossChoreo.hold("windup", wild.move, t, 0.05, "start.1")
+			BossEvent.step(w, t + 0.1, ctx)
+			expect(wild.move.kind).toBe("rise")
+			local rain = BOSS.MOVES.queen_jelly.start[1].rain
+			local first = t + 0.05 + BOSS.RISE_SECONDS + 0.3
+			BossEvent.step(w, first - 0.05, ctx)
+			expect(#w.boss.spits).toBe(0) -- still floating up
+			BossEvent.step(w, first + 0.01, ctx)
+			expect(#w.boss.spits).toBe(rain.count)
+			-- player 1 stays put, player 2 runs off
+			at[2] = { X = wild.move.tx - 40, Y = 3, Z = wild.move.tz }
+			local now = first + 0.01
+			while now < first + BOSS.SPIT_FLIGHT + rain.delay + rain.radius / rain.speed + 0.2 do
+				now += 1 / 30
+				BossEvent.step(w, now, ctx)
+			end
+			expect(table.find(launched, 1) ~= nil).toBe(true)
+			expect(table.find(launched, 2)).toBeNil()
+			-- the next volley follows `every` seconds later, for as long as it floats
+			expect(w.boss.rainAt ~= nil and w.boss.rainAt > now and w.boss.rainAt <= now + rain.every).toBe(true)
+		end
+	)
+
 	it("a spit's puddles slow the players standing in them", function()
 		local w, ctx, at = fight(1)
 		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS

@@ -273,6 +273,26 @@ function BossTelegraph.start()
 		end
 	end
 
+	-- Guards (workspace.BossFx, BossGuard = true) hop in place, out of step with each other, so they look alive.
+	local guardBase: { [Model]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
+	local function bobGuards(now: number)
+		local fx = workspace:FindFirstChild("BossFx")
+		if not fx then
+			return
+		end
+		for i, guard in fx:GetChildren() do
+			if guard:IsA("Model") and guard:GetAttribute(Constants.BOSS_GUARD_ATTRIBUTE) == true then
+				local base = guardBase[guard]
+				if not base then
+					base = guard:GetPivot()
+					guardBase[guard] = base
+				end
+				local k = math.abs(math.sin(now * 4.2 + i * 1.7))
+				guard:PivotTo(base * CFrame.new(0, 0.9 * k, 0) * CFrame.Angles(0, 0.25 * math.sin(now * 2 + i), 0))
+			end
+		end
+	end
+
 	local self = {}
 
 	function self.tick(camera: Camera)
@@ -285,6 +305,7 @@ function BossTelegraph.start()
 		local model = boss
 		if model and (model:GetPivot().Position - camera.CFrame.Position).Magnitude <= BossTelegraph.MAX_DISTANCE then
 			draw(model, now, workspace:GetServerTimeNow())
+			bobGuards(now)
 			local hitAt = model:GetAttribute(Constants.BOSS_HIT_AT_ATTRIBUTE)
 			if type(hitAt) == "number" and hitAt ~= lastHitAt then
 				local fresh = lastHitAt ~= nil
