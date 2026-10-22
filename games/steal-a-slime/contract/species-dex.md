@@ -63,27 +63,27 @@ DexView = {
 DexEntryView = {
 	id: string, tier: number, kind: "spawn" | "hybrid" | "boss" | "event",
 	found: boolean,
-	name: string?,          -- nil = the client shows "???" (see below)
+	name: string,           -- always the species name, found or not
 	hint: string?,          -- the card's hint line
 	ingredients: { string }?, -- hybrids: 3 slots, the species id when that ingredient is found, "" when not
 }
 DexRewardView = { count: number, reward: number, bonus: number, claimed: boolean }
 ```
 
-What the server reveals (it never sends a name or ingredient the player has not earned):
+Every entry carries its name, found or not. What else the server reveals (it never sends an ingredient the player has not found):
 
-| Kind | `name` | `hint` | `ingredients` |
-|---|---|---|---|
-| spawn | when found | nil | nil |
-| hybrid | when found, or when every ingredient is found ("known") | always: the recipe's hint line (`MergeRecipes.hint`, §35), as a riddle | each slot's species once that species is found |
-| boss | when found | `"Defeat the boss event"` | nil |
-| event | when found, or while it is the featured Secret | `"Featured Secret: week of <d Mon>"` (this week's start while featured, else the next week it is featured, `EventSecrets` §34) when found or featured; `"???"` otherwise | nil |
+| Kind | `hint` | `ingredients` |
+|---|---|---|
+| spawn | nil | nil |
+| hybrid | always: the recipe's hint line (`MergeRecipes.hint`, §35), as a riddle | each slot's species once that species is found |
+| boss | `"Defeat the boss event"` | nil |
+| event | `"Featured Secret: week of <d Mon>"` (this week's start while featured, else the next week it is featured, `EventSecrets` §34) when found or featured; nil otherwise | nil |
 
 ## 36.5 Client
 
 The SlimeDex panel (Nav key `Dex`) shows: the species count and percent (`found / total`), a bar,
 the next milestone with its reward, then one card per entry grouped by rarity (tier header rows), the
-bonus entries last. A found card shows the species mesh (`ctx.buildSlime` with the species, ViewportFrame) in full
+bonus entries last. A found card shows the species mesh (`ctx.buildSpecies`, else `ctx.buildSlime` with the species, ViewportFrame) in full
 colour and its name; an unfound card shows the same mesh as a flat black
-silhouette, the name "???", and for hybrids a "Merge-only" badge, the hint and three ingredient slots. Cards sit in
+silhouette with its name, and for hybrids a "Merge-only" badge, the hint and three ingredient slots. Cards sit in
 a grid whose column count follows the panel width (one column on a narrow phone). Plot-skin cards stay above.

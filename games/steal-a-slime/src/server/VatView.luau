@@ -3,7 +3,10 @@
 	VatView (CONTRACT.md §21)
 
 	How a plot's merge vat looks in the world, from the owner's `data.vat` (VatState):
-	  * each slime in the vat sits as a small copy on one of the vat's three spots (no prompts, no collision);
+	  * each slime in the vat sits as a small copy in one of the vat's three cups (VatDecor.seatOffset): a real slime
+	    model (tag Constants.SLIME_TAG, State "Vat") so the client's SlimeLife idles it, looks around and at players
+	    like a pad slime; no prompts, no labels, no collision, and its own SlimeId ("<id>#vat") so pets, keys and
+	    hatch shows never mistake it for the real slime;
 	  * its own pad model stays and turns see-through (VatView.FADE), so the pad stays taken;
 	  * the pad sign and floating tag say "In vat" while it waits and "IN VAT" while it brews (`labelStatus`);
 	  * a tag over the vat: "Merge vat" and a pill with the load, the time left or "Ready" (`tagLine`).
@@ -16,13 +19,16 @@ local Genome = if Shared then require(Shared.Genome) else require("../shared/Gen
 local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
 local GooPalette = if Shared then require(Shared.GooPalette) else require("../shared/GooPalette")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local VatDecor = if Shared then require(Shared.Parent.Visuals.VatDecor) else require("../visuals/shared/VatDecor")
 local StealGhost = if script then require(script.Parent.StealGhost) else require("./StealGhost")
 
 local VatView = {}
 
 VatView.FADE = 0.6 -- extra transparency on a pad slime whose real self is in the vat
-VatView.SPOT_WIDTH = 1.6 -- studs: the widest side of a slime on a vat spot (pad slimes are about 2.6)
-VatView.SPOT_RADIUS = 2.2 -- studs from the vat's centre to each spot
+VatView.SPOT_WIDTH = 1.8 -- studs: the widest side of a slime in a vat cup (pad slimes are about 2.6)
+VatView.STATE = "Vat" -- State of a vat seat copy (SlimeLife animates it like a pad slime)
+VatView.ID_SUFFIX = "#vat" -- appended to the slime's id in the copy's SlimeId
+VatView.SPOT_RADIUS = 2.2 -- studs from the vat's centre to each spot when the vat mesh isn't there (plain disc)
 VatView.SPOT_LIFT = 0.15 -- studs above the goo
 VatView.TAG_NAME = "VatTag"
 VatView.SPOTS_NAME = "VatSpots"
@@ -147,16 +153,94 @@ function VatView.fade(model: Model, on: boolean)
 	end
 end
 
--- A small copy of a pad slime for a vat spot (no prompts, labels or collision; StealGhost.build undoes the pad fade).
-local function spotCopy(model: Model, at: CFrame, parent: Instance, id: string): Model
-	local copy = StealGhost.build(model, at, parent, 0)
-	copy.Name = id
+-- The attributes a seat copy keeps from its pad model (looks and tier); everything else is cleared.
+local KEEP_ATTRIBUTES = { "Tier", "Size", "Species", "OwnerUserId" }
+
+-- A small, living copy of a pad slime for a vat cup: a slime model the client animates (tag SLIME_TAG, State
+-- "Vat"), without prompts, labels, sounds or collision, its joints kept so the face and skin can move, the pad
+-- fade undone. `at` is the seat: the copy's bottom centre lands on it, facing along its look vector.
+local function seatCopy(model: Model, at: CFrame, parent: Instance, id: string, seat: number): Model
+	local CollectionService = game:GetService("CollectionService")
+	local copy = model:Clone()
+	copy.Name = `VatSlime{seat}`
+	local kept: { [string]: any } = {}
+	for _, name in KEEP_ATTRIBUTES do
+		kept[name] = model:GetAttribute(name)
+	end
+	for name in copy:GetAttributes() do
+		copy:SetAttribute(name, nil)
+	end
+	for name, value in kept do
+		copy:SetAttribute(name, value)
+	end
+	copy:SetAttribute("State", VatView.STATE)
+	copy:SetAttribute("SlimeId", id .. VatView.ID_SUFFIX)
+	for _, tag in CollectionService:GetTags(copy) do
+		CollectionService:RemoveTag(copy, tag)
+	end
+	-- Collect first: destroying while walking GetDescendants can skip instances.
+	local doomed: { Instance } = {}
+	for _, d in copy:GetDescendants() do
+		for _, tag in CollectionService:GetTags(d) do
+			CollectionService:RemoveTag(d, tag)
+		end
+		if
+			d:IsA("ProximityPrompt")
+			or d:IsA("BillboardGui")
+			or d:IsA("BaseScript")
+			or d:IsA("Sound")
+			or d:IsA("ParticleEmitter")
+		then
+			table.insert(doomed, d)
+		elseif d:IsA("WeldConstraint") then
+			local p0, p1 = d.Part0, d.Part1
+			if not (p0 and p0:IsDescendantOf(copy) and p1 and p1:IsDescendantOf(copy)) then
+				table.insert(doomed, d)
+			end
+		end
+		if d:IsA("BasePart") then
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+			d.CastShadow = false
+		end
+		local saved = d:GetAttribute(VatView.FADED_ATTRIBUTE)
+		if type(saved) == "number" then
+			(d :: any).Transparency = saved
+			d:SetAttribute(VatView.FADED_ATTRIBUTE, nil)
+		end
+	end
+	for _, d in doomed do
+		d:Destroy()
+	end
 	local size = copy:GetExtentsSize()
 	local widest = math.max(size.X, size.Z, 0.01)
 	copy:ScaleTo(copy:GetScale() * VatView.SPOT_WIDTH / widest)
+	-- Face the seat's way, then move the bounding box's bottom centre onto the seat.
+	copy:PivotTo(CFrame.new(copy:GetPivot().Position) * at.Rotation)
 	local box, scaled = copy:GetBoundingBox()
 	copy:PivotTo(copy:GetPivot() + (at.Position - box.Position) + Vector3.new(0, scaled.Y / 2, 0))
+	copy.Parent = parent
+	CollectionService:AddTag(copy, Constants.SLIME_TAG)
 	return copy
+end
+
+-- Where seat `i` is: in the vat mesh's cup when the mesh is there (facing out from the vat), else a spot on the
+-- plain disc's top.
+local function seatCFrame(vat: BasePart, i: number): CFrame
+	local mesh = vat:FindFirstChild("VatMesh")
+	if mesh and mesh:IsA("BasePart") then
+		local o = VatDecor.seatOffset(i, { mesh.Size.X, mesh.Size.Y, mesh.Size.Z })
+		local seat = mesh.CFrame * CFrame.new(o[1], o[2], o[3])
+		local centre = Vector3.new(mesh.Position.X, seat.Position.Y, mesh.Position.Z)
+		local out = seat.Position - centre
+		if out.Magnitude > 1e-3 then
+			return CFrame.lookAt(seat.Position, seat.Position + out)
+		end
+		return seat
+	end
+	local x, z = VatView.spotOffset(i)
+	return vatTop(vat) * CFrame.new(x, VatView.SPOT_LIFT, z)
 end
 
 export type PlotCache = { spots: { [number]: { id: string, model: Model } }, faded: { [string]: Model } }
@@ -218,7 +302,6 @@ function VatView.sync(
 		made.Parent = vat
 		folder = made
 	end
-	local top = vatTop(vat)
 	for i = 1, VatState.SIZE do
 		local id = ids[i]
 		local have = cache.spots[i]
@@ -230,9 +313,9 @@ function VatView.sync(
 		if wants and cache.spots[i] == nil then
 			local source = modelOf(id :: string)
 			if source then
-				local x, z = VatView.spotOffset(i)
-				local at = top * CFrame.new(x, VatView.SPOT_LIFT, z)
-				cache.spots[i] = { id = id :: string, model = spotCopy(source, at, folder :: Instance, id :: string) }
+				local at = seatCFrame(vat, i)
+				cache.spots[i] =
+					{ id = id :: string, model = seatCopy(source, at, folder :: Instance, id :: string, i) }
 			end
 		end
 	end

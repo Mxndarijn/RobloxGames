@@ -11,7 +11,7 @@
 	    beside what unlocks it and a thin progress bar;
 	  * one card per species grouped by rarity (SlimeDex.lines; a header in the rarity colour with a
 	    "n/m found" chip), the event Secrets last. A card shows the species mesh (`ctx.buildSpecies`, a
-	    ViewportFrame) in full colour when found and as a flat black silhouette when not, its name or "???",
+	    ViewportFrame) in full colour when found and as a flat black silhouette when not, its name,
 	    the hint and three ingredient slots for hybrids. Cards sit in a grid that fits the panel width (one
 	    column on a narrow phone).
 
