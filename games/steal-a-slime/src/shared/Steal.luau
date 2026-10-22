@@ -46,6 +46,7 @@ export type StealContext = {
 	ownerCanSave: boolean, -- this server saves the owner's progress
 	recentTeleport: boolean?, -- SlimeGuard (enforce): the thief teleported a moment ago
 	stealsPaused: boolean?, -- SlimeGuard (enforce): the thief's suspicion points paused their steals
+	thiefIsGuest: boolean?, -- the owner lets the thief in (PlotGuests): the lock does not stop them
 }
 
 export type SlapContext = {
@@ -117,7 +118,7 @@ function Steal.canSteal(ctx: StealContext): (boolean, string?)
 	if not ctx.ownerCanSave then
 		return false, "their slimes can't be saved on this server"
 	end
-	if Steal.isLocked(ctx.lockUntil, ctx.now) then
+	if Steal.isLocked(ctx.lockUntil, ctx.now) and ctx.thiefIsGuest ~= true then
 		return false, "base is locked"
 	end
 	if ctx.stealsPaused then

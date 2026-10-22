@@ -88,7 +88,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Carry:** grabbing and stealing use a **ProximityPrompt** (`GrabPrompt`) that the server puts on each slime's `Body`. There is no remote for this.
   - The prompt's `ActionText` is `"Grab"`, `"Buy $<price>"` (`Economy.formatNumber`) or `"Steal"`. `ObjectText` is `Genome.displayName`.
   - Steal prompts (HoldDuration 0.4) are enabled only while the plot is unlocked. They are **hidden from the slime's owner**: the server sets the prompt attribute `HideFromUserId = <owner UserId>` (`Constants.PROMPT_HIDE_ATTRIBUTE`, §5.2) and the client hides it locally. If a client doesn't hide it, triggering it is still refused with "that's your own slime".
-  - A wild slime is paid for once: if it's dropped, the next grab is free.
+  - A wild slime is charged on every grab: if it's dropped (Drop, a bonk, dying), the next grab costs its full price again, also for the player who paid. Nothing is refunded.
   - While carrying, WalkSpeed = `Steal.walkSpeed`, tools are unequipped, and you can carry 1 slime at a time.
   - Entering your own plot's `HomeZone` deposits the carried slime on a free pad. If the plot is full you keep carrying it (Notify "bad").
   - The home ground is the round plot floor: a `HomeZone` part with a `Radius` attribute (`PLOT_FLOOR_RADIUS`) counts inside that circle only, from 4 studs under the part to 8 over it plus its `ReachUp` (`Shared.HomeZone`); a part without `Radius` counts its whole box.
@@ -164,6 +164,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"VatCancel"` | none | Stops the brew; the slimes stay in the vat. |
 | `"VatCollect"` | none | Once the brew is done, merges the three (`TripleMerge`) onto the first input's pad. `"still brewing"` before that. |
 | `"Lock"` | none | Buys or extends the plot lock. Costs `Economy.lockCost(income)`. |
+| `"ToggleFriends"` | none | `FEATURES.FriendsInBase`: flips the owner's friends switch (friends pass the locked stopper and may steal). See [friends-in-base.md](contract/friends-in-base.md). |
 | `"Rebirth"` | none | Rebirths if `Progression.canRebirth`. |
 | `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. A Mystery Egg can't be sold: "eggs can't be sold". A slime brewing in the vat can't either: "That slime is brewing in the vat". |
 | `"Favorite"` | `slimeId: string?` | Sets the favourite (the follow pet; a rebirth uses it up only when no other slime of a required species is there). `nil` clears it. |
@@ -438,3 +439,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §39 | [slime-life.md](contract/slime-life.md) | Slime life: species gaits, hops, lane beats and reactions |
 | §40 | [mystery-egg.md](contract/mystery-egg.md) | Mystery Eggs: wild eggs that incubate on a pad, can be stolen, hatch into a slime in a show on the pad, lucky eggs and a lucky meter (`FEATURES.MysteryEggs`) |
 | §41 | [slime-guard.md](contract/slime-guard.md) | Slime Guard: anti-cheat for stealing, locked-base intruders, breather lock (`FEATURES.SlimeGuard`) |
+| §42 | [friends-in-base.md](contract/friends-in-base.md) | Friends in your base: the lock button's switch lets friends through a locked base (`FEATURES.FriendsInBase`) |

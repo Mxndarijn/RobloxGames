@@ -30,6 +30,7 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
 local FriendBonus = require(Shared:WaitForChild("FriendBonus"))
 local Genome = require(Shared:WaitForChild("Genome"))
+local GrabBlock = require(Shared:WaitForChild("GrabBlock"))
 local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
@@ -40,6 +41,8 @@ local Types = require(Shared:WaitForChild("Types"))
 
 local DexJarView = require(script.DexJarView)
 local Format = require(script.Format)
+local FriendsLockIcon = require(script.FriendsLockIcon)
+local GrabBlockCard = require(script.GrabBlockCard)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
 local Icons = require(script.Icons)
@@ -118,6 +121,10 @@ local gui = Widgets.create("ScreenGui", {
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	Parent = player:WaitForChild("PlayerGui"),
 })
+
+-- First person / shift lock pin the cursor to the screen centre: while a menu, a popup or the bag is
+-- open (syncTutorial below) Lib MenuMouse frees it so every button can be clicked.
+local menuMouse = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("MenuMouse")).new(gui)
 
 -- Phones: shrink the whole UI (Layout.uiScale; 1 on desktop). Set with the
 -- rest of the layout in applyLayout below.
@@ -597,7 +604,9 @@ end
 local function syncTutorial()
 	tutorial.setMenuOpen(not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
 	-- Visuals' edge arrows and the Your plot tag step aside while a menu, a popup or the bag covers the screen.
-	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, openKey ~= nil or dailyPopup.isOpen() or inventory.panelOpen())
+	local menuOpen = openKey ~= nil or dailyPopup.isOpen() or inventory.panelOpen()
+	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, menuOpen)
+	menuMouse.setOpen(menuOpen)
 end
 
 local function syncMenus()
@@ -836,6 +845,37 @@ SlimeKeyCard.start({
 	playerGui = player:WaitForChild("PlayerGui"),
 	tweens = game:GetService("TweenService"),
 })
+
+-- A slime you can't grab (already carrying, plot full, not enough money) shows why instead of a key.
+local grabBlock = GrabBlockCard.start({
+	root = workspace,
+	prompts = ProximityPromptService,
+	playerGui = player:WaitForChild("PlayerGui"),
+	me = function()
+		local state = latest
+		if not state then
+			return nil
+		end
+		return {
+			carrying = state.carrying ~= nil,
+			freePad = GrabBlock.hasFreePad(state.padsUnlocked, state.slimes),
+			cash = state.cash,
+		}
+	end,
+})
+
+-- FEATURES.FriendsInBase: the friend icon on the stopper and over the lock button of every base that lets friends in.
+if Config.FEATURES.FriendsInBase == true then
+	FriendsLockIcon.start({
+		plots = workspace:WaitForChild("Plots"),
+		playerGui = player:WaitForChild("PlayerGui"),
+		registry = itemIcons,
+		attributes = {
+			friendsAllowed = Constants.PLOT_FRIENDS_ALLOWED_ATTRIBUTE,
+			locked = Constants.PLOT_LOCKED_ATTRIBUTE,
+		},
+	})
+end
 
 -- World shops (CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
 -- this client with ShopEvent and the OpenShop attribute; the card closes on ShopEvent Close / attribute nil, and
@@ -1168,6 +1208,7 @@ stateEvent.OnClientEvent:Connect(function(state: Types.State)
 		end)
 	end
 	latest = state
+	grabBlock.refresh()
 	if worldBoards.setMine then
 		worldBoards.setMine(state.boards, state.boardRanks)
 	end

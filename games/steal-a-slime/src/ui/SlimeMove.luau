@@ -27,6 +27,7 @@ local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Constants = require(Shared:WaitForChild("Constants") :: any)
 local VatState = require(Shared:WaitForChild("VatState") :: any)
 
 local Theme = Widgets.Theme
@@ -156,6 +157,13 @@ export type Deps = {
 	prompts: ProximityPromptService,
 }
 
+-- A Move ghost part's transparency from the slime part's `transparency` and its own one before the merge vat's fade
+-- (`own`, Constants.OWN_TRANSPARENCY_ATTRIBUTE): a slime in the vat would otherwise be faded twice into nothing.
+function SlimeMove.ghostTransparency(transparency: number, own: any): number
+	local base = if type(own) == "number" then own else transparency
+	return 1 - (1 - base) * SlimeMove.GHOST_ALPHA
+end
+
 -- A see-through, inert copy of `model`: no prompts, scripts, labels, tags or attributes (so no client runner
 -- binds it), anchored and not collidable. nil when the model can't be cloned.
 local function makeGhost(model: Model): Model?
@@ -185,6 +193,7 @@ local function makeGhost(model: Model): Model?
 		then
 			d:Destroy()
 		elseif d.Parent then
+			local own = d:GetAttribute(Constants.OWN_TRANSPARENCY_ATTRIBUTE)
 			scrub(d)
 			if d:IsA("BasePart") then
 				d.Anchored = true
@@ -192,9 +201,9 @@ local function makeGhost(model: Model): Model?
 				d.CanQuery = false
 				d.CanTouch = false
 				d.CastShadow = false
-				d.Transparency = 1 - (1 - d.Transparency) * SlimeMove.GHOST_ALPHA
+				d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
 			elseif d:IsA("Decal") then
-				d.Transparency = 1 - (1 - d.Transparency) * SlimeMove.GHOST_ALPHA
+				d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
 			end
 		end
 	end

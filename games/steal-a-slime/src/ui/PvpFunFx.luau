@@ -388,7 +388,7 @@ function PvpFunFx.start(opts: Options): Handle
 		local hidden: { [Instance]: number } = {}
 		for _, d in model:GetDescendants() do
 			if d:IsA("BasePart") or d:IsA("Decal") then
-				hidden[d] = (d :: any).LocalTransparencyModifier;
+				hidden[d] = Logic.restoreTo((d :: any).LocalTransparencyModifier);
 				(d :: any).LocalTransparencyModifier = 1
 			end
 		end

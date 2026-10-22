@@ -1297,7 +1297,10 @@ local JAR_GOO = { 110, 226, 170 }
 WorldLayout.JAR_GLASS_TRANSPARENCY = 0.6
 -- The jar glass meshes have an outer and an inner surface (Roblox culls back faces), so each is clearer; seen through
 -- both it stacks to about the single primitive pane's look.
-WorldLayout.JAR_GLASS_MESH_TRANSPARENCY = 0.7
+WorldLayout.JAR_GLASS_MESH_TRANSPARENCY = 0.8
+-- The glass meshes wear SmoothPlastic, not Glass: Roblox draws nothing partly see-through behind a Glass part, so a
+-- faded slime (an "In vat" pad copy, a steal ghost, a Move ghost) and the signs inside a jar vanished from outside it.
+WorldLayout.JAR_GLASS_MATERIAL = "SmoothPlastic"
 -- The drop tube's goo-tinted glass is clearer still, so the slimes packed in it show.
 WorldLayout.DROP_TUBE_GLASS_TRANSPARENCY = 0.55
 -- The jar meshes' shape above each floor (shared/modeling-kit/models/_goo_jar.py builds to these). A jar with another
@@ -1631,11 +1634,11 @@ local function jarLook(
 	return meshSlot(node, mesh, true)
 end
 
--- Glass slots: the mesh wears Glass at the mesh glass transparency (or `clear`) and casts no shadow, so the jars and
--- the tube stay light inside (server/MeshSwap reads these).
+-- Glass slots: the mesh wears JAR_GLASS_MATERIAL at the mesh glass transparency (or `clear`) and casts no shadow, so
+-- the jars and the tube stay light inside (server/MeshSwap reads these).
 local function glassy(node: WorldNode, clear: number?): WorldNode
 	local a = node.attributes or {}
-	a.MeshMaterial = "Glass"
+	a.MeshMaterial = WorldLayout.JAR_GLASS_MATERIAL
 	a.MeshTransparency = clear or WorldLayout.JAR_GLASS_MESH_TRANSPARENCY
 	a.MeshCastShadow = false
 	node.attributes = a

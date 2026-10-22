@@ -1622,7 +1622,7 @@
           <Properties>
             <string name="Name">GlassTop</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCBQAAAEdsYXNzEAAAAE1lc2hUcmFuc3BhcmVuY3kGZmZmZmZm5j8=</BinaryString>
+            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCDQAAAFNtb290aFBsYXN0aWMQAAAATWVzaFRyYW5zcGFyZW5jeQaamZmZmZnpPw==</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>0</X>
@@ -3918,7 +3918,7 @@
           <Properties>
             <string name="Name">GlassTop</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCBQAAAEdsYXNzEAAAAE1lc2hUcmFuc3BhcmVuY3kGZmZmZmZm5j8=</BinaryString>
+            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCDQAAAFNtb290aFBsYXN0aWMQAAAATWVzaFRyYW5zcGFyZW5jeQaamZmZmZnpPw==</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>98.99495</X>
@@ -6214,7 +6214,7 @@
           <Properties>
             <string name="Name">GlassTop</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCBQAAAEdsYXNzEAAAAE1lc2hUcmFuc3BhcmVuY3kGZmZmZmZm5j8=</BinaryString>
+            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCDQAAAFNtb290aFBsYXN0aWMQAAAATWVzaFRyYW5zcGFyZW5jeQaamZmZmZnpPw==</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>140</X>
@@ -8510,7 +8510,7 @@
           <Properties>
             <string name="Name">GlassTop</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCBQAAAEdsYXNzEAAAAE1lc2hUcmFuc3BhcmVuY3kGZmZmZmZm5j8=</BinaryString>
+            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCDQAAAFNtb290aFBsYXN0aWMQAAAATWVzaFRyYW5zcGFyZW5jeQaamZmZmZnpPw==</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>98.99495</X>
@@ -10806,7 +10806,7 @@
           <Properties>
             <string name="Name">GlassTop</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCBQAAAEdsYXNzEAAAAE1lc2hUcmFuc3BhcmVuY3kGZmZmZmZm5j8=</BinaryString>
+            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCDQAAAFNtb290aFBsYXN0aWMQAAAATWVzaFRyYW5zcGFyZW5jeQaamZmZmZnpPw==</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>0</X>
@@ -13102,7 +13102,7 @@
           <Properties>
             <string name="Name">GlassTop</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCBQAAAEdsYXNzEAAAAE1lc2hUcmFuc3BhcmVuY3kGZmZmZmZm5j8=</BinaryString>
+            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCDQAAAFNtb290aFBsYXN0aWMQAAAATWVzaFRyYW5zcGFyZW5jeQaamZmZmZnpPw==</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-98.99495</X>
@@ -15398,7 +15398,7 @@
           <Properties>
             <string name="Name">GlassTop</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCBQAAAEdsYXNzEAAAAE1lc2hUcmFuc3BhcmVuY3kGZmZmZmZm5j8=</BinaryString>
+            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCDQAAAFNtb290aFBsYXN0aWMQAAAATWVzaFRyYW5zcGFyZW5jeQaamZmZmZnpPw==</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-140</X>
@@ -17694,7 +17694,7 @@
           <Properties>
             <string name="Name">GlassTop</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCBQAAAEdsYXNzEAAAAE1lc2hUcmFuc3BhcmVuY3kGZmZmZmZm5j8=</BinaryString>
+            <BinaryString name="AttributesSerialize">BwAAAAgAAABKYXJGbG9vcgUAAIA/CQAAAEphckhpZGRlbgMABwAAAEphclNob3cCAwAAAHRvcAkAAABNZXNoQXNzZXQCEwAAAGdvb19qYXJfZ2xhc3NfMV90b3AOAAAATWVzaENhc3RTaGFkb3cDAAwAAABNZXNoTWF0ZXJpYWwCDQAAAFNtb290aFBsYXN0aWMQAAAATWVzaFRyYW5zcGFyZW5jeQaamZmZmZnpPw==</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-98.99495</X>

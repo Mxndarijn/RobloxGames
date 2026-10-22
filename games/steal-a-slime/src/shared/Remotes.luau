@@ -39,6 +39,7 @@ Remotes.ACTIONS = table.freeze({
 	VatCancel = table.freeze({ args = {} }), -- stop the brew; the slimes stay in the vat
 	VatCollect = table.freeze({ args = {} }), -- merge a finished brew onto the first input's pad
 	Lock = table.freeze({ args = {} }),
+	ToggleFriends = table.freeze({ args = {} }), -- flips the owner's friends switch (FEATURES.FriendsInBase)
 	Rebirth = table.freeze({ args = {} }),
 	Sell = table.freeze({ args = { "string" } }), -- slimeId
 	Favorite = table.freeze({ args = { "string?" } }), -- slimeId, nil clears

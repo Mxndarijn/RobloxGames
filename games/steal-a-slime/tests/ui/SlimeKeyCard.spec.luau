@@ -125,6 +125,36 @@ describe("SlimeKeyCard", function()
 		end
 		expect(table.concat(names, ",")).toBe("HatchPrompt,MovePrompt,FavoritePrompt,SellPrompt")
 	end)
+	it("orders the lock button's rows Lock, then Friends", function()
+		local list = { { Name = "FriendsPrompt" }, { Name = "LockPrompt" } }
+		local names = {}
+		for _, p in SlimeKeyCard.ordered(list, nameOf) do
+			table.insert(names, p.Name)
+		end
+		expect(table.concat(names, ",")).toBe("LockPrompt,FriendsPrompt")
+	end)
+	it("titles a slime card with its name and perk, the lock card with the lock and friends status", function()
+		local function withPrompts(texts: { [string]: string }): any
+			local part = UiHarness.Instance.new("Part")
+			for name, objectText in texts do
+				local p = UiHarness.Instance.new("ProximityPrompt")
+				p.Name = name
+				p.ObjectText = objectText
+				p.Parent = part
+			end
+			return part
+		end
+		local title, sub = SlimeKeyCard.heading(withPrompts({ GrabPrompt = "Goo Pup", FavoritePrompt = "+5% income" }))
+		expect(title).toBe("Goo Pup")
+		expect(sub).toBe("+5% income")
+		title, sub = SlimeKeyCard.heading(withPrompts({ GrabPrompt = "Goo Pup", FavoritePrompt = "Goo Pup" }))
+		expect(sub).toBe("")
+		title, sub = SlimeKeyCard.heading(
+			withPrompts({ LockPrompt = "Merijn's base: LOCKED 1:42", FriendsPrompt = "Friends can enter" })
+		)
+		expect(title).toBe("LOCKED 1:42")
+		expect(sub).toBe("Friends can enter")
+	end)
 	it("shows the keyboard key, or the gamepad button's short name", function()
 		expect(SlimeKeyCard.keyLabel("E", false)).toBe("E")
 		expect(SlimeKeyCard.keyLabel("ButtonX", true)).toBe("X")

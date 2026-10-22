@@ -73,6 +73,7 @@ export type Data = {
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
 	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
 	settings: AudioSettings.Settings, -- Sound card values (save v6; used only with FEATURES.Audio)
+	allowFriends: boolean?, -- the lock button's friends switch (FEATURES.FriendsInBase): true = friends pass a locked base; nil = off
 	consumables: Consumables, -- restocking shop purchases (added without a version bump)
 	pvp: Pvp, -- FEATURES.PvP owned items (PvpRules, CONTRACT.md §26; added without a version bump)
 	boss: BossBadges.Record, -- boss record and save-only boss badges (BossBadges, contract/boss-event.md)
