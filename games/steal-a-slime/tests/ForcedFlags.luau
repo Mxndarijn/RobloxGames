@@ -20,6 +20,7 @@ ForcedFlags.off = {
 	["Consumables purchase rules"] = "Consumables",
 	["Consumables effects"] = "Consumables",
 	["Consumables state and saves"] = "Consumables",
+	["Pacing server > bots merge in the 3-slime vat while MergeVat3 is on, so a Secret is not minutes away"] = "MergeVat3",
 	["CycleModifier odds"] = "CycleModifier",
 	["Spawner.stepModifier"] = "CycleModifier",
 	["FountainRide: the live server rides every spawned slime"] = "Parade",

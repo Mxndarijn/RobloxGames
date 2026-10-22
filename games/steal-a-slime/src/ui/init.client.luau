@@ -607,7 +607,7 @@ local function syncMenus()
 	end
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
-	tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))
+	tutorial.setMenuOpen(not MenuState.tutorialShown(visibleKey, dailyPopup.isOpen()))
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
@@ -1156,12 +1156,20 @@ end)
 -- Local countdowns (lock, rain) between State pushes. Each tick runs under its own pcall so one failing
 -- component cannot kill the loop; the error is logged once per component.
 local guardedTick = TickGuard.new(warn)
+local dailyWasOpen = false
 
 task.spawn(function()
 	while true do
 		task.wait(0.1)
 		if latest then
 			local now = serverNow()
+			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.
+			guardedTick("dailyPopup", function()
+				if dailyWasOpen ~= dailyPopup.isOpen() then
+					dailyWasOpen = dailyPopup.isOpen()
+					syncMenus()
+				end
+			end)
 			guardedTick("hud", function()
 				hud.tick(now)
 			end)
@@ -1176,7 +1184,7 @@ task.spawn(function()
 				panelByKey.WorldShop.tick()
 			end)
 			guardedTick("hint", function()
-				hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
+				hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen()))
 			end)
 			guardedTick("pvpFun", function()
 				pvpFunFx.tick(now)
