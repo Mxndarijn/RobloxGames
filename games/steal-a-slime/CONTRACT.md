@@ -274,7 +274,6 @@ The client always replaces its copy and never diffs.
 - **`workspace.Plots.Plot_<i>`:**
   - `OwnerUserId: number` (0 = free).
   - `LockUntil: number` (server time).
-  - `Rebirths: number`.
 - **Slime models:** the attributes in §4.
 - **`GrabPrompt` (ProximityPrompt on a slime's `Body`, name `Constants.GRAB_PROMPT_NAME`):** the same prompt serves grab, buy and steal; the server never creates another slime prompt name. `HideFromUserId: number?` (`Constants.PROMPT_HIDE_ATTRIBUTE`). Set to the owner's UserId while the prompt is a `"Steal"` prompt (state `Pad`); nil on wild, carried and escaping slimes. Set on every reconcile (`Scene.Entry.hideFromUserId`).
   - Roblox has no server-side per-player prompt visibility (`Enabled` replicates to everyone), and the server has no client folder of its own, so **one client LocalScript must honour it** (owner: Jolt, `src/ui`). Rule: for every `ProximityPrompt` named `GrabPrompt` under `workspace`, if `prompt:GetAttribute("HideFromUserId") == LocalPlayer.UserId`, keep `prompt.Enabled = false` locally. Re-apply on `GetAttributeChangedSignal("HideFromUserId")` and `GetPropertyChangedSignal("Enabled")`, because a server-side `Enabled` change (lock/unlock) replicates over the local value. Sketch:
