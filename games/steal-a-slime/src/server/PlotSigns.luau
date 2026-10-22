@@ -3,7 +3,7 @@
 	PlotSigns (Roblox adapter + pure text)
 
 	Writes the owner and stats onto each plot's `Sign` part (the name board on the lock sign's post). The static
-	world (world/Plots.rbxmx, WorldLayout.NAME_BOARD) ships the Sign as a bare board with no SurfaceGui, so the
+	world (world/Plots.rbxmx, WorldLayout.NAME_BOARD) ships the Sign as an invisible board with no SurfaceGui, so the
 	server adds one on its Front face (facing out of the jar) and draws the Goo board on it (GooBoard): an owned
 	plot gets a mint band with the owner's name in Ink and its income, rebirths and steals under it; a free plot
 	is plain glass with "Plot n" and "Empty plot". No Back face: it lies against the glass. Server-side so the
@@ -21,6 +21,9 @@ local GooPalette = if Shared then require(Shared.GooPalette) else require("../sh
 local GooBoard = if Shared then require(Shared.GooBoard) else require("../shared/GooBoard")
 local NumberFormat = if Shared then require(Shared.NumberFormat) else require("../shared/NumberFormat")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
+local WorldLayout = if Shared
+	then require(Shared.Parent.Visuals.WorldLayout)
+	else require("../visuals/shared/WorldLayout")
 
 export type Lines = { title: string, stats: string, owned: boolean }
 export type Owner = { name: string, data: PlayerData.Data } -- reads slimes, rebirths, totalStolen
@@ -31,16 +34,16 @@ local PlotSigns = {}
 PlotSigns.GUI_PREFIX = "SignGui"
 PlotSigns.FACES = table.freeze({ "Front" })
 PlotSigns.PIXELS_PER_STUD = 50
--- The name board's width / height (WorldLayout.NAME_BOARD, 12 x 3.6 studs), so the goo drops come out round.
-PlotSigns.ASPECT = 12 / 3.6
+-- The name board's width / height, so the goo drops come out round.
+PlotSigns.ASPECT = WorldLayout.NAME_BOARD.width / WorldLayout.NAME_BOARD.height
 
--- The board: a mint band over the top half and a drip at each end, clear of the stats line.
+-- The board: a mint band over the top half and a short drip at each end, clear of the stats line under it.
 PlotSigns.BOARD = table.freeze({
 	band = 0.46,
 	radius = 0.24,
 	drips = table.freeze({
-		table.freeze({ x = 0.05, w = 0.035, len = 0.08 }),
-		table.freeze({ x = 0.935, w = 0.028, len = 0.04 }),
+		table.freeze({ x = 0.06, w = 0.03, len = 0.03 }),
+		table.freeze({ x = 0.93, w = 0.026, len = 0.02 }),
 	}),
 	stroke = 6, -- px at PIXELS_PER_STUD
 	glassTransparency = 0,
@@ -51,7 +54,7 @@ PlotSigns.BOARD = table.freeze({
 PlotSigns.TEXT = table.freeze({
 	ownedTitle = table.freeze({ 0.06, 0.07, 0.88, 0.33 }),
 	freeTitle = table.freeze({ 0.1, 0.12, 0.8, 0.42 }),
-	stats = table.freeze({ 0.1, 0.6, 0.8, 0.28 }),
+	stats = table.freeze({ 0.05, 0.6, 0.9, 0.32 }),
 })
 
 local function plural(n: number, word: string): string

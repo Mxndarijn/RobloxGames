@@ -230,7 +230,8 @@ WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ -11.27, -21.19 }) -- inside, right
 -- collides).
 WorldLayout.PLOT_FLOOR_RADIUS = 40
 WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
-WorldLayout.NAME_BOARD = table.freeze({ width = 12, height = 3.6, y = 11 }) -- above the LockSign, on its post
+-- The owner's name board above the LockSign, on its post: as wide as the LockSign, so the two read as one sign
+WorldLayout.NAME_BOARD = table.freeze({ width = 8, height = 2.6, y = 10.5 })
 WorldLayout.LOCK_SIGN = table.freeze({ width = 8, height = 3.2, y = 7 }) -- the lock status board by the bridge
 -- Jar 1's door is a round plank door on two hinges on its left (-X). Locked, it sits shut in the doorway (StopperShut);
 -- open, it swings DOOR_SWING.angle degrees out of the jar round its hinge pin (StopperParked): past square, so it
@@ -1779,6 +1780,7 @@ local function plot(i: number): WorldNode
 	local sx, sz = WorldLayout.LOCK_SIGN_SPOT[1] + 1.5, WorldLayout.LOCK_SIGN_SPOT[2] + 2.6
 	local sign = block("Sign", { board.width, board.height, 0.3 }, at({ sx, board.y, sz }), SIGN, "WoodPlanks", r)
 	sign.canQuery = false
+	sign.transparency = 1 -- only the board PlotSigns draws shows: no square wooden corners behind its round ones
 	table.insert(children, sign)
 
 	for _, node in cosmetics(at, yaw) do

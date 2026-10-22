@@ -179,6 +179,8 @@ describe("plot sign", function()
 				expect(size[1]).toBeCloseTo(board.width)
 				expect(size[2]).toBeCloseTo(board.height)
 				expect(p[2]).toBeCloseTo(board.y)
+				-- invisible: only PlotSigns' round board draws, no square corners behind it
+				expect(sign.transparency).toBe(1)
 				-- right above the lock sign, over the moat in front of the jar, above a character's head
 				expect(p[1]).toBeCloseTo(q[1])
 				expect(p[3]).toBeCloseTo(q[3])
