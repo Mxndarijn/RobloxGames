@@ -728,7 +728,7 @@ local Config = {
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	-- SlimeGuard (FEATURES.SlimeGuard, CONTRACT.md §41). Movement thresholds live in the shared MovementGuard defaults.
 	SLIME_GUARD = table.freeze({
-		ENFORCE = false, -- false = watch mode: flags are logged and add points, nothing else happens; true = steals bounce, pause, kick
+		ENFORCE = true, -- false = watch mode: flags are logged and add points, nothing else happens; true = steals bounce, pause, kick
 		SAMPLE_SECONDS = 0.1, -- one position per player this often (the server's view tick)
 		LAUNCH_SPEED = 150, -- studs/s allowed while a PvP launch / control window is open (PvpLaunch.guardActive)
 		SERVER_MOVE_SECONDS = 1, -- after a server teleport or respawn the next second is not checked
