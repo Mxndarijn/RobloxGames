@@ -421,7 +421,7 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §33 | [boss-event.md](contract/boss-event.md) | Boss event: team meter fight, haul race, boss badges in the save |
 | §34 | [event-secrets.md](contract/event-secrets.md) | Event Secrets: one featured Secret per week joins the Secret pool |
 | §35 | [merge-recipes.md](contract/merge-recipes.md) | Merge recipes, merge caps and the merge assist |
-| §36 | [species-dex.md](contract/species-dex.md) | Species Dex: 50 species and the milestone ladder |
+| §36 | [species-dex.md](contract/species-dex.md) | Species Dex: 53 species and the milestone ladder |
 | §37 | [slime-walk.md](contract/slime-walk.md) | Slime walk: wild slimes glide the lane and walk back to it when dropped |
 | §38 | [slime-labels.md](contract/slime-labels.md) | Slime labels: a tag above every loose slime, a sign on every pad |
 | §39 | [slime-life.md](contract/slime-life.md) | Slime life: species gaits, hops, lane beats and reactions |

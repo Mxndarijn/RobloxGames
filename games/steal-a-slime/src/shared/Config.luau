@@ -415,7 +415,7 @@ for _, quest in DAILY_QUEST_POOL do
 	table.freeze(quest)
 end
 
--- SlimeDex ladder (CONTRACT.md §36.3): species found (of 50).
+-- SlimeDex ladder (CONTRACT.md §36.3): species found (of SpeciesDex.TOTAL).
 -- `reward` is cash x rebirthMultiplier, `bonus` a permanent income bonus (the ladder adds up to 0.45).
 local DEX_MILESTONES: { species: { DexMilestone } } = {
 	species = {
@@ -950,7 +950,19 @@ local Config = {
 		GUARD_SECONDS = 12, -- longest a guard call lasts (it lands when every guard is popped)
 		SHRINK_SECONDS = 0.6, -- the meter is full: it shrinks to carry size over this long before it can be grabbed
 		MOVE_PIVOT_INTERVAL = 0.2, -- seconds between the server's pivots of the boss Body (clients draw every frame)
-		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
+		-- every tier-6 boss twice and each Secret once per lap
+		ROTATION = table.freeze({
+			"goozilla",
+			"queen_jelly",
+			"klawdius",
+			"pumpking",
+			"mecha_goo",
+			"goozilla",
+			"queen_jelly",
+			"klawdius",
+			"pumpking",
+			"goomancer",
+		}),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
 		WIN_SHARE = 0.1, -- a player with at least this share of the top contributor's hits is credited with the win
@@ -982,6 +994,30 @@ local Config = {
 			trigger = "win",
 			value = 1,
 			species = "queen_jelly",
+		}),
+		table.freeze({
+			key = "BossKlawdius",
+			name = "Shell Shocked",
+			description = "Help bring Klawdius home.",
+			trigger = "win",
+			value = 1,
+			species = "klawdius",
+		}),
+		table.freeze({
+			key = "BossPumpking",
+			name = "Pumpkin Smasher",
+			description = "Help bring Pumpking home.",
+			trigger = "win",
+			value = 1,
+			species = "pumpking",
+		}),
+		table.freeze({
+			key = "BossGoomancer",
+			name = "Spellbreaker",
+			description = "Help bring Goomancer home.",
+			trigger = "win",
+			value = 1,
+			species = "goomancer",
 		}),
 		table.freeze({
 			key = "BossMechaGoo",
