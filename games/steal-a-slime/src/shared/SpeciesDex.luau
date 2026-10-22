@@ -32,7 +32,7 @@ export type EntryView = {
 	tier: number,
 	kind: string,
 	found: boolean,
-	name: string?,
+	name: string,
 	hint: string?,
 	ingredients: { string }?,
 }
@@ -60,7 +60,6 @@ local SpeciesDex = {
 	BONUS = BONUS,
 	TOTAL = #ENTRIES,
 	BOSS_HINT = "Defeat the boss event",
-	UNKNOWN = "???",
 }
 
 -- A species the Dex knows: an entry or a bonus entry.
@@ -152,36 +151,27 @@ local function entryView(data: Data, entry: Entry, now: number, sources: Sources
 		tier = entry.tier,
 		kind = entry.kind,
 		found = found,
-		name = if found then entry.name else nil,
+		name = entry.name,
 		hint = nil,
 		ingredients = nil,
 	}
 	if entry.kind == "hybrid" then
 		local recipe = sources.recipeFor(entry.id)
 		if recipe then
-			local known = true
 			local slots = {}
 			for i, input in recipe.inputs do
-				local has = data.found[input] == true
-				known = known and has
-				slots[i] = if has then input else ""
+				slots[i] = if data.found[input] == true then input else ""
 			end
 			view.ingredients = slots
 			view.hint = recipe.hint
-			if known then
-				view.name = entry.name
-			end
 		end
 	elseif entry.kind == "boss" then
 		view.hint = SpeciesDex.BOSS_HINT
 	elseif entry.kind == "event" then
 		local week = sources.featuredWeek(entry.id, now)
 		local featuredNow = week ~= nil and week <= now
-		if found or featuredNow then
-			view.name = entry.name
-			view.hint = if week then `Featured Secret: week of {SpeciesDex.weekLabel(week)}` else nil
-		else
-			view.hint = SpeciesDex.UNKNOWN
+		if (found or featuredNow) and week then
+			view.hint = `Featured Secret: week of {SpeciesDex.weekLabel(week)}`
 		end
 	end
 	return view
