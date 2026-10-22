@@ -80,7 +80,9 @@ function BossTelegraph.start()
 
 	-- An arc of `radius` round `centre` (flat on the ground at its Y), from angle a0 to a1 (radians, 0 = +X).
 	local function arc(centre: Vector3, radius: number, a0: number, a1: number, width: number, color: Color3, t: number)
-		local n = math.max(3, math.ceil(BossTelegraph.SEGMENTS * math.abs(a1 - a0) / (2 * math.pi)))
+		-- small rings (puddles, runes) get fewer parts: about one per 2.5 studs of circumference, 12 to SEGMENTS
+		local full = math.clamp(math.ceil(2 * math.pi * radius / 2.5), 12, BossTelegraph.SEGMENTS)
+		local n = math.max(3, math.ceil(full * math.abs(a1 - a0) / (2 * math.pi)))
 		local chord = 2 * radius * math.sin(math.abs(a1 - a0) / n / 2) + 0.1
 		for i = 0, n - 1 do
 			local a = a0 + (a1 - a0) * (i + 0.5) / n

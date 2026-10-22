@@ -105,18 +105,28 @@ describe("BossChoreo moves", function()
 		local look = BossChoreo.after(first, input(first.at + first.seconds, rng))
 		local attack: BossChoreo.Attack = { kind = "charge", distance = 30, speed = 30 }
 		local x, z = BossArea.home()
+		local r = math.sqrt(x * x + z * z)
+		local tx, tz = -z / r, x / r -- along the strip round the fountain
 		local due = input(look.at + look.seconds, rng)
 		due.attack = "start.1"
-		due.target = { x - 10, z }
+		due.target = { x + tx * 12, z + tz * 12 }
 		due.resolve = function(slot: string): BossChoreo.Attack?
 			return if slot == "start.1" then attack else nil
 		end
 		local windup = BossChoreo.after(look, due)
 		expect(windup.kind).toBe("windup")
 		expect(windup.slot).toBe("start.1")
-		expect(windup.hx < -0.99).toBe(true)
+		expect(windup.hx * tx + windup.hz * tz > 0.99).toBe(true)
 		local charge = BossChoreo.after(windup, due)
 		expect(charge.kind).toBe("attack")
+		local run = math.sqrt((charge.tx - charge.fx) ^ 2 + (charge.tz - charge.fz) ^ 2)
+		expect(run >= BOSS.CHARGE_MIN).toBe(true)
+		-- aimed straight off the thin strip, it runs along the strip instead of stopping short
+		local outward = input(look.at + look.seconds, rng)
+		outward.attack, outward.resolve = "start.1", due.resolve
+		outward.target = { x * 1.5, z * 1.5 }
+		local turned = BossChoreo.after(BossChoreo.after(look, outward), outward)
+		expect(math.sqrt((turned.tx - turned.fx) ^ 2 + (turned.tz - turned.fz) ^ 2) >= BOSS.CHARGE_MIN).toBe(true)
 		local dazed = BossChoreo.after(charge, due)
 		expect(dazed.kind).toBe("dazed")
 		expect(dazed.seconds).toBe(BOSS.DAZED_SECONDS)

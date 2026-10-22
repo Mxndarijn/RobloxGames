@@ -309,6 +309,14 @@ local function windup(prev: Move, input: Input, slot: string, attack: Attack): M
 	local ux, uz = BossChoreo.travel(attack, prev.hx, prev.hz)
 	if leg > 1 and attack.backAndForth then
 		ux, uz = unit(prev.fx - prev.tx, prev.fz - prev.tz, -ux, -uz) -- runs back the way it came
+	elseif attack.sideways then
+		-- a scuttle runs along the boss area (a thin strip round the fountain), toward the side its target is on
+		local rx, rz = unit(x, z, 1, 0)
+		ux, uz = -rz, rx
+		local aim = input.target or nearest(input.players, x, z)
+		if aim and (aim[1] - x) * ux + (aim[2] - z) * uz < 0 then
+			ux, uz = -ux, -uz
+		end
 	else
 		local aim = if attack.kind == "charge" then input.target else nil
 		aim = aim or nearest(input.players, x, z)
@@ -316,6 +324,18 @@ local function windup(prev: Move, input: Input, slot: string, attack: Attack): M
 			ux, uz = unit(aim[1] - x, aim[2] - z, ux, uz)
 		elseif leg > 1 then
 			ux, uz = -ux, -uz
+		end
+		-- the area is a thin strip: a charge that would stop within CHARGE_MIN runs along the strip instead
+		if attack.kind == "charge" then
+			local ex, ez = BossArea.reach(x, z, ux, uz, attack.distance or 30)
+			if (ex - x) ^ 2 + (ez - z) ^ 2 < BOSS.CHARGE_MIN ^ 2 then
+				local rx, rz = unit(x, z, 1, 0)
+				local tx, tz = -rz, rx
+				if ux * tx + uz * tz < 0 then
+					tx, tz = -tx, -tz
+				end
+				ux, uz = tx, tz
+			end
 		end
 	end
 	local hx, hz = facingFor(attack, ux, uz)

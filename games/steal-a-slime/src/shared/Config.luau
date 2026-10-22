@@ -945,6 +945,7 @@ local Config = {
 		HOP_SECONDS = 0.55, -- a hops attack's leap
 		HOP_HEIGHT = 6, -- studs high it leaps
 		CHARGE_EASE = 0.25, -- seconds a charge takes to reach full speed and to stop
+		CHARGE_MIN = 8, -- studs: a charge aimed this short (off the thin boss area) runs along the area instead
 		STRIKE_SECONDS = 0.7, -- a cone or the spit's throw
 		RING_DELAY = 0.35, -- the stomp lands this long into a ring attack, then the ring runs out
 		SPIT_FLIGHT = 0.7, -- seconds a goo spit flies before it lands
