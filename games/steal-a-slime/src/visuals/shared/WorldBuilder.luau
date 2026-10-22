@@ -109,4 +109,13 @@ function WorldBuilder.buildFloor(plot: Instance, plotIndex: number, floor: numbe
 	return built
 end
 
+-- Puts plot `plotIndex`'s roof colliders on jar `floor` (WorldLayout.topColliders), replacing the ones on another jar.
+function WorldBuilder.buildTop(plot: Instance, plotIndex: number, floor: number): Instance
+	local old = plot:FindFirstChild("TopColliders")
+	if old then
+		old:Destroy()
+	end
+	return ensure(plot, WorldLayout.topColliders(plotIndex, floor))
+end
+
 return WorldBuilder

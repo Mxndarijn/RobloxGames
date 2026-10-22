@@ -26,6 +26,23 @@ local function toLocal(node: any, i: number): ({ number }, number)
 	return p, (node.rot or { 0, 0, 0 })[2] - yaw
 end
 
+-- True when plot-local (x, y, z) lies inside the box node, whatever its rotation (tilted roof facets).
+local function insideTilted(node: any, i: number, x: number, y: number, z: number): boolean
+	local centre, yaw = WorldLayout.plotCentre(i)
+	local back = LayoutMath.orientation({ 0, -yaw, 0 })
+	local p = LayoutMath.apply(back, { node.pos[1] - centre[1], node.pos[2] - centre[2], node.pos[3] - centre[3] })
+	local rot = node.rot or { 0, 0, 0 }
+	local o = LayoutMath.orientation({ rot[1], rot[2] - yaw, rot[3] })
+	local d = { x - p[1], y - p[2], z - p[3] }
+	for axis = 1, 3 do
+		local along = d[1] * o[1][axis] + d[2] * o[2][axis] + d[3] * o[3][axis]
+		if math.abs(along) > node.size[axis] / 2 + 1e-6 then
+			return false
+		end
+	end
+	return true
+end
+
 -- True when plot-local (x, y, z) lies inside the box node.
 local function insideBox(node: any, i: number, x: number, y: number, z: number): boolean
 	local p, ry = toLocal(node, i)
@@ -216,26 +233,87 @@ describe("jar tower: deck and glass", function()
 	it("closes every upper jar's wall all the way round, floor to deck, inside the glass", function()
 		local n = WorldLayout.JAR_WALL_SEGMENTS
 		for f = 2, FLOORS do
+			-- up to the top jar's glass height with the jar; above that, built with the jar on top of it
 			local walls = named(floorParts(1, f), "Wall_")
 			expect(#walls).toBe(n)
+			local upper = if f < FLOORS then named(floorParts(1, f + 1), "WallUpper_") else {}
+			expect(#upper).toBe(if f < FLOORS then n else 0)
 			local rc = WorldLayout.jarWallRadius(f)
 			-- the inner faces' corners sit on the glass, never outside it
 			expect((rc - WorldLayout.JAR_WALL / 2) / math.cos(math.pi / n) <= WorldLayout.jarRadius(f) + 1e-6).toBe(
 				true
 			)
-			for _, h in { 0.5, 7, WorldLayout.FLOOR_HEIGHT - 1.5 } do
-				for deg = 0, 359, 2 do
-					local x, z = WorldLayout.jarWallPoint(f, deg)
-					local hit = false
-					for _, w in walls do
-						if insideBox(w, 1, x, WorldLayout.floorTop(f) + h, z) then
-							hit = true
-							break
+			local wt = WorldLayout.jarTopWallHeight(f)
+			local function closed(list: { any }, heights: { number })
+				for _, h in heights do
+					for deg = 0, 359, 2 do
+						local x, z = WorldLayout.jarWallPoint(f, deg)
+						local hit = false
+						for _, w in list do
+							if insideBox(w, 1, x, WorldLayout.floorTop(f) + h, z) then
+								hit = true
+								break
+							end
 						end
+						expect(hit).toBe(true)
 					end
-					expect(hit).toBe(true)
 				end
 			end
+			closed(walls, { 0.5, wt / 2, wt + 0.4 })
+			if f < FLOORS then
+				closed(upper, { wt + 0.6, WorldLayout.FLOOR_HEIGHT - 1.5 })
+			end
+		end
+	end)
+	it("roofs the top jar with colliders on its glass: dome facets, the stopper and the mascot", function()
+		local n = WorldLayout.JAR_WALL_SEGMENTS
+		for f = 1, FLOORS do
+			local roof = WorldLayout.topColliders(1, f)
+			expect(roof.attributes.TopFloor).toBe(f)
+			local parts = roof.children :: { any }
+			local dome = named(parts, "Dome_")
+			expect(#dome).toBe(WorldLayout.TOP_DOME_ROWS * n)
+			for _, p in parts do
+				expect(p.canCollide ~= false).toBe(true)
+				expect(p.transparency).toBe(1)
+			end
+			-- along each row's middle the roof follows the glass
+			local profile = WorldLayout.topDomeProfile(f)
+			local base = WorldLayout.floorTop(f)
+			for row = 1, #profile - 1 do
+				local a, b = profile[row], profile[row + 1]
+				local r, y = (a[1] + b[1]) / 2, (a[2] + b[2]) / 2
+				local dr, dz = b[1] - a[1], b[2] - a[2]
+				local len = math.sqrt(dr * dr + dz * dz)
+				local nr, nz = dz / len, -dr / len
+				for deg = 0, 359, 2.5 do
+					local function solid(off: number): boolean
+						local px, pz = WorldLayout.polar(r + nr * off, deg)
+						for _, p in dome do
+							if insideTilted(p, 1, px, base + y + nz * off, pz) then
+								return true
+							end
+						end
+						return false
+					end
+					-- no hole anywhere: within a stud of the glass there is roof (flat facets on a round glass)
+					local any = false
+					for off = -1.2, 1.0, 0.2 do
+						any = any or solid(off)
+					end
+					expect(any).toBe(true)
+					-- at a facet's middle its outer face is on the glass
+					local centre = (deg - WorldLayout.DOOR.angle) % (360 / n) == 0
+					if centre then
+						expect(solid(-0.5)).toBe(true)
+						expect(solid(0.6)).toBe(false)
+					end
+				end
+			end
+			-- the stopper reaches up to the mascot's seat and the mascot ball sits on it
+			local cork, mascot = named(parts, "Cork")[1], named(parts, "Mascot")[1]
+			local seatTop = toLocal(cork, 1)[2] + cork.size[1] / 2
+			expect(math.abs(toLocal(mascot, 1)[2] - mascot.size[2] / 2 - seatTop) < 0.1).toBe(true)
 		end
 	end)
 	it("gives each upper jar one lid, tagged with its floor", function()

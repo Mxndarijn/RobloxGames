@@ -442,7 +442,8 @@ describe("plot-level collision", function()
 			expect(n.PadCollider.size[2]).toBeCloseTo(2 * WorldLayout.PAD_DECK.half)
 			local walls, lintel, lid = 0, 0, 0
 			for _, part in n.Jar.children do
-				expect(part.canCollide ~= false).toBe(true)
+				-- the lid is no longer solid: the roof is the top jar's TopColliders (WorldLayout.topColliders)
+				expect(part.canCollide ~= false).toBe(part.name ~= "Lid")
 				if string.match(part.name, "^Wall_%d+$") then
 					walls += 1
 					expect(part.canQuery).toBe(false) -- prompts and raycasts reach through the glass
@@ -476,7 +477,7 @@ describe("plot-level collision", function()
 				end
 				return false
 			end
-			for _, h in { 0.5, 7, WorldLayout.FLOOR_HEIGHT - 1.5 } do
+			for _, h in { 0.5, 7, WorldLayout.jarTopWallHeight(1) + 0.4 } do
 				for deg = 0, 359.5, 0.5 do
 					local x, z = WorldLayout.jarWallPoint(1, deg)
 					local inDoor = z < 0 and math.abs(x) < door.halfWidth and h < WorldLayout.DOOR.height
@@ -487,11 +488,20 @@ describe("plot-level collision", function()
 					end
 				end
 			end
-			-- the lid caps the glass: over the whole wall ring, from the wall top up
+			-- the roof caps the glass: the top jar's dome colliders start inside the walls' top, all the way round
+			local roof = WorldLayout.topColliders(i, 1).children :: { any }
+			local profile = WorldLayout.topDomeProfile(1)
 			for deg = 0, 359, 3 do
-				local x, z = WorldLayout.polar(r, deg)
-				expect(covered(x, f1 + WorldLayout.FLOOR_HEIGHT - 0.5, z)).toBe(true)
+				local x, z = WorldLayout.polar(profile[1][1] - 0.6, deg)
+				local hit = false
+				for _, part in roof do
+					if inside(part, i, x, f1 + profile[1][2] + 0.2, z) then
+						hit = true
+					end
+				end
+				expect(hit or covered(x, f1 + profile[1][2] + 0.2, z)).toBe(true)
 			end
+			expect(r > 0).toBe(true)
 		end
 	end)
 	it("the doorway is clear for the owner: no solid part but the Stopper inside WorldLayout.doorway()", function()
