@@ -17,7 +17,8 @@
 	from the lane emits a "Drained" event (the splash at the drain).
 
 	FREE_DROP_CHANCE of drops are free; the rest cost WILD_PRICE_SECONDS of
-	the slime's base income, charged on grab (Carry.grab).
+	the slime's base income, charged on grab (Carry.grab). A Mystery Egg is
+	always free.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -171,7 +172,7 @@ function Spawner.spawnEgg(world: World, now: number): string
 	local at = Spawner.slot(world, now)
 	world.wild[id] = {
 		slime = slime,
-		price = MysteryEgg.price(kind, rng:float()),
+		price = 0, -- a wild egg is always free to grab
 		spawnedAt = at,
 		expiresAt = at + Fountain.wildLifetime(slime),
 		angle = rng:float() * math.pi * 2,

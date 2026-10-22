@@ -140,7 +140,7 @@ describe("Mystery Egg HatchPrompt", function()
 	it("shares no keyboard key or gamepad button with the owner's other prompts on the ready egg", function()
 		expect(eggPrompts.HatchPrompt).toEqual({ keyboard = keys.hatch.keyboard, gamepad = keys.hatch.gamepad })
 		expect(eggPrompts[SlimeKeys.MOVE_PROMPT]).toBeTruthy()
-		expect(eggPrompts[SlimeKeys.SELL_PROMPT]).toBeTruthy()
+		expect(eggPrompts[SlimeKeys.SELL_PROMPT]).toBeNil() -- an egg can't be sold
 		local seen = { keyboard = {}, gamepad = {} }
 		for name, k in eggPrompts do
 			for _, device in { "keyboard", "gamepad" } do
