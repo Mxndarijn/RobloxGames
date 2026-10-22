@@ -926,9 +926,30 @@ local Config = {
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
 		SPOT_RADIUS = 51, -- studs: between the landing ring and the parade lane
-		WANDER_ARC = math.rad(45), -- the boss wanders within this either side of SPOT_ANGLE (BossWander; the lane and drain fence it in)
-		WANDER_SPEED = 4, -- studs per second: it walks the whole fight without stopping
+		WANDER_ARC = math.rad(45), -- the boss roams within this either side of SPOT_ANGLE (BossArea; the lane and drain fence it in)
 		WANDER_CLEARANCE = 6.25, -- studs from its centre to the parade lane's edge and the goo drain's lip
+		-- Moves (Shared.BossChoreo): it strolls between stops, turns to look at players, and attacks from a stop.
+		STROLL_SPEED = 4.5, -- studs / s at full stride (x the stage speed-up)
+		STROLL_MIN = 8, -- studs: shortest stroll
+		STROLL_MAX = 18, -- studs: longest stroll
+		STROLL_EASE = 0.7, -- seconds it takes to set off and to stop
+		STROLL_TOWARD = 0.7, -- chance a stroll heads for the players' middle (else anywhere in the area)
+		LOOK_SECONDS = table.freeze({ 0.9, 1.8 }), -- a stop to look at the nearest player
+		ARRIVE_SECONDS = 1.6, -- it drops onto the boss spot and splats
+		ARRIVE_FALL = 0.6, -- of which the fall
+		ARRIVE_HEIGHT = 24, -- studs it drops from
+		WINDUP_SECONDS = 1.2, -- the telegraph before an attack
+		CHARGE_EASE = 0.25, -- seconds a charge takes to reach full speed and to stop
+		STRIKE_SECONDS = 0.7, -- a cone or the spit's throw
+		RING_DELAY = 0.35, -- the stomp lands this long into a ring attack, then the ring runs out
+		SPIT_FLIGHT = 0.7, -- seconds a goo spit flies before it lands
+		DAZED_SECONDS = 3, -- after every attack
+		RISE_HEIGHT = 9, -- studs it floats up while its guards are out
+		RISE_SECONDS = 1, -- the float up
+		LAND_SECONDS = 0.8, -- the float down
+		GUARD_SECONDS = 12, -- longest a guard call lasts (it lands when every guard is popped)
+		SHRINK_SECONDS = 0.6, -- the meter is full: it shrinks to carry size over this long before it can be grabbed
+		MOVE_PIVOT_INTERVAL = 0.2, -- seconds between the server's pivots of the boss Body (clients draw every frame)
 		-- every tier-6 boss twice and each Secret once per lap
 		ROTATION = table.freeze({
 			"goozilla",
@@ -944,6 +965,89 @@ local Config = {
 		}),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
+		WIN_SHARE = 0.1, -- a player with at least this share of the top contributor's hits is credited with the win
+	}),
+
+	-- Boss badges kept in the save (Shared.BossBadges, contract/boss-event.md), not Roblox badges. `trigger` + `value`
+	-- are read by BossBadges.reached: "hits" / "hauls" / "mvps" (data.boss counters), "win" (wins of `species`),
+	-- "wins" (wins of every species summed). A new boss species gets its own "win" line.
+	BOSS_BADGES = table.freeze({
+		table.freeze({
+			key = "BossBrawler",
+			name = "Boss Brawler",
+			description = "Land a hit on a boss.",
+			trigger = "hits",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossGoozilla",
+			name = "Goozilla Tamer",
+			description = "Help bring Goozilla home.",
+			trigger = "win",
+			value = 1,
+			species = "goozilla",
+		}),
+		table.freeze({
+			key = "BossQueenJelly",
+			name = "Dethroned",
+			description = "Help bring Queen Jelly home.",
+			trigger = "win",
+			value = 1,
+			species = "queen_jelly",
+		}),
+		table.freeze({
+			key = "BossKlawdius",
+			name = "Shell Shocked",
+			description = "Help bring Klawdius home.",
+			trigger = "win",
+			value = 1,
+			species = "klawdius",
+		}),
+		table.freeze({
+			key = "BossPumpking",
+			name = "Pumpkin Smasher",
+			description = "Help bring Pumpking home.",
+			trigger = "win",
+			value = 1,
+			species = "pumpking",
+		}),
+		table.freeze({
+			key = "BossGoomancer",
+			name = "Spellbreaker",
+			description = "Help bring Goomancer home.",
+			trigger = "win",
+			value = 1,
+			species = "goomancer",
+		}),
+		table.freeze({
+			key = "BossMechaGoo",
+			name = "Scrap Metal",
+			description = "Help bring Mecha Goo home.",
+			trigger = "win",
+			value = 1,
+			species = "mecha_goo",
+		}),
+		table.freeze({
+			key = "BossHauler",
+			name = "Heavy Lifter",
+			description = "Carry a boss home yourself.",
+			trigger = "hauls",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossMvp",
+			name = "Boss MVP",
+			description = "Land the most hits on a boss that gets brought home.",
+			trigger = "mvps",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossHunter10",
+			name = "Boss Hunter",
+			description = "Help win 10 boss fights.",
+			trigger = "wins",
+			value = 10,
+		}),
 	}),
 
 	-- Day / night (DayNight)
@@ -1322,9 +1426,11 @@ local Config = {
 	}),
 
 	-- Persistence
-	SAVE_VERSION = 8, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7)
+	SAVE_VERSION = 9, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7; v9: boss record replaces trophies, SaveData.migrateV8)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
+	SAVE_DRAIN_SECONDS = 20, -- a load waits at most this long for the same player's saves still in flight
+	SAVE_DRAIN_STEP = 0.25, -- seconds between checks while a load waits for those saves
 	MAX_SLIMES_SAVED = 64,
 }
 

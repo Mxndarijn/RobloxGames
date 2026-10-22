@@ -114,7 +114,7 @@ function Welcome.awayLine(report: any): string
 end
 
 function Welcome.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "WelcomePanel", "Welcome back!", "👋")
+	local panel = Widgets.panel(parent, "WelcomePanel", "Welcome back", "👋")
 	local body = panel.body
 	local layout = Welcome.ROWS
 	local card = Welcome.CARD
@@ -231,7 +231,7 @@ function Welcome.new(parent: Instance, ctx: any)
 	local collect = Widgets.button(
 		{
 			Name = "Collect",
-			Text = "Collect!",
+			Text = "Collect",
 			TextSize = Welcome.COLLECT_SIZE,
 			Size = UDim2.new(1, 0, 0, Layout.BUTTON),
 		},
