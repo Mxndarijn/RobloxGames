@@ -969,6 +969,13 @@ if game:GetService("RunService"):IsStudio() then
 		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
 	end)
+	-- "PcwBag" = true / false opens or closes the bag (scripts can't press its key or button).
+	gui:GetAttributeChangedSignal("PcwBag"):Connect(function()
+		local want = gui:GetAttribute("PcwBag")
+		if type(want) == "boolean" and want ~= inventory.panelOpen() then
+			inventory.toggleBag()
+		end
+	end)
 	-- "PcwMove" = "place" / "cancel" presses Place / Cancel in move mode (scripts can't send key presses).
 	gui:GetAttributeChangedSignal("PcwMove"):Connect(function()
 		local press = gui:GetAttribute("PcwMove")
