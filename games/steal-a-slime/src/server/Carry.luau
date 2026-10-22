@@ -146,7 +146,7 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	return StealService.steal(world, session, slimeId, distance, now)
 end
 
--- The boss carrier got home: the fight is won and every helper is credited (BossCredit.win). The boss slime is
+-- The boss carrier got home: the fight is won: the carrier wins, helpers are credited (BossCredit.win). The boss slime is
 -- removed; it never joins anyone's slimes.
 function Carry.depositBoss(world: World, session: Session, carry: World.CarryState, now: number): (boolean, string?)
 	world.wild[carry.slimeId] = nil

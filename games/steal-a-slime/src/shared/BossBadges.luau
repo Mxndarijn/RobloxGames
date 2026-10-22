@@ -13,17 +13,16 @@ local SlimeRoster = if script then require(script.Parent.SlimeRoster) else requi
 
 export type Record = {
 	hits: number, -- counted Bat hits on any boss
-	wins: { [string]: number }, -- boss species id -> wins helped
+	wins: { [string]: number }, -- boss species id -> times carried home
 	hauls: number, -- bosses carried home
 	mvps: number, -- won bosses as the top contributor
 	badges: { [string]: number }, -- Config.BOSS_BADGES key -> unix seconds it was earned
 }
 
--- One thing that happened in a boss event. "win" needs `species` and the player's `share` of the top hits (0..1).
+-- One thing that happened in a boss event. "win" needs `species` (only the carrier who brings it home wins).
 export type Event = {
 	kind: "hit" | "win" | "haul" | "mvp",
 	species: string?,
-	share: number?,
 }
 
 export type Badge = {
@@ -110,8 +109,7 @@ function BossBadges.reached(data: Holder): { string }
 	return out
 end
 
--- Counts one event in `data.boss`. Returns whether it counted: a "win" needs a boss species and a share of at
--- least Config.BOSS.WIN_SHARE.
+-- Counts one event in `data.boss`. Returns whether it counted: a "win" needs a boss species.
 function BossBadges.record(data: Holder, event: Event): boolean
 	local record = data.boss
 	local kind = event.kind
@@ -123,7 +121,7 @@ function BossBadges.record(data: Holder, event: Event): boolean
 		record.mvps = math.min(record.mvps + 1, MAX_COUNT)
 	elseif kind == "win" then
 		local species = event.species
-		if not species or not isBoss(species) or (event.share or 0) < Config.BOSS.WIN_SHARE then
+		if not species or not isBoss(species) then
 			return false
 		end
 		record.wins[species] = math.min((record.wins[species] or 0) + 1, MAX_COUNT)
