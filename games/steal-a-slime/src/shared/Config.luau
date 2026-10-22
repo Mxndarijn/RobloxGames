@@ -929,7 +929,9 @@ local Config = {
 		SHED_COUNT = 2, -- wild slimes per shed
 		DROP_LUCK = 3, -- luck multiplier on shed slimes
 		WIN_SHARE = 0.1, -- a player with at least this share of the top hitter's points helped win
-		WIN_SHOWER = 1, -- lucky slimes (DROP_LUCK) spilled per helper when the boss is brought home
+		BURST_FLIGHT = 0.8, -- seconds a shed slime flies out of the boss before it lands (it then walks to the lane)
+		BURST_DISTANCE = table.freeze({ 7, 14 }), -- studs from the boss a shed slime lands
+		BURST_HEIGHT = 10, -- studs high its arc goes
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane

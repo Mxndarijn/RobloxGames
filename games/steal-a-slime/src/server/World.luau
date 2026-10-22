@@ -84,6 +84,7 @@ export type Wild = {
 	move: BossChoreo.Move?, -- the boss: its current move (BossChoreo; model attribute BossMove)
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
 	choreo: { seed: number }?, -- FEATURES.SlimeChoreo: seed of its lane beats (ParadeChoreo); nil once it leaves the lane
+	landsAt: number?, -- a boss shed slime: still flying out of the boss until then (no model yet)
 }
 
 -- Drops since the last Epic+ / Legendary+ (Spawner pity, CONTRACT.md §8.7).
@@ -136,8 +137,11 @@ export type BossEvent = {
 	puddles: { BossPuddle }, -- goo puddles on the ground
 	guards: { { x: number, z: number, alive: boolean } }, -- the guards of the current rise
 	lastHit: { userId: number, points: number, at: number }?, -- the latest counted bat hit (clients squash it, pop points)
-	rewarded: boolean, -- the win's victory shower has spilled
+	bursts: { BossBurstBlob }, -- shed slimes flying out of the boss (clients draw their arcs)
 }
+
+-- One shed slime in the air: it leaves the boss at plaza (fromX, fromZ) at `at` and lands at (x, z) at `landAt`.
+export type BossBurstBlob = { fromX: number, fromZ: number, x: number, z: number, at: number, landAt: number }
 
 export type AdminEvent = {
 	def: { id: string, label: string, icon: string },
