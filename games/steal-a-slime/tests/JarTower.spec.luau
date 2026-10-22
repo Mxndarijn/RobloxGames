@@ -130,14 +130,25 @@ describe("jar tower: stair", function()
 				expect(r.canCollide ~= false).toBe(true)
 				expect(r.transparency).toBe(1)
 				expect(r.canQuery).toBe(false)
-				-- straight up from the floor to just under the deck above: no top edge to climb over
-				expect(r.size[2]).toBe(WorldLayout.FLOOR_HEIGHT - 1)
-				expect(math.abs(toLocal(r, 1)[2] - r.size[2] / 2 - WorldLayout.floorTop(f - 1)) < 1e-6).toBe(true)
 				expect((r.rot :: any)[3]).toBe(0)
 				local p = toLocal(r, 1)
 				local deg = math.deg(math.atan2(p[3], p[1]))
 				local d = (deg - start) % 360
 				expect(d >= ramp.railStart and d <= span - ramp.railEnd).toBe(true)
+				-- from just under the ramp to railHeight above it (too tall to step over), under the deck above
+				local h = WorldLayout.FLOOR_HEIGHT
+				local half = span / ramp.segments -- each rail piece is two ramp boxes wide
+				local low, high = (d - half) / span * h, (d + half) / span * h
+				local bottom = p[2] - r.size[2] / 2 - WorldLayout.floorTop(f - 1)
+				local top = p[2] + r.size[2] / 2 - WorldLayout.floorTop(f - 1)
+				expect(bottom <= low - 1 + 1e-6).toBe(true)
+				expect(top >= math.min(high + 2.4, h - 1) - 1e-6).toBe(true)
+				expect(top <= h - 1 + 1e-6).toBe(true)
+				-- no invisible wall on the floor under the ramp's high part, nor round the hole in the deck
+				if low > 6.5 then
+					expect(bottom > 5).toBe(true)
+				end
+				expect(top - high <= ramp.railHeight + 1e-6).toBe(true)
 				expect(math.sqrt(p[1] ^ 2 + p[3] ^ 2) >= st.outer).toBe(true)
 			end
 		end
