@@ -39,7 +39,6 @@ local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local TripleMerge = require(Shared:WaitForChild("TripleMerge"))
 local Types = require(Shared:WaitForChild("Types"))
 
-local CarryFade = require(script.CarryFade)
 local DexJarView = require(script.DexJarView)
 local Format = require(script.Format)
 local Hint = require(script.Hint)
@@ -784,14 +783,6 @@ local slimeMove = if Config.FEATURES.MoveSlime == true
 		prompts = ProximityPromptService,
 	})
 	else nil
-
--- The slime you are stealing turns see-through for you, like a Move.
-CarryFade.start({
-	player = player,
-	carryingAttribute = Constants.CARRYING_ATTRIBUTE,
-	slimeTag = Constants.SLIME_TAG,
-	collection = game:GetService("CollectionService"),
-})
 
 -- Your slimes are managed at their pads with keys: R Favorite, X hold to Sell (Hatch stays the server's F prompt),
 -- E Move with FEATURES.MoveSlime.
