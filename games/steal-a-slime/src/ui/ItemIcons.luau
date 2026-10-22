@@ -139,8 +139,8 @@ ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
 
 -- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
--- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet.
-ItemIcons.AWAITING_UPLOAD = table.freeze({ "Dex_8", "Dex_15", "Dex_20", "Dex_32", "Dex_40" } :: { string })
+-- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet, and the Boss MVP boost.
+ItemIcons.AWAITING_UPLOAD = table.freeze({ "Dex_8", "Dex_15", "Dex_20", "Dex_32", "Dex_40", "Boost_Mvp" } :: { string })
 
 -- Kit meshes that exist in MeshAssets (shared/MeshAssets NAMES) and may back a "mesh" model.
 ItemIcons.MESHES = table.freeze({
@@ -236,6 +236,14 @@ local HAND: { Hand } = {
 		color = { 170, 130, 255 },
 		glyph = "✨",
 		brief = "A glowing purple-white halo ring with sparkles around a small slime silhouette; front view.",
+	},
+	{
+		id = "Boost_Mvp",
+		name = "Boss MVP",
+		group = "boost",
+		color = { 255, 200, 60 },
+		glyph = "👑",
+		brief = "A gold crown sitting on a stack of gold coins; front view.",
 	},
 	{
 		id = "Boost_Weekend",

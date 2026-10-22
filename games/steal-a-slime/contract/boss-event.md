@@ -90,8 +90,8 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
   spot; anyone can grab it again. Dropping never resets the haul deadline.
 - **Win.** The carrier reaches their HomeZone (`Carry.depositBoss`, no free pad needed): a server-wide toast names the
-  winner, who alone gets the win; helpers are credited in their boss record (below). The boss slime is removed; it never goes into
-  `data.slimes` or anywhere else in the save.
+  winner, who alone gets the win (below); the top hitter gets the Boss MVP boost. The boss slime is removed; it never
+  goes into `data.slimes` or anywhere else in the save.
 - **Fail.** Meter not full by the fight deadline, or not home by the haul deadline: the boss (carried or not) is removed:
   it gets away. No slimes drop; the sheds are the fight's reward.
 - Bosses never count toward the wild cap and are never a random merge or fountain result.
@@ -161,9 +161,14 @@ data.boss = {
 ```
 
 - **Triggers (`server/BossCredit`).** A counted hit in `BossEvent.hit` records a hit. When the boss is brought home,
-  only the carrier gets a win for that species (so its boss badge) and a haul. The top contributor (`BossFight.top`),
-  if still on the server, gets an MVP. The carrier and every player whose `BossFight.share` is at least
-  `BOSS.WIN_SHARE` get the species in their SlimeDex (`PlayerData.discover` with the boss slime).
+  only the carrier gets a win for that species (so its boss badge), a haul and the species in their SlimeDex
+  (`PlayerData.discover` with the boss slime). Other helpers get nothing for the boss itself.
+- **Boss MVP boost.** The top contributor (`BossFight.top`), if still on the server, counts an MVP (`mvps`, no badge)
+  and gets `data.mvpBonus = BOSS.MVP_BONUS` (+50 % income, a factor of `Perks.bonusMultiplier` like the ritual's
+  Blessed) until `session.mvpUntil = now + BOSS.MVP_SECONDS` (5 min). Both are runtime only, never saved; leaving the
+  server ends it, and a new MVP restarts the timer. `BossCredit.expire` (every `GameLoop.step`) clears it and toasts.
+  `State.mvpBoost = { bonus, endsAt }` while it lasts; the HUD shows it as the `Mvp` status slot right after `Blessed`
+  (`Boost_Mvp` icon, time left in its pill, tooltip "Boss MVP" / "+50% income for landing the most hits on a boss.").
 - **Badges (`Config.BOSS_BADGES`, `Shared.BossBadges`).** Each entry: `key`, `name`, `description`, `trigger`, `value`,
   optional `species`. Triggers: `hits` (record.hits >= value), `win` (wins[species] >= value), `wins` (all species
   summed >= value), `hauls`, `mvps`. A per-species badge is one `win` line with its `species`. After each recorded event
@@ -238,7 +243,7 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT DROP_LUCK CARRY_SLOW
 SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_CLEARANCE STROLL_* LOOK_SECONDS ARRIVE_* WINDUP_SECONDS CHARGE_EASE
 STRIKE_SECONDS RING_DELAY SPIT_FLIGHT DAZED_SECONDS RISE_* LAND_SECONDS GUARD_SECONDS SHRINK_SECONDS
-MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK WIN_SHARE BURST_FLIGHT BURST_DISTANCE BURST_HEIGHT FIRST_ATTACK ATTACK_GAP
+MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK MVP_BONUS MVP_SECONDS BURST_FLIGHT BURST_DISTANCE BURST_HEIGHT FIRST_ATTACK ATTACK_GAP
 STAGE_SPEEDUP PHASE_AT DAZED_MULTIPLIER STUN_SECONDS HIT_ARC RING_WIDTH CONE_HIT_AT PUDDLE_RADIUS SPIT_SPREAD GUARD_*
 MOVES`, and the badge list `Config.BOSS_BADGES`. Values live in `Config.luau` only.
 
