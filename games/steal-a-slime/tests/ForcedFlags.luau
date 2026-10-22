@@ -26,6 +26,7 @@ ForcedFlags.off = {
 	["Spawner.stepModifier"] = "CycleModifier",
 	["FountainRide: the live server rides every spawned slime"] = "Parade",
 	["ParadeLane: handoff to the goo drain"] = "Parade",
+	["ground rays of returning slimes"] = "Parade",
 	["ParadeLane: the despawn telegraph stays readable"] = "Parade",
 	["ParadeLane in the live server"] = "Parade",
 	["Carry.release + Spawner: a dropped wild slime walks back and rejoins the lane"] = "Parade",
