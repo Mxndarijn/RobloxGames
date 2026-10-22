@@ -1,7 +1,9 @@
 # merge_vat: copper goo cauldron for the 3-slime merge vat (9.6 x 7.2 x 9.6 studs, ~1.5k tris).
 # Runtime-only (MergeVat3): the client stands it over the owner's plot MergeVat disc (dia 9, top at 4 studs above the
-# plot floor, so the cauldron mouth sits at ~4.6 and the goo dome at ~5.2). Three funnel spouts round the rim mark the
-# three slots; goo bubbles in the middle and drips over the lip. Origin bottom centre, 1 BU = 1 stud.
+# plot floor, so the cauldron mouth sits at ~4.6 and the goo dome at ~5.2). Three funnel cups round the rim are the
+# three slime seats: each holds a goo pool (top at CUP_SEAT_Z, radius 1.05) that a slime in the vat sits on
+# (VatDecor.CUPS in the game mirrors CUP_RADIUS / CUP_SEAT_Z). Goo bubbles in the middle and drips over the lip.
+# Origin bottom centre, 1 BU = 1 stud.
 import math
 from lib import *
 from models._phoenix_pad import lathe
@@ -27,13 +29,15 @@ parts.append(lathe("Goo", DOME, segs=16, color_fn=lambda i, k, z: GOO_HI if i >=
 for z0, r in ((1.2, 4.32), (3.0, 4.66)):
     parts.append(lathe(f"Band{z0}", [(0, z0), (r + 0.04, z0), (r + 0.18, z0 + 0.12), (r + 0.18, z0 + 0.42), (r + 0.04, z0 + 0.54), (0, z0 + 0.54)], segs=16,
                        color_fn=lambda i, k, z: BRASS if i != 2 else BRASS_D))
-# three funnel spouts on the rim, one per slime slot
+# three funnel cups on the rim, one per slime seat, each with a goo pool to sit on (no gem: the slime is the topper)
+CUP_RADIUS, CUP_SEAT_Z = 4.45, 6.25
 for i in range(3):
     a = math.radians(90 + i * 120)
-    x, y = math.cos(a) * 4.45, math.sin(a) * 4.45
+    x, y = math.cos(a) * CUP_RADIUS, math.sin(a) * CUP_RADIUS
     parts.append(lathe(f"Spout{i}", [(0, 4.5), (0.9, 4.5), (0.95, 5.1), (1.45, 6.0), (1.55, 6.5), (1.2, 6.55), (0.75, 5.35), (0, 5.3)], segs=10,
                        pos=(x, y, 0), color_fn=lambda i2, k, z: BRASS if i2 >= 3 else COP_HI))
-    parts.append(blob(f"Gem{i}", 0.5, (x, y, 7.0), GOO_HI, subdiv=1, squash=(1, 1, 1.25), jitter=0, rot=(0, 0, math.degrees(a))))
+    parts.append(lathe(f"Seat{i}", [(0, 5.5), (0.98, 5.5), (1.06, 6.1), (0.8, 6.2), (0, CUP_SEAT_Z)], segs=10,
+                       pos=(x, y, 0), color_fn=lambda i2, k, z: GOO_HI if i2 >= 3 else GOO))
 # goo bubbles popping in the middle
 for i, (bx, by, br) in enumerate(((0.4, 0.3, 0.9), (-1.1, -0.7, 0.62), (1.3, -0.9, 0.5))):
     parts.append(blob(f"Bub{i}", br, (bx, by, 5.9 + br * 0.45), GOO_HI, subdiv=2, squash=(1, 1, 0.9), jitter=0.02, seed=i))
