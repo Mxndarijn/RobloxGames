@@ -16,10 +16,11 @@ local GooIcons = {}
 -- The up arrow as fractions of its square: two arms meeting at the tip and a shaft under it.
 GooIcons.UP_ARROW = table.freeze({
 	inset = 0.16, -- empty margin round the arrow
-	thick = 0.2, -- bar thickness
-	armLength = 0.52,
-	tipY = 0.06, -- the tip's top, inside the inset box
-	shaftTop = 0.3,
+	thick = 0.22, -- bar thickness
+	armLength = 0.56,
+	tipY = 0.04, -- the tip's top, inside the inset box
+	tipOverlap = 0.11, -- how far the arms run past each other at the tip, so it ends in one round point
+	shaftTop = 0.12, -- the shaft starts under the tip, filling the gap between the arms
 	shaftBottom = 0.96,
 })
 
@@ -53,8 +54,8 @@ function GooIcons.upArrow(parent: any, deps: Deps, color: Color3, zIndex: number
 	local shaft = bar(deps, box, "Shaft", color, zIndex)
 	shaft.Position = deps.UDim2.fromScale(0.5, (a.shaftTop + a.shaftBottom) / 2)
 	shaft.Size = deps.UDim2.fromScale(a.thick, a.shaftBottom - a.shaftTop)
-	-- Each arm runs from the tip down and out at 45 degrees; its centre is half an arm from the tip.
-	local half = a.armLength / 2 * math.sqrt(0.5)
+	-- Each arm runs from the tip down and out at 45 degrees; the two overlap a little at the tip.
+	local half = (a.armLength / 2 - a.tipOverlap) * math.sqrt(0.5)
 	local tipY = a.tipY + a.thick / 2
 	for _, side in { -1, 1 } do
 		local arm = bar(deps, box, if side < 0 then "ArmLeft" else "ArmRight", color, zIndex)

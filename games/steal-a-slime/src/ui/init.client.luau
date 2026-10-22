@@ -599,6 +599,8 @@ end
 -- The tutorial card steps aside for an open menu card, the daily popup and the open bag panel.
 local function syncTutorial()
 	tutorial.setMenuOpen(not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
+	-- Visuals' edge arrows and the Your plot tag step aside while a menu, a popup or the bag covers the screen.
+	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, openKey ~= nil or dailyPopup.isOpen() or inventory.panelOpen())
 end
 
 local function syncMenus()
@@ -632,8 +634,6 @@ local function syncMenus()
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
 	syncTutorial()
-	-- Visuals' edge arrows and the Your plot tag step aside while a menu or popup covers the screen.
-	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, visibleKey ~= nil or dailyPopup.isOpen())
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
