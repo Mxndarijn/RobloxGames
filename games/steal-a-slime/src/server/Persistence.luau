@@ -29,6 +29,7 @@ export type Persistence = {
 	memoryMode: boolean,
 	orderedStore: OrderedDataStore?, -- global leaderboard; nil in memory mode
 	unsaved: { [number]: boolean }, -- Studio fallback profiles: never written
+	ranked: { [number]: number }, -- the last board value written per player
 	gate: SaveGate.Gate, -- loads and saves in flight, closing
 }
 
@@ -83,6 +84,7 @@ function Persistence.new(): Persistence
 		memoryMode = memoryMode,
 		orderedStore = orderedStore,
 		unsaved = {},
+		ranked = {},
 		gate = SaveGate.new({
 			clock = os.clock,
 			wait = function(seconds: number)
@@ -147,10 +149,17 @@ function Persistence.save(p: Persistence, userId: number, playerData: PlayerData
 		setStatus("Ok")
 	end
 	local store = p.orderedStore
-	if store and not readOnly then -- a read-only session's progress is not saved, so it doesn't rank either
-		pcall(function()
-			store:SetAsync(DataService.key(userId), Leaderboard.storeValue(playerData))
+	local value = Leaderboard.storeValue(playerData)
+	if store and Leaderboard.shouldWrite(ok, readOnly, p.ranked[userId], value) then
+		local written = pcall(function()
+			store:SetAsync(DataService.key(userId), value)
 		end)
+		if written then
+			p.ranked[userId] = value
+		end
+	end
+	if release then
+		p.ranked[userId] = nil
 	end
 	p.gate.pending -= 1
 end

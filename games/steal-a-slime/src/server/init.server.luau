@@ -323,6 +323,7 @@ PlayerLifecycle.start({
 	friends = friendCache,
 	badges = badges,
 	ritual = ritual,
+	safeCall = safeCall,
 	now = now,
 	refreshView = refreshView,
 	refreshFriends = refreshFriends,

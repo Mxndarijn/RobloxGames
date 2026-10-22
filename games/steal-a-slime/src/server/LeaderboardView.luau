@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Leaderboard = require(script.Parent.Leaderboard)
+local NameCache = require(script.Parent.NameCache)
 local PodiumAvatars = require(script.Parent.PodiumAvatars)
 local PodiumRigs = require(script.Parent.PodiumRigs)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -71,13 +72,9 @@ local function nameOf(view: LeaderboardView, userId: number): string
 	if player then
 		return player.DisplayName
 	end
-	if not view.names[userId] then
-		local ok, name = pcall(function()
-			return Players:GetNameFromUserIdAsync(userId)
-		end)
-		view.names[userId] = if ok and type(name) == "string" then name else `Player {userId}`
-	end
-	return view.names[userId]
+	return NameCache.resolve(view.names, userId, function(id: number): string
+		return Players:GetNameFromUserIdAsync(id)
+	end)
 end
 
 -- Fetches the board and pushes it to everyone (yields on the OrderedDataStore).

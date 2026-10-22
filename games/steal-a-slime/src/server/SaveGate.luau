@@ -38,7 +38,10 @@ end
 -- Runs `save` (which may yield) counted in `pending`.
 function SaveGate.track(gate: Gate, save: () -> ())
 	gate.pending += 1
-	local ok, err = pcall(save)
+	local ok, err = pcall(function(): any
+		save()
+		return nil
+	end)
 	gate.pending -= 1
 	if not ok then
 		error(err, 0)
