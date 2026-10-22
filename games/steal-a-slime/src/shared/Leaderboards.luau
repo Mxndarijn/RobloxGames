@@ -153,6 +153,15 @@ function Leaderboards.value(stat: Stat, data: PlayerData.Data, week: number): nu
 	return 0
 end
 
+-- My rank as text (State.boardRanks): "#48"; "#1000+" when it is deeper than the entries read (-1000); nil when
+-- I'm not ranked yet.
+function Leaderboards.rankText(rank: any): string?
+	if type(rank) ~= "number" or rank ~= rank or rank == 0 then
+		return nil
+	end
+	return if rank > 0 then `#{math.floor(rank)}` else `#{math.floor(-rank)}+`
+end
+
 -- A board value as shown on the board: "$1.5K" for cash boards, "1.5K" for counts.
 function Leaderboards.format(stat: any, value: number): string
 	local def = Leaderboards.get(stat)

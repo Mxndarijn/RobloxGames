@@ -1164,7 +1164,7 @@ stateEvent.OnClientEvent:Connect(function(state: Types.State)
 	end
 	latest = state
 	if worldBoards.setMine then
-		worldBoards.setMine(state.boards)
+		worldBoards.setMine(state.boards, state.boardRanks)
 	end
 	if type(state.serverTime) == "number" then
 		clockOffset = Format.clockOffset(state.serverTime, os.clock())

@@ -74,6 +74,29 @@ function Leaderboard.pageFromSessions(
 	return OrderedBoard.pageFrom(items)
 end
 
+-- Each session's rank on one board from the scanned pages (`items`, joined in order): its rank when found; -n when it
+-- was not found and the scan stopped after n entries before the end of the board (deeper than #n); absent when the
+-- whole board was read without it (nothing written for that player yet).
+function Leaderboard.sessionRanks(
+	items: { any },
+	sessions: { [number]: { userId: number } },
+	finished: boolean
+): { [number]: number }
+	local wanted: { [number]: boolean } = {}
+	for _, session in sessions do
+		wanted[session.userId] = true
+	end
+	local ranks = OrderedBoard.ranks(items, wanted)
+	if not finished then
+		for userId in wanted do
+			if ranks[userId] == nil then
+				ranks[userId] = -#items
+			end
+		end
+	end
+	return ranks
+end
+
 export type BoardRow = { rank: string, name: string, value: string }
 
 Leaderboard.EMPTY_TEXT = "No entries yet"

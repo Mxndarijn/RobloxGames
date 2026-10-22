@@ -6,6 +6,7 @@
 		if OrderedBoard.shouldWrite(saved, readOnly, lastWritten, value) then store:SetAsync(key, value) end
 		local entries = OrderedBoard.entries(page, nameOf, { size = 10 }) -- page = GetSortedAsync(false, 10):GetCurrentPage()
 		local page = OrderedBoard.pageFrom({ { key = "u_1", value = 5 }, ... }) -- the same shape from in-memory records
+		local ranks = OrderedBoard.ranks(items, { [userId] = true }) -- userId -> rank, for the players in `items`
 
 	Keys are "<prefix><userId>" (prefix "u_" unless `options.prefix` says otherwise). OrderedDataStore values must be
 	integers in 0 .. 2^53 - 1, so `clamp` floors, caps and turns NaN into 0. `periodKey` names one store per time
@@ -65,6 +66,34 @@ function OrderedBoard.entries(page: { any }, nameOf: (userId: number) -> string,
 		end
 	end
 	return out
+end
+
+-- The rank of each wanted user id in `items` (the pages of GetSortedAsync(false, ...) in order, joined): the same
+-- numbering as `entries` (junk items are skipped, not counted). Ids not in `items` are absent from the result.
+function OrderedBoard.ranks(items: { any }, wanted: { [number]: boolean }, prefix: string?): { [number]: number }
+	local out: { [number]: number } = {}
+	local rank = 0
+	for _, item in items do
+		local userId = if type(item) == "table" then OrderedBoard.userIdFromKey(item.key, prefix) else nil
+		local value = if type(item) == "table" then tonumber(item.value) else nil
+		if userId and value and value == value then
+			rank += 1
+			if wanted[userId] and out[userId] == nil then
+				out[userId] = rank
+			end
+		end
+	end
+	return out
+end
+
+-- True when every wanted id has a rank in `ranks`.
+function OrderedBoard.allFound(ranks: { [number]: number }, wanted: { [number]: boolean }): boolean
+	for userId in wanted do
+		if ranks[userId] == nil then
+			return false
+		end
+	end
+	return true
 end
 
 -- In-memory records -> a page shaped like GetSortedAsync(false, n):GetCurrentPage(): highest value first, ties by

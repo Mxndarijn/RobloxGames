@@ -266,6 +266,7 @@ The client always replaces its copy and never diffs.
 	tutorialStep: number?,   -- 1..6 (§2 Tutorial); nil = finished
 	hotbar: { string }?,     -- saved hotbar order: exactly 9 slot keys ("" = empty), nil until the player first sends SetHotbar
 	boards: { [string]: number }, -- my own value on each global board, keyed by stat ("TotalEarned", "WeeklyEarned", "Steals", "Dex", "Merges")
+	boardRanks: { [string]: number }, -- my rank on each board at the last refresh; -n = deeper than #n (not reached); absent = not on the board yet
 	boss: BossView,          -- the boss event and this player's part in it (§33)
 	bossBadges: { { key: string, earnedAt: number } }, -- earned boss badges, Config.BOSS_BADGES order (§33)
 }
@@ -275,6 +276,7 @@ The client always replaces its copy and never diffs.
 - `egg.hatched` is the newest Mystery Egg the player hatched (`HatchEgg`, [mystery-egg.md](contract/mystery-egg.md)). The HUD shows no banner for it.
 - `shop` keys are the UI's `ShopCatalog` item ids. Prices are final (what `Request` charges).
 - `boards` holds the same values the saves write to the global boards (§2 Leaderboard), so the client can show "You" under a board's top 10.
+- `boardRanks`: each refresh reads the top `LEADERBOARD_PAGE` of every board and, while the GetSortedAsync budget stays above `LEADERBOARD_RANK_RESERVE`, further pages until every player in the server is found or `LEADERBOARD_RANK_DEPTH` entries are read. In memory mode the rank is among this server's players.
 - `hotbar` is what the last successful `Request("SetHotbar", order)` stored (§3), saved across sessions and rebirths. Keys may name items the player no longer holds; the client skips those.
 
 ### 5.2 Instance attributes (read by UI billboards and visuals)

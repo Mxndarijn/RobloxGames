@@ -72,6 +72,12 @@ function WorldLeaderboard.rows(board: any, myUserId: number?, max: number?): { R
 	return out
 end
 
+-- The "You" line's label: "You #48" with my rank (State.boardRanks), "You" before the first ranking.
+function WorldLeaderboard.youLabel(myRank: any): string
+	local rank = Leaderboards.rankText(myRank)
+	return if rank then `You {rank}` else "You"
+end
+
 -- The "You" line under a board's top 10: my value as the board shows it, or nil when I am in the rows already or
 -- my value is unknown.
 function WorldLeaderboard.youText(rows: { Row }, stat: any, myValue: any): string?
@@ -228,8 +234,8 @@ function WorldLeaderboard.render(gui: SurfaceGui, rows: { Row })
 	end
 end
 
--- Fills (or hides) the board's "You" frame (Props.leaderboardBoard) with `text`.
-function WorldLeaderboard.renderYou(gui: SurfaceGui, text: string?)
+-- Fills (or hides) the board's "You" frame (Props.leaderboardBoard) with `text` and the `label` before it.
+function WorldLeaderboard.renderYou(gui: SurfaceGui, text: string?, label: string?)
 	local you = gui:FindFirstChild("You", true)
 	if not (you and you:IsA("GuiObject")) then
 		return
@@ -239,11 +245,15 @@ function WorldLeaderboard.renderYou(gui: SurfaceGui, text: string?)
 	if text and value and value:IsA("TextLabel") then
 		value.Text = text
 	end
+	local name = you:FindFirstChild("Name")
+	if label and name and name:IsA("TextLabel") then
+		name.Text = label
+	end
 end
 
 export type Handle = {
 	setBoard: (board: any) -> (),
-	setMine: (boards: any) -> (),
+	setMine: (boards: any, ranks: any) -> (),
 	boards: () -> { SurfaceGui },
 }
 
@@ -264,11 +274,13 @@ function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
 	local bound: { [SurfaceGui]: string } = {} -- gui -> stat
 	local latest: { [string]: { Row } } = {}
 	local mine: { [string]: number } = {} -- my own value per stat (State.boards)
+	local myRanks: { [string]: number } = {} -- my rank per stat (State.boardRanks)
 
 	local function showYou(gui: SurfaceGui, stat: string)
 		local text = WorldLeaderboard.youText(latest[stat] or {}, stat, mine[stat])
+		local label = WorldLeaderboard.youLabel(myRanks[stat])
 		local ok, err = pcall(function()
-			WorldLeaderboard.renderYou(gui, text)
+			WorldLeaderboard.renderYou(gui, text, label)
 		end)
 		if not ok then
 			warn("[UI] world leaderboard You line failed:", err)
@@ -322,11 +334,19 @@ function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
 				end
 			end
 		end,
-		setMine = function(boards: any)
+		setMine = function(boards: any, ranks: any)
 			if type(boards) ~= "table" then
 				return
 			end
 			local changed = false
+			if type(ranks) == "table" then
+				for _, def in Leaderboards.BOARDS do
+					if myRanks[def.stat] ~= ranks[def.stat] then
+						myRanks[def.stat] = ranks[def.stat]
+						changed = true
+					end
+				end
+			end
 			for _, def in Leaderboards.BOARDS do
 				local value = boards[def.stat]
 				if type(value) == "number" and mine[def.stat] ~= value then

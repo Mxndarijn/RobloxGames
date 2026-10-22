@@ -66,9 +66,9 @@ function LeaderboardPanel.rows(board: any, myUserId: number?): { Row }
 	return out
 end
 
--- The footer line: "You: #3  $1.5K" in the top ten, "You: $90 (not in the top 10)" outside it,
--- "You: no score yet" while State has no value for the board.
-function LeaderboardPanel.youText(rows: { Row }, stat: any, myValue: any): string
+-- The footer line: "You: #3  $1.5K" in the top ten, "You: #48  $90" or "You: #1000+  $90" outside it (State.boardRanks),
+-- "You: $90" before the first ranking, "You: no score yet" while State has no value for the board.
+function LeaderboardPanel.youText(rows: { Row }, stat: any, myValue: any, myRank: any): string
 	for _, row in rows do
 		if row.isMe then
 			return `You: {row.rankText}  {row.value}`
@@ -77,7 +77,9 @@ function LeaderboardPanel.youText(rows: { Row }, stat: any, myValue: any): strin
 	if type(myValue) ~= "number" or myValue ~= myValue then
 		return "You: no score yet"
 	end
-	return `You: {Leaderboards.format(stat, myValue)} (not in the top {LeaderboardPanel.MAX_ROWS})`
+	local rank = Leaderboards.rankText(myRank)
+	local value = Leaderboards.format(stat, myValue)
+	return if rank then `You: {rank}  {value}` else `You: {value}`
 end
 
 -- Rank text colour: gold, silver and bronze tints for the top three, Muted below.
@@ -101,6 +103,7 @@ function LeaderboardPanel.new(parent: Instance, ctx: any)
 	local selected: string = LeaderboardPanel.DEFAULT
 	local payloads: { [string]: any } = {}
 	local mine: { [string]: any } = {}
+	local ranks: { [string]: any } = {} -- State.boardRanks
 
 	-- Tabs: five equal jelly buttons across the body, `gap` apart.
 	local count = #Leaderboards.BOARDS
@@ -232,7 +235,7 @@ function LeaderboardPanel.new(parent: Instance, ctx: any)
 		empty.Visible = #shown == 0
 		empty.Text = if payload == nil then LeaderboardPanel.LOADING else LeaderboardPanel.EMPTY
 		rows.sync(shown)
-		you.Text = LeaderboardPanel.youText(shown, selected, mine[selected])
+		you.Text = LeaderboardPanel.youText(shown, selected, mine[selected], ranks[selected])
 	end
 
 	local self = { frame = panel.frame, close = panel.close }
@@ -250,6 +253,7 @@ function LeaderboardPanel.new(parent: Instance, ctx: any)
 
 	function self.update(state: any)
 		mine = if type(state) == "table" and type(state.boards) == "table" then state.boards else {}
+		ranks = if type(state) == "table" and type(state.boardRanks) == "table" then state.boardRanks else {}
 		render()
 	end
 

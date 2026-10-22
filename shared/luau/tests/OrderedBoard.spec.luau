@@ -88,6 +88,22 @@ describe("OrderedBoard.entries", function()
 	end)
 end)
 
+describe("OrderedBoard.ranks", function()
+	it("ranks wanted ids across joined pages, skipping junk like entries does", function()
+		local items = {
+			{ key = "u_1", value = 90 },
+			{ key = "bad", value = 80 },
+			{ key = "u_2", value = 70 },
+			{ key = "u_3", value = 60 },
+		}
+		local ranks = OrderedBoard.ranks(items, { [3] = true, [9] = true })
+		expect(ranks[3]).toBe(3)
+		expect(ranks[9]).toBe(nil)
+		expect(OrderedBoard.allFound(ranks, { [3] = true })).toBe(true)
+		expect(OrderedBoard.allFound(ranks, { [3] = true, [9] = true })).toBe(false)
+	end)
+end)
+
 describe("OrderedBoard.pageFrom", function()
 	it("sorts records highest first, ties by key", function()
 		local page = OrderedBoard.pageFrom({

@@ -108,3 +108,17 @@ describe("Leaderboard", function()
 		expect(count[1].value).toBe("1.5K")
 	end)
 end)
+
+describe("Leaderboard.sessionRanks", function()
+	local items = { { key = "u_1", value = 90 }, { key = "u_2", value = 70 }, { key = "u_3", value = 60 } }
+	local sessions = { [2] = { userId = 2 }, [7] = { userId = 7 } }
+	it("ranks the players found in the pages", function()
+		expect(Leaderboard.sessionRanks(items, sessions, true)[2]).toBe(2)
+	end)
+	it("marks a player deeper than a partial read with -n", function()
+		expect(Leaderboard.sessionRanks(items, sessions, false)[7]).toBe(-3)
+	end)
+	it("leaves a player off a fully read board unranked", function()
+		expect(Leaderboard.sessionRanks(items, sessions, true)[7]).toBe(nil)
+	end)
+end)

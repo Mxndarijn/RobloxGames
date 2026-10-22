@@ -9,6 +9,7 @@
 	Leaderboard (pure).
 ]]
 
+local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -16,6 +17,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Leaderboards = require(ReplicatedStorage.Shared.Leaderboards)
 local NameCache = require(script.Parent.NameCache)
+local OrderedBoard = require(ReplicatedStorage.Lib.ranking.OrderedBoard)
 local PodiumAvatars = require(script.Parent.PodiumAvatars)
 local PodiumRigs = require(script.Parent.PodiumRigs)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -86,28 +88,89 @@ local function nameOf(view: LeaderboardView, userId: number): string
 	end)
 end
 
--- One board's page: the top of its store, or this server's players in memory mode. nil when the read failed.
-local function readPage(view: LeaderboardView, def: Leaderboards.Board, week: number): { any }?
+-- True while a deeper GetSortedAsync page leaves enough budget for the next refreshes.
+local function budgetLeft(): boolean
+	local ok, budget = pcall(function()
+		return DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.GetSortedAsync)
+	end)
+	return ok and budget > Config.LEADERBOARD_RANK_RESERVE
+end
+
+--[[
+	One board's pages, best first, joined: the top LEADERBOARD_PAGE of its store, then (within the request budget)
+	more pages until every player in this server has a rank or LEADERBOARD_RANK_DEPTH entries are read. In memory
+	mode: this server's players, the whole board. Returns the items and whether the whole board was read; nil when
+	the first read failed.
+]]
+local function readPages(view: LeaderboardView, def: Leaderboards.Board, week: number): ({ any }?, boolean)
 	local open = view.boardStore
 	if not open then
-		return Leaderboard.pageFromSessions(view.world.sessions :: any, def.stat, week)
+		return Leaderboard.pageFromSessions(view.world.sessions :: any, def.stat, week), true
 	end
 	local store = open(Leaderboards.storeName(def, week))
 	if not store then
-		return nil
+		return nil, false
 	end
-	local ok, page = pcall(function()
-		return store:GetSortedAsync(false, Config.LEADERBOARD_SIZE):GetCurrentPage()
+	local ok, pages = pcall(function()
+		return store:GetSortedAsync(false, Config.LEADERBOARD_PAGE)
 	end)
-	return if ok and type(page) == "table" then page else nil
+	if not ok then
+		return nil, false
+	end
+	local items: { any } = {}
+	local function take(): boolean
+		local got, page = pcall(function()
+			return pages:GetCurrentPage()
+		end)
+		if not got or type(page) ~= "table" then
+			return false
+		end
+		for _, item in page do
+			table.insert(items, item)
+		end
+		return true
+	end
+	if not take() then
+		return nil, false
+	end
+	local wanted: { [number]: boolean } = {}
+	for userId in view.world.sessions do
+		wanted[userId] = true
+	end
+	while not pages.IsFinished and #items < Config.LEADERBOARD_RANK_DEPTH do
+		if OrderedBoard.allFound(OrderedBoard.ranks(items, wanted), wanted) or not budgetLeft() then
+			break
+		end
+		local advanced = pcall(function()
+			pages:AdvanceToNextPageAsync()
+		end)
+		if not advanced or not take() then
+			break
+		end
+	end
+	return items, pages.IsFinished
+end
+
+-- Stores each session's rank on `def` (Leaderboard.sessionRanks) and marks the ones that changed for a State push.
+local function rankSessions(view: LeaderboardView, def: Leaderboards.Board, items: { any }, finished: boolean)
+	local ranks = Leaderboard.sessionRanks(items, view.world.sessions :: any, finished)
+	for userId, session in view.world.sessions do
+		local mine = session.boardRanks or {}
+		session.boardRanks = mine
+		if mine[def.stat] ~= ranks[userId] then
+			mine[def.stat] = ranks[userId]
+			World.markDirty(session)
+		end
+	end
 end
 
 -- Fetches every board and pushes each to everyone (yields on the OrderedDataStores).
 function LeaderboardView.refresh(view: LeaderboardView)
 	local week = WeeklyEvents.weekIndex(os.time())
 	for _, def in Leaderboards.BOARDS do
-		local page = readPage(view, def, week)
+		local page, finished = readPages(view, def, week)
 		if page then
+			rankSessions(view, def, page, finished)
 			local board = Leaderboard.fromPage(page, function(userId: number): string
 				return nameOf(view, userId)
 			end, def.stat)

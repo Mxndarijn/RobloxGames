@@ -138,6 +138,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		welcomeBack = session.welcome,
 		hotbar = if data.hotbar then table.clone(data.hotbar) else nil,
 		boards = Snapshot.boards(data, now),
+		boardRanks = if session.boardRanks then table.clone(session.boardRanks) else {},
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		blessed = if data.ritualBonus and session.blessedUntil
 			then { bonus = data.ritualBonus, endsAt = session.blessedUntil }
