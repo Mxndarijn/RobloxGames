@@ -323,13 +323,13 @@ function SlimeDex.rewardCard(state: any): RewardCard?
 end
 
 -- Plot skin cards (FEATURES.PlotSkins, CONTRACT.md §15) shown above the species: one per State.plotSkins entry,
--- locked / unlocked with the SlimeDex set progress. Empty without the field.
+-- locked / unlocked with the progress on the skin's slimes. Empty without the field.
 export type SkinRow = {
 	key: string,
 	tier: number,
 	locked: boolean,
 	title: string, -- the skin's name
-	detail: string, -- the set, or for a locked skin what unlocks it
+	detail: string, -- the slimes' group, or for a locked skin what unlocks it
 	found: string?, -- a locked skin's count toward it ("3/5 found")
 	fraction: number, -- set progress (1 once unlocked)
 	color: { number },
@@ -343,7 +343,7 @@ function SlimeDex.skinRows(plotSkins: any, config: any): { SkinRow }
 	end
 	local floors: { [string]: { number } } = {}
 	for _, def in config.PLOT_SKINS or {} do
-		floors[def.id] = if def.floor then def.floor.color else { 214, 176, 124 } -- classic: ranch_plaza
+		floors[def.id] = def.color or (if def.floor then def.floor.color else { 214, 176, 124 }) -- else ranch_plaza
 	end
 	for _, skin in plotSkins :: { any } do
 		if type(skin) == "table" and type(skin.id) == "string" then

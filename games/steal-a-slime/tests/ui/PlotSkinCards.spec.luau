@@ -1,6 +1,6 @@
 --!strict
 -- The plot skin picker (gaps #15, FEATURES.PlotSkins): a small card list at the top of the SlimeDex
--- panel with locked / unlocked state and the Dex-set progress; nothing at all without State.plotSkins.
+-- panel with locked / unlocked state and the progress on each skin's slimes; nothing at all without State.plotSkins.
 local fs = require("@lune/fs")
 
 local Config = require("../../src/shared/Config")
@@ -11,24 +11,21 @@ local PlayerData = require("../../src/shared/PlayerData")
 local PlotSkins = require("../../src/shared/PlotSkins")
 local Remotes = require("../../src/shared/Remotes")
 local SlimeDex = require("../../src/ui/SlimeDex")
-local SpeciesDex = require("../../src/shared/SpeciesDex")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local UDim2 = (require("@lune/roblox") :: any).UDim2
 
--- Common species in the set and how many found to unlock it.
-local COMMON = SpeciesDex.tierSize(1)
-local NEED = math.ceil(COMMON * 0.75)
+-- The Garden skin (the second card): its family's slimes and how many found unlock it.
+local GARDEN = PlotSkins.slimes(PlotSkins.get("garden") :: Config.PlotSkin)
+local NEED = math.ceil(#GARDEN * 0.75)
 
-local function view(commonOwned: number, equipped: string?): { any }
+local function view(gardenOwned: number, equipped: string?): { any }
 	local data = PlayerData.new()
-	local n = 0
-	for _, entry in SpeciesDex.ENTRIES do
-		if entry.tier == 1 and n < commonOwned then
-			data.found[entry.id] = true
-			n += 1
+	for i, id in GARDEN do
+		if i <= gardenOwned then
+			data.found[id] = true
 		end
 	end
 	data.plotSkin = equipped or "classic"
@@ -77,20 +74,20 @@ describe("plot skin cards (SlimeDex.skinRows)", function()
 		expect(rows[1].skin.equipped).toBe(true)
 		expect(rows[1].detail).toBe("Default look")
 		expect(rows[2].locked).toBe(true)
-		expect(rows[2].detail).toBe(`Find {NEED} Common species`)
+		expect(rows[2].detail).toBe(`Find {NEED} Garden species`)
 		expect(rows[2].found).toBe(`{NEED - 1}/{NEED} found`)
 		expect(rows[1].found).toBeNil()
 		expect(rows[2].fraction).toBeCloseTo((NEED - 1) / NEED)
-		expect(rows[2].title).toBe("Mushroom meadow")
+		expect(rows[2].title).toBe("Garden")
 		expect(rows[2].skin.unlocked).toBe(false)
 	end)
 	it("an unlocked skin says so and an equipped one says Equipped", function()
 		local unlocked = SlimeDex.skinRows(view(NEED), Config)[2]
-		expect(unlocked.detail).toBe("Common set")
+		expect(unlocked.detail).toBe("Garden set")
 		expect(unlocked.fraction).toBe(1)
 		expect(unlocked.skin.unlocked and not unlocked.skin.equipped).toBe(true)
-		local equipped = SlimeDex.skinRows(view(NEED, "mushroom"), Config)[2]
-		expect(equipped.detail).toBe("Common set")
+		local equipped = SlimeDex.skinRows(view(NEED, "garden"), Config)[2]
+		expect(equipped.detail).toBe("Garden set")
 		expect(equipped.skin.equipped).toBe(true)
 	end)
 end)
@@ -100,23 +97,23 @@ describe("plot skin cards in the Dex panel", function()
 		local panel = openDex(view(NEED))
 		local list = UiHarness.find(panel.frame, "List")
 		local classic = list:FindFirstChild("skin:classic")
-		local mushroom = list:FindFirstChild("skin:mushroom")
+		local garden = list:FindFirstChild("skin:garden")
 		local candy = list:FindFirstChild("skin:candy")
-		expect(classic ~= nil and mushroom ~= nil and candy ~= nil).toBe(true)
+		expect(classic ~= nil and garden ~= nil and candy ~= nil).toBe(true)
 		expect(classic:FindFirstChild("Equipped").Visible).toBe(true)
 		expect(classic:FindFirstChild("Equip").Visible).toBe(false)
-		expect(mushroom:FindFirstChild("Equip").Text).toBe("Equip")
-		expect(mushroom:FindFirstChild("Equip").Visible).toBe(true)
-		expect(mushroom:FindFirstChild("Equipped").Visible).toBe(false)
+		expect(garden:FindFirstChild("Equip").Text).toBe("Equip")
+		expect(garden:FindFirstChild("Equip").Visible).toBe(true)
+		expect(garden:FindFirstChild("Equipped").Visible).toBe(false)
 		expect(candy:FindFirstChild("Equip").Visible).toBe(false) -- locked: no button, the unlock text and a bar
 		expect(candy:FindFirstChild("Progress").Visible).toBe(true)
-		expect(mushroom:FindFirstChild("Progress").Visible).toBe(false)
+		expect(garden:FindFirstChild("Progress").Visible).toBe(false)
 		local heading = list:FindFirstChild("skins:header")
 		expect(UiHarness.find(heading, "Title").Text).toBe("Plot skins")
 		expect(heading.LayoutOrder < classic.LayoutOrder).toBe(true)
 		expect(classic.LayoutOrder < list:FindFirstChild("header:1").LayoutOrder).toBe(true)
 		expect(candy:GetAttribute("Locked")).toBe(true)
-		expect(mushroom:GetAttribute("SkinId")).toBe("mushroom")
+		expect(garden:GetAttribute("SkinId")).toBe("garden")
 	end)
 	it("species cards carry no Equip button, and without plotSkins there are no cards at all", function()
 		local panel = openDex(nil)

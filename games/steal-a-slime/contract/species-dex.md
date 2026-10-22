@@ -45,8 +45,8 @@ is 50 species, a few short of the full Dex (53).
 `{ { count, reward, bonus } }`; `Milestones` toasts them ("SlimeDex 15 species: ..."). Bonus entries never count.
 
 **Rebased on the new counts.**
-- Plot skins (§15): a skin's `set` tier unlocks at `threshold` of that tier's entries found
-  (`SpeciesDex.tierCount / tierSize`). `PlotSkinView.owned / total / needed` count entries.
+- Plot skins (§15): a skin unlocks at `threshold` of its own slimes found (a family, or a species list).
+  `PlotSkinView.owned / total / needed` count those slimes.
 - Badges: `dexPercent` = `found x 100 >= value x 53`; `tier` = a found entry of that tier.
 - Plot attributes: none any more. `DexCount`, `DexTotal` and `DexTierMask` went with the plot SlimeDex board (goo jar tower remodel, 2026-10-21); `SpeciesDex.tierMask` still feeds the badges.
 
