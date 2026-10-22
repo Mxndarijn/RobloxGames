@@ -45,6 +45,7 @@ local Persistence = require(script.Persistence)
 local PlayerAttributes = require(script.PlayerAttributes)
 local PlayerLifecycle = require(script.PlayerLifecycle)
 local PlazaColliders = require(script.PlazaColliders)
+local PlotThemeView = require(script.PlotThemeView)
 local Profiler = require(script.Profiler)
 local PvpBlaster = require(script.PvpBlaster)
 local PvpFun = require(script.PvpFun)
@@ -96,6 +97,7 @@ end
 -- These yield (terrain tiles, mesh loads), so they run in the background and never block boot.
 task.spawn(safeCall, "BorderTerrainView.place", BorderTerrainView.place) -- hills behind the world border
 task.spawn(safeCall, "MeshSwap.applyAll", MeshSwap.applyAll) -- kit meshes, merge vats, then WorldMeshesReady
+safeCall("PlotThemeView.start", PlotThemeView.start) -- FEATURES.PlotSkins: each tower in its owner's theme
 task.spawn(safeCall, "MeshSwap.publishSkinTemplates", MeshSwap.publishSkinTemplates) -- FEATURES.PlotSkins
 task.spawn(safeCall, "MeshSwap.publishHabitatTemplates", MeshSwap.publishHabitatTemplates) -- FEATURES.Habitats
 task.spawn(safeCall, "MeshSwap.publishPetCloudTemplate", MeshSwap.publishPetCloudTemplate) -- the follow pet's cloud

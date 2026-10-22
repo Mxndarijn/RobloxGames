@@ -68,13 +68,18 @@ export type DailyQuest = {
 
 export type DexMilestone = { count: number, reward: number, bonus: number }
 
--- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15). `set` = rarity tier whose SlimeDex set must be
--- `threshold` complete. Colours are RGB 0..255; `trim` multiplies the jar's cork and trim colours (white = none).
+-- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15): goo jar tower themes. A skin's slimes are a whole family
+-- (`family`, a FountainTiers.FAMILIES id) or a `species` list (SlimeRoster ids); it unlocks once `threshold` of them
+-- are found (PlotSkins). Neither = always unlocked. Colours are RGB 0..255; `color` is the picker card's swatch.
+-- `floor`, `trim` and `decor` are PlotDecor.applySkin's plot paint: the Base, trim parts and mailbox slot it paints
+-- are hidden under the goo jar tower meshes.
 export type PlotSkin = {
 	id: string, -- permanent save id; never rename
 	name: string,
-	set: number?, -- Config.RARITIES tier; nil = always unlocked
+	family: string?,
+	species: { string }?,
 	threshold: number?,
+	color: { number }?,
 	floor: { color: { number }, material: string }?, -- plot Base; nil = leave as built
 	trim: { number }?,
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
@@ -429,33 +434,38 @@ local DEX_MILESTONES: { species: { DexMilestone } } = {
 }
 
 local PLOT_SKINS: { PlotSkin } = {
-	{ id = "classic", name = "Classic Ranch" },
+	{ id = "classic", name = "Classic Ranch", color = { 110, 226, 170 } },
+	{ id = "garden", name = "Garden", family = "orchard", threshold = 0.75, color = { 252, 176, 118 } },
 	{
-		id = "mushroom",
-		name = "Mushroom Meadow",
-		set = 1,
+		id = "crystal",
+		name = "Frost & Sea",
+		family = "frost",
 		threshold = 0.75,
-		floor = { color = { 112, 150, 72 }, material = "Grass" },
-		trim = { 255, 214, 196 },
-		decor = "plot_skin_mushroom",
+		color = { 124, 210, 236 },
+		floor = { color = { 148, 124, 190 }, material = "Slate" },
+		trim = { 214, 196, 255 },
+		decor = "plot_skin_crystal",
 	},
+	{ id = "starlight", name = "Starlight", family = "starlight", threshold = 0.75, color = { 250, 212, 118 } },
 	{
 		id = "candy",
-		name = "Candy Patch",
-		set = 2,
+		name = "Candy",
+		species = { "gummy", "mochi", "flan", "soda", "rocky_road" },
 		threshold = 0.75,
+		color = { 246, 146, 192 },
 		floor = { color = { 224, 142, 172 }, material = "Sand" },
 		trim = { 255, 190, 214 },
 		decor = "plot_skin_candy",
 	},
 	{
-		id = "crystal",
-		name = "Crystal Grotto",
-		set = 3,
+		id = "mushroom",
+		name = "Forest",
+		species = { "mushie", "froggo", "pebble", "truffle", "moo_shroom", "bloom" },
 		threshold = 0.75,
-		floor = { color = { 148, 124, 190 }, material = "Slate" },
-		trim = { 214, 196, 255 },
-		decor = "plot_skin_crystal",
+		color = { 184, 150, 236 },
+		floor = { color = { 112, 150, 72 }, material = "Grass" },
+		trim = { 255, 214, 196 },
+		decor = "plot_skin_mushroom",
 	},
 }
 
@@ -595,6 +605,12 @@ for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES.species } :: { { any } 
 	end
 end
 for _, skin in PLOT_SKINS do
+	if skin.species then
+		table.freeze(skin.species)
+	end
+	if skin.color then
+		table.freeze(skin.color)
+	end
 	if skin.floor then
 		table.freeze(skin.floor.color)
 		table.freeze(skin.floor)
@@ -914,11 +930,11 @@ local Config = {
 		WARNING_SECONDS = 60, -- heads-up before the boss arrives
 		RAIN_GAP = 3 * 60, -- skip when Slime Rain runs or is due this close to the arrival
 		SKIP_DELAY = 5 * 60, -- a skipped arrival moves this much later
-		FIGHT_SECONDS = 120,
+		FIGHT_SECONDS = 150,
 		HAUL_SECONDS = 90,
 		LINGER_SECONDS = 6, -- the won / failed result stays in State.boss
 		PRIORITY_SECONDS = 5, -- head start for the top contributor in the haul
-		POINTS_PER_PLAYER = 45, -- meter target = this x players on the server (dazed hits count DAZED_MULTIPLIER)
+		POINTS_PER_PLAYER = 110, -- meter target = this x players on the server (dazed hits count DAZED_MULTIPLIER)
 		HIT_GAP = 0.4, -- one meter point per player per this many seconds
 		HIT_REACH = 13, -- studs from the swinger's root to the boss Body (about the boss's radius at SCALE + a bat's reach)
 		DRAIN_PER_SECOND = 0.02, -- share of the target lost per second with nobody hitting
@@ -926,7 +942,8 @@ local Config = {
 		SHED_EVERY = 0.25, -- meter share between sheds
 		SHED_COUNT = 2, -- wild slimes per shed
 		DROP_LUCK = 3, -- luck multiplier on shed slimes
-		WIN_SHARE = 0.1, -- a player with at least this share of the top hitter's points helped win
+		MVP_BONUS = 0.5, -- the top hitter of a boss brought home: +50 % income ...
+		MVP_SECONDS = 5 * 60, -- ... for this long (runtime only, never saved; a new MVP restarts the timer)
 		BURST_FLIGHT = 0.8, -- seconds a shed slime flies out of the boss before it lands (it then walks to the lane)
 		BURST_DISTANCE = table.freeze({ 7, 14 }), -- studs from the boss a shed slime lands
 		BURST_HEIGHT = 10, -- studs high its arc goes
@@ -955,7 +972,7 @@ local Config = {
 		STRIKE_SECONDS = 0.7, -- a cone or the spit's throw
 		RING_DELAY = 0.35, -- the stomp lands this long into a ring attack, then the ring runs out
 		SPIT_FLIGHT = 0.7, -- seconds a goo spit flies before it lands
-		DAZED_SECONDS = 3, -- after every attack
+		DAZED_SECONDS = 2.5, -- after every attack
 		RISE_HEIGHT = 9, -- studs it floats up while its guards are out
 		RISE_SECONDS = 1, -- the float up
 		LAND_SECONDS = 0.8, -- the float down
@@ -963,11 +980,11 @@ local Config = {
 		SHRINK_SECONDS = 0.6, -- the meter is full: it shrinks to carry size over this long before it can be grabbed
 		MOVE_PIVOT_INTERVAL = 0.2, -- seconds between the server's pivots of the boss Body (clients draw every frame)
 		-- Attacks (Shared.BossAttacks): dodge the telegraphed attack, then punish it while it is dazed.
-		FIRST_ATTACK = 6, -- seconds after it lands before its first attack
-		ATTACK_GAP = table.freeze({ 5, 8 }), -- seconds from one attack's daze to the next windup (÷ the stage speed-up)
+		FIRST_ATTACK = 3, -- seconds after it lands before its first attack
+		ATTACK_GAP = table.freeze({ 2.5, 4 }), -- seconds from one attack's daze to the next windup (÷ the stage speed-up)
 		STAGE_SPEEDUP = 0.1, -- +10 % move and attack pace at every SHED_EVERY of the meter
 		PHASE_AT = 0.5, -- meter share from which its `phase` attacks join its `start` ones
-		DAZED_MULTIPLIER = 3, -- a hit while it is dazed counts this many meter points
+		DAZED_MULTIPLIER = 2, -- a hit while it is dazed counts this many meter points
 		STUN_SECONDS = 1.5, -- a player hit by an attack can't land bat hits or slaps for this long
 		HIT_ARC = 8, -- studs high an attack's knockback throws a player
 		RING_WIDTH = 3.5, -- studs: how thick the stomp's goo ring is (jump over it)
@@ -977,7 +994,7 @@ local Config = {
 		GUARD_RADIUS = 11, -- studs from the boss its guards stand
 		GUARD_REACH = 8, -- studs from a swinger's root to a guard for a bat hit
 		GUARD_POINTS = 2, -- meter points per popped guard
-		GUARD_SIZE = 3.2, -- studs: a guard's body
+		GUARD_SIZE = 3.4, -- studs: a guard's body (a mini copy of its boss)
 		-- Per boss species: `start` attacks from the first one, `phase` from PHASE_AT. Kinds: ring { radius, speed, push },
 		-- spit { count, slowSeconds, slow }, guards { count }, cone { radius, angle (degrees), push },
 		-- charge { distance, speed, width, push }, vent { multiplier } (passive: hits on its back while dazed),
@@ -985,7 +1002,8 @@ local Config = {
 		-- Signature options, one per boss: ring `waves` (+ `waveGap` s, `waveSpeedUp` x), guards `heal` (meter share it
 		-- gets back if its guards outlast the call), charge `bounces` (it charges again at the top hitter) with
 		-- `sideways` + `backAndForth` (a crab's scuttle), spit `burst` { delay, radius, speed, push } (each puddle
-		-- bursts into a ring).
+		-- bursts into a ring), guards `rain` { every, count, delay, radius, speed, push } (while it floats it drops goo
+		-- on the nearest players: a red circle, then a splash ring a moment after it lands).
 		MOVES = table.freeze({
 			goozilla = table.freeze({
 				-- signature: a double stomp, the second ring faster
@@ -999,20 +1017,49 @@ local Config = {
 						waveGap = 0.7,
 						waveSpeedUp = 1.4,
 					}),
+					bossAttack({ kind = "spit", count = 3, slowSeconds = 5, slow = 0.5 }),
 				}),
-				phase = table.freeze({ bossAttack({ kind = "spit", count = 3, slowSeconds = 6, slow = 0.5 }) }),
+				phase = table.freeze({
+					bossAttack({ kind = "cone", radius = 20, angle = 110, push = 45 }),
+					bossAttack({
+						kind = "ring",
+						radius = 26,
+						speed = 24,
+						push = 45,
+						waves = 3,
+						waveGap = 0.6,
+						waveSpeedUp = 1.3,
+					}),
+				}),
 			}),
 			queen_jelly = table.freeze({
-				-- signature: royal guards; if they outlast the call she heals 15 % of the meter
-				start = table.freeze({ bossAttack({ kind = "guards", count = 3, heal = 0.15 }) }),
-				phase = table.freeze({ bossAttack({ kind = "cone", radius = 18, angle = 90, push = 45 }) }),
+				-- signature: royal guards; while they stand she rains jelly on you, and if they outlast the call she
+				-- heals 15 % of the meter
+				start = table.freeze({
+					bossAttack({
+						kind = "guards",
+						count = 3,
+						heal = 0.15,
+						rain = table.freeze({ every = 1.5, count = 2, delay = 0.6, radius = 7, speed = 16, push = 32 }),
+					}),
+					bossAttack({ kind = "cone", radius = 18, angle = 90, push = 45 }),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "ring", radius = 24, speed = 20, push = 40 }),
+					bossAttack({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.5 }),
+				}),
 			}),
 			mecha_goo = table.freeze({
 				-- signature: a ricochet charge, then it turns and rams the top hitter again
 				start = table.freeze({
 					bossAttack({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50, bounces = 1 }),
+					bossAttack({ kind = "ring", radius = 20, speed = 26, push = 40 }),
 				}),
-				phase = table.freeze({ bossAttack({ kind = "vent", multiplier = 5 }) }),
+				phase = table.freeze({
+					bossAttack({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.5 }),
+					bossAttack({ kind = "charge", distance = 35, speed = 36, width = 8, push = 50, bounces = 2 }),
+					bossAttack({ kind = "vent", multiplier = 3 }),
+				}),
 			}),
 			klawdius = table.freeze({
 				start = table.freeze({
@@ -1031,16 +1078,23 @@ local Config = {
 				}),
 				phase = table.freeze({
 					bossAttack({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.55 }),
-					bossAttack({ kind = "vent", multiplier = 4 }),
+					bossAttack({ kind = "ring", radius = 22, speed = 22, push = 40 }),
+					bossAttack({ kind = "vent", multiplier = 3 }),
 				}),
 			}),
 			pumpking = table.freeze({
 				-- signature: bouncing stomps, three hops at you with a ring on every landing
 				start = table.freeze({
 					bossAttack({ kind = "hops", count = 3, distance = 7, radius = 12, speed = 24, push = 32 }),
+					bossAttack({ kind = "spit", count = 3, slowSeconds = 5, slow = 0.5 }),
 				}),
 				phase = table.freeze({
-					bossAttack({ kind = "guards", count = 3 }),
+					bossAttack({
+						kind = "guards",
+						count = 3,
+						rain = table.freeze({ every = 1.6, count = 2, delay = 0.6, radius = 7, speed = 16, push = 30 }),
+					}),
+					bossAttack({ kind = "hops", count = 4, distance = 8, radius = 14, speed = 26, push = 35 }),
 					bossAttack({ kind = "vent", multiplier = 3 }),
 				}),
 			}),
@@ -1058,7 +1112,7 @@ local Config = {
 				}),
 				phase = table.freeze({
 					bossAttack({ kind = "ring", radius = 28, speed = 26, push = 45 }),
-					bossAttack({ kind = "vent", multiplier = 5 }),
+					bossAttack({ kind = "vent", multiplier = 3 }),
 				}),
 			}),
 		}),
@@ -1143,13 +1197,6 @@ local Config = {
 			name = "Heavy Lifter",
 			description = "Carry a boss home yourself.",
 			trigger = "hauls",
-			value = 1,
-		}),
-		table.freeze({
-			key = "BossMvp",
-			name = "Boss MVP",
-			description = "Land the most hits on a boss that gets brought home.",
-			trigger = "mvps",
 			value = 1,
 		}),
 		table.freeze({

@@ -65,15 +65,20 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
     last `slowSeconds`; a player in one walks at `slow` x speed (`Session.bossSlow`, `Carry.targetWalkSpeed`).
   - `guards` { count }: instead of an attack it `rise`s (`BOSS.RISE_HEIGHT`) for up to `BOSS.GUARD_SECONDS` with
     `count` guards `BOSS.GUARD_RADIUS` round it, each `BOSS.GUARD_POINTS` meter points to pop. The last pop makes it
-    `land` (slot `daze`) then `dazed`; a timeout lands it without the daze.
+    `land` (slot `daze`) then `dazed`; a timeout lands it without the daze. With `rain` { every, count, delay, radius,
+    speed, push } it is not idle while it floats: from `BOSS.RISE_SECONDS` + 0.3 s after the rise starts, every
+    `every` seconds (÷ the stage speed-up) it drops goo on the `count` players nearest to it (`World.BossEvent.rainAt`):
+    each drop is a spit (red landing circle, `BOSS.SPIT_FLIGHT`) whose puddle bursts `delay` later into a ring of
+    `radius` at `speed` (push `push`). Stand still and it knocks you; keep moving while you pop the guards.
   - `hops` { count, distance, radius, speed, push }: `count` legs of move `hop`, each a leap of `distance` toward the
     top hitter (else the nearest player) over `BOSS.HOP_SECONDS`, `BOSS.HOP_HEIGHT` high, then a ring of `radius` at
     `speed` from where it landed; then `dazed`.
 - **Signature attacks.** Every boss has one attack only it has, set by options on the primitives:
   - Goozilla, double stomp: ring `waves = 2`; each next wave starts `waveGap` later, `waveSpeedUp` x faster. A player
     can be struck once per wave.
-  - Queen Jelly, royal guards: guards `heal`. If any guard is still up when the call runs out she gets `heal` x the
-    meter target back (a server toast says so).
+  - Queen Jelly, royal guards: guards `heal` + `rain`. While her guards stand she rains jelly on the nearest players,
+    and if any guard is still up when the call runs out she gets `heal` x the meter target back (a server toast says
+    so).
   - Mecha Goo, ricochet charge: charge `bounces = 1`. After each leg it winds up again (`BOSS.LEG_WINDUP_SECONDS`,
     slot `<slot>#<leg>`) and rams the top hitter.
   - Klawdius, scuttle: charge `sideways`, `backAndForth`, `bounces = 2`. It travels to its right (it faces the
@@ -90,8 +95,8 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
   spot; anyone can grab it again. Dropping never resets the haul deadline.
 - **Win.** The carrier reaches their HomeZone (`Carry.depositBoss`, no free pad needed): a server-wide toast names the
-  winner, who alone gets the win; helpers are credited in their boss record (below). The boss slime is removed; it never goes into
-  `data.slimes` or anywhere else in the save.
+  winner, who alone gets the win (below); the top hitter gets the Boss MVP boost. The boss slime is removed; it never
+  goes into `data.slimes` or anywhere else in the save.
 - **Fail.** Meter not full by the fight deadline, or not home by the haul deadline: the boss (carried or not) is removed:
   it gets away. No slimes drop; the sheds are the fight's reward.
 - Bosses never count toward the wild cap and are never a random merge or fountain result.
@@ -117,6 +122,23 @@ passes 50 %. They are built only from the boss-attack primitives: `ring` (a goo 
 them all drops it dazed), `cone` (a push in front of it), `charge` (a ram along a telegraphed lane at the top hitter) and
 `vent` (a weak spot on its back while it is dazed). The numbers below are the design's starting values; the attack
 values live in `Config.BOSS.MOVES` (Attacks, below).
+
+**Fight pacing (the fun pass).** A fight lasts long enough for the boss to attack many times: the meter target is
+`BOSS.POINTS_PER_PLAYER` (110) per player, a dazed hit counts `BOSS.DAZED_MULTIPLIER` (2), and every `vent` is x3. The
+first attack comes `BOSS.FIRST_ATTACK` (3 s) after it lands and the next `BOSS.ATTACK_GAP` (2.5 to 4 s) after each daze.
+Every boss starts with at least two real attacks and adds at least one more from 50 % (a spec checks this), so no boss
+has a phase where it only waits. A solo bot that never dodges fills the meter in about 35 to 50 s and takes 2 to 10
+knockbacks; players who get pushed out of reach take longer. Current move sets (`Config.BOSS.MOVES`, which wins over the
+design text below):
+
+| Boss | Start | From 50 % |
+|---|---|---|
+| Goozilla | double stomp `ring`; `spit` | wide `cone`; triple stomp `ring` |
+| Queen Jelly | `guards` with `rain` and `heal`; `cone` | `ring`; `spit` |
+| Klawdius | `cone`; sideways scuttle `charge` | `spit`; `ring`; `vent` |
+| Pumpking | `hops`; `spit` | `guards` with `rain`; bigger `hops`; `vent` |
+| Mecha Goo | ricochet `charge`; `ring` | `spit`; double ricochet `charge`; `vent` |
+| Goomancer | rune `spit`; `cone` | `ring`; `vent` |
 
 ### Klawdius
 
@@ -161,9 +183,14 @@ data.boss = {
 ```
 
 - **Triggers (`server/BossCredit`).** A counted hit in `BossEvent.hit` records a hit. When the boss is brought home,
-  only the carrier gets a win for that species (so its boss badge) and a haul. The top contributor (`BossFight.top`),
-  if still on the server, gets an MVP. The carrier and every player whose `BossFight.share` is at least
-  `BOSS.WIN_SHARE` get the species in their SlimeDex (`PlayerData.discover` with the boss slime).
+  only the carrier gets a win for that species (so its boss badge), a haul and the species in their SlimeDex
+  (`PlayerData.discover` with the boss slime). Other helpers get nothing for the boss itself.
+- **Boss MVP boost.** The top contributor (`BossFight.top`), if still on the server, counts an MVP (`mvps`, no badge)
+  and gets `data.mvpBonus = BOSS.MVP_BONUS` (+50 % income, a factor of `Perks.bonusMultiplier` like the ritual's
+  Blessed) until `session.mvpUntil = now + BOSS.MVP_SECONDS` (5 min). Both are runtime only, never saved; leaving the
+  server ends it, and a new MVP restarts the timer. `BossCredit.expire` (every `GameLoop.step`) clears it and toasts.
+  `State.mvpBoost = { bonus, endsAt }` while it lasts; the HUD shows it as the `Mvp` status slot right after `Blessed`
+  (`Boost_Mvp` icon, time left in its pill, tooltip "Boss MVP" / "+50% income for landing the most hits on a boss.").
 - **Badges (`Config.BOSS_BADGES`, `Shared.BossBadges`).** Each entry: `key`, `name`, `description`, `trigger`, `value`,
   optional `species`. Triggers: `hits` (record.hits >= value), `win` (wins[species] >= value), `wins` (all species
   summed >= value), `hauls`, `mvps`. A per-species badge is one `win` line with its `species`. After each recorded event
@@ -207,7 +234,11 @@ boss: {
 
 ## Attack view (server `BossFxView`, client `visuals/client/BossTelegraph`)
 
-- `workspace.BossFx`: one guard model per live guard (attribute `BossGuard = true`) and one goo puddle per puddle.
+- `workspace.BossFx`: one guard model per live guard (attribute `BossGuard = true`) and one goo puddle per puddle. A
+  guard is a mini copy of its boss (`BOSS.GUARD_SIZE` across), built by WorldView's slime model factory from the boss's
+  own slime data (`BossFxView.sync`'s `look`), with every slime tag removed so nothing treats it as a slime; it faces
+  away from the boss. Without a factory (tests, a failed build) it is the plain crowned ball. Clients make guards hop
+  in place, out of step with each other (`BossTelegraph`).
 - Boss model attributes: `BossTargets` ("x,z;..." world spots a spit windup will hit), `BossSpits` ("x,z,landAt;..."),
   `BossRunes` ("x,z,burstAt,radius,speed;..." rune puddles that burst into a ring), `BossBursts`
   ("fromX,fromZ,x,z,at,landAt;..." goo-burst slimes in flight: a splash at the boss, a goo ball on its arc, a splat
@@ -238,7 +269,7 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT DROP_LUCK CARRY_SLOW
 SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_CLEARANCE STROLL_* LOOK_SECONDS ARRIVE_* WINDUP_SECONDS CHARGE_EASE
 STRIKE_SECONDS RING_DELAY SPIT_FLIGHT DAZED_SECONDS RISE_* LAND_SECONDS GUARD_SECONDS SHRINK_SECONDS
-MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK WIN_SHARE BURST_FLIGHT BURST_DISTANCE BURST_HEIGHT FIRST_ATTACK ATTACK_GAP
+MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK MVP_BONUS MVP_SECONDS BURST_FLIGHT BURST_DISTANCE BURST_HEIGHT FIRST_ATTACK ATTACK_GAP
 STAGE_SPEEDUP PHASE_AT DAZED_MULTIPLIER STUN_SECONDS HIT_ARC RING_WIDTH CONE_HIT_AT PUDDLE_RADIUS SPIT_SPREAD GUARD_*
 MOVES`, and the badge list `Config.BOSS_BADGES`. Values live in `Config.luau` only.
 

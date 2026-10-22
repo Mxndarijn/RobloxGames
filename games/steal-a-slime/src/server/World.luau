@@ -60,6 +60,7 @@ export type Session = {
 	stealWaitSince: number?, -- tutorial Steal step: since when no other plot had a slime to steal, runtime only
 	friends: number?, -- friends in this server (Friends.refresh), runtime only
 	blessedUntil: number?, -- when the co-op ritual's Blessed bonus (data.ritualBonus) ends (RitualService), runtime only
+	mvpUntil: number?, -- when the Boss MVP income boost (data.mvpBonus) ends (BossCredit), runtime only
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch (State.egg, never saved)
 	home: boolean?, -- standing in their own HomeZone (the adapter sets it); warms their Mystery Eggs, runtime only
 	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
@@ -136,6 +137,7 @@ export type BossEvent = {
 	spits: { BossSpit }, -- spit blobs in the air
 	puddles: { BossPuddle }, -- goo puddles on the ground
 	guards: { { x: number, z: number, alive: boolean } }, -- the guards of the current rise
+	rainAt: number?, -- a guards `rain` attack: server time of its next goo drop volley while it floats
 	lastHit: { userId: number, points: number, at: number }?, -- the latest counted bat hit (clients squash it, pop points)
 	bursts: { BossBurstBlob }, -- shed slimes flying out of the boss (clients draw their arcs)
 }

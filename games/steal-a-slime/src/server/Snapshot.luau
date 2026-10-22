@@ -129,6 +129,9 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		blessed = if data.ritualBonus and session.blessedUntil
 			then { bonus = data.ritualBonus, endsAt = session.blessedUntil }
 			else nil,
+		mvpBoost = if data.mvpBonus and session.mvpUntil
+			then { bonus = data.mvpBonus, endsAt = session.mvpUntil }
+			else nil,
 		rebirthTitle = Perks.title(rebirths),
 		rebirthTiers = Snapshot.rebirthTiers(rebirths),
 		nextRebirthTier = Snapshot.nextRebirthTier(rebirths),

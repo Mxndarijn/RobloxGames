@@ -22,6 +22,7 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -63,6 +64,8 @@ local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
 local StealAlertFx = require(script.StealAlertFx)
+local TickGuard = require(script.TickGuard)
+local TouchControls = require(script.TouchControls)
 local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
 local WorldShopLogic = require(script.WorldShopLogic)
@@ -289,8 +292,8 @@ local inventory = Inventory.new(gui, {
 	end,
 	tools = InventoryTools.new(player),
 	serverNow = serverNow,
-	keyboard = game:GetService("UserInputService").KeyboardEnabled,
-	input = game:GetService("UserInputService"),
+	keyboard = UserInputService.KeyboardEnabled,
+	input = UserInputService,
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
 InventoryTools.bindBumpers(inventory.cycleSlot)
@@ -504,6 +507,22 @@ local function forceBlessed(state: any): any
 	return view
 end
 
+-- Studio-only: the SlimeUI attribute "PcwMvp" = true fakes the Boss MVP boost (State.mvpBoost, BOSS.MVP_SECONDS
+-- left from the first read) for the bottom-right status slot.
+local forcedMvpEndsAt: number? = nil
+local function forceMvp(state: any): any
+	if not isStudio or gui:GetAttribute("PcwMvp") ~= true or type(state.serverTime) ~= "number" then
+		forcedMvpEndsAt = nil
+		return state
+	end
+	if forcedMvpEndsAt == nil or forcedMvpEndsAt < state.serverTime then
+		forcedMvpEndsAt = state.serverTime + Config.BOSS.MVP_SECONDS
+	end
+	local view = table.clone(state)
+	view.mvpBoost = { bonus = Config.BOSS.MVP_BONUS, endsAt = forcedMvpEndsAt }
+	return view
+end
+
 -- Studio-only: the SlimeUI attribute "PcwDexRows" = N marks the first N State.dex entries found (named)
 -- so the Dex grid can be shot with found cards and silhouettes side by side.
 local function forceDex(state: any): any
@@ -577,6 +596,11 @@ local function panelState(key: string, realState: any): any
 	return view
 end
 
+-- The tutorial card steps aside for an open menu card, the daily popup and the open bag panel.
+local function syncTutorial()
+	tutorial.setMenuOpen(not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
+end
+
 local function syncMenus()
 	local visibleKey: string? = nil
 	for _, entry in allPanels do
@@ -607,8 +631,8 @@ local function syncMenus()
 	end
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
-	tutorial.setMenuOpen(not MenuState.tutorialShown(visibleKey, dailyPopup.isOpen()))
-	-- Visuals' edge arrows (home, tutorial) step aside while a menu or popup covers the screen.
+	syncTutorial()
+	-- Visuals' edge arrows and the Your plot tag step aside while a menu or popup covers the screen.
 	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, visibleKey ~= nil or dailyPopup.isOpen())
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
@@ -630,6 +654,7 @@ end
 for _, entry in allPanels do
 	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
 end
+inventory.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncTutorial)
 
 -- Sound button (FEATURES.Audio): icon only, shown with no menu open; the open card has its own X.
 if soundPanel then
@@ -890,6 +915,9 @@ function layoutCards()
 	end
 end
 
+-- Roblox's touch jump button on screen or not (the status icons step left of it); polled in the frame loop.
+local touchControls = TouchControls.watch({ playerGui = player:WaitForChild("PlayerGui") })
+
 -- Every top-level box for the current ScreenGui size (and nav choice).
 function applyLayout()
 	local size = gui.AbsoluteSize
@@ -897,7 +925,7 @@ function applyLayout()
 		return
 	end
 	uiScale.Scale = Layout.uiScale(size.X, size.Y)
-	local s = Layout.screen(size.X, size.Y)
+	local s = Layout.screen(size.X, size.Y, { touch = touchControls.shown() })
 	screen = s
 	hud.layout(s)
 	inventory.layout(s, GuiService:GetGuiInset())
@@ -1025,8 +1053,9 @@ function pumpPopups(state: Types.State)
 end
 
 local function render(realState: Types.State)
-	local state: Types.State =
-		forceWelcome(forceStealAlert(forceDex(forceWeekend(forceBlessed(forceAdminEvent(forceFriends(realState)))))))
+	local state: Types.State = forceWelcome(
+		forceStealAlert(forceDex(forceWeekend(forceMvp(forceBlessed(forceAdminEvent(forceFriends(realState)))))))
+	)
 	hud.update(state)
 	inventory.update(state)
 	slimeKeys.update(state)
@@ -1062,6 +1091,7 @@ if isStudio then
 			"PcwWelcome",
 			"PcwRain",
 			"PcwBlessed",
+			"PcwMvp",
 		}
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
@@ -1155,28 +1185,55 @@ leaderboardEvent.OnClientEvent:Connect(function(board: Types.Leaderboard)
 	worldBoards.setBoard(board)
 end)
 
--- Local countdowns (lock, rain) between State pushes.
+-- Local countdowns (lock, rain) between State pushes. Each tick runs under its own pcall so one failing
+-- component cannot kill the loop; the error is logged once per component.
+local guardedTick = TickGuard.new(warn)
 local dailyWasOpen = false
+
 task.spawn(function()
 	while true do
 		task.wait(0.1)
+		guardedTick("touchControls", function()
+			if touchControls.poll() then
+				applyLayout() -- the jump button came or went (input switched, touch controls toggled)
+			end
+		end)
 		if latest then
 			local now = serverNow()
 			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.
-			if dailyWasOpen ~= dailyPopup.isOpen() then
-				dailyWasOpen = dailyPopup.isOpen()
-				syncMenus()
-			end
-			hud.tick(now)
-			inventory.tick()
-			bossMeter.tick(now)
-			panelByKey.Codes.tick(now)
-			panelByKey.WorldShop.tick()
-			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen()))
-			pvpFunFx.tick(now)
-			if slimeMove then
-				slimeMove.tick()
-			end
+			guardedTick("dailyPopup", function()
+				if dailyWasOpen ~= dailyPopup.isOpen() then
+					dailyWasOpen = dailyPopup.isOpen()
+					syncMenus()
+				end
+			end)
+			guardedTick("hud", function()
+				hud.tick(now)
+			end)
+			guardedTick("inventory", inventory.tick)
+			guardedTick("bossMeter", function()
+				bossMeter.tick(now)
+			end)
+			guardedTick("codes", function()
+				panelByKey.Codes.tick(now)
+			end)
+			guardedTick("worldShop", function()
+				panelByKey.WorldShop.tick()
+			end)
+			guardedTick("hint", function()
+				hintOverlay.tick(
+					now,
+					tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+				)
+			end)
+			guardedTick("pvpFun", function()
+				pvpFunFx.tick(now)
+			end)
+			guardedTick("slimeMove", function()
+				if slimeMove then
+					slimeMove.tick()
+				end
+			end)
 		end
 	end
 end)

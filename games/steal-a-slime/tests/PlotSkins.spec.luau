@@ -1,11 +1,12 @@
 --!strict
--- Plot skins unlocked by SlimeDex sets (gaps #15, CONTRACT.md §15): unlock thresholds, the equip
+-- Plot skins: goo jar tower themes unlocked by collecting their slimes (CONTRACT.md §15): unlock thresholds, the equip
 -- remote, the save field, the per-plot visuals and the mesh budget. FEATURES.PlotSkins is off.
 local roblox = require("@lune/roblox") :: any
 
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
+local FountainTiers = require("../src/shared/FountainTiers")
 local MeshAssets = require("../src/shared/MeshAssets")
 local PlayerData = require("../src/shared/PlayerData")
 local PlotSkins = require("../src/shared/PlotSkins")
@@ -13,8 +14,8 @@ local RanchProps = require("../src/visuals/shared/RanchProps")
 local Remotes = require("../src/shared/Remotes")
 local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
+local SlimeRoster = require("../src/shared/SlimeRoster")
 local Snapshot = require("../src/server/Snapshot")
-local SpeciesDex = require("../src/shared/SpeciesDex")
 local StaticWorld = require("../scripts/StaticWorld")
 local TestRunner = require("./TestRunner")
 local Validate = require("../src/shared/Validate")
@@ -29,25 +30,23 @@ local function skin(id: string): Config.PlotSkin
 	return PlotSkins.get(id) :: Config.PlotSkin
 end
 
--- A profile that found `count` species entries of `tier`.
-local function withSet(tier: number, count: number): PlayerData.Data
+-- A profile that found the first `count` of skin `id`'s slimes.
+local function withSlimes(id: string, count: number): PlayerData.Data
 	local data = PlayerData.new()
-	local n = 0
-	for _, entry in SpeciesDex.ENTRIES do
-		if entry.tier == tier and n < count then
-			data.found[entry.id] = true
-			n += 1
+	for i, species in PlotSkins.slimes(skin(id)) do
+		if i <= count then
+			data.found[species] = true
 		end
 	end
 	return data
 end
 
--- Species in a tier's set, and how many unlock its skin (75 %).
-local function size(tier: number): number
-	return SpeciesDex.tierSize(tier)
+-- How many slimes count toward a skin, and how many unlock it (75 %, rounded up).
+local function size(id: string): number
+	return #PlotSkins.slimes(skin(id))
 end
-local function need(tier: number): number
-	return math.ceil(size(tier) * 0.75)
+local function need(id: string): number
+	return math.ceil(size(id) * 0.75)
 end
 
 local ctx: Actions.Context = {
@@ -67,82 +66,107 @@ local function equip(world: any, userId: number, id: any, c: Actions.Context?)
 end
 
 describe("plot skins: config", function()
-	it("lists 3 unlockable skins after classic, each tied to a Dex tier at 75 %", function()
+	it("lists classic, the three family themes and the two collections, each at 75 % of its slimes", function()
 		expect(Config.PLOT_SKINS[1].id).toBe("classic")
-		expect(Config.PLOT_SKINS[1].set).toBeNil()
 		expect(Config.PLOT_SKIN_DEFAULT).toBe("classic")
-		expect(#Config.PLOT_SKINS).toBe(4)
 		local ids = {}
-		for i, s in Config.PLOT_SKINS do
+		for _, s in Config.PLOT_SKINS do
 			expect(ids[s.id]).toBeNil()
 			ids[s.id] = true
+		end
+		for _, id in { "classic", "garden", "crystal", "starlight", "candy", "mushroom" } do
+			expect(ids[id]).toBe(true)
+		end
+		expect(#Config.PLOT_SKINS).toBe(6)
+		for i, s in Config.PLOT_SKINS do
 			if i > 1 then
-				expect(s.set ~= nil and s.set >= 1 and s.set <= Config.MAX_TIER).toBe(true)
+				expect((s.family ~= nil) ~= (s.species ~= nil)).toBe(true)
 				expect(s.threshold).toBe(0.75)
-				expect(s.floor ~= nil and s.trim ~= nil).toBe(true)
-				local entry = MeshAssets.get(s.decor :: string)
-				expect(entry ~= nil and entry.meshId ~= nil and entry.size ~= nil).toBe(true)
+				expect(size(s.id) >= 4).toBe(true)
 			end
 		end
 	end)
-	it("keeps the skin palettes warm and bright (no near-black floors)", function()
+	it("names only real slimes: families are fountain families, species are roster ids", function()
+		for _, s in Config.PLOT_SKINS do
+			if s.family then
+				local known = false
+				for _, family in FountainTiers.FAMILIES do
+					known = known or family.id == s.family
+				end
+				expect(known).toBe(true)
+			end
+			for _, id in PlotSkins.slimes(s) do
+				expect(SlimeRoster.get(id) ~= nil).toBe(true)
+			end
+		end
+	end)
+	it("a family theme counts every spawn species of its family", function()
+		expect(table.concat(PlotSkins.slimes(skin("garden")), ",")).toBe("sprout,cheddar,prickles,flan")
+		expect(size("crystal")).toBe(5)
+		expect(size("starlight")).toBe(8)
+		expect(need("starlight")).toBe(6)
+	end)
+	it("keeps the skin palettes warm and bright (no near-black floors or swatches)", function()
 		for _, s in Config.PLOT_SKINS do
 			if s.floor then
 				expect(math.max(s.floor.color[1], s.floor.color[2], s.floor.color[3]) >= 140).toBe(true)
+			end
+			if s.color then
+				expect(math.max(s.color[1], s.color[2], s.color[3]) >= 140).toBe(true)
 			end
 		end
 	end)
 end)
 
 describe("plot skins: unlock thresholds", function()
-	it("a Dex set is its tier's species entries, and the sets add up to the Dex", function()
-		local total = 0
-		for tier = 1, Config.MAX_TIER do
-			expect(PlotSkins.setSize(tier)).toBe(size(tier))
-			expect(size(tier) > 0).toBe(true)
-			total += size(tier)
-		end
-		expect(total).toBe(SpeciesDex.TOTAL)
-	end)
-	it("unlocks at ceil(75 % of the set) keys: one short is locked, exactly enough is unlocked", function()
+	it("unlocks at ceil(75 % of its slimes): one short is locked, exactly enough is unlocked", function()
 		local needed = PlotSkins.needed(skin("mushroom"))
-		expect(needed).toBe(need(1))
-		expect(PlotSkins.unlocked(withSet(1, needed - 1), skin("mushroom"))).toBe(false)
-		expect(PlotSkins.unlocked(withSet(1, needed), skin("mushroom"))).toBe(true)
-		expect(PlotSkins.unlocked(withSet(1, size(1)), skin("mushroom"))).toBe(true)
+		expect(needed).toBe(need("mushroom"))
+		expect(PlotSkins.unlocked(withSlimes("mushroom", needed - 1), skin("mushroom"))).toBe(false)
+		expect(PlotSkins.unlocked(withSlimes("mushroom", needed), skin("mushroom"))).toBe(true)
+		expect(PlotSkins.unlocked(withSlimes("mushroom", size("mushroom")), skin("mushroom"))).toBe(true)
 	end)
-	it("counts only the skin's own tier", function()
-		expect(PlotSkins.unlocked(withSet(2, size(2)), skin("mushroom"))).toBe(false)
-		expect(PlotSkins.unlocked(withSet(2, need(2)), skin("candy"))).toBe(true)
-		expect(PlotSkins.unlocked(withSet(3, need(3)), skin("crystal"))).toBe(true)
-		expect(PlotSkins.unlocked(withSet(3, need(3)), skin("candy"))).toBe(false)
+	it("counts only the skin's own slimes", function()
+		expect(PlotSkins.unlocked(withSlimes("candy", size("candy")), skin("mushroom"))).toBe(false)
+		expect(PlotSkins.unlocked(withSlimes("candy", need("candy")), skin("candy"))).toBe(true)
+		expect(PlotSkins.unlocked(withSlimes("crystal", need("crystal")), skin("crystal"))).toBe(true)
+		expect(PlotSkins.unlocked(withSlimes("crystal", need("crystal")), skin("garden"))).toBe(false)
 	end)
-	it("counts species, not bonus entries", function()
-		local data = withSet(1, need(1) - 1)
+	it("a slime in two groups counts for both (Flan: Garden and Candy)", function()
+		local data = PlayerData.new()
+		data.found.flan = true
+		expect(PlotSkins.owned(data, skin("garden"))).toBe(1)
+		expect(PlotSkins.owned(data, skin("candy"))).toBe(1)
+	end)
+	it("ignores entries that are not the skin's slimes", function()
+		local data = withSlimes("mushroom", need("mushroom") - 1)
 		data.found.glitch = true -- an event Secret
 		data.found.nope = true
-		expect(PlotSkins.owned(data, 1)).toBe(need(1) - 1)
+		expect(PlotSkins.owned(data, skin("mushroom"))).toBe(need("mushroom") - 1)
 		expect(PlotSkins.unlocked(data, skin("mushroom"))).toBe(false)
 	end)
 	it("classic is always unlocked, and view() reports progress with classic first", function()
-		local data = withSet(1, 2)
+		local data = withSlimes("garden", 2)
 		local view = PlotSkins.view(data)
 		expect(#view).toBe(#Config.PLOT_SKINS)
 		expect(view[1].id).toBe("classic")
 		expect(view[1].unlocked and view[1].equipped).toBe(true)
+		expect(view[1].setName).toBeNil()
+		expect(view[2].id).toBe("garden")
 		expect(view[2].owned).toBe(2)
-		expect(view[2].needed).toBe(need(1))
-		expect(view[2].total).toBe(size(1))
+		expect(view[2].needed).toBe(need("garden"))
+		expect(view[2].total).toBe(size("garden"))
 		expect(view[2].unlocked).toBe(false)
-		expect(view[2].setName).toBe("Common")
-		expect(math.abs(view[2].fraction - 2 / size(1)) < 1e-9).toBe(true)
+		expect(view[2].setName).toBe("Garden")
+		expect(math.abs(view[2].fraction - 2 / size("garden")) < 1e-9).toBe(true)
 		expect(view[3].owned).toBe(0)
+		expect(view[5].setName).toBe("Candy")
 	end)
 end)
 
 describe("plot skins: equip", function()
 	it("PlotSkins.equip refuses unknown and locked skins and leaves the profile alone", function()
-		local data = withSet(1, 1)
+		local data = withSlimes("mushroom", 1)
 		local ok, why = PlotSkins.equip(data, "nope")
 		expect(ok).toBe(false)
 		expect(why).toBe("unknown plot skin")
@@ -153,7 +177,7 @@ describe("plot skins: equip", function()
 		expect(PlotSkins.equip(data, 42 :: any)).toBe(false)
 	end)
 	it("equips an unlocked skin, and classic always", function()
-		local data = withSet(1, need(1))
+		local data = withSlimes("mushroom", need("mushroom"))
 		expect(PlotSkins.equip(data, "mushroom")).toBe(true)
 		expect(data.plotSkin).toBe("mushroom")
 		expect(PlotSkins.current(data)).toBe("mushroom")
@@ -178,7 +202,7 @@ describe("plot skins: equip", function()
 		expect(res.ok).toBe(false)
 		expect(res.message).toBe("plot skin is locked")
 		expect(session.data.plotSkin).toBe("classic")
-		for key in withSet(1, need(1)).found do
+		for key in withSlimes("mushroom", need("mushroom")).found do
 			session.data.found[key] = true
 		end
 		res = equip(world, 1, "mushroom")
@@ -197,7 +221,7 @@ describe("plot skins: equip", function()
 	it("with the flag off the Request is refused, even for an unlocked skin", function()
 		local world = ServerFixtures.world()
 		local session = ServerFixtures.join(world, 1, {}, 0)
-		for key in withSet(1, size(1)).found do
+		for key in withSlimes("mushroom", size("mushroom")).found do
 			session.data.found[key] = true
 		end
 		local res = equip(world, 1, "mushroom", offCtx)
@@ -216,14 +240,14 @@ end)
 
 describe("plot skins: save", function()
 	it("writes plotSkin at the current SAVE_VERSION", function()
-		local data = withSet(2, need(2))
+		local data = withSlimes("candy", need("candy"))
 		data.plotSkin = "candy"
 		local out = SaveData.serialize(data, T0)
 		expect(out.plotSkin).toBe("candy")
 		expect(out.version).toBe(Config.SAVE_VERSION)
 	end)
 	it("round-trips an unlocked skin", function()
-		local data = withSet(2, need(2))
+		local data = withSlimes("candy", need("candy"))
 		data.plotSkin = "candy"
 		local back = SaveData.deserialize(SaveData.serialize(data, T0))
 		expect(back.plotSkin).toBe("candy")
@@ -245,7 +269,7 @@ describe("plot skins: save", function()
 		end
 	end)
 	it("SaveData.migratePlotSkin is pure and defaults to classic", function()
-		local data = withSet(3, need(3))
+		local data = withSlimes("crystal", need("crystal"))
 		expect(SaveData.migratePlotSkin({ plotSkin = "crystal" }, data)).toBe("crystal")
 		expect(SaveData.migratePlotSkin({ plotSkin = "candy" }, data)).toBe("classic")
 		expect(SaveData.migratePlotSkin(nil, data)).toBe("classic")
@@ -295,8 +319,8 @@ describe("plot skins: visuals applied per plot", function()
 		local classic1, classic2 = look(p1), look(p2)
 		local templates = fakeTemplates()
 		for _, s in Config.PLOT_SKINS do
-			if s.id == "classic" then
-				continue
+			if s.floor == nil then
+				continue -- classic and the tower-only themes paint nothing here
 			end
 			PlotDecor.applySkin(p1, s.id, slot, templates)
 			local base = p1:FindFirstChild("Base")
