@@ -1,7 +1,8 @@
 --!nocheck
 -- Request spam must not buy world-wide work: the real server Script in the fake runtime only runs refreshView
 -- (WorldView.reconcile over every slime + updatePlots) and flushStates for calls that got past Actions.handle's
--- guards. Unknown actions, "too fast" calls and Sync faster than STATE_MIN_INTERVAL are refused for free.
+-- guards, and refreshView at most once per ServerLoop.VIEW_INTERVAL (the Heartbeat view tick shows the rest).
+-- Unknown actions, "too fast" calls and Sync faster than STATE_MIN_INTERVAL are refused for free.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
@@ -86,6 +87,40 @@ results.sync.reconciles = reconciles(function()
 end)
 rt:advance(Config.STATE_MIN_INTERVAL + 0.05)
 results.sync.later = invoke("Sync").ok
+
+-- One call per action passes its own rate limit, so 20 different actions in one frame all get past the guards.
+rt:advance(1)
+local burstCalls = {
+	{ "Favorite" },
+	{ "CloseShop" },
+	{ "SetHotbar", "" },
+	{ "SetAudioSettings", 0.5, 0.5, false },
+	{ "Daily" },
+	{ "Rebirth" },
+	{ "Lock" },
+	{ "BuyPad" },
+	{ "Drop" },
+	{ "BuySpeedCoil" },
+	{ "BuyUpgrade", "x" },
+	{ "Redeem", "x" },
+	{ "Sell", "x" },
+	{ "MoveSlime", "x", 1 },
+	{ "Merge", "a", "b" },
+	{ "HatchEgg", "x" },
+	{ "ClaimQuest", 1 },
+	{ "EquipPlotSkin", "x" },
+	{ "KeepSlime", "x", true },
+	{ "AutoMerge", 1 },
+}
+results.burst = { calls = #burstCalls }
+results.burst.reconciles = reconciles(function()
+	for _, call in burstCalls do
+		invoke(table.unpack(call))
+	end
+end)
+results.burst.nextTick = reconciles(function()
+	rt:advance(0.25)
+end)
 results.errors = #rt.errors
 rt:close()
 
@@ -98,17 +133,22 @@ describe("Request refresh guard (server Script)", function()
 		expect(results.junk.messages["bad argument"]).toBe(true)
 		expect(results.junk.reconciles).toBe(0)
 	end)
-	it("refreshes once for an action that ran, not for the rate-limited repeats", function()
+	it("refreshes at most once for an action that ran, not for the rate-limited repeats", function()
 		expect(results.limited.first).toBe(true)
 		expect(results.limited.tooFast).toBe(50)
-		expect(results.limited.reconciles).toBe(1)
+		expect(results.limited.reconciles <= 1).toBe(true)
+	end)
+	it("refreshes at most once for many different actions in one frame; the next view tick shows the rest", function()
+		expect(results.burst.calls).toBe(20)
+		expect(results.burst.reconciles <= 1).toBe(true)
+		expect(results.burst.nextTick >= 1).toBe(true)
 	end)
 	it("throttles Sync to one per STATE_MIN_INTERVAL and still pushes State on the allowed one", function()
 		expect(results.sync.first).toBe(true)
 		expect(results.sync.pushedAt > -math.huge).toBe(true)
 		expect(results.sync.tooFast).toBe(50)
 		expect(results.sync.pushedAfter).toBe(results.sync.pushedAt)
-		expect(results.sync.reconciles).toBe(1)
+		expect(results.sync.reconciles <= 1).toBe(true)
 		expect(results.sync.later).toBe(true)
 	end)
 	it("raises no script errors", function()
