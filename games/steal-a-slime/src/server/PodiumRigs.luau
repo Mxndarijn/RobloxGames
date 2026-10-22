@@ -35,8 +35,8 @@ local function podium(rank: number): BasePart?
 end
 
 -- The name board over a podium rig (canvas GooWorldSigns): glass with a gold band holding the name in Ink, the
--- total earned in outlined gold under it. Pixel-sized, so the name stays BOARD_PX.name px tall at any distance.
-PodiumRigs.BOARD_PX = table.freeze({ w = 250, h = 126, lift = 2.2, maxDistance = 160 })
+-- total earned in outlined gold under it. Pixel-sized and small: it stays the same size on screen at any distance.
+PodiumRigs.BOARD_PX = table.freeze({ w = 150, h = 76, lift = 2.2, maxDistance = 160 })
 PodiumRigs.BOARD = table.freeze({
 	band = 0.44,
 	radius = 0.22,
@@ -46,7 +46,7 @@ PodiumRigs.BOARD = table.freeze({
 		table.freeze({ x = 0.08, w = 0.05, len = 0.06 }),
 		table.freeze({ x = 0.9, w = 0.044, len = 0.03 }),
 	}),
-	stroke = 3,
+	stroke = 2,
 	glassTransparency = 0.06,
 } :: GooBoard.Spec)
 
@@ -79,7 +79,7 @@ local function label(rig: Model, text: string)
 		local name = GooBoard.text(card, DEPS, "Name", GooPalette.Ink)
 		name.Position = UDim2.fromScale(0.06, 0.07)
 		name.Size = UDim2.fromScale(0.88, 0.31)
-		local value = GooBoard.text(card, DEPS, "Value", GooPalette.Gold, 2.5)
+		local value = GooBoard.text(card, DEPS, "Value", GooPalette.Gold, 1.5)
 		value.Position = UDim2.fromScale(0.1, 0.57)
 		value.Size = UDim2.fromScale(0.8, 0.33)
 		made.Parent = rig

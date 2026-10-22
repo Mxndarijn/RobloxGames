@@ -40,7 +40,8 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   - `down`: the meter filled; it stands where it was while it shrinks.
   A move is: number, kind, slot, start time, length, start and end spot (plaza coordinates round the fountain centre),
   end heading, and the plaza origin in world studs. Hits, the Body and every client use the same pose from server time.
-- **Hits.** The Bat (`BatTool.swing`, no remote): a carrying thief or boss carrier in reach is tried first (the slap);
+- **Hits.** The Bat (`BatTool.swing`, no remote): anyone carrying a slime (stolen, wild or the boss) in reach is tried
+  first (the slap);
   otherwise a guard in `BOSS.GUARD_REACH` and in front is popped (`BossEvent.hitGuard`); otherwise the boss in the
   fight phase is hit when its move's pose is within `BOSS.HIT_REACH` and in front (`BatRules`). A hit counts
   `BossAttacks.hitValue` points: 1, `BOSS.DAZED_MULTIPLIER` while it is dazed, a vent's `multiplier` from behind while

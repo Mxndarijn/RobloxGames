@@ -712,12 +712,12 @@ local Config = {
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	SLAP_REACH = 10,
 	SLAP_COOLDOWN = 1.5,
-	-- The default melee Bat Tool (server/BatTool, every player, live, NOT behind FEATURES.PvP). A hit on a carrying
-	-- thief is the base slap (StealService.slap: reach SLAP_REACH, cooldown SLAP_COOLDOWN) plus a knockback push.
+	-- The default melee Bat Tool (server/BatTool, every player, live, NOT behind FEATURES.PvP). A hit on anyone
+	-- carrying a slime is the base slap (CarryDrop.slap: reach SLAP_REACH, cooldown SLAP_COOLDOWN, they drop it) plus a push.
 	BAT = table.freeze({
 		TOOL_NAME = "Bat",
 		PUSH = 5, -- studs of knockback (PvpKnockbackRules.plan, capped by PVP.KNOCKBACK_MAX_PUSH)
-		FACING_DOT = 0.3, -- the thief must be in front: dot(look, direction to them) >= this (about 72 degrees each side)
+		FACING_DOT = 0.3, -- the target must be in front: dot(look, direction to them) >= this (about 72 degrees each side)
 		CLOSE_STUDS = 3, -- closer than this the facing check is skipped (hugging a thief)
 		SWING_GAP = 0.4, -- seconds between swing events (a whiff never spends the SLAP_COOLDOWN)
 	}),
@@ -726,7 +726,7 @@ local Config = {
 
 	-- Shop (permanent, kept on rebirth)
 	SPEED_COIL_PRICE = 1500,
-	SPEED_COIL_WALK_SPEED = 24, -- base WalkSpeed (1.5x BASE_WALK_SPEED); the carry slowdown applies to it
+	SPEED_COIL_WALK_SPEED = 28, -- WalkSpeed while the coil is held (1.75x BASE_WALK_SPEED)
 
 	-- Merge
 	MERGE_SIZE_BONUS = 0.1,

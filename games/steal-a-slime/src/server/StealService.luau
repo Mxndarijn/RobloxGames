@@ -2,11 +2,12 @@
 --[[
 	StealService (pure)
 
-	Plot locks, stealing a pad slime, slapping and lock expiry. Rules come from Shared.Steal; this module applies them to the
+	Plot locks, stealing a pad slime, sending it home and lock expiry (a Bat slap is CarryDrop.slap). Rules come from Shared.Steal; this module applies them to the
 	World and queues toasts.
 
 	* steal: the thief starts carrying a slime that stays in the victim's data
 	  (it just stops paying) until Carry.deposit moves it with Steal.complete.
+	* steal needs both players' saves to be writable (World.canSave); Carry.deposit checks again on delivery.
 	* escape: the carry ends and the slime bounces back to its pad for
 	  World.ESCAPE_BOUNCE_SECONDS (model State "Escaping"; still busy).
 ]]
@@ -68,6 +69,8 @@ function StealService.steal(
 		thiefCarrying = thief.carry ~= nil,
 		slimeBusy = World.isBusy(world, slimeId),
 		distance = distance,
+		thiefCanSave = World.canSave(world, thief.userId),
+		ownerCanSave = World.canSave(world, owner.userId),
 	})
 	if not ok then
 		return false, reason
@@ -91,7 +94,7 @@ end
 
 --[[
 	Ends a stolen carry: the slime bounces home. `reason` is "slap" | "drop" |
-	"left". Returns the slime id or nil.
+	"left" | "unsaved" (a player's save stopped being writable mid-carry). Returns the slime id or nil.
 ]]
 function StealService.escape(world: World, carrier: Session, now: number, reason: string): string?
 	local carry = carrier.carry
@@ -119,38 +122,19 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 	local name = Genome.displayName(carry.slime)
 	if reason == "slap" then
 		World.notify(world, carrier.userId, `You got bonked! The {name} bounced home.`, "bad", "Slap", "Slap")
+	elseif reason == "unsaved" then
+		World.notify(
+			world,
+			carrier.userId,
+			`The {name} went home: this steal can't be saved right now.`,
+			"bad",
+			"Escape"
+		)
 	elseif reason ~= "left" then
 		World.notify(world, carrier.userId, `You dropped the {name}. It went home.`, "bad", "Escape")
 	end
 	World.notify(world, owner.userId, `Your {name} escaped back to you!`, "good", "Escape")
 	return carry.slimeId
-end
-
-function StealService.slap(
-	world: World,
-	slapper: Session,
-	targetUserId: number,
-	distance: number,
-	now: number
-): (boolean, string?)
-	local target = World.session(world, targetUserId)
-	local carry = target and target.carry
-	local ok, reason = Steal.canSlap({
-		now = now,
-		lastSlapAt = slapper.lastSlapAt,
-		distance = distance,
-		slapperId = slapper.userId,
-		targetId = targetUserId,
-		targetCarry = carry and carry.timer,
-	})
-	if not ok or not target then
-		return false, reason or "no such player"
-	end
-	slapper.lastSlapAt = now
-	StealService.escape(world, target, now, "slap")
-	World.notify(world, slapper.userId, `You bonked {target.name} with your bat!`, "good", "Slap", "Slap")
-	World.tutorial(world, slapper, "Steal")
-	return true, nil
 end
 
 -- True when some other player has a slime on a pad (a possible Steal target).
