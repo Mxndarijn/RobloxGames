@@ -132,7 +132,7 @@ local function begin(world: World, now: number): string
 	return species
 end
 
--- The boss slime arrives at the plaza boss spot (WorldView), outside the wild cap.
+-- The boss slime arrives at the plaza boss spot (WorldView), outside Spawner.wildCount.
 local function arrive(world: World, event: World.BossEvent, now: number, ctx: Context?)
 	local id = world.newId()
 	local slime = BossSlime.build(world.rng, id, event.fight.species)

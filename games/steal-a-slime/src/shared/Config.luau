@@ -657,7 +657,7 @@ local BASE_FLOORS = table.freeze({
 	table.freeze({ firstPadCost = 2_500_000, growth = 1.6 }),
 	table.freeze({ firstPadCost = 250_000_000, growth = 1.6 }),
 })
-local SPAWN_INTERVAL = 4 -- seconds between fountain drops; Slime Rain drops twice as fast
+local SPAWN_INTERVAL = 5 -- seconds between fountain drops
 local RITUAL_MIN_PLAYERS = 2 -- Config.RITUAL.MIN_PLAYERS; also the number of stand spots
 local WILD_BASE_LIFETIME = 75 -- seconds at the old pace
 
@@ -775,7 +775,6 @@ local Config = {
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = SPAWN_INTERVAL,
-	MAX_WILD_SLIMES = 144,
 	SLIME_MOVE_SPEED_MULT = SLIME_MOVE_SPEED_MULT,
 	WILD_BASE_LIFETIME = WILD_BASE_LIFETIME,
 	WILD_LIFETIME = math.round(WILD_BASE_LIFETIME / SLIME_MOVE_SPEED_MULT), -- 115: walk + hop slower, drain still at expiry
@@ -797,11 +796,8 @@ local Config = {
 	RAIN_INTERVAL = 60 * 60, -- design: hourly
 	RAIN_FIRST_AT = 5 * 60,
 	RAIN_DURATION = 3 * 60, -- design: 3 minutes
-	-- Rain is about luck, not a flood: the normal spawn pace, a bigger crowd, much better odds.
-	RAIN_SPAWN_INTERVAL = SPAWN_INTERVAL / 2,
-	RAIN_WILD_CAP_MULT = 2, -- MAX_WILD_SLIMES x this during rain (Fountain.wildCap)
+	RAIN_SPAWN_INTERVAL = 2.5, -- seconds between fountain drops during rain
 	RAIN_LUCK = 5, -- rarity weights for tier >= 3 multiplied by this during rain
-	RAIN_WARNING_SECONDS = 60, -- everyone gets a heads-up toast this long before a rain
 
 	-- Weekly event rotation (FEATURES.WeeklyEvents, CONTRACT.md §17). The whole schedule is a pure function
 	-- of unix time (UTC), so every server agrees. Weeks run Monday 00:00 - Sunday 24:00 UTC (ISO weeks).

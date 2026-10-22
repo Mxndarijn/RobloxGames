@@ -132,7 +132,7 @@ describe("Player-facing copy", function()
 		local all = table.concat(texts, "\n")
 		expect(string.find(all, "spilled from the fountain", 1, true) ~= nil).toBe(true)
 		expect(string.find(all, "is in the plaza", 1, true) ~= nil).toBe(true) -- the boss arrives
-		expect(string.find(all, "Head to the fountain", 1, true) ~= nil).toBe(true)
+		expect(string.find(all, "The fountain is overflowing", 1, true) ~= nil).toBe(true) -- the rain starts
 	end)
 	it("rare drop text uses the display name", function()
 		local slime = Genome.copy(Genome.sanitize({ id = "r", tier = 5, name = "Globble" }) :: any)

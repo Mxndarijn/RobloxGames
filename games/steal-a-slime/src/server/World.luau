@@ -88,7 +88,7 @@ export type Wild = {
 	radius: number,
 	position: any?, -- set when a carrier drops it somewhere else (adapter-defined)
 	returning: ParadeLane.Return?, -- FEATURES.Parade: its walk back to the lane after a drop (contract/slime-walk.md)
-	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts toward the wild cap
+	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts in Spawner.wildCount
 	move: BossChoreo.Move?, -- the boss: its current move (BossChoreo; model attribute BossMove)
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
 	choreo: { seed: number }?, -- FEATURES.SlimeChoreo: seed of its lane beats (ParadeChoreo); nil once it leaves the lane
@@ -203,7 +203,6 @@ export type World = {
 	lastSecondAt: number,
 	raining: boolean,
 	rainForcedUntil: number?, -- seconds since start (Progression.rainStatus)
-	rainWarned: boolean, -- the heads-up for the next rain went out
 	nextBossAt: number, -- server time of the next boss arrival (server/BossEvent)
 	boss: BossEvent?, -- the running boss event, nil between bosses
 	bossIndex: number, -- position in Config.BOSS.ROTATION of the next boss (1-based)
@@ -259,7 +258,6 @@ function World.new(options: Options): World
 		lastSecondAt = options.now,
 		raining = false,
 		rainForcedUntil = nil,
-		rainWarned = false,
 		nextBossAt = options.now + Config.BOSS.FIRST_AT,
 		boss = nil,
 		bossIndex = 1,
