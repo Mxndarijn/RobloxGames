@@ -149,8 +149,9 @@ function PodiumRigs.adapter(): PodiumAvatars.Adapter
 			end
 			model.Name = `PodiumRig_{rank}`
 			freeze(model)
-			-- The podium's front faces the fountain; stand on its top face.
-			local top = base.CFrame * CFrame.new(0, base.Size.Y / 2, 0)
+			-- Stand on the podium's top face, turned like its front. The kit front is the slot's +Z (MeshAssets, kit
+			-- fronts face +Z) and a character looks along its own -Z, so the rig gets half a turn.
+			local top = base.CFrame * CFrame.new(0, base.Size.Y / 2, 0) * CFrame.Angles(0, math.pi, 0)
 			model:PivotTo(top)
 			local box, size = model:GetBoundingBox()
 			local lift = top.Position.Y - (box.Position.Y - size.Y / 2)

@@ -253,8 +253,16 @@ function BossTelegraph.start()
 	end
 
 	-- Guards (workspace.BossFx, BossGuard = true) hop in place, out of step with each other, so they look alive.
-	local guardBase: { [Model]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
+	-- Each guard's resting pivot as the server placed it. A plain table, pruned when a guard is gone: a weak-keyed
+	-- one can lose a live model's entry (Roblox may collect the Lua handle of an instance that still exists), and the
+	-- hop then re-read the already raised pivot and ratcheted the guard up into the air.
+	local guardBase: { [Model]: CFrame } = {}
 	local function bobGuards(now: number)
+		for guard in guardBase do
+			if not guard.Parent then
+				guardBase[guard] = nil
+			end
+		end
 		local fx = workspace:FindFirstChild("BossFx")
 		if not fx then
 			return
