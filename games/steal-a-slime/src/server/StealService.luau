@@ -7,6 +7,7 @@
 
 	* steal: the thief starts carrying a slime that stays in the victim's data
 	  (it just stops paying) until Carry.deposit moves it with Steal.complete.
+	* steal needs both players' saves to be writable (World.canSave); Carry.deposit checks again on delivery.
 	* escape: the carry ends and the slime bounces back to its pad for
 	  World.ESCAPE_BOUNCE_SECONDS (model State "Escaping"; still busy).
 ]]
@@ -68,6 +69,8 @@ function StealService.steal(
 		thiefCarrying = thief.carry ~= nil,
 		slimeBusy = World.isBusy(world, slimeId),
 		distance = distance,
+		thiefCanSave = World.canSave(world, thief.userId),
+		ownerCanSave = World.canSave(world, owner.userId),
 	})
 	if not ok then
 		return false, reason
@@ -91,7 +94,7 @@ end
 
 --[[
 	Ends a stolen carry: the slime bounces home. `reason` is "slap" | "drop" |
-	"left". Returns the slime id or nil.
+	"left" | "unsaved" (a player's save stopped being writable mid-carry). Returns the slime id or nil.
 ]]
 function StealService.escape(world: World, carrier: Session, now: number, reason: string): string?
 	local carry = carrier.carry
@@ -119,6 +122,14 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 	local name = Genome.displayName(carry.slime)
 	if reason == "slap" then
 		World.notify(world, carrier.userId, `You got bonked! The {name} bounced home.`, "bad", "Slap", "Slap")
+	elseif reason == "unsaved" then
+		World.notify(
+			world,
+			carrier.userId,
+			`The {name} went home: this steal can't be saved right now.`,
+			"bad",
+			"Escape"
+		)
 	elseif reason ~= "left" then
 		World.notify(world, carrier.userId, `You dropped the {name}. It went home.`, "bad", "Escape")
 	end
