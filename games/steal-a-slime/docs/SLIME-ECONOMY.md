@@ -41,14 +41,14 @@ Sim headline (proposed rules, active player, 6-player mixed server, medians of 2
 | Mythic | 4 | 0.35 | **0.2** | 1.8 | 0.45 |
 | Secret | 3 | 0.1 | **0.05** | 0.45 | 0.15 |
 
-(Spawns per hour use the 99.65 weight total and 900 rolls; Slime Rain, boss showers and luck add more at the top.)
+(Spawns per hour use the 99.65 weight total and 900 rolls; Slime Rain, boss goo bursts and luck add more at the top.)
 
 Why only the top three change: Common to Epic are what players catch and merge all the time. The sim shows their times are set by rebirth unlocks, not by the odds. Legendary loses one species (3 instead of 4), so each Legendary species gets *more* common at the old weight. Mythic gains a species and Secret one more, and both now come mostly from merges and bosses. Lowering them, together with the merge caps below, moves an active player's first Mythic from 0.6 h to 0.9 h and the first Secret from 1.4 h to 3.4 h (sim medians). The weights alone do little: merges and steals feed the top tiers more than the fountain does.
 
 **Merge caps** (`TripleMerge`, in the same PR as the weights):
 
 - A +2 jump may land on Legendary at most (today: up to Mythic). Rare x3 can still jump to Legendary; Epic x3 cannot jump to Mythic.
-- A random merge never makes a Secret. Mythic x3 gives a Mythic (a random Mythic species, assist below). Secret comes from the fountain, Slime Rain, boss showers and the Nightwing recipe.
+- A random merge never makes a Secret. Mythic x3 gives a Mythic (a random Mythic species, assist below). Secret comes from the fountain, Slime Rain, boss goo bursts and the Nightwing recipe.
 - **Merge assist:** 35 % of random results come from the species of that tier you have not found yet (when there are any). It costs nothing to build (the server knows the player's Dex), it hides inside "random", and it cuts the long tail of the last missing species.
 
 ### 1.3 Families: which species open when
