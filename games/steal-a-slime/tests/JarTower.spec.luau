@@ -153,7 +153,7 @@ describe("jar tower: stair", function()
 			end
 		end
 	end)
-	it("ends on the top jar with the ramp going on flat for a bit, as wide as the ramp, with no fence", function()
+	it("ends on the top jar with the ramp going on flat for a bit, out to the hole's edge, with no fence", function()
 		local top = WorldLayout.STAIR_TOP
 		for f = 2, FLOORS do
 			local parts = floorParts(1, f)
@@ -167,14 +167,15 @@ describe("jar tower: stair", function()
 				expect(n.attributes.JarFloor).toBe(f)
 				expect(n.attributes.JarCollide).toBe(true)
 				expect(n.canCollide ~= false).toBe(true)
-				expect(n.size[3]).toBe(st.outer - st.post + 0.4)
+				-- out to the hole's edge: no gap between the landing and the floor
+				expect(n.size[3]).toBe(st.hole - st.post)
 				local p = toLocal(n, 1)
 				local d = (math.deg(math.atan2(p[3], p[1])) - start) % 360
 				expect(d > 0 and d < top.landing).toBe(true)
 				-- headroom for the ramp below, which passes under the landing (its far edge is the lowest point)
 				local below = WorldLayout.FLOOR_HEIGHT * (d + 7.5) / 360
 				expect(WorldLayout.FLOOR_HEIGHT - 1 - below >= 6).toBe(true)
-				expect(math.sqrt(p[1] ^ 2 + p[3] ^ 2) + n.size[3] / 2 <= st.hole + 1e-6).toBe(true)
+				expect(math.abs(math.sqrt(p[1] ^ 2 + p[3] ^ 2) + n.size[3] / 2 - st.hole) < 1e-6).toBe(true)
 				expect(math.abs(p[2] + n.size[2] / 2 - WorldLayout.floorTop(f)) < 1e-6).toBe(true)
 			end
 		end

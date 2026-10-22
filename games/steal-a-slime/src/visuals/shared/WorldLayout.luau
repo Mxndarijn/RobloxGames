@@ -205,8 +205,8 @@ WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22
 -- top, so you step on and off the side.
 WorldLayout.RAMP = table.freeze({ segments = 24, walk = 4.2, railStart = 30, railEnd = 45, railHeight = 2.5 })
 -- The top of the stair, on the top jar only (where the stair ends; a jar added above hides it, server/BaseFloors):
--- the ramp goes on for `landing` more degrees, flat at floor height, the same width as the ramp, so you arrive on a
--- small platform instead of running straight off the end. No fence round the hole. The ramp below passes under it:
+-- the ramp goes on for `landing` more degrees, flat at floor height and out to the edge of the hole (no gap to the
+-- floor), so you arrive on a small platform instead of running straight off the end. No fence round the hole. The ramp below passes under it:
 -- at 120 degrees it still has about 9.7 studs of headroom there (tests/JarTower.spec keeps at least 6).
 WorldLayout.STAIR_TOP = table.freeze({ landing = 120 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
@@ -1459,13 +1459,13 @@ local function stairTop(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		node.attributes = a
 		table.insert(out, variant(node, f, "top"))
 	end
-	-- flat boxes as wide as the ramp's, on round from where it arrives
+	-- flat boxes from the post out to the hole's edge, on round from where the ramp arrives
 	local step = 15
-	local width = st.outer - st.post + 0.4
+	local width = st.hole - st.post
 	for k = 1, top.landing // step do
 		local deg = start + (k - 0.5) * step
-		local chord = 2 * st.outer * math.sin(math.rad(step) / 2) + 0.3
-		add(radial(`StairLanding_{k}`, { chord, 1, width }, (st.post + st.outer) / 2, deg, deck - 0.5, at, yaw))
+		local chord = 2 * st.hole * math.sin(math.rad(step) / 2) + 0.3
+		add(radial(`StairLanding_{k}`, { chord, 1, width }, (st.post + st.hole) / 2, deg, deck - 0.5, at, yaw))
 	end
 	return out
 end

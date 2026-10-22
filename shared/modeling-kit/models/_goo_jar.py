@@ -206,11 +206,11 @@ def jar_trim(f, top, crown=False):
         out.append(painted(cylinder("Newel", post, 2.4, (0, 0, 0), GOO, segs=16), shade(GOO, 0.85), mix(GOO, GOO_HI, 0.4)))
         out.append(cylinder("NewelCollar", post + 0.15, 0.3, (0, 0, 2.1), METAL, segs=16))
         out.append(blob("NewelCap", post + 0.2, (0, 0, 2.6), GOO_HI, subdiv=2, squash=(1, 1, 0.8), jitter=0))
-        # the ramp goes on flat for a bit at floor height (WorldLayout.STAIR_TOP), as wide as the ramp and dressed
-        # like it, so the stair ends on a small platform; no fence round the hole
+        # the ramp goes on flat for a bit at floor height (WorldLayout.STAIR_TOP), dressed like it and out to the
+        # hole's edge, just under the deck's goo lip (no gap to the floor), so the stair ends on a small platform
         st, stp = D["stair"], D["stairTop"]
         start = D["floors"][0]["treads"][0] - st["angle"]
-        outer = st["outer"]
+        outer = st["hole"] + 0.15
         a0, a1 = start, start + stp["landing"]
         out.append(painted(lathe("Landing", [(outer, -0.6), (outer, 0.0), (post, 0.0)], CORK, a0=a0, a1=a1, segs=48, double=False),
                            shade(CORK, 0.82), CORK))
