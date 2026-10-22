@@ -34,6 +34,8 @@ SAND = THEME["sand"]
 STRIPE = THEME.get("stripe")  # a second rib colour: the ribs come out striped
 LEAVES = THEME.get("leaves")  # leaf colour: the ribs become leafy vines
 ICICLES = THEME.get("icicles", False)  # icicles hang from the lids
+GREEN = LEAVES or PALETTE["ranch_field_light"]  # stems and bushes on the props
+BUDS = THEME.get("buds")  # colours of little buds (flowers, sparkles) dotted up the ribs
 RED = rgb(240, 70, 60)  # the lock button: a gameplay signal, the same in every theme
 TRIM = mix(LILAC, CREAM, 0.15)
 EYE_W, EYE_D = rgb(246, 250, 250), rgb(56, 42, 38)
@@ -179,7 +181,19 @@ def resample(pts, step):
 
 
 def rib(name, pts):
-    """One rib up the jar: a brass bar, striped in two colours (STRIPE) or a leafy vine (LEAVES) in some themes."""
+    """One rib up the jar: a brass bar, striped in two colours (STRIPE) or a leafy vine (LEAVES) in some themes, with
+    buds (BUDS: flowers, sparkles) dotted up it."""
+    out = bar(name, pts)
+    if BUDS:
+        dense = resample(pts, 1.0)
+        for i in range(2, len(dense) - 1, 3):
+            p = Vector(dense[i])
+            c = p + Vector((p.x, p.y, 0)).normalized() * 0.3
+            out.append(blob(f"{name}Bud{i}", 0.34, tuple(c), BUDS[(i // 3) % len(BUDS)], subdiv=1, jitter=0, seed=i))
+    return out
+
+
+def bar(name, pts):
     if STRIPE:
         dense = resample(pts, 1.2)
         return [tube(f"{name}_{i}", dense[i:i + 2], [0.35, 0.35], METAL if i % 2 == 0 else STRIPE, segs=6)
@@ -633,6 +647,37 @@ def theme_props():
                                    shade(ice, 0.9), mix(ice, CREAM, 0.5)))
             out.append(painted(blob(f"{n}Snow", 2.2, (x, y, 0.1), CREAM, subdiv=2, squash=(1.3, 1.0, 0.35), jitter=0.06, seed=k),
                                mix(CREAM, GLASS, 0.6), CREAM))
+        elif THEME_ID == "garden":
+            if k % 2 == 0:  # a sunflower
+                h = rr.uniform(8.0, 10.0)
+                out.append(painted(tube(f"{n}Stem", [(x, y, 0.1), (x + 0.3, y, h * 0.5), (x, y, h)], [0.36, 0.3, 0.26], GREEN, segs=6),
+                                   shade(GREEN, 0.8), GREEN))
+                for j in range(10):
+                    pa = j * math.tau / 10
+                    tx, ty = -math.sin(a), math.cos(a)  # the flower faces out of the plot
+                    px, py, pz = x + tx * 2.0 * math.cos(pa), y + ty * 2.0 * math.cos(pa), h + 2.0 * math.sin(pa)
+                    out.append(blob(f"{n}Petal{j}", 0.75, (px, py, pz), BUTTER, subdiv=1, jitter=0))
+                out.append(blob(f"{n}Head", 1.4, (x, y, h), WOOD_D, subdiv=2, squash=(1, 0.5, 1), jitter=0.03, rot=(0, 0, deg + 90)))
+            else:  # a potted fruit bush
+                pot = THEME.get("pot", CORK)
+                out.append(painted(cylinder(f"{n}Pot", 1.3, 1.8, (x, y, 0.1), pot, segs=12, r_top=1.7), shade(pot, 0.8), pot))
+                out.append(painted(blob(f"{n}Bush", 2.0, (x, y, 3.6), GREEN, subdiv=2, squash=(1, 1, 1.05), jitter=0.08, seed=k),
+                                   shade(GREEN, 0.75), GREEN))
+                for j in range(6):
+                    fa = j * math.tau / 6 + k
+                    out.append(blob(f"{n}Fruit{j}", 0.42, (x + 1.8 * math.cos(fa), y + 1.8 * math.sin(fa), 3.4 + 0.6 * math.sin(fa * 2)),
+                                    GOO if j % 2 else PINK, subdiv=1, jitter=0))
+        elif THEME_ID == "starlight":
+            h = rr.uniform(5.5, 8.0)
+            out.append(cylinder(f"{n}Pole", 0.2, h, (x, y, 0.1), WOOD_D, segs=6))
+            tx, ty = -math.sin(a), math.cos(a)
+            out.append(blob(f"{n}Core", 0.85, (x, y, h + 0.3), BUTTER, subdiv=2, squash=(1, 1, 1), jitter=0))
+            for j in range(5):  # a five-point star facing out of the plot
+                pa = math.pi / 2 + j * math.tau / 5
+                ex, ey, ez = x + tx * 2.3 * math.cos(pa), y + ty * 2.3 * math.cos(pa), h + 0.3 + 2.3 * math.sin(pa)
+                out.append(tube(f"{n}Point{j}", [(x, y, h + 0.3), (ex, ey, ez)], [0.8, 0.08], BUTTER, segs=5))
+            out.append(painted(blob(f"{n}Orb", 0.9, (x + 1.4 * math.cos(a + 1.7), y + 1.4 * math.sin(a + 1.7), 0.8), GOO_HI, subdiv=2, jitter=0),
+                               GOO, GOO_HI))
         elif THEME_ID == "mushroom":
             for j, (dx, s) in enumerate(((0.0, 1.35), (1.8, 0.85))):
                 cx, cy = x + dx * math.cos(a + 1.6), y + dx * math.sin(a + 1.6)
@@ -662,6 +707,16 @@ def mascot_hat():
         return [painted(blob("Hat", 0.66, (0, 0, 1.3), METAL, subdiv=2, squash=(1, 1, 0.62), jitter=0), shade(METAL, 0.85), METAL),
                 cylinder("Band", 0.68, 0.16, (0, 0, 1.18), CREAM, segs=20),
                 blob("Pompom", 0.2, (0, 0, 1.74), CREAM, subdiv=2, jitter=0.08)]
+    if THEME_ID == "garden":
+        return [painted(cylinder("Brim", 0.95, 0.08, (0, 0, 1.3), BUTTER, segs=24), shade(BUTTER, 0.85), BUTTER),
+                painted(blob("Crown", 0.5, (0, 0, 1.4), BUTTER, subdiv=2, squash=(1, 1, 0.7), jitter=0), shade(BUTTER, 0.85), BUTTER),
+                cylinder("Ribbon", 0.5, 0.1, (0, 0, 1.36), PINK, segs=16),
+                blob("Flower", 0.14, (0.42, -0.25, 1.5), PINK, subdiv=1, jitter=0)]
+    if THEME_ID == "starlight":
+        return [painted(cylinder("Brim", 0.8, 0.08, (0, 0, 1.3), CORK, segs=20), shade(CORK, 0.85), CORK),
+                painted(tube("Hat", [(0, 0, 1.3), (0.05, 0, 1.8), (0.25, 0, 2.25), (0.45, 0, 2.4)], [0.55, 0.35, 0.16, 0.05], CORK, segs=12),
+                        shade(CORK, 0.85), mix(CORK, LILAC, 0.4)),
+                blob("Star", 0.13, (0.15, -0.42, 1.65), BUTTER, subdiv=1, jitter=0)]
     if THEME_ID == "mushroom":
         out = [painted(blob("Cap", 0.85, (0, 0, 1.38), PINK, subdiv=2, squash=(1, 1, 0.45), jitter=0), shade(PINK, 0.8), PINK)]
         for d in range(5):
