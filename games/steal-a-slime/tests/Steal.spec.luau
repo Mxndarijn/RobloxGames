@@ -16,6 +16,8 @@ local function ctx(overrides: { [string]: any }?): Steal.StealContext
 		thiefCarrying = false,
 		slimeBusy = false,
 		distance = 5,
+		thiefCanSave = true,
+		ownerCanSave = true,
 	}
 	for k, v in overrides or {} do
 		(c :: any)[k] = v
@@ -86,6 +88,14 @@ describe("Steal.canSteal", function()
 		expect(select(2, Steal.canSteal(ctx({ slimeBusy = true })))).toBe("someone is already carrying it")
 		expect(select(2, Steal.canSteal(ctx({ distance = Config.STEAL_REACH + 1 })))).toBe("too far away")
 		expect((Steal.canSteal(ctx({ distance = 0 / 0 })))).toBe(false)
+	end)
+	it("blocks a steal when either player's progress can't be saved", function()
+		expect(select(2, Steal.canSteal(ctx({ thiefCanSave = false })))).toBe(
+			"your progress can't be saved on this server"
+		)
+		expect(select(2, Steal.canSteal(ctx({ ownerCanSave = false })))).toBe(
+			"their slimes can't be saved on this server"
+		)
 	end)
 end)
 

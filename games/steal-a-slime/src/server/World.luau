@@ -98,7 +98,7 @@ export type Event = {
 	slimeId: string?,
 	ownerUserId: number?,
 	carrierUserId: number?,
-	reason: string?, -- Escaped: "slap" | "drop" | "left"
+	reason: string?, -- Escaped: "slap" | "drop" | "left" | "unsaved"
 	active: boolean?,
 	effect: string?, -- Effect: Effects.KINDS name ("Collect" | "Steal" | "Merge" | "Rebirth")
 	plotIndex: number?, -- Effect: plot whose MergeVat is the target
@@ -168,6 +168,7 @@ export type World = {
 	eggRng: Rng.Rng, -- FEATURES.MysteryEggs rolls, apart from `rng` so the fountain's slime sequence doesn't shift
 	hatches: { [string]: Hatch }, -- Mystery Egg hatches whose show is playing, runtime only (MysteryEgg.step forgets them)
 	newId: () -> string,
+	canSave: (userId: number) -> boolean, -- the adapter's save check (World.canSave)
 	startedAt: number,
 	nextSpawnAt: number,
 	slideFreeAt: number, -- FEATURES.Parade: the next free fountain-slide slot (Spawner.slot): drops never stack
@@ -193,6 +194,7 @@ export type Options = {
 	now: number,
 	seed: number?,
 	newId: (() -> string)?,
+	canSave: ((userId: number) -> boolean)?, -- false while this server can't write that player's save; default: always
 	plotCount: number?,
 }
 
@@ -215,6 +217,9 @@ function World.new(options: Options): World
 		newId = options.newId or function()
 			counter += 1
 			return `s{counter}`
+		end,
+		canSave = options.canSave or function(_userId: number): boolean
+			return true
 		end,
 		startedAt = options.now,
 		nextSpawnAt = options.now,
@@ -241,6 +246,15 @@ end
 
 function World.session(world: World, userId: number): Session?
 	return world.sessions[userId]
+end
+
+--[[
+	True when this server saves `userId`'s progress. A read-only session (a save from a newer version) or one
+	another server took over keeps its stored record, so a slime moved into or out of it in memory would be
+	duplicated or lost: thefts need both players to be saveable.
+]]
+function World.canSave(world: World, userId: number): boolean
+	return world.canSave(userId)
 end
 
 function World.markDirty(session: Session?)
