@@ -56,6 +56,18 @@ describe("Carry.grab (wild)", function()
 		expect(world.carriedBy[id]).toBeNil()
 		expect(world.wild[id].price).toBe(80)
 	end)
+	it("refuses a free slime too when the plot has no free pad (the boss is exempt)", function()
+		local world = ServerFixtures.world()
+		local slimes = {}
+		for i = 1, Config.PADS_MAX do
+			slimes[i] = Fixtures.slime(`p{i}`)
+		end
+		local s = ServerFixtures.join(world, 1, slimes)
+		local id = wildWithPrice(world, 0)
+		expect(select(2, Carry.grab(world, 1, id, 1, T0))).toBe("plot full")
+		expect(s.carry).toBeNil()
+		expect(world.carriedBy[id]).toBeNil()
+	end)
 	it("enforces reach, one carry at a time and one carrier per slime", function()
 		local world = ServerFixtures.world()
 		ServerFixtures.join(world, 1)
@@ -89,15 +101,16 @@ describe("Carry.deposit", function()
 		local slime = PlayerData.findSlime(s.data, id)
 		expect(slime and slime.pad).toBe(2)
 	end)
-	it("keeps carrying when the plot is full", function()
+	it("keeps carrying when the plot filled up during the carry", function()
 		local world = ServerFixtures.world()
 		local slimes = {}
-		for i = 1, Config.PADS_MAX do
+		for i = 1, Config.PADS_MAX - 1 do
 			slimes[i] = Fixtures.slime(`p{i}`)
 		end
 		local s = ServerFixtures.join(world, 1, slimes)
 		local id = wildWithPrice(world, 0)
-		Carry.grab(world, 1, id, 1, T0)
+		expect((Carry.grab(world, 1, id, 1, T0))).toBe(true)
+		assert(PlayerData.addSlime(s.data, Fixtures.slime("last")))
 		local ok, reason = Carry.deposit(world, 1)
 		expect(ok).toBe(false)
 		expect(reason).toBe("plot full")
