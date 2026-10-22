@@ -61,6 +61,8 @@ export type Context = {
 	pose: ((userId: number) -> (any?, any?))?,
 	toVector3: ((position: any) -> any)?,
 	slimePosition: ((slimeId: string) -> any?)?,
+	plazaOrigin: (() -> any)?, -- the fountain centre (BossEvent.Context)
+	airborne: ((userId: number) -> boolean)?, -- off the ground: a jump clears a boss ring (BossEvent.Context)
 	groundBelow: ((point: any) -> any?)?,
 	funBubble: ((
 		userId: number,
