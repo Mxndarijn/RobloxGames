@@ -21,6 +21,7 @@ local server = rt.game:GetService("ServerScriptService"):FindFirstChild("Server"
 server.Source = server.Source .. "\n_G.__leaveSave = { world = world, WorldView = WorldView }\n"
 rt:boot()
 rt:advance(1)
+-- selene: allow(global_usage)
 local exported = _G.__leaveSave
 
 describe("player leave", function()
