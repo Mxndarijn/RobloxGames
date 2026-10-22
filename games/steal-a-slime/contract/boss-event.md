@@ -24,11 +24,9 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
 - **Meter (`Shared.BossFight`, pure).** One point per Bat hit per player, at most one per `BOSS.HIT_GAP` seconds each.
   Target = `BOSS.POINTS_PER_PLAYER` x players on the server (at least 1), read live. With no hit for `BOSS.DRAIN_GRACE`
   seconds it drains `BOSS.DRAIN_PER_SECOND` of the target per second. Every player's points are kept (they never drain).
-  Each `BOSS.SHED_EVERY` of the meter crossed for the first time sheds `BOSS.SHED_COUNT` wild slimes (luck
-  `BOSS.DROP_LUCK`, outside the wild cap) in a **goo burst**: with the parade lane on, each one flies out of the boss
-  for `BOSS.BURST_FLIGHT` seconds (arc `BOSS.BURST_HEIGHT` studs high) to a spot `BOSS.BURST_DISTANCE` studs away,
-  spread round it, then walks back to the lane from there (`ParadeLane.returnPlan` / `rejoin`). Until it lands
-  (`Wild.landsAt`) it has no model (Scene skips it). The full meter starts the haul.
+  Each `BOSS.STAGE_EVERY` of the meter crossed for the first time is a new stage (`BossFight.stage`, event `stage`):
+  the boss speeds up (below). The boss never drops wild slimes, during the fight or after it. The full meter starts
+  the haul.
 - **Area (`Shared.BossArea`, pure).** The plaza inside the parade lane, within `BOSS.WANDER_ARC` radians either side of
   `BOSS.SPOT_ANGLE`: its Body (radius `SLIME_BASE_DIAMETER x MAX_SIZE x BOSS.SCALE / 2`) outside the landing ring
   (`Fountain.LANDING_RING_OUTER`), its centre at least `BOSS.WANDER_CLEARANCE` from the lane's edge and the goo drain's
@@ -89,7 +87,7 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   A struck player is knocked `push` studs away from the boss, `BOSS.HIT_ARC` high (`ctx.launch` + a PvpEvent
   Knockback, live whatever `FEATURES.PvP` says), stunned for `BOSS.STUN_SECONDS` (`Session.bossStunUntil`) and toasted.
   Each attack strikes a player once. The meter never drains during `windup`, `attack`, `hop`, `rise` or `land`. Every
-  `BOSS.SHED_EVERY` of the meter reached speeds its moves and attack gaps by `BOSS.STAGE_SPEEDUP`.
+  `BOSS.STAGE_EVERY` of the meter reached speeds its moves and attack gaps by `BOSS.STAGE_SPEEDUP`.
 - **Haul.** For the first `BOSS.PRIORITY_SECONDS` only the top contributor may grab it (if still on the server); then
   anyone. The carrier walks at `BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW)`: no Speed Coil, no Strong Arms
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
@@ -98,7 +96,7 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   winner, who alone gets the win (below); the top hitter gets the Boss MVP boost. The boss slime is removed; it never
   goes into `data.slimes` or anywhere else in the save.
 - **Fail.** Meter not full by the fight deadline, or not home by the haul deadline: the boss (carried or not) is removed:
-  it gets away. No slimes drop; the sheds are the fight's reward.
+  it gets away. No slimes drop.
 - Bosses never count toward the wild cap and are never a random merge or fountain result.
 
 ## Bosses
@@ -240,9 +238,7 @@ boss: {
   away from the boss. Without a factory (tests, a failed build) it is the plain crowned ball. Clients make guards hop
   in place, out of step with each other (`BossTelegraph`).
 - Boss model attributes: `BossTargets` ("x,z;..." world spots a spit windup will hit), `BossSpits` ("x,z,landAt;..."),
-  `BossRunes` ("x,z,burstAt,radius,speed;..." rune puddles that burst into a ring), `BossBursts`
-  ("fromX,fromZ,x,z,at,landAt;..." goo-burst slimes in flight: a splash at the boss, a goo ball on its arc, a splat
-  where it lands; the boss squashes as a burst starts),
+  `BossRunes` ("x,z,burstAt,radius,speed;..." rune puddles that burst into a ring),
   `BossHitAt` / `BossHitBy` / `BossHitPoints` (the latest counted bat hit: the boss squashes, the hitter sees a "+n").
 - Clients draw from the same `BossAttacks` geometry: a pulsing red outline during the windup (the ring, the wedge, the
   charge lane, the spit spots), the goo ring running out, spits in flight, and stars over it while it is dazed. Local
@@ -266,10 +262,10 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 ## Config (`Config.BOSS`)
 
 `FIRST_AT INTERVAL WARNING_SECONDS RAIN_GAP SKIP_DELAY FIGHT_SECONDS HAUL_SECONDS LINGER_SECONDS PRIORITY_SECONDS
-POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT DROP_LUCK CARRY_SLOW
+POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE STAGE_EVERY CARRY_SLOW
 SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_CLEARANCE STROLL_* LOOK_SECONDS ARRIVE_* WINDUP_SECONDS CHARGE_EASE
 STRIKE_SECONDS RING_DELAY SPIT_FLIGHT DAZED_SECONDS RISE_* LAND_SECONDS GUARD_SECONDS SHRINK_SECONDS
-MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK MVP_BONUS MVP_SECONDS BURST_FLIGHT BURST_DISTANCE BURST_HEIGHT FIRST_ATTACK ATTACK_GAP
+MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK MVP_BONUS MVP_SECONDS FIRST_ATTACK ATTACK_GAP
 STAGE_SPEEDUP PHASE_AT DAZED_MULTIPLIER STUN_SECONDS HIT_ARC RING_WIDTH CONE_HIT_AT PUDDLE_RADIUS SPIT_SPREAD GUARD_*
 MOVES`, and the badge list `Config.BOSS_BADGES`. Values live in `Config.luau` only.
 

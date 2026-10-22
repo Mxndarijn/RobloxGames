@@ -939,14 +939,9 @@ local Config = {
 		HIT_REACH = 13, -- studs from the swinger's root to the boss Body (about the boss's radius at SCALE + a bat's reach)
 		DRAIN_PER_SECOND = 0.02, -- share of the target lost per second with nobody hitting
 		DRAIN_GRACE = 1, -- seconds without a hit before the drain starts
-		SHED_EVERY = 0.25, -- meter share between sheds
-		SHED_COUNT = 2, -- wild slimes per shed
-		DROP_LUCK = 3, -- luck multiplier on shed slimes
+		STAGE_EVERY = 0.25, -- meter share between stages (it speeds up at each; no slimes drop)
 		MVP_BONUS = 0.5, -- the top hitter of a boss brought home: +50 % income ...
 		MVP_SECONDS = 5 * 60, -- ... for this long (runtime only, never saved; a new MVP restarts the timer)
-		BURST_FLIGHT = 0.8, -- seconds a shed slime flies out of the boss before it lands (it then walks to the lane)
-		BURST_DISTANCE = table.freeze({ 7, 14 }), -- studs from the boss a shed slime lands
-		BURST_HEIGHT = 10, -- studs high its arc goes
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
@@ -982,7 +977,7 @@ local Config = {
 		-- Attacks (Shared.BossAttacks): dodge the telegraphed attack, then punish it while it is dazed.
 		FIRST_ATTACK = 3, -- seconds after it lands before its first attack
 		ATTACK_GAP = table.freeze({ 2.5, 4 }), -- seconds from one attack's daze to the next windup (÷ the stage speed-up)
-		STAGE_SPEEDUP = 0.1, -- +10 % move and attack pace at every SHED_EVERY of the meter
+		STAGE_SPEEDUP = 0.1, -- +10 % move and attack pace at every STAGE_EVERY of the meter
 		PHASE_AT = 0.5, -- meter share from which its `phase` attacks join its `start` ones
 		DAZED_MULTIPLIER = 2, -- a hit while it is dazed counts this many meter points
 		STUN_SECONDS = 1.5, -- a player hit by an attack can't land bat hits or slaps for this long

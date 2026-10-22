@@ -3,11 +3,11 @@
 	BossFight (pure, contract/boss-event.md)
 
 	One boss event as plain data: the phase ("warning" -> "fight" -> "haul" -> "won" | "failed"), its deadline, the goo
-	meter, every player's hits, the sheds already paid and the haul (top-contributor head start, carrier, winner).
+	meter, every player's hits, the stages reached and the haul (top-contributor head start, carrier, winner).
 
 	The meter target scales with the players on the server (Config.BOSS.POINTS_PER_PLAYER x players, read live), so a
 	fight takes about as long on any server. `step` advances time and returns what the caller must do (spawn the boss,
-	shed slimes, start the haul, fail). No Roblox APIs, no randomness, no World: server/BossEvent wires it up.
+	a new stage, start the haul, fail). No Roblox APIs, no randomness, no World: server/BossEvent wires it up.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -22,7 +22,7 @@ export type State = {
 	contributions: { [number]: number }, -- userId -> hits on this boss (never drains)
 	lastHitAt: { [number]: number }, -- userId -> last counted hit
 	lastAnyHitAt: number, -- last counted hit by anyone (the drain waits DRAIN_GRACE after it)
-	shed: number, -- sheds paid so far (one per SHED_EVERY of the meter)
+	stage: number, -- stages reached so far (one per STAGE_EVERY of the meter; it speeds up with each)
 	priorityUserId: number?, -- haul: the top contributor's head start
 	priorityUntil: number?,
 	carrierUserId: number?,
@@ -31,11 +31,7 @@ export type State = {
 }
 
 -- What `step` asks the caller to do, in order.
-export type Event =
-	{ kind: "fight" }
-	| { kind: "shed", count: number }
-	| { kind: "haul" }
-	| { kind: "fail", reason: string }
+export type Event = { kind: "fight" } | { kind: "stage" } | { kind: "haul" } | { kind: "fail", reason: string }
 
 local BossFight = {}
 
@@ -50,7 +46,7 @@ function BossFight.new(species: string, now: number): State
 		contributions = {},
 		lastHitAt = {},
 		lastAnyHitAt = -math.huge,
-		shed = 0,
+		stage = 0,
 		priorityUserId = nil,
 		priorityUntil = nil,
 		carrierUserId = nil,
@@ -126,9 +122,9 @@ function BossFight.add(state: State, userId: number, points: number, now: number
 	state.contributions[userId] = (state.contributions[userId] or 0) + points
 end
 
--- Stage 0..3: how many SHED_EVERY of the meter have been reached (the boss speeds up with each).
+-- Stage 0..3: how many STAGE_EVERY of the meter have been reached (the boss speeds up with each).
 function BossFight.stage(state: State): number
-	return state.shed
+	return state.stage
 end
 
 local function fail(state: State, now: number, reason: string, events: { Event })
@@ -141,7 +137,7 @@ end
 
 --[[
 	Advances the fight to `now` (`dt` seconds since the last step) with `players` on the server. Returns the events
-	for the caller, in order: "fight" (the boss arrives), "shed" (count = slimes to spawn), "haul" (the meter is full;
+	for the caller, in order: "fight" (the boss arrives), "stage" (it reached the next STAGE_EVERY of the meter), "haul" (the meter is full;
 	priority goes to the top contributor), "fail".
 ]]
 function BossFight.step(state: State, now: number, dt: number, players: number, paused: boolean?): { Event }
@@ -161,11 +157,11 @@ function BossFight.step(state: State, now: number, dt: number, players: number, 
 			state.points = math.max(0, state.points - BOSS.DRAIN_PER_SECOND * target * dt)
 		end
 		local meter = math.clamp(state.points / target, 0, 1)
-		-- Sheds at every SHED_EVERY crossed for the first time, below the full meter (that one pops the haul).
-		local reached = math.min(math.floor(meter / BOSS.SHED_EVERY + 1e-9), math.ceil(1 / BOSS.SHED_EVERY) - 1)
-		if reached > state.shed then
-			table.insert(events, { kind = "shed", count = (reached - state.shed) * BOSS.SHED_COUNT })
-			state.shed = reached
+		-- A stage at every STAGE_EVERY crossed for the first time, below the full meter (that one pops the haul).
+		local reached = math.min(math.floor(meter / BOSS.STAGE_EVERY + 1e-9), math.ceil(1 / BOSS.STAGE_EVERY) - 1)
+		if reached > state.stage then
+			table.insert(events, { kind = "stage" })
+			state.stage = reached
 		end
 		if meter >= 1 then
 			state.phase = "haul"

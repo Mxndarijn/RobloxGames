@@ -77,7 +77,7 @@ rides on its Transform and the species bones. On the slide itself (`Riding` and 
 
 ## Slimes never walk into each other (server)
 
-- **Slide slots (`Spawner.slot`).** Every drop (regular, Mystery Egg or boss shed) takes the next free
+- **Slide slots (`Spawner.slot`).** Every drop (regular, Mystery Egg or bonus) takes the next free
   fountain-slide slot, at least `Spawner.SLIDE_GAP` seconds after the last one (`world.slideFreeAt`). A drop whose slot
   is still to come exists in World (it counts for the cap) but has no model yet (`Scene.describe` skips it).
 - **Lane queue (`Shared.LaneTraffic`).** One loop in `WorldView` pivots every lane walker each Heartbeat. Front to back,

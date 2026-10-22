@@ -1,14 +1,11 @@
 --!strict
 -- The boss's attacks over World (src/server/BossEvent.luau, contract/boss-event.md "Attacks"): it winds up from a
 -- stop once an attack is due; a struck player is knocked back and stunned; dazed hits count more; guards hold it out
--- of reach; spit puddles slow; a shed is a goo burst that throws its slimes out of the boss; a win spills nothing extra.
+-- of reach; spit puddles slow; it drops no slimes, during the fight or on a win.
 local BossChoreo = require("../src/shared/BossChoreo")
 local BossEvent = require("../src/server/BossEvent")
-local BossFight = require("../src/shared/BossFight")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
-local ParadeLane = require("../src/shared/ParadeLane")
-local Scene = require("../src/server/Scene")
 local ServerFixtures = require("./ServerFixtures")
 local Shop = require("../src/shared/Shop")
 local TestRunner = require("./TestRunner")
@@ -185,7 +182,7 @@ describe("BossEvent attacks", function()
 		w.boss.nextAttackAt = t
 		w.boss.attackIndex = 1 -- the second available attack: Goozilla's spit (its phase attack)
 		w.boss.fight.points = BOSS.POINTS_PER_PLAYER * BOSS.PHASE_AT + 2 -- the phase is on (with room for the drain)
-		w.boss.fight.shed = 2
+		w.boss.fight.stage = 2
 		BossEvent.step(w, t + 0.1, ctx)
 		expect(wild.move.kind).toBe("windup")
 		expect(#w.boss.targets).toBe(3)
@@ -199,50 +196,7 @@ describe("BossEvent attacks", function()
 		expect(slowed).toBeCloseTo(Shop.walkSpeed(s.data) * 0.5, 1e-6)
 	end)
 
-	it("a shed is a goo burst: its slimes fly out of the boss, land round it, then walk to the lane", function()
-		local w, ctx = fight(1)
-		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
-		BossEvent.step(w, t, ctx)
-		local boss = bossOf(w)
-		local bx, bz = BossChoreo.pose(boss.move, t)
-		local before = {}
-		for id in w.wild do
-			before[id] = true
-		end
-		w.boss.fight.points = BossFight.target(1) * BOSS.SHED_EVERY + 0.5 -- past the first quarter
-		w.boss.fight.lastAnyHitAt = t
-		BossEvent.step(w, t + 0.05, ctx)
-		local shed = {}
-		for id, wild in w.wild do
-			if not before[id] then
-				table.insert(shed, wild)
-			end
-		end
-		expect(#shed).toBe(BOSS.SHED_COUNT)
-		if not ParadeLane.enabled() then
-			expect(#w.boss.bursts).toBe(0) -- no parade lane: they drop from the fountain as before
-			return
-		end
-		expect(#w.boss.bursts).toBe(BOSS.SHED_COUNT)
-		for _, wild in shed do
-			local d = math.sqrt((wild.position.X - bx) ^ 2 + (wild.position.Z - bz) ^ 2)
-			expect(d >= BOSS.BURST_DISTANCE[1] - 1e-6 and d <= BOSS.BURST_DISTANCE[2] + 1e-6).toBe(true)
-			expect(wild.returning ~= nil).toBe(true) -- it walks to the lane from where it lands
-			expect(wild.landsAt).toBe(t + 0.05 + BOSS.BURST_FLIGHT)
-		end
-		local id = ""
-		for sid, wild in w.wild do
-			if wild == shed[1] then
-				id = sid
-			end
-		end
-		expect(Scene.describe(w, t + 0.1)[id]).toBeNil() -- still in the air: no model yet
-		expect(Scene.describe(w, t + 0.05 + BOSS.BURST_FLIGHT + 0.01)[id] ~= nil).toBe(true)
-		BossEvent.step(w, t + 0.05 + BOSS.BURST_FLIGHT + 1, ctx)
-		expect(#w.boss.bursts).toBe(0) -- landed and splatted
-	end)
-
-	it("bringing it home spills nothing extra: the sheds are the fight's reward", function()
+	it("bringing it home spills no slimes either", function()
 		local w, ctx = fight(2)
 		local t = T0 + BOSS.WARNING_SECONDS
 		local i = 0
