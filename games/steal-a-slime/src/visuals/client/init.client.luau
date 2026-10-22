@@ -23,7 +23,7 @@
 	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
 	  * the Mystery Egg hatch show on the pad (EggHatchFx) from a hatched slime's HatchedAt / HatchedFrom / HatchLucky
-	  * home plot marker (HomePlotMarker): beacon, floor rim, "YOUR PLOT" tag and edge arrow on the local player's own plot
+	  * home plot marker (HomePlotMarker): beacon, floor rim, "Your plot" tag and edge arrow on the local player's own plot
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
 	  * slime fountain (still Map.Volcano.Crater): goo spray ("Smoke"),
@@ -42,9 +42,9 @@
 	The base is drawn through a StepTrack (Lib core): a wild slime it animates
 	(a Mystery Egg on the lane, a slime too far away for a rig) glides at frame
 	rate instead of stepping at the replication rate.
-	The walking boss (model attributes BossWalkSeed / BossWalkAt / BossWalkUntil)
-	instead rebases every frame on its BossWander pose at server time: the same
-	plan the server walks, drawn at frame rate instead of at replication rate.
+	The moving boss without a life rig (model attribute BossMove) instead rebases
+	every frame on its BossChoreo pose at server time: the same move the server
+	checks hits against, drawn at frame rate instead of at replication rate.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -53,9 +53,8 @@ local RunService = game:GetService("RunService")
 
 local Lighting = game:GetService("Lighting")
 
-local BossWander = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossWander"))
+local BossChoreo = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossChoreo"))
 local CarryWriggle = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("CarryWriggle"))
-local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local Effects = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("Effects"))
 local StepTrack = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core"):WaitForChild("StepTrack"))
@@ -86,7 +85,7 @@ type Track = {
 }
 
 local tracks: { [Model]: Track } = {}
-local bossWalks: { [Model]: { key: string, plan: BossWander.Plan } } = {}
+local bossWalks: { [Model]: { key: string, move: BossChoreo.Move } } = {}
 -- Tagged models whose Body hasn't replicated yet (the tag can arrive first): picked up when it does.
 local pending: { [Model]: RBXScriptConnection } = {}
 
@@ -210,39 +209,26 @@ local function setBlink(track: Track, closed: boolean)
 	end
 end
 
--- The fountain centre the boss walk is laid out round (the server's WorldView crater()).
-local function craterCentre(): Vector3
-	local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
-	local volcano = map and map:FindFirstChild("Volcano")
-	local crater = volcano and volcano:FindFirstChild("Crater")
-	return if crater and crater:IsA("BasePart") then crater.Position else Vector3.new(0, 20, 0)
-end
-
--- The walking boss's pose now (its BossWander plan at server time) at height `y`, or nil for any other slime.
+-- The moving boss's pose now (its BossChoreo move at server time) at height `y`, or nil for any other slime.
+-- Only while it has no life rig (SlimeLifeRunner draws a rigged boss from the same move).
 local function bossWalkPose(model: Model, y: number): CFrame?
-	local seed = model:GetAttribute(Constants.BOSS_WALK_SEED_ATTRIBUTE)
-	local at = model:GetAttribute(Constants.BOSS_WALK_AT_ATTRIBUTE)
-	if type(seed) ~= "number" or type(at) ~= "number" then
+	local text = model:GetAttribute(Constants.BOSS_MOVE_ATTRIBUTE)
+	if type(text) ~= "string" then
 		bossWalks[model] = nil
 		return nil
 	end
-	local key = `{seed}|{at}`
 	local walk = bossWalks[model]
-	if not walk or walk.key ~= key then
-		local fresh: { key: string, plan: BossWander.Plan } =
-			{ key = key, plan = BossWander.plan(seed, at, Config.BOSS.FIGHT_SECONDS) }
-		bossWalks[model] = fresh
-		walk = fresh
+	if not walk or walk.key ~= text then
+		local move = BossChoreo.decode(text)
+		if not move then
+			return nil
+		end
+		walk = { key = text, move = move }
+		bossWalks[model] = walk
 	end
-	local now = workspace:GetServerTimeNow()
-	local stopped = model:GetAttribute(Constants.BOSS_WALK_UNTIL_ATTRIBUTE)
-	if type(stopped) == "number" then
-		now = math.min(now, stopped)
-	end
-	local p, face = BossWander.pose(walk.plan, now)
-	local origin = craterCentre()
-	local spot = Vector3.new(origin.X + p[1], y, origin.Z + p[2])
-	return CFrame.lookAt(spot, spot + Vector3.new(face[1], 0, face[2]))
+	local x, z, hx, hz = BossChoreo.world(walk.move, workspace:GetServerTimeNow())
+	local spot = Vector3.new(x, y, z)
+	return CFrame.lookAt(spot, spot + Vector3.new(hx, 0, hz))
 end
 
 local function headingOf(cf: CFrame): number
@@ -333,12 +319,9 @@ local function step(track: Track, now: number, cameraPos: Vector3)
 		track.base, track.written, track.glide = nil, nil, nil
 		return
 	end
-	-- SlimeLifeRunner draws this one through its Transform: leave the pivot to the server (put our bob back once).
-	-- The walking boss keeps its frame-rate walk from here.
-	if
-		track.model:GetAttribute(LIFE_MODE_ATTRIBUTE) == "motor"
-		and track.model:GetAttribute(Constants.BOSS_WALK_SEED_ATTRIBUTE) == nil
-	then
+	-- SlimeLifeRunner draws this one through its Transform (the boss too, from its move): leave the pivot to the
+	-- server (put our bob back once).
+	if track.model:GetAttribute(LIFE_MODE_ATTRIBUTE) == "motor" then
 		if track.base and track.written and samePivot(track.model:GetPivot(), track.written) then
 			track.model:PivotTo(track.base)
 		end

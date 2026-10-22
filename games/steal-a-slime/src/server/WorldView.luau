@@ -9,7 +9,7 @@
 	    OwnerUserId / State / Price / DespawnAt, ProximityPrompt,
 	    pad placement, carry weld, volcano drop, the parade lane walk, a
 	    dropped slime's walk back to the lane and the escape-home glide);
-	  * plot attributes OwnerUserId / LockUntil / Rebirths (CONTRACT.md §5.2);
+	  * plot attributes OwnerUserId / LockUntil (CONTRACT.md §5.2);
 	    with FEATURES.Habitats, Pad Habitat / HabitatFrom / HabitatAt (HabitatPads)
 	    and the owner / stats text on each plot Sign (PlotSigns);
 	  * per-player WalkSpeed (Speed Coil when not carrying), unequipped
@@ -25,13 +25,14 @@
 ]]
 
 local InsertService = game:GetService("InsertService")
+local PathfindingService = game:GetService("PathfindingService")
 local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local BaseFloors = require(script.Parent.BaseFloors)
-local BossWander = require(ReplicatedStorage.Shared.BossWander)
+local BossChoreo = require(ReplicatedStorage.Shared.BossChoreo)
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
@@ -42,6 +43,7 @@ local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
+local JarRoute = require(script.Parent.JarRoute)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
 local MeshSwap = require(script.Parent.MeshSwap)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
@@ -82,6 +84,7 @@ type Record = {
 	rideUntil: number, -- os.clock() when the fountain ride lands (0 = not riding)
 	ghost: Model?, -- StealGhost: the see-through copy left on the pad while a thief carries it
 	pendingKit: string?, -- built before this species kit loaded (shared mesh look): rebuilt once it arrives
+	walking: ParadeLane.Return?, -- the walk back it follows (a reroute of the same walk carries on, no new fall)
 }
 
 local WorldView = {}
@@ -223,9 +226,19 @@ local function crater(): Vector3
 	return Vector3.new(0, 20, 0)
 end
 
+WorldView.GROUND_PARAMS_TTL = 0.1 -- s: how long the ground ray filter is reused (characters and slime folders change rarely)
+
+local groundCache: { params: RaycastParams, builtAt: number }? = nil
+
 -- Slime models and characters never count as ground (a ray that hits the carrier's head made
--- dropped slimes float, CONTRACT.md §8.11).
+-- dropped slimes float, CONTRACT.md §8.11). Built at most once per GROUND_PARAMS_TTL: every returning slime rays
+-- every Heartbeat.
 local function groundParams(): RaycastParams
+	local clock = os.clock()
+	local cached = groundCache
+	if cached and clock - cached.builtAt < WorldView.GROUND_PARAMS_TTL then
+		return cached.params
+	end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.RespectCanCollide = true -- canopies, HomeZones and other triggers are not ground
@@ -247,6 +260,7 @@ local function groundParams(): RaycastParams
 		end
 	end
 	params.FilterDescendantsInstances = exclude
+	groundCache = { params = params, builtAt = clock }
 	return params
 end
 
@@ -274,26 +288,20 @@ local function volcanoLanding(wild: World.Wild): CFrame
 	return surfaceBelow(Vector3.new(spot.X, origin.Y + 200, spot.Z), 400) or CFrame.new(spot.X, 0, spot.Z)
 end
 
--- Each boss slime's walk (BossWander) by slime id, planned from its arrival.
-local bossPlans: { [string]: BossWander.Plan } = {}
+-- The fighting boss's wild record by slime id while it moves (BossChoreo), for its reach checks.
+local bossMoves: { [string]: World.Wild } = {}
 
-local function bossPlan(id: string, wild: World.Wild): BossWander.Plan
-	local plan = bossPlans[id]
-	if not plan then
-		plan = BossWander.plan(BossWander.seed(id), wild.spawnedAt, Config.BOSS.FIGHT_SECONDS)
-		bossPlans[id] = plan
-	end
-	return plan
+-- The boss at its move's pose at `now`, on the ground (its lift is drawn by clients), facing its heading.
+local function bossCFrame(move: BossChoreo.Move, now: number): CFrame
+	local x, z, hx, hz = BossChoreo.world(move, now)
+	local ground = surfaceBelow(Vector3.new(x, crater().Y + 200, z), 400) or CFrame.new(x, 0, z)
+	local at = ground.Position
+	return CFrame.lookAt(at, at + Vector3.new(hx, 0, hz))
 end
 
--- The boss on its walk at `now` (round the fountain centre), on the ground, facing where it walks.
-local function bossCFrame(plan: BossWander.Plan, now: number): CFrame
-	local origin = crater()
-	local p, face = BossWander.pose(plan, now)
-	local spot = origin + Vector3.new(p[1], 0, p[2])
-	local ground = surfaceBelow(Vector3.new(spot.X, origin.Y + 200, spot.Z), 400) or CFrame.new(spot.X, 0, spot.Z)
-	local at = ground.Position
-	return CFrame.lookAt(at, at + Vector3.new(face[1], 0, face[2]))
+-- The fountain centre in world studs: the boss's plaza coordinates are round it.
+function WorldView.plazaOrigin(): Vector3
+	return crater()
 end
 
 local function wildLanding(wild: World.Wild): CFrame
@@ -477,21 +485,18 @@ local function followLane(id: string, key: string, wild: World.Wild)
 	end)
 end
 
--- Walks the fighting boss along its plan every frame until its record changes (the haul pops it to carry size).
--- Never past `wild.wanderUntil`, so it can't walk on between the haul and the next reconcile.
-local function followBoss(id: string, key: string, plan: BossWander.Plan, wild: World.Wild)
+-- Keeps the boss Body near its move (BOSS.MOVE_PIVOT_INTERVAL) until its record changes. Clients draw the move
+-- itself every frame (BossMove attribute), so the Body only has to be close: the prompt, streaming and the label.
+local function followBoss(id: string, key: string, wild: World.Wild)
 	task.spawn(function()
 		while true do
 			local record = records[id]
-			if not record or record.key ~= key or not record.model.Parent then
+			local move = wild.move
+			if not record or record.key ~= key or not record.model.Parent or not move or wild.position ~= nil then
 				return
 			end
-			local now = workspace:GetServerTimeNow()
-			record.model:PivotTo(bossCFrame(plan, if wild.wanderUntil then math.min(now, wild.wanderUntil) else now))
-			if wild.wanderUntil then
-				return
-			end
-			RunService.Heartbeat:Wait()
+			record.model:PivotTo(bossCFrame(move, workspace:GetServerTimeNow()))
+			task.wait(Config.BOSS.MOVE_PIVOT_INTERVAL)
 		end
 	end)
 end
@@ -577,6 +582,81 @@ local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0
 	end)
 end
 
+-- The walk back's path (contract/slime-walk.md): PathfindingService round walls, through doorways (the lock
+-- barrier is pass-through, setBarrierSolid) and over bridges; JarRoute down a jar tower's spiral stair first, which
+-- the navmesh can't see.
+WorldView.PATH_AGENT = table.freeze({
+	AgentRadius = 1.5,
+	AgentHeight = 4, -- above WALK_STEP_UP: nothing over the path is low enough for the ground ray to land on
+	AgentCanJump = true,
+	AgentCanClimb = false,
+	WaypointSpacing = 4,
+})
+
+local function plotFrame(index: number): CFrame
+	local centre, yaw = WorldLayout.plotCentre(index)
+	return CFrame.new(centre[1], centre[2], centre[3]) * CFrame.Angles(0, math.rad(yaw), 0)
+end
+
+local function append(route: { number }, x: number, z: number)
+	table.insert(route, x)
+	table.insert(route, z)
+end
+
+-- The tower leg (world x, z) when `at` is on an upper floor that stands, and the ground-floor spot it ends on.
+local function towerLeg(at: Vector3): ({ number }?, Vector3?)
+	for index = 1, Config.PLOT_COUNT do
+		local frame = plotFrame(index)
+		local p = frame:PointToObjectSpace(at)
+		local leg = JarRoute.down(p.X, p.Y, p.Z)
+		local plot = WorldView.plot(index)
+		if leg and plot and plot:FindFirstChild(`Floor_{WorldLayout.floorAt(p.Y)}`) then
+			local out = {}
+			for k = 1, #leg, 2 do
+				local w = frame:PointToWorldSpace(Vector3.new(leg[k], 0, leg[k + 1]))
+				append(out, w.X, w.Z)
+			end
+			local foot = Vector3.new(leg[#leg - 1], WorldLayout.floorTop(1), leg[#leg])
+			return out, frame:PointToWorldSpace(foot)
+		end
+	end
+	return nil, nil
+end
+
+-- PathfindingService waypoints (world x, z) between `from` and `goal`, both ends left out; nil when there is no path.
+local function groundLeg(from: Vector3, goal: Vector3): { number }?
+	local path = PathfindingService:CreatePath(WorldView.PATH_AGENT :: any)
+	local ok = pcall(function()
+		path:ComputeAsync(from, goal)
+	end)
+	if not ok or path.Status ~= Enum.PathStatus.Success then
+		return nil
+	end
+	local waypoints = path:GetWaypoints()
+	local out = {}
+	for k = 2, #waypoints - 1 do
+		local p = waypoints[k].Position
+		append(out, p.X, p.Z)
+	end
+	return out
+end
+
+-- Finds the path for a slime that was just dropped at `start` and swaps it in (Carry.reroute) while it falls.
+local function routeHome(world: World.World, id: string, plan: ParadeLane.Return, start: Vector3)
+	task.spawn(function()
+		local route: { number } = {}
+		local tower, foot = towerLeg(start)
+		if tower then
+			table.move(tower, 1, #tower, 1, route)
+		end
+		local ground = groundLeg(foot or start, Vector3.new(plan.x1, ParadeLane.LANE_Y, plan.z1))
+		if ground then
+			table.move(ground, 1, #ground, #route + 1, route)
+		end
+		Carry.reroute(world, id, plan.startAt, route, workspace:GetServerTimeNow())
+	end)
+end
+
 -- An escaped slime glides home flat (eased, facing its pad), no arc.
 local function glide(from: CFrame, to: CFrame): (t: number) -> CFrame
 	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
@@ -649,7 +729,9 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		p.Name = Constants.HATCH_PROMPT_NAME
 		p.ActionText = "Hatch!"
 		p.ObjectText = Genome.displayName(entry.slime)
-		p.KeyboardKeyCode = Enum.KeyCode.F
+		local keys = Constants.SLIME_PROMPT_KEYS.hatch
+		p.KeyboardKeyCode = (Enum.KeyCode :: any)[keys.keyboard]
+		p.GamepadKeyCode = (Enum.KeyCode :: any)[keys.gamepad]
 		p.RequiresLineOfSight = false
 		p.HoldDuration = Config.HOLD_CONFIRM_SECONDS
 		p.MaxActivationDistance = Config.STEAL_REACH - 2
@@ -669,6 +751,7 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		key = "",
 		weld = nil,
 		rideUntil = 0,
+		walking = nil,
 		pendingKit = if slimeMesh and not isEgg then SlimeMesh.pendingKit(slimeMesh, entry.slime) else nil,
 	}
 end
@@ -707,19 +790,8 @@ local function syncGhost(record: Record, entry: Scene.Entry)
 end
 
 -- Returns false when the model couldn't be placed yet (retried next reconcile).
-local function place(record: Record, entry: Scene.Entry, previous: string?): boolean
+local function place(world: World.World, record: Record, entry: Scene.Entry, previous: string?): boolean
 	local model = record.model
-	-- An undropped wild boss walks its BossWander plan; the client draws that walk from these (no stutter from
-	-- replication). Anything else clears them.
-	local walk = if entry.boss
-			and entry.state == "Wild"
-			and entry.wild
-			and entry.wild.position == nil
-		then entry.wild
-		else nil
-	model:SetAttribute(Constants.BOSS_WALK_SEED_ATTRIBUTE, if walk then BossWander.seed(entry.id) else nil)
-	model:SetAttribute(Constants.BOSS_WALK_AT_ATTRIBUTE, if walk then walk.spawnedAt else nil)
-	model:SetAttribute(Constants.BOSS_WALK_UNTIL_ATTRIBUTE, if walk then walk.wanderUntil else nil)
 	model:SetAttribute("OwnerUserId", entry.ownerUserId)
 	model:SetAttribute("State", entry.state)
 	model:SetAttribute("Price", entry.price)
@@ -754,6 +826,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	end
 
 	local from = model:GetPivot()
+	local fallUntil = record.rideUntil
 	unweld(record)
 	record.rideUntil = 0
 	model:SetAttribute(Constants.RIDING_ATTRIBUTE, nil)
@@ -768,26 +841,35 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 		if not wild then
 			return true
 		end
-		if entry.boss and wild.position == nil then
-			-- The boss wanders round its plaza spot while it fights (no parade lane, no fountain ride) and stays
-			-- where the haul caught it.
-			local plan = bossPlan(entry.id, wild)
-			model:PivotTo(bossCFrame(plan, wild.wanderUntil or workspace:GetServerTimeNow()))
-			if wild.wanderUntil == nil then
-				followBoss(entry.id, entry.key, plan, wild)
-			end
+		if entry.boss and wild.position == nil and wild.move then
+			-- The boss moves round its plaza spot (no parade lane, no fountain ride) and stands where the haul caught it.
+			model:PivotTo(bossCFrame(wild.move, workspace:GetServerTimeNow()))
+			followBoss(entry.id, entry.key, wild)
 			return true
 		end
 		local plan = wild.returning
 		if ParadeLane.enabled() and plan then
 			-- Dropped: it falls out of the carrier's arms, then walks back to the lane.
 			local start = returnStart(wild, plan)
-			if previous ~= nil then
+			local walking = record.walking
+			record.walking = plan
+			if previous ~= nil and walking and walking.startAt == plan.startAt then
+				-- The same walk on its new path (Carry.reroute): finish the fall it was in, then walk.
+				local left = fallUntil - os.clock()
+				if left > 0 then
+					record.rideUntil = os.clock() + left
+					animate(entry.id, entry.key, left, function(t: number): CFrame
+						return from:Lerp(start, t)
+					end)
+				end
+				followReturn(entry.id, entry.key, plan, if left > 0 then start.Y else from.Y)
+			elseif previous ~= nil then
 				record.rideUntil = os.clock() + WorldView.FALL_SECONDS
 				animate(entry.id, entry.key, WorldView.FALL_SECONDS, function(t: number): CFrame
 					return from:Lerp(start, t * t)
 				end)
 				followReturn(entry.id, entry.key, plan, start.Y)
+				routeHome(world, entry.id, plan, start.Position)
 			else
 				local now = workspace:GetServerTimeNow()
 				local y = if now > plan.startAt then ParadeLane.LANE_Y else start.Y
@@ -870,9 +952,9 @@ function WorldView.reconcile(
 			clearGhost(record)
 			record.model:Destroy()
 			records[id] = nil
-			bossPlans[id] = nil
 		end
 	end
+	table.clear(bossMoves)
 	for id, entry in entries do
 		local record: Record? = records[id]
 		local isNew = false
@@ -918,11 +1000,22 @@ function WorldView.reconcile(
 		end
 		-- Every reconcile, not only in place(): the telegraph window opens without a key change.
 		record.model:SetAttribute(Constants.DESPAWN_AT_ATTRIBUTE, entry.despawnAt)
+		-- The boss's move changes without a key change; clients draw it from this (BossChoreo).
+		local move = if entry.boss
+				and entry.state == "Wild"
+				and entry.wild
+				and entry.wild.position == nil
+			then entry.wild.move
+			else nil
+		setAttr(record.model, Constants.BOSS_MOVE_ATTRIBUTE, if move then BossChoreo.encode(move) else nil)
+		if move and entry.wild then
+			bossMoves[id] = entry.wild
+		end
 		SlimeLabelView.applyGrowth(record.model, entry.slime, now)
 		if record.key ~= entry.key then
 			local previous = if isNew then nil else record.key
 			record.key = entry.key
-			if not place(record, entry, previous) then
+			if not place(world, record, entry, previous) then
 				record.key = "" -- retry next time
 			end
 			if isNew and not record.model.Parent then
@@ -955,7 +1048,17 @@ end
 -- Server-side position of a slime's Body (for reach checks).
 function WorldView.slimePosition(id: string): Vector3?
 	local record = records[id]
-	return record and record.body.Position
+	if not record then
+		return nil
+	end
+	-- The moving boss: where its move has it now, not where the Body was last pivoted.
+	local wild = bossMoves[id]
+	local move = wild and wild.move
+	if move and wild and wild.position == nil then
+		local x, z = BossChoreo.world(move, workspace:GetServerTimeNow())
+		return Vector3.new(x, record.body.Position.Y, z)
+	end
+	return record.body.Position
 end
 
 ---------------------------------------------------------------------------
@@ -1044,6 +1147,7 @@ local function applyPrompt(prompt: ProximityPrompt?, view: PlotPrompts.Prompt, o
 end
 
 local setBarrierSolid: (Instance, number, boolean) -> ()
+local setOpenDoorSolid: (Instance, boolean) -> ()
 
 local function setIfChanged(instance: Instance, name: string, value: any)
 	if instance:GetAttribute(name) ~= value then
@@ -1118,6 +1222,12 @@ function setBarrierSolid(plot: Instance, index: number, solid: boolean)
 	ensureGroups()
 	for _, panel in barrier:GetChildren() do
 		if panel:IsA("BasePart") then
+			-- A dropped slime's path back to the lane goes through a shut door (routeHome).
+			if not panel:FindFirstChildOfClass("PathfindingModifier") then
+				local modifier = Instance.new("PathfindingModifier")
+				modifier.PassThrough = true
+				modifier.Parent = panel
+			end
 			if panel.CanCollide ~= solid then
 				panel.CanCollide = solid
 			end
@@ -1128,6 +1238,15 @@ function setBarrierSolid(plot: Instance, index: number, solid: boolean)
 				end)
 			end
 		end
+	end
+end
+
+-- The open door (swung out on its hinges) is solid for everyone while the plot is open; while locked it is shut in
+-- the doorway (the LockBarrier), so its open-door collider goes.
+function setOpenDoorSolid(plot: Instance, solid: boolean)
+	local collider = plot:FindFirstChild("OpenDoorCollider")
+	if collider and collider:IsA("BasePart") and collider.CanCollide ~= solid then
+		collider.CanCollide = solid
 	end
 end
 
@@ -1247,9 +1366,9 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			local view = PlotPrompts.describe(world, index, now)
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)
 			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
-			setIfChanged(plot, "Rebirths", if session then session.data.rebirths else 0)
 			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
 			setBarrierSolid(plot, index, view.locked)
+			setOpenDoorSolid(plot, not view.locked)
 			setIfChanged(plot, Constants.PLOT_LOCK_COST_ATTRIBUTE, view.lockCost)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
 			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)
@@ -1288,7 +1407,10 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			end
 			local sign = plot:FindFirstChild("Sign")
 			if sign then
-				PlotSigns.apply(sign, PlotSigns.lines(index, session))
+				PlotSigns.apply(
+					sign,
+					PlotSigns.lines(index, session, if session then World.incomeOf(world, session) else nil)
+				)
 			end
 		end
 	end
@@ -1312,6 +1434,19 @@ function WorldView.pointInHomeZone(position: Vector3, plotIndex: number): boolea
 	local reachUp = zone:GetAttribute("ReachUp")
 	local top = half.Y + 8 + (if type(reachUp) == "number" then reachUp else 0)
 	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
+end
+
+-- The player's character root in plot `plotIndex`'s plot-local frame, y on WorldLayout.floorTop's scale (the Base's
+-- top is PLOT_FLOOR_TOP), or nil without a character or plot.
+function WorldView.plotPoint(userId: number, plotIndex: number): { number }?
+	local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
+	local plot = WorldView.plot(plotIndex)
+	local base = plot and plot:FindFirstChild("Base")
+	if not (root and base and base:IsA("BasePart")) then
+		return nil
+	end
+	local p = base.CFrame:PointToObjectSpace(root.Position)
+	return { p.X, p.Y - base.Size.Y / 2 + WorldLayout.PLOT_FLOOR_TOP, p.Z }
 end
 
 -- Drop tube (CONTRACT.md §5.3): puts the player's character in plot `plotIndex`'s splash pool, still. False when

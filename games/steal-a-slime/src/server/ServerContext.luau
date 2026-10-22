@@ -85,6 +85,7 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 			return WorldView.pointInHomeZone(Vector3.new(point.X, point.Y, point.Z), session.plotIndex)
 		end,
 		dropDown = WorldView.dropDown,
+		plotPointOf = WorldView.plotPoint,
 		-- Knockback gloves, Fun items and the Bat: the server only launches; the look is client FX from PvpEvent.
 		launch = function(userId: number, push, _landing): boolean
 			return PvpLaunch.launch(userId, push, now())
@@ -108,6 +109,11 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 		slimePosition = function(slimeId: string)
 			local p = WorldView.slimePosition(slimeId)
 			return p and { X = p.X, Y = p.Y, Z = p.Z }
+		end,
+		-- The boss's plaza coordinates are round the fountain centre (BossEvent.Context).
+		plazaOrigin = function()
+			local p = WorldView.plazaOrigin()
+			return { X = p.X, Y = p.Y, Z = p.Z }
 		end,
 		-- Goo Blaster splats: the first solid surface up to GROUND_PROBE studs below the blob's end (characters ignored).
 		groundBelow = function(point)

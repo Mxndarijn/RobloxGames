@@ -26,6 +26,7 @@ local PlayerAttributes = require(script.Parent.PlayerAttributes)
 local Profiler = require(script.Parent.Profiler)
 local PvpLaunch = require(script.Parent.PvpLaunch)
 local PvpService = require(script.Parent.PvpService)
+local Rescue = require(script.Parent.Rescue)
 local Ritual = require(ReplicatedStorage.Shared.Ritual)
 local RitualService = require(script.Parent.RitualService)
 local RitualView = require(script.Parent.RitualView)
@@ -58,6 +59,8 @@ export type Loop = Deps & {
 }
 
 local ServerLoop = {}
+
+ServerLoop.VIEW_INTERVAL = VIEW_INTERVAL
 
 function ServerLoop.new(deps: Deps): Loop
 	local loop: any = table.clone(deps)
@@ -135,6 +138,10 @@ local function rescueFallen(loop: Loop)
 			guard = PvpLaunch.guardActive(player.UserId, state and state.controlUntil, loop.now())
 		end
 		if WorldView.rescue(player, session and session.plotIndex, guard) then
+			local carry = session and session.carry
+			if carry and Rescue.dropsCarry(carry.kind, carry.boss) then
+				Carry.release(world, player.UserId, loop.now(), nil, "drop")
+			end
 			World.notify(world, player.UserId, "Whoa! Back to safety.", "info", nil)
 		end
 	end
@@ -168,7 +175,7 @@ local function frame(loop: Loop)
 	local frameStart = if profiler.enabled then profiler.clock() else 0
 	local t = loop.now()
 	Profiler.time(profiler, "Rescue", safeCall, "rescue", rescueFallen, loop)
-	Profiler.time(profiler, "GameLoop", GameLoop.step, loop.world, t)
+	Profiler.time(profiler, "GameLoop", GameLoop.step, loop.world, t, loop.ctx :: any)
 	if t - loop.lastView < VIEW_INTERVAL then
 		reportProfiler(profiler, frameStart)
 		return

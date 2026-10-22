@@ -70,6 +70,22 @@ local function visibleSlots(inv: any): { any }
 end
 
 describe("Inventory hotbar", function()
+	it("a bag with only the starting Bat says it is empty and where items come from, instead of the grid", function()
+		local inv = mount(nil)
+		inv.setPanelOpen(true)
+		local empty = UiHarness.find(inv.panel.frame, "EmptyBag")
+		expect(empty ~= nil and empty.Visible).toBe(true)
+		expect(UiHarness.find(empty, "Title").Text).toBe("Your bag is empty")
+		expect(UiHarness.find(empty, "Body").Text).toBe(Inventory.EMPTY.body)
+		expect(UiHarness.find(inv.panel.frame, "Grid").Visible).toBe(false)
+		expect(UiHarness.find(inv.panel.frame, "HotbarPlate").Visible).toBe(true) -- the Bat stays on the plate
+		expect(UiHarness.find(inv.panel.frame, "Count").Visible).toBe(false)
+		inv.setPanelOpen(false)
+		local full = mount(nil, { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } })
+		full.setPanelOpen(true)
+		expect(UiHarness.find(full.panel.frame, "EmptyBag")).toBeNil()
+		expect(UiHarness.find(full.panel.frame, "Grid").Visible).toBe(true)
+	end)
 	it("shows the Bat slot, a bag cell, and a picture for each", function()
 		local inv = mount(nil)
 		local slots = visibleSlots(inv)
