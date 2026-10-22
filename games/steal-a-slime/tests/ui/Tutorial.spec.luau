@@ -106,3 +106,75 @@ describe("Tutorial.fromState", function()
 		expect(Tutorial.fromState(nil)).toBeNil()
 	end)
 end)
+
+describe("Tutorial device wording", function()
+	local function body(id: string, kind: Tutorial.Kind): string
+		return (Tutorial.viewById(id, kind) :: Tutorial.StepView).body
+	end
+	local function has(text: string, needle: string): boolean
+		return string.find(text, needle, 1, true) ~= nil
+	end
+	it("keyboard is the default and holds E for the hold prompts", function()
+		expect(body("Lock", "keyboard")).toBe((Tutorial.find("Lock") :: Tutorial.Step).body)
+		expect(Tutorial.fromState({ tutorialStepId = "Lock" }).body).toBe(body("Lock", "keyboard"))
+		expect(has(body("Lock", "keyboard"), 'Hold E on "Lock base"')).toBe(true)
+		expect(has(body("BuyPad", "keyboard"), 'Hold E on "Buy pad $X"')).toBe(true)
+		expect(has(body("Merge", "keyboard"), "Press E at the merge vat")).toBe(true)
+		expect(has(body("Steal", "keyboard"), 'hold E on "Steal"')).toBe(true)
+	end)
+	it("touch taps and holds the prompt, gamepad uses X", function()
+		expect(has(body("Grab", "touch"), "tap the prompt")).toBe(true)
+		expect(has(body("Lock", "touch"), 'Tap and hold the prompt on "Lock base"')).toBe(true)
+		expect(has(body("Steal", "touch"), 'tap and hold the prompt on "Steal"')).toBe(true)
+		expect(has(body("Grab", "gamepad"), "press X")).toBe(true)
+		expect(has(body("Lock", "gamepad"), 'Hold X on "Lock base"')).toBe(true)
+		expect(has(body("Merge", "gamepad"), "Press X at the merge vat")).toBe(true)
+		expect(has(body("Merge", "touch"), "Tap the prompt at the merge vat")).toBe(true)
+		expect(has(body("Steal", "gamepad"), 'hold X on "Steal"')).toBe(true)
+	end)
+	it("no key name leaks into the other devices and no placeholder is left", function()
+		for _, step in Tutorial.STEPS do
+			expect(has(step.bodies.touch, " E")).toBe(false)
+			expect(has(step.bodies.gamepad, " E ")).toBe(false)
+			for _, kind in Tutorial.KINDS do
+				expect(string.find(step.bodies[kind], "{", 1, true)).toBeNil()
+				expect(#step.bodies[kind] <= 160).toBe(true)
+			end
+		end
+	end)
+	it("only the prompt wording differs between devices", function()
+		for _, id in { "Deposit", "Rebirth" } do
+			expect(body(id, "touch")).toBe(body(id, "keyboard"))
+			expect(body(id, "gamepad")).toBe(body(id, "keyboard"))
+		end
+	end)
+	it("the merge vat opens its menu at once: a press, never a hold", function()
+		for _, kind in Tutorial.KINDS do
+			expect(has(string.lower(body("Merge", kind)), "hold")).toBe(false)
+		end
+	end)
+	it("names the prompt's real button: PlayStation shapes and the keyboard layout's own letter", function()
+		expect(Tutorial.PROMPT_KEYS.gamepad).toBe("ButtonX")
+		expect(Tutorial.gamepadLabel("ButtonX")).toBe("X")
+		expect(Tutorial.gamepadLabel("ButtonSquare")).toBe("Square")
+		expect(Tutorial.gamepadLabel("ButtonCross")).toBe("Cross")
+		expect(Tutorial.gamepadLabel("ButtonL3")).toBe("L3")
+		local square = (Tutorial.viewById("Lock", "gamepad", "Square") :: Tutorial.StepView).body
+		expect(has(square, 'Hold Square on "Lock base"')).toBe(true)
+		expect(has(square, " X ")).toBe(false)
+		local grab = (Tutorial.fromState({ tutorialStepId = "Grab" }, "gamepad", "Square") :: Tutorial.StepView).body
+		expect(has(grab, "press Square")).toBe(true)
+		local azerty = (Tutorial.viewById("Steal", "keyboard", "Z") :: Tutorial.StepView).body
+		expect(has(azerty, 'hold Z on "Steal"')).toBe(true)
+		local legacy = (Tutorial.fromState({ tutorialStep = 3 }, "gamepad", "Square") :: Tutorial.StepView).body
+		expect(has(legacy, "Hold Square")).toBe(true)
+	end)
+	it("touch ignores a key name", function()
+		expect(body("Lock", "touch")).toBe((Tutorial.viewById("Lock", "touch", "Square") :: Tutorial.StepView).body)
+	end)
+	it("the card measures every device and the longest button name", function()
+		local texts = Tutorial.texts(Tutorial.find("Lock") :: Tutorial.Step)
+		expect(#texts).toBe(#Tutorial.KINDS + 1)
+		expect(has(texts[#texts], 'Hold Triangle on "Lock base"')).toBe(true)
+	end)
+end)

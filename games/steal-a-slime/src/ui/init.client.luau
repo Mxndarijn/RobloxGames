@@ -293,6 +293,7 @@ local inventory = Inventory.new(gui, {
 	input = game:GetService("UserInputService"),
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
+InventoryTools.bindBumpers(inventory.cycleSlot)
 InventoryTools.bindBag(inventory.isBagKey, inventory.toggleBag)
 InventoryTools.bindUse(inventory.pressHeld, inventory.releaseHeld)
 local stealFx = StealAlertFx.new(gui, {

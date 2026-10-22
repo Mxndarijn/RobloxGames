@@ -410,14 +410,16 @@ function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 				out,
 				{ name = `{card[1]} {step.id} title`, text = step.title, size = 20, bold = true, w = r.w - 100, h = 24 }
 			)
-			table.insert(out, {
-				name = `{card[1]} {step.id} body`,
-				text = step.body,
-				size = t.bodyTextSize,
-				w = r.w - t.padX * 2,
-				h = r.h - t.bodyTop - t.padBottom,
-				wrapped = true,
-			})
+			for i, text in Tutorial.texts(step) do
+				table.insert(out, {
+					name = `{card[1]} {step.id} body ({i})`,
+					text = text,
+					size = t.bodyTextSize,
+					w = r.w - t.padX * 2,
+					h = r.h - t.bodyTop - t.padBottom,
+					wrapped = true,
+				})
+			end
 		end
 		table.insert(
 			out,
