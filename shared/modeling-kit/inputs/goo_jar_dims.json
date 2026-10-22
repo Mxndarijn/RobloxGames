@@ -326,9 +326,7 @@
     "post": 1.5
   },
   "stairTop": {
-    "landing": 75,
-    "open": 45,
-    "railHeight": 2.5
+    "landing": 90
   },
   "vatSpot": {
     "angle": -62,

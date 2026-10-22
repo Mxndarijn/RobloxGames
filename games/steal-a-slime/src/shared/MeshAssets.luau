@@ -444,13 +444,13 @@ entries["goo_jar_trim_1_top"] =
 entries["goo_jar_trim_2_mid"] =
 	{ assetId = 98169175981967, meshId = "rbxassetid://103483321777206", size = { 53.091, 16.05, 50.916 } }
 entries["goo_jar_trim_2_top"] =
-	{ assetId = 121872413785229, meshId = "rbxassetid://137192548683110", size = { 53.091, 20.447, 50.916 } }
+	{ assetId = 121872413785229, meshId = "rbxassetid://108643064267600", size = { 53.091, 20.047, 50.916 } }
 entries["goo_jar_trim_3_mid"] =
 	{ assetId = 119020744731896, meshId = "rbxassetid://134431318553611", size = { 47.643, 16.05, 45.978 } }
 entries["goo_jar_trim_3_top"] =
-	{ assetId = 115479272829253, meshId = "rbxassetid://109586426292186", size = { 47.314, 20.612, 45.373 } }
+	{ assetId = 115479272829253, meshId = "rbxassetid://115150363653212", size = { 47.314, 20.212, 45.373 } }
 entries["goo_jar_trim_4_top"] =
-	{ assetId = 118248174951144, meshId = "rbxassetid://85083571447467", size = { 41.082, 19.188, 40.753 } }
+	{ assetId = 118248174951144, meshId = "rbxassetid://128376640786392", size = { 41.082, 18.788, 40.753 } }
 entries["goo_lock_button"] =
 	{ assetId = 132032016681033, meshId = "rbxassetid://140087463794943", size = { 5.0, 3.966, 5.0 } }
 -- Border v5 giant trees (WorldBorder.giants; 3-5x the border pines, MeshPart.Color tints the canopy). Open Cloud size-check.

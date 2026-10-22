@@ -205,10 +205,9 @@ WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22
 -- top, so you step on and off the side.
 WorldLayout.RAMP = table.freeze({ segments = 24, walk = 4.2, railStart = 30, railEnd = 45, railHeight = 2.5 })
 -- The top of the stair, on the top jar only (where the stair ends; a jar added above hides it, server/BaseFloors):
--- a flat landing over the stair hole for `landing` degrees on from where the ramp arrives, so you step off onto a
--- small platform, and a rail round the rest of the hole, `railHeight` high, so nobody runs back into it. The rail
--- leaves the last `open` degrees of the ramp open (it arrives there, within a couple of studs of the floor).
-WorldLayout.STAIR_TOP = table.freeze({ landing = 75, open = 45, railHeight = 2.5 })
+-- the ramp goes on for `landing` more degrees, flat at floor height, the same width as the ramp, so you arrive on a
+-- small platform instead of running straight off the end. No fence round the hole.
+WorldLayout.STAIR_TOP = table.freeze({ landing = 90 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; the top jar's hatch sits at this angle, the tube lands in the goo moat.
 -- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
@@ -1443,8 +1442,8 @@ local function variant(node: WorldNode, floor: number, show: string): WorldNode
 	return node
 end
 
--- The top of the stair that arrives on floor f (WorldLayout.STAIR_TOP): the landing and the hole rail colliders,
--- shown and solid only while jar f is the top jar (JarCollide: server/BaseFloors turns them off once a jar stands on
+-- The top of the stair that arrives on floor f (WorldLayout.STAIR_TOP): the flat landing's colliders, shown and
+-- solid only while jar f is the top jar (JarCollide: server/BaseFloors turns them off once a jar stands on
 -- it, because the next stair goes on from here). Their look is the top jar's trim mesh.
 local function stairTop(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local st, top = WorldLayout.STAIR, WorldLayout.STAIR_TOP
@@ -1459,23 +1458,13 @@ local function stairTop(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		node.attributes = a
 		table.insert(out, variant(node, f, "top"))
 	end
+	-- flat boxes as wide as the ramp's, on round from where it arrives
 	local step = 15
-	local landingWidth = st.hole - st.post
+	local width = st.outer - st.post + 0.4
 	for k = 1, top.landing // step do
 		local deg = start + (k - 0.5) * step
-		local chord = 2 * st.hole * math.sin(math.rad(step) / 2) + 0.2
-		add(
-			radial(`StairLanding_{k}`, { chord, 1, landingWidth }, st.post + landingWidth / 2, deg, deck - 0.5, at, yaw)
-		)
-	end
-	local railR = st.hole - 0.15
-	local k = 0
-	local deg = start + top.landing + step / 2
-	while deg + step / 2 <= start + 360 - top.open + 1e-6 do
-		k += 1
-		local chord = 2 * (railR + 0.15) * math.sin(math.rad(step) / 2) + 0.2
-		add(radial(`HoleRail_{k}`, { chord, top.railHeight, 0.3 }, railR, deg, deck + top.railHeight / 2, at, yaw))
-		deg += step
+		local chord = 2 * st.outer * math.sin(math.rad(step) / 2) + 0.3
+		add(radial(`StairLanding_{k}`, { chord, 1, width }, (st.post + st.outer) / 2, deg, deck - 0.5, at, yaw))
 	end
 	return out
 end

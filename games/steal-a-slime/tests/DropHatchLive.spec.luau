@@ -51,15 +51,14 @@ local function hatches()
 	return out
 end
 
--- { [floor]: the stair-top landing and hole rail are solid } for every upper jar standing now
+-- { [floor]: the stair-top landing is solid } for every upper jar standing now
 local function stairTops()
 	local out = {}
 	for f = 2, #Config.BASE_FLOORS do
 		local floor = plot():FindFirstChild(`Floor_{f}`)
 		local landing = floor and floor:FindFirstChild("StairLanding_1")
-		local rail = floor and floor:FindFirstChild("HoleRail_1")
-		if landing and rail then
-			out[f] = landing.CanCollide and rail.CanCollide
+		if landing then
+			out[f] = landing.CanCollide
 		end
 	end
 	return out
@@ -77,8 +76,8 @@ local four = grow(#Config.BASE_FLOORS)
 local two = grow(2)
 local three = grow(3)
 
-describe("stair top (the landing and hole rail stand only on the top jar)", function()
-	it("makes only the top jar's landing and rail solid, and follows the top as the tower changes", function()
+describe("stair top (the flat landing stands only on the top jar)", function()
+	it("makes only the top jar's landing solid, and follows the top as the tower changes", function()
 		for f = 2, #Config.BASE_FLOORS do
 			expect(tops[#Config.BASE_FLOORS][f]).toBe(f == #Config.BASE_FLOORS)
 		end
