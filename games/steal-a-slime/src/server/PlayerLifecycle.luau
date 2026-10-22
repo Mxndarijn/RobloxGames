@@ -145,7 +145,9 @@ local function onPlayerRemoving(deps: Deps, player: Player)
 	RitualService.leave(deps.ritual, userId)
 	task.spawn(deps.refreshFriends)
 	if session then
-		local ok, err = pcall(deps.refreshView, now()) -- a stolen slime in their arms bounces home
+		local ok, err = pcall(function() -- a stolen slime in their arms bounces home
+			deps.refreshView(now())
+		end)
 		if not ok then
 			warn(`[Server] view refresh after {userId} left failed: {err}`)
 		end
