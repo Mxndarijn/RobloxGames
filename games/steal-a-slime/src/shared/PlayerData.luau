@@ -9,6 +9,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local AudioSettings = if script then require(script.Parent.AudioSettings) else require("./AudioSettings")
+local BossBadges = if script then require(script.Parent.BossBadges) else require("./BossBadges")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Perks = if script then require(script.Parent.Perks) else require("./Perks")
@@ -70,7 +71,7 @@ export type Data = {
 	settings: AudioSettings.Settings, -- Sound card values (save v6; used only with FEATURES.Audio)
 	consumables: Consumables, -- restocking shop purchases (added without a version bump)
 	pvp: Pvp, -- FEATURES.PvP owned items (PvpRules, CONTRACT.md §26; added without a version bump)
-	trophies: { Slime }, -- boss trophies, one per boss species (contract/boss-event.md; added without a version bump)
+	boss: BossBadges.Record, -- boss record and save-only boss badges (BossBadges, contract/boss-event.md)
 	hotbar: { string }?, -- HotbarOrder: 9 slot keys, "" = empty; nil until the player sets one (no version bump)
 	eggLuck: { [string]: number }?, -- Mystery Egg lucky meter: misses in a row per kind id (contract/mystery-egg.md; no version bump)
 }
@@ -105,7 +106,7 @@ function PlayerData.new(): Data
 		settings = AudioSettings.defaults(),
 		consumables = { slot = 0, bought = {}, held = {} },
 		pvp = { tiers = {}, traps = {}, fun = {} },
-		trophies = {},
+		boss = BossBadges.new(),
 		eggLuck = {},
 	}
 end
@@ -210,10 +211,9 @@ function PlayerData.removeSlime(data: Data, id: string): Slime?
 end
 
 -- Plot income incl. rebirth, upgrade, rank and SlimeDex bonuses (Perks.incomeMultiplier).
--- Pad slimes (minus `skip`, the ones being carried) plus boss trophies, which always earn.
+-- Pad slimes, minus `skip` (the ones being carried).
 function PlayerData.incomePerSecond(data: Data, skip: { [string]: boolean }?): number
-	local base = Economy.plotIncome(data.slimes, data.rebirths, skip) + Economy.plotIncome(data.trophies, data.rebirths)
-	return base * Perks.bonusMultiplier(data)
+	return Economy.plotIncome(data.slimes, data.rebirths, skip) * Perks.bonusMultiplier(data)
 end
 
 -- One slime's income for this player (State SlimeView.income).

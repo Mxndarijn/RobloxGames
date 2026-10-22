@@ -15,14 +15,16 @@ as before (`Genome.sanitize`).
 - **Kinds (`Entry.kind`).** `"spawn"` (the 32 above: the fountain and random merges; `SlimeRoster.forTier` returns only
   these), `"hybrid"` (merge recipes only): `soda rocky_road` (2), `bloom honey_toad truffle` (3),
   `sushi snow_bunny moo_shroom catfish` (4), `steam kraken thunderbee` (5), `cyber_ninja dragon_king` (6), `nightwing` (7);
-  `"boss"` (the boss event only): `goozilla queen_jelly` (6), `mecha_goo` (7); `"event"` (a limited Secret, only while
-  its event runs): `glitch doodle origami disco isle chrono kitsune` (7). `SlimeRoster.ofKind(kind)` lists one kind.
+  `"boss"` (the boss event only): `goozilla queen_jelly klawdius pumpking` (6), `mecha_goo goomancer` (7);
+  `"event"` (a limited Secret, only while its event runs): `glitch doodle origami disco isle chrono kitsune` (7). `SlimeRoster.ofKind(kind)` lists one kind.
   Non-spawn species have no family. Every kind has a look and a species mesh.
 - **Looks (`Shared.SlimeLooks`).** Every species has `kit = "slime_<id>"`, a fully coloured mesh (body, pattern,
   accessories and face in vertex colours). `colour` stays the species colour for UI and the procedural fallback.
 - **Meshes (`Shared.MeshAssets`).** `entries["slime_<id>"] = { assetId, size, offset }`: `size` is the native size of a
   size-1 slime (Config.SLIME_BASE_DIAMETER wide body), `offset` the mesh bbox centre minus the slime's bottom centre
   (Roblox axes, slime front -Z). Species meshes are not world slots, so they are not in `MeshAssets.NAMES`.
+  A species whose mesh is not uploaded yet has an entry with `size` and `offset` but no `assetId`: `SlimeMesh` doesn't
+  fetch it, and the slime wears the shared slime mesh in its species colour until the id is filled in.
   The old shared kits `slime_base`, `slime_acc_*`, `slime_ears`, `slime_horns`, `slime_wobble` are removed.
 - **Server `SlimeMesh`.** A species mesh is worn as the `Mesh` part: size `size x Body.Size.X / SLIME_BASE_DIAMETER`,
   placed at the body's bottom centre + `offset` (scaled) with `MeshAssets.IMPORT_YAW`, `Color` white, material from

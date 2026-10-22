@@ -110,6 +110,11 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 			local p = WorldView.slimePosition(slimeId)
 			return p and { X = p.X, Y = p.Y, Z = p.Z }
 		end,
+		-- The boss's plaza coordinates are round the fountain centre (BossEvent.Context).
+		plazaOrigin = function()
+			local p = WorldView.plazaOrigin()
+			return { X = p.X, Y = p.Y, Z = p.Z }
+		end,
 		-- Goo Blaster splats: the first solid surface up to GROUND_PROBE studs below the blob's end (characters ignored).
 		groundBelow = function(point)
 			local params = RaycastParams.new()

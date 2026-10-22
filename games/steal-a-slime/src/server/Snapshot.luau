@@ -11,6 +11,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
+local BossBadges = if Shared then require(Shared.BossBadges) else require("../shared/BossBadges")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
@@ -146,6 +147,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			rebirths = rebirths,
 		},
 		boss = BossEvent.view(world, session, now),
+		bossBadges = BossBadges.view(data),
 		modifier = {
 			name = world.modifier.name,
 			label = world.modifier.label,
