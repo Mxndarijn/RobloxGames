@@ -434,23 +434,23 @@ entries["goo_jar_glass_4_top"] =
 entries["goo_jar_mascot"] =
 	{ assetId = 98686118721094, meshId = "rbxassetid://71405131358303", size = { 2.2, 1.567, 2.138 } }
 entries["goo_jar_stair"] =
-	{ assetId = 98196001176088, meshId = "rbxassetid://81662598331092", size = { 10.99, 16.776, 10.99 } }
+	{ assetId = 98196001176088, meshId = "rbxassetid://88590636410277", size = { 10.99, 17.026, 10.99 } }
 entries["goo_jar_stopper"] =
 	{ assetId = 121171735307209, meshId = "rbxassetid://98488330645221", size = { 9.889, 9.66, 1.508 } }
 entries["goo_jar_trim_1_mid"] =
-	{ assetId = 125609985796662, meshId = "rbxassetid://130215893669639", size = { 60.321, 16.05, 58.307 } }
+	{ assetId = 125609985796662, meshId = "rbxassetid://120746714361280", size = { 60.321, 16.05, 58.307 } }
 entries["goo_jar_trim_1_top"] =
-	{ assetId = 81111284959159, meshId = "rbxassetid://125794987301481", size = { 60.321, 22.688, 58.307 } }
+	{ assetId = 81111284959159, meshId = "rbxassetid://84276978768660", size = { 60.321, 22.688, 58.307 } }
 entries["goo_jar_trim_2_mid"] =
-	{ assetId = 98169175981967, meshId = "rbxassetid://108375268575125", size = { 53.091, 16.05, 50.916 } }
+	{ assetId = 98169175981967, meshId = "rbxassetid://103483321777206", size = { 53.091, 16.05, 50.916 } }
 entries["goo_jar_trim_2_top"] =
-	{ assetId = 121872413785229, meshId = "rbxassetid://72836074236220", size = { 53.091, 19.247, 50.916 } }
+	{ assetId = 121872413785229, meshId = "rbxassetid://123429952879708", size = { 53.091, 19.447, 50.916 } }
 entries["goo_jar_trim_3_mid"] =
-	{ assetId = 119020744731896, meshId = "rbxassetid://103107135493684", size = { 47.643, 16.05, 45.978 } }
+	{ assetId = 119020744731896, meshId = "rbxassetid://134431318553611", size = { 47.643, 16.05, 45.978 } }
 entries["goo_jar_trim_3_top"] =
-	{ assetId = 115479272829253, meshId = "rbxassetid://75683994927695", size = { 47.314, 19.412, 45.373 } }
+	{ assetId = 115479272829253, meshId = "rbxassetid://75595505600225", size = { 47.314, 19.612, 45.373 } }
 entries["goo_jar_trim_4_top"] =
-	{ assetId = 118248174951144, meshId = "rbxassetid://96346362080902", size = { 41.082, 17.988, 40.753 } }
+	{ assetId = 118248174951144, meshId = "rbxassetid://80680084772684", size = { 41.082, 18.188, 40.753 } }
 entries["goo_lock_button"] =
 	{ assetId = 132032016681033, meshId = "rbxassetid://140087463794943", size = { 5.0, 3.966, 5.0 } }
 -- Border v5 giant trees (WorldBorder.giants; 3-5x the border pines, MeshPart.Color tints the canopy). Open Cloud size-check.
