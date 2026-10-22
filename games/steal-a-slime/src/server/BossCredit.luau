@@ -11,6 +11,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local BossBadges = if Shared then require(Shared.BossBadges) else require("../shared/BossBadges")
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -43,24 +44,22 @@ function BossCredit.record(world: World, session: Session, event: BossBadges.Eve
 end
 
 --[[
-	The boss `slime` of `fight` was brought home by `carrier`. Every player on the server with at least
-	Config.BOSS.WIN_SHARE of the top hits gets a win of that species; the carrier gets a haul; the top contributor
-	(if still on the server) gets an MVP. Winners and the carrier count the species in their SlimeDex.
+	The boss `slime` of `fight` was brought home by `carrier`. Only the carrier wins: a win of that species (its boss
+	badge) and a haul. The top contributor (if still on the server) gets an MVP. The carrier and every player with at
+	least Config.BOSS.WIN_SHARE of the top hits count the species in their SlimeDex.
 ]]
 function BossCredit.win(world: World, fight: BossFight.State, carrier: Session, slime: Genome.Slime, now: number)
 	local top = BossFight.top(fight)
 	for _, session in world.sessions do
-		local won = BossBadges.record(
-			session.data,
-			{ kind = "win", species = fight.species, share = BossFight.share(fight, session.userId) }
-		)
-		if session.userId == carrier.userId then
+		local isCarrier = session.userId == carrier.userId
+		if isCarrier then
+			BossBadges.record(session.data, { kind = "win", species = fight.species })
 			BossBadges.record(session.data, { kind = "haul" })
 		end
 		if top ~= nil and session.userId == top then
 			BossBadges.record(session.data, { kind = "mvp" })
 		end
-		if won or session.userId == carrier.userId then
+		if isCarrier or BossFight.share(fight, session.userId) >= Config.BOSS.WIN_SHARE then
 			PlayerData.discover(session.data, slime)
 		end
 		BossCredit.grant(world, session, now)
