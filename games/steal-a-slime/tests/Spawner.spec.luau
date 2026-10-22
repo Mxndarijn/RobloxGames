@@ -183,9 +183,9 @@ describe("Spawner and the boss event", function()
 		for _ = 1, Config.MAX_WILD_SLIMES do
 			Spawner.spawnOne(world, T0)
 		end
-		local ids = Spawner.spawnBonus(world, T0, Config.BOSS.SHED_COUNT, Config.BOSS.DROP_LUCK)
-		expect(#ids).toBe(Config.BOSS.SHED_COUNT)
-		expect(Spawner.wildCount(world)).toBe(Config.MAX_WILD_SLIMES + Config.BOSS.SHED_COUNT)
+		local ids = Spawner.spawnBonus(world, T0, 2, 3)
+		expect(#ids).toBe(2)
+		expect(Spawner.wildCount(world)).toBe(Config.MAX_WILD_SLIMES + 2)
 		for _, id in ids do
 			local wild = world.wild[id]
 			expect(wild.price).toBe(0)
@@ -196,10 +196,10 @@ describe("Spawner and the boss event", function()
 		if not Config.FEATURES.Parade then
 			return
 		end
-		local BONUS = 3 * Config.BOSS.SHED_COUNT -- every shed share crossed in one step
+		local BONUS = 6
 		local world = ServerFixtures.world()
 		Spawner.spawnOne(world, T0)
-		local ids = Spawner.spawnBonus(world, T0, BONUS, Config.BOSS.DROP_LUCK)
+		local ids = Spawner.spawnBonus(world, T0, BONUS, 3)
 		Spawner.spawnOne(world, T0 + 1)
 		local times = {}
 		for _, wild in world.wild do

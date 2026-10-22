@@ -4,8 +4,7 @@
 
 	The boss event over World: the schedule (world.nextBossAt, skipped around Slime Rain), the rotation
 	(world.bossIndex), the running event (world.boss = Shared.BossFight state + the wild boss slime), Bat hits on the
-	boss, its sheds (Spawner.spawnBonus), the slap that drops the
-	hauled boss on the spot, and State.boss. Grabbing and bringing the boss home go through Carry (grabWild /
+	boss, the slap that drops the hauled boss on the spot, and State.boss. Grabbing and bringing the boss home go through Carry (grabWild /
 	depositBoss); hits and wins are credited through BossCredit. Every change marks every session dirty, so State.boss
 	is pushed to everyone.
 ]]
@@ -17,8 +16,6 @@ local BossBadges = if Shared then require(Shared.BossBadges) else require("../sh
 local BossChoreo = if Shared then require(Shared.BossChoreo) else require("../shared/BossChoreo")
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
-local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
-local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local PvpKnockbackRules = if Shared then require(Shared.PvpKnockbackRules) else require("../shared/PvpKnockbackRules")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
@@ -43,7 +40,6 @@ export type Context = {
 	plazaOrigin: (() -> Vec)?, -- the fountain centre in world studs (plaza coordinates are round it)
 	airborne: ((userId: number) -> boolean)?, -- off the ground (jumping clears a stomp's ring)
 	launch: ((userId: number, push: Vec, landing: Vec) -> boolean)?, -- an attack's knockback (PvpLaunch)
-	toVector3: ((position: Vec) -> any)?, -- a shed slime's landing as the adapter's position (a Vector3)
 }
 
 local BossEvent = {}
@@ -126,7 +122,6 @@ local function begin(world: World, now: number): string
 		spits = {},
 		puddles = {},
 		guards = {},
-		bursts = {},
 	}
 	world.nextBossAt += BOSS.INTERVAL
 	local entry = SlimeRoster.get(species)
@@ -185,7 +180,7 @@ local function startHaul(world: World, event: World.BossEvent, now: number)
 	World.notify(world, nil, text, "good", "Rain")
 end
 
--- Fight or haul lost: the boss (carried or not) gets away. No slimes: the sheds were the fight's reward.
+-- Fight or haul lost: the boss (carried or not) gets away. No slimes drop.
 local function escape(world: World, event: World.BossEvent, now: number, reason: string)
 	local id = event.slimeId
 	if id then
@@ -281,57 +276,6 @@ local function spitTargets(
 		end
 	end
 	return out
-end
-
---[[
-	The boss sheds `count` lucky slimes (Spawner.spawnBonus, luck BOSS.DROP_LUCK) in a goo burst: each one flies out of
-	the boss for BOSS.BURST_FLIGHT, lands BOSS.BURST_DISTANCE studs away and walks back to the parade lane from there,
-	like a dropped slime. It has no model until it lands (Wild.landsAt); event.bursts carries the arcs for clients.
-	Without the parade lane (or a boss on the ground) they spill from the fountain as plain bonus slimes.
-]]
-local function shed(world: World, event: World.BossEvent, now: number, count: number, ctx: Context?)
-	local ids = Spawner.spawnBonus(world, now, count, BOSS.DROP_LUCK)
-	local wild = bossWild(world, event)
-	local move = wild and wild.move
-	if not move or not ParadeLane.enabled() then
-		return
-	end
-	local ox, oz = origin(ctx)
-	local get = ctx and ctx.plazaOrigin
-	local oy = if get then get().Y else 0
-	local bx, bz = BossChoreo.pose(move, now)
-	local landAt = now + BOSS.BURST_FLIGHT
-	for i, id in ids do
-		local slime = world.wild[id]
-		if slime then
-			-- spread round the boss, each a little off an even share of the circle
-			local angle = (i - 1 + event.rng:float() * 0.6) / #ids * 2 * math.pi
-			local reach = BOSS.BURST_DISTANCE
-			local d = reach[1] + event.rng:float() * (reach[2] - reach[1])
-			local x, z = bx + math.cos(angle) * d, bz + math.sin(angle) * d
-			local at = { X = x + ox, Y = oy, Z = z + oz }
-			local lifetime = Fountain.wildLifetime(slime.slime)
-			local plan = ParadeLane.returnPlan(at.X, at.Z, ParadeLane.wildLateral(slime.radius), lifetime, landAt)
-			if plan then
-				slime.position = if ctx and ctx.toVector3 then ctx.toVector3(at) else at
-				slime.choreo = nil
-				slime.returning = plan
-				slime.spawnedAt, slime.expiresAt = ParadeLane.rejoin(plan.s, lifetime, plan.arriveAt)
-				slime.landsAt = landAt
-				table.insert(event.bursts, { fromX = bx, fromZ = bz, x = x, z = z, at = now, landAt = landAt })
-			end
-		end
-	end
-	World.notify(world, nil, "The boss bursts! Lucky slimes go flying!", "good", "Rain")
-end
-
--- Bursts whose slimes have landed are only kept a moment for the splat.
-local function pruneBursts(event: World.BossEvent, now: number)
-	for i = #event.bursts, 1, -1 do
-		if now > event.bursts[i].landAt + 0.5 then
-			table.remove(event.bursts, i)
-		end
-	end
 end
 
 -- Things that start with a move: a windup picks spit targets, a spit attack throws them, a rise calls its guards.
@@ -573,7 +517,6 @@ function BossEvent.step(world: World, now: number, ctx: Context?)
 		return
 	end
 	local t0 = event.lastStepAt
-	pruneBursts(event, now)
 	settle(world, event, now, ctx)
 	if world.boss ~= event then
 		return
@@ -583,7 +526,7 @@ function BossEvent.step(world: World, now: number, ctx: Context?)
 	advance(world, event, now, all)
 end
 
--- The meter, sheds and phase changes up to `now` (also after a hit, without moving the boss).
+-- The meter, stages and phase changes up to `now` (also after a hit, without moving the boss).
 function settle(world: World, event: World.BossEvent, now: number, ctx: Context?)
 	local fight = event.fight
 	local dt = math.max(0, now - event.lastStepAt)
@@ -592,11 +535,10 @@ function settle(world: World, event: World.BossEvent, now: number, ctx: Context?
 	local wild = bossWild(world, event)
 	local kind = wild and wild.move and wild.move.kind
 	local paused = kind == "windup" or kind == "attack" or kind == "hop" or kind == "rise" or kind == "land"
+	-- a "stage" event (every STAGE_EVERY of the meter) only speeds it up (speedOf): nothing spawns
 	for _, e in BossFight.step(fight, now, dt, playerCount(world), paused) do
 		if e.kind == "fight" then
 			arrive(world, event, now, ctx)
-		elseif e.kind == "shed" then
-			shed(world, event, now, (e :: any).count, ctx)
 		elseif e.kind == "haul" then
 			startHaul(world, event, now)
 		elseif e.kind == "fail" then
@@ -626,7 +568,7 @@ end
 --[[
 	A Bat hit by `session` on the fighting boss (BatTool.swing checks reach and facing), swung from world `from`.
 	Returns (counted, reason). It counts BossAttacks.hitValue points: more while dazed, none while it floats out of
-	reach or while the swinger is stunned. The meter and sheds settle on this same call, so a full meter starts the
+	reach or while the swinger is stunned. The meter and stages settle on this same call, so a full meter starts the
 	haul at once.
 ]]
 function BossEvent.hit(world: World, session: Session, now: number, from: Vec?, ctx: Context?): (boolean, string?)

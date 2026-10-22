@@ -63,8 +63,8 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 
 	local bossPhase = if world.boss then world.boss.fight.phase else nil
 	for id, wild in world.wild do
-		-- A drop waiting for its slide slot (Spawner.slot) has no model yet, nor a boss shed slime still in the air.
-		if (wild.spawnedAt > now or (wild.landsAt ~= nil and now < wild.landsAt)) and not world.carriedBy[id] then
+		-- A drop waiting for its slide slot (Spawner.slot) has no model yet.
+		if wild.spawnedAt > now and not world.carriedBy[id] then
 			continue
 		end
 		local carrier = world.carriedBy[id]

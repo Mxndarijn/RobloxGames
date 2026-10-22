@@ -188,7 +188,6 @@ export type Actor = {
 	bossMove: BossChoreo.Move?, -- the boss: its current move (nil for every other slime)
 	bossKicked: number, -- the boss: the move number whose landing squash already played
 	bossHitAt: number?, -- the boss: the last BossHitAt it squashed for
-	bossBursts: string?, -- the boss: its BossBursts attribute as last seen (a new burst splats it)
 }
 
 local function rootOf(motor: SlimeMotor.Motor): BasePart?
@@ -319,7 +318,6 @@ function SlimeActor.attach(
 		bossMove = nil,
 		bossKicked = 0,
 		bossHitAt = nil,
-		bossBursts = nil,
 	}
 	local state = model:GetAttribute("State")
 	actor.state = if type(state) == "string" then state else nil
@@ -436,18 +434,6 @@ local function bossPose(actor: Actor, move: BossChoreo.Move, t: number, now: num
 	local size = (actor.model:GetAttribute("Size") :: number?) or 1
 	local _, _, _, _, lift, u = BossChoreo.pose(move, t)
 	mods.lift += lift / math.max(size, 1e-3)
-	-- a goo burst (it sheds slimes) splats it hard and sprays goo
-	local bursts = actor.model:GetAttribute(Constants.BOSS_BURSTS_ATTRIBUTE)
-	local burstText = if type(bursts) == "string" then bursts else nil
-	if burstText ~= actor.bossBursts then
-		if burstText and actor.bossBursts == nil then
-			Spring.kick(actor.squash, -1.8 * SlimeActor.SQUASH.kick)
-			if actor.splat then
-				actor.splat:Emit(30)
-			end
-		end
-		actor.bossBursts = burstText
-	end
 	-- every counted bat hit squashes it (BossHitAt changes)
 	local hitAt = actor.model:GetAttribute(Constants.BOSS_HIT_AT_ATTRIBUTE)
 	if type(hitAt) == "number" and hitAt ~= actor.bossHitAt then
