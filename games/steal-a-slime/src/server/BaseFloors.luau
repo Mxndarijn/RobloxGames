@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local Economy = require(ReplicatedStorage.Shared.Economy)
+local MoveWatch = require(script.Parent.MoveWatch)
 local PlotLookup = require(script.Parent.PlotLookup)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
@@ -76,6 +77,7 @@ local function evacuate(plot: Instance, floor: number)
 				local at = root.Position
 				character:PivotTo(CFrame.new(at.X, floorY + 3, at.Z) * root.CFrame.Rotation)
 				root.AssemblyLinearVelocity = Vector3.zero
+				MoveWatch.allow(player.UserId, Config.MOVE_GUARD.TELEPORT_ALLOW)
 			end
 		end
 	end

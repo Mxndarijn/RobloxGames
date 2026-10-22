@@ -808,6 +808,21 @@ local Config = {
 		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
 		SlimeChoreo = true, -- species gaits and hops, lane beats and reactions to players (SlimePersona, ParadeChoreo, ui/SlimeGait, contract/slime-life.md); false = every slime glides the lane at one pace
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
+		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
+	}),
+
+	-- Movement guard (FEATURES.MoveGuardLog, shared/MoveGuard). Allowed displacement per sample:
+	-- horizontal maxSpeed x dt x FACTOR + SLACK; up MAX_UP_SPEED x dt + SLACK; down MAX_FALL_SPEED x dt + SLACK.
+	MOVE_GUARD = table.freeze({
+		FACTOR = 1.5, -- headroom over the server's own walk speed (lag bursts, sample jitter)
+		SLACK = 4, -- studs added to every sample (a late position update followed by its catch-up, uneven sample times)
+		MAX_UP_SPEED = 100, -- studs/s going up (jump ~50, Bounce Pad 25 studs needs ~99)
+		MAX_FALL_SPEED = 400, -- studs/s going down (free fall has no hard cap; two seconds of gravity)
+		MAX_DT = 1, -- seconds; a longer gap between samples (server hitch) re-baselines instead of judging
+		RESPAWN_ALLOW = 2, -- seconds after a new character appears (spawn pivot, join)
+		TELEPORT_ALLOW = 1, -- seconds after a server teleport (drop tube, rescue, eject, floor evacuate)
+		LAUNCH_ALLOW = 3, -- seconds after a PvP launch (arc flight, landing, client rubber-band)
+		LOG_INTERVAL = 30, -- seconds between summary lines
 	}),
 
 	-- Server profiler (FEATURES.ServerProfiler, server/Profiler). BUDGET_MS = p95 ms per frame / call.

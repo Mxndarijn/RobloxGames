@@ -22,6 +22,8 @@ local Constants = require(ReplicatedStorage.Shared.Constants)
 local DayNight = require(ReplicatedStorage.Shared.DayNight)
 local GameLoop = require(script.Parent.GameLoop)
 local LeaderboardView = require(script.Parent.LeaderboardView)
+local MoveGuard = require(ReplicatedStorage.Shared.MoveGuard)
+local MoveWatch = require(script.Parent.MoveWatch)
 local PlayerAttributes = require(script.Parent.PlayerAttributes)
 local Profiler = require(script.Parent.Profiler)
 local PvpLaunch = require(script.Parent.PvpLaunch)
@@ -30,6 +32,7 @@ local Ritual = require(ReplicatedStorage.Shared.Ritual)
 local RitualService = require(script.Parent.RitualService)
 local RitualView = require(script.Parent.RitualView)
 local SafeCall = require(script.Parent.SafeCall)
+local Shop = require(ReplicatedStorage.Shared.Shop)
 local Spawner = require(script.Parent.Spawner)
 local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
@@ -75,6 +78,19 @@ function ServerLoop.forget(loop: Loop, userId: number)
 	loop.shopCheckedAt[userId] = nil
 end
 
+-- FEATURES.MoveGuardLog: samples the root position (log only; nothing is moved, released or kicked).
+local function sampleMovement(userId: number, player: Player, session: World.Session, t: number)
+	local root = WorldView.rootPart(player)
+	local book = MoveWatch.book()
+	if not root then
+		book.characters[userId] = nil -- the next character starts a fresh baseline
+		return
+	end
+	local p = root.Position
+	-- The speed the SERVER set (coil included, carry / PvP slows ignored: a slower cap would only add false alarms).
+	MoveGuard.step(book, userId, player.Character, { X = p.X, Y = p.Y, Z = p.Z }, t, Shop.walkSpeed(session.data))
+end
+
 local function stepPlayers(loop: Loop, t: number)
 	local world, ctx = loop.world, loop.ctx
 	for _, player in Players:GetPlayers() do
@@ -96,6 +112,9 @@ local function stepPlayers(loop: Loop, t: number)
 			else
 				loop.homeZoneFull[userId] = nil
 			end
+			if Config.FEATURES.MoveGuardLog then
+				loop.safeCall("move guard", sampleMovement, userId, player, session, t)
+			end
 			WorldView.updatePlayer(world, player, session, t, ctx)
 			if session.openShop and t - (loop.shopCheckedAt[userId] or 0) >= SHOP_CHECK_INTERVAL then
 				loop.shopCheckedAt[userId] = t
@@ -103,6 +122,12 @@ local function stepPlayers(loop: Loop, t: number)
 			end
 			PlayerAttributes.syncOpenShop(world, player)
 			LeaderboardView.updateStats(player, session)
+		end
+	end
+	if Config.FEATURES.MoveGuardLog then
+		local line = MoveGuard.summary(MoveWatch.book(), t)
+		if line then
+			print(line)
 		end
 	end
 	if Config.FEATURES.CoopRitual then
