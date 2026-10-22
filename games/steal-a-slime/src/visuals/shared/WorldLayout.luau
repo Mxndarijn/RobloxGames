@@ -206,8 +206,9 @@ WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22
 WorldLayout.RAMP = table.freeze({ segments = 24, walk = 4.2, railStart = 30, railEnd = 45, railHeight = 2.5 })
 -- The top of the stair, on the top jar only (where the stair ends; a jar added above hides it, server/BaseFloors):
 -- the ramp goes on for `landing` more degrees, flat at floor height and out to the edge of the hole (no gap to the
--- floor), so you arrive on a small platform instead of running straight off the end. No fence round the hole. The ramp below passes under it:
--- at 120 degrees it still has about 9.7 studs of headroom there (tests/JarTower.spec keeps at least 6).
+-- floor), so you arrive on a small platform instead of running straight off the end. No fence round the hole. The
+-- ramp below passes under it: at 120 degrees it still has about 9.7 studs of headroom there (tests/JarTower.spec keeps
+-- at least 6). Built in 15-degree pieces, so keep `landing` a multiple of 15.
 WorldLayout.STAIR_TOP = table.freeze({ landing = 120 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; the top jar's hatch sits at this angle, the tube lands in the goo moat.
