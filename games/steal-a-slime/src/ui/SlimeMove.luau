@@ -182,6 +182,14 @@ local function padTop(pad: BasePart): CFrame
 	return pad.CFrame * CFrame.new(0, pad.Size.Y / 2, 0)
 end
 
+-- True when zone-local point `p` is inside a HomeZone of half-size `half`, the same box the server uses
+-- (WorldView.pointInHomeZone): a little slack below and above, and `reachUp` (the zone's ReachUp attribute) more
+-- above so the upper jars of the tower count as home.
+function SlimeMove.withinZone(p: Vector3, half: Vector3, reachUp: number?): boolean
+	local top = half.Y + 8 + (if type(reachUp) == "number" then reachUp else 0)
+	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
+end
+
 -- True when `position` is inside the plot's HomeZone (no zone = true).
 local function inHomeZone(plot: Instance, position: Vector3): boolean
 	local zone = plot:FindFirstChild("HomeZone")
@@ -189,8 +197,7 @@ local function inHomeZone(plot: Instance, position: Vector3): boolean
 		return true
 	end
 	local p = zone.CFrame:PointToObjectSpace(position)
-	local half = zone.Size / 2
-	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= half.Y + 8
+	return SlimeMove.withinZone(p, zone.Size / 2, zone:GetAttribute("ReachUp"))
 end
 
 function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
