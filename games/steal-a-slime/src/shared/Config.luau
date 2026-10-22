@@ -68,13 +68,17 @@ export type DailyQuest = {
 
 export type DexMilestone = { count: number, reward: number, bonus: number }
 
--- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15). `set` = rarity tier whose SlimeDex set must be
--- `threshold` complete. Colours are RGB 0..255; `trim` multiplies the jar's cork and trim colours (white = none).
+-- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15): goo jar tower themes. A skin's slimes are a whole family
+-- (`family`, a FountainTiers.FAMILIES id) or a `species` list (SlimeRoster ids); it unlocks once `threshold` of them
+-- are found (PlotSkins). Neither = always unlocked. Colours are RGB 0..255; `color` is the picker card's swatch.
+-- `floor`, `trim` and `decor` paint the pre-tower plot (PlotDecor.applySkin), which the tower hides.
 export type PlotSkin = {
 	id: string, -- permanent save id; never rename
 	name: string,
-	set: number?, -- Config.RARITIES tier; nil = always unlocked
+	family: string?,
+	species: { string }?,
 	threshold: number?,
+	color: { number }?,
 	floor: { color: { number }, material: string }?, -- plot Base; nil = leave as built
 	trim: { number }?,
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
@@ -429,33 +433,38 @@ local DEX_MILESTONES: { species: { DexMilestone } } = {
 }
 
 local PLOT_SKINS: { PlotSkin } = {
-	{ id = "classic", name = "Classic Ranch" },
+	{ id = "classic", name = "Classic Ranch", color = { 110, 226, 170 } },
+	{ id = "garden", name = "Garden", family = "orchard", threshold = 0.75, color = { 252, 176, 118 } },
 	{
-		id = "mushroom",
-		name = "Mushroom Meadow",
-		set = 1,
+		id = "crystal",
+		name = "Frost & Sea",
+		family = "frost",
 		threshold = 0.75,
-		floor = { color = { 112, 150, 72 }, material = "Grass" },
-		trim = { 255, 214, 196 },
-		decor = "plot_skin_mushroom",
+		color = { 124, 210, 236 },
+		floor = { color = { 148, 124, 190 }, material = "Slate" },
+		trim = { 214, 196, 255 },
+		decor = "plot_skin_crystal",
 	},
+	{ id = "starlight", name = "Starlight", family = "starlight", threshold = 0.75, color = { 250, 212, 118 } },
 	{
 		id = "candy",
-		name = "Candy Patch",
-		set = 2,
+		name = "Candy",
+		species = { "gummy", "mochi", "flan", "soda", "rocky_road" },
 		threshold = 0.75,
+		color = { 246, 146, 192 },
 		floor = { color = { 224, 142, 172 }, material = "Sand" },
 		trim = { 255, 190, 214 },
 		decor = "plot_skin_candy",
 	},
 	{
-		id = "crystal",
-		name = "Crystal Grotto",
-		set = 3,
+		id = "mushroom",
+		name = "Forest",
+		species = { "mushie", "froggo", "pebble", "truffle", "moo_shroom", "bloom" },
 		threshold = 0.75,
-		floor = { color = { 148, 124, 190 }, material = "Slate" },
-		trim = { 214, 196, 255 },
-		decor = "plot_skin_crystal",
+		color = { 184, 150, 236 },
+		floor = { color = { 112, 150, 72 }, material = "Grass" },
+		trim = { 255, 214, 196 },
+		decor = "plot_skin_mushroom",
 	},
 }
 
@@ -595,6 +604,12 @@ for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES.species } :: { { any } 
 	end
 end
 for _, skin in PLOT_SKINS do
+	if skin.species then
+		table.freeze(skin.species)
+	end
+	if skin.color then
+		table.freeze(skin.color)
+	end
 	if skin.floor then
 		table.freeze(skin.floor.color)
 		table.freeze(skin.floor)
