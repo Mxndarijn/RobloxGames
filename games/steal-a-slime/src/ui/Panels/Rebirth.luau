@@ -24,7 +24,6 @@ local create = Widgets.create
 
 local Rebirth = {}
 
-Rebirth.MAX_SLIMES = 3 -- the most slimes one rebirth asks for (Config.REBIRTH_SLIMES)
 Rebirth.SLIME_IMAGE = 52
 
 -- Vertical rhythm of the body (design px).
@@ -62,6 +61,7 @@ Rebirth.CARD = table.freeze({
 	stateH = 20,
 	descSize = Layout.MIN_TEXT,
 	descH = 36, -- two lines
+	missingFade = 0.3, -- the greyed preview of a slime you don't have
 })
 
 -- Reward tiles, keeper line, status, footer (design px).
@@ -90,14 +90,20 @@ Rebirth.COPY = table.freeze({
 	keepAll = "You keep your slimes, your pads and your upgrades.",
 })
 
-local NEED_ALL = { [2] = "You need both:", [3] = "You need all three:", [4] = "You need all four:" }
+local COUNT_WORDS = { [3] = "three", [4] = "four", [5] = "five", [6] = "six" }
 
--- The line over the cards: how many things the rebirth needs.
+-- The line over the cards: how many things the rebirth needs (the cash and each slime).
 function Rebirth.subText(slimes: number, maxed: boolean): string
 	if maxed then
 		return "All rebirths done"
 	end
-	return NEED_ALL[slimes + 1] or "You need:"
+	local things = slimes + 1
+	if things == 1 then
+		return "You need:"
+	elseif things == 2 then
+		return "You need both:"
+	end
+	return `You need all {COUNT_WORDS[things] or tostring(things)}:`
 end
 
 -- The fine print: what the rebirth uses up and what you keep.
@@ -182,6 +188,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,
+		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- a showing bar narrows the content, never covers it
 		Parent = panel.body,
 	})
 	-- The body width the fine print wraps in: the last card layout's, a menu's width before the first one.
@@ -295,6 +302,24 @@ function Rebirth.new(parent: Instance, ctx: any)
 	end
 	slimeCard(1)
 
+	-- A "?" over a slime card's picture, made only if neither preview could be built.
+	local function fallbackGlyph(card: SlimeCard): TextLabel
+		local existing = card.image:FindFirstChild("Glyph")
+		if existing then
+			return existing :: TextLabel
+		end
+		return Widgets.label({
+			Name = "Glyph",
+			Text = "?",
+			Font = Theme.Font,
+			TextSize = C.amountSize,
+			TextColor3 = Theme.Muted,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.fromScale(1, 1),
+			Parent = card.image,
+		})
+	end
+
 	-- Puts `slime` into `view`: the real model (else a coloured blob), washed grey while missing.
 	local function showSlime(card: SlimeCard, slime: Progress.SlimeNeed)
 		local view = card.view
@@ -323,7 +348,12 @@ function Rebirth.new(parent: Instance, ctx: any)
 			view:SetAttribute("Look", look)
 			view.Visible = ok
 		end
-		view.ImageTransparency = if slime.owned then 0 else 0.3
+		view.ImageTransparency = if slime.owned then 0 else C.missingFade
+		if not view.Visible then
+			fallbackGlyph(card).Visible = true
+		elseif card.image:FindFirstChild("Glyph") then
+			(card.image:FindFirstChild("Glyph") :: TextLabel).Visible = false
+		end
 		card.image.BackgroundColor3 = if slime.owned then Widgets.color3(slime.color) else Theme.Ink
 	end
 
@@ -447,7 +477,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 
 		note.Text = Rebirth.noteText(needs)
 		local noteH = if maxed then 0 else math.ceil(Layout.wrappedHeight(note.Text, T.noteSize, bodyW))
-		local plan = Rebirth.plan(math.min(#needs, Rebirth.MAX_SLIMES), noteH)
+		local plan = Rebirth.plan(#needs, noteH)
 
 		need.Visible = not maxed
 		need.Position = plan.cash.position
@@ -467,7 +497,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 			have.Size = UDim2.new(1, -C.pad * 2, 0, C.haveH)
 		end
 
-		for i = 1, Rebirth.MAX_SLIMES do
+		for i = 1, math.max(#needs, #cards) do
 			local slime = needs[i]
 			if slime and not maxed then
 				paintCard(slimeCard(i), slime, plan.cards[i], not plan.multi)

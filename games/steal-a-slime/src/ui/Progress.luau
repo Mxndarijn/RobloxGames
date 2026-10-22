@@ -161,15 +161,6 @@ local function joinAnd(items: { string }): string
 	return `{table.concat(items, ", ", 1, #items - 1)} and {items[#items]}`
 end
 
--- "a Flan", "a Flan and an Imp", "a Zap, an Imp and an Octo".
-function Progress.slimeList(needs: { SlimeNeed }): string
-	local names = {}
-	for _, need in needs do
-		table.insert(names, withArticle(need.name))
-	end
-	return joinAnd(names)
-end
-
 -- What the disabled Rebirth well says is missing: "Need $178.8K more" (cash only), "Need a Flan" (slimes
 -- only), "Need $15.5M and a Flan" or "Need $15.5M, a Flan and an Imp" (both), "All rebirths done" at the top. "" once it is ready.
 function Progress.rebirthReason(nextUp: NextRebirth): string
@@ -180,15 +171,15 @@ function Progress.rebirthReason(nextUp: NextRebirth): string
 		return ""
 	end
 	local short = math.max(0, nextUp.cost - nextUp.have)
-	local slimes = Progress.slimeList(nextUp.missing)
-	if short > 0 and slimes ~= "" then
-		local items = { Format.formatCash(short) }
-		for _, need in nextUp.missing do
-			table.insert(items, withArticle(need.name))
+	local items = {}
+	for _, need in nextUp.missing do
+		table.insert(items, withArticle(need.name))
+	end
+	if #items > 0 then
+		if short > 0 then
+			table.insert(items, 1, Format.formatCash(short))
 		end
 		return `Need {joinAnd(items)}`
-	elseif slimes ~= "" then
-		return `Need {slimes}`
 	elseif short > 0 then
 		return `Need {Format.formatCash(short)} more`
 	end

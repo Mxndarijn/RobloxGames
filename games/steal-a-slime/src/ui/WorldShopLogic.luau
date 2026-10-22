@@ -361,14 +361,14 @@ function WorldShopLogic.buyArgs(r: Row): { any }
 	return { r.shopId, r.id }
 end
 
--- "Lock base bought!" / "Slime Snacks bought! Lv 3" for ShopEvent Purchased.
+-- "Speed coil bought" / "Slime snacks bought, Lv 3" for ShopEvent Purchased (the row's sentence-case name).
 function WorldShopLogic.purchasedText(shopId: any, itemId: any, level: any): string
 	local item = Shops.find(shopId, itemId)
-	local name = if item then item.name else "Item"
+	local name = Format.sentenceCase(if item then item.name else "Item")
 	if type(level) == "number" then
-		return `{name} bought! Lv {level}`
+		return `{name} bought, Lv {level}`
 	end
-	return `{name} bought!`
+	return `{name} bought`
 end
 
 export type Deps = {

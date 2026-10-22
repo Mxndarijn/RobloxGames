@@ -170,7 +170,7 @@ local function paintRow(row: any, name: string, done: boolean, fraction: number,
 	row.instance.BackgroundTransparency = if done then ROW.fade else 0
 end
 
--- The right slot's well: the reward in gold (boosts in Info), Done / Claimed in green, hidden behind a Claim.
+-- The right slot's well: the reward in gold, Done / Claimed in green, hidden behind a Claim.
 local function setSlot(row: any, text: string?, color: Color3)
 	row.reward.Visible = text ~= nil
 	row.reward.Text = text or ""
