@@ -105,7 +105,8 @@ local function refreshPlots(now: number)
 	end
 	for _, plot in plots:GetChildren() do
 		if plot:IsA("Model") then
-			local ok, err = pcall(PlotDecor.apply, plot, now)
+			local viewer = Players.LocalPlayer
+			local ok, err = pcall(PlotDecor.apply, plot, now, if viewer then viewer.UserId else nil)
 			if not ok then
 				warn(`[VisualsClient] PlotDecor {plot.Name}: {err}`)
 			end
