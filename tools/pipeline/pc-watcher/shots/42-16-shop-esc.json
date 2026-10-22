@@ -2,8 +2,9 @@
   "id": "16-shop-esc",
   "todo": "16",
   "kind": "ui",
-  "open": "shop",
+  "open": "worldshop",
+  "world_shop": "ItemShop",
   "press": "Escape",
   "expect": "closed",
-  "note": "TODO 16: open the shop, run the CloseMenu action in-engine via the PcwPress hook (pcw_press_hook: tests the close logic, not real key routing), ShopPanel must close"
+  "note": "TODO 16: open the shop, run the CloseMenu action in-engine via the PcwPress hook (pcw_press_hook: tests the close logic, not real key routing), WorldShopPanel must close"
 }

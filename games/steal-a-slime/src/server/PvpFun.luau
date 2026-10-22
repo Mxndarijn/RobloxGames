@@ -14,8 +14,8 @@
 	off (PvpService.onCleanup). The look is client FX (ui/PvpFunFx) from PvpEvent "Effect"; the one server-made part
 	is the bubble around a lifted player (`ctx.funBubble`, server/PvpFunView).
 
-	Control goes through PvpRules.applyControl (cap, then immunity). A thief carrying a stolen slime who is splashed,
-	lifted, bounced, bonked, hatted or made to dance loses it: PvpService.catchThief bounces the slime back to its owner.
+	Control goes through PvpRules.applyControl (cap, then immunity). Anyone carrying a slime who is splashed,
+	lifted, bounced, bonked, hatted or made to dance drops it (PvpService.hitCarrier; a stolen one goes home).
 	The Confetti Popper is purely cosmetic and never catches. No Humanoid health is ever changed.
 ]]
 
@@ -347,7 +347,7 @@ local function squeaky(call: PvpService.UseCall): (boolean, string?)
 		return true, nil
 	end
 	payload.target = target.userId
-	PvpService.catchThief(call.world, target, call.session, call.now)
+	PvpService.hitCarrier(call.world, target, call.session, call.now, call.ctx)
 	local free, state = controllable(target, call.now)
 	if free and state then
 		local applied = PvpRules.applyControl(state, call.tool.control or 0, call.now)
@@ -368,8 +368,8 @@ local function squeaky(call: PvpService.UseCall): (boolean, string?)
 	return true, nil
 end
 
--- Slime Hat Launcher: a hat shot toward the aim; the first other player in its path wears it (stacking) and is
--- caught when carrying a stolen slime.
+-- Slime Hat Launcher: a hat shot toward the aim; the first other player in its path wears it (stacking) and
+-- drops any slime they carry.
 local function hatLauncher(call: PvpService.UseCall): (boolean, string?)
 	local cfg = FUN.HATS
 	local p = call.position
@@ -384,7 +384,7 @@ local function hatLauncher(call: PvpService.UseCall): (boolean, string?)
 	local stack = 0
 	local seconds = call.tool.hatSeconds or 0
 	if target then
-		PvpService.catchThief(call.world, target, call.session, call.now)
+		PvpService.hitCarrier(call.world, target, call.session, call.now, call.ctx)
 		local worn = hats[target]
 		stack = PvpFunRules.hatStack(if worn then worn.count else 0, worn ~= nil and call.now < worn.untilTime)
 		hats[target] = { count = stack, untilTime = call.now + seconds }
@@ -538,7 +538,7 @@ local function stepLandings(world: World.World, session: Session, position: Vec,
 						end
 					end
 					if session ~= landing.owner then
-						PvpService.catchThief(world, session, landing.owner, now)
+						PvpService.hitCarrier(world, session, landing.owner, now, ctx)
 					end
 					fire(world, now, {
 						attacker = landing.owner.userId,
@@ -554,7 +554,7 @@ local function stepLandings(world: World.World, session: Session, position: Vec,
 				if PvpFunRules.inArea(landing.position, FUN.DANCE.RADIUS, AREA_HEIGHT, position) then
 					landing.hit[session] = true
 					local tool = PvpRules.tool("FunDanceBomb") :: Config.PvpTool
-					PvpService.catchThief(world, session, landing.owner, now)
+					PvpService.hitCarrier(world, session, landing.owner, now, ctx)
 					local free, state = controllable(session, now)
 					local applied = if free and state then PvpRules.applyControl(state, tool.control or 0, now) else 0
 					if applied > 0 then
@@ -589,7 +589,7 @@ local function stepStreams(world: World.World, session: Session, position: Vec, 
 					local tool = PvpRules.tool("FunBubbles") :: Config.PvpTool
 					local free, state = controllable(session, now)
 					local applied = 0
-					PvpService.catchThief(world, session, stream.owner, now)
+					PvpService.hitCarrier(world, session, stream.owner, now, ctx)
 					local bubble = ctx.funBubble
 					if free and state and bubble then
 						applied = PvpRules.applyControl(state, tool.control or 0, now)
@@ -638,7 +638,7 @@ local function stepPads(world: World.World, session: Session, position: Vec, now
 				local isOwner = owner == session
 				lastBounce[session] = now
 				if not isOwner then
-					PvpService.catchThief(world, session, owner, now)
+					PvpService.hitCarrier(world, session, owner, now, ctx)
 				end
 				local lift = { X = 0, Y = if isOwner then tool.height or cfg.HEIGHT else cfg.HEIGHT, Z = 0 }
 				if launch(session.userId, lift) then

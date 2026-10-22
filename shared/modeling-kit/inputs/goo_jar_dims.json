@@ -313,6 +313,7 @@
   "plotSize": 80,
   "ramp": {
     "railEnd": 45,
+    "railHeight": 2.5,
     "railStart": 30,
     "segments": 24,
     "walk": 4.2

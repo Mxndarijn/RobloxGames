@@ -3,8 +3,8 @@
 	BatRules (pure, CONTRACT.md §26 "Bat")
 
 	Which player a Bat swing hits. The client sends NO target: the server takes the swinger's own root position and
-	look vector and picks the nearest carrying thief inside SLAP_REACH and in front (Config.BAT.FACING_DOT; closer than
-	CLOSE_STUDS the facing check is skipped). Reach, cooldown and the drop itself are StealService.slap's (the shared
+	look vector and picks the nearest slime carrier inside SLAP_REACH and in front (Config.BAT.FACING_DOT; closer than
+	CLOSE_STUDS the facing check is skipped). Reach, cooldown and the drop itself are CarryDrop.slap's (the shared
 	slap rules), so the Bat can never do more than the old Slap button did. No Roblox APIs, so Lune tests it.
 ]]
 
@@ -15,7 +15,7 @@ export type Candidate = { userId: number, position: Vec, carrying: boolean }
 
 local BatRules = {}
 
--- Nearest carrying thief (not `selfUserId`) within reach and in front of `look` (a unit-ish horizontal vector), or nil.
+-- Nearest slime carrier (not `selfUserId`) within reach and in front of `look` (a unit-ish horizontal vector), or nil.
 -- `reach` defaults to SLAP_REACH (the boss uses Config.BOSS.HIT_REACH: it is far wider than a player).
 function BatRules.pickTarget(
 	origin: Vec,

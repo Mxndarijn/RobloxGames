@@ -104,9 +104,19 @@ function SlimeMesh.load(self: SlimeMesh): Look
 			else function(fn: () -> ())
 				fn()
 			end)
-	local failed: { string } = {}
-	local pending = #SlimeLooks.KITS
+	-- A kit that isn't uploaded yet (no assetId) is never fetched: its slimes keep the shared mesh.
+	local uploaded: { string } = {}
 	for _, kit in SlimeLooks.KITS do
+		local entry = MeshAssets.get(kit)
+		if entry and entry.assetId then
+			table.insert(uploaded, kit)
+		else
+			self.failedKits[kit] = true
+		end
+	end
+	local failed: { string } = {}
+	local pending = #uploaded
+	for _, kit in uploaded do
 		spawn(function()
 			local entry = MeshAssets.get(kit)
 			local kitOk, kitMesh = pcall(function(): MeshPart?

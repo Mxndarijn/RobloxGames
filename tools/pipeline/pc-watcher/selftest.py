@@ -132,7 +132,7 @@ def t_watcher():
     check("shot camera straight-down look", eye[1] > 0 and eye[2] > 0, eye)
     check("shot todo", watcher.shot_todo({"todo": "6/13"}) == "6/13"
           and watcher.shot_todo({"note": "TODO 11: bench"}) == "11" and watcher.shot_todo({"note": "x"}) is None)
-    check("panel names", watcher.panel_for("dex") == "DexPanel" and watcher.panel_for("Leaders") == "LeaderboardPanel")
+    check("panel names", watcher.panel_for("dex") == "DexPanel" and watcher.panel_for("worldshop") == "WorldShopPanel")
     check("two_player mode b removed", not any(k.startswith("twoplayer_") for k in watcher.DEFAULTS)
           and not hasattr(watcher, "twoplayer_cmdline"))
     m = {"found": True, "shown": True, "on_screen": True, "size": [195, 422], "viewport": [390, 844],

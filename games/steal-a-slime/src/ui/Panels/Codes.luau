@@ -2,8 +2,9 @@
 --[[
 	Codes panel: a small card to redeem a code. An ink-dark text box, one Redeem button (Enter
 	works too), a chip for the active income boost (State.codes) and a line on what codes give.
-	The server decides (Codes.redeem): a good code shows in the boost chip, a failed try just
-	keeps the text (typo?). The box clears once State.codes.redeemed grows.
+	The server decides (Codes.redeem): a good code shows in the boost chip and the box clears once
+	State.codes.redeemed grows; a refused one keeps the text, turns the box's outline pink and shows
+	the server's reason in a pink line under it until the box is edited again.
 ]]
 
 local UI = script.Parent.Parent
@@ -21,15 +22,26 @@ local Codes = {}
 -- Body rows top to bottom (design px; the body is Layout.panelBody of the Codes card).
 Codes.ROWS = table.freeze({
 	input = { y = 0, h = 56, size = 22, pad = 14 },
+	error = { y = 62, h = 18, size = Layout.MIN_TEXT, pad = 12 }, -- under the box, only after a refused code
 	button = { y = 68, h = Layout.BUTTON, size = 22 },
 	boost = { y = 136, h = 28, size = 14 },
-	note = { y = 172, h = 18, size = 13 },
+	note = { y = 172, h = 18, size = Layout.MIN_TEXT },
 })
 Codes.CONTENT_H = 190 -- note.y + note.h
 Codes.BOOST_ICON = 22 -- potion icon at the left end of the boost chip
 Codes.CHIP_PAD = 10 -- Widgets.chip's side padding
 Codes.NO_BOOST = "No boost active"
 Codes.NOTE = "Each code works once and gives cash or a boost."
+Codes.ERROR_SHIFT = 26 -- how far the rows under the box move down while the error line shows
+
+-- The pink line under the box for a refused code: the server's reason as a sentence.
+function Codes.errorText(result: any): string
+	local message = if type(result) == "table" and type(result.message) == "string" then result.message else ""
+	if message == "" then
+		return "That code doesn't work."
+	end
+	return if string.match(message, "[%.!?]$") then message else message .. "."
+end
 
 function Codes.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "CodesPanel", "Codes", "🎁")
@@ -63,10 +75,58 @@ function Codes.new(parent: Instance, ctx: any)
 		Widgets.padding(rows.input.pad),
 	}) :: TextBox
 
+	local boxStroke = box:FindFirstChildOfClass("UIStroke") :: UIStroke
+	-- The error line, made the first time a code is refused; the rows under the box move down while it shows.
+	local errorLine: TextLabel? = nil
+	local moved: { GuiObject } = {}
+	local function showError(text: string?)
+		local shown = text ~= nil
+		if shown and errorLine == nil then
+			errorLine = Widgets.label({
+				Name = "Error",
+				TextSize = rows.error.size,
+				TextColor3 = Theme.Bad,
+				Position = UDim2.fromOffset(rows.error.pad, rows.error.y),
+				Size = UDim2.new(1, -rows.error.pad, 0, rows.error.h),
+				Parent = content,
+			})
+		end
+		local line = errorLine
+		if line == nil then
+			return
+		end
+		line.Visible = shown
+		line.Text = text or ""
+		boxStroke.Color = if shown then Theme.Bad else Theme.Ink
+		local shift = if shown then Codes.ERROR_SHIFT else 0
+		for _, item in moved do
+			item.Position = UDim2.new(item.Position.X, UDim.new(0, (item:GetAttribute("RowY") :: number) + shift))
+		end
+		content.CanvasSize = UDim2.fromOffset(0, Codes.CONTENT_H + shift)
+	end
+	-- Clicking back into the box to fix the code, or the box clearing after a good one, drops the error.
+	box.Focused:Connect(function()
+		showError(nil)
+	end)
+	box:GetPropertyChangedSignal("Text"):Connect(function()
+		showError(nil)
+	end)
+
 	local function submit()
 		local text = string.gsub(box.Text, "^%s+", "")
 		text = string.gsub(text, "%s+$", "")
-		if #text > 0 then
+		if #text == 0 then
+			return
+		end
+		if ctx.ask then
+			ctx.ask("Redeem", function(result: any)
+				if type(result) == "table" and result.ok == false then
+					showError(Codes.errorText(result))
+				else
+					showError(nil)
+				end
+			end, text)
+		else
 			ctx.send("Redeem", text)
 		end
 	end
@@ -107,7 +167,7 @@ function Codes.new(parent: Instance, ctx: any)
 	}, ItemIcons.of(ctx))
 	boostIcon.instance.Visible = false
 
-	Widgets.label({
+	local note = Widgets.label({
 		Name = "Note",
 		Text = Codes.NOTE,
 		TextSize = rows.note.size,
@@ -117,6 +177,11 @@ function Codes.new(parent: Instance, ctx: any)
 		Size = UDim2.new(1, 0, 0, rows.note.h),
 		Parent = content,
 	})
+
+	for _, item in { redeem.instance, boost, note } :: { GuiObject } do
+		item:SetAttribute("RowY", item.Position.Y.Offset)
+		table.insert(moved, item)
+	end
 
 	local self = { frame = panel.frame, close = panel.close }
 	local last: any = nil

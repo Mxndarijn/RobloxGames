@@ -415,7 +415,7 @@ for _, quest in DAILY_QUEST_POOL do
 	table.freeze(quest)
 end
 
--- SlimeDex ladder (CONTRACT.md §36.3): species found (of 50).
+-- SlimeDex ladder (CONTRACT.md §36.3): species found (of SpeciesDex.TOTAL).
 -- `reward` is cash x rebirthMultiplier, `bonus` a permanent income bonus (the ladder adds up to 0.45).
 local DEX_MILESTONES: { species: { DexMilestone } } = {
 	species = {
@@ -623,6 +623,12 @@ end
 -- v30 C9: wild slimes moved too fast. Every wild-slime pace (the parade lane walk, its hop rate) scales by this;
 -- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
 -- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
+-- One boss attack (Config.BOSS.MOVES): a frozen table typed loosely, since every attack kind has its own fields
+-- (Shared.BossAttacks reads them by kind).
+local function bossAttack(def: { [string]: any }): { [string]: any }
+	return table.freeze(def)
+end
+
 local SLIME_MOVE_SPEED_MULT = 0.65
 -- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). Row f prices floor f's pads: its first pad you
 -- buy costs `firstPadCost`, every next one on that floor `growth` times the one before. Floor 1's first bought pad is
@@ -706,12 +712,12 @@ local Config = {
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	SLAP_REACH = 10,
 	SLAP_COOLDOWN = 1.5,
-	-- The default melee Bat Tool (server/BatTool, every player, live, NOT behind FEATURES.PvP). A hit on a carrying
-	-- thief is the base slap (StealService.slap: reach SLAP_REACH, cooldown SLAP_COOLDOWN) plus a knockback push.
+	-- The default melee Bat Tool (server/BatTool, every player, live, NOT behind FEATURES.PvP). A hit on anyone
+	-- carrying a slime is the base slap (CarryDrop.slap: reach SLAP_REACH, cooldown SLAP_COOLDOWN, they drop it) plus a push.
 	BAT = table.freeze({
 		TOOL_NAME = "Bat",
 		PUSH = 5, -- studs of knockback (PvpKnockbackRules.plan, capped by PVP.KNOCKBACK_MAX_PUSH)
-		FACING_DOT = 0.3, -- the thief must be in front: dot(look, direction to them) >= this (about 72 degrees each side)
+		FACING_DOT = 0.3, -- the target must be in front: dot(look, direction to them) >= this (about 72 degrees each side)
 		CLOSE_STUDS = 3, -- closer than this the facing check is skipped (hugging a thief)
 		SWING_GAP = 0.4, -- seconds between swing events (a whiff never spends the SLAP_COOLDOWN)
 	}),
@@ -720,7 +726,7 @@ local Config = {
 
 	-- Shop (permanent, kept on rebirth)
 	SPEED_COIL_PRICE = 1500,
-	SPEED_COIL_WALK_SPEED = 24, -- base WalkSpeed (1.5x BASE_WALK_SPEED); the carry slowdown applies to it
+	SPEED_COIL_WALK_SPEED = 28, -- WalkSpeed while the coil is held (1.75x BASE_WALK_SPEED)
 
 	-- Merge
 	MERGE_SIZE_BONUS = 0.1,
@@ -801,8 +807,6 @@ local Config = {
 		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Audio = true, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
 		PvP = true, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
-		WorldShops = true, -- CONTRACT.md §27: Item Shop + Upgrade Shop stands (ItemShopStand / UpgradeShopStand), Request OpenShop / CloseShop / ShopBuy, ShopEvent, range checks; false = the single ShopStand and the HUD Shop as before
-		WorldShopsStrict = true, -- CONTRACT.md §27.6: the old buy actions also need an open shop in range ("NotOpen"); on since the HUD Shop button is gone in HUD v2. Needs WorldShops
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 		MysteryEggs = true, -- the fountain sometimes drops a Mystery Egg that incubates on a pad, can be stolen and hatches into a slime (MysteryEgg, EggKind, contract/mystery-egg.md); false = no egg drops (eggs already on plots still hatch)
 		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
@@ -910,11 +914,11 @@ local Config = {
 		WARNING_SECONDS = 60, -- heads-up before the boss arrives
 		RAIN_GAP = 3 * 60, -- skip when Slime Rain runs or is due this close to the arrival
 		SKIP_DELAY = 5 * 60, -- a skipped arrival moves this much later
-		FIGHT_SECONDS = 90,
+		FIGHT_SECONDS = 120,
 		HAUL_SECONDS = 90,
 		LINGER_SECONDS = 6, -- the won / failed result stays in State.boss
 		PRIORITY_SECONDS = 5, -- head start for the top contributor in the haul
-		POINTS_PER_PLAYER = 25, -- meter target = this x players on the server
+		POINTS_PER_PLAYER = 45, -- meter target = this x players on the server (dazed hits count DAZED_MULTIPLIER)
 		HIT_GAP = 0.4, -- one meter point per player per this many seconds
 		HIT_REACH = 13, -- studs from the swinger's root to the boss Body (about the boss's radius at SCALE + a bat's reach)
 		DRAIN_PER_SECOND = 0.02, -- share of the target lost per second with nobody hitting
@@ -922,16 +926,237 @@ local Config = {
 		SHED_EVERY = 0.25, -- meter share between sheds
 		SHED_COUNT = 2, -- wild slimes per shed
 		DROP_LUCK = 3, -- luck multiplier on shed slimes
+		WIN_SHARE = 0.1, -- a player with at least this share of the top hitter's points helped win
+		WIN_SHOWER = 1, -- lucky slimes (DROP_LUCK) spilled per helper when the boss is brought home
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
 		SPOT_RADIUS = 51, -- studs: between the landing ring and the parade lane
-		WANDER_ARC = math.rad(45), -- the boss wanders within this either side of SPOT_ANGLE (BossWander; the lane and drain fence it in)
-		WANDER_SPEED = 4, -- studs per second: it walks the whole fight without stopping
+		WANDER_ARC = math.rad(45), -- the boss roams within this either side of SPOT_ANGLE (BossArea; the lane and drain fence it in)
 		WANDER_CLEARANCE = 6.25, -- studs from its centre to the parade lane's edge and the goo drain's lip
-		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
+		-- Moves (Shared.BossChoreo): it strolls between stops, turns to look at players, and attacks from a stop.
+		STROLL_SPEED = 4.5, -- studs / s at full stride (x the stage speed-up)
+		STROLL_MIN = 8, -- studs: shortest stroll
+		STROLL_MAX = 18, -- studs: longest stroll
+		STROLL_EASE = 0.7, -- seconds it takes to set off and to stop
+		STROLL_TOWARD = 0.7, -- chance a stroll heads for the players' middle (else anywhere in the area)
+		LOOK_SECONDS = table.freeze({ 0.9, 1.8 }), -- a stop to look at the nearest player
+		ARRIVE_SECONDS = 1.6, -- it drops onto the boss spot and splats
+		ARRIVE_FALL = 0.6, -- of which the fall
+		ARRIVE_HEIGHT = 24, -- studs it drops from
+		WINDUP_SECONDS = 1.2, -- the telegraph before an attack
+		LEG_WINDUP_SECONDS = 0.7, -- the shorter telegraph before each next leg of a multi-leg charge
+		HOP_SECONDS = 0.55, -- a hops attack's leap
+		HOP_HEIGHT = 6, -- studs high it leaps
+		CHARGE_EASE = 0.25, -- seconds a charge takes to reach full speed and to stop
+		CHARGE_MIN = 8, -- studs: a charge aimed this short (off the thin boss area) runs along the area instead
+		STRIKE_SECONDS = 0.7, -- a cone or the spit's throw
+		RING_DELAY = 0.35, -- the stomp lands this long into a ring attack, then the ring runs out
+		SPIT_FLIGHT = 0.7, -- seconds a goo spit flies before it lands
+		DAZED_SECONDS = 3, -- after every attack
+		RISE_HEIGHT = 9, -- studs it floats up while its guards are out
+		RISE_SECONDS = 1, -- the float up
+		LAND_SECONDS = 0.8, -- the float down
+		GUARD_SECONDS = 12, -- longest a guard call lasts (it lands when every guard is popped)
+		SHRINK_SECONDS = 0.6, -- the meter is full: it shrinks to carry size over this long before it can be grabbed
+		MOVE_PIVOT_INTERVAL = 0.2, -- seconds between the server's pivots of the boss Body (clients draw every frame)
+		-- Attacks (Shared.BossAttacks): dodge the telegraphed attack, then punish it while it is dazed.
+		FIRST_ATTACK = 6, -- seconds after it lands before its first attack
+		ATTACK_GAP = table.freeze({ 5, 8 }), -- seconds from one attack's daze to the next windup (÷ the stage speed-up)
+		STAGE_SPEEDUP = 0.1, -- +10 % move and attack pace at every SHED_EVERY of the meter
+		PHASE_AT = 0.5, -- meter share from which its `phase` attacks join its `start` ones
+		DAZED_MULTIPLIER = 3, -- a hit while it is dazed counts this many meter points
+		STUN_SECONDS = 1.5, -- a player hit by an attack can't land bat hits or slaps for this long
+		HIT_ARC = 8, -- studs high an attack's knockback throws a player
+		RING_WIDTH = 3.5, -- studs: how thick the stomp's goo ring is (jump over it)
+		CONE_HIT_AT = 0.25, -- seconds into a cone attack its push lands
+		PUDDLE_RADIUS = 4.5, -- studs: a goo spit puddle; standing in it slows you
+		SPIT_SPREAD = 6, -- studs: a spit with nobody to aim at lands this far round the boss
+		GUARD_RADIUS = 11, -- studs from the boss its guards stand
+		GUARD_REACH = 8, -- studs from a swinger's root to a guard for a bat hit
+		GUARD_POINTS = 2, -- meter points per popped guard
+		GUARD_SIZE = 3.2, -- studs: a guard's body
+		-- Per boss species: `start` attacks from the first one, `phase` from PHASE_AT. Kinds: ring { radius, speed, push },
+		-- spit { count, slowSeconds, slow }, guards { count }, cone { radius, angle (degrees), push },
+		-- charge { distance, speed, width, push }, vent { multiplier } (passive: hits on its back while dazed),
+		-- hops { count, distance, radius, speed, push } (it leaps at you, a small ring on every landing).
+		-- Signature options, one per boss: ring `waves` (+ `waveGap` s, `waveSpeedUp` x), guards `heal` (meter share it
+		-- gets back if its guards outlast the call), charge `bounces` (it charges again at the top hitter) with
+		-- `sideways` + `backAndForth` (a crab's scuttle), spit `burst` { delay, radius, speed, push } (each puddle
+		-- bursts into a ring).
+		MOVES = table.freeze({
+			goozilla = table.freeze({
+				-- signature: a double stomp, the second ring faster
+				start = table.freeze({
+					bossAttack({
+						kind = "ring",
+						radius = 22,
+						speed = 22,
+						push = 40,
+						waves = 2,
+						waveGap = 0.7,
+						waveSpeedUp = 1.4,
+					}),
+				}),
+				phase = table.freeze({ bossAttack({ kind = "spit", count = 3, slowSeconds = 6, slow = 0.5 }) }),
+			}),
+			queen_jelly = table.freeze({
+				-- signature: royal guards; if they outlast the call she heals 15 % of the meter
+				start = table.freeze({ bossAttack({ kind = "guards", count = 3, heal = 0.15 }) }),
+				phase = table.freeze({ bossAttack({ kind = "cone", radius = 18, angle = 90, push = 45 }) }),
+			}),
+			mecha_goo = table.freeze({
+				-- signature: a ricochet charge, then it turns and rams the top hitter again
+				start = table.freeze({
+					bossAttack({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50, bounces = 1 }),
+				}),
+				phase = table.freeze({ bossAttack({ kind = "vent", multiplier = 5 }) }),
+			}),
+			klawdius = table.freeze({
+				start = table.freeze({
+					bossAttack({ kind = "cone", radius = 16, angle = 70, push = 35 }),
+					-- signature: a sideways scuttle, back and forth three times
+					bossAttack({
+						kind = "charge",
+						distance = 24,
+						speed = 30,
+						width = 7,
+						push = 40,
+						sideways = true,
+						backAndForth = true,
+						bounces = 2,
+					}),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.55 }),
+					bossAttack({ kind = "vent", multiplier = 4 }),
+				}),
+			}),
+			pumpking = table.freeze({
+				-- signature: bouncing stomps, three hops at you with a ring on every landing
+				start = table.freeze({
+					bossAttack({ kind = "hops", count = 3, distance = 7, radius = 12, speed = 24, push = 32 }),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "guards", count = 3 }),
+					bossAttack({ kind = "vent", multiplier = 3 }),
+				}),
+			}),
+			goomancer = table.freeze({
+				start = table.freeze({
+					-- signature: rune puddles that burst into a ring a moment after they land
+					bossAttack({
+						kind = "spit",
+						count = 4,
+						slowSeconds = 6,
+						slow = 0.5,
+						burst = table.freeze({ delay = 1.6, radius = 10, speed = 16, push = 35 }),
+					}),
+					bossAttack({ kind = "cone", radius = 20, angle = 100, push = 40 }),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "ring", radius = 28, speed = 26, push = 45 }),
+					bossAttack({ kind = "vent", multiplier = 5 }),
+				}),
+			}),
+		}),
+		-- every tier-6 boss twice and each Secret once per lap
+		ROTATION = table.freeze({
+			"goozilla",
+			"queen_jelly",
+			"klawdius",
+			"pumpking",
+			"mecha_goo",
+			"goozilla",
+			"queen_jelly",
+			"klawdius",
+			"pumpking",
+			"goomancer",
+		}),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
+	}),
+
+	-- Boss badges kept in the save (Shared.BossBadges, contract/boss-event.md), not Roblox badges. `trigger` + `value`
+	-- are read by BossBadges.reached: "hits" / "hauls" / "mvps" (data.boss counters), "win" (wins of `species`),
+	-- "wins" (wins of every species summed). A new boss species gets its own "win" line.
+	BOSS_BADGES = table.freeze({
+		table.freeze({
+			key = "BossBrawler",
+			name = "Boss Brawler",
+			description = "Land a hit on a boss.",
+			trigger = "hits",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossGoozilla",
+			name = "Goozilla Tamer",
+			description = "Help bring Goozilla home.",
+			trigger = "win",
+			value = 1,
+			species = "goozilla",
+		}),
+		table.freeze({
+			key = "BossQueenJelly",
+			name = "Dethroned",
+			description = "Help bring Queen Jelly home.",
+			trigger = "win",
+			value = 1,
+			species = "queen_jelly",
+		}),
+		table.freeze({
+			key = "BossKlawdius",
+			name = "Shell Shocked",
+			description = "Help bring Klawdius home.",
+			trigger = "win",
+			value = 1,
+			species = "klawdius",
+		}),
+		table.freeze({
+			key = "BossPumpking",
+			name = "Pumpkin Smasher",
+			description = "Help bring Pumpking home.",
+			trigger = "win",
+			value = 1,
+			species = "pumpking",
+		}),
+		table.freeze({
+			key = "BossGoomancer",
+			name = "Spellbreaker",
+			description = "Help bring Goomancer home.",
+			trigger = "win",
+			value = 1,
+			species = "goomancer",
+		}),
+		table.freeze({
+			key = "BossMechaGoo",
+			name = "Scrap Metal",
+			description = "Help bring Mecha Goo home.",
+			trigger = "win",
+			value = 1,
+			species = "mecha_goo",
+		}),
+		table.freeze({
+			key = "BossHauler",
+			name = "Heavy Lifter",
+			description = "Carry a boss home yourself.",
+			trigger = "hauls",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossMvp",
+			name = "Boss MVP",
+			description = "Land the most hits on a boss that gets brought home.",
+			trigger = "mvps",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossHunter10",
+			name = "Boss Hunter",
+			description = "Help win 10 boss fights.",
+			trigger = "wins",
+			value = 10,
+		}),
 	}),
 
 	-- Day / night (DayNight)
@@ -990,9 +1215,8 @@ local Config = {
 
 	-- Wild Mystery Eggs (FEATURES.MysteryEggs, contract/mystery-egg.md). Each KINDS entry: `id` (saved, never rename),
 	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
-	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `price` (cash to
-	-- grab a non-free one), `sell` (cash when sold, x the rebirth multiplier), `announce` (server toast on spawn) and
-	-- `drops` (tier weights of the slime inside).
+	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `announce` (server
+	-- toast on spawn) and `drops` (tier weights of the slime inside). A wild egg is free to grab and can't be sold.
 	MYSTERY_EGG = table.freeze({
 		DROP_CHANCE = 0.015, -- share of fountain drops that are an egg
 		RAIN_MULT = 3, -- DROP_CHANCE multiplier during Slime Rain
@@ -1014,8 +1238,6 @@ local Config = {
 				weight = 60,
 				hatchSeconds = 3 * 60,
 				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
-				price = 60,
-				sell = 40,
 				announce = false,
 				drops = table.freeze({
 					{ tier = 2, weight = 55 },
@@ -1030,8 +1252,6 @@ local Config = {
 				weight = 27,
 				hatchSeconds = 6 * 60,
 				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
-				price = 250,
-				sell = 150,
 				announce = false,
 				drops = table.freeze({
 					{ tier = 3, weight = 50 },
@@ -1046,8 +1266,6 @@ local Config = {
 				weight = 10,
 				hatchSeconds = 10 * 60,
 				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
-				price = 900,
-				sell = 600,
 				announce = true,
 				drops = table.freeze({ { tier = 4, weight = 55 }, { tier = 5, weight = 40 }, { tier = 6, weight = 5 } }),
 			}),
@@ -1058,8 +1276,6 @@ local Config = {
 				weight = 3,
 				hatchSeconds = 15 * 60,
 				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
-				price = 3000,
-				sell = 2000,
 				announce = true,
 				drops = table.freeze({ { tier = 5, weight = 60 }, { tier = 6, weight = 35 }, { tier = 7, weight = 5 } }),
 			}),
@@ -1179,7 +1395,7 @@ local Config = {
 	}),
 	BADGE_RETRIES = 4, -- BadgeService attempts per badge (backoff 2, 4, 8 s)
 
-	-- World shops (FEATURES.WorldShops, CONTRACT.md §27): studs from the character's HumanoidRootPart to the stand's Counter,
+	-- World shops (CONTRACT.md §27): studs from the character's HumanoidRootPart to the stand's Counter,
 	-- checked on the server on OpenShop and on every purchase; out of range closes the shop.
 	SHOP_RANGE = 14,
 
@@ -1310,9 +1526,11 @@ local Config = {
 	}),
 
 	-- Persistence
-	SAVE_VERSION = 8, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7)
+	SAVE_VERSION = 9, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7; v9: boss record replaces trophies, SaveData.migrateV8)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
+	SAVE_DRAIN_SECONDS = 20, -- a load waits at most this long for the same player's saves still in flight
+	SAVE_DRAIN_STEP = 0.25, -- seconds between checks while a load waits for those saves
 	MAX_SLIMES_SAVED = 64,
 }
 

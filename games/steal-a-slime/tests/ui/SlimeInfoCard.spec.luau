@@ -1,7 +1,7 @@
 --!strict
--- Slime labels (contract/slime-labels.md): one floating tag per loose slime, rows stacked inside it, bottom edge
--- above the mesh top at the same height for every slime, culled by distance; a goo-dipped sign in front of the pad's cork stand
--- for a pad slime; both re-rendered only on label attribute changes.
+-- Slime labels (contract/slime-labels.md): one floating tag per loose slime (a rarity pill, the outlined name, the
+-- income and a Buy chip), bottom edge above the mesh top at the same height for every slime, culled by distance; a
+-- goo-dipped sign in front of the pad's cork stand for a pad slime; both re-rendered only on label attribute changes.
 local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
@@ -99,8 +99,13 @@ describe("SlimeInfoCard rows", function()
 				y += r.h
 			end
 			expect(math.abs(y - 1) < EPS).toBe(true)
-			expect(rows[1].name).toBe("Title")
-			expect(rows[1].h > rows[2].h).toBe(true) -- the name row is the largest
+			expect(rows[1].name).toBe("Rarity") -- the rarity pill on top, the name under it
+			expect(rows[2].name).toBe("Title")
+			for i, r in rows do
+				if i ~= 2 then
+					expect(rows[2].h > r.h).toBe(true) -- the name row is the largest
+				end
+			end
 		end)
 	end
 	it("the tag grows with the price row and keeps a pixel floor so it stays readable far away", function()
@@ -123,7 +128,8 @@ describe("SlimeInfoCard render", function()
 		expect(gui.Archivable).toBe(false)
 		expect(gui.LightInfluence).toBe(0)
 	end)
-	it("shows the name edged in the rarity colour, the rarity in its gradient and the income, with no panel", function()
+	it("shows the rarity on a pill of its colour, the name outlined in Ink and the income in mint", function()
+		local Theme = UiHarness.ui("Widgets").Theme
 		local gui = SlimeInfoCard.build()
 		local v = view()
 		SlimeInfoCard.render(gui, v, 4.5)
@@ -131,34 +137,61 @@ describe("SlimeInfoCard render", function()
 		expect(gui.StudsOffsetWorldSpace.Y).toBe(4.5)
 		local rows = rowsOf(gui)
 		expect(#rows).toBe(3)
-		expect(rows[1].Text).toBe("Lop")
 		local c = Config.RARITIES[3].color
-		expect(rows[1]:FindFirstChild("Stroke").Color).toBe(SlimeInfoCard.nameStroke(c))
-		expect(rows[2].Text).toBe(Config.RARITIES[3].name)
-		local fill = rows[2]:FindFirstChild("Fill").Color.Keypoints
-		expect(fill[#fill].Value).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
+		local pill = rows[1]
+		expect(pill.Text).toBe(Config.RARITIES[3].name)
+		expect(pill.BackgroundTransparency).toBe(0)
+		expect(pill.BackgroundColor3).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
+		expect(pill:FindFirstChild("Stroke").Color).toBe(Theme.Ink)
+		expect(pill:FindFirstChild("Fit").AspectRatio).toBe(SlimeInfoCard.pillAspect(pill.Text))
+		expect(rows[2].Text).toBe("Lop")
+		expect(rows[2].TextColor3).toBe(roblox.Color3.new(1, 1, 1))
+		expect(rows[2]:FindFirstChild("Stroke").Color).toBe(Theme.Ink)
 		expect(rows[3].Text).toBe("+$1.25K/s")
+		expect(rows[3].TextColor3).toBe(Theme.Good)
 		expect(gui.Size).toBe(SlimeInfoCard.size(3))
 		expect(gui:FindFirstChild("Card").BackgroundTransparency).toBe(1)
-		for _, label in rows do
-			expect(label:FindFirstChild("Stroke") ~= nil).toBe(true)
+	end)
+	it("writes Ink on a bright rarity pill and outlined white on a deep one", function()
+		local Theme = UiHarness.ui("Widgets").Theme
+		local Widgets = UiHarness.ui("Widgets")
+		for tier = 1, Config.MAX_TIER - 1 do
+			local fill, _, ink, strokeHidden = SlimeInfoCard.pillLook(view({ tier = tier }))
+			if Widgets.isBright(fill) then
+				expect(ink).toBe(Theme.Ink)
+				expect(strokeHidden).toBe(1)
+			else
+				expect(ink).toBe(Theme.Text)
+				expect(strokeHidden).toBe(0)
+			end
 		end
 	end)
-	it("fills Secret with a rainbow instead of one colour", function()
+	it("fills Secret's pill with a rainbow instead of one colour", function()
 		local gui = SlimeInfoCard.build()
 		SlimeInfoCard.render(gui, view({ tier = Config.MAX_TIER }), 3)
-		local fill = rowsOf(gui)[2]:FindFirstChild("Fill").Color.Keypoints
+		local fill = rowsOf(gui)[1]:FindFirstChild("Fill").Color.Keypoints
 		expect(#fill > 3).toBe(true)
+		SlimeInfoCard.render(gui, view({ tier = 2 }), 3)
+		expect(#rowsOf(gui)[1]:FindFirstChild("Fill").Color.Keypoints).toBe(2) -- plain again: white, no tint
 	end)
-	it("adds the price row, inside the tag", function()
+	it("sizes a pill to its text", function()
+		expect(SlimeInfoCard.pillAspect("Legendary") > SlimeInfoCard.pillAspect("Rare")).toBe(true)
+		expect(SlimeInfoCard.pillAspect("") >= 1).toBe(true) -- an empty pill is still round
+	end)
+	it("adds the Buy chip in gold on Ink, inside the tag", function()
+		local Theme = UiHarness.ui("Widgets").Theme
 		local gui = SlimeInfoCard.build()
 		SlimeInfoCard.render(gui, view({ price = 500 }), 3)
 		local rows = rowsOf(gui)
 		expect(#rows).toBe(4)
-		expect(rows[4].Text).toBe("$500")
+		expect(rows[4].Text).toBe("Buy $500")
+		expect(rows[4].TextColor3).toBe(Theme.Gold)
+		expect(rows[4].BackgroundColor3).toBe(Theme.Ink)
 		expect(gui.Size).toBe(SlimeInfoCard.size(4))
 		for _, label in rows do
-			local top, height = label.Position.Y.Scale, label.Size.Y.Scale
+			-- pills hang from their centre (AnchorPoint 0.5), text rows from their top
+			local top = label.Position.Y.Scale - label.AnchorPoint.Y * label.Size.Y.Scale
+			local height = label.Size.Y.Scale
 			expect(top >= -EPS and top + height <= 1 + EPS).toBe(true)
 			expect(label.Size.X.Scale).toBe(1)
 			expect(label.TextScaled).toBe(true)
@@ -289,51 +322,66 @@ describe("SlimePadSign", function()
 			expect(math.abs(here.X) < 1e-4).toBe(true)
 		end
 	)
-	it("is a wooden plank dipped in goo of the rarity colour, with the name, income and a goo tube", function()
-		local sign = SlimePadSign.build()
-		expect(sign.Material).toBe(roblox.Enum.Material.WoodPlanks)
-		local v = view({ tier = 3, growth = 46 })
-		SlimePadSign.render(sign, v)
-		local board = sign:FindFirstChild("Face"):FindFirstChild("Board")
-		expect(board.BackgroundTransparency).toBe(1) -- the wood shows through
-		local band = board:FindFirstChild("Band")
-		local c = Config.RARITIES[3].color
-		local goo = band:FindFirstChild("Goo").Color.Keypoints
-		expect(goo[2].Value).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
-		for i, d in SlimePadSign.DRIPS do
-			local drip = band:FindFirstChild(`Drip{i}`)
-			expect(drip ~= nil).toBe(true)
-			-- a drip starts in the band's bottom colour, so there is no seam
-			expect(drip:FindFirstChild("Goo").Color.Keypoints[1].Value).toBe(goo[#goo].Value)
-			expect(d.x > 0 and d.x < 1).toBe(true)
+	it(
+		"is a wooden plank with an Ink edge dipped in goo of the rarity colour, with the name, income and a goo tube",
+		function()
+			local Theme = UiHarness.ui("Widgets").Theme
+			local sign = SlimePadSign.build()
+			expect(sign.Material).toBe(roblox.Enum.Material.WoodPlanks)
+			local v = view({ tier = 3, growth = 46 })
+			SlimePadSign.render(sign, v)
+			local board = sign:FindFirstChild("Face"):FindFirstChild("Board")
+			expect(board.BackgroundTransparency).toBe(1) -- the wood shows through
+			expect(board:FindFirstChild("Stroke").Color).toBe(Theme.Ink)
+			local band = board:FindFirstChild("Band")
+			local c = Config.RARITIES[3].color
+			local goo = band:FindFirstChild("Goo").Color.Keypoints
+			expect(goo[2].Value).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
+			-- the lip and the drips continue the band's bottom colour, so there is no seam
+			for i = 1, SlimePadSign.LIP.scallops do
+				expect(band:FindFirstChild(`Lip{i}`).BackgroundColor3).toBe(goo[#goo].Value)
+			end
+			for i, d in SlimePadSign.DRIPS do
+				local drip = band:FindFirstChild(`Drip{i}`)
+				expect(drip.BackgroundColor3).toBe(goo[#goo].Value)
+				-- the drips run down the ends, outside the text
+				local l = SlimePadSign.LAYOUT
+				expect(d.x < l.inset or d.x > 1 - l.inset).toBe(true)
+			end
+			expect(band:FindFirstChild("Rarity").Text).toBe(Config.RARITIES[3].name)
+			local title = board:FindFirstChild("Title")
+			expect(title.Text).toBe("Lop")
+			expect(title:FindFirstChild("Stroke").Color).toBe(Theme.Ink)
+			expect(board:FindFirstChild("Income").Text).toBe("+$1.25K/s")
+			expect(board:FindFirstChild("Income").TextColor3).toBe(Theme.Good)
+			expect(board:FindFirstChild("Growth").Text).toBe("46%")
+			expect(board:FindFirstChild("Track").BackgroundColor3).toBe(Theme.Ink)
+			local fill = board:FindFirstChild("Track"):FindFirstChild("Fill")
+			expect(math.abs(fill.Size.X.Scale - 0.46) < EPS).toBe(true)
+			expect(fill.Visible).toBe(true)
+			SlimePadSign.render(sign, view({ growth = 0 }))
+			expect(fill.Visible).toBe(false)
+			expect(board:FindFirstChild("Growth").Text).toBe("0%")
 		end
-		expect(band:FindFirstChild("Rarity").Text).toBe(Config.RARITIES[3].name)
-		expect(board:FindFirstChild("Title").Text).toBe("Lop")
-		expect(board:FindFirstChild("Income").Text).toBe("+$1.25K/s")
-		expect(board:FindFirstChild("Growth").Text).toBe("46%")
-		local fill = board:FindFirstChild("Track"):FindFirstChild("Fill")
-		expect(math.abs(fill.Size.X.Scale - 0.46) < EPS).toBe(true)
-		expect(fill.Visible).toBe(true)
-		SlimePadSign.render(sign, view({ growth = 0 }))
-		expect(fill.Visible).toBe(false)
-		expect(board:FindFirstChild("Growth").Text).toBe("0%")
-	end)
-	it("runs a rainbow along a Secret's band and tube, drips sampled where they hang", function()
+	)
+	it("runs a rainbow along a Secret's band, its goo sampled where it hangs", function()
 		local sign = SlimePadSign.build()
 		SlimePadSign.render(sign, view({ tier = Config.MAX_TIER }))
 		local band = sign:FindFirstChild("Face"):FindFirstChild("Board"):FindFirstChild("Band")
 		expect(band:FindFirstChild("Goo").Rotation).toBe(0)
-		local first = band:FindFirstChild("Drip1"):FindFirstChild("Goo").Color.Keypoints[1].Value
-		local last = band:FindFirstChild(`Drip{#SlimePadSign.DRIPS}`):FindFirstChild("Goo").Color.Keypoints[1].Value
+		local first = band:FindFirstChild("Drip1").BackgroundColor3
+		local last = band:FindFirstChild(`Drip{#SlimePadSign.DRIPS}`).BackgroundColor3
 		expect(first ~= last).toBe(true)
 	end)
-	it("writes dark ink on a light rarity band and white on a deep one", function()
-		local light, strokeLight = SlimePadSign.bandInk(Config.RARITIES[1].color)
-		local deep, strokeDeep = SlimePadSign.bandInk(Config.RARITIES[3].color)
-		expect(light ~= SlimePadSign.COLORS.bandInk).toBe(true)
-		expect(strokeLight).toBe(1)
-		expect(deep).toBe(SlimePadSign.COLORS.bandInk)
-		expect(strokeDeep).toBe(0)
+	it("writes Ink on bright goo and outlined white on deep goo", function()
+		local Widgets = UiHarness.ui("Widgets")
+		for tier = 1, Config.MAX_TIER do
+			local v = view({ tier = tier })
+			local ink, strokeHidden = SlimePadSign.bandInk(v)
+			local bright = SlimeLabel.isRainbow(v) or Widgets.isBright(SlimePadSign.rgb(v.rarityColor))
+			expect(ink).toBe(if bright then Widgets.Theme.Ink else roblox.Color3.new(1, 1, 1))
+			expect(strokeHidden).toBe(if bright then 1 else 0)
+		end
 	end)
 	it("finds the pad by PadIndex, nil without one", function()
 		local _, pad, model = plotWithSlime(3, {})

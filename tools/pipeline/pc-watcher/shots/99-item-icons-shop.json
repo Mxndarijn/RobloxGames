@@ -2,6 +2,7 @@
   "id": "item-icons-shop",
   "todo": "item-icons",
   "kind": "ui",
-  "open": "shop",
+  "open": "worldshop",
+  "world_shop": "ItemShop",
   "note": "Item icons: Shop rows show gradient item tiles (lock, longer locks, speed coil, upgrades) instead of bare emoji badges; gold frame on owned / maxed, green when buyable"
 }

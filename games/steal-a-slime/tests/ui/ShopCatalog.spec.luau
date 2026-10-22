@@ -66,33 +66,34 @@ describe("ShopCatalog.view", function()
 		expect(view.buttonText).toBe("Buy")
 		expect(view.levelText).toBeNil()
 	end)
-	it("returns one view per item", function()
-		expect(#ShopCatalog.views({ cash = 0 }, Remotes.ACTIONS)).toBe(#ShopCatalog.ITEMS)
-	end)
 end)
 
 describe("ShopCatalog Speed Coil copy", function()
 	local function has(text: string, needle: string): boolean
 		return string.find(text, needle, 1, true) ~= nil
 	end
-	it("shows the Config walk speeds and that it helps while carrying", function()
+	it("shows the Config walk speeds and that you have to hold it", function()
 		local view = ShopCatalog.view(item("SpeedCoil"), { cash = 0 }, ALL, Config)
 		expect(has(view.description, `{Config.BASE_WALK_SPEED} → {Config.SPEED_COIL_WALK_SPEED}`)).toBe(true)
-		expect(has(view.description, "while carrying")).toBe(true)
-		local viaViews = ShopCatalog.views({ cash = 0 }, ALL, Config)
-		for _, v in viaViews do
-			if v.item.id == "SpeedCoil" then
-				expect(v.description).toBe(view.description)
-			end
-		end
+		expect(has(view.description, "Hold it")).toBe(true)
 	end)
-	it("never claims it only works when not carrying", function()
+	it("never claims it works without holding it", function()
 		for _, config in { Config, {} } do
 			local view = ShopCatalog.view(item("SpeedCoil"), { cash = 0 }, ALL, config)
 			expect(has(view.description, "not carrying")).toBe(false)
 		end
 		expect(has(ShopCatalog.view(item("SpeedCoil"), { cash = 0 }, ALL).description, "not carrying")).toBe(false)
 		expect(ShopCatalog.speedCoilText({ BASE_WALK_SPEED = "16" })).toBeNil()
+	end)
+end)
+
+describe("ShopCatalog.upgradeText", function()
+	it("keeps the number and shortens known upgrades only", function()
+		expect(ShopCatalog.upgradeText("Luck", "+4% chance a slime you bring home is one rarity higher")).toBe(
+			"+4% rarity-up chance"
+		)
+		expect(ShopCatalog.upgradeText("Income", "+10% income")).toBe("+10% income")
+		expect(ShopCatalog.upgradeText("Luck", "luckier")).toBe("luckier")
 	end)
 end)
 
@@ -145,7 +146,6 @@ describe("ShopCatalog.upgradeViews (v13 State.upgrades)", function()
 		expect(views[1].buttonText).toBe("Coming soon")
 		expect(views[1].enabled).toBe(false)
 		expect(#ShopCatalog.upgradeViews({ cash = 1 }, actions)).toBe(0)
-		expect(#ShopCatalog.views({ cash = 1, upgrades = upgrades }, actions)).toBe(#ShopCatalog.ITEMS + 3)
 	end)
 end)
 
@@ -179,9 +179,10 @@ describe("ShopCatalog consumables (FEATURES.Consumables)", function()
 			},
 		}
 	end
-	it("lists a row per stocked item with quantities, after the other rows", function()
-		local views = ShopCatalog.views(state(2), Remotes.ACTIONS, Config)
-		local totem = views[#views - 1]
+	it("lists a row per stocked item with quantities", function()
+		local views = ShopCatalog.consumableViews(state(2), Remotes.ACTIONS)
+		expect(#views).toBe(2)
+		local totem = views[1]
 		expect(totem.item.id).toBe("Consumable_WeatherTotem")
 		expect(totem.levelText).toBe("2/3 left")
 		expect(totem.enabled).toBe(true)
