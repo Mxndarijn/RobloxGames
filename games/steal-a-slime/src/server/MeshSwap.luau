@@ -308,14 +308,19 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 			return true
 		end
 	end
-	-- under a plot skin a jar slot shows the themed piece (ThemeMeshes); collision and stand-ins stay the piece's own
-	local look = lookOf(target, name)
-	local meshId = MeshAssets.meshId(look)
+	-- under a plot skin a jar slot shows the themed piece (ThemeMeshes); collision and stand-ins stay the piece's own.
+	-- The template load yields: if the plot's skin changed meanwhile, load the new look; if another swap placed a
+	-- mesh meanwhile, leave it.
 	local fidelity = MeshAssets.collision(name)
-	local base = meshId and template(meshId, fidelity)
-	if not base then
-		return false
-	end
+	local look: string, base: MeshPart?
+	repeat
+		look = lookOf(target, name)
+		local meshId = MeshAssets.meshId(look)
+		base = meshId and template(meshId, fidelity)
+		if not base or target:FindFirstChild("Mesh") then
+			return false
+		end
+	until lookOf(target, name) == look
 	local cf, box
 	local fixed = nil
 	if target:IsA("Model") then
@@ -342,7 +347,7 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 		local fit, _, below = MeshAssets.fit(look, { box.X, box.Y, box.Z })
 		size, drop = fit, below
 	end
-	local mesh = base:Clone()
+	local mesh = (base :: MeshPart):Clone() -- the loop above only ends with a template
 	mesh.Name = "Mesh"
 	mesh:SetAttribute(MeshSwap.LOOK_ATTRIBUTE, look)
 	mesh.Size = Vector3.new(size[1], size[2], size[3])

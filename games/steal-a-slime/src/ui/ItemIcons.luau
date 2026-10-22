@@ -139,7 +139,7 @@ ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
 
 -- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
--- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet, and the newer plot skins.
+-- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet, and plot skins without a picture.
 ItemIcons.AWAITING_UPLOAD = table.freeze({
 	"Dex_8",
 	"Dex_15",

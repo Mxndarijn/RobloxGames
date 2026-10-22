@@ -1,6 +1,9 @@
 --!strict
 -- Themed goo jar tower meshes (CONTRACT.md §15): which mesh a plot slot shows under its plot skin, the companions a
 -- theme adds, where a companion stands on its piece's slot, and that every built theme is complete in MeshAssets.
+local fs = require("@lune/fs")
+local serde = require("@lune/serde")
+
 local Config = require("../src/shared/Config")
 local JarMeshes = require("../src/visuals/shared/JarMeshes")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -103,6 +106,26 @@ describe("themed meshes in MeshAssets", function()
 			end
 		end
 	end)
+	it(
+		"the generated MeshAssets block matches the kit's uploaded.json (rerun tools/goo_jar_theme_assets.py)",
+		function()
+			local record = serde.decode("json", fs.readFile("../../shared/modeling-kit/uploaded.json"))
+			local n = 0
+			for name, upload in record do
+				if string.find(name, "@", 1, true) and upload.meshId and upload.meshSize then
+					n += 1
+					local entry = MeshAssets.get(name)
+					local ok = entry ~= nil
+						and entry.meshId == upload.meshId
+						and tostring(entry.assetId) == tostring(upload.assetId)
+						and entry.size ~= nil
+						and math.abs(entry.size[2] - upload.meshSize[2]) < 1e-3
+					expect(`{name}: {ok}`).toBe(`{name}: true`)
+				end
+			end
+			expect(n > 0).toBe(true)
+		end
+	)
 	it("themed pieces keep their classic piece's size (they drop into the classic slot)", function()
 		for _, skin in Config.PLOT_SKINS do
 			for _, base in themedPieces() do

@@ -71,7 +71,8 @@ export type DexMilestone = { count: number, reward: number, bonus: number }
 -- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15): goo jar tower themes. A skin's slimes are a whole family
 -- (`family`, a FountainTiers.FAMILIES id) or a `species` list (SlimeRoster ids); it unlocks once `threshold` of them
 -- are found (PlotSkins). Neither = always unlocked. Colours are RGB 0..255; `color` is the picker card's swatch.
--- `floor`, `trim` and `decor` paint the pre-tower plot (PlotDecor.applySkin), which the tower hides.
+-- `floor`, `trim` and `decor` are PlotDecor.applySkin's plot paint: the Base, trim parts and mailbox slot it paints
+-- are hidden under the goo jar tower meshes.
 export type PlotSkin = {
 	id: string, -- permanent save id; never rename
 	name: string,

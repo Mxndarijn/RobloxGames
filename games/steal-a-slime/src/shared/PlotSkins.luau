@@ -34,20 +34,23 @@ local PlotSkins = {}
 
 PlotSkins.DEFAULT = Config.PLOT_SKIN_DEFAULT
 
--- The species ids that count toward `skin`, in roster order (a family) or Config order (a list). Empty = none.
-function PlotSkins.slimes(skin: Config.PlotSkin): { string }
-	if skin.species then
-		return table.clone(skin.species)
-	end
-	local out: { string } = {}
-	if skin.family then
+-- Each skin's species ids, in roster order (a family) or Config order (a list), built once.
+local SLIMES: { [string]: { string } } = {}
+for _, skin in Config.PLOT_SKINS do
+	local out: { string } = if skin.species then table.clone(skin.species) else {}
+	if skin.family and not skin.species then
 		for _, entry in SlimeRoster.ROSTER do
 			if entry.kind == "spawn" and entry.family == skin.family then
 				table.insert(out, entry.id)
 			end
 		end
 	end
-	return out
+	SLIMES[skin.id] = table.freeze(out)
+end
+
+-- The species ids that count toward `skin` (frozen). Empty = none: always unlocked.
+function PlotSkins.slimes(skin: Config.PlotSkin): { string }
+	return SLIMES[skin.id] or {}
 end
 
 function PlotSkins.get(id: any): Config.PlotSkin?
