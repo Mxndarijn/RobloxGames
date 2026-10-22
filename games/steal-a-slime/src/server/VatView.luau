@@ -13,6 +13,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
 local GooPalette = if Shared then require(Shared.GooPalette) else require("../shared/GooPalette")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local StealGhost = if script then require(script.Parent.StealGhost) else require("./StealGhost")
@@ -25,7 +26,7 @@ VatView.SPOT_RADIUS = 2.2 -- studs from the vat's centre to each spot
 VatView.SPOT_LIFT = 0.15 -- studs above the goo
 VatView.TAG_NAME = "VatTag"
 VatView.SPOTS_NAME = "VatSpots"
-VatView.FADED_ATTRIBUTE = "VatFaded" -- on a faded part: its own transparency before the fade
+VatView.FADED_ATTRIBUTE = Constants.OWN_TRANSPARENCY_ATTRIBUTE -- on a faded part: its own transparency before the fade
 VatView.TAG = table.freeze({ w = 220, h = 74, title = 30, titleSize = 26, gap = 4, line = 30, lineSize = 20, lift = 2 })
 
 export type Line = { text: string, color: "Mint" | "Gold" | "MutedWell" }
@@ -146,17 +147,10 @@ function VatView.fade(model: Model, on: boolean)
 	end
 end
 
--- A small copy of a pad slime for a vat spot (no prompts, labels or collision; the pad fade undone).
+-- A small copy of a pad slime for a vat spot (no prompts, labels or collision; StealGhost.build undoes the pad fade).
 local function spotCopy(model: Model, at: CFrame, parent: Instance, id: string): Model
 	local copy = StealGhost.build(model, at, parent, 0)
 	copy.Name = id
-	for _, d in copy:GetDescendants() do
-		local saved = d:GetAttribute(VatView.FADED_ATTRIBUTE)
-		if type(saved) == "number" then
-			(d :: any).Transparency = saved
-			d:SetAttribute(VatView.FADED_ATTRIBUTE, nil)
-		end
-	end
 	local size = copy:GetExtentsSize()
 	local widest = math.max(size.X, size.Z, 0.01)
 	copy:ScaleTo(copy:GetScale() * VatView.SPOT_WIDTH / widest)

@@ -60,6 +60,13 @@ local USE_ANIM: { [string]: string } = {
 	Firework = "throw",
 }
 
+-- The LocalTransparencyModifier a proxy puts back on an original part that had `current` when the proxy hid it. A
+-- full hide (1) belongs to someone else's short hide (a pad hop, an egg pop) that already ended or will undo itself;
+-- putting it back would leave the slime invisible for good, so it comes back as 0. A part fade (a Move) is kept.
+function PvpFunFxLogic.restoreTo(current: number): number
+	return if current >= 1 then 0 else current
+end
+
 function PvpFunFxLogic.isFun(itemId: any): boolean
 	return type(itemId) == "string" and PvpFunFxLogic.FUN_IDS[itemId] == true
 end
