@@ -183,7 +183,7 @@ local function onPlayerRemoving(deps: Deps, player: Player)
 		},
 		refreshView = deps.refreshView,
 		save = function(session)
-			Persistence.save(deps.persistence, userId, session.data, true)
+			task.spawn(Persistence.save, deps.persistence, userId, session.data, true)
 		end,
 	})
 end

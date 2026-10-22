@@ -299,6 +299,7 @@ describe("BatTool.swing on the boss (contract/boss-event.md)", function()
 			t += BOSS.HIT_GAP
 		end
 		local id = BossEvent.bossId(world) :: string
+		t += BOSS.SHRINK_SECONDS -- it shrinks to carry size first
 		expect((Carry.grab(world, 1, id, 1, t))).toBe(true)
 		poses[2] = { X = ORIGIN.X + 6, Y = 3, Z = ORIGIN.Z }
 		expect((BatTool.swing(world, b, t + 1, ctx, false))).toBe(false) -- facing away (+X) from player 1

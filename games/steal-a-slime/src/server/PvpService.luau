@@ -63,6 +63,8 @@ export type Context = {
 	toVector3: ((position: PvpRules.Vec) -> any)?,
 	-- a slime model's Body position (the Bat's reach to the boss); nil = no model
 	slimePosition: ((slimeId: string) -> PvpRules.Vec?)?,
+	-- the fountain centre in world studs: the boss's plaza coordinates are round it (BossEvent.Context)
+	plazaOrigin: (() -> PvpRules.Vec)?,
 	-- the ground point straight below `point` (a goo splat lands there); nil = keep the point
 	groundBelow: ((point: PvpRules.Vec) -> PvpRules.Vec?)?,
 	-- the Bubble Wand lift (server/PvpFunView): `userId` floats `lift` studs in a clickable bubble for `seconds`;

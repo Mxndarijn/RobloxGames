@@ -10,8 +10,10 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local BossChoreo = if Shared then require(Shared.BossChoreo) else require("../shared/BossChoreo")
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
 local Trophies = if Shared then require(Shared.Trophies) else require("../shared/Trophies")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
@@ -24,7 +26,24 @@ type Session = World.Session
 
 local BOSS = Config.BOSS
 
+type Vec = { X: number, Y: number, Z: number }
+
+-- What the adapter tells the boss about the world (server/ServerContext; tests pass a fake or nothing).
+export type Context = {
+	pose: ((userId: number) -> (Vec?, Vec?))?, -- a character's root position and look
+	plazaOrigin: (() -> Vec)?, -- the fountain centre in world studs (plaza coordinates are round it)
+}
+
 local BossEvent = {}
+
+-- Studs from the boss within which a player counts as in the fight (it looks at them, strolls toward them).
+BossEvent.ENGAGE_RADIUS = 70
+
+local function origin(ctx: Context?): (number, number)
+	local get = ctx and ctx.plazaOrigin
+	local o = if get then get() else nil
+	return if o then o.X else 0, if o then o.Z else 0
+end
 
 local function playerCount(world: World): number
 	local n = 0
@@ -82,7 +101,8 @@ local function begin(world: World, now: number): string
 	world.bossIndex += 1
 	local fight = BossFight.new(species, now)
 	fight.endsAt = world.nextBossAt
-	world.boss = { fight = fight, slimeId = nil, lastStepAt = now }
+	world.boss =
+		{ fight = fight, slimeId = nil, lastStepAt = now, rng = Rng.new(world.bossIndex * 7919 + math.floor(now)) }
 	world.nextBossAt += BOSS.INTERVAL
 	local entry = SlimeRoster.get(species)
 	local name = if entry then entry.name else species
@@ -93,13 +113,15 @@ local function begin(world: World, now: number): string
 end
 
 -- The boss slime arrives at the plaza boss spot (WorldView), outside the wild cap.
-local function arrive(world: World, event: World.BossEvent, now: number)
+local function arrive(world: World, event: World.BossEvent, now: number, ctx: Context?)
 	local id = world.newId()
 	local slime = Trophies.bossSlime(world.rng, id, event.fight.species)
 	if not slime then
 		return
 	end
+	local ox, oz = origin(ctx)
 	world.wild[id] = {
+		move = BossChoreo.first(now, ox, oz),
 		slime = slime,
 		price = 0,
 		spawnedAt = now,
@@ -125,7 +147,9 @@ local function startHaul(world: World, event: World.BossEvent, now: number)
 	local wild = event.slimeId and world.wild[event.slimeId]
 	if wild then
 		wild.expiresAt = fight.endsAt
-		wild.wanderUntil = now
+		if wild.move then
+			wild.move = BossChoreo.hold("down", wild.move, now, BOSS.HAUL_SECONDS)
+		end
 	end
 	local top = nameOf(world, fight.priorityUserId)
 	local name = if wild then wild.slime.name else "The boss"
@@ -153,8 +177,83 @@ local function escape(world: World, event: World.BossEvent, now: number, reason:
 	World.notify(world, nil, text, "info", "Rain")
 end
 
+-- Plaza spots of the players within ENGAGE_RADIUS of (x, z), and the top hitter's spot if they are one of them.
+local function fighters(
+	world: World,
+	event: World.BossEvent,
+	ctx: Context?,
+	x: number,
+	z: number
+): ({ { number } }, { number }?)
+	local players: { { number } } = {}
+	local pose = ctx and ctx.pose
+	if not pose then
+		return players, nil
+	end
+	local ox, oz = origin(ctx)
+	local top = BossFight.top(event.fight)
+	local target: { number }? = nil
+	for userId in world.sessions do
+		local p = pose(userId)
+		if p then
+			local spot = { p.X - ox, p.Z - oz }
+			if (spot[1] - x) ^ 2 + (spot[2] - z) ^ 2 <= BossEvent.ENGAGE_RADIUS ^ 2 then
+				table.insert(players, spot)
+				if userId == top then
+					target = spot
+				end
+			end
+		end
+	end
+	return players, target
+end
+
+local function noAttack(_slot: string): BossChoreo.Attack?
+	return nil
+end
+
+-- The fighting boss's next move once its current one has ended. A move starts where the last one ended in time
+-- (no gap for clients to fill), unless the server fell behind.
+local function advance(world: World, event: World.BossEvent, now: number, ctx: Context?)
+	local id = event.slimeId
+	local wild = if id then world.wild[id] else nil
+	local move = wild and wild.move
+	if not wild or not move or event.fight.phase ~= "fight" then
+		return
+	end
+	for _ = 1, 4 do
+		if not BossChoreo.ended(move, now) then
+			break
+		end
+		local endAt = move.at + move.seconds
+		local players, target = fighters(world, event, ctx, move.tx, move.tz)
+		move = BossChoreo.after(move, {
+			now = if now - endAt < 0.5 then endAt else now,
+			rng = event.rng,
+			players = players,
+			target = target,
+			speed = 1,
+			attack = nil,
+			resolve = noAttack,
+		})
+	end
+	wild.move = move
+end
+
+-- The boss's world position { X, Y = 0, Z } at `now` from its move, or nil when it has none (no fight, or dropped).
+function BossEvent.spot(world: World, now: number): Vec?
+	local id = BossEvent.bossId(world)
+	local wild = if id then world.wild[id] else nil
+	local move = wild and wild.move
+	if not move or (wild and wild.position ~= nil) then
+		return nil
+	end
+	local x, z = BossChoreo.world(move, now)
+	return { X = x, Y = 0, Z = z }
+end
+
 -- Call every frame: the schedule, then the running event.
-function BossEvent.step(world: World, now: number)
+function BossEvent.step(world: World, now: number, ctx: Context?)
 	local event = world.boss
 	if not event then
 		if now >= world.nextBossAt - BOSS.WARNING_SECONDS then
@@ -177,7 +276,7 @@ function BossEvent.step(world: World, now: number)
 	local before = BossFight.meter(fight, playerCount(world))
 	for _, e in BossFight.step(fight, now, dt, playerCount(world)) do
 		if e.kind == "fight" then
-			arrive(world, event, now)
+			arrive(world, event, now, ctx)
 		elseif e.kind == "shed" then
 			Spawner.spawnBonus(world, now, (e :: any).count, BOSS.DROP_LUCK)
 		elseif e.kind == "haul" then
@@ -187,6 +286,7 @@ function BossEvent.step(world: World, now: number)
 		end
 		World.markAllDirty(world)
 	end
+	advance(world, event, now, ctx)
 	-- The drain moves the meter without an action: push when it shows a new percent.
 	if math.floor(BossFight.meter(fight, playerCount(world)) * 100) ~= math.floor(before * 100) then
 		World.markAllDirty(world)

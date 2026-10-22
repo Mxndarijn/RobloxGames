@@ -48,7 +48,7 @@ local function hooks(throwing: { [string]: boolean }): (Env, PlayerLeave.Hooks)
 end
 
 describe("PlayerLeave", function()
-	it("removes the session, runs every cleanup step and the view refresh, then saves", function()
+	it("removes the session, saves, then runs every cleanup step and the view refresh", function()
 		local world = ServerFixtures.world()
 		local session = ServerFixtures.join(world, 1)
 		local env, h = hooks({})

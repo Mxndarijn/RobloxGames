@@ -192,12 +192,18 @@ describe("BossEvent fight", function()
 end)
 
 describe("BossEvent haul", function()
-	it("pops to carry size; the top contributor grabs first, then anyone", function()
+	it("shrinks to carry size; the top contributor grabs first, then anyone", function()
 		local w = world()
 		local id = arrive(w)
-		expect(w.wild[id].wanderUntil).toBeNil() -- it wanders while it fights
+		expect(w.wild[id].move.kind).toBe("arrive") -- it drops onto the boss spot
 		local t = fill(w, 1, 2)
-		expect(w.wild[id].wanderUntil).toBe(t - BOSS.HIT_GAP) -- and stops at the hit that filled the meter
+		local down = w.wild[id].move
+		expect(down.kind).toBe("down") -- and stands where the hit that filled the meter caught it
+		expect(down.at).toBe(t - BOSS.HIT_GAP)
+		local shrinking = Scene.describe(w, t)[id]
+		expect(shrinking.bossScale).toBe(BOSS.SCALE)
+		expect(shrinking.promptEnabled).toBe(false)
+		t = down.at + BOSS.SHRINK_SECONDS
 		local entry = Scene.describe(w, t)[id]
 		expect(entry.bossScale).toBeNil()
 		expect(entry.promptEnabled).toBe(true)
@@ -214,7 +220,7 @@ describe("BossEvent haul", function()
 		local t = fill(w, 1)
 		local s = w.sessions[1]
 		s.data.speedCoil = true
-		expect((Carry.grab(w, 1, id, 1, t))).toBe(true)
+		expect((Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS))).toBe(true)
 		expect(Carry.walkSpeed(s)).toBeCloseTo(Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW), 1e-9)
 		expect(Snapshot.build(w, s, t + 1).carrying.walkSpeed).toBeCloseTo(
 			Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW),
@@ -225,7 +231,7 @@ describe("BossEvent haul", function()
 		local w = world()
 		local id = arrive(w)
 		local t = fill(w, 1, 2)
-		expect((Carry.grab(w, 1, id, 1, t))).toBe(true)
+		expect((Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS))).toBe(true)
 		local deadline = w.wild[id].expiresAt
 		local spot = { X = 5, Y = 0, Z = 5 }
 		local slapper, carrier = w.sessions[2], w.sessions[1]
@@ -245,7 +251,7 @@ describe("BossEvent haul", function()
 		local w = world()
 		local id = arrive(w)
 		local t = fill(w, 1)
-		Carry.grab(w, 1, id, 1, t)
+		Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS)
 		local deadline = w.wild[id].expiresAt
 		expect(Carry.release(w, 1, t + 3, "spot", "drop")).toBe(true)
 		expect(w.wild[id].expiresAt).toBe(deadline)
@@ -261,7 +267,7 @@ describe("BossEvent haul", function()
 		end
 		expect(PlayerData.freePad(s.data)).toBeNil()
 		local income = PlayerData.incomePerSecond(s.data)
-		Carry.grab(w, 1, id, 1, t)
+		Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS)
 		expect((Carry.deposit(w, 1, t + 5))).toBe(true)
 		expect(#s.data.trophies).toBe(1)
 		expect(s.data.trophies[1].species).toBe("goozilla")
@@ -277,7 +283,7 @@ describe("BossEvent haul", function()
 		local w = world()
 		local id = arrive(w)
 		local t = fill(w, 1)
-		Carry.grab(w, 1, id, 1, t)
+		Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS)
 		local before = wildCount(w)
 		BossEvent.step(w, t + BOSS.HAUL_SECONDS)
 		expect(w.sessions[1].carry).toBeNil()
@@ -319,7 +325,7 @@ describe("BossEvent State.boss", function()
 		expect(view.phase).toBe("haul")
 		expect(view.priorityName).toBe("P1")
 		expect(view.priorityUntil).toBeCloseTo(t - BOSS.HIT_GAP + BOSS.PRIORITY_SECONDS, 1e-6) -- from the last hit
-		Carry.grab(w, 1, id, 1, t)
+		Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS)
 		expect(BossEvent.view(w, w.sessions[2], t).carrierName).toBe("P1")
 		Carry.deposit(w, 1, t + 2)
 		local won = BossEvent.view(w, w.sessions[2], t + 2)
