@@ -8,6 +8,7 @@ local Fixtures = require("./Fixtures")
 local PlayerData = require("../src/shared/PlayerData")
 local Scene = require("../src/server/Scene")
 local ServerFixtures = require("./ServerFixtures")
+local SlimeRoster = require("../src/shared/SlimeRoster")
 local Snapshot = require("../src/server/Snapshot")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
@@ -107,15 +108,26 @@ describe("BossEvent schedule", function()
 end)
 
 describe("BossEvent rotation", function()
-	it("goes Goozilla, Queen Jelly, Goozilla, Queen Jelly, Mecha Goo on a Starlight fountain", function()
+	it("brings all six bosses in one lap on a Starlight fountain, then starts over", function()
 		local out = {}
-		for i = 1, 6 do
+		for i = 1, 11 do
 			table.insert(out, BossEvent.speciesFor(i, BOSS.SECRET_FOUNTAIN_TIER))
 		end
-		expect(table.concat(out, ",")).toBe("goozilla,queen_jelly,goozilla,queen_jelly,mecha_goo,goozilla")
+		expect(table.concat(out, ",")).toBe(
+			"goozilla,queen_jelly,klawdius,pumpking,mecha_goo,goozilla,queen_jelly,klawdius,pumpking,goomancer,goozilla"
+		)
+		local seen = {}
+		for _, species in BOSS.ROTATION do
+			seen[species] = true
+		end
+		for _, entry in SlimeRoster.ofKind("boss") do
+			expect(`{entry.id}: {seen[entry.id] == true}`).toBe(`{entry.id}: true`)
+		end
 	end)
-	it("gives the Secret slot to SECRET_FALLBACK below Starlight", function()
+	it("gives every Secret slot to SECRET_FALLBACK below Starlight", function()
 		expect(BossEvent.speciesFor(5, BOSS.SECRET_FOUNTAIN_TIER - 1)).toBe(BOSS.SECRET_FALLBACK)
+		expect(BossEvent.speciesFor(10, BOSS.SECRET_FOUNTAIN_TIER - 1)).toBe(BOSS.SECRET_FALLBACK)
+		expect(BossEvent.speciesFor(4, BOSS.SECRET_FOUNTAIN_TIER - 1)).toBe("pumpking")
 	end)
 	it("each event takes the next slot", function()
 		local w = world()

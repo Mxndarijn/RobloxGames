@@ -10,7 +10,8 @@
 	    client sends none), gets its walk speed at once and drops a carried slime on death;
 	  * leave: PlayerLeave.run (Sessions.leave, per-player caches forgotten, save + release; a step that throws
 	    is logged and never skips the save);
-	  * shutdown (BindToClose): every session leaves and saves, waiting up to SHUTDOWN_TIMEOUT seconds;
+	  * shutdown (BindToClose): every session leaves and saves, and a load still in flight releases its lock
+	    when it finishes; waits up to SHUTDOWN_TIMEOUT seconds for all of them;
 	  * autosave every Config.AUTOSAVE_INTERVAL.
 ]]
 
@@ -202,6 +203,7 @@ function PlayerLifecycle.start(deps: Deps)
 
 	game:BindToClose(function()
 		local world, persistence = deps.world, deps.persistence
+		Persistence.close(persistence)
 		for userId in world.sessions do
 			local session = Sessions.leave(world, userId, deps.now(), deps.safeCall)
 			if session then
