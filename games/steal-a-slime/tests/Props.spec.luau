@@ -96,6 +96,23 @@ describe("Props placed by WorldProps", function()
 		local sign = Props.shopStand().Sign
 		expect(sign.SignGui.LightInfluence).toBe(0)
 	end)
+	it("names each shop on a jelly sign (mint item shop, gold upgrade shop) with its drips on the sign face", function()
+		local titles = {}
+		for style, look in Props.STAND_STYLES do
+			local gui = Props.shopStand(style).Sign.SignGui
+			local jelly = gui.Jelly
+			titles[style] = jelly.Text.Text
+			expect(jelly.Badge.Icon.Text).toBe(look.icon)
+			expect(jelly:FindFirstChildOfClass("UIStroke") ~= nil).toBe(true)
+			for _, d in gui:GetChildren() do
+				if d:IsA("Frame") and string.sub(d.Name, 1, 4) == "Drop" then
+					expect(d.Position.Y.Scale + d.Size.Y.Scale <= 1).toBe(true) -- inside the face
+				end
+			end
+		end
+		expect(titles.ItemShop).toBe("Item shop")
+		expect(titles.UpgradeShop).toBe("Upgrade shop")
+	end)
 	it("gives each shop stand its own skin and sign colours, its box exactly the skin's box round the pivot", function()
 		local item, upgrade = Props.shopStand("ItemShop"), Props.shopStand("UpgradeShop")
 		expect(item.Sign.Color ~= upgrade.Sign.Color).toBe(true)
