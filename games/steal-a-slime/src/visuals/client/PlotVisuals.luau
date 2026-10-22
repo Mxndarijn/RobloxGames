@@ -3,8 +3,8 @@
 	PlotVisuals (VisualsClient module)
 
 	  * PlotDecor.apply on every workspace.Plots.Plot_<i> at UPDATE_RATE Hz
-	    against workspace:GetServerTimeNow() (lock barrier + countdown sign,
-	    SlimeDex board), and the jar tower's mascot and goo ooze (PlotMascot).
+	    against workspace:GetServerTimeNow() (lock barrier + countdown sign),
+	    and the jar tower's mascot and goo ooze (PlotMascot).
 	  * RareSpawn effects on wild slimes (State == "Wild") by the RareSpawn
 	    attribute (CONTRACT §8.4, Legendary+) or else Tier, kept in a
 	    local workspace folder "ClientRareFx" and posed on the slime's pivot
