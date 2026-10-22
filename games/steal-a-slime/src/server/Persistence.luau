@@ -120,6 +120,12 @@ function Persistence.readOnly(p: Persistence, userId: number): boolean
 	return DataService.readOnly(p.data, userId) ~= nil
 end
 
+-- True when this server writes `userId`'s progress: not read-only, not taken over by another server and not a
+-- Studio fallback profile. A theft needs both players' saves (World.canSave).
+function Persistence.canSave(p: Persistence, userId: number): boolean
+	return not p.unsaved[userId] and DataService.canSave(p.data, userId)
+end
+
 -- Saves (yields); `release` drops the session lock. Also ranks the player on the global board.
 function Persistence.save(p: Persistence, userId: number, playerData: PlayerData.Data, release: boolean)
 	if p.unsaved[userId] then

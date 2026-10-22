@@ -101,6 +101,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - Stealing pings the owner (Notify `"bad"` plus `SlimeView.stolenBy`).
   - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is slapped (Bat or a PvP knockback), drops it, dies / respawns or leaves. While it is carried the thief sees it see-through (client-only `ui/CarryFade`, the Move fade). An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
   - If the thief reaches their own `HomeZone` first, `Steal.complete` moves the slime to the thief.
+  - **Both saves must be writable:** each player is saved on their own, so a theft needs this server to save both the thief and the owner (`World.canSave`, from `Persistence.canSave`: not read-only, session not taken over by another server, not a Studio fallback profile). Otherwise `Steal.canSteal` refuses ("your progress can't be saved on this server" / "their slimes can't be saved on this server"). If either save stops being writable during the carry, delivery sends the slime home instead (escape reason `"unsaved"`, the thief gets a `"bad"` Notify).
 - **Rebirth:** `Progression.rebirth` uses up the slimes the rebirth needs (§8.8a) and resets cash to `STARTING_CASH`. Every other slime stays on its pad. It adds +`REBIRTH_MULTIPLIER_STEP` income and a longer lock.
 - **DataStore:**
   - Store `Constants.DATASTORE_NAME`, key `"u_<UserId>"`.

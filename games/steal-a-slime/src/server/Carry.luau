@@ -162,7 +162,8 @@ end
 --[[
 	The carrier reached their own HomeZone. Wild slimes go on a free pad;
 	stolen ones move to the thief with Steal.complete. A full plot keeps the
-	slime in your arms.
+	slime in your arms. A stolen slime goes home instead when either player's
+	save is no longer writable (World.canSave).
 ]]
 -- Server toast when a Mythic or Secret wild slime is brought home ("Merijn caught Cosmo!"), else nil.
 function Carry.catchText(playerName: string, slime: Genome.Slime): string?
@@ -240,6 +241,11 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		world.carriedBy[carry.slimeId] = nil
 		World.markDirty(session)
 		return false, "slime is gone"
+	end
+	-- A save that stopped being writable since the grab (lost lock, ...) would dupe or lose the slime: send it home.
+	if not World.canSave(world, userId) or not World.canSave(world, owner.userId) then
+		StealService.escape(world, session, now or 0, "unsaved")
+		return false, "can't be saved"
 	end
 	local ok, result = Steal.complete(owner.data, session.data, carry.slimeId)
 	if not ok then

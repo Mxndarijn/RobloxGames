@@ -123,6 +123,7 @@ describe("DataService.save", function()
 		expect(ok).toBe(false)
 		expect(reason).toBe("session lost")
 		expect(svc.lost[9]).toBe(true)
+		expect(DataService.canSave(svc, 9)).toBe(false)
 		expect(select(2, DataService.save(svc, 9, Fixtures.data(nil, 1), true))).toBe("session lost")
 	end)
 end)
@@ -156,6 +157,7 @@ describe("DataService read-only sessions", function()
 		expect((data :: PlayerData.Data).cash).toBe(777) -- best-effort read
 		expect(DataService.readOnly(svc, 3)).toBe("newer")
 		expect(#logs).toBe(1)
+		expect(DataService.canSave(svc, 3)).toBe(false)
 		local played = data :: PlayerData.Data
 		played.cash = 1
 		local saved, reason = DataService.save(svc, 3, played, false)
@@ -190,6 +192,7 @@ describe("DataService read-only sessions", function()
 		local svc, logs = logged(backend)
 		DataService.load(svc, 6)
 		expect(DataService.readOnly(svc, 6)).toBeNil()
+		expect(DataService.canSave(svc, 6)).toBe(true)
 		local data = Fixtures.data(nil, 1)
 		data.cash = 12345
 		expect(select(2, DataService.save(svc, 6, data, false))).toBeNil()

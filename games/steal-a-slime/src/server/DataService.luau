@@ -115,6 +115,11 @@ function DataService.readOnly(service: DataService, userId: number): SaveData.Ve
 	return service.readOnly[userId]
 end
 
+-- True when this server still writes `userId`'s progress: the session is neither read-only nor taken over.
+function DataService.canSave(service: DataService, userId: number): boolean
+	return not service.lost[userId] and service.readOnly[userId] == nil
+end
+
 -- Returns (ok, reason?). Yields between retries. A read-only session returns (true, "read-only") once the lock is
 -- refreshed / released; its stored data is written back as it was.
 function DataService.save(
