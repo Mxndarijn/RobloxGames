@@ -11,11 +11,9 @@
 	  OwnerUserId  0 = free      -> LockSign shows no text
 	  LockUntil    server time   -> LockBarrier stopper / ParkedStopper + LockSign "LOCKED m:ss" / "UNLOCKED"
 	  Locked       boolean (§8.4) -> used only when LockUntil is missing
-	  Rebirths                   -> RebirthDecor by PlotDecor.band (bands start at
-	                                the §8.8 ranks Goo Getter / Slime Wrangler /
-	                                Goo Tycoon / Slime Sovereign / Mythic Monarch)
+	Rebirths never change the base: nothing here reads the Rebirths attribute.
 
-	PlotDecor.locked(lockUntil, now) / band(rebirths) / clock(seconds) are pure
+	PlotDecor.locked(lockUntil, now) / clock(seconds) are pure
 	(Lune-safe, used by the render proof).
 	PlotDecor.apply builds its SurfaceGuis on first use and only writes
 	properties that changed, so calling it every frame is cheap.
@@ -33,33 +31,12 @@ PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
 PlotDecor.UNLOCKED_COLOR = { 90, 220, 110 }
 PlotDecor.FREE_COLOR = { 255, 205, 60 }
 
--- Rebirth bands: { min rebirths, trim colour, name }. Band k shows:
--- 1 trim, 2 + pillars, 3 + banners and glowing caps, 4 + crown, neon trim, glow,
--- 5 the same in mythic magenta with a stronger glow.
-PlotDecor.BANDS = table.freeze({
-	{ min = 1, color = { 205, 127, 50 }, name = "Bronze" },
-	{ min = 3, color = { 205, 215, 230 }, name = "Silver" },
-	{ min = 6, color = { 255, 200, 60 }, name = "Gold" },
-	{ min = 10, color = { 120, 230, 255 }, name = "Diamond" },
-	{ min = 20, color = { 255, 90, 220 }, name = "Mythic" },
-})
-
 function PlotDecor.locked(lockUntil: number?, now: number): (boolean, number)
 	local remaining = (lockUntil or 0) - now
 	if remaining > 0 then
 		return true, remaining
 	end
 	return false, 0
-end
-
-function PlotDecor.band(rebirths: number?): number
-	local band = 0
-	for k, b in PlotDecor.BANDS do
-		if (rebirths or 0) >= b.min then
-			band = k
-		end
-	end
-	return band
 end
 
 function PlotDecor.clock(seconds: number): string
@@ -161,51 +138,6 @@ local function applyLock(plot: Instance, owned: boolean, locked: boolean, remain
 	set(lines[1], "Text", if not owned then "" elseif locked then "LOCKED" else "UNLOCKED")
 	set(lines[1], "TextColor3", rgb(color))
 	set(lines[2], "Text", if not owned then "" elseif locked then PlotDecor.clock(remaining) else "stealable!")
-end
-
-local function applyRebirth(plot: Instance, band: number)
-	local decor = plot:FindFirstChild("RebirthDecor")
-	if not decor then
-		return
-	end
-	local color = if band > 0 then rgb(PlotDecor.BANDS[band].color) else nil
-	for _, part in decor:GetChildren() do
-		if not part:IsA("BasePart") then
-			continue
-		end
-		local name = part.Name
-		local visible = if string.find(name, "^Trim_")
-			then band >= 1
-			elseif string.find(name, "^Pillar_") then band >= 2
-			elseif string.find(name, "^PillarCap_") or string.find(name, "^Banner_") then band >= 3
-			elseif name == "Crown" then band >= 4
-			else false
-		show(part, visible)
-		if color then
-			set(part, "Color", color)
-		end
-		if string.find(name, "^Trim_") then
-			set(part, "Material", if band >= 4 then Enum.Material.Neon else Enum.Material.Metal)
-		end
-	end
-	local crown = decor:FindFirstChild("Crown")
-	if crown then
-		local glow = crown:FindFirstChild("RebirthGlow") :: PointLight?
-		if band >= 4 and not glow then
-			local l = Instance.new("PointLight")
-			l.Name = "RebirthGlow"
-			l.Range = 24
-			l.Parent = crown
-			glow = l
-		end
-		if glow then
-			set(glow, "Enabled", band >= 4)
-			set(glow, "Brightness", if band >= 5 then 4 else 2)
-			if color then
-				set(glow, "Color", color)
-			end
-		end
-	end
 end
 
 -- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15) ---------------------------------
@@ -348,9 +280,7 @@ function PlotDecor.apply(plot: Instance, now: number)
 	if type(lockUntil) ~= "number" and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) == true then
 		locked = true
 	end
-	local rebirths = plot:GetAttribute("Rebirths")
 	applyLock(plot, owned, locked, remaining)
-	applyRebirth(plot, if owned and type(rebirths) == "number" then PlotDecor.band(rebirths) else 0)
 end
 
 return table.freeze(PlotDecor)

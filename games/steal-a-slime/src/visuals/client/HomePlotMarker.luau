@@ -6,7 +6,7 @@
 	UserId) so it is easy to find from anywhere, for this player only:
 	  * Beacon: a tall green light pillar from the plot centre with sparkles
 	    rising along it; seen from the hub and across the map.
-	  * Rim: glowing green strips along the plot floor's edge, pulsing.
+	  * Rim: a glowing green ring along the round plot floor's edge, pulsing.
 	  * Tag: an always-on-top "YOUR PLOT" billboard with the avatar headshot.
 	  * Arrow: a 🏠 badge on the screen edge pointing home while the plot is
 	    off screen.
@@ -24,7 +24,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
 local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
-local Look = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("HomePlotMarker"))
+local Visuals = ReplicatedStorage:WaitForChild("Visuals")
+local Look = require(Visuals:WaitForChild("HomePlotMarker"))
+local WorldLayout = require(Visuals:WaitForChild("WorldLayout"))
 
 local HomePlotMarker = {}
 
@@ -43,7 +45,7 @@ type Built = {
 	folder: Folder,
 	centre: Vector3, -- plot floor centre
 	floor: CFrame, -- plot floor centre and facing
-	half: Vector2, -- half the floor size (X, Z), studs
+	radius: number, -- the round plot floor's radius, studs
 	core: BasePart,
 	halo: BasePart,
 	sparkles: ParticleEmitter,
@@ -168,21 +170,13 @@ local function buildTag(adornee: BasePart): BillboardGui
 	return tag
 end
 
--- Four floor strips along the plot edge, on top of `base`.
+-- The ring of floor strips along the round plot floor's edge, on top of `base`.
 local function buildRim(parent: Instance, base: BasePart): { BasePart }
-	local size = base.Size
-	local w = Look.RIM_WIDTH
-	local top = size.Y / 2 + 0.06
-	local hx, hz = size.X / 2 - w / 2, size.Z / 2 - w / 2
-	local strips = {
-		{ "RimFront", Vector3.new(size.X, 0.1, w), Vector3.new(0, top, -hz) },
-		{ "RimBack", Vector3.new(size.X, 0.1, w), Vector3.new(0, top, hz) },
-		{ "RimLeft", Vector3.new(w, 0.1, size.Z - 2 * w), Vector3.new(-hx, top, 0) },
-		{ "RimRight", Vector3.new(w, 0.1, size.Z - 2 * w), Vector3.new(hx, top, 0) },
-	}
+	local top = base.Size.Y / 2 + 0.06
 	local parts = {}
-	for _, s in strips do
-		local part = neon(s[1], s[2], base.CFrame * CFrame.new(s[3]))
+	for k, seg in Look.rim(WorldLayout.PLOT_FLOOR_RADIUS) do
+		local at = base.CFrame * CFrame.Angles(0, seg.angle, 0) * CFrame.new(0, top, -seg.mid)
+		local part = neon(`Rim_{k}`, Vector3.new(seg.length, 0.1, Look.RIM_WIDTH), at)
 		part.Parent = parent
 		table.insert(parts, part)
 	end
@@ -242,7 +236,7 @@ local function build(plot: Model): Built?
 		folder = folder,
 		centre = floor,
 		floor = base.CFrame,
-		half = Vector2.new(base.Size.X / 2, base.Size.Z / 2),
+		radius = WorldLayout.PLOT_FLOOR_RADIUS,
 		core = core,
 		halo = halo,
 		sparkles = sparkles,
@@ -383,7 +377,7 @@ function HomePlotMarker.step(now: number, camera: Camera)
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local here = if root and root:IsA("BasePart") then root.Position else camera.CFrame.Position
 	local rel = b.floor:PointToObjectSpace(here)
-	local fade = Look.fade(Look.pastEdge(rel.X, rel.Z, b.half.X, b.half.Y))
+	local fade = Look.fade(Look.pastEdge(rel.X, rel.Z, b.radius))
 	local pulse = Look.pulse(now)
 
 	b.core.Transparency = 1 - (1 - CORE_ALPHA) * fade

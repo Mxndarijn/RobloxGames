@@ -23,7 +23,7 @@
 	           glass wall + Lid, Moat, JarFloor, Bridge) with Pad_1..PADS_PER_FLOOR
 	           on its pad ring, HomeZone, MergeVat, LockButton, Sign (the
 	           plot's name board), Slimes folder, and the PlotDecor cosmetics
-	           (LockBarrier stopper, ParkedStopper, LockSign, RebirthDecor).
+	           (LockBarrier stopper, ParkedStopper, LockSign).
 	           Upper jars come from WorldLayout.floor (server/BaseFloors)
 	Every Part is anchored (WorldBuilder forces it). PROP_SPOTS suggests
 	where Props go.
@@ -224,11 +224,10 @@ WorldLayout.PLOT_FLOOR_RADIUS = 40
 WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
 WorldLayout.NAME_BOARD = table.freeze({ width = 12, height = 3.6, y = 11 }) -- above the LockSign, on its post
 WorldLayout.LOCK_SIGN = table.freeze({ width = 8, height = 3.2, y = 7 }) -- the lock status board by the bridge
-WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
 -- Jar 1's door is a round plank door on two hinges on its left (-X). Locked, it sits shut in the doorway (StopperShut);
 -- open, it swings DOOR_SWING.angle degrees out of the jar round its hinge pin (StopperParked): past square, so it
 -- leans back over the moat on the hinge side and its far edge stays about a stud inside the plot's edge (a 90
--- degree swing would reach past it; much more than 130 runs it into the glass and the rebirth banner). hinge = the pin's
+-- degree swing would reach past it; much more than 130 runs it into the glass). hinge = the pin's
 -- plot x and its z offset from the shut door's inner face (the door is 1 stud thick, the pin in its middle).
 WorldLayout.DOOR_SWING = table.freeze({ hinge = { -4.75, -0.5 }, angle = 130 })
 WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
@@ -1126,8 +1125,7 @@ local function radial(
 end
 
 -- Attribute-driven plot cosmetics (PlotDecor; VisualsClient shows / hides them locally): the stopper lock and the
--- lock sign, rebirth trim / pillars / banners / crown. Shipped in their neutral state: free plot, unlocked, no
--- rebirths.
+-- lock sign. Shipped in their neutral state: free plot, unlocked. Rebirths never change the base.
 local function cosmetics(at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local r = { 0, yaw, 0 }
 	local nodes: { WorldNode } = {}
@@ -1159,34 +1157,6 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number): { WorldNode }
 		),
 	}
 	table.insert(nodes, lockSign)
-
-	-- Rebirth cosmetics (PlotDecor.band): the trim ring round the moat, corner pillars, banners on the glass either
-	-- side of the door, the crown over the door.
-	local rebirth: WorldNode = { name = "RebirthDecor", class = "Model", children = {} }
-	local function add(node: WorldNode)
-		table.insert(rebirth.children :: { WorldNode }, ghost(node, 1))
-	end
-	local metal = { 168, 148, 110 } -- ranch_metal (pewter); blue-grey is off the ranch palette
-	add(disc("Trim_Moat", 0.3, (WorldLayout.MOAT.outer + 0.8) * 2, at({ 0, 0.92, 0 }), metal, "Metal", yaw))
-	for k, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
-		-- on the round floor's edge, on the diagonals
-		local d = (WorldLayout.PLOT_FLOOR_RADIUS - 1.3) / math.sqrt(2)
-		local x, z = corner[1] * d, corner[2] * d
-		add(block(`Pillar_{k}`, { 2.2, 10, 2.2 }, at({ x, 6, z }), metal, "Marble", r))
-		local cap = { name = `PillarCap_{k}`, class = "Part", shape = "Ball", size = { 2.6, 2.6, 2.6 } } :: WorldNode
-		cap.pos, cap.rot, cap.color, cap.material = at({ x, 12.3, z }), r, metal, "Neon"
-		add(cap)
-	end
-	local glassOut = WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL + 0.1
-	for k, deg in WorldLayout.BANNER_ANGLES do
-		local banner = radial(if k == 1 then "Banner_R" else "Banner_L", { 3, 7, 0.15 }, glassOut, deg, 8.5, at, yaw)
-		banner.color, banner.material = metal, "Fabric"
-		add(banner)
-	end
-	local crown = { name = "Crown", class = "Part", shape = "Ball", size = { 3, 3, 3 } } :: WorldNode
-	crown.pos, crown.rot, crown.color, crown.material = at({ 0, 14, -(glassOut + 1.5) }), r, metal, "Neon"
-	add(crown)
-	table.insert(nodes, rebirth)
 
 	return nodes
 end
@@ -1714,7 +1684,7 @@ local function plot(i: number): WorldNode
 		name = `Plot_{i}`,
 		class = "Model",
 		primaryPart = "Base",
-		attributes = { PlotIndex = i, OwnerUserId = 0, LockUntil = 0, Rebirths = 0 },
+		attributes = { PlotIndex = i, OwnerUserId = 0, LockUntil = 0 },
 		children = children,
 	}
 end
