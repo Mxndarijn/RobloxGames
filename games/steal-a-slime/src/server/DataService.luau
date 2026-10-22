@@ -53,7 +53,7 @@ export type DataService = {
 	loadAttempts: number,
 	saveAttempts: number,
 	log: (message: string) -> (),
-	saving: { [number]: number }, -- userId -> saves in flight (a load waits for them)
+	saving: { [number]: number? }, -- userId -> saves in flight (a load waits for them)
 	lost: { [number]: boolean }, -- userIds whose session another server took over
 	readOnly: { [number]: SaveData.Verdict }, -- userIds whose stored record must not be overwritten ("newer" / "unreadable")
 }
