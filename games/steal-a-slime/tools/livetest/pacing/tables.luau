@@ -234,19 +234,14 @@ end
 -- 4. Locks --------------------------------------------------------------------------------------------------------
 do
 	local rows, raw = {}, {}
-	for _, income in { 10, 100, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8 } do
-		local cost = Economy.lockCost(income)
-		local row = { money(income) .. "/s", money(cost) }
-		for _, r in { 0, 5, 10, 20 } do
-			table.insert(row, `{Steal.lockDuration(r)}s`)
-		end
-		table.insert(rows, row)
-		table.insert(raw, { income = income, cost = cost })
+	for _, r in { 0, 5, 10, 20 } do
+		table.insert(rows, { tostring(r), `{Steal.lockDuration(r)}s` })
+		table.insert(raw, { rebirths = r, seconds = Steal.lockDuration(r) })
 	end
 	render(
-		`Lock (cost = max({Config.LOCK_BASE_COST}, income x {Config.LOCK_INCOME_SECONDS} s); join lock {Config.JOIN_LOCK_SECONDS}s; max stack {Config.LOCK_MAX_REMAINING}s)`,
+		`Lock (free; join lock {Config.JOIN_LOCK_SECONDS}s; max stack {Config.LOCK_MAX_REMAINING}s)`,
 		"locks",
-		{ "Plot income", "Lock price", "Length r=0", "r=5", "r=10", "r=20" },
+		{ "Rebirths", "Length" },
 		rows,
 		raw
 	)

@@ -2,7 +2,6 @@
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local DataService = require("../src/server/DataService")
-local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
 local GameLoop = require("../src/server/GameLoop")
 local PlayerData = require("../src/shared/PlayerData")
@@ -30,21 +29,17 @@ describe("StealService lock", function()
 		expect(StealService.isLocked(victim, T0 + Config.JOIN_LOCK_SECONDS)).toBe(false)
 		expect(select(2, Carry.grab(world, 2, "gem", 1, T0 + 1))).toBe("base is locked")
 	end)
-	it("buyLock charges lockCost and extends by the rebirth-scaled duration", function()
-		local world, victim = setup()
-		victim.data.cash = 1000
-		victim.data.rebirths = 2
-		local now = T0 + Config.JOIN_LOCK_SECONDS + 10 -- join lock expired
-		local cost = Economy.lockCost(World.incomeOf(world, victim))
-		expect((StealService.buyLock(world, victim, now))).toBe(true)
-		expect(victim.lockUntil).toBe(now + Config.LOCK_SECONDS + 2 * Config.LOCK_SECONDS_PER_REBIRTH)
-		expect(victim.data.cash).toBe(1000 - cost)
-	end)
-	it("buyLock refuses when broke or already at max", function()
+	it("buyLock is free and extends by the rebirth-scaled duration", function()
 		local world, victim = setup()
 		victim.data.cash = 0
-		expect(select(2, StealService.buyLock(world, victim, T0 + 100))).toBe("not enough cash")
-		victim.data.cash = 1e6
+		victim.data.rebirths = 2
+		local now = T0 + Config.JOIN_LOCK_SECONDS + 10 -- join lock expired
+		expect((StealService.buyLock(world, victim, now))).toBe(true)
+		expect(victim.lockUntil).toBe(now + Config.LOCK_SECONDS + 2 * Config.LOCK_SECONDS_PER_REBIRTH)
+		expect(victim.data.cash).toBe(0)
+	end)
+	it("buyLock refuses when already at max", function()
+		local world, victim = setup()
 		victim.lockUntil = T0 + 100 + Config.LOCK_MAX_REMAINING
 		expect(select(2, StealService.buyLock(world, victim, T0 + 100))).toBe("lock is already at max")
 	end)

@@ -30,7 +30,6 @@ local STATE_KEYS = {
 	"padsMax",
 	"slimes",
 	"lockUntil",
-	"lockCost",
 	"lockDuration",
 	"rain",
 	"dex",

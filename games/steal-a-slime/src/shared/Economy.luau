@@ -122,11 +122,6 @@ function Economy.rebirthCost(rebirths: number): number
 	)
 end
 
-function Economy.lockCost(incomePerSec: number): number
-	local income = if incomePerSec == incomePerSec and incomePerSec > 0 then incomePerSec else 0
-	return math.max(Config.LOCK_BASE_COST, math.floor(income * Config.LOCK_INCOME_SECONDS))
-end
-
 function Economy.formatNumber(n: number): string
 	return NumberFormat.short(n)
 end

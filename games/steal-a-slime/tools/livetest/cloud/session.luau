@@ -490,7 +490,6 @@ scenario("ui", function()
 		"ui: Lock / Buy-pad HUD buttons match the plot prompts",
 		string.find(lockButton.text, "Lock", 1, true) ~= nil
 			and string.find(lockPrompt.ActionText, "Lock base", 1, true) == 1
-			and plot:GetAttribute("LockCost") == st.lockCost
 			and (st.nextPadCost == nil) == (padButton.visible == false),
 		`"{(lockButton.text:gsub("\n", " "))}" / "{lockPrompt.ActionText}"; "{(padButton.text:gsub("\n", " "))}" / "{buyPad and buyPad.ActionText}"`
 	)

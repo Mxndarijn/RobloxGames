@@ -271,7 +271,6 @@ LayoutAssert.BIG_STATE = table.freeze({
 	padsUnlocked = Config.PADS_MAX - 1,
 	padsMax = Config.PADS_MAX,
 	nextPadCost = 987.6e12,
-	lockCost = 987.6e12,
 	lockDuration = Config.LOCK_MAX_REMAINING,
 	lockUntil = 100 + Config.LOCK_MAX_REMAINING / 2,
 	slimes = {},
@@ -575,7 +574,6 @@ function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
 	local pvpOwned = {}
 	local state = {
 		cash = 0,
-		lockCost = 987.6e12,
 		lockDuration = 310,
 		shop = { LockUpgrade = { price = 987.6e12, level = 4, maxLevel = 5 }, SpeedCoil = { price = 987.6e12 } },
 		upgrades = upgrades,

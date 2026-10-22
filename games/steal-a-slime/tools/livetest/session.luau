@@ -313,14 +313,13 @@ scenario("lockbuy", function()
 	rt:advance(0.3)
 	local openText, openAction = lockPrompt.ObjectText, lockPrompt.ActionText
 	check(
-		"lockbuy: open plot reads OPEN / Lock base $",
+		"lockbuy: open plot reads OPEN / Lock base",
 		plot:GetAttribute("Locked") == false
 			and string.find(openText, "OPEN", 1, true) ~= nil
-			and string.find(openAction, "Lock base $", 1, true) == 1,
+			and openAction == "Lock base",
 		`Locked={plot:GetAttribute("Locked")} "{openAction}" / "{openText}"`
 	)
 	session.data.tutorialStep = 3 -- at the Lock step
-	TestHooks.grantCash(world, USER_ID, plot:GetAttribute("LockCost"))
 	moveTo(plotPart("LockButton").CFrame.Position + Vector3.new(0, 3, 3))
 	lockPrompt.Triggered:Fire(player)
 	rt:advance(0.5)
@@ -716,7 +715,6 @@ scenario("ui", function()
 		"ui: Lock / Buy-pad HUD buttons match LockPrompt / BuyPadPrompt",
 		string.find(lockButton.text, "Lock", 1, true) ~= nil
 			and string.find(lockPrompt.ActionText, "Lock base", 1, true) == 1
-			and plot:GetAttribute("LockCost") == state.lockCost
 			and (padCost == nil) == (padButton.visible == false)
 			and (padCost == nil or plot:GetAttribute("NextPadCost") == padCost)
 			and (padCost == nil or buyPad.Enabled),

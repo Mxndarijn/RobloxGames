@@ -214,7 +214,6 @@ export type State = {
 	favoriteId: string?,
 	lockUntil: number,
 	lockStartedAt: number, -- v16: server time the current lock began (CONTRACT.md §9.3)
-	lockCost: number,
 	lockDuration: number,
 	carrying: CarryView?,
 	rain: RainView,

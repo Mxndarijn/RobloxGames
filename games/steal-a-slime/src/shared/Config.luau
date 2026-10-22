@@ -734,8 +734,6 @@ local Config = {
 	LOCK_SECONDS = 120,
 	LOCK_SECONDS_PER_REBIRTH = 10, -- a bought lock lasts this much longer per rebirth, up to LOCK_MAX_REMAINING
 	LOCK_MAX_REMAINING = 240, -- the longest lock: one purchase or several stacked never go past 4 min
-	LOCK_BASE_COST = 25,
-	LOCK_INCOME_SECONDS = 15, -- lock costs this many seconds of plot income (or base cost)
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
 	HOLD_CONFIRM_SECONDS = 0.8,
