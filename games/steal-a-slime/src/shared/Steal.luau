@@ -9,12 +9,14 @@
 	  stacking on top of any remaining lock. Neither one purchase nor the stack
 	  goes past LOCK_MAX_REMAINING.
 	* Steal: a slime on an unlocked plot can be grabbed by anyone else within
-	  STEAL_REACH who isn't already carrying something.
+	  STEAL_REACH who isn't already carrying something. Both players' saves
+	  must be writable: each save is written on its own, so a theft involving
+	  a player whose progress isn't saved would duplicate or lose the slime.
 	* Carry: carrying slows you by the rarity's carrySlow. There is no time
 	  limit: a stolen slime stays in your arms until you reach home, drop it,
 	  get slapped, die or leave.
-	* Slap: hitting a carrier of a stolen slime within SLAP_REACH makes them
-	  drop it, and it bounces home.
+	* Slap: hitting anyone carrying a slime within SLAP_REACH makes them
+	  drop it; a stolen one bounces home.
 	No Roblox APIs.
 ]]
 
@@ -40,6 +42,8 @@ export type StealContext = {
 	thiefCarrying: boolean,
 	slimeBusy: boolean, -- already being carried by someone
 	distance: number,
+	thiefCanSave: boolean, -- this server saves the thief's progress
+	ownerCanSave: boolean, -- this server saves the owner's progress
 }
 
 export type SlapContext = {
@@ -105,6 +109,12 @@ function Steal.canSteal(ctx: StealContext): (boolean, string?)
 	if ctx.thiefId == ctx.ownerId then
 		return false, "that's your own slime"
 	end
+	if not ctx.thiefCanSave then
+		return false, "your progress can't be saved on this server"
+	end
+	if not ctx.ownerCanSave then
+		return false, "their slimes can't be saved on this server"
+	end
 	if Steal.isLocked(ctx.lockUntil, ctx.now) then
 		return false, "base is locked"
 	end
@@ -150,8 +160,8 @@ function Steal.canSlap(ctx: SlapContext): (boolean, string?)
 	if ctx.distance ~= ctx.distance or ctx.distance > Config.SLAP_REACH then
 		return false, "too far away"
 	end
-	if not ctx.targetCarry or ctx.targetCarry.kind ~= "stolen" then
-		return false, "target isn't carrying a stolen slime"
+	if not ctx.targetCarry then
+		return false, "target isn't carrying a slime"
 	end
 	return true, nil
 end

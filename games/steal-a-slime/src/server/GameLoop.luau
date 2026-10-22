@@ -24,7 +24,9 @@ function GameLoop.step(world: World.World, now: number, ctx: BossEvent.Context?)
 	BossEvent.step(world, now, ctx)
 	StealService.step(world, now)
 	local elapsed = now - world.lastSecondAt
-	if elapsed >= 1 then
+	if elapsed < 0 then
+		world.lastSecondAt = now -- the clock stepped back: restart the one-second tick from here
+	elseif elapsed >= 1 then
 		world.lastSecondAt = now
 		Income.step(world, elapsed, now)
 		StealService.tickTutorial(world, now)

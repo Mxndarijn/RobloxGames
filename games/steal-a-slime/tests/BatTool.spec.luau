@@ -1,6 +1,6 @@
 --!strict
 -- The default Bat (server/BatTool + shared/BatRules, CONTRACT.md §26 "Bat"): LIVE for everyone, not behind FEATURES.PvP.
--- A swing picks its own target from the swinger's pose, then runs the base slap (StealService.slap) plus a knockback.
+-- A swing picks its own target from the swinger's pose, then runs the base slap (CarryDrop.slap) plus a knockback.
 -- Every swing passes the PvP flag explicitly so the specs hold in the forced-flag CI runs too.
 local BatRules = require("../src/shared/BatRules")
 local BatTool = require("../src/server/BatTool")
@@ -10,6 +10,7 @@ local Fixtures = require("./Fixtures")
 local PvpKnockbackRules = require("../src/shared/PvpKnockbackRules")
 local PvpService = require("../src/server/PvpService")
 local ServerFixtures = require("./ServerFixtures")
+local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -158,6 +159,20 @@ describe("BatTool.swing", function()
 		Carry.grab(world, 2, "gem", 1, T0 + 100)
 		expect((BatTool.swing(world, owner, T0 + 100 + Config.BAT.SWING_GAP + 0.01, bat, false))).toBe(true)
 		expect(thief.carry).toBeNil()
+		done()
+	end)
+	it("a hit on someone carrying a wild slime makes them drop it at their feet", function()
+		local world, owner, thief = setup()
+		local id = Spawner.spawnOne(world, T0)
+		world.wild[id].price = 0
+		expect((Carry.grab(world, 2, id, 1, T0 + 100))).toBe(true)
+		expect((BatTool.swing(world, owner, T0 + 101, bat, false))).toBe(true)
+		expect(thief.carry).toBeNil()
+		expect(world.carriedBy[id]).toBeNil()
+		expect(world.wild[id].position).toBe(poses[2])
+		expect(owner.lastSlapAt).toBe(T0 + 101)
+		expect(#moves).toBe(1)
+		expect(moves[1].userId).toBe(2)
 		done()
 	end)
 	it("still drops the slime when nothing can be pushed (no mover)", function()

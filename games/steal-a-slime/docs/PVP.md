@@ -9,7 +9,7 @@ Flag: `Config.FEATURES.PvP`. Contract: `CONTRACT.md` §26 (`contract/pvp.md`). C
 3. Nothing deals damage or can kill. Knockback is mostly horizontal with a capped arc, and the landing point is clamped inside the map. A PvP fall causes no damage; the void guard puts anyone who still falls back.
 4. Max 2 s crowd control (slows max 3 s), then 3 s control immunity.
 5. **No safe zones.** Every PvP item works on anyone, anywhere. On a player who carries nothing the effect stays light (a push, a short slow, a laugh); nobody loses anything to it.
-6. **A caught thief loses the slime.** Whenever a PvP item hits a player carrying a stolen slime (every item except the purely cosmetic Confetti Popper), the slime bounces home to its owner's plot (`PvpService.catchThief`, the same drop + bounce + notifications as the Bat).
+6. **A hit carrier drops the slime.** Whenever the Bat or a PvP item hits a player carrying a slime (every item except the purely cosmetic Confetti Popper), they drop it (`PvpService.hitCarrier` / `CarryDrop.knockLoose`, the same path as the Bat): a stolen slime bounces home to its owner's plot, a wild slime lands at their feet for anyone to grab.
 7. **Fun items are toys first** (CONTRACT.md §26.8): aimed with a click, no target pick, no plot of your own needed. Their control effects still respect the control cap.
 8. Show-off, not power gap: the top tier is about 2x the base effect.
 
@@ -79,7 +79,7 @@ Tunables in `Config.PVP_FUN`, cooldowns in the `PVP_TOOLS` rows. Toys first, pow
 - **Dance Bomb:** a lobbed disco bubble with lights and music; everyone inside dances for 2 s (control).
 - **Goo Fireworks:** a rocket that bursts high in the colour of your favourite slime, visible across the map; nearby wild slimes cheer-hop. Hold to fire a 3-rocket volley.
 
-A thief carrying a stolen slime who gets splashed, lifted, bounced, bonked, hatted or made to dance drops it, and the slime goes home (confetti and fireworks catch nobody).
+Anyone carrying a slime who gets splashed, lifted, bounced, bonked, hatted or made to dance drops it: a stolen slime goes home, a wild one lands at their feet (confetti and fireworks hit nobody).
 
 ## Hit feel (sounds)
 
