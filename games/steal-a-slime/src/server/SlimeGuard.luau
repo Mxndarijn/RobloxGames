@@ -24,6 +24,7 @@ local MovementGuard = if Lib
 local Suspicion = if Lib
 	then require(Lib.anticheat.Suspicion)
 	else require("../../../../shared/luau/src/anticheat/Suspicion")
+local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local PlotLockGuard = if script then require(script.Parent.PlotLockGuard) else require("./PlotLockGuard")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -338,6 +339,9 @@ function SlimeGuard.trackPlot(world: World, session: Session, inside: number?, n
 	local owner = if ownerId then World.session(world, ownerId) else nil
 	if not owner or owner.userId == session.userId or not StealService.isLocked(owner, now) then
 		return nil
+	end
+	if PlotGuests.isGuest(owner, session.userId) then
+		return nil -- let in by the owner (PlotGuests); `since` is kept, so losing that judges them like anyone
 	end
 	return if PlotLockGuard.intruder((plot :: any).since, owner.lockStartedAt) then inside else nil
 end

@@ -82,6 +82,7 @@ return table.freeze({
 	-- GrabPrompt: UserId that must not see this prompt (the owner on "Steal"); nil = everyone.
 	-- Roblox has no per-player prompt visibility on the server, so clients hide it locally.
 	PROMPT_HIDE_ATTRIBUTE = "HideFromUserId",
+	PROMPT_GUESTS_ATTRIBUTE = "GuestsOnly", -- GrabPrompt on a locked base with guests: ",<id>,<id>," (PlotGuests); other clients hide it
 	-- v13 (CONTRACT.md §8)
 	TUTORIAL_STEP_ID_ATTRIBUTE = "TutorialStepId", -- Player: TutorialProgress.STEPS name, nil = done
 	WALK_SPEED_ATTRIBUTE = "TargetWalkSpeed", -- Player: WalkSpeed the server enforces right now
@@ -89,6 +90,7 @@ return table.freeze({
 	BAT_SWING_ATTRIBUTE = "BatSwingAt", -- Player: server time of the last Bat swing (every client plays the swing, CONTRACT.md §26.2)
 	REBIRTH_TITLE_ATTRIBUTE = "RebirthTitle", -- Player: rank title (Config.REBIRTH_TIERS)
 	PLOT_LOCKED_ATTRIBUTE = "Locked", -- Plot_<i>: true while LockUntil > now
+	PLOT_FRIENDS_ALLOWED_ATTRIBUTE = "FriendsAllowed", -- Plot_<i>: true while the owner lets friends in (FEATURES.FriendsInBase)
 	PLOT_LOCK_COST_ATTRIBUTE = "LockCost", -- Plot_<i>: owner's lock price, 0 = free plot
 	PLOT_PADS_UNLOCKED_ATTRIBUTE = "PadsUnlocked", -- Plot_<i>: owner's unlocked pads, 0 = free plot
 	PLOT_NEXT_PAD_COST_ATTRIBUTE = "NextPadCost", -- Plot_<i>: nil when maxed / free
@@ -137,6 +139,8 @@ return table.freeze({
 	-- Owner-only prompts: only this UserId may see it (clients hide it locally); nil = free plot.
 	PROMPT_OWNER_ATTRIBUTE = "ShowOnlyToUserId",
 	LOCK_PROMPT_NAME = "LockPrompt", -- on LockButton
+	FRIENDS_PROMPT_NAME = "FriendsPrompt", -- on LockButton, next to LockPrompt: the owner's friends switch (FEATURES.FriendsInBase)
+	FRIENDS_PROMPT_KEYS = table.freeze({ keyboard = "G", gamepad = "ButtonY" }), -- FriendsPrompt's keys (F is the pad hatch key)
 	BUY_PAD_PROMPT_NAME = "BuyPadPrompt", -- on the lowest locked Pad_<j>
 	MERGE_PROMPT_NAME = "MergePrompt", -- on MergeVat
 	DROP_PROMPT_NAME = "DropPrompt", -- in every upper jar's DropHatch (CONTRACT.md §5.3): the owner, inside the top jar

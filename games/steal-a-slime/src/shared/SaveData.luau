@@ -604,6 +604,7 @@ function SaveData.deserialize(stored: any): Data
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
 	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
+	data.allowFriends = if raw.allowFriends == true then true else nil -- friends switch (no version bump: missing / junk -> off)
 	data.pvp = SaveData.cleanPvp(raw.pvp) -- FEATURES.PvP (missing -> nothing owned)
 	data.boss = BossBadges.clean(raw.boss) -- boss record and badges (missing / junk -> zeros)
 	data.hotbar = HotbarOrder.clean(raw.hotbar) -- hotbar order (no version bump: missing / junk -> nil)
@@ -724,6 +725,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		plotSkin = data.plotSkin,
 		stealLog = StealAlert.clean(data.stealLog),
 		settings = AudioSettings.clean(data.settings),
+		allowFriends = if data.allowFriends == true then true else nil,
 		redeemed = redeemed,
 		boost = { mult = data.boostMult, untilAt = num(data.boostUntil, 0, 0, 1e11) },
 		consumables = {

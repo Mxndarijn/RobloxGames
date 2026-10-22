@@ -19,6 +19,7 @@ local Genome = if Shared then require(Shared.Genome) else require("../shared/Gen
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -71,6 +72,7 @@ function StealService.steal(
 		ownerId = owner.userId,
 		now = now,
 		lockUntil = owner.lockUntil,
+		thiefIsGuest = PlotGuests.isGuest(owner, thief.userId),
 		thiefCarrying = thief.carry ~= nil,
 		slimeBusy = World.isBusy(world, slimeId),
 		distance = distance,

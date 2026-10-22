@@ -18,6 +18,7 @@ Validate.ACTIONS = table.freeze({
 	VatCancel = 0.5,
 	VatCollect = 0.5,
 	Lock = 0.5,
+	ToggleFriends = 0.5,
 	Rebirth = 2,
 	Sell = 0.25,
 	Favorite = 0.25,

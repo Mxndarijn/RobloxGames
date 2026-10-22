@@ -38,6 +38,7 @@ local ShopGuard = if script then require(script.Parent.ShopGuard) else require("
 local ConsumableShop = if script then require(script.Parent.ConsumableShop) else require("./ConsumableShop")
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
+local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
@@ -534,6 +535,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return result(MergeVat.collect(world, session, now))
 	elseif action == "Lock" then
 		return result(StealService.buyLock(world, session, now))
+	elseif action == "ToggleFriends" then
+		return result(PlotGuests.toggle(world, session, ctx.features))
 	elseif action == "Rebirth" then
 		return result(Rebirth.rebirth(world, session))
 	elseif action == "Sell" then
@@ -658,7 +661,7 @@ function Actions.handlePlotPad(
 end
 
 --[[
-	A player triggered plot `plotIndex`'s owner-only prompt `kind` ("Lock" | "BuyPad" | "Merge"). Someone else's
+	A player triggered plot `plotIndex`'s owner-only prompt `kind` ("Lock" | "ToggleFriends" | "BuyPad" | "Merge"). Someone else's
 	(or a free) plot answers with a toast naming the owner. Merge does nothing on the server (the owner's
 	client opens the merge vat menu). A refused action toasts its reason. Returns the result.
 ]]
