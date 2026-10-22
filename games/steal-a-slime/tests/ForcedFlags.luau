@@ -9,6 +9,7 @@ local ForcedFlags = {}
 
 -- All flags off: these need the named flag(s) on.
 ForcedFlags.off = {
+	["tower theme switch"] = "PlotSkins",
 	["AdminEvents gate"] = "AdminEvents",
 	["AdminEvents parse + validate"] = "AdminEvents",
 	["AdminEvents effects"] = "AdminEvents",

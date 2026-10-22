@@ -15,7 +15,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 local FETCH_SECONDS = 1
 -- MeshSwap.PREFETCH_WORKERS (MeshSwap needs Roblox services, so the spec can't require it).
-local WORKERS = 8
+local WORKERS = 24
 
 local path = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-prefetch-{os.time()}.rbxlx`
 local built = process.exec("rojo", { "build", "-o", path })
