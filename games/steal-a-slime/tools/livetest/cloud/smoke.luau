@@ -74,7 +74,23 @@ local function textReport()
 				and nameLabel ~= nil
 				and nameLabel:IsA("TextLabel")
 				and nameLabel.Text == "No entries yet"
-			if (d.Text == "" or d.Text == "Label") and not placeholderRow then
+			-- The board's pinned "You" row value is filled client-side per player, so it is blank
+			-- on a playerless server.
+			local gui = d:FindFirstAncestorWhichIsA("LayerCollector")
+			local youValue = d.Name == "Value"
+				and d.Parent ~= nil
+				and d.Parent.Name == "You"
+				and d.Parent.Parent ~= nil
+				and d.Parent.Parent.Name == "Content"
+				and gui ~= nil
+				and gui.Name == "BoardGui"
+			-- An empty merge vat has no text: its tag's Line and Cap stay blank until a player fills them.
+			local vatTagLine = (d.Name == "Line" or d.Name == "Cap")
+				and d.Parent ~= nil
+				and d.Parent.Name == "VatTag"
+				and d.Parent.Parent ~= nil
+				and d.Parent.Parent.Name == "MergeVat"
+			if (d.Text == "" or d.Text == "Label") and not (placeholderRow or youValue or vatTagLine) then
 				table.insert(empty, d:GetFullName())
 			end
 		elseif d:IsA("BasePart") and string.find(d.Name, "Sign") then
