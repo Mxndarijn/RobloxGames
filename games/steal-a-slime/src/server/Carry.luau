@@ -142,6 +142,9 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	if not session then
 		return false, "still loading"
 	end
+	if now - session.lastDropAt < Config.DROP_PICKUP_COOLDOWN then
+		return false, "you just dropped a slime"
+	end
 	if world.wild[slimeId] then
 		return Carry.grabWild(world, session, slimeId, distance, now)
 	end

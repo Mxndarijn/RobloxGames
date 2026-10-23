@@ -738,6 +738,8 @@ local Config = {
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
 	HOLD_CONFIRM_SECONDS = 0.8,
+	-- After you drop a slime (Drop, a hit, dying) you can't pick any slime up for this long (Carry.grab).
+	DROP_PICKUP_COOLDOWN = 1.5,
 	TUTORIAL_STEAL_SKIP_SECONDS = 20, -- solo tutorial: Steal step skips itself after this long with nobody to steal from
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	-- SlimeGuard (FEATURES.SlimeGuard, CONTRACT.md §41). Movement thresholds live in the shared MovementGuard defaults.
