@@ -57,6 +57,7 @@ function Sessions.join(
 		limiter = {},
 		carry = nil,
 		lastSlapAt = -math.huge,
+		lastDropAt = -math.huge,
 		incomeRemainder = 0,
 		dirty = true,
 		lastPushAt = -math.huge,
