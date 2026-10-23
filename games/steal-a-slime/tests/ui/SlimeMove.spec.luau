@@ -80,6 +80,16 @@ describe("SlimeMove into the merge vat", function()
 		expect(SlimeMove.vatClass({ ids = { "x" }, tier = 1 }, slime("a", 1))).toBe("vat")
 		expect(SlimeMove.vatStatus("vat", "Gummy", 1)).toBe("Merge vat: adds Gummy (2/3)")
 	end)
+	it("a rarity the rank can't merge yet still goes in, lit yellow with when it opens", function()
+		local class, why = SlimeMove.vatClass({ ids = {} }, slime("a", 4), 1)
+		expect(class).toBe("vatGated")
+		expect(why).toBe("Epic merges open at Rebirth 3")
+		expect(SlimeMove.vatStatus(class, "Blaze", 0, why)).toBe(
+			"Merge vat: adds Blaze (1/3). Epic merges open at Rebirth 3."
+		)
+		expect(SlimeMove.vatClass({ ids = {} }, slime("a", 4), 3)).toBe("vat")
+		expect(SlimeMove.vatClass({ ids = { "x", "y", "z" }, tier = 4 }, slime("a", 4), 1)).toBe("vatRefused")
+	end)
 	it("a full vat, another rarity, a brew or an egg say why", function()
 		local function reason(vat: any, s: any): string?
 			local class, why = SlimeMove.vatClass(vat, s)

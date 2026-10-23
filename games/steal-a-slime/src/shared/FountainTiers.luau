@@ -10,7 +10,7 @@
 	    reads the workspace attribute Constants.FOUNTAIN_TIER_ATTRIBUTE).
 	  * Drop pool: Classic (Meadow) plus every family (allFamilies), on every server at every rank. A drop rolls
 	    its rarity first, then a species uniformly over that tier's species in the pool (Genome.speciesPool,
-	    contract/slime-odds.md). No slime needs rebirths to catch, buy, steal or merge into.
+	    contract/slime-odds.md). No slime needs rebirths to catch, buy or steal; merging the higher rarities waits for a rank (MergeGate).
 	No income multiplier and no price: a family slime sells / earns like a Classic one of the same tier,
 	and size (the economy is untouched). Species are SlimeRoster entries with `family` set, so a
 	save only stores a species id it already knew how to store (Genome.sanitize).

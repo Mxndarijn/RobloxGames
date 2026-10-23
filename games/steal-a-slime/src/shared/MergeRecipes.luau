@@ -11,6 +11,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local MergeGate = if script then require(script.Parent.MergeGate) else require("./MergeGate")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 export type Recipe = {
@@ -25,6 +26,7 @@ export type Input = { tier: number, species: string? }
 export type Ctx = {
 	unlocked: (entry: SlimeRoster.Entry) -> boolean, -- which species a random merge may give (everySpecies / classicOnly)
 	found: { [string]: boolean }?,
+	rebirths: number?, -- the player's rebirths: the +2 jump only lands on a rarity their rank opens (MergeGate); nil = no gate
 }
 
 export type Outcome = {
@@ -211,6 +213,7 @@ function MergeRecipes.resolve(inputs: { Input }, ctx: Ctx): Outcome
 	local tier = if from >= Config.MAX_TIER then Config.MAX_TIER else math.min(from + 1, Config.MERGE_MAX_TIER)
 	local jump = from + 2
 	local canJump = jump <= Config.MERGE_JUMP_MAX_TIER
+		and (ctx.rebirths == nil or MergeGate.jumpAllowed(from, ctx.rebirths))
 	local pool, assistPool = MergeRecipes.pool(tier, ctx)
 	return {
 		kind = "random",
