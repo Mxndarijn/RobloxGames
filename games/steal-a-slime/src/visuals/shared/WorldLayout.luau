@@ -1228,8 +1228,7 @@ local function ghost(node: WorldNode, transparency: number?): WorldNode
 end
 
 -- The doorway through jar 1's glass (plot-local, door at -Z). The stopper's collider (LockBarrier.Stopper) fills it
--- from DOOR_OUTER_PAD outside the glass to DOOR_INNER_INSET in from the glass; a non-owner caught in it as the lock
--- starts is set down outside on the bridge (PlotLockGuard.wedged).
+-- from DOOR_OUTER_PAD outside the glass to DOOR_INNER_INSET in from the glass.
 WorldLayout.DOOR_OUTER_PAD = 0.5
 WorldLayout.DOOR_INNER_INSET = 2 -- the stopper reaches this far inside the glass
 function WorldLayout.doorway(): { size: Vec, centre: Vec, halfWidth: number, zOuter: number, zInner: number }
