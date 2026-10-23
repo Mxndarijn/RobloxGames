@@ -126,7 +126,7 @@ function PerfMeasure.measure(): { [string]: any }
 	}
 	UiHarness.ui("Hud").new(gui, ctx)
 	local panels: { [string]: any } = {}
-	for _, key in { "Merge", "Rebirth", "Goals", "Dex", "Codes", "Guide", "Welcome" } do
+	for _, key in { "Merge", "Rebirth", "Goals", "Dex", "Skins", "Codes", "Guide", "Welcome" } do
 		local module = UiHarness.ui(`Panels/{key}`)
 		panels[key] = module.new(gui, ctx)
 	end

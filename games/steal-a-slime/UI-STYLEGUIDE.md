@@ -81,7 +81,7 @@ Decided by Merijn on 2026-10-21; the Goo look was chosen the same week. Mockups 
 
 - Every menu is a `Widgets.panel`: header band, corner icon tile, sentence-case title, red X top-right. Esc and gamepad B close it too.
 - **Two sizes:**
-  - **Lists fill the window**: Goals, SlimeDex, Item shop, Upgrade shop, Bag and any menu that scrolls.
+  - **Lists fill the window**: Goals, SlimeDex, Plot skins, Item shop, Upgrade shop, Bag and any menu that scrolls.
   - **Short cards fit their content** and are centred: Codes, Sound, Guide, Merge vat, Rebirth, and every popup (Daily reward, Welcome back).
   - Both start on the same top line, under the HUD. No menu is pinned to the screen's top edge or floats at its own height.
 - Under the header: one line of facts as chips (balance, reset timer, found count), then the body.

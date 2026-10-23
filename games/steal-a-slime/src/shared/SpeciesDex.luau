@@ -10,6 +10,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local FountainTiers = if script then require(script.Parent.FountainTiers) else require("./FountainTiers")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 type Entry = SlimeRoster.Entry
@@ -35,6 +36,7 @@ export type EntryView = {
 	name: string,
 	hint: string?,
 	ingredients: { string }?,
+	ingredientSets: { string }?, -- hybrids: each slot's set ("Meadow", "Garden", ...), sent even while the slot is ""
 }
 
 export type View = {
@@ -69,6 +71,13 @@ function SpeciesDex.isSpecies(id: any): boolean
 	end
 	local entry = SlimeRoster.get(id)
 	return entry ~= nil and (inDex[id] ~= nil or entry.kind == "event")
+end
+
+-- The set a species belongs to: its FountainTiers family's name, "Meadow" for the Classic species.
+function SpeciesDex.setName(id: string): string
+	local entry = SlimeRoster.get(id)
+	local family = if entry then FountainTiers.family(entry.family) else nil
+	return if family then family.name else FountainTiers.CLASSIC_NAME
 end
 
 -- Marks the slime's species found. Returns whether the species is new.
@@ -158,11 +167,13 @@ local function entryView(data: Data, entry: Entry, now: number, sources: Sources
 	if entry.kind == "hybrid" then
 		local recipe = sources.recipeFor(entry.id)
 		if recipe then
-			local slots = {}
+			local slots, sets = {}, {}
 			for i, input in recipe.inputs do
 				slots[i] = if data.found[input] == true then input else ""
+				sets[i] = SpeciesDex.setName(input)
 			end
 			view.ingredients = slots
+			view.ingredientSets = sets
 			view.hint = recipe.hint
 		end
 	elseif entry.kind == "boss" then

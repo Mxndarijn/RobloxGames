@@ -278,6 +278,46 @@ function SlimePreview.mountSlime(viewport: Instance, slime: any, builders: Build
 	(viewport :: ViewportFrame).Visible = ok
 end
 
+-- A species as the SlimeDex shows it: its mesh in full colour once found, a flat black silhouette before.
+export type SpeciesLook = { key: string, found: boolean, tier: number, speciesColor: { number } }
+
+-- Shows `look` in `viewport`: the species mesh (builders.species) when it has replicated, else the model
+-- generated from `genome(look)` (builders.slime), else the Ball blob in the species colour. The mounted look
+-- names its source, so a well that fell back switches to the mesh once it is there; nothing is rebuilt while
+-- the look and source stay the same. Returns whether something is mounted (the viewport is visible then).
+function SlimePreview.mountSpecies(
+	viewport: Instance,
+	look: SpeciesLook,
+	builders: Builders?,
+	genome: (SpeciesLook) -> any
+): boolean
+	local b: Builders = builders or {}
+	local species: Model? = nil
+	if b.species then
+		local built, model = pcall(b.species, look.key)
+		species = if built then model else nil
+	end
+	local tag = `{look.key}:{look.found}:{species ~= nil}`
+	if viewport:GetAttribute("Look") == tag then
+		if species then
+			species:Destroy()
+		end
+		return (viewport :: ViewportFrame).Visible
+	end
+	local opts = { locked = not look.found }
+	local ok = species ~= nil and SlimePreview.mountModel(viewport, species :: Model, opts)
+	if not ok and b.slime then
+		local built, model = pcall(b.slime, genome(look))
+		ok = built and model ~= nil and SlimePreview.mountModel(viewport, model, opts)
+	end
+	if not ok then
+		ok = SlimePreview.mount(viewport, look.speciesColor, opts)
+	end
+	viewport:SetAttribute("Look", tag);
+	(viewport :: ViewportFrame).Visible = ok
+	return ok
+end
+
 -- Empties a viewport mounted by mountSlime and hides it.
 function SlimePreview.unmountSlime(viewport: Instance)
 	if viewport:GetAttribute("Look") ~= nil then

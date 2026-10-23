@@ -936,10 +936,11 @@ function LayoutAssert.noNegativeSizes(check: Checker)
 	end
 	local body = Layout.panelBody(Layout.panelFor(screen, "Dex"))
 	for _, rewards in { false, true } do
-		local header = SlimeDex.header(body.h, rewards)
-		local listH = body.h - header.listTop
-		if listH < SlimeDex.MIN_LIST then
-			check.fail(`Dex list is {listH} px in a {body.h} px body (rewards {rewards}; want >= {SlimeDex.MIN_LIST})`)
+		local listH = body.h - SlimeDex.contentTop(rewards)
+		if listH < SlimeDex.MIN_CONTENT then
+			check.fail(
+				`Dex list is {listH} px in a {body.h} px body (rewards {rewards}; want >= {SlimeDex.MIN_CONTENT})`
+			)
 		end
 	end
 end

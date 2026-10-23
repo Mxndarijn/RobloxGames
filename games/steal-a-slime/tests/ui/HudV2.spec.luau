@@ -89,7 +89,7 @@ local function setAttributes(attrs: { [string]: any }?)
 end
 
 describe("H1 HUD: left button column", function()
-	it("lays out the five nav buttons at every gate and landscape viewport", function()
+	it("lays out every nav button at every gate and landscape viewport", function()
 		local viewports = {}
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
 			table.insert(viewports, vp)
@@ -98,7 +98,7 @@ describe("H1 HUD: left button column", function()
 			table.insert(viewports, vp)
 		end
 		for _, vp in viewports do
-			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: 5`)
+			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: {#Nav.ENTRIES}`)
 		end
 	end)
 end)

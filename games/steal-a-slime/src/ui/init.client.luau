@@ -36,6 +36,7 @@ local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local SlimeLooks = require(Shared:WaitForChild("SlimeLooks"))
 local SlimeRoster = require(Shared:WaitForChild("SlimeRoster"))
+local SpeciesDex = require(Shared:WaitForChild("SpeciesDex"))
 local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local Types = require(Shared:WaitForChild("Types"))
 
@@ -83,6 +84,7 @@ local HintOverlay = require(Panels.HintOverlay)
 local LeaderboardPanel = require(Panels.Leaderboard)
 local MergePanel = require(Panels.Merge)
 local RebirthPanel = require(Panels.Rebirth)
+local SkinsPanel = require(Panels.Skins)
 local SoundPanel = require(Panels.Sound)
 local TutorialOverlay = require(Panels.TutorialOverlay)
 local WelcomePanel = require(Panels.Welcome)
@@ -272,6 +274,9 @@ local ctx: { [string]: any } = {
 	-- SlimeDex cards: species names / colours and the species mesh preview.
 	SlimeRoster = SlimeRoster,
 	SlimeLooks = SlimeLooks,
+	setName = SpeciesDex.setName,
+	-- Plot skins menu: each skin's slimes.
+	PlotSkins = PlotSkins,
 	buildSpecies = SpeciesModel.builder(function()
 		return ReplicatedStorage:FindFirstChild(Constants.SLIME_KITS_FOLDER)
 	end, MeshAssets.IMPORT_YAW),
@@ -328,7 +333,7 @@ local backdrop = Widgets.backdrop({
 })
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
--- order: Rebirth, Goals, SlimeDex, Codes, Leaders) or a world prompt, closed with their X, the backdrop, Esc or
+-- order: Rebirth, Goals, SlimeDex, Codes, Skins, Leaders) or a world prompt, closed with their X, the backdrop, Esc or
 -- gamepad B.
 local panelByKey: { [string]: any } = {
 	Merge = MergePanel.new(gui, ctx),
@@ -336,6 +341,7 @@ local panelByKey: { [string]: any } = {
 	Rebirth = RebirthPanel.new(gui, ctx),
 	Goals = GoalsPanel.new(gui, ctx),
 	Dex = DexPanel.new(gui, ctx),
+	Skins = SkinsPanel.new(gui, ctx),
 	Codes = CodesPanel.new(gui, ctx),
 	Leaderboard = LeaderboardPanel.new(gui, ctx),
 }
@@ -552,33 +558,26 @@ local function forceDex(state: any): any
 	return view
 end
 
--- Studio-only: the SlimeUI attribute "PcwPlotSkin" (a skin id) fakes State.plotSkins with that skin
--- unlocked and equipped (every other skin locked at 0 owned), so the picker can be shot with
--- FEATURES.PlotSkins off. Live servers (not Studio) always get the server's State untouched.
+-- Studio-only: the SlimeUI attribute "PcwPlotSkin" (a skin id) fakes State.plotSkins from the player's Dex with
+-- that skin unlocked and equipped, so the Plot skins menu can be shot with FEATURES.PlotSkins off. Live servers
+-- (not Studio) always get the server's State untouched.
 local function forcePlotSkins(state: any): any
 	local id = if isStudio then gui:GetAttribute("PcwPlotSkin") else nil
-	if type(id) ~= "string" or id == "" or state.plotSkins ~= nil then
+	if type(id) ~= "string" or id == "" or state.plotSkins ~= nil or PlotSkins.get(id) == nil then
 		return state
 	end
-	local total = PlotSkins.setSize()
+	local found: { [string]: boolean } = {}
+	if type(state.dex) == "table" then
+		for _, entry in state.dex.entries or {} do
+			found[entry.id] = entry.found == true
+		end
+	end
 	local view = table.clone(state)
 	view.plotSkin = id
-	view.plotSkins = {}
-	for _, skin in Config.PLOT_SKINS do
-		local rarity = if skin.set then Config.RARITIES[skin.set] else nil
-		local on = skin.id == id
-		table.insert(view.plotSkins, {
-			id = skin.id,
-			name = skin.name,
-			setName = if rarity then rarity.name else nil,
-			tier = skin.set,
-			owned = if on or skin.set == nil then total else 0,
-			total = total,
-			needed = if skin.set then PlotSkins.needed(skin) else 0,
-			fraction = if on or skin.set == nil then 1 else 0,
-			unlocked = on or skin.set == nil,
-			equipped = on,
-		})
+	view.plotSkins = PlotSkins.view({ found = found, plotSkin = id } :: any)
+	for _, skin in view.plotSkins do
+		skin.equipped = skin.id == id
+		skin.unlocked = skin.unlocked or skin.id == id
 	end
 	return view
 end
