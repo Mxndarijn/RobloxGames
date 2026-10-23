@@ -756,6 +756,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Rebirth = 650, -- three slimes (Panels/Rebirth.plan)
 	Goals = 500,
 	Dex = 600,
+	Skins = 600,
 	Codes = 300,
 	Sound = 291,
 	Guide = 380,
