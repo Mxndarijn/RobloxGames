@@ -33,6 +33,7 @@ export type RebirthTier = {
 	unlock: string?, -- upgrade id this rank unlocks (also Config.UPGRADES[i].requires)
 	income: number?, -- income bonus (0.25 = +25 %)
 	family: string?, -- FountainTiers family id: this rank grows the fountain into its look (FEATURES.FountainTiers; FountainTiers.FAMILIES)
+	merge: number?, -- top rarity tier this rank lets the player put in the merge vat (MergeGate, contract/merge-vat.md §21.9)
 }
 
 export type Upgrade = {
@@ -251,14 +252,14 @@ for _, list in REBIRTH_SLIMES do
 end
 
 local REBIRTH_TIERS: { RebirthTier } = {
-	{ rebirths = 0, title = "Slime Rookie" },
-	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed" },
-	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard" },
+	{ rebirths = 0, title = "Slime Rookie", merge = 2 },
+	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed", merge = 3 },
+	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard", merge = 4 },
 	{ rebirths = 5, title = "Blob Baron", unlock = "Luck" },
-	{ rebirths = 6, title = "Goo Tycoon", income = 0.05, family = "frost" },
+	{ rebirths = 6, title = "Goo Tycoon", income = 0.05, family = "frost", merge = 5 },
 	{ rebirths = 7, title = "Jelly Magnate", income = 0.1 },
 	{ rebirths = 8, title = "Ooze Overlord", income = 0.15 },
-	{ rebirths = 10, title = "Slime Sovereign", income = 0.25, family = "starlight" },
+	{ rebirths = 10, title = "Slime Sovereign", income = 0.25, family = "starlight", merge = 7 },
 	{ rebirths = 12, title = "Gel Emperor", income = 0.35 },
 	{ rebirths = 15, title = "Gelatinous Legend", income = 0.5 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1 },

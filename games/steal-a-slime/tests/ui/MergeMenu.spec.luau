@@ -137,6 +137,60 @@ describe("Merge menu: describe", function()
 	end)
 end)
 
+describe("Merge menu: the rank gate", function()
+	local EPICS = { view("e1", 4, { pad = 1 }), view("e2", 4, { pad = 2 }), view("e3", 4, { pad = 3 }) }
+	local RARES = { view("r1", 3, { pad = 1 }), view("r2", 3, { pad = 2 }), view("r3", 3, { pad = 3 }) }
+	local function gated(slimes: { any }, ids: { string }, rebirths: number): any
+		local tier = slimes[1].slime.tier
+		return {
+			slimes = slimes,
+			rebirths = rebirths,
+			vat = { ids = ids, tier = tier, seconds = Config.MERGE_BREW_SECONDS[tier] },
+		}
+	end
+
+	it("a full load the rank can't merge yet waits behind 'Rebirth 3 to unlock'", function()
+		local v = Merge.describe(gated(EPICS, { "e1", "e2", "e3" }, 1), NOW, rarityOf, Genome.displayName)
+		expect(v.main.kind).toBe("well")
+		expect(v.main.text).toBe("Rebirth 3 to unlock")
+		expect((v.gate :: any).chip).toBe("Rebirth 3")
+		expect((v.gate :: any).line).toBe("Epic merges open at Rebirth 3")
+		expect(v.reason).toBe("Rebirth 2 more times to merge Epics. Until you start, these still earn on their pads.")
+	end)
+
+	it("a part load shows the lock too, and says it can be filled now", function()
+		local v = Merge.describe(gated(EPICS, { "e1" }, 2), NOW, rarityOf, Genome.displayName)
+		expect(v.main.text).toBe("Rebirth 3 to unlock")
+		expect(v.reason).toBe("You can fill the vat now and start it once you reach Rebirth 3.")
+		expect(v.slots[2].name).toBe("Move an Epic here")
+	end)
+
+	it("an open load starts as usual; the card shows the chip, padlock and Warn line only when locked", function()
+		local open = Merge.describe(gated(EPICS, { "e1", "e2", "e3" }, 3), NOW, rarityOf, Genome.displayName)
+		expect(open.main.kind).toBe("start")
+		expect(open.gate).toBe(nil)
+		local panel = build()
+		panel.update(gated(EPICS, { "e1", "e2", "e3" }, 1))
+		expect(find(panel, "GateChip").Visible).toBe(true)
+		expect(find(panel, "GateChip").Text).toBe("🔒 Rebirth 3")
+		expect(find(panel, "Odds").Text).toBe("Epic merges open at Rebirth 3")
+		expect(find(panel, "Mark").Text).toBe("🔒")
+		expect(find(panel, "StartButton").Visible).toBe(false)
+		expect(find(panel, "Missing").Text).toBe("Rebirth 3 to unlock")
+		panel.update(gated(EPICS, { "e1", "e2", "e3" }, 3))
+		expect(find(panel, "GateChip").Visible).toBe(false)
+		expect(find(panel, "StartButton").Visible).toBe(true)
+	end)
+
+	it("a jump the rank doesn't open yet says when it does", function()
+		local panel = build()
+		panel.update(gated(RARES, { "r1", "r2", "r3" }, 1))
+		expect(find(panel, "Odds").Text).toBe("No jump: Legendary opens at Rebirth 3")
+		panel.update(gated(RARES, { "r1", "r2", "r3" }, 3))
+		expect(find(panel, "Odds").Text).toBe("20% chance of a Legendary")
+	end)
+end)
+
 describe("Merge menu: the card", function()
 	it("fills the slots and sends VatRemove from a slot's X", function()
 		local panel, sent = build()

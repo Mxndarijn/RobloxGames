@@ -10,6 +10,8 @@
 	  * yellow: another slime sits there, the two swap pads;
 	  * red: a locked pad (refused);
 	  * grey: the slime's own pad (placing just ends move mode).
+	The vat lights green when it takes the slime, yellow when it takes it but the player's rank can't merge that
+	rarity yet (Shared.MergeGate: the place goes through), red when it refuses.
 
 	Target: the pad under the mouse / the tap, else the unlocked pad nearest the character. Place: click or tap a
 	pad, E, gamepad ButtonX or the Place button, which sends Request MoveSlime(slimeId, pad); a refusal shows its
@@ -28,6 +30,7 @@ local Widgets = require(UI.Widgets)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants") :: any)
+local MergeGate = require(Shared:WaitForChild("MergeGate") :: any)
 local VatState = require(Shared:WaitForChild("VatState") :: any)
 
 local Theme = Widgets.Theme
@@ -35,7 +38,7 @@ local create = Widgets.create
 
 local SlimeMove = {}
 
-export type PadClass = "same" | "empty" | "swap" | "locked" | "vat" | "vatRefused"
+export type PadClass = "same" | "empty" | "swap" | "locked" | "vat" | "vatGated" | "vatRefused"
 export type PadSpot = { index: number, position: Vector3 }
 
 SlimeMove.FADE = 0.75 -- LocalTransparencyModifier on the picked-up slime
@@ -77,8 +80,9 @@ function SlimeMove.classify(
 end
 
 -- What placing `slime` in the merge vat would do, from State.vat (VatState.checkLoad, the server's rules):
--- "vat" (it goes in) or "vatRefused" with the reason ("The vat is full", "The vat takes Common slimes", ...).
-function SlimeMove.vatClass(vat: any, slime: any): (PadClass, string?)
+-- "vat" (it goes in), "vatGated" (it goes in, but `rebirths` can't merge its rarity yet; the reason is
+-- MergeGate.opensText) or "vatRefused" with the reason ("The vat is full", "The vat takes Common slimes", ...).
+function SlimeMove.vatClass(vat: any, slime: any, rebirths: number?): (PadClass, string?)
 	if type(slime) ~= "table" then
 		return "vatRefused", "Pick one of your slimes"
 	end
@@ -86,13 +90,21 @@ function SlimeMove.vatClass(vat: any, slime: any): (PadClass, string?)
 	local tier = if type(vat) == "table" and type(vat.tier) == "number" then vat.tier else nil
 	local brewing = type(vat) == "table" and type(vat.endsAt) == "number"
 	local ok, reason = VatState.checkLoad(ids, tier, brewing, slime)
-	return if ok then "vat" else "vatRefused", reason
+	if not ok then
+		return "vatRefused", reason
+	end
+	if rebirths and not MergeGate.allows(slime.tier, rebirths) then
+		return "vatGated", MergeGate.opensText(slime.tier)
+	end
+	return "vat", nil
 end
 
 -- The bar's status line for the vat as the target: what goes in and the load after it, or why it can't.
 function SlimeMove.vatStatus(class: PadClass, slimeName: string, count: number, reason: string?): string
 	if class == "vat" then
 		return `Merge vat: adds {slimeName} ({count + 1}/{VatState.SIZE})`
+	elseif class == "vatGated" then
+		return `Merge vat: adds {slimeName} ({count + 1}/{VatState.SIZE}). {reason or ""}.`
 	end
 	return reason or "The vat can't take this slime"
 end
@@ -138,7 +150,7 @@ end
 local function classColor(class: PadClass?): Color3
 	if class == "empty" or class == "vat" then
 		return Theme.Good
-	elseif class == "swap" then
+	elseif class == "swap" or class == "vatGated" then
 		return Theme.Warn
 	elseif class == "locked" or class == "vatRefused" then
 		return Theme.Bad
@@ -388,6 +400,10 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		return if type(state) == "table" then state.vat else nil
 	end
 
+	local function rebirthsOf(): number?
+		return if type(state) == "table" and type(state.rebirths) == "number" then state.rebirths else nil
+	end
+
 	local function rootPart(): BasePart?
 		local character = deps.player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -465,7 +481,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		local pad = target and a.pads[target]
 		local class: PadClass?, vatReason: string? = nil, nil
 		if target == SlimeMove.VAT then
-			class, vatReason = SlimeMove.vatClass(vatOf(), slimeOf(a.id))
+			class, vatReason = SlimeMove.vatClass(vatOf(), slimeOf(a.id), rebirthsOf())
 		elseif target then
 			class = SlimeMove.classify(target, fromPad, unlocked, occupied)
 		end

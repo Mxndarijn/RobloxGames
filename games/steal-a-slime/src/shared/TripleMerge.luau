@@ -21,6 +21,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local MergeGate = if script then require(script.Parent.MergeGate) else require("./MergeGate")
 local MergeRecipes = if script then require(script.Parent.MergeRecipes) else require("./MergeRecipes")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
@@ -56,11 +57,12 @@ function TripleMerge.canMerge(slimes: { Slime? }): (boolean, string?)
 	return true, nil
 end
 
--- What a random merge of three slimes of `tier` can become (for the UI preview).
-function TripleMerge.odds(tier: number): Odds
+-- What a random merge of three slimes of `tier` can become (for the UI preview). With `rebirths`, the jump only
+-- counts when the player's rank opens it (MergeGate.jumpAllowed).
+function TripleMerge.odds(tier: number, rebirths: number?): Odds
 	local base = if tier >= Config.MAX_TIER then Config.MAX_TIER else math.min(tier + 1, Config.MERGE_MAX_TIER)
 	local jump = tier + 2
-	local canJump = jump <= Config.MERGE_JUMP_MAX_TIER
+	local canJump = jump <= Config.MERGE_JUMP_MAX_TIER and (rebirths == nil or MergeGate.jumpAllowed(tier, rebirths))
 	return {
 		tier = base,
 		jumpTier = if canJump then jump else nil,
@@ -68,11 +70,12 @@ function TripleMerge.odds(tier: number): Odds
 	}
 end
 
--- The recipe context of a player's save: every species, and the ones they have found.
+-- The recipe context of a player's save: every species, the ones they have found, and their rank (the jump gate).
 function TripleMerge.ctxFor(data: PlayerData.Data): MergeRecipes.Ctx
 	return {
 		unlocked = MergeRecipes.everySpecies,
 		found = MergeRecipes.foundOf(data.slimes, (data :: any).found),
+		rebirths = data.rebirths,
 	}
 end
 
