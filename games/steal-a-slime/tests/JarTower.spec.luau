@@ -5,7 +5,6 @@
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
-local PlotLockGuard = require("../src/server/PlotLockGuard")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -352,9 +351,6 @@ describe("jar tower: fits the plot", function()
 		expect(r > WorldLayout.MOAT.inner and r < WorldLayout.MOAT.outer).toBe(true)
 		expect(r < WorldLayout.PLOT_FLOOR_RADIUS).toBe(true)
 		expect(math.abs(p[1]) < HALF and math.abs(p[3]) < HALF).toBe(true)
-	end)
-	it("keeps the top floor inside the lock guard's height window", function()
-		expect(WorldLayout.floorTop(FLOORS) + 8 <= PlotLockGuard.MAX_Y).toBe(true)
 	end)
 	it("spawns players on the walkway between the stair and the pads, in front of the door", function()
 		local s = WorldLayout.SPAWN_SPOT

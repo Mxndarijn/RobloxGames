@@ -8,7 +8,8 @@ Owners: Phoenix (`src/server`, `src/shared`), Jolt (`src/ui`).
 
 - A player is a guest of plot `i` when `FEATURES.FriendsInBase` is on, the owner's `data.allowFriends` is `true`, and the player is in the owner's `session.friendIds` (Roblox friends in this server, filled by `Friends.refresh` on every join and leave from the cached `Player:IsFriendsWith`). The owner is never their own guest. `server/PlotGuests` holds the rule.
 - A guest passes the lock in `Steal.canSteal` (`thiefIsGuest`); every other steal rule still applies (saves, vat, paused steals, distance).
-- A guest is never a locked-base intruder (`SlimeGuard.trackPlot`) and is not set down outside when the lock shuts on them in the doorway. When they stop being a guest (switch off, unfriended, the owner left) they are judged like anyone: inside after the lock began means intruder, sent home (§41.5).
+- A guest is never a locked-base intruder (`SlimeGuard.trackPlot`). Nobody is ever teleported for a lock.
+- When a guest stops being one (switch off, unfriended) while inside the jar, they stay where they are and are not an intruder. They can no longer steal there, and the stopper keeps letting them through until they have left the jar (`SlimeGuard.formerGuests`). Once out, they are blocked like anyone.
 - The breather lock after a steal (§41.6) does not stop guests: it is a lock like any other.
 
 ## 42.2 Request and prompt
@@ -23,11 +24,12 @@ Owners: Phoenix (`src/server`, `src/shared`), Jolt (`src/ui`).
 ## 42.3 Attributes
 
 - `Plot_<i>.FriendsAllowed: true?` (`Constants.PLOT_FRIENDS_ALLOWED_ATTRIBUTE`): set while the owner's switch is on. `src/ui/FriendsLockIcon` shows the friend icon (`ItemIcons` `Boost_Friend`) as a sticker on the outer face of the shut stopper (`LockBarrier.Stopper`) while the plot is also `Locked`, and as a badge over the `LockButton` while the switch is on. Nothing shows with the switch off.
+- `Plot_<i>.Guests: string?` (`Constants.PLOT_GUESTS_ATTRIBUTE`): `",<id>,<id>,"` of the players plot `i`'s stopper lets through besides the owner (`SlimeGuard.stopperPasses`), nil for none. `PlotDecor` shows the shut door half see-through (`OWNER_DOOR_TRANSPARENCY`) to those viewers, as it does to the owner.
 - `GrabPrompt.GuestsOnly: string?` (`Constants.PROMPT_GUESTS_ATTRIBUTE`): on the Steal prompts of a locked base that has guests in the server, `",<id>,<id>,"`. Such a prompt is `Enabled` on the server, and `src/ui/PromptHide` keeps it disabled on every client whose UserId is not in the list. The server writes `GuestsOnly` before `Enabled`, so a client applies the list first. `Carry.grab` still refuses a non-guest.
 
 ## 42.4 Stopper collisions
 
-`PlotLock_<i>` (the stopper's parts) and `PlotOwner_<j>` (player `j`'s character; every player owns one plot) are set non-colliding while plot `j`'s owner is a guest of plot `i`, and colliding again when that ends (`WorldView`, from `PlotGuests.pairs`). No new collision groups.
+`PlotLock_<i>` (the stopper's parts) and `PlotOwner_<j>` (player `j`'s character; every player owns one plot) are set non-colliding while plot `j`'s owner passes plot `i`'s stopper (a guest, or a former guest still inside), and colliding again when that ends (`WorldView`, from `SlimeGuard.stopperPasses`). No new collision groups.
 
 ## 42.5 Save
 

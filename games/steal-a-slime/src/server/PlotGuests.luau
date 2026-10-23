@@ -7,9 +7,9 @@
 	guest walks through the locked stopper, may steal there and is never a locked-base intruder. Everyone else is
 	blocked as before (PlotLockGuard). The switch is free and saved; it starts off.
 
-	A guest who stops being one (the owner switches it off, or they are no longer friends) is judged like anyone
-	else: inside a locked base they got into after the lock began, they are an intruder and SlimeGuard sends them
-	home.
+	A guest who stops being one (the owner switches it off, or they are no longer friends) is never moved: they stay
+	where they are, can no longer steal there, and the stopper still lets them out until they have left the jar
+	(SlimeGuard.formerGuests). Nobody is ever teleported for a lock.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -73,30 +73,6 @@ function PlotGuests.encode(ids: { number }): string?
 		table.insert(parts, tostring(id))
 	end
 	return `,{table.concat(parts, ",")},`
-end
-
---[[
-	Every guest pair right now, by plot: result[i][j] = true when the owner of plot j is a guest of plot i (so plot i's
-	stopper lets plot j's owner through). Plots with no guests are left out.
-]]
-function PlotGuests.pairs(world: World, features: Features): { [number]: { [number]: boolean } }
-	local out = {}
-	if not PlotGuests.enabled(features) then
-		return out
-	end
-	for _, owner in world.sessions do
-		if owner.data.allowFriends == true and owner.friendIds then
-			for friendId in owner.friendIds do
-				local friend = world.sessions[friendId]
-				if friend and PlotGuests.isGuest(owner, friendId, features) then
-					local set = out[owner.plotIndex] or {}
-					set[friend.plotIndex] = true
-					out[owner.plotIndex] = set
-				end
-			end
-		end
-	end
-	return out
 end
 
 -- Flips the owner's switch. Tells the owner, and on switching on, each friend in the server. Never errors.

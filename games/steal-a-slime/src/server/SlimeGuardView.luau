@@ -4,9 +4,9 @@
 
 	The Roblox side of SlimeGuard, once per view tick per player (ServerLoop): reads the character's root,
 	opens the guard's window for respawns, server moves (WorldView.takeServerMove) and PvP / boss launches,
-	feeds the position, finds the other player's jar the character is in and sets an intruder down on its own
-	plot. Reports become `[SlimeGuard]` log lines; a kick-level report with ENFORCE on kicks the player.
-	No gameplay rules here.
+	feeds the position and finds the other player's jar the character is in. It never moves a character.
+	Reports become `[SlimeGuard]` log lines; a kick-level report with ENFORCE on kicks the player. No gameplay
+	rules here.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -99,13 +99,9 @@ function SlimeGuardView.step(world: World.World, player: Player, session: World.
 	end
 
 	local intruded = SlimeGuard.trackPlot(world, session, insidePlot(world, session, root), now)
-	local spawn = if intruded then WorldView.plotSpawn(session.plotIndex) else nil
-	if intruded and spawn then
+	if intruded then
 		local serverPut = SlimeGuard.inWindow(world, userId, now)
-		local evicted = SlimeGuard.evict(world, session, intruded, now, serverPut)
-		character:PivotTo(spawn)
-		root.AssemblyLinearVelocity = Vector3.zero
-		SlimeGuardView.handle(world, player, evicted, now)
+		SlimeGuardView.handle(world, player, SlimeGuard.intruded(world, session, intruded, now, serverPut), now)
 	end
 end
 

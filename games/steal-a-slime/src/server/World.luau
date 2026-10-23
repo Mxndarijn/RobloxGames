@@ -98,12 +98,15 @@ export type Wild = {
 }
 
 -- SlimeGuard (CONTRACT.md §41): one player's movement check, suspicion points and where they are.
+-- Another player's jar a character is in and since when; `guest` once they were let in there (PlotGuests),
+-- `flagged` once they were reported as an intruder there.
+export type PlotVisit = { index: number, since: number, guest: boolean?, flagged: boolean? }
 export type GuardEntry = {
 	track: MovementGuard.Track,
 	suspicion: Suspicion.State,
 	lastMax: number, -- last tick's allowed flat speed
 	carry: { slimeId: string, x: number, z: number, maxSpeed: number }?, -- where the current stolen carry began
-	plot: { index: number, since: number }?, -- another player's jar the character is in, and since when
+	plot: PlotVisit?, -- another player's jar the character is in (SlimeGuard.trackPlot)
 	logMinute: number,
 	logCount: number,
 }
