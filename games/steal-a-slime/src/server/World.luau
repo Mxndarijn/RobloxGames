@@ -62,6 +62,7 @@ export type Session = {
 	limiter: Validate.Limiter,
 	carry: CarryState?,
 	lastSlapAt: number,
+	lastDropAt: number, -- when this player last dropped a slime (Config.DROP_PICKUP_COOLDOWN), runtime only
 	incomeRemainder: number,
 	dirty: boolean,
 	lastPushAt: number,

@@ -93,6 +93,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - Entering your own plot's `HomeZone` deposits the carried slime on a free pad. If the plot is full you keep carrying it (Notify "bad").
   - The home ground is the round plot floor: a `HomeZone` part with a `Radius` attribute (`PLOT_FLOOR_RADIUS`) counts inside that circle only, from 4 studs under the part to 8 over it plus its `ReachUp` (`Shared.HomeZone`); a part without `Radius` counts its whole box.
   - Dying or respawning while carrying counts as `Drop`; leaving while carrying a stolen slime sends it home.
+  - After a drop (`Drop`, a bonk or PvP hit, dying) the player can't grab or steal any slime for `Config.DROP_PICKUP_COOLDOWN` seconds; `Carry.grab` refuses with "you just dropped a slime".
   - Players spawn on their plot's `Base`. Owner-only prompts (v13 names and texts: §8.5): `LockButton` ("Lock base", same as `Request("Lock")`) and `MergeVat` ("Manage vat": the owner's client opens the merge vat menu, §21).
 - **Income:** `Economy.tickIncome` runs every second. On load, the server pays `Economy.offlineIncome`, which is `OFFLINE_RATE` of income, capped at `OFFLINE_CAP_SECONDS`. A slime being carried away pays its owner nothing.
 - **Merge:** the plot's merge vat brews three slimes of one rarity into one of a higher rarity (`VatState`, `TripleMerge`, §21).
