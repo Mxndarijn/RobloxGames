@@ -5,10 +5,11 @@
 	Builds the wrapper a FollowPets pet glides in: Model "Pet_<id>" = PrimaryPart + "Slime" standing on it. With a
 	cloud template (the MeshPart the server publishes under ReplicatedStorage.PetCloudMeshes, native size) the
 	PrimaryPart is a clone of it, grown to CLOUD_FIT x the slime's visible footprint (CLOUD_SCALE to CLOUD_MAX_SCALE),
-	and the slime's foot sinks CLOUD_SINK into its top. A grown cloud keeps its bottom where a CLOUD_SCALE one would
+	and the slime's foot sinks CLOUD_SINK into its seat (the template's SeatHeight: a jelly's cherry or a rainbow's arch
+	rises above it; no SeatHeight = its top). A grown cloud keeps its bottom where a CLOUD_SCALE one would
 	hover (its pivot sits below its centre). Without a template a small invisible Mount is the PrimaryPart and the
-	slime stands level with the owner's feet. attach() swaps a Mount for a cloud later, so a pet never waits for the
-	template. The wrapper's pivot is the PrimaryPart pivot: PetFollow's goal. Every part made here is decor (no
+	slime stands level with the owner's feet; FollowPets builds the pet again once its seat's template shows up, so a pet
+	never waits for it. The wrapper's pivot is the PrimaryPart pivot: PetFollow's goal. Every part made here is decor (no
 	collision, query, touch or shadow).
 
 	Ground decor of the slime (SlimeLayout's goo "Puddle") is removed: on a cloud it reads as a flat disc under the
@@ -23,8 +24,10 @@ local PetCloud = {}
 
 PetCloud.PET_SIZE = 1.5 -- studs: a pet's longest visible side, whatever the slime's size (a hand-sized pet)
 PetCloud.PET_MAX_SCALE = 0.55 -- a pet is never more than this x the slime as built
-PetCloud.MESH = "pet_cloud" -- MeshAssets name, and the template's name in the folder
-PetCloud.FOLDER = "PetCloudMeshes" -- ReplicatedStorage folder the server publishes the template into
+PetCloud.MESH = "pet_cloud" -- the default seat's MeshAssets name, and its template's name in the folder
+PetCloud.FOLDER = "PetCloudMeshes" -- ReplicatedStorage folder the server publishes the seat templates into
+PetCloud.SEAT_ATTRIBUTE = "SeatHeight" -- on a template: seat surface over the mesh bottom, native studs (nil = its top)
+PetCloud.SEAT_FRACTION = "SeatFraction" -- on a clone: the same as a share of its height, 0..1
 PetCloud.CLOUD_SCALE = 0.55 -- smallest scale, of the native 3.3 x 1.2 x 2.4 mesh
 PetCloud.CLOUD_FIT = 1.15 -- the cloud is at least this x the slime's visible width and depth
 PetCloud.CLOUD_MAX_SCALE = 0.8 -- a wide pet overhangs its cloud rather than riding a giant one
@@ -86,6 +89,16 @@ function PetCloud.cloudScale(native: Vector3, slime: Vector3): number
 	return math.min(scale, PetCloud.CLOUD_MAX_SCALE)
 end
 
+-- Where the seat surface is, as a share of the template's height: SeatHeight / height, clamped to 0..1; 1 (its top)
+-- when the template has no SeatHeight.
+function PetCloud.seatFraction(template: BasePart): number
+	local height = template:GetAttribute(PetCloud.SEAT_ATTRIBUTE)
+	if type(height) ~= "number" or not (template.Size.Y > 0) then
+		return 1
+	end
+	return math.clamp(height / template.Size.Y, 0, 1)
+end
+
 local function makeCloud(template: BasePart, slime: Model): BasePart
 	local cloud = template:Clone()
 	cloud.Name = PetCloud.CLOUD_NAME
@@ -95,6 +108,7 @@ local function makeCloud(template: BasePart, slime: Model): BasePart
 	cloud.Size = template.Size * scale
 	-- Pivot below the centre, so a grown cloud rises instead of sinking towards the ground.
 	cloud.PivotOffset = CFrame.new(0, -template.Size.Y * (scale - PetCloud.CLOUD_SCALE) / 2, 0)
+	cloud:SetAttribute(PetCloud.SEAT_FRACTION, PetCloud.seatFraction(template))
 	PetCloud.decor(cloud)
 	return cloud
 end
@@ -112,7 +126,9 @@ end
 -- top; on a Mount the foot is at the owner's feet (PetFollow.OFFSET_Y is the root-to-anchor drop, the root sits 3
 -- studs above them).
 local function seat(slime: Model, anchor: BasePart, cloud: boolean)
-	local top = if cloud then anchor.Size.Y / 2 else -PetFollow.OFFSET_Y - 3
+	local fraction = anchor:GetAttribute(PetCloud.SEAT_FRACTION)
+	local share = if type(fraction) == "number" then fraction else 1
+	local top = if cloud then anchor.Size.Y * (share - 0.5) else -PetFollow.OFFSET_Y - 3
 	slime:PivotTo(CFrame.new())
 	local centre, size = PetCloud.visibleBox(slime)
 	local foot = centre.Y - size.Y / 2
@@ -139,35 +155,11 @@ function PetCloud.mount(slime: Model, userId: number, template: BasePart?): Mode
 	return wrapper
 end
 
-function PetCloud.hasCloud(wrapper: Model): boolean
-	local primary = wrapper.PrimaryPart
-	return primary ~= nil and primary.Name == PetCloud.CLOUD_NAME
-end
-
--- Swap a wrapper's Mount for a cloud clone and re-seat the slime, keeping the wrapper where it is. False if it
--- already has a cloud or is not a wrapper made by mount().
-function PetCloud.attach(wrapper: Model, template: BasePart): boolean
-	local slime = wrapper:FindFirstChild(PetCloud.SLIME_NAME)
-	local old = wrapper.PrimaryPart
-	if not (slime and slime:IsA("Model") and old) or PetCloud.hasCloud(wrapper) then
-		return false
-	end
-	local pivot = wrapper:GetPivot()
-	wrapper:PivotTo(CFrame.new())
-	local cloud = makeCloud(template, slime)
-	cloud.CFrame = CFrame.new()
-	cloud.Parent = wrapper
-	wrapper.PrimaryPart = cloud
-	old:Destroy()
-	seat(slime, cloud, true)
-	wrapper:PivotTo(pivot)
-	return true
-end
-
--- The published template under `storage` (ReplicatedStorage), or nil while it is not there.
-function PetCloud.find(storage: Instance): BasePart?
+-- The published template of seat mesh `mesh` (default: the plain cloud) under `storage` (ReplicatedStorage), or nil
+-- while it is not there.
+function PetCloud.find(storage: Instance, mesh: string?): BasePart?
 	local folder = storage:FindFirstChild(PetCloud.FOLDER)
-	local template = folder and folder:FindFirstChild(PetCloud.MESH)
+	local template = folder and folder:FindFirstChild(mesh or PetCloud.MESH)
 	if template and template:IsA("BasePart") then
 		return template
 	end

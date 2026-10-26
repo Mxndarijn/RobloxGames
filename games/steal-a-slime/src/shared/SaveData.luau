@@ -38,6 +38,7 @@
 	(BossBadges, contract/boss-event.md) replaces the boss trophy list `trophies`. v8 -> v9 (migrateV8) turns each
 	trophy of a boss species into wins[species] = 1 and drops `trophies`; pure, idempotent. deserialize grants the
 	badges the record has reached (stamped with lastOnline) and counts every won boss species as found.
+	petSeat (contract/pet-seats.md, no version bump): a Config.PET_SEATS id; missing / unknown / not unlocked -> "cloud".
 	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, speciesRewards = milestones paid;
 	missing -> empty / 0, unknown ids dropped, owned slimes always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
 	pvp (FEATURES.PvP, CONTRACT.md §26) is optional: { tiers = { Knockback = tier, Blaster = tier }, traps = { [id] = charges },
@@ -60,6 +61,7 @@ local BossBadges = if script then require(script.Parent.BossBadges) else require
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local HotbarOrder = if script then require(script.Parent.HotbarOrder) else require("./HotbarOrder")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
+local PetSeats = if script then require(script.Parent.PetSeats) else require("./PetSeats")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require("./SpeciesDex")
@@ -286,6 +288,16 @@ end
 
 -- Equipped plot skin of a stored profile: the saved id when it is a known skin the player has
 -- unlocked in `data` (so the dex must already be loaded), else "classic". Pure.
+-- The saved pet seat if it is a known seat the player has unlocked (PetSeats), else the default cloud. Runs after
+-- stats and found are loaded, since the unlock reads them.
+function SaveData.cleanPetSeat(raw: any, data: Data): string
+	local seat = PetSeats.get(raw)
+	if seat and PetSeats.unlocked(data, seat) then
+		return seat.id
+	end
+	return Config.PET_SEAT_DEFAULT
+end
+
 function SaveData.migratePlotSkin(raw: any, data: Data): string
 	local skin = if type(raw) == "table" then PlotSkins.get(raw.plotSkin) else nil
 	if skin and PlotSkins.unlocked(data, skin) then
@@ -616,6 +628,7 @@ function SaveData.deserialize(stored: any): Data
 	for species in data.boss.wins do
 		SpeciesDex.record(data, { species = species }) -- a won boss always counts in the SlimeDex
 	end
+	data.petSeat = SaveData.cleanPetSeat(raw.petSeat, data) -- after found / stats: pet seat (no version bump: missing / unknown / locked -> "cloud")
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
 	if type(raw.redeemed) == "table" then
@@ -724,6 +737,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		speciesRewards = data.speciesRewards,
 		quests = SaveData.cleanQuests(data.quests),
 		plotSkin = data.plotSkin,
+		petSeat = data.petSeat,
 		stealLog = StealAlert.clean(data.stealLog),
 		settings = AudioSettings.clean(data.settings),
 		allowFriends = if data.allowFriends == true then true else nil,
