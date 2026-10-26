@@ -83,7 +83,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 
 - **Spawner:** a wild slime drops every `SPAWN_INTERVAL`, with no cap on how many are alive (`Fountain.roll`). Each lives for `WILD_LIFETIME`.
   - `FREE_DROP_CHANCE` of drops are free.
-  - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab. A Mystery Egg is always free (contract/mystery-egg.md).
+  - The rest cost `Economy.wildPrice`: the slime's base income × `WILD_PRICE_SECONDS[tier]` (a longer payback the rarer it is; the rebirth multiplier doesn't count), charged on grab. A Mystery Egg is always free (contract/mystery-egg.md).
   - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Drops come every `RAIN_SPAWN_INTERVAL` and luck is ×5 (`Progression.rainStatus`). No heads-up toast before a rain.
 - **Carry:** grabbing and stealing use a **ProximityPrompt** (`GrabPrompt`) that the server puts on each slime's `Body`. There is no remote for this.
   - The prompt's `ActionText` is `"Grab"`, `"Buy $<price>"` (`Economy.formatNumber`) or `"Steal"`. `ObjectText` is `Genome.displayName`.
@@ -104,7 +104,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is hit (the Bat or any PvP item that touches them), drops it, dies / respawns or leaves. A carried wild slime is dropped by the same hits and lands at the carrier's feet. The carried slime stays solid for everyone, the thief included. An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
   - If the thief reaches their own `HomeZone` first, `Steal.complete` moves the slime to the thief.
   - **Both saves must be writable:** each player is saved on their own, so a theft needs this server to save both the thief and the owner (`World.canSave`, from `Persistence.canSave`: not read-only, session not taken over by another server, not a Studio fallback profile). Otherwise `Steal.canSteal` refuses ("your progress can't be saved on this server" / "their slimes can't be saved on this server"). If either save stops being writable during the carry, delivery sends the slime home instead (escape reason `"unsaved"`, the thief gets a `"bad"` Notify).
-- **Rebirth:** `Progression.rebirth` uses up the slimes the rebirth needs (§8.8a) and resets cash to `STARTING_CASH`. Every other slime stays on its pad. It adds +`REBIRTH_MULTIPLIER_STEP` income and a longer lock.
+- **Rebirth:** `Progression.rebirth` uses up the slimes the rebirth needs (§8.8a) and resets cash to `STARTING_CASH`. Every other slime stays on its pad. Rebirth n adds `Economy.rebirthStep(n)` to the income multiplier (`REBIRTH_MULTIPLIER_STEPS`: +0.5 for 1-10, +1 for 11-20, +1.5 for 21-30) and a longer lock. The top is `MAX_REBIRTHS` (30).
 - **DataStore:**
   - Store `Constants.DATASTORE_NAME`, key `"u_<UserId>"`.
   - The record is `SessionLock` wrapped around `SaveData.serialize`.
@@ -167,9 +167,9 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"Lock"` | none | Starts or extends the plot lock. Free. |
 | `"ToggleFriends"` | none | `FEATURES.FriendsInBase`: flips the owner's friends switch (friends pass the locked stopper and may steal). See [friends-in-base.md](contract/friends-in-base.md). |
 | `"Rebirth"` | none | Rebirths if `Progression.canRebirth`. |
-| `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. A Mystery Egg can't be sold: "eggs can't be sold". A slime brewing in the vat can't either: "That slime is brewing in the vat". |
+| `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`: `SELL_PRICE_SHARE` of its fountain price (`Economy.wildPrice`), so buying and reselling always loses money. A Mystery Egg can't be sold: "eggs can't be sold". A slime brewing in the vat can't either: "That slime is brewing in the vat". Nor can a slime the next rebirth uses up (`Progression.neededIds`): "Needed for your next rebirth" (`VatAdd` refuses it the same way). |
 | `"Favorite"` | `slimeId: string?` | Sets the favourite (the follow pet; a rebirth uses it up only when no other slime of a required species is there). `nil` clears it. |
-| `"BuyPad"` | none | Unlocks the next pad (`Economy.padCost`). |
+| `"BuyPad"` | none | Unlocks the next pad (`Economy.padCost`) once the player has the rebirths it needs (`Economy.padRebirths`); else "Rebirth <n> to unlock this pad". |
 | `"MoveSlime"` | `slimeId: string, pad: number` | `FEATURES.MoveSlime`: moves that owned, not-busy slime to `pad` (an unlocked pad, `1..padsUnlocked`, a whole number). If another slime sits there, the two swap pads; that slime must not be busy either. Moving to its own pad is a no-op. Fails with `"moving slimes is off"`, `"not your slime"`, `"pad is locked"`, `"slime is busy"`, `"That slime is brewing in the vat"`. Only `slime.pad` changes (no save change); the slime models re-place on the next world refresh. |
 | `"Daily"` | none | Claims the daily reward (`Progression.claimDaily`). |
 | `"ClaimQuest"` | `slot: number` | Claims daily quest `slot` (1..`DAILY_QUESTS.count`) once finished (`Quests.claim`): cash x rebirth multiplier or an income boost. `State.dailyQuests` has the 3 quests rolled per UTC day (progress = gained since the roll, saved as `quests`; missing = nothing rolled). |
@@ -256,6 +256,8 @@ The client always replaces its copy and never diffs.
 	rebirths: number, rebirthMultiplier: number, rebirthCost: number, canRebirth: boolean,
 	rebirthSlimes: { { id: string, name: string, tier: number, color: { number }, owned: boolean } }, -- §8.8a, empty at max
 	padsUnlocked: number, padsMax: number, nextPadCost: number?,
+	nextPadRebirths: number?, -- rebirths the next pad still needs; nil when it can be bought now or all are open
+	nextRebirthMultiplier: number, -- the income multiplier after the next rebirth (= rebirthMultiplier at max)
 	slimes: { { slime: SlimeData, income: number, sellPrice: number?, stolenBy: number? } }, -- sellPrice nil for a Mystery Egg; income 0 while brewing in the vat (§21)
 	favoriteId: string?,
 	lockUntil: number, lockDuration: number,
@@ -370,10 +372,11 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `RARITIES[i].carrySlow` (max `MAX_CARRY_SLOW`) | 0.05…0.35 (≤0.6) | "slows the carrier more the rarer it is" |
 | `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × growth |
 | `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 5 | "every hour … for 3 minutes" |
-| `PADS_START` / `PADS_PER_FLOOR` / `BASE_FLOORS` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 4 floors / 32 (`#BASE_FLOORS * PADS_PER_FLOOR`) / 8 | a base grows by floors of 8 pads; each `BASE_FLOORS` row prices its floor's pads (`Economy.padCost`) |
-| `OFFLINE_RATE` / `OFFLINE_CAP_SECONDS` | 0.5 / 7200 | capped offline income |
-| `REBIRTH_BASE_COST` / `REBIRTH_COST_GROWTH` / `REBIRTH_MULTIPLIER_STEP` | see `Config` | rebirth gives a multiplier, keeps every slime it doesn't use up (§8.8) |
-| `SPAWN_INTERVAL` / `FREE_DROP_CHANCE` / `WILD_PRICE_SECONDS` | 5 / 0.25 / 20 | "buy cheap ones … or grab a free drop" |
+| `PADS_START` / `PADS_PER_FLOOR` / `BASE_FLOORS` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 4 floors / 32 (`#BASE_FLOORS * PADS_PER_FLOOR`) / 8 | a base grows by floors of 8 pads; each `BASE_FLOORS` row lists the rebirths that open each of its pads (`Economy.padRebirths`) |
+| `PAD_START_COSTS` / `PAD_PRICE_SHARE` / `PAD_SAME_REBIRTH_GROWTH` | see `Config` | pads open at 0 rebirths cost `PAD_START_COSTS`; a pad rebirth R opens costs `PAD_PRICE_SHARE` of rebirth R + 1, x `PAD_SAME_REBIRTH_GROWTH` for each earlier pad of that R (`Economy.padCost`) |
+| `OFFLINE_RATE` / `OFFLINE_CAP_SECONDS` | see `Config` | capped offline income |
+| `REBIRTH_COSTS` / `REBIRTH_MULTIPLIER_STEPS` / `MAX_REBIRTHS` | see `Config` | a cost per rebirth and a multiplier step per band of rebirths, up to `#REBIRTH_SLIMES` rebirths (§8.8) |
+| `SPAWN_INTERVAL` / `FREE_DROP_CHANCE` / `WILD_PRICE_SECONDS` / `SELL_PRICE_SHARE` | see `Config` | wild price = base income x seconds of its rarity; sell = a share of that |
 | `STATE_MIN_INTERVAL` / `LEADERBOARD_INTERVAL` | 0.25 / 60 | §5.1, §2 |
 
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 19 | shop: speed coil |
@@ -381,7 +384,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `BOSS` | table | boss event (§33) |
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
-| `REBIRTH_LATE_FROM` / `REBIRTH_COST_GROWTH_LATE` / `REBIRTH_TIERS` / `UPGRADES` / `GOALS` / `DEX_MILESTONES` | 5 / 2 / tables | v13 progression (§8.8) |
+| `REBIRTH_TIERS` / `UPGRADES` / `GOALS` / `DEX_MILESTONES` | tables | v13 progression (§8.8) |
 | `SAVE_VERSION` | 9 | v13 schema (§8.9), v6 = `settings` + versioned `plotSkin` / `stealLog` (§8.9c), v7 = mutation fields stripped (§8.9d), v8 = Goo Trap charges ([pvp.md](contract/pvp.md)), v9 = trophies become the boss record `boss` ([boss-event.md](contract/boss-event.md)) |
 
 All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `WorldMeshesReady` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ItemShopStand` / `UpgradeShopStand` / the Hall of Fame boards / `HallOfFameArch` / `ProfessorGoo` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
