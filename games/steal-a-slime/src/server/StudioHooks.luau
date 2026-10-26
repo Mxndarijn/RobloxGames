@@ -6,7 +6,8 @@
 	the result with its own code: "PcwGrowth" (percent) the growth of the pad 1 slime, "PcwPlotSkin" (a skin id) finds
 	that skin's slimes and equips it (the tower turns to its theme), "PcwPetSeat" (a seat id) meets a free seat's goal and
 	equips it (the follow pet rides it), "PcwPads" (a count) the unlocked pads (the upper
-	jars build), "PcwSlimes" (a tier) puts three slimes of that rarity on free pads (a merge vat load). ServerLoop's
+	jars build), "PcwSlimes" (a tier) puts three slimes of that rarity on free pads (a merge vat load), "PcwPlotBase"
+	(a base id) raises the rebirths to that base's gate and equips it (CONTRACT.md §44). ServerLoop's
 	`pinClock` covers the
 	Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
@@ -21,6 +22,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local PetSeats = require(ReplicatedStorage.Shared.PetSeats)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
+local PlotBases = require(ReplicatedStorage.Shared.PlotBases)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local World = require(script.Parent.World)
@@ -54,6 +56,11 @@ local function apply(world: World.World, player: Player, refresh: () -> ())
 			profile.found[id] = true
 		end
 		PlotSkins.equip(profile, skin.id)
+	end
+	local base = PlotBases.get(player:GetAttribute("PcwPlotBase"))
+	if base then
+		profile.rebirths = math.max(profile.rebirths, base.rebirths or 0)
+		PlotBases.equip(profile, base.id)
 	end
 	local seat = PetSeats.get(player:GetAttribute("PcwPetSeat"))
 	if seat then
@@ -91,7 +98,7 @@ function StudioHooks.start(world: World.World, memoryMode: boolean, refresh: () 
 		return
 	end
 	local function watch(player: Player)
-		for _, name in { "PcwGrowth", "PcwPlotSkin", "PcwPetSeat", "PcwPads", "PcwSlimes" } do
+		for _, name in { "PcwGrowth", "PcwPlotSkin", "PcwPetSeat", "PcwPads", "PcwSlimes", "PcwPlotBase" } do
 			player:GetAttributeChangedSignal(name):Connect(function()
 				pcall(apply, world, player, refresh)
 			end)

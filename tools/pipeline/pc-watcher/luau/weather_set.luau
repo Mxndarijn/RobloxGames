@@ -11,15 +11,18 @@ workspace:SetAttribute("SnowCoverDebug", if cover >= 0 then cover else nil)
 local id = %%WEATHER%%
 workspace:SetAttribute(ATTR, if id == "" then nil else id)
 task.wait(%%WAIT%%)
+-- WeatherEmitter is a folder of tiles; rates are summed per emitter name over the tiles (jar tiles run at 0).
 local part = workspace:FindFirstChild("WeatherEmitter")
 local rates, active = {}, 0
 if part then
-	for _, e in part:GetChildren() do
+	for _, e in part:GetDescendants() do
 		if e:IsA("ParticleEmitter") then
-			rates[e.Name] = e.Rate
-			if e.Rate > 0 then
-				active += 1
-			end
+			rates[e.Name] = (rates[e.Name] or 0) + e.Rate
+		end
+	end
+	for _, rate in rates do
+		if rate > 0 then
+			active += 1
 		end
 	end
 end
