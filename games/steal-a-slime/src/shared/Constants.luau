@@ -14,12 +14,13 @@ return table.freeze({
 	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
 
 	SLIME_TAG = "Slime",
-	DATASTORE_NAME = "StealASlime_v1",
-	LEADERBOARD_STORE = "StealASlime_TotalEarned", -- OrderedDataStore, key "u_<UserId>"
-	WEEKLY_EARNED_STORE = "StealASlime_WeeklyEarned", -- OrderedDataStore per week: "<name>_<WeeklyEvents.weekIndex>", key "u_<UserId>"
-	STEALS_STORE = "StealASlime_TotalStolen", -- OrderedDataStore, key "u_<UserId>"
-	DEX_STORE = "StealASlime_SlimeDex", -- OrderedDataStore, key "u_<UserId>"
-	MERGES_STORE = "StealASlime_Merges", -- OrderedDataStore, key "u_<UserId>"
+	-- All stores moved to "_v2" on 2026-10-26 for a fresh start; the v1 data is still there, unread.
+	DATASTORE_NAME = "StealASlime_v2",
+	LEADERBOARD_STORE = "StealASlime_TotalEarned_v2", -- OrderedDataStore, key "u_<UserId>"
+	WEEKLY_EARNED_STORE = "StealASlime_WeeklyEarned_v2", -- OrderedDataStore per week: "<name>_<WeeklyEvents.weekIndex>", key "u_<UserId>"
+	STEALS_STORE = "StealASlime_TotalStolen_v2", -- OrderedDataStore, key "u_<UserId>"
+	DEX_STORE = "StealASlime_SlimeDex_v2", -- OrderedDataStore, key "u_<UserId>"
+	MERGES_STORE = "StealASlime_Merges_v2", -- OrderedDataStore, key "u_<UserId>"
 	DATASTORE_MODE_ATTRIBUTE = "DataStoreMode", -- workspace attribute: "Memory" = no real DataStore
 	-- workspace attribute set by the server: "Ok" | "Memory" | "Unavailable" | "Error" (CONTRACT.md §2)
 	DATASTORE_STATUS_ATTRIBUTE = "DataStoreStatus",
@@ -34,7 +35,7 @@ return table.freeze({
 	PLOTS_FOLDER = "Plots",
 	PLOT_SLIMES_FOLDER = "Slimes", -- per-plot folder for pad slimes
 	WILD_FOLDER = "WildSlimes",
-	SLIME_KITS_FOLDER = "SlimeKits", -- ReplicatedStorage: one loaded species MeshPart per kit, named "slime_<id>" (SlimeDex previews)
+	SLIME_KITS_FOLDER = "SlimeKits", -- PlayerGui: the species MeshParts this player asked for (RequestKits), named "slime_<id>" (SlimeDex previews)
 	PLOT_INDEX_ATTRIBUTE = "PlotIndex", -- Plot_<i> model: i
 	PAD_INDEX_ATTRIBUTE = "PadIndex", -- Pad_<j> part: j
 	HOME_ZONE = "HomeZone",
@@ -58,6 +59,7 @@ return table.freeze({
 	TUTORIAL_STEP_ATTRIBUTE = "TutorialStep", -- Player: 1..6, nil = done / not loaded
 	SPEED_COIL_ATTRIBUTE = "SpeedCoil", -- Player: true once the Speed Coil is owned
 	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FollowPets), nil = none
+	PET_SEAT_ATTRIBUTE = "PetSeat", -- Player: Config.PET_SEATS id their follow pet rides (PetSeats.current)
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
 	BOSS_MOVE_ATTRIBUTE = "BossMove", -- boss model: its current move (BossChoreo.encode); clients draw it every frame
 	BOSS_TARGETS_ATTRIBUTE = "BossTargets", -- boss model: "x,z;x,z" world spots its windup's spits will land on
@@ -94,6 +96,7 @@ return table.freeze({
 	REBIRTH_TITLE_ATTRIBUTE = "RebirthTitle", -- Player: rank title (Config.REBIRTH_TIERS)
 	PLOT_LOCKED_ATTRIBUTE = "Locked", -- Plot_<i>: true while LockUntil > now
 	PLOT_FRIENDS_ALLOWED_ATTRIBUTE = "FriendsAllowed", -- Plot_<i>: true while the owner lets friends in (FEATURES.FriendsInBase)
+	PLOT_GUESTS_ATTRIBUTE = "Guests", -- Plot_<i>: ",<id>,<id>," of the players its locked stopper lets through besides the owner
 	PLOT_PADS_UNLOCKED_ATTRIBUTE = "PadsUnlocked", -- Plot_<i>: owner's unlocked pads, 0 = free plot
 	PLOT_NEXT_PAD_COST_ATTRIBUTE = "NextPadCost", -- Plot_<i>: nil when maxed / free
 	PAD_UNLOCKED_ATTRIBUTE = "Unlocked", -- Pad_<j>: j <= PadsUnlocked

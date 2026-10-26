@@ -17,6 +17,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local MergeGate = if script then require(script.Parent.MergeGate) else require("./MergeGate")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 local TripleMerge = if script then require(script.Parent.TripleMerge) else require("./TripleMerge")
@@ -248,6 +249,16 @@ function VatState.missingText(data: Data): string?
 	return `Add {missing} more {Genome.rarity(tier).name}`
 end
 
+-- The lock on the vat's load: MergeGate.lockText when the player's rank can't merge its rarity yet, else nil.
+-- Loading ignores it; only Start refuses (contract/merge-vat.md §21.9).
+function VatState.gateText(data: Data): string?
+	local tier = VatState.tier(data)
+	if tier and not MergeGate.allows(tier, data.rebirths) then
+		return MergeGate.lockText(tier)
+	end
+	return nil
+end
+
 -- Starts the brew: `endsAt = now + brewSeconds(tier, factor)`. Returns (ok, reason).
 function VatState.start(data: Data, now: number, factor: number?): (boolean, string?)
 	if VatState.isBrewing(data) then
@@ -261,6 +272,10 @@ function VatState.start(data: Data, now: number, factor: number?): (boolean, str
 	local ok, reason = TripleMerge.canMerge(slimes)
 	if not ok then
 		return false, reason
+	end
+	local gate = VatState.gateText(data)
+	if gate then
+		return false, gate
 	end
 	local vat = ensure(data)
 	vat.startedAt = now

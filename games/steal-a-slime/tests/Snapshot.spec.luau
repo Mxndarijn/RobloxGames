@@ -24,6 +24,7 @@ local STATE_KEYS = {
 	"incomePerSec",
 	"rebirths",
 	"rebirthMultiplier",
+	"nextRebirthMultiplier",
 	"rebirthCost",
 	"canRebirth",
 	"padsUnlocked",
@@ -103,6 +104,29 @@ describe("Snapshot.build", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
 		expect(Snapshot.build(world, s, T0).nextPadCost).toBeNil()
+		expect(Snapshot.build(world, s, T0).nextPadRebirths).toBeNil()
+	end)
+	it("sends the multiplier after the next rebirth, and the current one at max", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		local edge = Config.REBIRTH_MULTIPLIER_STEPS[2].from
+		s.data.rebirths = edge - 1
+		expect(Snapshot.build(world, s, T0).nextRebirthMultiplier).toBe(Economy.rebirthMultiplier(edge))
+		s.data.rebirths = Config.MAX_REBIRTHS
+		local maxed = Snapshot.build(world, s, T0)
+		expect(maxed.nextRebirthMultiplier).toBe(maxed.rebirthMultiplier)
+	end)
+	it("sends the rebirths a locked next pad waits for, and nil once it can be bought", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		s.data.padsUnlocked = Config.PADS_START
+		expect(Snapshot.build(world, s, T0).nextPadRebirths).toBeNil()
+		s.data.padsUnlocked = Config.PADS_PER_FLOOR
+		local need = Economy.padRebirths(Config.PADS_PER_FLOOR) :: number
+		s.data.rebirths = need - 1
+		expect(Snapshot.build(world, s, T0).nextPadRebirths).toBe(need)
+		s.data.rebirths = need
+		expect(Snapshot.build(world, s, T0).nextPadRebirths).toBeNil()
 	end)
 end)
 

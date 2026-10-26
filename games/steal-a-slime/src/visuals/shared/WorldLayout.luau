@@ -195,7 +195,7 @@ WorldLayout.PAD_RINGS = table.freeze({ 22, 19, 16.5, 14.1 })
 WorldLayout.PAD_SIZE = 6.4
 WorldLayout.JAR_WALL = 1 -- glass thickness
 WorldLayout.JAR_WALL_SEGMENTS = 12
-WorldLayout.DECK_SEGMENTS = 16
+WorldLayout.DECK_SEGMENTS = 12
 WorldLayout.DOOR = table.freeze({ angle = -90, width = 8, height = 11 }) -- no wider than one glass segment
 WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22.5, firstAngle = 90 })
 -- The stair is a smooth spiral ramp (easy on a thumbstick): `segments` sloped boxes climb FLOOR_HEIGHT over one turn,
@@ -206,13 +206,13 @@ WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22
 -- clears it), never higher than just under the deck above. It leaves the floor under the ramp's high part and the
 -- deck round the hole above free to walk. Open for `railStart` degrees at the bottom and `railEnd` degrees before the
 -- top, so you step on and off the side.
-WorldLayout.RAMP = table.freeze({ segments = 24, walk = 4.2, railStart = 30, railEnd = 45, railHeight = 2.5 })
+WorldLayout.RAMP = table.freeze({ segments = 16, walk = 4.2, railStart = 30, railEnd = 45, railHeight = 2.5 })
 -- The top of the stair, on the top jar only (where the stair ends; a jar added above hides it, server/BaseFloors):
 -- the ramp goes on for `landing` more degrees, flat at floor height and out to the edge of the hole (no gap to the
 -- floor), so you arrive on a small platform instead of running straight off the end. No fence round the hole. The
 -- ramp below passes under it: at 120 degrees it still has about 9.7 studs of headroom there (tests/JarTower.spec keeps
--- at least 6). Built in 15-degree pieces, so keep `landing` a multiple of 15.
-WorldLayout.STAIR_TOP = table.freeze({ landing = 120 })
+-- at least 6). Built in `step`-degree pieces, so keep `landing` a multiple of `step`.
+WorldLayout.STAIR_TOP = table.freeze({ landing = 120, step = 30 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; the top jar's hatch sits at this angle, the tube lands in the goo moat.
 -- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
@@ -598,7 +598,7 @@ local function volcano(): WorldNode
 	local children: { WorldNode } = {
 		standIn(disc("Rock1", 3, d, onAxis(1.5), STONE, "Slate"), M),
 		standIn(disc("BasinRim", 1, d + 1, onAxis(3.5), STONE_TRIM, "Slate"), M),
-		standIn(disc("Pool", 0.4, d - 3, onAxis(3.1), POOL, "Glass"), M),
+		standIn(disc("Pool", 0.4, d - 3, onAxis(3.1), POOL, WorldLayout.JAR_GLASS_MATERIAL), M),
 		standIn(disc("Column", h - 8, 6, onAxis(3 + (h - 8) / 2), STONE, "Slate"), M),
 		standIn(disc("Bowl", 3, 14, onAxis(h - 3.5), STONE_TRIM, "Slate"), M),
 	}
@@ -673,8 +673,14 @@ local function chute(): WorldNode
 		end
 		local mid = { (a[1] + b[1]) / 2, (a[2] + b[2]) / 2 + thick / 2, (a[3] + b[3]) / 2 }
 		local rot = LayoutMath.facing(LayoutMath.scale(delta, 1 / length))
-		local part =
-			block(if i == 1 then "Floor" else `Span{i}`, { width, thick, length + 0.35 }, mid, GOO, "Glass", rot)
+		local part = block(
+			if i == 1 then "Floor" else `Span{i}`,
+			{ width, thick, length + 0.35 },
+			mid,
+			GOO,
+			WorldLayout.JAR_GLASS_MATERIAL,
+			rot
+		)
 		part.canCollide = false
 		part.canQuery = false
 		part.canTouch = false
@@ -1228,8 +1234,7 @@ local function ghost(node: WorldNode, transparency: number?): WorldNode
 end
 
 -- The doorway through jar 1's glass (plot-local, door at -Z). The stopper's collider (LockBarrier.Stopper) fills it
--- from DOOR_OUTER_PAD outside the glass to DOOR_INNER_INSET in from the glass; a non-owner caught in it as the lock
--- starts is set down outside on the bridge (PlotLockGuard.wedged).
+-- from DOOR_OUTER_PAD outside the glass to DOOR_INNER_INSET in from the glass.
 WorldLayout.DOOR_OUTER_PAD = 0.5
 WorldLayout.DOOR_INNER_INSET = 2 -- the stopper reaches this far inside the glass
 function WorldLayout.doorway(): { size: Vec, centre: Vec, halfWidth: number, zOuter: number, zInner: number }
@@ -1333,7 +1338,7 @@ local function radial(
 	yaw: number
 ): WorldNode
 	local x, z = polar(r, deg)
-	return block(name, size, at({ x, y, z }), JAR_GLASS, "Glass", { 0, yaw + 90 - deg, 0 })
+	return block(name, size, at({ x, y, z }), JAR_GLASS, WorldLayout.JAR_GLASS_MATERIAL, { 0, yaw + 90 - deg, 0 })
 end
 
 -- Attribute-driven plot cosmetics (PlotDecor; VisualsClient shows / hides them locally): the stopper lock and the
@@ -1374,9 +1379,9 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number): { WorldNode }
 end
 
 -- Pad_<j> on its floor: the Pad stays the gameplay part (prompt, slimes rest on its top, raycasts) from the floor up
--- to the stand's seat, but it doesn't collide: a round PadCollider (the dish's diameter, the same height) is what
--- players walk into and stand on, so the stand collides as round as it looks. The stand mesh sits on the floor at
--- native size and the Pad hides under it once it lands.
+-- to the stand's seat, but it doesn't collide. The stand mesh sits on the floor at native size and is what players
+-- walk into and stand on (a Hull, MeshAssets.COLLISION) and ground rays land on (MeshCanQuery), so the stand collides
+-- as round as it looks; until it lands its Stand slot box does both instead and the Pad shows.
 local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): WorldNode
 	local x, z = WorldLayout.padOffset(j)
 	local y = WorldLayout.floorTop(WorldLayout.padFloor(j))
@@ -1388,15 +1393,13 @@ local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): Wo
 	pad.attributes = { PadIndex = j }
 	pad.canCollide = false
 	standIn(pad, look)
-	local stand = meshSize(look, 1)
-	local collider =
-		disc("PadCollider", seat, 2 * WorldLayout.PAD_DECK.half, at({ x, y + seat / 2, z }), color, nil, yaw)
-	collider.transparency = 1
-	collider.canTouch = false
-	pad.children = {
-		meshSlot(block("Stand", stand, at({ x, y + stand[2] / 2, z }), color, nil, turn), look, true),
-		collider,
-	}
+	local size = meshSize(look, 1)
+	local stand = meshSlot(block("Stand", size, at({ x, y + size[2] / 2, z }), color, nil, turn), look, true)
+	stand.canCollide = true
+	stand.canQuery = true -- ground rays land dropped slimes on it (then on the mesh: MeshCanQuery)
+	local attributes = stand.attributes :: { [string]: any } -- meshSlot set MeshAsset
+	attributes.MeshCanQuery = true
+	pad.children = { stand }
 	return pad
 end
 
@@ -1471,7 +1474,7 @@ local function wallBand(
 						{ jw, h, t },
 						at({ x - tx * off, y, z - tz * off }),
 						JAR_GLASS,
-						"Glass",
+						WorldLayout.JAR_GLASS_MATERIAL,
 						turn
 					)
 				)
@@ -1482,7 +1485,7 @@ local function wallBand(
 						{ jw, h, t },
 						at({ x + tx * off, y, z + tz * off }),
 						JAR_GLASS,
-						"Glass",
+						WorldLayout.JAR_GLASS_MATERIAL,
 						turn
 					)
 				)
@@ -1513,11 +1516,12 @@ local function jarWall(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 end
 
 -- Floor f's deck (f >= 2): DECK_SEGMENTS boxes making a ring from the stair hole out over jar f - 1's glass, so it is
--- also that jar's lid. Its top is floor f's walking surface.
+-- also that jar's lid. Its top is floor f's walking surface. The boxes reach in to the polygon inscribed in the hole,
+-- so the round hole edge has no gap between two boxes.
 local function jarDeck(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local out = {}
 	local n = WorldLayout.DECK_SEGMENTS
-	local inner = WorldLayout.STAIR.hole
+	local inner = WorldLayout.STAIR.hole * math.cos(math.pi / n)
 	local outer = WorldLayout.jarRadius(f - 1) + WorldLayout.JAR_WALL
 	local width = 2 * outer * math.sin(math.pi / n) * 1.02
 	for k = 1, n do
@@ -1673,7 +1677,7 @@ local function stairTop(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		table.insert(out, variant(node, f, "top"))
 	end
 	-- flat boxes from the post out to the hole's edge, on round from where the ramp arrives
-	local step = 15
+	local step = top.step
 	local width = st.hole - st.post
 	for k = 1, top.landing // step do
 		local deg = start + (k - 0.5) * step
@@ -1930,11 +1934,12 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 		tube.width,
 		at({ tx, (lo + armY + tube.width / 2) / 2, tz }),
 		JAR_GOO,
-		"Glass",
+		WorldLayout.JAR_GLASS_MATERIAL,
 		yaw
 	)
 	for _, node in { arm, pipe } do
-		node.color, node.material, node.transparency = JAR_GOO, "Glass", WorldLayout.JAR_GLASS_TRANSPARENCY
+		node.color, node.material, node.transparency =
+			JAR_GOO, WorldLayout.JAR_GLASS_MATERIAL, WorldLayout.JAR_GLASS_TRANSPARENCY
 		table.insert(children, standIn(ghost(node, WorldLayout.JAR_GLASS_TRANSPARENCY), `goo_drop_tube_goo_{f}`))
 	end
 	if f == 2 then
@@ -1948,7 +1953,7 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 					6,
 					at({ land[1], WorldLayout.PLOT_FLOOR_TOP + 0.1, land[3] }),
 					JAR_GOO,
-					"Glass",
+					WorldLayout.JAR_GLASS_MATERIAL,
 					yaw
 				)
 			)
@@ -2001,7 +2006,8 @@ local function plot(i: number): WorldNode
 	-- Jar 1 (the static part of the tower): the goo moat and the cork floor inside it (decor on the Base, which stays
 	-- the walking surface), the bridge to the door, the glass wall with the door, and the lid.
 	local moat = WorldLayout.MOAT
-	local moatDisc = ghost(disc("Moat", 0.2, moat.outer * 2, at({ 0, 1, 0 }), JAR_GOO, "Glass", yaw))
+	local moatDisc =
+		ghost(disc("Moat", 0.2, moat.outer * 2, at({ 0, 1, 0 }), JAR_GOO, WorldLayout.JAR_GLASS_MATERIAL, yaw))
 	local floorDisc = ghost(disc("JarFloor", 0.2, moat.inner * 2, at({ 0, 1.02, 0 }), JAR_CORK, "Wood", yaw))
 	standIns({ moatDisc, floorDisc }, "goo_jar_foot")
 	table.insert(children, moatDisc)

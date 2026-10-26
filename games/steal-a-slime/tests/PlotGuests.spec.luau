@@ -57,19 +57,18 @@ describe("PlotGuests.isGuest", function()
 		expect(PlotGuests.isGuest(nil, 2, ON)).toBe(false)
 	end)
 
-	it("lists the guests in the server, sorted, and pairs plots for the stopper", function()
+	it("lists the guests in the server, sorted, and who passes each stopper", function()
 		local world, owner, friend, _ = setup()
-		local other = ServerFixtures.join(world, 4)
+		ServerFixtures.join(world, 4)
 		owner.friendIds = { [4] = true, [2] = true, [99] = true } -- 99 left the server
 		owner.data.allowFriends = true
 		expect(PlotGuests.list(world, owner, ON)).toEqual({ 2, 4 })
 		expect(PlotGuests.encode(PlotGuests.list(world, owner, ON))).toBe(",2,4,")
 		expect(PlotGuests.encode({})).toBeNil()
-		local pairs = PlotGuests.pairs(world, ON)
-		expect(pairs[owner.plotIndex][friend.plotIndex]).toBe(true)
-		expect(pairs[owner.plotIndex][other.plotIndex]).toBe(true)
-		expect(pairs[friend.plotIndex]).toBeNil() -- the friend has not switched theirs on
-		expect(next(PlotGuests.pairs(world, OFF))).toBeNil()
+		local passes = SlimeGuard.stopperPasses(world, ON)
+		expect(passes[owner.plotIndex]).toEqual({ 2, 4 })
+		expect(passes[friend.plotIndex]).toBeNil() -- the friend has not switched theirs on
+		expect(next(SlimeGuard.stopperPasses(world, OFF))).toBeNil()
 	end)
 end)
 
@@ -123,7 +122,7 @@ describe("a guest in a locked base", function()
 		expect((Carry.grab(world, 2, "gem", 1, T0 + 1))).toBe(true)
 	end)
 
-	it("is never an intruder while a guest, and judged like anyone once the switch goes off", function()
+	it("is never an intruder while a guest, nor after the switch goes off while still inside", function()
 		local world, owner, friend, _ = setup()
 		world.guardMode = "watch"
 		owner.data.allowFriends = true
@@ -131,7 +130,16 @@ describe("a guest in a locked base", function()
 		expect(SlimeGuard.trackPlot(world, friend, owner.plotIndex, T0 + 10)).toBeNil()
 		expect(SlimeGuard.trackPlot(world, friend, owner.plotIndex, T0 + 11)).toBeNil()
 		owner.data.allowFriends = nil
-		expect(SlimeGuard.trackPlot(world, friend, owner.plotIndex, T0 + 12)).toBe(owner.plotIndex)
+		-- Removed while inside: stays put, not an intruder, can't steal, and the stopper still lets them out.
+		expect(SlimeGuard.trackPlot(world, friend, owner.plotIndex, T0 + 12)).toBeNil()
+		expect(SlimeGuard.trackPlot(world, friend, owner.plotIndex, T0 + 30)).toBeNil()
+		expect((Carry.grab(world, 2, "gem", 1, T0 + 30))).toBe(false)
+		expect(SlimeGuard.formerGuests(world)[owner.plotIndex][2]).toBe(true)
+		expect(SlimeGuard.stopperPasses(world, ON)[owner.plotIndex]).toEqual({ 2 })
+		-- Out of the jar: the pass is gone, and walking back in after the lock began makes them an intruder.
+		expect(SlimeGuard.trackPlot(world, friend, nil, T0 + 31)).toBeNil()
+		expect(SlimeGuard.formerGuests(world)[owner.plotIndex]).toBeNil()
+		expect(SlimeGuard.trackPlot(world, friend, owner.plotIndex, T0 + 32)).toBe(owner.plotIndex)
 	end)
 
 	it("sees the Steal prompts: on, for the guests only", function()

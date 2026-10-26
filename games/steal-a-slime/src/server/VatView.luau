@@ -9,7 +9,9 @@
 	    hatch shows never mistake it for the real slime;
 	  * its own pad model stays and turns see-through (VatView.FADE), so the pad stays taken;
 	  * the pad sign and floating tag say "In vat" while it waits and "IN VAT" while it brews (`labelStatus`);
-	  * a tag over the vat: "Merge vat" and a pill with the load, the time left or "Ready" (`tagLine`).
+	  * a tag over the vat: "Merge vat", a pill with the load, the time left or "Ready" (`tagLine`) and, while not
+	    brewing, a line with the owner's merge cap ("Up to Rare") or "Rebirth 3 to merge" for a load their rank
+	    can't merge yet (`capLine`, Shared.MergeGate; the pill turns Warn too).
 	A slime a thief is carrying away leaves its spot. `tagLine`, `labelStatus` and `spotOffset` are pure
 	(tests/VatView.spec.luau); `sync` makes the plot match and only touches Roblox APIs when called.
 ]]
@@ -18,6 +20,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
 local GooPalette = if Shared then require(Shared.GooPalette) else require("../shared/GooPalette")
+local MergeGate = if Shared then require(Shared.MergeGate) else require("../shared/MergeGate")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local VatDecor = if Shared then require(Shared.Parent.Visuals.VatDecor) else require("../visuals/shared/VatDecor")
 local StealGhost = if script then require(script.Parent.StealGhost) else require("./StealGhost")
@@ -33,9 +36,20 @@ VatView.SPOT_LIFT = 0.15 -- studs above the goo
 VatView.TAG_NAME = "VatTag"
 VatView.SPOTS_NAME = "VatSpots"
 VatView.FADED_ATTRIBUTE = Constants.OWN_TRANSPARENCY_ATTRIBUTE -- on a faded part: its own transparency before the fade
-VatView.TAG = table.freeze({ w = 220, h = 74, title = 30, titleSize = 26, gap = 4, line = 30, lineSize = 20, lift = 2 })
+VatView.TAG = table.freeze({
+	w = 220,
+	h = 104,
+	title = 30,
+	titleSize = 26,
+	gap = 4,
+	line = 30,
+	lineSize = 20,
+	cap = 26,
+	capSize = 17,
+	lift = 2,
+})
 
-export type Line = { text: string, color: "Mint" | "Gold" | "MutedWell" }
+export type Line = { text: string, color: "Mint" | "Gold" | "MutedWell" | "Warn" }
 
 -- What the vat's pill says at server time `now`.
 function VatView.tagLine(data: any, now: number): Line
@@ -51,7 +65,22 @@ function VatView.tagLine(data: any, now: number): Line
 	if not tier then
 		return { text = "Move slimes in", color = "MutedWell" }
 	end
-	return { text = `{#ids}/{VatState.SIZE} {Genome.rarity(tier).name}`, color = "Mint" }
+	local locked = VatState.gateText(data) ~= nil
+	return { text = `{#ids}/{VatState.SIZE} {Genome.rarity(tier).name}`, color = if locked then "Warn" else "Mint" }
+end
+
+-- The line under the pill: "Rebirth 3 to merge" for a load the owner's rank can't merge yet, else their cap
+-- ("Up to Rare"); nil while brewing.
+function VatView.capLine(data: any): Line?
+	if VatState.isBrewing(data) then
+		return nil
+	end
+	local tier = VatState.tier(data)
+	if tier and VatState.gateText(data) then
+		local need = MergeGate.rebirthsFor(tier)
+		return { text = if need then `Rebirth {need} to merge` else "Can't merge", color = "Warn" }
+	end
+	return { text = MergeGate.capText(data.rebirths), color = "MutedWell" }
 end
 
 -- The status line of a pad slime that is in the vat (it replaces the income line on its sign and tag); nil otherwise.
@@ -132,6 +161,23 @@ local function buildTag(vat: BasePart): BillboardGui
 	pad.PaddingRight = UDim.new(0, 14)
 	pad.Parent = pill
 	pill.Parent = gui
+	local cap = Instance.new("TextLabel")
+	cap.Name = "Cap"
+	cap.AnchorPoint = Vector2.new(0.5, 0)
+	cap.Position = UDim2.new(0.5, 0, 0, T.title + T.gap + T.line + T.gap)
+	cap.Size = UDim2.fromOffset(0, T.cap)
+	cap.AutomaticSize = Enum.AutomaticSize.X
+	cap.BackgroundColor3 = rgb(GooPalette.Ink)
+	cap.Font = Enum.Font.FredokaOne
+	cap.TextSize = T.capSize
+	local capCorner = Instance.new("UICorner")
+	capCorner.CornerRadius = UDim.new(1, 0)
+	capCorner.Parent = cap
+	local capPad = Instance.new("UIPadding")
+	capPad.PaddingLeft = UDim.new(0, 12)
+	capPad.PaddingRight = UDim.new(0, 12)
+	capPad.Parent = cap
+	cap.Parent = gui
 	gui.Parent = vat
 	return gui
 end
@@ -328,6 +374,13 @@ function VatView.sync(
 		line.Text = view.text
 		line.Visible = view.text ~= ""
 		line.TextColor3 = rgb((GooPalette :: any)[view.color])
+	end
+	local capLabel = (tag :: Instance):FindFirstChild("Cap") :: TextLabel?
+	if capLabel then
+		local view = if data then VatView.capLine(data) else nil
+		capLabel.Text = if view then view.text else ""
+		capLabel.Visible = view ~= nil
+		capLabel.TextColor3 = rgb((GooPalette :: any)[if view then view.color else "MutedWell"])
 	end
 	(tag :: BillboardGui).Enabled = data ~= nil
 end

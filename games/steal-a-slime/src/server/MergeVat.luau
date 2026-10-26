@@ -16,6 +16,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local MergeRecipes = if Shared then require(Shared.MergeRecipes) else require("../shared/MergeRecipes")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
+local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -31,6 +32,9 @@ end
 function MergeVat.add(world: World, session: Session, id: string): (boolean, string?)
 	if World.isBusy(world, id) then
 		return false, "slime is busy"
+	end
+	if Progression.neededIds(session.data)[id] then
+		return false, Progression.NEEDED_TEXT
 	end
 	local ok, reason = VatState.add(session.data, id)
 	if not ok then

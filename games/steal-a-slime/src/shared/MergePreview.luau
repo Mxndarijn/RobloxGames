@@ -10,6 +10,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local MergeGate = if script then require(script.Parent.MergeGate) else require("./MergeGate")
 local MergeRecipes = if script then require(script.Parent.MergeRecipes) else require("./MergeRecipes")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 local TripleMerge = if script then require(script.Parent.TripleMerge) else require("./TripleMerge")
@@ -31,6 +32,7 @@ export type Preview = {
 	jumpTier: number?,
 	jumpRarity: string?,
 	jumpChance: number, -- 0..1
+	jumpOpensAt: number?, -- the rebirth count that opens the jump this load would have without the rank gate
 	size: number, -- expected size
 	species: string?, -- recipe only
 }
@@ -83,12 +85,16 @@ end
 -- load gives (size from the slimes so far; a recipe shows only once all three are in).
 function MergePreview.forSlimes(slimes: { Slime }, known: any?): Preview
 	local fromTier = slimes[1].tier
-	local odds = TripleMerge.odds(fromTier)
+	local rebirths = if type(known) == "table" and type(known.rebirths) == "number" then known.rebirths else nil
+	local odds = TripleMerge.odds(fromTier, rebirths)
 	local tier, jumpTier, jumpChance = odds.tier, odds.jumpTier, odds.jumpChance
+	local jumpOpensAt = if jumpTier == nil and TripleMerge.odds(fromTier).jumpTier
+		then MergeGate.rebirthsFor(fromTier + 1)
+		else nil
 	local size = expectedSize(slimes, Config.TRIPLE_MERGE_SIZE_BONUS)
 	local recipe = MergePreview.recipeFor(slimes, known)
 	if recipe then
-		tier, jumpTier, jumpChance = recipe.tier, nil, 0
+		tier, jumpTier, jumpChance, jumpOpensAt = recipe.tier, nil, 0, nil
 	end
 	local rarity = Genome.rarity(tier)
 	local title = if recipe then recipe.name else "Random slime"
@@ -101,6 +107,7 @@ function MergePreview.forSlimes(slimes: { Slime }, known: any?): Preview
 		jumpTier = jumpTier,
 		jumpRarity = if jumpTier then Genome.rarity(jumpTier).name else nil,
 		jumpChance = jumpChance,
+		jumpOpensAt = jumpOpensAt,
 		size = size,
 		species = if recipe then recipe.species else nil,
 	}

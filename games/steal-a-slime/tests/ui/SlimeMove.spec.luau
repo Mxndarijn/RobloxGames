@@ -1,6 +1,7 @@
 --!strict
 -- Move mode rules (src/ui/SlimeMove.luau, FEATURES.MoveSlime): what a place on a pad would do, the nearest
 -- unlocked pad, and the bar's texts. The live mode (ghost, tint, input) is checked in a Studio playtest.
+local MergeGate = require("../../src/shared/MergeGate")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 local roblox = require("@lune/roblox") :: any
@@ -8,6 +9,7 @@ local roblox = require("@lune/roblox") :: any
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local Vector3 = roblox.Vector3
 local SlimeMove = UiHarness.ui("SlimeMove")
+local EPIC_AT = MergeGate.rebirthsFor(4) :: number
 
 describe("SlimeMove.classify", function()
 	local occupied = { [1] = true, [2] = true }
@@ -79,6 +81,16 @@ describe("SlimeMove into the merge vat", function()
 		expect(SlimeMove.vatClass({ ids = {} }, slime("a", 1))).toBe("vat")
 		expect(SlimeMove.vatClass({ ids = { "x" }, tier = 1 }, slime("a", 1))).toBe("vat")
 		expect(SlimeMove.vatStatus("vat", "Gummy", 1)).toBe("Merge vat: adds Gummy (2/3)")
+	end)
+	it("a rarity the rank can't merge yet still goes in, lit yellow with when it opens", function()
+		local class, why = SlimeMove.vatClass({ ids = {} }, slime("a", 4), EPIC_AT - 1)
+		expect(class).toBe("vatGated")
+		expect(why).toBe(`Epic merges open at Rebirth {EPIC_AT}`)
+		expect(SlimeMove.vatStatus(class, "Blaze", 0, why)).toBe(
+			`Merge vat: adds Blaze (1/3). Epic merges open at Rebirth {EPIC_AT}.`
+		)
+		expect(SlimeMove.vatClass({ ids = {} }, slime("a", 4), EPIC_AT)).toBe("vat")
+		expect(SlimeMove.vatClass({ ids = { "x", "y", "z" }, tier = 4 }, slime("a", 4), 1)).toBe("vatRefused")
 	end)
 	it("a full vat, another rarity, a brew or an egg say why", function()
 		local function reason(vat: any, s: any): string?

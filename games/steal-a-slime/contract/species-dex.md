@@ -66,11 +66,12 @@ DexEntryView = {
 	name: string,           -- always the species name, found or not
 	hint: string?,          -- the card's hint line
 	ingredients: { string }?, -- hybrids: 3 slots, the species id when that ingredient is found, "" when not
+	ingredientSets: { string }?, -- hybrids: the set of each slot's species, found or not (FountainTiers family name, "Meadow" for Classic)
 }
 DexRewardView = { count: number, reward: number, bonus: number, claimed: boolean }
 ```
 
-Every entry carries its name, found or not. What else the server reveals (it never sends an ingredient the player has not found):
+Every entry carries its name, found or not. What else the server reveals (it never sends an ingredient the player has not found, only its set):
 
 | Kind | `hint` | `ingredients` |
 |---|---|---|
@@ -81,9 +82,17 @@ Every entry carries its name, found or not. What else the server reveals (it nev
 
 ## 36.5 Client
 
-The SlimeDex panel (Nav key `Dex`) shows: the species count and percent (`found / total`), a bar,
-the next milestone with its reward, then one card per entry grouped by rarity (tier header rows), the
-bonus entries last. A found card shows the species mesh (`ctx.buildSpecies`, else `ctx.buildSlime` with the species, ViewportFrame) in full
-colour and its name; an unfound card shows the same mesh as a flat black
-silhouette with its name, and for hybrids a "Merge-only" badge, the hint and three ingredient slots. Cards sit in
-a grid whose column count follows the panel width (one column on a narrow phone). Plot-skin cards stay above.
+The SlimeDex panel (Nav key `Dex`) has the found count and percent as chips, one line with the next species
+milestone and its reward over a bar, and four tabs: Fountain (spawn), Merges (hybrid), Bosses (boss) and Secrets
+(event; hidden on a server without event Secrets), each with its found count.
+
+- **Fountain, Bosses, Secrets:** a grid of cards grouped by rarity, each card only the species mesh
+  (`ctx.buildSpecies`, else `ctx.buildSlime`, ViewportFrame; a flat black silhouette while not found) and the name.
+  Tapping a card fills the side pane: a big preview, the rarity, how to get it, its set, how many are in your base
+  (`State.slimes`) and the merges it is used in (from `ingredients`), with a button to those merges.
+- **Merges:** one row per hybrid: three ingredient slots, then the result and its status. A slot is "In base" (the
+  player has one on a pad now, duplicates counted), "Found" (found before, none in base) or unknown ("???" and its
+  set from `ingredientSets`). The result shows its name and rarity, or the hint. Status: Made (found), Ready to
+  merge (every slot in base), else "Need N more". Ready rows sort first, Made rows last.
+
+Plot skins have their own menu (Nav key `Skins`, §15), not a section of the SlimeDex.

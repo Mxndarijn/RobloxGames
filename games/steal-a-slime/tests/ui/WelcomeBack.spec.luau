@@ -2,6 +2,7 @@
 -- v20 welcome-back card: contents, content-sized panel and queue ordering with Daily / tutorial.
 local Config = require("../../src/shared/Config")
 local Layout = require("../../src/ui/Layout")
+local LayoutAssert = require("./LayoutAssert")
 local PopupQueue = require("../../src/ui/PopupQueue")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
@@ -138,5 +139,60 @@ describe("Welcome panel look", function()
 		expect(UiHarness.find(goal, "Count").Text).toBe("2/5")
 		expect(UiHarness.find(goal, "Bar").Visible).toBe(true)
 		expect(UiHarness.find(goal, "Amount").Visible).toBe(false)
+	end)
+end)
+
+describe("Welcome card on a clamped screen", function()
+	local Widgets = UiHarness.ui("Widgets")
+
+	-- The card init.client places on `screen` for the full four-row report, its body box, and the body's parts.
+	local function place(screen: any): (any, any, any, any)
+		local ctx: any = { Config = Config, togglePanel = function() end }
+		local panel = UiHarness.ui("Panels/Welcome").new(UiHarness.root(), ctx)
+		panel.update(state({ daily = { available = true, streak = 2, amount = 250 } }))
+		local body = UiHarness.find(panel.frame, "Body")
+		local content = Widgets.contentHeight(body)
+		local card = Layout.panelFor(screen, "Welcome", content)
+		return panel, card, Layout.panelBody(card), content
+	end
+
+	-- Top of a body child in body px, for a body `h` tall.
+	local function topIn(h: number, inst: any): number
+		return inst.Position.Y.Scale * h + inst.Position.Y.Offset
+	end
+
+	-- Landscape phone ScreenGuis short enough to clamp the four-row card.
+	local phones = { { name = "800x334", w = 800, h = 334 }, { name = "844x332", w = 844, h = 332 } }
+	for _, vp in phones do
+		it(`{vp.name} touch: Collect sits inside the clamped card and the rows scroll above it`, function()
+			local screen = Layout.screen(vp.w, vp.h, { touch = true })
+			local panel, card, b, content = place(screen)
+			expect(UiHarness.find(panel.frame, "Row4").Visible).toBe(true)
+			expect(Layout.cardHeight(content) > card.h).toBe(true) -- the screen clamps this card
+			local collect = UiHarness.find(panel.frame, "Collect")
+			local top = topIn(b.h, collect)
+			expect(top >= 0).toBe(true)
+			expect(top + collect.Size.Y.Offset <= b.h + 0.5).toBe(true)
+			local check = LayoutAssert.new(vp.name, screen)
+			check.inside("Collect", Layout.rect(b.x, b.y + top, b.w, collect.Size.Y.Offset), "card", card)
+			expect(#check.problems).toBe(0)
+			local scroll = UiHarness.find(panel.frame, "Content")
+			local view = b.h - Layout.BUTTON
+			expect(topIn(b.h, scroll) + view <= top + 0.5).toBe(true) -- the rows end where Collect starts
+			local row4 = UiHarness.find(panel.frame, "Row4")
+			expect(scroll.CanvasSize.Y.Offset > view).toBe(true)
+			expect(scroll.CanvasSize.Y.Offset >= row4.Position.Y.Offset + row4.Size.Y.Offset).toBe(true)
+		end)
+	end
+
+	it("1920x1080: the card fits its content and Collect sits the collect gap under the last row", function()
+		local panel, card, b, content = place(Layout.screen(1920, 1080))
+		expect(card.h).toBe(Layout.cardHeight(content))
+		local row4 = UiHarness.find(panel.frame, "Row4")
+		local collect = UiHarness.find(panel.frame, "Collect")
+		local rowsEnd = row4.Position.Y.Offset + row4.Size.Y.Offset
+		expect(math.abs(topIn(b.h, collect) - (rowsEnd + UiHarness.ui("Panels/Welcome").ROWS.collectGap)) < 0.5).toBe(
+			true
+		)
 	end)
 end)

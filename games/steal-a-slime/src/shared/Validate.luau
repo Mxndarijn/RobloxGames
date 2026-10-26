@@ -32,6 +32,7 @@ Validate.ACTIONS = table.freeze({
 	Drop = 0.3,
 	Redeem = 2,
 	EquipPlotSkin = 0.5,
+	EquipPetSeat = 0.5,
 	BuyConsumable = 0.5,
 	UseConsumable = 0.5,
 	SetAudioSettings = 0.5,
@@ -42,6 +43,7 @@ Validate.ACTIONS = table.freeze({
 	CloseShop = 0.5,
 	ShopBuy = 0.5,
 	SetHotbar = 0.3,
+	RequestKits = 0.25,
 })
 
 function Validate.slimeId(value: any): string?

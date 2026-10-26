@@ -7,6 +7,7 @@ local Constants = require("../../src/shared/Constants")
 local Fixtures = require("../Fixtures")
 local Genome = require("../../src/shared/Genome")
 local Layout = require("../../src/ui/Layout")
+local MergeGate = require("../../src/shared/MergeGate")
 local Remotes = require("../../src/shared/Remotes")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
@@ -93,8 +94,9 @@ describe("Merge menu: describe", function()
 	it("a full load starts with the brew time on the button", function()
 		local v = Merge.describe(state({ "a", "b", "c" }), NOW, rarityOf, Genome.displayName)
 		expect(v.main.kind).toBe("start")
-		expect(v.main.text).toBe("Start merge · 30s")
-		expect(v.brewText).toBe("Brew time 30s")
+		local brew = Merge.brewText(Config.MERGE_BREW_SECONDS[1])
+		expect(v.main.text).toBe(`Start merge · {brew}`)
+		expect(v.brewText).toBe(`Brew time {brew}`)
 	end)
 
 	it("brewing locks the slots, counts down and offers the hold to cancel", function()
@@ -134,6 +136,62 @@ describe("Merge menu: describe", function()
 			"Move a Common here"
 		)
 		expect(Merge.withArticle("Uncommon")).toBe("an Uncommon")
+	end)
+end)
+
+describe("Merge menu: the rank gate", function()
+	local EPICS = { view("e1", 4, { pad = 1 }), view("e2", 4, { pad = 2 }), view("e3", 4, { pad = 3 }) }
+	local RARES = { view("r1", 3, { pad = 1 }), view("r2", 3, { pad = 2 }), view("r3", 3, { pad = 3 }) }
+	local RARE_AT = MergeGate.rebirthsFor(3) :: number
+	local EPIC_AT = MergeGate.rebirthsFor(4) :: number
+	local function gated(slimes: { any }, ids: { string }, rebirths: number): any
+		local tier = slimes[1].slime.tier
+		return {
+			slimes = slimes,
+			rebirths = rebirths,
+			vat = { ids = ids, tier = tier, seconds = Config.MERGE_BREW_SECONDS[tier] },
+		}
+	end
+
+	it("a full load the rank can't merge yet waits behind 'Rebirth N to unlock'", function()
+		local v = Merge.describe(gated(EPICS, { "e1", "e2", "e3" }, EPIC_AT - 2), NOW, rarityOf, Genome.displayName)
+		expect(v.main.kind).toBe("well")
+		expect(v.main.text).toBe(`Rebirth {EPIC_AT} to unlock`)
+		expect((v.gate :: any).chip).toBe(`Rebirth {EPIC_AT}`)
+		expect((v.gate :: any).line).toBe(`Epic merges open at Rebirth {EPIC_AT}`)
+		expect(v.reason).toBe("Rebirth 2 more times to merge Epics. Until you start, these still earn on their pads.")
+	end)
+
+	it("a part load shows the lock too, and says it can be filled now", function()
+		local v = Merge.describe(gated(EPICS, { "e1" }, EPIC_AT - 1), NOW, rarityOf, Genome.displayName)
+		expect(v.main.text).toBe(`Rebirth {EPIC_AT} to unlock`)
+		expect(v.reason).toBe(`You can fill the vat now and start it once you reach Rebirth {EPIC_AT}.`)
+		expect(v.slots[2].name).toBe("Move an Epic here")
+	end)
+
+	it("an open load starts as usual; the card shows the chip, padlock and Warn line only when locked", function()
+		local open = Merge.describe(gated(EPICS, { "e1", "e2", "e3" }, EPIC_AT), NOW, rarityOf, Genome.displayName)
+		expect(open.main.kind).toBe("start")
+		expect(open.gate).toBe(nil)
+		local panel = build()
+		panel.update(gated(EPICS, { "e1", "e2", "e3" }, EPIC_AT - 1))
+		expect(find(panel, "GateChip").Visible).toBe(true)
+		expect(find(panel, "GateChip").Text).toBe(`🔒 Rebirth {EPIC_AT}`)
+		expect(find(panel, "Odds").Text).toBe(`Epic merges open at Rebirth {EPIC_AT}`)
+		expect(find(panel, "Mark").Text).toBe("🔒")
+		expect(find(panel, "StartButton").Visible).toBe(false)
+		expect(find(panel, "Missing").Text).toBe(`Rebirth {EPIC_AT} to unlock`)
+		panel.update(gated(EPICS, { "e1", "e2", "e3" }, EPIC_AT))
+		expect(find(panel, "GateChip").Visible).toBe(false)
+		expect(find(panel, "StartButton").Visible).toBe(true)
+	end)
+
+	it("a jump the rank doesn't open yet says when it does", function()
+		local panel = build()
+		panel.update(gated(RARES, { "r1", "r2", "r3" }, RARE_AT))
+		expect(find(panel, "Odds").Text).toBe(`No jump: Legendary opens at Rebirth {EPIC_AT}`)
+		panel.update(gated(RARES, { "r1", "r2", "r3" }, EPIC_AT))
+		expect(find(panel, "Odds").Text).toBe("20% chance of a Legendary")
 	end)
 end)
 
@@ -214,6 +272,14 @@ describe("Merge menu: slime previews", function()
 end)
 
 describe("Merge menu: layout", function()
+	-- A body child's box with its Y resolved against a body `h` tall (pinned buttons use Scale 1).
+	local function resolved(box: any, h: number): any
+		local p = box.Position
+		return {
+			Position = { X = { Offset = p.X.Offset }, Y = { Offset = p.Y.Scale * h + p.Y.Offset } },
+			Size = box.Size,
+		}
+	end
 	local function inside(box: any, w: number, h: number): boolean
 		local p, s = box.Position, box.Size
 		return p.X.Offset >= 0
@@ -229,12 +295,30 @@ describe("Merge menu: layout", function()
 			local r = Layout.panelFor(screen, "Merge", 600)
 			panel.layout(r)
 			local b = Layout.panelBody(r)
-			local body = panel.frame:FindFirstChild("Body")
-			local h = math.max(b.h, body.Size.Y.Offset)
-			expect(inside(find(panel, "Load"), b.w, h)).toBe(true)
+			expect(inside(find(panel, "Load"), b.w, find(panel, "Content").CanvasSize.Y.Offset)).toBe(true)
 			local btn = find(panel, "StartButton")
-			expect(inside(btn, b.w, h)).toBe(true)
+			expect(inside(resolved(btn, b.h), b.w, b.h)).toBe(true)
 			expect(btn.Size.Y.Offset * screen.scale >= Layout.MIN_TOUCH_DESIGN * Layout.MIN_SCALE - 0.5).toBe(true)
+		end)
+	end
+	for _, size in { { 800, 334 }, { 844, 332 } } do
+		it(`{size[1]}x{size[2]} touch, brewing: Hold to cancel stays inside the clamped card`, function()
+			local panel = build()
+			panel.update(state({ "a", "b", "c" }, { startedAt = NOW, endsAt = NOW + 30 }))
+			local screen = Layout.screen(size[1], size[2], { touch = true })
+			local Widgets = UiHarness.ui("Widgets")
+			local content = Widgets.contentHeight(find(panel, "Body"))
+			local r = Layout.panelFor(screen, "Merge", content)
+			panel.layout(r)
+			expect(Layout.cardHeight(Widgets.contentHeight(find(panel, "Body"))) > r.h).toBe(true)
+			local b = Layout.panelBody(r)
+			local cancel = resolved(find(panel, "CancelButton"), b.h)
+			expect(find(panel, "CancelButton").Visible).toBe(true)
+			expect(inside(cancel, b.w, b.h)).toBe(true)
+			local scroll = find(panel, "Content")
+			local timer = find(panel, "Timer")
+			expect(scroll.Size.Y.Scale * b.h + scroll.Size.Y.Offset <= cancel.Position.Y.Offset + 0.5).toBe(true)
+			expect(scroll.CanvasSize.Y.Offset >= timer.Position.Y.Offset + timer.Size.Y.Offset).toBe(true)
 		end)
 	end
 end)

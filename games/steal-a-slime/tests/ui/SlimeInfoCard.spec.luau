@@ -75,6 +75,64 @@ local function fakeCollection(tagged: { any }): any
 	}
 end
 
+-- A signal whose handlers the spec runs by hand and counts.
+local function fakeSignal(): any
+	local handlers: { () -> () } = {}
+	return {
+		Connect = function(_self: any, fn: () -> ())
+			table.insert(handlers, fn)
+			return {
+				Disconnect = function()
+					local i = table.find(handlers, fn)
+					if i then
+						table.remove(handlers, i)
+					end
+				end,
+			}
+		end,
+		fire = function()
+			for _, fn in table.clone(handlers) do
+				fn()
+			end
+		end,
+		count = function(): number
+			return #handlers
+		end,
+	}
+end
+
+-- A Camera stand-in: ViewportSize is read-only on the real class.
+local function fakeCamera(width: number, height: number): any
+	local viewport = fakeSignal()
+	return {
+		ViewportSize = roblox.Vector2.new(width, height),
+		viewport = viewport,
+		GetPropertyChangedSignal = function(_self: any, name: string): any
+			assert(name == "ViewportSize", name)
+			return viewport
+		end,
+	}
+end
+
+-- A Workspace stand-in holding `camera` as its CurrentCamera.
+local function fakeWorld(camera: any): any
+	local changed = fakeSignal()
+	return {
+		CurrentCamera = camera,
+		changed = changed,
+		GetPropertyChangedSignal = function(_self: any, name: string): any
+			assert(name == "CurrentCamera", name)
+			return changed
+		end,
+	}
+end
+
+-- SlimeInfoCard.start on a desktop-sized camera unless the spec brings its own world.
+local function start(opts: { [string]: any }): () -> ()
+	opts.world = opts.world or fakeWorld(fakeCamera(1920, 1080))
+	return SlimeInfoCard.start(opts :: any)
+end
+
 local function rowsOf(gui: any): { any }
 	local card = gui:FindFirstChild("Card")
 	local out = {}
@@ -116,6 +174,48 @@ describe("SlimeInfoCard rows", function()
 		expect(three.X.Scale > 0 and three.X.Offset > 0).toBe(true)
 		expect(three.Y.Scale > 0 and three.Y.Offset > 0).toBe(true)
 	end)
+	it("shrinks the pixel floor on a phone-height viewport, never the studs", function()
+		local fit = SlimeInfoCard.fit(334)
+		expect(fit.pxScale < 1).toBe(true)
+		expect(fit.pxScale).toBe(SlimeInfoCard.SIZE.minPxScale) -- a landscape phone is under the floor
+		for _, count in { 3, 4 } do
+			local desk, phone = SlimeInfoCard.size(count), SlimeInfoCard.size(count, fit.pxScale)
+			expect(phone.X.Offset < desk.X.Offset and phone.Y.Offset < desk.Y.Offset).toBe(true)
+			expect(phone.X.Offset > 0 and phone.Y.Offset > 0).toBe(true)
+			expect(phone.X.Scale).toBe(desk.X.Scale)
+			expect(phone.Y.Scale).toBe(desk.Y.Scale)
+		end
+		expect(SlimeInfoCard.fit(1080).pxScale).toBe(1) -- a tall monitor keeps the full floor
+		expect(SlimeInfoCard.fit(SlimeInfoCard.SIZE.referenceHeightPx).pxScale).toBe(1)
+		local mid = SlimeInfoCard.fit(540).pxScale
+		expect(mid > SlimeInfoCard.SIZE.minPxScale and mid < 1).toBe(true)
+	end)
+	it("shows tags over a shorter distance on a small viewport", function()
+		local s = SlimeInfoCard.SIZE
+		expect(SlimeInfoCard.fit(334).maxDistance).toBe(s.smallMaxDistance)
+		expect(s.smallMaxDistance < s.maxDistance).toBe(true)
+		expect(SlimeInfoCard.fit(s.smallViewportPx).maxDistance).toBe(s.maxDistance)
+		expect(SlimeInfoCard.fit(1080).maxDistance).toBe(s.maxDistance)
+	end)
+end)
+
+describe("SlimeInfoCard close-up cap", function()
+	it("draws a near tag all in px, the size it has at closeLimit", function()
+		local limit = SlimeInfoCard.SIZE.closeLimit
+		local px = SlimeInfoCard.pxPerStud(334, 70, limit)
+		local mixed = SlimeInfoCard.size(4, 0.6)
+		local fixed = SlimeInfoCard.fixedSize(4, 0.6, px)
+		expect(fixed.X.Scale).toBe(0)
+		expect(fixed.Y.Scale).toBe(0)
+		expect(math.abs(fixed.X.Offset - (mixed.X.Scale * px + mixed.X.Offset)) <= 1).toBe(true)
+		expect(math.abs(fixed.Y.Offset - (mixed.Y.Scale * px + mixed.Y.Offset)) <= 1).toBe(true)
+	end)
+	it("is smaller than the uncapped tag closer in", function()
+		local px = SlimeInfoCard.pxPerStud(334, 70, SlimeInfoCard.SIZE.closeLimit)
+		local near = SlimeInfoCard.pxPerStud(334, 70, 3)
+		expect(near > px).toBe(true)
+		expect(SlimeInfoCard.fixedSize(3, 0.6, px).X.Offset < SlimeInfoCard.fixedSize(3, 0.6, near).X.Offset).toBe(true)
+	end)
 end)
 
 describe("SlimeInfoCard render", function()
@@ -127,6 +227,16 @@ describe("SlimeInfoCard render", function()
 		expect(gui.SizeOffset.Y).toBe(0.5) -- bottom edge on the anchor, so the tag is all above the mesh top
 		expect(gui.Archivable).toBe(false)
 		expect(gui.LightInfluence).toBe(0)
+	end)
+	it("sizes the tag for a given fit", function()
+		local gui = SlimeInfoCard.build()
+		local fit = SlimeInfoCard.fit(334)
+		SlimeInfoCard.render(gui, view({ price = 500 }), 3, fit)
+		expect(gui.Size).toBe(SlimeInfoCard.size(4, fit.pxScale))
+		expect(gui.MaxDistance).toBe(fit.maxDistance)
+		SlimeInfoCard.render(gui, view(), 3)
+		expect(gui.Size).toBe(SlimeInfoCard.size(3))
+		expect(gui.MaxDistance).toBe(SlimeInfoCard.SIZE.maxDistance)
 	end)
 	it("shows the rarity on a pill of its colour, the name outlined in Ink and the income in mint", function()
 		local Theme = UiHarness.ui("Widgets").Theme
@@ -220,7 +330,7 @@ describe("SlimeInfoCard.start", function()
 	it("puts one card on each tagged slime's Body, on its TagAnchor, at LabelHeight", function()
 		local a, b = slimeModel(attrs()), slimeModel(attrs())
 		local collection = fakeCollection({ a })
-		local stop = SlimeInfoCard.start({ collection = collection, tag = Constants.SLIME_TAG })
+		local stop = start({ collection = collection, tag = Constants.SLIME_TAG })
 		collection.fire("added", b)
 		collection.fire("added", b) -- a second add of the same model makes no second card
 		for _, model in { a, b } do
@@ -245,7 +355,7 @@ describe("SlimeInfoCard.start", function()
 	it("re-renders on a label attribute change only, and leaves with the tag", function()
 		local model = slimeModel(attrs())
 		local collection = fakeCollection({})
-		local stop = SlimeInfoCard.start({ collection = collection, tag = Constants.SLIME_TAG })
+		local stop = start({ collection = collection, tag = Constants.SLIME_TAG })
 		collection.fire("added", model)
 		local gui = model:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME)
 		local income = gui:FindFirstChild("Card"):FindFirstChild("Income")
@@ -259,11 +369,38 @@ describe("SlimeInfoCard.start", function()
 		expect(model:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME)).toBeNil()
 		stop()
 	end)
+	it("fits the tags to the camera's viewport and refits them only when it changes", function()
+		local phone = fakeCamera(800, 334)
+		local world = fakeWorld(phone)
+		local model = slimeModel(attrs())
+		local stop = start({ collection = fakeCollection({ model }), tag = Constants.SLIME_TAG, world = world })
+		local gui = model:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME)
+		local small = SlimeInfoCard.fit(334)
+		expect(gui.Size).toBe(SlimeInfoCard.size(3, small.pxScale))
+		expect(gui.MaxDistance).toBe(SlimeInfoCard.SIZE.smallMaxDistance)
+		expect(phone.viewport.count()).toBe(1)
+		-- rotated to portrait: the viewport grows tall, the tag gets the full floor back
+		phone.ViewportSize = roblox.Vector2.new(390, 844)
+		phone.viewport.fire()
+		expect(gui.Size).toBe(SlimeInfoCard.size(3))
+		expect(gui.MaxDistance).toBe(SlimeInfoCard.SIZE.maxDistance)
+		-- a new camera: the old one is let go, the new one's viewport fits the tags
+		local other = fakeCamera(800, 334)
+		world.CurrentCamera = other
+		world.changed.fire()
+		expect(phone.viewport.count()).toBe(0)
+		expect(other.viewport.count()).toBe(1)
+		expect(gui.Size).toBe(SlimeInfoCard.size(3, small.pxScale))
+		expect(gui.MaxDistance).toBe(SlimeInfoCard.SIZE.smallMaxDistance)
+		stop()
+		expect(other.viewport.count()).toBe(0)
+		expect(world.changed.count()).toBe(0)
+	end)
 	it("waits for a Body that replicates after the tag, and hides a card until the server names the slime", function()
 		local late = UiHarness.Instance.new("Model")
 		late:SetAttribute(Constants.LABEL_NAME_ATTRIBUTE, "Lop")
 		local unnamed = slimeModel({ [Constants.LABEL_INCOME_ATTRIBUTE] = 5 })
-		local stop = SlimeInfoCard.start({ collection = fakeCollection({ late, unnamed }), tag = Constants.SLIME_TAG })
+		local stop = start({ collection = fakeCollection({ late, unnamed }), tag = Constants.SLIME_TAG })
 		expect(#late:GetChildren()).toBe(0)
 		local body = UiHarness.Instance.new("Part")
 		body.Name = "Body"
@@ -404,7 +541,7 @@ describe("SlimeInfoCard.start on a pad", function()
 	it("swaps the floating tag for a sign on the pad, and back when the slime leaves it", function()
 		local _, pad, model = plotWithSlime(1, padAttrs(1))
 		local signs = UiHarness.Instance.new("Folder")
-		local stop = SlimeInfoCard.start({
+		local stop = start({
 			collection = fakeCollection({ model }),
 			tag = Constants.SLIME_TAG,
 			signParent = signs,
@@ -427,7 +564,7 @@ describe("SlimeInfoCard.start on a pad", function()
 		local plot, _, model = plotWithSlime(1, padAttrs(1))
 		model.Parent = nil
 		local signs = UiHarness.Instance.new("Folder")
-		local stop = SlimeInfoCard.start({
+		local stop = start({
 			collection = fakeCollection({ model }),
 			tag = Constants.SLIME_TAG,
 			signParent = signs,
@@ -444,7 +581,7 @@ describe("SlimeInfoCard.start on a pad", function()
 		local _, _, model = plotWithSlime(1, padAttrs(5))
 		local signs = UiHarness.Instance.new("Folder")
 		local collection = fakeCollection({ model })
-		local stop = SlimeInfoCard.start({ collection = collection, tag = Constants.SLIME_TAG, signParent = signs })
+		local stop = start({ collection = collection, tag = Constants.SLIME_TAG, signParent = signs })
 		expect(model:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME).Enabled).toBe(true)
 		expect(#signs:GetChildren()).toBe(0)
 		model:SetAttribute(Constants.LABEL_PAD_ATTRIBUTE, 1)
@@ -458,7 +595,7 @@ describe("SlimeInfoCard.start on a pad", function()
 		local _, _, model = plotWithSlime(1, padAttrs(1))
 		local signs = UiHarness.Instance.new("Folder")
 		local collection = fakeCollection({ model })
-		local stop = SlimeInfoCard.start({ collection = collection, tag = Constants.SLIME_TAG, signParent = signs })
+		local stop = start({ collection = collection, tag = Constants.SLIME_TAG, signParent = signs })
 		local body = model:FindFirstChild("Body")
 		expect(body:FindFirstChild(SlimeInfoCard.NAME)).toBeNil()
 		expect(body:FindFirstChild(Constants.TAG_ANCHOR) ~= nil).toBe(true) -- other readers still find the anchor

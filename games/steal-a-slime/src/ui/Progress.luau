@@ -6,8 +6,9 @@
 	Pure (tests/ui/Progress.spec.luau). Reads CONTRACT §5.1 fields, State.dex
 	(§36.4), plus the optional v13 fields (§8.2: rebirthTitle, nextRebirthTier,
 	dexRewards, dexBonus) when a server sends them;
-	future rebirth costs come from the caller's `costOf(rebirths)` (the panel
-	passes Shared.Economy.rebirthCost) so the formula lives in one place.
+	future rebirth costs and multipliers come from the caller's `costOf(rebirths)`
+	and `multOf(rebirths)` (Shared.Economy.rebirthCost / rebirthMultiplier), and
+	the next one from State.nextRebirthMultiplier, so the formulas live in one place.
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
@@ -25,7 +26,6 @@ export type DexProgress = { count: number, total: number, fraction: number, perc
 
 -- Config fields this module needs (Shared.Config satisfies it).
 export type Cfg = {
-	REBIRTH_MULTIPLIER_STEP: number,
 	LOCK_SECONDS_PER_REBIRTH: number,
 	LOCK_MAX_SECONDS: number,
 	MAX_REBIRTHS: number,
@@ -38,7 +38,13 @@ local function num(value: any): number
 end
 
 -- The current tier plus up to `ahead` next ones (stops at MAX_REBIRTHS).
-function Progress.rebirthTiers(state: any, cfg: Cfg, costOf: (number) -> number, ahead: number): { Tier }
+function Progress.rebirthTiers(
+	state: any,
+	cfg: Cfg,
+	costOf: (number) -> number,
+	multOf: (number) -> number,
+	ahead: number
+): { Tier }
 	local r = num(state.rebirths)
 	local mult = num(state.rebirthMultiplier)
 	local lock = num(state.lockDuration)
@@ -51,7 +57,7 @@ function Progress.rebirthTiers(state: any, cfg: Cfg, costOf: (number) -> number,
 		end
 		table.insert(out, {
 			rebirth = r + k,
-			multiplier = mult + k * cfg.REBIRTH_MULTIPLIER_STEP,
+			multiplier = multOf(r + k),
 			lockSeconds = math.min(lock + k * cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_SECONDS),
 			cost = if k == 1 then num(state.rebirthCost) else costOf(r + k - 1),
 			current = false,
@@ -141,7 +147,7 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 			elseif ready then "Ready!"
 			else `{Format.formatCash(math.max(0, cost - have))} more`,
 		progress = `{Format.formatCash(have)} / {Format.formatCash(cost)}`,
-		multiplier = num(state.rebirthMultiplier) + cfg.REBIRTH_MULTIPLIER_STEP,
+		multiplier = num(state.nextRebirthMultiplier),
 		lockGain = math.max(0, math.min(lock + cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_SECONDS) - lock),
 		slimes = slimes,
 		missing = missing,

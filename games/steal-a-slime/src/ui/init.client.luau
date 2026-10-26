@@ -31,11 +31,13 @@ local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
 local FriendBonus = require(Shared:WaitForChild("FriendBonus"))
 local Genome = require(Shared:WaitForChild("Genome"))
 local GrabBlock = require(Shared:WaitForChild("GrabBlock"))
+local KitRequest = require(Shared:WaitForChild("KitRequest"))
 local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local SlimeLooks = require(Shared:WaitForChild("SlimeLooks"))
 local SlimeRoster = require(Shared:WaitForChild("SlimeRoster"))
+local SpeciesDex = require(Shared:WaitForChild("SpeciesDex"))
 local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local Types = require(Shared:WaitForChild("Types"))
 
@@ -50,6 +52,7 @@ local Inventory = require(script.Inventory)
 local InventoryTools = require(script.InventoryTools)
 local ItemIconView = require(script.ItemIconView)
 local ItemIcons = require(script.ItemIcons)
+local KitCache = require(script.KitCache)
 local Layout = require(script.Layout)
 local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
@@ -83,6 +86,7 @@ local HintOverlay = require(Panels.HintOverlay)
 local LeaderboardPanel = require(Panels.Leaderboard)
 local MergePanel = require(Panels.Merge)
 local RebirthPanel = require(Panels.Rebirth)
+local SkinsPanel = require(Panels.Skins)
 local SoundPanel = require(Panels.Sound)
 local TutorialOverlay = require(Panels.TutorialOverlay)
 local WelcomePanel = require(Panels.Welcome)
@@ -225,6 +229,21 @@ local function send(action: string, ...: any)
 	invoke(action, nil, ...)
 end
 
+-- Species kit meshes come on demand: a preview missing its kit asks for it (RequestKits); wants of one frame go
+-- out together. Arrivals are watched below (watchKits), once the panels exist.
+local kitCache = KitCache.new({
+	KitRequest = KitRequest,
+	invoke = function(raw: string): boolean
+		local ok, result = pcall(function()
+			return request:InvokeServer("RequestKits", raw)
+		end)
+		return ok and type(result) == "table" and result.ok == true
+	end,
+	delay = function(seconds: number, fn: () -> ())
+		task.delay(seconds, fn)
+	end,
+})
+
 -- SlimeDex pictures: the real slime model from Archer's
 -- Visuals.ModelFactory (same builder as the in-world slimes), untagged so
 -- no slime-tag listener picks up the viewport copy. nil = no Visuals.
@@ -272,9 +291,12 @@ local ctx: { [string]: any } = {
 	-- SlimeDex cards: species names / colours and the species mesh preview.
 	SlimeRoster = SlimeRoster,
 	SlimeLooks = SlimeLooks,
+	setName = SpeciesDex.setName,
+	-- Plot skins menu: each skin's slimes.
+	PlotSkins = PlotSkins,
 	buildSpecies = SpeciesModel.builder(function()
-		return ReplicatedStorage:FindFirstChild(Constants.SLIME_KITS_FOLDER)
-	end, MeshAssets.IMPORT_YAW),
+		return gui.Parent and gui.Parent:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	end, MeshAssets.IMPORT_YAW, kitCache.want),
 }
 
 local hud = Hud.new(gui, ctx)
@@ -317,7 +339,8 @@ local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
 -- One label per slime, a tag above it or a sign on its pad (contract/slime-labels.md): event-driven, no frame work.
-SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = Constants.SLIME_TAG })
+local _, slimeTagsTick =
+	SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = Constants.SLIME_TAG })
 
 -- The dimmed full-window backdrop (Layout.backdrop: the whole viewport, top bar included, square) behind an open menu card (screen.panel).
 -- Made before the panels so their cards draw over it; a tap on it closes
@@ -328,7 +351,7 @@ local backdrop = Widgets.backdrop({
 })
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
--- order: Rebirth, Goals, SlimeDex, Codes, Leaders) or a world prompt, closed with their X, the backdrop, Esc or
+-- order: Rebirth, Goals, SlimeDex, Codes, Skins, Leaders) or a world prompt, closed with their X, the backdrop, Esc or
 -- gamepad B.
 local panelByKey: { [string]: any } = {
 	Merge = MergePanel.new(gui, ctx),
@@ -336,6 +359,7 @@ local panelByKey: { [string]: any } = {
 	Rebirth = RebirthPanel.new(gui, ctx),
 	Goals = GoalsPanel.new(gui, ctx),
 	Dex = DexPanel.new(gui, ctx),
+	Skins = SkinsPanel.new(gui, ctx),
 	Codes = CodesPanel.new(gui, ctx),
 	Leaderboard = LeaderboardPanel.new(gui, ctx),
 }
@@ -552,33 +576,26 @@ local function forceDex(state: any): any
 	return view
 end
 
--- Studio-only: the SlimeUI attribute "PcwPlotSkin" (a skin id) fakes State.plotSkins with that skin
--- unlocked and equipped (every other skin locked at 0 owned), so the picker can be shot with
--- FEATURES.PlotSkins off. Live servers (not Studio) always get the server's State untouched.
+-- Studio-only: the SlimeUI attribute "PcwPlotSkin" (a skin id) fakes State.plotSkins from the player's Dex with
+-- that skin unlocked and equipped, so the Plot skins menu can be shot with FEATURES.PlotSkins off. Live servers
+-- (not Studio) always get the server's State untouched.
 local function forcePlotSkins(state: any): any
 	local id = if isStudio then gui:GetAttribute("PcwPlotSkin") else nil
-	if type(id) ~= "string" or id == "" or state.plotSkins ~= nil then
+	if type(id) ~= "string" or id == "" or state.plotSkins ~= nil or PlotSkins.get(id) == nil then
 		return state
 	end
-	local total = PlotSkins.setSize()
+	local found: { [string]: boolean } = {}
+	if type(state.dex) == "table" then
+		for _, entry in state.dex.entries or {} do
+			found[entry.id] = entry.found == true
+		end
+	end
 	local view = table.clone(state)
 	view.plotSkin = id
-	view.plotSkins = {}
-	for _, skin in Config.PLOT_SKINS do
-		local rarity = if skin.set then Config.RARITIES[skin.set] else nil
-		local on = skin.id == id
-		table.insert(view.plotSkins, {
-			id = skin.id,
-			name = skin.name,
-			setName = if rarity then rarity.name else nil,
-			tier = skin.set,
-			owned = if on or skin.set == nil then total else 0,
-			total = total,
-			needed = if skin.set then PlotSkins.needed(skin) else 0,
-			fraction = if on or skin.set == nil then 1 else 0,
-			unlocked = on or skin.set == nil,
-			equipped = on,
-		})
+	view.plotSkins = PlotSkins.view({ found = found, plotSkin = id } :: any)
+	for _, skin in view.plotSkins do
+		skin.equipped = skin.id == id
+		skin.unlocked = skin.unlocked or skin.id == id
 	end
 	return view
 end
@@ -817,6 +834,7 @@ local slimeMove = if Config.FEATURES.MoveSlime == true
 		uis = game:GetService("UserInputService"),
 		cas = ContextActionService,
 		prompts = ProximityPromptService,
+		onActive = inventory.setMoving,
 	})
 	else nil
 
@@ -1005,7 +1023,7 @@ applyLayout()
 setOpen(nil)
 
 -- Studio-only test hook for the PC watcher (tools/pipeline/pc-watcher): setting the
--- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path
+-- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path ("Skins:cloud": on its Cloud tab)
 -- (contents rendered), "" closes it. Never active in live servers.
 if game:GetService("RunService"):IsStudio() then
 	gui:GetAttributeChangedSignal("PcwOpen"):Connect(function()
@@ -1014,6 +1032,12 @@ if game:GetService("RunService"):IsStudio() then
 			-- the world shop card as the stand's prompt opens it; the shop comes from the PcwWorldShop attribute
 			local shopId = gui:GetAttribute("PcwWorldShop")
 			worldShop.onEvent({ kind = "Open", shopId = if type(shopId) == "string" then shopId else "ItemShop" })
+			return
+		end
+		if key == "Skins:cloud" then
+			-- the Skins menu on its Cloud tab (scripts can't press the tab)
+			setOpen("Skins")
+			panelByKey.Skins.setTab("cloud")
 			return
 		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
@@ -1132,6 +1156,45 @@ local function render(realState: Types.State)
 			layoutCards()
 		end
 	end
+end
+
+-- A kit that arrives in the player's kit folder (RequestKits) swaps the open menu's fallback previews for the mesh:
+-- one render per burst of arrivals, plus the SlimeDex's preview refresh (its rows don't rebuild for it).
+do
+	local scheduled = false
+	local function kitsArrived()
+		if scheduled then
+			return
+		end
+		scheduled = true
+		task.delay(0.1, function()
+			scheduled = false
+			if latest then
+				pcall(render, latest)
+			end
+			for _, entry in allPanels do
+				if entry.key == openKey and entry.panel.refreshPreviews then
+					pcall(entry.panel.refreshPreviews)
+				end
+			end
+		end)
+	end
+	local function watchKits(folder: Instance)
+		folder.ChildAdded:Connect(kitsArrived)
+		if #folder:GetChildren() > 0 then
+			kitsArrived()
+		end
+	end
+	local playerGui = gui.Parent :: Instance
+	local existing = playerGui:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	if existing then
+		watchKits(existing)
+	end
+	playerGui.ChildAdded:Connect(function(child: Instance)
+		if child.Name == Constants.SLIME_KITS_FOLDER then
+			watchKits(child)
+		end
+	end)
 end
 
 if isStudio then
@@ -1258,6 +1321,7 @@ task.spawn(function()
 				applyLayout() -- the jump button came or went (input switched, touch controls toggled)
 			end
 		end)
+		guardedTick("slimeTags", slimeTagsTick)
 		if latest then
 			local now = serverNow()
 			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.

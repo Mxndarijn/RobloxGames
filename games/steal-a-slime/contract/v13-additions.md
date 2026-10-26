@@ -14,7 +14,7 @@ Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing
 
 ```luau
 {
-	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 28 while the Speed Coil is held)
+	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 19 while the Speed Coil is held)
 	incomeMultiplier: number,      -- total income multiplier: rebirth x upgrade x rank x dex (>= rebirthMultiplier)
 	rebirthTitle: string,          -- current rank title, e.g. "Slime Rookie"
 	rebirthTiers: { { rebirths: number, title: string, text: string, unlocked: boolean } },  -- every rank, ascending
@@ -98,7 +98,8 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 ## 8.8 Progression
 
-- **Rebirth cost:** `REBIRTH_BASE_COST x REBIRTH_COST_GROWTH^min(r, REBIRTH_LATE_FROM) x REBIRTH_COST_GROWTH_LATE^max(0, r - REBIRTH_LATE_FROM)` (values in `Config`).
+- **Rebirth cost:** `Config.REBIRTH_COSTS[r + 1]` at `r` rebirths (`Economy.rebirthCost`), a table set with the pacing sim. The income multiplier is `1 + sum of Economy.rebirthStep(n)` for n = 1..r (`Config.REBIRTH_MULTIPLIER_STEPS`).
+- **Pads open with rebirths:** pad n needs `Economy.rebirthsForPad(n)` rebirths (`Config.BASE_FLOORS[f].padRebirths`) and costs `Economy.padCost` (§6 of CONTRACT.md).
 - **Ranks** (`Config.REBIRTH_TIERS`, reached at rebirth count; perks don't stack, the best unlocked value wins):
 
 | Rebirths | Title | Perk |
@@ -114,6 +115,7 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 | 12 | Gel Emperor | +35 % income |
 | 15 | Gelatinous Legend | +50 % income |
 | 20 | Mythic Monarch | +100 % income |
+| 25 | Goo Titan | +150 % income |
 | 30 | Slime Deity | +200 % income |
 
   Rebirth keeps every slime it doesn't use up (§8.8a), at every rank.
@@ -121,11 +123,11 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 | id | Name | Per level | Max | base / growth | Needs rebirths |
 |---|---|---|---|---|---|
-| `Income` | Slime Snacks | +10 % income | 10 | 2 000 / 2.5 | 0 |
+| `Income` | Slime Snacks | +10 % income | 25 | 2 000 / 2.2 | 0 / 2 / 6 / 12 / 20 for levels 1-5 / 6-10 / 11-15 / 16-20 / 21-25 (`levelRequires`) |
 | `CarrySpeed` | Strong Arms | -15 % carry slowdown | 4 | 5 000 / 3 | 1 |
 | `OfflineCap` | Night Shift | +1 h offline income cap | 4 | 20 000 / 3 | 3 |
 | `QuickBrew` | Quick Brew | -15 % merge vat brew time (§21) | 4 | 25 000 / 3 | 2 / 4 / 6 / 8 (one per level, `levelRequires`) |
-| `Luck` | Lucky Charm | +4 % chance a wild slime you bring home is one rarity higher | 5 | 100 000 / 3 | 5 |
+| `Luck` | Lucky Charm | +3 % chance a wild slime you bring home is one rarity higher | 10 | 100 000 / 4 | 5, 5, 5, 8, 8, 12, 12, 16, 20, 25 (`levelRequires`) |
 
 An upgrade needs `requires` rebirths for every level, or, with the optional `levelRequires = { number }`, `levelRequires[n]` rebirths for level n (`Upgrades.requiresFor`).
 
@@ -151,7 +153,10 @@ Rebirth number N also needs the slimes listed in `Config.REBIRTH_SLIMES[N]` (one
 SlimeRoster ids; a repeated id needs that many slimes) owned in `data.slimes` (on a pad, not an
 egg). Every level has its own list (`#REBIRTH_SLIMES == MAX_REBIRTHS`, no two lists alike), a
 family species only appears once a player of that rank can catch it, a hybrid once its recipe's
-inputs can be caught, and event Secrets are never asked for. The cash cost stays.
+inputs can be caught and merged, and boss and event slimes are never asked for (a boss win gives
+no slime). Each list asks for about the rarity players farm at that level. The cash cost stays.
+The slimes the next rebirth would use up (`Progression.neededIds`) can't be sold or put in the vat,
+and their pad label says "For rebirth".
 `Progression.canRebirth` rejects with `need a <Species Name>` for the first missing one.
 
 The rebirth **uses those slimes up** (`Progression.payment`): for each listed species the
@@ -188,7 +193,7 @@ No new fields. `SaveData.migrateV6` (v6 -> v7, pure, idempotent) drops the `muta
 
 ## 8.10 Speed Coil (replaces the §2 bullet)
 
-**2026-10-22 (Merijn):** the coil works only while held. The server enforces WalkSpeed `SPEED_COIL_WALK_SPEED` (28) while the `SpeedCoil` Tool is equipped (in the character; runtime `session.coilHeld`, checked every tick) and `BASE_WALK_SPEED` otherwise. Carrying puts tools away, so carrying is at `BASE_WALK_SPEED x (1 - slowdown)`. The server always enforces its target (Player attribute `TargetWalkSpeed`), every tick and on every `CharacterAdded`. `ToolTip` "Speed Coil: hold to run faster".
+**2026-10-22 (Merijn):** the coil works only while held. The server enforces WalkSpeed `SPEED_COIL_WALK_SPEED` (19) while the `SpeedCoil` Tool is equipped (in the character; runtime `session.coilHeld`, checked every tick) and `BASE_WALK_SPEED` otherwise. Carrying puts tools away, so carrying is at `BASE_WALK_SPEED x (1 - slowdown)`. The server always enforces its target (Player attribute `TargetWalkSpeed`), every tick and on every `CharacterAdded`. `ToolTip` "Speed Coil: hold to run faster".
 
 ## 8.11 Dropped slimes
 

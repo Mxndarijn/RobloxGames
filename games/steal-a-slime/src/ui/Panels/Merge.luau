@@ -10,7 +10,10 @@
 	    found recipe's hybrid by name; after Collect it reveals the new slime and the pad it went to;
 	  * a goo bar with the time left while brewing;
 	  * one main button: a well saying what is missing, Start merge (VatStart), Hold to cancel (VatCancel) or
-	    Collect (VatCollect).
+	    Collect (VatCollect). A load the player's rank can't merge yet (Shared.MergeGate) may wait in the vat: a
+	    Warn chip and a padlock on the result orb say so, and the well reads "Rebirth <n> to unlock".
+	The main button is pinned to the bottom of the card; everything above it scrolls when the screen clamps the
+	card (a landscape phone while brewing).
 	`describe` is the pure part (tests/ui/MergeMenu.spec.luau); `new` builds and fills the card.
 ]]
 
@@ -21,6 +24,7 @@ local SlimePreview = require(UI.SlimePreview)
 local Widgets = require(UI.Widgets)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local MergeGate = require(Shared:WaitForChild("MergeGate") :: any)
 local MergePreview = require(Shared:WaitForChild("MergePreview") :: any)
 
 local TweenService = game:GetService("TweenService")
@@ -45,6 +49,7 @@ local SIZE = table.freeze({
 	barH = 14,
 	buttonW = 260,
 	buttonH = Layout.MIN_TOUCH_DESIGN,
+	buttonFoot = 4, -- space under the main button
 	revealSeconds = 5, -- how long the result card shows a collected slime
 	pendingTimeout = 6, -- seconds to wait for State to bring the collected slime
 	textTitle = 17,
@@ -73,6 +78,7 @@ export type View = {
 	slots: { Slot },
 	preview: any?, -- MergePreview.forSlimes, nil while empty
 	reason: string,
+	gate: { chip: string, line: string }?, -- the rank can't merge this load yet: "Rebirth 3", "Epic merges open at Rebirth 3"
 	main: { kind: "well" | "start" | "cancel" | "collect", text: string },
 	timeLeft: number?, -- brewing: seconds left
 	progress: number?, -- brewing: 0..1
@@ -116,6 +122,7 @@ end
 -- `nameOf(slime)` = the name under a slot (the slime's own name; the rarity has its own line).
 function Merge.describe(state: any, now: number, rarityOf: (number) -> any, nameOf: (any) -> string): View
 	local vat = if type(state) == "table" and type(state.vat) == "table" then state.vat else { ids = {} }
+	local rebirths = if type(state) == "table" and type(state.rebirths) == "number" then state.rebirths else 0
 	local slimes = {}
 	for _, id in (if type(vat.ids) == "table" then vat.ids else {}) do
 		local slime = findSlime(state, id)
@@ -165,6 +172,7 @@ function Merge.describe(state: any, now: number, rarityOf: (number) -> any, name
 		slots = slots,
 		preview = if #slimes > 0 then MergePreview.forSlimes(slimes, state) else nil,
 		reason = "",
+		gate = nil,
 		main = { kind = "well", text = "" },
 		timeLeft = nil,
 		progress = nil,
@@ -178,6 +186,14 @@ function Merge.describe(state: any, now: number, rarityOf: (number) -> any, name
 		view.progress = Format.progress(startedAt :: number, endsAt :: number, now)
 		view.reason = "Safe while it brews: no stealing, and no income until you collect."
 		view.main = { kind = "cancel", text = "Hold to cancel" }
+	elseif tier and not MergeGate.allows(tier, rebirths) then
+		local need = MergeGate.rebirthsFor(tier)
+		local more = if need then need - rebirths else 0
+		view.gate = { chip = if need then `Rebirth {need}` else "Locked", line = MergeGate.opensText(tier) }
+		view.main = { kind = "well", text = MergeGate.lockText(tier) }
+		view.reason = if missing > 0
+			then `You can fill the vat now and start it once you reach Rebirth {need or "?"}.`
+			else `Rebirth {more} more time{if more == 1 then "" else "s"} to merge {(rarity :: any).name}s. Until you start, these still earn on their pads.`
 	elseif #slimes == 0 then
 		view.reason = "Use Move on one of your pad slimes and place it in the vat."
 		view.main = { kind = "well", text = "Add 3 slimes of one rarity" }
@@ -203,6 +219,13 @@ function Merge.new(parent: Instance, ctx: any)
 	local Genome = ctx.Genome
 	local panel = Widgets.panel(parent, "MergePanel", "Merge vat", "🧪")
 	local body = panel.body
+	-- Everything above the main button; place() sets its canvas.
+	local content = Widgets.scroll({
+		Name = "Content",
+		AutomaticCanvasSize = Enum.AutomaticSize.None,
+		Size = UDim2.new(1, 0, 1, -(SIZE.buttonH + SIZE.buttonFoot)),
+		Parent = body,
+	})
 	local builders: SlimePreview.Builders = { species = ctx.buildSpecies, slime = ctx.buildSlime }
 	local wellColor = Theme.Row:Lerp(Theme.Ink, SlimePreview.WELL_TINT)
 
@@ -221,15 +244,16 @@ function Merge.new(parent: Instance, ctx: any)
 	end
 
 	---------------------------------------------------------------- chips
-	local chipRow = create("Frame", { Name = "Chips", BackgroundTransparency = 1, Parent = body }, {
+	local chipRow = create("Frame", { Name = "Chips", BackgroundTransparency = 1, Parent = content }, {
 		Widgets.list(Enum.FillDirection.Horizontal, 8),
 	})
 	local rarityChip = Widgets.chip({ Name = "RarityChip", Parent = chipRow })
 	local countChip = Widgets.chip({ Name = "CountChip", Parent = chipRow })
 	local timeChip = Widgets.chip({ Name = "TimeChip", Parent = chipRow })
+	local gateChip = Widgets.chip({ Name = "GateChip", TextColor3 = Theme.Warn, Visible = false, Parent = chipRow })
 
 	---------------------------------------------------------------- slots
-	local load = create("Frame", { Name = "Load", BackgroundTransparency = 1, Parent = body })
+	local load = create("Frame", { Name = "Load", BackgroundTransparency = 1, Parent = content })
 	type SlotUi = {
 		well: Frame,
 		ring: UIStroke,
@@ -384,9 +408,9 @@ function Merge.new(parent: Instance, ctx: any)
 		TextWrapped = true,
 		TextTruncate = Enum.TextTruncate.None,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Parent = body,
+		Parent = content,
 	})
-	local timer = Widgets.rowFrame({ Name = "Timer", Visible = false, Parent = body })
+	local timer = Widgets.rowFrame({ Name = "Timer", Visible = false, Parent = content })
 	Widgets.label({
 		Name = "Label",
 		Text = "Brewing",
@@ -492,13 +516,12 @@ function Merge.new(parent: Instance, ctx: any)
 			timer.Size = UDim2.fromOffset(bodyW, SIZE.timerH)
 			y += SIZE.timerH + SIZE.gap
 		end
+		content.CanvasSize = UDim2.fromOffset(0, y)
 		local bx = math.floor((bodyW - SIZE.buttonW) / 2)
 		for _, inst in { well, startBtn.instance, collectBtn.instance, cancelBtn.instance } do
-			inst.Position = UDim2.fromOffset(bx, y)
+			inst.Position = UDim2.new(0, bx, 1, -(SIZE.buttonH + SIZE.buttonFoot))
 			inst.Size = UDim2.fromOffset(SIZE.buttonW, SIZE.buttonH)
 		end
-		y += SIZE.buttonH + 4
-		body.Size = UDim2.new(body.Size.X.Scale, body.Size.X.Offset, 0, y)
 	end
 
 	local function showPreview(viewport: ViewportFrame, slime: any?)
@@ -521,6 +544,8 @@ function Merge.new(parent: Instance, ctx: any)
 		countChip.TextColor3 = if v.countText == "Ready" then Theme.Gold else Theme.Text
 		timeChip.Visible = v.brewText ~= nil
 		timeChip.Text = v.brewText or ""
+		gateChip.Visible = v.gate ~= nil
+		gateChip.Text = if v.gate then `🔒 {v.gate.chip}` else ""
 
 		for i, ui in slotUis do
 			local slot = v.slots[i]
@@ -545,6 +570,7 @@ function Merge.new(parent: Instance, ctx: any)
 			resultChip.Text = Genome.rarity(r.tier).name
 			resultChip.TextColor3 = rgb(rarityOf(r.tier).color)
 			resultOdds.Text = r.sub
+			resultOdds.TextColor3 = Theme.Muted
 			orbMark.Visible = false
 			orbRing.Color = rgb(rarityOf(r.tier).color)
 			showPreview(orbPreview, r.slime)
@@ -553,18 +579,23 @@ function Merge.new(parent: Instance, ctx: any)
 			local p = v.preview
 			orbPreview.Visible = false
 			SlimePreview.unmountSlime(orbPreview)
-			orbRing.Color = Theme.Gold
+			orbRing.Color = if v.gate then Theme.Warn else Theme.Gold
+			resultOdds.TextColor3 = if v.gate then Theme.Warn else Theme.Muted
 			if p then
 				resultTitle.Text = p.title
 				resultChip.Visible = true
 				resultChip.Text = p.rarity
 				resultChip.TextColor3 = rgb(p.color)
-				resultOdds.Text = if p.kind == "recipe"
-					then "Always this slime"
+				resultOdds.Text = if v.gate
+					then v.gate.line
+					elseif p.kind == "recipe" then "Always this slime"
 					elseif p.jumpRarity then Merge.jumpText(p.jumpChance, p.jumpRarity)
+					elseif
+						p.jumpOpensAt
+					then `No jump: {Genome.rarity(p.tier + 1).name} opens at Rebirth {p.jumpOpensAt}`
 					else "No jump past this rarity"
-				orbMark.Visible = p.kind ~= "recipe"
-				orbMark.Text = "?"
+				orbMark.Visible = v.gate ~= nil or p.kind ~= "recipe"
+				orbMark.Text = if v.gate then "🔒" else "?"
 			else
 				resultTitle.Text = "Three of one rarity"
 				resultChip.Visible = false

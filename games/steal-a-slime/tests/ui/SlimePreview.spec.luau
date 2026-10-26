@@ -209,13 +209,19 @@ describe("SlimeDex panel previews", function()
 		expect(SpeciesDex.TOTAL > SlimePreview.MAX_LIVE).toBe(true)
 		local panel = openDex(390, 844, DEX)
 		local first = cardIn(panel, SpeciesDex.ENTRIES[1].id)
-		local last = cardIn(panel, SpeciesDex.BONUS[#SpeciesDex.BONUS].id)
+		local lastId = SpeciesDex.ENTRIES[1].id
+		for _, entry in SpeciesDex.ENTRIES do
+			if entry.kind == "spawn" then
+				lastId = entry.id -- the bottom of the Fountain tab
+			end
+		end
+		local last = cardIn(panel, lastId)
 		expect(UiHarness.find(first, "Preview").Visible).toBe(true)
 		expect(UiHarness.find(last, "Preview").Visible).toBe(false)
 		expect(UiHarness.find(last, "World")).toBeNil()
 		local live = panel.liveCount()
 		expect(live > 0 and live <= SlimePreview.MAX_LIVE).toBe(true)
-		scrollTo(panel, SpeciesDex.BONUS[#SpeciesDex.BONUS].id)
+		scrollTo(panel, lastId)
 		expect(UiHarness.find(last, "Preview").Visible).toBe(true)
 		expect(UiHarness.find(first, "World")).toBeNil()
 		expect(panel.liveCount() <= SlimePreview.MAX_LIVE).toBe(true)
@@ -243,7 +249,7 @@ describe("SlimeDex previews rebuild only while open", function()
 		panel.update({ dex = MORE })
 		expect(panel.builds()).toBe(1)
 		expect(cardIn(panel, "moo"):GetAttribute("Found")).toBe(false)
-		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`Species 4/{SpeciesDex.TOTAL}`) -- header still live
+		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`4/{SpeciesDex.TOTAL} found`) -- band chips still live
 	end)
 	it("rebuilds on open when dirty (never built, or changed while closed)", function()
 		local panel = closedDex()

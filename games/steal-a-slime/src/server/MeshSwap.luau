@@ -459,7 +459,9 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	end
 	mesh.Anchored = true
 	mesh.CanCollide = fidelity ~= nil -- decor never collides; a mesh with a fidelity is solid
-	mesh.CanQuery = false
+	-- MeshCanQuery: a solid mesh that ground rays must land on (the pad stands: dropped slimes rest on them)
+	local query = fidelity ~= nil and target:GetAttribute("MeshCanQuery") == true
+	mesh.CanQuery = query
 	mesh.CanTouch = false
 	if target:IsA("Model") then
 		for _, d in target:GetDescendants() do
@@ -472,6 +474,9 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 		-- the mesh is the collider now: the slot box under it (an invisible copy of its bbox) would only double it
 		if fidelity then
 			target.CanCollide = false
+			if query then
+				target.CanQuery = false
+			end
 		end
 	end
 	hideStandIns(scope, name)
@@ -590,41 +595,48 @@ function MeshSwap.publishPvpMarkerTemplates(): number
 	return count
 end
 
--- The follow pet's cloud as ONE template, ReplicatedStorage.PetCloudMeshes.pet_cloud (native size, decor), cloned by
--- the client (FollowPets). A failed load is forgotten and tried again after each of PET_CLOUD_RETRY_DELAYS; pets
--- never wait for it. Yields; returns whether the template is published.
-function MeshSwap.publishPetCloudTemplate(): boolean
-	local meshId = MeshAssets.meshId(PetCloud.MESH)
-	local entry = MeshAssets.get(PetCloud.MESH)
-	if not (meshId and entry and entry.size) then
-		return false
-	end
+-- One template per Config.PET_SEATS mesh that MeshAssets has, in ReplicatedStorage.PetCloudMeshes (named by mesh,
+-- native size, decor, attribute SeatHeight = the seat's `seat`), cloned by the client (FollowPets). A seat whose mesh
+-- is not uploaded has no template; its pet rides the default cloud. A failed load is forgotten and tried again
+-- after each of PET_CLOUD_RETRY_DELAYS; pets never wait for it. Yields; returns how many templates are published.
+function MeshSwap.publishPetSeatTemplates(): number
 	local folder = ReplicatedStorage:FindFirstChild(PetCloud.FOLDER)
 	if not folder then
 		folder = Instance.new("Folder")
 		folder.Name = PetCloud.FOLDER
 		folder.Parent = ReplicatedStorage
 	end
-	if (folder :: Folder):FindFirstChild(PetCloud.MESH) then
-		return true
-	end
-	local base = Retry.run(function()
-		local made = template(meshId)
-		if not made then
-			cache[meshId] = nil -- template() remembers a failure; forget it so the next try asks again
+	local count = 0
+	for _, seat in Config.PET_SEATS do
+		local meshId = MeshAssets.meshId(seat.mesh)
+		local entry = MeshAssets.get(seat.mesh)
+		if not (meshId and entry and entry.size) then
+			continue
 		end
-		return made
-	end, MeshSwap.PET_CLOUD_RETRY_DELAYS, task.wait)
-	if not base then
-		warn(`[Server] MeshSwap {PetCloud.MESH}: no template after {1 + #MeshSwap.PET_CLOUD_RETRY_DELAYS} tries`)
-		return false
+		if (folder :: Folder):FindFirstChild(seat.mesh) then
+			count += 1
+			continue
+		end
+		local base = Retry.run(function()
+			local made = template(meshId)
+			if not made then
+				cache[meshId] = nil -- template() remembers a failure; forget it so the next try asks again
+			end
+			return made
+		end, MeshSwap.PET_CLOUD_RETRY_DELAYS, task.wait)
+		if not base then
+			warn(`[Server] MeshSwap {seat.mesh}: no template after {1 + #MeshSwap.PET_CLOUD_RETRY_DELAYS} tries`)
+			continue
+		end
+		local mesh: BasePart = base:Clone()
+		mesh.Name = seat.mesh
+		mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+		mesh:SetAttribute(PetCloud.SEAT_ATTRIBUTE, seat.seat)
+		PetCloud.decor(mesh)
+		mesh.Parent = folder
+		count += 1
 	end
-	local mesh = base:Clone()
-	mesh.Name = PetCloud.MESH
-	mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
-	PetCloud.decor(mesh)
-	mesh.Parent = folder
-	return true
+	return count
 end
 
 -- Bug #16: every plot's MergeVat disc wears the merge_vat model (1 MeshPart per plot, child "VatMesh" of the disc),

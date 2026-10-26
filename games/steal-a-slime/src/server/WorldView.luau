@@ -47,18 +47,21 @@ local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
 local HomeZone = require(ReplicatedStorage.Shared.HomeZone)
 local JarRoute = require(script.Parent.JarRoute)
+local KitDelivery = require(script.Parent.KitDelivery)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
 local MeshSwap = require(script.Parent.MeshSwap)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
+local PetSeats = require(ReplicatedStorage.Shared.PetSeats)
 local PlotGuests = require(script.Parent.PlotGuests)
 local PlotLockGuard = require(script.Parent.PlotLockGuard)
 local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local PvpBlaster = require(script.Parent.PvpBlaster)
 local PvpFun = require(script.Parent.PvpFun)
 local PvpHeld = require(script.Parent.PvpHeld)
@@ -67,6 +70,7 @@ local PvpTrap = require(script.Parent.PvpTrap)
 local Rescue = require(script.Parent.Rescue)
 local SafeCall = require(script.Parent.SafeCall)
 local Scene = require(script.Parent.Scene)
+local SlimeGuard = require(script.Parent.SlimeGuard)
 local SlimeLabelView = require(script.Parent.SlimeLabelView)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
@@ -107,6 +111,60 @@ local plotCache: { [number]: Instance? } = {}
 local habitats = HabitatPads.new() -- FEATURES.Habitats pad state (never saved)
 local eggMeshes: { [string]: MeshPart | false } = {} -- uploaded Mystery Egg meshes (MeshAssets mystery_egg_*), by name
 
+-- The player's own kit folder: a disabled ScreenGui in their PlayerGui, so only they replicate it and it survives
+-- respawns (SpeciesModel reads it).
+local function kitFolder(player: Player): Instance?
+	local gui = player:FindFirstChildOfClass("PlayerGui")
+	if gui == nil then
+		return nil
+	end
+	local folder = gui:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	if folder == nil then
+		local screen = Instance.new("ScreenGui")
+		screen.Name = Constants.SLIME_KITS_FOLDER
+		screen.Enabled = false
+		screen.ResetOnSpawn = false
+		screen.Parent = gui
+		folder = screen
+	end
+	return folder
+end
+
+-- Species kit meshes, sent per player on RequestKits (SlimeDex / rebirth previews).
+local kitDelivery = KitDelivery.new({
+	loaded = function(kit: string): any?
+		return if slimeMesh then slimeMesh.kits[kit] else nil
+	end,
+	failed = function(kit: string): boolean
+		-- Without the factory there is no mesh look and no kit ever loads.
+		return slimeMesh == nil or slimeMesh.failedKits[kit] == true
+	end,
+	deliver = function(userId: number, kit: string, template: any)
+		local player = Players:GetPlayerByUserId(userId)
+		local folder = player and kitFolder(player)
+		if folder == nil then
+			return
+		end
+		local copy = (template :: MeshPart):Clone()
+		copy.Name = kit
+		copy.Anchored = true
+		copy.CanCollide = false
+		copy.CanQuery = false
+		copy.CanTouch = false
+		copy.Parent = folder
+	end,
+})
+
+-- RequestKits (Actions ctx.sendKits): `kits` are KitRequest kit names.
+function WorldView.sendKits(userId: number, kits: { string })
+	KitDelivery.request(kitDelivery, userId, kits)
+end
+
+-- The player left: their kit folder went with their PlayerGui.
+function WorldView.forgetKits(userId: number)
+	KitDelivery.forget(kitDelivery, userId)
+end
+
 WorldView.FALL_SECONDS = 0.3 -- a dropped slime falls to the ground
 WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart when the character has no Head
 
@@ -143,25 +201,19 @@ function WorldView.setup(): any?
 	local factory = visuals and visuals:FindFirstChild("ModelFactory")
 	if factory then
 		-- Mesh look over Archer's factory; LoadAsset yields once here, falls back to procedural.
-		-- Clients can't LoadAsset, so each loaded species kit is copied to ReplicatedStorage for the SlimeDex.
-		local kits = Instance.new("Folder")
-		kits.Name = Constants.SLIME_KITS_FOLDER
-		kits.Parent = ReplicatedStorage
+		-- Clients can't LoadAsset: a SlimeDex / rebirth preview asks for the kits it shows (RequestKits) and
+		-- KitDelivery copies just those to that player (WorldView.sendKits).
 		local mesh = SlimeMesh.new({
 			factory = require(factory :: ModuleScript) :: any,
 			loadAsset = function(assetId: number): Instance
 				return InsertService:LoadAsset(assetId)
 			end,
 			onKit = function(kit: string, template: MeshPart)
-				local copy = template:Clone()
-				copy.Name = kit
-				copy.Anchored = true
-				copy.CanCollide = false
-				copy.Parent = kits
+				KitDelivery.kitLoaded(kitDelivery, kit, template)
 			end,
 		})
-		workspace:SetAttribute(Constants.SLIME_LOOK_ATTRIBUTE, SlimeMesh.load(mesh))
 		slimeMesh = mesh
+		workspace:SetAttribute(Constants.SLIME_LOOK_ATTRIBUTE, SlimeMesh.load(mesh))
 		modelFactory = {
 			build = function(slimeData: any): Model
 				return SlimeMesh.build(mesh, slimeData)
@@ -1040,6 +1092,21 @@ local function kitArrived(record: Record, entry: Scene.Entry, clock: number): bo
 		and clock >= record.rideUntil
 end
 
+-- A pad slime's status row: the vat's ("In vat"), else "For rebirth" when the next rebirth uses it up.
+-- `needed` caches Progression.neededIds per owner for one reconcile.
+function WorldView.padStatus(owner: any, id: string, needed: { [number]: { [string]: boolean } }): string?
+	local vat = VatView.labelStatus(owner.data, id)
+	if vat then
+		return vat
+	end
+	local set = needed[owner.userId]
+	if not set then
+		set = Progression.neededIds(owner.data)
+		needed[owner.userId] = set
+	end
+	return if set[id] then "For rebirth" else nil
+end
+
 --[[
 	Creates, moves and destroys slime models to match the World. Call a few
 	times a second and after any action.
@@ -1061,6 +1128,7 @@ function WorldView.reconcile(
 		end
 	end
 	table.clear(bossMoves)
+	local needed: { [number]: { [string]: boolean } } = {} -- per owner: slimes the next rebirth uses up
 	for id, entry in entries do
 		local record: Record? = records[id]
 		if not record then
@@ -1141,7 +1209,7 @@ function WorldView.reconcile(
 			entry.income,
 			if entry.state == "Pad" then entry.pad else nil,
 			now,
-			if owner then VatView.labelStatus(owner.data, id) else nil
+			if owner then WorldView.padStatus(owner, id, needed) else nil
 		)
 	end
 	for id in failed do
@@ -1362,16 +1430,20 @@ local function ensureGroups()
 	end
 end
 
--- Guests (PlotGuests): plot i's stopper also lets plot j's owner through while j's owner is a guest of plot i, by
--- making PlotLock_<i> x PlotOwner_<j> non-colliding. Every player owns one plot, so PlotOwner_<j> is that player's
--- group and no new groups are needed. Only pairs that changed are touched; the settings replicate to every client.
+-- Guests (PlotGuests) and former guests still inside (SlimeGuard.formerGuests): plot i's stopper also lets player
+-- p through by making PlotLock_<i> x PlotOwner_<p's plot> non-colliding. Every player owns one plot, so that group is
+-- p's character and no new groups are needed. Only pairs that changed are touched; the settings replicate to every
+-- client. Returns who passes each plot's stopper (SlimeGuard.stopperPasses), for the plot's Guests attribute.
 local guestPairs: { [string]: { lock: string, owner: string } } = {}
-local function syncGuestPairs(world: World.World)
+local function syncGuestPairs(world: World.World): { [number]: { number } }
 	ensureGroups()
+	local passes = SlimeGuard.stopperPasses(world)
 	local wanted: { [string]: { lock: string, owner: string } } = {}
-	for i, guests in PlotGuests.pairs(world) do
-		for j in guests do
-			if i ~= j then
+	for i, ids in passes do
+		for _, id in ids do
+			local visitor = world.sessions[id]
+			local j = visitor and visitor.plotIndex
+			if j and i ~= j then
 				wanted[`{i}:{j}`] = { lock = PlotLockGuard.lockGroup(i), owner = PlotLockGuard.ownerGroup(j) }
 			end
 		end
@@ -1396,6 +1468,7 @@ local function syncGuestPairs(world: World.World)
 			end
 		end
 	end
+	return passes
 end
 
 function setBarrierSolid(plot: Instance, index: number, solid: boolean)
@@ -1433,15 +1506,6 @@ function setOpenDoorSolid(plot: Instance, solid: boolean)
 		collider.CanCollide = solid
 	end
 end
-
--- Jar 1's doorway passage (the real layout constants): the lock guard's "inside" includes it.
-local DOORWAY = WorldLayout.doorway()
-local DOOR: PlotLockGuard.Door = {
-	halfWidth = DOORWAY.halfWidth,
-	zOuter = DOORWAY.zOuter,
-	zInner = DOORWAY.zInner,
-	height = WorldLayout.PLOT_FLOOR_TOP + WorldLayout.DOOR.height,
-}
 
 local function setPartGroup(part: Instance, group: string)
 	if part:IsA("BasePart") and part.CollisionGroup ~= group then
@@ -1515,9 +1579,8 @@ local function ejectFromStack(character: Model, root: BasePart): boolean
 end
 
 -- Per player: the character's collision group. The owner's character is in PlotOwner_<i> (walks through its own
--- barrier); everyone else is in Default, which every locked barrier blocks both ways. A non-owner caught in a locked
--- plot's doorway (standing there as the lock starts) is set down just outside it, on the bridge
--- (PlotLockGuard.wedged / doorwayExit), the only time this moves anyone.
+-- barrier); everyone else is in Default, which every locked barrier blocks both ways unless they are let through
+-- (syncGuestPairs). Nobody is moved for a lock.
 function WorldView.enforceLocks(world: World.World, player: Player)
 	local root = WorldView.rootPart(player)
 	local character = player.Character
@@ -1526,35 +1589,6 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 	end
 	local own = World.session(world, player.UserId)
 	local wanted = if own then PlotLockGuard.ownerGroup(own.plotIndex) else "Default"
-	for index = 1, world.plotCount do
-		local ownerId = world.plots[index]
-		local session = ownerId and world.sessions[ownerId]
-		local plot = if session and session.userId ~= player.UserId then WorldView.plot(index) else nil
-		local base = plot and plot:FindFirstChild("Base")
-		if
-			session
-			and plot
-			and base
-			and base:IsA("BasePart")
-			and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) == true
-		then
-			local p = base.CFrame:PointToObjectSpace(root.Position)
-			local y = p.Y + base.Size.Y / 2
-			if
-				not PlotGuests.isGuest(session, player.UserId)
-				and PlotLockGuard.wedged(player.UserId, session.userId, true, p.X, y, p.Z, DOOR)
-			then
-				character:PivotTo(
-					base.CFrame
-						* CFrame.new(p.X, p.Y, PlotLockGuard.doorwayExit(DOOR))
-						* (base.CFrame.Rotation:Inverse() * root.CFrame.Rotation)
-				)
-				root.AssemblyLinearVelocity = Vector3.zero
-				WorldView.markServerMove(player.UserId)
-				break
-			end
-		end
-	end
 	if root.CollisionGroup ~= wanted or characterGroups[character] ~= wanted then
 		ensureGroups()
 		setCharacterGroup(character, wanted)
@@ -1566,7 +1600,7 @@ end
 function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloors.Context?)
 	local habitatsOn = Config.FEATURES.Habitats
 	HabitatPads.step(habitats, world, now, habitatsOn)
-	syncGuestPairs(world)
+	local passes = syncGuestPairs(world)
 	for index = 1, world.plotCount do
 		local plot = WorldView.plot(index)
 		if plot then
@@ -1580,6 +1614,7 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
 			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
 			setIfChanged(plot, Constants.PLOT_FRIENDS_ALLOWED_ATTRIBUTE, if view.friendsAllowed then true else nil)
+			setIfChanged(plot, Constants.PLOT_GUESTS_ATTRIBUTE, PlotGuests.encode(passes[index] or {}))
 			setBarrierSolid(plot, index, view.locked)
 			setOpenDoorSolid(plot, not view.locked)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
@@ -1785,6 +1820,7 @@ function WorldView.updatePlayer(
 	end
 	local pet = World.pet(world, session) -- a stolen pet stops following
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
+	setAttribute(player, Constants.PET_SEAT_ATTRIBUTE, PetSeats.current(data))
 	if data.speedCoil then
 		ensureSpeedCoil(player)
 	end

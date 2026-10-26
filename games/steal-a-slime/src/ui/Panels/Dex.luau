@@ -1,32 +1,27 @@
 --!strict
 --[[
-	SlimeDex panel (Nav key "Dex", CONTRACT.md §36.5). Up top: the big green completion percent and Ink chips
-	("Species n/50", "Secrets n/7" when the server has event Secrets), wrapping onto a second row on a narrow
-	body. Then a scroll list:
-	  * the reward card: the next species milestone and what it pays, one bar from 0 to the last milestone with
-	    every milestone marked to scale and numbered under it (the next one in gold), and the current income
-	    bonus as a muted line;
-	  * "Plot skins": one row per skin with its picture and name and one right slot (Layout.ROW_SLOT): a green
-	    Equipped well, an Equip button, or for a locked skin a well with the lock and its count ("3/5 found")
-	    beside what unlocks it and a thin progress bar;
-	  * one card per species grouped by rarity (SlimeDex.lines; a header in the rarity colour with a
-	    "n/m found" chip), the event Secrets last. A card shows the species mesh (`ctx.buildSpecies`, a
-	    ViewportFrame) in full colour when found and as a flat black silhouette when not, its name,
-	    the hint and three ingredient slots for hybrids. Cards sit in a grid that fits the panel width (one
-	    column on a narrow phone).
+	SlimeDex panel (Nav key "Dex", contract/species-dex.md §36.5).
 
-	The list (and its previews) is only rebuilt while the panel is open: update() while closed just marks it
-	dirty, and setOpen(true) rebuilds if dirty or never built. Previews are virtualised: only cards in or near
-	the scroll window hold a ViewportFrame, at most SlimePreview.MAX_LIVE at once. layout(rect) gets the panel
-	box: the grid and the chips follow its width, and on a short body the header turns compact (SlimeDex.header).
+	In the band, beside the title: the completion percent and "n/m found" chips. In the body, top to bottom:
+	  * the tabs (SlimeDex.tabs): Fountain, Merges, Bosses, Secrets, each with its found count; the shown one is
+	    Accent jelly, the others Info;
+	  * the reward line: the next species milestone and what it pays, over a bar toward it;
+	  * the tab's content:
+	      - a species tab: a scroll list of card lines grouped by rarity (SlimeDex.lines) on the left, each card
+	        only the species mesh (a flat black silhouette while not found) and the name; the selected card's
+	        side pane on the right (SlimeDex.detail): a big preview, the rarity, how to get it, its set, how many
+	        are in your base and the merges it is used in, with "See merges" opening those;
+	      - Merges: one line on what to do, then a scroll list of recipe rows (SlimeDex.recipes): three
+	        ingredient slots ("In base" with a mint ring, "Found", or "???" and its set), then the result with
+	        its status ("Ready to merge", "Need 2 more", "Made"). Ready rows have the mint ring.
+
+	The lists are only rebuilt while the panel is open: update() while closed just marks them dirty. Previews are
+	virtualised: only the cards and slots in or near the scroll window hold a mounted ViewportFrame, at most
+	SlimePreview.MAX_LIVE at once. layout(rect) gets the panel box; every size follows its body.
 ]]
 
 local UI = script.Parent.Parent
-local FriendBadge = require(UI.FriendBadge)
-local ItemIconView = require(UI.ItemIconView)
-local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
-local Progress = require(UI.Progress)
 local SlimeDex = require(UI.SlimeDex)
 local SlimePreview = require(UI.SlimePreview)
 local Widgets = require(UI.Widgets)
@@ -38,67 +33,78 @@ local Dex = {}
 
 -- Design px and text sizes of the panel's parts.
 local STYLE = table.freeze({
-	percent = 56,
-	compactPercent = SlimeDex.HEADER.chip, -- fills the compact percent box
 	chip = 15,
-	chipPad = 20, -- chip width beyond its text
-	chipGap = 10, -- percent to the first chip
-	heading = 17,
-	headingH = 30,
-	softChip = Layout.MIN_TEXT,
-	softChipH = 24,
-	cardTitle = 15,
-	cardHint = Layout.MIN_TEXT,
-	badge = Layout.MIN_TEXT,
-	badgeW = 88, -- fits "Merge-only"
-	badgeH = 18,
-	glyph = 30,
-	slot = 24,
-	slotText = Layout.MIN_TEXT,
-	pad = 6,
-	wellRadius = 11,
-	listGap = 8,
+	chipH = 26,
+	chipGap = 6,
+	tabH = SlimeDex.BODY.tabH,
+	tabGap = 6,
+	tabText = 15,
+	gap = SlimeDex.BODY.gap, -- between the body's blocks
+	rewardH = SlimeDex.BODY.rewardH,
+	rewardPad = 12,
+	rewardText = 15,
+	rewardTextH = 18,
+	rewardBar = 10,
 	scrollBar = 10, -- list width kept free for the scroll bar
+	listGap = 8,
+	heading = 17,
+	headingH = 24,
+	cardTitle = 15,
+	cardPad = 8,
+	wellRadius = 11,
+	glyph = 26,
+	selectStroke = 3,
 })
 
--- The reward card (first list row).
-local REWARD = table.freeze({
-	pad = 12,
-	title = 17,
-	reward = 15,
-	rewardH = 18,
-	bar = 14,
-	mark = 2, -- milestone mark on the bar
-	tick = Layout.MIN_TEXT,
-	tickH = 14,
-	note = Layout.MIN_TEXT,
-	gap = 6,
-})
-
--- Plot skin rows.
-local SKIN = table.freeze({
-	h = 78,
-	image = 58,
+-- The side pane.
+local PANE = table.freeze({
+	minW = 170,
+	maxW = 230,
+	share = 0.4, -- of the body width
+	gap = 10, -- grid to pane
 	pad = 10,
-	gap = 12,
-	title = 17,
-	titleH = 20,
-	detail = Layout.MIN_TEXT,
-	detailH = 17,
-	bar = 10,
-	slotText = 16, -- Equip, Equipped and the locked count in the right slot (Layout.ROW_SLOT)
-	lockedIcon = 0.6, -- a locked skin's picture fades this much
+	preview = 92,
+	title = 19,
+	titleH = 24,
+	rarity = Layout.MIN_TEXT,
+	rarityH = 22,
+	key = Layout.MIN_TEXT,
+	keyH = 17,
+	value = 15,
+	gapSmall = 2,
+	gapBig = 10,
 })
 
--- The right slot's wells.
-Dex.EQUIPPED = "✅ Equipped"
-Dex.LOCKED = "🔒"
+-- Merge recipe rows.
+local RECIPE = table.freeze({
+	h = 118,
+	pad = 8,
+	op = 16, -- "+" and "=" columns
+	opText = 28,
+	resultShare = 0.3, -- of the row's inner width
+	slotH = 102,
+	slotRadius = 16,
+	image = 44,
+	resultImage = 52,
+	name = Layout.MIN_TEXT,
+	nameH = 17,
+	tag = Layout.MIN_TEXT,
+	tagH = 22,
+	statusH = 26,
+	legend = Layout.MIN_TEXT,
+	legendH = 20,
+	legendGap = 6,
+	showAllW = 110,
+})
+
+Dex.HINT = "Put all three in the Merge vat to make the slime."
+Dex.SEE_MERGES = "See merges"
+Dex.SHOW_ALL = "Show all"
 
 local C = SlimeDex.CARD
-local H = SlimeDex.HEADER
 local PREVIEW_MARGIN = C.h * 2 -- cards this far past the scroll window keep their preview
 
--- A section heading row in the list: title left, an optional soft chip right.
+-- A section heading row in a list: the rarity name in its colour and the found count.
 local function headingRow(name: string): any
 	local frame = create("Frame", {
 		Name = name,
@@ -109,378 +115,474 @@ local function headingRow(name: string): any
 		Name = "Title",
 		Font = Theme.Font,
 		TextSize = STYLE.heading,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 2, 0.5, 0),
-		Size = UDim2.new(0.6, 0, 0, STYLE.heading + 4),
+		TextTruncate = Enum.TextTruncate.None,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, STYLE.headingH),
 		Parent = frame,
 	})
-	local detail = Widgets.chip({
+	local detail = Widgets.label({
 		Name = "Detail",
-		FontFace = Theme.FontBody,
-		TextSize = STYLE.softChip,
-		BackgroundColor3 = Theme.Row,
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.fromScale(1, 0.5),
-		Size = UDim2.fromOffset(0, STYLE.softChipH),
+		Font = Theme.Font,
+		TextSize = Layout.MIN_TEXT,
+		TextColor3 = Theme.Muted,
+		TextTruncate = Enum.TextTruncate.None,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, STYLE.headingH),
 		Parent = frame,
-	}, Theme.Muted)
+	})
 	return { instance = frame, title = title, detail = detail }
+end
+
+-- A square preview well: a ViewportFrame over a BgLight square, and a "?" for a slot with no species.
+local function previewWell(parent: Instance, size: number, name: string?): (Frame, ViewportFrame, TextLabel)
+	local well = create("Frame", {
+		Name = name or "Image",
+		BackgroundColor3 = Theme.BgLight,
+		Size = UDim2.fromOffset(size, size),
+		Parent = parent,
+	}, { Widgets.corner(STYLE.wellRadius) })
+	local viewport = create("ViewportFrame", {
+		Name = "Preview",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		Parent = well,
+	})
+	local glyph = Widgets.label({
+		Name = "Glyph",
+		Text = "?",
+		Font = Theme.Font,
+		TextSize = STYLE.glyph,
+		TextColor3 = Theme.Muted,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		Parent = well,
+	})
+	return well, viewport, glyph
 end
 
 function Dex.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "DexPanel", "SlimeDex", "📖")
+	local c = Layout.PANEL_CHROME
 
-	local percent = Widgets.label({
-		Name = "Percent",
-		Font = Theme.Font,
-		TextSize = STYLE.percent,
-		TextColor3 = Theme.Good,
-		TextStrokeColor3 = Theme.Ink,
-		TextStrokeTransparency = 0,
-		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.fromOffset(0, H.percent),
-		Parent = panel.body,
-	})
-	local function chip(name: string, color: Color3): TextLabel
+	-- Band chips, right to left from the close button: the found count, then the percent.
+	local function bandChip(name: string, color: Color3): TextLabel
 		return Widgets.chip({
 			Name = name,
 			TextSize = STYLE.chip,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(0, H.chip),
-			Parent = panel.body,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Size = UDim2.fromOffset(0, STYLE.chipH),
+			ZIndex = 2,
+			Parent = panel.frame,
 		}, color)
 	end
-	-- Header chips, left to right.
-	local chips = {
-		chip("Count", Theme.Text),
-		chip("Secrets", Theme.Text),
-	}
+	local countChip = bandChip("Count", Theme.Text)
+	local percentChip = bandChip("Percent", Theme.Good)
 
-	local list = Widgets.scrollList({
-		Name = "List",
-		Position = UDim2.fromOffset(0, H.percent + H.gap),
-		Size = UDim2.new(1, 0, 1, -(H.percent + H.gap)),
-		Parent = panel.body,
-	}, STYLE.listGap)
-
-	local open = false
-	local icons = ItemIcons.of(ctx)
-
-	-- Species name + colour for ingredient slots and previews.
-	local function lookup(id: string): (string?, { number }?)
-		local entry = if ctx.SlimeRoster then ctx.SlimeRoster.get(id) else nil
-		local look = if ctx.SlimeLooks then ctx.SlimeLooks.get(id) else nil
-		return if entry then entry.name else nil, if look then look.color else nil
+	-- Everything in the body hangs off `content`, which joins the body the first time the menu opens with a
+	-- State: a menu nobody opened costs only its chrome (ui-perf-budget.json). It is as tall as the menu's
+	-- full body, so init.client (Widgets.contentHeight) sizes this list menu to fill the window.
+	local fullH = Layout.menuHeight("Dex") - c.header - c.pad
+	local content = create("Frame", {
+		Name = "Content",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(Layout.MENU_WIDTH, fullH),
+	})
+	local function attach()
+		if content.Parent == nil then
+			content.Parent = panel.body
+		end
 	end
 
-	-- Body box from layout(); nil = tall and wide enough for everything.
-	local bodyH: number? = nil
-	local bodyW: number? = nil
+	-- Tabs, built once for every kind; the ones without cards are hidden.
+	local tabs: { [string]: any } = {}
+	local currentTab = SlimeDex.TABS[1].key
+	local filter: string? = nil -- Merges: only the recipes that take this species
+	local selected: { [string]: string } = {} -- species tab -> selected card key
+	local rebuildNow: () -> ()
 
-	-- Percent and chips (SlimeDex.chipRows), then the list under them.
-	local function placeHeader()
-		local width = bodyW or 1000
-		local shown: { TextLabel } = {}
-		local widths: { number } = {}
-		for _, c in chips do
-			c.Visible = c.Text ~= ""
-			if c.Visible then
-				local w = math.ceil(Layout.lineWidth(c.Text, STYLE.chip, true)) + STYLE.chipPad
-				c.Size = UDim2.fromOffset(w, H.chip)
-				table.insert(shown, c)
-				table.insert(widths, w)
+	local function setTab(key: string, only: string?)
+		currentTab = key
+		filter = only
+		rebuildNow()
+	end
+
+	for _, def in SlimeDex.TABS do
+		local tab = Widgets.button(
+			{
+				Name = `Tab_{def.key}`,
+				Text = def.label,
+				TextSize = STYLE.tabText,
+				Size = UDim2.fromOffset(0, STYLE.tabH),
+				Parent = content,
+			},
+			Theme.Info,
+			function()
+				setTab(def.key, nil)
 			end
-		end
-		-- The chips start right after the percent text, so a low percent keeps them close.
-		local percentW = SlimeDex.percentWidth(percent.Text, STYLE.percent)
-		local spots, rows = SlimeDex.chipRows(widths, percentW + STYLE.chipGap, width, math.huge)
-		local header = SlimeDex.header(bodyH or math.huge, rows)
-		local chipY = 0
-		if header.compact then
-			local compactW = SlimeDex.percentWidth(percent.Text, STYLE.compactPercent)
-			spots = SlimeDex.chipRows(widths, compactW + STYLE.chipGap, width, 1)
-			percent.TextSize = STYLE.compactPercent
-			percent.Size = UDim2.fromOffset(compactW, H.chip)
-			percent.Position = UDim2.fromOffset(0, 0)
-		else
-			percent.TextSize = STYLE.percent
-			percent.Size = UDim2.fromOffset(percentW, H.percent)
-			percent.Position = UDim2.fromOffset(0, (header.height - H.percent) // 2)
-			chipY = math.max(0, (header.height - (rows * H.chip + (rows - 1) * H.chipGap)) // 2)
-		end
-		for i, c in shown do
-			local spot = spots[i]
-			c.Visible = spot.visible
-			c.Position = UDim2.fromOffset(spot.x, chipY + spot.y)
-		end
-		list.Position = UDim2.fromOffset(0, header.listTop)
-		list.Size = if bodyH and bodyH < header.listTop
-			then UDim2.fromScale(1, 0)
-			else UDim2.new(1, 0, 1, -header.listTop)
+		)
+		tab.instance.Parent = content
+		tabs[def.key] = tab
 	end
 
-	-- First list row: the reward card (SlimeDex.rewardCard); hidden on a server without dex rewards. Built on
-	-- the first update that carries them.
-	local mile: any = nil
-	local function buildMilestone()
-		local card = Widgets.rowFrame({
-			Name = "Milestones",
-			LayoutOrder = -1,
-			Size = UDim2.new(1, -STYLE.scrollBar, 0, 0),
-			Parent = list,
+	-- The reward line.
+	local reward = Widgets.rowFrame({
+		Name = "Reward",
+		Visible = false,
+		Size = UDim2.new(1, 0, 0, STYLE.rewardH),
+		Parent = content,
+	})
+	local rewardText = Widgets.label({
+		Name = "RewardText",
+		Font = Theme.Font,
+		TextSize = STYLE.rewardText,
+		Position = UDim2.fromOffset(STYLE.rewardPad, 4),
+		Size = UDim2.new(1, -STYLE.rewardPad * 2 - 56, 0, STYLE.rewardTextH),
+		Parent = reward,
+	})
+	local rewardCount = Widgets.label({
+		Name = "RewardCount",
+		Font = Theme.Font,
+		TextSize = STYLE.rewardText,
+		TextColor3 = Theme.Gold,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -STYLE.rewardPad, 0, 4),
+		Size = UDim2.fromOffset(56, STYLE.rewardTextH),
+		Parent = reward,
+	})
+	local rewardBar, setRewardBar = Widgets.bar(
+		reward,
+		Theme.Gold,
+		UDim2.new(1, -STYLE.rewardPad * 2, 0, STYLE.rewardBar),
+		UDim2.fromOffset(STYLE.rewardPad, 4 + STYLE.rewardTextH + 6)
+	)
+	rewardBar.Name = "RewardBar"
+
+	-- Species tabs: the card grid and the side pane.
+	local list = Widgets.scrollList({ Name = "List", Parent = content }, STYLE.listGap)
+	local pane = Widgets.scroll({
+		Name = "Pane",
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Theme.Row,
+		AutomaticCanvasSize = Enum.AutomaticSize.None,
+		ScrollBarThickness = 4,
+		Parent = content,
+	})
+	Widgets.corner(Widgets.KIT.rowRadius).Parent = pane
+	Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke).Parent = pane
+	local paneWell, paneView, paneGlyph = previewWell(pane, PANE.preview, "PaneImage")
+	local function paneLabel(name: string, size: number, color: Color3, font: any): TextLabel
+		return Widgets.label({
+			Name = name,
+			[Widgets.fontKey(font)] = font,
+			TextSize = size,
+			TextColor3 = color,
+			TextWrapped = true,
+			TextTruncate = Enum.TextTruncate.None,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			Parent = pane,
 		})
-		local function line(name: string, size: number, color: Color3, font: any): TextLabel
-			return Widgets.label({
-				Name = name,
-				[Widgets.fontKey(font)] = font,
-				TextSize = size,
-				TextColor3 = color,
-				TextWrapped = true,
-				TextTruncate = Enum.TextTruncate.None,
-				TextYAlignment = Enum.TextYAlignment.Top,
-				Position = UDim2.fromOffset(REWARD.pad, 0),
-				Size = UDim2.new(1, -REWARD.pad * 2, 0, size),
-				Parent = card,
-			})
-		end
-		local title = line("MilestoneCount", REWARD.title, Theme.Text, Theme.Font)
-		local reward = line("MilestoneReward", REWARD.reward, Theme.Gold, Theme.Font)
-		local back, setFill = Widgets.bar(card, Theme.Good, UDim2.new(1, -REWARD.pad * 2, 0, REWARD.bar))
-		back.Name = "MilestoneBar"
-		local ticks = create("Frame", {
-			Name = "MilestoneTicks",
-			BackgroundTransparency = 1,
-			Size = UDim2.new(1, -REWARD.pad * 2, 0, REWARD.tickH),
-			Parent = card,
-		})
-		local bonus = line("MilestoneBonus", REWARD.note, Theme.Muted, Theme.FontBody)
-		return {
-			card = card,
-			title = title,
-			reward = reward,
-			back = back,
-			setFill = setFill,
-			ticks = ticks,
-			marks = {} :: { [number]: Frame },
-			labels = {} :: { [number]: TextLabel },
-			bonus = bonus,
+	end
+	local paneTitle = paneLabel("PaneTitle", PANE.title, Theme.Text, Theme.Font)
+	paneTitle.TextXAlignment = Enum.TextXAlignment.Center
+	local paneRarity = Widgets.chip({
+		Name = "PaneRarity",
+		TextSize = PANE.rarity,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Size = UDim2.fromOffset(0, PANE.rarityH),
+		Parent = pane,
+	}, Theme.Ink)
+	Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke).Parent = paneRarity
+	local facts: { { key: TextLabel, value: TextLabel } } = {}
+	for i, name in { "How", "Set", "Have", "UsedIn" } do
+		facts[i] = {
+			key = paneLabel(`{name}Key`, PANE.key, Theme.Muted, Theme.Font),
+			value = paneLabel(name, PANE.value, Theme.Text, Theme.FontBody),
 		}
 	end
-
-	-- Stacks the reward card's lines for the list width (the title wraps, never truncates).
-	local function placeMilestone()
-		if not mile then
-			return
-		end
-		local inner = (bodyW or 1000) - STYLE.scrollBar - REWARD.pad * 2
-		local y = REWARD.pad
-		local function put(label: TextLabel, size: number)
-			if label.Visible then
-				local h = math.ceil(Layout.wrappedHeight(label.Text, size, inner, true))
-				label.Position = UDim2.fromOffset(REWARD.pad, y)
-				label.Size = UDim2.new(1, -REWARD.pad * 2, 0, h)
-				y += h + 2
+	local seeMerges = Widgets.button(
+		{
+			Name = "SeeMerges",
+			Text = Dex.SEE_MERGES,
+			TextSize = STYLE.tabText,
+			Size = UDim2.fromOffset(0, STYLE.tabH),
+			Parent = pane,
+		},
+		Theme.Info,
+		function()
+			local id = selected[currentTab]
+			if id then
+				setTab(SlimeDex.MERGES, id)
 			end
 		end
-		put(mile.title, REWARD.title)
-		put(mile.reward, REWARD.reward)
-		y += REWARD.gap - 2
-		mile.back.Position = UDim2.fromOffset(REWARD.pad, y)
-		y += REWARD.bar + 4
-		mile.ticks.Position = UDim2.fromOffset(REWARD.pad, y)
-		y += REWARD.tickH + REWARD.gap
-		put(mile.bonus, REWARD.note)
-		mile.card.Size = UDim2.new(1, -STYLE.scrollBar, 0, y - 2 + REWARD.pad)
+	)
+
+	-- Merges tab: the line on what to do (or the filter and Show all), then the recipe rows.
+	local legend = Widgets.label({
+		Name = "Legend",
+		TextSize = RECIPE.legend,
+		TextColor3 = Theme.Muted,
+		Size = UDim2.new(1, 0, 0, RECIPE.legendH),
+		Parent = content,
+	})
+	local showAll = Widgets.button(
+		{
+			Name = "ShowAll",
+			Text = Dex.SHOW_ALL,
+			TextSize = STYLE.tabText,
+			AnchorPoint = Vector2.new(1, 0),
+			Size = UDim2.fromOffset(RECIPE.showAllW, STYLE.tabH),
+			Parent = content,
+		},
+		Theme.Info,
+		function()
+			setTab(SlimeDex.MERGES, nil)
+		end
+	)
+	local recipeList = Widgets.scrollList({ Name = "Recipes", Parent = content }, STYLE.listGap)
+
+	local open = false
+
+	-- Species name, colour and set for slots, previews and the pane.
+	local function lookup(id: string): (string?, { number }?, string?)
+		local entry = if ctx.SlimeRoster then ctx.SlimeRoster.get(id) else nil
+		local look = if ctx.SlimeLooks then ctx.SlimeLooks.get(id) else nil
+		local set = if ctx.setName then ctx.setName(id) else nil
+		return if entry then entry.name else nil, if look then look.color else nil, set
 	end
 
-	local function paintMilestone(rc: SlimeDex.RewardCard, bonusLine: string?)
-		mile.title.Text = rc.title
-		mile.reward.Visible = rc.reward ~= nil
-		mile.reward.Text = rc.reward or ""
-		mile.setFill(rc.fraction)
-		local seen: { [number]: boolean } = {}
-		for _, t in rc.ticks do
-			seen[t.count] = true
-			local mark = mile.marks[t.count]
-			if mark == nil then
-				-- Created after the fill, so it draws over it.
-				mark = create("Frame", {
-					Name = `Mark{t.count}`,
-					BorderSizePixel = 0,
-					BackgroundColor3 = Theme.BgLight,
-					AnchorPoint = Vector2.new(0.5, 0),
-					Size = UDim2.new(0, REWARD.mark, 1, 0),
-					Parent = mile.back,
-				})
-				mile.marks[t.count] = mark
-			end
-			mark.Position = UDim2.fromScale(t.at, 0)
-			mark.Visible = t.at < 1
-			local label = mile.labels[t.count]
-			if label == nil then
-				label = Widgets.label({
-					Name = `Tick{t.count}`,
-					Font = Theme.Font,
-					TextSize = REWARD.tick,
-					TextTruncate = Enum.TextTruncate.None,
-					TextXAlignment = Enum.TextXAlignment.Center,
-					Size = UDim2.fromScale(0, 1),
-					AutomaticSize = Enum.AutomaticSize.X,
-					Parent = mile.ticks,
-				})
-				mile.labels[t.count] = label
-			end
-			label.Text = tostring(t.count)
-			label.AnchorPoint = Vector2.new(if t.at >= 1 then 1 elseif t.at <= 0 then 0 else 0.5, 0)
-			label.Position = UDim2.fromScale(t.at, 0)
-			label.TextColor3 = if t.isNext then Theme.Gold elseif t.claimed then Theme.Good else Theme.Muted
-			label:SetAttribute("Claimed", t.claimed)
-			label:SetAttribute("Next", t.isNext)
-		end
-		for count, mark in mile.marks do
-			if not seen[count] then
-				mark:Destroy()
-				mile.marks[count] = nil
-				mile.labels[count]:Destroy()
-				mile.labels[count] = nil
-			end
-		end
-		mile.bonus.Visible = bonusLine ~= nil
-		mile.bonus.Text = bonusLine or ""
-		placeMilestone()
+	-- Body box from layout(); nil = wide and tall enough for everything.
+	local bodyW: number = 536
+	local bodyH: number = 505
+
+	local function contentTop(): number
+		return SlimeDex.contentTop(reward.Visible)
+	end
+
+	local function paneWidth(): number
+		return math.clamp(math.floor(bodyW * PANE.share), PANE.minW, PANE.maxW)
+	end
+
+	local function gridWidth(): number
+		return math.max(C.minW, bodyW - paneWidth() - PANE.gap)
 	end
 
 	local function grid(): SlimeDex.Grid
-		return SlimeDex.grid((bodyW or 1000) - STYLE.scrollBar)
+		return SlimeDex.grid(gridWidth() - STYLE.scrollBar)
 	end
 
-	-- One card per species, kept across rebuilds (keyed by species id) and moved between lines.
+	-- Chips in the band, right to left from the close button.
+	local function placeChips()
+		local x = -(c.close + c.closeInset * 2)
+		for _, chip in { countChip, percentChip } do
+			local w = math.ceil(Layout.lineWidth(chip.Text, STYLE.chip, true)) + 20
+			chip.Size = UDim2.fromOffset(w, STYLE.chipH)
+			chip.Position = UDim2.new(1, x, 0, c.closeInset + c.close // 2)
+			x -= w + STYLE.chipGap
+		end
+	end
+
+	-- Every block's box for the current tab and body.
+	local function placeBody()
+		local shown: { any } = {}
+		for _, def in SlimeDex.TABS do
+			if tabs[def.key].instance.Visible then
+				table.insert(shown, tabs[def.key])
+			end
+		end
+		local n = math.max(#shown, 1)
+		local tabW = math.floor((bodyW - STYLE.tabGap * (n - 1)) / n)
+		for i, tab in shown do
+			tab.instance.Position = UDim2.fromOffset((i - 1) * (tabW + STYLE.tabGap), 0)
+			tab.instance.Size = UDim2.fromOffset(tabW, STYLE.tabH)
+		end
+		reward.Position = UDim2.fromOffset(0, STYLE.tabH + STYLE.gap)
+		local top = contentTop()
+		local height = math.max(bodyH - top, 0)
+		local merges = currentTab == SlimeDex.MERGES
+		list.Visible = not merges
+		pane.Visible = not merges
+		legend.Visible = merges
+		showAll.instance.Visible = merges and filter ~= nil
+		recipeList.Visible = merges
+		local gw = gridWidth()
+		list.Position = UDim2.fromOffset(0, top)
+		list.Size = UDim2.fromOffset(gw, height)
+		pane.Position = UDim2.fromOffset(gw + PANE.gap, top)
+		pane.Size = UDim2.fromOffset(bodyW - gw - PANE.gap, height)
+		local legendH = if filter then STYLE.tabH else RECIPE.legendH
+		legend.Position = UDim2.fromOffset(0, top + (legendH - RECIPE.legendH) // 2)
+		legend.Size = UDim2.fromOffset(bodyW - (if filter then RECIPE.showAllW + STYLE.gap else 0), RECIPE.legendH)
+		showAll.instance.Position = UDim2.new(1, 0, 0, top)
+		recipeList.Position = UDim2.fromOffset(0, top + legendH + RECIPE.legendGap)
+		recipeList.Size = UDim2.fromOffset(bodyW, math.max(height - legendH - RECIPE.legendGap, 0))
+	end
+
+	-------------------------------------------------------------------------------------------------------------
+	-- Previews: every mesh well in both lists and the pane. A well is mounted only while it is in or near its
+	-- list's scroll window (the pane's always), at most SlimePreview.MAX_LIVE at once.
+	type Look = SlimePreview.SpeciesLook
+	local builders: SlimePreview.Builders = { species = ctx.buildSpecies, slime = ctx.buildSlime }
+	type Well = {
+		viewport: ViewportFrame,
+		glyph: TextLabel,
+		order: number, -- creation order: ties in the nearest-first sort go to the earlier well
+		look: Look?,
+		list: ScrollingFrame?,
+		row: GuiObject?,
+	}
+	local wellCount = 0
+	local wells: { [ViewportFrame]: Well } = {}
+
+	local function mountLook(w: Well)
+		local look = w.look
+		if look == nil then
+			return
+		end
+		local ok = SlimePreview.mountSpecies(w.viewport, look, builders, SlimeDex.genome)
+		w.glyph.Visible = not ok and not look.found
+	end
+
+	local function unmountLook(w: Well)
+		if w.viewport:GetAttribute("Look") ~= nil then
+			SlimePreview.unmount(w.viewport)
+			w.viewport:SetAttribute("Look", nil)
+		end
+		w.viewport.Visible = false
+		w.glyph.Visible = w.look == nil or not w.look.found
+	end
+
+	-- Points a well at a species (nil = an unknown slot: the "?" glyph).
+	local function setLook(
+		viewport: ViewportFrame,
+		glyph: TextLabel,
+		look: Look?,
+		owner: ScrollingFrame?,
+		row: GuiObject?
+	)
+		local w = wells[viewport]
+		if w == nil then
+			wellCount += 1
+			w = { viewport = viewport, glyph = glyph, order = wellCount }
+			wells[viewport] = w
+		end
+		-- A changed look is remounted in place by the next refresh (the viewport keeps its WorldModel).
+		w.look, w.list, w.row = look, owner, row
+		if look == nil then
+			unmountLook(w)
+		end
+	end
+
+	local function viewHeight(frame: ScrollingFrame): number
+		-- From the frame's offset size (set by placeBody), not AbsoluteSize: that is 0 until the first layout pass.
+		return math.max(frame.Size.Y.Offset, C.h)
+	end
+
+	local function refreshPreviews()
+		if not open then
+			return -- a closed menu keeps what it showed; nothing new is mounted
+		end
+		local near: { { w: Well, dist: number } } = {}
+		for viewport, w in wells do
+			if viewport.Parent == nil then
+				wells[viewport] = nil
+				continue
+			end
+			local frame = w.list
+			if w.look == nil then
+				unmountLook(w)
+			elseif frame == nil then
+				if pane.Visible then
+					table.insert(near, { w = w, dist = -1 })
+				else
+					unmountLook(w)
+				end
+			else
+				local row = w.row
+				local y = if row and row.Parent == frame then row.Position.Y.Offset else nil
+				local top = frame.CanvasPosition.Y - PREVIEW_MARGIN
+				local bottom = frame.CanvasPosition.Y + viewHeight(frame) + PREVIEW_MARGIN
+				if frame.Visible and y and y + C.h > top and y < bottom then
+					table.insert(near, { w = w, dist = math.abs(y + C.h / 2 - (top + bottom) / 2) })
+				else
+					unmountLook(w)
+				end
+			end
+		end
+		table.sort(near, function(a, b)
+			if a.dist ~= b.dist then
+				return a.dist < b.dist
+			end
+			return a.w.order < b.w.order
+		end)
+		for i, entry in near do
+			if i <= SlimePreview.MAX_LIVE then
+				mountLook(entry.w)
+			else
+				unmountLook(entry.w)
+			end
+		end
+	end
+	list:GetPropertyChangedSignal("CanvasPosition"):Connect(refreshPreviews)
+	recipeList:GetPropertyChangedSignal("CanvasPosition"):Connect(refreshPreviews)
+
+	-------------------------------------------------------------------------------------------------------------
+	-- Species cards: kept across rebuilds (keyed by species id) and moved between lines.
 	local cardViews: { [string]: any } = {}
+	local paintSelection: () -> ()
+	local selectCard: (id: string) -> ()
 
 	local function makeCard(card: SlimeDex.Card): any
-		local frame = Widgets.rowFrame({ Name = card.key })
-		local image = create("Frame", {
-			Name = "Image",
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, STYLE.pad),
-			Size = UDim2.fromOffset(C.preview, C.preview),
-			BackgroundColor3 = Theme.BgLight,
-			Parent = frame,
-		}, { Widgets.corner(STYLE.wellRadius) })
-		local preview = create("ViewportFrame", {
-			Name = "Preview",
-			BackgroundTransparency = 1,
-			Size = UDim2.fromScale(1, 1),
-			Visible = false,
-			Parent = image,
-		})
-		local glyph = Widgets.label({
-			Name = "Glyph",
-			Text = "?",
-			Font = Theme.Font,
-			TextSize = STYLE.glyph,
-			TextColor3 = Theme.Muted,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			Size = UDim2.fromScale(1, 1),
-			Parent = image,
-		})
-		local badge = Widgets.label({
-			Name = "Badge",
-			Font = Theme.Font,
-			TextSize = STYLE.badge,
-			TextColor3 = Theme.Ink,
-			BackgroundTransparency = 0,
-			BackgroundColor3 = Theme.Warn,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			Position = UDim2.fromOffset(STYLE.pad, STYLE.pad),
-			Size = UDim2.fromOffset(STYLE.badgeW, STYLE.badgeH),
-			Visible = false,
-			Parent = frame,
-		})
-		Widgets.corner(STYLE.pad).Parent = badge
-		Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke).Parent = badge
+		local frame = create("TextButton", {
+			Name = card.key,
+			Text = "",
+			AutoButtonColor = false,
+			BackgroundColor3 = Theme.Row,
+			BorderSizePixel = 0,
+		}, { Widgets.corner(Widgets.KIT.rowRadius) }) :: TextButton
+		local stroke = Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke)
+		stroke.Parent = frame
+		local image, viewport, glyph = previewWell(frame, C.preview)
+		image.AnchorPoint = Vector2.new(0.5, 0)
+		image.Position = UDim2.new(0.5, 0, 0, STYLE.cardPad)
 		local title = Widgets.label({
 			Name = "Title",
 			Font = Theme.Font,
 			TextSize = STYLE.cardTitle,
 			TextXAlignment = Enum.TextXAlignment.Center,
-			Position = UDim2.fromOffset(STYLE.pad, STYLE.pad + C.preview + 4),
-			Size = UDim2.new(1, -STYLE.pad * 2, 0, 20),
+			Position = UDim2.fromOffset(4, STYLE.cardPad + C.preview + 8),
+			Size = UDim2.new(1, -8, 0, 20),
 			Parent = frame,
 		})
-		local hint = Widgets.label({
-			Name = "Hint",
-			TextSize = STYLE.cardHint,
-			TextColor3 = Theme.Muted,
-			TextWrapped = true,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			TextYAlignment = Enum.TextYAlignment.Top,
-			Position = UDim2.fromOffset(STYLE.pad, STYLE.pad + C.preview + 26),
-			Size = UDim2.new(1, -STYLE.pad * 2, 0, 28),
-			Parent = frame,
-		})
-		local slotRow = create("Frame", {
-			Name = "Slots",
-			BackgroundTransparency = 1,
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, STYLE.pad + C.preview + 56),
-			Size = UDim2.fromOffset(STYLE.slot * 3 + 12, STYLE.slot),
-			Visible = false,
-			Parent = frame,
-		})
-		local slots: { any } = {}
-		for i = 1, 3 do
-			local slot = Widgets.label({
-				Name = `Slot{i}`,
-				Font = Theme.Font,
-				TextSize = STYLE.slotText,
-				TextXAlignment = Enum.TextXAlignment.Center,
-				BackgroundTransparency = 0,
-				Position = UDim2.fromOffset((i - 1) * (STYLE.slot + 6), 0),
-				Size = UDim2.fromOffset(STYLE.slot, STYLE.slot),
-				Parent = slotRow,
-			})
-			Widgets.corner(STYLE.slot // 2).Parent = slot
-			Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke).Parent = slot
-			slots[i] = slot
-		end
+		frame.Activated:Connect(function()
+			selectCard(frame.Name)
+		end)
 		return {
 			instance = frame,
+			stroke = stroke,
 			image = image,
-			preview = preview,
+			preview = viewport,
 			glyph = glyph,
-			badge = badge,
 			title = title,
-			hint = hint,
-			slotRow = slotRow,
-			slots = slots,
 			card = card,
 		}
 	end
 
-	local function updateCard(v: any, card: SlimeDex.Card)
+	local function updateCard(v: any, card: SlimeDex.Card, line: GuiObject)
 		v.card = card
-		local frame = v.instance
-		frame:SetAttribute("Found", card.found)
-		frame:SetAttribute("Kind", card.kind)
-		v.glyph.Visible = not card.found and v.preview:GetAttribute("Look") == nil
+		v.instance:SetAttribute("Found", card.found)
+		v.instance:SetAttribute("Kind", card.kind)
 		v.title.Text = card.title
-		v.title.TextColor3 = if card.found then Widgets.color3(card.color) else Theme.Muted
-		v.hint.Text = card.hint or ""
-		v.badge.Visible = card.badge ~= nil
-		v.badge.Text = card.badge or ""
-		local slots = card.slots
-		v.slotRow.Visible = slots ~= nil
-		if slots then
-			for i, slot in v.slots do
-				local s = slots[i]
-				slot.Text = if s and s.species then string.upper(string.sub(s.label, 1, 2)) else "?"
-				slot.BackgroundColor3 = if s and s.species then Widgets.color3(s.color) else Theme.Ink
-				slot.TextColor3 = if s and s.species then Theme.Ink else Theme.Muted
-				slot:SetAttribute("Species", if s then s.species else nil)
-			end
-		end
+		v.title.TextColor3 = if card.found then Theme.Text else Theme.Muted
+		setLook(
+			v.preview,
+			v.glyph,
+			{ key = card.key, found = card.found, tier = card.tier, speciesColor = card.speciesColor },
+			list,
+			line
+		)
 	end
 
 	local function sizeCard(v: any, g: SlimeDex.Grid, column: number)
@@ -488,155 +590,27 @@ function Dex.new(parent: Instance, ctx: any)
 		v.instance.Position = UDim2.fromOffset((column - 1) * (g.cardW + g.gap), 0)
 	end
 
-	-- Plot skin rows (SlimeDex.skinRows): picture, name, the set or what unlocks it, and Equip / Equipped.
-	local function makeSkin(row: SlimeDex.SkinRow): any
-		local frame = Widgets.rowFrame({
-			Name = row.key,
-			Size = UDim2.new(1, -STYLE.scrollBar, 0, SKIN.h),
-		})
-		local image = create("Frame", {
-			Name = "Image",
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, SKIN.pad, 0.5, 0),
-			Size = UDim2.fromOffset(SKIN.image, SKIN.image),
-			Parent = frame,
-		}, { Widgets.corner(Widgets.KIT.radius), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
-		local skinIcon = ItemIconView.new({
-			Name = "SkinIcon",
-			Id = `PlotSkin_{row.skin.id}`,
-			Size = SKIN.image,
-			Parent = image,
-		}, icons)
-		local textX = SKIN.pad + SKIN.image + SKIN.gap
-		local title = Widgets.label({
-			Name = "Title",
-			Font = Theme.Font,
-			TextSize = SKIN.title,
-			Position = UDim2.fromOffset(textX, 0),
-			Size = UDim2.new(1, -(textX + SKIN.pad), 0, SKIN.titleH),
-			Parent = frame,
-		})
-		local detail = Widgets.label({
-			Name = "Detail",
-			TextSize = SKIN.detail,
-			TextColor3 = Theme.Muted,
-			Position = UDim2.fromOffset(textX, 0),
-			Size = UDim2.new(1, -(textX + SKIN.pad), 0, SKIN.detailH),
-			Parent = frame,
-		})
-		local progress, setProgress =
-			Widgets.bar(frame, Theme.Good, UDim2.new(1, -(textX + SKIN.pad), 0, SKIN.bar), UDim2.fromOffset(textX, 0))
-		progress.Name = "Progress"
-		local slot = Layout.ROW_SLOT
-		local equip = Widgets.button(
-			{
-				Name = "Equip",
-				Text = "Equip",
-				TextSize = SKIN.slotText,
-				AnchorPoint = Vector2.new(1, 0.5),
-				Position = UDim2.new(1, -SKIN.pad, 0.5, 0),
-				Size = UDim2.fromOffset(slot.w, slot.h),
-				Parent = frame,
-			},
-			Theme.Accent,
-			function()
-				local id = frame:GetAttribute("SkinId")
-				if type(id) == "string" and ctx.request then
-					ctx.request("EquipPlotSkin", function() end, id)
-				end
-			end
-		)
-		-- Equipped (green) or, while locked, the lock and the count toward it: a sunken well in the same slot.
-		local well = Widgets.status({
-			Name = "Equipped",
-			TextSize = SKIN.slotText,
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -SKIN.pad, 0.5, 0),
-			Size = UDim2.fromOffset(slot.w, slot.h),
-			Visible = false,
-			Parent = frame,
-		})
-		return {
-			instance = frame,
-			image = image,
-			skinIcon = skinIcon,
-			textX = textX,
-			title = title,
-			detail = detail,
-			progress = progress,
-			setProgress = setProgress,
-			equip = equip,
-			well = well,
-		}
-	end
-
-	local function updateSkin(r: any, row: SlimeDex.SkinRow)
-		local skin = row.skin
-		r.instance:SetAttribute("Locked", row.locked)
-		r.instance:SetAttribute("SkinId", skin.id)
-		r.equip.instance.Visible = skin.unlocked and not skin.equipped
-		r.well.Visible = skin.equipped or not skin.unlocked
-		r.well.Text = if skin.equipped then Dex.EQUIPPED else `{Dex.LOCKED} {row.found or ""}`
-		r.well.TextColor3 = if skin.equipped then Theme.Good else Theme.Muted
-		r.image.BackgroundColor3 = Widgets.color3(row.color)
-		r.image.BackgroundTransparency = if skin.unlocked then 0 else SKIN.lockedIcon
-		r.skinIcon.setFrame(if skin.unlocked then nil else Theme.Muted)
-		r.skinIcon.setActive(open)
-		r.title.Text = row.title
-		r.title.TextColor3 = if skin.unlocked then Theme.Text else Theme.Muted
-		r.detail.Text = row.detail
-		r.progress.Visible = row.locked
-		r.setProgress(row.fraction)
-		-- Name and set (a locked skin: what unlocks it and a bar) centred beside the right slot.
-		local textW = -(r.textX + SKIN.pad + Layout.ROW_SLOT.w + SKIN.gap)
-		local blockH = SKIN.titleH + 2 + SKIN.detailH + (if row.locked then 6 + SKIN.bar else 0)
-		local y = (SKIN.h - blockH) // 2
-		r.title.Position = UDim2.fromOffset(r.textX, y)
-		r.title.Size = UDim2.new(1, textW, 0, SKIN.titleH)
-		r.detail.Position = UDim2.fromOffset(r.textX, y + SKIN.titleH + 2)
-		r.detail.Size = UDim2.new(1, textW, 0, SKIN.detailH)
-		r.progress.Position = UDim2.fromOffset(r.textX, y + SKIN.titleH + 2 + SKIN.detailH + 6)
-		r.progress.Size = UDim2.new(1, textW, 0, SKIN.bar)
-	end
-
-	-- List rows: the plot skins heading and rows, rarity headers and card lines (SlimeDex.lines).
-	type Item = { key: string, heading: string?, skin: SlimeDex.SkinRow?, line: SlimeDex.Line? }
-
+	type Item = { key: string, line: SlimeDex.Line }
 	local rows = Widgets.keyedList(list, function(item: Item)
 		return item.key
 	end, function(item: Item)
-		if item.skin then
-			return makeSkin(item.skin)
-		end
-		if item.heading or (item.line and item.line.kind == "header") then
+		if item.line.kind == "header" then
 			return headingRow(item.key)
 		end
-		local line = item.line :: SlimeDex.Line
 		local frame = create("Frame", {
-			Name = line.key,
+			Name = item.key,
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, -STYLE.scrollBar, 0, C.h),
 		})
 		return { instance = frame }
 	end, function(r: any, item: Item)
-		r.item = item
-		if item.skin then
-			updateSkin(r, item.skin)
-			return
-		end
-		if item.heading then
-			r.title.Text = item.heading
-			r.title.TextColor3 = Theme.Text
-			r.detail.Visible = false
-			return
-		end
-		local line = item.line :: SlimeDex.Line
+		local line = item.line
 		if line.kind == "header" then
 			local rarity = ctx.Config.RARITIES[line.tier]
 			r.title.Text = line.title or ""
 			r.title.TextColor3 = if rarity then Widgets.color3(rarity.color) else Theme.Gold
 			r.detail.Text = line.detail or ""
-			r.detail.Visible = line.detail ~= nil
+			r.detail.Position = UDim2.fromOffset(math.ceil(Layout.lineWidth(r.title.Text, STYLE.heading, true)) + 10, 0)
 			return
 		end
 		local g = grid()
@@ -649,153 +623,414 @@ function Dex.new(parent: Instance, ctx: any)
 			end
 			v.instance.Parent = r.instance
 			sizeCard(v, g, column)
-			updateCard(v, card)
+			updateCard(v, card, r.instance)
 		end
 	end)
 
-	-- Mounts the preview of every card in or near the scroll window (nearest the window centre first, at most
-	-- SlimePreview.MAX_LIVE) and unmounts the rest. A card's viewport is only remounted when its look changes
-	-- (a failed look is not retried).
-	local function viewHeight(): number
-		-- From the card (init.client sizes its frame in offsets), not AbsoluteSize: that is 0 until the first
-		-- layout pass.
-		local chrome = Layout.PANEL_CHROME
-		return math.max(panel.frame.Size.Y.Offset - chrome.header - chrome.pad - list.Position.Y.Offset, C.h)
-	end
-
-	local function mountLook(v: any)
-		local card: SlimeDex.Card = v.card
-		-- The species mesh may replicate after a fallback was mounted: the look names its source, so the
-		-- card switches to the mesh once it is there.
-		local species: Model? = nil
-		if ctx.buildSpecies then
-			local built, model = pcall(ctx.buildSpecies, card.key)
-			species = if built then model else nil
-		end
-		local look = `{card.key}:{card.found}:{species ~= nil}`
-		if v.preview:GetAttribute("Look") == look then
-			if species then
-				species:Destroy()
-			end
-			return
-		end
-		local opts = { locked = not card.found }
-		local ok = species ~= nil and SlimePreview.mountModel(v.preview, species :: Model, opts)
-		if not ok and ctx.buildSlime then
-			local built, model = pcall(ctx.buildSlime, SlimeDex.genome(card))
-			ok = built and model ~= nil and SlimePreview.mountModel(v.preview, model, opts)
-		end
-		if not ok then
-			ok = SlimePreview.mount(v.preview, card.speciesColor, opts)
-		end
-		v.preview:SetAttribute("Look", look)
-		v.preview.Visible = ok
-		v.glyph.Visible = not ok and not card.found
-	end
-
-	local function unmountLook(v: any)
-		if v.preview:GetAttribute("Look") ~= nil then
-			SlimePreview.unmount(v.preview)
-			v.preview:SetAttribute("Look", nil)
-			v.preview.Visible = false
-		end
-		v.glyph.Visible = not v.card.found
-	end
-
-	local function refreshPreviews()
-		if not open then
-			return
-		end
-		local top = list.CanvasPosition.Y - PREVIEW_MARGIN
-		local bottom = list.CanvasPosition.Y + viewHeight() + PREVIEW_MARGIN
-		local middle = (top + bottom) / 2
-		local near: { { v: any, dist: number } } = {}
-		for _, v in cardViews do
-			local line = v.instance.Parent
-			local y = if line and line:IsA("GuiObject") then (line :: GuiObject).Position.Y.Offset else -math.huge
-			if line and line.Parent == list and y + C.h > top and y < bottom then
-				table.insert(near, { v = v, dist = math.abs(y + C.h / 2 - middle) })
-			else
-				unmountLook(v)
-			end
-		end
-		table.sort(near, function(a, b)
-			if a.dist ~= b.dist then
-				return a.dist < b.dist
-			end
-			return a.v.instance.Position.X.Offset < b.v.instance.Position.X.Offset
-		end)
-		for i, entry in near do
-			if i <= SlimePreview.MAX_LIVE then
-				mountLook(entry.v)
-			else
-				unmountLook(entry.v)
-			end
-		end
-	end
-	list:GetPropertyChangedSignal("CanvasPosition"):Connect(refreshPreviews)
-
-	-- Items from the latest update and whether the list is out of date with them (never built counts as
-	-- dirty). Rebuilds only happen while open.
+	-------------------------------------------------------------------------------------------------------------
+	-- The side pane for the selected card.
 	local pendingCards: { SlimeDex.Card } = {}
-	local pendingSkins: { SlimeDex.SkinRow } = {}
+	local inBase: { [string]: number } = {}
+
+	local function placePane(detail: SlimeDex.Detail?)
+		local w = pane.Size.X.Offset
+		local inner = math.max(w - PANE.pad * 2, 1)
+		for _, child in pane:GetChildren() do
+			if child:IsA("GuiObject") then
+				(child :: GuiObject).Visible = detail ~= nil
+			end
+		end
+		if detail == nil then
+			pane.CanvasSize = UDim2.new()
+			return
+		end
+		local y = PANE.pad
+		paneWell.AnchorPoint = Vector2.new(0.5, 0)
+		paneWell.Position = UDim2.new(0.5, 0, 0, y)
+		y += PANE.preview + PANE.gapSmall * 3
+		local function put(label: TextLabel, size: number, text: string, gapAfter: number)
+			label.Text = text
+			label.Visible = text ~= ""
+			if text ~= "" then
+				local h = math.ceil(Layout.wrappedHeight(text, size, inner, true))
+				label.Position = UDim2.fromOffset(PANE.pad, y)
+				label.Size = UDim2.fromOffset(inner, h)
+				y += h + gapAfter
+			end
+		end
+		put(paneTitle, PANE.title, detail.title, PANE.gapSmall)
+		paneRarity.Text = detail.rarity
+		paneRarity.BackgroundColor3 = Widgets.color3(detail.rarityColor)
+		Widgets.inkOn(paneRarity, paneRarity.BackgroundColor3)
+		paneRarity.Position = UDim2.new(0.5, 0, 0, y)
+		y += PANE.rarityH + PANE.gapBig
+		local names = {}
+		for _, used in detail.usedIn do
+			table.insert(names, used.title)
+		end
+		local values = {
+			{ "How to get it", detail.how },
+			{ "Set", detail.set or "" },
+			{ "You have", detail.have },
+			{ "Used in merges", table.concat(names, ", ") },
+		}
+		for i, fact in facts do
+			local text = values[i][2]
+			fact.key.Visible = text ~= ""
+			if text ~= "" then
+				put(fact.key, PANE.key, values[i][1], PANE.gapSmall)
+				put(fact.value, PANE.value, text, PANE.gapBig)
+			else
+				fact.value.Visible = false
+			end
+		end
+		facts[3].value.TextColor3 = if (inBase[detail.key] or 0) > 0 then Theme.Good else Theme.Text
+		seeMerges.instance.Visible = #detail.usedIn > 0
+		if #detail.usedIn > 0 then
+			seeMerges.instance.Position = UDim2.fromOffset(PANE.pad, y)
+			seeMerges.instance.Size = UDim2.fromOffset(inner, STYLE.tabH)
+			y += STYLE.tabH + PANE.pad
+		end
+		pane.CanvasSize = UDim2.fromOffset(0, y)
+	end
+
+	local function selectedCard(): SlimeDex.Card?
+		local id = selected[currentTab]
+		for _, card in pendingCards do
+			if card.key == id and card.kind == currentTab then
+				return card
+			end
+		end
+		return nil
+	end
+
+	function paintSelection()
+		local card = selectedCard()
+		for key, v in cardViews do
+			local on = card ~= nil and key == card.key
+			v.instance:SetAttribute("Selected", on)
+			v.instance.BackgroundColor3 = if on then Theme.BgLight else Theme.Row
+			v.stroke.Color = if on then Theme.Good else Theme.Ink
+			v.stroke.Thickness = if on then STYLE.selectStroke else Widgets.KIT.rowStroke
+		end
+		if card then
+			setLook(
+				paneView,
+				paneGlyph,
+				{ key = card.key, found = card.found, tier = card.tier, speciesColor = card.speciesColor },
+				nil,
+				nil
+			)
+			placePane(SlimeDex.detail(card, pendingCards, inBase, ctx.Config))
+		else
+			setLook(paneView, paneGlyph, nil, nil, nil)
+			placePane(nil)
+		end
+	end
+
+	-------------------------------------------------------------------------------------------------------------
+	-- Merge recipe rows.
+	local function makeRecipe(recipe: SlimeDex.Recipe): any
+		local frame = Widgets.rowFrame({
+			Name = recipe.key,
+			Size = UDim2.new(1, -STYLE.scrollBar, 0, RECIPE.h),
+		})
+		local stroke = frame:FindFirstChildOfClass("UIStroke") :: UIStroke
+		local function op(name: string, text: string): TextLabel
+			return Widgets.label({
+				Name = name,
+				Text = text,
+				Font = Theme.Font,
+				TextSize = RECIPE.opText,
+				TextColor3 = Theme.Muted,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextTruncate = Enum.TextTruncate.None,
+				Size = UDim2.fromOffset(RECIPE.op, RECIPE.h),
+				Parent = frame,
+			})
+		end
+		local slots = {}
+		for i = 1, 3 do
+			local slot = create("Frame", {
+				Name = `Slot{i}`,
+				BackgroundColor3 = Theme.Ink,
+				BackgroundTransparency = 0.45,
+				Size = UDim2.fromOffset(0, RECIPE.slotH),
+				Position = UDim2.fromOffset(0, (RECIPE.h - RECIPE.slotH) // 2),
+				Parent = frame,
+			}, { Widgets.corner(RECIPE.slotRadius) })
+			local ring = Widgets.stroke(Theme.Good, STYLE.selectStroke)
+			ring.Parent = slot
+			local image, viewport, glyph = previewWell(slot, RECIPE.image)
+			image.AnchorPoint = Vector2.new(0.5, 0)
+			image.Position = UDim2.new(0.5, 0, 0, 6)
+			local name = Widgets.label({
+				Name = "Name",
+				Font = Theme.Font,
+				TextSize = RECIPE.name,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Position = UDim2.fromOffset(2, 6 + RECIPE.image + 3),
+				Size = UDim2.new(1, -4, 0, RECIPE.nameH),
+				Parent = slot,
+			})
+			local tag = Widgets.chip({
+				Name = "Tag",
+				TextSize = RECIPE.tag,
+				AutomaticSize = Enum.AutomaticSize.None,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 0, 6 + RECIPE.image + 3 + RECIPE.nameH + 4),
+				Size = UDim2.new(1, -8, 0, RECIPE.tagH),
+				Parent = slot,
+			}, Theme.Muted)
+			slots[i] = { frame = slot, ring = ring, preview = viewport, glyph = glyph, name = name, tag = tag }
+		end
+		local plus1, plus2, equals = op("Plus1", "+"), op("Plus2", "+"), op("Equals", "=")
+		local result = create("Frame", {
+			Name = "Result",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromOffset(0, RECIPE.slotH),
+			Position = UDim2.fromOffset(0, (RECIPE.h - RECIPE.slotH) // 2),
+			Parent = frame,
+		})
+		local resultImage, resultView, resultGlyph = previewWell(result, RECIPE.resultImage)
+		resultImage.AnchorPoint = Vector2.new(0.5, 0)
+		resultImage.Position = UDim2.fromScale(0.5, 0)
+		local resultName = Widgets.label({
+			Name = "Name",
+			Font = Theme.Font,
+			TextSize = RECIPE.name + 1,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Position = UDim2.fromOffset(0, RECIPE.resultImage + 2),
+			Size = UDim2.new(1, 0, 0, RECIPE.nameH + 1),
+			Parent = result,
+		})
+		local status = Widgets.status({
+			Name = "Status",
+			TextSize = RECIPE.tag,
+			TextWrapped = false,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -2),
+			Size = UDim2.new(1, -6, 0, RECIPE.statusH),
+			Parent = result,
+		})
+		return {
+			instance = frame,
+			stroke = stroke,
+			slots = slots,
+			ops = { plus1, plus2, equals },
+			result = result,
+			resultView = resultView,
+			resultGlyph = resultGlyph,
+			resultName = resultName,
+			status = status,
+		}
+	end
+
+	local function placeRecipe(r: any)
+		local inner = bodyW - STYLE.scrollBar - RECIPE.pad * 2
+		local resultW = math.floor(inner * RECIPE.resultShare)
+		local slotW = math.max(math.floor((inner - resultW - RECIPE.op * 3) / 3), 1)
+		local x = RECIPE.pad
+		for i, slot in r.slots do
+			slot.frame.Position = UDim2.fromOffset(x, slot.frame.Position.Y.Offset)
+			slot.frame.Size = UDim2.fromOffset(slotW, RECIPE.slotH)
+			x += slotW
+			local opLabel = r.ops[i]
+			opLabel.Position = UDim2.fromOffset(x, 0)
+			x += RECIPE.op
+		end
+		r.result.Position = UDim2.fromOffset(x, r.result.Position.Y.Offset)
+		r.result.Size = UDim2.fromOffset(inner + RECIPE.pad - x, RECIPE.slotH)
+	end
+
+	local function updateRecipe(r: any, recipe: SlimeDex.Recipe)
+		r.instance:SetAttribute("Status", recipe.status)
+		local ready = recipe.status == "ready"
+		r.instance.BackgroundColor3 = if ready then Theme.BgLight else Theme.Row
+		r.stroke.Color = if ready then Theme.Good else Theme.Ink
+		r.stroke.Thickness = if ready then STYLE.selectStroke else Widgets.KIT.rowStroke
+		for i, slot in r.slots do
+			local s = recipe.slots[i]
+			slot.frame:SetAttribute("State", s.state)
+			slot.frame:SetAttribute("Species", s.species)
+			slot.ring.Enabled = s.state == "base"
+			slot.name.Text = s.label
+			slot.name.TextColor3 = if s.species then Theme.Text else Theme.Muted
+			slot.tag.Text = s.tag
+			slot.tag.TextColor3 = if s.state == "base" then Theme.Good else Theme.Muted
+			local look: Look? = nil
+			if s.species then
+				local _, color = lookup(s.species)
+				local entry = if ctx.SlimeRoster then ctx.SlimeRoster.get(s.species) else nil
+				look = {
+					key = s.species,
+					found = true,
+					tier = if entry then entry.tier else recipe.result.tier,
+					speciesColor = color or s.color,
+				}
+			end
+			setLook(slot.preview, slot.glyph, look, recipeList, r.instance)
+		end
+		local card = recipe.result
+		r.resultName.Text = card.title
+		r.resultName.TextColor3 = if card.found then Widgets.color3(card.color) else Theme.Text
+		setLook(
+			r.resultView,
+			r.resultGlyph,
+			{ key = card.key, found = card.found, tier = card.tier, speciesColor = card.speciesColor },
+			recipeList,
+			r.instance
+		)
+		r.status.Text = recipe.statusText
+		r.status.TextColor3 = if recipe.status == "need" then Theme.Muted else Theme.Good
+		placeRecipe(r)
+	end
+
+	local recipeRows = Widgets.keyedList(
+		recipeList,
+		function(recipe: SlimeDex.Recipe)
+			return recipe.key
+		end,
+		makeRecipe,
+		function(r: any, recipe: SlimeDex.Recipe)
+			updateRecipe(r, recipe)
+		end
+	)
+
+	-------------------------------------------------------------------------------------------------------------
+	-- Rebuilds: only while open, and only when what the lists show changed.
 	local pendingSignature: string? = nil
 	local builtSignature: string? = nil
 	local dirty = true
 	local hasState = false -- nothing to build before the first State
 	local builds = 0
 
-	local function signature(): string
-		local parts = table.create(#pendingCards + #pendingSkins + 1)
-		table.insert(parts, tostring(grid().columns))
-		for _, row in pendingSkins do
-			table.insert(parts, `{row.key}|{row.locked}|{row.detail}|{row.found}|{row.fraction}|{row.skin.equipped}`)
+	local function shownTabs()
+		local present: { [string]: boolean } = {}
+		for _, tab in SlimeDex.tabs(pendingCards) do
+			present[tab.key] = true
 		end
+		return present
+	end
+
+	-- The tab to show: the current one if it has cards, else the first that does.
+	local function validTab()
+		local present = shownTabs()
+		if present[currentTab] then
+			return
+		end
+		for _, def in SlimeDex.TABS do
+			if present[def.key] then
+				currentTab = def.key
+				filter = nil
+				return
+			end
+		end
+	end
+
+	local function signature(): string
+		local parts = table.create(#pendingCards + 4)
+		table.insert(parts, `{currentTab}|{filter or ""}|{bodyW}|{grid().columns}`)
 		for _, card in pendingCards do
 			local slots = {}
 			for _, slot in card.slots or {} do
-				table.insert(slots, slot.species or "")
+				table.insert(slots, `{slot.species or ""}:{slot.set or ""}`)
 			end
-			table.insert(parts, `{card.key}|{card.found}|{card.title}|{card.hint or ""}|{table.concat(slots, ",")}`)
+			table.insert(
+				parts,
+				`{card.key}|{card.found}|{card.title}|{inBase[card.key] or 0}|{table.concat(slots, ",")}`
+			)
 		end
 		return table.concat(parts, "\n")
 	end
 
+	local function paintTabs()
+		local present = shownTabs()
+		for _, tab in SlimeDex.tabs(pendingCards) do
+			local t = tabs[tab.key]
+			t.setText(`{tab.label}\n{tab.count}`)
+		end
+		for key, t in tabs do
+			t.instance.Visible = present[key] == true
+			t.setColor(if key == currentTab then Theme.Accent else Theme.Info)
+			t.instance:SetAttribute("Selected", key == currentTab)
+		end
+	end
+
 	local function rebuild()
-		if open and dirty and hasState then
-			dirty = false
-			builtSignature = pendingSignature
-			builds += 1
+		if not (open and dirty and hasState) then
+			return
+		end
+		dirty = false
+		builtSignature = pendingSignature
+		builds += 1
+		attach()
+		paintTabs()
+		placeBody()
+		if currentTab == SlimeDex.MERGES then
+			local recipes = SlimeDex.recipes(pendingCards, inBase, filter)
+			recipeRows.sync(recipes)
+			local name = nil
+			for _, card in pendingCards do
+				if card.key == filter then
+					name = card.title
+				end
+			end
+			legend.Text = if name then `Merges with {name}` else Dex.HINT
+		else
+			local cards = SlimeDex.ofKind(pendingCards, currentTab)
+			if selectedCard() == nil then
+				local first: SlimeDex.Card? = nil
+				for _, card in cards do
+					if card.found then
+						first = card
+						break
+					end
+				end
+				first = first or cards[1]
+				if first then
+					selected[currentTab] = first.key
+				end
+			end
 			local items: { Item } = {}
-			if #pendingSkins > 0 then
-				table.insert(items, { key = "skins:header", heading = "Plot skins" })
-			end
-			for _, row in pendingSkins do
-				table.insert(items, { key = row.key, skin = row })
-			end
-			for _, line in SlimeDex.lines(pendingCards, grid().columns, ctx.Config) do
+			for _, line in SlimeDex.lines(cards, grid().columns, ctx.Config) do
 				table.insert(items, { key = line.key, line = line })
 			end
 			rows.sync(items)
-			-- Cards of species that left the State (never in practice) are dropped.
+			-- Cards of other tabs leave the grid (kept for when their tab comes back).
 			local shown: { [string]: boolean } = {}
-			for _, card in pendingCards do
+			for _, card in cards do
 				shown[card.key] = true
 			end
 			for key, v in cardViews do
 				if not shown[key] then
-					v.instance:Destroy()
-					cardViews[key] = nil
+					v.instance.Parent = nil
 				end
 			end
-			refreshPreviews()
+			paintSelection()
 		end
+		refreshPreviews()
 	end
 
 	local function markDirty()
+		validTab()
 		pendingSignature = signature()
 		dirty = pendingSignature ~= builtSignature
 		rebuild()
+	end
+
+	function rebuildNow()
+		list.CanvasPosition = Vector2.zero
+		recipeList.CanvasPosition = Vector2.zero
+		markDirty()
+	end
+
+	function selectCard(id: string)
+		selected[currentTab] = id
+		paintSelection()
+		refreshPreviews()
 	end
 
 	local self = { frame = panel.frame, close = panel.close }
@@ -803,29 +1038,25 @@ function Dex.new(parent: Instance, ctx: any)
 	-- Called by init.client when the menu opens / closes.
 	function self.setOpen(isOpen: boolean)
 		open = isOpen
-		for _, r in rows.rows do
-			if r.skinIcon then
-				r.skinIcon.setActive(isOpen)
-			end
-		end
 		rebuild()
+		refreshPreviews()
 	end
 
 	-- Called by init.client with the panel box (Layout.panelFor).
 	function self.layout(r: Layout.Rect)
 		local body = Layout.panelBody(r)
-		bodyH, bodyW = body.h, body.w
-		placeHeader()
-		placeMilestone()
-		Widgets.restack(list)
-		markDirty() -- the column count may change with the width
+		bodyH, bodyW = math.floor(body.h), math.floor(body.w)
+		content.Size = UDim2.fromOffset(bodyW, fullH)
+		placeChips()
+		placeBody()
+		markDirty() -- the column count and row sizes follow the width
 	end
 
 	-- Live (mounted) previews now, and a manual refresh (tests).
 	function self.liveCount(): number
 		local n = 0
-		for _, v in cardViews do
-			if v.preview:GetAttribute("Look") ~= nil then
+		for viewport in wells do
+			if viewport:GetAttribute("Look") ~= nil then
 				n += 1
 			end
 		end
@@ -833,7 +1064,7 @@ function Dex.new(parent: Instance, ctx: any)
 	end
 	self.refreshPreviews = refreshPreviews
 
-	-- How many times the list was rebuilt (tests).
+	-- How many times the lists were rebuilt (tests).
 	function self.builds(): number
 		return builds
 	end
@@ -843,28 +1074,36 @@ function Dex.new(parent: Instance, ctx: any)
 		return grid()
 	end
 
+	-- The tab shown, and switching it (tests; the tab buttons do the same).
+	function self.tab(): string
+		return currentTab
+	end
+	function self.selectTab(key: string, only: string?)
+		setTab(key, only)
+	end
+	function self.select(id: string)
+		selectCard(id)
+	end
+
 	function self.update(state: any)
 		local summary = SlimeDex.summary(state.dex)
-		percent.Text = summary.percent
-		chips[1].Text = summary.count
-		chips[2].Text = summary.secrets or ""
-		placeHeader()
-		local rc = SlimeDex.rewardCard(state)
-		if rc and not mile then
-			mile = buildMilestone()
+		percentChip.Text = summary.percent
+		countChip.Text = summary.count
+		placeChips()
+		local line = SlimeDex.rewardLine(state)
+		local hadReward = reward.Visible
+		reward.Visible = line ~= nil
+		if line then
+			rewardText.Text = line.text
+			rewardCount.Text = line.count or ""
+			setRewardBar(line.fraction)
 		end
-		if mile then
-			mile.card.Visible = rc ~= nil
-			if rc then
-				local rewards = Progress.dexRewards(state)
-				local friendLine = FriendBadge.line(state.friends, ctx.Config.FEATURES.FriendBonus == true)
-				paintMilestone(rc, Progress.incomeLine(rewards.dexPercent, friendLine))
-			end
+		if hadReward ~= reward.Visible then
+			placeBody()
 		end
-		Widgets.restack(list)
 		hasState = true
 		pendingCards = SlimeDex.cards(state.dex, ctx.Config, lookup)
-		pendingSkins = SlimeDex.skinRows(state.plotSkins, ctx.Config)
+		inBase = SlimeDex.inBase(state.slimes)
 		markDirty()
 	end
 
