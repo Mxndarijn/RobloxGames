@@ -87,6 +87,14 @@ export type PlotSkin = {
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
 }
 
+-- A plot base: the building a plot stands in (FEATURES.BaseShapes, CONTRACT.md §43), chosen apart from the skin.
+-- `rebirths` = the rebirth count that unlocks it (nil = everyone). Ids are permanent save ids.
+export type PlotBase = {
+	id: string, -- permanent save id; never rename
+	name: string,
+	rebirths: number?,
+}
+
 -- A PvP tool or fun item (FEATURES.PvP, CONTRACT.md §26). Price is derived (PvpRules.price), never stored.
 -- No tool has a damage / health field: PvP never lowers Humanoid health (Validate.pvpTools asserts it).
 export type PvpTool = {
@@ -482,6 +490,15 @@ local PLOT_SKINS: { PlotSkin } = {
 	},
 }
 
+local PLOT_BASES: { PlotBase } = {
+	{ id = "jar", name = "Goo Jar Tower" },
+	{ id = "factory", name = "Goo Factory", rebirths = 20 },
+	{ id = "pagoda", name = "Mushroom Pagoda", rebirths = 25 },
+}
+for _, base in PLOT_BASES do
+	table.freeze(base)
+end
+
 -- PvP ladder (FEATURES.PvP, CONTRACT.md §26, docs/PVP.md). Every gate is a REBIRTH_TIERS threshold; the price is
 -- derived (PvpRules.price = factor x Economy.rebirthCost(gate), at least PVP.PRICE_MIN). Nothing here has a damage field.
 local function withExtra(tool: { [string]: any }, extra: { [string]: any }): PvpTool
@@ -729,6 +746,8 @@ local Config = {
 	}),
 	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §15)
 	PLOT_SKIN_DEFAULT = "classic",
+	PLOT_BASES = table.freeze(PLOT_BASES), -- plot bases unlocked by rebirths (CONTRACT.md §43)
+	PLOT_BASE_DEFAULT = "jar",
 
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 120,
@@ -859,6 +878,7 @@ local Config = {
 		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
 		SlimeChoreo = true, -- species gaits and hops, lane beats and reactions to players (SlimePersona, ParadeChoreo, ui/SlimeGait, contract/slime-life.md); false = every slime glides the lane at one pace
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
+		BaseShapes = false, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §43); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
 	}),
 

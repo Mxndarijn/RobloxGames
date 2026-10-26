@@ -21,6 +21,7 @@ local Economy = if Shared then require(Shared.Economy) else require("../shared/E
 local HotbarOrder = if Shared then require(Shared.HotbarOrder) else require("../shared/HotbarOrder")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
+local PlotBases = if Shared then require(Shared.PlotBases) else require("../shared/PlotBases")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Remotes = if Shared then require(Shared.Remotes) else require("../shared/Remotes")
@@ -307,6 +308,19 @@ local function equipPlotSkin(world: World, session: Session, id: string, ctx: Co
 	return OK
 end
 
+local function equipPlotBase(world: World, session: Session, id: string, ctx: Context): Result
+	if not feature(ctx, "BaseShapes") then
+		return fail("plot bases are off")
+	end
+	local ok, reason = PlotBases.equip(session.data, id)
+	if not ok then
+		return fail(reason or "failed")
+	end
+	local base = PlotBases.get(id)
+	World.notify(world, session.userId, `Base: {base and base.name or id}`, "good", nil, `PlotBase_{id}`)
+	return OK
+end
+
 local function setAudioSettings(session: Session, music: number, sfx: number, muted: boolean, ctx: Context): Result
 	if not feature(ctx, "Audio") then
 		return fail("audio settings are off")
@@ -564,6 +578,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return buyUpgrade(world, session, args[1])
 	elseif action == "EquipPlotSkin" then
 		return equipPlotSkin(world, session, args[1], ctx)
+	elseif action == "EquipPlotBase" then
+		return equipPlotBase(world, session, args[1], ctx)
 	elseif action == "SetAudioSettings" then
 		return setAudioSettings(session, args[1], args[2], args[3], ctx)
 	elseif action == "BuyConsumable" then

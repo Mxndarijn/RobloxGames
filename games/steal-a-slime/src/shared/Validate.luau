@@ -32,6 +32,7 @@ Validate.ACTIONS = table.freeze({
 	Drop = 0.3,
 	Redeem = 2,
 	EquipPlotSkin = 0.5,
+	EquipPlotBase = 0.5,
 	BuyConsumable = 0.5,
 	UseConsumable = 0.5,
 	SetAudioSettings = 0.5,

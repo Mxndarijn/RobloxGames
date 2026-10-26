@@ -63,6 +63,7 @@ export type Data = {
 	goals: { [string]: number }, -- Config.GOALS id -> stages paid
 	speciesRewards: number, -- Config.DEX_MILESTONES.species paid
 	plotSkin: string, -- equipped Config.PLOT_SKINS id (PlotSkins; "classic" = default)
+	plotBase: string, -- equipped Config.PLOT_BASES id (PlotBases; "jar" = default)
 	-- Redeem codes (Codes, CONTRACT.md §10)
 	redeemed: { [string]: boolean }, -- normalized codes already used
 	boostMult: number, -- active income boost (1 = none)
@@ -106,6 +107,7 @@ function PlayerData.new(): Data
 		goals = {},
 		speciesRewards = 0,
 		plotSkin = Config.PLOT_SKIN_DEFAULT,
+		plotBase = Config.PLOT_BASE_DEFAULT,
 		redeemed = {},
 		boostMult = 1,
 		boostUntil = 0,

@@ -99,6 +99,7 @@ return table.freeze({
 	PLOT_NEXT_PAD_COST_ATTRIBUTE = "NextPadCost", -- Plot_<i>: nil when maxed / free
 	PAD_UNLOCKED_ATTRIBUTE = "Unlocked", -- Pad_<j>: j <= PadsUnlocked
 	PLOT_SKIN_ATTRIBUTE = "PlotSkin", -- Plot_<i>: owner's equipped Config.PLOT_SKINS id (FEATURES.PlotSkins only)
+	PLOT_BASE_ATTRIBUTE = "PlotBase", -- Plot_<i>: owner's equipped Config.PLOT_BASES id (FEATURES.BaseShapes only)
 	PLOT_PRICE_ATTRIBUTE = "PlotPrice", -- Plot_<i>: reserved; nil while plots are free (v13)
 	RARE_ATTRIBUTE = "RareSpawn", -- wild slime model: tier, only on Legendary+ drops
 	RIDING_ATTRIBUTE = "Riding", -- wild slime model: true while it rides the fountain slide (emerge to landing / lane entry), else nil
