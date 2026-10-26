@@ -354,6 +354,7 @@ describe("Request ShopBuy", function()
 	it("maxed upgrades are refused with the Maxed code", function()
 		local env = setup()
 		expect(Config.UPGRADES[1].id).toBe("Income")
+		env.session.data.rebirths = Config.MAX_REBIRTHS
 		env.session.data.upgrades.Income = Config.UPGRADES[1].maxLevel
 		expect(buy(env, "UpgradeShop", "Income").code).toBe("Maxed")
 	end)

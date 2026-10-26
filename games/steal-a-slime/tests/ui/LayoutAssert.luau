@@ -24,6 +24,7 @@
 ]]
 
 local Config = require("../../src/shared/Config")
+local Economy = require("../../src/shared/Economy")
 local Format = require("../../src/ui/Format")
 local GuideTips = require("../../src/ui/GuideTips")
 local Hint = require("../../src/ui/Hint")
@@ -267,7 +268,8 @@ LayoutAssert.BIG_STATE = table.freeze({
 	cash = 987.6e12,
 	incomePerSec = 98.7e12,
 	rebirths = Config.MAX_REBIRTHS,
-	rebirthMultiplier = 1 + Config.MAX_REBIRTHS * Config.REBIRTH_MULTIPLIER_STEP,
+	rebirthMultiplier = Economy.rebirthMultiplier(Config.MAX_REBIRTHS),
+	nextRebirthMultiplier = Economy.rebirthMultiplier(Config.MAX_REBIRTHS),
 	padsUnlocked = Config.PADS_MAX - 1,
 	padsMax = Config.PADS_MAX,
 	nextPadCost = 987.6e12,

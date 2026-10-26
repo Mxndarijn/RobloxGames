@@ -680,6 +680,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			egg = if slime.egg
 				then { kind = slime.egg.kind, hatchAt = slime.egg.hatchAt, lucky = slime.egg.lucky }
 				else nil, -- optional (contract/mystery-egg.md): missing = a slime, no version bump
+			brewed = slime.brewed, -- optional: missing = not made in the vat, no version bump
 		})
 	end
 	local found = {}

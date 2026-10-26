@@ -8,8 +8,10 @@ local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local Income = require("../src/server/Income")
 local PlayerData = require("../src/shared/PlayerData")
+local Progression = require("../src/shared/Progression")
 local Remotes = require("../src/shared/Remotes")
 local ServerFixtures = require("./ServerFixtures")
+local SlimeRoster = require("../src/shared/SlimeRoster")
 local StealService = require("../src/server/StealService")
 local TestRunner = require("./TestRunner")
 local Validate = require("../src/shared/Validate")
@@ -148,15 +150,34 @@ describe("MergeVat: a brewing vat locks its slimes", function()
 		expect(call(world, 1, "MoveSlime", { "x", 1 }).message).toBe("That slime is brewing in the vat")
 	end)
 
-	it("a rebirth that needs a brewing slime waits for the brew", function()
+	it("refuses to load a slime the next rebirth would use up, and loads a spare of that species", function()
+		local species = Config.REBIRTH_SLIMES[1][1]
+		local tier = (SlimeRoster.get(species) :: any).tier
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, {
-			slime("n1", 2, { species = "bumble" }),
-			slime("n2", 2, { species = "bumble" }),
-			slime("n3", 2, { species = "bumble" }),
+			slime("weak", tier, { species = species, size = 0.5 }),
+			slime("strong", tier, { species = species, size = 1.5 }),
+		}, 1e9)
+		local res = call(world, 1, "VatAdd", { "weak" })
+		expect(res.ok).toBe(false)
+		expect(res.message).toBe(Progression.NEEDED_TEXT)
+		expect(#VatState.ids(s.data)).toBe(0)
+		expect(call(world, 1, "VatAdd", { "strong" }).ok).toBe(true)
+	end)
+
+	it("a rebirth that needs a brewing slime waits for the brew", function()
+		local species = Config.REBIRTH_SLIMES[1][1]
+		local tier = 1 -- a rarity a new player may brew
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, {
+			slime("weak", tier, { species = species, size = 0.5 }),
+			slime("n1", tier, { species = species, size = 1.5 }),
+			slime("n2", tier, { size = 1.5 }),
+			slime("n3", tier, { size = 1.5 }),
 		}, 1e9)
 		fill(world, 1, { "n1", "n2", "n3" })
-		call(world, 1, "VatStart", {})
+		assert(call(world, 1, "VatStart", {}).ok, "start")
+		PlayerData.removeSlime(s.data, "weak") -- stolen: now the brewing one is the only match
 		local res = call(world, 1, "Rebirth", {})
 		expect(res.ok).toBe(false)
 		expect(res.message).toBe("A slime the rebirth needs is brewing in the vat")
