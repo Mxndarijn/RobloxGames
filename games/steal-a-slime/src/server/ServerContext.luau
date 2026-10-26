@@ -87,6 +87,7 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 		end,
 		dropDown = WorldView.dropDown,
 		plotPointOf = WorldView.plotPoint,
+		sendKits = WorldView.sendKits,
 		-- Knockback gloves, Fun items and the Bat: the server only launches; the look is client FX from PvpEvent.
 		launch = function(userId: number, push, _landing): boolean
 			return PvpLaunch.launch(userId, push, now())

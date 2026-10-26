@@ -7,17 +7,18 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local slime = Fixtures.slime
+local FIRST = Config.REBIRTH_SLIMES[1][1] -- the species rebirth 1 uses up
 
 describe("Rebirth", function()
 	it("needs enough cash", function()
-		local data = Fixtures.data(nil, Config.REBIRTH_BASE_COST - 1)
+		local data = Fixtures.data(nil, Economy.rebirthCost(0) - 1)
 		expect((Progression.rebirth(data))).toBe(false)
 		expect(data.rebirths).toBe(0)
 	end)
 	it("resets cash, uses up the required slime and keeps every other slime on its pad", function()
 		local data = Fixtures.data(
-			{ slime("a", 1), slime("b", 5), slime("c", 2), slime("d", 2, { species = "bumble" }) },
-			Config.REBIRTH_BASE_COST + 50
+			{ slime("a", 1), slime("b", 5), slime("c", 2), slime("d", 2, { species = FIRST }) },
+			Economy.rebirthCost(0) + 50
 		)
 		data.padsUnlocked = 7
 		data.favoriteId = "c"
@@ -38,17 +39,18 @@ describe("Rebirth", function()
 		expect(data.padsUnlocked).toBe(7)
 	end)
 	it("works with just the required slime, uses it up and raises the income multiplier", function()
-		local data = Fixtures.data({ slime("x", 2, { species = "bumble" }) }, 1e9)
+		local data = Fixtures.data({ slime("x", 2, { species = FIRST }) }, 1e9)
 		expect((Progression.rebirth(data))).toBe(true)
 		expect(#data.slimes).toBe(0)
 		local s = slime("x", 1)
-		expect(Economy.slimeIncome(s, data.rebirths)).toBe(1 + Config.REBIRTH_MULTIPLIER_STEP)
+		expect(Economy.slimeIncome(s, data.rebirths)).toBe(1 + Economy.rebirthStep(1))
 	end)
 	it("next rebirth costs more", function()
-		local data = Fixtures.data(nil, Config.REBIRTH_BASE_COST)
-		Progression.rebirth(data)
-		data.cash = Config.REBIRTH_BASE_COST
-		expect((Progression.canRebirth(data))).toBe(false)
+		local data = Fixtures.data({ slime("x", 2, { species = FIRST }) }, Economy.rebirthCost(0))
+		expect((Progression.rebirth(data))).toBe(true)
+		expect(Economy.rebirthCost(data.rebirths) > Economy.rebirthCost(0)).toBe(true)
+		data.cash = Economy.rebirthCost(0)
+		expect(select(2, Progression.canRebirth(data))).toBe("not enough cash")
 	end)
 	it("stops at MAX_REBIRTHS", function()
 		local data = Fixtures.data(nil, 1e15)

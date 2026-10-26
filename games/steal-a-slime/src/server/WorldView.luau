@@ -47,18 +47,21 @@ local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
 local HomeZone = require(ReplicatedStorage.Shared.HomeZone)
 local JarRoute = require(script.Parent.JarRoute)
+local KitDelivery = require(script.Parent.KitDelivery)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
 local MeshSwap = require(script.Parent.MeshSwap)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
+local PetSeats = require(ReplicatedStorage.Shared.PetSeats)
 local PlotGuests = require(script.Parent.PlotGuests)
 local PlotLockGuard = require(script.Parent.PlotLockGuard)
 local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local PvpBlaster = require(script.Parent.PvpBlaster)
 local PvpFun = require(script.Parent.PvpFun)
 local PvpHeld = require(script.Parent.PvpHeld)
@@ -108,6 +111,60 @@ local plotCache: { [number]: Instance? } = {}
 local habitats = HabitatPads.new() -- FEATURES.Habitats pad state (never saved)
 local eggMeshes: { [string]: MeshPart | false } = {} -- uploaded Mystery Egg meshes (MeshAssets mystery_egg_*), by name
 
+-- The player's own kit folder: a disabled ScreenGui in their PlayerGui, so only they replicate it and it survives
+-- respawns (SpeciesModel reads it).
+local function kitFolder(player: Player): Instance?
+	local gui = player:FindFirstChildOfClass("PlayerGui")
+	if gui == nil then
+		return nil
+	end
+	local folder = gui:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	if folder == nil then
+		local screen = Instance.new("ScreenGui")
+		screen.Name = Constants.SLIME_KITS_FOLDER
+		screen.Enabled = false
+		screen.ResetOnSpawn = false
+		screen.Parent = gui
+		folder = screen
+	end
+	return folder
+end
+
+-- Species kit meshes, sent per player on RequestKits (SlimeDex / rebirth previews).
+local kitDelivery = KitDelivery.new({
+	loaded = function(kit: string): any?
+		return if slimeMesh then slimeMesh.kits[kit] else nil
+	end,
+	failed = function(kit: string): boolean
+		-- Without the factory there is no mesh look and no kit ever loads.
+		return slimeMesh == nil or slimeMesh.failedKits[kit] == true
+	end,
+	deliver = function(userId: number, kit: string, template: any)
+		local player = Players:GetPlayerByUserId(userId)
+		local folder = player and kitFolder(player)
+		if folder == nil then
+			return
+		end
+		local copy = (template :: MeshPart):Clone()
+		copy.Name = kit
+		copy.Anchored = true
+		copy.CanCollide = false
+		copy.CanQuery = false
+		copy.CanTouch = false
+		copy.Parent = folder
+	end,
+})
+
+-- RequestKits (Actions ctx.sendKits): `kits` are KitRequest kit names.
+function WorldView.sendKits(userId: number, kits: { string })
+	KitDelivery.request(kitDelivery, userId, kits)
+end
+
+-- The player left: their kit folder went with their PlayerGui.
+function WorldView.forgetKits(userId: number)
+	KitDelivery.forget(kitDelivery, userId)
+end
+
 WorldView.FALL_SECONDS = 0.3 -- a dropped slime falls to the ground
 WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart when the character has no Head
 
@@ -144,25 +201,19 @@ function WorldView.setup(): any?
 	local factory = visuals and visuals:FindFirstChild("ModelFactory")
 	if factory then
 		-- Mesh look over Archer's factory; LoadAsset yields once here, falls back to procedural.
-		-- Clients can't LoadAsset, so each loaded species kit is copied to ReplicatedStorage for the SlimeDex.
-		local kits = Instance.new("Folder")
-		kits.Name = Constants.SLIME_KITS_FOLDER
-		kits.Parent = ReplicatedStorage
+		-- Clients can't LoadAsset: a SlimeDex / rebirth preview asks for the kits it shows (RequestKits) and
+		-- KitDelivery copies just those to that player (WorldView.sendKits).
 		local mesh = SlimeMesh.new({
 			factory = require(factory :: ModuleScript) :: any,
 			loadAsset = function(assetId: number): Instance
 				return InsertService:LoadAsset(assetId)
 			end,
 			onKit = function(kit: string, template: MeshPart)
-				local copy = template:Clone()
-				copy.Name = kit
-				copy.Anchored = true
-				copy.CanCollide = false
-				copy.Parent = kits
+				KitDelivery.kitLoaded(kitDelivery, kit, template)
 			end,
 		})
-		workspace:SetAttribute(Constants.SLIME_LOOK_ATTRIBUTE, SlimeMesh.load(mesh))
 		slimeMesh = mesh
+		workspace:SetAttribute(Constants.SLIME_LOOK_ATTRIBUTE, SlimeMesh.load(mesh))
 		modelFactory = {
 			build = function(slimeData: any): Model
 				return SlimeMesh.build(mesh, slimeData)
@@ -1041,6 +1092,21 @@ local function kitArrived(record: Record, entry: Scene.Entry, clock: number): bo
 		and clock >= record.rideUntil
 end
 
+-- A pad slime's status row: the vat's ("In vat"), else "For rebirth" when the next rebirth uses it up.
+-- `needed` caches Progression.neededIds per owner for one reconcile.
+function WorldView.padStatus(owner: any, id: string, needed: { [number]: { [string]: boolean } }): string?
+	local vat = VatView.labelStatus(owner.data, id)
+	if vat then
+		return vat
+	end
+	local set = needed[owner.userId]
+	if not set then
+		set = Progression.neededIds(owner.data)
+		needed[owner.userId] = set
+	end
+	return if set[id] then "For rebirth" else nil
+end
+
 --[[
 	Creates, moves and destroys slime models to match the World. Call a few
 	times a second and after any action.
@@ -1062,6 +1128,7 @@ function WorldView.reconcile(
 		end
 	end
 	table.clear(bossMoves)
+	local needed: { [number]: { [string]: boolean } } = {} -- per owner: slimes the next rebirth uses up
 	for id, entry in entries do
 		local record: Record? = records[id]
 		if not record then
@@ -1142,7 +1209,7 @@ function WorldView.reconcile(
 			entry.income,
 			if entry.state == "Pad" then entry.pad else nil,
 			now,
-			if owner then VatView.labelStatus(owner.data, id) else nil
+			if owner then WorldView.padStatus(owner, id, needed) else nil
 		)
 	end
 	for id in failed do
@@ -1753,6 +1820,7 @@ function WorldView.updatePlayer(
 	end
 	local pet = World.pet(world, session) -- a stolen pet stops following
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
+	setAttribute(player, Constants.PET_SEAT_ATTRIBUTE, PetSeats.current(data))
 	if data.speedCoil then
 		ensureSpeedCoil(player)
 	end

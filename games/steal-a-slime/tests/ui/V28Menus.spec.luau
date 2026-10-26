@@ -57,6 +57,7 @@ local function rebirthState(rebirths: number, cash: number): any
 	return {
 		rebirths = rebirths,
 		rebirthMultiplier = Economy.rebirthMultiplier(rebirths),
+		nextRebirthMultiplier = Economy.rebirthMultiplier(math.min(rebirths + 1, Config.MAX_REBIRTHS)),
 		rebirthCost = Economy.rebirthCost(rebirths),
 		canRebirth = cash >= Economy.rebirthCost(rebirths),
 		cash = cash,

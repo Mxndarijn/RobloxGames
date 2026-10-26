@@ -34,7 +34,7 @@ return table.freeze({
 	PLOTS_FOLDER = "Plots",
 	PLOT_SLIMES_FOLDER = "Slimes", -- per-plot folder for pad slimes
 	WILD_FOLDER = "WildSlimes",
-	SLIME_KITS_FOLDER = "SlimeKits", -- ReplicatedStorage: one loaded species MeshPart per kit, named "slime_<id>" (SlimeDex previews)
+	SLIME_KITS_FOLDER = "SlimeKits", -- PlayerGui: the species MeshParts this player asked for (RequestKits), named "slime_<id>" (SlimeDex previews)
 	PLOT_INDEX_ATTRIBUTE = "PlotIndex", -- Plot_<i> model: i
 	PAD_INDEX_ATTRIBUTE = "PadIndex", -- Pad_<j> part: j
 	HOME_ZONE = "HomeZone",
@@ -58,6 +58,7 @@ return table.freeze({
 	TUTORIAL_STEP_ATTRIBUTE = "TutorialStep", -- Player: 1..6, nil = done / not loaded
 	SPEED_COIL_ATTRIBUTE = "SpeedCoil", -- Player: true once the Speed Coil is owned
 	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FollowPets), nil = none
+	PET_SEAT_ATTRIBUTE = "PetSeat", -- Player: Config.PET_SEATS id their follow pet rides (PetSeats.current)
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
 	BOSS_MOVE_ATTRIBUTE = "BossMove", -- boss model: its current move (BossChoreo.encode); clients draw it every frame
 	BOSS_TARGETS_ATTRIBUTE = "BossTargets", -- boss model: "x,z;x,z" world spots its windup's spits will land on

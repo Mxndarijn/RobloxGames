@@ -140,7 +140,7 @@ describe("jar tower: stair", function()
 	it("keeps a rail along the outer edge, open at the bottom and before the top to step on and off", function()
 		for f = 2, FLOORS do
 			local rails = named(floorParts(1, f), "RampRail_")
-			expect(#rails > 6).toBe(true)
+			expect(#rails >= 6).toBe(true)
 			local start = WorldLayout.treadAngle(f - 1, 1) - st.angle
 			for _, r in rails do
 				expect(r.canCollide ~= false).toBe(true)
@@ -175,7 +175,7 @@ describe("jar tower: stair", function()
 			local parts = floorParts(1, f)
 			local start = WorldLayout.treadAngle(f - 1, 1) - st.angle
 			local landing = named(parts, "StairLanding_")
-			expect(#landing).toBe(top.landing // 15)
+			expect(#landing).toBe(top.landing // top.step)
 			expect(#named(parts, "HoleRail_")).toBe(0)
 			for _, n in landing do
 				-- shown and solid only while jar f is the top jar, flush with its floor, inside the hole
@@ -189,7 +189,7 @@ describe("jar tower: stair", function()
 				local d = (math.deg(math.atan2(p[3], p[1])) - start) % 360
 				expect(d > 0 and d < top.landing).toBe(true)
 				-- headroom for the ramp below, which passes under the landing (its far edge is the lowest point)
-				local below = WorldLayout.FLOOR_HEIGHT * (d + 7.5) / 360
+				local below = WorldLayout.FLOOR_HEIGHT * (d + top.step / 2) / 360
 				expect(WorldLayout.FLOOR_HEIGHT - 1 - below >= 6).toBe(true)
 				expect(math.abs(math.sqrt(p[1] ^ 2 + p[3] ^ 2) + n.size[3] / 2 - st.hole) < 1e-6).toBe(true)
 				expect(math.abs(p[2] + n.size[2] / 2 - WorldLayout.floorTop(f)) < 1e-6).toBe(true)

@@ -6,10 +6,11 @@
 	gets a small client-only copy of that slime trotting behind them. The copy
 	is cloned from the slime's replicated model (tag Constants.SLIME_TAG,
 	attribute SlimeId), stripped of prompts, tags, welds to the outside and
-	gameplay attributes, shrunk to a hand-sized pet (PetCloud.petScale) and anchored, and stands on a low-poly
-	cloud sized to it (PetCloud: a clone of the template the server publishes in
-	ReplicatedStorage.PetCloudMeshes; the pet is made at once and gets the cloud
-	when the template shows up, or stays on its invisible Mount if it never does).
+	gameplay attributes, shrunk to a hand-sized pet (PetCloud.petScale) and anchored, and rides the seat its owner
+	picked (Player attribute PetSeat, Constants.PET_SEAT_ATTRIBUTE: a Config.PET_SEATS id) sized to it (PetCloud: a
+	clone of that seat's template the server publishes in ReplicatedStorage.PetCloudMeshes). While that template is
+	not there the pet rides the plain cloud, and without any template an invisible Mount. The pet is made at once
+	and built again (in place) when its seat changes or a better template shows up.
 	The cloud + pet glide after the owner with the pure PetFollow spring (one
 	RenderStepped connection for every pet). Pets live in a local workspace folder "ClientPets"; no remotes, nothing
 	replicates.
@@ -20,6 +21,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 
 local PetCloud = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("PetCloud"))
@@ -33,7 +35,23 @@ FollowPets.POLL = 0.5
 FollowPets.MAX_DISTANCE = 200
 -- Follow motion (offset behind and right of the owner, spring, bob) lives in PetFollow.
 
-type Pet = { model: Model, slimeId: string, follow: PetFollow.State }
+-- `shown`: the template the pet rides (its mesh name), nil on a Mount.
+type Pet = { model: Model, slimeId: string, shown: string?, follow: PetFollow.State }
+
+-- The template a pet of `player` should ride: its seat's, else the plain cloud's, else nil.
+local function templateFor(player: Player): BasePart?
+	local id = player:GetAttribute(Constants.PET_SEAT_ATTRIBUTE)
+	for _, seat in Config.PET_SEATS do
+		if seat.id == id then
+			local own = PetCloud.find(ReplicatedStorage, seat.mesh)
+			if own then
+				return own
+			end
+			break
+		end
+	end
+	return PetCloud.find(ReplicatedStorage)
+end
 
 local function findSource(slimeId: string): Model?
 	for _, model in CollectionService:GetTagged(Constants.SLIME_TAG) do
@@ -114,28 +132,28 @@ function FollowPets.start()
 		for _, player in Players:GetPlayers() do
 			local id = player:GetAttribute(Constants.PET_ATTRIBUTE)
 			local pet = pets[player]
+			local template = templateFor(player)
+			local shown = if template then template.Name else nil
 			if type(id) ~= "string" then
 				remove(player)
-			elseif not pet or pet.slimeId ~= id or not pet.model.Parent then
+			elseif not pet or pet.slimeId ~= id or not pet.model.Parent or pet.shown ~= shown then
+				-- Same slime on a new seat: keep where it glides, so it doesn't jump.
+				local follow = if pet and pet.slimeId == id then pet.follow else nil
 				remove(player)
 				local source = findSource(id)
 				local root = rootOf(player)
 				local slime = source and makePet(source, player.UserId)
 				if slime and root then
-					local model = PetCloud.mount(slime, player.UserId, PetCloud.find(ReplicatedStorage))
+					local model = PetCloud.mount(slime, player.UserId, template)
 					model.Parent = folder -- PetFollow's first step snaps it next to the owner
 					pets[player] = {
 						model = model,
 						slimeId = id,
-						follow = PetFollow.new(math.random() * math.pi * 2),
+						shown = shown,
+						follow = follow or PetFollow.new(math.random() * math.pi * 2),
 					}
 				elseif slime then
 					slime:Destroy()
-				end
-			elseif not PetCloud.hasCloud(pet.model) then
-				local template = PetCloud.find(ReplicatedStorage) -- published after this pet was made
-				if template then
-					PetCloud.attach(pet.model, template)
 				end
 			end
 		end

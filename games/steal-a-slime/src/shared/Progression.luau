@@ -7,8 +7,8 @@
 	Rebirth: costs Economy.rebirthCost(rebirths) cash and needs the
 	Config.REBIRTH_SLIMES species of that level on the player's pads. Those
 	slimes are used up and cash goes back to STARTING_CASH; every other slime
-	stays on its pad. Pads stay unlocked. Gives +REBIRTH_MULTIPLIER_STEP
-	income multiplier and a longer lock (Steal.lockDuration).
+	stays on its pad. Pads stay unlocked. Gives the income multiplier step of
+	that rebirth (Economy.rebirthStep) and a longer lock (Steal.lockDuration).
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -67,6 +67,22 @@ function Progression.payment(data: PlayerData.Data): ({ [number]: Slime }, boole
 		end
 	end
 	return picked, complete
+end
+
+-- Why a slime the next rebirth uses up can't be sold or put in the vat.
+Progression.NEEDED_TEXT = "Needed for your next rebirth"
+
+-- Ids of the slimes the next rebirth would use up (Progression.payment); empty at max. Sell and the merge vat
+-- refuse these, and their pad label says so.
+function Progression.neededIds(data: PlayerData.Data): { [string]: boolean }
+	local out = {}
+	if data.rebirths >= Config.MAX_REBIRTHS then
+		return out
+	end
+	for _, slime in Progression.payment(data) do
+		out[slime.id] = true
+	end
+	return out
 end
 
 -- One { id, name, tier, color, owned } row per slime the next rebirth needs; empty at max.

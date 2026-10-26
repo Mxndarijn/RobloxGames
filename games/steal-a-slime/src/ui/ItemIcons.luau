@@ -25,7 +25,7 @@
 export type Spec = {
 	id: string,
 	name: string,
-	group: string, -- "shop" | "gear" | "upgrade" | "boost" | "code" | "goal" | "badge" | "skin" | "misc" | "hud"
+	group: string, -- "shop" | "gear" | "upgrade" | "boost" | "code" | "goal" | "badge" | "skin" | "seat" | "misc" | "hud"
 	color: { number }, -- tile colour, 0..255 RGB
 	glyph: string, -- allowlisted (tests/ui/Glyphs.spec): ASCII, a proven BMP symbol or an emoji
 	model: { kind: "mesh", mesh: string? }?,
@@ -80,6 +80,25 @@ ItemIcons.IMAGES = {
 	Perk_income = 94766482619711,
 	Perk_luck = 80060700315838,
 	Pet = 118993346386827,
+	PetSeat_bubble = 107124135602798,
+	PetSeat_clam_shell = 73688638146933,
+	PetSeat_cloud = 120940962905889,
+	PetSeat_crescent_moon = 133024058650689,
+	PetSeat_flame_cloud = 116000113766605,
+	PetSeat_hoverboard = 71082166431007,
+	PetSeat_ice_cloud = 77617006351901,
+	PetSeat_jelly = 92509813855397,
+	PetSeat_leaf = 115031220974277,
+	PetSeat_lily_pad = 104857291401997,
+	PetSeat_magic_carpet = 73081224735691,
+	PetSeat_mushroom = 127804622316249,
+	PetSeat_pancakes = 133973680417456,
+	PetSeat_rainbow_cloud = 133782271501912,
+	PetSeat_royal_cushion = 71277927627777,
+	PetSeat_star_cushion = 126554071638157,
+	PetSeat_storm_cloud = 79721468215071,
+	PetSeat_sunset_cloud = 110911427190137,
+	PetSeat_ufo = 104264507345275,
 	PlotSkin_candy = 98677550689246,
 	PlotSkin_classic = 105086598289035,
 	PlotSkin_crystal = 72221778465251,
@@ -126,6 +145,7 @@ ItemIcons.DRAWN_GROUPS = table.freeze({
 	goal = true,
 	badge = true,
 	skin = true,
+	seat = true,
 })
 
 -- Drawn groups without uploaded pictures yet: the same UI-drawn recipes (ItemIconArt), no IMAGES entry required.
@@ -508,6 +528,18 @@ function ItemIcons.build(config: any)
 			glyph = "🏡",
 			model = if mesh then { kind = "mesh", mesh = mesh } else nil,
 			brief = `Top of the '{s.name}' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view.`,
+		})
+	end
+
+	-- Pet seats (contract/pet-seats.md): the Cloud tab of the Skins menu. Pictures from tools/icons/recipes_seat.py.
+	for _, seat in config.PET_SEATS or {} do
+		add({
+			id = `PetSeat_{seat.id}`,
+			name = seat.name,
+			group = "seat",
+			color = seat.color,
+			glyph = "🌥",
+			brief = `The '{seat.name}' pet seat (models/{seat.mesh}.py) alone, no slime; 3/4 view.`,
 		})
 	end
 

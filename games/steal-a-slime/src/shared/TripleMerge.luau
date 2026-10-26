@@ -54,6 +54,12 @@ function TripleMerge.canMerge(slimes: { Slime? }): (boolean, string?)
 	if a.tier ~= b.tier or b.tier ~= c.tier then
 		return false, "slimes must be the same rarity"
 	end
+	if a.tier >= Config.MERGE_MAX_TIER then
+		local recipe = MergeRecipes.find({ a.species, b.species, c.species })
+		if not (recipe and recipe.tier == a.tier + 1) then
+			return false, "only a recipe merges these"
+		end
+	end
 	return true, nil
 end
 
@@ -146,6 +152,7 @@ function TripleMerge.merge(slimes: { Slime }, rng: Rng.Rng, id: string, ctx: Mer
 		mouth = one(a.mouth, b.mouth, c.mouth),
 		pad = nil,
 		species = if species then species.id else nil,
+		brewed = if outcome.recipe then 2 else 1,
 	}
 	return child
 end
