@@ -15,6 +15,8 @@
 	slime fidgets (ui/SlimeFidget), reacts to the local player and drops in / hops over when it is put down or moved;
 	an escaping slime races home stretched and sweating; a riding slime sits back on the slide; a lean spring and a
 	squash spring (Lib Spring) add follow-through on top.
+	Landings, fidget starts, new emotes and Move landings set client-only model attributes
+	(SlimeAudioLogic.ATTRIBUTES) that ui/SlimeAudio turns into sounds.
 
 	  SlimeActor.attach(model, motor, now, prevState?, movedFrom?) -> Actor
 	    prevState = the model's State before this rig (a Carried slime put on its pad drops in)
@@ -41,6 +43,7 @@ local ParadeLane = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 local SlimeLife = require(script.Parent:WaitForChild("SlimeLife"))
 local Lib = ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core")
 local SlimeAttention = require(script.Parent:WaitForChild("SlimeAttention"))
+local SlimeAudioLogic = require(script.Parent:WaitForChild("SlimeAudioLogic"))
 local SlimeBeats = require(script.Parent:WaitForChild("SlimeBeats"))
 local SlimeFidget = require(script.Parent:WaitForChild("SlimeFidget"))
 local SlimeGait = require(script.Parent:WaitForChild("SlimeGait"))
@@ -190,6 +193,11 @@ export type Actor = {
 	bossKicked: number, -- the boss: the move number whose landing squash already played
 	bossHitAt: number?, -- the boss: the last BossHitAt it squashed for
 }
+
+-- Sound cues for ui/SlimeAudio: a client-only model attribute set to the time it happened.
+local function cue(model: Model, attribute: string, now: number)
+	model:SetAttribute(attribute, now)
+end
 
 local function rootOf(motor: SlimeMotor.Motor): BasePart?
 	local p = motor.skinJoint.Part1
@@ -675,6 +683,9 @@ function SlimeActor.update(
 	local emote: string? = nil
 	actor.visible = Vector3.new(pos.X + g.dx, ay, pos.Z + g.dz)
 	actor.speed = math.sqrt(actor.gait.vx ^ 2 + actor.gait.vz ^ 2)
+	if g.landed > 0 and not bossMove then
+		cue(model, SlimeAudioLogic.ATTRIBUTES.land, now)
+	end
 	if detailed and g.landed > 0 and actor.splat then
 		actor.splat:Emit(math.max(3, math.floor(6 * g.landed + 0.5)))
 	end
@@ -803,8 +814,12 @@ function SlimeActor.update(
 				toYaw, toDist = yawTo(body, Vector3.new(ax, pos.Y, az), frame.player)
 			end
 			SlimeFidget.setMood(actor.fidget, if toDist < SlimeReact.NEAR then "near" else "idle", now, rand)
+			local before = actor.fidget.kind
 			local fp = SlimeFidget.step(actor.fidget, now, rand, actor.fidgetPose)
 			local fidgeting = actor.fidget.kind ~= nil
+			if fidgeting and before == nil and actor.fidget.kind ~= "drop" and actor.fidget.kind ~= "arrive" then
+				cue(model, SlimeAudioLogic.ATTRIBUTES.blip, now)
+			end
 			mods.lift += fp.lift
 			mods.sx *= fp.sx
 			mods.sy *= fp.sy
@@ -821,6 +836,8 @@ function SlimeActor.update(
 			faceName = fp.face or faceName
 			emote = fp.emote
 			if fp.splat > 0 then
+				local arrived = actor.fidget.kind == "arrive"
+				cue(model, if arrived then SlimeAudioLogic.ATTRIBUTES.arrive else SlimeAudioLogic.ATTRIBUTES.land, now)
 				Spring.kick(actor.squash, -fp.splat * SlimeActor.SQUASH.kick)
 				if detailed and actor.splat then
 					actor.splat:Emit(math.floor(4 + 3 * fp.splat))
@@ -949,7 +966,11 @@ function SlimeActor.update(
 	mods.spin = spin
 
 	face(mods, faceName)
-	actor.emote = if detailed then emote else nil
+	local shown = if detailed then emote else nil
+	if shown and shown ~= actor.emote then
+		cue(model, SlimeAudioLogic.ATTRIBUTES.blip, now)
+	end
+	actor.emote = shown
 	-- Where the slime stands this frame, its sideways lean included (SlimeSpacing keeps these apart).
 	local right = body.CFrame.RightVector
 	actor.visible =

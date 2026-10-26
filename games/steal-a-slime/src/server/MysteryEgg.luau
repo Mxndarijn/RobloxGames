@@ -118,7 +118,14 @@ function MysteryEgg.step(world: World, seconds: number, now: number)
 				if EggKind.isReady(slime, now) and not told[slime.id] and not world.carriedBy[slime.id] then
 					told[slime.id] = true
 					World.markDirty(session)
-					World.notify(world, session.userId, MysteryEgg.readyText(data, slime), "good", "Rare", "MysteryEgg")
+					World.notify(
+						world,
+						session.userId,
+						MysteryEgg.readyText(data, slime),
+						"good",
+						"EggReady",
+						"MysteryEgg"
+					)
 				end
 			end
 		end

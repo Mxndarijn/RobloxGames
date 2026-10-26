@@ -419,7 +419,7 @@ function SlimeGuard.intruded(
 	if carry and carry.kind == "stolen" then
 		StealService.escape(world, session, now, "guard")
 	end
-	World.notify(world, session.userId, "That base is locked. You can't steal here until it opens.", "info", "Lock")
+	World.notify(world, session.userId, "That base is locked. You can't steal here until it opens.", "info", "Denied")
 	if serverPut then
 		return nil
 	end

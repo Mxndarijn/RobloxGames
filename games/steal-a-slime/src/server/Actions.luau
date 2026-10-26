@@ -243,7 +243,7 @@ end
 local function buyPad(world: World, session: Session): Result
 	local ok, reason = PlayerData.buyPad(session.data)
 	if ok then
-		World.notify(world, session.userId, "New pad unlocked!", "good", "Cash")
+		World.notify(world, session.userId, "New pad unlocked!", "good", "PadUnlock")
 		World.tutorial(world, session, "BuyPad")
 	end
 	return result(ok, reason)
@@ -259,7 +259,7 @@ local function daily(world: World, session: Session, now: number): Result
 		session.userId,
 		`Daily reward: ${Economy.formatNumber(value :: number)}`,
 		"good",
-		"Cash",
+		"DailyReward",
 		"Daily"
 	)
 	return OK
@@ -285,7 +285,7 @@ local function redeem(world: World, session: Session, text: string, now: number)
 	local what = if reward.kind == "boost"
 		then `{reward.mult}x income for {reward.minutes} min`
 		else `${Economy.formatNumber(reward.amount or 0)}`
-	World.notify(world, session.userId, `Code redeemed: {what}!`, "good", "Cash", "Gift")
+	World.notify(world, session.userId, `Code redeemed: {what}!`, "good", "Gift", "Gift")
 	return OK
 end
 
@@ -294,7 +294,7 @@ local function buySpeedCoil(world: World, session: Session): Result
 	if not ok then
 		return fail(value :: string)
 	end
-	World.notify(world, session.userId, "Speed Coil bought! You run faster now.", "good", "Cash", "SpeedCoil")
+	World.notify(world, session.userId, "Speed Coil bought! You run faster now.", "good", "CashRegister", "SpeedCoil")
 	return OK
 end
 
@@ -305,7 +305,7 @@ local function buyUpgrade(world: World, session: Session, id: string): Result
 	end
 	local def = Perks.upgradeDef(id)
 	local level = session.data.upgrades[id]
-	World.notify(world, session.userId, `{def and def.name or id} level {level}!`, "good", "Cash", `Upgrade_{id}`)
+	World.notify(world, session.userId, `{def and def.name or id} level {level}!`, "good", "LevelUp", `Upgrade_{id}`)
 	return OK
 end
 

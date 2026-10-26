@@ -43,7 +43,7 @@ function ConsumableShop.buy(
 	Consumables.record(data, Consumables.slotAt(now), itemId)
 	Consumables.addHeld(data, itemId)
 	local def = Consumables.def(itemId) :: Config.Consumable
-	World.notify(world, session.userId, `{def.name} added to your bag.`, "good", "Cash")
+	World.notify(world, session.userId, `{def.name} added to your bag.`, "good", "Bag")
 	return true, nil
 end
 

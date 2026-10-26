@@ -818,11 +818,11 @@ local Config = {
 	WILD_BASE_LIFETIME = WILD_BASE_LIFETIME,
 	WILD_LIFETIME = math.round(WILD_BASE_LIFETIME / SLIME_MOVE_SPEED_MULT), -- 115: walk + hop slower, drain still at expiry
 	DESPAWN_TELEGRAPH_SECONDS = 5, -- wild slimes warn this long before they expire (FEATURES.DespawnTelegraph)
-	-- Despawn telegraph FX: optional one-shot sound with the poof. Off until a real asset is chosen.
-	DESPAWN_POOF_SOUND = false,
-	-- Despawn telegraph FX: PLACEHOLDER id. Replace with a real short pop/poof id before
-	-- enabling DESPAWN_POOF_SOUND. The client never plays id 0; don't ship 0 as "the sound".
-	DESPAWN_POOF_SOUND_ID = "rbxassetid://0",
+	-- Despawn telegraph FX: a one-shot 3D sound with the poof (in the SFX group).
+	DESPAWN_POOF_SOUND = true,
+	DESPAWN_POOF_SOUND_ID = "rbxassetid://9125639751", -- Pro Sound Effects "Magic Poofs Short Breathy Bursts Wheezy Exhale"
+	-- Wild slimes expire every few seconds near the fountain: at most one poof sound per this many seconds.
+	DESPAWN_POOF_SOUND_GAP = 10,
 	-- v13 rarity curve (CONTRACT.md §8.7): pity per server, Legendary+ drops are announced
 	PITY_EPIC = 30, -- after this many drops without an Epic+, the next one is at least Epic
 	PITY_LEGENDARY = 300, -- same for Legendary+
@@ -903,7 +903,7 @@ local Config = {
 	AUDIO = table.freeze({
 		DEFAULT_SFX_VOLUME = 0.8, -- 0..1, SFX SoundGroup
 		DEFAULT_MUSIC_VOLUME = 0.35, -- 0..1, Music / Ambient SoundGroup
-		AMBIENT_VOLUME = 0.25, -- loop volume inside the Music group (low on purpose)
+		AMBIENT_VOLUME = 0.15, -- loop volume inside the Music group (low on purpose)
 		AMBIENT_FADE_SECONDS = 4, -- crossfade day <-> night
 		SFX_MIN_GAP = 0.05, -- seconds between two plays of the same SFX name
 		SFX_MAX_LIVE = 4, -- most copies of one SFX name sounding at once
@@ -916,20 +916,112 @@ local Config = {
 			merge = "Merge",
 			rebirth = "Rebirth",
 			alarm = "Alarm",
-			error = "rbxasset://sounds/uuhhh.mp3",
+			error = "ErrorSoft",
 			click = "rbxasset://sounds/button.wav",
 		}),
 		-- Ambience: a looped bed per time of day, plus a night one-shot played now and then over it.
 		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds: own 20 s seamless loop (Merijn's upload)
-		AMBIENT_NIGHT_ID = "", -- no night bed: nights are quiet apart from the owl
+		AMBIENT_NIGHT_ID = "rbxassetid://9112764573", -- "Crickets Night 3" (Pro Sound Effects, 64 s loop), kept low
+		AMBIENT_NIGHT_VOLUME = 0.07, -- the crickets bed sits under the owl
 		-- "Owl Hooting Reverberant Several 1 (SFX)", Pro Sound Effects, public domain, 16 s. Not a seamless loop,
 		-- so it plays whole, once per gap, never looped.
 		NIGHT_ONESHOT_ID = "rbxassetid://9117182190",
 		NIGHT_ONESHOT_MIN_SECONDS = 20, -- gap between owl calls, picked at random in MIN..MAX
 		NIGHT_ONESHOT_MAX_SECONDS = 45,
-		NIGHT_ONESHOT_VOLUME = 0.5, -- inside the Music group; louder than the beds, it is rare
+		NIGHT_ONESHOT_VOLUME = 0.3, -- inside the Music group; louder than the beds, it is rare
 		NIGHT_ONESHOT_SPEED_JITTER = 0.05, -- PlaybackSpeed 1 +- this, so repeats don't sound identical
 		NIGHT_ONESHOT_MIN_LEVEL = 0.9, -- calls only once the night has (nearly) faded in
+		-- Music (APM library, public domain): one track by time of day, the boss track during a boss fight / haul.
+		-- These are finished cues, looped whole. Inside the Music group, under the player's Music slider.
+		MUSIC = table.freeze({
+			day = "rbxassetid://1836753678", -- "Little Moment Of Calm" (120 s)
+			night = "rbxassetid://1837212983", -- "Sleepy Time" (65 s)
+			boss = "rbxassetid://1836675698", -- "Silly Chase" (145 s)
+		}),
+		MUSIC_VOLUME = 0.22, -- quiet on purpose: music sits far under the game
+		MUSIC_FADE_SECONDS = 3,
+		-- Weather beds (Pro Sound Effects loops), by Constants.WEATHER_ATTRIBUTE value. The day / night bed ducks
+		-- to WEATHER_DUCK while one plays.
+		WEATHER_BEDS = table.freeze({
+			Rain = "rbxassetid://9112857056", -- "Rain On Window 2" (46 s loop)
+			Snow = "rbxassetid://9114057104", -- "Desert Wind Whistley Light Gusts 1" (37 s), soft cold wind
+		}),
+		WEATHER_BED_VOLUME = 0.18,
+		WEATHER_DUCK = 0.3,
+		-- Thunder during rain: one of these Sounds.IDS names now and then, at a random gap in MIN..MAX seconds.
+		THUNDER = table.freeze({ "Thunder1", "Thunder2", "Thunder3" }),
+		THUNDER_VOLUME = 0.3,
+		THUNDER_MIN_SECONDS = 25,
+		THUNDER_MAX_SECONDS = 60,
+		-- 3D one-shots (SoundController.play with `at`): full volume within MIN, silent past MAX studs.
+		SFX_3D_MIN_DISTANCE = 12,
+		SFX_3D_MAX_DISTANCE = 110,
+		SFX_SPEED_JITTER = 0.08, -- playVariant: PlaybackSpeed 1 +- this
+		SFX_TRIM_FADE = 0.2, -- seconds a trimmed sound (Sounds.TRIM) fades out over
+		-- State-driven cues (ui/SoundCues).
+		CUES = table.freeze({}),
+		-- World sounds driven by workspace attributes: boss attacks, egg hatches, rituals, the fountain (ui/WorldAudio).
+		WORLD = table.freeze({
+			CULL_DISTANCE = 150, -- studs from the camera: boss / egg / ritual one-shots farther away are skipped
+			BOSS_MAX_DISTANCE = 150, -- boss sounds (3D) are heard within this many studs
+			EGG_MAX_DISTANCE = 80, -- hatch show sounds (3D)
+			RITUAL_MAX_DISTANCE = 80, -- ritual spot / done one-shots (3D)
+			LATE_SECONDS = 0.4, -- a timed cue seen more than this long after its moment is dropped, not played late
+			FORGET_SECONDS = 30, -- seconds a played cue key is remembered (so a re-sent attribute never replays it)
+			FIND_EVERY = 1, -- seconds between looks for the boss model, the ritual circle and the fountain
+			-- Looped 3D beds, in the Music group (the Music slider covers them).
+			FOUNTAIN_ID = "rbxassetid://9120557315", -- plaza fountain water
+			FOUNTAIN_VOLUME = 0.25,
+			FOUNTAIN_MIN_DISTANCE = 12, -- full volume inside this many studs of the pool
+			FOUNTAIN_MAX_DISTANCE = 45, -- silent past this
+			-- Pro Sound Effects "Magic Force Field Constant 1": hums at the orb while the ritual charges.
+			RITUAL_HUM_ID = "rbxassetid://9116386800",
+			RITUAL_HUM_VOLUME = 0.35,
+			RITUAL_HUM_FADE_SECONDS = 0.8, -- fade in when the charge starts, out when it ends
+			RITUAL_HUM_MIN_DISTANCE = 8,
+			RITUAL_HUM_MAX_DISTANCE = 70,
+		}),
+		-- Slime voices, pickup / put-down and footsteps (ui/SlimeAudio, ui/Footsteps).
+		SLIME = table.freeze({
+			-- Slime sounds are 3D at the slime and only for slimes this close to the camera (studs).
+			MAX_DISTANCE = 35,
+			SLIME_GAP = 5, -- seconds: one slime squishes or blips at most once in this long
+			MAX_PER_SECOND = 1, -- squishes + blips across all slimes in any one second (nearest win)
+			LAND_VOLUME = 0.5, -- a hop or fidget landing (SlimeSquish), on top of Sounds.VOLUME
+			BLIP_CHANCE = 0.15, -- share of fidgets / new emotes that get a SlimeBlip
+			BLIP_GAP = 8, -- seconds between two blips across all slimes
+			BLIP_VOLUME = 0.5,
+			CARRY_VOLUME = 1, -- SlimePickup / SlimePutdown (always play within MAX_DISTANCE)
+			-- Pitch by size (the model's Size attribute, Config.MIN_SIZE..MAX_SIZE): bigger slimes sound lower.
+			-- PlaybackSpeed = SPEED_AT_SIZE_1 - SPEED_PER_SIZE * (size - 1), clamped to SPEED_MIN..SPEED_MAX.
+			SPEED_AT_SIZE_1 = 1.1,
+			SPEED_PER_SIZE = 0.3,
+			SPEED_MIN = 0.75,
+			SPEED_MAX = 1.3,
+			-- Footsteps: Humanoid.FloorMaterial name -> Sounds.VARIANTS group. Other floors keep Roblox's own step.
+			STEP_MATERIALS = table.freeze({
+				Grass = "StepGrass",
+				LeafyGrass = "StepGrass",
+				Ground = "StepGrass",
+				Mud = "StepGrass",
+				Snow = "StepSnow",
+				Glacier = "StepSnow",
+				Ice = "StepSnow",
+			}),
+			-- Ground snow tints the grass but never changes its material: from this snow cover (0..1) on, a
+			-- set listed here steps as the set it maps to.
+			SNOW_COVER_MIN = 0.5,
+			SNOW_STEPS = table.freeze({ StepGrass = "StepSnow" }),
+			STRIDE_STUDS = 3.5, -- studs per step at STRIDE_WALK_SPEED
+			STRIDE_WALK_SPEED = 16, -- Humanoid.WalkSpeed the stride above is for; faster walkers take longer strides
+			STRIDE_MIN = 2.5,
+			STRIDE_MAX = 6,
+			STEP_MIN_SPEED = 1.5, -- studs / s: slower than this a character stands still (no steps)
+			FIRST_STEP_SHARE = 0.4, -- share of a stride to the first step after standing or landing
+			OTHERS_DISTANCE = 40, -- studs from the camera: other players' steps within this
+			STEP_VOLUME = 0.6, -- the local player's steps
+			OTHERS_STEP_VOLUME = 0.35, -- other players' steps
+		}),
 	}),
 
 	-- A slime being stolen leaves a see-through copy on its pad until the steal ends (server/StealGhost).
