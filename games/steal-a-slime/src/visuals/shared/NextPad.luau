@@ -20,7 +20,7 @@ NextPad.LOOK = table.freeze({
 	textSize = 22,
 	stroke = 3, -- Ink outline round the tag
 	textStroke = 2, -- Ink outline round white text
-	maxDistance = 140, -- studs: readable across your own plot
+	maxDistance = 40, -- studs from the camera: the tag and outline show only when you are near the pad
 	fillTransparency = 0.72, -- the outline's mint fill over the pad
 	glassTransparency = 0.25, -- the tag's Ink glass when you can't afford it yet
 })
@@ -36,6 +36,11 @@ function NextPad.tag(cost: number?, cash: number?): Tag?
 	local price = Format.cash(cost)
 	local verb = if affordable then "Buy pad" else "Next pad"
 	return { verb = verb, price = price, text = `{verb} {price}`, affordable = affordable }
+end
+
+-- True when the camera is close enough (`distance` studs from the pad) to show the outline and tag.
+function NextPad.shownAt(distance: number): boolean
+	return distance <= NextPad.LOOK.maxDistance
 end
 
 return table.freeze(NextPad)
