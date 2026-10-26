@@ -13,6 +13,7 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
+local FIRST = Config.REBIRTH_SLIMES[1][1] -- the species rebirth 1 uses up
 
 local ctx: Actions.Context = {
 	distanceBetween = function()
@@ -115,6 +116,29 @@ describe("Actions dispatch", function()
 		s.limiter = {}
 		expect(call(world, 1, "Sell", "b").message).toBe("slime is busy")
 	end)
+	it("Sell and VatAdd refuse a slime the next rebirth uses up and keep it on its pad", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("need", 2, { species = FIRST }) }, 0)
+		local result = call(world, 1, "Sell", "need")
+		expect(result.ok).toBe(false)
+		expect(result.message).toBe(Progression.NEEDED_TEXT)
+		s.limiter = {}
+		expect(call(world, 1, "VatAdd", "need").message).toBe(Progression.NEEDED_TEXT)
+		expect(s.data.vat == nil or #(s.data.vat :: any).ids == 0).toBe(true)
+		expect(PlayerData.findSlime(s.data, "need") ~= nil).toBe(true)
+		expect(s.data.cash).toBe(0)
+	end)
+	it("Sell pays for a slime of a needed species once the rebirth already has one", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, {
+			Fixtures.slime("big", 2, { species = FIRST, size = 3 }),
+			Fixtures.slime("small", 2, { species = FIRST }),
+		}, 0)
+		local needed = Progression.neededIds(s.data)
+		local spare = if needed.big then "small" else "big"
+		expect(call(world, 1, "Sell", spare).ok).toBe(true)
+		expect(PlayerData.findSlime(s.data, spare)).toBeNil()
+	end)
 	it("Favorite sets and clears the keeper", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a") })
@@ -146,7 +170,7 @@ describe("Actions dispatch", function()
 	it("VatAdd, Lock and Rebirth route to their systems", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1), Fixtures.slime("b", 1) }, 1e6)
-		PlayerData.addSlime(s.data, Fixtures.slime("need", 2, { species = "bumble" }))
+		PlayerData.addSlime(s.data, Fixtures.slime("need", 2, { species = FIRST }))
 		expect(call(world, 1, "VatAdd", "a").ok).toBe(true)
 		expect(s.data.vat ~= nil).toBe(true)
 		expect(call(world, 1, "Lock").ok).toBe(true)

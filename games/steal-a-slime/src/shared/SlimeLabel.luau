@@ -95,7 +95,8 @@ function SlimeLabel.attributes(slime: Genome.Slime): (string, number)
 	if kind then
 		return EggKind.displayName(kind), kind.tier
 	end
-	return slime.name, Genome.rarity(slime.tier).tier
+	local name = if slime.brewed == 1 then `Brewed {slime.name}` else slime.name
+	return name, Genome.rarity(slime.tier).tier
 end
 
 -- "m:ss" for a non-negative number of seconds (rounded up).
