@@ -97,6 +97,12 @@ def write(prefixes):
         src = src.replace(anchor, block + anchor, 1)
     open(MESH_ASSETS, "w", encoding="utf-8", newline="").write(src)
     print(f"{len(names)} entries -> {os.path.relpath(MESH_ASSETS)}")
+    # format like the rest of the game (CI runs stylua --check)
+    try:
+        import subprocess
+        subprocess.run(["stylua", MESH_ASSETS], check=False, capture_output=True)
+    except OSError:
+        print("stylua not found: run `stylua` on MeshAssets.luau before committing")
 
 
 if __name__ == "__main__":

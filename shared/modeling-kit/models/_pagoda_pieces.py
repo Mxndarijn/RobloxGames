@@ -2,14 +2,17 @@
 # at their plot position (kit = plot-local, see _pagoda_layout). Tint pieces are painted in value-only greys: the game
 # gives them their colour with MeshPart.Color (assumed multiply, as in LESSONS), so one mesh serves every theme.
 # TINT names the colour role of each piece; _base_pagoda_design.py maps roles to theme colours.
+import colorsys
 import math
 import random
 
 import bmesh
 
-from lib import blob, box, cylinder, obj_from_bm, rgb, shade, tube
+from lib import PALETTE, blob, box, cylinder, mix, obj_from_bm, rgb, shade, tube
 from models._base_design_common import floor_top, polar
 import models._pagoda_layout as L
+
+P = PALETTE
 
 
 def g(v):
@@ -79,25 +82,62 @@ def disc_on_wall(name, r_wall, a, z, rad, depth, col, cx=0.0, cy=0.0, segs=14):
 
 
 # ---------------------------------------------------------------- rooms
-WINDOW_ANGLES = {1: (-45, 0, 25, 155, 180, 215), 2: (-60, -15, 25, 155, 230), 3: (-45, 0, 155, 230), 4: (-30, 20, 160, 235)}
+# The stalk wall is a frame round glass bays, so someone outside sees the slimes inside (the jar tower's glass, see
+# room_glass): a kerb, a band under the cap, and posts every POST_STEP degrees.
+KERB_H = 1.4                 # solid stalk at the foot of the wall
+HEAD_H = 1.6                 # solid stalk band under the cap
+POST_STEP = 30.0             # a post every this many degrees
+POST_W = 1.2                 # post width (studs, along the wall)
 TINT = {}
 
 
+def _posts(f):
+    """Post angles on floor f: every POST_STEP degrees inside the wall's arcs, plus one at each arc end."""
+    r = L.ROOM_R[f - 1]
+    half = math.degrees(POST_W / 2 / r)
+    out = []
+    for a0, a1 in L.room_arcs(f):
+        out += [a0 + half, a1 - half]
+        a = math.ceil(a0 / POST_STEP) * POST_STEP
+        while a < a1:
+            if a - a0 > 2 * half + 4 and a1 - a > 2 * half + 4:
+                out.append(a)
+            a += POST_STEP
+    return out
+
+
 def room(f):
-    """Stalk wall of floor f with its door (floor 1) / hatch (2-4), round windows, ring band. Tint: stalk."""
+    """Stalk frame of floor f: kerb, head band, posts, the outer ring band and (floors 2-4) the closed hatch. Tint:
+    stalk. The glass between the posts is room_glass(f)."""
     TINT[f"pagoda_room_{f}"] = "stalk"
+    z = floor_top(f)
+    r_in, r_out = L.ROOM_R[f - 1], L.room_out(f)
+    half = math.degrees(POST_W / 2 / r_in)
+    out = []
+    for a0, a1 in L.room_arcs(f):
+        out.append(arc_wall(f"Kerb{f}_{a0:.0f}", 0, 0, r_in, r_out, z, KERB_H, g(0.94), a0, a1, lo=g(0.80)))
+        out.append(arc_wall(f"Head{f}_{a0:.0f}", 0, 0, r_in, r_out, z + L.WALL_H - HEAD_H, HEAD_H, g(0.94), a0, a1,
+                            lo=g(0.88)))
+        out.append(arc_wall(f"Band{f}_{a0:.0f}", 0, 0, r_out - 0.1, r_out + 0.5, z, 1.6, g(0.58), a0, a1))
+    for k, a in enumerate(_posts(f)):
+        out.append(arc_wall(f"Post{f}_{k}", 0, 0, r_in - 0.1, r_out + 0.2, z + KERB_H, L.WALL_H - KERB_H - HEAD_H,
+                            g(0.9), a - half, a + half, step=half * 2 + 1, lo=g(0.82)))
+    if f > 1:
+        out.append(disc_on_wall(f"Hatch{f}", r_out - 0.2, L.HATCH_A, z + 3.0, 2.2, 1.2, g(0.55)))
+        out.append(disc_on_wall(f"HatchRim{f}", r_out - 0.3, L.HATCH_A, z + 3.0, 2.7, 1.1, g(0.74)))
+    return out
+
+
+def room_glass(f):
+    """The glass ring of floor f between the kerb and the head band (in the game a see-through glass slot, like the
+    jar's). Tint: glass."""
+    TINT[f"pagoda_glass_{f}"] = "glass"
     z = floor_top(f)
     r_in, r_out = L.ROOM_R[f - 1], L.room_out(f)
     out = []
     for a0, a1 in L.room_arcs(f):
-        out.append(arc_wall(f"Wall{f}_{a0:.0f}", 0, 0, r_in, r_out, z, L.WALL_H, g(0.94), a0, a1, lo=g(0.80)))
-        out.append(arc_wall(f"Band{f}_{a0:.0f}", 0, 0, r_out - 0.1, r_out + 0.5, z, 1.6, g(0.58), a0, a1))
-    for k, a in enumerate(WINDOW_ANGLES[f]):
-        out.append(disc_on_wall(f"WinRim{f}{k}", r_out - 0.2, a, z + 6.6, 2.4, 0.8, g(0.78)))
-        out.append(disc_on_wall(f"Win{f}{k}", r_out + 0.05, a, z + 6.6, 1.85, 0.7, g(0.36)))
-    if f > 1:
-        out.append(disc_on_wall(f"Hatch{f}", r_out - 0.2, L.HATCH_A, z + 3.0, 2.2, 1.2, g(0.55)))
-        out.append(disc_on_wall(f"HatchRim{f}", r_out - 0.3, L.HATCH_A, z + 3.0, 2.7, 1.1, g(0.74)))
+        out.append(arc_wall(f"Glass{f}_{a0:.0f}", 0, 0, r_in + 0.3, r_out - 0.3, z + KERB_H, L.WALL_H - KERB_H - HEAD_H,
+                            g(1.0), a0, a1, lo=g(1.0)))
     return out
 
 
@@ -397,27 +437,35 @@ def lamps(f):
 
 
 def vine(f):
-    """The owner's vine slide from floor f's hatch, out over the eaves, down into the moat. Tint: vine. Never collides."""
+    """The owner's drop exit from floor f's hatch, the solid half: the goo inside the curved glass tube, its collar and
+    bands, the goo pool and the arrow sign by the hatch (Merijn's pick: models/_drop_exit_styles.pagoda_cap "captube").
+    One tint (vine): value greys. The glass is vine_glass(f). Never collides (the drop is a scripted move to
+    EXIT["lands"])."""
+    import models._drop_exit_styles as DX
     TINT[f"pagoda_vine_{f}"] = "vine"
-    hx, hy, hz = L.hatch_pos(f)
-    a0, a1 = L.HATCH_A, 228.0
-    pts = [(hx, hy, hz - 0.5)]
-    x, y = polar(L.room_out(f) + 1.0, a0)
-    pts.append((x, y, hz - 1.2))
-    (ri, zt), (re, ze) = L.eave_profile(f - 1)
-    x, y = polar(re + 1.6, a0 + 6)
-    pts.append((x, y, ze + 0.6))
-    n = 6
-    for k in range(1, n + 1):
-        t = k / n
-        a = a0 + 6 + (a1 - a0 - 6) * t
-        x, y = polar(36.3, a)
-        pts.append((x, y, (ze + 0.6) * (1 - t) ** 1.3 + 1.0 * t))
-    out = [tube(f"Vine{f}", pts, [1.4] * len(pts), g(0.82), segs=10)]
-    for k in range(2, len(pts) - 1):
-        x, y, z = pts[k]
-        out.append(blob(f"Leaf{f}{k}", 1.5, (x, y, z + 1.5), g(1.0), subdiv=1, squash=(1.4, 0.7, 0.3), jitter=0.05))
-    return out
+    solid, glass = DX.pagoda_cap("captube", f, L, _EXIT_GREYS, rider=False)
+    _drop(glass)
+    return solid
+
+
+def vine_glass(f):
+    """The see-through tube of floor f's drop exit (a glass slot in the game, like the jar's). Tint: glass."""
+    import models._drop_exit_styles as DX
+    TINT[f"pagoda_vine_glass_{f}"] = "glass"
+    solid, glass = DX.pagoda_cap("captube", f, L, _EXIT_GREYS, rider=False)
+    _drop(solid)
+    return glass
+
+
+def _drop(objs):
+    """Remove built objects a piece does not ship (the builder makes both halves of the exit)."""
+    import bpy
+    for o in objs:
+        bpy.data.objects.remove(o, do_unlink=True)
+
+
+_EXIT_GREYS = {"goo": g(1.0), "stalk": g(0.55), "glass": g(1.0), "cap": g(0.62), "spots": g(1.0), "wood": g(0.6),
+               "ramp": g(0.78), "board": g(1.0), "ink": g(0.35)}
 
 
 def foot_decor_classic():
@@ -704,6 +752,51 @@ def foot_ring(theme):
 
 
 # theme -> [(mesh name, kind, builder, replaces)]
+def strong(col, sat=0.72, min_v=0.80):
+    """A tint colour from a theme colour: same hue, saturation raised to `sat` (never lowered), value >= min_v.
+    The theme palettes are pastel for big jar surfaces; mushroom caps want slime-strength colour."""
+    h, s, v = colorsys.rgb_to_hsv(*col[:3])
+    return colorsys.hsv_to_rgb(h, max(s, sat), max(v, min_v)) + (1.0,)
+
+
+# Theme roles -> colours, by the theme's own palette keys (never copied values). Caps and dome go through strong().
+# Classic follows the picked concept: red, purple and orange caps under a big red dome (ranch roof red, darker and
+# browner than the lock button's red). Forest (skin id mushroom) gets earthy caps so it differs from classic.
+THEME_KEYS = {  # (eave cap 1, 2, 3), dome; a key may name PALETTE ("P:...")
+    "classic": (("P:ranch_roof", "lilac", "butter"), "P:ranch_roof"),
+    "garden": (("cork", "goo", "cork"), "goo"),
+    "crystal": (("metal", "lilac", "goo"), "goo"),
+    "starlight": (("wood", "cork", "wood"), "cork"),
+    "candy": (("goo", "metal", "butter"), "wood"),
+    "mushroom": (("cork", "leaves", "wood"), "goo"),
+}
+
+
+def roles(tid):
+    """The tint colour per role (stalk, wood, cap_1..3, dome, spots, ramp, turret_cap, glow, vine) in theme `tid`."""
+    from models._base_design_common import theme
+
+    TH = theme(tid)
+    SAT = {"classic": (0.70, 0.52, 0.76, 0.70)}.get(tid, (0.55, 0.55, 0.55, 0.6))
+
+    def key(k):
+        return P[k[2:]] if k.startswith("P:") else TH[k]
+
+    CAP_KEYS, DOME_KEY = THEME_KEYS[tid]
+    return {
+        "stalk": mix(TH["cream"], TH["wood"], 0.08),
+        "wood": TH["wood"],
+        "cap_1": strong(key(CAP_KEYS[0]), SAT[0]), "cap_2": strong(key(CAP_KEYS[1]), SAT[1]),
+        "cap_3": strong(key(CAP_KEYS[2]), SAT[2]),
+        "dome": strong(key(DOME_KEY), SAT[3]),
+        "spots": rgb(255, 252, 246),
+        "ramp": strong(TH["butter"], 0.6),
+        "turret_cap": strong(key(CAP_KEYS[1]), SAT[1]),
+        "glow": TH["goo_hi"],
+        "vine": strong(TH["goo"], 0.5),
+        "glass": TH["glass"],
+    }
+
 THEME_PIECES = {
     "classic": [],
     "crystal": [("pagoda_snow_cap@crystal", "cap", snow_cap, None),
@@ -727,6 +820,8 @@ THEME_PIECES = {
 PIECES = {
     "pagoda_room_1": lambda: room(1), "pagoda_room_2": lambda: room(2), "pagoda_room_3": lambda: room(3),
     "pagoda_room_4": lambda: room(4),
+    "pagoda_glass_1": lambda: room_glass(1), "pagoda_glass_2": lambda: room_glass(2),
+    "pagoda_glass_3": lambda: room_glass(3), "pagoda_glass_4": lambda: room_glass(4),
     "pagoda_deck_2": lambda: deck(2), "pagoda_deck_3": lambda: deck(3), "pagoda_deck_4": lambda: deck(4),
     "pagoda_cap_1_mid": lambda: cap_mid(1), "pagoda_cap_2_mid": lambda: cap_mid(2), "pagoda_cap_3_mid": lambda: cap_mid(3),
     "pagoda_dome": lambda: dome(),
@@ -735,8 +830,31 @@ PIECES = {
     "pagoda_ramp": lambda: ramp(1), "pagoda_turret_cap": lambda: turret_cap(),
     "pagoda_door": door, "pagoda_door_ring": door_ring, "pagoda_lamps": lambda: lamps(2),
     "pagoda_vine_2": lambda: vine(2), "pagoda_vine_3": lambda: vine(3), "pagoda_vine_4": lambda: vine(4),
+    "pagoda_vine_glass_2": lambda: vine_glass(2), "pagoda_vine_glass_3": lambda: vine_glass(3),
+    "pagoda_vine_glass_4": lambda: vine_glass(4),
     "pagoda_foot_decor": foot_decor_classic,
 }
 for _t, _lst in THEME_PIECES.items():
     for _name, _kind, _fn, _rep in _lst:
         PIECES[_name] = (lambda fn: (lambda: fn(2, 0.0)))(_fn) if _kind == "climber" else _fn
+
+
+# ---- shipping (models/_pagoda_ship.py, models/_pagoda_meshes.py) ----
+# Every game mesh by name, classic pieces plain and a skin's own pieces as "<slot mesh>@<skin>": a skin's extra on the
+# caps, the dome or the rims shares one slot name across skins (pagoda_cap_extra, pagoda_dome_extra, pagoda_rim_extra),
+# and a skin's version of a classic piece (starlight's star spots, the themed foot rings) takes that piece's name.
+# The garden climbers stay out of the game (each is built for one wall spot; reusing them would need a mesh per floor).
+SHIP = {n: fn for n, fn in PIECES.items() if "@" not in n}  # a skin's pieces come in below under their slot names
+SHIP["pagoda_foot_decor"] = foot_decor_classic
+_GENERIC = {"cap": "pagoda_cap_extra", "dome": "pagoda_dome_extra", "rim": "pagoda_rim_extra"}
+for _tid, _list in THEME_PIECES.items():
+    for _name, _kind, _fn, _replaces in _list:
+        if _kind == "climber":
+            continue
+        _slot = _replaces or (None if _kind == "foot" else _GENERIC.get(_kind))
+        if _kind == "foot":
+            _slot = "pagoda_foot_decor"
+        SHIP[f"{_slot}@{_tid}"] = _fn
+# pieces whose skins' versions share one slot (and so one box: models/_pagoda_ship.py anchors them to the union)
+SHARED_SLOTS = ("pagoda_spots_mid", "pagoda_dome_spots", "pagoda_foot_decor", "pagoda_cap_extra", "pagoda_dome_extra",
+                "pagoda_rim_extra")

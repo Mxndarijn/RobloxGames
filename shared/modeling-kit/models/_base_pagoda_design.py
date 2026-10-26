@@ -6,7 +6,6 @@
 #   CUT=1            cut-away: rooms and caps lose their front half (y < 0), the turret its right half (x > 0)
 #   COLLIDERS=1      collider overlay: the layout's COLLIDERS in orange + pads, door, vat and lock (with CUT=1: cut too)
 #   python iterate.py models/_base_pagoda_design.py --name _d_pagoda_hero --no-export --no-ref --res 512 --views 4,2
-import colorsys
 import math
 import os
 
@@ -23,55 +22,20 @@ FLOORS = int(os.environ.get("FLOORS", "4"))
 THEME = os.environ.get("THEME", "classic")
 CUT = os.environ.get("CUT", "0") == "1"
 COLL = os.environ.get("COLLIDERS", "0") == "1"
+DROP = os.environ.get("DROP", "")  # preview a drop exit look: tube, slide or pipe (models/_drop_exit_styles.py)
 TURN = 0.0 if (CUT or COLL) else -25.0
 P = PALETTE
 TH = theme(THEME)
 
 
-def strong(col, sat=0.72, min_v=0.80):
-    """A tint colour from a theme colour: same hue, saturation raised to `sat` (never lowered), value >= min_v.
-    The theme palettes are pastel for big jar surfaces; mushroom caps want slime-strength colour."""
-    h, s, v = colorsys.rgb_to_hsv(*col[:3])
-    return colorsys.hsv_to_rgb(h, max(s, sat), max(v, min_v)) + (1.0,)
-
-
-# Theme roles -> colours, by the theme's own palette keys (never copied values). Caps and dome go through strong().
-# Classic follows the picked concept: red, purple and orange caps under a big red dome (ranch roof red, darker and
-# browner than the lock button's red). Forest (skin id mushroom) gets earthy caps so it differs from classic.
-THEME_KEYS = {  # (eave cap 1, 2, 3), dome; a key may name PALETTE ("P:...")
-    "classic": (("P:ranch_roof", "lilac", "butter"), "P:ranch_roof"),
-    "garden": (("cork", "goo", "cork"), "goo"),
-    "crystal": (("metal", "lilac", "goo"), "goo"),
-    "starlight": (("wood", "cork", "wood"), "cork"),
-    "candy": (("goo", "metal", "butter"), "wood"),
-    "mushroom": (("cork", "leaves", "wood"), "goo"),
-}
-SAT = {"classic": (0.70, 0.52, 0.76, 0.70)}.get(THEME, (0.55, 0.55, 0.55, 0.6))
-
-
-def key(k):
-    return P[k[2:]] if k.startswith("P:") else TH[k]
-
-
-CAP_KEYS, DOME_KEY = THEME_KEYS[THEME]
-ROLE = {
-    "stalk": mix(TH["cream"], TH["wood"], 0.08),
-    "wood": TH["wood"],
-    "cap_1": strong(key(CAP_KEYS[0]), SAT[0]), "cap_2": strong(key(CAP_KEYS[1]), SAT[1]),
-    "cap_3": strong(key(CAP_KEYS[2]), SAT[2]),
-    "dome": strong(key(DOME_KEY), SAT[3]),
-    "spots": rgb(255, 252, 246),
-    "ramp": strong(TH["butter"], 0.6),
-    "turret_cap": strong(key(CAP_KEYS[1]), SAT[1]),
-    "glow": TH["goo_hi"],
-    "vine": strong(TH["goo"], 0.5),
-}
+ROLE = PC.roles(THEME)
 STAND_TRIM = C.LILAC          # the plot colour on the stands' dish: the same in every theme
 EXTRA = PC.THEME_PIECES[THEME]
 REPLACED = {rep for _, _, _, rep in EXTRA if rep}
 
 objs = []                      # every object in the scene
 shell_room, shell_turret = [], []
+glass_objs = []                # the glass rings (see-through in the preview)
 
 
 def piece(name, parts, role=None, shell=None):
@@ -135,6 +99,7 @@ for f in range(1, FLOORS + 1):
     if COLL:
         continue
     piece(f"pagoda_room_{f}", PC.room(f), "stalk", shell="room")
+    glass_objs.append(piece(f"pagoda_glass_{f}", PC.room_glass(f), "glass", shell="room"))
     if f > 1:
         piece(f"pagoda_deck_{f}", PC.deck(f), "wood")
     piece(f"pagoda_lamps_{f}", PC.lamps(f), "glow")
@@ -165,7 +130,19 @@ for f in range(1, FLOORS + 1):
         k = L.eave_r(f) / L.eave_r(PC.DOME_NATIVE_FLOOR)
         crown = (PC.dome_top()[-1][1] - floor_top(PC.DOME_NATIVE_FLOOR) - L.CAP_UNDER) * k + floor_top(f) + L.CAP_UNDER
         C.mascot(0, 0, crown - 0.3, s=4.2)
-        if f > 1:
+        if f > 1 and DROP:
+            # preview only: one of the drop exit looks Merijn picks from (models/_drop_exit_styles.py)
+            import models._drop_exit_styles as DX
+            TH = theme(THEME)
+            dcol = {"goo": TH["goo"], "stalk": ROLE["stalk"], "glass": ROLE["glass"], "cap": ROLE["cap_1"],
+                    "spots": ROLE["spots"], "wood": ROLE["wood"], "ramp": ROLE["ramp"], "board": TH["cream"],
+                    "ink": rgb(70, 52, 44)}
+            fn = DX.pagoda_cap if DROP.startswith("cap") else DX.pagoda
+            solid_d, glass_d = fn(DROP, f, L, dcol)
+            piece("drop_exit", solid_d)
+            if glass_d:
+                glass_objs.append(piece("drop_exit_glass", glass_d))
+        elif f > 1:
             piece(f"pagoda_vine_{f}", PC.vine(f), "vine")
 
 # ---- floor 1 front ----
@@ -211,6 +188,32 @@ for o in objs:
     o.data.materials.clear()
     o.data.materials.append(mat)
     o.data.color_attributes.active_color = o.data.color_attributes["Col"]
+
+
+def see_through(o, t):
+    """The glass ring's preview look: its vertex colour mixed with a transparent BSDF (the game shows it see-through)."""
+    m = bpy.data.materials.new(o.name + "_see")
+    m.use_nodes = True
+    nt = m.node_tree
+    c = nt.nodes.new("ShaderNodeVertexColor")
+    c.layer_name = "Col"
+    b = nt.nodes["Principled BSDF"]
+    nt.links.new(c.outputs["Color"], b.inputs["Base Color"])
+    clear = nt.nodes.new("ShaderNodeBsdfTransparent")
+    mx = nt.nodes.new("ShaderNodeMixShader")
+    mx.inputs["Fac"].default_value = t
+    nt.links.new(b.outputs["BSDF"], mx.inputs[1])
+    nt.links.new(clear.outputs["BSDF"], mx.inputs[2])
+    nt.links.new(mx.outputs["Shader"], nt.nodes["Material Output"].inputs["Surface"])
+    o.data.materials.clear()
+    o.data.materials.append(m)
+    o["rbx_transparency"] = t
+
+
+for o in glass_objs:
+    if o is not None and o.name in bpy.data.objects:
+        see_through(o, 0.75)
+bpy.context.scene.cycles.transparent_max_bounces = 32
 for o in bpy.context.scene.objects:
     if o.type == "MESH" and TURN:
         o.rotation_euler.z += math.radians(TURN)

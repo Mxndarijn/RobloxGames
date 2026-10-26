@@ -7,6 +7,7 @@ local roblox = require("@lune/roblox")
 local Actions = require("../src/server/Actions")
 local BaseShapes = require("../src/visuals/shared/BaseShapes")
 local Config = require("../src/shared/Config")
+local PlotLockGuard = require("../src/server/PlotLockGuard")
 local TestRunner = require("./TestRunner")
 local WorldBuilder = require("../src/visuals/shared/WorldBuilder")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
@@ -182,6 +183,73 @@ describe("base shapes: no way out of a locked factory", function()
 	end)
 end)
 
+describe("base shapes: the Mushroom Pagoda's generated layout", function()
+	local Pagoda = BaseShapes.data("pagoda")
+	it("has its own shape: every base but the jar does (none falls back to the jar)", function()
+		for _, base in Config.PLOT_BASES do
+			expect(`{base.id}: {BaseShapes.get(base.id).id}`).toBe(`{base.id}: {base.id}`)
+		end
+	end)
+	it("climbs a helix at least 4 wide and no steeper than 32 degrees where feet go", function()
+		expect(#Pagoda.ramps).toBe(#Config.BASE_FLOORS - 1)
+		for _, r in Pagoda.ramps do
+			expect(r.kind).toBe("helix")
+			expect(r.r_out - r.r_in >= 4).toBe(true)
+			local walk = (r.r_in + r.r_out) / 2
+			local slope = math.deg(math.atan2(r.rise, math.rad(r.sweep) * walk))
+			expect(slope <= 32).toBe(true)
+		end
+	end)
+	it("keeps the pads clear of the round room's wall and of each other", function()
+		for f = 1, #Config.BASE_FLOORS do
+			local pads = {}
+			for _, pad in Pagoda.pads do
+				if math.ceil(pad.j / Config.PADS_PER_FLOOR) == f then
+					table.insert(pads, pad)
+				end
+			end
+			expect(#pads).toBe(Config.PADS_PER_FLOOR)
+			local room = Pagoda.inside.radii[f]
+			for a = 1, #pads do
+				local r = math.sqrt(pads[a].x ^ 2 + pads[a].z ^ 2)
+				expect(room - r - PAD / 2 * math.sqrt(2) >= 3).toBe(true)
+				for b = a + 1, #pads do
+					local d = math.sqrt((pads[a].x - pads[b].x) ^ 2 + (pads[a].z - pads[b].z) ^ 2)
+					expect(d - PAD >= GAP - 0.1).toBe(true)
+				end
+			end
+		end
+	end)
+	it("has a drop hatch facing out on floors 2-4, and the dome only in the roof folder", function()
+		local pagoda = BaseShapes.get("pagoda")
+		for f = 2, #Config.BASE_FLOORS do
+			local hatch = nil
+			for _, child in pagoda.floor(1, f)[1].children :: { any } do
+				-- floors 2-3 keep their dome in the roof folder; floor 4 is always the top, so its dome stands on it
+				-- (its mesh slots stay on every floor, shown only while it is the top one)
+				local slot = child.attributes and child.attributes.MeshAsset
+				if f < #Config.BASE_FLOORS and not slot then
+					expect(string.sub(child.name, 1, 4) ~= "Dome").toBe(true)
+				end
+				if child.name == "DropHatch" then
+					hatch = child
+				end
+			end
+			expect(hatch ~= nil).toBe(true)
+		end
+		local roof = (pagoda.top :: any)(1, 2)
+		expect(roof.name).toBe("TopColliders")
+		expect(roof.attributes.TopFloor).toBe(2)
+		local domes = 0
+		for _, child in roof.children do
+			if string.sub(child.name, 1, 4) == "Dome" then
+				domes += 1
+			end
+		end
+		expect(domes > 0).toBe(true)
+	end)
+end)
+
 describe("base shapes: shapes", function()
 	it("gives the jar for nil and unknown ids", function()
 		expect(BaseShapes.get(nil).id).toBe("jar")
@@ -220,6 +288,32 @@ describe("base shapes: shapes", function()
 		end
 		expect(factory.top).toBeNil()
 		expect(factory.route).toBe(false)
+	end)
+end)
+
+describe("base shapes: jar -> pagoda -> factory -> jar", function()
+	it("moves the door to the pagoda's wall and every base's own pieces come and go", function()
+		withRoblox(function()
+			local plot = WorldBuilder.ensure(roblox.Instance.new("Folder"), WorldLayout.plotNode(1))
+			local pad1 = plot:FindFirstChild("Pad_1")
+			local jarRing = plot:FindFirstChild("DoorRing").CFrame
+			WorldBuilder.rebase(plot, 1, nil, "pagoda")
+			local ring = plot:FindFirstChild("DoorRing")
+			local moved = jarRing:PointToObjectSpace(ring.CFrame.Position)
+			expect(math.abs(moved.Magnitude - 3) < 1e-3).toBe(true)
+			expect(plot:FindFirstChild("Jar")).toBeNil()
+			expect(plot:FindFirstChild("BaseShape"):GetAttribute("PlotBase")).toBe("pagoda")
+			expect(plot:FindFirstChild("FootLook"):GetAttribute("MeshAsset")).toBe("goo_jar_foot")
+			WorldBuilder.rebase(plot, 1, "pagoda", "factory")
+			expect(plot:FindFirstChild("BaseShape"):GetAttribute("PlotBase")).toBe("factory")
+			expect(plot:FindFirstChild("DoorRing")).toBeNil()
+			expect(plot:FindFirstChild("OpenDoorCollider")).toBeNil()
+			WorldBuilder.rebase(plot, 1, "factory", nil)
+			expect(plot:FindFirstChild("BaseShape")).toBeNil()
+			expect(plot:FindFirstChild("Jar") ~= nil).toBe(true)
+			expect((plot:FindFirstChild("DoorRing").CFrame.Position - jarRing.Position).Magnitude < 1e-3).toBe(true)
+			expect(plot:FindFirstChild("Pad_1")).toBe(pad1)
+		end)
 	end)
 end)
 
@@ -277,5 +371,21 @@ describe("base shapes: turning a plot into another base and back", function()
 			expect((pad1.CFrame.Position - jarPad.Position).Magnitude < 1e-3).toBe(true)
 			expect((mesh.CFrame.Position - look.CFrame.Position).Magnitude < 1e-3).toBe(true)
 		end)
+	end)
+end)
+
+describe("base shapes: the pagoda's stair turret counts as inside", function()
+	it("inside() and the lock guard keep someone on the turret ramp inside, on every floor", function()
+		local pagoda = BaseShapes.get("pagoda")
+		-- the back of the turret's ramp (0, 25 + 7.5): past every upper room's radius, inside the turret
+		local x, z = 0, 32.5
+		for f = 1, #Config.BASE_FLOORS do
+			expect(pagoda.inside(f, x, z)).toBe(true)
+			local y = WorldLayout.floorTop(f) + 4
+			expect(PlotLockGuard.insideJar(x, y, z, pagoda.guard :: any, #Config.BASE_FLOORS, true)).toBe(true)
+		end
+		-- just outside the turret wall, beside it: still outside
+		expect(pagoda.inside(3, 10.5, 25)).toBe(false)
+		expect(pagoda.inside(3, 0, 34)).toBe(false)
 	end)
 end)

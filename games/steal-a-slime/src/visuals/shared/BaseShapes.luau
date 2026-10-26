@@ -23,6 +23,10 @@
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
 local Factory = if script then require(script.Parent.BaseShapeData.Factory) else require("./BaseShapeData/Factory")
+local Pagoda = if script then require(script.Parent.BaseShapeData.Pagoda) else require("./BaseShapeData/Pagoda")
+local PagodaMeshes = if script
+	then require(script.Parent.BaseShapeData.PagodaMeshes)
+	else require("./BaseShapeData/PagodaMeshes")
 local FactoryMeshes = if script
 	then require(script.Parent.BaseShapeData.FactoryMeshes)
 	else require("./BaseShapeData/FactoryMeshes")
@@ -38,6 +42,7 @@ export type Guard = {
 	floorHeight: number,
 	wall: number,
 	square: boolean?, -- true: radii are half-widths of a square (max(|x|, |z|)), not radii
+	extra: { { x: number, z: number, r: number } }?, -- more round rooms inside on every floor (the pagoda's turret)
 }
 
 export type Shape = {
@@ -140,7 +145,13 @@ local function lookOfPart(p: any, standIns: { [string]: string }?): string?
 	return standIns[p.name] or standIns[`{p.role}#{p.floor}`] or standIns[p.role]
 end
 
-local function partNode(p: any, at: (Vec) -> Vec, yaw: number, standIns: { [string]: string }?): WorldNode
+local function partNode(
+	p: any,
+	at: (Vec) -> Vec,
+	yaw: number,
+	standIns: { [string]: string }?,
+	plain: boolean?
+): WorldNode
 	local node: WorldNode = {
 		name = p.name,
 		class = "Part",
@@ -158,7 +169,10 @@ local function partNode(p: any, at: (Vec) -> Vec, yaw: number, standIns: { [stri
 		node.transparency = 1
 	end
 	local attributes: { [string]: any } = {}
-	if p.show then
+	if p.show and plain then
+		-- in the roof folder (only ever on the current top floor): a plain collider, its look a mesh slot
+		node.transparency = 1
+	elseif p.show then
 		-- shown only while its floor is (or is not) the top one (BaseFloors.setLids): a collider whose look is a mesh
 		-- slot of the same variant shows itself until that mesh lands (MeshStandIn, then StandInHidden)
 		attributes.JarFloor = p.floor
@@ -196,9 +210,16 @@ local function slotNode(slot: any, boxes: any, at: (Vec) -> Vec, yaw: number): W
 		return nil
 	end
 	local o, c = slot.offset, box.centre
+	local k = slot.scale or 1
 	local attributes: { [string]: any } = { MeshAsset = slot.mesh }
 	if slot.role then
 		attributes.ThemeRole = slot.role
+	end
+	if slot.glass then
+		-- see-through like the jar's glass (server/MeshSwap reads these), so players outside see the pads inside
+		attributes.MeshMaterial = WorldLayout.JAR_GLASS_MATERIAL
+		attributes.MeshTransparency = WorldLayout.JAR_GLASS_MESH_TRANSPARENCY
+		attributes.MeshCastShadow = false
 	end
 	if slot.show then
 		attributes.JarFloor = slot.floor
@@ -209,8 +230,8 @@ local function slotNode(slot: any, boxes: any, at: (Vec) -> Vec, yaw: number): W
 		name = slot.name,
 		class = "Part",
 		shape = "Block",
-		size = box.size,
-		pos = at({ o[1] + c[1], o[2] + c[2], o[3] + c[3] }),
+		size = { box.size[1] * k, box.size[2] * k, box.size[3] * k },
+		pos = at({ o[1] + c[1] * k, o[2] + c[2] * k, o[3] + c[3] * k }),
 		rot = { 0, yaw + 180, 0 },
 		color = { 200, 200, 200 },
 		material = "SmoothPlastic",
@@ -256,30 +277,64 @@ local function mascotNode(
 	}
 end
 
--- `looks` (optional): the base's mesh slot plan (BaseShapeData/<Name>Meshes: boxes, slots, tints), `standIns` which
--- mesh is the look of which collider (by part name, "role#floor" or role), `mascot` where the mascot sits on the top
--- floor ({ x, up from the floor, z }, scale).
-local function fromData(data: any, looks: any?, standIns: { [string]: string }?, mascot: any?): Shape
+-- Options for a base built from generated data:
+--   looks     the mesh slot plan (BaseShapeData/<Name>Meshes: boxes, slots, tints);
+--   standIns  which mesh is the look of which collider (by part name, "role#floor" or role);
+--   mascot    where the mascot sits on the top floor ({ x, up from the floor, z }, scale);
+--   topFolder the top floor's own colliders (the dome, the tall turret) go in the plot's TopColliders folder, rebuilt
+--             on whichever floor is on top (like the jar's roof), instead of standing on every floor hidden;
+--   jarDoor   the round door is the jar's (stopper shut and parked, lock ring, open-door collider), moved this many
+--             studs along plot z from the jar's doorway to this base's;
+--   jarFoot   the plot floor and moat look is the jar's goo_jar_foot.
+type Options = {
+	looks: any?,
+	standIns: { [string]: string }?,
+	mascot: any?,
+	topFolder: boolean?,
+	jarDoor: number?,
+	jarFoot: boolean?,
+}
+
+local function fromData(data: any, opts: Options): Shape
+	local looks, standIns, mascot = opts.looks, opts.standIns, opts.mascot
 	local pads: { [number]: any } = {}
 	for _, pad in data.pads do
 		pads[pad.j] = pad
 	end
 	local box = data.inside.kind == "box"
 	local half = data.inside.half
+	local radii: { number } = if box then { half, half, half, half } else data.inside.radii
+	-- round rooms beside the main one that count as inside on every floor (the pagoda's stair turret)
+	local extra: { { x: number, z: number, r: number } } = {}
+	for _, e in data.inside.extra or {} do
+		table.insert(extra, table.freeze({ x = e.x, z = e.z, r = e.r }))
+	end
 	local guard: Guard = table.freeze({
-		radii = table.freeze({ half, half, half, half }),
+		radii = table.freeze(table.clone(radii)),
 		floorTop = WorldLayout.PLOT_FLOOR_TOP,
 		floorHeight = WorldLayout.FLOOR_HEIGHT,
 		wall = 1,
 		square = box,
+		extra = if #extra > 0 then table.freeze(extra) else nil,
 	})
 
-	local function partsOf(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
+	-- floor f's parts: "floor" = what stands on the floor (all of it, or without the top-only ones when they go in
+	-- the roof folder), "top" = the top-only ones for the roof folder
+	local function partsOf(f: number, at: (Vec) -> Vec, yaw: number, which: string?): { WorldNode }
 		local out = {}
+		local roof = which == "top"
 		for _, p in data.parts do
 			if p.floor == f then
-				table.insert(out, partNode(p, at, yaw, standIns))
+				local topOnly = p.show == "top"
+				if roof and topOnly then
+					table.insert(out, partNode(p, at, yaw, standIns, true))
+				elseif not roof and not (opts.topFolder and topOnly) then
+					table.insert(out, partNode(p, at, yaw, standIns))
+				end
 			end
+		end
+		if roof then
+			return out
 		end
 		if looks then
 			for _, slot in looks.slots do
@@ -325,12 +380,21 @@ local function fromData(data: any, looks: any?, standIns: { [string]: string }?,
 		padYaw = function(j: number): number
 			return pads[j].yaw
 		end,
-		inside = function(_f: number, x: number, z: number, slack: number?): boolean
-			local limit = half + (slack or 0)
+		inside = function(f: number, x: number, z: number, slack: number?): boolean
 			if box then
-				return math.max(math.abs(x), math.abs(z)) < limit
+				return math.max(math.abs(x), math.abs(z)) < half + (slack or 0)
 			end
-			return math.sqrt(x * x + z * z) < limit
+			local r = radii[math.clamp(f, 1, #radii)] + (slack or 0)
+			if math.sqrt(x * x + z * z) < r then
+				return true
+			end
+			for _, e in extra do
+				local dx, dz = x - e.x, z - e.z
+				if math.sqrt(dx * dx + dz * dz) < e.r + (slack or 0) then
+					return true
+				end
+			end
+			return false
 		end,
 		guard = guard,
 		floor1 = function(i: number): { WorldNode }
@@ -373,6 +437,21 @@ local function fromData(data: any, looks: any?, standIns: { [string]: string }?,
 			for _, node in plotSlots(at, yaw) do
 				table.insert(out, node)
 			end
+			if opts.jarDoor then
+				-- the jar's round door, lock ring and open-door collider, moved to this base's doorway
+				for _, name in { "StopperShut", "StopperParked", "DoorRing", "OpenDoorCollider" } do
+					local node = find(jarNodes, name)
+					if node then
+						table.insert(out, shifted(node, 0, opts.jarDoor, yaw))
+					end
+				end
+			end
+			if opts.jarFoot then
+				local foot = find(jarNodes, "FootLook")
+				if foot then
+					table.insert(out, foot)
+				end
+			end
 			return out
 		end,
 		floor = function(i: number, f: number): { WorldNode }
@@ -392,7 +471,17 @@ local function fromData(data: any, looks: any?, standIns: { [string]: string }?,
 			end
 			return nodes
 		end,
-		top = nil,
+		top = if opts.topFolder
+			then function(i: number, f: number): WorldNode
+				local at, yaw = WorldLayout.plotFrame(i)
+				return {
+					name = "TopColliders",
+					class = "Folder",
+					attributes = { TopFloor = f },
+					children = partsOf(f, at, yaw, "top"),
+				}
+			end
+			else nil,
 		dropLanding = function(): Vec
 			return { data.exit.lands[1], WorldLayout.PLOT_FLOOR_TOP + 3, data.exit.lands[2] }
 		end,
@@ -418,11 +507,46 @@ local FACTORY_STAND_INS: { [string]: string } = {
 }
 local FACTORY_MASCOT = { at = { 9, 28, 4 }, scale = 3.4 }
 
+-- The Mushroom Pagoda: its walls, decks and stair are the looks of their colliders; the door is the jar's round door
+-- moved from the jar's doorway (glass centre line 31.5 studs out) to the pagoda's (wall centre line 28.5 out).
+local PAGODA_STAND_INS: { [string]: string } = {
+	["room wall#1"] = "pagoda_room_1",
+	["room wall#2"] = "pagoda_room_2",
+	["room wall#3"] = "pagoda_room_3",
+	["room wall#4"] = "pagoda_room_4",
+	["deck#2"] = "pagoda_deck_2",
+	["deck#3"] = "pagoda_deck_3",
+	["deck#4"] = "pagoda_deck_4",
+	ramp = "pagoda_ramp",
+	-- the turret storey meshes carry the landing, the post and the wall; the top floor's is the tall one with the cap
+	landing = "pagoda_turret_mid",
+	["turret wall"] = "pagoda_turret_mid",
+	["turret post"] = "pagoda_turret_mid",
+	["landing#4"] = "pagoda_turret_top",
+	["turret wall#4"] = "pagoda_turret_top",
+	["turret post#4"] = "pagoda_turret_top",
+	["turret cap"] = "pagoda_turret_cap",
+	dome = "pagoda_dome",
+	mascot = "goo_jar_mascot",
+}
+local PAGODA_DOOR_SHIFT = (WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL / 2) + Pagoda.door.z
+
 local SHAPES: { [string]: Shape } = {
 	jar = jar,
-	factory = fromData(Factory, FactoryMeshes, FACTORY_STAND_INS, FACTORY_MASCOT),
+	factory = fromData(Factory, {
+		looks = FactoryMeshes,
+		standIns = FACTORY_STAND_INS,
+		mascot = FACTORY_MASCOT,
+	}),
+	pagoda = fromData(Pagoda, {
+		looks = PagodaMeshes,
+		standIns = PAGODA_STAND_INS,
+		topFolder = true,
+		jarDoor = PAGODA_DOOR_SHIFT,
+		jarFoot = true,
+	}),
 }
-local TINTS: { [string]: any } = { factory = FactoryMeshes.tints }
+local TINTS: { [string]: any } = { factory = FactoryMeshes.tints, pagoda = PagodaMeshes.tints }
 
 -- The MeshPart.Color (sRGB 0..255) of a tint-only piece of base `base` in plot skin `skin` for theme role `role`;
 -- the classic skin's when the skin has none, nil for a base without tints (the jar's themes are their own meshes).
@@ -442,7 +566,7 @@ end
 
 -- The generated data of base `id` (tests), or nil for the jar.
 function BaseShapes.data(id: string): any
-	return if id == "factory" then Factory else nil
+	return if id == "factory" then Factory elseif id == "pagoda" then Pagoda else nil
 end
 
 return table.freeze(BaseShapes)

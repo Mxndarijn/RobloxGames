@@ -765,11 +765,11 @@ entries["goo_lock_button@mushroom"] =
 entries["factory_belt"] =
 	{ assetId = 100773088768796, meshId = "rbxassetid://91785805232339", size = { 37.331, 1.6, 3 } }
 entries["factory_chute_2"] =
-	{ assetId = 103717292738699, meshId = "rbxassetid://74704200908048", size = { 8, 20.087, 42 } }
+	{ assetId = 103717292738699, meshId = "rbxassetid://90946783736230", size = { 5.843, 24.6, 7.25 } }
 entries["factory_chute_3"] =
-	{ assetId = 80603584252359, meshId = "rbxassetid://101511050695351", size = { 8, 36.084, 42 } }
+	{ assetId = 80603584252359, meshId = "rbxassetid://85888311352309", size = { 5.843, 40.6, 7.25 } }
 entries["factory_chute_4"] =
-	{ assetId = 76981547155138, meshId = "rbxassetid://110021146060558", size = { 8, 52.083, 42 } }
+	{ assetId = 76981547155138, meshId = "rbxassetid://120060042792689", size = { 5.843, 56.6, 7.25 } }
 entries["factory_core"] =
 	{ assetId = 70883604061302, meshId = "rbxassetid://97369194674125", size = { 23.65, 16, 10.25 } }
 entries["factory_core_cap"] =
@@ -779,35 +779,35 @@ entries["factory_door_frame"] =
 entries["factory_dress@candy"] =
 	{ assetId = 93951856303094, meshId = "rbxassetid://135626665933919", size = { 53.961, 16.787, 51.914 } }
 entries["factory_dress@crystal"] =
-	{ assetId = 138331433547097, meshId = "rbxassetid://105028651789032", size = { 53.961, 16.787, 51.914 } }
+	{ assetId = 138331433547097, meshId = "rbxassetid://112531772599353", size = { 53.961, 16.787, 51.914 } }
 entries["factory_dress@garden"] =
-	{ assetId = 100246169983770, meshId = "rbxassetid://83110334541288", size = { 53.961, 16.787, 51.914 } }
+	{ assetId = 100246169983770, meshId = "rbxassetid://131522071442155", size = { 53.961, 16.787, 51.914 } }
 entries["factory_dress@mushroom"] =
 	{ assetId = 126019050793421, meshId = "rbxassetid://132523398222556", size = { 53.961, 16.787, 51.914 } }
 entries["factory_dress@starlight"] =
-	{ assetId = 78905332508003, meshId = "rbxassetid://72433354217420", size = { 53.961, 16.787, 51.914 } }
+	{ assetId = 78905332508003, meshId = "rbxassetid://79858307176815", size = { 53.961, 16.787, 51.914 } }
 entries["factory_floor_1"] =
 	{ assetId = 126997434272892, meshId = "rbxassetid://101243832383480", size = { 46, 0.34, 46 } }
 entries["factory_foot"] =
-	{ assetId = 82138658447446, meshId = "rbxassetid://104703419578132", size = { 80, 19.941, 80 } }
+	{ assetId = 82138658447446, meshId = "rbxassetid://85301963600878", size = { 80, 19.941, 80 } }
 entries["factory_foot@candy"] =
-	{ assetId = 113391621856877, meshId = "rbxassetid://111298034575148", size = { 80, 19.941, 80 } }
+	{ assetId = 113391621856877, meshId = "rbxassetid://72962005034377", size = { 80, 19.941, 80 } }
 entries["factory_foot@crystal"] =
-	{ assetId = 84593877467040, meshId = "rbxassetid://131483153575317", size = { 80, 19.941, 80 } }
+	{ assetId = 84593877467040, meshId = "rbxassetid://98825439721168", size = { 80, 19.941, 80 } }
 entries["factory_foot@garden"] =
-	{ assetId = 139800318731332, meshId = "rbxassetid://133972415000786", size = { 80, 19.941, 80 } }
+	{ assetId = 139800318731332, meshId = "rbxassetid://129361781724846", size = { 80, 19.941, 80 } }
 entries["factory_foot@mushroom"] =
-	{ assetId = 94173446592849, meshId = "rbxassetid://135694226026381", size = { 80, 19.941, 80 } }
+	{ assetId = 94173446592849, meshId = "rbxassetid://104503316582591", size = { 80, 19.941, 80 } }
 entries["factory_foot@starlight"] =
-	{ assetId = 124157471991794, meshId = "rbxassetid://136931249835960", size = { 80, 19.941, 80 } }
+	{ assetId = 124157471991794, meshId = "rbxassetid://116091214379279", size = { 80, 19.941, 80 } }
 entries["factory_hatch"] =
 	{ assetId = 91447747825601, meshId = "rbxassetid://104341037665525", size = { 1.4, 7.55, 4.6 } }
 entries["factory_parapet"] =
 	{ assetId = 76518829771611, meshId = "rbxassetid://119550353720958", size = { 49, 2.2, 49 } }
 entries["factory_pipes"] =
-	{ assetId = 137013276497816, meshId = "rbxassetid://88389969786978", size = { 19.4, 16, 1.7 } }
+	{ assetId = 137013276497816, meshId = "rbxassetid://130868215472235", size = { 27.16, 16, 1.7 } }
 entries["factory_pipes_1"] =
-	{ assetId = 79875058404914, meshId = "rbxassetid://80222743306196", size = { 19.673, 16, 2.6 } }
+	{ assetId = 79875058404914, meshId = "rbxassetid://105625497971677", size = { 27.433, 16, 2.6 } }
 entries["factory_roof"] =
 	{ assetId = 119605346107994, meshId = "rbxassetid://111473610822329", size = { 46.4, 5.536, 46.4 } }
 entries["factory_roof_kit"] =
@@ -835,17 +835,102 @@ entries["factory_slab"] =
 entries["factory_stair"] =
 	{ assetId = 95260270970124, meshId = "rbxassetid://138228412530345", size = { 23.162, 17.003, 9.3 } }
 entries["factory_storey"] =
-	{ assetId = 84718934758513, meshId = "rbxassetid://131032691479412", size = { 49.2, 16, 49.2 } }
+	{ assetId = 84718934758513, meshId = "rbxassetid://110630432738194", size = { 49.2, 16, 49.2 } }
 entries["factory_storey_1"] =
-	{ assetId = 95566648647121, meshId = "rbxassetid://139683290463614", size = { 49.2, 16, 49.2 } }
+	{ assetId = 95566648647121, meshId = "rbxassetid://101749787817763", size = { 49.2, 16, 49.2 } }
 entries["factory_trim"] =
-	{ assetId = 105772582314807, meshId = "rbxassetid://103825706296376", size = { 49.6, 8.1, 49.6 } }
+	{ assetId = 105772582314807, meshId = "rbxassetid://123555542981124", size = { 49.6, 14.7, 49.6 } }
 entries["factory_trim_1"] =
-	{ assetId = 93418768478515, meshId = "rbxassetid://89391521359693", size = { 49.6, 8.1, 49.6 } }
+	{ assetId = 93418768478515, meshId = "rbxassetid://95294578024345", size = { 49.6, 14.7, 49.6 } }
 entries["factory_windows"] =
-	{ assetId = 92517434783794, meshId = "rbxassetid://80238351030062", size = { 47.5, 4.4, 47.5 } }
+	{ assetId = 92517434783794, meshId = "rbxassetid://100512097912453", size = { 47.3, 11, 47.3 } }
 entries["factory_windows_1"] =
-	{ assetId = 118178946943878, meshId = "rbxassetid://125804934846496", size = { 47.5, 4.4, 47.5 } }
+	{ assetId = 118178946943878, meshId = "rbxassetid://112110740248772", size = { 47.3, 11, 47.3 } }
+entries["pagoda_cap_1_mid"] =
+	{ assetId = 90148981916597, meshId = "rbxassetid://124092573387050", size = { 67, 5.354, 67 } }
+entries["pagoda_cap_2_mid"] =
+	{ assetId = 130176297050193, meshId = "rbxassetid://112069718277334", size = { 63, 5.359, 63 } }
+entries["pagoda_cap_3_mid"] =
+	{ assetId = 135502975947433, meshId = "rbxassetid://128581980104993", size = { 59, 5.359, 59 } }
+entries["pagoda_cap_extra@candy"] =
+	{ assetId = 106122845480811, meshId = "rbxassetid://114549613308395", size = { 64.661, 5.022, 63.676 } }
+entries["pagoda_cap_extra@crystal"] =
+	{ assetId = 112073711250132, meshId = "rbxassetid://76924652072540", size = { 64.661, 5.022, 63.676 } }
+entries["pagoda_deck_2"] =
+	{ assetId = 75065303944391, meshId = "rbxassetid://94931328386032", size = { 51.936, 0.65, 60 } }
+entries["pagoda_deck_3"] =
+	{ assetId = 74275262332877, meshId = "rbxassetid://110627085471106", size = { 47.921, 0.65, 58 } }
+entries["pagoda_deck_4"] =
+	{ assetId = 128559212436259, meshId = "rbxassetid://116458545105400", size = { 44.927, 0.65, 56.5 } }
+entries["pagoda_dome"] = { assetId = 96514762576279, meshId = "rbxassetid://74375089778855", size = { 56, 13.55, 56 } }
+entries["pagoda_dome_extra@candy"] =
+	{ assetId = 73223874881398, meshId = "rbxassetid://134778956414385", size = { 52.406, 15.764, 52.51 } }
+entries["pagoda_dome_extra@crystal"] =
+	{ assetId = 79381406343104, meshId = "rbxassetid://108930669077544", size = { 52.406, 15.764, 52.51 } }
+entries["pagoda_dome_spots"] =
+	{ assetId = 85599561426007, meshId = "rbxassetid://122080826895197", size = { 55.104, 10.247, 55.119 } }
+entries["pagoda_dome_spots@starlight"] =
+	{ assetId = 81407370258060, meshId = "rbxassetid://118355105964202", size = { 55.104, 10.247, 55.119 } }
+entries["pagoda_door_ring"] =
+	{ assetId = 82855469548385, meshId = "rbxassetid://120580840342460", size = { 10.574, 11.685, 1.75 } }
+entries["pagoda_foot_decor"] =
+	{ assetId = 131431557755874, meshId = "rbxassetid://81801440786467", size = { 67.992, 4.841, 61.734 } }
+entries["pagoda_foot_decor@candy"] =
+	{ assetId = 117175946997069, meshId = "rbxassetid://120726478725509", size = { 67.992, 4.841, 61.734 } }
+entries["pagoda_foot_decor@garden"] =
+	{ assetId = 131596215167227, meshId = "rbxassetid://103316546776161", size = { 67.992, 4.841, 61.734 } }
+entries["pagoda_foot_decor@mushroom"] =
+	{ assetId = 76520474026279, meshId = "rbxassetid://96285729187812", size = { 67.992, 4.841, 61.734 } }
+entries["pagoda_glass_1"] =
+	{ assetId = 113809637257300, meshId = "rbxassetid://135293666163464", size = { 57.391, 8.6, 55.731 } }
+entries["pagoda_glass_2"] =
+	{ assetId = 139249922338428, meshId = "rbxassetid://95622805247523", size = { 52.388, 8.6, 50.788 } }
+entries["pagoda_glass_3"] =
+	{ assetId = 70492474595014, meshId = "rbxassetid://82083683806278", size = { 48.335, 8.6, 46.754 } }
+entries["pagoda_glass_4"] =
+	{ assetId = 122701413035312, meshId = "rbxassetid://105713796918183", size = { 45.338, 8.6, 43.861 } }
+entries["pagoda_lamps"] =
+	{ assetId = 130143762129897, meshId = "rbxassetid://102397767710976", size = { 6.283, 4.65, 5.9 } }
+entries["pagoda_ramp"] =
+	{ assetId = 126279512461305, meshId = "rbxassetid://100898647038470", size = { 15.939, 16.8, 15.697 } }
+entries["pagoda_rim_extra@crystal"] =
+	{ assetId = 112207482932872, meshId = "rbxassetid://123996857422761", size = { 64.356, 7.634, 63.294 } }
+entries["pagoda_rim_extra@garden"] =
+	{ assetId = 106408835425793, meshId = "rbxassetid://98811141616074", size = { 64.356, 7.634, 63.294 } }
+entries["pagoda_rim_extra@mushroom"] =
+	{ assetId = 118800140472797, meshId = "rbxassetid://89063606641604", size = { 64.356, 7.634, 63.294 } }
+entries["pagoda_rim_extra@starlight"] =
+	{ assetId = 115773610944899, meshId = "rbxassetid://91229799271505", size = { 64.356, 7.634, 63.294 } }
+entries["pagoda_room_1"] =
+	{ assetId = 87127519906460, meshId = "rbxassetid://122367356951883", size = { 58.991, 11.6, 57.285 } }
+entries["pagoda_room_2"] =
+	{ assetId = 74045087365557, meshId = "rbxassetid://128415717787430", size = { 54.408, 11.6, 52.338 } }
+entries["pagoda_room_3"] =
+	{ assetId = 88180810662379, meshId = "rbxassetid://76408220224411", size = { 50.418, 11.6, 48.299 } }
+entries["pagoda_room_4"] =
+	{ assetId = 133173844437587, meshId = "rbxassetid://100830450946866", size = { 47.447, 11.6, 45.406 } }
+entries["pagoda_spots_mid"] =
+	{ assetId = 136364760292103, meshId = "rbxassetid://125180031516674", size = { 58.925, 3.528, 60.119 } }
+entries["pagoda_spots_mid@starlight"] =
+	{ assetId = 94387196753433, meshId = "rbxassetid://74069222469689", size = { 58.925, 3.528, 60.119 } }
+entries["pagoda_turret_cap"] =
+	{ assetId = 107128114751964, meshId = "rbxassetid://121894473059537", size = { 18.4, 5.6, 18.4 } }
+entries["pagoda_turret_mid"] =
+	{ assetId = 135136188678352, meshId = "rbxassetid://115611381223656", size = { 18.8, 16.6, 18.8 } }
+entries["pagoda_turret_top"] =
+	{ assetId = 119399600127457, meshId = "rbxassetid://82664207844321", size = { 18.8, 27.2, 18.8 } }
+entries["pagoda_vine_2"] =
+	{ assetId = 140532652408205, meshId = "rbxassetid://72886498167688", size = { 24.004, 25.3, 32.129 } }
+entries["pagoda_vine_3"] =
+	{ assetId = 87863760361775, meshId = "rbxassetid://124742112527538", size = { 23.018, 40.678, 32.51 } }
+entries["pagoda_vine_4"] =
+	{ assetId = 97773448919319, meshId = "rbxassetid://118477830509433", size = { 21.981, 56, 32.797 } }
+entries["pagoda_vine_glass_2"] =
+	{ assetId = 89245828768651, meshId = "rbxassetid://112145908112745", size = { 17.024, 21.404, 28.347 } }
+entries["pagoda_vine_glass_3"] =
+	{ assetId = 79388803484608, meshId = "rbxassetid://72091308746733", size = { 15.626, 37.178, 28.801 } }
+entries["pagoda_vine_glass_4"] =
+	{ assetId = 112973821986352, meshId = "rbxassetid://131587695683133", size = { 14.963, 52.903, 29.161 } }
 -- END base shape meshes
 -- Mystery Egg shells and nest (contract/mystery-egg.md): not map slots, so not in NAMES; WorldView loads them by name.
 entries["mystery_egg_speckled"] =
