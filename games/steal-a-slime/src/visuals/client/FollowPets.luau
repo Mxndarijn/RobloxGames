@@ -36,7 +36,8 @@ FollowPets.MAX_DISTANCE = 200
 -- Follow motion (offset behind and right of the owner, spring, bob) lives in PetFollow.
 
 -- `shown`: the template the pet rides (its mesh name), nil on a Mount.
-type Pet = { model: Model, slimeId: string, shown: string?, follow: PetFollow.State }
+-- `source`: the replicated model it was cloned from; a hatch or kit rebuild destroys it, so the pet is cloned again.
+type Pet = { model: Model, slimeId: string, source: Model, shown: string?, follow: PetFollow.State }
 
 -- The template a pet of `player` should ride: its seat's, else the plain cloud's, else nil.
 local function templateFor(player: Player): BasePart?
@@ -53,9 +54,14 @@ local function templateFor(player: Player): BasePart?
 	return PetCloud.find(ReplicatedStorage)
 end
 
+-- The slime's replicated model; never a Mystery Egg (eggs don't ride the cloud).
 local function findSource(slimeId: string): Model?
 	for _, model in CollectionService:GetTagged(Constants.SLIME_TAG) do
-		if model:IsA("Model") and model:GetAttribute("SlimeId") == slimeId then
+		if
+			model:IsA("Model")
+			and model:GetAttribute("SlimeId") == slimeId
+			and model:GetAttribute(Constants.EGG_KIND_ATTRIBUTE) == nil
+		then
 			return model
 		end
 	end
@@ -136,7 +142,13 @@ function FollowPets.start()
 			local shown = if template then template.Name else nil
 			if type(id) ~= "string" then
 				remove(player)
-			elseif not pet or pet.slimeId ~= id or not pet.model.Parent or pet.shown ~= shown then
+			elseif
+				not pet
+				or pet.slimeId ~= id
+				or not pet.model.Parent
+				or not pet.source.Parent
+				or pet.shown ~= shown
+			then
 				-- Same slime on a new seat: keep where it glides, so it doesn't jump.
 				local follow = if pet and pet.slimeId == id then pet.follow else nil
 				remove(player)
@@ -149,6 +161,7 @@ function FollowPets.start()
 					pets[player] = {
 						model = model,
 						slimeId = id,
+						source = source :: Model,
 						shown = shown,
 						follow = follow or PetFollow.new(math.random() * math.pi * 2),
 					}
