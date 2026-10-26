@@ -126,10 +126,11 @@ local function follow()
 	local y = if shown == "Snow" then WeatherShelter.SNOW_Y else at.Y + WeatherShelter.ABOVE_CAMERA
 	local centres = WeatherShelter.tiles(at.X, at.Z)
 	local fall = y - WorldLayout.PLOT_FLOOR_TOP
-	local key = `{centres[1][1]},{centres[1][2]},{math.floor(fall / REMASK_FALL)}`
+	local bucket = math.floor(fall / REMASK_FALL)
+	local key = `{centres[1][1]},{centres[1][2]},{bucket}`
 	if key ~= maskKey then
 		maskKey = key
-		remask(centres, fall)
+		remask(centres, (bucket + 1) * REMASK_FALL) -- the bucket's highest fall, so the margin never falls short
 	end
 	local frames = table.create(#tiles)
 	for i, c in centres do

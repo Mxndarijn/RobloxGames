@@ -29,27 +29,48 @@ local function entersJar(spec: any, x: number, y: number, z: number, dx: number,
 	return false
 end
 
+-- Directions a SpreadAngle = (s, s) emitter pointing down can fire: like Roblox, each axis tilts on its own by up to
+-- s, so the diagonals tilt further than s. A spread past 90 can fire anywhere: 16 headings at 0..180 degrees.
+local function directions(spread: number): { { number } }
+	local out = {}
+	if spread < 90 then
+		local steps = { -1, -0.5, 0, 0.5, 1 }
+		for _, sx in steps do
+			for _, sz in steps do
+				local tx, tz = math.tan(math.rad(spread * sx)), math.tan(math.rad(spread * sz))
+				local len = math.sqrt(tx * tx + 1 + tz * tz)
+				table.insert(out, { tx / len, -1 / len, tz / len })
+			end
+		end
+	else
+		for _, tilt in { 0, 45, 90, 135, 180 } do
+			local a = math.rad(tilt)
+			for h = 0, 15 do
+				local heading = h * math.pi / 8
+				table.insert(out, { math.sin(a) * math.cos(heading), -math.cos(a), math.sin(a) * math.sin(heading) })
+			end
+		end
+	end
+	return out
+end
+
 -- Every way a particle can leave an open tile of the sheet over camera (camX, camY, camZ) (tile corners, edge
--- midpoints and centre; straight down and out to the full spread round 16 headings; slowest and fastest).
+-- midpoints and centre; every direction the spread allows; slowest and fastest).
 local function leaks(name: string, camX: number, camY: number, camZ: number, snow: boolean): number
 	local spec = WeatherLook.EMITTERS[name]
 	local y = if snow then WeatherShelter.SNOW_Y else camY + WeatherShelter.ABOVE_CAMERA
 	local margin = WeatherShelter.reach(spec, y - FLOOR)
 	local half = WeatherShelter.TILE / 2
+	local dirs = directions(spec.spread)
 	local count = 0
 	for _, c in WeatherShelter.tiles(camX, camZ) do
 		if WeatherShelter.open(c[1], c[2], margin, footprints) then
 			for _, ox in { -half, 0, half } do
 				for _, oz in { -half, 0, half } do
-					for _, tilt in { 0, spec.spread / 2, spec.spread } do
-						local a = math.rad(tilt)
-						for h = 0, 15 do
-							local heading = h * math.pi / 8
-							local dx, dz = math.sin(a) * math.cos(heading), math.sin(a) * math.sin(heading)
-							for _, speed in spec.speed do
-								if entersJar(spec, c[1] + ox, y, c[2] + oz, dx, -math.cos(a), dz, speed) then
-									count += 1
-								end
+					for _, d in dirs do
+						for _, speed in spec.speed do
+							if entersJar(spec, c[1] + ox, y, c[2] + oz, d[1], d[2], d[3], speed) then
+								count += 1
 							end
 						end
 					end

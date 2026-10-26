@@ -37,9 +37,18 @@ function WeatherShelter.footprints(): { Footprint }
 	return out
 end
 
+-- The largest tilt off straight down for SpreadAngle = (spread, spread): Roblox picks each axis on its own, so a
+-- diagonal tilts further than `spread` (atan(sqrt 2 * tan spread)).
+function WeatherShelter.maxTilt(spread: number): number
+	if spread >= 90 then
+		return 90
+	end
+	return math.deg(math.atan(math.sqrt(2) * math.tan(math.rad(spread))))
+end
+
 -- How far sideways (studs) a particle can drift while it falls `fall` studs or until it dies, at the worst angle.
 function WeatherShelter.reach(e: Motion, fall: number): number
-	local spread = math.rad(math.min(e.spread, 90))
+	local spread = math.rad(WeatherShelter.maxTilt(e.spread))
 	local down = e.speed[1] * math.cos(spread)
 	local t = if down > 1e-6 then math.min(e.lifetime, math.max(fall, 0) / down) else e.lifetime
 	return e.speed[2] * math.sin(spread) * t + 0.5 * math.abs(e.sideAccel) * t * t
