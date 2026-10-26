@@ -247,7 +247,7 @@ def jar_glass(f, top):
 def jar_trim(f, top, crown=False):
     """Jar f's opaque trim: brass ribs up the wall and over the shoulder or dome to the neck, the threaded neck, the cork
     (a ring the next jar stands in, the top jar's tall stopper, or the crowned last jar's flat lid), goo oozing over the
-    lid with teardrop drips and goo smears on the glass."""
+    lid (with teardrop drips on the top jar) and goo smears on the glass."""
     r, nk = radius(f), neck(f, top)
     prof = [p for p in glass_profile(f, top) if p[1] >= 0.2]
     nz = neck_z(f, top)
@@ -304,7 +304,9 @@ def jar_trim(f, top, crown=False):
         lid_top = max(nz + LID_H, FLOOR_H - 1.0)
         out.append(painted(lathe("Lid", [(nk + 0.3, nz), (nk + 0.3, lid_top), (inner, lid_top)], CORK, double=False),
                            shade(CORK, 0.85), CORK))
-    out += ooze("Ooze", nk + 0.6, lid_top - (0.4 if not top else 0.2), 1.0 + 0.15 * f, 7 + f, seed=40 + f)
+    # a covered jar's goo roll has no drips or icicles: right under it the jar's glass shoulder flares out, so
+    # anything hanging from the roll would pass through the glass
+    out += ooze("Ooze", nk + 0.6, lid_top - (0.4 if not top else 0.2), 1.0 + 0.15 * f, 7 + f if top else 0, seed=40 + f)
     rr = random.Random(70 + f)
     for k in range(2):
         deg = rr.choice([rr.uniform(-40, 50), rr.uniform(130, 220)])
