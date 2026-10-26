@@ -459,7 +459,9 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	end
 	mesh.Anchored = true
 	mesh.CanCollide = fidelity ~= nil -- decor never collides; a mesh with a fidelity is solid
-	mesh.CanQuery = false
+	-- MeshCanQuery: a solid mesh that ground rays must land on (the pad stands: dropped slimes rest on them)
+	local query = fidelity ~= nil and target:GetAttribute("MeshCanQuery") == true
+	mesh.CanQuery = query
 	mesh.CanTouch = false
 	if target:IsA("Model") then
 		for _, d in target:GetDescendants() do
@@ -472,6 +474,9 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 		-- the mesh is the collider now: the slot box under it (an invisible copy of its bbox) would only double it
 		if fidelity then
 			target.CanCollide = false
+			if query then
+				target.CanQuery = false
+			end
 		end
 	end
 	hideStandIns(scope, name)

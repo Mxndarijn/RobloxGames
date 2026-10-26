@@ -679,10 +679,10 @@ mesh(
 	"goo_cork_stand",
 	"gojo",
 	64,
-	"off",
+	"Hull",
 	"Plots",
-	"mesh off, slot off",
-	"the Pad part is the walkable surface"
+	"mesh on (Hull, queryable), slot off once it lands",
+	"the round cork stand players bump into and stand on, and dropped slimes land on"
 )
 mesh(
 	"plot_jar_foot",
@@ -763,16 +763,6 @@ mesh(
 	"Plots",
 	"mesh off, slot off",
 	"the cork button post; the Pedestal under it collides"
-)
-parts(
-	"plot_pads",
-	"gojo",
-	64,
-	"colliders",
-	"Plots",
-	{ "^PadCollider$" },
-	"on",
-	"the round collider under each cork stand is the stand-on surface (the Pad box itself is off)"
 )
 parts(
 	"plot_base",
