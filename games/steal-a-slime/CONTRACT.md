@@ -375,7 +375,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `SPAWN_INTERVAL` / `FREE_DROP_CHANCE` / `WILD_PRICE_SECONDS` | 5 / 0.25 / 20 | "buy cheap ones … or grab a free drop" |
 | `STATE_MIN_INTERVAL` / `LEADERBOARD_INTERVAL` | 0.25 / 60 | §5.1, §2 |
 
-| `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 28 | shop: speed coil |
+| `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 19 | shop: speed coil |
 | `FEATURES` | every flag and its value live in `Config.FEATURES` only; not restated here | §2 Extras |
 | `BOSS` | table | boss event (§33) |
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |

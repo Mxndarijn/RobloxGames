@@ -777,7 +777,7 @@ local Config = {
 
 	-- Shop (permanent, kept on rebirth)
 	SPEED_COIL_PRICE = 1500,
-	SPEED_COIL_WALK_SPEED = 28, -- WalkSpeed while the coil is held (1.75x BASE_WALK_SPEED)
+	SPEED_COIL_WALK_SPEED = 19, -- WalkSpeed while the coil is held (1.19x BASE_WALK_SPEED; boost +3, 25% of the old +12)
 
 	-- Merge vat (VatState, TripleMerge, CONTRACT.md §21): three slimes of one rarity brew into one of a higher rarity
 	VAT_SIZE = 3, -- spots in a plot's vat
