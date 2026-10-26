@@ -969,10 +969,14 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local short = compact and Layout.TOP + Layout.navHeight(compact) + gap > money.rect.y - gap
 	local top = if short or phone then Layout.TOP else Layout.NAV.top
 	-- Narrower than the carry card plus both clusters (portrait phones): the bottom cards sit above
-	-- the clusters instead of beside them.
+	-- the clusters instead of beside them. Never on a landscape phone: lifted that far, the cards would sit in
+	-- the middle of a short screen; there the carry card takes the hotbar's place (the bar hides meanwhile) and
+	-- the tutorial card stands right above the hotbar.
 	local clusterH = math.max(money.rect.h, status.rect.h + statusRaise, if phone then hotbarH else 0)
 	local cardW = math.max(Layout.CARRY.w, Layout.TUTORIAL.w)
-	local lift = if not short and W < cardW + money.rect.w + (W - m - status.rect.x) + 2 * (m + gap)
+	local lift = if not short
+			and not landscapePhone
+			and W < cardW + money.rect.w + (W - m - status.rect.x) + 2 * (m + gap)
 		then rise + clusterH + gap
 		else 0
 	local cardInset = inset + lift
@@ -1014,8 +1018,12 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 
 	-- 3. Bottom cards. Full screen width (the nav ends above them); short: between the money cluster
 	-- and the status cluster (the nav sits above the money cluster, clear of the cards).
+	-- Landscape phone: the nav runs down to the cards' height, so they keep right of it.
 	local cardsX = money.rect.x + money.rect.w + gap
-	local row = if short then Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0) else fullRow
+	local row = if short
+		then Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0)
+		elseif landscapePhone then Layout.rect(navRight, 0, math.max(fullRowRight - navRight, 0), 0)
+		else fullRow
 	local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, cardInset, beside, cardMargin, tutorialLift)
 	local between = Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0)
 	-- Truly bottom-centre: the zone is symmetric about the screen centre, as wide as the nearer cluster allows.
