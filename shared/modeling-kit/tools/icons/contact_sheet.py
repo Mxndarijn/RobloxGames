@@ -17,6 +17,15 @@ def checker(w, h, s=12):
     return im
 
 
+def _font(size):
+    for name in ("DejaVuSans.ttf", "arial.ttf"):  # DejaVu on Linux, Arial on Windows
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            pass
+    return ImageFont.load_default()
+
+
 def main():
     src, out = sys.argv[1], sys.argv[2]
     cols = int(sys.argv[sys.argv.index("--cols") + 1]) if "--cols" in sys.argv else 8
@@ -24,7 +33,7 @@ def main():
     order = os.environ.get("ICON_ORDER")
     if order:
         files = [f"{i}.png" for i in order.split(",") if f"{i}.png" in files]
-    font = ImageFont.truetype("DejaVuSans.ttf", 12)
+    font = _font(12)
     rows = (len(files) + cols - 1) // cols
     W, H = cols * CELL, rows * (CELL + 18)
     sheet = Image.new("RGB", (W, H), (60, 62, 70))

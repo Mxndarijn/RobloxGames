@@ -23,6 +23,25 @@ Items that already render a real 3D model (plot skins) are not listed.
 |---|---|---|---|---|
 | `Income` | Income per second | hud | 110, 210, 100 | A green up-arrow rising out of a small stack of gold coins; front view. |
 | `FriendBoost` | Friend boost | hud | 90, 200, 120 | Two smiling slimes (green and pink) side by side with a small gold plus sign; front view. |
+| `PetSeat_cloud` | Fluffy | seat | 235, 240, 255 | The 'Fluffy' pet seat (models/pet_cloud.py) alone, no slime; 3/4 view. |
+| `PetSeat_jelly` | Jelly | seat | 140, 220, 90 | The 'Jelly' pet seat (models/pet_mount_jelly.py) alone, no slime; 3/4 view. |
+| `PetSeat_rainbow_cloud` | Rainbow Cloud | seat | 250, 250, 255 | The 'Rainbow Cloud' pet seat (models/pet_mount_rainbow_cloud.py) alone, no slime; 3/4 view. |
+| `PetSeat_storm_cloud` | Storm Cloud | seat | 90, 92, 110 | The 'Storm Cloud' pet seat (models/pet_mount_storm_cloud.py) alone, no slime; 3/4 view. |
+| `PetSeat_sunset_cloud` | Sunset Cloud | seat | 255, 170, 140 | The 'Sunset Cloud' pet seat (models/pet_mount_sunset_cloud.py) alone, no slime; 3/4 view. |
+| `PetSeat_ice_cloud` | Ice Cloud | seat | 170, 215, 245 | The 'Ice Cloud' pet seat (models/pet_mount_ice_cloud.py) alone, no slime; 3/4 view. |
+| `PetSeat_flame_cloud` | Flame Cloud | seat | 255, 120, 40 | The 'Flame Cloud' pet seat (models/pet_mount_flame_cloud.py) alone, no slime; 3/4 view. |
+| `PetSeat_leaf` | Leaf | seat | 80, 170, 60 | The 'Leaf' pet seat (models/pet_mount_leaf.py) alone, no slime; 3/4 view. |
+| `PetSeat_bubble` | Bubble | seat | 225, 235, 245 | The 'Bubble' pet seat (models/pet_mount_bubble.py) alone, no slime; 3/4 view. |
+| `PetSeat_lily_pad` | Lily Pad | seat | 100, 200, 90 | The 'Lily Pad' pet seat (models/pet_mount_lily_pad.py) alone, no slime; 3/4 view. |
+| `PetSeat_mushroom` | Mushroom | seat | 230, 50, 50 | The 'Mushroom' pet seat (models/pet_mount_mushroom.py) alone, no slime; 3/4 view. |
+| `PetSeat_pancakes` | Pancakes | seat | 240, 170, 80 | The 'Pancakes' pet seat (models/pet_mount_pancakes.py) alone, no slime; 3/4 view. |
+| `PetSeat_star_cushion` | Star Cushion | seat | 255, 200, 50 | The 'Star Cushion' pet seat (models/pet_mount_star_cushion.py) alone, no slime; 3/4 view. |
+| `PetSeat_crescent_moon` | Crescent Moon | seat | 250, 240, 180 | The 'Crescent Moon' pet seat (models/pet_mount_crescent_moon.py) alone, no slime; 3/4 view. |
+| `PetSeat_magic_carpet` | Magic Carpet | seat | 200, 40, 60 | The 'Magic Carpet' pet seat (models/pet_mount_magic_carpet.py) alone, no slime; 3/4 view. |
+| `PetSeat_ufo` | UFO | seat | 130, 140, 170 | The 'UFO' pet seat (models/pet_mount_ufo.py) alone, no slime; 3/4 view. |
+| `PetSeat_royal_cushion` | Royal Cushion | seat | 140, 60, 190 | The 'Royal Cushion' pet seat (models/pet_mount_royal_cushion.py) alone, no slime; 3/4 view. |
+| `PetSeat_hoverboard` | Hoverboard | seat | 130, 70, 220 | The 'Hoverboard' pet seat (models/pet_mount_hoverboard.py) alone, no slime; 3/4 view. |
+| `PetSeat_clam_shell` | Clam Shell | seat | 250, 150, 140 | The 'Clam Shell' pet seat (models/pet_mount_clam_shell.py) alone, no slime; 3/4 view. |
 
 ## Drawn until uploaded
 

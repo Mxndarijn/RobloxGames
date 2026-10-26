@@ -24,6 +24,7 @@ local HotbarOrder = if Shared then require(Shared.HotbarOrder) else require("../
 local KitRequest = if Shared then require(Shared.KitRequest) else require("../shared/KitRequest")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
+local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared/PetSeats")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Remotes = if Shared then require(Shared.Remotes) else require("../shared/Remotes")
@@ -319,6 +320,16 @@ local function equipPlotSkin(world: World, session: Session, id: string, ctx: Co
 	return OK
 end
 
+local function equipPetSeat(world: World, session: Session, id: string): Result
+	local ok, reason = PetSeats.equip(session.data, id)
+	if not ok then
+		return fail(reason or "failed")
+	end
+	local seat = PetSeats.get(id)
+	World.notify(world, session.userId, `Pet seat: {seat and seat.name or id}`, "good", nil, `PetSeat_{id}`)
+	return OK
+end
+
 local function setAudioSettings(session: Session, music: number, sfx: number, muted: boolean, ctx: Context): Result
 	if not feature(ctx, "Audio") then
 		return fail("audio settings are off")
@@ -581,6 +592,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return buyUpgrade(world, session, args[1])
 	elseif action == "EquipPlotSkin" then
 		return equipPlotSkin(world, session, args[1], ctx)
+	elseif action == "EquipPetSeat" then
+		return equipPetSeat(world, session, args[1])
 	elseif action == "SetAudioSettings" then
 		return setAudioSettings(session, args[1], args[2], args[3], ctx)
 	elseif action == "BuyConsumable" then

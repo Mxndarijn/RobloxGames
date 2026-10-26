@@ -25,7 +25,7 @@
 export type Spec = {
 	id: string,
 	name: string,
-	group: string, -- "shop" | "gear" | "upgrade" | "boost" | "code" | "goal" | "badge" | "skin" | "misc" | "hud"
+	group: string, -- "shop" | "gear" | "upgrade" | "boost" | "code" | "goal" | "badge" | "skin" | "seat" | "misc" | "hud"
 	color: { number }, -- tile colour, 0..255 RGB
 	glyph: string, -- allowlisted (tests/ui/Glyphs.spec): ASCII, a proven BMP symbol or an emoji
 	model: { kind: "mesh", mesh: string? }?,
@@ -508,6 +508,18 @@ function ItemIcons.build(config: any)
 			glyph = "🏡",
 			model = if mesh then { kind = "mesh", mesh = mesh } else nil,
 			brief = `Top of the '{s.name}' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view.`,
+		})
+	end
+
+	-- Pet seats (contract/pet-seats.md): the Cloud tab of the Skins menu. Pictures from tools/icons/recipes_seat.py.
+	for _, seat in config.PET_SEATS or {} do
+		add({
+			id = `PetSeat_{seat.id}`,
+			name = seat.name,
+			group = "seat",
+			color = seat.color,
+			glyph = "🌥",
+			brief = `The '{seat.name}' pet seat (models/{seat.mesh}.py) alone, no slime; 3/4 view.`,
 		})
 	end
 

@@ -54,6 +54,7 @@ local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
+local PetSeats = require(ReplicatedStorage.Shared.PetSeats)
 local PlotGuests = require(script.Parent.PlotGuests)
 local PlotLockGuard = require(script.Parent.PlotLockGuard)
 local PlotLookup = require(script.Parent.PlotLookup)
@@ -1802,6 +1803,7 @@ function WorldView.updatePlayer(
 	end
 	local pet = World.pet(world, session) -- a stolen pet stops following
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
+	setAttribute(player, Constants.PET_SEAT_ATTRIBUTE, PetSeats.current(data))
 	if data.speedCoil then
 		ensureSpeedCoil(player)
 	end

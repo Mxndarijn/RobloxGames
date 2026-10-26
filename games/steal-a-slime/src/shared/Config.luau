@@ -87,6 +87,20 @@ export type PlotSkin = {
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
 }
 
+-- Pet seats (contract/pet-seats.md): what the follow pet rides on, picked in the Skins menu's Cloud tab. `mesh` is the
+-- MeshAssets name (shared/modeling-kit/models/PET_MOUNTS.md); `seat` is the height of the seat surface over the mesh's
+-- bottom in native studs (where the pet's foot goes; decoration such as a cherry or an arch rises above it).
+-- `unlock`: "free" (everyone), "merges" (`count` slimes merged, stats.merges), "dex" (`percent` of the SlimeDex
+-- found) or "exclusive" (sold in the Exclusive shop; nobody owns one yet).
+export type PetSeat = {
+	id: string, -- permanent save id; never rename
+	name: string,
+	mesh: string,
+	seat: number,
+	color: { number }, -- icon tile colour, RGB 0..255
+	unlock: { kind: "free" | "merges" | "dex" | "exclusive", count: number?, percent: number? },
+}
+
 -- A PvP tool or fun item (FEATURES.PvP, CONTRACT.md §26). Price is derived (PvpRules.price), never stored.
 -- No tool has a damage / health field: PvP never lowers Humanoid health (Validate.pvpTools asserts it).
 export type PvpTool = {
@@ -482,6 +496,46 @@ local PLOT_SKINS: { PlotSkin } = {
 	},
 }
 
+local function seat(id: string, name: string, mesh: string, height: number, color: { number }, unlock: any): PetSeat
+	return table.freeze({
+		id = id,
+		name = name,
+		mesh = mesh,
+		seat = height,
+		color = color,
+		unlock = table.freeze(table.clone(unlock)),
+	})
+end
+local EXCLUSIVE = { kind = "exclusive" }
+local PET_SEATS: { PetSeat } = {
+	seat("cloud", "Fluffy", "pet_cloud", 1.225, { 235, 240, 255 }, { kind = "free" }),
+	seat("jelly", "Jelly", "pet_mount_jelly", 1.17, { 140, 220, 90 }, { kind = "merges", count = 200 }),
+	seat(
+		"rainbow_cloud",
+		"Rainbow Cloud",
+		"pet_mount_rainbow_cloud",
+		1.22,
+		{ 250, 250, 255 },
+		{ kind = "dex", percent = 80 }
+	),
+	seat("storm_cloud", "Storm Cloud", "pet_mount_storm_cloud", 1.22, { 90, 92, 110 }, EXCLUSIVE),
+	seat("sunset_cloud", "Sunset Cloud", "pet_mount_sunset_cloud", 1.22, { 255, 170, 140 }, EXCLUSIVE),
+	seat("ice_cloud", "Ice Cloud", "pet_mount_ice_cloud", 1.22, { 170, 215, 245 }, EXCLUSIVE),
+	seat("flame_cloud", "Flame Cloud", "pet_mount_flame_cloud", 1.22, { 255, 120, 40 }, EXCLUSIVE),
+	seat("leaf", "Leaf", "pet_mount_leaf", 0.25, { 80, 170, 60 }, EXCLUSIVE),
+	seat("bubble", "Bubble", "pet_mount_bubble", 1.22, { 225, 235, 245 }, EXCLUSIVE),
+	seat("lily_pad", "Lily Pad", "pet_mount_lily_pad", 0.99, { 100, 200, 90 }, EXCLUSIVE),
+	seat("mushroom", "Mushroom", "pet_mount_mushroom", 1.23, { 230, 50, 50 }, EXCLUSIVE),
+	seat("pancakes", "Pancakes", "pet_mount_pancakes", 0.99, { 240, 170, 80 }, EXCLUSIVE),
+	seat("star_cushion", "Star Cushion", "pet_mount_star_cushion", 0.94, { 255, 200, 50 }, EXCLUSIVE),
+	seat("crescent_moon", "Crescent Moon", "pet_mount_crescent_moon", 0.63, { 250, 240, 180 }, EXCLUSIVE),
+	seat("magic_carpet", "Magic Carpet", "pet_mount_magic_carpet", 0.30, { 200, 40, 60 }, EXCLUSIVE),
+	seat("ufo", "UFO", "pet_mount_ufo", 1.0, { 130, 140, 170 }, EXCLUSIVE),
+	seat("royal_cushion", "Royal Cushion", "pet_mount_royal_cushion", 0.80, { 140, 60, 190 }, EXCLUSIVE),
+	seat("hoverboard", "Hoverboard", "pet_mount_hoverboard", 0.70, { 130, 70, 220 }, EXCLUSIVE),
+	seat("clam_shell", "Clam Shell", "pet_mount_clam_shell", 0.80, { 250, 150, 140 }, EXCLUSIVE),
+}
+
 -- PvP ladder (FEATURES.PvP, CONTRACT.md §26, docs/PVP.md). Every gate is a REBIRTH_TIERS threshold; the price is
 -- derived (PvpRules.price = factor x Economy.rebirthCost(gate), at least PVP.PRICE_MIN). Nothing here has a damage field.
 local function withExtra(tool: { [string]: any }, extra: { [string]: any }): PvpTool
@@ -729,6 +783,8 @@ local Config = {
 	}),
 	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §15)
 	PLOT_SKIN_DEFAULT = "classic",
+	PET_SEATS = table.freeze(PET_SEATS), -- what the follow pet rides on (PetSeats, contract/pet-seats.md)
+	PET_SEAT_DEFAULT = "cloud",
 
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 120,

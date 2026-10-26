@@ -1023,7 +1023,7 @@ applyLayout()
 setOpen(nil)
 
 -- Studio-only test hook for the PC watcher (tools/pipeline/pc-watcher): setting the
--- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path
+-- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path ("Skins:cloud": on its Cloud tab)
 -- (contents rendered), "" closes it. Never active in live servers.
 if game:GetService("RunService"):IsStudio() then
 	gui:GetAttributeChangedSignal("PcwOpen"):Connect(function()
@@ -1032,6 +1032,12 @@ if game:GetService("RunService"):IsStudio() then
 			-- the world shop card as the stand's prompt opens it; the shop comes from the PcwWorldShop attribute
 			local shopId = gui:GetAttribute("PcwWorldShop")
 			worldShop.onEvent({ kind = "Open", shopId = if type(shopId) == "string" then shopId else "ItemShop" })
+			return
+		end
+		if key == "Skins:cloud" then
+			-- the Skins menu on its Cloud tab (scripts can't press the tab)
+			setOpen("Skins")
+			panelByKey.Skins.setTab("cloud")
 			return
 		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
