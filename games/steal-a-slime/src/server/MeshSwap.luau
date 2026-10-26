@@ -31,6 +31,7 @@
 local AssetService = game:GetService("AssetService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local BaseShapes = require(ReplicatedStorage.Visuals.BaseShapes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local FountainColliders = require(script.Parent.FountainColliders)
@@ -292,6 +293,31 @@ local function skinOf(inst: Instance): any
 	return if node and plots then node:GetAttribute(Constants.PLOT_SKIN_ATTRIBUTE) else nil
 end
 
+-- The plot base of the plot `inst` stands in (Plot_<i>.PlotBase, CONTRACT.md §44), or nil (the jar).
+local function baseOf(inst: Instance): string?
+	local plots = workspace:FindFirstChild("Plots")
+	local node: Instance? = inst
+	while node and node.Parent ~= plots do
+		node = node.Parent
+	end
+	local base = if node and plots then node:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE) else nil
+	return if type(base) == "string" then base else nil
+end
+
+-- ThemeRole (the other bases' tint-only pieces, CONTRACT.md §44): the plot skin's colour for that role multiplies the
+-- mesh's value-grey vertex colours (MeshPart.Color, checked in Studio). False for a slot without a role.
+local function tint(slot: Instance, mesh: BasePart): boolean
+	local role = slot:GetAttribute("ThemeRole")
+	if typeof(role) ~= "string" then
+		return false
+	end
+	local color = BaseShapes.tint(baseOf(slot), skinOf(slot), role)
+	if color then
+		mesh.Color = Color3.fromRGB(color[1], color[2], color[3])
+	end
+	return true
+end
+
 local function uploaded(name: string): boolean
 	return MeshAssets.meshId(name) ~= nil
 end
@@ -425,6 +451,7 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	if not target:IsA("Model") and target:GetAttribute("MeshTint") == true then
 		mesh.Color = target.Color
 	end
+	tint(target, mesh)
 	-- MeshMaterial / MeshTransparency (the jar tower's glass): the mesh wears that material and transparency instead of
 	-- opaque SmoothPlastic, so a glass shell stays see-through.
 	local material = target:GetAttribute("MeshMaterial")
@@ -793,14 +820,33 @@ function MeshSwap.themePlot(plot: Instance): number
 	for _, slot in slots do
 		local name = slot:GetAttribute("MeshAsset")
 		local mesh = slot:FindFirstChild("Mesh")
-		if not (slot:IsA("BasePart") and typeof(name) == "string" and mesh) then
+		if not (slot:IsA("BasePart") and typeof(name) == "string") then
 			continue
 		end
 		local want = lookOf(slot, name)
+		if not mesh then
+			-- a piece only some skins have (the factory's storey dressing): it appears with the skin that has it
+			if MeshAssets.meshId(want) and swap(slot :: BasePart, name, plot) then
+				count += 1
+			end
+			continue
+		end
+		if not MeshAssets.meshId(want) then
+			-- the new skin has no such piece (and there is no plain one): the old skin's goes
+			if (mesh :: Instance):GetAttribute(MeshSwap.LOOK_ATTRIBUTE) ~= want then
+				mesh:Destroy()
+				count += 1
+			end
+			continue
+		end
 		local extra = slot:FindFirstChild(MeshSwap.EXTRA_NAME)
 		local companion = if crowned(slot) then nil else ThemeMeshes.companion(name, skinOf(slot), uploaded)
 		local hasExtra = if extra then extra:GetAttribute(MeshSwap.LOOK_ATTRIBUTE) else nil
 		if (mesh :: Instance):GetAttribute(MeshSwap.LOOK_ATTRIBUTE) == want and hasExtra == companion then
+			-- the same mesh in every skin: a tint-only piece just takes the new skin's colour
+			if mesh:IsA("BasePart") and tint(slot, mesh) then
+				count += 1
+			end
 			continue
 		end
 		local meshId = MeshAssets.meshId(want)

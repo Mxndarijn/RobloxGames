@@ -239,11 +239,22 @@ describe("base shapes: turning a plot into another base and back", function()
 			local jarPad = pad1.CFrame
 
 			local created = WorldBuilder.rebase(plot, 1, nil, "factory")
-			expect(#created).toBe(1) -- the BaseShape model
+			-- the BaseShape model and the factory's own looks the game finds on the plot: foot, shut and open shutter
+			local made = {}
+			for _, inst in created do
+				made[inst.Name] = true
+			end
+			expect(#created).toBe(4)
+			for _, name in { "BaseShape", "FootLook", "StopperShut", "StopperParked" } do
+				expect(made[name]).toBe(true)
+			end
+			expect(plot:FindFirstChild("FootLook"):GetAttribute("MeshAsset")).toBe("factory_foot")
 			expect(plot:FindFirstChild("BaseShape") ~= nil).toBe(true)
-			for _, name in { "Jar", "JarLooks", "DoorLook", "DoorRing", "StopperShut", "OpenDoorCollider" } do
+			for _, name in { "Jar", "JarLooks", "DoorLook", "DoorRing", "OpenDoorCollider" } do
 				expect(plot:FindFirstChild(name)).toBeNil()
 			end
+			-- the lock's look is the factory's shutter now (the jar's stopper is gone)
+			expect(plot:FindFirstChild("StopperShut"):GetAttribute("MeshAsset")).toBe("factory_shutter_shut")
 			expect(plot:FindFirstChild("Pad_1")).toBe(pad1)
 			expect(prompt.Parent).toBe(button)
 			local at = WorldLayout.plotFrame(1)
@@ -257,6 +268,8 @@ describe("base shapes: turning a plot into another base and back", function()
 
 			WorldBuilder.rebase(plot, 1, "factory", nil)
 			expect(plot:FindFirstChild("BaseShape")).toBeNil()
+			expect(plot:FindFirstChild("StopperShut"):GetAttribute("MeshAsset")).toBe("goo_jar_stopper")
+			expect(plot:FindFirstChild("FootLook"):GetAttribute("MeshAsset")).toBe("goo_jar_foot")
 			for _, name in { "Jar", "JarLooks", "DoorLook", "DoorRing", "StopperShut", "OpenDoorCollider" } do
 				expect(plot:FindFirstChild(name) ~= nil).toBe(true)
 			end
