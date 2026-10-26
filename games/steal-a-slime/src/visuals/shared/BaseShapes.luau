@@ -211,6 +211,12 @@ local function slotNode(slot: any, boxes: any, at: (Vec) -> Vec, yaw: number): W
 	if slot.role then
 		attributes.ThemeRole = slot.role
 	end
+	if slot.glass then
+		-- see-through like the jar's glass (server/MeshSwap reads these), so players outside see the pads inside
+		attributes.MeshMaterial = WorldLayout.JAR_GLASS_MATERIAL
+		attributes.MeshTransparency = WorldLayout.JAR_GLASS_MESH_TRANSPARENCY
+		attributes.MeshCastShadow = false
+	end
 	if slot.show then
 		attributes.JarFloor = slot.floor
 		attributes.JarShow = slot.show

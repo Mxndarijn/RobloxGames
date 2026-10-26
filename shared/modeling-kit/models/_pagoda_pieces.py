@@ -82,25 +82,62 @@ def disc_on_wall(name, r_wall, a, z, rad, depth, col, cx=0.0, cy=0.0, segs=14):
 
 
 # ---------------------------------------------------------------- rooms
-WINDOW_ANGLES = {1: (-45, 0, 25, 155, 180, 215), 2: (-60, -15, 25, 155, 230), 3: (-45, 0, 155, 230), 4: (-30, 20, 160, 235)}
+# The stalk wall is a frame round glass bays, so someone outside sees the slimes inside (the jar tower's glass, see
+# room_glass): a kerb, a band under the cap, and posts every POST_STEP degrees.
+KERB_H = 1.4                 # solid stalk at the foot of the wall
+HEAD_H = 1.6                 # solid stalk band under the cap
+POST_STEP = 30.0             # a post every this many degrees
+POST_W = 1.2                 # post width (studs, along the wall)
 TINT = {}
 
 
+def _posts(f):
+    """Post angles on floor f: every POST_STEP degrees inside the wall's arcs, plus one at each arc end."""
+    r = L.ROOM_R[f - 1]
+    half = math.degrees(POST_W / 2 / r)
+    out = []
+    for a0, a1 in L.room_arcs(f):
+        out += [a0 + half, a1 - half]
+        a = math.ceil(a0 / POST_STEP) * POST_STEP
+        while a < a1:
+            if a - a0 > 2 * half + 4 and a1 - a > 2 * half + 4:
+                out.append(a)
+            a += POST_STEP
+    return out
+
+
 def room(f):
-    """Stalk wall of floor f with its door (floor 1) / hatch (2-4), round windows, ring band. Tint: stalk."""
+    """Stalk frame of floor f: kerb, head band, posts, the outer ring band and (floors 2-4) the closed hatch. Tint:
+    stalk. The glass between the posts is room_glass(f)."""
     TINT[f"pagoda_room_{f}"] = "stalk"
+    z = floor_top(f)
+    r_in, r_out = L.ROOM_R[f - 1], L.room_out(f)
+    half = math.degrees(POST_W / 2 / r_in)
+    out = []
+    for a0, a1 in L.room_arcs(f):
+        out.append(arc_wall(f"Kerb{f}_{a0:.0f}", 0, 0, r_in, r_out, z, KERB_H, g(0.94), a0, a1, lo=g(0.80)))
+        out.append(arc_wall(f"Head{f}_{a0:.0f}", 0, 0, r_in, r_out, z + L.WALL_H - HEAD_H, HEAD_H, g(0.94), a0, a1,
+                            lo=g(0.88)))
+        out.append(arc_wall(f"Band{f}_{a0:.0f}", 0, 0, r_out - 0.1, r_out + 0.5, z, 1.6, g(0.58), a0, a1))
+    for k, a in enumerate(_posts(f)):
+        out.append(arc_wall(f"Post{f}_{k}", 0, 0, r_in - 0.1, r_out + 0.2, z + KERB_H, L.WALL_H - KERB_H - HEAD_H,
+                            g(0.9), a - half, a + half, step=half * 2 + 1, lo=g(0.82)))
+    if f > 1:
+        out.append(disc_on_wall(f"Hatch{f}", r_out - 0.2, L.HATCH_A, z + 3.0, 2.2, 1.2, g(0.55)))
+        out.append(disc_on_wall(f"HatchRim{f}", r_out - 0.3, L.HATCH_A, z + 3.0, 2.7, 1.1, g(0.74)))
+    return out
+
+
+def room_glass(f):
+    """The glass ring of floor f between the kerb and the head band (in the game a see-through glass slot, like the
+    jar's). Tint: glass."""
+    TINT[f"pagoda_glass_{f}"] = "glass"
     z = floor_top(f)
     r_in, r_out = L.ROOM_R[f - 1], L.room_out(f)
     out = []
     for a0, a1 in L.room_arcs(f):
-        out.append(arc_wall(f"Wall{f}_{a0:.0f}", 0, 0, r_in, r_out, z, L.WALL_H, g(0.94), a0, a1, lo=g(0.80)))
-        out.append(arc_wall(f"Band{f}_{a0:.0f}", 0, 0, r_out - 0.1, r_out + 0.5, z, 1.6, g(0.58), a0, a1))
-    for k, a in enumerate(WINDOW_ANGLES[f]):
-        out.append(disc_on_wall(f"WinRim{f}{k}", r_out - 0.2, a, z + 6.6, 2.4, 0.8, g(0.78)))
-        out.append(disc_on_wall(f"Win{f}{k}", r_out + 0.05, a, z + 6.6, 1.85, 0.7, g(0.36)))
-    if f > 1:
-        out.append(disc_on_wall(f"Hatch{f}", r_out - 0.2, L.HATCH_A, z + 3.0, 2.2, 1.2, g(0.55)))
-        out.append(disc_on_wall(f"HatchRim{f}", r_out - 0.3, L.HATCH_A, z + 3.0, 2.7, 1.1, g(0.74)))
+        out.append(arc_wall(f"Glass{f}_{a0:.0f}", 0, 0, r_in + 0.3, r_out - 0.3, z + KERB_H, L.WALL_H - KERB_H - HEAD_H,
+                            g(1.0), a0, a1, lo=g(1.0)))
     return out
 
 
@@ -749,6 +786,7 @@ def roles(tid):
         "turret_cap": strong(key(CAP_KEYS[1]), SAT[1]),
         "glow": TH["goo_hi"],
         "vine": strong(TH["goo"], 0.5),
+        "glass": TH["glass"],
     }
 
 THEME_PIECES = {
@@ -774,6 +812,8 @@ THEME_PIECES = {
 PIECES = {
     "pagoda_room_1": lambda: room(1), "pagoda_room_2": lambda: room(2), "pagoda_room_3": lambda: room(3),
     "pagoda_room_4": lambda: room(4),
+    "pagoda_glass_1": lambda: room_glass(1), "pagoda_glass_2": lambda: room_glass(2),
+    "pagoda_glass_3": lambda: room_glass(3), "pagoda_glass_4": lambda: room_glass(4),
     "pagoda_deck_2": lambda: deck(2), "pagoda_deck_3": lambda: deck(3), "pagoda_deck_4": lambda: deck(4),
     "pagoda_cap_1_mid": lambda: cap_mid(1), "pagoda_cap_2_mid": lambda: cap_mid(2), "pagoda_cap_3_mid": lambda: cap_mid(3),
     "pagoda_dome": lambda: dome(),

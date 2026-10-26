@@ -106,11 +106,14 @@ for name in sorted(PIECES):
 slots = []
 
 
+GLASS = ("factory_windows", "factory_windows_1")  # see-through slots (the jar's glass look, BaseShapes)
+
+
 def slot(floor, name, mesh, dx=0.0, dy=0.0, dz=0.0, show=None, plot=False):
     role = PIECES[mesh][1] if mesh in PIECES else None
     # plan offsets are kit (x, plot z, up): to game (x, up, z)
     slots.append({"floor": floor, "name": name, "mesh": mesh, "offset": [dx, dz, dy], "show": show, "role": role,
-                  "plot": plot})
+                  "plot": plot, "glass": mesh in GLASS})
 
 
 for f in range(1, FLOORS + 1):
@@ -170,6 +173,8 @@ for s in slots:
         extra += f', role = "{s["role"]}"'
     if s["plot"]:
         extra += ", plot = true"
+    if s["glass"]:
+        extra += ", glass = true"
     lines.append(f'\t\t{{ floor = {s["floor"]}, name = "{s["name"]}", mesh = "{s["mesh"]}", offset = '
                  f'{lua_vec(s["offset"])}{extra} }},')
 lines.append("\t},")

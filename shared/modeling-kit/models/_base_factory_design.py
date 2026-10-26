@@ -71,8 +71,9 @@ for f in range(1, F + 1):
     top = f == F
     sfx = "_1" if f == 1 else ""
     if not COLL:
-        for nm in ("factory_storey", "factory_trim", "factory_windows", "factory_pipes"):
+        for nm in ("factory_storey", "factory_trim", "factory_pipes"):
             place(nm + sfx, z, into="shell")
+        place("factory_windows" + sfx, z, into="glass")  # see-through in the game (a glass slot)
         if TID != "classic" and f > 1:
             place("factory_dress", z, into="shell")
         if top:

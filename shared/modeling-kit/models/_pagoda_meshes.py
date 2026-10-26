@@ -65,9 +65,9 @@ boxes["goo_jar_mascot"] = ([float(v) for v in m.group(1).split(",")], [float(v) 
 slots = []
 
 
-def slot(floor, name, mesh, up=0.0, scale=1.0, show=None, role=None, plot=False):
+def slot(floor, name, mesh, up=0.0, scale=1.0, show=None, role=None, plot=False, glass=False):
     slots.append({"floor": floor, "name": name, "mesh": mesh, "offset": [0.0, up, 0.0], "scale": scale, "show": show,
-                  "role": role, "plot": plot})
+                  "role": role, "plot": plot, "glass": glass})
 
 
 def on_cap(f, native=PC.CAP_NATIVE):
@@ -89,6 +89,7 @@ for f in range(1, FLOORS + 1):
     covered = None if f == FLOORS else "covered"
     top = None if f == FLOORS else "top"
     slot(f, "Room", f"pagoda_room_{f}", role="stalk")
+    slot(f, "Glass", f"pagoda_glass_{f}", role="glass", glass=True)
     if f > 1:
         slot(f, "Deck", f"pagoda_deck_{f}", role="wood")
     slot(f, "Lamps", "pagoda_lamps", up=floor_top(f) - floor_top(2), role="glow")
@@ -149,6 +150,8 @@ for s in slots:
         extra += f', role = "{s["role"]}"'
     if s["plot"]:
         extra += ", plot = true"
+    if s["glass"]:
+        extra += ", glass = true"
     lines.append(f'\t\t{{ floor = {s["floor"]}, name = "{s["name"]}", mesh = "{s["mesh"]}", offset = '
                  f'{lua_vec(s["offset"])}{extra} }},')
 lines.append("\t},")

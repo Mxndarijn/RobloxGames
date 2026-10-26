@@ -34,6 +34,7 @@ REPLACED = {rep for _, _, _, rep in EXTRA if rep}
 
 objs = []                      # every object in the scene
 shell_room, shell_turret = [], []
+glass_objs = []                # the glass rings (see-through in the preview)
 
 
 def piece(name, parts, role=None, shell=None):
@@ -97,6 +98,7 @@ for f in range(1, FLOORS + 1):
     if COLL:
         continue
     piece(f"pagoda_room_{f}", PC.room(f), "stalk", shell="room")
+    glass_objs.append(piece(f"pagoda_glass_{f}", PC.room_glass(f), "glass", shell="room"))
     if f > 1:
         piece(f"pagoda_deck_{f}", PC.deck(f), "wood")
     piece(f"pagoda_lamps_{f}", PC.lamps(f), "glow")
@@ -173,6 +175,32 @@ for o in objs:
     o.data.materials.clear()
     o.data.materials.append(mat)
     o.data.color_attributes.active_color = o.data.color_attributes["Col"]
+
+
+def see_through(o, t):
+    """The glass ring's preview look: its vertex colour mixed with a transparent BSDF (the game shows it see-through)."""
+    m = bpy.data.materials.new(o.name + "_see")
+    m.use_nodes = True
+    nt = m.node_tree
+    c = nt.nodes.new("ShaderNodeVertexColor")
+    c.layer_name = "Col"
+    b = nt.nodes["Principled BSDF"]
+    nt.links.new(c.outputs["Color"], b.inputs["Base Color"])
+    clear = nt.nodes.new("ShaderNodeBsdfTransparent")
+    mx = nt.nodes.new("ShaderNodeMixShader")
+    mx.inputs["Fac"].default_value = t
+    nt.links.new(b.outputs["BSDF"], mx.inputs[1])
+    nt.links.new(clear.outputs["BSDF"], mx.inputs[2])
+    nt.links.new(mx.outputs["Shader"], nt.nodes["Material Output"].inputs["Surface"])
+    o.data.materials.clear()
+    o.data.materials.append(m)
+    o["rbx_transparency"] = t
+
+
+for o in glass_objs:
+    if o is not None and o.name in bpy.data.objects:
+        see_through(o, 0.75)
+bpy.context.scene.cycles.transparent_max_bounces = 32
 for o in bpy.context.scene.objects:
     if o.type == "MESH" and TURN:
         o.rotation_euler.z += math.radians(TURN)

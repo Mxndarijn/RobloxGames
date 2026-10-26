@@ -35,7 +35,8 @@ def CY(name, r, h, pos, col, segs=16, r_top=None, k=0.85, rot=(0, 0, 0)):
 # Wall frame helper: a side is (name, axis, fixed, sign) with axis "x" (wall runs along x at y = fixed) or "y".
 SIDES = (("S", "x", -L.WC, -1), ("N", "x", L.WC, 1), ("W", "y", -L.WC, -1), ("E", "y", L.WC, 1))
 SPAN = 2 * L.HALF
-WIN_Z0, WIN_H = 8.6, 4.4      # the long industrial window strip: sill height and height
+WIN_Z0, WIN_H = 2.0, 11.0     # the tall glass bays: sill height and height (a player outside sees the pads through them)
+BAY_W, PIER_W = 8.0, 1.6      # a glass bay at most this wide, brick piers between bays
 BAND_Z = H - 0.45             # the cream band at the top of a storey
 
 
@@ -54,15 +55,37 @@ def _sbox(name, axis, fixed, sign, u0, u1, z0, z1, depth, out, col):
     return box(name, size, (x, y, (z0 + z1) / 2), col)
 
 
-def _win_spans(side, ground):
-    """Window strip spans (u0, u1) along a side."""
+def _strips(side, ground):
+    """The window runs (u0, u1) along a side, before they are split into bays."""
     nm = side[0]
-    if nm == "S" and ground:
-        return [(3.5, 15.5), (32.5, 44.5)]          # either side of the door and the sign
     if nm == "E" and not ground:
         u = L.HATCH_Y + L.HALF                      # keep clear of the drop hatch
         return [(u + 4.0, SPAN - 4.0)]
     return [(4.0, SPAN - 4.0)]
+
+
+def _win_spans(side, ground):
+    """Glass bay spans (u0, u1) along a side: each run split into equal bays at most BAY_W wide, PIER_W of brick
+    between them."""
+    out = []
+    for u0, u1 in _strips(side, ground):
+        n = max(1, math.ceil((u1 - u0 + PIER_W) / (BAY_W + PIER_W)))
+        w = (u1 - u0 - (n - 1) * PIER_W) / n
+        for k in range(n):
+            a = u0 + k * (w + PIER_W)
+            out.append((a, a + w))
+    if side[0] == "S" and ground:
+        # floor 1's front keeps the upper floors' bays (so the piers and pipes line up), cut clear of the door
+        out = [(a, min(b, DOOR_CLEAR[0])) if a < DOOR_CLEAR[0] else (max(a, DOOR_CLEAR[1]), b) for a, b in out
+               if b <= DOOR_CLEAR[0] + 3 or a >= DOOR_CLEAR[1] - 3]
+        out = [(a, b) for a, b in out if b - a > 2.5]
+    return out
+
+
+DOOR_CLEAR = (L.HALF - L.DOOR["width"] / 2 - 2.0, L.HALF + L.DOOR["width"] / 2 + 2.0)  # u range kept brick round the door
+# the goo pipes run up the front on the piers next to the middle bays
+_S_BAYS = _win_spans(("S", "x", -L.WC, -1), False)
+PIPE_X = tuple(s * ((_S_BAYS[0][1] + _S_BAYS[1][0]) / 2 - L.HALF) * -1 for s in (-1, 1)) if len(_S_BAYS) > 1 else (-8.6, 8.6)
 
 
 def _holes(side, ground):
@@ -133,6 +156,12 @@ def storey_trim(ground):
                                T / 2 + 0.25, g(1.0)))
             parts.append(_sbox(f"Lintel{nm}{j}", axis, fixed, sign, u0 - 0.4, u1 + 0.4, WIN_Z0 + WIN_H, WIN_Z0 + WIN_H + 0.5,
                                0.5, T / 2 + 0.15, g(0.9)))
+            # the bay's frame: one mullion in the middle, a transom bar (solid, so they stay out of the glass mesh)
+            um = (u0 + u1) / 2
+            parts.append(_sbox(f"Mull{nm}{j}", axis, fixed, sign, um - 0.15, um + 0.15, WIN_Z0, WIN_Z0 + WIN_H, 0.4,
+                               0.05, g(0.8)))
+            parts.append(_sbox(f"Transom{nm}{j}", axis, fixed, sign, u0, u1, WIN_Z0 + WIN_H * 0.72 - 0.15,
+                               WIN_Z0 + WIN_H * 0.72 + 0.15, 0.4, 0.05, g(0.8)))
     for sx in (-1, 1):
         for sy in (-1, 1):
             parts.append(box(f"PilCap{sx}{sy}", (2.6, 2.6, 0.6), (sx * (L.HALF - 0.5), sy * (L.HALF - 0.5), H - 1.4), g(0.92)))
@@ -140,24 +169,16 @@ def storey_trim(ground):
 
 
 def storey_windows(ground):
-    """Tint-only window strips (tinted with the theme's glass): panes 0.85, mullions 0.55, a transom bar."""
+    """Tint-only glass panes, one per bay (tinted with the theme's glass). The game shows this mesh see-through (its
+    slot is glass, like the jar's), so it holds nothing solid: the frames are in the trim."""
     parts = []
-    T = L.WALL
     for side in SIDES:
         nm, axis, fixed, sign = side
         for j, (u0, u1) in enumerate(_win_spans(side, ground)):
-            parts.append(_sbox(f"Pane{nm}{j}", axis, fixed, sign, u0, u1, WIN_Z0, WIN_Z0 + WIN_H, 0.3, 0.0, g(0.85)))
-            n = max(2, int((u1 - u0) / 2.6))
-            for k in range(n + 1):
-                u = u0 + (u1 - u0) * k / n
-                parts.append(_sbox(f"Mull{nm}{j}_{k}", axis, fixed, sign, u - 0.18, u + 0.18, WIN_Z0, WIN_Z0 + WIN_H, 0.4,
-                                   0.05, g(0.55)))
-            parts.append(_sbox(f"Transom{nm}{j}", axis, fixed, sign, u0, u1, WIN_Z0 + WIN_H * 0.62 - 0.15,
-                               WIN_Z0 + WIN_H * 0.62 + 0.15, 0.4, 0.05, g(0.55)))
+            parts.append(_sbox(f"Pane{nm}{j}", axis, fixed, sign, u0, u1, WIN_Z0, WIN_Z0 + WIN_H, 0.3, 0.0, g(1.0)))
     return parts
 
 
-PIPE_X = (-8.6, 8.6)
 
 
 def storey_pipes(ground):
@@ -449,7 +470,7 @@ def dress(tid, th, ground):
         for side in SIDES:
             nm, axis, fixed, sign = side
             for j, (u0, u1) in enumerate(_win_spans(side, ground)):
-                parts.append(_sbox(f"WinBox{nm}{j}", axis, fixed, sign, u0 + 0.5, u1 - 0.5, WIN_Z0 - 2.0, WIN_Z0 - 0.6, 1.6,
+                parts.append(_sbox(f"WinBox{nm}{j}", axis, fixed, sign, u0 + 0.5, u1 - 0.5, WIN_Z0 - 1.9, WIN_Z0 - 0.6, 1.6,
                                    T / 2 + 0.9, th["pot"]))
                 n = int((u1 - u0) / 2.0)
                 for k in range(n):
