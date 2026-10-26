@@ -2,7 +2,8 @@
 --[[
 	Tutorial overlay: a card at the bottom centre with the current step from
 	Tutorial (`State.tutorialStepId`, else `tutorialStep`; CONTRACT §8.3). "Hide" hides it locally until the server moves to
-	another step; the UI never advances the tutorial itself. While carrying,
+	another step, or until the player picks "Show the tutorial again" in the Guide panel
+	(`showAgain`); the UI never advances the tutorial itself. While carrying,
 	the card moves up so the carry panel (Drop) below it stays visible.
 	`layout(screen)` takes both boxes from Layout.screen (card height fits
 	the longest step body, Layout.tutorialHeight).
@@ -75,6 +76,10 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 	local wanted = false -- the step wants the card shown (not finished, not Hidden)
 	local menuOpen = false
 
+	local function refresh()
+		card.Visible = wanted and not menuOpen
+	end
+
 	local hide = Widgets.button(
 		{
 			Name = "Hide",
@@ -89,7 +94,7 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		function()
 			hiddenStep = shownStep
 			wanted = false
-			card.Visible = false
+			refresh()
 		end
 	)
 	hide.instance.Parent = card
@@ -121,7 +126,7 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 	-- step or the player's Hide choice; closing it restores the card as it was.
 	function self.setMenuOpen(isOpen: boolean)
 		menuOpen = isOpen
-		card.Visible = wanted and not menuOpen
+		refresh()
 	end
 
 	-- The step wants its card (and hint) shown, whether or not a menu covers it now.
@@ -129,7 +134,23 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		return wanted
 	end
 
+	-- The player hid the current step with Hide (the Guide offers to show it again).
+	function self.hidden(): boolean
+		return shownStep ~= nil and shownStep == hiddenStep
+	end
+
 	local latest: any = nil
+
+	-- Undoes Hide: the current step's card shows again (once no menu covers it),
+	-- redrawn from the latest State so its wording follows the current device.
+	function self.showAgain()
+		hiddenStep = nil
+		if latest then
+			self.update(latest)
+		else
+			refresh()
+		end
+	end
 
 	-- The current device and the shown name of the tutorial prompts' key on it (Tutorial.PROMPT_KEYS), from
 	-- UserInputService so a PlayStation pad reads "Square" and a keyboard layout its own letter.
@@ -154,16 +175,14 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		local view = Tutorial.fromState(state, device())
 		shownStep = if view then view.id else nil
 		wanted = view ~= nil and view.id ~= hiddenStep
-		if view == nil or not wanted then
-			card.Visible = false
-			return
-		end
 		carrying = state.carrying ~= nil
 		place()
-		counter.Text = view.counter
-		title.Text = view.title
-		body.Text = view.body
-		card.Visible = not menuOpen
+		if view ~= nil then
+			counter.Text = view.counter
+			title.Text = view.title
+			body.Text = view.body
+		end
+		refresh()
 	end
 
 	-- The step text names the device's own control: it follows the last input.
