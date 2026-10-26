@@ -94,7 +94,7 @@ local function build(plot: Instance, base: BasePart, version: number): Model
 			at(0, y, 0) * CFrame.Angles(0, 0, math.pi / 2),
 			PlotMascot.GOO
 		)
-		ooze.Material = Enum.Material.Glass
+		ooze.Material = Enum.Material.SmoothPlastic
 		ooze.Transparency = 0.25
 	end
 	local pose = PlotMascot.pose(version)
@@ -107,7 +107,7 @@ local function build(plot: Instance, base: BasePart, version: number): Model
 		at(0, pose.lidY + d * 0.4, 0),
 		PlotMascot.GOO
 	)
-	body.Material = Enum.Material.Glass
+	body.Material = Enum.Material.SmoothPlastic
 	body.Transparency = 0.1
 	part(
 		model,

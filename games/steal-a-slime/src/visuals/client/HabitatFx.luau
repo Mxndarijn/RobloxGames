@@ -203,7 +203,7 @@ local function buildLook(pad: BasePart, id: string): Look?
 					Vector3.new(0.9, 0.9, 0.9),
 					at * CFrame.new(0, 0.55, 0),
 					if k % 2 == 0 then accent else color,
-					Enum.Material.Glass,
+					Enum.Material.SmoothPlastic,
 					0.1
 				)
 			)

@@ -598,7 +598,7 @@ local function volcano(): WorldNode
 	local children: { WorldNode } = {
 		standIn(disc("Rock1", 3, d, onAxis(1.5), STONE, "Slate"), M),
 		standIn(disc("BasinRim", 1, d + 1, onAxis(3.5), STONE_TRIM, "Slate"), M),
-		standIn(disc("Pool", 0.4, d - 3, onAxis(3.1), POOL, "Glass"), M),
+		standIn(disc("Pool", 0.4, d - 3, onAxis(3.1), POOL, WorldLayout.JAR_GLASS_MATERIAL), M),
 		standIn(disc("Column", h - 8, 6, onAxis(3 + (h - 8) / 2), STONE, "Slate"), M),
 		standIn(disc("Bowl", 3, 14, onAxis(h - 3.5), STONE_TRIM, "Slate"), M),
 	}
@@ -673,8 +673,14 @@ local function chute(): WorldNode
 		end
 		local mid = { (a[1] + b[1]) / 2, (a[2] + b[2]) / 2 + thick / 2, (a[3] + b[3]) / 2 }
 		local rot = LayoutMath.facing(LayoutMath.scale(delta, 1 / length))
-		local part =
-			block(if i == 1 then "Floor" else `Span{i}`, { width, thick, length + 0.35 }, mid, GOO, "Glass", rot)
+		local part = block(
+			if i == 1 then "Floor" else `Span{i}`,
+			{ width, thick, length + 0.35 },
+			mid,
+			GOO,
+			WorldLayout.JAR_GLASS_MATERIAL,
+			rot
+		)
 		part.canCollide = false
 		part.canQuery = false
 		part.canTouch = false
@@ -1332,7 +1338,7 @@ local function radial(
 	yaw: number
 ): WorldNode
 	local x, z = polar(r, deg)
-	return block(name, size, at({ x, y, z }), JAR_GLASS, "Glass", { 0, yaw + 90 - deg, 0 })
+	return block(name, size, at({ x, y, z }), JAR_GLASS, WorldLayout.JAR_GLASS_MATERIAL, { 0, yaw + 90 - deg, 0 })
 end
 
 -- Attribute-driven plot cosmetics (PlotDecor; VisualsClient shows / hides them locally): the stopper lock and the
@@ -1468,7 +1474,7 @@ local function wallBand(
 						{ jw, h, t },
 						at({ x - tx * off, y, z - tz * off }),
 						JAR_GLASS,
-						"Glass",
+						WorldLayout.JAR_GLASS_MATERIAL,
 						turn
 					)
 				)
@@ -1479,7 +1485,7 @@ local function wallBand(
 						{ jw, h, t },
 						at({ x + tx * off, y, z + tz * off }),
 						JAR_GLASS,
-						"Glass",
+						WorldLayout.JAR_GLASS_MATERIAL,
 						turn
 					)
 				)
@@ -1928,11 +1934,12 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 		tube.width,
 		at({ tx, (lo + armY + tube.width / 2) / 2, tz }),
 		JAR_GOO,
-		"Glass",
+		WorldLayout.JAR_GLASS_MATERIAL,
 		yaw
 	)
 	for _, node in { arm, pipe } do
-		node.color, node.material, node.transparency = JAR_GOO, "Glass", WorldLayout.JAR_GLASS_TRANSPARENCY
+		node.color, node.material, node.transparency =
+			JAR_GOO, WorldLayout.JAR_GLASS_MATERIAL, WorldLayout.JAR_GLASS_TRANSPARENCY
 		table.insert(children, standIn(ghost(node, WorldLayout.JAR_GLASS_TRANSPARENCY), `goo_drop_tube_goo_{f}`))
 	end
 	if f == 2 then
@@ -1946,7 +1953,7 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 					6,
 					at({ land[1], WorldLayout.PLOT_FLOOR_TOP + 0.1, land[3] }),
 					JAR_GOO,
-					"Glass",
+					WorldLayout.JAR_GLASS_MATERIAL,
 					yaw
 				)
 			)
@@ -1999,7 +2006,8 @@ local function plot(i: number): WorldNode
 	-- Jar 1 (the static part of the tower): the goo moat and the cork floor inside it (decor on the Base, which stays
 	-- the walking surface), the bridge to the door, the glass wall with the door, and the lid.
 	local moat = WorldLayout.MOAT
-	local moatDisc = ghost(disc("Moat", 0.2, moat.outer * 2, at({ 0, 1, 0 }), JAR_GOO, "Glass", yaw))
+	local moatDisc =
+		ghost(disc("Moat", 0.2, moat.outer * 2, at({ 0, 1, 0 }), JAR_GOO, WorldLayout.JAR_GLASS_MATERIAL, yaw))
 	local floorDisc = ghost(disc("JarFloor", 0.2, moat.inner * 2, at({ 0, 1.02, 0 }), JAR_CORK, "Wood", yaw))
 	standIns({ moatDisc, floorDisc }, "goo_jar_foot")
 	table.insert(children, moatDisc)

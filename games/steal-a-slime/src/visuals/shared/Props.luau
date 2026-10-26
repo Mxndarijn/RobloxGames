@@ -349,7 +349,7 @@ function Props.shopStand(style: string): Model
 			Vector3.new(1.4, 1.1, 1.1),
 			CFrame.new(cx - 3 + (i - 1) * 3, top + 0.7, cz) * UPRIGHT,
 			color,
-			{ shape = "Cylinder", material = "Glass", transparency = 0.25, canCollide = false }
+			{ shape = "Cylinder", material = "SmoothPlastic", transparency = 0.25, canCollide = false }
 		)
 		jar.CastShadow = false
 	end
