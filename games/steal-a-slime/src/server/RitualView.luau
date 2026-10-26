@@ -210,6 +210,8 @@ function RitualView.setup(): Model?
 	rule.Parent = card
 
 	model:SetAttribute(Constants.RITUAL_PHASE_ATTRIBUTE, "Idle")
+	-- Streams whole: RitualFx rigs its beams over every Spot_i once the circle is there.
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	model.Parent = parent
 	built = model
 	return model

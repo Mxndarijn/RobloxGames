@@ -34,6 +34,7 @@ local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
 
 local SHUTDOWN_TIMEOUT = 25 -- seconds BindToClose waits for the last saves
+local SPAWN_STREAM_TIMEOUT = 3 -- seconds a respawn waits for its plot to stream in before the move
 
 export type Deps = {
 	world: World.World,
@@ -59,6 +60,13 @@ local function onCharacter(deps: Deps, player: Player, character: Model)
 	local spawn = session and WorldView.plotSpawn(session.plotIndex)
 	if spawn then
 		task.defer(function()
+			-- With StreamingEnabled the client only has the area round the hub spawn: load the plot before the
+			-- character lands on it. A failed or slow request still moves the character; streaming catches up.
+			if workspace.StreamingEnabled then
+				pcall(function()
+					player:RequestStreamAroundAsync(spawn.Position, SPAWN_STREAM_TIMEOUT)
+				end)
+			end
 			if character.Parent then
 				character:PivotTo(spawn)
 				WorldView.markServerMove(player.UserId)

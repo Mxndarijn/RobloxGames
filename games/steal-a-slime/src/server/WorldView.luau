@@ -107,6 +107,9 @@ local slimeMesh: SlimeMesh.SlimeMesh? = nil
 local plotCache: { [number]: Instance? } = {}
 local habitats = HabitatPads.new() -- FEATURES.Habitats pad state (never saved)
 local eggMeshes: { [string]: MeshPart | false } = {} -- uploaded Mystery Egg meshes (MeshAssets mystery_egg_*), by name
+-- Each player's follow-pet slime model, kept loaded on every client. Weak values: a pet slime that is destroyed
+-- (sold, merged, owner left) drops out on its own.
+local petModels: { [number]: Model } = setmetatable({}, { __mode = "v" }) :: any
 
 WorldView.FALL_SECONDS = 0.3 -- a dropped slime falls to the ground
 WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart when the character has no Head
@@ -136,6 +139,13 @@ function WorldView.setup(): any?
 	if not workspace:FindFirstChild(Constants.PLOTS_FOLDER) then
 		FallbackWorld.build()
 		built = nil
+	end
+	-- With StreamingEnabled the fountain is always on every client: it is the map's landmark and the client hangs
+	-- its eruption, tier glow and Secret splash on Map.Volcano.Crater once at start.
+	local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
+	local volcano = map and map:FindFirstChild("Volcano")
+	if volcano and volcano:IsA("Model") then
+		volcano.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	end
 	-- FallenPartsDestroyHeight is plugin-only to write; default.project.json sets it.
 	if workspace.FallenPartsDestroyHeight > Rescue.KILL_PLANE_Y then
@@ -773,6 +783,9 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		model:Destroy()
 		return nil
 	end
+	-- A slime or egg streams to a client whole or not at all, so client code never sees a Body without its eyes,
+	-- skin or prompts. Copies made from it (steal ghost, vat, pets) inherit the mode.
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = Constants.GRAB_PROMPT_NAME
 	prompt.ObjectText = (if entry.boss then "BOSS " else "") .. Genome.displayName(entry.slime)
@@ -1753,6 +1766,19 @@ function WorldView.updatePlayer(
 	end
 	local pet = World.pet(world, session) -- a stolen pet stops following
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
+	-- Clients copy the pet from its slime on the owner's pad (FollowPets): with streaming that pad can be far away
+	-- while the owner walks past you, so the pet's slime model stays on every client until it stops being a pet.
+	local petModel = if pet then modelOf(pet.id) else nil
+	local previous = petModels[player.UserId]
+	if petModel ~= previous then
+		if previous and previous.Parent then
+			previous.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+		end
+		if petModel then
+			petModel.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+		end
+		petModels[player.UserId] = petModel
+	end
 	if data.speedCoil then
 		ensureSpeedCoil(player)
 	end

@@ -96,7 +96,13 @@ local function declared(inst: BasePart): any?
 end
 
 local function register(inst: Instance)
-	if not inst:IsA("BasePart") or tracked[inst] then
+	if not inst:IsA("BasePart") then
+		return
+	end
+	local known = tracked[inst]
+	if known then
+		-- Streamed back in (StreamingEnabled): the part returns with the server's colour, so paint it again.
+		paint(inst, known)
 		return
 	end
 	local parent = inst.Parent

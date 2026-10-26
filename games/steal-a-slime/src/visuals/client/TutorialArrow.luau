@@ -19,6 +19,9 @@
 	Keyed on the Player attribute TutorialStepId (falls back to TutorialStep
 	via TutorialProgress.STEPS). The target is re-picked every POLL seconds;
 	GuideTarget keeps the current pick unless another is clearly closer.
+	With StreamingEnabled the own-plot targets are not on the client while the
+	player is far from home: the arrow then asks the server to stream the plot
+	in (at most every STREAM_RETRY seconds) and points there once it arrives.
 ]]
 
 local Players = game:GetService("Players")
@@ -27,6 +30,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local TutorialProgress = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TutorialProgress"))
 local TutorialTargets = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("TutorialTargets"))
+local WorldLayout = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WorldLayout"))
 local Guide = ReplicatedStorage:WaitForChild("Lib"):WaitForChild("guide")
 local GuideTarget = require(Guide:WaitForChild("GuideTarget"))
 local GuideView = require(Guide:WaitForChild("GuideView"))
@@ -34,6 +38,7 @@ local GuideView = require(Guide:WaitForChild("GuideView"))
 local TutorialArrow = {}
 
 TutorialArrow.POLL = 0.25
+TutorialArrow.STREAM_RETRY = 3 -- seconds between requests to stream in the own plot while its target is missing
 TutorialArrow.OWN_PLOT_TARGETS = table.freeze({
 	Deposit = table.freeze({ part = "HomeZone", label = "Bring it home" }),
 	Lock = table.freeze({ part = "LockButton", label = "Lock base" }),
@@ -112,6 +117,22 @@ local function grab(player: Player, from: Vector3, currentKey: string?): Choice?
 	return if slime then { target = slime.value, key = slime.key, label = label } else nil
 end
 
+local lastStreamRequest = -math.huge
+
+-- Asks the server to stream in the player's own plot (the target part is not on the client yet).
+local function streamHome(player: Player, plot: Instance)
+	local index = plot:GetAttribute(Constants.PLOT_INDEX_ATTRIBUTE)
+	local now = os.clock()
+	if type(index) ~= "number" or now - lastStreamRequest < TutorialArrow.STREAM_RETRY then
+		return
+	end
+	lastStreamRequest = now
+	local centre = WorldLayout.plotCentre(index)
+	task.spawn(pcall, function()
+		player:RequestStreamAroundAsync(Vector3.new(centre[1], centre[2], centre[3]))
+	end)
+end
+
 local function choose(player: Player, id: string?, from: Vector3, currentKey: string?): Choice?
 	if id == "Grab" then
 		return grab(player, from, currentKey)
@@ -128,13 +149,20 @@ local function choose(player: Player, id: string?, from: Vector3, currentKey: st
 			local part = plot:FindFirstChild(own.part)
 			if part and part:IsA("PVInstance") then
 				table.insert(list, candidate(part, keyOf(part), own.label))
+			else
+				streamHome(player, plot)
 			end
 		elseif owner == player.UserId and id == "BuyPad" then
+			local found = false
 			for _, pad in plot:GetChildren() do
 				local prompt = enabledPrompt(pad, Constants.BUY_PAD_PROMPT_NAME)
 				if prompt and pad:IsA("PVInstance") then
 					table.insert(list, candidate(pad, keyOf(pad), prompt.ActionText))
+					found = true
 				end
+			end
+			if not found and not plot:FindFirstChild("Base") then
+				streamHome(player, plot)
 			end
 		elseif
 			id == "Steal"

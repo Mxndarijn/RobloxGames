@@ -257,12 +257,11 @@ local function buildTag(adornee: BasePart): BillboardGui
 	return tag
 end
 
--- The ring of floor strips along the round plot floor's edge, on top of `base`.
-local function buildRim(parent: Instance, base: BasePart): { BasePart }
-	local top = base.Size.Y / 2 + 0.06
+-- The ring of floor strips along the round plot floor's edge, on top of the floor (`floor` = its top centre).
+local function buildRim(parent: Instance, floor: CFrame): { BasePart }
 	local parts: { BasePart } = {}
 	for k, seg in Look.rim(WorldLayout.PLOT_FLOOR_RADIUS) do
-		local at = base.CFrame * CFrame.Angles(0, seg.angle, 0) * CFrame.new(0, top, -seg.mid)
+		local at = floor * CFrame.Angles(0, seg.angle, 0) * CFrame.new(0, 0.06, -seg.mid)
 		local part = neon(`Rim_{k}`, Vector3.new(seg.length, 0.1, Look.RIM_WIDTH), at)
 		part.Parent = parent
 		table.insert(parts, part)
@@ -270,16 +269,25 @@ local function buildRim(parent: Instance, base: BasePart): { BasePart }
 	return parts
 end
 
+-- The top centre of plot `index`'s floor, turned like the plot. Worked out from WorldLayout, not read from the
+-- plot's Base part: with streaming the Base is not on the client while you are far from home, which is exactly
+-- when the beacon and the arrow are needed.
+local function floorFrame(index: number): CFrame
+	local centre, yaw = WorldLayout.plotCentre(index)
+	return CFrame.new(centre[1], centre[2] + WorldLayout.PLOT_FLOOR_TOP, centre[3]) * CFrame.Angles(0, math.rad(yaw), 0)
+end
+
 local function build(plot: Model): Built?
-	local base = plot:FindFirstChild("Base")
-	if not (base and base:IsA("BasePart")) then
+	local index = plot:GetAttribute(Constants.PLOT_INDEX_ATTRIBUTE)
+	if type(index) ~= "number" then
 		return nil
 	end
 	local folder = Instance.new("Folder")
 	folder.Name = HomePlotMarker.FOLDER
-	folder:SetAttribute("PlotIndex", plot:GetAttribute(Constants.PLOT_INDEX_ATTRIBUTE))
+	folder:SetAttribute("PlotIndex", index)
 
-	local floor = base.Position + Vector3.new(0, base.Size.Y / 2, 0)
+	local floorCFrame = floorFrame(index)
+	local floor = floorCFrame.Position
 	local h = Look.BEACON_HEIGHT
 	local upright = CFrame.new(floor + Vector3.new(0, h / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	local core =
@@ -311,7 +319,7 @@ local function build(plot: Model): Built?
 	})
 	sparkles.Parent = halo
 
-	local rim = buildRim(folder, base)
+	local rim = buildRim(folder, floorCFrame)
 	local anchor = neon("TagAnchor", Vector3.new(0.2, 0.2, 0.2), CFrame.new(floor))
 	anchor.Transparency = 1
 	anchor.Parent = folder
@@ -322,7 +330,7 @@ local function build(plot: Model): Built?
 		plot = plot,
 		folder = folder,
 		centre = floor,
-		floor = base.CFrame,
+		floor = floorCFrame,
 		radius = WorldLayout.PLOT_FLOOR_RADIUS,
 		core = core,
 		halo = halo,

@@ -193,10 +193,24 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		})
 	end
 
+	-- The thief's character while it is on my client. With StreamingEnabled a far character is streamed out:
+	-- `Player.Character` still points at it, but it is out of the workspace with a stale position.
 	local function thiefCharacter(): Model?
 		local id = theft and theft.thiefId
 		local thief = if id then Players:GetPlayerByUserId(id) else nil
-		return if thief then thief.Character else nil
+		local character = if thief then thief.Character else nil
+		return if character and character:IsDescendantOf(workspace) then character else nil
+	end
+
+	-- Where my plot is: its Model and pivot are on the client even while its parts are streamed out.
+	local function ownPlotPosition(): Vector3?
+		local plots = workspace:FindFirstChild(Constants.PLOTS_FOLDER)
+		for _, plot in if plots then plots:GetChildren() else {} do
+			if plot:IsA("Model") and plot:GetAttribute("OwnerUserId") == Players.LocalPlayer.UserId then
+				return plot:GetPivot().Position
+			end
+		end
+		return nil
 	end
 
 	local function hideArrow()
@@ -397,6 +411,9 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		local rootPart = character and character:FindFirstChild("HumanoidRootPart")
 		if rootPart and rootPart:IsA("BasePart") then
 			target = rootPart.Position
+		elseif theft and theft.thiefId then
+			-- A thief far from me is not on my client (StreamingEnabled): point home, where the theft is.
+			target = ownPlotPosition()
 		elseif debug then
 			target = cameraPos + camera.CFrame.RightVector * 80 + Vector3.new(look.X, 0, look.Z) * 20
 		end

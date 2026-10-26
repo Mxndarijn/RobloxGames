@@ -6,7 +6,10 @@
       "$className": "Workspace",
       "$properties": {
         "FallenPartsDestroyHeight": -1000,
-        "StreamingEnabled": false
+        "StreamingEnabled": true,
+        "StreamingTargetRadius": 128,
+        "StreamingMinRadius": 64,
+        "StreamingIntegrityMode": "MinimumRadiusPause"
       },
       "Terrain": {
         "$className": "Terrain",

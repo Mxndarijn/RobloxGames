@@ -90,6 +90,7 @@ local function buildLookGuard(index: number, at: Vector3, face: Vector3, look: L
 	end
 	model:SetAttribute(Constants.BOSS_GUARD_ATTRIBUTE, true)
 	model:SetAttribute("GuardBaseY", at.Y)
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic -- the client bobs it as one piece (BossTelegraph)
 	model.Parent = folder()
 	return model
 end
@@ -122,6 +123,7 @@ local function buildGuard(index: number, at: Vector3, face: Vector3, color: Colo
 	model.PrimaryPart = body
 	model:SetAttribute(Constants.BOSS_GUARD_ATTRIBUTE, true)
 	model:SetAttribute("GuardBaseY", at.Y)
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic -- the client bobs it as one piece (BossTelegraph)
 	model.Parent = folder()
 	return model
 end
