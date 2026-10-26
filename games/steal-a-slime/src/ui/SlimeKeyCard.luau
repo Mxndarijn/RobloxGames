@@ -84,6 +84,30 @@ function SlimeKeyCard.heading(parent: Instance): (string, string)
 	end
 	return title, if sub ~= title then sub else ""
 end
+
+-- The world height of the top of a box at `cf` with `size`, however it is turned.
+function SlimeKeyCard.worldTop(cf: CFrame, size: Vector3): number
+	local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+	return cf.Position.Y + (math.abs(r.Y) * size.X + math.abs(u.Y) * size.Y + math.abs(l.Y) * size.Z) / 2
+end
+
+-- Where the card's bottom edge goes over a part with no TagAnchor (the LockButton), as StudsOffsetWorldSpace, which
+-- Roblox reads in the part's own axes: straight up in the world, `lift` studs over the top of the part or of the
+-- tallest of `others` standing on its spot (the button's barrel look), so the card sits right above what you see.
+function SlimeKeyCard.offsetOver(part: BasePart, others: { Instance }, lift: number): Vector3
+	local top = SlimeKeyCard.worldTop(part.CFrame, part.Size)
+	local at = part.CFrame.Position
+	for _, o in others do
+		if o ~= part and o:IsA("BasePart") then
+			local d = (o :: BasePart).CFrame.Position - at
+			if Vector2.new(d.X, d.Z).Magnitude < SlimeKeyCard.CARD.sameSpot then
+				top = math.max(top, SlimeKeyCard.worldTop(o.CFrame, o.Size))
+			end
+		end
+	end
+	return part.CFrame:VectorToObjectSpace(Vector3.new(0, top - at.Y + lift, 0))
+end
+
 SlimeKeyCard.CARD = table.freeze({
 	w = 236,
 	pad = 12,
@@ -100,7 +124,8 @@ SlimeKeyCard.CARD = table.freeze({
 	radius = 22, -- the card's corners
 	stroke = 3, -- Ink outline round the card and the key chips
 	rowStroke = 2,
-	lift = 1, -- studs above the slime's Body top
+	lift = 1, -- studs above the slime's Body top (or the lock button's barrel)
+	sameSpot = 1, -- studs; a part centred this close to the LockButton (its barrel look) counts as standing on it
 	maxDistance = 40, -- studs; past this the card is not drawn
 	bgTransparency = 0.06,
 	fillTransparency = 0.65,
@@ -423,8 +448,15 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		card.Size = UDim2.fromOffset(C.w, height)
 		-- Over the drawn slime: the TagAnchor (SlimeInfoCard, moved by SlimeLifeRunner) when the Body has one.
 		local anchor = best:FindFirstChild(Constants.TAG_ANCHOR)
-		card.Adornee = if anchor and anchor:IsA("Attachment") then anchor else best
-		card.StudsOffsetWorldSpace = Vector3.new(0, best.Size.Y / 2 + C.lift, 0)
+		if anchor and anchor:IsA("Attachment") then
+			card.Adornee = anchor
+			card.StudsOffsetWorldSpace = Vector3.new(0, best.Size.Y / 2 + C.lift, 0)
+		else
+			-- The LockButton lies on its side: an offset in its own axes would push the card sideways.
+			card.Adornee = best
+			local others = if best.Parent then best.Parent:GetChildren() else {}
+			card.StudsOffsetWorldSpace = SlimeKeyCard.offsetOver(best :: BasePart, others, C.lift)
+		end
 		card.Enabled = #list > 0
 	end
 
