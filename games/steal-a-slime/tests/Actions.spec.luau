@@ -57,6 +57,7 @@ describe("Actions.handle guards", function()
 					args[i] = if kind == "number" or kind == "number?"
 						then 1
 						elseif kind == "boolean" then true
+						elseif kind == "kits" then "gummy"
 						else "id-1"
 				end
 			end
@@ -214,5 +215,36 @@ describe("Actions SetHotbar", function()
 		expect(call(world, 2, "SetHotbar", ",,,tool:Bat").message).toBe("too fast")
 		expect((a.data.hotbar :: { string })[1]).toBe("tool:Bat")
 		expect((b.data.hotbar :: { string })[2]).toBe("tool:Bat")
+	end)
+end)
+
+describe("Actions RequestKits", function()
+	it("hands the parsed kits to ctx.sendKits without marking the session dirty", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		s.dirty = false
+		local got: { any } = {}
+		local kitCtx = table.clone(ctx)
+		kitCtx.sendKits = function(userId: number, kits: { string })
+			table.insert(got, { userId, kits })
+		end
+		local res, ran = Actions.handle(world, 1, "RequestKits", { "gummy,mochi" }, T0 + 100, kitCtx)
+		expect(res.ok).toBe(true)
+		expect(ran).toBe(false) -- no view refresh or State push for it
+		expect(s.dirty).toBe(false)
+		expect(got).toEqual({ { 1, { "slime_gummy", "slime_mochi" } } })
+	end)
+	it("refuses bad requests and rate-limits per player", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		ServerFixtures.join(world, 2)
+		expect(call(world, 1, "RequestKits", 42).message).toBe("bad argument")
+		expect(call(world, 1, "RequestKits", "gummy,nope").message).toBe("bad argument")
+		expect(call(world, 1, "RequestKits", "").message).toBe("bad argument")
+		s.limiter = {}
+		expect(call(world, 1, "RequestKits", "gummy").ok).toBe(true)
+		expect(call(world, 1, "RequestKits", "mochi").message).toBe("too fast")
+		expect(call(world, 2, "RequestKits", "mochi").ok).toBe(true)
+		expect(Actions.handle(world, 1, "RequestKits", { "mochi" }, T0 + 100.3, ctx).ok).toBe(true)
 	end)
 end)

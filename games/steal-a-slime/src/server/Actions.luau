@@ -7,7 +7,9 @@
 	action (Validate.ACTIONS; Sync at most once per Config.STATE_MIN_INTERVAL,
 	the State coalescing window), calls the system and returns a RequestResult
 	plus `ran` (true once the call got past every guard and was dispatched; the
-	adapter only refreshes the world view then). Never errors.
+	adapter only refreshes the world view then). Never errors. A QUIET action
+	(RequestKits) changes no game state: it never marks the session dirty and
+	reports ran = false, so it costs no State push or view refresh.
 
 	`ctx` (Context) gives the adapter's world queries, the PvP engine access (PvpService.Context fields) and
 	`features`, the per-call Config.FEATURES overrides tests pass.
@@ -19,6 +21,7 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local HotbarOrder = if Shared then require(Shared.HotbarOrder) else require("../shared/HotbarOrder")
+local KitRequest = if Shared then require(Shared.KitRequest) else require("../shared/KitRequest")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
@@ -90,6 +93,9 @@ export type Context = {
 	-- The player's character root in plot `plotIndex`'s plot-local frame (the frame WorldLayout builds a plot in, y
 	-- on WorldLayout.floorTop's scale), or nil without a character or plot. nil = no world: the drop is refused.
 	plotPointOf: ((userId: number, plotIndex: number) -> { number }?)?,
+	-- RequestKits: replicates these kit meshes (KitRequest kit names) to that player only (KitDelivery). nil = no
+	-- world: the request is accepted and nothing is sent.
+	sendKits: ((userId: number, kits: { string }) -> ())?,
 }
 
 local Actions = {}
@@ -165,6 +171,12 @@ function Actions.parseArgs(action: string, raw: { any }): ({ any }?, string?)
 				return nil, "bad argument"
 			end
 			out[i] = value
+		elseif kind == "kits" then
+			local kits = KitRequest.parse(value)
+			if not kits then
+				return nil, "bad argument"
+			end
+			out[i] = kits
 		elseif kind == "boolean" or kind == "boolean?" then
 			if value == nil and kind == "boolean?" then
 				out[i] = nil
@@ -512,6 +524,11 @@ end
 dispatch = function(world: World, session: Session, action: string, args: { any }, now: number, ctx: Context): Result
 	if action == "Sync" then
 		return OK
+	elseif action == "RequestKits" then
+		if ctx.sendKits then
+			ctx.sendKits(session.userId, args[1])
+		end
+		return OK
 	elseif action == "OpenShop" then
 		return openShop(session, args[1], ctx)
 	elseif action == "CloseShop" then
@@ -588,6 +605,9 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	return fail("unknown action")
 end
 
+-- Actions that change no game state: no dirty mark, no view refresh.
+local QUIET: { [string]: boolean } = table.freeze({ RequestKits = true })
+
 -- Sync can't push State faster than the coalescing window anyway, so a spammed Sync is refused before it costs a refresh.
 local function allowSync(session: Session, now: number): boolean
 	local last = session.limiter.Sync
@@ -626,6 +646,9 @@ function Actions.handle(
 	local ok, res = pcall(dispatch, world, session, action, args, now, ctx)
 	if not ok then
 		return fail("server error"), true
+	end
+	if QUIET[action] then
+		return res, false
 	end
 	-- Sync re-sends (still coalesced to STATE_MIN_INTERVAL); successful actions changed state.
 	if res.ok then

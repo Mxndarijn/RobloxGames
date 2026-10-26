@@ -156,6 +156,12 @@ local function onPlayerRemoving(deps: Deps, player: Player)
 				end,
 			},
 			{
+				name = "WorldView.forgetKits",
+				run = function()
+					WorldView.forgetKits(userId)
+				end,
+			},
+			{
 				name = "ServerLoop.forget",
 				run = function()
 					ServerLoop.forget(deps.loop, userId)
