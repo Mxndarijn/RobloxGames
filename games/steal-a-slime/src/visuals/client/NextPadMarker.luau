@@ -3,9 +3,9 @@
 	NextPadMarker (VisualsClient module)
 
 	On your own plot, the next pad you can buy (the one carrying your enabled BuyPadPrompt) gets a soft mint
-	outline and a Goo price tag over it, shown only while your camera is near the pad: mint "Buy pad $X" once you can afford it, else an Ink glass
-	"Next pad $X" with the price in gold. Look and text live in Visuals.NextPad; this file only builds
-	Instances. Reads attributes, the prompt and your leaderstats Cash only; never fires remotes.
+	outline and a Goo price tag over it, both shown only while your camera is near the pad: mint "Buy pad $X"
+	once you can afford it, else an Ink glass "Next pad $X" with the price in gold. Look and text live in
+	Visuals.NextPad; this file only builds Instances. Reads attributes, the prompt and your leaderstats Cash only; never fires remotes.
 ]]
 
 local Players = game:GetService("Players")
