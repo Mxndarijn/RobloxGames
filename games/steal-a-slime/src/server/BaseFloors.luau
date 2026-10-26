@@ -143,7 +143,8 @@ local function setLids(plot: Instance)
 		local hatch = model and model:FindFirstChild("DropHatch")
 		if hatch and hatch:IsA("BasePart") then
 			local open = f == top
-			hatch.Transparency = if open then 0 else 1
+			-- a hatch whose kit mesh has landed stays hidden (MeshSwap's StandInHidden): the mesh is its look
+			hatch.Transparency = if open and hatch:GetAttribute("StandInHidden") ~= true then 0 else 1
 			hatch.CanCollide = open
 			local prompt = hatch:FindFirstChild(Constants.DROP_PROMPT_NAME, true)
 			if prompt and prompt:IsA("ProximityPrompt") then
@@ -171,6 +172,10 @@ local function setLids(plot: Instance)
 				-- a collider that only stands while its jar is shown (the top of the stair)
 				d.CanCollide = not hidden
 				d.CanQuery = not hidden
+			end
+			if d:GetAttribute("JarShowSelf") == true then
+				-- another base's piece (BaseShapes): it is its own look until its kit mesh lands (StandInHidden)
+				d.Transparency = if hidden or d:GetAttribute("StandInHidden") == true then 1 else 0
 			end
 			local mesh = d:FindFirstChild("Mesh")
 			if mesh and mesh:IsA("BasePart") then

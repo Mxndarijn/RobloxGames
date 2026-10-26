@@ -174,6 +174,8 @@ local function hideStandIns(scope: Instance, name: string)
 	for _, d in scope:GetDescendants() do
 		if d:IsA("BasePart") and d:GetAttribute("MeshStandIn") == name then
 			hide(d)
+			-- remembered, so code that shows the part again (BaseFloors.setLids) keeps it hidden behind its mesh
+			d:SetAttribute("StandInHidden", true)
 		end
 	end
 end

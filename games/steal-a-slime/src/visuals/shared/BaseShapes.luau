@@ -151,7 +151,13 @@ local function partNode(p: any, at: (Vec) -> Vec, yaw: number): WorldNode
 			JarShow = p.show,
 			JarHidden = p.show == "covered",
 			JarCollide = if p.collide then true else nil,
+			-- a visible piece that shows and hides itself with its variant (BaseFloors.setLids), unlike the jar's
+			-- variant looks whose Mesh child does
+			JarShowSelf = if p.collide then true else nil,
 		}
+		if p.show == "covered" then
+			node.transparency = 1
+		end
 	end
 	return node
 end
