@@ -15,9 +15,9 @@
 	offset on the lane); removal stays at expiresAt, and a slime that leaves
 	from the lane emits a "Drained" event (the splash at the drain).
 
-	FREE_DROP_CHANCE of drops are free; the rest cost WILD_PRICE_SECONDS of
-	the slime's base income, charged on grab (Carry.grab). A Mystery Egg is
-	always free.
+	FREE_DROP_CHANCE of drops are free; the rest cost Economy.wildPrice
+	(WILD_PRICE_SECONDS of its rarity x base income), charged on grab
+	(Carry.grab). A Mystery Egg is always free.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -29,6 +29,7 @@ local Consumables = if Shared then require(Shared.Consumables) else require("../
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local DayNight = if Shared then require(Shared.DayNight) else require("../shared/DayNight")
 local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
+local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local ParadeChoreo = if Shared then require(Shared.ParadeChoreo) else require("../shared/ParadeChoreo")
@@ -51,7 +52,7 @@ function Spawner.price(slime: Genome.Slime, roll: number): number
 	if roll < Config.FREE_DROP_CHANCE then
 		return 0
 	end
-	return math.max(1, math.floor(Genome.baseIncome(slime) * Config.WILD_PRICE_SECONDS))
+	return Economy.wildPrice(slime)
 end
 
 -- Wild slimes on the plaza (the boss never counts).

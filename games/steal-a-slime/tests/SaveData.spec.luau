@@ -35,6 +35,20 @@ describe("SaveData round trip", function()
 		expect(next(back.found) ~= nil).toBe(true) -- generated slimes have a species
 		expect(back.padsUnlocked).toBe(Config.PADS_MAX)
 	end)
+	it("keeps whether a slime was brewed in the vat, and writes nothing for one that wasn't", function()
+		local data = Fixtures.data({
+			Fixtures.slime("r", 2, { brewed = 1 }),
+			Fixtures.slime("h", 3, { brewed = 2 }),
+			Fixtures.slime("w", 1),
+		}, 0)
+		local raw = SaveData.serialize(data, 1700000000)
+		expect(raw.slimes[3].brewed).toBeNil()
+		local back = SaveData.deserialize(serde.decode("json", serde.encode("json", raw)))
+		expect(back.slimes[1].brewed).toBe(1)
+		expect(back.slimes[2].brewed).toBe(2)
+		expect(back.slimes[3].brewed).toBeNil()
+		expect(SaveData.serialize(back, 1700000000)).toEqual(raw)
+	end)
 	it("keeps the SlimeDex: found species and the species reward ladder", function()
 		local data = Fixtures.data(nil, 0)
 		data.found.moo = true

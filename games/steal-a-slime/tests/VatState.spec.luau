@@ -131,7 +131,7 @@ describe("VatState: brewing", function()
 	end)
 
 	it("Quick Brew shortens brews, each level behind more rebirths", function()
-		expect(VatState.brewSeconds(4, 1)).toBe(300)
+		expect(VatState.brewSeconds(4, 1)).toBe(Config.MERGE_BREW_SECONDS[4])
 		local data = filled()
 		data.rebirths = 2
 		data.cash = 10 ^ 9
@@ -141,7 +141,7 @@ describe("VatState: brewing", function()
 		expect(Upgrades.buy(data, "QuickBrew")).toBe(true)
 		expect(Perks.brewFactor(data)).toBe(0.7)
 		VatState.start(data, NOW, Perks.brewFactor(data))
-		expect(VatState.endsAt(data)).toBe(NOW + 21)
+		expect(VatState.endsAt(data)).toBe(NOW + math.floor(Config.MERGE_BREW_SECONDS[1] * 0.7 + 0.5))
 	end)
 end)
 

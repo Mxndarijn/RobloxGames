@@ -38,8 +38,8 @@ describe("PlotPrompts.describe", function()
 		s.data.padsUnlocked = Config.PADS_START
 		local view = PlotPrompts.describe(world, s.plotIndex, T0)
 		expect(view.buyPad.pad).toBe(Config.PADS_START + 1)
-		local first = Config.BASE_FLOORS[1].firstPadCost
-		expect(view.buyPad.actionText).toBe(`Buy pad ${first}`)
+		local first = Config.PAD_START_COSTS[1]
+		expect(view.buyPad.actionText).toBe(`Buy pad ${Economy.formatNumber(first)}`)
 		expect(view.buyPad.objectText).toBe(`Pad {Config.PADS_START + 1} of {Config.PADS_MAX}`)
 		expect(view.nextPadCost).toBe(first)
 		s.data.padsUnlocked = Config.PADS_MAX
@@ -52,11 +52,30 @@ describe("PlotPrompts.describe", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
 		s.data.padsUnlocked = Config.PADS_PER_FLOOR
+		s.data.rebirths = Config.MAX_REBIRTHS
 		local view = PlotPrompts.describe(world, s.plotIndex, T0)
 		expect(view.buyPad.pad).toBe(Config.PADS_PER_FLOOR + 1)
-		expect(view.buyPad.actionText).toBe(`Build floor 2 ${Economy.formatNumber(Config.BASE_FLOORS[2].firstPadCost)}`)
+		local cost = Economy.padCost(Config.PADS_PER_FLOOR) :: number
+		expect(view.buyPad.actionText).toBe(`Build floor 2 ${Economy.formatNumber(cost)}`)
 		s.data.padsUnlocked = Config.PADS_PER_FLOOR + 1
 		expect(string.sub(PlotPrompts.describe(world, s.plotIndex, T0).buyPad.actionText, 1, 8)).toBe("Buy pad ")
+	end)
+	it("shows a disabled 'Rebirth N to unlock' on a next pad the owner hasn't rebirthed enough for", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		s.data.padsUnlocked = Config.PADS_PER_FLOOR
+		local need = Economy.padRebirths(s.data.padsUnlocked) :: number
+		s.data.rebirths = need - 1
+		local view = PlotPrompts.describe(world, s.plotIndex, T0)
+		expect(view.buyPad.pad).toBe(Config.PADS_PER_FLOOR + 1)
+		expect(view.buyPad.actionText).toBe(`Rebirth {need} to unlock`)
+		expect(view.buyPad.enabled).toBe(false)
+		s.data.rebirths = need
+		local open = PlotPrompts.describe(world, s.plotIndex, T0)
+		expect(open.buyPad.enabled).toBe(true)
+		expect(open.buyPad.actionText).toBe(
+			`Build floor 2 ${Economy.formatNumber(Economy.padCost(Config.PADS_PER_FLOOR) :: number)}`
+		)
 	end)
 	it("formats clocks", function()
 		expect(PlotPrompts.clock(0)).toBe("0:00")

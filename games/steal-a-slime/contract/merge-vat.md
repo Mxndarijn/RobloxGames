@@ -84,8 +84,13 @@ Rate limits live in `Validate.ACTIONS`. The client never decides: it gates its b
 
 ## 21.9 Rank gate (`Shared.MergeGate`, pure)
 
-- **Which rarities a player may merge** depends on their rebirths. Each `Config.REBIRTH_TIERS` rank that opens a rarity carries `merge = <top input tier>`; the best reached rank counts. Slime Rookie (0): Common and Uncommon. Goo Getter (1): Rare. Slime Wrangler (3): Epic. Goo Tycoon (6): Legendary. Slime Sovereign (10): Mythic and Secret.
+- **Which rarities a player may merge** depends on their rebirths. Each `Config.REBIRTH_TIERS` rank that opens a rarity carries `merge = <top input tier>`; the best reached rank counts. Slime Rookie (0): Common. Goo Getter (1): Uncommon. Slime Wrangler (3): Rare. Blob Baron (5): Epic. Ooze Overlord (8): Legendary. Gel Emperor (12): Mythic. No rank opens Secret.
 - **The gate is on the rarity going in.** `MergeGate.topTier(rebirths)`, `MergeGate.allows(tier, rebirths)`, `MergeGate.rebirthsFor(tier)` (the rebirth count that opens `tier`, nil if no rank does) and `MergeGate.lockText(tier)` (`"Rebirth <n> to unlock"`). Recipes follow the same gate as their inputs.
 - **Loading is free.** `VatAdd` ignores the gate: a locked slime may wait in the vat and keeps earning on its pad. Only `VatStart` refuses it. A brew already running finishes and collects as normal.
 - **Jump.** The +2 jump only rolls when the rarity it lands on is open as a result: `T + 2 <= topTier + 1` (`MergeGate.jumpAllowed`). `MergeRecipes.Ctx.rebirths` carries the rank into `resolve` (nil = no gate); `TripleMerge.ctxFor` fills it from the save, `TripleMerge.odds(tier, rebirths?)` and `MergePreview` from State. The draw order does not change.
 - **Rank rewards.** `Perks.tierText` names the rarity a rank opens (`"opens Epic merges"`), so the rebirth menu's next-rank line and the `"New rank"` notice say it.
+
+## 21.10 Brewed income and value-losing merges
+
+- **Brewed slimes earn more.** `TripleMerge.merge` marks its child `brewed = 1` (random result) or `brewed = 2` (recipe hybrid). `Genome.baseIncome` multiplies by `BREWED_INCOME_MULT` (1.5) or `RECIPE_INCOME_MULT` (2) (`Genome.brewMultiplier`). The bonus stays with the slime (stolen, sold price, rebirth) and never stacks: merging brewed slimes gives one brewed child. Saved as the optional slime field `brewed` (missing = not brewed, no version bump). The pad label shows "Brewed <name>" for `brewed = 1`.
+- **Only recipes merge the top.** `TripleMerge.canMerge` refuses three slimes of tier `MERGE_MAX_TIER` (Mythic) or higher unless they form a recipe of the next tier (Nightwing): "only a recipe merges these". A random Mythic or Secret merge would give back one slime of the same tier, losing income.

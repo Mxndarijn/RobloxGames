@@ -251,6 +251,10 @@ function PlayerData.buyPad(data: Data): (boolean, string?)
 	if not cost then
 		return false, "all pads unlocked"
 	end
+	local need = Economy.padRebirths(data.padsUnlocked) or 0
+	if data.rebirths < need then
+		return false, `Rebirth {need} to unlock this pad`
+	end
 	if not PlayerData.spend(data, cost) then
 		return false, "not enough cash"
 	end
@@ -263,7 +267,7 @@ function PlayerData.sell(data: Data, id: string): (boolean, number | string)
 	if not slime then
 		return false, "not your slime"
 	end
-	local price = Economy.sellPrice(slime, data.rebirths)
+	local price = Economy.sellPrice(slime)
 	if not price then
 		return false, "eggs can't be sold"
 	end

@@ -88,6 +88,8 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 	local status = if locked then `LOCKED {PlotPrompts.clock(remaining)}` else "OPEN"
 
 	local padCost = Economy.padCost(data.padsUnlocked)
+	local padNeed = Economy.padRebirths(data.padsUnlocked)
+	local padLocked = padNeed ~= nil and data.rebirths < padNeed
 	local nextPad = math.min(data.padsUnlocked + 1, Config.PADS_MAX)
 	local floor = Economy.floorOf(nextPad)
 	local buyText = if floor > 1 and nextPad == (floor - 1) * Config.PADS_PER_FLOOR + 1
@@ -102,9 +104,12 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 		lock = { actionText = lockText, objectText = `{session.name}'s base: {status}`, enabled = true },
 		friends = PlotPrompts.friendsPrompt(friendsAllowed, friendsOn),
 		buyPad = {
-			actionText = if padCost then `{buyText} ${Economy.formatNumber(padCost)}` else "All pads unlocked",
+			actionText = if padLocked
+				then `Rebirth {padNeed} to unlock`
+				elseif padCost then `{buyText} ${Economy.formatNumber(padCost)}`
+				else "All pads unlocked",
 			objectText = `Pad {nextPad} of {Config.PADS_MAX}`,
-			enabled = padCost ~= nil,
+			enabled = padCost ~= nil and not padLocked,
 			pad = nextPad,
 		},
 		merge = { actionText = PlotPrompts.mergeText(), objectText = "Merge vat", enabled = true },

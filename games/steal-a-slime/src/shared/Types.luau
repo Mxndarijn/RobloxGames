@@ -206,12 +206,14 @@ export type State = {
 	incomePerSec: number,
 	rebirths: number,
 	rebirthMultiplier: number,
+	nextRebirthMultiplier: number, -- income multiplier after the next rebirth (= rebirthMultiplier at max)
 	rebirthCost: number,
 	canRebirth: boolean,
 	rebirthSlimes: { RebirthSlimeView }, -- the slimes the next rebirth needs and uses up, one row per slime (empty at max)
 	padsUnlocked: number,
 	padsMax: number,
 	nextPadCost: number?, -- nil when every pad is unlocked
+	nextPadRebirths: number?, -- rebirths the next pad still needs; nil when it can be bought now or all are open
 	slimes: { SlimeView },
 	favoriteId: string?,
 	lockUntil: number,

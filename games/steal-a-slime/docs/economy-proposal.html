@@ -1,0 +1,340 @@
+<title>Slime Economy Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column of decisions; charts and tables run full column width, wide tables scroll in place. */
+:root {
+  --bg: #eef5f2;
+  --surface: #ffffff;
+  --ink: #0d2b2e;
+  --muted: #4f6b68;
+  --line: #d3e3de;
+  --accent: #1c8f6c;
+  --accent-soft: #d6f2e8;
+  --old: #c0563a;
+  --old-soft: #f8e3dc;
+  --warn: #a8521c;
+  --warn-soft: #fbe8d8;
+  --code: #e2eeea;
+  --f-display: "Fredoka One", "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1a1c; --surface: #11262a; --ink: #e5f5f0; --muted: #9fbdb6; --line: #23413f;
+    --accent: #6cf2c2; --accent-soft: #143a33; --old: #ff9a7a; --old-soft: #3a211a;
+    --warn: #f2a56c; --warn-soft: #3a2616; --code: #1a3235;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1a1c; --surface: #11262a; --ink: #e5f5f0; --muted: #9fbdb6; --line: #23413f;
+  --accent: #6cf2c2; --accent-soft: #143a33; --old: #ff9a7a; --old-soft: #3a211a;
+  --warn: #f2a56c; --warn-soft: #3a2616; --code: #1a3235;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-weight: 600; font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 96px;
+}
+.wrap { max-width: 1000px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(34px, 5vw, 50px); }
+h2 { font-size: 28px; margin: 64px 0 12px; }
+h3 { font-size: 20px; margin: 28px 0 8px; }
+p { margin: 0 0 12px; max-width: 68ch; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+.lede { font-size: 18px; color: var(--muted); margin-top: 14px; max-width: 66ch; }
+code { font-family: var(--f-mono); font-size: .85em; background: var(--code); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.note { font-size: 14px; color: var(--muted); }
+ul, ol { margin: 0 0 12px; padding-left: 22px; max-width: 70ch; }
+li { margin-bottom: 6px; }
+.scroll { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+.old { color: var(--old); }
+.new { color: var(--accent); font-weight: 800; }
+.verdict { margin-top: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.tile .k { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.tile .v { font-family: var(--f-display); font-size: 24px; line-height: 1.2; margin-top: 4px; }
+.tile .v .old { font-size: 16px; font-family: var(--f-body); font-weight: 700; text-decoration: line-through; margin-right: 6px; }
+.findings { list-style: none; padding: 0; max-width: none; display: grid; gap: 10px; }
+.findings li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0; }
+.findings b { display: block; font-weight: 800; }
+.pill { display: inline-block; font-family: var(--f-mono); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; padding: 1px 8px; border-radius: 999px; margin-right: 8px; vertical-align: 2px; }
+.pill.bug { background: var(--old-soft); color: var(--old); }
+.pill.big { background: var(--warn-soft); color: var(--warn); }
+.pill.mid { background: var(--accent-soft); color: var(--accent); }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 8px; margin: 12px 0 18px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart .cap { font-size: 14px; color: var(--muted); margin: 0 0 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13.5px; color: var(--muted); margin: 4px 2px 6px; }
+.legend span::before { content: ""; display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 4px; background: currentColor; }
+.legend .l-old { color: var(--old); } .legend .l-new { color: var(--accent); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.tabs button { font: 700 13px var(--f-body); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); border-color: var(--accent); }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+pre { font-family: var(--f-mono); font-size: 13px; background: var(--code); border-radius: 10px; padding: 14px; overflow-x: auto; line-height: 1.5; }
+.callout { background: var(--accent-soft); border-radius: 10px; padding: 12px 16px; margin: 12px 0 18px; max-width: 72ch; }
+.callout.warn { background: var(--warn-soft); }
+</style>
+
+<div class="wrap">
+<div class="eyebrow">Steal a Slime · economy proposal · 26 October 2026</div>
+<h1>Slime Economy Plan</h1>
+<p class="lede">Today the early rarities are gone within five minutes and rebirths hit a wall halfway. This plan slows the start, makes every rebirth reachable, gives merging a real payoff and keeps every number under $1.7T, with 30 rebirths as the top. Every number below comes from the game's own pacing simulator running the real server code, with this plan built into it: 20 servers for one week, plus 4 servers for 55 days to reach the late game.</p>
+
+<div class="verdict" id="tiles"></div>
+
+<h2>What is wrong today</h2>
+<ul class="findings">
+<li><span class="pill big">Pace</span><b>Common and Uncommon last about one minute.</b>An average player owns an Epic after 1 minute and a Legendary after 5. Three things cause it: every wild slime costs only 20 seconds of its own income (a Legendary is about $1,800), the launch codes hand out $6,000 at once, and the first goals pay more than the first ten minutes of income (Unlock 6 pads pays $500 for pads that cost $350).</li>
+<li><span class="pill big">Wall</span><b>Rebirths stop around 16 to 19.</b>Cost grows x4.5, then x2.25 per rebirth, while income grows by +0.5x per rebirth. A grinder who plays 224 hours reaches rebirth 19. Rebirth 30 costs $2.3 × 10¹⁶, rebirth 50 $1.2 × 10²³.</li>
+<li><span class="pill bug">Bug</span><b>Rebirths 41, 43 and 49 can never be done.</b>They ask for Goozilla, Queen Jelly and Mecha Goo. Beating a boss gives a badge and a Dex entry, never a slime on your pads, so the real cap is 40. In the 55-day run, every grinder stopped at exactly 40 until the list was fixed.</li>
+<li><span class="pill big">Rebirth</span><b>Rebirth slimes are about two rarities below what players own.</b>Rebirth 1 asks for an Uncommon Bumble when the plot is full of Epics, rebirth 10 asks for an Epic when the plot is Legendary and Secret. Players have already sold those slimes, and a full plot can't grab a wild slime, so they must sell something good to fetch something worthless.</li>
+<li><span class="pill big">Merge</span><b>Merging barely pays.</b>Three slimes in, one out, of the next rarity: the income is the same plus 14% from the size bonus. A random Mythic x3 merge gives one Mythic back, a 62% income loss. Secret x3 loses too.</li>
+<li><span class="pill bug">Exploit</span><b>Selling pays more than buying.</b>A wild slime costs 20 seconds of base income; selling it pays 30 seconds of income times the rebirth multiplier. Buying a slime and selling it straight away always makes money.</li>
+<li><span class="pill mid">Sinks</span><b>Nothing to buy after rebirth 6.</b>Every upgrade is maxed by then (the most expensive level is $8M). Late cash only goes to pads and rebirths.</li>
+<li><span class="pill mid">Idle</span><b>Offline income is most of all income.</b>60 to 77% of all cash is earned while offline (50% rate for up to 2 hours).</li>
+<li><span class="pill bug">Tool</span><b>The pacing simulator underestimated the speed.</b>Its bots never sold a slime before walking to the fountain, but the game refuses a grab with a full plot, so full bots stalled. With that fixed, today's game is faster than the October baselines showed. The fix is two small changes in <code>tools/livetest/pacing/Bot.luau</code>.</li>
+</ul>
+
+<h2>The plan at a glance</h2>
+<div class="scroll"><table>
+<thead><tr><th>Area</th><th>Today</th><th>Proposed</th></tr></thead>
+<tbody>
+<tr><td>Wild slime price</td><td>20 s of income for every rarity</td><td>Payback grows with rarity: 12 s, 40 s, 3 min, 12 min, 40 min, 100 min, 250 min</td></tr>
+<tr><td>Rebirth multiplier</td><td>+0.5x per rebirth (x16 at 30)</td><td>+0.5x per rebirth up to 10, +1x up to 20, +1.5x up to 30 (x31 at 30)</td></tr>
+<tr><td>Upgrades</td><td>Five upgrades, all maxed by rebirth 6</td><td>Slime Snacks 25 levels and Lucky Charm 10 levels, opened in steps up to rebirth 25; the rest unchanged</td></tr>
+<tr><td>Ranks</td><td>Income bonus up to +100% at 20, +200% at 30</td><td>New rank at 25: Goo Titan, +150%</td></tr>
+<tr><td>Rebirths</td><td>50 rebirths; $40K, x4.5 to 4, then x2.25 (rebirth 30: $2.3e16)</td><td>30 rebirths; a 30-row table from $110K to $1.7T, set by simulation</td></tr>
+<tr><td>Rebirth slimes</td><td>About two rarities below the plot, boss slimes at 41/43/49</td><td>The rarity you are farming now; recipe slimes from rebirth 12; rebirth 30 asks for all three Secrets; no boss or event slimes</td></tr>
+<tr><td>Pads</td><td>Bought with cash only; pad 32 costs $6.7B, small next to a late rebirth</td><td>Pads 5–8 for cash from the start; every rebirth from 1 to 18 opens one more (two at 1 and 10), the last four at 20, 22, 24 and 26; each costs 25% of the next rebirth</td></tr>
+<tr><td>Merge vat</td><td>Common+Uncommon from the start, Secret at rebirth 10; brew 30 s to 30 min; result earns like its inputs</td><td>One rarity at a time (Common at start, Mythic recipes at 12, never random Mythic or Secret merges); brew 1 min to 90 min; brewed slimes earn x1.5, recipe slimes x2; merges that lose income are refused</td></tr>
+<tr><td>Selling</td><td>30 s of income x rebirth multiplier</td><td>30% of what the fountain charges for that slime</td></tr>
+<tr><td>Early rewards</td><td>$6,000 in codes, early goals up to $500</td><td>$600 in codes, early goals $10 to $300</td></tr>
+<tr><td>Offline income</td><td>50% for 2 h</td><td>25% for 2 h (Night Shift still adds hours)</td></tr>
+<tr><td>Locks and stealing</td><td>Free locks, anyone can rob anyone</td><td>Unchanged</td></tr>
+</tbody></table></div>
+
+<h2>Early game: time in every rarity</h2>
+<p>The target: the first ten minutes are Commons and Uncommons with a first Rare, Epics arrive around ten minutes, the first Legendary takes most of the first session, and Mythic and Secret stay a chase for days. Price does most of the work: a slime now pays itself back slower the rarer it is, so a Legendary is a real saving goal instead of a 2-minute purchase.</p>
+<div class="chart">
+  <div class="tabs" role="group" aria-label="Player type" id="firstTabs"></div>
+  <p class="cap">Played time until the first slime of each rarity (median, log scale)</p>
+  <div class="legend"><span class="l-old">Today</span><span class="l-new">Proposed</span></div>
+  <div id="firstChart"></div>
+</div>
+
+<h3>Wild slime prices</h3>
+<p>Price = the slime's base income x its size x the payback seconds of its rarity. The rebirth multiplier doesn't count, so for a player at rebirth 10 the same slime pays back about 7 times faster: the fountain gets cheap late, and late players compete for luck instead of cash. Example prices for an average-size wild slime:</p>
+<div class="scroll"><table>
+<thead><tr><th>Rarity</th><th class="num">Income/s</th><th class="num">Payback today</th><th class="num">Price today</th><th class="num">Payback proposed</th><th class="num">Price proposed</th></tr></thead>
+<tbody id="priceRows"></tbody></table></div>
+
+<h2>Rebirths</h2>
+<p>Rebirth keeps working the way it does now: cash goes back to $25, the required slimes are used up, and every other slime and every pad stays. What changes is the price list, the income multiplier, and what each rebirth asks for and opens. The aim: a grinder reaches the top, rebirth 30, in about 150 to 170 played hours (about 6 weeks at 4 hours a day), so new content can arrive before the best players run out.</p>
+<h3>Bigger multiplier steps late</h3>
+<p>Today every rebirth adds +0.5x. At rebirth 25 that takes income from x13 to x13.5, about +4%, which feels like nothing for hours of saving. The proposal grows the step: +0.5x for rebirths 1 to 10, +1x for 11 to 20, +1.5x for 21 to 30. A late rebirth now adds about +8%, and the top is x31 instead of x16. The cost table was calibrated with this multiplier.</p>
+<div class="chart">
+  <div class="tabs" role="group" aria-label="Player type" id="reachTabs"></div>
+  <p class="cap">Played hours to reach each rebirth (median)</p>
+  <div class="legend"><span class="l-old">Today</span><span class="l-new">Proposed</span></div>
+  <div id="reachChart"></div>
+</div>
+<p class="note">The 55-day run gives grinders about 224 played hours. Today they stop at rebirth 19. With the plan they reach rebirth 20 at 45.7 h and the top, rebirth 30, at 175.8 h. Average players reach rebirth 21 in 54 played hours, casual players rebirth 9 in 23 played hours (today: 5).</p>
+
+<div class="chart">
+  <p class="cap">Cost of each rebirth (log scale)</p>
+  <div class="legend"><span class="l-old">Today</span><span class="l-new">Proposed</span></div>
+  <div id="costChart"></div>
+</div>
+
+<h3>Cost, slimes and unlocks per rebirth</h3>
+<p>How the cost table was made: start from a guess, run the 55-day simulation, compare the median hours to each rebirth with a target pace (rebirth 1 at 30 min, 5 at 2.2 h, 10 at 7 h, 15 at 18 h, 20 at 42 h, 25 at 90 h, 30 at 150 h), rescale each cost by how far off it was, and repeat. Two rounds with the new multiplier and upgrades got every level within about 10% of target; the table was then smoothed and rounded, and the final setup was simulated once more.</p>
+<div class="scroll"><table>
+<thead><tr><th class="num">Rebirth</th><th class="num">Cost today</th><th class="num">Cost proposed</th><th class="num">Income x</th><th>Uses up</th><th>Opens</th></tr></thead>
+<tbody id="rebirthRows"></tbody></table></div>
+<p class="note">"Income x" is the rebirth multiplier, today → proposed. Rank income bonuses stay as they are (+5% at 6 up to +200% at 30), plus the new Goo Titan rank at 25 (+150%), which also fills the gap between 20 and 30. A title, plot skin or aura for ranks 20, 25 and 30 would make them feel like milestones.</p>
+
+<h2>Merge vat</h2>
+<ul>
+<li><b>One rarity per rank.</b> Rookies merge Commons only. Uncommon opens at rebirth 1, Rare at 3, Epic at 5, Legendary at 8, Mythic at 12 (for the Nightwing recipe only); no rank opens Secret. Each rank brings the next step on the ladder instead of two at once.</li>
+<li><b>Brewed slimes earn x1.5, recipe slimes x2.</b> The bonus is part of the slime, shows as a badge, and travels with it when it is stolen (which makes brewed slimes good targets). It does not stack: merging brewed slimes gives a brewed slime, still x1.5.</li>
+<li><b>Longer brews.</b> 1, 3, 7, 15, 30, 60 and 90 minutes by the rarity going in (today 0.5 to 30 min). Quick Brew still takes 15% off per level.</li>
+<li><b>No merges that lose income.</b> A random Mythic x3 or Secret x3 merge is refused with "Only a recipe works here"; Nightwing and the other recipes still work. The vat preview shows the income change before the brew starts.</li>
+</ul>
+<div class="scroll"><table>
+<thead><tr><th>Merge</th><th class="num">3 inputs earn</th><th class="num">Result today</th><th class="num">Result proposed</th><th class="num">Recipe</th><th class="num">Brew</th><th class="num">Brew pays back in</th></tr></thead>
+<tbody id="mergeRows"></tbody></table></div>
+<p class="note">Base income per second at size 1.1, before multipliers; the result is 0.15 bigger. "Brew pays back in" is how long the extra income takes to cover the income the three inputs lose while brewing. The simulator's bots merge naively (any three of a rarity, then often sell the result), so the merge bonus barely moved the simulated pace; this table is the case for it.</p>
+
+<h2>Upgrades</h2>
+<p>Today the most expensive upgrade level costs $8M and everything is maxed by rebirth 6, so from then on cash only buys pads and rebirths. The proposal keeps the five upgrades and stretches the two that matter most for income, with levels that open at rebirths, so there is always a next level to save for between rebirths.</p>
+<div class="scroll"><table>
+<thead><tr><th>Upgrade</th><th>Today</th><th>Proposed</th></tr></thead>
+<tbody>
+<tr><td>Slime Snacks</td><td>10 levels, +10% income each (x2 at max); $2K, x2.5 per level; max level $7.6M</td><td>25 levels, +10% each (x3.5 at max); $2K, x2.2 per level; levels 1–5 from the start, 6–10 at rebirth 2, 11–15 at 6, 16–20 at 12, 21–25 at 20; max level about $330B</td></tr>
+<tr><td>Lucky Charm</td><td>5 levels, +4% each (20%); $100K, x3; opens at rebirth 5</td><td>10 levels, +3% each (30%); $100K, x4; levels open at rebirth 5, 5, 5, 8, 8, 12, 12, 16, 20, 25; max level about $26B</td></tr>
+<tr><td>Strong Arms, Night Shift, Quick Brew</td><td>4 levels each</td><td>Unchanged</td></tr>
+</tbody></table></div>
+<p class="note">Ideas not simulated: a second merge vat as a rebirth 10 unlock (needs build work on the plot), and a Night Shift that also raises the offline rate.</p>
+
+<h2>Smaller changes</h2>
+<h2>Pads</h2>
+<p>Today pads are bought with cash only, and their price falls far behind: the last pad costs $6.7B while a late rebirth costs hundreds of billions, so players buy pads without noticing. The proposal ties every pad to a rebirth and prices it from the rebirth curve:</p>
+<ul>
+<li><b>Which pad opens when.</b> Four pads to start, pads 5–8 for cash ($250, $1K, $4K, $12K). After that each rebirth from 1 to 18 opens one more pad (two at rebirth 1 and at rebirth 10), and the last four open at rebirths 20, 22, 24 and 26. Every early rebirth visibly grows the base, and before rebirth 1 a player has at most 8 pads, which keeps the start about choosing what to keep and makes merging useful (it frees two pads).</li>
+<li><b>What a pad costs.</b> A pad opened by rebirth R costs 25% of the next rebirth's price (a second pad at the same rebirth costs 1.5 times that). Right after a rebirth the new pad is the first thing to save for, and it takes about a quarter of the time to that next rebirth. The price follows the rebirth table by itself, so tuning one tunes both.</li>
+<li><b>Floors stay as the look.</b> A plot still shows floors of 8 pads; a floor appears once one of its pads is open.</li>
+</ul>
+<div class="scroll"><table>
+<thead><tr><th class="num">Pad</th><th class="num">Opens at rebirth</th><th class="num">Price today</th><th class="num">Price proposed</th></tr></thead>
+<tbody id="padRows"></tbody></table></div>
+<p class="note">Existing saves keep every pad they own. The rebirth costs were calibrated again with these pad prices in. A 15% price was also tried: it changed little once the rebirth costs were recalibrated, so 25% keeps pads a real purchase.</p>
+<div class="callout"><b>Casual players depend on the rebirth slimes.</b> With pads tied to rebirths, more pads come only from rebirthing. A slime the next rebirth needs can't be sold or put in the vat and its label says "For rebirth", so players keep it without having to know the rule. Without that guard, casual bots that ignore the list stalled at rebirth 6 after 23 played hours; with it they reach rebirth 9 to 10.</div>
+<h3>Early rewards</h3>
+<p>Codes: WELCOME $100, LAUNCH $500 (SLIMEBOOST stays a boost). Goals keep their targets; the first rewards shrink so they help instead of skipping the start: Catch 1 $10, Catch 10 $100, Merge 1 $25, Steal 1 $50, Lock 1 $10, Unlock 6 pads $50, Unlock 8 pads $300, Earn $10K $200. The Dex milestones for 8 and 15 species pay $200 and $1,000. Late goals stay large.</p>
+<h3>Selling</h3>
+<p>Sell for 30% of what the fountain would charge for that slime, brewed bonus included. Buying and reselling always loses money, and a slime keeps real value when you replace it. Not simulated: the bots only sell to make room.</p>
+<h3>Offline income</h3>
+<p>25% instead of 50%, same 2-hour cap. Offline cash still pays toward the next rebirth (it is earned between rebirths, before the reset), so it matters, but less, and active play counts for more. The pace barely changes.</p>
+<h3 id="locks">Locks and stealing</h3>
+<p>Unchanged on purpose: locks stay free and anyone can rob anyone, so the richest players are the hardest to rob. In the simulation grinders keep their base locked 98% of the time they are online and are robbed about once a day, while casual players are robbed about 17 times a week.</p>
+
+<h2>Results side by side</h2>
+<div class="scroll"><table>
+<thead><tr><th>Milestone (median played time)</th><th>Player</th><th class="num">Today</th><th class="num">Proposed</th></tr></thead>
+<tbody id="resultRows"></tbody></table></div>
+<p class="note">Share of all cash earned while offline, 55-day run: <span id="offlineNote"></span>.</p>
+
+<h2>What the simulation can't tell us</h2>
+<ul>
+<li>Bot profiles are guesses at real behaviour. Real session lengths and retention from analytics should replace them.</li>
+<li>Bots merge any three of a rarity and don't plan recipes well, so the value of merging is argued with numbers above, not measured.</li>
+<li>Selling at 30%, late-rank cosmetics and a second vat were not simulated.</li>
+<li>Once a player reaches rebirth 30 the goals left are the SlimeDex, bosses and stealing; the simulation can't say how long that holds them.</li>
+<li>Upgrades are still maxed by rebirth 6. Letting Slime Snacks go to 25 levels with rebirth gates would keep a cash sink through rebirth 20, but needs one more calibration round, because it raises income.</li>
+<li>Steal balance only moved a little: stealing still earns 2 to 4 times more income per minute than the fountain. That fits a stealing game, but watch it.</li>
+</ul>
+
+<h2>Config changes</h2>
+<p>All of it is Config plus four small code changes: per-rarity wild price (<code>Spawner.price</code>), the brewed bonus (<code>Genome.baseIncome</code>, <code>TripleMerge</code>, the save field), a cost table in <code>Economy.rebirthCost</code>, and per-pad rebirth gates and prices in <code>Economy.padCost</code> and <code>PlayerData.buyPad</code> (plus the pad prompt showing "Rebirth N" on a locked pad). Saves need a new optional <code>brewed</code> field on slimes; old slimes load as not brewed.</p>
+<pre id="configBlock"></pre>
+<p class="note">Simulator: <code>lune run tools/livetest/pacing</code> on the real World, GameLoop and Actions code, with an override file for each setup. 16 bots per server (8 casual, 5 average, 3 grinder) for the one-week runs; 6 casual, 5 average, 5 grinder for the 55-day runs. Medians throughout.</p>
+</div>
+
+<script>
+const D = {"reach": {"casual": {"cur": {"1": 0.23, "2": 1.01, "3": 1.67, "4": 2.45, "5": 3.19}, "new": {"1": 0.47, "2": 0.86, "3": 1.18, "4": 1.53, "5": 2.04, "6": 5.16, "7": 5.58, "8": 7.31, "9": 7.52, "10": 8.34, "11": 10.92}}, "average": {"cur": {"1": 0.08, "2": 0.18, "3": 0.4, "4": 0.71, "5": 1.07, "6": 1.63, "7": 2.33, "8": 3.29, "9": 3.72, "10": 4.84, "11": 9.69, "12": 15.02, "13": 21.19, "14": 27.42, "15": 33.74, "16": 42.02, "17": 51.62}, "new": {"1": 0.57, "2": 0.75, "3": 1.06, "4": 1.53, "5": 2.02, "6": 2.79, "7": 3.64, "8": 4.38, "9": 5.27, "10": 6.59, "11": 7.42, "12": 9.29, "13": 11.35, "14": 13.61, "15": 17.06, "16": 20.61, "17": 25.99, "18": 31.68, "19": 37.06, "20": 43.11, "21": 51.63}}, "grinder": {"cur": {"1": 0.06, "2": 0.16, "3": 0.31, "4": 0.65, "5": 1.28, "6": 1.84, "7": 2.51, "8": 3.09, "9": 3.81, "10": 5.37, "11": 8.13, "12": 11.53, "13": 15.56, "14": 20.25, "15": 26.8, "16": 38.47, "17": 54.2, "18": 89.39, "19": 162.67}, "new": {"1": 0.44, "2": 0.77, "3": 1.15, "4": 1.53, "5": 2.16, "6": 2.96, "7": 3.78, "8": 4.89, "9": 6.15, "10": 7.8, "11": 8.82, "12": 10.78, "13": 12.83, "14": 15.17, "15": 18.8, "16": 21.43, "17": 25.57, "18": 31.24, "19": 37.46, "20": 45.73, "21": 53.52, "22": 63.21, "23": 75.9, "24": 82.47, "25": 98.66, "26": 112.03, "27": 129.77, "28": 142.75, "29": 159.22, "30": 175.82}}}, "firsts": {"casual": {"cur": {"Rare": [1.2, 1.0], "Epic": [1.7, 0.99], "Legendary": [6.8, 0.98], "Mythic": [30.9, 0.84], "Secret": [null, 0.42]}, "new": {"Rare": [4.3, 1.0], "Epic": [13.2, 0.99], "Legendary": [36.6, 0.97], "Mythic": [92.3, 0.71], "Secret": [null, 0.14]}}, "average": {"cur": {"Rare": [0.9, 1.0], "Epic": [1.3, 1.0], "Legendary": [4.9, 1.0], "Mythic": [29.8, 1.0], "Secret": [100.1, 0.92]}, "new": {"Rare": [2.9, 1.0], "Epic": [10.2, 1.0], "Legendary": [39.0, 1.0], "Mythic": [95.6, 0.99], "Secret": [204.4, 0.77]}}, "grinder": {"cur": {"Rare": [0.7, 1.0], "Epic": [0.7, 1.0], "Legendary": [2.6, 1.0], "Mythic": [21.0, 1.0], "Secret": [80.4, 1.0]}, "new": {"Rare": [2.3, 1.0], "Epic": [9.9, 1.0], "Legendary": [22.8, 1.0], "Mythic": [81.8, 1.0], "Secret": [192.5, 1.0]}}}, "earned": {"casual": {"cur": {"active": 0.156, "code": 0.0, "daily": 0.0, "dex": 0.0, "goal": 0.078, "offline": 0.766, "quest": 0.0, "sell": 0.0}, "new": {"active": 0.254, "code": 0.0, "daily": 0.0, "dex": 0.0, "goal": 0.015, "offline": 0.73, "quest": 0.0, "sell": 0.0}}, "average": {"cur": {"active": 0.267, "code": 0.0, "daily": 0.0, "dex": 0.0, "goal": 0.013, "offline": 0.72, "quest": 0.0, "sell": 0.0}, "new": {"active": 0.385, "code": 0.0, "daily": 0.0, "dex": 0.0, "goal": 0.007, "offline": 0.609, "quest": 0.0, "sell": 0.0}}, "grinder": {"cur": {"active": 0.482, "code": 0.0, "daily": 0.0, "dex": 0.0, "goal": 0.002, "offline": 0.516, "quest": 0.0, "sell": 0.0}, "new": {"active": 0.615, "code": 0.0, "daily": 0.0, "dex": 0.0, "goal": 0.0, "offline": 0.385, "quest": 0.0, "sell": 0.0}}}, "costs_new": [110000, 430000, 1200000, 4200000, 13000000, 39000000, 96000000, 240000000, 320000000, 690000000, 1200000000, 1600000000, 2700000000, 3500000000, 5300000000, 6800000000, 16000000000, 19000000000, 28000000000, 29000000000, 55000000000, 63000000000, 87000000000, 94000000000, 140000000000, 140000000000, 140000000000, 210000000000, 220000000000, 220000000000, 250000000000, 280000000000, 370000000000, 370000000000, 380000000000, 420000000000, 430000000000, 440000000000, 490000000000, 500000000000, 640000000000, 660000000000, 670000000000, 870000000000, 890000000000, 900000000000, 920000000000, 940000000000, 960000000000, 980000000000], "costs_cur": [40000, 180000, 810000, 3645000, 16402500, 36905625, 83037656, 186834726, 420378134, 945850803, 2128164307, 4788369691, 10773831805, 24241121562, 54542523515, 122720677909, 276121525295, 621273431914, 1397865221807, 3145196749067, 7076692685401, 15922558542153, 35825756719845, 80607952619652, 181367893394218, 408077760136991, 918174960308231, 2065893660693520, 4648260736560422, 10458586657260948, 23531819978837132, 52946594952383552, 119129838642862992, 268042136946441728, 603094808129493888, 1356963318291361280, 3053167466155563008, 6869626798850016256, 15456660297412536320, 34777485669178208256, 78249342755650961408, 176061021200214687744, 396137297700483039232, 891308919826086756352, 2005445069608695365632, 4512251406619564310528, 10152565664894020485120, 22843272746011543470080, 51397363678525981196288, 115644068276683434622976], "req": [["whiskers"], ["moo"], ["blaze"], ["octo"], ["king"], ["lop", "octo"], ["chomp", "blaze"], ["frostbite"], ["king", "zap"], ["ninja"], ["cosmo"], ["steam"], ["imp", "drako"], ["robo"], ["seraph"], ["kraken"], ["dragon_king"], ["amethyst"], ["midas"], ["cosmo", "seraph"], ["thunderbee"], ["prism"], ["cyber_ninja"], ["eclipse"], ["boo"], ["dragon_king", "cosmo"], ["midas", "amethyst"], ["nightwing"], ["eclipse", "prism"], ["midas", "eclipse", "boo"]], "costs_final": [81000, 400000, 1100000, 3500000, 15000000, 42000000, 90000000, 180000000, 330000000, 660000000, 1200000000, 2000000000, 3700000000, 6800000000, 13000000000, 25000000000, 42000000000, 56000000000, 75000000000, 130000000000, 230000000000, 360000000000, 440000000000, 510000000000, 740000000000, 1000000000000, 1400000000000, 1500000000000, 1600000000000, 1700000000000], "endR": {"cur": 19, "new": 30}, "offlineNote": "casual 77% today, 70% proposed; average 72% today, 58% proposed; grinder 52% today, 35% proposed", "prices": [{"name": "Common", "inc": "$1", "payCur": "20 s", "cur": 22, "payNew": "12 s", "new": 13}, {"name": "Uncommon", "inc": "$3", "payCur": "20 s", "cur": 66, "payNew": "40 s", "new": 132}, {"name": "Rare", "inc": "$9", "payCur": "20 s", "cur": 198, "payNew": "3 min", "new": 1782}, {"name": "Epic", "inc": "$27", "payCur": "20 s", "cur": 594, "payNew": "12 min", "new": 21384}, {"name": "Legendary", "inc": "$80", "payCur": "20 s", "cur": 1760, "payNew": "40 min", "new": 211200}, {"name": "Mythic", "inc": "$250", "payCur": "20 s", "cur": 6200, "payNew": "100 min", "new": 1860000}, {"name": "Secret", "inc": "$800", "payCur": "20 s", "cur": 22400, "payNew": "250 min", "new": 16800000}], "merges": [{"name": "Common x3 \u2192 Uncommon", "par": "$3.3", "cur": "+14%", "new": "+70%", "rec": "+127% (Soda)", "brew": "\u00bd \u2192 1 min", "pb": "1 min"}, {"name": "Uncommon x3 \u2192 Rare", "par": "$9.9", "cur": "+14%", "new": "+70%", "rec": "+127% (Bloom\u2026)", "brew": "1 \u2192 3 min", "pb": "4 min"}, {"name": "Rare x3 \u2192 Epic", "par": "$29.7", "cur": "+14%", "new": "+70%", "rec": "+127% (Sushi\u2026)", "brew": "2 \u2192 7 min", "pb": "10 min"}, {"name": "Epic x3 \u2192 Legendary", "par": "$89.1", "cur": "+12%", "new": "+68%", "rec": "+124% (Kraken\u2026)", "brew": "5 \u2192 15 min", "pb": "22 min"}, {"name": "Legendary x3 \u2192 Mythic", "par": "$264.0", "cur": "+18%", "new": "+78%", "rec": "+137% (Dragon King)", "brew": "10 \u2192 30 min", "pb": "39 min"}, {"name": "Mythic x3 \u2192 Mythic", "par": "$825.0", "cur": "-62%", "new": "refused", "rec": "Nightwing: +142%", "brew": "20 \u2192 60 min", "pb": "-"}], "names": {"gummy": "Gummy", "mochi": "Mochi", "bubbles": "Bubbles", "pebble": "Pebble", "bumble": "Bumble", "mushie": "Mushie", "froggo": "Froggo", "whiskers": "Whiskers", "lop": "Lop", "moo": "Moo", "blaze": "Blaze", "octo": "Octo", "king": "King Goo", "cosmo": "Cosmo", "midas": "Midas", "sprout": "Sprout", "cheddar": "Cheddar", "prickles": "Prickles", "flan": "Flan", "chomp": "Chomp", "pengoo": "Pengoo", "frostbite": "Frostbite", "zap": "Zap", "ninja": "Ninja", "imp": "Imp", "drako": "Drako", "robo": "Robo", "seraph": "Seraph", "amethyst": "Amethyst", "prism": "Prism", "eclipse": "Eclipse", "boo": "Boo", "soda": "Soda Pop", "rocky_road": "Rocky Road", "bloom": "Bloom", "honey_toad": "Honey Toad", "truffle": "Truffle", "sushi": "Sushi", "snow_bunny": "Snow Bunny", "moo_shroom": "Moo-shroom", "catfish": "Catfish", "steam": "Steampuff", "kraken": "Kraken", "thunderbee": "Thunderbee", "cyber_ninja": "Cyber Ninja", "dragon_king": "Dragon King", "nightwing": "Nightwing", "goozilla": "Goozilla", "queen_jelly": "Queen Jelly", "klawdius": "Klawdius", "pumpking": "Pumpking", "mecha_goo": "Mecha Goo", "goomancer": "Goomancer", "glitch": "Gl1tch", "doodle": "Doodle", "origami": "Origami", "disco": "Disco", "isle": "Skyisle", "chrono": "Chrono", "kitsune": "Kitsune"}, "unlocks": {"1": "Pads 9\u201310 \u00b7 Uncommon merges \u00b7 Strong Arms \u00b7 Bonk Glove", "2": "Pad 11 \u00b7 Quick Brew 1 \u00b7 Slime Snacks 6\u201310", "3": "Pad 12 \u00b7 Garden slimes \u00b7 Rare merges \u00b7 Night Shift \u00b7 Goo Puddle", "4": "Pad 13 \u00b7 Quick Brew 2", "5": "Pad 14 \u00b7 Epic merges \u00b7 Lucky Charm \u00b7 Bounce Glove", "6": "Pad 15 \u00b7 Frost & Sea slimes \u00b7 +5% income \u00b7 Quick Brew 3 \u00b7 Sticky Trap \u00b7 Slime Snacks 11\u201315", "7": "Pad 16 \u00b7 +10% income \u00b7 Goo Squirter", "8": "Pad 17 \u00b7 Legendary merges \u00b7 +15% income \u00b7 Boom Glove \u00b7 Quick Brew 4 \u00b7 Lucky Charm 4\u20135", "10": "Pads 19\u201320 \u00b7 Starlight slimes \u00b7 +25% income \u00b7 Mega Trap", "12": "Pad 22 \u00b7 Mythic merges (recipes) \u00b7 +35% income \u00b7 Thunder Glove \u00b7 Goo Blaster \u00b7 Slime Snacks 16\u201320 \u00b7 Lucky Charm 6\u20137", "15": "Pad 25 \u00b7 +50% income", "20": "Pad 29 \u00b7 +100% income \u00b7 Royal Glove \u00b7 Goo Cannon \u00b7 Slime Snacks 21\u201325 \u00b7 Lucky Charm 9", "30": "+200% income \u00b7 the top rank (Slime Deity)", "25": "Goo Titan rank: +150% income \u00b7 Lucky Charm 10", "16": "Pad 26 \u00b7 Lucky Charm 8", "9": "Pad 18", "11": "Pad 21", "13": "Pad 23", "14": "Pad 24", "17": "Pad 27", "18": "Pad 28", "22": "Pad 30", "24": "Pad 31", "26": "Pad 32"}, "results": [["First Rare", "average", "1 min", "3 min"], ["First Epic", "average", "1 min", "10 min"], ["First Legendary", "average", "5 min", "39 min"], ["First Mythic", "average", "30 min", "1.6 h"], ["First Secret", "average", "1.7 h", "3.4 h"], ["Rebirth 1", "average", "5 min", "34 min"], ["Rebirth 5", "average", "1.1 h", "2.0 h"], ["Rebirth 10", "average", "4.8 h", "6.6 h"], ["Rebirth 15", "grinder", "26.8 h", "18.8 h"], ["Rebirth 20", "grinder", "not reached", "45.7 h"], ["Rebirth 25", "grinder", "not reached", "98.7 h"], ["Rebirth 30", "grinder", "not reached", "175.8 h"], ["Rebirths after 54 h", "average", "17", "21"], ["Rebirths after 23 h", "casual", "5", "9"]], "config": "-- Config.luau (new and changed values)\nMAX_REBIRTHS = 30                                        -- was 50\nREBIRTH_MULT_STEPS = { 0.5, 1, 1.5 }                     -- +x per rebirth for 1-10, 11-20, 21-30 (was REBIRTH_MULTIPLIER_STEP = 0.5)\nREBIRTH_TIERS: new rank { rebirths = 25, title = \"Goo Titan\", income = 1.5 }\nUPGRADES Income: maxLevel 25, growth 2.2, levelRequires 0 x5, 2 x5, 6 x5, 12 x5, 20 x5\nUPGRADES Luck: maxLevel 10, step 0.03, growth 4, levelRequires { 5, 5, 5, 8, 8, 12, 12, 16, 20, 25 }\nWILD_PRICE_SECONDS = { 12, 40, 180, 720, 2400, 6000, 15000 }   -- by rarity (was 20 for all)\nSELL_PRICE_SHARE = 0.3                                   -- sell = 30% of the fountain price (was SELL_SECONDS = 30)\nOFFLINE_RATE = 0.25                                      -- was 0.5\nMERGE_BREW_SECONDS = { 60, 180, 420, 900, 1800, 3600, 5400 }  -- was 30 .. 1800\nBREWED_INCOME_MULT = 1.5, RECIPE_INCOME_MULT = 2         -- new\nREBIRTH_TIERS[*].merge: 0 = 1, 1 = 2, 3 = 3, 5 = 4, 8 = 5, 12 = 6, 15 = 7   -- was 0 = 2, 1 = 3, 3 = 4, 6 = 5, 10 = 7\nPAD_REBIRTHS = { 0 x8, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 26 }  -- rebirths that open pad n (new)\nPAD_EARLY_COSTS = { pads 5-8: 250, 1000, 4000, 12000 }\nPAD_PRICE_SHARE = 0.25                                   -- a pad opened by rebirth R costs 25% of the next rebirth (x1.5 for a second pad at the same R); replaces BASE_FLOORS prices\nREBIRTH_COSTS = {                                        -- replaces REBIRTH_BASE_COST / _GROWTH / _LATE_FROM / _GROWTH_LATE\n\t81_000, 400_000, 1_100_000, 3_500_000, 15_000_000,\n\t42_000_000, 90_000_000, 180_000_000, 330_000_000, 660_000_000,\n\t1_200_000_000, 2_000_000_000, 3_700_000_000, 6_800_000_000, 13_000_000_000,\n\t25_000_000_000, 42_000_000_000, 56_000_000_000, 75_000_000_000, 130_000_000_000,\n\t230_000_000_000, 360_000_000_000, 440_000_000_000, 510_000_000_000, 740_000_000_000,\n\t1_000_000_000_000, 1_400_000_000_000, 1_500_000_000_000, 1_600_000_000_000, 1_700_000_000_000,\n}\nREBIRTH_SLIMES = { 30 lists, see the rebirth table above }\nCODES: WELCOME 1000 -> 100, LAUNCH 5000 -> 500\nGOALS rewards: Catch 10, 100, 2000, 50000, 500000 \u00b7 Merge 25, 500, 10000, 250000 \u00b7 Steal 50, 1000, 20000, 300000\n               Lock 10, 250, 5000 \u00b7 Pads 50, 300, 20000, 1e6, 5e7 \u00b7 Earn 200, 20000, 1e6, 5e7 \u00b7 Rebirth unchanged\nDEX_MILESTONES rewards: 200, 1000, 10000, 250000, 1.5e6, 1e7 (bonuses unchanged)", "pads": [[5, 0, 100, 250], [6, 0, 250, 1000], [7, 0, 625, 4000], [8, 0, 1562, 12000], [9, 1, 25000, 100000], [10, 1, 40000, 150000], [11, 2, 64000, 275000], [12, 3, 102400, 875000], [13, 4, 163840, 3750000], [14, 5, 262144, 10500000], [15, 6, 419430, 22500000], [16, 7, 671088, 45000000], [17, 8, 2500000, 82500000], [18, 9, 4000000, 165000000], [19, 10, 6400000, 300000000], [20, 10, 10240000, 450000000], [21, 11, 16384000, 500000000], [22, 12, 26214400, 925000000], [23, 13, 41943040, 1700000000], [24, 14, 67108864, 3250000000], [25, 15, 250000000, 6250000000], [26, 16, 400000000, 10500000000], [27, 17, 640000000, 14000000000], [28, 18, 1024000000, 18750000000], [29, 20, 1638400000, 57500000000], [30, 22, 2621440000, 110000000000], [31, 24, 4194304000, 185000000000], [32, 26, 6710886400, 350000000000]], "multNew": ["1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17.5", "19", "20.5", "22", "23.5", "25", "26.5", "28", "29.5", "31"], "multCur": ["1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5", "5.5", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "12.5", "13", "13.5", "14", "14.5", "15", "15.5", "16"]};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const money = x => { if (x == null) return "-"; const u = [["T",1e12],["B",1e9],["M",1e6],["K",1e3]]; for (const [s,v] of u) if (x >= v) { const q = x/v; return "$" + (q >= 100 ? q.toFixed(0) : q >= 10 ? q.toFixed(0) : q.toFixed(1).replace(/\.0$/,"")) + s; } return "$" + Math.round(x).toLocaleString("en-US"); };
+const sci = x => { if (x < 1e15) return money(x); const e = Math.floor(Math.log10(x)); return "$" + (x/10**e).toFixed(1) + "e" + e; };
+const time = m => m == null ? "not reached" : m < 60 ? Math.round(m) + " min" : (m/60).toFixed(1).replace(/\.0$/,"") + " h";
+const hrs = h => h == null ? "not reached" : time(h*60);
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; if (parent) parent.appendChild(e); return e; }
+
+function tiles() {
+  const a = D.reach.average, g = D.reach.grinder, f = D.firsts.average;
+  const T = [
+    ["First Legendary (average)", time(f.cur.Legendary[0]), time(f.new.Legendary[0])],
+    ["Rebirth 1 (average)", hrs(a.cur["1"]), hrs(a.new["1"])],
+    ["Grinder reaches rebirth 30", "never", hrs(D.reach.grinder.new["30"])],
+    ["Rebirth 30 costs", sci(D.costs_cur[29]), money(D.costs_final[29])],
+  ];
+  const box = document.getElementById("tiles");
+  for (const [k, o, n] of T) { const t = document.createElement("div"); t.className = "tile"; t.innerHTML = `<div class="k">${k}</div><div class="v"><span class="old">${o}</span>${n}</div>`; box.appendChild(t); }
+}
+
+function lineChart(host, series, opts) {
+  host.innerHTML = "";
+  const W = 760, H = 330, L = 64, R = 16, T = 12, B = 40;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opts.label }, host);
+  const xs = v => L + (v - opts.x0) / (opts.x1 - opts.x0) * (W - L - R);
+  const ylog = opts.log;
+  const ys = v => { const a = ylog ? Math.log10(opts.y0) : opts.y0, b = ylog ? Math.log10(opts.y1) : opts.y1, q = ylog ? Math.log10(v) : v; return H - B - (q - a) / (b - a) * (H - T - B); };
+  const grid = css("--line"), mut = css("--muted");
+  for (const t of opts.yticks) { el("line", { x1: L, x2: W - R, y1: ys(t), y2: ys(t), stroke: grid, "stroke-width": 1 }, svg); el("text", { x: L - 8, y: ys(t) + 4, "text-anchor": "end", "font-size": 12, fill: mut, "font-family": "JetBrains Mono, monospace" }, svg, opts.yfmt(t)); }
+  for (const t of opts.xticks) { el("text", { x: xs(t), y: H - B + 18, "text-anchor": "middle", "font-size": 12, fill: mut, "font-family": "JetBrains Mono, monospace" }, svg, String(t)); }
+  el("text", { x: (L + W - R) / 2, y: H - 4, "text-anchor": "middle", "font-size": 12, fill: mut }, svg, opts.xlabel);
+  for (const s of series) {
+    const pts = s.pts.filter(p => p[1] != null && p[1] >= opts.y0 && p[1] <= opts.y1);
+    if (!pts.length) continue;
+    el("path", { d: pts.map((p, i) => (i ? "L" : "M") + xs(p[0]).toFixed(1) + " " + ys(p[1]).toFixed(1)).join(" "), fill: "none", stroke: css(s.color), "stroke-width": 2.5, "stroke-linejoin": "round" }, svg);
+    const last = pts[pts.length - 1];
+    el("circle", { cx: xs(last[0]), cy: ys(last[1]), r: 4, fill: css(s.color) }, svg);
+  }
+}
+
+function barChart(host, rows) {
+  host.innerHTML = "";
+  const W = 760, rowH = 46, L = 96, R = 90, T = 6;
+  const H = T + rows.length * rowH + 26;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "First slime of each rarity, today and proposed" }, host);
+  const lo = Math.log10(0.5), hi = Math.log10(1e4);
+  const xs = m => L + (Math.log10(Math.max(m, 0.5)) - lo) / (hi - lo) * (W - L - R);
+  const mut = css("--muted"), grid = css("--line");
+  for (const [m, lab] of [[1,"1m"],[10,"10m"],[60,"1h"],[600,"10h"],[6000,"100h"]]) { el("line", { x1: xs(m), x2: xs(m), y1: T, y2: H - 22, stroke: grid }, svg); el("text", { x: xs(m), y: H - 6, "text-anchor": "middle", "font-size": 12, fill: mut, "font-family": "JetBrains Mono, monospace" }, svg, lab); }
+  rows.forEach((r, i) => {
+    const y = T + i * rowH;
+    el("text", { x: L - 10, y: y + 26, "text-anchor": "end", "font-size": 14, fill: css("--ink"), "font-weight": 700 }, svg, r.name);
+    [[r.cur, "--old", 6], [r.new, "--accent", 24]].forEach(([v, c, dy]) => {
+      if (v == null) { el("text", { x: L + 4, y: y + dy + 12, "font-size": 12, fill: mut }, svg, "not reached"); return; }
+      el("rect", { x: L, y: y + dy, width: Math.max(2, xs(v) - L), height: 14, rx: 4, fill: css(c) }, svg);
+      el("text", { x: xs(v) + 6, y: y + dy + 12, "font-size": 12, fill: mut, "font-family": "JetBrains Mono, monospace" }, svg, time(v));
+    });
+  });
+}
+
+const PROFILES = [["average","Average"],["grinder","Grinder"],["casual","Casual"]];
+function tabs(id, onPick) {
+  const box = document.getElementById(id);
+  PROFILES.forEach(([k, n], i) => { const b = document.createElement("button"); b.type = "button"; b.textContent = n; b.setAttribute("aria-pressed", i === 0); b.onclick = () => { box.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); onPick(k); }; box.appendChild(b); });
+  onPick(PROFILES[0][0]);
+}
+function drawFirsts(p) {
+  const f = D.firsts[p];
+  barChart(document.getElementById("firstChart"), ["Rare","Epic","Legendary","Mythic","Secret"].map(k => ({ name: k, cur: f.cur[k][0], new: f.new[k][0] })));
+}
+function drawReach(p) {
+  const r = D.reach[p], toPts = o => [[0, 0], ...Object.entries(o).map(([k, v]) => [+k, v])];
+  lineChart(document.getElementById("reachChart"), [{ pts: toPts(r.cur), color: "--old" }, { pts: toPts(r.new), color: "--accent" }],
+    { label: "Played hours to reach each rebirth", x0: 0, x1: 30, y0: 0, y1: 180, xticks: [0,5,10,15,20,25,30], yticks: [0,30,60,90,120,150,180], yfmt: v => v + "h", xlabel: "Rebirth" });
+}
+function drawCost() {
+  const cur = D.costs_cur.slice(0, 30).map((c, i) => [i + 1, c]), nw = D.costs_final.map((c, i) => [i + 1, c]);
+  lineChart(document.getElementById("costChart"), [{ pts: cur, color: "--old" }, { pts: nw, color: "--accent" }],
+    { label: "Cost of each rebirth", log: true, x0: 1, x1: 30, y0: 1e4, y1: 1e17, xticks: [1,5,10,15,20,25,30], yticks: [1e4,1e7,1e10,1e13,1e16], yfmt: v => v >= 1e15 ? "1e" + Math.round(Math.log10(v)) : money(v), xlabel: "Rebirth" });
+}
+function fill() {
+  const pr = document.getElementById("priceRows");
+  for (const r of D.prices) pr.insertAdjacentHTML("beforeend", `<tr><td>${r.name}</td><td class="num">${r.inc}</td><td class="num old">${r.payCur}</td><td class="num old">${money(r.cur)}</td><td class="num new">${r.payNew}</td><td class="num new">${money(r.new)}</td></tr>`);
+  const rb = document.getElementById("rebirthRows");
+  D.costs_final.forEach((c, i) => {
+    const n = i + 1, req = (D.req[i] || []).map(s => D.names[s] || s).join(", "), un = D.unlocks[n] || "";
+    rb.insertAdjacentHTML("beforeend", `<tr><td class="num">${n}</td><td class="num old">${sci(D.costs_cur[i])}</td><td class="num new">${money(c)}</td><td class="num">x${D.multCur[i]} → <b>x${D.multNew[i]}</b></td><td>${req}</td><td>${un}</td></tr>`);
+  });
+  const mr = document.getElementById("mergeRows");
+  for (const m of D.merges) mr.insertAdjacentHTML("beforeend", `<tr><td>${m.name}</td><td class="num">${m.par}</td><td class="num old">${m.cur}</td><td class="num new">${m.new}</td><td class="num">${m.rec}</td><td class="num">${m.brew}</td><td class="num">${m.pb}</td></tr>`);
+  const pd = document.getElementById("padRows");
+  for (const r of D.pads) pd.insertAdjacentHTML("beforeend", `<tr><td class="num">${r[0]}</td><td class="num">${r[1] || "start"}</td><td class="num old">${money(r[2])}</td><td class="num new">${money(r[3])}</td></tr>`);
+  const rr = document.getElementById("resultRows");
+  for (const r of D.results) rr.insertAdjacentHTML("beforeend", `<tr><td>${r[0]}</td><td>${r[1]}</td><td class="num old">${r[2]}</td><td class="num new">${r[3]}</td></tr>`);
+  document.getElementById("offlineNote").textContent = D.offlineNote;
+  document.getElementById("configBlock").textContent = D.config;
+}
+tiles(); fill(); drawCost();
+tabs("firstTabs", drawFirsts); tabs("reachTabs", drawReach);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawCost(); document.querySelector("#firstTabs [aria-pressed=true]").click(); document.querySelector("#reachTabs [aria-pressed=true]").click(); });
+</script>

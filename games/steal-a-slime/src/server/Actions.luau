@@ -216,6 +216,9 @@ local function sell(world: World, session: Session, id: string): Result
 	if VatState.isLocked(session.data, id) then
 		return fail("That slime is brewing in the vat")
 	end
+	if Progression.neededIds(session.data)[id] then
+		return fail(Progression.NEEDED_TEXT)
+	end
 	local ok, value = PlayerData.sell(session.data, id)
 	if not ok then
 		return fail(value :: string)

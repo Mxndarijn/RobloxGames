@@ -206,77 +206,59 @@ local RARITIES: { Rarity } = {
 
 -- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player to own these SlimeRoster
 -- species (data.slimes, i.e. on a pad; a repeated id needs that many). Every level has its own list, and
--- the rebirth uses them up: those slimes are gone, even the favourite (Progression.rebirth). A family
--- species only shows up once that family is open (FountainTiers), merge hybrids follow their recipe's
--- inputs, and event Secrets are never asked for.
+-- the rebirth uses them up: those slimes are gone, even the favourite (Progression.rebirth). Each list asks
+-- for the rarity players farm at that level; a family species only shows up once that family is open
+-- (FountainTiers), merge hybrids start at rebirth 12, and boss and event slimes are never asked for (a boss
+-- win gives no slime).
 local REBIRTH_SLIMES: { { string } } = {
-	{ "bumble" }, -- 1
-	{ "froggo" },
-	{ "whiskers" },
-	{ "prickles" },
-	{ "lop" }, -- 5
-	{ "flan", "bumble" },
-	{ "moo", "mushie" },
+	{ "whiskers" }, -- 1
+	{ "moo" },
 	{ "blaze" },
-	{ "pengoo", "chomp" },
-	{ "octo" }, -- 10
-	{ "moo_shroom" },
-	{ "frostbite", "whiskers" },
-	{ "zap", "lop" },
-	{ "imp" },
-	{ "king" }, -- 15
-	{ "drako", "froggo" },
-	{ "bloom", "honey_toad" },
-	{ "ninja" },
-	{ "truffle", "rocky_road" },
-	{ "robo" }, -- 20
-	{ "snow_bunny", "catfish" },
-	{ "blaze", "octo" },
-	{ "sushi" },
-	{ "frostbite", "zap", "imp" },
-	{ "cosmo" }, -- 25
+	{ "octo" },
+	{ "king" }, -- 5
+	{ "lop", "octo" },
+	{ "chomp", "blaze" },
+	{ "frostbite" },
+	{ "king", "zap" },
+	{ "ninja" }, -- 10
+	{ "cosmo" },
 	{ "steam" },
-	{ "king", "ninja" },
+	{ "imp", "drako" },
+	{ "robo" },
+	{ "seraph" }, -- 15
 	{ "kraken" },
-	{ "drako", "imp", "octo" },
-	{ "seraph" }, -- 30
-	{ "thunderbee" },
-	{ "robo", "king" },
-	{ "amethyst" },
-	{ "steam", "kraken" },
-	{ "prism" }, -- 35
 	{ "dragon_king" },
-	{ "seraph", "amethyst" },
+	{ "amethyst" },
+	{ "midas" },
+	{ "cosmo", "seraph" }, -- 20
+	{ "thunderbee" },
+	{ "prism" },
 	{ "cyber_ninja" },
-	{ "cosmo", "prism" },
-	{ "midas" }, -- 40
-	{ "goozilla" },
-	{ "dragon_king", "cyber_ninja" },
-	{ "queen_jelly" },
-	{ "boo" },
-	{ "cosmo", "seraph", "amethyst" }, -- 45
 	{ "eclipse" },
+	{ "boo" }, -- 25
+	{ "dragon_king", "cosmo" },
+	{ "midas", "amethyst" },
 	{ "nightwing" },
-	{ "midas", "boo" },
-	{ "mecha_goo" },
-	{ "eclipse", "nightwing", "mecha_goo" }, -- 50
+	{ "eclipse", "prism" },
+	{ "midas", "eclipse", "boo" }, -- 30
 }
 for _, list in REBIRTH_SLIMES do
 	table.freeze(list)
 end
 
 local REBIRTH_TIERS: { RebirthTier } = {
-	{ rebirths = 0, title = "Slime Rookie", merge = 2 },
-	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed", merge = 3 },
-	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard", merge = 4 },
-	{ rebirths = 5, title = "Blob Baron", unlock = "Luck" },
-	{ rebirths = 6, title = "Goo Tycoon", income = 0.05, family = "frost", merge = 5 },
+	{ rebirths = 0, title = "Slime Rookie", merge = 1 },
+	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed", merge = 2 },
+	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard", merge = 3 },
+	{ rebirths = 5, title = "Blob Baron", unlock = "Luck", merge = 4 },
+	{ rebirths = 6, title = "Goo Tycoon", income = 0.05, family = "frost" },
 	{ rebirths = 7, title = "Jelly Magnate", income = 0.1 },
-	{ rebirths = 8, title = "Ooze Overlord", income = 0.15 },
-	{ rebirths = 10, title = "Slime Sovereign", income = 0.25, family = "starlight", merge = 7 },
-	{ rebirths = 12, title = "Gel Emperor", income = 0.35 },
+	{ rebirths = 8, title = "Ooze Overlord", income = 0.15, merge = 5 },
+	{ rebirths = 10, title = "Slime Sovereign", income = 0.25, family = "starlight" },
+	{ rebirths = 12, title = "Gel Emperor", income = 0.35, merge = 6 },
 	{ rebirths = 15, title = "Gelatinous Legend", income = 0.5 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1 },
+	{ rebirths = 25, title = "Goo Titan", income = 1.5 },
 	{ rebirths = 30, title = "Slime Deity", income = 2 },
 }
 
@@ -285,10 +267,11 @@ local UPGRADES: { Upgrade } = {
 		id = "Income",
 		name = "Slime Snacks",
 		text = "+10% income",
-		maxLevel = 10,
+		maxLevel = 25,
 		base = 2000,
-		growth = 2.5,
+		growth = 2.2,
 		requires = 0,
+		levelRequires = { 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 6, 6, 6, 6, 6, 12, 12, 12, 12, 12, 20, 20, 20, 20, 20 },
 		step = 0.1,
 	},
 	{
@@ -314,12 +297,13 @@ local UPGRADES: { Upgrade } = {
 	{
 		id = "Luck",
 		name = "Lucky Charm",
-		text = "+4% chance a slime you bring home is one rarity higher",
-		maxLevel = 5,
+		text = "+3% chance a slime you bring home is one rarity higher",
+		maxLevel = 10,
 		base = 100000,
-		growth = 3,
+		growth = 4,
 		requires = 5,
-		step = 0.04,
+		levelRequires = { 5, 5, 5, 8, 8, 12, 12, 16, 20, 25 },
+		step = 0.03,
 	},
 	{
 		id = "QuickBrew",
@@ -340,42 +324,42 @@ local GOALS: { Goal } = {
 		title = "Catch <n> slime<s>",
 		stat = "caught",
 		targets = { 1, 10, 50, 200, 1000 },
-		rewards = { 50, 500, 5000, 50000, 500000 },
+		rewards = { 10, 100, 2000, 50000, 500000 },
 	},
 	{
 		id = "Merge",
 		title = "Merge <n> time<s>",
 		stat = "merges",
 		targets = { 1, 10, 50, 250 },
-		rewards = { 200, 2000, 25000, 250000 },
+		rewards = { 25, 500, 10000, 250000 },
 	},
 	{
 		id = "Steal",
 		title = "Steal <n> slime<s>",
 		stat = "stolen",
 		targets = { 1, 10, 50, 200 },
-		rewards = { 300, 3000, 30000, 300000 },
+		rewards = { 50, 1000, 20000, 300000 },
 	},
 	{
 		id = "Lock",
 		title = "Lock your base <n> time<s>",
 		stat = "locks",
 		targets = { 1, 25, 100 },
-		rewards = { 100, 2500, 25000 },
+		rewards = { 10, 250, 5000 },
 	},
 	{
 		id = "Pads",
 		title = "Unlock <n> pad<s>",
 		stat = "pads",
 		targets = { 6, 8, 16, 24, 32 },
-		rewards = { 500, 5000, 100000, 10000000, 1000000000 },
+		rewards = { 50, 300, 20000, 1000000, 50000000 },
 	},
 	{
 		id = "Earn",
 		title = "Earn <n> in total",
 		stat = "earned",
 		targets = { 1e4, 1e6, 1e8, 1e10 },
-		rewards = { 1000, 50000, 2e6, 1e8 },
+		rewards = { 200, 20000, 1e6, 5e7 },
 		cash = true,
 	},
 	{
@@ -451,9 +435,9 @@ end
 -- `reward` is cash x rebirthMultiplier, `bonus` a permanent income bonus (the ladder adds up to 0.45).
 local DEX_MILESTONES: { species: { DexMilestone } } = {
 	species = {
-		{ count = 8, reward = 1000, bonus = 0.02 },
-		{ count = 15, reward = 5000, bonus = 0.03 },
-		{ count = 20, reward = 25000, bonus = 0.05 },
+		{ count = 8, reward = 200, bonus = 0.02 },
+		{ count = 15, reward = 1000, bonus = 0.03 },
+		{ count = 20, reward = 10000, bonus = 0.05 },
 		{ count = 32, reward = 250000, bonus = 0.1 },
 		{ count = 40, reward = 1.5e6, bonus = 0.1 },
 		{ count = 50, reward = 1e7, bonus = 0.15 },
@@ -713,16 +697,16 @@ local function bossAttack(def: { [string]: any }): { [string]: any }
 end
 
 local SLIME_MOVE_SPEED_MULT = 0.65
--- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). Row f prices floor f's pads: its first pad you
--- buy costs `firstPadCost`, every next one on that floor `growth` times the one before. Floor 1's first bought pad is
--- pad PADS_START + 1; on a higher floor it is the floor's first pad, so its price is also the price of the new floor.
+-- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). Row f lists, for each of floor f's pads in order,
+-- the rebirths that open it (Economy.padRebirths). A pad open at 0 rebirths costs PAD_START_COSTS (the first
+-- PADS_START are free); any other pad costs PAD_PRICE_SHARE of the rebirth after the one that opens it (Economy.padCost).
 -- Adding a row adds a floor.
 local PADS_PER_FLOOR = 8
 local BASE_FLOORS = table.freeze({
-	table.freeze({ firstPadCost = 100, growth = 2.5 }),
-	table.freeze({ firstPadCost = 25_000, growth = 1.6 }),
-	table.freeze({ firstPadCost = 2_500_000, growth = 1.6 }),
-	table.freeze({ firstPadCost = 250_000_000, growth = 1.6 }),
+	table.freeze({ padRebirths = table.freeze({ 0, 0, 0, 0, 0, 0, 0, 0 }) }),
+	table.freeze({ padRebirths = table.freeze({ 1, 1, 2, 3, 4, 5, 6, 7 }) }),
+	table.freeze({ padRebirths = table.freeze({ 8, 9, 10, 10, 11, 12, 13, 14 }) }),
+	table.freeze({ padRebirths = table.freeze({ 15, 16, 17, 18, 20, 22, 24, 26 }) }),
 })
 local SPAWN_INTERVAL = 5 -- seconds between fountain drops
 local RITUAL_MIN_PLAYERS = 2 -- Config.RITUAL.MIN_PLAYERS; also the number of stand spots
@@ -760,18 +744,55 @@ local Config = {
 	PADS_PER_FLOOR = PADS_PER_FLOOR,
 	BASE_FLOORS = BASE_FLOORS,
 	PADS_MAX = #BASE_FLOORS * PADS_PER_FLOOR,
-	SELL_SECONDS = 30, -- a slime sells for this many seconds of its income
-	OFFLINE_RATE = 0.5, -- fraction of income earned while offline
+	PAD_START_COSTS = table.freeze({ 250, 1000, 4000, 12000 }) :: { number }, -- pads PADS_START + 1.. that are open at 0 rebirths
+	PAD_PRICE_SHARE = 0.25, -- a pad opened by rebirth R costs this share of rebirth R + 1 (Economy.padCost)
+	PAD_SAME_REBIRTH_GROWTH = 1.5, -- each further pad opened by the same rebirth costs this many times the one before
+	SELL_PRICE_SHARE = 0.3, -- a slime sells for this share of what the fountain charges for it (Economy.sellPrice)
+	OFFLINE_RATE = 0.25, -- fraction of income earned while offline
 	OFFLINE_CAP_SECONDS = 2 * 60 * 60, -- offline income stops accruing after 2 h
 	WELCOME_BACK_MIN_SECONDS = 4 * 60 * 60, -- away at least this long = a welcome-back card on join
 
 	-- Rebirth
-	REBIRTH_BASE_COST = 40000,
-	REBIRTH_COST_GROWTH = 4.5,
-	REBIRTH_MULTIPLIER_STEP = 0.5, -- +50 % income per rebirth
-	MAX_REBIRTHS = 50,
-	REBIRTH_LATE_FROM = 4, -- from this many rebirths on, the cost grows by REBIRTH_COST_GROWTH_LATE
-	REBIRTH_COST_GROWTH_LATE = 2.25,
+	-- cash rebirth N costs (Economy.rebirthCost(N - 1)), set with the pacing sim (docs/economy-proposal.html)
+	REBIRTH_COSTS = table.freeze({
+		81_000,
+		400_000,
+		1_100_000,
+		3_500_000,
+		15_000_000,
+		42_000_000,
+		90_000_000,
+		180_000_000,
+		330_000_000,
+		660_000_000,
+		1_200_000_000,
+		2_000_000_000,
+		3_700_000_000,
+		6_800_000_000,
+		13_000_000_000,
+		25_000_000_000,
+		42_000_000_000,
+		56_000_000_000,
+		75_000_000_000,
+		130_000_000_000,
+		230_000_000_000,
+		360_000_000_000,
+		440_000_000_000,
+		510_000_000_000,
+		740_000_000_000,
+		1_000_000_000_000,
+		1_400_000_000_000,
+		1_500_000_000_000,
+		1_600_000_000_000,
+		1_700_000_000_000,
+	}) :: { number },
+	-- income multiplier each rebirth adds, by band: rebirth n adds the `step` of the last band with `from` <= n
+	REBIRTH_MULTIPLIER_STEPS = table.freeze({
+		table.freeze({ from = 1, step = 0.5 }),
+		table.freeze({ from = 11, step = 1 }),
+		table.freeze({ from = 21, step = 1.5 }),
+	}),
+	MAX_REBIRTHS = #REBIRTH_SLIMES,
 	REBIRTH_SLIMES = table.freeze(REBIRTH_SLIMES), -- species each rebirth needs and uses up, one list per level
 	REBIRTH_TIERS = table.freeze(REBIRTH_TIERS), -- ranks (CONTRACT.md §8.8)
 
@@ -838,12 +859,14 @@ local Config = {
 	-- Merge vat (VatState, TripleMerge, CONTRACT.md §21): three slimes of one rarity brew into one of a higher rarity
 	VAT_SIZE = 3, -- spots in a plot's vat
 	-- seconds one brew takes, by the rarity going in (before Quick brew)
-	MERGE_BREW_SECONDS = table.freeze({ 30, 60, 120, 300, 600, 1200, 1800 }) :: { number },
+	MERGE_BREW_SECONDS = table.freeze({ 60, 180, 420, 900, 1800, 3600, 5400 }) :: { number },
 	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (up to MERGE_JUMP_MAX_TIER)
-	MERGE_MAX_TIER = 6, -- a random merge result is at most Mythic (Secret only from recipes and finds)
+	MERGE_MAX_TIER = 6, -- a random merge result is at most Mythic; three slimes of this tier or higher only merge in a recipe
 	MERGE_JUMP_MAX_TIER = 5, -- a +2 jump lands on Legendary at most
 	MERGE_ASSIST_CHANCE = 0.35, -- share of random merge results drawn from the species the player hasn't found
 	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
+	BREWED_INCOME_MULT = 1.5, -- income x this for a slime the vat made (Slime.brewed = 1)
+	RECIPE_INCOME_MULT = 2, -- income x this for a recipe hybrid the vat made (Slime.brewed = 2)
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = SPAWN_INTERVAL,
@@ -862,7 +885,8 @@ local Config = {
 	SECRET_TIER = 7, -- Config.RARITIES tier of the Secret slimes (SlimeRoster.SECRET_TIER)
 	RARE_ANNOUNCE_TIER = 5, -- wild drops of this tier or higher: Notify everyone + RareSpawn attributes
 	FREE_DROP_CHANCE = 0.01, -- share of wild slimes that cost nothing to grab
-	WILD_PRICE_SECONDS = 20, -- other wild slimes cost this many seconds of their income
+	-- other wild slimes cost this many seconds of their base income, by rarity (Economy.wildPrice)
+	WILD_PRICE_SECONDS = table.freeze({ 12, 40, 180, 720, 2400, 6000, 15000 }) :: { number },
 
 	-- Slime Rain event
 	RAIN_INTERVAL = 60 * 60, -- design: hourly
@@ -1496,10 +1520,10 @@ local Config = {
 	-- reward: { kind = "cash", amount } or { kind = "boost", mult, minutes };
 	-- expiresAt = unix seconds (nil = never). Once per player, kept in the save.
 	CODES = table.freeze({
-		WELCOME = table.freeze({ reward = table.freeze({ kind = "cash", amount = 1000 }) }),
+		WELCOME = table.freeze({ reward = table.freeze({ kind = "cash", amount = 100 }) }),
 		SLIMEBOOST = table.freeze({ reward = table.freeze({ kind = "boost", mult = 2, minutes = 10 }) }),
 		LAUNCH = table.freeze({
-			reward = table.freeze({ kind = "cash", amount = 5000 }),
+			reward = table.freeze({ kind = "cash", amount = 500 }),
 			expiresAt = 1830297600, -- 2028-01-01 00:00:00 UTC
 		}),
 	}),
