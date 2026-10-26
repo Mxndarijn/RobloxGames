@@ -58,6 +58,7 @@ type Track = {
 	looks: { [string]: Look },
 	burst: ParticleEmitter?,
 	conn: RBXScriptConnection, -- Habitat attribute listener, disconnected in drop
+	moved: RBXScriptConnection, -- the pad moved (a base swap, CONTRACT.md §43): the looks follow it
 }
 
 local tracks: { [BasePart]: Track } = {}
@@ -303,6 +304,7 @@ local function drop(pad: BasePart)
 		return
 	end
 	track.conn:Disconnect()
+	track.moved:Disconnect()
 	for _, look in track.looks do
 		look.model:Destroy()
 	end
@@ -377,6 +379,9 @@ local function watch(pad: BasePart)
 		burst = nil,
 		conn = pad:GetAttributeChangedSignal(Constants.HABITAT_ATTRIBUTE):Connect(function()
 			onHabitat(track)
+		end),
+		moved = pad:GetPropertyChangedSignal("CFrame"):Connect(function()
+			apply(track)
 		end),
 	}
 	tracks[pad] = track
