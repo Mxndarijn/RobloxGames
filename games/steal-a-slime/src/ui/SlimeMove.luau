@@ -167,6 +167,7 @@ export type Deps = {
 	uis: UserInputService,
 	cas: ContextActionService,
 	prompts: ProximityPromptService,
+	onActive: ((active: boolean) -> ())?, -- move mode started (true) / ended (false): the hotbar steps aside
 }
 
 -- A Move ghost part's transparency from the slime part's `transparency` and its own one before the merge vat's fade
@@ -423,6 +424,9 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		end
 		active = nil
 		frame.Visible = false
+		if deps.onActive then
+			deps.onActive(false)
+		end
 		for _, c in a.conns do
 			c:Disconnect()
 		end
@@ -659,6 +663,9 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		}
 		active = a
 		deps.prompts.Enabled = false
+		if deps.onActive then
+			deps.onActive(true)
+		end
 		local character = deps.player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if humanoid then

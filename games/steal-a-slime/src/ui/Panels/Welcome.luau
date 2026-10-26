@@ -7,7 +7,9 @@
 	WelcomeBack.view decides which rows show, in which order and with which icon. The cash row is
 	the headline (a big gold amount under the away time); the others are cards with a name, a short
 	description and, for the daily reward, its amount or, for the next goal, a progress bar.
-	Content-sized: the card is as tall as its rows plus the button.
+	Content-sized: the card is as tall as its rows plus the button. When the screen clamps the card (a
+	landscape phone), the away line, the amount and the rows scroll above Collect, which stays pinned
+	to the bottom.
 ]]
 
 local UI = script.Parent.Parent
@@ -119,6 +121,15 @@ function Welcome.new(parent: Instance, ctx: any)
 	local layout = Welcome.ROWS
 	local card = Welcome.CARD
 
+	-- Everything but Collect; its canvas is set in update to the rows' bottom plus the gap above Collect.
+	local content = Widgets.scroll({
+		Name = "Content",
+		AutomaticCanvasSize = Enum.AutomaticSize.None,
+		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- a showing bar narrows the rows, never covers them
+		Size = UDim2.new(1, 0, 1, -Layout.BUTTON),
+		Parent = body,
+	})
+
 	local away = Widgets.label({
 		Name = "Away",
 		TextSize = layout.away.size,
@@ -126,7 +137,7 @@ function Welcome.new(parent: Instance, ctx: any)
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Position = UDim2.fromOffset(0, layout.away.y),
 		Size = UDim2.new(1, 0, 0, layout.away.h),
-		Parent = body,
+		Parent = content,
 	})
 	local earned = Widgets.label({
 		Name = "Earned",
@@ -138,7 +149,7 @@ function Welcome.new(parent: Instance, ctx: any)
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Position = UDim2.fromOffset(0, layout.earned.y),
 		Size = UDim2.new(1, 0, 0, layout.earned.h),
-		Parent = body,
+		Parent = content,
 	})
 
 	-- Row{i} shows view.rows[i]; row 1 (cash) is the headline above, so the cards are rows 2..MAX_ROWS.
@@ -158,7 +169,7 @@ function Welcome.new(parent: Instance, ctx: any)
 		local frame = Widgets.rowFrame({
 			Name = `Row{i}`,
 			Size = UDim2.new(1, 0, 0, Welcome.ROW_H),
-			Parent = body,
+			Parent = content,
 		})
 		local pic = ItemIconView.new({
 			Name = "Pic",
@@ -233,6 +244,7 @@ function Welcome.new(parent: Instance, ctx: any)
 			Name = "Collect",
 			Text = "Collect",
 			TextSize = Welcome.COLLECT_SIZE,
+			Position = UDim2.new(0, 0, 1, -Layout.BUTTON),
 			Size = UDim2.new(1, 0, 0, Layout.BUTTON),
 		},
 		Theme.Gold,
@@ -283,7 +295,7 @@ function Welcome.new(parent: Instance, ctx: any)
 				row.desc.Size = UDim2.new(1, -reserve, 0, card.descH)
 			end
 		end
-		collect.instance.Position = UDim2.fromOffset(0, bottom + layout.collectGap)
+		content.CanvasSize = UDim2.fromOffset(0, bottom + layout.collectGap)
 	end
 
 	return self

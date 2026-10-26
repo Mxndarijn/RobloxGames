@@ -209,6 +209,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local signature = ""
 	local menuOpen = false
 	local carrying = false
+	local moving = false -- move mode (SlimeMove): its card takes the bar's place
 	local screen: Layout.Screen? = nil
 	local panelOpen = false
 	local heldConsumable: string? = nil -- the consumable in hand (client-side; the server only validates the use)
@@ -1291,7 +1292,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 				refreshPanel(deps.serverNow())
 			end
 		end
-		root.Visible = not (menuOpen or carrying)
+		root.Visible = not (menuOpen or carrying or moving)
 		if not root.Visible then
 			tip.Visible = false
 		end
@@ -1393,6 +1394,12 @@ function Inventory.new(parent: Instance, deps: Deps)
 		if open and panelOpen then
 			setPanelOpen(false)
 		end
+		sync()
+	end
+
+	-- Move mode (SlimeMove) is on: the bar steps aside for its card, as it does for the carry card.
+	function self.setMoving(on: boolean)
+		moving = on
 		sync()
 	end
 

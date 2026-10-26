@@ -15,7 +15,9 @@
 	Cost: a BillboardGui per slime with MaxDistance (the engine culls it), sized
 	in studs plus pixels so it shrinks with distance and stays readable, and a
 	plank per pad slime. Both are re-rendered only on AttributeChanged of the
-	label attributes: no frame loop, no tween, no polling. The tag is parented
+	label attributes, and the tags are refitted when the camera's viewport
+	size changes (a phone gets a smaller pixel floor and a shorter
+	MaxDistance): no frame loop, no tween, no polling. The tag is parented
 	to the Body (Archivable false, so a FollowPets clone never copies it); the
 	planks go in one local folder. Both go with the model or its tag.
 ]]
@@ -36,13 +38,19 @@ SlimeInfoCard.NAME = "SlimeInfoCard"
 SlimeInfoCard.SIGN_FOLDER = "SlimePadSigns"
 
 -- Tag size: studs (shrinks with distance) plus pixels (keeps it readable far away: the name row stays about
--- rowPx * its weight px tall at the edge of maxDistance).
+-- rowPx * its weight px tall at the edge of maxDistance). The pixels are for a viewport referenceHeightPx tall
+-- and shrink with a shorter one (down to minPxScale), so a phone's tag takes the screen share a monitor's does.
 SlimeInfoCard.SIZE = table.freeze({
 	widthStuds = 3.4,
 	widthPx = 160,
 	rowStuds = 0.4, -- one weight-1 row
 	rowPx = 20, -- the pixel floor of a weight-1 row
+	referenceHeightPx = 720, -- viewport height the pixel floor is drawn for
+	minPxScale = 0.6, -- the pixel floor never shrinks below this fraction
 	maxDistance = 60, -- studs: hidden beyond
+	smallViewportPx = 500, -- a viewport shorter than this (a phone) shows tags only up to smallMaxDistance
+	smallMaxDistance = 40, -- studs
+	closeLimit = 12, -- studs: a nearer camera draws the tag as large as at this distance, no larger (tick)
 	maxTextSize = 72,
 	stroke = 2, -- px Ink outline round the text and the pills
 	pill = 0.86, -- a pill's height, fraction of its row (the rest is the gap to the next row)
@@ -59,6 +67,7 @@ SlimeInfoCard.ROWS = table.freeze({
 })
 
 export type Row = { name: string, y: number, h: number } -- y / h: fractions of the tag's height
+export type Fit = { pxScale: number, maxDistance: number } -- how a tag is sized for one viewport
 
 local rgb = SlimePadSign.rgb
 
@@ -97,15 +106,49 @@ function SlimeInfoCard.rows(count: number): { Row }
 	return out
 end
 
--- BillboardGui size for `count` rows.
-function SlimeInfoCard.size(count: number): UDim2
+-- BillboardGui size for `count` rows; `pxScale` (default 1) scales the pixel floor, never the studs.
+function SlimeInfoCard.size(count: number, pxScale: number?): UDim2
 	local s = SlimeInfoCard.SIZE
+	local k = pxScale or 1
 	local weight = 0
 	for i = 1, count do
 		weight += SlimeInfoCard.ROWS[i].weight
 	end
-	return UDim2.new(s.widthStuds, s.widthPx, weight * s.rowStuds, math.floor(weight * s.rowPx + 0.5))
+	return UDim2.new(
+		s.widthStuds,
+		math.floor(s.widthPx * k + 0.5),
+		weight * s.rowStuds,
+		math.floor(weight * s.rowPx * k + 0.5)
+	)
 end
+
+-- The tag fit for a viewport `viewportHeight` px tall: the pixel floor scaled to it, and a shorter MaxDistance
+-- on a small screen, where many tags at once pile up.
+function SlimeInfoCard.fit(viewportHeight: number): Fit
+	local s = SlimeInfoCard.SIZE
+	return {
+		pxScale = math.clamp(viewportHeight / s.referenceHeightPx, s.minPxScale, 1),
+		maxDistance = if viewportHeight < s.smallViewportPx then s.smallMaxDistance else s.maxDistance,
+	}
+end
+
+-- Screen px per stud at `distance` studs from a camera with vertical field of view `fovDegrees` on a viewport
+-- `viewportHeight` px tall.
+function SlimeInfoCard.pxPerStud(viewportHeight: number, fovDegrees: number, distance: number): number
+	return viewportHeight / (2 * math.max(distance, 0.01) * math.tan(math.rad(fovDegrees) / 2))
+end
+
+-- The tag size drawn all in px: what `size(count, pxScale)` comes to at `pxPerStud`. A tag nearer the camera
+-- than closeLimit gets this, at closeLimit's px per stud, so it stops growing.
+function SlimeInfoCard.fixedSize(count: number, pxScale: number, pxPerStud: number): UDim2
+	local s = SlimeInfoCard.size(count, pxScale)
+	return UDim2.fromOffset(
+		math.floor(s.X.Scale * pxPerStud + s.X.Offset + 0.5),
+		math.floor(s.Y.Scale * pxPerStud + s.Y.Offset + 0.5)
+	)
+end
+
+local DEFAULT_FIT: Fit = table.freeze(SlimeInfoCard.fit(SlimeInfoCard.SIZE.referenceHeightPx))
 
 -- Outlined text: the colour edged in Ink.
 local function text(name: string, color: Color3, parent: Instance): TextLabel
@@ -190,15 +233,18 @@ end
 
 local PILLS = table.freeze({ Rarity = true, Price = true })
 
--- Shows `view` on a built tag and places it `height` studs above its Adornee (nil = hide the tag).
-function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height: number?)
+-- Shows `view` on a built tag, places it `height` studs above its Adornee and sizes it for `fit` (default: a
+-- referenceHeightPx viewport). A nil view hides the tag.
+function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height: number?, fit: Fit?)
 	gui.Enabled = view ~= nil
 	if not view then
 		return
 	end
 	local tag = gui:FindFirstChild("Card") :: Frame
 	local count = SlimeLabel.rows(view)
-	gui.Size = SlimeInfoCard.size(count)
+	local f = fit or DEFAULT_FIT
+	gui.Size = SlimeInfoCard.size(count, f.pxScale)
+	gui.MaxDistance = f.maxDistance
 	gui.StudsOffsetWorldSpace = Vector3.new(0, if type(height) == "number" then height else 0, 0)
 	local texts: { [string]: string? } = {
 		Title = view.name,
@@ -264,6 +310,7 @@ export type Options = {
 	collection: CollectionService,
 	tag: string,
 	signParent: Instance?, -- where pad planks go; default a local Folder SIGN_FOLDER in workspace
+	world: Workspace?, -- whose CurrentCamera's viewport sizes the tags; default workspace
 }
 
 type Entry = {
@@ -271,17 +318,27 @@ type Entry = {
 	anchor: Attachment,
 	gui: BillboardGui?, -- built on first need: a slime resting on a pad never has one
 	conn: RBXScriptConnection,
+	view: SlimeLabel.View?, -- shown on gui, nil while it is hidden
 	moved: RBXScriptConnection, -- AncestryChanged: the pad may only be findable once the model sits in its plot
 	sign: Part?,
 	signPad: BasePart?,
 }
 
--- Labels every tagged slime model. Returns a cleanup that removes them all.
-function SlimeInfoCard.start(opts: Options): () -> ()
+-- Labels every tagged slime model. Returns a cleanup that removes them all, and a tick for the client loop that
+-- keeps tags near the camera from growing past their closeLimit size.
+function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 	local cards: { [Instance]: Entry } = {}
 	-- Tagged models whose Body has not replicated yet: the tag can arrive before the model's children.
 	local waiting: { [Instance]: RBXScriptConnection } = {}
 	local ownFolder: Folder? = nil
+	local world: any = opts.world or workspace
+	local camera: Camera? = nil
+	local viewportConn: RBXScriptConnection? = nil
+	local function viewportHeight(): number
+		return if camera then camera.ViewportSize.Y else SlimeInfoCard.SIZE.referenceHeightPx
+	end
+	local fit: Fit = SlimeInfoCard.fit(viewportHeight())
+
 	local function signParent(): Instance
 		if opts.signParent then
 			return opts.signParent
@@ -306,6 +363,7 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 			return
 		end
 		local view = SlimeLabel.view(SlimeInfoCard.read(model))
+		entry.view = nil
 		-- A slime that just hatched keeps its label hidden until the hatch show reveals it.
 		local hatchedAt = model:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE)
 		if model:GetAttribute(Constants.HATCH_POPPING_ATTRIBUTE) == true then
@@ -320,7 +378,7 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 		local pad = if view and view.pad then SlimePadSign.findPad(model, view.pad) else nil
 		if view and pad then
 			if entry.gui then
-				SlimeInfoCard.render(entry.gui, nil, nil)
+				SlimeInfoCard.render(entry.gui, nil, nil, fit)
 			end
 			if entry.signPad ~= pad then
 				dropSign(entry)
@@ -341,11 +399,13 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 			gui = SlimeInfoCard.build()
 			gui.Adornee = entry.anchor
 			entry.gui = gui
-			SlimeInfoCard.render(gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE))
+			entry.view = view
+			SlimeInfoCard.render(gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE), fit)
 			gui.Parent = entry.body
 			return
 		end
-		SlimeInfoCard.render(gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE))
+		entry.view = view
+		SlimeInfoCard.render(gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE), fit)
 	end
 
 	local function remove(model: Instance)
@@ -403,6 +463,60 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 		refresh(model)
 	end
 
+	-- Resizes the shown tags only when the viewport's fit changes (a window drag mostly keeps it).
+	local function refit()
+		local nextFit = SlimeInfoCard.fit(viewportHeight())
+		if nextFit.pxScale == fit.pxScale and nextFit.maxDistance == fit.maxDistance then
+			return
+		end
+		fit = nextFit
+		for _, entry in cards do
+			local gui = entry.gui
+			if gui then
+				gui.MaxDistance = fit.maxDistance
+				if entry.view then
+					gui.Size = SlimeInfoCard.size(SlimeLabel.rows(entry.view), fit.pxScale)
+				end
+			end
+		end
+	end
+	local function watchCamera()
+		if viewportConn then
+			viewportConn:Disconnect()
+			viewportConn = nil
+		end
+		camera = world.CurrentCamera
+		if camera then
+			viewportConn = camera:GetPropertyChangedSignal("ViewportSize"):Connect(refit)
+		end
+		refit()
+	end
+	local cameraConn: RBXScriptConnection = world:GetPropertyChangedSignal("CurrentCamera"):Connect(watchCamera)
+	watchCamera()
+
+	-- Tags nearer the camera than closeLimit are drawn at their closeLimit size (all px), the rest as usual.
+	local function tick()
+		local cam = camera
+		if not cam then
+			return
+		end
+		local eye = cam.CFrame.Position
+		local closePx = SlimeInfoCard.pxPerStud(cam.ViewportSize.Y, cam.FieldOfView, SlimeInfoCard.SIZE.closeLimit)
+		for _, entry in cards do
+			local gui, view = entry.gui, entry.view
+			if gui and view and gui.Enabled then
+				local count = SlimeLabel.rows(view)
+				local near = (entry.anchor.WorldPosition - eye).Magnitude < SlimeInfoCard.SIZE.closeLimit
+				local want = if near
+					then SlimeInfoCard.fixedSize(count, fit.pxScale, closePx)
+					else SlimeInfoCard.size(count, fit.pxScale)
+				if gui.Size ~= want then
+					gui.Size = want
+				end
+			end
+		end
+	end
+
 	local added = opts.collection:GetInstanceAddedSignal(opts.tag):Connect(add)
 	local removed = opts.collection:GetInstanceRemovedSignal(opts.tag):Connect(remove)
 	for _, model in opts.collection:GetTagged(opts.tag) do
@@ -412,6 +526,11 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 	return function()
 		added:Disconnect()
 		removed:Disconnect()
+		cameraConn:Disconnect()
+		if viewportConn then
+			viewportConn:Disconnect()
+			viewportConn = nil
+		end
 		for model in waiting do
 			remove(model)
 		end
@@ -422,7 +541,8 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 			ownFolder:Destroy()
 			ownFolder = nil
 		end
-	end
+	end,
+		tick
 end
 
 return SlimeInfoCard

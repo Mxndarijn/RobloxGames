@@ -12,10 +12,14 @@
 	HomePlotMarker.pastEdge(dx, dz, radius) -> studs outside the round plot floor (0 = on it)
 	HomePlotMarker.fade(pastEdge) -> 0..1                 -- 0 = hidden (standing on the plot)
 	HomePlotMarker.rim(radius) -> { RimSegment }          -- the ring's straight strips
+	HomePlotMarker.edgeRect(width, height) -> Rect        -- where the edge arrow may go
+	HomePlotMarker.arrowScale(height) -> number           -- the edge arrow's size factor
 ]]
 
 export type PlotInfo = { index: number, owner: any }
 export type Insets = { left: number, right: number, top: number, bottom: number }
+-- A screen box by its edges, viewport px (shared/EdgeArrow's Rect).
+export type Rect = { left: number, top: number, right: number, bottom: number }
 -- One straight strip of the rim ring: `angle` (radians, round the plot's Y axis, 0 = the plot's -Z side),
 -- its centre `mid` studs from the plot centre, `length` studs along the edge.
 export type RimSegment = { angle: number, mid: number, length: number }
@@ -32,6 +36,12 @@ HomePlotMarker.RIM_SEGMENTS = 48 -- straight strips that make up the ring
 HomePlotMarker.FADE_BAND = 40 -- studs past the plot edge over which the beacon fades in
 -- Arrow box (shared/EdgeArrow), viewport px in from each screen edge: clear of the left button column and the bottom HUD.
 HomePlotMarker.EDGE_INSETS = table.freeze({ left = 200, right = 120, top = 110, bottom = 240 })
+-- On a small screen each inset is at most this share of the viewport, so the box keeps room to move in (a landscape
+-- phone is ~370 px tall: the full insets would leave a strip at head height).
+HomePlotMarker.EDGE_SHARE = table.freeze({ left = 0.22, right = 0.15, top = 0.18, bottom = 0.33 })
+-- The arrow badge is drawn at this share of its size per viewport px of height under ARROW_FULL_HEIGHT (min ARROW_MIN_SCALE).
+HomePlotMarker.ARROW_FULL_HEIGHT = 720
+HomePlotMarker.ARROW_MIN_SCALE = 0.65
 HomePlotMarker.PULSE_SPEED = 2.4 -- rim / ring pulse, radians per second
 
 -- The plot index the player owns, or nil.
@@ -67,6 +77,22 @@ end
 -- 0 while standing on the plot, rising to 1 over FADE_BAND studs past its edge.
 function HomePlotMarker.fade(pastEdge: number): number
 	return math.clamp(pastEdge / HomePlotMarker.FADE_BAND, 0, 1)
+end
+
+-- The arrow box on a `width` x `height` viewport (px): EDGE_INSETS, each capped at its EDGE_SHARE of the screen.
+function HomePlotMarker.edgeRect(width: number, height: number): Rect
+	local inset, share = HomePlotMarker.EDGE_INSETS, HomePlotMarker.EDGE_SHARE
+	return {
+		left = math.min(inset.left, width * share.left),
+		top = math.min(inset.top, height * share.top),
+		right = width - math.min(inset.right, width * share.right),
+		bottom = height - math.min(inset.bottom, height * share.bottom),
+	}
+end
+
+-- Size factor of the arrow badge on a viewport `height` px tall: 1 on desktop, smaller on phones.
+function HomePlotMarker.arrowScale(height: number): number
+	return math.clamp(height / HomePlotMarker.ARROW_FULL_HEIGHT, HomePlotMarker.ARROW_MIN_SCALE, 1)
 end
 
 -- Rim / ring pulse 0..1 at time `t`.

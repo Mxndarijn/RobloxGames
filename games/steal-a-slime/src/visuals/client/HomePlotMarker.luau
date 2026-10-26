@@ -366,6 +366,11 @@ local function buildArrow(): ScreenGui?
 	tipStroke.Color = INK
 	tipStroke.Thickness = HomePlotMarker.TAG.stroke
 	tipStroke.Parent = tip
+	-- Small screens draw the badge and pointer smaller (Look.arrowScale, set each step).
+	for _, part in { frame, tip } do
+		local scale = Instance.new("UIScale")
+		scale.Parent = part
+	end
 
 	gui.Parent = playerGui
 	badge, pointer = frame, tip
@@ -411,8 +416,14 @@ local function stepArrow(b: Built, camera: Camera, fade: number)
 	end
 	-- Viewport px (IgnoreGuiInset): the camera looks at the viewport centre.
 	local view = camera.ViewportSize
-	local inset = Look.EDGE_INSETS
-	local rect = { left = inset.left, top = inset.top, right = view.X - inset.right, bottom = view.Y - inset.bottom }
+	local rect = Look.edgeRect(view.X, view.Y)
+	local k = Look.arrowScale(view.Y)
+	for _, part in { frame, tip } do
+		local scale = part:FindFirstChildOfClass("UIScale")
+		if scale and scale.Scale ~= k then
+			scale.Scale = k
+		end
+	end
 	local target = b.centre + Vector3.new(0, Look.TAG_HEIGHT * 0.5, 0)
 	local rel = camera.CFrame:PointToObjectSpace(target)
 	local screen = camera:WorldToViewportPoint(target)
@@ -424,7 +435,7 @@ local function stepArrow(b: Built, camera: Camera, fade: number)
 	local arrow = EdgeArrow.place({ x = view.X / 2, y = view.Y / 2 }, dx, dy, rect)
 	gui.Enabled = true
 	frame.Position = UDim2.fromOffset(arrow.x, arrow.y)
-	tip.Position = UDim2.fromOffset(arrow.x + dx * 44, arrow.y + dy * 44)
+	tip.Position = UDim2.fromOffset(arrow.x + dx * 44 * k, arrow.y + dy * 44 * k)
 	tip.Rotation = arrow.angle
 end
 

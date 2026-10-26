@@ -268,6 +268,14 @@ describe("Merge menu: slime previews", function()
 end)
 
 describe("Merge menu: layout", function()
+	-- A body child's box with its Y resolved against a body `h` tall (pinned buttons use Scale 1).
+	local function resolved(box: any, h: number): any
+		local p = box.Position
+		return {
+			Position = { X = { Offset = p.X.Offset }, Y = { Offset = p.Y.Scale * h + p.Y.Offset } },
+			Size = box.Size,
+		}
+	end
 	local function inside(box: any, w: number, h: number): boolean
 		local p, s = box.Position, box.Size
 		return p.X.Offset >= 0
@@ -283,12 +291,30 @@ describe("Merge menu: layout", function()
 			local r = Layout.panelFor(screen, "Merge", 600)
 			panel.layout(r)
 			local b = Layout.panelBody(r)
-			local body = panel.frame:FindFirstChild("Body")
-			local h = math.max(b.h, body.Size.Y.Offset)
-			expect(inside(find(panel, "Load"), b.w, h)).toBe(true)
+			expect(inside(find(panel, "Load"), b.w, find(panel, "Content").CanvasSize.Y.Offset)).toBe(true)
 			local btn = find(panel, "StartButton")
-			expect(inside(btn, b.w, h)).toBe(true)
+			expect(inside(resolved(btn, b.h), b.w, b.h)).toBe(true)
 			expect(btn.Size.Y.Offset * screen.scale >= Layout.MIN_TOUCH_DESIGN * Layout.MIN_SCALE - 0.5).toBe(true)
+		end)
+	end
+	for _, size in { { 800, 334 }, { 844, 332 } } do
+		it(`{size[1]}x{size[2]} touch, brewing: Hold to cancel stays inside the clamped card`, function()
+			local panel = build()
+			panel.update(state({ "a", "b", "c" }, { startedAt = NOW, endsAt = NOW + 30 }))
+			local screen = Layout.screen(size[1], size[2], { touch = true })
+			local Widgets = UiHarness.ui("Widgets")
+			local content = Widgets.contentHeight(find(panel, "Body"))
+			local r = Layout.panelFor(screen, "Merge", content)
+			panel.layout(r)
+			expect(Layout.cardHeight(Widgets.contentHeight(find(panel, "Body"))) > r.h).toBe(true)
+			local b = Layout.panelBody(r)
+			local cancel = resolved(find(panel, "CancelButton"), b.h)
+			expect(find(panel, "CancelButton").Visible).toBe(true)
+			expect(inside(cancel, b.w, b.h)).toBe(true)
+			local scroll = find(panel, "Content")
+			local timer = find(panel, "Timer")
+			expect(scroll.Size.Y.Scale * b.h + scroll.Size.Y.Offset <= cancel.Position.Y.Offset + 0.5).toBe(true)
+			expect(scroll.CanvasSize.Y.Offset >= timer.Position.Y.Offset + timer.Size.Y.Offset).toBe(true)
 		end)
 	end
 end)

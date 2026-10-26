@@ -322,7 +322,8 @@ local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
 -- One label per slime, a tag above it or a sign on its pad (contract/slime-labels.md): event-driven, no frame work.
-SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = Constants.SLIME_TAG })
+local _, slimeTagsTick =
+	SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = Constants.SLIME_TAG })
 
 -- The dimmed full-window backdrop (Layout.backdrop: the whole viewport, top bar included, square) behind an open menu card (screen.panel).
 -- Made before the panels so their cards draw over it; a tap on it closes
@@ -816,6 +817,7 @@ local slimeMove = if Config.FEATURES.MoveSlime == true
 		uis = game:GetService("UserInputService"),
 		cas = ContextActionService,
 		prompts = ProximityPromptService,
+		onActive = inventory.setMoving,
 	})
 	else nil
 
@@ -1257,6 +1259,7 @@ task.spawn(function()
 				applyLayout() -- the jump button came or went (input switched, touch controls toggled)
 			end
 		end)
+		guardedTick("slimeTags", slimeTagsTick)
 		if latest then
 			local now = serverNow()
 			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.
