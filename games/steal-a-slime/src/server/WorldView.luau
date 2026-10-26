@@ -52,6 +52,7 @@ local JarRoute = require(script.Parent.JarRoute)
 local KitDelivery = require(script.Parent.KitDelivery)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
 local MeshSwap = require(script.Parent.MeshSwap)
+local MoveWatch = require(script.Parent.MoveWatch)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
@@ -1570,6 +1571,14 @@ local function markCharacterMoved(character: Model)
 	end
 end
 
+-- Server-initiated teleport of `character`: the move guard's next sample of that player re-baselines.
+local function allowMove(character: Model, seconds: number)
+	local owner = Players:GetPlayerFromCharacter(character)
+	if owner then
+		MoveWatch.allow(owner.UserId, seconds)
+	end
+end
+
 -- Bug #10: a character whose root overlaps the fountain-top slime stack (Map.Volcano.EmergeMesh) is not pushed out by
 -- the solid mesh, so move it above the top (radially outside if something is overhead). True when it moved.
 local function ejectFromStack(character: Model, root: BasePart): boolean
@@ -1592,6 +1601,7 @@ local function ejectFromStack(character: Model, root: BasePart): boolean
 	local x, y, z = StackGuard.ejectPoint(p.X, p.Y, p.Z, half.X, half.Y, half.Z, blocked)
 	character:PivotTo(ref.CFrame * CFrame.new(x, y, z))
 	root.AssemblyLinearVelocity = Vector3.zero
+	allowMove(character, Config.MOVE_GUARD.TELEPORT_ALLOW)
 	markCharacterMoved(character)
 	return true
 end
@@ -1748,6 +1758,7 @@ function WorldView.dropDown(userId: number, plotIndex: number): boolean
 	local y = land[2] - WorldLayout.PLOT_FLOOR_TOP + base.Size.Y / 2
 	character:PivotTo(base.CFrame * CFrame.new(land[1], y, land[3]))
 	root.AssemblyLinearVelocity = Vector3.zero
+	MoveWatch.allow(userId, Config.MOVE_GUARD.TELEPORT_ALLOW)
 	WorldView.markServerMove(userId)
 	return true
 end
@@ -1796,6 +1807,7 @@ function WorldView.rescue(player: Player, plotIndex: number?, pvpGuard: boolean?
 			part.AssemblyAngularVelocity = Vector3.zero
 		end
 	end
+	MoveWatch.allow(player.UserId, Config.MOVE_GUARD.TELEPORT_ALLOW)
 	return true
 end
 

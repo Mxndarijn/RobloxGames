@@ -159,13 +159,16 @@ local function partNode(p: any, at: (Vec) -> Vec, yaw: number, standIns: { [stri
 	end
 	local attributes: { [string]: any } = {}
 	if p.show then
-		-- shown only while its floor is (or is not) the top one: a collider whose look is a mesh slot of the same
-		-- variant, so it never shows itself (BaseFloors.setLids turns its collision on and off)
+		-- shown only while its floor is (or is not) the top one (BaseFloors.setLids): a collider whose look is a mesh
+		-- slot of the same variant shows itself until that mesh lands (MeshStandIn, then StandInHidden)
 		attributes.JarFloor = p.floor
 		attributes.JarShow = p.show
 		attributes.JarHidden = p.show == "covered"
 		attributes.JarCollide = if p.collide then true else nil
-		node.transparency = 1
+		attributes.JarShowSelf = if p.collide then true else nil
+		if p.show == "covered" or not p.collide then
+			node.transparency = 1
+		end
 	end
 	local look = lookOfPart(p, standIns)
 	if look then

@@ -36,12 +36,12 @@ describe("Progress.rebirthTiers", function()
 		expect(tiers[4].cost).toBe(Economy.rebirthCost(3))
 		expect(tiers[3].lockSeconds).toBe(75 + 2 * Config.LOCK_SECONDS_PER_REBIRTH)
 	end)
-	it("never shows a lock longer than LOCK_MAX_REMAINING", function()
+	it("never shows a lock longer than LOCK_MAX_SECONDS", function()
 		local s = state(1, 0)
-		s.lockDuration = Config.LOCK_MAX_REMAINING - 5
+		s.lockDuration = Config.LOCK_MAX_SECONDS - 5
 		local tiers = Progress.rebirthTiers(s, Config, Economy.rebirthCost, Economy.rebirthMultiplier, 3)
-		expect(tiers[2].lockSeconds).toBe(Config.LOCK_MAX_REMAINING)
-		expect(tiers[4].lockSeconds).toBe(Config.LOCK_MAX_REMAINING)
+		expect(tiers[2].lockSeconds).toBe(Config.LOCK_MAX_SECONDS)
+		expect(tiers[4].lockSeconds).toBe(Config.LOCK_MAX_SECONDS)
 	end)
 	it("gives each future tier the stepped multiplier, across a band edge", function()
 		local edge = Config.REBIRTH_MULTIPLIER_STEPS[2].from

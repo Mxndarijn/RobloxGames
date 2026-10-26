@@ -706,7 +706,7 @@ scenario("ui", function()
 	session.lockUntil = now() - 1
 	invoke("Sync")
 	state = lastState()
-	local lockButton = LockHud.lockButton(state, now(), Config.LOCK_MAX_REMAINING)
+	local lockButton = LockHud.lockButton(state, now(), Config.LOCK_MAX_SECONDS)
 	local padButton = LockHud.padButton(state)
 	local lockPrompt = plotPart("LockButton"):FindFirstChild("LockPrompt")
 	local buyPad = plot:FindFirstChild("BuyPadPrompt", true)

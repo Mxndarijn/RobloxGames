@@ -24,6 +24,7 @@ local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Friends = require(script.Parent.Friends)
 local LeaderboardView = require(script.Parent.LeaderboardView)
+local MoveWatch = require(script.Parent.MoveWatch)
 local Persistence = require(script.Parent.Persistence)
 local PlayerLeave = require(script.Parent.PlayerLeave)
 local RitualService = require(script.Parent.RitualService)
@@ -60,6 +61,7 @@ local function onCharacter(deps: Deps, player: Player, character: Model)
 	if spawn then
 		task.defer(function()
 			if character.Parent then
+				MoveWatch.allow(player.UserId, Config.MOVE_GUARD.RESPAWN_ALLOW)
 				character:PivotTo(spawn)
 				WorldView.markServerMove(player.UserId)
 			end
@@ -165,6 +167,12 @@ local function onPlayerRemoving(deps: Deps, player: Player)
 				name = "ServerLoop.forget",
 				run = function()
 					ServerLoop.forget(deps.loop, userId)
+				end,
+			},
+			{
+				name = "MoveWatch.forget",
+				run = function()
+					MoveWatch.forget(userId)
 				end,
 			},
 			{
