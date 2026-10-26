@@ -162,7 +162,7 @@ function Carry.depositBoss(world: World, session: Session, carry: World.CarrySta
 		BossFight.win(fight, session.userId, now)
 	end
 	World.markAllDirty(world)
-	World.notify(world, nil, `{session.name} brought {carry.slime.name} home!`, "good", "Rain")
+	World.notify(world, nil, `{session.name} brought {carry.slime.name} home!`, "good", "Announce")
 	World.notify(world, session.userId, `You brought {carry.slime.name} home!`, "good", "Deposit")
 	if fight then
 		BossCredit.win(world, fight, session, carry.slime, now)

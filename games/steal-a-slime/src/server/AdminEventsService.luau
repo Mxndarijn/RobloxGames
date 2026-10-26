@@ -63,7 +63,7 @@ function AdminEventsService.apply(service: Service, payload: AdminShared.Payload
 		}
 		Spawner.stepModifier(world, now)
 	end
-	World.notify(world, nil, AdminShared.announce(def, payload.seconds), "good", "Rain")
+	World.notify(world, nil, AdminShared.announce(def, payload.seconds), "good", "WeeklyEvent")
 	World.markAllDirty(world)
 end
 

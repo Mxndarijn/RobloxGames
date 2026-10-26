@@ -93,6 +93,8 @@ local function emitter(texture: string, transparency: NumberSequence): ParticleE
 	return e
 end
 
+local lastPoofSound = -math.huge
+
 local function poof(position: Vector3)
 	local part = Instance.new("Part")
 	part.Name = "DespawnPoof"
@@ -121,13 +123,16 @@ local function poof(position: Vector3)
 	local lifetime = DespawnTelegraphFx.POOF_LIFETIME
 	local sound: Sound? = nil
 	local soundId = poofSoundId()
-	if soundId then
+	if soundId and os.clock() - lastPoofSound >= (Config.DESPAWN_POOF_SOUND_GAP or 0) then
+		lastPoofSound = os.clock()
 		local s = Instance.new("Sound")
 		s.SoundId = soundId
-		s.Volume = 0.5
+		s.Volume = 0.3
 		s.RollOffMode = Enum.RollOffMode.InverseTapered
-		s.RollOffMinDistance = 10
-		s.RollOffMaxDistance = 80
+		s.RollOffMinDistance = 8
+		s.RollOffMaxDistance = 50
+		local sfx = game:GetService("SoundService"):FindFirstChild("SFX")
+		s.SoundGroup = if sfx and sfx:IsA("SoundGroup") then sfx else nil
 		s.Parent = part
 		sound = s
 		lifetime = 3

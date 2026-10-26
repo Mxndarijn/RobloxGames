@@ -689,7 +689,7 @@ function PvpFunFx.start(opts: Options): Handle
 			Size = Vector3.one * diameter,
 			CFrame = proxy.root.CFrame * CFrame.new(0, middle, 0),
 			Color = rgb(Logic.BUBBLE),
-			Material = Enum.Material.Glass,
+			Material = Enum.Material.SmoothPlastic,
 			Transparency = LOOK.bubbleTransparency,
 			Reflectance = LOOK.bubbleReflectance,
 			Anchored = false,
@@ -833,7 +833,7 @@ function PvpFunFx.start(opts: Options): Handle
 			Shape = Enum.PartType.Ball,
 			Size = Vector3.one * LOOK.balloon,
 			Color = rgb(Logic.GOO),
-			Material = Enum.Material.Glass,
+			Material = Enum.Material.SmoothPlastic,
 			Transparency = 0.15,
 		})
 		task.delay(flight, function()
@@ -864,7 +864,7 @@ function PvpFunFx.start(opts: Options): Handle
 				CFrame = CFrame.new(ground + Vector3.new(0, LOOK.splatThickness / 2 + 0.02, 0))
 					* CFrame.Angles(0, 0, math.pi / 2),
 				Color = rgb(Logic.GOO),
-				Material = Enum.Material.Glass,
+				Material = Enum.Material.SmoothPlastic,
 				Transparency = 0.1,
 			})
 			TweenService:Create(
@@ -984,7 +984,7 @@ function PvpFunFx.start(opts: Options): Handle
 					Size = Vector3.one * size,
 					CFrame = CFrame.new(here.X, here.Y, here.Z),
 					Color = rgb(Logic.BUBBLE),
-					Material = Enum.Material.Glass,
+					Material = Enum.Material.SmoothPlastic,
 					Transparency = LOOK.bubbleTransparency,
 					Reflectance = LOOK.bubbleReflectance,
 				})
@@ -1270,7 +1270,7 @@ function PvpFunFx.start(opts: Options): Handle
 			Shape = Enum.PartType.Cylinder,
 			Size = Vector3.new(0.18, LOOK.hatBrim * scale, LOOK.hatBrim * scale),
 			Color = color,
-			Material = Enum.Material.Glass,
+			Material = Enum.Material.SmoothPlastic,
 			Transparency = 0.1,
 			Parent = model,
 		})
@@ -1280,7 +1280,7 @@ function PvpFunFx.start(opts: Options): Handle
 			Shape = Enum.PartType.Ball,
 			Size = Vector3.one * LOOK.hatCrown * scale,
 			Color = color,
-			Material = Enum.Material.Glass,
+			Material = Enum.Material.SmoothPlastic,
 			Transparency = 0.05,
 			CFrame = CFrame.new(0, 0.45 * scale, 0),
 			Parent = model,
@@ -1367,7 +1367,7 @@ function PvpFunFx.start(opts: Options): Handle
 			Shape = Enum.PartType.Ball,
 			Size = Vector3.one * LOOK.hatSlimeBody,
 			Color = rgb(Logic.GOO),
-			Material = Enum.Material.Glass,
+			Material = Enum.Material.SmoothPlastic,
 			Transparency = 0.15,
 			CFrame = brim.CFrame * CFrame.new(-LOOK.hatSlimeBody / 2, 0, 0),
 			Parent = model,
@@ -1505,7 +1505,7 @@ function PvpFunFx.start(opts: Options): Handle
 				Size = Vector3.one * r * 2,
 				CFrame = CFrame.new(ground),
 				Color = rgb(Logic.DISCO_COLORS[1]),
-				Material = Enum.Material.Glass,
+				Material = Enum.Material.SmoothPlastic,
 				Transparency = 0.72,
 				Reflectance = 0.15,
 			})

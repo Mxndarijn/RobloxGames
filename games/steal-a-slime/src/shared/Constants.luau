@@ -14,12 +14,13 @@ return table.freeze({
 	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
 
 	SLIME_TAG = "Slime",
-	DATASTORE_NAME = "StealASlime_v1",
-	LEADERBOARD_STORE = "StealASlime_TotalEarned", -- OrderedDataStore, key "u_<UserId>"
-	WEEKLY_EARNED_STORE = "StealASlime_WeeklyEarned", -- OrderedDataStore per week: "<name>_<WeeklyEvents.weekIndex>", key "u_<UserId>"
-	STEALS_STORE = "StealASlime_TotalStolen", -- OrderedDataStore, key "u_<UserId>"
-	DEX_STORE = "StealASlime_SlimeDex", -- OrderedDataStore, key "u_<UserId>"
-	MERGES_STORE = "StealASlime_Merges", -- OrderedDataStore, key "u_<UserId>"
+	-- All stores moved to "_v2" on 2026-10-26 for a fresh start; the v1 data is still there, unread.
+	DATASTORE_NAME = "StealASlime_v2",
+	LEADERBOARD_STORE = "StealASlime_TotalEarned_v2", -- OrderedDataStore, key "u_<UserId>"
+	WEEKLY_EARNED_STORE = "StealASlime_WeeklyEarned_v2", -- OrderedDataStore per week: "<name>_<WeeklyEvents.weekIndex>", key "u_<UserId>"
+	STEALS_STORE = "StealASlime_TotalStolen_v2", -- OrderedDataStore, key "u_<UserId>"
+	DEX_STORE = "StealASlime_SlimeDex_v2", -- OrderedDataStore, key "u_<UserId>"
+	MERGES_STORE = "StealASlime_Merges_v2", -- OrderedDataStore, key "u_<UserId>"
 	DATASTORE_MODE_ATTRIBUTE = "DataStoreMode", -- workspace attribute: "Memory" = no real DataStore
 	-- workspace attribute set by the server: "Ok" | "Memory" | "Unavailable" | "Error" (CONTRACT.md §2)
 	DATASTORE_STATUS_ATTRIBUTE = "DataStoreStatus",

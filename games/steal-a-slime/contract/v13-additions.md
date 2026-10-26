@@ -80,7 +80,7 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 | Prompt (Constants) | Parent | KeyCode | ActionText | ObjectText |
 |---|---|---|---|---|
-| `LockPrompt` (`LOCK_PROMPT_NAME`) | `LockButton` | E | `"Lock base"` while open, `"Extend lock"` while locked, `"Lock is maxed"` at `LOCK_MAX_REMAINING` | `"<name>'s base: OPEN"` or `"<name>'s base: LOCKED m:ss"` (updated every reconcile) |
+| `LockPrompt` (`LOCK_PROMPT_NAME`) | `LockButton` | E | `"Lock base"`, enabled only while open (disabled while a lock runs) | `"<name>'s base: OPEN"` or `"<name>'s base: LOCKED m:ss"` (updated every reconcile) |
 | `BuyPadPrompt` (`BUY_PAD_PROMPT_NAME`) | the lowest locked `Pad_<j>`; moved as pads unlock; parked (disabled) on the last pad when all are unlocked | E | `"Buy pad $<cost>"`; `"Build floor <f> $<cost>"` when `j` is the first pad of floor `f >= 2` | `"Pad <j> of <PADS_MAX>"` |
 | `MergePrompt` (`MERGE_PROMPT_NAME`) | `MergeVat` | E | `"Manage vat"` | `"Merge vat"` |
 

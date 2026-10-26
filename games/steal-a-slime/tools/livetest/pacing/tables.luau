@@ -239,7 +239,7 @@ do
 		table.insert(raw, { rebirths = r, seconds = Steal.lockDuration(r) })
 	end
 	render(
-		`Lock (free; join lock {Config.JOIN_LOCK_SECONDS}s; max stack {Config.LOCK_MAX_REMAINING}s)`,
+		`Lock (free; join lock {Config.JOIN_LOCK_SECONDS}s; max lock {Config.LOCK_MAX_SECONDS}s)`,
 		"locks",
 		{ "Rebirths", "Length" },
 		rows,
