@@ -3,6 +3,7 @@ local Config = require("../src/shared/Config")
 local SnowCover = require("../src/visuals/shared/SnowCover")
 local TestRunner = require("./TestRunner")
 local WeatherLook = require("../src/visuals/shared/WeatherLook")
+local WeatherShelter = require("../src/visuals/shared/WeatherShelter")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -47,7 +48,7 @@ describe("SnowCover (F2)", function()
 	end)
 	it("snow flakes reach the ground: speed x lifetime beats the emitter height at the steepest spread", function()
 		local flakes = WeatherLook.EMITTERS.Flakes
-		local minSpeed, spreadDeg, height = 7, 15, 42 -- WeatherFx makeEmitter / SNOW_EMITTER_Y
+		local minSpeed, spreadDeg, height = flakes.speed[1], flakes.spread, WeatherShelter.SNOW_Y
 		local down = minSpeed * flakes.lifetime * math.cos(math.rad(spreadDeg * 1.5))
 		expect(down >= height).toBe(true)
 		expect(Config.WEATHER_PARTICLE_CAP >= 1).toBe(true)

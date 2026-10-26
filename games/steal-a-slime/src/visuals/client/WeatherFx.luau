@@ -3,9 +3,11 @@
 	WeatherFx (VisualsClient module, FEATURES.Weather, WEATHER.md)
 
 	Client-only. Mirrors the workspace attribute Constants.WEATHER_ATTRIBUTE (Weather module) and
-	draws it: one anchored emitter part that follows the camera (moved on Heartbeat only while a
-	weather is showing) and a ColorCorrection tint, both tweened in / out over WEATHER_FADE_SECONDS.
-	Emitter rates = base * quality scale (graphics level, touch) under Config.WEATHER_PARTICLE_CAP.
+	draws it: a sheet of anchored emitter tiles over the camera (WeatherShelter: snapped to a world
+	grid, moved on Heartbeat only while a weather is showing) and a ColorCorrection tint, both tweened
+	in / out over WEATHER_FADE_SECONDS. Tiles near a goo jar emit nothing, so no weather falls inside one.
+	Emitter rates = base * quality scale (graphics level, touch) under Config.WEATHER_PARTICLE_CAP,
+	shared out over the tiles.
 	Nothing is drawn while FEATURES.Weather is off, except for the Constants.WEATHER_DEBUG_ATTRIBUTE
 	preview that the pc-watcher sets on one client for proof frames.
 ]]
@@ -22,18 +24,24 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local Weather = require(Shared:WaitForChild("Weather"))
 local WeatherGrade = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherGrade"))
 local WeatherLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherLook"))
+local WeatherShelter = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherShelter"))
+local WorldLayout = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WorldLayout"))
 
 local SnowGround = require(script.Parent:WaitForChild("SnowGround"))
 
 local WeatherFx = {}
 
--- Snow starts at a fixed height so every flake (speed 7 x lifetime 8, 15 deg spread, >= 52 studs down) lands on the ground (v30 F2).
-local SNOW_EMITTER_Y = 42
-
 local STAR_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
 local SOFT_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
+local REMASK_FALL = 2 -- studs the sheet may rise or sink before the tile masks are worked out again
 
-local part: Part? = nil
+local sheet: Folder? = nil
+local tiles: { Part } = {}
+local footprints = WeatherShelter.footprints()
+-- What every emitter would run at with no jars around (the fade tweens these); the Heartbeat shares them out.
+local current: { [string]: number } = {}
+local masks: { { [string]: boolean } } = {}
+local maskKey: string? = nil
 local tint: ColorCorrectionEffect? = nil
 local heartbeat: RBXScriptConnection? = nil
 local shown: string = Weather.CLEAR
@@ -48,15 +56,17 @@ local function quality(): number
 end
 
 local function makeEmitter(name: string): ParticleEmitter
+	local spec = WeatherLook.EMITTERS[name]
 	local e = Instance.new("ParticleEmitter")
 	e.Name = name
 	e.Rate = 0
 	e.Enabled = true
-	e.Lifetime = NumberRange.new(WeatherLook.EMITTERS[name].lifetime)
+	e.Lifetime = NumberRange.new(spec.lifetime)
 	e.EmissionDirection = Enum.NormalId.Bottom
-	e.Acceleration = Vector3.zero
+	e.Speed = NumberRange.new(spec.speed[1], spec.speed[2])
+	e.SpreadAngle = Vector2.new(spec.spread, spec.spread)
+	e.Acceleration = Vector3.new(spec.sideAccel, 0, 0)
 	if name == "Drops" then
-		e.Speed = NumberRange.new(70, 90)
 		e.Size = NumberSequence.new(0.12)
 		e.Orientation = Enum.ParticleOrientation.VelocityParallel
 		e.Transparency = NumberSequence.new(0.45)
@@ -64,7 +74,6 @@ local function makeEmitter(name: string): ParticleEmitter
 		e.Texture = SOFT_TEXTURE
 		e.Squash = NumberSequence.new(-14)
 	elseif name == "Flakes" then
-		e.Speed = NumberRange.new(7, 9)
 		e.Size = NumberSequence.new(0.35)
 		-- fades out in the last stretch, i.e. as it lands and melts into the cover
 		e.Transparency = NumberSequence.new({
@@ -74,44 +83,96 @@ local function makeEmitter(name: string): ParticleEmitter
 			NumberSequenceKeypoint.new(1, 1),
 		})
 		e.RotSpeed = NumberRange.new(-60, 60)
-		e.SpreadAngle = Vector2.new(15, 15)
 		e.Color = ColorSequence.new(Color3.new(1, 1, 1))
 		e.Texture = STAR_TEXTURE
 	elseif name == "Stars" then
-		e.Speed = NumberRange.new(30, 45)
+		-- sideAccel gives them a slight slant, so they read as shooting stars
 		e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.9), NumberSequenceKeypoint.new(1, 0.2) })
 		e.LightEmission = 1
 		e.Color = ColorSequence.new(Color3.fromRGB(255, 240, 160), Color3.fromRGB(190, 160, 255))
 		e.Texture = STAR_TEXTURE
-		e.SpreadAngle = Vector2.new(8, 8)
-		e.Acceleration = Vector3.new(6, 0, 0) -- slight slant, so they read as shooting stars
 	else
-		e.Speed = NumberRange.new(2, 6)
 		e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) })
 		e.LightEmission = 1
 		e.Transparency = NumberSequence.new(0.2)
 		e.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(160, 200, 255))
 		e.Texture = STAR_TEXTURE
-		e.SpreadAngle = Vector2.new(180, 180)
 	end
 	return e
 end
 
-local function ensureFx()
-	if not part then
-		local p = Instance.new("Part")
-		p.Name = "WeatherEmitter"
-		p.Anchored = true
-		p.CanCollide = false
-		p.CanQuery = false
-		p.CanTouch = false
-		p.Transparency = 1
-		p.Size = Vector3.new(90, 1, 90)
-		for name in WeatherLook.EMITTERS do
-			makeEmitter(name).Parent = p
+-- Which emitters each tile may run: only those whose particles cannot drift into a jar from that tile.
+local function remask(centres: { { number } }, fall: number)
+	local margins: { [string]: number } = {}
+	for name, spec in WeatherLook.EMITTERS do
+		margins[name] = WeatherShelter.reach(spec, fall)
+	end
+	for i, c in centres do
+		local mask = {}
+		for name, margin in margins do
+			mask[name] = WeatherShelter.open(c[1], c[2], margin, footprints)
 		end
-		p.Parent = workspace
-		part = p
+		masks[i] = mask
+	end
+end
+
+-- Moves the sheet over the camera and shares the current rates out over the tiles that may emit.
+local function follow()
+	local camera = workspace.CurrentCamera
+	if not camera or #tiles == 0 then
+		return
+	end
+	local at = camera.CFrame.Position
+	local y = if shown == "Snow" then WeatherShelter.SNOW_Y else at.Y + WeatherShelter.ABOVE_CAMERA
+	local centres = WeatherShelter.tiles(at.X, at.Z)
+	local fall = y - WorldLayout.PLOT_FLOOR_TOP
+	local key = `{centres[1][1]},{centres[1][2]},{math.floor(fall / REMASK_FALL)}`
+	if key ~= maskKey then
+		maskKey = key
+		remask(centres, fall)
+	end
+	local frames = table.create(#tiles)
+	for i, c in centres do
+		frames[i] = CFrame.new(c[1], y, c[2])
+	end
+	workspace:BulkMoveTo(tiles, frames, Enum.BulkMoveMode.FireCFrameChanged)
+	local share = 1 / #tiles
+	for i, p in tiles do
+		local mask = masks[i]
+		for _, child in p:GetChildren() do
+			if child:IsA("ParticleEmitter") then
+				local rate = if mask[child.Name] then (current[child.Name] or 0) * share else 0
+				if math.abs(child.Rate - rate) > 1e-4 then
+					child.Rate = rate
+				end
+			end
+		end
+	end
+end
+
+local function ensureFx()
+	if not sheet then
+		local folder = Instance.new("Folder")
+		folder.Name = "WeatherEmitter"
+		local size = WeatherShelter.TILE
+		for i = 1, WeatherShelter.TILES * WeatherShelter.TILES do
+			local p = Instance.new("Part")
+			p.Name = `Tile_{i}`
+			p.Anchored = true
+			p.CanCollide = false
+			p.CanQuery = false
+			p.CanTouch = false
+			p.Transparency = 1
+			p.Size = Vector3.new(size, 1, size)
+			for name in WeatherLook.EMITTERS do
+				makeEmitter(name).Parent = p
+			end
+			p.Parent = folder
+			tiles[i] = p
+		end
+		folder.Parent = workspace
+		sheet = folder
+		maskKey = nil
 	end
 	if not tint then
 		local c = Instance.new("ColorCorrectionEffect")
@@ -120,14 +181,7 @@ local function ensureFx()
 		tint = c
 	end
 	if not heartbeat then
-		heartbeat = RunService.Heartbeat:Connect(function()
-			local camera = workspace.CurrentCamera
-			if part and camera then
-				local at = camera.CFrame.Position
-				local y = if shown == "Snow" then SNOW_EMITTER_Y else at.Y + 40
-				part.CFrame = CFrame.new(at.X, y, at.Z)
-			end
-		end)
+		heartbeat = RunService.Heartbeat:Connect(follow)
 	end
 end
 
@@ -145,10 +199,14 @@ local function teardown()
 		heartbeat:Disconnect()
 		heartbeat = nil
 	end
-	if part then
-		part:Destroy()
-		part = nil
+	if sheet then
+		sheet:Destroy()
+		sheet = nil
 	end
+	table.clear(tiles)
+	table.clear(masks)
+	table.clear(current)
+	maskKey = nil
 	if tint then
 		tint:Destroy()
 		tint = nil
@@ -181,8 +239,7 @@ local function transition(goal: WeatherGrade.Grade, rates: { [string]: number })
 	local from = WeatherGrade.get()
 	local fromRates: { [string]: number } = {}
 	for name in rates do
-		local emitter = (part :: Part):FindFirstChild(name)
-		fromRates[name] = if emitter and emitter:IsA("ParticleEmitter") then emitter.Rate else 0
+		fromRates[name] = current[name] or 0
 	end
 	local value = driver :: NumberValue
 	value.Value = 0
@@ -191,10 +248,7 @@ local function transition(goal: WeatherGrade.Grade, rates: { [string]: number })
 		applyGrade(WeatherGrade.lerp(from, goal, alpha))
 		local e = WeatherGrade.ease(alpha)
 		for name, rate in rates do
-			local emitter = part and part:FindFirstChild(name)
-			if emitter and emitter:IsA("ParticleEmitter") then
-				emitter.Rate = fromRates[name] + (rate - fromRates[name]) * e
-			end
+			current[name] = fromRates[name] + (rate - fromRates[name]) * e
 		end
 	end
 	driverConn = value.Changed:Connect(step)
@@ -214,7 +268,7 @@ function WeatherFx.show(id: string)
 	token += 1
 	local mine = token
 	local look = WeatherLook.LOOKS[id] or WeatherLook.LOOKS.Clear
-	if id == Weather.CLEAR and not part then
+	if id == Weather.CLEAR and not sheet then
 		return
 	end
 	ensureFx()
