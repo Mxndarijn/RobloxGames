@@ -944,6 +944,8 @@ MeshAssets.COLLISION = table.freeze({
 	-- the Item / Upgrade Shop stands (CONTRACT.md §27.2): a solid counter, not a box to stand inside
 	ranch_item_shop = "Hull",
 	ranch_upgrade_cabinet = "Hull",
+	-- the slime stands on every pad (WorldLayout padNode): a round cork stand players bump into and stand on
+	goo_cork_stand = "Hull",
 
 	-- Bug #11 part 1 (docs/COLLISION.md "Conversions"): one line of reason per mesh. Everything not listed here
 	-- is decor (see the same doc for why each stays off).

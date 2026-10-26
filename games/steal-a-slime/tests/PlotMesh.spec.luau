@@ -136,16 +136,17 @@ describe("pad stands", function()
 				local h = (pad.size :: Vec)[2]
 				expect(p[2] - h / 2).toBeCloseTo(BASE_TOP)
 				expect(p[2] + h / 2).toBeCloseTo(BASE_TOP + seat)
-				-- the primitive Pad hides once its stand mesh lands (it keeps the prompt); its round PadCollider, the
-				-- same height, is what collides
+				-- the primitive Pad hides once its stand mesh lands (it keeps the prompt); the stand, standing on
+				-- the floor, is what collides and what ground raycasts land dropped slimes on
 				expect((pad.attributes :: any).MeshStandIn).toBe(look)
 				expect((pad.attributes :: any).PadIndex).toBe(j)
 				expect(pad.canCollide).toBe(false)
-				local collider = child(pad, "PadCollider")
-				expect(collider.canCollide ~= false).toBe(true)
-				expect(collider.canQuery ~= false).toBe(true) -- ground raycasts land dropped slimes on it
-				local c = toPlot(i, collider.pos :: Vec)
-				expect(c[2] + (collider.size :: Vec)[1] / 2).toBeCloseTo(BASE_TOP + seat)
+				local stand = child(pad, "Stand")
+				expect(stand.canCollide ~= false).toBe(true)
+				expect(stand.canQuery ~= false).toBe(true)
+				expect((stand.attributes :: any).MeshCanQuery).toBe(true)
+				local c = toPlot(i, stand.pos :: Vec)
+				expect(c[2] - (stand.size :: Vec)[2] / 2).toBeCloseTo(BASE_TOP)
 			end
 		end
 	end)
