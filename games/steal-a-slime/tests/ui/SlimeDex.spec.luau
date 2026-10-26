@@ -489,6 +489,27 @@ describe("SpeciesModel (the card's species mesh)", function()
 		present = false
 		expect(build("moo")).toBeNil()
 	end)
+	it("tells `want` about a species whose kit has not arrived", function()
+		local SpeciesModel = UiHarness.ui("SpeciesModel")
+		local folder = UiHarness.Instance.new("Folder")
+		local wanted: { string } = {}
+		local build = SpeciesModel.builder(
+			function()
+				return folder
+			end,
+			180,
+			function(id: string)
+				table.insert(wanted, id)
+			end
+		)
+		expect(build("gummy")).toBeNil()
+		expect(wanted).toEqual({ "gummy" })
+		local kit = UiHarness.Instance.new("Part")
+		kit.Name = "slime_gummy"
+		kit.Parent = folder
+		expect(build("gummy") ~= nil).toBe(true)
+		expect(wanted).toEqual({ "gummy" })
+	end)
 end)
 
 describe("menu close button (Widgets.panel)", function()

@@ -34,7 +34,7 @@ return table.freeze({
 	PLOTS_FOLDER = "Plots",
 	PLOT_SLIMES_FOLDER = "Slimes", -- per-plot folder for pad slimes
 	WILD_FOLDER = "WildSlimes",
-	SLIME_KITS_FOLDER = "SlimeKits", -- ReplicatedStorage: one loaded species MeshPart per kit, named "slime_<id>" (SlimeDex previews)
+	SLIME_KITS_FOLDER = "SlimeKits", -- PlayerGui: the species MeshParts this player asked for (RequestKits), named "slime_<id>" (SlimeDex previews)
 	PLOT_INDEX_ATTRIBUTE = "PlotIndex", -- Plot_<i> model: i
 	PAD_INDEX_ATTRIBUTE = "PadIndex", -- Pad_<j> part: j
 	HOME_ZONE = "HomeZone",
