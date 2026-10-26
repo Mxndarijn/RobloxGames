@@ -40,7 +40,7 @@ State field, no save-format change.
   goo) and drips down both ends; the plank has an Ink edge; the name (white) and income
   (mint) are written in Ink-outlined Fredoka on the wood; the growth fills an Ink tube with mint goo, its percent
   beside it.
-  `MaxDistance` 45: the plank is too small to read beyond that. The pad is the plot's part with `PadIndex` =
+  `MaxDistance` is `SlimePadSign.SIZE.maxDistance`: far enough to spot the rarity goo across a plot. The pad is the plot's part with `PadIndex` =
   `LabelPad`. Moves when the slime changes pad; looked up again when the model moves (it may land in its plot after
   `LabelPad` arrives); removed when it leaves the pad or loses its tag.
 - Both are re-rendered only on `AttributeChanged` of the attributes above; no frame loop, no tween. Removed with the
