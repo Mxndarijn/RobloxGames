@@ -23,6 +23,10 @@
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
 local Factory = if script then require(script.Parent.BaseShapeData.Factory) else require("./BaseShapeData/Factory")
+local FactoryMeshes = if script
+	then require(script.Parent.BaseShapeData.FactoryMeshes)
+	else require("./BaseShapeData/FactoryMeshes")
+local JarMeshes = if script then require(script.Parent.JarMeshes) else require("./JarMeshes")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
 type Vec = { number }
@@ -55,7 +59,7 @@ local BaseShapes = {}
 -- where the jar has them. Everything else on floor 1 belongs to one base and is rebuilt on a swap.
 BaseShapes.KEPT_MOVED = table.freeze({ "MergeVat", "LockButton", "ButtonLook", "Bridge", "LockBarrier" })
 BaseShapes.KEPT_STILL =
-	table.freeze({ "Base", "PlotFloor", "HomeZone", "Slimes", "FootLook", "Moat", "JarFloor", "Sign", "LockSign" })
+	table.freeze({ "Base", "PlotFloor", "HomeZone", "Slimes", "Moat", "JarFloor", "Sign", "LockSign" })
 
 local function isPad(name: string): boolean
 	local j = tonumber(string.match(name, "^Pad_(%d+)$"))
@@ -128,7 +132,15 @@ local function shifted(node: WorldNode, dx: number, dz: number, yaw: number): Wo
 	return copy
 end
 
-local function partNode(p: any, at: (Vec) -> Vec, yaw: number): WorldNode
+-- The mesh that is a collider's look (it hides once that mesh lands, MeshSwap's MeshStandIn), by name, "role#floor" or role.
+local function lookOfPart(p: any, standIns: { [string]: string }?): string?
+	if not standIns then
+		return nil
+	end
+	return standIns[p.name] or standIns[`{p.role}#{p.floor}`] or standIns[p.role]
+end
+
+local function partNode(p: any, at: (Vec) -> Vec, yaw: number, standIns: { [string]: string }?): WorldNode
 	local node: WorldNode = {
 		name = p.name,
 		class = "Part",
@@ -145,18 +157,106 @@ local function partNode(p: any, at: (Vec) -> Vec, yaw: number): WorldNode
 		node.canTouch = false
 		node.transparency = 1
 	end
+	local attributes: { [string]: any } = {}
 	if p.show then
-		node.attributes = {
-			JarFloor = p.floor,
-			JarShow = p.show,
-			JarHidden = p.show == "covered",
-			JarCollide = if p.collide then true else nil,
-		}
+		-- shown only while its floor is (or is not) the top one: a collider whose look is a mesh slot of the same
+		-- variant, so it never shows itself (BaseFloors.setLids turns its collision on and off)
+		attributes.JarFloor = p.floor
+		attributes.JarShow = p.show
+		attributes.JarHidden = p.show == "covered"
+		attributes.JarCollide = if p.collide then true else nil
+		node.transparency = 1
+	end
+	local look = lookOfPart(p, standIns)
+	if look then
+		attributes.MeshStandIn = look
+	end
+	if next(attributes) then
+		node.attributes = attributes
 	end
 	return node
 end
 
-local function fromData(data: any): Shape
+-- A mesh slot from a generated slot plan (BaseShapeData/<Name>Meshes): an invisible box the mesh is fitted into
+-- (MeshSwap), turned half round like the jar's looks (the kit ships these meshes mirrored, see models/_goo_jar ship).
+local function slotNode(slot: any, boxes: any, at: (Vec) -> Vec, yaw: number): WorldNode?
+	local box = boxes[slot.mesh]
+	if not box then
+		for name, b in boxes do
+			if string.sub(name, 1, #slot.mesh + 1) == slot.mesh .. "@" then
+				box = b
+				break
+			end
+		end
+	end
+	if not box then
+		return nil
+	end
+	local o, c = slot.offset, box.centre
+	local attributes: { [string]: any } = { MeshAsset = slot.mesh }
+	if slot.role then
+		attributes.ThemeRole = slot.role
+	end
+	if slot.show then
+		attributes.JarFloor = slot.floor
+		attributes.JarShow = slot.show
+		attributes.JarHidden = slot.show == "covered"
+	end
+	return {
+		name = slot.name,
+		class = "Part",
+		shape = "Block",
+		size = box.size,
+		pos = at({ o[1] + c[1], o[2] + c[2], o[3] + c[3] }),
+		rot = { 0, yaw + 180, 0 },
+		color = { 200, 200, 200 },
+		material = "SmoothPlastic",
+		transparency = 1,
+		canCollide = false,
+		canQuery = false,
+		canTouch = false,
+		attributes = attributes,
+	}
+end
+
+-- The jar's mascot slot (goo_jar_mascot, `scale` x its native box) standing at plot-local `bottom`.
+local function mascotNode(
+	f: number,
+	show: string?,
+	bottom: Vec,
+	scale: number,
+	at: (Vec) -> Vec,
+	yaw: number
+): WorldNode
+	local m = (JarMeshes :: any).goo_jar_mascot
+	local c, size = m.centre, m.size
+	local attributes: { [string]: any } = { MeshAsset = "goo_jar_mascot" }
+	if show then
+		attributes.JarFloor = f
+		attributes.JarShow = show
+		attributes.JarHidden = show == "covered"
+	end
+	return {
+		name = "MascotLook",
+		class = "Part",
+		shape = "Block",
+		size = { size[1] * scale, size[2] * scale, size[3] * scale },
+		pos = at({ bottom[1] + c[1] * scale, bottom[2] + c[2] * scale, bottom[3] + c[3] * scale }),
+		rot = { 0, yaw + 180, 0 },
+		color = { 200, 200, 200 },
+		material = "SmoothPlastic",
+		transparency = 1,
+		canCollide = false,
+		canQuery = false,
+		canTouch = false,
+		attributes = attributes,
+	}
+end
+
+-- `looks` (optional): the base's mesh slot plan (BaseShapeData/<Name>Meshes: boxes, slots, tints), `standIns` which
+-- mesh is the look of which collider (by part name, "role#floor" or role), `mascot` where the mascot sits on the top
+-- floor ({ x, up from the floor, z }, scale).
+local function fromData(data: any, looks: any?, standIns: { [string]: string }?, mascot: any?): Shape
 	local pads: { [number]: any } = {}
 	for _, pad in data.pads do
 		pads[pad.j] = pad
@@ -175,7 +275,38 @@ local function fromData(data: any): Shape
 		local out = {}
 		for _, p in data.parts do
 			if p.floor == f then
-				table.insert(out, partNode(p, at, yaw))
+				table.insert(out, partNode(p, at, yaw, standIns))
+			end
+		end
+		if looks then
+			for _, slot in looks.slots do
+				if slot.floor == f and not slot.plot then
+					local node = slotNode(slot, looks.boxes, at, yaw)
+					if node then
+						table.insert(out, node)
+					end
+				end
+			end
+		end
+		if mascot then
+			local show = if f < #Config.BASE_FLOORS then "top" else nil
+			local bottom = { mascot.at[1], WorldLayout.floorTop(f) + mascot.at[2], mascot.at[3] }
+			table.insert(out, mascotNode(f, show, bottom, mascot.scale, at, yaw))
+		end
+		return out
+	end
+
+	-- floor-1 slots the game finds by name on the plot itself (FootLook, StopperShut, StopperParked)
+	local function plotSlots(at: (Vec) -> Vec, yaw: number): { WorldNode }
+		local out = {}
+		if looks then
+			for _, slot in looks.slots do
+				if slot.plot then
+					local node = slotNode(slot, looks.boxes, at, yaw)
+					if node then
+						table.insert(out, node)
+					end
+				end
 			end
 		end
 		return out
@@ -236,6 +367,9 @@ local function fromData(data: any): Shape
 				attributes = { PlotBase = data.id },
 				children = partsOf(1, at, yaw),
 			})
+			for _, node in plotSlots(at, yaw) do
+				table.insert(out, node)
+			end
 			return out
 		end,
 		floor = function(i: number, f: number): { WorldNode }
@@ -264,10 +398,39 @@ local function fromData(data: any): Shape
 	return shape
 end
 
+-- The Goo Factory: which mesh is the look of each collider (they hide once it lands), and the mascot on the goo tank.
+local FACTORY_STAND_INS: { [string]: string } = {
+	["wall#1"] = "factory_storey_1",
+	wall = "factory_storey",
+	["core wall"] = "factory_core",
+	["floor#1"] = "factory_floor_1",
+	floor = "factory_slab",
+	CoreCapA = "factory_core_cap",
+	CoreCapLanding = "factory_core_cap",
+	ramp = "factory_stair",
+	roof = "factory_roof",
+	["goo belt (collides: 1.2 tall)"] = "factory_belt",
+	["yard silo"] = "factory_silo",
+	DropHatch = "factory_hatch",
+}
+local FACTORY_MASCOT = { at = { 9, 28, 4 }, scale = 3.4 }
+
 local SHAPES: { [string]: Shape } = {
 	jar = jar,
-	factory = fromData(Factory),
+	factory = fromData(Factory, FactoryMeshes, FACTORY_STAND_INS, FACTORY_MASCOT),
 }
+local TINTS: { [string]: any } = { factory = FactoryMeshes.tints }
+
+-- The MeshPart.Color (sRGB 0..255) of a tint-only piece of base `base` in plot skin `skin` for theme role `role`;
+-- the classic skin's when the skin has none, nil for a base without tints (the jar's themes are their own meshes).
+function BaseShapes.tint(base: string?, skin: string?, role: string): { number }?
+	local tints = TINTS[base or ""]
+	if not tints then
+		return nil
+	end
+	local row = tints[skin or "classic"] or tints.classic
+	return row[role] or tints.classic[role]
+end
 
 -- The shape of base `id`; the jar for nil or an unknown id (a free plot, the flag off).
 function BaseShapes.get(id: string?): Shape

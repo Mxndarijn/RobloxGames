@@ -1,4 +1,5 @@
-# Goo Factory base: one builder per mesh piece (design stage; nothing uploaded). Numbers come from _factory_layout.
+# Goo Factory base: one builder per mesh piece (models/_factory_ship.py exports them, models/_factory_meshes.py writes
+# the game's FactoryMeshes.luau). Numbers come from _factory_layout.
 # Every builder returns a list of parts in plot-local kit coords with its floor's walking surface at z = 0 (the scene
 # lifts it to floor_top(f)). Tint-only pieces are painted in value greys only, so MeshPart.Color themes them (assumed
 # multiply, see LESSONS [slimes]): each storey is four tint-only meshes (brick shell, cream trim, window strips, goo
@@ -205,8 +206,10 @@ def sign():
             for r, row in enumerate(FONT[ch]):
                 for c, bit in enumerate(row):
                     if bit == "1":
-                        parts.append(box(f"Px{x:.1f}{r}{c}", (px, 0.25, px), (x + c * px + px / 2, y - 0.4, z + 1.35 - r * px),
-                                         ink))
+                        # mirrored in x: plot +x is on the left of someone facing the door (kit y = plot z), so the
+                        # word is laid out right to left in kit axes to read left to right in the game
+                        parts.append(box(f"Px{x:.1f}{r}{c}", (px, 0.25, px),
+                                         (-(x + c * px + px / 2), y - 0.4, z + 1.35 - r * px), ink))
         x += 4 * px
     for k, col in enumerate((P["ranch_goo"], P["ranch_pink"], P["ranch_butter"], P["ranch_lilac"], P["ranch_goo"])):
         parts.append(blob(f"Dot{k}", 0.55, (-4.4 + k * 2.2, y - 0.45, z - 1.2), col, subdiv=2, squash=(1, 0.5, 1), jitter=0))
@@ -658,7 +661,8 @@ def chute(top_floor):
         (x0, y0, z0), (x1, y1, z1) = pts[k], pts[k + 1]
         run = abs(y1 - y0)
         ln = math.hypot(run, z0 - z1)
-        ang = math.degrees(math.atan2(z0 - z1, run)) * (1 if y1 > y0 else -1)
+        # a +x rotation lifts the +y end: a leg running toward +y tilts down by turning the other way
+        ang = math.degrees(math.atan2(z0 - z1, run)) * (-1 if y1 > y0 else 1)
         cy_, cz = (y0 + y1) / 2, (z0 + z1) / 2
         parts.append(B(f"Bed{k}", (3.0, ln, 0.4), (x0, cy_, cz), g(0.95), rot=(ang, 0, 0)))
         for s in (-1, 1):
@@ -703,6 +707,7 @@ PIECES = {
     "factory_roof_kit": (lambda tid, th: roof_kit(tid, th), None),
     "factory_door_frame": (lambda tid, th: door_frame(), None),
     "factory_shutter": (lambda tid, th: shutter(), None),
+    "factory_shutter_shut": (lambda tid, th: shutter(shut=True), None),
     "factory_belt": (lambda tid, th: belt(), None),
     "factory_hatch": (lambda tid, th: hatch(), "metal"),
     "factory_chute_2": (lambda tid, th: chute(2), "goo"),
