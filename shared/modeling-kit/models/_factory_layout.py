@@ -14,12 +14,13 @@
 # button inside right; spawn at (0, -12.5). 8 pads per floor in two rows of 4. Owner exit: a hatch in the east wall of
 # the top floor onto the goo chute, a zig-zag half-pipe down the outside to a splash pool (scripted ride, no collision).
 import math
+import os
 
 from models._base_design_common import floor_top, FLOOR_H
 
 ID = "factory"
 NAME = "Goo Factory"
-FLOORS = 4
+FLOORS = int(os.environ.get("LAYOUT_FLOORS", "4"))  # floors standing; tools/export_base_shape.py varies it
 
 HALF = 24.0           # outer half-width of the factory
 WALL = 1.0            # outer wall thickness
@@ -202,6 +203,10 @@ for f in range(1, FLOORS + 1):
         C("WallEast_Over", f, "wall", "box", (WC, HATCH_Y, z + 8 + (FLOOR_H - 8) / 2), (WALL, 4, FLOOR_H - 8))
         C("WallEast_Sill", f, "wall", "box", (WC, HATCH_Y, z + 0.5), (WALL, 4, 1))
         C("DropHatch", f, "contract: drop hatch (open only on the top floor)", "box", (WC, HATCH_Y, z + 4.5), (0.6, 4, 7))
+        if not top:
+            # a closed hatch (not the top floor) hides and stops colliding (BaseFloors), so the wall is plugged
+            # here while a floor stands above: no hole in the east wall of a covered floor
+            C("HatchPlug", f, "wall", "box", (WC, HATCH_Y, z + 4.5), (WALL, 4, 7))
         for s in (-1, 1):
             C(f"DropShield_{s}", f, "contract: blocks the prompt's line of sight from outside", "box",
               (HALF + 0.3, HATCH_Y + s * 3.5, z + 4), (0.4, 3, 7), collide=False)
