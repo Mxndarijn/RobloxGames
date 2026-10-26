@@ -1405,7 +1405,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 
 	-- Number key n (1-9) selects hotbar slot n when the bar shows it; false when it is empty / the bar is hidden.
 	function self.pressKey(n: number): boolean
-		if menuOpen or carrying or panelOpen then
+		if menuOpen or carrying or moving or panelOpen then
 			return false
 		end
 		local bar = applyBar()
@@ -1420,7 +1420,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	-- The gamepad bumpers: the previous (`step` -1) / next (1) filled hotbar slot after the one in hand, wrapping;
 	-- selects it like its number key. With nothing in hand the first / last one. False when there is nothing to pick.
 	function self.cycleSlot(step: number): boolean
-		if menuOpen or carrying or panelOpen then
+		if menuOpen or carrying or moving or panelOpen then
 			return false
 		end
 		local shown = applyBar().shown
@@ -1495,7 +1495,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	-- asks the server to use it. False when nothing is held, the bar is hidden, the use is too soon after the
 	-- last, or there is nothing to send yet (then a tip says why).
 	function self.useHeld(at: (Vector2 | Vector3)?, held: number?): boolean
-		if menuOpen or carrying or panelOpen then
+		if menuOpen or carrying or moving or panelOpen then
 			return false
 		end
 		local pvpEntry = if heldConsumable == nil then equippedPvp() else nil
@@ -1553,7 +1553,11 @@ function Inventory.new(parent: Instance, deps: Deps)
 	-- (InventoryCore.pvpHolds) waits for the release; everything else is used at once (useHeld).
 	function self.pressHeld(at: Vector2 | Vector3, alreadyHeld: number?): boolean
 		local entry = if heldConsumable == nil then equippedPvp() else nil
-		if entry and not (menuOpen or carrying or panelOpen) and InventoryCore.pvpHolds(toolDef(entry.itemId)) then
+		if
+			entry
+			and not (menuOpen or carrying or moving or panelOpen)
+			and InventoryCore.pvpHolds(toolDef(entry.itemId))
+		then
 			holdStartedAt = os.clock() - (alreadyHeld or 0)
 			return true
 		end
@@ -1591,7 +1595,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			setPanelOpen(false)
 			return true
 		end
-		if menuOpen or carrying then
+		if menuOpen or carrying or moving then
 			return false
 		end
 		setPanelOpen(true)

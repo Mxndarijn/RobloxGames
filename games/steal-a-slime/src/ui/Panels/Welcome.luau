@@ -256,6 +256,13 @@ function Welcome.new(parent: Instance, ctx: any)
 
 	local self = { frame = panel.frame, close = panel.close }
 
+	-- Each time the card opens it starts at the top (the away line and the amount), wherever it was left.
+	panel.frame:GetPropertyChangedSignal("Visible"):Connect(function()
+		if panel.frame.Visible then
+			content.CanvasPosition = Vector2.zero
+		end
+	end)
+
 	-- Cards hide when the view has fewer rows (no daily / every goal done): the card shrinks with them.
 	function self.update(state: any)
 		local view = WelcomeBack.view(state)

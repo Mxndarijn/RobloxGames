@@ -17,7 +17,9 @@
 	plank per pad slime. Both are re-rendered only on AttributeChanged of the
 	label attributes, and the tags are refitted when the camera's viewport
 	size changes (a phone gets a smaller pixel floor and a shorter
-	MaxDistance): no frame loop, no tween, no polling. The tag is parented
+	MaxDistance). No frame loop of its own and no tween: the client loop
+	calls the `tick` that `start` returns, which only resizes a tag as it
+	comes nearer the camera than closeLimit or leaves that range. The tag is parented
 	to the Body (Archivable false, so a FollowPets clone never copies it); the
 	planks go in one local folder. Both go with the model or its tag.
 ]]
@@ -319,6 +321,7 @@ type Entry = {
 	gui: BillboardGui?, -- built on first need: a slime resting on a pad never has one
 	conn: RBXScriptConnection,
 	view: SlimeLabel.View?, -- shown on gui, nil while it is hidden
+	capped: boolean?, -- drawn at its closeLimit size (tick)
 	moved: RBXScriptConnection, -- AncestryChanged: the pad may only be findable once the model sits in its plot
 	sign: Part?,
 	signPad: BasePart?,
@@ -400,11 +403,13 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 			gui.Adornee = entry.anchor
 			entry.gui = gui
 			entry.view = view
+			entry.capped = false
 			SlimeInfoCard.render(gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE), fit)
 			gui.Parent = entry.body
 			return
 		end
 		entry.view = view
+		entry.capped = false
 		SlimeInfoCard.render(gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE), fit)
 	end
 
@@ -463,6 +468,18 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 		refresh(model)
 	end
 
+	-- Sizes a shown tag for the current fit: at its closeLimit size (all px) while `capped`, else studs plus px.
+	local function applySize(entry: Entry, gui: BillboardGui, view: SlimeLabel.View)
+		local count = SlimeLabel.rows(view)
+		local cam = camera
+		if entry.capped and cam then
+			local px = SlimeInfoCard.pxPerStud(cam.ViewportSize.Y, cam.FieldOfView, SlimeInfoCard.SIZE.closeLimit)
+			gui.Size = SlimeInfoCard.fixedSize(count, fit.pxScale, px)
+		else
+			gui.Size = SlimeInfoCard.size(count, fit.pxScale)
+		end
+	end
+
 	-- Resizes the shown tags only when the viewport's fit changes (a window drag mostly keeps it).
 	local function refit()
 		local nextFit = SlimeInfoCard.fit(viewportHeight())
@@ -475,7 +492,7 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 			if gui then
 				gui.MaxDistance = fit.maxDistance
 				if entry.view then
-					gui.Size = SlimeInfoCard.size(SlimeLabel.rows(entry.view), fit.pxScale)
+					applySize(entry, gui, entry.view)
 				end
 			end
 		end
@@ -494,24 +511,22 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 	local cameraConn: RBXScriptConnection = world:GetPropertyChangedSignal("CurrentCamera"):Connect(watchCamera)
 	watchCamera()
 
-	-- Tags nearer the camera than closeLimit are drawn at their closeLimit size (all px), the rest as usual.
+	-- Tags nearer the camera than closeLimit are drawn at their closeLimit size (all px), the rest as usual. Only
+	-- a tag crossing closeLimit is resized; the distance is to where the tag is drawn (its offset above the anchor).
 	local function tick()
 		local cam = camera
 		if not cam then
 			return
 		end
 		local eye = cam.CFrame.Position
-		local closePx = SlimeInfoCard.pxPerStud(cam.ViewportSize.Y, cam.FieldOfView, SlimeInfoCard.SIZE.closeLimit)
+		local limit = SlimeInfoCard.SIZE.closeLimit
 		for _, entry in cards do
 			local gui, view = entry.gui, entry.view
 			if gui and view and gui.Enabled then
-				local count = SlimeLabel.rows(view)
-				local near = (entry.anchor.WorldPosition - eye).Magnitude < SlimeInfoCard.SIZE.closeLimit
-				local want = if near
-					then SlimeInfoCard.fixedSize(count, fit.pxScale, closePx)
-					else SlimeInfoCard.size(count, fit.pxScale)
-				if gui.Size ~= want then
-					gui.Size = want
+				local near = (entry.anchor.WorldPosition + gui.StudsOffsetWorldSpace - eye).Magnitude < limit
+				if near ~= (entry.capped == true) then
+					entry.capped = near
+					applySize(entry, gui, view)
 				end
 			end
 		end
