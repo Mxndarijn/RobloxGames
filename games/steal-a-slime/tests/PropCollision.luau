@@ -881,6 +881,14 @@ local UNPLACED: { [string]: { string } } = {
 		"jolt",
 		"the follow pet's cloud (published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
 	},
+	pet_mount_jelly = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_rainbow_cloud = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
 	ranch_bat = { "jolt", "the held Bat tool's Handle (BatTool), never a world slot; a tool has no collision" },
 	ranch_border_fence_broken = { "jolt", "border piece not used by WorldBorder.CHUNKS / DEFS" },
 	ranch_border_hedge_stepped = { "jolt", "border piece not used by WorldBorder.DEFS" },

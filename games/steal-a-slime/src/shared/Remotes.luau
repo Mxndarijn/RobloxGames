@@ -53,6 +53,7 @@ Remotes.ACTIONS = table.freeze({
 	Drop = table.freeze({ args = {} }),
 	Redeem = table.freeze({ args = { "code" } }), -- typed code text (Codes.normalize on the server)
 	EquipPlotSkin = table.freeze({ args = { "string" } }), -- Config.PLOT_SKINS id (FEATURES.PlotSkins, CONTRACT.md §15)
+	EquipPetSeat = table.freeze({ args = { "string" } }), -- Config.PET_SEATS id (contract/pet-seats.md)
 	BuyConsumable = table.freeze({ args = { "string", "string?" } }), -- Config.CONSUMABLES id, slimeId (ignored: buying only adds to the held stack) (FEATURES.Consumables)
 	UseConsumable = table.freeze({ args = { "string", "string?" } }), -- held Config.CONSUMABLES id, unused slot (string?): applies the effect, stack -1 (FEATURES.Consumables)
 	SetAudioSettings = table.freeze({ args = { "number", "number", "boolean" } }), -- musicVolume, sfxVolume (clamped 0..1), muted (FEATURES.Audio, CONTRACT.md §8.9c)
