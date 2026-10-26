@@ -27,9 +27,10 @@ def tint(objs, col):
         ca = o.data.color_attributes.get("Col")
         if ca is None:
             continue
+        # multiply in sRGB, as picked (the attribute stores sRGB bytes; .color would be linear), like MeshPart.Color
         for d in ca.data:
-            c = d.color
-            d.color = (c[0] * col[0], c[1] * col[1], c[2] * col[2], c[3])
+            c = d.color_srgb
+            d.color_srgb = (c[0] * col[0], c[1] * col[1], c[2] * col[2], c[3])
 
 
 def role_col(role):
