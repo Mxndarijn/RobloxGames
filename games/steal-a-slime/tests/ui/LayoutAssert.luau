@@ -427,6 +427,14 @@ function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 			out,
 			{ name = `{card[1]} Hide`, text = "Hide", size = 13, bold = true, w = 72, h = Layout.MIN_TOUCH_DESIGN }
 		)
+		table.insert(out, {
+			name = `{card[1]} show again`,
+			text = Tutorial.SHOW_TEXT,
+			size = 13,
+			bold = true,
+			w = Layout.TUTORIAL.showW,
+			h = Layout.MIN_TOUCH_DESIGN,
+		})
 	end
 	return out
 end
