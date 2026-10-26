@@ -351,6 +351,7 @@ local carry = CarryPanel.new(gui, ctx)
 local bossMeter = BossMeterPanel.new(gui, ctx)
 local dailyPopup = DailyPopup.new(gui, ctx)
 local tutorial = TutorialOverlay.new(gui, ctx)
+ctx.tutorial = tutorial -- the Guide offers "Show the tutorial again" after Hide
 local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)

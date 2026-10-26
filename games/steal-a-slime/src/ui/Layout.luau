@@ -703,8 +703,7 @@ Layout.CARRY_TEXT_RESERVE = 190
 Layout.CARRY_MIN_W = 320 -- narrowest carry card (short screens, beside the tutorial card)
 Layout.TUTORIAL_BESIDE_MIN = 260 -- narrowest tutorial card beside the carry card
 Layout.DAILY = table.freeze({ w = 420, h = 308 })
--- showW: the "Tutorial" button that brings a hidden card back (bottom-right corner of the card box).
-Layout.TUTORIAL = table.freeze({ w = 520, bodyTop = 68, bodyTextSize = 14, padX = 14, padBottom = 12, showW = 96 })
+Layout.TUTORIAL = table.freeze({ w = 520, bodyTop = 68, bodyTextSize = 14, padX = 14, padBottom = 12 })
 -- Short (landscape phone) screens: the tutorial card sits this many screen px
 -- above the bottom edge, below the banner stack.
 Layout.TUTORIAL_SHORT_MARGIN = 8

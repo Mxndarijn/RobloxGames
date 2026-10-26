@@ -40,7 +40,7 @@ local Tutorial = require("../../src/ui/Tutorial")
 local WorldShopLogic = require("../../src/ui/WorldShopLogic")
 
 -- Row geometry constants only (Panels/* build Instances in .new, never at load).
-local GuidePanel = { TIP_H = 44 }
+local GuidePanel = { TIP_H = 44, SHOW_TEXT = "📖  Show the tutorial again" }
 -- Panels/Rebirth's sizes and copy (LayoutAssert.spec checks this copy against the module).
 local RebirthPanel = {
 	ROWS = { sub = { y = 0, h = 18 }, gap = 8, gets = 20 },
@@ -427,14 +427,6 @@ function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 			out,
 			{ name = `{card[1]} Hide`, text = "Hide", size = 13, bold = true, w = 72, h = Layout.MIN_TOUCH_DESIGN }
 		)
-		table.insert(out, {
-			name = `{card[1]} show again`,
-			text = Tutorial.SHOW_TEXT,
-			size = 13,
-			bold = true,
-			w = Layout.TUTORIAL.showW,
-			h = Layout.MIN_TOUCH_DESIGN,
-		})
 	end
 	return out
 end
@@ -673,6 +665,14 @@ function LayoutAssert.guideTexts(panel: Rect): { TextDesc }
 	for i, text in tips do
 		table.insert(out, { name = `Guide tip {i}`, text = `🚨  {text}`, size = 15, w = w, h = GuidePanel.TIP_H })
 	end
+	table.insert(out, {
+		name = "Guide show tutorial",
+		text = GuidePanel.SHOW_TEXT,
+		size = 15,
+		bold = true,
+		w = w,
+		h = GuidePanel.TIP_H,
+	})
 	return out
 end
 

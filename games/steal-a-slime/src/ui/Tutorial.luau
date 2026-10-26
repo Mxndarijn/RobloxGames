@@ -32,8 +32,6 @@ Tutorial.KINDS = table.freeze({ "keyboard", "touch", "gamepad" } :: { Kind })
 -- The KeyCode names of the prompts the steps name: the server sets KeyboardKeyCode = E on the grab and plot
 -- prompts and leaves GamepadKeyCode at the ProximityPrompt default (ButtonX).
 Tutorial.PROMPT_KEYS = table.freeze({ keyboard = "E", gamepad = "ButtonX" })
--- Label of the button that brings a hidden tutorial card back.
-Tutorial.SHOW_TEXT = "Tutorial"
 
 -- Short names for UserInputService:GetStringForKeyCode on a gamepad (Xbox letters, PlayStation shapes).
 local PAD_NAMES = table.freeze({

@@ -2,8 +2,8 @@
 --[[
 	Tutorial overlay: a card at the bottom centre with the current step from
 	Tutorial (`State.tutorialStepId`, else `tutorialStep`; CONTRACT §8.3). "Hide" hides it locally until the server moves to
-	another step, and a small "Tutorial" button in its place brings it back; the UI
-	never advances the tutorial itself. While carrying,
+	another step, or until the player picks "Show tutorial" in the Guide panel
+	(`showAgain`); the UI never advances the tutorial itself. While carrying,
 	the card moves up so the carry panel (Drop) below it stays visible.
 	`layout(screen)` takes both boxes from Layout.screen (card height fits
 	the longest step body, Layout.tutorialHeight).
@@ -75,11 +75,9 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 	local hiddenStep: string? = nil
 	local wanted = false -- the step wants the card shown (not finished, not Hidden)
 	local menuOpen = false
-	local showAgain: Widgets.Button
 
 	local function refresh()
 		card.Visible = wanted and not menuOpen
-		showAgain.instance.Visible = shownStep ~= nil and shownStep == hiddenStep and not menuOpen
 	end
 
 	local hide = Widgets.button(
@@ -101,28 +99,7 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 	)
 	hide.instance.Parent = card
 
-	-- While the player has the step hidden, a small "Tutorial" button sits in the
-	-- card's bottom-right corner and brings the card back.
-	showAgain = Widgets.button(
-		{
-			Name = "TutorialShow",
-			Text = Tutorial.SHOW_TEXT,
-			TextSize = 13,
-			Visible = false,
-			AnchorPoint = Vector2.new(1, 1),
-			Size = UDim2.fromOffset(Layout.TUTORIAL.showW, Layout.MIN_TOUCH_DESIGN),
-			ZIndex = Layout.ZINDEX.Tutorial,
-			Parent = parent,
-		},
-		Theme.BgLight,
-		function()
-			hiddenStep = nil
-			wanted = shownStep ~= nil
-			refresh()
-		end
-	)
-
-	local self = { frame = card, showButton = showAgain.instance }
+	local self = { frame = card }
 	local screen: Layout.Screen? = nil
 	local carrying = false
 
@@ -130,7 +107,6 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		if screen == nil then
 			card.AnchorPoint = Vector2.new(0.5, 1)
 			card.Position = if carrying then ABOVE_CARRY else BOTTOM
-			showAgain.instance.Position = card.Position + UDim2.fromOffset(card.Size.X.Offset / 2 - 10, -8)
 			return
 		end
 		local r = if carrying then screen.tutorialCarrying else screen.tutorial
@@ -139,7 +115,6 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		card.Size = UDim2.fromOffset(r.w, r.h)
 		body.Size =
 			UDim2.new(1, -Layout.TUTORIAL.padX * 2, 0, r.h - Layout.TUTORIAL.bodyTop - Layout.TUTORIAL.padBottom)
-		showAgain.instance.Position = UDim2.fromOffset(r.x + r.w - 10, r.y + r.h - 8)
 	end
 
 	function self.layout(s: Layout.Screen)
@@ -157,6 +132,18 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 	-- The step wants its card (and hint) shown, whether or not a menu covers it now.
 	function self.shown(): boolean
 		return wanted
+	end
+
+	-- The player hid the current step with Hide (the Guide offers to show it again).
+	function self.hidden(): boolean
+		return shownStep ~= nil and shownStep == hiddenStep
+	end
+
+	-- Undoes Hide: the current step's card shows again (once no menu covers it).
+	function self.showAgain()
+		hiddenStep = nil
+		wanted = shownStep ~= nil
+		refresh()
 	end
 
 	local latest: any = nil
