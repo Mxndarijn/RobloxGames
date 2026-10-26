@@ -70,7 +70,7 @@ function BossCredit.win(world: World, fight: BossFight.State, carrier: Session, 
 					BOSS.MVP_SECONDS / 60 + 0.5
 				)} min`,
 				"good",
-				"Cash"
+				"BossMvp"
 			)
 		end
 		if isCarrier then

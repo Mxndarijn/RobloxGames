@@ -4,7 +4,8 @@
 
 	Turns a plot from one base into another (CONTRACT.md §44) when its PlotBase changes: floor 1 is static as the goo
 	jar tower, so another base is built over it at runtime, and the jar is built back the same way. In order:
-	1. everyone inside the plot is set down on its spawn spot (nobody stays inside walls that move);
+	1. everyone inside the old base's walls is set down on its spawn spot (nobody stays inside walls that move);
+	   people outside them (the bridge, the moat, the yard) are left where they are, so a swap never moves anyone in;
 	2. the upper floors and the roof colliders go (BaseFloors.clear: prompts parked, people set down);
 	3. the old base's own floor-1 pieces are destroyed (only the names of its BaseShapes.floor1 nodes that no base
 	   keeps, so nothing else under the plot is touched);
@@ -19,6 +20,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local BaseFloors = require(script.Parent.BaseFloors)
+local BaseShapes = require(ReplicatedStorage.Visuals.BaseShapes)
+local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local MeshSwap = require(script.Parent.MeshSwap)
 local WorldBuilder = require(ReplicatedStorage.Visuals.WorldBuilder)
@@ -26,10 +29,20 @@ local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
 local BaseShapeSwap = {}
 
--- How far out from the plot's centre (studs) a character counts as on the plot when the base swaps.
-BaseShapeSwap.REACH = WorldLayout.PLOT_SIZE / 2
+-- Whether plot-local (x, y, z) is inside base `old`'s walls (y on the floorTop scale): on the floor its height is
+-- at, one stud of slack past the walls (BaseFloors' evacuate does the same).
+function BaseShapeSwap.insideOld(old: string?, x: number, y: number, z: number): boolean
+	local shape = BaseShapes.get(old)
+	local floor = 0
+	for f = 1, #Config.BASE_FLOORS do
+		if y >= WorldLayout.floorTop(f) - 1 then
+			floor = f
+		end
+	end
+	return floor > 0 and shape.inside(floor, x, z, 1)
+end
 
-local function setDown(plot: Instance, moved: ((userId: number) -> ())?)
+local function setDown(plot: Instance, old: string?, moved: ((userId: number) -> ())?)
 	local base = plot:FindFirstChild("Base")
 	if not (base and base:IsA("BasePart")) then
 		return
@@ -41,7 +54,8 @@ local function setDown(plot: Instance, moved: ((userId: number) -> ())?)
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if character and root and root:IsA("BasePart") then
 			local p = base.CFrame:PointToObjectSpace(root.Position)
-			if math.max(math.abs(p.X), math.abs(p.Z)) <= BaseShapeSwap.REACH and p.Y > -5 then
+			local y = p.Y - base.Size.Y / 2 + WorldLayout.PLOT_FLOOR_TOP
+			if BaseShapeSwap.insideOld(old, p.X, y, p.Z) then
 				character:PivotTo(landing)
 				root.AssemblyLinearVelocity = Vector3.zero
 				if moved then
@@ -62,7 +76,7 @@ function BaseShapeSwap.swap(
 	moved: ((userId: number) -> ())?
 )
 	local old = from or plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE)
-	setDown(plot, moved)
+	setDown(plot, if type(old) == "string" then old else nil, moved)
 	BaseFloors.clear(plot)
 	local created = WorldBuilder.rebase(plot, plotIndex, if type(old) == "string" then old else nil, to)
 	if #created > 0 then

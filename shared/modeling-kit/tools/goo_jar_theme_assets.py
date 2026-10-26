@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Write the goo jar tower theme block of games/steal-a-slime/src/shared/MeshAssets.luau from uploaded.json.
 
-Every uploaded goo jar "<piece>@<skin>" (goo_* names; the other bases' meshes are tools/base_mesh_assets.py's) with a meshId and meshSize (upload.py --size-check, or tools/probe_meshids.py) gets
-an entry between the "-- BEGIN goo jar tower themes" and "-- END goo jar tower themes" lines. tests/ThemeMeshes.spec
-fails when the block and uploaded.json disagree.
+Every uploaded goo jar "<piece>@<skin>" (goo_* names; the other bases' meshes are tools/base_mesh_assets.py's) with a
+meshId and meshSize (upload.py --size-check, or tools/probe_meshids.py) gets an entry between the "-- BEGIN goo jar
+tower themes" and "-- END goo jar tower themes" lines. tests/ThemeMeshes.spec fails when the block and uploaded.json
+disagree.
 
     python3 tools/goo_jar_theme_assets.py
 """

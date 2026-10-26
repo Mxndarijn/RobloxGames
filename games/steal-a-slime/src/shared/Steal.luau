@@ -5,9 +5,9 @@
 	Pure rules for base locks, stealing, carrying, wriggling free and slapping.
 
 	* Lock: every plot is locked for JOIN_LOCK_SECONDS after joining. The plot's
-	  lock button buys LOCK_SECONDS (+LOCK_SECONDS_PER_REBIRTH per rebirth) more,
-	  stacking on top of any remaining lock. Neither one purchase nor the stack
-	  goes past LOCK_MAX_REMAINING.
+	  lock button starts one lock of LOCK_SECONDS (+LOCK_SECONDS_PER_REBIRTH per
+	  rebirth, up to LOCK_MAX_SECONDS) in one go. It only works while no lock is
+	  running: no extending, no stacking.
 	* Steal: a slime on an unlocked plot can be grabbed by anyone else within
 	  STEAL_REACH who isn't already carrying something. Both players' saves
 	  must be writable: each save is written on its own, so a theft involving
@@ -63,10 +63,10 @@ local Steal = {}
 -- Lock
 ---------------------------------------------------------------------------
 
--- Seconds one bought lock adds: base + per rebirth, never more than LOCK_MAX_REMAINING.
+-- Seconds one lock lasts: base + per rebirth, never more than LOCK_MAX_SECONDS.
 function Steal.lockDuration(rebirths: number): number
 	local r = math.max(0, math.floor(tonumber(rebirths) or 0))
-	return math.min(Config.LOCK_SECONDS + r * Config.LOCK_SECONDS_PER_REBIRTH, Config.LOCK_MAX_REMAINING)
+	return math.min(Config.LOCK_SECONDS + r * Config.LOCK_SECONDS_PER_REBIRTH, Config.LOCK_MAX_SECONDS)
 end
 
 function Steal.joinLockUntil(now: number): number
@@ -82,16 +82,14 @@ function Steal.lockRemaining(lockUntil: number, now: number): number
 end
 
 --[[
-	Starts / extends the plot lock. Locking is free.
+	Starts the plot lock: the full duration, free. Refused while a lock is still running (no extending).
 	Returns (ok, newLockUntil, reason?).
 ]]
 function Steal.buyLock(data: PlayerData.Data, lockUntil: number, now: number): (boolean, number, string?)
-	local remaining = Steal.lockRemaining(lockUntil, now)
-	if remaining >= Config.LOCK_MAX_REMAINING - 1 then
-		return false, lockUntil, "lock is already at max"
+	if Steal.isLocked(lockUntil, now) then
+		return false, lockUntil, "your base is already locked"
 	end
-	local newRemaining = math.min(remaining + Steal.lockDuration(data.rebirths), Config.LOCK_MAX_REMAINING)
-	return true, now + newRemaining, nil
+	return true, now + Steal.lockDuration(data.rebirths), nil
 end
 
 ---------------------------------------------------------------------------

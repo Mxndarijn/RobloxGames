@@ -173,8 +173,15 @@ describe("Actions dispatch", function()
 		PlayerData.addSlime(s.data, Fixtures.slime("need", 2, { species = FIRST }))
 		expect(call(world, 1, "VatAdd", "a").ok).toBe(true)
 		expect(s.data.vat ~= nil).toBe(true)
+		expect(call(world, 1, "Lock").ok).toBe(false) -- the join lock still runs
+		s.lockUntil = 0
+		s.limiter = {}
 		expect(call(world, 1, "Lock").ok).toBe(true)
 		expect(s.lockUntil > T0 + 100).toBeTruthy()
+		local until1 = s.lockUntil
+		s.limiter = {}
+		expect(call(world, 1, "Lock").message).toBe("your base is already locked")
+		expect(s.lockUntil).toBe(until1)
 		expect(call(world, 1, "Rebirth").ok).toBe(true)
 		expect(s.data.rebirths).toBe(1)
 	end)

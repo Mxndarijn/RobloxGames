@@ -1,7 +1,7 @@
 # Steal a Slime: play-test checklist (Merijn)
 
 **Build:** place version **10** (published 2026-10-15 00:28 CEST via Open Cloud, `versionType=Published`, commit `f7f7f38`), universe 10770917350, place 135787188192378. v9 was the void fix.
-**Data:** real DataStores (`StealASlime_v1` + OrderedDataStore `StealASlime_TotalEarned`). The built place has no `DataStoreMode = "Memory"` attribute, so progress persists between sessions.
+**Data:** real DataStores (`StealASlime_v2` + the leaderboard OrderedDataStores, all `_v2` since the 2026-10-26 wipe). The built place has no `DataStoreMode = "Memory"` attribute, so progress persists between sessions.
 
 ## How to join
 

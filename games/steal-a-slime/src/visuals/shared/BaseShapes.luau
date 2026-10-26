@@ -42,6 +42,7 @@ export type Guard = {
 	floorHeight: number,
 	wall: number,
 	square: boolean?, -- true: radii are half-widths of a square (max(|x|, |z|)), not radii
+	extra: { { x: number, z: number, r: number } }?, -- more round rooms inside on every floor (the pagoda's turret)
 }
 
 export type Shape = {
@@ -172,13 +173,16 @@ local function partNode(
 		-- in the roof folder (only ever on the current top floor): a plain collider, its look a mesh slot
 		node.transparency = 1
 	elseif p.show then
-		-- shown only while its floor is (or is not) the top one: a collider whose look is a mesh slot of the same
-		-- variant, so it never shows itself (BaseFloors.setLids turns its collision on and off)
+		-- shown only while its floor is (or is not) the top one (BaseFloors.setLids): a collider whose look is a mesh
+		-- slot of the same variant shows itself until that mesh lands (MeshStandIn, then StandInHidden)
 		attributes.JarFloor = p.floor
 		attributes.JarShow = p.show
 		attributes.JarHidden = p.show == "covered"
 		attributes.JarCollide = if p.collide then true else nil
-		node.transparency = 1
+		attributes.JarShowSelf = if p.collide then true else nil
+		if p.show == "covered" or not p.collide then
+			node.transparency = 1
+		end
 	end
 	local look = lookOfPart(p, standIns)
 	if look then
@@ -300,12 +304,18 @@ local function fromData(data: any, opts: Options): Shape
 	local box = data.inside.kind == "box"
 	local half = data.inside.half
 	local radii: { number } = if box then { half, half, half, half } else data.inside.radii
+	-- round rooms beside the main one that count as inside on every floor (the pagoda's stair turret)
+	local extra: { { x: number, z: number, r: number } } = {}
+	for _, e in data.inside.extra or {} do
+		table.insert(extra, table.freeze({ x = e.x, z = e.z, r = e.r }))
+	end
 	local guard: Guard = table.freeze({
 		radii = table.freeze(table.clone(radii)),
 		floorTop = WorldLayout.PLOT_FLOOR_TOP,
 		floorHeight = WorldLayout.FLOOR_HEIGHT,
 		wall = 1,
 		square = box,
+		extra = if #extra > 0 then table.freeze(extra) else nil,
 	})
 
 	-- floor f's parts: "floor" = what stands on the floor (all of it, or without the top-only ones when they go in
@@ -375,7 +385,16 @@ local function fromData(data: any, opts: Options): Shape
 				return math.max(math.abs(x), math.abs(z)) < half + (slack or 0)
 			end
 			local r = radii[math.clamp(f, 1, #radii)] + (slack or 0)
-			return math.sqrt(x * x + z * z) < r
+			if math.sqrt(x * x + z * z) < r then
+				return true
+			end
+			for _, e in extra do
+				local dx, dz = x - e.x, z - e.z
+				if math.sqrt(dx * dx + dz * dz) < e.r + (slack or 0) then
+					return true
+				end
+			end
+			return false
 		end,
 		guard = guard,
 		floor1 = function(i: number): { WorldNode }

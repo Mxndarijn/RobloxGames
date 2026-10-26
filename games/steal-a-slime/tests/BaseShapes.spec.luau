@@ -7,6 +7,7 @@ local roblox = require("@lune/roblox")
 local Actions = require("../src/server/Actions")
 local BaseShapes = require("../src/visuals/shared/BaseShapes")
 local Config = require("../src/shared/Config")
+local PlotLockGuard = require("../src/server/PlotLockGuard")
 local TestRunner = require("./TestRunner")
 local WorldBuilder = require("../src/visuals/shared/WorldBuilder")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
@@ -370,5 +371,21 @@ describe("base shapes: turning a plot into another base and back", function()
 			expect((pad1.CFrame.Position - jarPad.Position).Magnitude < 1e-3).toBe(true)
 			expect((mesh.CFrame.Position - look.CFrame.Position).Magnitude < 1e-3).toBe(true)
 		end)
+	end)
+end)
+
+describe("base shapes: the pagoda's stair turret counts as inside", function()
+	it("inside() and the lock guard keep someone on the turret ramp inside, on every floor", function()
+		local pagoda = BaseShapes.get("pagoda")
+		-- the back of the turret's ramp (0, 25 + 7.5): past every upper room's radius, inside the turret
+		local x, z = 0, 32.5
+		for f = 1, #Config.BASE_FLOORS do
+			expect(pagoda.inside(f, x, z)).toBe(true)
+			local y = WorldLayout.floorTop(f) + 4
+			expect(PlotLockGuard.insideJar(x, y, z, pagoda.guard :: any, #Config.BASE_FLOORS, true)).toBe(true)
+		end
+		-- just outside the turret wall, beside it: still outside
+		expect(pagoda.inside(3, 10.5, 25)).toBe(false)
+		expect(pagoda.inside(3, 0, 34)).toBe(false)
 	end)
 end)

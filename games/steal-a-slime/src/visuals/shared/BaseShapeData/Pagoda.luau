@@ -224,6 +224,13 @@ return {
 	inside = {
 		kind = "round",
 		radii = { 28, 25.5, 23.5, 22 },
+		extra = {
+			{
+				x = 0,
+				z = 25,
+				r = 8,
+			},
+		},
 	},
 	ramps = {
 		{

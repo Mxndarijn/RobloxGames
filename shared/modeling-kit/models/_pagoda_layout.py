@@ -96,7 +96,8 @@ def hatch_pos(f):
 EXIT = {"floor": 4, "hatch": hatch_pos(4), "lands": polar(34.0, 252),  # beside the glass tube's pool (_drop_exit_styles.pagoda_cap_pool_at)
         "floor_check": "radius < ROOM_R[top] and y >= floorTop(top)"}
 # The game's inside test (the drop exit's owner check, the lock guard): the round room of each floor.
-INSIDE = {"kind": "round", "radii": list(ROOM_R)}
+# the stair turret counts as inside too (its ramps reach past the upper rooms' radii; reached only from inside)
+INSIDE = {"kind": "round", "radii": list(ROOM_R), "extra": [{"x": TURRET_C[0], "z": TURRET_C[1], "r": TURRET_IN}]}
 
 # ---- lamps (glow-shroom cluster in each room's middle) ----
 LAMP_R = 3.7

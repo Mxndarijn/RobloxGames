@@ -361,7 +361,7 @@ local HOLD_INPUTS = {
 	(`duration`, ctx.Config.HOLD_CONFIRM_SECONDS). A white fill sweeps left to right under the text while the
 	press is down; releasing or leaving the button early cancels. A plain tap
 	does nothing. Used for every UI action that spends cash or changes ownership
-	(Lock / Extend, Buy pad, Sell, Rebirth, shop Buy). The server still checks.
+	(Lock, Buy pad, Sell, Rebirth, shop Buy). The server still checks.
 ]]
 -- True while `inst` can still be pressed: every GuiObject up the chain is Visible and it reaches an enabled
 -- ScreenGui. A hidden card/panel or a destroyed button (Parent nil) is not.

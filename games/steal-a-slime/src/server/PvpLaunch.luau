@@ -14,6 +14,7 @@ local Players = game:GetService("Players")
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local PvpKnockbackRules = if Shared then require(Shared.PvpKnockbackRules) else require("../shared/PvpKnockbackRules")
+local MoveWatch = require(script.Parent.MoveWatch)
 local Rescue = require(script.Parent.Rescue)
 local WorldView = require(script.Parent.WorldView)
 
@@ -30,6 +31,7 @@ function PvpLaunch.launch(userId: number, push: { X: number, Y: number, Z: numbe
 	end
 	local v = PvpKnockbackRules.velocity(push)
 	root.AssemblyLinearVelocity = Vector3.new(v.X, v.Y, v.Z)
+	MoveWatch.allow(userId, Config.MOVE_GUARD.LAUNCH_ALLOW)
 	local humanoid = root.Parent and root.Parent:FindFirstChildOfClass("Humanoid")
 	if humanoid and humanoid.Health > 0 and not humanoid.PlatformStand then
 		humanoid.PlatformStand = true
