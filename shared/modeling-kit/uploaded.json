@@ -1427,22 +1427,22 @@
       16.05,
       58.307
     ],
-    "sha256": "e61d60dcc430300a",
-    "uploadedAt": "2026-10-22T16:14:04Z",
-    "versions": 6
+    "sha256": "d23e4f55580ef9e6",
+    "uploadedAt": "2026-10-26T21:57:58Z",
+    "versions": 7
   },
   "goo_jar_trim_1_mid@candy": {
     "assetId": "110019109033426",
     "assetType": "Model",
-    "meshId": "rbxassetid://93703012799982",
+    "meshId": "rbxassetid://90464191369852",
     "meshSize": [
       60.321,
       16.05,
       58.251
     ],
-    "sha256": "99a845ad69c04738",
-    "uploadedAt": "2026-10-22T15:48:33Z",
-    "versions": 1
+    "sha256": "9b1b67f474b56a17",
+    "uploadedAt": "2026-10-26T21:58:41Z",
+    "versions": 2
   },
   "goo_jar_trim_1_mid@crystal": {
     "assetId": "115480291139589",
@@ -1453,9 +1453,9 @@
       16.05,
       58.307
     ],
-    "sha256": "6b46543200afc25b",
-    "uploadedAt": "2026-10-22T16:14:27Z",
-    "versions": 3
+    "sha256": "530a6e5b54f3e1a6",
+    "uploadedAt": "2026-10-26T21:58:19Z",
+    "versions": 4
   },
   "goo_jar_trim_1_mid@garden": {
     "assetId": "133479900619299",
@@ -1466,22 +1466,22 @@
       16.05,
       58.368
     ],
-    "sha256": "05ba2cfaf072bd5d",
-    "uploadedAt": "2026-10-22T16:14:09Z",
-    "versions": 3
+    "sha256": "1aeaa105518a1b33",
+    "uploadedAt": "2026-10-26T21:58:03Z",
+    "versions": 4
   },
   "goo_jar_trim_1_mid@mushroom": {
     "assetId": "116310095114229",
     "assetType": "Model",
-    "meshId": "rbxassetid://95296789308138",
+    "meshId": "rbxassetid://83476514701472",
     "meshSize": [
       60.289,
       16.05,
       58.234
     ],
-    "sha256": "155a0130a63ece1a",
-    "uploadedAt": "2026-10-22T15:52:22Z",
-    "versions": 1
+    "sha256": "eaf1e0b62491dfe7",
+    "uploadedAt": "2026-10-26T21:58:57Z",
+    "versions": 2
   },
   "goo_jar_trim_1_mid@starlight": {
     "assetId": "96364752853027",
@@ -1492,9 +1492,9 @@
       16.05,
       58.368
     ],
-    "sha256": "82627705e7390516",
-    "uploadedAt": "2026-10-22T16:14:38Z",
-    "versions": 3
+    "sha256": "283a68c6deca3647",
+    "uploadedAt": "2026-10-26T21:58:31Z",
+    "versions": 4
   },
   "goo_jar_trim_1_top": {
     "assetId": "81111284959159",
@@ -1583,22 +1583,22 @@
       16.05,
       50.916
     ],
-    "sha256": "0eeff894a6da9d1b",
-    "uploadedAt": "2026-10-22T16:14:48Z",
-    "versions": 7
+    "sha256": "a3e2e40d8b61292c",
+    "uploadedAt": "2026-10-26T21:59:14Z",
+    "versions": 8
   },
   "goo_jar_trim_2_mid@candy": {
     "assetId": "135787851996179",
     "assetType": "Model",
-    "meshId": "rbxassetid://102809521538465",
+    "meshId": "rbxassetid://103737882173883",
     "meshSize": [
       53.091,
       16.05,
       50.909
     ],
-    "sha256": "fee5cfa33ea1aaa4",
-    "uploadedAt": "2026-10-22T15:48:54Z",
-    "versions": 1
+    "sha256": "f0859e66fd7c9a0a",
+    "uploadedAt": "2026-10-26T21:59:59Z",
+    "versions": 2
   },
   "goo_jar_trim_2_mid@crystal": {
     "assetId": "81967734291194",
@@ -1609,9 +1609,9 @@
       16.05,
       50.916
     ],
-    "sha256": "7a017939ce40028a",
-    "uploadedAt": "2026-10-22T16:15:08Z",
-    "versions": 3
+    "sha256": "cc3c3f7e29bc2e54",
+    "uploadedAt": "2026-10-26T21:59:33Z",
+    "versions": 4
   },
   "goo_jar_trim_2_mid@garden": {
     "assetId": "104346736296801",
@@ -1622,22 +1622,22 @@
       16.05,
       50.977
     ],
-    "sha256": "cfece6e29e7e3b9c",
-    "uploadedAt": "2026-10-22T16:14:53Z",
-    "versions": 3
+    "sha256": "ac13cbf32a744b84",
+    "uploadedAt": "2026-10-26T21:59:19Z",
+    "versions": 4
   },
   "goo_jar_trim_2_mid@mushroom": {
     "assetId": "98149253420556",
     "assetType": "Model",
-    "meshId": "rbxassetid://72924489547847",
+    "meshId": "rbxassetid://76668507904584",
     "meshSize": [
       53.056,
       16.05,
       50.843
     ],
-    "sha256": "cc3c595b7933834c",
-    "uploadedAt": "2026-10-22T15:52:42Z",
-    "versions": 1
+    "sha256": "bcfd0d6837d0ef6c",
+    "uploadedAt": "2026-10-26T22:00:13Z",
+    "versions": 2
   },
   "goo_jar_trim_2_mid@starlight": {
     "assetId": "129237765174327",
@@ -1648,9 +1648,9 @@
       16.05,
       50.977
     ],
-    "sha256": "c715c7015df3684e",
-    "uploadedAt": "2026-10-22T16:15:26Z",
-    "versions": 3
+    "sha256": "341ee5580e1a9b56",
+    "uploadedAt": "2026-10-26T21:59:40Z",
+    "versions": 4
   },
   "goo_jar_trim_2_top": {
     "assetId": "121872413785229",
@@ -1739,22 +1739,22 @@
       16.05,
       45.978
     ],
-    "sha256": "8b269eba8a1b1737",
-    "uploadedAt": "2026-10-22T16:15:31Z",
-    "versions": 7
+    "sha256": "fda2528c5e63e57c",
+    "uploadedAt": "2026-10-26T22:00:23Z",
+    "versions": 8
   },
   "goo_jar_trim_3_mid@candy": {
     "assetId": "76977772731704",
     "assetType": "Model",
-    "meshId": "rbxassetid://103661646424610",
+    "meshId": "rbxassetid://135407376636518",
     "meshSize": [
       47.643,
       16.05,
       45.978
     ],
-    "sha256": "91c0974ec0782eb8",
-    "uploadedAt": "2026-10-22T15:49:18Z",
-    "versions": 1
+    "sha256": "6bb4e7bf4d798504",
+    "uploadedAt": "2026-10-26T22:01:25Z",
+    "versions": 2
   },
   "goo_jar_trim_3_mid@crystal": {
     "assetId": "107677355249408",
@@ -1765,9 +1765,9 @@
       16.05,
       45.978
     ],
-    "sha256": "168507fcbb58212a",
-    "uploadedAt": "2026-10-22T16:15:52Z",
-    "versions": 3
+    "sha256": "2efe5546a403d88f",
+    "uploadedAt": "2026-10-26T22:01:04Z",
+    "versions": 4
   },
   "goo_jar_trim_3_mid@garden": {
     "assetId": "73334973633975",
@@ -1778,22 +1778,22 @@
       16.05,
       45.978
     ],
-    "sha256": "f56849a7964ceb9c",
-    "uploadedAt": "2026-10-22T16:15:47Z",
-    "versions": 3
+    "sha256": "579667e228f0466a",
+    "uploadedAt": "2026-10-26T22:00:45Z",
+    "versions": 4
   },
   "goo_jar_trim_3_mid@mushroom": {
     "assetId": "116748220649977",
     "assetType": "Model",
-    "meshId": "rbxassetid://116290990340128",
+    "meshId": "rbxassetid://88857327679842",
     "meshSize": [
       47.643,
       16.05,
       45.978
     ],
-    "sha256": "41a1f660ddc786b0",
-    "uploadedAt": "2026-10-22T15:53:03Z",
-    "versions": 1
+    "sha256": "8a5cbb46ad07450e",
+    "uploadedAt": "2026-10-26T22:01:39Z",
+    "versions": 2
   },
   "goo_jar_trim_3_mid@starlight": {
     "assetId": "85627208986479",
@@ -1804,9 +1804,9 @@
       16.05,
       45.978
     ],
-    "sha256": "72e03c70a9e626d7",
-    "uploadedAt": "2026-10-22T16:16:10Z",
-    "versions": 3
+    "sha256": "f5a398838a58f2dd",
+    "uploadedAt": "2026-10-26T22:01:15Z",
+    "versions": 4
   },
   "goo_jar_trim_3_top": {
     "assetId": "115479272829253",

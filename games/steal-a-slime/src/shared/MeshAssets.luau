@@ -699,15 +699,15 @@ entries["goo_jar_stair@candy"] =
 entries["goo_jar_stopper@candy"] =
 	{ assetId = 92646803582454, meshId = "rbxassetid://79036481597585", size = { 9.889, 9.66, 1.508 } }
 entries["goo_jar_trim_1_mid@candy"] =
-	{ assetId = 110019109033426, meshId = "rbxassetid://93703012799982", size = { 60.321, 16.05, 58.251 } }
+	{ assetId = 110019109033426, meshId = "rbxassetid://90464191369852", size = { 60.321, 16.05, 58.251 } }
 entries["goo_jar_trim_1_top@candy"] =
 	{ assetId = 96211103499784, meshId = "rbxassetid://129494689008124", size = { 60.321, 22.688, 58.292 } }
 entries["goo_jar_trim_2_mid@candy"] =
-	{ assetId = 135787851996179, meshId = "rbxassetid://102809521538465", size = { 53.091, 16.05, 50.909 } }
+	{ assetId = 135787851996179, meshId = "rbxassetid://103737882173883", size = { 53.091, 16.05, 50.909 } }
 entries["goo_jar_trim_2_top@candy"] =
 	{ assetId = 125475596517383, meshId = "rbxassetid://86997990194117", size = { 53.091, 20.047, 50.905 } }
 entries["goo_jar_trim_3_mid@candy"] =
-	{ assetId = 76977772731704, meshId = "rbxassetid://103661646424610", size = { 47.643, 16.05, 45.978 } }
+	{ assetId = 76977772731704, meshId = "rbxassetid://135407376636518", size = { 47.643, 16.05, 45.978 } }
 entries["goo_jar_trim_3_top@candy"] =
 	{ assetId = 87448877188413, meshId = "rbxassetid://102819226991762", size = { 47.314, 20.212, 45.364 } }
 entries["goo_jar_trim_4_top@candy"] =
@@ -743,15 +743,15 @@ entries["goo_jar_stair@mushroom"] =
 entries["goo_jar_stopper@mushroom"] =
 	{ assetId = 124665008899641, meshId = "rbxassetid://92740925893580", size = { 9.889, 9.66, 1.508 } }
 entries["goo_jar_trim_1_mid@mushroom"] =
-	{ assetId = 116310095114229, meshId = "rbxassetid://95296789308138", size = { 60.289, 16.05, 58.234 } }
+	{ assetId = 116310095114229, meshId = "rbxassetid://83476514701472", size = { 60.289, 16.05, 58.234 } }
 entries["goo_jar_trim_1_top@mushroom"] =
 	{ assetId = 80471217573955, meshId = "rbxassetid://95323802068888", size = { 60.289, 22.688, 58.234 } }
 entries["goo_jar_trim_2_mid@mushroom"] =
-	{ assetId = 98149253420556, meshId = "rbxassetid://72924489547847", size = { 53.056, 16.05, 50.843 } }
+	{ assetId = 98149253420556, meshId = "rbxassetid://76668507904584", size = { 53.056, 16.05, 50.843 } }
 entries["goo_jar_trim_2_top@mushroom"] =
 	{ assetId = 98454822696377, meshId = "rbxassetid://82000103973425", size = { 53.056, 20.047, 50.843 } }
 entries["goo_jar_trim_3_mid@mushroom"] =
-	{ assetId = 116748220649977, meshId = "rbxassetid://116290990340128", size = { 47.643, 16.05, 45.978 } }
+	{ assetId = 116748220649977, meshId = "rbxassetid://88857327679842", size = { 47.643, 16.05, 45.978 } }
 entries["goo_jar_trim_3_top@mushroom"] =
 	{ assetId = 137110356362919, meshId = "rbxassetid://87569073341135", size = { 47.279, 20.212, 45.3 } }
 entries["goo_jar_trim_4_top@mushroom"] =
