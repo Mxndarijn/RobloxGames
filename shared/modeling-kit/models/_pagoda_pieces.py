@@ -2,14 +2,17 @@
 # at their plot position (kit = plot-local, see _pagoda_layout). Tint pieces are painted in value-only greys: the game
 # gives them their colour with MeshPart.Color (assumed multiply, as in LESSONS), so one mesh serves every theme.
 # TINT names the colour role of each piece; _base_pagoda_design.py maps roles to theme colours.
+import colorsys
 import math
 import random
 
 import bmesh
 
-from lib import blob, box, cylinder, obj_from_bm, rgb, shade, tube
+from lib import PALETTE, blob, box, cylinder, mix, obj_from_bm, rgb, shade, tube
 from models._base_design_common import floor_top, polar
 import models._pagoda_layout as L
+
+P = PALETTE
 
 
 def g(v):
@@ -704,6 +707,50 @@ def foot_ring(theme):
 
 
 # theme -> [(mesh name, kind, builder, replaces)]
+def strong(col, sat=0.72, min_v=0.80):
+    """A tint colour from a theme colour: same hue, saturation raised to `sat` (never lowered), value >= min_v.
+    The theme palettes are pastel for big jar surfaces; mushroom caps want slime-strength colour."""
+    h, s, v = colorsys.rgb_to_hsv(*col[:3])
+    return colorsys.hsv_to_rgb(h, max(s, sat), max(v, min_v)) + (1.0,)
+
+
+# Theme roles -> colours, by the theme's own palette keys (never copied values). Caps and dome go through strong().
+# Classic follows the picked concept: red, purple and orange caps under a big red dome (ranch roof red, darker and
+# browner than the lock button's red). Forest (skin id mushroom) gets earthy caps so it differs from classic.
+THEME_KEYS = {  # (eave cap 1, 2, 3), dome; a key may name PALETTE ("P:...")
+    "classic": (("P:ranch_roof", "lilac", "butter"), "P:ranch_roof"),
+    "garden": (("cork", "goo", "cork"), "goo"),
+    "crystal": (("metal", "lilac", "goo"), "goo"),
+    "starlight": (("wood", "cork", "wood"), "cork"),
+    "candy": (("goo", "metal", "butter"), "wood"),
+    "mushroom": (("cork", "leaves", "wood"), "goo"),
+}
+
+
+def roles(tid):
+    """The tint colour per role (stalk, wood, cap_1..3, dome, spots, ramp, turret_cap, glow, vine) in theme `tid`."""
+    from models._base_design_common import theme
+
+    TH = theme(tid)
+    SAT = {"classic": (0.70, 0.52, 0.76, 0.70)}.get(tid, (0.55, 0.55, 0.55, 0.6))
+
+    def key(k):
+        return P[k[2:]] if k.startswith("P:") else TH[k]
+
+    CAP_KEYS, DOME_KEY = THEME_KEYS[tid]
+    return {
+        "stalk": mix(TH["cream"], TH["wood"], 0.08),
+        "wood": TH["wood"],
+        "cap_1": strong(key(CAP_KEYS[0]), SAT[0]), "cap_2": strong(key(CAP_KEYS[1]), SAT[1]),
+        "cap_3": strong(key(CAP_KEYS[2]), SAT[2]),
+        "dome": strong(key(DOME_KEY), SAT[3]),
+        "spots": rgb(255, 252, 246),
+        "ramp": strong(TH["butter"], 0.6),
+        "turret_cap": strong(key(CAP_KEYS[1]), SAT[1]),
+        "glow": TH["goo_hi"],
+        "vine": strong(TH["goo"], 0.5),
+    }
+
 THEME_PIECES = {
     "classic": [],
     "crystal": [("pagoda_snow_cap@crystal", "cap", snow_cap, None),
@@ -740,3 +787,24 @@ PIECES = {
 for _t, _lst in THEME_PIECES.items():
     for _name, _kind, _fn, _rep in _lst:
         PIECES[_name] = (lambda fn: (lambda: fn(2, 0.0)))(_fn) if _kind == "climber" else _fn
+
+
+# ---- shipping (models/_pagoda_ship.py, models/_pagoda_meshes.py) ----
+# Every game mesh by name, classic pieces plain and a skin's own pieces as "<slot mesh>@<skin>": a skin's extra on the
+# caps, the dome or the rims shares one slot name across skins (pagoda_cap_extra, pagoda_dome_extra, pagoda_rim_extra),
+# and a skin's version of a classic piece (starlight's star spots, the themed foot rings) takes that piece's name.
+# The garden climbers stay out of the game (each is built for one wall spot; reusing them would need a mesh per floor).
+SHIP = {n: fn for n, fn in PIECES.items() if "@" not in n}  # a skin's pieces come in below under their slot names
+SHIP["pagoda_foot_decor"] = foot_decor_classic
+_GENERIC = {"cap": "pagoda_cap_extra", "dome": "pagoda_dome_extra", "rim": "pagoda_rim_extra"}
+for _tid, _list in THEME_PIECES.items():
+    for _name, _kind, _fn, _replaces in _list:
+        if _kind == "climber":
+            continue
+        _slot = _replaces or (None if _kind == "foot" else _GENERIC.get(_kind))
+        if _kind == "foot":
+            _slot = "pagoda_foot_decor"
+        SHIP[f"{_slot}@{_tid}"] = _fn
+# pieces whose skins' versions share one slot (and so one box: models/_pagoda_ship.py anchors them to the union)
+SHARED_SLOTS = ("pagoda_spots_mid", "pagoda_dome_spots", "pagoda_foot_decor", "pagoda_cap_extra", "pagoda_dome_extra",
+                "pagoda_rim_extra")

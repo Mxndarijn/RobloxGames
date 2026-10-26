@@ -235,40 +235,63 @@ return {
 	},
 	ramps = {
 		{
+			kind = "line",
 			name = "RunA_1",
 			a = { -12, 1, 15.7 },
 			b = { 6, 9, 15.7 },
 			width = 4.5,
 		},
 		{
+			kind = "line",
 			name = "RunB_1",
 			a = { 6, 9, 20.5 },
 			b = { -12, 17, 20.5 },
 			width = 4.5,
 		},
 		{
+			kind = "line",
 			name = "RunA_2",
 			a = { -12, 17, 15.7 },
 			b = { 6, 25, 15.7 },
 			width = 4.5,
 		},
 		{
+			kind = "line",
 			name = "RunB_2",
 			a = { 6, 25, 20.5 },
 			b = { -12, 33, 20.5 },
 			width = 4.5,
 		},
 		{
+			kind = "line",
 			name = "RunA_3",
 			a = { -12, 33, 15.7 },
 			b = { 6, 41, 15.7 },
 			width = 4.5,
 		},
 		{
+			kind = "line",
 			name = "RunB_3",
 			a = { 6, 41, 20.5 },
 			b = { -12, 49, 20.5 },
 			width = 4.5,
+		},
+	},
+	landings = {
+		{
+			y = 9,
+			x = 8.5,
+			z = 18.1,
+		},
+		{
+			y = 25,
+			x = 8.5,
+			z = 18.1,
+		},
+		{
+			y = 41,
+			x = 8.5,
+			z = 18.1,
 		},
 	},
 	parts = {

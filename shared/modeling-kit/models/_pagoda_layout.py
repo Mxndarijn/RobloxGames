@@ -9,11 +9,13 @@
 # one. The stair turret is a fat mushroom stalk at the back, half sunk into the rooms: inside, a spiral ramp climbs
 # one floor per turn round a post (330 degrees of slope + a 30-degree flat landing at the arch into each room).
 import math
+import os
 
 from models._base_design_common import FLOOR_H, PAD, floor_top, polar
 
 ID = "pagoda"
 NAME = "Mushroom Pagoda"
+FLOORS = int(os.environ.get("LAYOUT_FLOORS", "4"))  # floors standing; tools/export_base_shape.py varies it
 
 # ---- room shells ----
 ROOM_R = (28.0, 25.5, 23.5, 22.0)      # inner wall radius per floor
@@ -92,6 +94,8 @@ def hatch_pos(f):
 
 
 EXIT = {"floor": 4, "hatch": hatch_pos(4), "lands": polar(36.5, 228), "floor_check": "radius < ROOM_R[top] and y >= floorTop(top)"}
+# The game's inside test (the drop exit's owner check, the lock guard): the round room of each floor.
+INSIDE = {"kind": "round", "radii": list(ROOM_R)}
 
 # ---- lamps (glow-shroom cluster in each room's middle) ----
 LAMP_R = 3.7
@@ -246,8 +250,9 @@ def _ring_facets(name, f, role, r_in, z_in, r_out, z_out, n, thick=0.8, inscribe
 
 
 COLLIDERS = []
-for _f in range(1, 5):
+for _f in range(1, FLOORS + 1):
     _z = floor_top(_f)
+    _top = _f == FLOORS
     # room wall
     for _i, _w in enumerate([w for w in WALLS if w["floor"] == _f and w["role"] == "room"]):
         (_ax, _ay), (_bx, _by) = _w["a"], _w["b"]
@@ -256,7 +261,7 @@ for _f in range(1, 5):
         COLLIDERS.append(_box(f"Wall{_f}_{_i + 1}", _f, "room wall", ((_ax + _bx) / 2, (_ay + _by) / 2, _z + WALL_H / 2),
                               (_L, WALL_T, WALL_H), (0, 0, _yaw)))
     # turret wall: full storey except the arch; a lintel over the arch; the top floor's turret runs up TURRET_RISE more
-    _h = FLOOR_H if _f < 4 else WALL_H + TURRET_RISE
+    _h = FLOOR_H if not _top else WALL_H + TURRET_RISE
     for _i, (_p, _q, _a, _L) in enumerate(_turret_segments(arch_only=False)):
         _yaw = math.degrees(math.atan2(_q[1] - _p[1], _q[0] - _p[0]))
         COLLIDERS.append(_box(f"TurretWall{_f}_{_i + 1}", _f, "turret wall",
@@ -267,7 +272,7 @@ for _f in range(1, 5):
                           _z + ARCH_H + (_h - ARCH_H) / 2), (_L, TURRET_T, _h - ARCH_H), (0, 0, _yaw)))
     COLLIDERS.append(_cyl(f"TurretPost{_f}", _f, "turret post", (TURRET_C[0], TURRET_C[1], _z + _h / 2), 2 * POST_R, _h))
     # ramp up from this floor (built with the floor above: Floor_<f+1>)
-    if _f < 4:
+    if not _top:
         _step = RAMP_SWEEP / RAMP_BOXES
         _rm = (RAMP_IN + RAMP_OUT) / 2
         _slope = math.degrees(math.atan2(FLOOR_H, math.radians(RAMP_SWEEP) * _rm))
@@ -308,8 +313,8 @@ for _f in range(1, 5):
             _x, _y = polar(9.6, _am)
             COLLIDERS.append(_box(f"DeckSkirt{_f}_{_k + 1}", _f, "deck", (TURRET_C[0] + _x, TURRET_C[1] + _y, _z - 0.3),
                                   (2.4, 2 * 10.8 * math.tan(math.radians(15)), 0.6), (0, 0, _am)))
-    # caps: floors 1-3 wear eave caps (a room stands on them), floor 4 the dome
-    if _f < 4:
+    # caps: a floor with a room on it wears an eave cap, the top floor the dome
+    if not _top:
         (_ri, _zi), (_ro, _zo) = eave_profile(_f)
         COLLIDERS += _ring_facets(f"Eave{_f}", _f, "eave cap", _ri, _zi, _ro, _zo, 16)
     else:
@@ -324,7 +329,17 @@ for _f in range(1, 5):
         _tz = turret_top_z(_f)
         COLLIDERS.append(_cyl("TurretCapRim", _f, "turret cap", (TURRET_C[0], TURRET_C[1], _tz + 0.5), 2 * 9.2, 1.0))
         COLLIDERS.append(_cyl("TurretCapTop", _f, "turret cap", (TURRET_C[0], TURRET_C[1], _tz + 2.8), 2 * 6.0, 3.6))
-    # owner hatch (floors 2-4): the hatch door itself is a wall part; DropShield parts never collide (CanQuery only)
+    # owner hatch (floors 2-4): a door on the inside face of the room wall (the wall stays whole behind it; the drop is
+    # a scripted ride), open only on the top floor; two DropShield parts outside the wall either side block the
+    # prompt's line of sight from outside (CanQuery, never collide)
+    if _f > 1:
+        _hx, _hy, _hz = hatch_pos(_f)
+        COLLIDERS.append(_box("DropHatch", _f, "contract: drop hatch (open only on the top floor)", (_hx, _hy, _z + 3.5),
+                              (0.6, 4.0, 7.0)))
+        for _s in (-1, 1):
+            _sx, _sy = polar(room_out(_f) + 0.4, HATCH_A + _s * 7.0)
+            COLLIDERS.append(_box(f"DropShield_{_s}", _f, "contract: blocks the prompt's line of sight from outside",
+                                  (_sx, _sy, _z + 4.0), (0.4, 3.0, 7.0), (0, 0, HATCH_A + _s * 7.0), collide=False))
 # floor 1: the lock (cork-style door barrier) and the open door's collider
 COLLIDERS.append(_box("LockBarrier", 1, "lock", (0, DOOR["y"] - 0.2, floor_top(1) + DOOR["height"] / 2),
                       (DOOR["width"], 1.6, DOOR["height"]), note="solid for non-owners while locked; off when open"))

@@ -2913,6 +2913,474 @@
     "uploadedAt": "2026-10-19T21:36:47Z",
     "versions": 1
   },
+  "pagoda_cap_1_mid": {
+    "assetId": "90148981916597",
+    "assetType": "Model",
+    "meshId": "rbxassetid://124092573387050",
+    "meshSize": [
+      67.0,
+      5.354,
+      67.0
+    ],
+    "sha256": "af0d78c4eeb30055",
+    "uploadedAt": "2026-10-26T16:53:07Z",
+    "versions": 1
+  },
+  "pagoda_cap_2_mid": {
+    "assetId": "130176297050193",
+    "assetType": "Model",
+    "meshId": "rbxassetid://112069718277334",
+    "meshSize": [
+      63.0,
+      5.359,
+      63.0
+    ],
+    "sha256": "179b48185dc8121a",
+    "uploadedAt": "2026-10-26T16:53:14Z",
+    "versions": 1
+  },
+  "pagoda_cap_3_mid": {
+    "assetId": "135502975947433",
+    "assetType": "Model",
+    "meshId": "rbxassetid://128581980104993",
+    "meshSize": [
+      59.0,
+      5.359,
+      59.0
+    ],
+    "sha256": "ac2ca59e5f7742ae",
+    "uploadedAt": "2026-10-26T16:53:25Z",
+    "versions": 1
+  },
+  "pagoda_cap_extra@candy": {
+    "assetId": "106122845480811",
+    "assetType": "Model",
+    "meshId": "rbxassetid://114549613308395",
+    "meshSize": [
+      64.661,
+      5.022,
+      63.676
+    ],
+    "sha256": "14c4db28912c0e25",
+    "uploadedAt": "2026-10-26T16:56:35Z",
+    "versions": 1
+  },
+  "pagoda_cap_extra@crystal": {
+    "assetId": "112073711250132",
+    "assetType": "Model",
+    "meshId": "rbxassetid://76924652072540",
+    "meshSize": [
+      64.661,
+      5.022,
+      63.676
+    ],
+    "sha256": "385efa6be4e8e540",
+    "uploadedAt": "2026-10-26T16:55:40Z",
+    "versions": 1
+  },
+  "pagoda_deck_2": {
+    "assetId": "75065303944391",
+    "assetType": "Model",
+    "meshId": "rbxassetid://94931328386032",
+    "meshSize": [
+      51.936,
+      0.65,
+      60.0
+    ],
+    "sha256": "d146b926f8d841e5",
+    "uploadedAt": "2026-10-26T16:52:42Z",
+    "versions": 1
+  },
+  "pagoda_deck_3": {
+    "assetId": "74275262332877",
+    "assetType": "Model",
+    "meshId": "rbxassetid://110627085471106",
+    "meshSize": [
+      47.921,
+      0.65,
+      58.0
+    ],
+    "sha256": "49ffdeb6dd5398d0",
+    "uploadedAt": "2026-10-26T16:52:49Z",
+    "versions": 1
+  },
+  "pagoda_deck_4": {
+    "assetId": "128559212436259",
+    "assetType": "Model",
+    "meshId": "rbxassetid://116458545105400",
+    "meshSize": [
+      44.927,
+      0.65,
+      56.5
+    ],
+    "sha256": "c60ea9731414baad",
+    "uploadedAt": "2026-10-26T16:53:02Z",
+    "versions": 1
+  },
+  "pagoda_dome": {
+    "assetId": "96514762576279",
+    "assetType": "Model",
+    "meshId": "rbxassetid://74375089778855",
+    "meshSize": [
+      56.0,
+      13.55,
+      56.0
+    ],
+    "sha256": "165463aa6beb3f39",
+    "uploadedAt": "2026-10-26T16:57:42Z",
+    "versions": 1
+  },
+  "pagoda_dome_extra@candy": {
+    "assetId": "73223874881398",
+    "assetType": "Model",
+    "meshId": "rbxassetid://134778956414385",
+    "meshSize": [
+      52.406,
+      15.764,
+      52.51
+    ],
+    "sha256": "03ec351413bd50e8",
+    "uploadedAt": "2026-10-26T16:56:47Z",
+    "versions": 1
+  },
+  "pagoda_dome_extra@crystal": {
+    "assetId": "79381406343104",
+    "assetType": "Model",
+    "meshId": "rbxassetid://108930669077544",
+    "meshSize": [
+      52.406,
+      15.764,
+      52.51
+    ],
+    "sha256": "539a80699f795c9c",
+    "uploadedAt": "2026-10-26T16:55:47Z",
+    "versions": 1
+  },
+  "pagoda_dome_spots": {
+    "assetId": "85599561426007",
+    "assetType": "Model",
+    "meshId": "rbxassetid://122080826895197",
+    "meshSize": [
+      55.104,
+      10.247,
+      55.119
+    ],
+    "sha256": "23f0557a60e94dce",
+    "uploadedAt": "2026-10-26T16:53:42Z",
+    "versions": 1
+  },
+  "pagoda_dome_spots@starlight": {
+    "assetId": "81407370258060",
+    "assetType": "Model",
+    "meshId": "rbxassetid://118355105964202",
+    "meshSize": [
+      55.104,
+      10.247,
+      55.119
+    ],
+    "sha256": "0d6ff9d1ac8b5395",
+    "uploadedAt": "2026-10-26T16:56:19Z",
+    "versions": 1
+  },
+  "pagoda_door_ring": {
+    "assetId": "82855469548385",
+    "assetType": "Model",
+    "meshId": "rbxassetid://120580840342460",
+    "meshSize": [
+      10.574,
+      11.685,
+      1.75
+    ],
+    "sha256": "772b743f244c5e50",
+    "uploadedAt": "2026-10-26T16:54:36Z",
+    "versions": 1
+  },
+  "pagoda_foot_decor": {
+    "assetId": "131431557755874",
+    "assetType": "Model",
+    "meshId": "rbxassetid://81801440786467",
+    "meshSize": [
+      67.992,
+      4.841,
+      61.734
+    ],
+    "sha256": "ec7e5058b9af6527",
+    "uploadedAt": "2026-10-26T16:55:28Z",
+    "versions": 1
+  },
+  "pagoda_foot_decor@candy": {
+    "assetId": "117175946997069",
+    "assetType": "Model",
+    "meshId": "rbxassetid://120726478725509",
+    "meshSize": [
+      67.992,
+      4.841,
+      61.734
+    ],
+    "sha256": "fd7e4ad52d9cf5f4",
+    "uploadedAt": "2026-10-26T16:56:58Z",
+    "versions": 1
+  },
+  "pagoda_foot_decor@garden": {
+    "assetId": "131596215167227",
+    "assetType": "Model",
+    "meshId": "rbxassetid://103316546776161",
+    "meshSize": [
+      67.992,
+      4.841,
+      61.734
+    ],
+    "sha256": "9859fef40a29850b",
+    "uploadedAt": "2026-10-26T16:56:05Z",
+    "versions": 1
+  },
+  "pagoda_foot_decor@mushroom": {
+    "assetId": "76520474026279",
+    "assetType": "Model",
+    "meshId": "rbxassetid://96285729187812",
+    "meshSize": [
+      67.992,
+      4.841,
+      61.734
+    ],
+    "sha256": "ab71c8b8f3c01053",
+    "uploadedAt": "2026-10-26T16:57:12Z",
+    "versions": 1
+  },
+  "pagoda_lamps": {
+    "assetId": "130143762129897",
+    "assetType": "Model",
+    "meshId": "rbxassetid://102397767710976",
+    "meshSize": [
+      6.283,
+      4.65,
+      5.9
+    ],
+    "sha256": "a9a5c151c94f61d3",
+    "uploadedAt": "2026-10-26T16:54:45Z",
+    "versions": 1
+  },
+  "pagoda_ramp": {
+    "assetId": "126279512461305",
+    "assetType": "Model",
+    "meshId": "rbxassetid://100898647038470",
+    "meshSize": [
+      15.939,
+      16.8,
+      15.697
+    ],
+    "sha256": "674ceb384a159d44",
+    "uploadedAt": "2026-10-26T16:54:07Z",
+    "versions": 1
+  },
+  "pagoda_rim_extra@crystal": {
+    "assetId": "112207482932872",
+    "assetType": "Model",
+    "meshId": "rbxassetid://123996857422761",
+    "meshSize": [
+      64.356,
+      7.634,
+      63.294
+    ],
+    "sha256": "5f822b6fe4d0f856",
+    "uploadedAt": "2026-10-26T16:55:51Z",
+    "versions": 1
+  },
+  "pagoda_rim_extra@garden": {
+    "assetId": "106408835425793",
+    "assetType": "Model",
+    "meshId": "rbxassetid://98811141616074",
+    "meshSize": [
+      64.356,
+      7.634,
+      63.294
+    ],
+    "sha256": "223d3b9946bbaeb5",
+    "uploadedAt": "2026-10-26T16:55:58Z",
+    "versions": 1
+  },
+  "pagoda_rim_extra@mushroom": {
+    "assetId": "118800140472797",
+    "assetType": "Model",
+    "meshId": "rbxassetid://89063606641604",
+    "meshSize": [
+      64.356,
+      7.634,
+      63.294
+    ],
+    "sha256": "56261313cbf031b6",
+    "uploadedAt": "2026-10-26T16:57:07Z",
+    "versions": 1
+  },
+  "pagoda_rim_extra@starlight": {
+    "assetId": "115773610944899",
+    "assetType": "Model",
+    "meshId": "rbxassetid://91229799271505",
+    "meshSize": [
+      64.356,
+      7.634,
+      63.294
+    ],
+    "sha256": "41d95e6d2a45b9e0",
+    "uploadedAt": "2026-10-26T16:56:28Z",
+    "versions": 1
+  },
+  "pagoda_room_1": {
+    "assetId": "87127519906460",
+    "assetType": "Model",
+    "meshId": "rbxassetid://79813282664354",
+    "meshSize": [
+      59.5,
+      11.6,
+      57.285
+    ],
+    "sha256": "b00b03e3f492d4c3",
+    "uploadedAt": "2026-10-26T16:52:01Z",
+    "versions": 1
+  },
+  "pagoda_room_2": {
+    "assetId": "74045087365557",
+    "assetType": "Model",
+    "meshId": "rbxassetid://114679704099577",
+    "meshSize": [
+      54.408,
+      11.6,
+      52.338
+    ],
+    "sha256": "abbf3bf7d0c033c9",
+    "uploadedAt": "2026-10-26T16:52:08Z",
+    "versions": 1
+  },
+  "pagoda_room_3": {
+    "assetId": "88180810662379",
+    "assetType": "Model",
+    "meshId": "rbxassetid://139751506947586",
+    "meshSize": [
+      50.701,
+      11.6,
+      48.299
+    ],
+    "sha256": "b1127ba6e2a4e826",
+    "uploadedAt": "2026-10-26T16:52:21Z",
+    "versions": 1
+  },
+  "pagoda_room_4": {
+    "assetId": "133173844437587",
+    "assetType": "Model",
+    "meshId": "rbxassetid://110833442462286",
+    "meshSize": [
+      47.447,
+      11.6,
+      45.406
+    ],
+    "sha256": "fc7816ea03b65b00",
+    "uploadedAt": "2026-10-26T16:52:28Z",
+    "versions": 1
+  },
+  "pagoda_spots_mid": {
+    "assetId": "136364760292103",
+    "assetType": "Model",
+    "meshId": "rbxassetid://125180031516674",
+    "meshSize": [
+      58.925,
+      3.528,
+      60.119
+    ],
+    "sha256": "dd5d141bda9188e9",
+    "uploadedAt": "2026-10-26T16:53:33Z",
+    "versions": 1
+  },
+  "pagoda_spots_mid@starlight": {
+    "assetId": "94387196753433",
+    "assetType": "Model",
+    "meshId": "rbxassetid://74069222469689",
+    "meshSize": [
+      58.925,
+      3.528,
+      60.119
+    ],
+    "sha256": "e0c944c812112efb",
+    "uploadedAt": "2026-10-26T16:56:12Z",
+    "versions": 1
+  },
+  "pagoda_turret_cap": {
+    "assetId": "107128114751964",
+    "assetType": "Model",
+    "meshId": "rbxassetid://121894473059537",
+    "meshSize": [
+      18.4,
+      5.6,
+      18.4
+    ],
+    "sha256": "25b37825c10414f7",
+    "uploadedAt": "2026-10-26T16:54:23Z",
+    "versions": 1
+  },
+  "pagoda_turret_mid": {
+    "assetId": "135136188678352",
+    "assetType": "Model",
+    "meshId": "rbxassetid://115611381223656",
+    "meshSize": [
+      18.8,
+      16.6,
+      18.8
+    ],
+    "sha256": "3f2908b34922a28b",
+    "uploadedAt": "2026-10-26T16:53:47Z",
+    "versions": 1
+  },
+  "pagoda_turret_top": {
+    "assetId": "119399600127457",
+    "assetType": "Model",
+    "meshId": "rbxassetid://82664207844321",
+    "meshSize": [
+      18.8,
+      27.2,
+      18.8
+    ],
+    "sha256": "e39997c2395dc64a",
+    "uploadedAt": "2026-10-26T16:53:56Z",
+    "versions": 1
+  },
+  "pagoda_vine_2": {
+    "assetId": "140532652408205",
+    "assetType": "Model",
+    "meshId": "rbxassetid://135726972405618",
+    "meshSize": [
+      12.157,
+      20.533,
+      24.585
+    ],
+    "sha256": "e38ecba8ea2c3ee3",
+    "uploadedAt": "2026-10-26T16:54:57Z",
+    "versions": 1
+  },
+  "pagoda_vine_3": {
+    "assetId": "87863760361775",
+    "assetType": "Model",
+    "meshId": "rbxassetid://78419407004540",
+    "meshSize": [
+      13.308,
+      36.301,
+      25.14
+    ],
+    "sha256": "9e40480d0cae6f12",
+    "uploadedAt": "2026-10-26T16:55:08Z",
+    "versions": 1
+  },
+  "pagoda_vine_4": {
+    "assetId": "97773448919319",
+    "assetType": "Model",
+    "meshId": "rbxassetid://104204198620503",
+    "meshSize": [
+      14.78,
+      52.087,
+      25.515
+    ],
+    "sha256": "0accfe522ad63077",
+    "uploadedAt": "2026-10-26T16:55:24Z",
+    "versions": 1
+  },
   "pet_cloud": {
     "assetId": "76853347194916",
     "assetType": "Model",

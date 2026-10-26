@@ -22,6 +22,8 @@ sys.path.insert(0, KIT)
 # Contract parts the game keeps on every plot (moved, never rebuilt) or leaves where the jar has them.
 KEPT_MOVED = {"MergeVat", "LockButton", "LockBarrier", "Bridge"}
 KEPT_STILL = {"Base", "PlotFloor", "HomeZone", "LockSign", "Sign"}
+# The swinging door's collider comes from the jar's door, moved to the base's doorway (BaseShapes), not from the layout.
+FROM_JAR = {"OpenDoorCollider"}
 
 ROLE_LOOK = {  # greybox look per role until the meshes land: colour (sRGB) and material
     "wall": ((209, 104, 85), "Brick"),
@@ -145,8 +147,10 @@ def export(base_id, game_dir):
         top = {key(c): c for c in load(layout, f).COLLIDERS if c["floor"] == f}
         mid = {key(c): c for c in load(layout, 4).COLLIDERS if c["floor"] == f} if f < floors else {}
         names = []
+        # a name in both variants with different geometry (the top floor's taller turret wall): suffix each one
+        both = {c["name"] for c in top.values()} & {c["name"] for k, c in mid.items() if k not in top}
         for k, c in list(top.items()) + [(k, c) for k, c in mid.items() if k not in top]:
-            if c["name"] in KEPT_MOVED or c["name"] in KEPT_STILL:
+            if c["name"] in KEPT_MOVED or c["name"] in KEPT_STILL or c["name"] in FROM_JAR:
                 continue
             show = None
             if f < floors and k in top and k not in mid:
@@ -157,6 +161,8 @@ def export(base_id, game_dir):
             collide = c.get("collide", True)
             look = ROLE_LOOK.get(c["role"], ((168, 148, 110), "Metal"))
             name = c["name"]
+            if show and name in both:
+                name = f"{name}_{'Top' if show == 'top' else 'Mid'}"
             assert name not in names, f"duplicate part name {name} on floor {f}"
             names.append(name)
             parts.append({"name": name, "floor": f, "role": c["role"], "shape": shape,
@@ -167,17 +173,29 @@ def export(base_id, game_dir):
         if c["name"] in KEPT_MOVED:
             shape, size, pos, rot = part_frame(c)
             spots[c["name"]] = {"pos": pos, "size": [round(v, 4) for v in size]}
-    pads = [{"j": p["j"], "x": round(p["x"], 4), "z": round(p["y"], 4), "yaw": round(-p.get("yaw", 0.0), 4)}
+    bridge = getattr(full, "BRIDGE", None)
+    if "Bridge" not in spots and bridge:
+        # a layout that gives the bridge as {width, from, to} (plot z of its ends): a plank 0.6 thick on the plot floor
+        z0, z1 = bridge["from"], bridge["to"]
+        spots["Bridge"] = {"pos": [0.0, 1.0, round((z0 + z1) / 2, 4)], "size": [bridge["width"], 0.6, round(abs(z1 - z0), 4)]}
+    # pad yaw: the layouts use the game's convention already (WorldLayout.padYaw: 90 - the pad's plot angle)
+    pads = [{"j": p["j"], "x": round(p["x"], 4), "z": round(p["y"], 4), "yaw": round(p.get("yaw", 0.0), 4)}
             for p in sorted(full.PADS, key=lambda p: p["j"])]
     ramps = []
     for r in full.RAMPS:
         if r["kind"] == "line":
             (ax, ay, az), (bx, by, bz) = r["a"], r["b"]
-            ramps.append({"name": r["name"], "a": [ax, az, ay], "b": [bx, bz, by], "width": r["width"]})
+            ramps.append({"kind": "line", "name": r["name"], "a": [ax, az, ay], "b": [bx, bz, by], "width": r["width"]})
+        else:
+            # a helix round plot-local centre c (x, z): walking surface from radius r_in to r_out, rising `rise` from
+            # y0 over `sweep` degrees from angle a0
+            ramps.append({"kind": "helix", "name": r["name"], "c": [r["c"][0], r["c"][1]], "r_in": r["r_in"],
+                          "r_out": r["r_out"], "a0": r["a0"], "sweep": r["sweep"], "y0": r["z0"], "rise": r["rise"]})
     ex = full.EXIT
     hx, hy, hz = ex["hatch"]
     lx, ly = ex["lands"]
     inside = getattr(full, "INSIDE", None) or {"kind": "box", "half": full.IN + full.WALL / 2}
+    landings = [{"y": g["z"], "x": g["x"], "z": g["y"]} for g in getattr(full, "LANDINGS", [])]
     data = {
         "id": base_id,
         "name": full.NAME,
@@ -191,6 +209,7 @@ def export(base_id, game_dir):
         "exit": {"hatch": [hx, hz, hy], "lands": [lx, ly]},
         "inside": inside,
         "ramps": ramps,
+        "landings": landings,
         "parts": parts,
     }
     name = "".join(w.capitalize() for w in base_id.split("_"))

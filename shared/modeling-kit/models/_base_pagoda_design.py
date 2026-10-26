@@ -6,7 +6,6 @@
 #   CUT=1            cut-away: rooms and caps lose their front half (y < 0), the turret its right half (x > 0)
 #   COLLIDERS=1      collider overlay: the layout's COLLIDERS in orange + pads, door, vat and lock (with CUT=1: cut too)
 #   python iterate.py models/_base_pagoda_design.py --name _d_pagoda_hero --no-export --no-ref --res 512 --views 4,2
-import colorsys
 import math
 import os
 
@@ -28,44 +27,7 @@ P = PALETTE
 TH = theme(THEME)
 
 
-def strong(col, sat=0.72, min_v=0.80):
-    """A tint colour from a theme colour: same hue, saturation raised to `sat` (never lowered), value >= min_v.
-    The theme palettes are pastel for big jar surfaces; mushroom caps want slime-strength colour."""
-    h, s, v = colorsys.rgb_to_hsv(*col[:3])
-    return colorsys.hsv_to_rgb(h, max(s, sat), max(v, min_v)) + (1.0,)
-
-
-# Theme roles -> colours, by the theme's own palette keys (never copied values). Caps and dome go through strong().
-# Classic follows the picked concept: red, purple and orange caps under a big red dome (ranch roof red, darker and
-# browner than the lock button's red). Forest (skin id mushroom) gets earthy caps so it differs from classic.
-THEME_KEYS = {  # (eave cap 1, 2, 3), dome; a key may name PALETTE ("P:...")
-    "classic": (("P:ranch_roof", "lilac", "butter"), "P:ranch_roof"),
-    "garden": (("cork", "goo", "cork"), "goo"),
-    "crystal": (("metal", "lilac", "goo"), "goo"),
-    "starlight": (("wood", "cork", "wood"), "cork"),
-    "candy": (("goo", "metal", "butter"), "wood"),
-    "mushroom": (("cork", "leaves", "wood"), "goo"),
-}
-SAT = {"classic": (0.70, 0.52, 0.76, 0.70)}.get(THEME, (0.55, 0.55, 0.55, 0.6))
-
-
-def key(k):
-    return P[k[2:]] if k.startswith("P:") else TH[k]
-
-
-CAP_KEYS, DOME_KEY = THEME_KEYS[THEME]
-ROLE = {
-    "stalk": mix(TH["cream"], TH["wood"], 0.08),
-    "wood": TH["wood"],
-    "cap_1": strong(key(CAP_KEYS[0]), SAT[0]), "cap_2": strong(key(CAP_KEYS[1]), SAT[1]),
-    "cap_3": strong(key(CAP_KEYS[2]), SAT[2]),
-    "dome": strong(key(DOME_KEY), SAT[3]),
-    "spots": rgb(255, 252, 246),
-    "ramp": strong(TH["butter"], 0.6),
-    "turret_cap": strong(key(CAP_KEYS[1]), SAT[1]),
-    "glow": TH["goo_hi"],
-    "vine": strong(TH["goo"], 0.5),
-}
+ROLE = PC.roles(THEME)
 STAND_TRIM = C.LILAC          # the plot colour on the stands' dish: the same in every theme
 EXTRA = PC.THEME_PIECES[THEME]
 REPLACED = {rep for _, _, _, rep in EXTRA if rep}
