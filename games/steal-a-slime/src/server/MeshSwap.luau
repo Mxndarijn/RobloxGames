@@ -291,7 +291,7 @@ local function skinOf(inst: Instance): any
 	return if node and plots then node:GetAttribute(Constants.PLOT_SKIN_ATTRIBUTE) else nil
 end
 
--- The plot base of the plot `inst` stands in (Plot_<i>.PlotBase, CONTRACT.md §43), or nil (the jar).
+-- The plot base of the plot `inst` stands in (Plot_<i>.PlotBase, CONTRACT.md §44), or nil (the jar).
 local function baseOf(inst: Instance): string?
 	local plots = workspace:FindFirstChild("Plots")
 	local node: Instance? = inst
@@ -302,7 +302,7 @@ local function baseOf(inst: Instance): string?
 	return if type(base) == "string" then base else nil
 end
 
--- ThemeRole (the other bases' tint-only pieces, CONTRACT.md §43): the plot skin's colour for that role multiplies the
+-- ThemeRole (the other bases' tint-only pieces, CONTRACT.md §44): the plot skin's colour for that role multiplies the
 -- mesh's value-grey vertex colours (MeshPart.Color, checked in Studio). False for a slot without a role.
 local function tint(slot: Instance, mesh: BasePart): boolean
 	local role = slot:GetAttribute("ThemeRole")
