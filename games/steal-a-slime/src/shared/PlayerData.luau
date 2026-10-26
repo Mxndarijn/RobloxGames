@@ -64,6 +64,7 @@ export type Data = {
 	speciesRewards: number, -- Config.DEX_MILESTONES.species paid
 	plotSkin: string, -- equipped Config.PLOT_SKINS id (PlotSkins; "classic" = default)
 	plotBase: string, -- equipped Config.PLOT_BASES id (PlotBases; "jar" = default)
+	petSeat: string, -- equipped Config.PET_SEATS id (PetSeats; "cloud" = default; no version bump)
 	-- Redeem codes (Codes, CONTRACT.md §10)
 	redeemed: { [string]: boolean }, -- normalized codes already used
 	boostMult: number, -- active income boost (1 = none)
@@ -108,6 +109,7 @@ function PlayerData.new(): Data
 		speciesRewards = 0,
 		plotSkin = Config.PLOT_SKIN_DEFAULT,
 		plotBase = Config.PLOT_BASE_DEFAULT,
+		petSeat = Config.PET_SEAT_DEFAULT,
 		redeemed = {},
 		boostMult = 1,
 		boostUntil = 0,
@@ -251,6 +253,10 @@ function PlayerData.buyPad(data: Data): (boolean, string?)
 	if not cost then
 		return false, "all pads unlocked"
 	end
+	local need = Economy.padRebirths(data.padsUnlocked) or 0
+	if data.rebirths < need then
+		return false, `Rebirth {need} to unlock this pad`
+	end
 	if not PlayerData.spend(data, cost) then
 		return false, "not enough cash"
 	end
@@ -263,7 +269,7 @@ function PlayerData.sell(data: Data, id: string): (boolean, number | string)
 	if not slime then
 		return false, "not your slime"
 	end
-	local price = Economy.sellPrice(slime, data.rebirths)
+	local price = Economy.sellPrice(slime)
 	if not price then
 		return false, "eggs can't be sold"
 	end

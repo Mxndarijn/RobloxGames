@@ -679,10 +679,10 @@ mesh(
 	"goo_cork_stand",
 	"gojo",
 	64,
-	"off",
+	"Hull",
 	"Plots",
-	"mesh off, slot off",
-	"the Pad part is the walkable surface"
+	"mesh on (Hull, queryable), slot off once it lands",
+	"the round cork stand players bump into and stand on, and dropped slimes land on"
 )
 mesh(
 	"plot_jar_foot",
@@ -763,16 +763,6 @@ mesh(
 	"Plots",
 	"mesh off, slot off",
 	"the cork button post; the Pedestal under it collides"
-)
-parts(
-	"plot_pads",
-	"gojo",
-	64,
-	"colliders",
-	"Plots",
-	{ "^PadCollider$" },
-	"on",
-	"the round collider under each cork stand is the stand-on surface (the Pad box itself is off)"
 )
 parts(
 	"plot_base",
@@ -890,6 +880,14 @@ local UNPLACED: { [string]: { string } } = {
 	pet_cloud = {
 		"jolt",
 		"the follow pet's cloud (published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_jelly = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_rainbow_cloud = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
 	},
 	ranch_bat = { "jolt", "the held Bat tool's Handle (BatTool), never a world slot; a tool has no collision" },
 	ranch_border_fence_broken = { "jolt", "border piece not used by WorldBorder.CHUNKS / DEFS" },

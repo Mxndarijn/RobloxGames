@@ -92,11 +92,14 @@ describe("Plot skins menu: the base strip", function()
 		expect(strip.Visible).toBe(true)
 		expect(UiHarness.find(strip, "Base1"):GetAttribute("BaseId")).toBe("jar")
 		expect(UiHarness.find(UiHarness.find(strip, "Base2"), "State").Text).toBe("Rebirth 20")
+		-- the strip sits under the tabs, the list under the strip
 		local list = UiHarness.find(panel.frame, "List")
-		expect(list.Position.Y.Offset >= strip.Size.Y.Offset).toBe(true)
+		expect(strip.Position.Y.Offset > 0).toBe(true)
+		expect(list.Position.Y.Offset >= strip.Position.Y.Offset + strip.Size.Y.Offset).toBe(true)
 		local plain = open(1920, 1080, { dex = Fixtures.dex({}), plotSkins = skins() })
 		expect(UiHarness.find(plain.frame, "Bases").Visible).toBe(false)
-		expect(UiHarness.find(plain.frame, "List").Position.Y.Offset).toBe(0)
+		-- without bases the list starts right under the tabs, where the strip would be
+		expect(UiHarness.find(plain.frame, "List").Position.Y.Offset).toBe(strip.Position.Y.Offset)
 	end)
 	it("Equip asks the server with EquipPlotBase(baseId); a locked or equipped base asks nothing", function()
 		local requests = {}

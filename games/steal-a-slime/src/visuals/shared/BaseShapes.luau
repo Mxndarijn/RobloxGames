@@ -2,7 +2,7 @@
 --[[
 	BaseShapes (pure)
 
-	The buildings a plot can stand in (CONTRACT.md §43): the goo jar tower (today's WorldLayout jar), the Goo Factory
+	The buildings a plot can stand in (CONTRACT.md §44): the goo jar tower (today's WorldLayout jar), the Goo Factory
 	and the Mushroom Pagoda. BaseShapes.get(id) is the one place that knows each base's geometry; servers and clients
 	ask it instead of the jar's numbers. Every base keeps WorldLayout.floorTop, SPAWN_SPOT, the door on the plot's -Z
 	side and PADS_PER_FLOOR pads per floor.

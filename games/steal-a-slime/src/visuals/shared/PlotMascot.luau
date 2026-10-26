@@ -151,7 +151,7 @@ function PlotMascot.apply(plot: Instance)
 	end
 	local current = plot:FindFirstChild(PlotMascot.NAME)
 	-- The jar tower meshes carry their own mascot, crown and goo ooze (the jars' MascotLook slots): no local decor then.
-	-- Other bases (CONTRACT.md §43) have no jars: no jar mascot or ooze on them either.
+	-- Other bases (CONTRACT.md §44) have no jars: no jar mascot or ooze on them either.
 	local looks = plot:FindFirstChild("JarLooks")
 	local shape = plot:GetAttribute("PlotBase")
 	if (looks and looks:FindFirstChild("MascotLook")) or (shape ~= nil and shape ~= "jar") then
