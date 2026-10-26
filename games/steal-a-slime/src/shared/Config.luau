@@ -87,6 +87,14 @@ export type PlotSkin = {
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
 }
 
+-- A plot base: the building a plot stands in (FEATURES.BaseShapes, CONTRACT.md §44), chosen apart from the skin.
+-- `rebirths` = the rebirth count that unlocks it (nil = everyone). Ids are permanent save ids.
+export type PlotBase = {
+	id: string, -- permanent save id; never rename
+	name: string,
+	rebirths: number?,
+}
+
 -- Pet seats (contract/pet-seats.md): what the follow pet rides on, picked in the Skins menu's Cloud tab. `mesh` is the
 -- MeshAssets name (shared/modeling-kit/models/PET_MOUNTS.md); `seat` is the height of the seat surface over the mesh's
 -- bottom in native studs (where the pet's foot goes; decoration such as a cherry or an arch rises above it).
@@ -480,6 +488,14 @@ local PLOT_SKINS: { PlotSkin } = {
 	},
 }
 
+local PLOT_BASES: { PlotBase } = {
+	{ id = "jar", name = "Goo Jar Tower" },
+	{ id = "factory", name = "Goo Factory", rebirths = 20 },
+	{ id = "pagoda", name = "Mushroom Pagoda", rebirths = 25 },
+}
+for _, base in PLOT_BASES do
+	table.freeze(base)
+end
 local function seat(id: string, name: string, mesh: string, height: number, color: { number }, unlock: any): PetSeat
 	return table.freeze({
 		id = id,
@@ -804,6 +820,8 @@ local Config = {
 	}),
 	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §15)
 	PLOT_SKIN_DEFAULT = "classic",
+	PLOT_BASES = table.freeze(PLOT_BASES), -- plot bases unlocked by rebirths (CONTRACT.md §44)
+	PLOT_BASE_DEFAULT = "jar",
 	PET_SEATS = table.freeze(PET_SEATS), -- what the follow pet rides on (PetSeats, contract/pet-seats.md)
 	PET_SEAT_DEFAULT = "cloud",
 
@@ -939,6 +957,7 @@ local Config = {
 		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
 		SlimeChoreo = true, -- species gaits and hops, lane beats and reactions to players (SlimePersona, ParadeChoreo, ui/SlimeGait, contract/slime-life.md); false = every slime glides the lane at one pace
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
+		BaseShapes = false, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
 	}),

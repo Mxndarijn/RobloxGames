@@ -16,7 +16,8 @@
 local PlotLockGuard = {}
 
 -- A plot's jar tower in plot-local terms: inner glass radius per floor, floor 1's walking height, storey height.
-export type Jar = { radii: { number }, floorTop: number, floorHeight: number, wall: number }
+-- A base's walls per floor (BaseShapes.guard): radii, or half-widths of a square when `square` (the Goo Factory).
+export type Jar = { radii: { number }, floorTop: number, floorHeight: number, wall: number, square: boolean? }
 
 PlotLockGuard.INSIDE_MARGIN = 1.5 -- studs in from the glass before a character counts as inside
 PlotLockGuard.OUTSIDE_MARGIN = 2.5 -- studs out past the glass before a character inside counts as out again
@@ -37,7 +38,7 @@ function PlotLockGuard.insideJar(x: number, y: number, z: number, jar: Jar, floo
 		return false
 	end
 	local f = math.clamp(math.floor((y - jar.floorTop) / jar.floorHeight) + 1, 1, built)
-	local r = math.sqrt(x * x + z * z)
+	local r = if jar.square then math.max(math.abs(x), math.abs(z)) else math.sqrt(x * x + z * z)
 	local limit = if wasInside
 		then jar.radii[f] + jar.wall + PlotLockGuard.OUTSIDE_MARGIN
 		else jar.radii[f] - PlotLockGuard.INSIDE_MARGIN

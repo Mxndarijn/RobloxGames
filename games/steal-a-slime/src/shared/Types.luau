@@ -11,6 +11,7 @@
 
 local Collection = if script then require(script.Parent.Collection) else require("./Collection")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local PlotBases = if script then require(script.Parent.PlotBases) else require("./PlotBases")
 local PetSeats = if script then require(script.Parent.PetSeats) else require("./PetSeats")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
 local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require("./SpeciesDex")
@@ -65,6 +66,7 @@ export type PetPerkView = { kind: string, value: number, icon: string, text: str
 
 -- Plot skins (CONTRACT.md §15): one skin with its SlimeDex set progress.
 export type PlotSkinView = PlotSkins.View
+export type PlotBaseView = PlotBases.View
 export type PetSeatView = PetSeats.View -- contract/pet-seats.md
 
 export type CodesView = { boostMult: number, boostEndsAt: number, redeemed: number }
@@ -254,6 +256,8 @@ export type State = {
 	settings: { musicVolume: number, sfxVolume: number, muted: boolean }?, -- FEATURES.Audio: saved Sound card values (nil when off)
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
+	plotBase: string?, -- FEATURES.BaseShapes: equipped base id (nil when off)
+	plotBases: { PlotBaseView }?, -- FEATURES.BaseShapes: every base with its rebirth gate (nil when off)
 	petSeat: string, -- the seat the follow pet rides (PetSeats.current)
 	petSeats: { PetSeatView }, -- every pet seat with its unlock progress (contract/pet-seats.md)
 	welcomeBack: { away: number, cash: number, grown: number }?, -- join report (seconds away, offline cash paid, pad slimes grown); nil = none (CONTRACT.md §19)

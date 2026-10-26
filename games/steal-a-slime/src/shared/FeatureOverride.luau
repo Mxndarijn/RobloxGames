@@ -18,6 +18,7 @@ FeatureOverride.FLAGS = table.freeze({
 	"StealAlerts",
 	"WeeklyEvents",
 	"PlotSkins",
+	"BaseShapes",
 	"ServerProfiler",
 	"Audio",
 	"PvP",

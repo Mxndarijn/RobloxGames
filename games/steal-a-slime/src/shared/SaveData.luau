@@ -61,6 +61,7 @@ local BossBadges = if script then require(script.Parent.BossBadges) else require
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local HotbarOrder = if script then require(script.Parent.HotbarOrder) else require("./HotbarOrder")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
+local PlotBases = if script then require(script.Parent.PlotBases) else require("./PlotBases")
 local PetSeats = if script then require(script.Parent.PetSeats) else require("./PetSeats")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
@@ -614,6 +615,7 @@ function SaveData.deserialize(stored: any): Data
 	data.quests = SaveData.cleanQuests(raw.quests) -- daily quests (no version bump: missing -> nothing rolled)
 	data.speciesRewards = num(raw.speciesRewards, 0, 0, #Config.DEX_MILESTONES.species)
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
+	data.plotBase = PlotBases.clean(raw.plotBase) -- FEATURES.BaseShapes (no version bump: missing / unknown -> jar)
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
 	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
 	data.allowFriends = if raw.allowFriends == true then true else nil -- friends switch (no version bump: missing / junk -> off)
@@ -737,6 +739,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		speciesRewards = data.speciesRewards,
 		quests = SaveData.cleanQuests(data.quests),
 		plotSkin = data.plotSkin,
+		plotBase = data.plotBase,
 		petSeat = data.petSeat,
 		stealLog = StealAlert.clean(data.stealLog),
 		settings = AudioSettings.clean(data.settings),
