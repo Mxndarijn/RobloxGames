@@ -14,6 +14,11 @@
 
 	The card is Goo glass (canvas GooWorldLabels "Slime key card"): deep teal with an Ink outline.
 
+	The plot's LockButton gets the same card (FEATURES.FriendsInBase): the server gives its LockPrompt and
+	FriendsPrompt the Custom style, so the owner sees one card titled with the lock status ("LOCKED 1:42" / "OPEN"),
+	the friends switch's state under it, and a row each: E lock (hold) and G friends (instant). The card picks the
+	part most shown prompts sit on, so a slime card and the lock card never mix.
+
 	Hatch: the server's owner-only HatchPrompt on a Mystery Egg is on only while the egg is ready to hatch;
 	SlimeKeys gives it the Custom style too, so it gets a row exactly when it can be hatched.
 
@@ -41,16 +46,44 @@ local create = Widgets.create
 
 local SlimeKeyCard = {}
 
--- Row order by prompt name (the server's HatchPrompt, SlimeKeys.MOVE_PROMPT / FAVORITE_PROMPT / SELL_PROMPT).
-SlimeKeyCard.ORDER =
-	table.freeze({ HatchPrompt = 1, MovePrompt = 2, FavoritePrompt = 3, SellPrompt = 4 } :: { [string]: number })
--- Key chip colour per row: mint acts, gold is a favourite, pink loses the slime.
+-- Row order by prompt name (the server's HatchPrompt, SlimeKeys.MOVE_PROMPT / FAVORITE_PROMPT / SELL_PROMPT; the
+-- LockButton's Constants.LOCK_PROMPT_NAME / FRIENDS_PROMPT_NAME).
+SlimeKeyCard.ORDER = table.freeze({
+	HatchPrompt = 1,
+	MovePrompt = 2,
+	FavoritePrompt = 3,
+	SellPrompt = 4,
+	[Constants.LOCK_PROMPT_NAME] = 5,
+	[Constants.FRIENDS_PROMPT_NAME] = 6,
+} :: { [string]: number })
+-- Key chip colour per row: mint acts, gold is a favourite, pink can lose slimes (selling one, letting friends steal).
 SlimeKeyCard.CHIP = table.freeze({
 	HatchPrompt = Theme.Good,
 	MovePrompt = Theme.Good,
 	FavoritePrompt = Theme.Gold,
 	SellPrompt = Theme.Bad,
+	[Constants.LOCK_PROMPT_NAME] = Theme.Good,
+	[Constants.FRIENDS_PROMPT_NAME] = Theme.Bad,
 } :: { [string]: Color3 })
+
+-- The card's title and the line under it for the part `parent` (a slime Body or the LockButton). A slime: its
+-- GrabPrompt's name, and a favourite's perk (the Favorite prompt's ObjectText). The LockButton: the lock status
+-- ("LOCKED 1:42" / "OPEN", from the LockPrompt's ObjectText) and the friends switch's state. Either is "" when that prompt is missing.
+function SlimeKeyCard.heading(parent: Instance): (string, string)
+	local function objectText(name: string): string
+		local p = parent:FindFirstChild(name)
+		return if p and p:IsA("ProximityPrompt") then p.ObjectText else ""
+	end
+	local title = objectText("GrabPrompt")
+	local sub = objectText("FavoritePrompt")
+	if title == "" then
+		-- "<name>'s base: LOCKED 1:42" -> "LOCKED 1:42": it is the owner's own button, and the full text does not fit.
+		local lock = objectText(Constants.LOCK_PROMPT_NAME)
+		title = string.match(lock, ":%s*(.+)$") or lock
+		sub = objectText(Constants.FRIENDS_PROMPT_NAME)
+	end
+	return title, if sub ~= title then sub else ""
+end
 SlimeKeyCard.CARD = table.freeze({
 	w = 236,
 	pad = 12,
@@ -371,12 +404,8 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		list = SlimeKeyCard.ordered(list, function(p: ProximityPrompt): string
 			return p.Name
 		end)
-		local grab = best:FindFirstChild("GrabPrompt")
-		local name = if grab and grab:IsA("ProximityPrompt") then grab.ObjectText else ""
+		local name, perkText = SlimeKeyCard.heading(best)
 		title.Text = name
-		-- The favourite's Favorite prompt carries its perk as ObjectText (SlimeKeys.labels).
-		local fav = best:FindFirstChild("FavoritePrompt")
-		local perkText = if fav and fav:IsA("ProximityPrompt") and fav.ObjectText ~= name then fav.ObjectText else ""
 		perk.Text = perkText
 		perk.Visible = perkText ~= ""
 		local y = C.pad + C.titleH + (if perk.Visible then C.perkH else 0) + C.gap

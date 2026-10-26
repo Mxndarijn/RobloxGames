@@ -22,7 +22,6 @@ export type Profile = {
 	upgradeRatio: number, -- same for upgrades and the Speed Coil
 	eggs: boolean?, -- takes Mystery Eggs for what they are expected to hatch into (default: no, as eggs show no income)
 	consumables: number?, -- buys and drinks a Luck Potion when its price x this is under their cash; nil = never
-	merge: string?, -- "triple" (the 3-slime vat only) or "pair" (the 2-slime vat); nil follows Config.FEATURES.MergeVat3
 	flip: string?, -- "full": once the pads are full, buys wild slimes to sell at once instead of upgrading; "always": every trip
 	rebirth: boolean?, -- false = never rebirths
 	afk: number?, -- chance that a trip is followed by an AFK stretch (still online, so still a target)

@@ -36,6 +36,8 @@ Widgets.Theme = table.freeze({
 	Disabled = fromPalette(Goo.Ink),
 	Gold = fromPalette(Goo.Gold),
 	GoldDeep = fromPalette(Goo.GoldDeep), -- the coin's edge and ring
+	Silver = fromPalette(Goo.Silver), -- leaderboard second place
+	Bronze = fromPalette(Goo.Bronze), -- leaderboard third place
 	Glass = fromPalette(Goo.Glass), -- a glass row on a card (at Goo.GLASS_TRANSPARENCY)
 	Font = Enum.Font.FredokaOne, -- titles, numbers, buttons, labels
 	FontBody = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold), -- sentences (a FontFace)
@@ -359,7 +361,7 @@ local HOLD_INPUTS = {
 	(`duration`, ctx.Config.HOLD_CONFIRM_SECONDS). A white fill sweeps left to right under the text while the
 	press is down; releasing or leaving the button early cancels. A plain tap
 	does nothing. Used for every UI action that spends cash or changes ownership
-	(Lock / Extend, Buy pad, Sell, Rebirth, shop Buy). The server still checks.
+	(Lock, Buy pad, Sell, Rebirth, shop Buy). The server still checks.
 ]]
 -- True while `inst` can still be pressed: every GuiObject up the chain is Visible and it reaches an enabled
 -- ScreenGui. A hidden card/panel or a destroyed button (Parent nil) is not.
@@ -516,6 +518,7 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		BackgroundColor3 = Theme.Bg,
 		BackgroundTransparency = 0.04,
 		ZIndex = Layout.ZINDEX.Menu,
+		Active = true, -- a tap on the card is not a tap on the backdrop behind it (which closes the menu)
 		Parent = parent,
 	}, { Widgets.corner(radius), Widgets.stroke(Theme.Ink, kit.stroke) })
 	-- The band: rounded on top, square at the bottom (a second, unrounded strip covers the lower corners).

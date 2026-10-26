@@ -9,25 +9,33 @@ return table.freeze({
 	STATE = "State",
 	-- Server -> client: toast message (text, kind: "info" | "good" | "bad", sound: string?)
 	NOTIFY = "Notify",
-	-- Server -> client: global TotalEarned board (Types.Leaderboard)
+	-- Server -> client: one global board per call (Types.Leaderboard; `stat` says which, Leaderboards.BOARDS)
 	LEADERBOARD = "Leaderboard",
 	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
 
 	SLIME_TAG = "Slime",
-	DATASTORE_NAME = "StealASlime_v1",
-	LEADERBOARD_STORE = "StealASlime_TotalEarned", -- OrderedDataStore, key "u_<UserId>"
+	-- All stores moved to "_v2" on 2026-10-26 for a fresh start; the v1 data is still there, unread.
+	DATASTORE_NAME = "StealASlime_v2",
+	LEADERBOARD_STORE = "StealASlime_TotalEarned_v2", -- OrderedDataStore, key "u_<UserId>"
+	WEEKLY_EARNED_STORE = "StealASlime_WeeklyEarned_v2", -- OrderedDataStore per week: "<name>_<WeeklyEvents.weekIndex>", key "u_<UserId>"
+	STEALS_STORE = "StealASlime_TotalStolen_v2", -- OrderedDataStore, key "u_<UserId>"
+	DEX_STORE = "StealASlime_SlimeDex_v2", -- OrderedDataStore, key "u_<UserId>"
+	MERGES_STORE = "StealASlime_Merges_v2", -- OrderedDataStore, key "u_<UserId>"
 	DATASTORE_MODE_ATTRIBUTE = "DataStoreMode", -- workspace attribute: "Memory" = no real DataStore
 	-- workspace attribute set by the server: "Ok" | "Memory" | "Unavailable" | "Error" (CONTRACT.md §2)
 	DATASTORE_STATUS_ATTRIBUTE = "DataStoreStatus",
 	WORLD_MESHES_READY_ATTRIBUTE = "WorldMeshesReady", -- workspace attribute set by the server: true once MeshSwap dressed Map / Plots (CONTRACT.md §5.2)
 	SLIME_LOOK_ATTRIBUTE = "SlimeLook", -- workspace attribute set by the server: "Mesh" | "Procedural"
 	SPECIES_ATTRIBUTE = "Species", -- slime model: SlimeRoster id (v28 typed slimes only; SlimeLooks)
+	-- On a part of a pad slime faded by the merge vat (server/VatView): its own transparency before the fade. A copy of
+	-- the model (steal ghost, vat spot, Move ghost) starts from this, so it never inherits the fade.
+	OWN_TRANSPARENCY_ATTRIBUTE = "VatFaded",
 	-- World folders. "Map" and "Slimes" are hardcoded in src/visuals (WorldLayout); keep them in sync.
 	MAP_FOLDER = "Map",
 	PLOTS_FOLDER = "Plots",
 	PLOT_SLIMES_FOLDER = "Slimes", -- per-plot folder for pad slimes
 	WILD_FOLDER = "WildSlimes",
-	SLIME_KITS_FOLDER = "SlimeKits", -- ReplicatedStorage: one loaded species MeshPart per kit, named "slime_<id>" (SlimeDex previews)
+	SLIME_KITS_FOLDER = "SlimeKits", -- PlayerGui: the species MeshParts this player asked for (RequestKits), named "slime_<id>" (SlimeDex previews)
 	PLOT_INDEX_ATTRIBUTE = "PlotIndex", -- Plot_<i> model: i
 	PAD_INDEX_ATTRIBUTE = "PadIndex", -- Pad_<j> part: j
 	HOME_ZONE = "HomeZone",
@@ -51,6 +59,7 @@ return table.freeze({
 	TUTORIAL_STEP_ATTRIBUTE = "TutorialStep", -- Player: 1..6, nil = done / not loaded
 	SPEED_COIL_ATTRIBUTE = "SpeedCoil", -- Player: true once the Speed Coil is owned
 	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FollowPets), nil = none
+	PET_SEAT_ATTRIBUTE = "PetSeat", -- Player: Config.PET_SEATS id their follow pet rides (PetSeats.current)
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
 	BOSS_MOVE_ATTRIBUTE = "BossMove", -- boss model: its current move (BossChoreo.encode); clients draw it every frame
 	BOSS_TARGETS_ATTRIBUTE = "BossTargets", -- boss model: "x,z;x,z" world spots its windup's spits will land on
@@ -63,7 +72,14 @@ return table.freeze({
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
 	SHOP_STAND_ITEM = "ItemShopStand", -- CONTRACT.md §27.2
 	SHOP_STAND_UPGRADE = "UpgradeShopStand",
-	LEADERBOARD_BOARD = "LeaderboardBoard",
+	LEADERBOARD_BOARD = "LeaderboardBoard", -- the Top Earners board (with the podium)
+	WEEKLY_EARNERS_BOARD = "WeeklyEarnersBoard",
+	TOP_STEALS_BOARD = "TopStealsBoard",
+	TOP_DEX_BOARD = "TopDexBoard",
+	TOP_MERGES_BOARD = "TopMergesBoard",
+	LEADERBOARD_STAT_ATTRIBUTE = "LeaderboardStat", -- on each board Model: the Types.Leaderboard `stat` it shows
+	PROFESSOR_GOO = "ProfessorGoo", -- the Hall of Fame greeter NPC under workspace.Map
+	HALL_ARCH = "HallOfFameArch", -- the Hall of Fame entrance arch under workspace.Map
 	TUTORIAL_NPC = "TutorialNpc",
 	SPEED_COIL_TOOL = "SpeedCoil", -- Tool in the Backpack while owned
 	-- ProximityPrompt on every slime's Body (grab / steal); Jolt's PromptHide matches this name.
@@ -71,6 +87,7 @@ return table.freeze({
 	-- GrabPrompt: UserId that must not see this prompt (the owner on "Steal"); nil = everyone.
 	-- Roblox has no per-player prompt visibility on the server, so clients hide it locally.
 	PROMPT_HIDE_ATTRIBUTE = "HideFromUserId",
+	PROMPT_GUESTS_ATTRIBUTE = "GuestsOnly", -- GrabPrompt on a locked base with guests: ",<id>,<id>," (PlotGuests); other clients hide it
 	-- v13 (CONTRACT.md §8)
 	TUTORIAL_STEP_ID_ATTRIBUTE = "TutorialStepId", -- Player: TutorialProgress.STEPS name, nil = done
 	WALK_SPEED_ATTRIBUTE = "TargetWalkSpeed", -- Player: WalkSpeed the server enforces right now
@@ -78,7 +95,8 @@ return table.freeze({
 	BAT_SWING_ATTRIBUTE = "BatSwingAt", -- Player: server time of the last Bat swing (every client plays the swing, CONTRACT.md §26.2)
 	REBIRTH_TITLE_ATTRIBUTE = "RebirthTitle", -- Player: rank title (Config.REBIRTH_TIERS)
 	PLOT_LOCKED_ATTRIBUTE = "Locked", -- Plot_<i>: true while LockUntil > now
-	PLOT_LOCK_COST_ATTRIBUTE = "LockCost", -- Plot_<i>: owner's lock price, 0 = free plot
+	PLOT_FRIENDS_ALLOWED_ATTRIBUTE = "FriendsAllowed", -- Plot_<i>: true while the owner lets friends in (FEATURES.FriendsInBase)
+	PLOT_GUESTS_ATTRIBUTE = "Guests", -- Plot_<i>: ",<id>,<id>," of the players its locked stopper lets through besides the owner
 	PLOT_PADS_UNLOCKED_ATTRIBUTE = "PadsUnlocked", -- Plot_<i>: owner's unlocked pads, 0 = free plot
 	PLOT_NEXT_PAD_COST_ATTRIBUTE = "NextPadCost", -- Plot_<i>: nil when maxed / free
 	PAD_UNLOCKED_ATTRIBUTE = "Unlocked", -- Pad_<j>: j <= PadsUnlocked
@@ -126,6 +144,8 @@ return table.freeze({
 	-- Owner-only prompts: only this UserId may see it (clients hide it locally); nil = free plot.
 	PROMPT_OWNER_ATTRIBUTE = "ShowOnlyToUserId",
 	LOCK_PROMPT_NAME = "LockPrompt", -- on LockButton
+	FRIENDS_PROMPT_NAME = "FriendsPrompt", -- on LockButton, next to LockPrompt: the owner's friends switch (FEATURES.FriendsInBase)
+	FRIENDS_PROMPT_KEYS = table.freeze({ keyboard = "G", gamepad = "ButtonY" }), -- FriendsPrompt's keys (F is the pad hatch key)
 	BUY_PAD_PROMPT_NAME = "BuyPadPrompt", -- on the lowest locked Pad_<j>
 	MERGE_PROMPT_NAME = "MergePrompt", -- on MergeVat
 	DROP_PROMPT_NAME = "DropPrompt", -- in every upper jar's DropHatch (CONTRACT.md §5.3): the owner, inside the top jar
@@ -138,6 +158,8 @@ return table.freeze({
 	UI_GUI_NAME = "SlimeUI", -- the client's main ScreenGui in PlayerGui
 	SHOP_ID_ATTRIBUTE = "ShopId", -- ItemShopStand / UpgradeShopStand: "ItemShop" | "UpgradeShop"
 	GUIDE_PROMPT_NAME = "GuidePrompt",
+	LEADERBOARD_PROMPT_NAME = "LeaderboardPrompt", -- ProfessorGoo: opens the client's Leaderboards panel
+	LEADERBOARD_CLICK_NAME = "LeaderboardClick", -- ProfessorGoo's ClickDetector: a click or right-click opens the same panel
 	-- Slime habitats (FEATURES.Habitats, HABITATS.md): Pad_<j> attributes, only set with the flag on.
 	HABITAT_ATTRIBUTE = "Habitat", -- Pad_<j>: Shared.Habitats id, "base" = empty pad
 	HABITAT_FROM_ATTRIBUTE = "HabitatFrom", -- Pad_<j>: the id before the latest change

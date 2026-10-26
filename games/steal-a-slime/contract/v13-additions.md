@@ -6,7 +6,7 @@
 
 | Action | Args | Effect / `message` on failure |
 |---|---|---|
-| `"BuyUpgrade"` | `upgradeId: string` (one of `Config.UPGRADES[i].id`: `"Income"`, `"CarrySpeed"`, `"OfflineCap"`, `"Luck"`) | Buys the next level for `Upgrades.cost(id, level)`. Fails with `"unknown upgrade"`, `"locked: reach <n> rebirths"`, `"already maxed"` or `"not enough cash"`. Permanent: saved, kept on rebirth. Rate limit 0.5 s. Notify `"<Name> level <n>!"` (`"good"`, `"Cash"`). |
+| `"BuyUpgrade"` | `upgradeId: string` (one of `Config.UPGRADES[i].id`: `"Income"`, `"CarrySpeed"`, `"OfflineCap"`, `"QuickBrew"`, `"Luck"`) | Buys the next level for `Upgrades.cost(id, level)`. Fails with `"unknown upgrade"`, `"locked: reach <n> rebirths"`, `"already maxed"` or `"not enough cash"`. Permanent: saved, kept on rebirth. Rate limit 0.5 s. Notify `"<Name> level <n>!"` (`"good"`, `"Cash"`). |
 
 Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing else is added; every v12 action keeps its name and args.
 
@@ -14,7 +14,7 @@ Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing
 
 ```luau
 {
-	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 28 while the Speed Coil is held)
+	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 19 while the Speed Coil is held)
 	incomeMultiplier: number,      -- total income multiplier: rebirth x upgrade x rank x dex (>= rebirthMultiplier)
 	rebirthTitle: string,          -- current rank title, e.g. "Slime Rookie"
 	rebirthTiers: { { rebirths: number, title: string, text: string, unlocked: boolean } },  -- every rank, ascending
@@ -23,7 +23,7 @@ Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing
 		id: string, name: string, text: string,  -- text = what the next level does, e.g. "+10% income"
 		level: number, maxLevel: number,
 		price: number?,            -- nil = maxed or locked
-		requires: number,          -- rebirths needed
+		requires: number,          -- rebirths needed for the next level
 		unlocked: boolean,
 	} },
 	goals: { {                     -- Config.GOALS order; chains of stages
@@ -58,7 +58,6 @@ Every field above is in every snapshot (the server never leaves one out); only t
 | Player | `TargetWalkSpeed` (`WALK_SPEED_ATTRIBUTE`) | `number`, the WalkSpeed the server enforces right now (coil and carry included) |
 | Player | `RebirthTitle` (`REBIRTH_TITLE_ATTRIBUTE`) | `string`, rank title (for name tags) |
 | `Plot_<i>` | `Locked` (`PLOT_LOCKED_ATTRIBUTE`) | `boolean`, true while `LockUntil > now` (flips on expiry, not only on purchase) |
-| `Plot_<i>` | `LockCost` (`PLOT_LOCK_COST_ATTRIBUTE`) | `number`, owner's current lock price (0 = free plot) |
 | `Plot_<i>` | `PadsUnlocked` (`PLOT_PADS_UNLOCKED_ATTRIBUTE`) | `number`, owner's unlocked pads (0 = free plot) |
 | `Plot_<i>` | `NextPadCost` (`PLOT_NEXT_PAD_COST_ATTRIBUTE`) | `number?`, nil when maxed or free |
 | `Pad_<j>` | `Unlocked` (`PAD_UNLOCKED_ATTRIBUTE`) | `boolean`, `j <= PadsUnlocked` (false on a free plot) |
@@ -81,11 +80,11 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 | Prompt (Constants) | Parent | KeyCode | ActionText | ObjectText |
 |---|---|---|---|---|
-| `LockPrompt` (`LOCK_PROMPT_NAME`) | `LockButton` | E | `"Lock base $<cost>"` while open, `"Extend lock $<cost>"` while locked, `"Lock is maxed"` at `LOCK_MAX_REMAINING` | `"<name>'s base: OPEN"` or `"<name>'s base: LOCKED m:ss"` (updated every reconcile) |
+| `LockPrompt` (`LOCK_PROMPT_NAME`) | `LockButton` | E | `"Lock base"`, enabled only while open (disabled while a lock runs) | `"<name>'s base: OPEN"` or `"<name>'s base: LOCKED m:ss"` (updated every reconcile) |
 | `BuyPadPrompt` (`BUY_PAD_PROMPT_NAME`) | the lowest locked `Pad_<j>`; moved as pads unlock; parked (disabled) on the last pad when all are unlocked | E | `"Buy pad $<cost>"`; `"Build floor <f> $<cost>"` when `j` is the first pad of floor `f >= 2` | `"Pad <j> of <PADS_MAX>"` |
-| `MergePrompt` (`MERGE_PROMPT_NAME`) | `MergeVat` | E | `"Auto-merge"` | `"Merge vat"` |
+| `MergePrompt` (`MERGE_PROMPT_NAME`) | `MergeVat` | E | `"Manage vat"` | `"Merge vat"` |
 
-`LockPrompt` = `Request("Lock")`, `BuyPadPrompt` = `Request("BuyPad")`, `MergePrompt` = `Merge.findPair` + `Request("Merge")`. Results are Notifies.
+`LockPrompt` = `Request("Lock")`, `BuyPadPrompt` = `Request("BuyPad")`, `MergePrompt` does nothing on the server: the owner's client opens the merge vat menu (§21). Lock and pad results are Notifies.
 
 ## 8.6 Notify sound names (added to §3)
 
@@ -99,7 +98,8 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 ## 8.8 Progression
 
-- **Rebirth cost:** `REBIRTH_BASE_COST x REBIRTH_COST_GROWTH^min(r, REBIRTH_LATE_FROM) x REBIRTH_COST_GROWTH_LATE^max(0, r - REBIRTH_LATE_FROM)` (values in `Config`).
+- **Rebirth cost:** `Config.REBIRTH_COSTS[r + 1]` at `r` rebirths (`Economy.rebirthCost`), a table set with the pacing sim. The income multiplier is `1 + sum of Economy.rebirthStep(n)` for n = 1..r (`Config.REBIRTH_MULTIPLIER_STEPS`).
+- **Pads open with rebirths:** pad n needs `Economy.rebirthsForPad(n)` rebirths (`Config.BASE_FLOORS[f].padRebirths`) and costs `Economy.padCost` (§6 of CONTRACT.md).
 - **Ranks** (`Config.REBIRTH_TIERS`, reached at rebirth count; perks don't stack, the best unlocked value wins):
 
 | Rebirths | Title | Perk |
@@ -115,6 +115,7 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 | 12 | Gel Emperor | +35 % income |
 | 15 | Gelatinous Legend | +50 % income |
 | 20 | Mythic Monarch | +100 % income |
+| 25 | Goo Titan | +150 % income |
 | 30 | Slime Deity | +200 % income |
 
   Rebirth keeps every slime it doesn't use up (§8.8a), at every rank.
@@ -122,10 +123,13 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 | id | Name | Per level | Max | base / growth | Needs rebirths |
 |---|---|---|---|---|---|
-| `Income` | Slime Snacks | +10 % income | 10 | 2 000 / 2.5 | 0 |
+| `Income` | Slime Snacks | +10 % income | 25 | 2 000 / 2.2 | 0 / 2 / 6 / 12 / 20 for levels 1-5 / 6-10 / 11-15 / 16-20 / 21-25 (`levelRequires`) |
 | `CarrySpeed` | Strong Arms | -15 % carry slowdown | 4 | 5 000 / 3 | 1 |
 | `OfflineCap` | Night Shift | +1 h offline income cap | 4 | 20 000 / 3 | 3 |
-| `Luck` | Lucky Charm | +4 % chance a wild slime you bring home is one rarity higher | 5 | 100 000 / 3 | 5 |
+| `QuickBrew` | Quick Brew | -15 % merge vat brew time (§21) | 4 | 25 000 / 3 | 2 / 4 / 6 / 8 (one per level, `levelRequires`) |
+| `Luck` | Lucky Charm | +3 % chance a wild slime you bring home is one rarity higher | 10 | 100 000 / 4 | 5, 5, 5, 8, 8, 12, 12, 16, 20, 25 (`levelRequires`) |
+
+An upgrade needs `requires` rebirths for every level, or, with the optional `levelRequires = { number }`, `levelRequires[n]` rebirths for level n (`Upgrades.requiresFor`).
 
 - **Income multiplier** = `rebirthMultiplier x (1 + 0.1 x Income level) x (1 + rank income bonus) x (1 + dexBonus)`. `SlimeView.income` and `incomePerSec` include it; sell prices don't.
 - **Goals** (`Config.GOALS`, `src/shared/Goals.luau`; titles are singular for a target of 1: "Catch 1 slime"): stage targets / base rewards; the paid reward is `base x rebirthMultiplier` at the time it's paid. Checked every second and on join, so old saves get past stages retroactively.
@@ -149,7 +153,10 @@ Rebirth number N also needs the slimes listed in `Config.REBIRTH_SLIMES[N]` (one
 SlimeRoster ids; a repeated id needs that many slimes) owned in `data.slimes` (on a pad, not an
 egg). Every level has its own list (`#REBIRTH_SLIMES == MAX_REBIRTHS`, no two lists alike), a
 family species only appears once a player of that rank can catch it, a hybrid once its recipe's
-inputs can be caught, and event Secrets are never asked for. The cash cost stays.
+inputs can be caught and merged, and boss and event slimes are never asked for (a boss win gives
+no slime). Each list asks for about the rarity players farm at that level. The cash cost stays.
+The slimes the next rebirth would use up (`Progression.neededIds`) can't be sold or put in the vat,
+and their pad label says "For rebirth".
 `Progression.canRebirth` rejects with `need a <Species Name>` for the first missing one.
 
 The rebirth **uses those slimes up** (`Progression.payment`): for each listed species the
@@ -186,7 +193,7 @@ No new fields. `SaveData.migrateV6` (v6 -> v7, pure, idempotent) drops the `muta
 
 ## 8.10 Speed Coil (replaces the §2 bullet)
 
-**2026-10-22 (Merijn):** the coil works only while held. The server enforces WalkSpeed `SPEED_COIL_WALK_SPEED` (28) while the `SpeedCoil` Tool is equipped (in the character; runtime `session.coilHeld`, checked every tick) and `BASE_WALK_SPEED` otherwise. Carrying puts tools away, so carrying is at `BASE_WALK_SPEED x (1 - slowdown)`. The server always enforces its target (Player attribute `TargetWalkSpeed`), every tick and on every `CharacterAdded`. `ToolTip` "Speed Coil: hold to run faster".
+**2026-10-22 (Merijn):** the coil works only while held. The server enforces WalkSpeed `SPEED_COIL_WALK_SPEED` (19) while the `SpeedCoil` Tool is equipped (in the character; runtime `session.coilHeld`, checked every tick) and `BASE_WALK_SPEED` otherwise. Carrying puts tools away, so carrying is at `BASE_WALK_SPEED x (1 - slowdown)`. The server always enforces its target (Player attribute `TargetWalkSpeed`), every tick and on every `CharacterAdded`. `ToolTip` "Speed Coil: hold to run faster".
 
 ## 8.11 Dropped slimes
 

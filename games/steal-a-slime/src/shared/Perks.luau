@@ -15,6 +15,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
+local MergeGate = if script then require(script.Parent.MergeGate) else require("./MergeGate")
 
 -- The fields Perks reads (a PlayerData.Data satisfies it).
 export type Progress = {
@@ -78,6 +79,10 @@ function Perks.tierText(tier: Config.RebirthTier): string
 	end
 	if tier.income then
 		table.insert(parts, `+{math.floor(tier.income * 100 + 0.5)}% income`)
+	end
+	local merges = MergeGate.opensAt(tier)
+	if merges then
+		table.insert(parts, `opens {merges} merges`)
 	end
 	return table.concat(parts, ", ")
 end
@@ -198,6 +203,11 @@ end
 
 function Perks.offlineCap(data: Progress): number
 	return Config.OFFLINE_CAP_SECONDS + upgradeEffect(data, "OfflineCap")
+end
+
+-- Multiplier on merge vat brew times (Quick Brew; 1 = full time).
+function Perks.brewFactor(data: Progress): number
+	return math.max(0, 1 - upgradeEffect(data, "QuickBrew"))
 end
 
 -- Chance that a wild slime this player deposits is one rarity higher.

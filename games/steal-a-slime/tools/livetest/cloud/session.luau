@@ -153,7 +153,7 @@ local world = S and S.world
 local TestHooks = S and require(S.module:FindFirstChild("TestHooks"))
 local Shared = ReplicatedStorage:FindFirstChild("Shared")
 local Economy = require(Shared.Economy)
-local Merge = require(Shared.Merge)
+local MAX_TIER = require(Shared.Config).MAX_TIER
 local Steal = require(Shared.Steal)
 
 local bot, botRig, botPack, session
@@ -343,15 +343,39 @@ scenario("loop", function()
 	note()
 	act(NEW_ID, "BuyPad")
 	note()
-	for _ = 1, 12 do
-		local a = Merge.findPair(me.data.slimes, S.World.busySet(world), me.data.favoriteId)
-		if a then
+	-- Three pad slimes of one rarity into the plot vat, brew (the timer skipped) and collect.
+	local function triple()
+		local byTier = {}
+		for _, slime in me.data.slimes do
+			if slime.pad ~= nil and not slime.egg and slime.tier < MAX_TIER then
+				byTier[slime.tier] = byTier[slime.tier] or {}
+				table.insert(byTier[slime.tier], slime.id)
+				if #byTier[slime.tier] == 3 then
+					return byTier[slime.tier]
+				end
+			end
+		end
+		return nil
+	end
+	for _ = 1, 16 do
+		if triple() then
 			break
 		end
 		catch()
 	end
-	local a, b = Merge.findPair(me.data.slimes, S.World.busySet(world), me.data.favoriteId)
-	act(NEW_ID, "Merge", a, b)
+	for _, id in triple() or {} do
+		act(NEW_ID, "VatAdd", id)
+	end
+	act(NEW_ID, "VatStart")
+	if me.data.vat and me.data.vat.endsAt then
+		me.data.vat.endsAt = now() - 1 -- skip the brew (MERGE_BREW_SECONDS)
+	end
+	act(NEW_ID, "VatCollect")
+	check(
+		"loop: the vat brews three slimes into one (VatAdd x3, VatStart, VatCollect)",
+		me.data.stats.merges == 1 and (me.data :: any).vat == nil,
+		`merges {me.data.stats.merges}; vat {if (me.data :: any).vat then #(me.data :: any).vat.ids else 0} left`
+	)
 	note()
 	session.lockUntil = 0
 	if #session.data.slimes == 0 then -- the bot's catches were dropped in the drop scenario
@@ -458,7 +482,7 @@ scenario("ui", function()
 	)
 	session.lockUntil = now() - 1
 	st = state()
-	local lockButton = LockHud.lockButton(st, now(), Config.LOCK_MAX_REMAINING)
+	local lockButton = LockHud.lockButton(st, now(), Config.LOCK_MAX_SECONDS)
 	local padButton = LockHud.padButton(st)
 	local lockPrompt = plot.LockButton:FindFirstChild("LockPrompt")
 	local buyPad = plot:FindFirstChild("BuyPadPrompt", true)
@@ -466,7 +490,6 @@ scenario("ui", function()
 		"ui: Lock / Buy-pad HUD buttons match the plot prompts",
 		string.find(lockButton.text, "Lock", 1, true) ~= nil
 			and string.find(lockPrompt.ActionText, "Lock base", 1, true) == 1
-			and plot:GetAttribute("LockCost") == st.lockCost
 			and (st.nextPadCost == nil) == (padButton.visible == false),
 		`"{(lockButton.text:gsub("\n", " "))}" / "{lockPrompt.ActionText}"; "{(padButton.text:gsub("\n", " "))}" / "{buyPad and buyPad.ActionText}"`
 	)

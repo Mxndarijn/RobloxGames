@@ -18,6 +18,8 @@ local EggKind = if Shared then require(Shared.EggKind) else require("../shared/E
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -30,13 +32,11 @@ function StealService.isLocked(session: Session, now: number): boolean
 end
 
 function StealService.buyLock(world: World, session: Session, now: number): (boolean, string?)
-	local ok, lockUntil, result = Steal.buyLock(session.data, session.lockUntil, now, World.incomeOf(world, session))
+	local ok, lockUntil, reason = Steal.buyLock(session.data, session.lockUntil, now)
 	if not ok then
-		return false, result :: string
+		return false, reason
 	end
-	if not Steal.isLocked(session.lockUntil, now) then
-		session.lockStartedAt = now -- a new lock; extending keeps the start
-	end
+	session.lockStartedAt = now -- always a new lock
 	session.lockUntil = lockUntil
 	session.locked = true
 	session.data.stats.locks += 1
@@ -62,11 +62,15 @@ function StealService.steal(
 	if not owner or not slime then
 		return false, "slime is gone"
 	end
+	if VatState.isLocked(owner.data, slimeId) then
+		return false, "That slime is brewing in the vat"
+	end
 	local ok, reason = Steal.canSteal({
 		thiefId = thief.userId,
 		ownerId = owner.userId,
 		now = now,
 		lockUntil = owner.lockUntil,
+		thiefIsGuest = PlotGuests.isGuest(owner, thief.userId),
 		thiefCarrying = thief.carry ~= nil,
 		slimeBusy = World.isBusy(world, slimeId),
 		distance = distance,

@@ -46,7 +46,7 @@ describe("AudioLogic.resolveSfx", function()
 		expect(AudioLogic.resolveSfx({ SFX = { x = "http://evil" } }, "x")).toBe(nil)
 	end)
 	it("accepts Notify names and raw ids", function()
-		expect(AudioLogic.resolveSfx(cfg, "Cash")).toBe("rbxassetid://12222140")
+		expect(AudioLogic.resolveSfx(cfg, "Goal")).toBe("rbxassetid://4612373884")
 		expect(AudioLogic.resolveSfx(cfg, "rbxassetid://5")).toBe("rbxassetid://5")
 	end)
 end)
@@ -164,5 +164,107 @@ describe("AudioLogic night one-shot", function()
 	it("an empty id means no owl", function()
 		expect(AudioLogic.oneshotId({ NIGHT_ONESHOT_ID = "" })).toBe(nil)
 		expect(AudioLogic.oneshotId(ocfg)).toBe("rbxassetid://9")
+	end)
+end)
+
+describe("AudioLogic layers", function()
+	local lcfg = {
+		MUSIC = { day = "rbxassetid://1", night = "rbxassetid://2", boss = "rbxassetid://3" },
+		MUSIC_VOLUME = 0.5,
+		MUSIC_FADE_SECONDS = 3,
+		AMBIENT_DAY_ID = "rbxassetid://4",
+		AMBIENT_NIGHT_ID = "rbxassetid://5",
+		AMBIENT_VOLUME = 0.25,
+		AMBIENT_NIGHT_VOLUME = 0.1,
+		AMBIENT_FADE_SECONDS = 4,
+		WEATHER_BEDS = { Rain = "rbxassetid://6", Snow = "" },
+		WEATHER_BED_VOLUME = 0.35,
+		WEATHER_DUCK = 0.5,
+	}
+	local function keys(t: { [string]: any }): { string }
+		local out = {}
+		for k in t do
+			table.insert(out, k)
+		end
+		table.sort(out)
+		return out
+	end
+	it("plays the day music and the birds by day", function()
+		local t = AudioLogic.layerTargets({ clockTime = 12 }, lcfg, DayNight)
+		expect(table.concat(keys(t), ",")).toBe("bed_day,music_day")
+		expect(t.music_day.volume).toBe(0.5)
+		expect(t.bed_day.volume).toBe(0.25)
+	end)
+	it("switches to the night music and the night bed at its own volume", function()
+		local t = AudioLogic.layerTargets({ clockTime = 0 }, lcfg, DayNight)
+		expect(table.concat(keys(t), ",")).toBe("bed_night,music_night")
+		expect(t.bed_night.volume).toBe(0.1)
+	end)
+	it("the boss track replaces the day / night music", function()
+		local t = AudioLogic.layerTargets({ clockTime = 0, boss = true }, lcfg, DayNight)
+		expect(t.music_boss ~= nil).toBe(true)
+		expect(t.music_night).toBe(nil)
+	end)
+	it("rain adds its bed and ducks the day bed; a weather without an id adds nothing", function()
+		local t = AudioLogic.layerTargets({ clockTime = 12, weather = "Rain" }, lcfg, DayNight)
+		expect(t.weather_Rain.id).toBe("rbxassetid://6")
+		expect(t.bed_day.volume).toBe(0.125)
+		local s = AudioLogic.layerTargets({ clockTime = 12, weather = "Snow" }, lcfg, DayNight)
+		expect(s.weather_Snow).toBe(nil)
+		expect(s.bed_day.volume).toBe(0.25)
+	end)
+	it("leaves out layers with empty or malformed ids", function()
+		local t = AudioLogic.layerTargets({ clockTime = 12 }, {
+			MUSIC = { day = "", night = "x", boss = "" },
+			AMBIENT_DAY_ID = "nope",
+			AMBIENT_NIGHT_ID = "",
+			WEATHER_BEDS = {},
+		}, DayNight)
+		expect(#keys(t)).toBe(0)
+	end)
+	it("every shipped music and weather id is valid", function()
+		for _, track in { "day", "night", "boss" } do
+			local t = AudioLogic.layerTargets(
+				{ clockTime = if track == "night" then 0 else 12, boss = track == "boss" },
+				cfg,
+				DayNight
+			)
+			expect(t["music_" .. track] ~= nil).toBe(true)
+		end
+		for weather in cfg.WEATHER_BEDS do
+			local t = AudioLogic.layerTargets({ clockTime = 12, weather = weather }, cfg, DayNight)
+			expect(t["weather_" .. weather] ~= nil).toBe(true)
+		end
+	end)
+	it("every thunder name resolves", function()
+		for _, name in cfg.THUNDER do
+			expect(type(AudioLogic.resolveSfx(cfg, name))).toBe("string")
+		end
+	end)
+end)
+
+describe("AudioLogic one-shot spec and variants", function()
+	local function fixed(v: number): () -> number
+		return function()
+			return v
+		end
+	end
+	it("a custom spec sets the gap range and the bed level it needs", function()
+		local spec = { min = 10, max = 20, minLevel = 0.5 }
+		local timer, fire = AudioLogic.oneshotStep(nil, 1, 0.4, cfg, fixed(0), spec)
+		expect(timer).toBe(nil)
+		expect(fire).toBe(false)
+		timer = AudioLogic.oneshotStep(nil, 1, 0.6, cfg, fixed(1), spec)
+		expect(timer).toBe(20)
+	end)
+	it("jitter stays within base +- spread", function()
+		expect(AudioLogic.jitter(1, 0.1, fixed(0))).toBe(0.9)
+		expect(AudioLogic.jitter(1, 0.1, fixed(1))).toBe(1.1)
+	end)
+	it("pick covers the whole list and nil for an empty one", function()
+		expect(AudioLogic.pick({ "a", "b", "c" }, fixed(0))).toBe("a")
+		expect(AudioLogic.pick({ "a", "b", "c" }, fixed(0.99))).toBe("c")
+		expect(AudioLogic.pick({ "a", "b", "c" }, fixed(1))).toBe("c")
+		expect(AudioLogic.pick({}, fixed(0.5))).toBe(nil)
 	end)
 end)

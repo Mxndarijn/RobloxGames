@@ -254,3 +254,56 @@ describe("PromptHide owner-only prompts (CONTRACT §8.4)", function()
 		expect(other.Enabled).toBe(true)
 	end)
 end)
+
+describe("PromptHide guests-only Steal prompts", function()
+	local GUESTS = Constants.PROMPT_GUESTS_ATTRIBUTE
+
+	local function startGuests(root: any)
+		return PromptHide.start({
+			root = root,
+			localUserId = ME,
+			attribute = ATTR,
+			ownerAttribute = Constants.PROMPT_OWNER_ATTRIBUTE,
+			guestsAttribute = GUESTS,
+		})
+	end
+
+	it("hides a GuestsOnly prompt unless the local player is on its list", function()
+		local root = instance("Workspace", "Workspace")
+		startGuests(root)
+		local listed = prompt()
+		listed:SetAttribute(GUESTS, `,{OTHER},{ME},`)
+		add(root, root, listed)
+		local notListed = prompt()
+		notListed:SetAttribute(GUESTS, `,{OTHER},`)
+		add(root, root, notListed)
+		local open = add(root, root, prompt())
+		expect(listed.Enabled).toBe(true)
+		expect(notListed.Enabled).toBe(false)
+		expect(open.Enabled).toBe(true)
+	end)
+
+	it("matches whole ids only", function()
+		local root = instance("Workspace", "Workspace")
+		startGuests(root)
+		local p = prompt()
+		p:SetAttribute(GUESTS, `,{ME}1,`) -- 1111, not 111
+		add(root, root, p)
+		expect(p.Enabled).toBe(false)
+	end)
+
+	it("shows it again when the list goes (the base unlocked) or the player joins it", function()
+		local root = instance("Workspace", "Workspace")
+		startGuests(root)
+		local p = prompt()
+		p:SetAttribute(GUESTS, `,{OTHER},`)
+		add(root, root, p)
+		expect(p.Enabled).toBe(false)
+		p:SetAttribute(GUESTS, `,{OTHER},{ME},`)
+		expect(p.Enabled).toBe(true)
+		p:SetAttribute(GUESTS, `,{OTHER},`)
+		expect(p.Enabled).toBe(false)
+		p:SetAttribute(GUESTS, nil)
+		expect(p.Enabled).toBe(true)
+	end)
+end)

@@ -29,6 +29,7 @@ local StealAlert = if Shared then require(Shared.StealAlert) else require("../sh
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
 local WelcomeBack = if Shared then require(Shared.WelcomeBack) else require("../shared/WelcomeBack")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
 local MovementGuard = if Lib
 	then require(Lib.anticheat.MovementGuard)
@@ -61,17 +62,20 @@ export type Session = {
 	limiter: Validate.Limiter,
 	carry: CarryState?,
 	lastSlapAt: number,
+	lastDropAt: number, -- when this player last dropped a slime (Config.DROP_PICKUP_COOLDOWN), runtime only
 	incomeRemainder: number,
 	dirty: boolean,
 	lastPushAt: number,
 	stealWaitSince: number?, -- tutorial Steal step: since when no other plot had a slime to steal, runtime only
 	friends: number?, -- friends in this server (Friends.refresh), runtime only
+	friendIds: { [number]: boolean }?, -- user ids of those friends (Friends.refresh; PlotGuests), runtime only
 	blessedUntil: number?, -- when the co-op ritual's Blessed bonus (data.ritualBonus) ends (RitualService), runtime only
 	mvpUntil: number?, -- when the Boss MVP income boost (data.mvpBonus) ends (BossCredit), runtime only
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch (State.egg, never saved)
 	home: boolean?, -- standing in their own HomeZone (the adapter sets it); warms their Mystery Eggs, runtime only
 	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
+	boardRanks: { [string]: number }?, -- my rank per global board stat from the last refresh (-n = deeper than #n, Leaderboard.sessionRanks); runtime only
 	coilHeld: boolean?, -- the SpeedCoil Tool is equipped (WorldView sets it each tick); runtime only
 	openShop: string?, -- the shop id the player has open (Request OpenShop), runtime only
 	awayLog: { StealAlert.Entry }?, -- FEATURES.StealAlerts: the saved thefts read at join, for the join notice (never saved)
@@ -95,12 +99,15 @@ export type Wild = {
 }
 
 -- SlimeGuard (CONTRACT.md §41): one player's movement check, suspicion points and where they are.
+-- Another player's jar a character is in and since when; `guest` once they were let in there (PlotGuests),
+-- `flagged` once they were reported as an intruder there.
+export type PlotVisit = { index: number, since: number, guest: boolean?, flagged: boolean? }
 export type GuardEntry = {
 	track: MovementGuard.Track,
 	suspicion: Suspicion.State,
 	lastMax: number, -- last tick's allowed flat speed
 	carry: { slimeId: string, x: number, z: number, maxSpeed: number }?, -- where the current stolen carry began
-	plot: { index: number, since: number }?, -- another player's jar the character is in, and since when
+	plot: PlotVisit?, -- another player's jar the character is in (SlimeGuard.trackPlot)
 	logMinute: number,
 	logCount: number,
 }
@@ -377,9 +384,16 @@ end
 
 -- The slime that follows this player as a pet (Player attribute PetSlimeId): the
 -- favourite, or the best slime. A slime a thief is carrying away is skipped, so a
--- stolen pet stops following its owner; it comes back if it escapes home.
+-- stolen pet stops following its owner; it comes back if it escapes home. A Mystery
+-- Egg never rides the cloud, not even a favourited one: the best hatched slime does.
 function World.pet(world: World, session: Session): Slime?
-	return Progression.keeper(session.data, World.carriedSet(world))
+	local skip = World.carriedSet(world)
+	for _, slime in session.data.slimes do
+		if slime.egg then
+			skip[slime.id] = true
+		end
+	end
+	return Progression.keeper(session.data, skip)
 end
 
 -- The session that owns a pad slime, and the slime itself.
@@ -393,8 +407,17 @@ function World.ownerOf(world: World, slimeId: string): (Session?, Slime?)
 	return nil, nil
 end
 
+-- The slimes that earn nothing right now: carried away by a thief, or brewing in the owner's vat.
+function World.incomeSkip(world: World, session: Session): { [string]: boolean }
+	local skip = VatState.lockedSet(session.data)
+	for id in world.carriedBy do
+		skip[id] = true
+	end
+	return skip
+end
+
 function World.incomeOf(world: World, session: Session): number
-	return PlayerData.incomePerSecond(session.data, World.carriedSet(world))
+	return PlayerData.incomePerSecond(session.data, World.incomeSkip(world, session))
 end
 
 return World

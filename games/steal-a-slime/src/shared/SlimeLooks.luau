@@ -104,7 +104,7 @@ local KITS = table.freeze({
 })
 
 -- Materials a slime body may use; all are Enum.Material names.
-local MATERIALS = table.freeze({ "SmoothPlastic", "Glass", "Foil", "Neon", "Plastic" })
+local MATERIALS = table.freeze({ "SmoothPlastic", "Ice", "Foil", "Neon", "Plastic" })
 
 local ANIM_STATES: { AnimState } = { "idle", "wobble", "move" }
 

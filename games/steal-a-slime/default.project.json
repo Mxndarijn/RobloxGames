@@ -159,6 +159,9 @@
       }
     },
     "StarterPlayer": {
+      "$properties": {
+        "CameraMaxZoomDistance": 60
+      },
       "StarterPlayerScripts": {
         "UI": {
           "$path": "src/ui"

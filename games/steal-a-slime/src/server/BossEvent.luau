@@ -40,6 +40,10 @@ export type Context = {
 	plazaOrigin: (() -> Vec)?, -- the fountain centre in world studs (plaza coordinates are round it)
 	airborne: ((userId: number) -> boolean)?, -- off the ground (jumping clears a stomp's ring)
 	launch: ((userId: number, push: Vec, landing: Vec) -> boolean)?, -- an attack's knockback (PvpLaunch)
+	-- Whether an attack centred on world point `from` (its x / z; Y = the plaza origin's) can strike `userId`: the
+	-- player is no more than BOSS.STRIKE_HEIGHT above the arena floor there and nothing solid stands between (a wall,
+	-- the silo, a prop). nil = always (tests).
+	exposed: ((userId: number, from: Vec) -> boolean)?,
 }
 
 local BossEvent = {}
@@ -127,7 +131,13 @@ local function begin(world: World, now: number): string
 	local entry = SlimeRoster.get(species)
 	local name = if entry then entry.name else species
 	local seconds = math.max(0, math.floor(fight.endsAt - now + 0.5))
-	World.notify(world, nil, `BOSS INCOMING! {name} reaches the plaza in {seconds} s. Grab your bat!`, "good", "Rain")
+	World.notify(
+		world,
+		nil,
+		`BOSS INCOMING! {name} reaches the plaza in {seconds} s. Grab your bat!`,
+		"good",
+		"BossWarn"
+	)
 	World.markAllDirty(world)
 	return species
 end
@@ -158,7 +168,7 @@ local function arrive(world: World, event: World.BossEvent, now: number, ctx: Co
 		nil,
 		`{slime.name} is in the plaza! Hit it with your bat to fill the goo meter!`,
 		"good",
-		"Rain"
+		"BossWarn"
 	)
 end
 
@@ -177,7 +187,7 @@ local function startHaul(world: World, event: World.BossEvent, now: number)
 	local text = if top
 		then `{name} is down! {top} gets first grab, then anyone. Carry it home!`
 		else `{name} is down! Grab it and carry it home!`
-	World.notify(world, nil, text, "good", "Rain")
+	World.notify(world, nil, text, "good", "Announce")
 end
 
 -- Fight or haul lost: the boss (carried or not) gets away. No slimes drop.
@@ -195,7 +205,7 @@ local function escape(world: World, event: World.BossEvent, now: number, reason:
 	local text = if reason == "fight"
 		then "The boss got away! Fill the meter faster next time."
 		else "Nobody brought the boss home! It got away."
-	World.notify(world, nil, text, "info", "Rain")
+	World.notify(world, nil, text, "info", "Announce")
 end
 
 -- A player as the boss sees them: plaza spot, root height and whether they are off the ground.
@@ -261,7 +271,12 @@ local function spitTargets(
 	z: number,
 	count: number
 ): { { number } }
-	local sorted = table.clone(players)
+	local sorted = {}
+	for _, p in players do
+		if (p[1] - x) ^ 2 + (p[2] - z) ^ 2 <= BOSS.ATTACK_RANGE ^ 2 then
+			table.insert(sorted, p)
+		end
+	end
 	table.sort(sorted, function(a, b)
 		return (a[1] - x) ^ 2 + (a[2] - z) ^ 2 < (b[1] - x) ^ 2 + (b[2] - z) ^ 2
 	end)
@@ -387,12 +402,30 @@ local function advance(world: World, event: World.BossEvent, now: number, all: {
 end
 
 -- Knocks `spot`'s player away from the boss at plaza (bx, bz) and stuns their bat (Config.BOSS.STUN_SECONDS).
-local function strike(world: World, ctx: Context?, spot: Spot, bx: number, bz: number, push: number, now: number)
+-- Returns whether it struck: not when the adapter says the player is out of the attack's reach (too high above the
+-- arena floor, or behind something solid; Context.exposed).
+local function strike(
+	world: World,
+	ctx: Context?,
+	spot: Spot,
+	bx: number,
+	bz: number,
+	push: number,
+	now: number
+): boolean
 	local session = world.sessions[spot.userId]
 	if not session then
-		return
+		return false
 	end
 	local ox, oz = origin(ctx)
+	local exposed = ctx and ctx.exposed
+	if exposed then
+		local get = ctx and ctx.plazaOrigin
+		local oy = if get then get().Y else 0
+		if not exposed(spot.userId, { X = bx + ox, Y = oy, Z = bz + oz }) then
+			return false
+		end
+	end
 	local from = { X = bx + ox, Y = spot.y, Z = bz + oz }
 	local at = { X = spot.x + ox, Y = spot.y, Z = spot.z + oz }
 	local landing, vector = PvpKnockbackRules.away(from, at, push, BOSS.HIT_ARC)
@@ -414,6 +447,7 @@ local function strike(world: World, ctx: Context?, spot: Spot, bx: number, bz: n
 	local entry = SlimeRoster.get(world.boss and world.boss.fight.species or "")
 	World.notify(world, spot.userId, `{if entry then entry.name else "The boss"} got you! Dodge the red.`, "bad", nil)
 	World.markDirty(session)
+	return true
 end
 
 -- The running attack between the last step and `now`: who it strikes, spits landing, puddles slowing players.
@@ -432,9 +466,8 @@ local function attacks(world: World, event: World.BossEvent, now: number, t0: nu
 			for _, s in all do
 				local hit, part = BossAttacks.strikes(move, attack, t0, now, s)
 				local key = `{s.userId}:{part}`
-				if hit and not event.struck[key] then
+				if hit and not event.struck[key] and strike(world, ctx, s, bx, bz, attack.push or 35, now) then
 					event.struck[key] = true
-					strike(world, ctx, s, bx, bz, attack.push or 35, now)
 				end
 			end
 		end
@@ -498,9 +531,9 @@ local function attacks(world: World, event: World.BossEvent, now: number, t0: nu
 				if
 					not puddle.struck[s.userId]
 					and BossAttacks.ringBand(puddle.x, puddle.z, burstAt, speed, radius, t0, now, s)
+					and strike(world, ctx, s, puddle.x, puddle.z, burst.push or 30, now)
 				then
 					puddle.struck[s.userId] = true
-					strike(world, ctx, s, puddle.x, puddle.z, burst.push or 30, now)
 				end
 			end
 		end
@@ -677,7 +710,7 @@ function BossEvent.hitGuard(world: World, session: Session, now: number, from: V
 	if left == 0 and wild and wild.move and wild.move.kind == "rise" then
 		wild.move = BossChoreo.hold("land", wild.move, now, BOSS.LAND_SECONDS, "daze")
 		event.guards = {}
-		World.notify(world, nil, "Every guard is down! The boss is dazed: hit it now!", "good", nil)
+		World.notify(world, nil, "Every guard is down! The boss is dazed: hit it now!", "good", "Announce")
 	end
 	World.markAllDirty(world)
 	settle(world, event, now, ctx)

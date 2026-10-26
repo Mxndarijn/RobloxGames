@@ -13,6 +13,14 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
+-- the species rebirth `n` asks for first, and its display name
+local function needOf(n: number): string
+	return Config.REBIRTH_SLIMES[n][1]
+end
+local function needName(n: number): string
+	return (SlimeRoster.get(needOf(n)) :: SlimeRoster.Entry).name
+end
+local FIRST = needOf(1)
 
 describe("Rebirth.rebirth", function()
 	it("resets cash, uses up the required slime, keeps the rest, adds a rebirth", function()
@@ -21,7 +29,7 @@ describe("Rebirth.rebirth", function()
 		local s = ServerFixtures.join(
 			world,
 			1,
-			{ Fixtures.slime("a", 5), Fixtures.slime("fav", 3), Fixtures.slime("b", 2, { species = "bumble" }) },
+			{ Fixtures.slime("a", 5), Fixtures.slime("fav", 3), Fixtures.slime("b", 2, { species = FIRST }) },
 			cost
 		)
 		s.data.favoriteId = "fav"
@@ -45,7 +53,7 @@ describe("Rebirth.rebirth", function()
 		local s = ServerFixtures.join(
 			world,
 			1,
-			{ Fixtures.slime("best", 6), Fixtures.slime("meh", 1), Fixtures.slime("b", 2, { species = "bumble" }) },
+			{ Fixtures.slime("best", 6), Fixtures.slime("meh", 1), Fixtures.slime("b", 2, { species = FIRST }) },
 			1e9
 		)
 		local thief = ServerFixtures.join(world, 2)
@@ -58,7 +66,7 @@ describe("Rebirth.rebirth", function()
 	end)
 	it("ends the carry of a used-up slime", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("b", 2, { species = "bumble" }) }, 1e9)
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("b", 2, { species = FIRST }) }, 1e9)
 		local thief = ServerFixtures.join(world, 2)
 		ServerFixtures.unlock(s)
 		Carry.grab(world, 2, "b", 1, T0)
@@ -69,7 +77,7 @@ describe("Rebirth.rebirth", function()
 end)
 
 describe("Rebirth slime requirement", function()
-	it("has its own list of one to three known species for every rebirth", function()
+	it("has its own list of one to three roster species for every rebirth, never a boss or event slime", function()
 		expect(#Config.REBIRTH_SLIMES).toBe(Config.MAX_REBIRTHS)
 		local seen: { [string]: number } = {}
 		for level, list in Config.REBIRTH_SLIMES do
@@ -77,7 +85,8 @@ describe("Rebirth slime requirement", function()
 			for _, id in list do
 				local entry = SlimeRoster.get(id)
 				assert(entry, `unknown species {id} at level {level}`)
-				expect(entry.kind ~= "event").toBe(true)
+				local farmable = entry.kind == "spawn" or entry.kind == "hybrid"
+				expect(`{id} ({entry.kind}): {farmable}`).toBe(`{id} ({entry.kind}): true`)
 			end
 			local key = MergeRecipes.key(list)
 			expect(`{key}: {seen[key] or "new"}`).toBe(`{key}: new`)
@@ -104,30 +113,30 @@ describe("Rebirth slime requirement", function()
 	it("is rejected without the slime, with a reason, and wipes nothing", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 1e9)
-		expect(select(2, Rebirth.rebirth(world, s))).toBe("need a Bumble")
+		expect(select(2, Rebirth.rebirth(world, s))).toBe(`need a {needName(1)}`)
 		expect(s.data.rebirths).toBe(0)
 		expect(#s.data.slimes).toBe(1)
 		expect(s.data.cash).toBe(1e9)
 	end)
 	it("needs the cash too, even when the slime is owned", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2, { species = "bumble" }) }, 10)
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2, { species = FIRST }) }, 10)
 		expect(select(2, Rebirth.rebirth(world, s))).toBe("not enough cash")
 	end)
 	it("uses the required slime up, even when it is the favourite", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2, { species = "bumble" }) }, 1e9)
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2, { species = FIRST }) }, 1e9)
 		s.data.favoriteId = "a"
 		expect((Rebirth.rebirth(world, s))).toBe(true)
 		expect(#s.data.slimes).toBe(0)
 		expect(s.data.favoriteId).toBeNil()
 		s.data.cash = 1e12
-		expect(select(2, Rebirth.rebirth(world, s))).toBe("need a Froggo")
+		expect(select(2, Rebirth.rebirth(world, s))).toBe(`need a {needName(2)}`)
 	end)
 	it("uses up the weakest match and keeps a better one of the same species", function()
 		local data = Fixtures.data({
-			Fixtures.slime("big", 2, { species = "bumble", size = 3 }),
-			Fixtures.slime("small", 2, { species = "bumble" }),
+			Fixtures.slime("big", 2, { species = FIRST, size = 3 }),
+			Fixtures.slime("small", 2, { species = FIRST }),
 		}, 1e9)
 		expect((Progression.rebirth(data))).toBe(true)
 		expect(#data.slimes).toBe(1)
@@ -135,8 +144,8 @@ describe("Rebirth slime requirement", function()
 	end)
 	it("spares the favourite when another slime of the species can pay", function()
 		local data = Fixtures.data({
-			Fixtures.slime("fav", 2, { species = "bumble" }),
-			Fixtures.slime("big", 2, { species = "bumble", size = 3 }),
+			Fixtures.slime("fav", 2, { species = FIRST }),
+			Fixtures.slime("big", 2, { species = FIRST, size = 3 }),
 		}, 1e9)
 		data.favoriteId = "fav"
 		expect((Progression.rebirth(data))).toBe(true)
@@ -158,11 +167,11 @@ describe("Rebirth slime requirement", function()
 		expect(data.slimes[1].id).toBe("other")
 	end)
 	it("reports one row per slime for the snapshot, and nothing at max level", function()
-		local data = Fixtures.data({ Fixtures.slime("a", 2, { species = "bumble" }) })
+		local data = Fixtures.data({ Fixtures.slime("a", 2, { species = FIRST }) })
 		local rows = Progression.requiredSlimes(data)
 		expect(#rows).toBe(1)
-		expect(rows[1].id).toBe("bumble")
-		expect(rows[1].name).toBe("Bumble")
+		expect(rows[1].id).toBe(FIRST)
+		expect(rows[1].name).toBe(needName(1))
 		expect(rows[1].owned).toBe(true)
 		expect(Progression.requiredSlimes(Fixtures.data())[1].owned).toBe(false)
 		data.rebirths = Config.MAX_REBIRTHS
@@ -170,7 +179,7 @@ describe("Rebirth slime requirement", function()
 		expect(select(2, Progression.canRebirth(data))).toBe("max rebirths reached")
 	end)
 	it("an egg of the species doesn't count", function()
-		local data = Fixtures.data({ Fixtures.slime("e", 2, { species = "bumble", egg = "speckled" }) }, 1e9)
-		expect(select(2, Progression.canRebirth(data))).toBe("need a Bumble")
+		local data = Fixtures.data({ Fixtures.slime("e", 2, { species = FIRST, egg = "speckled" }) }, 1e9)
+		expect(select(2, Progression.canRebirth(data))).toBe(`need a {needName(1)}`)
 	end)
 end)

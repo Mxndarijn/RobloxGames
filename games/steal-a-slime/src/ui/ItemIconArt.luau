@@ -237,6 +237,15 @@ RECIPES.Upgrade_OfflineCap = function(p)
 	end
 end
 
+RECIPES.Upgrade_QuickBrew = function(p)
+	p:shape(0.5, 0.66, 0.7, 0.46, rgb(200, 120, 60), { round = 0.45 })
+	p:shape(0.5, 0.46, 0.76, 0.14, rgb(110, 60, 30), { round = 0.5 })
+	p:shape(0.5, 0.46, 0.62, 0.08, GREEN, { round = 0.5, stroke = false })
+	-- A gold bolt over the goo: two slanted bars.
+	p:shape(0.56, 0.16, 0.14, 0.26, GOLD, { rot = 25, round = 0.2 })
+	p:shape(0.46, 0.3, 0.14, 0.26, GOLD, { rot = 25, round = 0.2 })
+end
+
 RECIPES.Upgrade_Luck = function(p)
 	clover(p, 0.5, 0.48, 0.9, rgb(70, 190, 90))
 	p:circle(0.5, 0.48, 0.3, GOLD)
@@ -549,6 +558,21 @@ local function trophyRecipe(id: string): ((Pen) -> ())?
 	end
 end
 
+-- Pet seats (PetSeat_<id>): one puffy cloud with a slime on it for every seat, shown only when the seat's uploaded
+-- picture can't be used; the tile behind it carries the seat's own colour.
+local function seatRecipe(id: string): ((Pen) -> ())?
+	if string.sub(id, 1, 8) ~= "PetSeat_" then
+		return nil
+	end
+	return function(p)
+		p:circle(0.32, 0.66, 0.28, WHITE)
+		p:circle(0.68, 0.66, 0.28, WHITE)
+		p:circle(0.5, 0.56, 0.34, WHITE)
+		p:shape(0.5, 0.74, 0.7, 0.2, WHITE, { round = 0.5, stroke = false })
+		blob(p, 0.5, 0.4, 0.3, GREEN)
+	end
+end
+
 -- Plot skins: a small ranch diorama (floor slab, fence posts, decor) per skin.
 local function diorama(p: Pen, floor: Color, fence: Color, decor: (Pen) -> ())
 	p:shape(0.5, 0.74, 0.92, 0.42, floor:Lerp(INK, 0.25), { round = 0.2 })
@@ -630,12 +654,12 @@ RECIPES.Code_LAUNCH = RECIPES.Cash
 ItemIconArt.RECIPES = table.freeze(RECIPES)
 
 function ItemIconArt.has(id: string): boolean
-	return RECIPES[id] ~= nil or trophyRecipe(id) ~= nil
+	return RECIPES[id] ~= nil or trophyRecipe(id) ~= nil or seatRecipe(id) ~= nil
 end
 
 -- Rebuilds the recipe for `id` into `parent` (an empty frame); false when there is none.
 function ItemIconArt.draw(parent: Instance, id: string, z: number): boolean
-	local recipe = RECIPES[id] or trophyRecipe(id)
+	local recipe = RECIPES[id] or trophyRecipe(id) or seatRecipe(id)
 	if recipe == nil then
 		return false
 	end

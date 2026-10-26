@@ -57,6 +57,7 @@ local function rebirthState(rebirths: number, cash: number): any
 	return {
 		rebirths = rebirths,
 		rebirthMultiplier = Economy.rebirthMultiplier(rebirths),
+		nextRebirthMultiplier = Economy.rebirthMultiplier(math.min(rebirths + 1, Config.MAX_REBIRTHS)),
 		rebirthCost = Economy.rebirthCost(rebirths),
 		canRebirth = cash >= Economy.rebirthCost(rebirths),
 		cash = cash,
@@ -321,7 +322,7 @@ describe("Rebirth needs specific slimes and uses them up", function()
 		local Rebirth = UiHarness.ui("Panels/Rebirth")
 		local panel = Rebirth.new(UiHarness.root(), ctx())
 		local state = rebirthState(20, 0)
-		state.lockDuration = Config.LOCK_MAX_REMAINING
+		state.lockDuration = Config.LOCK_MAX_SECONDS
 		panel.update(state)
 		expect(UiHarness.find(UiHarness.find(panel.frame, "LockTime"), "Value").Text).toBe("Max")
 		state.lockDuration = Config.LOCK_SECONDS

@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local Economy = require(ReplicatedStorage.Shared.Economy)
+local MoveWatch = require(script.Parent.MoveWatch)
 local PlotLookup = require(script.Parent.PlotLookup)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
@@ -26,6 +27,8 @@ local BaseFloors = {}
 
 export type Context = {
 	build: (plot: Instance, plotIndex: number, floor: number) -> { Instance },
+	-- the roof colliders on the top jar (WorldBuilder.buildTop); nil leaves the roof alone
+	top: ((plot: Instance, plotIndex: number, floor: number) -> Instance)?,
 	meshes: (instances: { Instance }) -> (),
 	drop: ((player: Player, plotIndex: number) -> ())?,
 }
@@ -90,6 +93,7 @@ local function evacuate(plot: Instance, floor: number)
 				local at = root.Position
 				character:PivotTo(CFrame.new(at.X, floorY + 3, at.Z) * root.CFrame.Rotation)
 				root.AssemblyLinearVelocity = Vector3.zero
+				MoveWatch.allow(player.UserId, Config.MOVE_GUARD.TELEPORT_ALLOW)
 			end
 		end
 	end
@@ -144,8 +148,9 @@ local function setLids(plot: Instance)
 		end
 		local n = d:GetAttribute("JarLid")
 		if typeof(n) == "number" then
+			-- the lid never collides (the roof is TopColliders, shaped like the glass); queryable on the top jar
 			local covered = plot:FindFirstChild(`Floor_{n + 1}`) ~= nil
-			d.CanCollide = not covered
+			d.CanCollide = false
 			d.CanQuery = not covered
 		end
 		local f, show = d:GetAttribute("JarFloor"), d:GetAttribute("JarShow")
@@ -190,6 +195,19 @@ function BaseFloors.sync(plot: Instance, plotIndex: number, padsUnlocked: number
 	end
 	if changed then
 		setLids(plot)
+	end
+	-- one roof per plot, on its top jar (also the first time a plot is seen: jar 1)
+	if ctx.top then
+		local top = 1
+		for floor = 2, #Config.BASE_FLOORS do
+			if plot:FindFirstChild(`Floor_{floor}`) then
+				top = floor
+			end
+		end
+		local roof = plot:FindFirstChild("TopColliders")
+		if not roof or roof:GetAttribute("TopFloor") ~= top then
+			ctx.top(plot, plotIndex, top)
+		end
 	end
 end
 

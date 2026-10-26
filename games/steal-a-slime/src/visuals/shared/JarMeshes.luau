@@ -44,6 +44,10 @@ local JarMeshes = {
 	["goo_jar_props@crystal"] = { size = { 70.653, 8.384, 59.610 }, centre = { 0.085, 3.480, 3.151 } },
 	["goo_jar_hat@starlight"] = { size = { 1.600, 1.195, 1.600 }, centre = { 0.000, 1.843, 0.000 } },
 	["goo_jar_props@starlight"] = { size = { 66.824, 9.827, 57.793 }, centre = { 0.055, 4.814, 2.641 } },
+	["goo_jar_hat@candy"] = { size = { 0.984, 1.182, 1.013 }, centre = { -0.001, 1.728, 0.008 } },
+	["goo_jar_props@candy"] = { size = { 67.869, 13.355, 59.830 }, centre = { 0.100, 6.283, 2.189 } },
+	["goo_jar_hat@mushroom"] = { size = { 1.617, 0.765, 1.700 }, centre = { 0.000, 1.380, 0.000 } },
+	["goo_jar_props@mushroom"] = { size = { 69.204, 5.031, 65.316 }, centre = { 0.000, 2.074, 0.145 } },
 }
 
 return table.freeze(JarMeshes)

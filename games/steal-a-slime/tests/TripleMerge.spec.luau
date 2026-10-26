@@ -1,26 +1,18 @@
 --!strict
--- 3-slime merge vat (FEATURES.MergeVat3, CONTRACT.md §21): rules, odds, determinism, anti-dupe, the Merge3
--- action, the panel's switch and the vat decor. The flag is off by default; flag-on paths pass ctx.features.MergeVat3.
-local Actions = require("../src/server/Actions")
-local Carry = require("../src/server/Carry")
+-- The 3-slime merge (TripleMerge, CONTRACT.md §21): rules, odds, determinism, anti-dupe and the vat decor.
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local Genome = require("../src/shared/Genome")
-local MergeVat = require("../src/server/MergeVat")
 local MeshAssets = require("../src/shared/MeshAssets")
 local PlayerData = require("../src/shared/PlayerData")
 local RanchProps = require("../src/visuals/shared/RanchProps")
-local Remotes = require("../src/shared/Remotes")
 local Rng = require("../src/shared/Rng")
-local ServerFixtures = require("./ServerFixtures")
 local TestRunner = require("./TestRunner")
 local TripleMerge = require("../src/shared/TripleMerge")
-local Validate = require("../src/shared/Validate")
 local VatDecor = require("../src/visuals/shared/VatDecor")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
-local T0 = ServerFixtures.T0
 local slime = Fixtures.slime
 
 local function three(tier: number, extra: { [string]: any }?): { Genome.Slime }
@@ -128,6 +120,40 @@ describe("TripleMerge: recipes, caps and the assist", function()
 			expect((SlimeRoster.get(child.species :: string) :: any).kind).toBe("spawn")
 		end
 	end)
+	it("Mythic and Secret loads only merge as a recipe: Mythic x3 at random is refused, Nightwing's is not", function()
+		expect(select(2, TripleMerge.canMerge(trio(6, { "cosmo", "cosmo", "cosmo" })))).toBe(
+			"only a recipe merges these"
+		)
+		expect(select(2, TripleMerge.canMerge(three(Config.SECRET_TIER)))).toBe("only a recipe merges these")
+		local nightwing = MergeRecipes.recipeFor("nightwing") :: any
+		expect(nightwing.tier).toBe(Config.SECRET_TIER)
+		expect((TripleMerge.canMerge(trio(nightwing.tier - 1, nightwing.inputs)))).toBe(true)
+		local child = TripleMerge.merge(trio(nightwing.tier - 1, nightwing.inputs), Rng.new(1), "x", everything)
+		expect(child.species).toBe("nightwing")
+	end)
+	it("the child is marked brewed: 1 from a random merge, 2 from a recipe, and earns that bonus", function()
+		local function plain(s: Genome.Slime): Genome.Slime
+			local copy = table.clone(s)
+			copy.brewed = nil
+			return copy
+		end
+		for seed = 1, 20 do
+			local random = TripleMerge.merge(three(2), Rng.new(seed), "r", everything)
+			expect(random.brewed).toBe(1)
+			expect(Genome.baseIncome(random)).toBeCloseTo(
+				Genome.baseIncome(plain(random)) * Config.BREWED_INCOME_MULT,
+				1e-9
+			)
+		end
+		local recipe = MergeRecipes.RECIPES[1]
+		local hybrid = TripleMerge.merge(trio(recipe.tier - 1, recipe.inputs), Rng.new(3), "h", everything)
+		expect(hybrid.species).toBe(recipe.id)
+		expect(hybrid.brewed).toBe(2)
+		expect(Genome.baseIncome(hybrid)).toBeCloseTo(
+			Genome.baseIncome(plain(hybrid)) * Config.RECIPE_INCOME_MULT,
+			1e-9
+		)
+	end)
 	it("a +2 jump lands on Legendary at most: Epic x3 is always Legendary", function()
 		local jumped = false
 		for seed = 1, 400 do
@@ -189,37 +215,6 @@ describe("TripleMerge: recipes, caps and the assist", function()
 	end)
 end)
 
-describe("TripleMerge: recipe toast", function()
-	local function soda(id: string, species: string)
-		return slime(id, 1, { species = species })
-	end
-	it("a recipe hit says 'discovered' the first time and 'brewed' after", function()
-		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, {
-			soda("a", "bubbles"),
-			soda("b", "gummy"),
-			soda("c", "mochi"),
-			soda("d", "bubbles"),
-			soda("e", "gummy"),
-			soda("f", "mochi"),
-		})
-		expect((MergeVat.merge3(world, s, { "a", "b", "c" }))).toBe(true)
-		local texts = ServerFixtures.notifications(world, 1)
-		expect(table.find(texts, "You discovered Soda Pop!") ~= nil).toBe(true)
-		expect((MergeVat.merge3(world, s, { "d", "e", "f" }))).toBe(true)
-		texts = ServerFixtures.notifications(world, 1)
-		expect(table.find(texts, "You brewed a Soda Pop!") ~= nil).toBe(true)
-	end)
-	it("a random merge gets no recipe toast", function()
-		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { soda("a", "gummy"), soda("b", "gummy"), soda("c", "pebble") })
-		expect((MergeVat.merge3(world, s, { "a", "b", "c" }))).toBe(true)
-		for _, text in ServerFixtures.notifications(world, 1) do
-			expect(string.find(text, "discovered", 1, true)).toBeNil()
-		end
-	end)
-end)
-
 describe("TripleMerge: apply (anti-dupe)", function()
 	local function data()
 		return Fixtures.data({ slime("a", 2), slime("x", 1), slime("b", 2), slime("c", 2), slime("d", 2) })
@@ -267,59 +262,6 @@ describe("TripleMerge: apply (anti-dupe)", function()
 		local d = data()
 		expect((TripleMerge.apply(d, { "a", "b", "c" }, nil, Rng.new(1), "n"))).toBe(true)
 		expect(select(2, TripleMerge.apply(d, { "a", "b", "c" }, nil, Rng.new(1), "n3"))).toBe("missing slime")
-	end)
-end)
-
-describe("TripleMerge: server action", function()
-	local ctxOn: Actions.Context = {
-		distanceBetween = function()
-			return 2
-		end,
-		positionOf = function()
-			return nil
-		end,
-		features = { MergeVat3 = true },
-	}
-	local ctxOff: Actions.Context = { distanceBetween = ctxOn.distanceBetween, positionOf = ctxOn.positionOf }
-
-	local function call(world: any, userId: number, ids: { any }, ctx: Actions.Context)
-		world.sessions[userId].limiter = {}
-		return Actions.handle(world, userId, "Merge3", ids, T0 + 100, ctx)
-	end
-
-	it("is a registered, rate-limited action with three string args", function()
-		expect(#Remotes.ACTIONS.Merge3.args).toBe(3)
-		expect(Validate.ACTIONS.Merge3 ~= nil).toBe(true)
-	end)
-	it("is refused with the flag off and merges with it on", function()
-		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { slime("a", 2), slime("b", 2), slime("c", 2), slime("x", 1) })
-		local off = call(world, 1, { "a", "b", "c" }, ctxOff)
-		expect(off.ok).toBe(false)
-		expect(#s.data.slimes).toBe(4)
-		local on = call(world, 1, { "a", "b", "c" }, ctxOn)
-		expect(on.ok).toBe(true)
-		expect(#s.data.slimes).toBe(2)
-		expect(s.data.stats.merges).toBe(1)
-		expect(#ServerFixtures.notifications(world, 1) >= 1).toBe(true)
-	end)
-	it("rejects malformed args and someone else's slimes", function()
-		local world = ServerFixtures.world()
-		ServerFixtures.join(world, 1, { slime("a", 2), slime("b", 2), slime("c", 2) })
-		local other = ServerFixtures.join(world, 2)
-		expect(call(world, 1, { "a", "b" }, ctxOn).ok).toBe(false)
-		expect(call(world, 1, { "a", "b", 5 }, ctxOn).ok).toBe(false)
-		expect(call(world, 2, { "a", "b", "c" }, ctxOn).ok).toBe(false)
-		expect(#other.data.slimes).toBe(0)
-	end)
-	it("a slime being carried away is busy", function()
-		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { slime("a", 2), slime("b", 2), slime("c", 2) })
-		ServerFixtures.join(world, 2)
-		ServerFixtures.unlock(s)
-		Carry.grab(world, 2, "c", 1, T0)
-		expect(select(2, MergeVat.merge3(world, s, { "a", "b", "c" }))).toBe("slime is busy")
-		expect(#s.data.slimes).toBe(3)
 	end)
 end)
 

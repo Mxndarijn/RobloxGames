@@ -15,7 +15,6 @@ FeatureOverride.PREFIX = "PcwFlag_"
 -- The default-off flags that are review-able; anything else is never overridden.
 FeatureOverride.FLAGS = table.freeze({
 	"FountainTiers",
-	"MergeVat3",
 	"StealAlerts",
 	"WeeklyEvents",
 	"PlotSkins",

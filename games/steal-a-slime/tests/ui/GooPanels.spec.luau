@@ -203,3 +203,25 @@ describe("Goals: one fixed right slot per row", function()
 		expect(Goals.claimText("", false)).toBe("Claim")
 	end)
 end)
+
+-- A menu card sits over a full-window backdrop button that closes the menu; a tap on the card (its rows,
+-- labels, padding) must stop at the card, so only a tap outside it or the X closes the menu.
+describe("Menu cards block taps to the backdrop behind them", function()
+	for _, key in { "Codes", "Dex", "Goals", "Guide", "Merge", "Rebirth", "Welcome" } do
+		it(`{key} card is Active`, function()
+			local panel = UiHarness.ui(`Panels/{key}`).new(UiHarness.root(), ctx())
+			expect(panel.frame.Active).toBe(true)
+		end)
+	end
+	for _, shopId in { "ItemShop", "UpgradeShop" } do
+		it(`{shopId} card is Active`, function()
+			local panel = UiHarness.ui("Panels/WorldShop").new(UiHarness.root(), ctx())
+			panel.setShop(shopId)
+			expect(panel.frame.Active).toBe(true)
+		end)
+	end
+	it("Daily reward card is Active", function()
+		local popup = UiHarness.ui("Panels/DailyPopup").new(UiHarness.root(), ctx())
+		expect(UiHarness.find(popup.frame, "Card").Active).toBe(true)
+	end)
+end)

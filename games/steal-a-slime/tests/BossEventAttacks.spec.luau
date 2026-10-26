@@ -99,6 +99,61 @@ describe("BossEvent attacks", function()
 		expect(BossEvent.stunned(s, t + 1 + BOSS.STUN_SECONDS + 1)).toBe(false)
 	end)
 
+	it("an attack strikes only a player it can reach: not on a roof, not behind a wall (ctx.exposed)", function()
+		local w, ctx, at, launched = fight(1)
+		local blocked = true
+		local asked: { any } = {}
+		ctx.exposed = function(userId: number, from: any): boolean
+			table.insert(asked, { userId = userId, x = from.X, z = from.Z })
+			return not blocked
+		end
+		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+		BossEvent.step(w, t, ctx)
+		local move = force(w, "attack", "start.1", t, BOSS.RING_DELAY + 1.5)
+		at[1] = { X = move.fx + 8, Y = 3, Z = move.fz }
+		for i = 1, 60 do
+			BossEvent.step(w, t + i / 30, ctx)
+		end
+		expect(#launched).toBe(0) -- the ring passed them, but something stood in between
+		expect(#asked > 0).toBe(true)
+		expect(asked[1].userId).toBe(1)
+		expect(math.abs(asked[1].x - move.fx) < 1e-6 and math.abs(asked[1].z - move.fz) < 1e-6).toBe(true)
+		expect(BossEvent.stunned(w.sessions[1], t + 1)).toBe(false)
+		-- out in the open the same stomp knocks them back
+		blocked = false
+		local t2 = t + 3
+		local again = force(w, "attack", "start.1", t2, BOSS.RING_DELAY + 1.5)
+		at[1] = { X = again.fx + 8, Y = 3, Z = again.fz }
+		for i = 1, 60 do
+			BossEvent.step(w, t2 + i / 30, ctx)
+		end
+		expect(launched[1]).toBe(1)
+	end)
+
+	it("spits and jelly rain never aim at a player further than ATTACK_RANGE from the boss", function()
+		local w, ctx, at = fight(2, 2) -- Queen Jelly
+		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+		BossEvent.step(w, t, ctx)
+		local wild = bossOf(w)
+		at[1] = { X = wild.move.tx + BOSS.ATTACK_RANGE + 15, Y = 3, Z = wild.move.tz }
+		at[2] = { X = wild.move.tx - BOSS.ATTACK_RANGE - 25, Y = 3, Z = wild.move.tz }
+		wild.move = BossChoreo.hold("windup", wild.move, t, 0.05, "start.1")
+		BossEvent.step(w, t + 0.1, ctx)
+		expect(wild.move.kind).toBe("rise")
+		local now = t + 0.1
+		local seen = 0
+		while now < t + 6 do
+			now += 1 / 30
+			BossEvent.step(w, now, ctx)
+			for _, s in w.boss.spits do
+				seen += 1
+				local d = math.sqrt((s.x - wild.move.fx) ^ 2 + (s.z - wild.move.fz) ^ 2)
+				expect(d <= BOSS.SPIT_SPREAD + 1e-6).toBe(true) -- round the boss, never out at the players
+			end
+		end
+		expect(seen > 0).toBe(true)
+	end)
+
 	it("hits while it is dazed count DAZED_MULTIPLIER points", function()
 		local w, ctx, at = fight(2)
 		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS

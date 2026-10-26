@@ -10,6 +10,8 @@
 	  * yellow: another slime sits there, the two swap pads;
 	  * red: a locked pad (refused);
 	  * grey: the slime's own pad (placing just ends move mode).
+	The vat lights green when it takes the slime, yellow when it takes it but the player's rank can't merge that
+	rarity yet (Shared.MergeGate: the place goes through), red when it refuses.
 
 	Target: the pad under the mouse / the tap, else the unlocked pad nearest the character. Place: click or tap a
 	pad, E, gamepad ButtonX or the Place button, which sends Request MoveSlime(slimeId, pad); a refusal shows its
@@ -26,18 +28,24 @@ local InputKind = require(UI.InputKind)
 local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Constants = require(Shared:WaitForChild("Constants") :: any)
+local MergeGate = require(Shared:WaitForChild("MergeGate") :: any)
+local VatState = require(Shared:WaitForChild("VatState") :: any)
+
 local Theme = Widgets.Theme
 local create = Widgets.create
 
 local SlimeMove = {}
 
-export type PadClass = "same" | "empty" | "swap" | "locked"
+export type PadClass = "same" | "empty" | "swap" | "locked" | "vat" | "vatGated" | "vatRefused"
 export type PadSpot = { index: number, position: Vector3 }
 
 SlimeMove.FADE = 0.75 -- LocalTransparencyModifier on the picked-up slime
 SlimeMove.GHOST_ALPHA = 0.45 -- the ghost keeps this share of each part's opacity
 SlimeMove.HIGHLIGHT_FILL = 0.55 -- pad tint fill transparency
 SlimeMove.SETTLE_SECONDS = 1.5 -- after a place, the ghost waits at most this long for the slime to move
+SlimeMove.VAT = 0 -- target index of the plot's merge vat (pads are 1..)
 SlimeMove.PLACE_ACTION = "SlimeMovePlace"
 SlimeMove.CANCEL_ACTION = "SlimeMoveCancel"
 SlimeMove.BAR = table.freeze({
@@ -71,11 +79,41 @@ function SlimeMove.classify(
 	return if occupied[pad] then "swap" else "empty"
 end
 
--- The unlocked pad nearest `point` (pads 1..padsUnlocked), or nil when there is none.
+-- What placing `slime` in the merge vat would do, from State.vat (VatState.checkLoad, the server's rules):
+-- "vat" (it goes in), "vatGated" (it goes in, but `rebirths` can't merge its rarity yet; the reason is
+-- MergeGate.opensText) or "vatRefused" with the reason ("The vat is full", "The vat takes Common slimes", ...).
+function SlimeMove.vatClass(vat: any, slime: any, rebirths: number?): (PadClass, string?)
+	if type(slime) ~= "table" then
+		return "vatRefused", "Pick one of your slimes"
+	end
+	local ids = if type(vat) == "table" and type(vat.ids) == "table" then vat.ids else {}
+	local tier = if type(vat) == "table" and type(vat.tier) == "number" then vat.tier else nil
+	local brewing = type(vat) == "table" and type(vat.endsAt) == "number"
+	local ok, reason = VatState.checkLoad(ids, tier, brewing, slime)
+	if not ok then
+		return "vatRefused", reason
+	end
+	if rebirths and not MergeGate.allows(slime.tier, rebirths) then
+		return "vatGated", MergeGate.opensText(slime.tier)
+	end
+	return "vat", nil
+end
+
+-- The bar's status line for the vat as the target: what goes in and the load after it, or why it can't.
+function SlimeMove.vatStatus(class: PadClass, slimeName: string, count: number, reason: string?): string
+	if class == "vat" then
+		return `Merge vat: adds {slimeName} ({count + 1}/{VatState.SIZE})`
+	elseif class == "vatGated" then
+		return `Merge vat: adds {slimeName} ({count + 1}/{VatState.SIZE}). {reason or ""}.`
+	end
+	return reason or "The vat can't take this slime"
+end
+
+-- The target nearest `point`: an unlocked pad (1..padsUnlocked) or the vat (SlimeMove.VAT); nil when none.
 function SlimeMove.nearest(pads: { PadSpot }, point: Vector3, padsUnlocked: number): number?
 	local best, bestDist = nil, math.huge
 	for _, spot in pads do
-		if spot.index >= 1 and spot.index <= padsUnlocked then
+		if spot.index == SlimeMove.VAT or (spot.index >= 1 and spot.index <= padsUnlocked) then
 			local d = (spot.position - point).Magnitude
 			if d < bestDist then
 				best, bestDist = spot.index, d
@@ -102,19 +140,19 @@ end
 -- The bar's controls line for the player's input.
 function SlimeMove.hintText(input: "keyboard" | "touch" | "gamepad"): string
 	if input == "touch" then
-		return "Tap a pad to place it there"
+		return "Tap a pad or the vat to place it there"
 	elseif input == "gamepad" then
-		return "X: place on the lit pad · B: cancel"
+		return "X: place on the lit pad or vat · B: cancel"
 	end
-	return "Click a pad or press E to place · Q to cancel"
+	return "Click a pad or the vat, or press E to place · Q to cancel"
 end
 
 local function classColor(class: PadClass?): Color3
-	if class == "empty" then
+	if class == "empty" or class == "vat" then
 		return Theme.Good
-	elseif class == "swap" then
+	elseif class == "swap" or class == "vatGated" then
 		return Theme.Warn
-	elseif class == "locked" then
+	elseif class == "locked" or class == "vatRefused" then
 		return Theme.Bad
 	end
 	return Theme.Muted
@@ -129,7 +167,15 @@ export type Deps = {
 	uis: UserInputService,
 	cas: ContextActionService,
 	prompts: ProximityPromptService,
+	onActive: ((active: boolean) -> ())?, -- move mode started (true) / ended (false): the hotbar steps aside
 }
+
+-- A Move ghost part's transparency from the slime part's `transparency` and its own one before the merge vat's fade
+-- (`own`, Constants.OWN_TRANSPARENCY_ATTRIBUTE): a slime in the vat would otherwise be faded twice into nothing.
+function SlimeMove.ghostTransparency(transparency: number, own: any): number
+	local base = if type(own) == "number" then own else transparency
+	return 1 - (1 - base) * SlimeMove.GHOST_ALPHA
+end
 
 -- A see-through, inert copy of `model`: no prompts, scripts, labels, tags or attributes (so no client runner
 -- binds it), anchored and not collidable. nil when the model can't be cloned.
@@ -160,6 +206,7 @@ local function makeGhost(model: Model): Model?
 		then
 			d:Destroy()
 		elseif d.Parent then
+			local own = d:GetAttribute(Constants.OWN_TRANSPARENCY_ATTRIBUTE)
 			scrub(d)
 			if d:IsA("BasePart") then
 				d.Anchored = true
@@ -167,9 +214,9 @@ local function makeGhost(model: Model): Model?
 				d.CanQuery = false
 				d.CanTouch = false
 				d.CastShadow = false
-				d.Transparency = 1 - (1 - d.Transparency) * SlimeMove.GHOST_ALPHA
+				d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
 			elseif d:IsA("Decal") then
-				d.Transparency = 1 - (1 - d.Transparency) * SlimeMove.GHOST_ALPHA
+				d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
 			end
 		end
 	end
@@ -179,7 +226,23 @@ end
 
 -- The top of `pad`, where a slime model (pivot at its bottom centre) rests.
 local function padTop(pad: BasePart): CFrame
+	local mesh = pad:FindFirstChild("VatMesh")
+	if mesh and mesh:IsA("Model") then
+		-- The vat: the ghost rests on its goo.
+		local box, size = mesh:GetBoundingBox()
+		return CFrame.new(box.Position + Vector3.new(0, size.Y / 2, 0))
+	elseif mesh and mesh:IsA("BasePart") then
+		return CFrame.new(mesh.Position + Vector3.new(0, mesh.Size.Y / 2, 0))
+	end
 	return pad.CFrame * CFrame.new(0, pad.Size.Y / 2, 0)
+end
+
+-- True when zone-local point `p` is inside a HomeZone of half-size `half`, the same box the server uses
+-- (WorldView.pointInHomeZone): a little slack below and above, and `reachUp` (the zone's ReachUp attribute) more
+-- above so the upper jars of the tower count as home.
+function SlimeMove.withinZone(p: Vector3, half: Vector3, reachUp: number?): boolean
+	local top = half.Y + 8 + (if type(reachUp) == "number" then reachUp else 0)
+	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
 end
 
 -- True when `position` is inside the plot's HomeZone (no zone = true).
@@ -189,8 +252,7 @@ local function inHomeZone(plot: Instance, position: Vector3): boolean
 		return true
 	end
 	local p = zone.CFrame:PointToObjectSpace(position)
-	local half = zone.Size / 2
-	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= half.Y + 8
+	return SlimeMove.withinZone(p, zone.Size / 2, zone:GetAttribute("ReachUp"))
 end
 
 function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
@@ -296,6 +358,10 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 				out[index] = child
 			end
 		end
+		local vat = plot:FindFirstChild("MergeVat")
+		if vat and vat:IsA("BasePart") then
+			out[SlimeMove.VAT] = vat
+		end
 		return out
 	end
 
@@ -320,6 +386,25 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		return fromPad, occupied, names, unlocked
 	end
 
+	-- The slime `id` from State, and State.vat.
+	local function slimeOf(id: string): any?
+		local slimes = if type(state) == "table" and type(state.slimes) == "table" then state.slimes else {}
+		for _, view in slimes do
+			if type(view.slime) == "table" and view.slime.id == id then
+				return view.slime
+			end
+		end
+		return nil
+	end
+
+	local function vatOf(): any?
+		return if type(state) == "table" then state.vat else nil
+	end
+
+	local function rebirthsOf(): number?
+		return if type(state) == "table" and type(state.rebirths) == "number" then state.rebirths else nil
+	end
+
 	local function rootPart(): BasePart?
 		local character = deps.player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -339,6 +424,9 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		end
 		active = nil
 		frame.Visible = false
+		if deps.onActive then
+			deps.onActive(false)
+		end
 		for _, c in a.conns do
 			c:Disconnect()
 		end
@@ -395,7 +483,12 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		end
 		a.target = target
 		local pad = target and a.pads[target]
-		local class = if target then SlimeMove.classify(target, fromPad, unlocked, occupied) else nil
+		local class: PadClass?, vatReason: string? = nil, nil
+		if target == SlimeMove.VAT then
+			class, vatReason = SlimeMove.vatClass(vatOf(), slimeOf(a.id), rebirthsOf())
+		elseif target then
+			class = SlimeMove.classify(target, fromPad, unlocked, occupied)
+		end
 		if pad then
 			a.tint.Adornee = pad
 			a.tint.FillColor = classColor(class)
@@ -412,11 +505,18 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		elseif a.pending then
 			status.Text = "Moving..."
 			status.TextColor3 = Theme.Muted
+		elseif target == SlimeMove.VAT and class then
+			local slime = slimeOf(a.id)
+			local vat = vatOf()
+			local count = if type(vat) == "table" and type(vat.ids) == "table" then #vat.ids else 0
+			local slimeName = if slime then ctx.Genome.displayName(slime) else "this slime"
+			status.Text = SlimeMove.vatStatus(class, slimeName, count, vatReason)
+			status.TextColor3 = classColor(class)
 		else
 			status.Text = SlimeMove.statusText(class, target, if target then names[target] else nil)
 			status.TextColor3 = classColor(class)
 		end
-		placeBtn.setEnabled(not a.pending and class ~= nil and class ~= "locked")
+		placeBtn.setEnabled(not a.pending and class ~= nil and class ~= "locked" and class ~= "vatRefused")
 	end
 
 	-- The pad under screen point `position` (mouse or touch), or nil.
@@ -434,6 +534,10 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		params.FilterType = Enum.RaycastFilterType.Include
 		params.FilterDescendantsInstances = list
 		local hit = deps.raycast(ray.Origin, ray.Direction * 1000, params)
+		local vat = a.pads[SlimeMove.VAT]
+		if hit and vat and (hit.Instance == vat or hit.Instance:IsDescendantOf(vat)) then
+			return SlimeMove.VAT
+		end
 		local index = hit and hit.Instance:GetAttribute("PadIndex")
 		return if type(index) == "number" then index else nil
 	end
@@ -446,6 +550,34 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		refresh()
 		local target = a.target
 		if target == nil then
+			return
+		end
+		if target == SlimeMove.VAT then
+			local vatClass, reason = SlimeMove.vatClass(vatOf(), slimeOf(a.id))
+			if vatClass == "vatRefused" then
+				a.error = reason
+				refresh()
+				a.error = nil
+				return
+			end
+			a.pending = true
+			a.error = nil
+			refresh()
+			ctx.ask("VatAdd", function(result: any)
+				if active ~= a then
+					return
+				end
+				if type(result) == "table" and result.ok ~= false then
+					finish()
+				else
+					a.pending = false
+					a.error = if type(result) == "table" and type(result.message) == "string"
+						then result.message
+						else "the vat didn't take it"
+					refresh()
+					a.error = nil
+				end
+			end, a.id)
 			return
 		end
 		local fromPad, occupied, _, unlocked = layoutOf(a.id)
@@ -531,6 +663,9 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		}
 		active = a
 		deps.prompts.Enabled = false
+		if deps.onActive then
+			deps.onActive(true)
+		end
 		local character = deps.player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if humanoid then

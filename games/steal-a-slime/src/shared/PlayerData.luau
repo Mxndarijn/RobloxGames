@@ -39,6 +39,9 @@ export type Pvp = {
 	fun: { [string]: boolean },
 }
 
+-- `base` = totalEarned when the save was first seen in Monday-based week `week` (WeeklyEvents.weekIndex); 0 = never.
+export type Weekly = { week: number, base: number }
+
 export type Data = {
 	version: number,
 	cash: number,
@@ -60,6 +63,7 @@ export type Data = {
 	goals: { [string]: number }, -- Config.GOALS id -> stages paid
 	speciesRewards: number, -- Config.DEX_MILESTONES.species paid
 	plotSkin: string, -- equipped Config.PLOT_SKINS id (PlotSkins; "classic" = default)
+	petSeat: string, -- equipped Config.PET_SEATS id (PetSeats; "cloud" = default; no version bump)
 	-- Redeem codes (Codes, CONTRACT.md §10)
 	redeemed: { [string]: boolean }, -- normalized codes already used
 	boostMult: number, -- active income boost (1 = none)
@@ -70,11 +74,14 @@ export type Data = {
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
 	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
 	settings: AudioSettings.Settings, -- Sound card values (save v6; used only with FEATURES.Audio)
+	allowFriends: boolean?, -- the lock button's friends switch (FEATURES.FriendsInBase): true = friends pass a locked base; nil = off
 	consumables: Consumables, -- restocking shop purchases (added without a version bump)
 	pvp: Pvp, -- FEATURES.PvP owned items (PvpRules, CONTRACT.md §26; added without a version bump)
 	boss: BossBadges.Record, -- boss record and save-only boss badges (BossBadges, contract/boss-event.md)
 	hotbar: { string }?, -- HotbarOrder: 9 slot keys, "" = empty; nil until the player sets one (no version bump)
 	eggLuck: { [string]: number }?, -- Mystery Egg lucky meter: misses in a row per kind id (contract/mystery-egg.md; no version bump)
+	weekly: Weekly, -- Weekly Top Earners: totalEarned at the start of `week` (Leaderboards.rollWeek; no version bump)
+	vat: { ids: { string }, endsAt: number?, startedAt: number? }?, -- merge vat load and brew end (VatState, CONTRACT.md §21; no version bump)
 }
 
 local PlayerData = {}
@@ -100,6 +107,7 @@ function PlayerData.new(): Data
 		goals = {},
 		speciesRewards = 0,
 		plotSkin = Config.PLOT_SKIN_DEFAULT,
+		petSeat = Config.PET_SEAT_DEFAULT,
 		redeemed = {},
 		boostMult = 1,
 		boostUntil = 0,
@@ -109,6 +117,7 @@ function PlayerData.new(): Data
 		pvp = { tiers = {}, traps = {}, fun = {} },
 		boss = BossBadges.new(),
 		eggLuck = {},
+		weekly = { week = 0, base = 0 },
 	}
 end
 
@@ -242,6 +251,10 @@ function PlayerData.buyPad(data: Data): (boolean, string?)
 	if not cost then
 		return false, "all pads unlocked"
 	end
+	local need = Economy.padRebirths(data.padsUnlocked) or 0
+	if data.rebirths < need then
+		return false, `Rebirth {need} to unlock this pad`
+	end
 	if not PlayerData.spend(data, cost) then
 		return false, "not enough cash"
 	end
@@ -254,7 +267,7 @@ function PlayerData.sell(data: Data, id: string): (boolean, number | string)
 	if not slime then
 		return false, "not your slime"
 	end
-	local price = Economy.sellPrice(slime, data.rebirths)
+	local price = Economy.sellPrice(slime)
 	if not price then
 		return false, "eggs can't be sold"
 	end

@@ -8,7 +8,7 @@
 	                                 [--profile grinder] [--stagger 3] [--plots 8]
 	                                 [--hours 0.5,1,2,4,8,12,20,30] [--no-steal] [--out report.md]
 	                                 [--json series.json] [--late casual@5x4] [--friends 3] [--party]
-	                                 [--no-codes] [--no-eggs] [--consumables 20] [--merge pair|triple] [--flip full|always] [--set casual.lock=1] [--start-level N]
+	                                 [--no-codes] [--no-eggs] [--consumables 20] [--flip full|always] [--set casual.lock=1] [--start-level N]
 
 	Each seed is one server with a population of bots (Profiles) that join and
 	leave on daily schedules, take wild slimes, steal from each other, defend,
@@ -19,7 +19,7 @@
 	`--late casual@5x4` adds 4 casual bots that all join on day 5 (reported as late-casual); use more --days.
 	`--friends K` deals the bots into friend groups of K (Friends.refresh counts the ones online together,
 	`--party` puts a group on one schedule). `--no-codes` / `--no-eggs` turn off redeeming codes on the first
-	join / taking Mystery Eggs (free to grab, can't be sold); `--merge pair|triple` picks the vat bots merge in (default: the 3-slime vat while FEATURES.MergeVat3 is on, as the UI only sends Merge3; `pair` models calling the Merge remote directly); `--flip full|always` makes every bot buy wild slimes to sell at once (profiles flipper / flipall do it for one bot kind; flipprobe + `--start-level N` is a 60 minute flip-only session at rebirth N with unlimited cash); `--consumables N` makes every bot buy and drink Luck Potions that cost under 1/N of its cash.
+	join / taking Mystery Eggs (free to grab, can't be sold); bots merge in the plot vat (VatAdd x3 + VatStart, VatCollect once the brew is done; never top-tier slimes); `--flip full|always` makes every bot buy wild slimes to sell at once (profiles flipper / flipall do it for one bot kind; flipprobe + `--start-level N` is a 60 minute flip-only session at rebirth N with unlimited cash); `--consumables N` makes every bot buy and drink Luck Potions that cost under 1/N of its cash.
 	Prints Markdown tables (Report); `--out` also writes them to a file; `--json` writes every bot's time
 	series, milestones, cash ledger and steal events (Report.json).
 ]]
@@ -68,7 +68,6 @@ local opts = {
 	codes = true,
 	eggs = true,
 	consumables = nil :: number?,
-	merge = nil :: string?,
 	flip = nil :: string?,
 	startLevel = nil :: number?,
 	set = {} :: { { profile: string, field: string, value: number } },
@@ -115,11 +114,6 @@ while i <= #args do
 		opts.json = value
 	elseif flag == "--friends" then
 		opts.friends = tonumber(value) or fail("--friends needs a number")
-	elseif flag == "--merge" then
-		if value ~= "pair" and value ~= "triple" then
-			fail("--merge needs pair or triple")
-		end
-		opts.merge = value
 	elseif flag == "--set" then
 		-- profile.field=number,... : overrides a number in a profile (sensitivity runs), e.g. casual.lock=1,casual.steal=0.12
 		for name, field, number in string.gmatch(value, "(%w+)%.(%w+)=([%d%.]+)") do
@@ -179,7 +173,6 @@ for _, p in Profiles.LIST do
 	end
 	p.eggs = opts.eggs
 	p.consumables = opts.consumables or p.consumables
-	p.merge = opts.merge or p.merge
 	p.flip = opts.flip or p.flip
 end
 for _, o in opts.set do

@@ -6,7 +6,8 @@
 	carrying one at a time, depositing on your own plot (`deposit`, called
 	when the carrier enters their HomeZone) and dropping.
 
-	* Wild slime: free or costs its price, charged on grab. Dropped -> it
+	* Wild slime: free or costs its price, charged on every grab (a dropped
+	  slime costs its price again, even for whoever paid). Dropped -> it
 	  lands where the carrier stood. With FEATURES.Parade it then walks back
 	  to the lane and rejoins the flow with its lifetime kept
 	  (contract/slime-walk.md); otherwise its lifetime restarts there.
@@ -101,13 +102,13 @@ function Carry.grabWild(
 			return false, "it's still shrinking"
 		end
 	end
-	if wild.price > 0 and not wild.boss and not PlayerData.freePad(session.data) then
-		return false, "plot full" -- it could not be brought home, so don't take the cash
+	if not wild.boss and not PlayerData.freePad(session.data) then
+		return false, "plot full" -- it could not be brought home (and a paid one keeps your cash)
 	end
 	if wild.price > 0 and not PlayerData.spend(session.data, wild.price) then
 		return false, `need ${Economy.formatNumber(wild.price)}`
 	end
-	wild.price = 0 -- paid for: dropping it doesn't charge the next grabber
+	-- wild.price stays: dropped, it costs the full price again, also for whoever paid (CONTRACT.md §Carry).
 	wild.returning = nil
 	wild.choreo = nil -- it walks back with a plain glide (contract/slime-life.md)
 	session.carry = {
@@ -141,6 +142,9 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	if not session then
 		return false, "still loading"
 	end
+	if now - session.lastDropAt < Config.DROP_PICKUP_COOLDOWN then
+		return false, "you just dropped a slime"
+	end
 	if world.wild[slimeId] then
 		return Carry.grabWild(world, session, slimeId, distance, now)
 	end
@@ -158,7 +162,7 @@ function Carry.depositBoss(world: World, session: Session, carry: World.CarrySta
 		BossFight.win(fight, session.userId, now)
 	end
 	World.markAllDirty(world)
-	World.notify(world, nil, `{session.name} brought {carry.slime.name} home!`, "good", "Rain")
+	World.notify(world, nil, `{session.name} brought {carry.slime.name} home!`, "good", "Announce")
 	World.notify(world, session.userId, `You brought {carry.slime.name} home!`, "good", "Deposit")
 	if fight then
 		BossCredit.win(world, fight, session, carry.slime, now)
@@ -200,7 +204,6 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		session.carry = nil
 		local slime = carry.slime
 		slime.pad = nil
-		slime.keep = nil -- a kept mark belongs to the previous owner
 		-- Lucky Charm (Perks.luckChance): one rarity higher on the way home. Never an egg: its slime is sealed.
 		local egg = slime.egg ~= nil
 		if not egg and slime.tier < Config.MAX_TIER and world.rng:float() < Perks.luckChance(session.data) then

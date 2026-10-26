@@ -21,7 +21,6 @@ ForcedFlags.off = {
 	["Consumables purchase rules"] = "Consumables",
 	["Consumables effects"] = "Consumables",
 	["Consumables state and saves"] = "Consumables",
-	["Pacing server > bots merge in the 3-slime vat while MergeVat3 is on, so a Secret is not minutes away"] = "MergeVat3",
 	["CycleModifier odds"] = "CycleModifier",
 	["Spawner.stepModifier"] = "CycleModifier",
 	["FountainRide: the live server rides every spawned slime"] = "Parade",
@@ -34,6 +33,8 @@ ForcedFlags.off = {
 	["runtime part budget > boots with no server errors and spawns the parade lane and slide colliders"] = "Parade / SlideCollision",
 	["FriendBonus math"] = "FriendBonus",
 	["Friends.refresh"] = "FriendBonus",
+	["a guest in a locked base"] = "FriendsInBase",
+	["the lock button's friends prompt > says what pressing it does, and the plot shows the switch"] = "FriendsInBase",
 	["friend bonus in income and State"] = "FriendBonus",
 	["Weather flag"] = "Weather",
 	["Growth curve"] = "GrowingSlimes",
@@ -58,6 +59,7 @@ ForcedFlags.offModules = {
 ForcedFlags.on = {
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",
 	["Profiler > is off by default and the flag is declared"] = "ServerProfiler",
+	["MoveWatch wiring > is off by default and records no allow-window while off"] = "MoveGuardLog",
 }
 
 -- Tests that exercise the off path (or pin "default off") of a flag that now ships ON (2026-10-18:
@@ -69,7 +71,6 @@ ForcedFlags.needOff = {
 	["plot skins: equip > the Request refuses a locked skin, and equips an unlocked one"] = "PlotSkins",
 	["plot skins: equip > with the flag off the Request is refused, even for an unlocked skin"] = "PlotSkins",
 	["plot skins: equip > flag off: State carries no plot skin fields"] = "PlotSkins",
-	["TripleMerge: server action > is refused with the flag off and merges with it on"] = "MergeVat3",
 	-- FEATURES.FountainSplit on: the fountain is 5 PCD pieces and the hand-placed colliders stay off (tests/FountainSplit.spec);
 	-- these pin the single Mesh child and the colliders turned on by it
 	["fountain collider, mesh loading > stays that way while the fountain's CreateMeshPartAsync is in flight"] = "FountainSplit",
