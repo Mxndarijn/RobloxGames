@@ -166,10 +166,26 @@ local function playNotifySound(sound: string?)
 	end)
 end
 local soundController = if Config.FEATURES.Audio == true
-	then SoundController.new(Config, player, require(Shared:WaitForChild("DayNight")))
+	then SoundController.new(Config, player, require(Shared:WaitForChild("DayNight")), {
+		weather = function(): string?
+			local w = if Config.FEATURES.Weather then workspace:GetAttribute(Constants.WEATHER_ATTRIBUTE) else nil
+			return if type(w) == "string" then w else nil
+		end,
+	})
 	else nil
+-- Game sounds beyond the toasts (FEATURES.Audio): State cues (boss result, Dex, tutorial), world sounds from
+-- attributes (boss attacks, egg hatches, rituals, the fountain), slime voices and footsteps.
+local nextSoundCues: ((state: Types.State) -> { { name: string } })? = nil
+local worldAudioTick: ((now: number) -> ())? = nil
+local footstepsStep: ((dt: number?) -> ())? = nil
 if soundController then
 	require(script.ButtonClicks).start(gui, SoundController.play)
+	nextSoundCues = require(script.SoundCues).watcher(player.DisplayName)
+	local _stopWorldAudio, worldTick = require(script.WorldAudio).start()
+	worldAudioTick = worldTick
+	require(script.SlimeAudio).start()
+	local _stopFootsteps, stepTick = require(script.Footsteps).start()
+	footstepsStep = stepTick
 end
 
 -- Display names for UserIds (thieves, carriers). Async lookup for players who left.
@@ -628,12 +644,17 @@ end
 
 local function syncMenus()
 	local visibleKey: string? = nil
+	local opened, closed = false, false
 	for _, entry in allPanels do
 		local isOpen = entry.panel.frame.Visible
 		if isOpen and visibleKey == nil then
 			visibleKey = entry.key
 		end
 		if wasOpen[entry.key] ~= isOpen then
+			if wasOpen[entry.key] ~= nil then
+				opened = opened or isOpen
+				closed = closed or not isOpen
+			end
 			wasOpen[entry.key] = isOpen
 			if entry.panel.setOpen then
 				entry.panel.setOpen(isOpen)
@@ -648,6 +669,12 @@ local function syncMenus()
 		end
 	end
 	openKey = visibleKey
+	-- One sound per change: switching cards plays the open, closing the last card the close.
+	if opened then
+		SoundController.play("MenuOpen")
+	elseif closed then
+		SoundController.play("MenuClose")
+	end
 	if latest and wasPumped ~= (visibleKey == "Welcome") then
 		wasPumped = visibleKey == "Welcome"
 		if not wasPumped then
@@ -1136,6 +1163,12 @@ local function render(realState: Types.State)
 	local state: Types.State = forceWelcome(
 		forceStealAlert(forceDex(forceWeekend(forceMvp(forceBlessed(forceAdminEvent(forceFriends(realState)))))))
 	)
+	if nextSoundCues then
+		for _, cue in nextSoundCues(realState) do
+			SoundController.play(cue.name)
+		end
+		SoundController.setBoss(require(script.SoundCues).bossMusic(realState))
+	end
 	hud.update(state)
 	inventory.update(state)
 	slimeKeys.update(state)
@@ -1322,8 +1355,17 @@ task.spawn(function()
 			end
 		end)
 		guardedTick("slimeTags", slimeTagsTick)
+		if footstepsStep then
+			guardedTick("footsteps", footstepsStep)
+		end
 		if latest then
 			local now = serverNow()
+			if worldAudioTick then
+				local tick = worldAudioTick
+				guardedTick("worldAudio", function()
+					tick(now)
+				end)
+			end
 			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.
 			guardedTick("dailyPopup", function()
 				if dailyWasOpen ~= dailyPopup.isOpen() then
