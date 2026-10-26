@@ -384,9 +384,16 @@ end
 
 -- The slime that follows this player as a pet (Player attribute PetSlimeId): the
 -- favourite, or the best slime. A slime a thief is carrying away is skipped, so a
--- stolen pet stops following its owner; it comes back if it escapes home.
+-- stolen pet stops following its owner; it comes back if it escapes home. A Mystery
+-- Egg never rides the cloud, not even a favourited one: the best hatched slime does.
 function World.pet(world: World, session: Session): Slime?
-	return Progression.keeper(session.data, World.carriedSet(world))
+	local skip = World.carriedSet(world)
+	for _, slime in session.data.slimes do
+		if slime.egg then
+			skip[slime.id] = true
+		end
+	end
+	return Progression.keeper(session.data, skip)
 end
 
 -- The session that owns a pad slime, and the slime itself.
