@@ -2,7 +2,7 @@
 --[[
 	PlotBases
 
-	Plot bases: the building a plot stands in (Config.PLOT_BASES, FEATURES.BaseShapes, CONTRACT.md §43), chosen
+	Plot bases: the building a plot stands in (Config.PLOT_BASES, FEATURES.BaseShapes, CONTRACT.md §44), chosen
 	apart from the plot skin (the colours, PlotSkins). The goo jar tower is everyone's; the other bases unlock at a
 	rebirth count (`rebirths`). The equipped base is data.plotBase; `equip` refuses a locked base and `current` never
 	returns one, so a base saved before its rebirths shows the jar until the player gets there.

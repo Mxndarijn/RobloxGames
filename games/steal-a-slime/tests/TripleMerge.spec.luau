@@ -120,6 +120,40 @@ describe("TripleMerge: recipes, caps and the assist", function()
 			expect((SlimeRoster.get(child.species :: string) :: any).kind).toBe("spawn")
 		end
 	end)
+	it("Mythic and Secret loads only merge as a recipe: Mythic x3 at random is refused, Nightwing's is not", function()
+		expect(select(2, TripleMerge.canMerge(trio(6, { "cosmo", "cosmo", "cosmo" })))).toBe(
+			"only a recipe merges these"
+		)
+		expect(select(2, TripleMerge.canMerge(three(Config.SECRET_TIER)))).toBe("only a recipe merges these")
+		local nightwing = MergeRecipes.recipeFor("nightwing") :: any
+		expect(nightwing.tier).toBe(Config.SECRET_TIER)
+		expect((TripleMerge.canMerge(trio(nightwing.tier - 1, nightwing.inputs)))).toBe(true)
+		local child = TripleMerge.merge(trio(nightwing.tier - 1, nightwing.inputs), Rng.new(1), "x", everything)
+		expect(child.species).toBe("nightwing")
+	end)
+	it("the child is marked brewed: 1 from a random merge, 2 from a recipe, and earns that bonus", function()
+		local function plain(s: Genome.Slime): Genome.Slime
+			local copy = table.clone(s)
+			copy.brewed = nil
+			return copy
+		end
+		for seed = 1, 20 do
+			local random = TripleMerge.merge(three(2), Rng.new(seed), "r", everything)
+			expect(random.brewed).toBe(1)
+			expect(Genome.baseIncome(random)).toBeCloseTo(
+				Genome.baseIncome(plain(random)) * Config.BREWED_INCOME_MULT,
+				1e-9
+			)
+		end
+		local recipe = MergeRecipes.RECIPES[1]
+		local hybrid = TripleMerge.merge(trio(recipe.tier - 1, recipe.inputs), Rng.new(3), "h", everything)
+		expect(hybrid.species).toBe(recipe.id)
+		expect(hybrid.brewed).toBe(2)
+		expect(Genome.baseIncome(hybrid)).toBeCloseTo(
+			Genome.baseIncome(plain(hybrid)) * Config.RECIPE_INCOME_MULT,
+			1e-9
+		)
+	end)
 	it("a +2 jump lands on Legendary at most: Epic x3 is always Legendary", function()
 		local jumped = false
 		for seed = 1, 400 do

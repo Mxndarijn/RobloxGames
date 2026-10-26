@@ -25,7 +25,7 @@ local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
 local BaseFloors = {}
 
--- `base` is the plot's PlotBase attribute (CONTRACT.md §43; nil = the goo jar tower).
+-- `base` is the plot's PlotBase attribute (CONTRACT.md §44; nil = the goo jar tower).
 export type Context = {
 	build: (plot: Instance, plotIndex: number, floor: number, base: string?) -> { Instance },
 	-- the roof colliders on the top floor (WorldBuilder.buildTop); nil leaves the roof alone
@@ -75,7 +75,7 @@ local function addDropPrompts(instances: { Instance }, plotIndex: number, ctx: C
 	end
 end
 
--- The plot's base id (the PlotBase attribute, CONTRACT.md §43), nil for the jar.
+-- The plot's base id (the PlotBase attribute, CONTRACT.md §44), nil for the jar.
 local function baseOf(plot: Instance): string?
 	local base = plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE)
 	return if type(base) == "string" then base else nil

@@ -1,4 +1,4 @@
-# 43. Base shapes: the goo jar tower, the Goo Factory and the Mushroom Pagoda
+# 44. Base shapes: the goo jar tower, the Goo Factory and the Mushroom Pagoda
 
 **Status:** contract first. `Config.FEATURES.BaseShapes` (default **off** until the new bases have their meshes); `false` = no remote, no State fields, no plot attribute, every plot is the goo jar tower. The save field is still read and written.
 

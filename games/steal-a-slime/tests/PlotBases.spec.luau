@@ -1,5 +1,5 @@
 --!strict
--- Plot bases: the building a plot stands in, unlocked by rebirths and chosen apart from the skin (CONTRACT.md §43):
+-- Plot bases: the building a plot stands in, unlocked by rebirths and chosen apart from the skin (CONTRACT.md §44):
 -- the config, the unlock rule, the equip remote, State and the save field. FEATURES.BaseShapes is off by default.
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")

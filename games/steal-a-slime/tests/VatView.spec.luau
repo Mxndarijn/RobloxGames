@@ -1,6 +1,7 @@
 --!strict
 -- How the merge vat reads in the world (VatView, CONTRACT.md §21): the pill over the vat, the pad sign status of
 -- a slime in the vat and where the three spots sit.
+local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local TestRunner = require("./TestRunner")
 local VatDecor = require("../src/visuals/shared/VatDecor")
@@ -29,8 +30,9 @@ describe("VatView.tagLine", function()
 	it("counts down while brewing and turns gold when ready", function()
 		local data = plot({ "a", "b", "c" })
 		VatState.start(data, NOW)
-		expect(VatView.tagLine(data, NOW + 18).text).toBe("Brewing 0:12")
-		local ready = VatView.tagLine(data, NOW + 30)
+		local seconds = Config.MERGE_BREW_SECONDS[1]
+		expect(VatView.tagLine(data, NOW + seconds - 12).text).toBe("Brewing 0:12")
+		local ready = VatView.tagLine(data, NOW + seconds)
 		expect(ready.text).toBe("Ready")
 		expect(ready.color).toBe("Gold")
 	end)

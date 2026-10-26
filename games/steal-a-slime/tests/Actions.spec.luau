@@ -13,6 +13,7 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
+local FIRST = Config.REBIRTH_SLIMES[1][1] -- the species rebirth 1 uses up
 
 local ctx: Actions.Context = {
 	distanceBetween = function()
@@ -57,6 +58,7 @@ describe("Actions.handle guards", function()
 					args[i] = if kind == "number" or kind == "number?"
 						then 1
 						elseif kind == "boolean" then true
+						elseif kind == "kits" then "gummy"
 						else "id-1"
 				end
 			end
@@ -114,6 +116,29 @@ describe("Actions dispatch", function()
 		s.limiter = {}
 		expect(call(world, 1, "Sell", "b").message).toBe("slime is busy")
 	end)
+	it("Sell and VatAdd refuse a slime the next rebirth uses up and keep it on its pad", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("need", 2, { species = FIRST }) }, 0)
+		local result = call(world, 1, "Sell", "need")
+		expect(result.ok).toBe(false)
+		expect(result.message).toBe(Progression.NEEDED_TEXT)
+		s.limiter = {}
+		expect(call(world, 1, "VatAdd", "need").message).toBe(Progression.NEEDED_TEXT)
+		expect(s.data.vat == nil or #(s.data.vat :: any).ids == 0).toBe(true)
+		expect(PlayerData.findSlime(s.data, "need") ~= nil).toBe(true)
+		expect(s.data.cash).toBe(0)
+	end)
+	it("Sell pays for a slime of a needed species once the rebirth already has one", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, {
+			Fixtures.slime("big", 2, { species = FIRST, size = 3 }),
+			Fixtures.slime("small", 2, { species = FIRST }),
+		}, 0)
+		local needed = Progression.neededIds(s.data)
+		local spare = if needed.big then "small" else "big"
+		expect(call(world, 1, "Sell", spare).ok).toBe(true)
+		expect(PlayerData.findSlime(s.data, spare)).toBeNil()
+	end)
 	it("Favorite sets and clears the keeper", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a") })
@@ -145,7 +170,7 @@ describe("Actions dispatch", function()
 	it("VatAdd, Lock and Rebirth route to their systems", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1), Fixtures.slime("b", 1) }, 1e6)
-		PlayerData.addSlime(s.data, Fixtures.slime("need", 2, { species = "bumble" }))
+		PlayerData.addSlime(s.data, Fixtures.slime("need", 2, { species = FIRST }))
 		expect(call(world, 1, "VatAdd", "a").ok).toBe(true)
 		expect(s.data.vat ~= nil).toBe(true)
 		expect(call(world, 1, "Lock").ok).toBe(true)
@@ -214,5 +239,36 @@ describe("Actions SetHotbar", function()
 		expect(call(world, 2, "SetHotbar", ",,,tool:Bat").message).toBe("too fast")
 		expect((a.data.hotbar :: { string })[1]).toBe("tool:Bat")
 		expect((b.data.hotbar :: { string })[2]).toBe("tool:Bat")
+	end)
+end)
+
+describe("Actions RequestKits", function()
+	it("hands the parsed kits to ctx.sendKits without marking the session dirty", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		s.dirty = false
+		local got: { any } = {}
+		local kitCtx = table.clone(ctx)
+		kitCtx.sendKits = function(userId: number, kits: { string })
+			table.insert(got, { userId, kits })
+		end
+		local res, ran = Actions.handle(world, 1, "RequestKits", { "gummy,mochi" }, T0 + 100, kitCtx)
+		expect(res.ok).toBe(true)
+		expect(ran).toBe(false) -- no view refresh or State push for it
+		expect(s.dirty).toBe(false)
+		expect(got).toEqual({ { 1, { "slime_gummy", "slime_mochi" } } })
+	end)
+	it("refuses bad requests and rate-limits per player", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		ServerFixtures.join(world, 2)
+		expect(call(world, 1, "RequestKits", 42).message).toBe("bad argument")
+		expect(call(world, 1, "RequestKits", "gummy,nope").message).toBe("bad argument")
+		expect(call(world, 1, "RequestKits", "").message).toBe("bad argument")
+		s.limiter = {}
+		expect(call(world, 1, "RequestKits", "gummy").ok).toBe(true)
+		expect(call(world, 1, "RequestKits", "mochi").message).toBe("too fast")
+		expect(call(world, 2, "RequestKits", "mochi").ok).toBe(true)
+		expect(Actions.handle(world, 1, "RequestKits", { "mochi" }, T0 + 100.3, ctx).ok).toBe(true)
 	end)
 end)

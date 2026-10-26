@@ -26,6 +26,7 @@ local Quests = if Shared then require(Shared.Quests) else require("../shared/Que
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local PlotBases = if Shared then require(Shared.PlotBases) else require("../shared/PlotBases")
+local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared/PetSeats")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
@@ -69,7 +70,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		table.insert(slimes, {
 			slime = EggKind.mask(slime), -- an egg never shows the slime inside (contract/mystery-egg.md)
 			income = if carrier or VatState.isLocked(data, slime.id) then 0 else PlayerData.slimeIncome(data, slime),
-			sellPrice = Economy.sellPrice(slime, rebirths),
+			sellPrice = Economy.sellPrice(slime),
 			stolenBy = carrier,
 		})
 	end
@@ -100,12 +101,14 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		incomePerSec = income,
 		rebirths = rebirths,
 		rebirthMultiplier = Economy.rebirthMultiplier(rebirths),
+		nextRebirthMultiplier = Economy.rebirthMultiplier(math.min(rebirths + 1, Config.MAX_REBIRTHS)),
 		rebirthCost = Economy.rebirthCost(rebirths),
 		canRebirth = canRebirth,
 		rebirthSlimes = Progression.requiredSlimes(data),
 		padsUnlocked = data.padsUnlocked,
 		padsMax = Config.PADS_MAX,
 		nextPadCost = Economy.padCost(data.padsUnlocked),
+		nextPadRebirths = Snapshot.nextPadRebirths(data),
 		slimes = slimes,
 		favoriteId = data.favoriteId,
 		lockUntil = session.lockUntil,
@@ -137,6 +140,8 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		plotSkins = if Config.FEATURES.PlotSkins then PlotSkins.view(data) else nil,
 		plotBase = if Config.FEATURES.BaseShapes then PlotBases.current(data) else nil,
 		plotBases = if Config.FEATURES.BaseShapes then PlotBases.view(data) else nil,
+		petSeat = PetSeats.current(data),
+		petSeats = PetSeats.view(data),
 		stealAway = if Config.FEATURES.StealAlerts then StealAlert.summary(session.awayLog) else nil,
 		welcomeBack = session.welcome,
 		hotbar = if data.hotbar then table.clone(data.hotbar) else nil,
@@ -177,6 +182,12 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			icon = if world.adminEvent then world.adminEvent.def.icon else nil,
 		},
 	}
+end
+
+-- Rebirths the next pad still waits for, or nil when it can be bought now (or every pad is open).
+function Snapshot.nextPadRebirths(data: any): number?
+	local need = Economy.padRebirths(data.padsUnlocked)
+	return if need and need > data.rebirths then need else nil
 end
 
 function Snapshot.rebirthTiers(rebirths: number): { Types.RebirthTierView }

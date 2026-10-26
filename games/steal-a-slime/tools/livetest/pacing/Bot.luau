@@ -24,6 +24,7 @@ local EggKind = require("../../../src/shared/EggKind")
 local Eggs = require("./Eggs")
 local Genome = require("../../../src/shared/Genome")
 local Ledger = require("./Ledger")
+local MergeGate = require("../../../src/shared/MergeGate")
 local MergeRecipes = require("../../../src/shared/MergeRecipes")
 local PlayerData = require("../../../src/shared/PlayerData")
 local Profiles = require("./Profiles")
@@ -306,10 +307,12 @@ end
 -- slimes stay.
 local function weakest(world: World, bot: Bot, keep: { [string]: boolean }): (Slime?, number)
 	local busy = World.busySet(world)
+	local needed = Progression.neededIds(bot.data) -- Sell refuses these
 	local worst, worstValue = nil, math.huge
 	for _, s in bot.data.slimes do
 		if
 			not keep[s.id]
+			and not needed[s.id]
 			and not busy[s.id]
 			and not s.egg
 			and s.id ~= bot.data.favoriteId
@@ -358,7 +361,9 @@ end
 local function findTriple(data: PlayerData.Data, busy: { [string]: boolean }): { string }?
 	local byTier: { [number]: { Slime } } = {}
 	for _, s in data.slimes do
-		if not (busy[s.id] or s.egg or s.id == data.favoriteId or s.tier >= Config.MAX_TIER) then
+		-- Only rarities the rank may merge, and never three of the top tiers (only a recipe merges those).
+		local mergeable = MergeGate.allows(s.tier, data.rebirths) and s.tier < Config.MERGE_MAX_TIER
+		if mergeable and not (busy[s.id] or s.egg or s.id == data.favoriteId) then
 			byTier[s.tier] = byTier[s.tier] or {}
 			table.insert(byTier[s.tier], s)
 		end
@@ -515,7 +520,7 @@ local function pickFlip(world: World, bot: Bot): (string?, number)
 	table.sort(ids) -- table order is not stable across runs; ids are
 	for _, id in ids do
 		local wild = world.wild[id]
-		local sell = Economy.sellPrice(wild.slime, bot.data.rebirths)
+		local sell = Economy.sellPrice(wild.slime)
 		if sell and not wild.boss and wild.price <= bot.data.cash and not world.carriedBy[id] then
 			local profit = sell - wild.price
 			if profit > bestProfit then
@@ -537,7 +542,7 @@ local function valueFor(bot: Bot, data: PlayerData.Data, slime: Slime): (number,
 	if kind then
 		return Eggs.expectedIncome(kind) * Economy.rebirthMultiplier(data.rebirths), 0
 	end
-	return PlayerData.slimeIncome(data, slime), Economy.sellPrice(slime, data.rebirths) or 0
+	return PlayerData.slimeIncome(data, slime), Economy.sellPrice(slime) or 0
 end
 
 local function newTask(
@@ -627,6 +632,13 @@ local function plan(
 	end
 	if wildId and takesWild then
 		local wild = world.wild[wildId]
+		-- The game refuses a grab with a full plot, so a player sells first.
+		if not PlayerData.freePad(bot.data) then
+			local worst, worstValue = weakest(world, bot, keep)
+			if worst and (worstValue < wildValue or missing[wild.slime.species] == true) then
+				act(world, bot, t, "Sell", worst.id)
+			end
+		end
 		bot.task = newTask(bot, "wild", t, t + out, wildId, wild.slime, wild.price, nil)
 		return
 	end
@@ -639,7 +651,8 @@ local function makeRoom(world: World, bot: Bot, t: number, carried: Slime, keep:
 		return true
 	end
 	local worst, worstValue = weakest(world, bot, keep)
-	if worst and worstValue < worth(bot, carried) then
+	local _, missing = rebirthNeeds(bot)
+	if worst and (worstValue < worth(bot, carried) or (carried.species ~= nil and missing[carried.species])) then
 		return act(world, bot, t, "Sell", worst.id)
 	end
 	return false

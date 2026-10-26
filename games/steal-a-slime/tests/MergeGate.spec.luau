@@ -15,6 +15,7 @@ local VatView = require("../src/server/VatView")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local NOW = 1_800_000_000
+local EPIC_AT = MergeGate.rebirthsFor(4) :: number
 
 local function vat(tier: number, rebirths: number, count: number?): any
 	local slimes = {}
@@ -34,26 +35,44 @@ local function three(tier: number): { any }
 end
 
 describe("MergeGate ranks", function()
-	it("opens Common and Uncommon at 0, Rare at 1, Epic at 3, Legendary at 6, Mythic and Secret at 10", function()
-		local cases = { { 0, 2 }, { 1, 3 }, { 2, 3 }, { 3, 4 }, { 5, 4 }, { 6, 5 }, { 9, 5 }, { 10, 7 }, { 50, 7 } }
-		for _, case in cases do
-			expect(MergeGate.topTier(case[1])).toBe(case[2])
+	it(
+		"opens Common at 0, Uncommon at 1, Rare at 3, Epic at 5, Legendary at 8, Mythic at 12 and Secret never",
+		function()
+			local cases = {
+				{ 0, 1 },
+				{ 1, 2 },
+				{ 2, 2 },
+				{ 3, 3 },
+				{ 4, 3 },
+				{ 5, 4 },
+				{ 7, 4 },
+				{ 8, 5 },
+				{ 11, 5 },
+				{ 12, 6 },
+				{ Config.MAX_REBIRTHS, 6 },
+			}
+			for _, case in cases do
+				expect(MergeGate.topTier(case[1])).toBe(case[2])
+			end
+			expect(MergeGate.rebirthsFor(1)).toBe(0)
+			expect(MergeGate.rebirthsFor(2)).toBe(1)
+			expect(MergeGate.rebirthsFor(3)).toBe(3)
+			expect(MergeGate.rebirthsFor(4)).toBe(5)
+			expect(MergeGate.rebirthsFor(5)).toBe(8)
+			expect(MergeGate.rebirthsFor(6)).toBe(12)
+			expect(MergeGate.rebirthsFor(7)).toBe(nil)
+			expect(MergeGate.allows(4, 4)).toBe(false)
+			expect(MergeGate.allows(4, 5)).toBe(true)
+			expect(MergeGate.allows(7, Config.MAX_REBIRTHS)).toBe(false)
 		end
-		expect(MergeGate.rebirthsFor(1)).toBe(0)
-		expect(MergeGate.rebirthsFor(3)).toBe(1)
-		expect(MergeGate.rebirthsFor(4)).toBe(3)
-		expect(MergeGate.rebirthsFor(5)).toBe(6)
-		expect(MergeGate.rebirthsFor(6)).toBe(10)
-		expect(MergeGate.rebirthsFor(7)).toBe(10)
-		expect(MergeGate.allows(4, 2)).toBe(false)
-		expect(MergeGate.allows(4, 3)).toBe(true)
-	end)
+	)
 
 	it("writes the lock, opens and cap texts", function()
-		expect(MergeGate.lockText(4)).toBe("Rebirth 3 to unlock")
-		expect(MergeGate.opensText(4)).toBe("Epic merges open at Rebirth 3")
-		expect(MergeGate.capText(1)).toBe("Up to Rare")
-		expect(MergeGate.capText(10)).toBe("Up to Secret")
+		expect(MergeGate.lockText(4)).toBe("Rebirth 5 to unlock")
+		expect(MergeGate.lockText(7)).toBe("Locked")
+		expect(MergeGate.opensText(4)).toBe("Epic merges open at Rebirth 5")
+		expect(MergeGate.capText(1)).toBe("Up to Uncommon")
+		expect(MergeGate.capText(Config.MAX_REBIRTHS)).toBe("Up to Mythic")
 	end)
 
 	it("never asks a rebirth for a hybrid the player can't brew yet", function()
@@ -72,23 +91,23 @@ end)
 
 describe("VatState with the rank gate", function()
 	it("loads a locked rarity but refuses Start with the rebirth it needs", function()
-		local data = vat(4, 1)
+		local data = vat(4, EPIC_AT - 1)
 		expect(#VatState.ids(data)).toBe(3)
-		expect(VatState.gateText(data)).toBe("Rebirth 3 to unlock")
+		expect(VatState.gateText(data)).toBe(`Rebirth {EPIC_AT} to unlock`)
 		local ok, reason = VatState.start(data, NOW)
 		expect(ok).toBe(false)
-		expect(reason).toBe("Rebirth 3 to unlock")
+		expect(reason).toBe(`Rebirth {EPIC_AT} to unlock`)
 		expect(VatState.isBrewing(data)).toBe(false)
 	end)
 
 	it("starts once the rank opens the rarity", function()
-		local data = vat(4, 3)
+		local data = vat(4, EPIC_AT)
 		expect(VatState.gateText(data)).toBe(nil)
 		expect(VatState.start(data, NOW)).toBe(true)
 	end)
 
 	it("a brew already running still collects", function()
-		local data = vat(4, 3)
+		local data = vat(4, EPIC_AT)
 		assert(VatState.start(data, NOW))
 		data.rebirths = 0
 		local ok = VatState.collect(data, NOW + Config.MERGE_BREW_SECONDS[4], Rng.new(1), "child")
@@ -98,14 +117,17 @@ end)
 
 describe("TripleMerge jump with the rank gate", function()
 	it("never jumps past the rank's top result", function()
-		local ctx = { unlocked = MergeRecipes.everySpecies, rebirths = 1 }
+		-- Rare merges are open but Epic ones are not, so a Rare load may not jump to Legendary
+		local rareAt = MergeGate.rebirthsFor(3) :: number
+		local ctx = { unlocked = MergeRecipes.everySpecies, rebirths = rareAt }
 		local rng = Rng.new(7)
 		for i = 1, 200 do
 			expect(TripleMerge.merge(three(3), rng, `r{i}`, ctx).tier).toBe(4)
 		end
-		expect(TripleMerge.odds(3, 1).jumpTier).toBe(nil)
-		expect(TripleMerge.odds(3, 3).jumpTier).toBe(5)
-		expect(TripleMerge.odds(2, 1).jumpTier).toBe(4)
+		expect(TripleMerge.odds(3, rareAt).jumpTier).toBe(nil)
+		expect(TripleMerge.odds(3, EPIC_AT).jumpTier).toBe(5)
+		expect(TripleMerge.odds(2, rareAt).jumpTier).toBe(4)
+		expect(TripleMerge.odds(2, MergeGate.rebirthsFor(2) :: number).jumpTier).toBe(nil)
 	end)
 
 	it("keeps the draw order: an open rank gives the same child as no gate", function()
@@ -131,18 +153,18 @@ describe("VatView with the rank gate", function()
 	it("shows the owner's cap under the pill while not brewing", function()
 		local empty = Fixtures.data({})
 		empty.rebirths = 1
-		expect((VatView.capLine(empty) :: any).text).toBe("Up to Rare")
-		local data = vat(3, 1)
-		expect((VatView.capLine(data) :: any).text).toBe("Up to Rare")
+		expect((VatView.capLine(empty) :: any).text).toBe("Up to Uncommon")
+		local data = vat(2, 1)
+		expect((VatView.capLine(data) :: any).text).toBe("Up to Uncommon")
 		assert(VatState.start(data, NOW))
 		expect(VatView.capLine(data)).toBe(nil)
 	end)
 
 	it("turns a locked load's pill and line Warn", function()
-		local data = vat(4, 1)
+		local data = vat(4, EPIC_AT - 1)
 		expect(VatView.tagLine(data, NOW).color).toBe("Warn")
 		local line = VatView.capLine(data) :: any
-		expect(line.text).toBe("Rebirth 3 to merge")
+		expect(line.text).toBe(`Rebirth {EPIC_AT} to merge`)
 		expect(line.color).toBe("Warn")
 	end)
 end)
@@ -157,9 +179,9 @@ describe("Rank reward text", function()
 			end
 			return nil
 		end
-		expect(string.find(Perks.tierText(rank(3)), "opens Epic merges", 1, true) ~= nil).toBe(true)
-		expect(string.find(Perks.tierText(rank(10)), "opens Mythic and Secret merges", 1, true) ~= nil).toBe(true)
-		expect(string.find(Perks.tierText(rank(5)), "merges", 1, true)).toBe(nil)
+		expect(string.find(Perks.tierText(rank(3)), "opens Rare merges", 1, true) ~= nil).toBe(true)
+		expect(string.find(Perks.tierText(rank(12)), "opens Mythic merges", 1, true) ~= nil).toBe(true)
+		expect(string.find(Perks.tierText(rank(6)), "merges", 1, true)).toBe(nil)
 		expect(Perks.tierText(rank(0))).toBe("")
 	end)
 end)

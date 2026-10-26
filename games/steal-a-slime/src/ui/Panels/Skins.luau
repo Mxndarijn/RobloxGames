@@ -1,11 +1,16 @@
 --!strict
 --[[
-	Plot skins panel (Nav key "Skins", contract/plot-skins.md). In the band: "n/m unlocked". In the body: the
-	skins on the left, one row each (its icon, name, and a bar with the count toward unlocking it, or Equipped /
+	Skins menu (Nav key "Skins"). Two tabs under the band: Base (plot skins, contract/plot-skins.md) and Cloud (pet
+	seats, contract/pet-seats.md); it opens on Base. In the band: "n/m unlocked" for the open tab.
+	Base: the skins on the left, one row each (its icon, name, and a bar with the count toward unlocking it, or Equipped /
 	Unlocked), and the selected skin's pane on the right (PlotSkinsView.detail): a big icon, the name, "Find 4 of
 	these 5 slimes" over a bar, the slimes themselves (found in colour, the rest as silhouettes with their set or
 	"Merge"), and Equip, Equipped or a well saying how many slimes are still needed. Equip asks the server
 	(EquipPlotSkin); it decides nothing itself. Without State.plotSkins: one empty line.
+	Cloud (PetSeatsView): one row per seat (its icon, name, and Equipped / Unlocked, or its unlock in one line with a
+	bar and count, or a gold Exclusive tag with "Only in the Exclusive shop."), and the selected seat's pane: a big
+	icon, the name, "How to unlock" / "How to get it" with the same line, the bar, and Equip, Equipped or a well
+	saying what is missing or "Exclusive shop". Equip asks the server (EquipPetSeat).
 	With State.plotBases (FEATURES.BaseShapes, contract/base-shapes.md) a strip of base buttons runs across the top:
 	the building the plot stands in, apart from its skin; each says Equip, Equipped or the rebirth it unlocks at
 	(PlotBasesView), and Equip asks the server (EquipPlotBase).
@@ -15,6 +20,7 @@ local UI = script.Parent.Parent
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
+local PetSeatsView = require(UI.PetSeatsView)
 local PlotBasesView = require(UI.PlotBasesView)
 local PlotSkinsView = require(UI.PlotSkinsView)
 local SlimeDex = require(UI.SlimeDex)
@@ -27,6 +33,14 @@ local create = Widgets.create
 local Skins = {}
 
 local STYLE = table.freeze({
+	tabH = Layout.MIN_TOUCH_DESIGN,
+	tabW = 110,
+	tabGap = 6,
+	tabText = 17,
+	seatLine = Layout.MIN_TEXT,
+	seatTagH = 20,
+	howPad = 8,
+	howRadius = 14,
 	chip = 15,
 	chipH = 26,
 	listShare = 0.44, -- of the body width
@@ -72,8 +86,14 @@ function Skins.cells(inner: number): (number, number)
 	return columns, math.floor((inner - STYLE.cellGap * (columns - 1)) / columns)
 end
 
+-- The tabs, in order. "base" is the one the menu opens on.
+Skins.TABS = table.freeze({
+	table.freeze({ key = "base", label = "Base" }),
+	table.freeze({ key = "cloud", label = "Cloud" }),
+})
+
 function Skins.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "SkinsPanel", "Plot skins", "🏠")
+	local panel = Widgets.panel(parent, "SkinsPanel", "Skins", "🏠")
 	local c = Layout.PANEL_CHROME
 	local icons = ItemIcons.of(ctx)
 	local builders: SlimePreview.Builders = { species = ctx.buildSpecies, slime = ctx.buildSlime }
@@ -120,6 +140,7 @@ function Skins.new(parent: Instance, ctx: any)
 		Parent = content,
 	})
 	local list = Widgets.scrollList({ Name = "List", Parent = content }, STYLE.rowGap)
+	local seatList = Widgets.scrollList({ Name = "SeatList", Visible = false, Parent = content }, STYLE.rowGap)
 	local pane = Widgets.scroll({
 		Name = "Pane",
 		BackgroundTransparency = 0,
@@ -134,6 +155,8 @@ function Skins.new(parent: Instance, ctx: any)
 	local open = false
 	local latest: any = nil
 	local selected: string? = nil
+	local selectedSeat: string? = nil
+	local tab = Skins.TABS[1].key
 	local bodyW, bodyH = 536, 505
 	local repaint: () -> ()
 
@@ -141,14 +164,43 @@ function Skins.new(parent: Instance, ctx: any)
 		return math.clamp(math.floor(bodyW * STYLE.listShare), STYLE.listMin, STYLE.listMax)
 	end
 
+	local tabs: { [string]: any } = {}
+	for i, def in Skins.TABS do
+		local button = Widgets.button(
+			{
+				Name = `Tab_{def.key}`,
+				Text = def.label,
+				TextSize = STYLE.tabText,
+				Position = UDim2.fromOffset((i - 1) * (STYLE.tabW + STYLE.tabGap), 0),
+				Size = UDim2.fromOffset(STYLE.tabW, STYLE.tabH),
+				Parent = content,
+			},
+			Theme.Info,
+			function()
+				tab = def.key
+				repaint()
+			end
+		)
+		button.instance.Parent = content
+		tabs[def.key] = button
+	end
+
 	local function placeBody()
 		local lw = listWidth()
-		local top = if strip.Visible then STYLE.baseH + STYLE.baseGap else 0
+		local top = STYLE.tabH + STYLE.gap
+		strip.Position = UDim2.fromOffset(0, top)
 		strip.Size = UDim2.fromOffset(bodyW, STYLE.baseH)
-		list.Position = UDim2.fromOffset(0, top)
-		list.Size = UDim2.fromOffset(lw, bodyH - top)
+		if strip.Visible then
+			top += STYLE.baseH + STYLE.baseGap
+		end
+		local h = math.max(bodyH - top, 0)
+		for _, l in { list, seatList } do
+			l.Position = UDim2.fromOffset(0, top)
+			l.Size = UDim2.fromOffset(lw, h)
+		end
+		empty.Position = UDim2.fromOffset(0, top)
 		pane.Position = UDim2.fromOffset(lw + STYLE.gap, top)
-		pane.Size = UDim2.fromOffset(bodyW - lw - STYLE.gap, bodyH - top)
+		pane.Size = UDim2.fromOffset(bodyW - lw - STYLE.gap, h)
 	end
 
 	-- Base buttons, reused by index.
@@ -227,7 +279,11 @@ function Skins.new(parent: Instance, ctx: any)
 
 	local function equip(id: string)
 		if ctx.request then
-			ctx.request("EquipPlotSkin", function() end, id)
+			if tab == "cloud" then
+				ctx.request("EquipPetSeat", function() end, id)
+			else
+				ctx.request("EquipPlotSkin", function() end, id)
+			end
 		end
 	end
 
@@ -344,6 +400,170 @@ function Skins.new(parent: Instance, ctx: any)
 		end
 	)
 
+	-- Seat rows (Cloud tab): taller while they carry an unlock line.
+	local seatTextW = STYLE.listMax - STYLE.scrollBar - STYLE.rowPad * 3 - STYLE.icon
+	local function seatTextWidth(): number
+		return listWidth() - STYLE.scrollBar - STYLE.rowPad * 3 - STYLE.icon
+	end
+	local function seatRowHeight(row: PetSeatsView.Row): number
+		if row.state ~= "locked" then
+			return STYLE.rowH
+		end
+		local lineH = math.ceil(Layout.wrappedHeight(row.line, STYLE.seatLine, seatTextWidth()))
+		local extra = if row.exclusive then STYLE.seatTagH + 2 else STYLE.bar + 6
+		return math.max(STYLE.rowH, 8 + STYLE.nameH + 2 + lineH + extra + 8)
+	end
+
+	local function makeSeatRow(row: PetSeatsView.Row): any
+		local frame = create("TextButton", {
+			Name = row.key,
+			Text = "",
+			AutoButtonColor = false,
+			BackgroundColor3 = Theme.Row,
+			BorderSizePixel = 0,
+			Size = UDim2.new(1, -STYLE.scrollBar, 0, STYLE.rowH),
+		}, { Widgets.corner(Widgets.KIT.rowRadius) :: Instance }) :: TextButton
+		local stroke = Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke)
+		stroke.Parent = frame
+		local image = create("Frame", {
+			Name = "Image",
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, STYLE.rowPad, 0.5, 0),
+			Size = UDim2.fromOffset(STYLE.icon, STYLE.icon),
+			Parent = frame,
+		}, { Widgets.corner(Widgets.KIT.radius) :: Instance, Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
+		local icon = ItemIconView.new({
+			Name = "SeatIcon",
+			Id = `PetSeat_{row.id}`,
+			Size = STYLE.icon,
+			Parent = image,
+		}, icons)
+		local textX = STYLE.rowPad * 2 + STYLE.icon
+		local title = Widgets.label({
+			Name = "Title",
+			Font = Theme.Font,
+			TextSize = STYLE.name,
+			Position = UDim2.fromOffset(textX, 8),
+			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, STYLE.nameH),
+			Parent = frame,
+		})
+		local stateLabel = Widgets.label({
+			Name = "State",
+			Font = Theme.Font,
+			TextSize = STYLE.state,
+			Position = UDim2.fromOffset(textX, 8 + STYLE.nameH + 2),
+			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, 18),
+			Parent = frame,
+		})
+		local tag = Widgets.chip({
+			Name = "Exclusive",
+			Text = PetSeatsView.EXCLUSIVE,
+			TextSize = STYLE.state,
+			Position = UDim2.fromOffset(textX, 8 + STYLE.nameH + 2),
+			Size = UDim2.fromOffset(0, STYLE.seatTagH),
+			Parent = frame,
+		}, Theme.Gold)
+		local line = Widgets.label({
+			Name = "Line",
+			[Widgets.fontKey(Theme.FontBody)] = Theme.FontBody,
+			TextSize = STYLE.seatLine,
+			TextColor3 = Theme.Muted,
+			TextWrapped = true,
+			TextTruncate = Enum.TextTruncate.None,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			Position = UDim2.fromOffset(textX, 8 + STYLE.nameH + 2),
+			Size = UDim2.fromOffset(seatTextW, 18),
+			Parent = frame,
+		})
+		local countW = 64
+		local bar, setBar = Widgets.bar(
+			frame,
+			Theme.Good,
+			UDim2.new(1, -(textX + STYLE.rowPad + countW + 6), 0, STYLE.bar),
+			UDim2.fromOffset(textX, 0)
+		)
+		bar.Name = "Progress"
+		local count = Widgets.label({
+			Name = "Count",
+			Font = Theme.Font,
+			TextSize = STYLE.state,
+			TextColor3 = Theme.Muted,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AnchorPoint = Vector2.new(1, 0),
+			Size = UDim2.fromOffset(countW, 18),
+			Parent = frame,
+		})
+		frame.Activated:Connect(function()
+			selectedSeat = frame:GetAttribute("SeatId") :: string?
+			repaint()
+		end)
+		return {
+			instance = frame,
+			stroke = stroke,
+			image = image,
+			icon = icon,
+			title = title,
+			state = stateLabel,
+			tag = tag,
+			line = line,
+			bar = bar,
+			setBar = setBar,
+			count = count,
+		}
+	end
+
+	local function updateSeatRow(r: any, row: PetSeatsView.Row)
+		local locked = row.state == "locked"
+		local on = row.id == selectedSeat
+		local textX = STYLE.rowPad * 2 + STYLE.icon
+		local textW = seatTextWidth()
+		r.instance.Size = UDim2.new(1, -STYLE.scrollBar, 0, seatRowHeight(row))
+		r.instance:SetAttribute("SeatId", row.id)
+		r.instance:SetAttribute("State", row.state)
+		r.instance:SetAttribute("Selected", on)
+		r.instance.BackgroundColor3 = if on then Theme.BgLight else Theme.Row
+		r.stroke.Color = if on then Theme.Good else Theme.Ink
+		r.stroke.Thickness = if on then STYLE.selectStroke else Widgets.KIT.rowStroke
+		r.image.BackgroundColor3 = Widgets.color3(row.color)
+		r.image.BackgroundTransparency = if locked then 0.6 else 0
+		r.icon.setFrame(if locked then Theme.Muted else nil)
+		r.icon.setActive(open)
+		r.title.Text = row.title
+		r.title.TextColor3 = if locked then Theme.Muted else Theme.Text
+		r.state.Visible = not locked
+		r.state.Text = if row.state == "equipped" then PlotSkinsView.EQUIPPED else "Unlocked"
+		r.state.TextColor3 = if row.state == "equipped" then Theme.Good else Theme.Muted
+		r.tag.Visible = row.exclusive
+		local y = 8 + STYLE.nameH + 2
+		if row.exclusive then
+			y += STYLE.seatTagH + 2
+		end
+		local lineH = if locked then math.ceil(Layout.wrappedHeight(row.line, STYLE.seatLine, textW)) else 0
+		r.line.Visible = locked
+		r.line.Text = row.line
+		r.line.Position = UDim2.fromOffset(textX, y)
+		r.line.Size = UDim2.fromOffset(textW, lineH)
+		local hasBar = locked and not row.exclusive
+		local barY = y + lineH + 6
+		r.bar.Visible = hasBar
+		r.count.Visible = hasBar
+		r.bar.Position = UDim2.fromOffset(textX, barY)
+		r.count.Position = UDim2.new(1, -STYLE.rowPad, 0, barY + STYLE.bar // 2 - 9)
+		r.setBar(row.fraction)
+		r.count.Text = row.count
+	end
+
+	local seatRows = Widgets.keyedList(
+		seatList,
+		function(row: PetSeatsView.Row)
+			return row.key
+		end,
+		makeSeatRow,
+		function(r: any, row: PetSeatsView.Row)
+			updateSeatRow(r, row)
+		end
+	)
+
 	-- The pane: built once, its slime cells reused by index.
 	local bigWell = create("Frame", {
 		Name = "BigIcon",
@@ -370,6 +590,41 @@ function Skins.new(parent: Instance, ctx: any)
 	local paneBar, setPaneBar = Widgets.bar(pane, Theme.Good, UDim2.fromOffset(0, STYLE.bar))
 	paneBar.Name = "Progress"
 	local paneCount = paneLabel("PaneCount", STYLE.line, Theme.Good, Theme.Font)
+	-- Cloud tab: the Exclusive tag and the "How to unlock" box.
+	local paneTag = Widgets.chip({
+		Name = "Exclusive",
+		Text = PetSeatsView.EXCLUSIVE,
+		TextSize = STYLE.state,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Size = UDim2.fromOffset(0, STYLE.seatTagH + 4),
+		Visible = false,
+		Parent = pane,
+	}, Theme.Gold)
+	local how = create("Frame", {
+		Name = "How",
+		BackgroundColor3 = Theme.Ink,
+		BackgroundTransparency = 0.45,
+		Visible = false,
+		Parent = pane,
+	}, { Widgets.corner(STYLE.howRadius) :: Instance })
+	local howHead = Widgets.label({
+		Name = "Heading",
+		Font = Theme.Font,
+		TextSize = STYLE.line,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = how,
+	})
+	local howLine = Widgets.label({
+		Name = "Line",
+		[Widgets.fontKey(Theme.FontBody)] = Theme.FontBody,
+		TextSize = STYLE.line,
+		TextColor3 = Theme.Text,
+		TextWrapped = true,
+		TextTruncate = Enum.TextTruncate.None,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		Parent = how,
+	})
 	local equipButton = Widgets.button(
 		{
 			Name = "Equip",
@@ -380,8 +635,9 @@ function Skins.new(parent: Instance, ctx: any)
 		},
 		Theme.Accent,
 		function()
-			if selected then
-				equip(selected)
+			local id = if tab == "cloud" then selectedSeat else selected
+			if id then
+				equip(id)
 			end
 		end
 	)
@@ -457,6 +713,8 @@ function Skins.new(parent: Instance, ctx: any)
 
 	local function paintPane(detail: PlotSkinsView.Detail?)
 		pane.Visible = detail ~= nil
+		paneTag.Visible = false
+		how.Visible = false
 		if detail == nil then
 			return
 		end
@@ -545,10 +803,132 @@ function Skins.new(parent: Instance, ctx: any)
 		pane.CanvasSize = UDim2.fromOffset(0, y)
 	end
 
+	-- The pane for a seat: big icon, name, the Exclusive tag, how to get it, the bar and the button or well.
+	local function paintSeatPane(detail: PetSeatsView.Detail?)
+		pane.Visible = detail ~= nil
+		for _, cl in cells do
+			cl.frame.Visible = false
+			SlimePreview.unmount(cl.preview)
+			cl.preview:SetAttribute("Look", nil)
+		end
+		paneLine.Visible = false
+		if detail == nil then
+			paneTag.Visible = false
+			how.Visible = false
+			return
+		end
+		local w = pane.Size.X.Offset
+		local inner = math.max(w - STYLE.pad * 2, 1)
+		local y = STYLE.pad
+		bigWell.Position = UDim2.new(0.5, 0, 0, y)
+		bigWell.BackgroundColor3 = Theme.BgLight
+		local iconId = `PetSeat_{detail.id}`
+		if bigWell:GetAttribute("SkinId") ~= iconId then
+			bigWell:SetAttribute("SkinId", iconId)
+			bigIcon.set(iconId)
+		end
+		bigIcon.setFrame(if detail.state == "locked" then Theme.Muted else nil)
+		bigIcon.setActive(open)
+		y += STYLE.bigIcon + 6
+		local titleH = math.ceil(Layout.wrappedHeight(detail.title, STYLE.title, inner, true))
+		paneTitle.Text = detail.title
+		paneTitle.Visible = true
+		paneTitle.Position = UDim2.fromOffset(STYLE.pad, y)
+		paneTitle.Size = UDim2.fromOffset(inner, titleH)
+		y += titleH + 4
+		paneTag.Visible = detail.exclusive
+		if detail.exclusive then
+			paneTag.Position = UDim2.new(0.5, 0, 0, y)
+			y += STYLE.seatTagH + 4 + 6
+		end
+		how.Visible = true
+		local howInner = math.max(inner - STYLE.howPad * 2, 1)
+		local headH = if detail.heading ~= "" then 18 else 0
+		local lineH = math.ceil(Layout.wrappedHeight(detail.line, STYLE.line, howInner))
+		howHead.Visible = detail.heading ~= ""
+		howHead.Text = detail.heading
+		howHead.TextColor3 = if detail.exclusive then Theme.Gold else Theme.Good
+		howHead.Position = UDim2.fromOffset(STYLE.howPad, STYLE.howPad)
+		howHead.Size = UDim2.fromOffset(howInner, headH)
+		howLine.Text = detail.line
+		howLine.Position = UDim2.fromOffset(STYLE.howPad, STYLE.howPad + headH)
+		howLine.Size = UDim2.fromOffset(howInner, lineH)
+		how.Position = UDim2.fromOffset(STYLE.pad, y)
+		how.Size = UDim2.fromOffset(inner, STYLE.howPad * 2 + headH + lineH)
+		y += STYLE.howPad * 2 + headH + lineH + 8
+		local hasCount = detail.count ~= nil and detail.state == "locked"
+		paneBar.Visible = hasCount
+		paneCount.Visible = hasCount
+		if hasCount then
+			local countW = 64
+			paneBar.Position = UDim2.fromOffset(STYLE.pad, y + 4)
+			paneBar.Size = UDim2.fromOffset(inner - countW - 6, STYLE.bar)
+			setPaneBar(detail.fraction)
+			paneCount.Text = detail.count or ""
+			paneCount.TextXAlignment = Enum.TextXAlignment.Right
+			paneCount.Position = UDim2.fromOffset(STYLE.pad + inner - countW, y)
+			paneCount.Size = UDim2.fromOffset(countW, 18)
+			y += 18 + 8
+		end
+		local canEquip = detail.state == "unlocked"
+		equipButton.instance.Visible = canEquip
+		well.Visible = not canEquip
+		well.Text = detail.action
+		well.TextColor3 = if detail.state == "equipped"
+			then Theme.Good
+			elseif detail.exclusive then Theme.Gold
+			else Theme.Muted
+		for _, inst in { equipButton.instance :: GuiObject, well } do
+			inst.Position = UDim2.fromOffset(STYLE.pad, y)
+			inst.Size = UDim2.fromOffset(inner, STYLE.button)
+		end
+		y += STYLE.button + STYLE.pad
+		pane.CanvasSize = UDim2.fromOffset(0, y)
+	end
+
+	-- Cloud tab: the seat rows and the selected seat's pane.
+	local function repaintSeats()
+		local seatRowsList = PetSeatsView.rows(latest.petSeats, ctx.Config)
+		if strip.Visible then
+			-- the base strip belongs to the Base tab
+			strip.Visible = false
+			placeBody()
+		end
+		empty.Text = PetSeatsView.EMPTY
+		empty.Visible = #seatRowsList == 0
+		list.Visible = false
+		seatList.Visible = #seatRowsList > 0
+		summary.Visible = #seatRowsList > 0
+		summary.Text = PetSeatsView.summary(seatRowsList)
+		local known = false
+		for _, row in seatRowsList do
+			known = known or row.id == selectedSeat
+		end
+		if not known then
+			selectedSeat = PetSeatsView.firstSelected(seatRowsList)
+		end
+		if not open then
+			return
+		end
+		attach()
+		seatRows.sync(seatRowsList)
+		paintSeatPane(if selectedSeat then PetSeatsView.detail(latest.petSeats, selectedSeat) else nil)
+	end
+
 	function repaint()
+		for key, button in tabs do
+			button.setColor(if key == tab then Theme.Accent else Theme.Info)
+			button.instance:SetAttribute("Selected", key == tab)
+		end
 		if latest == nil then
 			return
 		end
+		if tab == "cloud" then
+			repaintSeats()
+			return
+		end
+		seatList.Visible = false
+		empty.Text = PlotSkinsView.EMPTY
 		local skinRows = PlotSkinsView.rows(latest.plotSkins, ctx.Config)
 		empty.Visible = #skinRows == 0
 		list.Visible = #skinRows > 0
@@ -588,8 +968,14 @@ function Skins.new(parent: Instance, ctx: any)
 	local self = { frame = panel.frame, close = panel.close }
 
 	function self.setOpen(isOpen: boolean)
+		if isOpen and not open then
+			tab = Skins.TABS[1].key -- every open starts on Base
+		end
 		open = isOpen
 		for _, r in rows.rows do
+			r.icon.setActive(isOpen)
+		end
+		for _, r in seatRows.rows do
 			r.icon.setActive(isOpen)
 		end
 		bigIcon.setActive(isOpen)
@@ -611,12 +997,24 @@ function Skins.new(parent: Instance, ctx: any)
 		repaint()
 	end
 
-	-- The skin shown in the pane (tests), and picking one (the rows do the same).
+	-- The skin or seat shown in the pane (tests), and picking one (the rows do the same).
 	function self.selected(): string?
-		return selected
+		return if tab == "cloud" then selectedSeat else selected
 	end
 	function self.select(id: string)
-		selected = id
+		if tab == "cloud" then
+			selectedSeat = id
+		else
+			selected = id
+		end
+		repaint()
+	end
+	-- The open tab ("base" / "cloud") and switching it (the tab buttons do the same).
+	function self.tab(): string
+		return tab
+	end
+	function self.setTab(key: string)
+		tab = key
 		repaint()
 	end
 
