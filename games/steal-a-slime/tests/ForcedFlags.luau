@@ -59,6 +59,7 @@ ForcedFlags.offModules = {
 ForcedFlags.on = {
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",
 	["Profiler > is off by default and the flag is declared"] = "ServerProfiler",
+	["MoveWatch wiring > is off by default and records no allow-window while off"] = "MoveGuardLog",
 }
 
 -- Tests that exercise the off path (or pin "default off") of a flag that now ships ON (2026-10-18:

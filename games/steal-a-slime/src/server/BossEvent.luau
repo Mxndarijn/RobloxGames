@@ -131,7 +131,13 @@ local function begin(world: World, now: number): string
 	local entry = SlimeRoster.get(species)
 	local name = if entry then entry.name else species
 	local seconds = math.max(0, math.floor(fight.endsAt - now + 0.5))
-	World.notify(world, nil, `BOSS INCOMING! {name} reaches the plaza in {seconds} s. Grab your bat!`, "good", "Rain")
+	World.notify(
+		world,
+		nil,
+		`BOSS INCOMING! {name} reaches the plaza in {seconds} s. Grab your bat!`,
+		"good",
+		"BossWarn"
+	)
 	World.markAllDirty(world)
 	return species
 end
@@ -162,7 +168,7 @@ local function arrive(world: World, event: World.BossEvent, now: number, ctx: Co
 		nil,
 		`{slime.name} is in the plaza! Hit it with your bat to fill the goo meter!`,
 		"good",
-		"Rain"
+		"BossWarn"
 	)
 end
 
@@ -181,7 +187,7 @@ local function startHaul(world: World, event: World.BossEvent, now: number)
 	local text = if top
 		then `{name} is down! {top} gets first grab, then anyone. Carry it home!`
 		else `{name} is down! Grab it and carry it home!`
-	World.notify(world, nil, text, "good", "Rain")
+	World.notify(world, nil, text, "good", "Announce")
 end
 
 -- Fight or haul lost: the boss (carried or not) gets away. No slimes drop.
@@ -199,7 +205,7 @@ local function escape(world: World, event: World.BossEvent, now: number, reason:
 	local text = if reason == "fight"
 		then "The boss got away! Fill the meter faster next time."
 		else "Nobody brought the boss home! It got away."
-	World.notify(world, nil, text, "info", "Rain")
+	World.notify(world, nil, text, "info", "Announce")
 end
 
 -- A player as the boss sees them: plaza spot, root height and whether they are off the ground.
@@ -704,7 +710,7 @@ function BossEvent.hitGuard(world: World, session: Session, now: number, from: V
 	if left == 0 and wild and wild.move and wild.move.kind == "rise" then
 		wild.move = BossChoreo.hold("land", wild.move, now, BOSS.LAND_SECONDS, "daze")
 		event.guards = {}
-		World.notify(world, nil, "Every guard is down! The boss is dazed: hit it now!", "good", nil)
+		World.notify(world, nil, "Every guard is down! The boss is dazed: hit it now!", "good", "Announce")
 	end
 	World.markAllDirty(world)
 	settle(world, event, now, ctx)

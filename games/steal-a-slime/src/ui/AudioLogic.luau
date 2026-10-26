@@ -13,8 +13,12 @@
 	  AudioLogic.allowSfx(state, name, now, cfg)   per-name throttle (SFX_MIN_GAP, SFX_MAX_LIVE); true reserves a slot
 	  AudioLogic.releaseSfx(state, name)           frees the slot when that Sound is gone
 	  AudioLogic.oneshotId(cfg)                    -> NIGHT_ONESHOT_ID or nil (nil = no owl)
-	  AudioLogic.oneshotStep(timer, dt, level, cfg, rng) -> timer?, fire  night one-shot countdown (rng: () -> 0..1)
+	  AudioLogic.oneshotStep(timer, dt, level, cfg, rng, spec?) -> timer?, fire  one-shot countdown (rng: () -> 0..1;
+	                                               spec = gap range and bed level, default the night owl)
 	  AudioLogic.oneshotSpeed(cfg, rng)            PlaybackSpeed for one call
+	  AudioLogic.layerTargets(input, cfg, dayNight) -> every looped layer that should sound now (music, beds, weather)
+	  AudioLogic.jitter(base, spread, rng)         base +- spread (PlaybackSpeed variation for repeated SFX)
+	  AudioLogic.pick(list, rng)                   one entry of a variant list
 ]]
 
 local Sounds = if script then require(script.Parent.Sounds) else require("./Sounds")
@@ -144,9 +148,21 @@ function AudioLogic.releaseSfx(state: SfxState, name: string)
 end
 
 -- Seconds until the next night one-shot: uniform in NIGHT_ONESHOT_MIN..MAX_SECONDS.
-function AudioLogic.oneshotGap(cfg: any, rng: () -> number): number
-	local lo, hi = cfg.NIGHT_ONESHOT_MIN_SECONDS, cfg.NIGHT_ONESHOT_MAX_SECONDS
-	return lo + (hi - lo) * math.clamp(rng(), 0, 1)
+-- Timing of a random one-shot over a bed: gap range and the bed level it needs. Default = the night owl.
+export type OneshotSpec = { min: number, max: number, minLevel: number }
+
+local function nightSpec(cfg: any): OneshotSpec
+	return {
+		min = cfg.NIGHT_ONESHOT_MIN_SECONDS,
+		max = cfg.NIGHT_ONESHOT_MAX_SECONDS,
+		minLevel = cfg.NIGHT_ONESHOT_MIN_LEVEL,
+	}
+end
+
+-- Seconds until the next one-shot: uniform in spec.min..max.
+function AudioLogic.oneshotGap(cfg: any, rng: () -> number, spec: OneshotSpec?): number
+	local s = spec or nightSpec(cfg)
+	return s.min + (s.max - s.min) * math.clamp(rng(), 0, 1)
 end
 
 -- One frame of the night one-shot countdown. Below NIGHT_ONESHOT_MIN_LEVEL (day, or the dusk / dawn fade) the
@@ -156,23 +172,67 @@ function AudioLogic.oneshotStep(
 	dt: number,
 	level: number,
 	cfg: any,
-	rng: () -> number
+	rng: () -> number,
+	spec: OneshotSpec?
 ): (number?, boolean)
-	if level < cfg.NIGHT_ONESHOT_MIN_LEVEL then
+	local s = spec or nightSpec(cfg)
+	if level < s.minLevel then
 		return nil, false
 	end
 	if timer == nil then
-		return AudioLogic.oneshotGap(cfg, rng), false
+		return AudioLogic.oneshotGap(cfg, rng, s), false
 	end
 	local left = timer - math.max(dt, 0)
 	if left <= 0 then
-		return AudioLogic.oneshotGap(cfg, rng), true
+		return AudioLogic.oneshotGap(cfg, rng, s), true
 	end
 	return left, false
 end
 
 function AudioLogic.oneshotSpeed(cfg: any, rng: () -> number): number
 	return 1 + (math.clamp(rng(), 0, 1) * 2 - 1) * cfg.NIGHT_ONESHOT_SPEED_JITTER
+end
+
+function AudioLogic.jitter(base: number, spread: number, rng: () -> number): number
+	return base + (math.clamp(rng(), 0, 1) * 2 - 1) * spread
+end
+
+function AudioLogic.pick<T>(list: { T }, rng: () -> number): T?
+	if #list == 0 then
+		return nil
+	end
+	return list[math.clamp(math.floor(math.clamp(rng(), 0, 1) * #list) + 1, 1, #list)]
+end
+
+export type LayerInput = {
+	clockTime: number,
+	boss: boolean?, -- a boss fight is on: the boss track replaces the day / night music
+	weather: string?, -- Constants.WEATHER_ATTRIBUTE value; nil / "Clear" = no weather bed
+}
+export type Layer = { id: string, volume: number, fade: number }
+
+-- Every looped layer that should sound now, by key, with its volume inside the Music group and its fade time.
+-- Layers missing from the result fade out. An empty or malformed id leaves that layer out (silent).
+function AudioLogic.layerTargets(input: LayerInput, cfg: any, dayNight: any): { [string]: Layer }
+	local out: { [string]: Layer } = {}
+	local night = AudioLogic.isNight(input.clockTime, dayNight)
+	local track = if input.boss then "boss" elseif night then "night" else "day"
+	local musicId = validId(cfg.MUSIC[track])
+	if musicId then
+		out["music_" .. track] = { id = musicId, volume = cfg.MUSIC_VOLUME, fade = cfg.MUSIC_FADE_SECONDS }
+	end
+	local weatherId = if input.weather then validId(cfg.WEATHER_BEDS[input.weather]) else nil
+	local which, bedId = AudioLogic.ambientFor(input.clockTime, cfg, dayNight)
+	if bedId then
+		local base = if which == "night" then cfg.AMBIENT_NIGHT_VOLUME or cfg.AMBIENT_VOLUME else cfg.AMBIENT_VOLUME
+		local volume = base * (if weatherId then cfg.WEATHER_DUCK else 1)
+		out["bed_" .. which] = { id = bedId, volume = volume, fade = cfg.AMBIENT_FADE_SECONDS }
+	end
+	if weatherId and input.weather then
+		out["weather_" .. input.weather] =
+			{ id = weatherId, volume = cfg.WEATHER_BED_VOLUME, fade = cfg.AMBIENT_FADE_SECONDS }
+	end
+	return out
 end
 
 return AudioLogic

@@ -46,7 +46,7 @@ local LOOKS: { [string]: { shell: Color3, accent: Color3, glow: Color3, material
 		shell = Color3.fromRGB(150, 225, 255),
 		accent = Color3.fromRGB(235, 252, 255),
 		glow = Color3.fromRGB(120, 220, 255),
-		material = Enum.Material.Glass,
+		material = Enum.Material.SmoothPlastic,
 		style = "crystals",
 	},
 	golden = {
@@ -138,8 +138,13 @@ local function decorate(body: BasePart, look: any, folder: Instance)
 		for i = 1, 7 do
 			local u = (i - 1) / 7 * math.pi * 2
 			local v = if i % 2 == 0 then 1.1 else 1.75
-			local gem =
-				part(`Gem{i}`, Enum.PartType.Block, Vector3.new(0.28, 0.28, 0.5), look.accent, Enum.Material.Glass)
+			local gem = part(
+				`Gem{i}`,
+				Enum.PartType.Block,
+				Vector3.new(0.28, 0.28, 0.5),
+				look.accent,
+				Enum.Material.SmoothPlastic
+			)
 			gem.Transparency = 0.15
 			attach(body, gem, onShell(u, v, 0.08) * CFrame.Angles(0, 0, math.rad(45)), folder)
 		end

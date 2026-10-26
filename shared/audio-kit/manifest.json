@@ -1,0 +1,275 @@
+{
+  "sounds": [
+    {
+      "name": "slime_squish_1",
+      "file": "out/slime_squish_1.ogg",
+      "description": "Wet squelch for a slime hop (variant 1).",
+      "assetId": "138542773252631",
+      "lufs": -16.3,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "SlimeSquish1"
+        ]
+      }
+    },
+    {
+      "name": "slime_squish_2",
+      "file": "out/slime_squish_2.ogg",
+      "description": "Wet squelch for a slime hop (variant 2).",
+      "assetId": "130838086896738",
+      "lufs": -16.2,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "SlimeSquish2"
+        ]
+      }
+    },
+    {
+      "name": "slime_squish_3",
+      "file": "out/slime_squish_3.ogg",
+      "description": "Wet squelch for a slime hop (variant 3).",
+      "assetId": "87791729719690",
+      "lufs": -15.0,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "SlimeSquish3"
+        ]
+      }
+    },
+    {
+      "name": "slime_blip_1",
+      "file": "out/slime_blip_1.ogg",
+      "description": "Tiny cute voiced 'bloop' chirp from a slime (variant 1).",
+      "assetId": "94777402130166",
+      "lufs": -12.4,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "SlimeBlip1"
+        ]
+      }
+    },
+    {
+      "name": "slime_blip_2",
+      "file": "out/slime_blip_2.ogg",
+      "description": "Tiny cute voiced 'bloop' chirp from a slime (variant 2).",
+      "assetId": "114873093794765",
+      "lufs": -14.5,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "SlimeBlip2"
+        ]
+      }
+    },
+    {
+      "name": "slime_blip_3",
+      "file": "out/slime_blip_3.ogg",
+      "description": "Tiny cute voiced 'bloop' chirp from a slime (variant 3).",
+      "assetId": "120922882676473",
+      "lufs": -12.4,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "SlimeBlip3"
+        ]
+      }
+    },
+    {
+      "name": "slime_pickup",
+      "file": "out/slime_pickup.ogg",
+      "description": "Rising wet pop when the player picks up a slime.",
+      "assetId": "83418434676362",
+      "lufs": -13.9,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "SlimePickup"
+        ]
+      }
+    },
+    {
+      "name": "slime_putdown",
+      "file": "out/slime_putdown.ogg",
+      "description": "Soft plop when a slime is placed down.",
+      "assetId": "129995905484350",
+      "lufs": -14.3,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "SlimePutdown"
+        ]
+      }
+    },
+    {
+      "name": "menu_open",
+      "file": "out/menu_open.ogg",
+      "description": "Soft airy pop with a small upward whoosh when a menu opens.",
+      "assetId": "74534008739543",
+      "lufs": -17.5,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "MenuOpen"
+        ]
+      }
+    },
+    {
+      "name": "menu_close",
+      "file": "out/menu_close.ogg",
+      "description": "Soft airy pop with a small downward whoosh when a menu closes.",
+      "assetId": "84374344660619",
+      "lufs": -16.7,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "MenuClose"
+        ]
+      }
+    },
+    {
+      "name": "tutorial_tick",
+      "file": "out/tutorial_tick.ogg",
+      "description": "Gentle two-note confirm for a finished tutorial step.",
+      "assetId": "102300657141248",
+      "lufs": -13.9,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "TutorialTick"
+        ]
+      }
+    },
+    {
+      "name": "bag_pop",
+      "file": "out/bag_pop.ogg",
+      "description": "Quick zip and pop: an item went into the bag.",
+      "assetId": "113114197468370",
+      "lufs": -16.6,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "Bag"
+        ]
+      }
+    },
+    {
+      "name": "denied",
+      "file": "out/denied.ogg",
+      "description": "Soft cartoon 'bwomp' bounce when an action is refused.",
+      "assetId": "119402957317041",
+      "lufs": -14.5,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "Denied"
+        ]
+      }
+    },
+    {
+      "name": "error_soft",
+      "file": "out/error_soft.ogg",
+      "description": "Gentle low double blip for a soft error.",
+      "assetId": "",
+      "lufs": -14.3
+    },
+    {
+      "name": "level_up",
+      "file": "out/level_up.ogg",
+      "description": "Bright rising four-note arpeggio chime for a level up.",
+      "assetId": "128973160752596",
+      "lufs": -14.7,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "LevelUp"
+        ]
+      }
+    },
+    {
+      "name": "pad_unlock",
+      "file": "out/pad_unlock.ogg",
+      "description": "Sparkly 'something new' chime when a pad unlocks.",
+      "assetId": "72655607679334",
+      "lufs": -18.7,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "PadUnlock"
+        ]
+      }
+    },
+    {
+      "name": "dex_new",
+      "file": "out/dex_new.ogg",
+      "description": "Magical six-note discovery jingle for a new Slimedex entry.",
+      "assetId": "103005200793008",
+      "lufs": -16.9,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "DexNew"
+        ]
+      }
+    },
+    {
+      "name": "jar_fill",
+      "file": "out/jar_fill.ogg",
+      "description": "Glassy rising bubble fill as a jar fills up.",
+      "assetId": "128015024195428",
+      "lufs": -15.0,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "JarFill"
+        ]
+      }
+    },
+    {
+      "name": "coin",
+      "file": "out/coin.ogg",
+      "description": "Bright coin pickup: two quick high notes.",
+      "assetId": "125468534978868",
+      "lufs": -12.7,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "Cash"
+        ]
+      }
+    },
+    {
+      "name": "cash_register",
+      "file": "out/cash_register.ogg",
+      "description": "Cha-ching: a drawer clack and a bright ringing bell.",
+      "assetId": "85324618959424",
+      "lufs": -17.2,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "CashRegister"
+        ]
+      }
+    },
+    {
+      "name": "egg_wobble",
+      "file": "out/egg_wobble.ogg",
+      "description": "Wooden-ish rattle as an egg wobbles.",
+      "assetId": "114176839689061",
+      "lufs": -20.1,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "EggWobble"
+        ]
+      }
+    },
+    {
+      "name": "goo_splat",
+      "file": "out/goo_splat.ogg",
+      "description": "Thick wet goo splat with droplets, juicier than a plain splat.",
+      "assetId": "72863740720702",
+      "lufs": -16.5,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "PvpGoo"
+        ]
+      }
+    },
+    {
+      "name": "boing",
+      "file": "out/boing.ogg",
+      "description": "Cartoon spring boing with a wobbling pitch.",
+      "assetId": "110041616643369",
+      "lufs": -17.1,
+      "uses": {
+        "games/steal-a-slime/src/ui/Sounds.luau": [
+          "PvpBoing"
+        ]
+      }
+    }
+  ]
+}

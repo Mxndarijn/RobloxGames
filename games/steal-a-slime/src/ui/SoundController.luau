@@ -2,34 +2,62 @@
 --[[
 	SoundController (client, FEATURES.Audio, CONTRACT.md §2 Extras)
 
-	One place for UI / gameplay SFX and the ranch ambience. Creates the SoundGroups
-	"SFX" and "Music" under SoundService, plays registry sounds through them and
-	crossfades a day (birds) / night ambience from Lighting.ClockTime; at night an owl call
-	plays now and then (one-shot, random gap).
+	One place for UI / gameplay SFX, the music and the ranch ambience. Creates the SoundGroups
+	"SFX" and "Music" under SoundService and plays registry sounds through them. It runs the
+	looped layers from AudioLogic.layerTargets: a music track (day, night, or the boss track
+	during a boss fight), the day (birds) / night bed and a weather bed (rain, snow wind), each
+	crossfaded. At night an owl call plays now and then, during rain a thunder clap.
+	One-shots play flat (UI) or as 3D sounds at a point (`opts.at`), throttled per name.
 	Settings (mute, SFX / music volume) live in LocalPlayer attributes AudioMuted /
 	AudioSfxVolume / AudioMusicVolume. They are saved server-side (save v6 `settings`):
 	`load` applies State.settings once on join, the UI sends changes (SetAudioSettings).
 
-	SoundController.play(name) is static: it returns false when no controller is
+	SoundController.play(name, opts?) is static: it returns false when no controller is
 	active (flag off or not built yet) so callers keep their legacy sound path.
 ]]
 
 local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
 
 local AudioLogic = require(script.Parent.AudioLogic)
+local Sounds = require(script.Parent.Sounds)
 
 local SoundController = {}
 
+export type PlayOptions = {
+	at: (Vector3 | BasePart)?, -- 3D sound at this point / part; nil = flat (UI) sound
+	volume: number?, -- scale on top of the SFX group (default 1)
+	speed: number?, -- PlaybackSpeed (default 1)
+	maxDistance: number?, -- 3D only: heard within this many studs (default AUDIO.SFX_3D_MAX_DISTANCE)
+}
+
+-- What the controller reads from the world: the current weather id (nil = no weather beds).
+export type Context = { weather: (() -> string?)? }
+
 local active: any = nil
 
-function SoundController.play(name: string): boolean
+function SoundController.play(name: string, opts: PlayOptions?): boolean
 	if active == nil then
 		return false
 	end
-	return active.play(name)
+	return active.play(name, opts)
 end
 
-function SoundController.new(config: any, player: Player, dayNight: any)
+function SoundController.playVariant(group: string, opts: PlayOptions?): boolean
+	if active == nil then
+		return false
+	end
+	return active.playVariant(group, opts)
+end
+
+-- The boss track replaces the day / night music while `on` (State.boss during the fight and the haul).
+function SoundController.setBoss(on: boolean)
+	if active then
+		active.setBoss(on)
+	end
+end
+
+function SoundController.new(config: any, player: Player, dayNight: any, ctx: Context?)
 	local RunService = game:GetService("RunService")
 	local Lighting = game:GetService("Lighting")
 	local cfg = config.AUDIO
@@ -88,10 +116,27 @@ function SoundController.new(config: any, player: Player, dayNight: any)
 		return settings()
 	end
 
+	local rng = Random.new()
+	local function roll(): number
+		return rng:NextNumber()
+	end
+
+	-- A 3D sound needs a host in the world: the part itself, or a temporary attachment at the point.
+	local function host(at: Vector3 | BasePart): (Instance, Instance?)
+		if typeof(at) == "Instance" then
+			return at, nil
+		end
+		local a = Instance.new("Attachment")
+		a.Name = "SfxAt"
+		a.WorldPosition = at :: Vector3
+		a.Parent = workspace.Terrain
+		return a, a
+	end
+
 	-- Throttled per name (AudioLogic.allowSfx). A throttled play still returns true so callers don't fall
 	-- back to their legacy sound path. The Sound goes when it ends, or after SFX_MAX_SECONDS if it never does.
 	local sfxState = AudioLogic.newSfxState()
-	function self.play(name: string): boolean
+	function self.play(name: string, opts: PlayOptions?): boolean
 		local id = AudioLogic.resolveSfx(cfg, name)
 		if not id then
 			return false
@@ -99,84 +144,158 @@ function SoundController.new(config: any, player: Player, dayNight: any)
 		if not AudioLogic.allowSfx(sfxState, name, os.clock(), cfg) then
 			return true
 		end
+		local o: PlayOptions = opts or {}
+		for _, extra in Sounds.LAYERS[name] or {} do
+			self.play(extra, opts)
+		end
 		local sound = Instance.new("Sound")
 		sound.SoundId = id
 		sound.SoundGroup = sfxGroup
-		sound.Parent = SoundService
+		sound.Volume = (o.volume or 1) * (Sounds.VOLUME[name] or 1)
+		sound.PlaybackSpeed = (o.speed or 1) * (Sounds.SPEED[name] or 1)
+		local temp: Instance? = nil
+		if o.at ~= nil then
+			sound.RollOffMode = Enum.RollOffMode.InverseTapered
+			sound.RollOffMinDistance = cfg.SFX_3D_MIN_DISTANCE
+			sound.RollOffMaxDistance = o.maxDistance or cfg.SFX_3D_MAX_DISTANCE
+			local parent
+			parent, temp = host(o.at)
+			sound.Parent = parent
+		else
+			sound.Parent = SoundService
+		end
 		local done = false
 		local function finish()
 			if not done then
 				done = true
 				AudioLogic.releaseSfx(sfxState, name)
 				sound:Destroy()
+				if temp then
+					temp:Destroy()
+				end
 			end
 		end
 		sound.Ended:Once(finish)
 		task.delay(cfg.SFX_MAX_SECONDS, finish)
+		local trim = Sounds.TRIM[name]
+		if trim then
+			-- Library files with long tails: fade out over the last SFX_TRIM_FADE seconds of the trim.
+			local fade = math.min(cfg.SFX_TRIM_FADE, trim)
+			task.delay((trim - fade) / sound.PlaybackSpeed, function()
+				if not done then
+					TweenService:Create(sound, TweenInfo.new(fade / sound.PlaybackSpeed), { Volume = 0 }):Play()
+					task.delay(fade / sound.PlaybackSpeed, finish)
+				end
+			end)
+		end
 		sound:Play()
 		return true
 	end
+	-- One of a variant list (Sounds.VARIANTS) with a little pitch variation, so repeats don't sound identical.
+	function self.playVariant(groupName: string, opts: PlayOptions?): boolean
+		local list = Sounds.VARIANTS[groupName]
+		local name = if list then AudioLogic.pick(list, roll) else nil
+		local o: PlayOptions = table.clone(opts or {})
+		o.speed = (o.speed or 1) * AudioLogic.jitter(1, cfg.SFX_SPEED_JITTER, roll)
+		return self.play(name or groupName, o)
+	end
 
-	-- Ambience: a level per time of day faded towards 1 / 0, driving that time's looped bed (when it has an id)
-	-- and, at night, the one-shot owl (AudioLogic.oneshotStep). A call that is playing at dawn plays out.
-	local levels: { [string]: number } = { day = 0, night = 0 }
-	local loops: { [string]: Sound } = {}
-	local function loop(key: string, id: string?): Sound?
+	-- Looped layers (AudioLogic.layerTargets): the music track, the day / night bed and a weather bed, each faded
+	-- to its target over its own fade time. A layer that fades out pauses, so music resumes where it was.
+	local bossOn = false
+	function self.setBoss(on: boolean)
+		bossOn = on
+	end
+	type LayerState = { sound: Sound, level: number, volume: number, fade: number }
+	local layers: { [string]: LayerState } = {}
+	local function layerSound(key: string, id: string): Sound
+		local sound = Instance.new("Sound")
+		sound.Name = "Layer_" .. key
+		sound.SoundId = id
+		sound.Looped = true
+		sound.Volume = 0
+		sound.SoundGroup = musicGroup
+		sound.Parent = SoundService
+		return sound
+	end
+
+	-- Random one-shots over a bed: the owl at night, thunder during rain.
+	local function oneshot(name: string, id: string?, volume: number): Sound?
 		if not id then
 			return nil
 		end
-		local sound = loops[key]
-		if not sound then
-			sound = Instance.new("Sound")
-			sound.Name = "Ambient_" .. key
-			sound.SoundId = id
-			sound.Looped = true
-			sound.Volume = 0
-			sound.SoundGroup = musicGroup
-			sound.Parent = SoundService
-			loops[key] = sound
-		end
-		return sound
-	end
-	local rng = Random.new()
-	local function roll(): number
-		return rng:NextNumber()
-	end
-	local oneshotId = AudioLogic.oneshotId(cfg)
-	local oneshot: Sound? = nil
-	if oneshotId then
 		local sound = Instance.new("Sound")
-		sound.Name = "Ambient_night_oneshot"
-		sound.SoundId = oneshotId
-		sound.Volume = cfg.NIGHT_ONESHOT_VOLUME
+		sound.Name = name
+		sound.SoundId = id
+		sound.Volume = volume
 		sound.SoundGroup = musicGroup
 		sound.Parent = SoundService
-		oneshot = sound
+		return sound
 	end
-	local oneshotTimer: number? = nil
+	local owl = oneshot("Ambient_night_oneshot", AudioLogic.oneshotId(cfg), cfg.NIGHT_ONESHOT_VOLUME)
+	local thunderIds: { string } = {}
+	for _, name in cfg.THUNDER do
+		local id = AudioLogic.resolveSfx(cfg, name)
+		if id then
+			table.insert(thunderIds, id)
+		end
+	end
+	local thunder = oneshot("Ambient_thunder", thunderIds[1], cfg.THUNDER_VOLUME)
+	local thunderSpec: AudioLogic.OneshotSpec =
+		{ min = cfg.THUNDER_MIN_SECONDS, max = cfg.THUNDER_MAX_SECONDS, minLevel = cfg.NIGHT_ONESHOT_MIN_LEVEL }
+	local owlTimer: number? = nil
+	local thunderTimer: number? = nil
+	local nightLevel = 0
+
 	local function ambientStep(dt: number)
-		local which = AudioLogic.ambientFor(Lighting.ClockTime, cfg, dayNight)
-		for _, key in { "day", "night" } do
-			local level = AudioLogic.fadeStep(levels[key], if key == which then 1 else 0, dt, cfg.AMBIENT_FADE_SECONDS)
-			levels[key] = level
-			local _, id = AudioLogic.ambientFor(if key == "day" then 12 else 0, cfg, dayNight)
-			local sound = loop(key, id)
-			if sound then
-				sound.Volume = level * cfg.AMBIENT_VOLUME
-				if level > 0 and not sound.IsPlaying then
-					sound:Play()
-				elseif level == 0 and sound.IsPlaying then
-					sound:Pause()
-				end
+		local weather = if ctx and ctx.weather then ctx.weather() else nil
+		local clock = Lighting.ClockTime
+		local targets = AudioLogic.layerTargets({ clockTime = clock, boss = bossOn, weather = weather }, cfg, dayNight)
+		for key, t in targets do
+			if not layers[key] then
+				layers[key] = { sound = layerSound(key, t.id), level = 0, volume = t.volume, fade = t.fade }
 			end
 		end
-		if oneshot then
+		for key, layer in layers do
+			local t = targets[key]
+			if t then
+				layer.volume, layer.fade = t.volume, t.fade
+			end
+			layer.level = AudioLogic.fadeStep(layer.level, if t then 1 else 0, dt, layer.fade)
+			local sound = layer.sound
+			sound.Volume = layer.level * layer.volume
+			if layer.level > 0 and not sound.IsPlaying then
+				sound:Resume()
+			elseif layer.level == 0 and sound.IsPlaying then
+				sound:Pause()
+			end
+		end
+		-- The owl waits for the night to fade in, with or without a night bed.
+		nightLevel = AudioLogic.fadeStep(
+			nightLevel,
+			if AudioLogic.isNight(clock, dayNight) then 1 else 0,
+			dt,
+			cfg.AMBIENT_FADE_SECONDS
+		)
+		if owl then
 			local fire
-			oneshotTimer, fire = AudioLogic.oneshotStep(oneshotTimer, dt, levels.night, cfg, roll)
-			if fire and not oneshot.IsPlaying then
-				oneshot.PlaybackSpeed = AudioLogic.oneshotSpeed(cfg, roll)
-				oneshot.TimePosition = 0
-				oneshot:Play()
+			owlTimer, fire = AudioLogic.oneshotStep(owlTimer, dt, nightLevel, cfg, roll)
+			if fire and not owl.IsPlaying then
+				owl.PlaybackSpeed = AudioLogic.oneshotSpeed(cfg, roll)
+				owl.TimePosition = 0
+				owl:Play()
+			end
+		end
+		if thunder then
+			local rain = layers.weather_Rain
+			local fire
+			thunderTimer, fire =
+				AudioLogic.oneshotStep(thunderTimer, dt, if rain then rain.level else 0, cfg, roll, thunderSpec)
+			if fire and not thunder.IsPlaying then
+				thunder.SoundId = AudioLogic.pick(thunderIds, roll) or thunderIds[1]
+				thunder.PlaybackSpeed = AudioLogic.oneshotSpeed(cfg, roll)
+				thunder.TimePosition = 0
+				thunder:Play()
 			end
 		end
 	end
@@ -184,11 +303,13 @@ function SoundController.new(config: any, player: Player, dayNight: any)
 
 	function self.destroy()
 		ambientConn:Disconnect()
-		for _, sound in loops do
-			sound:Destroy()
+		for _, layer in layers do
+			layer.sound:Destroy()
 		end
-		if oneshot then
-			oneshot:Destroy()
+		for _, sound in { owl, thunder } do
+			if sound then
+				sound:Destroy()
+			end
 		end
 		if active == self then
 			active = nil

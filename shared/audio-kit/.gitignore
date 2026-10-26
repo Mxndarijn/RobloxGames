@@ -1,0 +1,4 @@
+# The root .gitignore ignores every out/ folder; here the .ogg files are the upload source, so keep them.
+!out/
+out/*
+!out/*.ogg
