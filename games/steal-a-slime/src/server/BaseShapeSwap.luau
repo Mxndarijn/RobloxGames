@@ -29,7 +29,7 @@ local BaseShapeSwap = {}
 -- How far out from the plot's centre (studs) a character counts as on the plot when the base swaps.
 BaseShapeSwap.REACH = WorldLayout.PLOT_SIZE / 2
 
-local function setDown(plot: Instance)
+local function setDown(plot: Instance, moved: ((userId: number) -> ())?)
 	local base = plot:FindFirstChild("Base")
 	if not (base and base:IsA("BasePart")) then
 		return
@@ -44,15 +44,25 @@ local function setDown(plot: Instance)
 			if math.max(math.abs(p.X), math.abs(p.Z)) <= BaseShapeSwap.REACH and p.Y > -5 then
 				character:PivotTo(landing)
 				root.AssemblyLinearVelocity = Vector3.zero
+				if moved then
+					moved(player.UserId) -- a server move, not a teleport (SlimeGuard)
+				end
 			end
 		end
 	end
 end
 
--- Turns plot `plotIndex` from base `from` (nil = the jar) into base `to`. Yields only inside the mesh thread.
-function BaseShapeSwap.swap(plot: Instance, plotIndex: number, to: string, from: string?)
+-- Turns plot `plotIndex` from base `from` (nil = the plot's PlotBase) into base `to`. `moved(userId)` is told about
+-- each character set down (WorldView.markServerMove). Yields only inside the mesh thread.
+function BaseShapeSwap.swap(
+	plot: Instance,
+	plotIndex: number,
+	to: string,
+	from: string?,
+	moved: ((userId: number) -> ())?
+)
 	local old = from or plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE)
-	setDown(plot)
+	setDown(plot, moved)
 	BaseFloors.clear(plot)
 	local created = WorldBuilder.rebase(plot, plotIndex, if type(old) == "string" then old else nil, to)
 	if #created > 0 then

@@ -1562,7 +1562,7 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 				then PlotBases.current(session.data)
 				else Config.PLOT_BASE_DEFAULT
 			if (plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE) or Config.PLOT_BASE_DEFAULT) ~= base then
-				BaseShapeSwap.swap(plot, index, base)
+				BaseShapeSwap.swap(plot, index, base, nil, WorldView.markServerMove)
 				plot:SetAttribute(Constants.PLOT_BASE_ATTRIBUTE, if Config.FEATURES.BaseShapes then base else nil)
 				WorldView.replacePlotSlimes(index)
 			elseif Config.FEATURES.BaseShapes then

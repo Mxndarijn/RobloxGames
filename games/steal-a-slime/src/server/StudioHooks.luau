@@ -5,7 +5,8 @@
 	Review hooks for the PC watcher shots. Player attributes change that player's real session data, so WorldView draws
 	the result with its own code: "PcwGrowth" (percent) the growth of the pad 1 slime, "PcwPlotSkin" (a skin id) finds
 	that skin's slimes and equips it (the tower turns to its theme), "PcwPads" (a count) the unlocked pads (the upper
-	jars build), "PcwSlimes" (a tier) puts three slimes of that rarity on free pads (a merge vat load). ServerLoop's
+	jars build), "PcwSlimes" (a tier) puts three slimes of that rarity on free pads (a merge vat load), "PcwPlotBase"
+	(a base id) raises the rebirths to that base's gate and equips it (CONTRACT.md §43). ServerLoop's
 	`pinClock` covers the
 	Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
@@ -19,6 +20,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
+local PlotBases = require(ReplicatedStorage.Shared.PlotBases)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local World = require(script.Parent.World)
 
@@ -52,6 +54,11 @@ local function apply(world: World.World, player: Player, refresh: () -> ())
 		end
 		PlotSkins.equip(profile, skin.id)
 	end
+	local base = PlotBases.get(player:GetAttribute("PcwPlotBase"))
+	if base then
+		profile.rebirths = math.max(profile.rebirths, base.rebirths or 0)
+		PlotBases.equip(profile, base.id)
+	end
 	local pads = player:GetAttribute("PcwPads")
 	if type(pads) == "number" then
 		profile.padsUnlocked = math.clamp(math.floor(pads), 1, Config.PADS_MAX)
@@ -73,7 +80,7 @@ function StudioHooks.start(world: World.World, memoryMode: boolean, refresh: () 
 		return
 	end
 	local function watch(player: Player)
-		for _, name in { "PcwGrowth", "PcwPlotSkin", "PcwPads", "PcwSlimes" } do
+		for _, name in { "PcwGrowth", "PcwPlotSkin", "PcwPads", "PcwSlimes", "PcwPlotBase" } do
 			player:GetAttributeChangedSignal(name):Connect(function()
 				pcall(apply, world, player, refresh)
 			end)

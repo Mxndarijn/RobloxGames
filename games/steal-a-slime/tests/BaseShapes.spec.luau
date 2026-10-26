@@ -4,6 +4,7 @@
 -- turns from the jar into the factory and back keeping its pads, vat, lock and their prompts and meshes.
 local roblox = require("@lune/roblox")
 
+local Actions = require("../src/server/Actions")
 local BaseShapes = require("../src/visuals/shared/BaseShapes")
 local Config = require("../src/shared/Config")
 local TestRunner = require("./TestRunner")
@@ -153,6 +154,31 @@ describe("base shapes: the Goo Factory's generated layout", function()
 			end
 		end
 		expect(seen).toBe(#Config.BASE_FLOORS - 1)
+	end)
+end)
+
+describe("base shapes: no way out of a locked factory", function()
+	it("plugs the drop hatch hole of every floor a floor stands on (a closed hatch stops colliding)", function()
+		local plugs = {}
+		for _, p in Factory.parts do
+			if p.name == "HatchPlug" then
+				expect(p.show).toBe("covered")
+				expect(p.collide).toBe(true)
+				plugs[p.floor] = true
+			end
+		end
+		for f = 2, #Config.BASE_FLOORS - 1 do
+			expect(plugs[f]).toBe(true)
+		end
+		expect(plugs[#Config.BASE_FLOORS]).toBeNil() -- the top floor is never covered: its hatch is the exit
+	end)
+	it("lets the owner take the drop exit only from inside the factory's top floor", function()
+		local top = #Config.BASE_FLOORS
+		local y = WorldLayout.floorTop(top) + 3
+		expect(Actions.insideJar(top, 20, y, 20, "factory")).toBe(true)
+		expect(Actions.insideJar(top, 20, y, 20)).toBe(false) -- the jar's glass is round
+		expect(Actions.insideJar(top, 26, y, 0, "factory")).toBe(false)
+		expect(Actions.insideJar(top, 0, WorldLayout.floorTop(top - 1) + 3, 0, "factory")).toBe(false)
 	end)
 end)
 
