@@ -31,6 +31,7 @@ local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
 local FriendBonus = require(Shared:WaitForChild("FriendBonus"))
 local Genome = require(Shared:WaitForChild("Genome"))
 local GrabBlock = require(Shared:WaitForChild("GrabBlock"))
+local KitRequest = require(Shared:WaitForChild("KitRequest"))
 local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
@@ -51,6 +52,7 @@ local Inventory = require(script.Inventory)
 local InventoryTools = require(script.InventoryTools)
 local ItemIconView = require(script.ItemIconView)
 local ItemIcons = require(script.ItemIcons)
+local KitCache = require(script.KitCache)
 local Layout = require(script.Layout)
 local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
@@ -227,6 +229,21 @@ local function send(action: string, ...: any)
 	invoke(action, nil, ...)
 end
 
+-- Species kit meshes come on demand: a preview missing its kit asks for it (RequestKits); wants of one frame go
+-- out together. Arrivals are watched below (watchKits), once the panels exist.
+local kitCache = KitCache.new({
+	KitRequest = KitRequest,
+	invoke = function(raw: string): boolean
+		local ok, result = pcall(function()
+			return request:InvokeServer("RequestKits", raw)
+		end)
+		return ok and type(result) == "table" and result.ok == true
+	end,
+	delay = function(seconds: number, fn: () -> ())
+		task.delay(seconds, fn)
+	end,
+})
+
 -- SlimeDex pictures: the real slime model from Archer's
 -- Visuals.ModelFactory (same builder as the in-world slimes), untagged so
 -- no slime-tag listener picks up the viewport copy. nil = no Visuals.
@@ -278,8 +295,8 @@ local ctx: { [string]: any } = {
 	-- Plot skins menu: each skin's slimes.
 	PlotSkins = PlotSkins,
 	buildSpecies = SpeciesModel.builder(function()
-		return ReplicatedStorage:FindFirstChild(Constants.SLIME_KITS_FOLDER)
-	end, MeshAssets.IMPORT_YAW),
+		return gui.Parent and gui.Parent:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	end, MeshAssets.IMPORT_YAW, kitCache.want),
 }
 
 local hud = Hud.new(gui, ctx)
@@ -1006,7 +1023,7 @@ applyLayout()
 setOpen(nil)
 
 -- Studio-only test hook for the PC watcher (tools/pipeline/pc-watcher): setting the
--- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path
+-- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path ("Skins:cloud": on its Cloud tab)
 -- (contents rendered), "" closes it. Never active in live servers.
 if game:GetService("RunService"):IsStudio() then
 	gui:GetAttributeChangedSignal("PcwOpen"):Connect(function()
@@ -1015,6 +1032,12 @@ if game:GetService("RunService"):IsStudio() then
 			-- the world shop card as the stand's prompt opens it; the shop comes from the PcwWorldShop attribute
 			local shopId = gui:GetAttribute("PcwWorldShop")
 			worldShop.onEvent({ kind = "Open", shopId = if type(shopId) == "string" then shopId else "ItemShop" })
+			return
+		end
+		if key == "Skins:cloud" then
+			-- the Skins menu on its Cloud tab (scripts can't press the tab)
+			setOpen("Skins")
+			panelByKey.Skins.setTab("cloud")
 			return
 		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
@@ -1133,6 +1156,45 @@ local function render(realState: Types.State)
 			layoutCards()
 		end
 	end
+end
+
+-- A kit that arrives in the player's kit folder (RequestKits) swaps the open menu's fallback previews for the mesh:
+-- one render per burst of arrivals, plus the SlimeDex's preview refresh (its rows don't rebuild for it).
+do
+	local scheduled = false
+	local function kitsArrived()
+		if scheduled then
+			return
+		end
+		scheduled = true
+		task.delay(0.1, function()
+			scheduled = false
+			if latest then
+				pcall(render, latest)
+			end
+			for _, entry in allPanels do
+				if entry.key == openKey and entry.panel.refreshPreviews then
+					pcall(entry.panel.refreshPreviews)
+				end
+			end
+		end)
+	end
+	local function watchKits(folder: Instance)
+		folder.ChildAdded:Connect(kitsArrived)
+		if #folder:GetChildren() > 0 then
+			kitsArrived()
+		end
+	end
+	local playerGui = gui.Parent :: Instance
+	local existing = playerGui:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	if existing then
+		watchKits(existing)
+	end
+	playerGui.ChildAdded:Connect(function(child: Instance)
+		if child.Name == Constants.SLIME_KITS_FOLDER then
+			watchKits(child)
+		end
+	end)
 end
 
 if isStudio then

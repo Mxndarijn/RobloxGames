@@ -1,5 +1,5 @@
 --!nocheck
--- Base shapes (CONTRACT.md §43): the generated Goo Factory data keeps the kit design's rules (pad spacing, wall
+-- Base shapes (CONTRACT.md §44): the generated Goo Factory data keeps the kit design's rules (pad spacing, wall
 -- clearance, spawn, footprint, ramp width / slope / flush ends), its floors build with the right pieces, and a plot
 -- turns from the jar into the factory and back keeping its pads, vat, lock and their prompts and meshes.
 local roblox = require("@lune/roblox")

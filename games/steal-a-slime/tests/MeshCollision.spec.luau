@@ -185,7 +185,6 @@ end)
 -- Every mesh has a collision decision --------------------------------------------------------------------------
 -- Every MeshAssets name is either solid (COLLISION) or listed here as decor with its reason, so a new mesh forces a decision.
 local DECOR = {
-	goo_cork_stand = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
 	goo_jar_foot = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
 	goo_jar_stair = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
 	goo_jar_door = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
@@ -234,6 +233,8 @@ local DECOR = {
 	plot_skin_candy = "client-cloned plot skin template, not a world slot",
 	plot_skin_crystal = "client-cloned plot skin template, not a world slot",
 	pet_cloud = "follow pet cloud (published by MeshSwap, cloned by client FollowPets): CanCollide false, never placed in the world",
+	pet_mount_jelly = "pet seat (published by MeshSwap, cloned by client FollowPets): CanCollide false, never placed in the world",
+	pet_mount_rainbow_cloud = "pet seat (published by MeshSwap, cloned by client FollowPets): CanCollide false, never placed in the world",
 	ranch_bat = "held Tool Handle mesh (Tool 'Bat'): CanCollide false, never placed in the world",
 	giant_broadleaf = "border tree beyond the world wall ring, out of reach, canopy overhead",
 	giant_pine_layered = "border tree beyond the world wall ring, out of reach",
@@ -342,7 +343,7 @@ end)
 -- Plot-level collision: every plot mesh has a decided collision, and the goo jar keeps the owner's way in open ----
 -- mesh -> expected MeshAssets.COLLISION fidelity (false = decor mesh; its collision is then the slot box / a part).
 local PLOT_MESHES = {
-	goo_cork_stand = false, -- goo jar tower look, the primitives under it collide
+	goo_cork_stand = "Hull", -- the pad stands collide as their own round shape
 	goo_jar_foot = false, -- goo jar tower look, the primitives under it collide
 	goo_jar_stair = false, -- goo jar tower look, the primitives under it collide
 	goo_jar_door = false, -- goo jar tower look, the primitives under it collide
@@ -432,15 +433,16 @@ describe("plot-level collision", function()
 	it("the pads, pedestal, bridge, sign and the jar's glass, lintel and lid are solid; its moat is decor", function()
 		for _, plot in plots do
 			local n = byName(plot)
-			for _, name in { "PadCollider", "Pedestal", "Bridge", "Sign" } do
+			for _, name in { "Stand", "Pedestal", "Bridge", "Sign" } do
 				expect(n[name].canCollide ~= false).toBe(true)
 			end
 			-- pads stay steppable: flat and low
 			expect(n.Pad_1.size[2] <= 3).toBe(true)
-			-- the pad box itself doesn't collide: its round collider (the dish's diameter) does
+			-- the pad box itself doesn't collide: its stand does (the slot box, then the Hull mesh, queryable)
 			expect(n.Pad_1.canCollide).toBe(false)
-			expect(n.PadCollider.shape).toBe("Cylinder")
-			expect(n.PadCollider.size[2]).toBeCloseTo(2 * WorldLayout.PAD_DECK.half)
+			expect(n.Stand.canQuery ~= false).toBe(true)
+			expect(n.Stand.attributes.MeshCanQuery).toBe(true)
+			expect(n.Stand.size[2] <= 3).toBe(true)
 			local walls, lintel, lid = 0, 0, 0
 			for _, part in n.Jar.children do
 				-- the lid is no longer solid: the roof is the top jar's TopColliders (WorldLayout.topColliders)

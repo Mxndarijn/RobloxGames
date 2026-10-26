@@ -3485,6 +3485,32 @@
     "uploadedAt": "2026-10-19T04:40:54Z",
     "versions": 2
   },
+  "pet_mount_jelly": {
+    "assetId": "78994170989597",
+    "assetType": "Model",
+    "meshId": "rbxassetid://119025780203249",
+    "meshSize": [
+      3.3,
+      2.177,
+      2.4
+    ],
+    "sha256": "0fdaaabaa43b7940",
+    "uploadedAt": "2026-10-26T18:44:11Z",
+    "versions": 1
+  },
+  "pet_mount_rainbow_cloud": {
+    "assetId": "85703836251595",
+    "assetType": "Model",
+    "meshId": "rbxassetid://133503703482477",
+    "meshSize": [
+      3.3,
+      1.737,
+      2.4
+    ],
+    "sha256": "a753557c1adad9b0",
+    "uploadedAt": "2026-10-26T18:44:23Z",
+    "versions": 1
+  },
   "phoenix_corner_post": {
     "assetId": "122993526477202",
     "assetType": "Model",

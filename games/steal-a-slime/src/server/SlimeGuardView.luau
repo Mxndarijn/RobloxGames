@@ -23,7 +23,7 @@ local WorldView = require(script.Parent.WorldView)
 
 local KICK_MESSAGE = "You were removed from this server. Please rejoin."
 
--- The walls of plot `plot`'s base (BaseShapes, CONTRACT.md §43): the jar unless the plot says otherwise.
+-- The walls of plot `plot`'s base (BaseShapes, CONTRACT.md §44): the jar unless the plot says otherwise.
 local function guardOf(plot: Instance): PlotLockGuard.Jar
 	local base = plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE)
 	return BaseShapes.get(if type(base) == "string" then base else nil).guard

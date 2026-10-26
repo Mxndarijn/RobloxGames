@@ -2,7 +2,7 @@
 --[[
 	BaseShapeSwap (Roblox adapter, owner: Phoenix)
 
-	Turns a plot from one base into another (CONTRACT.md §43) when its PlotBase changes: floor 1 is static as the goo
+	Turns a plot from one base into another (CONTRACT.md §44) when its PlotBase changes: floor 1 is static as the goo
 	jar tower, so another base is built over it at runtime, and the jar is built back the same way. In order:
 	1. everyone inside the plot is set down on its spawn spot (nobody stays inside walls that move);
 	2. the upper floors and the roof colliders go (BaseFloors.clear: prompts parked, people set down);
