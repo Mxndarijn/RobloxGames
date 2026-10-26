@@ -722,7 +722,12 @@ local function reselect(camera: Camera)
 	end
 	local byId: { [string]: Model } = {}
 	for _, c in cands do
-		byId[c.id] = (c :: any).model
+		local model = (c :: any).model :: Model
+		byId[c.id] = model
+		-- The moving boss always has a rig: it is drawn from its move, never from the stepwise Body.
+		if model:GetAttribute(Constants.BOSS_MOVE_ATTRIBUTE) ~= nil and c.distance <= SlimeLife.KEEP_DISTANCE then
+			wanted[c.id] = true
+		end
 	end
 	for model in rigs do
 		if not wanted[slimeId(model)] then
@@ -1145,7 +1150,9 @@ RunService.PreAnimation:Connect(function()
 					r = r,
 					px = actor.pushX,
 					pz = actor.pushZ,
-					rooted = actor.state == "Pad", -- a pad slime stays put when you walk past
+					-- a pad slime stays put when you walk past; the boss is never pushed aside (its hits are checked
+					-- where its move has it)
+					rooted = SlimeLife.seated(actor.state) or actor.bossMove ~= nil,
 				})
 				table.insert(spaced, rig)
 			else

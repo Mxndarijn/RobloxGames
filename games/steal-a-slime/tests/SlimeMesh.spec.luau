@@ -115,18 +115,43 @@ local function meshAsset(): any
 end
 
 describe("SlimeMesh kits", function()
-	it("loads every kit by its uploaded assetId, after the shared package", function()
+	it("loads every uploaded kit by its assetId, after the shared package", function()
 		local mesh, _, warnings, requested = setup(function(): any
 			return meshAsset()
 		end)
 		expect(SlimeMesh.load(mesh)).toBe("Mesh")
 		expect(requested[1]).toBe(Config.SLIME_MESH_ASSET_ID)
-		expect(#requested).toBe(1 + #SlimeLooks.KITS)
-		for i, kit in SlimeLooks.KITS do
+		local uploaded = {}
+		for _, kit in SlimeLooks.KITS do
+			if (MeshAssets.get(kit) :: MeshAssets.Entry).assetId then
+				table.insert(uploaded, kit)
+			end
+		end
+		expect(#requested).toBe(1 + #uploaded)
+		for i, kit in uploaded do
 			expect(requested[i + 1]).toBe((MeshAssets.get(kit) :: any).assetId)
 			expect(mesh.kits[kit] ~= nil).toBe(true)
 		end
 		expect(#warnings).toBe(0)
+	end)
+
+	it("never fetches a kit without an assetId: its slimes wear the shared mesh, nothing waits on it", function()
+		local entry = MeshAssets.entries.slime_gummy
+		local assetId = entry.assetId
+		entry.assetId = nil
+		local mesh, factory, warnings, requested = setup(function(): any
+			return meshAsset()
+		end)
+		SlimeMesh.load(mesh)
+		entry.assetId = assetId
+		expect(table.find(requested, assetId :: number)).toBeNil()
+		expect(mesh.kits.slime_gummy).toBeNil()
+		expect(#warnings).toBe(0)
+		local gummy = Fixtures.slime("g", 1, { species = "gummy" })
+		expect(SlimeMesh.pendingKit(mesh, gummy)).toBeNil()
+		mesh.template = {} :: any -- dressing the fake model fails; the attempt shows which template was tried
+		SlimeMesh.build(mesh, gummy)
+		expect(#factory.built).toBe(2) -- the shared mesh only, then the procedural model
 	end)
 
 	it("keeps the shared mesh when only the kits fail to load", function()
@@ -241,7 +266,7 @@ local function slimeModel(): any
 end
 
 describe("SlimeMesh species kits", function()
-	it("wears a kit with an offset at size-1 scale, Color white, and hides the procedural face", function()
+	it("wears a kit with an offset at size-1 scale, Color white, and removes the procedural face", function()
 		local kit = "slime_gummy"
 		local entry = MeshAssets.get(kit) :: any
 		assert(entry and entry.offset and entry.size, "species kit entry with offset + size")
@@ -278,9 +303,9 @@ describe("SlimeMesh species kits", function()
 		expect(worn:FindFirstChildWhichIsA("Bone") ~= nil).toBe(true)
 		expect(worn:FindFirstChildWhichIsA("Weld")).toBeNil()
 		expect(model.Body.Transparency).toBe(1)
-		expect(model.EyeL.Transparency).toBe(1)
-		expect(model.MouthMid.Transparency).toBe(1)
-		expect(model.Puddle.Transparency).toBe(1)
+		expect(model:FindFirstChild("EyeL")).toBeNil()
+		expect(model:FindFirstChild("MouthMid")).toBeNil()
+		expect(model:FindFirstChild("Puddle")).toBeNil()
 		expect(SlimeMesh.isReplacedPart("EyeL") and SlimeMesh.isReplacedPart("MouthMid")).toBe(true)
 	end)
 end)
@@ -366,7 +391,7 @@ describe("SlimeMesh species foot", function()
 			local d = body.Size.X
 			local ground = body.CFrame.Position.Y - body.Size.Y / 2
 			local footHalf = math.min(worn.Size.X, worn.Size.Z) / 2
-			expect(model.Puddle.Transparency).toBe(1)
+			expect(model:FindFirstChild("Puddle")).toBeNil()
 			for _, part in model:GetDescendants() do
 				if part:IsA("BasePart") and part.Transparency < 1 and part ~= worn then
 					local low, high = bounds(part)
@@ -378,6 +403,17 @@ describe("SlimeMesh species foot", function()
 						local reach = math.max(high.X - body.CFrame.Position.X, body.CFrame.Position.X - low.X)
 						assert(reach <= footHalf + FOOT_MARGIN, `{label} sticks out around the foot`)
 					end
+				end
+			end
+		end
+	end)
+
+	it("keeps no replaced procedural part on a species slime of any tier", function()
+		for tier = 1, Config.SECRET_TIER do
+			local model = dressedSpecies("lop", tier)
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") then
+					assert(not SlimeMesh.isReplacedPart(part.Name), `{part.Name} (tier {tier}) is still built`)
 				end
 			end
 		end

@@ -1,0 +1,617 @@
+<title>Merge Vat Rework</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column of decisions, with full-width game mockups (1280x720 screens, scaled to fit) between them. */
+:root {
+  --bg: #eef5f2;
+  --surface: #ffffff;
+  --ink: #0d2b2e;
+  --muted: #4f6b68;
+  --line: #d3e3de;
+  --accent: #1c8f6c;
+  --accent-soft: #d6f2e8;
+  --warn: #a8521c;
+  --warn-soft: #fbe8d8;
+  --code: #e2eeea;
+  --f-display: "Fredoka One", "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1a1c; --surface: #11262a; --ink: #e5f5f0; --muted: #9fbdb6; --line: #23413f;
+    --accent: #6cf2c2; --accent-soft: #143a33; --warn: #f2a56c; --warn-soft: #3a2616; --code: #1a3235;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1a1c; --surface: #11262a; --ink: #e5f5f0; --muted: #9fbdb6; --line: #23413f;
+  --accent: #6cf2c2; --accent-soft: #143a33; --warn: #f2a56c; --warn-soft: #3a2616; --code: #1a3235;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-weight: 600; font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 96px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(34px, 5vw, 50px); }
+h2 { font-size: 28px; margin: 64px 0 12px; }
+h3 { font-size: 20px; margin: 0 0 6px; }
+p { margin: 0 0 12px; max-width: 68ch; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+.lede { font-size: 18px; color: var(--muted); margin-top: 14px; max-width: 64ch; }
+code { font-family: var(--f-mono); font-size: .85em; background: var(--code); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.note { font-size: 14px; color: var(--muted); }
+ul.points { margin: 0 0 12px; padding-left: 20px; max-width: 70ch; display: grid; gap: 6px; }
+
+.steps { list-style: none; padding: 0; margin: 20px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; counter-reset: s; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; counter-increment: s; min-width: 0; }
+.steps li::before { content: counter(s); font-family: var(--f-display); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); margin-bottom: 8px; }
+.steps b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 17px; }
+.steps span { color: var(--muted); font-size: 14px; }
+
+.shot { margin: 22px 0 8px; }
+.shot figcaption { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+.shot figcaption b { font-family: var(--f-display); font-weight: 400; font-size: 18px; }
+.shot figcaption span { color: var(--muted); font-size: 14px; }
+.tag { font-family: var(--f-mono); font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.fit { position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 14px; border: 1px solid var(--line); background: #0C3436; }
+.fit > .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+
+.tablebox { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+th { font-family: var(--f-display); font-weight: 400; font-size: 14px; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--f-mono); font-size: 14px; }
+.dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; box-shadow: 0 0 0 2px var(--ink); }
+
+.qs { display: grid; gap: 12px; margin-top: 16px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+.q h3 { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.q .pick { font-family: var(--f-mono); font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--warn-soft); color: var(--warn); }
+.q p { margin: 0; color: var(--muted); font-size: 15px; }
+
+/* ===== Goo kit (copied from the Goo canvas goo-kit.css; game screens are dark in both themes) ===== */
+.stage {
+  --ink: #08262A; --deep: #0C3436; --mint: #6CF2C2; --mint-hi: #E6FFF6; --mint-mid: #8FF7D3; --mint-lo: #2FBF92;
+  --text: #F1FFF9; --muted: #BFEBDD; --muted2: #A6E3D2; --gold: #FFD23F; --gold-hi: #FFF4C2; --gold-mid: #FFE27A; --gold-lo: #E0A812;
+  --pink: #FF7F98; --pink-hi: #FFD0DA; --pink-lo: #D93A5C; --glass: rgba(216, 255, 241, 0.09);
+  --display: 'Fredoka One', 'Fredoka', system-ui, sans-serif; --body: 'Nunito', system-ui, sans-serif;
+  width: 1280px; height: 720px; overflow: hidden; font-family: var(--body); font-weight: 700; color: var(--text);
+  background: radial-gradient(120% 90% at 50% 0%, #1F5A58 0%, #0C3436 55%, #072325 100%);
+  line-height: normal;
+}
+.stage .g-dim { position: absolute; inset: 0; background: rgba(8, 38, 42, 0.55); }
+.stage .g-d { font-family: var(--display); font-weight: 400; }
+.stage .ol { text-shadow: 0 2px 0 var(--ink), 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 -2px 0 var(--ink), 2px 2px 0 var(--ink), -2px 2px 0 var(--ink), 2px -2px 0 var(--ink), -2px -2px 0 var(--ink); }
+.stage .g-h1 { margin: 0; font: 400 34px/1 var(--display); color: var(--ink); }
+.stage .g-desc { font-size: 15px; line-height: 1.35; color: var(--muted); }
+.stage .g-small { font-size: 14px; color: var(--muted); }
+.stage .g-gold { color: var(--gold); }
+.stage .g-mintc { color: var(--mint); }
+.stage .g-pinkc { color: var(--pink); }
+.stage .g-glass { position: relative; box-sizing: border-box; background: rgba(12, 52, 54, 0.94); border-radius: 28px; box-shadow: inset 0 3px 0 rgba(216, 255, 241, 0.18), 0 0 0 3px var(--ink); }
+.stage .g-glass.info { box-shadow: inset 0 3px 0 rgba(216, 255, 241, 0.18), 0 0 0 3px var(--gold), 0 0 0 6px var(--ink); }
+.stage .g-panel { position: absolute; display: flex; flex-direction: column; border-radius: 34px; }
+.stage .g-head { flex: none; position: relative; height: 76px; box-sizing: border-box; padding: 0 14px 0 98px; display: flex; align-items: center; justify-content: space-between; border-radius: 34px 34px 0 0; background: var(--mint); z-index: 2; }
+.stage .g-head .g-hicon { position: absolute; left: 16px; top: 2px; }
+.stage .g-body { flex: 1; min-height: 0; padding: 30px 22px 22px; display: flex; flex-direction: column; gap: 12px; }
+.stage .g-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.stage .g-lip { position: absolute; left: 24px; right: 24px; top: 100%; height: 12px; background: radial-gradient(circle at 13px 0, var(--c, var(--mint)) 12px, transparent 12.5px) repeat-x; background-size: 26px 12px; pointer-events: none; }
+.stage .g-drip { position: absolute; top: 100%; width: var(--w, 14px); height: calc(var(--l, 20px) + var(--w, 14px) * 1.15); pointer-events: none; }
+.stage .g-drip::before { content: ""; position: absolute; left: calc(var(--w, 14px) * 0.18); top: -4px; width: calc(var(--w, 14px) * 0.64); height: calc(var(--l, 20px) + 4px); border-radius: 999px; background: var(--c, var(--mint)); }
+.stage .g-drip::after { content: ""; position: absolute; left: 0; top: calc(var(--l, 20px) - var(--w, 14px) * 0.3); width: var(--w, 14px); height: calc(var(--w, 14px) * 1.15); border-radius: 999px; background: radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.7) 0 16%, transparent 18%), var(--c, var(--mint)); }
+.stage .g-jelly { position: relative; box-sizing: border-box; border-radius: 999px; background: linear-gradient(var(--mint-hi), var(--mint-mid) 45%, var(--mint-lo)); box-shadow: 0 0 0 3px var(--ink); }
+.stage .g-jelly::before { content: ""; position: absolute; left: 15%; top: 13%; width: 26%; max-width: 40px; height: 12%; max-height: 14px; border-radius: 999px; background: linear-gradient(90deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0)); transform: rotate(-24deg); pointer-events: none; }
+.stage .g-jelly.gold { background: linear-gradient(var(--gold-hi), var(--gold-mid) 45%, var(--gold-lo)); }
+.stage .g-jelly.pink { background: linear-gradient(var(--pink-hi), var(--pink) 50%, var(--pink-lo)); }
+.stage .g-jelly.white { background: linear-gradient(#FFFFFF, #D8FFF1 50%, var(--mint-mid)); }
+.stage .g-hicon { width: 74px; height: 74px; display: grid; place-items: center; }
+.stage button { font: inherit; cursor: pointer; }
+.stage .g-btn { flex: none; height: 52px; min-width: 150px; padding: 0 24px; border: 0; font: 400 20px/1 var(--display); color: var(--ink); white-space: nowrap; }
+.stage .g-btn.pink { color: #FFFFFF; text-shadow: 0 2px 0 var(--ink), 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 -2px 0 var(--ink); }
+.stage .g-btn2 { flex: none; height: 52px; padding: 0 22px; border: 0; border-radius: 999px; background: rgba(216, 255, 241, 0.12); box-shadow: inset 0 0 0 2px rgba(108, 242, 194, 0.55), 0 0 0 3px var(--ink); color: var(--mint); font: 400 18px/1 var(--display); white-space: nowrap; }
+.stage .g-well { flex: none; box-sizing: border-box; height: 52px; min-width: 196px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--ink); box-shadow: 0 0 0 3px var(--ink); color: var(--muted2); display: inline-flex; gap: 8px; align-items: center; justify-content: center; font: 400 17px/1 var(--display); white-space: nowrap; cursor: default; }
+.stage .g-close { width: 54px; height: 54px; border: 0; padding: 0; display: grid; place-items: center; }
+.stage .g-chip { flex: none; padding: 2px 14px; border-radius: 999px; background: var(--ink); color: var(--text); font: 400 17px/1.5 var(--display); white-space: nowrap; }
+.stage .g-pillm { flex: none; padding: 1px 12px; border-radius: 999px; background: var(--ink); box-shadow: inset 0 0 0 2px rgba(108, 242, 194, 0.45); color: var(--mint); font: 400 17px/1.45 var(--display); white-space: nowrap; }
+.stage .g-bar { position: relative; height: 14px; border-radius: 999px; background: var(--ink); overflow: hidden; }
+.stage .g-bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(#B9FFE6, var(--mint) 45%, var(--mint-lo)); }
+.stage .g-bubble { position: relative; width: 76px; height: 76px; border-radius: 50%; background: rgba(216, 255, 241, 0.2); box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35), 0 0 0 3px var(--ink); display: grid; place-items: center; }
+.stage .g-wtag { font: 400 22px/1.1 var(--display); color: #FFFFFF; text-align: center; }
+.stage .g-slime { position: relative; width: 84px; height: 70px; border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%; background: radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.75) 0 10%, transparent 12%), linear-gradient(var(--sc-hi, #E6FFF6), var(--sc, #AADCAA) 55%, var(--sc-lo, #6E9F6E)); box-shadow: 0 0 0 3px var(--ink); }
+.stage .g-slime::before, .stage .g-slime::after { content: ""; position: absolute; top: 34%; width: 11px; height: 14px; border-radius: 50%; background: var(--ink); }
+.stage .g-slime::before { left: 32%; }
+.stage .g-slime::after { right: 32%; }
+
+/* Rarity colours (Config.RARITIES) as slime fills */
+.stage .r1 { --sc: #AADCAA; --sc-hi: #E2F6E2; --sc-lo: #6E9F6E; --rc: #AADCAA; }
+.stage .r2 { --sc: #5AC8FF; --sc-hi: #D2F0FF; --sc-lo: #2A8CC4; --rc: #5AC8FF; }
+.stage .r3 { --sc: #3C6EFF; --sc-hi: #C6D5FF; --sc-lo: #2244B8; --rc: #6E95FF; }
+.stage .r4 { --sc: #B450FF; --sc-hi: #EBCBFF; --sc-lo: #7A26BC; --rc: #C77DFF; }
+
+/* Vat menu parts (new) */
+.stage .v-load { display: flex; align-items: flex-start; gap: 14px; padding: 4px 2px 0; }
+.stage .v-slots { flex: none; display: flex; gap: 16px; }
+.stage .v-slot { position: relative; width: 104px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.stage .v-well { width: 104px; height: 104px; border-radius: 50%; display: grid; place-items: center; background: rgba(216, 255, 241, 0.12); box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.22), 0 0 0 3px var(--rc, var(--ink)), 0 0 0 6px var(--ink); }
+.stage .v-well .g-slime { width: 70px; height: 58px; }
+.stage .v-well.empty { background: var(--ink); box-shadow: 0 0 0 3px var(--ink); }
+.stage .v-well.empty span { font: 700 14px/1.2 var(--body); color: var(--muted2); text-align: center; padding: 0 12px; }
+.stage .v-x { position: absolute; top: -6px; right: -8px; width: 44px; height: 44px; border: 0; padding: 0; display: grid; place-items: center; }
+.stage .v-x.off { background: var(--ink); box-shadow: 0 0 0 3px var(--ink), inset 0 0 0 2px rgba(166, 227, 210, 0.35); }
+.stage .v-x.off::before { display: none; }
+.stage .v-lock { position: absolute; top: -6px; right: -8px; width: 40px; height: 40px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--ink); }
+.stage .v-sname { font: 400 17px/1.1 var(--display); }
+.stage .v-srar { font: 400 14px/1 var(--display); color: var(--rc); }
+.stage .v-arrow { flex: none; margin-top: 34px; }
+.stage .v-result { flex: 1; min-width: 0; display: flex; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 24px; background: var(--glass); box-shadow: inset 0 2px 0 rgba(216, 255, 241, 0.12); }
+.stage .v-result .v-well { width: 92px; height: 92px; flex: none; }
+.stage .v-rtxt { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.stage .v-rtitle { font: 400 21px/1.15 var(--display); }
+.stage .v-line { display: flex; align-items: center; gap: 10px; }
+.stage .v-reason { font: 700 15px/1.3 var(--body); color: var(--muted); padding: 0 6px; }
+.stage .v-actions { display: flex; justify-content: center; align-items: center; gap: 16px; }
+.stage .v-hold { position: relative; overflow: hidden; }
+.stage .v-hold i { position: absolute; left: 0; top: 0; bottom: 0; width: 38%; background: rgba(255, 255, 255, 0.35); border-radius: 999px 0 0 999px; }
+.stage .v-hold span { position: relative; }
+.stage .v-timer { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 24px; background: var(--glass); }
+
+.stage .g-ib { flex: none; width: 64px; height: 64px; border-radius: 50%; background: rgba(216, 255, 241, 0.14); display: grid; place-items: center; }
+.stage .g-row { display: flex; align-items: center; gap: 14px; padding: 8px 10px 8px 8px; border-radius: 999px; background: var(--glass); box-shadow: inset 0 2px 0 rgba(216, 255, 241, 0.12); }
+.stage .g-row .g-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.stage .u-pips { flex: none; width: 150px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.stage .u-pips > span:last-child { display: flex; gap: 5px; }
+.stage .u-pips i { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); }
+.stage .u-pips i.on { background: linear-gradient(#B9FFE6, var(--mint) 45%, var(--mint-lo)); box-shadow: 0 0 0 2px var(--ink); }
+
+/* World parts (new) */
+.stage .w-prompt { position: absolute; display: flex; align-items: center; gap: 12px; padding: 8px 18px 8px 8px; border-radius: 16px; background: rgba(8, 38, 42, 0.86); box-shadow: 0 0 0 2px rgba(216, 255, 241, 0.25); }
+.stage .w-key { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: linear-gradient(#FFFFFF, #D8FFF1 50%, var(--mint-mid)); box-shadow: 0 0 0 3px var(--ink); color: var(--ink); font: 400 24px/1 var(--display); }
+.stage .w-key.off { background: var(--ink); color: var(--muted2); box-shadow: 0 0 0 3px var(--ink), inset 0 0 0 2px rgba(166, 227, 210, 0.35); }
+.stage .w-ptxt { display: flex; flex-direction: column; }
+.stage .w-ptxt b { font: 400 22px/1.1 var(--display); color: #FFFFFF; }
+.stage .w-ptxt span { font: 700 14px/1.2 var(--body); color: var(--muted); }
+.stage .w-card { position: absolute; padding: 10px; border-radius: 22px; display: flex; flex-direction: column; gap: 8px; }
+.stage .w-row { display: flex; align-items: center; gap: 10px; padding: 5px 14px 5px 5px; border-radius: 999px; background: var(--glass); }
+.stage .w-row .w-key { width: 40px; height: 40px; border-radius: 999px; font-size: 20px; }
+.stage .w-row b { font: 400 19px/1 var(--display); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Steal a Slime · design review · 22 Oct 2026</div>
+  <h1>Merge vat rework</h1>
+  <p class="lede">Merging happens on the vat itself. You Move three slimes of one rarity into the vat, where they sit as small slimes on its three spots. A see-through copy keeps each one's pad. Then you open the vat with E, check what they will make and start a timed brew. You can take a slime back out (X) or cancel the brew while it runs.</p>
+</header>
+
+<h2>How it plays</h2>
+<ol class="steps">
+  <li><b>Move</b><span>E <i>Move</i> on a pad slime, as today. No new button. The vat lights up as a target next to your pads.</span></li>
+  <li><b>Place in the vat</b><span>Click or tap the vat, or E. It takes the next free spot, small. The first one sets the rarity. A full vat says <i>The vat is full</i>.</span></li>
+  <li><b>Manage the vat</b><span>E <i>Manage vat</i> opens the menu: the three inputs, the result, the brew time.</span></li>
+  <li><b>Brew</b><span><i>Start merge</i> locks the inputs and starts the timer. It keeps running while you are offline.</span></li>
+  <li><b>Collect</b><span><i>Collect</i> puts the new slime on the first input's pad. The other two pads free up.</span></li>
+</ol>
+<ul class="points" style="margin-top: 16px">
+  <li><b>The pad stays taken.</b> A slime in the vat leaves a see-through copy on its pad, and the pad's sign says <i>In vat</i>. Nothing else can go on that pad.</li>
+  <li><b>X takes a slime out</b> and sends it back to its own pad. Since that pad was kept for it, X always works.</li>
+  <li><b>Before the brew starts</b> the copy still earns money as normal, and a thief can still steal it from its pad. The real slime leaves the vat with them and the menu shows the empty spot.</li>
+  <li><b>Once it brews</b> the copies stay on their pads, but their sign switches to <i>IN VAT</i> and they earn no money. They can't be stolen until you collect.</li>
+  <li><b>Cancel merge</b> (hold to confirm) stops the brew. Nothing is lost: the three slimes stay in the vat, so you can start again or take them out.</li>
+  <li>The result follows today's rules: a known recipe shows its hybrid by name, everything else shows <i>Random slime</i> with the rarity it will be and the jump chance. An undiscovered recipe still shows as random, so the vat never gives a recipe away.</li>
+</ul>
+
+<h2>The screens</h2>
+<p class="note">All screens use the Goo kit parts: glass panel with the mint band and drips, jelly only on things you can press, Ink wells for states and disabled buttons. Slimes are the kit's stand-in for the 3D previews.</p>
+
+<!-- 1. World: Move into the vat -->
+<figure class="shot">
+  <figcaption><b>1 · Move a slime into the vat</b><span>E Move on a pad slime, as today. The vat lights up as a target next to your pads. Place it and it takes the next free spot, small, on the goo. A see-through copy stays on its pad with an In vat sign.</span><span class="tag">world</span></figcaption>
+  <div class="fit"><div class="stage" style="position: absolute">
+    <svg width="1280" height="720" viewBox="0 0 1280 720" aria-hidden="true" style="position: absolute; inset: 0">
+      <defs>
+        <linearGradient id="copper1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E39A5B"></stop><stop offset="1" stop-color="#9A5A2C"></stop></linearGradient>
+        <radialGradient id="goo1" cx="0.5" cy="0.4" r="0.6"><stop offset="0" stop-color="#C9FFE9"></stop><stop offset="1" stop-color="#3FD9A6"></stop></radialGradient>
+      </defs>
+      <rect width="1280" height="720" fill="#BDE8E0"></rect>
+      <path d="M0 420 L1280 396 L1280 720 L0 720 Z" fill="#8CC97A"></path>
+      <ellipse cx="170" cy="600" rx="100" ry="28" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse><g opacity="0.35"><path d="M116 600 Q116 528 170 528 Q224 528 224 600 Z" fill="#AADCAA" stroke="#08262A" stroke-width="5"></path><ellipse cx="152" cy="560" rx="6" ry="9" fill="#08262A"></ellipse><ellipse cx="188" cy="560" rx="6" ry="9" fill="#08262A"></ellipse></g>
+      <ellipse cx="170" cy="470" rx="100" ry="28" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse><g opacity="0.45"><path d="M116 470 Q116 398 170 398 Q224 398 224 470 Z" fill="#AADCAA" stroke="#08262A" stroke-width="5"></path><ellipse cx="152" cy="430" rx="6" ry="9" fill="#08262A"></ellipse><ellipse cx="188" cy="430" rx="6" ry="9" fill="#08262A"></ellipse></g><rect x="114" y="488" width="112" height="36" rx="8" fill="#C8945A" stroke="#08262A" stroke-width="4"></rect><path d="M116 492 h108 v8 q-10 10 -18 0 q-14 12 -26 0 q-12 10 -24 0 q-12 12 -26 0 q-8 8 -14 0 Z" fill="#AADCAA"></path>
+      <ellipse cx="760" cy="600" rx="230" ry="46" fill="#5E9C56"></ellipse>
+      <path d="M556 404 Q546 600 760 612 Q974 600 964 404 Z" fill="none" stroke="#6CF2C2" stroke-width="22" stroke-opacity="0.8"></path>
+      <ellipse cx="760" cy="404" rx="206" ry="54" fill="none" stroke="#6CF2C2" stroke-width="22" stroke-opacity="0.8"></ellipse>
+      <path d="M556 404 Q546 600 760 612 Q974 600 964 404 Z" fill="url(#copper1)" stroke="#08262A" stroke-width="6"></path>
+      <path d="M600 480 Q760 516 920 480" stroke="#08262A" stroke-width="5" fill="none" opacity="0.45"></path>
+      <ellipse cx="760" cy="404" rx="206" ry="54" fill="#6B3A1C" stroke="#08262A" stroke-width="6"></ellipse>
+      <ellipse cx="760" cy="410" rx="184" ry="42" fill="url(#goo1)"></ellipse>
+      <ellipse cx="668" cy="418" rx="42" ry="13" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse>
+      <g transform="translate(640.0 390)" opacity="1"><path d="M0 30 Q0 0 28.0 0 Q56 0 56 30 Z" fill="#AADCAA" stroke="#08262A" stroke-width="4"></path><ellipse cx="19.040000000000003" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse><ellipse cx="36.96" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse></g>
+      <ellipse cx="760" cy="430" rx="42" ry="13" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse>
+      <g transform="translate(732.0 402)" opacity="0.5"><path d="M0 30 Q0 0 28.0 0 Q56 0 56 30 Z" fill="#AADCAA" stroke="#08262A" stroke-width="4"></path><ellipse cx="19.040000000000003" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse><ellipse cx="36.96" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse></g>
+      <ellipse cx="852" cy="418" rx="42" ry="13" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse>
+    </svg>
+    <span class="g-wtag ol" style="position: absolute; left: 114px; top: 496px; width: 112px; font-size: 18px">In vat</span>
+    <div style="position: absolute; left: 660px; top: 250px; width: 200px; display: flex; flex-direction: column; align-items: center; gap: 6px">
+      <span class="g-wtag ol">Merge vat</span>
+      <span class="g-pillm" style="color: #AADCAA; box-shadow: inset 0 0 0 2px #AADCAA">1/3 Common</span>
+    </div>
+    <div class="g-glass" style="position: absolute; left: 330px; top: 604px; width: 660px; padding: 12px 14px 12px 22px; display: flex; align-items: center; gap: 14px">
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span class="g-d" style="font-size: 21px; color: #6CF2C2">Merge vat: adds Gummy (2/3)</span><span class="g-small">Click a pad or the vat, or press E to place · Q to cancel</span></div>
+      <button type="button" class="g-jelly g-btn sm" style="min-width: 120px">Place</button>
+      <button type="button" class="g-btn2">Cancel</button>
+    </div>
+  </div></div>
+</figure>
+
+<!-- 2. World: vat full -->
+<figure class="shot">
+  <figcaption><b>2 · The vat is full</b><span>Three in means no more: the vat turns red and Place does nothing. No swapping. A slime of another rarity gets the same red with "The vat takes Commons".</span><span class="tag">world</span></figcaption>
+  <div class="fit"><div class="stage" style="position: absolute">
+    <svg width="1280" height="720" viewBox="0 0 1280 720" aria-hidden="true" style="position: absolute; inset: 0">
+      <defs>
+        <linearGradient id="copper2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E39A5B"></stop><stop offset="1" stop-color="#9A5A2C"></stop></linearGradient>
+        <radialGradient id="goo2" cx="0.5" cy="0.4" r="0.6"><stop offset="0" stop-color="#C9FFE9"></stop><stop offset="1" stop-color="#3FD9A6"></stop></radialGradient>
+      </defs>
+      <rect width="1280" height="720" fill="#BDE8E0"></rect>
+      <path d="M0 420 L1280 396 L1280 720 L0 720 Z" fill="#8CC97A"></path>
+      <ellipse cx="170" cy="600" rx="100" ry="28" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse><g opacity="0.35"><path d="M116 600 Q116 528 170 528 Q224 528 224 600 Z" fill="#AADCAA" stroke="#08262A" stroke-width="5"></path><ellipse cx="152" cy="560" rx="6" ry="9" fill="#08262A"></ellipse><ellipse cx="188" cy="560" rx="6" ry="9" fill="#08262A"></ellipse></g>
+      <ellipse cx="170" cy="470" rx="100" ry="28" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse><g opacity="0.45"><path d="M116 470 Q116 398 170 398 Q224 398 224 470 Z" fill="#AADCAA" stroke="#08262A" stroke-width="5"></path><ellipse cx="152" cy="430" rx="6" ry="9" fill="#08262A"></ellipse><ellipse cx="188" cy="430" rx="6" ry="9" fill="#08262A"></ellipse></g><rect x="114" y="488" width="112" height="36" rx="8" fill="#C8945A" stroke="#08262A" stroke-width="4"></rect><path d="M116 492 h108 v8 q-10 10 -18 0 q-14 12 -26 0 q-12 10 -24 0 q-12 12 -26 0 q-8 8 -14 0 Z" fill="#AADCAA"></path>
+      <ellipse cx="760" cy="600" rx="230" ry="46" fill="#5E9C56"></ellipse>
+      <path d="M556 404 Q546 600 760 612 Q974 600 964 404 Z" fill="none" stroke="#FF7F98" stroke-width="22" stroke-opacity="0.8"></path>
+      <ellipse cx="760" cy="404" rx="206" ry="54" fill="none" stroke="#FF7F98" stroke-width="22" stroke-opacity="0.8"></ellipse>
+      <path d="M556 404 Q546 600 760 612 Q974 600 964 404 Z" fill="url(#copper2)" stroke="#08262A" stroke-width="6"></path>
+      <path d="M600 480 Q760 516 920 480" stroke="#08262A" stroke-width="5" fill="none" opacity="0.45"></path>
+      <ellipse cx="760" cy="404" rx="206" ry="54" fill="#6B3A1C" stroke="#08262A" stroke-width="6"></ellipse>
+      <ellipse cx="760" cy="410" rx="184" ry="42" fill="url(#goo2)"></ellipse>
+      <ellipse cx="668" cy="418" rx="42" ry="13" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse>
+      <g transform="translate(640.0 390)" opacity="1"><path d="M0 30 Q0 0 28.0 0 Q56 0 56 30 Z" fill="#AADCAA" stroke="#08262A" stroke-width="4"></path><ellipse cx="19.040000000000003" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse><ellipse cx="36.96" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse></g>
+      <ellipse cx="760" cy="430" rx="42" ry="13" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse>
+      <g transform="translate(732.0 402)" opacity="1"><path d="M0 30 Q0 0 28.0 0 Q56 0 56 30 Z" fill="#AADCAA" stroke="#08262A" stroke-width="4"></path><ellipse cx="19.040000000000003" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse><ellipse cx="36.96" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse></g>
+      <ellipse cx="852" cy="418" rx="42" ry="13" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse>
+      <g transform="translate(824.0 390)" opacity="1"><path d="M0 30 Q0 0 28.0 0 Q56 0 56 30 Z" fill="#AADCAA" stroke="#08262A" stroke-width="4"></path><ellipse cx="19.040000000000003" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse><ellipse cx="36.96" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse></g>
+    </svg>
+    <span class="g-wtag ol" style="position: absolute; left: 114px; top: 496px; width: 112px; font-size: 18px">In vat</span>
+    <div style="position: absolute; left: 660px; top: 250px; width: 200px; display: flex; flex-direction: column; align-items: center; gap: 6px">
+      <span class="g-wtag ol">Merge vat</span>
+      <span class="g-pillm" style="color: #AADCAA; box-shadow: inset 0 0 0 2px #AADCAA">3/3 Common</span>
+    </div>
+    <div class="g-glass" style="position: absolute; left: 330px; top: 604px; width: 660px; padding: 12px 14px 12px 22px; display: flex; align-items: center; gap: 14px">
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span class="g-d" style="font-size: 21px; color: #FF7F98">The vat is full</span><span class="g-small">Click a pad or the vat, or press E to place · Q to cancel</span></div>
+      <button type="button" class="g-well" disabled style="min-width: 120px">Place</button>
+      <button type="button" class="g-btn2">Cancel</button>
+    </div>
+  </div></div>
+</figure>
+
+<!-- 3. World: brewing -->
+<figure class="shot">
+  <figcaption><b>3 · The vat while it brews</b><span>Three small slimes on the vat; their pads keep a see-through copy, so the pads stay taken. While brewing the signs say IN VAT, the copies earn no money and none of them can be stolen.</span><span class="tag">world</span></figcaption>
+  <div class="fit"><div class="stage" style="position: absolute">
+    <svg width="1280" height="720" viewBox="0 0 1280 720" aria-hidden="true" style="position: absolute; inset: 0">
+      <defs>
+        <linearGradient id="copper3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E39A5B"></stop><stop offset="1" stop-color="#9A5A2C"></stop></linearGradient>
+        <radialGradient id="goo3" cx="0.5" cy="0.4" r="0.6"><stop offset="0" stop-color="#C9FFE9"></stop><stop offset="1" stop-color="#3FD9A6"></stop></radialGradient>
+      </defs>
+      <rect width="1280" height="720" fill="#BDE8E0"></rect>
+      <path d="M0 420 L1280 396 L1280 720 L0 720 Z" fill="#8CC97A"></path>
+      <ellipse cx="170" cy="470" rx="100" ry="28" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse><g opacity="0.45"><path d="M116 470 Q116 398 170 398 Q224 398 224 470 Z" fill="#3C6EFF" stroke="#08262A" stroke-width="5"></path><ellipse cx="152" cy="430" rx="6" ry="9" fill="#08262A"></ellipse><ellipse cx="188" cy="430" rx="6" ry="9" fill="#08262A"></ellipse></g><rect x="114" y="488" width="112" height="36" rx="8" fill="#C8945A" stroke="#08262A" stroke-width="4"></rect><path d="M116 492 h108 v8 q-10 10 -18 0 q-14 12 -26 0 q-12 10 -24 0 q-12 12 -26 0 q-8 8 -14 0 Z" fill="#3C6EFF"></path>
+      <ellipse cx="170" cy="610" rx="100" ry="28" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse><g opacity="0.45"><path d="M116 610 Q116 538 170 538 Q224 538 224 610 Z" fill="#3C6EFF" stroke="#08262A" stroke-width="5"></path><ellipse cx="152" cy="570" rx="6" ry="9" fill="#08262A"></ellipse><ellipse cx="188" cy="570" rx="6" ry="9" fill="#08262A"></ellipse></g><rect x="114" y="628" width="112" height="36" rx="8" fill="#C8945A" stroke="#08262A" stroke-width="4"></rect><path d="M116 632 h108 v8 q-10 10 -18 0 q-14 12 -26 0 q-12 10 -24 0 q-12 12 -26 0 q-8 8 -14 0 Z" fill="#3C6EFF"></path>
+      <ellipse cx="1130" cy="560" rx="100" ry="28" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse><g opacity="0.45"><path d="M1076 560 Q1076 488 1130 488 Q1184 488 1184 560 Z" fill="#3C6EFF" stroke="#08262A" stroke-width="5"></path><ellipse cx="1112" cy="520" rx="6" ry="9" fill="#08262A"></ellipse><ellipse cx="1148" cy="520" rx="6" ry="9" fill="#08262A"></ellipse></g><rect x="1074" y="578" width="112" height="36" rx="8" fill="#C8945A" stroke="#08262A" stroke-width="4"></rect><path d="M1076 582 h108 v8 q-10 10 -18 0 q-14 12 -26 0 q-12 10 -24 0 q-12 12 -26 0 q-8 8 -14 0 Z" fill="#3C6EFF"></path>
+      <ellipse cx="760" cy="600" rx="230" ry="46" fill="#5E9C56"></ellipse>
+      <path d="M556 404 Q546 600 760 612 Q974 600 964 404 Z" fill="url(#copper3)" stroke="#08262A" stroke-width="6"></path>
+      <path d="M600 480 Q760 516 920 480" stroke="#08262A" stroke-width="5" fill="none" opacity="0.45"></path>
+      <ellipse cx="760" cy="404" rx="206" ry="54" fill="#6B3A1C" stroke="#08262A" stroke-width="6"></ellipse>
+      <ellipse cx="760" cy="410" rx="184" ry="42" fill="url(#goo3)"></ellipse>
+      <ellipse cx="668" cy="418" rx="42" ry="13" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse>
+      <g transform="translate(640.0 390)" opacity="1"><path d="M0 30 Q0 0 28.0 0 Q56 0 56 30 Z" fill="#3C6EFF" stroke="#08262A" stroke-width="4"></path><ellipse cx="19.040000000000003" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse><ellipse cx="36.96" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse></g>
+      <ellipse cx="760" cy="430" rx="42" ry="13" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse>
+      <g transform="translate(732.0 402)" opacity="1"><path d="M0 30 Q0 0 28.0 0 Q56 0 56 30 Z" fill="#3C6EFF" stroke="#08262A" stroke-width="4"></path><ellipse cx="19.040000000000003" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse><ellipse cx="36.96" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse></g>
+      <ellipse cx="852" cy="418" rx="42" ry="13" fill="#E7E0CF" stroke="#08262A" stroke-width="4"></ellipse>
+      <g transform="translate(824.0 390)" opacity="1"><path d="M0 30 Q0 0 28.0 0 Q56 0 56 30 Z" fill="#3C6EFF" stroke="#08262A" stroke-width="4"></path><ellipse cx="19.040000000000003" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse><ellipse cx="36.96" cy="15.0" rx="4" ry="6" fill="#08262A"></ellipse></g>
+      <path d="M690 380 q8 -18 0 -30 M760 386 q8 -20 0 -34 M830 380 q8 -18 0 -30" stroke="#FFFFFF" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.7"></path>
+    </svg>
+    <span class="g-wtag ol" style="position: absolute; left: 114px; top: 496px; width: 112px; font-size: 18px">IN VAT</span>
+    <span class="g-wtag ol" style="position: absolute; left: 114px; top: 636px; width: 112px; font-size: 18px">IN VAT</span>
+    <span class="g-wtag ol" style="position: absolute; left: 1074px; top: 586px; width: 112px; font-size: 18px">IN VAT</span>
+    <div style="position: absolute; left: 660px; top: 220px; width: 200px; display: flex; flex-direction: column; align-items: center; gap: 6px">
+      <span class="g-wtag ol">Merge vat</span>
+      <span class="g-pillm" style="color: #6CF2C2; box-shadow: inset 0 0 0 2px #6CF2C2">Brewing 1:12</span>
+    </div>
+    <div class="w-prompt" style="left: 640px; top: 470px">
+      <span class="w-key">E</span>
+      <span class="w-ptxt"><b>Manage vat</b><span>Merge vat · Rare</span></span>
+    </div>
+  </div></div>
+</figure>
+
+<!-- 3. Menu: filling -->
+<figure class="shot">
+  <figcaption><b>4 · Manage vat: two of three in</b><span>Each input has an X that sends it back to its own pad. The empty slot says how to fill it. No buttons for picking: slimes only arrive by Move.</span><span class="tag">menu</span></figcaption>
+  <div class="fit"><div class="stage" style="position: absolute">
+    <div class="g-dim"></div>
+    <section aria-label="Merge vat" class="g-glass g-panel" style="left: 250px; width: 780px; top: 40px">
+      <header class="g-head">
+        <span class="g-jelly white g-hicon"><svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true"><path d="M7 16 Q6 40 23 41 Q40 40 39 16 Z" fill="#C67D45" stroke="#08262A" stroke-width="3"></path><ellipse cx="23" cy="16" rx="17" ry="5" fill="#6FE7BF" stroke="#08262A" stroke-width="3"></ellipse></svg></span>
+        <h1 class="g-h1">Merge vat</h1>
+        <button type="button" class="g-jelly pink g-close" aria-label="Close"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        <span class="g-lip"></span>
+        <span class="g-drip" style="left: 150px; --w: 12px; --l: 12px"></span>
+        <span class="g-drip" style="left: 300px; --w: 10px; --l: 8px"></span>
+        <span class="g-drip" style="left: 460px; --w: 14px; --l: 10px"></span>
+        <span class="g-drip" style="left: 640px; --w: 12px; --l: 9px"></span>
+      </header>
+      <div class="g-body">
+        <div class="g-chips"><span class="g-chip" style="color: #AADCAA">Common vat</span><span class="g-chip">2/3 in</span><span class="g-chip">Brew time 30s</span></div>
+        <div class="v-load">
+          <div class="v-slots">
+            <div class="v-slot r1"><span class="v-well"><span class="g-slime"></span></span><button type="button" class="g-jelly pink v-x" aria-label="Back to pad 2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><span class="v-sname">Gummy</span><span class="v-srar">Common</span></div>
+            <div class="v-slot r1"><span class="v-well"><span class="g-slime"></span></span><button type="button" class="g-jelly pink v-x" aria-label="Take Mochi out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><span class="v-sname">Mochi</span><span class="v-srar">Common</span></div>
+            <div class="v-slot"><span class="v-well empty"><span>Move a Common here</span></span></div>
+          </div>
+          <svg class="v-arrow" width="44" height="36" viewBox="0 0 58 36" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 18h42M36 7l12 11-12 11" stroke="#08262A" stroke-width="12"></path><path d="M6 18h42M36 7l12 11-12 11" stroke="#6CF2C2" stroke-width="6"></path></svg>
+          <div class="v-result">
+            <span class="v-well" style="--rc: #FFD23F"><span class="g-d ol g-gold" style="font-size: 44px">?</span></span>
+            <div class="v-rtxt">
+              <span class="v-line"><span class="v-rtitle">Random slime</span><span class="g-pillm" style="color: #5AC8FF; box-shadow: inset 0 0 0 2px #5AC8FF">Uncommon</span></span>
+              <span class="g-small">20% chance of a Rare</span>
+              <span class="g-small">Size about 1.2</span>
+            </div>
+          </div>
+        </div>
+        <span class="v-reason">Add 1 more Common to start. Until you start, these still earn and can be stolen from their pads.</span>
+        <div class="v-actions">
+          <button type="button" class="g-well" disabled style="width: 280px">Add 1 more Common</button>
+        </div>
+      </div>
+    </section>
+  </div></div>
+</figure>
+
+<!-- 4. Menu: ready, recipe known -->
+<figure class="shot">
+  <figcaption><b>5 · Ready to brew, a known recipe</b><span>Three Commons that form a recipe you've found show the hybrid by name. One main button with the brew time on it.</span><span class="tag">menu</span></figcaption>
+  <div class="fit"><div class="stage" style="position: absolute">
+    <div class="g-dim"></div>
+    <section aria-label="Merge vat" class="g-glass g-panel" style="left: 250px; width: 780px; top: 40px">
+      <header class="g-head">
+        <span class="g-jelly white g-hicon"><svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true"><path d="M7 16 Q6 40 23 41 Q40 40 39 16 Z" fill="#C67D45" stroke="#08262A" stroke-width="3"></path><ellipse cx="23" cy="16" rx="17" ry="5" fill="#6FE7BF" stroke="#08262A" stroke-width="3"></ellipse></svg></span>
+        <h1 class="g-h1">Merge vat</h1>
+        <button type="button" class="g-jelly pink g-close" aria-label="Close"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        <span class="g-lip"></span>
+        <span class="g-drip" style="left: 150px; --w: 12px; --l: 12px"></span>
+        <span class="g-drip" style="left: 300px; --w: 10px; --l: 8px"></span>
+        <span class="g-drip" style="left: 460px; --w: 14px; --l: 10px"></span>
+        <span class="g-drip" style="left: 640px; --w: 12px; --l: 9px"></span>
+      </header>
+      <div class="g-body">
+        <div class="g-chips"><span class="g-chip" style="color: #AADCAA">Common vat</span><span class="g-chip">3/3 in</span><span class="g-chip">Brew time 30s</span></div>
+        <div class="v-load">
+          <div class="v-slots">
+            <div class="v-slot r1"><span class="v-well"><span class="g-slime"></span></span><button type="button" class="g-jelly pink v-x" aria-label="Take Bubbles out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><span class="v-sname">Bubbles</span><span class="v-srar">Common</span></div>
+            <div class="v-slot r1"><span class="v-well"><span class="g-slime"></span></span><button type="button" class="g-jelly pink v-x" aria-label="Back to pad 2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><span class="v-sname">Gummy</span><span class="v-srar">Common</span></div>
+            <div class="v-slot r1"><span class="v-well"><span class="g-slime"></span></span><button type="button" class="g-jelly pink v-x" aria-label="Take Mochi out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><span class="v-sname">Mochi</span><span class="v-srar">Common</span></div>
+          </div>
+          <svg class="v-arrow" width="44" height="36" viewBox="0 0 58 36" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 18h42M36 7l12 11-12 11" stroke="#08262A" stroke-width="12"></path><path d="M6 18h42M36 7l12 11-12 11" stroke="#6CF2C2" stroke-width="6"></path></svg>
+          <div class="v-result">
+            <span class="v-well r2"><span class="g-slime"></span></span>
+            <div class="v-rtxt">
+              <span class="v-rtitle">Soda Pop</span>
+              <span class="g-small" style="color: #5AC8FF">Uncommon recipe</span>
+              <span class="g-small">Always this slime, no jump</span>
+            </div>
+          </div>
+        </div>
+        <span class="v-reason">You can take slimes out until you start. Once it brews they are safe.</span>
+        <div class="v-actions">
+          <button type="button" class="g-jelly g-btn" style="width: 280px">Start merge · 30s</button>
+        </div>
+      </div>
+    </section>
+  </div></div>
+</figure>
+
+<!-- 5. Menu: brewing -->
+<figure class="shot">
+  <figcaption><b>6 · Brewing</b><span>Inputs are locked (padlock instead of X). The timer is a goo bar. Cancel is pink and held to confirm; it keeps the slimes in the vat.</span><span class="tag">menu</span></figcaption>
+  <div class="fit"><div class="stage" style="position: absolute">
+    <div class="g-dim"></div>
+    <section aria-label="Merge vat" class="g-glass g-panel" style="left: 250px; width: 780px; top: 40px">
+      <header class="g-head">
+        <span class="g-jelly white g-hicon"><svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true"><path d="M7 16 Q6 40 23 41 Q40 40 39 16 Z" fill="#C67D45" stroke="#08262A" stroke-width="3"></path><ellipse cx="23" cy="16" rx="17" ry="5" fill="#6FE7BF" stroke="#08262A" stroke-width="3"></ellipse></svg></span>
+        <h1 class="g-h1">Merge vat</h1>
+        <button type="button" class="g-jelly pink g-close" aria-label="Close"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        <span class="g-lip"></span>
+        <span class="g-drip" style="left: 150px; --w: 12px; --l: 12px"></span>
+        <span class="g-drip" style="left: 300px; --w: 10px; --l: 8px"></span>
+        <span class="g-drip" style="left: 460px; --w: 14px; --l: 10px"></span>
+        <span class="g-drip" style="left: 640px; --w: 12px; --l: 9px"></span>
+      </header>
+      <div class="g-body">
+        <div class="g-chips"><span class="g-chip" style="color: #6E95FF">Rare vat</span><span class="g-chip">Brewing</span></div>
+        <div class="v-load">
+          <div class="v-slots">
+            <div class="v-slot r3"><span class="v-well"><span class="g-slime"></span></span><span class="v-lock" role="img" aria-label="Locked while brewing"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFD23F" stroke-width="3" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span><span class="v-sname">Pengoo</span><span class="v-srar">Rare</span></div>
+            <div class="v-slot r3"><span class="v-well"><span class="g-slime"></span></span><span class="v-lock" role="img" aria-label="Locked while brewing"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFD23F" stroke-width="3" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span><span class="v-sname">Chomp</span><span class="v-srar">Rare</span></div>
+            <div class="v-slot r3"><span class="v-well"><span class="g-slime"></span></span><span class="v-lock" role="img" aria-label="Locked while brewing"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFD23F" stroke-width="3" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span><span class="v-sname">Whiskers</span><span class="v-srar">Rare</span></div>
+          </div>
+          <svg class="v-arrow" width="44" height="36" viewBox="0 0 58 36" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 18h42M36 7l12 11-12 11" stroke="#08262A" stroke-width="12"></path><path d="M6 18h42M36 7l12 11-12 11" stroke="#6CF2C2" stroke-width="6"></path></svg>
+          <div class="v-result">
+            <span class="v-well" style="--rc: #FFD23F"><span class="g-d ol g-gold" style="font-size: 44px">?</span></span>
+            <div class="v-rtxt">
+              <span class="v-line"><span class="v-rtitle">Random slime</span><span class="g-pillm" style="color: #C77DFF; box-shadow: inset 0 0 0 2px #C77DFF">Epic</span></span>
+              <span class="g-small">20% chance of a Legendary</span>
+              <span class="g-small">Size about 1.4</span>
+            </div>
+          </div>
+        </div>
+        <div class="v-timer">
+          <div class="v-line" style="justify-content: space-between"><span class="g-d" style="font-size: 19px">Brewing</span><span class="g-d g-mintc" style="font-size: 21px">1:12 left</span></div>
+          <span class="g-bar"><span style="width: 40%"></span></span>
+        </div>
+        <div class="v-actions">
+          <button type="button" class="g-jelly pink g-btn v-hold" style="width: 280px"><i></i><span>Hold to cancel</span></button>
+        </div>
+      </div>
+    </section>
+    <span class="g-small" style="position: absolute; left: 380px; top: 640px; width: 520px; text-align: center; color: #BFEBDD">Cancel keeps all three slimes in the vat. You can close the menu; the brew goes on.</span>
+  </div></div>
+</figure>
+
+<!-- 6. Menu: done -->
+<figure class="shot">
+  <figcaption><b>7 · Done</b><span>The result card reveals the slime. Collect is gold (collecting a reward) and puts it on the first input's pad; the other two pads free up.</span><span class="tag">menu</span></figcaption>
+  <div class="fit"><div class="stage" style="position: absolute">
+    <div class="g-dim"></div>
+    <section aria-label="Merge vat" class="g-glass g-panel" style="left: 250px; width: 780px; top: 40px">
+      <header class="g-head">
+        <span class="g-jelly white g-hicon"><svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true"><path d="M7 16 Q6 40 23 41 Q40 40 39 16 Z" fill="#C67D45" stroke="#08262A" stroke-width="3"></path><ellipse cx="23" cy="16" rx="17" ry="5" fill="#6FE7BF" stroke="#08262A" stroke-width="3"></ellipse></svg></span>
+        <h1 class="g-h1">Merge vat</h1>
+        <button type="button" class="g-jelly pink g-close" aria-label="Close"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        <span class="g-lip"></span>
+        <span class="g-drip" style="left: 150px; --w: 12px; --l: 12px"></span>
+        <span class="g-drip" style="left: 300px; --w: 10px; --l: 8px"></span>
+        <span class="g-drip" style="left: 460px; --w: 14px; --l: 10px"></span>
+        <span class="g-drip" style="left: 640px; --w: 12px; --l: 9px"></span>
+      </header>
+      <div class="g-body" style="align-items: center; gap: 14px">
+        <div class="g-chips" style="align-self: flex-start"><span class="g-chip g-gold">Ready</span></div>
+        <div style="display: flex; align-items: center; gap: 22px; padding: 10px 0">
+          <span class="v-well r3" style="width: 170px; height: 170px"><span class="g-slime" style="width: 118px; height: 98px"></span></span>
+          <div class="v-rtxt">
+            <span class="g-small" style="color: #6E95FF; font-family: var(--display); font-size: 18px">Rare · jumped two rarities</span>
+            <span class="v-rtitle" style="font-size: 32px">Whiskers</span>
+            <span class="g-small">Size 1.3 · $9/s</span>
+            <span class="g-small">New SlimeDex entry</span>
+          </div>
+        </div>
+        <div class="v-actions">
+          <button type="button" class="g-jelly gold g-btn" style="width: 280px">Collect to pad 4</button>
+        </div>
+        <span class="v-reason">The other two pads free up and the vat is empty again.</span>
+      </div>
+    </section>
+  </div></div>
+</figure>
+
+<h2>Brew time by rarity</h2>
+<p>The time depends on the rarity going in. Recipes take the same time as a random merge of that rarity. Results follow today's odds (<code>TripleMerge.odds</code>): one rarity up, 20% chance of two up while that stays at Legendary or below, Mythic is the cap for random results.</p>
+<div class="tablebox">
+<table>
+  <thead><tr><th>Three of</th><th>Makes</th><th>Jump (20%)</th><th>Brew time</th><th>Quick brew 4</th><th>Income paused</th></tr></thead>
+  <tbody>
+    <tr><td><span class="dot" style="background: #AADCAA"></span>Common</td><td>Uncommon</td><td>Rare</td><td class="num">30s</td><td class="num">12s</td><td class="num">$90</td></tr>
+    <tr><td><span class="dot" style="background: #5AC8FF"></span>Uncommon</td><td>Rare</td><td>Epic</td><td class="num">1m</td><td class="num">24s</td><td class="num">$540</td></tr>
+    <tr><td><span class="dot" style="background: #3C6EFF"></span>Rare</td><td>Epic</td><td>Legendary</td><td class="num">2m</td><td class="num">48s</td><td class="num">$3.2K</td></tr>
+    <tr><td><span class="dot" style="background: #B450FF"></span>Epic</td><td>Legendary</td><td>none</td><td class="num">5m</td><td class="num">2m</td><td class="num">$24.3K</td></tr>
+    <tr><td><span class="dot" style="background: #FFBE28"></span>Legendary</td><td>Mythic</td><td>none</td><td class="num">10m</td><td class="num">4m</td><td class="num">$144K</td></tr>
+    <tr><td><span class="dot" style="background: #FF3C5A"></span>Mythic</td><td>Mythic (cap)</td><td>none</td><td class="num">20m</td><td class="num">8m</td><td class="num">$900K</td></tr>
+    <tr><td><span class="dot" style="background: #14F0DC"></span>Secret</td><td>Secret</td><td>none</td><td class="num">30m</td><td class="num">12m</td><td class="num">$4.3M</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="note">Income paused = base income the three copies miss while they brew (<code>Config.RARITIES[t].income</code> × 3 × seconds), before multipliers. All seven times go in one <code>Config.MERGE_BREW_SECONDS</code> table so they are easy to tune.</p>
+
+<h2>Speed-ups</h2>
+<p>A new upgrade, <b>Quick brew</b>, in the Upgrade shop. Each level takes 15% off every brew, up to 60% at level 4. Like every upgrade it is kept when you rebirth. Each level waits for a rebirth: that needs a small change, since today an upgrade has one rebirth gate for all its levels.</p>
+<div class="tablebox">
+<table>
+  <thead><tr><th>Level</th><th>Brew time</th><th>Needs</th><th>Price</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td class="num">-15%</td><td>Rebirth 2</td><td class="num">$25K</td></tr>
+    <tr><td>2</td><td class="num">-30%</td><td>Rebirth 4</td><td class="num">$75K</td></tr>
+    <tr><td>3</td><td class="num">-45%</td><td>Rebirth 6</td><td class="num">$225K</td></tr>
+    <tr><td>4</td><td class="num">-60%</td><td>Rebirth 8</td><td class="num">$675K</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="note">Prices follow the shop's rule (base × growth per level, here $25K × 3) and are a first guess until the economy review. A started brew keeps its end time; a new level speeds up the next brew.</p>
+<figure class="shot">
+  <figcaption><b>Upgrade shop · Quick brew</b><span>A new row in the Upgrade shop. Each level needs more rebirths; the button is a well with the rebirth it waits for.</span><span class="tag">menu</span></figcaption>
+  <div class="fit"><div class="stage" style="position: absolute">
+    <div class="g-dim"></div>
+    <section aria-label="Upgrade shop" class="g-glass g-panel" style="left: 160px; width: 960px; top: 40px">
+      <header class="g-head">
+        <span class="g-jelly white g-hicon"><span class="g-d" style="font-size: 40px; color: #08262A">↑</span></span>
+        <h1 class="g-h1">Upgrade shop</h1>
+        <button type="button" class="g-jelly pink g-close" aria-label="Close"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        <span class="g-lip"></span>
+        <span class="g-drip" style="left: 150px; --w: 14px; --l: 20px"></span>
+        <span class="g-drip" style="left: 420px; --w: 11px; --l: 10px"></span>
+        <span class="g-drip" style="left: 700px; --w: 16px; --l: 24px"></span>
+      </header>
+      <div class="g-body">
+        <div class="g-chips"><span class="g-chip g-gold">$182K</span><span class="g-chip" style="color: #A6E3D2">Rebirth 4</span><span class="g-chip" style="color: #A6E3D2">Kept when you rebirth</span></div>
+        <div class="g-row">
+      <span class="g-ib"><span class="g-d" style="font-size: 28px; color: #A6E3D2">$</span></span>
+      <div class="g-txt"><span class="g-d" style="font-size: 21px">Slime snacks</span><span class="g-desc">+income per level</span></div>
+      <div class="u-pips" aria-label="Level 6 of 10"><span class="g-small g-d">Level 6/10</span><span><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></span></div>
+      <button type="button" class="g-jelly g-btn" style="width: 196px">Buy $488K</button>
+    </div>
+        <div class="g-row">
+      <span class="g-ib"><svg width="44" height="44" viewBox="0 0 46 46" aria-hidden="true"><path d="M7 18 Q6 40 23 41 Q40 40 39 18 Z" fill="#C67D45" stroke="#08262A" stroke-width="3"></path><ellipse cx="23" cy="18" rx="17" ry="5" fill="#6FE7BF" stroke="#08262A" stroke-width="3"></ellipse><path d="M26 2 L18 14 h6 l-4 10 l10 -13 h-6 l4 -9 Z" fill="#FFD23F" stroke="#08262A" stroke-width="2.5" stroke-linejoin="round"></path></svg></span>
+      <div class="g-txt"><span class="g-d" style="font-size: 21px">Quick brew</span><span class="g-desc">-15% merge vat brew time per level</span></div>
+      <div class="u-pips" aria-label="Level 2 of 4"><span class="g-small g-d">Level 2/4</span><span><i class="on"></i><i class="on"></i><i></i><i></i></span></div>
+      <span class="g-well" style="width: 196px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A6E3D2" stroke-width="3" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Rebirth 6</span>
+    </div>
+        <div class="g-row">
+      <span class="g-ib"><span class="g-d" style="font-size: 28px; color: #A6E3D2">☾</span></span>
+      <div class="g-txt"><span class="g-d" style="font-size: 21px">Night shift</span><span class="g-desc">Longer offline earnings</span></div>
+      <div class="u-pips" aria-label="Level 1 of 4"><span class="g-small g-d">Level 1/4</span><span><i class="on"></i><i></i><i></i><i></i></span></div>
+      <button type="button" class="g-well" disabled style="width: 196px">Need $78K more</button>
+    </div>
+      </div>
+    </section>
+  </div></div>
+</figure>
+
+<h2>Decided</h2>
+<ul class="points">
+  <li>Move puts a slime into the vat (next free spot). A full vat says <i>The vat is full</i>; no swapping, no replacing.</li>
+  <li>Brews keep running while you are offline.</li>
+  <li>Vat slimes keep a see-through copy on their pad. Until the brew starts the copy earns money and can be stolen. While it brews the sign says IN VAT, it earns nothing and it is safe.</li>
+  <li>Collect puts the result on a pad.</li>
+  <li>Speed-ups go in the Upgrade shop behind rebirths (above).</li>
+  <li>Pick for me, Auto-merge and the Keep toggle are gone, with their requests (<code>AutoMerge</code>, <code>KeepSlime</code>, <code>Merge</code>, <code>Merge3</code>). The game isn't live, so nothing needs to stay for old clients.</li>
+</ul>
+
+<h2>What changes in code</h2>
+<ul class="points">
+  <li><b>Shared:</b> a pure <code>VatState</code> module (inputs, rarity, start and end time; add, remove, start, cancel, collect, every rule checked before any change). <code>TripleMerge.apply</code> rolls the result at collect.</li>
+  <li><b>Server:</b> <code>MoveSlime</code> takes the vat as a target (the slime keeps its <code>pad</code> and gets <code>inVat</code>); new requests <code>VatRemove</code>, <code>VatStart</code>, <code>VatCancel</code>, <code>VatCollect</code>; the Manage vat prompt; small slime models on the three spots, see-through copies and In vat signs on the pads; the world tag with the time left.</li>
+  <li><b>Stealing:</b> stealing an <code>inVat</code> slime before the brew takes it out of the vat; while brewing the steal is refused.</li>
+  <li><b>Move mode:</b> <code>SlimeMove</code> lights the vat green or red and its bar says why it can't take the slime.</li>
+  <li><b>Upgrades:</b> <code>QuickBrew</code> in <code>Config.UPGRADES</code>, with a rebirth gate per level.</li>
+  <li><b>UI:</b> <code>Panels/Merge</code> rebuilt to the screens above; the slime list, filter chips, Pick for me, Auto-merge and Keep go.</li>
+  <li><b>Removed:</b> <code>MergePlan</code>, the old merge requests and the <code>keep</code> flag on slimes.</li>
+  <li><b>Save:</b> a migration for the vat and the new upgrade; Lune specs for every rule, then a Studio playtest of the whole loop.</li>
+</ul>
+</div>
+
+<script>
+// Scale each 1280x720 game screen to the width of its frame.
+(function () {
+  function fit() {
+    document.querySelectorAll('.fit').forEach(function (box) {
+      var stage = box.querySelector('.stage');
+      if (!stage) return;
+      var s = box.clientWidth / 1280;
+      stage.style.transform = 'scale(' + s + ')';
+    });
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(fit);
+    document.querySelectorAll('.fit').forEach(function (b) { ro.observe(b); });
+  }
+})();
+</script>

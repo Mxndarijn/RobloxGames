@@ -136,16 +136,17 @@ describe("pad stands", function()
 				local h = (pad.size :: Vec)[2]
 				expect(p[2] - h / 2).toBeCloseTo(BASE_TOP)
 				expect(p[2] + h / 2).toBeCloseTo(BASE_TOP + seat)
-				-- the primitive Pad hides once its stand mesh lands (it keeps the prompt); its round PadCollider, the
-				-- same height, is what collides
+				-- the primitive Pad hides once its stand mesh lands (it keeps the prompt); the stand, standing on
+				-- the floor, is what collides and what ground raycasts land dropped slimes on
 				expect((pad.attributes :: any).MeshStandIn).toBe(look)
 				expect((pad.attributes :: any).PadIndex).toBe(j)
 				expect(pad.canCollide).toBe(false)
-				local collider = child(pad, "PadCollider")
-				expect(collider.canCollide ~= false).toBe(true)
-				expect(collider.canQuery ~= false).toBe(true) -- ground raycasts land dropped slimes on it
-				local c = toPlot(i, collider.pos :: Vec)
-				expect(c[2] + (collider.size :: Vec)[1] / 2).toBeCloseTo(BASE_TOP + seat)
+				local stand = child(pad, "Stand")
+				expect(stand.canCollide ~= false).toBe(true)
+				expect(stand.canQuery ~= false).toBe(true)
+				expect((stand.attributes :: any).MeshCanQuery).toBe(true)
+				local c = toPlot(i, stand.pos :: Vec)
+				expect(c[2] - (stand.size :: Vec)[2] / 2).toBeCloseTo(BASE_TOP)
 			end
 		end
 	end)
@@ -199,11 +200,11 @@ describe("plot sign", function()
 end)
 
 describe("plot stands", function()
-	it("has no BuyStand / claim model on any plot (plots auto-assign; the stand is the plaza shop only)", function()
+	it("has no BuyStand / claim model on any plot (plots auto-assign)", function()
 		for _, plot in plots do
 			local found = 0
 			walk({ plot }, function(node)
-				if node.name == "BuyStand" or node.name == "StandMesh" or meshOf(node) == "ranch_shop_stand" then
+				if node.name == "BuyStand" or node.name == "StandMesh" then
 					found += 1
 				end
 			end)

@@ -16,6 +16,7 @@ local function state(rebirths: number, cash: number): any
 	return {
 		rebirths = rebirths,
 		rebirthMultiplier = Economy.rebirthMultiplier(rebirths),
+		nextRebirthMultiplier = Economy.rebirthMultiplier(math.min(rebirths + 1, Config.MAX_REBIRTHS)),
 		rebirthCost = Economy.rebirthCost(rebirths),
 		canRebirth = cash >= Economy.rebirthCost(rebirths),
 		lockDuration = 75,
@@ -25,7 +26,7 @@ end
 
 describe("Progress.rebirthTiers", function()
 	it("lists the current tier and the next ones with server costs", function()
-		local tiers = Progress.rebirthTiers(state(1, 0), Config, Economy.rebirthCost, 3)
+		local tiers = Progress.rebirthTiers(state(1, 0), Config, Economy.rebirthCost, Economy.rebirthMultiplier, 3)
 		expect(#tiers).toBe(4)
 		expect(tiers[1].current).toBe(true)
 		expect(tiers[1].cost).toBeNil()
@@ -35,19 +36,38 @@ describe("Progress.rebirthTiers", function()
 		expect(tiers[4].cost).toBe(Economy.rebirthCost(3))
 		expect(tiers[3].lockSeconds).toBe(75 + 2 * Config.LOCK_SECONDS_PER_REBIRTH)
 	end)
-	it("never shows a lock longer than LOCK_MAX_REMAINING", function()
+	it("never shows a lock longer than LOCK_MAX_SECONDS", function()
 		local s = state(1, 0)
-		s.lockDuration = Config.LOCK_MAX_REMAINING - 5
-		local tiers = Progress.rebirthTiers(s, Config, Economy.rebirthCost, 3)
-		expect(tiers[2].lockSeconds).toBe(Config.LOCK_MAX_REMAINING)
-		expect(tiers[4].lockSeconds).toBe(Config.LOCK_MAX_REMAINING)
+		s.lockDuration = Config.LOCK_MAX_SECONDS - 5
+		local tiers = Progress.rebirthTiers(s, Config, Economy.rebirthCost, Economy.rebirthMultiplier, 3)
+		expect(tiers[2].lockSeconds).toBe(Config.LOCK_MAX_SECONDS)
+		expect(tiers[4].lockSeconds).toBe(Config.LOCK_MAX_SECONDS)
+	end)
+	it("gives each future tier the stepped multiplier, across a band edge", function()
+		local edge = Config.REBIRTH_MULTIPLIER_STEPS[2].from
+		local tiers =
+			Progress.rebirthTiers(state(edge - 2, 0), Config, Economy.rebirthCost, Economy.rebirthMultiplier, 2)
+		expect(tiers[2].multiplier).toBe(Economy.rebirthMultiplier(edge - 1))
+		expect(tiers[3].multiplier).toBe(Economy.rebirthMultiplier(edge))
+		expect(tiers[3].multiplier - tiers[2].multiplier).toBe(Config.REBIRTH_MULTIPLIER_STEPS[2].step)
+	end)
+	it("nextRebirth shows the server's nextRebirthMultiplier", function()
+		local edge = Config.REBIRTH_MULTIPLIER_STEPS[2].from
+		local n = Progress.nextRebirth(state(edge - 1, 0), Config)
+		expect(n.multiplier).toBe(Economy.rebirthMultiplier(edge))
 	end)
 	it("stops at MAX_REBIRTHS", function()
-		local tiers = Progress.rebirthTiers(state(Config.MAX_REBIRTHS - 1, 0), Config, Economy.rebirthCost, 3)
+		local tiers = Progress.rebirthTiers(
+			state(Config.MAX_REBIRTHS - 1, 0),
+			Config,
+			Economy.rebirthCost,
+			Economy.rebirthMultiplier,
+			3
+		)
 		expect(#tiers).toBe(2)
 	end)
 	it("formats a tier line", function()
-		local tiers = Progress.rebirthTiers(state(0, 0), Config, Economy.rebirthCost, 1)
+		local tiers = Progress.rebirthTiers(state(0, 0), Config, Economy.rebirthCost, Economy.rebirthMultiplier, 1)
 		expect(Progress.tierText(tiers[1])).toBe("Now · rebirth 0: x1 income · 75s lock")
 		expect(Progress.tierText(tiers[2])).toBe(
 			`Rebirth 1: x1.5 income · {75 + Config.LOCK_SECONDS_PER_REBIRTH}s lock · {Format.formatCash(
@@ -143,5 +163,40 @@ describe("Progress v13 rank / dex rewards", function()
 		expect(m.next).toBeNil()
 		expect(m.icon).toBe("Dex_10")
 		expect(Progress.dexMilestones({})).toBeNil()
+	end)
+end)
+
+describe("Progress.rebirthReason", function()
+	local function nextUp(cost: number, have: number, missing: { string }): any
+		local needs = {}
+		for _, name in missing do
+			table.insert(needs, { id = name, name = name, tier = 1, color = { 0, 0, 0 }, owned = false })
+		end
+		return {
+			maxed = false,
+			ready = false,
+			cost = cost,
+			have = have,
+			missing = needs,
+		}
+	end
+	it("says what is missing: cash, slimes, or both", function()
+		expect(Progress.rebirthReason(nextUp(180000, 1240, {}))).toBe(`Need {Format.formatCash(178760)} more`)
+		expect(Progress.rebirthReason(nextUp(100, 500, { "Flan" }))).toBe("Need a Flan")
+		expect(Progress.rebirthReason(nextUp(36.9e6, 21.4e6, { "Flan" }))).toBe(
+			`Need {Format.formatCash(15.5e6)} and a Flan`
+		)
+		expect(Progress.rebirthReason(nextUp(0, 0, { "Zap", "Imp", "Octo" }))).toBe("Need a Zap, an Imp and an Octo")
+		expect(Progress.rebirthReason(nextUp(36.9e6, 21.4e6, { "Flan", "Imp" }))).toBe(
+			`Need {Format.formatCash(15.5e6)}, a Flan and an Imp`
+		)
+	end)
+	it("is empty when ready and says done at the top", function()
+		local ready = nextUp(1, 1, {})
+		ready.ready = true
+		expect(Progress.rebirthReason(ready)).toBe("")
+		local maxed = nextUp(0, 0, {})
+		maxed.maxed = true
+		expect(Progress.rebirthReason(maxed)).toBe("All rebirths done")
 	end)
 end)

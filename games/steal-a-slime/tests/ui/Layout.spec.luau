@@ -140,3 +140,24 @@ describe("Layout.screen tutorial card on short screens", function()
 		expect(p.tutorialCarrying.y).toBe(551)
 	end)
 end)
+
+describe("Layout.screen landscape phone under the top bar", function()
+	-- 800x334 / 740x320: a landscape phone's ScreenGui below Roblox's top bar, narrower than 844x390.
+	for _, v in { { 800, 334 }, { 740, 320 } } do
+		local s = Layout.screen(v[1], v[2], { touch = true })
+		it(`{v[1]}x{v[2]}: the carry / move card hugs the bottom edge in the hotbar's place, not mid-screen`, function()
+			expect((s.carry.y + s.carry.h) * s.scale >= v[2] - 16).toBe(true)
+			expect(Layout.overlaps(s.carry, s.money.rect)).toBe(false)
+			expect(Layout.overlaps(s.carry, s.status.rect)).toBe(false)
+			expect(Layout.fitsInViewport(s.carry, s.width, s.height)).toBe(true)
+		end)
+		it(`{v[1]}x{v[2]}: the tutorial card stands above the hotbar and clear of the nav and both clusters`, function()
+			expect(s.tutorial.y + s.tutorial.h + Layout.GAP <= s.hotbar.y + 0.001).toBe(true)
+			for _, r in { s.nav, s.money.rect, s.status.rect } do
+				expect(Layout.overlaps(s.tutorial, r)).toBe(false)
+				expect(Layout.overlaps(s.tutorialCarrying, r)).toBe(false)
+			end
+			expect(Layout.overlaps(s.tutorialCarrying, s.carry)).toBe(false)
+		end)
+	end
+end)

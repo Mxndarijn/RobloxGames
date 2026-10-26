@@ -4,46 +4,43 @@
 
 	Places the world props from Archer's ReplicatedStorage.Visuals.Props at
 	WorldLayout.PROP_SPOTS under workspace.Map (CONTRACT.md §5.3):
-	ShopStand (with the "Open Shop" ProximityPrompt on Counter; with FEATURES.WorldShops on, the ItemShopStand
-	and UpgradeShopStand instead, each with its own ShopPrompt and ShopId attribute, CONTRACT.md §27),
-	LeaderboardBoard and TutorialNpc (with the "Talk" prompt). A prop that already exists anywhere
-	under workspace (e.g. a static copy) is reused. Every part is anchored.
-	Also writes the leaderboard rows into the board and builds the Speed Coil
-	tool. Holds no gameplay rules; a missing Visuals module just means no props.
+	ItemShopStand and UpgradeShopStand (each with its own ShopPrompt on Counter and ShopId attribute,
+	CONTRACT.md §27), the five Hall of Fame boards (Leaderboards.BOARDS, each tagged with its LeaderboardStat),
+	ProfessorGoo and TutorialNpc (with the "Talk" prompt). A prop that already exists anywhere under workspace
+	(e.g. a static copy) is reused. Every part is anchored. A spot with a `scale` scales the built Model.
+	Also writes each board's rows and builds the Speed Coil tool. Holds no gameplay rules; a missing Visuals module just means no props.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local Leaderboard = require(script.Parent.Leaderboard)
+local Leaderboards = require(ReplicatedStorage.Shared.Leaderboards)
 local Shops = require(ReplicatedStorage.Shared.Shops)
 
 local WorldProps = {}
 
--- v28: one prompt per prop. Both only open a client menu (the UI listens
--- for PromptTriggered); nothing is bought or changed on the server.
-WorldProps.SHOP_PROMPT = table.freeze({
-	name = Constants.SHOP_PROMPT_NAME,
-	objectText = "Shop",
-	actionText = "Open Shop",
-})
--- FEATURES.WorldShops (CONTRACT.md §27.3): same prompt name, one per stand; the server opens the shop on Triggered.
+-- One ShopPrompt per stand (CONTRACT.md §27.3); the server opens the shop on Triggered.
 WorldProps.SHOP_PROMPTS = table.freeze({
 	ItemShop = table.freeze({
-		name = WorldProps.SHOP_PROMPT.name,
+		name = Constants.SHOP_PROMPT_NAME,
 		objectText = "Item Shop",
 		actionText = "Browse items",
 	}),
 	UpgradeShop = table.freeze({
-		name = WorldProps.SHOP_PROMPT.name,
+		name = Constants.SHOP_PROMPT_NAME,
 		objectText = "Upgrade Shop",
 		actionText = "Browse upgrades",
 	}),
 })
--- The sign text of each stand (the Props sign says SHOP).
-local STAND_SIGNS: { [string]: string } = { ItemShop = "ITEM SHOP", UpgradeShop = "UPGRADE SHOP" }
-
+-- Professor Goo's prompt only opens the client's Leaderboards panel (the UI listens for PromptTriggered).
+WorldProps.LEADERBOARD_PROMPT = table.freeze({
+	name = Constants.LEADERBOARD_PROMPT_NAME,
+	objectText = "Professor Goo",
+	actionText = "View leaderboards",
+})
+WorldProps.LEADERBOARD_CLICK_DISTANCE = 32
+-- The Guide's prompt only opens a client menu (the UI listens for PromptTriggered).
 WorldProps.GUIDE_PROMPT = table.freeze({
 	name = Constants.GUIDE_PROMPT_NAME,
 	objectText = "Guide",
@@ -99,23 +96,13 @@ function WorldProps.meshSize(WorldLayout: any, mesh: string, model: Model): Vect
 	return Vector3.new(size[1], size[2], size[3])
 end
 
-function WorldProps.worldShops(): boolean
-	return Config.FEATURES.WorldShops == true
-end
-
--- A shop stand builder: Props.shopStand with the skin and sign of `shopId` (Props.STAND_STYLES), renamed, its sign text set.
-local function standBuilder(Props: any, name: string, shopId: string?): (() -> Instance)?
+-- A shop stand builder: Props.shopStand with the skin, sign and model name of `shopId` (Props.STAND_STYLES).
+local function standBuilder(Props: any, shopId: string): (() -> Instance)?
 	if not (Props and Props.shopStand) then
 		return nil
 	end
 	return function()
-		local model = Props.shopStand(shopId)
-		model.Name = name
-		local text = shopId and model:FindFirstChild("Text", true)
-		if text and text:IsA("TextLabel") then
-			text.Text = STAND_SIGNS[shopId :: string]
-		end
-		return model
+		return Props.shopStand(shopId)
 	end
 end
 
@@ -124,25 +111,30 @@ function WorldProps.place(): { [string]: Model }
 	local Props = visual("Props")
 	local WorldLayout = visual("WorldLayout")
 	local builders: { [string]: any } = {
-		[Constants.LEADERBOARD_BOARD] = Props and Props.leaderboardBoard,
 		[Constants.TUTORIAL_NPC] = Props and Props.tutorialNpc,
+		[Constants.PROFESSOR_GOO] = Props and Props.professorGoo,
+		[Constants.HALL_ARCH] = Props and Props.hallArch,
 	}
-	if WorldProps.worldShops() then
-		builders[Constants.SHOP_STAND_ITEM] = standBuilder(Props, Constants.SHOP_STAND_ITEM, "ItemShop")
-		builders[Constants.SHOP_STAND_UPGRADE] = standBuilder(Props, Constants.SHOP_STAND_UPGRADE, "UpgradeShop")
-	else
-		builders[Constants.SHOP_STAND] = Props and Props.shopStand
+	for _, def in Leaderboards.BOARDS do
+		builders[def.model] = if Props and Props.leaderboardBoard
+			then function()
+				return Props.leaderboardBoard(def)
+			end
+			else nil
 	end
+	builders[Constants.SHOP_STAND_ITEM] = standBuilder(Props, "ItemShop")
+	builders[Constants.SHOP_STAND_UPGRADE] = standBuilder(Props, "UpgradeShop")
 	local parent = workspace:FindFirstChild(Constants.MAP_FOLDER) or workspace
 	for name, build in builders do
 		local model = findModel(name)
-		-- the single ShopStand sits at the Item Shop's spot
-		local spotName = if name == Constants.SHOP_STAND then Constants.SHOP_STAND_ITEM else name
-		local spot = WorldLayout and WorldLayout.PROP_SPOTS and WorldLayout.PROP_SPOTS[spotName]
+		local spot = WorldLayout and WorldLayout.PROP_SPOTS and WorldLayout.PROP_SPOTS[name]
 		if not model and build and spot then
 			local ok, result = pcall(build)
 			if ok and typeof(result) == "Instance" and result:IsA("Model") then
 				model = result
+				if type(spot.scale) == "number" and spot.scale ~= 1 then
+					result:ScaleTo(spot.scale)
+				end
 				result:PivotTo(
 					CFrame.new(spot.pos[1], spot.pos[2], spot.pos[3]) * CFrame.Angles(0, math.rad(spot.yaw), 0)
 				)
@@ -154,11 +146,15 @@ function WorldProps.place(): { [string]: Model }
 		end
 		if model then
 			anchorAll(model)
+			local board = Leaderboards.forModel(name)
+			if board then
+				model:SetAttribute(Constants.LEADERBOARD_STAT_ATTRIBUTE, board.stat)
+			end
 			-- Slime Ranch skin (server/MeshSwap) once the kit mesh is uploaded; each shop stand has its own.
 			local stand = WorldLayout and WorldLayout.SHOP_STANDS and WorldLayout.SHOP_STANDS[name]
 			local mesh = if stand
 				then stand.mesh
-				else WorldLayout and WorldLayout.PROP_MESHES and WorldLayout.PROP_MESHES[spotName]
+				else WorldLayout and WorldLayout.PROP_MESHES and WorldLayout.PROP_MESHES[name]
 			if mesh and model:GetAttribute("MeshAsset") == nil then
 				model:SetAttribute("MeshAsset", mesh)
 			end
@@ -201,37 +197,46 @@ function WorldProps.shopCounter(shopId: string): BasePart?
 	return counterOf(if shop then placed[shop.stand] else nil)
 end
 
--- "Open Shop" on the ShopStand's Counter and "Talk" on the TutorialNpc's
--- root (CONTRACT.md §5.3). With FEATURES.WorldShops each stand gets its own ShopPrompt plus the ShopId
--- attribute, and `onShop(player, shopId)` runs on the server when it is triggered (CONTRACT.md §27.3).
+-- Each stand's ShopPrompt on its Counter plus the ShopId attribute, `onShop(player, shopId)` running on the server
+-- when it is triggered (CONTRACT.md §27.3), and "Talk" on the TutorialNpc's root (CONTRACT.md §5.3).
 -- Call after place().
 function WorldProps.addShopPrompts(onShop: ((player: Player, shopId: string) -> ())?)
-	if WorldProps.worldShops() then
-		for _, shopId in Shops.ORDER do
-			local stand = placed[(Shops.shop(shopId) :: Shops.Shop).stand]
-			local counter = counterOf(stand)
-			if stand and counter then
-				stand:SetAttribute(Constants.SHOP_ID_ATTRIBUTE, shopId)
-				addPrompt(counter, WorldProps.SHOP_PROMPTS[shopId])
-				local prompt = counter:FindFirstChild(Constants.SHOP_PROMPT_NAME)
-				if onShop and prompt and prompt:IsA("ProximityPrompt") then
-					prompt.Triggered:Connect(function(player: Player)
-						onShop(player, shopId)
-					end)
-				end
+	for _, shopId in Shops.ORDER do
+		local stand = placed[(Shops.shop(shopId) :: Shops.Shop).stand]
+		local counter = counterOf(stand)
+		if stand and counter then
+			stand:SetAttribute(Constants.SHOP_ID_ATTRIBUTE, shopId)
+			addPrompt(counter, WorldProps.SHOP_PROMPTS[shopId])
+			local prompt = counter:FindFirstChild(Constants.SHOP_PROMPT_NAME)
+			if onShop and prompt and prompt:IsA("ProximityPrompt") then
+				prompt.Triggered:Connect(function(player: Player)
+					onShop(player, shopId)
+				end)
 			end
 		end
-	else
-		addPrompt(counterOf(placed[Constants.SHOP_STAND]), WorldProps.SHOP_PROMPT)
 	end
 	local npc = placed[Constants.TUTORIAL_NPC]
 	addPrompt(npc and (npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart), WorldProps.GUIDE_PROMPT)
+	-- Professor Goo: "View leaderboards" (E / tap) and a ClickDetector for a click or right-click; both only open
+	-- the client's Leaderboards panel.
+	local professor = placed[Constants.PROFESSOR_GOO]
+	addPrompt(
+		professor and (professor:FindFirstChild("HumanoidRootPart") or professor.PrimaryPart),
+		WorldProps.LEADERBOARD_PROMPT
+	)
+	if professor and not professor:FindFirstChild(Constants.LEADERBOARD_CLICK_NAME) then
+		local click = Instance.new("ClickDetector")
+		click.Name = Constants.LEADERBOARD_CLICK_NAME
+		click.MaxActivationDistance = WorldProps.LEADERBOARD_CLICK_DISTANCE
+		click.Parent = professor
+	end
 end
 
--- Writes Leaderboard.boardRows into the board's Rows frame (in place when the
--- row count is unchanged, CONTRACT.md §5.3).
+-- Writes Leaderboard.boardRows into the Rows frame of the world board of `board.stat` (in place when the row
+-- count is unchanged, CONTRACT.md §5.3). A nil board blanks the podium board.
 function WorldProps.fillBoard(board: any)
-	local model = placed[Constants.LEADERBOARD_BOARD]
+	local def = Leaderboards.get(type(board) == "table" and board.stat) or Leaderboards.podium()
+	local model = placed[def.model]
 	local container = model and model:FindFirstChild("Rows", true)
 	if not model or not container then
 		return

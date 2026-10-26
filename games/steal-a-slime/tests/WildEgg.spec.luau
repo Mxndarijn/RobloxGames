@@ -8,8 +8,6 @@ local Economy = require("../src/shared/Economy")
 local EggKind = require("../src/shared/EggKind")
 local Fixtures = require("./Fixtures")
 local Genome = require("../src/shared/Genome")
-local Merge = require("../src/shared/Merge")
-local MergePlan = require("../src/shared/MergePlan")
 local PlayerData = require("../src/shared/PlayerData")
 local Rng = require("../src/shared/Rng")
 local SaveData = require("../src/shared/SaveData")
@@ -22,6 +20,7 @@ local Spawner = require("../src/server/Spawner")
 local SpeciesDex = require("../src/shared/SpeciesDex")
 local StealService = require("../src/server/StealService")
 local TestRunner = require("./TestRunner")
+local VatState = require("../src/shared/VatState")
 local World = require("../src/server/World")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -51,7 +50,7 @@ describe("EggKind table", function()
 		for _, k in EggKind.list() do
 			expect(seen[k.id]).toBeNil()
 			seen[k.id] = true
-			expect(k.weight > 0 and k.hatchSeconds > 0 and k.price > 0 and k.sell > 0).toBe(true)
+			expect(k.weight > 0 and k.hatchSeconds > 0).toBe(true)
 			local total = 0
 			for tier, p in EggKind.probabilities(k) do
 				expect(tier >= 1 and tier <= Config.MAX_TIER).toBe(true)
@@ -97,12 +96,12 @@ describe("EggKind table", function()
 end)
 
 describe("an egg record", function()
-	it("earns nothing, shows its egg name and sells for its kind's price x the rebirth multiplier", function()
+	it("earns nothing, shows its egg name and has no sell price", function()
 		local e = egg("e", "golden", 6)
 		expect(Genome.baseIncome(e)).toBe(0)
 		expect(Genome.displayName(e)).toBe("Golden Mystery Egg")
-		expect(Economy.sellPrice(e, 0)).toBe(kind("golden").sell)
-		expect(Economy.sellPrice(e, 2)).toBe(math.floor(kind("golden").sell * Economy.rebirthMultiplier(2)))
+		expect(Economy.sellPrice(e, 0)).toBeNil()
+		expect(Economy.sellPrice(e, 2)).toBeNil()
 	end)
 	it("is masked for clients: egg name and tier, no species, the real record untouched", function()
 		local e = egg("e", "cosmic", 7, T0 + 60)
@@ -118,11 +117,8 @@ describe("an egg record", function()
 	end)
 	it("is never merged, never a favourite, never grows and is not in the SlimeDex", function()
 		local data = Fixtures.data({ egg("e1", "shiny", 3), egg("e2", "shiny", 3), Fixtures.slime("s", 3) })
-		expect((Merge.canMerge(data.slimes[1], data.slimes[2]))).toBe(false)
-		expect((Merge.findPair(data.slimes))).toBeNil()
-		for _, c in MergePlan.fromData(data) do
-			expect(MergePlan.excluded(c)).toBe(if c.id == "s" then nil else "egg")
-		end
+		expect(select(2, VatState.add(data, "e1"))).toBe("Eggs can't go in the vat")
+		expect(VatState.add(data, "s")).toBe(true)
 		expect(PlayerData.setFavorite(data, "e1")).toBe(false)
 		expect(SpeciesDex.record(data, data.slimes[1])).toBe(false)
 		expect(data.found.lop).toBeNil()
@@ -169,14 +165,14 @@ describe("fountain eggs", function()
 			expect(Spawner.rollEgg(world, true)).toBe(false) -- MAX_WILD = 1 egg already loose
 		end
 	end)
-	it("spawns a sealed egg on the lane with no hatch clock, a free or kind price and its tier's lifetime", function()
+	it("spawns a sealed, free egg on the lane with no hatch clock", function()
 		local world = ServerFixtures.world()
 		for _ = 1, 40 do
 			local id = Spawner.spawnEgg(world, T0)
 			local wild = world.wild[id]
 			local k = assert(EggKind.of(wild.slime))
 			expect(wild.slime.egg and wild.slime.egg.hatchAt).toBeNil()
-			expect(wild.price == 0 or wild.price == k.price).toBe(true)
+			expect(wild.price).toBe(0)
 			-- A lucky egg holds one tier above its roll.
 			local rolled = if wild.slime.egg and wild.slime.egg.lucky then wild.slime.tier - 1 else wild.slime.tier
 			expect(EggKind.probabilities(k)[rolled] ~= nil).toBe(true)
@@ -204,12 +200,22 @@ local function carryingEgg(): (World.World, World.Session, string)
 	local id = Spawner.spawnEgg(world, T0)
 	local wild = world.wild[id]
 	wild.slime.egg = { kind = "speckled" }
-	wild.price = 0
 	expect((Carry.grab(world, 1, id, 2, T0))).toBe(true)
 	return world, session, id
 end
 
 describe("carrying and incubating", function()
+	it("grabs a fresh wild egg of any kind for free, even with no cash", function()
+		for _ = 1, 40 do
+			local world = ServerFixtures.world()
+			local session = ServerFixtures.join(world, 1)
+			session.data.cash = 0
+			local id = Spawner.spawnEgg(world, T0)
+			expect((Carry.grab(world, 1, id, 2, T0))).toBe(true)
+			expect(session.data.cash).toBe(0)
+			expect(world.carriedBy[id]).toBe(1)
+		end
+	end)
 	it("starts the hatch clock on the first pad and toasts that it is incubating", function()
 		local world, session, id = carryingEgg()
 		ServerFixtures.clearEvents(world)
@@ -345,6 +351,41 @@ describe("State for eggs", function()
 		expect(view.slime.tier).toBe(kind("golden").tier)
 		expect(view.slime.species).toBeNil()
 		expect(view.income).toBe(0)
-		expect(view.sellPrice).toBe(kind("golden").sell)
+		expect(view.sellPrice).toBeNil()
+	end)
+end)
+
+describe("selling an egg", function()
+	it("is refused by Sell: the egg stays and no cash is paid, incubating or ready", function()
+		local world, owner = twoPlayers({ egg("e", "golden", 6, T0 + 60), egg("r", "speckled", 2, T0) })
+		local cash = owner.data.cash
+		for i, id in { "e", "r" } do
+			local res = Actions.handle(world, 1, "Sell", table.pack(id), T0 + i, ctx)
+			expect(res.ok).toBe(false)
+			expect(res.message).toBe("eggs can't be sold")
+			expect(PlayerData.findSlime(owner.data, id) ~= nil).toBe(true)
+		end
+		expect(owner.data.cash).toBe(cash)
+		expect(owner.data.stats.sold).toBe(0)
+	end)
+	it("is refused for a thief's stolen egg, while a normal slime beside it still sells", function()
+		local world, _, thief = twoPlayers({})
+		thief.data.slimes = { egg("t", "cosmic", 7, T0 + 900), Fixtures.slime("s", 3) }
+		thief.data.slimes[1].pad = 1
+		thief.data.slimes[2].pad = 2
+		local cash = thief.data.cash
+		local res = Actions.handle(world, 2, "Sell", table.pack("t"), T0, ctx)
+		expect(res.message).toBe("eggs can't be sold")
+		expect(thief.data.cash).toBe(cash)
+		expect(Actions.handle(world, 2, "Sell", table.pack("s"), T0 + 1, ctx).ok).toBe(true)
+		expect(thief.data.cash).toBe(cash + assert(Economy.sellPrice(Fixtures.slime("s", 3), 0)))
+		expect(PlayerData.findSlime(thief.data, "t") ~= nil).toBe(true)
+	end)
+	it("is refused by PlayerData.sell itself", function()
+		local data = Fixtures.data({ egg("e", "shiny", 3) })
+		local ok, reason = PlayerData.sell(data, "e")
+		expect(ok).toBe(false)
+		expect(reason).toBe("eggs can't be sold")
+		expect(#data.slimes).toBe(1)
 	end)
 end)

@@ -9,8 +9,7 @@ local ForcedFlags = {}
 
 -- All flags off: these need the named flag(s) on.
 ForcedFlags.off = {
-	["world shop stands in the booted server"] = "WorldShops",
-	["plot pad prompts on the real world (WorldShopsStrict on)"] = "WorldShopsStrict",
+	["tower theme switch"] = "PlotSkins",
 	["AdminEvents gate"] = "AdminEvents",
 	["AdminEvents parse + validate"] = "AdminEvents",
 	["AdminEvents effects"] = "AdminEvents",
@@ -26,12 +25,16 @@ ForcedFlags.off = {
 	["Spawner.stepModifier"] = "CycleModifier",
 	["FountainRide: the live server rides every spawned slime"] = "Parade",
 	["ParadeLane: handoff to the goo drain"] = "Parade",
+	["ground rays of returning slimes"] = "Parade",
 	["ParadeLane: the despawn telegraph stays readable"] = "Parade",
 	["ParadeLane in the live server"] = "Parade",
 	["Carry.release + Spawner: a dropped wild slime walks back and rejoins the lane"] = "Parade",
+	["Carry.reroute: the server's path swapped into a dropped slime's walk"] = "Parade",
 	["runtime part budget > boots with no server errors and spawns the parade lane and slide colliders"] = "Parade / SlideCollision",
 	["FriendBonus math"] = "FriendBonus",
 	["Friends.refresh"] = "FriendBonus",
+	["a guest in a locked base"] = "FriendsInBase",
+	["the lock button's friends prompt > says what pressing it does, and the plot shows the switch"] = "FriendsInBase",
 	["friend bonus in income and State"] = "FriendBonus",
 	["Weather flag"] = "Weather",
 	["Growth curve"] = "GrowingSlimes",
@@ -68,7 +71,6 @@ ForcedFlags.needOff = {
 	["plot skins: equip > the Request refuses a locked skin, and equips an unlocked one"] = "PlotSkins",
 	["plot skins: equip > with the flag off the Request is refused, even for an unlocked skin"] = "PlotSkins",
 	["plot skins: equip > flag off: State carries no plot skin fields"] = "PlotSkins",
-	["TripleMerge: server action > is refused with the flag off and merges with it on"] = "MergeVat3",
 	-- FEATURES.FountainSplit on: the fountain is 5 PCD pieces and the hand-placed colliders stay off (tests/FountainSplit.spec);
 	-- these pin the single Mesh child and the colliders turned on by it
 	["fountain collider, mesh loading > stays that way while the fountain's CreateMeshPartAsync is in flight"] = "FountainSplit",

@@ -492,7 +492,7 @@ local function splat(position: Vector3, spec: { radius: number, seconds: number,
 	part.Size = Vector3.new(LOOK.splatHeight, spec.radius * 2, spec.radius * 2)
 	part.CFrame = CFrame.new(ground + Vector3.new(0, LOOK.splatHeight / 2, 0)) * CFrame.Angles(0, 0, math.pi / 2)
 	part.Color = color3(spec.color)
-	part.Material = Enum.Material.Glass
+	part.Material = Enum.Material.SmoothPlastic
 	part.Transparency = 0.3
 	part.Anchored = true
 	part.CanCollide = false

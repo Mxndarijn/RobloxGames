@@ -3,11 +3,11 @@
 	BossFight (pure, contract/boss-event.md)
 
 	One boss event as plain data: the phase ("warning" -> "fight" -> "haul" -> "won" | "failed"), its deadline, the goo
-	meter, every player's hits, the sheds already paid and the haul (top-contributor head start, carrier, winner).
+	meter, every player's hits, the stages reached and the haul (top-contributor head start, carrier, winner).
 
 	The meter target scales with the players on the server (Config.BOSS.POINTS_PER_PLAYER x players, read live), so a
 	fight takes about as long on any server. `step` advances time and returns what the caller must do (spawn the boss,
-	shed slimes, start the haul, fail). No Roblox APIs, no randomness, no World: server/BossEvent wires it up.
+	a new stage, start the haul, fail). No Roblox APIs, no randomness, no World: server/BossEvent wires it up.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -22,7 +22,7 @@ export type State = {
 	contributions: { [number]: number }, -- userId -> hits on this boss (never drains)
 	lastHitAt: { [number]: number }, -- userId -> last counted hit
 	lastAnyHitAt: number, -- last counted hit by anyone (the drain waits DRAIN_GRACE after it)
-	shed: number, -- sheds paid so far (one per SHED_EVERY of the meter)
+	stage: number, -- stages reached so far (one per STAGE_EVERY of the meter; it speeds up with each)
 	priorityUserId: number?, -- haul: the top contributor's head start
 	priorityUntil: number?,
 	carrierUserId: number?,
@@ -31,11 +31,7 @@ export type State = {
 }
 
 -- What `step` asks the caller to do, in order.
-export type Event =
-	{ kind: "fight" }
-	| { kind: "shed", count: number }
-	| { kind: "haul" }
-	| { kind: "fail", reason: string }
+export type Event = { kind: "fight" } | { kind: "stage" } | { kind: "haul" } | { kind: "fail", reason: string }
 
 local BossFight = {}
 
@@ -50,7 +46,7 @@ function BossFight.new(species: string, now: number): State
 		contributions = {},
 		lastHitAt = {},
 		lastAnyHitAt = -math.huge,
-		shed = 0,
+		stage = 0,
 		priorityUserId = nil,
 		priorityUntil = nil,
 		carrierUserId = nil,
@@ -97,8 +93,9 @@ function BossFight.share(state: State, userId: number): number
 	return math.clamp((state.contributions[userId] or 0) / top, 0, 1)
 end
 
--- One Bat hit by `userId`. Returns (counted, reason): one point at most every HIT_GAP seconds per player.
-function BossFight.hit(state: State, userId: number, now: number): (boolean, string?)
+-- One Bat hit by `userId` worth `amount` points (default 1; more while the boss is dazed). Returns (counted, reason):
+-- at most one hit every HIT_GAP seconds per player.
+function BossFight.hit(state: State, userId: number, now: number, amount: number?): (boolean, string?)
 	if state.phase ~= "fight" then
 		return false, "the boss isn't fighting"
 	end
@@ -107,11 +104,27 @@ function BossFight.hit(state: State, userId: number, now: number): (boolean, str
 	if last and now - last < BOSS.HIT_GAP - 1e-6 then
 		return false, "too fast"
 	end
+	local points = math.max(0, amount or 1)
 	state.lastHitAt[userId] = now
 	state.lastAnyHitAt = now
-	state.points += 1
-	state.contributions[userId] = (state.contributions[userId] or 0) + 1
+	state.points += points
+	state.contributions[userId] = (state.contributions[userId] or 0) + points
 	return true, nil
+end
+
+-- Meter points from something other than a Bat hit on the boss (a popped guard), credited to `userId`.
+function BossFight.add(state: State, userId: number, points: number, now: number)
+	if state.phase ~= "fight" then
+		return
+	end
+	state.lastAnyHitAt = now
+	state.points += points
+	state.contributions[userId] = (state.contributions[userId] or 0) + points
+end
+
+-- Stage 0..3: how many STAGE_EVERY of the meter have been reached (the boss speeds up with each).
+function BossFight.stage(state: State): number
+	return state.stage
 end
 
 local function fail(state: State, now: number, reason: string, events: { Event })
@@ -124,10 +137,10 @@ end
 
 --[[
 	Advances the fight to `now` (`dt` seconds since the last step) with `players` on the server. Returns the events
-	for the caller, in order: "fight" (the boss arrives), "shed" (count = slimes to spawn), "haul" (the meter is full;
+	for the caller, in order: "fight" (the boss arrives), "stage" (it reached the next STAGE_EVERY of the meter), "haul" (the meter is full;
 	priority goes to the top contributor), "fail".
 ]]
-function BossFight.step(state: State, now: number, dt: number, players: number): { Event }
+function BossFight.step(state: State, now: number, dt: number, players: number, paused: boolean?): { Event }
 	local events: { Event } = {}
 	if state.phase == "warning" then
 		if now >= state.endsAt then
@@ -139,15 +152,16 @@ function BossFight.step(state: State, now: number, dt: number, players: number):
 	end
 	if state.phase == "fight" then
 		local target = BossFight.target(players)
-		if now - state.lastAnyHitAt >= BOSS.DRAIN_GRACE and dt > 0 then
+		-- `paused`: the boss is winding up or attacking, so dodging never costs the meter.
+		if not paused and now - state.lastAnyHitAt >= BOSS.DRAIN_GRACE and dt > 0 then
 			state.points = math.max(0, state.points - BOSS.DRAIN_PER_SECOND * target * dt)
 		end
 		local meter = math.clamp(state.points / target, 0, 1)
-		-- Sheds at every SHED_EVERY crossed for the first time, below the full meter (that one pops the haul).
-		local reached = math.min(math.floor(meter / BOSS.SHED_EVERY + 1e-9), math.ceil(1 / BOSS.SHED_EVERY) - 1)
-		if reached > state.shed then
-			table.insert(events, { kind = "shed", count = (reached - state.shed) * BOSS.SHED_COUNT })
-			state.shed = reached
+		-- A stage at every STAGE_EVERY crossed for the first time, below the full meter (that one pops the haul).
+		local reached = math.min(math.floor(meter / BOSS.STAGE_EVERY + 1e-9), math.ceil(1 / BOSS.STAGE_EVERY) - 1)
+		if reached > state.stage then
+			table.insert(events, { kind = "stage" })
+			state.stage = reached
 		end
 		if meter >= 1 then
 			state.phase = "haul"

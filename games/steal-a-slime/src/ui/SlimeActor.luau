@@ -15,6 +15,8 @@
 	slime fidgets (ui/SlimeFidget), reacts to the local player and drops in / hops over when it is put down or moved;
 	an escaping slime races home stretched and sweating; a riding slime sits back on the slide; a lean spring and a
 	squash spring (Lib Spring) add follow-through on top.
+	Landings, fidget starts, new emotes and Move landings set client-only model attributes
+	(SlimeAudioLogic.ATTRIBUTES) that ui/SlimeAudio turns into sounds.
 
 	  SlimeActor.attach(model, motor, now, prevState?, movedFrom?) -> Actor
 	    prevState = the model's State before this rig (a Carried slime put on its pad drops in)
@@ -33,12 +35,15 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local BossChoreo = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossChoreo"))
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local ParadeChoreo = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ParadeChoreo"))
 local ParadeLane = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ParadeLane"))
+local SlimeLife = require(script.Parent:WaitForChild("SlimeLife"))
 local Lib = ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core")
 local SlimeAttention = require(script.Parent:WaitForChild("SlimeAttention"))
+local SlimeAudioLogic = require(script.Parent:WaitForChild("SlimeAudioLogic"))
 local SlimeBeats = require(script.Parent:WaitForChild("SlimeBeats"))
 local SlimeFidget = require(script.Parent:WaitForChild("SlimeFidget"))
 local SlimeGait = require(script.Parent:WaitForChild("SlimeGait"))
@@ -183,7 +188,16 @@ export type Actor = {
 	faceLead: number, -- the face's turn on top of the body, eased (radians)
 	hasTag: boolean,
 	tagOffset: Vector3, -- the TagAnchor's offset from the Body (world axes)
+	bossText: string?, -- the boss: its BossMove attribute as last decoded
+	bossMove: BossChoreo.Move?, -- the boss: its current move (nil for every other slime)
+	bossKicked: number, -- the boss: the move number whose landing squash already played
+	bossHitAt: number?, -- the boss: the last BossHitAt it squashed for
 }
+
+-- Sound cues for ui/SlimeAudio: a client-only model attribute set to the time it happened.
+local function cue(model: Model, attribute: string, now: number)
+	model:SetAttribute(attribute, now)
+end
 
 local function rootOf(motor: SlimeMotor.Motor): BasePart?
 	local p = motor.skinJoint.Part1
@@ -309,6 +323,10 @@ function SlimeActor.attach(
 		faceLead = 0,
 		hasTag = false,
 		tagOffset = Vector3.zero,
+		bossText = nil,
+		bossMove = nil,
+		bossKicked = 0,
+		bossHitAt = nil,
 	}
 	local state = model:GetAttribute("State")
 	actor.state = if type(state) == "string" then state else nil
@@ -403,16 +421,126 @@ local function laneSpot(actor: Actor, pos: Vector3, t: number, dt: number): (num
 	return p1[1], p1[3], (p1[1] - p0[1]) / 0.1, (p1[3] - p0[3]) / 0.1
 end
 
--- Where the slime is drawn from, smooth at frame rate. The Body replicates in steps; a lane slime follows its
--- lane math plus a slow correction towards the Body, anything else a fast filter of the Body.
+-- The boss's move from its BossMove attribute (decoded once per change), or nil for any other slime.
+local function bossMoveOf(actor: Actor): BossChoreo.Move?
+	local text = actor.model:GetAttribute(Constants.BOSS_MOVE_ATTRIBUTE)
+	if type(text) ~= "string" then
+		actor.bossText, actor.bossMove = nil, nil
+		return nil
+	end
+	if text ~= actor.bossText then
+		actor.bossText = text
+		actor.bossMove = BossChoreo.decode(text)
+	end
+	return actor.bossMove
+end
+
+SlimeActor.BOSS_TURN = 2.6 -- rad / s: the boss never turns faster than this (it is big and heavy)
+SlimeActor.BOSS_TURN_RATE = 5 -- 1 / s: how fast it turns toward a new heading below that cap
+
+-- The boss's look and feel on top of its gait for move `move` at server time `t`. Returns its face, or nil.
+local function bossPose(actor: Actor, move: BossChoreo.Move, t: number, now: number, mods: SlimeMotor.Mods): string?
+	local size = (actor.model:GetAttribute("Size") :: number?) or 1
+	local _, _, _, _, lift, u = BossChoreo.pose(move, t)
+	mods.lift += lift / math.max(size, 1e-3)
+	-- every counted bat hit squashes it (BossHitAt changes)
+	local hitAt = actor.model:GetAttribute(Constants.BOSS_HIT_AT_ATTRIBUTE)
+	if type(hitAt) == "number" and hitAt ~= actor.bossHitAt then
+		if actor.bossHitAt ~= nil then
+			Spring.kick(actor.squash, -0.9 * SlimeActor.SQUASH.kick)
+		end
+		actor.bossHitAt = hitAt
+	end
+	local since = t - move.at
+	local kind = move.kind
+	if kind == "arrive" then
+		local fall = Config.BOSS.ARRIVE_FALL
+		if since >= fall and actor.bossKicked ~= move.n then
+			actor.bossKicked = move.n
+			Spring.kick(actor.squash, -1.6 * SlimeActor.SQUASH.kick)
+			if actor.splat then
+				actor.splat:Emit(24)
+			end
+		end
+		return if since < fall then "surprised" else "angry"
+	elseif kind == "windup" then
+		-- gathers itself: squats lower and trembles as the telegraph runs
+		mods.sy *= 1 - 0.14 * u
+		mods.sx *= 1 + 0.07 * u
+		mods.roll += 0.04 * math.sin(now * 40) * u
+		mods.tilt -= 0.08 * u
+		return "angry"
+	elseif kind == "hop" then
+		-- a bouncing stomp: stretched in the air, a splat on landing (its ring runs out from there)
+		if since < Config.BOSS.HOP_SECONDS then
+			mods.sy *= 1.12
+			mods.sx *= 0.94
+		elseif actor.bossKicked ~= move.n then
+			actor.bossKicked = move.n
+			Spring.kick(actor.squash, -1.3 * SlimeActor.SQUASH.kick)
+			if actor.splat then
+				actor.splat:Emit(16)
+			end
+		end
+		return "angry"
+	elseif kind == "attack" then
+		if move.fx ~= move.tx or move.fz ~= move.tz then
+			mods.tilt += 0.22 -- a charge: head down
+			return "angry"
+		end
+		-- a stomp, a throw or a swipe: a short hop that lands at the strike
+		local strike = Config.BOSS.RING_DELAY
+		if since < strike then
+			mods.lift += 1.2 * math.sin(math.pi * since / strike)
+		elseif actor.bossKicked ~= move.n then
+			actor.bossKicked = move.n
+			Spring.kick(actor.squash, -1.2 * SlimeActor.SQUASH.kick)
+			if actor.splat then
+				actor.splat:Emit(16)
+			end
+		end
+		return "angry"
+	elseif kind == "dazed" then
+		mods.roll += 0.12 * math.sin(now * 5)
+		mods.tilt += 0.06 * math.sin(now * 3.3)
+		mods.sy *= 0.94
+		return "dizzy"
+	elseif kind == "rise" or kind == "land" then
+		mods.sy *= 1.05
+		return "smug"
+	elseif kind == "down" then
+		-- the meter is full: it shrinks to carry size before the server rescales it
+		if actor.model:GetScale() > 1 + 1e-3 then
+			local k = math.clamp(since / Config.BOSS.SHRINK_SECONDS, 0, 1)
+			local s = 1 + (1 / Config.BOSS.SCALE - 1) * k * k * (3 - 2 * k)
+			mods.sx *= s
+			mods.sy *= s
+		end
+		return "dizzy"
+	elseif kind == "look" then
+		return "focus"
+	end
+	return nil
+end
+
+-- Where the slime is drawn from, smooth at frame rate. The Body replicates in steps; the boss follows its move,
+-- a lane slime its lane math plus a slow correction towards the Body, anything else a fast filter of the Body.
 local function anchor(
 	actor: Actor,
 	pos: Vector3,
 	onLane: boolean,
 	serverNow: number,
 	dt: number,
-	now: number
+	now: number,
+	boss: BossChoreo.Move?
 ): (number, number, number?, number?)
+	if boss then
+		StepTrack.step(actor.track, pos.X, pos.Y, pos.Z, now) -- only its height is used (track.oy)
+		local x, z = BossChoreo.world(boss, serverNow)
+		local px, pz = BossChoreo.world(boss, serverNow - 0.1)
+		actor.ax, actor.az, actor.hasAnchor, actor.hasCorr = x, z, true, false
+		return x, z, (x - px) / 0.1, (z - pz) / 0.1
+	end
 	local lx, lz, vx, vz = nil, 0, 0, 0
 	if onLane then
 		lx, lz, vx, vz = laneSpot(actor, pos, serverNow - SlimeActor.REPLICATION_LAG, dt)
@@ -469,7 +597,7 @@ function SlimeActor.update(
 	local look = body.CFrame.LookVector
 	local state = model:GetAttribute("State")
 	local wild = state == "Wild"
-	local pad = state == "Pad"
+	local pad = SlimeLife.seated(state)
 	local escaping = state == "Escaping"
 	-- On the fountain slide (Riding); the lead-in from the slide mouth also says Riding, but there it walks.
 	local laneAt = model:GetAttribute(Constants.LANE_AT_ATTRIBUTE)
@@ -496,18 +624,30 @@ function SlimeActor.update(
 		end
 	end
 
-	-- Heading: the Body turns in replication steps; the drawn slime turns smoothly (Mods.heading).
+	-- Heading: the Body turns in replication steps; the drawn slime turns smoothly (Mods.heading). The boss turns
+	-- to its move's heading, never faster than BOSS_TURN.
+	local bossMove = if wild then bossMoveOf(actor) else nil
 	local bodyYaw = math.atan2(-look.X, -look.Z)
+	local targetYaw = bodyYaw
+	if bossMove then
+		local _, _, hx, hz = BossChoreo.world(bossMove, serverNow)
+		targetYaw = math.atan2(-hx, -hz)
+		look = Vector3.new(hx, 0, hz)
+	end
 	local oldHeading = actor.heading
 	if not actor.hasHeading or moved then
-		actor.heading, actor.hasHeading, oldHeading = bodyYaw, true, bodyYaw
+		actor.heading, actor.hasHeading, oldHeading = targetYaw, true, targetYaw
+	elseif bossMove then
+		local d = wrap(targetYaw - actor.heading) * (1 - math.exp(-dt * SlimeActor.BOSS_TURN_RATE))
+		local most = SlimeActor.BOSS_TURN * dt
+		actor.heading = wrap(actor.heading + math.clamp(d, -most, most))
 	else
 		actor.heading = StepTrack.angle(actor.heading, bodyYaw, dt)
 	end
 	local turnRate = if dt > 0 then wrap(actor.heading - oldHeading) / dt else 0
 
 	-- Gait from the smooth anchor (frozen while it rides the slide; none on a pad or an escape)
-	local ax, az, vx, vz = anchor(actor, pos, wild and not riding, serverNow, dt, now)
+	local ax, az, vx, vz = anchor(actor, pos, wild and not riding, serverNow, dt, now, bossMove)
 	local ay = actor.track.oy
 	local g = actor.gaitPose
 	local st = actor.gait
@@ -543,6 +683,9 @@ function SlimeActor.update(
 	local emote: string? = nil
 	actor.visible = Vector3.new(pos.X + g.dx, ay, pos.Z + g.dz)
 	actor.speed = math.sqrt(actor.gait.vx ^ 2 + actor.gait.vz ^ 2)
+	if g.landed > 0 and not bossMove then
+		cue(model, SlimeAudioLogic.ATTRIBUTES.land, now)
+	end
 	if detailed and g.landed > 0 and actor.splat then
 		actor.splat:Emit(math.max(3, math.floor(6 * g.landed + 0.5)))
 	end
@@ -606,8 +749,13 @@ function SlimeActor.update(
 		end
 	end
 
+	-- The boss: its move sets the look (stomps, dizziness, the shrink); it never shies away from a player.
+	if bossMove then
+		faceName = bossPose(actor, bossMove, serverNow, now, mods) or faceName
+	end
+
 	-- The local player (looked at from the anchor, not the hop: a jump must not swing the turn). Near tier only.
-	if detailed and wild and not riding and frame.player then
+	if detailed and wild and not riding and frame.player and not bossMove then
 		local yaw, dist = yawTo(body, Vector3.new(ax, pos.Y, az), frame.player)
 		if dist < SlimeActor.NEAR_DEAD_ZONE then
 			yaw = actor.reactYaw
@@ -666,8 +814,12 @@ function SlimeActor.update(
 				toYaw, toDist = yawTo(body, Vector3.new(ax, pos.Y, az), frame.player)
 			end
 			SlimeFidget.setMood(actor.fidget, if toDist < SlimeReact.NEAR then "near" else "idle", now, rand)
+			local before = actor.fidget.kind
 			local fp = SlimeFidget.step(actor.fidget, now, rand, actor.fidgetPose)
 			local fidgeting = actor.fidget.kind ~= nil
+			if fidgeting and before == nil and actor.fidget.kind ~= "drop" and actor.fidget.kind ~= "arrive" then
+				cue(model, SlimeAudioLogic.ATTRIBUTES.blip, now)
+			end
 			mods.lift += fp.lift
 			mods.sx *= fp.sx
 			mods.sy *= fp.sy
@@ -684,6 +836,8 @@ function SlimeActor.update(
 			faceName = fp.face or faceName
 			emote = fp.emote
 			if fp.splat > 0 then
+				local arrived = actor.fidget.kind == "arrive"
+				cue(model, if arrived then SlimeAudioLogic.ATTRIBUTES.arrive else SlimeAudioLogic.ATTRIBUTES.land, now)
 				Spring.kick(actor.squash, -fp.splat * SlimeActor.SQUASH.kick)
 				if detailed and actor.splat then
 					actor.splat:Emit(math.floor(4 + 3 * fp.splat))
@@ -812,7 +966,11 @@ function SlimeActor.update(
 	mods.spin = spin
 
 	face(mods, faceName)
-	actor.emote = if detailed then emote else nil
+	local shown = if detailed then emote else nil
+	if shown and shown ~= actor.emote then
+		cue(model, SlimeAudioLogic.ATTRIBUTES.blip, now)
+	end
+	actor.emote = shown
 	-- Where the slime stands this frame, its sideways lean included (SlimeSpacing keeps these apart).
 	local right = body.CFrame.RightVector
 	actor.visible =

@@ -1,6 +1,6 @@
 --!strict
 --[[
-	TripleMerge (FEATURES.MergeVat3, CONTRACT.md §21)
+	TripleMerge (CONTRACT.md §21)
 
 	Three slimes of ONE rarity go into the vat and one slime of a higher rarity comes out (all three are
 	consumed). The rules are fixed; only the odds are rolled, from the server's Rng, so one seed always gives
@@ -14,13 +14,14 @@
 	              Config.MERGE_ASSIST_CHANCE of them from the species the player hasn't found yet.
 	  * size      mean of the three + Config.TRIPLE_MERGE_SIZE_BONUS.
 	  * traits    pattern / eyes / mouth each from one of the three.
-	Anti-dupe: `apply` checks everything first (three DIFFERENT ids, owned, not busy, not kept, same tier) and only then
+	Anti-dupe: `apply` checks everything first (three DIFFERENT ids, owned, not busy, same tier) and only then
 	removes the inputs and adds the child, so a refused merge changes nothing and an accepted one never leaves
 	an input behind. Pure: no Roblox APIs.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local MergeGate = if script then require(script.Parent.MergeGate) else require("./MergeGate")
 local MergeRecipes = if script then require(script.Parent.MergeRecipes) else require("./MergeRecipes")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
@@ -53,14 +54,21 @@ function TripleMerge.canMerge(slimes: { Slime? }): (boolean, string?)
 	if a.tier ~= b.tier or b.tier ~= c.tier then
 		return false, "slimes must be the same rarity"
 	end
+	if a.tier >= Config.MERGE_MAX_TIER then
+		local recipe = MergeRecipes.find({ a.species, b.species, c.species })
+		if not (recipe and recipe.tier == a.tier + 1) then
+			return false, "only a recipe merges these"
+		end
+	end
 	return true, nil
 end
 
--- What a random merge of three slimes of `tier` can become (for the UI preview).
-function TripleMerge.odds(tier: number): Odds
+-- What a random merge of three slimes of `tier` can become (for the UI preview). With `rebirths`, the jump only
+-- counts when the player's rank opens it (MergeGate.jumpAllowed).
+function TripleMerge.odds(tier: number, rebirths: number?): Odds
 	local base = if tier >= Config.MAX_TIER then Config.MAX_TIER else math.min(tier + 1, Config.MERGE_MAX_TIER)
 	local jump = tier + 2
-	local canJump = jump <= Config.MERGE_JUMP_MAX_TIER
+	local canJump = jump <= Config.MERGE_JUMP_MAX_TIER and (rebirths == nil or MergeGate.jumpAllowed(tier, rebirths))
 	return {
 		tier = base,
 		jumpTier = if canJump then jump else nil,
@@ -68,11 +76,12 @@ function TripleMerge.odds(tier: number): Odds
 	}
 end
 
--- The recipe context of a player's save: every species, and the ones they have found.
+-- The recipe context of a player's save: every species, the ones they have found, and their rank (the jump gate).
 function TripleMerge.ctxFor(data: PlayerData.Data): MergeRecipes.Ctx
 	return {
 		unlocked = MergeRecipes.everySpecies,
 		found = MergeRecipes.foundOf(data.slimes, (data :: any).found),
+		rebirths = data.rebirths,
 	}
 end
 
@@ -143,6 +152,7 @@ function TripleMerge.merge(slimes: { Slime }, rng: Rng.Rng, id: string, ctx: Mer
 		mouth = one(a.mouth, b.mouth, c.mouth),
 		pad = nil,
 		species = if species then species.id else nil,
+		brewed = if outcome.recipe then 2 else 1,
 	}
 	return child
 end
@@ -171,9 +181,6 @@ function TripleMerge.apply(
 		local found = PlayerData.findSlime(data, id)
 		if not found then
 			return false, "missing slime"
-		end
-		if found.keep then
-			return false, "slime is kept"
 		end
 		slimes[i] = found
 	end

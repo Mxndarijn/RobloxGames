@@ -38,7 +38,35 @@ describe("Carry.grab (wild)", function()
 		s.data.cash = 100
 		expect((Carry.grab(world, 1, id, 5, T0))).toBe(true)
 		expect(s.data.cash).toBe(20)
-		expect(world.wild[id].price).toBe(0)
+		expect(world.wild[id].price).toBe(80)
+	end)
+	it("refuses a paid slime before charging when the plot has no free pad", function()
+		local world = ServerFixtures.world()
+		local slimes = {}
+		for i = 1, Config.PADS_MAX do
+			slimes[i] = Fixtures.slime(`p{i}`)
+		end
+		local s = ServerFixtures.join(world, 1, slimes, 500)
+		local id = wildWithPrice(world, 80)
+		local ok, reason = Carry.grab(world, 1, id, 5, T0)
+		expect(ok).toBe(false)
+		expect(reason).toBe("plot full")
+		expect(s.data.cash).toBe(500)
+		expect(s.carry).toBeNil()
+		expect(world.carriedBy[id]).toBeNil()
+		expect(world.wild[id].price).toBe(80)
+	end)
+	it("refuses a free slime too when the plot has no free pad (the boss is exempt)", function()
+		local world = ServerFixtures.world()
+		local slimes = {}
+		for i = 1, Config.PADS_MAX do
+			slimes[i] = Fixtures.slime(`p{i}`)
+		end
+		local s = ServerFixtures.join(world, 1, slimes)
+		local id = wildWithPrice(world, 0)
+		expect(select(2, Carry.grab(world, 1, id, 1, T0))).toBe("plot full")
+		expect(s.carry).toBeNil()
+		expect(world.carriedBy[id]).toBeNil()
 	end)
 	it("enforces reach, one carry at a time and one carrier per slime", function()
 		local world = ServerFixtures.world()
@@ -73,15 +101,16 @@ describe("Carry.deposit", function()
 		local slime = PlayerData.findSlime(s.data, id)
 		expect(slime and slime.pad).toBe(2)
 	end)
-	it("keeps carrying when the plot is full", function()
+	it("keeps carrying when the plot filled up during the carry", function()
 		local world = ServerFixtures.world()
 		local slimes = {}
-		for i = 1, Config.PADS_MAX do
+		for i = 1, Config.PADS_MAX - 1 do
 			slimes[i] = Fixtures.slime(`p{i}`)
 		end
 		local s = ServerFixtures.join(world, 1, slimes)
 		local id = wildWithPrice(world, 0)
-		Carry.grab(world, 1, id, 1, T0)
+		expect((Carry.grab(world, 1, id, 1, T0))).toBe(true)
+		assert(PlayerData.addSlime(s.data, Fixtures.slime("last")))
 		local ok, reason = Carry.deposit(world, 1)
 		expect(ok).toBe(false)
 		expect(reason).toBe("plot full")
@@ -137,16 +166,20 @@ describe("Speed Coil (CONTRACT.md §8.10)", function()
 			return nil
 		end,
 	}
-	it("buying it raises the enforced WalkSpeed from base to the coil speed", function()
+	it("buying it raises the enforced WalkSpeed to the coil speed while held", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, nil, Config.SPEED_COIL_PRICE)
 		expect(Carry.targetWalkSpeed(s, T0)).toBe(Config.BASE_WALK_SPEED)
 		local res = Actions.handle(world, 1, "BuySpeedCoil", {}, T0, ctx)
 		expect(res.ok).toBe(true)
 		expect(s.data.speedCoil).toBe(true)
+		expect(Carry.targetWalkSpeed(s, T0)).toBe(Config.BASE_WALK_SPEED) -- in the Backpack
+		s.coilHeld = true
 		expect(Carry.targetWalkSpeed(s, T0)).toBe(Config.SPEED_COIL_WALK_SPEED)
+		s.coilHeld = false
+		expect(Carry.targetWalkSpeed(s, T0)).toBe(Config.BASE_WALK_SPEED)
 	end)
-	it("still helps while carrying (v12 ignored it)", function()
+	it("does not help while carrying (carrying puts the coil away)", function()
 		local world = ServerFixtures.world()
 		local plain = ServerFixtures.join(world, 1)
 		local coil = ServerFixtures.join(world, 2)
@@ -156,9 +189,8 @@ describe("Speed Coil (CONTRACT.md §8.10)", function()
 		world.wild[b].slime.tier = 3
 		expect((Carry.grab(world, 1, a, 1, T0))).toBe(true)
 		expect((Carry.grab(world, 2, b, 1, T0))).toBe(true)
-		local slow, fast = Carry.targetWalkSpeed(plain, T0), Carry.targetWalkSpeed(coil, T0)
+		local slow, withCoil = Carry.targetWalkSpeed(plain, T0), Carry.targetWalkSpeed(coil, T0)
 		expect(slow < Config.BASE_WALK_SPEED).toBe(true)
-		expect(fast < Config.SPEED_COIL_WALK_SPEED).toBe(true)
-		expect(fast / slow).toBeCloseTo(Config.SPEED_COIL_WALK_SPEED / Config.BASE_WALK_SPEED, 1e-6)
+		expect(withCoil).toBeCloseTo(slow, 1e-9)
 	end)
 end)

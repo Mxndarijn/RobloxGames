@@ -2,11 +2,12 @@
 --[[
 	SlimePadSign (contract/slime-labels.md)
 
-	The label of a slime resting on a pad: a little wooden sign on a stake in
-	front of the pad's cork stand (the side facing the jar's centre, where
-	players walk), dipped in goo of the slime's rarity colour. The goo runs along the top edge with the
-	rarity written in it and drips down both ends; the name and income are
-	painted on the wood, and the growth fills a goo tube. Built and filled by
+	The label of a slime resting on a pad (canvas GooWorldLabels "Pad sign"): a
+	little wooden sign with an Ink edge on a stake in front of the pad's cork
+	stand (the side facing the jar's centre, where players walk), dipped in goo
+	of the slime's rarity colour. The goo runs along the top edge with the
+	rarity written in it and drips down both ends; the name and income are written in outlined Fredoka on the wood, and
+	the growth fills an Ink tube with mint goo. Built and filled by
 	SlimeInfoCard, which owns the lifecycle; this module only makes the part
 	and draws a SlimeLabel.View on it.
 
@@ -17,6 +18,7 @@
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
+local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local SlimeLabel = require(Shared:WaitForChild("SlimeLabel"))
 local Widgets = require(script.Parent.Widgets)
 
@@ -42,43 +44,31 @@ SlimePadSign.SIZE = table.freeze({
 	paintStroke = 2, -- px outline round painted text
 })
 
--- The plank is real wood (the part's WoodPlanks shows through); paint and goo go on top.
+-- The plank is real wood (the part's WoodPlanks shows through); the Goo look's Ink and text go on top.
 SlimePadSign.COLORS = table.freeze({
-	wood = Color3.fromRGB(161, 108, 66),
-	edge = Color3.fromRGB(74, 46, 24),
-	paint = Color3.fromRGB(255, 240, 205),
-	paintStroke = Color3.fromRGB(58, 34, 16),
-	income = Theme.Gold,
-	tube = Color3.fromRGB(70, 44, 24),
-	bandInk = Color3.fromRGB(255, 255, 255),
-	bandStroke = Color3.fromRGB(40, 24, 12),
-	shine = Color3.fromRGB(255, 255, 255),
+	wood = Color3.fromRGB(GooPalette.Wood[1], GooPalette.Wood[2], GooPalette.Wood[3]),
+	edge = Theme.Ink,
+	paint = Color3.new(1, 1, 1),
+	paintStroke = Theme.Ink,
+	income = Theme.Good,
+	tube = Theme.Ink,
 })
-
--- Rarity colours at or above this brightness (0..255) get dark text in the goo.
-SlimePadSign.LIGHT_BAND = 150
 
 -- Layout as fractions of the plank (x across, y down). Text sits between the end drips.
 SlimePadSign.LAYOUT = table.freeze({
-	band = 0.32, -- goo along the top edge
+	band = 0.3, -- goo along the top edge
 	inset = 0.11, -- text and tube start this far in from each end, clear of the long drips
-	main = { y = 0.4, h = 0.28 }, -- name on the left, income on the right
+	main = { y = 0.42, h = 0.27 }, -- name on the left, income on the right
 	nameWidth = 0.5,
-	growth = { y = 0.73, h = 0.17 }, -- goo tube, the percent to its right
+	growth = { y = 0.74, h = 0.15 }, -- goo tube, the percent to its right
 	tubeWidth = 0.62,
 })
 
--- Drips start this far down the band (fraction of its height), below the rarity text.
-SlimePadSign.DRIP_TOP = 0.9
-
--- Goo drips hanging from the band: centre x, width (px) and how far below the band they reach (fraction of the
--- plank). The long ones run down both ends; short ones dimple the middle.
+-- Goo drips running down both ends of the plank: centre x, width (px) and how far below the band they reach
+-- (fraction of the plank). The text keeps LAYOUT.inset clear of them.
 SlimePadSign.DRIPS = table.freeze({
-	{ x = 0.055, w = 18, len = 0.34 },
-	{ x = 0.22, w = 12, len = 0.1 },
-	{ x = 0.5, w = 14, len = 0.06 },
-	{ x = 0.74, w = 12, len = 0.12 },
-	{ x = 0.945, w = 18, len = 0.28 },
+	{ x = 0.05, w = 18, len = 0.32 },
+	{ x = 0.95, w = 16, len = 0.24 },
 })
 
 -- { r, g, b } (Config.RARITIES, SlimeLabel.RAINBOW) as a Color3.
@@ -97,16 +87,16 @@ function SlimePadSign.rainbow(): ColorSequence
 	return ColorSequence.new(points)
 end
 
--- Text in the goo: dark ink (the colour, deepened) on light goo, white edged in dark on deep goo.
-function SlimePadSign.bandInk(color: { number }): (Color3, number)
-	local luma = 0.299 * color[1] + 0.587 * color[2] + 0.114 * color[3]
-	if luma >= SlimePadSign.LIGHT_BAND then
-		return rgb(color):Lerp(Color3.new(0, 0, 0), 0.72), 1
+-- Text in the goo: Ink on bright goo, white edged in Ink on deep goo; a rainbow is bright enough for Ink.
+function SlimePadSign.bandInk(view: SlimeLabel.View): (Color3, number)
+	if SlimeLabel.isRainbow(view) or Widgets.isBright(rgb(view.rarityColor)) then
+		return Theme.Ink, 1
 	end
-	return SlimePadSign.COLORS.bandInk, 0
+	return SlimePadSign.COLORS.paint, 0
 end
 
--- The goo's shading: a glossy light top over the rarity colour; a rainbow for Secret.
+-- The goo's shading: a glossy light top over the rarity colour, flat from the middle down so the drips
+-- hanging from it match; a rainbow for Secret.
 function SlimePadSign.gooGradient(view: SlimeLabel.View): ColorSequence
 	if SlimeLabel.isRainbow(view) then
 		return SlimePadSign.rainbow()
@@ -114,26 +104,24 @@ function SlimePadSign.gooGradient(view: SlimeLabel.View): ColorSequence
 	local base = rgb(view.rarityColor)
 	return ColorSequence.new({
 		ColorSequenceKeypoint.new(0, base:Lerp(Color3.new(1, 1, 1), 0.35)),
-		ColorSequenceKeypoint.new(0.4, base),
-		ColorSequenceKeypoint.new(1, base:Lerp(Color3.new(0, 0, 0), 0.12)),
+		ColorSequenceKeypoint.new(0.45, base),
+		ColorSequenceKeypoint.new(1, base),
 	})
 end
 
--- A drip continues the band's bottom edge at across-fraction `x`: that colour at its top, a little deeper at the tip.
-function SlimePadSign.dripGradient(view: SlimeLabel.View, x: number): ColorSequence
+-- The goo hanging under the band at across-fraction `x` continues it: the band's bottom colour, or for a
+-- rainbow the colour at x along it.
+function SlimePadSign.gooAt(view: SlimeLabel.View, x: number): Color3
 	local shading = SlimePadSign.gooGradient(view)
-	-- Rainbow: the colour at x along the band; otherwise the band's own bottom colour.
 	local at = if SlimeLabel.isRainbow(view) then x else 1
 	local points = shading.Keypoints
-	local top = points[#points].Value
 	for i = 1, #points - 1 do
 		local a, b = points[i], points[i + 1]
 		if at >= a.Time and at <= b.Time then
-			top = a.Value:Lerp(b.Value, (at - a.Time) / math.max(b.Time - a.Time, 1e-6))
-			break
+			return a.Value:Lerp(b.Value, (at - a.Time) / math.max(b.Time - a.Time, 1e-6))
 		end
 	end
-	return ColorSequence.new(top, top:Lerp(Color3.new(0, 0, 0), 0.15))
+	return points[#points].Value
 end
 
 local function paint(name: string, props: { [string]: any }, parent: Instance): TextLabel
@@ -158,17 +146,21 @@ local function paint(name: string, props: { [string]: any }, parent: Instance): 
 	return label
 end
 
--- A goo piece: a white frame tinted by its gradient, so the rarity shading lands on every piece the same way.
-local function goo(name: string, props: { [string]: any }, parent: Instance, corner: number): Frame
+-- A goo piece: a white frame, rounded by `corner` px (nil = square) and, when `shaded`, tinted by its gradient
+-- so the shading lands on every piece the same way; unshaded pieces (the drips) are coloured on render.
+local function goo(name: string, props: { [string]: any }, parent: Instance, corner: number?, shaded: boolean): Frame
 	local frame = create("Frame", {
 		Name = name,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
 		Parent = parent,
-	}, {
-		Widgets.corner(corner),
-		create("UIGradient", { Name = "Goo", Rotation = 90 }),
 	})
+	if corner then
+		Widgets.corner(corner).Parent = frame
+	end
+	if shaded then
+		create("UIGradient", { Name = "Goo", Rotation = 90, Parent = frame })
+	end
 	for k, v in props do
 		(frame :: any)[k] = v
 	end
@@ -254,39 +246,32 @@ function SlimePadSign.build(): Part
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		}),
 	})
-	local band = goo("Band", { Size = UDim2.fromScale(1, l.band) }, board, s.corner)
-	-- Drips are children of the band (same goo, so the overlap is invisible), starting just above its bottom edge.
+	local band = goo("Band", { Size = UDim2.fromScale(1, l.band) }, board, s.corner, true)
+	-- The band's lower corners are square: a foot covers them. The drips hang from its bottom edge; all are
+	-- children of the band (same goo, so the overlap is invisible).
+	goo("Foot", { Position = UDim2.fromScale(0, 0.5), Size = UDim2.fromScale(1, 0.5) }, band, nil, true)
 	for i, d in SlimePadSign.DRIPS do
 		goo(`Drip{i}`, {
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(d.x, SlimePadSign.DRIP_TOP),
-			Size = UDim2.new(0, d.w, 1 - SlimePadSign.DRIP_TOP + d.len / l.band, 0),
-		}, band, 100)
+			Position = UDim2.fromScale(d.x, 0.5),
+			Size = UDim2.new(0, d.w, 0.5 + d.len / l.band, 0),
+		}, band, 100, false)
 	end
-	create("Frame", {
-		Name = "Shine",
-		Position = UDim2.fromScale(0.03, 0.12),
-		Size = UDim2.fromScale(0.94, 0.16),
-		BackgroundColor3 = c.shine,
-		BackgroundTransparency = 0.6,
-		BorderSizePixel = 0,
-		Parent = band,
-	}, { Widgets.corner(100) })
 	local rarity = create("TextLabel", {
 		Name = "Rarity",
-		Position = UDim2.fromScale(l.inset, 0.14),
-		Size = UDim2.fromScale(1 - 2 * l.inset, 0.78),
+		Position = UDim2.fromScale(l.inset, 0.16),
+		Size = UDim2.fromScale(1 - 2 * l.inset, 0.72),
 		BackgroundTransparency = 1,
 		Font = Theme.Font,
 		TextScaled = true,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = c.bandInk,
+		TextColor3 = Theme.Ink,
+		ZIndex = 3,
 		Parent = band,
 	})
 	create("UIStroke", {
 		Name = "Stroke",
 		Thickness = 2.5,
-		Color = c.bandStroke,
+		Color = Theme.Ink,
 		LineJoinMode = Enum.LineJoinMode.Round,
 		Parent = rarity,
 	})
@@ -311,9 +296,13 @@ function SlimePadSign.build(): Part
 		Parent = board,
 	}, {
 		Widgets.corner(100),
-		create("UIStroke", { Thickness = 1.5, Color = c.paintStroke }),
 	})
-	goo("Fill", { Size = UDim2.fromScale(0, 1) }, tube, 100)
+	local fill = goo("Fill", { Size = UDim2.fromScale(0, 1) }, tube, 100, true);
+	(fill:FindFirstChild("Goo") :: UIGradient).Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, rgb(GooPalette.MintHi)),
+		ColorSequenceKeypoint.new(0.45, rgb(GooPalette.Mint)),
+		ColorSequenceKeypoint.new(1, rgb(GooPalette.MintLo)),
+	})
 	paint("Growth", {
 		Position = UDim2.fromScale(l.inset + l.tubeWidth, l.growth.y - 0.04),
 		Size = UDim2.fromScale(1 - 2 * l.inset - l.tubeWidth, l.growth.h + 0.08),
@@ -332,20 +321,17 @@ function SlimePadSign.render(part: Part, view: SlimeLabel.View)
 	local income = board:FindFirstChild("Income") :: TextLabel
 	local growth = board:FindFirstChild("Growth") :: TextLabel
 	local fill = (board:FindFirstChild("Track") :: Frame):FindFirstChild("Fill") :: Frame
-	local shading = SlimePadSign.gooGradient(view)
-	-- A rainbow runs along the band and the tube; the rarity shading runs top to bottom.
+	-- A rainbow runs along the band; the rarity shading runs top to bottom.
 	local rotation = if SlimeLabel.isRainbow(view) then 0 else 90
-	for _, piece in { band, fill } do
+	for _, piece in { band, band:FindFirstChild("Foot") :: Frame } do
 		local shade = piece:FindFirstChild("Goo") :: UIGradient
-		shade.Color = shading
+		shade.Color = SlimePadSign.gooGradient(view)
 		shade.Rotation = rotation
 	end
 	for i, d in SlimePadSign.DRIPS do
-		local drip = band:FindFirstChild(`Drip{i}`) :: Frame
-		local shade = drip:FindFirstChild("Goo") :: UIGradient
-		shade.Color = SlimePadSign.dripGradient(view, d.x)
+		(band:FindFirstChild(`Drip{i}`) :: Frame).BackgroundColor3 = SlimePadSign.gooAt(view, d.x)
 	end
-	local ink, strokeHidden = SlimePadSign.bandInk(view.rarityColor)
+	local ink, strokeHidden = SlimePadSign.bandInk(view)
 	rarity.TextColor3 = ink
 	bandStroke.Transparency = strokeHidden
 	rarity.Text = view.rarity

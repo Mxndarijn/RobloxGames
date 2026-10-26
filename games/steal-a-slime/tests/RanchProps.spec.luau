@@ -74,7 +74,7 @@ local function placed(mesh: string): boolean
 	if slots[mesh] or pending[mesh] or habitatMeshes[mesh] then
 		return true
 	end
-	for _, stand in WorldLayout.SHOP_STANDS do -- every shop stand skin, whichever FEATURES.WorldShops places
+	for _, stand in WorldLayout.SHOP_STANDS do -- every shop stand skin
 		if stand.mesh == mesh then
 			return true
 		end

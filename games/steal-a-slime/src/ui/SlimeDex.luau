@@ -2,26 +2,31 @@
 --[[
 	SlimeDex
 
-	The SlimeDex panel's content (Panels/Dex), pure (tests/ui/SlimeDex.spec). State.dex (CONTRACT.md §36.4)
-	becomes one card per species, grouped by rarity under a header line, the event Secrets last as a bonus
-	section. A card is found (full colour mesh, name) or a silhouette ("???", the hint, and for
-	hybrids three ingredient slots that fill in as the player finds each ingredient). The server decides what is
-	revealed; this module only formats it. `lines` packs the cards into grid lines for a list width
-	(`grid`: as many columns as fit, one on a narrow phone), so the panel stacks lines like any scroll list.
+	The SlimeDex panel's content (Panels/Dex), pure (tests/ui/SlimeDex.spec). State.dex (contract/species-dex.md
+	§36.4) becomes one card per species, split over four tabs by kind: Fountain (spawn), Merges (hybrid), Bosses
+	and Secrets (event). The species tabs are a card grid grouped by rarity (`lines`) beside a side pane for the
+	selected card (`detail`). The Merges tab is one recipe row per hybrid (`recipes`): three ingredient slots
+	marked "In base", "Found" or unknown, the result, and whether it is made, ready or how many slimes are missing.
+	The server decides what is revealed; this module only formats it.
 ]]
 
-export type Slot = { species: string?, label: string, color: { number } }
+export type Slot = {
+	species: string?, -- nil while the ingredient is not found
+	label: string, -- its name, or "???"
+	set: string?, -- the set its species belongs to ("Meadow", "Garden", ...)
+	color: { number },
+}
 
 export type Card = {
 	key: string, -- species id
 	kind: string, -- "spawn" | "hybrid" | "boss" | "event"
 	tier: number,
 	found: boolean,
-	title: string, -- name, or "???"
+	title: string, -- the species name ("???" only if State left it out)
 	hint: string?,
-	badge: string?, -- "Merge-only" | "Boss" | "Event"
 	slots: { Slot }?, -- hybrids: the three ingredients
-	color: { number }, -- rarity frame colour
+	set: string?, -- spawn species: its set
+	color: { number }, -- rarity colour
 	speciesColor: { number }, -- the species' own colour (preview fallback)
 }
 
@@ -30,16 +35,18 @@ export type Line = {
 	kind: string, -- "header" | "cards"
 	tier: number,
 	title: string?, -- header
-	detail: string?, -- header: "3/6 found"
+	detail: string?, -- header: "3/6"
 	cards: { Card }?, -- cards line, left to right
 }
 
 export type Grid = { columns: number, cardW: number, cardH: number, gap: number }
 
--- Species name and colour for ingredient slots and previews (Panels/Dex builds it from SlimeRoster / SlimeLooks).
-export type Lookup = (id: string) -> (string?, { number }?)
+-- Species name, colour and set for ingredient slots, previews and the side pane (Panels/Dex builds it from
+-- SlimeRoster, SlimeLooks and SpeciesDex.setName).
+export type Lookup = (id: string) -> (string?, { number }?, string?)
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
+local Layout = if script then require(script.Parent.Layout) else require("./Layout")
 
 local SlimeDex = {}
 
@@ -47,17 +54,42 @@ SlimeDex.SILHOUETTE = table.freeze({ 24, 26, 36 })
 SlimeDex.UNKNOWN = "???"
 SlimeDex.BONUS_TIER = 0 -- section key of the event Secrets
 
-SlimeDex.BADGES = table.freeze({ hybrid = "Merge-only", boss = "Boss", event = "Event" })
+-- The tabs, left to right: the State.dex entry kind each one shows.
+export type TabDef = { key: string, label: string }
+SlimeDex.TABS = table.freeze({
+	table.freeze({ key = "spawn", label = "Fountain" }),
+	table.freeze({ key = "hybrid", label = "Merges" }),
+	table.freeze({ key = "boss", label = "Bosses" }),
+	table.freeze({ key = "event", label = "Secrets" }),
+} :: { TabDef })
+SlimeDex.MERGES = "hybrid"
 
--- Card grid (design px): cards at least CARD_MIN_W wide, at most MAX_COLUMNS per line.
+-- Card grid (design px): cards at least minW wide, at most maxColumns per line.
 SlimeDex.CARD = table.freeze({
-	minW = 150,
-	h = 172,
+	minW = 92,
+	h = 112,
 	gap = 8,
-	maxColumns = 6,
-	preview = 80, -- square mesh preview at the top
-	header = 26, -- rarity header line
+	maxColumns = 5,
+	preview = 64, -- square mesh preview at the top
+	header = 24, -- rarity header line
 })
+
+-- The panel body's blocks above the tab content (design px): the tabs, then the reward line when the server
+-- has species milestones.
+SlimeDex.BODY = table.freeze({
+	tabH = Layout.MIN_TOUCH_DESIGN,
+	gap = 8,
+	rewardH = 42,
+})
+
+-- Where the tab content starts in the body.
+function SlimeDex.contentTop(hasReward: boolean): number
+	local b = SlimeDex.BODY
+	return b.tabH + b.gap + (if hasReward then b.rewardH + b.gap else 0)
+end
+
+-- The content keeps at least one rarity heading and one line of cards on every screen.
+SlimeDex.MIN_CONTENT = SlimeDex.CARD.header + SlimeDex.CARD.h
 
 local function str(value: any): string?
 	return if type(value) == "string" and value ~= "" then value else nil
@@ -73,14 +105,14 @@ function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
 		local rarity = if tier then config.RARITIES[tier] else nil
 		if id and tier and rarity then
 			local kind = str(e.kind) or "spawn"
-			local found = e.found == true
-			local ownColor: { number }? = nil
+			local ownColor: { number }?, ownSet: string? = nil, nil
 			if lookup then
-				local _, color = lookup(id)
-				ownColor = color
+				local _, color, set = lookup(id)
+				ownColor, ownSet = color, set
 			end
 			local slots: { Slot }? = nil
 			if kind == "hybrid" and type(e.ingredients) == "table" then
+				local sets = if type(e.ingredientSets) == "table" then e.ingredientSets else {}
 				local list: { Slot } = {}
 				for i = 1, 3 do
 					local species = str(e.ingredients[i])
@@ -90,7 +122,8 @@ function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
 					end
 					list[i] = {
 						species = species,
-						label = if species then name or species else "?",
+						label = if species then name or species else SlimeDex.UNKNOWN,
+						set = str(sets[i]),
 						color = if species then color or rarity.color else SlimeDex.SILHOUETTE,
 					}
 				end
@@ -100,11 +133,11 @@ function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
 				key = id,
 				kind = kind,
 				tier = tier,
-				found = found,
+				found = e.found == true,
 				title = str(e.name) or SlimeDex.UNKNOWN,
 				hint = str(e.hint),
-				badge = (SlimeDex.BADGES :: any)[kind],
 				slots = slots,
+				set = if kind == "spawn" then ownSet else nil,
 				color = rarity.color,
 				speciesColor = ownColor or rarity.color,
 			})
@@ -113,7 +146,41 @@ function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
 	return out
 end
 
--- Columns, card width and height for a list `width` design px wide.
+export type Tab = { key: string, label: string, found: number, total: number, count: string }
+
+-- The tabs that have cards, in TABS order, with their found counts ("3/15").
+function SlimeDex.tabs(cards: { Card }): { Tab }
+	local found: { [string]: number } = {}
+	local total: { [string]: number } = {}
+	for _, card in cards do
+		total[card.kind] = (total[card.kind] or 0) + 1
+		if card.found then
+			found[card.kind] = (found[card.kind] or 0) + 1
+		end
+	end
+	local out: { Tab } = {}
+	for _, def in SlimeDex.TABS do
+		local n = total[def.key] or 0
+		if n > 0 then
+			local f = found[def.key] or 0
+			table.insert(out, { key = def.key, label = def.label, found = f, total = n, count = `{f}/{n}` })
+		end
+	end
+	return out
+end
+
+-- The cards of one tab, State order.
+function SlimeDex.ofKind(cards: { Card }, kind: string): { Card }
+	local out: { Card } = {}
+	for _, card in cards do
+		if card.kind == kind then
+			table.insert(out, card)
+		end
+	end
+	return out
+end
+
+-- Columns, card width and height for a grid `width` design px wide.
 function SlimeDex.grid(width: number): Grid
 	local c = SlimeDex.CARD
 	local columns = math.clamp(math.floor((width + c.gap) / (c.minW + c.gap)), 1, c.maxColumns)
@@ -121,8 +188,8 @@ function SlimeDex.grid(width: number): Grid
 	return { columns = columns, cardW = cardW, cardH = c.h, gap = c.gap }
 end
 
--- Header + card lines: one rarity at a time (found count over the rarity's cards), the bonus section
--- (event Secrets) last. `columns` cards per line.
+-- Header + card lines for one tab's cards: one rarity at a time (found count over the rarity's cards); event
+-- Secrets are one section. `columns` cards per line.
 function SlimeDex.lines(cards: { Card }, columns: number, config: any): { Line }
 	local byTier: { [number]: { Card } } = {}
 	local bonus: { Card } = {}
@@ -144,7 +211,7 @@ function SlimeDex.lines(cards: { Card }, columns: number, config: any): { Line }
 		end
 		table.insert(
 			out,
-			{ key = `header:{tier}`, kind = "header", tier = tier, title = title, detail = `{found}/{#list} found` }
+			{ key = `header:{tier}`, kind = "header", tier = tier, title = title, detail = `{found}/{#list}` }
 		)
 		for start = 1, #list, columns do
 			table.insert(out, {
@@ -162,14 +229,167 @@ function SlimeDex.lines(cards: { Card }, columns: number, config: any): { Line }
 		end
 	end
 	if #bonus > 0 then
-		section(SlimeDex.BONUS_TIER, "Bonus: Event Secrets", bonus)
+		section(SlimeDex.BONUS_TIER, "Event Secrets", bonus)
 	end
+	return out
+end
+
+-- How many slimes of each species the player has in their base now (State.slimes; one being stolen does not
+-- count).
+function SlimeDex.inBase(slimes: any): { [string]: number }
+	local out: { [string]: number } = {}
+	if type(slimes) ~= "table" then
+		return out
+	end
+	for _, view in slimes do
+		local slime = if type(view) == "table" then view.slime else nil
+		if type(slime) == "table" and view.stolenBy == nil and type(slime.species) == "string" then
+			out[slime.species] = (out[slime.species] or 0) + 1
+		end
+	end
+	return out
+end
+
+-- The side pane for a selected card.
+export type UsedIn = { key: string, title: string }
+export type Detail = {
+	key: string,
+	title: string,
+	found: boolean,
+	rarity: string,
+	rarityColor: { number },
+	how: string, -- how to get it
+	set: string?, -- "Garden set" (spawn species)
+	have: string, -- "2 in your base" / "None in your base"
+	usedIn: { UsedIn }, -- merges that take it (only known once it is found)
+}
+
+SlimeDex.HOW = table.freeze({
+	spawn = "Catch it at the fountain",
+	hybrid = "Merge it in the Merge vat",
+	boss = "Defeat the boss event",
+	event = "An event Secret",
+})
+
+function SlimeDex.detail(card: Card, cards: { Card }, inBase: { [string]: number }, config: any): Detail
+	local rarity = config.RARITIES[card.tier]
+	local usedIn: { UsedIn } = {}
+	for _, other in cards do
+		for _, slot in other.slots or {} do
+			if slot.species == card.key then
+				table.insert(usedIn, { key = other.key, title = other.title })
+				break
+			end
+		end
+	end
+	local n = inBase[card.key] or 0
+	return {
+		key = card.key,
+		title = card.title,
+		found = card.found,
+		rarity = if rarity then rarity.name else "",
+		rarityColor = card.color,
+		how = if card.kind == "spawn" or card.kind == "hybrid"
+			then (SlimeDex.HOW :: any)[card.kind]
+			else card.hint or (SlimeDex.HOW :: any)[card.kind] or "",
+		set = if card.set then `{card.set} set` else nil,
+		have = if n > 0 then `{n} in your base` else "None in your base",
+		usedIn = usedIn,
+	}
+end
+
+-- Merge recipe rows (the Merges tab).
+export type RecipeSlot = {
+	species: string?,
+	label: string,
+	state: "base" | "found" | "unknown",
+	tag: string, -- "In base" / "Found" / the set of an unknown one
+	color: { number },
+}
+export type Recipe = {
+	key: string, -- "recipe:<hybrid id>"
+	result: Card,
+	slots: { RecipeSlot },
+	status: "made" | "ready" | "need",
+	statusText: string, -- "Made" / "Ready to merge" / "Need 2 more"
+	missing: number, -- slots not in base
+}
+
+SlimeDex.SLOT_TAGS = table.freeze({ base = "In base", found = "Found" })
+
+-- One row per hybrid card with a recipe: ready ones first, then the fewest missing, made ones last (State order
+-- within each). `only` keeps the recipes that take that species.
+function SlimeDex.recipes(cards: { Card }, inBase: { [string]: number }, only: string?): { Recipe }
+	local out: { Recipe } = {}
+	local order: { [string]: number } = {}
+	for _, card in cards do
+		local cardSlots = card.slots
+		if card.kind == "hybrid" and cardSlots then
+			local wanted = only == nil
+			local used: { [string]: number } = {}
+			local slots: { RecipeSlot } = {}
+			local missing = 0
+			for i, slot in cardSlots do
+				local species = slot.species
+				local state: "base" | "found" | "unknown" = "unknown"
+				if species then
+					wanted = wanted or species == only
+					if (inBase[species] or 0) > (used[species] or 0) then
+						used[species] = (used[species] or 0) + 1
+						state = "base"
+					else
+						state = "found"
+					end
+				end
+				if state ~= "base" then
+					missing += 1
+				end
+				slots[i] = {
+					species = species,
+					label = slot.label,
+					state = state,
+					tag = if state == "unknown"
+						then slot.set or SlimeDex.UNKNOWN
+						else (SlimeDex.SLOT_TAGS :: any)[state],
+					color = slot.color,
+				}
+			end
+			if wanted then
+				local status: "made" | "ready" | "need" = if card.found
+					then "made"
+					elseif missing == 0 then "ready"
+					else "need"
+				table.insert(out, {
+					key = `recipe:{card.key}`,
+					result = card,
+					slots = slots,
+					status = status,
+					statusText = if status == "made"
+						then "Made"
+						elseif status == "ready" then "Ready to merge"
+						else `Need {missing} more`,
+					missing = missing,
+				})
+				order[card.key] = #out
+			end
+		end
+	end
+	local rank = { ready = 0, need = 1, made = 2 }
+	table.sort(out, function(a, b)
+		if a.status ~= b.status then
+			return rank[a.status] < rank[b.status]
+		end
+		if a.status == "need" and a.missing ~= b.missing then
+			return a.missing < b.missing
+		end
+		return order[a.result.key] < order[b.result.key]
+	end)
 	return out
 end
 
 -- A display genome for a card (Genome.Slime shape, for Visuals.ModelFactory.build): the species on a size-1
 -- body in its colour. The panel paints it flat black for an unfound card.
-function SlimeDex.genome(card: Card): { [string]: any }
+function SlimeDex.genome(card: { key: string, tier: number, speciesColor: { number } }): { [string]: any }
 	return {
 		id = `Dex_{card.key}`,
 		name = "",
@@ -184,10 +404,9 @@ function SlimeDex.genome(card: Card): { [string]: any }
 end
 
 export type Summary = {
-	percent: string,
+	percent: string, -- "28%"
 	fraction: number,
-	count: string, -- "Species 12/50"
-	secrets: string?, -- "Secrets 1/7" (nil without event Secrets)
+	count: string, -- "14/53 found"
 }
 
 function SlimeDex.summary(dex: any): Summary
@@ -200,84 +419,23 @@ function SlimeDex.summary(dex: any): Summary
 	return {
 		percent = `{math.floor(fraction * 100)}%`,
 		fraction = fraction,
-		count = `Species {found}/{total}`,
-		secrets = if n(d.bonusTotal) > 0 then `Secrets {n(d.bonusFound)}/{n(d.bonusTotal)}` else nil,
+		count = `{found}/{total} found`,
 	}
 end
 
--- Panel header above the list (Panels/Dex, design px): the big percent on the left and the count chips beside
--- it, wrapping onto more rows on a narrow body. Compact (short bodies): a smaller percent and one chip row.
-SlimeDex.HEADER = table.freeze({
-	percent = 60, -- big percent block height
-	chip = 26,
-	chipGap = 6,
-	gap = 8, -- header to list
-})
--- Advance width (em) of the percent's characters in Theme.Font (FredokaOne), from Studio TextService at 26 and
--- 56 px, rounded up so small sizes still fit.
-local PERCENT_EM = table.freeze({ ["1"] = 0.35, ["%"] = 0.73 })
-local DIGIT_EM = 0.53
-
--- Width (px) of percent text like "42%" at `size`, so the chips can start right after it.
-function SlimeDex.percentWidth(text: string, size: number): number
-	local em = 0
-	for i = 1, #text do
-		em += PERCENT_EM[string.sub(text, i, i)] or DIGIT_EM
-	end
-	return math.ceil(em * size)
-end
-
--- The list keeps at least one rarity header and part of a card visible + scroll padding.
-SlimeDex.MIN_LIST = 72 + 12
-
-export type Header = { compact: boolean, height: number, listTop: number }
-
--- What fits above the list in a `bodyH` tall panel body with the chips on `chipRows` rows (a boolean means
--- one row / two rows): the full header, else the compact one (one chip row) once the list would drop under
--- MIN_LIST (short landscape phones). The list height is never negative.
-function SlimeDex.header(bodyH: number, chipRows: (number | boolean)?): Header
-	local h = SlimeDex.HEADER
-	local rows = if type(chipRows) == "number" then math.max(1, chipRows) elseif chipRows == true then 2 else 1
-	local full = math.max(h.percent, rows * h.chip + (rows - 1) * h.chipGap)
-	if bodyH - (full + h.gap) >= SlimeDex.MIN_LIST then
-		return { compact = false, height = full, listTop = full + h.gap }
-	end
-	return { compact = true, height = h.chip, listTop = h.chip + h.gap }
-end
-
-export type ChipSpot = { x: number, y: number, visible: boolean }
-
--- Places chips `widths` (design px) left to right from `x0` in a `width` wide header, wrapping to a new row
--- when one does not fit; past `maxRows` rows a chip is hidden. Returns the spots and the rows used.
-function SlimeDex.chipRows(widths: { number }, x0: number, width: number, maxRows: number): ({ ChipSpot }, number)
-	local h = SlimeDex.HEADER
-	local spots: { ChipSpot } = {}
-	local x, row = x0, 1
-	for i, w in widths do
-		if x > x0 and x + w > width then
-			x, row = x0, row + 1
-		end
-		spots[i] = { x = x, y = (row - 1) * (h.chip + h.chipGap), visible = row <= maxRows }
-		x += w + h.chipGap
-	end
-	return spots, math.min(row, maxRows)
-end
-
-export type RewardTick = { count: number, at: number, claimed: boolean, isNext: boolean }
-export type RewardCard = {
-	title: string, -- "Next reward at 8 species"
-	reward: string?, -- "+$5K and +2% income"
-	fraction: number, -- species found over the last species milestone
-	ticks: { RewardTick }, -- every species milestone, `at` placed to scale (0..1)
+export type RewardLine = {
+	text: string, -- "Next reward at 16: +$19K and +2% income"
+	count: string?, -- "14/16"
+	fraction: number, -- species found toward the next milestone (1 once every reward is collected)
 }
 
 local function pct(fraction: number): string
 	return `{math.floor(fraction * 100 + 0.5)}%`
 end
 
--- The SlimeDex reward card from State.dexRewards and State.dex.found: the next unclaimed species milestone
--- and one bar from 0 to the last one with every milestone marked. nil on a server without species milestones.
-function SlimeDex.rewardCard(state: any): RewardCard?
+-- The SlimeDex reward line from State.dexRewards and State.dex.found: the next unclaimed species milestone, what
+-- it pays and the progress toward it. nil on a server without species milestones.
+function SlimeDex.rewardLine(state: any): RewardLine?
 	local rewards = if type(state) == "table" then state.dexRewards else nil
 	if type(rewards) ~= "table" then
 		return nil
@@ -286,88 +444,24 @@ function SlimeDex.rewardCard(state: any): RewardCard?
 		return if type(v) == "number" and v == v then v else 0
 	end
 	local found = if type(state.dex) == "table" then n(state.dex.found) else 0
-	local species: { any } = {}
-	local nextSpecies = nil
-	local last = 0
+	local any = false
 	for _, r in rewards do
 		if type(r) == "table" then
-			table.insert(species, r)
-			last = math.max(last, n(r.count))
-			if r.claimed ~= true and nextSpecies == nil then
-				nextSpecies = r
+			any = true
+			if r.claimed ~= true and n(r.count) > 0 then
+				local count = n(r.count)
+				return {
+					text = `Next reward at {count}: +{Format.formatCash(n(r.reward))} and +{pct(n(r.bonus))} income`,
+					count = `{math.min(found, count)}/{count}`,
+					fraction = math.clamp(found / count, 0, 1),
+				}
 			end
 		end
 	end
-	if #species == 0 or last <= 0 then
+	if not any then
 		return nil
 	end
-	local ticks: { RewardTick } = {}
-	for _, r in species do
-		table.insert(ticks, {
-			count = n(r.count),
-			at = math.clamp(n(r.count) / last, 0, 1),
-			claimed = r.claimed == true,
-			isNext = r == nextSpecies,
-		})
-	end
-	return {
-		title = if nextSpecies
-			then `Next reward at {n(nextSpecies.count)} species`
-			else "Every species reward collected",
-		reward = if nextSpecies
-			then `+{Format.formatCash(n(nextSpecies.reward))} and +{pct(n(nextSpecies.bonus))} income`
-			else nil,
-		fraction = if nextSpecies then math.clamp(found / last, 0, 1) else 1,
-		ticks = ticks,
-	}
-end
-
--- Plot skin cards (FEATURES.PlotSkins, CONTRACT.md §15) shown above the species: one per State.plotSkins entry,
--- locked / unlocked with the SlimeDex set progress. Empty without the field.
-export type SkinRow = {
-	key: string,
-	tier: number,
-	locked: boolean,
-	title: string, -- the skin's name
-	detail: string, -- the set, or for a locked skin what unlocks it
-	fraction: number, -- set progress (1 once unlocked)
-	color: { number },
-	skin: { id: string, unlocked: boolean, equipped: boolean },
-}
-
-function SlimeDex.skinRows(plotSkins: any, config: any): { SkinRow }
-	local out: { SkinRow } = {}
-	if type(plotSkins) ~= "table" then
-		return out
-	end
-	local floors: { [string]: { number } } = {}
-	for _, def in config.PLOT_SKINS or {} do
-		floors[def.id] = if def.floor then def.floor.color else { 214, 176, 124 } -- classic: ranch_plaza
-	end
-	for _, skin in plotSkins :: { any } do
-		if type(skin) == "table" and type(skin.id) == "string" then
-			local unlocked, equipped = skin.unlocked == true, skin.equipped == true
-			local owned = if type(skin.owned) == "number" then skin.owned else 0
-			local needed = if type(skin.needed) == "number" then skin.needed else 0
-			local detail = if unlocked
-				then (if skin.setName then `{skin.setName} set` else "Default look")
-				else `Find {needed} {if skin.setName then `{skin.setName} ` else ""}species ({math.min(
-					owned,
-					needed
-				)}/{needed})`
-			table.insert(out, {
-				key = `skin:{skin.id}`,
-				tier = skin.tier or 0,
-				locked = not unlocked,
-				title = if type(skin.name) == "string" then skin.name else skin.id,
-				detail = detail,
-				fraction = if unlocked then 1 elseif needed > 0 then math.clamp(owned / needed, 0, 1) else 0,
-				color = floors[skin.id] or SlimeDex.SILHOUETTE,
-				skin = { id = skin.id, unlocked = unlocked, equipped = equipped },
-			})
-		end
-	end
-	return out
+	return { text = "Every species reward collected", count = nil, fraction = 1 }
 end
 
 return table.freeze(SlimeDex)

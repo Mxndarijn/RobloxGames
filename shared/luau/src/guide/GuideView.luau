@@ -67,6 +67,8 @@ export type Guide = {
 	setTarget: (self: Guide, target: PVInstance?, label: string?) -> (),
 	clear: (self: Guide) -> (),
 	step: (self: Guide, dt: number) -> (),
+	-- Hides the screen-edge pointer while `hidden` (say, while a menu covers the screen); the rest keeps going.
+	setEdgeHidden: (self: Guide, hidden: boolean) -> (),
 	destroy: (self: Guide) -> (),
 }
 
@@ -307,6 +309,7 @@ function GuideView.new(options: Options?): Guide
 
 	local target: PVInstance? = nil
 	local label: string? = nil
+	local edgeHidden = false
 	local phase = 0
 	local clock = 0
 	local route: { Vector3 }? = nil -- latest pathfinding waypoints for `target`
@@ -433,6 +436,13 @@ function GuideView.new(options: Options?): Guide
 		highlight.Enabled = o.showHighlight ~= false
 	end
 
+	function guide.setEdgeHidden(_self: Guide, hidden: boolean)
+		edgeHidden = hidden
+		if hidden then
+			edgeGui.Enabled = false
+		end
+	end
+
 	function guide.clear(self: Guide)
 		self:setTarget(nil)
 	end
@@ -533,7 +543,7 @@ function GuideView.new(options: Options?): Guide
 		end
 
 		-- screen-edge pointer
-		if o.showEdgePointer ~= false and camera and edgeGui.Parent then
+		if o.showEdgePointer ~= false and not edgeHidden and camera and edgeGui.Parent then
 			local point = camera:WorldToViewportPoint(to)
 			local size = camera.ViewportSize
 			local placed = GuideEdge.place(point.X, point.Y, point.Z > 0, size.X, size.Y, edgeMargin)

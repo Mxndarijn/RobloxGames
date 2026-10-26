@@ -7,54 +7,53 @@
 	(only the owner's character, in PlotOwner_<i>, passes it). There is no "leaver" pass any more: it let a character
 	pushed or jumping into the stopper count as inside and walk through it.
 
-	A non-owner standing in the doorway itself when the lock starts would be wedged in the stopper, so it is set
-	down just outside the door, on the bridge (`doorwayExit`). That is the only time the server moves anyone.
+	The lock never moves anyone. Guests the owner lets in (PlotGuests) pass the stopper too, and a guest who stops
+	being one keeps passing it until they have left the jar (SlimeGuard.formerGuests).
 
 	Positions are plot-local (Base CFrame space, door at -Z). No Roblox APIs: runs unchanged under Lune.
 ]]
 
 local PlotLockGuard = {}
 
-PlotLockGuard.MIN_Y = -10 -- local height window that counts as "in" the plot
-PlotLockGuard.MAX_Y = 60
-PlotLockGuard.EXIT_GAP = 2.5 -- studs out from the stopper's outer face where a wedged character is set down
-PlotLockGuard.DOOR_HEIGHT_PAD = 1 -- the doorway check reaches this far above the door
+-- A plot's jar tower in plot-local terms: inner glass radius per floor, floor 1's walking height, storey height.
+export type Jar = { radii: { number }, floorTop: number, floorHeight: number, wall: number }
 
--- The doorway: |x| <= halfWidth, z from zOuter (the stopper's outer face) to zInner (its inner face), up to height.
-export type Door = { halfWidth: number, zOuter: number, zInner: number, height: number }
+PlotLockGuard.INSIDE_MARGIN = 1.5 -- studs in from the glass before a character counts as inside
+PlotLockGuard.OUTSIDE_MARGIN = 2.5 -- studs out past the glass before a character inside counts as out again
 
-local function inWindow(y: number): boolean
-	return y >= PlotLockGuard.MIN_Y and y <= PlotLockGuard.MAX_Y
-end
-
--- True when the point is inside the doorway (where the stopper stands while locked).
-function PlotLockGuard.inDoorway(x: number, y: number, z: number, door: Door): boolean
-	return math.abs(x) <= door.halfWidth
-		and z >= door.zOuter
-		and z <= door.zInner
-		and y <= door.height + PlotLockGuard.DOOR_HEIGHT_PAD
-		and inWindow(y)
-end
-
--- True when this character must be set down outside: a non-owner in the doorway of a locked, owned plot.
-function PlotLockGuard.wedged(
-	userId: number,
-	ownerId: number?,
-	locked: boolean,
-	x: number,
-	y: number,
-	z: number,
-	door: Door
-): boolean
-	if not locked or ownerId == nil or ownerId == userId then
+--[[
+	True when a character at plot-local (x, y, z) (y on the floorTop scale) is inside one of the plot's `floors`
+	built jars. `wasInside` (last tick) keeps it inside until it is clearly past the glass, so standing against the
+	stopper does not flicker in and out.
+]]
+function PlotLockGuard.insideJar(x: number, y: number, z: number, jar: Jar, floors: number, wasInside: boolean): boolean
+	local built = math.min(floors, #jar.radii)
+	if built < 1 then
 		return false
 	end
-	return PlotLockGuard.inDoorway(x, y, z, door)
+	local pad = if wasInside then 1 else 0
+	local top = jar.floorTop + built * jar.floorHeight
+	if y < jar.floorTop - 2 - pad or y > top + pad then
+		return false
+	end
+	local f = math.clamp(math.floor((y - jar.floorTop) / jar.floorHeight) + 1, 1, built)
+	local r = math.sqrt(x * x + z * z)
+	local limit = if wasInside
+		then jar.radii[f] + jar.wall + PlotLockGuard.OUTSIDE_MARGIN
+		else jar.radii[f] - PlotLockGuard.INSIDE_MARGIN
+	return r <= limit
 end
 
--- Where a wedged character is set down: the same x, just outside the stopper (plot-local z).
-function PlotLockGuard.doorwayExit(door: Door): number
-	return door.zOuter - PlotLockGuard.EXIT_GAP
+PlotLockGuard.SHUT_GRACE = 2 -- seconds after a lock starts in which getting in is not intrusion
+
+--[[
+	True when a character that entered a plot at `enteredAt` got in after its current lock began: an intruder. One
+	already inside when the lock started is trapped instead (the LockBarrier blocks both ways). Getting in within
+	SHUT_GRACE of the lock starting is not intrusion either: the stopper shutting on someone standing in the doorway
+	pushes them out of it, sometimes into the jar.
+]]
+function PlotLockGuard.intruder(enteredAt: number, lockStartedAt: number): boolean
+	return enteredAt > lockStartedAt + PlotLockGuard.SHUT_GRACE
 end
 
 -- Collision group names (stopper of plot i / the owner's character, which passes it).

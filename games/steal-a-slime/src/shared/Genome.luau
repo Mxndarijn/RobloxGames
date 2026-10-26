@@ -26,8 +26,8 @@ export type Slime = {
 	pad: number?, -- home pad on the owner's plot (nil while wild)
 	species: string?, -- SlimeRoster id (wild spawns since v28; nil for older/merged slimes)
 	growth: number?, -- 0..1 (FEATURES.GrowingSlimes, Growth); nil = not grown yet (old saves, wild, merged slimes)
-	keep: boolean?, -- kept by its owner: never merged (CONTRACT.md §21.1); nil = not kept
 	egg: EggKind.Egg?, -- still a Mystery Egg (contract/mystery-egg.md): the rest of the record is the slime inside
+	brewed: number?, -- made in the merge vat: 1 = random merge (BREWED_INCOME_MULT), 2 = recipe (RECIPE_INCOME_MULT)
 }
 
 export type GenerateOptions = {
@@ -167,7 +167,15 @@ function Genome.baseIncome(slime: Slime): number
 		return 0
 	end
 	local growth = 1 + Config.GROWTH_MAX_INCOME_BONUS * Genome.growthFraction(slime)
-	return Genome.rarity(slime.tier).income * slime.size * growth
+	return Genome.rarity(slime.tier).income * slime.size * growth * Genome.brewMultiplier(slime)
+end
+
+-- Income multiplier a vat-made slime keeps for life: BREWED_INCOME_MULT, or RECIPE_INCOME_MULT for a recipe hybrid.
+function Genome.brewMultiplier(slime: Slime): number
+	return if slime.brewed == 2
+		then Config.RECIPE_INCOME_MULT
+		elseif slime.brewed == 1 then Config.BREWED_INCOME_MULT
+		else 1
 end
 
 -- "Rare Lop"; an egg shows its egg name ("Golden Mystery Egg"), never the slime inside.
@@ -241,8 +249,8 @@ function Genome.sanitize(raw: any): Slime?
 		pad = if pad then math.floor(pad) else nil,
 		species = if type(raw.species) == "string" and SlimeRoster.get(raw.species) then raw.species else nil,
 		growth = if growth then math.floor(math.min(growth, 1) * 1e4 + 0.5) / 1e4 else nil,
-		keep = if raw.keep == true then true else nil,
 		egg = EggKind.sanitize(raw.egg),
+		brewed = if raw.brewed == 1 or raw.brewed == 2 then raw.brewed else nil,
 	}
 end
 

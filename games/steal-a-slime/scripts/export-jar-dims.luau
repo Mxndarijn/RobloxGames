@@ -50,6 +50,7 @@ local function dims(): { [string]: any }
 		padDeck = WorldLayout.PAD_DECK,
 		stair = WorldLayout.STAIR,
 		ramp = WorldLayout.RAMP,
+		stairTop = WorldLayout.STAIR_TOP,
 		plotFloorRadius = WorldLayout.PLOT_FLOOR_RADIUS,
 		door = WorldLayout.DOOR,
 		doorway = { zOuter = doorway.zOuter, zInner = doorway.zInner },

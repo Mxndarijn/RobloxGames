@@ -45,6 +45,7 @@ local Persistence = require(script.Persistence)
 local PlayerAttributes = require(script.PlayerAttributes)
 local PlayerLifecycle = require(script.PlayerLifecycle)
 local PlazaColliders = require(script.PlazaColliders)
+local PlotThemeView = require(script.PlotThemeView)
 local Profiler = require(script.Profiler)
 local PvpBlaster = require(script.PvpBlaster)
 local PvpFun = require(script.PvpFun)
@@ -60,6 +61,7 @@ local WeatherService = require(script.WeatherService)
 local WeeklyEventService = require(script.WeeklyEventService)
 local World = require(script.World)
 local WorldProps = require(script.WorldProps)
+local WorldSeed = require(script.WorldSeed)
 local WorldView = require(script.WorldView)
 
 local function now(): number
@@ -78,6 +80,7 @@ local worldBuilder = WorldView.setup()
 local floors: BaseFloors.Context? = if worldBuilder and worldBuilder.buildFloor
 	then {
 		build = worldBuilder.buildFloor,
+		top = worldBuilder.buildTop,
 		meshes = function(instances: { Instance })
 			MeshSwap.applyUnder(instances)
 		end,
@@ -95,9 +98,10 @@ end
 -- These yield (terrain tiles, mesh loads), so they run in the background and never block boot.
 task.spawn(safeCall, "BorderTerrainView.place", BorderTerrainView.place) -- hills behind the world border
 task.spawn(safeCall, "MeshSwap.applyAll", MeshSwap.applyAll) -- kit meshes, merge vats, then WorldMeshesReady
+safeCall("PlotThemeView.start", PlotThemeView.start) -- FEATURES.PlotSkins: each tower in its owner's theme
 task.spawn(safeCall, "MeshSwap.publishSkinTemplates", MeshSwap.publishSkinTemplates) -- FEATURES.PlotSkins
 task.spawn(safeCall, "MeshSwap.publishHabitatTemplates", MeshSwap.publishHabitatTemplates) -- FEATURES.Habitats
-task.spawn(safeCall, "MeshSwap.publishPetCloudTemplate", MeshSwap.publishPetCloudTemplate) -- the follow pet's cloud
+task.spawn(safeCall, "MeshSwap.publishPetSeatTemplates", MeshSwap.publishPetSeatTemplates) -- what follow pets ride
 task.spawn(safeCall, "MeshSwap.publishPvpMarkerTemplates", MeshSwap.publishPvpMarkerTemplates) -- FEATURES.PvP placed traps
 
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
@@ -111,17 +115,25 @@ local leaderboardEvent = Remotes.get(Constants.LEADERBOARD) :: RemoteEvent
 -- World, saves, ctx
 ---------------------------------------------------------------------------
 
+local random = Random.new()
+local seeds = WorldSeed.pick(function(min, max)
+	return random:NextInteger(min, max)
+end)
+local persistence = Persistence.new()
 local world = World.new({
 	now = now(),
-	seed = math.floor(os.clock() * 1e6) + os.time(),
+	seed = seeds.world,
+	eggSeed = seeds.egg,
 	newId = function()
 		return HttpService:GenerateGUID(false)
 	end,
+	canSave = function(userId: number): boolean
+		return Persistence.canSave(persistence, userId)
+	end,
 	plotCount = Config.PLOT_COUNT,
 })
-local persistence = Persistence.new()
 local ctx = ServerContext.new(world, shopEventRemote, now)
-local leaderboard = LeaderboardView.new(world, persistence.orderedStore, leaderboardEvent)
+local leaderboard = LeaderboardView.new(world, persistence.boardStore, leaderboardEvent)
 local profiler = Profiler.new() -- FEATURES.ServerProfiler (CONTRACT.md §25); off = every call is a no-op
 
 -- Roblox badges (Badges): BadgeService behind pcall + retries, off the game loop (grant yields).
@@ -181,8 +193,11 @@ local function flushStates(t: number)
 	end
 end
 
+local lastRefreshAt = -math.huge
+
 -- Makes workspace match the World (slimes, plots, carry attributes), then plays the queued events.
 local function refreshView(t: number)
+	lastRefreshAt = t
 	WorldView.reconcile(world, t, function(player: Player, slimeId: string)
 		local root = WorldView.rootPart(player)
 		local position = WorldView.slimePosition(slimeId)
@@ -199,6 +214,15 @@ local function refreshView(t: number)
 	Outbox.flush(world, outbox)
 end
 
+-- After a prompt: a refused trigger only needs its toast delivered, the world-wide refresh is for what changed.
+local function refreshAfter(changed: boolean)
+	if changed then
+		refreshView(now())
+	else
+		safeCall("outbox after prompt", Outbox.flush, world, outbox)
+	end
+end
+
 request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.RequestResult
 	Profiler.count(profiler, "Request")
 	local args = table.pack(...)
@@ -212,10 +236,19 @@ request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.
 		return res
 	end
 	PlayerAttributes.syncOpenShop(world, player)
+	-- A dispatched action that was refused changed nothing: only its queued toasts go out now, the next tick
+	-- does the rest.
+	if not res.ok then
+		safeCall(`outbox after {action}`, Outbox.flush, world, outbox)
+		return res
+	end
 	-- Never error to the client: a view hiccup must not turn a done action into a failure.
 	local t = now()
+	-- A client can only make the server refresh as often as the Heartbeat does: the next view tick shows the rest.
 	safeCall(`push after {action}`, function()
-		refreshView(t)
+		if t - lastRefreshAt >= ServerLoop.VIEW_INTERVAL then
+			refreshView(t)
+		end
 		flushStates(t)
 	end)
 	return res
@@ -223,20 +256,20 @@ end
 
 -- Owner-only plot prompts (CONTRACT.md §8.5): LockPrompt, BuyPadPrompt, MergePrompt.
 WorldView.addPlotPrompts(function(player: Player, index: number, kind: string)
-	Actions.triggerPlotPrompt(world, player.UserId, index, kind, now(), ctx)
-	refreshView(now())
+	local res = Actions.triggerPlotPrompt(world, player.UserId, index, kind, now(), ctx)
+	refreshAfter(res.ok)
 end)
 
 -- The drop tube on every upper jar (BaseFloors adds the DropPrompt as each jar is built).
 if floors then
 	floors.drop = function(player: Player, index: number)
-		Actions.useDropTube(world, player.UserId, index, ctx)
-		refreshView(now())
+		local res = Actions.useDropTube(world, player.UserId, index, ctx)
+		refreshAfter(res.ok)
 	end
 end
 
--- "Open Shop" (ShopStand) and "Talk" (TutorialNpc) prompts: the client opens
--- the Shop / Guide menu; purchases go through Request from the Shop menu.
+-- The shop stands' "Open Shop" prompts open that shop on the server (CONTRACT.md §27.3), purchases go through
+-- Request ShopBuy; the TutorialNpc's "Talk" prompt opens the Guide menu on the client.
 WorldProps.addShopPrompts(function(player: Player, shopId: string)
 	Actions.openFromPrompt(world, player.UserId, shopId, ctx)
 	PlayerAttributes.syncOpenShop(world, player)
@@ -261,8 +294,8 @@ end)
 ctx.areFriends = function(a: number, b: number, at: number): boolean -- Hat Launcher (FEATURES.PvP)
 	return Friends.areFriends(friendCache, a, b, at)
 end
-local function refreshFriends()
-	if Config.FEATURES.FriendBonus ~= true then
+local function refreshFriends() -- the friend bonus and the friends switch's guests (PlotGuests) both read it
+	if Config.FEATURES.FriendBonus ~= true and Config.FEATURES.FriendsInBase ~= true then
 		return
 	end
 	Friends.refresh(friendCache, world, now())
@@ -323,6 +356,7 @@ PlayerLifecycle.start({
 	friends = friendCache,
 	badges = badges,
 	ritual = ritual,
+	safeCall = safeCall,
 	now = now,
 	refreshView = refreshView,
 	refreshFriends = refreshFriends,

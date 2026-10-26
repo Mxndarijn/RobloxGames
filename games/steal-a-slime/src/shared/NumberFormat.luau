@@ -38,7 +38,13 @@ function NumberFormat.short(value: number): string
 	end
 	local decimals = if n < 10 then 2 elseif n < 100 then 1 else 0
 	local scale = 10 ^ decimals
-	local text = string.format("%." .. decimals .. "f", math.floor(n * scale + 1e-6) / scale)
+	-- three digits at most: the float-error nudge must not carry 999.999999 over to 1000 of the same suffix.
+	-- The last suffix has nothing above it, so it keeps every digit (5e36 -> "5000Dc").
+	local digits = math.floor(n * scale + 1e-6)
+	if index < #SUFFIXES then
+		digits = math.min(digits, 999)
+	end
+	local text = string.format("%." .. decimals .. "f", digits / scale)
 	return sign .. trim(text) .. SUFFIXES[index]
 end
 

@@ -15,6 +15,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
+local MergeGate = if script then require(script.Parent.MergeGate) else require("./MergeGate")
 
 -- The fields Perks reads (a PlayerData.Data satisfies it).
 export type Progress = {
@@ -27,6 +28,7 @@ export type Progress = {
 	favoriteId: string?, -- the follow pet; nil = no passive
 	weekendMult: number?, -- runtime x2 Weekend multiplier (Weekend, never saved), nil / 1 = none
 	ritualBonus: number?, -- runtime "Blessed" bonus from the co-op ritual (Ritual, never saved), nil / 0 = none
+	mvpBonus: number?, -- runtime Boss MVP bonus (BossCredit, never saved), nil / 0 = none
 }
 
 local Perks = {}
@@ -77,6 +79,10 @@ function Perks.tierText(tier: Config.RebirthTier): string
 	end
 	if tier.income then
 		table.insert(parts, `+{math.floor(tier.income * 100 + 0.5)}% income`)
+	end
+	local merges = MergeGate.opensAt(tier)
+	if merges then
+		table.insert(parts, `opens {merges} merges`)
 	end
 	return table.concat(parts, ", ")
 end
@@ -171,7 +177,8 @@ local function petValue(data: Progress, kind: string): number
 	return if perk and perk.kind == kind then perk.value else 0
 end
 
--- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual x pet x weekend.
+-- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual x boss MVP x pet x
+-- weekend.
 function Perks.bonusMultiplier(data: Progress): number
 	return (1 + upgradeEffect(data, "Income"))
 		* (1 + Perks.rankIncomeBonus(data.rebirths))
@@ -179,6 +186,7 @@ function Perks.bonusMultiplier(data: Progress): number
 		* math.max(data.boostMult or 1, 1)
 		* (1 + math.max(data.friendBonus or 0, 0))
 		* (1 + math.max(data.ritualBonus or 0, 0))
+		* (1 + math.max(data.mvpBonus or 0, 0))
 		* (1 + petValue(data, "income"))
 		* math.max(data.weekendMult or 1, 1)
 end
@@ -195,6 +203,11 @@ end
 
 function Perks.offlineCap(data: Progress): number
 	return Config.OFFLINE_CAP_SECONDS + upgradeEffect(data, "OfflineCap")
+end
+
+-- Multiplier on merge vat brew times (Quick Brew; 1 = full time).
+function Perks.brewFactor(data: Progress): number
+	return math.max(0, 1 - upgradeEffect(data, "QuickBrew"))
 end
 
 -- Chance that a wild slime this player deposits is one rarity higher.

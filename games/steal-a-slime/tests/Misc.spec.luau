@@ -21,7 +21,7 @@ describe("Validate", function()
 		expect(Validate.slimeId({})).toBeNil()
 	end)
 	it("accepts only known actions", function()
-		expect(Validate.action("Merge")).toBe("Merge")
+		expect(Validate.action("VatStart")).toBe("VatStart")
 		expect(Validate.action("GiveMeCash")).toBeNil()
 		expect(Validate.action(nil)).toBeNil()
 	end)
@@ -29,7 +29,7 @@ describe("Validate", function()
 		local limiter = {}
 		expect(Validate.allow(limiter, "Rebirth", 10)).toBe(true)
 		expect(Validate.allow(limiter, "Rebirth", 11)).toBe(false)
-		expect(Validate.allow(limiter, "Merge", 11)).toBe(true)
+		expect(Validate.allow(limiter, "VatStart", 11)).toBe(true)
 		expect(Validate.allow(limiter, "Rebirth", 12)).toBe(true)
 		expect(Validate.allow(limiter, "Nope", 12)).toBe(false)
 	end)
@@ -45,14 +45,12 @@ describe("Fountain", function()
 			expect(d.slime.id).toBe(tostring(i))
 		end
 	end)
-	it("no spawn, boss shed, dropped spot or lane step lands in the ring band (r 31-34, plus margin)", function()
+	it("no spawn, bonus drop, dropped spot or lane step lands in the ring band (r 31-34, plus margin)", function()
 		local SAFE = Fountain.RING_BAND_OUTER + Fountain.SLIME_RADIUS -- whole slime past the curb
 		expect(Fountain.RING_BAND_INNER <= 31 and Fountain.RING_BAND_OUTER >= 34).toBe(true)
 		local world = ServerFixtures.world()
 		for i = 1, 300 do
-			local id = if i % 10 == 0
-				then Spawner.spawnBonus(world, 0, 1, Config.BOSS.DROP_LUCK)[1]
-				else Spawner.spawnOne(world, 0)
+			local id = if i % 10 == 0 then Spawner.spawnBonus(world, 0, 1, 3)[1] else Spawner.spawnOne(world, 0)
 			local wild = world.wild[id]
 			expect(wild.radius >= SAFE).toBe(true)
 			-- walking the lane (the wander route), whatever lateral offset the roll gives
@@ -94,11 +92,7 @@ describe("Fountain", function()
 		end
 		expect(rainRare > normalRare * 1.5).toBeTruthy()
 	end)
-	it("rain raises the spawn cap and uses its own interval", function()
-		expect(Fountain.canSpawn(Config.MAX_WILD_SLIMES - 1, false)).toBe(true)
-		expect(Fountain.canSpawn(Config.MAX_WILD_SLIMES, false)).toBe(false)
-		expect(Fountain.canSpawn(Config.MAX_WILD_SLIMES, true)).toBe(true)
-		expect(Fountain.canSpawn(Fountain.wildCap(true), true)).toBe(false)
+	it("rain uses its own interval", function()
 		expect(Fountain.spawnInterval(true)).toBe(Config.RAIN_SPAWN_INTERVAL)
 		expect(Fountain.spawnInterval(false)).toBe(Config.SPAWN_INTERVAL)
 	end)

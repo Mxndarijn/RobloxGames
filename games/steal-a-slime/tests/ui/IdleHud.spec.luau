@@ -48,3 +48,22 @@ describe("top-centre banners vs open menu", function()
 		end
 	end)
 end)
+
+describe("tutorial card vs open menu and daily popup", function()
+	it("shows only with no menu and no daily popup open", function()
+		expect(MenuState.tutorialShown(nil, false)).toBe(true)
+		expect(MenuState.tutorialShown(nil, true)).toBe(false)
+		for _, key in keys do
+			expect(MenuState.tutorialShown(key, false)).toBe(false)
+			expect(MenuState.tutorialShown(key, true)).toBe(false)
+		end
+	end)
+	it("the welcome-back card (a menu key) already hides it", function()
+		expect(MenuState.tutorialShown("Welcome", false)).toBe(false)
+	end)
+	it("the open bag panel hides it too", function()
+		expect(MenuState.tutorialShown(nil, false, false)).toBe(true)
+		expect(MenuState.tutorialShown(nil, false, true)).toBe(false)
+		expect(MenuState.tutorialShown(nil, true, true)).toBe(false)
+	end)
+end)

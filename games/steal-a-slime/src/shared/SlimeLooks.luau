@@ -90,7 +90,10 @@ local KITS = table.freeze({
 	"slime_nightwing",
 	"slime_goozilla",
 	"slime_queen_jelly",
+	"slime_klawdius",
+	"slime_pumpking",
 	"slime_mecha_goo",
+	"slime_goomancer",
 	"slime_glitch",
 	"slime_doodle",
 	"slime_origami",
@@ -101,7 +104,7 @@ local KITS = table.freeze({
 })
 
 -- Materials a slime body may use; all are Enum.Material names.
-local MATERIALS = table.freeze({ "SmoothPlastic", "Glass", "Foil", "Neon", "Plastic" })
+local MATERIALS = table.freeze({ "SmoothPlastic", "Ice", "Foil", "Neon", "Plastic" })
 
 local ANIM_STATES: { AnimState } = { "idle", "wobble", "move" }
 
@@ -162,7 +165,10 @@ for _, look in
 		l("nightwing", { 230, 225, 240 }, "SmoothPlastic", "slime_nightwing"),
 		l("goozilla", { 50, 140, 70 }, "SmoothPlastic", "slime_goozilla"),
 		l("queen_jelly", { 230, 110, 220 }, "SmoothPlastic", "slime_queen_jelly"),
+		l("klawdius", { 235, 85, 70 }, "SmoothPlastic", "slime_klawdius"),
+		l("pumpking", { 245, 130, 30 }, "SmoothPlastic", "slime_pumpking"),
 		l("mecha_goo", { 200, 205, 215 }, "SmoothPlastic", "slime_mecha_goo"),
+		l("goomancer", { 120, 130, 235 }, "SmoothPlastic", "slime_goomancer"),
 		l("glitch", { 190, 240, 90 }, "SmoothPlastic", "slime_glitch"),
 		l("doodle", { 250, 250, 250 }, "SmoothPlastic", "slime_doodle"),
 		l("origami", { 255, 170, 200 }, "SmoothPlastic", "slime_origami"),

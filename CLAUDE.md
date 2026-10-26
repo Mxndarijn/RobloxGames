@@ -37,18 +37,21 @@ Verify in the real game where you can (Studio playtest, screenshots, the tests i
 
 The hard rules still win over "get it done": no production DataStores, no real publish or upload without Merijn's OK, no secrets printed or committed (see the per-area `CLAUDE.md` files).
 
-## Git: one branch per feature
+## Git: one worktree and branch per task
 
-Every feature or fix gets its own branch, cut from an up-to-date `main`:
+Every task (feature or fix) gets its own git worktree on its own branch, cut from the latest `main`. Always pull `main` first; never start from a stale base:
 
 ```sh
-git checkout main
-git pull origin main
-git checkout -b <type>/<short-slug>   # e.g. feat/slime-shop, fix/fountain-collision
+git fetch origin
+git -C D:/SoftwareProjects/RobloxGames pull --ff-only origin main   # keep the main checkout current too
+git worktree add ../RobloxGames-wt/<short-slug> -b <type>/<short-slug> origin/main   # e.g. feat/slime-shop, fix/fountain-collision
 ```
 
-- Never commit straight to `main`. If you are on `main` when you start a task, update it and branch first.
-- One feature per branch; start a new branch (again from a freshly pulled `main`) for the next feature.
-- Before opening a PR, bring the branch up to date with `main` (`git pull origin main` or rebase) and fix any conflicts.
+- Work, build and test only inside that worktree. Don't switch branches in the main checkout (`D:/SoftwareProjects/RobloxGames`); other bots and Merijn use it.
+- If the app already started you in a worktree it made, use that one, and pull the latest `main` into it before you start (`sync_with_base_branch`, or `git pull origin main`).
+- Never commit straight to `main`.
+- One task per worktree and branch; the next task gets a new worktree, again from a freshly pulled `main`.
+- Before opening a PR, pull `main` into the branch again and fix any conflicts.
 - Commit messages follow the existing style: `feat(<area>): ...`, `fix(<area>): ...`, `docs: ...`.
 - Stage your own files by path; other bots may share the checkout. Don't `git push` or open a PR unless the task or Merijn asks for it.
+- Once a PR is merged, its branch goes away. GitHub deletes the remote branch automatically (repo setting); when you merge with `gh`, use `gh pr merge --delete-branch`. Then remove the worktree and the local branch too (`git worktree remove ../RobloxGames-wt/<short-slug> && git branch -D <branch>`; squash merges need `-D`).

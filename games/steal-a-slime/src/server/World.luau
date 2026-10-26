@@ -16,6 +16,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local BossChoreo = if Shared then require(Shared.BossChoreo) else require("../shared/BossChoreo")
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
@@ -28,6 +29,14 @@ local StealAlert = if Shared then require(Shared.StealAlert) else require("../sh
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
 local WelcomeBack = if Shared then require(Shared.WelcomeBack) else require("../shared/WelcomeBack")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local MovementGuard = if Lib
+	then require(Lib.anticheat.MovementGuard)
+	else require("../../../../shared/luau/src/anticheat/MovementGuard")
+local Suspicion = if Lib
+	then require(Lib.anticheat.Suspicion)
+	else require("../../../../shared/luau/src/anticheat/Suspicion")
 
 type Slime = Genome.Slime
 
@@ -53,18 +62,25 @@ export type Session = {
 	limiter: Validate.Limiter,
 	carry: CarryState?,
 	lastSlapAt: number,
+	lastDropAt: number, -- when this player last dropped a slime (Config.DROP_PICKUP_COOLDOWN), runtime only
 	incomeRemainder: number,
 	dirty: boolean,
 	lastPushAt: number,
 	stealWaitSince: number?, -- tutorial Steal step: since when no other plot had a slime to steal, runtime only
 	friends: number?, -- friends in this server (Friends.refresh), runtime only
+	friendIds: { [number]: boolean }?, -- user ids of those friends (Friends.refresh; PlotGuests), runtime only
 	blessedUntil: number?, -- when the co-op ritual's Blessed bonus (data.ritualBonus) ends (RitualService), runtime only
+	mvpUntil: number?, -- when the Boss MVP income boost (data.mvpBonus) ends (BossCredit), runtime only
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch (State.egg, never saved)
 	home: boolean?, -- standing in their own HomeZone (the adapter sets it); warms their Mystery Eggs, runtime only
 	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
-	openShop: string?, -- FEATURES.WorldShops: the shop id the player has open (Request OpenShop), runtime only
+	boardRanks: { [string]: number }?, -- my rank per global board stat from the last refresh (-n = deeper than #n, Leaderboard.sessionRanks); runtime only
+	coilHeld: boolean?, -- the SpeedCoil Tool is equipped (WorldView sets it each tick); runtime only
+	openShop: string?, -- the shop id the player has open (Request OpenShop), runtime only
 	awayLog: { StealAlert.Entry }?, -- FEATURES.StealAlerts: the saved thefts read at join, for the join notice (never saved)
+	bossStunUntil: number?, -- hit by a boss attack: no bat hits or slaps until then (BossEvent), runtime only
+	bossSlow: { factor: number, untilTime: number }?, -- in a boss goo puddle: walk speed x factor until then, runtime only
 }
 
 export type Wild = {
@@ -76,12 +92,34 @@ export type Wild = {
 	radius: number,
 	position: any?, -- set when a carrier drops it somewhere else (adapter-defined)
 	returning: ParadeLane.Return?, -- FEATURES.Parade: its walk back to the lane after a drop (contract/slime-walk.md)
-	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts toward the wild cap
-	wanderUntil: number?, -- the boss: server time the haul started; its BossWander pose stays there
+	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts in Spawner.wildCount
+	move: BossChoreo.Move?, -- the boss: its current move (BossChoreo; model attribute BossMove)
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
 	choreo: { seed: number }?, -- FEATURES.SlimeChoreo: seed of its lane beats (ParadeChoreo); nil once it leaves the lane
 }
 
+-- SlimeGuard (CONTRACT.md §41): one player's movement check, suspicion points and where they are.
+-- Another player's jar a character is in and since when; `guest` once they were let in there (PlotGuests),
+-- `flagged` once they were reported as an intruder there.
+export type PlotVisit = { index: number, since: number, guest: boolean?, flagged: boolean? }
+export type GuardEntry = {
+	track: MovementGuard.Track,
+	suspicion: Suspicion.State,
+	lastMax: number, -- last tick's allowed flat speed
+	carry: { slimeId: string, x: number, z: number, maxSpeed: number }?, -- where the current stolen carry began
+	plot: PlotVisit?, -- another player's jar the character is in (SlimeGuard.trackPlot)
+	logMinute: number,
+	logCount: number,
+}
+-- A completed steal (SlimeGuard.recordSteal), kept so a kick can undo it.
+export type StealRecord = {
+	thiefId: number,
+	victimId: number,
+	slimeId: string,
+	name: string,
+	at: number,
+	undone: boolean,
+}
 -- Drops since the last Epic+ / Legendary+ (Spawner pity, CONTRACT.md §8.7).
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
@@ -95,7 +133,7 @@ export type Event = {
 	slimeId: string?,
 	ownerUserId: number?,
 	carrierUserId: number?,
-	reason: string?, -- Escaped: "slap" | "drop" | "left"
+	reason: string?, -- Escaped: "slap" | "drop" | "left" | "unsaved" | "guard" (SlimeGuard)
 	active: boolean?,
 	effect: string?, -- Effect: Effects.KINDS name ("Collect" | "Steal" | "Merge" | "Rebirth")
 	plotIndex: number?, -- Effect: plot whose MergeVat is the target
@@ -104,8 +142,36 @@ export type Event = {
 	payload: { [string]: any }?, -- PvpEvent: the remote payload (CONTRACT.md §26.1)
 }
 
+-- A spit attack's `burst` (Config.BOSS.MOVES): its puddle bursts into a ring `delay` s after it lands.
+export type BossBurst = { delay: number?, radius: number?, speed: number?, push: number? }
+export type BossSpit = { x: number, z: number, landAt: number, seconds: number, slow: number, burst: BossBurst? }
+export type BossPuddle = {
+	x: number,
+	z: number,
+	untilAt: number,
+	slow: number,
+	burstAt: number?, -- a rune puddle: server time its ring starts
+	burst: BossBurst?,
+	struck: { [number]: boolean }, -- players its ring already hit
+}
+
 -- The running boss event: the pure fight and the wild boss slime once it has arrived.
-export type BossEvent = { fight: BossFight.State, slimeId: string?, lastStepAt: number }
+export type BossEvent = {
+	fight: BossFight.State,
+	slimeId: string?,
+	lastStepAt: number,
+	rng: Rng.Rng, -- the boss's own choices (where it strolls), apart from world.rng
+	nextAttackAt: number, -- server time its next attack may wind up (math.huge while one runs)
+	attackIndex: number, -- rotation through BossAttacks.available
+	struck: { [string]: boolean }, -- "<userId>:<part>" the current attack move already hit (a part: a ring's wave)
+	struckMove: number, -- the move number `struck` is for
+	targets: { { number } }, -- spit: plaza spots picked at the windup (they land there)
+	spits: { BossSpit }, -- spit blobs in the air
+	puddles: { BossPuddle }, -- goo puddles on the ground
+	guards: { { x: number, z: number, alive: boolean } }, -- the guards of the current rise
+	rainAt: number?, -- a guards `rain` attack: server time of its next goo drop volley while it floats
+	lastHit: { userId: number, points: number, at: number }?, -- the latest counted bat hit (clients squash it, pop points)
+}
 
 export type AdminEvent = {
 	def: { id: string, label: string, icon: string },
@@ -137,13 +203,13 @@ export type World = {
 	eggRng: Rng.Rng, -- FEATURES.MysteryEggs rolls, apart from `rng` so the fountain's slime sequence doesn't shift
 	hatches: { [string]: Hatch }, -- Mystery Egg hatches whose show is playing, runtime only (MysteryEgg.step forgets them)
 	newId: () -> string,
+	canSave: (userId: number) -> boolean, -- the adapter's save check (World.canSave)
 	startedAt: number,
 	nextSpawnAt: number,
 	slideFreeAt: number, -- FEATURES.Parade: the next free fountain-slide slot (Spawner.slot): drops never stack
 	lastSecondAt: number,
 	raining: boolean,
 	rainForcedUntil: number?, -- seconds since start (Progression.rainStatus)
-	rainWarned: boolean, -- the heads-up for the next rain went out
 	nextBossAt: number, -- server time of the next boss arrival (server/BossEvent)
 	boss: BossEvent?, -- the running boss event, nil between bosses
 	bossIndex: number, -- position in Config.BOSS.ROTATION of the next boss (1-based)
@@ -156,12 +222,17 @@ export type World = {
 	pity: Pity,
 	fountainTier: number, -- FEATURES.FountainTiers: best rank tier seen on this server (FountainTiers), 1 = Meadow, only ever rises
 	outbox: { Event },
+	guard: { [number]: GuardEntry }, -- SlimeGuard per player, runtime only
+	stealLedger: { StealRecord }, -- SlimeGuard: completed steals of the last UNDO_SECONDS, runtime only
+	guardMode: ("off" | "watch" | "enforce")?, -- tests: overrides FEATURES.SlimeGuard / SLIME_GUARD.ENFORCE
 }
 
 export type Options = {
 	now: number,
 	seed: number?,
+	eggSeed: number?, -- the hatch generator's own seed; nil = derived from `seed` (tests)
 	newId: (() -> string)?,
+	canSave: ((userId: number) -> boolean)?, -- false while this server can't write that player's save; default: always
 	plotCount: number?,
 }
 
@@ -179,11 +250,14 @@ function World.new(options: Options): World
 		carriedBy = {},
 		escaping = {},
 		rng = Rng.new(options.seed or 1),
-		eggRng = Rng.new((options.seed or 1) + 7919),
+		eggRng = Rng.new(options.eggSeed or (options.seed or 1) + 7919),
 		hatches = {},
 		newId = options.newId or function()
 			counter += 1
 			return `s{counter}`
+		end,
+		canSave = options.canSave or function(_userId: number): boolean
+			return true
 		end,
 		startedAt = options.now,
 		nextSpawnAt = options.now,
@@ -191,7 +265,6 @@ function World.new(options: Options): World
 		lastSecondAt = options.now,
 		raining = false,
 		rainForcedUntil = nil,
-		rainWarned = false,
 		nextBossAt = options.now + Config.BOSS.FIRST_AT,
 		boss = nil,
 		bossIndex = 1,
@@ -204,12 +277,24 @@ function World.new(options: Options): World
 		pity = { sinceEpic = 0, sinceLegendary = 0 },
 		fountainTier = 1,
 		outbox = {},
+		guard = {},
+		stealLedger = {},
+		guardMode = nil,
 	}
 	return world
 end
 
 function World.session(world: World, userId: number): Session?
 	return world.sessions[userId]
+end
+
+--[[
+	True when this server saves `userId`'s progress. A read-only session (a save from a newer version) or one
+	another server took over keeps its stored record, so a slime moved into or out of it in memory would be
+	duplicated or lost: thefts need both players to be saveable.
+]]
+function World.canSave(world: World, userId: number): boolean
+	return world.canSave(userId)
 end
 
 function World.markDirty(session: Session?)
@@ -315,8 +400,17 @@ function World.ownerOf(world: World, slimeId: string): (Session?, Slime?)
 	return nil, nil
 end
 
+-- The slimes that earn nothing right now: carried away by a thief, or brewing in the owner's vat.
+function World.incomeSkip(world: World, session: Session): { [string]: boolean }
+	local skip = VatState.lockedSet(session.data)
+	for id in world.carriedBy do
+		skip[id] = true
+	end
+	return skip
+end
+
 function World.incomeOf(world: World, session: Session): number
-	return PlayerData.incomePerSecond(session.data, World.carriedSet(world))
+	return PlayerData.incomePerSecond(session.data, World.incomeSkip(world, session))
 end
 
 return World

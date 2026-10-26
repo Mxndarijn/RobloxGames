@@ -3,7 +3,7 @@
 Every slime model has one label. A wild, carried or escaping slime shows a floating tag above the top of its mesh:
 species name, rarity, income per second and, while it is for sale, its price. A slime resting on a pad shows no tag;
 its label is a wooden plank on the front of the pad crate, dipped in goo of its rarity colour: the rarity in the
-goo, the name and income painted on the wood, and a goo tube for its growth.
+goo, the name and income written on the wood, and a goo tube for its growth.
 The server decides every value and writes it as model attributes; each client draws the labels locally. No remote, no
 State field, no save-format change.
 
@@ -28,15 +28,18 @@ State field, no save-format change.
   is missing.
 - **Tag (`src/ui/SlimeInfoCard`, started from `init.client`).** One `BillboardGui` per tagged slime model
   (`Constants.SLIME_TAG`), parented to its Body (`Archivable` false) with `Adornee` = Body, `SizeOffset` (0, 0.5) so its
-  bottom edge sits `LabelHeight` above the Body. Outlined text, no panel: the name in white edged in the rarity colour,
-  the rarity word filled with a gradient of its colour (a rainbow for Secret), the income in green and the price in
-  gold. Size mixes studs and pixels so it shrinks with distance but stays readable; `MaxDistance` 60 hides it far
+  bottom edge sits `LabelHeight` above the Body. No panel (the Goo world label): the rarity on a pill of its colour
+  with an Ink outline (a rainbow for Secret; Ink text on bright colours, outlined white on deep ones), the name in
+  white outlined in Ink, the income in mint, and while it is for sale a "Buy $500" chip, gold on Ink. Size mixes
+  studs and pixels so it shrinks with distance but stays readable; `MaxDistance` 60 hides it far
   away. Every tag sits at the same height above its slime, so neighbours on the lane can overlap. Disabled while
   `LabelPad` is set and the pad is found.
 - **Pad sign (`src/ui/SlimePadSign`, driven by `SlimeInfoCard`).** A thin non-colliding, non-queried WoodPlanks part with
   a `SurfaceGui` on the pad crate's entrance side (pad-local -Z), in a local `SlimePadSigns` folder. Goo of the rarity
-  colour (a rainbow for Secret) runs along its top edge with the rarity written in it and drips down both ends; the
-  name (cream) and income (gold) are painted on the wood; the growth fills a goo tube, its percent beside it.
+  colour (a rainbow for Secret) runs along its top edge with the rarity written in it (Ink, or outlined white on deep
+  goo) and drips down both ends; the plank has an Ink edge; the name (white) and income
+  (mint) are written in Ink-outlined Fredoka on the wood; the growth fills an Ink tube with mint goo, its percent
+  beside it.
   `MaxDistance` 45: the plank is too small to read beyond that. The pad is the plot's part with `PadIndex` =
   `LabelPad`. Moves when the slime changes pad; looked up again when the model moves (it may land in its plot after
   `LabelPad` arrives); removed when it leaves the pad or loses its tag.

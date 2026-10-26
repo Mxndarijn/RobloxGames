@@ -1,10 +1,10 @@
 --!strict
 --[[
-	World shop panel (FEATURES.WorldShops, CONTRACT.md §27): the card of ONE in-world shop, "Item Shop" or
+	World shop panel (CONTRACT.md §27): the card of ONE in-world shop, "Item Shop" or
 	"Upgrade Shop". The server opens it at the stand's ShopPrompt (ShopEvent Open / attribute OpenShop);
 	init.client calls setShop(shopId) and shows the card like every other menu (setOpen("WorldShop"), X,
 	backdrop, Esc / B). Rows come from WorldShopLogic.rows (Shared.Shops + the live State); a Buy hold calls
-	Request("ShopBuy", shopId, itemId). Panels/Shop is the combined shop for FEATURES.WorldShops off.
+	Request("ShopBuy", shopId, itemId).
 
 	Both shops wear the shared panel purple; the title, the corner icon and the tagline chip tell them apart.
 	A row is the icon tile (a gold stock tag under it for restocking items), the name, a two-line description,
@@ -14,6 +14,7 @@
 
 local UI = script.Parent.Parent
 local Format = require(UI.Format)
+local GooIcons = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("GooIcons"))
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
@@ -31,38 +32,41 @@ local WorldShop = {}
 WorldShop.ROW = 68
 WorldShop.ROW_LEVELS = 80 -- a leveled upgrade: the pips sit under the two description lines
 WorldShop.BADGE = 48
-WorldShop.BUY_W = 110
+WorldShop.BUY_W = 170 -- fits "Need $987.6Qa more"; narrower than Layout.ROW_SLOT so a phone row keeps room for two lines of text
 WorldShop.TOP_H = 32 -- the cash / tagline chips over the list
 WorldShop.NAME_H = 22
-WorldShop.DESC_H = 32
+WorldShop.DESC_H = 34
 WorldShop.EDGE = 8 -- row edge to the icon and to the right slot
 WorldShop.GAP = 10 -- icon to text, text to the right slot
 
 WorldShop.SIZE = table.freeze({
-	desc = 13,
+	desc = Layout.MIN_TEXT,
 	buy = 16,
 	chipH = 26,
-	softChip = 13, -- the muted tagline / restock chip
-	tag = 11, -- the gold stock tag under the icon
-	tagH = 16,
+	softChip = Layout.MIN_TEXT, -- the muted tagline / restock chip
+	tag = Layout.MIN_TEXT, -- the gold stock tag under the icon
+	tagH = 18,
 	tagPad = 6,
 	pipH = 6,
 	pipGap = 4,
 	pipInset = 7, -- pips' bottom above the row's bottom
 	status = 15,
-	statusSub = 11, -- "to unlock" under a locked well's main line
+	statusSub = Layout.MIN_TEXT, -- "to unlock" under a locked well's main line
 	statusPad = 10, -- each side of a status well's widest line
-	stamp = 13,
+	stamp = Layout.MIN_TEXT,
 	stampH = 24,
 	stampPad = 8,
 	stampRadius = 8,
 })
 
--- Per shop: the corner icon; the title and tagline come from WorldShopLogic.
+-- Per shop: the corner icon (an emoji, or `drawn` = a GooIcons drawing in Ink) and its tile colour; the title
+-- and tagline come from WorldShopLogic.
 WorldShop.ICON = table.freeze({
-	ItemShop = "🛒",
-	UpgradeShop = "⬆️",
+	ItemShop = table.freeze({ text = "🛒" }),
+	UpgradeShop = table.freeze({ drawn = "upArrow", tile = "Gold" }),
 })
+
+local ICON_DEPS = { Instance = Instance, UDim = UDim, UDim2 = UDim2, Vector2 = Vector2 }
 
 local SIZE = WorldShop.SIZE
 
@@ -130,7 +134,10 @@ local function setPips(holder: Frame, level: number, maxLevel: number)
 end
 
 function WorldShop.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "WorldShopPanel", "Shop", WorldShop.ICON.ItemShop)
+	local panel = Widgets.panel(parent, "WorldShopPanel", "Shop", WorldShop.ICON.ItemShop.text)
+	local tile = panel.icon.Parent :: Frame
+	local arrow = GooIcons.upArrow(panel.icon, ICON_DEPS, Theme.Ink, panel.icon.ZIndex)
+	arrow.Visible = false
 
 	local cash = Widgets.chip({
 		Name = "Cash",
@@ -259,7 +266,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 		})
 		local stamp = WorldShop.tag({
 			Name = "MaxStamp",
-			Text = "MAX",
+			Text = "Max",
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, -WorldShop.EDGE, 0.5, 0),
 			Visible = false,
@@ -351,7 +358,10 @@ function WorldShop.new(parent: Instance, ctx: any)
 	function self.setShop(id: string)
 		shopId = id
 		panel.title.Text = WorldShopLogic.title(id)
-		panel.icon.Text = (WorldShop.ICON :: any)[id] or WorldShop.ICON.ItemShop
+		local look = (WorldShop.ICON :: any)[id] or WorldShop.ICON.ItemShop
+		panel.icon.Text = look.text or ""
+		arrow.Visible = look.drawn == "upArrow"
+		tile.BackgroundColor3 = (Theme :: any)[look.tile or "Text"]
 		tagline.Text = WorldShopLogic.tagline(id)
 		refresh()
 	end

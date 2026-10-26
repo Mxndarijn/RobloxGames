@@ -10,6 +10,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local FountainTiers = if script then require(script.Parent.FountainTiers) else require("./FountainTiers")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 type Entry = SlimeRoster.Entry
@@ -32,9 +33,10 @@ export type EntryView = {
 	tier: number,
 	kind: string,
 	found: boolean,
-	name: string?,
+	name: string,
 	hint: string?,
 	ingredients: { string }?,
+	ingredientSets: { string }?, -- hybrids: each slot's set ("Meadow", "Garden", ...), sent even while the slot is ""
 }
 
 export type View = {
@@ -60,7 +62,6 @@ local SpeciesDex = {
 	BONUS = BONUS,
 	TOTAL = #ENTRIES,
 	BOSS_HINT = "Defeat the boss event",
-	UNKNOWN = "???",
 }
 
 -- A species the Dex knows: an entry or a bonus entry.
@@ -70,6 +71,13 @@ function SpeciesDex.isSpecies(id: any): boolean
 	end
 	local entry = SlimeRoster.get(id)
 	return entry ~= nil and (inDex[id] ~= nil or entry.kind == "event")
+end
+
+-- The set a species belongs to: its FountainTiers family's name, "Meadow" for the Classic species.
+function SpeciesDex.setName(id: string): string
+	local entry = SlimeRoster.get(id)
+	local family = if entry then FountainTiers.family(entry.family) else nil
+	return if family then family.name else FountainTiers.CLASSIC_NAME
 end
 
 -- Marks the slime's species found. Returns whether the species is new.
@@ -152,36 +160,29 @@ local function entryView(data: Data, entry: Entry, now: number, sources: Sources
 		tier = entry.tier,
 		kind = entry.kind,
 		found = found,
-		name = if found then entry.name else nil,
+		name = entry.name,
 		hint = nil,
 		ingredients = nil,
 	}
 	if entry.kind == "hybrid" then
 		local recipe = sources.recipeFor(entry.id)
 		if recipe then
-			local known = true
-			local slots = {}
+			local slots, sets = {}, {}
 			for i, input in recipe.inputs do
-				local has = data.found[input] == true
-				known = known and has
-				slots[i] = if has then input else ""
+				slots[i] = if data.found[input] == true then input else ""
+				sets[i] = SpeciesDex.setName(input)
 			end
 			view.ingredients = slots
+			view.ingredientSets = sets
 			view.hint = recipe.hint
-			if known then
-				view.name = entry.name
-			end
 		end
 	elseif entry.kind == "boss" then
 		view.hint = SpeciesDex.BOSS_HINT
 	elseif entry.kind == "event" then
 		local week = sources.featuredWeek(entry.id, now)
 		local featuredNow = week ~= nil and week <= now
-		if found or featuredNow then
-			view.name = entry.name
-			view.hint = if week then `Featured Secret: week of {SpeciesDex.weekLabel(week)}` else nil
-		else
-			view.hint = SpeciesDex.UNKNOWN
+		if (found or featuredNow) and week then
+			view.hint = `Featured Secret: week of {SpeciesDex.weekLabel(week)}`
 		end
 	end
 	return view

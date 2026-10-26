@@ -184,6 +184,9 @@ function TutorialArrow.start(): () -> ()
 			else nil
 		currentKey = if choice then choice.key else nil
 		guide:setTarget(if choice then choice.target else nil, if choice then choice.label else nil)
+		local gui = player:FindFirstChild("PlayerGui")
+		local ui = gui and gui:FindFirstChild(Constants.UI_GUI_NAME)
+		guide:setEdgeHidden(ui ~= nil and ui:GetAttribute(Constants.MENU_OPEN_ATTRIBUTE) == true)
 	end
 	task.spawn(function()
 		while running do

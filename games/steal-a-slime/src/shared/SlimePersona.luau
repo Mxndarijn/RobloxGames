@@ -35,6 +35,7 @@ local HOPS: { [string]: Hop } = {
 	ninja = table.freeze({ height = 0.8, air = 0.3, wait = 0.6, settle = 0.12 }), -- low quick dashes
 	cyber_ninja = table.freeze({ height = 0.8, air = 0.3, wait = 0.6, settle = 0.12 }),
 	whiskers = table.freeze({ height = 1.3, air = 0.4, wait = 1.0, settle = 0.3 }), -- pounces
+	pumpking = table.freeze({ height = 1.3, air = 0.55, wait = 1.5, settle = 0.45 }), -- heavy stomps, a long wobble
 }
 
 local function p(gait: Gait, temper: Temper, id: string): Persona
@@ -95,7 +96,10 @@ local BY_SPECIES: { [string]: Persona } = {
 	-- boss slimes
 	goozilla = p("Waddle", "Feisty", "goozilla"),
 	queen_jelly = p("Float", "Showoff", "queen_jelly"),
+	klawdius = p("Scoot", "Feisty", "klawdius"),
+	pumpking = p("Hop", "Bouncy", "pumpking"),
 	mecha_goo = p("Waddle", "Feisty", "mecha_goo"),
+	goomancer = p("Float", "Curious", "goomancer"),
 	-- event Secrets
 	glitch = p("Scoot", "Bouncy", "glitch"),
 	doodle = p("Hop", "Curious", "doodle"),

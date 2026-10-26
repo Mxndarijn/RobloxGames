@@ -35,6 +35,20 @@ describe("SaveData round trip", function()
 		expect(next(back.found) ~= nil).toBe(true) -- generated slimes have a species
 		expect(back.padsUnlocked).toBe(Config.PADS_MAX)
 	end)
+	it("keeps whether a slime was brewed in the vat, and writes nothing for one that wasn't", function()
+		local data = Fixtures.data({
+			Fixtures.slime("r", 2, { brewed = 1 }),
+			Fixtures.slime("h", 3, { brewed = 2 }),
+			Fixtures.slime("w", 1),
+		}, 0)
+		local raw = SaveData.serialize(data, 1700000000)
+		expect(raw.slimes[3].brewed).toBeNil()
+		local back = SaveData.deserialize(serde.decode("json", serde.encode("json", raw)))
+		expect(back.slimes[1].brewed).toBe(1)
+		expect(back.slimes[2].brewed).toBe(2)
+		expect(back.slimes[3].brewed).toBeNil()
+		expect(SaveData.serialize(back, 1700000000)).toEqual(raw)
+	end)
 	it("keeps the SlimeDex: found species and the species reward ladder", function()
 		local data = Fixtures.data(nil, 0)
 		data.found.moo = true
@@ -64,12 +78,12 @@ describe("SaveData round trip", function()
 		local fresh = SaveData.deserialize({ version = 2, cash = 5, dex = { "1:None:Plain:Round" } })
 		expect(next(fresh.found)).toBeNil()
 	end)
-	it("a saved boss trophy counts as found", function()
+	it("a won boss species counts as found", function()
 		local raw = SaveData.serialize(Fixtures.data(nil, 0), 1700000000)
-		raw.trophies = { Fixtures.slime("t", 6, { species = "goozilla" }) }
+		raw.boss = { hits = 4, wins = { goozilla = 2 }, hauls = 0, mvps = 0, badges = {} }
 		raw.found = {}
 		local back = SaveData.deserialize(raw)
-		expect(#back.trophies).toBe(1)
+		expect(back.boss.wins.goozilla).toBe(2)
 		expect(back.found.goozilla).toBe(true)
 	end)
 	it("owned slimes are always found on load", function()
@@ -294,5 +308,33 @@ describe("SaveData.check", function()
 		expect(SaveData.check({})).toBe("unreadable")
 		expect(SaveData.check({ version = "abc", cash = 5 })).toBe("unreadable")
 		expect(SaveData.check({ version = 0 / 0 })).toBe("unreadable")
+	end)
+end)
+
+describe("SaveData.serialize numbers", function()
+	local function finite(n: number): boolean
+		return n == n and n ~= math.huge and n ~= -math.huge
+	end
+	it("NaN and infinite numbers are written as finite values", function()
+		local data = Fixtures.data(nil, 1234)
+		data.cash = 0 / 0
+		data.totalEarned = math.huge
+		data.lastOnline = -math.huge
+		data.boostUntil = 0 / 0
+		local saved = SaveData.serialize(data)
+		expect(saved.cash).toBe(0)
+		expect(finite(saved.totalEarned)).toBe(true)
+		expect(finite(saved.lastOnline)).toBe(true)
+		expect(finite(saved.boost.untilAt)).toBe(true)
+		expect(finite(serde.decode("json", serde.encode("json", saved)).cash)).toBe(true)
+	end)
+	it("ordinary numbers are unchanged", function()
+		local data = Fixtures.data(nil, 1234)
+		data.cash = 1234.9
+		data.totalEarned = 99.5
+		local saved = SaveData.serialize(data, 1700000000)
+		expect(saved.cash).toBe(1234)
+		expect(saved.totalEarned).toBe(99)
+		expect(saved.lastOnline).toBe(1700000000)
 	end)
 end)

@@ -11,6 +11,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
+local BossBadges = if Shared then require(Shared.BossBadges) else require("../shared/BossBadges")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
@@ -19,9 +20,12 @@ local Economy = if Shared then require(Shared.Economy) else require("../shared/E
 local Weekend = if Shared then require(Shared.Weekend) else require("../shared/Weekend")
 local EventSecrets = if Shared then require(Shared.EventSecrets) else require("../shared/EventSecrets")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
+local Leaderboards = if Shared then require(Shared.Leaderboards) else require("../shared/Leaderboards")
+local WeeklyEvents = if Shared then require(Shared.WeeklyEvents) else require("../shared/WeeklyEvents")
 local Quests = if Shared then require(Shared.Quests) else require("../shared/Quests")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
+local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared/PetSeats")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
@@ -32,6 +36,7 @@ local TutorialProgress = if Shared then require(Shared.TutorialProgress) else re
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local DexSources = if script then require(script.Parent.DexSources) else require("./DexSources")
@@ -44,6 +49,16 @@ type Session = World.Session
 
 local Snapshot = {}
 
+-- My own value on each global board (what the world boards and the Leaderboard panel show under the top 10).
+function Snapshot.boards(data: PlayerData.Data, now: number): { [string]: number }
+	local week = WeeklyEvents.weekIndex(now)
+	local out: { [string]: number } = {}
+	for _, def in Leaderboards.BOARDS do
+		out[def.stat] = math.floor(Leaderboards.value(def.stat, data, week))
+	end
+	return out
+end
+
 function Snapshot.build(world: World, session: Session, now: number): Types.State
 	local data = session.data
 	local rebirths = data.rebirths
@@ -53,8 +68,8 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		local carrier = world.carriedBy[slime.id]
 		table.insert(slimes, {
 			slime = EggKind.mask(slime), -- an egg never shows the slime inside (contract/mystery-egg.md)
-			income = if carrier then 0 else PlayerData.slimeIncome(data, slime),
-			sellPrice = Economy.sellPrice(slime, rebirths),
+			income = if carrier or VatState.isLocked(data, slime.id) then 0 else PlayerData.slimeIncome(data, slime),
+			sellPrice = Economy.sellPrice(slime),
 			stolenBy = carrier,
 		})
 	end
@@ -85,17 +100,18 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		incomePerSec = income,
 		rebirths = rebirths,
 		rebirthMultiplier = Economy.rebirthMultiplier(rebirths),
+		nextRebirthMultiplier = Economy.rebirthMultiplier(math.min(rebirths + 1, Config.MAX_REBIRTHS)),
 		rebirthCost = Economy.rebirthCost(rebirths),
 		canRebirth = canRebirth,
 		rebirthSlimes = Progression.requiredSlimes(data),
 		padsUnlocked = data.padsUnlocked,
 		padsMax = Config.PADS_MAX,
 		nextPadCost = Economy.padCost(data.padsUnlocked),
+		nextPadRebirths = Snapshot.nextPadRebirths(data),
 		slimes = slimes,
 		favoriteId = data.favoriteId,
 		lockUntil = session.lockUntil,
 		lockStartedAt = session.lockStartedAt,
-		lockCost = Economy.lockCost(income),
 		lockDuration = Steal.lockDuration(rebirths),
 		carrying = carrying,
 		rain = { active = rainActive, endsAt = endsAt, nextAt = nextAt },
@@ -112,7 +128,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		consumables = Consumables.view(data, now, Config.FEATURES.Weather, world.potionUntil),
 		pvp = PvpService.view(session, now),
 		tutorialStep = TutorialProgress.current(data),
-		walkSpeed = Shop.walkSpeed(data),
+		walkSpeed = Shop.walkSpeed(data, session.coilHeld),
 		tutorialStepId = TutorialProgress.currentId(data),
 		incomeMultiplier = Perks.incomeMultiplier(data),
 		petPerk = Perks.petPassive(data),
@@ -121,12 +137,20 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		settings = if Config.FEATURES.Audio then AudioSettings.clean(data.settings) else nil,
 		plotSkin = if Config.FEATURES.PlotSkins then PlotSkins.current(data) else nil,
 		plotSkins = if Config.FEATURES.PlotSkins then PlotSkins.view(data) else nil,
+		petSeat = PetSeats.current(data),
+		petSeats = PetSeats.view(data),
 		stealAway = if Config.FEATURES.StealAlerts then StealAlert.summary(session.awayLog) else nil,
 		welcomeBack = session.welcome,
 		hotbar = if data.hotbar then table.clone(data.hotbar) else nil,
+		boards = Snapshot.boards(data, now),
+		boardRanks = if session.boardRanks then table.clone(session.boardRanks) else {},
+		vat = VatState.view(data, Perks.brewFactor(data)) :: any,
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		blessed = if data.ritualBonus and session.blessedUntil
 			then { bonus = data.ritualBonus, endsAt = session.blessedUntil }
+			else nil,
+		mvpBoost = if data.mvpBonus and session.mvpUntil
+			then { bonus = data.mvpBonus, endsAt = session.mvpUntil }
 			else nil,
 		rebirthTitle = Perks.title(rebirths),
 		rebirthTiers = Snapshot.rebirthTiers(rebirths),
@@ -146,6 +170,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			rebirths = rebirths,
 		},
 		boss = BossEvent.view(world, session, now),
+		bossBadges = BossBadges.view(data),
 		modifier = {
 			name = world.modifier.name,
 			label = world.modifier.label,
@@ -154,6 +179,12 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			icon = if world.adminEvent then world.adminEvent.def.icon else nil,
 		},
 	}
+end
+
+-- Rebirths the next pad still waits for, or nil when it can be bought now (or every pad is open).
+function Snapshot.nextPadRebirths(data: any): number?
+	local need = Economy.padRebirths(data.padsUnlocked)
+	return if need and need > data.rebirths then need else nil
 end
 
 function Snapshot.rebirthTiers(rebirths: number): { Types.RebirthTierView }

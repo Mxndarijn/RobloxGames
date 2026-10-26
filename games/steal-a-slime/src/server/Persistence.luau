@@ -3,11 +3,12 @@
 	Persistence (Roblox adapter)
 
 	The save wiring of the server entry. At boot it picks the backend: the in-memory store when workspace
-	attribute DataStoreMode = "Memory" (or when no DataStore can be opened), else the real DataStore plus the
-	leaderboard OrderedDataStore. It keeps workspace.DataStoreStatus current: "Ok" | "Memory" | "Unavailable"
+	attribute DataStoreMode = "Memory" (or when no DataStore can be opened), else the real DataStore plus one
+	OrderedDataStore per global board (Leaderboards.BOARDS; the weekly board opens a new store each week). It keeps workspace.DataStoreStatus current: "Ok" | "Memory" | "Unavailable"
 	(nothing saves) | "Error" (the last load / save failed), warning on each change.
 	Loads and saves go through DataService (session-locked, retried); a Studio player whose load fails gets an
-	unsaved fresh profile. `pending` counts saves in flight so BindToClose can wait for them.
+	unsaved fresh profile. SaveGate counts loads and saves in flight so BindToClose can wait for them, and
+	releases the lock of a load that finishes after the player left or the server began closing.
 	No gameplay rules here.
 ]]
 
@@ -19,15 +20,19 @@ local RunService = game:GetService("RunService")
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local DataService = require(script.Parent.DataService)
 local Leaderboard = require(script.Parent.Leaderboard)
+local Leaderboards = require(ReplicatedStorage.Shared.Leaderboards)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
+local SaveGate = require(script.Parent.SaveGate)
+local WeeklyEvents = require(ReplicatedStorage.Shared.WeeklyEvents)
 local World = require(script.Parent.World)
 
 export type Persistence = {
 	data: DataService.DataService,
 	memoryMode: boolean,
-	orderedStore: OrderedDataStore?, -- global leaderboard; nil in memory mode
+	boardStore: ((name: string) -> OrderedDataStore?)?, -- global boards by store name; nil in memory mode
 	unsaved: { [number]: boolean }, -- Studio fallback profiles: never written
-	pending: number, -- saves in flight
+	ranked: { [number]: { [string]: number } }, -- the last value written per player, per board store name
+	gate: SaveGate.Gate, -- loads and saves in flight, closing
 }
 
 local Persistence = {}
@@ -56,7 +61,7 @@ function Persistence.new(): Persistence
 		setStatus("Ok")
 	end
 	local backend: DataService.Backend
-	local orderedStore: OrderedDataStore? = nil
+	local boardStore: ((name: string) -> OrderedDataStore?)? = nil
 	if memoryMode then
 		backend = DataService.memoryBackend()
 	else
@@ -67,7 +72,18 @@ function Persistence.new(): Persistence
 				end)
 			end,
 		}
-		orderedStore = DataStoreService:GetOrderedDataStore(Constants.LEADERBOARD_STORE)
+		local opened: { [string]: OrderedDataStore } = {}
+		boardStore = function(name: string): OrderedDataStore?
+			if not opened[name] then
+				local ok, store = pcall(function()
+					return DataStoreService:GetOrderedDataStore(name)
+				end)
+				if ok then
+					opened[name] = store
+				end
+			end
+			return opened[name]
+		end
 	end
 	return {
 		data = DataService.new({
@@ -79,23 +95,29 @@ function Persistence.new(): Persistence
 			end,
 		}),
 		memoryMode = memoryMode,
-		orderedStore = orderedStore,
+		boardStore = boardStore,
 		unsaved = {},
-		pending = 0,
+		ranked = {},
+		gate = SaveGate.new({
+			clock = os.clock,
+			wait = function(seconds: number)
+				task.wait(seconds)
+			end,
+		}),
 	}
 end
 
 --[[
 	Loads `userId`'s save. Returns the data, or nil plus the kick message. `present()` says whether the player
-	is still in the server: one who left while loading gets the session lock released and (nil, nil).
+	is still in the server: one who left while loading gets the session lock released and (nil, nil). Once the
+	server is closing, the lock is released as well and the player is kicked.
 ]]
 function Persistence.load(p: Persistence, userId: number, present: () -> boolean): (PlayerData.Data?, string?)
-	local ok, result = DataService.load(p.data, userId)
-	if not present() then
-		if ok then
-			DataService.save(p.data, userId, result :: PlayerData.Data, true) -- left while loading: release
-		end
+	local ok, result = SaveGate.load(p.gate, p.data, userId, present)
+	if result == "left" then
 		return nil, nil
+	elseif result == "closing" then
+		return nil, "This server is shutting down. Please rejoin."
 	end
 	if not p.memoryMode then
 		if ok then
@@ -120,7 +142,37 @@ function Persistence.readOnly(p: Persistence, userId: number): boolean
 	return DataService.readOnly(p.data, userId) ~= nil
 end
 
--- Saves (yields); `release` drops the session lock. Also ranks the player on the global board.
+-- True when this server writes `userId`'s progress: not read-only, not taken over by another server and not a
+-- Studio fallback profile. A theft needs both players' saves (World.canSave).
+function Persistence.canSave(p: Persistence, userId: number): boolean
+	return not p.unsaved[userId] and DataService.canSave(p.data, userId)
+end
+
+-- Writes each global board value of `userId` that changed since its last write (yields).
+local function rank(p: Persistence, userId: number, playerData: PlayerData.Data, saved: boolean, readOnly: boolean)
+	local open = p.boardStore
+	if not open then
+		return
+	end
+	local week = WeeklyEvents.weekIndex(os.time())
+	local written = p.ranked[userId] or {}
+	p.ranked[userId] = written
+	for _, def in Leaderboards.BOARDS do
+		local name = Leaderboards.storeName(def, week)
+		local value = Leaderboard.storeValue(def.stat, playerData, week)
+		local store = open(name)
+		if store and Leaderboard.shouldWrite(saved, readOnly, written[name], value) then
+			local ok = pcall(function()
+				store:SetAsync(DataService.key(userId), value)
+			end)
+			if ok then
+				written[name] = value
+			end
+		end
+	end
+end
+
+-- Saves (yields); `release` drops the session lock. Also ranks the player on every global board.
 function Persistence.save(p: Persistence, userId: number, playerData: PlayerData.Data, release: boolean)
 	if p.unsaved[userId] then
 		if release then
@@ -128,7 +180,8 @@ function Persistence.save(p: Persistence, userId: number, playerData: PlayerData
 		end
 		return
 	end
-	p.pending += 1
+	p.gate.pending += 1
+	Leaderboards.rollWeek(playerData, WeeklyEvents.weekIndex(os.time()))
 	local readOnly = Persistence.readOnly(p, userId)
 	local ok, reason = DataService.save(p.data, userId, playerData, release)
 	if not ok then
@@ -139,13 +192,11 @@ function Persistence.save(p: Persistence, userId: number, playerData: PlayerData
 	elseif not p.memoryMode then
 		setStatus("Ok")
 	end
-	local store = p.orderedStore
-	if store and not readOnly then -- a read-only session's progress is not saved, so it doesn't rank either
-		pcall(function()
-			store:SetAsync(DataService.key(userId), Leaderboard.storeValue(playerData))
-		end)
+	rank(p, userId, playerData, ok, readOnly)
+	if release then
+		p.ranked[userId] = nil
 	end
-	p.pending -= 1
+	p.gate.pending -= 1
 end
 
 -- Starts a save of every session, each in its own thread.
@@ -155,12 +206,14 @@ function Persistence.saveAll(p: Persistence, world: World.World, release: boolea
 	end
 end
 
--- Waits until no save is in flight or `timeout` seconds pass.
+-- From now on, loads that finish release their lock and kick instead of joining.
+function Persistence.close(p: Persistence)
+	SaveGate.close(p.gate)
+end
+
+-- Waits until no load or save is in flight or `timeout` seconds pass.
 function Persistence.waitForSaves(p: Persistence, timeout: number)
-	local deadline = os.clock() + timeout
-	while p.pending > 0 and os.clock() < deadline do
-		task.wait(0.1)
-	end
+	SaveGate.wait(p.gate, timeout)
 end
 
 return Persistence

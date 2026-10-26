@@ -1,6 +1,7 @@
 --!strict
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
+local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
 local GameLoop = require("../src/server/GameLoop")
 local Income = require("../src/server/Income")
@@ -35,7 +36,7 @@ describe("Income.step", function()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 0)
 		s.data.rebirths = 2
 		Income.step(world, 1)
-		expect(s.data.cash).toBe(math.floor(9 * (1 + 2 * Config.REBIRTH_MULTIPLIER_STEP)))
+		expect(s.data.cash).toBe(math.floor(9 * Economy.rebirthMultiplier(2)))
 	end)
 	it("caps a single tick at MAX_TICK seconds", function()
 		local world = ServerFixtures.world()

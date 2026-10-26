@@ -6,6 +6,7 @@ local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
+local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
 local MeshAssets = require("../src/shared/MeshAssets")
 local Runtime = require("../tools/livetest/Runtime")
@@ -15,7 +16,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 local FETCH_SECONDS = 1
 -- MeshSwap.PREFETCH_WORKERS (MeshSwap needs Roblox services, so the spec can't require it).
-local WORKERS = 8
+local WORKERS = 24
 
 local path = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-prefetch-{os.time()}.rbxlx`
 local built = process.exec("rojo", { "build", "-o", path })
@@ -129,7 +130,18 @@ describe("pet cloud template", function()
 		local size = MeshAssets.get("pet_cloud").size :: { number }
 		expect(mesh.Size.X).toBeCloseTo(size[1], 1e-3)
 		expect(mesh.Size.Y).toBeCloseTo(size[2], 1e-3)
-		expect(#loaded.rt.game:GetService("ReplicatedStorage").PetCloudMeshes:GetChildren()).toBe(1)
+		-- One template per uploaded pet seat (Config.PET_SEATS), each carrying its seat height.
+		local folder = loaded.rt.game:GetService("ReplicatedStorage").PetCloudMeshes
+		local uploaded = 0
+		for _, seat in Config.PET_SEATS do
+			if MeshAssets.meshId(seat.mesh) then
+				uploaded += 1
+				local template = folder:FindFirstChild(seat.mesh)
+				expect(template ~= nil).toBe(true)
+				expect(template:GetAttribute("SeatHeight")).toBe(seat.seat)
+			end
+		end
+		expect(#folder:GetChildren()).toBe(uploaded)
 	end)
 	it("is retried after a failed load and published once a retry works", function()
 		expect(flaky.petCloudAsks).toBe(3)

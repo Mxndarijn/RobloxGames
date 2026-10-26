@@ -3,13 +3,12 @@
 	Economy
 
 	Pure cash maths: per-slime income, plot income, fractional income ticks,
-	capped offline income, sell / pad / rebirth / lock prices and number
-	formatting. No Roblox APIs.
+	capped offline income, wild / sell / pad / rebirth prices, the rebirth
+	multiplier and number formatting. No Roblox APIs.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local NumberFormat = if script then require(script.Parent.NumberFormat) else require("./NumberFormat")
-local EggKind = if script then require(script.Parent.EggKind) else require("./EggKind")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 
 type Slime = Genome.Slime
@@ -24,8 +23,23 @@ local function count(n: any): number
 	return math.floor(v)
 end
 
+-- Income multiplier rebirth `n` adds (the band of Config.REBIRTH_MULTIPLIER_STEPS it falls in).
+function Economy.rebirthStep(n: number): number
+	local step = 0
+	for _, band in Config.REBIRTH_MULTIPLIER_STEPS do
+		if n >= band.from then
+			step = band.step
+		end
+	end
+	return step
+end
+
 function Economy.rebirthMultiplier(rebirths: number): number
-	return 1 + count(rebirths) * Config.REBIRTH_MULTIPLIER_STEP
+	local mult = 1
+	for n = 1, math.min(count(rebirths), Config.MAX_REBIRTHS) do
+		mult += Economy.rebirthStep(n)
+	end
+	return mult
 end
 
 function Economy.slimeIncome(slime: Slime, rebirths: number): number
@@ -81,13 +95,19 @@ function Economy.offlineIncome(
 	return math.floor(incomePerSec * seconds * (rate or Config.OFFLINE_RATE)), seconds
 end
 
--- Cash for selling a slime; an egg sells for its kind's flat `sell` x the rebirth multiplier.
-function Economy.sellPrice(slime: Slime, rebirths: number): number
-	local kind = EggKind.of(slime)
-	if kind then
-		return math.max(1, math.floor(kind.sell * Economy.rebirthMultiplier(rebirths)))
+-- What the fountain charges for `slime`: its base income for WILD_PRICE_SECONDS of its rarity. The rebirth
+-- multiplier doesn't count, so the fountain gets cheaper as a player rebirths.
+function Economy.wildPrice(slime: Slime): number
+	local seconds = Config.WILD_PRICE_SECONDS[math.clamp(slime.tier, 1, Config.MAX_TIER)]
+	return math.max(1, math.floor(Genome.baseIncome(slime) * seconds))
+end
+
+-- Cash for selling a slime (SELL_PRICE_SHARE of its fountain price), or nil for a Mystery Egg: an egg can't be sold.
+function Economy.sellPrice(slime: Slime): number?
+	if slime.egg then
+		return nil
 	end
-	return math.max(1, math.floor(Economy.slimeIncome(slime, rebirths) * Config.SELL_SECONDS))
+	return math.max(1, math.floor(Economy.wildPrice(slime) * Config.SELL_PRICE_SHARE))
 end
 
 -- The floor pad `pad` stands on: 1 for pads 1..PADS_PER_FLOOR, 2 for the next PADS_PER_FLOOR, and so on.
@@ -101,32 +121,50 @@ function Economy.floorsShown(padsUnlocked: number): number
 	return math.min(#Config.BASE_FLOORS, count(padsUnlocked) // Config.PADS_PER_FLOOR + 1)
 end
 
--- Price of the next pad, or nil when every pad is unlocked (Config.BASE_FLOORS).
+-- Rebirths that open pad `pad` (Config.BASE_FLOORS rows); 0 for a pad there from the start.
+function Economy.rebirthsForPad(pad: number): number
+	local floor = Economy.floorOf(pad)
+	local row = Config.BASE_FLOORS[floor]
+	return if row then row.padRebirths[pad - (floor - 1) * Config.PADS_PER_FLOOR] or 0 else 0
+end
+
+-- Rebirths the next pad needs, or nil when every pad is unlocked.
+function Economy.padRebirths(padsUnlocked: number): number?
+	local owned = count(padsUnlocked)
+	if owned >= Config.PADS_MAX then
+		return nil
+	end
+	return Economy.rebirthsForPad(owned + 1)
+end
+
+--[[
+	Price of the next pad, or nil when every pad is unlocked. A pad open from the start costs PAD_START_COSTS;
+	a pad that rebirth R opens costs PAD_PRICE_SHARE of rebirth R + 1, and each further pad R opens costs
+	PAD_SAME_REBIRTH_GROWTH times the one before it.
+]]
 function Economy.padCost(padsUnlocked: number): number?
 	local owned = count(padsUnlocked)
 	if owned >= Config.PADS_MAX then
 		return nil
 	end
 	local nextPad = owned + 1
-	local floor = Economy.floorOf(nextPad)
-	local row = Config.BASE_FLOORS[floor]
-	local first = if floor == 1 then Config.PADS_START + 1 else (floor - 1) * Config.PADS_PER_FLOOR + 1
-	return math.floor(row.firstPadCost * row.growth ^ math.max(0, nextPad - first))
+	local need = Economy.rebirthsForPad(nextPad)
+	if need == 0 then
+		return Config.PAD_START_COSTS[nextPad - Config.PADS_START] or 0
+	end
+	local before = 0
+	for pad = 1, owned do
+		if Economy.rebirthsForPad(pad) == need then
+			before += 1
+		end
+	end
+	return math.floor(Config.PAD_PRICE_SHARE * Economy.rebirthCost(need) * Config.PAD_SAME_REBIRTH_GROWTH ^ before)
 end
 
--- x REBIRTH_COST_GROWTH per rebirth up to REBIRTH_LATE_FROM, then x REBIRTH_COST_GROWTH_LATE.
+-- Cash the next rebirth costs at `rebirths` rebirths (Config.REBIRTH_COSTS; the last price at max).
 function Economy.rebirthCost(rebirths: number): number
-	local r = count(rebirths)
-	local early = math.min(r, Config.REBIRTH_LATE_FROM)
-	local late = math.max(0, r - Config.REBIRTH_LATE_FROM)
-	return math.floor(
-		Config.REBIRTH_BASE_COST * Config.REBIRTH_COST_GROWTH ^ early * Config.REBIRTH_COST_GROWTH_LATE ^ late
-	)
-end
-
-function Economy.lockCost(incomePerSec: number): number
-	local income = if incomePerSec == incomePerSec and incomePerSec > 0 then incomePerSec else 0
-	return math.max(Config.LOCK_BASE_COST, math.floor(income * Config.LOCK_INCOME_SECONDS))
+	local costs = Config.REBIRTH_COSTS
+	return costs[math.clamp(count(rebirths) + 1, 1, #costs)]
 end
 
 function Economy.formatNumber(n: number): string

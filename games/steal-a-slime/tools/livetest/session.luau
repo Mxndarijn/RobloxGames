@@ -22,7 +22,7 @@
 	         PromptHide
 	  boss   two stand-ins fight the boss with their bats (meter, sheds),
 	         race the haul (head start, boss carry slow, a slap drops it)
-	         and bring it home onto the trophy stand
+	         and bring it home for the win and its boss badges
 
 	Prints PASS / FAIL per check and exits 1 on any FAIL. The cloud twin is
 	tools/livetest/cloud/session.luau (Luau Execution, ci/run.py).
@@ -313,14 +313,13 @@ scenario("lockbuy", function()
 	rt:advance(0.3)
 	local openText, openAction = lockPrompt.ObjectText, lockPrompt.ActionText
 	check(
-		"lockbuy: open plot reads OPEN / Lock base $",
+		"lockbuy: open plot reads OPEN / Lock base",
 		plot:GetAttribute("Locked") == false
 			and string.find(openText, "OPEN", 1, true) ~= nil
-			and string.find(openAction, "Lock base $", 1, true) == 1,
+			and openAction == "Lock base",
 		`Locked={plot:GetAttribute("Locked")} "{openAction}" / "{openText}"`
 	)
 	session.data.tutorialStep = 3 -- at the Lock step
-	TestHooks.grantCash(world, USER_ID, plot:GetAttribute("LockCost"))
 	moveTo(plotPart("LockButton").CFrame.Position + Vector3.new(0, 3, 3))
 	lockPrompt.Triggered:Fire(player)
 	rt:advance(0.5)
@@ -475,21 +474,43 @@ scenario("loop", function()
 	S.WorldView.plot(me.plotIndex):FindFirstChild("BuyPadPrompt", true).Triggered:Fire(newbie)
 	rt:advance(0.6)
 	table.insert(steps, stepId())
-	-- 5: catch until two slimes share a rarity, then use the MergePrompt.
-	for _ = 1, 12 do
-		local tiers = {}
-		local pair = false
+	-- 5: catch until three slimes share a rarity, open the vat (MergePrompt), put them in, brew and collect.
+	local maxTier = rt:require(rt.game:GetService("ReplicatedStorage").Shared.Config).MAX_TIER
+	local function triple(): { string }?
+		local byTier = {}
 		for _, slime in me.data.slimes do
-			pair = pair or tiers[slime.tier] == true
-			tiers[slime.tier] = true
+			if slime.pad ~= nil and not slime.egg and slime.tier < maxTier then
+				byTier[slime.tier] = byTier[slime.tier] or {}
+				table.insert(byTier[slime.tier], slime.id)
+				if #byTier[slime.tier] == 3 then
+					return byTier[slime.tier]
+				end
+			end
 		end
-		if pair then
+		return nil
+	end
+	for _ = 1, 16 do
+		if triple() then
 			break
 		end
 		grabAndBringHome()
 	end
 	nplot("MergeVat"):FindFirstChild("MergePrompt").Triggered:Fire(newbie)
 	rt:advance(0.6)
+	for _, id in triple() or {} do
+		ninvoke("VatAdd", id)
+	end
+	ninvoke("VatStart")
+	local vat = (me.data :: any).vat
+	if vat and vat.endsAt then
+		vat.endsAt = rt.workspace:GetServerTimeNow() - 1 -- skip the brew (MERGE_BREW_SECONDS)
+	end
+	ninvoke("VatCollect")
+	check(
+		"loop: the vat brews three slimes into one (VatAdd x3, VatStart, VatCollect)",
+		me.data.stats.merges == 1 and (me.data :: any).vat == nil,
+		`merges {me.data.stats.merges}; vat {if (me.data :: any).vat then #(me.data :: any).vat.ids else 0} left`
+	)
 	table.insert(steps, stepId())
 	-- 6: steal from the other stand-in's unlocked plot, then drop it (it escapes home).
 	session.lockUntil = 0
@@ -685,7 +706,7 @@ scenario("ui", function()
 	session.lockUntil = now() - 1
 	invoke("Sync")
 	state = lastState()
-	local lockButton = LockHud.lockButton(state, now(), Config.LOCK_MAX_REMAINING)
+	local lockButton = LockHud.lockButton(state, now(), Config.LOCK_MAX_SECONDS)
 	local padButton = LockHud.padButton(state)
 	local lockPrompt = plotPart("LockButton"):FindFirstChild("LockPrompt")
 	local buyPad = plot:FindFirstChild("BuyPadPrompt", true)
@@ -694,7 +715,6 @@ scenario("ui", function()
 		"ui: Lock / Buy-pad HUD buttons match LockPrompt / BuyPadPrompt",
 		string.find(lockButton.text, "Lock", 1, true) ~= nil
 			and string.find(lockPrompt.ActionText, "Lock base", 1, true) == 1
-			and plot:GetAttribute("LockCost") == state.lockCost
 			and (padCost == nil) == (padButton.visible == false)
 			and (padCost == nil or plot:GetAttribute("NextPadCost") == padCost)
 			and (padCost == nil or buyPad.Enabled),
@@ -727,7 +747,7 @@ scenario("ui", function()
 end)
 
 ---------------------------------------------------------------------------
--- boss: two stand-ins fight the boss, race the haul and win a trophy (contract/boss-event.md)
+-- boss: two stand-ins fight the boss, race the haul and win boss badges (contract/boss-event.md)
 ---------------------------------------------------------------------------
 scenario("boss", function()
 	local RS = rt.game:GetService("ReplicatedStorage")
@@ -800,7 +820,7 @@ scenario("boss", function()
 	local lastFightPos = bossPos
 	while world.boss.fight.phase == "fight" and swings < 400 do
 		swings += 1
-		bossPos = S.WorldView.slimePosition(id) or bossPos -- it wanders (BossWander)
+		bossPos = S.WorldView.slimePosition(id) or bossPos -- it moves (BossChoreo)
 		lastFightPos = bossPos
 		face(player, bossPos + Vector3.new(0, 0, 8), bossPos)
 		bat(player).Activated:Fire()
@@ -826,11 +846,12 @@ scenario("boss", function()
 		else math.huge
 	check(
 		"boss: the haul catches it where it stood (no snap back to the boss spot)",
-		moved < BOSS.WANDER_SPEED * (BOSS.HIT_GAP + 0.05) + 0.5, -- at most one swing round of walking
+		moved < BOSS.STROLL_SPEED * (BOSS.HIT_GAP + 0.05) + 0.5, -- at most one swing round of walking
 		`moved {moved} studs between the last swing and the haul`
 	)
+	rt:advance(BOSS.SHRINK_SECONDS + 0.3) -- it shrinks to carry size first
 	check(
-		"boss: it pops to carry size for the haul",
+		"boss: it shrinks to carry size for the haul",
 		math.abs(model:GetScale() - 1) < 1e-3 and body:FindFirstChild("GrabPrompt").Enabled == true,
 		`scale {model:GetScale()}`
 	)
@@ -871,16 +892,18 @@ scenario("boss", function()
 	moveTo(S.WorldView.plotSpawn(session.plotIndex).Position)
 	rt:advance(1)
 	local after = stateOf(USER_ID)
-	local plot = S.WorldView.plot(session.plotIndex)
-	local stand = plot and plot:FindFirstChild(`Trophy_{fight.species}`)
+	local hauler = false
+	for _, badge in after.bossBadges do
+		hauler = hauler or badge.key == "BossHauler"
+	end
 	check(
-		"boss: home is a win: the trophy stands by the plot and earns",
-		#session.data.trophies == 1
+		"boss: home is a win: a haul and its badge in the save and State, no income",
+		session.data.boss.hauls == 1
 			and after.boss.phase == "won"
-			and after.boss.trophies == 1
-			and stand ~= nil
-			and after.incomePerSec > income,
-		`trophies {#session.data.trophies}, phase {after.boss.phase}, stand {stand and stand:GetFullName()}, income {income} -> {after.incomePerSec}`
+			and after.boss.badges == #after.bossBadges
+			and hauler
+			and after.incomePerSec == income,
+		`hauls {session.data.boss.hauls}, wins {session.data.boss.wins[fight.species]}, phase {after.boss.phase}, badges {after.boss.badges}, hauler {hauler}, income {income} -> {after.incomePerSec}`
 	)
 	rt:advance(BOSS.LINGER_SECONDS + 0.5)
 	check("boss: the event clears after the result", world.boss == nil and stateOf(USER_ID).boss.phase == nil, "")

@@ -54,6 +54,18 @@ export type Geometry = {
 	plotSize: number,
 	plotFloorTop: number, -- absolute top of every plot's Base floor
 	plots: number, -- spokes / wedges
+	hall: Hall?, -- the Hall of Fame plaza and its path (WorldLayout.HALL_OF_FAME)
+}
+
+-- The Hall of Fame floor, in world studs: the round plaza (rim + floor), the podium stage disc on it and the plank
+-- path from the ring path out to it (centre, width, length, bearing of its long axis).
+export type Hall = {
+	x: number,
+	z: number,
+	radius: number,
+	rim: number, -- width of the darker rim round the floor
+	stage: { x: number, z: number, radius: number },
+	path: { x: number, z: number, width: number, length: number, bearing: number },
 }
 
 local FloorLayout = {}
@@ -83,6 +95,8 @@ FloorLayout.COLORS = table.freeze({
 	hem = { 205, 177, 130 },
 	grass = { 98, 160, 70 }, -- the pre-#270 Ground colour Merijn preferred
 	cream = { 244, 233, 207 },
+	hallRim = { 214, 186, 138 },
+	hallStage = { 240, 206, 120 },
 	plank = { 184, 134, 84 },
 	deckBase = { 244, 232, 200 }, -- slot colour of the deck mesh (kit INLAY): its brightest colour
 	pathBase = { 196, 146, 92 }, -- slot colour of the boardwalk mesh (kit BASE)
@@ -242,6 +256,48 @@ function FloorLayout.build(g: Geometry): { Node }
 		meshSlot("DeckPlaza", FloorLayout.DECK_MESH, FloorLayout.DECK_SIZE :: any, c.deckBase),
 		meshSlot("Boardwalk", FloorLayout.PATH_MESH, FloorLayout.PATH_SIZE :: any, c.pathBase),
 	}
+	local hall = g.hall
+	if hall then
+		local layer = FloorLayout.LAYER
+		local function at(node: Node, x: number, z: number): Node
+			local y = (node.pos :: { number })[2]
+			node.pos = { x, y, z }
+			return node
+		end
+		table.insert(
+			paths,
+			at(discNode("HallRim", hall.radius, layer.disc, c.hallRim, "SmoothPlastic", "path"), hall.x, hall.z)
+		)
+		table.insert(
+			paths,
+			at(
+				discNode("HallFloor", hall.radius - hall.rim, layer.lawn, c.cream, "SmoothPlastic", "path"),
+				hall.x,
+				hall.z
+			)
+		)
+		local st = hall.stage
+		table.insert(
+			paths,
+			at(discNode("HallStage", st.radius, layer.plank, c.hallStage, "SmoothPlastic", "path"), st.x, st.z)
+		)
+		local walk = hall.path
+		local thick = 0.2
+		table.insert(paths, {
+			name = "HallPath",
+			class = "Part",
+			shape = "Block",
+			size = { walk.width, thick, walk.length },
+			pos = { walk.x, top(layer.plank) - thick / 2, walk.z },
+			rot = { 0, walk.bearing, 0 },
+			color = c.plank,
+			material = "WoodPlanks",
+			canCollide = false,
+			canQuery = false,
+			canTouch = false,
+			attributes = { [FloorLayout.SNOW_KIND_ATTRIBUTE] = "path" },
+		})
+	end
 	local lawns: { Node } = {}
 	local step = 360 / g.plots
 	local margin, blocks = FloorLayout.LAWN_MARGIN_DEG, FloorLayout.LAWN_BLOCKS

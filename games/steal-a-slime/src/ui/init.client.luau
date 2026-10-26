@@ -2,10 +2,9 @@
 --[[
 	UI (owner: Jolt) -> StarterPlayerScripts.UI
 
-	Code-built ScreenGui: HUD, plot / merge / shop / rebirth / goals /
-	SlimeDex / leaderboard menus (v28: content-sized cards over a dimmed
-	full-window backdrop) and the Guide card (opened by "Talk" at the
-	TutorialNpc; "Open Shop" at the ShopStand opens the Shop), carry overlay, daily reward popup, tutorial
+	Code-built ScreenGui: HUD, merge / world shop / rebirth / goals / SlimeDex menus (content-sized
+	cards over a dimmed full-window backdrop) and the Guide card (opened by "Talk" at the
+	TutorialNpc; the server opens a world shop at its stand), carry overlay, daily reward popup, tutorial
 	overlay; plus in-world leaderboard SurfaceGuis (WorldLeaderboard). Renders the latest `State`
 	snapshot (CONTRACT §5.1); every button calls
 	`Request:InvokeServer(action, ...)` (§3). The client never decides outcomes.
@@ -23,6 +22,7 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -30,18 +30,21 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
 local FriendBonus = require(Shared:WaitForChild("FriendBonus"))
 local Genome = require(Shared:WaitForChild("Genome"))
+local GrabBlock = require(Shared:WaitForChild("GrabBlock"))
+local KitRequest = require(Shared:WaitForChild("KitRequest"))
 local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local SlimeLooks = require(Shared:WaitForChild("SlimeLooks"))
 local SlimeRoster = require(Shared:WaitForChild("SlimeRoster"))
+local SpeciesDex = require(Shared:WaitForChild("SpeciesDex"))
 local StealAlert = require(Shared:WaitForChild("StealAlert"))
-local TripleMerge = require(Shared:WaitForChild("TripleMerge"))
 local Types = require(Shared:WaitForChild("Types"))
 
-local CarryFade = require(script.CarryFade)
 local DexJarView = require(script.DexJarView)
 local Format = require(script.Format)
+local FriendsLockIcon = require(script.FriendsLockIcon)
+local GrabBlockCard = require(script.GrabBlockCard)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
 local Icons = require(script.Icons)
@@ -49,10 +52,12 @@ local Inventory = require(script.Inventory)
 local InventoryTools = require(script.InventoryTools)
 local ItemIconView = require(script.ItemIconView)
 local ItemIcons = require(script.ItemIcons)
+local KitCache = require(script.KitCache)
 local Layout = require(script.Layout)
 local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
+local NavTile = require(script.NavTile)
 local PopupQueue = require(script.PopupQueue)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
@@ -64,6 +69,8 @@ local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
 local StealAlertFx = require(script.StealAlertFx)
+local TickGuard = require(script.TickGuard)
+local TouchControls = require(script.TouchControls)
 local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
 local WorldShopLogic = require(script.WorldShopLogic)
@@ -79,7 +86,7 @@ local HintOverlay = require(Panels.HintOverlay)
 local LeaderboardPanel = require(Panels.Leaderboard)
 local MergePanel = require(Panels.Merge)
 local RebirthPanel = require(Panels.Rebirth)
-local ShopPanel = require(Panels.Shop)
+local SkinsPanel = require(Panels.Skins)
 local SoundPanel = require(Panels.Sound)
 local TutorialOverlay = require(Panels.TutorialOverlay)
 local WelcomePanel = require(Panels.Welcome)
@@ -112,12 +119,16 @@ local pvpFunFx = require(script.PvpFunFx).start({
 require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent, pvpAnim, pvpFunFx)
 
 local gui = Widgets.create("ScreenGui", {
-	Name = "SlimeUI",
+	Name = Constants.UI_GUI_NAME,
 	ResetOnSpawn = false,
 	IgnoreGuiInset = false,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	Parent = player:WaitForChild("PlayerGui"),
 })
+
+-- First person / shift lock pin the cursor to the screen centre: while a menu, a popup or the bag is
+-- open (syncTutorial below) Lib MenuMouse frees it so every button can be clicked.
+local menuMouse = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("MenuMouse")).new(gui)
 
 -- Phones: shrink the whole UI (Layout.uiScale; 1 on desktop). Set with the
 -- rest of the layout in applyLayout below.
@@ -155,10 +166,26 @@ local function playNotifySound(sound: string?)
 	end)
 end
 local soundController = if Config.FEATURES.Audio == true
-	then SoundController.new(Config, player, require(Shared:WaitForChild("DayNight")))
+	then SoundController.new(Config, player, require(Shared:WaitForChild("DayNight")), {
+		weather = function(): string?
+			local w = if Config.FEATURES.Weather then workspace:GetAttribute(Constants.WEATHER_ATTRIBUTE) else nil
+			return if type(w) == "string" then w else nil
+		end,
+	})
 	else nil
+-- Game sounds beyond the toasts (FEATURES.Audio): State cues (boss result, Dex, tutorial), world sounds from
+-- attributes (boss attacks, egg hatches, rituals, the fountain), slime voices and footsteps.
+local nextSoundCues: ((state: Types.State) -> { { name: string } })? = nil
+local worldAudioTick: ((now: number) -> ())? = nil
+local footstepsStep: ((dt: number?) -> ())? = nil
 if soundController then
 	require(script.ButtonClicks).start(gui, SoundController.play)
+	nextSoundCues = require(script.SoundCues).watcher(player.DisplayName)
+	local _stopWorldAudio, worldTick = require(script.WorldAudio).start()
+	worldAudioTick = worldTick
+	require(script.SlimeAudio).start()
+	local _stopFootsteps, stepTick = require(script.Footsteps).start()
+	footstepsStep = stepTick
 end
 
 -- Display names for UserIds (thieves, carriers). Async lookup for players who left.
@@ -183,7 +210,7 @@ end
 -- One in-flight call per action; failures only warn (no toasts any more). `onResult`
 -- (optional) gets the RequestResult of a call that reached the server.
 local busy: { [string]: boolean } = {}
-local worldShop: any = nil -- WorldShopLogic.controller, FEATURES.WorldShops only (made below, once setOpen exists)
+local worldShop: any = nil -- WorldShopLogic.controller (made below, once setOpen exists)
 -- `onFail` (optional) gets the { ok = false, message } of a call the server refused.
 local function call(action: string, onResult: ((any) -> ())?, onFail: ((any) -> ())?, ...: any)
 	assert(Remotes.ACTIONS[action], `unknown action {action}`)
@@ -218,6 +245,21 @@ local function send(action: string, ...: any)
 	invoke(action, nil, ...)
 end
 
+-- Species kit meshes come on demand: a preview missing its kit asks for it (RequestKits); wants of one frame go
+-- out together. Arrivals are watched below (watchKits), once the panels exist.
+local kitCache = KitCache.new({
+	KitRequest = KitRequest,
+	invoke = function(raw: string): boolean
+		local ok, result = pcall(function()
+			return request:InvokeServer("RequestKits", raw)
+		end)
+		return ok and type(result) == "table" and result.ok == true
+	end,
+	delay = function(seconds: number, fn: () -> ())
+		task.delay(seconds, fn)
+	end,
+})
+
 -- SlimeDex pictures: the real slime model from Archer's
 -- Visuals.ModelFactory (same builder as the in-world slimes), untagged so
 -- no slime-tag listener picks up the viewport copy. nil = no Visuals.
@@ -250,11 +292,6 @@ local ctx: { [string]: any } = {
 	Config = Config,
 	Constants = Constants,
 	Genome = Genome,
-	TripleMerge = TripleMerge,
-	-- Studio only: SlimeUI.PcwMergeVat = true shows the 3-slime vat panel with FEATURES.MergeVat3 off (pc-watcher shot).
-	vat3Forced = function(): boolean
-		return game:GetService("RunService"):IsStudio() and gui:GetAttribute("PcwMergeVat") == true
-	end,
 	actions = Remotes.ACTIONS,
 	send = send,
 	request = invoke,
@@ -264,14 +301,18 @@ local ctx: { [string]: any } = {
 	end,
 	serverNow = serverNow,
 	playerName = playerName,
+	userId = player.UserId, -- the local player (their own row on the leaderboards)
 	itemIcons = itemIcons,
 	buildSlime = if modelFactory then buildSlime else nil,
 	-- SlimeDex cards: species names / colours and the species mesh preview.
 	SlimeRoster = SlimeRoster,
 	SlimeLooks = SlimeLooks,
+	setName = SpeciesDex.setName,
+	-- Plot skins menu: each skin's slimes.
+	PlotSkins = PlotSkins,
 	buildSpecies = SpeciesModel.builder(function()
-		return ReplicatedStorage:FindFirstChild(Constants.SLIME_KITS_FOLDER)
-	end, MeshAssets.IMPORT_YAW),
+		return gui.Parent and gui.Parent:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	end, MeshAssets.IMPORT_YAW, kitCache.want),
 }
 
 local hud = Hud.new(gui, ctx)
@@ -292,10 +333,11 @@ local inventory = Inventory.new(gui, {
 	end,
 	tools = InventoryTools.new(player),
 	serverNow = serverNow,
-	keyboard = game:GetService("UserInputService").KeyboardEnabled,
-	input = game:GetService("UserInputService"),
+	keyboard = UserInputService.KeyboardEnabled,
+	input = UserInputService,
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
+InventoryTools.bindBumpers(inventory.cycleSlot)
 InventoryTools.bindBag(inventory.isBagKey, inventory.toggleBag)
 InventoryTools.bindUse(inventory.pressHeld, inventory.releaseHeld)
 local stealFx = StealAlertFx.new(gui, {
@@ -307,14 +349,14 @@ local stealFx = StealAlertFx.new(gui, {
 })
 local carry = CarryPanel.new(gui, ctx)
 local bossMeter = BossMeterPanel.new(gui, ctx)
-local leaderboard = LeaderboardPanel.new(gui, ctx)
 local dailyPopup = DailyPopup.new(gui, ctx)
 local tutorial = TutorialOverlay.new(gui, ctx)
 local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
 -- One label per slime, a tag above it or a sign on its pad (contract/slime-labels.md): event-driven, no frame work.
-SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = Constants.SLIME_TAG })
+local _, slimeTagsTick =
+	SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = Constants.SLIME_TAG })
 
 -- The dimmed full-window backdrop (Layout.backdrop: the whole viewport, top bar included, square) behind an open menu card (screen.panel).
 -- Made before the panels so their cards draw over it; a tap on it closes
@@ -325,17 +367,17 @@ local backdrop = Widgets.backdrop({
 })
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
--- order: Rebirth, Goals, SlimeDex, Codes) or a world prompt, closed with their X, the backdrop, Esc or
+-- order: Rebirth, Goals, SlimeDex, Codes, Skins, Leaders) or a world prompt, closed with their X, the backdrop, Esc or
 -- gamepad B.
 local panelByKey: { [string]: any } = {
 	Merge = MergePanel.new(gui, ctx),
-	Shop = ShopPanel.new(gui, ctx),
-	WorldShop = if Config.FEATURES.WorldShops == true then WorldShopPanel.new(gui, ctx) else nil,
+	WorldShop = WorldShopPanel.new(gui, ctx),
 	Rebirth = RebirthPanel.new(gui, ctx),
 	Goals = GoalsPanel.new(gui, ctx),
 	Dex = DexPanel.new(gui, ctx),
-	Leaders = leaderboard,
+	Skins = SkinsPanel.new(gui, ctx),
 	Codes = CodesPanel.new(gui, ctx),
+	Leaderboard = LeaderboardPanel.new(gui, ctx),
 }
 type PanelEntry = { key: string, nav: Nav.Entry?, panel: any }
 local panels: { PanelEntry } = {}
@@ -345,14 +387,11 @@ for _, navEntry in Nav.ENTRIES do
 		table.insert(panels, { key = navEntry.key, nav = navEntry, panel = panel })
 	end
 end
--- Every menu: the nav ones plus the cards without a nav button: Merge, Shop (opened by the ShopStand prompt; the in-world shops reuse it) and Top (H1 HUD: Merijn
--- removed their buttons), the Guide and Welcome cards.
+-- Every menu: the nav ones plus the cards without a nav button: Merge (opened at the vat), WorldShop (opened by the
+-- server at a shop stand), the Guide and Welcome cards.
 local allPanels: { PanelEntry } = table.clone(panels)
-for _, key in { "Merge", "Shop", "Leaders" } do
+for _, key in { "Merge", "WorldShop" } do
 	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
-end
-if panelByKey.WorldShop then
-	table.insert(allPanels, { key = "WorldShop", nav = nil, panel = panelByKey.WorldShop })
 end
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
 table.insert(allPanels, { key = "Welcome", nav = nil, panel = WelcomePanel.new(gui, ctx) })
@@ -387,8 +426,6 @@ type NavButton = {
 	jar: DexJarView.View?, -- the SlimeDex tile's slime jar
 }
 
-local NAV_TILE_COLOR = Color3.fromRGB(58, 36, 110) -- the money plate's purple, like the reference tiles
-
 local openKey: string? = nil
 local soundButton: any = nil -- FEATURES.Audio only
 local navButtons: { [string]: NavButton } = {}
@@ -399,13 +436,7 @@ local pumpPopups: (state: Types.State) -> ()
 local layoutCards: () -> ()
 
 local function styleNav(btn: NavButton, selected: boolean)
-	btn.tile.BackgroundColor3 = if selected then Theme.Accent else NAV_TILE_COLOR
-	btn.label.TextColor3 = if selected then Theme.Accent else Theme.Text
-	btn.stroke.Color = if selected then Color3.new(1, 1, 1) else Color3.fromRGB(10, 10, 20)
-	btn.stroke.Thickness = if selected then 4 else 3
-	if btn.jar then
-		btn.jar.setSelected(selected)
-	end
+	NavTile.paint(btn.tile, btn.stroke, btn.label, selected)
 end
 
 -- Open state is derived from the cards' own Visible: the backdrop, nav
@@ -520,6 +551,22 @@ local function forceBlessed(state: any): any
 	return view
 end
 
+-- Studio-only: the SlimeUI attribute "PcwMvp" = true fakes the Boss MVP boost (State.mvpBoost, BOSS.MVP_SECONDS
+-- left from the first read) for the bottom-right status slot.
+local forcedMvpEndsAt: number? = nil
+local function forceMvp(state: any): any
+	if not isStudio or gui:GetAttribute("PcwMvp") ~= true or type(state.serverTime) ~= "number" then
+		forcedMvpEndsAt = nil
+		return state
+	end
+	if forcedMvpEndsAt == nil or forcedMvpEndsAt < state.serverTime then
+		forcedMvpEndsAt = state.serverTime + Config.BOSS.MVP_SECONDS
+	end
+	local view = table.clone(state)
+	view.mvpBoost = { bonus = Config.BOSS.MVP_BONUS, endsAt = forcedMvpEndsAt }
+	return view
+end
+
 -- Studio-only: the SlimeUI attribute "PcwDexRows" = N marks the first N State.dex entries found (named)
 -- so the Dex grid can be shot with found cards and silhouettes side by side.
 local function forceDex(state: any): any
@@ -545,33 +592,26 @@ local function forceDex(state: any): any
 	return view
 end
 
--- Studio-only: the SlimeUI attribute "PcwPlotSkin" (a skin id) fakes State.plotSkins with that skin
--- unlocked and equipped (every other skin locked at 0 owned), so the picker can be shot with
--- FEATURES.PlotSkins off. Live servers (not Studio) always get the server's State untouched.
+-- Studio-only: the SlimeUI attribute "PcwPlotSkin" (a skin id) fakes State.plotSkins from the player's Dex with
+-- that skin unlocked and equipped, so the Plot skins menu can be shot with FEATURES.PlotSkins off. Live servers
+-- (not Studio) always get the server's State untouched.
 local function forcePlotSkins(state: any): any
 	local id = if isStudio then gui:GetAttribute("PcwPlotSkin") else nil
-	if type(id) ~= "string" or id == "" or state.plotSkins ~= nil then
+	if type(id) ~= "string" or id == "" or state.plotSkins ~= nil or PlotSkins.get(id) == nil then
 		return state
 	end
-	local total = PlotSkins.setSize()
+	local found: { [string]: boolean } = {}
+	if type(state.dex) == "table" then
+		for _, entry in state.dex.entries or {} do
+			found[entry.id] = entry.found == true
+		end
+	end
 	local view = table.clone(state)
 	view.plotSkin = id
-	view.plotSkins = {}
-	for _, skin in Config.PLOT_SKINS do
-		local rarity = if skin.set then Config.RARITIES[skin.set] else nil
-		local on = skin.id == id
-		table.insert(view.plotSkins, {
-			id = skin.id,
-			name = skin.name,
-			setName = if rarity then rarity.name else nil,
-			tier = skin.set,
-			owned = if on or skin.set == nil then total else 0,
-			total = total,
-			needed = if skin.set then PlotSkins.needed(skin) else 0,
-			fraction = if on or skin.set == nil then 1 else 0,
-			unlocked = on or skin.set == nil,
-			equipped = on,
-		})
+	view.plotSkins = PlotSkins.view({ found = found, plotSkin = id } :: any)
+	for _, skin in view.plotSkins do
+		skin.equipped = skin.id == id
+		skin.unlocked = skin.unlocked or skin.id == id
 	end
 	return view
 end
@@ -593,14 +633,28 @@ local function panelState(key: string, realState: any): any
 	return view
 end
 
+-- The tutorial card steps aside for an open menu card, the daily popup and the open bag panel.
+local function syncTutorial()
+	tutorial.setMenuOpen(not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
+	-- Visuals' edge arrows and the Your plot tag step aside while a menu, a popup or the bag covers the screen.
+	local menuOpen = openKey ~= nil or dailyPopup.isOpen() or inventory.panelOpen()
+	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, menuOpen)
+	menuMouse.setOpen(menuOpen)
+end
+
 local function syncMenus()
 	local visibleKey: string? = nil
+	local opened, closed = false, false
 	for _, entry in allPanels do
 		local isOpen = entry.panel.frame.Visible
 		if isOpen and visibleKey == nil then
 			visibleKey = entry.key
 		end
 		if wasOpen[entry.key] ~= isOpen then
+			if wasOpen[entry.key] ~= nil then
+				opened = opened or isOpen
+				closed = closed or not isOpen
+			end
 			wasOpen[entry.key] = isOpen
 			if entry.panel.setOpen then
 				entry.panel.setOpen(isOpen)
@@ -615,6 +669,12 @@ local function syncMenus()
 		end
 	end
 	openKey = visibleKey
+	-- One sound per change: switching cards plays the open, closing the last card the close.
+	if opened then
+		SoundController.play("MenuOpen")
+	elseif closed then
+		SoundController.play("MenuClose")
+	end
 	if latest and wasPumped ~= (visibleKey == "Welcome") then
 		wasPumped = visibleKey == "Welcome"
 		if not wasPumped then
@@ -623,7 +683,7 @@ local function syncMenus()
 	end
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
-	tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))
+	syncTutorial()
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
@@ -644,6 +704,7 @@ end
 for _, entry in allPanels do
 	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
 end
+inventory.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncTutorial)
 
 -- Sound button (FEATURES.Audio): icon only, shown with no menu open; the open card has its own X.
 if soundPanel then
@@ -685,13 +746,11 @@ for _, entry in panels do
 	}) :: TextButton
 	local tile = Widgets.create("Frame", {
 		Name = "Tile",
-		BackgroundColor3 = NAV_TILE_COLOR,
 		Size = UDim2.fromOffset(Layout.NAV.tile, Layout.NAV.tile),
 		Position = UDim2.fromOffset((Layout.NAV.cell - Layout.NAV.tile) // 2, 0),
 		Parent = button,
-	}, { Widgets.corner(16) })
-	local stroke = Widgets.stroke(Color3.fromRGB(10, 10, 20), 3)
-	stroke.Parent = tile
+	})
+	local stroke = NavTile.dress(tile)
 	local icon = ItemIconView.new({
 		Name = "Icon",
 		Id = navEntry.item,
@@ -759,14 +818,25 @@ backdrop.Activated:Connect(function()
 	setOpen(nil)
 end)
 
--- "Open Shop" at the ShopStand and "Talk" at the Guide NPC (CONTRACT.md
--- §5.3): the server only places the prompts; this client opens the menu.
-local PROMPT_MENUS =
-	MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, Config.FEATURES.WorldShops == true)
--- The 3-slime vat prompt (owner only) opens the merge menu (CONTRACT.md §21.1).
-if Config.FEATURES.MergeVat3 then
-	PROMPT_MENUS[Constants.MERGE_PROMPT_NAME] = "Merge"
-end
+-- "Talk" at the Guide NPC (CONTRACT.md §5.3): the server only places the prompt; this client opens the menu.
+-- The shop stands' prompts open nothing here: the server opens the shop (ShopEvent Open).
+local PROMPT_MENUS = MenuClose.promptMenus(Constants.GUIDE_PROMPT_NAME)
+-- The vat's "Manage vat" prompt (owner only) opens the merge vat menu (CONTRACT.md §21).
+PROMPT_MENUS[Constants.MERGE_PROMPT_NAME] = "Merge"
+-- Professor Goo's "View leaderboards" prompt, and a click or right-click on him, open the Leaderboards panel.
+PROMPT_MENUS[Constants.LEADERBOARD_PROMPT_NAME] = "Leaderboard"
+task.spawn(function()
+	local map = workspace:WaitForChild(Constants.MAP_FOLDER, 60)
+	local professor = map and map:WaitForChild(Constants.PROFESSOR_GOO, 60)
+	local click = professor and professor:WaitForChild(Constants.LEADERBOARD_CLICK_NAME, 60)
+	if click and click:IsA("ClickDetector") then
+		local function open()
+			setOpen("Leaderboard")
+		end
+		click.MouseClick:Connect(open)
+		click.RightMouseClick:Connect(open)
+	end
+end)
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, who: Player)
 	local key = PROMPT_MENUS[prompt.Name]
 	if key and who == player then
@@ -791,33 +861,26 @@ local slimeMove = if Config.FEATURES.MoveSlime == true
 		uis = game:GetService("UserInputService"),
 		cas = ContextActionService,
 		prompts = ProximityPromptService,
+		onActive = inventory.setMoving,
 	})
 	else nil
 
--- The slime you are stealing turns see-through for you, like a Move.
-CarryFade.start({
-	player = player,
-	carryingAttribute = Constants.CARRYING_ATTRIBUTE,
-	slimeTag = Constants.SLIME_TAG,
-	collection = game:GetService("CollectionService"),
-})
-
--- Your slimes are managed at their pads with keys: R Favorite, X hold to Sell (Hatch stays the server's F prompt),
--- E Move with FEATURES.MoveSlime.
+-- Your slimes are managed at their pads with keys (Constants.SLIME_PROMPT_KEYS): Favorite, hold to Sell, and Move
+-- with FEATURES.MoveSlime; Hatch stays the server's prompt.
 local slimeKeys = SlimeKeys.start({
 	root = workspace,
 	localUserId = player.UserId,
 	newPrompt = function(): ProximityPrompt
 		return Instance.new("ProximityPrompt")
 	end,
-	favoriteKey = { keyboard = Enum.KeyCode.R, gamepad = Enum.KeyCode.DPadUp },
-	sellKey = { keyboard = Enum.KeyCode.X, gamepad = Enum.KeyCode.DPadDown },
+	favoriteKey = SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.favorite),
+	sellKey = SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.sell),
 	distance = Config.PLOT_PAD_PROMPT_DISTANCE,
 	holdSeconds = Config.HOLD_CONFIRM_SECONDS,
 	formatCash = Format.formatCash,
 	send = send,
 	style = Enum.ProximityPromptStyle.Custom,
-	moveKey = if slimeMove then { keyboard = Enum.KeyCode.E, gamepad = Enum.KeyCode.ButtonX } else nil,
+	moveKey = if slimeMove then SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.move) else nil,
 	onMove = if slimeMove then slimeMove.start else nil,
 })
 
@@ -828,10 +891,41 @@ SlimeKeyCard.start({
 	tweens = game:GetService("TweenService"),
 })
 
--- World shops (FEATURES.WorldShops, CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
+-- A slime you can't grab (already carrying, plot full, not enough money) shows why instead of a key.
+local grabBlock = GrabBlockCard.start({
+	root = workspace,
+	prompts = ProximityPromptService,
+	playerGui = player:WaitForChild("PlayerGui"),
+	me = function()
+		local state = latest
+		if not state then
+			return nil
+		end
+		return {
+			carrying = state.carrying ~= nil,
+			freePad = GrabBlock.hasFreePad(state.padsUnlocked, state.slimes),
+			cash = state.cash,
+		}
+	end,
+})
+
+-- FEATURES.FriendsInBase: the friend icon on the stopper and over the lock button of every base that lets friends in.
+if Config.FEATURES.FriendsInBase == true then
+	FriendsLockIcon.start({
+		plots = workspace:WaitForChild("Plots"),
+		playerGui = player:WaitForChild("PlayerGui"),
+		registry = itemIcons,
+		attributes = {
+			friendsAllowed = Constants.PLOT_FRIENDS_ALLOWED_ATTRIBUTE,
+			locked = Constants.PLOT_LOCKED_ATTRIBUTE,
+		},
+	})
+end
+
+-- World shops (CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
 -- this client with ShopEvent and the OpenShop attribute; the card closes on ShopEvent Close / attribute nil, and
 -- a close from this side (X, backdrop, Esc / B, another menu) sends Request("CloseShop").
-if panelByKey.WorldShop then
+do
 	worldShop = WorldShopLogic.controller({
 		open = function(shopId: string)
 			panelByKey.WorldShop.setShop(shopId)
@@ -915,6 +1009,9 @@ function layoutCards()
 	end
 end
 
+-- Roblox's touch jump button on screen or not (the status icons step left of it); polled in the frame loop.
+local touchControls = TouchControls.watch({ playerGui = player:WaitForChild("PlayerGui") })
+
 -- Every top-level box for the current ScreenGui size (and nav choice).
 function applyLayout()
 	local size = gui.AbsoluteSize
@@ -922,7 +1019,7 @@ function applyLayout()
 		return
 	end
 	uiScale.Scale = Layout.uiScale(size.X, size.Y)
-	local s = Layout.screen(size.X, size.Y)
+	local s = Layout.screen(size.X, size.Y, { touch = touchControls.shown() })
 	screen = s
 	hud.layout(s)
 	inventory.layout(s, GuiService:GetGuiInset())
@@ -953,18 +1050,31 @@ applyLayout()
 setOpen(nil)
 
 -- Studio-only test hook for the PC watcher (tools/pipeline/pc-watcher): setting the
--- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path
+-- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path ("Skins:cloud": on its Cloud tab)
 -- (contents rendered), "" closes it. Never active in live servers.
 if game:GetService("RunService"):IsStudio() then
 	gui:GetAttributeChangedSignal("PcwOpen"):Connect(function()
 		local key = gui:GetAttribute("PcwOpen")
-		if worldShop and key == "WorldShop" then
+		if key == "WorldShop" then
 			-- the world shop card as the stand's prompt opens it; the shop comes from the PcwWorldShop attribute
 			local shopId = gui:GetAttribute("PcwWorldShop")
 			worldShop.onEvent({ kind = "Open", shopId = if type(shopId) == "string" then shopId else "ItemShop" })
 			return
 		end
+		if key == "Skins:cloud" then
+			-- the Skins menu on its Cloud tab (scripts can't press the tab)
+			setOpen("Skins")
+			panelByKey.Skins.setTab("cloud")
+			return
+		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
+	end)
+	-- "PcwBag" = true / false opens or closes the bag (scripts can't press its key or button).
+	gui:GetAttributeChangedSignal("PcwBag"):Connect(function()
+		local want = gui:GetAttribute("PcwBag")
+		if type(want) == "boolean" and want ~= inventory.panelOpen() then
+			inventory.toggleBag()
+		end
 	end)
 	-- "PcwMove" = "place" / "cancel" presses Place / Cancel in move mode (scripts can't send key presses).
 	gui:GetAttributeChangedSignal("PcwMove"):Connect(function()
@@ -1050,8 +1160,15 @@ function pumpPopups(state: Types.State)
 end
 
 local function render(realState: Types.State)
-	local state: Types.State =
-		forceWelcome(forceStealAlert(forceDex(forceWeekend(forceBlessed(forceAdminEvent(forceFriends(realState)))))))
+	local state: Types.State = forceWelcome(
+		forceStealAlert(forceDex(forceWeekend(forceMvp(forceBlessed(forceAdminEvent(forceFriends(realState)))))))
+	)
+	if nextSoundCues then
+		for _, cue in nextSoundCues(realState) do
+			SoundController.play(cue.name)
+		end
+		SoundController.setBoss(require(script.SoundCues).bossMusic(realState))
+	end
 	hud.update(state)
 	inventory.update(state)
 	slimeKeys.update(state)
@@ -1074,6 +1191,45 @@ local function render(realState: Types.State)
 	end
 end
 
+-- A kit that arrives in the player's kit folder (RequestKits) swaps the open menu's fallback previews for the mesh:
+-- one render per burst of arrivals, plus the SlimeDex's preview refresh (its rows don't rebuild for it).
+do
+	local scheduled = false
+	local function kitsArrived()
+		if scheduled then
+			return
+		end
+		scheduled = true
+		task.delay(0.1, function()
+			scheduled = false
+			if latest then
+				pcall(render, latest)
+			end
+			for _, entry in allPanels do
+				if entry.key == openKey and entry.panel.refreshPreviews then
+					pcall(entry.panel.refreshPreviews)
+				end
+			end
+		end)
+	end
+	local function watchKits(folder: Instance)
+		folder.ChildAdded:Connect(kitsArrived)
+		if #folder:GetChildren() > 0 then
+			kitsArrived()
+		end
+	end
+	local playerGui = gui.Parent :: Instance
+	local existing = playerGui:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	if existing then
+		watchKits(existing)
+	end
+	playerGui.ChildAdded:Connect(function(child: Instance)
+		if child.Name == Constants.SLIME_KITS_FOLDER then
+			watchKits(child)
+		end
+	end)
+end
+
 if isStudio then
 	for _, attribute in
 		{
@@ -1083,10 +1239,10 @@ if isStudio then
 			"PcwPlotSkin",
 			"PcwDexRows",
 			"PcwStealAlert",
-			"PcwMergeVat",
 			"PcwWelcome",
 			"PcwRain",
 			"PcwBlessed",
+			"PcwMvp",
 		}
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
@@ -1148,6 +1304,10 @@ stateEvent.OnClientEvent:Connect(function(state: Types.State)
 		end)
 	end
 	latest = state
+	grabBlock.refresh()
+	if worldBoards.setMine then
+		worldBoards.setMine(state.boards, state.boardRanks)
+	end
 	if type(state.serverTime) == "number" then
 		clockOffset = Format.clockOffset(state.serverTime, os.clock())
 	end
@@ -1177,28 +1337,72 @@ if isStudio then
 end
 
 leaderboardEvent.OnClientEvent:Connect(function(board: Types.Leaderboard)
-	leaderboard.setBoard(board)
 	worldBoards.setBoard(board)
+	panelByKey.Leaderboard.setBoard(board)
 end)
 
--- Local countdowns (lock, rain) between State pushes.
+-- Local countdowns (lock, rain) between State pushes. Each tick runs under its own pcall so one failing
+-- component cannot kill the loop; the error is logged once per component.
+local guardedTick = TickGuard.new(warn)
+local dailyWasOpen = false
+
 task.spawn(function()
 	while true do
 		task.wait(0.1)
+		guardedTick("touchControls", function()
+			if touchControls.poll() then
+				applyLayout() -- the jump button came or went (input switched, touch controls toggled)
+			end
+		end)
+		guardedTick("slimeTags", slimeTagsTick)
+		if footstepsStep then
+			guardedTick("footsteps", footstepsStep)
+		end
 		if latest then
 			local now = serverNow()
-			hud.tick(now)
-			inventory.tick()
-			bossMeter.tick(now)
-			panelByKey.Codes.tick(now)
-			if panelByKey.WorldShop then
+			if worldAudioTick then
+				local tick = worldAudioTick
+				guardedTick("worldAudio", function()
+					tick(now)
+				end)
+			end
+			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.
+			guardedTick("dailyPopup", function()
+				if dailyWasOpen ~= dailyPopup.isOpen() then
+					dailyWasOpen = dailyPopup.isOpen()
+					syncMenus()
+				end
+			end)
+			guardedTick("hud", function()
+				hud.tick(now)
+			end)
+			guardedTick("inventory", inventory.tick)
+			guardedTick("bossMeter", function()
+				bossMeter.tick(now)
+			end)
+			guardedTick("codes", function()
+				panelByKey.Codes.tick(now)
+			end)
+			guardedTick("merge", function()
+				panelByKey.Merge.tick(now)
+			end)
+			guardedTick("worldShop", function()
 				panelByKey.WorldShop.tick()
-			end
-			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
-			pvpFunFx.tick(now)
-			if slimeMove then
-				slimeMove.tick()
-			end
+			end)
+			guardedTick("hint", function()
+				hintOverlay.tick(
+					now,
+					tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+				)
+			end)
+			guardedTick("pvpFun", function()
+				pvpFunFx.tick(now)
+			end)
+			guardedTick("slimeMove", function()
+				if slimeMove then
+					slimeMove.tick()
+				end
+			end)
 		end
 	end
 end)

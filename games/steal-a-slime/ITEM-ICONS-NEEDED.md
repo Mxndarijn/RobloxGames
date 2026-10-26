@@ -35,3 +35,5 @@ These show their UI-drawn scene (`src/ui/ItemIconArt.luau`) until a picture is u
 | Dex_20 | Dex 20 species | Gold trophy with a slime on top and the number 20 on the base; front view. |
 | Dex_32 | Dex 32 species | Gold trophy with a slime on top and the number 32 on the base; front view. |
 | Dex_40 | Dex 40 species | Gold trophy with a slime on top and the number 40 on the base; front view. |
+| Boost_Mvp | Boss MVP | A gold crown sitting on a stack of gold coins; front view. |
+| Upgrade_QuickBrew | Quick Brew | A copper merge vat full of mint goo with a gold lightning bolt over it; three-quarter view. |

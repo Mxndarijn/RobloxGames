@@ -27,12 +27,18 @@ local BaseFloors = {}
 
 export type Context = {
 	build: (plot: Instance, plotIndex: number, floor: number) -> { Instance },
+	-- the roof colliders on the top jar (WorldBuilder.buildTop); nil leaves the roof alone
+	top: ((plot: Instance, plotIndex: number, floor: number) -> Instance)?,
 	meshes: (instances: { Instance }) -> (),
 	drop: ((player: Player, plotIndex: number) -> ())?,
 }
 
 BaseFloors.DROP_ACTION = "Drop down"
 BaseFloors.DROP_OBJECT = "Goo tube"
+-- The DropPrompt sits on an Attachment this far in from the hatch (toward the jar's centre): its line of sight is
+-- measured to there, clear of the glass the hatch sits in, so a player inside sees it and the DropShield outside the
+-- glass hides it from anyone on the ledge.
+BaseFloors.DROP_PROMPT_INSET = 1.5
 
 -- The DropPrompt on every DropHatch in `instances` (a freshly built floor).
 local function addDropPrompts(instances: { Instance }, plotIndex: number, ctx: Context)
@@ -42,14 +48,24 @@ local function addDropPrompts(instances: { Instance }, plotIndex: number, ctx: C
 	end
 	for _, root in instances do
 		for _, d in root:GetDescendants() do
-			if d.Name == "DropHatch" and d:IsA("BasePart") and not d:FindFirstChild(Constants.DROP_PROMPT_NAME) then
+			if
+				d.Name == "DropHatch"
+				and d:IsA("BasePart")
+				and not d:FindFirstChild(Constants.DROP_PROMPT_NAME, true)
+			then
+				-- the hatch's local +Z points out of the jar
+				local anchor = Instance.new("Attachment")
+				anchor.Name = "DropPromptAt"
+				anchor.Position = Vector3.new(0, 0, -BaseFloors.DROP_PROMPT_INSET)
+				anchor.Parent = d
 				local prompt = Instance.new("ProximityPrompt")
 				prompt.Name = Constants.DROP_PROMPT_NAME
 				prompt.ActionText = BaseFloors.DROP_ACTION
 				prompt.ObjectText = BaseFloors.DROP_OBJECT
 				prompt.KeyboardKeyCode = Enum.KeyCode.E
-				prompt.RequiresLineOfSight = false
-				prompt.Parent = d
+				-- the DropShield outside the glass blocks it, so a player outside the top jar does not see it
+				prompt.RequiresLineOfSight = true
+				prompt.Parent = anchor
 				prompt.Triggered:Connect(function(player: Player)
 					drop(player, plotIndex)
 				end)
@@ -120,7 +136,7 @@ local function setLids(plot: Instance)
 			local open = f == top
 			hatch.Transparency = if open then 0 else 1
 			hatch.CanCollide = open
-			local prompt = hatch:FindFirstChild(Constants.DROP_PROMPT_NAME)
+			local prompt = hatch:FindFirstChild(Constants.DROP_PROMPT_NAME, true)
 			if prompt and prompt:IsA("ProximityPrompt") then
 				prompt.Enabled = open
 			end
@@ -132,8 +148,9 @@ local function setLids(plot: Instance)
 		end
 		local n = d:GetAttribute("JarLid")
 		if typeof(n) == "number" then
+			-- the lid never collides (the roof is TopColliders, shaped like the glass); queryable on the top jar
 			local covered = plot:FindFirstChild(`Floor_{n + 1}`) ~= nil
-			d.CanCollide = not covered
+			d.CanCollide = false
 			d.CanQuery = not covered
 		end
 		local f, show = d:GetAttribute("JarFloor"), d:GetAttribute("JarShow")
@@ -141,10 +158,20 @@ local function setLids(plot: Instance)
 			local covered = plot:FindFirstChild(`Floor_{f + 1}`) ~= nil
 			local hidden = (show == "top") == covered
 			d:SetAttribute("JarHidden", hidden)
+			if d:GetAttribute("JarCollide") == true then
+				-- a collider that only stands while its jar is shown (the top of the stair)
+				d.CanCollide = not hidden
+				d.CanQuery = not hidden
+			end
 			local mesh = d:FindFirstChild("Mesh")
 			if mesh and mesh:IsA("BasePart") then
 				local clear = d:GetAttribute("MeshTransparency")
 				mesh.Transparency = if hidden then 1 elseif typeof(clear) == "number" then clear else 0
+			end
+			-- a plot skin's companion on the slot (the mascot's hat, MeshSwap) shows with it
+			local extra = d:FindFirstChild("ThemeExtra")
+			if extra and extra:IsA("BasePart") then
+				extra.Transparency = if hidden then 1 else 0
 			end
 		end
 	end
@@ -168,6 +195,19 @@ function BaseFloors.sync(plot: Instance, plotIndex: number, padsUnlocked: number
 	end
 	if changed then
 		setLids(plot)
+	end
+	-- one roof per plot, on its top jar (also the first time a plot is seen: jar 1)
+	if ctx.top then
+		local top = 1
+		for floor = 2, #Config.BASE_FLOORS do
+			if plot:FindFirstChild(`Floor_{floor}`) then
+				top = floor
+			end
+		end
+		local roof = plot:FindFirstChild("TopColliders")
+		if not roof or roof:GetAttribute("TopFloor") ~= top then
+			ctx.top(plot, plotIndex, top)
+		end
 	end
 end
 

@@ -28,11 +28,14 @@ local PlayerAttributes = require(script.Parent.PlayerAttributes)
 local Profiler = require(script.Parent.Profiler)
 local PvpLaunch = require(script.Parent.PvpLaunch)
 local PvpService = require(script.Parent.PvpService)
+local Rescue = require(script.Parent.Rescue)
 local Ritual = require(ReplicatedStorage.Shared.Ritual)
 local RitualService = require(script.Parent.RitualService)
 local RitualView = require(script.Parent.RitualView)
 local SafeCall = require(script.Parent.SafeCall)
 local Shop = require(ReplicatedStorage.Shared.Shop)
+local SlimeGuard = require(script.Parent.SlimeGuard)
+local SlimeGuardView = require(script.Parent.SlimeGuardView)
 local Spawner = require(script.Parent.Spawner)
 local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
@@ -62,6 +65,8 @@ export type Loop = Deps & {
 
 local ServerLoop = {}
 
+ServerLoop.VIEW_INTERVAL = VIEW_INTERVAL
+
 function ServerLoop.new(deps: Deps): Loop
 	local loop: any = table.clone(deps)
 	loop.homeZoneFull = {}
@@ -76,6 +81,8 @@ end
 function ServerLoop.forget(loop: Loop, userId: number)
 	loop.homeZoneFull[userId] = nil
 	loop.shopCheckedAt[userId] = nil
+	SlimeGuard.forget(loop.world, userId)
+	SlimeGuardView.forget(userId)
 end
 
 -- FEATURES.MoveGuardLog: samples the root position (log only; nothing is moved, released or kicked).
@@ -87,8 +94,9 @@ local function sampleMovement(userId: number, player: Player, session: World.Ses
 		return
 	end
 	local p = root.Position
-	-- The speed the SERVER set (coil included, carry / PvP slows ignored: a slower cap would only add false alarms).
-	MoveGuard.step(book, userId, player.Character, { X = p.X, Y = p.Y, Z = p.Z }, t, Shop.walkSpeed(session.data))
+	-- The fastest speed the SERVER allows (owned coil counted as held, carry / PvP slows ignored: a slower cap would
+	-- only add false alarms).
+	MoveGuard.step(book, userId, player.Character, { X = p.X, Y = p.Y, Z = p.Z }, t, Shop.walkSpeed(session.data, true))
 end
 
 local function stepPlayers(loop: Loop, t: number)
@@ -99,10 +107,11 @@ local function stepPlayers(loop: Loop, t: number)
 	for userId, session in world.sessions do
 		local player = Players:GetPlayerByUserId(userId)
 		if player then
+			loop.safeCall("slime guard", SlimeGuardView.step, world, player, session, t) -- may end a stolen carry or send an intruder home
 			local carryId = session.carry and session.carry.slimeId
 			local home = WorldView.inHomeZone(player, session.plotIndex)
 			session.home = home -- warms the owner's Mystery Eggs (MysteryEgg.step)
-			if carryId and home then
+			if carryId and home and player.Parent and SlimeGuardView.depositAllowed(world, player, session, t) then
 				local ok, reason = Carry.deposit(world, userId, t)
 				-- Toast once per zone visit, not every tick while standing in a full plot.
 				if not ok and reason == "plot full" and loop.homeZoneFull[userId] ~= carryId then
@@ -118,7 +127,7 @@ local function stepPlayers(loop: Loop, t: number)
 			WorldView.updatePlayer(world, player, session, t, ctx)
 			if session.openShop and t - (loop.shopCheckedAt[userId] or 0) >= SHOP_CHECK_INTERVAL then
 				loop.shopCheckedAt[userId] = t
-				Actions.shopTick(session, ctx) -- out of range / died / flag off closes the shop
+				Actions.shopTick(session, ctx) -- out of range / died closes the shop
 			end
 			PlayerAttributes.syncOpenShop(world, player)
 			LeaderboardView.updateStats(player, session)
@@ -160,6 +169,10 @@ local function rescueFallen(loop: Loop)
 			guard = PvpLaunch.guardActive(player.UserId, state and state.controlUntil, loop.now())
 		end
 		if WorldView.rescue(player, session and session.plotIndex, guard) then
+			local carry = session and session.carry
+			if carry and Rescue.dropsCarry(carry.kind, carry.boss) then
+				Carry.release(world, player.UserId, loop.now(), nil, "drop")
+			end
 			World.notify(world, player.UserId, "Whoa! Back to safety.", "info", nil)
 		end
 	end
@@ -193,7 +206,7 @@ local function frame(loop: Loop)
 	local frameStart = if profiler.enabled then profiler.clock() else 0
 	local t = loop.now()
 	Profiler.time(profiler, "Rescue", safeCall, "rescue", rescueFallen, loop)
-	Profiler.time(profiler, "GameLoop", GameLoop.step, loop.world, t)
+	Profiler.time(profiler, "GameLoop", GameLoop.step, loop.world, t, loop.ctx :: any)
 	if t - loop.lastView < VIEW_INTERVAL then
 		reportProfiler(profiler, frameStart)
 		return

@@ -14,7 +14,8 @@
 	    RunService.Heartbeat, workspace:GetServerTimeNow(). advance(60) runs a
 	    minute of server time in well under a second;
 	  * shims for engine APIs Lune lacks: events (Triggered, PlayerAdded,
-	    Died, ...), WaitForChild, PivotTo / GetPivot, ScaleTo / GetScale, BasePart.Position,
+	    Died, ...), WaitForChild, PivotTo / GetPivot, ScaleTo / GetScale, GetBoundingBox /
+	    GetExtentsSize, BasePart.Position,
 	    Raycast (axis-aligned boxes, enough for "find the ground"), Players,
 	    in-memory DataStores, HttpService GUIDs, InsertService (fails by
 	    default, like a place that can't load the mesh asset), Debris.
@@ -266,21 +267,34 @@ local function installShims()
 				d.CFrame = pivot * (offset.Rotation + offset.Position * factor)
 			end
 		end
+		-- The pivot stays where it was (the primary part moved, so its pivot offset follows).
+		local primary = self.PrimaryPart
+		if primary then
+			primary.PivotOffset = primary.CFrame:ToObjectSpace(pivot)
+		end
 		extraOf(self).Scale = scale
 	end)
-	-- Axis-aligned (Roblox orients the box to the pivot; fine for the fake runtime).
+	-- Like Roblox: the box is oriented to the pivot (its rotation), sized round every part's corners in that frame.
 	impl("Model", "GetBoundingBox", function(self)
+		local pivot = getPivot(self)
+		local frame = pivot.Rotation
 		local lo, hi = Vector3.new(math.huge, math.huge, math.huge), Vector3.new(-math.huge, -math.huge, -math.huge)
 		for _, d in self:GetDescendants() do
 			if d:IsA("BasePart") then
-				local a, b = bounds(d)
-				lo, hi = lo:Min(a), hi:Max(b)
+				for _, c in corners(d) do
+					local l = frame:PointToObjectSpace(c)
+					lo, hi = lo:Min(l), hi:Max(l)
+				end
 			end
 		end
 		if lo.X > hi.X then
-			return getPivot(self), Vector3.zero
+			return pivot, Vector3.zero
 		end
-		return CFrame.new((lo + hi) / 2), hi - lo
+		return frame * CFrame.new((lo + hi) / 2), hi - lo
+	end)
+	impl("Model", "GetExtentsSize", function(self)
+		local _, size = self:GetBoundingBox()
+		return size
 	end)
 	impl("BasePart", "GetPivot", getPivot)
 	storedProperty("Model", "WorldPivot", CFrame.new())
@@ -490,6 +504,9 @@ function Runtime.new(placePath, opts)
 	self.stores = {}
 	self.modules = {}
 	self.rng = Random.new(self.opts.seed or 1)
+	-- Seeds for the game's own unseeded Random.new() calls: from the run's seed, never the wall clock, so a live
+	-- spec replays the same world (the server seeds its generators from Random.new()).
+	self.randomSeeds = Random.new((self.opts.seed or 1) + 1)
 	self.game = roblox.deserializePlace(fs.readFile(placePath))
 	self.workspace = self.game:GetService("Workspace")
 	-- Reflected properties without a default: implementProperty can't override them, set values instead.
@@ -757,7 +774,11 @@ function Runtime:env(script)
 		ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
 		PhysicalProperties = roblox.PhysicalProperties,
 		Font = roblox.Font,
-		Random = Random,
+		Random = {
+			new = function(seed)
+				return Random.new(seed or self.randomSeeds:NextInteger(1, 2147483646))
+			end,
+		},
 		RaycastParams = {
 			new = function()
 				return {

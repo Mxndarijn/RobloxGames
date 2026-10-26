@@ -4,7 +4,7 @@
 
 ## 9.1 No "claim free plot" (removed in v30 C6)
 
-Plots are **auto-assigned on join** (`Sessions.join`, lowest free plot) and freed on leave. The v16 `ClaimPrompt` on a free plot's `BuyStand`, `PlotClaim.luau`, `Constants.CLAIM_PROMPT_NAME`, `world.claims` and the per-plot `BuyStand` model are gone. `ranch_shop_stand` is used only by the plaza `ShopStand`.
+Plots are **auto-assigned on join** (`Sessions.join`, lowest free plot) and freed on leave. The v16 `ClaimPrompt` on a free plot's `BuyStand`, `PlotClaim.luau`, `Constants.CLAIM_PROMPT_NAME`, `world.claims` and the per-plot `BuyStand` model are gone.
 
 ## 9.2 Tutorial: no skipping steps you haven't done (finding #8)
 
@@ -17,10 +17,10 @@ Replaces the "finishes that step and every step before it" rule of §2 / §8.3. 
 ## 9.3 `State.lockStartedAt` (finding "lock bar scaled to 300 s")
 
 ```luau
-lockStartedAt: number,  -- server time the current lock began (join lock or a purchase while open); extending keeps it
+lockStartedAt: number,  -- server time the current lock began (join lock or a purchase; locks never extend)
 ```
 
-The HUD lock bar can show `(lockUntil - now) / (lockUntil - lockStartedAt)`, so a fresh 60 s lock reads full instead of 18 % of `LOCK_MAX_REMAINING`. In every snapshot.
+The HUD lock bar can show `(lockUntil - now) / (lockUntil - lockStartedAt)`, so a fresh 60 s lock reads full instead of a share of `LOCK_MAX_SECONDS`. In every snapshot.
 
 ## 9.4 Findings that are not server work (owners)
 

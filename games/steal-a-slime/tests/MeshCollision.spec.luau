@@ -28,7 +28,6 @@ describe("MeshAssets.COLLISION", function()
 		end
 	end)
 	it("makes the shop stands solid with a hull (CONTRACT.md §27.2)", function()
-		expect(MeshAssets.collision("ranch_shop_stand")).toBe("Hull")
 		expect(MeshAssets.collision("ranch_item_shop")).toBe("Hull")
 		expect(MeshAssets.collision("ranch_upgrade_cabinet")).toBe("Hull")
 	end)
@@ -86,13 +85,6 @@ describe("MeshSwap collision in the live server", function()
 		end
 		local solid = {}
 		local want = 0
-		-- the shop stand skins FEATURES.WorldShops does not place: the single ShopStand's with the flag on, else the Item
-		-- and Upgrade stands'
-		local WorldLayout = require("../src/visuals/shared/WorldLayout")
-		local standUnplaced = {}
-		for name, stand in WorldLayout.SHOP_STANDS do
-			standUnplaced[stand.mesh] = (name == "ShopStand") == (Config.FEATURES.WorldShops == true)
-		end
 		-- the FEATURES.FountainSplit pieces are only created with the flag on (tests/FountainSplit.spec)
 		local splitPieces = {}
 		for _, piece in MeshAssets.FOUNTAIN_SPLIT do
@@ -109,9 +101,6 @@ describe("MeshSwap collision in the live server", function()
 			if name == "fountain_split_slide" and not Config.FEATURES.SlidePCD then
 				continue -- the slide piece is PCD only with FEATURES.SlidePCD (MeshSwap.splitFidelity)
 			end
-			if standUnplaced[name] then
-				continue -- a shop stand skin FEATURES.WorldShops does not place
-			end
 			solid[MeshAssets.meshId(name)] = (roblox.Enum.CollisionFidelity :: any)[fidelity]
 			want += 1
 		end
@@ -125,8 +114,7 @@ describe("MeshSwap collision in the live server", function()
 		expect(count).toBe(want)
 	end)
 	it("the shop stands are solid Hull MeshParts (no extra collider boxes)", function()
-		local names = if Config.FEATURES.WorldShops then { "ItemShopStand", "UpgradeShopStand" } else { "ShopStand" }
-		for _, name in names do
+		for _, name in { "ItemShopStand", "UpgradeShopStand" } do
 			local mesh = rt.workspace.Map[name]:FindFirstChild("Mesh")
 			expect(mesh ~= nil).toBe(true)
 			expect(mesh.CanCollide).toBe(true)
@@ -197,7 +185,6 @@ end)
 -- Every mesh has a collision decision --------------------------------------------------------------------------
 -- Every MeshAssets name is either solid (COLLISION) or listed here as decor with its reason, so a new mesh forces a decision.
 local DECOR = {
-	goo_cork_stand = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
 	goo_jar_foot = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
 	goo_jar_stair = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
 	goo_jar_door = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
@@ -236,6 +223,7 @@ local DECOR = {
 	phoenix_pad_crate = "the pad's own Pad part is the gameplay surface; the stand is its decor",
 	phoenix_top_earners_board = "WorldProps Model: its invisible Collider keeps the Model's bounds",
 	ranch_guide = "WorldProps Model: the TutorialNpc's hidden primitive body parts stay the collider",
+	guide_professor = "WorldProps Model: ProfessorGoo's hidden block body stays the collider",
 	ranch_landing_ring = "mesh stays decor (bbox 10 deep x 3.1 tall: Box/Hull = invisible wall); the stones are solid through thin Plaza colliders (LandingCurb/LandingStake, PropCollision landing_ring)",
 	ranch_goo_drain = "mesh stays decor; solid through the DrainCurb disc + post + plaque colliders (PropCollision goo_drain), so the slide exit stays open",
 	ranch_horseshoe_pit = "1.8 stud flat sand pit, walk over it",
@@ -245,6 +233,8 @@ local DECOR = {
 	plot_skin_candy = "client-cloned plot skin template, not a world slot",
 	plot_skin_crystal = "client-cloned plot skin template, not a world slot",
 	pet_cloud = "follow pet cloud (published by MeshSwap, cloned by client FollowPets): CanCollide false, never placed in the world",
+	pet_mount_jelly = "pet seat (published by MeshSwap, cloned by client FollowPets): CanCollide false, never placed in the world",
+	pet_mount_rainbow_cloud = "pet seat (published by MeshSwap, cloned by client FollowPets): CanCollide false, never placed in the world",
 	ranch_bat = "held Tool Handle mesh (Tool 'Bat'): CanCollide false, never placed in the world",
 	giant_broadleaf = "border tree beyond the world wall ring, out of reach, canopy overhead",
 	giant_pine_layered = "border tree beyond the world wall ring, out of reach",
@@ -353,7 +343,7 @@ end)
 -- Plot-level collision: every plot mesh has a decided collision, and the goo jar keeps the owner's way in open ----
 -- mesh -> expected MeshAssets.COLLISION fidelity (false = decor mesh; its collision is then the slot box / a part).
 local PLOT_MESHES = {
-	goo_cork_stand = false, -- goo jar tower look, the primitives under it collide
+	goo_cork_stand = "Hull", -- the pad stands collide as their own round shape
 	goo_jar_foot = false, -- goo jar tower look, the primitives under it collide
 	goo_jar_stair = false, -- goo jar tower look, the primitives under it collide
 	goo_jar_door = false, -- goo jar tower look, the primitives under it collide
@@ -443,18 +433,20 @@ describe("plot-level collision", function()
 	it("the pads, pedestal, bridge, sign and the jar's glass, lintel and lid are solid; its moat is decor", function()
 		for _, plot in plots do
 			local n = byName(plot)
-			for _, name in { "PadCollider", "Pedestal", "Bridge", "Sign" } do
+			for _, name in { "Stand", "Pedestal", "Bridge", "Sign" } do
 				expect(n[name].canCollide ~= false).toBe(true)
 			end
 			-- pads stay steppable: flat and low
 			expect(n.Pad_1.size[2] <= 3).toBe(true)
-			-- the pad box itself doesn't collide: its round collider (the dish's diameter) does
+			-- the pad box itself doesn't collide: its stand does (the slot box, then the Hull mesh, queryable)
 			expect(n.Pad_1.canCollide).toBe(false)
-			expect(n.PadCollider.shape).toBe("Cylinder")
-			expect(n.PadCollider.size[2]).toBeCloseTo(2 * WorldLayout.PAD_DECK.half)
+			expect(n.Stand.canQuery ~= false).toBe(true)
+			expect(n.Stand.attributes.MeshCanQuery).toBe(true)
+			expect(n.Stand.size[2] <= 3).toBe(true)
 			local walls, lintel, lid = 0, 0, 0
 			for _, part in n.Jar.children do
-				expect(part.canCollide ~= false).toBe(true)
+				-- the lid is no longer solid: the roof is the top jar's TopColliders (WorldLayout.topColliders)
+				expect(part.canCollide ~= false).toBe(part.name ~= "Lid")
 				if string.match(part.name, "^Wall_%d+$") then
 					walls += 1
 					expect(part.canQuery).toBe(false) -- prompts and raycasts reach through the glass
@@ -488,7 +480,7 @@ describe("plot-level collision", function()
 				end
 				return false
 			end
-			for _, h in { 0.5, 7, WorldLayout.FLOOR_HEIGHT - 1.5 } do
+			for _, h in { 0.5, 7, WorldLayout.jarTopWallHeight(1) + 0.4 } do
 				for deg = 0, 359.5, 0.5 do
 					local x, z = WorldLayout.jarWallPoint(1, deg)
 					local inDoor = z < 0 and math.abs(x) < door.halfWidth and h < WorldLayout.DOOR.height
@@ -499,11 +491,20 @@ describe("plot-level collision", function()
 					end
 				end
 			end
-			-- the lid caps the glass: over the whole wall ring, from the wall top up
+			-- the roof caps the glass: the top jar's dome colliders start inside the walls' top, all the way round
+			local roof = WorldLayout.topColliders(i, 1).children :: { any }
+			local profile = WorldLayout.topDomeProfile(1)
 			for deg = 0, 359, 3 do
-				local x, z = WorldLayout.polar(r, deg)
-				expect(covered(x, f1 + WorldLayout.FLOOR_HEIGHT - 0.5, z)).toBe(true)
+				local x, z = WorldLayout.polar(profile[1][1] - 0.6, deg)
+				local hit = false
+				for _, part in roof do
+					if inside(part, i, x, f1 + profile[1][2] + 0.2, z) then
+						hit = true
+					end
+				end
+				expect(hit or covered(x, f1 + profile[1][2] + 0.2, z)).toBe(true)
 			end
+			expect(r > 0).toBe(true)
 		end
 	end)
 	it("the doorway is clear for the owner: no solid part but the Stopper inside WorldLayout.doorway()", function()

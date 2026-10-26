@@ -1,13 +1,17 @@
 --!strict
 -- The boss event over World (src/server/BossEvent.luau, contract/boss-event.md): the schedule and its Slime Rain skip,
--- the rotation, the boss in the plaza, sheds, the haul through Carry, the trophy, the escape and State.boss.
+-- the rotation, the boss in the plaza, no slimes during the fight, the haul through Carry, the win and its boss badges, the escape and State.boss.
+local BossCredit = require("../src/server/BossCredit")
 local BossEvent = require("../src/server/BossEvent")
+local BossFight = require("../src/shared/BossFight")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
+local Perks = require("../src/shared/Perks")
 local PlayerData = require("../src/shared/PlayerData")
 local Scene = require("../src/server/Scene")
 local ServerFixtures = require("./ServerFixtures")
+local SlimeRoster = require("../src/shared/SlimeRoster")
 local Snapshot = require("../src/server/Snapshot")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
@@ -107,15 +111,26 @@ describe("BossEvent schedule", function()
 end)
 
 describe("BossEvent rotation", function()
-	it("goes Goozilla, Queen Jelly, Goozilla, Queen Jelly, Mecha Goo on a Starlight fountain", function()
+	it("brings all six bosses in one lap on a Starlight fountain, then starts over", function()
 		local out = {}
-		for i = 1, 6 do
+		for i = 1, 11 do
 			table.insert(out, BossEvent.speciesFor(i, BOSS.SECRET_FOUNTAIN_TIER))
 		end
-		expect(table.concat(out, ",")).toBe("goozilla,queen_jelly,goozilla,queen_jelly,mecha_goo,goozilla")
+		expect(table.concat(out, ",")).toBe(
+			"goozilla,queen_jelly,klawdius,pumpking,mecha_goo,goozilla,queen_jelly,klawdius,pumpking,goomancer,goozilla"
+		)
+		local seen = {}
+		for _, species in BOSS.ROTATION do
+			seen[species] = true
+		end
+		for _, entry in SlimeRoster.ofKind("boss") do
+			expect(`{entry.id}: {seen[entry.id] == true}`).toBe(`{entry.id}: true`)
+		end
 	end)
-	it("gives the Secret slot to SECRET_FALLBACK below Starlight", function()
+	it("gives every Secret slot to SECRET_FALLBACK below Starlight", function()
 		expect(BossEvent.speciesFor(5, BOSS.SECRET_FOUNTAIN_TIER - 1)).toBe(BOSS.SECRET_FALLBACK)
+		expect(BossEvent.speciesFor(10, BOSS.SECRET_FOUNTAIN_TIER - 1)).toBe(BOSS.SECRET_FALLBACK)
+		expect(BossEvent.speciesFor(4, BOSS.SECRET_FOUNTAIN_TIER - 1)).toBe("pumpking")
 	end)
 	it("each event takes the next slot", function()
 		local w = world()
@@ -127,7 +142,7 @@ describe("BossEvent rotation", function()
 end)
 
 describe("BossEvent fight", function()
-	it("the boss arrives as a free MAX_SIZE boss slime outside the wild cap, at BOSS.SCALE, no prompt", function()
+	it("the boss arrives as a free MAX_SIZE boss slime outside wildCount, at BOSS.SCALE, no prompt", function()
 		local w = world()
 		local id = arrive(w)
 		local boss = w.wild[id]
@@ -144,13 +159,13 @@ describe("BossEvent fight", function()
 		expect(entry.despawnAt).toBeNil()
 		expect((Carry.grab(w, 1, id, 1, T0 + BOSS.WARNING_SECONDS))).toBe(false)
 	end)
-	it("sheds SHED_COUNT wild slimes at every SHED_EVERY of the meter", function()
+	it("never drops wild slimes during the fight: filling the meter only speeds it up", function()
 		local w = world()
 		arrive(w)
 		local before = wildCount(w)
 		fill(w, 1)
-		local sheds = math.ceil(1 / BOSS.SHED_EVERY) - 1
-		expect(wildCount(w) - before).toBe(sheds * BOSS.SHED_COUNT)
+		expect(wildCount(w) - before).toBe(0)
+		expect(BossFight.stage(w.boss.fight)).toBe(math.ceil(1 / BOSS.STAGE_EVERY) - 1)
 	end)
 	it("the meter target scales with the players on the server", function()
 		local solo, crowd = world(1), world(4)
@@ -192,12 +207,18 @@ describe("BossEvent fight", function()
 end)
 
 describe("BossEvent haul", function()
-	it("pops to carry size; the top contributor grabs first, then anyone", function()
+	it("shrinks to carry size; the top contributor grabs first, then anyone", function()
 		local w = world()
 		local id = arrive(w)
-		expect(w.wild[id].wanderUntil).toBeNil() -- it wanders while it fights
+		expect(w.wild[id].move.kind).toBe("arrive") -- it drops onto the boss spot
 		local t = fill(w, 1, 2)
-		expect(w.wild[id].wanderUntil).toBe(t - BOSS.HIT_GAP) -- and stops at the hit that filled the meter
+		local down = w.wild[id].move
+		expect(down.kind).toBe("down") -- and stands where the hit that filled the meter caught it
+		expect(down.at).toBe(t - BOSS.HIT_GAP)
+		local shrinking = Scene.describe(w, t)[id]
+		expect(shrinking.bossScale).toBe(BOSS.SCALE)
+		expect(shrinking.promptEnabled).toBe(false)
+		t = down.at + BOSS.SHRINK_SECONDS
 		local entry = Scene.describe(w, t)[id]
 		expect(entry.bossScale).toBeNil()
 		expect(entry.promptEnabled).toBe(true)
@@ -214,7 +235,7 @@ describe("BossEvent haul", function()
 		local t = fill(w, 1)
 		local s = w.sessions[1]
 		s.data.speedCoil = true
-		expect((Carry.grab(w, 1, id, 1, t))).toBe(true)
+		expect((Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS))).toBe(true)
 		expect(Carry.walkSpeed(s)).toBeCloseTo(Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW), 1e-9)
 		expect(Snapshot.build(w, s, t + 1).carrying.walkSpeed).toBeCloseTo(
 			Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW),
@@ -225,7 +246,7 @@ describe("BossEvent haul", function()
 		local w = world()
 		local id = arrive(w)
 		local t = fill(w, 1, 2)
-		expect((Carry.grab(w, 1, id, 1, t))).toBe(true)
+		expect((Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS))).toBe(true)
 		local deadline = w.wild[id].expiresAt
 		local spot = { X = 5, Y = 0, Z = 5 }
 		local slapper, carrier = w.sessions[2], w.sessions[1]
@@ -245,13 +266,13 @@ describe("BossEvent haul", function()
 		local w = world()
 		local id = arrive(w)
 		local t = fill(w, 1)
-		Carry.grab(w, 1, id, 1, t)
+		Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS)
 		local deadline = w.wild[id].expiresAt
 		expect(Carry.release(w, 1, t + 3, "spot", "drop")).toBe(true)
 		expect(w.wild[id].expiresAt).toBe(deadline)
 		expect(w.boss.fight.carrierUserId).toBeNil()
 	end)
-	it("home with a full plot is a win: the boss goes on the trophy stand and earns", function()
+	it("home with a full plot is a win: the boss joins nobody's slimes and earns no income", function()
 		local w = world()
 		local id = arrive(w)
 		local t = fill(w, 1)
@@ -261,23 +282,95 @@ describe("BossEvent haul", function()
 		end
 		expect(PlayerData.freePad(s.data)).toBeNil()
 		local income = PlayerData.incomePerSecond(s.data)
-		Carry.grab(w, 1, id, 1, t)
+		Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS)
 		expect((Carry.deposit(w, 1, t + 5))).toBe(true)
-		expect(#s.data.trophies).toBe(1)
-		expect(s.data.trophies[1].species).toBe("goozilla")
+		expect(s.data.boss.wins.goozilla).toBe(1)
 		expect(PlayerData.findSlime(s.data, id)).toBeNil()
+		expect(#s.data.slimes).toBe(Config.PADS_MAX)
 		expect(w.wild[id]).toBeNil()
 		expect(w.boss.fight.phase).toBe("won")
 		expect(w.boss.fight.winnerUserId).toBe(1)
-		expect(PlayerData.incomePerSecond(s.data) > income).toBe(true)
+		expect(PlayerData.incomePerSecond(s.data)).toBe(income * (1 + BOSS.MVP_BONUS)) -- only the MVP boost, no boss income
 		local texts = ServerFixtures.notifications(w, nil)
 		expect(texts[#texts]).toBe("P1 brought Goozilla home!")
+		expect(table.find(ServerFixtures.notifications(w, 1), "You brought Goozilla home!") ~= nil).toBe(true)
+	end)
+	it("only the carrier wins (badge, haul and SlimeDex); the top hitter gets the Boss MVP income boost", function()
+		local w = world(3)
+		local id = arrive(w)
+		local t = fill(w, 1, 2) -- P1 hits twice as often as P2; P3 never hits
+		local p1, p2, p3 = w.sessions[1], w.sessions[2], w.sessions[3]
+		expect((Carry.grab(w, 3, id, 1, t + BOSS.PRIORITY_SECONDS))).toBe(true)
+		expect((Carry.deposit(w, 3, t + BOSS.PRIORITY_SECONDS + 2))).toBe(true)
+		expect(p1.data.boss.wins.goozilla).toBeNil() -- the top hitter didn't carry it
+		expect(p2.data.boss.wins.goozilla).toBeNil()
+		expect(p3.data.boss.wins.goozilla).toBe(1) -- the carrier wins, even with no hits
+		expect(p3.data.boss.hauls).toBe(1)
+		expect(p1.data.boss.hauls).toBe(0)
+		expect(p1.data.boss.mvps).toBe(1)
+		expect(p2.data.boss.mvps).toBe(0)
+		expect(p1.data.found.goozilla).toBeNil() -- helpers get nothing for the boss itself
+		expect(p2.data.found.goozilla).toBeNil()
+		expect(p3.data.found.goozilla).toBe(true) -- the carrier held it
+		expect(p1.data.boss.badges.BossBrawler ~= nil).toBe(true)
+		expect(p1.data.boss.badges.BossGoozilla).toBeNil()
+		-- The top hitter's MVP is a timed income boost, not a badge.
+		local home = t + BOSS.PRIORITY_SECONDS + 2
+		expect(p1.data.mvpBonus).toBe(BOSS.MVP_BONUS)
+		expect(p1.mvpUntil).toBe(home + BOSS.MVP_SECONDS)
+		expect(p2.data.mvpBonus).toBeNil()
+		expect(p3.data.mvpBonus).toBeNil()
+		expect(math.abs(Perks.bonusMultiplier(p1.data) / Perks.bonusMultiplier(p2.data) - (1 + BOSS.MVP_BONUS)) < 1e-9).toBe(
+			true
+		)
+		expect(Snapshot.build(w, p1, home).mvpBoost).toEqual({
+			bonus = BOSS.MVP_BONUS,
+			endsAt = home + BOSS.MVP_SECONDS,
+		})
+		expect(Snapshot.build(w, p2, home).mvpBoost).toBeNil()
+		expect(p2.data.boss.badges.BossGoozilla).toBeNil()
+		expect(p3.data.boss.badges.BossHauler ~= nil).toBe(true)
+		expect(p3.data.boss.badges.BossGoozilla ~= nil).toBe(true)
+		local toasts = ServerFixtures.notifications(w, 1)
+		expect(table.find(toasts, "Badge earned: Goozilla Tamer!")).toBeNil()
+		expect(table.find(toasts, "Boss MVP! +50% income for 5 min") ~= nil).toBe(true)
+		-- It runs out after MVP_SECONDS.
+		BossCredit.expire(w, home + BOSS.MVP_SECONDS - 1)
+		expect(p1.data.mvpBonus).toBe(BOSS.MVP_BONUS)
+		BossCredit.expire(w, home + BOSS.MVP_SECONDS)
+		expect(p1.data.mvpBonus).toBeNil()
+		expect(p1.mvpUntil).toBeNil()
+		local after = ServerFixtures.notifications(w, 1)
+		expect(after[#after]).toBe("Your Boss MVP income boost ended")
+		expect(table.find(ServerFixtures.notifications(w, 3), "Badge earned: Goozilla Tamer!") ~= nil).toBe(true)
+		expect(table.find(ServerFixtures.notifications(w, 3), "Badge earned: Heavy Lifter!") ~= nil).toBe(true)
+	end)
+	it("the first counted hit earns Boss Brawler once, with a toast", function()
+		local w = world()
+		arrive(w)
+		local t = T0 + BOSS.WARNING_SECONDS
+		local s = w.sessions[1]
+		expect((BossEvent.hit(w, s, t))).toBe(true)
+		expect((BossEvent.hit(w, s, t))).toBe(false) -- too fast: not counted
+		BossEvent.hit(w, s, t + BOSS.HIT_GAP)
+		expect(s.data.boss.hits).toBe(2)
+		expect(s.data.boss.badges.BossBrawler).toBe(math.floor(t))
+		local toasts = ServerFixtures.notifications(w, 1)
+		local n = 0
+		for _, text in toasts do
+			if text == "Badge earned: Boss Brawler!" then
+				n += 1
+			end
+		end
+		expect(n).toBe(1)
+		expect(Snapshot.build(w, s, t + 1).bossBadges[1].key).toBe("BossBrawler")
+		expect(Snapshot.build(w, s, t + 1).boss.badges).toBe(1)
 	end)
 	it("a haul that runs out lets the boss get away from the carrier's arms", function()
 		local w = world()
 		local id = arrive(w)
 		local t = fill(w, 1)
-		Carry.grab(w, 1, id, 1, t)
+		Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS)
 		local before = wildCount(w)
 		BossEvent.step(w, t + BOSS.HAUL_SECONDS)
 		expect(w.sessions[1].carry).toBeNil()
@@ -319,14 +412,14 @@ describe("BossEvent State.boss", function()
 		expect(view.phase).toBe("haul")
 		expect(view.priorityName).toBe("P1")
 		expect(view.priorityUntil).toBeCloseTo(t - BOSS.HIT_GAP + BOSS.PRIORITY_SECONDS, 1e-6) -- from the last hit
-		Carry.grab(w, 1, id, 1, t)
+		Carry.grab(w, 1, id, 1, t + BOSS.SHRINK_SECONDS)
 		expect(BossEvent.view(w, w.sessions[2], t).carrierName).toBe("P1")
 		Carry.deposit(w, 1, t + 2)
 		local won = BossEvent.view(w, w.sessions[2], t + 2)
 		expect(won.phase).toBe("won")
 		expect(won.active).toBe(false)
 		expect(won.winnerName).toBe("P1")
-		expect(BossEvent.view(w, w.sessions[1], t + 2).trophies).toBe(1)
+		expect(BossEvent.view(w, w.sessions[1], t + 2).badges).toBe(3) -- Brawler, Goozilla Tamer, Heavy Lifter (MVP is a boost)
 	end)
 	it("every phase change pushes State to every player", function()
 		local w = world()

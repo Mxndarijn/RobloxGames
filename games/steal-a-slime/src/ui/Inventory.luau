@@ -31,6 +31,7 @@
 	item the player no longer holds (InventoryCore.placeNew), so a new purchase still lands on the bar.
 ]]
 
+local InputKind = require(script.Parent.InputKind)
 local InventoryCore = require(script.Parent.InventoryCore)
 local InventoryLayout = require(script.Parent.InventoryLayout)
 local ItemIconView = require(script.Parent.ItemIconView)
@@ -51,26 +52,26 @@ Inventory.LONG_PRESS = 0.4 -- seconds a finger holds a slot to see its name
 Inventory.TIP_SECONDS = 1.6
 Inventory.USE_GAP = 0.5 -- seconds between two uses (the server's own limit for UseConsumable)
 
--- The HUD tile palette (Hud money plates): rounded purple with the dark stroke.
+-- The hotbar in the Goo kit: a glass plate, glass-row slots, the equipped slot lighter with the Gold ring.
 Inventory.COLORS = table.freeze({
-	plate = Color3.fromRGB(58, 36, 110),
-	slot = Color3.fromRGB(84, 58, 150),
-	selected = Color3.fromRGB(128, 86, 224),
-	stroke = Color3.fromRGB(10, 10, 20),
-	ring = Color3.fromRGB(255, 255, 255),
+	plate = Theme.Bg,
+	slot = Theme.Row,
+	selected = Theme.BgLight,
+	stroke = Theme.Ink,
+	ring = Theme.Gold,
 })
 
 -- Bag panel text sizes and the empty slot's see-through Ink.
 Inventory.PANEL = table.freeze({
 	hintSize = 14,
-	chipSize = 13,
+	chipSize = Layout.MIN_TEXT,
 	nameSize = 14,
 	headingSize = 18,
 	emptyTransparency = 0.45,
 	headingRoom = 120, -- width a heading keeps left of its hint / count chip
 	plateRadius = 18,
 	plateStroke = 3,
-	tagSize = 12, -- the gold amount tag on a bag cell that holds a stack
+	tagSize = Layout.MIN_TEXT, -- the gold amount tag on a bag cell that holds a stack
 	tagW = 22,
 	tagWide = 30, -- for "99+"
 	tagH = 18,
@@ -94,10 +95,30 @@ Inventory.ORDER_RETRY = table.freeze({ ["too fast"] = true, ["still loading"] = 
 Inventory.ORDER_RETRIES = 10
 Inventory.JOIN_GRACE = 10 -- seconds after the first State in which an arriving Tool is not new (placeNewItems)
 Inventory.HINT = "Drag items here" -- the plate heading's hint
+-- The bag panel holding nothing but the starting Bat (already on the hotbar): this message instead of the grid.
+Inventory.EMPTY = table.freeze({
+	title = "Your bag is empty",
+	body = "Items you buy at the Item shop and rewards from goals show up here.",
+	titleSize = 24,
+	titleH = 30,
+	bodySize = 16,
+	bodyH = 44,
+	gap = 8,
+})
 Inventory.ORDER_TEXT = table.freeze({
 	refused = "Couldn't save your hotbar",
 	blanked = "That item can't go on the hotbar",
 })
+
+-- True when the bag holds nothing but the Bat every player starts with.
+function Inventory.bagEmpty(entries: { InventoryCore.Entry }): boolean
+	for _, e in entries do
+		if not (e.kind == "tool" and e.itemId == InventoryCore.BAT) then
+			return false
+		end
+	end
+	return true
+end
 
 function Inventory.footerText(keyboard: boolean): string
 	return "Drag an item onto a hotbar slot to put it there. Drag it off the bar to take it off. "
@@ -142,6 +163,8 @@ type Deps = {
 	keyboard: boolean?, -- show number keys (default true)
 	-- UserInputService (InputChanged / InputEnded follow a drag); default the real service.
 	input: any?,
+	-- GuiService (SelectedObject: the gamepad focus); default the real service.
+	gui: any?,
 }
 
 type Slot = {
@@ -176,6 +199,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local MAX = InventoryLayout.MAX_SLOTS
 	local keyboard = deps.keyboard ~= false
 	local userInput: any = deps.input or game:GetService("UserInputService")
+	local guiService: any = deps.gui or game:GetService("GuiService")
 	local footerText = Inventory.footerText(keyboard)
 
 	local state: any = nil -- latest State
@@ -185,6 +209,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local signature = ""
 	local menuOpen = false
 	local carrying = false
+	local moving = false -- move mode (SlimeMove): its card takes the bar's place
 	local screen: Layout.Screen? = nil
 	local panelOpen = false
 	local heldConsumable: string? = nil -- the consumable in hand (client-side; the server only validates the use)
@@ -205,7 +230,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		BackgroundTransparency = 0.05,
 		ZIndex = Layout.ZINDEX.Base,
 		Parent = parent,
-	}, { Widgets.corner(14), Widgets.stroke(C.stroke, 2) })
+	}, { Widgets.corner(Widgets.KIT.plateRadius), Widgets.stroke(C.stroke, Widgets.KIT.stroke) })
 
 	local tip = Widgets.label({
 		Name = "Tip",
@@ -255,7 +280,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			BackgroundColor3 = C.slot,
 			Size = fromOffset(size, size),
 			Parent = host,
-		}, { Widgets.corner(10), Widgets.stroke(C.stroke, 2) }) :: TextButton
+		}, { Widgets.corner(Widgets.KIT.slotRadius), Widgets.stroke(C.stroke, Widgets.KIT.stroke) }) :: TextButton
 		local icon = ItemIconView.new({
 			Name = "Icon",
 			Id = "Unknown",
@@ -460,7 +485,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		AutoButtonColor = false,
 		BackgroundColor3 = Theme.BgLight,
 		Parent = root,
-	}, { Widgets.corner(10), Widgets.stroke(C.stroke, 2) }) :: TextButton
+	}, { Widgets.corner(Widgets.KIT.slotRadius), Widgets.stroke(C.stroke, Widgets.KIT.stroke) }) :: TextButton
 	local bagIcon = Widgets.label({
 		Name = "Glyph",
 		Text = "🎒",
@@ -869,14 +894,60 @@ function Inventory.new(parent: Instance, deps: Deps)
 		return x, y
 	end
 
+	-- The empty state in place of the bag grid, in the grid's column: a title and one line on where items come
+	-- from. Built on first use.
+	local emptyState: Frame? = nil
+	local function showEmpty(empty: boolean, x: number, y: number, w: number)
+		if empty and emptyState == nil then
+			local e = Inventory.EMPTY
+			local frame = create("Frame", {
+				Name = "EmptyBag",
+				BackgroundTransparency = 1,
+				Parent = panel.body,
+			})
+			Widgets.label({
+				Name = "Title",
+				Text = e.title,
+				Font = Theme.Font,
+				TextSize = e.titleSize,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Size = UDim2.new(1, 0, 0, e.titleH),
+				Parent = frame,
+			})
+			Widgets.label({
+				Name = "Body",
+				Text = e.body,
+				TextSize = e.bodySize,
+				TextColor3 = Theme.Muted,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Top,
+				TextWrapped = true,
+				TextTruncate = Enum.TextTruncate.None,
+				Position = UDim2.fromOffset(0, e.titleH + e.gap),
+				Size = UDim2.new(1, 0, 0, e.bodyH),
+				Parent = frame,
+			})
+			emptyState = frame
+		end
+		local frame = emptyState
+		if frame then
+			frame.Visible = empty
+			frame.Position = UDim2.fromOffset(x, y + Inventory.EMPTY.gap)
+			frame.Size = UDim2.fromOffset(w, Inventory.EMPTY.titleH + Inventory.EMPTY.gap + Inventory.EMPTY.bodyH)
+		end
+	end
+
 	local function refreshPanel(now: number)
 		local p = ensureParts()
 		local bodyW = bodyWidth()
 		local bodyH = placePanel()
-		-- Hotbar plate.
-		local slotSize = InventoryLayout.plateSlot(bodyW, bodyH)
-		local plateRect, plateRects = InventoryLayout.plate(bodyW, slotSize)
+		local empty = Inventory.bagEmpty(entries)
+		-- Hotbar plate (stacked over the grid, or left of it on a short body).
+		local a = InventoryLayout.arrange(bodyW, bodyH)
+		local plateRect, plateRects = a.plate, a.slots
 		p.barHeading.Position = fromOffset(0, 0)
+		p.barHeading.Size = if a.side then fromOffset(a.barHeadingW, CELL.top) else UDim2.new(1, 0, 0, CELL.top)
+		p.hint.Size = UDim2.new(0, if a.side then a.barHeadingW - P.headingRoom / 2 else P.headingRoom * 2, 1, 0)
 		p.plate.Position = fromOffset(plateRect.x, plateRect.y)
 		p.plate.Size = fromOffset(plateRect.w, plateRect.h)
 		local plateX, plateY = offsetOf(p.plate)
@@ -893,15 +964,19 @@ function Inventory.new(parent: Instance, deps: Deps)
 			plateHits[i] = { x = plateX + r.x, y = plateY + r.y, w = r.w, h = r.h }
 		end
 		-- Bag.
-		local headingY, gridY = InventoryLayout.bagTop(slotSize)
-		p.bagHeading.Position = fromOffset(0, headingY)
-		p.list.Position = fromOffset(0, gridY)
-		p.list.Size = UDim2.new(1, 0, 1, -gridY)
-		local cols = InventoryLayout.columns(bodyW)
-		local size = InventoryLayout.cellSize(bodyW)
-		local total = InventoryLayout.slotCount(#entries, bodyW)
+		p.bagHeading.Position = fromOffset(a.bagHeadingX, a.bagHeadingY)
+		p.bagHeading.Size = UDim2.new(1, -a.bagHeadingX, 0, CELL.top)
+		p.list.Visible = not empty
+		p.countChip.Visible = not empty
+		showEmpty(empty, a.gridX, a.gridY, a.gridW)
+		p.list.Position = fromOffset(a.gridX, a.gridY)
+		p.list.Size = UDim2.new(1, -a.gridX, 1, -a.gridY)
+		local gridBodyW = a.gridW
+		local cols = InventoryLayout.columns(gridBodyW)
+		local size = InventoryLayout.cellSize(gridBodyW)
+		local total = InventoryLayout.slotCount(#entries, gridBodyW)
 		local gridW = cols * size + (cols - 1) * CELL.gap
-		local x0 = math.floor((bodyW - gridW) / 2)
+		local x0 = math.floor((gridBodyW - gridW) / 2)
 		local function at(i: number): UDim2
 			local col, row = (i - 1) % cols, (i - 1) // cols
 			return fromOffset(x0 + col * (size + CELL.gap), CELL.gridPad + row * (size + CELL.gap))
@@ -947,11 +1022,11 @@ function Inventory.new(parent: Instance, deps: Deps)
 			end
 		end
 		p.countChip.Text = if #entries == 1 then "1 item" else `{#entries} items`
-		local gridH = InventoryLayout.gridHeight(total, bodyW)
-		local footerH = Layout.wrappedHeight(footerText, P.hintSize, bodyW)
+		local gridH = InventoryLayout.gridHeight(total, gridBodyW)
+		local footerH = Layout.wrappedHeight(footerText, P.hintSize, gridBodyW)
 		local footerY = CELL.gridPad + gridH + InventoryLayout.PLATE.footerGap
 		p.footer.Position = fromOffset(0, footerY)
-		p.footer.Size = fromOffset(bodyW, footerH)
+		p.footer.Size = fromOffset(gridBodyW, footerH)
 		p.list.CanvasSize = fromOffset(0, footerY + footerH)
 	end
 
@@ -1217,9 +1292,21 @@ function Inventory.new(parent: Instance, deps: Deps)
 				refreshPanel(deps.serverNow())
 			end
 		end
-		root.Visible = not (menuOpen or carrying)
+		root.Visible = not (menuOpen or carrying or moving)
 		if not root.Visible then
 			tip.Visible = false
+		end
+	end
+
+	-- A gamepad has no pointer: the first hotbar-plate slot (else the first bag item) takes the focus.
+	local function focusPanel()
+		local p = parts
+		if not (p and InputKind.gamepadActive(userInput)) then
+			return
+		end
+		local first = p.plateSlots[1] or gridCells[1]
+		if first then
+			guiService.SelectedObject = first.button
 		end
 	end
 
@@ -1231,8 +1318,13 @@ function Inventory.new(parent: Instance, deps: Deps)
 			hideTip()
 			sync(true)
 			refreshPanel(deps.serverNow())
+			focusPanel()
 		else
 			endPress()
+			local selected = guiService.SelectedObject
+			if selected and selected:IsDescendantOf(panel.frame) then
+				guiService.SelectedObject = nil
+			end
 		end
 	end
 	self.setPanelOpen = setPanelOpen
@@ -1305,9 +1397,15 @@ function Inventory.new(parent: Instance, deps: Deps)
 		sync()
 	end
 
+	-- Move mode (SlimeMove) is on: the bar steps aside for its card, as it does for the carry card.
+	function self.setMoving(on: boolean)
+		moving = on
+		sync()
+	end
+
 	-- Number key n (1-9) selects hotbar slot n when the bar shows it; false when it is empty / the bar is hidden.
 	function self.pressKey(n: number): boolean
-		if menuOpen or carrying or panelOpen then
+		if menuOpen or carrying or moving or panelOpen then
 			return false
 		end
 		local bar = applyBar()
@@ -1315,6 +1413,37 @@ function Inventory.new(parent: Instance, deps: Deps)
 		if entry then
 			perform(entry)
 			return true
+		end
+		return false
+	end
+
+	-- The gamepad bumpers: the previous (`step` -1) / next (1) filled hotbar slot after the one in hand, wrapping;
+	-- selects it like its number key. With nothing in hand the first / last one. False when there is nothing to pick.
+	function self.cycleSlot(step: number): boolean
+		if menuOpen or carrying or moving or panelOpen then
+			return false
+		end
+		local shown = applyBar().shown
+		local current = 0
+		for n = 1, shown do
+			local entry = slots[n]
+			if entry and entry.equipped then
+				current = n
+			end
+		end
+		if current == 0 and step < 0 then
+			current = shown + 1
+		end
+		for offset = 1, shown do
+			local n = (current - 1 + step * offset) % shown + 1
+			local entry = InventoryCore.byKey(slots, shown, n)
+			if entry then
+				if n ~= current then
+					perform(entry)
+					return true
+				end
+				return false
+			end
 		end
 		return false
 	end
@@ -1366,7 +1495,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	-- asks the server to use it. False when nothing is held, the bar is hidden, the use is too soon after the
 	-- last, or there is nothing to send yet (then a tip says why).
 	function self.useHeld(at: (Vector2 | Vector3)?, held: number?): boolean
-		if menuOpen or carrying or panelOpen then
+		if menuOpen or carrying or moving or panelOpen then
 			return false
 		end
 		local pvpEntry = if heldConsumable == nil then equippedPvp() else nil
@@ -1424,7 +1553,11 @@ function Inventory.new(parent: Instance, deps: Deps)
 	-- (InventoryCore.pvpHolds) waits for the release; everything else is used at once (useHeld).
 	function self.pressHeld(at: Vector2 | Vector3, alreadyHeld: number?): boolean
 		local entry = if heldConsumable == nil then equippedPvp() else nil
-		if entry and not (menuOpen or carrying or panelOpen) and InventoryCore.pvpHolds(toolDef(entry.itemId)) then
+		if
+			entry
+			and not (menuOpen or carrying or moving or panelOpen)
+			and InventoryCore.pvpHolds(toolDef(entry.itemId))
+		then
 			holdStartedAt = os.clock() - (alreadyHeld or 0)
 			return true
 		end
@@ -1462,7 +1595,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			setPanelOpen(false)
 			return true
 		end
-		if menuOpen or carrying then
+		if menuOpen or carrying or moving then
 			return false
 		end
 		setPanelOpen(true)

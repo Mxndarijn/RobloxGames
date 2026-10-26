@@ -75,7 +75,7 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 		expect(#bats()).toBe(1)
 		expect(#rt.errors).toBe(before)
 	end)
-	it("places the ShopStand, LeaderboardBoard and TutorialNpc", function()
+	it("places the shop stands, LeaderboardBoard and TutorialNpc", function()
 		local check = Checks.props(rt)
 		show(check)
 		expect(check.ok).toBe(true)
@@ -97,7 +97,7 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 		show(ownerSigns)
 		expect(ownerSigns.ok).toBe(true)
 	end)
-	it("one 'Open Shop' prompt on the ShopStand, one 'Talk' prompt on the Guide NPC", function()
+	it("one ShopPrompt on each shop stand, one 'Talk' prompt on the Guide NPC", function()
 		local prompts = {}
 		for _, d in rt.workspace:GetDescendants() do
 			if d:IsA("ProximityPrompt") then
@@ -108,36 +108,37 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 			end
 		end
 		local guide = prompts[Constants.TUTORIAL_NPC] or {}
-		if Config.FEATURES.WorldShops then
-			-- CONTRACT.md §27.3: one ShopPrompt on each stand's Counter
-			expect(prompts[Constants.SHOP_STAND]).toBeNil()
-			local rows: { any } = {
-				{ Constants.SHOP_STAND_ITEM, "ItemShop", "Item Shop", "Browse items" },
-				{ Constants.SHOP_STAND_UPGRADE, "UpgradeShop", "Upgrade Shop", "Browse upgrades" },
-			}
-			for _, row in rows do
-				local name, shopId, objectText, actionText = row[1], row[2], row[3], row[4]
-				local shop = prompts[name] or {}
-				expect(#shop).toBe(1)
-				expect(shop[1].Name).toBe(Constants.SHOP_PROMPT_NAME)
-				expect(shop[1].ObjectText).toBe(objectText)
-				expect(shop[1].ActionText).toBe(actionText)
-				expect(shop[1].HoldDuration).toBe(0)
-				expect(shop[1].MaxActivationDistance).toBe(12)
-				expect(shop[1].KeyboardKeyCode.Name).toBe("E")
-				expect(shop[1].Parent.Name).toBe("Counter")
-				expect(shop[1].Parent.Parent:GetAttribute(Constants.SHOP_ID_ATTRIBUTE)).toBe(shopId)
-			end
-		else
-			local shop = prompts[Constants.SHOP_STAND] or {}
+		-- CONTRACT.md §27.3: one ShopPrompt on each stand's Counter
+		local rows: { any } = {
+			{ Constants.SHOP_STAND_ITEM, "ItemShop", "Item Shop", "Browse items" },
+			{ Constants.SHOP_STAND_UPGRADE, "UpgradeShop", "Upgrade Shop", "Browse upgrades" },
+		}
+		for _, row in rows do
+			local name, shopId, objectText, actionText = row[1], row[2], row[3], row[4]
+			local shop = prompts[name] or {}
 			expect(#shop).toBe(1)
 			expect(shop[1].Name).toBe(Constants.SHOP_PROMPT_NAME)
-			expect(shop[1].ActionText).toBe("Open Shop")
+			expect(shop[1].ObjectText).toBe(objectText)
+			expect(shop[1].ActionText).toBe(actionText)
+			expect(shop[1].HoldDuration).toBe(0)
+			expect(shop[1].MaxActivationDistance).toBe(12)
 			expect(shop[1].KeyboardKeyCode.Name).toBe("E")
+			expect(shop[1].Parent.Name).toBe("Counter")
+			expect(shop[1].Parent.Parent:GetAttribute(Constants.SHOP_ID_ATTRIBUTE)).toBe(shopId)
 		end
 		expect(#guide).toBe(1)
 		expect(guide[1].Name).toBe(Constants.GUIDE_PROMPT_NAME)
 		expect(guide[1].ActionText).toBe("Talk")
+	end)
+	it("gives Professor Goo a View leaderboards prompt and a ClickDetector", function()
+		local professor = rt.workspace.Map:FindFirstChild(Constants.PROFESSOR_GOO)
+		expect(professor ~= nil).toBe(true)
+		local prompt = professor:FindFirstChild(Constants.LEADERBOARD_PROMPT_NAME, true)
+		expect(prompt ~= nil and prompt.ClassName).toBe("ProximityPrompt")
+		expect(prompt.ActionText).toBe("View leaderboards")
+		expect(prompt.KeyboardKeyCode.Name).toBe("E")
+		local click = professor:FindFirstChild(Constants.LEADERBOARD_CLICK_NAME)
+		expect(click ~= nil and click.ClassName).toBe("ClickDetector")
 	end)
 	it("with FEATURES.Habitats on, every pad carries a known habitat id and the server builds no looks", function()
 		local found = {}

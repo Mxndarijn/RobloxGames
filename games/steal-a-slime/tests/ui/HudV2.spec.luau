@@ -89,7 +89,7 @@ local function setAttributes(attrs: { [string]: any }?)
 end
 
 describe("H1 HUD: left button column", function()
-	it("lays out the four nav buttons at every gate and landscape viewport", function()
+	it("lays out every nav button at every gate and landscape viewport", function()
 		local viewports = {}
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
 			table.insert(viewports, vp)
@@ -98,7 +98,7 @@ describe("H1 HUD: left button column", function()
 			table.insert(viewports, vp)
 		end
 		for _, vp in viewports do
-			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: 4`)
+			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: {#Nav.ENTRIES}`)
 		end
 	end)
 end)
@@ -334,6 +334,26 @@ describe("H1 HUD: featured Secret status slot", function()
 		expect(HudClusters.blessed({ bonus = 0.3, endsAt = 1000 }, 1000)).toBeNil()
 		expect(HudClusters.blessed({ bonus = 0, endsAt = 2000 }, 1000)).toBeNil()
 		expect(HudClusters.blessed({ bonus = 0.3, endsAt = 0 / 0 } :: any, 1000)).toBeNil()
+	end)
+
+	it("shows the Boss MVP boost with its time left, next to Blessed, and nothing once it ends", function()
+		local mvp = HudClusters.mvp({ bonus = 0.5, endsAt = 1300 }, 1000) :: HudClusters.Slot
+		expect(mvp.id).toBe("Mvp")
+		expect(mvp.text).toBe("5:00")
+		expect(mvp.icon).toBe("Boost_Mvp")
+		local tip = HudClusters.tooltip(mvp)
+		expect(tip.title).toBe("Boss MVP")
+		expect(tip.body).toBe("+50% income for landing the most hits on a boss.")
+		expect(HudClusters.mvp(nil, 1000)).toBeNil()
+		expect(HudClusters.mvp({ bonus = 0.5, endsAt = 1000 }, 1000)).toBeNil()
+		local slots = HudClusters.status({
+			modifierEnabled = false,
+			friendsEnabled = false,
+			blessed = { bonus = 0.3, endsAt = 1179 },
+			mvpBoost = { bonus = 0.5, endsAt = 1300 },
+		}, 1000, 4)
+		expect(slots[1].id).toBe("Blessed")
+		expect(slots[2].id).toBe("Mvp")
 	end)
 
 	it("with all five events running, the featured Secret makes way for the row's four places", function()
@@ -660,6 +680,23 @@ describe("H1 HUD: status icon tooltip (B8)", function()
 		expect(UiHarness.find(tip(gui), "Time").Text).toBe("Time left: 9:00")
 		UiHarness.fire(slot(gui, "Event"), "MouseLeave")
 		expect(tip(gui).Visible).toBe(false)
+		setAttributes()
+	end)
+
+	it("the open slot's bubble wears the Gold ring while its tooltip shows, and timers read mint", function()
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+		local Theme = UiHarness.ui("Widgets").Theme
+		local _, gui = running(1920, 1080)
+		local function ring(id: string): any
+			return UiHarness.find(slot(gui, id), "Bubble"):FindFirstChildOfClass("UIStroke")
+		end
+		expect(ring("Event").Color).toBe(Theme.Ink)
+		UiHarness.fire(slot(gui, "Event"), "MouseEnter")
+		expect(ring("Event").Color).toBe(Theme.Gold)
+		expect(ring("Rain").Color).toBe(Theme.Ink)
+		UiHarness.fire(slot(gui, "Event"), "MouseLeave")
+		expect(ring("Event").Color).toBe(Theme.Ink)
+		expect(UiHarness.find(slot(gui, "Rain"), "Timer").TextColor3).toBe(Theme.Good)
 		setAttributes()
 	end)
 

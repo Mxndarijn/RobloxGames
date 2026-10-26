@@ -80,16 +80,20 @@ end
 local root = roblox.Instance.new("Folder")
 root.Name = "Workspace"
 local built = WorldBuilder.build(root)
--- The prop spots (WorldLayout.PROP_SPOTS): since WorldShops the two stands replace the single ShopStand.
+-- The prop spots (WorldLayout.PROP_SPOTS).
 for name, build in
 	{
-		ItemShopStand = Props.shopStand,
-		UpgradeShopStand = Props.shopStand,
+		ItemShopStand = function()
+			return Props.shopStand("ItemShop")
+		end,
+		UpgradeShopStand = function()
+			return Props.shopStand("UpgradeShop")
+		end,
 		LeaderboardBoard = Props.leaderboardBoard,
 		TutorialNpc = Props.tutorialNpc,
 	}
 do
-	local spot = WorldLayout.PROP_SPOTS[name] or WorldLayout.PROP_SPOTS.ItemShopStand -- ShopStand became ItemShopStand
+	local spot = WorldLayout.PROP_SPOTS[name]
 	local model = build()
 	-- Model:PivotTo (not in @lune/roblox): the pivot is the primary part.
 	local target = CFrame.new(spot.pos[1], spot.pos[2], spot.pos[3]) * CFrame.Angles(0, math.rad(spot.yaw), 0)
@@ -152,8 +156,7 @@ local swapped: { [Instance]: { [string]: boolean } } = {}
 for _, scope in { built.map, built.plots } do
 	swapped[scope] = {}
 	for _, inst in scope:GetDescendants() do
-		local name = inst:GetAttribute("MeshAsset")
-			or (PENDING and inst:GetAttribute("BorderMesh"))
+		local name = inst:GetAttribute("MeshAsset") or (PENDING and inst:GetAttribute("BorderMesh"))
 		if typeof(name) == "string" and (inst:IsA("BasePart") or inst:IsA("Model")) and swappable(name) then
 			local cf, box
 			local size, scale, drop

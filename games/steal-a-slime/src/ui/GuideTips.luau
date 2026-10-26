@@ -97,8 +97,11 @@ function GuideTips.view(state: any, rarityNames: { string }, now: number): View
 	if state.canRebirth == true then
 		add({ id = "Rebirth", icon = "♻️", text = "Rebirth is ready" })
 	end
-	if Nav.canMerge(slimes) then
-		add({ id = "Merge", icon = "🧪", text = "Two slimes match: merge them" })
+	local vat = if type(state.vat) == "table" then state.vat else nil
+	if vat and type(vat.endsAt) == "number" and vat.endsAt <= now then
+		add({ id = "Merge", icon = "🧪", text = "Your merge vat is done: collect it" })
+	elseif not (vat and type(vat.endsAt) == "number") and Nav.canMerge(slimes) then
+		add({ id = "Merge", icon = "🧪", text = "Three slimes match: Move them into the vat" })
 	end
 	if Nav.shopAffordable(state) then
 		add({ id = "Shop", icon = "🛒", text = "You can afford a shop upgrade" })

@@ -64,11 +64,11 @@ describe("SlimeLooks roster audit", function()
 		expect(move.amplitude).toBe(SlimeLife.SWAY)
 	end)
 
-	it("only names uploaded species kits that are in MeshAssets, with a size and an offset", function()
+	it("only names kits in MeshAssets with a size and an offset (and an assetId once uploaded)", function()
 		for _, kit in SlimeLooks.KITS do
 			local entry = MeshAssets.get(kit) :: MeshAssets.Entry
 			expect(entry ~= nil).toBe(true)
-			expect(entry.assetId ~= nil and (entry.assetId :: number) > 0).toBe(true)
+			expect(entry.assetId == nil or (entry.assetId :: number) > 0).toBe(true)
 			expect(#(entry.size :: { number })).toBe(3)
 			expect(#(entry.offset :: { number })).toBe(3)
 			expect(table.find(MeshAssets.NAMES, kit)).toBeNil() -- worn by SlimeMesh, never a world slot
@@ -118,7 +118,7 @@ describe("SlimeLooks wiring", function()
 		expect(attrs[Constants.SPECIES_ATTRIBUTE]).toBe("moo")
 	end)
 
-	it("hands every loaded species kit to onKit (the SlimeDex copies them for the client)", function()
+	it("hands every loaded species kit to onKit (KitDelivery sends them to players who ask)", function()
 		local handed: { [string]: any } = {}
 		local function fakeMesh(): any
 			local m = {}

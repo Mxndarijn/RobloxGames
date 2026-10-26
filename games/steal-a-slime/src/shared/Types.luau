@@ -11,6 +11,7 @@
 
 local Collection = if script then require(script.Parent.Collection) else require("./Collection")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local PetSeats = if script then require(script.Parent.PetSeats) else require("./PetSeats")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
 local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require("./SpeciesDex")
 
@@ -28,7 +29,7 @@ export type RebirthSlimeView = { id: string, name: string, tier: number, color: 
 export type SlimeView = {
 	slime: SlimeData,
 	income: number, -- cash/sec incl. rebirth multiplier (0 while stolenBy ~= nil)
-	sellPrice: number,
+	sellPrice: number?, -- nil for a Mystery Egg (can't be sold)
 	stolenBy: number?, -- UserId of the player currently carrying it away
 }
 
@@ -64,6 +65,7 @@ export type PetPerkView = { kind: string, value: number, icon: string, text: str
 
 -- Plot skins (CONTRACT.md §15): one skin with its SlimeDex set progress.
 export type PlotSkinView = PlotSkins.View
+export type PetSeatView = PetSeats.View -- contract/pet-seats.md
 
 export type CodesView = { boostMult: number, boostEndsAt: number, redeemed: number }
 
@@ -167,8 +169,16 @@ export type BossView = {
 	priorityName: string?, -- haul: the top contributor while their head start runs
 	priorityUntil: number?,
 	winnerName: string?, -- "won": who brought it home
-	trophies: number, -- this player's boss trophies
+	badges: number, -- boss badges this player has earned
+	move: string?, -- fight: the boss's move kind (BossChoreo: "windup", "attack", "dazed", "rise", ...)
+	moveEndsAt: number?, -- server time that move ends
+	multiplier: number?, -- dazed: meter points per bat hit (more on a vent from behind)
+	guardsLeft: number?, -- rise: guards still standing
+	guardsTotal: number?, -- rise: guards it called
+	stunnedUntil: number?, -- this player can't hit until then (a boss attack got them)
 }
+-- State.bossBadges: one earned boss badge (Config.BOSS_BADGES key, unix seconds it was earned)
+export type BossBadgeView = { key: string, earnedAt: number }
 
 export type ModifierView = {
 	name: string, -- Config.MODIFIERS name; "None" = quiet phase
@@ -196,17 +206,18 @@ export type State = {
 	incomePerSec: number,
 	rebirths: number,
 	rebirthMultiplier: number,
+	nextRebirthMultiplier: number, -- income multiplier after the next rebirth (= rebirthMultiplier at max)
 	rebirthCost: number,
 	canRebirth: boolean,
 	rebirthSlimes: { RebirthSlimeView }, -- the slimes the next rebirth needs and uses up, one row per slime (empty at max)
 	padsUnlocked: number,
 	padsMax: number,
 	nextPadCost: number?, -- nil when every pad is unlocked
+	nextPadRebirths: number?, -- rebirths the next pad still needs; nil when it can be bought now or all are open
 	slimes: { SlimeView },
 	favoriteId: string?,
 	lockUntil: number,
 	lockStartedAt: number, -- v16: server time the current lock began (CONTRACT.md §9.3)
-	lockCost: number,
 	lockDuration: number,
 	carrying: CarryView?,
 	rain: RainView,
@@ -229,26 +240,44 @@ export type State = {
 	dexBonus: number,
 	stats: StatsView,
 	boss: BossView,
+	bossBadges: { BossBadgeView }, -- earned boss badges, in Config.BOSS_BADGES order (contract/boss-event.md)
 	modifier: ModifierView, -- FEATURES.CycleModifier
 	egg: EggView,
 	consumables: ConsumablesView?, -- FEATURES.Consumables (nil when off)
 	pvp: PvpView?, -- FEATURES.PvP (nil when off)
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
 	blessed: BlessedView?, -- FEATURES.CoopRitual: the ritual's Blessed bonus while it lasts; nil = not blessed
+	mvpBoost: BlessedView?, -- the Boss MVP income boost (BossCredit, same shape as blessed) while it lasts; nil = none
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
 	featuredSecret: FeaturedSecretView?, -- this week's event Secret in the Secret pool
 	petPerk: PetPerkView?, -- Perks.petPassive; nil without a favourite
 	settings: { musicVolume: number, sfxVolume: number, muted: boolean }?, -- FEATURES.Audio: saved Sound card values (nil when off)
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
+	petSeat: string, -- the seat the follow pet rides (PetSeats.current)
+	petSeats: { PetSeatView }, -- every pet seat with its unlock progress (contract/pet-seats.md)
 	welcomeBack: { away: number, cash: number, grown: number }?, -- join report (seconds away, offline cash paid, pad slimes grown); nil = none (CONTRACT.md §19)
 	stealAway: string?, -- FEATURES.StealAlerts: "While you were away N slimes were stolen by ..." from the saved steal log; nil = none (CONTRACT.md §17)
 	hotbar: { string }?, -- saved hotbar order (HotbarOrder, CONTRACT.md §5.1): 9 slot keys, "" = empty; nil = never set
+	boards: { [string]: number }, -- my own value on each global board, by Leaderboards stat (CONTRACT.md §5.1)
+	boardRanks: { [string]: number }, -- my rank on each board from the last refresh; -n = deeper than #n; absent = not ranked yet
+	vat: VatView, -- the plot's merge vat (VatState, CONTRACT.md §21)
+}
+
+export type VatView = {
+	ids: { string }, -- slime ids in the vat, spot order (each also in `slimes`, still on its pad)
+	tier: number?, -- the rarity it takes; nil while empty
+	endsAt: number?, -- unix seconds the brew is done; nil = not brewing
+	startedAt: number?, -- unix seconds the brew started
+	seconds: number?, -- how long a brew of `tier` takes now (Quick Brew applied); nil while empty
 }
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }
 
--- Payload of the `Leaderboard` RemoteEvent.
-export type Leaderboard = { stat: "TotalEarned", entries: { LeaderboardEntry } }
+-- Which board a payload is for (Leaderboards.BOARDS).
+export type LeaderboardStat = "TotalEarned" | "WeeklyEarned" | "Steals" | "Dex" | "Merges"
+
+-- Payload of the `Leaderboard` RemoteEvent: one board per call.
+export type Leaderboard = { stat: LeaderboardStat, entries: { LeaderboardEntry } }
 
 return {}

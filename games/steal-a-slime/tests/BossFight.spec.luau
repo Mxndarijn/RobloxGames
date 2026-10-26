@@ -1,6 +1,6 @@
 --!strict
 -- The pure boss fight (src/shared/BossFight.luau, contract/boss-event.md): phases, the meter that scales with players,
--- the drain, sheds, fail paths, the top contributor's head start and the slap drop.
+-- the drain, stages, fail paths, the top contributor's head start and the slap drop.
 local BossFight = require("../src/shared/BossFight")
 local Config = require("../src/shared/Config")
 local TestRunner = require("./TestRunner")
@@ -88,7 +88,7 @@ describe("BossFight meter", function()
 		end
 		expect(state.phase).toBe("haul")
 		expect(t - T0 < BOSS.FIGHT_SECONDS).toBe(true)
-		expect(table.concat(events, ",")).toBe("shed,shed,shed,haul")
+		expect(table.concat(events, ",")).toBe("stage,stage,stage,haul")
 	end)
 end)
 
@@ -107,17 +107,16 @@ describe("BossFight drain", function()
 		expect(state.points).toBe(0)
 		expect(state.contributions[1]).toBe(10) -- contributions never drain
 	end)
-	it("never sheds twice for the same quarter after a drain", function()
+	it("never reaches the same stage twice after a drain", function()
 		local state = fighting()
-		local quarter = math.ceil(BOSS.POINTS_PER_PLAYER * BOSS.SHED_EVERY)
+		local quarter = math.ceil(BOSS.POINTS_PER_PLAYER * BOSS.STAGE_EVERY)
 		local t = hits(state, 1, quarter, T0)
 		local events = BossFight.step(state, t, 0, 1)
-		expect(kinds(events)).toBe("shed")
-		expect((events[1] :: any).count).toBe(BOSS.SHED_COUNT)
+		expect(kinds(events)).toBe("stage")
 		BossFight.step(state, t + BOSS.DRAIN_GRACE + 5, 5, 1) -- drains below the quarter
 		t = hits(state, 1, 3, t + BOSS.DRAIN_GRACE + 5)
 		expect(#BossFight.step(state, t, 0, 1)).toBe(0)
-		expect(state.shed).toBe(1)
+		expect(state.stage).toBe(1)
 	end)
 end)
 
@@ -136,7 +135,7 @@ describe("BossFight fail paths", function()
 	it("fails when nobody brings it home by the haul deadline, carried or not", function()
 		local state = fighting()
 		local t = hits(state, 1, BOSS.POINTS_PER_PLAYER, T0)
-		expect(kinds(BossFight.step(state, t, 0, 1))).toBe("shed,haul")
+		expect(kinds(BossFight.step(state, t, 0, 1))).toBe("stage,haul")
 		BossFight.grab(state, 1)
 		local events = BossFight.step(state, t + BOSS.HAUL_SECONDS, 0, 1)
 		expect(kinds(events)).toBe("fail")
@@ -150,7 +149,7 @@ describe("BossFight haul", function()
 	local function hauled(): (BossFight.State, number)
 		local state = fighting()
 		local t = T0
-		for i = 1, 20 do
+		for i = 1, BOSS.POINTS_PER_PLAYER - 5 do -- with players 2 and 3 that fills the one-player meter
 			BossFight.hit(state, 1, t)
 			if i <= 6 then
 				BossFight.hit(state, 2, t)
@@ -191,7 +190,7 @@ describe("BossFight haul", function()
 	it("each player's share is their points over the top contribution", function()
 		local state = hauled()
 		expect(BossFight.share(state, 1)).toBe(1)
-		expect(BossFight.share(state, 2)).toBeCloseTo(6 / 20, 1e-9)
+		expect(BossFight.share(state, 2)).toBeCloseTo(6 / (BOSS.POINTS_PER_PLAYER - 5), 1e-9)
 		expect(BossFight.share(state, 99)).toBe(0)
 	end)
 	it("a win ends the event with the winner", function()

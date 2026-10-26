@@ -30,18 +30,16 @@ local function worldParts(model: any, name: string): { any }
 	return out
 end
 
--- WorldProps builds both shop stands from Props.shopStand(shopId) under their own names (CONTRACT.md §27.2).
-local function renamedStand(name: string, shopId: string): () -> any
+-- WorldProps builds both shop stands from Props.shopStand(shopId), named for their stand (CONTRACT.md §27.2).
+local function standBuilder(shopId: string): () -> any
 	return function()
-		local model = Props.shopStand(shopId)
-		model.Name = name
-		return model
+		return Props.shopStand(shopId)
 	end
 end
 
 local PROPS = {
-	[Constants.SHOP_STAND_ITEM] = renamedStand(Constants.SHOP_STAND_ITEM, "ItemShop"),
-	[Constants.SHOP_STAND_UPGRADE] = renamedStand(Constants.SHOP_STAND_UPGRADE, "UpgradeShop"),
+	[Constants.SHOP_STAND_ITEM] = standBuilder("ItemShop"),
+	[Constants.SHOP_STAND_UPGRADE] = standBuilder("UpgradeShop"),
 	[Constants.LEADERBOARD_BOARD] = Props.leaderboardBoard,
 	[Constants.TUTORIAL_NPC] = Props.tutorialNpc,
 }
@@ -62,13 +60,16 @@ describe("Props placed by WorldProps", function()
 			end
 		end
 	end)
-	it("has the ShopStand Counter and the LeaderboardBoard rows path", function()
-		local stand = Props.shopStand()
-		expect(stand.PrimaryPart and stand.PrimaryPart.Name).toBe("Counter")
+	it("has the shop stands' Counter and the LeaderboardBoard rows path", function()
+		for style in Props.STAND_STYLES do
+			local model = Props.shopStand(style)
+			expect(model.PrimaryPart and model.PrimaryPart.Name).toBe("Counter")
+		end
 		local board = Props.leaderboardBoard()
 		local gui = board.Board.BoardGui
 		expect(gui.ClassName).toBe("SurfaceGui")
-		expect(gui.Content.Title.ClassName).toBe("TextLabel")
+		expect(gui.Content.Header.Title.ClassName).toBe("TextLabel")
+		expect(gui.Content.Header.Title.Text).toBe("Top Earners")
 		expect(gui.Content.Rows.ClassName).toBe("Frame")
 		Props.fillLeaderboard(board, { { rank = 1, name = "A", value = 5 }, { rank = 2, name = "B", value = 3 } })
 		local row = gui.Content.Rows:FindFirstChild("Row_2")
@@ -92,16 +93,38 @@ describe("Props placed by WorldProps", function()
 		expect(odd.BackgroundTransparency).toBe(1)
 		expect(even.BackgroundTransparency).toBe(0)
 	end)
-	it("keeps the ShopStand SHOP sign unlit so it reads at night (v17 fixes)", function()
-		local sign = Props.shopStand().Sign
-		expect(sign.SignGui.LightInfluence).toBe(0)
+	it("keeps the shop stands' signs unlit so they read at night (v17 fixes)", function()
+		for style in Props.STAND_STYLES do
+			expect(Props.shopStand(style).Sign.SignGui.LightInfluence).toBe(0)
+		end
+	end)
+	it("names each shop on a jelly sign (mint item shop, gold upgrade shop) with its drips on the sign face", function()
+		local titles = {}
+		for style, look in Props.STAND_STYLES do
+			local gui = Props.shopStand(style).Sign.SignGui
+			local jelly = gui.Jelly
+			titles[style] = jelly.Text.Text
+			if look.drawn then
+				expect(jelly.Badge:FindFirstChild("UpArrow") ~= nil).toBe(true) -- drawn, not an emoji
+				expect(jelly.Badge:FindFirstChild("Icon")).toBeNil()
+			else
+				expect(jelly.Badge.Icon.Text).toBe(look.icon)
+			end
+			expect(jelly:FindFirstChildOfClass("UIStroke") ~= nil).toBe(true)
+			for _, d in gui:GetChildren() do
+				if d:IsA("Frame") and string.sub(d.Name, 1, 4) == "Drip" then
+					expect(d.Position.Y.Scale + d.Size.Y.Scale <= 1).toBe(true) -- inside the face
+				end
+			end
+		end
+		expect(titles.ItemShop).toBe("Item shop")
+		expect(titles.UpgradeShop).toBe("Upgrade shop")
 	end)
 	it("gives each shop stand its own skin and sign colours, its box exactly the skin's box round the pivot", function()
 		local item, upgrade = Props.shopStand("ItemShop"), Props.shopStand("UpgradeShop")
 		expect(item.Sign.Color ~= upgrade.Sign.Color).toBe(true)
-		for style, stand in { ItemShop = item, UpgradeShop = upgrade, Plain = Props.shopStand() } do
-			local def =
-				WorldLayout.SHOP_STANDS[if style == "Plain" then "ShopStand" else Props.STAND_STYLES[style].stand]
+		for style, stand in { ItemShop = item, UpgradeShop = upgrade } do
+			local def = WorldLayout.SHOP_STANDS[Props.STAND_STYLES[style].stand]
 			local skin = WorldLayout.meshSize(def.mesh, def.scale)
 			local lo = { math.huge, math.huge, math.huge }
 			local hi = { -math.huge, -math.huge, -math.huge }

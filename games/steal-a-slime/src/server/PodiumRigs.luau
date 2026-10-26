@@ -2,13 +2,16 @@
 --[[
 	PodiumRigs: the Roblox adapter for PodiumAvatars. Builds R15 rigs from
 	HumanoidDescriptions and stands them on workspace Podium_<rank> parts
-	(the plaza mesh slots), anchored, non-colliding, facing the fountain like
-	the podium, with a name + stat BillboardGui. Rigs live in
-	workspace.PodiumAvatars.
+	(the plaza mesh slots), root-anchored, non-colliding, facing the fountain like
+	the podium, with a Goo name board (name on a gold band, the stat under it).
+	Rigs live in workspace.PodiumAvatars.
 ]]
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GooBoard = require(ReplicatedStorage.Shared.GooBoard)
+local GooPalette = require(ReplicatedStorage.Shared.GooPalette)
 local PodiumAvatars = require(script.Parent.PodiumAvatars)
 
 local PodiumRigs = {}
@@ -31,6 +34,23 @@ local function podium(rank: number): BasePart?
 	return if part and part:IsA("BasePart") then part else nil
 end
 
+-- The name board over a podium rig (canvas GooWorldSigns): glass with a gold band holding the name in Ink, the
+-- total earned in outlined gold under it. Pixel-sized, so it is the same small size on screen however near or far
+-- you stand, and hidden past `maxDistance`: it is only for players close to the podium.
+PodiumRigs.BOARD_PX = table.freeze({ w = 120, h = 61, lift = 2.2, maxDistance = 50 })
+PodiumRigs.BOARD = table.freeze({
+	band = 0.44,
+	radius = 0.22,
+	drips = table.freeze({
+		table.freeze({ x = 0.08, w = 0.05, len = 0.06 }),
+		table.freeze({ x = 0.9, w = 0.044, len = 0.03 }),
+	}),
+	stroke = 1.5,
+	glassTransparency = 0.06,
+} :: GooBoard.Spec)
+
+local DEPS: GooBoard.Deps = { Instance = Instance, Enum = Enum, UDim = UDim, UDim2 = UDim2, Color3 = Color3 }
+
 -- An empty text (empty podium) means no label at all: none is created, an existing one is removed.
 local function label(rig: Model, text: string)
 	local gui = rig:FindFirstChild("NameLabel") :: BillboardGui?
@@ -40,39 +60,46 @@ local function label(rig: Model, text: string)
 		end
 		return
 	end
+	local px = PodiumRigs.BOARD_PX
 	if not gui then
 		local made = Instance.new("BillboardGui")
 		made.Name = "NameLabel"
-		made.Size = UDim2.fromOffset(180, 46)
-		made.StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0)
-		made.MaxDistance = 90
+		made.Size = UDim2.fromOffset(px.w, px.h)
+		made.SizeOffset = Vector2.new(0, 0.5) -- the board's bottom edge sits over the head
+		made.StudsOffsetWorldSpace = Vector3.new(0, px.lift, 0)
+		made.MaxDistance = px.maxDistance
+		made.LightInfluence = 0
 		local adornee = rig:FindFirstChild("Head") or rig.PrimaryPart
 		if adornee then
 			made.Adornee = adornee
 		end
-		local textLabel = Instance.new("TextLabel")
-		textLabel.Name = "Text"
-		textLabel.BackgroundTransparency = 1
-		textLabel.Size = UDim2.fromScale(1, 1)
-		textLabel.Font = Enum.Font.GothamBold
-		textLabel.TextScaled = true
-		textLabel.TextColor3 = Color3.new(1, 1, 1)
-		textLabel.TextStrokeTransparency = 0.4
-		textLabel.Parent = made
+		local card = GooBoard.build(made, DEPS, PodiumRigs.BOARD, px.w / px.h)
+		GooBoard.paint(card, DEPS, GooPalette.Gold)
+		local name = GooBoard.text(card, DEPS, "Name", GooPalette.Ink)
+		name.Position = UDim2.fromScale(0.06, 0.07)
+		name.Size = UDim2.fromScale(0.88, 0.31)
+		local value = GooBoard.text(card, DEPS, "Value", GooPalette.Gold, 1.2)
+		value.Position = UDim2.fromScale(0.1, 0.57)
+		value.Size = UDim2.fromScale(0.8, 0.33)
 		made.Parent = rig
 		gui = made
 	end
-	local textLabel = (gui :: BillboardGui):FindFirstChild("Text") :: TextLabel?
-	if textLabel then
-		textLabel.Text = text
+	local card = (gui :: BillboardGui):FindFirstChild(GooBoard.CARD)
+	if card then
+		local name, value = PodiumAvatars.splitLabel(text)
+		local nameLabel = card:FindFirstChild("Name") :: TextLabel
+		local valueLabel = card:FindFirstChild("Value") :: TextLabel
+		nameLabel.Text = name
+		valueLabel.Text = value
 	end
 end
 
--- Statue: anchored, no collisions/queries/touches, no default nameplate or scripts.
+-- Statue: only the root is anchored, so the Humanoid still builds the scaled R15 joints and layered clothing; no
+-- collisions/queries/touches, no default nameplate or scripts.
 local function freeze(rig: Model)
 	for _, inst in rig:GetDescendants() do
 		if inst:IsA("BasePart") then
-			inst.Anchored = true
+			inst.Anchored = inst.Name == "HumanoidRootPart"
 			inst.CanCollide = false
 			inst.CanQuery = false
 			inst.CanTouch = false
@@ -122,15 +149,17 @@ function PodiumRigs.adapter(): PodiumAvatars.Adapter
 				return
 			end
 			model.Name = `PodiumRig_{rank}`
+			-- In the workspace before anchoring/placing, so the rig is scaled and its clothing wrapped first.
+			model.Parent = folder()
 			freeze(model)
-			-- The podium's front faces the fountain; stand on its top face.
-			local top = base.CFrame * CFrame.new(0, base.Size.Y / 2, 0)
+			-- Stand on the podium's top face, turned like its front. The kit front is the slot's +Z (MeshAssets, kit
+			-- fronts face +Z) and a character looks along its own -Z, so the rig gets half a turn.
+			local top = base.CFrame * CFrame.new(0, base.Size.Y / 2, 0) * CFrame.Angles(0, math.pi, 0)
 			model:PivotTo(top)
 			local box, size = model:GetBoundingBox()
 			local lift = top.Position.Y - (box.Position.Y - size.Y / 2)
 			model:PivotTo(top + Vector3.new(0, lift, 0))
 			label(model, text)
-			model.Parent = folder()
 		end,
 		setLabel = function(rig: any, text: string)
 			label(rig :: Model, text)

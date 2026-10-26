@@ -1,5 +1,6 @@
 --!strict
 local Config = require("../src/shared/Config")
+local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
 local Fountain = require("../src/shared/Fountain")
 local GameLoop = require("../src/server/GameLoop")
@@ -20,13 +21,14 @@ describe("Spawner", function()
 		Spawner.step(world, T0 + Config.SPAWN_INTERVAL)
 		expect(Spawner.wildCount(world)).toBe(2)
 	end)
-	it("never exceeds MAX_WILD_SLIMES outside rain", function()
+	it("has no cap: keeps dropping however many wild slimes are alive", function()
 		local world = ServerFixtures.world()
-		for i = 0, Config.MAX_WILD_SLIMES + 5 do
-			Spawner.step(world, T0 + i * Config.SPAWN_INTERVAL * 0.01) -- before expiry
-			world.nextSpawnAt = 0
+		for _ = 1, 300 do
+			Spawner.spawnOne(world, T0)
 		end
-		expect(Spawner.wildCount(world)).toBe(Config.MAX_WILD_SLIMES)
+		world.nextSpawnAt = 0
+		Spawner.step(world, T0 + 1)
+		expect(Spawner.wildCount(world)).toBe(301)
 	end)
 	it("expires uncarried slimes after WILD_LIFETIME but keeps carried ones", function()
 		local world = ServerFixtures.world()
@@ -42,7 +44,8 @@ describe("Spawner", function()
 		local slime = Fixtures.slime("w", 2, { size = 1 })
 		expect(Spawner.price(slime, 0)).toBe(0)
 		expect(Spawner.price(slime, Config.FREE_DROP_CHANCE - 0.01)).toBe(0)
-		expect(Spawner.price(slime, 0.99)).toBe(3 * Config.WILD_PRICE_SECONDS)
+		expect(Spawner.price(slime, 0.99)).toBe(3 * Config.WILD_PRICE_SECONDS[2])
+		expect(Spawner.price(slime, 0.99)).toBe(Economy.wildPrice(slime))
 	end)
 	it("about FREE_DROP_CHANCE of spawns are free", function()
 		local world = ServerFixtures.world()
@@ -92,29 +95,18 @@ describe("Spawner Slime Rain", function()
 		Spawner.step(world, start + Config.RAIN_DURATION)
 		expect(world.raining).toBe(false)
 	end)
-	it("warns everyone once RAIN_WARNING_SECONDS before each rain", function()
+	it("sends no heads-up toast before a rain", function()
 		local world = ServerFixtures.world()
-		local function warnings(): number
-			local n = 0
-			for _, e in world.outbox do
-				if e.type == "Notify" and e.userId == nil and string.find(e.text or "", "in 1 minute", 1, true) then
-					n += 1
-				end
-			end
-			return n
-		end
 		local start = T0 + Config.RAIN_FIRST_AT
-		Spawner.step(world, start - Config.RAIN_WARNING_SECONDS - 1)
-		expect(warnings()).toBe(0)
-		Spawner.step(world, start - Config.RAIN_WARNING_SECONDS + 1)
-		Spawner.step(world, start - 10)
-		expect(warnings()).toBe(1)
-		Spawner.step(world, start)
-		Spawner.step(world, start + Config.RAIN_DURATION)
-		Spawner.step(world, start + Config.RAIN_INTERVAL - 30)
-		expect(warnings()).toBe(2)
+		local before = #world.outbox
+		Spawner.step(world, start - 30)
+		Spawner.step(world, start - 1)
+		for k = before + 1, #world.outbox do
+			local e = world.outbox[k]
+			expect(e.type == "Notify" and string.find(e.text or "", "Slime Rain", 1, true) ~= nil).toBe(false)
+		end
 	end)
-	it("spawns on the rain interval and allows a bigger crowd during rain", function()
+	it("spawns on the rain interval and builds a bigger crowd during rain", function()
 		local world = ServerFixtures.world()
 		local start = T0 + Config.RAIN_FIRST_AT
 		local t = start
@@ -123,18 +115,15 @@ describe("Spawner Slime Rain", function()
 			t += 0.25
 		end
 		local expected = math.floor(30 / Config.RAIN_SPAWN_INTERVAL)
-		expect(Spawner.wildCount(world) >= math.min(expected - 1, Fountain.wildCap(true))).toBeTruthy()
+		expect(Spawner.wildCount(world) >= expected - 1).toBeTruthy()
 		while t < start + Config.RAIN_DURATION - 1 do
 			GameLoop.step(world, t)
 			t += 0.25
 		end
 		-- Unclaimed drops expire after WILD_LIFETIME, so the crowd levels off at about lifetime / interval.
 		local steady = math.floor(Config.WILD_LIFETIME / Config.RAIN_SPAWN_INTERVAL)
-		expect(Spawner.wildCount(world) >= math.min(steady, Fountain.wildCap(true)) - 1).toBeTruthy()
-		expect(
-			Spawner.wildCount(world) > math.min(Config.WILD_LIFETIME / Config.SPAWN_INTERVAL, Config.MAX_WILD_SLIMES)
-		).toBeTruthy()
-		expect(Spawner.wildCount(world) <= Fountain.wildCap(true)).toBeTruthy()
+		expect(Spawner.wildCount(world) >= steady - 1).toBeTruthy()
+		expect(Spawner.wildCount(world) > Config.WILD_LIFETIME / Config.SPAWN_INTERVAL).toBeTruthy()
 	end)
 	it("rain drops are luckier than normal drops", function()
 		local function rareShare(raining: boolean): number
@@ -162,7 +151,7 @@ describe("Spawner Slime Rain", function()
 end)
 
 describe("Spawner and the boss event", function()
-	it("the boss never counts toward the wild cap and never expires through the fountain", function()
+	it("the boss never counts in wildCount and never expires through the fountain", function()
 		local world = ServerFixtures.world()
 		world.wild.boss = {
 			slime = Fixtures.slime("boss", 6),
@@ -178,14 +167,14 @@ describe("Spawner and the boss event", function()
 		Spawner.step(world, T0 + Config.WILD_LIFETIME * 2)
 		expect(world.wild.boss ~= nil).toBe(true)
 	end)
-	it("spawnBonus adds free slimes past the cap", function()
+	it("spawnBonus adds free slimes", function()
 		local world = ServerFixtures.world()
-		for _ = 1, Config.MAX_WILD_SLIMES do
+		for _ = 1, 20 do
 			Spawner.spawnOne(world, T0)
 		end
-		local ids = Spawner.spawnBonus(world, T0, Config.BOSS.SHED_COUNT, Config.BOSS.DROP_LUCK)
-		expect(#ids).toBe(Config.BOSS.SHED_COUNT)
-		expect(Spawner.wildCount(world)).toBe(Config.MAX_WILD_SLIMES + Config.BOSS.SHED_COUNT)
+		local ids = Spawner.spawnBonus(world, T0, 2, 3)
+		expect(#ids).toBe(2)
+		expect(Spawner.wildCount(world)).toBe(22)
 		for _, id in ids do
 			local wild = world.wild[id]
 			expect(wild.price).toBe(0)
@@ -196,10 +185,10 @@ describe("Spawner and the boss event", function()
 		if not Config.FEATURES.Parade then
 			return
 		end
-		local BONUS = 3 * Config.BOSS.SHED_COUNT -- every shed share crossed in one step
+		local BONUS = 6
 		local world = ServerFixtures.world()
 		Spawner.spawnOne(world, T0)
-		local ids = Spawner.spawnBonus(world, T0, BONUS, Config.BOSS.DROP_LUCK)
+		local ids = Spawner.spawnBonus(world, T0, BONUS, 3)
 		Spawner.spawnOne(world, T0 + 1)
 		local times = {}
 		for _, wild in world.wild do

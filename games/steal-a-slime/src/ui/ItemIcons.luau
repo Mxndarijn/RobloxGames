@@ -25,7 +25,7 @@
 export type Spec = {
 	id: string,
 	name: string,
-	group: string, -- "shop" | "gear" | "upgrade" | "boost" | "code" | "goal" | "badge" | "skin" | "misc" | "hud"
+	group: string, -- "shop" | "gear" | "upgrade" | "boost" | "code" | "goal" | "badge" | "skin" | "seat" | "misc" | "hud"
 	color: { number }, -- tile colour, 0..255 RGB
 	glyph: string, -- allowlisted (tests/ui/Glyphs.spec): ASCII, a proven BMP symbol or an emoji
 	model: { kind: "mesh", mesh: string? }?,
@@ -80,10 +80,31 @@ ItemIcons.IMAGES = {
 	Perk_income = 94766482619711,
 	Perk_luck = 80060700315838,
 	Pet = 118993346386827,
-	PlotSkin_candy = 75125399713715,
-	PlotSkin_classic = 75405645541984,
-	PlotSkin_crystal = 91231773101915,
-	PlotSkin_mushroom = 110584867448733,
+	PetSeat_bubble = 107124135602798,
+	PetSeat_clam_shell = 73688638146933,
+	PetSeat_cloud = 120940962905889,
+	PetSeat_crescent_moon = 133024058650689,
+	PetSeat_flame_cloud = 116000113766605,
+	PetSeat_hoverboard = 71082166431007,
+	PetSeat_ice_cloud = 77617006351901,
+	PetSeat_jelly = 92509813855397,
+	PetSeat_leaf = 115031220974277,
+	PetSeat_lily_pad = 104857291401997,
+	PetSeat_magic_carpet = 73081224735691,
+	PetSeat_mushroom = 127804622316249,
+	PetSeat_pancakes = 133973680417456,
+	PetSeat_rainbow_cloud = 133782271501912,
+	PetSeat_royal_cushion = 71277927627777,
+	PetSeat_star_cushion = 126554071638157,
+	PetSeat_storm_cloud = 79721468215071,
+	PetSeat_sunset_cloud = 110911427190137,
+	PetSeat_ufo = 104264507345275,
+	PlotSkin_candy = 98677550689246,
+	PlotSkin_classic = 105086598289035,
+	PlotSkin_crystal = 72221778465251,
+	PlotSkin_garden = 137369313958309,
+	PlotSkin_mushroom = 87372547969408,
+	PlotSkin_starlight = 72155200538920,
 	Pvp_Bat = 107609481658581, -- default melee Bat (Tool 'Bat', shared/BatModel.ICON_ID); not a Config.PVP_TOOLS item
 	Pvp_FunBalloon = 139662990313432,
 	Pvp_FunBouncePad = 127452735645388,
@@ -114,8 +135,7 @@ ItemIcons.IMAGES = {
 	Upgrade_OfflineCap = 119754785018464,
 } :: { [string]: number }
 
--- Groups whose items are UI-drawn (ItemIconArt recipe per id). Kit-mesh plot skins stay "model"
--- (live mesh) and show their drawn diorama while the mesh is missing.
+-- Groups whose items are UI-drawn (ItemIconArt recipe per id); an uploaded picture in IMAGES wins over the drawing.
 ItemIcons.DRAWN_GROUPS = table.freeze({
 	shop = true,
 	upgrade = true,
@@ -125,6 +145,7 @@ ItemIcons.DRAWN_GROUPS = table.freeze({
 	goal = true,
 	badge = true,
 	skin = true,
+	seat = true,
 })
 
 -- Drawn groups without uploaded pictures yet: the same UI-drawn recipes (ItemIconArt), no IMAGES entry required.
@@ -139,15 +160,21 @@ ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
 
 -- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
--- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet.
-ItemIcons.AWAITING_UPLOAD = table.freeze({ "Dex_8", "Dex_15", "Dex_20", "Dex_32", "Dex_40" } :: { string })
+-- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet, the Boss MVP boost and the
+-- Quick Brew upgrade.
+ItemIcons.AWAITING_UPLOAD = table.freeze({
+	"Dex_8",
+	"Dex_15",
+	"Dex_20",
+	"Dex_32",
+	"Dex_40",
+	"Boost_Mvp",
+	"Upgrade_QuickBrew",
+} :: { string })
 
--- Kit meshes that exist in MeshAssets (shared/MeshAssets NAMES) and may back a "mesh" model.
-ItemIcons.MESHES = table.freeze({
-	PlotSkin_mushroom = "plot_skin_mushroom",
-	PlotSkin_candy = "plot_skin_candy",
-	PlotSkin_crystal = "plot_skin_crystal",
-})
+-- id -> MeshAssets name: an item that shows that kit mesh as a live model, with its picture as the fallback.
+-- Empty: the plot skins show their tower pictures (tools/icons/recipes_skin.py).
+ItemIcons.MESHES = {} :: { [string]: string }
 
 local function freeze(spec: any): Spec
 	return table.freeze(spec)
@@ -214,6 +241,14 @@ local HAND: { Hand } = {
 		brief = "A yellow crescent moon with a sleeping slime curled in it and 3 small stars; night-blue accent.",
 	},
 	{
+		id = "Upgrade_QuickBrew",
+		name = "Quick Brew",
+		group = "upgrade",
+		color = { 200, 120, 60 },
+		glyph = "⚡",
+		brief = "A copper merge vat full of mint goo with a gold lightning bolt over it; three-quarter view.",
+	},
+	{
 		id = "Upgrade_Luck",
 		name = "Lucky Charm",
 		group = "upgrade",
@@ -236,6 +271,14 @@ local HAND: { Hand } = {
 		color = { 170, 130, 255 },
 		glyph = "✨",
 		brief = "A glowing purple-white halo ring with sparkles around a small slime silhouette; front view.",
+	},
+	{
+		id = "Boost_Mvp",
+		name = "Boss MVP",
+		group = "boost",
+		color = { 255, 200, 60 },
+		glyph = "👑",
+		brief = "A gold crown sitting on a stack of gold coins; front view.",
 	},
 	{
 		id = "Boost_Weekend",
@@ -481,10 +524,22 @@ function ItemIcons.build(config: any)
 			id = `PlotSkin_{s.id}`,
 			name = s.name,
 			group = "skin",
-			color = if s.trim then s.trim else { 200, 200, 200 },
+			color = s.color or { 200, 200, 200 },
 			glyph = "🏡",
 			model = if mesh then { kind = "mesh", mesh = mesh } else nil,
-			brief = `Mini diorama of the '{s.name}' plot (floor, fence and decor); 3/4 view from above.`,
+			brief = `Top of the '{s.name}' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view.`,
+		})
+	end
+
+	-- Pet seats (contract/pet-seats.md): the Cloud tab of the Skins menu. Pictures from tools/icons/recipes_seat.py.
+	for _, seat in config.PET_SEATS or {} do
+		add({
+			id = `PetSeat_{seat.id}`,
+			name = seat.name,
+			group = "seat",
+			color = seat.color,
+			glyph = "🌥",
+			brief = `The '{seat.name}' pet seat (models/{seat.mesh}.py) alone, no slime; 3/4 view.`,
 		})
 	end
 

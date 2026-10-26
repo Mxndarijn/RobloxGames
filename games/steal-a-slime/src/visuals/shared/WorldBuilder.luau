@@ -17,7 +17,7 @@
 	by src/visuals/tools/build-map.luau and mapped into Workspace by Rojo)
 	are adopted: build() then only fills in anything missing. The one thing
 	forced on adopted parts is Anchored = true (the static map never falls).
-	Plot attributes OwnerUserId / LockUntil / Rebirths get a 0 default only
+	Plot attributes OwnerUserId / LockUntil get a 0 default only
 	while missing.
 
 	WorldBuilder.buildFloor(plot, plotIndex, floor) adds one upper jar of the
@@ -107,6 +107,15 @@ function WorldBuilder.buildFloor(plot: Instance, plotIndex: number, floor: numbe
 		table.insert(built, ensure(plot, node))
 	end
 	return built
+end
+
+-- Puts plot `plotIndex`'s roof colliders on jar `floor` (WorldLayout.topColliders), replacing the ones on another jar.
+function WorldBuilder.buildTop(plot: Instance, plotIndex: number, floor: number): Instance
+	local old = plot:FindFirstChild("TopColliders")
+	if old then
+		old:Destroy()
+	end
+	return ensure(plot, WorldLayout.topColliders(plotIndex, floor))
 end
 
 return WorldBuilder

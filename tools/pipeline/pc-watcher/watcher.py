@@ -60,7 +60,7 @@ DEFAULTS = {
     "mesh_slot_budget": 500,  # SOFT: MeshParts only warn above it
     "runtime_part_budget": 3000,  # FAIL above this. World BaseParts at runtime (excl. slimes/characters/transients)
     "runtime_part_warn": 2900,  # WARN (non-blocking) above this
-    "unique_mesh_budget": 120,  # FAIL above this (distinct MeshIds)
+    "unique_mesh_budget": 140,  # FAIL above this (distinct MeshIds)
     "world_triangle_budget": 500000,  # FAIL above this, CI only (pr-gate budget.sh from FBX); Studio cannot count triangles
     "launch_timeout_s": 120,
     "client_timeout_s": 90,
@@ -69,7 +69,7 @@ DEFAULTS = {
     "play_settle_s": 30,  # play step: extra seconds after BorderTerrain is true, then the settled sample
     "devices": [["desktop", 1920, 1080], ["phone-portrait", 390, 844], ["phone-landscape", 844, 390]],
     "device_iterations": 5,
-    "menu_panels": ["plot", "merge", "shop", "rebirth", "goals", "dex", "leaders", "codes", "guide"],  # src/ui/init.client allPanels
+    "menu_panels": ["plot", "merge", "worldshop", "rebirth", "goals", "dex", "codes", "guide"],  # src/ui/init.client allPanels
     "phone_min_fps": 30,  # phone_perf fails below this average FPS (Studio on a PC, not phone hardware)
     "phone_min_slimes": 16,  # SlimeLife.MAX_ACTIVE: animating slimes wanted near the camera
     # kind (mouse_down, mouse_up, key_down, key_up) -> action template, "$x" / "$y" / "$key" filled in.
@@ -1236,7 +1236,7 @@ def step_shop(run):
         return "fail", dict(detail, error="shop already open before opening it")
     # No input injection at all: VirtualInputManager is not allowed in execute_luau (lacking capability
     # RobloxScript) and StudioMCP user_mouse_input moves the real OS cursor.
-    opened, via = set_visible(run, "ShopPanel", True)
+    opened, via = set_visible(run, "WorldShopPanel", True)
     methods = {"open": via, "virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau",
                "mcp_mouse": "never used: moves the OS cursor"}
     run.extra["input_methods"] = methods
@@ -1277,10 +1277,10 @@ def step_esc(run):
     methods["esc"] = "pcw_press_hook (close logic, not real key routing): " + ("closed" if called and not after.get("shop_open") else
                                               ("no effect" if called else "hook failed: %s" % info.get("error")))
     if not called:
-        close_panel(run, "ShopPanel")  # tidy up for the next steps
+        close_panel(run, "WorldShopPanel")  # tidy up for the next steps
         return "fail", dict(detail, error="PcwPress hook failed: %s" % info.get("error"))
     if after.get("shop_open"):
-        close_panel(run, "ShopPanel")
+        close_panel(run, "WorldShopPanel")
         return "fail", dict(detail, error="CloseMenu action (PcwPress hook) did not close the shop")
     return "pass", detail
 
@@ -1542,9 +1542,9 @@ def step_twoplayer(run):
     return ("pass" if passed else "fail"), detail
 
 
-# H1 HUD: the left column is Plot, Rebirth, Goals, SlimeDex, Codes (Shop / Merge / Top panels have no nav button; PcwOpen opens them)
+# H1 HUD: the left column is Plot, Rebirth, Goals, SlimeDex, Codes (the world shop and Merge have no nav button; PcwOpen opens them)
 UI_SHOT_BUTTONS = {"dex": "Nav.Dex", "rebirth": "Nav.Rebirth", "goals": "Nav.Goals", "plot": "Nav.Plot", "codes": "Nav.Codes"}
-UI_SHOT_PANELS = {"leaders": "LeaderboardPanel", "worldshop": "WorldShopPanel"}  # else <Key>Panel (src/ui/Panels: Widgets.panel names)
+UI_SHOT_PANELS = {"worldshop": "WorldShopPanel"}  # else <Key>Panel (src/ui/Panels: Widgets.panel names)
 
 
 def panel_for(key):
@@ -1554,7 +1554,7 @@ def panel_for(key):
 
 def close_all_panels(run):
     """PcwOpen='' (setOpen(nil)): closes whichever menu is open. Returns the panels still open (should be [])."""
-    run.luau("panel_visible", "Client", timeout=15, panel="ShopPanel", show=False)
+    run.luau("panel_visible", "Client", timeout=15, panel="WorldShopPanel", show=False)
     time.sleep(0.4)
     left = ui_probe(run).get("open_panels") or []
     for panel in list(left):

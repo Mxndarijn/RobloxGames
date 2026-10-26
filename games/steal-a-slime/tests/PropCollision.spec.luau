@@ -100,7 +100,7 @@ describe("PropCollision inventory", function()
 			for _, mesh in WorldLayout.PROP_MESHES do
 				placed[mesh] = true
 			end
-			for _, stand in WorldLayout.SHOP_STANDS do -- whichever stands FEATURES.WorldShops places
+			for _, stand in WorldLayout.SHOP_STANDS do -- both shop stands
 				placed[stand.mesh] = true
 			end
 			placed[VatDecor.MESH] = true
@@ -302,7 +302,8 @@ describe("PropCollision against the booted world", function()
 		expect(mesh ~= nil and collider ~= nil).toBe(true)
 		expect(math.abs(collider.Size.X - mesh.Size.X) < 0.01).toBe(true)
 		expect(math.abs(collider.Size.Y - mesh.Size.Y) < 0.01).toBe(true)
-		expect(math.abs(collider.Size.Z - 1.6) < 0.01).toBe(true) -- Props.leaderboardBoard's depth: the skin's front stays flush with it
+		local scale = WorldLayout.PROP_SPOTS.LeaderboardBoard.scale or 1
+		expect(math.abs(collider.Size.Z - 1.6 * scale) < 0.01).toBe(true) -- Props.leaderboardBoard's depth (scaled with the board): the skin's front stays flush with it
 		local c = collider.CFrame:PointToObjectSpace(mesh.CFrame.Position)
 		expect(math.abs(c.X) < 0.01 and math.abs(c.Y) < 0.01).toBe(true)
 		expect(collider.CanCollide).toBe(true)

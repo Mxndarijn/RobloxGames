@@ -3,6 +3,8 @@
 -- Every goo jar tower mesh's bounding box round its build anchor, in plot-local axes (x right, y up, z back):
 -- jar pieces round the jar axis with the jar's floor at y = 0, stands and buttons round their own centre on the
 -- floor, the door pieces and drop tubes at plot positions on floor 1. WorldLayout puts each mesh slot's box here.
+-- A theme's companion meshes ("<name>@<theme>": props, hat) are measured round the anchor of the piece they
+-- ride on (models/_goo_jar.py COMPANIONS); server/MeshSwap places them from that piece's slot.
 local JarMeshes = {
 	goo_cork_stand = { size = { 7.800, 2.450, 7.800 }, centre = { 0.000, 1.225, 0.000 } },
 	goo_drop_tube_glass_2 = { size = { 8.084, 21.781, 11.371 }, centre = { 11.355, 10.502, 29.910 } },
@@ -15,7 +17,7 @@ local JarMeshes = {
 	goo_jar_deck_2 = { size = { 53.200, 1.839, 53.200 }, centre = { 0.000, -0.131, 0.000 } },
 	goo_jar_deck_3 = { size = { 47.200, 1.839, 47.200 }, centre = { 0.000, -0.131, 0.000 } },
 	goo_jar_deck_4 = { size = { 42.200, 1.780, 42.200 }, centre = { 0.000, -0.160, 0.000 } },
-	goo_jar_door = { size = { 11.596, 11.600, 2.600 }, centre = { -0.002, 5.600, -32.000 } },
+	goo_jar_door = { size = { 14.521, 13.060, 3.419 }, centre = { 0.000, 6.330, -31.590 } },
 	goo_jar_door_ring = { size = { 12.898, 12.900, 0.900 }, centre = { -0.001, 5.600, -32.300 } },
 	goo_jar_foot = { size = { 80.100, 2.076, 80.100 }, centre = { 0.000, 0.038, 0.000 } },
 	goo_jar_glass_1_mid = { size = { 62.000, 14.320, 62.000 }, centre = { 0.000, 5.960, 0.000 } },
@@ -26,16 +28,26 @@ local JarMeshes = {
 	goo_jar_glass_3_top = { size = { 48.000, 16.520, 48.000 }, centre = { 0.000, 7.060, 0.000 } },
 	goo_jar_glass_4_top = { size = { 43.000, 16.520, 43.000 }, centre = { 0.000, 7.060, 0.000 } },
 	goo_jar_mascot = { size = { 2.200, 1.567, 2.138 }, centre = { 0.017, 0.778, -0.015 } },
-	goo_jar_stair = { size = { 10.990, 16.776, 10.990 }, centre = { 0.000, 7.788, 0.000 } },
+	goo_jar_stair = { size = { 10.990, 17.026, 10.990 }, centre = { 0.000, 7.913, 0.000 } },
 	goo_jar_stopper = { size = { 9.889, 9.660, 1.508 }, centre = { -0.166, 4.650, -0.754 } },
 	goo_jar_trim_1_mid = { size = { 60.321, 16.050, 58.307 }, centre = { 1.004, 8.225, 0.000 } },
 	goo_jar_trim_1_top = { size = { 60.321, 22.688, 58.307 }, centre = { 1.004, 11.544, 0.000 } },
 	goo_jar_trim_2_mid = { size = { 53.091, 16.050, 50.916 }, centre = { 1.084, 8.225, 0.000 } },
-	goo_jar_trim_2_top = { size = { 53.091, 19.247, 50.916 }, centre = { 1.084, 9.823, 0.000 } },
+	goo_jar_trim_2_top = { size = { 53.091, 20.047, 50.916 }, centre = { 1.084, 9.423, 0.000 } },
 	goo_jar_trim_3_mid = { size = { 47.643, 16.050, 45.978 }, centre = { 0.803, 8.225, -0.077 } },
-	goo_jar_trim_3_top = { size = { 47.314, 19.412, 45.373 }, centre = { 0.967, 9.906, 0.000 } },
-	goo_jar_trim_4_top = { size = { 41.082, 17.988, 40.753 }, centre = { 0.162, 9.194, 0.000 } },
+	goo_jar_trim_3_top = { size = { 47.314, 20.212, 45.373 }, centre = { 0.967, 9.506, 0.000 } },
+	goo_jar_trim_4_top = { size = { 41.082, 18.788, 40.753 }, centre = { 0.162, 8.794, 0.000 } },
 	goo_lock_button = { size = { 5.000, 3.966, 5.000 }, centre = { 0.000, 1.983, 0.000 } },
+	["goo_jar_hat@garden"] = { size = { 1.900, 0.700, 1.900 }, centre = { 0.000, 1.400, 0.000 } },
+	["goo_jar_props@garden"] = { size = { 69.395, 11.877, 59.315 }, centre = { 0.024, 6.015, 3.121 } },
+	["goo_jar_hat@crystal"] = { size = { 1.360, 1.049, 1.360 }, centre = { 0.000, 1.415, 0.000 } },
+	["goo_jar_props@crystal"] = { size = { 70.653, 8.384, 59.610 }, centre = { 0.085, 3.480, 3.151 } },
+	["goo_jar_hat@starlight"] = { size = { 1.600, 1.195, 1.600 }, centre = { 0.000, 1.843, 0.000 } },
+	["goo_jar_props@starlight"] = { size = { 66.824, 9.827, 57.793 }, centre = { 0.055, 4.814, 2.641 } },
+	["goo_jar_hat@candy"] = { size = { 0.984, 1.182, 1.013 }, centre = { -0.001, 1.728, 0.008 } },
+	["goo_jar_props@candy"] = { size = { 67.869, 13.355, 59.830 }, centre = { 0.100, 6.283, 2.189 } },
+	["goo_jar_hat@mushroom"] = { size = { 1.617, 0.765, 1.700 }, centre = { 0.000, 1.380, 0.000 } },
+	["goo_jar_props@mushroom"] = { size = { 69.204, 5.031, 65.316 }, centre = { 0.000, 2.074, 0.145 } },
 }
 
 return table.freeze(JarMeshes)

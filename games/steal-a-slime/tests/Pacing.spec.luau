@@ -1,5 +1,8 @@
 --!strict
 -- The pacing sim (tools/livetest/pacing): its bots still play the real game code, and the report maths hold.
+local Config = require("../src/shared/Config")
+local Economy = require("../src/shared/Economy")
+local Fixtures = require("./Fixtures")
 local Profiles = require("../tools/livetest/pacing/Profiles")
 local Report = require("../tools/livetest/pacing/Report")
 local Rng = require("../src/shared/Rng")
@@ -50,16 +53,95 @@ describe("Pacing server", function()
 		})
 	end
 
-	it("bots play the real game: they finish the tutorial and rebirth", function()
+	-- The tutorial's Merge step needs three slimes of a rarity the rank may merge (only Commons before rebirth 1);
+	-- a bot that always keeps its best slimes may never hold them, so only one grinder has to finish it.
+	it("bots play the real game: grinders rebirth and one finishes the tutorial", function()
 		local records = run()
 		expect(#records).toBe(3)
+		local tutorials = 0
 		for _, r in records do
 			expect(r.final.played > 0).toBe(true)
 			if r.profile == "grinder" then
-				expect(r.tutorialAt ~= nil).toBe(true)
+				tutorials += if r.tutorialAt then 1 else 0
 				expect(r.rebirthAt[1] ~= nil).toBe(true)
 				expect(r.hours[1] ~= nil and r.hours[1].played == 1800).toBe(true)
 			end
+		end
+		expect(tutorials >= 1).toBe(true)
+	end)
+
+	it("keeps milestones, a time series, the cash ledger and steal events per bot", function()
+		local records = Server.run({
+			seed = 3,
+			days = 1,
+			mix = { grinder = 2, thief = 1 },
+			stagger = 1,
+			checkpoints = { 0.5 },
+			plots = 8,
+			codes = true,
+			seriesEvery = 300,
+		})
+		local codeCash = 0 -- every cash code still live when the sim runs
+		for _, code in Config.CODES do
+			if code.reward.kind == "cash" and (code.expiresAt == nil or code.expiresAt > Server.T0) then
+				codeCash += code.reward.amount
+			end
+		end
+		for _, r in records do
+			expect(#r.series > 0).toBe(true)
+			expect(r.milestones.Rare ~= nil).toBe(true)
+			expect((r.earnedBy.active or 0) > 0).toBe(true)
+			expect(r.earnedBy.code or 0).toBe(codeCash)
+			expect((r.spentBy.pad or 0) > 0).toBe(true)
+		end
+		local json = Report.json(
+			records,
+			{ seeds = { 3 }, days = 1, mix = { grinder = 2, thief = 1 }, stagger = 1, checkpoints = { 0.5 } }
+		)
+		expect(#json.bots).toBe(3)
+	end)
+
+	it("late joiners arrive on their day and are reported under their own name", function()
+		local records = Server.run({
+			seed = 3,
+			days = 3,
+			mix = { grinder = 1 },
+			stagger = 1,
+			checkpoints = { 0.5 },
+			plots = 8,
+			late = { { profile = "casual", day = 2, count = 1 } },
+		})
+		expect(records[2].profile).toBe("late-casual")
+		expect(records[2].joinDay).toBe(2)
+		expect(records[2].series[1] == nil or records[2].series[1].days < 1).toBe(true)
+	end)
+
+	it("a flip probe only flips free drops: every paid wild slime sells for less than it costs", function()
+		for tier = 1, Config.MAX_TIER do
+			local slime = Fixtures.slime("w", tier)
+			expect(`{tier}: {(Economy.sellPrice(slime) :: number) < Economy.wildPrice(slime)}`).toBe(`{tier}: true`)
+		end
+		local records = Server.run({
+			seed = 3,
+			days = 1,
+			mix = { flipprobe = 1 },
+			stagger = 1,
+			checkpoints = { 1 },
+			plots = 8,
+			startLevel = 2,
+		})
+		local level = records[1].stats.levels["2"]
+		expect(level ~= nil and level.flips > 0).toBe(true)
+		expect(level.paid).toBe(0)
+		expect(level.revenue > 0).toBe(true)
+		expect(records[1].final.rebirths).toBe(2)
+	end)
+
+	it("bots merge in the plot vat, so a Secret is not minutes away", function()
+		local records =
+			Server.run({ seed = 3, days = 1, mix = { grinder = 2 }, stagger = 1, checkpoints = { 0.5 }, plots = 8 })
+		for _, r in records do
+			expect(r.milestones.Secret == nil or r.milestones.Secret.played > 600).toBe(true)
 		end
 	end)
 

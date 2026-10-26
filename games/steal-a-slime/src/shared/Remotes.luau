@@ -29,15 +29,17 @@ Remotes.DEFINITIONS = table.freeze({
 	table.freeze({ name = Constants.NOTIFY, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef),
 	table.freeze({ name = Constants.LEADERBOARD, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef),
 	table.freeze({ name = Constants.PVP_EVENT, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- FEATURES.PvP only fires (CONTRACT.md §26.1)
-	table.freeze({ name = Constants.SHOP_EVENT, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- FEATURES.WorldShops only fires (CONTRACT.md §27.4)
+	table.freeze({ name = Constants.SHOP_EVENT, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- CONTRACT.md §27.4
 } :: { RemoteDef })
 
 Remotes.ACTIONS = table.freeze({
-	Merge = table.freeze({ args = { "string", "string" } }), -- slimeIdA, slimeIdB
-	Merge3 = table.freeze({ args = { "string", "string", "string" } }), -- three slime ids (FEATURES.MergeVat3, CONTRACT.md §21)
-	AutoMerge = table.freeze({ args = { "number" } }), -- rarity bit mask, bit t - 1 = rarity t (CONTRACT.md §21.1)
-	KeepSlime = table.freeze({ args = { "string", "boolean" } }), -- slime id, keep (CONTRACT.md §21.1)
+	VatAdd = table.freeze({ args = { "string" } }), -- slimeId: Move mode placed this pad slime in the merge vat (CONTRACT.md §21)
+	VatRemove = table.freeze({ args = { "string" } }), -- slimeId: take it out of the vat (it stays on its pad)
+	VatStart = table.freeze({ args = {} }), -- start brewing the full vat
+	VatCancel = table.freeze({ args = {} }), -- stop the brew; the slimes stay in the vat
+	VatCollect = table.freeze({ args = {} }), -- merge a finished brew onto the first input's pad
 	Lock = table.freeze({ args = {} }),
+	ToggleFriends = table.freeze({ args = {} }), -- flips the owner's friends switch (FEATURES.FriendsInBase)
 	Rebirth = table.freeze({ args = {} }),
 	Sell = table.freeze({ args = { "string" } }), -- slimeId
 	Favorite = table.freeze({ args = { "string?" } }), -- slimeId, nil clears
@@ -51,16 +53,18 @@ Remotes.ACTIONS = table.freeze({
 	Drop = table.freeze({ args = {} }),
 	Redeem = table.freeze({ args = { "code" } }), -- typed code text (Codes.normalize on the server)
 	EquipPlotSkin = table.freeze({ args = { "string" } }), -- Config.PLOT_SKINS id (FEATURES.PlotSkins, CONTRACT.md §15)
+	EquipPetSeat = table.freeze({ args = { "string" } }), -- Config.PET_SEATS id (contract/pet-seats.md)
 	BuyConsumable = table.freeze({ args = { "string", "string?" } }), -- Config.CONSUMABLES id, slimeId (ignored: buying only adds to the held stack) (FEATURES.Consumables)
 	UseConsumable = table.freeze({ args = { "string", "string?" } }), -- held Config.CONSUMABLES id, unused slot (string?): applies the effect, stack -1 (FEATURES.Consumables)
 	SetAudioSettings = table.freeze({ args = { "number", "number", "boolean" } }), -- musicVolume, sfxVolume (clamped 0..1), muted (FEATURES.Audio, CONTRACT.md §8.9c)
 	BuyPvpItem = table.freeze({ args = { "string" } }), -- Config.PVP_TOOLS id (FEATURES.PvP, CONTRACT.md §26)
 	EquipPvpItem = table.freeze({ args = { "string?" } }), -- owned Config.PVP_TOOLS id, nil unequips (FEATURES.PvP)
 	UsePvpItem = table.freeze({ args = { "string", "number?", "vector3?", "boolean?" } }), -- itemId, targetUserId, aim point, charged (held: power punch, mega confetti, fireworks volley) (FEATURES.PvP)
-	OpenShop = table.freeze({ args = { "string" } }), -- shopId "ItemShop" | "UpgradeShop" (FEATURES.WorldShops, CONTRACT.md §27)
+	OpenShop = table.freeze({ args = { "string" } }), -- shopId "ItemShop" | "UpgradeShop" (CONTRACT.md §27)
 	CloseShop = table.freeze({ args = {} }), -- clears the open shop
 	ShopBuy = table.freeze({ args = { "string", "string", "string?" } }), -- shopId, itemId, unused slot (string?); delegates to the item's existing buy action
 	SetHotbar = table.freeze({ args = { "hotbar" } }), -- order: up to 9 slot keys joined by "," ("" = empty slot) (HotbarOrder, CONTRACT.md §3)
+	RequestKits = table.freeze({ args = { "kits" } }), -- species: up to KitRequest.MAX species ids joined by ","; their kit meshes replicate to this player only (KitRequest, CONTRACT.md §3)
 	Sync = table.freeze({ args = {} }), -- server re-sends State
 } :: { [string]: ActionDef })
 

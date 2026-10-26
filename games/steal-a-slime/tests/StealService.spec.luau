@@ -1,7 +1,7 @@
 --!strict
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
-local Economy = require("../src/shared/Economy")
+local DataService = require("../src/server/DataService")
 local Fixtures = require("./Fixtures")
 local GameLoop = require("../src/server/GameLoop")
 local PlayerData = require("../src/shared/PlayerData")
@@ -29,23 +29,35 @@ describe("StealService lock", function()
 		expect(StealService.isLocked(victim, T0 + Config.JOIN_LOCK_SECONDS)).toBe(false)
 		expect(select(2, Carry.grab(world, 2, "gem", 1, T0 + 1))).toBe("base is locked")
 	end)
-	it("buyLock charges lockCost and extends by the rebirth-scaled duration", function()
-		local world, victim = setup()
-		victim.data.cash = 1000
-		victim.data.rebirths = 2
-		local now = T0 + 100 -- join lock expired
-		local cost = Economy.lockCost(World.incomeOf(world, victim))
-		expect((StealService.buyLock(world, victim, now))).toBe(true)
-		expect(victim.lockUntil).toBe(now + Config.LOCK_SECONDS + 2 * Config.LOCK_SECONDS_PER_REBIRTH)
-		expect(victim.data.cash).toBe(1000 - cost)
-	end)
-	it("buyLock refuses when broke or already at max", function()
+	it("buyLock is free and gives the full rebirth-scaled duration in one go", function()
 		local world, victim = setup()
 		victim.data.cash = 0
-		expect(select(2, StealService.buyLock(world, victim, T0 + 100))).toBe("not enough cash")
-		victim.data.cash = 1e6
-		victim.lockUntil = T0 + 100 + Config.LOCK_MAX_REMAINING
-		expect(select(2, StealService.buyLock(world, victim, T0 + 100))).toBe("lock is already at max")
+		victim.data.rebirths = 2
+		local now = T0 + Config.JOIN_LOCK_SECONDS + 10 -- join lock expired
+		expect((StealService.buyLock(world, victim, now))).toBe(true)
+		expect(victim.lockUntil).toBe(now + Config.LOCK_SECONDS + 2 * Config.LOCK_SECONDS_PER_REBIRTH)
+		expect(victim.data.cash).toBe(0)
+	end)
+	it("buyLock refuses while locked: lockUntil, start and stats stay", function()
+		local world, victim = setup()
+		local before, started, locks = victim.lockUntil, victim.lockStartedAt, victim.data.stats.locks
+		local ok, reason = StealService.buyLock(world, victim, T0 + 10)
+		expect(ok).toBe(false)
+		expect(reason).toBe("your base is already locked")
+		expect(victim.lockUntil).toBe(before)
+		expect(victim.lockStartedAt).toBe(started)
+		expect(victim.data.stats.locks).toBe(locks)
+	end)
+	it("buyLock works again after expiry and gives the full time again", function()
+		local world, victim = setup()
+		local t1 = T0 + Config.JOIN_LOCK_SECONDS
+		expect((StealService.buyLock(world, victim, t1))).toBe(true)
+		expect(victim.lockUntil).toBe(t1 + Config.LOCK_SECONDS)
+		expect((StealService.buyLock(world, victim, t1 + 1))).toBe(false)
+		local t2 = victim.lockUntil
+		expect((StealService.buyLock(world, victim, t2))).toBe(true)
+		expect(victim.lockUntil).toBe(t2 + Config.LOCK_SECONDS)
+		expect(victim.lockStartedAt).toBe(t2)
 	end)
 	it("step notices lock expiry once and pushes State", function()
 		local world, victim = setup()
@@ -192,26 +204,92 @@ describe("StealService escape", function()
 	end)
 end)
 
-describe("StealService.slap", function()
-	it("makes the carrier drop a stolen slime, which escapes home", function()
-		local world, victim, thief = setup()
+describe("StealService unsaveable sessions", function()
+	-- Victim 1 owns "gem", thief 2 is next to it; both loaded through a DataService on the memory backend, which
+	-- also answers World.canSave. `victimRecord` / `thiefRecord` seed the stored records before loading.
+	local function savedSetup(victimRecord: any?, thiefRecord: any?)
+		local backend = DataService.memoryBackend()
+		local svc = DataService.new({
+			backend = backend,
+			jobId = "job-A",
+			now = function()
+				return T0
+			end,
+			wait = function() end,
+			log = function() end,
+		})
+		backend.records["u_1"] = victimRecord
+		backend.records["u_2"] = thiefRecord
+		DataService.load(svc, 1)
+		DataService.load(svc, 2)
+		local world = World.new({
+			now = T0,
+			seed = 7,
+			canSave = function(userId: number): boolean
+				return DataService.canSave(svc, userId)
+			end,
+		})
+		local victim = ServerFixtures.join(world, 1, { Fixtures.slime("gem", 4) })
+		local thief = ServerFixtures.join(world, 2)
 		ServerFixtures.unlock(victim)
-		Carry.grab(world, 2, "gem", 1, T0)
-		expect((StealService.slap(world, victim, 2, 3, T0 + 2))).toBe(true)
+		return world, victim, thief, svc, backend
+	end
+	local function newerRecord()
+		return { data = { version = Config.SAVE_VERSION + 1 }, session = nil }
+	end
+	-- Another server takes `userId`'s session over; this server finds out on its next save.
+	local function loseSession(svc: any, backend: any, session: World.Session)
+		backend.records[`u_{session.userId}`].session = { jobId = "job-B", time = T0 }
+		DataService.save(svc, session.userId, session.data, false)
+	end
+	local function expectStillVictims(world: World.World, victim: World.Session, thief: World.Session)
+		expect(PlayerData.findSlime(victim.data, "gem") ~= nil).toBe(true)
+		expect(PlayerData.findSlime(thief.data, "gem")).toBeNil()
 		expect(thief.carry).toBeNil()
-		expect(world.escaping.gem ~= nil).toBeTruthy()
-		expect(victim.lastSlapAt).toBe(T0 + 2)
+		expect(world.carriedBy.gem).toBeNil()
+		expect(thief.data.totalStolen).toBe(0)
+	end
+
+	it("steals normally when both players' saves are writable", function()
+		local world = savedSetup()
+		expect((Carry.grab(world, 2, "gem", 1, T0))).toBe(true)
+		expect((Carry.deposit(world, 2, T0 + 5))).toBe(true)
 	end)
-	it("checks reach, cooldown and that the target carries a stolen slime", function()
-		local world, victim, thief = setup()
-		ServerFixtures.unlock(victim)
-		expect(select(2, StealService.slap(world, victim, 2, 3, T0))).toBe("target isn't carrying a stolen slime")
-		Carry.grab(world, 2, "gem", 1, T0)
-		expect(select(2, StealService.slap(world, victim, 2, Config.SLAP_REACH + 1, T0))).toBe("too far away")
-		expect(select(2, StealService.slap(world, victim, 1, 1, T0))).toBe("can't slap yourself")
-		victim.lastSlapAt = T0
-		expect(select(2, StealService.slap(world, victim, 2, 1, T0 + 0.5))).toBe("slap on cooldown")
-		expect(thief.carry ~= nil).toBeTruthy()
-		expect(select(2, StealService.slap(world, victim, 999, 1, T0 + 5))).toBe("target isn't carrying a stolen slime")
+	it("refuses a steal from a player whose save is read-only", function()
+		local world, victim, thief = savedSetup(newerRecord())
+		local ok, reason = Carry.grab(world, 2, "gem", 1, T0)
+		expect(ok).toBe(false)
+		expect(reason).toBe("their slimes can't be saved on this server")
+		expectStillVictims(world, victim, thief)
+	end)
+	it("refuses a steal by a player whose save is read-only", function()
+		local world, victim, thief = savedSetup(nil, newerRecord())
+		expect(select(2, Carry.grab(world, 2, "gem", 1, T0))).toBe("your progress can't be saved on this server")
+		expectStillVictims(world, victim, thief)
+	end)
+	it("refuses a steal by a player whose session another server took over", function()
+		local world, victim, thief, svc, backend = savedSetup()
+		loseSession(svc, backend, thief)
+		expect(select(2, Carry.grab(world, 2, "gem", 1, T0))).toBe("your progress can't be saved on this server")
+		expectStillVictims(world, victim, thief)
+	end)
+	it("sends the slime home when the victim's save stops being writable mid-carry", function()
+		local world, victim, thief, svc, backend = savedSetup()
+		expect((Carry.grab(world, 2, "gem", 1, T0))).toBe(true)
+		loseSession(svc, backend, victim)
+		local ok, reason = Carry.deposit(world, 2, T0 + 5)
+		expect(ok).toBe(false)
+		expect(reason).toBe("can't be saved")
+		expectStillVictims(world, victim, thief)
+		expect(world.escaping.gem).toBe(T0 + 5 + World.ESCAPE_BOUNCE_SECONDS)
+		expect(#ServerFixtures.notifications(world, 2) > 0).toBe(true)
+	end)
+	it("sends the slime home when the thief's save stops being writable mid-carry", function()
+		local world, victim, thief, svc, backend = savedSetup()
+		expect((Carry.grab(world, 2, "gem", 1, T0))).toBe(true)
+		loseSession(svc, backend, thief)
+		expect(select(2, Carry.deposit(world, 2, T0 + 5))).toBe("can't be saved")
+		expectStillVictims(world, victim, thief)
+		expect(world.escaping.gem).toBe(T0 + 5 + World.ESCAPE_BOUNCE_SECONDS)
 	end)
 end)

@@ -7,7 +7,9 @@
 	action (Validate.ACTIONS; Sync at most once per Config.STATE_MIN_INTERVAL,
 	the State coalescing window), calls the system and returns a RequestResult
 	plus `ran` (true once the call got past every guard and was dispatched; the
-	adapter only refreshes the world view then). Never errors.
+	adapter only refreshes the world view then). Never errors. A QUIET action
+	(RequestKits) changes no game state: it never marks the session dirty and
+	reports ran = false, so it costs no State push or view refresh.
 
 	`ctx` (Context) gives the adapter's world queries, the PvP engine access (PvpService.Context fields) and
 	`features`, the per-call Config.FEATURES overrides tests pass.
@@ -19,9 +21,10 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local HotbarOrder = if Shared then require(Shared.HotbarOrder) else require("../shared/HotbarOrder")
-local Merge = if Shared then require(Shared.Merge) else require("../shared/Merge")
+local KitRequest = if Shared then require(Shared.KitRequest) else require("../shared/KitRequest")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
+local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared/PetSeats")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Remotes = if Shared then require(Shared.Remotes) else require("../shared/Remotes")
@@ -32,16 +35,20 @@ local Shops = if Shared then require(Shared.Shops) else require("../shared/Shops
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local PlotPadGuard = if script then require(script.Parent.PlotPadGuard) else require("./PlotPadGuard")
 local ShopGuard = if script then require(script.Parent.ShopGuard) else require("./ShopGuard")
 local ConsumableShop = if script then require(script.Parent.ConsumableShop) else require("./ConsumableShop")
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
+local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
+local Layout = if Shared then require(Shared.Parent.Visuals.WorldLayout) else require("../visuals/shared/WorldLayout")
+local WorldLayout = Layout
 
 type World = World.World
 type Session = World.Session
@@ -61,6 +68,9 @@ export type Context = {
 	pose: ((userId: number) -> (any?, any?))?,
 	toVector3: ((position: any) -> any)?,
 	slimePosition: ((slimeId: string) -> any?)?,
+	plazaOrigin: (() -> any)?, -- the fountain centre (BossEvent.Context)
+	airborne: ((userId: number) -> boolean)?, -- off the ground: a jump clears a boss ring (BossEvent.Context)
+	exposed: ((userId: number, from: any) -> boolean)?, -- a boss attack at `from` can reach them (BossEvent.Context)
 	groundBelow: ((point: any) -> any?)?,
 	funBubble: ((
 		userId: number,
@@ -69,7 +79,7 @@ export type Context = {
 		onPop: (byUserId: number, now: number) -> boolean
 	) -> boolean)?,
 	-- What the adapter measured for `shopId`: the character's distance to the stand's Counter and whether it is
-	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, strict never applies.
+	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, the shop gate never applies.
 	shopAccess: ((userId: number, shopId: string) -> ShopGuard.Access)?,
 	-- What the adapter measured for the owner's plot prompt `kind` ("Lock" | "BuyPad" | "Merge"): the character's distance to the
 	-- part that prompt sits on and whether it is alive. nil = no world: Actions.handlePlotPad skips the range check.
@@ -81,6 +91,12 @@ export type Context = {
 	-- Drop tube (CONTRACT.md §5.3): moves the player's character to plot `plotIndex`'s splash pool; false = no
 	-- character or no plot. nil = no world: the drop is refused.
 	dropDown: ((userId: number, plotIndex: number) -> boolean)?,
+	-- The player's character root in plot `plotIndex`'s plot-local frame (the frame WorldLayout builds a plot in, y
+	-- on WorldLayout.floorTop's scale), or nil without a character or plot. nil = no world: the drop is refused.
+	plotPointOf: ((userId: number, plotIndex: number) -> { number }?)?,
+	-- RequestKits: replicates these kit meshes (KitRequest kit names) to that player only (KitDelivery). nil = no
+	-- world: the request is accepted and nothing is sent.
+	sendKits: ((userId: number, kits: { string }) -> ())?,
 }
 
 local Actions = {}
@@ -156,6 +172,12 @@ function Actions.parseArgs(action: string, raw: { any }): ({ any }?, string?)
 				return nil, "bad argument"
 			end
 			out[i] = value
+		elseif kind == "kits" then
+			local kits = KitRequest.parse(value)
+			if not kits then
+				return nil, "bad argument"
+			end
+			out[i] = kits
 		elseif kind == "boolean" or kind == "boolean?" then
 			if value == nil and kind == "boolean?" then
 				out[i] = nil
@@ -191,6 +213,12 @@ local function sell(world: World, session: Session, id: string): Result
 	if World.isBusy(world, id) then
 		return fail("slime is busy")
 	end
+	if VatState.isLocked(session.data, id) then
+		return fail("That slime is brewing in the vat")
+	end
+	if Progression.neededIds(session.data)[id] then
+		return fail(Progression.NEEDED_TEXT)
+	end
 	local ok, value = PlayerData.sell(session.data, id)
 	if not ok then
 		return fail(value :: string)
@@ -207,13 +235,16 @@ local function moveSlime(world: World, session: Session, id: string, pad: number
 	if World.isBusy(world, id) or (other ~= nil and World.isBusy(world, other.id)) then
 		return fail("slime is busy")
 	end
+	if VatState.isLocked(session.data, id) or (other ~= nil and VatState.isLocked(session.data, other.id)) then
+		return fail("That slime is brewing in the vat")
+	end
 	return result(PlayerData.moveSlime(session.data, id, pad))
 end
 
 local function buyPad(world: World, session: Session): Result
 	local ok, reason = PlayerData.buyPad(session.data)
 	if ok then
-		World.notify(world, session.userId, "New pad unlocked!", "good", "Cash")
+		World.notify(world, session.userId, "New pad unlocked!", "good", "PadUnlock")
 		World.tutorial(world, session, "BuyPad")
 	end
 	return result(ok, reason)
@@ -229,7 +260,7 @@ local function daily(world: World, session: Session, now: number): Result
 		session.userId,
 		`Daily reward: ${Economy.formatNumber(value :: number)}`,
 		"good",
-		"Cash",
+		"DailyReward",
 		"Daily"
 	)
 	return OK
@@ -255,7 +286,7 @@ local function redeem(world: World, session: Session, text: string, now: number)
 	local what = if reward.kind == "boost"
 		then `{reward.mult}x income for {reward.minutes} min`
 		else `${Economy.formatNumber(reward.amount or 0)}`
-	World.notify(world, session.userId, `Code redeemed: {what}!`, "good", "Cash", "Gift")
+	World.notify(world, session.userId, `Code redeemed: {what}!`, "good", "Gift", "Gift")
 	return OK
 end
 
@@ -264,7 +295,7 @@ local function buySpeedCoil(world: World, session: Session): Result
 	if not ok then
 		return fail(value :: string)
 	end
-	World.notify(world, session.userId, "Speed Coil bought! You run faster now.", "good", "Cash", "SpeedCoil")
+	World.notify(world, session.userId, "Speed Coil bought! You run faster now.", "good", "CashRegister", "SpeedCoil")
 	return OK
 end
 
@@ -275,22 +306,8 @@ local function buyUpgrade(world: World, session: Session, id: string): Result
 	end
 	local def = Perks.upgradeDef(id)
 	local level = session.data.upgrades[id]
-	World.notify(world, session.userId, `{def and def.name or id} level {level}!`, "good", "Cash", `Upgrade_{id}`)
+	World.notify(world, session.userId, `{def and def.name or id} level {level}!`, "good", "LevelUp", `Upgrade_{id}`)
 	return OK
-end
-
-local function merge3(world: World, session: Session, args: { any }, ctx: Context): Result
-	if not feature(ctx, "MergeVat3") then
-		return fail("the 3-slime vat is off")
-	end
-	return result(MergeVat.merge3(world, session, { args[1], args[2], args[3] }))
-end
-
-local function autoMerge(world: World, session: Session, mask: number, ctx: Context): Result
-	if not feature(ctx, "MergeVat3") then
-		return fail("the 3-slime vat is off")
-	end
-	return result(MergeVat.autoMerge(world, session, mask))
 end
 
 local function equipPlotSkin(world: World, session: Session, id: string, ctx: Context): Result
@@ -303,6 +320,16 @@ local function equipPlotSkin(world: World, session: Session, id: string, ctx: Co
 	end
 	local skin = PlotSkins.get(id)
 	World.notify(world, session.userId, `Plot skin: {skin and skin.name or id}`, "good", nil, `PlotSkin_{id}`)
+	return OK
+end
+
+local function equipPetSeat(world: World, session: Session, id: string): Result
+	local ok, reason = PetSeats.equip(session.data, id)
+	if not ok then
+		return fail(reason or "failed")
+	end
+	local seat = PetSeats.get(id)
+	World.notify(world, session.userId, `Pet seat: {seat and seat.name or id}`, "good", nil, `PetSeat_{id}`)
 	return OK
 end
 
@@ -341,24 +368,16 @@ local function useConsumable(
 end
 
 ---------------------------------------------------------------------------
--- World shops (FEATURES.WorldShops, CONTRACT.md §27): validation lives in ShopGuard, the purchases are the
+-- World shops (CONTRACT.md §27): validation lives in ShopGuard, the purchases are the
 -- existing handlers (dispatch), nothing is priced or charged here.
 ---------------------------------------------------------------------------
-
-local function worldShopsOn(ctx: Context): boolean
-	return feature(ctx, "WorldShops")
-end
-
-local function strictOn(ctx: Context): boolean
-	return worldShopsOn(ctx) and feature(ctx, "WorldShopsStrict")
-end
 
 local function accessOf(ctx: Context, userId: number, shopId: string): ShopGuard.Access?
 	return if ctx.shopAccess then ctx.shopAccess(userId, shopId) else nil
 end
 
 local function shopEvent(ctx: Context, userId: number, payload: { [string]: any })
-	if ctx.shopEvent and worldShopsOn(ctx) then
+	if ctx.shopEvent then
 		ctx.shopEvent(userId, payload)
 	end
 end
@@ -385,13 +404,13 @@ function Actions.closeShop(session: Session, reason: string, ctx: Context)
 	shopEvent(ctx, session.userId, { kind = "Close", shopId = shopId, reason = reason })
 end
 
--- Throttled by the caller: closes the open shop when it left range, died or the flag went off.
+-- Throttled by the caller: closes the open shop when it left range or died.
 function Actions.shopTick(session: Session, ctx: Context)
 	local shopId = session.openShop
 	if shopId == nil then
 		return
 	end
-	local reason = ShopGuard.closeReason(shopId, worldShopsOn(ctx), accessOf(ctx, session.userId, shopId))
+	local reason = ShopGuard.closeReason(shopId, accessOf(ctx, session.userId, shopId))
 	if reason then
 		Actions.closeShop(session, reason, ctx)
 	end
@@ -399,8 +418,6 @@ end
 
 local function openShop(session: Session, shopId: string, ctx: Context): Result
 	local code = ShopGuard.check({
-		worldShops = worldShopsOn(ctx),
-		strict = false,
 		shopId = shopId,
 		openShop = session.openShop,
 		access = accessOf(ctx, session.userId, shopId),
@@ -424,9 +441,7 @@ function Actions.openFromPrompt(world: World, userId: number, shopId: string, ct
 end
 
 local function closeShopAction(session: Session, ctx: Context): Result
-	if worldShopsOn(ctx) then
-		Actions.closeShop(session, "closed", ctx)
-	end
+	Actions.closeShop(session, "closed", ctx)
 	return OK
 end
 
@@ -449,8 +464,6 @@ local function shopBuy(
 ): Result
 	local userId = session.userId
 	local code = ShopGuard.check({
-		worldShops = worldShopsOn(ctx),
-		strict = strictOn(ctx),
 		shopId = shopId,
 		itemId = itemId,
 		openShop = session.openShop,
@@ -487,10 +500,10 @@ local function shopBuy(
 	return res
 end
 
--- Strict mode (FEATURES.WorldShopsStrict): the old buy actions need the matching shop open and in range.
--- Only applies where the adapter measures ranges (ctx.shopAccess).
+-- The old buy actions need the matching shop open and in range. Only applies where the adapter measures
+-- ranges (ctx.shopAccess).
 local function strictGate(session: Session, action: string, ctx: Context): Result?
-	if ctx.strictBypass or not (ctx.shopAccess and strictOn(ctx)) then
+	if ctx.strictBypass or not ctx.shopAccess then
 		return nil
 	end
 	-- Locks are not sold in a shop: the HUD Lock button works while standing at the owner's own lock pad
@@ -504,8 +517,6 @@ local function strictGate(session: Session, action: string, ctx: Context): Resul
 		return nil
 	end
 	local code = ShopGuard.check({
-		worldShops = true,
-		strict = true,
 		shopId = shopId,
 		itemId = nil,
 		openShop = session.openShop,
@@ -527,6 +538,11 @@ end
 dispatch = function(world: World, session: Session, action: string, args: { any }, now: number, ctx: Context): Result
 	if action == "Sync" then
 		return OK
+	elseif action == "RequestKits" then
+		if ctx.sendKits then
+			ctx.sendKits(session.userId, args[1])
+		end
+		return OK
 	elseif action == "OpenShop" then
 		return openShop(session, args[1], ctx)
 	elseif action == "CloseShop" then
@@ -538,16 +554,20 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	if blocked then
 		return blocked
 	end
-	if action == "Merge" then
-		return result(MergeVat.merge(world, session, args[1], args[2]))
-	elseif action == "Merge3" then
-		return merge3(world, session, args, ctx)
-	elseif action == "AutoMerge" then
-		return autoMerge(world, session, args[1], ctx)
-	elseif action == "KeepSlime" then
-		return result(MergeVat.setKeep(session, args[1], args[2]))
+	if action == "VatAdd" then
+		return result(MergeVat.add(world, session, args[1]))
+	elseif action == "VatRemove" then
+		return result(MergeVat.remove(world, session, args[1]))
+	elseif action == "VatStart" then
+		return result(MergeVat.start(world, session, now))
+	elseif action == "VatCancel" then
+		return result(MergeVat.cancel(world, session))
+	elseif action == "VatCollect" then
+		return result(MergeVat.collect(world, session, now))
 	elseif action == "Lock" then
 		return result(StealService.buyLock(world, session, now))
+	elseif action == "ToggleFriends" then
+		return result(PlotGuests.toggle(world, session, ctx.features))
 	elseif action == "Rebirth" then
 		return result(Rebirth.rebirth(world, session))
 	elseif action == "Sell" then
@@ -575,6 +595,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return buyUpgrade(world, session, args[1])
 	elseif action == "EquipPlotSkin" then
 		return equipPlotSkin(world, session, args[1], ctx)
+	elseif action == "EquipPetSeat" then
+		return equipPetSeat(world, session, args[1])
 	elseif action == "SetAudioSettings" then
 		return setAudioSettings(session, args[1], args[2], args[3], ctx)
 	elseif action == "BuyConsumable" then
@@ -598,6 +620,9 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	end
 	return fail("unknown action")
 end
+
+-- Actions that change no game state: no dirty mark, no view refresh.
+local QUIET: { [string]: boolean } = table.freeze({ RequestKits = true })
 
 -- Sync can't push State faster than the coalescing window anyway, so a spammed Sync is refused before it costs a refresh.
 local function allowSync(session: Session, now: number): boolean
@@ -638,6 +663,9 @@ function Actions.handle(
 	if not ok then
 		return fail("server error"), true
 	end
+	if QUIET[action] then
+		return res, false
+	end
 	-- Sync re-sends (still coalesced to STATE_MIN_INTERVAL); successful actions changed state.
 	if res.ok then
 		World.markDirty(session)
@@ -647,7 +675,7 @@ end
 
 -- The owner-only plot prompts (LockPrompt, BuyPadPrompt, MergePrompt). The caller has already checked that the player owns the
 -- plot; here the character must stand within PlotPadGuard.range() of THAT prompt's part. They never go through the world-shop
--- strict gate (the Item Shop stand is nowhere near the pad), but every other rule of the action still applies.
+-- gate (the Item Shop stand is nowhere near the pad), but every other rule of the action still applies.
 function Actions.handlePlotPad(
 	world: World,
 	userId: number,
@@ -672,10 +700,9 @@ function Actions.handlePlotPad(
 end
 
 --[[
-	A player triggered plot `plotIndex`'s owner-only prompt `kind` ("Lock" | "BuyPad" | "Merge"). Someone else's
-	(or a free) plot answers with a toast naming the owner. Merge does nothing with FEATURES.MergeVat3 (the
-	owner's client opens the merge menu); without it Merge picks the pair itself (Merge.findPair, the favourite
-	kept out) and toasts when there is none. A refused action toasts its reason. Returns the result.
+	A player triggered plot `plotIndex`'s owner-only prompt `kind` ("Lock" | "ToggleFriends" | "BuyPad" | "Merge"). Someone else's
+	(or a free) plot answers with a toast naming the owner. Merge does nothing on the server (the owner's
+	client opens the merge vat menu). A refused action toasts its reason. Returns the result.
 ]]
 -- The owner's HatchPrompt on a ready Mystery Egg: the HatchEgg action, with a toast when it is refused.
 function Actions.triggerHatchPrompt(world: World, userId: number, slimeId: string, now: number, ctx: Context): Result
@@ -702,27 +729,25 @@ function Actions.triggerPlotPrompt(
 		World.notify(world, userId, text, "info", nil)
 		return fail(text)
 	end
-	if kind == "Merge" and feature(ctx, "MergeVat3") then
-		return OK -- the owner's client opens the merge menu (CONTRACT.md §21.1)
-	end
-	local args = {}
 	if kind == "Merge" then
-		local a, b = Merge.findPair(session.data.slimes, World.busySet(world), session.data.favoriteId)
-		if not a or not b then
-			World.notify(world, userId, "Need two slimes of the same rarity", "info", nil)
-			return fail("no pair")
-		end
-		args = { a, b }
+		return OK -- the owner's client opens the merge vat menu (CONTRACT.md §21)
 	end
-	local res = Actions.handlePlotPad(world, userId, kind, args, now, ctx)
+	local res = Actions.handlePlotPad(world, userId, kind, {}, now, ctx)
 	if not res.ok and res.message then
 		World.notify(world, userId, res.message, "info", nil)
 	end
 	return res
 end
 
--- A player took plot `plotIndex`'s drop tube (any upper jar's DropPrompt, CONTRACT.md §5.3). Anyone may, except a
--- player carrying a slime: they must walk out through the door.
+-- True when plot-local point (x, y, z) is inside jar `f`: within its glass and at or above its deck (a character's
+-- root stands about 3 studs up; the slack lets a jump off the deck count).
+function Actions.insideJar(f: number, x: number, y: number, z: number): boolean
+	return math.sqrt(x * x + z * z) < WorldLayout.jarRadius(f) and y >= WorldLayout.floorTop(f) - 1
+end
+
+-- A player took plot `plotIndex`'s drop tube (the top jar's DropPrompt, CONTRACT.md §5.3). Only the owner, standing
+-- inside the top jar (never from outside its glass, on the jar below), and not while carrying a slime: they must walk
+-- out through the door.
 function Actions.useDropTube(world: World, userId: number, plotIndex: number, ctx: Context): Result
 	local session = World.session(world, userId)
 	if not session then
@@ -736,6 +761,13 @@ function Actions.useDropTube(world: World, userId: number, plotIndex: number, ct
 	end
 	if Carry.carryingId(world, userId) then
 		local text = "You can't take the goo tube while carrying a slime. Walk out through the door!"
+		World.notify(world, userId, text, "bad", nil)
+		return fail(text)
+	end
+	local top = Economy.floorsShown(session.data.padsUnlocked)
+	local at = ctx.plotPointOf and ctx.plotPointOf(userId, plotIndex)
+	if top < 2 or not at or not Actions.insideJar(top, at[1], at[2], at[3]) then
+		local text = "Stand inside the top jar to take the goo tube!"
 		World.notify(world, userId, text, "bad", nil)
 		return fail(text)
 	end

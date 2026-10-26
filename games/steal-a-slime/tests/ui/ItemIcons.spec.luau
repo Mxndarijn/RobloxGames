@@ -32,6 +32,16 @@ do
 	end
 end
 
+-- A registry where three skins are live kit-mesh models (with their pictures as fallback): the model icon path.
+local modelRegistry
+do
+	ItemIcons.MESHES.PlotSkin_mushroom = "plot_skin_mushroom"
+	ItemIcons.MESHES.PlotSkin_candy = "plot_skin_candy"
+	ItemIcons.MESHES.PlotSkin_crystal = "plot_skin_crystal"
+	modelRegistry = ItemIcons.build(Config)
+	table.clear(ItemIcons.MESHES)
+end
+
 local function find(root: any, name: string): any
 	return UiHarness.find(root, name)
 end
@@ -125,8 +135,9 @@ describe("ItemIcons registry", function()
 		expect(ItemIcons.forGoal(registry, "whatever")).toBe("Quest")
 	end)
 
-	it("kit-mesh plot skins are models; the shop gear and classic skin are drawn", function()
-		expect(registry.byId.PlotSkin_candy.model.kind).toBe("mesh")
+	it("plot skins show their tower pictures; a kit-mesh item is a model; drawn without pictures", function()
+		expect(registry.byId.PlotSkin_candy.source).toBe("image")
+		expect(modelRegistry.byId.PlotSkin_candy.model.kind).toBe("mesh")
 		expect(registry.byId.PlotSkin_classic.source).toBe("image")
 		expect(registry.byId.SpeedCoil.source).toBe("image")
 		expect(drawnRegistry.byId.PlotSkin_classic.source).toBe("drawn")
@@ -153,7 +164,7 @@ describe("drawn icons (every group)", function()
 		expect(string.find(doc, "## FOR ARCHER", 1, true) < string.find(doc, "| id |", 1, true)).toBe(true)
 	end)
 
-	it("goals, Dex trophies, badges and plot skins all have recipes (kit-mesh skins as fallback)", function()
+	it("goals, Dex trophies, badges and plot skins all have recipes (drawn when there is no picture)", function()
 		local n = 0
 		for _, id in drawnRegistry.order do
 			local spec = drawnRegistry.byId[id]
@@ -163,7 +174,7 @@ describe("drawn icons (every group)", function()
 			end
 		end
 		expect(n >= 25).toBe(true)
-		-- A kit-mesh skin whose mesh is not loaded shows its drawn diorama, not the tile.
+		-- Without its picture a skin shows its drawn scene, not the tile.
 		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Size = 36, Parent = UiHarness.root() }, drawnRegistry)
 		icon.setActive(true)
 		expect(icon.source).toBe("drawn")
@@ -224,7 +235,7 @@ describe("uploaded item icon images", function()
 				)
 			end
 		end
-		expect(n).toBe(47)
+		expect(n).toBe(68) -- 49 + the 19 pet seats
 	end)
 	it("ids awaiting an upload are real drawn-group ids with a UI-drawn scene", function()
 		local ItemIconArt = UiHarness.ui("ItemIconArt")
@@ -262,7 +273,7 @@ describe("uploaded item icon images", function()
 		end
 	end)
 
-	it("image specs resolve to source image; the 3 mesh skins stay models with the image as fallback", function()
+	it("image specs resolve to source image; kit-mesh items stay models with the image as fallback", function()
 		for _, id in registry.order do
 			local spec = registry.byId[id]
 			if ItemIcons.DRAWN_GROUPS[spec.group] and table.find(ItemIcons.AWAITING_UPLOAD, id) == nil then
@@ -271,8 +282,8 @@ describe("uploaded item icon images", function()
 			end
 		end
 		for _, id in { "PlotSkin_mushroom", "PlotSkin_candy", "PlotSkin_crystal" } do
-			expect(registry.byId[id].source).toBe("model")
-			expect(registry.byId[id].image ~= nil).toBe(true)
+			expect(modelRegistry.byId[id].source).toBe("model")
+			expect(modelRegistry.byId[id].image ~= nil).toBe(true)
 		end
 	end)
 
@@ -295,8 +306,8 @@ describe("uploaded item icon images", function()
 		end
 	end)
 
-	it("a kit-mesh skin shows its image (not the drawn diorama) while the mesh is missing", function()
-		local icon = ItemIconView.new({ Id = "PlotSkin_mushroom", Size = 36, Parent = UiHarness.root() }, registry)
+	it("a kit-mesh item shows its image (not the drawn scene) while the mesh is missing", function()
+		local icon = ItemIconView.new({ Id = "PlotSkin_mushroom", Size = 36, Parent = UiHarness.root() }, modelRegistry)
 		icon.setActive(true)
 		expect(icon.source).toBe("image")
 		expect(icon.art.Visible).toBe(false)
@@ -342,7 +353,7 @@ describe("ItemIconView", function()
 		end
 		local icons = {}
 		for i = 1, ItemIconView.MAX_LIVE + 10 do
-			icons[i] = ItemIconView.new({ Id = "PlotSkin_candy", Size = 36, Parent = UiHarness.root() }, registry)
+			icons[i] = ItemIconView.new({ Id = "PlotSkin_candy", Size = 36, Parent = UiHarness.root() }, modelRegistry)
 		end
 		expect(mounts).toBe(0) -- lazy: nothing renders until the owner says the icon is on screen
 		expect(ItemIconView.liveCount()).toBe(0)
@@ -374,7 +385,7 @@ describe("ItemIconView", function()
 		ItemIconView.builders.mesh = function()
 			return false
 		end
-		local plain = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, registry)
+		local plain = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, modelRegistry)
 		plain.setActive(true)
 		expect(plain.source).toBe("image")
 		expect(ItemIconView.liveCount()).toBe(0)
@@ -418,7 +429,7 @@ describe("ItemIconView", function()
 		ItemIconView.builders.mesh = function()
 			return true
 		end
-		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, registry)
+		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, modelRegistry)
 		icon.setActive(true)
 		expect(ItemIconView.liveCount()).toBe(1)
 		icon.set("SpeedCoil")
@@ -439,44 +450,6 @@ describe("item icons on the surfaces", function()
 			end,
 		}
 	end
-
-	it("every Shop row (items + upgrades) carries an icon with its registry id", function()
-		local panel = UiHarness.ui("Panels/Shop").new(UiHarness.root(), ctx())
-		panel.update({
-			cash = 1e6,
-			shop = {
-				SpeedCoil = { price = 9 },
-			},
-			upgrades = {
-				{
-					id = "Income",
-					name = "Slime Snacks",
-					text = "+10%",
-					level = 0,
-					maxLevel = 10,
-					price = 1,
-					unlocked = true,
-				},
-				{
-					id = "Luck",
-					name = "Lucky Charm",
-					text = "+4%",
-					level = 1,
-					maxLevel = 5,
-					price = 1,
-					unlocked = true,
-				},
-			},
-		})
-		local seen = 0
-		for _, inst in UiHarness.descendants(panel.frame) do
-			if inst.Name == "Icon" and inst:GetAttribute("ItemId") then
-				seen += 1
-				expect(registry.byId[inst:GetAttribute("ItemId")] ~= nil).toBe(true)
-			end
-		end
-		expect(seen).toBe(3) -- the Speed Coil and the two upgrades
-	end)
 
 	it("Codes, Goals and the Daily popup draw item icons", function()
 		local codes = UiHarness.ui("Panels/Codes").new(UiHarness.root(), ctx())
@@ -507,8 +480,8 @@ describe("item icons: server ids, Dex skins, gear", function()
 		}
 	end
 
-	it("every Dex plot-skin card draws its PlotSkin_ item icon", function()
-		local dex = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
+	it("every Plot skins row draws its PlotSkin_ item icon", function()
+		local dex = UiHarness.ui("Panels/Skins").new(UiHarness.root(), ctx())
 		dex.setOpen(true)
 		dex.update({
 			dex = {},

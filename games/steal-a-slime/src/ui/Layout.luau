@@ -137,6 +137,13 @@ Layout.TOUCH_RISE = 40
 Layout.LANDSCAPE_BOTTOM_INSET = 10
 Layout.LANDSCAPE_INSET_MAX = 16
 
+-- Roblox's touch jump button (PlayerModule TouchJump), in screen px from the ScreenGui's top-left: bottom-right,
+-- 70 px at 95 / 25 px from the right and 90 / 20 px from the bottom when the smaller side is at most
+-- JUMP_SMALL_MAX, else 120 px at 170 / 50 px and 210 / 90 px. Layout.screen keeps the status cluster
+-- JUMP_CLEAR px clear of it while it is on screen.
+Layout.JUMP_SMALL_MAX = 500
+Layout.JUMP_CLEAR = 8
+
 Layout.MARGIN = 12
 Layout.TOP = 12 -- top margin: nav on short screens, the banner stack and the menu card area
 Layout.GAP = 12
@@ -165,6 +172,11 @@ end
 -- any scale the UI can reach.
 Layout.MIN_TOUCH_DESIGN = Layout.minTouchDesignSize(Layout.MIN_SCALE)
 Layout.BUTTON = 56
+-- The smallest TextSize any menu text may use (design px). A hint that needs less is cut, not shrunk.
+Layout.MIN_TEXT = 14
+-- The fixed right slot of a list row (design px): the reward well, a Claim / Buy / Equip button or a state
+-- well, the same size in every row so the column lines up.
+Layout.ROW_SLOT = table.freeze({ w = 196, h = 52 })
 
 function Layout.isCompact(width: number, height: number): boolean
 	return width < Layout.COMPACT_WIDTH or Layout.uiScale(width, height) < 1
@@ -334,7 +346,7 @@ Layout.MONEY_TIGHT = table.freeze({
 Layout.STATUS_TIGHT = table.freeze({ slot = 44, icon = 34, label = 15, labelSize = 10, overlap = 5, pillPad = 3 })
 
 -- Slot ids, left to right (HudClusters.STATUS_IDS lists the same). At most STATUS.count show at once.
-Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend", "Blessed", "Pet", "Secret" })
+Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend", "Blessed", "Mvp", "Pet", "Secret" })
 
 -- One size class of the money block: coin diameter, chip height, chip overlap under the pill, the tab under
 -- the income chip, and how far the coin protrudes above / below the pill (`pad`).
@@ -594,6 +606,7 @@ Layout.NAV = table.freeze({
 	cell = 78, -- tile + label width: fits the longest label ("SlimeDex") at labelSize
 	ccell = 70,
 	tile = 66, -- the rounded square
+	radius = 22, -- the tile's jelly corner (one uniform radius: DexJarView reads it for the SlimeDex jar)
 	ctile = 58, -- 58 x 0.8 = 46 screen px >= MIN_TOUCH
 	label = 20, -- label row under the tile
 	clabel = 17,
@@ -712,30 +725,22 @@ Layout.PANEL_CHROME = table.freeze({
 	header = Layout.MIN_TOUCH_DESIGN + 12 + 16, -- the band (closeInset above and below the X) plus bodyGap
 })
 
--- The goo edge under a panel's band (Widgets.gooEdge): a lip of `scallops` round bumps hanging `lip` px,
--- and drips { x (fraction of the width), drop width, neck length } px. A drip's lowest point is
--- length + 0.6 * width, kept under PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over
--- the corner icon tile (x < 0.14).
--- The glint on a jelly (Widgets.shine): a fixed w x h px frame near the top-left, at a fraction of the jelly's
--- width plus a few px so it sits inside a pill's rounded end, and a few px under the top edge so it stays
--- above a centred label.
-Layout.SHINE = table.freeze({ x = 0.08, offsetX = 6, offsetY = 4, w = 14, h = 4, rotation = -24 })
+-- Notices (tooltip, tutorial card, carry card, boss meter): one corner radius for their Gold or danger ring.
+Layout.NOTICE_RADIUS = 18
 
+-- The glass bubble behind each status icon (Hud): white at this transparency over the world.
+Layout.STATUS_BUBBLE = table.freeze({ transparency = 0.8 })
+
+-- The goo edge under a panel's band (Widgets.gooEdge): drips { x (fraction of the width), width, hang } px. Each
+-- drip is one finger of goo with a round end, hanging `hang` px under the band; that stays under
+-- PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over the corner icon tile (x < 0.14).
 Layout.GOO_EDGE = table.freeze({
 	inset = 18,
-	scallops = 16,
-	lip = 6,
-	neckWidth = 0.64, -- a drip's neck, as a fraction of its drop width, centred on the drop
-	dropRise = 0.4, -- how far the drop's top overlaps the neck's end, as a fraction of its width
-	dot = 0.28, -- the drop's shine dot, as a fraction of the drop
-	dotAt = 0.22,
-	dotTransparency = 0.35,
 	drips = table.freeze({
-		table.freeze({ 0.2, 10, 6 }),
-		table.freeze({ 0.33, 8, 3 }),
-		table.freeze({ 0.52, 11, 7 }),
-		table.freeze({ 0.71, 8, 4 }),
-		table.freeze({ 0.86, 10, 6 }),
+		table.freeze({ 0.22, 10, 10 }),
+		table.freeze({ 0.4, 8, 6 }),
+		table.freeze({ 0.6, 11, 13 }),
+		table.freeze({ 0.8, 9, 8 }),
 	}),
 })
 
@@ -746,13 +751,12 @@ Layout.GOO_EDGE = table.freeze({
 Layout.MENU_WIDTH = 560
 Layout.MENU_HEIGHTS = table.freeze({
 	Merge = 520,
-	Shop = 520,
 	WorldShop = 520,
 	Inventory = 460,
-	Rebirth = 470,
+	Rebirth = 650, -- three slimes (Panels/Rebirth.plan)
 	Goals = 500,
 	Dex = 600,
-	Leaders = 460,
+	Skins = 600,
 	Codes = 300,
 	Sound = 291,
 	Guide = 380,
@@ -779,7 +783,9 @@ function Layout.tutorialHeight(width: number): number
 	local t = Layout.TUTORIAL
 	local body = 0
 	for _, step in Tutorial.STEPS do
-		body = math.max(body, Layout.wrappedHeight(step.body, t.bodyTextSize, width - t.padX * 2))
+		for _, text in Tutorial.texts(step) do
+			body = math.max(body, Layout.wrappedHeight(text, t.bodyTextSize, width - t.padX * 2))
+		end
 	end
 	return math.ceil(t.bodyTop + body + t.padBottom)
 end
@@ -865,13 +871,21 @@ local function centredIn(column: Rect, screenW: number, width: number): (number,
 	return x, w
 end
 
-export type ScreenOptions = {}
+export type ScreenOptions = { touch: boolean? } -- touch: Roblox's jump button is on screen (TouchControls)
 
 -- Bottom cards centred on the screen inside `row` (x / w only): carry on the
 -- bottom line, tutorial above the inset, and above the carry card while
 -- carrying, or (`beside`) the carry card at the row's left and the
 -- tutorial next to it. `cardMargin` (short screens): the tutorial card hugs the
 -- bottom edge that far up and, while carrying, sits next to the carry card.
+-- The jump button rect for a ScreenGui of viewportW x viewportH (screen px).
+function Layout.jumpRect(viewportW: number, viewportH: number): Rect
+	if math.min(viewportW, viewportH) <= Layout.JUMP_SMALL_MAX then
+		return Layout.rect(viewportW - 95, viewportH - 90, 70, 70)
+	end
+	return Layout.rect(viewportW - 170, viewportH - 210, 120, 120)
+end
+
 local function bottomCards(
 	row: Rect,
 	W: number,
@@ -904,7 +918,7 @@ end
 -- Every top-level box for a ScreenGui of viewportW x viewportH (see header).
 -- One pass in priority order: the bottom clusters, nav, bottom cards, then the menu column
 -- and overlays in what is left, so nothing has to be moved afterwards.
-function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOptions?): Screen
+function Layout.screen(viewportW: number, viewportH: number, options: ScreenOptions?): Screen
 	local scale = Layout.uiScale(viewportW, viewportH)
 	local W, H = viewportW / scale, viewportH / scale
 	local compact = Layout.isCompact(viewportW, viewportH)
@@ -934,7 +948,20 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	-- The events row stands STATUS.raise above the money line off phones (0: it shares that line); on phones it
 	-- always shares the bottom row.
 	local statusRaise = if phone then 0 else Layout.STATUS.raise
-	local status = Layout.statusCluster(compact, W - m, rowBottom - statusRaise, tight, phone)
+	local statusBottom = rowBottom - statusRaise
+	local status = Layout.statusCluster(compact, W - m, statusBottom, tight, phone)
+	local steppedLeft = false
+	if options and options.touch then
+		-- Touch: the status icons (they take taps) must not sit on Roblox's jump button; the row keeps its line and
+		-- steps left of it.
+		local jump = Layout.jumpRect(viewportW, viewportH)
+		local clear = Layout.JUMP_CLEAR
+		local keepOut = Layout.rect((jump.x - clear) / scale, (jump.y - clear) / scale, W, H)
+		if Layout.overlaps(status.rect, keepOut) then
+			status = Layout.statusCluster(compact, keepOut.x, statusBottom, tight, phone)
+			steppedLeft = true
+		end
+	end
 	local hotbarH = InventoryLayout.height(compact, Layout.MIN_TOUCH_DESIGN, tight)
 
 	-- 1. "Short" (landscape phone): the default two nav columns won't fit above the money cluster, so
@@ -942,9 +969,14 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	local short = compact and Layout.TOP + Layout.navHeight(compact) + gap > money.rect.y - gap
 	local top = if short or phone then Layout.TOP else Layout.NAV.top
 	-- Narrower than the carry card plus both clusters (portrait phones): the bottom cards sit above
-	-- the clusters instead of beside them.
+	-- the clusters instead of beside them. Never on a landscape phone: lifted that far, the cards would sit in
+	-- the middle of a short screen; there the carry card takes the hotbar's place (the bar hides meanwhile) and
+	-- the tutorial card stands right above the hotbar.
 	local clusterH = math.max(money.rect.h, status.rect.h + statusRaise, if phone then hotbarH else 0)
-	local lift = if not short and W < Layout.CARRY.w + money.rect.w + status.rect.w + 2 * (m + gap)
+	local cardW = math.max(Layout.CARRY.w, Layout.TUTORIAL.w)
+	local lift = if not short
+			and not landscapePhone
+			and W < cardW + money.rect.w + (W - m - status.rect.x) + 2 * (m + gap)
 		then rise + clusterH + gap
 		else 0
 	local cardInset = inset + lift
@@ -959,7 +991,9 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 
 	-- 2. Nav: left, 2 columns, low (short: as many as it takes to fit from the top down to the money
 	-- cluster; the bottom cards then sit right of the money cluster, step 3).
-	local fullRow = Layout.rect(m, 0, W - m * 2, 0)
+	-- A status cluster stepped left of the jump button also pushes the bottom cards left of it, unless they sit above it.
+	local fullRowRight = if steppedLeft and lift == 0 then status.rect.x - gap else W - m
+	local fullRow = Layout.rect(m, 0, fullRowRight - m, 0)
 	local hotbarBottom = if phone then rowBottom else H - cardInset
 	-- Phones: the tutorial card already clears the row (portrait: the cards sit above it; landscape: the card hugs
 	-- the bottom edge, below the row), so only the desktop arrangement lifts it above the hotbar.
@@ -984,8 +1018,12 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 
 	-- 3. Bottom cards. Full screen width (the nav ends above them); short: between the money cluster
 	-- and the status cluster (the nav sits above the money cluster, clear of the cards).
+	-- Landscape phone: the nav runs down to the cards' height, so they keep right of it.
 	local cardsX = money.rect.x + money.rect.w + gap
-	local row = if short then Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0) else fullRow
+	local row = if short
+		then Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0)
+		elseif landscapePhone then Layout.rect(navRight, 0, math.max(fullRowRight - navRight, 0), 0)
+		else fullRow
 	local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, cardInset, beside, cardMargin, tutorialLift)
 	local between = Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0)
 	-- Truly bottom-centre: the zone is symmetric about the screen centre, as wide as the nearer cluster allows.

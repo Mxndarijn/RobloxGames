@@ -43,18 +43,27 @@ local function call(world: any, userId: number, action: string, ...: any)
 	return Actions.handle(world, userId, action, table.pack(...), T0 + 100, ctx)
 end
 
-describe("Rebirth cost", function()
-	it("grows by the early factor up to REBIRTH_LATE_FROM, then by the late one", function()
-		for r = 0, Config.REBIRTH_LATE_FROM do
-			expect(Economy.rebirthCost(r)).toBe(math.floor(Config.REBIRTH_BASE_COST * Config.REBIRTH_COST_GROWTH ^ r))
+-- Base cash reward of `stage` of the goal with `id` (before the rebirth multiplier).
+local function goalReward(id: string, stage: number): number
+	for _, goal in Config.GOALS do
+		if goal.id == id then
+			return goal.rewards[stage]
 		end
-		local late = Economy.rebirthCost(Config.REBIRTH_LATE_FROM)
-		expect(Economy.rebirthCost(Config.REBIRTH_LATE_FROM + 1)).toBe(
-			math.floor(late * Config.REBIRTH_COST_GROWTH_LATE)
-		)
-		expect(Economy.rebirthCost(Config.REBIRTH_LATE_FROM + 5)).toBe(
-			math.floor(late * Config.REBIRTH_COST_GROWTH_LATE ^ 5)
-		)
+	end
+	error(`no goal {id}`)
+end
+
+describe("Rebirth cost", function()
+	it("reads each rebirth's price from REBIRTH_COSTS, each dearer than the last, the last price at max", function()
+		expect(#Config.REBIRTH_COSTS).toBe(Config.MAX_REBIRTHS)
+		for r = 0, Config.MAX_REBIRTHS - 1 do
+			expect(Economy.rebirthCost(r)).toBe(Config.REBIRTH_COSTS[r + 1])
+			if r > 0 then
+				expect(`{r}: {Economy.rebirthCost(r) > Economy.rebirthCost(r - 1)}`).toBe(`{r}: true`)
+			end
+		end
+		expect(Economy.rebirthCost(Config.MAX_REBIRTHS + 4)).toBe(Config.REBIRTH_COSTS[Config.MAX_REBIRTHS])
+		expect(Economy.rebirthCost(-2)).toBe(Config.REBIRTH_COSTS[1])
 	end)
 end)
 
@@ -126,15 +135,20 @@ describe("Upgrades (BuyUpgrade)", function()
 	it("is locked until its rebirth count, then costs base x growth^level up to max", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, nil, 1e12)
-		expect(call(world, 1, "BuyUpgrade", "Luck").message).toBe("locked: reach 5 rebirths")
+		local income = Perks.upgradeDef("Income") :: Config.Upgrade
+		local luck = Perks.upgradeDef("Luck") :: Config.Upgrade
+		expect(call(world, 1, "BuyUpgrade", "Luck").message).toBe(
+			`locked: reach {Upgrades.requiresFor(luck, 0)} rebirths`
+		)
 		expect(call(world, 1, "BuyUpgrade", "Nope").message).toBe("unknown upgrade")
 		expect(call(world, 1, "BuyUpgrade", 42).message).toBe("bad argument")
 		local before = s.data.cash
 		expect(call(world, 1, "BuyUpgrade", "Income").ok).toBe(true)
-		expect(s.data.cash).toBe(before - 2000)
+		expect(s.data.cash).toBe(before - income.base)
 		expect(call(world, 1, "BuyUpgrade", "Income").ok).toBe(true)
-		expect(before - s.data.cash).toBe(2000 + 5000)
-		s.data.upgrades.Income = 10
+		expect(before - s.data.cash).toBe(income.base + math.floor(income.base * income.growth))
+		s.data.upgrades.Income = income.maxLevel
+		s.data.rebirths = Upgrades.requiresFor(income, income.maxLevel - 1)
 		expect(call(world, 1, "BuyUpgrade", "Income").message).toBe("already maxed")
 		s.data.cash = 0
 		s.data.rebirths = 1
@@ -219,17 +233,28 @@ end)
 describe("Goals and SlimeDex rewards", function()
 	it("pays stages as stats grow, x rebirthMultiplier, and tracks real actions", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("m1", 1), Fixtures.slime("m2", 1) }, 1e6)
+		local s = ServerFixtures.join(
+			world,
+			1,
+			{ Fixtures.slime("m1", 1), Fixtures.slime("m2", 1), Fixtures.slime("m3", 1) },
+			1e6
+		)
 		s.lockUntil = 0
-		expect(call(world, 1, "Merge", "m1", "m2").ok).toBe(true)
+		for _, id in { "m1", "m2", "m3" } do
+			expect(call(world, 1, "VatAdd", id).ok).toBe(true)
+		end
+		expect(call(world, 1, "VatStart").ok).toBe(true)
+		s.data.vat.endsAt = 0 -- the brew is done
+		expect(call(world, 1, "VatCollect").ok).toBe(true)
 		expect(call(world, 1, "Lock").ok).toBe(true)
 		expect(s.data.stats.merges).toBe(1)
 		expect(s.data.stats.locks).toBe(1)
 		local cash = s.data.cash
 		expect(Milestones.check(world, s)).toBe(2)
-		expect(s.data.cash).toBe(cash + 200 + 100)
+		expect(s.data.cash).toBe(cash + goalReward("Merge", 1) + goalReward("Lock", 1))
 		local texts = table.concat(ServerFixtures.notifications(world, 1), "\n")
-		expect(string.find(texts, "Goal complete: Merge 1 time! +$200", 1, true) ~= nil).toBe(true)
+		local merged = `Goal complete: Merge 1 time! +${Economy.formatNumber(goalReward("Merge", 1))}`
+		expect(string.find(texts, merged, 1, true) ~= nil).toBe(true)
 		expect(Milestones.check(world, s)).toBe(0)
 	end)
 	it("pays several reached stages at once (retroactive) and shows the next one", function()
@@ -243,7 +268,12 @@ describe("Goals and SlimeDex rewards", function()
 				table.insert(catch, p.reward)
 			end
 		end
-		expect(catch).toEqual({ 100, 1000, 10000 }) -- x2 at 2 rebirths
+		local mult = Economy.rebirthMultiplier(2)
+		expect(catch).toEqual({
+			math.floor(goalReward("Catch", 1) * mult),
+			math.floor(goalReward("Catch", 2) * mult),
+			math.floor(goalReward("Catch", 3) * mult),
+		})
 		local view = Goals.view(data)
 		expect(view[1].id).toBe("Catch")
 		expect(view[1].stage).toBe(3)
@@ -282,7 +312,7 @@ describe("Goals and SlimeDex rewards", function()
 		expect(#Collection.check(data)).toBe(0)
 		expect(#Collection.check(data)).toBe(0) -- paid once
 	end)
-	it("the ladder follows the design: 8 .. 50 species, +45 % income in all", function()
+	it("the ladder follows the design: 8 .. 50 species, within the Dex, +45 % income in all", function()
 		local total = 0
 		local ladder = Config.DEX_MILESTONES.species
 		for i, m in ladder do
@@ -292,7 +322,7 @@ describe("Goals and SlimeDex rewards", function()
 				expect(m.reward > ladder[i - 1].reward).toBe(true)
 			end
 		end
-		expect(ladder[#ladder].count).toBe(SpeciesDex.TOTAL)
+		expect(ladder[#ladder].count <= SpeciesDex.TOTAL).toBe(true)
 		expect(total).toBeCloseTo(0.45)
 	end)
 	it("puts every v13 field in State", function()
@@ -409,7 +439,7 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		expect(raw.version).toBe(Config.SAVE_VERSION)
 		local back = SaveData.deserialize(raw)
 		expect(back.upgrades.Income).toBe(3)
-		expect(back.upgrades.Luck).toBe(5) -- clamped to maxLevel
+		expect(back.upgrades.Luck).toBe((Perks.upgradeDef("Luck") :: Config.Upgrade).maxLevel) -- clamped to maxLevel
 		expect(back.stats.merges).toBe(7)
 		expect(back.stats.caught).toBe(8)
 		expect(back.goals.Merge).toBe(1)

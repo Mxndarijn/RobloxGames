@@ -44,22 +44,73 @@ local function hatches()
 		local floor = plot():FindFirstChild(`Floor_{f}`)
 		local hatch = floor and floor:FindFirstChild("DropHatch")
 		if hatch then
-			local prompt = hatch:FindFirstChild("DropPrompt")
+			local prompt = hatch:FindFirstChild("DropPrompt", true)
 			out[f] = { hatch.Transparency < 1, hatch.CanCollide, prompt ~= nil and prompt.Enabled }
 		end
 	end
 	return out
 end
 
+-- { [floor]: the stair-top landing is solid } for every upper jar standing now
+local function stairTops()
+	local out = {}
+	for f = 2, #Config.BASE_FLOORS do
+		local floor = plot():FindFirstChild(`Floor_{f}`)
+		local landing = floor and floor:FindFirstChild("StairLanding_1")
+		if landing then
+			out[f] = landing.CanCollide
+		end
+	end
+	return out
+end
+
+-- the plot's roof colliders: how many TopColliders folders, and the floor of the one there
+local function roof(): (number, number?)
+	local count, floor = 0, nil
+	for _, c in plot():GetChildren() do
+		if c.Name == "TopColliders" then
+			count += 1
+			floor = c:GetAttribute("TopFloor")
+		end
+	end
+	return count, floor
+end
+
+local tops, roofs = {}, {}
+local initialRoofs, initialFloor = roof()
 local function grow(floors)
 	session.data.padsUnlocked = (floors - 1) * Config.PADS_PER_FLOOR
 	rt:advance(2)
+	tops[floors] = stairTops()
+	roofs[floors] = { roof() }
 	return hatches()
 end
 
 local four = grow(#Config.BASE_FLOORS)
 local two = grow(2)
 local three = grow(3)
+
+describe("stair top (the flat landing stands only on the top jar)", function()
+	it("makes only the top jar's landing solid, and follows the top as the tower changes", function()
+		for f = 2, #Config.BASE_FLOORS do
+			expect(tops[#Config.BASE_FLOORS][f]).toBe(f == #Config.BASE_FLOORS)
+		end
+		expect(tops[2][2]).toBe(true)
+		expect(tops[3][2]).toBe(false)
+		expect(tops[3][3]).toBe(true)
+	end)
+end)
+
+describe("roof colliders (one per plot, on its top jar)", function()
+	it("puts one roof on jar 1 from the start and moves it to the top jar as the tower grows and shrinks", function()
+		expect(initialRoofs).toBe(1)
+		expect(initialFloor).toBe(1)
+		expect(roofs[#Config.BASE_FLOORS][1]).toBe(1)
+		expect(roofs[#Config.BASE_FLOORS][2]).toBe(#Config.BASE_FLOORS)
+		expect(roofs[2][2]).toBe(2)
+		expect(roofs[3][2]).toBe(3)
+	end)
+end)
 
 describe("drop hatches (only the top jar drops you down the tube)", function()
 	it("opens only the top jar's hatch on a full tower", function()

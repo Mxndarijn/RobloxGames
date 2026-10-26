@@ -21,6 +21,8 @@ local ctx: Actions.Context = {
 	end,
 }
 
+local WELCOME_CASH = (Config.CODES :: any).WELCOME.reward.amount
+
 describe("Codes", function()
 	it("pays cash once, case-insensitively, and then says used", function()
 		local data = PlayerData.new()
@@ -28,11 +30,11 @@ describe("Codes", function()
 		local ok, status = Codes.redeem(data, "  welcome ", T0)
 		expect(ok).toBe(true)
 		expect(status).toBe("ok")
-		expect(data.cash).toBe(start + 1000)
+		expect(data.cash).toBe(start + WELCOME_CASH)
 		local ok2, status2 = Codes.redeem(data, "WELCOME", T0)
 		expect(ok2).toBe(false)
 		expect(status2).toBe("used")
-		expect(data.cash).toBe(start + 1000)
+		expect(data.cash).toBe(start + WELCOME_CASH)
 	end)
 	it("rejects unknown and malformed codes", function()
 		local data = PlayerData.new()
@@ -85,7 +87,7 @@ describe("Codes", function()
 		local cash = s.data.cash
 		local r = Actions.handle(world, 1, "Redeem", { "welcome" }, T0 + 100, ctx)
 		expect(r.ok).toBe(true)
-		expect(s.data.cash).toBe(cash + 1000)
+		expect(s.data.cash).toBe(cash + WELCOME_CASH)
 		local r2 = Actions.handle(world, 1, "Redeem", { "welcome" }, T0 + 100, ctx)
 		expect(r2.message).toBe("too fast")
 		s.limiter = {}

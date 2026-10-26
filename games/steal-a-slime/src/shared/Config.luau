@@ -33,6 +33,7 @@ export type RebirthTier = {
 	unlock: string?, -- upgrade id this rank unlocks (also Config.UPGRADES[i].requires)
 	income: number?, -- income bonus (0.25 = +25 %)
 	family: string?, -- FountainTiers family id: this rank grows the fountain into its look (FEATURES.FountainTiers; FountainTiers.FAMILIES)
+	merge: number?, -- top rarity tier this rank lets the player put in the merge vat (MergeGate, contract/merge-vat.md §21.9)
 }
 
 export type Upgrade = {
@@ -43,6 +44,7 @@ export type Upgrade = {
 	base: number, -- price of level 1
 	growth: number, -- price of level n+1 = base * growth^n
 	requires: number, -- rebirths needed
+	levelRequires: { number }?, -- rebirths needed for each level (level n needs levelRequires[n]); nil = `requires` for all
 	step: number, -- effect per level (meaning depends on id)
 	flag: string?, -- Config.FEATURES name that must be on for the upgrade to be listed, bought or have any effect
 }
@@ -68,16 +70,35 @@ export type DailyQuest = {
 
 export type DexMilestone = { count: number, reward: number, bonus: number }
 
--- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15). `set` = rarity tier whose SlimeDex set must be
--- `threshold` complete. Colours are RGB 0..255; `trim` multiplies the jar's cork and trim colours (white = none).
+-- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15): goo jar tower themes. A skin's slimes are a whole family
+-- (`family`, a FountainTiers.FAMILIES id) or a `species` list (SlimeRoster ids); it unlocks once `threshold` of them
+-- are found (PlotSkins). Neither = always unlocked. Colours are RGB 0..255; `color` is the picker card's swatch.
+-- `floor`, `trim` and `decor` are PlotDecor.applySkin's plot paint: the Base, trim parts and mailbox slot it paints
+-- are hidden under the goo jar tower meshes.
 export type PlotSkin = {
 	id: string, -- permanent save id; never rename
 	name: string,
-	set: number?, -- Config.RARITIES tier; nil = always unlocked
+	family: string?,
+	species: { string }?,
 	threshold: number?,
+	color: { number }?,
 	floor: { color: { number }, material: string }?, -- plot Base; nil = leave as built
 	trim: { number }?,
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
+}
+
+-- Pet seats (contract/pet-seats.md): what the follow pet rides on, picked in the Skins menu's Cloud tab. `mesh` is the
+-- MeshAssets name (shared/modeling-kit/models/PET_MOUNTS.md); `seat` is the height of the seat surface over the mesh's
+-- bottom in native studs (where the pet's foot goes; decoration such as a cherry or an arch rises above it).
+-- `unlock`: "free" (everyone), "merges" (`count` slimes merged, stats.merges), "dex" (`percent` of the SlimeDex
+-- found) or "exclusive" (sold in the Exclusive shop; nobody owns one yet).
+export type PetSeat = {
+	id: string, -- permanent save id; never rename
+	name: string,
+	mesh: string,
+	seat: number,
+	color: { number }, -- icon tile colour, RGB 0..255
+	unlock: { kind: "free" | "merges" | "dex" | "exclusive", count: number?, percent: number? },
 }
 
 -- A PvP tool or fun item (FEATURES.PvP, CONTRACT.md §26). Price is derived (PvpRules.price), never stored.
@@ -185,77 +206,59 @@ local RARITIES: { Rarity } = {
 
 -- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player to own these SlimeRoster
 -- species (data.slimes, i.e. on a pad; a repeated id needs that many). Every level has its own list, and
--- the rebirth uses them up: those slimes are gone, even the favourite (Progression.rebirth). A family
--- species only shows up once that family is open (FountainTiers), merge hybrids follow their recipe's
--- inputs, and event Secrets are never asked for.
+-- the rebirth uses them up: those slimes are gone, even the favourite (Progression.rebirth). Each list asks
+-- for the rarity players farm at that level; a family species only shows up once that family is open
+-- (FountainTiers), merge hybrids start at rebirth 12, and boss and event slimes are never asked for (a boss
+-- win gives no slime).
 local REBIRTH_SLIMES: { { string } } = {
-	{ "bumble" }, -- 1
-	{ "froggo" },
-	{ "whiskers" },
-	{ "prickles" },
-	{ "lop" }, -- 5
-	{ "flan", "bumble" },
-	{ "moo", "mushie" },
+	{ "whiskers" }, -- 1
+	{ "moo" },
 	{ "blaze" },
-	{ "pengoo", "chomp" },
-	{ "octo" }, -- 10
-	{ "moo_shroom" },
-	{ "frostbite", "whiskers" },
-	{ "zap", "lop" },
-	{ "imp" },
-	{ "king" }, -- 15
-	{ "drako", "froggo" },
-	{ "bloom", "honey_toad" },
-	{ "ninja" },
-	{ "truffle", "rocky_road" },
-	{ "robo" }, -- 20
-	{ "snow_bunny", "catfish" },
-	{ "blaze", "octo" },
-	{ "sushi" },
-	{ "frostbite", "zap", "imp" },
-	{ "cosmo" }, -- 25
+	{ "octo" },
+	{ "king" }, -- 5
+	{ "lop", "octo" },
+	{ "chomp", "blaze" },
+	{ "frostbite" },
+	{ "king", "zap" },
+	{ "ninja" }, -- 10
+	{ "cosmo" },
 	{ "steam" },
-	{ "king", "ninja" },
+	{ "imp", "drako" },
+	{ "robo" },
+	{ "seraph" }, -- 15
 	{ "kraken" },
-	{ "drako", "imp", "octo" },
-	{ "seraph" }, -- 30
-	{ "thunderbee" },
-	{ "robo", "king" },
-	{ "amethyst" },
-	{ "steam", "kraken" },
-	{ "prism" }, -- 35
 	{ "dragon_king" },
-	{ "seraph", "amethyst" },
+	{ "amethyst" },
+	{ "midas" },
+	{ "cosmo", "seraph" }, -- 20
+	{ "thunderbee" },
+	{ "prism" },
 	{ "cyber_ninja" },
-	{ "cosmo", "prism" },
-	{ "midas" }, -- 40
-	{ "goozilla" },
-	{ "dragon_king", "cyber_ninja" },
-	{ "queen_jelly" },
-	{ "boo" },
-	{ "cosmo", "seraph", "amethyst" }, -- 45
 	{ "eclipse" },
+	{ "boo" }, -- 25
+	{ "dragon_king", "cosmo" },
+	{ "midas", "amethyst" },
 	{ "nightwing" },
-	{ "midas", "boo" },
-	{ "mecha_goo" },
-	{ "eclipse", "nightwing", "mecha_goo" }, -- 50
+	{ "eclipse", "prism" },
+	{ "midas", "eclipse", "boo" }, -- 30
 }
 for _, list in REBIRTH_SLIMES do
 	table.freeze(list)
 end
 
 local REBIRTH_TIERS: { RebirthTier } = {
-	{ rebirths = 0, title = "Slime Rookie" },
-	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed" },
-	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard" },
-	{ rebirths = 5, title = "Blob Baron", unlock = "Luck" },
+	{ rebirths = 0, title = "Slime Rookie", merge = 1 },
+	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed", merge = 2 },
+	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard", merge = 3 },
+	{ rebirths = 5, title = "Blob Baron", unlock = "Luck", merge = 4 },
 	{ rebirths = 6, title = "Goo Tycoon", income = 0.05, family = "frost" },
 	{ rebirths = 7, title = "Jelly Magnate", income = 0.1 },
-	{ rebirths = 8, title = "Ooze Overlord", income = 0.15 },
+	{ rebirths = 8, title = "Ooze Overlord", income = 0.15, merge = 5 },
 	{ rebirths = 10, title = "Slime Sovereign", income = 0.25, family = "starlight" },
-	{ rebirths = 12, title = "Gel Emperor", income = 0.35 },
+	{ rebirths = 12, title = "Gel Emperor", income = 0.35, merge = 6 },
 	{ rebirths = 15, title = "Gelatinous Legend", income = 0.5 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1 },
+	{ rebirths = 25, title = "Goo Titan", income = 1.5 },
 	{ rebirths = 30, title = "Slime Deity", income = 2 },
 }
 
@@ -264,10 +267,11 @@ local UPGRADES: { Upgrade } = {
 		id = "Income",
 		name = "Slime Snacks",
 		text = "+10% income",
-		maxLevel = 10,
+		maxLevel = 25,
 		base = 2000,
-		growth = 2.5,
+		growth = 2.2,
 		requires = 0,
+		levelRequires = { 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 6, 6, 6, 6, 6, 12, 12, 12, 12, 12, 20, 20, 20, 20, 20 },
 		step = 0.1,
 	},
 	{
@@ -293,12 +297,24 @@ local UPGRADES: { Upgrade } = {
 	{
 		id = "Luck",
 		name = "Lucky Charm",
-		text = "+4% chance a slime you bring home is one rarity higher",
-		maxLevel = 5,
+		text = "+3% chance a slime you bring home is one rarity higher",
+		maxLevel = 10,
 		base = 100000,
-		growth = 3,
+		growth = 4,
 		requires = 5,
-		step = 0.04,
+		levelRequires = { 5, 5, 5, 8, 8, 12, 12, 16, 20, 25 },
+		step = 0.03,
+	},
+	{
+		id = "QuickBrew",
+		name = "Quick Brew",
+		text = "-15% merge vat brew time",
+		maxLevel = 4,
+		base = 25000,
+		growth = 3,
+		requires = 2,
+		levelRequires = { 2, 4, 6, 8 },
+		step = 0.15,
 	},
 }
 
@@ -308,42 +324,42 @@ local GOALS: { Goal } = {
 		title = "Catch <n> slime<s>",
 		stat = "caught",
 		targets = { 1, 10, 50, 200, 1000 },
-		rewards = { 50, 500, 5000, 50000, 500000 },
+		rewards = { 10, 100, 2000, 50000, 500000 },
 	},
 	{
 		id = "Merge",
 		title = "Merge <n> time<s>",
 		stat = "merges",
 		targets = { 1, 10, 50, 250 },
-		rewards = { 200, 2000, 25000, 250000 },
+		rewards = { 25, 500, 10000, 250000 },
 	},
 	{
 		id = "Steal",
 		title = "Steal <n> slime<s>",
 		stat = "stolen",
 		targets = { 1, 10, 50, 200 },
-		rewards = { 300, 3000, 30000, 300000 },
+		rewards = { 50, 1000, 20000, 300000 },
 	},
 	{
 		id = "Lock",
 		title = "Lock your base <n> time<s>",
 		stat = "locks",
 		targets = { 1, 25, 100 },
-		rewards = { 100, 2500, 25000 },
+		rewards = { 10, 250, 5000 },
 	},
 	{
 		id = "Pads",
 		title = "Unlock <n> pad<s>",
 		stat = "pads",
 		targets = { 6, 8, 16, 24, 32 },
-		rewards = { 500, 5000, 100000, 10000000, 1000000000 },
+		rewards = { 50, 300, 20000, 1000000, 50000000 },
 	},
 	{
 		id = "Earn",
 		title = "Earn <n> in total",
 		stat = "earned",
 		targets = { 1e4, 1e6, 1e8, 1e10 },
-		rewards = { 1000, 50000, 2e6, 1e8 },
+		rewards = { 200, 20000, 1e6, 5e7 },
 		cash = true,
 	},
 	{
@@ -415,13 +431,13 @@ for _, quest in DAILY_QUEST_POOL do
 	table.freeze(quest)
 end
 
--- SlimeDex ladder (CONTRACT.md §36.3): species found (of 50).
+-- SlimeDex ladder (CONTRACT.md §36.3): species found (of SpeciesDex.TOTAL).
 -- `reward` is cash x rebirthMultiplier, `bonus` a permanent income bonus (the ladder adds up to 0.45).
 local DEX_MILESTONES: { species: { DexMilestone } } = {
 	species = {
-		{ count = 8, reward = 1000, bonus = 0.02 },
-		{ count = 15, reward = 5000, bonus = 0.03 },
-		{ count = 20, reward = 25000, bonus = 0.05 },
+		{ count = 8, reward = 200, bonus = 0.02 },
+		{ count = 15, reward = 1000, bonus = 0.03 },
+		{ count = 20, reward = 10000, bonus = 0.05 },
 		{ count = 32, reward = 250000, bonus = 0.1 },
 		{ count = 40, reward = 1.5e6, bonus = 0.1 },
 		{ count = 50, reward = 1e7, bonus = 0.15 },
@@ -429,34 +445,79 @@ local DEX_MILESTONES: { species: { DexMilestone } } = {
 }
 
 local PLOT_SKINS: { PlotSkin } = {
-	{ id = "classic", name = "Classic Ranch" },
+	{ id = "classic", name = "Classic Ranch", color = { 110, 226, 170 } },
+	{ id = "garden", name = "Garden", family = "orchard", threshold = 0.75, color = { 252, 176, 118 } },
 	{
-		id = "mushroom",
-		name = "Mushroom Meadow",
-		set = 1,
+		id = "crystal",
+		name = "Frost & Sea",
+		family = "frost",
 		threshold = 0.75,
-		floor = { color = { 112, 150, 72 }, material = "Grass" },
-		trim = { 255, 214, 196 },
-		decor = "plot_skin_mushroom",
+		color = { 124, 210, 236 },
+		floor = { color = { 148, 124, 190 }, material = "Slate" },
+		trim = { 214, 196, 255 },
+		decor = "plot_skin_crystal",
 	},
+	{ id = "starlight", name = "Starlight", family = "starlight", threshold = 0.75, color = { 250, 212, 118 } },
 	{
 		id = "candy",
-		name = "Candy Patch",
-		set = 2,
+		name = "Candy",
+		species = { "gummy", "mochi", "flan", "soda", "rocky_road" },
 		threshold = 0.75,
+		color = { 246, 146, 192 },
 		floor = { color = { 224, 142, 172 }, material = "Sand" },
 		trim = { 255, 190, 214 },
 		decor = "plot_skin_candy",
 	},
 	{
-		id = "crystal",
-		name = "Crystal Grotto",
-		set = 3,
+		id = "mushroom",
+		name = "Forest",
+		species = { "mushie", "froggo", "pebble", "truffle", "moo_shroom", "bloom" },
 		threshold = 0.75,
-		floor = { color = { 148, 124, 190 }, material = "Slate" },
-		trim = { 214, 196, 255 },
-		decor = "plot_skin_crystal",
+		color = { 184, 150, 236 },
+		floor = { color = { 112, 150, 72 }, material = "Grass" },
+		trim = { 255, 214, 196 },
+		decor = "plot_skin_mushroom",
 	},
+}
+
+local function seat(id: string, name: string, mesh: string, height: number, color: { number }, unlock: any): PetSeat
+	return table.freeze({
+		id = id,
+		name = name,
+		mesh = mesh,
+		seat = height,
+		color = color,
+		unlock = table.freeze(table.clone(unlock)),
+	})
+end
+local EXCLUSIVE = { kind = "exclusive" }
+local PET_SEATS: { PetSeat } = {
+	seat("cloud", "Fluffy", "pet_cloud", 1.225, { 235, 240, 255 }, { kind = "free" }),
+	seat("jelly", "Jelly", "pet_mount_jelly", 1.17, { 140, 220, 90 }, { kind = "merges", count = 200 }),
+	seat(
+		"rainbow_cloud",
+		"Rainbow Cloud",
+		"pet_mount_rainbow_cloud",
+		1.22,
+		{ 250, 250, 255 },
+		{ kind = "dex", percent = 80 }
+	),
+	seat("storm_cloud", "Storm Cloud", "pet_mount_storm_cloud", 1.22, { 90, 92, 110 }, EXCLUSIVE),
+	seat("sunset_cloud", "Sunset Cloud", "pet_mount_sunset_cloud", 1.22, { 255, 170, 140 }, EXCLUSIVE),
+	seat("ice_cloud", "Ice Cloud", "pet_mount_ice_cloud", 1.22, { 170, 215, 245 }, EXCLUSIVE),
+	seat("flame_cloud", "Flame Cloud", "pet_mount_flame_cloud", 1.22, { 255, 120, 40 }, EXCLUSIVE),
+	seat("leaf", "Leaf", "pet_mount_leaf", 0.25, { 80, 170, 60 }, EXCLUSIVE),
+	seat("bubble", "Bubble", "pet_mount_bubble", 1.22, { 225, 235, 245 }, EXCLUSIVE),
+	seat("lily_pad", "Lily Pad", "pet_mount_lily_pad", 0.99, { 100, 200, 90 }, EXCLUSIVE),
+	seat("mushroom", "Mushroom", "pet_mount_mushroom", 1.23, { 230, 50, 50 }, EXCLUSIVE),
+	seat("pancakes", "Pancakes", "pet_mount_pancakes", 0.99, { 240, 170, 80 }, EXCLUSIVE),
+	seat("star_cushion", "Star Cushion", "pet_mount_star_cushion", 0.94, { 255, 200, 50 }, EXCLUSIVE),
+	seat("crescent_moon", "Crescent Moon", "pet_mount_crescent_moon", 0.63, { 250, 240, 180 }, EXCLUSIVE),
+	seat("magic_carpet", "Magic Carpet", "pet_mount_magic_carpet", 0.30, { 200, 40, 60 }, EXCLUSIVE),
+	seat("ufo", "UFO", "pet_mount_ufo", 1.0, { 130, 140, 170 }, EXCLUSIVE),
+	seat("royal_cushion", "Royal Cushion", "pet_mount_royal_cushion", 0.80, { 140, 60, 190 }, EXCLUSIVE),
+	seat("hoverboard", "Hoverboard", "pet_mount_hoverboard", 0.70, { 130, 70, 220 }, EXCLUSIVE),
+	seat("clam_shell", "Clam Shell", "pet_mount_clam_shell", 0.80, { 250, 150, 140 }, EXCLUSIVE),
 }
 
 -- PvP ladder (FEATURES.PvP, CONTRACT.md §26, docs/PVP.md). Every gate is a REBIRTH_TIERS threshold; the price is
@@ -595,6 +656,12 @@ for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES.species } :: { { any } 
 	end
 end
 for _, skin in PLOT_SKINS do
+	if skin.species then
+		table.freeze(skin.species)
+	end
+	if skin.color then
+		table.freeze(skin.color)
+	end
 	if skin.floor then
 		table.freeze(skin.floor.color)
 		table.freeze(skin.floor)
@@ -623,19 +690,25 @@ end
 -- v30 C9: wild slimes moved too fast. Every wild-slime pace (the parade lane walk, its hop rate) scales by this;
 -- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
 -- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
+-- One boss attack (Config.BOSS.MOVES): a frozen table typed loosely, since every attack kind has its own fields
+-- (Shared.BossAttacks reads them by kind).
+local function bossAttack(def: { [string]: any }): { [string]: any }
+	return table.freeze(def)
+end
+
 local SLIME_MOVE_SPEED_MULT = 0.65
--- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). Row f prices floor f's pads: its first pad you
--- buy costs `firstPadCost`, every next one on that floor `growth` times the one before. Floor 1's first bought pad is
--- pad PADS_START + 1; on a higher floor it is the floor's first pad, so its price is also the price of the new floor.
+-- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). Row f lists, for each of floor f's pads in order,
+-- the rebirths that open it (Economy.padRebirths). A pad open at 0 rebirths costs PAD_START_COSTS (the first
+-- PADS_START are free); any other pad costs PAD_PRICE_SHARE of the rebirth after the one that opens it (Economy.padCost).
 -- Adding a row adds a floor.
 local PADS_PER_FLOOR = 8
 local BASE_FLOORS = table.freeze({
-	table.freeze({ firstPadCost = 100, growth = 2.5 }),
-	table.freeze({ firstPadCost = 25_000, growth = 1.6 }),
-	table.freeze({ firstPadCost = 2_500_000, growth = 1.6 }),
-	table.freeze({ firstPadCost = 250_000_000, growth = 1.6 }),
+	table.freeze({ padRebirths = table.freeze({ 0, 0, 0, 0, 0, 0, 0, 0 }) }),
+	table.freeze({ padRebirths = table.freeze({ 1, 1, 2, 3, 4, 5, 6, 7 }) }),
+	table.freeze({ padRebirths = table.freeze({ 8, 9, 10, 10, 11, 12, 13, 14 }) }),
+	table.freeze({ padRebirths = table.freeze({ 15, 16, 17, 18, 20, 22, 24, 26 }) }),
 })
-local SPAWN_INTERVAL = 4 -- seconds between fountain drops; Slime Rain drops twice as fast
+local SPAWN_INTERVAL = 5 -- seconds between fountain drops
 local RITUAL_MIN_PLAYERS = 2 -- Config.RITUAL.MIN_PLAYERS; also the number of stand spots
 local WILD_BASE_LIFETIME = 75 -- seconds at the old pace
 
@@ -661,6 +734,9 @@ local Config = {
 	STATE_MIN_INTERVAL = 0.25, -- State snapshots are coalesced to at most 4/s per player
 	LEADERBOARD_INTERVAL = 60,
 	LEADERBOARD_SIZE = 10,
+	LEADERBOARD_PAGE = 100, -- entries per GetSortedAsync page (the top 10 shows; the rest give players their rank)
+	LEADERBOARD_RANK_DEPTH = 1000, -- how deep a refresh pages for the server's players' ranks; deeper = "1000+"
+	LEADERBOARD_RANK_RESERVE = 8, -- GetSortedAsync budget a deeper page must leave for the next refreshes
 
 	-- Economy
 	STARTING_CASH = 25,
@@ -668,18 +744,55 @@ local Config = {
 	PADS_PER_FLOOR = PADS_PER_FLOOR,
 	BASE_FLOORS = BASE_FLOORS,
 	PADS_MAX = #BASE_FLOORS * PADS_PER_FLOOR,
-	SELL_SECONDS = 30, -- a slime sells for this many seconds of its income
-	OFFLINE_RATE = 0.5, -- fraction of income earned while offline
+	PAD_START_COSTS = table.freeze({ 250, 1000, 4000, 12000 }) :: { number }, -- pads PADS_START + 1.. that are open at 0 rebirths
+	PAD_PRICE_SHARE = 0.25, -- a pad opened by rebirth R costs this share of rebirth R + 1 (Economy.padCost)
+	PAD_SAME_REBIRTH_GROWTH = 1.5, -- each further pad opened by the same rebirth costs this many times the one before
+	SELL_PRICE_SHARE = 0.3, -- a slime sells for this share of what the fountain charges for it (Economy.sellPrice)
+	OFFLINE_RATE = 0.25, -- fraction of income earned while offline
 	OFFLINE_CAP_SECONDS = 2 * 60 * 60, -- offline income stops accruing after 2 h
 	WELCOME_BACK_MIN_SECONDS = 4 * 60 * 60, -- away at least this long = a welcome-back card on join
 
 	-- Rebirth
-	REBIRTH_BASE_COST = 40000,
-	REBIRTH_COST_GROWTH = 4.5,
-	REBIRTH_MULTIPLIER_STEP = 0.5, -- +50 % income per rebirth
-	MAX_REBIRTHS = 50,
-	REBIRTH_LATE_FROM = 4, -- from this many rebirths on, the cost grows by REBIRTH_COST_GROWTH_LATE
-	REBIRTH_COST_GROWTH_LATE = 2.25,
+	-- cash rebirth N costs (Economy.rebirthCost(N - 1)), set with the pacing sim (docs/economy-proposal.html)
+	REBIRTH_COSTS = table.freeze({
+		81_000,
+		400_000,
+		1_100_000,
+		3_500_000,
+		15_000_000,
+		42_000_000,
+		90_000_000,
+		180_000_000,
+		330_000_000,
+		660_000_000,
+		1_200_000_000,
+		2_000_000_000,
+		3_700_000_000,
+		6_800_000_000,
+		13_000_000_000,
+		25_000_000_000,
+		42_000_000_000,
+		56_000_000_000,
+		75_000_000_000,
+		130_000_000_000,
+		230_000_000_000,
+		360_000_000_000,
+		440_000_000_000,
+		510_000_000_000,
+		740_000_000_000,
+		1_000_000_000_000,
+		1_400_000_000_000,
+		1_500_000_000_000,
+		1_600_000_000_000,
+		1_700_000_000_000,
+	}) :: { number },
+	-- income multiplier each rebirth adds, by band: rebirth n adds the `step` of the last band with `from` <= n
+	REBIRTH_MULTIPLIER_STEPS = table.freeze({
+		table.freeze({ from = 1, step = 0.5 }),
+		table.freeze({ from = 11, step = 1 }),
+		table.freeze({ from = 21, step = 1.5 }),
+	}),
+	MAX_REBIRTHS = #REBIRTH_SLIMES,
 	REBIRTH_SLIMES = table.freeze(REBIRTH_SLIMES), -- species each rebirth needs and uses up, one list per level
 	REBIRTH_TIERS = table.freeze(REBIRTH_TIERS), -- ranks (CONTRACT.md §8.8)
 
@@ -691,27 +804,48 @@ local Config = {
 	}),
 	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §15)
 	PLOT_SKIN_DEFAULT = "classic",
+	PET_SEATS = table.freeze(PET_SEATS), -- what the follow pet rides on (PetSeats, contract/pet-seats.md)
+	PET_SEAT_DEFAULT = "cloud",
 
 	-- Lock / steal
-	JOIN_LOCK_SECONDS = 45,
-	LOCK_SECONDS = 60,
-	LOCK_SECONDS_PER_REBIRTH = 10, -- a bought lock lasts this much longer per rebirth, up to LOCK_MAX_REMAINING
-	LOCK_MAX_REMAINING = 180, -- the longest lock: one purchase or several stacked never go past 3 min
-	LOCK_BASE_COST = 25,
-	LOCK_INCOME_SECONDS = 15, -- lock costs this many seconds of plot income (or base cost)
+	JOIN_LOCK_SECONDS = 120,
+	LOCK_SECONDS = 120,
+	LOCK_SECONDS_PER_REBIRTH = 10, -- a lock lasts this much longer per rebirth, up to LOCK_MAX_SECONDS
+	LOCK_MAX_SECONDS = 240, -- the longest single lock (4 min); locks never stack or extend
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
 	HOLD_CONFIRM_SECONDS = 0.8,
+	-- After you drop a slime (Drop, a hit, dying) you can't pick any slime up for this long (Carry.grab).
+	DROP_PICKUP_COOLDOWN = 1.5,
 	TUTORIAL_STEAL_SKIP_SECONDS = 20, -- solo tutorial: Steal step skips itself after this long with nobody to steal from
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
+	-- SlimeGuard (FEATURES.SlimeGuard, CONTRACT.md §41). Movement thresholds live in the shared MovementGuard defaults.
+	SLIME_GUARD = table.freeze({
+		ENFORCE = true, -- false = watch mode: flags are logged and add points, nothing else happens; true = steals bounce, pause, kick
+		SAMPLE_SECONDS = 0.1, -- one position per player this often (the server's view tick)
+		LAUNCH_SPEED = 150, -- studs/s allowed while a PvP launch / control window is open (PvpLaunch.guardActive)
+		SERVER_MOVE_SECONDS = 1, -- after a server teleport or respawn the next second is not checked
+		TELEPORT_COOLDOWN = 3, -- seconds after a teleport flag in which the player can't steal
+		DEPOSIT_SPEED_SLACK = 1.5, -- a stolen slime may reach home at most this much faster than its carry speed allows
+		BREATHER_SECONDS = 20, -- a victim's base locks this long after a slime is stolen from it
+		UNDO_SECONDS = 600, -- a kick undoes the player's steals from this many seconds back
+		LOG_PER_MINUTE = 20, -- log lines per player per minute at most
+		POINTS = table.freeze({
+			teleport = 3,
+			lockedEntry = 3,
+			earlyDeposit = 3,
+			speed = 2,
+			fly = 2,
+		} :: { [string]: number }),
+	}),
 	SLAP_REACH = 10,
 	SLAP_COOLDOWN = 1.5,
-	-- The default melee Bat Tool (server/BatTool, every player, live, NOT behind FEATURES.PvP). A hit on a carrying
-	-- thief is the base slap (StealService.slap: reach SLAP_REACH, cooldown SLAP_COOLDOWN) plus a knockback push.
+	-- The default melee Bat Tool (server/BatTool, every player, live, NOT behind FEATURES.PvP). A hit on anyone
+	-- carrying a slime is the base slap (CarryDrop.slap: reach SLAP_REACH, cooldown SLAP_COOLDOWN, they drop it) plus a push.
 	BAT = table.freeze({
 		TOOL_NAME = "Bat",
 		PUSH = 5, -- studs of knockback (PvpKnockbackRules.plan, capped by PVP.KNOCKBACK_MAX_PUSH)
-		FACING_DOT = 0.3, -- the thief must be in front: dot(look, direction to them) >= this (about 72 degrees each side)
+		FACING_DOT = 0.3, -- the target must be in front: dot(look, direction to them) >= this (about 72 degrees each side)
 		CLOSE_STUDS = 3, -- closer than this the facing check is skipped (hugging a thief)
 		SWING_GAP = 0.4, -- seconds between swing events (a whiff never spends the SLAP_COOLDOWN)
 	}),
@@ -720,47 +854,46 @@ local Config = {
 
 	-- Shop (permanent, kept on rebirth)
 	SPEED_COIL_PRICE = 1500,
-	SPEED_COIL_WALK_SPEED = 24, -- base WalkSpeed (1.5x BASE_WALK_SPEED); the carry slowdown applies to it
+	SPEED_COIL_WALK_SPEED = 19, -- WalkSpeed while the coil is held (1.19x BASE_WALK_SPEED; boost +3, 25% of the old +12)
 
-	-- Merge
-	MERGE_SIZE_BONUS = 0.1,
-	-- 3-slime merge (FEATURES.MergeVat3, TripleMerge)
+	-- Merge vat (VatState, TripleMerge, CONTRACT.md §21): three slimes of one rarity brew into one of a higher rarity
+	VAT_SIZE = 3, -- spots in a plot's vat
+	-- seconds one brew takes, by the rarity going in (before Quick brew)
+	MERGE_BREW_SECONDS = table.freeze({ 60, 180, 420, 900, 1800, 3600, 5400 }) :: { number },
 	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (up to MERGE_JUMP_MAX_TIER)
-	MERGE_MAX_TIER = 6, -- a random merge result is at most Mythic (Secret only from recipes and finds)
+	MERGE_MAX_TIER = 6, -- a random merge result is at most Mythic; three slimes of this tier or higher only merge in a recipe
 	MERGE_JUMP_MAX_TIER = 5, -- a +2 jump lands on Legendary at most
 	MERGE_ASSIST_CHANCE = 0.35, -- share of random merge results drawn from the species the player hasn't found
 	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
-	AUTO_MERGE_MAX = 25, -- most groups of three one Request("AutoMerge") merges (MergePlan, CONTRACT.md §21.1)
+	BREWED_INCOME_MULT = 1.5, -- income x this for a slime the vat made (Slime.brewed = 1)
+	RECIPE_INCOME_MULT = 2, -- income x this for a recipe hybrid the vat made (Slime.brewed = 2)
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = SPAWN_INTERVAL,
-	MAX_WILD_SLIMES = 144,
 	SLIME_MOVE_SPEED_MULT = SLIME_MOVE_SPEED_MULT,
 	WILD_BASE_LIFETIME = WILD_BASE_LIFETIME,
 	WILD_LIFETIME = math.round(WILD_BASE_LIFETIME / SLIME_MOVE_SPEED_MULT), -- 115: walk + hop slower, drain still at expiry
 	DESPAWN_TELEGRAPH_SECONDS = 5, -- wild slimes warn this long before they expire (FEATURES.DespawnTelegraph)
-	-- Despawn telegraph FX: optional one-shot sound with the poof. Off until a real asset is chosen.
-	DESPAWN_POOF_SOUND = false,
-	-- Despawn telegraph FX: PLACEHOLDER id. Replace with a real short pop/poof id before
-	-- enabling DESPAWN_POOF_SOUND. The client never plays id 0; don't ship 0 as "the sound".
-	DESPAWN_POOF_SOUND_ID = "rbxassetid://0",
+	-- Despawn telegraph FX: a one-shot 3D sound with the poof (in the SFX group).
+	DESPAWN_POOF_SOUND = true,
+	DESPAWN_POOF_SOUND_ID = "rbxassetid://9125639751", -- Pro Sound Effects "Magic Poofs Short Breathy Bursts Wheezy Exhale"
+	-- Wild slimes expire every few seconds near the fountain: at most one poof sound per this many seconds.
+	DESPAWN_POOF_SOUND_GAP = 10,
 	-- v13 rarity curve (CONTRACT.md §8.7): pity per server, Legendary+ drops are announced
 	PITY_EPIC = 30, -- after this many drops without an Epic+, the next one is at least Epic
 	PITY_LEGENDARY = 300, -- same for Legendary+
 	SECRET_TIER = 7, -- Config.RARITIES tier of the Secret slimes (SlimeRoster.SECRET_TIER)
 	RARE_ANNOUNCE_TIER = 5, -- wild drops of this tier or higher: Notify everyone + RareSpawn attributes
 	FREE_DROP_CHANCE = 0.01, -- share of wild slimes that cost nothing to grab
-	WILD_PRICE_SECONDS = 20, -- other wild slimes cost this many seconds of their income
+	-- other wild slimes cost this many seconds of their base income, by rarity (Economy.wildPrice)
+	WILD_PRICE_SECONDS = table.freeze({ 12, 40, 180, 720, 2400, 6000, 15000 }) :: { number },
 
 	-- Slime Rain event
 	RAIN_INTERVAL = 60 * 60, -- design: hourly
 	RAIN_FIRST_AT = 5 * 60,
 	RAIN_DURATION = 3 * 60, -- design: 3 minutes
-	-- Rain is about luck, not a flood: the normal spawn pace, a bigger crowd, much better odds.
-	RAIN_SPAWN_INTERVAL = SPAWN_INTERVAL / 2,
-	RAIN_WILD_CAP_MULT = 2, -- MAX_WILD_SLIMES x this during rain (Fountain.wildCap)
+	RAIN_SPAWN_INTERVAL = 2.5, -- seconds between fountain drops during rain
 	RAIN_LUCK = 5, -- rarity weights for tier >= 3 multiplied by this during rain
-	RAIN_WARNING_SECONDS = 60, -- everyone gets a heads-up toast this long before a rain
 
 	-- Weekly event rotation (FEATURES.WeeklyEvents, CONTRACT.md §17). The whole schedule is a pure function
 	-- of unix time (UTC), so every server agrees. Weeks run Monday 00:00 - Sunday 24:00 UTC (ISO weeks).
@@ -785,6 +918,7 @@ local Config = {
 		SlimeAnimations = true, -- slimes play the uploaded KeyframeSequences (MeshAssets.ANIMATIONS) once a probe track loads; false = procedural Motor6D motion (ui/SlimeMotor)
 		CycleModifier = true, -- a server modifier (Luck Surge, Golden Hour) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); false = no modifier
 		SlideCollision = true, -- invisible colliders along the FULL fountain slide, top to mouth (B6: players fell through above LOW_SLIDE_Y); false = low stretch only
+		FriendsInBase = true, -- the owner's lock-button switch lets their Roblox friends in this server through a locked base's stopper and steal there (PlotGuests, CONTRACT.md §42); false = no switch, locks block friends like anyone
 		FriendBonus = true, -- +FRIEND_BONUS_PER_FRIEND income per friend in the same server, up to FRIEND_BONUS_CAP (FriendBonus); false = no bonus
 		Weather = true, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md
 		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
@@ -796,18 +930,16 @@ local Config = {
 		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)
 		SlidePCD = true, -- the slide as a real collision mesh: MeshSwap makes fountain_split_slide PreciseConvexDecomposition (needs FountainSplit) and, once it is placed, FountainColliders drops the SlideColliders Post / Brace boxes it replaces; the floor slabs (the walk surface), rails and Skirt stay (docs/COLLISION.md); false = decor slide and every box
 		FountainTiers = true, -- v19: the central fountain's look upgrades with the server's best rank (FountainTiers glow) and every slime family drops from it on every server, with no rank needed to catch one; false = one Meadow fountain, Classic drops only (needs frame review)
-		MergeVat3 = true, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Consumables = true, -- restocking Shop section: luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
 		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Audio = true, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
 		PvP = true, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
-		WorldShops = true, -- CONTRACT.md §27: Item Shop + Upgrade Shop stands (ItemShopStand / UpgradeShopStand), Request OpenShop / CloseShop / ShopBuy, ShopEvent, range checks; false = the single ShopStand and the HUD Shop as before
-		WorldShopsStrict = true, -- CONTRACT.md §27.6: the old buy actions also need an open shop in range ("NotOpen"); on since the HUD Shop button is gone in HUD v2. Needs WorldShops
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 		MysteryEggs = true, -- the fountain sometimes drops a Mystery Egg that incubates on a pad, can be stolen and hatches into a slime (MysteryEgg, EggKind, contract/mystery-egg.md); false = no egg drops (eggs already on plots still hatch)
 		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
 		SlimeChoreo = true, -- species gaits and hops, lane beats and reactions to players (SlimePersona, ParadeChoreo, ui/SlimeGait, contract/slime-life.md); false = every slime glides the lane at one pace
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
+		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
 	}),
 
@@ -842,7 +974,7 @@ local Config = {
 	AUDIO = table.freeze({
 		DEFAULT_SFX_VOLUME = 0.8, -- 0..1, SFX SoundGroup
 		DEFAULT_MUSIC_VOLUME = 0.35, -- 0..1, Music / Ambient SoundGroup
-		AMBIENT_VOLUME = 0.25, -- loop volume inside the Music group (low on purpose)
+		AMBIENT_VOLUME = 0.15, -- loop volume inside the Music group (low on purpose)
 		AMBIENT_FADE_SECONDS = 4, -- crossfade day <-> night
 		SFX_MIN_GAP = 0.05, -- seconds between two plays of the same SFX name
 		SFX_MAX_LIVE = 4, -- most copies of one SFX name sounding at once
@@ -855,20 +987,112 @@ local Config = {
 			merge = "Merge",
 			rebirth = "Rebirth",
 			alarm = "Alarm",
-			error = "rbxasset://sounds/uuhhh.mp3",
+			error = "ErrorSoft",
 			click = "rbxasset://sounds/button.wav",
 		}),
 		-- Ambience: a looped bed per time of day, plus a night one-shot played now and then over it.
 		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds: own 20 s seamless loop (Merijn's upload)
-		AMBIENT_NIGHT_ID = "", -- no night bed: nights are quiet apart from the owl
+		AMBIENT_NIGHT_ID = "rbxassetid://9112764573", -- "Crickets Night 3" (Pro Sound Effects, 64 s loop), kept low
+		AMBIENT_NIGHT_VOLUME = 0.07, -- the crickets bed sits under the owl
 		-- "Owl Hooting Reverberant Several 1 (SFX)", Pro Sound Effects, public domain, 16 s. Not a seamless loop,
 		-- so it plays whole, once per gap, never looped.
 		NIGHT_ONESHOT_ID = "rbxassetid://9117182190",
 		NIGHT_ONESHOT_MIN_SECONDS = 20, -- gap between owl calls, picked at random in MIN..MAX
 		NIGHT_ONESHOT_MAX_SECONDS = 45,
-		NIGHT_ONESHOT_VOLUME = 0.5, -- inside the Music group; louder than the beds, it is rare
+		NIGHT_ONESHOT_VOLUME = 0.3, -- inside the Music group; louder than the beds, it is rare
 		NIGHT_ONESHOT_SPEED_JITTER = 0.05, -- PlaybackSpeed 1 +- this, so repeats don't sound identical
 		NIGHT_ONESHOT_MIN_LEVEL = 0.9, -- calls only once the night has (nearly) faded in
+		-- Music (APM library, public domain): one track by time of day, the boss track during a boss fight / haul.
+		-- These are finished cues, looped whole. Inside the Music group, under the player's Music slider.
+		MUSIC = table.freeze({
+			day = "rbxassetid://1836753678", -- "Little Moment Of Calm" (120 s)
+			night = "rbxassetid://1837212983", -- "Sleepy Time" (65 s)
+			boss = "rbxassetid://1836675698", -- "Silly Chase" (145 s)
+		}),
+		MUSIC_VOLUME = 0.22, -- quiet on purpose: music sits far under the game
+		MUSIC_FADE_SECONDS = 3,
+		-- Weather beds (Pro Sound Effects loops), by Constants.WEATHER_ATTRIBUTE value. The day / night bed ducks
+		-- to WEATHER_DUCK while one plays.
+		WEATHER_BEDS = table.freeze({
+			Rain = "rbxassetid://9112857056", -- "Rain On Window 2" (46 s loop)
+			Snow = "rbxassetid://9114057104", -- "Desert Wind Whistley Light Gusts 1" (37 s), soft cold wind
+		}),
+		WEATHER_BED_VOLUME = 0.18,
+		WEATHER_DUCK = 0.3,
+		-- Thunder during rain: one of these Sounds.IDS names now and then, at a random gap in MIN..MAX seconds.
+		THUNDER = table.freeze({ "Thunder1", "Thunder2", "Thunder3" }),
+		THUNDER_VOLUME = 0.3,
+		THUNDER_MIN_SECONDS = 25,
+		THUNDER_MAX_SECONDS = 60,
+		-- 3D one-shots (SoundController.play with `at`): full volume within MIN, silent past MAX studs.
+		SFX_3D_MIN_DISTANCE = 12,
+		SFX_3D_MAX_DISTANCE = 110,
+		SFX_SPEED_JITTER = 0.08, -- playVariant: PlaybackSpeed 1 +- this
+		SFX_TRIM_FADE = 0.2, -- seconds a trimmed sound (Sounds.TRIM) fades out over
+		-- State-driven cues (ui/SoundCues).
+		CUES = table.freeze({}),
+		-- World sounds driven by workspace attributes: boss attacks, egg hatches, rituals, the fountain (ui/WorldAudio).
+		WORLD = table.freeze({
+			CULL_DISTANCE = 150, -- studs from the camera: boss / egg / ritual one-shots farther away are skipped
+			BOSS_MAX_DISTANCE = 150, -- boss sounds (3D) are heard within this many studs
+			EGG_MAX_DISTANCE = 80, -- hatch show sounds (3D)
+			RITUAL_MAX_DISTANCE = 80, -- ritual spot / done one-shots (3D)
+			LATE_SECONDS = 0.4, -- a timed cue seen more than this long after its moment is dropped, not played late
+			FORGET_SECONDS = 30, -- seconds a played cue key is remembered (so a re-sent attribute never replays it)
+			FIND_EVERY = 1, -- seconds between looks for the boss model, the ritual circle and the fountain
+			-- Looped 3D beds, in the Music group (the Music slider covers them).
+			FOUNTAIN_ID = "rbxassetid://9120557315", -- plaza fountain water
+			FOUNTAIN_VOLUME = 0.25,
+			FOUNTAIN_MIN_DISTANCE = 12, -- full volume inside this many studs of the pool
+			FOUNTAIN_MAX_DISTANCE = 45, -- silent past this
+			-- Pro Sound Effects "Magic Force Field Constant 1": hums at the orb while the ritual charges.
+			RITUAL_HUM_ID = "rbxassetid://9116386800",
+			RITUAL_HUM_VOLUME = 0.35,
+			RITUAL_HUM_FADE_SECONDS = 0.8, -- fade in when the charge starts, out when it ends
+			RITUAL_HUM_MIN_DISTANCE = 8,
+			RITUAL_HUM_MAX_DISTANCE = 70,
+		}),
+		-- Slime voices, pickup / put-down and footsteps (ui/SlimeAudio, ui/Footsteps).
+		SLIME = table.freeze({
+			-- Slime sounds are 3D at the slime and only for slimes this close to the camera (studs).
+			MAX_DISTANCE = 35,
+			SLIME_GAP = 5, -- seconds: one slime squishes or blips at most once in this long
+			MAX_PER_SECOND = 1, -- squishes + blips across all slimes in any one second (nearest win)
+			LAND_VOLUME = 0.5, -- a hop or fidget landing (SlimeSquish), on top of Sounds.VOLUME
+			BLIP_CHANCE = 0.15, -- share of fidgets / new emotes that get a SlimeBlip
+			BLIP_GAP = 8, -- seconds between two blips across all slimes
+			BLIP_VOLUME = 0.5,
+			CARRY_VOLUME = 1, -- SlimePickup / SlimePutdown (always play within MAX_DISTANCE)
+			-- Pitch by size (the model's Size attribute, Config.MIN_SIZE..MAX_SIZE): bigger slimes sound lower.
+			-- PlaybackSpeed = SPEED_AT_SIZE_1 - SPEED_PER_SIZE * (size - 1), clamped to SPEED_MIN..SPEED_MAX.
+			SPEED_AT_SIZE_1 = 1.1,
+			SPEED_PER_SIZE = 0.3,
+			SPEED_MIN = 0.75,
+			SPEED_MAX = 1.3,
+			-- Footsteps: Humanoid.FloorMaterial name -> Sounds.VARIANTS group. Other floors keep Roblox's own step.
+			STEP_MATERIALS = table.freeze({
+				Grass = "StepGrass",
+				LeafyGrass = "StepGrass",
+				Ground = "StepGrass",
+				Mud = "StepGrass",
+				Snow = "StepSnow",
+				Glacier = "StepSnow",
+				Ice = "StepSnow",
+			}),
+			-- Ground snow tints the grass but never changes its material: from this snow cover (0..1) on, a
+			-- set listed here steps as the set it maps to.
+			SNOW_COVER_MIN = 0.5,
+			SNOW_STEPS = table.freeze({ StepGrass = "StepSnow" }),
+			STRIDE_STUDS = 3.5, -- studs per step at STRIDE_WALK_SPEED
+			STRIDE_WALK_SPEED = 16, -- Humanoid.WalkSpeed the stride above is for; faster walkers take longer strides
+			STRIDE_MIN = 2.5,
+			STRIDE_MAX = 6,
+			STEP_MIN_SPEED = 1.5, -- studs / s: slower than this a character stands still (no steps)
+			FIRST_STEP_SHARE = 0.4, -- share of a stride to the first step after standing or landing
+			OTHERS_DISTANCE = 40, -- studs from the camera: other players' steps within this
+			STEP_VOLUME = 0.6, -- the local player's steps
+			OTHERS_STEP_VOLUME = 0.35, -- other players' steps
+		}),
 	}),
 
 	-- A slime being stolen leaves a see-through copy on its pad until the steal ends (server/StealGhost).
@@ -925,28 +1149,279 @@ local Config = {
 		WARNING_SECONDS = 60, -- heads-up before the boss arrives
 		RAIN_GAP = 3 * 60, -- skip when Slime Rain runs or is due this close to the arrival
 		SKIP_DELAY = 5 * 60, -- a skipped arrival moves this much later
-		FIGHT_SECONDS = 90,
+		FIGHT_SECONDS = 150,
 		HAUL_SECONDS = 90,
 		LINGER_SECONDS = 6, -- the won / failed result stays in State.boss
 		PRIORITY_SECONDS = 5, -- head start for the top contributor in the haul
-		POINTS_PER_PLAYER = 25, -- meter target = this x players on the server
+		POINTS_PER_PLAYER = 110, -- meter target = this x players on the server (dazed hits count DAZED_MULTIPLIER)
 		HIT_GAP = 0.4, -- one meter point per player per this many seconds
 		HIT_REACH = 13, -- studs from the swinger's root to the boss Body (about the boss's radius at SCALE + a bat's reach)
 		DRAIN_PER_SECOND = 0.02, -- share of the target lost per second with nobody hitting
 		DRAIN_GRACE = 1, -- seconds without a hit before the drain starts
-		SHED_EVERY = 0.25, -- meter share between sheds
-		SHED_COUNT = 2, -- wild slimes per shed
-		DROP_LUCK = 3, -- luck multiplier on shed slimes
+		STAGE_EVERY = 0.25, -- meter share between stages (it speeds up at each; no slimes drop)
+		MVP_BONUS = 0.5, -- the top hitter of a boss brought home: +50 % income ...
+		MVP_SECONDS = 5 * 60, -- ... for this long (runtime only, never saved; a new MVP restarts the timer)
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
 		SPOT_RADIUS = 51, -- studs: between the landing ring and the parade lane
-		WANDER_ARC = math.rad(45), -- the boss wanders within this either side of SPOT_ANGLE (BossWander; the lane and drain fence it in)
-		WANDER_SPEED = 4, -- studs per second: it walks the whole fight without stopping
+		WANDER_ARC = math.rad(45), -- the boss roams within this either side of SPOT_ANGLE (BossArea; the lane and drain fence it in)
 		WANDER_CLEARANCE = 6.25, -- studs from its centre to the parade lane's edge and the goo drain's lip
-		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
+		-- Moves (Shared.BossChoreo): it strolls between stops, turns to look at players, and attacks from a stop.
+		STROLL_SPEED = 4.5, -- studs / s at full stride (x the stage speed-up)
+		STROLL_MIN = 8, -- studs: shortest stroll
+		STROLL_MAX = 18, -- studs: longest stroll
+		STROLL_EASE = 0.7, -- seconds it takes to set off and to stop
+		STROLL_TOWARD = 0.7, -- chance a stroll heads for the players' middle (else anywhere in the area)
+		LOOK_SECONDS = table.freeze({ 0.9, 1.8 }), -- a stop to look at the nearest player
+		ARRIVE_SECONDS = 1.6, -- it drops onto the boss spot and splats
+		ARRIVE_FALL = 0.6, -- of which the fall
+		ARRIVE_HEIGHT = 24, -- studs it drops from
+		WINDUP_SECONDS = 1.2, -- the telegraph before an attack
+		LEG_WINDUP_SECONDS = 0.7, -- the shorter telegraph before each next leg of a multi-leg charge
+		HOP_SECONDS = 0.55, -- a hops attack's leap
+		HOP_HEIGHT = 6, -- studs high it leaps
+		CHARGE_EASE = 0.25, -- seconds a charge takes to reach full speed and to stop
+		CHARGE_MIN = 8, -- studs: a charge aimed this short (off the thin boss area) runs along the area instead
+		STRIKE_SECONDS = 0.7, -- a cone or the spit's throw
+		RING_DELAY = 0.35, -- the stomp lands this long into a ring attack, then the ring runs out
+		SPIT_FLIGHT = 0.7, -- seconds a goo spit flies before it lands
+		DAZED_SECONDS = 2.5, -- after every attack
+		RISE_HEIGHT = 9, -- studs it floats up while its guards are out
+		RISE_SECONDS = 1, -- the float up
+		LAND_SECONDS = 0.8, -- the float down
+		GUARD_SECONDS = 12, -- longest a guard call lasts (it lands when every guard is popped)
+		SHRINK_SECONDS = 0.6, -- the meter is full: it shrinks to carry size over this long before it can be grabbed
+		MOVE_PIVOT_INTERVAL = 0.2, -- seconds between the server's pivots of the boss Body (clients draw every frame)
+		-- Attacks (Shared.BossAttacks): dodge the telegraphed attack, then punish it while it is dazed.
+		FIRST_ATTACK = 3, -- seconds after it lands before its first attack
+		ATTACK_GAP = table.freeze({ 2.5, 4 }), -- seconds from one attack's daze to the next windup (÷ the stage speed-up)
+		STAGE_SPEEDUP = 0.1, -- +10 % move and attack pace at every STAGE_EVERY of the meter
+		PHASE_AT = 0.5, -- meter share from which its `phase` attacks join its `start` ones
+		DAZED_MULTIPLIER = 2, -- a hit while it is dazed counts this many meter points
+		STUN_SECONDS = 1.5, -- a player hit by an attack can't land bat hits or slaps for this long
+		HIT_ARC = 8, -- studs high an attack's knockback throws a player
+		RING_WIDTH = 3.5, -- studs: how thick the stomp's goo ring is (jump over it)
+		CONE_HIT_AT = 0.25, -- seconds into a cone attack its push lands
+		PUDDLE_RADIUS = 4.5, -- studs: a goo spit puddle; standing in it slows you
+		SPIT_SPREAD = 6, -- studs: a spit with nobody to aim at lands this far round the boss
+		ATTACK_RANGE = 40, -- studs from the boss a spit or a jelly-rain drop may aim at a player (further = ignored)
+		STRIKE_HEIGHT = 9, -- studs a player's root may be above the arena floor and still be struck (roofs, the slide: no)
+		GUARD_RADIUS = 11, -- studs from the boss its guards stand
+		GUARD_REACH = 8, -- studs from a swinger's root to a guard for a bat hit
+		GUARD_POINTS = 2, -- meter points per popped guard
+		GUARD_SIZE = 3.4, -- studs: a guard's body (a mini copy of its boss)
+		-- Per boss species: `start` attacks from the first one, `phase` from PHASE_AT. Kinds: ring { radius, speed, push },
+		-- spit { count, slowSeconds, slow }, guards { count }, cone { radius, angle (degrees), push },
+		-- charge { distance, speed, width, push }, vent { multiplier } (passive: hits on its back while dazed),
+		-- hops { count, distance, radius, speed, push } (it leaps at you, a small ring on every landing).
+		-- Signature options, one per boss: ring `waves` (+ `waveGap` s, `waveSpeedUp` x), guards `heal` (meter share it
+		-- gets back if its guards outlast the call), charge `bounces` (it charges again at the top hitter) with
+		-- `sideways` + `backAndForth` (a crab's scuttle), spit `burst` { delay, radius, speed, push } (each puddle
+		-- bursts into a ring), guards `rain` { every, count, delay, radius, speed, push } (while it floats it drops goo
+		-- on the nearest players: a red circle, then a splash ring a moment after it lands).
+		MOVES = table.freeze({
+			goozilla = table.freeze({
+				-- signature: a double stomp, the second ring faster
+				start = table.freeze({
+					bossAttack({
+						kind = "ring",
+						radius = 22,
+						speed = 22,
+						push = 40,
+						waves = 2,
+						waveGap = 0.7,
+						waveSpeedUp = 1.4,
+					}),
+					bossAttack({ kind = "spit", count = 3, slowSeconds = 5, slow = 0.5 }),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "cone", radius = 20, angle = 110, push = 45 }),
+					bossAttack({
+						kind = "ring",
+						radius = 26,
+						speed = 24,
+						push = 45,
+						waves = 3,
+						waveGap = 0.6,
+						waveSpeedUp = 1.3,
+					}),
+				}),
+			}),
+			queen_jelly = table.freeze({
+				-- signature: royal guards; while they stand she rains jelly on you, and if they outlast the call she
+				-- heals 15 % of the meter
+				start = table.freeze({
+					bossAttack({
+						kind = "guards",
+						count = 3,
+						heal = 0.15,
+						rain = table.freeze({ every = 1.5, count = 2, delay = 0.6, radius = 7, speed = 16, push = 32 }),
+					}),
+					bossAttack({ kind = "cone", radius = 18, angle = 90, push = 45 }),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "ring", radius = 24, speed = 20, push = 40 }),
+					bossAttack({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.5 }),
+				}),
+			}),
+			mecha_goo = table.freeze({
+				-- signature: a ricochet charge, then it turns and rams the top hitter again
+				start = table.freeze({
+					bossAttack({ kind = "charge", distance = 35, speed = 32, width = 8, push = 50, bounces = 1 }),
+					bossAttack({ kind = "ring", radius = 20, speed = 26, push = 40 }),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.5 }),
+					bossAttack({ kind = "charge", distance = 35, speed = 36, width = 8, push = 50, bounces = 2 }),
+					bossAttack({ kind = "vent", multiplier = 3 }),
+				}),
+			}),
+			klawdius = table.freeze({
+				start = table.freeze({
+					bossAttack({ kind = "cone", radius = 16, angle = 70, push = 35 }),
+					-- signature: a sideways scuttle, back and forth three times
+					bossAttack({
+						kind = "charge",
+						distance = 24,
+						speed = 30,
+						width = 7,
+						push = 40,
+						sideways = true,
+						backAndForth = true,
+						bounces = 2,
+					}),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "spit", count = 4, slowSeconds = 5, slow = 0.55 }),
+					bossAttack({ kind = "ring", radius = 22, speed = 22, push = 40 }),
+					bossAttack({ kind = "vent", multiplier = 3 }),
+				}),
+			}),
+			pumpking = table.freeze({
+				-- signature: bouncing stomps, three hops at you with a ring on every landing
+				start = table.freeze({
+					bossAttack({ kind = "hops", count = 3, distance = 7, radius = 12, speed = 24, push = 32 }),
+					bossAttack({ kind = "spit", count = 3, slowSeconds = 5, slow = 0.5 }),
+				}),
+				phase = table.freeze({
+					bossAttack({
+						kind = "guards",
+						count = 3,
+						rain = table.freeze({ every = 1.6, count = 2, delay = 0.6, radius = 7, speed = 16, push = 30 }),
+					}),
+					bossAttack({ kind = "hops", count = 4, distance = 8, radius = 14, speed = 26, push = 35 }),
+					bossAttack({ kind = "vent", multiplier = 3 }),
+				}),
+			}),
+			goomancer = table.freeze({
+				start = table.freeze({
+					-- signature: rune puddles that burst into a ring a moment after they land
+					bossAttack({
+						kind = "spit",
+						count = 4,
+						slowSeconds = 6,
+						slow = 0.5,
+						burst = table.freeze({ delay = 1.6, radius = 10, speed = 16, push = 35 }),
+					}),
+					bossAttack({ kind = "cone", radius = 20, angle = 100, push = 40 }),
+				}),
+				phase = table.freeze({
+					bossAttack({ kind = "ring", radius = 28, speed = 26, push = 45 }),
+					bossAttack({ kind = "vent", multiplier = 3 }),
+				}),
+			}),
+		}),
+		-- every tier-6 boss twice and each Secret once per lap
+		ROTATION = table.freeze({
+			"goozilla",
+			"queen_jelly",
+			"klawdius",
+			"pumpking",
+			"mecha_goo",
+			"goozilla",
+			"queen_jelly",
+			"klawdius",
+			"pumpking",
+			"goomancer",
+		}),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
+	}),
+
+	-- Boss badges kept in the save (Shared.BossBadges, contract/boss-event.md), not Roblox badges. `trigger` + `value`
+	-- are read by BossBadges.reached: "hits" / "hauls" / "mvps" (data.boss counters), "win" (wins of `species`),
+	-- "wins" (wins of every species summed). A new boss species gets its own "win" line.
+	BOSS_BADGES = table.freeze({
+		table.freeze({
+			key = "BossBrawler",
+			name = "Boss Brawler",
+			description = "Land a hit on a boss.",
+			trigger = "hits",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossGoozilla",
+			name = "Goozilla Tamer",
+			description = "Carry Goozilla home yourself.",
+			trigger = "win",
+			value = 1,
+			species = "goozilla",
+		}),
+		table.freeze({
+			key = "BossQueenJelly",
+			name = "Dethroned",
+			description = "Carry Queen Jelly home yourself.",
+			trigger = "win",
+			value = 1,
+			species = "queen_jelly",
+		}),
+		table.freeze({
+			key = "BossKlawdius",
+			name = "Shell Shocked",
+			description = "Carry Klawdius home yourself.",
+			trigger = "win",
+			value = 1,
+			species = "klawdius",
+		}),
+		table.freeze({
+			key = "BossPumpking",
+			name = "Pumpkin Smasher",
+			description = "Carry Pumpking home yourself.",
+			trigger = "win",
+			value = 1,
+			species = "pumpking",
+		}),
+		table.freeze({
+			key = "BossGoomancer",
+			name = "Spellbreaker",
+			description = "Carry Goomancer home yourself.",
+			trigger = "win",
+			value = 1,
+			species = "goomancer",
+		}),
+		table.freeze({
+			key = "BossMechaGoo",
+			name = "Scrap Metal",
+			description = "Carry Mecha Goo home yourself.",
+			trigger = "win",
+			value = 1,
+			species = "mecha_goo",
+		}),
+		table.freeze({
+			key = "BossHauler",
+			name = "Heavy Lifter",
+			description = "Carry a boss home yourself.",
+			trigger = "hauls",
+			value = 1,
+		}),
+		table.freeze({
+			key = "BossHunter10",
+			name = "Boss Hunter",
+			description = "Carry 10 bosses home.",
+			trigger = "wins",
+			value = 10,
+		}),
 	}),
 
 	-- Day / night (DayNight)
@@ -1005,9 +1480,8 @@ local Config = {
 
 	-- Wild Mystery Eggs (FEATURES.MysteryEggs, contract/mystery-egg.md). Each KINDS entry: `id` (saved, never rename),
 	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
-	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `price` (cash to
-	-- grab a non-free one), `sell` (cash when sold, x the rebirth multiplier), `announce` (server toast on spawn) and
-	-- `drops` (tier weights of the slime inside).
+	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `announce` (server
+	-- toast on spawn) and `drops` (tier weights of the slime inside). A wild egg is free to grab and can't be sold.
 	MYSTERY_EGG = table.freeze({
 		DROP_CHANCE = 0.015, -- share of fountain drops that are an egg
 		RAIN_MULT = 3, -- DROP_CHANCE multiplier during Slime Rain
@@ -1029,8 +1503,6 @@ local Config = {
 				weight = 60,
 				hatchSeconds = 3 * 60,
 				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
-				price = 60,
-				sell = 40,
 				announce = false,
 				drops = table.freeze({
 					{ tier = 2, weight = 55 },
@@ -1045,8 +1517,6 @@ local Config = {
 				weight = 27,
 				hatchSeconds = 6 * 60,
 				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
-				price = 250,
-				sell = 150,
 				announce = false,
 				drops = table.freeze({
 					{ tier = 3, weight = 50 },
@@ -1061,8 +1531,6 @@ local Config = {
 				weight = 10,
 				hatchSeconds = 10 * 60,
 				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
-				price = 900,
-				sell = 600,
 				announce = true,
 				drops = table.freeze({ { tier = 4, weight = 55 }, { tier = 5, weight = 40 }, { tier = 6, weight = 5 } }),
 			}),
@@ -1073,8 +1541,6 @@ local Config = {
 				weight = 3,
 				hatchSeconds = 15 * 60,
 				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
-				price = 3000,
-				sell = 2000,
 				announce = true,
 				drops = table.freeze({ { tier = 5, weight = 60 }, { tier = 6, weight = 35 }, { tier = 7, weight = 5 } }),
 			}),
@@ -1161,10 +1627,10 @@ local Config = {
 	-- reward: { kind = "cash", amount } or { kind = "boost", mult, minutes };
 	-- expiresAt = unix seconds (nil = never). Once per player, kept in the save.
 	CODES = table.freeze({
-		WELCOME = table.freeze({ reward = table.freeze({ kind = "cash", amount = 1000 }) }),
+		WELCOME = table.freeze({ reward = table.freeze({ kind = "cash", amount = 100 }) }),
 		SLIMEBOOST = table.freeze({ reward = table.freeze({ kind = "boost", mult = 2, minutes = 10 }) }),
 		LAUNCH = table.freeze({
-			reward = table.freeze({ kind = "cash", amount = 5000 }),
+			reward = table.freeze({ kind = "cash", amount = 500 }),
 			expiresAt = 1830297600, -- 2028-01-01 00:00:00 UTC
 		}),
 	}),
@@ -1194,7 +1660,7 @@ local Config = {
 	}),
 	BADGE_RETRIES = 4, -- BadgeService attempts per badge (backoff 2, 4, 8 s)
 
-	-- World shops (FEATURES.WorldShops, CONTRACT.md §27): studs from the character's HumanoidRootPart to the stand's Counter,
+	-- World shops (CONTRACT.md §27): studs from the character's HumanoidRootPart to the stand's Counter,
 	-- checked on the server on OpenShop and on every purchase; out of range closes the shop.
 	SHOP_RANGE = 14,
 
@@ -1325,9 +1791,11 @@ local Config = {
 	}),
 
 	-- Persistence
-	SAVE_VERSION = 8, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7)
+	SAVE_VERSION = 9, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7; v9: boss record replaces trophies, SaveData.migrateV8)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
+	SAVE_DRAIN_SECONDS = 20, -- a load waits at most this long for the same player's saves still in flight
+	SAVE_DRAIN_STEP = 0.25, -- seconds between checks while a load waits for those saves
 	MAX_SLIMES_SAVED = 64,
 }
 

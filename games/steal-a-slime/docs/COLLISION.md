@@ -137,7 +137,7 @@ floor part); it needs no call site and touches no terrain-height file.
 | Fidelity | Meshes |
 |---|---|
 | `Box` | `slime_fountain_emerge` (bug #10, main), `phoenix_corner_post` (the stile post), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_bench`, `ranch_compost_bin`, `ranch_flower_planter`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_wagon`, `ranch_water_trough`, `ranch_barrel`, `ranch_well`, `ranch_fence_stile` (v196 follow-up) |
-| `Hull` | `merge_vat`, `ranch_shop_stand` (already; and the Item / Upgrade stands' `ranch_item_shop`, `ranch_upgrade_cabinet`), `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_slime_coop`, `ranch_water_pump`, `ranch_weathervane`, `ranch_wheelbarrow`, `ranch_windmill` |
+| `Hull` | `merge_vat`, the pad stands' `goo_cork_stand` (also queryable, so dropped slimes land on it: slot attribute `MeshCanQuery`), the Item / Upgrade stands' `ranch_item_shop` and `ranch_upgrade_cabinet`, `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_slime_coop`, `ranch_water_pump`, `ranch_weathervane`, `ranch_wheelbarrow`, `ranch_windmill` |
 | `PreciseConvexDecomposition` | `ranch_barn_loft` (loft over an open floor), marked "PCD: Phoenix Studio check" |
 | none (decor) | `slime_fountain` (tower, hand colliders stay; the split pieces are in `MeshAssets.COLLISION`, the slide only with `SlidePCD`), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring` and `ranch_goo_drain` (decor meshes, solid through the thin `PlazaColliders` parts, see the last section), `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, every slime kit mesh, `slime_lane` |
 
@@ -220,11 +220,11 @@ left off as decisions for Merijn; he decided they are solid, see the last sectio
 
 ## Plot-level audit (B9)
 
-Every plot mesh slot has a decided collision (`tests/MeshCollision.spec` "plot-level collision"): `merge_vat` is `Hull`; no PCD
+Every plot mesh slot has a decided collision (`tests/MeshCollision.spec` "plot-level collision"): `merge_vat` and the pad stands' `goo_cork_stand` are `Hull`; no PCD
 on a plot. The jar's glass, lintel, lid and bridge are colliding Parts; the moat, jar floor and parked stopper are decor. `phoenix_pad_crate`
 is decor: `Pad_<j>` (8 x 2.4 x 8) is the solid, steppable surface. `phoenix_top_earners_board` is shared with the world board
 (own Collider), so the plot's `DexMesh` slot box (canCollide on, canQuery / canTouch off) is the dex board's collider.
-Client-toggled cosmetics (LockSign, RebirthDecor, the jar mascot and ooze, habitats, skins) stay non-colliding: hidden
+Client-toggled cosmetics (LockSign, the jar mascot and ooze, habitats, skins) stay non-colliding: hidden
 colliders would be invisible walls, and the Pad / PlotLockGuard already cover those areas. The `LockBarrier.Stopper` is the one
 exception: hidden and non-colliding while open, the server makes it solid while the plot is locked.
 

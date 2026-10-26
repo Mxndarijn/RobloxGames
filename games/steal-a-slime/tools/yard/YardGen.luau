@@ -236,7 +236,7 @@ local ANCHORS: { Template } = {
 	{
 		name = "windmill",
 		where = "wedge",
-		wedge = 3,
+		angle = 335, -- the gap between plots 7 and 8 (wedge 3, its old home, is the Hall of Fame plaza)
 		weight = 1,
 		spread = 16,
 		anchor = true,
@@ -361,7 +361,7 @@ local ANCHORS: { Template } = {
 	{
 		name = "well yard",
 		where = "wedge",
-		angle = 142,
+		angle = 183, -- behind plot 5, clear of the Hall of Fame plaza
 		weight = 1,
 		spread = 14,
 		anchor = true,

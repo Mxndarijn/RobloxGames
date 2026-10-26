@@ -9,9 +9,12 @@
 ]]
 
 local UI = script.Parent.Parent
+local InputKind = require(UI.InputKind)
 local Layout = require(UI.Layout)
 local Tutorial = require(UI.Tutorial)
 local Widgets = require(UI.Widgets)
+
+local UserInputService = game:GetService("UserInputService")
 
 local Theme = Widgets.Theme
 local create = Widgets.create
@@ -32,7 +35,8 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		BackgroundTransparency = 0.05,
 		ZIndex = Layout.ZINDEX.Tutorial,
 		Parent = parent,
-	}, { Widgets.corner(12), Widgets.stroke(Theme.Accent, 2) })
+	}, { Widgets.corner(Layout.NOTICE_RADIUS) })
+	Widgets.ring(card, Theme.Gold, Layout.NOTICE_RADIUS) -- guidance is a Gold-ringed notice
 
 	local counter = Widgets.label({
 		Name = "Counter",
@@ -125,8 +129,29 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		return wanted
 	end
 
+	local latest: any = nil
+
+	-- The current device and the shown name of the tutorial prompts' key on it (Tutorial.PROMPT_KEYS), from
+	-- UserInputService so a PlayStation pad reads "Square" and a keyboard layout its own letter.
+	local function device(): (InputKind.Kind, string?)
+		local kind: InputKind.Kind = InputKind.kind(UserInputService)
+		if kind == "touch" then
+			return kind, nil
+		end
+		local keyName: string = (Tutorial.PROMPT_KEYS :: any)[kind]
+		local ok, text = pcall(function()
+			return UserInputService:GetStringForKeyCode((Enum.KeyCode :: any)[keyName])
+		end)
+		local label: string? = nil
+		if ok and type(text) == "string" and text ~= "" then
+			label = if kind == "gamepad" then Tutorial.gamepadLabel(text) else text
+		end
+		return kind, label
+	end
+
 	function self.update(state: any)
-		local view = Tutorial.fromState(state)
+		latest = state
+		local view = Tutorial.fromState(state, device())
 		shownStep = if view then view.id else nil
 		wanted = view ~= nil and view.id ~= hiddenStep
 		if view == nil or not wanted then
@@ -140,6 +165,16 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		body.Text = view.body
 		card.Visible = not menuOpen
 	end
+
+	-- The step text names the device's own control: it follows the last input.
+	UserInputService.LastInputTypeChanged:Connect(function()
+		if wanted and latest then
+			local view = Tutorial.fromState(latest, device())
+			if view then
+				body.Text = view.body
+			end
+		end
+	end)
 
 	return self
 end

@@ -2,8 +2,8 @@
 --[[
 	Nav
 
-	Left-bar entries and their badges (H1 HUD: Rebirth, Goals, SlimeDex, Codes; the Merge, Shop and
-	Top menus have no button, your slimes are managed at their pads with keys (SlimeKeys), see init.client panelByKey). Shown as a grid of rounded tiles, icon over label (B5). Pure (tests/ui/Nav.spec.luau); the
+	Left-bar entries and their badges (Rebirth, Goals, SlimeDex, Codes, Skins, Leaders; the Merge and world shop
+	menus have no button, your slimes are managed at their pads with keys (SlimeKeys), see init.client panelByKey). Shown as a grid of rounded tiles, icon over label (B5). Pure (tests/ui/Nav.spec.luau); the
 	buttons themselves are built in init.client.luau. Badges are short hints
 	derived from the latest State ("!" = something to do there); the SlimeDex tile shows its completion as a
 	slime jar instead (DexJarView).
@@ -19,25 +19,27 @@ Nav.ENTRIES = table.freeze({
 	table.freeze({ key = "Goals", icon = "🎯", label = "Goals", item = "Quest" }),
 	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex", item = "Dex_50" }),
 	table.freeze({ key = "Codes", icon = "🎁", label = "Codes", item = "Gift" }),
+	table.freeze({ key = "Skins", icon = "🏠", label = "Skins", item = "PlotSkin_candy" }),
+	table.freeze({ key = "Leaderboard", icon = "🏆", label = "Leaders", item = "Badge_Millionaire" }),
 } :: { Entry })
 
 local function num(value: any): number
 	return if type(value) == "number" and value == value then value else 0
 end
 
--- True when two slimes that aren't being stolen share a tier.
+-- True when three slimes that aren't being stolen share a tier (a full merge vat load).
 function Nav.canMerge(slimes: any): boolean
 	if type(slimes) ~= "table" then
 		return false
 	end
-	local seen: { [number]: boolean } = {}
+	local seen: { [number]: number } = {}
 	for _, view in slimes do
 		if type(view) == "table" and view.stolenBy == nil and type(view.slime) == "table" then
 			local tier = view.slime.tier
-			if seen[tier] then
+			seen[tier] = (seen[tier] or 0) + 1
+			if seen[tier] >= 3 then
 				return true
 			end
-			seen[tier] = true
 		end
 	end
 	return false

@@ -7,10 +7,11 @@
 	their bottom centre and face local -Z (put them down with
 	model:PivotTo(CFrame)). Suggested spots: WorldLayout.PROP_SPOTS.
 
-	  Props.shopStand(style?): Model     "ShopStand"; PrimaryPart "Counter"
-	      (ProximityPrompt parent), striped awning, "SHOP" sign. Anchored.
-	      `style` "ItemShop" | "UpgradeShop" (Props.STAND_STYLES) picks the
-	      stand's kit skin (WorldLayout.SHOP_STANDS) and its sign colours; the
+	  Props.shopStand(style): Model      "ItemShopStand" | "UpgradeShopStand";
+	      PrimaryPart "Counter" (ProximityPrompt parent), striped awning, a Goo
+	      jelly sign with the shop's name. Anchored. `style` "ItemShop" |
+	      "UpgradeShop" (Props.STAND_STYLES) picks the stand's kit skin
+	      (WorldLayout.SHOP_STANDS) and its sign (mint or gold jelly); the
 	      Model's box is the skin's box.
 	  Props.speedCoil(): Tool            "SpeedCoil"; "Handle" Part with
 	      welded coil rings, all Massless, CanCollide false, unanchored.
@@ -27,6 +28,8 @@
 	      Value labels), at most Props.LEADERBOARD_ROWS.
 ]]
 
+local Goo = if script then require(script.Parent.Parent.Shared.GooPalette) else require("../../shared/GooPalette")
+local GooIcons = if script then require(script.Parent.Parent.Shared.GooIcons) else require("../../shared/GooIcons")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
 local Props = {}
@@ -106,44 +109,50 @@ end
 
 -- Shop stand ---------------------------------------------------------------
 
-local SIGN_BACK = rgb(58, 38, 26) -- dark wood board
-local SIGN_TEXT = rgb(255, 240, 200) -- cream
-local SIGN_STROKE = rgb(30, 18, 10)
+local function tone(c: { number }): Color3
+	return Color3.fromRGB(c[1], c[2], c[3])
+end
 
 type StandStyle = {
 	stand: string, -- the WorldLayout.SHOP_STANDS entry: the kit mesh the stand skins, its sign face and counter
-	signBack: Color3,
-	signText: Color3,
-	signStroke: Color3,
-	signPlate: boolean, -- the board colour is painted behind the text, over the kit's own sign face
+	title: string, -- the name on the sign
+	icon: string, -- the emoji on the sign's white badge (the minimap pins use the same ones), "" when drawn
+	drawn: string?, -- a GooIcons drawing on the badge instead of the emoji
+	jelly: { { number } }, -- the sign's jelly gradient, top, middle, bottom (GooPalette)
 }
 
 -- Per-shop look (CONTRACT.md §27.2). The two kit meshes carry the shops' own look (a pink market stall full of goods,
--- a blue and gold cabinet showing the six upgrades); the stands only add the sign colours.
+-- a blue and gold cabinet showing the six upgrades); the stands only add the sign (canvas GooWorldSigns): the item
+-- shop on mint jelly, the upgrade shop on gold.
 Props.STAND_STYLES = table.freeze({
 	ItemShop = table.freeze({
 		stand = "ItemShopStand",
-		signBack = SIGN_BACK,
-		signText = SIGN_TEXT,
-		signStroke = SIGN_STROKE,
-		signPlate = false,
-	}),
+		title = "Item shop",
+		icon = "🛒",
+		jelly = table.freeze({ Goo.MintHi, Goo.Mint, Goo.MintLo }),
+	} :: StandStyle),
 	UpgradeShop = table.freeze({
 		stand = "UpgradeShopStand",
-		signBack = rgb(26, 36, 78), -- navy plate on the cabinet's blue sign face
-		signText = rgb(255, 214, 90), -- gold
-		signStroke = rgb(10, 14, 36),
-		signPlate = true,
-	}),
+		title = "Upgrade shop",
+		icon = "",
+		drawn = "upArrow",
+		jelly = table.freeze({ Goo.GoldHi, Goo.Gold, Goo.GoldDeep }),
+	} :: StandStyle),
 }) :: { [string]: StandStyle }
 
--- The single ShopStand (FEATURES.WorldShops off).
-local PLAIN_STAND: StandStyle = table.freeze({
-	stand = "ShopStand",
-	signBack = SIGN_BACK,
-	signText = SIGN_TEXT,
-	signStroke = SIGN_STROKE,
-	signPlate = false,
+-- The jelly sign on the stand's sign face, as fractions of the face: the jelly across the top, the badge on its
+-- left, short drips (x, drop width, neck length) falling from its bottom edge onto the empty face under it.
+Props.STAND_SIGN = table.freeze({
+	pixelsPerStud = 80,
+	jelly = table.freeze({ x = 0.03, y = 0.04, w = 0.94, h = 0.7 }),
+	radius = 0.28, -- of the jelly's height
+	stroke = 4, -- px Ink outline
+	badge = 0.78, -- of the jelly's height
+	drips = table.freeze({
+		table.freeze({ x = 0.16, w = 0.035, len = 0.06 }),
+		table.freeze({ x = 0.55, w = 0.026, len = 0.02 }),
+		table.freeze({ x = 0.84, w = 0.032, len = 0.04 }),
+	}),
 })
 
 -- How far the Sign's front stands in front of the skin's sign face: closer, the text loses the depth test to the
@@ -164,8 +173,106 @@ local function marker(m: Model, name: string, at: Vector3)
 	p.CanTouch = false
 end
 
-function Props.shopStand(style: string?): Model
-	local look = if style then Props.STAND_STYLES[style] or PLAIN_STAND else PLAIN_STAND
+local function corner(parent: Instance, radius: UDim)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = radius
+	c.Parent = parent
+end
+
+local function frame(parent: Instance, name: string, color: Color3, pos: UDim2, size: UDim2): Frame
+	local f = Instance.new("Frame")
+	f.Name = name
+	f.BackgroundColor3 = color
+	f.BorderSizePixel = 0
+	f.Position = pos
+	f.Size = size
+	f.Parent = parent
+	return f
+end
+
+local function inkStroke(parent: Instance, thickness: number)
+	local s = Instance.new("UIStroke")
+	s.Color = tone(Goo.Ink)
+	s.Thickness = thickness
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.Parent = parent
+end
+
+-- Draws the shop's jelly sign on `sign` (its Front face), for a face `aspect` = width / height: a jelly pill with
+-- an Ink outline, a white badge with the shop's icon, the name in Ink, and a few drips under it.
+function Props.standSign(sign: BasePart, look: StandStyle, aspect: number): SurfaceGui
+	local S = Props.STAND_SIGN
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "SignGui"
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = S.pixelsPerStud
+	gui.LightInfluence = 0 -- unlit: the sign stays readable at night
+	gui.Parent = sign
+	local j = S.jelly
+	local hi, mid, lo = tone(look.jelly[1]), tone(look.jelly[2]), tone(look.jelly[3])
+	local top = j.y + j.h
+	for i, d in S.drips do
+		-- One finger of goo with a round end, from under the jelly down onto the face.
+		local dropH = d.w * aspect -- round in px
+		local drip = frame(
+			gui,
+			`Drip{i}`,
+			lo,
+			UDim2.fromScale(d.x - d.w / 2, top - dropH),
+			UDim2.fromScale(d.w, d.len + dropH * 2)
+		)
+		corner(drip, UDim.new(1, 0))
+	end
+	local jelly = frame(gui, "Jelly", Color3.new(1, 1, 1), UDim2.fromScale(j.x, j.y), UDim2.fromScale(j.w, j.h))
+	jelly.ZIndex = 2 -- over the drips' necks
+	corner(jelly, UDim.new(S.radius, 0))
+	inkStroke(jelly, S.stroke)
+	local shade = Instance.new("UIGradient")
+	shade.Rotation = 90
+	shade.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, hi),
+		ColorSequenceKeypoint.new(0.45, mid),
+		ColorSequenceKeypoint.new(1, lo),
+	})
+	shade.Parent = jelly
+	-- The jelly's width in units of its height, to place things left to right in height units.
+	local wide = j.w * aspect / j.h
+	local inset = (1 - S.badge) / 2
+	local badge = frame(
+		jelly,
+		"Badge",
+		tone(Goo.White),
+		UDim2.fromScale(inset * 1.4 / wide, inset),
+		UDim2.fromScale(S.badge / wide, S.badge)
+	)
+	badge.ZIndex = 2
+	corner(badge, UDim.new(1, 0))
+	inkStroke(badge, S.stroke - 1)
+	if look.drawn == "upArrow" then
+		GooIcons.upArrow(
+			badge,
+			{ Instance = Instance, UDim = UDim, UDim2 = UDim2, Vector2 = Vector2 },
+			tone(Goo.Ink),
+			3
+		)
+	else
+		local icon = label(badge, "Icon", look.icon, tone(Goo.Ink))
+		icon.Size = UDim2.fromScale(0.72, 0.72)
+		icon.Position = UDim2.fromScale(0.14, 0.14)
+		icon.ZIndex = 3
+	end
+	local text = label(jelly, "Text", look.title, tone(Goo.Ink))
+	local textX = (inset * 2.4 + S.badge) / wide
+	text.Position = UDim2.fromScale(textX, 0.17)
+	text.Size = UDim2.fromScale(0.97 - textX, 0.66)
+	text.ZIndex = 2
+	return gui
+end
+
+function Props.shopStand(style: string): Model
+	local look = Props.STAND_STYLES[style]
+	assert(look, `Props.shopStand: unknown style {style}`)
 	local def = WorldLayout.SHOP_STANDS[look.stand]
 	local k = def.scale
 	local native = WorldLayout.meshSize(def.mesh, 1)
@@ -176,7 +283,7 @@ function Props.shopStand(style: string?): Model
 	-- lands on the Counter part. Front = local -Z, the kit's +Z: the counter is c.z * k ahead of the box centre.
 	local cx, cz = c.x * k, -c.z * k
 	local m = Instance.new("Model")
-	m.Name = "ShopStand"
+	m.Name = look.stand
 	local half = MARKER / 2
 	marker(m, "BoxLow", Vector3.new(-w / 2 + half, half, -d / 2 + half))
 	marker(m, "BoxHigh", Vector3.new(w / 2 - half, h - half, d / 2 - half))
@@ -228,34 +335,12 @@ function Props.shopStand(style: string?): Model
 		"Sign",
 		Vector3.new(face.width * k, face.height * k, SIGN_THICK),
 		CFrame.new(face.x * k, face.y * k, signFront + SIGN_THICK / 2),
-		look.signBack,
-		{}
+		tone(look.jelly[2]),
+		{ canCollide = false }
 	)
-	local gui = Instance.new("SurfaceGui")
-	gui.Name = "SignGui"
-	gui.Face = Enum.NormalId.Front
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 40
-	gui.LightInfluence = 0 -- unlit: the SHOP text stays readable at night
-	gui.Parent = sign
-	local text = label(gui, "Text", "SHOP", look.signText)
-	text.Size = UDim2.fromScale(1, 1)
-	-- Light text with a dark stroke, inset so no post of the skin covers a letter from a front-diagonal view.
-	text.TextStrokeColor3 = look.signStroke
-	if look.signPlate then
-		text.BackgroundColor3 = look.signBack
-		text.BackgroundTransparency = 0
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0.18, 0)
-		corner.Parent = text
-	end
-	text.TextStrokeTransparency = 0
-	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft = UDim.new(0.12, 0)
-	pad.PaddingRight = UDim.new(0.12, 0)
-	pad.PaddingTop = UDim.new(0.08, 0)
-	pad.PaddingBottom = UDim.new(0.08, 0)
-	pad.Parent = text
+	sign.Transparency = 1 -- only the jelly draws; the kit's own sign face shows round it
+	sign.CanQuery = false
+	Props.standSign(sign, look, face.width / face.height)
 	-- A few goo jars on the counter.
 	for i, color in { rgb(120, 255, 140), rgb(255, 130, 220), rgb(120, 200, 255) } do
 		local jar = part(
@@ -264,7 +349,7 @@ function Props.shopStand(style: string?): Model
 			Vector3.new(1.4, 1.1, 1.1),
 			CFrame.new(cx - 3 + (i - 1) * 3, top + 0.7, cz) * UPRIGHT,
 			color,
-			{ shape = "Cylinder", material = "Glass", transparency = 0.25, canCollide = false }
+			{ shape = "Cylinder", material = "SmoothPlastic", transparency = 0.25, canCollide = false }
 		)
 		jar.CastShadow = false
 	end
@@ -436,23 +521,138 @@ function Props.tutorialNpc(): Model
 	bounds.CanTouch = false
 	local tag = Instance.new("BillboardGui")
 	tag.Name = "NameTag"
-	tag.Size = UDim2.fromOffset(160, 40)
+	tag.Size = UDim2.fromOffset(170, 44)
 	-- Straight above the head, clear of the slime on the hat.
 	tag.StudsOffset = Vector3.new(0, (GUIDE_TOP - 5.375) * GUIDE_SCALE + 0.9, 0)
 	tag.AlwaysOnTop = false
 	tag.MaxDistance = 80
+	tag.LightInfluence = 0 -- the white stays white in shade
 	tag.Parent = head
-	local text = label(tag, "Text", "Guide", rgb(255, 255, 255))
+	-- Outlined white Fredoka, like every world label (canvas GooWorldSigns "Guide").
+	local text = label(tag, "Text", "Guide", tone(Goo.White))
 	text.Size = UDim2.fromScale(1, 1)
-	text.TextStrokeTransparency = 0.3
+	local outline = Instance.new("UIStroke")
+	outline.Color = tone(Goo.Ink)
+	outline.Thickness = 2.5
+	outline.LineJoinMode = Enum.LineJoinMode.Round
+	outline.Parent = text
+	return finish(m, root)
+end
+
+-- Hall of Fame arch ---------------------------------------------------------
+
+-- Two wooden posts over the Hall of Fame path where it leaves the ring path, a beam and a red sign reading
+-- "HALL OF FAME" on both sides. Front = local -Z (towards the fountain). Only the posts are solid; the beam and the
+-- sign sit high above head height.
+Props.HALL_ARCH = table.freeze({ span = 22, height = 17, post = 2 })
+
+function Props.hallArch(): Model
+	local m = Instance.new("Model")
+	m.Name = "HallOfFameArch"
+	local A = Props.HALL_ARCH
+	local wood, beamWood, red = rgb(120, 72, 40), rgb(150, 96, 54), rgb(214, 66, 58)
+	local half = A.span / 2
+	local root = part(m, "PostL", Vector3.new(A.post, A.height, A.post), CFrame.new(-half, A.height / 2, 0), wood, {
+		material = "WoodPlanks",
+	})
+	part(m, "PostR", Vector3.new(A.post, A.height, A.post), CFrame.new(half, A.height / 2, 0), wood, {
+		material = "WoodPlanks",
+	})
+	local beam = part(
+		m,
+		"Beam",
+		Vector3.new(A.span + 4, 2.2, 1.8),
+		CFrame.new(0, A.height + 0.6, 0),
+		beamWood,
+		{ material = "WoodPlanks", canCollide = false }
+	)
+	beam.CanQuery = false
+	local sign = part(m, "Sign", Vector3.new(15, 3.2, 0.5), CFrame.new(0, A.height - 2.3, 0), red, {
+		canCollide = false,
+	})
+	sign.CanQuery = false
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = `SignGui{face.Name}`
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 0
+		gui.Adornee = sign
+		gui.Parent = sign
+		local text = label(gui, "Text", "HALL OF FAME", rgb(255, 244, 214))
+		text.Position = UDim2.fromScale(0.05, 0.12)
+		text.Size = UDim2.fromScale(0.9, 0.76)
+		local outline = Instance.new("UIStroke")
+		outline.Color = tone(Goo.Ink)
+		outline.Thickness = 3
+		outline.LineJoinMode = Enum.LineJoinMode.Round
+		outline.Parent = text
+	end
+	return finish(m, root)
+end
+
+-- Professor Goo -------------------------------------------------------------
+
+-- The Hall of Fame greeter, skinned with the guide_professor kit mesh (shared/modeling-kit/models/guide_professor.py,
+-- 3.72 x 7.06 x 2.98 studs, front -Z like the Guide). Plain blocks stand in for him until the skin loads and stay
+-- his collider; an invisible Bounds part pins the Model's box to the skin's, so MeshSwap centres the skin on it.
+Props.PROFESSOR_SIZE = table.freeze({ 3.719, 7.056, 2.98 })
+
+function Props.professorGoo(): Model
+	local m = Instance.new("Model")
+	m.Name = "ProfessorGoo"
+	local coat, pants, skin, hair = rgb(246, 236, 214), rgb(92, 90, 120), rgb(255, 210, 166), rgb(250, 250, 250)
+	local size = Props.PROFESSOR_SIZE
+	local root = part(
+		m,
+		"HumanoidRootPart",
+		Vector3.new(2.2, 2.4, 1.3),
+		CFrame.new(0, 3.3, 0),
+		coat,
+		{ transparency = 1, canCollide = false }
+	)
+	part(m, "Legs", Vector3.new(1.8, 2.1, 1.1), CFrame.new(0, 1.05, 0), pants, {})
+	part(m, "Coat", Vector3.new(2.4, 2.9, 1.4), CFrame.new(0, 3.5, 0), coat, {})
+	local head = part(m, "Head", Vector3.new(1.9, 1.7, 1.7), CFrame.new(0, 5.8, 0), skin, {})
+	local tuft = part(m, "Hair", Vector3.new(2.6, 0.9, 2.0), CFrame.new(0, 6.6, 0.1), hair, { canCollide = false })
+	tuft.CanQuery = false
+	local bounds = part(
+		m,
+		"Bounds",
+		Vector3.new(size[1], size[2], size[3]),
+		CFrame.new(0, size[2] / 2, 0),
+		coat,
+		{ transparency = 1, canCollide = false }
+	)
+	bounds.CanQuery = false
+	bounds.CanTouch = false
+	local tag = Instance.new("BillboardGui")
+	tag.Name = "NameTag"
+	tag.Size = UDim2.fromOffset(220, 44)
+	tag.StudsOffset = Vector3.new(0, size[2] - 5.8 + 1.1, 0)
+	tag.AlwaysOnTop = false
+	tag.MaxDistance = 80
+	tag.LightInfluence = 0
+	tag.Parent = head
+	local text = label(tag, "Text", "Professor Goo", tone(Goo.White))
+	text.Size = UDim2.fromScale(1, 1)
+	local outline = Instance.new("UIStroke")
+	outline.Color = tone(Goo.Ink)
+	outline.Thickness = 2.5
+	outline.LineJoinMode = Enum.LineJoinMode.Round
+	outline.Parent = text
 	return finish(m, root)
 end
 
 -- Leaderboard board --------------------------------------------------------
 
-function Props.leaderboardBoard(): Model
+export type BoardDef = { model: string, title: string, accent: { number } }
+
+-- One Hall of Fame board (Leaderboards.BOARDS entry `def`: Model name, title, header colour); nil = Top Earners.
+function Props.leaderboardBoard(def: BoardDef?): Model
 	local m = Instance.new("Model")
-	m.Name = "LeaderboardBoard"
+	m.Name = if def then def.model else "LeaderboardBoard"
 	local frameColor = rgb(70, 52, 50)
 	-- The text lies on the skin's own front cream panel (WorldProps skins this
 	-- Model with phoenix_top_earners_board, 19.5 tall so scale 0.978, its front
@@ -490,16 +690,48 @@ function Props.leaderboardBoard(): Model
 	local pad = UDim.new(0.04, 0)
 	padding.PaddingTop, padding.PaddingBottom, padding.PaddingLeft, padding.PaddingRight = pad, pad, pad, pad
 	padding.Parent = content
-	local title = label(content, "Title", Props.LEADERBOARD_TITLE, ink(Props.BOARD_PALETTE.Title))
-	title.Size = UDim2.fromScale(1, 0.12)
+	-- The title sits on a rounded strip in the board's own colour, white text on it.
+	local header = Instance.new("Frame")
+	header.Name = "Header"
+	header.Size = UDim2.fromScale(1, 0.15)
+	header.BackgroundColor3 = if def then ink(def.accent) else ink(Props.BOARD_PALETTE.Title)
+	header.BorderSizePixel = 0
+	header.Parent = content
+	local headerCorner = Instance.new("UICorner")
+	headerCorner.CornerRadius = UDim.new(0.25, 0)
+	headerCorner.Parent = header
+	local title = label(header, "Title", if def then def.title else Props.LEADERBOARD_TITLE, rgb(255, 255, 255))
+	title.Position = UDim2.fromScale(0.04, 0.12)
+	title.Size = UDim2.fromScale(0.92, 0.76)
 	-- The skin's red divider runs 2.45 studs below the face top (about 0.21-0.23 of the Board), so the
 	-- rows start just under it and the title keeps the band above.
 	local rows = Instance.new("Frame")
 	rows.Name = "Rows"
 	rows.Position = UDim2.fromScale(0, 0.24)
-	rows.Size = UDim2.fromScale(1, 0.76)
+	rows.Size = UDim2.fromScale(1, 0.66)
 	rows.BackgroundTransparency = 1
 	rows.Parent = content
+	-- The viewer's own line under the top 10 ("You  $1.2K"), filled and shown by each client (ui/WorldLeaderboard)
+	-- when they are not in the list.
+	local you = Instance.new("Frame")
+	you.Name = "You"
+	you.Position = UDim2.fromScale(0, 0.91)
+	you.Size = UDim2.fromScale(1, 0.08)
+	you.BackgroundColor3 = ink(Props.BOARD_PALETTE.Me)
+	you.BorderSizePixel = 0
+	you.Visible = false
+	you.Parent = content
+	local youCorner = Instance.new("UICorner")
+	youCorner.CornerRadius = UDim.new(0.3, 0)
+	youCorner.Parent = you
+	local youName = label(you, "Name", "You", ink(Props.BOARD_PALETTE.Text))
+	youName.Position = UDim2.fromScale(0.04, 0)
+	youName.Size = UDim2.fromScale(0.5, 1)
+	youName.TextXAlignment = Enum.TextXAlignment.Left
+	local youValue = label(you, "Value", "", ink(Props.BOARD_PALETTE.Value))
+	youValue.Position = UDim2.fromScale(0.56, 0)
+	youValue.Size = UDim2.fromScale(0.4, 1)
+	youValue.TextXAlignment = Enum.TextXAlignment.Right
 	local list = Instance.new("UIListLayout")
 	list.SortOrder = Enum.SortOrder.LayoutOrder
 	list.Padding = UDim.new(0.01, 0)

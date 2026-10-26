@@ -24,7 +24,9 @@ local Genome = if Shared then require(Shared.Genome) else require("../shared/Gen
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
+local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -46,6 +48,7 @@ export type Entry = {
 	promptHold: number, -- ProximityPrompt.HoldDuration (B1)
 	promptEnabled: boolean,
 	hideFromUserId: number?, -- the owner, on Steal prompts; nil = visible to everyone
+	guestsOnly: string?, -- on a locked base's Steal prompts while it has guests: only they see it (PlotGuests.encode)
 	boss: boolean, -- the boss of the boss event (model attribute Boss)
 	bossScale: number?, -- model scale of the fighting boss (Config.BOSS.SCALE); nil = 1
 	rare: number?, -- tier of an announced Legendary+ wild drop (model attribute RareSpawn)
@@ -70,14 +73,21 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 		local carrier = world.carriedBy[id]
 		local state: SlimeState = if carrier then "Carried" else "Wild"
 		local boss = wild.boss == true
-		-- The boss is grabbable only in the haul phase; it fights at BOSS.SCALE and never despawns on its own.
-		local bossScale = if boss and bossPhase == "fight" then Config.BOSS.SCALE else nil
+		-- The boss fights at BOSS.SCALE and never despawns on its own. When the meter fills it shrinks for
+		-- BOSS.SHRINK_SECONDS (clients draw that), then it is carry size and grabbable.
+		local move = wild.move
+		local shrinking = boss
+			and bossPhase == "haul"
+			and move ~= nil
+			and move.kind == "down"
+			and now < move.at + Config.BOSS.SHRINK_SECONDS
+		local bossScale = if boss and (bossPhase == "fight" or shrinking) then Config.BOSS.SCALE else nil
 		entries[id] = {
 			id = id,
 			slime = wild.slime,
 			state = state,
 			ownerUserId = 0,
-			price = wild.price,
+			price = if carrier then 0 else wild.price, -- only for sale while nobody carries it
 			income = Economy.slimeIncome(wild.slime, 0),
 			plotIndex = nil,
 			pad = nil,
@@ -85,8 +95,9 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 			wild = wild,
 			promptText = Carry.actionText(wild.price),
 			promptHold = Carry.holdDuration(wild.price),
-			promptEnabled = carrier == nil and (not boss or bossPhase == "haul"),
+			promptEnabled = carrier == nil and (not boss or (bossPhase == "haul" and not shrinking)),
 			hideFromUserId = nil,
+			guestsOnly = nil,
 			boss = boss,
 			bossScale = bossScale,
 			rare = wild.rare,
@@ -107,6 +118,8 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 
 	for _, session in world.sessions do
 		local unlocked = not Steal.isLocked(session.lockUntil, now)
+		-- A locked base with guests keeps its Steal prompts on, for the guests only (PromptHide hides them for the rest).
+		local guestsOnly = if unlocked then nil else PlotGuests.encode(PlotGuests.list(world, session))
 		for _, slime in session.data.slimes do
 			local carrier = world.carriedBy[slime.id]
 			local state: SlimeState = if carrier
@@ -126,15 +139,20 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				state = state,
 				ownerUserId = session.userId,
 				price = nil,
-				income = PlayerData.slimeIncome(session.data, shown),
+				income = if VatState.isLocked(session.data, slime.id)
+					then 0
+					else PlayerData.slimeIncome(session.data, shown),
 				plotIndex = session.plotIndex,
 				pad = slime.pad,
 				carrierUserId = carrier,
 				wild = nil,
 				promptText = Carry.actionText(nil),
 				promptHold = Carry.holdDuration(nil),
-				promptEnabled = state == "Pad" and unlocked,
+				promptEnabled = state == "Pad"
+					and (unlocked or guestsOnly ~= nil)
+					and not VatState.isLocked(session.data, slime.id),
 				hideFromUserId = if state == "Pad" then session.userId else nil,
+				guestsOnly = if state == "Pad" then guestsOnly else nil,
 				boss = false,
 				bossScale = nil,
 				rare = nil,

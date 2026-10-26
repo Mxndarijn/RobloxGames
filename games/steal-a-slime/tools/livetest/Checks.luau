@@ -114,14 +114,14 @@ function Checks.plotSigns(rt, owner)
 			if #texts == 0 then
 				table.insert(blank, sign:GetFullName())
 			end
-			if owner and table.find(texts, `{owner}'s Plot`) then
+			if owner and table.find(texts, `{owner}'s plot`) then
 				owned = true
 			end
 		end
 	end
 	local detail = `{total} plot sign(s), {#blank} blank`
 	if owner then
-		detail ..= if owned then `; {owner}'s Plot shown` else `; no sign shows {owner}'s Plot`
+		detail ..= if owned then `; {owner}'s plot shown` else `; no sign shows {owner}'s plot`
 	end
 	return {
 		name = "plot signs have text",
@@ -133,10 +133,18 @@ end
 
 function Checks.props(rt)
 	local missing = {}
-	local names = { "ShopStand", "LeaderboardBoard", "TutorialNpc" }
-	if rt.workspace:FindFirstChild("ItemShopStand", true) then
-		names = { "ItemShopStand", "UpgradeShopStand", "LeaderboardBoard", "TutorialNpc" } -- FEATURES.WorldShops
-	end
+	local names = {
+		"ItemShopStand",
+		"UpgradeShopStand",
+		"TutorialNpc",
+		"LeaderboardBoard",
+		"WeeklyEarnersBoard",
+		"TopStealsBoard",
+		"TopDexBoard",
+		"TopMergesBoard",
+		"HallOfFameArch",
+		"ProfessorGoo",
+	}
 	for _, name in names do
 		if not rt.workspace:FindFirstChild(name, true) then
 			table.insert(missing, name)

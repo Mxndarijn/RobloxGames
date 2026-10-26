@@ -32,7 +32,12 @@ end
 
 local PVP = Config.PVP_TOOLS[1]
 
-local function mount(state: any, items: { { name: string, equipped: boolean } }?)
+-- GetLastInputType for an injected UserInputService stand-in: the mouse.
+local function mouseLast(): any
+	return { Name = "MouseMovement" }
+end
+
+local function mount(state: any, items: { { name: string, equipped: boolean } }?, extra: { [string]: any }?)
 	local gui = UiHarness.root()
 	local tools = fakeTools(items or { { name = "Bat", equipped = false } })
 	local sent: { { any } } = {}
@@ -47,6 +52,8 @@ local function mount(state: any, items: { { name: string, equipped: boolean } }?
 			return 100
 		end,
 		keyboard = true,
+		input = extra and extra.input,
+		gui = extra and extra.gui,
 	})
 	inv.layout(Layout.screen(1920, 1080))
 	if state then
@@ -70,6 +77,22 @@ local function visibleSlots(inv: any): { any }
 end
 
 describe("Inventory hotbar", function()
+	it("a bag with only the starting Bat says it is empty and where items come from, instead of the grid", function()
+		local inv = mount(nil)
+		inv.setPanelOpen(true)
+		local empty = UiHarness.find(inv.panel.frame, "EmptyBag")
+		expect(empty ~= nil and empty.Visible).toBe(true)
+		expect(UiHarness.find(empty, "Title").Text).toBe("Your bag is empty")
+		expect(UiHarness.find(empty, "Body").Text).toBe(Inventory.EMPTY.body)
+		expect(UiHarness.find(inv.panel.frame, "Grid").Visible).toBe(false)
+		expect(UiHarness.find(inv.panel.frame, "HotbarPlate").Visible).toBe(true) -- the Bat stays on the plate
+		expect(UiHarness.find(inv.panel.frame, "Count").Visible).toBe(false)
+		inv.setPanelOpen(false)
+		local full = mount(nil, { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } })
+		full.setPanelOpen(true)
+		expect(UiHarness.find(full.panel.frame, "EmptyBag")).toBeNil()
+		expect(UiHarness.find(full.panel.frame, "Grid").Visible).toBe(true)
+	end)
 	it("shows the Bat slot, a bag cell, and a picture for each", function()
 		local inv = mount(nil)
 		local slots = visibleSlots(inv)
@@ -108,6 +131,18 @@ describe("Inventory hotbar", function()
 		expect(sent[1][2]).toBe(PVP.id)
 		expect(inv.pressKey(3)).toBe(false) -- nothing on slot 3
 		expect(inv.pressKey(9)).toBe(false)
+	end)
+
+	it("move mode hides the bar and its keys do nothing until it ends", function()
+		local inv, tools = mount(pvpState(nil))
+		inv.setMoving(true)
+		expect(inv.root.Visible).toBe(false)
+		expect(inv.pressKey(1)).toBe(false)
+		expect(inv.cycleSlot(1)).toBe(false)
+		expect(#tools.calls).toBe(0)
+		inv.setMoving(false)
+		expect(inv.root.Visible).toBe(true)
+		expect(inv.pressKey(1)).toBe(true)
 	end)
 
 	it("selecting the held Tool puts it away; selecting a Tool puts an equipped PvP item away first", function()
@@ -256,6 +291,55 @@ describe("Inventory panel", function()
 		inv.update({ carrying = { slimeId = "x" } })
 		expect(inv.panel.frame.Visible).toBe(false)
 	end)
+end)
+
+describe("Inventory panel on a short landscape phone", function()
+	for _, vp in { { 844, 332 }, { 640, 360 }, { 844, 390 } } do
+		it(`{vp[1]}x{vp[2]}: the bag items are reachable cells of at least 44 screen px`, function()
+			local inv = mount(nil, { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } })
+			local s = Layout.screen(vp[1], vp[2])
+			inv.layout(s)
+			inv.setPanelOpen(true)
+			local grid = UiHarness.find(inv.panel.frame, "Grid")
+			local plate = UiHarness.find(inv.panel.frame, "HotbarPlate")
+			local frame = inv.panel.frame
+			local body = Layout.panelBody(
+				Layout.rect(frame.Position.X.Offset, frame.Position.Y.Offset, frame.Size.X.Offset, frame.Size.Y.Offset)
+			)
+			local gridH = body.h - grid.Position.Y.Offset
+			local items = {}
+			for _, cell in grid:GetChildren() do
+				if cell.Name == "Item" and cell.Visible then
+					table.insert(items, cell)
+				end
+			end
+			expect(#items).toBe(2)
+			for _, cell in items do
+				expect(cell.Size.X.Offset * s.scale >= Layout.MIN_TOUCH).toBe(true)
+				expect(cell.Size.Y.Offset * s.scale >= Layout.MIN_TOUCH).toBe(true)
+				expect(cell.Position.Y.Offset + cell.Size.Y.Offset <= gridH).toBe(true) -- the first row shows whole
+			end
+			expect(grid.Position.X.Offset >= plate.Position.X.Offset + plate.Size.X.Offset).toBe(true)
+		end)
+		it(`{vp[1]}x{vp[2]}: an empty bag's message sits in the grid column, clear of the hotbar plate`, function()
+			local inv = mount(nil)
+			local s = Layout.screen(vp[1], vp[2])
+			inv.layout(s)
+			inv.setPanelOpen(true)
+			local frame = inv.panel.frame
+			local plate = UiHarness.find(frame, "HotbarPlate")
+			local empty = UiHarness.find(frame, "EmptyBag")
+			expect(empty ~= nil and empty.Visible).toBe(true)
+			local body = Layout.panelBody(
+				Layout.rect(frame.Position.X.Offset, frame.Position.Y.Offset, frame.Size.X.Offset, frame.Size.Y.Offset)
+			)
+			local x, w = empty.Position.X.Offset, empty.Size.X.Offset
+			expect(empty.Size.X.Scale).toBe(0)
+			expect(x >= plate.Position.X.Offset + plate.Size.X.Offset).toBe(true)
+			expect(w > 0 and x + w <= body.w).toBe(true)
+			expect(x).toBe(UiHarness.find(frame, "Grid").Position.X.Offset)
+		end)
+	end
 end)
 
 describe("Inventory bag key", function()
@@ -546,7 +630,8 @@ describe("Inventory hotbar order and drag", function()
 		Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseMovement, Enum.UserInputType.Touch
 	local COIL = { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } }
 
-	-- UserInputService stand-in: InputChanged / InputEnded keep their handlers and Fire runs them.
+	-- UserInputService stand-in: InputChanged / InputEnded keep their handlers and Fire runs them; the last input
+	-- is the mouse.
 	local function fakeInput()
 		local function event()
 			local e = { handlers = {} :: { any } }
@@ -568,7 +653,7 @@ describe("Inventory hotbar order and drag", function()
 			end
 			return e
 		end
-		return { InputChanged = event(), InputEnded = event() }
+		return { InputChanged = event(), InputEnded = event(), GetLastInputType = mouseLast }
 	end
 
 	local function mountOrder(hotbar: { string }?, items: any?)
@@ -839,6 +924,7 @@ describe("Inventory hotbar order through request", function()
 		local dones: { (any) -> () } = {}
 		local handlers: { any } = {}
 		local input = {
+			GetLastInputType = mouseLast,
 			InputChanged = {
 				Connect = function(_self: any, h: any)
 					handlers.changed = h
@@ -960,4 +1046,97 @@ describe("Inventory hotbar order through request", function()
 			UiHarness.virtualTime(false)
 		end
 	)
+end)
+
+describe("Inventory gamepad", function()
+	local Enum = require("@lune/roblox").Enum
+	local ITEMS = { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } }
+
+	it("the bumpers cycle the filled slots through the number-key path, wrapping both ways", function()
+		local inv, tools, sent = mount(pvpState(nil), ITEMS) -- slots: Bat, Speed Coil, the PvP item
+		expect(inv.cycleSlot(1)).toBe(true) -- nothing in hand: the first
+		expect(tools.calls[#tools.calls]).toBe("equip:Bat")
+		tools.items[1].equipped = true
+		inv.update(pvpState(nil))
+		expect(inv.cycleSlot(1)).toBe(true)
+		expect(tools.calls[#tools.calls]).toBe("equip:SpeedCoil")
+		tools.items[1].equipped, tools.items[2].equipped = false, true
+		inv.update(pvpState(nil))
+		inv.cycleSlot(1)
+		expect(sent[#sent][1]).toBe("EquipPvpItem")
+		expect(sent[#sent][2]).toBe(PVP.id)
+		inv.update(pvpState(PVP.id))
+		inv.cycleSlot(1) -- wraps to the Bat
+		expect(tools.calls[#tools.calls]).toBe("equip:Bat")
+		tools.items[1].equipped, tools.items[2].equipped = true, false
+		inv.update(pvpState(nil))
+		inv.cycleSlot(-1) -- wraps back to the last
+		expect(sent[#sent][2]).toBe(PVP.id)
+	end)
+
+	it("with nothing in hand the previous bumper picks the last slot", function()
+		local inv, _, sent = mount(pvpState(nil), ITEMS)
+		expect(inv.cycleSlot(-1)).toBe(true)
+		expect(sent[1][2]).toBe(PVP.id)
+	end)
+
+	it("skips an empty slot and does nothing with a single filled slot already in hand", function()
+		local inv, tools = mount(nil, { { name = "Bat", equipped = true } })
+		expect(inv.cycleSlot(1)).toBe(false)
+		expect(#tools.calls).toBe(0)
+	end)
+
+	it("follows the keyboard guards: carrying, a menu and the open bag", function()
+		local inv = mount(nil, ITEMS)
+		inv.update({ carrying = { slimeId = "x" } })
+		expect(inv.cycleSlot(1)).toBe(false)
+		inv.update({})
+		inv.setMenuOpen(true)
+		expect(inv.cycleSlot(1)).toBe(false)
+		inv.setMenuOpen(false)
+		inv.setPanelOpen(true)
+		expect(inv.cycleSlot(1)).toBe(false)
+	end)
+
+	it("opening the bag on a gamepad focuses the first hotbar plate slot, closing clears it", function()
+		local gui = UiHarness.guiService
+		UiHarness.lastInputType = Enum.UserInputType.Gamepad1
+		local inv = mount(nil)
+		inv.setPanelOpen(true)
+		expect(gui.SelectedObject ~= nil).toBe(true)
+		expect(gui.SelectedObject.Name).toBe("HotbarSlot1")
+		inv.setPanelOpen(false)
+		expect(gui.SelectedObject).toBeNil()
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+	end)
+
+	it("leaves the focus alone with a mouse or touch, and a focus outside the panel on close", function()
+		local gui = UiHarness.guiService
+		UiHarness.lastInputType = Enum.UserInputType.Touch
+		local inv = mount(nil)
+		inv.setPanelOpen(true)
+		expect(gui.SelectedObject).toBeNil()
+		local other = UiHarness.root()
+		gui.SelectedObject = other
+		inv.setPanelOpen(false)
+		expect(gui.SelectedObject).toBe(other)
+		gui.SelectedObject = nil
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+	end)
+
+	it("reads the device from the injected input service and focuses through the injected gui service", function()
+		local fakeInput = table.clone(UiHarness.userInput)
+		fakeInput.GetLastInputType = function()
+			return Enum.UserInputType.Gamepad1
+		end
+		local fakeGui: any = { SelectedObject = nil }
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement -- the real service says mouse
+		local inv = mount(nil, nil, { input = fakeInput, gui = fakeGui })
+		inv.setPanelOpen(true)
+		expect(fakeGui.SelectedObject ~= nil).toBe(true)
+		expect(fakeGui.SelectedObject.Name).toBe("HotbarSlot1")
+		expect(UiHarness.guiService.SelectedObject).toBeNil()
+		inv.setPanelOpen(false)
+		expect(fakeGui.SelectedObject).toBeNil()
+	end)
 end)

@@ -9,6 +9,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local AudioSettings = if script then require(script.Parent.AudioSettings) else require("./AudioSettings")
+local BossBadges = if script then require(script.Parent.BossBadges) else require("./BossBadges")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Perks = if script then require(script.Parent.Perks) else require("./Perks")
@@ -38,6 +39,9 @@ export type Pvp = {
 	fun: { [string]: boolean },
 }
 
+-- `base` = totalEarned when the save was first seen in Monday-based week `week` (WeeklyEvents.weekIndex); 0 = never.
+export type Weekly = { week: number, base: number }
+
 export type Data = {
 	version: number,
 	cash: number,
@@ -59,20 +63,25 @@ export type Data = {
 	goals: { [string]: number }, -- Config.GOALS id -> stages paid
 	speciesRewards: number, -- Config.DEX_MILESTONES.species paid
 	plotSkin: string, -- equipped Config.PLOT_SKINS id (PlotSkins; "classic" = default)
+	petSeat: string, -- equipped Config.PET_SEATS id (PetSeats; "cloud" = default; no version bump)
 	-- Redeem codes (Codes, CONTRACT.md §10)
 	redeemed: { [string]: boolean }, -- normalized codes already used
 	boostMult: number, -- active income boost (1 = none)
 	weekendMult: number?, -- runtime only (never saved): x2 Weekend multiplier set by Income.step, nil = none
 	friendBonus: number?, -- runtime only (never saved): friends in this server, FriendBonus.bonus; nil = none
 	ritualBonus: number?, -- runtime only (never saved): "Blessed" income bonus from the co-op ritual; nil = none
+	mvpBonus: number?, -- runtime only (never saved): Boss MVP income bonus (BossCredit); nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
 	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
 	settings: AudioSettings.Settings, -- Sound card values (save v6; used only with FEATURES.Audio)
+	allowFriends: boolean?, -- the lock button's friends switch (FEATURES.FriendsInBase): true = friends pass a locked base; nil = off
 	consumables: Consumables, -- restocking shop purchases (added without a version bump)
 	pvp: Pvp, -- FEATURES.PvP owned items (PvpRules, CONTRACT.md §26; added without a version bump)
-	trophies: { Slime }, -- boss trophies, one per boss species (contract/boss-event.md; added without a version bump)
+	boss: BossBadges.Record, -- boss record and save-only boss badges (BossBadges, contract/boss-event.md)
 	hotbar: { string }?, -- HotbarOrder: 9 slot keys, "" = empty; nil until the player sets one (no version bump)
 	eggLuck: { [string]: number }?, -- Mystery Egg lucky meter: misses in a row per kind id (contract/mystery-egg.md; no version bump)
+	weekly: Weekly, -- Weekly Top Earners: totalEarned at the start of `week` (Leaderboards.rollWeek; no version bump)
+	vat: { ids: { string }, endsAt: number?, startedAt: number? }?, -- merge vat load and brew end (VatState, CONTRACT.md §21; no version bump)
 }
 
 local PlayerData = {}
@@ -98,6 +107,7 @@ function PlayerData.new(): Data
 		goals = {},
 		speciesRewards = 0,
 		plotSkin = Config.PLOT_SKIN_DEFAULT,
+		petSeat = Config.PET_SEAT_DEFAULT,
 		redeemed = {},
 		boostMult = 1,
 		boostUntil = 0,
@@ -105,8 +115,9 @@ function PlayerData.new(): Data
 		settings = AudioSettings.defaults(),
 		consumables = { slot = 0, bought = {}, held = {} },
 		pvp = { tiers = {}, traps = {}, fun = {} },
-		trophies = {},
+		boss = BossBadges.new(),
 		eggLuck = {},
+		weekly = { week = 0, base = 0 },
 	}
 end
 
@@ -210,10 +221,9 @@ function PlayerData.removeSlime(data: Data, id: string): Slime?
 end
 
 -- Plot income incl. rebirth, upgrade, rank and SlimeDex bonuses (Perks.incomeMultiplier).
--- Pad slimes (minus `skip`, the ones being carried) plus boss trophies, which always earn.
+-- Pad slimes, minus `skip` (the ones being carried).
 function PlayerData.incomePerSecond(data: Data, skip: { [string]: boolean }?): number
-	local base = Economy.plotIncome(data.slimes, data.rebirths, skip) + Economy.plotIncome(data.trophies, data.rebirths)
-	return base * Perks.bonusMultiplier(data)
+	return Economy.plotIncome(data.slimes, data.rebirths, skip) * Perks.bonusMultiplier(data)
 end
 
 -- One slime's income for this player (State SlimeView.income).
@@ -241,6 +251,10 @@ function PlayerData.buyPad(data: Data): (boolean, string?)
 	if not cost then
 		return false, "all pads unlocked"
 	end
+	local need = Economy.padRebirths(data.padsUnlocked) or 0
+	if data.rebirths < need then
+		return false, `Rebirth {need} to unlock this pad`
+	end
 	if not PlayerData.spend(data, cost) then
 		return false, "not enough cash"
 	end
@@ -253,7 +267,10 @@ function PlayerData.sell(data: Data, id: string): (boolean, number | string)
 	if not slime then
 		return false, "not your slime"
 	end
-	local price = Economy.sellPrice(slime, data.rebirths)
+	local price = Economy.sellPrice(slime)
+	if not price then
+		return false, "eggs can't be sold"
+	end
 	PlayerData.removeSlime(data, id)
 	PlayerData.earn(data, price)
 	data.stats.sold += 1

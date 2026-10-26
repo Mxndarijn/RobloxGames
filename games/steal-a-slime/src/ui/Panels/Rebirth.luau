@@ -1,13 +1,15 @@
 --!strict
 --[[
-	Rebirth panel: only the NEXT rebirth, its number in the title. Two
-	requirement cards side by side: the cash (cost, a progress bar, what you
-	have) and the slimes the rebirth uses up: one slime gets its picture, name
-	and Missing / done mark, two or three get one small row each (picture,
-	name, a tick once owned). Then what it gives (income multiplier, lock time),
-	that every other slime stays and either a status line saying what is missing or the Rebirth
-	button (state.canRebirth, hold to confirm). Progress.nextRebirth has the
-	numbers.
+	Rebirth panel: only the NEXT rebirth, its number in the title.
+
+	One slime (or none): the cash card (cost, a progress bar, what you have) and the slime card side by side.
+	Several slimes (Config.REBIRTH_SLIMES): the cash card runs full width on top, then one card per slime,
+	two to a row. A slime card shows the slime (greyed out while you don't have it), its name, "Owned" or
+	"Missing" and a line on what happens to it. The cost is muted until you can pay it, then gold.
+
+	Under them: what it gives (income multiplier, lock time), a plain "Keeps your other slimes" line with a
+	tick, then either a sunken well saying what is missing ("Need $15.5M and a Flan") or the hold-to-confirm
+	Rebirth button (state.canRebirth), and the fine print. Progress.nextRebirth has the numbers.
 ]]
 
 local UI = script.Parent.Parent
@@ -22,103 +24,158 @@ local create = Widgets.create
 
 local Rebirth = {}
 
--- Body rows top to bottom (design px; the body is Layout.panelBody of the
--- Rebirth card, MENU_HEIGHTS.Rebirth tall).
-Rebirth.ROWS = table.freeze({
-	sub = { y = 0, h = 18 }, -- "To rebirth you need both:"
-	need = { y = 24, h = 128 }, -- the two requirement cards
-	gets = { y = 158, h = 18 }, -- "You get:"
-	gives = { y = 180, h = 50 }, -- reward tiles
-	keeper = { y = 240, h = 26 },
-	button = { y = 276, h = Layout.BUTTON },
-	note = { y = 338, h = 18 },
-})
-Rebirth.CONTENT_H = 356 -- note.y + note.h
 Rebirth.SLIME_IMAGE = 52
+
+-- Vertical rhythm of the body (design px).
+Rebirth.ROWS = table.freeze({
+	sub = { y = 0, h = 18 }, -- "You need both:"
+	needY = 24, -- the requirement cards start here
+	gap = 8, -- between cards, and between the cards and "You get:"
+	gets = 20, -- "You get:" and the keeper line
+	gives = 50, -- reward tiles
+	givesGap = 4,
+	buttonGap = 10,
+	noteGap = 8,
+})
 
 -- Inside a requirement card (design px).
 Rebirth.CARD = table.freeze({
-	gap = 8, -- between the two cards
+	h = 128, -- cash and slime card side by side
+	cashH = 92, -- the full-width cash card over several slime cards
+	slimeH = 104, -- a slime card when there are several
 	pad = 12,
 	labelY = 10,
 	labelH = 18,
-	labelSize = 14,
-	markInset = 9, -- tick / stamp from the card's top-right corner
-	tick = 24,
-	stampH = 22,
-	stampSize = 13,
+	labelSize = Layout.MIN_TEXT,
 	amountY = 32,
 	amountH = 34,
 	amountSize = 28,
 	barY = 72,
 	barH = 12,
-	imageY = 32,
+	haveY = 98,
+	haveH = 18,
+	textGap = 10, -- picture to text
 	nameSize = 19,
 	nameH = 24,
-	descY = 98,
-	descH = 18,
-	descSize = 13,
-	-- Two or three slimes: one row each under the label.
-	listY = 32,
-	listRowH = 30,
-	listImage = 26,
-	listNameSize = 15,
+	stateSize = 15,
+	stateH = 20,
+	descSize = Layout.MIN_TEXT,
+	descH = 36, -- two lines
+	missingFade = 0.3, -- the greyed preview of a slime you don't have
 })
 
--- Reward tiles, keeper chip, status, footer (design px).
+-- Reward tiles, keeper line, status, footer (design px).
 Rebirth.TEXT = table.freeze({
-	subSize = 14,
+	subSize = Layout.MIN_TEXT,
 	gainSize = 22,
-	gainY = 4,
+	gainY = 3,
 	gainH = 26,
-	gainLabelSize = 12,
-	gainLabelY = 30,
-	gainLabelH = 16,
-	keeperSize = 13,
-	keeperMaxW = 430, -- under the narrowest gate body (390x844: 439)
+	gainLabelSize = Layout.MIN_TEXT,
+	gainLabelY = 29,
+	gainLabelH = 18,
+	keeperSize = 15,
 	statusSize = 18,
 	buttonSize = 22,
-	noteSize = 12,
+	noteSize = Layout.MIN_TEXT,
 })
 
--- A green tick in a circle (a drawn check mark, no glyph).
-local function tickBadge(name: string, parent: Instance): Frame
-	local c = Rebirth.CARD
-	local badge = create("Frame", {
-		Name = name,
-		Visible = false,
-		BackgroundColor3 = Theme.Good,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -c.markInset, 0, c.markInset - 2),
-		Size = UDim2.fromOffset(c.tick, c.tick),
-		Parent = parent,
-	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
-	-- Short leg (6,12)-(10,16) and long leg (10,16)-(18,8) of a 24 px box, 3 px thick.
-	for _, leg in { { 8, 14, 7, 45 }, { 14, 12, 13, -45 } } do
-		create("Frame", {
-			Name = "Leg",
-			BackgroundColor3 = Theme.Ink,
-			BorderSizePixel = 0,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(leg[1] / 24, leg[2] / 24),
-			Size = UDim2.fromOffset(leg[3], 3),
-			Rotation = leg[4],
-			Parent = badge,
-		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+Rebirth.COPY = table.freeze({
+	keeper = "✅ Keeps your other slimes",
+	button = "Hold to rebirth",
+	owned = "✅ Owned",
+	missing = "Missing",
+	usedUp = "Used up on rebirth",
+	getOne = "Catch one or merge one first",
+	keep = "You keep your other slimes, your pads and your upgrades.",
+	keepAll = "You keep your slimes, your pads and your upgrades.",
+})
+
+local COUNT_WORDS = { [3] = "three", [4] = "four", [5] = "five", [6] = "six" }
+
+-- The line over the cards: how many things the rebirth needs (the cash and each slime).
+function Rebirth.subText(slimes: number, maxed: boolean): string
+	if maxed then
+		return "All rebirths done"
 	end
-	return badge
+	local things = slimes + 1
+	if things == 1 then
+		return "You need:"
+	elseif things == 2 then
+		return "You need both:"
+	end
+	return `You need all {COUNT_WORDS[things] or tostring(things)}:`
 end
 
--- "Zap", "Zap and Imp", "Zap, Imp and Octo".
-local function missingNames(list: { Progress.SlimeNeed }): string
-	local names = {}
-	for _, need in list do
-		table.insert(names, need.name)
+-- The fine print: what the rebirth uses up and what you keep.
+function Rebirth.noteText(needs: { Progress.SlimeNeed }): string
+	if #needs == 0 then
+		return `Rebirth resets your cash. {Rebirth.COPY.keepAll}`
 	end
-	if #names <= 1 then
-		return names[1] or "a slime"
+	local which = if #needs == 1 then "the slime above" else "the slimes above"
+	return `Rebirth uses up {which} and resets your cash. {Rebirth.COPY.keep}`
+end
+
+export type Box = { position: UDim2, size: UDim2 }
+export type Plan = {
+	multi: boolean,
+	cash: Box,
+	cards: { Box }, -- one per slime
+	getsY: number,
+	givesY: number,
+	buttonY: number,
+	noteY: number,
+	height: number, -- the content height with a `noteH` tall fine print
+}
+
+-- Where everything goes for a rebirth that needs `slimes` slimes (pure).
+function Rebirth.plan(slimes: number, noteH: number): Plan
+	local rows, c = Rebirth.ROWS, Rebirth.CARD
+	local gap = rows.gap
+	local y = rows.needY
+	local half = UDim.new(0.5, -gap / 2)
+	local right = UDim.new(0.5, gap / 2)
+	local cash: Box
+	local cards: { Box } = {}
+	local multi = slimes > 1
+	if not multi then
+		cash = {
+			position = UDim2.fromOffset(0, y),
+			size = UDim2.new(if slimes == 1 then half else UDim.new(1, 0), UDim.new(0, c.h)),
+		}
+		if slimes == 1 then
+			cards[1] = { position = UDim2.new(right, UDim.new(0, y)), size = UDim2.new(half, UDim.new(0, c.h)) }
+		end
+		y += c.h
+	else
+		cash = { position = UDim2.fromOffset(0, y), size = UDim2.new(1, 0, 0, c.cashH) }
+		y += c.cashH + gap
+		for i = 1, slimes do
+			local row = (i - 1) // 2
+			cards[i] = {
+				position = UDim2.new(
+					if i % 2 == 1 then UDim.new(0, 0) else right,
+					UDim.new(0, y + row * (c.slimeH + gap))
+				),
+				size = UDim2.new(half, UDim.new(0, c.slimeH)),
+			}
+		end
+		local cardRows = (slimes + 1) // 2
+		y += cardRows * c.slimeH + (cardRows - 1) * gap
 	end
-	return `{table.concat(names, ", ", 1, #names - 1)} and {names[#names]}`
+	local getsY = y + gap
+	local givesY = getsY + rows.gets + rows.givesGap
+	local buttonY = givesY + rows.gives + rows.buttonGap
+	local noteY = buttonY + Layout.BUTTON + rows.noteGap
+	return {
+		multi = multi,
+		cash = cash,
+		cards = cards,
+		getsY = getsY,
+		givesY = givesY,
+		buttonY = buttonY,
+		noteY = noteY,
+		height = noteY + noteH,
+	}
 end
 
 function Rebirth.new(parent: Instance, ctx: any)
@@ -126,14 +183,16 @@ function Rebirth.new(parent: Instance, ctx: any)
 	local rows = Rebirth.ROWS
 	local C = Rebirth.CARD
 	local T = Rebirth.TEXT
-	-- Scrolls only when the card is shorter than the content (landscape
-	-- phones); a fixed canvas, nothing in it moves.
+	local COPY = Rebirth.COPY
+	-- Scrolls only when the card is shorter than the content (landscape phones); a fixed canvas per layout.
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,
-		CanvasSize = UDim2.fromOffset(0, Rebirth.CONTENT_H),
+		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- a showing bar narrows the content, never covers it
 		Parent = panel.body,
 	})
+	-- The body width the fine print wraps in: the last card layout's, a menu's width before the first one.
+	local bodyW = Layout.MENU_WIDTH - Layout.PANEL_CHROME.pad * 2
 
 	local sub = Widgets.label({
 		Name = "Sub",
@@ -144,149 +203,78 @@ function Rebirth.new(parent: Instance, ctx: any)
 		Parent = content,
 	})
 
-	local function cardLabel(text: string, card: Frame): TextLabel
+	local function cardLabel(name: string, text: string, card: Frame): TextLabel
 		return Widgets.label({
-			Name = "Label",
+			Name = name,
 			Text = text,
 			TextSize = C.labelSize,
 			TextColor3 = Theme.Muted,
 			Position = UDim2.fromOffset(C.pad, C.labelY),
-			Size = UDim2.new(1, -(C.pad * 2 + C.tick), 0, C.labelH),
-			Parent = card,
-		})
-	end
-	local function cardDesc(name: string, card: Frame): TextLabel
-		return Widgets.label({
-			Name = name,
-			TextSize = C.descSize,
-			TextColor3 = Theme.Muted,
-			Position = UDim2.fromOffset(C.pad, C.descY),
-			Size = UDim2.new(1, -C.pad * 2, 0, C.descH),
+			Size = UDim2.new(1, -C.pad * 2, 0, C.labelH),
 			Parent = card,
 		})
 	end
 
-	-- Cash card: the cost in gold, a bar and what you have.
-	local need = Widgets.rowFrame({
-		Name = "Need",
-		Position = UDim2.fromOffset(0, rows.need.y),
-		Size = UDim2.new(0.5, -C.gap / 2, 0, rows.need.h),
-		Parent = content,
-	})
-	cardLabel("Cash", need)
-	local cashTick = tickBadge("CashTick", need)
+	-- Cash card: the cost (muted until you can pay it, then gold), a bar and what you have.
+	local need = Widgets.rowFrame({ Name = "Need", Parent = content })
+	cardLabel("Label", "Cash", need)
 	local cost = Widgets.label({
 		Name = "Cost",
 		Font = Theme.Font,
 		TextSize = C.amountSize,
-		TextColor3 = Theme.Gold,
 		TextStrokeColor3 = Theme.Ink,
-		TextStrokeTransparency = 0,
 		Position = UDim2.fromOffset(C.pad, C.amountY),
 		Size = UDim2.new(1, -C.pad * 2, 0, C.amountH),
 		Parent = need,
 	})
 	local _, setBar =
 		Widgets.bar(need, Theme.Gold, UDim2.new(1, -C.pad * 2, 0, C.barH), UDim2.fromOffset(C.pad, C.barY))
-	local have = cardDesc("Have", need)
-
-	-- Slime card: the slime this rebirth also needs. Its picture (the real
-	-- slime in a viewport, a dark silhouette while missing), its name, then a
-	-- Missing stamp or a tick.
-	local slimeCard = Widgets.rowFrame({
-		Name = "SlimeNeed",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, rows.need.y),
-		Size = UDim2.new(0.5, -C.gap / 2, 0, rows.need.h),
-		Parent = content,
-	})
-	local slimeLabel = cardLabel("This slime", slimeCard)
-	local slimeTick = tickBadge("SlimeTick", slimeCard)
-	local slimeState = Widgets.label({
-		Name = "SlimeState",
-		Text = "Missing",
-		Font = Theme.Font,
-		TextSize = C.stampSize,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextTruncate = Enum.TextTruncate.None,
-		BackgroundTransparency = 0,
-		BackgroundColor3 = Theme.Bad,
-		AutomaticSize = Enum.AutomaticSize.X,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -C.markInset, 0, C.markInset - 2),
-		Size = UDim2.fromOffset(0, C.stampH),
-		Parent = slimeCard,
-	})
-	Widgets.inkOn(slimeState, Theme.Bad)
-	Widgets.corner(8).Parent = slimeState
-	Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke).Parent = slimeState
-	create("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), Parent = slimeState })
-	local imageSize = Rebirth.SLIME_IMAGE
-	local slimeImage = create("Frame", {
-		Name = "Image",
-		Position = UDim2.fromOffset(C.pad, C.imageY),
-		Size = UDim2.fromOffset(imageSize, imageSize),
-		BackgroundTransparency = 0.55,
-		Parent = slimeCard,
-	}, { Widgets.corner(Widgets.KIT.radius), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
-	local slimeView = create("ViewportFrame", {
-		Name = "Preview",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 1),
-		Visible = false,
-		Parent = slimeImage,
-	})
-	local slimeGlyph = Widgets.label({
-		Name = "Glyph",
-		Text = "?",
-		Font = Theme.Font,
-		TextSize = C.amountSize,
+	local have = Widgets.label({
+		Name = "Have",
+		TextSize = C.descSize,
 		TextColor3 = Theme.Muted,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		ZIndex = Layout.ZINDEX.Menu, -- over the viewport, its sibling
-		Size = UDim2.fromScale(1, 1),
-		Parent = slimeImage,
+		Parent = need,
 	})
-	local nameX = C.pad + imageSize + 10
-	local slimeName = Widgets.label({
-		Name = "SlimeName",
-		Font = Theme.Font,
-		TextSize = C.nameSize,
-		Position = UDim2.fromOffset(nameX, C.imageY + (imageSize - C.nameH) // 2),
-		Size = UDim2.new(1, -(nameX + C.pad), 0, C.nameH),
-		Parent = slimeCard,
-	})
-	local slimeDesc = cardDesc("SlimeDesc", slimeCard)
-	local single: { GuiObject } = { slimeImage, slimeName, slimeDesc }
 
-	-- Two or three slimes: a row each (small picture, name, a tick once owned), made the first time one is shown.
-	type ListRow = {
+	-- A slime card: the slime (greyed out while you don't have it), its name, Owned / Missing and a line on
+	-- what happens to it. The first is built now, the others the first time a rebirth needs them.
+	type SlimeCard = {
 		frame: Frame,
+		label: TextLabel,
 		image: Frame,
 		view: ViewportFrame,
-		glyph: TextLabel,
 		name: TextLabel,
-		tick: Frame,
+		state: TextLabel,
+		desc: TextLabel,
 	}
-	local listRows: { ListRow } = {}
-	local function listRow(i: number): ListRow
-		if listRows[i] then
-			return listRows[i]
+	local cards: { SlimeCard } = {}
+	local function slimeCard(i: number): SlimeCard
+		if cards[i] then
+			return cards[i]
 		end
-		local row = create("Frame", {
-			Name = `Need{i}`,
-			BackgroundTransparency = 1,
-			Position = UDim2.fromOffset(C.pad, C.listY + (i - 1) * C.listRowH),
-			Size = UDim2.new(1, -C.pad * 2, 0, C.listRowH),
-			Parent = slimeCard,
+		local frame = Widgets.rowFrame({
+			Name = if i == 1 then "SlimeNeed" else `SlimeNeed{i}`,
+			Parent = content,
 		})
+		local textX = C.pad + Rebirth.SLIME_IMAGE + C.textGap
+		local function text(name: string, size: number, font: boolean, color: Color3, h: number): TextLabel
+			return Widgets.label({
+				Name = name,
+				Font = if font then Theme.Font else nil,
+				TextSize = size,
+				TextColor3 = color,
+				Position = UDim2.fromOffset(textX, 0),
+				Size = UDim2.new(1, -(textX + C.pad), 0, h),
+				Parent = frame,
+			})
+		end
 		local image = create("Frame", {
 			Name = "Image",
 			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.fromScale(0, 0.5),
-			Size = UDim2.fromOffset(C.listImage, C.listImage),
+			Position = UDim2.new(0, C.pad, 0.5, 0),
+			Size = UDim2.fromOffset(Rebirth.SLIME_IMAGE, Rebirth.SLIME_IMAGE),
 			BackgroundTransparency = 0.55,
-			Parent = row,
+			Parent = frame,
 		}, { Widgets.corner(Widgets.KIT.radius), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
 		local view = create("ViewportFrame", {
 			Name = "Preview",
@@ -295,40 +283,62 @@ function Rebirth.new(parent: Instance, ctx: any)
 			Visible = false,
 			Parent = image,
 		})
-		local glyph = Widgets.label({
+		local label = text("Label", C.labelSize, false, Theme.Muted, C.labelH)
+		label.Text = "This slime"
+		local desc = text("SlimeDesc", C.descSize, false, Theme.Muted, C.descH)
+		desc.TextWrapped = true
+		desc.TextTruncate = Enum.TextTruncate.None
+		desc.TextYAlignment = Enum.TextYAlignment.Top
+		cards[i] = {
+			frame = frame,
+			label = label,
+			image = image,
+			view = view,
+			name = text("SlimeName", C.nameSize, true, Theme.Text, C.nameH),
+			state = text("SlimeState", C.stateSize, true, Theme.Bad, C.stateH),
+			desc = desc,
+		}
+		return cards[i]
+	end
+	slimeCard(1)
+
+	-- A "?" over a slime card's picture, made only if neither preview could be built.
+	local function fallbackGlyph(card: SlimeCard): TextLabel
+		local existing = card.image:FindFirstChild("Glyph")
+		if existing then
+			return existing :: TextLabel
+		end
+		return Widgets.label({
 			Name = "Glyph",
 			Text = "?",
 			Font = Theme.Font,
-			TextSize = C.listNameSize,
+			TextSize = C.amountSize,
 			TextColor3 = Theme.Muted,
 			TextXAlignment = Enum.TextXAlignment.Center,
-			ZIndex = Layout.ZINDEX.Menu, -- over the viewport, its sibling
 			Size = UDim2.fromScale(1, 1),
-			Parent = image,
+			Parent = card.image,
 		})
-		local rowNameX = C.listImage + 8
-		local name = Widgets.label({
-			Name = "SlimeName",
-			Font = Theme.Font,
-			TextSize = C.listNameSize,
-			Position = UDim2.fromOffset(rowNameX, 0),
-			Size = UDim2.new(1, -(rowNameX + C.tick + 4), 1, 0),
-			Parent = row,
-		})
-		local tick = tickBadge("Tick", row)
-		tick.AnchorPoint = Vector2.new(1, 0.5)
-		tick.Position = UDim2.fromScale(1, 0.5)
-		listRows[i] = { frame = row, image = image, view = view, glyph = glyph, name = name, tick = tick }
-		return listRows[i]
 	end
 
-	-- Puts `need`'s slime into `view` (the real model, else a coloured blob; dark while missing).
-	local function showSlime(view: ViewportFrame, glyph: TextLabel, slime: Progress.SlimeNeed)
-		local look = `{slime.id}:{slime.owned}`
-		if view:GetAttribute("Look") ~= look then
-			local opts = { locked = not slime.owned }
-			local ok = false
-			if ctx.buildSlime then
+	-- Puts `slime` into `view` the way the SlimeDex shows it: the species mesh, else the generated model, else a
+	-- coloured blob, washed grey while missing. The look names whether the mesh was there, so a card that fell
+	-- back switches to the mesh once it replicates.
+	local function showSlime(card: SlimeCard, slime: Progress.SlimeNeed)
+		local view = card.view
+		local species: Model? = nil
+		if ctx.buildSpecies then
+			local built, model = pcall(ctx.buildSpecies, slime.id)
+			species = if built then model else nil
+		end
+		local look = `{slime.id}:{slime.owned}:{species ~= nil}`
+		if view:GetAttribute("Look") == look then
+			if species then
+				species:Destroy()
+			end
+		else
+			local opts = { greyed = not slime.owned }
+			local ok = species ~= nil and SlimePreview.mountModel(view, species :: Model, opts)
+			if not ok and ctx.buildSlime then
 				local genome = {
 					id = `Rebirth_{slime.id}`,
 					name = slime.name,
@@ -349,7 +359,33 @@ function Rebirth.new(parent: Instance, ctx: any)
 			view:SetAttribute("Look", look)
 			view.Visible = ok
 		end
-		glyph.Visible = not slime.owned and not view.Visible
+		view.ImageTransparency = if slime.owned then 0 else C.missingFade
+		if not view.Visible then
+			fallbackGlyph(card).Visible = true
+		elseif card.image:FindFirstChild("Glyph") then
+			(card.image:FindFirstChild("Glyph") :: TextLabel).Visible = false
+		end
+		card.image.BackgroundColor3 = if slime.owned then Widgets.color3(slime.color) else Theme.Ink
+	end
+
+	-- One slime card's text, stacked from the top: the label (one slime only), name, state, line.
+	local function paintCard(card: SlimeCard, slime: Progress.SlimeNeed, box: Box, withLabel: boolean)
+		card.frame.Visible = true
+		card.frame.Position = box.position
+		card.frame.Size = box.size
+		card.label.Visible = withLabel
+		local y = C.labelY + (if withLabel then C.labelH + 2 else 0)
+		card.name.Position = UDim2.fromOffset(card.name.Position.X.Offset, y)
+		card.name.Text = slime.name
+		card.name.TextColor3 = if slime.owned then Theme.Text else Theme.Muted
+		y += C.nameH + 2
+		card.state.Position = UDim2.fromOffset(card.state.Position.X.Offset, y)
+		card.state.Text = if slime.owned then COPY.owned else COPY.missing
+		card.state.TextColor3 = if slime.owned then Theme.Good else Theme.Bad
+		y += C.stateH + 4
+		card.desc.Position = UDim2.fromOffset(card.desc.Position.X.Offset, y)
+		card.desc.Text = if slime.owned then COPY.usedUp else COPY.getOne
+		showSlime(card, slime)
 	end
 
 	-- What the next rebirth gives: two Ink tiles, a green number over a muted word.
@@ -358,16 +394,26 @@ function Rebirth.new(parent: Instance, ctx: any)
 		Text = "You get:",
 		TextSize = T.subSize,
 		TextColor3 = Theme.Muted,
-		Position = UDim2.fromOffset(0, rows.gets.y),
-		Size = UDim2.new(1, 0, 0, rows.gets.h),
+		Size = UDim2.new(0.4, 0, 0, rows.gets),
+		Parent = content,
+	})
+	local keepLine = Widgets.label({
+		Name = "Keeper",
+		Text = COPY.keeper,
+		Font = Theme.Font,
+		TextSize = T.keeperSize,
+		TextColor3 = Theme.Good,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Size = UDim2.new(0.6, 0, 0, rows.gets),
 		Parent = content,
 	})
 	local function gainTile(name: string, word: string, x: UDim): (Frame, TextLabel)
 		local tile = create("Frame", {
 			Name = name,
 			BackgroundColor3 = Theme.Ink,
-			Position = UDim2.new(x, UDim.new(0, rows.gives.y)),
-			Size = UDim2.new(0.5, -C.gap / 2, 0, rows.gives.h),
+			Position = UDim2.new(x, UDim.new(0, 0)),
+			Size = UDim2.new(0.5, -rows.gap / 2, 0, rows.gives),
 			Parent = content,
 		}, { Widgets.corner(Widgets.KIT.radius) })
 		local value = Widgets.label({
@@ -393,40 +439,24 @@ function Rebirth.new(parent: Instance, ctx: any)
 		return tile, value
 	end
 	local incomeTile, incomeValue = gainTile("Income", "income", UDim.new(0, 0))
-	local lockTile, lockValue = gainTile("LockTime", "lock time", UDim.new(0.5, C.gap / 2))
+	local lockTile, lockValue = gainTile("LockTime", "lock time", UDim.new(0.5, rows.gap / 2))
 
-	local keepLine = Widgets.chip({
-		Name = "Keeper",
-		Text = "★ Keeps all your other slimes",
-		FontFace = Theme.FontBody,
-		TextSize = T.keeperSize,
-		TextColor3 = Theme.Muted,
-		BackgroundColor3 = Theme.Row,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-		Position = UDim2.fromOffset(0, rows.keeper.y),
-		Size = UDim2.fromOffset(0, rows.keeper.h),
-		Parent = content,
-	})
-	create("UISizeConstraint", { MaxSize = Vector2.new(T.keeperMaxW, math.huge), Parent = keepLine })
-
-	-- Until both requirements are met: a sunken status line saying what is missing, no button.
+	-- Until every need is met: a sunken well saying what is missing, no button.
 	local reasonLine = Widgets.status({
 		Name = "Reason",
 		TextSize = T.statusSize,
-		Position = UDim2.fromOffset(0, rows.button.y),
-		Size = UDim2.new(1, 0, 0, rows.button.h),
+		Size = UDim2.new(1, 0, 0, Layout.BUTTON),
 		Parent = content,
 	})
 	local btn = Widgets.holdButton(
 		{
 			Name = "RebirthButton",
-			Text = "♻️ Rebirth!",
+			Text = COPY.button,
 			Visible = false,
-			Position = UDim2.fromOffset(0, rows.button.y),
-			Size = UDim2.new(1, 0, 0, rows.button.h),
+			Size = UDim2.new(1, 0, 0, Layout.BUTTON),
 			TextSize = T.buttonSize,
 		},
-		Theme.Gold,
+		Theme.Accent,
 		function()
 			ctx.send("Rebirth")
 		end,
@@ -434,14 +464,15 @@ function Rebirth.new(parent: Instance, ctx: any)
 	)
 	btn.instance.Parent = content
 
-	Widgets.label({
+	local note = Widgets.label({
 		Name = "Note",
-		Text = "Uses up these slimes and resets cash. Pads and upgrades stay.",
 		TextSize = T.noteSize,
 		TextColor3 = Theme.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Position = UDim2.fromOffset(0, rows.note.y),
-		Size = UDim2.new(1, 0, 0, rows.note.h),
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextWrapped = true,
+		TextTruncate = Enum.TextTruncate.None,
+		Size = UDim2.fromScale(1, 0),
 		Parent = content,
 	})
 
@@ -450,69 +481,70 @@ function Rebirth.new(parent: Instance, ctx: any)
 	function self.update(state: any)
 		local nextUp = Progress.nextRebirth(state, ctx.Config)
 		local needs = nextUp.slimes
-		local hasSlimes = #needs > 0
-		local cashMet = nextUp.maxed or nextUp.have >= nextUp.cost
-		panel.title.Text = if nextUp.maxed then "Rebirth" else `Rebirth {nextUp.rebirth}`
-		sub.Text = if nextUp.maxed
-			then "All rebirths done!"
-			elseif hasSlimes then "To rebirth you need both:"
-			else "To rebirth you need:"
+		local maxed = nextUp.maxed
+		local cashMet = maxed or nextUp.have >= nextUp.cost
+		panel.title.Text = if maxed then "Rebirth" else `Rebirth {nextUp.rebirth}`
+		sub.Text = Rebirth.subText(#needs, maxed)
 
-		need.Visible = not nextUp.maxed
-		need.Size = UDim2.new(if hasSlimes then 0.5 else 1, if hasSlimes then -C.gap / 2 else 0, 0, rows.need.h)
-		cashTick.Visible = cashMet
+		note.Text = Rebirth.noteText(needs)
+		local noteH = if maxed then 0 else math.ceil(Layout.wrappedHeight(note.Text, T.noteSize, bodyW))
+		local plan = Rebirth.plan(#needs, noteH)
+
+		need.Visible = not maxed
+		need.Position = plan.cash.position
+		need.Size = plan.cash.size
 		cost.Text = Format.formatCash(nextUp.cost)
+		cost.TextColor3 = if cashMet then Theme.Gold else Theme.Muted
+		cost.TextStrokeTransparency = if cashMet then 0 else 1
 		setBar(nextUp.fraction)
 		have.Text = `You have {Format.formatCash(nextUp.have)}`
+		if plan.multi then -- on the label line, right
+			have.TextXAlignment = Enum.TextXAlignment.Right
+			have.Position = UDim2.fromOffset(C.pad, C.labelY)
+			have.Size = UDim2.new(1, -C.pad * 2, 0, C.labelH)
+		else
+			have.TextXAlignment = Enum.TextXAlignment.Left
+			have.Position = UDim2.fromOffset(C.pad, C.haveY)
+			have.Size = UDim2.new(1, -C.pad * 2, 0, C.haveH)
+		end
 
-		gets.Visible = not nextUp.maxed
-		incomeTile.Visible = not nextUp.maxed
-		lockTile.Visible = not nextUp.maxed
-		incomeValue.Text = Format.formatMultiplier(nextUp.multiplier)
-		lockValue.Text = if nextUp.lockGain > 0 then `+{nextUp.lockGain}s` else "Max"
-		keepLine.Visible = not nextUp.maxed
-
-		slimeCard.Visible = hasSlimes
-		if hasSlimes then
-			local allOwned = #nextUp.missing == 0
-			local one = #needs == 1
-			slimeLabel.Text = if one then "This slime" else "These slimes"
-			slimeState.Visible = not allOwned
-			slimeTick.Visible = allOwned
-			for _, item in single do
-				item.Visible = one
-			end
-			if one then
-				local slimeNeed = needs[1]
-				slimeName.Text = slimeNeed.name
-				slimeName.TextColor3 = if slimeNeed.owned then Theme.Text else Theme.Muted
-				slimeDesc.Text = if slimeNeed.owned then "Used up on rebirth" else "Catch or merge one first"
-				slimeImage.BackgroundColor3 = Widgets.color3(slimeNeed.color)
-				showSlime(slimeView, slimeGlyph, slimeNeed)
-			end
-			for i = 1, 3 do
-				local slimeNeed = if one then nil else needs[i]
-				if slimeNeed then
-					local row = listRow(i)
-					row.frame.Visible = true
-					row.name.Text = slimeNeed.name
-					row.name.TextColor3 = if slimeNeed.owned then Theme.Text else Theme.Muted
-					row.tick.Visible = slimeNeed.owned
-					row.image.BackgroundColor3 = Widgets.color3(slimeNeed.color)
-					showSlime(row.view, row.glyph, slimeNeed)
-				elseif listRows[i] then
-					listRows[i].frame.Visible = false
-				end
+		for i = 1, math.max(#needs, #cards) do
+			local slime = needs[i]
+			if slime and not maxed then
+				paintCard(slimeCard(i), slime, plan.cards[i], not plan.multi)
+			elseif cards[i] then
+				cards[i].frame.Visible = false
 			end
 		end
 
-		reasonLine.Text = if nextUp.maxed
-			then "🏆 All rebirths done"
-			elseif #nextUp.missing > 0 and cashMet then `🔒 Get {missingNames(nextUp.missing)} to rebirth`
-			else `🔒 Need {nextUp.need}`
+		gets.Visible = not maxed
+		gets.Position = UDim2.fromOffset(0, plan.getsY)
+		keepLine.Visible = not maxed
+		keepLine.Position = UDim2.new(1, 0, 0, plan.getsY)
+		incomeTile.Visible = not maxed
+		lockTile.Visible = not maxed
+		incomeTile.Position = UDim2.fromOffset(0, plan.givesY)
+		lockTile.Position = UDim2.new(0.5, rows.gap / 2, 0, plan.givesY)
+		incomeValue.Text = Format.formatMultiplier(nextUp.multiplier)
+		lockValue.Text = if nextUp.lockGain > 0 then `+{nextUp.lockGain}s` else "Max"
+
+		local buttonY = if maxed then rows.needY else plan.buttonY
+		reasonLine.Position = UDim2.fromOffset(0, buttonY)
+		btn.instance.Position = UDim2.fromOffset(0, buttonY)
+		reasonLine.Text = Progress.rebirthReason(nextUp)
 		reasonLine.Visible = not nextUp.ready
 		btn.instance.Visible = nextUp.ready
 		btn.setEnabled(nextUp.ready)
+
+		note.Visible = not maxed
+		note.Position = UDim2.fromOffset(0, plan.noteY)
+		note.Size = UDim2.new(1, 0, 0, noteH)
+		content.CanvasSize = UDim2.fromOffset(0, if maxed then buttonY + Layout.BUTTON else plan.height)
+	end
+
+	-- init.client's card layout: remember the body width the fine print wraps in.
+	function self.layout(r: Layout.Rect)
+		bodyW = Layout.panelBody(r).w
 	end
 
 	return self

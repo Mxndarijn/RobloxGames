@@ -3,25 +3,29 @@
 	Leaderboard (pure)
 
 	* leaderstats: IntValues Cash, Rebirths, Steals (`stats`).
-	* Global board: the OrderedDataStore Constants.LEADERBOARD_STORE ranks by
-	  totalEarned. `fromPage` turns a GetSortedAsync page into the
-	  `Leaderboard` RemoteEvent payload (Types.Leaderboard).
-	* World board: `boardRows` is the text the server writes into the
-	  LeaderboardBoard's Row_<k> labels (CONTRACT.md §5.3).
+	* Global boards (Leaderboards.BOARDS): one OrderedDataStore each, key "u_<UserId>". `storeValue` is what a
+	  save writes for a board, `fromPage` turns a GetSortedAsync page into the `Leaderboard` RemoteEvent payload
+	  (Types.Leaderboard) and `pageFromSessions` builds the same page from this server's players (memory mode).
+	* World boards: `boardRows` is the text the server writes into a board's Row_<k> labels (CONTRACT.md §5.3).
+	Ranking itself is the shared OrderedBoard module.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
-local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
+local Leaderboards = if Shared then require(Shared.Leaderboards) else require("../shared/Leaderboards")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
+local OrderedBoard = if Lib
+	then require(Lib.ranking.OrderedBoard)
+	else require("../../../../shared/luau/src/ranking/OrderedBoard")
 
 local Leaderboard = {}
 
 Leaderboard.STATS = table.freeze({ "Cash", "Rebirths", "Steals" })
 
 -- OrderedDataStore values must be integers that fit in 2^53.
-Leaderboard.MAX_VALUE = 2 ^ 53 - 1
+Leaderboard.MAX_VALUE = OrderedBoard.MAX_VALUE
 
 function Leaderboard.stats(data: PlayerData.Data): { [string]: number }
 	return {
@@ -31,63 +35,77 @@ function Leaderboard.stats(data: PlayerData.Data): { [string]: number }
 	}
 end
 
-function Leaderboard.storeValue(data: PlayerData.Data): number
-	return math.clamp(math.floor(data.totalEarned), 0, Leaderboard.MAX_VALUE)
+-- What a save writes to the board of `stat` in week `week` (a valid OrderedDataStore integer).
+function Leaderboard.storeValue(stat: Types.LeaderboardStat, data: PlayerData.Data, week: number): number
+	return OrderedBoard.clamp(Leaderboards.value(stat, data, week))
 end
 
+-- A save writes the board value when the save went through, the session is not read-only and the value changed.
+Leaderboard.shouldWrite = OrderedBoard.shouldWrite
+
 -- "u_123" -> 123
-function Leaderboard.userIdFromKey(key: any): number?
-	if type(key) ~= "string" then
-		return nil
-	end
-	local digits = string.match(key, "^u_(%d+)$")
-	return if digits then tonumber(digits) else nil
-end
+Leaderboard.userIdFromKey = OrderedBoard.userIdFromKey
 
 --[[
 	`page` is GetSortedAsync(false, n):GetCurrentPage(): { { key, value } }.
 	`nameOf(userId)` returns a display name (the adapter caches lookups).
 ]]
-function Leaderboard.fromPage(page: { any }, nameOf: (userId: number) -> string): Types.Leaderboard
-	local entries: { Types.LeaderboardEntry } = {}
-	for _, item in page do
-		local userId = if type(item) == "table" then Leaderboard.userIdFromKey(item.key) else nil
-		local value = if type(item) == "table" then tonumber(item.value) else nil
-		if userId and value and #entries < Config.LEADERBOARD_SIZE then
-			table.insert(entries, {
-				rank = #entries + 1,
-				userId = userId,
-				name = nameOf(userId),
-				value = value,
-			})
-		end
-	end
-	return { stat = "TotalEarned", entries = entries }
+function Leaderboard.fromPage(
+	page: { any },
+	nameOf: (userId: number) -> string,
+	stat: Types.LeaderboardStat
+): Types.Leaderboard
+	return { stat = stat, entries = OrderedBoard.entries(page, nameOf, { size = Config.LEADERBOARD_SIZE }) }
 end
 
--- A GetSortedAsync-shaped page built from live sessions (memory mode).
-function Leaderboard.pageFromSessions(sessions: { [number]: { userId: number, data: PlayerData.Data } }): { any }
-	local page = {}
+-- A GetSortedAsync-shaped page of `stat` built from live sessions (memory mode).
+function Leaderboard.pageFromSessions(
+	sessions: { [number]: { userId: number, data: PlayerData.Data } },
+	stat: Types.LeaderboardStat,
+	week: number
+): { any }
+	local items = {}
 	for _, session in sessions do
-		table.insert(page, { key = `u_{session.userId}`, value = Leaderboard.storeValue(session.data) })
+		table.insert(items, {
+			key = OrderedBoard.key(session.userId),
+			value = Leaderboard.storeValue(stat, session.data, week),
+		})
 	end
-	table.sort(page, function(x, y)
-		if x.value ~= y.value then
-			return x.value > y.value
+	return OrderedBoard.pageFrom(items)
+end
+
+-- Each session's rank on one board from the scanned pages (`items`, joined in order): its rank when found; -n when it
+-- was not found and the scan stopped after n entries before the end of the board (deeper than #n); absent when the
+-- whole board was read without it (nothing written for that player yet).
+function Leaderboard.sessionRanks(
+	items: { any },
+	sessions: { [number]: { userId: number } },
+	finished: boolean
+): { [number]: number }
+	local wanted: { [number]: boolean } = {}
+	for _, session in sessions do
+		wanted[session.userId] = true
+	end
+	local ranks = OrderedBoard.ranks(items, wanted)
+	if not finished then
+		for userId in wanted do
+			if ranks[userId] == nil then
+				ranks[userId] = -#items
+			end
 		end
-		return x.key < y.key
-	end)
-	return page
+	end
+	return ranks
 end
 
 export type BoardRow = { rank: string, name: string, value: string }
 
 Leaderboard.EMPTY_TEXT = "No entries yet"
 
--- Text for the world board's rows, best first; one placeholder row when empty.
+-- Text for a world board's rows, best first; one placeholder row when empty.
 function Leaderboard.boardRows(board: Types.Leaderboard?): { BoardRow }
 	local rows: { BoardRow } = {}
 	local entries: { Types.LeaderboardEntry } = if board then board.entries else {}
+	local stat = if board then board.stat else nil
 	for _, entry in entries do
 		if #rows >= Config.LEADERBOARD_SIZE then
 			break
@@ -95,7 +113,7 @@ function Leaderboard.boardRows(board: Types.Leaderboard?): { BoardRow }
 		table.insert(rows, {
 			rank = `#{entry.rank}`,
 			name = entry.name,
-			value = `${Economy.formatNumber(entry.value)}`,
+			value = Leaderboards.format(stat, entry.value),
 		})
 	end
 	if #rows == 0 then

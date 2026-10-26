@@ -313,6 +313,7 @@
   "plotSize": 80,
   "ramp": {
     "railEnd": 45,
+    "railHeight": 2.5,
     "railStart": 30,
     "segments": 24,
     "walk": 4.2
@@ -323,6 +324,9 @@
     "hole": 6,
     "outer": 5.5,
     "post": 1.5
+  },
+  "stairTop": {
+    "landing": 120
   },
   "vatSpot": {
     "angle": -62,

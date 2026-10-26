@@ -1,8 +1,7 @@
 --!strict
 -- v28 menu pass (Merijn's playtest of v27, items 1-5): content-sized menu
 -- cards with an icon band and close X, real slime renders in the SlimeDex,
--- ONE shop menu opened by the ShopStand prompt, a Rebirth card that shows
--- only the next rebirth, and a Guide NPC that opens a next-goal / tips card.
+-- a Rebirth card that shows only the next rebirth, and a Guide NPC that opens a next-goal / tips card.
 -- Real panels under tests/ui/UiHarness.luau; pure modules directly.
 local roblox = require("@lune/roblox") :: any
 
@@ -16,7 +15,6 @@ local GuideTips = require("../../src/ui/GuideTips")
 local Layout = require("../../src/ui/Layout")
 local Progress = require("../../src/ui/Progress")
 local Remotes = require("../../src/shared/Remotes")
-local ShopCatalog = require("../../src/ui/ShopCatalog")
 local SlimeDex = require("../../src/ui/SlimeDex")
 local SlimeLayout = require("../../src/visuals/shared/SlimeLayout")
 local TestRunner = require("../TestRunner")
@@ -59,6 +57,7 @@ local function rebirthState(rebirths: number, cash: number): any
 	return {
 		rebirths = rebirths,
 		rebirthMultiplier = Economy.rebirthMultiplier(rebirths),
+		nextRebirthMultiplier = Economy.rebirthMultiplier(math.min(rebirths + 1, Config.MAX_REBIRTHS)),
 		rebirthCost = Economy.rebirthCost(rebirths),
 		canRebirth = cash >= Economy.rebirthCost(rebirths),
 		cash = cash,
@@ -168,54 +167,6 @@ describe("v28 item 2: SlimeDex pictures are real slime renders", function()
 	end)
 end)
 
-describe("v28 item 3: one shop menu from the ShopStand prompt", function()
-	it("the Shop panel lists every item flat in one scroll list, a Buy button per row", function()
-		local Shop = UiHarness.ui("Panels/Shop")
-		local panel = Shop.new(UiHarness.root(), ctx())
-		local state = {
-			cash = 5000,
-			lockCost = 25,
-			lockDuration = 60,
-			shop = {},
-			upgrades = {
-				{ id = "Income", name = "Slime Snacks", text = "+10% income", level = 0, maxLevel = 10, price = 2000 },
-				{
-					id = "Luck",
-					name = "Lucky Charm",
-					text = "+4% chance a slime you bring home is one rarity higher",
-					level = 0,
-					maxLevel = 5,
-					unlocked = false,
-					requires = 5,
-				},
-			},
-		}
-		panel.update(state)
-		local list = UiHarness.find(panel.frame, "List")
-		local rows = {}
-		for _, child in list:GetChildren() do
-			if child.ClassName == "Frame" then
-				table.insert(rows, child)
-				expect(child:FindFirstChild("Buy") ~= nil).toBe(true)
-				expect(child:FindFirstChild("Icon").Text ~= "").toBe(true)
-				expect(UiHarness.find(child, "List")).toBeNil() -- no nested menu
-			end
-		end
-		expect(#rows).toBe(#ShopCatalog.ITEMS + 2)
-		expect(UiHarness.find(panel.frame, "Cash").Text).toBe("💰 $5K")
-		local luck = list:FindFirstChild("Upgrade_Luck")
-		expect(luck:FindFirstChild("Description").Text).toBe("+4% rarity-up chance")
-		expect(luck:FindFirstChild("Level").Text).toBe("Lv 0/5")
-	end)
-	it("ShopCatalog.upgradeText keeps the number and shortens known upgrades only", function()
-		expect(ShopCatalog.upgradeText("Luck", "+4% chance a slime you bring home is one rarity higher")).toBe(
-			"+4% rarity-up chance"
-		)
-		expect(ShopCatalog.upgradeText("Income", "+10% income")).toBe("+10% income")
-		expect(ShopCatalog.upgradeText("Luck", "luckier")).toBe("luckier")
-	end)
-end)
-
 describe("v28 item 4: Rebirth shows only the next rebirth", function()
 	it("Progress.nextRebirth: cost, what's missing and what it gives", function()
 		local cost = Economy.rebirthCost(2)
@@ -236,25 +187,28 @@ describe("v28 item 4: Rebirth shows only the next rebirth", function()
 	end)
 	it("the panel has one requirement card and no ladder of later tiers", function()
 		local Rebirth = UiHarness.ui("Panels/Rebirth")
+		local Theme = UiHarness.ui("Widgets").Theme
 		local panel = Rebirth.new(UiHarness.root(), ctx())
 		local cost = Economy.rebirthCost(0)
 		panel.update(rebirthState(0, cost / 2))
 		expect(panel.frame:FindFirstChild("Title").Text).toBe("Rebirth 1")
-		expect(UiHarness.find(panel.frame, "Cost").Text).toBe(Format.formatCash(cost))
-		expect(UiHarness.find(panel.frame, "CashTick").Visible).toBe(false)
-		-- Not ready: no button, a status line with what is missing.
+		local costLabel = UiHarness.find(panel.frame, "Cost")
+		expect(costLabel.Text).toBe(Format.formatCash(cost))
+		expect(costLabel.TextColor3).toBe(Theme.Muted) -- can't pay it yet
+		-- Not ready: no button, a sunken well with what is missing.
 		local button = UiHarness.find(panel.frame, "RebirthButton")
 		local reason = UiHarness.find(panel.frame, "Reason")
 		expect(button.Visible).toBe(false)
 		expect(button.AutoButtonColor).toBe(false)
 		expect(reason.Visible).toBe(true)
-		expect(reason.Text).toBe(`🔒 Need {Format.formatCash(cost - cost / 2)} more`)
+		expect(reason.Text).toBe(`Need {Format.formatCash(cost - cost / 2)} more`)
 		panel.update(rebirthState(0, cost))
-		expect(UiHarness.find(panel.frame, "CashTick").Visible).toBe(true)
+		expect(costLabel.TextColor3).toBe(Theme.Gold)
 		expect(reason.Visible).toBe(false)
 		expect(button.Visible).toBe(true)
 		expect(button.AutoButtonColor).toBe(true)
-		expect(button.Text).toBe("♻️ Rebirth!")
+		expect(button.Text).toBe("Hold to rebirth")
+		expect(button.BackgroundColor3).toBe(Theme.Accent)
 		-- No text mentions any later rebirth.
 		for _, node in UiHarness.descendants(panel.frame) do
 			if node.ClassName == "TextLabel" or node.ClassName == "TextButton" then
@@ -292,62 +246,83 @@ describe("Rebirth needs specific slimes and uses them up", function()
 		state.rebirths = Config.MAX_REBIRTHS
 		expect(#Progress.nextRebirth(state, Config).slimes).toBe(0)
 	end)
-	it("the panel shows Missing + the reason instead of the button, then a tick and the button", function()
+	it("the panel shows the missing slime greyed out with the reason, then Owned and the button", function()
 		local Rebirth = UiHarness.ui("Panels/Rebirth")
+		local Theme = UiHarness.ui("Widgets").Theme
 		local panel = Rebirth.new(UiHarness.root(), ctx())
 		panel.update(stateWith(false, 1e9))
-		expect(UiHarness.find(panel.frame, "SlimeName").Text).toBe("Sprout Slime")
-		local stamp = UiHarness.find(panel.frame, "SlimeState")
-		local tick = UiHarness.find(panel.frame, "SlimeTick")
+		local card = UiHarness.find(panel.frame, "SlimeNeed")
+		expect(UiHarness.find(card, "SlimeName").Text).toBe("Sprout Slime")
+		local stamp = UiHarness.find(card, "SlimeState")
 		expect(stamp.Text).toBe("Missing")
-		expect(stamp.Visible).toBe(true)
-		expect(tick.Visible).toBe(false)
+		expect(stamp.TextColor3).toBe(Theme.Bad)
+		-- greyed out, not the black silhouette: the preview body is the grey tint
+		local preview = UiHarness.find(card, "Preview")
+		expect(preview.ImageTransparency > 0).toBe(true)
+		local body = UiHarness.find(preview, "Body")
+		expect(body.Color).toBe(UiHarness.ui("SlimePreview").GREYED)
 		local button = UiHarness.find(panel.frame, "RebirthButton")
 		local reason = UiHarness.find(panel.frame, "Reason")
 		expect(button.Visible).toBe(false)
-		expect(button.AutoButtonColor).toBe(false)
-		expect(reason.Text).toBe("🔒 Get Sprout Slime to rebirth")
+		expect(reason.Text).toBe("Need a Sprout Slime")
 		panel.update(stateWith(true, 1e9))
-		expect(stamp.Visible).toBe(false)
-		expect(tick.Visible).toBe(true)
-		expect(UiHarness.find(panel.frame, "SlimeDesc").Text).toBe("Used up on rebirth")
+		expect(stamp.Text).toBe("✅ Owned")
+		expect(stamp.TextColor3).toBe(Theme.Good)
+		expect(UiHarness.find(card, "SlimeDesc").Text).toBe("Used up on rebirth")
+		expect(preview.ImageTransparency).toBe(0)
 		expect(reason.Visible).toBe(false)
 		expect(button.Visible).toBe(true)
-		expect(button.Text).toBe("♻️ Rebirth!")
 		panel.update(rebirthState(0, 0))
-		expect(UiHarness.find(panel.frame, "SlimeNeed").Visible).toBe(false)
+		expect(card.Visible).toBe(false)
 	end)
-	it("two slimes get a row each with its own tick, and the reason names the missing ones", function()
+	it("several slimes: a full-width cash card over one card per slime, the reason names cash and slimes", function()
 		local Rebirth = UiHarness.ui("Panels/Rebirth")
 		local panel = Rebirth.new(UiHarness.root(), ctx())
-		local state = rebirthState(0, 1e9)
+		local state = rebirthState(0, 0)
 		state.rebirthSlimes = { need(SPROUT, true), need(ZAP, false) }
 		state.canRebirth = false
 		panel.update(state)
-		local card = UiHarness.find(panel.frame, "SlimeNeed")
-		expect(UiHarness.find(card, "Label").Text).toBe("These slimes")
-		local first = UiHarness.find(card, "Need1")
-		local second = UiHarness.find(card, "Need2")
+		expect(UiHarness.find(panel.frame, "Sub").Text).toBe("You need all three:")
+		expect(UiHarness.find(panel.frame, "Need").Size.X.Scale).toBe(1)
+		local first = UiHarness.find(panel.frame, "SlimeNeed")
+		local second = UiHarness.find(panel.frame, "SlimeNeed2")
 		expect(first.Visible and second.Visible).toBe(true)
-		expect(UiHarness.find(first, "SlimeName").Text).toBe("Sprout Slime")
+		expect(first.Position.Y.Offset).toBe(second.Position.Y.Offset) -- side by side
+		expect(UiHarness.find(first, "Label").Visible).toBe(false)
 		expect(UiHarness.find(second, "SlimeName").Text).toBe("Zap")
-		expect(UiHarness.find(first, "Tick").Visible).toBe(true)
-		expect(UiHarness.find(second, "Tick").Visible).toBe(false)
-		expect(UiHarness.find(card, "SlimeState").Visible).toBe(true)
-		expect(UiHarness.find(panel.frame, "Reason").Text).toBe("🔒 Get Zap to rebirth")
-		state.rebirthSlimes = { need(SPROUT, false), need(ZAP, false) }
-		panel.update(state)
-		expect(UiHarness.find(panel.frame, "Reason").Text).toBe("🔒 Get Sprout Slime and Zap to rebirth")
-		-- Back to one slime: the rows hide, the big picture returns.
+		expect(UiHarness.find(second, "SlimeState").Text).toBe("Missing")
+		local cost = Format.formatCash(Economy.rebirthCost(0))
+		expect(UiHarness.find(panel.frame, "Reason").Text).toBe(`Need {cost} and a Zap`)
+		expect(UiHarness.find(panel.frame, "Note").Text).toBe(
+			"Rebirth uses up the slimes above and resets your cash. "
+				.. "You keep your other slimes, your pads and your upgrades."
+		)
+		-- Back to one slime: the second card hides, the cards sit side by side again.
 		panel.update(stateWith(false, 1e9))
-		expect(first.Visible or second.Visible).toBe(false)
-		expect(UiHarness.find(card, "Label").Text).toBe("This slime")
+		expect(second.Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "Need").Size.X.Scale).toBe(0.5)
+		expect(UiHarness.find(first, "Label").Visible).toBe(true)
+	end)
+	it("Rebirth.plan puts a third slime card on a second row and grows the content", function()
+		local Rebirth = UiHarness.ui("Panels/Rebirth")
+		local one, two, three = Rebirth.plan(1, 34), Rebirth.plan(2, 34), Rebirth.plan(3, 34)
+		expect(one.multi).toBe(false)
+		expect(two.multi and three.multi).toBe(true)
+		expect(three.cards[3].position.Y.Offset > three.cards[1].position.Y.Offset).toBe(true)
+		expect(three.cards[3].position.X.Scale).toBe(0)
+		expect(three.height > two.height).toBe(true)
+		expect(one.noteY + 34).toBe(one.height)
+		local four = Rebirth.plan(4, 34) -- a longer list than any level asks for today still gets a card each
+		expect(#four.cards).toBe(4)
+		expect(four.cards[4].position.Y.Offset).toBe(four.cards[3].position.Y.Offset)
+		expect(Rebirth.subText(4, false)).toBe("You need all five:")
+		expect(Rebirth.subText(0, false)).toBe("You need:")
 	end)
 	it("the lock tile says Max once locks can't grow", function()
 		local Rebirth = UiHarness.ui("Panels/Rebirth")
 		local panel = Rebirth.new(UiHarness.root(), ctx())
 		local state = rebirthState(20, 0)
-		state.lockDuration = Config.LOCK_MAX_REMAINING
+		state.lockDuration = Config.LOCK_MAX_SECONDS
 		panel.update(state)
 		expect(UiHarness.find(UiHarness.find(panel.frame, "LockTime"), "Value").Text).toBe("Max")
 		state.lockDuration = Config.LOCK_SECONDS

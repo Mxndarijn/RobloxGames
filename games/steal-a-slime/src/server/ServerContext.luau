@@ -13,6 +13,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actions = require(script.Parent.Actions)
+local Config = require(ReplicatedStorage.Shared.Config)
 local PlotPadGuard = require(script.Parent.PlotPadGuard)
 local PvpFunView = require(script.Parent.PvpFunView)
 local PvpLaunch = require(script.Parent.PvpLaunch)
@@ -85,6 +86,8 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 			return WorldView.pointInHomeZone(Vector3.new(point.X, point.Y, point.Z), session.plotIndex)
 		end,
 		dropDown = WorldView.dropDown,
+		plotPointOf = WorldView.plotPoint,
+		sendKits = WorldView.sendKits,
 		-- Knockback gloves, Fun items and the Bat: the server only launches; the look is client FX from PvpEvent.
 		launch = function(userId: number, push, _landing): boolean
 			return PvpLaunch.launch(userId, push, now())
@@ -108,6 +111,33 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 		slimePosition = function(slimeId: string)
 			local p = WorldView.slimePosition(slimeId)
 			return p and { X = p.X, Y = p.Y, Z = p.Z }
+		end,
+		airborne = function(userId: number): boolean
+			local root = rootOf(userId)
+			local humanoid = root and root.Parent and root.Parent:FindFirstChildOfClass("Humanoid")
+			if not humanoid then
+				return false
+			end
+			-- a character the engine can't answer for counts as on the ground (never stops the boss loop)
+			local ok, floor = pcall(function()
+				return humanoid.FloorMaterial
+			end)
+			return ok and floor == Enum.Material.Air
+		end,
+		-- A boss attack reaches only players near the arena floor with nothing solid in between (BossEvent.Context).
+		exposed = function(userId: number, from): boolean
+			local root = rootOf(userId)
+			if not root then
+				return false
+			end
+			local at = Vector3.new(from.X, from.Y, from.Z)
+			local ok, clear = pcall(WorldView.bossExposed, at, root.Position, Config.BOSS.STRIKE_HEIGHT)
+			return not ok or clear -- an engine error never makes the boss harmless or crashes its loop
+		end,
+		-- The boss's plaza coordinates are round the fountain centre (BossEvent.Context).
+		plazaOrigin = function()
+			local p = WorldView.plazaOrigin()
+			return { X = p.X, Y = p.Y, Z = p.Z }
 		end,
 		-- Goo Blaster splats: the first solid surface up to GROUND_PROBE studs below the blob's end (characters ignored).
 		groundBelow = function(point)

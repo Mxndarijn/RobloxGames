@@ -8,6 +8,7 @@
 	rewards (Milestones.step) and Mystery Egg incubation (MysteryEgg.step).
 ]]
 
+local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local Income = if script then require(script.Parent.Income) else require("./Income")
 local Milestones = if script then require(script.Parent.Milestones) else require("./Milestones")
@@ -18,12 +19,16 @@ local World = if script then require(script.Parent.World) else require("./World"
 
 local GameLoop = {}
 
-function GameLoop.step(world: World.World, now: number)
+-- `ctx` (optional) gives the boss the players' positions (BossEvent.Context).
+function GameLoop.step(world: World.World, now: number, ctx: BossEvent.Context?)
 	Spawner.step(world, now)
-	BossEvent.step(world, now)
+	BossEvent.step(world, now, ctx)
+	BossCredit.expire(world, now)
 	StealService.step(world, now)
 	local elapsed = now - world.lastSecondAt
-	if elapsed >= 1 then
+	if elapsed < 0 then
+		world.lastSecondAt = now -- the clock stepped back: restart the one-second tick from here
+	elseif elapsed >= 1 then
 		world.lastSecondAt = now
 		Income.step(world, elapsed, now)
 		StealService.tickTutorial(world, now)

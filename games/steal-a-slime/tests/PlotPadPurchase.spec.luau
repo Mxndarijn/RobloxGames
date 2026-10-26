@@ -1,5 +1,5 @@
 --!strict
--- Owner-only plot pad purchases (LockPrompt / BuyPadPrompt / MergePrompt) with WorldShopsStrict ON: they are measured against
+-- Owner-only plot pad purchases (LockPrompt / BuyPadPrompt / MergePrompt) under the shop gate: they are measured against
 -- THEIR OWN prompt part (PlotPadGuard), never against the Item Shop stand, which is far from every plot.
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")
@@ -32,7 +32,6 @@ local function setup(slimes: { any }?)
 		positionOf = function()
 			return nil
 		end,
-		features = { WorldShops = true, WorldShopsStrict = true },
 		shopAccess = function()
 			return env.shop
 		end,
@@ -67,7 +66,7 @@ describe("PlotPadGuard", function()
 	end)
 end)
 
-describe("plot pad prompts under WorldShopsStrict", function()
+describe("plot pad prompts under the shop gate", function()
 	it("Request Lock never needs the shop: without a measured pad it is not gated", function()
 		local env = setup()
 		env.ctx.plotPadAccess = nil
@@ -81,7 +80,7 @@ describe("plot pad prompts under WorldShopsStrict", function()
 		local res = prompt(env, "Lock")
 		expect(res.ok).toBe(true)
 		expect(env.session.lockUntil > T0 + 100).toBeTruthy()
-		expect(env.session.data.cash < cash).toBe(true)
+		expect(env.session.data.cash).toBe(cash) -- locking is free
 		expect(env.kinds[1]).toBe("Lock")
 	end)
 	it("Lock: too far from the pad, no character, or dead is refused without charging", function()
@@ -106,16 +105,13 @@ describe("plot pad prompts under WorldShopsStrict", function()
 		expect(prompt(env, "BuyPad").ok).toBe(true)
 		expect(env.session.data.padsUnlocked).toBe(5)
 	end)
-	it("Merge from the vat works; too far does not", function()
+	it("the vat runs no pad action: its prompt only opens the owner's menu", function()
 		local env = setup({ Fixtures.slime("a", 1), Fixtures.slime("b", 1) })
-		env.pad = { distance = RANGE + 5, alive = true }
-		expect(prompt(env, "Merge", "a", "b").ok).toBe(false)
-		expect(#env.session.data.slimes).toBe(2)
 		env.pad = { distance = 2, alive = true }
-		expect(prompt(env, "Merge", "a", "b").ok).toBe(true)
-		expect(env.session.data.slimes[1].tier).toBe(2)
+		expect(prompt(env, "Merge", "a", "b").message).toBe("unknown action")
+		expect(#env.session.data.slimes).toBe(2)
 	end)
-	it("only the three pad kinds go through handlePlotPad", function()
+	it("only the two pad kinds go through handlePlotPad", function()
 		local env = setup()
 		expect(prompt(env, "BuySpeedCoil").message).toBe("unknown action")
 		expect(prompt(env, "BuyUpgrade", "Income").message).toBe("unknown action")
@@ -137,7 +133,7 @@ describe("plot pad prompts under WorldShopsStrict", function()
 		local cash = env.session.data.cash
 		env.pad = { distance = 2, alive = true }
 		expect(request(env, "Lock").ok).toBe(true)
-		expect(env.session.data.cash < cash).toBe(true)
+		expect(env.session.data.cash).toBe(cash) -- locking is free
 		env.session.lockUntil = 0
 		cash = env.session.data.cash
 		env.pad = { distance = RANGE + 1, alive = true }
@@ -185,22 +181,11 @@ describe("Actions.triggerPlotPrompt", function()
 		expect(trigger(env, 1, env.session.plotIndex, "Lock").ok).toBe(true)
 		expect(env.session.lockUntil > T0 + 100).toBe(true)
 	end)
-	it("Merge with the 3-slime vat on leaves the pick to the owner's merge menu", function()
+	it("the vat prompt leaves everything to the owner's merge vat menu", function()
 		local env = setup({ Fixtures.slime("a", 1), Fixtures.slime("b", 1) })
-		env.ctx.features = { MergeVat3 = true }
 		expect(trigger(env, 1, env.session.plotIndex, "Merge").ok).toBe(true)
 		expect(ServerFixtures.notifications(env.world, 1)).toEqual({})
 		expect(#env.session.data.slimes).toBe(2)
-	end)
-	it("Merge with the vat off picks the pair itself and toasts when there is none", function()
-		local env = setup({ Fixtures.slime("a", 1), Fixtures.slime("b", 2) })
-		env.ctx.features = { MergeVat3 = false }
-		expect(trigger(env, 1, env.session.plotIndex, "Merge").ok).toBe(false)
-		expect(ServerFixtures.notifications(env.world, 1)).toEqual({ "Need two slimes of the same rarity" })
-		env = setup({ Fixtures.slime("a", 1), Fixtures.slime("b", 1) })
-		env.ctx.features = { MergeVat3 = false }
-		expect(trigger(env, 1, env.session.plotIndex, "Merge").ok).toBe(true)
-		expect(env.session.data.slimes[1].tier).toBe(2)
 	end)
 	it("a refused pad action toasts its reason", function()
 		local env = setup()

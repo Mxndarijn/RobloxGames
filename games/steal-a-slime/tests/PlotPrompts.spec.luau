@@ -16,22 +16,21 @@ describe("PlotPrompts.describe", function()
 		expect(view.ownerUserId).toBeNil()
 		expect(view.lock.enabled or view.buyPad.enabled or view.merge.enabled).toBe(false)
 		expect(view.padsUnlocked).toBe(0)
-		expect(view.lockCost).toBe(0)
 	end)
-	it("says LOCKED m:ss and Extend while locked, OPEN and Lock base once it expires", function()
+	it("says LOCKED m:ss with the prompt off while locked, OPEN and Lock base once it expires", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
 		local view = PlotPrompts.describe(world, s.plotIndex, T0)
 		expect(view.ownerUserId).toBe(1)
 		expect(view.locked).toBe(true)
-		expect(view.lock.objectText).toBe(`P1's base: LOCKED 0:{Config.JOIN_LOCK_SECONDS}`)
-		expect(view.lock.actionText).toBe(`Extend lock ${Config.LOCK_BASE_COST}`)
+		expect(view.lock.objectText).toBe(`P1's base: LOCKED {PlotPrompts.clock(Config.JOIN_LOCK_SECONDS)}`)
+		expect(view.lock.actionText).toBe("Lock base")
+		expect(view.lock.enabled).toBe(false)
 		local open = PlotPrompts.describe(world, s.plotIndex, T0 + Config.JOIN_LOCK_SECONDS + 1)
 		expect(open.locked).toBe(false)
 		expect(open.lock.objectText).toBe("P1's base: OPEN")
-		expect(open.lock.actionText).toBe(`Lock base ${Config.LOCK_BASE_COST}`)
-		s.lockUntil = T0 + Config.LOCK_MAX_REMAINING
-		expect(PlotPrompts.describe(world, s.plotIndex, T0).lock.actionText).toBe("Lock is maxed")
+		expect(open.lock.actionText).toBe("Lock base")
+		expect(open.lock.enabled).toBe(true)
 	end)
 	it("puts Buy pad on the lowest locked pad and turns it off when all are unlocked", function()
 		local world = ServerFixtures.world()
@@ -39,8 +38,8 @@ describe("PlotPrompts.describe", function()
 		s.data.padsUnlocked = Config.PADS_START
 		local view = PlotPrompts.describe(world, s.plotIndex, T0)
 		expect(view.buyPad.pad).toBe(Config.PADS_START + 1)
-		local first = Config.BASE_FLOORS[1].firstPadCost
-		expect(view.buyPad.actionText).toBe(`Buy pad ${first}`)
+		local first = Config.PAD_START_COSTS[1]
+		expect(view.buyPad.actionText).toBe(`Buy pad ${Economy.formatNumber(first)}`)
 		expect(view.buyPad.objectText).toBe(`Pad {Config.PADS_START + 1} of {Config.PADS_MAX}`)
 		expect(view.nextPadCost).toBe(first)
 		s.data.padsUnlocked = Config.PADS_MAX
@@ -53,11 +52,30 @@ describe("PlotPrompts.describe", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
 		s.data.padsUnlocked = Config.PADS_PER_FLOOR
+		s.data.rebirths = Config.MAX_REBIRTHS
 		local view = PlotPrompts.describe(world, s.plotIndex, T0)
 		expect(view.buyPad.pad).toBe(Config.PADS_PER_FLOOR + 1)
-		expect(view.buyPad.actionText).toBe(`Build floor 2 ${Economy.formatNumber(Config.BASE_FLOORS[2].firstPadCost)}`)
+		local cost = Economy.padCost(Config.PADS_PER_FLOOR) :: number
+		expect(view.buyPad.actionText).toBe(`Build floor 2 ${Economy.formatNumber(cost)}`)
 		s.data.padsUnlocked = Config.PADS_PER_FLOOR + 1
 		expect(string.sub(PlotPrompts.describe(world, s.plotIndex, T0).buyPad.actionText, 1, 8)).toBe("Buy pad ")
+	end)
+	it("shows a disabled 'Rebirth N to unlock' on a next pad the owner hasn't rebirthed enough for", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		s.data.padsUnlocked = Config.PADS_PER_FLOOR
+		local need = Economy.padRebirths(s.data.padsUnlocked) :: number
+		s.data.rebirths = need - 1
+		local view = PlotPrompts.describe(world, s.plotIndex, T0)
+		expect(view.buyPad.pad).toBe(Config.PADS_PER_FLOOR + 1)
+		expect(view.buyPad.actionText).toBe(`Rebirth {need} to unlock`)
+		expect(view.buyPad.enabled).toBe(false)
+		s.data.rebirths = need
+		local open = PlotPrompts.describe(world, s.plotIndex, T0)
+		expect(open.buyPad.enabled).toBe(true)
+		expect(open.buyPad.actionText).toBe(
+			`Build floor 2 ${Economy.formatNumber(Economy.padCost(Config.PADS_PER_FLOOR) :: number)}`
+		)
 	end)
 	it("formats clocks", function()
 		expect(PlotPrompts.clock(0)).toBe("0:00")

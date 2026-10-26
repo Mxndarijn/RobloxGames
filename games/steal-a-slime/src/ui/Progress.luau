@@ -6,8 +6,9 @@
 	Pure (tests/ui/Progress.spec.luau). Reads CONTRACT §5.1 fields, State.dex
 	(§36.4), plus the optional v13 fields (§8.2: rebirthTitle, nextRebirthTier,
 	dexRewards, dexBonus) when a server sends them;
-	future rebirth costs come from the caller's `costOf(rebirths)` (the panel
-	passes Shared.Economy.rebirthCost) so the formula lives in one place.
+	future rebirth costs and multipliers come from the caller's `costOf(rebirths)`
+	and `multOf(rebirths)` (Shared.Economy.rebirthCost / rebirthMultiplier), and
+	the next one from State.nextRebirthMultiplier, so the formulas live in one place.
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
@@ -15,7 +16,7 @@ local Format = if script then require(script.Parent.Format) else require("./Form
 export type Tier = {
 	rebirth: number, -- rebirth count once reached
 	multiplier: number,
-	lockSeconds: number, -- lock bought at this tier (at most LOCK_MAX_REMAINING)
+	lockSeconds: number, -- lock bought at this tier (at most LOCK_MAX_SECONDS)
 	cost: number?, -- nil for the current tier
 	current: boolean,
 }
@@ -25,9 +26,8 @@ export type DexProgress = { count: number, total: number, fraction: number, perc
 
 -- Config fields this module needs (Shared.Config satisfies it).
 export type Cfg = {
-	REBIRTH_MULTIPLIER_STEP: number,
 	LOCK_SECONDS_PER_REBIRTH: number,
-	LOCK_MAX_REMAINING: number,
+	LOCK_MAX_SECONDS: number,
 	MAX_REBIRTHS: number,
 }
 
@@ -38,7 +38,13 @@ local function num(value: any): number
 end
 
 -- The current tier plus up to `ahead` next ones (stops at MAX_REBIRTHS).
-function Progress.rebirthTiers(state: any, cfg: Cfg, costOf: (number) -> number, ahead: number): { Tier }
+function Progress.rebirthTiers(
+	state: any,
+	cfg: Cfg,
+	costOf: (number) -> number,
+	multOf: (number) -> number,
+	ahead: number
+): { Tier }
 	local r = num(state.rebirths)
 	local mult = num(state.rebirthMultiplier)
 	local lock = num(state.lockDuration)
@@ -51,8 +57,8 @@ function Progress.rebirthTiers(state: any, cfg: Cfg, costOf: (number) -> number,
 		end
 		table.insert(out, {
 			rebirth = r + k,
-			multiplier = mult + k * cfg.REBIRTH_MULTIPLIER_STEP,
-			lockSeconds = math.min(lock + k * cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_REMAINING),
+			multiplier = multOf(r + k),
+			lockSeconds = math.min(lock + k * cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_SECONDS),
 			cost = if k == 1 then num(state.rebirthCost) else costOf(r + k - 1),
 			current = false,
 		})
@@ -96,7 +102,7 @@ export type NextRebirth = {
 	need: string, -- "$3.7K more" / "Ready!" / "Max rebirths"
 	progress: string, -- "$1.2K / $5K"
 	multiplier: number, -- income multiplier after it
-	lockGain: number, -- extra lock seconds it adds (0 once locks are at LOCK_MAX_REMAINING)
+	lockGain: number, -- extra lock seconds it adds (0 once locks are at LOCK_MAX_SECONDS)
 	slimes: { SlimeNeed }, -- the slimes this rebirth needs and uses up (empty at max)
 	missing: { SlimeNeed }, -- the ones of `slimes` the player doesn't have yet
 }
@@ -141,11 +147,49 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 			elseif ready then "Ready!"
 			else `{Format.formatCash(math.max(0, cost - have))} more`,
 		progress = `{Format.formatCash(have)} / {Format.formatCash(cost)}`,
-		multiplier = num(state.rebirthMultiplier) + cfg.REBIRTH_MULTIPLIER_STEP,
-		lockGain = math.max(0, math.min(lock + cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_REMAINING) - lock),
+		multiplier = num(state.nextRebirthMultiplier),
+		lockGain = math.max(0, math.min(lock + cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_SECONDS) - lock),
 		slimes = slimes,
 		missing = missing,
 	}
+end
+
+-- "a Flan", "an Imp".
+local function withArticle(name: string): string
+	return (if string.match(name, "^[AEIOUaeiou]") then "an " else "a ") .. name
+end
+
+-- "x", "x and y", "x, y and z".
+local function joinAnd(items: { string }): string
+	if #items <= 1 then
+		return items[1] or ""
+	end
+	return `{table.concat(items, ", ", 1, #items - 1)} and {items[#items]}`
+end
+
+-- What the disabled Rebirth well says is missing: "Need $178.8K more" (cash only), "Need a Flan" (slimes
+-- only), "Need $15.5M and a Flan" or "Need $15.5M, a Flan and an Imp" (both), "All rebirths done" at the top. "" once it is ready.
+function Progress.rebirthReason(nextUp: NextRebirth): string
+	if nextUp.maxed then
+		return "All rebirths done"
+	end
+	if nextUp.ready then
+		return ""
+	end
+	local short = math.max(0, nextUp.cost - nextUp.have)
+	local items = {}
+	for _, need in nextUp.missing do
+		table.insert(items, withArticle(need.name))
+	end
+	if #items > 0 then
+		if short > 0 then
+			table.insert(items, 1, Format.formatCash(short))
+		end
+		return `Need {joinAnd(items)}`
+	elseif short > 0 then
+		return `Need {Format.formatCash(short)} more`
+	end
+	return "Not ready yet" -- every need met but the server has not said so yet
 end
 
 -- State.dex (CONTRACT.md §36.4): species found over the 50 entries, and per rarity (event Secrets are bonus
