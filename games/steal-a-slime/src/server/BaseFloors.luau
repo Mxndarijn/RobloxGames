@@ -16,6 +16,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local BaseShapes = require(ReplicatedStorage.Visuals.BaseShapes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local Economy = require(ReplicatedStorage.Shared.Economy)
@@ -24,10 +25,11 @@ local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
 local BaseFloors = {}
 
+-- `base` is the plot's PlotBase attribute (CONTRACT.md §43; nil = the goo jar tower).
 export type Context = {
-	build: (plot: Instance, plotIndex: number, floor: number) -> { Instance },
-	-- the roof colliders on the top jar (WorldBuilder.buildTop); nil leaves the roof alone
-	top: ((plot: Instance, plotIndex: number, floor: number) -> Instance)?,
+	build: (plot: Instance, plotIndex: number, floor: number, base: string?) -> { Instance },
+	-- the roof colliders on the top floor (WorldBuilder.buildTop); nil leaves the roof alone
+	top: ((plot: Instance, plotIndex: number, floor: number, base: string?) -> Instance)?,
 	meshes: (instances: { Instance }) -> (),
 	drop: ((player: Player, plotIndex: number) -> ())?,
 }
@@ -73,8 +75,14 @@ local function addDropPrompts(instances: { Instance }, plotIndex: number, ctx: C
 	end
 end
 
--- Characters standing in jar `floor` (above its deck, inside its glass) are set down on the plot's Base straight
--- below, just before that jar goes.
+-- The plot's base id (the PlotBase attribute, CONTRACT.md §43), nil for the jar.
+local function baseOf(plot: Instance): string?
+	local base = plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE)
+	return if type(base) == "string" then base else nil
+end
+
+-- Characters standing in floor `floor` (above its deck, inside its walls) are set down on the plot's Base straight
+-- below, just before that floor goes.
 local function evacuate(plot: Instance, floor: number)
 	local base = plot:FindFirstChild("Base")
 	if not (base and base:IsA("BasePart")) then
@@ -82,13 +90,14 @@ local function evacuate(plot: Instance, floor: number)
 	end
 	local floorY = base.Position.Y + base.Size.Y / 2
 	local deckY = floorY + WorldLayout.floorTop(floor) - WorldLayout.floorTop(1)
-	local reach = WorldLayout.jarRadius(floor) + 1
+	local shape = BaseShapes.get(baseOf(plot))
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root and root:IsA("BasePart") then
 			local p = base.CFrame:PointToObjectSpace(root.Position)
-			if root.Position.Y >= deckY - 1 and math.sqrt(p.X * p.X + p.Z * p.Z) <= reach then
+			-- one stud of slack past the walls
+			if root.Position.Y >= deckY - 1 and shape.inside(floor, p.X, p.Z, 1) then
 				local at = root.Position
 				character:PivotTo(CFrame.new(at.X, floorY + 3, at.Z) * root.CFrame.Rotation)
 				root.AssemblyLinearVelocity = Vector3.zero
@@ -182,7 +191,7 @@ function BaseFloors.sync(plot: Instance, plotIndex: number, padsUnlocked: number
 	for floor = 2, #Config.BASE_FLOORS do
 		local present = plot:FindFirstChild(`Floor_{floor}`) ~= nil
 		if floor <= shown and not present then
-			local built = ctx.build(plot, plotIndex, floor)
+			local built = ctx.build(plot, plotIndex, floor, baseOf(plot))
 			addDropPrompts(built, plotIndex, ctx)
 			task.spawn(ctx.meshes, built)
 			changed = true
@@ -204,8 +213,22 @@ function BaseFloors.sync(plot: Instance, plotIndex: number, padsUnlocked: number
 		end
 		local roof = plot:FindFirstChild("TopColliders")
 		if not roof or roof:GetAttribute("TopFloor") ~= top then
-			ctx.top(plot, plotIndex, top)
+			ctx.top(plot, plotIndex, top, baseOf(plot))
 		end
+	end
+end
+
+-- Removes every upper floor and the roof colliders (a base swap, server/BaseShapeSwap): people up there are set down
+-- on floor 1 first and the BuyPadPrompt is parked on floor 1, as when a floor goes.
+function BaseFloors.clear(plot: Instance)
+	for floor = #Config.BASE_FLOORS, 2, -1 do
+		if plot:FindFirstChild(`Floor_{floor}`) then
+			removeFloor(plot, floor)
+		end
+	end
+	local roof = plot:FindFirstChild("TopColliders")
+	if roof then
+		roof:Destroy()
 	end
 end
 

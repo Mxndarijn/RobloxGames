@@ -1376,10 +1376,18 @@ end
 -- to the stand's seat, but it doesn't collide: a round PadCollider (the dish's diameter, the same height) is what
 -- players walk into and stand on, so the stand collides as round as it looks. The stand mesh sits on the floor at
 -- native size and the Pad hides under it once it lands.
-local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): WorldNode
-	local x, z = WorldLayout.padOffset(j)
+-- Pad j at plot-local (x, z) on its floor, its box turned padYaw degrees (BaseShapes builds the other bases' pads).
+local function padNodeAt(
+	j: number,
+	x: number,
+	z: number,
+	padYaw: number,
+	at: (Vec) -> Vec,
+	yaw: number,
+	color: Vec
+): WorldNode
 	local y = WorldLayout.floorTop(WorldLayout.padFloor(j))
-	local turn = { 0, yaw + WorldLayout.padYaw(j), 0 }
+	local turn = { 0, yaw + padYaw, 0 }
 	local look = WorldLayout.PAD_MESH
 	local seat = WorldLayout.PAD_SEAT_Y
 	local ps = WorldLayout.PAD_SIZE
@@ -1397,6 +1405,12 @@ local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): Wo
 		collider,
 	}
 	return pad
+end
+WorldLayout.padNodeAt = padNodeAt
+
+local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): WorldNode
+	local x, z = WorldLayout.padOffset(j)
+	return padNodeAt(j, x, z, WorldLayout.padYaw(j), at, yaw, color)
 end
 
 -- Radius of the centre of jar f's collision wall segments: their inner faces are a polygon inscribed in the jar's
@@ -2103,6 +2117,17 @@ local function plot(i: number): WorldNode
 		attributes = { PlotIndex = i, OwnerUserId = 0, LockUntil = 0 },
 		children = children,
 	}
+end
+
+-- Plot i's own nodes (WorldLayout.build's Plot_<i>), its plot-local frame (at, yaw) and its colour: BaseShapes builds
+-- the other bases on the same frame.
+WorldLayout.plotNode = plot
+function WorldLayout.plotFrame(i: number): ((Vec) -> Vec, number)
+	local centre, yaw = WorldLayout.plotCentre(i)
+	return frame(centre, yaw), yaw
+end
+function WorldLayout.plotColor(i: number): Vec
+	return PLOT_COLORS[(i - 1) % #PLOT_COLORS + 1]
 end
 
 function WorldLayout.build(): { WorldNode }

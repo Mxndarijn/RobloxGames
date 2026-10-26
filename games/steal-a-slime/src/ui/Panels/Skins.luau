@@ -6,12 +6,16 @@
 	these 5 slimes" over a bar, the slimes themselves (found in colour, the rest as silhouettes with their set or
 	"Merge"), and Equip, Equipped or a well saying how many slimes are still needed. Equip asks the server
 	(EquipPlotSkin); it decides nothing itself. Without State.plotSkins: one empty line.
+	With State.plotBases (FEATURES.BaseShapes, contract/base-shapes.md) a strip of base buttons runs across the top:
+	the building the plot stands in, apart from its skin; each says Equip, Equipped or the rebirth it unlocks at
+	(PlotBasesView), and Equip asks the server (EquipPlotBase).
 ]]
 
 local UI = script.Parent.Parent
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
+local PlotBasesView = require(UI.PlotBasesView)
 local PlotSkinsView = require(UI.PlotSkinsView)
 local SlimeDex = require(UI.SlimeDex)
 local SlimePreview = require(UI.SlimePreview)
@@ -55,6 +59,11 @@ local STYLE = table.freeze({
 	button = Layout.MIN_TOUCH_DESIGN,
 	buttonText = 17,
 	wellRadius = 11,
+	-- base strip
+	baseH = Layout.MIN_TOUCH_DESIGN,
+	baseGap = 8,
+	baseTitle = 14,
+	baseState = Layout.MIN_TEXT,
 })
 
 -- The pane's slime cells: how many fit across `inner` px and how wide each is.
@@ -104,6 +113,12 @@ function Skins.new(parent: Instance, ctx: any)
 		Visible = false,
 		Parent = content,
 	})
+	local strip = create("Frame", {
+		Name = "Bases",
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = content,
+	})
 	local list = Widgets.scrollList({ Name = "List", Parent = content }, STYLE.rowGap)
 	local pane = Widgets.scroll({
 		Name = "Pane",
@@ -128,9 +143,86 @@ function Skins.new(parent: Instance, ctx: any)
 
 	local function placeBody()
 		local lw = listWidth()
-		list.Size = UDim2.fromOffset(lw, bodyH)
-		pane.Position = UDim2.fromOffset(lw + STYLE.gap, 0)
-		pane.Size = UDim2.fromOffset(bodyW - lw - STYLE.gap, bodyH)
+		local top = if strip.Visible then STYLE.baseH + STYLE.baseGap else 0
+		strip.Size = UDim2.fromOffset(bodyW, STYLE.baseH)
+		list.Position = UDim2.fromOffset(0, top)
+		list.Size = UDim2.fromOffset(lw, bodyH - top)
+		pane.Position = UDim2.fromOffset(lw + STYLE.gap, top)
+		pane.Size = UDim2.fromOffset(bodyW - lw - STYLE.gap, bodyH - top)
+	end
+
+	-- Base buttons, reused by index.
+	type BaseButton = { frame: TextButton, stroke: UIStroke, title: TextLabel, state: TextLabel }
+	local baseButtons: { BaseButton } = {}
+	local function baseButton(i: number): BaseButton
+		local existing = baseButtons[i]
+		if existing then
+			return existing
+		end
+		local frame = create("TextButton", {
+			Name = `Base{i}`,
+			Text = "",
+			AutoButtonColor = false,
+			BackgroundColor3 = Theme.Row,
+			BorderSizePixel = 0,
+			Parent = strip,
+		}, { Widgets.corner(Widgets.KIT.rowRadius) }) :: TextButton
+		local stroke = Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke)
+		stroke.Parent = frame
+		local title = Widgets.label({
+			Name = "Title",
+			Font = Theme.Font,
+			TextSize = STYLE.baseTitle,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Position = UDim2.fromOffset(4, 3),
+			Size = UDim2.new(1, -8, 0.5, -2),
+			Parent = frame,
+		})
+		local state = Widgets.label({
+			Name = "State",
+			Font = Theme.Font,
+			TextSize = STYLE.baseState,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Position = UDim2.new(0, 4, 0.5, 0),
+			Size = UDim2.new(1, -8, 0.5, -3),
+			Parent = frame,
+		})
+		frame.Activated:Connect(function()
+			local id = frame:GetAttribute("BaseId")
+			if frame:GetAttribute("State") == "unlocked" and type(id) == "string" and ctx.request then
+				ctx.request("EquipPlotBase", function() end, id)
+			end
+		end)
+		local made = { frame = frame, stroke = stroke, title = title, state = state }
+		baseButtons[i] = made
+		return made
+	end
+
+	local function paintBases(baseRows: { PlotBasesView.Row })
+		local n = #baseRows
+		local w = if n > 0 then math.floor((bodyW - STYLE.baseGap * (n - 1)) / n) else 0
+		for i, row in baseRows do
+			local b = baseButton(i)
+			local locked = row.state == "locked"
+			b.frame.Visible = true
+			b.frame:SetAttribute("BaseId", row.id)
+			b.frame:SetAttribute("State", row.state)
+			b.frame.Position = UDim2.fromOffset((i - 1) * (w + STYLE.baseGap), 0)
+			b.frame.Size = UDim2.fromOffset(w, STYLE.baseH)
+			b.frame.BackgroundColor3 = if row.state == "equipped" then Theme.BgLight else Theme.Row
+			b.stroke.Color = if row.state == "equipped" then Theme.Good else Theme.Ink
+			b.stroke.Thickness = if row.state == "equipped" then STYLE.selectStroke else Widgets.KIT.rowStroke
+			b.title.Text = row.title
+			b.title.TextColor3 = if locked then Theme.Muted else Theme.Text
+			b.state.Text = row.action
+			b.state.TextColor3 = if row.state == "equipped"
+				then Theme.Good
+				elseif row.state == "unlocked" then Theme.Accent
+				else Theme.Muted
+		end
+		for i = n + 1, #baseButtons do
+			baseButtons[i].frame.Visible = false
+		end
 	end
 
 	local function equip(id: string)
@@ -473,6 +565,12 @@ function Skins.new(parent: Instance, ctx: any)
 			return
 		end
 		attach()
+		local baseRows = PlotBasesView.rows(latest.plotBases)
+		if strip.Visible ~= (#baseRows > 0) then
+			strip.Visible = #baseRows > 0
+			placeBody()
+		end
+		paintBases(baseRows)
 		rows.sync(skinRows)
 		local cards = SlimeDex.cards(latest.dex, ctx.Config, function(id: string)
 			local entry = if ctx.SlimeRoster then ctx.SlimeRoster.get(id) else nil

@@ -32,6 +32,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local BaseFloors = require(script.Parent.BaseFloors)
+local BaseShapeSwap = require(script.Parent.BaseShapeSwap)
+local BaseShapes = require(ReplicatedStorage.Visuals.BaseShapes)
 local BossArea = require(ReplicatedStorage.Shared.BossArea)
 local BossChoreo = require(ReplicatedStorage.Shared.BossChoreo)
 local BossFxView = require(script.Parent.BossFxView)
@@ -53,6 +55,7 @@ local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
+local PlotBases = require(ReplicatedStorage.Shared.PlotBases)
 local PlotGuests = require(script.Parent.PlotGuests)
 local PlotLockGuard = require(script.Parent.PlotLockGuard)
 local PlotLookup = require(script.Parent.PlotLookup)
@@ -666,12 +669,19 @@ local function append(route: { number }, x: number, z: number)
 end
 
 -- The tower leg (world x, z) when `at` is on an upper floor that stands, and the ground-floor spot it ends on.
+-- The plot's base id (its PlotBase attribute, CONTRACT.md §43), nil for the jar.
+local function baseOf(plot: Instance): string?
+	local base = plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE)
+	return if type(base) == "string" then base else nil
+end
+
 local function towerLeg(at: Vector3): ({ number }?, Vector3?)
 	for index = 1, Config.PLOT_COUNT do
 		local frame = plotFrame(index)
 		local p = frame:PointToObjectSpace(at)
-		local leg = JarRoute.down(p.X, p.Y, p.Z)
 		local plot = WorldView.plot(index)
+		local route = plot == nil or BaseShapes.get(baseOf(plot)).route
+		local leg = if route then JarRoute.down(p.X, p.Y, p.Z) else nil
 		if leg and plot and plot:FindFirstChild(`Floor_{WorldLayout.floorAt(p.Y)}`) then
 			local out = {}
 			for k = 1, #leg, 2 do
@@ -1045,6 +1055,12 @@ end
 	Creates, moves and destroys slime models to match the World. Call a few
 	times a second and after any action.
 ]]
+-- Plots whose pads moved (a base swap, server/BaseShapeSwap): their pad slimes are placed again on the next reconcile.
+local stalePlots: { [number]: boolean } = {}
+function WorldView.replacePlotSlimes(plotIndex: number)
+	stalePlots[plotIndex] = true
+end
+
 function WorldView.reconcile(
 	world: World.World,
 	now: number,
@@ -1119,8 +1135,9 @@ function WorldView.reconcile(
 			bossMoves[id] = entry.wild
 		end
 		SlimeLabelView.applyGrowth(record.model, entry.slime, now)
-		if record.key ~= entry.key then
-			local previous = if record.placed then record.key else nil
+		local moved = entry.plotIndex ~= nil and entry.pad ~= nil and stalePlots[entry.plotIndex] == true
+		if record.key ~= entry.key or moved then
+			local previous = if record.placed and not moved then record.key else nil
 			record.key = entry.key
 			if place(world, record, entry, previous) then
 				record.placed = true
@@ -1145,6 +1162,7 @@ function WorldView.reconcile(
 			if owner then VatView.labelStatus(owner.data, id) else nil
 		)
 	end
+	table.clear(stalePlots) -- placed once on their new pads (a pad not built yet retries through its key)
 	for id in failed do
 		if not entries[id] then
 			failed[id] = nil
@@ -1539,6 +1557,17 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 		if plot then
 			local userId = world.plots[index]
 			local session = userId and world.sessions[userId]
+			-- the base first (CONTRACT.md §43): BaseFloors builds the upper floors of the plot's base
+			local base = if Config.FEATURES.BaseShapes and session
+				then PlotBases.current(session.data)
+				else Config.PLOT_BASE_DEFAULT
+			if (plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE) or Config.PLOT_BASE_DEFAULT) ~= base then
+				BaseShapeSwap.swap(plot, index, base)
+				plot:SetAttribute(Constants.PLOT_BASE_ATTRIBUTE, if Config.FEATURES.BaseShapes then base else nil)
+				WorldView.replacePlotSlimes(index)
+			elseif Config.FEATURES.BaseShapes then
+				setIfChanged(plot, Constants.PLOT_BASE_ATTRIBUTE, base)
+			end
 			if floors then
 				BaseFloors.sync(plot, index, if session then session.data.padsUnlocked else 0, floors)
 			end
@@ -1648,7 +1677,7 @@ function WorldView.dropDown(userId: number, plotIndex: number): boolean
 	if not (character and root and base and base:IsA("BasePart")) then
 		return false
 	end
-	local land = WorldLayout.dropLanding()
+	local land = BaseShapes.get(baseOf(plot :: Instance)).dropLanding()
 	local y = land[2] - WorldLayout.PLOT_FLOOR_TOP + base.Size.Y / 2
 	character:PivotTo(base.CFrame * CFrame.new(land[1], y, land[3]))
 	root.AssemblyLinearVelocity = Vector3.zero

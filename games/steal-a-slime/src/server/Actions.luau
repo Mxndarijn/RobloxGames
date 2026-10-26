@@ -45,6 +45,7 @@ local Rebirth = if script then require(script.Parent.Rebirth) else require("./Re
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
 local Layout = if Shared then require(Shared.Parent.Visuals.WorldLayout) else require("../visuals/shared/WorldLayout")
+local BaseShapes = if Shared then require(Shared.Parent.Visuals.BaseShapes) else require("../visuals/shared/BaseShapes")
 local WorldLayout = Layout
 
 type World = World.World
@@ -317,7 +318,7 @@ local function equipPlotBase(world: World, session: Session, id: string, ctx: Co
 		return fail(reason or "failed")
 	end
 	local base = PlotBases.get(id)
-	World.notify(world, session.userId, `Base: {base and base.name or id}`, "good", nil, `PlotBase_{id}`)
+	World.notify(world, session.userId, `Base: {base and base.name or id}`, "good", nil)
 	return OK
 end
 
@@ -716,10 +717,10 @@ function Actions.triggerPlotPrompt(
 	return res
 end
 
--- True when plot-local point (x, y, z) is inside jar `f`: within its glass and at or above its deck (a character's
--- root stands about 3 studs up; the slack lets a jump off the deck count).
-function Actions.insideJar(f: number, x: number, y: number, z: number): boolean
-	return math.sqrt(x * x + z * z) < WorldLayout.jarRadius(f) and y >= WorldLayout.floorTop(f) - 1
+-- True when plot-local point (x, y, z) is inside floor `f` of base `base` (BaseShapes; nil = the jar): within its walls
+-- and at or above its deck (a character's root stands about 3 studs up; the slack lets a jump off the deck count).
+function Actions.insideJar(f: number, x: number, y: number, z: number, base: string?): boolean
+	return BaseShapes.get(base).inside(f, x, z) and y >= WorldLayout.floorTop(f) - 1
 end
 
 -- A player took plot `plotIndex`'s drop tube (the top jar's DropPrompt, CONTRACT.md §5.3). Only the owner, standing
@@ -743,7 +744,8 @@ function Actions.useDropTube(world: World, userId: number, plotIndex: number, ct
 	end
 	local top = Economy.floorsShown(session.data.padsUnlocked)
 	local at = ctx.plotPointOf and ctx.plotPointOf(userId, plotIndex)
-	if top < 2 or not at or not Actions.insideJar(top, at[1], at[2], at[3]) then
+	local base = if feature(ctx, "BaseShapes") then PlotBases.current(session.data) else nil
+	if top < 2 or not at or not Actions.insideJar(top, at[1], at[2], at[3], base) then
 		local text = "Stand inside the top jar to take the goo tube!"
 		World.notify(world, userId, text, "bad", nil)
 		return fail(text)
