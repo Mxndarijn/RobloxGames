@@ -519,9 +519,12 @@ if BOOT then
 	end
 	if world and Leaderboard and WorldProps then
 		step("leaderboard refresh (memory)", function()
-			WorldProps.fillBoard(Leaderboard.fromPage(Leaderboard.pageFromSessions(world.sessions), function(id)
-				return `Player {id}`
-			end))
+			for _, stat in { "TotalEarned", "WeeklyEarned", "Steals", "Dex", "Merges" } do
+				local page = Leaderboard.pageFromSessions(world.sessions, stat, 0)
+				WorldProps.fillBoard(Leaderboard.fromPage(page, function(id)
+					return `Player {id}`
+				end, stat))
+			end
 		end)
 	end
 

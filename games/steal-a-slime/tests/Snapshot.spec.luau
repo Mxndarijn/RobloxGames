@@ -24,13 +24,13 @@ local STATE_KEYS = {
 	"incomePerSec",
 	"rebirths",
 	"rebirthMultiplier",
+	"nextRebirthMultiplier",
 	"rebirthCost",
 	"canRebirth",
 	"padsUnlocked",
 	"padsMax",
 	"slimes",
 	"lockUntil",
-	"lockCost",
 	"lockDuration",
 	"rain",
 	"dex",
@@ -104,6 +104,55 @@ describe("Snapshot.build", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
 		expect(Snapshot.build(world, s, T0).nextPadCost).toBeNil()
+		expect(Snapshot.build(world, s, T0).nextPadRebirths).toBeNil()
+	end)
+	it("sends the multiplier after the next rebirth, and the current one at max", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		local edge = Config.REBIRTH_MULTIPLIER_STEPS[2].from
+		s.data.rebirths = edge - 1
+		expect(Snapshot.build(world, s, T0).nextRebirthMultiplier).toBe(Economy.rebirthMultiplier(edge))
+		s.data.rebirths = Config.MAX_REBIRTHS
+		local maxed = Snapshot.build(world, s, T0)
+		expect(maxed.nextRebirthMultiplier).toBe(maxed.rebirthMultiplier)
+	end)
+	it("sends the rebirths a locked next pad waits for, and nil once it can be bought", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		s.data.padsUnlocked = Config.PADS_START
+		expect(Snapshot.build(world, s, T0).nextPadRebirths).toBeNil()
+		s.data.padsUnlocked = Config.PADS_PER_FLOOR
+		local need = Economy.padRebirths(Config.PADS_PER_FLOOR) :: number
+		s.data.rebirths = need - 1
+		expect(Snapshot.build(world, s, T0).nextPadRebirths).toBe(need)
+		s.data.rebirths = need
+		expect(Snapshot.build(world, s, T0).nextPadRebirths).toBeNil()
+	end)
+end)
+
+describe("Snapshot State.boards", function()
+	it("holds my value on every global board", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		s.data.totalEarned = 1234.7
+		s.data.totalStolen = 3
+		s.data.stats.merges = 8
+		local boards = Snapshot.build(world, s, T0).boards
+		expect(boards.TotalEarned).toBe(1234)
+		expect(boards.Steals).toBe(3)
+		expect(boards.Merges).toBe(8)
+		expect(type(boards.Dex)).toBe("number")
+		expect(type(boards.WeeklyEarned)).toBe("number")
+	end)
+	it("holds my rank per board from the last refresh", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		expect(Snapshot.build(world, s, T0).boardRanks).toEqual({})
+		s.boardRanks = { TotalEarned = 48, Steals = -1000 }
+		local ranks = Snapshot.build(world, s, T0).boardRanks
+		expect(ranks.TotalEarned).toBe(48)
+		expect(ranks.Steals).toBe(-1000)
+		expect(ranks ~= s.boardRanks).toBe(true) -- a copy
 	end)
 end)
 
@@ -157,7 +206,7 @@ describe("Snapshot State.dex", function()
 		expect(gummy.name).toBe("Gummy")
 		local moo = entry(state, "moo")
 		expect(moo.found).toBe(false)
-		expect(moo.name).toBeNil()
+		expect(moo.name).toBe("Moo")
 		expect(entry(state, "goozilla").hint).toBe(SpeciesDex.BOSS_HINT)
 		expect(entry(state, "glitch").kind).toBe("event")
 	end)
@@ -172,9 +221,9 @@ describe("Snapshot State.dex", function()
 		for i, input in recipe.inputs do
 			expect(soda.ingredients[i]).toBe(if input == "gummy" then "gummy" else "")
 		end
-		expect(soda.name).toBeNil()
+		expect(soda.name).toBe("Soda Pop")
 	end)
-	it("names this week's featured event Secret with its week; the others stay ???", function()
+	it("gives this week's featured event Secret its week; the others are named with no hint", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
 		local state = Snapshot.build(world, s, T0) :: any
@@ -185,7 +234,9 @@ describe("Snapshot State.dex", function()
 		expect(e.hint).toBe(`Featured Secret: week of {SpeciesDex.weekLabel(featured.startsAt)}`)
 		for _, other in SpeciesDex.BONUS do
 			if other.id ~= featured.id then
-				expect(entry(state, other.id).hint).toBe("???")
+				local o = entry(state, other.id)
+				expect(o.name).toBe(other.name)
+				expect(o.hint).toBeNil()
 			end
 		end
 	end)

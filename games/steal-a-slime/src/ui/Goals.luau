@@ -51,8 +51,11 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 	local padsUnlocked, padsMax = num(state.padsUnlocked), num(state.padsMax)
 	table.insert(out, goal("FillPads", "Fill your pads", `{#slimes}/{padsUnlocked} pads used`, #slimes, padsUnlocked))
 
-	local padDetail = if type(state.nextPadCost) == "number"
-		then `{padsUnlocked}/{padsMax} · next {Format.formatCash(state.nextPadCost)}`
+	local padDetail = if type(state.nextPadRebirths) == "number"
+		then `{padsUnlocked}/{padsMax} · next at Rebirth {state.nextPadRebirths}`
+		elseif type(state.nextPadCost) == "number" then `{padsUnlocked}/{padsMax} · next {Format.formatCash(
+			state.nextPadCost
+		)}`
 		else `{padsUnlocked}/{padsMax}`
 	table.insert(out, goal("AllPads", "Unlock every pad", padDetail, padsUnlocked, padsMax))
 

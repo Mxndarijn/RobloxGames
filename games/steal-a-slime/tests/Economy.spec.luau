@@ -2,17 +2,40 @@
 local Config = require("../src/shared/Config")
 local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
+local Genome = require("../src/shared/Genome")
 local PlayerData = require("../src/shared/PlayerData")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 describe("Economy income", function()
-	it("rebirth multiplier grows linearly and ignores garbage", function()
+	it("rebirth multiplier adds each rebirth's band step and ignores garbage", function()
 		expect(Economy.rebirthMultiplier(0)).toBe(1)
-		expect(Economy.rebirthMultiplier(2)).toBe(1 + 2 * Config.REBIRTH_MULTIPLIER_STEP)
+		expect(Economy.rebirthMultiplier(1)).toBe(1 + Economy.rebirthStep(1))
+		expect(Economy.rebirthMultiplier(10)).toBe(6)
+		expect(Economy.rebirthMultiplier(20)).toBe(16)
+		expect(Economy.rebirthMultiplier(30)).toBe(31)
 		expect(Economy.rebirthMultiplier(-3)).toBe(1)
 		expect(Economy.rebirthMultiplier(0 / 0)).toBe(1)
+	end)
+	it("rebirth steps follow REBIRTH_MULTIPLIER_STEPS: each band's step from its first rebirth on", function()
+		local bands = Config.REBIRTH_MULTIPLIER_STEPS
+		for i, band in bands do
+			expect(Economy.rebirthStep(band.from)).toBe(band.step)
+			if i > 1 then
+				expect(Economy.rebirthStep(band.from - 1)).toBe(bands[i - 1].step)
+				expect(band.step > bands[i - 1].step).toBeTruthy()
+			end
+		end
+		local sum = 1
+		for n = 1, Config.MAX_REBIRTHS do
+			sum += Economy.rebirthStep(n)
+			expect(Economy.rebirthMultiplier(n)).toBe(sum)
+		end
+	end)
+	it("rebirth multiplier stops growing at MAX_REBIRTHS", function()
+		local top = Economy.rebirthMultiplier(Config.MAX_REBIRTHS)
+		expect(Economy.rebirthMultiplier(Config.MAX_REBIRTHS + 5)).toBe(top)
 	end)
 	it("per-slime income applies the rebirth multiplier", function()
 		local s = Fixtures.slime("a", 2) -- 3/s
@@ -73,30 +96,83 @@ describe("Economy.offlineIncome", function()
 end)
 
 describe("Economy prices", function()
-	it("sell price is SELL_SECONDS of income, at least 1", function()
-		expect(Economy.sellPrice(Fixtures.slime("a", 2), 0)).toBe(3 * Config.SELL_SECONDS)
-		expect(Economy.sellPrice(Fixtures.slime("a", 1, { size = 0.01 }), 0) >= 1).toBeTruthy()
+	it("wild price is WILD_PRICE_SECONDS of the rarity's base income, at least 1", function()
+		for tier = 1, Config.MAX_TIER do
+			local slime = Fixtures.slime("w", tier)
+			local expected = math.floor(Genome.baseIncome(slime) * Config.WILD_PRICE_SECONDS[tier])
+			expect(Economy.wildPrice(slime)).toBe(expected)
+		end
+		expect(Economy.wildPrice(Fixtures.slime("w", 2))).toBe(3 * Config.WILD_PRICE_SECONDS[2])
+		expect(Economy.wildPrice(Fixtures.slime("w", 1, { size = 0.001 }))).toBe(1)
 	end)
-	it("pad cost grows and stops at PADS_MAX", function()
-		local first = Economy.padCost(Config.PADS_START)
-		local second = Economy.padCost(Config.PADS_START + 1)
-		assert(first and second, "precondition")
-		expect(first).toBe(Config.BASE_FLOORS[1].firstPadCost)
-		expect(second > first).toBeTruthy()
-		expect(Economy.padCost(Config.PADS_MAX)).toBeNil()
+	it("a rarer slime costs more seconds of its income at the fountain", function()
+		for tier = 2, Config.MAX_TIER do
+			expect(Config.WILD_PRICE_SECONDS[tier] > Config.WILD_PRICE_SECONDS[tier - 1]).toBeTruthy()
+		end
 	end)
-	it("prices every pad up to PADS_MAX higher than the one before, a new floor jumping up", function()
+	it("sell price is SELL_PRICE_SHARE of the wild price, at least 1, and nil for an egg", function()
+		local s = Fixtures.slime("a", 2)
+		expect(Economy.sellPrice(s)).toBe(math.floor(Economy.wildPrice(s) * Config.SELL_PRICE_SHARE))
+		expect((Economy.sellPrice(Fixtures.slime("a", 1, { size = 0.01 })) :: number) >= 1).toBeTruthy()
+		expect(Economy.sellPrice(Fixtures.slime("e", 2, { egg = { kind = "Basic", hatchAt = 0 } }))).toBeNil()
+	end)
+	it("buying a wild slime and selling it at once always loses cash, at every rarity", function()
+		for tier = 1, Config.MAX_TIER do
+			for _, size in { 0.5, 1, 2 } do
+				local s = Fixtures.slime("f", tier, { size = size })
+				expect((Economy.sellPrice(s) :: number) < Economy.wildPrice(s)).toBeTruthy()
+			end
+		end
+	end)
+	it("the first PADS_START pads are free and the rest of floor 1 costs PAD_START_COSTS at 0 rebirths", function()
+		for pad = 1, Config.PADS_PER_FLOOR do
+			expect(Economy.rebirthsForPad(pad)).toBe(0)
+		end
+		for i, cost in Config.PAD_START_COSTS do
+			local owned = Config.PADS_START + i - 1
+			expect(Economy.padRebirths(owned)).toBe(0)
+			expect(Economy.padCost(owned)).toBe(cost)
+		end
+	end)
+	it("a higher-floor pad needs the rebirths its BASE_FLOORS row lists", function()
+		for floor, row in Config.BASE_FLOORS do
+			for i, need in row.padRebirths do
+				local pad = (floor - 1) * Config.PADS_PER_FLOOR + i
+				expect(Economy.rebirthsForPad(pad)).toBe(need)
+				expect(Economy.padRebirths(pad - 1)).toBe(need)
+			end
+		end
+	end)
+	it("a rebirth-gated pad costs PAD_PRICE_SHARE of the rebirth after the one that opens it", function()
+		local pad = Config.PADS_PER_FLOOR + 1
+		local need = Economy.rebirthsForPad(pad)
+		expect(need > 0).toBeTruthy()
+		expect(Economy.padCost(pad - 1)).toBe(math.floor(Config.PAD_PRICE_SHARE * Economy.rebirthCost(need)))
+	end)
+	it("each further pad the same rebirth opens costs PAD_SAME_REBIRTH_GROWTH times the one before", function()
+		local found = 0
+		for pad = Config.PADS_PER_FLOOR + 2, Config.PADS_MAX do
+			local need = Economy.rebirthsForPad(pad)
+			if need == Economy.rebirthsForPad(pad - 1) and need ~= Economy.rebirthsForPad(pad - 2) then
+				found += 1
+				local before = Economy.padCost(pad - 2) :: number
+				local cost = Economy.padCost(pad - 1) :: number
+				local share = Config.PAD_PRICE_SHARE * Economy.rebirthCost(need)
+				expect(cost).toBe(math.floor(share * Config.PAD_SAME_REBIRTH_GROWTH))
+				expect(cost).toBeCloseTo(before * Config.PAD_SAME_REBIRTH_GROWTH, 1)
+			end
+		end
+		expect(found > 0).toBeTruthy()
+	end)
+	it("prices every pad up to PADS_MAX higher than the one before and stops there", function()
 		local last = 0
 		for owned = Config.PADS_START, Config.PADS_MAX - 1 do
 			local cost = Economy.padCost(owned) :: number
 			expect(cost > last).toBeTruthy()
-			local nextPad = owned + 1
-			if nextPad > Config.PADS_PER_FLOOR and nextPad % Config.PADS_PER_FLOOR == 1 then
-				expect(cost).toBe(Config.BASE_FLOORS[Economy.floorOf(nextPad)].firstPadCost)
-				expect(cost > 2 * last).toBeTruthy()
-			end
 			last = cost
 		end
+		expect(Economy.padCost(Config.PADS_MAX)).toBeNil()
+		expect(Economy.padRebirths(Config.PADS_MAX)).toBeNil()
 	end)
 	it("shows the floors with unlocked pads plus the next one once the top floor is full", function()
 		local per = Config.PADS_PER_FLOOR
@@ -111,14 +187,13 @@ describe("Economy prices", function()
 		expect(Economy.floorsShown(per + 1)).toBe(2)
 		expect(Economy.floorsShown(Config.PADS_MAX)).toBe(#Config.BASE_FLOORS)
 	end)
-	it("rebirth cost grows geometrically", function()
-		expect(Economy.rebirthCost(0)).toBe(Config.REBIRTH_BASE_COST)
-		expect(Economy.rebirthCost(1)).toBe(Config.REBIRTH_BASE_COST * Config.REBIRTH_COST_GROWTH)
-	end)
-	it("lock cost has a floor and scales with income", function()
-		expect(Economy.lockCost(0)).toBe(Config.LOCK_BASE_COST)
-		expect(Economy.lockCost(100)).toBe(100 * Config.LOCK_INCOME_SECONDS)
-		expect(Economy.lockCost(0 / 0)).toBe(Config.LOCK_BASE_COST)
+	it("rebirth cost reads REBIRTH_COSTS, one price per rebirth, the last one past max", function()
+		expect(#Config.REBIRTH_COSTS).toBe(Config.MAX_REBIRTHS)
+		for r = 0, Config.MAX_REBIRTHS - 1 do
+			expect(Economy.rebirthCost(r)).toBe(Config.REBIRTH_COSTS[r + 1])
+		end
+		expect(Economy.rebirthCost(Config.MAX_REBIRTHS + 3)).toBe(Config.REBIRTH_COSTS[#Config.REBIRTH_COSTS])
+		expect(Economy.rebirthCost(-1)).toBe(Config.REBIRTH_COSTS[1])
 	end)
 	it("formats numbers", function()
 		expect(Economy.formatNumber(999)).toBe("999")
@@ -163,15 +238,32 @@ describe("PlayerData plot", function()
 		data.cash = 1000
 		expect((PlayerData.buyPad(data))).toBe(true)
 		expect(data.padsUnlocked).toBe(Config.PADS_START + 1)
-		expect(data.cash).toBe(1000 - Config.BASE_FLOORS[1].firstPadCost)
+		expect(data.cash).toBe(1000 - Config.PAD_START_COSTS[1])
+	end)
+	it("refuses a pad the player hasn't rebirthed enough for, and charges nothing", function()
+		local data = PlayerData.new()
+		data.padsUnlocked = Config.PADS_PER_FLOOR
+		data.cash = 1e15
+		local need = Economy.padRebirths(data.padsUnlocked) :: number
+		expect(need > 0).toBeTruthy()
+		data.rebirths = need - 1
+		local ok, reason = PlayerData.buyPad(data)
+		expect(ok).toBe(false)
+		expect(reason).toBe(`Rebirth {need} to unlock this pad`)
+		expect(data.cash).toBe(1e15)
+		expect(data.padsUnlocked).toBe(Config.PADS_PER_FLOOR)
+		data.rebirths = need
+		expect((PlayerData.buyPad(data))).toBe(true)
+		expect(data.padsUnlocked).toBe(Config.PADS_PER_FLOOR + 1)
 	end)
 	it("sells slimes for cash and clears the favourite", function()
 		local data = Fixtures.data({ Fixtures.slime("a", 2) }, 0)
 		PlayerData.setFavorite(data, "a")
 		local ok, price = PlayerData.sell(data, "a")
 		expect(ok).toBe(true)
-		expect(price).toBe(90)
-		expect(data.cash).toBe(90)
+		local expected = Economy.sellPrice(Fixtures.slime("a", 2))
+		expect(price).toBe(expected)
+		expect(data.cash).toBe(expected)
 		expect(#data.slimes).toBe(0)
 		expect(data.favoriteId).toBeNil()
 		expect((PlayerData.sell(data, "a"))).toBe(false)

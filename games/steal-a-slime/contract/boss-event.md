@@ -84,6 +84,14 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   - Pumpking, bouncing stomps: `hops`.
   - Goomancer, rune puddles: spit `burst` { delay, radius, speed, push }. `delay` after landing, each puddle bursts
     into a ring of its own (puddle `burstAt`).
+  **Reach.** Spits and jelly-rain drops aim only at players within `BOSS.ATTACK_RANGE` (40) of the boss; with
+  nobody that close they land `BOSS.SPIT_SPREAD` round it. Every strike (ring, cone, charge, hop ring, puddle burst)
+  also asks the adapter `Context.exposed(userId, from)` with the attack's centre: `server/ServerContext` answers with
+  `WorldView.bossExposed`, true only when the player's root is at most `BOSS.STRIKE_HEIGHT` (9) above the arena floor
+  under the attack (a floor ray from 60 studs up; slimes, the boss, characters and non-collidable parts are skipped)
+  and a ray from `WorldView.BOSS_EYE` (4) above that floor to the root hits nothing solid. So nobody on a roof, on the
+  slide or behind the silo or a prop is hit, and a strike that is blocked can still land later in the same attack.
+  Without `exposed` (Lune tests) every strike in range lands.
   A struck player is knocked `push` studs away from the boss, `BOSS.HIT_ARC` high (`ctx.launch` + a PvpEvent
   Knockback, live whatever `FEATURES.PvP` says), stunned for `BOSS.STUN_SECONDS` (`Session.bossStunUntil`) and toasted.
   Each attack strikes a player once. The meter never drains during `windup`, `attack`, `hop`, `rise` or `land`. Every
@@ -235,8 +243,10 @@ boss: {
 - `workspace.BossFx`: one guard model per live guard (attribute `BossGuard = true`) and one goo puddle per puddle. A
   guard is a mini copy of its boss (`BOSS.GUARD_SIZE` across), built by WorldView's slime model factory from the boss's
   own slime data (`BossFxView.sync`'s `look`), with every slime tag removed so nothing treats it as a slime; it faces
-  away from the boss. Without a factory (tests, a failed build) it is the plain crowned ball. Clients make guards hop
-  in place, out of step with each other (`BossTelegraph`).
+  away from the boss. Without a factory (tests, a failed build) it is the plain crowned ball. Every guard and puddle
+  stands on the floor right under it (`WorldView.bossFloor`, the probe `bossExposed` uses), the guard's lowest point
+  (tentacles, feet) on it. Clients make guards hop in place, at most 0.9 studs, out of step with each other
+  (`BossTelegraph`, from the pivot the server placed).
 - Boss model attributes: `BossTargets` ("x,z;..." world spots a spit windup will hit), `BossSpits` ("x,z,landAt;..."),
   `BossRunes` ("x,z,burstAt,radius,speed;..." rune puddles that burst into a ring),
   `BossHitAt` / `BossHitBy` / `BossHitPoints` (the latest counted bat hit: the boss squashes, the hitter sees a "+n").
@@ -266,7 +276,7 @@ POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE STAGE_EVERY CAR
 SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_CLEARANCE STROLL_* LOOK_SECONDS ARRIVE_* WINDUP_SECONDS CHARGE_EASE
 STRIKE_SECONDS RING_DELAY SPIT_FLIGHT DAZED_SECONDS RISE_* LAND_SECONDS GUARD_SECONDS SHRINK_SECONDS
 MOVE_PIVOT_INTERVAL ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK MVP_BONUS MVP_SECONDS FIRST_ATTACK ATTACK_GAP
-STAGE_SPEEDUP PHASE_AT DAZED_MULTIPLIER STUN_SECONDS HIT_ARC RING_WIDTH CONE_HIT_AT PUDDLE_RADIUS SPIT_SPREAD GUARD_*
+STAGE_SPEEDUP PHASE_AT DAZED_MULTIPLIER STUN_SECONDS HIT_ARC RING_WIDTH CONE_HIT_AT PUDDLE_RADIUS SPIT_SPREAD ATTACK_RANGE STRIKE_HEIGHT GUARD_*
 MOVES`, and the badge list `Config.BOSS_BADGES`. Values live in `Config.luau` only.
 
 ## World / Scene

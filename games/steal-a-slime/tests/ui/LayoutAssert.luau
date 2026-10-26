@@ -24,6 +24,7 @@
 ]]
 
 local Config = require("../../src/shared/Config")
+local Economy = require("../../src/shared/Economy")
 local Format = require("../../src/ui/Format")
 local GuideTips = require("../../src/ui/GuideTips")
 local Hint = require("../../src/ui/Hint")
@@ -267,13 +268,13 @@ LayoutAssert.BIG_STATE = table.freeze({
 	cash = 987.6e12,
 	incomePerSec = 98.7e12,
 	rebirths = Config.MAX_REBIRTHS,
-	rebirthMultiplier = 1 + Config.MAX_REBIRTHS * Config.REBIRTH_MULTIPLIER_STEP,
+	rebirthMultiplier = Economy.rebirthMultiplier(Config.MAX_REBIRTHS),
+	nextRebirthMultiplier = Economy.rebirthMultiplier(Config.MAX_REBIRTHS),
 	padsUnlocked = Config.PADS_MAX - 1,
 	padsMax = Config.PADS_MAX,
 	nextPadCost = 987.6e12,
-	lockCost = 987.6e12,
-	lockDuration = Config.LOCK_MAX_REMAINING,
-	lockUntil = 100 + Config.LOCK_MAX_REMAINING / 2,
+	lockDuration = Config.LOCK_MAX_SECONDS,
+	lockUntil = 100 + Config.LOCK_MAX_SECONDS / 2,
 	slimes = {},
 	daily = { available = true, streak = Config.DAILY_STREAK_CAP or 7, amount = 987.6e12 },
 })
@@ -575,7 +576,6 @@ function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
 	local pvpOwned = {}
 	local state = {
 		cash = 0,
-		lockCost = 987.6e12,
 		lockDuration = 310,
 		shop = { LockUpgrade = { price = 987.6e12, level = 4, maxLevel = 5 }, SpeedCoil = { price = 987.6e12 } },
 		upgrades = upgrades,
@@ -938,10 +938,11 @@ function LayoutAssert.noNegativeSizes(check: Checker)
 	end
 	local body = Layout.panelBody(Layout.panelFor(screen, "Dex"))
 	for _, rewards in { false, true } do
-		local header = SlimeDex.header(body.h, rewards)
-		local listH = body.h - header.listTop
-		if listH < SlimeDex.MIN_LIST then
-			check.fail(`Dex list is {listH} px in a {body.h} px body (rewards {rewards}; want >= {SlimeDex.MIN_LIST})`)
+		local listH = body.h - SlimeDex.contentTop(rewards)
+		if listH < SlimeDex.MIN_CONTENT then
+			check.fail(
+				`Dex list is {listH} px in a {body.h} px body (rewards {rewards}; want >= {SlimeDex.MIN_CONTENT})`
+			)
 		end
 	end
 end

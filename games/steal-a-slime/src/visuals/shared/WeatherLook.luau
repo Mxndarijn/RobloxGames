@@ -11,7 +11,14 @@ local WeatherLook = {}
 
 -- TintColor is r, g, b 0..255: plain data, so the Lune tests can load this module.
 export type Tint = { TintColor: { number }, Brightness: number, Contrast: number, Saturation: number }
-export type Emitter = { rate: number, lifetime: number, share: number }
+export type Emitter = {
+	rate: number,
+	lifetime: number,
+	share: number,
+	speed: { number },
+	spread: number,
+	sideAccel: number,
+}
 -- Scene grade on top of the tint: Atmosphere (Color mixed by fogMix, Density / Haze added), Lighting Ambient /
 -- OutdoorAmbient mixed by ambientMix and ExposureCompensation added. NightSky applies it on the day / night look.
 export type Atmo = {
@@ -42,12 +49,14 @@ WeatherLook.NEUTRAL_ATMO = table.freeze({
 	exposure = 0,
 }) :: Atmo
 
--- Emitter names under the camera part. share = this emitter's part of Config.WEATHER_PARTICLE_CAP.
+-- Emitter names on every tile of the camera sheet. share = this emitter's part of Config.WEATHER_PARTICLE_CAP.
+-- How the particles move (WeatherShelter reads it to keep them out of the jars): speed = { min, max } studs/s
+-- straight down, spread = SpreadAngle in degrees, sideAccel = sideways Acceleration in studs/s^2.
 WeatherLook.EMITTERS = table.freeze({
-	Drops = table.freeze({ rate = 220, lifetime = 1.1, share = 0.5 }),
-	Flakes = table.freeze({ rate = 90, lifetime = 8, share = 0.7 }),
-	Stars = table.freeze({ rate = 14, lifetime = 5, share = 0.4 }),
-	Glints = table.freeze({ rate = 30, lifetime = 3, share = 0.3 }),
+	Drops = table.freeze({ rate = 220, lifetime = 1.1, share = 0.5, speed = { 70, 90 }, spread = 0, sideAccel = 0 }),
+	Flakes = table.freeze({ rate = 90, lifetime = 8, share = 0.7, speed = { 7, 9 }, spread = 15, sideAccel = 0 }),
+	Stars = table.freeze({ rate = 14, lifetime = 5, share = 0.4, speed = { 30, 45 }, spread = 8, sideAccel = 6 }),
+	Glints = table.freeze({ rate = 30, lifetime = 3, share = 0.3, speed = { 2, 6 }, spread = 180, sideAccel = 0 }),
 }) :: { [string]: Emitter }
 
 WeatherLook.LOOKS = table.freeze({

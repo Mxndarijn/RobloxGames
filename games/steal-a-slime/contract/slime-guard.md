@@ -15,7 +15,7 @@ Owner: Phoenix (`src/server`, `src/shared`). No new remote, State field or attri
 
 - The server reads every character's `HumanoidRootPart` position every `SAMPLE_SECONDS` and feeds it to `MovementGuard.step` with `Carry.targetWalkSpeed` (the higher of this tick's and the last tick's) as the allowed flat speed.
 - Flags: `teleport` (one long jump), `speed` (over the limit for 0.6 s in a row), `fly` (rising faster than a jump). Lag freezes and downhill runs (slides, ledges) are tolerated by the guard itself.
-- Server-caused movement is never flagged: while `PvpLaunch.guardActive` is true (a PvP or boss launch, PvP control) the limit is `LAUNCH_SPEED`; a respawn, a void rescue, the doorway set-down and an intruder sent home reset the guard and skip `SERVER_MOVE_SECONDS`.
+- Server-caused movement is never flagged: while `PvpLaunch.guardActive` is true (a PvP or boss launch, PvP control) the limit is `LAUNCH_SPEED`; a respawn, a void rescue and a drop-tube landing reset the guard and skip `SERVER_MOVE_SECONDS`.
 
 ## 41.3 Steal gate, carry watch, deposit check
 
@@ -33,7 +33,8 @@ Owner: Phoenix (`src/server`, `src/shared`). No new remote, State field or attri
 ## 41.5 Locked-base intruders
 
 - The server tracks when each character entered each other player's jar (inside jar f's glass on a built floor, with hysteresis so the doorway does not flicker).
-- A non-owner inside a locked plot who entered **after** the lock started (`session.lockStartedAt`) is an intruder: any stolen slime they carry goes home, they are set down on their own plot's spawn (`WorldView.plotSpawn`) and told "That base is locked. You were sent home." They get `lockedEntry` points unless a server launch put them there.
+- A non-owner inside a locked plot who entered **after** the lock started (`session.lockStartedAt`), more than `PlotLockGuard.SHUT_GRACE` seconds after (the shutting stopper can push someone in the doorway into the jar), is an intruder, once per visit: any stolen slime they carry goes home and they are told "That base is locked. You can't steal here until it opens." They get `lockedEntry` points unless a server launch put them there. They are **not moved**: the lock never teleports anyone, and a locked base refuses their steals anyway.
+- Guests and former guests are never intruders (§42.1).
 - A non-owner who was already inside when the lock started stays trapped inside until it ends (the LockBarrier blocks both ways, see `CONTRACT.md` §2), as before.
 
 ## 41.6 Breather lock

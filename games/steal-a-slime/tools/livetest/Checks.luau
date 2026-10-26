@@ -133,7 +133,18 @@ end
 
 function Checks.props(rt)
 	local missing = {}
-	local names = { "ItemShopStand", "UpgradeShopStand", "LeaderboardBoard", "TutorialNpc" }
+	local names = {
+		"ItemShopStand",
+		"UpgradeShopStand",
+		"TutorialNpc",
+		"LeaderboardBoard",
+		"WeeklyEarnersBoard",
+		"TopStealsBoard",
+		"TopDexBoard",
+		"TopMergesBoard",
+		"HallOfFameArch",
+		"ProfessorGoo",
+	}
 	for _, name in names do
 		if not rt.workspace:FindFirstChild(name, true) then
 			table.insert(missing, name)

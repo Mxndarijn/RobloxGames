@@ -313,14 +313,13 @@ scenario("lockbuy", function()
 	rt:advance(0.3)
 	local openText, openAction = lockPrompt.ObjectText, lockPrompt.ActionText
 	check(
-		"lockbuy: open plot reads OPEN / Lock base $",
+		"lockbuy: open plot reads OPEN / Lock base",
 		plot:GetAttribute("Locked") == false
 			and string.find(openText, "OPEN", 1, true) ~= nil
-			and string.find(openAction, "Lock base $", 1, true) == 1,
+			and openAction == "Lock base",
 		`Locked={plot:GetAttribute("Locked")} "{openAction}" / "{openText}"`
 	)
 	session.data.tutorialStep = 3 -- at the Lock step
-	TestHooks.grantCash(world, USER_ID, plot:GetAttribute("LockCost"))
 	moveTo(plotPart("LockButton").CFrame.Position + Vector3.new(0, 3, 3))
 	lockPrompt.Triggered:Fire(player)
 	rt:advance(0.5)
@@ -475,21 +474,43 @@ scenario("loop", function()
 	S.WorldView.plot(me.plotIndex):FindFirstChild("BuyPadPrompt", true).Triggered:Fire(newbie)
 	rt:advance(0.6)
 	table.insert(steps, stepId())
-	-- 5: catch until two slimes share a rarity, then use the MergePrompt.
-	for _ = 1, 12 do
-		local tiers = {}
-		local pair = false
+	-- 5: catch until three slimes share a rarity, open the vat (MergePrompt), put them in, brew and collect.
+	local maxTier = rt:require(rt.game:GetService("ReplicatedStorage").Shared.Config).MAX_TIER
+	local function triple(): { string }?
+		local byTier = {}
 		for _, slime in me.data.slimes do
-			pair = pair or tiers[slime.tier] == true
-			tiers[slime.tier] = true
+			if slime.pad ~= nil and not slime.egg and slime.tier < maxTier then
+				byTier[slime.tier] = byTier[slime.tier] or {}
+				table.insert(byTier[slime.tier], slime.id)
+				if #byTier[slime.tier] == 3 then
+					return byTier[slime.tier]
+				end
+			end
 		end
-		if pair then
+		return nil
+	end
+	for _ = 1, 16 do
+		if triple() then
 			break
 		end
 		grabAndBringHome()
 	end
 	nplot("MergeVat"):FindFirstChild("MergePrompt").Triggered:Fire(newbie)
 	rt:advance(0.6)
+	for _, id in triple() or {} do
+		ninvoke("VatAdd", id)
+	end
+	ninvoke("VatStart")
+	local vat = (me.data :: any).vat
+	if vat and vat.endsAt then
+		vat.endsAt = rt.workspace:GetServerTimeNow() - 1 -- skip the brew (MERGE_BREW_SECONDS)
+	end
+	ninvoke("VatCollect")
+	check(
+		"loop: the vat brews three slimes into one (VatAdd x3, VatStart, VatCollect)",
+		me.data.stats.merges == 1 and (me.data :: any).vat == nil,
+		`merges {me.data.stats.merges}; vat {if (me.data :: any).vat then #(me.data :: any).vat.ids else 0} left`
+	)
 	table.insert(steps, stepId())
 	-- 6: steal from the other stand-in's unlocked plot, then drop it (it escapes home).
 	session.lockUntil = 0
@@ -685,7 +706,7 @@ scenario("ui", function()
 	session.lockUntil = now() - 1
 	invoke("Sync")
 	state = lastState()
-	local lockButton = LockHud.lockButton(state, now(), Config.LOCK_MAX_REMAINING)
+	local lockButton = LockHud.lockButton(state, now(), Config.LOCK_MAX_SECONDS)
 	local padButton = LockHud.padButton(state)
 	local lockPrompt = plotPart("LockButton"):FindFirstChild("LockPrompt")
 	local buyPad = plot:FindFirstChild("BuyPadPrompt", true)
@@ -694,7 +715,6 @@ scenario("ui", function()
 		"ui: Lock / Buy-pad HUD buttons match LockPrompt / BuyPadPrompt",
 		string.find(lockButton.text, "Lock", 1, true) ~= nil
 			and string.find(lockPrompt.ActionText, "Lock base", 1, true) == 1
-			and plot:GetAttribute("LockCost") == state.lockCost
 			and (padCost == nil) == (padButton.visible == false)
 			and (padCost == nil or plot:GetAttribute("NextPadCost") == padCost)
 			and (padCost == nil or buyPad.Enabled),

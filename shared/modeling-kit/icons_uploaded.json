@@ -328,33 +328,180 @@
     "sha256": "a4a3618c2bcf81c6d451fae9fa19f89a5e75f8db268cf6e1ed8a61cfce503705",
     "uploadedAt": "2026-10-20T22:15:29Z"
   },
-  "PlotSkin_candy": {
-    "assetId": "120970040244785",
+  "PetSeat_bubble": {
+    "assetId": "94822719504421",
     "assetType": "Decal",
-    "imageId": "75125399713715",
-    "sha256": "a0b0a9a98c955870b78186cea883e0feb71c0c6be6325c48ef754c8a788494ca",
-    "uploadedAt": "2026-10-17T10:12:28Z"
+    "imageId": "107124135602798",
+    "sha256": "e59c0189a0e1770acffa7765262853ec74eba3d49005be0922478090588593c3",
+    "uploadedAt": "2026-10-26T18:42:27Z"
+  },
+  "PetSeat_clam_shell": {
+    "assetId": "88237879301552",
+    "assetType": "Decal",
+    "imageId": "73688638146933",
+    "sha256": "64c0f9bb3f6d789310130da459c9408829fe1ed51cecdef084f22f3c39ce85b0",
+    "uploadedAt": "2026-10-26T18:42:31Z"
+  },
+  "PetSeat_cloud": {
+    "assetId": "127039775791019",
+    "assetType": "Decal",
+    "imageId": "120940962905889",
+    "sha256": "cebc331994fe3c7c47e2722e92d69340ad97d5a359eb33965db71b154cd8c266",
+    "uploadedAt": "2026-10-26T18:42:35Z"
+  },
+  "PetSeat_crescent_moon": {
+    "assetId": "134338835193569",
+    "assetType": "Decal",
+    "imageId": "133024058650689",
+    "sha256": "16881d1b28227534414e0ec4b3d55c475855f5a99aeb70051cdf214dd7e41fd3",
+    "uploadedAt": "2026-10-26T18:42:39Z"
+  },
+  "PetSeat_flame_cloud": {
+    "assetId": "129623639211672",
+    "assetType": "Decal",
+    "imageId": "116000113766605",
+    "sha256": "876145c7eef3f5e50d92adbb3c67b0d2e43357efc67953fc944a9ae74c2b89b4",
+    "uploadedAt": "2026-10-26T18:42:43Z"
+  },
+  "PetSeat_hoverboard": {
+    "assetId": "107333260210003",
+    "assetType": "Decal",
+    "imageId": "71082166431007",
+    "sha256": "c7d3f86e17ecfea650721eed583237a3f63e0338d465ccd774a6330b6e664cae",
+    "uploadedAt": "2026-10-26T18:42:47Z"
+  },
+  "PetSeat_ice_cloud": {
+    "assetId": "111048805277361",
+    "assetType": "Decal",
+    "imageId": "77617006351901",
+    "sha256": "3ca34c3d202a23a6faadb65e2812e7df8877e8a7ece3e740b1a43fa085ad5d3d",
+    "uploadedAt": "2026-10-26T18:42:51Z"
+  },
+  "PetSeat_jelly": {
+    "assetId": "72869074938132",
+    "assetType": "Decal",
+    "imageId": "92509813855397",
+    "sha256": "78c45f18cbb8341190bc0c505af137c1d00ad8c5709235dc85326fc73e57aadf",
+    "uploadedAt": "2026-10-26T18:42:55Z"
+  },
+  "PetSeat_leaf": {
+    "assetId": "75675797772380",
+    "assetType": "Decal",
+    "imageId": "115031220974277",
+    "sha256": "bf8cacf5d3cd3e45e0dc0b39aabb116c7dd6229994b8871f067f4f4117c9fd42",
+    "uploadedAt": "2026-10-26T18:42:59Z"
+  },
+  "PetSeat_lily_pad": {
+    "assetId": "100880640762792",
+    "assetType": "Decal",
+    "imageId": "104857291401997",
+    "sha256": "ac4a6e693ed6f1cef5738142091070227585bb0ce0aa9626ae0324383799dceb",
+    "uploadedAt": "2026-10-26T18:43:03Z"
+  },
+  "PetSeat_magic_carpet": {
+    "assetId": "98481446052245",
+    "assetType": "Decal",
+    "imageId": "73081224735691",
+    "sha256": "c561b577a79e5e508a2b148ec2c03dc60d13d5eeb10ab4012d329d29e1910819",
+    "uploadedAt": "2026-10-26T18:43:07Z"
+  },
+  "PetSeat_mushroom": {
+    "assetId": "79847205321492",
+    "assetType": "Decal",
+    "imageId": "127804622316249",
+    "sha256": "0b1a9d8f628514c0616047ee2d7df9574ff9a419e615127617c94124fe522a84",
+    "uploadedAt": "2026-10-26T18:43:11Z"
+  },
+  "PetSeat_pancakes": {
+    "assetId": "131012269287020",
+    "assetType": "Decal",
+    "imageId": "133973680417456",
+    "sha256": "84d0c8d7be8971101e9aaa2a9d12f9826e86d85789d4978f05f822a9d85c9062",
+    "uploadedAt": "2026-10-26T18:43:15Z"
+  },
+  "PetSeat_rainbow_cloud": {
+    "assetId": "116578202272602",
+    "assetType": "Decal",
+    "imageId": "133782271501912",
+    "sha256": "eeff11ecb321a6ac5c6a6e43bcd7eba42f8601b61d02f58071e0bd2a65e61935",
+    "uploadedAt": "2026-10-26T18:43:19Z"
+  },
+  "PetSeat_royal_cushion": {
+    "assetId": "128240768517421",
+    "assetType": "Decal",
+    "imageId": "71277927627777",
+    "sha256": "cae5b493c7eebef737da49d6389288deafd9a0260888a07bd01bed6c0629da55",
+    "uploadedAt": "2026-10-26T18:43:23Z"
+  },
+  "PetSeat_star_cushion": {
+    "assetId": "73967727232633",
+    "assetType": "Decal",
+    "imageId": "126554071638157",
+    "sha256": "34aac2fa0a403b8cc6bccf0935f8c245dd32932c36de0f6a1463af1be8b88a04",
+    "uploadedAt": "2026-10-26T18:43:27Z"
+  },
+  "PetSeat_storm_cloud": {
+    "assetId": "89779091299435",
+    "assetType": "Decal",
+    "imageId": "79721468215071",
+    "sha256": "16d76512e99b74f9456c5b473bfa880065dcdc7d81f2bc1c7d1e98fd5e77bbf5",
+    "uploadedAt": "2026-10-26T18:43:32Z"
+  },
+  "PetSeat_sunset_cloud": {
+    "assetId": "74286358977843",
+    "assetType": "Decal",
+    "imageId": "110911427190137",
+    "sha256": "2d33c0958202f748a769061b4f6e24a9d28ce3b1283b0df3fb1814680b5b1f01",
+    "uploadedAt": "2026-10-26T18:43:36Z"
+  },
+  "PetSeat_ufo": {
+    "assetId": "112668594644562",
+    "assetType": "Decal",
+    "imageId": "104264507345275",
+    "sha256": "da092fcc5310e634942ef0acef40783fd4a3c29de176db3476edcbfe397a5cde",
+    "uploadedAt": "2026-10-26T18:43:40Z"
+  },
+  "PlotSkin_candy": {
+    "assetId": "105360446239954",
+    "assetType": "Decal",
+    "imageId": "98677550689246",
+    "sha256": "cb71d498ce8af6a5df92a124f9bd7e090fc6aaf03f0b65e4b91c627d4d97c24b",
+    "uploadedAt": "2026-10-22T16:09:33Z"
   },
   "PlotSkin_classic": {
-    "assetId": "100282350164092",
+    "assetId": "100417458254903",
     "assetType": "Decal",
-    "imageId": "75405645541984",
-    "sha256": "035203b4a97c6c465997a9ae4d5aa269ab93176090cd18eed6fe363189072104",
-    "uploadedAt": "2026-10-17T10:12:32Z"
+    "imageId": "105086598289035",
+    "sha256": "0e72d7ccb768ef11db05cf4d1bf3aabdff7f61069676ab4c40284f02d3ad0cda",
+    "uploadedAt": "2026-10-22T16:09:16Z"
   },
   "PlotSkin_crystal": {
-    "assetId": "74089309072170",
+    "assetId": "101104681746171",
     "assetType": "Decal",
-    "imageId": "91231773101915",
-    "sha256": "080c0d33a62bbce90c46b1eb97af3a06d86b3192c2d7679cfc167c12e6defd50",
-    "uploadedAt": "2026-10-17T10:12:37Z"
+    "imageId": "72221778465251",
+    "sha256": "7bb3e8efd5d978f04522100e80ccc5295ecb04dfae75b8a661cdcd9e5d275277",
+    "uploadedAt": "2026-10-22T16:09:25Z"
+  },
+  "PlotSkin_garden": {
+    "assetId": "71170233702231",
+    "assetType": "Decal",
+    "imageId": "137369313958309",
+    "sha256": "7497310941012a7aea02baa8d28db0605948b72a6782c42ba1797dc2d8662b94",
+    "uploadedAt": "2026-10-22T16:09:21Z"
   },
   "PlotSkin_mushroom": {
-    "assetId": "119343806680731",
+    "assetId": "79218942926639",
     "assetType": "Decal",
-    "imageId": "110584867448733",
-    "sha256": "508ae07db6e7fa81448c068ecf6dafacd33041145ef9c5401717164fce501c9e",
-    "uploadedAt": "2026-10-17T10:12:41Z"
+    "imageId": "87372547969408",
+    "sha256": "e2b7f45648dad83029e897bfa93478cf198f1852915cfdb2c97c46645df00881",
+    "uploadedAt": "2026-10-22T16:09:37Z"
+  },
+  "PlotSkin_starlight": {
+    "assetId": "100348518207460",
+    "assetType": "Decal",
+    "imageId": "72155200538920",
+    "sha256": "790a7cf3b3d324096bcf8a9565cdc489135f3ec727f64814c3d4644fde33a43e",
+    "uploadedAt": "2026-10-22T16:09:29Z"
   },
   "Pvp_Bat": {
     "assetId": "135025381744172",

@@ -4,12 +4,12 @@
 
 	Anti-cheat for stealing. Owns `world.guard` (per player: the shared MovementGuard track, Suspicion points,
 	where a stolen carry began, the other player's jar the character is in) and `world.stealLedger` (completed
-	steals, for undo). The adapter (SlimeGuardView) feeds positions and does the Roblox side (teleports, kicks,
-	log lines); everything decided here is plain data over World.
+	steals, for undo). The adapter (SlimeGuardView) feeds positions and does the Roblox side (kicks, log
+	lines); everything decided here is plain data over World.
 
 	When a steal looks wrong, the slime goes home (StealService.escape "guard"). In watch mode
 	(SLIME_GUARD.ENFORCE = false) flags only add points and come back as Reports for the log; the lock rules
-	(intruders sent home, the breather lock) apply in both modes.
+	(intruders reported, the breather lock) apply in both modes. The guard never moves a character.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -24,6 +24,7 @@ local MovementGuard = if Lib
 local Suspicion = if Lib
 	then require(Lib.anticheat.Suspicion)
 	else require("../../../../shared/luau/src/anticheat/Suspicion")
+local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local PlotLockGuard = if script then require(script.Parent.PlotLockGuard) else require("./PlotLockGuard")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -78,7 +79,7 @@ function SlimeGuard.forget(world: World, userId: number)
 	world.guard[userId] = nil
 end
 
--- The server moved the character itself (respawn, void rescue, doorway set-down, sent home): start fresh.
+-- The server moved the character itself (respawn, void rescue, drop tube, launch): start fresh.
 function SlimeGuard.serverMoved(world: World, userId: number, now: number)
 	local track = SlimeGuard.entry(world, userId, now).track
 	MovementGuard.reset(track)
@@ -318,7 +319,12 @@ end
 
 --[[
 	`inside` is the index of another player's jar the character is in this tick (nil = none). Remembers when it
-	went in; returns that index when the plot is locked and the character got in after the lock began (an intruder).
+	went in; returns that index once per visit when the plot is locked and the character got in after the lock
+	began (an intruder). Nobody is moved: a character inside a locked base just can't steal there.
+
+	A guest (PlotGuests) is never an intruder, and neither is a former guest still inside from that visit: when
+	the owner switches friends off (or they stop being friends) the friend stays where they are and may walk out
+	through the stopper (`formerGuests`), but no longer steal.
 ]]
 function SlimeGuard.trackPlot(world: World, session: Session, inside: number?, now: number): number?
 	if SlimeGuard.mode(world) == "off" then
@@ -329,31 +335,91 @@ function SlimeGuard.trackPlot(world: World, session: Session, inside: number?, n
 		e.plot = nil
 		return nil
 	end
-	local plot = e.plot
-	if not plot or plot.index ~= inside then
-		plot = { index = inside, since = now }
-		e.plot = plot
-	end
+	local was = e.plot
+	local plot: World.PlotVisit = if was and was.index == inside then was else { index = inside, since = now }
+	e.plot = plot
 	local ownerId = world.plots[inside]
 	local owner = if ownerId then World.session(world, ownerId) else nil
-	if not owner or owner.userId == session.userId or not StealService.isLocked(owner, now) then
+	if not owner or owner.userId == session.userId then
 		return nil
 	end
-	return if PlotLockGuard.intruder((plot :: any).since, owner.lockStartedAt) then inside else nil
+	if PlotGuests.isGuest(owner, session.userId) then
+		plot.guest = true
+		return nil
+	end
+	if plot.guest or plot.flagged or not StealService.isLocked(owner, now) then
+		return nil
+	end
+	if not PlotLockGuard.intruder(plot.since, owner.lockStartedAt) then
+		return nil
+	end
+	plot.flagged = true
+	return inside
 end
 
 --[[
-	The intruder is about to be set down on its own plot (the adapter moves it): a stolen carry goes home, the
-	guard starts fresh, the player is told. `serverPut` = a server launch put them there: no points.
+	Former guests still inside the base they were let into: result[i][userId] = true when that player was a guest of
+	plot i on this visit, is no longer one, and is still in its jar. The stopper keeps letting them through until
+	they are out, so nobody is shut in a base they were invited into.
 ]]
-function SlimeGuard.evict(world: World, session: Session, plotIndex: number, now: number, serverPut: boolean): Report?
+function SlimeGuard.formerGuests(world: World): { [number]: { [number]: boolean } }
+	local out = {}
+	for userId, e in world.guard do
+		local plot = e.plot
+		if plot and plot.guest then
+			local ownerId = world.plots[plot.index]
+			local owner = if ownerId then world.sessions[ownerId] else nil
+			if owner and world.sessions[userId] and not PlotGuests.isGuest(owner, userId) then
+				local set = out[plot.index] or {}
+				set[userId] = true
+				out[plot.index] = set
+			end
+		end
+	end
+	return out
+end
+
+--[[
+	Who plot i's stopper lets through besides its owner: result[i] = the sorted user ids of its guests in the server
+	(PlotGuests.list) and its former guests still inside (formerGuests). Plots nobody passes are left out.
+]]
+function SlimeGuard.stopperPasses(world: World, features: PlotGuests.Features): { [number]: { number } }
+	local sets = SlimeGuard.formerGuests(world)
+	for _, owner in world.sessions do
+		for _, id in PlotGuests.list(world, owner, features) do
+			local set = sets[owner.plotIndex] or {}
+			set[id] = true
+			sets[owner.plotIndex] = set
+		end
+	end
+	local out = {}
+	for index, set in sets do
+		local ids = {}
+		for id in set do
+			table.insert(ids, id)
+		end
+		table.sort(ids)
+		out[index] = ids
+	end
+	return out
+end
+
+--[[
+	An intruder was found inside a locked base (trackPlot): a stolen carry goes home and the player is told. They
+	stay where they are. `serverPut` = a server launch put them there: no points.
+]]
+function SlimeGuard.intruded(
+	world: World,
+	session: Session,
+	plotIndex: number,
+	now: number,
+	serverPut: boolean
+): Report?
 	local carry = session.carry
 	if carry and carry.kind == "stolen" then
 		StealService.escape(world, session, now, "guard")
 	end
-	SlimeGuard.entry(world, session.userId, now).plot = nil
-	SlimeGuard.serverMoved(world, session.userId, now)
-	World.notify(world, session.userId, "That base is locked. You were sent home.", "info", "Lock")
+	World.notify(world, session.userId, "That base is locked. You can't steal here until it opens.", "info", "Denied")
 	if serverPut then
 		return nil
 	end

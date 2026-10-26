@@ -287,8 +287,10 @@ describe("meadow: natural, not repetitive", function()
 			local k = math.floor((math.deg(math.atan2(first.pos[1], first.pos[3])) % 360) / 45) + 1
 			octants[k] = (octants[k] or 0) + 1
 		end
+		-- The Hall of Fame plaza fills most of the band in its octant: one cluster there, two everywhere else.
+		local hallOctant = math.floor(WorldLayout.HALL_OF_FAME.bearing / 45) + 1
 		for k = 1, 8 do
-			expect((octants[k] or 0) >= 2).toBe(true)
+			expect((octants[k] or 0) >= (if k == hallOctant then 1 else 2)).toBe(true)
 		end
 	end)
 	it("never repeats a cluster layout", function()

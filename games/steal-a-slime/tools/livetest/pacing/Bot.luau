@@ -24,7 +24,7 @@ local EggKind = require("../../../src/shared/EggKind")
 local Eggs = require("./Eggs")
 local Genome = require("../../../src/shared/Genome")
 local Ledger = require("./Ledger")
-local Merge = require("../../../src/shared/Merge")
+local MergeGate = require("../../../src/shared/MergeGate")
 local MergeRecipes = require("../../../src/shared/MergeRecipes")
 local PlayerData = require("../../../src/shared/PlayerData")
 local Profiles = require("./Profiles")
@@ -34,6 +34,7 @@ local Schedule = require("./Schedule")
 local Shop = require("../../../src/shared/Shop")
 local StealService = require("../../../src/server/StealService")
 local Upgrades = require("../../../src/shared/Upgrades")
+local VatState = require("../../../src/shared/VatState")
 local World = require("../../../src/server/World")
 
 type World = World.World
@@ -302,12 +303,21 @@ local function rebirthNeeds(bot: Bot): ({ [string]: boolean }, { [string]: boole
 	return keep, missing, recipeIds
 end
 
--- The pad slime this bot would give up first, and its value. Kept slimes, eggs (unsellable) and the favourite stay.
+-- The pad slime this bot would give up first, and its value. Kept slimes, eggs (unsellable), the favourite and vat
+-- slimes stay.
 local function weakest(world: World, bot: Bot, keep: { [string]: boolean }): (Slime?, number)
 	local busy = World.busySet(world)
+	local needed = Progression.neededIds(bot.data) -- Sell refuses these
 	local worst, worstValue = nil, math.huge
 	for _, s in bot.data.slimes do
-		if not keep[s.id] and not busy[s.id] and not s.egg and s.id ~= bot.data.favoriteId then
+		if
+			not keep[s.id]
+			and not needed[s.id]
+			and not busy[s.id]
+			and not s.egg
+			and s.id ~= bot.data.favoriteId
+			and not VatState.contains(bot.data, s.id)
+		then
 			local v = worth(bot, s)
 			if v < worstValue then
 				worst, worstValue = s, v
@@ -346,22 +356,14 @@ local function drinkPotions(world: World, bot: Bot, t: number)
 	end
 end
 
--- `busy` plus every top-tier slime: merging two Secrets only makes one Secret, so a player never does.
-local function noTop(data: PlayerData.Data, busy: { [string]: boolean }): { [string]: boolean }
-	local out = table.clone(busy)
-	for _, s in data.slimes do
-		if s.tier >= Config.MAX_TIER then
-			out[s.id] = true
-		end
-	end
-	return out
-end
-
--- Three slimes of the highest tier that has three free ones, the weakest first (the 3-slime vat only).
+-- Three slimes of the highest tier that has three free ones, the weakest first. Never top tier (merging three
+-- Secrets only makes one Secret, so a player never does), busy, eggs or the favourite.
 local function findTriple(data: PlayerData.Data, busy: { [string]: boolean }): { string }?
 	local byTier: { [number]: { Slime } } = {}
 	for _, s in data.slimes do
-		if not (busy[s.id] or s.egg or s.keep or s.id == data.favoriteId or s.tier >= Config.MAX_TIER) then
+		-- Only rarities the rank may merge, and never three of the top tiers (only a recipe merges those).
+		local mergeable = MergeGate.allows(s.tier, data.rebirths) and s.tier < Config.MERGE_MAX_TIER
+		if mergeable and not (busy[s.id] or s.egg or s.id == data.favoriteId) then
 			byTier[s.tier] = byTier[s.tier] or {}
 			table.insert(byTier[s.tier], s)
 		end
@@ -382,10 +384,34 @@ local function findTriple(data: PlayerData.Data, busy: { [string]: boolean }): {
 	return nil
 end
 
--- Which vat the bot uses: the UI sends Merge3 only while FEATURES.MergeVat3 is on (ui/Panels/Merge.luau), so that is
--- the default; "pair" models a player who calls the Merge remote directly.
-local function mergeMode(bot: Bot): string
-	return bot.profile.merge or (if Config.FEATURES.MergeVat3 then "triple" else "pair")
+-- The plot vat (MergeVat): collects a brew whose timer has run out, and clears inputs left waiting (a refused
+-- start). Returns whether the vat is free for a new brew.
+local function tendVat(world: World, bot: Bot, t: number): boolean
+	local data = bot.data
+	if VatState.isBrewing(data) then
+		if not (VatState.isReady(data, t) and act(world, bot, t, "VatCollect")) then
+			return false
+		end
+	end
+	for _, id in VatState.ids(data) do
+		act(world, bot, t, "VatRemove", id)
+	end
+	return #VatState.ids(data) == 0
+end
+
+-- Puts three slimes in the (empty) vat and starts the brew; takes them back out when any step is refused.
+local function brew(world: World, bot: Bot, t: number, ids: { string }): boolean
+	for _, id in ids do
+		if not act(world, bot, t, "VatAdd", id) then
+			tendVat(world, bot, t)
+			return false
+		end
+	end
+	if act(world, bot, t, "VatStart") then
+		return true
+	end
+	tendVat(world, bot, t)
+	return false
 end
 
 -- Between trips: everything that needs no walk.
@@ -412,17 +438,10 @@ local function chores(world: World, bot: Bot, session: Session, t: number, keep:
 	for id in keep do
 		busy[id] = true
 	end
-	for _ = 1, 4 do
-		if mergeMode(bot) == "triple" then
-			local ids = findTriple(data, busy)
-			if not (ids and act(world, bot, t, "Merge3", ids[1], ids[2], ids[3])) then
-				break
-			end
-		else
-			local a, b = Merge.findPair(data.slimes, noTop(data, busy), data.favoriteId)
-			if not (a and b and act(world, bot, t, "Merge", a, b)) then
-				break
-			end
+	if tendVat(world, bot, t) then
+		local ids = findTriple(data, busy)
+		if ids then
+			brew(world, bot, t, ids)
 		end
 	end
 	local padCost = Economy.padCost(data.padsUnlocked)
@@ -462,13 +481,13 @@ local function pickWild(world: World, bot: Bot, missing: { [string]: boolean }):
 	return best, bestValue
 end
 
--- Best unlocked slime on another online plot, by value.
+-- Best unlocked slime on another online plot, by value (a brewing vat's inputs can't be stolen).
 local function pickSteal(world: World, bot: Bot, t: number): (string?, number?, number)
 	local best, victim, bestValue = nil, nil, -1
 	for userId, other in world.sessions do
 		if userId ~= bot.id and not StealService.isLocked(other, t) then
 			for _, s in other.data.slimes do
-				if not World.isBusy(world, s.id) then
+				if not World.isBusy(world, s.id) and not VatState.isLocked(other.data, s.id) then
 					local v = worth(bot, s)
 					if v > bestValue then
 						best, victim, bestValue = s.id, userId, v
@@ -501,7 +520,7 @@ local function pickFlip(world: World, bot: Bot): (string?, number)
 	table.sort(ids) -- table order is not stable across runs; ids are
 	for _, id in ids do
 		local wild = world.wild[id]
-		local sell = Economy.sellPrice(wild.slime, bot.data.rebirths)
+		local sell = Economy.sellPrice(wild.slime)
 		if sell and not wild.boss and wild.price <= bot.data.cash and not world.carriedBy[id] then
 			local profit = sell - wild.price
 			if profit > bestProfit then
@@ -523,7 +542,7 @@ local function valueFor(bot: Bot, data: PlayerData.Data, slime: Slime): (number,
 	if kind then
 		return Eggs.expectedIncome(kind) * Economy.rebirthMultiplier(data.rebirths), 0
 	end
-	return PlayerData.slimeIncome(data, slime), Economy.sellPrice(slime, data.rebirths) or 0
+	return PlayerData.slimeIncome(data, slime), Economy.sellPrice(slime) or 0
 end
 
 local function newTask(
@@ -613,6 +632,13 @@ local function plan(
 	end
 	if wildId and takesWild then
 		local wild = world.wild[wildId]
+		-- The game refuses a grab with a full plot, so a player sells first.
+		if not PlayerData.freePad(bot.data) then
+			local worst, worstValue = weakest(world, bot, keep)
+			if worst and (worstValue < wildValue or missing[wild.slime.species] == true) then
+				act(world, bot, t, "Sell", worst.id)
+			end
+		end
 		bot.task = newTask(bot, "wild", t, t + out, wildId, wild.slime, wild.price, nil)
 		return
 	end
@@ -625,7 +651,8 @@ local function makeRoom(world: World, bot: Bot, t: number, carried: Slime, keep:
 		return true
 	end
 	local worst, worstValue = weakest(world, bot, keep)
-	if worst and worstValue < worth(bot, carried) then
+	local _, missing = rebirthNeeds(bot)
+	if worst and (worstValue < worth(bot, carried) or (carried.species ~= nil and missing[carried.species])) then
 		return act(world, bot, t, "Sell", worst.id)
 	end
 	return false
@@ -771,8 +798,9 @@ function Bot.step(world: World, bot: Bot, t: number, bots: { [number]: Bot }, pl
 	if t < bot.nextActAt then
 		return
 	end
+	local vatFree = tendVat(world, bot, t)
 	local keep, missing, recipeIds = rebirthNeeds(bot)
-	if recipeIds and act(world, bot, t, "Merge3", recipeIds[1], recipeIds[2], recipeIds[3]) then
+	if vatFree and recipeIds and brew(world, bot, t, recipeIds) then
 		keep, missing = rebirthNeeds(bot)
 	end
 	chores(world, bot, session, t, keep)

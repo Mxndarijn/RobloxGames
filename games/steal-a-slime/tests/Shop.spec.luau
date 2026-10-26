@@ -18,6 +18,7 @@ local TutorialProgress = require("../src/shared/TutorialProgress")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
+local FIRST = Config.REBIRTH_SLIMES[1][1] -- the species rebirth 1 uses up
 
 local ctx: Actions.Context = {
 	distanceBetween = function()
@@ -34,6 +35,20 @@ local function call(world: any, userId: number, action: string, ...: any)
 		session.limiter = {}
 	end
 	return Actions.handle(world, userId, action, table.pack(...), T0 + 100, ctx)
+end
+
+-- Brews `ids` in the vat through the real requests and collects at once.
+local function brew(world: any, ids: { string }): boolean
+	for _, id in ids do
+		if not call(world, 1, "VatAdd", id).ok then
+			return false
+		end
+	end
+	if not call(world, 1, "VatStart").ok then
+		return false
+	end
+	world.sessions[1].data.vat.endsAt = 0 -- the brew is done
+	return call(world, 1, "VatCollect").ok
 end
 
 local function effects(world: any): { string }
@@ -71,7 +86,7 @@ describe("Shop", function()
 	end)
 	it("Request actions charge, notify and survive rebirth", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1, { species = "bumble" }) }, 1e6)
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1, { species = FIRST }) }, 1e6)
 		expect(call(world, 1, "BuySpeedCoil").ok).toBe(true)
 		expect(call(world, 1, "BuySpeedCoil").message).toBe("you already own the Speed Coil")
 		expect(call(world, 1, "BuyLockUpgrade").message).toBe("unknown action")
@@ -152,7 +167,8 @@ describe("TutorialProgress", function()
 		expect(s.data.tutorialStep).toBe(5)
 		PlayerData.addSlime(s.data, Fixtures.slime("m1", 1))
 		PlayerData.addSlime(s.data, Fixtures.slime("m2", 1))
-		expect(call(world, 1, "Merge", "m1", "m2").ok).toBe(true)
+		PlayerData.addSlime(s.data, Fixtures.slime("m3", 1))
+		expect(brew(world, { "m1", "m2", "m3" })).toBe(true)
 		expect(s.data.tutorialStep).toBe(6)
 		local victim = ServerFixtures.join(world, 2, { Fixtures.slime("gem", 2) })
 		ServerFixtures.unlock(victim)
@@ -160,7 +176,7 @@ describe("TutorialProgress", function()
 		expect(s.data.tutorialStep).toBe(7)
 		Carry.release(world, 1, T0 + 2, nil, "drop")
 		world.escaping = {}
-		PlayerData.addSlime(s.data, Fixtures.slime("need", 2, { species = "bumble" }))
+		PlayerData.addSlime(s.data, Fixtures.slime("need", 2, { species = FIRST }))
 		expect(call(world, 1, "Rebirth").ok).toBe(true)
 		expect(s.data.tutorialStep).toBe(0)
 		local texts = table.concat(ServerFixtures.notifications(world, 1), "\n")
@@ -171,17 +187,17 @@ end)
 describe("Effects events (CONTRACT.md §5.4)", function()
 	it("queues Collect on deposit, Steal on a steal, Merge and Rebirth", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(
-			world,
-			1,
-			{ Fixtures.slime("a", 1), Fixtures.slime("b", 1), Fixtures.slime("need", 2, { species = "bumble" }) },
-			1e7
-		)
+		local s = ServerFixtures.join(world, 1, {
+			Fixtures.slime("a", 1),
+			Fixtures.slime("b", 1),
+			Fixtures.slime("c", 1),
+			Fixtures.slime("need", 2, { species = FIRST }),
+		}, 1e7)
 		local victim = ServerFixtures.join(world, 2, { Fixtures.slime("gem", 2) })
 		ServerFixtures.unlock(victim)
 		expect((Carry.grab(world, 1, "gem", 1, T0))).toBe(true)
 		expect((Carry.deposit(world, 1))).toBe(true)
-		expect(call(world, 1, "Merge", "a", "b").ok).toBe(true)
+		expect(brew(world, { "a", "b", "c" })).toBe(true)
 		expect(call(world, 1, "Rebirth").ok).toBe(true)
 		expect(effects(world)).toEqual({ "Steal", "Collect", "Merge", "Rebirth" })
 		for _, event in world.outbox do

@@ -146,12 +146,12 @@ local burstCalls = {
 	{ "Redeem", "x" },
 	{ "Sell", "x" },
 	{ "MoveSlime", "x", 1 },
-	{ "Merge", "a", "b" },
+	{ "VatAdd", "a" },
 	{ "HatchEgg", "x" },
 	{ "ClaimQuest", 1 },
 	{ "EquipPlotSkin", "x" },
-	{ "KeepSlime", "x", true },
-	{ "AutoMerge", 1 },
+	{ "VatStart" },
+	{ "VatCollect" },
 }
 results.burst = { calls = #burstCalls }
 results.burst.reconciles = reconciles(function()

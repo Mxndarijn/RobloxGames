@@ -25,8 +25,9 @@
 	Species meshes (SlimeLooks.get(species).kit = "slime_<id>", uploaded in
 	MeshAssets with size + offset): load() also fetches each one by its assetId.
 	A species mesh is fully coloured (Color white) and carries its own face,
-	pattern and accessories, so the procedural ones and the ball's goo puddle are hidden
-	(isReplacedPart); the aura / glow shells wrap it;
+	pattern and accessories, so the procedural ones and the ball's goo puddle are destroyed
+	(isReplacedPart; nothing reads them, and hidden parts would still cost physics and
+	replication); the aura / glow shells wrap it;
 	it is worn at size-1 scale x the slime's size, placed from the bottom centre,
 	and keeps its Bones. A kit that fails to load or dress falls back to the
 	shared package mesh, then to the procedural ball. A slime built while its kit is
@@ -151,7 +152,7 @@ local function anchorFor(model: Model, body: BasePart): BasePart
 	return if skin and skin:IsA("BasePart") then skin else body
 end
 
--- Procedural parts a species mesh replaces (it carries its own face, pattern and accessories). The goo
+-- Procedural parts a species mesh replaces and dress() destroys (it carries its own face, pattern and accessories). The goo
 -- puddle is sized for the ball and would stand out under the mesh's foot as a thick disc.
 -- Tier rim and aura stay, refitted to the mesh (fitToMesh).
 local REPLACED_PREFIXES = {
@@ -290,10 +291,10 @@ local function dress(model: Model, template: MeshPart, kit: string?)
 	body.Transparency = 1
 	body.CastShadow = false
 	if species then
+		-- Each part's weld lives inside it, so Destroy takes the weld along.
 		for _, part in model:GetDescendants() do
 			if part:IsA("BasePart") and part ~= mesh and SlimeMesh.isReplacedPart(part.Name) then
-				part.Transparency = 1
-				part.CastShadow = false
+				part:Destroy()
 			end
 		end
 		fitToMesh(model, body, mesh)

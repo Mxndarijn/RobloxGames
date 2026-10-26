@@ -45,18 +45,24 @@ local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
+local HomeZone = require(ReplicatedStorage.Shared.HomeZone)
 local JarRoute = require(script.Parent.JarRoute)
+local KitDelivery = require(script.Parent.KitDelivery)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
 local MeshSwap = require(script.Parent.MeshSwap)
+local MoveWatch = require(script.Parent.MoveWatch)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
+local PetSeats = require(ReplicatedStorage.Shared.PetSeats)
+local PlotGuests = require(script.Parent.PlotGuests)
 local PlotLockGuard = require(script.Parent.PlotLockGuard)
 local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local PvpBlaster = require(script.Parent.PvpBlaster)
 local PvpFun = require(script.Parent.PvpFun)
 local PvpHeld = require(script.Parent.PvpHeld)
@@ -65,12 +71,14 @@ local PvpTrap = require(script.Parent.PvpTrap)
 local Rescue = require(script.Parent.Rescue)
 local SafeCall = require(script.Parent.SafeCall)
 local Scene = require(script.Parent.Scene)
+local SlimeGuard = require(script.Parent.SlimeGuard)
 local SlimeLabelView = require(script.Parent.SlimeLabelView)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
 local StackGuard = require(script.Parent.StackGuard)
 local StealGhost = require(script.Parent.StealGhost)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
+local VatView = require(script.Parent.VatView)
 local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 local WorldProps = require(script.Parent.WorldProps)
@@ -82,6 +90,8 @@ type Record = {
 	hatch: ProximityPrompt?, -- Mystery Eggs: the owner-only HatchPrompt
 	egg: boolean, -- built as a Mystery Egg (a hatch rebuilds the model as its slime)
 	key: string,
+	placed: boolean, -- place() has succeeded once; until then the model stays out of workspace (it is built at the
+	-- world origin, the fountain axis)
 	weld: WeldConstraint?,
 	rideUntil: number, -- os.clock() when the fountain ride lands (0 = not riding)
 	ghost: Model?, -- StealGhost: the see-through copy left on the pad while a thief carries it
@@ -101,6 +111,60 @@ local slimeMesh: SlimeMesh.SlimeMesh? = nil
 local plotCache: { [number]: Instance? } = {}
 local habitats = HabitatPads.new() -- FEATURES.Habitats pad state (never saved)
 local eggMeshes: { [string]: MeshPart | false } = {} -- uploaded Mystery Egg meshes (MeshAssets mystery_egg_*), by name
+
+-- The player's own kit folder: a disabled ScreenGui in their PlayerGui, so only they replicate it and it survives
+-- respawns (SpeciesModel reads it).
+local function kitFolder(player: Player): Instance?
+	local gui = player:FindFirstChildOfClass("PlayerGui")
+	if gui == nil then
+		return nil
+	end
+	local folder = gui:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	if folder == nil then
+		local screen = Instance.new("ScreenGui")
+		screen.Name = Constants.SLIME_KITS_FOLDER
+		screen.Enabled = false
+		screen.ResetOnSpawn = false
+		screen.Parent = gui
+		folder = screen
+	end
+	return folder
+end
+
+-- Species kit meshes, sent per player on RequestKits (SlimeDex / rebirth previews).
+local kitDelivery = KitDelivery.new({
+	loaded = function(kit: string): any?
+		return if slimeMesh then slimeMesh.kits[kit] else nil
+	end,
+	failed = function(kit: string): boolean
+		-- Without the factory there is no mesh look and no kit ever loads.
+		return slimeMesh == nil or slimeMesh.failedKits[kit] == true
+	end,
+	deliver = function(userId: number, kit: string, template: any)
+		local player = Players:GetPlayerByUserId(userId)
+		local folder = player and kitFolder(player)
+		if folder == nil then
+			return
+		end
+		local copy = (template :: MeshPart):Clone()
+		copy.Name = kit
+		copy.Anchored = true
+		copy.CanCollide = false
+		copy.CanQuery = false
+		copy.CanTouch = false
+		copy.Parent = folder
+	end,
+})
+
+-- RequestKits (Actions ctx.sendKits): `kits` are KitRequest kit names.
+function WorldView.sendKits(userId: number, kits: { string })
+	KitDelivery.request(kitDelivery, userId, kits)
+end
+
+-- The player left: their kit folder went with their PlayerGui.
+function WorldView.forgetKits(userId: number)
+	KitDelivery.forget(kitDelivery, userId)
+end
 
 WorldView.FALL_SECONDS = 0.3 -- a dropped slime falls to the ground
 WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart when the character has no Head
@@ -138,25 +202,19 @@ function WorldView.setup(): any?
 	local factory = visuals and visuals:FindFirstChild("ModelFactory")
 	if factory then
 		-- Mesh look over Archer's factory; LoadAsset yields once here, falls back to procedural.
-		-- Clients can't LoadAsset, so each loaded species kit is copied to ReplicatedStorage for the SlimeDex.
-		local kits = Instance.new("Folder")
-		kits.Name = Constants.SLIME_KITS_FOLDER
-		kits.Parent = ReplicatedStorage
+		-- Clients can't LoadAsset: a SlimeDex / rebirth preview asks for the kits it shows (RequestKits) and
+		-- KitDelivery copies just those to that player (WorldView.sendKits).
 		local mesh = SlimeMesh.new({
 			factory = require(factory :: ModuleScript) :: any,
 			loadAsset = function(assetId: number): Instance
 				return InsertService:LoadAsset(assetId)
 			end,
 			onKit = function(kit: string, template: MeshPart)
-				local copy = template:Clone()
-				copy.Name = kit
-				copy.Anchored = true
-				copy.CanCollide = false
-				copy.Parent = kits
+				KitDelivery.kitLoaded(kitDelivery, kit, template)
 			end,
 		})
-		workspace:SetAttribute(Constants.SLIME_LOOK_ATTRIBUTE, SlimeMesh.load(mesh))
 		slimeMesh = mesh
+		workspace:SetAttribute(Constants.SLIME_LOOK_ATTRIBUTE, SlimeMesh.load(mesh))
 		modelFactory = {
 			build = function(slimeData: any): Model
 				return SlimeMesh.build(mesh, slimeData)
@@ -286,6 +344,34 @@ local function surfaceBelow(origin: Vector3, depth: number): CFrame?
 		return CFrame.new(origin.X, hit.Position.Y, origin.Z)
 	end
 	return nil
+end
+
+WorldView.BOSS_RAY_UP = 60 -- studs above an attack's centre the floor probe starts (over the boss, under nothing)
+WorldView.BOSS_EYE = 4 -- studs above the arena floor the line-of-sight ray starts (over curbs and puddles)
+
+--[[
+	Whether a boss attack centred on `from` (x / z; Y = a hint for where the arena floor is) can strike the character
+	whose root is `root`: the root is at most `height` studs above the floor under the attack (and not under it), and
+	a ray from just above that floor to the root hits nothing solid (slimes, the boss, characters and non-collidable
+	parts never block). Nothing found under the attack = no floor to measure from, so only the line is checked.
+]]
+-- The arena floor height at world (x, z): the first collidable surface below a probe BOSS_RAY_UP over the plaza
+-- origin (the same probe bossExposed uses), or nil when there is none. Guards and goo puddles stand on it.
+function WorldView.bossFloor(x: number, z: number): number?
+	local top = crater().Y + WorldView.BOSS_RAY_UP
+	local floor = surfaceBelow(Vector3.new(x, top, z), WorldView.BOSS_RAY_UP * 2)
+	return if floor then floor.Position.Y else nil
+end
+
+function WorldView.bossExposed(from: Vector3, root: Vector3, height: number): boolean
+	local params = groundParams()
+	local floor = surfaceBelow(Vector3.new(from.X, from.Y + WorldView.BOSS_RAY_UP, from.Z), WorldView.BOSS_RAY_UP * 2)
+	local floorY = if floor then floor.Position.Y else from.Y
+	if root.Y - floorY > height or root.Y < floorY - 2 then
+		return false
+	end
+	local eye = Vector3.new(from.X, floorY + WorldView.BOSS_EYE, from.Z)
+	return workspace:Raycast(eye, root - eye, params) == nil
 end
 
 WorldView.DROP_RAY_UP = 4 -- studs above the carrier's root the drop ray starts (below canopies)
@@ -777,6 +863,7 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		hatch = hatch,
 		egg = isEgg,
 		key = "",
+		placed = false,
 		weld = nil,
 		rideUntil = 0,
 		walking = nil,
@@ -980,11 +1067,13 @@ local function place(world: World.World, record: Record, entry: Scene.Entry, pre
 
 	local plot = entry.plotIndex and WorldView.plot(entry.plotIndex)
 	local folder = plot and plot:FindFirstChild(Constants.PLOT_SLIMES_FOLDER)
-	model.Parent = folder or plot
 	local target = entry.plotIndex and entry.pad and padTop(entry.plotIndex, entry.pad)
 	if not target then
-		return true
+		-- Its pad is not built yet (a join with slimes on upper floors: BaseFloors builds them after this
+		-- reconcile): retried next time, so it lands on the pad once it is there.
+		return false
 	end
+	model.Parent = folder or plot
 	if entry.state == "Escaping" and previous ~= nil then
 		animate(entry.id, entry.key, World.ESCAPE_BOUNCE_SECONDS, glide(from, target))
 	else
@@ -1002,6 +1091,21 @@ local function kitArrived(record: Record, entry: Scene.Entry, clock: number): bo
 		and SlimeMesh.hasKit(slimeMesh, kit)
 		and (entry.state == "Pad" or entry.state == "Wild")
 		and clock >= record.rideUntil
+end
+
+-- A pad slime's status row: the vat's ("In vat"), else "For rebirth" when the next rebirth uses it up.
+-- `needed` caches Progression.neededIds per owner for one reconcile.
+function WorldView.padStatus(owner: any, id: string, needed: { [number]: { [string]: boolean } }): string?
+	local vat = VatView.labelStatus(owner.data, id)
+	if vat then
+		return vat
+	end
+	local set = needed[owner.userId]
+	if not set then
+		set = Progression.neededIds(owner.data)
+		needed[owner.userId] = set
+	end
+	return if set[id] then "For rebirth" else nil
 end
 
 --[[
@@ -1025,19 +1129,20 @@ function WorldView.reconcile(
 		end
 	end
 	table.clear(bossMoves)
+	local needed: { [number]: { [string]: boolean } } = {} -- per owner: slimes the next rebirth uses up
 	for id, entry in entries do
 		local record: Record? = records[id]
-		local isNew = false
 		if not record then
 			record = create(entry, onPrompt, onHatch)
 			if not record then
 				continue
 			end
 			records[id] = record
-			isNew = true
 		end
 		assert(record, "record")
 		record.prompt.ActionText = entry.promptText
+		-- GuestsOnly before Enabled: a client applies them in order, so the prompt never shows un-gated for a frame.
+		record.prompt:SetAttribute(Constants.PROMPT_GUESTS_ATTRIBUTE, entry.guestsOnly)
 		record.prompt.Enabled = entry.promptEnabled
 		record.prompt:SetAttribute(Constants.PROMPT_HIDE_ATTRIBUTE, entry.hideFromUserId)
 		record.prompt.HoldDuration = entry.promptHold
@@ -1083,23 +1188,29 @@ function WorldView.reconcile(
 		end
 		SlimeLabelView.applyGrowth(record.model, entry.slime, now)
 		if record.key ~= entry.key then
-			local previous = if isNew then nil else record.key
+			local previous = if record.placed then record.key else nil
 			record.key = entry.key
-			if not place(world, record, entry, previous) then
+			if place(world, record, entry, previous) then
+				record.placed = true
+			else
 				record.key = "" -- retry next time
 			end
-			if isNew and not record.model.Parent then
+			-- A carried slime is welded on its carrier wherever its model sits; one never placed stays out of
+			-- workspace rather than show at its build spot.
+			if record.placed and not record.model.Parent then
 				record.model.Parent = workspace:FindFirstChild(Constants.WILD_FOLDER)
 			end
 		end
 		-- After place(): the boss scale is applied there, and the label height is measured on the final scale.
+		local owner = if entry.state == "Pad" then world.sessions[entry.ownerUserId] else nil
 		SlimeLabelView.apply(
 			record.model,
 			record.body,
 			entry.slime,
 			entry.income,
 			if entry.state == "Pad" then entry.pad else nil,
-			now
+			now,
+			if owner then WorldView.padStatus(owner, id, needed) else nil
 		)
 	end
 	for id in failed do
@@ -1121,11 +1232,17 @@ function WorldView.reconcile(
 		origin,
 		if ground then ground.Y else 0,
 		if tint then Color3.fromRGB(tint[1], tint[2], tint[3]) else nil,
-		if modelFactory and bossWild then { build = modelFactory.build, slime = bossWild.slime } else nil
+		if modelFactory and bossWild then { build = modelFactory.build, slime = bossWild.slime } else nil,
+		WorldView.bossFloor
 	)
 end
 
 -- A slime model's Body (Effects target), or nil if it has no model.
+local function modelOf(id: string): Model?
+	local record = records[id]
+	return if record then record.model else nil
+end
+
 function WorldView.slimeBody(id: string): BasePart?
 	local record = records[id]
 	return record and record.body
@@ -1153,6 +1270,7 @@ end
 
 local plotPromptParts: { [string]: string } = {
 	[Constants.LOCK_PROMPT_NAME] = "LockButton",
+	[Constants.FRIENDS_PROMPT_NAME] = "LockButton",
 	[Constants.MERGE_PROMPT_NAME] = "MergeVat",
 }
 local plotPrompts: { [number]: { [string]: ProximityPrompt } } = {}
@@ -1167,6 +1285,7 @@ local plotPrompts: { [number]: { [string]: ProximityPrompt } } = {}
 function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 	local kinds = {
 		[Constants.LOCK_PROMPT_NAME] = "Lock",
+		[Constants.FRIENDS_PROMPT_NAME] = "ToggleFriends",
 		[Constants.MERGE_PROMPT_NAME] = "Merge",
 		[Constants.BUY_PAD_PROMPT_NAME] = "BuyPad",
 	}
@@ -1186,9 +1305,20 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 			local prompt = Instance.new("ProximityPrompt")
 			prompt.Name = name
 			prompt.KeyboardKeyCode = Enum.KeyCode.E
-			-- The 3-slime vat prompt only opens the merge menu (the menu confirms each merge), so it is instant.
-			local opensMenu = kind == "Merge" and Config.FEATURES.MergeVat3
+			-- The vat prompt only opens the merge vat menu (the menu confirms each step), so it is instant.
+			local opensMenu = kind == "Merge"
 			prompt.HoldDuration = if opensMenu then 0 else Config.HOLD_CONFIRM_SECONDS
+			if kind == "Lock" or kind == "ToggleFriends" then
+				-- Both sit on the LockButton: Custom style, so the client's key card draws one card with a row each
+				-- instead of two Roblox bubbles on the same spot (ui/SlimeKeyCard).
+				prompt.Style = Enum.ProximityPromptStyle.Custom
+			end
+			if kind == "ToggleFriends" then
+				local keys = Constants.FRIENDS_PROMPT_KEYS
+				prompt.KeyboardKeyCode = (Enum.KeyCode :: any)[keys.keyboard]
+				prompt.GamepadKeyCode = (Enum.KeyCode :: any)[keys.gamepad]
+				prompt.HoldDuration = 0 -- free and undoable
+			end
 			prompt.RequiresLineOfSight = false
 			prompt.MaxActivationDistance = Config.PLOT_PAD_PROMPT_DISTANCE
 			prompt.Enabled = false
@@ -1201,10 +1331,11 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 	end
 end
 
--- The part plot `index`'s prompt `kind` ("Lock" | "Merge" | "BuyPad") currently sits on (BuyPad moves), or nil.
+-- The part plot `index`'s prompt `kind` ("Lock" | "ToggleFriends" | "Merge" | "BuyPad") sits on (BuyPad moves), or nil.
 function WorldView.plotPromptPart(index: number, kind: string): BasePart?
 	local name = if kind == "Lock"
 		then Constants.LOCK_PROMPT_NAME
+		elseif kind == "ToggleFriends" then Constants.FRIENDS_PROMPT_NAME
 		elseif kind == "Merge" then Constants.MERGE_PROMPT_NAME
 		elseif kind == "BuyPad" then Constants.BUY_PAD_PROMPT_NAME
 		else nil
@@ -1300,6 +1431,47 @@ local function ensureGroups()
 	end
 end
 
+-- Guests (PlotGuests) and former guests still inside (SlimeGuard.formerGuests): plot i's stopper also lets player
+-- p through by making PlotLock_<i> x PlotOwner_<p's plot> non-colliding. Every player owns one plot, so that group is
+-- p's character and no new groups are needed. Only pairs that changed are touched; the settings replicate to every
+-- client. Returns who passes each plot's stopper (SlimeGuard.stopperPasses), for the plot's Guests attribute.
+local guestPairs: { [string]: { lock: string, owner: string } } = {}
+local function syncGuestPairs(world: World.World): { [number]: { number } }
+	ensureGroups()
+	local passes = SlimeGuard.stopperPasses(world)
+	local wanted: { [string]: { lock: string, owner: string } } = {}
+	for i, ids in passes do
+		for _, id in ids do
+			local visitor = world.sessions[id]
+			local j = visitor and visitor.plotIndex
+			if j and i ~= j then
+				wanted[`{i}:{j}`] = { lock = PlotLockGuard.lockGroup(i), owner = PlotLockGuard.ownerGroup(j) }
+			end
+		end
+	end
+	for key, pair in guestPairs do
+		if not wanted[key] then
+			pcall(function()
+				PhysicsService:CollisionGroupSetCollidable(pair.lock, pair.owner, true)
+			end)
+			guestPairs[key] = nil
+		end
+	end
+	for key, pair in wanted do
+		if not guestPairs[key] then
+			local ok, err = pcall(function()
+				PhysicsService:CollisionGroupSetCollidable(pair.lock, pair.owner, false)
+			end)
+			if ok then
+				guestPairs[key] = pair
+			else
+				warn(`[WorldView] guest pair {key}: {err}`)
+			end
+		end
+	end
+	return passes
+end
+
 function setBarrierSolid(plot: Instance, index: number, solid: boolean)
 	local barrier = plot:FindFirstChild("LockBarrier")
 	if not barrier then
@@ -1335,15 +1507,6 @@ function setOpenDoorSolid(plot: Instance, solid: boolean)
 		collider.CanCollide = solid
 	end
 end
-
--- Jar 1's doorway passage (the real layout constants): the lock guard's "inside" includes it.
-local DOORWAY = WorldLayout.doorway()
-local DOOR: PlotLockGuard.Door = {
-	halfWidth = DOORWAY.halfWidth,
-	zOuter = DOORWAY.zOuter,
-	zInner = DOORWAY.zInner,
-	height = WorldLayout.PLOT_FLOOR_TOP + WorldLayout.DOOR.height,
-}
 
 local function setPartGroup(part: Instance, group: string)
 	if part:IsA("BasePart") and part.CollisionGroup ~= group then
@@ -1390,6 +1553,14 @@ local function markCharacterMoved(character: Model)
 	end
 end
 
+-- Server-initiated teleport of `character`: the move guard's next sample of that player re-baselines.
+local function allowMove(character: Model, seconds: number)
+	local owner = Players:GetPlayerFromCharacter(character)
+	if owner then
+		MoveWatch.allow(owner.UserId, seconds)
+	end
+end
+
 -- Bug #10: a character whose root overlaps the fountain-top slime stack (Map.Volcano.EmergeMesh) is not pushed out by
 -- the solid mesh, so move it above the top (radially outside if something is overhead). True when it moved.
 local function ejectFromStack(character: Model, root: BasePart): boolean
@@ -1412,14 +1583,14 @@ local function ejectFromStack(character: Model, root: BasePart): boolean
 	local x, y, z = StackGuard.ejectPoint(p.X, p.Y, p.Z, half.X, half.Y, half.Z, blocked)
 	character:PivotTo(ref.CFrame * CFrame.new(x, y, z))
 	root.AssemblyLinearVelocity = Vector3.zero
+	allowMove(character, Config.MOVE_GUARD.TELEPORT_ALLOW)
 	markCharacterMoved(character)
 	return true
 end
 
 -- Per player: the character's collision group. The owner's character is in PlotOwner_<i> (walks through its own
--- barrier); everyone else is in Default, which every locked barrier blocks both ways. A non-owner caught in a locked
--- plot's doorway (standing there as the lock starts) is set down just outside it, on the bridge
--- (PlotLockGuard.wedged / doorwayExit), the only time this moves anyone.
+-- barrier); everyone else is in Default, which every locked barrier blocks both ways unless they are let through
+-- (syncGuestPairs). Nobody is moved for a lock.
 function WorldView.enforceLocks(world: World.World, player: Player)
 	local root = WorldView.rootPart(player)
 	local character = player.Character
@@ -1428,32 +1599,6 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 	end
 	local own = World.session(world, player.UserId)
 	local wanted = if own then PlotLockGuard.ownerGroup(own.plotIndex) else "Default"
-	for index = 1, world.plotCount do
-		local ownerId = world.plots[index]
-		local session = ownerId and world.sessions[ownerId]
-		local plot = if session and session.userId ~= player.UserId then WorldView.plot(index) else nil
-		local base = plot and plot:FindFirstChild("Base")
-		if
-			session
-			and plot
-			and base
-			and base:IsA("BasePart")
-			and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) == true
-		then
-			local p = base.CFrame:PointToObjectSpace(root.Position)
-			local y = p.Y + base.Size.Y / 2
-			if PlotLockGuard.wedged(player.UserId, session.userId, true, p.X, y, p.Z, DOOR) then
-				character:PivotTo(
-					base.CFrame
-						* CFrame.new(p.X, p.Y, PlotLockGuard.doorwayExit(DOOR))
-						* (base.CFrame.Rotation:Inverse() * root.CFrame.Rotation)
-				)
-				root.AssemblyLinearVelocity = Vector3.zero
-				WorldView.markServerMove(player.UserId)
-				break
-			end
-		end
-	end
 	if root.CollisionGroup ~= wanted or characterGroups[character] ~= wanted then
 		ensureGroups()
 		setCharacterGroup(character, wanted)
@@ -1465,6 +1610,7 @@ end
 function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloors.Context?)
 	local habitatsOn = Config.FEATURES.Habitats
 	HabitatPads.step(habitats, world, now, habitatsOn)
+	local passes = syncGuestPairs(world)
 	for index = 1, world.plotCount do
 		local plot = WorldView.plot(index)
 		if plot then
@@ -1477,9 +1623,10 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)
 			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
 			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
+			setIfChanged(plot, Constants.PLOT_FRIENDS_ALLOWED_ATTRIBUTE, if view.friendsAllowed then true else nil)
+			setIfChanged(plot, Constants.PLOT_GUESTS_ATTRIBUTE, PlotGuests.encode(passes[index] or {}))
 			setBarrierSolid(plot, index, view.locked)
 			setOpenDoorSolid(plot, not view.locked)
-			setIfChanged(plot, Constants.PLOT_LOCK_COST_ATTRIBUTE, view.lockCost)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
 			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)
 			if Config.FEATURES.PlotSkins then
@@ -1508,6 +1655,7 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			local prompts = plotPrompts[index]
 			if prompts then
 				applyPrompt(prompts[Constants.LOCK_PROMPT_NAME], view.lock, view.ownerUserId)
+				applyPrompt(prompts[Constants.FRIENDS_PROMPT_NAME], view.friends, view.ownerUserId)
 				applyPrompt(prompts[Constants.MERGE_PROMPT_NAME], view.merge, view.ownerUserId)
 				local buyPad = prompts[Constants.BUY_PAD_PROMPT_NAME]
 				local padPart = pads[view.buyPad.pad] or WorldView.pad(index, view.buyPad.pad)
@@ -1516,6 +1664,7 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 				end
 				applyPrompt(buyPad, view.buyPad, view.ownerUserId)
 			end
+			VatView.sync(plot, index, if session then session.data else nil, now, modelOf, world.carriedBy)
 			local sign = plot:FindFirstChild("Sign")
 			if sign then
 				PlotSigns.apply(
@@ -1541,10 +1690,15 @@ function WorldView.pointInHomeZone(position: Vector3, plotIndex: number): boolea
 		return false
 	end
 	local p = zone.CFrame:PointToObjectSpace(position)
-	local half = zone.Size / 2
-	local reachUp = zone:GetAttribute("ReachUp")
-	local top = half.Y + 8 + (if type(reachUp) == "number" then reachUp else 0)
-	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
+	local size = zone.Size
+	return HomeZone.contains(
+		p.X,
+		p.Y,
+		p.Z,
+		{ size.X, size.Y, size.Z },
+		zone:GetAttribute("Radius"),
+		zone:GetAttribute("ReachUp")
+	)
 end
 
 -- The player's character root in plot `plotIndex`'s plot-local frame, y on WorldLayout.floorTop's scale (the Base's
@@ -1575,6 +1729,7 @@ function WorldView.dropDown(userId: number, plotIndex: number): boolean
 	local y = land[2] - WorldLayout.PLOT_FLOOR_TOP + base.Size.Y / 2
 	character:PivotTo(base.CFrame * CFrame.new(land[1], y, land[3]))
 	root.AssemblyLinearVelocity = Vector3.zero
+	MoveWatch.allow(userId, Config.MOVE_GUARD.TELEPORT_ALLOW)
 	WorldView.markServerMove(userId)
 	return true
 end
@@ -1623,6 +1778,7 @@ function WorldView.rescue(player: Player, plotIndex: number?, pvpGuard: boolean?
 			part.AssemblyAngularVelocity = Vector3.zero
 		end
 	end
+	MoveWatch.allow(player.UserId, Config.MOVE_GUARD.TELEPORT_ALLOW)
 	return true
 end
 
@@ -1676,6 +1832,7 @@ function WorldView.updatePlayer(
 	end
 	local pet = World.pet(world, session) -- a stolen pet stops following
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
+	setAttribute(player, Constants.PET_SEAT_ATTRIBUTE, PetSeats.current(data))
 	if data.speedCoil then
 		ensureSpeedCoil(player)
 	end

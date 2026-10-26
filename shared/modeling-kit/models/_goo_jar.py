@@ -213,10 +213,11 @@ def bar(name, pts):
             p, q = Vector(dense[i]), Vector(dense[i + 1])
             out_dir = Vector((p.x, p.y, 0)).normalized()
             along = (q - p).normalized()
-            side = along.cross(out_dir).normalized() * (0.45 if i % 4 == 1 else -0.45)
-            c = p + out_dir * 0.25 + side
+            # on the vine's sides, close in: the piece keeps its classic box (models/_goo_jar_bounds.py)
+            side = along.cross(out_dir).normalized() * (0.3 if i % 4 == 1 else -0.3)
+            c = p + side
             deg = math.degrees(math.atan2(out_dir.y, out_dir.x))
-            out.append(blob(f"{name}Leaf{i}", 0.55, tuple(c), LEAVES, subdiv=1, squash=(0.35, 1.0, 0.6), jitter=0, rot=(0, 0, deg)))
+            out.append(blob(f"{name}Leaf{i}", 0.45, tuple(c), LEAVES, subdiv=1, squash=(0.35, 1.0, 0.6), jitter=0, rot=(0, 0, deg)))
         return out
     return [tube(name, pts, [0.35] * len(pts), METAL, segs=6)]
 

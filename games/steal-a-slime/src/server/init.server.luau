@@ -80,6 +80,7 @@ local worldBuilder = WorldView.setup()
 local floors: BaseFloors.Context? = if worldBuilder and worldBuilder.buildFloor
 	then {
 		build = worldBuilder.buildFloor,
+		top = worldBuilder.buildTop,
 		meshes = function(instances: { Instance })
 			MeshSwap.applyUnder(instances)
 		end,
@@ -100,7 +101,7 @@ task.spawn(safeCall, "MeshSwap.applyAll", MeshSwap.applyAll) -- kit meshes, merg
 safeCall("PlotThemeView.start", PlotThemeView.start) -- FEATURES.PlotSkins: each tower in its owner's theme
 task.spawn(safeCall, "MeshSwap.publishSkinTemplates", MeshSwap.publishSkinTemplates) -- FEATURES.PlotSkins
 task.spawn(safeCall, "MeshSwap.publishHabitatTemplates", MeshSwap.publishHabitatTemplates) -- FEATURES.Habitats
-task.spawn(safeCall, "MeshSwap.publishPetCloudTemplate", MeshSwap.publishPetCloudTemplate) -- the follow pet's cloud
+task.spawn(safeCall, "MeshSwap.publishPetSeatTemplates", MeshSwap.publishPetSeatTemplates) -- what follow pets ride
 task.spawn(safeCall, "MeshSwap.publishPvpMarkerTemplates", MeshSwap.publishPvpMarkerTemplates) -- FEATURES.PvP placed traps
 
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
@@ -132,7 +133,7 @@ local world = World.new({
 	plotCount = Config.PLOT_COUNT,
 })
 local ctx = ServerContext.new(world, shopEventRemote, now)
-local leaderboard = LeaderboardView.new(world, persistence.orderedStore, leaderboardEvent)
+local leaderboard = LeaderboardView.new(world, persistence.boardStore, leaderboardEvent)
 local profiler = Profiler.new() -- FEATURES.ServerProfiler (CONTRACT.md §25); off = every call is a no-op
 
 -- Roblox badges (Badges): BadgeService behind pcall + retries, off the game loop (grant yields).
@@ -293,8 +294,8 @@ end)
 ctx.areFriends = function(a: number, b: number, at: number): boolean -- Hat Launcher (FEATURES.PvP)
 	return Friends.areFriends(friendCache, a, b, at)
 end
-local function refreshFriends()
-	if Config.FEATURES.FriendBonus ~= true then
+local function refreshFriends() -- the friend bonus and the friends switch's guests (PlotGuests) both read it
+	if Config.FEATURES.FriendBonus ~= true and Config.FEATURES.FriendsInBase ~= true then
 		return
 	end
 	Friends.refresh(friendCache, world, now())

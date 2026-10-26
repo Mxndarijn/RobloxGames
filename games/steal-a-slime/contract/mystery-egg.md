@@ -1,6 +1,6 @@
 # 40. Mystery Eggs: wild eggs that hatch on your plot (`FEATURES.MysteryEggs`)
 
-**Status:** `FEATURES.MysteryEggs` (off = the fountain drops no eggs; eggs already on plots still hatch). Server-authoritative. **No save version bump**: an egg is a slime with an optional `egg` field, added like `growth` / `keep`, and the lucky meter is an optional `eggLuck` field (missing = empty).
+**Status:** `FEATURES.MysteryEggs` (off = the fountain drops no eggs; eggs already on plots still hatch). Server-authoritative. **No save version bump**: an egg is a slime with an optional `egg` field, added like `growth`, and the lucky meter is an optional `eggLuck` field (missing = empty).
 
 ## 40.1 What it is
 
@@ -34,7 +34,7 @@ The hatch is a show on the pad (40.6): the egg rocks, cracks and bursts and the 
 | Sell | never: `Economy.sellPrice` is nil and `Sell` refuses with "eggs can't be sold" |
 | Announced | spawn of a kind with `announce = true` (Golden, Cosmic); a hatch of tier >= `HATCH_ANNOUNCE_TIER` (Legendary), sent when the show reveals it |
 
-An egg is never merged (Merge Vat, 3-slime vat, merge assist), never counts for the rebirth slime, the SlimeDex, badges, habitats, growth, the follow pet or a favourite, and the Lucky Charm never upgrades it. The SlimeDex records the species at the hatch.
+An egg never goes in the merge vat ("Eggs can't go in the vat", §21) and is never a merge assist pick, never counts for the rebirth slime, the SlimeDex, badges, habitats, growth, the follow pet or a favourite, and the Lucky Charm never upgrades it. The SlimeDex records the species at the hatch.
 
 ## 40.4 Hatching and the lucky meter
 

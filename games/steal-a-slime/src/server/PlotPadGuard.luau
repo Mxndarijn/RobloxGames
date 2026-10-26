@@ -15,7 +15,8 @@ export type Access = { distance: number?, alive: boolean? } -- distance nil = no
 
 local PlotPadGuard = {}
 
-PlotPadGuard.KINDS = table.freeze({ Lock = true, BuyPad = true, Merge = true })
+-- The pad actions behind those prompts (the vat prompt only opens the owner's menu, so it runs none).
+PlotPadGuard.KINDS = table.freeze({ Lock = true, BuyPad = true, ToggleFriends = true })
 
 PlotPadGuard.MESSAGES = table.freeze({
 	NoCharacter = "walk closer to your lock pad",

@@ -144,3 +144,13 @@ describe("PvpFunFxLogic events", function()
 		end
 	end)
 end)
+
+describe("PvpFunFxLogic.restoreTo", function()
+	it("never puts a slime back fully hidden: a hop or egg pop hide was only for a moment", function()
+		expect(Logic.restoreTo(1)).toBe(0)
+	end)
+	it("keeps a shown part shown and a Move fade faded", function()
+		expect(Logic.restoreTo(0)).toBe(0)
+		expect(Logic.restoreTo(0.75)).toBe(0.75)
+	end)
+end)

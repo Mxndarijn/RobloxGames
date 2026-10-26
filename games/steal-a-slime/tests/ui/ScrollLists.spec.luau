@@ -210,7 +210,7 @@ describe("Widgets.scrollList", function()
 	end)
 end)
 
-local PANELS = { "WorldShop", "Goals", "Merge", "Dex" }
+local PANELS = { "WorldShop", "Goals", "Dex" }
 
 describe("Scroll list panels (opened hidden, as setOpen did)", function()
 	for _, key in PANELS do

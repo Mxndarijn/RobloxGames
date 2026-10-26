@@ -51,6 +51,9 @@ function CarryDrop.release(world: World, userId: number, now: number, position: 
 	if not session or not carry then
 		return false
 	end
+	if reason == "drop" or reason == "slap" then
+		session.lastDropAt = now -- no pickups for Config.DROP_PICKUP_COOLDOWN (Carry.grab)
+	end
 	if carry.kind == "stolen" then
 		StealService.escape(world, session, now, reason)
 		return true

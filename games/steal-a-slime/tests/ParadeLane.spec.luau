@@ -319,8 +319,8 @@ describe("ParadeLane route: loops round the plaza, clear of props and podiums", 
 			end
 		end
 	)
-	it("podiums and the signpost stand on the plain r 68 circle (why the route dips inside them)", function()
-		for _, name in { "Podium_1", "Podium_2", "Podium_3", "Signpost" } do
+	it("the signpost stands on the plain r 68 circle (why the route dips inside it)", function()
+		for _, name in { "Signpost" } do
 			local plain = math.huge -- the old r 68 circle went straight through
 			for _, def in WorldLayout.PLAZA_PROPS do
 				if def.name == name then

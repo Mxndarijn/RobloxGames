@@ -118,7 +118,7 @@ describe("SlimeLooks wiring", function()
 		expect(attrs[Constants.SPECIES_ATTRIBUTE]).toBe("moo")
 	end)
 
-	it("hands every loaded species kit to onKit (the SlimeDex copies them for the client)", function()
+	it("hands every loaded species kit to onKit (KitDelivery sends them to players who ask)", function()
 		local handed: { [string]: any } = {}
 		local function fakeMesh(): any
 			local m = {}

@@ -127,11 +127,14 @@ describe("SlimeGuard kick and undo", function()
 end)
 
 describe("SlimeGuard locked-base intruders", function()
-	it("flags a player who got into a locked plot after the lock started", function()
+	it("flags a player who got into a locked plot after the lock started, once per visit", function()
 		local world, victim, thief = setup("watch")
 		victim.lockStartedAt = T0 + 10
 		victim.lockUntil = T0 + 100
 		expect(SlimeGuard.trackPlot(world, thief, victim.plotIndex, T0 + 20)).toBe(victim.plotIndex)
+		expect(SlimeGuard.trackPlot(world, thief, victim.plotIndex, T0 + 20.1)).toBeNil() -- still inside: not again
+		expect(SlimeGuard.trackPlot(world, thief, nil, T0 + 21)).toBeNil()
+		expect(SlimeGuard.trackPlot(world, thief, victim.plotIndex, T0 + 22)).toBe(victim.plotIndex)
 	end)
 
 	it("leaves a player trapped who was inside before the lock", function()
@@ -142,14 +145,14 @@ describe("SlimeGuard locked-base intruders", function()
 		expect(SlimeGuard.trackPlot(world, thief, victim.plotIndex, T0 + 20)).toBeNil()
 	end)
 
-	it("sends a stolen slime home and adds points on evict, none when a launch put them there", function()
+	it("sends a stolen slime home and adds points for an intruder, none when a launch put them there", function()
 		local world, _, thief = setup("watch")
 		local t = walk(world, thief, T0, 0, 140, 16)
 		Carry.grab(world, 2, "gem", 1, t + 0.1)
-		local report = SlimeGuard.evict(world, thief, 1, t + 1, false)
+		local report = SlimeGuard.intruded(world, thief, 1, t + 1, false)
 		expect(thief.carry).toBeNil()
 		expect(report and report.kind).toBe("lockedEntry")
-		expect(SlimeGuard.evict(world, thief, 1, t + 2, true)).toBeNil()
+		expect(SlimeGuard.intruded(world, thief, 1, t + 2, true)).toBeNil()
 	end)
 end)
 

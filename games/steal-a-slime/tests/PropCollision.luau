@@ -265,14 +265,23 @@ do
 	})
 end
 add({
-	kind = "top_earners_board",
+	kind = "hall_of_fame_boards",
 	mesh = "phoenix_top_earners_board",
 	owner = "jolt",
-	count = 1,
+	count = 5,
 	collision = "colliders",
-	now = "Collider + Frame + PostL/PostR on (Collider widened to the skin's 20.6 x 19.5)",
-	reason = "the board Model keeps its own Collider; MeshSwap widens it to the skin's width and height (20.6 x 19.5; depth and front unchanged) so the overhanging sides are solid. Not a COLLISION entry: the plots used the same mesh for their SlimeDex board (removed)",
-	find = { under = MAP, names = { "^LeaderboardBoard$" } },
+	now = "Collider + Frame + PostL/PostR on (each Collider widened to its skin's width and height)",
+	reason = "each Hall of Fame board Model keeps its own Collider; MeshSwap widens it to the skin's width and height (depth and front unchanged) so the overhanging sides are solid. Not a COLLISION entry: the skin is decor over the board's own parts",
+	find = {
+		under = MAP,
+		names = {
+			"^LeaderboardBoard$",
+			"^WeeklyEarnersBoard$",
+			"^TopStealsBoard$",
+			"^TopDexBoard$",
+			"^TopMergesBoard$",
+		},
+	},
 	was = "Collider 15 x 17 x 1.6 under a 20.6 wide mesh: 2.8 studs each side walkable",
 })
 parts(
@@ -287,6 +296,29 @@ parts(
 	{ models = true }
 )
 entries[#entries].mesh = "ranch_guide"
+parts(
+	"professor_goo",
+	"jolt",
+	1,
+	"colliders",
+	MAP,
+	{ "^ProfessorGoo$" },
+	"block body on (Legs, Coat, Head); hair off; the guide_professor skin is decor",
+	"a standing NPC is solid; the hidden block body under the skin is the collider",
+	{ models = true }
+)
+entries[#entries].mesh = "guide_professor"
+parts(
+	"hall_of_fame_arch",
+	"jolt",
+	1,
+	"colliders",
+	MAP,
+	{ "^HallOfFameArch$" },
+	"posts on; beam and sign off (above head height)",
+	"the two posts stand beside the path and are solid; the beam and the sign hang 15+ studs up",
+	{ models = true }
+)
 parts(
 	"ground_and_hub_spawn",
 	"jolt",
@@ -518,7 +550,7 @@ end
 parts(
 	"decor_rocks",
 	"jolt",
-	39,
+	38,
 	"colliders",
 	DECOR,
 	{ "^Rock%d+$" },
@@ -540,7 +572,7 @@ parts(
 parts(
 	"meadow_grass",
 	"jolt",
-	142,
+	153,
 	"off",
 	"Map.Decor.Meadow",
 	{ "^M%d+Tuft%d+Blade%d+$" },
@@ -550,7 +582,7 @@ parts(
 parts(
 	"meadow_flowers",
 	"jolt",
-	239,
+	219,
 	"off",
 	"Map.Decor.Meadow",
 	{ "^M%d+Flower%d+Head$", "^M%d+Flower%d+Stem$", "^M%d+Bunch%d+Head%d+$", "^M%d+Bunch%d+Leaves$" },
@@ -560,7 +592,7 @@ parts(
 parts(
 	"meadow_pebbles",
 	"jolt",
-	18,
+	22,
 	"off",
 	"Map.Decor.Meadow",
 	{ "^M%d+Rock%d+$" },
@@ -647,10 +679,10 @@ mesh(
 	"goo_cork_stand",
 	"gojo",
 	64,
-	"off",
+	"Hull",
 	"Plots",
-	"mesh off, slot off",
-	"the Pad part is the walkable surface"
+	"mesh on (Hull, queryable), slot off once it lands",
+	"the round cork stand players bump into and stand on, and dropped slimes land on"
 )
 mesh(
 	"plot_jar_foot",
@@ -733,16 +765,6 @@ mesh(
 	"the cork button post; the Pedestal under it collides"
 )
 parts(
-	"plot_pads",
-	"gojo",
-	64,
-	"colliders",
-	"Plots",
-	{ "^PadCollider$" },
-	"on",
-	"the round collider under each cork stand is the stand-on surface (the Pad box itself is off)"
-)
-parts(
 	"plot_base",
 	"gojo",
 	8,
@@ -778,11 +800,11 @@ parts(
 	"plot_jar_lid",
 	"gojo",
 	8,
-	"colliders",
+	"off",
 	"Plots",
 	{ "^Lid$" },
-	"on",
-	"the cork lid on jar 1, the roof over the glass",
+	"off",
+	"the flat cork lid on jar 1: kept for raycasts; the roof is TopColliders, shaped like the dome",
 	{ walk = false }
 )
 parts(
@@ -858,6 +880,14 @@ local UNPLACED: { [string]: { string } } = {
 	pet_cloud = {
 		"jolt",
 		"the follow pet's cloud (published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_jelly = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_rainbow_cloud = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
 	},
 	ranch_bat = { "jolt", "the held Bat tool's Handle (BatTool), never a world slot; a tool has no collision" },
 	ranch_border_fence_broken = { "jolt", "border piece not used by WorldBorder.CHUNKS / DEFS" },
