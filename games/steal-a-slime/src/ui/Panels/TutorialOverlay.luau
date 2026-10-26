@@ -2,7 +2,7 @@
 --[[
 	Tutorial overlay: a card at the bottom centre with the current step from
 	Tutorial (`State.tutorialStepId`, else `tutorialStep`; CONTRACT §8.3). "Hide" hides it locally until the server moves to
-	another step, or until the player picks "Show tutorial" in the Guide panel
+	another step, or until the player picks "Show the tutorial again" in the Guide panel
 	(`showAgain`); the UI never advances the tutorial itself. While carrying,
 	the card moves up so the carry panel (Drop) below it stays visible.
 	`layout(screen)` takes both boxes from Layout.screen (card height fits
@@ -139,14 +139,18 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		return shownStep ~= nil and shownStep == hiddenStep
 	end
 
-	-- Undoes Hide: the current step's card shows again (once no menu covers it).
+	local latest: any = nil
+
+	-- Undoes Hide: the current step's card shows again (once no menu covers it),
+	-- redrawn from the latest State so its wording follows the current device.
 	function self.showAgain()
 		hiddenStep = nil
-		wanted = shownStep ~= nil
-		refresh()
+		if latest then
+			self.update(latest)
+		else
+			refresh()
+		end
 	end
-
-	local latest: any = nil
 
 	-- The current device and the shown name of the tutorial prompts' key on it (Tutorial.PROMPT_KEYS), from
 	-- UserInputService so a PlayStation pad reads "Square" and a keyboard layout its own letter.
