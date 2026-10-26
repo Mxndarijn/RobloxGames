@@ -527,6 +527,8 @@ def foot(tid, th):
     grass = rgb(*gx)
     # tops: grass -0.1, moat goo -0.3, yard -0.03 (floor 1's factory floor is the top at 0)
     parts = [CY("PlotOut", L.HALF + 16.0, 0.5, (0, 0, -0.6), grass, segs=64, k=0.8)]
+    import models._drop_exit_styles as DX
+    parts += DX.factory_pool(L, {"goo": th["goo"], "metal": th["metal"]})  # the drop pipe's goo pool
     parts.append(CY("MoatGoo", 38.5, 0.45, (0, 0, -0.75), th["goo"], segs=64))
     parts.append(CY("PlotIn", 34.5, 0.6, (0, 0, -0.7), grass, segs=64, k=0.85))
     parts.append(B("Yard", (2 * L.HALF + 4, 2 * L.HALF + 4, 0.3), (0, 0, -0.18), th["path"], k=0.95))
@@ -668,32 +670,14 @@ def hatch():
 
 
 def chute(top_floor):
-    """The goo chute from floor top_floor's hatch down the outside of the east wall (tint: the goo colour).
-    Built in plot coords with floor 1's walking surface at z = 0. Zig-zag in y, one leg per half storey."""
-    parts = []
-    zs = (top_floor - 1) * H + 3.0
-    legs = (top_floor - 1) * 2 + 1
-    pts = []
-    for k in range(legs + 1):
-        y = L.HATCH_Y if k == 0 else (16.0 if k % 2 else -18.0)
-        pts.append((L.CHUTE_X, y, zs - zs * k / legs))
-    pts[-1] = (L.CHUTE_X, pts[-1][1], 0.3)
-    for k in range(legs):
-        (x0, y0, z0), (x1, y1, z1) = pts[k], pts[k + 1]
-        run = abs(y1 - y0)
-        ln = math.hypot(run, z0 - z1)
-        # a +x rotation lifts the +y end: a leg running toward +y tilts down by turning the other way
-        ang = math.degrees(math.atan2(z0 - z1, run)) * (-1 if y1 > y0 else 1)
-        cy_, cz = (y0 + y1) / 2, (z0 + z1) / 2
-        parts.append(B(f"Bed{k}", (3.0, ln, 0.4), (x0, cy_, cz), g(0.95), rot=(ang, 0, 0)))
-        for s in (-1, 1):
-            parts.append(B(f"Lip{k}{s}", (0.4, ln, 1.2), (x0 + s * 1.6, cy_, cz + 0.5), g(0.75), rot=(ang, 0, 0)))
-        if k < legs - 1:
-            parts.append(CY(f"Turn{k}", 2.0, 1.4, (x1, y1, z1 - 0.7), g(0.85), segs=12))
-        # wall brackets
-        parts.append(box(f"Brk{k}", (2.6, 0.4, 0.4), (L.HALF + 0.9, cy_, cz - 0.6), g(0.6)))
-    parts.append(CY("Splash", 4.0, 0.5, (L.CHUTE_X + 1.5, pts[-1][1] + (2 if pts[-1][1] > 0 else -2), 0.0), g(1.0), segs=20))
-    return parts
+    """The owner's drop exit from floor top_floor's hatch: a metal pipe out of the east wall and straight down, with
+    rings, wall brackets and an arrow sign (tint: metal; Merijn's pick from the drop exit looks, models/
+    _drop_exit_styles.py). Its goo pour and pool are in the themed foot. Built in plot coords with floor 1's walking
+    surface at z = 0. Never collides (the drop is a scripted move to EXIT["lands"])."""
+    import models._drop_exit_styles as DX
+    col = {"goo": g(1.0), "metal": g(0.92), "glass": g(1.0), "board": g(1.0), "ink": g(0.42)}
+    solid, _ = DX.factory("pipe", top_floor, L, col, pool=False)
+    return solid
 
 
 def silo():
@@ -731,9 +715,9 @@ PIECES = {
     "factory_shutter_shut": (lambda tid, th: shutter(shut=True), None),
     "factory_belt": (lambda tid, th: belt(), None),
     "factory_hatch": (lambda tid, th: hatch(), "metal"),
-    "factory_chute_2": (lambda tid, th: chute(2), "goo"),
-    "factory_chute_3": (lambda tid, th: chute(3), "goo"),
-    "factory_chute_4": (lambda tid, th: chute(4), "goo"),
+    "factory_chute_2": (lambda tid, th: chute(2), "metal"),
+    "factory_chute_3": (lambda tid, th: chute(3), "metal"),
+    "factory_chute_4": (lambda tid, th: chute(4), "metal"),
     "factory_silo": (lambda tid, th: silo(), "metal"),
     "factory_foot": (lambda tid, th: foot(tid, th), None),
     "factory_dress": (lambda tid, th: dress(tid, th, False), None),

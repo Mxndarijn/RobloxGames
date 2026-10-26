@@ -22,6 +22,7 @@ FLOORS = int(os.environ.get("FLOORS", "4"))
 THEME = os.environ.get("THEME", "classic")
 CUT = os.environ.get("CUT", "0") == "1"
 COLL = os.environ.get("COLLIDERS", "0") == "1"
+DROP = os.environ.get("DROP", "")  # preview a drop exit look: tube, slide or pipe (models/_drop_exit_styles.py)
 TURN = 0.0 if (CUT or COLL) else -25.0
 P = PALETTE
 TH = theme(THEME)
@@ -129,7 +130,19 @@ for f in range(1, FLOORS + 1):
         k = L.eave_r(f) / L.eave_r(PC.DOME_NATIVE_FLOOR)
         crown = (PC.dome_top()[-1][1] - floor_top(PC.DOME_NATIVE_FLOOR) - L.CAP_UNDER) * k + floor_top(f) + L.CAP_UNDER
         C.mascot(0, 0, crown - 0.3, s=4.2)
-        if f > 1:
+        if f > 1 and DROP:
+            # preview only: one of the drop exit looks Merijn picks from (models/_drop_exit_styles.py)
+            import models._drop_exit_styles as DX
+            TH = theme(THEME)
+            dcol = {"goo": TH["goo"], "stalk": ROLE["stalk"], "glass": ROLE["glass"], "cap": ROLE["cap_1"],
+                    "spots": ROLE["spots"], "wood": ROLE["wood"], "ramp": ROLE["ramp"], "board": TH["cream"],
+                    "ink": rgb(70, 52, 44)}
+            fn = DX.pagoda_cap if DROP.startswith("cap") else DX.pagoda
+            solid_d, glass_d = fn(DROP, f, L, dcol)
+            piece("drop_exit", solid_d)
+            if glass_d:
+                glass_objs.append(piece("drop_exit_glass", glass_d))
+        elif f > 1:
             piece(f"pagoda_vine_{f}", PC.vine(f), "vine")
 
 # ---- floor 1 front ----

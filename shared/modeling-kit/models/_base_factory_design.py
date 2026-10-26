@@ -19,6 +19,7 @@ TID = os.environ.get("THEME", "classic")
 TH = theme(TID)
 COLL = os.environ.get("COLLIDERS", "0") == "1"
 LOCKED = os.environ.get("LOCKED", "0") == "1"
+DROP = os.environ.get("DROP", "")  # preview a drop exit look: tube, slide or pipe (models/_drop_exit_styles.py)
 PLOT_COL = rgb(196, 166, 232)  # the per-plot colour on the stands' dish (fixed in every theme)
 
 
@@ -97,7 +98,17 @@ for f in range(1, F + 1):
     if top:
         if f > 1:
             place("factory_core_cap", z)
-            place(f"factory_chute_{f}", 1.0)
+            if DROP:
+                # preview only: one of the drop exit looks Merijn picks from (models/_drop_exit_styles.py)
+                import models._drop_exit_styles as DX
+                dcol = {"goo": TH["goo"], "metal": TH["metal"], "glass": TH["glass"], "board": TH["cream"],
+                        "ink": rgb(70, 52, 44)}
+                solid_d, glass_d = DX.factory(DROP, f, L, dcol)
+                for o in solid_d + glass_d:
+                    o.location.z += 1.0
+                    add(o, into="glass" if o in glass_d else None)
+            else:
+                place(f"factory_chute_{f}", 1.0)
         if not COLL:
             place("factory_roof", z, into="shell")
             place("factory_roof_kit", z, into="shell")

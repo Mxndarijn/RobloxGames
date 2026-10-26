@@ -757,11 +757,11 @@ entries["goo_lock_button@mushroom"] =
 entries["factory_belt"] =
 	{ assetId = 100773088768796, meshId = "rbxassetid://91785805232339", size = { 37.331, 1.6, 3 } }
 entries["factory_chute_2"] =
-	{ assetId = 103717292738699, meshId = "rbxassetid://74704200908048", size = { 8, 20.087, 42 } }
+	{ assetId = 103717292738699, meshId = "rbxassetid://90946783736230", size = { 5.843, 24.6, 7.25 } }
 entries["factory_chute_3"] =
-	{ assetId = 80603584252359, meshId = "rbxassetid://101511050695351", size = { 8, 36.084, 42 } }
+	{ assetId = 80603584252359, meshId = "rbxassetid://85888311352309", size = { 5.843, 40.6, 7.25 } }
 entries["factory_chute_4"] =
-	{ assetId = 76981547155138, meshId = "rbxassetid://110021146060558", size = { 8, 52.083, 42 } }
+	{ assetId = 76981547155138, meshId = "rbxassetid://120060042792689", size = { 5.843, 56.6, 7.25 } }
 entries["factory_core"] =
 	{ assetId = 70883604061302, meshId = "rbxassetid://97369194674125", size = { 23.65, 16, 10.25 } }
 entries["factory_core_cap"] =
@@ -781,17 +781,17 @@ entries["factory_dress@starlight"] =
 entries["factory_floor_1"] =
 	{ assetId = 126997434272892, meshId = "rbxassetid://101243832383480", size = { 46, 0.34, 46 } }
 entries["factory_foot"] =
-	{ assetId = 82138658447446, meshId = "rbxassetid://104703419578132", size = { 80, 19.941, 80 } }
+	{ assetId = 82138658447446, meshId = "rbxassetid://85301963600878", size = { 80, 19.941, 80 } }
 entries["factory_foot@candy"] =
-	{ assetId = 113391621856877, meshId = "rbxassetid://111298034575148", size = { 80, 19.941, 80 } }
+	{ assetId = 113391621856877, meshId = "rbxassetid://72962005034377", size = { 80, 19.941, 80 } }
 entries["factory_foot@crystal"] =
-	{ assetId = 84593877467040, meshId = "rbxassetid://114404926315732", size = { 80, 19.941, 80 } }
+	{ assetId = 84593877467040, meshId = "rbxassetid://98825439721168", size = { 80, 19.941, 80 } }
 entries["factory_foot@garden"] =
-	{ assetId = 139800318731332, meshId = "rbxassetid://121961298174800", size = { 80, 19.941, 80 } }
+	{ assetId = 139800318731332, meshId = "rbxassetid://129361781724846", size = { 80, 19.941, 80 } }
 entries["factory_foot@mushroom"] =
-	{ assetId = 94173446592849, meshId = "rbxassetid://135694226026381", size = { 80, 19.941, 80 } }
+	{ assetId = 94173446592849, meshId = "rbxassetid://104503316582591", size = { 80, 19.941, 80 } }
 entries["factory_foot@starlight"] =
-	{ assetId = 124157471991794, meshId = "rbxassetid://70466099148329", size = { 80, 19.941, 80 } }
+	{ assetId = 124157471991794, meshId = "rbxassetid://116091214379279", size = { 80, 19.941, 80 } }
 entries["factory_hatch"] =
 	{ assetId = 91447747825601, meshId = "rbxassetid://104341037665525", size = { 1.4, 7.55, 4.6 } }
 entries["factory_parapet"] =
@@ -912,11 +912,17 @@ entries["pagoda_turret_mid"] =
 entries["pagoda_turret_top"] =
 	{ assetId = 119399600127457, meshId = "rbxassetid://82664207844321", size = { 18.8, 27.2, 18.8 } }
 entries["pagoda_vine_2"] =
-	{ assetId = 140532652408205, meshId = "rbxassetid://135726972405618", size = { 12.157, 20.533, 24.585 } }
+	{ assetId = 140532652408205, meshId = "rbxassetid://72886498167688", size = { 24.004, 25.3, 32.129 } }
 entries["pagoda_vine_3"] =
-	{ assetId = 87863760361775, meshId = "rbxassetid://78419407004540", size = { 13.308, 36.301, 25.14 } }
+	{ assetId = 87863760361775, meshId = "rbxassetid://124742112527538", size = { 23.018, 40.678, 32.51 } }
 entries["pagoda_vine_4"] =
-	{ assetId = 97773448919319, meshId = "rbxassetid://104204198620503", size = { 14.78, 52.087, 25.515 } }
+	{ assetId = 97773448919319, meshId = "rbxassetid://118477830509433", size = { 21.981, 56, 32.797 } }
+entries["pagoda_vine_glass_2"] =
+	{ assetId = 89245828768651, meshId = "rbxassetid://112145908112745", size = { 17.024, 21.404, 28.347 } }
+entries["pagoda_vine_glass_3"] =
+	{ assetId = 79388803484608, meshId = "rbxassetid://72091308746733", size = { 15.626, 37.178, 28.801 } }
+entries["pagoda_vine_glass_4"] =
+	{ assetId = 112973821986352, meshId = "rbxassetid://131587695683133", size = { 14.963, 52.903, 29.161 } }
 -- END base shape meshes
 -- Mystery Egg shells and nest (contract/mystery-egg.md): not map slots, so not in NAMES; WorldView loads them by name.
 entries["mystery_egg_speckled"] =

@@ -227,7 +227,7 @@ return {
 	},
 	exit = {
 		hatch = { 23.5, 52, -14 },
-		lands = { 28, 18 },
+		lands = { 31, -8 },
 	},
 	inside = {
 		kind = "box",

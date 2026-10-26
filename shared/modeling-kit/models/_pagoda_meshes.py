@@ -111,6 +111,7 @@ for f in range(1, FLOORS + 1):
     slot(f, "MascotLook", "goo_jar_mascot", up=crown - 0.3, scale=3.8, show=top)
     if f > 1:
         slot(f, "Vine", f"pagoda_vine_{f}", show=top, role="vine")
+        slot(f, "VineGlass", f"pagoda_vine_glass_{f}", show=top, role="glass", glass=True)
 slot(1, "FootDecor", "pagoda_foot_decor")
 slot(1, "DoorFrame", "pagoda_door_ring")
 

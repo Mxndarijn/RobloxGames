@@ -12,7 +12,7 @@
 #   the next run A starts straight ahead (+x). Both lanes are 4.5 wide; runs slope atan(8 / 18) = 24 degrees.
 # Floor 1 front: a 10 x 11 doorway with a roll-up shutter (the LockBarrier), the merge vat inside left and the lock
 # button inside right; spawn at (0, -12.5). 8 pads per floor in two rows of 4. Owner exit: a hatch in the east wall of
-# the top floor onto the goo chute, a zig-zag half-pipe down the outside to a splash pool (scripted ride, no collision).
+# the top floor into the drop pipe, a metal pipe straight down the outside to a goo pool (scripted move, no collision).
 import math
 import os
 
@@ -58,7 +58,8 @@ BELT = {"y": -20.5, "x0": -18.0, "x1": 18.0, "w": 3.0, "h": 1.2}
 
 # Owner exit
 HATCH_Y = -14.0
-EXIT = {"floor": FLOORS, "hatch": (WC, HATCH_Y, floor_top(FLOORS) + 3.0), "lands": (28.0, 18.0),
+# lands: beside the drop pipe's goo pool (models/_drop_exit_styles.factory_pool_at)
+EXIT = {"floor": FLOORS, "hatch": (WC, HATCH_Y, floor_top(FLOORS) + 3.0), "lands": (31.0, -8.0),
         "floor_check": "owner inside the top floor's box: |x|, |y| < 23 and floor_top(top) <= y_root < floor_top(top) + 16"}
 CHUTE_X = HALF + 2.0    # the chute's centre line, outside the east wall
 
@@ -291,9 +292,9 @@ MESHES = [
      "note": "roof slab with sawtooth skylights (tint: metal)"},
     {"name": "factory_hatch", "floors": [2, 3, 4], "variant": "all", "tint": True, "slots": 3,
      "note": "drop hatch door in the east wall (tint: metal)"},
-    {"name": "factory_chute_2", "floors": [2], "variant": "top", "tint": True, "slots": 0, "note": "goo chute from floor 2 (tint: goo)"},
-    {"name": "factory_chute_3", "floors": [3], "variant": "top", "tint": True, "slots": 0, "note": "goo chute from floor 3 (tint: goo)"},
-    {"name": "factory_chute_4", "floors": [4], "variant": "top", "tint": True, "slots": 1, "note": "goo chute from floor 4 (tint: goo)"},
+    {"name": "factory_chute_2", "floors": [2], "variant": "top", "tint": True, "slots": 0, "note": "drop pipe from floor 2 (tint: metal)"},
+    {"name": "factory_chute_3", "floors": [3], "variant": "top", "tint": True, "slots": 0, "note": "drop pipe from floor 3 (tint: metal)"},
+    {"name": "factory_chute_4", "floors": [4], "variant": "top", "tint": True, "slots": 1, "note": "drop pipe from floor 4 (tint: metal)"},
     {"name": "factory_silo", "floors": [1], "variant": "all", "tint": True, "slots": 2, "note": "yard silo x2 (tint: metal)"},
     # fixed colours in every theme
     {"name": "factory_sign", "floors": [1], "variant": "all", "tint": False, "slots": 1,
@@ -323,7 +324,7 @@ NOTES = {
                    "OWNER_DOOR_TRANSPARENCY). Open: rolled up into the drum above the doorway, so no OpenDoorCollider.",
     "DropPrompt": "Hatch in the east wall of every upper floor at y -14; only the top floor's opens. DropPromptAt "
                   "attachment 1.5 studs inside the wall, line of sight on; two DropShield parts just outside the wall "
-                  "either side of the hatch. The goo chute is a scripted ride (CanCollide off) down to the splash pool.",
+                  "either side of the hatch. The drop pipe is a scripted move (CanCollide off) to beside its goo pool.",
     "Owner check": "Today: plot-local radius < jarRadius(top). A square floor needs a box test (|x|, |y| < 23 and the "
                    "height band of the top floor): code change in the drop handler.",
     "HomeZone": "Floor 1 box 46 x 46 inside the walls, ReachUp = 3 x 16 so a carrier on any floor deposits.",

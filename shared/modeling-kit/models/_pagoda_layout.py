@@ -84,7 +84,7 @@ for _j in range(1, 33):
     _x, _y = polar(PAD_R[_f - 1], pad_angle(_j))
     PADS.append({"j": _j, "floor": _f, "x": round(_x, 3), "y": round(_y, 3), "yaw": round(90 - pad_angle(_j), 3)})
 
-# ---- the owner exit: vine slide (a scripted ride, never collides) ----
+# ---- the owner exit: a curved glass goo tube over the caps (a scripted move, never collides) ----
 HATCH_A = 191.0                         # on the room wall between pads at 171.4 and 210.9 (floors 2-4)
 
 
@@ -93,7 +93,8 @@ def hatch_pos(f):
     return (round(x, 3), round(y, 3), floor_top(f) + 2.5)
 
 
-EXIT = {"floor": 4, "hatch": hatch_pos(4), "lands": polar(36.5, 228), "floor_check": "radius < ROOM_R[top] and y >= floorTop(top)"}
+EXIT = {"floor": 4, "hatch": hatch_pos(4), "lands": polar(34.0, 252),  # beside the glass tube's pool (_drop_exit_styles.pagoda_cap_pool_at)
+        "floor_check": "radius < ROOM_R[top] and y >= floorTop(top)"}
 # The game's inside test (the drop exit's owner check, the lock guard): the round room of each floor.
 INSIDE = {"kind": "round", "radii": list(ROOM_R)}
 
@@ -413,7 +414,7 @@ MESHES = [
     {"name": "pagoda_door", "floors": [1], "variant": "all", "tint": True, "slots": 1, "note": "round plank door; jar door hinge + lock code"},
     {"name": "pagoda_door_ring", "floors": [1], "variant": "all", "tint": False, "slots": 1, "note": "doorway frame + hinge pins, same colours in every theme"},
     {"name": "pagoda_lamps", "floors": [1, 2, 3, 4], "variant": "all", "tint": True, "slots": 4, "note": "glow-shroom cluster"},
-    {"name": "pagoda_vine_2", "floors": [2], "variant": "top", "tint": True, "slots": 0, "note": "vine slide from floor 2 (only the top one shows)"},
+    {"name": "pagoda_vine_2", "floors": [2], "variant": "top", "tint": True, "slots": 0, "note": "curved glass tube from floor 2, solid half (only the top one shows)"},
     {"name": "pagoda_vine_3", "floors": [3], "variant": "top", "tint": True, "slots": 0, "note": ""},
     {"name": "pagoda_vine_4", "floors": [4], "variant": "top", "tint": True, "slots": 1, "note": ""},
     {"name": "pagoda_foot_decor", "floors": [1], "variant": "all", "tint": False, "slots": 1, "note": "mini mushrooms round the foot (classic); themes swap it"},
@@ -426,8 +427,8 @@ NOTES = {
                    "door swings out on its hinges like the jar door (DOOR_SWING) and OpenDoorCollider turns on.",
     "Drop exit": "Floors 2-4 each have a hatch on the room wall at 191 degrees; only the top floor's opens. DropPrompt on "
                  "a DropPromptAt attachment just inside the wall; two DropShield parts (CanQuery, no collide) outside "
-                 "either side. The vine is a scripted ride down over the eaves into the moat at 228 degrees; it never "
-                 "collides, so nobody can climb it from the moat.",
+                 "either side. A curved glass goo tube runs over the caps and down to a goo pool near 243 degrees "
+                 "(the drop is a scripted move beside it); it never collides, so nobody can climb it from the moat.",
     "Owner check": "Round rooms: the jar's jarRadius(top) check works as ROOM_R[top] and y >= floorTop(top). Standing in "
                    "the turret does not count.",
     "HomeZone": "ReachUp up to the top floor's ceiling: floorTop(4) + CAP_UNDER - 1 = 59.2 studs.",

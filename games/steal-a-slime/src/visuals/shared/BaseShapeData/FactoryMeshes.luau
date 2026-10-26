@@ -4,9 +4,9 @@
 return {
 	boxes = {
 		factory_belt = { size = { 37.331, 1.600, 3.000 }, centre = { 0.000, 0.600, -20.500 } },
-		factory_chute_2 = { size = { 8.000, 20.087, 42.000 }, centre = { 27.500, 10.044, 1.000 } },
-		factory_chute_3 = { size = { 8.000, 36.084, 42.000 }, centre = { 27.500, 18.042, 1.000 } },
-		factory_chute_4 = { size = { 8.000, 52.083, 42.000 }, centre = { 27.500, 26.042, 1.000 } },
+		factory_chute_2 = { size = { 5.843, 24.600, 7.250 }, centre = { 26.722, 11.700, -12.925 } },
+		factory_chute_3 = { size = { 5.843, 40.600, 7.250 }, centre = { 26.722, 19.700, -12.925 } },
+		factory_chute_4 = { size = { 5.843, 56.600, 7.250 }, centre = { 26.722, 27.700, -12.925 } },
 		factory_core = { size = { 23.650, 16.000, 10.250 }, centre = { -0.425, 8.000, 17.875 } },
 		factory_core_cap = { size = { 23.000, 0.600, 9.300 }, centre = { -0.500, -0.300, 18.100 } },
 		factory_door_frame = { size = { 13.327, 14.600, 3.200 }, centre = { 0.000, 7.300, -25.000 } },
@@ -116,7 +116,7 @@ return {
 			mesh = "factory_chute_2",
 			offset = { 0.000, 1.000, 0.000 },
 			show = "top",
-			role = "goo",
+			role = "metal",
 		},
 		{
 			floor = 2,
@@ -166,7 +166,7 @@ return {
 			mesh = "factory_chute_3",
 			offset = { 0.000, 1.000, 0.000 },
 			show = "top",
-			role = "goo",
+			role = "metal",
 		},
 		{
 			floor = 3,
@@ -202,7 +202,7 @@ return {
 			offset = { 0.000, 49.000, 0.000 },
 			role = "path",
 		},
-		{ floor = 4, name = "ChuteLook", mesh = "factory_chute_4", offset = { 0.000, 1.000, 0.000 }, role = "goo" },
+		{ floor = 4, name = "ChuteLook", mesh = "factory_chute_4", offset = { 0.000, 1.000, 0.000 }, role = "metal" },
 		{ floor = 4, name = "RoofLook", mesh = "factory_roof", offset = { 0.000, 49.000, 0.000 }, role = "metal" },
 		{ floor = 4, name = "RoofKit", mesh = "factory_roof_kit", offset = { 0.000, 49.000, 0.000 } },
 		{ floor = 1, name = "FootLook", mesh = "factory_foot", offset = { 0.000, 1.000, 0.000 }, plot = true },

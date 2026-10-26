@@ -437,27 +437,35 @@ def lamps(f):
 
 
 def vine(f):
-    """The owner's vine slide from floor f's hatch, out over the eaves, down into the moat. Tint: vine. Never collides."""
+    """The owner's drop exit from floor f's hatch, the solid half: the goo inside the curved glass tube, its collar and
+    bands, the goo pool and the arrow sign by the hatch (Merijn's pick: models/_drop_exit_styles.pagoda_cap "captube").
+    One tint (vine): value greys. The glass is vine_glass(f). Never collides (the drop is a scripted move to
+    EXIT["lands"])."""
+    import models._drop_exit_styles as DX
     TINT[f"pagoda_vine_{f}"] = "vine"
-    hx, hy, hz = L.hatch_pos(f)
-    a0, a1 = L.HATCH_A, 228.0
-    pts = [(hx, hy, hz - 0.5)]
-    x, y = polar(L.room_out(f) + 1.0, a0)
-    pts.append((x, y, hz - 1.2))
-    (ri, zt), (re, ze) = L.eave_profile(f - 1)
-    x, y = polar(re + 1.6, a0 + 6)
-    pts.append((x, y, ze + 0.6))
-    n = 6
-    for k in range(1, n + 1):
-        t = k / n
-        a = a0 + 6 + (a1 - a0 - 6) * t
-        x, y = polar(36.3, a)
-        pts.append((x, y, (ze + 0.6) * (1 - t) ** 1.3 + 1.0 * t))
-    out = [tube(f"Vine{f}", pts, [1.4] * len(pts), g(0.82), segs=10)]
-    for k in range(2, len(pts) - 1):
-        x, y, z = pts[k]
-        out.append(blob(f"Leaf{f}{k}", 1.5, (x, y, z + 1.5), g(1.0), subdiv=1, squash=(1.4, 0.7, 0.3), jitter=0.05))
-    return out
+    solid, glass = DX.pagoda_cap("captube", f, L, _EXIT_GREYS, rider=False)
+    _drop(glass)
+    return solid
+
+
+def vine_glass(f):
+    """The see-through tube of floor f's drop exit (a glass slot in the game, like the jar's). Tint: glass."""
+    import models._drop_exit_styles as DX
+    TINT[f"pagoda_vine_glass_{f}"] = "glass"
+    solid, glass = DX.pagoda_cap("captube", f, L, _EXIT_GREYS, rider=False)
+    _drop(solid)
+    return glass
+
+
+def _drop(objs):
+    """Remove built objects a piece does not ship (the builder makes both halves of the exit)."""
+    import bpy
+    for o in objs:
+        bpy.data.objects.remove(o, do_unlink=True)
+
+
+_EXIT_GREYS = {"goo": g(1.0), "stalk": g(0.55), "glass": g(1.0), "cap": g(0.62), "spots": g(1.0), "wood": g(0.6),
+               "ramp": g(0.78), "board": g(1.0), "ink": g(0.35)}
 
 
 def foot_decor_classic():
@@ -822,6 +830,8 @@ PIECES = {
     "pagoda_ramp": lambda: ramp(1), "pagoda_turret_cap": lambda: turret_cap(),
     "pagoda_door": door, "pagoda_door_ring": door_ring, "pagoda_lamps": lambda: lamps(2),
     "pagoda_vine_2": lambda: vine(2), "pagoda_vine_3": lambda: vine(3), "pagoda_vine_4": lambda: vine(4),
+    "pagoda_vine_glass_2": lambda: vine_glass(2), "pagoda_vine_glass_3": lambda: vine_glass(3),
+    "pagoda_vine_glass_4": lambda: vine_glass(4),
     "pagoda_foot_decor": foot_decor_classic,
 }
 for _t, _lst in THEME_PIECES.items():

@@ -43,41 +43,41 @@
   "factory_chute_2": {
     "assetId": "103717292738699",
     "assetType": "Model",
-    "meshId": "rbxassetid://74704200908048",
+    "meshId": "rbxassetid://90946783736230",
     "meshSize": [
-      8.0,
-      20.087,
-      42.0
+      5.843,
+      24.6,
+      7.25
     ],
-    "sha256": "a2a47f465fe5da28",
-    "uploadedAt": "2026-10-26T15:38:25Z",
-    "versions": 1
+    "sha256": "77badbc4b512cfd9",
+    "uploadedAt": "2026-10-26T19:36:40Z",
+    "versions": 2
   },
   "factory_chute_3": {
     "assetId": "80603584252359",
     "assetType": "Model",
-    "meshId": "rbxassetid://101511050695351",
+    "meshId": "rbxassetid://85888311352309",
     "meshSize": [
-      8.0,
-      36.084,
-      42.0
+      5.843,
+      40.6,
+      7.25
     ],
-    "sha256": "ea24dfed89f5e642",
-    "uploadedAt": "2026-10-26T15:38:36Z",
-    "versions": 1
+    "sha256": "ea6a9dde2ffe1bd7",
+    "uploadedAt": "2026-10-26T19:36:45Z",
+    "versions": 2
   },
   "factory_chute_4": {
     "assetId": "76981547155138",
     "assetType": "Model",
-    "meshId": "rbxassetid://110021146060558",
+    "meshId": "rbxassetid://120060042792689",
     "meshSize": [
-      8.0,
-      52.083,
-      42.0
+      5.843,
+      56.6,
+      7.25
     ],
-    "sha256": "902612fa48f3b264",
-    "uploadedAt": "2026-10-26T15:35:55Z",
-    "versions": 2
+    "sha256": "d031d2afb558bb20",
+    "uploadedAt": "2026-10-26T19:36:58Z",
+    "versions": 3
   },
   "factory_core": {
     "assetId": "70883604061302",
@@ -199,80 +199,80 @@
   "factory_foot": {
     "assetId": "82138658447446",
     "assetType": "Model",
-    "meshId": "rbxassetid://104703419578132",
+    "meshId": "rbxassetid://85301963600878",
     "meshSize": [
       80.0,
       19.941,
       80.0
     ],
-    "sha256": "d42acf46d2c50b36",
-    "uploadedAt": "2026-10-26T15:40:26Z",
-    "versions": 1
+    "sha256": "0d70390126f01da3",
+    "uploadedAt": "2026-10-26T19:37:14Z",
+    "versions": 2
   },
   "factory_foot@candy": {
     "assetId": "113391621856877",
     "assetType": "Model",
-    "meshId": "rbxassetid://111298034575148",
+    "meshId": "rbxassetid://72962005034377",
     "meshSize": [
       80.0,
       19.941,
       80.0
     ],
-    "sha256": "52fe58d692e4df05",
-    "uploadedAt": "2026-10-26T15:40:37Z",
-    "versions": 1
+    "sha256": "a3caf8a37af16da9",
+    "uploadedAt": "2026-10-26T19:38:01Z",
+    "versions": 2
   },
   "factory_foot@crystal": {
     "assetId": "84593877467040",
     "assetType": "Model",
-    "meshId": "rbxassetid://114404926315732",
+    "meshId": "rbxassetid://98825439721168",
     "meshSize": [
       80.0,
       19.941,
       80.0
     ],
-    "sha256": "d4ee2f110fec8d6e",
-    "uploadedAt": "2026-10-26T18:52:46Z",
-    "versions": 2
+    "sha256": "2d15f68064413798",
+    "uploadedAt": "2026-10-26T19:37:35Z",
+    "versions": 3
   },
   "factory_foot@garden": {
     "assetId": "139800318731332",
     "assetType": "Model",
-    "meshId": "rbxassetid://121961298174800",
+    "meshId": "rbxassetid://129361781724846",
     "meshSize": [
       80.0,
       19.941,
       80.0
     ],
-    "sha256": "d0cbdf942351362b",
-    "uploadedAt": "2026-10-26T18:52:40Z",
-    "versions": 2
+    "sha256": "c3a2946ad6dff2e6",
+    "uploadedAt": "2026-10-26T19:37:21Z",
+    "versions": 3
   },
   "factory_foot@mushroom": {
     "assetId": "94173446592849",
     "assetType": "Model",
-    "meshId": "rbxassetid://135694226026381",
+    "meshId": "rbxassetid://104503316582591",
     "meshSize": [
       80.0,
       19.941,
       80.0
     ],
-    "sha256": "bf20868a7035e49c",
-    "uploadedAt": "2026-10-26T15:41:05Z",
-    "versions": 1
+    "sha256": "693fad59b9acaf2e",
+    "uploadedAt": "2026-10-26T19:38:17Z",
+    "versions": 2
   },
   "factory_foot@starlight": {
     "assetId": "124157471991794",
     "assetType": "Model",
-    "meshId": "rbxassetid://70466099148329",
+    "meshId": "rbxassetid://116091214379279",
     "meshSize": [
       80.0,
       19.941,
       80.0
     ],
-    "sha256": "64fc1b2e23ae6aee",
-    "uploadedAt": "2026-10-26T18:53:00Z",
-    "versions": 2
+    "sha256": "c791f47e4bdf6832",
+    "uploadedAt": "2026-10-26T19:37:40Z",
+    "versions": 3
   },
   "factory_hatch": {
     "assetId": "91447747825601",
@@ -3397,40 +3397,79 @@
   "pagoda_vine_2": {
     "assetId": "140532652408205",
     "assetType": "Model",
-    "meshId": "rbxassetid://135726972405618",
+    "meshId": "rbxassetid://72886498167688",
     "meshSize": [
-      12.157,
-      20.533,
-      24.585
+      24.004,
+      25.3,
+      32.129
     ],
-    "sha256": "e38ecba8ea2c3ee3",
-    "uploadedAt": "2026-10-26T16:54:57Z",
-    "versions": 1
+    "sha256": "c91804a7dd656b51",
+    "uploadedAt": "2026-10-26T19:51:22Z",
+    "versions": 3
   },
   "pagoda_vine_3": {
     "assetId": "87863760361775",
     "assetType": "Model",
-    "meshId": "rbxassetid://78419407004540",
+    "meshId": "rbxassetid://124742112527538",
     "meshSize": [
-      13.308,
-      36.301,
-      25.14
+      23.018,
+      40.678,
+      32.51
     ],
-    "sha256": "9e40480d0cae6f12",
-    "uploadedAt": "2026-10-26T16:55:08Z",
-    "versions": 1
+    "sha256": "15416b2ed566dfd2",
+    "uploadedAt": "2026-10-26T19:51:27Z",
+    "versions": 3
   },
   "pagoda_vine_4": {
     "assetId": "97773448919319",
     "assetType": "Model",
-    "meshId": "rbxassetid://104204198620503",
+    "meshId": "rbxassetid://118477830509433",
     "meshSize": [
-      14.78,
-      52.087,
-      25.515
+      21.981,
+      56.0,
+      32.797
     ],
-    "sha256": "0accfe522ad63077",
-    "uploadedAt": "2026-10-26T16:55:24Z",
+    "sha256": "952603d0107638cf",
+    "uploadedAt": "2026-10-26T19:51:32Z",
+    "versions": 3
+  },
+  "pagoda_vine_glass_2": {
+    "assetId": "89245828768651",
+    "assetType": "Model",
+    "meshId": "rbxassetid://112145908112745",
+    "meshSize": [
+      17.024,
+      21.404,
+      28.347
+    ],
+    "sha256": "272944918fb2a149",
+    "uploadedAt": "2026-10-26T19:51:50Z",
+    "versions": 1
+  },
+  "pagoda_vine_glass_3": {
+    "assetId": "79388803484608",
+    "assetType": "Model",
+    "meshId": "rbxassetid://72091308746733",
+    "meshSize": [
+      15.626,
+      37.178,
+      28.801
+    ],
+    "sha256": "8e3496c8ccc97a15",
+    "uploadedAt": "2026-10-26T19:51:59Z",
+    "versions": 1
+  },
+  "pagoda_vine_glass_4": {
+    "assetId": "112973821986352",
+    "assetType": "Model",
+    "meshId": "rbxassetid://131587695683133",
+    "meshSize": [
+      14.963,
+      52.903,
+      29.161
+    ],
+    "sha256": "c5e5b7c34ce4fd8a",
+    "uploadedAt": "2026-10-26T19:52:10Z",
     "versions": 1
   },
   "pet_cloud": {
