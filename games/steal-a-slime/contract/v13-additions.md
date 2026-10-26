@@ -14,7 +14,7 @@ Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing
 
 ```luau
 {
-	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 28 while the Speed Coil is held)
+	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 19 while the Speed Coil is held)
 	incomeMultiplier: number,      -- total income multiplier: rebirth x upgrade x rank x dex (>= rebirthMultiplier)
 	rebirthTitle: string,          -- current rank title, e.g. "Slime Rookie"
 	rebirthTiers: { { rebirths: number, title: string, text: string, unlocked: boolean } },  -- every rank, ascending
@@ -188,7 +188,7 @@ No new fields. `SaveData.migrateV6` (v6 -> v7, pure, idempotent) drops the `muta
 
 ## 8.10 Speed Coil (replaces the §2 bullet)
 
-**2026-10-22 (Merijn):** the coil works only while held. The server enforces WalkSpeed `SPEED_COIL_WALK_SPEED` (28) while the `SpeedCoil` Tool is equipped (in the character; runtime `session.coilHeld`, checked every tick) and `BASE_WALK_SPEED` otherwise. Carrying puts tools away, so carrying is at `BASE_WALK_SPEED x (1 - slowdown)`. The server always enforces its target (Player attribute `TargetWalkSpeed`), every tick and on every `CharacterAdded`. `ToolTip` "Speed Coil: hold to run faster".
+**2026-10-22 (Merijn):** the coil works only while held. The server enforces WalkSpeed `SPEED_COIL_WALK_SPEED` (19) while the `SpeedCoil` Tool is equipped (in the character; runtime `session.coilHeld`, checked every tick) and `BASE_WALK_SPEED` otherwise. Carrying puts tools away, so carrying is at `BASE_WALK_SPEED x (1 - slowdown)`. The server always enforces its target (Player attribute `TargetWalkSpeed`), every tick and on every `CharacterAdded`. `ToolTip` "Speed Coil: hold to run faster".
 
 ## 8.11 Dropped slimes
 
