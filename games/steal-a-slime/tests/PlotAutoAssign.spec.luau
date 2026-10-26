@@ -36,11 +36,11 @@ describe("plots auto-assign on join (no claim)", function()
 end)
 
 describe("State.lockStartedAt", function()
-	it("starts at join, resets on a new lock, stays on an extension", function()
+	it("starts at join, resets on a new lock, stays when a lock is refused", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, nil, 1e6)
 		expect(Snapshot.build(world, s, T0).lockStartedAt).toBe(T0)
-		expect((StealService.buyLock(world, s, T0 + 5))).toBe(true) -- extends the join lock
+		expect((StealService.buyLock(world, s, T0 + 5))).toBe(false) -- the join lock still runs
 		expect(s.lockStartedAt).toBe(T0)
 		local later = s.lockUntil + 10
 		expect((StealService.buyLock(world, s, later))).toBe(true)

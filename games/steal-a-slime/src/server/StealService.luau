@@ -36,9 +36,7 @@ function StealService.buyLock(world: World, session: Session, now: number): (boo
 	if not ok then
 		return false, reason
 	end
-	if not Steal.isLocked(session.lockUntil, now) then
-		session.lockStartedAt = now -- a new lock; extending keeps the start
-	end
+	session.lockStartedAt = now -- always a new lock
 	session.lockUntil = lockUntil
 	session.locked = true
 	session.data.stats.locks += 1

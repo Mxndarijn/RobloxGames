@@ -99,7 +99,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Merge:** the plot's merge vat brews three slimes of one rarity into one of a higher rarity (`VatState`, `TripleMerge`, §21).
 - **Steal and lock:**
   - On join, the plot is locked for `JOIN_LOCK_SECONDS` (120).
-  - `Request("Lock")` buys `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s; one purchase and the stacked lock are both capped at `LOCK_MAX_REMAINING` (4 min) (`Steal.lockDuration`, `Steal.buyLock`). Locks are bought only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button, which needs the player at their lock pad). No shop sells locks or longer locks.
+  - `Request("Lock")` starts one free lock of `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s (at most `LOCK_MAX_SECONDS`, 4 min) in one go (`Steal.lockDuration`, `Steal.buyLock`). A lock can only start while none is running: while `lockUntil > now` the server refuses with `"your base is already locked"` and changes nothing (no extending, no stacking; the join lock counts). The `LockPrompt` is disabled while locked and comes back at expiry; its ObjectText `LOCKED m:ss` is the time left. Locks are started only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button, which needs the player at their lock pad). No shop sells locks or longer locks.
   - Stealing pings the owner (Notify `"bad"` plus `SlimeView.stolenBy`).
   - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is hit (the Bat or any PvP item that touches them), drops it, dies / respawns or leaves. A carried wild slime is dropped by the same hits and lands at the carrier's feet. The carried slime stays solid for everyone, the thief included. An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
   - If the thief reaches their own `HomeZone` first, `Steal.complete` moves the slime to the thief.
@@ -164,7 +164,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"VatStart"` | none | Starts the brew of a full vat (`Config.MERGE_BREW_SECONDS` by rarity, Quick Brew applied). `"Add <n> more <Rarity>"` while not full. |
 | `"VatCancel"` | none | Stops the brew; the slimes stay in the vat. |
 | `"VatCollect"` | none | Once the brew is done, merges the three (`TripleMerge`) onto the first input's pad. `"still brewing"` before that. |
-| `"Lock"` | none | Starts or extends the plot lock. Free. |
+| `"Lock"` | none | Starts the plot lock for its full duration. Free. Fails with `"your base is already locked"` while a lock runs. |
 | `"ToggleFriends"` | none | `FEATURES.FriendsInBase`: flips the owner's friends switch (friends pass the locked stopper and may steal). See [friends-in-base.md](contract/friends-in-base.md). |
 | `"Rebirth"` | none | Rebirths if `Progression.canRebirth`. |
 | `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`: `SELL_PRICE_SHARE` of its fountain price (`Economy.wildPrice`), so buying and reselling always loses money. A Mystery Egg can't be sold: "eggs can't be sold". A slime brewing in the vat can't either: "That slime is brewing in the vat". Nor can a slime the next rebirth uses up (`Progression.neededIds`): "Needed for your next rebirth" (`VatAdd` refuses it the same way). |
@@ -369,7 +369,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 
 | Key | Value | Design source |
 |---|---|---|
-| `JOIN_LOCK_SECONDS` / `LOCK_SECONDS` / `LOCK_SECONDS_PER_REBIRTH` | 120 / 120 / 10 | "2 min on join, then a 2 min lock button, +10 s per rebirth up to 4 min" |
+| `JOIN_LOCK_SECONDS` / `LOCK_SECONDS` / `LOCK_SECONDS_PER_REBIRTH` | 120 / 120 / 10 | "2 min on join, then a 2 min lock (only once the last one ended), +10 s per rebirth up to 4 min" |
 | `RARITIES[i].carrySlow` (max `MAX_CARRY_SLOW`) | 0.05…0.35 (≤0.6) | "slows the carrier more the rarer it is" |
 | `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × growth |
 | `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 5 | "every hour … for 3 minutes" |
