@@ -366,5 +366,36 @@ describe("v28 item 5: the Guide NPC opens a next-goal + tips card", function()
 		expect(UiHarness.find(panel.frame, "GoalText").Text).toBe(GuideTips.STEP_GOALS.Grab)
 		expect(UiHarness.find(panel.frame, "Tip1").Visible).toBe(true)
 		expect(panel.close ~= nil).toBe(true)
+		expect(UiHarness.find(panel.frame, "ShowTutorial").Visible).toBe(false)
+	end)
+	it("after Hide the Guide offers the tutorial again, shows it and closes", function()
+		local Guide = UiHarness.ui("Panels/Guide")
+		local root = UiHarness.root()
+		local overlay = UiHarness.ui("Panels/TutorialOverlay").new(root, {})
+		local toggled: { string } = {}
+		local panel = Guide.new(
+			root,
+			ctx({
+				tutorial = overlay,
+				togglePanel = function(key: string)
+					table.insert(toggled, key)
+				end,
+			})
+		)
+		local state = { tutorialStepId = "Grab", slimes = {} }
+		overlay.update(state)
+		UiHarness.fire(UiHarness.find(overlay.frame, "Hide"), "Activated")
+		panel.update(state)
+		local show = UiHarness.find(panel.frame, "ShowTutorial")
+		expect(show.Visible).toBe(true)
+		expect(UiHarness.find(panel.frame, "Tip1").Visible).toBe(false) -- the button has the first slot
+		expect(UiHarness.find(panel.frame, "Tip2").Visible).toBe(true)
+		UiHarness.fire(show, "Activated")
+		expect(overlay.hidden()).toBe(false)
+		expect(overlay.frame.Visible).toBe(true)
+		expect(toggled[1]).toBe("Guide")
+		panel.update(state)
+		expect(show.Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "Tip1").Visible).toBe(true)
 	end)
 end)

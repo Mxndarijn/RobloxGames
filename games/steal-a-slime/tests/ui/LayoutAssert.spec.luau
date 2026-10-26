@@ -94,6 +94,7 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 		expect(copy.SIZE.tagH).toBe(worldShop.SIZE.tagH)
 		local guide = read("src/ui/Panels/Guide.luau")
 		expect(has(guide, "Guide.TIP_H = 44")).toBe(true)
+		expect(UiHarness.ui("Panels/Guide").SHOW_TEXT).toBe("📖  Show the tutorial again")
 	end)
 	it("the Rebirth sizes and copy it measures are the panel's own", function()
 		local real = UiHarness.ui("Panels/Rebirth")
