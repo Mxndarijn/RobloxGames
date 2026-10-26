@@ -2,7 +2,7 @@
 --[[
 	PodiumRigs: the Roblox adapter for PodiumAvatars. Builds R15 rigs from
 	HumanoidDescriptions and stands them on workspace Podium_<rank> parts
-	(the plaza mesh slots), anchored, non-colliding, facing the fountain like
+	(the plaza mesh slots), root-anchored, non-colliding, facing the fountain like
 	the podium, with a Goo name board (name on a gold band, the stat under it).
 	Rigs live in workspace.PodiumAvatars.
 ]]
@@ -94,11 +94,12 @@ local function label(rig: Model, text: string)
 	end
 end
 
--- Statue: anchored, no collisions/queries/touches, no default nameplate or scripts.
+-- Statue: only the root is anchored, so the Humanoid still builds the scaled R15 joints and layered clothing; no
+-- collisions/queries/touches, no default nameplate or scripts.
 local function freeze(rig: Model)
 	for _, inst in rig:GetDescendants() do
 		if inst:IsA("BasePart") then
-			inst.Anchored = true
+			inst.Anchored = inst.Name == "HumanoidRootPart"
 			inst.CanCollide = false
 			inst.CanQuery = false
 			inst.CanTouch = false
@@ -148,6 +149,8 @@ function PodiumRigs.adapter(): PodiumAvatars.Adapter
 				return
 			end
 			model.Name = `PodiumRig_{rank}`
+			-- In the workspace before anchoring/placing, so the rig is scaled and its clothing wrapped first.
+			model.Parent = folder()
 			freeze(model)
 			-- Stand on the podium's top face, turned like its front. The kit front is the slot's +Z (MeshAssets, kit
 			-- fronts face +Z) and a character looks along its own -Z, so the rig gets half a turn.
@@ -157,7 +160,6 @@ function PodiumRigs.adapter(): PodiumAvatars.Adapter
 			local lift = top.Position.Y - (box.Position.Y - size.Y / 2)
 			model:PivotTo(top + Vector3.new(0, lift, 0))
 			label(model, text)
-			model.Parent = folder()
 		end,
 		setLabel = function(rig: any, text: string)
 			label(rig :: Model, text)
