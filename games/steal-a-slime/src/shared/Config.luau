@@ -1501,7 +1501,8 @@ local Config = {
 	-- Wild Mystery Eggs (FEATURES.MysteryEggs, contract/mystery-egg.md). Each KINDS entry: `id` (saved, never rename),
 	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
 	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `announce` (server
-	-- toast on spawn) and `drops` (tier weights of the slime inside). A wild egg is free to grab and can't be sold.
+	-- toast on spawn), `rebirths` (a Config.REBIRTH_TIERS threshold: fewer rebirths can't grab or steal this kind,
+	-- EggKind.grabBlock) and `drops` (tier weights of the slime inside). A wild egg is free to grab and can't be sold.
 	MYSTERY_EGG = table.freeze({
 		DROP_CHANCE = 0.015, -- share of fountain drops that are an egg
 		RAIN_MULT = 3, -- DROP_CHANCE multiplier during Slime Rain
@@ -1523,6 +1524,7 @@ local Config = {
 				weight = 60,
 				hatchSeconds = 3 * 60,
 				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
+				rebirths = 0,
 				announce = false,
 				drops = table.freeze({
 					{ tier = 2, weight = 55 },
@@ -1537,6 +1539,7 @@ local Config = {
 				weight = 27,
 				hatchSeconds = 6 * 60,
 				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
+				rebirths = 1,
 				announce = false,
 				drops = table.freeze({
 					{ tier = 3, weight = 50 },
@@ -1551,6 +1554,7 @@ local Config = {
 				weight = 10,
 				hatchSeconds = 10 * 60,
 				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
+				rebirths = 3,
 				announce = true,
 				drops = table.freeze({ { tier = 4, weight = 55 }, { tier = 5, weight = 40 }, { tier = 6, weight = 5 } }),
 			}),
@@ -1561,6 +1565,7 @@ local Config = {
 				weight = 3,
 				hatchSeconds = 15 * 60,
 				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
+				rebirths = 6,
 				announce = true,
 				drops = table.freeze({ { tier = 5, weight = 60 }, { tier = 6, weight = 35 }, { tier = 7, weight = 5 } }),
 			}),
