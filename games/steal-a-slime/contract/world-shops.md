@@ -9,7 +9,7 @@ The game's shops are two in-world stands (`Shared.Shops`, `server/ShopGuard`, `A
 | ItemShop | `SpeedCoil` | "Speed Coil" (once; **moved here from the Upgrade Shop 2026-10-18, Merijn: it is an item because it works while held**; still a `SpeedCoil` Tool in the Backpack, so it has a hotbar slot and shows in the inventory panel) | `BuySpeedCoil` |
 | ItemShop | `LuckPotion` / `WeatherTotem` | "Luck Potion" / "Weather Totem" (`FEATURES.Consumables`, restocking; bought into a held stack, used later with `UseConsumable`, see restocking-shop.md) | `BuyConsumable(itemId, slimeId?)` (`slimeId` ignored) |
 | ItemShop | `Config.PVP_TOOLS` ids | per `PVP_TOOLS[id].name` (`FEATURES.PvP`, default off; listed only when on) | `BuyPvpItem(itemId)` |
-| UpgradeShop | `Income` / `CarrySpeed` / `OfflineCap` / `QuickBrew` / `Luck` | "Slime Snacks" / "Strong Arms" / "Night Shift" / "Quick Brew" / "Lucky Charm" (`Config.UPGRADES`, rank-gated by `requires` or per level by `levelRequires`) | `BuyUpgrade(id)` |
+| UpgradeShop | `Income` / `CarrySpeed` / `OfflineCap` / `QuickBrew` / `Luck` | "Slime Snacks" / "Strong Arms" / "Night Shift" / "Quick Brew" / "Lucky Charm" (`Config.UPGRADES`, each level rebirth-gated by `levelRequires`) | `BuyUpgrade(id)` |
 
 Rule (Speed Coil: Merijn 2026-10-18, an item because it works while held, so it counts as held): consumed / restocking things = Item Shop; permanent, saved-and-kept-on-rebirth things = Upgrade Shop. Pads (`BuyPad`) and locks (`Lock`) stay on the plot, not in a shop; there is no lock-time upgrade.
 

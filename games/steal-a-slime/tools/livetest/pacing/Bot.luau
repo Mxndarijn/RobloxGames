@@ -463,12 +463,23 @@ local function chores(world: World, bot: Bot, session: Session, t: number, keep:
 	drinkPotions(world, bot, t)
 end
 
+-- A Mystery Egg this bot's rank can't grab or steal yet (EggKind.grabBlock).
+local function eggLocked(bot: Bot, slime: Slime): boolean
+	local kind = EggKind.of(slime)
+	return kind ~= nil and EggKind.grabBlock(bot.data.rebirths, kind) ~= nil
+end
+
 -- Best wild slime this bot can afford, by value (Mystery Eggs are free); a missing rebirth species wins outright.
 local function pickWild(world: World, bot: Bot, missing: { [string]: boolean }): (string?, number)
 	local options = {}
 	local best, bestScore, bestValue = nil, -1, 0
 	for id, wild in world.wild do
-		if not wild.boss and wild.price <= bot.data.cash and not world.carriedBy[id] then
+		if
+			not wild.boss
+			and wild.price <= bot.data.cash
+			and not world.carriedBy[id]
+			and not eggLocked(bot, wild.slime)
+		then
 			local v = worth(bot, wild.slime)
 			local score = v + (if missing[wild.slime.species] and not wild.slime.egg then 1e300 else 0)
 			table.insert(options, id)
@@ -491,7 +502,11 @@ local function pickSteal(world: World, bot: Bot, t: number): (string?, number?, 
 	for userId, other in world.sessions do
 		if userId ~= bot.id and not StealService.isLocked(other, t) then
 			for _, s in other.data.slimes do
-				if not World.isBusy(world, s.id) and not VatState.isLocked(other.data, s.id) then
+				if
+					not World.isBusy(world, s.id)
+					and not VatState.isLocked(other.data, s.id)
+					and not eggLocked(bot, s)
+				then
 					local v = worth(bot, s)
 					if v > bestValue then
 						best, victim, bestValue = s.id, userId, v

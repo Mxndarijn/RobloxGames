@@ -30,7 +30,7 @@ export type Consumable = {
 export type RebirthTier = {
 	rebirths: number, -- reached at this many rebirths
 	title: string,
-	unlock: string?, -- upgrade id this rank unlocks (also Config.UPGRADES[i].requires)
+	unlock: string?, -- upgrade id this rank unlocks (its Config.UPGRADES levelRequires[1] is this rank's rebirths)
 	income: number?, -- income bonus (0.25 = +25 %)
 	family: string?, -- FountainTiers family id: this rank grows the fountain into its look (FEATURES.FountainTiers; FountainTiers.FAMILIES)
 	merge: number?, -- top rarity tier this rank lets the player put in the merge vat (MergeGate, contract/merge-vat.md §21.9)
@@ -43,8 +43,7 @@ export type Upgrade = {
 	maxLevel: number,
 	base: number, -- price of level 1
 	growth: number, -- price of level n+1 = base * growth^n
-	requires: number, -- rebirths needed
-	levelRequires: { number }?, -- rebirths needed for each level (level n needs levelRequires[n]); nil = `requires` for all
+	levelRequires: { number }, -- rebirths each level needs (level n needs levelRequires[n]), one per level, never decreasing
 	step: number, -- effect per level (meaning depends on id)
 	flag: string?, -- Config.FEATURES name that must be on for the upgrade to be listed, bought or have any effect
 }
@@ -278,7 +277,6 @@ local UPGRADES: { Upgrade } = {
 		maxLevel = 25,
 		base = 2000,
 		growth = 2.2,
-		requires = 0,
 		levelRequires = { 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 6, 6, 6, 6, 6, 12, 12, 12, 12, 12, 20, 20, 20, 20, 20 },
 		step = 0.1,
 	},
@@ -289,7 +287,7 @@ local UPGRADES: { Upgrade } = {
 		maxLevel = 4,
 		base = 5000,
 		growth = 3,
-		requires = 1,
+		levelRequires = { 1, 3, 6, 10 },
 		step = 0.15,
 	},
 	{
@@ -299,7 +297,7 @@ local UPGRADES: { Upgrade } = {
 		maxLevel = 4,
 		base = 20000,
 		growth = 3,
-		requires = 3,
+		levelRequires = { 3, 6, 10, 15 },
 		step = 3600,
 	},
 	{
@@ -309,7 +307,6 @@ local UPGRADES: { Upgrade } = {
 		maxLevel = 10,
 		base = 100000,
 		growth = 4,
-		requires = 5,
 		levelRequires = { 5, 5, 5, 8, 8, 12, 12, 16, 20, 25 },
 		step = 0.03,
 	},
@@ -320,7 +317,6 @@ local UPGRADES: { Upgrade } = {
 		maxLevel = 4,
 		base = 25000,
 		growth = 3,
-		requires = 2,
 		levelRequires = { 2, 4, 6, 8 },
 		step = 0.15,
 	},
@@ -673,6 +669,9 @@ local PVP_TOOLS: { PvpTool } = {
 	fun("FunFireworks", "Goo Fireworks", 10, 12, true, {}),
 }
 
+for _, def in UPGRADES do
+	table.freeze(def.levelRequires)
+end
 for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES.species } :: { { any } } do
 	for _, entry in list do
 		table.freeze(entry)
@@ -1491,7 +1490,7 @@ local Config = {
 		STAND_HEIGHT = 8, -- and a root part at most this high above the plaza ground (not on the fountain)
 		MIN_PLAYERS = RITUAL_MIN_PLAYERS,
 		HOLD_SECONDS = 6, -- everyone must keep standing this long
-		SERVER_COOLDOWN = 240, -- seconds the circle rests after a ritual
+		SERVER_COOLDOWN = 600, -- seconds the circle rests after a ritual
 		PLAYER_COOLDOWN = 600, -- seconds before the same player can count again
 		BLESS_SECONDS = 180,
 		BONUS = table.freeze({ [2] = 0.3, [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants; tiers above SPOTS stay as data but can't be reached (Ritual.bonus caps at SPOTS)
@@ -1510,7 +1509,8 @@ local Config = {
 	-- Wild Mystery Eggs (FEATURES.MysteryEggs, contract/mystery-egg.md). Each KINDS entry: `id` (saved, never rename),
 	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
 	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `announce` (server
-	-- toast on spawn) and `drops` (tier weights of the slime inside). A wild egg is free to grab and can't be sold.
+	-- toast on spawn), `rebirths` (a Config.REBIRTH_TIERS threshold: fewer rebirths can't grab or steal this kind,
+	-- EggKind.grabBlock) and `drops` (tier weights of the slime inside). A wild egg is free to grab and can't be sold.
 	MYSTERY_EGG = table.freeze({
 		DROP_CHANCE = 0.015, -- share of fountain drops that are an egg
 		RAIN_MULT = 3, -- DROP_CHANCE multiplier during Slime Rain
@@ -1532,6 +1532,7 @@ local Config = {
 				weight = 60,
 				hatchSeconds = 3 * 60,
 				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
+				rebirths = 0,
 				announce = false,
 				drops = table.freeze({
 					{ tier = 2, weight = 55 },
@@ -1546,6 +1547,7 @@ local Config = {
 				weight = 27,
 				hatchSeconds = 6 * 60,
 				pity = 8, -- lucky meter: the 8th hatch in a row without the top tier gets it
+				rebirths = 1,
 				announce = false,
 				drops = table.freeze({
 					{ tier = 3, weight = 50 },
@@ -1560,6 +1562,7 @@ local Config = {
 				weight = 10,
 				hatchSeconds = 10 * 60,
 				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
+				rebirths = 3,
 				announce = true,
 				drops = table.freeze({ { tier = 4, weight = 55 }, { tier = 5, weight = 40 }, { tier = 6, weight = 5 } }),
 			}),
@@ -1570,6 +1573,7 @@ local Config = {
 				weight = 3,
 				hatchSeconds = 15 * 60,
 				pity = 12, -- lucky meter: the 12th hatch in a row without the top tier gets it
+				rebirths = 6,
 				announce = true,
 				drops = table.freeze({ { tier = 5, weight = 60 }, { tier = 6, weight = 35 }, { tier = 7, weight = 5 } }),
 			}),
