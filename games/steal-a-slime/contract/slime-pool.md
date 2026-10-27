@@ -33,3 +33,8 @@ as before (`Genome.sanitize`).
   Aura and GlowShell stay. No slime has a rarity ring under it. The per-type accessory path (`SlimeMesh.plan`,
   `Accessory`) is gone.
 - **`Config.REBIRTH_SLIMES`** uses the new ids: one list per rebirth, see contract/v13-additions.md §8.8a.
+
+## Species income bonus
+
+Every species has an income bonus within its rarity (`SlimeRoster.Entry.income`, set in `SlimeRoster` `INCOME`): about x0.9 to x1.0 for the Classic species, more for the families that open later (Garden, then Frost & Sea, then Starlight, up to x1.4), x1.2 for every merge hybrid and x1.4 for every event Secret. `Genome.baseIncome` multiplies by it, so the wild price and the sell price follow. Within a rarity a species is rolled with weight `1 / income ^ SPECIES_RARITY_POWER` (`Genome.speciesWeight`, `Genome.pickWeighted`), both from the fountain and in random merges, so the better-earning species are the rarer ones.
+
