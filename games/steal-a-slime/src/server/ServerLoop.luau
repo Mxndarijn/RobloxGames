@@ -22,6 +22,8 @@ local Constants = require(ReplicatedStorage.Shared.Constants)
 local DayNight = require(ReplicatedStorage.Shared.DayNight)
 local GameLoop = require(script.Parent.GameLoop)
 local LeaderboardView = require(script.Parent.LeaderboardView)
+local LockPad = require(script.Parent.LockPad)
+local LockPadView = require(script.Parent.LockPadView)
 local MoveGuard = require(ReplicatedStorage.Shared.MoveGuard)
 local MoveWatch = require(script.Parent.MoveWatch)
 local PlayerAttributes = require(script.Parent.PlayerAttributes)
@@ -99,6 +101,17 @@ local function sampleMovement(userId: number, player: Player, session: World.Ses
 	MoveGuard.step(book, userId, player.Character, { X = p.X, Y = p.Y, Z = p.Z }, t, Shop.walkSpeed(session.data, true))
 end
 
+-- The owner standing on their own lock pad for Config.LOCK_PAD.STAND_SECONDS runs the Lock action, with the same rules
+-- (owner, range, rate limit) as the LockPrompt.
+local function stepLockPad(loop: Loop, player: Player, session: World.Session, t: number)
+	local root = WorldView.rootPart(player)
+	local button = WorldView.plotPromptPart(session.plotIndex, "Lock")
+	local onPad = root ~= nil and button ~= nil and LockPadView.standing(session.plotIndex, button, root)
+	if LockPad.step(session, onPad, t < session.lockUntil, t) then
+		Actions.triggerPlotPrompt(loop.world, session.userId, session.plotIndex, "Lock", t, loop.ctx)
+	end
+end
+
 local function stepPlayers(loop: Loop, t: number)
 	local world, ctx = loop.world, loop.ctx
 	for _, player in Players:GetPlayers() do
@@ -124,6 +137,7 @@ local function stepPlayers(loop: Loop, t: number)
 			if Config.FEATURES.MoveGuardLog then
 				loop.safeCall("move guard", sampleMovement, userId, player, session, t)
 			end
+			loop.safeCall("lock pad", stepLockPad, loop, player, session, t)
 			WorldView.updatePlayer(world, player, session, t, ctx)
 			if session.openShop and t - (loop.shopCheckedAt[userId] or 0) >= SHOP_CHECK_INTERVAL then
 				loop.shopCheckedAt[userId] = t

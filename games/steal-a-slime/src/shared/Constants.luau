@@ -145,6 +145,7 @@ return table.freeze({
 	-- Owner-only prompts: only this UserId may see it (clients hide it locally); nil = free plot.
 	PROMPT_OWNER_ATTRIBUTE = "ShowOnlyToUserId",
 	LOCK_PROMPT_NAME = "LockPrompt", -- on LockButton
+	LOCK_PAD_NAME = "LockPad", -- Plot_<i> Model: the lock pad's ring segments Seg_1..Seg_n round the LockButton (server-built)
 	FRIENDS_PROMPT_NAME = "FriendsPrompt", -- on LockButton, next to LockPrompt: the owner's friends switch (FEATURES.FriendsInBase)
 	FRIENDS_PROMPT_KEYS = table.freeze({ keyboard = "G", gamepad = "ButtonY" }), -- FriendsPrompt's keys (F is the pad hatch key)
 	BUY_PAD_PROMPT_NAME = "BuyPadPrompt", -- on the lowest locked Pad_<j>

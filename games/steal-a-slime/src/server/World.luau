@@ -59,6 +59,7 @@ export type Session = {
 	lockUntil: number,
 	lockStartedAt: number, -- when the current lock began (State.lockStartedAt, CONTRACT.md §9.3)
 	locked: boolean, -- lock state at the last tick, to push State on expiry
+	lockPadSince: number?, -- server time the owner stepped onto their lock pad (LockPad.step); nil = not on it
 	limiter: Validate.Limiter,
 	carry: CarryState?,
 	lastSlapAt: number,
