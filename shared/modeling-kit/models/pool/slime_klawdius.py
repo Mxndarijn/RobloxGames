@@ -4,6 +4,8 @@
 # the base, angry eyes under heavy brows and a grumpy underbite.
 from models._slimepool import *
 
+flat_decals()  # boss size: face parts hug the body instead of standing out
+
 CORAL, CORAL_D, CORAL_L = hexc("ff5a46"), hexc("d83c34"), hexc("ff8a6a")
 BELLY = hexc("ffb08a")
 JOINT = hexc("b8302c")
@@ -158,16 +160,21 @@ parts += claw(1, 0.78)
 for sd in (-1, 1):
     for k, a in enumerate((62, 92, 122)):
         ar = math.radians(sd * a)
-        root = b.point(ar, 0.42, -0.12)
+        # sturdy jointed legs planted well out from the body: they carry it, it doesn't hover on spikes
+        root = b.point(ar, 0.5, -0.15)
         rd = Vector((math.sin(ar), -math.cos(ar), 0))
-        knee = root + rd * 0.5 + Vector((0, 0, 0.32))
-        tip = root + rd * 0.92 + Vector((0, 0, -0.42))
-        tip.z = 0.0
-        o = horn(f"Leg{sd}{k}", [tuple(root), tuple(knee), tuple(root.lerp(tip, 0.5) + rd * 0.32 + Vector((0, 0, 0.12))), tuple(tip)],
-                 [0.17, 0.14, 0.1, 0.02], CORAL_D, CORAL, segs=6)
+        knee = root + rd * 0.62 + Vector((0, 0, 0.46))
+        tip = root + rd * 1.12
+        tip.z = 0.1
+        mid = knee.lerp(tip, 0.5) + rd * 0.14 + Vector((0, 0, 0.06))
+        o = horn(f"Leg{sd}{k}", [tuple(root), tuple(knee), tuple(mid), tuple(tip)],
+                 [0.23, 0.2, 0.16, 0.12], CORAL_D, CORAL, segs=7)
         R0, T0 = Vector(root), Vector(tip)
-        paint_fn(o, lambda p, n, R0=R0, T0=T0: mix(CORAL_D, TIP, smoothstep(0.75, 0.95, (p - R0).dot(T0 - R0) / (T0 - R0).length_squared)))
+        paint_fn(o, lambda p, n, R0=R0, T0=T0: mix(CORAL_D, CORAL, smoothstep(0.2, 0.6, (p - R0).dot(T0 - R0) / (T0 - R0).length_squared)))
         parts.append(o)
+        parts.append(ball(f"LegKnee{sd}{k}", 0.21, tuple(knee), JOINT, subdiv=1))
+        # rounded foot resting on the floor
+        parts.append(ball(f"Foot{sd}{k}", 0.15, tuple(Vector((tip.x, tip.y, 0.1))), TIP, squash=(1.2, 1.2, 0.7), subdiv=1))
 
 # ---------------------------------------------------------------- face: angry eyes, heavy brows, grumpy underbite
 EV, MV = 1.72, 1.02

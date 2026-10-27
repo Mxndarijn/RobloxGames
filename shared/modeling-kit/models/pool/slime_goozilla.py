@@ -3,65 +3,7 @@
 # glowing angry eyes and a huge roaring mouth full of teeth.
 from models._slimepool import *
 
-
-# ---- local helper: big decal that follows the curve (copied from slime_moo.py)
-def _inside(pt, poly):
-    x, y = pt
-    c = False
-    for (x0, y0), (x1, y1) in zip(poly, poly[1:] + poly[:1]):
-        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
-            c = not c
-    return c
-
-
-def grid_decal(name, poly, color, frame=FRONT, off=0.008, th=0.012, on=None, step=0.08, cell=0.12):
-    from mathutils.geometry import delaunay_2d_cdt
-    poly = densify(poly, step)
-    n = len(poly)
-    us, vs = [p[0] for p in poly], [p[1] for p in poly]
-    inner = []
-    u = min(us) + cell / 2
-    while u < max(us):
-        v = min(vs) + cell / 2
-        while v < max(vs):
-            if _inside((u, v), poly) and min((u - a) ** 2 + (v - b) ** 2 for a, b in poly) > (cell * 0.45) ** 2:
-                inner.append((u, v))
-            v += cell
-        u += cell
-    pts = [Vector(p) for p in poly + inner]
-    V2, _, F, *_ = delaunay_2d_cdt(pts, [(i, (i + 1) % n) for i in range(n)], [list(range(n))], 1, 1e-6)
-    F = [f for f in F if _inside(tuple(sum((V2[i] for i in f), Vector((0, 0))) / len(f)), poly)]
-    bm = bmesh.new()
-    top, bot = {}, {}
-    for f in F:
-        for i in f:
-            if i in top:
-                continue
-            uu, vv = V2[i]
-            hit = cast(frame.O + frame.U * uu + frame.V * vv + frame.D * 12, -frame.D, on)
-            if hit is None:
-                raise ValueError(f"grid_decal {name}: ({uu:.2f}, {vv:.2f}) misses every surface")
-            loc, nn, _ = hit
-            if nn.dot(frame.D) < 0:
-                nn = -nn
-            nn = (nn * 0.6 + frame.D * 0.4).normalized()
-            bot[i] = bm.verts.new(loc + nn * off)
-            top[i] = bm.verts.new(loc + nn * (off + th))
-    ecount = {}
-    for f in F:
-        bm.faces.new([top[i] for i in f])
-        bm.faces.new([bot[i] for i in reversed(f)])
-        for a, b in zip(f, f[1:] + f[:1]):
-            ecount[(a, b)] = ecount.get((a, b), 0) + 1
-    for (a, b) in ecount:
-        if (b, a) not in ecount:
-            bm.faces.new((bot[a], bot[b], top[b], top[a]))
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    bmesh.ops.triangulate(bm, faces=bm.faces)
-    o = obj_from_bm(name, bm, None if callable(color) else color)
-    if callable(color):
-        paint_fn(o, color)
-    return keep(o, False)
+flat_decals()  # boss size: face parts hug the body instead of standing out
 
 
 GRN, GRN_D, GRN_L = hexc("2f9a4a"), hexc("17502c"), hexc("4cc46a")

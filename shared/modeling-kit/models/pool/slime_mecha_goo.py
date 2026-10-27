@@ -4,6 +4,8 @@
 # cockpit dome on top with a tiny goggled slime pilot giving a thumbs-up grin.
 from models._slimepool import *
 
+flat_decals()  # boss size: face parts hug the body instead of standing out
+
 
 def shell(name, fn, nu, nv, thick, color):
     """closed thick sheet: fn(s, t) -> point (s, t in 0..1); offset along the sheet normal both ways."""

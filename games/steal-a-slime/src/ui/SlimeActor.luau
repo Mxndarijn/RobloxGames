@@ -485,7 +485,12 @@ local function bossPose(actor: Actor, move: BossChoreo.Move, t: number, now: num
 		return "angry"
 	elseif kind == "attack" then
 		if move.fx ~= move.tx or move.fz ~= move.tz then
-			mods.tilt += 0.22 -- a charge: head down
+			-- a charge: head down; a sideways scuttle stays level (tipping its nose lifts its back legs off the floor)
+			local dx, dz = move.tx - move.fx, move.tz - move.fz
+			local ahead = math.abs(dx * move.hx + dz * move.hz) / math.sqrt(dx * dx + dz * dz)
+			if ahead > 0.5 then
+				mods.tilt += 0.22
+			end
 			return "angry"
 		end
 		-- a stomp, a throw or a swipe: a short hop that lands at the strike
@@ -656,6 +661,11 @@ function SlimeActor.update(
 		st.vx, st.vz, st.landedAt, st.changedAt = 0, 0, now - 10, now
 	end
 	if wild then
+		-- the boss steps at its drawn size (small-slime strides at 3x size flicker many times a second) and hops plainly
+		st.stride = if bossMove
+			then ((actor.model:GetAttribute("Size") :: number?) or 1) * actor.model:GetScale()
+			else 1
+		st.tricks = bossMove == nil
 		SlimeGait.step(st, actor.persona, ax, az, look.X, look.Z, now, rand, g, vx, vz)
 	end
 	if riding or not wild then
