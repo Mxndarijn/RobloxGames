@@ -4,7 +4,7 @@
 
 	What the boss card shows for `State.boss` at server time `now`, in as few words as possible: a band with the
 	title and the time left, and one row under it with the goo meter (or a name, when there is no meter to show) and
-	one pill saying what matters right now: your hits, "Dodge!", "Hits x3", the guards left, that you got hit, who
+	one pill saying what matters right now: your share of the hits, "Dodge!", "Hits x3", the guards left, that you got hit, who
 	grabs or carries it, the result. Nil = no card. Panels/BossMeter renders it; tests/ui/BossMeter.spec checks it.
 ]]
 
@@ -40,7 +40,7 @@ local function live(boss: any, now: number): boolean
 	return type(boss.moveEndsAt) ~= "number" or now < boss.moveEndsAt
 end
 
--- The fight's pill: what the boss is doing to you, else your hits.
+-- The fight's pill: what the boss is doing to you, else your share of all hits ("You 42%", at least 1% once you hit).
 local function fightPill(boss: any, now: number): (string, PillTone, Tone)
 	if type(boss.stunnedUntil) == "number" and now < boss.stunnedUntil then
 		return `Ouch! {math.max(1, math.ceil(boss.stunnedUntil - now))}s`, "pink", "fight"
@@ -58,7 +58,10 @@ local function fightPill(boss: any, now: number): (string, PillTone, Tone)
 	end
 	local points = if type(boss.yourPoints) == "number" then boss.yourPoints else 0
 	if points > 0 then
-		return `You {points}`, "plain", "fight"
+		local share = if type(boss.yourPercent) == "number" and boss.yourPercent == boss.yourPercent
+			then math.clamp(boss.yourPercent, 0, 1)
+			else 0
+		return `You {math.max(1, math.floor(share * 100 + 0.5))}%`, "plain", "fight"
 	end
 	return "Hit it!", "mint", "fight"
 end

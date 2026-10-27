@@ -93,6 +93,18 @@ function BossFight.share(state: State, userId: number): number
 	return math.clamp((state.contributions[userId] or 0) / top, 0, 1)
 end
 
+-- `userId`'s points as a share of everyone's points, 0..1 (the boss panel's "You 42%").
+function BossFight.percent(state: State, userId: number): number
+	local total = 0
+	for _, points in state.contributions do
+		total += points
+	end
+	if total <= 0 then
+		return 0
+	end
+	return math.clamp((state.contributions[userId] or 0) / total, 0, 1)
+end
+
 -- One Bat hit by `userId` worth `amount` points (default 1; more while the boss is dazed). Returns (counted, reason):
 -- at most one hit every HIT_GAP seconds per player.
 function BossFight.hit(state: State, userId: number, now: number, amount: number?): (boolean, string?)
