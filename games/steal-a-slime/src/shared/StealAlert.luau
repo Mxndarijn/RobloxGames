@@ -82,7 +82,10 @@ end
 function StealAlert.thieves(slimes: { any }?): { number }
 	local out: { number } = {}
 	local seen: { [number]: boolean } = {}
-	for _, view in slimes or {} do
+	if slimes == nil then
+		return out
+	end
+	for _, view in slimes do
 		local id = if type(view) == "table" then view.stolenBy else nil
 		if type(id) == "number" and not seen[id] then
 			seen[id] = true
