@@ -60,6 +60,17 @@ ForcedFlags.on = {
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",
 	["Profiler > is off by default and the flag is declared"] = "ServerProfiler",
 	["MoveWatch wiring > is off by default and records no allow-window while off"] = "MoveGuardLog",
+	["Income.step"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
+	["Income.applyOffline"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
+	["Pacing server"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
+	["friend bonus in income and State > Income.step pays the bonus"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
+	["GameLoop end to end > income resumes after the clock steps back"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
+	["live pushes during gameplay > an earning player gets a full State at least once a second, never faster than STATE_MIN_INTERVAL"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
+	["MergeVat: a brewing vat locks its slimes > while brewing they earn nothing, live or offline"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
+	["Upgrades (BuyUpgrade) > Strong Arms shrinks the carry slowdown, Night Shift extends the offline cap"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
+	["RitualService.step > pays Blessed income through Income.step"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
+	["TestHooks > grants cash (not counted as earned) and skips time with income"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
+	["Weekend income > Income.step doubles pay on a weekend and not otherwise or without a clock"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
 }
 
 -- Tests that exercise the off path (or pin "default off") of a flag that now ships ON (2026-10-18:

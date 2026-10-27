@@ -33,6 +33,7 @@ local LOOK = table.freeze({
 	font = Enum.Font.FredokaOne,
 })
 local FLASH_SECONDS = 1.2
+local SYNC_SECONDS = 0.25 -- discs are rebuilt / relabelled at most this often; touches are checked every call
 
 type Disc = {
 	plotIndex: number,
@@ -49,12 +50,13 @@ type Disc = {
 export type State = {
 	discs: { [string]: Disc }, -- "plot|pad"
 	nags: CashPadService.Nags,
+	syncedAt: number,
 }
 
 local CashPadView = {}
 
 function CashPadView.new(): State
-	return { discs = {}, nags = {} }
+	return { discs = {}, nags = {}, syncedAt = -math.huge }
 end
 
 local function key(plotIndex: number, pad: number): string
@@ -167,6 +169,10 @@ end
 
 -- Builds, places and labels every disc; drops discs of plots that lost their owner or pads that are gone.
 function CashPadView.sync(state: State, world: World.World, now: number)
+	if now - state.syncedAt < SYNC_SECONDS then
+		return
+	end
+	state.syncedAt = now
 	local seen: { [string]: boolean } = {}
 	for plotIndex = 1, world.plotCount do
 		local ownerId = world.plots[plotIndex]
