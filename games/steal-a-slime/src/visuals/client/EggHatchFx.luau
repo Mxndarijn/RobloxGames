@@ -15,7 +15,9 @@
 	    while a local copy of it springs up from tiny; then the real one shows
 	    again. Nothing ever rescales the real model, so whatever the server adds
 	    to it (a species mesh arriving late) keeps its size. Epic and up get a
-	    light pillar; a rarity title floats up; the owner's camera eases in.
+	    light pillar; a rarity title floats up (screen-sized for the owner, a
+	    small sign in the world for anyone else near, Epic and up); the owner's
+	    camera eases in.
 	Everything it makes is local (never replicates) and decides nothing.
 ]]
 
@@ -416,7 +418,7 @@ local function stepBurst(burst: Burst): boolean
 	return true
 end
 
-local function startPop(slime: Model, tier: number, lucky: boolean, folder: Folder): Pop
+local function startPop(slime: Model, tier: number, lucky: boolean, owner: boolean, folder: Folder): Pop
 	local holder = Instance.new("Folder")
 	holder.Name = "Pop"
 	holder.Archivable = false
@@ -462,6 +464,10 @@ local function startPop(slime: Model, tier: number, lucky: boolean, folder: Fold
 		beam.Parent = holder
 		pop.beam = beam
 	end
+	local view = Timeline.titleView(owner, tier)
+	if not view then
+		return pop
+	end
 	local anchor = localPart({
 		Name = "Title",
 		Size = Vector3.new(0.2, 0.2, 0.2),
@@ -470,10 +476,17 @@ local function startPop(slime: Model, tier: number, lucky: boolean, folder: Fold
 	})
 	anchor.Parent = holder
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(360, 70)
-	gui.AlwaysOnTop = true
+	if view == "screen" then
+		gui.Size = UDim2.fromOffset(360, 70)
+		gui.AlwaysOnTop = true
+		gui.MaxDistance = EggHatchFx.MAX_DISTANCE
+	else
+		local studs = Timeline.OTHERS_TITLE_STUDS
+		gui.Size = UDim2.fromScale(studs[1], studs[2])
+		gui.AlwaysOnTop = false
+		gui.MaxDistance = Timeline.OTHERS_TITLE_DISTANCE
+	end
 	gui.LightInfluence = 0
-	gui.MaxDistance = EggHatchFx.MAX_DISTANCE
 	gui.Parent = anchor
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1
@@ -620,7 +633,8 @@ function EggHatchFx.start(): Controller
 				burstDone[id] = { at = os.clock(), tier = tier, lucky = lucky }
 			end
 		end
-		pops[slime] = startPop(slime, tier, lucky, folder)
+		local owner = player ~= nil and slime:GetAttribute("OwnerUserId") == player.UserId
+		pops[slime] = startPop(slime, tier, lucky, owner, folder)
 	end
 
 	local function added(instance: Instance)

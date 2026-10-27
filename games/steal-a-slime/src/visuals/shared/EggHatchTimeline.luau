@@ -28,6 +28,10 @@ EggHatchTimeline.HIDDEN_SCALE = 0.05 -- the popping copy's scale (x the slime's)
 EggHatchTimeline.SHARDS = 12
 EggHatchTimeline.SHARD_SECONDS = 1.1
 EggHatchTimeline.BEAM_TIER = 4 -- Epic and up get a light pillar
+-- Someone else's hatch: the title is a sign in the world (studs, hidden by walls), only for Epic and up, up close.
+EggHatchTimeline.OTHERS_TITLE_TIER = 4
+EggHatchTimeline.OTHERS_TITLE_DISTANCE = 60 -- studs from the camera
+EggHatchTimeline.OTHERS_TITLE_STUDS = { 10, 2 } -- width, height
 
 export type Phase = "wobble" | "hold" | "burst"
 
@@ -170,6 +174,17 @@ end
 function EggHatchTimeline.title(tier: number, lucky: boolean): string
 	local name = string.upper(Config.RARITIES[math.clamp(tier, 1, Config.MAX_TIER)].name)
 	return if lucky then `LUCKY! {name}!` else `{name}!`
+end
+
+-- How the title shows for a viewer: "screen" (own hatch: fixed size, on top), "world" (someone
+-- else's: sized in studs, behind walls, near only) or nil (no title).
+export type TitleView = "screen" | "world"
+
+function EggHatchTimeline.titleView(owner: boolean, tier: number): TitleView?
+	if owner then
+		return "screen"
+	end
+	return if tier >= EggHatchTimeline.OTHERS_TITLE_TIER then "world" else nil
 end
 
 -- Title rise (studs) and transparency `s` seconds into the pop; nil once it is over.
