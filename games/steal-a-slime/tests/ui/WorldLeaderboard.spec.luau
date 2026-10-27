@@ -95,11 +95,28 @@ describe("Top Earners board palette (B2)", function()
 		end
 	end)
 
-	it("reads at 4.5:1 or better on the cream face, the tan stripe and my mint row", function()
+	it("tints the top three cards in their rank colour, mine mint, the rest plain", function()
+		local fill, edge = WorldLeaderboard.rowStyle(1, false)
+		expect(table.concat(fill, ",")).toBe("77,61,19")
+		expect(edge).toBe(palette.Rank[1])
+		expect(WorldLeaderboard.MEDAL_TINT).toBe(Props.MEDAL_TINT)
+		local mine, mineEdge = WorldLeaderboard.rowStyle(2, true)
+		expect(mine).toBe(palette.Me)
+		expect(mineEdge).toBe(palette.Value)
+		local plain, none = WorldLeaderboard.rowStyle(7, false)
+		expect(plain).toBe(palette.RowAlt)
+		expect(none).toBeNil()
+	end)
+
+	it("reads at 4.5:1 or better on the dark face, every row card and my row", function()
 		local face = Props.BOARD_PALETTE.Face
 		local inks = { "Text", "Value" }
+		local cards = { face, palette.RowAlt, palette.Me }
+		for rank = 1, 3 do
+			table.insert(cards, (WorldLeaderboard.rowStyle(rank, false)))
+		end
 		for _, key in inks do
-			for _, bg in { face, palette.RowAlt, palette.Me } do
+			for _, bg in cards do
 				local ratio = contrast((palette :: any)[key], bg)
 				if ratio < 4.5 then
 					error(`{key} on {table.concat(bg, ",")} is only {ratio}:1`)
@@ -117,6 +134,6 @@ describe("Top Earners board palette (B2)", function()
 				end
 			end
 		end
-		expect(contrast(Props.BOARD_PALETTE.Title, face) >= 4.5).toBe(true)
+		expect(contrast({ 255, 255, 255 }, Props.BOARD_PALETTE.Title) >= 4.5).toBe(true) -- white title on the bar
 	end)
 end)

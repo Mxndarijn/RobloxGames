@@ -391,9 +391,11 @@ local function hallSpots(): { [string]: Spot }
 end
 
 -- UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
--- The Upcoming Events wall (server/EventBoardView): a Hall of Fame board (Props.leaderboardBoard, its mesh) on the
--- grass just outside the ring path between two spokes, near the spawn (TutorialNpc 247.5), facing the fountain.
-WorldLayout.EVENT_BOARD = table.freeze({ model = "EventBoard", bearing = 214, radius = 92, scale = 1.05 })
+-- The Upcoming Events wall (server/EventBoardView): a Hall of Fame board (Props.leaderboardBoard, its mesh) in the
+-- middle of the lawn between the plot 5 and 6 spokes (the 202.5 bisector, mid-lawn radius), right behind the hub
+-- SpawnLocation (r 64 at 202.5), facing the fountain; that lawn holds nothing else (RanchProps moved its picnic table
+-- and sunflowers to the 292.5 lawn).
+WorldLayout.EVENT_BOARD = table.freeze({ model = "EventBoard", bearing = 202.5, radius = 92.25, scale = 1.05 })
 
 local spots: { [string]: Spot } = {
 	ItemShopStand = propSpot(67.5, true),

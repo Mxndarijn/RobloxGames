@@ -12,7 +12,8 @@
 	LeaderboardStat attribute (else the board its Model name belongs to, else Top Earners). Rows go into its descendant Frame "Rows" if there is
 	one, else into a "Rows" frame created to fill the gui. Boards streamed
 	in later bind on DescendantAdded. Row frames are "Row_<k>" with Rank /
-	Name / Value labels, like Props.fillLeaderboard.
+	Name / Value labels, like Props.fillLeaderboard: rounded cards on the dark face, the top three tinted
+	(`rowStyle`).
 
 	The pure helpers (`matches`, `rows`) run under Lune
 	(tests/ui/WorldLeaderboard.spec.luau); `start` touches Roblox only when called.
@@ -94,17 +95,42 @@ end
 
 -- Roblox side ---------------------------------------------------------------
 
--- Text colours (RGB) on the board skin's cream face; the same values as Props.BOARD_PALETTE (a spec keeps them equal).
+-- Board colours (RGB) on the dark face, like the Upcoming Events board; the same values as Props.BOARD_PALETTE
+-- (a spec keeps them equal).
 WorldLeaderboard.PALETTE = table.freeze({
-	RowAlt = table.freeze({ 238, 218, 182 }),
-	Me = table.freeze({ 179, 231, 191 }),
-	Text = table.freeze({ 62, 40, 26 }),
-	Muted = table.freeze({ 138, 106, 74 }),
-	Value = table.freeze({ 24, 104, 56 }),
-	Rank = table.freeze({ table.freeze({ 138, 88, 0 }), table.freeze({ 96, 102, 112 }), table.freeze({ 150, 73, 30 }) }),
+	RowAlt = table.freeze({ 46, 50, 76 }),
+	Me = table.freeze({ 30, 70, 52 }),
+	Text = table.freeze({ 240, 242, 250 }),
+	Muted = table.freeze({ 160, 165, 190 }),
+	Value = table.freeze({ 120, 235, 150 }),
+	Rank = table.freeze({
+		table.freeze({ 255, 204, 64 }),
+		table.freeze({ 210, 220, 235 }),
+		table.freeze({ 236, 150, 90 }),
+	}),
 })
+WorldLeaderboard.MEDAL_TINT = 0.3 -- a top-three card is its rank colour times this (Props.MEDAL_TINT)
+
+-- A row card's fill and edge (RGB, nil = no edge): my row mint, the top three tinted gold / silver / bronze with an
+-- edge in that colour, the rest plain cards.
+function WorldLeaderboard.rowStyle(rank: number, isMe: boolean): ({ number }, { number }?)
+	local p = WorldLeaderboard.PALETTE
+	if isMe then
+		return p.Me, p.Value
+	end
+	local medal = p.Rank[rank]
+	if medal then
+		local t = WorldLeaderboard.MEDAL_TINT
+		return { math.floor(medal[1] * t + 0.5), math.floor(medal[2] * t + 0.5), math.floor(medal[3] * t + 0.5) }, medal
+	end
+	return p.RowAlt, nil
+end
 
 -- Built on first use: Color3 doesn't exist under Lune.
+local function rgb(t: { number }): Color3
+	return Color3.fromRGB(t[1], t[2], t[3])
+end
+
 local COLORS: any = nil
 local function colors(): any
 	if COLORS == nil then
@@ -128,9 +154,9 @@ local function textLabel(parent: Instance, name: string, x: number, width: numbe
 	local label = Instance.new("TextLabel")
 	label.Name = name
 	label.BackgroundTransparency = 1
-	label.Position = UDim2.fromScale(x, 0)
-	label.Size = UDim2.fromScale(width, 1)
-	label.Font = Enum.Font.GothamBold
+	label.Position = UDim2.fromScale(x, 0.1)
+	label.Size = UDim2.fromScale(width, 0.8)
+	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
 	label.TextColor3 = colors().Text
 	label.TextXAlignment = align
@@ -192,6 +218,9 @@ local function ensureRow(container: Instance, k: number): Frame
 	frame.BorderSizePixel = 0
 	frame.BackgroundColor3 = colors().RowAlt
 	frame.Size = UDim2.fromScale(1, 1 / WorldLeaderboard.MAX_ROWS - 0.01)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.3, 0)
+	corner.Parent = frame
 	textLabel(frame, "Rank", 0.02, 0.13, Enum.TextXAlignment.Left)
 	textLabel(frame, "Name", 0.17, 0.5, Enum.TextXAlignment.Left)
 	textLabel(frame, "Value", 0.68, 0.3, Enum.TextXAlignment.Right).TextColor3 = colors().Value
@@ -218,14 +247,32 @@ function WorldLeaderboard.render(gui: SurfaceGui, rows: { Row })
 		local row = rows[k]
 		if row == nil then
 			frame.BackgroundTransparency = 1
+			local edge = frame:FindFirstChild("Edge")
+			if edge and edge:IsA("UIStroke") then
+				edge.Enabled = false
+			end
 			rank.Text, value.Text = "", ""
 			name.Text = "No entries yet"
 			name.TextColor3 = colors().Muted
 			continue
 		end
-		-- Plain rows sit straight on the board face; only the stripes and my own row get a fill.
-		frame.BackgroundColor3 = if row.isMe then colors().Me else colors().RowAlt
-		frame.BackgroundTransparency = if row.isMe or k % 2 == 0 then 0 else 1
+		local fill, edge = WorldLeaderboard.rowStyle(row.rank, row.isMe)
+		frame.BackgroundColor3 = rgb(fill)
+		frame.BackgroundTransparency = 0
+		local stroke = frame:FindFirstChild("Edge") :: UIStroke?
+		if edge and not stroke then
+			local s = Instance.new("UIStroke")
+			s.Name = "Edge"
+			s.Thickness = 2
+			s.Parent = frame
+			stroke = s
+		end
+		if stroke then
+			stroke.Enabled = edge ~= nil
+			if edge then
+				stroke.Color = rgb(edge)
+			end
+		end
 		rank.Text = `#{row.rank}`
 		rank.TextColor3 = colors().Rank[row.rank] or colors().Text
 		name.Text = row.name

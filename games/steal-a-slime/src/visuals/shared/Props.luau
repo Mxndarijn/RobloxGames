@@ -37,19 +37,27 @@ local Props = {}
 Props.LEADERBOARD_ROWS = 10
 Props.LEADERBOARD_TITLE = "Top Earners"
 
--- Top Earners text colours (RGB), drawn straight on the board skin's warm cream face (no backing panel,
--- B2 2026-10-18). Dark ink on cream, every colour >= 4.5:1 on the face and on the tan zebra row
--- (tests/PropMesh.spec); ui/WorldLeaderboard.PALETTE must equal this (tests/ui/WorldLeaderboard.spec).
+-- Hall of Fame board colours (RGB), the same look as the Upcoming Events board (server/EventBoardView): a dark
+-- rounded face over the skin's cream panel, a gradient title bar in the board's colour and one rounded card per
+-- row, the top three tinted gold, silver and bronze. Light ink, every colour >= 4.5:1 on the face, the row card and
+-- my row (tests/ui/WorldLeaderboard.spec); ui/WorldLeaderboard.PALETTE must equal this.
 Props.BOARD_PALETTE = table.freeze({
-	Face = table.freeze({ 248, 236, 212 }), -- the skin's cream panel (phoenix_top_earners_board)
-	RowAlt = table.freeze({ 238, 218, 182 }), -- every second row, a tan stripe on the face
-	Me = table.freeze({ 179, 231, 191 }), -- the viewer's own row (client only)
-	Title = table.freeze({ 94, 58, 34 }),
-	Text = table.freeze({ 62, 40, 26 }),
-	Muted = table.freeze({ 138, 106, 74 }),
-	Value = table.freeze({ 24, 104, 56 }),
-	Rank = table.freeze({ table.freeze({ 138, 88, 0 }), table.freeze({ 96, 102, 112 }), table.freeze({ 150, 73, 30 }) }),
+	Face = table.freeze({ 28, 30, 48 }), -- the dark face (EventBoardView FACE)
+	RowAlt = table.freeze({ 46, 50, 76 }), -- a row card
+	Me = table.freeze({ 30, 70, 52 }), -- the viewer's own row (client only)
+	Title = table.freeze({ 150, 96, 0 }), -- the title bar when the board has no colour of its own
+	Text = table.freeze({ 240, 242, 250 }),
+	Muted = table.freeze({ 160, 165, 190 }),
+	Value = table.freeze({ 120, 235, 150 }),
+	Rank = table.freeze({
+		table.freeze({ 255, 204, 64 }),
+		table.freeze({ 210, 220, 235 }),
+		table.freeze({ 236, 150, 90 }),
+	}),
 })
+-- How dark a top-three row card is: its rank colour times this.
+Props.MEDAL_TINT = 0.3
+Props.BOARD_INK = table.freeze({ 24, 20, 36 }) -- outlines (EventBoardView INK)
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
@@ -680,50 +688,80 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	gui.LightInfluence = 0
 	gui.Adornee = board
 	gui.Parent = board
+	-- The dark face covers the skin's cream panel (and its divider), like the Upcoming Events board.
+	local palette = Props.BOARD_PALETTE
 	local content = Instance.new("Frame")
 	content.Name = "Content"
 	content.Size = UDim2.fromScale(1, 1)
-	content.BackgroundTransparency = 1
+	content.BackgroundColor3 = ink(palette.Face)
+	content.BackgroundTransparency = 0
 	content.BorderSizePixel = 0
 	content.Parent = gui
+	local faceCorner = Instance.new("UICorner")
+	faceCorner.CornerRadius = UDim.new(0.04, 0)
+	faceCorner.Parent = content
 	local padding = Instance.new("UIPadding")
-	local pad = UDim.new(0.04, 0)
+	local pad = UDim.new(0.03, 0)
 	padding.PaddingTop, padding.PaddingBottom, padding.PaddingLeft, padding.PaddingRight = pad, pad, pad, pad
 	padding.Parent = content
-	-- The title sits on a rounded strip in the board's own colour, white text on it.
+	-- The title bar: a rounded strip in the board's own colour, light to dark, an ink edge and outlined white text.
+	local accent = if def then def.accent else palette.Title
 	local header = Instance.new("Frame")
 	header.Name = "Header"
-	header.Size = UDim2.fromScale(1, 0.15)
-	header.BackgroundColor3 = if def then ink(def.accent) else ink(Props.BOARD_PALETTE.Title)
+	header.Size = UDim2.fromScale(1, 0.14)
+	header.BackgroundColor3 = rgb(255, 255, 255)
 	header.BorderSizePixel = 0
 	header.Parent = content
 	local headerCorner = Instance.new("UICorner")
-	headerCorner.CornerRadius = UDim.new(0.25, 0)
+	headerCorner.CornerRadius = UDim.new(0.3, 0)
 	headerCorner.Parent = header
+	local headerEdge = Instance.new("UIStroke")
+	headerEdge.Color = ink(Props.BOARD_INK)
+	headerEdge.Thickness = 4
+	headerEdge.LineJoinMode = Enum.LineJoinMode.Round
+	headerEdge.Parent = header
+	local function shade(scale: number): Color3
+		return rgb(
+			math.clamp(math.floor(accent[1] * scale + 0.5), 0, 255),
+			math.clamp(math.floor(accent[2] * scale + 0.5), 0, 255),
+			math.clamp(math.floor(accent[3] * scale + 0.5), 0, 255)
+		)
+	end
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new(shade(1.6), shade(0.8))
+	gradient.Rotation = 90
+	gradient.Parent = header
 	local title = label(header, "Title", if def then def.title else Props.LEADERBOARD_TITLE, rgb(255, 255, 255))
-	title.Position = UDim2.fromScale(0.04, 0.12)
-	title.Size = UDim2.fromScale(0.92, 0.76)
-	-- The skin's red divider runs 2.45 studs below the face top (about 0.21-0.23 of the Board), so the
-	-- rows start just under it and the title keeps the band above.
+	title.Position = UDim2.fromScale(0.04, 0.1)
+	title.Size = UDim2.fromScale(0.92, 0.8)
+	local titleEdge = Instance.new("UIStroke")
+	titleEdge.Color = ink(Props.BOARD_INK)
+	titleEdge.Thickness = 4
+	titleEdge.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+	titleEdge.Parent = title
 	local rows = Instance.new("Frame")
 	rows.Name = "Rows"
-	rows.Position = UDim2.fromScale(0, 0.24)
-	rows.Size = UDim2.fromScale(1, 0.66)
+	rows.Position = UDim2.fromScale(0, 0.17)
+	rows.Size = UDim2.fromScale(1, 0.73)
 	rows.BackgroundTransparency = 1
 	rows.Parent = content
 	-- The viewer's own line under the top 10 ("You  $1.2K"), filled and shown by each client (ui/WorldLeaderboard)
 	-- when they are not in the list.
 	local you = Instance.new("Frame")
 	you.Name = "You"
-	you.Position = UDim2.fromScale(0, 0.91)
-	you.Size = UDim2.fromScale(1, 0.08)
-	you.BackgroundColor3 = ink(Props.BOARD_PALETTE.Me)
+	you.Position = UDim2.fromScale(0, 0.915)
+	you.Size = UDim2.fromScale(1, 0.085)
+	you.BackgroundColor3 = ink(palette.Me)
 	you.BorderSizePixel = 0
 	you.Visible = false
 	you.Parent = content
 	local youCorner = Instance.new("UICorner")
 	youCorner.CornerRadius = UDim.new(0.3, 0)
 	youCorner.Parent = you
+	local youEdge = Instance.new("UIStroke")
+	youEdge.Color = ink(palette.Value)
+	youEdge.Thickness = 2
+	youEdge.Parent = you
 	local youName = label(you, "Name", "You", ink(Props.BOARD_PALETTE.Text))
 	youName.Position = UDim2.fromScale(0.04, 0)
 	youName.Size = UDim2.fromScale(0.5, 1)
@@ -763,11 +801,13 @@ function Props.fillLeaderboard(
 		row.Name = `Row_{k}`
 		row.LayoutOrder = k
 		row.Size = UDim2.fromScale(1, 1 / Props.LEADERBOARD_ROWS - 0.01)
-		row.BackgroundColor3 = ink(palette.RowAlt)
-		row.BackgroundTransparency = if k % 2 == 0 then 0 else 1 -- tan stripes straight on the face
+		row.BackgroundColor3 = ink(palette.RowAlt) -- one rounded card per row; the client tints the top three
+		row.BackgroundTransparency = 0
 		row.BorderSizePixel = 0
+		corner(row, UDim.new(0.3, 0))
 		local rank = label(row, "Rank", `#{entry.rank}`, ink(palette.Rank[k] or palette.Text))
-		rank.Size = UDim2.fromScale(0.15, 1)
+		rank.Position = UDim2.fromScale(0.02, 0.1)
+		rank.Size = UDim2.fromScale(0.13, 0.8)
 		local name = label(row, "Name", entry.name, ink(palette.Text))
 		name.Position = UDim2.fromScale(0.17, 0)
 		name.Size = UDim2.fromScale(0.5, 1)
