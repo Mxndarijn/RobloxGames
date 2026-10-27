@@ -52,7 +52,10 @@ function RareAnnounce.dropBanner(drop: Drop?, now: number, tierNames: { string }
 	if drop == nil or now - drop.at >= RareAnnounce.DROP_SECONDS or now < drop.at - 5 then
 		return nil
 	end
-	local mark = if drop.tier == RareAnnounce.SECRET_TIER then "🌌 SECRET 🌌" else "✨"
+	local tier = drop.tier or 0
+	local mark = if tier >= RareAnnounce.SECRET_TIER
+		then `🌌 {string.upper(tierNames[tier] or "Secret")} 🌌`
+		else "✨"
 	if drop.text then
 		return { text = `{mark} {drop.text}`, kind = "drop" }
 	end

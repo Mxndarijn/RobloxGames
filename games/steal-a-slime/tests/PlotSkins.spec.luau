@@ -100,7 +100,7 @@ describe("plot skins: config", function()
 			end
 		end
 	end)
-	it("a family theme counts every spawn species of its family", function()
+	it("Garden and Frost & Sea keep their first species, Starlight counts its whole family", function()
 		expect(table.concat(PlotSkins.slimes(skin("garden")), ",")).toBe("sprout,cheddar,prickles,flan")
 		expect(size("crystal")).toBe(5)
 		expect(size("starlight")).toBe(8)
