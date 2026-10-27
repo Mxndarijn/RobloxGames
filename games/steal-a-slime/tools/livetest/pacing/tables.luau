@@ -107,14 +107,20 @@ do
 				def.id,
 				def.name,
 				tostring(level + 1),
-				tostring(def.requires),
+				tostring(Upgrades.requiresFor(def, level)),
 				money(cost),
 				money(cumulative),
 				def.text,
 			})
 			table.insert(
 				raw,
-				{ id = def.id, level = level + 1, requires = def.requires, cost = cost, cumulative = cumulative }
+				{
+					id = def.id,
+					level = level + 1,
+					requires = Upgrades.requiresFor(def, level),
+					cost = cost,
+					cumulative = cumulative,
+				}
 			)
 		end
 	end
