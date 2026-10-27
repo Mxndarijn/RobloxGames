@@ -549,36 +549,88 @@ end
 
 -- Hall of Fame arch ---------------------------------------------------------
 
--- Two wooden posts over the Hall of Fame path where it leaves the ring path, a beam and a red sign reading
--- "HALL OF FAME" on both sides. Front = local -Z (towards the fountain). Only the posts are solid; the beam and the
--- sign sit high above head height.
-Props.HALL_ARCH = table.freeze({ span = 22, height = 17, post = 2 })
+-- The Hall of Fame entrance over its path where it leaves the ring path, built like the Hall of Fame boards' frame
+-- (shared/modeling-kit/models/phoenix_top_earners_board.py, ranch palette): two chunky dark-wood pillars with cream
+-- caps and knobs on goo puddles, knee braces, a top rail under a red barn roof with a cream eave, and a cream sign
+-- panel carrying the boards' gradient title bar ("HALL OF FAME", both sides). Front = local -Z (towards the fountain).
+-- Only the pillars (and their feet) are solid; everything from the knee braces up hangs above head height.
+Props.HALL_ARCH = table.freeze({ span = 22, height = 17, post = 2.2 })
+-- Ranch kit colours (shared/modeling-kit/lib/color.py), the same as the board mesh.
+Props.RANCH_COLORS = table.freeze({
+	Wood = table.freeze({ 196, 138, 86 }),
+	WoodDark = table.freeze({ 158, 108, 68 }),
+	Cream = table.freeze({ 248, 236, 212 }),
+	Roof = table.freeze({ 214, 92, 84 }),
+	RoofDark = table.freeze({ 176, 70, 70 }),
+	Goo = table.freeze({ 110, 226, 170 }),
+})
 
 function Props.hallArch(): Model
 	local m = Instance.new("Model")
 	m.Name = "HallOfFameArch"
-	local A = Props.HALL_ARCH
-	local wood, beamWood, red = rgb(120, 72, 40), rgb(150, 96, 54), rgb(214, 66, 58)
-	local half = A.span / 2
-	local root = part(m, "PostL", Vector3.new(A.post, A.height, A.post), CFrame.new(-half, A.height / 2, 0), wood, {
-		material = "WoodPlanks",
-	})
-	part(m, "PostR", Vector3.new(A.post, A.height, A.post), CFrame.new(half, A.height / 2, 0), wood, {
-		material = "WoodPlanks",
-	})
-	local beam = part(
-		m,
-		"Beam",
-		Vector3.new(A.span + 4, 2.2, 1.8),
-		CFrame.new(0, A.height + 0.6, 0),
-		beamWood,
-		{ material = "WoodPlanks", canCollide = false }
-	)
-	beam.CanQuery = false
-	local sign = part(m, "Sign", Vector3.new(15, 3.2, 0.5), CFrame.new(0, A.height - 2.3, 0), red, {
-		canCollide = false,
-	})
-	sign.CanQuery = false
+	local A, C = Props.HALL_ARCH, Props.RANCH_COLORS
+	-- Parts render lighter than the kit's vertex colours: darken the wood to match the board posts.
+	local wood = tone(C.Wood):Lerp(Color3.new(), 0.22)
+	local woodDark, cream = tone(C.WoodDark):Lerp(Color3.new(), 0.25), tone(C.Cream)
+	local half, h, w = A.span / 2, A.height, A.post
+	-- Decor above head height or flat on the ground: no collision, no queries.
+	local function decor(name: string, size: Vector3, cf: CFrame, color: Color3, shape: string?): Part
+		local p = part(m, name, size, cf, color, { canCollide = false, shape = shape })
+		p.CanQuery = false
+		p.CanTouch = false
+		return p
+	end
+	local root
+	for _, s in { -1, 1 } do
+		local side = if s < 0 then "L" else "R"
+		local post = part(m, `Post{side}`, Vector3.new(w, h, w), CFrame.new(s * half, h / 2, 0), woodDark)
+		root = root or post
+		part(
+			m,
+			`Foot{side}`,
+			Vector3.new(w + 1, 0.8, w + 1.4),
+			CFrame.new(s * half, 0.4, 0),
+			woodDark:Lerp(Color3.new(), 0.12)
+		)
+		decor(
+			`Goo{side}`,
+			Vector3.new(0.12, 3.6, 3.2),
+			CFrame.new(s * (half + 0.6), 0.25, -0.8) * CFrame.Angles(0, 0, math.rad(90)),
+			tone(C.Goo),
+			"Cylinder"
+		)
+		-- knee brace from the pillar up under the sign
+		decor(
+			`Knee{side}`,
+			Vector3.new(3, 0.6, 0.6),
+			CFrame.new(s * (half - 1.9), h - 4.6, 0) * CFrame.Angles(0, 0, math.rad(s * 40)),
+			woodDark
+		)
+	end
+	-- top rail between the pillars, the cream eave over it and the red barn roof (two wedges, ridge along X)
+	decor("TopRail", Vector3.new(A.span + w, 1, 1.4), CFrame.new(0, h - 0.5, 0), woodDark)
+	decor("Eave", Vector3.new(A.span + w + 3.4, 0.5, 3), CFrame.new(0, h + 0.25, 0), cream)
+	-- goo drips on the eave, both sides, like the boards'
+	for k, d in { { -9, -1 }, { 7.5, -1 }, { -6.5, 1 }, { 9.5, 1 } } do
+		decor(`Drip{k}`, Vector3.new(0.8, 1.1, 0.8), CFrame.new(d[1], h + 0.05, d[2] * 1.45), tone(C.Goo), "Ball")
+	end
+	local roofLen, rise, depth = A.span + w + 3.8, 1.8, 1.8
+	for _, s in { -1, 1 } do
+		local roof = Instance.new("WedgePart")
+		roof.Name = if s < 0 then "RoofFront" else "RoofBack"
+		roof.Size = Vector3.new(roofLen, rise, depth)
+		-- a WedgePart's slope rises toward its -Z: turn the front half round so both slopes meet at the ridge
+		roof.CFrame = CFrame.new(0, h + 0.5 + rise / 2, s * depth / 2)
+			* CFrame.Angles(0, if s < 0 then math.pi else 0, 0)
+		roof.Color = if s < 0 then tone(C.Roof) else tone(C.RoofDark)
+		roof.Material = Enum.Material.SmoothPlastic
+		roof.TopSurface, roof.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+		roof.Anchored, roof.CanCollide, roof.CanQuery, roof.CanTouch = true, false, false, false
+		roof.Parent = m
+	end
+	-- the sign: a wood board under the rail, a cream panel each side, the boards' gradient title bar on it
+	decor("SignBoard", Vector3.new(16.4, 4.4, 0.8), CFrame.new(0, h - 3.2, 0), wood)
+	local sign = decor("Sign", Vector3.new(15.6, 3.6, 1), CFrame.new(0, h - 3.2, 0), cream)
 	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = `SignGui{face.Name}`
@@ -588,13 +640,31 @@ function Props.hallArch(): Model
 		gui.LightInfluence = 0
 		gui.Adornee = sign
 		gui.Parent = sign
-		local text = label(gui, "Text", "HALL OF FAME", rgb(255, 244, 214))
+		local bar = Instance.new("Frame")
+		bar.Name = "Bar"
+		bar.Position = UDim2.fromScale(0.03, 0.1)
+		bar.Size = UDim2.fromScale(0.94, 0.8)
+		bar.BackgroundColor3 = rgb(255, 255, 255)
+		bar.BorderSizePixel = 0
+		bar.Parent = gui
+		corner(bar, UDim.new(0.35, 0))
+		local edge = Instance.new("UIStroke")
+		edge.Color = tone(Props.BOARD_INK)
+		edge.Thickness = 5
+		edge.LineJoinMode = Enum.LineJoinMode.Round
+		edge.Parent = bar
+		local gradient = Instance.new("UIGradient")
+		gradient.Color =
+			ColorSequence.new(tone(C.Roof):Lerp(Color3.new(1, 1, 1), 0.25), tone(C.RoofDark):Lerp(Color3.new(), 0.2))
+		gradient.Rotation = 90
+		gradient.Parent = bar
+		local text = label(bar, "Text", "HALL OF FAME", rgb(255, 255, 255))
 		text.Position = UDim2.fromScale(0.05, 0.12)
 		text.Size = UDim2.fromScale(0.9, 0.76)
 		local outline = Instance.new("UIStroke")
-		outline.Color = tone(Goo.Ink)
-		outline.Thickness = 3
-		outline.LineJoinMode = Enum.LineJoinMode.Round
+		outline.Color = tone(Props.BOARD_INK)
+		outline.Thickness = 4
+		outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
 		outline.Parent = text
 	end
 	return finish(m, root)
