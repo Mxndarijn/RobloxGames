@@ -1482,7 +1482,7 @@ local Config = {
 		STAND_HEIGHT = 8, -- and a root part at most this high above the plaza ground (not on the fountain)
 		MIN_PLAYERS = RITUAL_MIN_PLAYERS,
 		HOLD_SECONDS = 6, -- everyone must keep standing this long
-		SERVER_COOLDOWN = 240, -- seconds the circle rests after a ritual
+		SERVER_COOLDOWN = 600, -- seconds the circle rests after a ritual
 		PLAYER_COOLDOWN = 600, -- seconds before the same player can count again
 		BLESS_SECONDS = 180,
 		BONUS = table.freeze({ [2] = 0.3, [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants; tiers above SPOTS stay as data but can't be reached (Ritual.bonus caps at SPOTS)
