@@ -213,6 +213,9 @@ WorldLayout.RAMP = table.freeze({ segments = 16, walk = 4.2, railStart = 30, rai
 -- ramp below passes under it: at 120 degrees it still has about 9.7 studs of headroom there (tests/JarTower.spec keeps
 -- at least 6). Built in `step`-degree pieces, so keep `landing` a multiple of `step`.
 WorldLayout.STAIR_TOP = table.freeze({ landing = 120, step = 30 })
+-- The centre post's stub above the top jar's deck (the kit's Newel, collar and round cap, in the trim mesh): a solid
+-- cylinder `radius` wide (the cap's) and `height` tall (the cap's top), so nobody stands inside it.
+WorldLayout.STAIR_NEWEL = table.freeze({ radius = 1.7, height = 4 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; the top jar's hatch sits at this angle, the tube lands in the goo moat.
 -- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
@@ -1688,9 +1691,10 @@ local function variant(node: WorldNode, floor: number, show: string): WorldNode
 	return node
 end
 
--- The top of the stair that arrives on floor f (WorldLayout.STAIR_TOP): the flat landing's colliders, shown and
--- solid only while jar f is the top jar (JarCollide: server/BaseFloors turns them off once a jar stands on
--- it, because the next stair goes on from here). Their look is the top jar's trim mesh.
+-- The top of the stair that arrives on floor f (WorldLayout.STAIR_TOP): the flat landing's and the post stub's
+-- (WorldLayout.STAIR_NEWEL) colliders, shown and solid only while jar f is the top jar (JarCollide: server/BaseFloors
+-- turns them off once a jar stands on it, because the next stair goes on from here). Their look is the top jar's trim
+-- mesh.
 local function stairTop(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local st, top = WorldLayout.STAIR, WorldLayout.STAIR_TOP
 	local deck = WorldLayout.floorTop(f)
@@ -1712,6 +1716,9 @@ local function stairTop(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		local chord = 2 * st.hole * math.sin(math.rad(step) / 2) + 0.3
 		add(radial(`StairLanding_{k}`, { chord, 1, width }, (st.post + st.hole) / 2, deg, deck - 0.5, at, yaw))
 	end
+	-- the post's capped stub standing up from the deck
+	local newel = WorldLayout.STAIR_NEWEL
+	add(disc("StairNewel", newel.height, newel.radius * 2, at({ 0, deck + newel.height / 2, 0 }), JAR_GOO, nil, yaw))
 	return out
 end
 
