@@ -167,6 +167,7 @@ export type BossView = {
 	nextAt: number?, -- server time of the next arrival
 	yourPoints: number, -- this player's hits on this boss
 	yourShare: number, -- yourPoints / the top contributor's points, 0..1
+	yourPercent: number?, -- yourPoints / everyone's points, 0..1 (the boss panel's "You 42%")
 	carrierName: string?, -- haul: who carries it
 	priorityName: string?, -- haul: the top contributor while their head start runs
 	priorityUntil: number?,
