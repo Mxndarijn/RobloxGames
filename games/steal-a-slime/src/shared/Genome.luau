@@ -200,7 +200,8 @@ local function speciesOfTier(tier: number): { SlimeRoster.Entry }
 	return out
 end
 
--- Gives `slime` a species of its own tier (`roll` in [0, 1) picks it), with that species' name and colour. In place.
+-- Gives `slime` a species of its own tier (`roll` in [0, 1) picks it, weighted like a fountain drop:
+-- Genome.pickWeighted), with that species' name and colour. In place.
 -- A slime without a species keeps its random name and colour.
 local function matchSpecies(slime: Slime, roll: number)
 	local list = speciesOfTier(slime.tier)
@@ -208,11 +209,11 @@ local function matchSpecies(slime: Slime, roll: number)
 	if not old then
 		return
 	end
-	if #list == 0 then
+	local entry = Genome.pickWeighted(list, roll)
+	if not entry then
 		slime.species = nil
 		return
 	end
-	local entry = list[math.clamp(math.floor(roll * #list) + 1, 1, #list)]
 	slime.species = entry.id
 	if slime.name == old.name then
 		slime.name = entry.name
