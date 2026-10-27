@@ -102,6 +102,11 @@ function Carry.grabWild(
 			return false, "it's still shrinking"
 		end
 	end
+	local eggKind = EggKind.of(wild.slime)
+	local eggBlock = if eggKind then EggKind.grabBlock(session.data.rebirths, eggKind) else nil
+	if eggBlock then
+		return false, eggBlock
+	end
 	if not wild.boss and not PlayerData.freePad(session.data) then
 		return false, "plot full" -- it could not be brought home (and a paid one keeps your cash)
 	end
