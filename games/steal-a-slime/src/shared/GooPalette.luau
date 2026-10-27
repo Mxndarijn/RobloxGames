@@ -28,6 +28,7 @@ return table.freeze({
 	Muted = rgb(191, 235, 221),
 	MutedWell = rgb(166, 227, 210), -- text in wells and on empty signs
 	Bad = rgb(238, 84, 118), -- danger pink
+	Thief = rgb(255, 40, 40), -- the red outline on a player carrying your slime
 	Info = rgb(56, 120, 112),
 	Warn = rgb(255, 190, 60),
 	Gold = rgb(255, 210, 63),
