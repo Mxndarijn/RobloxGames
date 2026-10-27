@@ -10,6 +10,7 @@ local Remotes = require("../src/shared/Remotes")
 local ServerFixtures = require("./ServerFixtures")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
+local VatState = require("../src/shared/VatState")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
@@ -116,28 +117,18 @@ describe("Actions dispatch", function()
 		s.limiter = {}
 		expect(call(world, 1, "Sell", "b").message).toBe("slime is busy")
 	end)
-	it("Sell and VatAdd refuse a slime the next rebirth uses up and keep it on its pad", function()
-		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("need", 2, { species = FIRST }) }, 0)
-		local result = call(world, 1, "Sell", "need")
-		expect(result.ok).toBe(false)
-		expect(result.message).toBe(Progression.NEEDED_TEXT)
-		s.limiter = {}
-		expect(call(world, 1, "VatAdd", "need").message).toBe(Progression.NEEDED_TEXT)
-		expect(s.data.vat == nil or #(s.data.vat :: any).ids == 0).toBe(true)
-		expect(PlayerData.findSlime(s.data, "need") ~= nil).toBe(true)
-		expect(s.data.cash).toBe(0)
-	end)
-	it("Sell pays for a slime of a needed species once the rebirth already has one", function()
+	it("Sell and VatAdd take a slime the next rebirth would use up", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, {
-			Fixtures.slime("big", 2, { species = FIRST, size = 3 }),
-			Fixtures.slime("small", 2, { species = FIRST }),
+			Fixtures.slime("sell", 2, { species = FIRST }),
+			Fixtures.slime("vat", 2, { species = FIRST }),
 		}, 0)
-		local needed = Progression.neededIds(s.data)
-		local spare = if needed.big then "small" else "big"
-		expect(call(world, 1, "Sell", spare).ok).toBe(true)
-		expect(PlayerData.findSlime(s.data, spare)).toBeNil()
+		expect(call(world, 1, "Sell", "sell").ok).toBe(true)
+		expect(PlayerData.findSlime(s.data, "sell")).toBeNil()
+		expect(s.data.cash > 0).toBe(true)
+		s.limiter = {}
+		expect(call(world, 1, "VatAdd", "vat").ok).toBe(true)
+		expect(VatState.contains(s.data, "vat")).toBe(true)
 	end)
 	it("Favorite sets and clears the keeper", function()
 		local world = ServerFixtures.world()

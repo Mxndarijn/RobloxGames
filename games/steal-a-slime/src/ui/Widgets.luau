@@ -31,6 +31,7 @@ Widgets.Theme = table.freeze({
 	Accent = fromPalette(Goo.Mint),
 	Good = fromPalette(Goo.Mint),
 	Bad = fromPalette(Goo.Bad),
+	Thief = fromPalette(Goo.Thief), -- the outline on a player carrying your slime
 	Info = fromPalette(Goo.Info),
 	Warn = fromPalette(Goo.Warn),
 	Disabled = fromPalette(Goo.Ink),

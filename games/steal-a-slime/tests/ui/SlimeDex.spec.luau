@@ -377,6 +377,27 @@ describe("SlimeDex panel", function()
 		expect(recipe(panel, "soda") ~= nil).toBe(true)
 		expect(UiHarness.find(panel.frame, "ShowAll").Visible).toBe(false)
 	end)
+	it("a tab shows its own cards again after switching away and back, however often", function()
+		local panel = openDex(1920, 1080, DEX)
+		local function click(key: string)
+			UiHarness.fire(UiHarness.find(panel.frame, `Tab_{key}`), "Activated")
+		end
+		for _ = 1, 3 do
+			for _, key in { "boss", "event", "hybrid", "spawn" } do
+				click(key)
+			end
+		end
+		expect(panel.tab()).toBe("spawn")
+		local gummy = card(panel, "gummy")
+		expect(gummy ~= nil).toBe(true)
+		expect(gummy:GetAttribute("Kind")).toBe("spawn")
+		expect(gummy.Parent.Parent).toBe(UiHarness.find(panel.frame, "List"))
+		expect(card(panel, "goozilla")).toBeNil() -- a boss card stays on its own tab
+		expect(UiHarness.find(UiHarness.find(panel.frame, "Pane"), "PaneTitle").Text).toBe("Gummy")
+		click("boss")
+		expect(card(panel, "goozilla") ~= nil).toBe(true)
+		expect(card(panel, "gummy")).toBeNil()
+	end)
 	it("a recipe row marks In base slots with the mint ring and says what is missing", function()
 		local panel = openDex(1920, 1080, DEX, { slimes = slimes({ "gummy" }) })
 		panel.selectTab("hybrid")

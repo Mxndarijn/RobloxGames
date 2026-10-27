@@ -66,7 +66,6 @@ local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
-local Progression = require(ReplicatedStorage.Shared.Progression)
 local PvpBlaster = require(script.Parent.PvpBlaster)
 local PvpFun = require(script.Parent.PvpFun)
 local PvpHeld = require(script.Parent.PvpHeld)
@@ -1108,19 +1107,9 @@ local function kitArrived(record: Record, entry: Scene.Entry, clock: number): bo
 		and clock >= record.rideUntil
 end
 
--- A pad slime's status row: the vat's ("In vat"), else "For rebirth" when the next rebirth uses it up.
--- `needed` caches Progression.neededIds per owner for one reconcile.
-function WorldView.padStatus(owner: any, id: string, needed: { [number]: { [string]: boolean } }): string?
-	local vat = VatView.labelStatus(owner.data, id)
-	if vat then
-		return vat
-	end
-	local set = needed[owner.userId]
-	if not set then
-		set = Progression.neededIds(owner.data)
-		needed[owner.userId] = set
-	end
-	return if set[id] then "For rebirth" else nil
+-- A pad slime's status row: the vat's ("In vat"), else none.
+function WorldView.padStatus(owner: any, id: string): string?
+	return VatView.labelStatus(owner.data, id)
 end
 
 --[[
@@ -1150,7 +1139,6 @@ function WorldView.reconcile(
 		end
 	end
 	table.clear(bossMoves)
-	local needed: { [number]: { [string]: boolean } } = {} -- per owner: slimes the next rebirth uses up
 	for id, entry in entries do
 		local record: Record? = records[id]
 		if not record then
@@ -1232,7 +1220,7 @@ function WorldView.reconcile(
 			entry.income,
 			if entry.state == "Pad" then entry.pad else nil,
 			now,
-			if owner then WorldView.padStatus(owner, id, needed) else nil
+			if owner then WorldView.padStatus(owner, id) else nil
 		)
 	end
 	table.clear(stalePlots) -- placed once on their new pads (a pad not built yet retries through its key)
