@@ -5176,6 +5176,13 @@
     "uploadedAt": "2026-10-16T07:11:56Z",
     "versions": 1
   },
+  "slime_abyss": {
+    "assetId": "70673494347652",
+    "assetType": "Model",
+    "sha256": "ebf334aa1a4dda0f",
+    "uploadedAt": "2026-10-27T21:08:21Z",
+    "versions": 1
+  },
   "slime_acc_crown": {
     "assetId": "74364823935489",
     "assetType": "Model",
@@ -5270,6 +5277,13 @@
     "uploadedAt": "2026-10-20T12:48:44Z",
     "versions": 3
   },
+  "slime_captain_goo": {
+    "assetId": "85380821433285",
+    "assetType": "Model",
+    "sha256": "e6908d87a4162b35",
+    "uploadedAt": "2026-10-27T21:08:04Z",
+    "versions": 1
+  },
   "slime_catfish": {
     "assetId": "76770603623417",
     "assetType": "Model",
@@ -5360,6 +5374,13 @@
     "uploadedAt": "2026-10-20T12:50:44Z",
     "versions": 3
   },
+  "slime_elder_oak": {
+    "assetId": "116150728691082",
+    "assetType": "Model",
+    "sha256": "8cee6636e89aba6e",
+    "uploadedAt": "2026-10-27T21:07:44Z",
+    "versions": 1
+  },
   "slime_flan": {
     "assetId": "89380442384228",
     "assetType": "Model",
@@ -5406,6 +5427,13 @@
     "sha256": "07f5ab3a59782cae",
     "uploadedAt": "2026-10-20T12:51:15Z",
     "versions": 3
+  },
+  "slime_gaia": {
+    "assetId": "83101861537427",
+    "assetType": "Model",
+    "sha256": "6aaad9fe573eb214",
+    "uploadedAt": "2026-10-27T21:07:56Z",
+    "versions": 1
   },
   "slime_glitch": {
     "assetId": "112653965607800",
@@ -5601,6 +5629,13 @@
     "uploadedAt": "2026-10-20T12:55:46Z",
     "versions": 3
   },
+  "slime_phoenix": {
+    "assetId": "112027311988161",
+    "assetType": "Model",
+    "sha256": "d8fa5cf229f27297",
+    "uploadedAt": "2026-10-27T21:07:27Z",
+    "versions": 1
+  },
   "slime_prickles": {
     "assetId": "128744905531044",
     "assetType": "Model",
@@ -5650,6 +5685,13 @@
     "uploadedAt": "2026-10-20T12:57:06Z",
     "versions": 3
   },
+  "slime_sir_goo": {
+    "assetId": "86600172378002",
+    "assetType": "Model",
+    "sha256": "e0951ad5a60e756d",
+    "uploadedAt": "2026-10-27T21:07:21Z",
+    "versions": 1
+  },
   "slime_snow_bunny": {
     "assetId": "122177895345867",
     "assetType": "Model",
@@ -5677,6 +5719,13 @@
     "sha256": "bb1b9511aa6a1130",
     "uploadedAt": "2026-10-20T12:57:48Z",
     "versions": 3
+  },
+  "slime_sunny": {
+    "assetId": "76150467529446",
+    "assetType": "Model",
+    "sha256": "8661c88f9d1b09a1",
+    "uploadedAt": "2026-10-27T21:07:34Z",
+    "versions": 1
   },
   "slime_sushi": {
     "assetId": "79864638354637",
@@ -5717,6 +5766,13 @@
     ],
     "sha256": "2bb083b94d66ae70",
     "uploadedAt": "2026-10-16T10:38:55Z",
+    "versions": 1
+  },
+  "slime_yeti": {
+    "assetId": "87284738623950",
+    "assetType": "Model",
+    "sha256": "ce1e6a38894f83c0",
+    "uploadedAt": "2026-10-27T21:08:11Z",
     "versions": 1
   },
   "slime_zap": {
