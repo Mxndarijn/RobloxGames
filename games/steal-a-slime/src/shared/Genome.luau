@@ -110,11 +110,32 @@ function Genome.rollSpecies(
 	if tier < 1 or tier > Config.MAX_TIER then
 		return nil
 	end
-	local list = Genome.speciesPool(tier, families, extra)
+	return Genome.pickWeighted(Genome.speciesPool(tier, families, extra), roll)
+end
+
+-- How often a species spawns within its rarity, relative to the others: a species earning x more is
+-- x ^ SPECIES_RARITY_POWER times rarer.
+function Genome.speciesWeight(entry: SlimeRoster.Entry): number
+	return 1 / entry.income ^ Config.SPECIES_RARITY_POWER
+end
+
+-- One entry of `list`, weighted by Genome.speciesWeight, for a roll in [0, 1); nil for an empty list.
+function Genome.pickWeighted(list: { SlimeRoster.Entry }, roll: number): SlimeRoster.Entry?
 	if #list == 0 then
 		return nil
 	end
-	return list[math.clamp(math.floor(roll * #list) + 1, 1, #list)]
+	local total = 0
+	for _, entry in list do
+		total += Genome.speciesWeight(entry)
+	end
+	local at = math.clamp(roll, 0, 1) * total
+	for _, entry in list do
+		at -= Genome.speciesWeight(entry)
+		if at < 0 then
+			return entry
+		end
+	end
+	return list[#list]
 end
 
 function Genome.rollName(rng: Rng.Rng): string
@@ -167,7 +188,11 @@ function Genome.baseIncome(slime: Slime): number
 		return 0
 	end
 	local growth = 1 + Config.GROWTH_MAX_INCOME_BONUS * Genome.growthFraction(slime)
-	return Genome.rarity(slime.tier).income * slime.size * growth * Genome.brewMultiplier(slime)
+	return Genome.rarity(slime.tier).income
+		* slime.size
+		* growth
+		* Genome.brewMultiplier(slime)
+		* SlimeRoster.incomeBonus(slime.species)
 end
 
 -- Income multiplier a vat-made slime keeps for life: BREWED_INCOME_MULT, or RECIPE_INCOME_MULT for a recipe hybrid.

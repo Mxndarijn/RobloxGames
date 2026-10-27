@@ -7,6 +7,7 @@ local MeshAssets = require("../src/shared/MeshAssets")
 local PlayerData = require("../src/shared/PlayerData")
 local RanchProps = require("../src/visuals/shared/RanchProps")
 local Rng = require("../src/shared/Rng")
+local SlimeRoster = require("../src/shared/SlimeRoster")
 local TestRunner = require("./TestRunner")
 local TripleMerge = require("../src/shared/TripleMerge")
 local VatDecor = require("../src/visuals/shared/VatDecor")
@@ -80,7 +81,6 @@ describe("TripleMerge: rules", function()
 		local ins = three(2)
 		local child = TripleMerge.merge(ins, Rng.new(1), "x")
 		expect(child.species ~= nil).toBe(true)
-		local SlimeRoster = require("../src/shared/SlimeRoster")
 		expect((SlimeRoster.get(child.species :: string) :: any).tier).toBe(child.tier)
 		expect(child.size >= Config.MIN_SIZE and child.size <= Config.MAX_SIZE).toBe(true)
 	end)
@@ -92,7 +92,6 @@ end)
 
 describe("TripleMerge: recipes, caps and the assist", function()
 	local MergeRecipes = require("../src/shared/MergeRecipes")
-	local SlimeRoster = require("../src/shared/SlimeRoster")
 
 	local function trio(tier: number, species: { string }): { Genome.Slime }
 		local out = {}
@@ -185,7 +184,12 @@ describe("TripleMerge: recipes, caps and the assist", function()
 			end
 		end
 		local base = 1 - Config.TRIPLE_MERGE_JUMP_CHANCE
-		local expected = base * (Config.MERGE_ASSIST_CHANCE + (1 - Config.MERGE_ASSIST_CHANCE) / 5)
+		local total = 0
+		for _, id in { "whiskers", "lop", "moo", "chomp", "pengoo" } do
+			total += Genome.speciesWeight(SlimeRoster.get(id) :: any)
+		end
+		local pengoo = Genome.speciesWeight(SlimeRoster.get("pengoo") :: any) / total
+		local expected = base * (Config.MERGE_ASSIST_CHANCE + (1 - Config.MERGE_ASSIST_CHANCE) * pengoo)
 		expect(math.abs(hits / n - expected) < 0.03).toBe(true)
 	end)
 	it("one seed is one result, and a recipe hit draws the same numbers as a random merge", function()

@@ -17,6 +17,7 @@ export type Entry = {
 	look: string, -- colour / kit mesh / accessory note for modelling
 	family: string?, -- FountainTiers family id (v19); nil = Classic, the original roster
 	kind: Kind, -- "spawn" rolls from the fountain and random merges; the others only from their own system
+	income: number, -- species income bonus within its rarity (INCOME; 1 = the rarity's base income)
 }
 
 -- spawn: the fountain and random merges. hybrid: merge recipes only. boss: the boss event only.
@@ -24,6 +25,52 @@ export type Entry = {
 export type Kind = "spawn" | "hybrid" | "boss" | "event"
 
 local SECRET_TIER = 7
+
+-- Income bonus of each species within its rarity (Genome.baseIncome). Later families earn more, and a species
+-- that earns more spawns less often within its rarity (Genome.speciesWeight). Ids not listed earn x1.
+local INCOME: { [string]: number } = {
+	-- Common
+	gummy = 1,
+	mochi = 0.9,
+	bubbles = 1.05,
+	pebble = 0.95,
+	sprout = 1.1,
+	cheddar = 1.15,
+	-- Uncommon
+	bumble = 1,
+	mushie = 0.95,
+	froggo = 1.05,
+	prickles = 1.1,
+	flan = 1.15,
+	-- Rare
+	whiskers = 1,
+	lop = 0.95,
+	moo = 1.05,
+	chomp = 1.15,
+	pengoo = 1.2,
+	-- Epic
+	blaze = 1,
+	octo = 0.95,
+	frostbite = 1.15,
+	zap = 1.2,
+	imp = 1.3,
+	drako = 1.35,
+	-- Legendary
+	king = 1,
+	ninja = 1.15,
+	robo = 1.3,
+	-- Mythic
+	cosmo = 1,
+	amethyst = 1.25,
+	seraph = 1.3,
+	prism = 1.35,
+	-- Secret
+	midas = 1,
+	boo = 1.25,
+	eclipse = 1.3,
+}
+local HYBRID_INCOME = 1.2 -- every merge hybrid (on top of Config.RECIPE_INCOME_MULT)
+local EVENT_INCOME = 1.4 -- every limited event Secret
 
 local function e(id: string, name: string, tier: number, look: string, family: string?, kind: Kind?): Entry
 	return table.freeze({
@@ -33,6 +80,7 @@ local function e(id: string, name: string, tier: number, look: string, family: s
 		look = look,
 		family = family,
 		kind = (kind or "spawn") :: Kind,
+		income = INCOME[id] or if kind == "hybrid" then HYBRID_INCOME elseif kind == "event" then EVENT_INCOME else 1,
 	})
 end
 
@@ -123,6 +171,12 @@ local SlimeRoster = {
 
 function SlimeRoster.get(id: string): Entry?
 	return byId[id]
+end
+
+-- Income bonus of species `id` within its rarity; 1 for an unknown or missing id.
+function SlimeRoster.incomeBonus(id: string?): number
+	local entry = if id then byId[id] else nil
+	return if entry then entry.income else 1
 end
 
 -- Spawning types of `tier` in one family: `family` nil = the Classic (Meadow) species.

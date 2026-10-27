@@ -87,11 +87,17 @@ end
 
 local CLASSIC_ONLY: MergeRecipes.Ctx = { unlocked = MergeRecipes.classicOnly }
 
+-- One species id of `list`, weighted like the fountain (Genome.pickWeighted).
 local function pickSpecies(list: { string }, roll: number): string?
-	if #list == 0 then
-		return nil
+	local entries = {}
+	for _, id in list do
+		local entry = SlimeRoster.get(id)
+		if entry then
+			table.insert(entries, entry)
+		end
 	end
-	return list[math.clamp(math.floor(roll * #list) + 1, 1, #list)]
+	local entry = Genome.pickWeighted(entries, roll)
+	return if entry then entry.id else nil
 end
 
 -- Builds the child (no side effects). `slimes` must have passed canMerge. `ctx` (default: Classic only,

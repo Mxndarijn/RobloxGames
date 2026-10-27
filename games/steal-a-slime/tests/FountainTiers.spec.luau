@@ -135,8 +135,16 @@ describe("FountainTiers: species", function()
 				local want = #SlimeRoster.forTier(tier) + #SlimeRoster.forTier(tier, family.id)
 				expect(#pool).toBe(want)
 				local seen = {}
-				for k = 0, #pool - 1 do
-					local entry = Genome.rollSpecies(tier, (k + 0.5) / #pool, { family.id }) :: any
+				local total = 0
+				for _, entry in pool do
+					total += Genome.speciesWeight(entry)
+				end
+				local at = 0
+				for _, target in pool do
+					-- the middle of this species' slice of the weighted roll
+					local w = Genome.speciesWeight(target)
+					local entry = Genome.rollSpecies(tier, (at + w / 2) / total, { family.id }) :: any
+					at += w
 					expect(entry.tier).toBe(tier)
 					expect(entry.family == nil or entry.family == family.id).toBe(true)
 					seen[entry.id] = true
@@ -206,8 +214,17 @@ describe("FountainTiers: drops", function()
 		end
 		local expected = 0
 		for tier = 1, Config.MAX_TIER do
-			local all = #Genome.speciesPool(tier, pool)
-			expected += weights[tier] / sum * (all - #SlimeRoster.forTier(tier)) / all
+			local all, fam = 0, 0
+			for _, entry in Genome.speciesPool(tier, pool) do
+				local w = Genome.speciesWeight(entry)
+				all += w
+				if entry.family then
+					fam += w
+				end
+			end
+			if all > 0 then
+				expected += weights[tier] / sum * fam / all
+			end
 		end
 		expect(math.abs(family / total - expected) < 0.03).toBe(true)
 	end)
@@ -226,11 +243,13 @@ describe("FountainTiers: drops", function()
 		expect(#Genome.speciesPool(1, nil, { event })).toBe(#SlimeRoster.forTier(1))
 		expect(Genome.rollSpecies(SlimeRoster.SECRET_TIER, 0.999, nil, { event })).toBe(event)
 	end)
-	it("family drops sell and earn like Classic ones: no multiplier, same tier / size income", function()
+	it("family drops earn their species bonus, and their price follows", function()
 		local classic = Fixtures.slime("a", 2, { species = "bumble", size = 1.2 })
 		local family = Fixtures.slime("b", 2, { species = "prickles", size = 1.2 })
-		expect(Genome.baseIncome(family)).toBe(Genome.baseIncome(classic))
-		expect(Spawner.price(family, 0.9)).toBe(Spawner.price(classic, 0.9))
+		local ratio = SlimeRoster.incomeBonus("prickles") / SlimeRoster.incomeBonus("bumble")
+		expect(ratio > 1).toBe(true)
+		expect(math.abs(Genome.baseIncome(family) / Genome.baseIncome(classic) - ratio) < 1e-9).toBe(true)
+		expect(Spawner.price(family, 0.9) > Spawner.price(classic, 0.9)).toBe(true)
 	end)
 end)
 
