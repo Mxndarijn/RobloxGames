@@ -16,16 +16,6 @@ StealAlertLayout.LABEL_H = 18
 StealAlertLayout.FLASH = 40 -- edge flash thickness where nothing hugs the edge
 StealAlertLayout.PING_FILL_TRANSPARENCY = 0.7 -- the red tint inside the thief's outline
 
--- Whose character carries the thief ping (red outline + THIEF sign) this frame: the thief's, for as long as
--- they carry my slime, wherever they are and whether or not the edge arrow shows. Never in the Studio
--- fake (it has no thief).
-function StealAlertLayout.pingTarget<T>(stealing: boolean, debug: boolean, character: T?): T?
-	if debug or not stealing then
-		return nil
-	end
-	return character
-end
-
 -- The box the arrow (with its distance label) stays in: right of the nav, under the shown
 -- banner stack (`bannerH`), `Layout.MARGIN` from the other edges.
 function StealAlertLayout.safeRect(screen: Layout.Screen, bannerH: number): Layout.Rect

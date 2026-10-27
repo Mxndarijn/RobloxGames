@@ -113,9 +113,10 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 
 	-- Current theft(s) of my slimes: thief UserId (nil in the Studio fake) and when it began.
 	local theft: { thiefId: number?, startedAt: number, played: number }? = nil
-	local ping: BillboardGui? = nil
-	local pingHighlight: Highlight? = nil
-	local pingTarget: Model? = nil
+	-- Everyone carrying one of my slimes right now (the arrow follows `theft.thiefId`, the first of them).
+	local thiefIds: { number } = {}
+	-- The ping (THIEF sign + red outline) on each thief's character.
+	local pings: { [Model]: { Instance } } = {}
 	local sweepClock = 0
 	local screen: Layout.Screen? = nil
 	local bannerHeight: () -> number = function()
@@ -141,29 +142,12 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		Debris:AddItem(sound, 5)
 	end
 
-	local function clearPing()
-		if ping then
-			ping:Destroy()
-			ping = nil
-		end
-		if pingHighlight then
-			pingHighlight:Destroy()
-			pingHighlight = nil
-		end
-		pingTarget = nil
-	end
-
-	local function setPing(character: Model?)
-		if character == pingTarget then
+	local function addPing(character: Model)
+		local rootPart = character:FindFirstChild("HumanoidRootPart")
+		if not rootPart or not rootPart:IsA("BasePart") then
 			return
 		end
-		clearPing()
-		local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-		if not character or not rootPart or not rootPart:IsA("BasePart") then
-			return
-		end
-		pingTarget = character
-		ping = create("BillboardGui", {
+		local sign = create("BillboardGui", {
 			Name = "StealPing",
 			Adornee = rootPart,
 			AlwaysOnTop = true,
@@ -179,10 +163,10 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 				Font = Theme.Font,
 				TextColor3 = Color3.new(1, 1, 1),
 				TextStrokeTransparency = 0,
-				TextStrokeColor3 = RED,
+				TextStrokeColor3 = Theme.Thief,
 			}),
 		})
-		pingHighlight = create("Highlight", {
+		local outline = create("Highlight", {
 			Name = "StealHighlight",
 			Adornee = character,
 			FillColor = Theme.Thief,
@@ -191,12 +175,38 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
 			Parent = character,
 		})
+		pings[character] = { sign, outline }
+	end
+
+	-- Keeps exactly one ping on each of `characters`; each one is made once and stays until that thief is done.
+	local function syncPings(characters: { Model })
+		local wanted: { [Model]: boolean } = {}
+		for _, character in characters do
+			wanted[character] = true
+		end
+		for character, parts in pings do
+			if not wanted[character] or parts[2].Parent ~= character then
+				for _, part in parts do
+					part:Destroy()
+				end
+				pings[character] = nil
+			end
+		end
+		for character in wanted do
+			if not pings[character] then
+				addPing(character)
+			end
+		end
+	end
+
+	local function characterOf(userId: number): Model?
+		local player = Players:GetPlayerByUserId(userId)
+		return if player then player.Character else nil
 	end
 
 	local function thiefCharacter(): Model?
 		local id = theft and theft.thiefId
-		local thief = if id then Players:GetPlayerByUserId(id) else nil
-		return if thief then thief.Character else nil
+		return if id then characterOf(id) else nil
 	end
 
 	local function hideArrow()
@@ -338,13 +348,8 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		if not (StealAlert.enabled() or debugOn()) then
 			return
 		end
-		local thiefId: number? = nil
-		for _, view in state.slimes or {} do
-			if view.stolenBy ~= nil then
-				thiefId = view.stolenBy
-				break
-			end
-		end
+		thiefIds = StealAlert.thieves(state.slimes)
+		local thiefId = thiefIds[1]
 		if thiefId ~= nil then
 			if theft == nil or theft.thiefId ~= thiefId then
 				theft = { thiefId = thiefId, startedAt = os.clock(), played = 0 }
@@ -370,9 +375,18 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		elseif not debug and theft and theft.thiefId == nil then
 			theft = nil
 		end
-		-- The ping follows the theft alone; the arrow below only decides whether it also shows.
+		-- The pings follow the thefts alone; the arrow below only decides whether it also shows.
+		local thieves: { Model } = {}
+		if theft and not debug then
+			for _, id in thiefIds do
+				local thief = characterOf(id)
+				if thief then
+					table.insert(thieves, thief)
+				end
+			end
+		end
+		syncPings(thieves)
 		local character = thiefCharacter()
-		setPing(StealAlertLayout.pingTarget(theft ~= nil, debug, character))
 		if theft == nil then
 			flashStroke.Transparency = 1
 			hideArrow()
