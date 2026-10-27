@@ -209,6 +209,24 @@ local RARITIES: { Rarity } = {
 		color = { 20, 240, 220 },
 		carrySlow = 0.35,
 	},
+	{
+		-- Celestial: above Secret; grabbed from rebirth 18 (CATCH_REBIRTHS).
+		tier = 8,
+		name = "Celestial",
+		income = 2500,
+		weight = 0.015,
+		color = { 255, 236, 150 },
+		carrySlow = 0.4,
+	},
+	{
+		-- Divine: the top; grabbed from rebirth 25, or brewed from three Secrets that share a shine (SHINE_RECIPE).
+		tier = 9,
+		name = "Divine",
+		income = 8000,
+		weight = 0.004,
+		color = { 255, 130, 245 },
+		carrySlow = 0.45,
+	},
 }
 
 -- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player to own these SlimeRoster
@@ -218,7 +236,7 @@ local RARITIES: { Rarity } = {
 -- (FountainTiers), merge hybrids start at rebirth 12, and boss and event slimes are never asked for (a boss
 -- win gives no slime).
 local REBIRTH_SLIMES: { { string } } = {
-	{ "whiskers" }, -- 1
+	{ "bumble" }, -- 1
 	{ "moo" },
 	{ "blaze" },
 	{ "octo" },
@@ -256,15 +274,15 @@ end
 local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 0, title = "Slime Rookie", merge = 1 },
 	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed", merge = 2 },
-	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard", merge = 3 },
-	{ rebirths = 5, title = "Blob Baron", unlock = "Luck", merge = 4 },
+	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard", merge = 4 },
+	{ rebirths = 5, title = "Blob Baron", unlock = "Luck", merge = 5 },
 	{ rebirths = 6, title = "Goo Tycoon", income = 0.05, family = "frost" },
 	{ rebirths = 7, title = "Jelly Magnate", income = 0.1 },
-	{ rebirths = 8, title = "Ooze Overlord", income = 0.15, merge = 5 },
+	{ rebirths = 8, title = "Ooze Overlord", income = 0.15 },
 	{ rebirths = 10, title = "Slime Sovereign", income = 0.25, family = "starlight" },
-	{ rebirths = 12, title = "Gel Emperor", income = 0.35, merge = 6 },
-	{ rebirths = 15, title = "Gelatinous Legend", income = 0.5 },
-	{ rebirths = 20, title = "Mythic Monarch", income = 1 },
+	{ rebirths = 12, title = "Gel Emperor", income = 0.35 },
+	{ rebirths = 15, title = "Gelatinous Legend", income = 0.5, merge = 6 },
+	{ rebirths = 20, title = "Mythic Monarch", income = 1, merge = 7 },
 	{ rebirths = 25, title = "Goo Titan", income = 1.5 },
 	{ rebirths = 30, title = "Slime Deity", income = 2 },
 }
@@ -450,11 +468,18 @@ local DEX_MILESTONES: { species: { DexMilestone } } = {
 
 local PLOT_SKINS: { PlotSkin } = {
 	{ id = "classic", name = "Classic Ranch", color = { 110, 226, 170 } },
-	{ id = "garden", name = "Garden", family = "orchard", threshold = 0.75, color = { 252, 176, 118 } },
+	-- Garden and Frost & Sea list their first family species, so a new family slime never moves the unlock.
+	{
+		id = "garden",
+		name = "Garden",
+		species = { "sprout", "cheddar", "prickles", "flan" },
+		threshold = 0.75,
+		color = { 252, 176, 118 },
+	},
 	{
 		id = "crystal",
 		name = "Frost & Sea",
-		family = "frost",
+		species = { "chomp", "pengoo", "frostbite", "zap", "ninja" },
 		threshold = 0.75,
 		color = { 124, 210, 236 },
 		floor = { color = { 148, 124, 190 }, material = "Slate" },
@@ -739,8 +764,8 @@ local Config = {
 	MAX_SIZE = 2.0,
 	-- Mythic / Secret presentation (contract/slime-odds.md): a generated slime of these tiers is at least this big
 	-- (Genome.sizeFloor) and lives this many WILD_LIFETIMEs in the wild (Spawner.wildLifetime). Other tiers: none / 1.
-	TIER_SIZE_FLOOR = table.freeze({ [6] = 1.2, [7] = 1.4 }) :: { [number]: number },
-	TIER_LIFETIME_MULT = table.freeze({ [6] = 1.5, [7] = 2 }) :: { [number]: number },
+	TIER_SIZE_FLOOR = table.freeze({ [6] = 1.2, [7] = 1.4, [8] = 1.5, [9] = 1.6 }) :: { [number]: number },
+	TIER_LIFETIME_MULT = table.freeze({ [6] = 1.5, [7] = 2, [8] = 2.5, [9] = 3 }) :: { [number]: number },
 
 	-- World
 	PLOT_COUNT = 8, -- one plot per player; server MaxPlayers = 8
@@ -770,36 +795,36 @@ local Config = {
 	-- Rebirth
 	-- cash rebirth N costs (Economy.rebirthCost(N - 1)), set with the pacing sim (docs/economy-proposal.html)
 	REBIRTH_COSTS = table.freeze({
-		81_000,
-		400_000,
-		1_100_000,
-		3_500_000,
-		15_000_000,
-		42_000_000,
-		90_000_000,
+		15_000,
+		120_000,
+		700_000,
+		2_900_000,
+		12_000_000,
+		39_000_000,
+		89_000_000,
 		180_000_000,
-		330_000_000,
-		660_000_000,
-		1_200_000_000,
-		2_000_000_000,
-		3_700_000_000,
-		6_800_000_000,
-		13_000_000_000,
-		25_000_000_000,
-		42_000_000_000,
-		56_000_000_000,
-		75_000_000_000,
-		130_000_000_000,
-		230_000_000_000,
-		360_000_000_000,
-		440_000_000_000,
-		510_000_000_000,
-		740_000_000_000,
-		1_000_000_000_000,
-		1_400_000_000_000,
-		1_500_000_000_000,
-		1_600_000_000_000,
-		1_700_000_000_000,
+		400_000_000,
+		860_000_000,
+		1_400_000_000,
+		2_200_000_000,
+		4_200_000_000,
+		8_700_000_000,
+		19_000_000_000,
+		46_000_000_000,
+		92_000_000_000,
+		120_000_000_000,
+		150_000_000_000,
+		250_000_000_000,
+		620_000_000_000,
+		1_300_000_000_000,
+		2_200_000_000_000,
+		2_800_000_000_000,
+		3_600_000_000_000,
+		5_300_000_000_000,
+		6_700_000_000_000,
+		7_200_000_000_000,
+		7_900_000_000_000,
+		8_500_000_000_000,
 	}) :: { number },
 	-- income multiplier each rebirth adds, by band: rebirth n adds the `step` of the last band with `from` <= n
 	REBIRTH_MULTIPLIER_STEPS = table.freeze({
@@ -876,14 +901,24 @@ local Config = {
 	-- Merge vat (VatState, TripleMerge, CONTRACT.md §21): three slimes of one rarity brew into one of a higher rarity
 	VAT_SIZE = 3, -- spots in a plot's vat
 	-- seconds one brew takes, by the rarity going in (before Quick brew)
-	MERGE_BREW_SECONDS = table.freeze({ 60, 180, 420, 900, 1800, 3600, 5400 }) :: { number },
+	MERGE_BREW_SECONDS = table.freeze({ 300, 180, 420, 900, 1800, 3600, 5400, 7200, 9000 }) :: { number },
 	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (up to MERGE_JUMP_MAX_TIER)
-	MERGE_MAX_TIER = 6, -- a random merge result is at most Mythic; three slimes of this tier or higher only merge in a recipe
+	MERGE_MAX_TIER = 8, -- a random merge result is at most Celestial; three slimes of this tier or higher only merge in a recipe
+	-- three slimes of `from` that share a shine brew a random `into` species (keeping the shine), from `rebirths`
+	SHINE_RECIPE = table.freeze({ from = 7, into = 9, rebirths = 25 }),
 	MERGE_JUMP_MAX_TIER = 5, -- a +2 jump lands on Legendary at most
 	MERGE_ASSIST_CHANCE = 0.35, -- share of random merge results drawn from the species the player hasn't found
 	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
 	-- a species earning x times its rarity's income (SlimeRoster INCOME) spawns x ^ this times less often within it
 	SPECIES_RARITY_POWER = 4,
+	JACKPOT_SHARE = 0.1, -- a jackpot species (SlimeRoster.jackpot) is this share of its rarity's drops, whatever else is in the pool
+	-- Shines (weather mutations): a wild slime rolls at most one when it spawns. `weather` = only while that
+	-- Config.WEATHER id is on (nil = any weather); `chance` per wild slime; income x `mult`. Ids are saved: never rename.
+	SHINES = table.freeze({
+		table.freeze({ id = "Gold", mult = 1.5, chance = 0.03, color = { 255, 205, 60 } }),
+		table.freeze({ id = "Diamond", mult = 2, chance = 0.04, weather = "Snow", color = { 150, 230, 255 } }),
+		table.freeze({ id = "Rainbow", mult = 4, chance = 0.02, weather = "Starfall", color = { 255, 120, 220 } }),
+	}),
 	BREWED_INCOME_MULT = 1.5, -- income x this for a slime the vat made (Slime.brewed = 1)
 	RECIPE_INCOME_MULT = 2, -- income x this for a recipe hybrid the vat made (Slime.brewed = 2)
 
@@ -905,7 +940,11 @@ local Config = {
 	RARE_ANNOUNCE_TIER = 5, -- wild drops of this tier or higher: Notify everyone + RareSpawn attributes
 	FREE_DROP_CHANCE = 0.01, -- share of wild slimes that cost nothing to grab
 	-- other wild slimes cost this many seconds of their base income, by rarity (Economy.wildPrice)
-	WILD_PRICE_SECONDS = table.freeze({ 12, 40, 180, 720, 2400, 6000, 15000 }) :: { number },
+	WILD_PRICE_SECONDS = table.freeze({ 12, 600, 1500, 2400, 2400, 6000, 15000, 30000, 60000 }) :: { number },
+	-- rebirths a player needs to grab a wild slime of each rarity from the fountain (stealing is never gated)
+	CATCH_REBIRTHS = table.freeze({ 0, 0, 0, 0, 0, 5, 12, 18, 25 }) :: { number },
+	-- a drop of at least this rarity is guaranteed once this many seconds pass without one (per server, on top of pity)
+	GUARANTEE_SECONDS = table.freeze({ [5] = 5 * 60, [6] = 15 * 60 }) :: { [number]: number },
 
 	-- Slime Rain event
 	RAIN_INTERVAL = 60 * 60, -- design: hourly
@@ -1492,7 +1531,7 @@ local Config = {
 	-- Follow-pet passives (Perks.petPassive, CONTRACT.md §14). The kind comes from the favourite slime's tier;
 	-- value = tier * perTier, capped per kind. All additive and server-side.
 	PET_PASSIVES = table.freeze({
-		KIND_BY_TIER = table.freeze({ "income", "income", "luck", "luck", "income", "luck", "luck" }),
+		KIND_BY_TIER = table.freeze({ "income", "income", "luck", "luck", "income", "luck", "luck", "income", "luck" }),
 		KINDS = table.freeze({
 			income = table.freeze({ icon = "💰", word = "income", perTier = 0.01, cap = 0.08 }), -- x(1 + value) income
 			luck = table.freeze({ icon = "🍀", word = "luck", perTier = 0.01, cap = 0.06 }), -- added to Perks.luckChance
@@ -1654,10 +1693,10 @@ local Config = {
 	-- reward: { kind = "cash", amount } or { kind = "boost", mult, minutes };
 	-- expiresAt = unix seconds (nil = never). Once per player, kept in the save.
 	CODES = table.freeze({
-		WELCOME = table.freeze({ reward = table.freeze({ kind = "cash", amount = 100 }) }),
+		WELCOME = table.freeze({ reward = table.freeze({ kind = "cash", amount = 50 }) }),
 		SLIMEBOOST = table.freeze({ reward = table.freeze({ kind = "boost", mult = 2, minutes = 10 }) }),
 		LAUNCH = table.freeze({
-			reward = table.freeze({ kind = "cash", amount = 500 }),
+			reward = table.freeze({ kind = "cash", amount = 100 }),
 			expiresAt = 1830297600, -- 2028-01-01 00:00:00 UTC
 		}),
 	}),

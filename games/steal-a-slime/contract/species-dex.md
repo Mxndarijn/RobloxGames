@@ -5,8 +5,8 @@ without the Dex fields starts it empty and is re-seeded from the slimes it owns 
 
 ## 36.1 Entries (`Shared.SpeciesDex`, pure)
 
-- **Entries: 53.** Every `SlimeRoster` species of kind `"spawn"` (32), `"hybrid"` (15) and `"boss"` (6), in roster
-  order (`SpeciesDex.ENTRIES`, `SpeciesDex.TOTAL = 53`). The 7 `"event"` Secrets are **bonus entries**
+- **Entries: 61.** Every `SlimeRoster` species of kind `"spawn"` (40), `"hybrid"` (15) and `"boss"` (6), in roster
+  order (`SpeciesDex.ENTRIES`, `SpeciesDex.TOTAL = 61`). The 7 `"event"` Secrets are **bonus entries**
   (`SpeciesDex.BONUS`): they show on the Dex and count in `bonusFound`, never in `found` / `total` or a milestone.
 - **Found.** `data.found[species] = true` the first time the player owns a slime of that species, from any source:
   catch (Carry), steal, merge (recipe or random), a Mystery Egg hatch, consumables / appraisal, a boss win.
@@ -14,7 +14,7 @@ without the Dex fields starts it empty and is re-seeded from the slimes it owns 
   species without `addSlime` (a boss win) must call `PlayerData.discover` itself. Loading a save calls it for
   every owned slime, so owned species are always found.
 - `SpeciesDex.count(data)`, `bonusCount(data)`, `tierCount(data, tier)` /
-  `tierSize(tier)` (entries of one tier among the 53), `tierMask(data)` (bit k-1 = a found entry of tier k).
+  `tierSize(tier)` (entries of one tier among the 61), `tierMask(data)` (bit k-1 = a found entry of tier k).
 
 ## 36.2 Save (`data.found`, `data.speciesRewards`)
 
@@ -30,7 +30,7 @@ A save without these fields loads them empty / 0; unknown species ids are droppe
 `Config.DEX_MILESTONES = { species = { ... } }`, a list of `{ count, reward, bonus }` in
 ascending `count`. Cash is `reward x Economy.rebirthMultiplier(rebirths)` at the moment it is paid; the income bonus
 is permanent (`Perks.dexBonus` = the sum of paid milestones). The ladder adds up to +45 % income. Its top milestone
-is 50 species, a few short of the full Dex (53).
+is 50 species, a few short of the full Dex (61).
 
 | Count | Cash | Income |
 |---:|---:|---:|
@@ -47,7 +47,7 @@ is 50 species, a few short of the full Dex (53).
 **Rebased on the new counts.**
 - Plot skins (§15): a skin unlocks at `threshold` of its own slimes found (a family, or a species list).
   `PlotSkinView.owned / total / needed` count those slimes.
-- Badges: `dexPercent` = `found x 100 >= value x 53`; `tier` = a found entry of that tier.
+- Badges: `dexPercent` = `found x 100 >= value x 61`; `tier` = a found entry of that tier.
 - Plot attributes: none any more. `DexCount`, `DexTotal` and `DexTierMask` went with the plot SlimeDex board (goo jar tower remodel, 2026-10-21); `SpeciesDex.tierMask` still feeds the badges.
 
 ## 36.4 State
@@ -56,9 +56,9 @@ is 50 species, a few short of the full Dex (53).
 
 ```luau
 DexView = {
-	found: number, total: number,             -- entries among the 53
+	found: number, total: number,             -- entries among the 61
 	bonusFound: number, bonusTotal: number,   -- event Secrets owned / 7
-	entries: { DexEntryView },                -- the 53, then the 7 bonus entries, roster order
+	entries: { DexEntryView },                -- the 61, then the 7 bonus entries, roster order
 }
 DexEntryView = {
 	id: string, tier: number, kind: "spawn" | "hybrid" | "boss" | "event",

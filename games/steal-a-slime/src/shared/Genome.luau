@@ -28,6 +28,7 @@ export type Slime = {
 	growth: number?, -- 0..1 (FEATURES.GrowingSlimes, Growth); nil = not grown yet (old saves, wild, merged slimes)
 	egg: EggKind.Egg?, -- still a Mystery Egg (contract/mystery-egg.md): the rest of the record is the slime inside
 	brewed: number?, -- made in the merge vat: 1 = random merge (BREWED_INCOME_MULT), 2 = recipe (RECIPE_INCOME_MULT)
+	shine: string?, -- a Config.SHINES id (weather mutation): income x its mult
 }
 
 export type GenerateOptions = {
@@ -124,13 +125,28 @@ function Genome.pickWeighted(list: { SlimeRoster.Entry }, roll: number): SlimeRo
 	if #list == 0 then
 		return nil
 	end
+	-- A jackpot takes Config.JACKPOT_SHARE of the pool whatever else is in it; the rest share by speciesWeight.
+	local plain, jackpots = 0, 0
+	for _, entry in list do
+		if entry.jackpot then
+			jackpots += 1
+		else
+			plain += Genome.speciesWeight(entry)
+		end
+	end
+	local share = if plain > 0 and jackpots > 0
+		then Config.JACKPOT_SHARE / (1 - Config.JACKPOT_SHARE) * plain / jackpots
+		else 1
+	local function weight(entry: SlimeRoster.Entry): number
+		return if entry.jackpot then share else Genome.speciesWeight(entry)
+	end
 	local total = 0
 	for _, entry in list do
-		total += Genome.speciesWeight(entry)
+		total += weight(entry)
 	end
 	local at = math.clamp(roll, 0, 1) * total
 	for _, entry in list do
-		at -= Genome.speciesWeight(entry)
+		at -= weight(entry)
 		if at < 0 then
 			return entry
 		end
@@ -192,7 +208,28 @@ function Genome.baseIncome(slime: Slime): number
 		* slime.size
 		* growth
 		* Genome.brewMultiplier(slime)
+		* Genome.shineMultiplier(slime)
 		* SlimeRoster.incomeBonus(slime.species)
+end
+
+-- The Config.SHINES row of a slime's shine, or nil.
+function Genome.shine(slime: Slime): { id: string, mult: number, chance: number, weather: string?, color: { number } }?
+	local id = slime.shine
+	if id == nil then
+		return nil
+	end
+	for _, row in Config.SHINES do
+		if row.id == id then
+			return row :: any
+		end
+	end
+	return nil
+end
+
+-- Income multiplier of a slime's shine (1 without one).
+function Genome.shineMultiplier(slime: Slime): number
+	local row = Genome.shine(slime)
+	return if row then row.mult else 1
 end
 
 -- Income multiplier a vat-made slime keeps for life: BREWED_INCOME_MULT, or RECIPE_INCOME_MULT for a recipe hybrid.
@@ -210,7 +247,8 @@ function Genome.displayName(slime: Slime): string
 		return EggKind.displayName(kind)
 	end
 	local rarity = Genome.rarity(slime.tier).name
-	return `{rarity} {slime.name}`
+	local shine = if Genome.shine(slime) then `{slime.shine} ` else ""
+	return `{shine}{rarity} {slime.name}`
 end
 
 -- Whether this record is still an unhatched Mystery Egg.
@@ -276,6 +314,7 @@ function Genome.sanitize(raw: any): Slime?
 		growth = if growth then math.floor(math.min(growth, 1) * 1e4 + 0.5) / 1e4 else nil,
 		egg = EggKind.sanitize(raw.egg),
 		brewed = if raw.brewed == 1 or raw.brewed == 2 then raw.brewed else nil,
+		shine = if type(raw.shine) == "string" and Genome.shine({ shine = raw.shine } :: any) then raw.shine else nil,
 	}
 end
 

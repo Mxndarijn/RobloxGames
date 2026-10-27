@@ -112,16 +112,13 @@ do
 				money(cumulative),
 				def.text,
 			})
-			table.insert(
-				raw,
-				{
-					id = def.id,
-					level = level + 1,
-					requires = Upgrades.requiresFor(def, level),
-					cost = cost,
-					cumulative = cumulative,
-				}
-			)
+			table.insert(raw, {
+				id = def.id,
+				level = level + 1,
+				requires = Upgrades.requiresFor(def, level),
+				cost = cost,
+				cumulative = cumulative,
+			})
 		end
 	end
 	table.insert(

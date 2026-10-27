@@ -906,6 +906,7 @@ local grabBlock = GrabBlockCard.start({
 			carrying = state.carrying ~= nil,
 			freePad = GrabBlock.hasFreePad(state.padsUnlocked, state.slimes),
 			cash = state.cash,
+			rebirths = state.rebirths,
 		}
 	end,
 })

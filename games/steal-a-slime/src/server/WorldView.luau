@@ -46,6 +46,7 @@ local FallbackWorld = require(script.Parent.FallbackWorld)
 local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
+local GrabBlock = require(ReplicatedStorage.Shared.GrabBlock)
 local HabitatPads = require(script.Parent.HabitatPads)
 local HomeZone = require(ReplicatedStorage.Shared.HomeZone)
 local JarRoute = require(script.Parent.JarRoute)
@@ -65,7 +66,6 @@ local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
-local Progression = require(ReplicatedStorage.Shared.Progression)
 local PvpBlaster = require(script.Parent.PvpBlaster)
 local PvpFun = require(script.Parent.PvpFun)
 local PvpHeld = require(script.Parent.PvpHeld)
@@ -78,6 +78,7 @@ local SlimeGuard = require(script.Parent.SlimeGuard)
 local SlimeLabelView = require(script.Parent.SlimeLabelView)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
+local SlimeShineView = require(script.Parent.SlimeShineView)
 local StackGuard = require(script.Parent.StackGuard)
 local StealGhost = require(script.Parent.StealGhost)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
@@ -960,6 +961,9 @@ local function place(world: World.World, record: Record, entry: Scene.Entry, pre
 	model:SetAttribute("OwnerUserId", entry.ownerUserId)
 	model:SetAttribute("State", entry.state)
 	model:SetAttribute("Price", entry.price)
+	SlimeShineView.apply(model, entry.slime)
+	local grabNeed = if entry.state == "Wild" and not entry.boss then GrabBlock.rebirthsFor(entry.slime) else 0
+	model:SetAttribute(Constants.GRAB_REBIRTHS_ATTRIBUTE, if grabNeed > 0 then grabNeed else nil)
 	model:SetAttribute(Constants.BOSS_ATTRIBUTE, if entry.boss then true else nil)
 	-- The lane beats: the client rebuilds the same ParadeChoreo plan from these (contract/slime-life.md).
 	local choreo = if entry.state == "Wild"
@@ -1106,19 +1110,9 @@ local function kitArrived(record: Record, entry: Scene.Entry, clock: number): bo
 		and clock >= record.rideUntil
 end
 
--- A pad slime's status row: the vat's ("In vat"), else "For rebirth" when the next rebirth uses it up.
--- `needed` caches Progression.neededIds per owner for one reconcile.
-function WorldView.padStatus(owner: any, id: string, needed: { [number]: { [string]: boolean } }): string?
-	local vat = VatView.labelStatus(owner.data, id)
-	if vat then
-		return vat
-	end
-	local set = needed[owner.userId]
-	if not set then
-		set = Progression.neededIds(owner.data)
-		needed[owner.userId] = set
-	end
-	return if set[id] then "For rebirth" else nil
+-- A pad slime's status row: the vat's ("In vat"), else none.
+function WorldView.padStatus(owner: any, id: string): string?
+	return VatView.labelStatus(owner.data, id)
 end
 
 --[[
@@ -1148,7 +1142,6 @@ function WorldView.reconcile(
 		end
 	end
 	table.clear(bossMoves)
-	local needed: { [number]: { [string]: boolean } } = {} -- per owner: slimes the next rebirth uses up
 	for id, entry in entries do
 		local record: Record? = records[id]
 		if not record then
@@ -1230,7 +1223,7 @@ function WorldView.reconcile(
 			entry.income,
 			if entry.state == "Pad" then entry.pad else nil,
 			now,
-			if owner then WorldView.padStatus(owner, id, needed) else nil
+			if owner then WorldView.padStatus(owner, id) else nil
 		)
 	end
 	table.clear(stalePlots) -- placed once on their new pads (a pad not built yet retries through its key)

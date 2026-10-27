@@ -37,19 +37,27 @@ local Props = {}
 Props.LEADERBOARD_ROWS = 10
 Props.LEADERBOARD_TITLE = "Top Earners"
 
--- Top Earners text colours (RGB), drawn straight on the board skin's warm cream face (no backing panel,
--- B2 2026-10-18). Dark ink on cream, every colour >= 4.5:1 on the face and on the tan zebra row
--- (tests/PropMesh.spec); ui/WorldLeaderboard.PALETTE must equal this (tests/ui/WorldLeaderboard.spec).
+-- Hall of Fame board colours (RGB), the same look as the Upcoming Events board (server/EventBoardView): a light
+-- cream-white rounded face over the skin's panel, a gradient title bar in the board's colour and one rounded card per
+-- row, the top three on pale gold, silver and bronze cards. Dark ink, every colour >= 4.5:1 on the face, the row cards
+-- and my row (tests/ui/WorldLeaderboard.spec); ui/WorldLeaderboard.PALETTE must equal this.
 Props.BOARD_PALETTE = table.freeze({
-	Face = table.freeze({ 248, 236, 212 }), -- the skin's cream panel (phoenix_top_earners_board)
-	RowAlt = table.freeze({ 238, 218, 182 }), -- every second row, a tan stripe on the face
+	Face = table.freeze({ 255, 250, 240 }), -- the light face (EventBoardView FACE)
+	RowAlt = table.freeze({ 244, 232, 208 }), -- a row card
 	Me = table.freeze({ 179, 231, 191 }), -- the viewer's own row (client only)
-	Title = table.freeze({ 94, 58, 34 }),
+	Title = table.freeze({ 150, 96, 0 }), -- the title bar when the board has no colour of its own
 	Text = table.freeze({ 62, 40, 26 }),
 	Muted = table.freeze({ 138, 106, 74 }),
 	Value = table.freeze({ 24, 104, 56 }),
 	Rank = table.freeze({ table.freeze({ 138, 88, 0 }), table.freeze({ 96, 102, 112 }), table.freeze({ 150, 73, 30 }) }),
 })
+-- The top three row cards: pale gold, silver and bronze (edged in their rank colour).
+Props.MEDAL_FILL = table.freeze({
+	table.freeze({ 255, 226, 140 }),
+	table.freeze({ 225, 230, 240 }),
+	table.freeze({ 246, 204, 170 }),
+})
+Props.BOARD_INK = table.freeze({ 24, 20, 36 }) -- outlines (EventBoardView INK)
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
@@ -541,36 +549,88 @@ end
 
 -- Hall of Fame arch ---------------------------------------------------------
 
--- Two wooden posts over the Hall of Fame path where it leaves the ring path, a beam and a red sign reading
--- "HALL OF FAME" on both sides. Front = local -Z (towards the fountain). Only the posts are solid; the beam and the
--- sign sit high above head height.
-Props.HALL_ARCH = table.freeze({ span = 22, height = 17, post = 2 })
+-- The Hall of Fame entrance over its path where it leaves the ring path, built like the Hall of Fame boards' frame
+-- (shared/modeling-kit/models/phoenix_top_earners_board.py, ranch palette): two chunky dark-wood pillars with cream
+-- caps and knobs on goo puddles, knee braces, a top rail under a red barn roof with a cream eave, and a cream sign
+-- panel carrying the boards' gradient title bar ("HALL OF FAME", both sides). Front = local -Z (towards the fountain).
+-- Only the pillars (and their feet) are solid; everything from the knee braces up hangs above head height.
+Props.HALL_ARCH = table.freeze({ span = 22, height = 17, post = 2.2 })
+-- Ranch kit colours (shared/modeling-kit/lib/color.py), the same as the board mesh.
+Props.RANCH_COLORS = table.freeze({
+	Wood = table.freeze({ 196, 138, 86 }),
+	WoodDark = table.freeze({ 158, 108, 68 }),
+	Cream = table.freeze({ 248, 236, 212 }),
+	Roof = table.freeze({ 214, 92, 84 }),
+	RoofDark = table.freeze({ 176, 70, 70 }),
+	Goo = table.freeze({ 110, 226, 170 }),
+})
 
 function Props.hallArch(): Model
 	local m = Instance.new("Model")
 	m.Name = "HallOfFameArch"
-	local A = Props.HALL_ARCH
-	local wood, beamWood, red = rgb(120, 72, 40), rgb(150, 96, 54), rgb(214, 66, 58)
-	local half = A.span / 2
-	local root = part(m, "PostL", Vector3.new(A.post, A.height, A.post), CFrame.new(-half, A.height / 2, 0), wood, {
-		material = "WoodPlanks",
-	})
-	part(m, "PostR", Vector3.new(A.post, A.height, A.post), CFrame.new(half, A.height / 2, 0), wood, {
-		material = "WoodPlanks",
-	})
-	local beam = part(
-		m,
-		"Beam",
-		Vector3.new(A.span + 4, 2.2, 1.8),
-		CFrame.new(0, A.height + 0.6, 0),
-		beamWood,
-		{ material = "WoodPlanks", canCollide = false }
-	)
-	beam.CanQuery = false
-	local sign = part(m, "Sign", Vector3.new(15, 3.2, 0.5), CFrame.new(0, A.height - 2.3, 0), red, {
-		canCollide = false,
-	})
-	sign.CanQuery = false
+	local A, C = Props.HALL_ARCH, Props.RANCH_COLORS
+	-- Parts render lighter than the kit's vertex colours: darken the wood to match the board posts.
+	local wood = tone(C.Wood):Lerp(Color3.new(), 0.22)
+	local woodDark, cream = tone(C.WoodDark):Lerp(Color3.new(), 0.25), tone(C.Cream)
+	local half, h, w = A.span / 2, A.height, A.post
+	-- Decor above head height or flat on the ground: no collision, no queries.
+	local function decor(name: string, size: Vector3, cf: CFrame, color: Color3, shape: string?): Part
+		local p = part(m, name, size, cf, color, { canCollide = false, shape = shape })
+		p.CanQuery = false
+		p.CanTouch = false
+		return p
+	end
+	local root
+	for _, s in { -1, 1 } do
+		local side = if s < 0 then "L" else "R"
+		local post = part(m, `Post{side}`, Vector3.new(w, h, w), CFrame.new(s * half, h / 2, 0), woodDark)
+		root = root or post
+		part(
+			m,
+			`Foot{side}`,
+			Vector3.new(w + 1, 0.8, w + 1.4),
+			CFrame.new(s * half, 0.4, 0),
+			woodDark:Lerp(Color3.new(), 0.12)
+		)
+		decor(
+			`Goo{side}`,
+			Vector3.new(0.12, 3.6, 3.2),
+			CFrame.new(s * (half + 0.6), 0.25, -0.8) * CFrame.Angles(0, 0, math.rad(90)),
+			tone(C.Goo),
+			"Cylinder"
+		)
+		-- knee brace from the pillar up under the sign
+		decor(
+			`Knee{side}`,
+			Vector3.new(3, 0.6, 0.6),
+			CFrame.new(s * (half - 1.9), h - 4.6, 0) * CFrame.Angles(0, 0, math.rad(s * 40)),
+			woodDark
+		)
+	end
+	-- top rail between the pillars, the cream eave over it and the red barn roof (two wedges, ridge along X)
+	decor("TopRail", Vector3.new(A.span + w, 1, 1.4), CFrame.new(0, h - 0.5, 0), woodDark)
+	decor("Eave", Vector3.new(A.span + w + 3.4, 0.5, 3), CFrame.new(0, h + 0.25, 0), cream)
+	-- goo drips on the eave, both sides, like the boards'
+	for k, d in { { -9, -1 }, { 7.5, -1 }, { -6.5, 1 }, { 9.5, 1 } } do
+		decor(`Drip{k}`, Vector3.new(0.8, 1.1, 0.8), CFrame.new(d[1], h + 0.05, d[2] * 1.45), tone(C.Goo), "Ball")
+	end
+	local roofLen, rise, depth = A.span + w + 3.8, 1.8, 1.8
+	for _, s in { -1, 1 } do
+		local roof = Instance.new("WedgePart")
+		roof.Name = if s < 0 then "RoofFront" else "RoofBack"
+		roof.Size = Vector3.new(roofLen, rise, depth)
+		-- a WedgePart's slope rises toward its -Z: turn the front half round so both slopes meet at the ridge
+		roof.CFrame = CFrame.new(0, h + 0.5 + rise / 2, s * depth / 2)
+			* CFrame.Angles(0, if s < 0 then math.pi else 0, 0)
+		roof.Color = if s < 0 then tone(C.Roof) else tone(C.RoofDark)
+		roof.Material = Enum.Material.SmoothPlastic
+		roof.TopSurface, roof.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+		roof.Anchored, roof.CanCollide, roof.CanQuery, roof.CanTouch = true, false, false, false
+		roof.Parent = m
+	end
+	-- the sign: a wood board under the rail, a cream panel each side, the boards' gradient title bar on it
+	decor("SignBoard", Vector3.new(16.4, 4.4, 0.8), CFrame.new(0, h - 3.2, 0), wood)
+	local sign = decor("Sign", Vector3.new(15.6, 3.6, 1), CFrame.new(0, h - 3.2, 0), cream)
 	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = `SignGui{face.Name}`
@@ -580,13 +640,31 @@ function Props.hallArch(): Model
 		gui.LightInfluence = 0
 		gui.Adornee = sign
 		gui.Parent = sign
-		local text = label(gui, "Text", "HALL OF FAME", rgb(255, 244, 214))
+		local bar = Instance.new("Frame")
+		bar.Name = "Bar"
+		bar.Position = UDim2.fromScale(0.03, 0.1)
+		bar.Size = UDim2.fromScale(0.94, 0.8)
+		bar.BackgroundColor3 = rgb(255, 255, 255)
+		bar.BorderSizePixel = 0
+		bar.Parent = gui
+		corner(bar, UDim.new(0.35, 0))
+		local edge = Instance.new("UIStroke")
+		edge.Color = tone(Props.BOARD_INK)
+		edge.Thickness = 5
+		edge.LineJoinMode = Enum.LineJoinMode.Round
+		edge.Parent = bar
+		local gradient = Instance.new("UIGradient")
+		gradient.Color =
+			ColorSequence.new(tone(C.Roof):Lerp(Color3.new(1, 1, 1), 0.25), tone(C.RoofDark):Lerp(Color3.new(), 0.2))
+		gradient.Rotation = 90
+		gradient.Parent = bar
+		local text = label(bar, "Text", "HALL OF FAME", rgb(255, 255, 255))
 		text.Position = UDim2.fromScale(0.05, 0.12)
 		text.Size = UDim2.fromScale(0.9, 0.76)
 		local outline = Instance.new("UIStroke")
-		outline.Color = tone(Goo.Ink)
-		outline.Thickness = 3
-		outline.LineJoinMode = Enum.LineJoinMode.Round
+		outline.Color = tone(Props.BOARD_INK)
+		outline.Thickness = 4
+		outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
 		outline.Parent = text
 	end
 	return finish(m, root)
@@ -680,50 +758,80 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	gui.LightInfluence = 0
 	gui.Adornee = board
 	gui.Parent = board
+	-- The light face covers the skin's cream panel (and its divider), like the Upcoming Events board.
+	local palette = Props.BOARD_PALETTE
 	local content = Instance.new("Frame")
 	content.Name = "Content"
 	content.Size = UDim2.fromScale(1, 1)
-	content.BackgroundTransparency = 1
+	content.BackgroundColor3 = ink(palette.Face)
+	content.BackgroundTransparency = 0
 	content.BorderSizePixel = 0
 	content.Parent = gui
+	local faceCorner = Instance.new("UICorner")
+	faceCorner.CornerRadius = UDim.new(0.04, 0)
+	faceCorner.Parent = content
 	local padding = Instance.new("UIPadding")
-	local pad = UDim.new(0.04, 0)
+	local pad = UDim.new(0.03, 0)
 	padding.PaddingTop, padding.PaddingBottom, padding.PaddingLeft, padding.PaddingRight = pad, pad, pad, pad
 	padding.Parent = content
-	-- The title sits on a rounded strip in the board's own colour, white text on it.
+	-- The title bar: a rounded strip in the board's own colour, light to dark, an ink edge and outlined white text.
+	local accent = if def then def.accent else palette.Title
 	local header = Instance.new("Frame")
 	header.Name = "Header"
-	header.Size = UDim2.fromScale(1, 0.15)
-	header.BackgroundColor3 = if def then ink(def.accent) else ink(Props.BOARD_PALETTE.Title)
+	header.Size = UDim2.fromScale(1, 0.14)
+	header.BackgroundColor3 = rgb(255, 255, 255)
 	header.BorderSizePixel = 0
 	header.Parent = content
 	local headerCorner = Instance.new("UICorner")
-	headerCorner.CornerRadius = UDim.new(0.25, 0)
+	headerCorner.CornerRadius = UDim.new(0.3, 0)
 	headerCorner.Parent = header
+	local headerEdge = Instance.new("UIStroke")
+	headerEdge.Color = ink(Props.BOARD_INK)
+	headerEdge.Thickness = 4
+	headerEdge.LineJoinMode = Enum.LineJoinMode.Round
+	headerEdge.Parent = header
+	local function shade(scale: number): Color3
+		return rgb(
+			math.clamp(math.floor(accent[1] * scale + 0.5), 0, 255),
+			math.clamp(math.floor(accent[2] * scale + 0.5), 0, 255),
+			math.clamp(math.floor(accent[3] * scale + 0.5), 0, 255)
+		)
+	end
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new(shade(1.6), shade(0.8))
+	gradient.Rotation = 90
+	gradient.Parent = header
 	local title = label(header, "Title", if def then def.title else Props.LEADERBOARD_TITLE, rgb(255, 255, 255))
-	title.Position = UDim2.fromScale(0.04, 0.12)
-	title.Size = UDim2.fromScale(0.92, 0.76)
-	-- The skin's red divider runs 2.45 studs below the face top (about 0.21-0.23 of the Board), so the
-	-- rows start just under it and the title keeps the band above.
+	title.Position = UDim2.fromScale(0.04, 0.1)
+	title.Size = UDim2.fromScale(0.92, 0.8)
+	local titleEdge = Instance.new("UIStroke")
+	titleEdge.Color = ink(Props.BOARD_INK)
+	titleEdge.Thickness = 4
+	titleEdge.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+	titleEdge.Parent = title
 	local rows = Instance.new("Frame")
 	rows.Name = "Rows"
-	rows.Position = UDim2.fromScale(0, 0.24)
-	rows.Size = UDim2.fromScale(1, 0.66)
+	rows.Position = UDim2.fromScale(0, 0.17)
+	rows.Size = UDim2.fromScale(1, 0.73)
 	rows.BackgroundTransparency = 1
 	rows.Parent = content
 	-- The viewer's own line under the top 10 ("You  $1.2K"), filled and shown by each client (ui/WorldLeaderboard)
 	-- when they are not in the list.
 	local you = Instance.new("Frame")
 	you.Name = "You"
-	you.Position = UDim2.fromScale(0, 0.91)
-	you.Size = UDim2.fromScale(1, 0.08)
-	you.BackgroundColor3 = ink(Props.BOARD_PALETTE.Me)
+	you.Position = UDim2.fromScale(0, 0.915)
+	you.Size = UDim2.fromScale(1, 0.085)
+	you.BackgroundColor3 = ink(palette.Me)
 	you.BorderSizePixel = 0
 	you.Visible = false
 	you.Parent = content
 	local youCorner = Instance.new("UICorner")
 	youCorner.CornerRadius = UDim.new(0.3, 0)
 	youCorner.Parent = you
+	local youEdge = Instance.new("UIStroke")
+	youEdge.Color = ink(palette.Value)
+	youEdge.Thickness = 2
+	youEdge.Parent = you
 	local youName = label(you, "Name", "You", ink(Props.BOARD_PALETTE.Text))
 	youName.Position = UDim2.fromScale(0.04, 0)
 	youName.Size = UDim2.fromScale(0.5, 1)
@@ -763,11 +871,13 @@ function Props.fillLeaderboard(
 		row.Name = `Row_{k}`
 		row.LayoutOrder = k
 		row.Size = UDim2.fromScale(1, 1 / Props.LEADERBOARD_ROWS - 0.01)
-		row.BackgroundColor3 = ink(palette.RowAlt)
-		row.BackgroundTransparency = if k % 2 == 0 then 0 else 1 -- tan stripes straight on the face
+		row.BackgroundColor3 = ink(palette.RowAlt) -- one rounded card per row; the client tints the top three
+		row.BackgroundTransparency = 0
 		row.BorderSizePixel = 0
+		corner(row, UDim.new(0.3, 0))
 		local rank = label(row, "Rank", `#{entry.rank}`, ink(palette.Rank[k] or palette.Text))
-		rank.Size = UDim2.fromScale(0.15, 1)
+		rank.Position = UDim2.fromScale(0.02, 0.1)
+		rank.Size = UDim2.fromScale(0.13, 0.8)
 		local name = label(row, "Name", entry.name, ink(palette.Text))
 		name.Position = UDim2.fromScale(0.17, 0)
 		name.Size = UDim2.fromScale(0.5, 1)
