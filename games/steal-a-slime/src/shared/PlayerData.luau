@@ -71,7 +71,7 @@ export type Data = {
 	weekendMult: number?, -- runtime only (never saved): x2 Weekend multiplier set by Income.step, nil = none
 	friendBonus: number?, -- runtime only (never saved): friends in this server, FriendBonus.bonus; nil = none
 	ritualBonus: number?, -- runtime only (never saved): "Blessed" income bonus from the co-op ritual; nil = none
-	mvpBonus: number?, -- runtime only (never saved): Boss MVP income bonus (BossCredit); nil = none
+	mvpBonus: number?, -- runtime only (never saved): Boss Champion income bonus, also +BOSS.MVP_SPEED walk speed (BossCredit); nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
 	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
 	settings: AudioSettings.Settings, -- Sound card values (save v6; used only with FEATURES.Audio)

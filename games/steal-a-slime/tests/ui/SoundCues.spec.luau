@@ -50,15 +50,9 @@ describe("SoundCues.diff", function()
 		expect(#SoundCues.diff(won, won, "Ann")).toBe(0)
 	end)
 
-	it("adds BossMvp for the player who carried it home", function()
+	it("leaves BossMvp to the Boss Champion Notify for the player who carried it home", function()
 		local fight = state({ boss = boss({ phase = "haul" }) })
 		local won = state({ boss = boss({ phase = "won", winnerName = "Ann", yourPoints = 4, yourShare = 0.5 }) })
-		expect(names(SoundCues.diff(fight, won, "Ann"))).toBe("BossDefeat,BossMvp")
-	end)
-
-	it("leaves BossMvp to the MVP Notify when the carrier was also the top contributor", function()
-		local fight = state({ boss = boss({ phase = "haul" }) })
-		local won = state({ boss = boss({ phase = "won", winnerName = "Ann", yourPoints = 9, yourShare = 1 }) })
 		expect(names(SoundCues.diff(fight, won, "Ann"))).toBe("BossDefeat")
 	end)
 

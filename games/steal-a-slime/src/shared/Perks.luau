@@ -28,7 +28,7 @@ export type Progress = {
 	favoriteId: string?, -- the follow pet; nil = no passive
 	weekendMult: number?, -- runtime x2 Weekend multiplier (Weekend, never saved), nil / 1 = none
 	ritualBonus: number?, -- runtime "Blessed" bonus from the co-op ritual (Ritual, never saved), nil / 0 = none
-	mvpBonus: number?, -- runtime Boss MVP bonus (BossCredit, never saved), nil / 0 = none
+	mvpBonus: number?, -- runtime Boss Champion bonus (BossCredit, never saved), nil / 0 = none
 }
 
 local Perks = {}

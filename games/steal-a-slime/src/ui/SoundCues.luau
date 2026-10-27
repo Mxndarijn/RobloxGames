@@ -4,8 +4,8 @@
 
 	Sounds for State changes that come with no Notify sound. Compares two State pushes and returns what to play
 	(no Roblox APIs; loads under Lune, tests/ui/SoundCues.spec.luau):
-	  * the boss is beaten (phase -> "won"): "BossDefeat" for everyone; "BossMvp" too for the player who carried it
-	    home, unless they were also the top contributor (they already hear BossMvp with the MVP Notify)
+	  * the boss is beaten (phase -> "won"): "BossDefeat" for everyone (the carrier hears "BossMvp" with the Boss
+	    Champion Notify)
 	  * a new SlimeDex species: "DexNew"
 	  * the tutorial moves on a step, or finishes: "TutorialTick"
 	The very first State after joining never cues (prev nil): it is how things already were.
@@ -33,7 +33,7 @@ local function tutorialAt(state: Types.State): number
 	return if type(state.tutorialStep) == "number" then state.tutorialStep else math.huge
 end
 
-function SoundCues.diff(prev: Types.State?, next: Types.State, myName: string?): { Cue }
+function SoundCues.diff(prev: Types.State?, next: Types.State, _myName: string?): { Cue }
 	local out: { Cue } = {}
 	if prev == nil then
 		return out
@@ -41,10 +41,6 @@ function SoundCues.diff(prev: Types.State?, next: Types.State, myName: string?):
 	local was, now = prev.boss, next.boss
 	if now and now.phase == "won" and (was == nil or was.phase ~= "won") then
 		table.insert(out, { name = "BossDefeat" })
-		local top = type(now.yourShare) == "number" and now.yourShare >= 1 and (now.yourPoints or 0) > 0
-		if myName ~= nil and now.winnerName == myName and not top then
-			table.insert(out, { name = "BossMvp" })
-		end
 	end
 	if dexFound(next) > dexFound(prev) then
 		table.insert(out, { name = "DexNew" })

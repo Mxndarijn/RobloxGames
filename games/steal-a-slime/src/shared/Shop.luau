@@ -34,9 +34,11 @@ function Shop.buySpeedCoil(data: Data): (boolean, number | string)
 end
 
 -- Base WalkSpeed: SPEED_COIL_WALK_SPEED only while the owned coil is held (equipped).
+-- The Boss Champion boost (data.mvpBonus, BossCredit) adds BOSS.MVP_SPEED on top while it lasts.
 -- Carry.walkSpeed applies the carry slowdown to it.
 function Shop.walkSpeed(data: Data, coilHeld: boolean?): number
-	return if data.speedCoil and coilHeld then Config.SPEED_COIL_WALK_SPEED else Config.BASE_WALK_SPEED
+	local base = if data.speedCoil and coilHeld then Config.SPEED_COIL_WALK_SPEED else Config.BASE_WALK_SPEED
+	return if (data.mvpBonus or 0) > 0 then base * (1 + Config.BOSS.MVP_SPEED) else base
 end
 
 function Shop.view(data: Data): Types.ShopView
