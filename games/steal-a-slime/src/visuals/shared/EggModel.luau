@@ -67,6 +67,12 @@ local LOOKS: { [string]: { shell: Color3, accent: Color3, glow: Color3, material
 
 local STRAW = { Color3.fromRGB(222, 178, 88), Color3.fromRGB(196, 146, 66), Color3.fromRGB(240, 206, 120) }
 
+-- The shell and accent colours of a kind (the smash show's shards).
+function EggModel.colors(kindId: string): (Color3, Color3)
+	local look = LOOKS[kindId] or LOOKS.speckled
+	return look.shell, look.accent
+end
+
 -- The glow colour of a kind (ready-to-hatch light, client FX).
 function EggModel.glowColor(kindId: string): Color3
 	local look = LOOKS[kindId]

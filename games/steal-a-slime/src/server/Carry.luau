@@ -84,6 +84,9 @@ function Carry.grabWild(
 	if world.carriedBy[slimeId] then
 		return false, "someone is already carrying it"
 	end
+	if wild.smashedAt then
+		return false, "the egg smashed"
+	end
 	if distance ~= distance or distance > Config.STEAL_REACH then
 		return false, "too far away"
 	end
