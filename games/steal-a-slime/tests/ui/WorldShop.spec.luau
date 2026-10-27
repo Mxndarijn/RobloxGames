@@ -46,7 +46,7 @@ local function upgradeEntry(id: string, fields: { [string]: any }?): any
 		level = 1,
 		maxLevel = def.maxLevel,
 		price = 100,
-		requires = def.requires,
+		requires = def.levelRequires[2] or def.levelRequires[1],
 		unlocked = true,
 	}
 	for k, v in fields or {} do

@@ -8,6 +8,7 @@ local Economy = require("../src/shared/Economy")
 local EggKind = require("../src/shared/EggKind")
 local Fixtures = require("./Fixtures")
 local Genome = require("../src/shared/Genome")
+local MysteryEgg = require("../src/shared/MysteryEgg")
 local PlayerData = require("../src/shared/PlayerData")
 local Rng = require("../src/shared/Rng")
 local SaveData = require("../src/shared/SaveData")
@@ -58,6 +59,31 @@ describe("EggKind table", function()
 			end
 			expect(math.abs(total - 1) < 1e-9).toBe(true)
 		end
+	end)
+	it("rarer kinds need more rebirths, every gate a rebirth rank, and the commonest kind none", function()
+		local thresholds = {}
+		for _, rank in Config.REBIRTH_TIERS do
+			thresholds[rank.rebirths] = true
+		end
+		local list = EggKind.list()
+		expect(list[1].rebirths).toBe(0)
+		for i, k in list do
+			expect(thresholds[k.rebirths]).toBe(true)
+			if i > 1 then
+				expect(k.rebirths > list[i - 1].rebirths).toBe(true)
+			end
+		end
+	end)
+	it("grabBlock names the rank a kind needs and lets that rank through", function()
+		for _, k in EggKind.list() do
+			expect(EggKind.grabBlock(k.rebirths, k)).toBeNil()
+			expect(EggKind.grabBlock(k.rebirths + 10, k)).toBeNil()
+		end
+		expect(EggKind.grabBlock(0, kind("cosmic"))).toBe(
+			"Reach Goo Tycoon (6 rebirths) to pick up Cosmic Mystery Eggs"
+		)
+		expect(EggKind.grabBlock(0, kind("shiny"))).toBe("Reach Goo Getter (1 rebirth) to pick up Shiny Mystery Eggs")
+		expect(EggKind.grabBlock(kind("golden").rebirths - 1, kind("golden")) ~= nil).toBe(true)
 	end)
 	it("rarer kinds hatch slower and only the Cosmic egg can hold a Secret (5 %)", function()
 		local list = EggKind.list()
@@ -205,16 +231,61 @@ local function carryingEgg(): (World.World, World.Session, string)
 end
 
 describe("carrying and incubating", function()
-	it("grabs a fresh wild egg of any kind for free, even with no cash", function()
+	it("grabs a fresh wild egg of any kind for free, even with no cash, once the rank allows it", function()
 		for _ = 1, 40 do
 			local world = ServerFixtures.world()
 			local session = ServerFixtures.join(world, 1)
 			session.data.cash = 0
+			session.data.rebirths = Config.REBIRTH_TIERS[#Config.REBIRTH_TIERS].rebirths
 			local id = Spawner.spawnEgg(world, T0)
 			expect((Carry.grab(world, 1, id, 2, T0))).toBe(true)
 			expect(session.data.cash).toBe(0)
 			expect(world.carriedBy[id]).toBe(1)
 		end
+	end)
+	it("refuses a wild egg below its kind's rebirths: nothing carried, no cash taken, a toast says why", function()
+		for _, k in EggKind.list() do
+			if k.rebirths > 0 then
+				local world = ServerFixtures.world()
+				local session = ServerFixtures.join(world, 1)
+				session.data.rebirths = k.rebirths - 1
+				local id = Spawner.spawnEgg(world, T0)
+				world.wild[id].slime.egg = { kind = k.id }
+				local cash = session.data.cash
+				local ok, reason = Carry.grab(world, 1, id, 2, T0)
+				expect(ok).toBe(false)
+				expect(reason).toBe(EggKind.grabBlock(session.data.rebirths, k))
+				expect(session.carry).toBeNil()
+				expect(world.carriedBy[id]).toBeNil()
+				expect(session.data.cash).toBe(cash)
+				session.data.rebirths = k.rebirths
+				expect((Carry.grab(world, 1, id, 2, T0))).toBe(true)
+			end
+		end
+	end)
+	it("lets anyone grab a speckled egg; egg gates never block a wild slime (a Legendary is open to all)", function()
+		local world = ServerFixtures.world()
+		ServerFixtures.join(world, 1)
+		local id = Spawner.spawnEgg(world, T0)
+		world.wild[id].slime.egg = { kind = "speckled" }
+		expect((Carry.grab(world, 1, id, 2, T0))).toBe(true)
+		local other = ServerFixtures.world()
+		ServerFixtures.join(other, 1)
+		local slime = Fixtures.slime("m", Config.SECRET_TIER - 2)
+		other.wild["m"] = { slime = slime, price = 0 } :: any
+		expect((Carry.grab(other, 1, "m", 2, T0))).toBe(true)
+	end)
+	it("a lucky egg that rolled a Secret still holds a Secret", function()
+		-- kind roll (top = Cosmic), tier roll (top = Secret), lucky roll (0 = lucky), then a real stream
+		local queue = { 0.9999, 0.9999, 0 }
+		local rng = Rng.new(5);
+		(rng :: any).float = function(self: Rng.Rng): number
+			return table.remove(queue, 1) or Rng.float(self)
+		end
+		local slime, k = MysteryEgg.rollWild(rng, "e")
+		expect(k.id).toBe("cosmic")
+		expect((slime.egg :: any).lucky).toBe(true)
+		expect(slime.tier).toBe(Config.SECRET_TIER)
 	end)
 	it("starts the hatch clock on the first pad and toasts that it is incubating", function()
 		local world, session, id = carryingEgg()
@@ -288,6 +359,7 @@ describe("stealing an egg", function()
 		local world, owner, thief = twoPlayers({ egg("e", "golden", 6, T0 + 42) })
 		ServerFixtures.unlock(owner)
 		ServerFixtures.clearEvents(world)
+		thief.data.rebirths = kind("golden").rebirths
 		expect((StealService.steal(world, thief, "e", 2, T0))).toBe(true)
 		local alarm = ServerFixtures.notifications(world, 1)[1]
 		expect(string.find(alarm, "Golden Mystery Egg", 1, true) ~= nil).toBe(true)
@@ -296,8 +368,22 @@ describe("stealing an egg", function()
 		expect((e.egg :: any).hatchAt).toBe(T0 + 42)
 		expect(PlayerData.findSlime(owner.data, "e")).toBeNil()
 	end)
+	it("is refused to a thief below the kind's rebirths; the egg stays home", function()
+		local world, owner, thief = twoPlayers({ egg("e", "cosmic", 6, T0 + 42) })
+		ServerFixtures.unlock(owner)
+		thief.data.rebirths = kind("cosmic").rebirths - 1
+		local ok, reason = StealService.steal(world, thief, "e", 2, T0)
+		expect(ok).toBe(false)
+		expect(reason).toBe(EggKind.grabBlock(thief.data.rebirths, kind("cosmic")))
+		expect(thief.carry).toBeNil()
+		expect(world.carriedBy["e"]).toBeNil()
+		expect(PlayerData.findSlime(owner.data, "e") ~= nil).toBe(true)
+		thief.data.rebirths = kind("cosmic").rebirths
+		expect((StealService.steal(world, thief, "e", 2, T0))).toBe(true)
+	end)
 	it("can't be hatched while a thief carries it", function()
 		local world, owner, thief = twoPlayers({ egg("e", "golden", 6, T0) })
+		thief.data.rebirths = kind("golden").rebirths
 		ServerFixtures.unlock(owner)
 		StealService.steal(world, thief, "e", 2, T0)
 		local ok, reason = ServerEgg.hatch(world, owner, "e", T0 + 1)

@@ -80,9 +80,11 @@ local function newPen(parent: Instance, z0: number): Pen
 	end
 	function pen.text(_: Pen, text: string, cx: number, cy: number, size: number, color: Color?): TextLabel
 		z += 1
+		-- TextScaled draws a lone glyph at about the label's height, so the rise is a share of `size`.
+		local rise = Widgets.emojiRise(Widgets.Theme.Font, text) * size
 		return create("TextLabel", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(cx, cy),
+			Position = UDim2.fromScale(cx, cy + rise),
 			Size = UDim2.fromScale(size, size),
 			BackgroundTransparency = 1,
 			Font = Widgets.Theme.Font,

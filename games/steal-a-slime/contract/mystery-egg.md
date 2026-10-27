@@ -4,7 +4,7 @@
 
 ## 40.1 What it is
 
-Now and then the fountain drops a **Mystery Egg** instead of a slime. It rides the lane like a wild slime and is grabbed, carried, dropped and slapped loose the same way, but it is always **free to grab** and it **can't be sold** (so there is no buy-then-sell loop). Once it is on a pad it **incubates**: after the egg's hatch time (real time, also while the owner is offline) it is **ready**, and the owner holds **Hatch** to get the slime inside. Incubating and ready eggs **can be stolen** like slimes, and the thief keeps the progress. While the owner stands in their own HomeZone, their eggs incubate `WARM_SPEED` x faster.
+Now and then the fountain drops a **Mystery Egg** instead of a slime. It rides the lane like a wild slime and is grabbed, carried, dropped and slapped loose the same way, but it is always **free to grab** (once your rebirths reach the kind's rank, 40.3) and it **can't be sold** (so there is no buy-then-sell loop). Once it is on a pad it **incubates**: after the egg's hatch time (real time, also while the owner is offline) it is **ready**, and the owner holds **Hatch** to get the slime inside. Incubating and ready eggs **can be stolen** like slimes, and the thief keeps the progress. While the owner stands in their own HomeZone, their eggs incubate `WARM_SPEED` x faster.
 
 The hatch is a show on the pad (40.6): the egg rocks, cracks and bursts and the slime pops out, and every nearby player sees it.
 
@@ -22,10 +22,12 @@ The hatch is a show on the pad (40.6): the egg rocks, cracks and bursts and the 
 | Egg chance per fountain drop | `MYSTERY_EGG.DROP_CHANCE`, x `RAIN_MULT` during Slime Rain; never while `MAX_WILD` (`RAIN_MAX_WILD` in rain) eggs are already loose |
 | Egg kind | weighted `KINDS[i].weight` |
 | Slime inside | `KINDS[i].drops` tier weights, then a species over Classic and every family (`FountainTiers.allFamilies`); no luck; rolled on `world.eggRng`, so the slime drop sequence is unchanged |
-| Lucky egg | `LUCKY_CHANCE` of eggs: the slime inside is one tier higher than its roll (capped at Secret), `egg.lucky = true` |
+| Lucky egg | `LUCKY_CHANCE` of eggs: the slime inside is one tier higher than its roll (capped at `SECRET_TIER`), `egg.lucky = true` |
+| Who may grab | the kind's `rebirths` (`GrabBlock.rebirthsFor` reads the same number for the grab card): Speckled for everyone, Shiny from rebirth 1, Golden 3, Cosmic 6; see the grab / steal gate below |
 | Hatchling size | `HATCH_SIZE_MIN` + up to `HATCH_SIZE_SPAN` (bigger than a wild slime's `MIN_SIZE` + 0.6), never below the tier's size floor |
 | Top tier of a kind | its highest `drops` tier (`EggKind.topTier`) |
 | Grab price | always free (`price = 0`) |
+| Grab / steal gate | `KINDS[i].rebirths`, a `REBIRTH_TIERS` threshold. Fewer rebirths: `Carry.grabWild` and `StealService.steal` refuse with `EggKind.grabBlock` ("Reach <rank> (<n> rebirths) to pick up <Kind> Mystery Eggs"), shown as a toast. Checked on the egg's kind, never the hidden slime inside. Hatched slimes have no gate. An egg already on your plot still hatches |
 | Wild lifetime | `Fountain.wildLifetime` of the kind's `tier` |
 | Carry slowdown | the kind's `tier` (`Steal.newCarry`); never the hidden tier |
 | Hatch time | `KINDS[i].hatchSeconds`, set on the first deposit (`hatchAt = now + hatchSeconds`); a steal keeps `hatchAt` |

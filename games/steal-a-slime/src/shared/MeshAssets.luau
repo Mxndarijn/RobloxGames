@@ -1026,6 +1026,32 @@ entries["slime_prism"] = { assetId = 97296414747568, size = { 4.266, 4.392, 4.15
 entries["slime_midas"] = { assetId = 84348651618165, size = { 3.895, 3.51, 3.729 }, offset = { 0.035, 1.665, 0.022 } }
 entries["slime_eclipse"] =
 	{ assetId = 73912580635466, size = { 4.872, 4.374, 3.446 }, offset = { 0.039, 2.114, 0.089 } }
+entries["slime_sir_goo"] =
+	{ assetId = 86600172378002, size = { 4.595, 4.834, 3.745 }, offset = { 0.165, 2.417, -0.077 } }
+entries["slime_phoenix"] =
+	{ assetId = 112027311988161, size = { 6.524, 4.458, 5.718 }, offset = { -0.096, 2.229, 0.842 } }
+entries["slime_sunny"] =
+	{ assetId = 76150467529446, size = { 5.386, 4.365, 3.025 }, offset = { -0.114, 1.829, -0.023 } }
+entries["slime_elder_oak"] =
+	{ assetId = 116150728691082, size = { 5.105, 5.144, 4.5 }, offset = { 0.003, 2.502, 0.074 } }
+entries["slime_gaia"] = { assetId = 83101861537427, size = { 4.999, 4.34, 4.201 }, offset = { 0.049, 2.17, -0.108 } }
+entries["slime_captain_goo"] =
+	{ assetId = 85380821433285, size = { 3.535, 4.68, 3.486 }, offset = { -0.042, 2.34, -0.234 } }
+entries["slime_yeti"] = { assetId = 87284738623950, size = { 4.645, 3.526, 4.118 }, offset = { -0.053, 1.763, 0.168 } }
+entries["slime_abyss"] = { assetId = 70673494347652, size = { 5.346, 4.135, 4.888 }, offset = { 0, 2.067, 0.044 } }
+entries["slime_lunara"] = { assetId = 90322048434782, size = { 4.903, 4.264, 4.244 }, offset = { -0.202, 1.835, -0 } }
+entries["slime_solaris"] = { assetId = 137966278045601, size = { 5.78, 4.881, 3.21 }, offset = { 0, 2.141, -0.02 } }
+entries["slime_nebulon"] =
+	{ assetId = 137952210983806, size = { 5.053, 4.384, 5.215 }, offset = { 0.034, 2.192, 0.82 } }
+entries["slime_aurora"] = { assetId = 81245681557355, size = { 4.638, 5.097, 3.874 }, offset = { -0.015, 2.548, -0 } }
+entries["slime_goo_oracle"] = { assetId = 83004446733675, size = { 4.565, 4.65, 4.565 }, offset = { 0, 2.325, -0 } }
+entries["slime_kirin"] = { assetId = 80680478341458, size = { 5.053, 4.182, 4.226 }, offset = { 0.107, 2.091, 0.297 } }
+entries["slime_jackpot"] =
+	{ assetId = 107540085780098, size = { 4.955, 4.626, 3.798 }, offset = { -0.023, 2.137, 0.186 } }
+entries["slime_star_emperor"] =
+	{ assetId = 110613916638021, size = { 4.902, 4.453, 4.495 }, offset = { -0.206, 2.157, 0.698 } }
+entries["slime_goo_god"] =
+	{ assetId = 130069852439424, size = { 7.565, 6.557, 4.401 }, offset = { -0.12, 3.278, 0.209 } }
 entries["slime_boo"] = { assetId = 96310373601330, size = { 4.198, 3.849, 2.926 }, offset = { 0.015, 1.846, -0.002 } }
 
 entries["slime_soda"] = { assetId = 95888248190580, size = { 3.602, 4.483, 3.085 }, offset = { -0.08, 2.242, -0.023 } }

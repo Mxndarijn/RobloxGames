@@ -62,6 +62,11 @@ function StealService.steal(
 	if not owner or not slime then
 		return false, "slime is gone"
 	end
+	local eggKind = EggKind.of(slime)
+	local eggBlock = if eggKind then EggKind.grabBlock(thief.data.rebirths, eggKind) else nil
+	if eggBlock then
+		return false, eggBlock
+	end
 	if VatState.isLocked(owner.data, slimeId) then
 		return false, "That slime is brewing in the vat"
 	end
