@@ -18,6 +18,7 @@ export type Entry = {
 	family: string?, -- FountainTiers family id (v19); nil = Classic, the original roster
 	kind: Kind, -- "spawn" rolls from the fountain and random merges; the others only from their own system
 	income: number, -- species income bonus within its rarity (INCOME; 1 = the rarity's base income)
+	jackpot: boolean?, -- a jackpot: x JACKPOT_INCOME, Config.JACKPOT_SHARE of its rarity's drops, never merged or asked for
 }
 
 -- spawn: the fountain and random merges. hybrid: merge recipes only. boss: the boss event only.
@@ -70,6 +71,14 @@ local INCOME: { [string]: number } = {
 	amethyst = 1.25,
 	seraph = 1.3,
 	prism = 1.35,
+	-- Celestial
+	lunara = 1,
+	solaris = 1.1,
+	nebulon = 1.2,
+	-- Divine
+	aurora = 1,
+	goo_oracle = 1.1,
+	kirin = 1.2,
 	-- Secret
 	midas = 1,
 	gaia = 1.15,
@@ -79,6 +88,8 @@ local INCOME: { [string]: number } = {
 }
 local HYBRID_INCOME = 1.2 -- every merge hybrid (on top of Config.RECIPE_INCOME_MULT)
 local EVENT_INCOME = 1.4 -- every limited event Secret
+local JACKPOT_INCOME = 5 -- every jackpot
+local JACKPOTS: { [string]: boolean } = { jackpot = true, star_emperor = true, goo_god = true }
 
 local function e(id: string, name: string, tier: number, look: string, family: string?, kind: Kind?): Entry
 	return table.freeze({
@@ -88,7 +99,13 @@ local function e(id: string, name: string, tier: number, look: string, family: s
 		look = look,
 		family = family,
 		kind = (kind or "spawn") :: Kind,
-		income = INCOME[id] or if kind == "hybrid" then HYBRID_INCOME elseif kind == "event" then EVENT_INCOME else 1,
+		income = if JACKPOTS[id]
+			then JACKPOT_INCOME
+			else INCOME[id] or if kind == "hybrid"
+				then HYBRID_INCOME
+				elseif kind == "event" then EVENT_INCOME
+				else 1,
+		jackpot = if JACKPOTS[id] then true else nil,
 	})
 end
 
@@ -142,6 +159,17 @@ local ROSTER: { Entry } = {
 	e("prism", "Prism", 6, "rainbow unicorn on a cloud", "starlight"),
 	e("eclipse", "Eclipse", SECRET_TIER, "void slime with a burning ring", "starlight"),
 	e("boo", "Boo", SECRET_TIER, "floating ghost", "starlight"),
+	-- Celestial and Divine (the slime ladder): every player sees them, grabbing waits for CATCH_REBIRTHS.
+	e("lunara", "Lunara", 8, "moon spirit with crescent horns and an orbiting moon"),
+	e("solaris", "Solaris", 8, "sun core with a rayed corona ring"),
+	e("nebulon", "Nebulon", 8, "nebula swirls with drifting stars and a tiny planet"),
+	e("aurora", "Aurora", 9, "rainbow-shifting slime with aurora ribbons"),
+	e("goo_oracle", "Goo Oracle", 9, "mystic with a third-eye gem and a rune circle"),
+	e("kirin", "Kirin", 9, "divine qilin with a golden horn and a cloud mane"),
+	-- Jackpots: one per top rarity, flashy and rare (Config.JACKPOT_SHARE of its drops), x5 income.
+	e("jackpot", "Jackpot", SECRET_TIER, "slot machine with 777 reels and spilling coins"),
+	e("star_emperor", "Star Emperor", 8, "starry cape and a crown of tiny planets"),
+	e("goo_god", "Goo God", 9, "huge white-gold slime with a sunburst and orbiting mini-slimes"),
 	-- Merge-only hybrids (docs/SLIME-ECONOMY.md §2): never spawn, only from their recipe.
 	k("hybrid", "soda", "Soda Pop", 2, "cola drop with a bottle cap and straw"),
 	k("hybrid", "rocky_road", "Rocky Road", 2, "chocolate scoop in a waffle cone"),

@@ -8,6 +8,7 @@ local Economy = require("../src/shared/Economy")
 local EggKind = require("../src/shared/EggKind")
 local Fixtures = require("./Fixtures")
 local Genome = require("../src/shared/Genome")
+local MysteryEgg = require("../src/shared/MysteryEgg")
 local PlayerData = require("../src/shared/PlayerData")
 local Rng = require("../src/shared/Rng")
 local SaveData = require("../src/shared/SaveData")
@@ -197,6 +198,7 @@ end)
 local function carryingEgg(): (World.World, World.Session, string)
 	local world = ServerFixtures.world()
 	local session = ServerFixtures.join(world, 1)
+	session.data.rebirths = Config.EGG_REBIRTHS.speckled
 	local id = Spawner.spawnEgg(world, T0)
 	local wild = world.wild[id]
 	wild.slime.egg = { kind = "speckled" }
@@ -204,17 +206,59 @@ local function carryingEgg(): (World.World, World.Session, string)
 	return world, session, id
 end
 
+-- The most rebirths any Mystery Egg kind asks for.
+local function topEggRebirths(): number
+	local top = 0
+	for _, n in Config.EGG_REBIRTHS do
+		top = math.max(top, n)
+	end
+	return top
+end
+
 describe("carrying and incubating", function()
-	it("grabs a fresh wild egg of any kind for free, even with no cash", function()
+	it("grabs a fresh wild egg of any kind for free with enough rebirths, even with no cash", function()
 		for _ = 1, 40 do
 			local world = ServerFixtures.world()
 			local session = ServerFixtures.join(world, 1)
 			session.data.cash = 0
+			session.data.rebirths = topEggRebirths()
 			local id = Spawner.spawnEgg(world, T0)
 			expect((Carry.grab(world, 1, id, 2, T0))).toBe(true)
 			expect(session.data.cash).toBe(0)
 			expect(world.carriedBy[id]).toBe(1)
 		end
+	end)
+	it("refuses an egg kind below its EGG_REBIRTHS and grabs it at exactly that many", function()
+		for _, k in EggKind.list() do
+			local need = Config.EGG_REBIRTHS[k.id] or 0
+			local world = ServerFixtures.world()
+			local session = ServerFixtures.join(world, 1)
+			local id = Spawner.spawnEgg(world, T0)
+			world.wild[id].slime.egg = { kind = k.id }
+			if need > 0 then
+				session.data.rebirths = need - 1
+				local ok, reason = Carry.grab(world, 1, id, 2, T0)
+				expect(ok).toBe(false)
+				expect(reason).toBe(`Rebirth {need} to grab this`)
+				expect(world.carriedBy[id]).toBeNil()
+				expect(world.wild[id] ~= nil).toBe(true)
+			end
+			session.data.rebirths = need
+			expect((Carry.grab(world, 1, id, 2, T0))).toBe(true)
+			expect(world.carriedBy[id]).toBe(1)
+		end
+	end)
+	it("a lucky egg that rolled a Secret still holds a Secret", function()
+		-- kind roll (top = Cosmic), tier roll (top = Secret), lucky roll (0 = lucky), then a real stream
+		local queue = { 0.9999, 0.9999, 0 }
+		local rng = Rng.new(5);
+		(rng :: any).float = function(self: Rng.Rng): number
+			return table.remove(queue, 1) or Rng.float(self)
+		end
+		local slime, k = MysteryEgg.rollWild(rng, "e")
+		expect(k.id).toBe("cosmic")
+		expect((slime.egg :: any).lucky).toBe(true)
+		expect(slime.tier).toBe(Config.SECRET_TIER)
 	end)
 	it("starts the hatch clock on the first pad and toasts that it is incubating", function()
 		local world, session, id = carryingEgg()
