@@ -240,11 +240,11 @@ describe("Snapshot State.dex", function()
 			end
 		end
 	end)
-	it("State.dex totals match the roster: 32 spawn + 15 hybrids + 6 bosses", function()
+	it("State.dex totals match the roster: 49 spawn + 15 hybrids + 6 bosses", function()
 		expect(#SlimeRoster.ofKind("spawn") + #SlimeRoster.ofKind("hybrid") + #SlimeRoster.ofKind("boss")).toBe(
 			SpeciesDex.TOTAL
 		)
-		expect(SpeciesDex.TOTAL).toBe(53)
+		expect(SpeciesDex.TOTAL).toBe(70)
 		expect(#SpeciesDex.BONUS).toBe(#SlimeRoster.ofKind("event"))
 	end)
 end)

@@ -57,9 +57,10 @@ describe("Mythic and Secret size floors", function()
 end)
 
 describe("Mythic and Secret wild lifetimes", function()
-	it("Mythic lives 1.5x and Secret 2x WILD_LIFETIME, the rest 1x", function()
+	it("Mythic lives 1.5x, Secret 2x, Celestial 2.5x and Divine 3x WILD_LIFETIME, the rest 1x", function()
+		local mults = { [MYTHIC] = 1.5, [SECRET] = 2, [8] = 2.5, [9] = 3 }
 		for tier = 1, Config.MAX_TIER do
-			local mult = if tier == MYTHIC then 1.5 elseif tier == SECRET then 2 else 1
+			local mult = mults[tier] or 1
 			expect(Fountain.wildLifetime(Fixtures.slime("x", tier))).toBe(Config.WILD_LIFETIME * mult)
 		end
 	end)
@@ -75,7 +76,7 @@ describe("Mythic and Secret wild lifetimes", function()
 	end)
 	it("a dropped Secret gets its long lifetime again", function()
 		local world = ServerFixtures.world()
-		ServerFixtures.join(world, 1)
+		ServerFixtures.join(world, 1).data.rebirths = Config.CATCH_REBIRTHS[SECRET]
 		local id = spawnTier(world, SECRET)
 		expect((Carry.grab(world, 1, id, 1, T0))).toBe(true)
 		expect(Carry.release(world, 1, T0 + 30, "here", "drop")).toBe(true)
@@ -97,7 +98,7 @@ describe("Mythic and Secret announcements", function()
 	end)
 	it("bringing a Mythic home tells everyone '<player> caught <Species>!'", function()
 		local world = ServerFixtures.world()
-		ServerFixtures.join(world, 1)
+		ServerFixtures.join(world, 1).data.rebirths = Config.CATCH_REBIRTHS[MYTHIC]
 		local id = spawnTier(world, MYTHIC)
 		local name = world.wild[id].slime.name
 		expect((Carry.grab(world, 1, id, 1, T0))).toBe(true)
@@ -161,11 +162,17 @@ describe("Mythic and Secret looks", function()
 		expect(endShake).toBe(0)
 		expect(endTint).toBe(0)
 	end)
-	it("only a fresh Secret drop erupts", function()
+	it("only a fresh Secret or rarer drop erupts", function()
 		expect(TopTierFx.erupts(SECRET, 100, 101)).toBe(true)
+		expect(TopTierFx.erupts(8, 100, 101)).toBe(true)
+		expect(TopTierFx.erupts(Config.MAX_TIER, 100, 101)).toBe(true)
 		expect(TopTierFx.erupts(MYTHIC, 100, 101)).toBe(false)
 		expect(TopTierFx.erupts(SECRET, 100, 100 + TopTierFx.FRESH_SECONDS + 1)).toBe(false)
 		expect(TopTierFx.erupts(SECRET, nil, 100)).toBe(false)
+	end)
+	it("a missing or non-number tier attribute never erupts", function()
+		expect(TopTierFx.erupts(nil, 100, 101)).toBe(false)
+		expect(TopTierFx.erupts("7", 100, 101)).toBe(false)
 	end)
 	it("pedestal glow under Mythic and Secret only; the Secret one has a small column", function()
 		for tier = 1, 5 do

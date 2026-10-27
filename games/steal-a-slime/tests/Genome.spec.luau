@@ -257,3 +257,33 @@ describe("Genome.sanitize species repair", function()
 		expect((SlimeRoster.get(named.species :: string) :: any).tier).toBe(6)
 	end)
 end)
+
+describe("Genome.promote species odds", function()
+	local SlimeRoster = require("../src/shared/SlimeRoster")
+	it("picks the new species with the fountain's weights, not evenly", function()
+		local counts: { [string]: number } = {}
+		local n = 2000
+		for i = 0, n - 1 do
+			local s = Genome.generate(Rng.new(1), { id = "p", tier = 5 })
+			s.species, s.name = "ninja", "Ninja"
+			Genome.promote(s, (i + 0.5) / n)
+			counts[s.species :: string] = (counts[s.species :: string] or 0) + 1
+		end
+		local list = {}
+		for _, entry in SlimeRoster.ROSTER do
+			if entry.kind == "spawn" and entry.tier == 6 then
+				table.insert(list, entry)
+			end
+		end
+		for _, entry in list do
+			-- The share of rolls landing on each species matches Genome.pickWeighted over the same list.
+			local expected = 0
+			for j = 0, n - 1 do
+				if Genome.pickWeighted(list, (j + 0.5) / n) == entry then
+					expected += 1
+				end
+			end
+			expect(counts[entry.id] or 0).toBe(expected)
+		end
+	end)
+end)

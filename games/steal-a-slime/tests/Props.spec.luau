@@ -76,11 +76,11 @@ describe("Props placed by WorldProps", function()
 		expect(row and row.Value.Text).toBe("3")
 		expect(row and row.Rank.Text).toBe("#2")
 	end)
-	it("draws the Top Earners list straight on the board face: no backing panel, no extra parts (B2)", function()
+	it("draws the list on a light GUI face with row cards, no extra parts (the Upcoming Events look)", function()
 		local board = Props.leaderboardBoard()
 		local gui = board.Board.BoardGui
 		expect(board.Board.Transparency).toBe(1)
-		expect(gui.Content.BackgroundTransparency).toBe(1)
+		expect(gui.Content.BackgroundTransparency).toBe(0)
 		local parts = 0
 		for _, d in board:GetDescendants() do
 			if d:IsA("BasePart") then
@@ -90,7 +90,7 @@ describe("Props placed by WorldProps", function()
 		expect(parts).toBe(5) -- Board, Frame, 2 posts, Collider: nothing added for the list
 		Props.fillLeaderboard(board, { { rank = 1, name = "A", value = 5 }, { rank = 2, name = "B", value = 3 } })
 		local odd, even = gui.Content.Rows.Row_1, gui.Content.Rows.Row_2
-		expect(odd.BackgroundTransparency).toBe(1)
+		expect(odd.BackgroundTransparency).toBe(0)
 		expect(even.BackgroundTransparency).toBe(0)
 	end)
 	it("keeps the shop stands' signs unlit so they read at night (v17 fixes)", function()

@@ -1,4 +1,4 @@
-# 45. Lucky Charm show
+# 46. Lucky Charm show
 
 **Status:** always on (no flag). Server-authoritative; no remote, **no save-format change**, nothing saved.
 
@@ -8,5 +8,5 @@ The Lucky Charm (`Perks.luckChance`: the Luck upgrade plus a luck follow pet) gi
 - **Client** `LuckyFx` (`src/visuals/client`, numbers in `Visuals.LuckyTimeline`, pure) for every viewer within `LuckyFx.MAX_DISTANCE`:
   1. **Glow** (0 to `MORPH_SECONDS`, server clock): the old model gets a pulsing gold highlight and clover sparkles.
   2. **Burst** (the new model, once `MORPH_SECONDS` have passed): a gold flash and a ring of clover sparkles, and the highlight fades from gold to the new rarity colour.
-  3. **Title**: "🍀 LUCKY!" over "Legendary → Mythic" in the two rarity colours floats up above the pad and fades.
+  3. **Title**: "🍀 LUCKY!" over "Legendary → Mythic" in the two rarity colours floats up above the pad and fades. Like the hatch title (contract/mystery-egg.md §40.6) it is a small sign in the world: sized in studs, hidden by walls, shown within `EggHatchTimeline.TITLE_DISTANCE`, and for someone else's slime only from `EggHatchTimeline.OTHERS_TITLE_TIER` up.
 - Nothing in the show replicates or decides anything.

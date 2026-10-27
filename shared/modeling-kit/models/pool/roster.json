@@ -30,5 +30,22 @@
  {"id": "prism", "name": "Prism", "tier": 6, "pitch": "rainbow unicorn: rainbow bands, spiral unicorn horn, flowing pastel mane, sparkle eyes, sitting on a cloud"},
  {"id": "midas", "name": "Midas", "tier": 7, "pitch": "pure gold dripping goo, gold shades, chunky gold chain with a gem, tiny crown tilted, smug smirk: the flex slime"},
  {"id": "eclipse", "name": "Eclipse", "tier": 7, "pitch": "void black with a purple-pink glowing rim, burning ring halo like a solar eclipse, glowing eyes, orbs orbiting"},
- {"id": "boo", "name": "Boo", "tier": 7, "pitch": "ghost: pale mint-white, tall with a wavy tail instead of a bottom (floats), spooky-playful face with tongue out, little chain"}
+ {"id": "boo", "name": "Boo", "tier": 7, "pitch": "ghost: pale mint-white, tall with a wavy tail instead of a bottom (floats), spooky-playful face with tongue out, little chain"},
+ {"id": "sir_goo", "name": "Sir Goo", "tier": 5, "pitch": "knight: lime goo body, steel helmet with a nose guard and visor slit, fan of red plume feathers, red round shield with a gold star, a short sword in a goo hand, royal-blue cape"},
+ {"id": "sunny", "name": "Sunny", "tier": 5, "pitch": "sunflower: warm yellow body in a two-layer orange-yellow petal mane with green leaves behind, brown seed-disc face, teal shades, big grin, leaf arms (one waving)"},
+ {"id": "captain_goo", "name": "Captain Goo", "tier": 5, "pitch": "pirate: sea-green body, black tricorn with gold trim and a skull, eye patch, gold tooth, hoop earring, red-white striped sash, a red parrot on the hat"},
+ {"id": "phoenix", "name": "Phoenix", "tier": 6, "pitch": "fire bird: deep red to orange to yellow body, tall flame crest, two big flame-feather wings with glowing tips, sweeping flame tail, floating embers, fierce eyes, gold beak"},
+ {"id": "elder_oak", "name": "Elder Oak", "tier": 6, "pitch": "ancient tree spirit: bark-brown body grading to mossy green, gnarled branches with leaf-puff canopy, a little owl on a branch, glowing amber eyes, moss beard, floating leaves"},
+ {"id": "yeti", "name": "Yeti", "tier": 6, "pitch": "frost yeti: shaggy white-to-pale-blue fur clumps, curled blue ice horns, dark-blue face patch with a happy roar and fangs, ice crystal spikes on the back, floating snowflakes"},
+ {"id": "gaia", "name": "Gaia", "tier": 7, "pitch": "earth spirit: soil-brown to spring-green glowing body, floating crown of pink/white/yellow flowers, leafy vines wrapping the body, orbiting leaves and petals, serene closed eyes, seed gem on the forehead"},
+ {"id": "abyss", "name": "Abyss", "tier": 7, "pitch": "deep-sea angler: near-black navy body with cyan glow stripes and spots, antenna stalk with a big glowing lure, jagged white grin, big glowing eyes, ragged fins and a frilled back fin, glowing bubbles"},
+ {"id": "lunara", "name": "Lunara", "tier": 8, "pitch": "moon spirit: pale silver-lavender body with soft crater freckles, crescent-moon horns, a small moon on a tilted orbit ring, starry sparkles, calm sleepy smile"},
+ {"id": "solaris", "name": "Solaris", "tier": 8, "pitch": "sun spirit: glowing gold-orange core brightest on top, a rayed corona ring with long and short rays, tiny flares, beaming face with warm cheeks"},
+ {"id": "nebulon", "name": "Nebulon", "tier": 8, "pitch": "nebula: deep blue to violet body with swirling pink and cyan clouds, drifting stars, a tiny ringed planet, a wispy cloud tail, starry eyes"},
+ {"id": "aurora", "name": "Aurora", "tier": 9, "pitch": "rainbow-shifting pastel body with aurora ribbons spiralling up and around it, floating crystal motes, dreamy smile"},
+ {"id": "goo_oracle", "name": "Goo Oracle", "tier": 9, "pitch": "royal-purple to white-gold mystic with a glowing third-eye gem, a floating circle of rune tiles, a hovering crystal ball and orbiting orbs, calm knowing eyes"},
+ {"id": "kirin", "name": "Kirin", "tier": 9, "pitch": "divine qilin: pearly white body with gold scale patches, a golden horn, a mint cloud mane, cloud puffs at its base, a gentle noble face"},
+ {"id": "jackpot", "name": "Jackpot", "tier": 7, "pitch": "jackpot slot machine: red-and-gold cabinet body, a 777 reel window, a lever with a red ball, orbiting coins, star eyes and a giddy grin"},
+ {"id": "star_emperor", "name": "Star Emperor", "tier": 8, "pitch": "jackpot emperor: navy body with gold trim, a starry night cape, a crown ring of tiny planets, a star scepter, a proud smirk"},
+ {"id": "goo_god", "name": "Goo God", "tier": 9, "pitch": "jackpot god: oversized white-gold body, a radiant sunburst and a halo, four mini-slime moons, glowing eyes and a third-eye gem"}
 ]

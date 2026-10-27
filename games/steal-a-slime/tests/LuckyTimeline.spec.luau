@@ -39,3 +39,13 @@ describe("LuckyTimeline", function()
 		expect(string.find(step, "#FFBE28", 1, true) ~= nil).toBe(true) -- Legendary's colour
 	end)
 end)
+
+describe("LuckyTimeline title sign", function()
+	local EggHatchTimeline = require("../src/visuals/shared/EggHatchTimeline")
+	it("follows the hatch title: near only, and others see it only from Epic up", function()
+		expect(LuckyTimeline.TITLE_DISTANCE).toBe(EggHatchTimeline.TITLE_DISTANCE)
+		expect(LuckyTimeline.showsTitle(true, 2)).toBe(true)
+		expect(LuckyTimeline.showsTitle(false, 2)).toBe(EggHatchTimeline.showsTitle(false, 2))
+		expect(LuckyTimeline.showsTitle(false, 6)).toBe(true)
+	end)
+end)

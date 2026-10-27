@@ -23,6 +23,7 @@ local EggKind = if Shared then require(Shared.EggKind) else require("../shared/E
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local GrabBlock = if Shared then require(Shared.GrabBlock) else require("../shared/GrabBlock")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
@@ -103,8 +104,19 @@ function Carry.grabWild(
 			return false, "it's still shrinking"
 		end
 	end
+	local eggKind = EggKind.of(wild.slime)
+	local eggBlock = if eggKind then EggKind.grabBlock(session.data.rebirths, eggKind) else nil
+	if eggBlock then
+		return false, eggBlock
+	end
 	if not wild.boss and not PlayerData.freePad(session.data) then
 		return false, "plot full" -- it could not be brought home (and a paid one keeps your cash)
+	end
+	if not wild.boss then
+		local need = GrabBlock.rebirthsFor(wild.slime)
+		if session.data.rebirths < need then
+			return false, `Rebirth {need} to grab this`
+		end
 	end
 	if wild.price > 0 and not PlayerData.spend(session.data, wild.price) then
 		return false, `need ${Economy.formatNumber(wild.price)}`
@@ -208,7 +220,10 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		-- Lucky Charm (Perks.luckChance): one rarity higher on the way home, as a species of that rarity
 		-- (Genome.promote). Never an egg: its slime is sealed.
 		local egg = slime.egg ~= nil
-		if not egg and slime.tier < Config.MAX_TIER and world.rng:float() < Perks.luckChance(session.data) then
+		-- only into a rarity this player may already grab (CATCH_REBIRTHS), so luck never skips the ladder
+		local nextOpen = slime.tier < Config.MAX_TIER
+			and session.data.rebirths >= (Config.CATCH_REBIRTHS[slime.tier + 1] or 0)
+		if not egg and nextOpen and world.rng:float() < Perks.luckChance(session.data) then
 			local before = Genome.copy(slime)
 			Genome.promote(slime, world.rng:float())
 			LuckyShow.record(world, userId, before, slime, now)

@@ -496,6 +496,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		ZIndex = 2,
 		Parent = bag,
 	})
+	Widgets.centreEmoji(bagIcon)
 	Widgets.label({
 		Name = "Caption",
 		Text = "Bag",

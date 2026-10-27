@@ -10,6 +10,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
+local EggHatchTimeline = if script then require(script.Parent.EggHatchTimeline) else require("./EggHatchTimeline")
 
 local LuckyTimeline = {}
 
@@ -19,6 +20,10 @@ LuckyTimeline.REBUILD_WAIT = 0.6 -- the caught model keeps glowing this long pas
 LuckyTimeline.BURST_SECONDS = 1
 LuckyTimeline.TITLE_SECONDS = 2.8
 LuckyTimeline.SPARKS = 30
+-- The title is a small sign in the world like the hatch title (EggHatchTimeline): sized in studs, hidden by walls,
+-- near only; two lines, so it is taller.
+LuckyTimeline.TITLE_STUDS = { EggHatchTimeline.TITLE_STUDS[1], EggHatchTimeline.TITLE_STUDS[2] * 1.8 }
+LuckyTimeline.TITLE_DISTANCE = EggHatchTimeline.TITLE_DISTANCE
 LuckyTimeline.GOLD = table.freeze({ 255, 214, 90 })
 LuckyTimeline.CLOVER = table.freeze({ 90, 220, 110 })
 
@@ -34,6 +39,12 @@ function LuckyTimeline.phase(t: number): Phase?
 		return "burst"
 	end
 	return nil
+end
+
+-- Whether a viewer gets the title: always for their own slime, for someone else's only as the hatch title does
+-- (from EggHatchTimeline.OTHERS_TITLE_TIER up).
+function LuckyTimeline.showsTitle(owner: boolean, tier: number): boolean
+	return EggHatchTimeline.showsTitle(owner, tier)
 end
 
 -- Highlight fill transparency of the glow at `t`: pulses faster and brighter towards the morph.
@@ -60,7 +71,7 @@ function LuckyTimeline.burst(s: number): BurstLook?
 	return {
 		ring = 2 + 14 * (1 - (1 - u) ^ 3),
 		ringFade = 0.1 + 0.9 * u,
-		light = 8 * (1 - u) ^ 2,
+		light = 4 * (1 - u) ^ 2,
 		mix = math.clamp(u * 2, 0, 1),
 		fill = 0.3 + 0.7 * u,
 	}

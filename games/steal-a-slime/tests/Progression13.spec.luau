@@ -228,6 +228,61 @@ describe("Upgrades (BuyUpgrade)", function()
 		expect(view[4].unlocked).toBe(false)
 		expect(view[4].price).toBeNil()
 	end)
+	it("gates every level of every upgrade by rebirths, one entry per level, never decreasing", function()
+		for _, def in Config.UPGRADES do
+			expect(#def.levelRequires).toBe(def.maxLevel)
+			for level = 1, def.maxLevel do
+				local need = def.levelRequires[level]
+				expect(need >= 0 and need <= Config.MAX_REBIRTHS).toBe(true)
+				if level > 1 then
+					expect(need >= def.levelRequires[level - 1]).toBe(true)
+				end
+			end
+		end
+		for _, tier in Config.REBIRTH_TIERS do
+			if tier.unlock then
+				local def = Perks.upgradeDef(tier.unlock) :: Config.Upgrade
+				expect(def.levelRequires[1]).toBe(tier.rebirths)
+			end
+		end
+	end)
+	it("refuses each upgrade level until its rebirth count, then sells it", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, nil, 1e15)
+		for _, def in Config.UPGRADES do
+			if not Upgrades.available(def) then
+				continue
+			end
+			for level = 0, def.maxLevel - 1 do
+				local need = Upgrades.requiresFor(def, level)
+				if need > 0 then
+					s.data.rebirths = need - 1
+					expect(call(world, 1, "BuyUpgrade", def.id).message).toBe(`locked: reach {need} rebirths`)
+					local entry = Upgrades.view(s.data)
+					for _, u in entry do
+						if u.id == def.id then
+							expect(u.unlocked).toBe(false)
+							expect(u.requires).toBe(need)
+							expect(u.price).toBeNil()
+						end
+					end
+				end
+				s.data.rebirths = need
+				expect(call(world, 1, "BuyUpgrade", def.id).ok).toBe(true)
+				expect(s.data.upgrades[def.id]).toBe(level + 1)
+			end
+		end
+	end)
+	it("Strong Arms and Night Shift open one level per rebirth step", function()
+		local data = Fixtures.data(nil, 1e12)
+		data.rebirths = 1
+		expect(Upgrades.buy(data, "CarrySpeed")).toBe(true)
+		expect(select(2, Upgrades.buy(data, "CarrySpeed"))).toBe("locked: reach 3 rebirths")
+		data.rebirths = 3
+		expect(Upgrades.buy(data, "CarrySpeed")).toBe(true)
+		expect(Upgrades.buy(data, "OfflineCap")).toBe(true)
+		expect(select(2, Upgrades.buy(data, "OfflineCap"))).toBe("locked: reach 6 rebirths")
+	end)
 end)
 
 describe("Goals and SlimeDex rewards", function()

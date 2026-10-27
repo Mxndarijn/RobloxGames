@@ -7,11 +7,13 @@
 	    highlight pulses on it and clover sparkles rise.
 	  * Burst: when the promoted slime's model arrives (the server rebuilt it as the new species), a gold flash, a
 	    ring and a puff of sparkles; the highlight turns from gold to the new rarity colour and fades.
-	  * Title: "🍀 LUCKY!" over "Legendary → Mythic" floats up above the pad and fades.
+	  * Title: "🍀 LUCKY!" over "Legendary → Mythic" floats up above the pad and fades: a small sign in the world
+	    (walls hide it, near only), for someone else's slime only from Epic up, like the hatch title.
 	Everything it makes is local (never replicates) and decides nothing.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -92,7 +94,7 @@ type Burst = {
 	light: Highlight,
 	ring: Part,
 	flash: PointLight,
-	title: Part,
+	title: Part?, -- nil when this viewer gets no title (LuckyTimeline.showsTitle)
 	labels: { TextLabel },
 	strokes: { UIStroke },
 }
@@ -129,7 +131,7 @@ local function textLabel(
 	return label
 end
 
-local function startBurst(model: Model, fromTier: number, tier: number, folder: Folder): Burst
+local function startBurst(model: Model, fromTier: number, tier: number, owner: boolean, folder: Folder): Burst
 	local holder = Instance.new("Folder")
 	holder.Name = "Burst"
 	holder.Archivable = false
@@ -153,26 +155,31 @@ local function startBurst(model: Model, fromTier: number, tier: number, folder: 
 		CFrame = CFrame.new(pivot + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 	})
 	ring.Parent = holder
-	local title = localPart({ Name = "Title", CFrame = CFrame.new(pivot + Vector3.new(0, 7, 0)) })
-	title.Parent = holder
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(360, 96)
-	gui.AlwaysOnTop = true
-	gui.LightInfluence = 0
-	gui.MaxDistance = LuckyFx.MAX_DISTANCE
-	gui.Parent = title
-	local top, step = Timeline.title(fromTier, tier)
-	local labels = {
-		textLabel(gui, top, 0, 0.55, GOLD, false),
-		textLabel(gui, step, 0.55, 0.45, Color3.new(1, 1, 1), true),
-	}
-	local strokes = {}
-	for _, label in labels do
-		local stroke = Instance.new("UIStroke")
-		stroke.Thickness = 3
-		stroke.Color = Color3.fromRGB(20, 14, 30)
-		stroke.Parent = label
-		table.insert(strokes, stroke)
+	-- The title is a small sign in the world (walls hide it, near only), like the hatch title.
+	local title: Part? = nil
+	local labels, strokes = {}, {}
+	if Timeline.showsTitle(owner, tier) then
+		local anchor = localPart({ Name = "Title", CFrame = CFrame.new(pivot + Vector3.new(0, 5, 0)) })
+		anchor.Parent = holder
+		local gui = Instance.new("BillboardGui")
+		gui.Size = UDim2.fromScale(Timeline.TITLE_STUDS[1], Timeline.TITLE_STUDS[2])
+		gui.AlwaysOnTop = false
+		gui.LightInfluence = 0
+		gui.MaxDistance = Timeline.TITLE_DISTANCE
+		gui.Parent = anchor
+		local top, step = Timeline.title(fromTier, tier)
+		labels = {
+			textLabel(gui, top, 0, 0.55, GOLD, false),
+			textLabel(gui, step, 0.55, 0.45, Color3.new(1, 1, 1), true),
+		}
+		for _, label in labels do
+			local stroke = Instance.new("UIStroke")
+			stroke.Thickness = 2
+			stroke.Color = Color3.fromRGB(20, 14, 30)
+			stroke.Parent = label
+			table.insert(strokes, stroke)
+		end
+		title = anchor
 	end
 	return {
 		model = model,
@@ -212,7 +219,9 @@ local function stepBurst(b: Burst): boolean
 		b.holder:Destroy()
 		return false
 	end
-	b.title.CFrame = CFrame.new(b.pivot + Vector3.new(0, 7 + rise, 0))
+	if b.title then
+		b.title.CFrame = CFrame.new(b.pivot + Vector3.new(0, 5 + rise, 0))
+	end
 	for _, label in b.labels do
 		label.TextTransparency = fade or 1
 	end
@@ -230,6 +239,7 @@ function LuckyFx.start(): Controller
 	folder.Name = LuckyFx.FOLDER
 	folder.Archivable = false
 	folder.Parent = workspace
+	local player = Players.LocalPlayer
 	local glows: { [Model]: Glow } = {}
 	local bursts: { [Model]: Burst } = {}
 	local burstDone: { [string]: number } = {} -- slime id -> os.clock() of its burst
@@ -258,7 +268,8 @@ function LuckyFx.start(): Controller
 			local tier = model:GetAttribute("Tier")
 			tier = if type(tier) == "number" then tier else 1
 			burstDone[id] = os.clock()
-			bursts[model] = startBurst(model, if type(from) == "number" then from else tier - 1, tier, folder)
+			local owner = player ~= nil and model:GetAttribute("OwnerUserId") == player.UserId
+			bursts[model] = startBurst(model, if type(from) == "number" then from else tier - 1, tier, owner, folder)
 		end
 	end
 

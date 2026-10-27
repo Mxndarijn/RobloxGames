@@ -21,6 +21,7 @@ local function luckyNinja(): (any, Genome.Slime)
 	local s = ServerFixtures.join(world, 1)
 	s.data.slimes = {}
 	s.data.upgrades.Luck = 5
+	s.data.rebirths = Config.CATCH_REBIRTHS[6] or 0 -- Mythic is open to this player (luck never skips the ladder)
 	world.rng = {
 		float = function()
 			return 0
