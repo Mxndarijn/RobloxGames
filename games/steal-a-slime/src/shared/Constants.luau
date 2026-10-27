@@ -102,6 +102,8 @@ return table.freeze({
 	PAD_UNLOCKED_ATTRIBUTE = "Unlocked", -- Pad_<j>: j <= PadsUnlocked
 	PLOT_SKIN_ATTRIBUTE = "PlotSkin", -- Plot_<i>: owner's equipped Config.PLOT_SKINS id (FEATURES.PlotSkins only)
 	PLOT_BASE_ATTRIBUTE = "PlotBase", -- Plot_<i>: owner's equipped Config.PLOT_BASES id (FEATURES.BaseShapes only)
+	SHINE_ATTRIBUTE = "Shine", -- slime model: its Config.SHINES id (weather mutation); nil = none
+	GRAB_REBIRTHS_ATTRIBUTE = "GrabRebirths", -- wild slime model: rebirths needed to grab it (GrabBlock.rebirthsFor); nil = open
 	PLOT_PRICE_ATTRIBUTE = "PlotPrice", -- Plot_<i>: reserved; nil while plots are free (v13)
 	RARE_ATTRIBUTE = "RareSpawn", -- wild slime model: tier, only on Legendary+ drops
 	RIDING_ATTRIBUTE = "Riding", -- wild slime model: true while it rides the fountain slide (emerge to landing / lane entry), else nil

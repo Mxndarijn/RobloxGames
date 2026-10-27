@@ -54,13 +54,15 @@ function GrabBlockCard.target(prompt: Instance): GrabBlock.Target
 		state = model:GetAttribute("State") :: string?,
 		price = if type(price) == "number" then price else nil,
 		boss = model:GetAttribute(Constants.BOSS_ATTRIBUTE) == true,
+		rebirths = model:GetAttribute(Constants.GRAB_REBIRTHS_ATTRIBUTE) :: number?,
 	}
 end
 
 -- The reason text a GrabPrompt shows for `me` (nil = grabbable, or no State yet).
 function GrabBlockCard.reasonText(prompt: any, me: GrabBlock.Me?): string?
-	local reason = if me then GrabBlock.reason(me, GrabBlockCard.target(prompt)) else nil
-	return if reason then GrabBlock.TEXT[reason] else nil
+	local target = GrabBlockCard.target(prompt)
+	local reason = if me then GrabBlock.reason(me, target) else nil
+	return if reason then GrabBlock.text(reason, target) else nil
 end
 
 -- Gives a prompt its blocked or normal style. A switch on an enabled prompt turns it off and on again so Roblox
