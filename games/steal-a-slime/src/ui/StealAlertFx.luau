@@ -185,9 +185,9 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		pingHighlight = create("Highlight", {
 			Name = "StealHighlight",
 			Adornee = character,
-			FillColor = RED,
-			FillTransparency = 0.6,
-			OutlineColor = Color3.new(1, 1, 1),
+			FillColor = Theme.Thief,
+			FillTransparency = StealAlertLayout.PING_FILL_TRANSPARENCY,
+			OutlineColor = Theme.Thief,
 			DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
 			Parent = character,
 		})
@@ -202,7 +202,6 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	local function hideArrow()
 		arrow.Visible = false
 		arrowLabel.Visible = false
-		setPing(nil)
 	end
 
 	-- Trail on every player with the Stealing attribute (their own client sees it too).
@@ -371,6 +370,9 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		elseif not debug and theft and theft.thiefId == nil then
 			theft = nil
 		end
+		-- The ping follows the theft alone; the arrow below only decides whether it also shows.
+		local character = thiefCharacter()
+		setPing(StealAlertLayout.pingTarget(theft ~= nil, debug, character))
 		if theft == nil then
 			flashStroke.Transparency = 1
 			hideArrow()
@@ -393,7 +395,6 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		end
 		local cameraPos, look = camera.CFrame.Position, camera.CFrame.LookVector
 		local target: Vector3? = nil
-		local character = thiefCharacter()
 		local rootPart = character and character:FindFirstChild("HumanoidRootPart")
 		if rootPart and rootPart:IsA("BasePart") then
 			target = rootPart.Position
@@ -409,14 +410,8 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			{ x = target.X, z = target.Z },
 			{ x = look.X, z = look.Z }
 		)
-		if debug then
-			setPing(nil)
-		else
-			setPing(character)
-		end
 		if distance < cfg.PING_HIDE_STUDS and not debug then
 			hideArrow() -- close enough to see them (the outline stays)
-			setPing(character)
 			return
 		end
 		if not screen then
