@@ -27,6 +27,7 @@ local LockPadView = require(script.Parent.LockPadView)
 local MoveGuard = require(ReplicatedStorage.Shared.MoveGuard)
 local MoveWatch = require(script.Parent.MoveWatch)
 local PlayerAttributes = require(script.Parent.PlayerAttributes)
+local PlotPadGuard = require(script.Parent.PlotPadGuard)
 local Profiler = require(script.Parent.Profiler)
 local PvpLaunch = require(script.Parent.PvpLaunch)
 local PvpService = require(script.Parent.PvpService)
@@ -102,11 +103,16 @@ local function sampleMovement(userId: number, player: Player, session: World.Ses
 end
 
 -- The owner standing on their own lock pad for Config.LOCK_PAD.STAND_SECONDS runs the Lock action, with the same rules
--- (owner, range, rate limit) as the LockPrompt.
+-- (owner, range, rate limit) as the LockPrompt. A dead character on the pad doesn't count (no refusal toast every second).
 local function stepLockPad(loop: Loop, player: Player, session: World.Session, t: number)
 	local root = WorldView.rootPart(player)
+	local plot = WorldView.plot(session.plotIndex)
 	local button = WorldView.plotPromptPart(session.plotIndex, "Lock")
-	local onPad = root ~= nil and button ~= nil and LockPadView.standing(session.plotIndex, button, root)
+	local onPad = root ~= nil
+		and plot ~= nil
+		and button ~= nil
+		and LockPadView.standing(plot, button, root)
+		and (loop.ctx.plotPadAccess == nil or PlotPadGuard.check(loop.ctx.plotPadAccess(session.userId, "Lock")) == nil)
 	if LockPad.step(session, onPad, t < session.lockUntil, t) then
 		Actions.triggerPlotPrompt(loop.world, session.userId, session.plotIndex, "Lock", t, loop.ctx)
 	end

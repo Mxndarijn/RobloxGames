@@ -37,15 +37,10 @@ local pads: { [number]: Pad } = {}
 
 local LockPadView = {}
 
--- World Y of plot `index`'s ground-floor walking surface.
-local function floorY(index: number): number
-	local centre = WorldLayout.plotCentre(index)
-	return centre[2] + WorldLayout.floorTop(1)
-end
-
-local function plotYaw(index: number): number
-	local _, yaw = WorldLayout.plotCentre(index)
-	return yaw
+-- World Y of the plot's ground-floor walking surface: the top of its Base (every base, the greybox too).
+local function floorY(plot: Instance): number?
+	local base = plot:FindFirstChild("Base")
+	return if base and base:IsA("BasePart") then base.Position.Y + base.Size.Y / 2 else nil
 end
 
 local function build(plot: Instance): Pad
@@ -107,7 +102,8 @@ end
 ]]
 function LockPadView.update(plot: Instance, index: number, button: BasePart?, ring: LockPad.Ring)
 	local pad = pads[index]
-	if not button then
+	local floor = floorY(plot)
+	if not button or not floor then
 		if pad then
 			pad.model:Destroy()
 			pads[index] = nil
@@ -119,17 +115,22 @@ function LockPadView.update(plot: Instance, index: number, button: BasePart?, ri
 		pads[index] = pad
 	end
 	local p = button.Position
-	local centre = Vector3.new(p.X, floorY(index), p.Z)
+	local centre = Vector3.new(p.X, floor, p.Z)
 	if not pad.at or (pad.at - centre).Magnitude > MOVE_EPSILON then
-		place(pad, centre, plotYaw(index))
+		local _, yaw = WorldLayout.plotCentre(index)
+		place(pad, centre, yaw)
 	end
 	paint(pad, ring)
 end
 
--- True when `root` stands on plot `index`'s lock pad round `button`.
-function LockPadView.standing(index: number, button: BasePart, root: BasePart): boolean
+-- True when `root` stands on `plot`'s lock pad round `button` (its LockButton).
+function LockPadView.standing(plot: Instance, button: BasePart, root: BasePart): boolean
+	local floor = floorY(plot)
+	if not floor then
+		return false
+	end
 	local b, r = button.Position, root.Position
-	return LockPad.inside(r.X - b.X, r.Y - floorY(index), r.Z - b.Z)
+	return LockPad.inside(r.X - b.X, r.Y - floor, r.Z - b.Z)
 end
 
 return LockPadView
