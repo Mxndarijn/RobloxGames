@@ -336,14 +336,14 @@ describe("H1 HUD: featured Secret status slot", function()
 		expect(HudClusters.blessed({ bonus = 0.3, endsAt = 0 / 0 } :: any, 1000)).toBeNil()
 	end)
 
-	it("shows the Boss MVP boost with its time left, next to Blessed, and nothing once it ends", function()
+	it("shows the Boss Champion boost with its time left, next to Blessed, and nothing once it ends", function()
 		local mvp = HudClusters.mvp({ bonus = 0.5, endsAt = 1300 }, 1000) :: HudClusters.Slot
 		expect(mvp.id).toBe("Mvp")
 		expect(mvp.text).toBe("5:00")
 		expect(mvp.icon).toBe("Boost_Mvp")
 		local tip = HudClusters.tooltip(mvp)
-		expect(tip.title).toBe("Boss MVP")
-		expect(tip.body).toBe("+50% income for landing the most hits on a boss.")
+		expect(tip.title).toBe("Boss Champion")
+		expect(tip.body).toBe("+50% income and +15% speed for bringing a boss home.")
 		expect(HudClusters.mvp(nil, 1000)).toBeNil()
 		expect(HudClusters.mvp({ bonus = 0.5, endsAt = 1000 }, 1000)).toBeNil()
 		local slots = HudClusters.status({

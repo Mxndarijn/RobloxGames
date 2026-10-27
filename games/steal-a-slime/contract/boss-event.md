@@ -101,7 +101,8 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
   spot; anyone can grab it again. Dropping never resets the haul deadline.
 - **Win.** The carrier reaches their HomeZone (`Carry.depositBoss`, no free pad needed): a server-wide toast names the
-  winner, who alone gets the win (below); the top hitter gets the Boss MVP boost. The boss slime is removed; it never
+  winner, who alone gets the win (below) and the Boss Champion boost: `+BOSS.MVP_BONUS` income and `+BOSS.MVP_SPEED`
+  walk speed for `BOSS.MVP_SECONDS` (`Shop.walkSpeed`). The top hitter counts an MVP toward the MVP badges. The boss slime is removed; it never
   goes into `data.slimes` or anywhere else in the save.
 - **Fail.** Meter not full by the fight deadline, or not home by the haul deadline: the boss (carried or not) is removed:
   it gets away. No slimes drop.
