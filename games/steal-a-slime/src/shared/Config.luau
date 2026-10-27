@@ -1178,8 +1178,9 @@ local Config = {
 		DRAIN_PER_SECOND = 0.02, -- share of the target lost per second with nobody hitting
 		DRAIN_GRACE = 1, -- seconds without a hit before the drain starts
 		STAGE_EVERY = 0.25, -- meter share between stages (it speeds up at each; no slimes drop)
-		MVP_BONUS = 0.5, -- the top hitter of a boss brought home: +50 % income ...
-		MVP_SECONDS = 5 * 60, -- ... for this long (runtime only, never saved; a new MVP restarts the timer)
+		MVP_BONUS = 0.5, -- Boss Champion boost, for the player who brings the boss home: +50 % income ...
+		MVP_SPEED = 0.15, -- ... and +15 % walk speed (Shop.walkSpeed) ...
+		MVP_SECONDS = 5 * 60, -- ... for this long (runtime only, never saved; a new win restarts the timer)
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane

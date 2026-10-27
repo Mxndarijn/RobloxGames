@@ -12,7 +12,7 @@
 	           time left;
 	    Friend the friend income bonus ("+10%", no timer);
 	    Blessed the co-op ritual's Blessed income bonus (State.blessed) with the time left;
-	    Mvp     the Boss MVP income boost (State.mvpBoost) with the time left;
+	    Mvp     the Boss Champion boost (State.mvpBoost) with the time left;
 	    Pet    the follow pet's perk (State.petPerk: "+3%", no timer) while the favourite rides along on its cloud;
 	    Secret this week's featured event Secret (State.featuredSecret) with the time until it rotates ("4h 6m").
 	  The row has Layout.STATUS.count places, fewer than there are slots: the week-long Secret makes way
@@ -23,6 +23,8 @@
 	rule: mouse hover on PC, tap on touch (a second tap or a tap elsewhere closes it).
 ]]
 
+local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Format = if script then require(script.Parent.Format) else require("./Format")
 local FriendBadge = if script then require(script.Parent.FriendBadge) else require("./FriendBadge")
 local ModifierBadge = if script then require(script.Parent.ModifierBadge) else require("./ModifierBadge")
@@ -184,7 +186,7 @@ function HudClusters.blessed(view: Blessed?, now: number): Slot?
 	}
 end
 
--- The Boss MVP slot (State.mvpBoost); nil when absent, malformed or over.
+-- The Boss Champion slot (State.mvpBoost); nil when absent, malformed or over.
 function HudClusters.mvp(view: Blessed?, now: number): Slot?
 	local slot = HudClusters.blessed(view, now)
 	if not slot or type(view) ~= "table" then
@@ -192,8 +194,9 @@ function HudClusters.mvp(view: Blessed?, now: number): Slot?
 	end
 	slot.id = "Mvp"
 	slot.icon = HudClusters.ICONS.Mvp
-	slot.name = "Boss MVP"
-	slot.effect = `+{math.floor(view.bonus * 100 + 0.5)}% income for landing the most hits on a boss.`
+	slot.name = "Boss Champion"
+	slot.effect =
+		`+{math.floor(view.bonus * 100 + 0.5)}% income and +{math.floor(Config.BOSS.MVP_SPEED * 100 + 0.5)}% speed for bringing a boss home.`
 	return slot
 end
 
