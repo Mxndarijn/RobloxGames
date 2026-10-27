@@ -196,6 +196,27 @@ describe("jar tower: stair", function()
 			end
 		end
 	end)
+	it("puts a solid post stub on the top jar's deck, as wide and tall as its capped look", function()
+		local newel = WorldLayout.STAIR_NEWEL
+		for f = 2, FLOORS do
+			local stubs = named(floorParts(1, f), "StairNewel")
+			expect(#stubs).toBe(1)
+			local n = stubs[1]
+			expect(n.attributes.JarShow).toBe("top")
+			expect(n.attributes.JarFloor).toBe(f)
+			expect(n.attributes.JarCollide).toBe(true)
+			expect(n.canCollide ~= false).toBe(true)
+			-- an upright cylinder on the jar's axis, standing on the deck, at least as wide as the post below
+			expect(n.shape).toBe("Cylinder")
+			expect(n.rot[3]).toBe(90)
+			expect(n.size[1]).toBe(newel.height)
+			expect(n.size[2]).toBe(newel.radius * 2)
+			expect(newel.radius >= st.post).toBe(true)
+			local p = toLocal(n, 1)
+			expect(math.abs(p[1]) < 1e-6 and math.abs(p[3]) < 1e-6).toBe(true)
+			expect(math.abs(p[2] - n.size[1] / 2 - WorldLayout.floorTop(f)) < 1e-6).toBe(true)
+		end
+	end)
 	it("fits inside the deck hole and leaves headroom under the next ramp", function()
 		expect(st.outer + 0.3 <= st.hole).toBe(true)
 		for f = 1, FLOORS - 2 do
