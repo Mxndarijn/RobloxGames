@@ -152,6 +152,61 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 	return slime
 end
 
+-- Spawning species of `tier` in every family, roster order.
+local function speciesOfTier(tier: number): { SlimeRoster.Entry }
+	local out = {}
+	for _, entry in SlimeRoster.ROSTER do
+		if entry.kind == "spawn" and entry.tier == tier then
+			table.insert(out, entry)
+		end
+	end
+	return out
+end
+
+-- Gives `slime` a species of its own tier (`roll` in [0, 1) picks it), with that species' name and colour. In place.
+-- A slime without a species keeps its random name and colour.
+local function matchSpecies(slime: Slime, roll: number)
+	local list = speciesOfTier(slime.tier)
+	local old = slime.species and SlimeRoster.get(slime.species)
+	if not old then
+		return
+	end
+	if #list == 0 then
+		slime.species = nil
+		return
+	end
+	local entry = list[math.clamp(math.floor(roll * #list) + 1, 1, #list)]
+	slime.species = entry.id
+	if slime.name == old.name then
+		slime.name = entry.name
+	end
+	local look = SlimeLooks.get(entry.id)
+	if look then
+		slime.color = { look.color[1], look.color[2], look.color[3] }
+	end
+end
+
+-- Lucky Charm: one rarity higher, and a species of that rarity (`roll` picks it), so a species never shows a rarity
+-- it doesn't have. Grows to the new tier's size floor. In place; false (unchanged) for an egg or a MAX_TIER slime.
+function Genome.promote(slime: Slime, roll: number): boolean
+	if slime.egg or slime.tier >= Config.MAX_TIER then
+		return false
+	end
+	slime.tier += 1
+	slime.size = roundSize(math.max(slime.size, Genome.sizeFloor(slime.tier)))
+	matchSpecies(slime, roll)
+	return true
+end
+
+-- Stable [0, 1) from a slime id, so repairing the same save always picks the same species.
+local function idRoll(id: string): number
+	local h = 0
+	for i = 1, #id do
+		h = (h * 31 + string.byte(id, i)) % 1000003
+	end
+	return h / 1000003
+end
+
 -- Growth 0..1 that counts: 0 with FEATURES.GrowingSlimes off or no/garbage `growth`.
 function Genome.growthFraction(slime: Slime): number
 	local g = slime.growth
@@ -237,7 +292,7 @@ function Genome.sanitize(raw: any): Slime?
 	if growth and (growth ~= growth or growth <= 0) then
 		growth = nil
 	end
-	return {
+	local slime: Slime = {
 		id = id,
 		name = name,
 		tier = clampInt(tier, 1, Config.MAX_TIER),
@@ -252,6 +307,13 @@ function Genome.sanitize(raw: any): Slime?
 		egg = EggKind.sanitize(raw.egg),
 		brewed = if raw.brewed == 1 or raw.brewed == 2 then raw.brewed else nil,
 	}
+	-- A species whose rarity differs from the slime's (a Lucky Charm catch kept its old species) becomes one of the
+	-- slime's rarity: the rarity and income stay, the type matches them.
+	local entry = slime.species and SlimeRoster.get(slime.species)
+	if entry and entry.tier ~= slime.tier and not slime.egg then
+		matchSpecies(slime, idRoll(id))
+	end
+	return slime
 end
 
 return Genome
