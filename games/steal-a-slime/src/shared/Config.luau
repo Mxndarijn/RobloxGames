@@ -454,11 +454,18 @@ local DEX_MILESTONES: { species: { DexMilestone } } = {
 
 local PLOT_SKINS: { PlotSkin } = {
 	{ id = "classic", name = "Classic Ranch", color = { 110, 226, 170 } },
-	{ id = "garden", name = "Garden", family = "orchard", threshold = 0.75, color = { 252, 176, 118 } },
+	-- Garden and Frost & Sea list their first family species, so a new family slime never moves the unlock.
+	{
+		id = "garden",
+		name = "Garden",
+		species = { "sprout", "cheddar", "prickles", "flan" },
+		threshold = 0.75,
+		color = { 252, 176, 118 },
+	},
 	{
 		id = "crystal",
 		name = "Frost & Sea",
-		family = "frost",
+		species = { "chomp", "pengoo", "frostbite", "zap", "ninja" },
 		threshold = 0.75,
 		color = { 124, 210, 236 },
 		floor = { color = { 148, 124, 190 }, material = "Slate" },

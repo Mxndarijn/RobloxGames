@@ -87,8 +87,8 @@ end)
 describe("FountainTiers: species", function()
 	it("every family holds its types per tier, each with a look and its own species kit", function()
 		local expected = {
-			orchard = { 2, 2, 0, 0, 0, 0, 0 },
-			frost = { 0, 0, 2, 2, 1, 0, 0 },
+			orchard = { 2, 2, 0, 0, 1, 1, 1 },
+			frost = { 0, 0, 2, 2, 2, 1, 1 },
 			starlight = { 0, 0, 0, 2, 1, 3, 2 },
 		}
 		for _, family in FountainTiers.FAMILIES do
@@ -106,7 +106,7 @@ describe("FountainTiers: species", function()
 		end
 	end)
 	it(
-		"Classic rolls never see a family type, and the Classic roster is 15 types with Midas the only Secret",
+		"Classic rolls never see a family type, and the Classic roster is 17 types with Midas the only Secret",
 		function()
 			local n = 0
 			for _, entry in SlimeRoster.ofKind("spawn") do
@@ -116,7 +116,7 @@ describe("FountainTiers: species", function()
 					expect(FountainTiers.family(entry.family) ~= nil).toBe(true)
 				end
 			end
-			expect(n).toBe(15)
+			expect(n).toBe(17)
 			local secret = SlimeRoster.forTier(SlimeRoster.SECRET_TIER)
 			expect(#secret).toBe(1)
 			expect(secret[1].id).toBe("midas")

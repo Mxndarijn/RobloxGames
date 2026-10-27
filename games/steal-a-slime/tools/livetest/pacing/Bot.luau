@@ -33,6 +33,7 @@ local Rng = require("../../../src/shared/Rng")
 local Schedule = require("./Schedule")
 local Shop = require("../../../src/shared/Shop")
 local StealService = require("../../../src/server/StealService")
+local TutorialProgress = require("../../../src/shared/TutorialProgress")
 local Upgrades = require("../../../src/shared/Upgrades")
 local VatState = require("../../../src/shared/VatState")
 local World = require("../../../src/server/World")
@@ -308,11 +309,14 @@ end
 local function weakest(world: World, bot: Bot, keep: { [string]: boolean }): (Slime?, number)
 	local busy = World.busySet(world)
 	local needed = Progression.neededIds(bot.data) -- Sell refuses these
+	-- While the tutorial asks for a merge, a player keeps their Commons to brew them (only Commons merge at first).
+	local keepCommons = TutorialProgress.currentId(bot.data) == "Merge"
 	local worst, worstValue = nil, math.huge
 	for _, s in bot.data.slimes do
 		if
 			not keep[s.id]
 			and not needed[s.id]
+			and not (keepCommons and s.tier == 1)
 			and not busy[s.id]
 			and not s.egg
 			and s.id ~= bot.data.favoriteId

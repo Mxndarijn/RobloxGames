@@ -111,9 +111,9 @@ describe("MergeRecipes: the random fallback", function()
 	it("locked families stay out of the pool until the rank opens them", function()
 		local classic = MergeRecipes.resolve(inputs(5, {}), CLASSIC)
 		expect(classic.tier).toBe(6)
-		expect(table.concat(classic.pool, ",")).toBe("cosmo")
+		expect(table.concat(classic.pool, ",")).toBe("cosmo,phoenix")
 		local starlight = MergeRecipes.resolve(inputs(5, {}), ALL)
-		expect(table.concat(starlight.pool, ",")).toBe("cosmo,seraph,amethyst,prism")
+		expect(table.concat(starlight.pool, ",")).toBe("cosmo,phoenix,elder_oak,yeti,seraph,amethyst,prism")
 		for tier = 1, Config.MAX_TIER do
 			for _, id in MergeRecipes.pool(tier, CLASSIC) do
 				expect((SlimeRoster.get(id) :: SlimeRoster.Entry).family).toBeNil()

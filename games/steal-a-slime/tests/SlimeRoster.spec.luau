@@ -9,8 +9,8 @@ local TestRunner = require("./TestRunner")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 describe("SlimeRoster", function()
-	it("has 4/3/3/2/1/1 Classic slimes per tier and Midas at Secret (7)", function()
-		local expected = { 4, 3, 3, 2, 1, 1, 1 }
+	it("has 4/3/3/2/2/2 Classic slimes per tier and Midas at Secret (7)", function()
+		local expected = { 4, 3, 3, 2, 2, 2, 1 }
 		expect(#expected).toBe(Config.MAX_TIER)
 		expect(Config.SECRET_TIER).toBe(Config.MAX_TIER)
 		for tier, count in expected do
@@ -19,31 +19,28 @@ describe("SlimeRoster", function()
 		expect(SlimeRoster.SECRET_TIER).toBe(Config.MAX_TIER)
 	end)
 
-	it(
-		"has 32 spawning species: 15 Classic, Orchard 4, Frost 5, Starlight 8, and Secret = Midas, Eclipse, Boo",
-		function()
-			local byFamily: { [string]: number } = {}
-			local secret = {}
-			local spawning = SlimeRoster.ofKind("spawn")
-			for _, entry in spawning do
-				local family = entry.family or "classic"
-				byFamily[family] = (byFamily[family] or 0) + 1
-				if entry.tier == SlimeRoster.SECRET_TIER then
-					table.insert(secret, entry.id)
-				end
+	it("has 40 spawning species: 17 Classic, Orchard 7, Frost 8, Starlight 8, and five Secrets", function()
+		local byFamily: { [string]: number } = {}
+		local secret = {}
+		local spawning = SlimeRoster.ofKind("spawn")
+		for _, entry in spawning do
+			local family = entry.family or "classic"
+			byFamily[family] = (byFamily[family] or 0) + 1
+			if entry.tier == SlimeRoster.SECRET_TIER then
+				table.insert(secret, entry.id)
 			end
-			expect(#spawning).toBe(32)
-			expect(byFamily).toEqual({ classic = 15, orchard = 4, frost = 5, starlight = 8 })
-			table.sort(secret)
-			expect(secret).toEqual({ "boo", "eclipse", "midas" })
 		end
-	)
+		expect(#spawning).toBe(40)
+		expect(byFamily).toEqual({ classic = 17, orchard = 7, frost = 8, starlight = 8 })
+		table.sort(secret)
+		expect(secret).toEqual({ "abyss", "boo", "eclipse", "gaia", "midas" })
+	end)
 
 	it("adds 15 hybrids, 6 bosses and 7 event Secrets that never roll as a spawn", function()
 		expect(#SlimeRoster.ofKind("hybrid")).toBe(15)
 		expect(#SlimeRoster.ofKind("boss")).toBe(6)
 		expect(#SlimeRoster.ofKind("event")).toBe(7)
-		expect(#SlimeRoster.ROSTER).toBe(60)
+		expect(#SlimeRoster.ROSTER).toBe(68)
 		for _, entry in SlimeRoster.ROSTER do
 			expect(entry.family == nil or entry.kind == "spawn").toBe(true)
 			if entry.kind ~= "spawn" then
