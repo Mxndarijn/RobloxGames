@@ -369,7 +369,7 @@ local function stepFx(t: number, cameraPos: Vector3)
 				model.Parent = folder()
 			end
 			RareSpawn.place(model, pivot, t)
-			if model:GetAttribute("Tier") == TopTierFx.SECRET_TIER then
+			if (tonumber(model:GetAttribute("Tier")) or 0) >= TopTierFx.SECRET_TIER then
 				secretWild = true
 			end
 		elseif model.Parent then

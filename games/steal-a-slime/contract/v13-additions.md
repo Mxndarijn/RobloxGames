@@ -94,6 +94,8 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 - `Config.RARITIES[i].weight`: see [slime-odds.md](slime-odds.md) (§32) for the current weights.
 - **Pity** (per server, `world.pity`): after `PITY_EPIC` (30) drops in a row without an Epic+, the next drop is at least Epic; after `PITY_LEGENDARY` (300) without a Legendary+, at least Legendary. Rain luck stacks.
+- **Time guarantees** (per server, `world.lastTierAt`, `Spawner.minTier`): once `GUARANTEE_SECONDS[t]` pass without a drop of rarity `t` or higher (a Legendary every 5 min, a Mythic every 15 min), the next drop is at least `t`. `Spawner.guaranteeIn(world, t, now)` is the time left.
+- **Rarity and egg gates** (`GrabBlock.rebirthsFor`): grabbing a wild slime needs `CATCH_REBIRTHS[tier]` rebirths (Mythic 5, Secret 12) and a Mystery Egg its kind's `rebirths` (Speckled open, Shiny 1, Golden 3, Cosmic 6; `EggKind.grabBlock`, also for stealing); `Carry.grab` refuses a slime with "Rebirth <n> to grab this". Stealing a slime is never gated. The wild model carries `GrabRebirths` (nil = open) so the client's grab card says the same. The Lucky Charm only lifts a slime into a rarity the player may grab, and a lucky egg stops at Secret.
 - Legendary+ (`RARE_ANNOUNCE_TIER` = 5) wild drops (fountain or rain, not the Boss Slime, which has its own toast) get the `RareSpawn` attribute, update the workspace `RareSpawn*` attributes and send the `"Rare"` Notify to everyone.
 
 ## 8.8 Progression
@@ -155,8 +157,8 @@ egg). Every level has its own list (`#REBIRTH_SLIMES == MAX_REBIRTHS`, no two li
 family species only appears once a player of that rank can catch it, a hybrid once its recipe's
 inputs can be caught and merged, and boss and event slimes are never asked for (a boss win gives
 no slime). Each list asks for about the rarity players farm at that level. The cash cost stays.
-The slimes the next rebirth would use up (`Progression.neededIds`) can't be sold or put in the vat,
-and their pad label says "For rebirth".
+The slimes the next rebirth would use up can still be sold or put in the vat; their pad shows no
+rebirth label.
 `Progression.canRebirth` rejects with `need a <Species Name>` for the first missing one.
 
 The rebirth **uses those slimes up** (`Progression.payment`): for each listed species the

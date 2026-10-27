@@ -4,15 +4,15 @@ The roster is the new slime pool (`shared/modeling-kit/models/pool`, design `doc
 saves yet, so the old roster ids are simply gone: no migration, no legacy map. An unknown saved species is dropped on load
 as before (`Genome.sanitize`).
 
-- **Species (`Shared.SlimeRoster`, permanent ids from now on).** 32 spawning species.
+- **Species (`Shared.SlimeRoster`, permanent ids from now on).** 40 spawning species.
   Classic (family nil): `gummy mochi bubbles pebble` (1), `bumble mushie froggo` (2), `whiskers lop moo` (3),
-  `blaze octo` (4), `king` (5), `cosmo` (6), `midas` (7).
-  `orchard`: `sprout cheddar` (1), `prickles flan` (2).
-  `frost`: `chomp pengoo` (3), `frostbite zap` (4), `ninja` (5).
+  `blaze octo` (4), `king sir_goo` (5), `cosmo phoenix` (6), `midas` (7).
+  `orchard`: `sprout cheddar` (1), `prickles flan` (2), `sunny` (5), `elder_oak` (6), `gaia` (7).
+  `frost`: `chomp pengoo` (3), `frostbite zap` (4), `ninja captain_goo` (5), `yeti` (6), `abyss` (7).
   `starlight`: `imp drako` (4), `robo` (5), `seraph amethyst prism` (6), `eclipse boo` (7).
   Families keep their ids and rank gates (§19); a family may now have several species per tier, none at some tiers,
   and Secret species.
-- **Kinds (`Entry.kind`).** `"spawn"` (the 32 above: the fountain and random merges; `SlimeRoster.forTier` returns only
+- **Kinds (`Entry.kind`).** `"spawn"` (the 40 above: the fountain and random merges; `SlimeRoster.forTier` returns only
   these), `"hybrid"` (merge recipes only): `soda rocky_road` (2), `bloom honey_toad truffle` (3),
   `sushi snow_bunny moo_shroom catfish` (4), `steam kraken thunderbee` (5), `cyber_ninja dragon_king` (6), `nightwing` (7);
   `"boss"` (the boss event only): `goozilla queen_jelly klawdius pumpking` (6), `mecha_goo goomancer` (7);

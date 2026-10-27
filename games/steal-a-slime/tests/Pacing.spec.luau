@@ -53,21 +53,17 @@ describe("Pacing server", function()
 		})
 	end
 
-	-- The tutorial's Merge step needs three slimes of a rarity the rank may merge (only Commons before rebirth 1);
-	-- a bot that always keeps its best slimes may never hold them, so only one grinder has to finish it.
-	it("bots play the real game: grinders rebirth and one finishes the tutorial", function()
+	it("bots play the real game: they finish the tutorial and rebirth", function()
 		local records = run()
 		expect(#records).toBe(3)
-		local tutorials = 0
 		for _, r in records do
 			expect(r.final.played > 0).toBe(true)
 			if r.profile == "grinder" then
-				tutorials += if r.tutorialAt then 1 else 0
+				expect(r.tutorialAt ~= nil).toBe(true)
 				expect(r.rebirthAt[1] ~= nil).toBe(true)
 				expect(r.hours[1] ~= nil and r.hours[1].played == 1800).toBe(true)
 			end
 		end
-		expect(tutorials >= 1).toBe(true)
 	end)
 
 	it("keeps milestones, a time series, the cash ledger and steal events per bot", function()
