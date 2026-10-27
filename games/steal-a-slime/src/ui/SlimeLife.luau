@@ -35,7 +35,7 @@ SlimeLife.MAX_ACTIVE = 40
 SlimeLife.MAX_DISTANCE = 200 -- studs from the camera to start animating
 SlimeLife.KEEP_DISTANCE = 220 -- an active slime stays active up to here (no flicker at the edge)
 SlimeLife.MAX_SPARKLING = 6 -- sparkle emitters at once (rarest first)
-SlimeLife.MAX_TIER = 7 -- Secret
+SlimeLife.MAX_TIER = 9 -- Divine
 SlimeLife.SPARKLE_LIFETIME = { 0.6, 1.1 } -- seconds, per particle
 SlimeLife.SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds" -- built-in, same as Effects SPARK
 SlimeLife.MAX_SPARKLES_ALIVE = 16 -- per emitter, same limit as tests/Effects.spec
@@ -115,8 +115,8 @@ local function clampTier(tier: number?): number
 	return math.clamp(math.floor(tier), 1, SlimeLife.MAX_TIER)
 end
 
-local SPARKLE_RATE = { 0, 0, 3, 5, 8, 11, 14 } -- by tier; rate * 1.1 s <= 16 alive
-local LAND_BURST = { 0, 0, 0, 4, 6, 8, 10 }
+local SPARKLE_RATE = { 0, 0, 3, 5, 8, 11, 14, 14, 14 } -- by tier; rate * 1.1 s <= 16 alive
+local LAND_BURST = { 0, 0, 0, 4, 6, 8, 10, 10, 10 }
 
 function SlimeLife.params(tier: number?, state: string?): Params
 	local t = clampTier(tier)

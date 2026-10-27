@@ -394,11 +394,23 @@ local function hallSpots(): { [string]: Spot }
 end
 
 -- UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
+-- The Upcoming Events wall (server/EventBoardView): a Hall of Fame board (Props.leaderboardBoard, its mesh) in the
+-- middle of the lawn between the plot 5 and 6 spokes (the 202.5 bisector, mid-lawn radius), right behind the hub
+-- SpawnLocation (r 64 at 202.5), facing the fountain; that lawn holds nothing else (RanchProps moved its picnic table
+-- and sunflowers to the 292.5 lawn).
+WorldLayout.EVENT_BOARD = table.freeze({ model = "EventBoard", bearing = 202.5, radius = 92.25, scale = 1.05 })
+
 local spots: { [string]: Spot } = {
 	ItemShopStand = propSpot(67.5, true),
 	UpgradeShopStand = propSpot(34.5, true, 96),
 	TutorialNpc = propSpot(247.5, true),
 }
+do
+	local board = WorldLayout.EVENT_BOARD
+	local spot = propSpot(board.bearing, true, board.radius)
+	spot.scale = board.scale
+	spots[board.model] = spot
+end
 for name, spot in hallSpots() do
 	spots[name] = table.freeze(spot)
 end
@@ -980,6 +992,7 @@ local propMeshes: { [string]: string } = {
 	UpgradeShopStand = WorldLayout.SHOP_STANDS.UpgradeShopStand.mesh,
 	TutorialNpc = "ranch_guide",
 	[Constants.PROFESSOR_GOO] = "guide_professor",
+	[WorldLayout.EVENT_BOARD.model] = "phoenix_top_earners_board", -- the Hall of Fame board frame
 }
 for _, def in Leaderboards.BOARDS do
 	propMeshes[def.model] = "phoenix_top_earners_board"

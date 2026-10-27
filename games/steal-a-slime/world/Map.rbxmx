@@ -19433,18 +19433,18 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEgAAAHJhbmNoX3BpY25pY190YWJsZQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-34.82419</X>
+            <X>-76.737625</X>
             <Y>2.0478058</Y>
-            <Z>-84.073044</Z>
-            <R00>0.9238739</R00>
+            <Z>47.02487</Z>
+            <R00>-0.52249146</R00>
             <R01>0</R01>
-            <R02>0.38269043</R02>
+            <R02>0.8526459</R02>
             <R10>0</R10>
             <R11>1</R11>
             <R12>0</R12>
-            <R20>-0.38269043</R20>
+            <R20>-0.8526459</R20>
             <R21>0</R21>
-            <R22>0.9238739</R22>
+            <R22>-0.52249146</R22>
           </CoordinateFrame>
           <bool name="CanCollide">true</bool>
           <bool name="CanQuery">true</bool>
@@ -19468,18 +19468,18 @@
           <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFQAAAHJhbmNoX3N1bmZsb3dlcl9wYXRjaA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
-            <X>-25.909912</X>
+            <X>-84.437485</X>
             <Y>4.378998</Y>
-            <Z>-90.3586</Z>
-            <R00>0.96125793</R00>
+            <Z>48.75</Z>
+            <R00>-0.5</R00>
             <R01>0</R01>
-            <R02>0.27563477</R02>
+            <R02>0.86602783</R02>
             <R10>0</R10>
             <R11>1</R11>
             <R12>0</R12>
-            <R20>-0.27563477</R20>
+            <R20>-0.86602783</R20>
             <R21>0</R21>
-            <R22>0.96125793</R22>
+            <R22>-0.5</R22>
           </CoordinateFrame>
           <bool name="CanCollide">false</bool>
           <bool name="CanQuery">true</bool>
