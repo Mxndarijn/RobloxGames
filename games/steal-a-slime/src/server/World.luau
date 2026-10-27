@@ -95,6 +95,7 @@ export type Wild = {
 	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts in Spawner.wildCount
 	move: BossChoreo.Move?, -- the boss: its current move (BossChoreo; model attribute BossMove)
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
+	smashedAt: number?, -- a wild Mystery Egg that was dropped: when it smashed (contract/mystery-egg.md 40.7)
 	choreo: { seed: number }?, -- FEATURES.SlimeChoreo: seed of its lane beats (ParadeChoreo); nil once it leaves the lane
 }
 

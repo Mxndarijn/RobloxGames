@@ -130,6 +130,7 @@ return table.freeze({
 	}),
 	HATCHED_AT_ATTRIBUTE = "HatchedAt", -- egg, then slime model, for MYSTERY_EGG.HATCH_FX_SECONDS after a hatch: server time of it
 	HATCHED_FROM_ATTRIBUTE = "HatchedFrom", -- slime model, with HatchedAt: the egg kind id it hatched from
+	EGG_SMASHED_AT_ATTRIBUTE = "EggSmashedAt", -- wild egg model: server time a carrier dropped it and it smashed
 	HATCH_LUCKY_ATTRIBUTE = "HatchLucky", -- slime model, with HatchedAt: true for a lucky egg or a full lucky meter
 	HATCH_TIER_ATTRIBUTE = "HatchTier", -- the egg model during a hatch show (HATCH_BURST_SECONDS): the tier inside, for the glow
 	HATCH_POPPING_ATTRIBUTE = "HatchPopping", -- client-local, on a hatched slime model while its pop plays: the label waits

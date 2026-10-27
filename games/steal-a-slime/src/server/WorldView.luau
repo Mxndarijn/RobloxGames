@@ -971,6 +971,9 @@ local function place(world: World.World, record: Record, entry: Scene.Entry, pre
 	model:SetAttribute(Constants.LANE_AT_ATTRIBUTE, if choreo and entry.wild then entry.wild.spawnedAt else nil)
 	model:SetAttribute(Constants.LANE_UNTIL_ATTRIBUTE, if choreo and entry.wild then entry.wild.expiresAt else nil)
 	model:SetAttribute(Constants.RARE_ATTRIBUTE, entry.rare)
+	-- A dropped wild egg: clients play the smash (contract/mystery-egg.md 40.7). Set before the model moves, so the
+	-- client's copy starts where the carrier held it.
+	model:SetAttribute(Constants.EGG_SMASHED_AT_ATTRIBUTE, if entry.wild then entry.wild.smashedAt else nil)
 
 	syncGhost(record, entry)
 	syncGooTrail(record, entry.boss and entry.state == "Carried")
