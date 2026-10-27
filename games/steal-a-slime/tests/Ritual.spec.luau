@@ -152,7 +152,7 @@ describe("Ritual.step", function()
 		local users = { [1] = 1, [2] = 2, [3] = 3 }
 		Ritual.step(state, users, T0)
 		Ritual.step(state, users, T0 + R.HOLD_SECONDS)
-		local later = T0 + R.HOLD_SECONDS + R.SERVER_COOLDOWN + 1
+		local later = T0 + R.HOLD_SECONDS + R.PLAYER_COOLDOWN - 1
 		expect(count(Ritual.occupants(state, { onSpot(1, 1), onSpot(7, 2) }, later))).toBe(1)
 		local after = T0 + R.HOLD_SECONDS + R.PLAYER_COOLDOWN
 		expect(count(Ritual.occupants(state, { onSpot(1, 1), onSpot(7, 2) }, after))).toBe(2)
