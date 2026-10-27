@@ -1502,6 +1502,12 @@ local Config = {
 	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
 	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `announce` (server
 	-- toast on spawn) and `drops` (tier weights of the slime inside). A wild egg is free to grab and can't be sold.
+	-- Lucky Charm show (contract/lucky-charm.md): the pad shows the slime as caught, then as its new species.
+	LUCKY_SHOW = table.freeze({
+		MORPH_SECONDS = 1.2, -- the pad shows the caught slime this long, then the promoted one (and the owner hears Lucky)
+		FX_SECONDS = 5, -- the model on the pad carries LuckyAt / LuckyFromTier this long
+	}),
+
 	MYSTERY_EGG = table.freeze({
 		DROP_CHANCE = 0.015, -- share of fountain drops that are an egg
 		RAIN_MULT = 3, -- DROP_CHANCE multiplier during Slime Rain

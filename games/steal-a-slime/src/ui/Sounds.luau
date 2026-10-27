@@ -67,6 +67,7 @@ Sounds.IDS = table.freeze({
 	RitualDone = "rbxassetid://9116394756", -- Pro Sound Effects "Magic Glows Soft Clusters Of Chiming Hits 3"
 	RitualSpot = "rbxassetid://12221996", -- flashbulb.wav (VOLUME: low), a spot gets taken
 	DexNew = "rbxassetid://103005200793008", -- audio-kit dex_new (fallback: Goal)
+	Lucky = "", -- the Lucky Charm show's chime (contract/lucky-charm.md); not uploaded yet (fallback: MergeSparkle)
 	JarFill = "rbxassetid://128015024195428", -- audio-kit jar_fill
 	DespawnPoof = "rbxassetid://9125639751", -- Pro Sound Effects "Magic Poofs Short Breathy Bursts Wheezy Exhale"
 	-- UI
@@ -117,6 +118,7 @@ Sounds.FALLBACK = table.freeze({
 	Bag = "CashSnap",
 	Denied = "ErrorSoft",
 	DexNew = "Goal",
+	Lucky = "MergeSparkle",
 	TutorialTick = "Goal",
 	SlimeSquish1 = "SlimeSquishLib",
 	SlimeSquish2 = "SlimeSquishLib",
@@ -157,11 +159,13 @@ Sounds.VOLUME = table.freeze({
 })
 Sounds.SPEED = table.freeze({
 	Escape = 1.25,
+	Lucky = 1.2, -- a brighter bell than the merge's
 })
 
 Sounds.LAYERS = table.freeze({
 	Merge = table.freeze({ "MergeSparkle" }),
 	DexNew = table.freeze({ "JarFill" }),
+	Lucky = table.freeze({ "Rare" }),
 })
 
 Sounds.VARIANTS = table.freeze({

@@ -49,6 +49,7 @@ local CONTRACT_NAMES = {
 	"RitualDone",
 	"RitualSpot",
 	"DexNew",
+	"Lucky",
 	"JarFill",
 	"DespawnPoof",
 	"MenuOpen",

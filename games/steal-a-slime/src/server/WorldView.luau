@@ -92,6 +92,7 @@ type Record = {
 	prompt: ProximityPrompt,
 	hatch: ProximityPrompt?, -- Mystery Eggs: the owner-only HatchPrompt
 	egg: boolean, -- built as a Mystery Egg (a hatch rebuilds the model as its slime)
+	species: string?, -- built as this species (a Lucky Charm morph rebuilds the model as its new species)
 	key: string,
 	placed: boolean, -- place() has succeeded once; until then the model stays out of workspace (it is built at the
 	-- world origin, the fountain axis)
@@ -872,6 +873,7 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		prompt = prompt,
 		hatch = hatch,
 		egg = isEgg,
+		species = entry.slime.species,
 		key = "",
 		placed = false,
 		weld = nil,
@@ -1138,7 +1140,12 @@ function WorldView.reconcile(
 	local clock = os.clock()
 	for id, record in records do
 		local entry = entries[id]
-		if not entry or record.egg ~= EggKind.isEgg(entry.slime) or kitArrived(record, entry, clock) then
+		if
+			not entry
+			or record.egg ~= EggKind.isEgg(entry.slime)
+			or record.species ~= entry.slime.species
+			or kitArrived(record, entry, clock)
+		then
 			clearGhost(record)
 			record.model:Destroy()
 			records[id] = nil
@@ -1169,6 +1176,10 @@ function WorldView.reconcile(
 		setAttr(record.model, Constants.HATCHED_FROM_ATTRIBUTE, hatched and hatched.kind)
 		setAttr(record.model, Constants.HATCH_LUCKY_ATTRIBUTE, if hatched and hatched.lucky then true else nil)
 		setAttr(record.model, Constants.HATCH_TIER_ATTRIBUTE, if hatched and record.egg then hatched.tier else nil)
+		-- The Lucky Charm show (contract/lucky-charm.md): on the caught model, then on the promoted one.
+		local lucky = entry.lucky
+		setAttr(record.model, Constants.LUCKY_AT_ATTRIBUTE, lucky and lucky.at)
+		setAttr(record.model, Constants.LUCKY_FROM_TIER_ATTRIBUTE, lucky and lucky.before.tier)
 		if record.egg then
 			local egg = entry.slime.egg :: EggKind.Egg
 			local kind = EggKind.get(egg.kind)
