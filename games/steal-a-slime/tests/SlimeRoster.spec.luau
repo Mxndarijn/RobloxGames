@@ -9,17 +9,56 @@ local TestRunner = require("./TestRunner")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 describe("SlimeRoster", function()
-	it("has 4/3/3/2/2/2 Classic slimes per tier and Midas at Secret (7)", function()
-		local expected = { 4, 3, 3, 2, 2, 2, 1 }
-		expect(#expected).toBe(Config.MAX_TIER)
-		expect(Config.SECRET_TIER).toBe(Config.MAX_TIER)
-		for tier, count in expected do
-			expect(#SlimeRoster.forTier(tier)).toBe(count)
+	it(
+		"has 4/3/3/2/2/2 Classic slimes per tier, Midas and Jackpot at Secret, four each at Celestial and Divine",
+		function()
+			local expected = { 4, 3, 3, 2, 2, 2, 2, 4, 4 }
+			expect(#expected).toBe(Config.MAX_TIER)
+			expect(Config.SECRET_TIER).toBe(7)
+			for tier, count in expected do
+				expect(#SlimeRoster.forTier(tier)).toBe(count)
+			end
+			expect(SlimeRoster.SECRET_TIER).toBe(Config.SECRET_TIER)
 		end
-		expect(SlimeRoster.SECRET_TIER).toBe(Config.MAX_TIER)
+	)
+
+	it(
+		"puts Lunara, Solaris and Nebulon at Celestial and Aurora, Goo Oracle and Kirin at Divine, all Classic spawns",
+		function()
+			for id, tier in { lunara = 8, solaris = 8, nebulon = 8, aurora = 9, goo_oracle = 9, kirin = 9 } do
+				local entry = assert(SlimeRoster.get(id), id)
+				expect(`{id} {entry.tier} {entry.kind} {entry.family}`).toBe(`{id} {tier} spawn nil`)
+				expect(entry.jackpot).toBeNil()
+			end
+		end
+	)
+
+	it("has one jackpot per top rarity: Jackpot (Secret), Star Emperor (Celestial), Goo God (Divine)", function()
+		local jackpots = {}
+		for _, entry in SlimeRoster.ROSTER do
+			if entry.jackpot then
+				jackpots[entry.id] = entry.tier
+				expect(entry.kind).toBe("spawn")
+				expect(entry.family).toBeNil()
+				expect(entry.income).toBe(5)
+			end
+		end
+		expect(jackpots).toEqual({ jackpot = Config.SECRET_TIER, star_emperor = 8, goo_god = 9 })
 	end)
 
-	it("has 40 spawning species: 17 Classic, Orchard 7, Frost 8, Starlight 8, and five Secrets", function()
+	it("gives a jackpot JACKPOT_SHARE of its rarity's drops in any pool, Classic only or every family", function()
+		for _, families in { {}, { "orchard", "frost", "starlight" } } do
+			local pool = Genome.speciesPool(Config.SECRET_TIER, families)
+			local hits, n = 0, 4000
+			for i = 1, n do
+				local entry = Genome.pickWeighted(pool, (i - 0.5) / n) :: any
+				hits += if entry.jackpot then 1 else 0
+			end
+			expect(math.abs(hits / n - Config.JACKPOT_SHARE) < 0.01).toBe(true)
+		end
+	end)
+
+	it("has 49 spawning species: 26 Classic, Orchard 7, Frost 8, Starlight 8, and six Secrets", function()
 		local byFamily: { [string]: number } = {}
 		local secret = {}
 		local spawning = SlimeRoster.ofKind("spawn")
@@ -30,17 +69,17 @@ describe("SlimeRoster", function()
 				table.insert(secret, entry.id)
 			end
 		end
-		expect(#spawning).toBe(40)
-		expect(byFamily).toEqual({ classic = 17, orchard = 7, frost = 8, starlight = 8 })
+		expect(#spawning).toBe(49)
+		expect(byFamily).toEqual({ classic = 26, orchard = 7, frost = 8, starlight = 8 })
 		table.sort(secret)
-		expect(secret).toEqual({ "abyss", "boo", "eclipse", "gaia", "midas" })
+		expect(secret).toEqual({ "abyss", "boo", "eclipse", "gaia", "jackpot", "midas" })
 	end)
 
 	it("adds 15 hybrids, 6 bosses and 7 event Secrets that never roll as a spawn", function()
 		expect(#SlimeRoster.ofKind("hybrid")).toBe(15)
 		expect(#SlimeRoster.ofKind("boss")).toBe(6)
 		expect(#SlimeRoster.ofKind("event")).toBe(7)
-		expect(#SlimeRoster.ROSTER).toBe(68)
+		expect(#SlimeRoster.ROSTER).toBe(77)
 		for _, entry in SlimeRoster.ROSTER do
 			expect(entry.family == nil or entry.kind == "spawn").toBe(true)
 			if entry.kind ~= "spawn" then
@@ -67,24 +106,31 @@ describe("SlimeRoster", function()
 end)
 
 describe("SlimeRoster species income", function()
-	it("gives every species a bonus between x0.9 and x1.4, hybrids x1.2 and event Secrets x1.4", function()
-		for _, entry in SlimeRoster.ROSTER do
-			expect(entry.income >= 0.9 and entry.income <= 1.4).toBe(true)
-			if entry.kind == "hybrid" then
-				expect(entry.income).toBe(1.2)
-			elseif entry.kind == "event" then
-				expect(entry.income).toBe(1.4)
+	it(
+		"gives every species but the jackpots a bonus between x0.9 and x1.4, hybrids x1.2 and event Secrets x1.4",
+		function()
+			for _, entry in SlimeRoster.ROSTER do
+				if entry.jackpot then
+					expect(entry.income).toBe(5)
+				else
+					expect(`{entry.id} {entry.income >= 0.9 and entry.income <= 1.4}`).toBe(`{entry.id} true`)
+				end
+				if entry.kind == "hybrid" then
+					expect(entry.income).toBe(1.2)
+				elseif entry.kind == "event" then
+					expect(entry.income).toBe(1.4)
+				end
 			end
+			expect(SlimeRoster.incomeBonus("not_a_species")).toBe(1)
+			expect(SlimeRoster.incomeBonus(nil)).toBe(1)
 		end
-		expect(SlimeRoster.incomeBonus("not_a_species")).toBe(1)
-		expect(SlimeRoster.incomeBonus(nil)).toBe(1)
-	end)
+	)
 	it("lets later families earn more than the Classic species of the same rarity", function()
 		local order = { [""] = 0, orchard = 1, frost = 2, starlight = 3 }
 		for tier = 1, SlimeRoster.SECRET_TIER do
 			local best: { [string]: number } = {}
 			for _, entry in SlimeRoster.ofKind("spawn") do
-				if entry.tier == tier then
+				if entry.tier == tier and not entry.jackpot then
 					local f = entry.family or ""
 					best[f] = math.max(best[f] or 0, entry.income)
 				end

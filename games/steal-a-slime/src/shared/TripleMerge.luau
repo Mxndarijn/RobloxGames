@@ -54,6 +54,12 @@ function TripleMerge.canMerge(slimes: { Slime? }): (boolean, string?)
 	if a.tier ~= b.tier or b.tier ~= c.tier then
 		return false, "slimes must be the same rarity"
 	end
+	for _, s in { a, b, c } do
+		local entry = if s.species then SlimeRoster.get(s.species) else nil
+		if entry and entry.jackpot then
+			return false, "jackpot slimes can't be merged"
+		end
+	end
 	if a.tier >= Config.MERGE_MAX_TIER then
 		local recipe = MergeRecipes.find({ a.species, b.species, c.species })
 		if not (recipe and recipe.tier == a.tier + 1) then
@@ -107,9 +113,9 @@ function TripleMerge.merge(slimes: { Slime }, rng: Rng.Rng, id: string, ctx: Mer
 	local a, b, c = slimes[1], slimes[2], slimes[3]
 	local recipeCtx = ctx or CLASSIC_ONLY
 	local outcome = MergeRecipes.resolve({
-		{ tier = a.tier, species = a.species },
-		{ tier = b.tier, species = b.species },
-		{ tier = c.tier, species = c.species },
+		{ tier = a.tier, species = a.species, shine = a.shine },
+		{ tier = b.tier, species = b.species, shine = b.shine },
+		{ tier = c.tier, species = c.species, shine = c.shine },
 	}, recipeCtx)
 	local jumpRoll, assistRoll, speciesRoll = rng:float(), rng:float(), rng:float()
 
@@ -159,6 +165,8 @@ function TripleMerge.merge(slimes: { Slime }, rng: Rng.Rng, id: string, ctx: Mer
 		pad = nil,
 		species = if species then species.id else nil,
 		brewed = if outcome.recipe then 2 else 1,
+		-- a shine survives only when all three share it
+		shine = if a.shine and a.shine == b.shine and a.shine == c.shine then a.shine else nil,
 	}
 	return child
 end

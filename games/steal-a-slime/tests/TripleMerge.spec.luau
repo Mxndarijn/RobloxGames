@@ -35,7 +35,7 @@ describe("TripleMerge: rules", function()
 			"slimes must be the same rarity"
 		)
 	end)
-	it("the tier is T+1 up to Mythic, T+2 only up to Legendary, and Secret stays Secret", function()
+	it("the tier is T+1 up to Celestial, T+2 only up to Legendary, and Divine stays Divine", function()
 		for tier = 1, Config.MAX_TIER do
 			local odds = TripleMerge.odds(tier)
 			local expected = if tier >= Config.MAX_TIER
@@ -52,8 +52,10 @@ describe("TripleMerge: rules", function()
 		end
 		expect(TripleMerge.odds(3).jumpTier).toBe(5)
 		expect(TripleMerge.odds(4).jumpTier).toBeNil()
-		expect(TripleMerge.odds(6).tier).toBe(6)
-		expect(TripleMerge.odds(7).tier).toBe(7)
+		expect(TripleMerge.odds(6).tier).toBe(7)
+		expect(TripleMerge.odds(7).tier).toBe(8)
+		expect(TripleMerge.odds(8).tier).toBe(8)
+		expect(TripleMerge.odds(9).tier).toBe(9)
 	end)
 	it("rolls the jump at about TRIPLE_MERGE_JUMP_CHANCE and never lower than T+1", function()
 		local rng = Rng.new(3)
@@ -112,18 +114,27 @@ describe("TripleMerge: recipes, caps and the assist", function()
 			end
 		end
 	end)
-	it("a random merge never makes a Secret: Mythic x3 gives a Mythic spawn species", function()
+	it("Mythic x3 at random gives a Secret spawn species and Secret x3 a Celestial, never a jackpot", function()
 		for seed = 1, 300 do
 			local child = TripleMerge.merge(trio(6, { "cosmo", "cosmo", "cosmo" }), Rng.new(seed), "x", everything)
-			expect(child.tier).toBe(6)
-			expect((SlimeRoster.get(child.species :: string) :: any).kind).toBe("spawn")
+			expect(child.tier).toBe(Config.SECRET_TIER)
+			local entry = SlimeRoster.get(child.species :: string) :: any
+			expect(entry.kind).toBe("spawn")
+			expect(entry.jackpot).toBeNil()
+			local up = TripleMerge.merge(trio(7, { "midas", "gaia", "boo" }), Rng.new(seed), "y", everything)
+			expect(up.tier).toBe(8)
+			expect((SlimeRoster.get(up.species :: string) :: any).jackpot).toBeNil()
 		end
 	end)
-	it("Mythic and Secret loads only merge as a recipe: Mythic x3 at random is refused, Nightwing's is not", function()
-		expect(select(2, TripleMerge.canMerge(trio(6, { "cosmo", "cosmo", "cosmo" })))).toBe(
+	it("Mythic and Secret loads merge at random; Celestial and Divine loads only merge as a recipe", function()
+		expect((TripleMerge.canMerge(trio(6, { "cosmo", "cosmo", "cosmo" })))).toBe(true)
+		expect((TripleMerge.canMerge(trio(7, { "midas", "midas", "midas" })))).toBe(true)
+		expect(select(2, TripleMerge.canMerge(trio(8, { "lunara", "solaris", "nebulon" })))).toBe(
 			"only a recipe merges these"
 		)
-		expect(select(2, TripleMerge.canMerge(three(Config.SECRET_TIER)))).toBe("only a recipe merges these")
+		expect(select(2, TripleMerge.canMerge(trio(9, { "aurora", "kirin", "goo_oracle" })))).toBe(
+			"only a recipe merges these"
+		)
 		local nightwing = MergeRecipes.recipeFor("nightwing") :: any
 		expect(nightwing.tier).toBe(Config.SECRET_TIER)
 		expect((TripleMerge.canMerge(trio(nightwing.tier - 1, nightwing.inputs)))).toBe(true)
@@ -161,13 +172,14 @@ describe("TripleMerge: recipes, caps and the assist", function()
 		end
 		expect(jumped).toBe(true)
 	end)
-	it("random results are unlocked spawn species, never hybrids, bosses or event Secrets", function()
+	it("random results are unlocked spawn species, never hybrids, bosses, event Secrets or jackpots", function()
 		local rng = Rng.new(11)
 		for i = 1, 600 do
 			local tier = (i % 6) + 1
 			local child = TripleMerge.merge(three(tier), rng, `r{i}`)
 			local entry = SlimeRoster.get(child.species :: string) :: any
 			expect(entry.kind).toBe("spawn")
+			expect(entry.jackpot).toBeNil()
 			expect(entry.family).toBeNil() -- the default ctx opens Classic only
 		end
 	end)
@@ -216,6 +228,112 @@ describe("TripleMerge: recipes, caps and the assist", function()
 		local ok, child = TripleMerge.apply(d, { "a", "b", "c" }, nil, Rng.new(1), "n")
 		expect(ok).toBe(true)
 		expect((child :: Genome.Slime).species).toBe("soda")
+	end)
+end)
+
+describe("TripleMerge: jackpots", function()
+	it("refuses any load with a jackpot in it", function()
+		for _, case in
+			{
+				{ tier = 7, species = { "jackpot", "midas", "midas" } },
+				{ tier = 7, species = { "midas", "midas", "jackpot" } },
+				{ tier = 8, species = { "star_emperor", "lunara", "solaris" } },
+				{ tier = 9, species = { "goo_god", "goo_god", "goo_god" } },
+			}
+		do
+			local ins = {}
+			for i, id in { "a", "b", "c" } do
+				ins[i] = slime(id, case.tier, { species = case.species[i] })
+			end
+			local ok, reason = TripleMerge.canMerge(ins)
+			expect(ok).toBe(false)
+			expect(reason).toBe("jackpot slimes can't be merged")
+		end
+	end)
+	it("a refused jackpot merge leaves the save as it was", function()
+		local d = Fixtures.data({
+			slime("a", 7, { species = "jackpot" }),
+			slime("b", 7, { species = "midas" }),
+			slime("c", 7, { species = "midas" }),
+		})
+		d.rebirths = 30
+		local ok, reason = TripleMerge.apply(d, { "a", "b", "c" }, nil, Rng.new(1), "n")
+		expect(ok).toBe(false)
+		expect(reason).toBe("jackpot slimes can't be merged")
+		expect(#d.slimes).toBe(3)
+	end)
+end)
+
+describe("TripleMerge: shines", function()
+	local MergeRecipes = require("../src/shared/MergeRecipes")
+	local everything: MergeRecipes.Ctx = { unlocked = MergeRecipes.everySpecies }
+	local function shiny(tier: number, shines: { [number]: string? }, species: string?): { Genome.Slime }
+		local out = {}
+		for i, id in { "a", "b", "c" } do
+			out[i] = slime(id, tier, { species = species, shine = shines[i] })
+		end
+		return out
+	end
+
+	it("the child keeps a shine all three parents share", function()
+		for seed = 1, 30 do
+			local child = TripleMerge.merge(shiny(2, { "Gold", "Gold", "Gold" }), Rng.new(seed), "x", everything)
+			expect(child.shine).toBe("Gold")
+		end
+	end)
+	it("a mixed or partial shine is dropped", function()
+		local cases: { { [number]: string? } } = {
+			{ "Gold", "Gold", "Diamond" },
+			{ [1] = "Rainbow", [3] = "Rainbow" },
+			{ [3] = "Gold" },
+		}
+		for _, shines in cases do
+			local child = TripleMerge.merge(shiny(2, shines), Rng.new(1), "x", everything)
+			expect(child.shine).toBeNil()
+		end
+	end)
+	it("three Secrets sharing a shine brew a Divine that keeps it, from the recipe's rebirths", function()
+		local recipe = Config.SHINE_RECIPE
+		expect(recipe.from).toBe(Config.SECRET_TIER)
+		local ctx: MergeRecipes.Ctx = { unlocked = MergeRecipes.everySpecies, rebirths = recipe.rebirths }
+		for seed = 1, 100 do
+			local ins = shiny(recipe.from, { "Diamond", "Diamond", "Diamond" }, "midas")
+			local child = TripleMerge.merge(ins, Rng.new(seed), "x", ctx)
+			expect(child.tier).toBe(recipe.into)
+			expect(child.shine).toBe("Diamond")
+			local entry = SlimeRoster.get(child.species :: string) :: any
+			expect(`{entry.tier} {entry.kind} {entry.jackpot}`).toBe(`{recipe.into} spawn nil`)
+		end
+	end)
+	it("below the recipe's rebirths the same shiny Secrets brew a Celestial", function()
+		local recipe = Config.SHINE_RECIPE
+		local ctx: MergeRecipes.Ctx = { unlocked = MergeRecipes.everySpecies, rebirths = recipe.rebirths - 1 }
+		for seed = 1, 50 do
+			local child =
+				TripleMerge.merge(shiny(recipe.from, { "Gold", "Gold", "Gold" }, "midas"), Rng.new(seed), "x", ctx)
+			expect(child.tier).toBe(Config.SECRET_TIER + 1)
+			expect(child.shine).toBe("Gold")
+		end
+	end)
+	it("Secrets without a shared shine brew a Celestial at any rank", function()
+		local ctx: MergeRecipes.Ctx = { unlocked = MergeRecipes.everySpecies, rebirths = 99 }
+		for seed = 1, 50 do
+			local ins = shiny(Config.SECRET_TIER, { [1] = "Gold", [2] = "Gold" }, "midas")
+			local child = TripleMerge.merge(ins, Rng.new(seed), "x", ctx)
+			expect(child.tier).toBe(Config.SECRET_TIER + 1)
+		end
+	end)
+	it("apply brews the Divine from a save with enough rebirths", function()
+		local d = Fixtures.data({
+			slime("a", 7, { species = "midas", shine = "Rainbow" }),
+			slime("b", 7, { species = "gaia", shine = "Rainbow" }),
+			slime("c", 7, { species = "boo", shine = "Rainbow" }),
+		})
+		d.rebirths = Config.SHINE_RECIPE.rebirths
+		local ok, child = TripleMerge.apply(d, { "a", "b", "c" }, nil, Rng.new(2), "n")
+		expect(ok).toBe(true)
+		expect((child :: Genome.Slime).tier).toBe(Config.SHINE_RECIPE.into)
+		expect((child :: Genome.Slime).shine).toBe("Rainbow")
 	end)
 end)
 

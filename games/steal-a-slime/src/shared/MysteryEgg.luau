@@ -63,7 +63,7 @@ function MysteryEgg.rollWild(rng: Rng.Rng, id: string): (Genome.Slime, EggKind.K
 	local tier = EggKind.rollTier(kind, rng:float())
 	local lucky = rng:float() < Config.MYSTERY_EGG.LUCKY_CHANCE
 	if lucky then
-		tier = math.min(tier + 1, Config.MAX_TIER)
+		tier = math.min(tier + 1, Config.SECRET_TIER)
 	end
 	local slime = hatchling(rng, id, tier)
 	slime.egg = { kind = kind.id, lucky = if lucky then true else nil }

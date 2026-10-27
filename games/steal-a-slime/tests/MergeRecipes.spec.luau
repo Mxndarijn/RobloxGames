@@ -92,22 +92,37 @@ describe("MergeRecipes: the recipes", function()
 end)
 
 describe("MergeRecipes: the random fallback", function()
-	it("the pool is unlocked spawn species of the result tier, never hybrids, bosses or event Secrets", function()
-		for tier = 1, Config.MAX_TIER do
-			local pool = MergeRecipes.pool(tier, ALL)
-			for _, id in pool do
-				local entry = SlimeRoster.get(id) :: SlimeRoster.Entry
-				expect(entry.kind).toBe("spawn")
-				expect(entry.tier).toBe(tier)
+	it(
+		"the pool is unlocked spawn species of the result tier, never hybrids, bosses, event Secrets or jackpots",
+		function()
+			local function plain(list: { SlimeRoster.Entry }): number
+				local n = 0
+				for _, entry in list do
+					n += if entry.jackpot then 0 else 1
+				end
+				return n
 			end
-			expect(#pool).toBe(
-				#SlimeRoster.forTier(tier)
-					+ #SlimeRoster.forTier(tier, "orchard")
-					+ #SlimeRoster.forTier(tier, "frost")
-					+ #SlimeRoster.forTier(tier, "starlight")
-			)
+			for tier = 1, Config.MAX_TIER do
+				local pool = MergeRecipes.pool(tier, ALL)
+				for _, id in pool do
+					local entry = SlimeRoster.get(id) :: SlimeRoster.Entry
+					expect(entry.kind).toBe("spawn")
+					expect(entry.tier).toBe(tier)
+					expect(entry.jackpot).toBeNil()
+				end
+				expect(#pool).toBe(
+					plain(SlimeRoster.forTier(tier))
+						+ plain(SlimeRoster.forTier(tier, "orchard"))
+						+ plain(SlimeRoster.forTier(tier, "frost"))
+						+ plain(SlimeRoster.forTier(tier, "starlight"))
+				)
+			end
+			for _, id in { "jackpot", "star_emperor", "goo_god" } do
+				local entry = SlimeRoster.get(id) :: SlimeRoster.Entry
+				expect(table.find(MergeRecipes.pool(entry.tier, ALL), id)).toBeNil()
+			end
 		end
-	end)
+	)
 	it("locked families stay out of the pool until the rank opens them", function()
 		local classic = MergeRecipes.resolve(inputs(5, {}), CLASSIC)
 		expect(classic.tier).toBe(6)
@@ -120,22 +135,26 @@ describe("MergeRecipes: the random fallback", function()
 			end
 		end
 	end)
-	it("caps: Mythic x3 is Mythic, Secret x3 Secret, and the jump stops at Legendary", function()
-		expect(MergeRecipes.resolve(inputs(6, {}), ALL).tier).toBe(6)
-		local secret = MergeRecipes.resolve(inputs(7, {}), ALL)
-		expect(secret.tier).toBe(7)
-		expect(secret.jumpTier).toBeNil()
-		expect(MergeRecipes.resolve(inputs(3, {}), ALL).jumpTier).toBe(5)
-		expect(MergeRecipes.resolve(inputs(4, {}), ALL).jumpTier).toBeNil()
-		for tier = 1, Config.MAX_TIER do
-			local outcome = MergeRecipes.resolve(inputs(tier, {}), ALL)
-			expect(outcome.kind).toBe("random")
-			if tier < Config.MAX_TIER then
-				expect(outcome.tier <= Config.MERGE_MAX_TIER).toBe(true)
+	it(
+		"caps: Mythic x3 is Secret, Secret x3 Celestial, Celestial x3 Celestial, and the jump stops at Legendary",
+		function()
+			expect(MergeRecipes.resolve(inputs(6, {}), ALL).tier).toBe(7)
+			local secret = MergeRecipes.resolve(inputs(7, {}), ALL)
+			expect(secret.tier).toBe(8)
+			expect(secret.jumpTier).toBeNil()
+			expect(MergeRecipes.resolve(inputs(8, {}), ALL).tier).toBe(Config.MERGE_MAX_TIER)
+			expect(MergeRecipes.resolve(inputs(3, {}), ALL).jumpTier).toBe(5)
+			expect(MergeRecipes.resolve(inputs(4, {}), ALL).jumpTier).toBeNil()
+			for tier = 1, Config.MAX_TIER do
+				local outcome = MergeRecipes.resolve(inputs(tier, {}), ALL)
+				expect(outcome.kind).toBe("random")
+				if tier < Config.MAX_TIER then
+					expect(outcome.tier <= Config.MERGE_MAX_TIER).toBe(true)
+				end
+				expect((outcome.jumpTier or 0) <= Config.MERGE_JUMP_MAX_TIER).toBe(true)
 			end
-			expect((outcome.jumpTier or 0) <= Config.MERGE_JUMP_MAX_TIER).toBe(true)
 		end
-	end)
+	)
 	it("the assist pool is the unfound part of the pool, and empty means no assist", function()
 		local some = MergeRecipes.resolve(inputs(1, {}), { unlocked = CLASSIC.unlocked, found = { bumble = true } })
 		expect(table.concat(some.assistPool, ",")).toBe("mushie,froggo")
@@ -165,5 +184,43 @@ describe("MergeRecipes: discovery", function()
 		expect(found.soda).toBe(true)
 		expect(found.mochi).toBe(true)
 		expect(found.pebble).toBeNil()
+	end)
+end)
+
+describe("MergeRecipes: the shine recipe", function()
+	local function shiny(tier: number, shines: { [number]: string? }): { MergeRecipes.Input }
+		return {
+			{ tier = tier, species = "midas", shine = shines[1] },
+			{ tier = tier, species = "midas", shine = shines[2] },
+			{ tier = tier, species = "midas", shine = shines[3] },
+		}
+	end
+	local recipe = Config.SHINE_RECIPE
+
+	it(
+		"three shared-shine Secrets resolve to the Divine pool with no jump or assist from the recipe's rebirths",
+		function()
+			local ctx: MergeRecipes.Ctx = { unlocked = MergeRecipes.everySpecies, rebirths = recipe.rebirths }
+			local outcome = MergeRecipes.resolve(shiny(recipe.from, { "Gold", "Gold", "Gold" }), ctx)
+			expect(outcome.kind).toBe("random")
+			expect(outcome.tier).toBe(recipe.into)
+			expect(outcome.jumpChance).toBe(0)
+			expect(outcome.assistChance).toBe(0)
+			expect(#outcome.pool > 0).toBe(true)
+			for _, id in outcome.pool do
+				local entry = SlimeRoster.get(id) :: SlimeRoster.Entry
+				expect(entry.tier).toBe(recipe.into)
+				expect(entry.jackpot).toBeNil()
+			end
+			-- no rank in the ctx (the preview) counts as open
+			expect(MergeRecipes.resolve(shiny(recipe.from, { "Gold", "Gold", "Gold" }), ALL).tier).toBe(recipe.into)
+		end
+	)
+	it("falls back to a Celestial below the rebirths, with a mixed shine, or for another rarity", function()
+		local low: MergeRecipes.Ctx = { unlocked = MergeRecipes.everySpecies, rebirths = recipe.rebirths - 1 }
+		expect(MergeRecipes.resolve(shiny(recipe.from, { "Gold", "Gold", "Gold" }), low).tier).toBe(recipe.from + 1)
+		expect(MergeRecipes.resolve(shiny(recipe.from, { "Gold", "Gold", "Diamond" }), ALL).tier).toBe(recipe.from + 1)
+		expect(MergeRecipes.resolve(shiny(recipe.from, { "Gold", "Gold" }), ALL).tier).toBe(recipe.from + 1)
+		expect(MergeRecipes.resolve(shiny(recipe.from - 1, { "Gold", "Gold", "Gold" }), ALL).tier).toBe(recipe.from)
 	end)
 end)

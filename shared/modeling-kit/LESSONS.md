@@ -264,3 +264,12 @@ Format: `- [model/YYYY-MM-DD/bot] lesson` — one concrete, reusable sentence or
 - [pool] Face patches wider than ~0.5 stud look better painted into the body's paint function than as decals. Wide decals (grins, eye rings) sink into a curved body unless subdivided before projecting (`pdecal` in `slime_abyss.py`, a candidate for `_slimepool.py`).
 - [pool] A dark body works when the value contrast comes from glow parts (rim, spots, teeth, lure). Body-coloured leaves on a body vanish: use another hue. Tilt a floating halo toward the face (normal (0, -0.32, 1)) or it reads edge-on from the front.
 - [pool] Diagonal `Body` stripes come out as a checker; stripes by angle stay clean. A tricorn is three brim shells, corners low and far out, sides high, z on t^2.
+
+## Celestial, Divine and jackpot slimes (2026-10-27)
+- [pool] A star or bead on a torus must sit in front of the tube (about +0.12 along the ring normal); centred on the ring it hides. A halo behind the body is mostly covered: put it over the head, tilted to the face (normal (0, -0.6, 1)).
+- [pool] Same-value parts vanish into each other (a gold tuft on a gold body under a gold corona): change value, not just hue. Gold darker than about f2b440 turns brown in the Roblox look.
+- [pool] A ribbon swept along a curving path twists; keep its width vector vertical (Z minus its tangent part). About 1.25 turns crossing the front only above the crown read as light ribbons; more read as a cage.
+- [pool] A band round a head is a tube through `b.point(a, z(a), 0.035)`; a tilted torus floats off the narrower back. Scale patches: one `pdecal` with a staggered circle pattern in (u, v) reads as scales; rows of small decals read as coins.
+- [pool] Clouds under a slime: clip goo clusters flat at z = 0 and tuck them under the foot rim; free puffs read as paws. A `goo()` tail wrapped to the side reads as a tentacle: keep it behind and break wisps off the tip.
+- [pool] Any part below z = 0 makes `finish()` lift the whole slime (it floats): drop rays whose tip lands low. A backdrop disc must sit fully behind the body or it leaves a dark seam. Coins and flat slabs edge-on vanish: turn them to the camera.
+- [pool] Mini-slimes: build a `Body`/`Face` at the origin and move them with `o.data.transform` (12 segments, sub=1, ~330 tris each). Two opposite spiral bands (sin(2a +/- k z + noise)) faded round the face make a clean painted nebula.
