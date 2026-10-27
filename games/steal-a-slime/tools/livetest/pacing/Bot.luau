@@ -307,12 +307,10 @@ end
 -- slimes stay.
 local function weakest(world: World, bot: Bot, keep: { [string]: boolean }): (Slime?, number)
 	local busy = World.busySet(world)
-	local needed = Progression.neededIds(bot.data) -- Sell refuses these
 	local worst, worstValue = nil, math.huge
 	for _, s in bot.data.slimes do
 		if
 			not keep[s.id]
-			and not needed[s.id]
 			and not busy[s.id]
 			and not s.egg
 			and s.id ~= bot.data.favoriteId
