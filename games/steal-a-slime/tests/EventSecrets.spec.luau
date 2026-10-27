@@ -81,9 +81,9 @@ describe("EventSecrets in the spawn pool", function()
 		expect(last.id).toBe(extra[1].id)
 		local first = Genome.rollSpecies(SECRET, 0, nil, extra) :: SlimeRoster.Entry
 		expect(first.id).toBe(classic[1].id)
-		-- Starlight open: midas, eclipse, boo plus the featured one, a quarter each.
+		-- Starlight open: midas, jackpot, eclipse, boo plus the featured one.
 		local starlight = { "starlight" }
-		expect(#Genome.speciesPool(SECRET, starlight, extra)).toBe(4)
+		expect(#Genome.speciesPool(SECRET, starlight, extra)).toBe(5)
 		expect((Genome.rollSpecies(SECRET, 0.9999, starlight, extra) :: SlimeRoster.Entry).id).toBe(extra[1].id)
 		expect((Genome.rollSpecies(SECRET, 0.7, starlight, extra) :: SlimeRoster.Entry).id ~= extra[1].id).toBe(true)
 		for tier = 1, SECRET - 1 do
@@ -93,23 +93,34 @@ describe("EventSecrets in the spawn pool", function()
 			end
 		end
 	end)
-	it("only the featured event Secret drops from a tier-7 fountain roll, about one in two", function()
+	it("only the featured event Secret drops from a Secret fountain roll, at its species weight", function()
 		for w = 0, #EventSecrets.ROTATION - 1 do
 			local now = MON + w * 7 * DAY + DAY
 			local featured = EventSecrets.featured(now).id
 			local rng = Rng.new(11 + w)
-			local hits = 0
-			for i = 1, 400 do
+			local hits, secrets = 0, 0
+			for i = 1, 600 do
 				local drop = Fountain.roll(rng, `s{i}`, false, SECRET, nil, nil, EventSecrets.extraSpecies(now))
 				local species = drop.slime.species :: string
-				expect(drop.slime.tier).toBe(SECRET)
+				-- a Secret floor still lets the roll land on a rarer tier, which never holds an event Secret
+				expect(drop.slime.tier >= SECRET).toBe(true)
+				if drop.slime.tier == SECRET then
+					secrets += 1
+				end
 				if isEvent(species) then
+					expect(drop.slime.tier).toBe(SECRET)
 					expect(species).toBe(featured)
 					hits += 1
 				end
 			end
-			-- Classic has one Secret (midas), so the featured one is half the pool.
-			expect(hits > 140 and hits < 260).toBe(true)
+			-- Classic Secrets are Midas and Jackpot; the event Secret's share follows Genome.speciesWeight.
+			local we = Genome.speciesWeight(SlimeRoster.get(featured) :: any)
+			local others = 0
+			for _, entry in SlimeRoster.forTier(SECRET) do
+				others += Genome.speciesWeight(entry)
+			end
+			local share = we / (we + others)
+			expect(math.abs(hits / secrets - share) < 0.06).toBe(true)
 		end
 	end)
 	it("no event Secret drops without the featured list (merges, boss, no clock)", function()
@@ -118,6 +129,7 @@ describe("EventSecrets in the spawn pool", function()
 			local drop = Fountain.roll(rng, `n{i}`, false, SECRET)
 			expect(isEvent(drop.slime.species)).toBe(false)
 		end
+		-- three event Secrets merge at random into a Celestial spawn species, never an event Secret
 		local inputs = {
 			Fixtures.slime("a", SECRET, { species = "kitsune" }),
 			Fixtures.slime("b", SECRET, { species = "kitsune" }),
@@ -125,7 +137,7 @@ describe("EventSecrets in the spawn pool", function()
 		}
 		for i = 1, 100 do
 			local child = TripleMerge.merge(inputs, rng, `m{i}`)
-			expect(child.tier).toBe(SECRET)
+			expect(child.tier).toBe(SECRET + 1)
 			expect(isEvent(child.species)).toBe(false)
 		end
 	end)

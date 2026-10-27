@@ -74,6 +74,8 @@ local FAMILY_BY_TIER: { [number]: string } = {
 	[5] = "royal",
 	[6] = "crystal",
 	[SlimeRoster.SECRET_TIER] = "secret",
+	[8] = "secret",
+	[9] = "secret",
 }
 
 local FAMILY: { [string]: string } = {

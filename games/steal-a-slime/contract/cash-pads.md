@@ -1,4 +1,4 @@
-# 45. Cash pads: income piles up at each slime and the owner walks over it to collect
+# 46. Cash pads: income piles up at each slime and the owner walks over it to collect
 
 **Status:** behind `Config.FEATURES.CashPads` (Studio review: `PcwFlag_CashPads`, FeatureOverride). With the flag off, income goes straight to cash as before and nothing below exists. Server-authoritative; no remote, no new State field, **no save version bump** (one optional key).
 

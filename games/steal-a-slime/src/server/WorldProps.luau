@@ -6,7 +6,8 @@
 	WorldLayout.PROP_SPOTS under workspace.Map (CONTRACT.md §5.3):
 	ItemShopStand and UpgradeShopStand (each with its own ShopPrompt on Counter and ShopId attribute,
 	CONTRACT.md §27), the five Hall of Fame boards (Leaderboards.BOARDS, each tagged with its LeaderboardStat),
-	ProfessorGoo and TutorialNpc (with the "Talk" prompt). A prop that already exists anywhere under workspace
+	ProfessorGoo, TutorialNpc (with the "Talk" prompt) and the Upcoming Events board (WorldLayout.EVENT_BOARD,
+	filled by EventBoardView). A prop that already exists anywhere under workspace
 	(e.g. a static copy) is reused. Every part is anchored. A spot with a `scale` scales the built Model.
 	Also writes each board's rows and builds the Speed Coil tool. Holds no gameplay rules; a missing Visuals module just means no props.
 ]]
@@ -121,6 +122,13 @@ function WorldProps.place(): { [string]: Model }
 				return Props.leaderboardBoard(def)
 			end
 			else nil
+	end
+	-- The Upcoming Events wall: a Hall of Fame board that server/EventBoardView fills with its cards.
+	local events = WorldLayout and WorldLayout.EVENT_BOARD
+	if events and Props and Props.leaderboardBoard then
+		builders[events.model] = function()
+			return Props.leaderboardBoard({ model = events.model, title = "UPCOMING EVENTS", accent = { 120, 90, 220 } })
+		end
 	end
 	builders[Constants.SHOP_STAND_ITEM] = standBuilder(Props, "ItemShop")
 	builders[Constants.SHOP_STAND_UPGRADE] = standBuilder(Props, "UpgradeShop")

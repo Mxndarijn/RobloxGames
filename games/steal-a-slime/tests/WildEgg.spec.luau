@@ -8,6 +8,7 @@ local Economy = require("../src/shared/Economy")
 local EggKind = require("../src/shared/EggKind")
 local Fixtures = require("./Fixtures")
 local Genome = require("../src/shared/Genome")
+local MysteryEgg = require("../src/shared/MysteryEgg")
 local PlayerData = require("../src/shared/PlayerData")
 local Rng = require("../src/shared/Rng")
 local SaveData = require("../src/shared/SaveData")
@@ -262,7 +263,7 @@ describe("carrying and incubating", function()
 			end
 		end
 	end)
-	it("lets anyone grab a speckled egg and still grab a wild slime of any tier", function()
+	it("lets anyone grab a speckled egg; egg gates never block a wild slime (a Legendary is open to all)", function()
 		local world = ServerFixtures.world()
 		ServerFixtures.join(world, 1)
 		local id = Spawner.spawnEgg(world, T0)
@@ -270,9 +271,21 @@ describe("carrying and incubating", function()
 		expect((Carry.grab(world, 1, id, 2, T0))).toBe(true)
 		local other = ServerFixtures.world()
 		ServerFixtures.join(other, 1)
-		local slime = Fixtures.slime("m", Config.SECRET_TIER)
+		local slime = Fixtures.slime("m", Config.SECRET_TIER - 2)
 		other.wild["m"] = { slime = slime, price = 0 } :: any
 		expect((Carry.grab(other, 1, "m", 2, T0))).toBe(true)
+	end)
+	it("a lucky egg that rolled a Secret still holds a Secret", function()
+		-- kind roll (top = Cosmic), tier roll (top = Secret), lucky roll (0 = lucky), then a real stream
+		local queue = { 0.9999, 0.9999, 0 }
+		local rng = Rng.new(5);
+		(rng :: any).float = function(self: Rng.Rng): number
+			return table.remove(queue, 1) or Rng.float(self)
+		end
+		local slime, k = MysteryEgg.rollWild(rng, "e")
+		expect(k.id).toBe("cosmic")
+		expect((slime.egg :: any).lucky).toBe(true)
+		expect(slime.tier).toBe(Config.SECRET_TIER)
 	end)
 	it("starts the hatch clock on the first pad and toasts that it is incubating", function()
 		local world, session, id = carryingEgg()
