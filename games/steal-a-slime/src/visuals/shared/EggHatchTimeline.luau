@@ -27,11 +27,11 @@ EggHatchTimeline.LATE = 3 -- a slime that reaches a client more than this long a
 EggHatchTimeline.HIDDEN_SCALE = 0.05 -- the popping copy's scale (x the slime's) at the start of the pop
 EggHatchTimeline.SHARDS = 12
 EggHatchTimeline.SHARD_SECONDS = 1.1
-EggHatchTimeline.BEAM_TIER = 4 -- Epic and up get a light pillar
--- Someone else's hatch: the title is a sign in the world (studs, hidden by walls), only for Epic and up, up close.
-EggHatchTimeline.OTHERS_TITLE_TIER = 4
-EggHatchTimeline.OTHERS_TITLE_DISTANCE = 60 -- studs from the camera
-EggHatchTimeline.OTHERS_TITLE_STUDS = { 10, 2 } -- width, height
+EggHatchTimeline.BIG_BURST_TIER = 4 -- Epic and up burst with more sparks
+-- The title is a small sign in the world: sized in studs (shrinks with distance), hidden by walls, near only.
+EggHatchTimeline.TITLE_STUDS = { 6, 1.2 } -- width, height
+EggHatchTimeline.TITLE_DISTANCE = 45 -- studs from the camera
+EggHatchTimeline.OTHERS_TITLE_TIER = 4 -- someone else's hatch shows a title from Epic up
 
 export type Phase = "wobble" | "hold" | "burst"
 
@@ -176,15 +176,9 @@ function EggHatchTimeline.title(tier: number, lucky: boolean): string
 	return if lucky then `LUCKY! {name}!` else `{name}!`
 end
 
--- How the title shows for a viewer: "screen" (own hatch: fixed size, on top), "world" (someone
--- else's: sized in studs, behind walls, near only) or nil (no title).
-export type TitleView = "screen" | "world"
-
-function EggHatchTimeline.titleView(owner: boolean, tier: number): TitleView?
-	if owner then
-		return "screen"
-	end
-	return if tier >= EggHatchTimeline.OTHERS_TITLE_TIER then "world" else nil
+-- Whether a viewer gets the title: always for their own hatch, from Epic up for someone else's.
+function EggHatchTimeline.showsTitle(owner: boolean, tier: number): boolean
+	return owner or tier >= EggHatchTimeline.OTHERS_TITLE_TIER
 end
 
 -- Title rise (studs) and transparency `s` seconds into the pop; nil once it is over.
@@ -195,14 +189,6 @@ function EggHatchTimeline.titleLook(s: number): (number?, number?)
 	local u = s / EggHatchTimeline.TITLE_SECONDS
 	local fade = if u < 0.75 then 0 else (u - 0.75) / 0.25
 	return 2 * u, fade
-end
-
--- Light pillar transparency `s` seconds into the pop for a hatch of `tier` (nil = no pillar now).
-function EggHatchTimeline.beam(s: number, tier: number): number?
-	if tier < EggHatchTimeline.BEAM_TIER or s < 0 or s >= EggHatchTimeline.TITLE_SECONDS then
-		return nil
-	end
-	return 0.55 + 0.45 * s / EggHatchTimeline.TITLE_SECONDS
 end
 
 -- Field of view offset (degrees, subtract) for the hatching owner's camera at egg time `t`.
