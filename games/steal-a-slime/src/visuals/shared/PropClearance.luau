@@ -47,7 +47,8 @@ PropClearance.EDGE_RADIUS = WorldBorder.RADIUS - 12
 PropClearance.SPOT_RADIUS = 12
 -- Spots whose own corner is dressed (RanchProps "Guide*" rows stand round the Guide): their circle is the prop's own
 -- footprint, and the rows keep the walk-up side towards the plaza open.
-PropClearance.SPOT_RADII = table.freeze({ TutorialNpc = 3 }) :: { [string]: number }
+-- The Upcoming Events board (WorldLayout.EVENT_BOARD) is a flat 16-stud board: half its width.
+PropClearance.SPOT_RADII = table.freeze({ TutorialNpc = 3, EventBoard = 9 }) :: { [string]: number }
 
 function PropClearance.spotRadius(name: string): number
 	return PropClearance.SPOT_RADII[name] or PropClearance.SPOT_RADIUS

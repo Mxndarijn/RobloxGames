@@ -560,7 +560,7 @@ parts(
 parts(
 	"decor_mushrooms",
 	"jolt",
-	13,
+	12, -- one made room for the Upcoming Events board
 	"colliders",
 	DECOR,
 	{ "^Mushroom%d+$" },

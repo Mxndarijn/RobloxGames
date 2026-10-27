@@ -391,11 +391,21 @@ local function hallSpots(): { [string]: Spot }
 end
 
 -- UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
+-- The Upcoming Events wall (server/EventBoardView): a Hall of Fame board (Props.leaderboardBoard, its mesh) on the
+-- grass just outside the ring path between two spokes, near the spawn (TutorialNpc 247.5), facing the fountain.
+WorldLayout.EVENT_BOARD = table.freeze({ model = "EventBoard", bearing = 214, radius = 92, scale = 1.05 })
+
 local spots: { [string]: Spot } = {
 	ItemShopStand = propSpot(67.5, true),
 	UpgradeShopStand = propSpot(34.5, true, 96),
 	TutorialNpc = propSpot(247.5, true),
 }
+do
+	local board = WorldLayout.EVENT_BOARD
+	local spot = propSpot(board.bearing, true, board.radius)
+	spot.scale = board.scale
+	spots[board.model] = spot
+end
 for name, spot in hallSpots() do
 	spots[name] = table.freeze(spot)
 end
@@ -972,23 +982,12 @@ WorldLayout.PLAZA_PROPS = table.freeze({
 	podiumProp(2, "phoenix_plaza_podium_2"),
 	podiumProp(3, "phoenix_plaza_podium_3"),
 })
--- The Upcoming Events wall (server/EventBoardView): a framed board on posts on the plaza edge next to the signpost, facing the
--- fountain, outside the parade lane. Bearing in degrees from +Z towards +X, like PLAZA_PROPS.
-WorldLayout.EVENT_BOARD =
-	table.freeze({ bearing = 98, radius = 70, width = 16, height = 11, lift = 2.5, thickness = 0.8 })
-
--- The sign's centre on the ground plane: (x, z).
-function WorldLayout.eventBoardSpot(): (number, number)
-	local spot = WorldLayout.EVENT_BOARD
-	local a = math.rad(spot.bearing)
-	return spot.radius * math.sin(a), spot.radius * math.cos(a)
-end
-
 local propMeshes: { [string]: string } = {
 	ItemShopStand = WorldLayout.SHOP_STANDS.ItemShopStand.mesh,
 	UpgradeShopStand = WorldLayout.SHOP_STANDS.UpgradeShopStand.mesh,
 	TutorialNpc = "ranch_guide",
 	[Constants.PROFESSOR_GOO] = "guide_professor",
+	[WorldLayout.EVENT_BOARD.model] = "phoenix_top_earners_board", -- the Hall of Fame board frame
 }
 for _, def in Leaderboards.BOARDS do
 	propMeshes[def.model] = "phoenix_top_earners_board"

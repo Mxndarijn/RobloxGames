@@ -1,13 +1,14 @@
 --!strict
 --[[
 	EventBoardView (Roblox adapter)
-	The Upcoming Events wall at the fountain (WorldLayout.EVENT_BOARD): a wooden board on two posts facing the
-	fountain, with a rainbow title bar and one coloured card per EventBoard row on both faces (icon, title, detail,
-	countdown; the soonest at the top). `start` builds it and refreshes once a second: it rebuilds the cards only
-	when their set or order changes, else it just rewrites the text. Server-side, so it replicates to everyone.
+	Fills the Upcoming Events board (WorldLayout.EVENT_BOARD: a Hall of Fame board that WorldProps places on the
+	grass by the ring path, with the leaderboard frame mesh) with a rainbow title bar and one coloured card per
+	EventBoard row (icon, title, detail, countdown; the soonest at the top). `start` waits for the board, then
+	refreshes once a second: it rebuilds the cards only when their set or order changes, else it just rewrites the
+	text. Server-side, so it replicates to everyone.
 
 	EventBoardView.input(world, now, unix?) -> EventBoard.Input   -- reads the world (no Instances)
-	EventBoardView.start(world, now: () -> number)                 -- builds the wall and runs the loop
+	EventBoardView.start(world, now: () -> number)                 -- fills the board and runs the loop
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -24,10 +25,7 @@ type World = World.World
 
 local EventBoardView = {}
 
-EventBoardView.NAME = "EventBoard"
-EventBoardView.PIXELS_PER_STUD = 40
-EventBoardView.POST = 0.9 -- post width (studs)
-EventBoardView.RIM = 0.5 -- wooden frame around the face (studs)
+EventBoardView.WAIT_SECONDS = 30 -- how long `start` waits for WorldProps to place the board
 EventBoardView.MIN_SLOTS = 5 -- cards share the board height as if at least this many were shown
 
 -- Card icons: an uploaded image (ui/ItemIcons ids) or a glyph. Keys are EventBoard row icons.
@@ -44,8 +42,6 @@ EventBoardView.ICONS = table.freeze({
 } :: { [string]: string })
 
 -- Colours (RGB; Color3 is built at use, so the pure tests can require this module).
-local WOOD = { 122, 82, 54 }
-local WOOD_DARK = { 84, 56, 40 }
 local FACE = { 28, 30, 48 }
 local WHITE = { 255, 255, 255 }
 local INK = { 24, 20, 36 }
@@ -120,21 +116,6 @@ local function text(parent: Instance, name: string, value: string, color: Color3
 	end
 	t.Parent = parent
 	return t
-end
-
-local function part(parent: Instance, name: string, size: Vector3, cframe: CFrame, color: Color3): Part
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Anchored = true
-	p.CanTouch = false
-	p.Material = Enum.Material.WoodPlanks
-	p.Color = color
-	p.Size = size
-	p.CFrame = cframe
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Parent = parent
-	return p
 end
 
 -- One card for `row` at list position `k` of `count` slots (cleared and rebuilt when the layout changes).
@@ -232,30 +213,29 @@ local function fill(list: Frame, rows: { EventBoard.Row }, rebuild: boolean)
 	end
 end
 
--- One face's SurfaceGui: the rainbow title bar and the card list. Returns the list.
-local function face(board: Part, side: Enum.NormalId): Frame
-	local gui = Instance.new("SurfaceGui")
-	gui.Name = `BoardGui{side.Name}`
-	gui.Face = side
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = EventBoardView.PIXELS_PER_STUD
-	gui.LightInfluence = 0
-	gui.Parent = board
+-- Replaces the leaderboard rows on the board's face (Content) with the title bar and the card list. Returns the list.
+local function dress(content: Instance): Frame
+	for _, child in content:GetChildren() do
+		if child:IsA("GuiObject") then
+			child:Destroy()
+		end
+	end
 	local bg = Instance.new("Frame")
 	bg.Name = "Face"
 	bg.Size = UDim2.fromScale(1, 1)
 	bg.BackgroundColor3 = rgb(FACE)
 	bg.BorderSizePixel = 0
-	bg.Parent = gui
+	corner(bg, 0.04)
+	bg.Parent = content
 	local pad = Instance.new("UIPadding")
 	pad.PaddingTop = UDim.new(0.03, 0)
 	pad.PaddingBottom = UDim.new(0.03, 0)
-	pad.PaddingLeft = UDim.new(0.025, 0)
-	pad.PaddingRight = UDim.new(0.025, 0)
+	pad.PaddingLeft = UDim.new(0.03, 0)
+	pad.PaddingRight = UDim.new(0.03, 0)
 	pad.Parent = bg
 	local header = Instance.new("Frame")
 	header.Name = "Header"
-	header.Size = UDim2.fromScale(1, 0.15)
+	header.Size = UDim2.fromScale(1, 0.14)
 	header.BackgroundColor3 = rgb(WHITE)
 	header.BorderSizePixel = 0
 	corner(header, 0.3)
@@ -275,8 +255,8 @@ local function face(board: Part, side: Enum.NormalId): Frame
 	title.Size = UDim2.fromScale(0.92, 0.8)
 	local list = Instance.new("Frame")
 	list.Name = "Cards"
-	list.Position = UDim2.fromScale(0, 0.19)
-	list.Size = UDim2.fromScale(1, 0.81)
+	list.Position = UDim2.fromScale(0, 0.18)
+	list.Size = UDim2.fromScale(1, 0.82)
 	list.BackgroundTransparency = 1
 	list.Parent = bg
 	local layout = Instance.new("UIListLayout")
@@ -286,56 +266,33 @@ local function face(board: Part, side: Enum.NormalId): Frame
 	return list
 end
 
--- The wall Model: posts, a wooden frame, a top beam and the board with both faces. Returns the card lists.
-local function build(parent: Instance): { Frame }
-	local spot = WorldLayout.EVENT_BOARD
-	local x, z = WorldLayout.eventBoardSpot()
-	local w, h, t = spot.width, spot.height, spot.thickness
-	local centreY = spot.lift + h / 2
-	local root = CFrame.lookAt(Vector3.new(x, centreY, z), Vector3.new(0, centreY, 0)) -- Front looks at the fountain
-	local model = Instance.new("Model")
-	model.Name = EventBoardView.NAME
-	local rim, post = EventBoardView.RIM, EventBoardView.POST
-	local frame = part(model, "Frame", Vector3.new(w + rim * 2, h + rim * 2, t), root, rgb(WOOD_DARK))
-	frame.CanCollide = true
-	local board = part(model, "Board", Vector3.new(w, h, t + 0.1), root, rgb(FACE))
-	board.Material = Enum.Material.SmoothPlastic
-	board.CanCollide = false
-	local beam = part(
-		model,
-		"Beam",
-		Vector3.new(w + rim * 2 + 1.2, 0.8, t + 0.6),
-		root * CFrame.new(0, h / 2 + rim + 0.4, 0),
-		rgb(WOOD)
-	)
-	beam.CanCollide = false
-	local postHeight = centreY + h / 2 + rim
-	for side, dx in { L = -(w / 2 + rim + post / 2), R = w / 2 + rim + post / 2 } do
-		local p = part(
-			model,
-			`Post{side}`,
-			Vector3.new(post, postHeight, post),
-			root * CFrame.new(dx, postHeight / 2 - centreY, 0),
-			rgb(WOOD)
-		)
-		p.CanCollide = true
+-- The board's face (the leaderboard SurfaceGui's Content), waiting up to WAIT_SECONDS for WorldProps; nil without it.
+local function boardContent(): Instance?
+	local name = WorldLayout.EVENT_BOARD.model
+	for _ = 1, EventBoardView.WAIT_SECONDS * 2 do
+		local model = workspace:FindFirstChild(name, true)
+		local content = model and model:FindFirstChild("Content", true)
+		if content then
+			return content
+		end
+		task.wait(0.5)
 	end
-	model.PrimaryPart = board
-	local lists = { face(board, Enum.NormalId.Front), face(board, Enum.NormalId.Back) }
-	model.Parent = parent
-	return lists
+	warn(`[Server] EventBoardView: no {name} board placed`)
+	return nil
 end
 
 function EventBoardView.start(world: World, now: () -> number)
-	local lists = build(workspace)
 	task.spawn(function()
+		local content = boardContent()
+		if not content then
+			return
+		end
+		local list = dress(content)
 		local key = nil
 		while true do
 			local rows = EventBoard.rows(EventBoardView.input(world, now(), os.time()), now())
 			local nextKey = EventBoard.layoutKey(rows)
-			for _, list in lists do
-				fill(list, rows, nextKey ~= key)
-			end
+			fill(list, rows, nextKey ~= key)
 			key = nextKey
 			task.wait(1)
 		end
