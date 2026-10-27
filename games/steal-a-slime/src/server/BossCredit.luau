@@ -5,7 +5,7 @@
 	Credits players for their part in a boss event: counts the event in `session.data.boss` (Shared.BossBadges),
 	grants the boss badges it reaches, toasts each new one to that player and marks the session dirty.
 	`win` credits everyone when the boss is brought home: wins for players with enough of the hits, a haul for the
-	carrier, an MVP for the top contributor.
+	carrier, an MVP count for the top contributor, and the Boss Champion boost for the carrier.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -47,8 +47,9 @@ end
 
 --[[
 	The boss `slime` of `fight` was brought home by `carrier`. Only the carrier wins: a win of that species (its boss
-	badge), a haul and the species in their SlimeDex. The top contributor (if still on the server) counts an MVP and
-	gets the Boss MVP boost: +BOSS.MVP_BONUS income for BOSS.MVP_SECONDS (data.mvpBonus, session.mvpUntil).
+	badge), a haul, the species in their SlimeDex and the Boss Champion boost: +BOSS.MVP_BONUS income and
+	+BOSS.MVP_SPEED walk speed for BOSS.MVP_SECONDS (data.mvpBonus, session.mvpUntil). The top contributor (if still
+	on the server) counts an MVP toward the MVP badges.
 ]]
 function BossCredit.win(world: World, fight: BossFight.State, carrier: Session, slime: Genome.Slime, now: number)
 	local top = BossFight.top(fight)
@@ -60,27 +61,27 @@ function BossCredit.win(world: World, fight: BossFight.State, carrier: Session, 
 		end
 		if top ~= nil and session.userId == top then
 			BossBadges.record(session.data, { kind = "mvp" })
+		end
+		if isCarrier then
 			session.data.mvpBonus = BOSS.MVP_BONUS
 			session.mvpUntil = now + BOSS.MVP_SECONDS
 			World.markDirty(session)
 			World.notify(
 				world,
 				session.userId,
-				`Boss MVP! +{math.floor(BOSS.MVP_BONUS * 100 + 0.5)}% income for {math.floor(
-					BOSS.MVP_SECONDS / 60 + 0.5
-				)} min`,
+				`Boss Champion! +{math.floor(BOSS.MVP_BONUS * 100 + 0.5)}% income and +{math.floor(
+					BOSS.MVP_SPEED * 100 + 0.5
+				)}% speed for {math.floor(BOSS.MVP_SECONDS / 60 + 0.5)} min`,
 				"good",
 				"BossMvp"
 			)
-		end
-		if isCarrier then
 			PlayerData.discover(session.data, slime)
 		end
 		BossCredit.grant(world, session, now)
 	end
 end
 
--- Ends every Boss MVP boost that has run out by `now`. Call every step (GameLoop).
+-- Ends every Boss Champion boost that has run out by `now`. Call every step (GameLoop).
 function BossCredit.expire(world: World, now: number)
 	for _, session in world.sessions do
 		local untilAt = session.mvpUntil
@@ -88,7 +89,7 @@ function BossCredit.expire(world: World, now: number)
 			session.mvpUntil = nil
 			session.data.mvpBonus = nil
 			World.markDirty(session)
-			World.notify(world, session.userId, "Your Boss MVP income boost ended", "info", nil)
+			World.notify(world, session.userId, "Your Boss Champion boost ended", "info", nil)
 		end
 	end
 end

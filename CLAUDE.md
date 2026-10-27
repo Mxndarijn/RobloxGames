@@ -31,6 +31,7 @@ python tools/pipeline/pc-watcher/studio_hidden.py list                # every hi
 - Don't launch `RobloxStudioBeta.exe` directly, and don't bring any window to the front.
 - Don't use `user_mouse_input` or `user_keyboard_input`: they move the real cursor and press real keys. Drive the game with `execute_luau` instead.
 - Close only the Studio you started (no save dialog). Never close or touch a Studio Merijn opened.
+- Always mute the run. A hidden Studio still plays music and sound effects on Merijn's speakers. Right after `start_stop_play`, run a Client `execute_luau` that sets every `Sound` and `SoundGroup` `Volume` to 0, and keeps doing so for new ones (`game.DescendantAdded`) and for later `Volume` changes. To check audio, log which sounds get created and played; don't listen.
 - Ask Merijn only when you truly can't continue without that input; otherwise pick a sensible default and report it at the end.
 
 Verify in the real game where you can (Studio playtest, screenshots, the tests in each game's `CLAUDE.md`), and report honestly what you could not check.

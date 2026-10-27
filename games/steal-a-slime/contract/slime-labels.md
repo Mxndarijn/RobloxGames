@@ -23,7 +23,7 @@ State field, no save-format change.
   - Existing attributes the labels also read: `Price` (wild buy price; > 0 shows the price row), `Growth` (whole
     percent, the sign's bar), `Boss` (name prefixed `"BOSS "`).
 - **Pure values (`src/shared/SlimeLabel`).** `SlimeLabel.view(attrs) -> View?` turns the attributes into
-  `{ name, rarity, tier, rarityColor, income, price, growth, pad }`: `income = "+$1.25K/s"` (`NumberFormat.rate`),
+  `{ name, rarity, tier, rarityColor, income, price, growth, pad }`: `income = "+$1.25K/s"` (`NumberFormat.rate`; nil for a boss, whose tag shows only rarity and name),
   `price = "$500"` (priced wild) or nil, `growth` = whole percent 0..100, `pad` = index or nil. nil when `LabelName`
   is missing.
 - **Tag (`src/ui/SlimeInfoCard`, started from `init.client`).** One `BillboardGui` per tagged slime model
