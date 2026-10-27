@@ -76,7 +76,7 @@ describe("Props placed by WorldProps", function()
 		expect(row and row.Value.Text).toBe("3")
 		expect(row and row.Rank.Text).toBe("#2")
 	end)
-	it("draws the list on a dark GUI face with row cards, no extra parts (the Upcoming Events look)", function()
+	it("draws the list on a light GUI face with row cards, no extra parts (the Upcoming Events look)", function()
 		local board = Props.leaderboardBoard()
 		local gui = board.Board.BoardGui
 		expect(board.Board.Transparency).toBe(1)

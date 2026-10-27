@@ -42,10 +42,10 @@ EventBoardView.ICONS = table.freeze({
 } :: { [string]: string })
 
 -- Colours (RGB; Color3 is built at use, so the pure tests can require this module).
-local FACE = { 28, 30, 48 }
+local FACE = { 255, 250, 240 } -- the light face, like the Hall of Fame boards (Props.BOARD_PALETTE.Face)
 local WHITE = { 255, 255, 255 }
 local INK = { 24, 20, 36 }
-local CARD_TEXT = { 235, 235, 245 }
+local CARD_TEXT = { 62, 40, 26 } -- dark ink on the pale cards (Props.BOARD_PALETTE.Text)
 
 -- What the sign shows now, from the world state.
 function EventBoardView.input(world: World, now: number, unix: number?): EventBoard.Input
@@ -81,6 +81,14 @@ local function rgb(c: { number }, scale: number?): Color3
 	local s = scale or 1
 	local function channel(v: number): number
 		return math.clamp(math.floor(v * s + 0.5), 0, 255)
+	end
+	return Color3.fromRGB(channel(c[1]), channel(c[2]), channel(c[3]))
+end
+
+-- `c` mixed toward white by `amount` (0 = c, 1 = white): the pale card fills.
+local function pale(c: { number }, amount: number): Color3
+	local function channel(v: number): number
+		return math.clamp(math.floor(v + (255 - v) * amount + 0.5), 0, 255)
 	end
 	return Color3.fromRGB(channel(c[1]), channel(c[2]), channel(c[3]))
 end
@@ -124,7 +132,7 @@ local function card(list: Frame, row: EventBoard.Row, k: number, count: number)
 	f.Name = `Card_{k}`
 	f.LayoutOrder = k
 	f.Size = UDim2.fromScale(1, 1 / count - 0.02)
-	f.BackgroundColor3 = rgb(row.accent, if row.live then 0.55 else 0.32)
+	f.BackgroundColor3 = pale(row.accent, if row.live then 0.45 else 0.72)
 	f.BorderSizePixel = 0
 	corner(f, 0.25)
 	stroke(f, rgb(row.accent), if k == 1 then 5 else 3)
@@ -154,7 +162,7 @@ local function card(list: Frame, row: EventBoard.Row, k: number, count: number)
 		glyph.Position = UDim2.fromScale(0.12, 0.12)
 		glyph.Size = UDim2.fromScale(0.76, 0.76)
 	end
-	local title = text(f, "Title", row.title, rgb(row.accent, 1.25), 2)
+	local title = text(f, "Title", row.title, rgb(row.accent, 0.45))
 	title.Position = UDim2.fromScale(0.15, 0.06)
 	title.Size = UDim2.fromScale(0.52, 0.52)
 	title.TextXAlignment = Enum.TextXAlignment.Left

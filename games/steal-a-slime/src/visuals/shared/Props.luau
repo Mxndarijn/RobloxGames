@@ -37,26 +37,26 @@ local Props = {}
 Props.LEADERBOARD_ROWS = 10
 Props.LEADERBOARD_TITLE = "Top Earners"
 
--- Hall of Fame board colours (RGB), the same look as the Upcoming Events board (server/EventBoardView): a dark
--- rounded face over the skin's cream panel, a gradient title bar in the board's colour and one rounded card per
--- row, the top three tinted gold, silver and bronze. Light ink, every colour >= 4.5:1 on the face, the row card and
--- my row (tests/ui/WorldLeaderboard.spec); ui/WorldLeaderboard.PALETTE must equal this.
+-- Hall of Fame board colours (RGB), the same look as the Upcoming Events board (server/EventBoardView): a light
+-- cream-white rounded face over the skin's panel, a gradient title bar in the board's colour and one rounded card per
+-- row, the top three on pale gold, silver and bronze cards. Dark ink, every colour >= 4.5:1 on the face, the row cards
+-- and my row (tests/ui/WorldLeaderboard.spec); ui/WorldLeaderboard.PALETTE must equal this.
 Props.BOARD_PALETTE = table.freeze({
-	Face = table.freeze({ 28, 30, 48 }), -- the dark face (EventBoardView FACE)
-	RowAlt = table.freeze({ 46, 50, 76 }), -- a row card
-	Me = table.freeze({ 30, 70, 52 }), -- the viewer's own row (client only)
+	Face = table.freeze({ 255, 250, 240 }), -- the light face (EventBoardView FACE)
+	RowAlt = table.freeze({ 244, 232, 208 }), -- a row card
+	Me = table.freeze({ 179, 231, 191 }), -- the viewer's own row (client only)
 	Title = table.freeze({ 150, 96, 0 }), -- the title bar when the board has no colour of its own
-	Text = table.freeze({ 240, 242, 250 }),
-	Muted = table.freeze({ 160, 165, 190 }),
-	Value = table.freeze({ 120, 235, 150 }),
-	Rank = table.freeze({
-		table.freeze({ 255, 204, 64 }),
-		table.freeze({ 210, 220, 235 }),
-		table.freeze({ 236, 150, 90 }),
-	}),
+	Text = table.freeze({ 62, 40, 26 }),
+	Muted = table.freeze({ 138, 106, 74 }),
+	Value = table.freeze({ 24, 104, 56 }),
+	Rank = table.freeze({ table.freeze({ 138, 88, 0 }), table.freeze({ 96, 102, 112 }), table.freeze({ 150, 73, 30 }) }),
 })
--- How dark a top-three row card is: its rank colour times this.
-Props.MEDAL_TINT = 0.3
+-- The top three row cards: pale gold, silver and bronze (edged in their rank colour).
+Props.MEDAL_FILL = table.freeze({
+	table.freeze({ 255, 226, 140 }),
+	table.freeze({ 225, 230, 240 }),
+	table.freeze({ 246, 204, 170 }),
+})
 Props.BOARD_INK = table.freeze({ 24, 20, 36 }) -- outlines (EventBoardView INK)
 
 local function rgb(r: number, g: number, b: number): Color3
@@ -688,7 +688,7 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	gui.LightInfluence = 0
 	gui.Adornee = board
 	gui.Parent = board
-	-- The dark face covers the skin's cream panel (and its divider), like the Upcoming Events board.
+	-- The light face covers the skin's cream panel (and its divider), like the Upcoming Events board.
 	local palette = Props.BOARD_PALETTE
 	local content = Instance.new("Frame")
 	content.Name = "Content"

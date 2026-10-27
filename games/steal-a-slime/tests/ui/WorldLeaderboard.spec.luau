@@ -68,7 +68,7 @@ describe("WorldLeaderboard.rows", function()
 	end)
 end)
 
--- B2 (2026-10-18): the list is drawn straight on the board skin's warm cream face, no backing panel.
+-- The list sits on a light cream-white face, one card per row (the Upcoming Events look).
 local function luminance(c: { number }): number
 	local function lin(v: number): number
 		v /= 255
@@ -95,11 +95,13 @@ describe("Top Earners board palette (B2)", function()
 		end
 	end)
 
-	it("tints the top three cards in their rank colour, mine mint, the rest plain", function()
+	it("puts the top three on pale medal cards, mine mint, the rest plain", function()
 		local fill, edge = WorldLeaderboard.rowStyle(1, false)
-		expect(table.concat(fill, ",")).toBe("77,61,19")
+		expect(table.concat(fill, ",")).toBe("255,226,140")
 		expect(edge).toBe(palette.Rank[1])
-		expect(WorldLeaderboard.MEDAL_TINT).toBe(Props.MEDAL_TINT)
+		for i = 1, 3 do
+			expect(table.concat(WorldLeaderboard.MEDAL_FILL[i], ",")).toBe(table.concat(Props.MEDAL_FILL[i], ","))
+		end
 		local mine, mineEdge = WorldLeaderboard.rowStyle(2, true)
 		expect(mine).toBe(palette.Me)
 		expect(mineEdge).toBe(palette.Value)
@@ -108,7 +110,7 @@ describe("Top Earners board palette (B2)", function()
 		expect(none).toBeNil()
 	end)
 
-	it("reads at 4.5:1 or better on the dark face, every row card and my row", function()
+	it("reads at 4.5:1 or better on the light face, every row card and my row", function()
 		local face = Props.BOARD_PALETTE.Face
 		local inks = { "Text", "Value" }
 		local cards = { face, palette.RowAlt, palette.Me }
@@ -126,7 +128,7 @@ describe("Top Earners board palette (B2)", function()
 		-- Muted (#8A6A4A, the large no-entries text, mockup b2_board_palette) only sits on the face: 3:1 large-text bar
 		expect(contrast(palette.Muted, face) >= 3).toBe(true)
 		for i = 1, 3 do
-			for _, bg in { face, palette.RowAlt, palette.Me } do
+			for _, bg in { face, palette.RowAlt, palette.Me, (WorldLeaderboard.rowStyle(i, false)) } do
 				local ratio = contrast(palette.Rank[i], bg)
 				-- the mockup's rank colours are bold large text: #1 #8A5800 on the tan stripe is 4.41:1
 				if ratio < 4 then

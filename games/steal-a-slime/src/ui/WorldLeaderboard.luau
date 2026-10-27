@@ -12,7 +12,7 @@
 	LeaderboardStat attribute (else the board its Model name belongs to, else Top Earners). Rows go into its descendant Frame "Rows" if there is
 	one, else into a "Rows" frame created to fill the gui. Boards streamed
 	in later bind on DescendantAdded. Row frames are "Row_<k>" with Rank /
-	Name / Value labels, like Props.fillLeaderboard: rounded cards on the dark face, the top three tinted
+	Name / Value labels, like Props.fillLeaderboard: rounded cards on the light face, the top three tinted
 	(`rowStyle`).
 
 	The pure helpers (`matches`, `rows`) run under Lune
@@ -95,33 +95,33 @@ end
 
 -- Roblox side ---------------------------------------------------------------
 
--- Board colours (RGB) on the dark face, like the Upcoming Events board; the same values as Props.BOARD_PALETTE
+-- Board colours (RGB) on the light face, like the Upcoming Events board; the same values as Props.BOARD_PALETTE
 -- (a spec keeps them equal).
 WorldLeaderboard.PALETTE = table.freeze({
-	RowAlt = table.freeze({ 46, 50, 76 }),
-	Me = table.freeze({ 30, 70, 52 }),
-	Text = table.freeze({ 240, 242, 250 }),
-	Muted = table.freeze({ 160, 165, 190 }),
-	Value = table.freeze({ 120, 235, 150 }),
-	Rank = table.freeze({
-		table.freeze({ 255, 204, 64 }),
-		table.freeze({ 210, 220, 235 }),
-		table.freeze({ 236, 150, 90 }),
-	}),
+	RowAlt = table.freeze({ 244, 232, 208 }),
+	Me = table.freeze({ 179, 231, 191 }),
+	Text = table.freeze({ 62, 40, 26 }),
+	Muted = table.freeze({ 138, 106, 74 }),
+	Value = table.freeze({ 24, 104, 56 }),
+	Rank = table.freeze({ table.freeze({ 138, 88, 0 }), table.freeze({ 96, 102, 112 }), table.freeze({ 150, 73, 30 }) }),
 })
-WorldLeaderboard.MEDAL_TINT = 0.3 -- a top-three card is its rank colour times this (Props.MEDAL_TINT)
+-- The top three row cards: pale gold, silver and bronze (Props.MEDAL_FILL).
+WorldLeaderboard.MEDAL_FILL = table.freeze({
+	table.freeze({ 255, 226, 140 }),
+	table.freeze({ 225, 230, 240 }),
+	table.freeze({ 246, 204, 170 }),
+})
 
--- A row card's fill and edge (RGB, nil = no edge): my row mint, the top three tinted gold / silver / bronze with an
--- edge in that colour, the rest plain cards.
+-- A row card's fill and edge (RGB, nil = no edge): my row mint, the top three pale gold / silver / bronze with an
+-- edge in their rank colour, the rest plain cards.
 function WorldLeaderboard.rowStyle(rank: number, isMe: boolean): ({ number }, { number }?)
 	local p = WorldLeaderboard.PALETTE
 	if isMe then
 		return p.Me, p.Value
 	end
-	local medal = p.Rank[rank]
+	local medal = WorldLeaderboard.MEDAL_FILL[rank]
 	if medal then
-		local t = WorldLeaderboard.MEDAL_TINT
-		return { math.floor(medal[1] * t + 0.5), math.floor(medal[2] * t + 0.5), math.floor(medal[3] * t + 0.5) }, medal
+		return medal, p.Rank[rank]
 	end
 	return p.RowAlt, nil
 end
