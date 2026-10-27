@@ -30,7 +30,7 @@ export type Consumable = {
 export type RebirthTier = {
 	rebirths: number, -- reached at this many rebirths
 	title: string,
-	unlock: string?, -- upgrade id this rank unlocks (also Config.UPGRADES[i].requires)
+	unlock: string?, -- upgrade id this rank unlocks (its Config.UPGRADES levelRequires[1] is this rank's rebirths)
 	income: number?, -- income bonus (0.25 = +25 %)
 	family: string?, -- FountainTiers family id: this rank grows the fountain into its look (FEATURES.FountainTiers; FountainTiers.FAMILIES)
 	merge: number?, -- top rarity tier this rank lets the player put in the merge vat (MergeGate, contract/merge-vat.md §21.9)
@@ -43,8 +43,7 @@ export type Upgrade = {
 	maxLevel: number,
 	base: number, -- price of level 1
 	growth: number, -- price of level n+1 = base * growth^n
-	requires: number, -- rebirths needed
-	levelRequires: { number }?, -- rebirths needed for each level (level n needs levelRequires[n]); nil = `requires` for all
+	levelRequires: { number }, -- rebirths each level needs (level n needs levelRequires[n]), one per level, never decreasing
 	step: number, -- effect per level (meaning depends on id)
 	flag: string?, -- Config.FEATURES name that must be on for the upgrade to be listed, bought or have any effect
 }
@@ -278,7 +277,6 @@ local UPGRADES: { Upgrade } = {
 		maxLevel = 25,
 		base = 2000,
 		growth = 2.2,
-		requires = 0,
 		levelRequires = { 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 6, 6, 6, 6, 6, 12, 12, 12, 12, 12, 20, 20, 20, 20, 20 },
 		step = 0.1,
 	},
@@ -289,7 +287,7 @@ local UPGRADES: { Upgrade } = {
 		maxLevel = 4,
 		base = 5000,
 		growth = 3,
-		requires = 1,
+		levelRequires = { 1, 3, 6, 10 },
 		step = 0.15,
 	},
 	{
@@ -299,7 +297,7 @@ local UPGRADES: { Upgrade } = {
 		maxLevel = 4,
 		base = 20000,
 		growth = 3,
-		requires = 3,
+		levelRequires = { 3, 6, 10, 15 },
 		step = 3600,
 	},
 	{
@@ -309,7 +307,6 @@ local UPGRADES: { Upgrade } = {
 		maxLevel = 10,
 		base = 100000,
 		growth = 4,
-		requires = 5,
 		levelRequires = { 5, 5, 5, 8, 8, 12, 12, 16, 20, 25 },
 		step = 0.03,
 	},
@@ -320,7 +317,6 @@ local UPGRADES: { Upgrade } = {
 		maxLevel = 4,
 		base = 25000,
 		growth = 3,
-		requires = 2,
 		levelRequires = { 2, 4, 6, 8 },
 		step = 0.15,
 	},
@@ -666,6 +662,9 @@ local PVP_TOOLS: { PvpTool } = {
 	fun("FunFireworks", "Goo Fireworks", 10, 12, true, {}),
 }
 
+for _, def in UPGRADES do
+	table.freeze(def.levelRequires)
+end
 for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES.species } :: { { any } } do
 	for _, entry in list do
 		table.freeze(entry)
