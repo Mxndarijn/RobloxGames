@@ -157,6 +157,7 @@ function BossMeter.new(parent: Instance, ctx: any)
 		ZIndex = z,
 		Parent = tile,
 	})
+	Widgets.centreEmoji(icon, true)
 
 	-- Right to left: the pill, the percent, then the meter (or the name) fills what is left.
 	local midY = rowY + SIZE.row / 2

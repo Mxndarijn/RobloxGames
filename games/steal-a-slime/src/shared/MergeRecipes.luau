@@ -21,7 +21,7 @@ export type Recipe = {
 	hint: string, -- Dex hint line
 }
 
-export type Input = { tier: number, species: string? }
+export type Input = { tier: number, species: string?, shine: string? }
 
 export type Ctx = {
 	unlocked: (entry: SlimeRoster.Entry) -> boolean, -- which species a random merge may give (everySpecies / classicOnly)
@@ -163,7 +163,7 @@ end
 function MergeRecipes.pool(tier: number, ctx: Ctx): ({ string }, { string })
 	local pool, assist = {}, {}
 	for _, entry in SlimeRoster.ROSTER do
-		if entry.kind == "spawn" and entry.tier == tier and ctx.unlocked(entry) then
+		if entry.kind == "spawn" and not entry.jackpot and entry.tier == tier and ctx.unlocked(entry) then
 			table.insert(pool, entry.id)
 			if not (ctx.found and ctx.found[entry.id]) then
 				table.insert(assist, entry.id)
@@ -209,6 +209,26 @@ function MergeRecipes.resolve(inputs: { Input }, ctx: Ctx): Outcome
 				assistChance = 0,
 			}
 		end
+	end
+	-- three slimes of SHINE_RECIPE.from sharing a shine brew a SHINE_RECIPE.into species (no jump, no assist)
+	local shine = inputs[1].shine
+	local sr = Config.SHINE_RECIPE
+	if
+		from == sr.from
+		and shine ~= nil
+		and inputs[2].shine == shine
+		and inputs[3].shine == shine
+		and (ctx.rebirths == nil or ctx.rebirths >= sr.rebirths)
+	then
+		local pool = MergeRecipes.pool(sr.into, ctx)
+		return {
+			kind = "random",
+			tier = sr.into,
+			jumpChance = 0,
+			pool = pool,
+			assistPool = {},
+			assistChance = 0,
+		}
 	end
 	local tier = if from >= Config.MAX_TIER then Config.MAX_TIER else math.min(from + 1, Config.MERGE_MAX_TIER)
 	local jump = from + 2

@@ -207,6 +207,7 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		gradient.Color = ColorSequence.new(c:Lerp(Color3.new(1, 1, 1), 0.25), c:Lerp(Color3.new(0, 0, 0), 0.3))
 		stroke.Color = frameColor or c:Lerp(Color3.new(0, 0, 0), 0.55)
 		glyph.Text = spec.glyph
+		Widgets.centreEmoji(glyph)
 		root:SetAttribute("ItemId", spec.id)
 		art:ClearAllChildren()
 		art:SetAttribute("ArtId", nil)

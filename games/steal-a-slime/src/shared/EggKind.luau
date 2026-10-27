@@ -19,6 +19,7 @@ export type Kind = {
 	weight: number,
 	hatchSeconds: number,
 	pity: number, -- lucky meter size: this many hatches in a row without the top tier and the last one gets it
+	rebirths: number, -- fewer rebirths can't grab or steal an egg of this kind (grabBlock)
 	announce: boolean,
 	drops: { Drop },
 }
@@ -57,6 +58,21 @@ end
 -- "Golden Mystery Egg".
 function EggKind.displayName(kind: Kind): string
 	return `{kind.name} Mystery Egg`
+end
+
+-- Failure text when a player with `rebirths` may not grab or steal an egg of `kind`, else nil.
+function EggKind.grabBlock(rebirths: number, kind: Kind): string?
+	local needed = kind.rebirths
+	if rebirths >= needed then
+		return nil
+	end
+	local title = ""
+	for _, rank in Config.REBIRTH_TIERS do
+		if rank.rebirths == needed then
+			title = `{rank.title} `
+		end
+	end
+	return `Reach {title}({needed} rebirth{if needed == 1 then "" else "s"}) to pick up {EggKind.displayName(kind)}s`
 end
 
 -- 0..1 incubation progress at `now` (0 while not incubating yet).

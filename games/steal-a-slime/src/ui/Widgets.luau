@@ -146,6 +146,56 @@ function Widgets.label(props: { [string]: any }): TextLabel
 	return create("TextLabel", base)
 end
 
+-- Roblox draws emoji above the middle of a TextLabel. How far, as a share of the text size, depends
+-- on the label's font (measured in Studio); text glyphs like ★, $ and digits sit centred already.
+Widgets.EMOJI_RISE = table.freeze({ Nunito = 0.1, FredokaOne = 0.035 })
+local EMOJI_BMP: { [number]: boolean } = {
+	[0x23F1] = true,
+	[0x26A1] = true,
+	[0x26F2] = true,
+	[0x2705] = true,
+	[0x2728] = true,
+	[0x2B06] = true,
+	[0x2B50] = true,
+}
+
+function Widgets.isEmoji(text: string): boolean
+	for _, cp in utf8.codes(text) do
+		if cp >= 0x1F000 or cp == 0xFE0F or EMOJI_BMP[cp] then
+			return true
+		end
+	end
+	return false
+end
+
+-- How far `text` rises in a label of `font` (an Enum.Font or a Font), as a share of its text size.
+function Widgets.emojiRise(font: any, text: string): number
+	if not Widgets.isEmoji(text) then
+		return 0
+	end
+	local family = if typeof(font) == "Font" then font.Family else `rbxasset://fonts/families/{font.Name}.json`
+	return Widgets.EMOJI_RISE[string.match(family, "([%w]+)%.json$") or ""] or 0
+end
+
+-- Moves an emoji icon label down by its rise so the emoji sits in the middle of its spot (no extra
+-- instance; the label's own Y offset is kept in the EmojiBaseY attribute). `follow` keeps it centred
+-- when the label's text changes later.
+function Widgets.centreEmoji(label: TextLabel, follow: boolean?)
+	local base = label:GetAttribute("EmojiBaseY")
+	if base == nil then
+		base = label.Position.Y.Offset
+		label:SetAttribute("EmojiBaseY", base)
+		if follow then
+			label:GetPropertyChangedSignal("Text"):Connect(function()
+				Widgets.centreEmoji(label)
+			end)
+		end
+	end
+	local rise = math.round(Widgets.emojiRise(label.FontFace, label.Text) * label.TextSize)
+	local p = label.Position
+	label.Position = UDim2.new(p.X.Scale, p.X.Offset, p.Y.Scale, (base :: number) + rise)
+end
+
 export type Button = {
 	instance: TextButton,
 	setEnabled: (enabled: boolean) -> (),
@@ -574,6 +624,7 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		Size = UDim2.fromScale(1, 1),
 		Parent = tile,
 	})
+	Widgets.centreEmoji(iconLabel, true)
 	local titleX = c.pad + c.icon + 10
 	local title = Widgets.label({
 		Name = "Title",
@@ -629,6 +680,7 @@ function Widgets.iconBadge(props: { [string]: any }, icon: string, color: Color3
 		base[k] = v
 	end
 	local badge = Widgets.label(base)
+	Widgets.centreEmoji(badge, true)
 	Widgets.corner(Widgets.KIT.radius).Parent = badge
 	Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke).Parent = badge
 	return badge

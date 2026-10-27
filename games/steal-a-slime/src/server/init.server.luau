@@ -34,6 +34,7 @@ local BaseFloors = require(script.BaseFloors)
 local BorderTerrainView = require(script.BorderTerrainView)
 local Carry = require(script.Carry)
 local EffectsView = require(script.EffectsView)
+local EventBoardView = require(script.EventBoardView)
 local FountainColliders = require(script.FountainColliders)
 local Friends = require(script.Friends)
 local GroundTerrainView = require(script.GroundTerrainView)
@@ -325,11 +326,13 @@ end
 
 if Config.FEATURES.Weather then
 	local weatherState = WeatherService.start(workspace, now)
+	world.weather = weatherState -- shines read the live weather
 	ctx.requestWeather = function(id: string): boolean -- Weather Totem
 		return WeatherService.request(weatherState, id)
 	end
 end
 WeeklyEventService.start(workspace, os.time)
+EventBoardView.start(world, now) -- the Upcoming Events sign at the fountain
 
 ---------------------------------------------------------------------------
 -- Players and loops

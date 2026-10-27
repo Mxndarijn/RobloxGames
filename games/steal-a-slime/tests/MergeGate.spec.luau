@@ -36,20 +36,20 @@ end
 
 describe("MergeGate ranks", function()
 	it(
-		"opens Common at 0, Uncommon at 1, Rare at 3, Epic at 5, Legendary at 8, Mythic at 12 and Secret never",
+		"opens Common at 0, Uncommon at 1, Rare and Epic at 3, Legendary at 5, Mythic at 15, Secret at 20 and Celestial never",
 		function()
 			local cases = {
 				{ 0, 1 },
 				{ 1, 2 },
 				{ 2, 2 },
-				{ 3, 3 },
-				{ 4, 3 },
-				{ 5, 4 },
-				{ 7, 4 },
-				{ 8, 5 },
-				{ 11, 5 },
-				{ 12, 6 },
-				{ Config.MAX_REBIRTHS, 6 },
+				{ 3, 4 },
+				{ 4, 4 },
+				{ 5, 5 },
+				{ 14, 5 },
+				{ 15, 6 },
+				{ 19, 6 },
+				{ 20, 7 },
+				{ Config.MAX_REBIRTHS, 7 },
 			}
 			for _, case in cases do
 				expect(MergeGate.topTier(case[1])).toBe(case[2])
@@ -57,22 +57,24 @@ describe("MergeGate ranks", function()
 			expect(MergeGate.rebirthsFor(1)).toBe(0)
 			expect(MergeGate.rebirthsFor(2)).toBe(1)
 			expect(MergeGate.rebirthsFor(3)).toBe(3)
-			expect(MergeGate.rebirthsFor(4)).toBe(5)
-			expect(MergeGate.rebirthsFor(5)).toBe(8)
-			expect(MergeGate.rebirthsFor(6)).toBe(12)
-			expect(MergeGate.rebirthsFor(7)).toBe(nil)
-			expect(MergeGate.allows(4, 4)).toBe(false)
-			expect(MergeGate.allows(4, 5)).toBe(true)
-			expect(MergeGate.allows(7, Config.MAX_REBIRTHS)).toBe(false)
+			expect(MergeGate.rebirthsFor(4)).toBe(3)
+			expect(MergeGate.rebirthsFor(5)).toBe(5)
+			expect(MergeGate.rebirthsFor(6)).toBe(15)
+			expect(MergeGate.rebirthsFor(7)).toBe(20)
+			expect(MergeGate.rebirthsFor(8)).toBe(nil)
+			expect(MergeGate.allows(4, 2)).toBe(false)
+			expect(MergeGate.allows(4, 3)).toBe(true)
+			expect(MergeGate.allows(8, Config.MAX_REBIRTHS)).toBe(false)
 		end
 	)
 
 	it("writes the lock, opens and cap texts", function()
-		expect(MergeGate.lockText(4)).toBe("Rebirth 5 to unlock")
-		expect(MergeGate.lockText(7)).toBe("Locked")
-		expect(MergeGate.opensText(4)).toBe("Epic merges open at Rebirth 5")
+		expect(MergeGate.lockText(4)).toBe("Rebirth 3 to unlock")
+		expect(MergeGate.lockText(8)).toBe("Locked")
+		expect(MergeGate.opensText(4)).toBe("Epic merges open at Rebirth 3")
+		expect(MergeGate.opensText(8)).toBe("Celestial merges are locked")
 		expect(MergeGate.capText(1)).toBe("Up to Uncommon")
-		expect(MergeGate.capText(Config.MAX_REBIRTHS)).toBe("Up to Mythic")
+		expect(MergeGate.capText(Config.MAX_REBIRTHS)).toBe("Up to Secret")
 	end)
 
 	it("never asks a rebirth for a hybrid the player can't brew yet", function()
@@ -117,17 +119,18 @@ end)
 
 describe("TripleMerge jump with the rank gate", function()
 	it("never jumps past the rank's top result", function()
-		-- Rare merges are open but Epic ones are not, so a Rare load may not jump to Legendary
-		local rareAt = MergeGate.rebirthsFor(3) :: number
-		local ctx = { unlocked = MergeRecipes.everySpecies, rebirths = rareAt }
+		-- Uncommon merges are open but Rare ones are not, so an Uncommon load may not jump to Epic
+		local uncommonAt = MergeGate.rebirthsFor(2) :: number
+		local ctx = { unlocked = MergeRecipes.everySpecies, rebirths = uncommonAt }
 		local rng = Rng.new(7)
 		for i = 1, 200 do
-			expect(TripleMerge.merge(three(3), rng, `r{i}`, ctx).tier).toBe(4)
+			expect(TripleMerge.merge(three(2), rng, `r{i}`, ctx).tier).toBe(3)
 		end
-		expect(TripleMerge.odds(3, rareAt).jumpTier).toBe(nil)
+		expect(TripleMerge.odds(2, uncommonAt).jumpTier).toBe(nil)
+		expect(TripleMerge.odds(2, EPIC_AT).jumpTier).toBe(4)
 		expect(TripleMerge.odds(3, EPIC_AT).jumpTier).toBe(5)
-		expect(TripleMerge.odds(2, rareAt).jumpTier).toBe(4)
-		expect(TripleMerge.odds(2, MergeGate.rebirthsFor(2) :: number).jumpTier).toBe(nil)
+		expect(TripleMerge.odds(1, uncommonAt).jumpTier).toBe(3)
+		expect(TripleMerge.odds(1, 0).jumpTier).toBe(nil)
 	end)
 
 	it("keeps the draw order: an open rank gives the same child as no gate", function()
@@ -179,9 +182,12 @@ describe("Rank reward text", function()
 			end
 			return nil
 		end
-		expect(string.find(Perks.tierText(rank(3)), "opens Rare merges", 1, true) ~= nil).toBe(true)
-		expect(string.find(Perks.tierText(rank(12)), "opens Mythic merges", 1, true) ~= nil).toBe(true)
+		expect(string.find(Perks.tierText(rank(3)), "opens Rare and Epic merges", 1, true) ~= nil).toBe(true)
+		expect(string.find(Perks.tierText(rank(5)), "opens Legendary merges", 1, true) ~= nil).toBe(true)
+		expect(string.find(Perks.tierText(rank(15)), "opens Mythic merges", 1, true) ~= nil).toBe(true)
+		expect(string.find(Perks.tierText(rank(20)), "opens Secret merges", 1, true) ~= nil).toBe(true)
 		expect(string.find(Perks.tierText(rank(6)), "merges", 1, true)).toBe(nil)
+		expect(string.find(Perks.tierText(rank(12)), "merges", 1, true)).toBe(nil)
 		expect(Perks.tierText(rank(0))).toBe("")
 	end)
 end)

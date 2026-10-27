@@ -14,8 +14,9 @@
 	  * Pop: the hatched slime's model is hidden locally (LocalTransparencyModifier)
 	    while a local copy of it springs up from tiny; then the real one shows
 	    again. Nothing ever rescales the real model, so whatever the server adds
-	    to it (a species mesh arriving late) keeps its size. Epic and up get a
-	    light pillar; a rarity title floats up; the owner's camera eases in.
+	    to it (a species mesh arriving late) keeps its size. A rarity title
+	    floats up as a small sign in the world (walls hide it, near only; for
+	    someone else's hatch only from Epic up); the owner's camera eases in.
 	Everything it makes is local (never replicates) and decides nothing.
 ]]
 
@@ -71,7 +72,6 @@ type Pop = {
 	copy: Model?,
 	baseScale: number,
 	folder: Folder,
-	beam: BasePart?,
 	title: BasePart?,
 	label: TextLabel?,
 	hiddenConn: RBXScriptConnection?,
@@ -379,7 +379,7 @@ local function startBurst(pivot: CFrame, tier: number, shellColor: Color3, folde
 	sparks.Acceleration = Vector3.new(0, -14, 0)
 	sparks.Rate = 0
 	sparks.Parent = core
-	sparks:Emit(if tier >= Timeline.BEAM_TIER then 80 else 50)
+	sparks:Emit(if tier >= Timeline.BIG_BURST_TIER then 80 else 50)
 	return burst
 end
 
@@ -416,7 +416,7 @@ local function stepBurst(burst: Burst): boolean
 	return true
 end
 
-local function startPop(slime: Model, tier: number, lucky: boolean, folder: Folder): Pop
+local function startPop(slime: Model, tier: number, lucky: boolean, owner: boolean, folder: Folder): Pop
 	local holder = Instance.new("Folder")
 	holder.Name = "Pop"
 	holder.Archivable = false
@@ -449,18 +449,8 @@ local function startPop(slime: Model, tier: number, lucky: boolean, folder: Fold
 		end)
 	end
 	local color = rarityColor(tier)
-	if tier >= Timeline.BEAM_TIER then
-		local beam = localPart({
-			Name = "Beam",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(40, 2, 2),
-			Color = color,
-			Material = Enum.Material.Neon,
-			Transparency = 0.55,
-			CFrame = CFrame.new(pivot.Position + Vector3.new(0, 20, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		})
-		beam.Parent = holder
-		pop.beam = beam
+	if not Timeline.showsTitle(owner, tier) then
+		return pop
 	end
 	local anchor = localPart({
 		Name = "Title",
@@ -470,10 +460,10 @@ local function startPop(slime: Model, tier: number, lucky: boolean, folder: Fold
 	})
 	anchor.Parent = holder
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(360, 70)
-	gui.AlwaysOnTop = true
+	gui.Size = UDim2.fromScale(Timeline.TITLE_STUDS[1], Timeline.TITLE_STUDS[2])
+	gui.AlwaysOnTop = false
+	gui.MaxDistance = Timeline.TITLE_DISTANCE
 	gui.LightInfluence = 0
-	gui.MaxDistance = EggHatchFx.MAX_DISTANCE
 	gui.Parent = anchor
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1
@@ -520,10 +510,6 @@ local function stepPop(pop: Pop): boolean
 		elseif copy then
 			pcall(copy.ScaleTo, copy, pop.baseScale * Timeline.popScale(s))
 		end
-	end
-	local beam = pop.beam
-	if beam then
-		beam.Transparency = Timeline.beam(s, pop.tier) or 1
 	end
 	local rise, fade = Timeline.titleLook(s)
 	if pop.label and pop.title then
@@ -620,7 +606,8 @@ function EggHatchFx.start(): Controller
 				burstDone[id] = { at = os.clock(), tier = tier, lucky = lucky }
 			end
 		end
-		pops[slime] = startPop(slime, tier, lucky, folder)
+		local owner = player ~= nil and slime:GetAttribute("OwnerUserId") == player.UserId
+		pops[slime] = startPop(slime, tier, lucky, owner, folder)
 	end
 
 	local function added(instance: Instance)

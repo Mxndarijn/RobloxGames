@@ -130,15 +130,16 @@ end
 -- prop per plot (a lantern or a mailbox). No second copies of a decorative piece.
 
 -- Plaza edge -------------------------------------------------------------
--- Vignettes on the free bisectors (22.5, 112.5, 202.5, 292.5, 337.5) and a
--- planter beside the shop (67.5) PROP_SPOT.
+-- Vignettes on the free bisectors (22.5, 112.5, 292.5, 337.5) and a planter beside the shop (67.5) PROP_SPOT.
+-- The 202.5 lawn is the Upcoming Events board's (WorldLayout.EVENT_BOARD), so its picnic table and sunflowers flank
+-- the horseshoe pit on the 292.5 lawn.
 polar("Campfire", "ranch_campfire", "plaza", 22.5, 92, 180, 1.3)
 polar("CampBench", "ranch_bench", "plaza", 16.5, 92, 90, 1.2)
 rows[#rows].face = "Campfire"
 polar("Well", "ranch_well", "plaza", 112.5, 92, 180, 1.2)
 polar("WellPump", "ranch_water_pump", "plaza", 120, 91, 180, 1.2)
-polar("PicnicTable", "ranch_picnic_table", "plaza", 202.5, 91, 180, 1.2)
-polar("Sunflowers", "ranch_sunflower_patch", "plaza", 196, 94, 180, 1)
+polar("PicnicTable", "ranch_picnic_table", "plaza", 301.5, 90, 180, 1.2)
+polar("Sunflowers", "ranch_sunflower_patch", "plaza", 300, 97.5, 180, 1)
 polar("HorseshoePit", "ranch_horseshoe_pit", "plaza", 292.5, 90, 180, 1.2)
 polar("GooSign", "ranch_goo_sign", "plaza", 337.5, 91, 180, 1.2)
 polar("Birdhouse", "ranch_birdhouse", "plaza", 330, 93, 180, 1.2)

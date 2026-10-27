@@ -143,7 +143,7 @@ describe("MeshSwap uniform scale (live boot, every upload answered)", function()
 				print(name, ratios)
 			end
 		end
-		expect(seen).toBe(9) -- two shop stands, the Guide, Professor Goo and the five Hall of Fame boards
+		expect(seen).toBe(10) -- two shop stands, the Guide, Professor Goo, the five Hall of Fame boards and the events board
 		expect(WorldLayout.PROP_MESHES[Constants.SHOP_STAND_ITEM] ~= nil).toBe(true)
 		expect(WorldLayout.PROP_MESHES[Constants.LEADERBOARD_BOARD] ~= nil).toBe(true)
 	end)

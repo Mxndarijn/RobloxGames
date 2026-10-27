@@ -23,6 +23,7 @@ local Economy = require("../../../src/shared/Economy")
 local EggKind = require("../../../src/shared/EggKind")
 local Eggs = require("./Eggs")
 local Genome = require("../../../src/shared/Genome")
+local GrabBlock = require("../../../src/shared/GrabBlock")
 local Ledger = require("./Ledger")
 local MergeGate = require("../../../src/shared/MergeGate")
 local MergeRecipes = require("../../../src/shared/MergeRecipes")
@@ -33,6 +34,7 @@ local Rng = require("../../../src/shared/Rng")
 local Schedule = require("./Schedule")
 local Shop = require("../../../src/shared/Shop")
 local StealService = require("../../../src/server/StealService")
+local TutorialProgress = require("../../../src/shared/TutorialProgress")
 local Upgrades = require("../../../src/shared/Upgrades")
 local VatState = require("../../../src/shared/VatState")
 local World = require("../../../src/server/World")
@@ -307,10 +309,13 @@ end
 -- slimes stay.
 local function weakest(world: World, bot: Bot, keep: { [string]: boolean }): (Slime?, number)
 	local busy = World.busySet(world)
+	-- While the tutorial asks for a merge, a player keeps their Commons to brew them (only Commons merge at first).
+	local keepCommons = TutorialProgress.currentId(bot.data) == "Merge"
 	local worst, worstValue = nil, math.huge
 	for _, s in bot.data.slimes do
 		if
 			not keep[s.id]
+			and not (keepCommons and s.tier == 1)
 			and not busy[s.id]
 			and not s.egg
 			and s.id ~= bot.data.favoriteId
@@ -457,12 +462,24 @@ local function chores(world: World, bot: Bot, session: Session, t: number, keep:
 	drinkPotions(world, bot, t)
 end
 
+-- A Mystery Egg this bot's rank can't grab or steal yet (EggKind.grabBlock).
+local function eggLocked(bot: Bot, slime: Slime): boolean
+	local kind = EggKind.of(slime)
+	return kind ~= nil and EggKind.grabBlock(bot.data.rebirths, kind) ~= nil
+end
+
 -- Best wild slime this bot can afford, by value (Mystery Eggs are free); a missing rebirth species wins outright.
 local function pickWild(world: World, bot: Bot, missing: { [string]: boolean }): (string?, number)
 	local options = {}
 	local best, bestScore, bestValue = nil, -1, 0
 	for id, wild in world.wild do
-		if not wild.boss and wild.price <= bot.data.cash and not world.carriedBy[id] then
+		if
+			not wild.boss
+			and wild.price <= bot.data.cash
+			and not world.carriedBy[id]
+			and not eggLocked(bot, wild.slime)
+			and GrabBlock.rebirthsFor(wild.slime) <= bot.data.rebirths
+		then
 			local v = worth(bot, wild.slime)
 			local score = v + (if missing[wild.slime.species] and not wild.slime.egg then 1e300 else 0)
 			table.insert(options, id)
@@ -485,7 +502,11 @@ local function pickSteal(world: World, bot: Bot, t: number): (string?, number?, 
 	for userId, other in world.sessions do
 		if userId ~= bot.id and not StealService.isLocked(other, t) then
 			for _, s in other.data.slimes do
-				if not World.isBusy(world, s.id) and not VatState.isLocked(other.data, s.id) then
+				if
+					not World.isBusy(world, s.id)
+					and not VatState.isLocked(other.data, s.id)
+					and not eggLocked(bot, s)
+				then
 					local v = worth(bot, s)
 					if v > bestValue then
 						best, victim, bestValue = s.id, userId, v

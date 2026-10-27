@@ -3,7 +3,7 @@
 	Upgrades
 
 	Permanent upgrades bought with Request("BuyUpgrade", id) (CONTRACT.md
-	§8.1, §8.8): Config.UPGRADES, each gated by a rebirth count (or one per level), level n+1
+	§8.1, §8.8): Config.UPGRADES, each level gated by its own rebirth count, level n+1
 	costs base x growth^n. Effects are in Perks. Kept on rebirth. `view` is
 	State.upgrades. Pure: no Roblox APIs.
 ]]
@@ -41,13 +41,10 @@ function Upgrades.cost(id: string, level: number): number?
 	return math.floor(def.base * def.growth ^ level)
 end
 
--- Rebirths needed to buy the level after `level` (Config.Upgrade.levelRequires, else `requires`).
+-- Rebirths needed to buy the level after `level` (Config.Upgrade.levelRequires; the last entry once maxed).
 function Upgrades.requiresFor(def: Config.Upgrade, level: number): number
 	local perLevel = def.levelRequires
-	if perLevel then
-		return perLevel[math.clamp(level + 1, 1, #perLevel)] or def.requires
-	end
-	return def.requires
+	return perLevel[math.clamp(level + 1, 1, #perLevel)] or 0
 end
 
 -- Whether the player may buy the next level of `id` (enough rebirths for it).

@@ -141,7 +141,8 @@ end)
 
 describe("Merge menu: the rank gate", function()
 	local EPICS = { view("e1", 4, { pad = 1 }), view("e2", 4, { pad = 2 }), view("e3", 4, { pad = 3 }) }
-	local RARES = { view("r1", 3, { pad = 1 }), view("r2", 3, { pad = 2 }), view("r3", 3, { pad = 3 }) }
+	local UNCOMMONS = { view("u1", 2, { pad = 1 }), view("u2", 2, { pad = 2 }), view("u3", 2, { pad = 3 }) }
+	local UNCOMMON_AT = MergeGate.rebirthsFor(2) :: number
 	local RARE_AT = MergeGate.rebirthsFor(3) :: number
 	local EPIC_AT = MergeGate.rebirthsFor(4) :: number
 	local function gated(slimes: { any }, ids: { string }, rebirths: number): any
@@ -188,10 +189,10 @@ describe("Merge menu: the rank gate", function()
 
 	it("a jump the rank doesn't open yet says when it does", function()
 		local panel = build()
-		panel.update(gated(RARES, { "r1", "r2", "r3" }, RARE_AT))
-		expect(find(panel, "Odds").Text).toBe(`No jump: Legendary opens at Rebirth {EPIC_AT}`)
-		panel.update(gated(RARES, { "r1", "r2", "r3" }, EPIC_AT))
-		expect(find(panel, "Odds").Text).toBe("20% chance of a Legendary")
+		panel.update(gated(UNCOMMONS, { "u1", "u2", "u3" }, UNCOMMON_AT))
+		expect(find(panel, "Odds").Text).toBe(`No jump: Epic opens at Rebirth {RARE_AT}`)
+		panel.update(gated(UNCOMMONS, { "u1", "u2", "u3" }, RARE_AT))
+		expect(find(panel, "Odds").Text).toBe("20% chance of an Epic")
 	end)
 end)
 

@@ -94,6 +94,8 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 - `Config.RARITIES[i].weight`: see [slime-odds.md](slime-odds.md) (§32) for the current weights.
 - **Pity** (per server, `world.pity`): after `PITY_EPIC` (30) drops in a row without an Epic+, the next drop is at least Epic; after `PITY_LEGENDARY` (300) without a Legendary+, at least Legendary. Rain luck stacks.
+- **Time guarantees** (per server, `world.lastTierAt`, `Spawner.minTier`): once `GUARANTEE_SECONDS[t]` pass without a drop of rarity `t` or higher (a Legendary every 5 min, a Mythic every 15 min), the next drop is at least `t`. `Spawner.guaranteeIn(world, t, now)` is the time left.
+- **Rarity and egg gates** (`GrabBlock.rebirthsFor`): grabbing a wild slime needs `CATCH_REBIRTHS[tier]` rebirths (Mythic 5, Secret 12) and a Mystery Egg its kind's `rebirths` (Speckled open, Shiny 1, Golden 3, Cosmic 6; `EggKind.grabBlock`, also for stealing); `Carry.grab` refuses a slime with "Rebirth <n> to grab this". Stealing a slime is never gated. The wild model carries `GrabRebirths` (nil = open) so the client's grab card says the same. The Lucky Charm only lifts a slime into a rarity the player may grab, and a lucky egg stops at Secret.
 - Legendary+ (`RARE_ANNOUNCE_TIER` = 5) wild drops (fountain or rain, not the Boss Slime, which has its own toast) get the `RareSpawn` attribute, update the workspace `RareSpawn*` attributes and send the `"Rare"` Notify to everyone.
 
 ## 8.8 Progression
@@ -123,13 +125,13 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 | id | Name | Per level | Max | base / growth | Needs rebirths |
 |---|---|---|---|---|---|
-| `Income` | Slime Snacks | +10 % income | 25 | 2 000 / 2.2 | 0 / 2 / 6 / 12 / 20 for levels 1-5 / 6-10 / 11-15 / 16-20 / 21-25 (`levelRequires`) |
-| `CarrySpeed` | Strong Arms | -15 % carry slowdown | 4 | 5 000 / 3 | 1 |
-| `OfflineCap` | Night Shift | +1 h offline income cap | 4 | 20 000 / 3 | 3 |
-| `QuickBrew` | Quick Brew | -15 % merge vat brew time (§21) | 4 | 25 000 / 3 | 2 / 4 / 6 / 8 (one per level, `levelRequires`) |
-| `Luck` | Lucky Charm | +3 % chance a wild slime you bring home is one rarity higher | 10 | 100 000 / 4 | 5, 5, 5, 8, 8, 12, 12, 16, 20, 25 (`levelRequires`) |
+| `Income` | Slime Snacks | +10 % income | 25 | 2 000 / 2.2 | 0 / 2 / 6 / 12 / 20 for levels 1-5 / 6-10 / 11-15 / 16-20 / 21-25 |
+| `CarrySpeed` | Strong Arms | -15 % carry slowdown | 4 | 5 000 / 3 | 1 / 3 / 6 / 10 (one per level) |
+| `OfflineCap` | Night Shift | +1 h offline income cap | 4 | 20 000 / 3 | 3 / 6 / 10 / 15 (one per level) |
+| `QuickBrew` | Quick Brew | -15 % merge vat brew time (§21) | 4 | 25 000 / 3 | 2 / 4 / 6 / 8 (one per level) |
+| `Luck` | Lucky Charm | +3 % chance a wild slime you bring home is one rarity higher | 10 | 100 000 / 4 | 5, 5, 5, 8, 8, 12, 12, 16, 20, 25 |
 
-An upgrade needs `requires` rebirths for every level, or, with the optional `levelRequires = { number }`, `levelRequires[n]` rebirths for level n (`Upgrades.requiresFor`).
+Every upgrade gates each level by rebirths, the way Slime Snacks does: `levelRequires = { number }` has one entry per level (`#levelRequires == maxLevel`, never decreasing), and level n needs `levelRequires[n]` rebirths (`Upgrades.requiresFor`). `levelRequires[1]` is the rebirth that unlocks the upgrade; a rank with `unlock = <id>` sits at that rebirth. `BuyUpgrade` refuses a level the player hasn't reached (`locked: reach N rebirths`) and `State.upgrades[i].requires` is the next level's gate, so the shop shows "Rebirth N" on it.
 
 - **Income multiplier** = `rebirthMultiplier x (1 + 0.1 x Income level) x (1 + rank income bonus) x (1 + dexBonus)`. `SlimeView.income` and `incomePerSec` include it; sell prices don't.
 - **Goals** (`Config.GOALS`, `src/shared/Goals.luau`; titles are singular for a target of 1: "Catch 1 slime"): stage targets / base rewards; the paid reward is `base x rebirthMultiplier` at the time it's paid. Checked every second and on join, so old saves get past stages retroactively.

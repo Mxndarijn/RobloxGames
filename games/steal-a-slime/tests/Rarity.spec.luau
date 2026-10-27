@@ -86,7 +86,10 @@ describe("Rarity curve", function()
 		expect(((counts[5] or 0) + (counts[6] or 0)) / DROPS < 0.04).toBe(true)
 	end)
 	it("announces every Legendary+ drop to everyone, once, with a Rare event and attribute", function()
-		local rare = (counts[5] or 0) + (counts[6] or 0) + (counts[7] or 0)
+		local rare = 0
+		for tier = Config.RARE_ANNOUNCE_TIER, Config.MAX_TIER do
+			rare += counts[tier] or 0
+		end
 		expect(announced).toBe(rare)
 		expect(rareEvents).toBe(rare)
 		expect(rareModels).toBe(rare)
@@ -100,6 +103,14 @@ describe("Spawner.rareText / pityTier", function()
 		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Globble spilled from the fountain!")
 		slime.tier = 6
 		expect(Spawner.rareText(slime)).toBe("A MYTHIC Globble spilled from the fountain!!")
+		slime.tier = 9
+		expect(Spawner.rareText(slime)).toBe("A DIVINE Globble spilled from the fountain!!")
+	end)
+	it("puts a shine in front of the rarity", function()
+		local slime = Genome.generate((require("../src/shared/Rng") :: any).new(1), { id = "x", tier = 5 })
+		slime.name = "Globble"
+		slime.shine = "Gold"
+		expect(Spawner.rareText(slime)).toBe("A GOLD LEGENDARY Globble spilled from the fountain!")
 	end)
 	it("floors at Epic after PITY_EPIC - 1 misses and Legendary after PITY_LEGENDARY - 1", function()
 		expect(Spawner.pityTier({ sinceEpic = 0, sinceLegendary = 0 })).toBeNil()
