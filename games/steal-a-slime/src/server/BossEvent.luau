@@ -759,6 +759,7 @@ function BossEvent.view(world: World, session: Session, now: number): Types.Boss
 			nextAt = world.nextBossAt,
 			yourPoints = 0,
 			yourShare = 0,
+			yourPercent = 0,
 			badges = badges,
 		}
 	end
@@ -785,6 +786,7 @@ function BossEvent.view(world: World, session: Session, now: number): Types.Boss
 		nextAt = world.nextBossAt,
 		yourPoints = fight.contributions[session.userId] or 0,
 		yourShare = BossFight.share(fight, session.userId),
+		yourPercent = BossFight.percent(fight, session.userId),
 		carrierName = if haul then nameOf(world, fight.carrierUserId) else nil,
 		priorityName = if priorityOn then nameOf(world, fight.priorityUserId) else nil,
 		priorityUntil = if priorityOn then fight.priorityUntil else nil,

@@ -167,6 +167,7 @@ export type BossView = {
 	nextAt: number?, -- server time of the next arrival
 	yourPoints: number, -- this player's hits on this boss
 	yourShare: number, -- yourPoints / the top contributor's points, 0..1
+	yourPercent: number?, -- yourPoints / everyone's points, 0..1 (the boss panel's "You 42%")
 	carrierName: string?, -- haul: who carries it
 	priorityName: string?, -- haul: the top contributor while their head start runs
 	priorityUntil: number?,
@@ -249,7 +250,7 @@ export type State = {
 	pvp: PvpView?, -- FEATURES.PvP (nil when off)
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
 	blessed: BlessedView?, -- FEATURES.CoopRitual: the ritual's Blessed bonus while it lasts; nil = not blessed
-	mvpBoost: BlessedView?, -- the Boss MVP income boost (BossCredit, same shape as blessed) while it lasts; nil = none
+	mvpBoost: BlessedView?, -- the Boss Champion boost (BossCredit, same shape as blessed) while it lasts; nil = none
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
 	featuredSecret: FeaturedSecretView?, -- this week's event Secret in the Secret pool
 	petPerk: PetPerkView?, -- Perks.petPassive; nil without a favourite

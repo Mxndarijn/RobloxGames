@@ -20,7 +20,7 @@ export type View = {
 	rarity: string, -- "Rare"
 	tier: number, -- Config.RARITIES index
 	rarityColor: { number }, -- { r, g, b } of Config.RARITIES
-	income: string, -- "+$1.25K/s", "+$0.8/s"
+	income: string?, -- "+$1.25K/s", "+$0.8/s"; nil for a boss, which earns nothing on its tag
 	price: string?, -- "$500" for a priced wild slime; nil = not for sale
 	growth: number, -- whole percent 0..100 (the pad sign's bar)
 	pad: number?, -- pad index while the slime rests on a pad: the label is the pad sign, not the tag
@@ -145,6 +145,7 @@ function SlimeLabel.view(attrs: Attributes): View?
 		rarityColor = rarity.color,
 		income = if type(attrs.status) == "string" and attrs.status ~= ""
 			then attrs.status
+			elseif attrs.boss == true then nil
 			else SlimeLabel.incomeText(attrs.income),
 		price = SlimeLabel.priceText(attrs.price),
 		growth = Growth.percentAt((finite(attrs.growth) or 0) / 100),
@@ -152,8 +153,12 @@ function SlimeLabel.view(attrs: Attributes): View?
 	}
 end
 
--- Number of text rows the floating tag draws for a view: name, rarity, income, then the price when for sale.
+-- Number of text rows the floating tag draws for a view: rarity, name, income, then the price when for sale.
+-- A boss has no income row (and is never for sale): rarity and name only.
 function SlimeLabel.rows(view: View): number
+	if not view.income then
+		return 2
+	end
 	return if view.price then 4 else 3
 end
 

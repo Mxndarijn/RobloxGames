@@ -274,7 +274,7 @@ local HAND: { Hand } = {
 	},
 	{
 		id = "Boost_Mvp",
-		name = "Boss MVP",
+		name = "Boss Champion",
 		group = "boost",
 		color = { 255, 200, 60 },
 		glyph = "👑",
