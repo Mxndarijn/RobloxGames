@@ -155,8 +155,8 @@ egg). Every level has its own list (`#REBIRTH_SLIMES == MAX_REBIRTHS`, no two li
 family species only appears once a player of that rank can catch it, a hybrid once its recipe's
 inputs can be caught and merged, and boss and event slimes are never asked for (a boss win gives
 no slime). Each list asks for about the rarity players farm at that level. The cash cost stays.
-The slimes the next rebirth would use up (`Progression.neededIds`) can't be sold or put in the vat,
-and their pad label says "For rebirth".
+The slimes the next rebirth would use up can still be sold or put in the vat; their pad shows no
+rebirth label.
 `Progression.canRebirth` rejects with `need a <Species Name>` for the first missing one.
 
 The rebirth **uses those slimes up** (`Progression.payment`): for each listed species the
