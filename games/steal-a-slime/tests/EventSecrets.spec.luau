@@ -93,7 +93,7 @@ describe("EventSecrets in the spawn pool", function()
 			end
 		end
 	end)
-	it("only the featured event Secret drops from a tier-7 fountain roll, about one in two", function()
+	it("only the featured event Secret drops from a tier-7 fountain roll, at its species weight", function()
 		for w = 0, #EventSecrets.ROTATION - 1 do
 			local now = MON + w * 7 * DAY + DAY
 			local featured = EventSecrets.featured(now).id
@@ -108,8 +108,10 @@ describe("EventSecrets in the spawn pool", function()
 					hits += 1
 				end
 			end
-			-- Classic has one Secret (midas), so the featured one is half the pool.
-			expect(hits > 140 and hits < 260).toBe(true)
+			-- Classic has one Secret (midas); the event Secret earns more, so it is rarer (Genome.speciesWeight).
+			local we = Genome.speciesWeight(SlimeRoster.get(featured) :: any)
+			local share = we / (we + Genome.speciesWeight(SlimeRoster.get("midas") :: any))
+			expect(math.abs(hits / 400 - share) < 0.06).toBe(true)
 		end
 	end)
 	it("no event Secret drops without the featured list (merges, boss, no clock)", function()

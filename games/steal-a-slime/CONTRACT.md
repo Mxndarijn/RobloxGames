@@ -371,7 +371,8 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 |---|---|---|
 | `JOIN_LOCK_SECONDS` / `LOCK_SECONDS` / `LOCK_SECONDS_PER_REBIRTH` | 120 / 120 / 10 | "2 min on join, then a 2 min lock (only once the last one ended), +10 s per rebirth up to 4 min" |
 | `RARITIES[i].carrySlow` (max `MAX_CARRY_SLOW`) | 0.05…0.35 (≤0.6) | "slows the carrier more the rarer it is" |
-| `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × growth |
+| `RARITIES[i].income` | see `Config` | income = rarity × size × growth × brewed bonus × species bonus (`SlimeRoster` `income`, 0.9–1.4 within a rarity) |
+| `SPECIES_RARITY_POWER` | 4 | a species earning x times its rarity spawns x ^ 4 times less often within it (`Genome.speciesWeight`, fountain and random merges) |
 | `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 5 | "every hour … for 3 minutes" |
 | `PADS_START` / `PADS_PER_FLOOR` / `BASE_FLOORS` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 4 floors / 32 (`#BASE_FLOORS * PADS_PER_FLOOR`) / 8 | a base grows by floors of 8 pads; each `BASE_FLOORS` row lists the rebirths that open each of its pads (`Economy.padRebirths`) |
 | `PAD_START_COSTS` / `PAD_PRICE_SHARE` / `PAD_SAME_REBIRTH_GROWTH` | see `Config` | pads open at 0 rebirths cost `PAD_START_COSTS`; a pad rebirth R opens costs `PAD_PRICE_SHARE` of rebirth R + 1, x `PAD_SAME_REBIRTH_GROWTH` for each earlier pad of that R (`Economy.padCost`) |
