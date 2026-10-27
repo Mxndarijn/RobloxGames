@@ -2,6 +2,7 @@
 -- FEATURES.StealAlerts layout at the five gate viewports: the thief arrow and the edge flash never cover the
 -- HUD, the banner stack or the nav (Layout.screen rects; the Hud / StealAlertFx build Instances only in .new).
 local EdgeArrow = require("../../src/shared/EdgeArrow")
+local GooPalette = require("../../src/shared/GooPalette")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local StealAlertLayout = require("../../src/ui/StealAlertLayout")
@@ -53,4 +54,11 @@ describe("StealAlerts arrow and flash vs the banners and nav", function()
 			end
 		)
 	end
+end)
+
+describe("the thief ping", function()
+	it("is red", function()
+		local c = GooPalette.Thief
+		expect(c[1] >= 200 and c[2] <= 80 and c[3] <= 80).toBe(true)
+	end)
 end)
