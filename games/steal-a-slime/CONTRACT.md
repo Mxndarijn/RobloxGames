@@ -448,3 +448,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §42 | [friends-in-base.md](contract/friends-in-base.md) | Friends in your base: the lock button's switch lets friends through a locked base (`FEATURES.FriendsInBase`) |
 | §43 | [pet-seats.md](contract/pet-seats.md) | Pet seats: what the follow pet rides on, the Skins menu's Cloud tab |
 | §44 | [base-shapes.md](contract/base-shapes.md) | Base shapes: goo jar tower, Goo Factory and Mushroom Pagoda as choosable bases next to the skins (`FEATURES.BaseShapes`) |
+| §45 | [cash-pads.md](contract/cash-pads.md) | Cash pads: income piles up on a gold disc at each slime, only the owner collects by walking over it (`FEATURES.CashPads`) |

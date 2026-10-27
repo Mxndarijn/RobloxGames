@@ -83,6 +83,7 @@ export type Data = {
 	eggLuck: { [string]: number }?, -- Mystery Egg lucky meter: misses in a row per kind id (contract/mystery-egg.md; no version bump)
 	weekly: Weekly, -- Weekly Top Earners: totalEarned at the start of `week` (Leaderboards.rollWeek; no version bump)
 	vat: { ids: { string }, endsAt: number?, startedAt: number? }?, -- merge vat load and brew end (VatState, CONTRACT.md §21; no version bump)
+	padCash: { [number]: number }?, -- FEATURES.CashPads: uncollected cash per pad index (CashPads, contract/cash-pads.md; no version bump)
 }
 
 local PlayerData = {}

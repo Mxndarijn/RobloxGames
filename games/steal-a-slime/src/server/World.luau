@@ -74,6 +74,7 @@ export type Session = {
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch (State.egg, never saved)
 	home: boolean?, -- standing in their own HomeZone (the adapter sets it); warms their Mystery Eggs, runtime only
 	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
+	cashPadHinted: boolean?, -- FEATURES.CashPads: the "walk over the gold pads" hint went out this session, runtime only
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
 	boardRanks: { [string]: number }?, -- my rank per global board stat from the last refresh (-n = deeper than #n, Leaderboard.sessionRanks); runtime only
 	coilHeld: boolean?, -- the SpeedCoil Tool is equipped (WorldView sets it each tick); runtime only

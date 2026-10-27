@@ -6,9 +6,13 @@
 	kept in `incomeRemainder`). Slimes being carried away pay nothing.
 	`applyOffline` pays OFFLINE_RATE of income for at most
 	OFFLINE_CAP_SECONDS since the last save (Economy.offlineIncome).
+	With FEATURES.CashPads on, both go onto the slimes' cash pads instead of
+	into cash (CashPads); the owner collects them there (CashPadService).
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local CashPads = if Shared then require(Shared.CashPads) else require("../shared/CashPads")
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
@@ -26,11 +30,14 @@ type Session = World.Session
 local Income = {}
 
 Income.MAX_TICK = 5 -- seconds: a stalled server doesn't pay a huge lump
+-- FEATURES.CashPads: told once a session when Config.CASH_PAD.HINT_AT cash waits on the pads.
+Income.CASH_PAD_HINT = "Your slimes' cash piles up on the gold pads in front of them. Walk over a pad to collect it!"
 
 -- Call about once a second with the real elapsed time. `now` (unix seconds)
 -- ends redeem-code boosts whose time is up and sets the x2 Weekend multiplier
--- (nil `now` = no weekend, so clock-free tests stay deterministic).
-function Income.step(world: World, dt: number, now: number?)
+-- (nil `now` = no weekend, so clock-free tests stay deterministic). `features` overrides Config.FEATURES (tests).
+function Income.step(world: World, dt: number, now: number?, features: { [string]: any }?)
+	local pads = CashPads.enabled(features)
 	local seconds = math.clamp(dt, 0, Income.MAX_TICK)
 	local carried = World.carriedSet(world)
 	local weekend = if now then Weekend.multiplier(now) else 1
@@ -40,8 +47,17 @@ function Income.step(world: World, dt: number, now: number?)
 			World.markDirty(session)
 		end
 		session.data.weekendMult = if weekend > 1 then weekend else nil
-		local perSec = PlayerData.incomePerSecond(session.data, World.incomeSkip(world, session))
+		local skip = World.incomeSkip(world, session)
 		Growth.advanceAll(session.data.slimes, seconds, carried)
+		if pads then
+			CashPads.accrue(session.data, seconds, skip) -- CashPadView shows the piles; cash itself is unchanged
+			if not session.cashPadHinted and CashPads.total(session.data) >= Config.CASH_PAD.HINT_AT then
+				session.cashPadHinted = true
+				World.notify(world, session.userId, Income.CASH_PAD_HINT, "info", nil)
+			end
+			continue
+		end
+		local perSec = PlayerData.incomePerSecond(session.data, skip)
 		if perSec > 0 then
 			local paid, remainder = Economy.tickIncome(0, session.incomeRemainder, perSec, seconds)
 			session.incomeRemainder = remainder
@@ -51,10 +67,25 @@ function Income.step(world: World, dt: number, now: number?)
 	end
 end
 
--- Pays capped offline income once, on load. Returns the amount paid.
-function Income.applyOffline(world: World, session: Session, now: number): number
+-- Pays capped offline income once, on load. Returns the amount paid (or piled onto the cash pads).
+function Income.applyOffline(world: World, session: Session, now: number, features: { [string]: any }?): number
 	local data = session.data
-	local perSec = PlayerData.incomePerSecond(data, VatState.lockedSet(data)) -- brewing vat slimes earn nothing
+	local skip = VatState.lockedSet(data) -- brewing vat slimes earn nothing
+	if CashPads.enabled(features) then
+		local piled = math.floor(CashPads.accrueOffline(data, data.lastOnline, now, skip))
+		if piled > 0 then
+			World.notify(
+				world,
+				session.userId,
+				`Your slimes earned ${Economy.formatNumber(piled)} while you were away! Walk over your cash pads to collect it.`,
+				"good",
+				"Cash"
+			)
+		end
+		Income.applyOfflineGrowth(session, now, piled, true)
+		return piled
+	end
+	local perSec = PlayerData.incomePerSecond(data, skip)
 	local amount = Economy.offlineIncome(perSec, data.lastOnline, now, Perks.offlineCap(data))
 	if amount > 0 then
 		PlayerData.earn(data, amount)
@@ -66,6 +97,13 @@ function Income.applyOffline(world: World, session: Session, now: number): numbe
 			"Cash"
 		)
 	end
+	Income.applyOfflineGrowth(session, now, amount)
+	return amount
+end
+
+-- Offline slime growth and the welcome-back report (`amount` = the offline cash earned, `onPads` = it waits on the cash pads).
+function Income.applyOfflineGrowth(session: Session, now: number, amount: number, onPads: boolean?)
+	local data = session.data
 	local before = {}
 	for _, slime in data.slimes do
 		before[slime.id] = Genome.growthFraction(slime)
@@ -77,8 +115,7 @@ function Income.applyOffline(world: World, session: Session, now: number): numbe
 			grown += 1
 		end
 	end
-	session.welcome = WelcomeBack.report(data.lastOnline, now, amount, grown)
-	return amount
+	session.welcome = WelcomeBack.report(data.lastOnline, now, amount, grown, onPads)
 end
 
 return Income
