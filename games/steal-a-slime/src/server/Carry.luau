@@ -219,14 +219,15 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		session.carry = nil
 		local slime = carry.slime
 		slime.pad = nil
-		-- Lucky Charm (Perks.luckChance): one rarity higher on the way home. Never an egg: its slime is sealed.
+		-- Lucky Charm (Perks.luckChance): one rarity higher on the way home, as a species of that rarity
+		-- (Genome.promote). Never an egg: its slime is sealed.
 		local egg = slime.egg ~= nil
 		-- only into a rarity this player may already grab (CATCH_REBIRTHS), so luck never skips the ladder
 		local nextOpen = slime.tier < Config.MAX_TIER
 			and session.data.rebirths >= (Config.CATCH_REBIRTHS[slime.tier + 1] or 0)
 		if not egg and nextOpen and world.rng:float() < Perks.luckChance(session.data) then
 			local old = Genome.rarity(slime.tier).name
-			slime.tier += 1
+			Genome.promote(slime, world.rng:float())
 			World.notify(
 				world,
 				userId,

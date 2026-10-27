@@ -203,3 +203,87 @@ describe("Genome roster wiring (v28)", function()
 		expect(good.species).toBe("gummy")
 	end)
 end)
+
+describe("Genome.promote (Lucky Charm)", function()
+	local SlimeRoster = require("../src/shared/SlimeRoster")
+	local function ninja(): Genome.Slime
+		local s = Genome.generate(Rng.new(1), { id = "n1", tier = 5 })
+		s.species, s.name = "ninja", "Ninja"
+		return s
+	end
+	it("raises the rarity and swaps to a species of the new rarity", function()
+		for i = 0, 9 do
+			local s = ninja()
+			expect(Genome.promote(s, i / 10)).toBe(true)
+			expect(s.tier).toBe(6)
+			local entry = SlimeRoster.get(s.species :: string)
+			assert(entry, "promoted slime lost its species")
+			expect(entry.tier).toBe(6)
+			expect(entry.kind).toBe("spawn")
+			expect(s.name).toBe(entry.name)
+			expect(s.size >= Genome.sizeFloor(6)).toBe(true)
+		end
+	end)
+	it("leaves a max-tier slime alone", function()
+		local top = Genome.generate(Rng.new(2), { id = "t", tier = Config.MAX_TIER })
+		local before = Genome.copy(top)
+		expect(Genome.promote(top, 0.5)).toBe(false)
+		expect(top).toEqual(before)
+	end)
+end)
+
+describe("Genome.sanitize species repair", function()
+	local SlimeRoster = require("../src/shared/SlimeRoster")
+	it("a Mythic Ninja keeps its Mythic rarity as a Mythic species, the same one every load", function()
+		local raw = { id = "abc-123", tier = 6, size = 1.4, name = "Ninja", species = "ninja", pad = 2 }
+		local a = Genome.sanitize(raw)
+		local b = Genome.sanitize(raw)
+		assert(a and b, "sanitize returned nil")
+		expect(a.tier).toBe(6)
+		expect(a.size).toBe(1.4)
+		local entry = SlimeRoster.get(a.species :: string)
+		assert(entry, "repaired slime lost its species")
+		expect(entry.tier).toBe(6)
+		expect(a.name).toBe(entry.name)
+		expect(b.species).toBe(a.species)
+	end)
+	it("keeps a matching species and a custom name untouched", function()
+		local ok = Genome.sanitize({ id = "x", tier = 5, name = "Ninja", species = "ninja" })
+		assert(ok, "sanitize returned nil")
+		expect(ok.species).toBe("ninja")
+		local named = Genome.sanitize({ id = "y", tier = 6, name = "Shadow", species = "ninja" })
+		assert(named, "sanitize returned nil")
+		expect(named.name).toBe("Shadow")
+		expect((SlimeRoster.get(named.species :: string) :: any).tier).toBe(6)
+	end)
+end)
+
+describe("Genome.promote species odds", function()
+	local SlimeRoster = require("../src/shared/SlimeRoster")
+	it("picks the new species with the fountain's weights, not evenly", function()
+		local counts: { [string]: number } = {}
+		local n = 2000
+		for i = 0, n - 1 do
+			local s = Genome.generate(Rng.new(1), { id = "p", tier = 5 })
+			s.species, s.name = "ninja", "Ninja"
+			Genome.promote(s, (i + 0.5) / n)
+			counts[s.species :: string] = (counts[s.species :: string] or 0) + 1
+		end
+		local list = {}
+		for _, entry in SlimeRoster.ROSTER do
+			if entry.kind == "spawn" and entry.tier == 6 then
+				table.insert(list, entry)
+			end
+		end
+		for _, entry in list do
+			-- The share of rolls landing on each species matches Genome.pickWeighted over the same list.
+			local expected = 0
+			for j = 0, n - 1 do
+				if Genome.pickWeighted(list, (j + 0.5) / n) == entry then
+					expected += 1
+				end
+			end
+			expect(counts[entry.id] or 0).toBe(expected)
+		end
+	end)
+end)
