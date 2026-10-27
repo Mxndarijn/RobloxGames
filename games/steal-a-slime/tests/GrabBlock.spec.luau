@@ -1,5 +1,7 @@
 --!strict
 -- Why a slime can't be grabbed (src/shared/GrabBlock.luau): the reason its GrabPrompt shows.
+local Config = require("../src/shared/Config")
+local Fixtures = require("./Fixtures")
 local GrabBlock = require("../src/shared/GrabBlock")
 local TestRunner = require("./TestRunner")
 
@@ -35,6 +37,55 @@ describe("GrabBlock.reason", function()
 		expect(GrabBlock.TEXT.carrying).toBe("Already carrying a slime")
 		expect(GrabBlock.TEXT.plotFull).toBe("Plot is full, buy more pads")
 		expect(GrabBlock.TEXT.money).toBe("Not enough money")
+	end)
+end)
+
+describe("GrabBlock rank gate", function()
+	local function ranked(rebirths: number?, need: number?, price: number?, boss: boolean?): GrabBlock.Reason?
+		local who: GrabBlock.Me = { carrying = false, freePad = true, cash = 1000, rebirths = rebirths }
+		return GrabBlock.reason(who, { state = "Wild", price = price or 0, boss = boss == true, rebirths = need })
+	end
+	it("is 'rank' when the slime needs more rebirths than the player has, nil at exactly enough", function()
+		expect(ranked(4, 5)).toBe("rank")
+		expect(ranked(nil, 5)).toBe("rank")
+		expect(ranked(5, 5)).toBeNil()
+		expect(ranked(0, nil)).toBeNil()
+	end)
+	it("ranks below carrying but above a full plot and money", function()
+		expect(GrabBlock.reason({ carrying = true, freePad = true, cash = 0, rebirths = 0 }, {
+			state = "Wild",
+			price = 0,
+			boss = false,
+			rebirths = 12,
+		})).toBe("carrying")
+		expect(GrabBlock.reason({ carrying = false, freePad = false, cash = 0, rebirths = 0 }, {
+			state = "Wild",
+			price = 50,
+			boss = false,
+			rebirths = 12,
+		})).toBe("rank")
+	end)
+	it("never gates a steal or the boss", function()
+		local who: GrabBlock.Me = { carrying = false, freePad = true, cash = 0, rebirths = 0 }
+		expect(GrabBlock.reason(who, { state = "Pad", boss = false, rebirths = 25 })).toBeNil()
+		expect(ranked(0, 25, 0, true)).toBeNil()
+	end)
+	it("text names the rebirth for 'rank' and falls back to TEXT for the rest", function()
+		expect(GrabBlock.text("rank", { state = "Wild", boss = false, rebirths = 12 })).toBe("Rebirth 12 to grab this")
+		for _, reason in { "carrying", "plotFull", "money" } :: { GrabBlock.Reason } do
+			expect(GrabBlock.text(reason, { state = "Wild", boss = false })).toBe(GrabBlock.TEXT[reason])
+		end
+	end)
+	it("rebirthsFor reads CATCH_REBIRTHS by rarity and EGG_REBIRTHS for a Mystery Egg", function()
+		for tier = 1, Config.MAX_TIER do
+			expect(GrabBlock.rebirthsFor(Fixtures.slime("s", tier))).toBe(Config.CATCH_REBIRTHS[tier])
+		end
+		expect(GrabBlock.rebirthsFor(Fixtures.slime("s", 6))).toBe(5)
+		expect(GrabBlock.rebirthsFor(Fixtures.slime("s", 9))).toBe(25)
+		for kind, need in Config.EGG_REBIRTHS do
+			-- the egg's kind decides, never the (hidden) tier inside
+			expect(GrabBlock.rebirthsFor(Fixtures.slime("e", 9, { egg = { kind = kind } }))).toBe(need)
+		end
 	end)
 end)
 

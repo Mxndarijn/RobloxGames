@@ -201,6 +201,8 @@ export type World = {
 	escaping: { [string]: number }, -- slimeId -> time its bounce home ends
 	rng: Rng.Rng,
 	eggRng: Rng.Rng, -- FEATURES.MysteryEggs rolls, apart from `rng` so the fountain's slime sequence doesn't shift
+	shineRng: Rng.Rng, -- shine rolls (Config.SHINES), apart from `rng` for the same reason
+	weather: { id: string, changeAt: number }?, -- the live WeatherService state (nil = FEATURES.Weather off: always Clear)
 	hatches: { [string]: Hatch }, -- Mystery Egg hatches whose show is playing, runtime only (MysteryEgg.step forgets them)
 	newId: () -> string,
 	canSave: (userId: number) -> boolean, -- the adapter's save check (World.canSave)
@@ -220,6 +222,7 @@ export type World = {
 	adminEvent: AdminEvent?, -- FEATURES.AdminEvents: overrides `modifier` until endsAt (Spawner.stepModifier)
 	potionUntil: number, -- FEATURES.Consumables: server-wide Luck Potion ends at this time (0 = none)
 	pity: Pity,
+	lastTierAt: { [number]: number }, -- per GUARANTEE_SECONDS rarity: server time of its last drop of at least that rarity
 	fountainTier: number, -- FEATURES.FountainTiers: best rank tier seen on this server (FountainTiers), 1 = Meadow, only ever rises
 	outbox: { Event },
 	guard: { [number]: GuardEntry }, -- SlimeGuard per player, runtime only
@@ -251,6 +254,7 @@ function World.new(options: Options): World
 		escaping = {},
 		rng = Rng.new(options.seed or 1),
 		eggRng = Rng.new(options.eggSeed or (options.seed or 1) + 7919),
+		shineRng = Rng.new((options.seed or 1) + 104729),
 		hatches = {},
 		newId = options.newId or function()
 			counter += 1
@@ -275,6 +279,7 @@ function World.new(options: Options): World
 		adminEvent = nil,
 		potionUntil = 0,
 		pity = { sinceEpic = 0, sinceLegendary = 0 },
+		lastTierAt = {},
 		fountainTier = 1,
 		outbox = {},
 		guard = {},

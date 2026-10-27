@@ -972,6 +972,18 @@ WorldLayout.PLAZA_PROPS = table.freeze({
 	podiumProp(2, "phoenix_plaza_podium_2"),
 	podiumProp(3, "phoenix_plaza_podium_3"),
 })
+-- The Upcoming Events wall (server/EventBoardView): a framed board on posts on the plaza edge next to the signpost, facing the
+-- fountain, outside the parade lane. Bearing in degrees from +Z towards +X, like PLAZA_PROPS.
+WorldLayout.EVENT_BOARD =
+	table.freeze({ bearing = 98, radius = 70, width = 16, height = 11, lift = 2.5, thickness = 0.8 })
+
+-- The sign's centre on the ground plane: (x, z).
+function WorldLayout.eventBoardSpot(): (number, number)
+	local spot = WorldLayout.EVENT_BOARD
+	local a = math.rad(spot.bearing)
+	return spot.radius * math.sin(a), spot.radius * math.cos(a)
+end
+
 local propMeshes: { [string]: string } = {
 	ItemShopStand = WorldLayout.SHOP_STANDS.ItemShopStand.mesh,
 	UpgradeShopStand = WorldLayout.SHOP_STANDS.UpgradeShopStand.mesh,

@@ -1034,6 +1034,15 @@ entries["slime_gaia"] = { size = { 4.999, 4.34, 4.201 }, offset = { 0.049, 2.17,
 entries["slime_captain_goo"] = { size = { 3.535, 4.68, 3.486 }, offset = { -0.042, 2.34, -0.234 } }
 entries["slime_yeti"] = { size = { 4.645, 3.526, 4.118 }, offset = { -0.053, 1.763, 0.168 } }
 entries["slime_abyss"] = { size = { 5.346, 4.135, 4.888 }, offset = { 0, 2.067, 0.044 } }
+entries["slime_lunara"] = { size = { 4.903, 4.264, 4.244 }, offset = { -0.202, 1.835, -0 } }
+entries["slime_solaris"] = { size = { 5.78, 4.881, 3.21 }, offset = { 0, 2.141, -0.02 } }
+entries["slime_nebulon"] = { size = { 5.053, 4.384, 5.215 }, offset = { 0.034, 2.192, 0.82 } }
+entries["slime_aurora"] = { size = { 4.638, 5.097, 3.874 }, offset = { -0.015, 2.548, -0 } }
+entries["slime_goo_oracle"] = { size = { 4.565, 4.65, 4.565 }, offset = { 0, 2.325, -0 } }
+entries["slime_kirin"] = { size = { 5.053, 4.182, 4.226 }, offset = { 0.107, 2.091, 0.297 } }
+entries["slime_jackpot"] = { size = { 4.955, 4.626, 3.798 }, offset = { -0.023, 2.137, 0.186 } }
+entries["slime_star_emperor"] = { size = { 4.902, 4.453, 4.495 }, offset = { -0.206, 2.157, 0.698 } }
+entries["slime_goo_god"] = { size = { 7.565, 6.557, 4.401 }, offset = { -0.12, 3.278, 0.209 } }
 entries["slime_boo"] = { assetId = 96310373601330, size = { 4.198, 3.849, 2.926 }, offset = { 0.015, 1.846, -0.002 } }
 
 entries["slime_soda"] = { assetId = 95888248190580, size = { 3.602, 4.483, 3.085 }, offset = { -0.08, 2.242, -0.023 } }

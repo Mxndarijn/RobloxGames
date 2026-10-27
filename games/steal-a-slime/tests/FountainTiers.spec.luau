@@ -87,9 +87,9 @@ end)
 describe("FountainTiers: species", function()
 	it("every family holds its types per tier, each with a look and its own species kit", function()
 		local expected = {
-			orchard = { 2, 2, 0, 0, 1, 1, 1 },
-			frost = { 0, 0, 2, 2, 2, 1, 1 },
-			starlight = { 0, 0, 0, 2, 1, 3, 2 },
+			orchard = { 2, 2, 0, 0, 1, 1, 1, 0, 0 },
+			frost = { 0, 0, 2, 2, 2, 1, 1, 0, 0 },
+			starlight = { 0, 0, 0, 2, 1, 3, 2, 0, 0 },
 		}
 		for _, family in FountainTiers.FAMILIES do
 			local counts = expected[family.id]
@@ -106,7 +106,7 @@ describe("FountainTiers: species", function()
 		end
 	end)
 	it(
-		"Classic rolls never see a family type, and the Classic roster is 17 types with Midas the only Secret",
+		"Classic rolls never see a family type; the Classic roster is 26 types with Midas and Jackpot its Secrets",
 		function()
 			local n = 0
 			for _, entry in SlimeRoster.ofKind("spawn") do
@@ -116,10 +116,18 @@ describe("FountainTiers: species", function()
 					expect(FountainTiers.family(entry.family) ~= nil).toBe(true)
 				end
 			end
-			expect(n).toBe(17)
-			local secret = SlimeRoster.forTier(SlimeRoster.SECRET_TIER)
-			expect(#secret).toBe(1)
-			expect(secret[1].id).toBe("midas")
+			expect(n).toBe(26)
+			local secret = {}
+			for _, entry in SlimeRoster.forTier(SlimeRoster.SECRET_TIER) do
+				table.insert(secret, entry.id)
+			end
+			table.sort(secret)
+			expect(secret).toEqual({ "jackpot", "midas" })
+			for tier = SlimeRoster.SECRET_TIER, Config.MAX_TIER do
+				for _, entry in SlimeRoster.forTier(tier) do
+					expect((SlimeLooks.get(entry.id) :: any).kit).toBe(`slime_{entry.id}`)
+				end
+			end
 			for tier = 1, Config.MAX_TIER do
 				for roll = 0, 9 do
 					local entry = Genome.rollSpecies(tier, roll / 10)

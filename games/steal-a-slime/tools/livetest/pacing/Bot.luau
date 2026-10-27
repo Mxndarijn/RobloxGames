@@ -23,6 +23,7 @@ local Economy = require("../../../src/shared/Economy")
 local EggKind = require("../../../src/shared/EggKind")
 local Eggs = require("./Eggs")
 local Genome = require("../../../src/shared/Genome")
+local GrabBlock = require("../../../src/shared/GrabBlock")
 local Ledger = require("./Ledger")
 local MergeGate = require("../../../src/shared/MergeGate")
 local MergeRecipes = require("../../../src/shared/MergeRecipes")
@@ -468,7 +469,12 @@ local function pickWild(world: World, bot: Bot, missing: { [string]: boolean }):
 	local options = {}
 	local best, bestScore, bestValue = nil, -1, 0
 	for id, wild in world.wild do
-		if not wild.boss and wild.price <= bot.data.cash and not world.carriedBy[id] then
+		if
+			not wild.boss
+			and wild.price <= bot.data.cash
+			and not world.carriedBy[id]
+			and GrabBlock.rebirthsFor(wild.slime) <= bot.data.rebirths
+		then
 			local v = worth(bot, wild.slime)
 			local score = v + (if missing[wild.slime.species] and not wild.slime.egg then 1e300 else 0)
 			table.insert(options, id)

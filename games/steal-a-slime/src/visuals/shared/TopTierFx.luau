@@ -65,7 +65,10 @@ end
 
 -- Whether a RareSpawn drop (workspace RareSpawnTier / RareSpawnAt) should play the eruption at server time `now`.
 function TopTierFx.erupts(tier: any, at: any, now: number): boolean
-	return tier == TopTierFx.SECRET_TIER and type(at) == "number" and math.abs(now - at) <= TopTierFx.FRESH_SECONDS
+	return type(tier) == "number"
+		and tier >= TopTierFx.SECRET_TIER
+		and type(at) == "number"
+		and math.abs(now - at) <= TopTierFx.FRESH_SECONDS
 end
 
 return table.freeze(TopTierFx)

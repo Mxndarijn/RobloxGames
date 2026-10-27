@@ -90,11 +90,60 @@ function Spawner.pityTier(pity: World.Pity): number?
 	return nil
 end
 
+-- The lowest rarity the next drop may roll: count pity (pityTier), raised to a GUARANTEE_SECONDS rarity once that
+-- long has passed without one. The first drop of a server starts the clocks.
+function Spawner.minTier(world: World, now: number): number?
+	local min = Spawner.pityTier(world.pity)
+	local last = world.lastTierAt
+	for tier, every in Config.GUARANTEE_SECONDS do
+		if last[tier] == nil then
+			last[tier] = now
+		elseif now - last[tier] >= every and (min == nil or tier > min) then
+			min = tier
+		end
+	end
+	return min
+end
+
+-- The shine (Config.SHINES id) a new wild slime gets, or nil: one roll over the shines the weather allows now.
+function Spawner.rollShine(world: World): string?
+	local weather = if world.weather then world.weather.id else "Clear"
+	local roll = world.shineRng:float()
+	for _, row in Config.SHINES do
+		if row.weather == nil or row.weather == weather then
+			if roll < row.chance then
+				return row.id
+			end
+			roll -= row.chance
+		end
+	end
+	return nil
+end
+
+-- Restarts the guarantee clock of every rarity a drop of `tier` covers.
+function Spawner.noteTier(world: World, tier: number, now: number)
+	for t in Config.GUARANTEE_SECONDS do
+		if tier >= t then
+			world.lastTierAt[t] = now
+		end
+	end
+end
+
+-- Seconds until the next guaranteed drop of `tier` (0 = due now), or nil before the server's first drop.
+function Spawner.guaranteeIn(world: World, tier: number, now: number): number?
+	local every, last = Config.GUARANTEE_SECONDS[tier], world.lastTierAt[tier]
+	if not every or not last then
+		return nil
+	end
+	return math.max(0, last + every - now)
+end
+
 -- "A LEGENDARY Globble spilled from the fountain!" (Mythic gets "!!").
 function Spawner.rareText(slime: Genome.Slime): string
 	local rarity = string.upper(Genome.rarity(slime.tier).name)
 	local bang = if slime.tier >= Config.SECRET_TIER - 1 then "!!" else "!"
-	return `A {rarity} {slime.name} spilled from the fountain{bang}`
+	local shine = if slime.shine then `{string.upper(slime.shine)} ` else ""
+	return `A {shine}{rarity} {slime.name} spilled from the fountain{bang}`
 end
 
 -- FEATURES.FountainTiers: raises world.fountainTier to the best rank on the server (it never drops again while
@@ -254,12 +303,14 @@ function Spawner.spawnSlime(world: World, now: number): string
 		world.rng,
 		id,
 		world.raining,
-		Spawner.pityTier(world.pity),
+		Spawner.minTier(world, now),
 		luckMult,
 		Spawner.familyPool(),
 		if unix then EventSecrets.extraSpecies(unix) else nil
 	)
 	local tier = drop.slime.tier
+	Spawner.noteTier(world, tier, now)
+	drop.slime.shine = Spawner.rollShine(world)
 	local pity = world.pity
 	pity.sinceEpic = if tier >= 4 then 0 else pity.sinceEpic + 1
 	pity.sinceLegendary = if tier >= 5 then 0 else pity.sinceLegendary + 1
