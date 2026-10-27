@@ -54,3 +54,34 @@ describe("Goo kit", function()
 		expect(label.FontFace.Family).toBe(Widgets.Theme.FontBody.Family)
 	end)
 end)
+
+describe("emoji icons sit in the middle of their spot", function()
+	local Widgets = UiHarness.ui("Widgets")
+
+	it("only emoji rise; text glyphs like the star, $ and digits stay centred", function()
+		local body = Widgets.Theme.FontBody
+		expect(Widgets.emojiRise(body, "♻️")).toBe(Widgets.EMOJI_RISE.Nunito)
+		expect(Widgets.emojiRise(body, "🎁")).toBe(Widgets.EMOJI_RISE.Nunito)
+		expect(Widgets.emojiRise(Widgets.Theme.Font, "⚡")).toBe(Widgets.EMOJI_RISE.FredokaOne)
+		for _, text in { "★", "$", "25", "?", "" } do
+			expect(`{text}: {Widgets.emojiRise(body, text)}`).toBe(`{text}: 0`)
+		end
+	end)
+
+	it("a panel's header emoji is moved down by its rise; re-centring a new icon does not stack", function()
+		local root = UiHarness.root()
+		local panel = Widgets.panel(root, "RebirthPanel", "Rebirth", "♻️")
+		local icon = panel.icon
+		local drop = math.round(Widgets.EMOJI_RISE.Nunito * icon.TextSize)
+		expect(drop > 0).toBe(true)
+		expect(icon.Position.Y.Offset).toBe(drop)
+		-- The harness fires no Text-changed signal, so run what the panel's hook runs.
+		icon.Text = "A"
+		Widgets.centreEmoji(icon)
+		expect(icon.Position.Y.Offset).toBe(0)
+		icon.Text = "🔊"
+		Widgets.centreEmoji(icon)
+		Widgets.centreEmoji(icon)
+		expect(icon.Position.Y.Offset).toBe(drop)
+	end)
+end)
