@@ -336,7 +336,7 @@ function SlimePadSign.render(part: Part, view: SlimeLabel.View)
 	bandStroke.Transparency = strokeHidden
 	rarity.Text = view.rarity
 	title.Text = view.name
-	income.Text = view.income
+	income.Text = view.income or ""
 	fill.Size = UDim2.fromScale(math.clamp(view.growth, 0, 100) / 100, 1)
 	fill.Visible = view.growth > 0
 	growth.Text = `{view.growth}%`
