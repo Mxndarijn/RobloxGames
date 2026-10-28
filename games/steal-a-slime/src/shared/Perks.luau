@@ -29,6 +29,7 @@ export type Progress = {
 	weekendMult: number?, -- runtime x2 Weekend multiplier (Weekend, never saved), nil / 1 = none
 	ritualBonus: number?, -- runtime "Blessed" bonus from the co-op ritual (Ritual, never saved), nil / 0 = none
 	mvpBonus: number?, -- runtime Boss Champion bonus (BossCredit, never saved), nil / 0 = none
+	passIncomeMult: number?, -- runtime Income2x Game Pass factor (Purchases.applyPasses, never saved), nil / 1 = none
 }
 
 local Perks = {}
@@ -178,7 +179,7 @@ local function petValue(data: Progress, kind: string): number
 end
 
 -- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual x boss MVP x pet x
--- weekend.
+-- weekend x income Game Pass.
 function Perks.bonusMultiplier(data: Progress): number
 	return (1 + upgradeEffect(data, "Income"))
 		* (1 + Perks.rankIncomeBonus(data.rebirths))
@@ -189,6 +190,7 @@ function Perks.bonusMultiplier(data: Progress): number
 		* (1 + math.max(data.mvpBonus or 0, 0))
 		* (1 + petValue(data, "income"))
 		* math.max(data.weekendMult or 1, 1)
+		* math.max(data.passIncomeMult or 1, 1)
 end
 
 -- State.incomeMultiplier: rebirth x upgrade x rank x dex.

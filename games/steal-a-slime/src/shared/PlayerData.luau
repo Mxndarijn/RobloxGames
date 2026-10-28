@@ -39,6 +39,12 @@ export type Pvp = {
 	fun: { [string]: boolean },
 }
 
+-- Exclusive Shop paid skips that arrived with nothing to skip (contract/exclusive-shop.md §2), 0..creditMax each.
+export type Credits = { brew: number, hatch: number }
+
+-- The last welcome-back payout, so a "Double it" receipt pays the right amount once (contract/exclusive-shop.md §2).
+export type OfflineDouble = { cash: number, at: number, used: boolean }
+
 -- `base` = totalEarned when the save was first seen in Monday-based week `week` (WeeklyEvents.weekIndex); 0 = never.
 export type Weekly = { week: number, base: number }
 
@@ -82,7 +88,15 @@ export type Data = {
 	hotbar: { string }?, -- HotbarOrder: 9 slot keys, "" = empty; nil until the player sets one (no version bump)
 	eggLuck: { [string]: number }?, -- Mystery Egg lucky meter: misses in a row per kind id (contract/mystery-egg.md; no version bump)
 	weekly: Weekly, -- Weekly Top Earners: totalEarned at the start of `week` (Leaderboards.rollWeek; no version bump)
-	vat: { ids: { string }, endsAt: number?, startedAt: number? }?, -- merge vat load and brew end (VatState, CONTRACT.md §21; no version bump)
+	vat: { ids: { string }, endsAt: number?, startedAt: number?, seed: number? }?, -- merge vat load, brew end and roll seed (VatState, CONTRACT.md §21)
+	-- Exclusive Shop (save v10, contract/exclusive-shop.md §2)
+	ownedSeats: { string }, -- Exclusive Config.PET_SEATS ids bought
+	receipts: { string }, -- processed Robux PurchaseIds, newest last, capped at Config.EXCLUSIVE_SHOP.receiptMemory
+	starterBundle: boolean, -- StarterBundle claimed
+	credits: Credits,
+	offlineDouble: OfflineDouble?, -- nil = no welcome-back payout recorded
+	passIncomeMult: number?, -- runtime only (never saved): Income2x Game Pass factor (Purchases.applyPasses); nil = 1
+	passOfflineRate: number?, -- runtime only (never saved): Offline2x offline rate (Purchases.applyPasses); nil = Config.OFFLINE_RATE
 }
 
 local PlayerData = {}
@@ -120,6 +134,10 @@ function PlayerData.new(): Data
 		boss = BossBadges.new(),
 		eggLuck = {},
 		weekly = { week = 0, base = 0 },
+		ownedSeats = {},
+		receipts = {},
+		starterBundle = false,
+		credits = { brew = 0, hatch = 0 },
 	}
 end
 

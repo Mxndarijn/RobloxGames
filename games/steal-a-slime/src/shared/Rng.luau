@@ -20,6 +20,9 @@ local MULTIPLIER = 48271
 local Rng = {}
 Rng.__index = Rng
 
+-- Largest seed `new` keeps as given: draw roll seeds with `rng:int(1, Rng.SEED_MAX)`.
+Rng.SEED_MAX = MODULUS - 1
+
 local function normalizeSeed(seed: number?): number
 	local s = math.floor(math.abs(tonumber(seed) or 1)) % MODULUS
 	if s == 0 then

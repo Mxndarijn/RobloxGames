@@ -44,6 +44,7 @@ local ConsumableShop = if script then require(script.Parent.ConsumableShop) else
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
+local Purchases = if script then require(script.Parent.Purchases) else require("./Purchases")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
@@ -625,6 +626,11 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return result(PvpService.use(world, session, args[1], args[2], args[3], now, feature(ctx, "PvP"), ctx, args[4]))
 	elseif action == "SetHotbar" then
 		return result(HotbarOrder.set(session.data, args[1]))
+	elseif action == "UseCredit" then
+		if not feature(ctx, "ExclusiveShop") then
+			return fail("the Exclusive Shop is off")
+		end
+		return result(Purchases.useCredit(world, session, args[1], args[2], now))
 	elseif action == "Drop" then
 		if not session.carry then
 			return fail("not carrying")

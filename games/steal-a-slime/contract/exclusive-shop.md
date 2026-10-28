@@ -18,7 +18,8 @@ disabled with "Not on sale yet" (never "Coming soon"); Studio can still grant it
   - `Seat_<seatId>` for the 16 Exclusive seats, `grant = { kind = "seat", seat = <seatId> }`, `robux` by tier:
     99 (leaf, bubble, lily_pad, mushroom, pancakes), 199 (storm_cloud, sunset_cloud, ice_cloud, flame_cloud,
     star_cushion, crescent_moon, clam_shell), 399 (magic_carpet, ufo, royal_cushion, hoverboard).
-  - `StarterBundle` 149: `{ kind = "bundle", seats = { "leaf" }, boost = { mult = 2, seconds = 900 } }`, once per player.
+  - `StarterBundle` 149: `{ kind = "bundle", seats = { "leaf" }, boostMult = 2, boostSeconds = 900 }`, once per player
+    (`data.starterBundle`; the UI stops offering it once claimed; a repeat receipt still adds the boost).
   - `FinishBrew_1..4`: `{ kind = "finishBrew" }`, robux 15 / 35 / 59 / 99 for time left <= 5 min / 30 min / 60 min / more
     (`Config.EXCLUSIVE_SHOP.finishBrewBrackets = { 300, 1800, 3600, math.huge }`).
   - `HatchNow_<eggKind>`: `{ kind = "hatchNow" }`, robux 25 / 35 / 45 / 49 by egg kind (speckled → cosmic).
@@ -46,30 +47,41 @@ Game Pass ownership is **not** saved: checked on join (`UserOwnsGamePassAsync`, 
 
 - **`server/Purchases.luau` (pure):** `grant(world, session, productKey, now, ctx) -> (ok, reason)` applies one grant
   by `grant.kind`; `applyPasses(session, passes)` sets the runtime multipliers. Never errors.
-- **`server/PurchaseService.luau` (Roblox adapter):** the only `MarketplaceService.ProcessReceipt`. For a receipt:
+- **`server/PurchaseService.luau`:** `service(options)` (backend + save injected, Lune-tested) and `start(service)`
+  (Roblox wiring, only with the flag on): the only `MarketplaceService.ProcessReceipt`. For a receipt:
   player not in this server or data not loaded → `NotProcessedYet`; `PurchaseId` already in `data.receipts` →
   `PurchaseGranted`; else `Purchases.grant`, append the receipt, **save now** (`Persistence` save, session-locked);
-  only a successful save answers `PurchaseGranted`, anything else `NotProcessedYet`. The receipt-ledger core is
-  game-agnostic and lives in `shared/luau` (pure core + thin adapter, Lune specs).
+  only a successful save answers `PurchaseGranted`, anything else `NotProcessedYet` (`Persistence.save` returns
+  whether it wrote). A PurchaseId granted in memory whose save failed is saved again on the retry before it counts.
+  The receipt-ledger core is game-agnostic: `shared/luau/src/data/ReceiptLedger.luau` (`clean`, `seen`, `record`,
+  `process`). `join` (once the session exists) checks each pass with a non-zero `passId` and the policy (below).
 - **Pet seats:** `PetSeats.unlocked` treats kind `exclusive` as `table.find(data.ownedSeats, id) ~= nil`.
 - **Passes:** `Income2x` multiplies into `Perks.bonusMultiplier` (one more factor, runtime `data.passIncomeMult`);
-  `Offline2x` sets the rate passed to `Economy.offlineIncome` (`OFFLINE_RATE` 0.25 → 0.5). Free players are unchanged.
+  `Offline2x` sets the rate passed to `Economy.offlineIncome` (`OFFLINE_RATE` 0.25 → 0.5; runtime
+  `data.passOfflineRate`). The pass check finishes after the join's payout, so `applyPasses` pays the difference
+  then (and adds it to `offlineDouble.cash` and the welcome card). Free players are unchanged.
 - **Quick-buy grants:** `finishBrew` sets the vat's `endsAt = now` while brewing, else `credits.brew += 1`;
-  `hatchNow` hatches-ready the player's oldest incubating egg (`hatchAt = now`), else `credits.hatch += 1`;
+  `hatchNow` (`HatchNow_<eggKind>`) hatches-ready the player's incubating pad egg of that kind closest to ready
+  (`hatchAt = now`; a receipt names no slime), else `credits.hatch += 1`;
   `doubleOffline` pays `offlineDouble.cash` once (`used = true`), else nothing to pay → `NotProcessedYet` never: it
   grants 0 and records the receipt (the UI only offers it while `offlineDouble` is unused); `serverPotion` calls
   `Consumables.extendPotion` server-wide and notifies everyone "<name> gave the server a Luck Potion!".
 - **Requests (Remotes.ACTIONS / Validate.ACTIONS):** `UseCredit(kind: string, slimeId: string?)` 0.5 s: spends a
-  brew credit on the running brew or a hatch credit on that egg. No action prompts purchases: the client calls
+  brew credit on the running brew or a hatch credit on that egg (`slimeId` nil = the egg closest to ready); flag off
+  → "the Exclusive Shop is off". No action prompts purchases: the client calls
   `MarketplaceService:PromptProductPurchase` / `PromptGamePassPurchase` itself with ids from Config.
-- **Studio:** `StudioHooks.grantProduct(userId, productKey)` / `setPass(userId, passKey, owned)` run the same
-  `Purchases.grant` path (Studio only, no remote, like the other StudioHooks) so the whole flow is testable without ids.
+- **Studio:** `StudioHooks.grantProduct(userId, productKey)` / `setPass(userId, passKey, owned)` /
+  `setPaidRandomAllowed(userId, allowed)` run the same PurchaseService paths (receipt id `studio-<guid>`, grant,
+  save; Studio + memory store only, no remote). They set player attributes (`PcwGrantProduct`, `PcwPass` =
+  `"<key>=true|false"`, `PcwPaidRandom`) the server applies, so Studio MCP `execute_luau` can call them
+  (`require(game.ServerScriptService.Server.StudioHooks)`).
 
 ## 4. Roll first (vat and eggs)
 
 `VatState.start` stores `vat.seed` (from `world.rng`); `VatState.collect` rolls with a fresh `Rng` seeded by it.
-`SharedEgg.startIncubating` stores `egg.seed`; `hatchEgg` rolls with an `Rng` from it. Old saves without a seed roll
-as today. The outcome is therefore fixed when the clock starts; "Finish now" / "Hatch now" only change time.
+`SharedEgg.startIncubating` stores `egg.seed` (server: from `world.eggRng`); `hatchEgg` rolls with an `Rng` from it
+(the slime inside an egg is rolled when it spawns; the seed fixes the lucky-meter reroll). Seeds are whole numbers
+in 1..`Rng.SEED_MAX`; Cancel clears the vat's. Old saves without a seed roll as today. The outcome is therefore fixed when the clock starts; "Finish now" / "Hatch now" only change time.
 
 ## 5. State
 
@@ -79,7 +91,8 @@ credits = { brew, hatch }, offlineDouble = { cash, available }?, paidRandomAllow
 `paidRandomAllowed` comes from `PolicyService:GetPolicyInfoForPlayerAsync().ArePaidRandomItemsRestricted` (cached
 per player, default false while unknown). When false the UI hides `ServerLuckPotion`. Its card shows the potion odds
 with and without the potion (tier 3+ weights x `LUCK_POTION_MULT`) behind a "Details" button.
-`State.petSeats[].unlocked` is true for owned Exclusives; rows gain `productKey` for unowned Exclusives.
+`State.petSeats[].unlocked` is true for owned Exclusives; rows gain `productKey` (`"Seat_<id>"`) for unowned
+Exclusives (`Types.PetSeatView.productKey: string?`). `offlineDouble.available` = not used yet.
 
 ## 6. Featured rotation
 
@@ -88,10 +101,11 @@ same on every server; 4 distinct Exclusive seats. No discount in this first vers
 
 ## 7. World: the carousel
 
-`WorldLayout.SHOP_STANDS.ExclusiveShop` / prop spot: see §7.1 (placement). Two meshes:
-`ranch_exclusive_carousel_spin` (platform, drum, poles, canopy, trophy slime: spins about its centre at
-`Config.EXCLUSIVE_SHOP.spinRpm`) and `ranch_exclusive_kiosk` (static ticket kiosk; `Counter` part with the
-`ShopPrompt`, `ShopId = "ExclusiveShop"`). The client spins the carousel in the one frame loop (culled by distance)
+`WorldLayout.EXCLUSIVE_CAROUSEL` / prop spot: see §7.1 (placement). Two meshes:
+`ranch_exclusive_carousel_spin` (deck, drum, poles, saddles: the `ExclusiveCarouselSpin` part, spins about its centre
+line at `Config.EXCLUSIVE_SHOP.spinRpm`) and `ranch_exclusive_carousel_static` (skirt, canopy, trophy slime, crest
+sign, ticket kiosk, queue rope; the kiosk's `Counter` part carries the `ShopPrompt`, stand attribute
+`ShopId = "ExclusiveShop"`; an invisible flat `DeckCollider` is the floor players stand on). The client spins the carousel in the one frame loop (culled by distance)
 and seats the 4 featured seat templates from `ReplicatedStorage.PetCloudMeshes` on the 8 poles (featured x2),
 bobbing ±0.6 studs out of phase. Without a mesh asset (not uploaded) a simple fallback (cylinder + cone) stands in.
 The prompt opens the `ExclusiveShop` panel on Featured.
