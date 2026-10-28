@@ -1,7 +1,11 @@
--- Client datamodel: opens (SHOW) or closes SlimeUI.%%PANEL%%: first the Studio-only PcwOpen hook, else Visible =
--- %%SHOW%% directly (no input injection). Showing one hides the other *Panel frames, like setOpen does.
+-- Client datamodel: opens (SHOW) or closes SlimeUI.%%PANEL%% (a dotted path, e.g. "Banners.Tutorial"): first the
+-- Studio-only PcwOpen hook, else Visible = %%SHOW%% directly (no input injection). Showing one hides the other
+-- *Panel frames, like setOpen does.
 local gui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("SlimeUI")
-local panel = gui and gui:FindFirstChild(%%PANEL%%)
+local panel: Instance? = gui
+for _, part in string.split(%%PANEL%%, ".") do
+	panel = panel and panel:FindFirstChild(part)
+end
 if not panel or not panel:IsA("GuiObject") then
 	return { found = false }
 end
