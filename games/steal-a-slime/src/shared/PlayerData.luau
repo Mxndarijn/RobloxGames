@@ -95,6 +95,13 @@ export type Data = {
 	starterBundle: boolean, -- StarterBundle claimed
 	credits: Credits,
 	offlineDouble: OfflineDouble?, -- nil = no welcome-back payout recorded
+	-- Exclusive Shop extras (save v11, contract/exclusive-shop.md §9-§12)
+	ownedTrails: { string }, -- Config.EXCLUSIVE_SHOP.trails ids bought or gifted
+	trail: string?, -- the equipped carry trail (an owned id); nil = none
+	ownedBatSkins: { string }, -- Config.EXCLUSIVE_SHOP.batSkins ids bought or gifted
+	batSkin: string?, -- the equipped Bat skin (an owned id); nil = the default Bat
+	lockBreakCredits: number, -- paid lock breaks that found no locked base to open (0..creditMax)
+	giftCredits: { string }, -- unsent gifts: giftable product keys (Seat_* / Trail_* / BatSkin_*), at most gift.creditMax
 	passIncomeMult: number?, -- runtime only (never saved): Income2x Game Pass factor (Purchases.applyPasses); nil = 1
 	passOfflineRate: number?, -- runtime only (never saved): Offline2x offline rate (Purchases.applyPasses); nil = Config.OFFLINE_RATE
 }
@@ -138,6 +145,10 @@ function PlayerData.new(): Data
 		receipts = {},
 		starterBundle = false,
 		credits = { brew = 0, hatch = 0 },
+		ownedTrails = {},
+		ownedBatSkins = {},
+		lockBreakCredits = 0,
+		giftCredits = {},
 	}
 end
 

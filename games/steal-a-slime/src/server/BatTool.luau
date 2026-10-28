@@ -14,6 +14,8 @@
 	The Tool: one per player (give() replaces any old copy), given on every spawn, CanBeDropped = false, single
 	collision-free handle Part (a few parts per player, only while equipped, never in the world part budget).
 	The model / icon / swing sound hookup is shared/BatModel (MESH_ID / ICON_ID / SWING_SOUND): change it there only.
+	An Exclusive Shop Bat skin (`give`'s `skinId`, BatModel.look) only changes the Handle's mesh, size and grip; `swing`
+	never reads it, so reach, cooldown, target pick and knockback are the same for every skin.
 	Every click plays the swing (the BatSwingAt attribute every client animates + a whoosh), hit or miss.
 ]]
 
@@ -212,41 +214,53 @@ end
 -- The Tool (Roblox only; never called under Lune)
 ---------------------------------------------------------------------------
 
-local meshTemplate: any = nil
-local meshTried = false
+local meshTemplates: { [string]: any } = {}
+local meshTried: { [string]: boolean } = {}
 
--- One CreateMeshPartAsync per server (it yields); every Bat clones it. nil = use the placeholder block.
-local function meshHandle(): any
-	if not meshTried and BatModel.MESH_ID then
-		meshTried = true
+-- One CreateMeshPartAsync per mesh per server (it yields); every Bat clones it. nil = no mesh.
+local function meshHandle(meshId: string?): any
+	if not meshId then
+		return nil
+	end
+	if not meshTried[meshId] then
+		meshTried[meshId] = true
 		local ok, mesh = pcall(function()
-			return (game:GetService("AssetService") :: any):CreateMeshPartAsync(BatModel.MESH_ID, {
+			return (game:GetService("AssetService") :: any):CreateMeshPartAsync(meshId, {
 				CollisionFidelity = Enum.CollisionFidelity.Box,
 				RenderFidelity = Enum.RenderFidelity.Automatic,
 			})
 		end)
 		if ok and mesh then
-			meshTemplate = mesh
+			meshTemplates[meshId] = mesh
 		end
 	end
-	return if meshTemplate then meshTemplate:Clone() else nil
+	local template = meshTemplates[meshId]
+	return if template then template:Clone() else nil
 end
 
-local function buildHandle(): any
-	local handle: any = meshHandle()
+-- The Handle for `look` and the grip it needs: a skin mesh that fails to load falls back to the default Bat, then to
+-- the placeholder block.
+local function buildHandle(look: BatModel.Look): (any, BatModel.Look)
+	local handle: any = meshHandle(look.meshId)
+	if not handle and look.meshId ~= BatModel.MESH_ID then
+		look = BatModel.default()
+		handle = meshHandle(look.meshId)
+	end
+	local size = look.size
 	if not handle then
 		handle = Instance.new("Part")
 		handle.Material = Enum.Material.Wood
 		handle.Color = Color3.new(BatModel.COLOR[1], BatModel.COLOR[2], BatModel.COLOR[3])
+		size = BatModel.SIZE
 	end
 	handle.Name = "Handle"
-	handle.Size = Vector3.new(BatModel.SIZE[1], BatModel.SIZE[2], BatModel.SIZE[3])
+	handle.Size = Vector3.new(size[1], size[2], size[3])
 	handle.CanCollide = false
 	handle.CanQuery = false
 	handle.CanTouch = false
 	handle.Massless = true
 	handle.CastShadow = false
-	return handle
+	return handle, look
 end
 
 -- The swing everyone sees: the Player attribute BatSwingAt (server time) makes every client play the procedural swing
@@ -264,8 +278,8 @@ local function playSwing(tool: any, whoosh: any)
 	end)
 end
 
--- A fresh Bat Tool for `player`; swings go to BatTool.swing through `onSwing`.
-function BatTool.build(onSwing: () -> ()): any
+-- A fresh Bat Tool wearing Bat skin `skinId` (nil = the default Bat); swings go to BatTool.swing through `onSwing`.
+function BatTool.build(onSwing: () -> (), skinId: string?): any
 	local tool = Instance.new("Tool")
 	tool.Name = Config.BAT.TOOL_NAME
 	tool.ToolTip = "Hit someone carrying a slime to make them drop it"
@@ -275,10 +289,10 @@ function BatTool.build(onSwing: () -> ()): any
 	if icon then
 		tool.TextureId = icon
 	end
-	local grip = BatModel.GRIP
+	local handle, look = buildHandle(BatModel.look(skinId))
+	local grip = look.grip
 	tool.Grip = CFrame.new(grip.pos[1], grip.pos[2], grip.pos[3])
 		* CFrame.Angles(math.rad(grip.rotDeg[1]), math.rad(grip.rotDeg[2]), math.rad(grip.rotDeg[3]))
-	local handle = buildHandle()
 	handle.Parent = tool
 	local whoosh = Instance.new("Sound")
 	whoosh.Name = "Swing"
@@ -298,19 +312,32 @@ function BatTool.build(onSwing: () -> ()): any
 	return tool
 end
 
--- Gives `player` exactly one Bat in their Backpack (any old copy, in the Backpack or held, is removed first).
-function BatTool.give(player: any, onSwing: () -> ())
+--[[
+	Gives `player` exactly one Bat wearing Bat skin `skinId` (nil = the default Bat): any old copy, in the Backpack or
+	held, is removed first, and a Bat that was held is held again.
+]]
+function BatTool.give(player: any, onSwing: () -> (), skinId: string?)
 	local backpack = player:FindFirstChildOfClass("Backpack") or player:WaitForChild("Backpack", 5)
 	if not backpack then
 		return
 	end
-	for _, container in { backpack, player.Character } do
+	local character = player.Character
+	local held = false
+	for _, container in { backpack, character } do
 		local old = container and container:FindFirstChild(Config.BAT.TOOL_NAME)
 		if old and old:IsA("Tool") then
+			held = held or container == character
 			old:Destroy()
 		end
 	end
-	BatTool.build(onSwing).Parent = backpack
+	local tool = BatTool.build(onSwing, skinId)
+	tool.Parent = backpack
+	local humanoid = if held and character then character:FindFirstChildOfClass("Humanoid") else nil
+	if humanoid then
+		pcall(function()
+			humanoid:EquipTool(tool)
+		end)
+	end
 end
 
 return BatTool

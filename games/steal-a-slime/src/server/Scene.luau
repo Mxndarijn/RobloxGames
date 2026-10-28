@@ -27,6 +27,7 @@ local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local LuckyShow = if script then require(script.Parent.LuckyShow) else require("./LuckyShow")
+local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -49,7 +50,7 @@ export type Entry = {
 	promptHold: number, -- ProximityPrompt.HoldDuration (B1)
 	promptEnabled: boolean,
 	hideFromUserId: number?, -- the owner, on Steal prompts; nil = visible to everyone
-	guestsOnly: string?, -- on a locked base's Steal prompts while it has guests: only they see it (PlotGuests.encode)
+	guestsOnly: string?, -- on a locked base's Steal prompts while it has guests or lock break holders: only they see it (PlotGuests.encode)
 	boss: boolean, -- the boss of the boss event (model attribute Boss)
 	bossScale: number?, -- model scale of the fighting boss (Config.BOSS.SCALE); nil = 1
 	rare: number?, -- tier of an announced Legendary+ wild drop (model attribute RareSpawn)
@@ -62,6 +63,19 @@ export type Entry = {
 }
 
 local Scene = {}
+
+-- Who besides the owner may steal on `owner`'s locked base now: its guests (PlotGuests) and its lock break holders
+-- (`breakers`, LockBreak.holders), sorted.
+local function allowedIn(world: World, owner: World.Session, breakers: { [number]: { number } }): { number }
+	local ids = PlotGuests.list(world, owner)
+	for _, id in breakers[owner.plotIndex] or {} do
+		if not table.find(ids, id) then
+			table.insert(ids, id)
+		end
+	end
+	table.sort(ids)
+	return ids
+end
 
 function Scene.describe(world: World, now: number): { [string]: Entry }
 	local entries: { [string]: Entry } = {}
@@ -123,10 +137,12 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 		}
 	end
 
+	local breakers = LockBreak.holders(world, now)
 	for _, session in world.sessions do
 		local unlocked = not Steal.isLocked(session.lockUntil, now)
-		-- A locked base with guests keeps its Steal prompts on, for the guests only (PromptHide hides them for the rest).
-		local guestsOnly = if unlocked then nil else PlotGuests.encode(PlotGuests.list(world, session))
+		-- A locked base with guests or lock break holders keeps its Steal prompts on, for them only (PromptHide hides
+		-- them for the rest).
+		local guestsOnly = if unlocked then nil else PlotGuests.encode(allowedIn(world, session, breakers))
 		for _, slime in session.data.slimes do
 			local carrier = world.carriedBy[slime.id]
 			local state: SlimeState = if carrier

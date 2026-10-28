@@ -22,11 +22,13 @@ local Actions = require(script.Parent.Actions)
 local BatTool = require(script.Parent.BatTool)
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Constants = require(ReplicatedStorage.Shared.Constants)
 local Friends = require(script.Parent.Friends)
 local LeaderboardView = require(script.Parent.LeaderboardView)
 local MoveWatch = require(script.Parent.MoveWatch)
 local Persistence = require(script.Parent.Persistence)
 local PlayerLeave = require(script.Parent.PlayerLeave)
+local Purchases = require(script.Parent.Purchases)
 local RitualService = require(script.Parent.RitualService)
 local SafeCall = require(script.Parent.SafeCall)
 local ServerLoop = require(script.Parent.ServerLoop)
@@ -54,6 +56,23 @@ export type Deps = {
 
 local PlayerLifecycle = {}
 
+-- Gives `player` their Bat wearing the equipped Bat skin (Purchases.worn).
+local function giveBat(deps: Deps, player: Player)
+	local world, now = deps.world, deps.now
+	local session = World.session(world, player.UserId)
+	local skin = if session then select(2, Purchases.worn(session)) else nil
+	BatTool.give(player, function()
+		local current = World.session(world, player.UserId)
+		if current then
+			local _, reason = BatTool.swing(world, current, now(), deps.ctx)
+			-- A swing refused for being too fast did nothing: no world-wide refresh for a spammed Activated.
+			if reason ~= "too fast" then
+				deps.refreshView(now())
+			end
+		end
+	end, skin)
+end
+
 local function onCharacter(deps: Deps, player: Player, character: Model)
 	local world, now = deps.world, deps.now
 	local session = World.session(world, player.UserId)
@@ -67,16 +86,7 @@ local function onCharacter(deps: Deps, player: Player, character: Model)
 			end
 		end)
 	end
-	BatTool.give(player, function()
-		local current = World.session(world, player.UserId)
-		if current then
-			local _, reason = BatTool.swing(world, current, now(), deps.ctx)
-			-- A swing refused for being too fast did nothing: no world-wide refresh for a spammed Activated.
-			if reason ~= "too fast" then
-				deps.refreshView(now())
-			end
-		end
-	end)
+	giveBat(deps, player)
 	local humanoid = character:WaitForChild("Humanoid", 10)
 	if humanoid and humanoid:IsA("Humanoid") then
 		-- Speed Coil etc. right away, not on the next view tick (CONTRACT.md §8.10).
@@ -125,6 +135,12 @@ local function onPlayerAdded(deps: Deps, player: Player)
 
 	player.CharacterAdded:Connect(function(character)
 		onCharacter(deps, player, character)
+	end)
+	-- A Bat skin put on or taken off (PlayerAttributes.syncCosmetics) swaps the Bat at once.
+	player:GetAttributeChangedSignal(Constants.BAT_SKIN_ATTRIBUTE):Connect(function()
+		if player.Character then
+			giveBat(deps, player)
+		end
 	end)
 	player.CharacterRemoving:Connect(function()
 		Carry.release(world, userId, now(), deps.ctx.positionOf(userId), "drop")

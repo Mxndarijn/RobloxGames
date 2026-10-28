@@ -135,6 +135,9 @@ local world = World.new({
 	plotCount = Config.PLOT_COUNT,
 })
 local ctx = ServerContext.new(world, shopEventRemote, now)
+ctx.saveUser = function(userId: number, data: any): boolean -- SendGift saves the receiver now (Exclusive Shop gifts)
+	return Persistence.save(persistence, userId, data, false)
+end
 local leaderboard = LeaderboardView.new(world, persistence.boardStore, leaderboardEvent)
 local profiler = Profiler.new() -- FEATURES.ServerProfiler (CONTRACT.md §25); off = every call is a no-op
 
@@ -238,6 +241,7 @@ request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.
 		return res
 	end
 	PlayerAttributes.syncOpenShop(world, player)
+	PlayerAttributes.syncCosmetics(world, player) -- EquipTrail / EquipBatSkin show at once
 	-- A dispatched action that was refused changed nothing: only its queued toasts go out now, the next tick
 	-- does the rest.
 	if not res.ok then
