@@ -254,6 +254,7 @@ The client always replaces its copy and never diffs.
 {
 	serverTime: number, plotIndex: number,
 	cash: number, incomePerSec: number,
+	padCash: number?, -- FEATURES.CashPads: whole cash waiting on my cash pads; nil with the flag off (contract/cash-pads.md)
 	rebirths: number, rebirthMultiplier: number, rebirthCost: number, canRebirth: boolean,
 	rebirthSlimes: { { id: string, name: string, tier: number, color: { number }, owned: boolean } }, -- §8.8a, empty at max
 	padsUnlocked: number, padsMax: number, nextPadCost: number?,
@@ -454,3 +455,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §46 | [lucky-charm.md](contract/lucky-charm.md) | Lucky Charm show: a slime the charm upgrades changes into its new species on the pad |
 | §47 | [exclusive-shop.md](contract/exclusive-shop.md) | Exclusive Shop: the Golden Jar Boutique, Robux products and passes, quick-buys that only buy time (`FEATURES.ExclusiveShop`) |
 | §48 | [notice-cards.md](contract/notice-cards.md) | Notice cards: steal alarm, bonked, slime back home, base locked and plot full on screen |
+| §49 | [cash-pads.md](contract/cash-pads.md) | Cash pads: income piles up on a raised gold coin at each slime, only the owner collects by walking over it (`FEATURES.CashPads`) |

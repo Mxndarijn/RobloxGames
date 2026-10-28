@@ -17,6 +17,8 @@
 
 local Actions = require("../../../src/server/Actions")
 local Carry = require("../../../src/server/Carry")
+local CashPadService = require("../../../src/server/CashPadService")
+local CashPads = require("../../../src/shared/CashPads")
 local Config = require("../../../src/shared/Config")
 local Consumables = require("../../../src/shared/Consumables")
 local Economy = require("../../../src/shared/Economy")
@@ -418,8 +420,22 @@ local function brew(world: World, bot: Bot, t: number, ids: { string }): boolean
 end
 
 -- Between trips: everything that needs no walk.
+-- FEATURES.CashPads: at home between trips the bot walks over every pad with cash waiting on it.
+local function collectPads(world: World, bot: Bot, session: Session, t: number)
+	if not CashPads.enabled() then
+		return
+	end
+	local nags = {}
+	for pad = 1, bot.data.padsUnlocked do
+		if CashPads.pile(bot.data, pad) >= 1 then
+			CashPadService.touch(world, nags, bot.id, session.plotIndex, pad, t)
+		end
+	end
+end
+
 local function chores(world: World, bot: Bot, session: Session, t: number, keep: { [string]: boolean })
 	local data = bot.data
+	collectPads(world, bot, session, t)
 	act(world, bot, t, "Daily")
 	for i = 1, 3 do
 		act(world, bot, t, "ClaimQuest", i)

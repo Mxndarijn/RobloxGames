@@ -104,6 +104,7 @@ export type Data = {
 	giftCredits: { string }, -- unsent gifts: giftable product keys (Seat_* / Trail_* / BatSkin_*), at most gift.creditMax
 	passIncomeMult: number?, -- runtime only (never saved): Income2x Game Pass factor (Purchases.applyPasses); nil = 1
 	passOfflineRate: number?, -- runtime only (never saved): Offline2x offline rate (Purchases.applyPasses); nil = Config.OFFLINE_RATE
+	padCash: { [number]: number }?, -- FEATURES.CashPads: uncollected cash per pad index (CashPads, contract/cash-pads.md; no version bump)
 }
 
 local PlayerData = {}

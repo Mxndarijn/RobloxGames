@@ -4,7 +4,7 @@
 	caller's module and function name (debug.info) pick the source, so the game code stays untouched and
 	every payout, wherever it is paid from, is counted.
 
-	Earned: active (Income.step), offline (Income.applyOffline), sell, goal, dex, quest, daily, code, other.
+	Earned: active (Income.step, or collected from the cash pads with FEATURES.CashPads), offline (Income.applyOffline), sell, goal, dex, quest, daily, code, other.
 	Spent: pad, upgrade, coil, lock, wild (price of a wild slime), consumable, pvp, other; the rebirth price
 	is noted by the bot (Progression.rebirth sets the cash back directly).
 ]]
@@ -52,7 +52,7 @@ local EARN_BY_MODULE: { [string]: string } = {
 
 local function earnSource(source: string?, name: string?): string
 	local module = moduleOf(source)
-	if module == "Income" then
+	if module == "Income" or module == "CashPads" then -- CashPads: income collected from the cash pads
 		return if name == "applyOffline" then "offline" else "active"
 	elseif module == "PlayerData" and name == "sell" then
 		return "sell"

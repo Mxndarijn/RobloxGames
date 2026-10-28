@@ -1166,6 +1166,7 @@ local Config = {
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
 		BaseShapes = false, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
+		CashPads = true, -- each slime's income piles up on a gold cash pad in front of it and only the plot owner collects it by stepping on it; offline income lands there too (CashPads, contract/cash-pads.md); false = income goes straight to cash
 		ExclusiveShop = false, -- the Exclusive Shop (contract/exclusive-shop.md): the Golden Jar Boutique on the plaza, Robux products and passes, quick-buys (Finish now, Hatch now, Double it, server Luck Potion); false = no shop on the plaza, no MarketplaceService callbacks, no Robux buttons, Exclusive seats stay unowned
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
 	}),
@@ -1908,6 +1909,27 @@ local Config = {
 	-- studs the server allows on top of it (lag, the prompt part's own size) when it checks the owner against THAT prompt part.
 	PLOT_PAD_PROMPT_DISTANCE = 10,
 	PLOT_PAD_RANGE_SLACK = 4,
+
+	-- Cash pads (FEATURES.CashPads, CashPads / server/CashPadView): a raised gold coin on the floor in front of each slime
+	-- pad (towards the jar, clear of the pad's name sign), per floor (Config.BASE_FLOORS; the last entry covers any floor
+	-- above): DIAMETER studs across, its centre FRONT studs from the pad's centre, its bottom LIFT studs above the pad's
+	-- bottom (that floor's walk surface: the ground floor's look stands above its collider). The small top jar has the
+	-- least room between the signs and the stair landing. A player's root part within DIAMETER / 2 + TOUCH_SLACK studs
+	-- (flat distance) and 0..TOUCH_HEIGHT studs above the coin is standing on it. HINT_AT: cash waiting on the pads that
+	-- triggers the "walk over a pad" toast (Income; once a session, only while the tutorial runs). NAG_SECONDS: a
+	-- visitor on someone else's coin sees "Not your cash" at most this often. FLASH_SECONDS: how long the coin shows
+	-- "+$X" after a collect. SYNC_SECONDS: coins are rebuilt / relabelled at most this often.
+	CASH_PAD = table.freeze({
+		DIAMETER = table.freeze({ 2.75, 2.75, 2.75, 2 }) :: { number },
+		FRONT = table.freeze({ 6.3, 6.3, 6.3, 5.42 }) :: { number },
+		LIFT = table.freeze({ 0.36, 0, 0, 0 }) :: { number },
+		TOUCH_SLACK = 0.9,
+		TOUCH_HEIGHT = 6,
+		HINT_AT = 10,
+		NAG_SECONDS = 4,
+		FLASH_SECONDS = 1.2,
+		SYNC_SECONDS = 0.25,
+	}),
 
 	-- Friend income bonus (FEATURES.FriendBonus, CONTRACT.md §11)
 	FRIEND_BONUS_PER_FRIEND = 0.1, -- +10% income per friend in the same server

@@ -56,6 +56,8 @@
 	bad or repeated keys -> empty slots, entries past slot 9 dropped (HotbarOrder.clean).
 	vat (CONTRACT.md §21) is optional and needs no version bump: { ids = { slimeId } (up to Config.VAT_SIZE), endsAt = unix
 	seconds? }; junk -> nil, ids that are not owned pad slimes are dropped and a brew without three inputs stops (VatState).
+	padCash (FEATURES.CashPads, contract/cash-pads.md) is optional and needs no version bump: a list, entry i = the uncollected
+	cash on pad i; missing / junk -> none, pads past padsUnlocked and non-positive entries dropped (CashPads.clean).
 	Unknown/newer versions are read field-by-field with the current sanitizer.
 	SaveData.check tells DataService whether a stored record may be overwritten:
 	"newer" (version above Config.SAVE_VERSION, e.g. a rolling update) and
@@ -65,6 +67,7 @@
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local EggKind = if script then require(script.Parent.EggKind) else require("./EggKind")
 local AudioSettings = if script then require(script.Parent.AudioSettings) else require("./AudioSettings")
+local CashPads = if script then require(script.Parent.CashPads) else require("./CashPads")
 local BossBadges = if script then require(script.Parent.BossBadges) else require("./BossBadges")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local HotbarOrder = if script then require(script.Parent.HotbarOrder) else require("./HotbarOrder")
@@ -794,6 +797,7 @@ function SaveData.deserialize(stored: any): Data
 	data.weekly = SaveData.cleanWeekly(raw.weekly, data.totalEarned) -- Weekly Top Earners (no version bump: missing -> week 0)
 	data.vat = VatState.sanitize(raw.vat) -- merge vat (no version bump: missing / junk -> empty vat)
 	VatState.prune(data)
+	data.padCash = CashPads.clean(raw.padCash, data.padsUnlocked) -- FEATURES.CashPads piles (no version bump: missing / junk -> none)
 	BossBadges.grant(data, data.lastOnline) -- badges the record reached before they existed or were saved
 	for species in data.boss.wins do
 		SpeciesDex.record(data, { species = species }) -- a won boss always counts in the SlimeDex
@@ -942,6 +946,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		eggLuck = SaveData.cleanEggLuck(data.eggLuck),
 		weekly = SaveData.cleanWeekly(data.weekly, data.totalEarned),
 		vat = VatState.sanitize(data.vat), -- nil while empty: the key is left out
+		padCash = CashPads.serialize(data), -- FEATURES.CashPads piles; nil while none: the key is left out
 		ownedSeats = SaveData.cleanOwnedSeats(data.ownedSeats),
 		receipts = SaveData.cleanReceipts(data.receipts),
 		starterBundle = data.starterBundle == true,

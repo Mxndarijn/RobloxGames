@@ -5,7 +5,7 @@
 	The server's one Heartbeat: the kill plane (Rescue, with the PvP void guard) and GameLoop.step every frame;
 	every VIEW_INTERVAL the day / night clock, the per-player step (lock enforcement, HomeZone deposits with one
 	"plot full" toast per visit, WorldView.updatePlayer incl. the PvP ticks, the open world shop's range check,
-	thief plots, leaderstats), the co-op ritual, world attributes, the view refresh and the State pushes.
+	thief plots, leaderstats), the cash pads (FEATURES.CashPads), the co-op ritual, world attributes, the view refresh and the State pushes.
 	Each stage runs through safeCall so one failing player or model never stops the pushes. Profiler
 	(FEATURES.ServerProfiler) times the stages.
 ]]
@@ -17,6 +17,7 @@ local RunService = game:GetService("RunService")
 
 local Actions = require(script.Parent.Actions)
 local Carry = require(script.Parent.Carry)
+local CashPadView = require(script.Parent.CashPadView)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local DayNight = require(ReplicatedStorage.Shared.DayNight)
@@ -60,6 +61,7 @@ export type Deps = {
 
 export type Loop = Deps & {
 	homeZoneFull: { [number]: string }, -- userId -> slime id told "plot full" during this zone visit
+	cashPads: CashPadView.State, -- FEATURES.CashPads discs and visitor nag timers
 	shopCheckedAt: { [number]: number },
 	lastView: number,
 	lastClock: number,
@@ -73,6 +75,7 @@ ServerLoop.VIEW_INTERVAL = VIEW_INTERVAL
 function ServerLoop.new(deps: Deps): Loop
 	local loop: any = table.clone(deps)
 	loop.homeZoneFull = {}
+	loop.cashPads = CashPadView.new()
 	loop.shopCheckedAt = {}
 	loop.lastView = 0
 	loop.lastClock = -math.huge
@@ -84,6 +87,7 @@ end
 function ServerLoop.forget(loop: Loop, userId: number)
 	loop.homeZoneFull[userId] = nil
 	loop.shopCheckedAt[userId] = nil
+	CashPadView.forget(loop.cashPads, userId)
 	SlimeGuard.forget(loop.world, userId)
 	SlimeGuardView.forget(userId)
 end
@@ -169,6 +173,12 @@ local function stepPlayers(loop: Loop, t: number)
 		if line then
 			print(line)
 		end
+	end
+	if Config.FEATURES.CashPads then
+		loop.safeCall("cash pads", function()
+			CashPadView.sync(loop.cashPads, world, t)
+			CashPadView.step(loop.cashPads, world, t)
+		end)
 	end
 	if Config.FEATURES.CoopRitual then
 		loop.safeCall("ritual step", function()

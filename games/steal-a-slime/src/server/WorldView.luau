@@ -285,6 +285,7 @@ local function plotPads(plotIndex: number): { [number]: BasePart }
 	end
 	return pads
 end
+WorldView.pads = plotPads
 
 -- Top surface of a pad. Slime models pivot at the bottom centre (ModelFactory sets
 -- Body.PivotOffset), so model:PivotTo(padTop) rests the slime on the pad.

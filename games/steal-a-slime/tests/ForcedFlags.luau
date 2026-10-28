@@ -67,6 +67,15 @@ ForcedFlags.on = {
 -- switch on every built feature). They only make sense with that flag off, so they run in the
 -- all-flags-off mode alone and are skipped in the default and the all-on runs (and in the cloud tests).
 ForcedFlags.needOff = {
+	["Income.step"] = "CashPads (income goes straight to cash only with the cash pads off)",
+	["Income.applyOffline"] = "CashPads (income goes straight to cash only with the cash pads off)",
+	["friend bonus in income and State > Income.step pays the bonus"] = "CashPads (income goes straight to cash only with the cash pads off)",
+	["GameLoop end to end > income resumes after the clock steps back"] = "CashPads (income goes straight to cash only with the cash pads off)",
+	["MergeVat: a brewing vat locks its slimes > while brewing they earn nothing, live or offline"] = "CashPads (income goes straight to cash only with the cash pads off)",
+	["Upgrades (BuyUpgrade) > Strong Arms shrinks the carry slowdown, Night Shift extends the offline cap"] = "CashPads (income goes straight to cash only with the cash pads off)",
+	["RitualService.step > pays Blessed income through Income.step"] = "CashPads (income goes straight to cash only with the cash pads off)",
+	["TestHooks > grants cash (not counted as earned) and skips time with income"] = "CashPads (income goes straight to cash only with the cash pads off)",
+	["Weekend income > Income.step doubles pay on a weekend and not otherwise or without a clock"] = "CashPads (income goes straight to cash only with the cash pads off)",
 	["FountainTiers: server > the world starts at tier 1 and the tier step is a no-op with the feature off"] = "FountainTiers",
 	["FountainTiers: server > a spawned drop is Classic with the feature off even at tier 4"] = "FountainTiers",
 	["plot skins: equip > the Request refuses a locked skin, and equips an unlocked one"] = "PlotSkins",

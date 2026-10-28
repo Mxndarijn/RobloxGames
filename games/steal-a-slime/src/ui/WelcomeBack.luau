@@ -39,7 +39,10 @@ function WelcomeBack.view(state: any): View?
 	table.insert(rows, {
 		name = "Cash",
 		icon = "Cash",
-		text = if report.cash > 0 then `+{Format.formatCash(report.cash)} earned while away` else "No cash earned yet",
+		text = if report.cash <= 0
+			then "No cash earned yet"
+			elseif report.onPads == true then `+{Format.formatCash(report.cash)} waiting on your cash pads`
+			else `+{Format.formatCash(report.cash)} earned while away`,
 	})
 	table.insert(rows, {
 		name = "Growth",

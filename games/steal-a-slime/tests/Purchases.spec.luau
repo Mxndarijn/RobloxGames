@@ -242,7 +242,7 @@ describe("Game Passes", function()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 0)
 		s.data.lastOnline = T0 - 3600
 		s.data.cash = 0
-		Income.applyOffline(world, s, T0)
+		Income.applyOffline(world, s, T0, { CashPads = false }) -- the payout in cash (CashPads.spec covers the pads)
 		expect(s.data.cash).toBe(basePay)
 		expect((s.data.offlineDouble :: any).cash).toBe(basePay)
 		local extra = Purchases.applyPasses(s, { Offline2x = true })
