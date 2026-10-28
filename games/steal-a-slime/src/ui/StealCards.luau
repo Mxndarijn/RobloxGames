@@ -16,15 +16,10 @@ local Widgets = require(script.Parent.Widgets)
 local Theme = Widgets.Theme
 local create = Widgets.create
 
+local N = Layout.NOTICE_CARD
 local SIZE = table.freeze({
-	icon = 44,
-	title = 22,
-	sub = 16,
 	more = 18,
-	pad = 8,
-	gap = 10,
 	bar = 4,
-	stack = 20, -- between cards; the Ink ring takes 3 px of it on each side
 })
 
 local ICON = table.freeze({ stealing = "🚨", stolen = "💔", bonked = "💥", home = "💚", locked = "🔒" })
@@ -50,20 +45,12 @@ local function nameMarkup(name: string): string
 end
 
 local function buildCard(parent: Instance, order: number): any
-	local card = create("Frame", {
-		Name = "Card",
+	local card, ring = Widgets.noticeCard({
 		LayoutOrder = order,
-		BackgroundColor3 = Theme.Bg,
-		BackgroundTransparency = 0.05,
 		Size = UDim2.fromScale(1, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		ClipsDescendants = false,
 		Parent = parent,
-	}, {
-		Widgets.corner(Layout.NOTICE_RADIUS),
-	})
-	-- No UIPadding on the card itself: it would pull the Ink ring (a child frame) inside the pink one.
-	local ring = Widgets.ring(card, Theme.Bad, Layout.NOTICE_RADIUS)
+	}, Theme.Bad)
 	local row = create("Frame", {
 		Name = "Row",
 		BackgroundTransparency = 1,
@@ -72,27 +59,24 @@ local function buildCard(parent: Instance, order: number): any
 		Parent = card,
 	}, {
 		create("UIPadding", {
-			PaddingLeft = UDim.new(0, SIZE.pad),
-			PaddingRight = UDim.new(0, SIZE.pad + 4),
-			PaddingTop = UDim.new(0, SIZE.pad),
-			PaddingBottom = UDim.new(0, SIZE.pad),
+			PaddingLeft = UDim.new(0, N.pad),
+			PaddingRight = UDim.new(0, N.pad + 4),
+			PaddingTop = UDim.new(0, N.pad),
+			PaddingBottom = UDim.new(0, N.pad),
 		}),
 		create("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
 			VerticalAlignment = Enum.VerticalAlignment.Center,
-			Padding = UDim.new(0, SIZE.gap),
+			Padding = UDim.new(0, N.gap),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
-	local icon = Widgets.iconBadge({ LayoutOrder = 1, Parent = row }, ICON.stealing, Theme.Bad, SIZE.icon)
-	local iconCorner = icon:FindFirstChildOfClass("UICorner") :: UICorner
-	iconCorner.CornerRadius = UDim.new(0.5, 0) -- a round badge
-	icon.TextSize = math.floor(SIZE.icon * 0.7)
+	local icon = Widgets.noticeIcon({ LayoutOrder = 1, Parent = row }, ICON.stealing, Theme.Bad)
 	local column = create("Frame", {
 		Name = "Text",
 		LayoutOrder = 2,
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -(SIZE.icon + SIZE.gap), 0, 0),
+		Size = UDim2.new(1, -(N.icon + N.gap), 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = row,
 	}, { Widgets.list(Enum.FillDirection.Vertical, 0, Enum.HorizontalAlignment.Left) })
@@ -100,7 +84,7 @@ local function buildCard(parent: Instance, order: number): any
 		Name = "Title",
 		LayoutOrder = 1,
 		Font = Theme.Font,
-		TextSize = SIZE.title,
+		TextSize = N.title,
 		RichText = true,
 		TextWrapped = true,
 		TextTruncate = Enum.TextTruncate.None,
@@ -112,7 +96,7 @@ local function buildCard(parent: Instance, order: number): any
 		Name = "Sub",
 		LayoutOrder = 2,
 		FontFace = Theme.FontBody,
-		TextSize = SIZE.sub,
+		TextSize = N.sub,
 		TextColor3 = Theme.Muted,
 		TextWrapped = true,
 		TextTruncate = Enum.TextTruncate.None,
@@ -143,7 +127,7 @@ function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
 		Size = UDim2.fromScale(1, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = parent,
-	}, { Widgets.list(Enum.FillDirection.Vertical, SIZE.stack, Enum.HorizontalAlignment.Center) })
+	}, { Widgets.list(Enum.FillDirection.Vertical, N.stack, Enum.HorizontalAlignment.Center) })
 
 	-- The cards and the chip are built on the first theft, so a quiet HUD holds only this empty frame.
 	local slots = {}

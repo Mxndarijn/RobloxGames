@@ -15,18 +15,13 @@ local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
-local KIT = Widgets.KIT
-local create = Widgets.create
 
+local N = Layout.NOTICE_CARD
 local SIZE = table.freeze({
-	pad = 10, -- inside the card, every side
-	gap = 10, -- between the tile and the lines, and between a line's parts
-	tile = 48,
-	tileText = 28,
+	pad = N.pad + 2, -- inside the card, every side (two lines need a little more room than one)
 	line1 = 30, -- title and timer
 	lineGap = 6,
 	line2 = 30, -- meter or name, percent, pill
-	title = 22,
 	timer = 16,
 	timerHeight = 26,
 	bar = 14,
@@ -35,8 +30,6 @@ local SIZE = table.freeze({
 	pill = 15,
 	pillWidth = 118,
 	pillHeight = 28,
-	who = 16,
-	stack = 20, -- under the banner stack, the gap between notice cards
 })
 
 local HEIGHT = SIZE.pad + SIZE.line1 + SIZE.lineGap + SIZE.line2 + SIZE.pad
@@ -57,41 +50,26 @@ local BossMeter = {}
 
 function BossMeter.new(parent: Instance, ctx: any)
 	local z = Layout.ZINDEX.Banners
-	local frame = create("Frame", {
+	local frame, ring = Widgets.noticeCard({
 		Name = "BossMeter",
 		Visible = false,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, Layout.TOP),
 		Size = UDim2.fromOffset(Layout.BANNER_WIDTH, HEIGHT),
-		BackgroundColor3 = Theme.Bg,
-		BackgroundTransparency = 0.05,
 		ZIndex = z,
 		Parent = parent,
-	}, { Widgets.corner(Layout.NOTICE_RADIUS) })
-	local ring = Widgets.ring(frame, Theme.Bad, Layout.NOTICE_RADIUS)
-
-	local tile = create("Frame", {
+	}, Theme.Bad)
+	-- The round crown tile; the icon is the tile's own text.
+	local tile = Widgets.noticeIcon({
 		Name = "IconTile",
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, SIZE.pad, 0.5, 0),
-		Size = UDim2.fromOffset(SIZE.tile, SIZE.tile),
-		BackgroundColor3 = Theme.Bad,
 		ZIndex = z,
 		Parent = frame,
-	}, { Widgets.pill(), Widgets.stroke(Theme.Ink, KIT.rowStroke) })
-	local icon = Widgets.label({
-		Name = "Icon",
-		Text = BossMeterLogic.ICON,
-		TextSize = SIZE.tileText,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = z,
-		Parent = tile,
-	})
-	Widgets.centreEmoji(icon, true)
+	}, BossMeterLogic.ICON, Theme.Bad)
+	local icon = tile
 
-	local leftX = SIZE.pad + SIZE.tile + SIZE.gap
+	local leftX = SIZE.pad + N.icon + N.gap
 	-- Line 1: the title, the timer chip at the right.
 	local line1Y = SIZE.pad + SIZE.line1 / 2
 	local timer = Widgets.chip({
@@ -106,10 +84,10 @@ function BossMeter.new(parent: Instance, ctx: any)
 	local title = Widgets.label({
 		Name = "Title",
 		Font = Theme.Font,
-		TextSize = SIZE.title,
+		TextSize = N.title,
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromOffset(leftX, line1Y),
-		Size = UDim2.new(1, -leftX - SIZE.pad - 80, 0, SIZE.title + 4), -- 80: room for the timer chip
+		Size = UDim2.new(1, -leftX - SIZE.pad - 80, 0, N.title + 4), -- 80: room for the timer chip
 		ZIndex = z,
 		Parent = frame,
 	})
@@ -126,7 +104,7 @@ function BossMeter.new(parent: Instance, ctx: any)
 		ZIndex = z,
 		Parent = frame,
 	})
-	local pctRight = SIZE.pad + 4 + SIZE.pillWidth + SIZE.gap
+	local pctRight = SIZE.pad + 4 + SIZE.pillWidth + N.gap
 	local percent = Widgets.label({
 		Name = "Percent",
 		Font = Theme.Font,
@@ -138,7 +116,7 @@ function BossMeter.new(parent: Instance, ctx: any)
 		ZIndex = z,
 		Parent = frame,
 	})
-	local barRight = pctRight + SIZE.percentWidth + SIZE.gap
+	local barRight = pctRight + SIZE.percentWidth + N.gap
 	local bar, setBar = Widgets.bar(
 		frame,
 		Theme.Good,
@@ -154,11 +132,11 @@ function BossMeter.new(parent: Instance, ctx: any)
 	local who = Widgets.label({
 		Name = "Who",
 		FontFace = Theme.FontBody,
-		TextSize = SIZE.who,
+		TextSize = N.sub,
 		TextColor3 = Theme.Muted,
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromOffset(leftX, midY),
-		Size = UDim2.new(1, -leftX - pctRight, 0, SIZE.who + 6),
+		Size = UDim2.new(1, -leftX - pctRight, 0, N.sub + 6),
 		ZIndex = z,
 		Parent = frame,
 	})
@@ -195,7 +173,7 @@ function BossMeter.new(parent: Instance, ctx: any)
 			return
 		end
 		local height = bannerHeight()
-		frame.Position = UDim2.new(0.5, 0, 0, top + (if height > 0 then height + SIZE.stack else 0))
+		frame.Position = UDim2.new(0.5, 0, 0, top + (if height > 0 then height + N.stack else 0))
 		ring.Color = RING[view.tone]
 		tile.BackgroundColor3 = TILE[view.tone]
 		if fill then
