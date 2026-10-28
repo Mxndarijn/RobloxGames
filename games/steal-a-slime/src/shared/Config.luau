@@ -868,7 +868,6 @@ local Config = {
 		LIFT = 0.4, -- studs the ring's underside sits above the walk floor, on top of the goo floor mesh (0.36 up)
 		REACH = 5.6, -- studs from the LockButton's centre (flat) that count as standing on the pad
 		HEIGHT = 7, -- studs above the floor the root part may be (standing on the button top counts)
-		READY_FLASH_SECONDS = 1.5, -- all segments flash green this long after a lock runs out
 	}),
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.

@@ -15,16 +15,16 @@ local LockPad = require(script.Parent.LockPad)
 local RingPadView = require(ReplicatedStorage.Lib.pad.RingPadView)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
--- Look per mode: lit pieces wear the mode's look, the rest `dim`.
+-- Look per mode: lit segments wear the mode's look, the rest `dim`; while charging the rest stays green (ready).
 local LOOKS = table.freeze({
 	dim = table.freeze({
 		color = Color3.fromRGB(31, 111, 120),
 		material = Enum.Material.SmoothPlastic,
 		transparency = 0,
 	}),
-	charge = table.freeze({ color = Color3.fromRGB(88, 214, 207), material = Enum.Material.Neon, transparency = 0 }),
+	charge = table.freeze({ color = Color3.fromRGB(225, 255, 235), material = Enum.Material.Neon, transparency = 0 }),
 	locked = table.freeze({ color = Color3.fromRGB(229, 72, 77), material = Enum.Material.Neon, transparency = 0 }),
-	ready = table.freeze({ color = Color3.fromRGB(63, 209, 122), material = Enum.Material.Neon, transparency = 0 }),
+	ready = table.freeze({ color = Color3.fromRGB(70, 200, 30), material = Enum.Material.Neon, transparency = 0 }),
 })
 
 local pads: { [number]: RingPadView.Pad } = {}
@@ -63,7 +63,7 @@ function LockPadView.update(plot: Instance, index: number, button: BasePart?, ri
 	local p = button.Position
 	local _, yaw = WorldLayout.plotCentre(index)
 	live:place(Vector3.new(p.X, floor, p.Z), yaw)
-	live:show(ring.lit, ring.mode)
+	live:show(ring.lit, ring.mode, if ring.mode == "charge" then "ready" else "dim")
 end
 
 -- True when `root` stands on `plot`'s lock pad round `button` (its LockButton).

@@ -6,10 +6,10 @@
 	lit in SEGMENTS steps). The owner standing in it for STAND_SECONDS starts the same Lock action as the LockPrompt.
 	Reads / writes session.lockPadSince (when the owner stepped on). `ring` says how many segments are lit and in which
 	colour:
+	  ready   the owner can lock: the whole ring (green);
 	  charge  the owner is standing on it: the light sweeps round over STAND_SECONDS;
 	  locked  the plot is locked: the lit share is the share of the lock still to run;
-	  ready   the lock just ran out: the whole ring, for READY_FLASH_SECONDS;
-	  idle    none lit.
+	  idle    nobody can use it (a free plot): none lit.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -56,10 +56,13 @@ function LockPad.step(session: World.Session, onPad: boolean, locked: boolean, n
 end
 
 --[[
-	What the ring shows for a plot: `lockUntil` / `lockStartedAt` of the owner's current lock (0 / 0 on a free plot),
-	`since` = session.lockPadSince.
+	What the ring shows for a plot: `owned` = the plot has an owner, `lockUntil` / `lockStartedAt` of their current
+	lock, `since` = session.lockPadSince.
 ]]
-function LockPad.ring(now: number, lockUntil: number, lockStartedAt: number, since: number?): Ring
+function LockPad.ring(owned: boolean, now: number, lockUntil: number, lockStartedAt: number, since: number?): Ring
+	if not owned then
+		return { mode = "idle", lit = 0 }
+	end
 	local n = PAD.SEGMENTS
 	if now < lockUntil then
 		return { mode = "locked", lit = RingPad.countdown(n, lockStartedAt, lockUntil, now) }
@@ -67,10 +70,7 @@ function LockPad.ring(now: number, lockUntil: number, lockStartedAt: number, sin
 	if since ~= nil then
 		return { mode = "charge", lit = RingPad.charge(n, since, now, PAD.STAND_SECONDS) }
 	end
-	if lockUntil > 0 and now - lockUntil < PAD.READY_FLASH_SECONDS then
-		return { mode = "ready", lit = n }
-	end
-	return { mode = "idle", lit = 0 }
+	return { mode = "ready", lit = n }
 end
 
 return LockPad

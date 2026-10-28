@@ -11,7 +11,8 @@
 	      looks = { charge = { color = ..., material = Enum.Material.Neon, transparency = 0 } },
 	  })
 	  pad:place(floorPoint, yawDegrees)  -- the centre on the floor; yaw turns the front (-Z) round +Y
-	  pad:show(lit, "charge")            -- pieces 1..lit wear looks.charge, the rest looks.dim
+	  pad:show(lit, "charge")            -- segments 1..lit wear looks.charge, the rest looks.dim
+	  pad:show(lit, "charge", "ready")   -- ... and the rest looks.ready
 	  pad:standing(position)             -- a world point is on the pad (uses the last place())
 	  pad:destroy()
 
@@ -34,7 +35,7 @@ export type Pad = {
 	model: Model,
 	shape: RingPad.Shape,
 	place: (self: Pad, centre: Vector3, yaw: number) -> (),
-	show: (self: Pad, lit: number, look: string) -> (),
+	show: (self: Pad, lit: number, look: string, rest: string?) -> (),
 	standing: (self: Pad, position: Vector3) -> boolean,
 	destroy: (self: Pad) -> (),
 }
@@ -88,7 +89,7 @@ function RingPadView.new(parent: Instance, options: Options?): Pad
 
 	local centre: Vector3? = nil
 	local frame = CFrame.identity
-	local shown: { lit: number, look: string }? = nil
+	local shown: { lit: number, look: string, rest: string }? = nil
 
 	local pad = {} :: Pad
 	pad.model = model
@@ -110,14 +111,16 @@ function RingPadView.new(parent: Instance, options: Options?): Pad
 		end
 	end
 
-	function pad.show(_self: Pad, lit: number, look: string)
-		if shown and shown.lit == lit and shown.look == look then
+	function pad.show(_self: Pad, lit: number, look: string, rest: string?)
+		local restName = rest or "dim"
+		if shown and shown.lit == lit and shown.look == look and shown.rest == restName then
 			return
 		end
-		shown = { lit = lit, look = look }
+		shown = { lit = lit, look = look, rest = restName }
 		local on = looks[look] or looks.dim
+		local off = looks[restName] or looks.dim
 		for s, parts in pieces do
-			local l = if s <= lit then on else looks.dim
+			local l = if s <= lit then on else off
 			for _, part in parts do
 				part.Color = l.color
 				part.Material = l.material
