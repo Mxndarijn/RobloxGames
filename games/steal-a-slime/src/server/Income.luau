@@ -30,7 +30,7 @@ type Session = World.Session
 local Income = {}
 
 Income.MAX_TICK = 5 -- seconds: a stalled server doesn't pay a huge lump
--- FEATURES.CashPads: told once a session when Config.CASH_PAD.HINT_AT cash waits on the pads.
+-- FEATURES.CashPads: told once a session, while the tutorial runs, when Config.CASH_PAD.HINT_AT cash waits on the pads.
 Income.CASH_PAD_HINT = "Your slimes' cash piles up on the gold pads in front of them. Walk over a pad to collect it!"
 
 -- Call about once a second with the real elapsed time. `now` (unix seconds)
@@ -50,8 +50,11 @@ function Income.step(world: World, dt: number, now: number?, features: { [string
 		local skip = World.incomeSkip(world, session)
 		Growth.advanceAll(session.data.slimes, seconds, carried)
 		if pads then
-			CashPads.accrue(session.data, seconds, skip) -- CashPadView shows the piles; cash itself is unchanged
-			if not session.cashPadHinted and CashPads.total(session.data) >= Config.CASH_PAD.HINT_AT then
+			if CashPads.accrue(session.data, seconds, skip) > 0 then
+				World.markDirty(session) -- State at least once a second while earning, as without the pads
+			end
+			local learning = session.data.tutorialStep ~= 0 -- veterans know the pads; only the tutorial gets the hint
+			if learning and not session.cashPadHinted and CashPads.total(session.data) >= Config.CASH_PAD.HINT_AT then
 				session.cashPadHinted = true
 				World.notify(world, session.userId, Income.CASH_PAD_HINT, "info", nil)
 			end

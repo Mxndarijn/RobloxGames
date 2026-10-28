@@ -4,8 +4,10 @@
 
 	Keeps one gold disc ("CashPad", under each Pad_<j>) on every owned plot's pads that have a slime or a pile, with a
 	BillboardGui counter showing the pile (CashPads.label), and turns players standing on a disc into
-	CashPadService.touch calls. The owner's collect flashes "+$X" on the counter for FLASH_SECONDS. Text and
-	transparency are written only when they change. Holds no rules: who may collect is CashPadService's call.
+	CashPadService.touch calls when a player steps onto a disc (once per step-on, not every tick while standing). The
+	owner's collect flashes "+$X" on the counter for CASH_PAD.FLASH_SECONDS. Discs are rebuilt and relabelled at
+	most every CASH_PAD.SYNC_SECONDS, text and transparency written only when they change. Holds no rules: who may
+	collect is CashPadService's call.
 ]]
 
 local Players = game:GetService("Players")
@@ -15,7 +17,6 @@ local CashPadService = require(script.Parent.CashPadService)
 local CashPads = require(ReplicatedStorage.Shared.CashPads)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Economy = require(ReplicatedStorage.Shared.Economy)
-local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
 
@@ -32,8 +33,6 @@ local LOOK = table.freeze({
 	signSize = UDim2.fromScale(1, 1),
 	font = Enum.Font.FredokaOne,
 })
-local FLASH_SECONDS = 1.2
-local SYNC_SECONDS = 0.25 -- discs are rebuilt / relabelled at most this often; touches are checked every call
 
 type Disc = {
 	plotIndex: number,
@@ -47,8 +46,12 @@ type Disc = {
 	flashUntil: number,
 }
 
+type Bounds = { x0: number, x1: number, z0: number, z1: number }
+
 export type State = {
 	discs: { [string]: Disc }, -- "plot|pad"
+	bounds: { [number]: Bounds }, -- plotIndex -> flat box round its shown discs (touch pre-check)
+	standing: { [number]: { [string]: boolean } }, -- userId -> discs they stood on at the last step
 	nags: CashPadService.Nags,
 	syncedAt: number,
 }
@@ -56,7 +59,7 @@ export type State = {
 local CashPadView = {}
 
 function CashPadView.new(): State
-	return { discs = {}, nags = {}, syncedAt = -math.huge }
+	return { discs = {}, bounds = {}, standing = {}, nags = {}, syncedAt = -math.huge }
 end
 
 local function key(plotIndex: number, pad: number): string
@@ -169,21 +172,31 @@ end
 
 -- Builds, places and labels every disc; drops discs of plots that lost their owner or pads that are gone.
 function CashPadView.sync(state: State, world: World.World, now: number)
-	if now - state.syncedAt < SYNC_SECONDS then
+	local c = Config.CASH_PAD
+	if now - state.syncedAt < c.SYNC_SECONDS then
 		return
 	end
 	state.syncedAt = now
 	local seen: { [string]: boolean } = {}
+	table.clear(state.bounds)
 	for plotIndex = 1, world.plotCount do
 		local ownerId = world.plots[plotIndex]
 		local owner = if ownerId then World.session(world, ownerId) else nil
 		if owner then
 			local data = owner.data
+			local pads = WorldView.pads(plotIndex) -- one scan of the plot's children
+			local slimes: { [number]: any } = {}
+			for _, slime in data.slimes do
+				if slime.pad then
+					slimes[slime.pad] = slime
+				end
+			end
+			local box: Bounds? = nil
 			for j = 1, data.padsUnlocked do
-				local pad = WorldView.pad(plotIndex, j)
+				local pad = pads[j]
 				local pile = CashPads.pile(data, j)
-				local wanted = pad ~= nil and (PlayerData.slimeOnPad(data, j) ~= nil or pile >= 1)
-				if pad and wanted then
+				local slime = slimes[j]
+				if pad and (slime ~= nil or pile >= 1) then
 					local k = key(plotIndex, j)
 					seen[k] = true
 					local old = state.discs[k]
@@ -200,14 +213,24 @@ function CashPadView.sync(state: State, world: World.World, now: number)
 					local frame = discCFrame(pad)
 					if disc.part.CFrame ~= frame then
 						disc.part.CFrame = frame
-						disc.rim.CFrame = frame * CFrame.new(-Config.CASH_PAD.HEIGHT * 0.2, 0, 0)
+						disc.rim.CFrame = frame * CFrame.new(-c.HEIGHT * 0.2, 0, 0)
 					end
 					setShown(disc, true)
 					if now >= disc.flashUntil then
-						local full = CashPads.full(data, j)
+						local full = CashPads.full(data, j, slime)
 						setText(disc, CashPads.label(pile, full), if full then LOOK.full else LOOK.text)
 					end
+					local at = frame.Position
+					if box then
+						box.x0, box.x1 = math.min(box.x0, at.X), math.max(box.x1, at.X)
+						box.z0, box.z1 = math.min(box.z0, at.Z), math.max(box.z1, at.Z)
+					else
+						box = { x0 = at.X, x1 = at.X, z0 = at.Z, z1 = at.Z }
+					end
 				end
+			end
+			if box then
+				state.bounds[plotIndex] = box
 			end
 		end
 	end
@@ -219,29 +242,52 @@ function CashPadView.sync(state: State, world: World.World, now: number)
 	end
 end
 
--- Every player standing on a shown disc touches it (CashPadService.touch); the owner's collect flashes the counter.
+-- A player who steps onto a shown disc touches it once (CashPadService.touch); the owner's collect flashes the
+-- counter. Standing still on it does nothing more until they step off and back on.
 function CashPadView.step(state: State, world: World.World, now: number)
+	local c = Config.CASH_PAD
+	local reach = c.RADIUS + c.TOUCH_SLACK
 	for _, player in Players:GetPlayers() do
+		local userId = player.UserId
+		local was = state.standing[userId]
 		local root = WorldView.rootPart(player)
+		local on: { [string]: boolean }? = nil
 		if root then
 			local p = root.Position
-			for _, disc in state.discs do
+			for k, disc in state.discs do
+				local box = state.bounds[disc.plotIndex]
+				local near = box ~= nil
+					and p.X >= box.x0 - reach
+					and p.X <= box.x1 + reach
+					and p.Z >= box.z0 - reach
+					and p.Z <= box.z1 + reach
 				local d = disc.part.Position
-				if disc.shown and CashPads.touching(p.X - d.X, p.Y - d.Y, p.Z - d.Z) then
-					local paid = CashPadService.touch(world, state.nags, player.UserId, disc.plotIndex, disc.pad, now)
-					if paid > 0 then
-						disc.flashUntil = now + FLASH_SECONDS
-						setText(disc, `+${Economy.formatNumber(paid)}`, LOOK.flash)
+				if near and disc.shown and CashPads.touching(p.X - d.X, p.Y - d.Y, p.Z - d.Z) then
+					local hits: { [string]: boolean } = on or {}
+					hits[k] = true
+					on = hits
+					if not (was and was[k]) then
+						local paid = CashPadService.touch(world, state.nags, userId, disc.plotIndex, disc.pad, now)
+						if paid > 0 then
+							disc.flashUntil = now + c.FLASH_SECONDS
+							setText(disc, `+${Economy.formatNumber(paid)}`, LOOK.flash)
+						end
 					end
 				end
 			end
 		end
+		if on then
+			state.standing[userId] = on
+		else
+			state.standing[userId] = nil
+		end
 	end
 end
 
--- Forgets a leaving player's nag timer.
+-- Forgets a leaving player's nag timer and standing spot.
 function CashPadView.forget(state: State, userId: number)
 	CashPadService.forget(state.nags, userId)
+	state.standing[userId] = nil
 end
 
 return CashPadView

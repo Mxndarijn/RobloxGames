@@ -65,7 +65,6 @@ ForcedFlags.on = {
 	["Pacing server"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
 	["friend bonus in income and State > Income.step pays the bonus"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
 	["GameLoop end to end > income resumes after the clock steps back"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
-	["live pushes during gameplay > an earning player gets a full State at least once a second, never faster than STATE_MIN_INTERVAL"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
 	["MergeVat: a brewing vat locks its slimes > while brewing they earn nothing, live or offline"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
 	["Upgrades (BuyUpgrade) > Strong Arms shrinks the carry slowdown, Night Shift extends the offline cap"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",
 	["RitualService.step > pays Blessed income through Income.step"] = "CashPads off (with it on, income piles up on the cash pads instead of cash)",

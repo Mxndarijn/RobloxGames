@@ -4,7 +4,7 @@
 
 	What happens when a player steps on a cash pad (CashPadView reports the touch). The plot owner collects the
 	pad's pile into cash (CashPads.collect) and gets the "Collect" burst; anyone else gets nothing and a
-	"Not your cash" toast at most once per NAG_SECONDS. A touch on an empty pad, an unowned plot or with the
+	"Not your cash" toast at most once per CASH_PAD.NAG_SECONDS. A touch on an empty pad, an unowned plot or with the
 	flag off does nothing. `nags` (userId -> next allowed toast time) is runtime state the caller owns.
 ]]
 
@@ -18,8 +18,6 @@ type World = World.World
 export type Nags = { [number]: number }
 
 local CashPadService = {}
-
-CashPadService.NAG_SECONDS = 4 -- a visitor sees "Not your cash" at most this often
 
 -- Returns the cash paid to `userId` (0 for anyone but the owner, or an empty pad).
 function CashPadService.touch(
@@ -41,7 +39,7 @@ function CashPadService.touch(
 	end
 	if ownerId ~= userId then
 		if CashPads.pile(owner.data, pad) >= 1 and now >= (nags[userId] or 0) then
-			nags[userId] = now + CashPadService.NAG_SECONDS
+			nags[userId] = now + Config.CASH_PAD.NAG_SECONDS
 			World.notify(world, userId, "Not your cash! Only the owner can collect it.", "bad", nil)
 		end
 		return 0

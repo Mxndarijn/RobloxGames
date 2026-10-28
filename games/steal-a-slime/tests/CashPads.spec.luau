@@ -117,9 +117,10 @@ describe("CashPads in Income.step", function()
 		expect(s.data.cash).toBe(0)
 		expect(CashPads.total(s.data)).toBeCloseTo(PlayerData.incomePerSecond(s.data), 1e-6)
 	end)
-	it("hints once a session how to collect", function()
+	it("hints once a session how to collect while the tutorial runs", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 0)
+		s.data.tutorialStep = 1
 		ServerFixtures.clearEvents(world)
 		for _ = 1, 30 do
 			Income.step(world, 1, nil, ON)
@@ -132,6 +133,25 @@ describe("CashPads in Income.step", function()
 		end
 		expect(hints).toBe(1)
 		expect(s.cashPadHinted).toBe(true)
+	end)
+	it("does not hint players who finished the tutorial", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 0)
+		s.data.tutorialStep = 0
+		ServerFixtures.clearEvents(world)
+		for _ = 1, 30 do
+			Income.step(world, 1, nil, ON)
+		end
+		for _, text in ServerFixtures.notifications(world, 1) do
+			expect(text == Income.CASH_PAD_HINT).toBe(false)
+		end
+	end)
+	it("marks an earning session dirty every second", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1) }, 0)
+		s.dirty = false
+		Income.step(world, 1, nil, ON)
+		expect(s.dirty).toBe(true)
 	end)
 	it("pays cash as before with the flag off", function()
 		local world = ServerFixtures.world()
@@ -177,7 +197,7 @@ describe("CashPadService.touch", function()
 		expect(thief.data.cash).toBe(0)
 		expect(CashPads.pile(s.data, pad)).toBe(900)
 		expect(#ServerFixtures.notifications(world, 2)).toBe(1)
-		CashPadService.touch(world, nags, 2, s.plotIndex, pad, T0 + CashPadService.NAG_SECONDS, ON)
+		CashPadService.touch(world, nags, 2, s.plotIndex, pad, T0 + Config.CASH_PAD.NAG_SECONDS, ON)
 		expect(#ServerFixtures.notifications(world, 2)).toBe(2)
 	end)
 	it("does nothing with the flag off, on an empty plot or a locked pad", function()

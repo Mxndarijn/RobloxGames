@@ -1747,7 +1747,9 @@ local Config = {
 	-- its bottom LIFT studs above the pad's bottom (the floor's look stands about a stud above its walk collider).
 	-- A player's root part within RADIUS + TOUCH_SLACK studs (flat distance) and 0..TOUCH_HEIGHT studs above the disc
 	-- is standing on it. LABEL_DISTANCE: the pile counter shows from this many studs away. HINT_AT: cash waiting on
-	-- the pads that triggers the once-a-session "walk over a pad" toast (Income).
+	-- the pads that triggers the "walk over a pad" toast (Income; once a session, only while the tutorial runs).
+	-- NAG_SECONDS: a visitor on someone else's pad sees "Not your cash" at most this often. FLASH_SECONDS: how long
+	-- the counter shows "+$X" after a collect. SYNC_SECONDS: discs are rebuilt / relabelled at most this often.
 	CASH_PAD = table.freeze({
 		FRONT = 6.6,
 		RADIUS = 1.6,
@@ -1757,6 +1759,9 @@ local Config = {
 		TOUCH_HEIGHT = 6,
 		LABEL_DISTANCE = 60,
 		HINT_AT = 10,
+		NAG_SECONDS = 4,
+		FLASH_SECONDS = 1.2,
+		SYNC_SECONDS = 0.25,
 	}),
 
 	-- Friend income bonus (FEATURES.FriendBonus, CONTRACT.md §11)

@@ -11,11 +11,13 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Perks = if script then require(script.Parent.Perks) else require("./Perks")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 
 type Data = PlayerData.Data
+type Slime = Genome.Slime
 
 local CashPads = {}
 
@@ -75,9 +77,10 @@ function CashPads.add(data: Data, pad: number, amount: number, cap: number): num
 	return after - before
 end
 
--- Is `pad`'s pile at its cap for the slime on it now? False for an empty pad.
-function CashPads.full(data: Data, pad: number): boolean
-	local slime = PlayerData.slimeOnPad(data, pad)
+-- Is `pad`'s pile at its cap for the slime on it now? False for an empty pad. `onPad` saves the lookup when the
+-- caller already knows the slime on that pad.
+function CashPads.full(data: Data, pad: number, onPad: Slime?): boolean
+	local slime = onPad or PlayerData.slimeOnPad(data, pad)
 	if not slime then
 		return false
 	end
