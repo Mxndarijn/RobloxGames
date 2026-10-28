@@ -1672,8 +1672,8 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 				index,
 				WorldView.plotPromptPart(index, "Lock"),
 				if session
-					then LockPad.ring(now, session.lockUntil, session.lockStartedAt, session.lockPadSince)
-					else LockPad.ring(now, 0, 0, nil)
+					then LockPad.ring(true, now, session.lockUntil, session.lockStartedAt, session.lockPadSince)
+					else LockPad.ring(false, now, 0, 0, nil)
 			)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
 			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)
