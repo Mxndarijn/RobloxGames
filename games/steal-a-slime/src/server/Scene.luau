@@ -68,7 +68,8 @@ local Scene = {}
 -- (`breakers`, LockBreak.holders), sorted.
 local function allowedIn(world: World, owner: World.Session, breakers: { [number]: { number } }): { number }
 	local ids = PlotGuests.list(world, owner)
-	for _, id in breakers[owner.plotIndex] or {} do
+	local holders: { number } = (if owner.plotIndex then breakers[owner.plotIndex] else nil) or {}
+	for _, id in holders do
 		if not table.find(ids, id) then
 			table.insert(ids, id)
 		end

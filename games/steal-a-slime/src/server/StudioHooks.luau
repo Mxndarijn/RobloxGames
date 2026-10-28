@@ -236,7 +236,9 @@ function StudioHooks.start(
 			do
 				player:GetAttributeChangedSignal(name):Connect(function()
 					task.spawn(function() -- the grant saves, which yields
-						local ok, err = pcall(applyPurchase, player, purchases, name)
+						local ok, err = pcall(function()
+							applyPurchase(player, purchases, name)
+						end)
 						if not ok then
 							warn(`[StudioHooks] {name}: {err}`)
 						end

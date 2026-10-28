@@ -680,6 +680,12 @@ for _, key in giftable do
 	EXCLUSIVE_PRODUCTS["Gift_" .. key] = product(EXCLUSIVE_PRODUCTS[key].robux, { kind = "gift", item = key })
 end
 
+-- Game Passes, keyed by a permanent pass key (passId 0 = not created yet).
+local EXCLUSIVE_PASSES: { [string]: { passId: number, robux: number, incomeMult: number?, offlineRate: number? } } = {
+	Income2x = table.freeze({ passId = 0, robux = 449, incomeMult = 2 }), -- x2 base income (one more Perks factor)
+	Offline2x = table.freeze({ passId = 0, robux = 199, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
+}
+
 local EXCLUSIVE_SHOP = table.freeze({
 	products = table.freeze(EXCLUSIVE_PRODUCTS),
 	trails = CARRY_TRAILS,
@@ -692,10 +698,7 @@ local EXCLUSIVE_SHOP = table.freeze({
 		aimSeconds = 120, -- an AimGift target is forgotten after this long without a receipt
 		creditMax = 20, -- most unsent gifts a player can hold (a gift whose target left or already owns it)
 	}),
-	passes = table.freeze({
-		Income2x = table.freeze({ passId = 0, robux = 449, incomeMult = 2 }), -- x2 base income (one more Perks factor)
-		Offline2x = table.freeze({ passId = 0, robux = 199, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
-	}),
+	passes = table.freeze(EXCLUSIVE_PASSES),
 	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = carry trails + Bat skins
 	finishBrewBrackets = table.freeze({ 300, 1800, 3600, math.huge }) :: { number }, -- seconds left -> FinishBrew_<i>
 	featuredCount = 4, -- seats in the weekly rotation (ExclusiveRotation), the same on every server
