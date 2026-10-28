@@ -3,7 +3,8 @@
 	RingPad (pure)
 
 	A round floor pad you stand on: a ring of `segments` curved pieces round a centre, each piece made of `curve`
-	straight blocks so the ring reads as a circle. The pieces light up one by one (a charge, a countdown), always a
+	straight blocks so the ring reads as a circle. Between two pieces is a straight cut `gap` studs wide, the same
+	width from the inner edge to the outer edge. The pieces light up one by one (a charge, a countdown), always a
 	whole piece at a time. RingPadView builds and colours the parts; this module holds the shape and the rules.
 
 	Local frame: y up, the pad's front is -Z, pieces run clockwise seen from above, piece 1 starting at the front.
@@ -18,12 +19,12 @@
 
 export type Options = {
 	segments: number?, -- pieces in the ring
-	curve: number?, -- straight blocks per piece (more = rounder)
+	curve: number?, -- straight blocks per piece, at least 2 (more = rounder)
 	radius: number?, -- studs from the centre to the middle of the ring
 	width: number?, -- studs across the ring
 	thickness: number?, -- studs thick
 	lift: number?, -- studs the ring's underside sits above the floor
-	gap: number?, -- share of each piece's arc left open before the next piece (0 = no cuts)
+	gap: number?, -- studs wide, the cut between two pieces (0 = no cuts)
 	reach: number?, -- studs from the centre (flat) that count as standing on it; default the ring's outer edge
 	height: number?, -- studs above the floor a standing point may be
 }
@@ -63,7 +64,7 @@ RingPad.DEFAULTS = table.freeze({
 	width = 1.6,
 	thickness = 0.12,
 	lift = 0.05,
-	gap = 0.1,
+	gap = 0.2,
 	height = 7,
 })
 
@@ -98,40 +99,60 @@ function RingPad.shape(options: Options?): Shape
 	if shape.width >= 2 * shape.radius then
 		error("RingPad: width must be less than twice the radius", 2)
 	end
-	if shape.gap < 0 or shape.gap >= 1 or shape.lift < 0 then
-		error("RingPad: gap must be in [0, 1) and lift at least 0", 2)
+	if shape.curve < 2 then
+		error("RingPad: curve must be at least 2", 2)
+	end
+	local inner = shape.radius - shape.width / 2
+	if shape.gap < 0 or shape.gap >= inner * math.sin(math.pi / shape.segments) or shape.lift < 0 then
+		error("RingPad: gap must be at least 0 and narrower than a piece's inner edge, lift at least 0", 2)
 	end
 	return table.freeze(shape)
 end
 
+local OVERLAP = 0.02 -- studs each block runs into its neighbour, so no hairline shows between blocks of one piece
+
 --[[
-	Every block, piece by piece (`segment` 1..segments, `index` 1..curve). Each block is as long as the ring's outer
-	edge over its angle, so neighbouring blocks of one piece meet at the outside and overlap a little on the inside.
+	Every block, piece by piece (`segment` 1..segments, `index` 1..curve). The first and last block of a piece lie
+	along the cut next to them, their end face `gap / 2` from the cut's centre line, so every cut is a strip of even
+	width. The blocks between follow the circle, as long as the outer edge over their angle, and overlap a little on
+	the inside of the ring.
 ]]
 function RingPad.blocks(shape: Shape): { Block }
 	local n, k = shape.segments, shape.curve
 	local piece = 2 * math.pi / n
-	local span = piece * (1 - shape.gap)
-	local step = span / k
-	local length = 2 * (shape.radius + shape.width / 2) * math.tan(step / 2)
+	local outer = shape.radius + shape.width / 2
+	local half = shape.gap / 2
+	local cutAngle = math.atan(half / outer) -- angle the cut takes up on each side of its centre line, at the outer edge
+	local step = (piece - 2 * cutAngle) / k -- outer-edge angle per block
+	local capLength = outer * math.tan(cutAngle + step) - half + OVERLAP
+	local midLength = 2 * outer * math.tan(step / 2) + OVERLAP
 	local y = shape.lift + shape.thickness / 2
 	local out: { Block } = {}
+
+	local function add(segment: number, index: number, angle: number, along: number, length: number)
+		-- the block's centre: on the middle line at `angle`, moved `along` studs round the ring (clockwise)
+		local sin, cos = math.sin(angle), math.cos(angle)
+		table.insert(out, {
+			segment = segment,
+			index = index,
+			yaw = -angle,
+			x = shape.radius * sin + along * cos,
+			y = y,
+			z = -shape.radius * cos + along * sin,
+			length = length,
+			width = shape.width,
+			thickness = shape.thickness,
+		})
+	end
+
 	for s = 1, n do
-		local start = (s - 1) * piece + (piece - span) / 2
-		for j = 1, k do
-			local t = start + (j - 0.5) * step -- clockwise angle from the front
-			table.insert(out, {
-				segment = s,
-				index = j,
-				yaw = -t,
-				x = shape.radius * math.sin(t),
-				y = y,
-				z = -shape.radius * math.cos(t),
-				length = length,
-				width = shape.width,
-				thickness = shape.thickness,
-			})
+		local first = (s - 1) * piece -- the cut before this piece, clockwise from the front
+		local last = s * piece
+		add(s, 1, first, half + capLength / 2, capLength)
+		for j = 2, k - 1 do
+			add(s, j, first + cutAngle + (j - 0.5) * step, 0, midLength)
 		end
+		add(s, k, last, -(half + capLength / 2), capLength)
 	end
 	return out
 end

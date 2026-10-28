@@ -21,14 +21,33 @@ describe("RingPad.shape", function()
 		expect(pcall(RingPad.shape, { radius = 0 })).toBe(false)
 		expect(pcall(RingPad.shape, { segments = 2.5 })).toBe(false)
 		expect(pcall(RingPad.shape, { radius = 1, width = 2 })).toBe(false)
-		expect(pcall(RingPad.shape, { gap = 1 })).toBe(false)
+		expect(pcall(RingPad.shape, { gap = -1 })).toBe(false)
 		expect(pcall(RingPad.shape, { width = 0 / 0 })).toBe(false)
 	end)
 end)
 
 describe("RingPad.blocks", function()
-	local shape = RingPad.shape({ segments = 12, curve = 4, radius = 4.6, width = 1.6, gap = 0.1 })
+	local shape = RingPad.shape({ segments = 12, curve = 4, radius = 4.6, width = 1.6, gap = 0.2 })
 	local blocks = RingPad.blocks(shape)
+	local piece = 2 * math.pi / shape.segments
+	local inner, outer = shape.radius - shape.width / 2, shape.radius + shape.width / 2
+
+	-- a point `r` studs out along the cut's centre line at `angle`, then `e` studs round the ring (clockwise)
+	local function at(angle: number, r: number, e: number): (number, number)
+		return r * math.sin(angle) + e * math.cos(angle), -r * math.cos(angle) + e * math.sin(angle)
+	end
+	local function covered(x: number, z: number): boolean
+		for _, b in blocks do
+			local a = -b.yaw
+			local dx, dz = x - b.x, z - b.z
+			local along = dx * math.cos(a) + dz * math.sin(a)
+			local across = dx * math.sin(a) - dz * math.cos(a)
+			if math.abs(along) <= b.length / 2 and math.abs(across) <= b.width / 2 then
+				return true
+			end
+		end
+		return false
+	end
 
 	it("has curve blocks for every piece, in order", function()
 		expect(#blocks).toBe(48)
@@ -37,33 +56,48 @@ describe("RingPad.blocks", function()
 		expect(blocks[5].segment).toBe(2)
 		expect(blocks[48].index).toBe(4)
 	end)
-	it("puts every block on the ring's middle line, turned along the ring", function()
-		for _, b in blocks do
-			expect(near(math.sqrt(b.x * b.x + b.z * b.z), shape.radius)).toBe(true)
-			-- turned by its own angle round the ring, so its length runs along the ring
-			expect(near(math.sin(-b.yaw), b.x / shape.radius)).toBe(true)
-			expect(near(math.cos(-b.yaw), -b.z / shape.radius)).toBe(true)
-		end
-	end)
 	it("starts at the front and runs clockwise seen from above", function()
 		local first, second = blocks[1], blocks[5]
 		expect(first.z < 0).toBe(true)
 		expect(math.abs(first.x) < 1.5).toBe(true)
 		expect(second.x > first.x).toBe(true)
 	end)
-	it("leaves a cut between pieces but none inside a piece", function()
-		local step = (2 * math.pi / 12) * 0.9 / 4
-		local a1 = -blocks[1].yaw
-		expect(near(-blocks[2].yaw - a1, step)).toBe(true)
-		local gapAngle = -blocks[5].yaw - -blocks[4].yaw
-		expect(gapAngle > step).toBe(true)
+	it("every cut is open and gap wide, the same at the inner edge, the middle and the outer edge", function()
+		for s = 0, shape.segments - 1 do
+			local cut = s * piece
+			for _, r in { inner + 0.03, shape.radius, outer - 0.03 } do
+				expect(covered(at(cut, r, 0))).toBe(false)
+				expect(covered(at(cut, r, shape.gap / 2 - 0.02))).toBe(false)
+				expect(covered(at(cut, r, -(shape.gap / 2 - 0.02)))).toBe(false)
+				expect(covered(at(cut, r, shape.gap / 2 + 0.02))).toBe(true)
+				expect(covered(at(cut, r, -(shape.gap / 2 + 0.02)))).toBe(true)
+			end
+		end
 	end)
-	it("blocks of one piece meet at the outer edge", function()
-		local step = (2 * math.pi / 12) * 0.9 / 4
-		expect(near(blocks[1].length, 2 * (shape.radius + shape.width / 2) * math.tan(step / 2))).toBe(true)
+	it("has no holes inside a piece", function()
+		for s = 0, shape.segments - 1 do
+			for step = 1, 39 do
+				local angle = s * piece + piece * step / 40
+				for _, r in { inner + 0.03, shape.radius, outer - 0.03 } do
+					local x, z = r * math.sin(angle), -r * math.cos(angle)
+					local cutDistance = r * math.sin(math.min(angle - s * piece, (s + 1) * piece - angle))
+					if cutDistance > shape.gap / 2 + 0.02 then
+						expect(covered(x, z)).toBe(true)
+					end
+				end
+			end
+		end
+	end)
+	it("stays on the ring: nothing sticks out past the edges", function()
+		expect(covered(at(piece / 2, outer + 0.06, 0))).toBe(false)
+		expect(covered(at(piece / 2, inner - 0.06, 0))).toBe(false)
 	end)
 	it("sits lift above the floor", function()
 		expect(near(blocks[1].y, shape.lift + shape.thickness / 2)).toBe(true)
+	end)
+	it("refuses a gap wider than a piece's inner edge", function()
+		expect(pcall(RingPad.shape, { radius = 4.6, width = 1.6, gap = 3 })).toBe(false)
+		expect(pcall(RingPad.shape, { curve = 1 })).toBe(false)
 	end)
 end)
 
