@@ -7,7 +7,8 @@
 	    receipt through the shared ReceiptLedger: player not in this server / data not loaded / unknown product ->
 	    NotProcessedYet; a PurchaseId already in `data.receipts` -> PurchaseGranted; else Purchases.grant, record the
 	    id and save now (`options.save`, the session-locked Persistence save); only a written save answers
-	    PurchaseGranted. `join` checks the Game Passes (UserOwnsGamePassAsync; passId 0 is skipped) and the paid
+	    PurchaseGranted. A gift (Gift_<item>) writes its target's save through the same `options.save` inside the
+	    grant; a target save that fails leaves the buyer a gift credit instead. `join` checks the Game Passes (UserOwnsGamePassAsync; passId 0 is skipped) and the paid
 	    random items policy once per player; `passPurchased` handles PromptGamePassPurchaseFinished. `grantProduct`,
 	    `setPass` and `setPaidRandomAllowed` are the same paths for StudioHooks.
 	  * `start(service)` (Roblox only): sets the one `MarketplaceService.ProcessReceipt`, connects the Game Pass prompt
@@ -93,6 +94,16 @@ function PurchaseService.service(options: Options): Service
 		return nil
 	end
 
+	-- Purchases.grant's context: the flag overrides plus `save`, so a gift writes its target's save the same way
+	-- (session-locked, now) before it counts.
+	local grantCtx: Purchases.Context = {
+		features = if options.ctx then options.ctx.features else nil,
+		save = function(targetId: number, data: any): boolean
+			local ok, written = pcall(options.save, targetId, data)
+			return ok and written == true
+		end,
+	}
+
 	function self.grantProduct(userId: number, productKey: string, purchaseId: string): Decision
 		if not self.enabled() then
 			return "NotProcessedYet"
@@ -110,7 +121,7 @@ function PurchaseService.service(options: Options): Service
 			cap = Config.EXCLUSIVE_SHOP.receiptMemory,
 			pending = mine,
 			grant = function()
-				return Purchases.grant(world, session, productKey, options.now(), options.ctx)
+				return Purchases.grant(world, session, productKey, options.now(), grantCtx)
 			end,
 			save = function()
 				local ok, written = pcall(options.save, userId, data)

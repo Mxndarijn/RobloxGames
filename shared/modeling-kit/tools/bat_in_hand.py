@@ -1,6 +1,7 @@
 """Render the ranch_bat held in a blocky R15 right hand, at the Tool.Grip point (a stand-in, not a Studio render).
 
     blender -b --factory-startup --python tools/bat_in_hand.py -- --out /path/bat_in_hand.png [--res 900] [--samples 48]
+        [--model bat_skin_fish]   # any upright held mesh in the ranch_bat frame (default ranch_bat)
 
 Roblox maths (Tool.Grip): HandleCF = RightHand * RightGripAttachment * Grip:Inverse(), with the R15
 RightGripAttachment = CFrame.new(0, -0.1, 0) * Angles(-90 deg, 0, 0) (hand-local Y runs up the forearm).
@@ -54,7 +55,7 @@ def main():
     att = hand_c + Vector((0, -0.1, 0))
     # fingers wrapped round the bat: a short curled block in front of the palm
     objs.append(part("Fingers", (1.04, 0.34, 0.5), att + Vector((0, -0.05, 0.0)), rgb(250, 214, 70), 0.1))
-    bat = H.run_model("ranch_bat", (att.x, att.y, att.z - GRIP_Y), (0, 0, 0), 1.0)
+    bat = H.run_model(arg("--model", "ranch_bat"), (att.x, att.y, att.z - GRIP_Y), (0, 0, 0), 1.0)
     objs.append(bat)
     objs.append(box("Floor", (30, 30, 0.2), (0, 0, -0.1), rgb(120, 196, 108)))
 

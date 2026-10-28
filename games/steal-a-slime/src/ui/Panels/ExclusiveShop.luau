@@ -17,6 +17,14 @@
 	without a Roblox id yet shows its price and a disabled "Not on sale yet". The server Luck Potion (Boosts) shows
 	only where paid random items are allowed and has a "Details" button with its effect and the fountain odds
 	without and with it. Without State.exclusiveShop (FEATURES.ExclusiveShop off) the card is one closed line.
+
+	Style: carry trails and Bat skins, bought like a seat; owned ones Equip (EquipTrail / EquipBatSkin) and the worn one
+	has a secondary "Unequip" / "Use default Bat" (the request with ""). Every cosmetic (cloud, trail, Bat skin) has a
+	secondary Gift button under the main one: it swaps the pane for a player picker (players on this server, friends
+	first, never you). Picking a player sends AimGift(itemKey, userId) and, once the server takes it, opens Roblox's
+	prompt for Gift_<key>; a refusal greys that player and shows the server's reason. An unsent gift credit turns the
+	button into "Send gift", which sends SendGift(itemKey, userId) through the same picker. Requests the server does
+	not have (ctx.actions) hide their buttons.
 ]]
 
 local UI = script.Parent.Parent
@@ -36,7 +44,8 @@ ExclusiveShop.STYLE = table.freeze({
 	tabH = Layout.MIN_TOUCH_DESIGN,
 	tabMaxW = 116,
 	tabGap = 6,
-	tabText = 17,
+	tabText = 17, -- shrinks to fit the narrowest tab, never under Layout.MIN_TEXT
+	tabTextPad = 8, -- each side of a tab's text
 	chip = 15,
 	chipH = 26,
 	gap = 10,
@@ -79,7 +88,31 @@ ExclusiveShop.STYLE = table.freeze({
 	sheetShare = 0.72, -- sheet height per body height under the tabs
 	sheetMin = 240,
 	sheetX = Layout.MIN_TOUCH_DESIGN,
+	-- gift picker
+	rowGap = 6,
+	rowPad = 12, -- a player row's text inset
+	friendW = 70, -- the Friend chip on a row
 })
+
+-- The largest tab text size up to STYLE.tabText at which every tab name fits a `tabW` px tab (pure; tests).
+function ExclusiveShop.tabTextSize(tabs: { string }, tabW: number): number
+	local S = ExclusiveShop.STYLE
+	local size = S.tabText
+	while size > Layout.MIN_TEXT do
+		local fits = true
+		for _, name in tabs do
+			if Layout.lineWidth(name, size, true) > tabW - S.tabTextPad * 2 then
+				fits = false
+				break
+			end
+		end
+		if fits then
+			break
+		end
+		size -= 1
+	end
+	return size
+end
 
 local STYLE = ExclusiveShop.STYLE
 
@@ -175,6 +208,32 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 	local targetDetails = false -- show(): with its Details open
 	local bodyW, bodyH = Layout.MENU_WIDTH - c.pad * 2, fullH
 	local repaint: () -> ()
+	-- Gifts: the picker's item (nil = closed), players the server refused for it, its line of text, an AimGift /
+	-- SendGift in flight, and the card whose Gift_<key> Roblox prompt is open.
+	type Picker = { key: string, title: string, gift: ExclusiveShopView.Gift }
+	local picker: Picker? = nil
+	local refused: { [number]: boolean } = {}
+	local pickerMessage: string? = nil
+	local pickerBusy = false
+	local giftWaiting: string? = nil
+	local openPicker: (detail: ExclusiveShopView.Detail, gift: ExclusiveShopView.Gift) -> ()
+
+	-- True when the server has Request `name` (ctx.actions = Remotes.ACTIONS).
+	local function hasAction(name: string): boolean
+		return ctx.actions ~= nil and ctx.actions[name] ~= nil
+	end
+	-- A Gift button the player can press: a gift on sale (AimGift) or an unsent credit (SendGift).
+	local function giftUsable(gift: ExclusiveShopView.Gift): boolean
+		if gift.mode == "buy" then
+			return hasAction("AimGift") and ctx.purchase ~= nil
+		end
+		return gift.mode == "send" and hasAction("SendGift")
+	end
+	local function closePicker()
+		picker = nil
+		pickerMessage = nil
+		pickerBusy = false
+	end
 
 	---------------------------------------------------------------- tabs
 	local tabButtons: { [string]: Widgets.Button } = {}
@@ -192,6 +251,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 				tab = key
 				sheetOpen = false
 				detailsOpen = false
+				closePicker()
 				repaint()
 			end
 		)
@@ -219,10 +279,12 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local tabs = Config.EXCLUSIVE_SHOP.tabs
 		local n = #tabs
 		local tabW = math.min(STYLE.tabMaxW, math.floor((bodyW - STYLE.tabGap * (n - 1)) / n))
+		local tabText = ExclusiveShop.tabTextSize(tabs, tabW)
 		for i, key in tabs do
 			local b = tabButtons[key].instance
 			b.Position = UDim2.fromOffset((i - 1) * (tabW + STYLE.tabGap), 0)
 			b.Size = UDim2.fromOffset(tabW, STYLE.tabH)
+			b.TextSize = tabText
 		end
 		local top = STYLE.tabH + STYLE.gap
 		local h = math.max(bodyH - top, 0)
@@ -288,6 +350,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			if type(key) == "string" then
 				if selected ~= key then
 					detailsOpen = false
+					closePicker()
 				end
 				selected = key
 				sheetOpen = true
@@ -524,12 +587,43 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		},
 		Theme.Accent,
 		function()
-			if current and current.kind == "seat" and ctx.request then
-				ctx.request("EquipPetSeat", function() end, current.id)
+			local equip = current and current.action.equip
+			if equip and ctx.request and hasAction(equip.request) then
+				ctx.request(equip.request, function() end, equip.arg)
 			end
 		end
 	)
 	equipButton.instance.Parent = pane
+	local unequipButton = Widgets.button(
+		{
+			Name = "Unequip",
+			TextSize = STYLE.buttonText,
+			Size = UDim2.fromOffset(0, STYLE.button),
+		},
+		Theme.Info,
+		function()
+			local unequip = current and current.unequip
+			if unequip and ctx.request and hasAction(unequip.request) then
+				ctx.request(unequip.request, function() end, unequip.arg)
+			end
+		end
+	)
+	unequipButton.instance.Parent = pane
+	local giftButton = Widgets.button(
+		{
+			Name = "Gift",
+			TextSize = STYLE.buttonText,
+			Size = UDim2.fromOffset(0, STYLE.button),
+		},
+		Theme.Info,
+		function()
+			local gift = current and current.gift
+			if current and gift and giftUsable(gift) and giftWaiting ~= current.key then
+				openPicker(current, gift)
+			end
+		end
+	)
+	giftButton.instance.Parent = pane
 	local well = Widgets.status({
 		Name = "Well",
 		TextSize = STYLE.buttonText,
@@ -553,8 +647,206 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 	Widgets.shade(sheetClose)
 	sheetClose.Activated:Connect(function()
 		sheetOpen = false
+		closePicker()
 		repaint()
 	end)
+
+	---------------------------------------------------------------- gift picker
+	-- Over the pane (same place, same shape) while a Gift / Send gift button is open.
+	local pickerFrame = Widgets.scroll({
+		Name = "GiftPicker",
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Theme.Row,
+		AutomaticCanvasSize = Enum.AutomaticSize.None,
+		ScrollBarThickness = 4,
+		Visible = false,
+		Parent = content,
+	})
+	Widgets.corner(KIT.rowRadius).Parent = pickerFrame
+	local pickerStroke = Widgets.stroke(Theme.Ink, KIT.rowStroke)
+	pickerStroke.Parent = pickerFrame
+	local function pickerLabel(name: string, size: number, color: Color3, font: any): TextLabel
+		return Widgets.label({
+			Name = name,
+			[Widgets.fontKey(font)] = font,
+			TextSize = size,
+			TextColor3 = color,
+			TextWrapped = true,
+			TextTruncate = Enum.TextTruncate.None,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			Parent = pickerFrame,
+		})
+	end
+	local pickerTitle = pickerLabel("GiftTitle", STYLE.title, Theme.Text, Theme.Font)
+	local pickerText = pickerLabel("GiftMessage", STYLE.text, Theme.Muted, Theme.FontBody)
+	local pickerEmpty = pickerLabel("GiftEmpty", STYLE.text, Theme.Muted, Theme.FontBody)
+	pickerEmpty.Text = ExclusiveShopView.GIFT_EMPTY
+	local playerList = create("Frame", { Name = "GiftList", BackgroundTransparency = 1, Parent = pickerFrame })
+	local backButton = Widgets.button(
+		{
+			Name = "GiftBack",
+			Text = ExclusiveShopView.BACK,
+			TextSize = STYLE.buttonText,
+			Size = UDim2.fromOffset(0, STYLE.button),
+		},
+		Theme.Info,
+		function()
+			closePicker()
+			repaint()
+		end
+	)
+	backButton.instance.Parent = pickerFrame
+
+	local ask = ctx.ask
+		or function(action: string, done: (any) -> (), ...: any)
+			if ctx.request then
+				ctx.request(action, done, ...)
+			end
+		end
+
+	local function refusedText(result: any): string?
+		if type(result) == "table" and result.ok == false then
+			return if type(result.message) == "string" and result.message ~= ""
+				then result.message
+				else ExclusiveShopView.GIFT_REFUSED
+		end
+		return nil
+	end
+
+	-- A player row tapped: aim the gift (then Roblox's prompt) or send the unsent credit.
+	local function pick(userId: number)
+		local p = picker
+		if p == nil or pickerBusy or refused[userId] then
+			return
+		end
+		local gift = p.gift
+		local action = if gift.mode == "send" then "SendGift" else "AimGift"
+		if not giftUsable(gift) then
+			return
+		end
+		pickerBusy = true
+		ask(action, function(result: any)
+			if picker ~= p then
+				return -- closed or moved on meanwhile
+			end
+			pickerBusy = false
+			local why = refusedText(result)
+			if why then
+				refused[userId] = true
+				pickerMessage = why
+			elseif gift.mode == "buy" then
+				if gift.purchase and ctx.purchase and ctx.purchase.prompt(gift.purchase) then
+					giftWaiting = p.key
+				end
+				closePicker()
+			else
+				closePicker()
+			end
+			repaint()
+		end, gift.itemKey, userId)
+	end
+
+	local players = Widgets.keyedList(playerList, function(t: ExclusiveShopView.GiftTarget)
+		return `Player_{t.userId}`
+	end, function(t: ExclusiveShopView.GiftTarget): any
+		local userId = t.userId
+		local button = Widgets.button(
+			{
+				Name = `Player_{userId}`,
+				TextSize = STYLE.buttonText,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+			},
+			Theme.Info,
+			function()
+				pick(userId)
+			end
+		)
+		create("UIPadding", {
+			PaddingLeft = UDim.new(0, STYLE.rowPad),
+			PaddingRight = UDim.new(0, STYLE.rowPad),
+			Parent = button.instance,
+		})
+		local friend = Widgets.chip({
+			Name = "FriendTag",
+			Text = ExclusiveShopView.FRIEND,
+			TextSize = STYLE.tag,
+			AutomaticSize = Enum.AutomaticSize.None,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.fromScale(1, 0.5),
+			Size = UDim2.fromOffset(STYLE.friendW, STYLE.tagH),
+			Parent = button.instance,
+		}, Theme.Good)
+		return { instance = button.instance, button = button, friend = friend }
+	end, function(r: any, t: ExclusiveShopView.GiftTarget, index: number)
+		local w = pickerFrame.Size.X.Offset - STYLE.pad * 2
+		r.instance.Position = UDim2.fromOffset(0, (index - 1) * (STYLE.button + STYLE.rowGap))
+		r.instance.Size = UDim2.fromOffset(w, STYLE.button)
+		r.button.setText(t.name)
+		r.button.setEnabled(not refused[t.userId] and not pickerBusy)
+		r.instance:SetAttribute("Refused", refused[t.userId] == true)
+		r.friend.Visible = t.friend
+		local pad = r.instance:FindFirstChildOfClass("UIPadding") :: UIPadding
+		pad.PaddingRight = UDim.new(0, if t.friend then STYLE.friendW + STYLE.rowPad else STYLE.rowPad)
+	end)
+
+	local function paintPicker()
+		local p = picker
+		local shown = p ~= nil and current ~= nil and current.key == p.key and (wide() or sheetOpen)
+		pickerFrame.Visible = shown
+		if p == nil or not shown then
+			return
+		end
+		pickerFrame.Position = pane.Position
+		pickerFrame.Size = pane.Size
+		pickerStroke.Thickness = paneStroke.Thickness
+		local w = pane.Size.X.Offset
+		local inner = math.max(w - STYLE.pad * 2, 1)
+		-- the sheet's X sits over the top-right corner
+		local titleW = if wide() then inner else math.max(inner - STYLE.sheetX - 4, 1)
+		local y = STYLE.pad
+		local verb = if p.gift.mode == "send" then ExclusiveShopView.SEND_GIFT else ExclusiveShopView.GIFT
+		pickerTitle.Text = `{verb}: {p.title}`
+		local titleH = math.ceil(Layout.wrappedHeight(pickerTitle.Text, STYLE.title, titleW, true))
+		pickerTitle.Position = UDim2.fromOffset(STYLE.pad, y)
+		pickerTitle.Size = UDim2.fromOffset(titleW, titleH)
+		y += titleH + 4
+		local message = pickerMessage or ExclusiveShopView.GIFT_HINT
+		pickerText.Text = message
+		pickerText.TextColor3 = if pickerMessage then Theme.Text else Theme.Muted
+		local textH = math.ceil(Layout.wrappedHeight(message, STYLE.text, inner))
+		pickerText.Position = UDim2.fromOffset(STYLE.pad, y)
+		pickerText.Size = UDim2.fromOffset(inner, textH)
+		y += textH + 8
+		local list = ExclusiveShopView.giftTargets(if ctx.giftPlayers then ctx.giftPlayers() else {}, ctx.userId)
+		pickerEmpty.Visible = #list == 0
+		if #list == 0 then
+			local emptyH = math.ceil(Layout.wrappedHeight(ExclusiveShopView.GIFT_EMPTY, STYLE.text, inner))
+			pickerEmpty.Position = UDim2.fromOffset(STYLE.pad, y)
+			pickerEmpty.Size = UDim2.fromOffset(inner, emptyH)
+			y += emptyH + 8
+		end
+		players.sync(list)
+		local listH = #list * STYLE.button + math.max(#list - 1, 0) * STYLE.rowGap
+		playerList.Position = UDim2.fromOffset(STYLE.pad, y)
+		playerList.Size = UDim2.fromOffset(inner, listH)
+		y += listH + (if #list > 0 then 8 else 0)
+		backButton.instance.Position = UDim2.fromOffset(STYLE.pad, y)
+		backButton.instance.Size = UDim2.fromOffset(inner, STYLE.button)
+		y += STYLE.button + STYLE.pad
+		pickerFrame.CanvasSize = UDim2.fromOffset(0, y)
+	end
+
+	function openPicker(detail: ExclusiveShopView.Detail, gift: ExclusiveShopView.Gift)
+		if picker == nil or picker.key ~= detail.key or picker.gift.mode ~= gift.mode then
+			refused = {}
+		end
+		picker = { key = detail.key, title = detail.title, gift = gift }
+		pickerMessage = nil
+		pickerBusy = false
+		repaint()
+	end
 
 	local function paintPane(detail: ExclusiveShopView.Detail?)
 		current = detail
@@ -642,16 +934,54 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		buyButton.instance.Visible = not isWaiting and (action.kind == "buy" or action.kind == "offsale")
 		buyButton.setEnabled(action.kind == "buy" and ctx.purchase ~= nil)
 		buyButton.setText(action.text)
-		equipButton.instance.Visible = action.kind == "equip"
-		well.Visible = isWaiting or action.kind == "well"
-		well.Text = if isWaiting then ExclusiveShopView.WAITING else action.text
+		local equip = action.equip
+		local canEquip = equip ~= nil and hasAction(equip.request)
+		equipButton.instance.Visible = action.kind == "equip" and canEquip
+		local ownedWell = action.kind == "equip" and not canEquip -- the server can't equip it yet
+		well.Visible = isWaiting or action.kind == "well" or ownedWell
+		well.Text = if isWaiting
+			then ExclusiveShopView.WAITING
+			elseif ownedWell then ExclusiveShopView.OWNED
+			else action.text
 		well.TextColor3 = if detail.state == "equipped" then Theme.Good else Theme.Muted
 		for _, inst in { buyButton.instance :: GuiObject, equipButton.instance, well } do
 			inst.Position = UDim2.fromOffset(STYLE.pad, y)
 			inst.Size = UDim2.fromOffset(inner, STYLE.button)
 		end
-		y += STYLE.button + STYLE.pad
+		y += STYLE.button + 8
+
+		-- Secondary buttons under the main one: take the worn trail / Bat skin off, then Gift.
+		local unequip = detail.unequip
+		local showUnequip = unequip ~= nil and hasAction(unequip.request)
+		unequipButton.instance.Visible = showUnequip
+		if showUnequip then
+			unequipButton.setText(detail.unequipText or ExclusiveShopView.UNEQUIP_TRAIL)
+			unequipButton.instance.Position = UDim2.fromOffset(STYLE.pad, y)
+			unequipButton.instance.Size = UDim2.fromOffset(inner, STYLE.button)
+			y += STYLE.button + 8
+		end
+		local gift = detail.gift
+		local showGift = gift ~= nil and hasAction(if gift.mode == "send" then "SendGift" else "AimGift")
+		giftButton.instance.Visible = showGift
+		if gift and showGift then
+			local giftWait = giftWaiting == detail.key
+			giftButton.setText(if giftWait then ExclusiveShopView.WAITING else gift.text)
+			giftButton.setEnabled(giftUsable(gift) and not giftWait)
+			giftButton.instance:SetAttribute("Mode", gift.mode)
+			giftButton.instance.Position = UDim2.fromOffset(STYLE.pad, y)
+			giftButton.instance.Size = UDim2.fromOffset(inner, STYLE.button)
+			y += STYLE.button + 8
+		end
+		y += STYLE.pad - 8
 		pane.CanvasSize = UDim2.fromOffset(0, y)
+
+		-- The picker belongs to one card; it stands in for that card's pane while it is open.
+		if picker and picker.key ~= detail.key then
+			closePicker()
+		end
+		if picker then
+			pane.Visible = false
+		end
 	end
 
 	---------------------------------------------------------------- state
@@ -666,6 +996,13 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		for key, own in (if type(shop.passes) == "table" then shop.passes else {}) :: { [string]: any } do
 			if own == true then
 				out[`pass:{key}`] = true
+			end
+		end
+		for kind, field in { trail = "trails", batSkin = "batSkins" } do
+			for id, own in (if type(shop[field]) == "table" then shop[field] else {}) :: { [string]: any } do
+				if own == true then
+					out[`{kind}:{id}`] = true
+				end
 			end
 		end
 		if shop.starterClaimed == true then
@@ -723,6 +1060,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			empty.Position = UDim2.fromOffset(0, 0)
 			grid.Visible = false
 			pane.Visible = false
+			pickerFrame.Visible = false
 			sheetClose.Visible = false
 			summary.Visible = false
 			if open then
@@ -748,12 +1086,14 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local lines = math.ceil(#list / columns)
 		grid.CanvasSize = UDim2.fromOffset(0, lines * cardH + math.max(lines - 1, 0) * STYLE.cardGap + 6)
 		paintPane(if selected then ExclusiveShopView.detail(selected, latest, Config) else nil)
+		paintPicker()
 	end
 
 	if ctx.purchase and ctx.purchase.onClosed then
 		ctx.purchase.onClosed(function()
-			if waiting then
+			if waiting or giftWaiting then
 				waiting = nil
+				giftWaiting = nil
 				repaint()
 			end
 		end)
@@ -780,6 +1120,8 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		end
 		if not isOpen then
 			waiting = nil
+			giftWaiting = nil
+			closePicker()
 			if open and ctx.exclusiveShopHidden then
 				ctx.exclusiveShopHidden() -- opened at the jar boutique: the server closes its side too
 			end
@@ -814,12 +1156,16 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		tab = key
 		sheetOpen = false
 		detailsOpen = false
+		closePicker()
 		repaint()
 	end
 	function self.selected(): string?
 		return selected
 	end
 	function self.select(key: string)
+		if selected ~= key then
+			closePicker()
+		end
 		selected = key
 		sheetOpen = true
 		detailsOpen = false

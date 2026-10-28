@@ -27,6 +27,58 @@
     "uploadedAt": "2026-10-16T11:27:16Z",
     "versions": 1
   },
+  "bat_skin_fish": {
+    "assetId": "131245947199367",
+    "assetType": "Model",
+    "meshId": "rbxassetid://77117254245604",
+    "meshSize": [
+      1.992,
+      5.089,
+      1.074
+    ],
+    "sha256": "af16db3e6f260716",
+    "uploadedAt": "2026-10-28T18:45:25Z",
+    "versions": 1
+  },
+  "bat_skin_foam_finger": {
+    "assetId": "135901471533511",
+    "assetType": "Model",
+    "meshId": "rbxassetid://103574945844021",
+    "meshSize": [
+      1.5,
+      5.09,
+      0.955
+    ],
+    "sha256": "04b2020160e1b9a2",
+    "uploadedAt": "2026-10-28T18:45:32Z",
+    "versions": 1
+  },
+  "bat_skin_golden": {
+    "assetId": "99603213734708",
+    "assetType": "Model",
+    "meshId": "rbxassetid://129112512417990",
+    "meshSize": [
+      1.28,
+      5.09,
+      1.482
+    ],
+    "sha256": "9810babd500d01bc",
+    "uploadedAt": "2026-10-28T18:45:38Z",
+    "versions": 1
+  },
+  "bat_skin_lollipop": {
+    "assetId": "94349711264908",
+    "assetType": "Model",
+    "meshId": "rbxassetid://125426334354361",
+    "meshSize": [
+      2.079,
+      5.09,
+      0.76
+    ],
+    "sha256": "d21a2e7dc87823c6",
+    "uploadedAt": "2026-10-28T18:59:35Z",
+    "versions": 2
+  },
   "exclusive_jar_boutique_glass": {
     "assetId": "92353179686979",
     "assetType": "Model",

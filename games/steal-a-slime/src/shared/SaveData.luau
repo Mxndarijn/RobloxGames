@@ -38,10 +38,14 @@
 	(BossBadges, contract/boss-event.md) replaces the boss trophy list `trophies`. v8 -> v9 (migrateV8) turns each
 	trophy of a boss species into wins[species] = 1 and drops `trophies`; pure, idempotent. deserialize grants the
 	badges the record has reached (stamped with lastOnline) and counts every won boss species as found.
-	v10 (current, contract/exclusive-shop.md §2): Exclusive Shop purchases `ownedSeats = { seatId }`, `receipts =
+	v10 (contract/exclusive-shop.md §2): Exclusive Shop purchases `ownedSeats = { seatId }`, `receipts =
 	{ purchaseId }` (capped), `starterBundle`, `credits = { brew, hatch }`, `offlineDouble = { cash, at, used }?` and the
 	roll seeds `vat.seed` / `slimes[i].egg.seed`. v9 -> v10 (migrateV9) adds the empty purchase fields; old vats and
 	eggs keep no seed and roll as before. Pure, idempotent.
+	v11 (current, contract/exclusive-shop.md §9-§12): `ownedTrails = { trailId }`, `trail = trailId?`, `ownedBatSkins =
+	{ skinId }`, `batSkin = skinId?`, `lockBreakCredits = n` and `giftCredits = { productKey }`. v10 -> v11 (migrateV10)
+	adds them empty; deserialize drops unknown / repeated ids, an equipped id that is not owned, gift keys that are not
+	giftable, and clamps the counts. Pure, idempotent.
 	petSeat (contract/pet-seats.md, no version bump): a Config.PET_SEATS id; missing / unknown / not unlocked -> "cloud".
 	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, speciesRewards = milestones paid;
 	missing -> empty / 0, unknown ids dropped, owned slimes always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
@@ -448,6 +452,90 @@ function SaveData.migrateV9(raw: { [string]: any }): { [string]: any }
 	return out
 end
 
+-- v10 -> v11: the carry trail, Bat skin, lock break and gift fields start empty (fields already there are kept for
+-- deserialize to clean).
+function SaveData.migrateV10(raw: { [string]: any }): { [string]: any }
+	local out = table.clone(raw)
+	local from = tonumber(raw.version)
+	if from == nil or from ~= from then
+		from = 0
+	end
+	out.migratedFrom = raw.migratedFrom or from
+	if out.ownedTrails == nil then
+		out.ownedTrails = {}
+	end
+	if out.ownedBatSkins == nil then
+		out.ownedBatSkins = {}
+	end
+	if out.lockBreakCredits == nil then
+		out.lockBreakCredits = 0
+	end
+	if out.giftCredits == nil then
+		out.giftCredits = {}
+	end
+	out.version = 11
+	return out
+end
+
+local function catalogueIds(list: { any }): { [string]: boolean }
+	local out = {}
+	for _, def in list do
+		out[def.id] = true
+	end
+	return out
+end
+local TRAIL_IDS = catalogueIds(Config.EXCLUSIVE_SHOP.trails)
+local BAT_SKIN_IDS = catalogueIds(Config.EXCLUSIVE_SHOP.batSkins)
+
+local function cleanIds(raw: any, known: { [string]: boolean }): { string }
+	local out: { string } = {}
+	if type(raw) ~= "table" then
+		return out
+	end
+	for _, id in ipairs(raw) do
+		if type(id) == "string" and known[id] and not table.find(out, id) then
+			table.insert(out, id)
+		end
+	end
+	return out
+end
+
+-- Owned carry trail ids: known Config.EXCLUSIVE_SHOP.trails ids, no repeats, in the stored order.
+function SaveData.cleanOwnedTrails(raw: any): { string }
+	return cleanIds(raw, TRAIL_IDS)
+end
+
+-- Owned Bat skin ids: known Config.EXCLUSIVE_SHOP.batSkins ids, no repeats, in the stored order.
+function SaveData.cleanOwnedBatSkins(raw: any): { string }
+	return cleanIds(raw, BAT_SKIN_IDS)
+end
+
+-- An equipped cosmetic: kept only when it is one of `owned`; anything else -> nil (none / the default).
+function SaveData.cleanEquipped(raw: any, owned: { string }): string?
+	if type(raw) == "string" and table.find(owned, raw) then
+		return raw
+	end
+	return nil
+end
+
+-- Unsent gifts: product keys that sell as Gift_<key>, the first gift.creditMax kept (repeats allowed: two of a kind).
+function SaveData.cleanGiftCredits(raw: any): { string }
+	local out: { string } = {}
+	if type(raw) ~= "table" then
+		return out
+	end
+	local products = Config.EXCLUSIVE_SHOP.products
+	for _, key in ipairs(raw) do
+		if #out >= Config.EXCLUSIVE_SHOP.gift.creditMax then
+			break
+		end
+		if type(key) == "string" and products["Gift_" .. key] ~= nil then
+			table.insert(out, key)
+		end
+	end
+	return out
+end
+
 -- Exclusive seat ids of a raw save (read) or of PlayerData (write): known `exclusive` Config.PET_SEATS ids, no
 -- repeats, in the stored order. Missing / junk -> empty.
 function SaveData.cleanOwnedSeats(raw: any): { string }
@@ -578,6 +666,9 @@ function SaveData.migrate(raw: any): { [string]: any }?
 	end
 	if version < 10 then
 		migrated = SaveData.migrateV9(migrated)
+	end
+	if version < 11 then
+		migrated = SaveData.migrateV10(migrated)
 	end
 	return migrated
 end
@@ -712,6 +803,12 @@ function SaveData.deserialize(stored: any): Data
 	data.starterBundle = raw.starterBundle == true
 	data.credits = SaveData.cleanCredits(raw.credits)
 	data.offlineDouble = SaveData.cleanOfflineDouble(raw.offlineDouble)
+	data.ownedTrails = SaveData.cleanOwnedTrails(raw.ownedTrails) -- Exclusive Shop extras (v11)
+	data.trail = SaveData.cleanEquipped(raw.trail, data.ownedTrails)
+	data.ownedBatSkins = SaveData.cleanOwnedBatSkins(raw.ownedBatSkins)
+	data.batSkin = SaveData.cleanEquipped(raw.batSkin, data.ownedBatSkins)
+	data.lockBreakCredits = num(raw.lockBreakCredits, 0, 0, Config.EXCLUSIVE_SHOP.creditMax)
+	data.giftCredits = SaveData.cleanGiftCredits(raw.giftCredits)
 	data.petSeat = SaveData.cleanPetSeat(raw.petSeat, data) -- after found / stats / ownedSeats: pet seat (no version bump: missing / unknown / locked -> "cloud")
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
@@ -850,6 +947,12 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		starterBundle = data.starterBundle == true,
 		credits = SaveData.cleanCredits(data.credits),
 		offlineDouble = SaveData.cleanOfflineDouble(data.offlineDouble), -- nil = none: the key is left out
+		ownedTrails = SaveData.cleanOwnedTrails(data.ownedTrails),
+		trail = SaveData.cleanEquipped(data.trail, data.ownedTrails), -- nil = none: the key is left out
+		ownedBatSkins = SaveData.cleanOwnedBatSkins(data.ownedBatSkins),
+		batSkin = SaveData.cleanEquipped(data.batSkin, data.ownedBatSkins), -- nil = the default Bat
+		lockBreakCredits = num(data.lockBreakCredits, 0, 0, Config.EXCLUSIVE_SHOP.creditMax),
+		giftCredits = SaveData.cleanGiftCredits(data.giftCredits),
 	}
 end
 

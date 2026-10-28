@@ -69,15 +69,18 @@ Game Pass ownership is **not** saved: checked on join (`UserOwnsGamePassAsync`, 
 - **Requests (Remotes.ACTIONS / Validate.ACTIONS):** `AimHatch(slimeId: string)` 0.5 s: the incubating pad egg the next
   `HatchNow_<kind>` receipt is for (a receipt can't name it); the grant uses it when it still fits the paid kind, else
   that kind's egg closest to ready, then forgets it. The client sends it just before the Roblox prompt.
-   `UseCredit(kind: string, slimeId: string?)` 0.5 s: spends a
-  brew credit on the running brew or a hatch credit on that egg (`slimeId` nil = the egg closest to ready); flag off
+   `UseCredit(kind: string, target: (string | number)?)` 0.5 s: spends a
+  brew credit on the running brew, a hatch credit on egg `target` (nil = the egg closest to ready) or a lock break
+  credit on plot `target` (§11); flag off
   → "the Exclusive Shop is off". No action prompts purchases: the client calls
   `MarketplaceService:PromptProductPurchase` / `PromptGamePassPurchase` itself with ids from Config.
 - **Studio:** `StudioHooks.grantProduct(userId, productKey)` / `setPass(userId, passKey, owned)` /
   `setPaidRandomAllowed(userId, allowed)` run the same PurchaseService paths (receipt id `studio-<guid>`, grant,
   save; Studio + memory store only, no remote). They set player attributes (`PcwGrantProduct`, `PcwPass` =
   `"<key>=true|false"`, `PcwPaidRandom`) the server applies, so Studio MCP `execute_luau` can call them
-  (`require(game.ServerScriptService.Server.StudioHooks)`).
+  (`require(game.ServerScriptService.Server.StudioHooks)`). `grantProduct` takes every product key (`Trail_*`,
+  `BatSkin_*`, `LockBreak`, `Gift_*`); `lockBreak(userId, plotIndex)` (`PcwLockBreak`) and `gift(userId, itemKey,
+  targetUserId)` (`PcwGift` = `"<itemKey>@<targetUserId>"`) aim first, then grant the same way.
 
 ## 4. Roll first (vat and eggs)
 
@@ -151,3 +154,49 @@ stage behind the preview. Opens from the jar shop's prompt, the Skins panel's go
 and a HUD shop button. Quick-buy buttons live where the wait is: Merge panel ("Finish now", or "Use credit"), egg pad
 sign / hatch prompt area ("Hatch now"), Welcome card ("Double it"), WorldShop Luck Potion row ("Buy for the server").
 Buy buttons call `MarketplaceService` prompts; the panel never grants anything.
+
+## 9. Carry trails
+
+`Config.EXCLUSIVE_SHOP.trails`: five trails (`sparkle`, `goo_drip`, `hearts`, `starfall`, `rainbow`), each sold as
+`Trail_<id>` (grant kind `trail`). Save: `ownedTrails: { string }`, `trail: string?` (equipped; cleaned on load: unknown /
+unowned ids dropped). Request `EquipTrail(trailId: string)` ("" = none), 0.5 s. Player attribute `CarryTrail` = the
+equipped id while the flag is on. The client draws it behind the player **only while they carry a slime** (wild or stolen):
+a Roblox `Trail` plus particles in the trail's colours and style, in the one frame loop, culled by distance. Rule: a trail
+is never transparent, tiny or in front of the carried slime (it makes a thief easier to spot, never harder).
+
+## 10. Bat skins
+
+`Config.EXCLUSIVE_SHOP.batSkins`: four skins (`lollipop`, `fish`, `foam_finger`, `golden`), sold as `BatSkin_<id>`.
+Save: `ownedBatSkins: { string }`, `batSkin: string?`. Request `EquipBatSkin(skinId: string)` ("" = default Bat).
+`BatTool.give` reads the equipped skin: the Handle wears that skin's mesh (`MeshAssets` `bat_skin_<id>`); everything that
+decides a hit (reach `SLAP_REACH`, cooldown, `BatRules.pickTarget`, knockback) is unchanged and never reads the skin.
+A skin without an uploaded mesh shows the default Bat. Player attribute `BatSkin` = the equipped id while the flag is on;
+when it changes the server gives the player a fresh Bat with that look (held again if it was held).
+
+## 11. Open locked door (lock break)
+
+`LockBreak` (499 R$, grant kind `lockBreak`). The thief aims first: `AimLockBreak(plotIndex: number)` (0.5 s), refused
+unless that plot is someone else's, locked now, not in its breather lock (`SLIME_GUARD.BREATHER_SECONDS`) and the owner is
+not the buyer's friend-guest. The grant gives the buyer a pass for `lockBreak.seconds` (60): they pass that plot's
+LockBarrier like a guest (`PlotLockGuard` / `PlotGuests` path), only them, only that plot, only until it ends. The lock
+itself stays up for everyone else and its timer is unchanged; the owner is notified "<name> broke into your base!".
+Stealing inside still goes through every SlimeGuard check. A grant whose aimed lock has ended (or no aim) becomes
+`lockBreakCredits += 1`, spent with `UseCredit("lockBreak", plotIndex)`. Save: `lockBreakCredits: number` (0..creditMax).
+The pass itself is runtime only; it pauses while the base is in a breather lock and ends early if the plot changes owner.
+A buyer still inside when it ends or pauses is let out like a former guest and is never a locked-base intruder. The
+stopper pair, the plot's `Guests` attribute and the Steal prompts' `GuestsOnly` list include the buyer while it runs. UI: on a locked base's door a thief sees "Open locked door · R$499" (or "Use lock break").
+
+## 12. Gifts
+
+Every cosmetic (`Seat_*`, `Trail_*`, `BatSkin_*`) also sells as `Gift_<key>` (same price, grant kind `gift`). The buyer
+picks a player in the server: `AimGift(itemKey: string, targetUserId: number)` (0.5 s; refused for yourself, a player not
+in the server, or one who already owns it). The grant gives the item to the aimed target (their save, then their own save
+now) and notifies both ("<name> gave you <item>!"). If the target left or already owns it by then, the buyer keeps a gift
+credit (`giftCredits: { string }`, item keys, at most `gift.creditMax`), sent later with `SendGift(itemKey, targetUserId)`.
+The target's save goes through the receipt's own save (`Persistence.save`, session-locked) before the gift counts; a
+failed save takes the item back and leaves the credit. With the credits full the receipt is not processed yet.
+Passes, boosts, quick-buys and lock breaks are never giftable. UI: a "Gift" button next to Buy on every cosmetic opens a
+player picker (friends first).
+
+State (`ExclusiveShopView`): `trails`, `trail`, `batSkins`, `batSkin`, `lockBreak`, `lockBreakCredits`, `giftCredits`.
+Save version 11 (`SaveData.migrateV10`).

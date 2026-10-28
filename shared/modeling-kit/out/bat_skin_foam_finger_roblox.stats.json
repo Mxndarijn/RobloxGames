@@ -1,0 +1,164 @@
+{
+  "name": "bat_skin_foam_finger",
+  "model": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\models\\bat_skin_foam_finger.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 808,
+  "meshes": [
+    {
+      "name": "bat_skin_foam_finger",
+      "tris": 808,
+      "verts": 442,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        1.5,
+        5.09,
+        0.955
+      ],
+      "materials": [
+        "bat_skin_foam_finger_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "bat_skin_foam_finger_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    1.5,
+    5.09,
+    0.955
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "bat_skin_foam_finger_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": null,
+  "fbx_bytes": null,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_3.png"
+    }
+  ],
+  "turntable": [
+    {
+      "view": "0deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_tt0.png"
+    },
+    {
+      "view": "45deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_tt1.png"
+    },
+    {
+      "view": "90deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_tt2.png"
+    },
+    {
+      "view": "135deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_tt3.png"
+    },
+    {
+      "view": "180deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_tt4.png"
+    },
+    {
+      "view": "225deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_tt5.png"
+    },
+    {
+      "view": "270deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_tt6.png"
+    },
+    {
+      "view": "315deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_foam_finger_roblox_tt7.png"
+    }
+  ],
+  "timings_blender": {
+    "model_s": 0.185,
+    "stats_s": 0.002,
+    "setup_s": 0.028,
+    "render_s": [
+      0.229,
+      0.172,
+      0.167,
+      0.184
+    ],
+    "turntable_s": [
+      0.176,
+      0.162,
+      0.158,
+      0.162,
+      0.153,
+      0.15,
+      0.155,
+      0.164
+    ],
+    "export_s": 0.0
+  },
+  "turntable_png": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\bat_skin_foam_finger_roblox_turntable.png",
+  "turntable_gif": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\bat_skin_foam_finger_roblox_turntable.gif",
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\bat_skin_foam_finger_roblox_sheet.png",
+  "timings": {
+    "wall_s": 3.18,
+    "blender_process_s": 2.77,
+    "compose_s": 0.404,
+    "model_s": 0.185,
+    "stats_s": 0.002,
+    "setup_s": 0.028,
+    "render_s": [
+      0.229,
+      0.172,
+      0.167,
+      0.184
+    ],
+    "turntable_s": [
+      0.176,
+      0.162,
+      0.158,
+      0.162,
+      0.153,
+      0.15,
+      0.155,
+      0.164
+    ],
+    "export_s": 0.0
+  }
+}

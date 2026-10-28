@@ -5,6 +5,7 @@ local Economy = require("../src/shared/Economy")
 local EventSecrets = require("../src/shared/EventSecrets")
 local Fixtures = require("./Fixtures")
 local MergeRecipes = require("../src/shared/MergeRecipes")
+local Purchases = require("../src/server/Purchases")
 local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
 local SlimeRoster = require("../src/shared/SlimeRoster")
@@ -267,6 +268,32 @@ describe("Snapshot exclusive shop", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
 		expect(Snapshot.build(world, s, T0).exclusiveShop).toBeNil()
+	end)
+	it("is the Purchases view with the extras, a lock break shown only while its plot keeps its owner", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		local owner = ServerFixtures.join(world, 2)
+		s.data.ownedTrails, s.data.trail = { "hearts" }, "hearts"
+		s.data.ownedBatSkins = { "fish" }
+		s.data.lockBreakCredits = 1
+		s.data.giftCredits = { "Trail_rainbow" }
+		s.lockBreak = { plot = owner.plotIndex, ownerId = 2, untilTime = T0 + 30 }
+		local state = Snapshot.build(world, s, T0)
+		if Config.FEATURES.ExclusiveShop then
+			expect(state.exclusiveShop).toEqual(Purchases.view(s, T0, world))
+		else
+			expect(state.exclusiveShop).toBeNil()
+		end
+		local view = Purchases.view(s, T0, world)
+		expect(view.trails).toEqual({ hearts = true })
+		expect(view.trail).toBe("hearts")
+		expect(view.batSkins).toEqual({ fish = true })
+		expect(view.lockBreakCredits).toBe(1)
+		expect(view.giftCredits).toEqual({ "Trail_rainbow" })
+		expect(view.lockBreak).toEqual({ plot = owner.plotIndex, untilTime = T0 + 30 })
+		world.plots[owner.plotIndex] = 3
+		expect(Purchases.view(s, T0, world).lockBreak).toBeNil()
+		expect(Purchases.view(s, T0 + 30).lockBreak).toBeNil()
 	end)
 	it("marks unowned Exclusive seat rows with their product key", function()
 		local world = ServerFixtures.world()
