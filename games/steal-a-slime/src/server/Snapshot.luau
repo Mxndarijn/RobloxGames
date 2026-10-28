@@ -33,6 +33,7 @@ local Progression = if Shared then require(Shared.Progression) else require("../
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local SpeciesDex = if Shared then require(Shared.SpeciesDex) else require("../shared/SpeciesDex")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
+local NoticeCards = if Shared then require(Shared.NoticeCards) else require("../shared/NoticeCards")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
@@ -144,6 +145,8 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		plotBases = if Config.FEATURES.BaseShapes then PlotBases.view(data) else nil,
 		petSeat = PetSeats.current(data),
 		petSeats = PetSeats.view(data),
+		notices = NoticeCards.live(session.notices, now),
+		plotFull = session.plotFull == true and session.carry ~= nil,
 		stealAway = if Config.FEATURES.StealAlerts then StealAlert.summary(session.awayLog) else nil,
 		welcomeBack = session.welcome,
 		padCash = if CashPads.enabled() then math.floor(CashPads.total(data)) else nil,

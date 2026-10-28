@@ -20,6 +20,7 @@ local BossChoreo = if Shared then require(Shared.BossChoreo) else require("../sh
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local NoticeCards = if Shared then require(Shared.NoticeCards) else require("../shared/NoticeCards")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
@@ -96,6 +97,8 @@ export type Session = {
 	awayLog: { StealAlert.Entry }?, -- FEATURES.StealAlerts: the saved thefts read at join, for the join notice (never saved)
 	bossStunUntil: number?, -- hit by a boss attack: no bat hits or slaps until then (BossEvent), runtime only
 	bossSlow: { factor: number, untilTime: number }?, -- in a boss goo puddle: walk speed x factor until then, runtime only
+	notices: { NoticeCards.Notice }?, -- recent notice cards (World.notice, State.notices), runtime only
+	plotFull: boolean?, -- carrying a slime in their own full plot (ServerLoop, State.plotFull), runtime only
 }
 
 export type Wild = {
@@ -348,6 +351,14 @@ end
 -- Queues a toast for one player (`userId`) or everyone (`nil`).
 function World.notify(world: World, userId: number?, text: string, kind: string, sound: string?, itemId: string?)
 	World.emit(world, { type = "Notify", userId = userId, text = text, kind = kind, sound = sound, itemId = itemId })
+end
+
+-- Shows `session` a notice card (shared/NoticeCards) and pushes State so it arrives now.
+function World.notice(_world: World, session: Session, notice: NoticeCards.Notice)
+	local list = session.notices or {}
+	session.notices = list
+	NoticeCards.add(list, notice, notice.at)
+	World.markDirty(session)
 end
 
 -- Queues an Effects.play burst (CONTRACT.md §5.4). The adapter resolves the

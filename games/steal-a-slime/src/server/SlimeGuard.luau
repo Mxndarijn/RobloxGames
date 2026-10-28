@@ -433,6 +433,9 @@ function SlimeGuard.intruded(
 		StealService.escape(world, session, now, "guard")
 	end
 	World.notify(world, session.userId, "That base is locked. You can't steal here until it opens.", "info", "Denied")
+	local ownerId = world.plots[plotIndex]
+	local owner = if ownerId then World.session(world, ownerId) else nil
+	World.notice(world, session, { id = "BaseLocked", at = now, opensAt = if owner then owner.lockUntil else nil })
 	if serverPut then
 		return nil
 	end

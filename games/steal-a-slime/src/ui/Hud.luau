@@ -17,6 +17,7 @@ local ItemIconView = require(script.Parent.ItemIconView)
 local ItemIcons = require(script.Parent.ItemIcons)
 local Layout = require(script.Parent.Layout)
 local RainTimer = require(script.Parent.RainTimer)
+local StealCards = require(script.Parent.StealCards)
 local Widgets = require(script.Parent.Widgets)
 
 local GuiService = game:GetService("GuiService")
@@ -57,36 +58,6 @@ local function chip(parent: Instance, name: string, color: Color3, textColor: Co
 		Parent = frame,
 	})
 	return frame, value
-end
-
--- Banners wrap and grow taller instead of truncating (v15: the boss
--- countdown was cut off).
-local function banner(parent: Instance, name: string, color: Color3, order: number): TextLabel
-	local label = Widgets.label({
-		Name = name,
-		Visible = false,
-		LayoutOrder = order,
-		BackgroundTransparency = 0.1,
-		BackgroundColor3 = color,
-		Font = Theme.Font,
-		TextSize = 18,
-		TextStrokeTransparency = 0.5,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextWrapped = true,
-		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.new(1, 0, 0, 34), -- the Banners frame width (Layout: narrower on phones)
-		AutomaticSize = Enum.AutomaticSize.Y,
-		Parent = parent,
-	})
-	Widgets.corner(8).Parent = label
-	create("UIPadding", {
-		PaddingLeft = UDim.new(0, 10),
-		PaddingRight = UDim.new(0, 10),
-		PaddingTop = UDim.new(0, 4),
-		PaddingBottom = UDim.new(0, 4),
-		Parent = label,
-	})
-	return label
 end
 
 function Hud.new(parent: Instance, ctx: any)
@@ -327,7 +298,7 @@ function Hud.new(parent: Instance, ctx: any)
 		ZIndex = Layout.ZINDEX.Banners,
 		Parent = parent,
 	}, { Widgets.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center) })
-	local steal = banner(banners, "StealAlert", Theme.Bad, 1)
+	local stealCards = StealCards.new(banners, ctx, 1)
 
 	-- Workspace rain attributes, kept fresh by change signals (read in tick).
 	local rainAttrs: RainTimer.Rain? = nil
@@ -562,17 +533,7 @@ function Hud.new(parent: Instance, ctx: any)
 		rebirthLabel.Text = money.rebirthCount
 		badgeLabel.Text = money.multiplier
 
-		-- Steal alert: any of my slimes with stolenBy set.
-		local thieves = {}
-		for _, view in state.slimes do
-			if view.stolenBy ~= nil then
-				table.insert(thieves, `{view.slime.name} by {ctx.playerName(view.stolenBy)}`)
-			end
-		end
-		steal.Visible = #thieves > 0
-		if #thieves > 0 then
-			steal.Text = `STOLEN! {table.concat(thieves, ", ")} - chase & hit them with your bat!`
-		end
+		stealCards.update(state, ctx.serverNow())
 
 		self.tick(ctx.serverNow())
 	end
@@ -582,6 +543,7 @@ function Hud.new(parent: Instance, ctx: any)
 			return
 		end
 		readRainAttrs()
+		stealCards.tick(now)
 		-- Bottom-right status slots: rebuilt only when a slot's icon / text changes (about 1 Hz for a countdown).
 		local slots = HudClusters.status({
 			rain = ctx.forcedRain and ctx.forcedRain(now) or RainTimer.resolve(rainAttrs, current.rain),

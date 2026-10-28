@@ -99,8 +99,8 @@ function StealService.steal(
 	world.carriedBy[slimeId] = thief.userId
 	World.markDirty(thief)
 	World.markDirty(owner)
-	World.notify(world, owner.userId, `{thief.name} is stealing your {Genome.displayName(slime)}!`, "bad", "Alarm")
-	World.notify(world, thief.userId, "Run it home to your plot!", "info", "Grab")
+	World.notify(world, owner.userId, `{thief.name} is stealing your slime!`, "bad", "Alarm")
+	World.notify(world, thief.userId, "Bring the slime to your plot!", "info", "Grab")
 	World.effect(world, "Steal", { slimeId = slimeId, userId = thief.userId })
 	World.tutorial(world, thief, "Steal")
 	return true, nil
@@ -136,6 +136,7 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 	local name = Genome.displayName(carry.slime)
 	if reason == "slap" then
 		World.notify(world, carrier.userId, `You got bonked! The {name} bounced home.`, "bad", "Slap", "Slap")
+		World.notice(world, carrier, { id = "Bonked", at = now })
 	elseif reason == "unsaved" then
 		World.notify(
 			world,
@@ -150,6 +151,7 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 		World.notify(world, carrier.userId, `You dropped the {name}. It went home.`, "bad", "Escape")
 	end
 	World.notify(world, owner.userId, `Your {name} escaped back to you!`, "good", "Escape")
+	World.notice(world, owner, { id = "SlimeHome", at = now, name = carrier.name })
 	return carry.slimeId
 end
 

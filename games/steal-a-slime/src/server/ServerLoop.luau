@@ -122,6 +122,14 @@ local function stepLockPad(loop: Loop, player: Player, session: World.Session, t
 	end
 end
 
+-- State.plotFull: the carry card asks to sell or merge while you stand in your full plot with a slime.
+local function setPlotFull(session: World.Session, full: boolean)
+	if (session.plotFull == true) ~= full then
+		session.plotFull = full
+		World.markDirty(session)
+	end
+end
+
 local function stepPlayers(loop: Loop, t: number)
 	local world, ctx = loop.world, loop.ctx
 	for _, player in Players:GetPlayers() do
@@ -141,8 +149,10 @@ local function stepPlayers(loop: Loop, t: number)
 					loop.homeZoneFull[userId] = carryId
 					World.notify(world, userId, "Your plot is full! Sell or merge a slime.", "bad", nil)
 				end
+				setPlotFull(session, not ok and reason == "plot full")
 			else
 				loop.homeZoneFull[userId] = nil
+				setPlotFull(session, false)
 			end
 			if Config.FEATURES.MoveGuardLog then
 				loop.safeCall("move guard", sampleMovement, userId, player, session, t)
