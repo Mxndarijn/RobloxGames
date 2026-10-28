@@ -44,6 +44,7 @@ Validate.ACTIONS = table.freeze({
 	CloseShop = 0.5,
 	ShopBuy = 0.5,
 	UseCredit = 0.5,
+	AimHatch = 0.5,
 	SetHotbar = 0.3,
 	RequestKits = 0.25,
 })

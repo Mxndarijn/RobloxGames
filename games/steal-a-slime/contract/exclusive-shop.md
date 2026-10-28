@@ -66,7 +66,10 @@ Game Pass ownership is **not** saved: checked on join (`UserOwnsGamePassAsync`, 
   `doubleOffline` pays `offlineDouble.cash` once (`used = true`), else nothing to pay → `NotProcessedYet` never: it
   grants 0 and records the receipt (the UI only offers it while `offlineDouble` is unused); `serverPotion` calls
   `Consumables.extendPotion` server-wide and notifies everyone "<name> gave the server a Luck Potion!".
-- **Requests (Remotes.ACTIONS / Validate.ACTIONS):** `UseCredit(kind: string, slimeId: string?)` 0.5 s: spends a
+- **Requests (Remotes.ACTIONS / Validate.ACTIONS):** `AimHatch(slimeId: string)` 0.5 s: the incubating pad egg the next
+  `HatchNow_<kind>` receipt is for (a receipt can't name it); the grant uses it when it still fits the paid kind, else
+  that kind's egg closest to ready, then forgets it. The client sends it just before the Roblox prompt.
+   `UseCredit(kind: string, slimeId: string?)` 0.5 s: spends a
   brew credit on the running brew or a hatch credit on that egg (`slimeId` nil = the egg closest to ready); flag off
   → "the Exclusive Shop is off". No action prompts purchases: the client calls
   `MarketplaceService:PromptProductPurchase` / `PromptGamePassPurchase` itself with ids from Config.

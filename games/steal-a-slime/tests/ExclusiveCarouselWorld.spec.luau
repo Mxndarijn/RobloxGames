@@ -118,9 +118,29 @@ config.Source = patched
 rt:boot()
 rt:advance(2)
 local map = rt.workspace.Map
+local stand = map:FindFirstChild(Constants.SHOP_STAND_EXCLUSIVE)
+
+-- The live steps run while the spec loads, like the other *Live specs: the runner loads every spec before it
+-- runs any test, so a runtime driven from inside `it` would run long after its boot.
+local seen: { [string]: any } = {}
+if stand then
+	local counter = stand.Counter.CFrame.Position
+	local near = rt:addPlayer(3001, "Collector")
+	local far = rt:addPlayer(3002, "Faraway")
+	rt:advance(3)
+	near.Character.HumanoidRootPart.CFrame = roblox.CFrame.new(counter.X, counter.Y + 3, counter.Z)
+	far.Character.HumanoidRootPart.CFrame = roblox.CFrame.new(0, 5, 0)
+	stand.Counter.ShopPrompt.Triggered:Fire(near)
+	stand.Counter.ShopPrompt.Triggered:Fire(far)
+	rt:advance(0.1)
+	seen.nearOpen = near:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE)
+	seen.farOpen = far:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE)
+	near.Character.HumanoidRootPart.CFrame = roblox.CFrame.new(0, 5, 0)
+	rt:advance(3)
+	seen.nearAfterWalk = near:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE)
+end
 
 describe("Exclusive Shop carousel in the booted server", function()
-	local stand = map:FindFirstChild(Constants.SHOP_STAND_EXCLUSIVE)
 	it("boots clean and places the stand at its layout spot", function()
 		expect(#rt.errors).toBe(0)
 		expect(stand ~= nil).toBe(true)
@@ -156,24 +176,11 @@ describe("Exclusive Shop carousel in the booted server", function()
 		expect(stand[Constants.EXCLUSIVE_CAROUSEL_SPIN].Deck.Transparency < 1).toBe(true)
 	end)
 	it("opens the Exclusive Shop from the prompt and closes it when the player walks away", function()
-		local counter = stand.Counter.CFrame.Position
-		local player = rt:addPlayer(3001, "Collector")
-		rt:advance(3)
-		player.Character.HumanoidRootPart.CFrame = roblox.CFrame.new(counter.X, counter.Y + 3, counter.Z)
-		stand.Counter.ShopPrompt.Triggered:Fire(player)
-		rt:advance(0.1)
-		expect(player:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE)).toBe(Constants.EXCLUSIVE_SHOP_ID)
-		player.Character.HumanoidRootPart.CFrame = roblox.CFrame.new(0, 5, 0)
-		rt:advance(3)
-		expect(player:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE)).toBeNil()
+		expect(seen.nearOpen).toBe(Constants.EXCLUSIVE_SHOP_ID)
+		expect(seen.nearAfterWalk).toBeNil()
 	end)
 	it("does not open from far away", function()
-		local player = rt:addPlayer(3002, "Faraway")
-		rt:advance(3)
-		player.Character.HumanoidRootPart.CFrame = roblox.CFrame.new(0, 5, 0)
-		stand.Counter.ShopPrompt.Triggered:Fire(player)
-		rt:advance(0.1)
-		expect(player:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE)).toBeNil()
+		expect(seen.farOpen).toBeNil()
 	end)
 	it("still boots clean after the players", function()
 		expect(#rt.errors).toBe(0)

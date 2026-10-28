@@ -116,6 +116,39 @@ function Purchases.nextEgg(world: World, session: Session, now: number, kindId: 
 	return best
 end
 
+local function incubating(world: World, session: Session, slimeId: string?, now: number, kindId: string?): Genome.Slime?
+	if slimeId == nil then
+		return nil
+	end
+	for _, slime in session.data.slimes do
+		if slime.id == slimeId then
+			local egg = slime.egg
+			local hatchAt = egg and egg.hatchAt
+			if
+				egg
+				and hatchAt
+				and hatchAt > now
+				and slime.pad ~= nil
+				and (kindId == nil or egg.kind == kindId)
+				and not World.isBusy(world, slime.id)
+			then
+				return slime
+			end
+			return nil
+		end
+	end
+	return nil
+end
+
+-- AimHatch: remembers which incubating pad egg the next HatchNow receipt is for. Returns (ok, reason).
+function Purchases.aimHatch(world: World, session: Session, slimeId: string, now: number): (boolean, string?)
+	if incubating(world, session, slimeId, now, nil) == nil then
+		return false, "that is not an incubating egg on your pads"
+	end
+	session.hatchTarget = slimeId
+	return true, nil
+end
+
 local function seatName(seatId: string): string
 	local seat = PetSeats.get(seatId)
 	return if seat then seat.name else seatId
@@ -179,7 +212,10 @@ function Purchases.grant(
 		end
 	elseif kind == "hatchNow" then
 		local kindId = string.match(productKey, "^HatchNow_(.+)$")
-		local egg = Purchases.nextEgg(world, session, now, kindId)
+		-- The aimed egg when it still fits the paid kind, else that kind's egg closest to ready.
+		local egg = incubating(world, session, session.hatchTarget, now, kindId)
+			or Purchases.nextEgg(world, session, now, kindId)
+		session.hatchTarget = nil
 		if egg then
 			hatchReady(world, session, egg, now)
 		else

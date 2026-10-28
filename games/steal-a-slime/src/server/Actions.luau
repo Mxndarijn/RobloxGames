@@ -626,6 +626,11 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return result(PvpService.use(world, session, args[1], args[2], args[3], now, feature(ctx, "PvP"), ctx, args[4]))
 	elseif action == "SetHotbar" then
 		return result(HotbarOrder.set(session.data, args[1]))
+	elseif action == "AimHatch" then
+		if not feature(ctx, "ExclusiveShop") then
+			return fail("the Exclusive Shop is off")
+		end
+		return result(Purchases.aimHatch(world, session, args[1], now))
 	elseif action == "UseCredit" then
 		if not feature(ctx, "ExclusiveShop") then
 			return fail("the Exclusive Shop is off")

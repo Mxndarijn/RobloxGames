@@ -78,6 +78,7 @@ export type Session = {
 	offlineRate: number?, -- the offline rate the join payout used (Income.applyOffline), runtime only
 	offlinePaid: number?, -- the join payout's cash (Income.applyOffline; a pass top-up adds to it), runtime only
 	passes: { [string]: boolean }?, -- FEATURES.ExclusiveShop: Game Passes owned, by Config.EXCLUSIVE_SHOP.passes key (PurchaseService), runtime only
+	hatchTarget: string?, -- FEATURES.ExclusiveShop: the egg the next HatchNow receipt is for (AimHatch), runtime only
 	paidRandomAllowed: boolean?, -- FEATURES.ExclusiveShop: PolicyService allows paid random items; nil = not checked yet (false), runtime only
 	boardRanks: { [string]: number }?, -- my rank per global board stat from the last refresh (-n = deeper than #n, Leaderboard.sessionRanks); runtime only
 	coilHeld: boolean?, -- the SpeedCoil Tool is equipped (WorldView sets it each tick); runtime only

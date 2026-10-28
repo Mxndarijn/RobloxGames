@@ -599,11 +599,11 @@ local SEAT_ROBUX: { [string]: number } = {
 	royal_cushion = 399,
 	hoverboard = 399,
 }
-for _, seat in PET_SEATS do
-	if seat.unlock.kind == "exclusive" then
-		local robux = SEAT_ROBUX[seat.id]
-		assert(robux, "Exclusive seat without a price: " .. seat.id)
-		EXCLUSIVE_PRODUCTS["Seat_" .. seat.id] = product(robux, { kind = "seat", seat = seat.id })
+for _, def in PET_SEATS do
+	if def.unlock.kind == "exclusive" then
+		local robux = SEAT_ROBUX[def.id]
+		assert(robux, "Exclusive seat without a price: " .. def.id)
+		EXCLUSIVE_PRODUCTS["Seat_" .. def.id] = product(robux, { kind = "seat", seat = def.id })
 	end
 end
 local EXCLUSIVE_SHOP = table.freeze({

@@ -913,6 +913,7 @@ local slimeKeys = SlimeKeys.start({
 			if q and q.mode == "credit" then
 				send("UseCredit", "hatch", slimeId)
 			elseif q and q.mode == "buy" and q.purchase then
+				send("AimHatch", slimeId) -- the receipt can't name the egg, so the server is told first
 				ctx.purchase.prompt(q.purchase)
 			end
 		end,

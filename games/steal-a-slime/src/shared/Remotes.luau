@@ -64,6 +64,7 @@ Remotes.ACTIONS = table.freeze({
 	OpenShop = table.freeze({ args = { "string" } }), -- shopId "ItemShop" | "UpgradeShop" (CONTRACT.md §27)
 	CloseShop = table.freeze({ args = {} }), -- clears the open shop
 	ShopBuy = table.freeze({ args = { "string", "string", "string?" } }), -- shopId, itemId, unused slot (string?); delegates to the item's existing buy action
+	AimHatch = table.freeze({ args = { "string" } }), -- the pad egg id a "Hatch now" purchase is for, sent just before the Roblox prompt (FEATURES.ExclusiveShop)
 	UseCredit = table.freeze({ args = { "string", "string?" } }), -- "brew" | "hatch", hatch target egg id (nil = the one closest to ready): spends a saved Exclusive Shop skip credit (FEATURES.ExclusiveShop)
 	SetHotbar = table.freeze({ args = { "hotbar" } }), -- order: up to 9 slot keys joined by "," ("" = empty slot) (HotbarOrder, CONTRACT.md §3)
 	RequestKits = table.freeze({ args = { "kits" } }), -- species: up to KitRequest.MAX species ids joined by ","; their kit meshes replicate to this player only (KitRequest, CONTRACT.md §3)
