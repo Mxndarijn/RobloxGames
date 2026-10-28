@@ -214,7 +214,7 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		if
 			spec.image == nil
 			and (spec.source == "drawn" or spec.model ~= nil)
-			and ItemIconArt.draw(art, spec.id, z + 1)
+			and ItemIconArt.draw(art, spec.id, z + 1, spec)
 		then
 			art:SetAttribute("ArtId", spec.id)
 		end

@@ -575,6 +575,45 @@ local function seatRecipe(id: string): ((Pen) -> ())?
 	end
 end
 
+local function color3(c: { number }?, fallback: Color): Color
+	return if c then rgb(c[1], c[2], c[3]) else fallback
+end
+
+-- Carry trails (Trail_<id>): a slime hopping to the right with the trail's colours streaming out behind it in
+-- shrinking puffs, from the spec's `colors`.
+local function trailRecipe(id: string): ((Pen, any) -> ())?
+	if string.sub(id, 1, 6) ~= "Trail_" then
+		return nil
+	end
+	return function(p, spec)
+		local colors: { { number } } = if spec and type(spec.colors) == "table" then spec.colors else {}
+		local n = 6
+		for i = n, 1, -1 do
+			local t = (i - 1) / (n - 1)
+			local c = color3(colors[(i - 1) % math.max(#colors, 1) + 1], GOLD)
+			p:circle(0.66 - t * 0.5, 0.56 - t * 0.2 + (i % 2) * 0.05, 0.3 - t * 0.17, c)
+		end
+		sparkle(p, 0.2, 0.22, 0.18)
+		blob(p, 0.72, 0.6, 0.38, GREEN)
+	end
+end
+
+-- Bat skins (BatSkin_<id>): the Bat tilted, barrel and grip in the spec's `colors`.
+local function batRecipe(id: string): ((Pen, any) -> ())?
+	if string.sub(id, 1, 8) ~= "BatSkin_" then
+		return nil
+	end
+	return function(p, spec)
+		local colors = if spec and type(spec.colors) == "table" then spec.colors else {}
+		local barrel = color3(colors[1], rgb(222, 170, 110))
+		local grip = color3(colors[2], rgb(150, 100, 60))
+		p:shape(0.33, 0.68, 0.12, 0.42, grip, { rot = 40, round = 0.5 })
+		p:circle(0.2, 0.83, 0.14, grip)
+		p:shape(0.6, 0.38, 0.24, 0.62, barrel, { rot = 40, round = 0.5 })
+		p:circle(0.66, 0.3, 0.1, barrel:Lerp(WHITE, 0.5), { stroke = false, flat = true })
+	end
+end
+
 -- Plot skins: a small ranch diorama (floor slab, fence posts, decor) per skin.
 local function diorama(p: Pen, floor: Color, fence: Color, decor: (Pen) -> ())
 	p:shape(0.5, 0.74, 0.92, 0.42, floor:Lerp(INK, 0.25), { round = 0.2 })
@@ -655,17 +694,23 @@ RECIPES.Code_LAUNCH = RECIPES.Cash
 
 ItemIconArt.RECIPES = table.freeze(RECIPES)
 
-function ItemIconArt.has(id: string): boolean
-	return RECIPES[id] ~= nil or trophyRecipe(id) ~= nil or seatRecipe(id) ~= nil
+local function recipeOf(id: string): ((Pen, any) -> ())?
+	local fixed: any = RECIPES[id] or trophyRecipe(id) or seatRecipe(id)
+	return fixed or trailRecipe(id) or batRecipe(id)
 end
 
--- Rebuilds the recipe for `id` into `parent` (an empty frame); false when there is none.
-function ItemIconArt.draw(parent: Instance, id: string, z: number): boolean
-	local recipe = RECIPES[id] or trophyRecipe(id) or seatRecipe(id)
+function ItemIconArt.has(id: string): boolean
+	return recipeOf(id) ~= nil
+end
+
+-- Rebuilds the recipe for `id` into `parent` (an empty frame); false when there is none. `spec` (the ItemIcons
+-- spec) gives the scenes drawn in an item's own colours (trails, Bat skins) their `colors`.
+function ItemIconArt.draw(parent: Instance, id: string, z: number, spec: any?): boolean
+	local recipe = recipeOf(id)
 	if recipe == nil then
 		return false
 	end
-	recipe(newPen(parent, z))
+	recipe(newPen(parent, z), spec)
 	return true
 end
 

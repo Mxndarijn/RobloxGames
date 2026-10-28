@@ -46,6 +46,7 @@ local DexJarView = require(script.DexJarView)
 local ExclusiveShopView = require(script.ExclusiveShopView)
 local Format = require(script.Format)
 local FriendsLockIcon = require(script.FriendsLockIcon)
+local GiftPlayers = require(script.GiftPlayers)
 local GrabBlockCard = require(script.GrabBlockCard)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
@@ -56,6 +57,7 @@ local ItemIconView = require(script.ItemIconView)
 local ItemIcons = require(script.ItemIcons)
 local KitCache = require(script.KitCache)
 local Layout = require(script.Layout)
+local LockBreakPrompt = require(script.LockBreakPrompt)
 local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
@@ -316,6 +318,10 @@ local ctx: { [string]: any } = {
 	PlotSkins = PlotSkins,
 	-- Exclusive shop and its quick-buys: Roblox's purchase prompts (the server grants on ProcessReceipt).
 	purchase = PurchasePrompt.new(MarketplaceService, player),
+	-- The Exclusive shop's gift picker: the players on this server, friends marked.
+	giftPlayers = GiftPlayers.start(Players, player, function(fn: () -> ())
+		task.spawn(fn)
+	end).list,
 	buildSpecies = SpeciesModel.builder(function()
 		return gui.Parent and gui.Parent:FindFirstChild(Constants.SLIME_KITS_FOLDER)
 	end, MeshAssets.IMPORT_YAW, kitCache.want),
@@ -920,6 +926,34 @@ local slimeKeys = SlimeKeys.start({
 	},
 })
 
+-- FEATURES.ExclusiveShop (State.exclusiveShop): "Open locked door" / "Use lock break" on other players' locked doors.
+local lockBreakPrompt = LockBreakPrompt.start({
+	plots = workspace:WaitForChild(Constants.PLOTS_FOLDER),
+	localUserId = player.UserId,
+	newPrompt = function(): ProximityPrompt
+		return Instance.new("ProximityPrompt")
+	end,
+	config = Config,
+	serverNow = serverNow,
+	clock = os.clock,
+	holdSeconds = Config.HOLD_CONFIRM_SECONDS,
+	canAim = Remotes.ACTIONS.AimLockBreak ~= nil,
+	canUseCredit = Remotes.ACTIONS.UseCredit ~= nil,
+	creditArg = function(plotIndex: number): any
+		local def = Remotes.ACTIONS.UseCredit
+		return LockBreakPrompt.creditArg(def and def.args[2], plotIndex)
+	end,
+	ask = ctx.ask,
+	purchase = ctx.purchase,
+	attributes = {
+		owner = "OwnerUserId",
+		locked = Constants.PLOT_LOCKED_ATTRIBUTE,
+		lockUntil = "LockUntil",
+		guests = Constants.PLOT_GUESTS_ATTRIBUTE,
+		index = Constants.PLOT_INDEX_ATTRIBUTE,
+	},
+})
+
 -- One card over the slime draws those prompts (they use the Custom style), instead of three stacked bubbles.
 SlimeKeyCard.start({
 	prompts = ProximityPromptService,
@@ -1229,6 +1263,7 @@ local function render(realState: Types.State)
 	hud.update(state)
 	inventory.update(state)
 	slimeKeys.update(state)
+	lockBreakPrompt.update(state)
 	if slimeMove then
 		slimeMove.update(state)
 	end
@@ -1447,6 +1482,7 @@ task.spawn(function()
 				panelByKey.WorldShop.tick()
 			end)
 			guardedTick("slimeKeys", slimeKeys.tick)
+			guardedTick("lockBreak", lockBreakPrompt.tick)
 			guardedTick("hint", function()
 				hintOverlay.tick(
 					now,
