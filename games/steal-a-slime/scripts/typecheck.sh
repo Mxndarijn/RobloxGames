@@ -52,7 +52,7 @@ set -e
 # One line per diagnostic, repo-relative, without the [game/...] instance path. On Windows luau-lsp prints
 # "c:\Users\...\Temp\tmp.X\src\..." for the file Git Bash calls /tmp/tmp.X/src/..., so backslashes become slashes and
 # everything up to the temp folder's own name is cut.
-tmpname="$(basename "$tmp")"
+tmpname="$(basename "$tmp" | sed 's/[.]/\\./g')" # a regex: mktemp's "tmp.XXXX" has a dot
 tr '\\' '/' <raw.txt >norm.txt
 grep -E "^(.*/$tmpname/)?src/" norm.txt | sed -E "s#^.*/$tmpname/##; s# \[[^]]*\]##" | sort -u >errors.txt || true
 # Errors on lines that name no checked file mean the path mapping is broken, not that the code is clean.
