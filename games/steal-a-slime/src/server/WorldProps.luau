@@ -5,7 +5,7 @@
 	Places the world props from Archer's ReplicatedStorage.Visuals.Props at
 	WorldLayout.PROP_SPOTS under workspace.Map (CONTRACT.md §5.3):
 	ItemShopStand and UpgradeShopStand (each with its own ShopPrompt on Counter and ShopId attribute,
-	CONTRACT.md §27), with FEATURES.ExclusiveShop the ExclusiveShopStand jar (Props.exclusiveJar, its
+	CONTRACT.md §27), the ExclusiveShopStand jar (Props.exclusiveJar, its
 	ShopPrompt opens the Exclusive Shop panel, contract/exclusive-shop.md §7), the five Hall of Fame boards
 	(Leaderboards.BOARDS, each tagged with its LeaderboardStat),
 	ProfessorGoo, TutorialNpc (with the "Talk" prompt) and the Upcoming Events board (WorldLayout.EVENT_BOARD,
@@ -16,7 +16,6 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Leaderboards = require(ReplicatedStorage.Shared.Leaderboards)
@@ -124,10 +123,8 @@ local function standBuilder(Props: any, shopId: string): (() -> Instance)?
 	end
 end
 
--- Places any missing prop. Returns the props by name (missing ones are absent). `features` defaults to
--- Config.FEATURES: with ExclusiveShop off the Exclusive Shop's jar is not built.
-function WorldProps.place(features: { [string]: any }?): { [string]: Model }
-	local flags = features or Config.FEATURES
+-- Places any missing prop. Returns the props by name (missing ones are absent).
+function WorldProps.place(): { [string]: Model }
 	local Props = visual("Props")
 	local WorldLayout = visual("WorldLayout")
 	local builders: { [string]: any } = {
@@ -151,7 +148,7 @@ function WorldProps.place(features: { [string]: any }?): { [string]: Model }
 	end
 	builders[Constants.SHOP_STAND_ITEM] = standBuilder(Props, "ItemShop")
 	builders[Constants.SHOP_STAND_UPGRADE] = standBuilder(Props, "UpgradeShop")
-	if flags.ExclusiveShop == true and Props and Props.exclusiveJar then
+	if Props and Props.exclusiveJar then
 		builders[Constants.SHOP_STAND_EXCLUSIVE] = Props.exclusiveJar
 	end
 	local parent = workspace:FindFirstChild(Constants.MAP_FOLDER) or workspace

@@ -53,15 +53,6 @@ local Purchases = {}
 
 local SHOP = Config.EXCLUSIVE_SHOP
 
-local function enabled(ctx: Context?): boolean
-	local override = if ctx and ctx.features then ctx.features.ExclusiveShop else nil
-	if override ~= nil then
-		return override
-	end
-	return Config.FEATURES.ExclusiveShop == true
-end
-Purchases.enabled = enabled
-
 -- The catalogue entry of a product key, or nil.
 function Purchases.product(productKey: string): { [string]: any }?
 	return SHOP.products[productKey]
@@ -381,9 +372,6 @@ function Purchases.grant(
 	now: number,
 	ctx: Context?
 ): (boolean, string?)
-	if not enabled(ctx) then
-		return false, "the Exclusive Shop is off"
-	end
 	local def = Purchases.product(productKey)
 	if not def then
 		return false, "unknown product"
@@ -582,11 +570,8 @@ function Purchases.applyPasses(session: Session, passes: { [string]: boolean }):
 	return extra
 end
 
--- The carry trail and Bat skin `session` wears now: both nil while the shop is off.
-function Purchases.worn(session: Session, ctx: Context?): (string?, string?)
-	if not enabled(ctx) then
-		return nil, nil
-	end
+-- The carry trail and Bat skin `session` wears now.
+function Purchases.worn(session: Session): (string?, string?)
 	return session.data.trail, session.data.batSkin
 end
 
@@ -598,7 +583,7 @@ local function set(ids: { string }): { [string]: boolean }
 	return out
 end
 
--- State.exclusiveShop for this session (the caller decides whether the flag is on). `world` also checks that a lock
+-- State.exclusiveShop for this session. `world` also checks that a lock
 -- break's plot still has its owner (nil: by its end time only).
 function Purchases.view(session: Session, now: number, world: World?): Types.ExclusiveShopView
 	local data = session.data

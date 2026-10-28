@@ -8,7 +8,7 @@
 	    back on its own pad), a padlock instead while brewing, and an empty slot says how to fill it;
 	  * the result card (Shared.MergePreview): "Random slime" with the rarity it will be and the jump chance, or a
 	    found recipe's hybrid by name; after Collect it reveals the new slime and the pad it went to;
-	  * a goo bar with the time left while brewing, and under it (FEATURES.ExclusiveShop) the "Finish now · R$N"
+	  * a goo bar with the time left while brewing, and under it the "Finish now · R$N"
     quick-buy (ExclusiveShopView.brewQuickBuy: priced by the time left) or "Use credit" with a saved brew credit;
 	  * one main button: a well saying what is missing, Start merge (VatStart), Hold to cancel (VatCancel) or
 	    Collect (VatCollect). A load the player's rank can't merge yet (Shared.MergeGate) may wait in the vat: a

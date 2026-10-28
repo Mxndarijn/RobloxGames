@@ -2,7 +2,7 @@
 --[[
 	LockBreakPrompt
 
-	"Open locked door" on other players' locked bases (contract/exclusive-shop.md §11, FEATURES.ExclusiveShop). A
+	"Open locked door" on other players' locked bases (contract/exclusive-shop.md §11). A
 	client-only ProximityPrompt on each base's door (Plot_<i>.LockBarrier.Stopper, the cork in jar 1's doorway) reads
 	"Open locked door · R$499", or "Use lock break" while State has a saved lock break. ExclusiveShopView.lockBreakQuickBuy
 	decides when it shows: someone else's base, locked now, not already letting you through, with the shop on. Your

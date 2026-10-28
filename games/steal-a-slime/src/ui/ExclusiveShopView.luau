@@ -7,7 +7,7 @@
 	owns). Panels/ExclusiveShop renders `cards` / `detail`; Merge, Welcome, WorldShop and SlimeKeys ask the
 	`*QuickBuy` functions whether their button shows and what it says. Nothing here grants or decides: a Buy hands
 	a `Purchase` to the PurchasePrompt adapter, and State says what was bought. Without State.exclusiveShop
-	(FEATURES.ExclusiveShop off) every function returns nothing to show.
+	(before the first State) every function returns nothing to show.
 
 	Style (§9, §10): carry trails and Bat skins, bought, equipped with EquipTrail / EquipBatSkin and taken off with
 	"" (no trail / the default Bat). Gifts (§12): every cosmetic card's pane also has a Gift button (Gift_<key>, or
@@ -666,7 +666,7 @@ local function credits(shop: any, kind: string): number
 end
 
 -- The Merge vat's quick-buy while it brews: "Finish now · R$35" (the bracket of the time left), "Use credit"
--- with a brew credit and `canUseCredit` (Request UseCredit exists), nil when not brewing or the shop is off.
+-- with a brew credit and `canUseCredit` (Request UseCredit exists), nil when not brewing.
 function ExclusiveShopView.brewQuickBuy(state: any, now: number, config: any, canUseCredit: boolean?): QuickBuy?
 	local shop = shopOf(state)
 	local vat = if type(state) == "table" then state.vat else nil
@@ -679,7 +679,7 @@ function ExclusiveShopView.brewQuickBuy(state: any, now: number, config: any, ca
 end
 
 -- The egg `slimeId`'s "Hatch now" while it incubates (State.slimes[i].slime.egg, hatchAt still ahead), nil
--- when it is ready, not an egg, not this player's or the shop is off.
+-- when it is ready, not an egg, not this player's.
 function ExclusiveShopView.hatchQuickBuy(
 	state: any,
 	slimeId: string,

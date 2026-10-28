@@ -323,7 +323,7 @@ Whatever is chosen, these pieces come first (one PR, before any product):
 - **Save fields + migration**: owned cosmetics, processed receipt ids, gifts pending (`shared/SaveData.luau`, new save version per `ARCHITECTURE.md`).
 - **Contract first**: new Request actions (`BuyProduct`, `EquipCosmetic`, `GiftItem`) and State fields go into `CONTRACT.md` before code (owner rules in `games/steal-a-slime/CLAUDE.md`).
 - **Product ids** in `Config` (one place), with a test fake so Lune specs and the memory-store live session can "buy" without Roblox. Never hit production DataStores while testing purchases.
-- **Flag**: `Config.FEATURES.ExclusiveShop`, removed one release after it goes on.
+- **Flag**: none; the shop ships on.
 
 ---
 

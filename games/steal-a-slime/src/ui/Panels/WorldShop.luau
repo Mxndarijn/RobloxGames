@@ -10,7 +10,7 @@
 	A row is the icon tile (a gold stock tag under it for restocking items), the name, a two-line description,
 	level pips for leveled upgrades, and on the right WorldShopLogic.slot: the green hold-to-buy button, a
 	sunken status well ("✅ Owned", "🔒 Rebirth 12 / to unlock") or the gold MAX stamp.
-	With FEATURES.ExclusiveShop, a second row under the Luck Potion sells one for the whole server for Robux
+	A second row under the Luck Potion sells one for the whole server for Robux
 	("Buy for the server · R$79", ExclusiveShopView.potionQuickBuy), only where paid random items are allowed; its
 	"Details" opens the Exclusive shop on the potion with its odds shown.
 ]]

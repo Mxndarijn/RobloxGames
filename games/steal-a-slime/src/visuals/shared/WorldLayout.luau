@@ -285,7 +285,7 @@ WorldLayout.SHOP_STANDS = table.freeze({
 	),
 }) :: { [string]: ShopStand }
 
--- The Exclusive Shop's Golden Jar Boutique (FEATURES.ExclusiveShop, contract/exclusive-shop.md §7; WorldProps places it,
+-- The Exclusive Shop's Golden Jar Boutique (contract/exclusive-shop.md §7; WorldProps places it,
 -- Props.exclusiveJar builds it, the client's ShopDisplayFx shows the featured seats in it). It completes the market row
 -- on the east ring (Upgrade Shop 34.5, Item Shop 67.5, Exclusive Shop 112.5): on the plot 3 / plot 4 bisector, facing
 -- the fountain, at `scale`. At full size its footprint fits r 92.3-94.35, between the ring path (outer edge r 82) and

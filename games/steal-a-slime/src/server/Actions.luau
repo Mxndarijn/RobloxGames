@@ -661,37 +661,19 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	elseif action == "SetHotbar" then
 		return result(HotbarOrder.set(session.data, args[1]))
 	elseif action == "AimHatch" then
-		if not feature(ctx, "ExclusiveShop") then
-			return fail("the Exclusive Shop is off")
-		end
 		return result(Purchases.aimHatch(world, session, args[1], now))
 	elseif action == "UseCredit" then
-		if not feature(ctx, "ExclusiveShop") then
-			return fail("the Exclusive Shop is off")
-		end
 		return result(Purchases.useCredit(world, session, args[1], args[2], now, purchaseCtx(ctx)))
 	elseif action == "EquipTrail" or action == "EquipBatSkin" then
-		if not feature(ctx, "ExclusiveShop") then
-			return fail("the Exclusive Shop is off")
-		end
 		if action == "EquipTrail" then
 			return result(Purchases.equipTrail(session, args[1]))
 		end
 		return result(Purchases.equipBatSkin(session, args[1]))
 	elseif action == "AimLockBreak" then
-		if not feature(ctx, "ExclusiveShop") then
-			return fail("the Exclusive Shop is off")
-		end
 		return result(LockBreak.aim(world, session, args[1], now, ctx.features))
 	elseif action == "AimGift" then
-		if not feature(ctx, "ExclusiveShop") then
-			return fail("the Exclusive Shop is off")
-		end
 		return result(Purchases.aimGift(world, session, args[1], args[2], now))
 	elseif action == "SendGift" then
-		if not feature(ctx, "ExclusiveShop") then
-			return fail("the Exclusive Shop is off")
-		end
 		return result(Purchases.sendGift(world, session, args[1], args[2], purchaseCtx(ctx)))
 	elseif action == "Drop" then
 		if not session.carry then

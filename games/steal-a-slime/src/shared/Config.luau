@@ -557,7 +557,7 @@ local PET_SEATS: { PetSeat } = {
 	seat("clam_shell", "Clam Shell", "pet_mount_clam_shell", 0.80, { 250, 150, 140 }, EXCLUSIVE),
 }
 
--- Exclusive Shop (FEATURES.ExclusiveShop, contract/exclusive-shop.md). The one source of every Robux product and pass.
+-- Exclusive Shop (contract/exclusive-shop.md). The one source of every Robux product and pass.
 -- productId / passId are Roblox ids; 0 = not created yet: the UI shows the price with "Not on sale yet" and only
 -- StudioHooks can grant it. robux is the shown price and must match the Creator Dashboard. Keys are permanent
 -- save / receipt ids: never rename.
@@ -1171,7 +1171,6 @@ local Config = {
 		BaseShapes = false, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
 		CashPads = true, -- each slime's income piles up on a gold cash pad in front of it and only the plot owner collects it by stepping on it; offline income lands there too (CashPads, contract/cash-pads.md); false = income goes straight to cash
-		ExclusiveShop = false, -- the Exclusive Shop (contract/exclusive-shop.md): the Golden Jar Boutique on the plaza, Robux products and passes, quick-buys (Finish now, Hatch now, Double it, server Luck Potion); false = no shop on the plaza, no MarketplaceService callbacks, no Robux buttons, Exclusive seats stay unowned
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
 	}),
 
