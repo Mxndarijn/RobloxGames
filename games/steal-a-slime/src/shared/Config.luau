@@ -1013,7 +1013,9 @@ local Config = {
 	LOCK_PAD = table.freeze({
 		STAND_SECONDS = 1,
 		STYLE = "ring" :: "ring" | "pieces", -- RingPad style: "ring" = one smooth circle, "pieces" = curved pieces with straight cuts
-		SEGMENTS = 72, -- steps the ring lights in (blocks round the circle; 12 suits "pieces")
+		-- Steps the ring lights in, and parts per plot (blocks round the circle; 12 suits "pieces"). The world part
+		-- budget (tests/RuntimeParts.spec, every plot x SEGMENTS) caps it.
+		SEGMENTS = 48,
 		CURVE = 4, -- "pieces" only: straight blocks per piece
 		GAP = 0.2, -- "pieces" only: studs wide, the straight cut between two pieces
 		RADIUS = 4.6, -- studs from the LockButton's centre to the middle of the ring
