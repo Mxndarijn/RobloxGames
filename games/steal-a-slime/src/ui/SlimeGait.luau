@@ -387,8 +387,9 @@ local function stride(st: State, persona: SlimePersona.Persona, now: number, p: 
 		p.tilt = 0.1 * math.sin(2 * math.pi * f) * gate
 	elseif gait == "Waddle" then
 		local step = math.floor(st.travelled / (SlimeGait.STRIDES.Waddle * st.stride)) % 2
-		p.roll = (if step == 0 then -1 else 1) * 0.2 * g * gate
-		p.lift = 0.18 * g * gate
+		-- rocks from foot to foot with its feet on the ground: a body-wide lift reads as flying on flat-footed slimes
+		p.roll = (if step == 0 then -1 else 1) * 0.16 * g * gate
+		p.lift = 0.03 * g * gate
 		p.sy = 1 - 0.05 * (1 - g) * gate
 	elseif gait == "Scoot" then
 		local k = g ^ 3
