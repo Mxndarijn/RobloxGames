@@ -1,6 +1,6 @@
 {
   "name": "pet_mount_magic_carpet",
-  "model": "models/pet_mount_magic_carpet.py",
+  "model": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\models\\pet_mount_magic_carpet.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
   "tris": 1776,
   "meshes": [
@@ -52,7 +52,7 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "out/pet_mount_magic_carpet.fbx",
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_magic_carpet.fbx",
   "fbx_bytes": 46636,
   "engine": "cycles",
   "mode": "full",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "out/.tiles/pet_mount_magic_carpet_0.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_magic_carpet_0.png"
     },
     {
       "view": "side",
-      "path": "out/.tiles/pet_mount_magic_carpet_1.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_magic_carpet_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "out/.tiles/pet_mount_magic_carpet_2.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_magic_carpet_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "out/.tiles/pet_mount_magic_carpet_3.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_magic_carpet_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.176,
+    "model_s": 0.17,
     "stats_s": 0.002,
-    "setup_s": 0.001,
+    "setup_s": 0.022,
     "render_s": [
-      0.801,
-      1.174,
-      1.0,
-      0.833
+      0.144,
+      0.119,
+      0.116,
+      0.126
     ],
-    "export_s": 0.07
+    "export_s": 0.234
   },
-  "sheet": "out/pet_mount_magic_carpet_sheet.png",
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_magic_carpet_sheet.png",
   "timings": {
-    "wall_s": 4.49,
-    "blender_process_s": 4.41,
-    "compose_s": 0.08,
-    "model_s": 0.176,
+    "wall_s": 1.33,
+    "blender_process_s": 1.28,
+    "compose_s": 0.044,
+    "model_s": 0.17,
     "stats_s": 0.002,
-    "setup_s": 0.001,
+    "setup_s": 0.022,
     "render_s": [
-      0.801,
-      1.174,
-      1.0,
-      0.833
+      0.144,
+      0.119,
+      0.116,
+      0.126
     ],
-    "export_s": 0.07
+    "export_s": 0.234
   }
 }

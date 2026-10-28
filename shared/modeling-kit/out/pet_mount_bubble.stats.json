@@ -1,6 +1,6 @@
 {
   "name": "pet_mount_bubble",
-  "model": "models/pet_mount_bubble.py",
+  "model": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\models\\pet_mount_bubble.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
   "tris": 1856,
   "meshes": [
@@ -52,7 +52,7 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "out/pet_mount_bubble.fbx",
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_bubble.fbx",
   "fbx_bytes": 50956,
   "engine": "cycles",
   "mode": "full",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "out/.tiles/pet_mount_bubble_0.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_0.png"
     },
     {
       "view": "side",
-      "path": "out/.tiles/pet_mount_bubble_1.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "out/.tiles/pet_mount_bubble_2.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "out/.tiles/pet_mount_bubble_3.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_bubble_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.109,
+    "model_s": 0.18,
     "stats_s": 0.002,
-    "setup_s": 0.001,
+    "setup_s": 0.022,
     "render_s": [
-      0.881,
-      0.884,
-      0.889,
-      1.201
+      0.143,
+      0.117,
+      0.122,
+      0.128
     ],
-    "export_s": 0.1
+    "export_s": 0.238
   },
-  "sheet": "out/pet_mount_bubble_sheet.png",
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_bubble_sheet.png",
   "timings": {
-    "wall_s": 4.51,
-    "blender_process_s": 4.42,
-    "compose_s": 0.086,
-    "model_s": 0.109,
+    "wall_s": 1.35,
+    "blender_process_s": 1.31,
+    "compose_s": 0.045,
+    "model_s": 0.18,
     "stats_s": 0.002,
-    "setup_s": 0.001,
+    "setup_s": 0.022,
     "render_s": [
-      0.881,
-      0.884,
-      0.889,
-      1.201
+      0.143,
+      0.117,
+      0.122,
+      0.128
     ],
-    "export_s": 0.1
+    "export_s": 0.238
   }
 }

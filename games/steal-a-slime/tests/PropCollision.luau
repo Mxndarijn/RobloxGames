@@ -889,6 +889,70 @@ local UNPLACED: { [string]: { string } } = {
 		"jolt",
 		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
 	},
+	pet_mount_storm_cloud = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_sunset_cloud = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_ice_cloud = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_flame_cloud = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_leaf = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_bubble = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_lily_pad = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_mushroom = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_pancakes = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_star_cushion = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_crescent_moon = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_magic_carpet = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_ufo = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_royal_cushion = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_hoverboard = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_clam_shell = {
+		"jolt",
+		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
 	ranch_bat = { "jolt", "the held Bat tool's Handle (BatTool), never a world slot; a tool has no collision" },
 	exclusive_jar_boutique = {
 		"gojo",
