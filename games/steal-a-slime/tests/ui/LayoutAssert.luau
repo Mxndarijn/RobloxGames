@@ -43,33 +43,52 @@ local WorldShopLogic = require("../../src/ui/WorldShopLogic")
 local GuidePanel = { TIP_H = 44, SHOW_TEXT = "📖  Show the tutorial again" }
 -- Panels/Rebirth's sizes and copy (LayoutAssert.spec checks this copy against the module).
 local RebirthPanel = {
-	ROWS = { sub = { y = 0, h = 18 }, gap = 8, gets = 20 },
+	ROWS = { gap = 10, hero = 74, perks = 28, rank = 70, head = 24, row = 62, keep = 64 },
 	CARD = {
-		pad = 12,
+		pad = 10,
+		arrowW = 40,
+		heroLabelH = 18,
+		heroValueSize = 32,
+		heroValueH = 38,
 		labelSize = 14,
-		labelH = 18,
-		amountSize = 28,
-		amountH = 34,
-		haveH = 18,
 		textGap = 10,
 		nameSize = 19,
 		nameH = 24,
+		subH = 18,
+		rightW = 112,
+		chipH = 28,
 		stateSize = 15,
-		stateH = 20,
-		descSize = 14,
+		badge = 40,
+		rankTitleSize = 17,
+		rankTitleH = 22,
+		rankDescH = 34,
+		keepTitleSize = 15,
+		keepTitleH = 18,
+		keepBodyH = 34,
 	},
 	TEXT = {
-		subSize = 14,
-		gainSize = 22,
-		gainH = 26,
-		gainLabelSize = 14,
-		gainLabelH = 18,
-		keeperSize = 15,
+		headSize = 17,
+		countSize = 15,
+		chipSize = 15,
 		statusSize = 18,
 		buttonSize = 22,
+		crownTitleSize = 26,
+		crownTitleH = 32,
+		statValueSize = 22,
 	},
-	COPY = { keeper = "✅ Keeps your other slimes", button = "Hold to rebirth" },
-	SLIME_IMAGE = 52,
+	COPY = {
+		head = "Bring these",
+		button = "Hold to rebirth",
+		getOne = "Catch or merge one",
+		missing = "Missing",
+		nextLabel = "After rebirth",
+		keepTitle = "You keep",
+		keep = "Other slimes, pads, upgrades, rank",
+		keepAll = "Your slimes, pads, upgrades, rank",
+		reset = "Your cash and the slimes above",
+		crownSub = "You finished every rebirth.",
+	},
+	SLIME_IMAGE = 48,
 }
 -- Panels/WorldShop's row geometry (WorldShop.BADGE / BUY_W / DESC_H, SIZE.tagH; LayoutAssert.spec checks it
 -- against the module); tags and text at the minimum.
@@ -600,15 +619,19 @@ function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
 	return out
 end
 
--- Rebirth card texts (Panels/Rebirth), worst-case numbers: body = card - 24. Two cards side by side, or
--- with several slimes a full-width cash card over half-width slime cards.
+-- Rebirth panel texts (Panels/Rebirth), worst-case numbers and names: body = card - 24. The hero splits the
+-- body around the arrow; rows leave room for the slime picture and the chip or tick on the right.
 function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
 	local w = panel.w - Layout.PANEL_CHROME.pad * 2
 	local c = RebirthPanel.CARD
 	local t = RebirthPanel.TEXT
-	local cardW = w / 2 - RebirthPanel.ROWS.gap / 2
-	local inner = cardW - c.pad * 2
-	local textW = cardW - (c.pad + RebirthPanel.SLIME_IMAGE + c.textGap) - c.pad
+	local copy = RebirthPanel.COPY
+	local half = w / 2 - c.arrowW / 2
+	local rowW = w - (c.pad + RebirthPanel.SLIME_IMAGE + c.textGap) - c.rightW
+	local rankW = w - (c.pad + c.badge + c.textGap + c.pad)
+	local keepW = w / 2 - 4 - (c.pad + 2) * 2
+	local statW = w / 3 - 6
+	local chipPad = 20 -- Widgets.chip's left and right padding
 	local title = Layout.panelTitle(panel)
 	return {
 		{
@@ -619,33 +642,114 @@ function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
 			w = title.w,
 			h = title.h,
 		},
-		{ name = "Rebirth sub", text = "You need all four:", size = t.subSize, w = w, h = RebirthPanel.ROWS.sub.h },
-		{ name = "Rebirth slime label", text = "This slime", size = c.labelSize, w = textW, h = c.labelH },
-		{ name = "Rebirth cost", text = "$987.6Qa", size = c.amountSize, bold = true, w = inner, h = c.amountH },
-		{ name = "Rebirth have", text = "You have $987.6Qa", size = c.descSize, w = inner, h = c.haveH },
-		{ name = "Rebirth slime name", text = "Dragon King", size = c.nameSize, bold = true, w = textW, h = c.nameH },
-		{ name = "Rebirth slime state", text = "✅ Owned", size = c.stateSize, bold = true, w = textW, h = c.stateH },
-		{ name = "Rebirth income", text = "x99.5", size = t.gainSize, bold = true, w = cardW, h = t.gainH },
-		{ name = "Rebirth lock", text = "lock time", size = t.gainLabelSize, w = cardW, h = t.gainLabelH },
+		{ name = "Rebirth hero label", text = copy.nextLabel, size = c.labelSize, w = half, h = c.heroLabelH },
 		{
-			name = "Rebirth keeper",
-			text = RebirthPanel.COPY.keeper,
-			size = t.keeperSize,
+			name = "Rebirth hero value",
+			text = "x99.5",
+			size = c.heroValueSize,
 			bold = true,
-			w = w * 0.6,
-			h = RebirthPanel.ROWS.gets,
+			w = half,
+			h = c.heroValueH,
 		},
 		{
-			name = "Rebirth reason",
-			text = "Need $987.6Qa and a Dragon King",
-			size = t.statusSize,
+			name = "Rebirth perk chips",
+			text = "+10s lock time" .. "Rank bonus +200% income", -- both chips on one line
+			size = t.chipSize,
+			bold = true,
+			w = w - chipPad * 2 - 8,
+			h = RebirthPanel.ROWS.perks,
+		},
+		{
+			name = "Rebirth rank title",
+			text = "New rank: Gelatinous Legend",
+			size = c.rankTitleSize,
+			bold = true,
+			w = rankW,
+			h = c.rankTitleH,
+		},
+		{
+			name = "Rebirth rank desc",
+			text = "Unlocks the Night Shift upgrade, opens Rare and Epic merges, grows the Garden Fountain",
+			size = c.labelSize,
+			w = rankW,
+			h = c.rankDescH,
+			wrapped = true,
+		},
+		{
+			name = "Rebirth head",
+			text = copy.head,
+			size = t.headSize,
+			bold = true,
+			w = w / 2,
+			h = RebirthPanel.ROWS.head,
+		},
+		{
+			name = "Rebirth count",
+			text = "3 of 4 ready",
+			size = t.countSize,
+			bold = true,
+			w = w / 2 - chipPad,
+			h = RebirthPanel.ROWS.head,
+		},
+		{ name = "Rebirth cost", text = "$987.6Qa", size = c.nameSize, bold = true, w = rowW, h = c.nameH },
+		{ name = "Rebirth slime name", text = "Dragon King", size = c.nameSize, bold = true, w = rowW, h = c.nameH },
+		{ name = "Rebirth slime desc", text = copy.getOne, size = c.labelSize, w = rowW, h = c.subH },
+		{
+			name = "Rebirth have chip",
+			text = "$987.6Qa",
+			size = c.stateSize,
+			bold = true,
+			w = c.rightW - c.pad - chipPad,
+			h = c.chipH,
+		},
+		{
+			name = "Rebirth missing chip",
+			text = copy.missing,
+			size = c.stateSize,
+			bold = true,
+			w = c.rightW - c.pad - chipPad,
+			h = c.chipH,
+		},
+		{
+			name = "Rebirth keep title",
+			text = copy.keepTitle,
+			size = c.keepTitleSize,
+			bold = true,
+			w = keepW,
+			h = c.keepTitleH,
+		},
+		{ name = "Rebirth keep", text = copy.keep, size = c.labelSize, w = keepW, h = c.keepBodyH, wrapped = true },
+		{
+			name = "Rebirth keep all",
+			text = copy.keepAll,
+			size = c.labelSize,
+			w = keepW,
+			h = c.keepBodyH,
+			wrapped = true,
+		},
+		{ name = "Rebirth reset", text = copy.reset, size = c.labelSize, w = keepW, h = c.keepBodyH, wrapped = true },
+		{
+			name = "Rebirth crown title",
+			text = "Gelatinous Legend",
+			size = t.crownTitleSize,
 			bold = true,
 			w = w,
+			h = t.crownTitleH,
+		},
+		{ name = "Rebirth crown sub", text = copy.crownSub, size = 15, w = w, h = 20 },
+		{ name = "Rebirth stat", text = "x99.5", size = t.statValueSize, bold = true, w = statW, h = 28 },
+		{
+			name = "Rebirth reason",
+			text = "Need $987.6Qa, a Dragon King and a Cyber Ninja",
+			size = t.statusSize,
+			bold = true,
+			w = w - 24,
 			h = Layout.BUTTON,
+			wrapped = true,
 		},
 		{
 			name = "Rebirth button",
-			text = RebirthPanel.COPY.button,
+			text = copy.button,
 			size = t.buttonSize,
 			bold = true,
 			w = w,
