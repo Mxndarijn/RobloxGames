@@ -12,10 +12,10 @@ end
 local HERE = { x = 0, z = 0 }
 
 describe("TutorialTargets.grab", function()
-	it("leads to the closest slime the player can afford", function()
+	it("leads to the closest slime the player can afford, with no price of its own (the slime's tag has it)", function()
 		local picked, label = TutorialTargets.grab({ slime("cheapFar", 40, 10), slime("pricyNear", 5, 900) }, 50, HERE)
 		expect(picked and picked.key).toBe("cheapFar")
-		expect(label).toBe("Buy $10")
+		expect(label).toBeNil()
 	end)
 
 	it("always counts free slimes, even with no cash", function()

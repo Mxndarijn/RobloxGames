@@ -218,6 +218,64 @@ describe("SlimeInfoCard close-up cap", function()
 	end)
 end)
 
+describe("SlimeInfoCard Buy chip up close", function()
+	it("drops the price from a for-sale view and leaves the rest", function()
+		local priced = view({ price = 500 })
+		local plain = SlimeInfoCard.unpriced(priced)
+		expect(plain.price).toBeNil()
+		expect(plain.name).toBe(priced.name)
+		expect(plain.income).toBe(priced.income)
+		expect(priced.price ~= nil).toBe(true) -- the slime's own view keeps its price
+		expect(SlimeLabel.rows(plain)).toBe(3)
+	end)
+	it("hands back a view with no price as it is", function()
+		local v = view()
+		expect(SlimeInfoCard.unpriced(v)).toBe(v)
+	end)
+	it("shows the chip only within priceDistance, closer than the tag's own cull distance", function()
+		local s = SlimeInfoCard.SIZE
+		expect(s.priceDistance > s.closeLimit).toBe(true)
+		expect(s.priceDistance < s.smallMaxDistance).toBe(true)
+	end)
+	it("starts a for-sale slime's tag without the chip until the player comes near", function()
+		local model = slimeModel({
+			[Constants.LABEL_NAME_ATTRIBUTE] = "Lop",
+			[Constants.LABEL_INCOME_ATTRIBUTE] = 5,
+			[SlimeLabel.ATTRIBUTES.price] = 500,
+		})
+		local stop = start({ collection = fakeCollection({ model }), tag = Constants.SLIME_TAG })
+		local gui = model:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME)
+		expect(#rowsOf(gui)).toBe(3)
+		expect(gui:FindFirstChild("Card"):FindFirstChild("Price").Visible).toBe(false)
+		stop()
+	end)
+end)
+
+describe("SlimeInfoCard declutter", function()
+	local function at(key: string, x: number, y: number, depth: number): any
+		return { key = key, x = x, y = y, w = 160, h = 80, depth = depth }
+	end
+	it("keeps tags that do not overlap", function()
+		local hidden = SlimeInfoCard.declutter({ at("a", 100, 100, 10), at("b", 400, 100, 20) })
+		expect(next(hidden)).toBeNil()
+	end)
+	it("hides the farther of two overlapping tags, whatever order they come in", function()
+		local hidden = SlimeInfoCard.declutter({ at("far", 120, 110, 30), at("near", 100, 100, 10) })
+		expect(hidden.far).toBe(true)
+		expect(hidden.near).toBeNil()
+	end)
+	it("keeps tags that only touch at their edges", function()
+		local hidden = SlimeInfoCard.declutter({ at("a", 100, 100, 10), at("b", 255, 100, 20) })
+		expect(next(hidden)).toBeNil()
+	end)
+	it("measures overlap against kept tags only, so a hidden tag hides nothing", function()
+		-- b overlaps a (hidden); c overlaps b but not a, so c stays
+		local hidden = SlimeInfoCard.declutter({ at("a", 100, 100, 10), at("b", 200, 100, 20), at("c", 300, 100, 30) })
+		expect(hidden.b).toBe(true)
+		expect(hidden.c).toBeNil()
+	end)
+end)
+
 describe("SlimeInfoCard render", function()
 	it("is culled by distance, drawn above its anchor and never cloned", function()
 		local gui = SlimeInfoCard.build()

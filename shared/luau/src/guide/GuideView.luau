@@ -30,7 +30,9 @@
 	usePathfinding, routeRefresh, agentParams, showRing, showMarker,
 	showHighlight, showEdgePointer, edgeMargin, getIgnore (extra Instances
 	the ground raycast skips), getOrigin (default: local HumanoidRootPart),
-	distanceText (studs -> string?), autoStep, playerGui.
+	distanceText (studs -> string?), autoStep, playerGui, clearLabels (lift
+	the marker above the target's own enabled BillboardGuis, GuideMarker;
+	default off).
 ]]
 
 local PathfindingService = game:GetService("PathfindingService")
@@ -38,6 +40,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local GuideEdge = if script then require(script.Parent.GuideEdge) else require("./GuideEdge")
+local GuideMarker = if script then require(script.Parent.GuideMarker) else require("./GuideMarker")
 local GuideTrail = if script then require(script.Parent.GuideTrail) else require("./GuideTrail")
 
 export type Options = {
@@ -61,6 +64,7 @@ export type Options = {
 	distanceText: ((studs: number) -> string?)?,
 	autoStep: boolean?,
 	playerGui: Instance?,
+	clearLabels: boolean?,
 }
 
 export type Guide = {
@@ -320,6 +324,7 @@ function GuideView.new(options: Options?): Guide
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
 	rayParams.RespectCanCollide = true
 	local ignoreAt = -math.huge
+	local ownLabels: { BillboardGui } = {} -- the target's BillboardGuis (clearLabels), re-read with the ignore list
 	local destroyed = false
 	local connection: RBXScriptConnection? = nil
 
@@ -351,6 +356,41 @@ function GuideView.new(options: Options?): Guide
 		end
 		rayParams.FilterDescendantsInstances = list
 		ignoreAt = clock
+		ownLabels = {}
+		if o.clearLabels and target then
+			for _, d in target:GetDescendants() do
+				if d:IsA("BillboardGui") then
+					table.insert(ownLabels, d)
+				end
+			end
+		end
+	end
+
+	-- The target's own labels as GuideMarker reads them: the enabled ones the camera is close enough to draw.
+	local function labelsSeenFrom(camera: Camera): { GuideMarker.Label }
+		local out: { GuideMarker.Label } = {}
+		local eye = camera.CFrame
+		for _, gui in ownLabels do
+			local adornee = gui.Adornee or gui.Parent
+			local at: Vector3? = if adornee and adornee:IsA("Attachment")
+				then adornee.WorldPosition
+				elseif adornee and adornee:IsA("BasePart") then adornee.Position
+				else nil
+			if gui.Enabled and gui.Parent and at then
+				local spot = at + gui.StudsOffsetWorldSpace
+				local depth = (spot - eye.Position):Dot(eye.LookVector)
+				if depth > 0 and depth <= gui.MaxDistance then
+					table.insert(out, {
+						y = spot.Y,
+						scaleY = gui.Size.Y.Scale,
+						offsetY = gui.Size.Y.Offset,
+						sizeOffsetY = gui.SizeOffset.Y,
+						pxPerStud = GuideMarker.pxPerStud(camera.ViewportSize.Y, camera.FieldOfView, depth),
+					})
+				end
+			end
+		end
+		return out
 	end
 
 	local function ground(position: Vector3): RaycastResult?
@@ -521,7 +561,11 @@ function GuideView.new(options: Options?): Guide
 		local camera = workspace.CurrentCamera
 		local distance = (Vector3.new(to.X, from.Y, to.Z) - from).Magnitude
 		if o.showMarker ~= false and camera then
-			local top = to + Vector3.new(0, boxSize.Y / 2 + 1.6 + 0.3 * math.sin(clock * 4), 0)
+			local baseY = to.Y + boxSize.Y / 2
+			if o.clearLabels then
+				baseY = GuideMarker.top(baseY, labelsSeenFrom(camera), 1)
+			end
+			local top = Vector3.new(to.X, baseY + 1.6 + 0.3 * math.sin(clock * 4), to.Z)
 			local eye = camera.CFrame.Position
 			local facing = Vector3.new(eye.X, top.Y, eye.Z)
 			local frame = if (facing - top).Magnitude > 0.01 then CFrame.lookAt(top, facing) else CFrame.new(top)
