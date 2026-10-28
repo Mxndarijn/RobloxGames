@@ -80,7 +80,7 @@ right = [(0.0, 2.36), (0.22, 2.6), (0.5, 2.68), (0.78, 2.56), (0.92, 2.3), (0.86
          (0.92, 1.45), (1.0, 1.05), (0.9, 0.62), (0.62, 0.3), (0.3, 0.2), (0.0, 0.18)]
 right = catmull(right, 4)
 bib = right + [(-u, v) for u, v in reversed(right[1:-1])]
-parts.append(grid_decal("Bib", list(reversed(bib)), WH, FRONT, off=0.006, th=0.006, on=["Body"], cell=0.14))
+parts.append(register(grid_decal("Bib", list(reversed(bib)), WH, FRONT, off=0.006, th=0.006, on=["Body"], cell=0.14), "Bib"))  # the face sits on the bib, not under it
 
 # beak, flippers, feet
 parts.append(lathe("Beak", [(0, 0.28), (0.25, 0.24), (0.5, 0.12), (0.64, 0)], zgrad(ORG_D, ORG, 1.75, 2.0),
@@ -103,7 +103,7 @@ hp = Vector((0.22, 0.12, 3.02))
 parts.append(lathe("HatBrim", [(0, 0.0), (0, 0.66), (0.08, 0.66), (0.08, 0)], NAVY_D, pos=hp, axis=hat_axis, segs=20))
 parts.append(lathe("HatTop", [(0.05, 0), (0.05, 0.4), (0.78, 0.44), (0.78, 0)], hexc("1c1a28"), pos=hp, axis=hat_axis, segs=20))
 parts.append(lathe("HatBand", [(0.1, 0), (0.1, 0.415), (0.27, 0.418), (0.27, 0)], RED, pos=hp, axis=hat_axis, segs=20))
-f = Face(b, eye_v=2.2, eye_u=0.46)
+f = Face(b, eye_v=2.2, eye_u=0.46, on=["Body", "Bib"])
 f.eyes("round", w=0.36, h=0.48, look=(0, 0.02))
 f.brows("raised", w=0.3, th=0.07, lift=-0.06, color=NAVY_D)
 f.cheeks(color=hexc("ff9fb8"), u=0.78, v=1.86, w=0.26, h=0.13)

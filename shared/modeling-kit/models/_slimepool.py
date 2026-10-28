@@ -517,8 +517,11 @@ class Face:
     Chain: Face(b).eyes("round").mouth("grin").brows("angry").cheeks().parts
     """
 
-    def __init__(self, body, eye_u=0.5, eye_v=None, mouth_v=None, s=1.0, ink=INK, mouth_col=MOUTH):
+    def __init__(self, body, eye_u=0.5, eye_v=None, mouth_v=None, s=1.0, ink=INK, mouth_col=MOUTH, on=None):
         self.b = body
+        self.on = on or [body.name]  # surfaces the face sits on; add a skin patch (register it) to sit on top of it
+        global FACE_ON
+        FACE_ON = self.on  # the rig's blink lids land on the same surfaces
         self.eu = eye_u
         self.ev = eye_v if eye_v is not None else 0.55 * body.H
         self.mv = mouth_v if mouth_v is not None else self.ev - 0.38 * s
@@ -527,7 +530,7 @@ class Face:
         self.parts = []
 
     def d(self, name, poly, color, off=0.02, th=0.025):
-        self.parts.append(decal(name, poly, color, FRONT, off=off, th=th, on=[self.b.name]))
+        self.parts.append(decal(name, poly, color, FRONT, off=off, th=th, on=self.on))
         return self
 
     def _eye_round(self, side, w, h, u=None, v=None, lid=0.0, tilt=0.0, iris=None, look=(0, 0), hi=True):

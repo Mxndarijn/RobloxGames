@@ -51,10 +51,21 @@ def add_lids(parts):
         side = 1 if u > 0 else -1
         try:  # an eye that isn't on the Body front (custom eyes, sockets) gets no lid
             out.append(sp.decal(f"BlinkLid{side}", sp.arc(u, v + 0.02, w * 0.36, 200, 340, 0.08), sp.INK,
-                                off=-LID_IN, th=0.03, on=["Body"]))
+                                off=-LID_IN, th=0.03, on=getattr(sp, "FACE_ON", None) or ["Body"]))
         except ValueError:
             pass
     return out
+
+
+SKIN_GAP = 0.08  # studs: a part with every vertex this close to the Body is a skin patch
+
+
+def _hugs(o, body_bvh):
+    for v in o.data.vertices:
+        hit = body_bvh.find_nearest(o.matrix_world @ v.co)
+        if hit[0] is None or hit[3] > SKIN_GAP:
+            return False
+    return True
 
 
 def tag_parts(parts):
@@ -81,6 +92,10 @@ def tag_parts(parts):
         kd.balance()
         trees.append((key, kd))
     body_bvh = sp.SURFACES.get("Body")
+    for r in roles:  # a patch painted onto the skin (bib, emblem, moss) bends with the jelly like the face
+        o, role, _ = r
+        if role == "acc" and body_bvh and _hugs(o, body_bvh):
+            r[1] = "face"
     for r in roles:
         o, role, key = r
         if role != "acc" or not trees:
