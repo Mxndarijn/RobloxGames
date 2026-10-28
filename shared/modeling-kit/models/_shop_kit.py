@@ -148,11 +148,11 @@ def glass(o, t=0.55):
     return o
 
 
-def ring(name, r, z, thick=0.32, pos=(0, 0), col=None, segs=28):
+def ring(name, r, z, thick=0.32, pos=(0, 0), col=None, segs=28, sides=5):
     """A round gold band (a closed tube round a circle) at radius r, height z."""
     x, y = pos
     pts = [(x + math.cos(i * math.tau / segs) * r, y + math.sin(i * math.tau / segs) * r, z) for i in range(segs + 1)]
-    o = tube(name, pts, [thick] * len(pts), col or GOLD, segs=6)
+    o = tube(name, pts, [thick] * len(pts), col or GOLD, segs=sides)
     paint(o, lambda c, n: GOLD_HI if n.z > 0.6 else (GOLD_LO if n.z < -0.3 else (col or GOLD)))
     return o
 
