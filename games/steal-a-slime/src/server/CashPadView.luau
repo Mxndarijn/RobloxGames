@@ -142,11 +142,12 @@ local function build(pad: BasePart, plotIndex: number, j: number): Disc
 	}
 end
 
--- Disc frame: flat, LIFT studs above the pad's bottom and FRONT studs in front of the pad (the pad's -Z faces the jar).
-local function discCFrame(pad: BasePart): CFrame
+-- Disc frame: flat, LIFT studs above the pad's bottom and CashPads.front(j) studs in front of the pad (the pad's -Z
+-- faces the jar).
+local function discCFrame(pad: BasePart, j: number): CFrame
 	local c = Config.CASH_PAD
 	return pad.CFrame
-		* CFrame.new(0, -pad.Size.Y / 2 + c.LIFT + c.HEIGHT / 2, -c.FRONT)
+		* CFrame.new(0, -pad.Size.Y / 2 + c.LIFT + c.HEIGHT / 2, -CashPads.front(j))
 		* CFrame.Angles(0, 0, math.rad(90))
 end
 
@@ -210,7 +211,7 @@ function CashPadView.sync(state: State, world: World.World, now: number)
 						disc = build(pad, plotIndex, j)
 						state.discs[k] = disc
 					end
-					local frame = discCFrame(pad)
+					local frame = discCFrame(pad, j)
 					if disc.part.CFrame ~= frame then
 						disc.part.CFrame = frame
 						disc.rim.CFrame = frame * CFrame.new(-c.HEIGHT * 0.2, 0, 0)

@@ -125,6 +125,13 @@ function CashPads.accrueOffline(data: Data, lastOnline: number, now: number, ski
 	return added
 end
 
+-- Studs from pad `pad`'s centre to its disc's centre (Config.CASH_PAD.FRONT of the pad's floor).
+function CashPads.front(pad: number): number
+	local fronts = Config.CASH_PAD.FRONT
+	local floor = math.clamp(math.ceil(pad / Config.PADS_PER_FLOOR), 1, #fronts)
+	return fronts[floor]
+end
+
 -- Is a player's root at (dx, dy, dz) from a disc's centre standing on it (Config.CASH_PAD)?
 function CashPads.touching(dx: number, dy: number, dz: number): boolean
 	local c = Config.CASH_PAD

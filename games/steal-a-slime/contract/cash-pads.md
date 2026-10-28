@@ -13,7 +13,7 @@
 
 ## World (`src/server/CashPadView`, Roblox adapter)
 
-- On every owned plot, each unlocked pad with a slime or a pile gets a `CashPad` Part (child of `Pad_<j>`): a flat Neon gold cylinder `Config.CASH_PAD.RADIUS` across, `FRONT` studs in front of the pad centre on the floor (the pad's -Z, towards the jar and past the pad sign). Anchored, CanCollide / CanQuery / CanTouch false.
+- On every owned plot, each unlocked pad with a slime or a pile gets a `CashPad` Part (child of `Pad_<j>`): a flat Neon gold cylinder `Config.CASH_PAD.RADIUS` across, `FRONT[floor]` studs in front of the pad centre (`CashPads.front`; the pad's -Z, towards the jar, well past the pad sign; the top jar uses a shorter distance to stay clear of the stair hole). Anchored, CanCollide / CanQuery / CanTouch false.
 - Its `CashPadLabel` BillboardGui shows the pile (`CashPads.label`: "$1.2K", "FULL $3.6K" in gold at the cap, empty under $1) from `LABEL_DISTANCE` studs. After the owner collects, it shows "+$X" in green for a moment.
 - Stepping on it: `ServerLoop` polls each player's `HumanoidRootPart` every `VIEW_INTERVAL` (`CashPads.touching`: flat distance up to `RADIUS + TOUCH_SLACK`, 0..`TOUCH_HEIGHT` studs above the disc). A touch counts once per step-on: standing still collects nothing more until the player steps off and back on. There is no `Touched` handler.
 - Discs of plots without an owner, pads that are gone (a removed floor) or pads with neither slime nor pile are destroyed.

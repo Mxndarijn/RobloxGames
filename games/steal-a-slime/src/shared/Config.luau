@@ -1755,8 +1755,9 @@ local Config = {
 	PLOT_PAD_PROMPT_DISTANCE = 10,
 	PLOT_PAD_RANGE_SLACK = 4,
 
-	-- Cash pads (FEATURES.CashPads, CashPads / server/CashPadView): a flat gold disc on the floor FRONT studs in front of
-	-- each slime pad's centre (towards the jar, past the pad's name sign), RADIUS studs across the middle and HEIGHT thick,
+	-- Cash pads (FEATURES.CashPads, CashPads / server/CashPadView): a flat gold disc on the floor FRONT[f] studs in front
+	-- of each slime pad's centre on floor f (towards the jar, well past the pad's name sign; the top jar is the smallest
+	-- and keeps clear of the stair hole), RADIUS studs across the middle and HEIGHT thick,
 	-- its bottom LIFT studs above the pad's bottom (the floor's look stands about a stud above its walk collider).
 	-- A player's root part within RADIUS + TOUCH_SLACK studs (flat distance) and 0..TOUCH_HEIGHT studs above the disc
 	-- is standing on it. LABEL_DISTANCE: the pile counter shows from this many studs away. HINT_AT: cash waiting on
@@ -1764,7 +1765,7 @@ local Config = {
 	-- NAG_SECONDS: a visitor on someone else's pad sees "Not your cash" at most this often. FLASH_SECONDS: how long
 	-- the counter shows "+$X" after a collect. SYNC_SECONDS: discs are rebuilt / relabelled at most this often.
 	CASH_PAD = table.freeze({
-		FRONT = 6.6,
+		FRONT = table.freeze({ 8, 8, 8, 6.6 }) :: { number }, -- per floor (Config.BASE_FLOORS); the last entry covers any floor above
 		RADIUS = 1.6,
 		HEIGHT = 0.3,
 		LIFT = 1.15,
