@@ -1012,7 +1012,7 @@ local Config = {
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
 		BaseShapes = false, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
-		CashPads = false, -- each slime's income piles up on a gold cash pad in front of it and only the plot owner collects it by stepping on it; offline income lands there too (CashPads, contract/cash-pads.md); false = income goes straight to cash
+		CashPads = true, -- each slime's income piles up on a gold cash pad in front of it and only the plot owner collects it by stepping on it; offline income lands there too (CashPads, contract/cash-pads.md); false = income goes straight to cash
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
 	}),
 
