@@ -53,13 +53,8 @@ local function buildCard(parent: Instance, order: number): any
 		Parent = parent,
 	}, {
 		Widgets.corner(Layout.NOTICE_RADIUS),
-		create("UIPadding", {
-			PaddingLeft = UDim.new(0, SIZE.pad),
-			PaddingRight = UDim.new(0, SIZE.pad + 4),
-			PaddingTop = UDim.new(0, SIZE.pad),
-			PaddingBottom = UDim.new(0, SIZE.pad),
-		}),
 	})
+	-- No UIPadding on the card itself: it would pull the Ink ring (a child frame) inside the pink one.
 	Widgets.ring(card, Theme.Bad, Layout.NOTICE_RADIUS)
 	local row = create("Frame", {
 		Name = "Row",
@@ -68,6 +63,12 @@ local function buildCard(parent: Instance, order: number): any
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = card,
 	}, {
+		create("UIPadding", {
+			PaddingLeft = UDim.new(0, SIZE.pad),
+			PaddingRight = UDim.new(0, SIZE.pad + 4),
+			PaddingTop = UDim.new(0, SIZE.pad),
+			PaddingBottom = UDim.new(0, SIZE.pad),
+		}),
 		create("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
 			VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -115,8 +116,8 @@ local function buildCard(parent: Instance, order: number): any
 	local bar = create("Frame", {
 		Name = "Timer",
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, Layout.NOTICE_RADIUS - SIZE.pad, 1, SIZE.pad - 1),
-		Size = UDim2.new(1, -2 * (Layout.NOTICE_RADIUS - SIZE.pad) + 4, 0, SIZE.bar),
+		Position = UDim2.new(0, Layout.NOTICE_RADIUS, 1, -1),
+		Size = UDim2.new(1, -2 * Layout.NOTICE_RADIUS, 0, SIZE.bar),
 		BackgroundColor3 = Theme.Bad,
 		BorderSizePixel = 0,
 		Visible = false,
