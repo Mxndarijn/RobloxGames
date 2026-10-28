@@ -18,7 +18,8 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | `src/guide` | `GuideTarget` | pure | Picks the closest candidate on the ground plane, keeping the current pick unless another is clearly closer |
 | | `GuideTrail` | pure | Lays out ground-trail arrows along a route: spacing, scroll phase, fade at both ends, length and count caps |
 | | `GuideEdge` | pure | Screen-edge pointer position and angle for an off-screen target (flips targets behind the camera) |
-| | `GuideView` | adapter, client | Leads the local player to a target: neon chevrons snapped to the ground (optional pathfinding route), ring, labelled marker, Highlight outline, screen-edge pointer; colours, sizes and the arrow template can be overridden |
+| | `GuideMarker` | pure | Height of the marker above a target that carries its own floating labels (studs-plus-pixels BillboardGuis) |
+| | `GuideView` | adapter, client | Leads the local player to a target: neon chevrons snapped to the ground (optional pathfinding route), ring, labelled marker (optionally lifted above the target's own labels, `clearLabels`), Highlight outline, screen-edge pointer; colours, sizes and the arrow template can be overridden |
 | `src/ranking` | `OrderedBoard` | pure, server | Top-N rankings in OrderedDataStores: value clamping, write-on-change, page → ranked entries, in-memory pages, one store per period (weekly boards) |
 | `src/anticheat` | `MovementGuard` | pure, server | Checks server-read character positions for teleports, speed hacks and flying; tolerates lag freezes, downhill runs and server-made moves (`allow`, `reset`) |
 | | `Suspicion` | pure, server | Points per player that drain over time and reach "pause" / "kick" levels |
