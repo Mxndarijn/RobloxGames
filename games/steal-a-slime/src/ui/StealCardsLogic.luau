@@ -77,7 +77,8 @@ function StealCardsLogic.observe(memory: Memory, state: StateLike, now: number):
 		table.insert(timed, card)
 	end
 	local seen = memory.seen
-	for _, notice in state.notices or {} do
+	local notices: { NoticeCards.Notice } = state.notices or {}
+	for _, notice in notices do
 		local key = `{notice.id}@{notice.at}`
 		local kind = NOTICE_KIND[notice.id]
 		if kind and not seen[key] then

@@ -54,7 +54,8 @@ end
 -- The notices still showing at `now`, as fresh tables (State.notices).
 function NoticeCards.live(list: { Notice }?, now: number): { Notice }
 	local out: { Notice } = {}
-	for _, notice in list or {} do
+	local items: { Notice } = list or {}
+	for _, notice in items do
 		if NoticeCards.isLive(notice, now) then
 			table.insert(out, table.clone(notice))
 		end
