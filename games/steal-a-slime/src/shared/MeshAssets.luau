@@ -156,6 +156,10 @@ local NAMES = {
 	"giant_sequoia_spire",
 	"giant_cloud_tree",
 	"ranch_bat",
+	"bat_skin_lollipop",
+	"bat_skin_fish",
+	"bat_skin_foam_finger",
+	"bat_skin_golden",
 	"ranch_floor_deck",
 	"ranch_floor_paths",
 	"pet_cloud",
@@ -500,6 +504,14 @@ entries["giant_cloud_tree"] =
 -- (the red wrap centre, 1.2 above the pommel; mesh centre = bbox centre). 606 tris. models/ranch_bat.py.
 entries["ranch_bat"] =
 	{ assetId = 111246965997524, meshId = "rbxassetid://94306599639554", size = { 1.351, 5.09, 1.351 } }
+-- Bat skins (contract/exclusive-shop.md §10, Config.EXCLUSIVE_SHOP.batSkins): other meshes for the same Handle, held
+-- with ranch_bat's Grip (each is 5.09 tall, grip 1.2 above the bottom, bbox centred on the grip axis). Held, no
+-- collision, NOT world slots. Not uploaded yet: no ids, so the Handle keeps the default Bat. size = kit bbox (studs).
+-- models/bat_skin_<id>.py.
+entries["bat_skin_lollipop"] = { size = { 2.079, 5.09, 0.76 } } -- 808 tris
+entries["bat_skin_fish"] = { size = { 1.992, 5.089, 1.074 } } -- 740 tris
+entries["bat_skin_foam_finger"] = { size = { 1.5, 5.09, 0.955 } } -- 808 tris
+entries["bat_skin_golden"] = { size = { 1.28, 5.09, 1.482 } } -- 808 tris
 
 -- Held PvP items (Shared.PvpModels, server/PvpHeld; a placed Goo Trap / Bounce Pad marker too, ui/PvpEffects).
 -- Held, no collision (not in COLLISION), NOT world slots. size = the native size Roblox reports (Open Cloud size-check);

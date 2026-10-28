@@ -6,7 +6,7 @@ While an id is 0 the shop shows the price with "Not on sale yet". Create the **p
 
 Prices must match the `robux` in Config (the shop shows that number).
 
-## Developer Products (27)
+## Developer Products: clouds, bundle, quick-buys (27)
 
 | Config key | Name | Description | Robux | Id |
 |---|---|---|---|---|
@@ -37,6 +37,53 @@ Prices must match the `robux` in Config (the shop shows that number).
 | `HatchNow_cosmic` | Hatch now: Cosmic egg | Your Cosmic Mystery Egg is ready to hatch now. What is inside was decided when it started. | 49 | |
 | `DoubleOffline` | Double offline cash | Get your last welcome-back offline cash a second time. | 49 | |
 | `ServerLuckPotion` | Server Luck Potion | Rarer slimes for everyone on the server: tier 3+ odds x2.5 for 5 more minutes (up to 15). | 79 | |
+
+## Developer Products: Style and lock break (10)
+
+| Config key | Name | Description | Robux | Id |
+|---|---|---|---|---|
+| `Trail_sparkle` | Sparkle trail | A sparkle carry trail that streams behind you while you carry a slime. Yours to keep. | 49 | |
+| `Trail_goo_drip` | Goo Drip trail | A goo drip carry trail that streams behind you while you carry a slime. Yours to keep. | 79 | |
+| `Trail_hearts` | Hearts trail | A hearts carry trail that streams behind you while you carry a slime. Yours to keep. | 79 | |
+| `Trail_starfall` | Starfall trail | A starfall carry trail that streams behind you while you carry a slime. Yours to keep. | 99 | |
+| `Trail_rainbow` | Rainbow trail | A rainbow carry trail that streams behind you while you carry a slime. Yours to keep. | 149 | |
+| `BatSkin_lollipop` | Lollipop Bat skin | Your Bat looks like a lollipop. Same reach and timing as the normal Bat. | 99 | |
+| `BatSkin_fish` | Fish Bat skin | Your Bat looks like a fish. Same reach and timing as the normal Bat. | 99 | |
+| `BatSkin_foam_finger` | Foam Finger Bat skin | Your Bat looks like a foam finger. Same reach and timing as the normal Bat. | 149 | |
+| `BatSkin_golden` | Golden Bat Bat skin | Your Bat looks like a golden bat. Same reach and timing as the normal Bat. | 249 | |
+| `LockBreak` | Open locked door | Walk through one locked base's door for 60 seconds. The lock stays up for everyone else. | 499 | |
+
+## Developer Products: gifts (25)
+
+Every cosmetic is also sold as a gift for another player in the server (same price).
+
+| Config key | Name | Description | Robux | Id |
+|---|---|---|---|---|
+| `Gift_Seat_bubble` | Gift: Bubble cloud | Give the Bubble cloud to another player in your server. | 99 | |
+| `Gift_Seat_clam_shell` | Gift: Clam Shell cloud | Give the Clam Shell cloud to another player in your server. | 199 | |
+| `Gift_Seat_crescent_moon` | Gift: Crescent Moon cloud | Give the Crescent Moon cloud to another player in your server. | 199 | |
+| `Gift_Seat_flame_cloud` | Gift: Flame Cloud cloud | Give the Flame Cloud cloud to another player in your server. | 199 | |
+| `Gift_Seat_hoverboard` | Gift: Hoverboard cloud | Give the Hoverboard cloud to another player in your server. | 399 | |
+| `Gift_Seat_ice_cloud` | Gift: Ice Cloud cloud | Give the Ice Cloud cloud to another player in your server. | 199 | |
+| `Gift_Seat_leaf` | Gift: Leaf cloud | Give the Leaf cloud to another player in your server. | 99 | |
+| `Gift_Seat_lily_pad` | Gift: Lily Pad cloud | Give the Lily Pad cloud to another player in your server. | 99 | |
+| `Gift_Seat_magic_carpet` | Gift: Magic Carpet cloud | Give the Magic Carpet cloud to another player in your server. | 399 | |
+| `Gift_Seat_mushroom` | Gift: Mushroom cloud | Give the Mushroom cloud to another player in your server. | 99 | |
+| `Gift_Seat_pancakes` | Gift: Pancakes cloud | Give the Pancakes cloud to another player in your server. | 99 | |
+| `Gift_Seat_royal_cushion` | Gift: Royal Cushion cloud | Give the Royal Cushion cloud to another player in your server. | 399 | |
+| `Gift_Seat_star_cushion` | Gift: Star Cushion cloud | Give the Star Cushion cloud to another player in your server. | 199 | |
+| `Gift_Seat_storm_cloud` | Gift: Storm Cloud cloud | Give the Storm Cloud cloud to another player in your server. | 199 | |
+| `Gift_Seat_sunset_cloud` | Gift: Sunset Cloud cloud | Give the Sunset Cloud cloud to another player in your server. | 199 | |
+| `Gift_Seat_ufo` | Gift: UFO cloud | Give the UFO cloud to another player in your server. | 399 | |
+| `Gift_Trail_sparkle` | Gift: Sparkle trail | Give the Sparkle carry trail to another player in your server. | 49 | |
+| `Gift_Trail_goo_drip` | Gift: Goo Drip trail | Give the Goo Drip carry trail to another player in your server. | 79 | |
+| `Gift_Trail_hearts` | Gift: Hearts trail | Give the Hearts carry trail to another player in your server. | 79 | |
+| `Gift_Trail_starfall` | Gift: Starfall trail | Give the Starfall carry trail to another player in your server. | 99 | |
+| `Gift_Trail_rainbow` | Gift: Rainbow trail | Give the Rainbow carry trail to another player in your server. | 149 | |
+| `Gift_BatSkin_lollipop` | Gift: Lollipop Bat skin | Give the Lollipop Bat skin to another player in your server. | 99 | |
+| `Gift_BatSkin_fish` | Gift: Fish Bat skin | Give the Fish Bat skin to another player in your server. | 99 | |
+| `Gift_BatSkin_foam_finger` | Gift: Foam Finger Bat skin | Give the Foam Finger Bat skin to another player in your server. | 149 | |
+| `Gift_BatSkin_golden` | Gift: Golden Bat Bat skin | Give the Golden Bat Bat skin to another player in your server. | 249 | |
 
 ## Game Passes (2, create off sale)
 

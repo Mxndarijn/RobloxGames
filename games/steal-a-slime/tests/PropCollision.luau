@@ -954,6 +954,22 @@ local UNPLACED: { [string]: { string } } = {
 		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
 	},
 	ranch_bat = { "jolt", "the held Bat tool's Handle (BatTool), never a world slot; a tool has no collision" },
+	bat_skin_lollipop = {
+		"jolt",
+		"a Bat skin: the held Bat tool's Handle mesh (BatTool), never a world slot; a tool has no collision",
+	},
+	bat_skin_fish = {
+		"jolt",
+		"a Bat skin: the held Bat tool's Handle mesh (BatTool), never a world slot; a tool has no collision",
+	},
+	bat_skin_foam_finger = {
+		"jolt",
+		"a Bat skin: the held Bat tool's Handle mesh (BatTool), never a world slot; a tool has no collision",
+	},
+	bat_skin_golden = {
+		"jolt",
+		"a Bat skin: the held Bat tool's Handle mesh (BatTool), never a world slot; a tool has no collision",
+	},
 	exclusive_jar_boutique = {
 		"gojo",
 		"the Exclusive Shop jar (FEATURES.ExclusiveShop, off): WorldProps builds it at runtime; decor over its solid plinth, glass, counter and posts",
