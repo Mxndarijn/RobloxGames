@@ -227,7 +227,9 @@ local function meshHandle(meshId: string?): any
 		local ok, mesh = pcall(function()
 			return (game:GetService("AssetService") :: any):CreateMeshPartAsync(meshId, {
 				CollisionFidelity = Enum.CollisionFidelity.Box,
-				RenderFidelity = Enum.RenderFidelity.Automatic,
+				-- Held in the hand, right in front of the camera: full detail (a few hundred tris), so thin parts such
+				-- as a lollipop stick never lose faces to LOD.
+				RenderFidelity = Enum.RenderFidelity.Precise,
 			})
 		end)
 		if ok and mesh then
@@ -252,6 +254,10 @@ local function buildHandle(look: BatModel.Look): (any, BatModel.Look)
 		handle.Material = Enum.Material.Wood
 		handle.Color = Color3.new(BatModel.COLOR[1], BatModel.COLOR[2], BatModel.COLOR[3])
 		size = BatModel.SIZE
+	end
+	if look.meshId ~= BatModel.MESH_ID and handle:IsA("MeshPart") then
+		-- A skin's colours are its vertex colours: SmoothPlastic shows them clean (Plastic adds its dotted texture).
+		handle.Material = Enum.Material.SmoothPlastic
 	end
 	handle.Name = "Handle"
 	handle.Size = Vector3.new(size[1], size[2], size[3])
