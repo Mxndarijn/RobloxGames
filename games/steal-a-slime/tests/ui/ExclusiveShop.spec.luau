@@ -461,7 +461,7 @@ describe("Exclusive shop panel", function()
 		expect(UiHarness.find(UiHarness.find(restricted.frame, "Grid"), "product:ServerLuckPotion")).toBeNil()
 		expect(restricted.selected()).toBe("info:FinishBrew")
 	end)
-	it("closing the card tells init (CloseShop for a carousel open) once", function()
+	it("closing the card tells init (CloseShop for a shop-stand open) once", function()
 		local hidden = 0
 		local panel = openShop(
 			1920,

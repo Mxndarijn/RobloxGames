@@ -1,7 +1,7 @@
-# 47. Exclusive Shop: Robux purchases, the carousel, quick-buys (2026-10-28)
+# 47. Exclusive Shop: Robux purchases, the Golden Jar Boutique, quick-buys (2026-10-28)
 
 **Status:** behind `Config.FEATURES.ExclusiveShop` (default off; Studio review via `PcwFlag_ExclusiveShop`). Approved
-by Merijn: the carousel model (`shared/modeling-kit/models/ranch_exclusive_carousel.py`), the UI direction A with B's
+by Merijn: the jar shop model (`shared/modeling-kit/models/exclusive_jar_boutique.py`), the UI direction A with B's
 stage (`docs/exclusive-shop-ui-mockup.html`) and the first set from `docs/exclusive-shop-ideas.md` §6.
 
 **Fairness rules (from the ideas doc §1.1, binding):** sell looks freely, time and comfort carefully, never safety from
@@ -100,32 +100,54 @@ Exclusives (`Types.PetSeatView.productKey: string?`). `offlineDouble.available` 
 ## 6. Featured rotation
 
 `shared/ExclusiveRotation.luau` (pure): `featured(weekIndex) -> { seatId x4 }`, seeded by the UTC week number, the
-same on every server; 4 distinct Exclusive seats. No discount in this first version. The carousel riders show them.
+same on every server; 4 distinct Exclusive seats. No discount in this first version. The jar shop shows the first 3 (§7).
 
-## 7. World: the carousel
+## 7. World: the Golden Jar Boutique
 
-`WorldLayout.EXCLUSIVE_CAROUSEL` / prop spot: see §7.1 (placement). Two meshes:
-`ranch_exclusive_carousel_spin` (deck, drum, poles, saddles: the `ExclusiveCarouselSpin` part, spins about its centre
-line at `Config.EXCLUSIVE_SHOP.spinRpm`) and `ranch_exclusive_carousel_static` (skirt, canopy, trophy slime, crest
-sign, ticket kiosk, queue rope; the kiosk's `Counter` part carries the `ShopPrompt`, stand attribute
-`ShopId = "ExclusiveShop"`; an invisible flat `DeckCollider` is the floor players stand on). The client spins the carousel in the one frame loop (culled by distance)
-and seats the 4 featured seat templates from `ReplicatedStorage.PetCloudMeshes` on the 8 poles (featured x2),
-bobbing ±0.6 studs out of phase. Without a mesh asset (not uploaded) a simple fallback (cylinder + cone) stands in.
-The prompt opens the `ExclusiveShop` panel on Featured.
+`WorldLayout.EXCLUSIVE_JAR` (placement: §7.1), built by `Props.exclusiveJar`, placed by `server/WorldProps` only with
+the flag on. The shop is the game's own goo jar made premium (`shared/modeling-kit/models/exclusive_jar_boutique.py`):
+a glass jar with gold bands on a wooden plinth ringed with goo, a goo dome with a gold lid and the trophy slime, three
+goo pedestals inside, and a wooden shop front built into the jar's front (counter, striped lilac / butter awning, the
+"EXCLUSIVE" sign). Two kit meshes, each in a `MeshAsset` slot of the `ExclusiveShopStand` Model:
+- `exclusive_jar_boutique` (`Shop`): everything solid. Decor (no `MeshAssets.COLLISION` entry): the stand-in plinth,
+  glass, counter and frame posts stay solid under it.
+- `exclusive_jar_boutique_glass` (`Glass`): the jar wall, worn like the goo jar tower's glass (`MeshMaterial` =
+  `WorldLayout.JAR_GLASS_MATERIAL`, `MeshTransparency` = `WorldLayout.JAR_GLASS_MESH_TRANSPARENCY`, no shadow).
+
+The kit's points (`out/exclusive_jar_boutique_layout.json`: glass origin, the 3 display spots, counter top and size,
+sign face centre and size, footprint radius, the ground over the mesh bottom) live once in `WorldLayout.EXCLUSIVE_JAR`;
+`WorldLayout.jarPoint` turns one into the stand's frame (front -Z, origin on the ground). The `Counter` (PrimaryPart,
+solid, its top the kit's counter top) carries the `ShopPrompt`; the stand has `ShopId = "ExclusiveShop"`
+(`Constants.EXCLUSIVE_SHOP_ID`, `ShopGuard.PANEL_SHOPS`). The prompt opens the `ExclusiveShop` panel on Featured. The
+`Sign` part just in front of the kit's sign face carries the lilac "EXCLUSIVE" jelly sign (`Props.standSign`,
+`Props.JAR_SIGN`).
+
+Until the meshes are uploaded a primitive jar stands in (`MeshStandIn`, hidden by `server/MeshSwap` once its mesh
+loads), SmoothPlastic only, in the kit's colours (`Props.JAR_COLORS`): wood plinth with a mint goo top, light mint
+glass (`Props.JAR_GLASS_TRANSPARENCY`), two gold bands, a mint goo dome, a gold lid and a butter slime, the wooden
+counter with a lilac band and a gold medal, two posts and a beam, the striped awning with scallops, the gold sign board
+with its lilac face, and two lanterns.
+
+**Displays:** the client (`visuals/client/ShopDisplayFx`, in the one frame loop, culled at
+`Config.EXCLUSIVE_SHOP.drawDistance`) floats a clone of each of the week's first 3 featured seat templates
+(`ReplicatedStorage.PetCloudMeshes`, `ExclusiveRotation.featured`) over the 3 pedestals, scaled to
+`EXCLUSIVE_JAR.displayWidth`, each slowly turning (`displayRpm`) and bobbing up to `displayBob` studs over
+`displayBobSeconds`, a third of a cycle apart, on the server clock (pure pose maths: `visuals/shared/ShopDisplay`). A
+seat without a template shows a small lilac cloud until its template arrives.
 
 ### 7.1 Placement
 
-`ExclusiveShopStand` at **bearing 112.5** (the plot 3 / plot 4 bisector), r ~94, front to the fountain, scale **0.9**
-(a full-size carousel crosses the plot fronts at r 100). It completes the market row on the east ring: Upgrade Shop
-34.5, Item Shop 67.5, Exclusive Shop 112.5. The Well and WellPump that stood there move to a free lawn found with
-`PropClearance.conflicts`. The spot gets its `PropClearance` circle (radius from the scaled carousel), a minimap pin
-(`MinimapData.SHOP_PINS`) and a `world-shops.md` §27.2 row. The kiosk sits on the carousel's front-right, angled to
-the fountain, so the riders stay in view from the ring path.
+`ExclusiveShopStand` at **bearing 112.5** (the plot 3 / plot 4 bisector), **r 93.3**, front to the fountain, **scale
+1**: at full size its footprint clears the ring path and both plot fronts for r 92.3-94.35 (`PropClearance.conflicts`);
+93.3 is the middle. It completes the market row on the east ring: Upgrade Shop 34.5, Item Shop 67.5, Exclusive Shop
+112.5. The Well and WellPump stand by the Upcoming Events board (`RanchProps`, 211.75 / 92 and 216.25 / 93). The spot's `PropClearance`
+circle is the kit's footprint radius at the stand's scale; it has a minimap pin (`MinimapData.SHOP_PINS`, 👑, only with
+the flag on) and a `world-shops.md` §27.2 row.
 
 ## 8. UI
 
 `ui/Panels/ExclusiveShop.luau`: direction A (tabs, card grid, detail pane; phone: bottom sheet) with B's carousel
-stage behind the preview. Opens from the carousel prompt, the Skins panel's gold "Exclusive shop" well (on that seat),
+stage behind the preview. Opens from the jar shop's prompt, the Skins panel's gold "Exclusive shop" well (on that seat),
 and a HUD shop button. Quick-buy buttons live where the wait is: Merge panel ("Finish now", or "Use credit"), egg pad
 sign / hatch prompt area ("Hatch now"), Welcome card ("Double it"), WorldShop Luck Potion row ("Buy for the server").
 Buy buttons call `MarketplaceService` prompts; the panel never grants anything.

@@ -5,7 +5,7 @@
 	Points of interest for a UI minimap, straight from WorldLayout (no
 	Instances): the fountain (map centre), every plot (index i -> workspace
 	Plot with PlotIndex i, whose OwnerUserId attribute says who owns it), the
-	props at PROP_SPOTS (the Exclusive Shop carousel only with FEATURES.ExclusiveShop) and the hub spawn. `toMap` turns world X/Z into 0..1 map
+	props at PROP_SPOTS (the Exclusive Shop jar only with FEATURES.ExclusiveShop) and the hub spawn. `toMap` turns world X/Z into 0..1 map
 	coordinates over the Ground (u = +X to the right, v = +Z downwards).
 	Pure.
 ]]
@@ -33,14 +33,14 @@ MinimapData.SPAWN_YAW = 67.5
 MinimapData.SPAWN_RADIUS = 64
 
 -- Pins with a label and an icon (the shop item icons): the world shop stands (CONTRACT.md §27.2) and the Exclusive
--- Shop carousel (contract/exclusive-shop.md §7.1).
+-- Shop's jar (contract/exclusive-shop.md §7.1).
 MinimapData.SHOP_PINS = table.freeze({
 	[Shops.SHOPS.ItemShop.stand] = table.freeze({ label = Shops.SHOPS.ItemShop.name, icon = "🛒" }),
 	[Shops.SHOPS.UpgradeShop.stand] = table.freeze({ label = Shops.SHOPS.UpgradeShop.name, icon = "⬆️" }),
-	[WorldLayout.EXCLUSIVE_CAROUSEL.model] = table.freeze({ label = "Exclusive Shop", icon = "🎠" }),
+	[WorldLayout.EXCLUSIVE_JAR.model] = table.freeze({ label = "Exclusive Shop", icon = "👑" }),
 }) :: { [string]: { label: string, icon: string } }
 
--- `features` defaults to Config.FEATURES: with ExclusiveShop off the carousel has no point (it is not built).
+-- `features` defaults to Config.FEATURES: with ExclusiveShop off the jar has no point (it is not built).
 function MinimapData.points(features: { [string]: any }?): { Point }
 	local flags = features or Config.FEATURES
 	local points: { Point } = { { kind = "Fountain", name = "Fountain", x = 0, z = 0 } }
@@ -49,7 +49,7 @@ function MinimapData.points(features: { [string]: any }?): { Point }
 		table.insert(points, { kind = "Plot", name = `Plot_{i}`, x = c[1], z = c[3], plotIndex = i })
 	end
 	for name, spot in WorldLayout.PROP_SPOTS do
-		if name == WorldLayout.EXCLUSIVE_CAROUSEL.model and flags.ExclusiveShop ~= true then
+		if name == WorldLayout.EXCLUSIVE_JAR.model and flags.ExclusiveShop ~= true then
 			continue
 		end
 		local point: Point = { kind = name, name = name, x = spot.pos[1], z = spot.pos[3] }

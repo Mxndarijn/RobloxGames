@@ -72,9 +72,8 @@ return table.freeze({
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
 	SHOP_STAND_ITEM = "ItemShopStand", -- CONTRACT.md §27.2
 	SHOP_STAND_UPGRADE = "UpgradeShopStand",
-	SHOP_STAND_EXCLUSIVE = "ExclusiveShopStand", -- the carousel (static model with the kiosk Counter) on the plaza
-	EXCLUSIVE_CAROUSEL_SPIN = "ExclusiveCarouselSpin", -- child of the stand: the part the client spins (riders sit on it)
-	EXCLUSIVE_SHOP_ID = "ExclusiveShop", -- ShopId of the carousel stand; the client opens the ExclusiveShop panel for it
+	SHOP_STAND_EXCLUSIVE = "ExclusiveShopStand", -- the Golden Jar Boutique (Model with the Counter) on the plaza
+	EXCLUSIVE_SHOP_ID = "ExclusiveShop", -- ShopId of the jar stand; the client opens the ExclusiveShop panel for it
 	LEADERBOARD_BOARD = "LeaderboardBoard", -- the Top Earners board (with the podium)
 	WEEKLY_EARNERS_BOARD = "WeeklyEarnersBoard",
 	TOP_STEALS_BOARD = "TopStealsBoard",

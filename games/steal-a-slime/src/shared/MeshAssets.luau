@@ -27,8 +27,8 @@ local NAMES = {
 	"ranch_plaza_signpost",
 	"ranch_item_shop",
 	"ranch_upgrade_cabinet",
-	"ranch_exclusive_carousel_static",
-	"ranch_exclusive_carousel_spin",
+	"exclusive_jar_boutique",
+	"exclusive_jar_boutique_glass",
 	"phoenix_plaza_podium_1",
 	"phoenix_plaza_podium_2",
 	"phoenix_plaza_podium_3",
@@ -205,11 +205,11 @@ entries["ranch_item_shop"] =
 	{ assetId = 105082858859876, meshId = "rbxassetid://135059318016634", size = { 15.391, 16.558, 8.15 } }
 entries["ranch_upgrade_cabinet"] =
 	{ assetId = 112507254723244, meshId = "rbxassetid://139845226619480", size = { 16.407, 15.29, 9.93 } }
--- The Exclusive Shop carousel (FEATURES.ExclusiveShop, contract/exclusive-shop.md §7; models/ranch_exclusive_carousel.py
--- split in two): the static half (skirt, canopy, trophy slime, crest sign, ticket kiosk, queue rope) and the half the
--- client spins (deck, drum, poles, saddles). Not uploaded yet: no id, so the stand's primitive carousel shows.
-entries["ranch_exclusive_carousel_static"] = { size = { 23.053, 20.798, 21.548 } }
-entries["ranch_exclusive_carousel_spin"] = { size = { 17, 9.55, 17 } }
+-- The Exclusive Shop's Golden Jar Boutique (FEATURES.ExclusiveShop, contract/exclusive-shop.md §7;
+-- models/exclusive_jar_boutique.py split in two): the solid shop (plinth, goo dome, lid, trophy slime, pedestals, shop
+-- front, awning, sign board) and the see-through jar wall. Not uploaded yet: no id, so the stand's primitive jar shows.
+entries["exclusive_jar_boutique"] = { size = { 16.86, 20.631, 18.57 } }
+entries["exclusive_jar_boutique_glass"] = { size = { 12.8, 10.5, 12.8 } }
 entries["phoenix_plaza_podium_1"] =
 	{ assetId = 77650457545661, meshId = "rbxassetid://94983834296700", size = { 8.923, 7.192, 8.58 } }
 entries["phoenix_plaza_podium_2"] =

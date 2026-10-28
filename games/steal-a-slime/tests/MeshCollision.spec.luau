@@ -243,8 +243,8 @@ local DECOR = {
 	giant_sequoia_spire = "border tree beyond the world wall ring, out of reach",
 	giant_cloud_tree = "border tree beyond the world wall ring, out of reach, canopy overhead",
 	slime_lane = "the goo parade lane: a 0.43 stud flat strip players walk over",
-	ranch_exclusive_carousel_static = "Exclusive Shop carousel look: decor over its flat DeckCollider and the solid kiosk Counter",
-	ranch_exclusive_carousel_spin = "Exclusive Shop carousel deck the client turns: never collides (players stand on the DeckCollider)",
+	exclusive_jar_boutique = "Exclusive Shop jar look: decor over the stand's solid plinth, glass, counter and posts (they keep colliding under it)",
+	exclusive_jar_boutique_glass = "Exclusive Shop jar glass: see-through decor over the stand's solid GlassWall",
 }
 for _, name in PvpModels.MESHES do
 	DECOR[name] = "held PvP item (server/PvpHeld): CanCollide false, never placed in the world"

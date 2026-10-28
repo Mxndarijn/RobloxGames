@@ -285,51 +285,50 @@ WorldLayout.SHOP_STANDS = table.freeze({
 	),
 }) :: { [string]: ShopStand }
 
--- The Exclusive Shop carousel (FEATURES.ExclusiveShop, contract/exclusive-shop.md §7; WorldProps places it,
--- Props.exclusiveCarousel builds it, the client's CarouselFx spins it). It completes the market row on the east ring
--- (Upgrade Shop 34.5, Item Shop 67.5, Exclusive Shop 112.5): on the plot 3 / plot 4 bisector, facing the fountain, at
--- `scale` (full size its footprint crosses the plot fronts). At that scale the footprint only fits at r 92.75-93,
--- between the ring path (outer edge r 82) and the two plots' front corners (PropClearance); `radius` is the middle.
--- Two kit meshes: `static` stands still, `spin` turns about its own vertical centre line. The points below are the
--- kit's (out/ranch_exclusive_carousel_layout.json) in the Blender frame at native size (x right, y back, z up; the
--- front faces -y), measured from each mesh's bottom centre; WorldLayout.carouselPoint turns one into the stand's frame.
---   spinOrigin    the spin mesh's bottom centre in the static frame (the spin axis runs straight up through it)
---   riders        the 8 saddle tops in the spin frame, round the poles (the featured seats ride there)
---   counter       the ticket kiosk's counter top in the static frame, the kiosk turned `counterYaw` degrees
---   kiosk         the kiosk's footprint (width, depth) and counter height, native studs
---   deckTop       the deck's walk surface over the static bottom; deckRadius its radius
--- `riderWidth` = the widest side of a rider (a seat template is scaled to it), stand studs.
-WorldLayout.EXCLUSIVE_CAROUSEL = table.freeze({
+-- The Exclusive Shop's Golden Jar Boutique (FEATURES.ExclusiveShop, contract/exclusive-shop.md §7; WorldProps places it,
+-- Props.exclusiveJar builds it, the client's ShopDisplayFx shows the featured seats in it). It completes the market row
+-- on the east ring (Upgrade Shop 34.5, Item Shop 67.5, Exclusive Shop 112.5): on the plot 3 / plot 4 bisector, facing
+-- the fountain, at `scale`. At full size its footprint fits r 92.3-94.35, between the ring path (outer edge r 82) and
+-- the two plots' front corners (PropClearance); `radius` is the middle. Two kit meshes
+-- (models/exclusive_jar_boutique.py): `shop` (plinth, goo dome, gold lid, trophy slime, pedestals, shop front, awning,
+-- sign board) and `glass`, the see-through jar wall. The points below are the
+-- kit's (out/exclusive_jar_boutique_layout.json) in the Blender frame at native size (x right, y back, z up; the front
+-- faces -y), measured from the shop mesh's bottom centre; WorldLayout.jarPoint turns one into the stand's frame.
+--   groundZ       the grass over the shop mesh's bottom (its goo drips hang below the ground)
+--   glassOrigin   the glass mesh's bottom centre; the jar's axis runs straight up through it
+--   displays      the 3 pedestal spots inside the jar: the bottom of each floating featured seat
+--   counter       the counter top's centre; counterSize its width and depth
+--   signFace      the centre of the sign board's lilac face (its front plane); signSize its width and height
+--   footprint     the plinth's radius with its goo rim and lanterns
+-- `displayWidth` = the widest side of a shown seat (a seat template is scaled to it), stand studs.
+WorldLayout.EXCLUSIVE_JAR = table.freeze({
 	model = Constants.SHOP_STAND_EXCLUSIVE,
 	bearing = 112.5,
-	radius = 92.9,
-	scale = 0.9,
-	static = "ranch_exclusive_carousel_static",
-	spin = "ranch_exclusive_carousel_spin",
-	spinOrigin = table.freeze({ -1.747, 0.994, 1.05 }),
-	riders = table.freeze({
-		table.freeze({ 2.334, -5.636, 3.85 }),
-		table.freeze({ 5.636, -2.334, 2.65 }),
-		table.freeze({ 5.636, 2.334, 3.85 }),
-		table.freeze({ 2.334, 5.636, 2.65 }),
-		table.freeze({ -2.334, 5.636, 3.85 }),
-		table.freeze({ -5.636, 2.334, 2.65 }),
-		table.freeze({ -5.636, -2.334, 3.85 }),
-		table.freeze({ -2.334, -5.636, 2.65 }),
+	radius = 93.3,
+	scale = 1,
+	shop = "exclusive_jar_boutique",
+	glass = "exclusive_jar_boutique_glass",
+	groundZ = 0.201,
+	glassOrigin = table.freeze({ 0, 0.855, 1.401 }),
+	displays = table.freeze({
+		table.freeze({ -3.3, 2.255, 7.551 }),
+		table.freeze({ 0, 3.455, 9.751 }),
+		table.freeze({ 3.3, 2.255, 7.551 }),
 	}),
-	counter = table.freeze({ 7.653, -7.206, 4.1 }),
-	counterYaw = 32,
-	kiosk = table.freeze({ width = 6.4, depth = 3, height = 3.6 }),
-	deckTop = 1.3,
-	deckRadius = 8.6,
-	riderWidth = 2.4,
+	counter = table.freeze({ 0, -6.345, 4.301 }),
+	counterSize = table.freeze({ 9.6, 2.6 }),
+	signFace = table.freeze({ 0, -6.755, 8.151 }),
+	signSize = table.freeze({ 6.4, 1.4 }),
+	footprint = 9.6,
+	displayWidth = 2.2,
 })
 
--- A kit point of the carousel (Blender frame, native studs) in the stand's own frame at the stand's scale: Props
--- Models face local -Z, the kit front faces -y, so (x, y, z) -> (-x, z, y) x scale.
-function WorldLayout.carouselPoint(p: { number }): Vec
-	local k = WorldLayout.EXCLUSIVE_CAROUSEL.scale
-	return { -p[1] * k, p[3] * k, p[2] * k }
+-- A kit point of the jar (Blender frame, native studs) in the stand's own frame at the stand's scale, the stand's
+-- origin on the ground: Props Models face local -Z, the kit front faces -y, so (x, y, z) -> (-x, z - groundZ, y) x scale.
+function WorldLayout.jarPoint(p: { number }): Vec
+	local jar = WorldLayout.EXCLUSIVE_JAR
+	local k = jar.scale
+	return { -p[1] * k, (p[3] - jar.groundZ) * k, p[2] * k }
 end
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
@@ -453,8 +452,8 @@ local spots: { [string]: Spot } = {
 	TutorialNpc = propSpot(247.5, true),
 }
 do
-	local carousel = WorldLayout.EXCLUSIVE_CAROUSEL
-	spots[carousel.model] = propSpot(carousel.bearing, true, carousel.radius)
+	local jar = WorldLayout.EXCLUSIVE_JAR
+	spots[jar.model] = propSpot(jar.bearing, true, jar.radius)
 end
 do
 	local board = WorldLayout.EVENT_BOARD

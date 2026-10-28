@@ -617,10 +617,10 @@ local EXCLUSIVE_SHOP = table.freeze({
 	featuredCount = 4, -- seats in the weekly rotation (ExclusiveRotation), the same on every server
 	receiptMemory = 200, -- processed PurchaseIds kept in the save, newest last
 	creditMax = 99, -- most saved skip credits per kind
-	spinRpm = 2.5, -- carousel turns per minute (client visual)
-	riderBob = 0.6, -- studs up / down each rider bobs
-	riderBobSeconds = 3, -- one bob cycle
-	drawDistance = 220, -- studs: beyond this the client stops animating the carousel
+	displayRpm = 3, -- turns per minute of each featured seat shown in the jar (client visual)
+	displayBob = 0.35, -- studs each shown seat floats up over its pedestal and back down
+	displayBobSeconds = 3, -- one bob cycle
+	drawDistance = 220, -- studs: beyond this the client stops animating the jar's seats
 })
 
 -- PvP ladder (FEATURES.PvP, CONTRACT.md §26, docs/PVP.md). Every gate is a REBIRTH_TIERS threshold; the price is
@@ -914,7 +914,7 @@ local Config = {
 	PLOT_BASE_DEFAULT = "jar",
 	PET_SEATS = table.freeze(PET_SEATS), -- what the follow pet rides on (PetSeats, contract/pet-seats.md)
 	PET_SEAT_DEFAULT = "cloud",
-	EXCLUSIVE_SHOP = EXCLUSIVE_SHOP, -- Robux products, passes and the carousel tunables (contract/exclusive-shop.md)
+	EXCLUSIVE_SHOP = EXCLUSIVE_SHOP, -- Robux products, passes and the jar's display tunables (contract/exclusive-shop.md)
 
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 120,
@@ -1066,7 +1066,7 @@ local Config = {
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
 		BaseShapes = false, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
-		ExclusiveShop = false, -- the Exclusive Shop (contract/exclusive-shop.md): the carousel on the plaza, Robux products and passes, quick-buys (Finish now, Hatch now, Double it, server Luck Potion); false = no carousel, no MarketplaceService callbacks, no Robux buttons, Exclusive seats stay unowned
+		ExclusiveShop = false, -- the Exclusive Shop (contract/exclusive-shop.md): the Golden Jar Boutique on the plaza, Robux products and passes, quick-buys (Finish now, Hatch now, Double it, server Luck Potion); false = no shop on the plaza, no MarketplaceService callbacks, no Robux buttons, Exclusive seats stay unowned
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
 	}),
 

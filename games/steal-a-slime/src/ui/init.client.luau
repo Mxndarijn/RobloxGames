@@ -396,7 +396,7 @@ for _, navEntry in Nav.ENTRIES do
 	end
 end
 -- Every menu: the nav ones plus the cards without a nav button: Merge (opened at the vat), WorldShop (opened by the
--- server at a shop stand), ExclusiveShop (the carousel, Skins, the Item shop's potion), the Guide and Welcome cards.
+-- server at a shop stand), ExclusiveShop (the jar boutique, Skins, the Item shop's potion), the Guide and Welcome cards.
 local allPanels: { PanelEntry } = table.clone(panels)
 for _, key in { "Merge", "WorldShop", "ExclusiveShop" } do
 	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
@@ -980,7 +980,7 @@ do
 	ctx.worldShop = worldShop
 	local shopEvent = Remotes.get(Constants.SHOP_EVENT) :: RemoteEvent
 	shopEvent.OnClientEvent:Connect(worldShop.onEvent)
-	-- The carousel's ShopPrompt opens the Exclusive shop the same way (OpenShop = "ExclusiveShop"; the server
+	-- The jar boutique's ShopPrompt opens the Exclusive shop the same way (OpenShop = "ExclusiveShop"; the server
 	-- clears it when the player walks off); closing the card here tells the server with CloseShop.
 	local exclusiveFromServer = false
 	function ctx.exclusiveShopHidden()

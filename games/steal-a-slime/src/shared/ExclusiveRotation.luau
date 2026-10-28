@@ -4,7 +4,7 @@
 
 	The weekly featured Exclusive seats: `featured(week)` picks Config.EXCLUSIVE_SHOP.featuredCount distinct
 	Exclusive seats from Config.PET_SEATS with a small seeded shuffle, so every server (and the client, for the
-	carousel riders) gets the same four for the same UTC week. `week(now)` is the week index of a unix time.
+	seats shown in the shop's jar) gets the same four for the same UTC week. `week(now)` is the week index of a unix time.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")

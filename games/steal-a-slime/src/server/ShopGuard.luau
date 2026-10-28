@@ -56,7 +56,7 @@ export type Check = {
 }
 
 -- Shops that only open a panel: OpenShop / CloseShop and the range close work as for a cash shop, ShopBuy does not
--- (the Exclusive Shop's carousel; its panel buys through MarketplaceService, contract/exclusive-shop.md §7).
+-- (the Exclusive Shop's jar; its panel buys through MarketplaceService, contract/exclusive-shop.md §7).
 ShopGuard.PANEL_SHOPS = table.freeze({ [Constants.EXCLUSIVE_SHOP_ID] = true }) :: { [string]: boolean }
 
 -- Validation order of OpenShop (no itemId) and ShopBuy: shop id, item membership, open (ShopBuy only), alive,

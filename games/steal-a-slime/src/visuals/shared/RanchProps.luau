@@ -102,8 +102,8 @@ RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
 	ranch_fence_20 = "plot fence panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
 	phoenix_fence_segment = "plot fence half panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
 	phoenix_gate = "plot gate: the goo jar tower's door and bridge are the plot entrance (CONTRACT.md §5.3), no gate slot",
-	ranch_exclusive_carousel_static = "Exclusive Shop carousel (FEATURES.ExclusiveShop): server/WorldProps builds the ExclusiveShopStand at runtime with this mesh's slot (WorldLayout.EXCLUSIVE_CAROUSEL), no static slot",
-	ranch_exclusive_carousel_spin = "Exclusive Shop carousel (FEATURES.ExclusiveShop): the ExclusiveCarouselSpin slot of the runtime ExclusiveShopStand, spun by the client (CarouselFx), no static slot",
+	exclusive_jar_boutique = "Exclusive Shop jar (FEATURES.ExclusiveShop): server/WorldProps builds the ExclusiveShopStand at runtime with this mesh's Shop slot (WorldLayout.EXCLUSIVE_JAR), no static slot",
+	exclusive_jar_boutique_glass = "Exclusive Shop jar glass (FEATURES.ExclusiveShop): the Glass slot of the runtime ExclusiveShopStand (WorldLayout.EXCLUSIVE_JAR), no static slot",
 }) :: { [string]: string }
 
 local rows: { Placement } = {}
@@ -133,7 +133,7 @@ end
 
 -- Plaza edge -------------------------------------------------------------
 -- Vignettes on the free bisectors (22.5, 292.5, 337.5) and a planter beside the shop (67.5) PROP_SPOT. The 112.5
--- bisector is the Exclusive Shop carousel's (WorldLayout.EXCLUSIVE_CAROUSEL). The 202.5 lawn is the Upcoming Events
+-- bisector is the Exclusive Shop jar's (WorldLayout.EXCLUSIVE_JAR). The 202.5 lawn is the Upcoming Events
 -- board's (WorldLayout.EVENT_BOARD), so its picnic table and sunflowers flank the horseshoe pit on the 292.5 lawn; the
 -- well and its pump stand on that lawn's plot 6 side, between the board and the plot 6 entrance, by the ring path.
 polar("Campfire", "ranch_campfire", "plaza", 22.5, 92, 180, 1.3)

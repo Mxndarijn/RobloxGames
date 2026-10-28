@@ -5,7 +5,7 @@
 	Places the world props from Archer's ReplicatedStorage.Visuals.Props at
 	WorldLayout.PROP_SPOTS under workspace.Map (CONTRACT.md §5.3):
 	ItemShopStand and UpgradeShopStand (each with its own ShopPrompt on Counter and ShopId attribute,
-	CONTRACT.md §27), with FEATURES.ExclusiveShop the ExclusiveShopStand carousel (Props.exclusiveCarousel, its
+	CONTRACT.md §27), with FEATURES.ExclusiveShop the ExclusiveShopStand jar (Props.exclusiveJar, its
 	ShopPrompt opens the Exclusive Shop panel, contract/exclusive-shop.md §7), the five Hall of Fame boards
 	(Leaderboards.BOARDS, each tagged with its LeaderboardStat),
 	ProfessorGoo, TutorialNpc (with the "Talk" prompt) and the Upcoming Events board (WorldLayout.EVENT_BOARD,
@@ -42,7 +42,7 @@ WorldProps.SHOP_PROMPTS = table.freeze({
 		actionText = "Browse exclusives",
 	}),
 })
--- The stand of each shop that has a ShopPrompt: the cash shops (Shops.ORDER) and the Exclusive Shop's carousel, which
+-- The stand of each shop that has a ShopPrompt: the cash shops (Shops.ORDER) and the Exclusive Shop's jar, which
 -- is no cash shop (its panel buys through MarketplaceService) but opens and closes the same way.
 local function standOf(shopId: string): string?
 	if shopId == Constants.EXCLUSIVE_SHOP_ID then
@@ -125,7 +125,7 @@ local function standBuilder(Props: any, shopId: string): (() -> Instance)?
 end
 
 -- Places any missing prop. Returns the props by name (missing ones are absent). `features` defaults to
--- Config.FEATURES: with ExclusiveShop off the carousel is not built.
+-- Config.FEATURES: with ExclusiveShop off the Exclusive Shop's jar is not built.
 function WorldProps.place(features: { [string]: any }?): { [string]: Model }
 	local flags = features or Config.FEATURES
 	local Props = visual("Props")
@@ -151,8 +151,8 @@ function WorldProps.place(features: { [string]: any }?): { [string]: Model }
 	end
 	builders[Constants.SHOP_STAND_ITEM] = standBuilder(Props, "ItemShop")
 	builders[Constants.SHOP_STAND_UPGRADE] = standBuilder(Props, "UpgradeShop")
-	if flags.ExclusiveShop == true and Props and Props.exclusiveCarousel then
-		builders[Constants.SHOP_STAND_EXCLUSIVE] = Props.exclusiveCarousel
+	if flags.ExclusiveShop == true and Props and Props.exclusiveJar then
+		builders[Constants.SHOP_STAND_EXCLUSIVE] = Props.exclusiveJar
 	end
 	local parent = workspace:FindFirstChild(Constants.MAP_FOLDER) or workspace
 	for name, build in builders do

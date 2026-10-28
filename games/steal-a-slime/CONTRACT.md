@@ -451,4 +451,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §44 | [base-shapes.md](contract/base-shapes.md) | Base shapes: goo jar tower, Goo Factory and Mushroom Pagoda as choosable bases next to the skins (`FEATURES.BaseShapes`) |
 | §45 | [slime-ladder.md](contract/slime-ladder.md) | Slime ladder: rarity and egg gates, time guarantees, Celestial and Divine, shines, jackpots, the Upcoming Events wall |
 | §46 | [lucky-charm.md](contract/lucky-charm.md) | Lucky Charm show: a slime the charm upgrades changes into its new species on the pad |
-| §47 | [exclusive-shop.md](contract/exclusive-shop.md) | Exclusive Shop: the carousel, Robux products and passes, quick-buys that only buy time (`FEATURES.ExclusiveShop`) |
+| §47 | [exclusive-shop.md](contract/exclusive-shop.md) | Exclusive Shop: the Golden Jar Boutique, Robux products and passes, quick-buys that only buy time (`FEATURES.ExclusiveShop`) |

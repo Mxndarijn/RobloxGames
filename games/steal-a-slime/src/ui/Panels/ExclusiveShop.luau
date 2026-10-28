@@ -1,13 +1,13 @@
 --!strict
 --[[
 	Exclusive shop (contract/exclusive-shop.md §8; the approved mockup docs/exclusive-shop-ui-mockup.html,
-	direction A with B's stage). Opens from the carousel's ShopPrompt (the server sets OpenShop = "ExclusiveShop";
+	direction A with B's stage). Opens from the jar boutique's ShopPrompt (the server sets OpenShop = "ExclusiveShop";
 	on Featured), from the Skins menu's "Exclusive shop" button (on that seat) and from the Item shop's Luck Potion
 	"Details". Not in the nav.
 
 	Tabs on top (Featured, Clouds, Perks, Boosts: Config.EXCLUSIVE_SHOP.tabs), a grid of cards under them (the
 	item's icon, its name and a chip: the Robux price, Owned or Equipped) and the selected card's pane on the right:
-	the big icon on the carousel's stage, the name, one line on what it does, the price and one button. On a narrow
+	the big icon on the stage, the name, one line on what it does, the price and one button. On a narrow
 	body (a phone held upright) the pane is a bottom sheet that slides up when a card is tapped; its X or another
 	tab closes it. ExclusiveShopView decides every text and state; this module only lays them out.
 
@@ -103,7 +103,7 @@ end
 
 function ExclusiveShop.new(parent: Instance, ctx: any)
 	local Config = ctx.Config
-	local panel = Widgets.panel(parent, "ExclusiveShopPanel", "Exclusive shop", "🎠")
+	local panel = Widgets.panel(parent, "ExclusiveShopPanel", "Exclusive shop", "👑")
 	local c = Layout.PANEL_CHROME
 	local icons = ItemIcons.of(ctx);
 	(panel.icon.Parent :: Frame).BackgroundColor3 = Theme.Gold
@@ -781,7 +781,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		if not isOpen then
 			waiting = nil
 			if open and ctx.exclusiveShopHidden then
-				ctx.exclusiveShopHidden() -- opened at the carousel: the server closes its side too
+				ctx.exclusiveShopHidden() -- opened at the jar boutique: the server closes its side too
 			end
 		end
 		open = isOpen

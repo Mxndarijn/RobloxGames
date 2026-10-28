@@ -200,7 +200,7 @@ describe("MinimapData", function()
 			expect(kinds[name]).toBe(1)
 		end
 	end)
-	it("pins the Exclusive Shop carousel only with FEATURES.ExclusiveShop", function()
+	it("pins the Exclusive Shop jar only with FEATURES.ExclusiveShop", function()
 		local function pin(features: { [string]: any }): any
 			for _, p in MinimapData.points(features) do
 				if p.name == Constants.SHOP_STAND_EXCLUSIVE then
@@ -211,7 +211,7 @@ describe("MinimapData", function()
 		end
 		local on = pin({ ExclusiveShop = true })
 		expect(on.label).toBe("Exclusive Shop")
-		expect(on.icon).toBe("🎠")
+		expect(on.icon).toBe("👑")
 		local spot = WorldLayout.PROP_SPOTS[Constants.SHOP_STAND_EXCLUSIVE]
 		expect(on.x).toBe(spot.pos[1])
 		expect(on.z).toBe(spot.pos[3])

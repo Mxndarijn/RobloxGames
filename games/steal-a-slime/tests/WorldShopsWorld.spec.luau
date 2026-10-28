@@ -107,24 +107,24 @@ describe("world shop placement", function()
 	end)
 end)
 
-describe("Exclusive Shop carousel placement (contract/exclusive-shop.md §7.1)", function()
+describe("Exclusive Shop jar placement (contract/exclusive-shop.md §7.1)", function()
 	local spots = WorldLayout.PROP_SPOTS
-	local carousel = WorldLayout.EXCLUSIVE_CAROUSEL
-	local name = carousel.model
+	local jar = WorldLayout.EXCLUSIVE_JAR
+	local name = jar.model
 	local spot = spots[name]
-	local size = WorldLayout.meshSize(carousel.static, carousel.scale)
+	local size = WorldLayout.meshSize(jar.shop, jar.scale)
 	local function dist(a: { number }, b: { number }): number
 		return math.sqrt((a[1] - b[1]) ^ 2 + (a[3] - b[3]) ^ 2)
 	end
-	it("stands on the plot 3 / plot 4 bisector at r 92.9, scale 0.9, facing the fountain", function()
+	it("stands on the plot 3 / plot 4 bisector at r 93.3, full size, facing the fountain", function()
 		expect(name).toBe(Constants.SHOP_STAND_EXCLUSIVE)
 		expect(spot ~= nil).toBe(true)
-		local at = polar(112.5, 92.9)
+		local at = polar(112.5, 93.3)
 		expect(spot.pos[1]).toBeCloseTo(at[1], 3)
 		expect(spot.pos[3]).toBeCloseTo(at[2], 3)
 		expect(spot.yaw).toBe(112.5) -- Props front (-Z) towards the fountain
-		expect(carousel.scale).toBe(0.9)
-		expect(spot.scale).toBeNil() -- Props.exclusiveCarousel builds it at the layout scale
+		expect(jar.scale).toBe(1)
+		expect(spot.scale).toBeNil() -- Props.exclusiveJar builds it at the layout scale
 	end)
 	it("completes the market row: Upgrade 34.5, Item 67.5, Exclusive 112.5 on the east ring", function()
 		local function bearing(p: { number }): number
@@ -143,10 +143,10 @@ describe("Exclusive Shop carousel placement (contract/exclusive-shop.md §7.1)",
 		end
 		expect(hits).toEqual({})
 	end)
-	it("reserves a clearance circle the size of its footprint, clear of every ranch prop", function()
+	it("reserves a clearance circle the size of its round footprint, clear of every ranch prop", function()
 		local radius = PropClearance.spotRadius(name)
-		expect(radius).toBeCloseTo(math.sqrt(size[1] ^ 2 + size[3] ^ 2) / 2, 6)
-		expect(radius > PropClearance.SPOT_RADIUS).toBe(true)
+		expect(radius).toBeCloseTo(jar.footprint * jar.scale, 6)
+		expect(radius >= math.max(size[1], size[3]) / 2).toBe(true) -- covers the plinth and the counter
 		for _, prop in WorldLayout.RANCH_PROPS do
 			local rad = math.sqrt(prop.size[1] ^ 2 + prop.size[3] ^ 2) / 2
 			expect(`{prop.name} {dist(prop.pos, spot.pos) >= radius + rad}`).toBe(`{prop.name} true`)
