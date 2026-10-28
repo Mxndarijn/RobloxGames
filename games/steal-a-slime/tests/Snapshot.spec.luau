@@ -261,3 +261,25 @@ describe("Snapshot push coalescing", function()
 		expect(Snapshot.due(s, T0 + Config.STATE_MIN_INTERVAL)).toBe(true)
 	end)
 end)
+
+describe("Snapshot exclusive shop", function()
+	it("leaves State.exclusiveShop out while FEATURES.ExclusiveShop is off (the shipped default)", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		expect(Snapshot.build(world, s, T0).exclusiveShop).toBeNil()
+	end)
+	it("marks unowned Exclusive seat rows with their product key", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		s.data.ownedSeats = { "leaf" }
+		for _, row in Snapshot.build(world, s, T0).petSeats do
+			if row.id == "leaf" then
+				expect(row.unlocked).toBe(true)
+				expect(row.productKey).toBeNil()
+			elseif row.id == "ufo" then
+				expect(row.unlocked).toBe(false)
+				expect(row.productKey).toBe("Seat_ufo")
+			end
+		end
+	end)
+end)

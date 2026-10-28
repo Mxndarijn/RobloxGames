@@ -13,6 +13,9 @@
 	      "UpgradeShop" (Props.STAND_STYLES) picks the stand's kit skin
 	      (WorldLayout.SHOP_STANDS) and its sign (mint or gold jelly); the
 	      Model's box is the skin's box.
+	  Props.exclusiveJar(): Model        "ExclusiveShopStand" (WorldLayout.EXCLUSIVE_JAR): the shop and
+	      glass kit mesh slots with a primitive jar standing in, PrimaryPart
+	      "Counter" for the ShopPrompt, the "EXCLUSIVE" jelly sign.
 	  Props.speedCoil(): Tool            "SpeedCoil"; "Handle" Part with
 	      welded coil rings, all Massless, CanCollide false, unanchored.
 	  Props.tutorialNpc(): Model         "TutorialNpc"; R6-ish primitives laid
@@ -28,6 +31,7 @@
 	      Value labels), at most Props.LEADERBOARD_ROWS.
 ]]
 
+local Constants = if script then require(script.Parent.Parent.Shared.Constants) else require("../../shared/Constants")
 local Goo = if script then require(script.Parent.Parent.Shared.GooPalette) else require("../../shared/GooPalette")
 local GooIcons = if script then require(script.Parent.Parent.Shared.GooIcons) else require("../../shared/GooIcons")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
@@ -360,6 +364,414 @@ function Props.shopStand(style: string): Model
 			{ shape = "Cylinder", material = "SmoothPlastic", transparency = 0.25, canCollide = false }
 		)
 		jar.CastShadow = false
+	end
+	return finish(m, counter)
+end
+
+-- Exclusive Shop jar -----------------------------------------------------------
+
+-- The primitive jar's colours (RGB), the kit's palette: wood plinth and shop front, mint goo, lilac and butter awning,
+-- gold bands and lid, a light mint glass.
+Props.JAR_COLORS = table.freeze({
+	Wood = table.freeze({ 196, 138, 86 }),
+	WoodDeep = table.freeze({ 170, 114, 68 }),
+	Goo = table.freeze({ 110, 226, 170 }),
+	GooHi = table.freeze({ 168, 240, 206 }),
+	Lilac = table.freeze({ 196, 166, 232 }),
+	Butter = table.freeze({ 252, 216, 110 }),
+	Gold = table.freeze({ 252, 204, 80 }),
+	Glass = table.freeze({ 206, 246, 228 }),
+})
+Props.JAR_GLASS_TRANSPARENCY = 0.7 -- the primitive glass (one surface; the kit glass mesh has two, at 0.8)
+Props.JAR_BAND_SEGMENTS = 24 -- blocks round each gold band
+Props.JAR_AWNING_STRIPES = 7
+
+-- The jar's sign: a lilac jelly with a crown badge on the kit's sign face (the minimap pin wears the same crown).
+Props.JAR_SIGN = table.freeze({
+	stand = Constants.SHOP_STAND_EXCLUSIVE,
+	title = "EXCLUSIVE",
+	icon = "👑",
+	jelly = table.freeze({ table.freeze({ 232, 220, 250 }), table.freeze({ 196, 166, 232 }), Goo.Plum }),
+} :: StandStyle)
+
+-- A primitive that only shows until its kit mesh loads (server/MeshSwap hides MeshStandIn parts). Decor ones never
+-- collide, block a ray or touch.
+local function standIn(p: BasePart, mesh: string, solid: boolean?): BasePart
+	p:SetAttribute("MeshStandIn", mesh)
+	p.CanCollide = solid == true
+	if not solid then
+		p.CanQuery = false
+		p.CanTouch = false
+	end
+	return p
+end
+
+-- An invisible MeshAsset slot exactly the kit mesh's box at the jar's scale, kit front (slot +Z, MeshSwap's import
+-- turn) on the stand's front (-Z), its bottom centre at `bottom`.
+local function meshSlot(parent: Instance, name: string, mesh: string, bottom: Vector3): Part
+	local size = WorldLayout.meshSize(mesh, WorldLayout.EXCLUSIVE_JAR.scale)
+	local slot = part(
+		parent,
+		name,
+		Vector3.new(size[1], size[2], size[3]),
+		CFrame.new(bottom + Vector3.new(0, size[2] / 2, 0)) * CFrame.Angles(0, math.pi, 0),
+		rgb(255, 255, 255),
+		{ transparency = 1, canCollide = false }
+	)
+	slot.CanQuery = false
+	slot.CanTouch = false
+	slot.CastShadow = false
+	slot:SetAttribute("MeshAsset", mesh)
+	return slot
+end
+
+local function vec(p: { number }): Vector3
+	return Vector3.new(p[1], p[2], p[3])
+end
+
+-- A flat ring of `n` gold blocks round the vertical axis through `centre` (the jar's bands): `r` to the blocks'
+-- middle, `height` tall, `depth` thick.
+local function bandRing(m: Model, name: string, centre: Vector3, r: number, height: number, depth: number, n: number)
+	local chord = 2 * (r + depth / 2) * math.tan(math.pi / n)
+	for i = 1, n do
+		local a = (i - 0.5) * 2 * math.pi / n
+		local at = centre + Vector3.new(math.sin(a) * r, 0, math.cos(a) * r)
+		standIn(
+			part(
+				m,
+				`{name}_{i}`,
+				Vector3.new(chord, height, depth),
+				CFrame.new(at) * CFrame.Angles(0, a, 0),
+				ink(Props.JAR_COLORS.Gold)
+			),
+			WorldLayout.EXCLUSIVE_JAR.shop
+		)
+	end
+end
+
+-- A part drawn as the ellipsoid of its size (a goo dome, a slime).
+local function blob(m: Model, name: string, size: Vector3, at: Vector3, color: Color3): Part
+	local p = part(m, name, size, CFrame.new(at), color)
+	local shape = Instance.new("SpecialMesh")
+	shape.MeshType = Enum.MeshType.Sphere
+	shape.Parent = p
+	return p
+end
+
+-- The Exclusive Shop stand (WorldLayout.EXCLUSIVE_JAR, contract/exclusive-shop.md §7): Model "ExclusiveShopStand",
+-- pivot on the ground under the shop mesh's centre, front -Z, at the layout's scale. Children:
+--   Shop      MeshAsset slot of the shop kit mesh (its Hull collides once it loads)
+--   Glass     MeshAsset slot of the glass kit mesh, worn see-through (MeshMaterial / MeshTransparency)
+--   Counter   PrimaryPart: the solid wooden counter, its top the kit's counter top; the ShopPrompt goes on it
+--             (server/WorldProps)
+--   Sign      the invisible part just in front of the kit's sign face that carries the "EXCLUSIVE" jelly (SignGui)
+-- and the primitive jar that stands in until the meshes load: a wood plinth with a goo top and the light mint glass
+-- (both solid), two gold bands, a mint goo dome with a gold lid and a butter slime on top, the shop front (the counter
+-- with a lilac band and a gold medal, two posts and a beam, a lilac and butter striped awning, the gold sign board with
+-- its lilac face) and two lanterns. SmoothPlastic only.
+function Props.exclusiveJar(): Model
+	local def = WorldLayout.EXCLUSIVE_JAR
+	local k = def.scale
+	local C = Props.JAR_COLORS
+	local mesh = def.shop
+	local m = Instance.new("Model")
+	m.Name = def.model
+	meshSlot(m, "Shop", def.shop, Vector3.new(0, -def.groundZ * k, 0))
+	local axis = vec(WorldLayout.jarPoint(def.glassOrigin)) -- the glass mesh's bottom centre, on the jar's axis
+	local glass = meshSlot(m, "Glass", def.glass, axis)
+	glass:SetAttribute("MeshMaterial", WorldLayout.JAR_GLASS_MATERIAL)
+	glass:SetAttribute("MeshTransparency", WorldLayout.EXCLUSIVE_JAR.glassTransparency)
+	glass:SetAttribute("MeshCastShadow", false)
+	local glassR, glassH = glass.Size.X / 2, glass.Size.Y
+	local glassTop = axis.Y + glassH
+	local ground = Vector3.new(axis.X, 0, axis.Z)
+
+	-- Plinth: wood, with a goo top the glass stands in (its foot sunk in the goo, so no two faces meet).
+	local plinthR = glassR + 1.6 * k
+	local gooTop = axis.Y
+	local woodTop = gooTop - 0.3 * k
+	standIn(
+		part(
+			m,
+			"Plinth",
+			Vector3.new(woodTop, plinthR * 2, plinthR * 2),
+			CFrame.new(ground + Vector3.new(0, woodTop / 2, 0)) * UPRIGHT,
+			ink(C.Wood),
+			{ shape = "Cylinder" }
+		),
+		mesh,
+		true
+	)
+	local gooR = plinthR - 0.35 * k
+	local gooBottom = woodTop - 0.1 * k
+	standIn(
+		part(
+			m,
+			"PlinthGoo",
+			Vector3.new(gooTop - gooBottom, gooR * 2, gooR * 2),
+			CFrame.new(ground + Vector3.new(0, (gooBottom + gooTop) / 2, 0)) * UPRIGHT,
+			ink(C.Goo),
+			{ shape = "Cylinder" }
+		),
+		mesh,
+		true
+	)
+	local glassFoot = gooTop - 0.15 * k
+	local pane = part(
+		m,
+		"GlassWall",
+		Vector3.new(glassTop - glassFoot, glassR * 2, glassR * 2),
+		CFrame.new(ground + Vector3.new(0, (glassFoot + glassTop) / 2, 0)) * UPRIGHT,
+		ink(C.Glass),
+		{ shape = "Cylinder", transparency = Props.JAR_GLASS_TRANSPARENCY }
+	)
+	pane.CastShadow = false
+	standIn(pane, def.glass, true)
+
+	-- Two gold bands round the glass: one at its foot, one a little over half way up.
+	local bandH, bandD = 0.34 * k, 0.2 * k
+	local bandR = glassR + 0.05 * k + bandD / 2
+	bandRing(m, "BandLow", ground + Vector3.new(0, gooTop + 0.2 * k, 0), bandR, bandH, bandD, Props.JAR_BAND_SEGMENTS)
+	bandRing(
+		m,
+		"BandHigh",
+		ground + Vector3.new(0, axis.Y + glassH * 0.55, 0),
+		bandR,
+		bandH,
+		bandD,
+		Props.JAR_BAND_SEGMENTS
+	)
+
+	-- The goo dome: a rim over the glass top, a low wide dome on it and a taller narrow one up to the neck, then the
+	-- gold lid and a butter slime. Each dome's lower half stays inside the rim or the dome under it.
+	local rimH, rimR = 1 * k, glassR + 0.3 * k
+	local rimBottom = glassTop - 0.3 * k
+	local rimTop = rimBottom + rimH
+	standIn(
+		part(
+			m,
+			"DomeRim",
+			Vector3.new(rimH, rimR * 2, rimR * 2),
+			CFrame.new(ground + Vector3.new(0, rimBottom + rimH / 2, 0)) * UPRIGHT,
+			ink(C.Goo),
+			{ shape = "Cylinder" }
+		),
+		mesh
+	)
+	local lowR = rimR - 0.1 * k
+	standIn(
+		blob(m, "DomeLow", Vector3.new(lowR * 2, rimH * 2, lowR * 2), ground + Vector3.new(0, rimTop, 0), ink(C.Goo)),
+		mesh
+	)
+	local highR, highH = glassR * 0.72, 1.6 * k
+	local highY = rimTop + 0.6 * k
+	standIn(
+		blob(
+			m,
+			"DomeHigh",
+			Vector3.new(highR * 2, highH * 2, highR * 2),
+			ground + Vector3.new(0, highY, 0),
+			ink(C.GooHi)
+		),
+		mesh
+	)
+	local lidR, lidH = glassR * 0.5, 1.2 * k
+	local lidBottom = highY + highH - 0.4 * k
+	standIn(
+		part(
+			m,
+			"Lid",
+			Vector3.new(lidH, lidR * 2, lidR * 2),
+			CFrame.new(ground + Vector3.new(0, lidBottom + lidH / 2, 0)) * UPRIGHT,
+			ink(C.Gold),
+			{ shape = "Cylinder" }
+		),
+		mesh
+	)
+	local slime = Vector3.new(3.4, 2.8, 3.4) * k
+	standIn(
+		blob(
+			m,
+			"TrophySlime",
+			slime,
+			ground + Vector3.new(0, lidBottom + lidH + slime.Y / 2 - 0.3 * k, 0),
+			ink(C.Butter)
+		),
+		mesh
+	)
+
+	-- The shop front: the counter (solid, the kit's counter top) with a lilac band and a gold medal on its front.
+	local top = vec(WorldLayout.jarPoint(def.counter))
+	local cw, cd = def.counterSize[1] * k, def.counterSize[2] * k
+	local counter = part(m, "Counter", Vector3.new(cw, top.Y, cd), CFrame.new(top.X, top.Y / 2, top.Z), ink(C.Wood))
+	standIn(counter, mesh, true)
+	local front = top.Z - cd / 2 -- the counter's front face (-Z)
+	standIn(
+		part(
+			m,
+			"CounterBand",
+			Vector3.new(cw + 0.2 * k, 0.6 * k, 0.3 * k),
+			CFrame.new(top.X, top.Y - 0.6 * k, front - 0.05 * k),
+			ink(C.Lilac)
+		),
+		mesh
+	)
+	standIn(
+		part(
+			m,
+			"CounterMedal",
+			Vector3.new(0.3 * k, 1.8 * k, 1.8 * k),
+			CFrame.new(top.X, top.Y * 0.5, front - 0.05 * k) * CFrame.Angles(0, math.rad(90), 0),
+			ink(C.Gold),
+			{ shape = "Cylinder" }
+		),
+		mesh
+	)
+	-- Two posts at the counter's back corners and a beam over them, gold knobs on the beam ends.
+	local frameZ = top.Z + 0.2 * k
+	local postH = 7 * k
+	local postX = cw / 2 + 0.1 * k
+	for side, x in { L = -postX, R = postX } do
+		standIn(
+			part(
+				m,
+				`FramePost{side}`,
+				Vector3.new(0.9 * k, postH, 1.2 * k),
+				CFrame.new(top.X + x, postH / 2, frameZ),
+				ink(C.WoodDeep)
+			),
+			mesh,
+			true
+		)
+	end
+	local beamY = postH - 0.4 * k
+	local beamW = cw + 1.4 * k
+	standIn(
+		part(m, "FrameBeam", Vector3.new(beamW, 1.2 * k, 0.9 * k), CFrame.new(top.X, beamY, frameZ), ink(C.WoodDeep)),
+		mesh
+	)
+	for side, x in { L = -beamW / 2 + 0.5 * k, R = beamW / 2 - 0.5 * k } do
+		standIn(
+			part(
+				m,
+				`BeamKnob{side}`,
+				Vector3.one * k,
+				CFrame.new(top.X + x, beamY + 0.75 * k, frameZ),
+				ink(C.Gold),
+				{ shape = "Ball" }
+			),
+			mesh
+		)
+	end
+	-- The striped awning from the beam out over the counter, sloping down to the front: lilac and butter stripes edge
+	-- to edge (never overlapping), the butter ones a little thicker so no two tops share a plane, a round scallop under
+	-- each stripe's front edge.
+	local stripes = Props.JAR_AWNING_STRIPES
+	local awnW = cw + 0.8 * k
+	local sw = awnW / stripes
+	local run, tilt = 3 * k, math.rad(22)
+	local awnCentre = Vector3.new(top.X, beamY - 0.5 * k, top.Z - 1.3 * k)
+	local frontEdge = awnCentre + Vector3.new(0, -math.sin(tilt) * run / 2, -math.cos(tilt) * run / 2)
+	for i = 1, stripes do
+		local x = -awnW / 2 + (i - 0.5) * sw
+		local lilac = i % 2 == 1
+		local color = ink(if lilac then C.Lilac else C.Butter)
+		standIn(
+			part(
+				m,
+				`Awning{i}`,
+				Vector3.new(sw, (if lilac then 0.3 else 0.36) * k, run),
+				CFrame.new(awnCentre + Vector3.new(x, 0, 0)) * CFrame.Angles(-tilt, 0, 0),
+				color
+			),
+			mesh
+		)
+		local scallopR = sw / 2 - 0.03 * k
+		standIn(
+			part(
+				m,
+				`Scallop{i}`,
+				Vector3.new(0.24 * k, scallopR * 2, scallopR * 2),
+				CFrame.new(frontEdge + Vector3.new(x, -0.25 * k, 0)) * CFrame.Angles(0, math.rad(90), 0),
+				color,
+				{ shape = "Cylinder" }
+			),
+			mesh
+		)
+	end
+	-- The sign: a gold board on the beam, its lilac face on the kit's sign face, the jelly sign just in front of it.
+	local face = vec(WorldLayout.jarPoint(def.signFace))
+	local fw, fh = def.signSize[1] * k, def.signSize[2] * k
+	local boardD = 0.7 * k
+	standIn(
+		part(
+			m,
+			"SignBoard",
+			Vector3.new(fw + 0.8 * k, fh + 0.9 * k, boardD),
+			CFrame.new(face.X, face.Y, face.Z + 0.2 * k + boardD / 2),
+			ink(C.Gold)
+		),
+		mesh
+	)
+	standIn(
+		part(
+			m,
+			"SignFace",
+			Vector3.new(fw + 0.1 * k, fh + 0.3 * k, 0.3 * k),
+			CFrame.new(face.X, face.Y, face.Z + 0.15 * k),
+			ink(C.Lilac)
+		),
+		mesh
+	)
+	local signFront = face.Z - SIGN_LIFT
+	local sign = part(
+		m,
+		"Sign",
+		Vector3.new(fw, fh, SIGN_THICK),
+		CFrame.new(face.X, face.Y, signFront + SIGN_THICK / 2),
+		ink(C.Lilac),
+		{ canCollide = false }
+	)
+	sign.Transparency = 1 -- only the jelly draws, on the kit's (or the stand-in's) lilac face
+	sign.CanQuery = false
+	sign.CanTouch = false
+	Props.standSign(sign, Props.JAR_SIGN, fw / fh)
+
+	-- Two lanterns on the plinth's front rim, either side of the shop front.
+	local lampH = 4.6 * k
+	for side, x in { L = -7 * k, R = 7 * k } do
+		local at = Vector3.new(axis.X + x, woodTop, axis.Z - 3.8 * k)
+		standIn(
+			part(
+				m,
+				`LampPost{side}`,
+				Vector3.new(lampH, 0.44 * k, 0.44 * k),
+				CFrame.new(at + Vector3.new(0, lampH / 2, 0)) * UPRIGHT,
+				ink(C.WoodDeep),
+				{ shape = "Cylinder" }
+			),
+			mesh
+		)
+		standIn(
+			part(
+				m,
+				`LampGlow{side}`,
+				Vector3.new(0.8, 1, 0.8) * k,
+				CFrame.new(at + Vector3.new(0, lampH + 0.5 * k, 0)),
+				ink(C.Butter)
+			),
+			mesh
+		)
+		standIn(
+			part(
+				m,
+				`LampCap{side}`,
+				Vector3.new(1.2, 0.3, 1.2) * k,
+				CFrame.new(at + Vector3.new(0, lampH + 1.15 * k, 0)),
+				ink(C.Gold)
+			),
+			mesh
+		)
 	end
 	return finish(m, counter)
 end

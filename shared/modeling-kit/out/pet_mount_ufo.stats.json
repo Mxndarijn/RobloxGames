@@ -1,6 +1,6 @@
 {
   "name": "pet_mount_ufo",
-  "model": "models/pet_mount_ufo.py",
+  "model": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\models\\pet_mount_ufo.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
   "tris": 1924,
   "meshes": [
@@ -52,7 +52,7 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "out/pet_mount_ufo.fbx",
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_ufo.fbx",
   "fbx_bytes": 45340,
   "engine": "cycles",
   "mode": "full",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "out/.tiles/pet_mount_ufo_0.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_ufo_0.png"
     },
     {
       "view": "side",
-      "path": "out/.tiles/pet_mount_ufo_1.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_ufo_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "out/.tiles/pet_mount_ufo_2.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_ufo_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "out/.tiles/pet_mount_ufo_3.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_ufo_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.092,
-    "stats_s": 0.003,
-    "setup_s": 0.001,
+    "model_s": 0.165,
+    "stats_s": 0.004,
+    "setup_s": 0.023,
     "render_s": [
-      0.912,
-      0.885,
-      1.149,
-      0.702
+      0.143,
+      0.123,
+      0.12,
+      0.129
     ],
-    "export_s": 0.072
+    "export_s": 0.234
   },
-  "sheet": "out/pet_mount_ufo_sheet.png",
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_ufo_sheet.png",
   "timings": {
-    "wall_s": 4.37,
-    "blender_process_s": 4.3,
-    "compose_s": 0.075,
-    "model_s": 0.092,
-    "stats_s": 0.003,
-    "setup_s": 0.001,
+    "wall_s": 1.33,
+    "blender_process_s": 1.29,
+    "compose_s": 0.043,
+    "model_s": 0.165,
+    "stats_s": 0.004,
+    "setup_s": 0.023,
     "render_s": [
-      0.912,
-      0.885,
-      1.149,
-      0.702
+      0.143,
+      0.123,
+      0.12,
+      0.129
     ],
-    "export_s": 0.072
+    "export_s": 0.234
   }
 }

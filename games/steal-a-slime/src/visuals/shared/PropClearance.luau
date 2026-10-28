@@ -48,7 +48,14 @@ PropClearance.SPOT_RADIUS = 12
 -- Spots whose own corner is dressed (RanchProps "Guide*" rows stand round the Guide): their circle is the prop's own
 -- footprint, and the rows keep the walk-up side towards the plaza open.
 -- The Upcoming Events board (WorldLayout.EVENT_BOARD) is a flat 16-stud board: half its width.
-PropClearance.SPOT_RADII = table.freeze({ TutorialNpc = 3, EventBoard = 9 }) :: { [string]: number }
+-- The Exclusive Shop jar (WorldLayout.EXCLUSIVE_JAR) is round: the kit's footprint radius (plinth, goo rim, lanterns
+-- and counter) at the stand's scale.
+local spotRadii: { [string]: number } = { TutorialNpc = 3, EventBoard = 9 }
+do
+	local jar = WorldLayout.EXCLUSIVE_JAR
+	spotRadii[jar.model] = jar.footprint * jar.scale
+end
+PropClearance.SPOT_RADII = table.freeze(spotRadii)
 
 function PropClearance.spotRadius(name: string): number
 	return PropClearance.SPOT_RADII[name] or PropClearance.SPOT_RADIUS

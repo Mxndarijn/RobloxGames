@@ -98,10 +98,28 @@ RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
 	pet_cloud = "follow pet cloud (FollowPets): the client clones the server-published ReplicatedStorage.PetCloudMeshes template under the owner's pet slime, decor, no world slot",
 	pet_mount_jelly = "pet seat (Config.PET_SEATS, FollowPets): the client clones the server-published ReplicatedStorage.PetCloudMeshes template under the owner's pet slime, decor, no world slot",
 	pet_mount_rainbow_cloud = "pet seat (Config.PET_SEATS, FollowPets): the client clones the server-published ReplicatedStorage.PetCloudMeshes template under the owner's pet slime, decor, no world slot",
+	pet_mount_storm_cloud = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_sunset_cloud = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_ice_cloud = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_flame_cloud = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_leaf = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_bubble = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_lily_pad = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_mushroom = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_pancakes = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_star_cushion = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_crescent_moon = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_magic_carpet = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_ufo = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_royal_cushion = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_hoverboard = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
+	pet_mount_clam_shell = "pet seat (Config.PET_SEATS, FollowPets, the Exclusive Shop's floating display): the client clones the server-published ReplicatedStorage.PetCloudMeshes template, decor, no world slot",
 	ranch_bat = "default melee Bat: the Handle mesh of Tool 'Bat' (held, no collision), no world slot",
 	ranch_fence_20 = "plot fence panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
 	phoenix_fence_segment = "plot fence half panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
 	phoenix_gate = "plot gate: the goo jar tower's door and bridge are the plot entrance (CONTRACT.md §5.3), no gate slot",
+	exclusive_jar_boutique = "Exclusive Shop jar (FEATURES.ExclusiveShop): server/WorldProps builds the ExclusiveShopStand at runtime with this mesh's Shop slot (WorldLayout.EXCLUSIVE_JAR), no static slot",
+	exclusive_jar_boutique_glass = "Exclusive Shop jar glass (FEATURES.ExclusiveShop): the Glass slot of the runtime ExclusiveShopStand (WorldLayout.EXCLUSIVE_JAR), no static slot",
 }) :: { [string]: string }
 
 local rows: { Placement } = {}
@@ -130,14 +148,15 @@ end
 -- prop per plot (a lantern or a mailbox). No second copies of a decorative piece.
 
 -- Plaza edge -------------------------------------------------------------
--- Vignettes on the free bisectors (22.5, 112.5, 292.5, 337.5) and a planter beside the shop (67.5) PROP_SPOT.
--- The 202.5 lawn is the Upcoming Events board's (WorldLayout.EVENT_BOARD), so its picnic table and sunflowers flank
--- the horseshoe pit on the 292.5 lawn.
+-- Vignettes on the free bisectors (22.5, 292.5, 337.5) and a planter beside the shop (67.5) PROP_SPOT. The 112.5
+-- bisector is the Exclusive Shop jar's (WorldLayout.EXCLUSIVE_JAR). The 202.5 lawn is the Upcoming Events
+-- board's (WorldLayout.EVENT_BOARD), so its picnic table and sunflowers flank the horseshoe pit on the 292.5 lawn; the
+-- well and its pump stand on that lawn's plot 6 side, between the board and the plot 6 entrance, by the ring path.
 polar("Campfire", "ranch_campfire", "plaza", 22.5, 92, 180, 1.3)
 polar("CampBench", "ranch_bench", "plaza", 16.5, 92, 90, 1.2)
 rows[#rows].face = "Campfire"
-polar("Well", "ranch_well", "plaza", 112.5, 92, 180, 1.2)
-polar("WellPump", "ranch_water_pump", "plaza", 120, 91, 180, 1.2)
+polar("Well", "ranch_well", "plaza", 211.75, 92, 180, 1.2)
+polar("WellPump", "ranch_water_pump", "plaza", 216.25, 93, 180, 1.2)
 polar("PicnicTable", "ranch_picnic_table", "plaza", 301.5, 90, 180, 1.2)
 polar("Sunflowers", "ranch_sunflower_patch", "plaza", 300, 97.5, 180, 1)
 polar("HorseshoePit", "ranch_horseshoe_pit", "plaza", 292.5, 90, 180, 1.2)

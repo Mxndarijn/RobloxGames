@@ -13,8 +13,11 @@
 	  * `MovePrompt` (E, gamepad DPadRight; tap), only with `moveKey` / `onMove` (FEATURES.MoveSlime): "Move" calls
 	    `onMove(slimeId, model)`, which starts move mode (SlimeMove).
 
-	Hatch stays the server's HatchPrompt (F, gamepad ButtonX). Every key comes from Constants.SLIME_PROMPT_KEYS, where
-	no two prompts share one. The server's GrabPrompt on the same
+	Hatch stays the server's HatchPrompt (F, gamepad ButtonX). With `hatchNow` (FEATURES.ExclusiveShop) an egg that
+	is still incubating gets `HatchNowPrompt` on the same key: "Hatch now · R$25" or "Use credit" from
+	`hatchNow.quick`, calling `hatchNow.trigger(slimeId)`. The two never show together: one is for an egg that
+	waits, the server's for one that is ready; `tick()` drops it the moment the egg turns ready. Every key comes from
+	Constants.SLIME_PROMPT_KEYS, where no two prompts share one. The server's GrabPrompt on the same
 	Body is hidden from the owner (PromptHide). Prompts go when the slime leaves the pad (carried, escaping, sold,
 	merged) and come back when it returns. `update(state)` refreshes their texts from the latest State.
 
@@ -38,6 +41,14 @@ export type Options = {
 	style: Enum.ProximityPromptStyle?, -- Custom in the game: SlimeKeyCard draws one card for all of them
 	moveKey: Key?, -- FEATURES.MoveSlime: the Move prompt's keys; nil = no Move prompt
 	onMove: ((slimeId: string, model: Model) -> ())?,
+	hatchNow: HatchNow?, -- FEATURES.ExclusiveShop: the Robux skip on an incubating egg; nil = none
+}
+
+-- The "Hatch now" quick-buy on an incubating egg: what it says (nil = no prompt) and what a press does.
+export type HatchNow = {
+	key: Key, -- the Hatch key (Constants.SLIME_PROMPT_KEYS.hatch)
+	quick: (slimeId: string, state: any) -> { text: string, enabled: boolean }?,
+	trigger: (slimeId: string) -> (),
 }
 
 export type Labels = {
@@ -47,6 +58,7 @@ export type Labels = {
 
 export type Handle = {
 	update: (state: any) -> (),
+	tick: () -> (), -- re-checks the incubating eggs' Hatch now (the client's 10 Hz tick)
 	destroy: () -> (),
 }
 
@@ -55,6 +67,7 @@ local SlimeKeys = {}
 SlimeKeys.FAVORITE_PROMPT = "FavoritePrompt"
 SlimeKeys.SELL_PROMPT = "SellPrompt"
 SlimeKeys.MOVE_PROMPT = "MovePrompt"
+SlimeKeys.HATCH_NOW_PROMPT = "HatchNowPrompt"
 SlimeKeys.MOVE_TEXT = "Move"
 SlimeKeys.PAD_STATE = "Pad"
 
@@ -125,6 +138,7 @@ function SlimeKeys.start(opts: Options): Handle
 		favorite: ProximityPrompt?,
 		sell: ProximityPrompt?,
 		move: ProximityPrompt?,
+		hatchNow: ProximityPrompt?,
 		triggers: { [string]: RBXScriptConnection }, -- each prompt's Triggered, by entry key
 	}
 	local bound: { [Instance]: Entry } = {}
@@ -162,6 +176,32 @@ function SlimeKeys.start(opts: Options): Handle
 		return prompt, conn
 	end
 
+	local drop: (entry: Entry, key: "favorite" | "sell" | "move" | "hatchNow") -> ()
+
+	-- The incubating egg's Hatch now prompt: made, relabelled or dropped by `hatchNow.quick`.
+	local function hatchNowLabel(body: BasePart, entry: Entry, id: string)
+		local hatchNow = opts.hatchNow
+		local q = if hatchNow and SlimeKeys.wants(entry.model, opts.localUserId) then hatchNow.quick(id, state) else nil
+		if hatchNow == nil or q == nil then
+			drop(entry, "hatchNow")
+			return
+		end
+		if not entry.hatchNow then
+			local prompt, conn = makePrompt(body, SlimeKeys.HATCH_NOW_PROMPT, hatchNow.key, 0, function()
+				local slimeId = idOf(entry.model)
+				local again = if slimeId then hatchNow.quick(slimeId, state) else nil
+				if slimeId and again and again.enabled then
+					hatchNow.trigger(slimeId)
+				end
+			end)
+			entry.hatchNow = prompt
+			entry.triggers.hatchNow = conn
+		end
+		local prompt = entry.hatchNow :: ProximityPrompt
+		prompt.ActionText = q.text
+		prompt.ObjectText = nameOf(body)
+	end
+
 	-- Sets the prompts' texts from the latest State.
 	local function label(body: BasePart, entry: Entry)
 		local id = idOf(entry.model)
@@ -169,6 +209,9 @@ function SlimeKeys.start(opts: Options): Handle
 			return
 		end
 		local isEgg = entry.model:GetAttribute(EGG_ATTRIBUTE) ~= nil
+		if isEgg then
+			hatchNowLabel(body, entry, id)
+		end
 		local l = SlimeKeys.labels(id, nameOf(body), isEgg, state, opts.formatCash)
 		if entry.favorite and l.favorite then
 			entry.favorite.ActionText = l.favorite.action
@@ -180,7 +223,7 @@ function SlimeKeys.start(opts: Options): Handle
 		end
 	end
 
-	local function drop(entry: Entry, key: "favorite" | "sell" | "move")
+	function drop(entry: Entry, key: "favorite" | "sell" | "move" | "hatchNow")
 		local prompt: ProximityPrompt? = (entry :: any)[key]
 		if prompt then
 			prompt:Destroy();
@@ -197,6 +240,7 @@ function SlimeKeys.start(opts: Options): Handle
 		drop(entry, "favorite")
 		drop(entry, "sell")
 		drop(entry, "move")
+		drop(entry, "hatchNow")
 	end
 
 	local function apply(body: BasePart)
@@ -214,6 +258,8 @@ function SlimeKeys.start(opts: Options): Handle
 		if isEgg then
 			drop(entry, "favorite")
 			drop(entry, "sell")
+		else
+			drop(entry, "hatchNow")
 		end
 		if not isEgg and not entry.favorite then
 			local prompt, conn = makePrompt(body, SlimeKeys.FAVORITE_PROMPT, opts.favoriteKey, 0, function()
@@ -317,6 +363,19 @@ function SlimeKeys.start(opts: Options): Handle
 			state = next
 			for body, entry in bound do
 				label(body :: BasePart, entry)
+			end
+		end,
+		tick = function()
+			if opts.hatchNow == nil then
+				return
+			end
+			for body, entry in bound do
+				if entry.model:GetAttribute(EGG_ATTRIBUTE) ~= nil then
+					local id = idOf(entry.model)
+					if id then
+						hatchNowLabel(body :: BasePart, entry, id)
+					end
+				end
 			end
 		end,
 		destroy = function()

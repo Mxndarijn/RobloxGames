@@ -86,14 +86,17 @@ function MysteryEgg.meterText(data: Data, kind: EggKind.Kind): string
 	return `Lucky {math.min(MysteryEgg.misses(data, kind), kind.pity - 1)}/{kind.pity - 1}`
 end
 
--- Starts the hatch clock of an egg that has none yet (its first pad). Returns whether it started.
-function MysteryEgg.startIncubating(slime: Genome.Slime, now: number): boolean
+-- Starts the hatch clock of an egg that has none yet (its first pad) and fixes its hatch roll: `seed` (a whole
+-- number from the caller's Rng) seeds the Rng `hatchEgg` rolls on, so skipping the wait never changes the result.
+-- Returns whether it started.
+function MysteryEgg.startIncubating(slime: Genome.Slime, now: number, seed: number?): boolean
 	local kind = EggKind.of(slime)
 	local egg = slime.egg
 	if not kind or not egg or egg.hatchAt ~= nil then
 		return false
 	end
 	egg.hatchAt = now + kind.hatchSeconds
+	egg.seed = seed
 	return true
 end
 
@@ -128,7 +131,8 @@ export type Hatch = {
 --[[
 	Hatches the owner's ready egg `id` in place: the record turns into the slime
 	inside (same id, same pad), the lucky meter applies (a full meter rerolls the
-	slime at the kind's top tier on `rng`) and the SlimeDex records it.
+	slime at the kind's top tier on an Rng seeded by the egg's `seed`, or on `rng`
+	for an egg without one) and the SlimeDex records it.
 	Returns (true, slime, hatch) or (false, reason).
 ]]
 function MysteryEgg.hatchEgg(
@@ -149,7 +153,8 @@ function MysteryEgg.hatchEgg(
 	local top = EggKind.topTier(kind)
 	local guaranteed = slime.tier < top and MysteryEgg.guaranteed(data, kind)
 	if guaranteed then
-		local fresh = hatchling(rng, slime.id, top)
+		local seed = slime.egg.seed
+		local fresh = hatchling(if seed then Rng.new(seed) else rng, slime.id, top)
 		fresh.pad = slime.pad
 		data.slimes[index] = fresh
 		slime = fresh

@@ -11,6 +11,18 @@
 	`pinClock` covers the
 	Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
+
+	Exclusive Shop (FEATURES.ExclusiveShop, contract/exclusive-shop.md §3): `grantProduct(userId, productKey)`,
+	`setPass(userId, passKey, owned)` and `setPaidRandomAllowed(userId, allowed)` run the real PurchaseService paths
+	(Purchases.grant, a "studio-<guid>" receipt id, the save) without a productId or a Robux prompt. They only write
+	player attributes ("PcwGrantProduct", "PcwPass" = "<passKey>=true|false", "PcwPaidRandom") that the running
+	server's watcher applies, so they work from any Lua context in a Studio playtest, e.g. Studio MCP execute_luau:
+
+	    local Hooks = require(game.ServerScriptService.Server.StudioHooks)
+	    local userId = game.Players:GetPlayers()[1].UserId
+	    Hooks.grantProduct(userId, "Seat_ufo")
+	    Hooks.setPass(userId, "Income2x", true)
+	    Hooks.setPaidRandomAllowed(userId, true)
 ]]
 
 local HttpService = game:GetService("HttpService")
@@ -24,10 +36,70 @@ local PetSeats = require(ReplicatedStorage.Shared.PetSeats)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local PlotBases = require(ReplicatedStorage.Shared.PlotBases)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
+local PurchaseService = require(script.Parent.PurchaseService)
 local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local World = require(script.Parent.World)
 
 local StudioHooks = {}
+
+local GRANT_ATTRIBUTE = "PcwGrantProduct"
+local PASS_ATTRIBUTE = "PcwPass"
+local PAID_RANDOM_ATTRIBUTE = "PcwPaidRandom"
+
+local function playerOf(userId: number): Player?
+	return Players:GetPlayerByUserId(userId)
+end
+
+-- Grants one Exclusive Shop product (a Config.EXCLUSIVE_SHOP.products key) to a player in this Studio server.
+function StudioHooks.grantProduct(userId: number, productKey: string): boolean
+	local player = playerOf(userId)
+	if not player then
+		return false
+	end
+	player:SetAttribute(GRANT_ATTRIBUTE, productKey)
+	return true
+end
+
+-- Gives or takes a Game Pass (a Config.EXCLUSIVE_SHOP.passes key) for this Studio session.
+function StudioHooks.setPass(userId: number, passKey: string, owned: boolean): boolean
+	local player = playerOf(userId)
+	if not player then
+		return false
+	end
+	player:SetAttribute(PASS_ATTRIBUTE, `{passKey}={if owned then "true" else "false"}`)
+	return true
+end
+
+-- Overrides the PolicyService answer: whether paid random items (the server Luck Potion) may be sold.
+function StudioHooks.setPaidRandomAllowed(userId: number, allowed: boolean): boolean
+	local player = playerOf(userId)
+	if not player then
+		return false
+	end
+	player:SetAttribute(PAID_RANDOM_ATTRIBUTE, allowed)
+	return true
+end
+
+-- Applies the Exclusive Shop attributes above through the purchase service, then clears them.
+local function applyPurchase(player: Player, purchases: PurchaseService.Service, name: string)
+	local value = player:GetAttribute(name)
+	if value == nil then
+		return
+	end
+	player:SetAttribute(name, nil)
+	local userId = player.UserId
+	if name == GRANT_ATTRIBUTE and type(value) == "string" then
+		local decision = purchases.grantProduct(userId, value, `studio-{HttpService:GenerateGUID(false)}`)
+		print(`[StudioHooks] grantProduct {value}: {decision}`)
+	elseif name == PASS_ATTRIBUTE and type(value) == "string" then
+		local key, flag = string.match(value, "^(%w+)=(%a+)$")
+		if key then
+			print(`[StudioHooks] setPass {key} {flag}: {purchases.setPass(userId, key, flag == "true")}`)
+		end
+	elseif name == PAID_RANDOM_ATTRIBUTE and type(value) == "boolean" then
+		print(`[StudioHooks] setPaidRandomAllowed {value}: {purchases.setPaidRandomAllowed(userId, value)}`)
+	end
+end
 
 -- True only in Studio on the in-memory store.
 function StudioHooks.active(memoryMode: boolean): boolean
@@ -92,8 +164,14 @@ local function apply(world: World.World, player: Player, refresh: () -> ())
 	refresh()
 end
 
--- `refresh` pushes the view and State right away after a hook changed a session.
-function StudioHooks.start(world: World.World, memoryMode: boolean, refresh: () -> ())
+-- `refresh` pushes the view and State right away after a hook changed a session. `purchases` (the server's
+-- PurchaseService) takes the Exclusive Shop hooks.
+function StudioHooks.start(
+	world: World.World,
+	memoryMode: boolean,
+	refresh: () -> (),
+	purchases: PurchaseService.Service?
+)
 	if not StudioHooks.active(memoryMode) then
 		return
 	end
@@ -102,6 +180,21 @@ function StudioHooks.start(world: World.World, memoryMode: boolean, refresh: () 
 			player:GetAttributeChangedSignal(name):Connect(function()
 				pcall(apply, world, player, refresh)
 			end)
+		end
+		if purchases then
+			for _, name in { GRANT_ATTRIBUTE, PASS_ATTRIBUTE, PAID_RANDOM_ATTRIBUTE } do
+				player:GetAttributeChangedSignal(name):Connect(function()
+					task.spawn(function() -- the grant saves, which yields
+						local ok, err = pcall(function()
+							applyPurchase(player, purchases, name)
+						end)
+						if not ok then
+							warn(`[StudioHooks] {name}: {err}`)
+						end
+						refresh()
+					end)
+				end)
+			end
 		end
 	end
 	Players.PlayerAdded:Connect(watch)

@@ -8,7 +8,7 @@
 	  * the World, Persistence (save backend + DataStoreStatus), the one ctx (ServerContext) and the PvP lines;
 	  * `Request` -> Actions.handle, then a view refresh and the State pushes; plot and shop prompts;
 	  * Outbox plays the World events (Effects, Notify, PvpEvent, badges, rare-drop attributes);
-	  * friends, admin events, weather and weekly events;
+	  * Robux purchases (PurchaseService), friends, admin events, weather and weekly events;
 	  * PlayerLifecycle (join / spawn / leave / shutdown / autosave), ServerLoop (Heartbeat), the leaderboard
 	    refresh loop and the Studio-only review hooks.
 	`world`, `ctx`, `refreshView`, `World`, `WorldView` and `Carry` stay top-level locals: the live-test tools
@@ -48,6 +48,7 @@ local PlayerLifecycle = require(script.PlayerLifecycle)
 local PlazaColliders = require(script.PlazaColliders)
 local PlotThemeView = require(script.PlotThemeView)
 local Profiler = require(script.Profiler)
+local PurchaseService = require(script.PurchaseService)
 local PvpBlaster = require(script.PvpBlaster)
 local PvpFun = require(script.PvpFun)
 local PvpKnockback = require(script.PvpKnockback)
@@ -280,6 +281,23 @@ end)
 -- Services
 ---------------------------------------------------------------------------
 
+-- Robux purchases (FEATURES.ExclusiveShop): the one ProcessReceipt, Game Passes and the paid random items policy.
+local purchases = PurchaseService.service({
+	world = world,
+	backend = PurchaseService.robloxBackend(),
+	save = function(userId: number, data: any): boolean
+		return Persistence.save(persistence, userId, data, false)
+	end,
+	now = now,
+	wait = task.wait,
+	changed = function()
+		local t = now()
+		refreshView(t)
+		flushStates(t)
+	end,
+})
+safeCall("PurchaseService.start", PurchaseService.start, purchases)
+
 -- Friend income bonus (Friends): Player:IsFriendsWith yields and can throw, so the
 -- cache wraps it; a refresh runs on every join and leave.
 local friendCache = Friends.new(function(a: number, b: number): boolean
@@ -370,7 +388,7 @@ StudioHooks.start(world, persistence.memoryMode, function()
 	local t = now()
 	refreshView(t)
 	flushStates(t)
-end)
+end, purchases)
 
 ServerLoop.start(loop)
 

@@ -4,7 +4,8 @@
 
 	What the follow pet rides on (Config.PET_SEATS, contract/pet-seats.md). A seat unlocks by its `unlock` rule:
 	"free" always, "merges" once stats.merges reaches `count`, "dex" once `percent` of the SlimeDex is found
-	(SpeciesDex.count over SpeciesDex.TOTAL), "exclusive" never yet (the Exclusive shop will sell them). The equipped
+	(SpeciesDex.count over SpeciesDex.TOTAL), "exclusive" once bought in the Exclusive Shop (`data.ownedSeats`,
+	contract/exclusive-shop.md); an unowned Exclusive's view row names its product key (`Seat_<id>`). The equipped
 	seat is data.petSeat; `equip` refuses a locked seat and `current` never returns one.
 	Pure: no Roblox APIs.
 ]]
@@ -26,6 +27,7 @@ export type View = {
 	need: number, -- 0 for free and exclusive seats
 	unlocked: boolean,
 	equipped: boolean,
+	productKey: string?, -- an unowned Exclusive seat: its Config.EXCLUSIVE_SHOP.products key ("Seat_<id>"); nil otherwise
 }
 
 local PetSeats = {}
@@ -69,6 +71,9 @@ function PetSeats.unlocked(data: Data, seat: Seat): boolean
 	elseif kind == "dex" then
 		-- Exact: 40 of 50 found is 80 %, without rounding.
 		return SpeciesDex.count(data) * 100 >= (seat.unlock.percent or 0) * SpeciesDex.TOTAL
+	elseif kind == "exclusive" then
+		local owned = (data :: any).ownedSeats
+		return type(owned) == "table" and table.find(owned, seat.id) ~= nil
 	end
 	return false
 end
@@ -100,14 +105,16 @@ function PetSeats.view(data: Data): { View }
 	local out: { View } = {}
 	for _, seat in Config.PET_SEATS do
 		local have, need = PetSeats.progress(data, seat)
+		local unlocked = PetSeats.unlocked(data, seat)
 		table.insert(out, {
 			id = seat.id,
 			name = seat.name,
 			kind = seat.unlock.kind,
 			have = have,
 			need = need,
-			unlocked = PetSeats.unlocked(data, seat),
+			unlocked = unlocked,
 			equipped = seat.id == equipped,
+			productKey = if seat.unlock.kind == "exclusive" and not unlocked then `Seat_{seat.id}` else nil,
 		})
 	end
 	return out

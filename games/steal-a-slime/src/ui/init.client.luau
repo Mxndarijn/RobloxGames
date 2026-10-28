@@ -18,6 +18,7 @@
 local AssetService = game:GetService("AssetService")
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -42,6 +43,7 @@ local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local Types = require(Shared:WaitForChild("Types"))
 
 local DexJarView = require(script.DexJarView)
+local ExclusiveShopView = require(script.ExclusiveShopView)
 local Format = require(script.Format)
 local FriendsLockIcon = require(script.FriendsLockIcon)
 local GrabBlockCard = require(script.GrabBlockCard)
@@ -59,6 +61,7 @@ local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
 local NavTile = require(script.NavTile)
 local PopupQueue = require(script.PopupQueue)
+local PurchasePrompt = require(script.PurchasePrompt)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
 local SlimeInfoCard = require(script.SlimeInfoCard)
@@ -80,6 +83,7 @@ local CarryPanel = require(Panels.Carry)
 local CodesPanel = require(Panels.Codes)
 local DailyPopup = require(Panels.DailyPopup)
 local DexPanel = require(Panels.Dex)
+local ExclusiveShopPanel = require(Panels.ExclusiveShop)
 local GoalsPanel = require(Panels.Goals)
 local GuidePanel = require(Panels.Guide)
 local HintOverlay = require(Panels.HintOverlay)
@@ -310,6 +314,8 @@ local ctx: { [string]: any } = {
 	setName = SpeciesDex.setName,
 	-- Plot skins menu: each skin's slimes.
 	PlotSkins = PlotSkins,
+	-- Exclusive shop and its quick-buys: Roblox's purchase prompts (the server grants on ProcessReceipt).
+	purchase = PurchasePrompt.new(MarketplaceService, player),
 	buildSpecies = SpeciesModel.builder(function()
 		return gui.Parent and gui.Parent:FindFirstChild(Constants.SLIME_KITS_FOLDER)
 	end, MeshAssets.IMPORT_YAW, kitCache.want),
@@ -373,6 +379,7 @@ local backdrop = Widgets.backdrop({
 local panelByKey: { [string]: any } = {
 	Merge = MergePanel.new(gui, ctx),
 	WorldShop = WorldShopPanel.new(gui, ctx),
+	ExclusiveShop = ExclusiveShopPanel.new(gui, ctx),
 	Rebirth = RebirthPanel.new(gui, ctx),
 	Goals = GoalsPanel.new(gui, ctx),
 	Dex = DexPanel.new(gui, ctx),
@@ -389,9 +396,9 @@ for _, navEntry in Nav.ENTRIES do
 	end
 end
 -- Every menu: the nav ones plus the cards without a nav button: Merge (opened at the vat), WorldShop (opened by the
--- server at a shop stand), the Guide and Welcome cards.
+-- server at a shop stand), ExclusiveShop (the jar boutique, Skins, the Item shop's potion), the Guide and Welcome cards.
 local allPanels: { PanelEntry } = table.clone(panels)
-for _, key in { "Merge", "WorldShop" } do
+for _, key in { "Merge", "WorldShop", "ExclusiveShop" } do
 	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
 end
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
@@ -702,6 +709,15 @@ local function setOpen(key: string?)
 	syncMenus()
 end
 
+-- The Exclusive shop on card `key` ("seat:ufo"; nil = Featured), `withDetails` with its odds open. Only while
+-- State has the shop (FEATURES.ExclusiveShop).
+function ctx.openExclusiveShop(key: string?, withDetails: boolean?)
+	if latest and latest.exclusiveShop then
+		panelByKey.ExclusiveShop.show(key, withDetails)
+		setOpen("ExclusiveShop")
+	end
+end
+
 for _, entry in allPanels do
 	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
 end
@@ -883,6 +899,25 @@ local slimeKeys = SlimeKeys.start({
 	style = Enum.ProximityPromptStyle.Custom,
 	moveKey = if slimeMove then SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.move) else nil,
 	onMove = if slimeMove then slimeMove.start else nil,
+	-- FEATURES.ExclusiveShop (State.exclusiveShop): "Hatch now" on an incubating egg, or "Use credit".
+	hatchNow = {
+		key = SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.hatch),
+		quick = function(slimeId: string, state: any): any
+			local q =
+				ExclusiveShopView.hatchQuickBuy(state, slimeId, serverNow(), Config, Remotes.ACTIONS.UseCredit ~= nil)
+			return if q then { text = q.text, enabled = q.mode ~= "offsale" } else nil
+		end,
+		trigger = function(slimeId: string)
+			local q =
+				ExclusiveShopView.hatchQuickBuy(latest, slimeId, serverNow(), Config, Remotes.ACTIONS.UseCredit ~= nil)
+			if q and q.mode == "credit" then
+				send("UseCredit", "hatch", slimeId)
+			elseif q and q.mode == "buy" and q.purchase then
+				send("AimHatch", slimeId) -- the receipt can't name the egg, so the server is told first
+				ctx.purchase.prompt(q.purchase)
+			end
+		end,
+	},
 })
 
 -- One card over the slime draws those prompts (they use the Custom style), instead of three stacked bubbles.
@@ -945,8 +980,28 @@ do
 	ctx.worldShop = worldShop
 	local shopEvent = Remotes.get(Constants.SHOP_EVENT) :: RemoteEvent
 	shopEvent.OnClientEvent:Connect(worldShop.onEvent)
+	-- The jar boutique's ShopPrompt opens the Exclusive shop the same way (OpenShop = "ExclusiveShop"; the server
+	-- clears it when the player walks off); closing the card here tells the server with CloseShop.
+	local exclusiveFromServer = false
+	function ctx.exclusiveShopHidden()
+		if exclusiveFromServer then
+			exclusiveFromServer = false
+			send("CloseShop")
+		end
+	end
 	player:GetAttributeChangedSignal(Constants.OPEN_SHOP_ATTRIBUTE):Connect(function()
-		worldShop.onAttribute(player:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE))
+		local shopId = player:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE)
+		if shopId == Constants.EXCLUSIVE_SHOP_ID then
+			exclusiveFromServer = true
+			ctx.openExclusiveShop(nil)
+			return
+		elseif exclusiveFromServer then
+			exclusiveFromServer = false
+			if openKey == "ExclusiveShop" then
+				setOpen(nil)
+			end
+		end
+		worldShop.onAttribute(shopId)
 	end)
 end
 
@@ -1391,6 +1446,7 @@ task.spawn(function()
 			guardedTick("worldShop", function()
 				panelByKey.WorldShop.tick()
 			end)
+			guardedTick("slimeKeys", slimeKeys.tick)
 			guardedTick("hint", function()
 				hintOverlay.tick(
 					now,

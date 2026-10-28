@@ -17,6 +17,7 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local SharedEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
+local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -93,7 +94,8 @@ function MysteryEgg.stepHatches(world: World, now: number)
 end
 
 --[[
-	Once a second: revealed hatches are toasted, every pad egg gets a hatch clock,
+	Once a second: revealed hatches are toasted, every pad egg gets a hatch clock (and its hatch roll's seed from
+	`world.eggRng`, so "Hatch now" only changes time),
 	the eggs of owners at home (`session.home`) incubate WARM_SPEED x, and an owner
 	hears once when one of their eggs is ready. Eggs being carried off are left alone.
 ]]
@@ -105,7 +107,9 @@ function MysteryEgg.step(world: World, seconds: number, now: number)
 		for _, slime in data.slimes do
 			if slime.egg and slime.pad then
 				any = true
-				SharedEgg.startIncubating(slime, now)
+				if slime.egg.hatchAt == nil then
+					SharedEgg.startIncubating(slime, now, world.eggRng:int(1, Rng.SEED_MAX))
+				end
 			end
 		end
 		if any then

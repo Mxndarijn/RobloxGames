@@ -1,6 +1,6 @@
 {
   "name": "pet_mount_mushroom",
-  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_mount_mushroom.py",
+  "model": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\models\\pet_mount_mushroom.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
   "tris": 1880,
   "meshes": [
@@ -52,7 +52,7 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_mushroom.fbx",
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_mushroom.fbx",
   "fbx_bytes": 49404,
   "engine": "cycles",
   "mode": "full",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_mushroom_0.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_mushroom_0.png"
     },
     {
       "view": "side",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_mushroom_1.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_mushroom_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_mushroom_2.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_mushroom_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_mushroom_3.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_mushroom_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.302,
-    "stats_s": 0.006,
-    "setup_s": 0.042,
+    "model_s": 0.169,
+    "stats_s": 0.002,
+    "setup_s": 0.022,
     "render_s": [
-      2.154,
-      1.646,
-      2.227,
-      1.893
+      0.147,
+      0.12,
+      0.115,
+      0.128
     ],
-    "export_s": 0.462
+    "export_s": 0.233
   },
-  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_mushroom_sheet.png",
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_mushroom_sheet.png",
   "timings": {
-    "wall_s": 11.61,
-    "blender_process_s": 11.5,
-    "compose_s": 0.104,
-    "model_s": 0.302,
-    "stats_s": 0.006,
-    "setup_s": 0.042,
+    "wall_s": 1.33,
+    "blender_process_s": 1.29,
+    "compose_s": 0.043,
+    "model_s": 0.169,
+    "stats_s": 0.002,
+    "setup_s": 0.022,
     "render_s": [
-      2.154,
-      1.646,
-      2.227,
-      1.893
+      0.147,
+      0.12,
+      0.115,
+      0.128
     ],
-    "export_s": 0.462
+    "export_s": 0.233
   }
 }

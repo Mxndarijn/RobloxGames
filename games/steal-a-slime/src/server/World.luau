@@ -76,6 +76,11 @@ export type Session = {
 	home: boolean?, -- standing in their own HomeZone (the adapter sets it); warms their Mystery Eggs, runtime only
 	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
+	offlineRate: number?, -- the offline rate the join payout used (Income.applyOffline), runtime only
+	offlinePaid: number?, -- the join payout's cash (Income.applyOffline; a pass top-up adds to it), runtime only
+	passes: { [string]: boolean }?, -- FEATURES.ExclusiveShop: Game Passes owned, by Config.EXCLUSIVE_SHOP.passes key (PurchaseService), runtime only
+	hatchTarget: string?, -- FEATURES.ExclusiveShop: the egg the next HatchNow receipt is for (AimHatch), runtime only
+	paidRandomAllowed: boolean?, -- FEATURES.ExclusiveShop: PolicyService allows paid random items; nil = not checked yet (false), runtime only
 	boardRanks: { [string]: number }?, -- my rank per global board stat from the last refresh (-n = deeper than #n, Leaderboard.sessionRanks); runtime only
 	coilHeld: boolean?, -- the SpeedCoil Tool is equipped (WorldView sets it each tick); runtime only
 	openShop: string?, -- the shop id the player has open (Request OpenShop), runtime only
