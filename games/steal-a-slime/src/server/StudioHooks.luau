@@ -23,6 +23,13 @@
 	    Hooks.grantProduct(userId, "Seat_ufo")
 	    Hooks.setPass(userId, "Income2x", true)
 	    Hooks.setPaidRandomAllowed(userId, true)
+	    Hooks.grantProduct(userId, "Trail_rainbow")            -- any product key: Trail_*, BatSkin_*, LockBreak, Gift_*
+	    Hooks.lockBreak(userId, 3)                             -- AimLockBreak plot 3, then the LockBreak grant
+	    Hooks.gift(userId, "BatSkin_golden", otherUserId)      -- AimGift, then the Gift_BatSkin_golden grant
+
+	`lockBreak` and `gift` aim first (the same rules as AimLockBreak / AimGift) and then grant through PurchaseService
+	like a receipt, so a refused aim still ends as a credit, exactly as a real purchase would ("PcwLockBreak" = plot
+	index, "PcwGift" = "<itemKey>@<targetUserId>").
 ]]
 
 local HttpService = game:GetService("HttpService")
@@ -32,11 +39,13 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Genome = require(ReplicatedStorage.Shared.Genome)
+local LockBreak = require(script.Parent.LockBreak)
 local PetSeats = require(ReplicatedStorage.Shared.PetSeats)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local PlotBases = require(ReplicatedStorage.Shared.PlotBases)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local PurchaseService = require(script.Parent.PurchaseService)
+local Purchases = require(script.Parent.Purchases)
 local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local World = require(script.Parent.World)
 
@@ -45,6 +54,8 @@ local StudioHooks = {}
 local GRANT_ATTRIBUTE = "PcwGrantProduct"
 local PASS_ATTRIBUTE = "PcwPass"
 local PAID_RANDOM_ATTRIBUTE = "PcwPaidRandom"
+local LOCK_BREAK_ATTRIBUTE = "PcwLockBreak"
+local GIFT_ATTRIBUTE = "PcwGift"
 
 local function playerOf(userId: number): Player?
 	return Players:GetPlayerByUserId(userId)
@@ -80,6 +91,26 @@ function StudioHooks.setPaidRandomAllowed(userId: number, allowed: boolean): boo
 	return true
 end
 
+-- Aims a lock break at plot `plotIndex` and grants LockBreak (a credit when the aim is refused).
+function StudioHooks.lockBreak(userId: number, plotIndex: number): boolean
+	local player = playerOf(userId)
+	if not player then
+		return false
+	end
+	player:SetAttribute(LOCK_BREAK_ATTRIBUTE, plotIndex)
+	return true
+end
+
+-- Aims a gift of `itemKey` (Seat_* / Trail_* / BatSkin_*) at `targetUserId` and grants Gift_<itemKey>.
+function StudioHooks.gift(userId: number, itemKey: string, targetUserId: number): boolean
+	local player = playerOf(userId)
+	if not player then
+		return false
+	end
+	player:SetAttribute(GIFT_ATTRIBUTE, `{itemKey}@{targetUserId}`)
+	return true
+end
+
 -- Applies the Exclusive Shop attributes above through the purchase service, then clears them.
 local function applyPurchase(player: Player, purchases: PurchaseService.Service, name: string)
 	local value = player:GetAttribute(name)
@@ -88,9 +119,27 @@ local function applyPurchase(player: Player, purchases: PurchaseService.Service,
 	end
 	player:SetAttribute(name, nil)
 	local userId = player.UserId
+	local world = purchases.options.world
+	local session = World.session(world, userId)
+	local now = purchases.options.now()
+	local function receipt(): string
+		return `studio-{HttpService:GenerateGUID(false)}`
+	end
 	if name == GRANT_ATTRIBUTE and type(value) == "string" then
-		local decision = purchases.grantProduct(userId, value, `studio-{HttpService:GenerateGUID(false)}`)
+		local decision = purchases.grantProduct(userId, value, receipt())
 		print(`[StudioHooks] grantProduct {value}: {decision}`)
+	elseif name == LOCK_BREAK_ATTRIBUTE and type(value) == "number" and session then
+		local _, aim = LockBreak.aim(world, session, value, now, nil)
+		print(
+			`[StudioHooks] lockBreak {value}: aim {aim or "ok"}, {purchases.grantProduct(userId, "LockBreak", receipt())}`
+		)
+	elseif name == GIFT_ATTRIBUTE and type(value) == "string" and session then
+		local item, target = string.match(value, "^([%w_]+)@(%d+)$")
+		if item and target then
+			local _, aim = Purchases.aimGift(world, session, item, tonumber(target) :: number, now)
+			local decision = purchases.grantProduct(userId, `Gift_{item}`, receipt())
+			print(`[StudioHooks] gift {item} -> {target}: aim {aim or "ok"}, {decision}`)
+		end
 	elseif name == PASS_ATTRIBUTE and type(value) == "string" then
 		local key, flag = string.match(value, "^(%w+)=(%a+)$")
 		if key then
@@ -182,7 +231,9 @@ function StudioHooks.start(
 			end)
 		end
 		if purchases then
-			for _, name in { GRANT_ATTRIBUTE, PASS_ATTRIBUTE, PAID_RANDOM_ATTRIBUTE } do
+			for _, name in
+				{ GRANT_ATTRIBUTE, PASS_ATTRIBUTE, PAID_RANDOM_ATTRIBUTE, LOCK_BREAK_ATTRIBUTE, GIFT_ATTRIBUTE }
+			do
 				player:GetAttributeChangedSignal(name):Connect(function()
 					task.spawn(function() -- the grant saves, which yields
 						local ok, err = pcall(function()

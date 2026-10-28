@@ -1,0 +1,109 @@
+{
+  "name": "bat_skin_fish",
+  "model": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\models\\bat_skin_fish.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 740,
+  "meshes": [
+    {
+      "name": "bat_skin_fish",
+      "tris": 740,
+      "verts": 398,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        1.992,
+        5.089,
+        1.074
+      ],
+      "materials": [
+        "bat_skin_fish_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "bat_skin_fish_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    1.992,
+    5.089,
+    1.074
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "bat_skin_fish_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\bat_skin_fish.fbx",
+  "fbx_bytes": 29260,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_fish_0.png"
+    },
+    {
+      "view": "side",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_fish_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_fish_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\.tiles\\bat_skin_fish_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.173,
+    "stats_s": 0.002,
+    "setup_s": 0.023,
+    "render_s": [
+      0.162,
+      0.139,
+      0.153,
+      0.147
+    ],
+    "export_s": 0.28
+  },
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop-extras\\shared\\modeling-kit\\out\\bat_skin_fish_sheet.png",
+  "timings": {
+    "wall_s": 1.53,
+    "blender_process_s": 1.48,
+    "compose_s": 0.052,
+    "model_s": 0.173,
+    "stats_s": 0.002,
+    "setup_s": 0.023,
+    "render_s": [
+      0.162,
+      0.139,
+      0.153,
+      0.147
+    ],
+    "export_s": 0.28
+  }
+}

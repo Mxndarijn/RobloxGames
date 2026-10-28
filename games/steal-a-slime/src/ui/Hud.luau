@@ -199,7 +199,9 @@ function Hud.new(parent: Instance, ctx: any)
 	type Slot = { frame: TextButton, icon: any, label: TextLabel, bubble: Frame, ring: UIStroke }
 	local statusSlots: { [string]: Slot } = {}
 	local shownSlots: { HudClusters.Slot } = {}
-	for _, id in HudClusters.STATUS_IDS do
+	-- Slots that rarely run are built the first time they show (each slot costs about 16 instances).
+	local LAZY_SLOTS = table.freeze({ LockBreak = true } :: { [string]: boolean })
+	local function buildSlot(id: string): Slot
 		local frame = create("TextButton", {
 			Name = id,
 			Visible = false,
@@ -247,7 +249,14 @@ function Hud.new(parent: Instance, ctx: any)
 		})
 		Widgets.pill().Parent = label
 		Widgets.stroke(Theme.Ink, 2).Parent = label
-		statusSlots[id] = { frame = frame, icon = icon, label = label, bubble = bubble, ring = ring }
+		local entry = { frame = frame, icon = icon, label = label, bubble = bubble, ring = ring }
+		statusSlots[id] = entry
+		return entry
+	end
+	for _, id in HudClusters.STATUS_IDS do
+		if not LAZY_SLOTS[id] then
+			buildSlot(id)
+		end
 	end
 
 	-- Status tooltip (B8): name, effect and the live time left, over the open slot.
@@ -370,7 +379,7 @@ function Hud.new(parent: Instance, ctx: any)
 		end
 	end
 
-	for id, entry in statusSlots do
+	local function wireSlot(id: string, entry: Slot)
 		entry.frame.MouseEnter:Connect(function()
 			setTooltip(HudClusters.nextTooltip(tipId, "hover", id, touchInput()))
 		end)
@@ -380,6 +389,25 @@ function Hud.new(parent: Instance, ctx: any)
 		entry.frame.Activated:Connect(function()
 			setTooltip(HudClusters.nextTooltip(tipId, "tap", id, touchInput()))
 		end)
+	end
+	for id, entry in statusSlots do
+		wireSlot(id, entry)
+	end
+	-- The slot `id`, built (wired and sized for the current screen) the first time a lazy one is needed.
+	local function slotFor(id: string): Slot
+		local entry = statusSlots[id]
+		if entry then
+			return entry
+		end
+		entry = buildSlot(id)
+		wireSlot(id, entry)
+		local sm = Layout.statusMetrics(compact, statusTight)
+		entry.frame.Size = UDim2.fromOffset(sm.slot, Layout.statusHeight(compact, statusTight))
+		entry.icon.instance.Size = UDim2.fromOffset(sm.icon, sm.icon)
+		entry.bubble.Size = UDim2.fromOffset(sm.icon, sm.icon)
+		entry.label.TextSize = sm.textSize
+		entry.label.Position = UDim2.new(0.5, 0, 0, sm.icon - sm.overlap)
+		return entry
 	end
 
 	-- A press anywhere but on the open icon closes the tooltip (a tap on the icon itself is its Activated).
@@ -527,6 +555,7 @@ function Hud.new(parent: Instance, ctx: any)
 			mvpBoost = current.mvpBoost,
 			petPerk = current.petPerk,
 			featuredSecret = current.featuredSecret,
+			lockBreak = if type(current.exclusiveShop) == "table" then current.exclusiveShop.lockBreak else nil,
 		}, now, Layout.STATUS.count)
 		local parts = {}
 		for _, slot in slots do
@@ -541,7 +570,7 @@ function Hud.new(parent: Instance, ctx: any)
 				entry.frame.Visible = false
 			end
 			for i, slot in slots do
-				local entry = statusSlots[slot.id]
+				local entry = slotFor(slot.id)
 				if screen then
 					local r = Layout.statusSlot(screen.status, i, #slots)
 					slotRects[slot.id] = r

@@ -11,6 +11,14 @@
 	    (`hatchAt = now`; the hatch roll was fixed when it started), else one hatch credit.
 	  * doubleOffline: pays the last welcome-back payout (`data.offlineDouble.cash`) once more; nothing to pay grants 0.
 	  * serverPotion: extends the server-wide Luck Potion (Consumables.extendPotion) and tells everyone who gave it.
+	  * trail / batSkin (Trail_<id>, BatSkin_<id>): the carry trail / Bat skin joins `data.ownedTrails` /
+	    `data.ownedBatSkins` (worn with EquipTrail / EquipBatSkin).
+	  * lockBreak: opens the locked base aimed with AimLockBreak for the buyer (LockBreak.open), else one
+	    `data.lockBreakCredits` (spent with UseCredit "lockBreak").
+	  * gift (Gift_<item>): gives the cosmetic `item` to the player aimed with AimGift and writes their save now
+	    (`ctx.save`). A target who left, already owns it or whose save failed leaves the buyer a `data.giftCredits`
+	    entry instead (sent later with SendGift). The item is never lost: with no room for a credit the grant is
+	    refused and Roblox asks again later.
 	`useCredit` spends a saved credit (Request UseCredit), `applyPasses` sets the runtime Game Pass factors
 	(`data.passIncomeMult`, `data.passOfflineRate`) and `view` builds State.exclusiveShop. Receipts, saving and the
 	MarketplaceService callbacks live in PurchaseService. Never errors; no Roblox APIs.
@@ -28,13 +36,18 @@ local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
 type Session = World.Session
 
--- `features`: Config.FEATURES overrides by flag name (tests), like Actions.Context.
-export type Context = { features: { [string]: boolean }? }
+-- `features`: Config.FEATURES overrides by flag name (tests), like Actions.Context. `save`: writes another player's
+-- session data now (the session-locked Persistence save; yields), true = written; nil = can't (a gift becomes a credit).
+export type Context = {
+	features: { [string]: boolean }?,
+	save: ((userId: number, data: any) -> boolean)?,
+}
 
 local Purchases = {}
 
@@ -149,11 +162,6 @@ function Purchases.aimHatch(world: World, session: Session, slimeId: string, now
 	return true, nil
 end
 
-local function seatName(seatId: string): string
-	local seat = PetSeats.get(seatId)
-	return if seat then seat.name else seatId
-end
-
 local function hatchReady(world: World, session: Session, egg: Genome.Slime, now: number)
 	local record = egg.egg :: EggKind.Egg
 	record.hatchAt = now
@@ -161,6 +169,204 @@ local function hatchReady(world: World, session: Session, egg: Genome.Slime, now
 	local kind = EggKind.of(egg)
 	local name = if kind then EggKind.displayName(kind) else "egg"
 	World.notify(world, session.userId, `Your {name} is ready to hatch!`, "good", "EggReady", "MysteryEgg")
+end
+
+local function findDef(list: { any }, id: string): any?
+	for _, def in list do
+		if def.id == id then
+			return def
+		end
+	end
+	return nil
+end
+
+-- The owned list a cosmetic product key adds to and the id it adds; nil for a key that is no cosmetic.
+local function cosmetic(data: PlayerData.Data, itemKey: string): ({ string }?, string?)
+	local def = Purchases.product(itemKey)
+	local grant = def and def.grant
+	if not grant then
+		return nil, nil
+	end
+	if grant.kind == "seat" then
+		return data.ownedSeats, grant.seat
+	elseif grant.kind == "trail" then
+		return data.ownedTrails, grant.trail
+	elseif grant.kind == "batSkin" then
+		return data.ownedBatSkins, grant.skin
+	end
+	return nil, nil
+end
+
+-- True when the product `itemKey` (Seat_* / Trail_* / BatSkin_*) also sells as a gift.
+function Purchases.giftable(itemKey: string): boolean
+	return type(itemKey) == "string" and SHOP.products["Gift_" .. itemKey] ~= nil
+end
+
+-- True when `data` already owns the cosmetic product `itemKey`.
+function Purchases.owns(data: PlayerData.Data, itemKey: string): boolean
+	local list, id = cosmetic(data, itemKey)
+	return list ~= nil and id ~= nil and table.find(list, id) ~= nil
+end
+
+-- Adds the cosmetic product `itemKey` to `data`. Returns whether it was added (false: owned already or no cosmetic).
+function Purchases.giveItem(data: PlayerData.Data, itemKey: string): boolean
+	local def = Purchases.product(itemKey)
+	if def and def.grant.kind == "seat" then
+		return addSeat(data, def.grant.seat)
+	end
+	local list, id = cosmetic(data, itemKey)
+	if not list or not id or table.find(list, id) then
+		return false
+	end
+	table.insert(list, id)
+	return true
+end
+
+-- Takes the cosmetic product `itemKey` back out of `data` (a gift whose save failed) and takes it off.
+local function takeItem(data: PlayerData.Data, itemKey: string)
+	local list, id = cosmetic(data, itemKey)
+	local at = if list and id then table.find(list, id) else nil
+	if list and at then
+		table.remove(list, at)
+	end
+	if id and data.trail == id then
+		data.trail = nil
+	end
+	if id and data.batSkin == id then
+		data.batSkin = nil
+	end
+	if id and data.petSeat == id then
+		data.petSeat = Config.PET_SEAT_DEFAULT
+	end
+end
+
+local function seatName(seatId: string): string
+	local seat = PetSeats.get(seatId)
+	return if seat then seat.name else seatId
+end
+
+-- The player-facing name of a cosmetic product key.
+function Purchases.itemName(itemKey: string): string
+	local def = Purchases.product(itemKey)
+	local grant = def and def.grant
+	if grant and grant.kind == "seat" then
+		return seatName(grant.seat)
+	elseif grant and grant.kind == "trail" then
+		local trail = findDef(SHOP.trails, grant.trail)
+		return if trail then `the {trail.name} trail` else grant.trail
+	elseif grant and grant.kind == "batSkin" then
+		local skin = findDef(SHOP.batSkins, grant.skin)
+		local name = if skin then skin.name else grant.skin
+		return if string.find(name, "Bat", 1, true) then `the {name}` else `the {name} Bat`
+	end
+	return itemKey
+end
+
+-- Why `from` can't gift `itemKey` to `targetId` now; nil = they can.
+local function giftRefusal(world: World, from: Session, itemKey: string, targetId: number): string?
+	if not Purchases.giftable(itemKey) then
+		return "that can't be gifted"
+	end
+	if targetId == from.userId then
+		return "you can't gift yourself"
+	end
+	local target = world.sessions[targetId]
+	if not target then
+		return "that player isn't in this server"
+	end
+	if Purchases.owns(target.data, itemKey) then
+		return "they already have it"
+	end
+	return nil
+end
+
+--[[
+	Gives `itemKey` to `target` and writes their save now through `ctx.save`. A save that fails (or no `save`) takes
+	the item back. Returns whether the target has it saved; on success tells both players.
+]]
+local function deliver(world: World, from: Session, target: Session, itemKey: string, ctx: Context?): boolean
+	if not Purchases.giveItem(target.data, itemKey) then
+		return false
+	end
+	local save = ctx and ctx.save
+	local saved = false
+	if save then
+		local ok, written = pcall(save, target.userId, target.data)
+		saved = ok and written == true
+	end
+	if not saved then
+		takeItem(target.data, itemKey)
+		return false
+	end
+	local name = Purchases.itemName(itemKey)
+	World.markDirty(target)
+	World.notify(world, target.userId, `{from.name} gave you {name}!`, "good", "Gift")
+	World.notify(world, from.userId, `You gave {target.name} {name}!`, "good", "Gift")
+	return true
+end
+
+-- AimGift: remembers who the next Gift_<itemKey> receipt is for. Returns (ok, reason).
+function Purchases.aimGift(
+	world: World,
+	session: Session,
+	itemKey: string,
+	targetId: number,
+	now: number
+): (boolean, string?)
+	local refusal = giftRefusal(world, session, itemKey, targetId)
+	if refusal then
+		return false, refusal
+	end
+	session.giftAim = { item = itemKey, targetId = targetId, at = now }
+	return true, nil
+end
+
+-- SendGift: spends one unsent gift of `itemKey` on `targetId` (their save is written first). Returns (ok, reason).
+function Purchases.sendGift(
+	world: World,
+	session: Session,
+	itemKey: string,
+	targetId: number,
+	ctx: Context?
+): (boolean, string?)
+	local at = table.find(session.data.giftCredits, itemKey)
+	if not at then
+		return false, "you have no unsent gift of that"
+	end
+	local refusal = giftRefusal(world, session, itemKey, targetId)
+	if refusal then
+		return false, refusal
+	end
+	if not deliver(world, session, world.sessions[targetId], itemKey, ctx) then
+		return false, "the gift couldn't be delivered, try again"
+	end
+	local still = table.find(session.data.giftCredits, itemKey) -- the save yielded: find it again
+	if still then
+		table.remove(session.data.giftCredits, still)
+	end
+	World.markDirty(session)
+	return true, nil
+end
+
+-- EquipTrail / EquipBatSkin: wears an owned carry trail / Bat skin; "" takes it off. Returns (ok, reason).
+function Purchases.equipTrail(session: Session, trailId: string): (boolean, string?)
+	local data = session.data
+	if trailId ~= "" and not table.find(data.ownedTrails, trailId) then
+		return false, "you don't own that trail"
+	end
+	data.trail = if trailId == "" then nil else trailId
+	World.markDirty(session)
+	return true, nil
+end
+
+function Purchases.equipBatSkin(session: Session, skinId: string): (boolean, string?)
+	local data = session.data
+	if skinId ~= "" and not table.find(data.ownedBatSkins, skinId) then
+		return false, "you don't own that Bat skin"
+	end
+	data.batSkin = if skinId == "" then nil else skinId
+	World.markDirty(session)
+	return true, nil
 end
 
 --[[
@@ -239,6 +445,36 @@ function Purchases.grant(
 		world.potionUntil = Consumables.extendPotion(world.potionUntil, now)
 		World.notify(world, nil, `{session.name} gave the server a Luck Potion!`, "good", nil)
 		World.markAllDirty(world)
+	elseif kind == "trail" or kind == "batSkin" then
+		Purchases.giveItem(data, productKey)
+		World.notify(world, userId, `{Purchases.itemName(productKey)} is yours! Wear it in Style.`, "good", "Gift")
+	elseif kind == "lockBreak" then
+		local plot = LockBreak.aimed(world, session, now)
+		if not (plot and LockBreak.open(world, session, plot, now, if ctx then ctx.features else nil)) then
+			if data.lockBreakCredits >= SHOP.creditMax then
+				return false, "too many lock break credits"
+			end
+			session.lockBreakAim = nil
+			data.lockBreakCredits += 1
+			World.notify(world, userId, "That door can't be opened now: saved as a lock break credit.", "info", nil)
+		end
+	elseif kind == "gift" then
+		local item = grant.item
+		local aim = session.giftAim
+		local target = if aim
+				and aim.item == item
+				and now - aim.at <= SHOP.gift.aimSeconds
+				and giftRefusal(world, session, item, aim.targetId) == nil
+			then world.sessions[aim.targetId]
+			else nil
+		if not (target and deliver(world, session, target, item, ctx)) then
+			if #data.giftCredits >= SHOP.gift.creditMax then
+				return false, "too many unsent gifts"
+			end
+			table.insert(data.giftCredits, item)
+			World.notify(world, userId, `Saved {Purchases.itemName(item)} as a gift to send later.`, "info", "Gift")
+		end
+		session.giftAim = nil
 	else
 		return false, "unknown product"
 	end
@@ -248,17 +484,34 @@ end
 
 --[[
 	Spends one saved credit (Request UseCredit): "brew" ends the running brew now; "hatch" makes the owned incubating
-	pad egg `slimeId` (nil = the one closest to ready) ready now. Returns (ok, player-facing reason).
+	pad egg `target` (a slime id; nil = the one closest to ready) ready now; "lockBreak" opens plot `target`'s locked
+	door for the player (a plot index, number or numeric string; LockBreak.open). Returns (ok, player-facing reason).
 ]]
 function Purchases.useCredit(
 	world: World,
 	session: Session,
 	kind: string,
-	slimeId: string?,
-	now: number
+	target: (string | number)?,
+	now: number,
+	ctx: Context?
 ): (boolean, string?)
 	local data = session.data
-	if kind == "brew" then
+	local slimeId = if type(target) == "string" then target else nil
+	if kind == "lockBreak" then
+		if data.lockBreakCredits < 1 then
+			return false, "no lock break credits"
+		end
+		local plot = tonumber(target)
+		if not plot then
+			return false, "pick a locked base"
+		end
+		local ok, reason = LockBreak.open(world, session, plot, now, if ctx then ctx.features else nil)
+		if not ok then
+			return false, reason
+		end
+		data.lockBreakCredits -= 1
+		return true, nil
+	elseif kind == "brew" then
 		if data.credits.brew < 1 then
 			return false, "no brew credits"
 		end
@@ -329,9 +582,30 @@ function Purchases.applyPasses(session: Session, passes: { [string]: boolean }):
 	return extra
 end
 
--- State.exclusiveShop for this session (the caller decides whether the flag is on).
-function Purchases.view(session: Session, now: number): Types.ExclusiveShopView
+-- The carry trail and Bat skin `session` wears now: both nil while the shop is off.
+function Purchases.worn(session: Session, ctx: Context?): (string?, string?)
+	if not enabled(ctx) then
+		return nil, nil
+	end
+	return session.data.trail, session.data.batSkin
+end
+
+local function set(ids: { string }): { [string]: boolean }
+	local out: { [string]: boolean } = {}
+	for _, id in ids do
+		out[id] = true
+	end
+	return out
+end
+
+-- State.exclusiveShop for this session (the caller decides whether the flag is on). `world` also checks that a lock
+-- break's plot still has its owner (nil: by its end time only).
+function Purchases.view(session: Session, now: number, world: World?): Types.ExclusiveShopView
 	local data = session.data
+	local pass = if world then LockBreak.pass(world, session, now) else session.lockBreak
+	if pass and now >= pass.untilTime then
+		pass = nil
+	end
 	local owned: { [string]: boolean } = {}
 	for _, id in data.ownedSeats do
 		owned[id] = true
@@ -349,6 +623,13 @@ function Purchases.view(session: Session, now: number): Types.ExclusiveShopView
 		offlineDouble = if record then { cash = record.cash, available = not record.used } else nil,
 		paidRandomAllowed = session.paidRandomAllowed == true,
 		featured = ExclusiveRotation.featured(ExclusiveRotation.week(now)),
+		trails = set(data.ownedTrails),
+		trail = data.trail,
+		batSkins = set(data.ownedBatSkins),
+		batSkin = data.batSkin,
+		lockBreak = if pass then { plot = pass.plot, untilTime = pass.untilTime } else nil,
+		lockBreakCredits = data.lockBreakCredits,
+		giftCredits = table.clone(data.giftCredits),
 	}
 end
 

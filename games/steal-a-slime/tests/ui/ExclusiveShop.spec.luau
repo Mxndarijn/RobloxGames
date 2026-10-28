@@ -94,6 +94,11 @@ local function ctx(config: any, extra: { [string]: any }?): any
 		actions = Remotes.ACTIONS,
 		send = function() end,
 		request = function() end,
+		ask = function() end,
+		userId = PLAYER.UserId,
+		giftPlayers = function()
+			return {}
+		end,
 		serverNow = function()
 			return 1000
 		end,
@@ -136,8 +141,10 @@ describe("ExclusiveShopView cards", function()
 		expect(ExclusiveShopView.doubleQuickBuy({}, Config)).toBeNil()
 		expect(ExclusiveShopView.potionQuickBuy({}, Config)).toBeNil()
 	end)
-	it("tabs follow Config: Featured, Clouds, Perks, Boosts", function()
-		expect(table.concat(ExclusiveShopView.tabs(shopState(), Config), ",")).toBe("Featured,Clouds,Perks,Boosts")
+	it("tabs follow Config: Featured, Clouds, Style, Perks, Boosts", function()
+		expect(table.concat(ExclusiveShopView.tabs(shopState(), Config), ",")).toBe(
+			"Featured,Clouds,Style,Perks,Boosts"
+		)
 	end)
 	it("Featured is the Starter bundle while unclaimed, then this week's seats", function()
 		local keys = keysOf(ExclusiveShopView.cards("Featured", shopState(), Config))
@@ -521,9 +528,22 @@ describe("Exclusive shop panel", function()
 				local first = ExclusiveShopView.cards(tab, state, Config)[1]
 				panel.select(first.key)
 				local body = Layout.panelBody(r)
-				local lastTab = UiHarness.find(panel.frame, `Tab_{Config.EXCLUSIVE_SHOP.tabs[4]}`)
+				local tabs = Config.EXCLUSIVE_SHOP.tabs
+				local lastTab = UiHarness.find(panel.frame, `Tab_{tabs[#tabs]}`)
 				expect(lastTab.Position.X.Offset + lastTab.Size.X.Offset <= body.w).toBe(true)
 				check.touch(`{tab}.Tab`, Layout.rect(0, 0, lastTab.Size.X.Offset, lastTab.Size.Y.Offset))
+				for _, key in tabs do
+					local b = UiHarness.find(panel.frame, `Tab_{key}`)
+					expect(b.TextSize >= Layout.MIN_TEXT).toBe(true)
+					check.text({
+						name = `{tab}.Tab_{key}`,
+						text = b.Text,
+						size = b.TextSize,
+						bold = true,
+						w = b.Size.X.Offset - 16,
+						h = b.Size.Y.Offset,
+					})
+				end
 				local grid = UiHarness.find(panel.frame, "Grid")
 				local pane = UiHarness.find(panel.frame, "Pane")
 				expect(grid.Position.Y.Offset >= lastTab.Size.Y.Offset).toBe(true)
@@ -790,4 +810,351 @@ describe("quick-buy buttons", function()
 		expect(UiHarness.find(off, "ExclusiveShop").Visible).toBe(false)
 		expect(UiHarness.find(off, "Well").Text).toBe("Exclusive shop")
 	end)
+end)
+
+describe("Style tab and gifts (ExclusiveShopView)", function()
+	local cat = Config.EXCLUSIVE_SHOP
+	it("Style lists every carry trail, then every Bat skin, priced from Config", function()
+		local cards = ExclusiveShopView.cards("Style", shopState(), Config)
+		expect(#cards).toBe(#cat.trails + #cat.batSkins)
+		for i, def in cat.trails do
+			expect(cards[i].key).toBe(`trail:{def.id}`)
+			expect(cards[i].icon).toBe(`Trail_{def.id}`)
+			expect(cards[i].title).toBe(def.name)
+			expect(cards[i].tag).toBe(Format.robux(def.robux))
+			expect(cards[i].state).toBe("offsale")
+		end
+		for i, def in cat.batSkins do
+			local card = cards[#cat.trails + i]
+			expect(card.key).toBe(`batSkin:{def.id}`)
+			expect(card.icon).toBe(`BatSkin_{def.id}`)
+		end
+		expect(ExclusiveShopView.tabOf("trail:hearts")).toBe("Style")
+		expect(ExclusiveShopView.tabOf("batSkin:fish")).toBe("Style")
+	end)
+	it('owned trails Equip with EquipTrail; the worn one is Equipped with Unequip ("")', function()
+		local state = shopState({ trails = { hearts = true, sparkle = true }, trail = "hearts" })
+		local owned = ExclusiveShopView.detail("trail:sparkle", state, Config) :: ExclusiveShopView.Detail
+		expect(owned.state).toBe("owned")
+		expect(owned.action.kind).toBe("equip")
+		expect((owned.action.equip :: any).request).toBe("EquipTrail")
+		expect((owned.action.equip :: any).arg).toBe("sparkle")
+		expect(owned.unequip).toBeNil()
+		local worn = ExclusiveShopView.detail("trail:hearts", state, Config) :: ExclusiveShopView.Detail
+		expect(worn.state).toBe("equipped")
+		expect(worn.action.text).toBe("Equipped")
+		expect((worn.unequip :: any).request).toBe("EquipTrail")
+		expect((worn.unequip :: any).arg).toBe("")
+		expect(worn.unequipText).toBe("Unequip")
+	end)
+	it("Bat skins: EquipBatSkin, and the worn one offers Use default Bat", function()
+		local state = shopState({ batSkins = { golden = true }, batSkin = "golden" })
+		local worn = ExclusiveShopView.detail("batSkin:golden", state, Config) :: ExclusiveShopView.Detail
+		expect((worn.unequip :: any).request).toBe("EquipBatSkin")
+		expect((worn.unequip :: any).arg).toBe("")
+		expect(worn.unequipText).toBe("Use default Bat")
+		local card = ExclusiveShopView.cards("Style", state, Config)[#cat.trails + 4]
+		expect(card.tag).toBe("Equipped")
+	end)
+	it("a Gift on every cosmetic, never on passes, boosts, the bundle or info cards", function()
+		local config = sellingConfig()
+		local state = shopState()
+		for _, key in { "seat:ufo", "trail:rainbow", "batSkin:fish" } do
+			local d = ExclusiveShopView.detail(key, state, config) :: ExclusiveShopView.Detail
+			expect(`{key}: {d.gift ~= nil}`).toBe(`{key}: true`)
+		end
+		for _, key in { "pass:Income2x", "product:ServerLuckPotion", "product:StarterBundle", "info:HatchNow" } do
+			local d = ExclusiveShopView.detail(key, state, config) :: ExclusiveShopView.Detail
+			expect(`{key}: {d.gift == nil}`).toBe(`{key}: true`)
+		end
+	end)
+	it("Gift buys Gift_<key> at the item's price; id 0 is a disabled Gift not on sale", function()
+		local config = sellingConfig()
+		local gift = (ExclusiveShopView.detail("trail:rainbow", shopState(), config) :: any).gift
+		expect(gift.mode).toBe("buy")
+		expect(gift.itemKey).toBe("Trail_rainbow")
+		expect(gift.text).toBe(`Gift · {Format.robux(cat.products.Trail_rainbow.robux)}`)
+		expect(gift.purchase.id).toBe(config.EXCLUSIVE_SHOP.products.Gift_Trail_rainbow.productId)
+		local off = (ExclusiveShopView.detail("seat:ufo", shopState(), Config) :: any).gift
+		expect(off.mode).toBe("offsale")
+		expect(off.text).toBe("Gift not on sale")
+	end)
+	it("an unsent gift credit turns that item's Gift into Send gift", function()
+		local state = shopState({ giftCredits = { "Seat_ufo" } })
+		local gift = (ExclusiveShopView.detail("seat:ufo", state, Config) :: any).gift
+		expect(gift.mode).toBe("send")
+		expect(gift.text).toBe("Send gift")
+		expect((ExclusiveShopView.detail("seat:leaf", state, Config) :: any).gift.mode).toBe("offsale")
+	end)
+	it("giftTargets: never yourself, friends first, then by name", function()
+		local list = ExclusiveShopView.giftTargets({
+			{ userId = 3, name = "zed", friend = false },
+			{ userId = PLAYER.UserId, name = "Me", friend = false },
+			{ userId = 4, name = "Bo", friend = true },
+			{ userId = 5, name = "amy", friend = false },
+		}, PLAYER.UserId)
+		local ids = {}
+		for _, t in list do
+			table.insert(ids, t.userId)
+		end
+		expect(table.concat(ids, ",")).toBe("4,5,3")
+	end)
+end)
+
+describe("Style tab and gifts (panel)", function()
+	local function requests(): ({ any }, (string, any, ...any) -> ())
+		local out = {}
+		return out, function(action: string, _cb: any, ...: any)
+			table.insert(out, { action, ... })
+		end
+	end
+	local PLAYERS = {
+		{ userId = PLAYER.UserId, name = "Me", friend = false },
+		{ userId = 31, name = "Zoe", friend = false },
+		{ userId = 32, name = "Ann", friend = true },
+	}
+	-- ctx with a fake market, a recorded ask (answering `answer`) and the server's players.
+	local function giftCtx(config: any, answer: any?, extra: { [string]: any }?): (any, any, { any })
+		local market = fakeMarket()
+		local asks = {}
+		local c = ctx(config, {
+			purchase = PurchasePrompt.new(market, PLAYER),
+			giftPlayers = function()
+				return PLAYERS
+			end,
+			ask = function(action: string, done: (any) -> (), ...: any)
+				table.insert(asks, { action, ... })
+				done(answer or { ok = true })
+			end,
+		})
+		for k, v in extra or {} do
+			c[k] = v
+		end
+		return c, market, asks
+	end
+
+	it("the Style tab shows trail and Bat skin cards with their drawn icons", function()
+		local panel = openShop(1920, 1080, shopState(), ctx(Config))
+		panel.setTab("Style")
+		local grid = UiHarness.find(panel.frame, "Grid")
+		local trail = UiHarness.find(grid, "trail:sparkle")
+		expect(trail ~= nil).toBe(true)
+		expect(UiHarness.find(grid, "batSkin:golden") ~= nil).toBe(true)
+		expect(UiHarness.find(trail, "CardIcon"):GetAttribute("ItemId")).toBe("Trail_sparkle")
+		expect(panel.selected()).toBe("trail:sparkle")
+		expect(UiHarness.find(UiHarness.find(panel.frame, "Pane"), "Buy").Text).toBe("Not on sale yet")
+	end)
+	it("Buy on a trail prompts Trail_<id>; once owned, Equip asks EquipTrail and the worn one Unequips", function()
+		local config = sellingConfig()
+		local market = fakeMarket()
+		local sent, request = requests()
+		local c = ctx(config, { purchase = PurchasePrompt.new(market, PLAYER), request = request })
+		local panel = openShop(1920, 1080, shopState(), c, "trail:starfall")
+		expect(panel.tab()).toBe("Style")
+		local pane = UiHarness.find(panel.frame, "Pane")
+		UiHarness.fire(UiHarness.find(pane, "Buy"), "Activated")
+		expect(market.calls[1][3]).toBe(config.EXCLUSIVE_SHOP.products.Trail_starfall.productId)
+		panel.update(shopState({ trails = { starfall = true } }))
+		expect(UiHarness.find(pane, "BoughtTitle").Visible).toBe(true)
+		local equip = UiHarness.find(pane, "Equip")
+		expect(equip.Visible).toBe(true)
+		UiHarness.fire(equip, "Activated")
+		expect(sent[1][1]).toBe("EquipTrail")
+		expect(sent[1][2]).toBe("starfall")
+		panel.update(shopState({ trails = { starfall = true }, trail = "starfall" }))
+		expect(equip.Visible).toBe(false)
+		expect(UiHarness.find(pane, "Well").Text).toBe("Equipped")
+		local unequip = UiHarness.find(pane, "Unequip")
+		expect(unequip.Visible).toBe(true)
+		expect(unequip.Text).toBe("Unequip")
+		UiHarness.fire(unequip, "Activated")
+		expect(sent[2][1]).toBe("EquipTrail")
+		expect(sent[2][2]).toBe("")
+	end)
+	it('the worn Bat skin offers Use default Bat (EquipBatSkin "")', function()
+		local sent, request = requests()
+		local state = shopState({ batSkins = { fish = true }, batSkin = "fish" })
+		local panel = openShop(1920, 1080, state, ctx(Config, { request = request }), "batSkin:fish")
+		local unequip = UiHarness.find(UiHarness.find(panel.frame, "Pane"), "Unequip")
+		expect(unequip.Text).toBe("Use default Bat")
+		UiHarness.fire(unequip, "Activated")
+		expect(sent[1][1]).toBe("EquipBatSkin")
+		expect(sent[1][2]).toBe("")
+	end)
+	it("without the server's EquipTrail an owned trail is an Owned well, never a dead button", function()
+		local actions = table.clone(Remotes.ACTIONS) :: any
+		actions.EquipTrail = nil
+		local c = ctx(Config, { actions = actions })
+		local panel = openShop(1920, 1080, shopState({ trails = { hearts = true } }), c, "trail:hearts")
+		local pane = UiHarness.find(panel.frame, "Pane")
+		expect(UiHarness.find(pane, "Equip").Visible).toBe(false)
+		expect(UiHarness.find(pane, "Well").Text).toBe("Owned")
+	end)
+	it("the Gift button shows on cosmetics only, never on a pass or a boost", function()
+		local panel = openShop(1920, 1080, shopState(), ctx(sellingConfig()), "seat:ufo")
+		local pane = UiHarness.find(panel.frame, "Pane")
+		expect(UiHarness.find(pane, "Gift").Visible).toBe(true)
+		panel.setTab("Perks")
+		panel.select("pass:Income2x")
+		expect(UiHarness.find(pane, "Gift").Visible).toBe(false)
+		panel.setTab("Boosts")
+		panel.select("product:ServerLuckPotion")
+		expect(UiHarness.find(pane, "Gift").Visible).toBe(false)
+		panel.setTab("Style")
+		panel.select("batSkin:lollipop")
+		expect(UiHarness.find(pane, "Gift").Visible).toBe(true)
+	end)
+	it("Gift opens the player picker: friends first, never you; a pick aims then prompts Gift_<key>", function()
+		local config = sellingConfig()
+		local c, market, asks = giftCtx(config)
+		local panel = openShop(1920, 1080, shopState(), c, "seat:ufo")
+		local pane = UiHarness.find(panel.frame, "Pane")
+		local gift = UiHarness.find(pane, "Gift")
+		expect(gift.Text).toBe(`Gift · {Format.robux(Config.EXCLUSIVE_SHOP.products.Seat_ufo.robux)}`)
+		UiHarness.fire(gift, "Activated")
+		local picker = UiHarness.find(panel.frame, "GiftPicker")
+		expect(picker.Visible).toBe(true)
+		expect(pane.Visible).toBe(false)
+		local list = UiHarness.find(picker, "GiftList")
+		expect(UiHarness.find(list, `Player_{PLAYER.UserId}`)).toBeNil()
+		local ann, zoe = UiHarness.find(list, "Player_32"), UiHarness.find(list, "Player_31")
+		expect(ann.Position.Y.Offset < zoe.Position.Y.Offset).toBe(true)
+		expect(UiHarness.find(ann, "FriendTag").Visible).toBe(true)
+		expect(UiHarness.find(zoe, "FriendTag").Visible).toBe(false)
+		UiHarness.fire(zoe, "Activated")
+		expect(asks[1][1]).toBe("AimGift")
+		expect(asks[1][2]).toBe("Seat_ufo")
+		expect(asks[1][3]).toBe(31)
+		expect(#market.calls).toBe(1)
+		expect(market.calls[1][3]).toBe(config.EXCLUSIVE_SHOP.products.Gift_Seat_ufo.productId)
+		-- back on the pane, waiting for Roblox, until the prompt closes
+		expect(picker.Visible).toBe(false)
+		expect(pane.Visible).toBe(true)
+		expect(gift.Text).toBe("Waiting for Roblox")
+		market.PromptProductPurchaseFinished.handlers[1](PLAYER.UserId, 1, false)
+		expect(gift.Text).toBe(`Gift · {Format.robux(Config.EXCLUSIVE_SHOP.products.Seat_ufo.robux)}`)
+	end)
+	it("a refused pick opens no purchase: that player greys out and the server's reason shows", function()
+		local c, market, asks = giftCtx(sellingConfig(), { ok = false, message = "Ann already has the UFO." })
+		local panel = openShop(1920, 1080, shopState(), c, "seat:ufo")
+		UiHarness.fire(UiHarness.find(UiHarness.find(panel.frame, "Pane"), "Gift"), "Activated")
+		local picker = UiHarness.find(panel.frame, "GiftPicker")
+		local ann = UiHarness.find(UiHarness.find(picker, "GiftList"), "Player_32")
+		UiHarness.fire(ann, "Activated")
+		expect(#asks).toBe(1)
+		expect(#market.calls).toBe(0)
+		expect(picker.Visible).toBe(true)
+		expect(UiHarness.find(picker, "GiftMessage").Text).toBe("Ann already has the UFO.")
+		expect(ann:GetAttribute("Refused")).toBe(true)
+		UiHarness.fire(ann, "Activated") -- greyed: no second ask
+		expect(#asks).toBe(1)
+		UiHarness.fire(UiHarness.find(picker, "GiftBack"), "Activated")
+		expect(picker.Visible).toBe(false)
+	end)
+	it("an unsent gift credit: Send gift picks a player and sends SendGift, no purchase", function()
+		local c, market, asks = giftCtx(Config)
+		local panel = openShop(1920, 1080, shopState({ giftCredits = { "Trail_hearts" } }), c, "trail:hearts")
+		local gift = UiHarness.find(UiHarness.find(panel.frame, "Pane"), "Gift")
+		expect(gift.Text).toBe("Send gift")
+		UiHarness.fire(gift, "Activated")
+		local picker = UiHarness.find(panel.frame, "GiftPicker")
+		expect(UiHarness.find(picker, "GiftTitle").Text).toBe("Send gift: Hearts")
+		UiHarness.fire(UiHarness.find(UiHarness.find(picker, "GiftList"), "Player_32"), "Activated")
+		expect(asks[1][1]).toBe("SendGift")
+		expect(asks[1][2]).toBe("Trail_hearts")
+		expect(asks[1][3]).toBe(32)
+		expect(#market.calls).toBe(0)
+		expect(picker.Visible).toBe(false)
+	end)
+	it("id 0: a disabled Gift not on sale that opens nothing", function()
+		local c, _, asks = giftCtx(Config)
+		local panel = openShop(1920, 1080, shopState(), c, "seat:ufo")
+		local gift = UiHarness.find(UiHarness.find(panel.frame, "Pane"), "Gift")
+		expect(gift.Text).toBe("Gift not on sale")
+		UiHarness.fire(gift, "Activated")
+		expect(UiHarness.find(panel.frame, "GiftPicker").Visible).toBe(false)
+		expect(#asks).toBe(0)
+	end)
+	it("without the server's AimGift there is no Gift button", function()
+		local actions = table.clone(Remotes.ACTIONS) :: any
+		actions.AimGift = nil
+		local panel = openShop(1920, 1080, shopState(), ctx(sellingConfig(), { actions = actions }), "seat:ufo")
+		expect(UiHarness.find(UiHarness.find(panel.frame, "Pane"), "Gift").Visible).toBe(false)
+	end)
+	it("alone on the server the picker says so", function()
+		local c = giftCtx(sellingConfig(), nil, {
+			giftPlayers = function()
+				return { { userId = PLAYER.UserId, name = "Me", friend = false } }
+			end,
+		})
+		local panel = openShop(1920, 1080, shopState(), c, "seat:ufo")
+		UiHarness.fire(UiHarness.find(UiHarness.find(panel.frame, "Pane"), "Gift"), "Activated")
+		local empty = UiHarness.find(UiHarness.find(panel.frame, "GiftPicker"), "GiftEmpty")
+		expect(empty.Visible).toBe(true)
+		expect(empty.Text).toBe(ExclusiveShopView.GIFT_EMPTY)
+	end)
+
+	local viewports: { any } = {}
+	for _, vp in LayoutAssert.GATE_VIEWPORTS do
+		table.insert(viewports, vp)
+	end
+	for _, vp in LayoutAssert.LANDSCAPE_VIEWPORTS do
+		table.insert(viewports, vp)
+	end
+	for _, vp in viewports do
+		it(`{vp.name}: the Style pane with Unequip and Gift, and the gift picker, fit and are touch-sized`, function()
+			local check = LayoutAssert.fullWindow(vp.name, Layout.screen(vp.w, vp.h))
+			local many = table.clone(PLAYERS)
+			for i = 1, 8 do
+				table.insert(many, { userId = 100 + i, name = `Player with a long name {i}`, friend = i % 3 == 0 })
+			end
+			local c = giftCtx(sellingConfig(), nil, {
+				giftPlayers = function()
+					return many
+				end,
+			})
+			local state = shopState({ batSkins = { foam_finger = true }, batSkin = "foam_finger" })
+			local panel = openShop(vp.w, vp.h, state, c, "batSkin:foam_finger")
+			local function fits(frame: any, label: string)
+				for _, child in UiHarness.descendants(frame) do
+					if child:IsA("GuiObject") and child.Visible and child.Parent == frame then
+						local w = child.Size.X.Scale * frame.Size.X.Offset + child.Size.X.Offset
+						local x = child.Position.X.Scale * frame.Size.X.Offset + child.Position.X.Offset
+						local left = x - child.AnchorPoint.X * w
+						expect(`{label}.{child.Name} left {left >= 0}`).toBe(`{label}.{child.Name} left true`)
+						expect(`{label}.{child.Name} right {left + w <= frame.Size.X.Offset + 1e-6}`).toBe(
+							`{label}.{child.Name} right true`
+						)
+						if child:IsA("TextButton") then
+							check.touch(`{label}.{child.Name}`, Layout.rect(0, 0, w, child.Size.Y.Offset))
+							check.text({
+								name = `{label}.{child.Name}`,
+								text = child.Text,
+								size = child.TextSize,
+								bold = true,
+								w = w - 16,
+								h = child.Size.Y.Offset,
+							})
+						end
+					end
+				end
+			end
+			local pane = UiHarness.find(panel.frame, "Pane")
+			expect(UiHarness.find(pane, "Unequip").Visible).toBe(true)
+			expect(UiHarness.find(pane, "Gift").Visible).toBe(true)
+			fits(pane, "pane")
+			UiHarness.fire(UiHarness.find(pane, "Gift"), "Activated")
+			local picker = UiHarness.find(panel.frame, "GiftPicker")
+			expect(picker.Visible).toBe(true)
+			fits(picker, "picker")
+			local list = UiHarness.find(picker, "GiftList")
+			for _, row in list:GetChildren() do
+				expect(row.Size.Y.Offset >= Layout.MIN_TOUCH_DESIGN).toBe(true)
+				expect(row.Position.X.Offset + row.Size.X.Offset <= list.Size.X.Offset + 1e-6).toBe(true)
+			end
+			local body = Layout.panelBody(Layout.rect(0, 0, panel.frame.Size.X.Offset, panel.frame.Size.Y.Offset))
+			expect(picker.Position.Y.Offset + picker.Size.Y.Offset <= body.h + 1e-6).toBe(true)
+			expect(check.report()).toBe("")
+		end)
+	end
 end)

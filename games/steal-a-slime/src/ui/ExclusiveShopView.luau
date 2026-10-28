@@ -9,6 +9,10 @@
 	a `Purchase` to the PurchasePrompt adapter, and State says what was bought. Without State.exclusiveShop
 	(FEATURES.ExclusiveShop off) every function returns nothing to show.
 
+	Style (§9, §10): carry trails and Bat skins, bought, equipped with EquipTrail / EquipBatSkin and taken off with
+	"" (no trail / the default Bat). Gifts (§12): every cosmetic card's pane also has a Gift button (Gift_<key>, or
+	"Send gift" for an unsent gift credit); `giftTargets` orders the players the picker offers.
+
 	Fairness (contract §1): the shop sells looks, comfort and time. The paid Luck Potion is the one paid
 	probability modifier: it hides where paid random items are restricted (`paidRandomAllowed`), and its card
 	explains the effect in numbers and lists the fountain odds with and without it behind "Details".
@@ -22,9 +26,11 @@ export type Purchase = { kind: "product" | "pass", id: number }
 
 export type CardState = "buy" | "offsale" | "owned" | "equipped" | "info"
 
+export type Kind = "seat" | "trail" | "batSkin" | "product" | "pass" | "info"
+
 export type Card = {
-	key: string, -- "seat:<id>", "product:<key>", "pass:<key>", "info:<key>"
-	kind: "seat" | "product" | "pass" | "info",
+	key: string, -- "seat:<id>", "trail:<id>", "batSkin:<id>", "product:<key>", "pass:<key>", "info:<key>"
+	kind: Kind,
 	id: string, -- seat id, product key or pass key
 	title: string,
 	icon: string, -- ItemIcons registry id
@@ -33,17 +39,31 @@ export type Card = {
 	tag: string, -- the card's chip: the price, "Owned", "Equipped" or where it is sold
 }
 
+export type Equip = { request: string, arg: string } -- Request(request, arg): EquipPetSeat / EquipTrail / EquipBatSkin
+
 export type Action = {
 	kind: "buy" | "offsale" | "equip" | "well",
 	text: string,
 	purchase: Purchase?, -- kind "buy": what Roblox's prompt sells
+	equip: Equip?, -- kind "equip"
 }
+
+-- A cosmetic's Gift button: buy Gift_<key> for a picked player, send an unsent gift credit, or not on sale yet.
+export type Gift = {
+	mode: "buy" | "send" | "offsale",
+	text: string,
+	itemKey: string, -- the cosmetic's product key ("Seat_ufo", "Trail_sparkle", "BatSkin_fish")
+	purchase: Purchase?, -- mode "buy": Gift_<itemKey>
+}
+
+-- A player the gift picker offers (players on this server, not you).
+export type GiftTarget = { userId: number, name: string, friend: boolean }
 
 export type OddsRow = { name: string, base: string, boosted: string, tier: number }
 
 export type Detail = {
 	key: string,
-	kind: "seat" | "product" | "pass" | "info",
+	kind: Kind,
 	id: string,
 	title: string,
 	icon: string,
@@ -54,6 +74,9 @@ export type Detail = {
 	action: Action,
 	odds: { OddsRow }?, -- the paid Luck Potion: fountain odds without / with it
 	effect: { string }?, -- the paid Luck Potion: its effect in numbers
+	unequip: Equip?, -- an equipped trail / Bat skin: Request(request, "") takes it off
+	unequipText: string?,
+	gift: Gift?, -- every cosmetic (seat, trail, Bat skin); never a pass or a boost
 }
 
 export type QuickBuy = {
@@ -77,6 +100,22 @@ ExclusiveShopView.DETAILS = "Details"
 ExclusiveShopView.HIDE_DETAILS = "Hide details"
 ExclusiveShopView.EMPTY = "The Exclusive shop is closed on this server."
 ExclusiveShopView.EMPTY_TAB = "Nothing here right now. Look again next week."
+ExclusiveShopView.OPEN_LOCKED_DOOR = "Open locked door"
+ExclusiveShopView.USE_LOCK_BREAK = "Use lock break"
+ExclusiveShopView.LOCK_BREAK_REFUSED = "This door can't be opened right now."
+ExclusiveShopView.GIFT = "Gift"
+ExclusiveShopView.SEND_GIFT = "Send gift"
+ExclusiveShopView.GIFT_OFF_SALE = "Gift not on sale"
+ExclusiveShopView.GIFT_TITLE = "Gift to"
+ExclusiveShopView.GIFT_HINT = "Pick a player on this server. Friends are first."
+ExclusiveShopView.GIFT_EMPTY = "Nobody else is on this server right now."
+ExclusiveShopView.GIFT_REFUSED = "They can't get this gift."
+ExclusiveShopView.BACK = "Back"
+ExclusiveShopView.FRIEND = "Friend"
+ExclusiveShopView.UNEQUIP_TRAIL = "Unequip"
+ExclusiveShopView.DEFAULT_BAT = "Use default Bat"
+ExclusiveShopView.TRAIL_TEXT = "Streams behind you while you carry a slime. Everyone can see it."
+ExclusiveShopView.BAT_TEXT = "A new look for your Bat. It hits exactly like the default Bat."
 ExclusiveShopView.ODDS_NOTE = "Fountain drops before rain and events. Each potion adds time; the boost never stacks."
 
 -- Shop texts per product / pass key (Config.EXCLUSIVE_SHOP keys).
@@ -209,6 +248,59 @@ local function seatCard(state: any, shop: any, config: any, id: string): Card
 	}
 end
 
+-- Config.EXCLUSIVE_SHOP.trails / batSkins entries.
+local function styleDefs(config: any, kind: "trail" | "batSkin"): { any }
+	local cat = catalogueOf(config)
+	local list = cat and (if kind == "trail" then cat.trails else cat.batSkins)
+	return if type(list) == "table" then list else {}
+end
+
+local STYLE_KINDS = table.freeze({
+	trail = table.freeze({
+		prefix = "Trail_",
+		owned = "trails",
+		worn = "trail",
+		request = "EquipTrail",
+		text = ExclusiveShopView.TRAIL_TEXT,
+		unequip = ExclusiveShopView.UNEQUIP_TRAIL,
+	}),
+	batSkin = table.freeze({
+		prefix = "BatSkin_",
+		owned = "batSkins",
+		worn = "batSkin",
+		request = "EquipBatSkin",
+		text = ExclusiveShopView.BAT_TEXT,
+		unequip = ExclusiveShopView.DEFAULT_BAT,
+	}),
+})
+
+-- The card of carry trail / Bat skin `def` (Config.EXCLUSIVE_SHOP.trails / batSkins).
+local function styleCard(shop: any, config: any, kind: "trail" | "batSkin", def: any): Card
+	local k = STYLE_KINDS[kind]
+	local key = `{k.prefix}{def.id}`
+	local price = Format.robux(robuxOf(config, key))
+	local ownedSet = shop[k.owned]
+	local owned = type(ownedSet) == "table" and ownedSet[def.id] == true
+	local s: CardState = if owned and shop[k.worn] == def.id
+		then "equipped"
+		elseif owned then "owned"
+		elseif onSale(ExclusiveShopView.productPurchase(config, key)) then "buy"
+		else "offsale"
+	return {
+		key = `{kind}:{def.id}`,
+		kind = kind,
+		id = def.id,
+		title = def.name,
+		icon = key,
+		priceText = price,
+		state = s,
+		tag = if s == "equipped"
+			then ExclusiveShopView.EQUIPPED
+			elseif s == "owned" then ExclusiveShopView.OWNED
+			else price,
+	}
+end
+
 local function productCard(config: any, key: string, owned: boolean): Card
 	local t = (ExclusiveShopView.TEXTS :: any)[key]
 	local price = Format.robux(robuxOf(config, key))
@@ -300,6 +392,14 @@ function ExclusiveShopView.cards(tab: string, state: any, config: any): { Card }
 	elseif tab == "Clouds" then
 		for _, id in exclusiveSeats(config) do
 			table.insert(out, seatCard(state, shop, config, id))
+		end
+	elseif tab == "Style" then
+		for _, kind in { "trail", "batSkin" } :: { "trail" | "batSkin" } do
+			for _, def in styleDefs(config, kind) do
+				if (catalogueOf(config) :: any).products[`{STYLE_KINDS[kind].prefix}{def.id}`] then
+					table.insert(out, styleCard(shop, config, kind, def))
+				end
+			end
 		end
 	elseif tab == "Perks" then
 		for _, key in passKeys(config) do
@@ -394,9 +494,13 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 	end
 	local purchase: Purchase? = nil
 	local text = ""
+	local style = (STYLE_KINDS :: any)[card.kind]
 	if card.kind == "seat" then
 		purchase = ExclusiveShopView.productPurchase(config, `Seat_{card.id}`)
 		text = ExclusiveShopView.SEAT_TEXT
+	elseif style then
+		purchase = ExclusiveShopView.productPurchase(config, `{style.prefix}{card.id}`)
+		text = style.text
 	elseif card.kind == "product" then
 		purchase = ExclusiveShopView.productPurchase(config, card.id)
 		text = (ExclusiveShopView.TEXTS :: any)[card.id].text
@@ -410,8 +514,12 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 	if card.state == "equipped" then
 		action = { kind = "well", text = ExclusiveShopView.EQUIPPED }
 	elseif card.state == "owned" then
-		action = if card.kind == "seat"
-			then { kind = "equip", text = ExclusiveShopView.EQUIP }
+		local equip: Equip? = if card.kind == "seat"
+			then { request = "EquipPetSeat", arg = card.id }
+			elseif style then { request = style.request, arg = card.id }
+			else nil
+		action = if equip
+			then { kind = "equip", text = ExclusiveShopView.EQUIP, equip = equip }
 			else { kind = "well", text = ExclusiveShopView.OWNED }
 	elseif card.state == "info" then
 		action = { kind = "well", text = (ExclusiveShopView.TEXTS :: any)[card.id].where }
@@ -421,6 +529,8 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 		action = { kind = "offsale", text = ExclusiveShopView.OFF_SALE }
 	end
 	local potion = card.id == "ServerLuckPotion"
+	local itemKey = ExclusiveShopView.itemKeyOf(card.key)
+	local worn = style ~= nil and card.state == "equipped"
 	return {
 		key = card.key,
 		kind = card.kind,
@@ -434,7 +544,74 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 		action = action,
 		odds = if potion then ExclusiveShopView.potionOdds(config) else nil,
 		effect = if potion then ExclusiveShopView.potionEffect(config) else nil,
+		unequip = if worn then { request = style.request, arg = "" } else nil,
+		unequipText = if worn then style.unequip else nil,
+		gift = if itemKey then ExclusiveShopView.gift(itemKey, state, config) else nil,
 	}
+end
+
+-- The cosmetic product key of a card ("seat:ufo" -> "Seat_ufo", "trail:hearts" -> "Trail_hearts"); nil for
+-- anything that is not giftable (passes, boosts, the bundle, info cards).
+function ExclusiveShopView.itemKeyOf(cardKey: string): string?
+	local kind, id = string.match(cardKey, "^(%a+):(.+)$")
+	if kind == "seat" then
+		return `Seat_{id}`
+	elseif kind == "trail" then
+		return `Trail_{id}`
+	elseif kind == "batSkin" then
+		return `BatSkin_{id}`
+	end
+	return nil
+end
+
+-- True while State holds an unsent gift credit for `itemKey`.
+function ExclusiveShopView.hasGiftCredit(state: any, itemKey: string): boolean
+	local shop = shopOf(state)
+	local list = shop and shop.giftCredits
+	return type(list) == "table" and table.find(list, itemKey) ~= nil
+end
+
+-- The Gift button of cosmetic `itemKey`: "Send gift" with an unsent credit, "Gift · R$99" when Gift_<key> is on
+-- sale, else a disabled "Gift not on sale". nil for a key that is not giftable or with the shop off.
+function ExclusiveShopView.gift(itemKey: string, state: any, config: any): Gift?
+	local cat = catalogueOf(config)
+	if shopOf(state) == nil or cat == nil or cat.products[`Gift_{itemKey}`] == nil then
+		return nil
+	end
+	if ExclusiveShopView.hasGiftCredit(state, itemKey) then
+		return { mode = "send", text = ExclusiveShopView.SEND_GIFT, itemKey = itemKey }
+	end
+	local purchase = ExclusiveShopView.productPurchase(config, `Gift_{itemKey}`)
+	if not onSale(purchase) then
+		return { mode = "offsale", text = ExclusiveShopView.GIFT_OFF_SALE, itemKey = itemKey }
+	end
+	return {
+		mode = "buy",
+		text = `{ExclusiveShopView.GIFT} · {Format.robux(robuxOf(config, `Gift_{itemKey}`))}`,
+		itemKey = itemKey,
+		purchase = purchase,
+	}
+end
+
+-- The players the gift picker offers: everyone in `players` but `me`, friends first, then by name.
+function ExclusiveShopView.giftTargets(players: { GiftTarget }, me: number?): { GiftTarget }
+	local out: { GiftTarget } = {}
+	for _, p in players do
+		if p.userId ~= me then
+			table.insert(out, p)
+		end
+	end
+	table.sort(out, function(a: GiftTarget, b: GiftTarget): boolean
+		if a.friend ~= b.friend then
+			return a.friend
+		end
+		local an, bn = string.lower(a.name), string.lower(b.name)
+		if an ~= bn then
+			return an < bn
+		end
+		return a.userId < b.userId
+	end)
+	return out
 end
 
 -- The card to show first on `tab`: `want` when the tab has it, else the first.
@@ -453,6 +630,8 @@ function ExclusiveShopView.tabOf(key: string): string
 		return "Clouds"
 	elseif string.sub(key, 1, 5) == "pass:" then
 		return "Perks"
+	elseif string.sub(key, 1, 6) == "trail:" or string.sub(key, 1, 8) == "batSkin:" then
+		return "Style"
 	elseif key == "product:StarterBundle" then
 		return "Featured"
 	end
@@ -541,6 +720,67 @@ function ExclusiveShopView.doubleQuickBuy(state: any, config: any): QuickBuy?
 		return nil
 	end
 	return quickBuy(config, "DoubleOffline", "Double it", false)
+end
+
+-- What the client knows about a base door (Plot_<i> attributes) for the lock break quick-buy.
+export type Door = {
+	index: number, -- PlotIndex
+	owner: number?, -- OwnerUserId; 0 / nil = a free plot
+	locked: boolean, -- Locked
+	lockUntil: number?, -- LockUntil (server time); when set, the lock ends then
+	guests: string?, -- Guests: ",<id>,<id>," the locked door already lets through
+}
+
+-- The active lock break (State.exclusiveShop.lockBreak) while it runs: the plot and the seconds left.
+function ExclusiveShopView.lockBreakLeft(state: any, now: number): (number?, number)
+	local shop = shopOf(state)
+	local pass = shop and shop.lockBreak
+	if type(pass) ~= "table" or type(pass.plot) ~= "number" or type(pass.untilTime) ~= "number" then
+		return nil, 0
+	end
+	local left = pass.untilTime - now
+	if left <= 0 then
+		return nil, 0
+	end
+	return pass.plot, left
+end
+
+-- "Open locked door · R$499" (or "Use lock break" with a saved lock break and `canUseCredit`) on someone else's
+-- locked base door; nil on your own or a free base, an open door, a door that already lets you in (a friend guest,
+-- your running lock break), without AimLockBreak (`canAim`) or with the shop off. The server still decides.
+function ExclusiveShopView.lockBreakQuickBuy(
+	state: any,
+	door: Door,
+	me: number,
+	now: number,
+	config: any,
+	canAim: boolean?,
+	canUseCredit: boolean?
+): QuickBuy?
+	local shop = shopOf(state)
+	if shop == nil or catalogueOf(config) == nil or (catalogueOf(config) :: any).products.LockBreak == nil then
+		return nil
+	end
+	if type(door.owner) ~= "number" or door.owner == 0 or door.owner == me then
+		return nil
+	end
+	if door.locked ~= true or (type(door.lockUntil) == "number" and door.lockUntil <= now) then
+		return nil
+	end
+	if type(door.guests) == "string" and string.find(door.guests, `,{me},`, 1, true) then
+		return nil
+	end
+	if ExclusiveShopView.lockBreakLeft(state, now) == door.index then
+		return nil
+	end
+	local saved = if type(shop.lockBreakCredits) == "number" then shop.lockBreakCredits else 0
+	if saved > 0 and canUseCredit == true then
+		return { mode = "credit", text = ExclusiveShopView.USE_LOCK_BREAK, key = "LockBreak" }
+	end
+	if canAim ~= true then
+		return nil
+	end
+	return quickBuy(config, "LockBreak", ExclusiveShopView.OPEN_LOCKED_DOOR, false)
 end
 
 -- The Item shop's Luck Potion row: "Buy for the server · R$79", nil where paid random items are restricted.

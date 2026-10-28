@@ -152,7 +152,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		boards = Snapshot.boards(data, now),
 		boardRanks = if session.boardRanks then table.clone(session.boardRanks) else {},
 		vat = VatState.view(data, Perks.brewFactor(data)) :: any,
-		exclusiveShop = if Config.FEATURES.ExclusiveShop then Purchases.view(session, now) else nil,
+		exclusiveShop = if Config.FEATURES.ExclusiveShop then Purchases.view(session, now, world) else nil,
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		blessed = if data.ritualBonus and session.blessedUntil
 			then { bonus = data.ritualBonus, endsAt = session.blessedUntil }

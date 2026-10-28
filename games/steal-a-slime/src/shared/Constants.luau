@@ -176,6 +176,9 @@ return table.freeze({
 	-- Full steal alerts (FEATURES.StealAlerts, CONTRACT.md §17): Player attributes, set only with the flag on.
 	STEALING_ATTRIBUTE = "Stealing", -- Player: true while carrying a stolen slime (the client draws the thief trail), nil otherwise
 	SLAP_HIT_ATTRIBUTE = "SlapHitAt", -- Player: server time the player was last slapped off a stolen slime (the client draws the hit effect)
+	-- Exclusive Shop cosmetics (FEATURES.ExclusiveShop, contract/exclusive-shop.md §9-§10): Player attributes, set only with the flag on.
+	CARRY_TRAIL_ATTRIBUTE = "CarryTrail", -- Player: equipped Config.EXCLUSIVE_SHOP.trails id (the client draws it while they carry a slime), nil = none
+	BAT_SKIN_ATTRIBUTE = "BatSkin", -- Player: equipped Config.EXCLUSIVE_SHOP.batSkins id (the server re-gives the Bat with that look), nil = the default Bat
 	HABITAT_FOLDER = "ClientHabitats", -- client-only workspace folder for habitat looks
 	HABITAT_MESHES = "HabitatMeshes", -- ReplicatedStorage folder: server-made overlay MeshPart templates (MeshSwap)
 	PVP_MARKER_MESHES = "PvpMarkerMeshes", -- ReplicatedStorage folder: placed trap / pad MeshPart templates (FEATURES.PvP, MeshSwap)

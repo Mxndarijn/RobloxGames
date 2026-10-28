@@ -24,6 +24,7 @@ local MovementGuard = if Lib
 local Suspicion = if Lib
 	then require(Lib.anticheat.Suspicion)
 	else require("../../../../shared/luau/src/anticheat/Suspicion")
+local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local PlotLockGuard = if script then require(script.Parent.PlotLockGuard) else require("./PlotLockGuard")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
@@ -301,6 +302,7 @@ function SlimeGuard.breather(world: World, owner: Session, now: number)
 		owner.lockStartedAt = now
 	end
 	owner.lockUntil = untilTime
+	owner.breatherUntil = untilTime -- a lock break can't open this lock (LockBreak.inBreather)
 	World.markDirty(owner)
 	World.notify(world, owner.userId, `Your base is locked for {G.BREATHER_SECONDS}s`, "good", "Lock", "Lock")
 end
@@ -324,7 +326,8 @@ end
 
 	A guest (PlotGuests) is never an intruder, and neither is a former guest still inside from that visit: when
 	the owner switches friends off (or they stop being friends) the friend stays where they are and may walk out
-	through the stopper (`formerGuests`), but no longer steal.
+	through the stopper (`formerGuests`), but no longer steal. A player let in by a running lock break (LockBreak)
+	counts as a guest of that visit the same way, so when the pass ends or pauses they are let out, not reported.
 ]]
 function SlimeGuard.trackPlot(world: World, session: Session, inside: number?, now: number): number?
 	if SlimeGuard.mode(world) == "off" then
@@ -343,7 +346,7 @@ function SlimeGuard.trackPlot(world: World, session: Session, inside: number?, n
 	if not owner or owner.userId == session.userId then
 		return nil
 	end
-	if PlotGuests.isGuest(owner, session.userId) then
+	if PlotGuests.isGuest(owner, session.userId) or LockBreak.passes(world, session.userId, inside, now) then
 		plot.guest = true
 		return nil
 	end
@@ -381,10 +384,20 @@ end
 
 --[[
 	Who plot i's stopper lets through besides its owner: result[i] = the sorted user ids of its guests in the server
-	(PlotGuests.list) and its former guests still inside (formerGuests). Plots nobody passes are left out.
+	(PlotGuests.list), its former guests still inside (formerGuests) and, given `now`, the players a running lock
+	break lets through (LockBreak.holders). Plots nobody passes are left out.
 ]]
-function SlimeGuard.stopperPasses(world: World, features: PlotGuests.Features): { [number]: { number } }
+function SlimeGuard.stopperPasses(world: World, features: PlotGuests.Features, now: number?): { [number]: { number } }
 	local sets = SlimeGuard.formerGuests(world)
+	if now then
+		for index, ids in LockBreak.holders(world, now) do
+			local set = sets[index] or {}
+			for _, id in ids do
+				set[id] = true
+			end
+			sets[index] = set
+		end
+	end
 	for _, owner in world.sessions do
 		for _, id in PlotGuests.list(world, owner, features) do
 			local set = sets[owner.plotIndex] or {}

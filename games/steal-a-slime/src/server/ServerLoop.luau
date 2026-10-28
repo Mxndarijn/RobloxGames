@@ -160,6 +160,7 @@ local function stepPlayers(loop: Loop, t: number)
 				Actions.shopTick(session, ctx) -- out of range / died closes the shop
 			end
 			PlayerAttributes.syncOpenShop(world, player)
+			PlayerAttributes.syncCosmetics(world, player)
 			LeaderboardView.updateStats(player, session)
 		end
 	end
