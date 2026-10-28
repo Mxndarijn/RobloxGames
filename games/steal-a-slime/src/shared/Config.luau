@@ -1539,6 +1539,12 @@ local Config = {
 		}),
 	}),
 
+	-- Lucky Charm show (contract/lucky-charm.md): the pad shows the slime as caught, then as its new species.
+	LUCKY_SHOW = table.freeze({
+		MORPH_SECONDS = 1.2, -- the pad shows the caught slime this long, then the promoted one (and the owner hears Lucky)
+		FX_SECONDS = 5, -- the model on the pad carries LuckyAt / LuckyFromTier this long
+	}),
+
 	-- Wild Mystery Eggs (FEATURES.MysteryEggs, contract/mystery-egg.md). Each KINDS entry: `id` (saved, never rename),
 	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
 	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `announce` (server
@@ -1557,6 +1563,7 @@ local Config = {
 		HATCH_BURST_SECONDS = 3, -- the pad keeps showing the egg this long after a hatch (the show's wobble), then the slime
 		HATCH_REVEAL_SECONDS = 4.2, -- the hatch toasts go out and the slime's label returns this long after the hatch
 		HATCH_FX_SECONDS = 8, -- the model on the pad carries HatchedAt / HatchedFrom / HatchLucky / HatchTier this long
+		SMASH_SECONDS = 1.5, -- a dropped wild egg lies smashed this long (EggSmashedAt, the client's smash show), then goes
 		KINDS = table.freeze({
 			table.freeze({
 				id = "speckled",

@@ -69,22 +69,6 @@ function Progression.payment(data: PlayerData.Data): ({ [number]: Slime }, boole
 	return picked, complete
 end
 
--- Why a slime the next rebirth uses up can't be sold or put in the vat.
-Progression.NEEDED_TEXT = "Needed for your next rebirth"
-
--- Ids of the slimes the next rebirth would use up (Progression.payment); empty at max. Sell and the merge vat
--- refuse these, and their pad label says so.
-function Progression.neededIds(data: PlayerData.Data): { [string]: boolean }
-	local out = {}
-	if data.rebirths >= Config.MAX_REBIRTHS then
-		return out
-	end
-	for _, slime in Progression.payment(data) do
-		out[slime.id] = true
-	end
-	return out
-end
-
 -- One { id, name, tier, color, owned } row per slime the next rebirth needs; empty at max.
 function Progression.requiredSlimes(data: PlayerData.Data): { Requirement }
 	local out: { Requirement } = {}

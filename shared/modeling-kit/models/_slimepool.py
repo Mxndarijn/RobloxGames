@@ -318,10 +318,176 @@ def densify(poly, step=0.1):
     return out
 
 
-def decal(name, poly, color, frame=FRONT, off=0.02, th=0.025, on=None, step=0.12):
+# flat_decals(k): every later decal() follows the curve (conform_decal) and sits k times as far off the
+# surface. Big meshes (bosses at 3x) need it: a flat slab's edges lift off a curved body and its
+# thickness reads as a raised sticker.
+DECALS = {"scale": 1.0, "conform": False}
+
+
+def flat_decals(scale=0.5):
+    DECALS["scale"], DECALS["conform"] = scale, True
+
+
+# Layer separation. Every decal is pushed out along the frame until its visible front face sits at least
+# LAYER_GAP in front of whatever is right behind it (body, skin patch, an earlier decal). Without it a
+# flat slab sags into a curved body, an iris sits 0.002 in front of its eye, a tongue level with its
+# mouth: the two faces z-fight and flicker in game. Parts more than LAYER_GAP in front of a spot hide
+# it on purpose, so hidden spots are skipped.
+LAYER_GAP = 0.008
+PAINTED_ON = {}  # decal name -> the surfaces it was cast on (blink lids land where their eye is)
+PLACED = []  # (name, bvh, bbox min, bbox max, off) of every decal so far, in build order
+
+
+def _bvh_of(o):
+    bm = bmesh.new(); bm.from_mesh(o.data)
+    bm.transform(o.matrix_world)
+    t = BVHTree.FromBMesh(bm)
+    bm.free()
+    return t
+
+
+def _separate(o, frame, on=None, ignore=(), register_it=True, off=None):
+    """push decal o out along the frame so its visible front sits at least LAYER_GAP over what it is
+    painted on and over every earlier decal it is meant to cover (one asked for at the same or a
+    smaller `off`). Earlier decals asked for further out stay on top of it."""
+    gap = LAYER_GAP * DECALS["scale"]
+    D = Vector(frame.D).normalized()
+    U, V = Vector(frame.U), Vector(frame.V)
+    rank = math.inf if off is None else off
+    pts = [o.matrix_world @ v.co for v in o.data.vertices]
+    lo = Vector([min(p[i] for p in pts) for i in range(3)])
+    hi = Vector([max(p[i] for p in pts) for i in range(3)])
+    base = [t for k, t in SURFACES.items() if on is None or k in on]  # what it is painted on
+    others = [t for k, t in SURFACES.items() if on is not None and k not in on]  # bib, glass, hats
+    below, above = [], []
+    for name, t, a, b, r in PLACED:
+        if ignore and name.startswith(ignore):
+            continue
+        if all(a[i] <= hi[i] + 0.1 and b[i] >= lo[i] - 0.1 for i in range(3)):
+            (below if r <= rank else above).append(t)
+    us = [p.dot(U) for p in pts]; vs = [p.dot(V) for p in pts]
+    step = max(0.02, min(max(us) - min(us), max(vs) - min(vs)) / 12)
+    top = max(p.dot(D) for p in pts) + 12
+
+    def front_spots():
+        bvh = _bvh_of(o)
+        u = min(us)
+        while u <= max(us) + 1e-6:
+            v = min(vs)
+            while v <= max(vs) + 1e-6:
+                far = U * u + V * v + D * top
+                hit = bvh.ray_cast(far, -D)
+                if hit[0] is not None:
+                    yield far, hit[0], hit[3]
+                v += step
+            u += step
+
+    lift = 0.0
+    for far, p, dist_p in front_spots():
+        if any((h := t.ray_cast(far, -D, dist_p))[0] is not None and h[3] < dist_p - gap for t in above):
+            continue  # an earlier decal meant to sit over it covers this spot
+        for t in base:  # sunk into or level with its own surface
+            h = t.ray_cast(p + D * 0.3, -D, 0.3 + gap)
+            if h[0] is not None:
+                lift = max(lift, gap + 0.3 - h[3])
+        for t in below:  # must clear these by `gap`, even where they stick out in front of it
+            h = t.ray_cast(far, -D)
+            if h[0] is not None:
+                lift = max(lift, dist_p - (h[3] - gap))
+        for t in others:  # other surfaces right behind it
+            h = t.ray_cast(p + D * gap, -D, 2 * gap)
+            if h[0] is not None:
+                lift = max(lift, 2 * gap - h[3])
+    if lift > 1e-5:
+        mv = o.matrix_world.inverted().to_3x3() @ (D * lift)
+        for vtx in o.data.vertices:
+            vtx.co += mv
+        o.data.update()
+    if os.environ.get("SLIME_LAYER_DEBUG") and lift > 1e-5:
+        print(f"LAYER {o.name}: out {lift:.4f}")
+    if register_it:
+        PLACED.append((o.name, _bvh_of(o), lo + D * lift, hi + D * lift, rank))
+        PAINTED_ON[o.name] = list(on) if on is not None else None
+    return o
+
+
+separate = _separate  # for species-local decal helpers: call on the finished slab
+
+
+def _inside(pt, poly):
+    x, y = pt
+    c = False
+    for (x0, y0), (x1, y1) in zip(poly, poly[1:] + poly[:1]):
+        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+            c = not c
+    return c
+
+
+def conform_decal(name, poly, color, frame=FRONT, off=0.008, th=0.012, on=None, step=0.08, cell=0.12, ignore=(), register_it=True):
+    """decal() with inner grid points, so the whole slab follows the curve instead of its rim only."""
+    from mathutils.geometry import delaunay_2d_cdt
+    poly = densify(poly, step)
+    n = len(poly)
+    us, vs = [p[0] for p in poly], [p[1] for p in poly]
+    inner = []
+    u = min(us) + cell / 2
+    while u < max(us):
+        v = min(vs) + cell / 2
+        while v < max(vs):
+            if _inside((u, v), poly) and min((u - a) ** 2 + (v - b) ** 2 for a, b in poly) > (cell * 0.45) ** 2:
+                inner.append((u, v))
+            v += cell
+        u += cell
+    pts = [Vector(p) for p in poly + inner]
+    V2, _, F, *_ = delaunay_2d_cdt(pts, [(i, (i + 1) % n) for i in range(n)], [list(range(n))], 1, 1e-6)
+    F = [f for f in F if _inside(tuple(sum((V2[i] for i in f), Vector((0, 0))) / len(f)), poly)]
+    bm = bmesh.new()
+    top, bot = {}, {}
+    for f in F:
+        for i in f:
+            if i in top:
+                continue
+            uu, vv = V2[i]
+            hit = cast(frame.O + frame.U * uu + frame.V * vv + frame.D * 12, -frame.D, on)
+            if hit is None:
+                raise ValueError(f"conform_decal {name}: ({uu:.2f}, {vv:.2f}) misses every surface")
+            loc, nn, _ = hit
+            if nn.dot(frame.D) < 0:
+                nn = -nn
+            nn = (nn * 0.6 + frame.D * 0.4).normalized()
+            bot[i] = bm.verts.new(loc + nn * off)
+            top[i] = bm.verts.new(loc + nn * (off + th))
+    ecount = {}
+    for f in F:
+        bm.faces.new([top[i] for i in f])
+        bm.faces.new([bot[i] for i in reversed(f)])
+        for a, b in zip(f, f[1:] + f[:1]):
+            ecount[(a, b)] = ecount.get((a, b), 0) + 1
+    for (a, b) in ecount:
+        if (b, a) not in ecount:
+            bm.faces.new((bot[a], bot[b], top[b], top[a]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    o = obj_from_bm(name, bm, None if callable(color) else color)
+    if callable(color):
+        paint_fn(o, color)
+    return _separate(keep(o, False), frame, on, ignore, register_it, off)
+
+
+def grid_decal(name, poly, color, frame=FRONT, off=0.008, th=0.012, on=None, step=0.08, cell=0.12):
+    """conform_decal for big face parts (mouths, carvings), scaled by flat_decals() like decal()."""
+    k = DECALS["scale"]
+    return conform_decal(name, poly, color, frame, off=off * k, th=th * k, on=on, step=step, cell=cell)
+
+
+def decal(name, poly, color, frame=FRONT, off=0.02, th=0.025, on=None, step=0.12, ignore=(), register_it=True):
     """thin closed slab hugging the surface: 2D polygon (u, v) projected along the frame, `off` above
     the surface, `th` thick. Layer details with a bigger off (pupil 0.03, catchlight 0.05).
-    color may be a fn(p, n) for gradients."""
+    color may be a fn(p, n) for gradients. After flat_decals() it follows the curve, closer in."""
+    if DECALS["conform"]:
+        k = DECALS["scale"]
+        return conform_decal(name, poly, color, frame, off=off * k, th=th * k, on=on, step=min(step or 0.08, 0.08),
+                             ignore=ignore, register_it=register_it)
     poly = densify(poly, step) if step else poly
     bm = bmesh.new()
     back, front = [], []
@@ -347,7 +513,7 @@ def decal(name, poly, color, frame=FRONT, off=0.02, th=0.025, on=None, step=0.12
     o = obj_from_bm(name, bm, None if callable(color) else color)
     if callable(color):
         paint_fn(o, color)
-    return keep(o, False)
+    return _separate(keep(o, False), frame, on, ignore, register_it, off)
 
 
 # 2D shapes (u, v) for decals and slabs
@@ -438,8 +604,11 @@ class Face:
     Chain: Face(b).eyes("round").mouth("grin").brows("angry").cheeks().parts
     """
 
-    def __init__(self, body, eye_u=0.5, eye_v=None, mouth_v=None, s=1.0, ink=INK, mouth_col=MOUTH):
+    def __init__(self, body, eye_u=0.5, eye_v=None, mouth_v=None, s=1.0, ink=INK, mouth_col=MOUTH, on=None):
         self.b = body
+        self.on = on or [body.name]  # surfaces the face sits on; add a skin patch (register it) to sit on top of it
+        global FACE_ON
+        FACE_ON = self.on  # the rig's blink lids land on the same surfaces
         self.eu = eye_u
         self.ev = eye_v if eye_v is not None else 0.55 * body.H
         self.mv = mouth_v if mouth_v is not None else self.ev - 0.38 * s
@@ -448,7 +617,7 @@ class Face:
         self.parts = []
 
     def d(self, name, poly, color, off=0.02, th=0.025):
-        self.parts.append(decal(name, poly, color, FRONT, off=off, th=th, on=[self.b.name]))
+        self.parts.append(decal(name, poly, color, FRONT, off=off, th=th, on=self.on))
         return self
 
     def _eye_round(self, side, w, h, u=None, v=None, lid=0.0, tilt=0.0, iris=None, look=(0, 0), hi=True):

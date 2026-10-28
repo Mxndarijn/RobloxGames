@@ -32,6 +32,7 @@ local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local CarryDrop = if script then require(script.Parent.CarryDrop) else require("./CarryDrop")
+local LuckyShow = if script then require(script.Parent.LuckyShow) else require("./LuckyShow")
 local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
@@ -83,6 +84,9 @@ function Carry.grabWild(
 	end
 	if world.carriedBy[slimeId] then
 		return false, "someone is already carrying it"
+	end
+	if wild.smashedAt then
+		return false, "the egg smashed"
 	end
 	if distance ~= distance or distance > Config.STEAL_REACH then
 		return false, "too far away"
@@ -216,21 +220,16 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		session.carry = nil
 		local slime = carry.slime
 		slime.pad = nil
-		-- Lucky Charm (Perks.luckChance): one rarity higher on the way home. Never an egg: its slime is sealed.
+		-- Lucky Charm (Perks.luckChance): one rarity higher on the way home, as a species of that rarity
+		-- (Genome.promote). Never an egg: its slime is sealed.
 		local egg = slime.egg ~= nil
 		-- only into a rarity this player may already grab (CATCH_REBIRTHS), so luck never skips the ladder
 		local nextOpen = slime.tier < Config.MAX_TIER
 			and session.data.rebirths >= (Config.CATCH_REBIRTHS[slime.tier + 1] or 0)
 		if not egg and nextOpen and world.rng:float() < Perks.luckChance(session.data) then
-			local old = Genome.rarity(slime.tier).name
-			slime.tier += 1
-			World.notify(
-				world,
-				userId,
-				`Lucky! Your {old} slime became {Genome.rarity(slime.tier).name}!`,
-				"good",
-				"Cash"
-			)
+			local before = Genome.copy(slime)
+			Genome.promote(slime, world.rng:float())
+			LuckyShow.record(world, userId, before, slime, now)
 			name = Genome.displayName(slime)
 		end
 		if now then

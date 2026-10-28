@@ -6,8 +6,10 @@
 	or escaping slime gets a floating tag above its mesh (canvas
 	GooWorldLabels "Wild slime tag"), no panel: the rarity on a goo pill in
 	the rarity colour (a rainbow for Secret), the species name in white
-	outlined in Ink, the income per second in mint and, while it is for sale,
-	a "Buy $price" chip. A slime resting on a pad (LabelPad set) shows no tag:
+	outlined in Ink, the income per second in mint and, while it is for sale
+	and the player stands within priceDistance, a "Buy $price" chip. Where
+	tags overlap on screen the nearest one shows and the ones behind it hide
+	(declutter). A slime resting on a pad (LabelPad set) shows no tag:
 	its label is a goo-dipped sign on a stake in front of the pad's cork stand
 	(SlimePadSign). The server writes the values as model attributes; the text
 	is Shared.SlimeLabel. Client only, nothing replicates.
@@ -18,12 +20,14 @@
 	label attributes, and the tags are refitted when the camera's viewport
 	size changes (a phone gets a smaller pixel floor and a shorter
 	MaxDistance). No frame loop of its own and no tween: the client loop
-	calls the `tick` that `start` returns, which only resizes a tag as it
-	comes nearer the camera than closeLimit or leaves that range. The tag is parented
+	calls the `tick` that `start` returns, which resizes a tag only as it
+	crosses closeLimit, re-renders it only as the player crosses
+	priceDistance, and hides the tags that overlap a nearer one. The tag is parented
 	to the Body (Archivable false, so a FollowPets clone never copies it); the
 	planks go in one local folder. Both go with the model or its tag.
 ]]
 
+local Players = game:GetService("Players")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
@@ -53,6 +57,8 @@ SlimeInfoCard.SIZE = table.freeze({
 	smallViewportPx = 500, -- a viewport shorter than this (a phone) shows tags only up to smallMaxDistance
 	smallMaxDistance = 40, -- studs
 	closeLimit = 12, -- studs: a nearer camera draws the tag as large as at this distance, no larger (tick)
+	priceDistance = 20, -- studs from the player's character: the Buy chip shows only nearer than this (tick)
+	overlapSlack = 0.12, -- each side of a tag's screen box is pulled in by this fraction before overlap is tested
 	maxTextSize = 72,
 	stroke = 2, -- px Ink outline round the text and the pills
 	pill = 0.86, -- a pill's height, fraction of its row (the rest is the gap to the next row)
@@ -151,6 +157,49 @@ function SlimeInfoCard.fixedSize(count: number, pxScale: number, pxPerStud: numb
 end
 
 local DEFAULT_FIT: Fit = table.freeze(SlimeInfoCard.fit(SlimeInfoCard.SIZE.referenceHeightPx))
+
+-- `view` without its Buy chip (the same table when it has none).
+function SlimeInfoCard.unpriced(view: SlimeLabel.View): SlimeLabel.View
+	if view.price == nil then
+		return view
+	end
+	local copy = table.clone(view)
+	copy.price = nil
+	return copy
+end
+
+-- One tag on screen: `x` the centre of its bottom edge, `y` that edge (px, y down), `w` / `h` its px size,
+-- `depth` its distance from the camera.
+export type ScreenTag = { key: any, x: number, y: number, w: number, h: number, depth: number }
+
+-- The keys of the tags to hide: nearest first, a tag whose box overlaps a tag already kept is hidden. Each box
+-- is pulled in by overlapSlack per side first, so tags that only touch at their edges both stay.
+function SlimeInfoCard.declutter(tags: { ScreenTag }): { [any]: boolean }
+	local sorted = table.clone(tags)
+	table.sort(sorted, function(a: ScreenTag, b: ScreenTag)
+		return a.depth < b.depth
+	end)
+	local slack = SlimeInfoCard.SIZE.overlapSlack
+	local kept: { { number } } = {}
+	local hidden: { [any]: boolean } = {}
+	for _, t in sorted do
+		local dx, dy = t.w * slack, t.h * slack
+		local box = { t.x - t.w / 2 + dx, t.y - t.h + dy, t.x + t.w / 2 - dx, t.y - dy }
+		local clash = false
+		for _, k in kept do
+			if box[1] < k[3] and k[1] < box[3] and box[2] < k[4] and k[2] < box[4] then
+				clash = true
+				break
+			end
+		end
+		if clash then
+			hidden[t.key] = true
+		else
+			table.insert(kept, box)
+		end
+	end
+	return hidden
+end
 
 -- Outlined text: the colour edged in Ink.
 local function text(name: string, color: Color3, parent: Instance): TextLabel
@@ -307,12 +356,14 @@ end
 WATCHED[Constants.LABEL_HEIGHT_ATTRIBUTE] = true
 WATCHED[Constants.HATCHED_AT_ATTRIBUTE] = true
 WATCHED[Constants.HATCH_POPPING_ATTRIBUTE] = true
+WATCHED[Constants.EGG_SMASHED_AT_ATTRIBUTE] = true
 
 export type Options = {
 	collection: CollectionService,
 	tag: string,
 	signParent: Instance?, -- where pad planks go; default a local Folder SIGN_FOLDER in workspace
 	world: Workspace?, -- whose CurrentCamera's viewport sizes the tags; default workspace
+	focus: (() -> Vector3?)?, -- where the player stands (priceDistance); default the local character, else the camera
 }
 
 type Entry = {
@@ -320,8 +371,11 @@ type Entry = {
 	anchor: Attachment,
 	gui: BillboardGui?, -- built on first need: a slime resting on a pad never has one
 	conn: RBXScriptConnection,
-	view: SlimeLabel.View?, -- shown on gui, nil while it is hidden
+	view: SlimeLabel.View?, -- the slime's label, nil while the tag is hidden
+	shown: SlimeLabel.View?, -- what gui draws: `view`, without the Buy chip unless `priced`
+	priced: boolean?, -- the player is within priceDistance, so a for-sale slime shows its Buy chip (tick)
 	capped: boolean?, -- drawn at its closeLimit size (tick)
+	covered: boolean?, -- behind a nearer tag on screen, so its card is hidden (tick)
 	moved: RBXScriptConnection, -- AncestryChanged: the pad may only be findable once the model sits in its plot
 	sign: Part?,
 	signPad: BasePart?,
@@ -360,6 +414,29 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 		entry.signPad = nil
 	end
 
+	-- Sizes a shown tag for the current fit: at its closeLimit size (all px) while `capped`, else studs plus px.
+	local function applySize(entry: Entry, gui: BillboardGui, view: SlimeLabel.View)
+		local count = SlimeLabel.rows(view)
+		local cam = camera
+		if entry.capped and cam then
+			local px = SlimeInfoCard.pxPerStud(cam.ViewportSize.Y, cam.FieldOfView, SlimeInfoCard.SIZE.closeLimit)
+			gui.Size = SlimeInfoCard.fixedSize(count, fit.pxScale, px)
+		else
+			gui.Size = SlimeInfoCard.size(count, fit.pxScale)
+		end
+	end
+
+	-- Renders the entry's view on its tag, with the Buy chip only while `priced`, at its current size.
+	local function draw(model: Instance, entry: Entry, gui: BillboardGui)
+		local view = entry.view
+		local shown = if view and not entry.priced then SlimeInfoCard.unpriced(view) else view
+		entry.shown = shown
+		SlimeInfoCard.render(gui, shown, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE), fit)
+		if shown then
+			applySize(entry, gui, shown)
+		end
+	end
+
 	local function refresh(model: Instance)
 		local entry = cards[model]
 		if not entry then
@@ -369,7 +446,11 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 		entry.view = nil
 		-- A slime that just hatched keeps its label hidden until the hatch show reveals it.
 		local hatchedAt = model:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE)
-		if model:GetAttribute(Constants.HATCH_POPPING_ATTRIBUTE) == true then
+		-- A hatching slime and a dropped wild egg that smashed (contract/mystery-egg.md 40.7) show no label.
+		if
+			model:GetAttribute(Constants.HATCH_POPPING_ATTRIBUTE) == true
+			or model:GetAttribute(Constants.EGG_SMASHED_AT_ATTRIBUTE) ~= nil
+		then
 			view = nil
 		elseif view and hatchedAt ~= nil and SlimeLabel.hiddenByHatch(hatchedAt, workspace:GetServerTimeNow()) then
 			view = nil
@@ -403,14 +484,12 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 			gui.Adornee = entry.anchor
 			entry.gui = gui
 			entry.view = view
-			entry.capped = false
-			SlimeInfoCard.render(gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE), fit)
+			draw(model, entry, gui)
 			gui.Parent = entry.body
 			return
 		end
 		entry.view = view
-		entry.capped = false
-		SlimeInfoCard.render(gui, view, model:GetAttribute(Constants.LABEL_HEIGHT_ATTRIBUTE), fit)
+		draw(model, entry, gui)
 	end
 
 	local function remove(model: Instance)
@@ -468,18 +547,6 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 		refresh(model)
 	end
 
-	-- Sizes a shown tag for the current fit: at its closeLimit size (all px) while `capped`, else studs plus px.
-	local function applySize(entry: Entry, gui: BillboardGui, view: SlimeLabel.View)
-		local count = SlimeLabel.rows(view)
-		local cam = camera
-		if entry.capped and cam then
-			local px = SlimeInfoCard.pxPerStud(cam.ViewportSize.Y, cam.FieldOfView, SlimeInfoCard.SIZE.closeLimit)
-			gui.Size = SlimeInfoCard.fixedSize(count, fit.pxScale, px)
-		else
-			gui.Size = SlimeInfoCard.size(count, fit.pxScale)
-		end
-	end
-
 	-- Resizes the shown tags only when the viewport's fit changes (a window drag mostly keeps it).
 	local function refit()
 		local nextFit = SlimeInfoCard.fit(viewportHeight())
@@ -491,8 +558,8 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 			local gui = entry.gui
 			if gui then
 				gui.MaxDistance = fit.maxDistance
-				if entry.view then
-					applySize(entry, gui, entry.view)
+				if entry.shown then
+					applySize(entry, gui, entry.shown)
 				end
 			end
 		end
@@ -511,24 +578,73 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 	local cameraConn: RBXScriptConnection = world:GetPropertyChangedSignal("CurrentCamera"):Connect(watchCamera)
 	watchCamera()
 
-	-- Tags nearer the camera than closeLimit are drawn at their closeLimit size (all px), the rest as usual. Only
-	-- a tag crossing closeLimit is resized; the distance is to where the tag is drawn (its offset above the anchor).
+	local function focus(eye: Vector3): Vector3
+		if opts.focus then
+			return opts.focus() or eye
+		end
+		local player = Players.LocalPlayer
+		local character = player and player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		return if root and root:IsA("BasePart") then root.Position else eye
+	end
+
+	-- Hides (or shows again) a tag's card when it goes behind (or comes out from behind) a nearer tag.
+	local function cover(entry: Entry, covered: boolean)
+		if (entry.covered == true) == covered then
+			return
+		end
+		entry.covered = covered
+		local card = entry.gui and entry.gui:FindFirstChild("Card")
+		if card and card:IsA("GuiObject") then
+			card.Visible = not covered
+		end
+	end
+
+	-- Per frame, touching a tag only when something about it changes: the Buy chip shows while the player is
+	-- within priceDistance; a tag nearer the camera than closeLimit is drawn at its closeLimit size (all px); and a
+	-- tag whose screen box overlaps a nearer tag's is hidden. Distances are to where the tag is drawn (its offset
+	-- above the anchor).
 	local function tick()
 		local cam = camera
 		if not cam then
 			return
 		end
 		local eye = cam.CFrame.Position
-		local limit = SlimeInfoCard.SIZE.closeLimit
-		for _, entry in cards do
+		local at = focus(eye)
+		local s = SlimeInfoCard.SIZE
+		local screen: { ScreenTag } = {}
+		for model, entry in cards do
 			local gui, view = entry.gui, entry.view
 			if gui and view and gui.Enabled then
-				local near = (entry.anchor.WorldPosition + gui.StudsOffsetWorldSpace - eye).Magnitude < limit
+				local spot = entry.anchor.WorldPosition + gui.StudsOffsetWorldSpace
+				local priced = view.price ~= nil and (spot - at).Magnitude < s.priceDistance
+				if priced ~= (entry.priced == true) then
+					entry.priced = priced
+					draw(model, entry, gui)
+				end
+				local near = (spot - eye).Magnitude < s.closeLimit
 				if near ~= (entry.capped == true) then
 					entry.capped = near
-					applySize(entry, gui, view)
+					applySize(entry, gui, entry.shown or view)
+				end
+				local point, onScreen = cam:WorldToViewportPoint(spot)
+				if onScreen and point.Z <= gui.MaxDistance then
+					local size = gui.Size
+					local px = SlimeInfoCard.pxPerStud(cam.ViewportSize.Y, cam.FieldOfView, point.Z)
+					table.insert(screen, {
+						key = model,
+						x = point.X,
+						y = point.Y,
+						w = size.X.Scale * px + size.X.Offset,
+						h = size.Y.Scale * px + size.Y.Offset,
+						depth = point.Z,
+					})
 				end
 			end
+		end
+		local hidden = SlimeInfoCard.declutter(screen)
+		for model, entry in cards do
+			cover(entry, hidden[model] == true)
 		end
 	end
 

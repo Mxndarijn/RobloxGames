@@ -101,6 +101,7 @@ export type NextRebirth = {
 	fraction: number, -- cash / cost, 0..1
 	need: string, -- "$3.7K more" / "Ready!" / "Max rebirths"
 	progress: string, -- "$1.2K / $5K"
+	current: number, -- the rebirth income multiplier now
 	multiplier: number, -- income multiplier after it
 	lockGain: number, -- extra lock seconds it adds (0 once locks are at LOCK_MAX_SECONDS)
 	slimes: { SlimeNeed }, -- the slimes this rebirth needs and uses up (empty at max)
@@ -147,6 +148,7 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 			elseif ready then "Ready!"
 			else `{Format.formatCash(math.max(0, cost - have))} more`,
 		progress = `{Format.formatCash(have)} / {Format.formatCash(cost)}`,
+		current = math.max(1, num(state.rebirthMultiplier)),
 		multiplier = num(state.nextRebirthMultiplier),
 		lockGain = math.max(0, math.min(lock + cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_SECONDS) - lock),
 		slimes = slimes,

@@ -19,7 +19,8 @@ State field, no save-format change.
     nil while it is wild, carried or escaping.
   - `LabelHeight` (`Constants.LABEL_HEIGHT_ATTRIBUTE`): studs from the Body's centre to the tag's bottom edge:
     `Growth.labelOffset(top of the model's bounding box - Body centre)`, measured after every scale change (growth,
-    boss scale). The tag never covers the face or the Grab prompt, which sit on the Body.
+    boss scale). The tag never covers the face or the Grab prompt, which sit on the Body. A blocked Grab prompt's
+    reason card (`src/ui/GrabBlockCard`, "Not enough money") hangs under the Body, so it never covers the tag either.
   - Existing attributes the labels also read: `Price` (wild buy price; > 0 shows the price row), `Growth` (whole
     percent, the sign's bar), `Boss` (name prefixed `"BOSS "`).
 - **Pure values (`src/shared/SlimeLabel`).** `SlimeLabel.view(attrs) -> View?` turns the attributes into
@@ -30,9 +31,11 @@ State field, no save-format change.
   (`Constants.SLIME_TAG`), parented to its Body (`Archivable` false) with `Adornee` = Body, `SizeOffset` (0, 0.5) so its
   bottom edge sits `LabelHeight` above the Body. No panel (the Goo world label): the rarity on a pill of its colour
   with an Ink outline (a rainbow for Secret; Ink text on bright colours, outlined white on deep ones), the name in
-  white outlined in Ink, the income in mint, and while it is for sale a "Buy $500" chip, gold on Ink. Size mixes
+  white outlined in Ink, the income in mint, and while it is for sale and the player's character is within
+  `SIZE.priceDistance` (20 studs) a "Buy $500" chip, gold on Ink. Size mixes
   studs and pixels so it shrinks with distance but stays readable; `MaxDistance` 60 hides it far
-  away. Every tag sits at the same height above its slime, so neighbours on the lane can overlap. Disabled while
+  away. Every tag sits at the same height above its slime; where two tags overlap on screen the one nearer the camera
+  shows and the other's card hides (`SlimeInfoCard.declutter`, run from the client loop's `tick`). Disabled while
   `LabelPad` is set and the pad is found.
 - **Pad sign (`src/ui/SlimePadSign`, driven by `SlimeInfoCard`).** A thin non-colliding, non-queried WoodPlanks part with
   a `SurfaceGui` on the pad crate's entrance side (pad-local -Z), in a local `SlimePadSigns` folder. Goo of the rarity

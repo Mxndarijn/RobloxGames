@@ -61,7 +61,7 @@ def grid_decal(name, poly, color, frame=FRONT, off=0.008, th=0.012, on=None, ste
     o = obj_from_bm(name, bm, None if callable(color) else color)
     if callable(color):
         paint_fn(o, color)
-    return keep(o, False)
+    return separate(keep(o, False), frame, on, off=off)
 
 
 OR, OR_D, OR_L = hexc("ff8a1e"), hexc("c8461a"), hexc("ffb45a")
@@ -82,7 +82,7 @@ right = [(0.0, 1.5), (0.22, 1.66), (0.5, 1.68), (0.74, 1.52), (0.88, 1.25), (0.9
          (0.8, 0.34), (0.45, 0.24), (0.0, 0.22)]
 right = catmull(right, 4)
 bib = right + [(-u, v) for u, v in reversed(right[1:-1])]
-parts.append(grid_decal("Bib", list(reversed(bib)), BELLY, FRONT, off=0.012, th=0.01, on=["Body"], cell=0.15))
+parts.append(register(grid_decal("Bib", list(reversed(bib)), BELLY, FRONT, off=0.012, th=0.01, on=["Body"], cell=0.15), "Bib"))  # the face sits on the bib, not under it
 
 # tabby stripes over the back and flanks
 for yaw in (78, 108, 140, 180, 220, 252, 282):
@@ -131,7 +131,7 @@ for sd in (-1, 1):
            p0 + Vector((sd * 1.18, 0.02, -0.74))]
     parts.append(horn(f"Barbel{sd}", pts, [0.12, 0.11, 0.095, 0.08, 0.068, 0.058, 0.05, 0.045], OR_D, hexc("ffd9a0"), segs=6))
 
-f = Face(b, eye_v=1.66, mouth_v=1.12, eye_u=0.52)
+f = Face(b, eye_v=1.66, mouth_v=1.12, eye_u=0.52, on=["Body", "Bib"])
 f.eyes("sly", w=0.5, h=0.64, iris=GREEN)
 f.nose(color=PINK, w=0.2, h=0.13, v=1.36)
 # sly lopsided grin with two fangs

@@ -96,6 +96,7 @@ export type Wild = {
 	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts in Spawner.wildCount
 	move: BossChoreo.Move?, -- the boss: its current move (BossChoreo; model attribute BossMove)
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
+	smashedAt: number?, -- a wild Mystery Egg that was dropped: when it smashed (contract/mystery-egg.md 40.7)
 	choreo: { seed: number }?, -- FEATURES.SlimeChoreo: seed of its lane beats (ParadeChoreo); nil once it leaves the lane
 }
 
@@ -193,6 +194,15 @@ export type Hatch = {
 	told: boolean, -- the toasts went out
 }
 
+-- A Lucky Charm upgrade whose show is playing (contract/lucky-charm.md), by the slime's id.
+export type Lucky = {
+	at: number, -- server time of the deposit (model attribute LuckyAt)
+	before: Genome.Slime, -- the slime as it was caught (the pad shows it until MORPH_SECONDS)
+	userId: number, -- the owner
+	text: string, -- the owner's Notify, sent at the morph
+	told: boolean, -- the Notify went out
+}
+
 export type World = {
 	sessions: { [number]: Session },
 	plots: { [number]: number }, -- plotIndex -> userId
@@ -202,6 +212,7 @@ export type World = {
 	escaping: { [string]: number }, -- slimeId -> time its bounce home ends
 	rng: Rng.Rng,
 	eggRng: Rng.Rng, -- FEATURES.MysteryEggs rolls, apart from `rng` so the fountain's slime sequence doesn't shift
+	lucky: { [string]: Lucky }, -- Lucky Charm shows that are playing, runtime only (LuckyShow.step forgets them)
 	shineRng: Rng.Rng, -- shine rolls (Config.SHINES), apart from `rng` for the same reason
 	weather: { id: string, changeAt: number }?, -- the live WeatherService state (nil = FEATURES.Weather off: always Clear)
 	hatches: { [string]: Hatch }, -- Mystery Egg hatches whose show is playing, runtime only (MysteryEgg.step forgets them)
@@ -257,6 +268,7 @@ function World.new(options: Options): World
 		eggRng = Rng.new(options.eggSeed or (options.seed or 1) + 7919),
 		shineRng = Rng.new((options.seed or 1) + 104729),
 		hatches = {},
+		lucky = {},
 		newId = options.newId or function()
 			counter += 1
 			return `s{counter}`

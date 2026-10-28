@@ -10,7 +10,7 @@
 	cheapest slime with "Need $X".
 
 	  TutorialTargets.grab(wild, cash, from, currentKey?) -> (Wild?, string?)
-	  TutorialTargets.priceLabel(price, cash) -> string
+	  TutorialTargets.priceLabel(price, cash) -> string?
 ]]
 
 local ReplicatedStorage = if script then (game :: any):GetService("ReplicatedStorage") else nil
@@ -23,11 +23,13 @@ export type Wild = { key: string, x: number, z: number, price: number, value: an
 
 local TutorialTargets = {}
 
-function TutorialTargets.priceLabel(price: number, cash: number): string
+-- The guide's label: "Grab" for a free slime, "Need $X" for one the player cannot afford, and nothing for one they
+-- can (the slime's own tag shows its Buy chip once the player is close).
+function TutorialTargets.priceLabel(price: number, cash: number): string?
 	if price <= 0 then
 		return "Grab"
 	elseif price <= cash then
-		return `Buy ${Economy.formatNumber(price)}`
+		return nil
 	end
 	return `Need ${Economy.formatNumber(price)}`
 end

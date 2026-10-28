@@ -132,8 +132,11 @@ return table.freeze({
 	}),
 	HATCHED_AT_ATTRIBUTE = "HatchedAt", -- egg, then slime model, for MYSTERY_EGG.HATCH_FX_SECONDS after a hatch: server time of it
 	HATCHED_FROM_ATTRIBUTE = "HatchedFrom", -- slime model, with HatchedAt: the egg kind id it hatched from
+	EGG_SMASHED_AT_ATTRIBUTE = "EggSmashedAt", -- wild egg model: server time a carrier dropped it and it smashed
 	HATCH_LUCKY_ATTRIBUTE = "HatchLucky", -- slime model, with HatchedAt: true for a lucky egg or a full lucky meter
 	HATCH_TIER_ATTRIBUTE = "HatchTier", -- the egg model during a hatch show (HATCH_BURST_SECONDS): the tier inside, for the glow
+	LUCKY_AT_ATTRIBUTE = "LuckyAt", -- pad slime model, for LUCKY_SHOW.FX_SECONDS after a Lucky Charm upgrade: server time of it
+	LUCKY_FROM_TIER_ATTRIBUTE = "LuckyFromTier", -- pad slime model, with LuckyAt: the rarity it was caught at
 	HATCH_POPPING_ATTRIBUTE = "HatchPopping", -- client-local, on a hatched slime model while its pop plays: the label waits
 	LABEL_PAD_ATTRIBUTE = "LabelPad", -- slime model: pad index while it rests on a pad (the label is the pad sign), else nil
 	LABEL_HEIGHT_ATTRIBUTE = "LabelHeight", -- slime model: studs from the Body centre to the card's bottom edge

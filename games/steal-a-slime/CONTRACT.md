@@ -450,4 +450,5 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §43 | [pet-seats.md](contract/pet-seats.md) | Pet seats: what the follow pet rides on, the Skins menu's Cloud tab |
 | §44 | [base-shapes.md](contract/base-shapes.md) | Base shapes: goo jar tower, Goo Factory and Mushroom Pagoda as choosable bases next to the skins (`FEATURES.BaseShapes`) |
 | §45 | [slime-ladder.md](contract/slime-ladder.md) | Slime ladder: rarity and egg gates, time guarantees, Celestial and Divine, shines, jackpots, the Upcoming Events wall |
-| §46 | [cash-pads.md](contract/cash-pads.md) | Cash pads: income piles up on a gold disc at each slime, only the owner collects by walking over it (`FEATURES.CashPads`) |
+| §46 | [lucky-charm.md](contract/lucky-charm.md) | Lucky Charm show: a slime the charm upgrades changes into its new species on the pad |
+| §47 | [cash-pads.md](contract/cash-pads.md) | Cash pads: income piles up on a gold disc at each slime, only the owner collects by walking over it (`FEATURES.CashPads`) |

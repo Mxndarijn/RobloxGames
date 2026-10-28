@@ -169,7 +169,11 @@ function methods.ClearAllChildren(self: any)
 end
 
 function methods.Destroy(self: any)
+	if rawget(self, "_destroyed") then
+		return
+	end
 	self.Parent = nil
+	rawset(self, "_destroyed", true)
 	for _, child in methods.GetChildren(self) do
 		child:Destroy()
 	end
@@ -200,6 +204,10 @@ function methods.Clone(self: any): any
 end
 
 local function setParent(self: any, parent: any)
+	-- As in Roblox: a destroyed instance's Parent is locked.
+	if rawget(self, "_destroyed") then
+		error(`The Parent property of {self.Name} is locked, current parent: NULL`, 3)
+	end
 	local old = rawget(self, "_parent")
 	if old then
 		local siblings = rawget(old, "_children")

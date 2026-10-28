@@ -72,7 +72,7 @@ def ddecal(name, poly, color, frame=FRONT, off=0.02, th=0.025, on=None, rings=4)
         bm.faces.new((back[i], back[j], front[j], front[i]))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     o = obj_from_bm(name, bm, color)
-    return keep(o, False)
+    return separate(keep(o, False), frame, on, off=off)
 
 
 b = Body([(0, 1.18), (0.12, 1.46), (0.45, 1.6), (1.05, 1.53), (1.65, 1.27), (2.07, 0.82), (2.34, 0.3), (2.42, 0)],
@@ -167,7 +167,7 @@ def honey(cols=40, rows=4, base_z=1.92):
     return keep(o, True)
 
 
-parts.append(honey())
+parts.append(register(honey(), "Honey"))  # eyes and lids near its edge clear it
 
 
 # a chunk of honeycomb stuck in the glaze on top: three hex cells, each top inset into a dark cell

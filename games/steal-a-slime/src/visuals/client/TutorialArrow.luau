@@ -173,7 +173,8 @@ end
 
 function TutorialArrow.start(): () -> ()
 	local player = Players.LocalPlayer
-	local guide = GuideView.new({ getIgnore = ignoreList })
+	-- clearLabels: the marker floats above the target slime's own tag instead of over it.
+	local guide = GuideView.new({ getIgnore = ignoreList, clearLabels = true })
 	local currentKey: string? = nil
 	local running = true
 	local function update()

@@ -64,6 +64,11 @@ describe("GrabBlockCard", function()
 		expect(p.Style).toBe("Default")
 		expect(p.Enabled).toBe(true)
 	end)
+	it("hangs the card under the Body, clear of the name tag above it", function()
+		local bodyHeight = 3
+		local top = GrabBlockCard.offsetY(bodyHeight)
+		expect(top < -bodyHeight / 2).toBe(true)
+	end)
 	it("leaves a disabled prompt disabled", function()
 		local p = prompt({})
 		p.Enabled = false

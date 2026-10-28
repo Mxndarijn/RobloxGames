@@ -66,7 +66,6 @@ local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
-local Progression = require(ReplicatedStorage.Shared.Progression)
 local PvpBlaster = require(script.Parent.PvpBlaster)
 local PvpFun = require(script.Parent.PvpFun)
 local PvpHeld = require(script.Parent.PvpHeld)
@@ -94,6 +93,7 @@ type Record = {
 	prompt: ProximityPrompt,
 	hatch: ProximityPrompt?, -- Mystery Eggs: the owner-only HatchPrompt
 	egg: boolean, -- built as a Mystery Egg (a hatch rebuilds the model as its slime)
+	species: string?, -- built as this species (a Lucky Charm morph rebuilds the model as its new species)
 	key: string,
 	placed: boolean, -- place() has succeeded once; until then the model stays out of workspace (it is built at the
 	-- world origin, the fountain axis)
@@ -874,6 +874,7 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		prompt = prompt,
 		hatch = hatch,
 		egg = isEgg,
+		species = entry.slime.species,
 		key = "",
 		placed = false,
 		weld = nil,
@@ -976,6 +977,9 @@ local function place(world: World.World, record: Record, entry: Scene.Entry, pre
 	model:SetAttribute(Constants.LANE_AT_ATTRIBUTE, if choreo and entry.wild then entry.wild.spawnedAt else nil)
 	model:SetAttribute(Constants.LANE_UNTIL_ATTRIBUTE, if choreo and entry.wild then entry.wild.expiresAt else nil)
 	model:SetAttribute(Constants.RARE_ATTRIBUTE, entry.rare)
+	-- A dropped wild egg: clients play the smash (contract/mystery-egg.md 40.7). Set before the model moves, so the
+	-- client's copy starts where the carrier held it.
+	model:SetAttribute(Constants.EGG_SMASHED_AT_ATTRIBUTE, if entry.wild then entry.wild.smashedAt else nil)
 
 	syncGhost(record, entry)
 	syncGooTrail(record, entry.boss and entry.state == "Carried")
@@ -1108,19 +1112,9 @@ local function kitArrived(record: Record, entry: Scene.Entry, clock: number): bo
 		and clock >= record.rideUntil
 end
 
--- A pad slime's status row: the vat's ("In vat"), else "For rebirth" when the next rebirth uses it up.
--- `needed` caches Progression.neededIds per owner for one reconcile.
-function WorldView.padStatus(owner: any, id: string, needed: { [number]: { [string]: boolean } }): string?
-	local vat = VatView.labelStatus(owner.data, id)
-	if vat then
-		return vat
-	end
-	local set = needed[owner.userId]
-	if not set then
-		set = Progression.neededIds(owner.data)
-		needed[owner.userId] = set
-	end
-	return if set[id] then "For rebirth" else nil
+-- A pad slime's status row: the vat's ("In vat"), else none.
+function WorldView.padStatus(owner: any, id: string): string?
+	return VatView.labelStatus(owner.data, id)
 end
 
 --[[
@@ -1143,14 +1137,18 @@ function WorldView.reconcile(
 	local clock = os.clock()
 	for id, record in records do
 		local entry = entries[id]
-		if not entry or record.egg ~= EggKind.isEgg(entry.slime) or kitArrived(record, entry, clock) then
+		if
+			not entry
+			or record.egg ~= EggKind.isEgg(entry.slime)
+			or record.species ~= entry.slime.species
+			or kitArrived(record, entry, clock)
+		then
 			clearGhost(record)
 			record.model:Destroy()
 			records[id] = nil
 		end
 	end
 	table.clear(bossMoves)
-	local needed: { [number]: { [string]: boolean } } = {} -- per owner: slimes the next rebirth uses up
 	for id, entry in entries do
 		local record: Record? = records[id]
 		if not record then
@@ -1174,6 +1172,10 @@ function WorldView.reconcile(
 		setAttr(record.model, Constants.HATCHED_FROM_ATTRIBUTE, hatched and hatched.kind)
 		setAttr(record.model, Constants.HATCH_LUCKY_ATTRIBUTE, if hatched and hatched.lucky then true else nil)
 		setAttr(record.model, Constants.HATCH_TIER_ATTRIBUTE, if hatched and record.egg then hatched.tier else nil)
+		-- The Lucky Charm show (contract/lucky-charm.md): on the caught model, then on the promoted one.
+		local lucky = entry.lucky
+		setAttr(record.model, Constants.LUCKY_AT_ATTRIBUTE, lucky and lucky.at)
+		setAttr(record.model, Constants.LUCKY_FROM_TIER_ATTRIBUTE, lucky and lucky.before.tier)
 		if record.egg then
 			local egg = entry.slime.egg :: EggKind.Egg
 			local kind = EggKind.get(egg.kind)
@@ -1232,7 +1234,7 @@ function WorldView.reconcile(
 			entry.income,
 			if entry.state == "Pad" then entry.pad else nil,
 			now,
-			if owner then WorldView.padStatus(owner, id, needed) else nil
+			if owner then WorldView.padStatus(owner, id) else nil
 		)
 	end
 	table.clear(stalePlots) -- placed once on their new pads (a pad not built yet retries through its key)

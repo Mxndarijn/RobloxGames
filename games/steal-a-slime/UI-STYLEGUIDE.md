@@ -114,7 +114,7 @@ Notices appear on their own; menus are opened by the player.
 - Text is outlined Fredoka: white with an Ink edge, Ink on bright goo.
 - Boards (plot signs, podiums, the ritual sign) are a `GooBoard`: a glass card with an Ink edge and a mint band that drips. Shop stands carry a jelly sign (`Props.standSign`): mint for the Item shop, gold for the Upgrade shop. Icons that clash as emoji are drawn instead (`Shared/GooIcons`, the Upgrade shop's arrow).
 - On your own plot the next pad you can buy has a mint outline and a "Buy pad $X" tag (`NextPadMarker`); gold "Next pad $X" while you can't afford it.
-- Slime tags (`SlimeInfoCard`): the rarity on a pill of its colour, the name, the income in mint, and a gold "Buy" chip while it is for sale. Pad planks (`SlimePadSign`) are wood dipped in goo of the rarity colour.
+- Slime tags (`SlimeInfoCard`): the rarity on a pill of its colour, the name, the income in mint, and a gold "Buy" chip while it is for sale and you stand close; where tags overlap only the nearest shows. Pad planks (`SlimePadSign`) are wood dipped in goo of the rarity colour.
 - The key card over your own pad slime is the one screen-style card in the world, because it stands in for Roblox's prompt bubbles: glass rows with jelly key chips.
 - The "Your plot" tag is your avatar in a mint jelly badge; the edge arrow home uses the same badge with a house.
 - Rarity colours come from `Config.RARITIES[tier].color`, never a local table.

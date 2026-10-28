@@ -132,7 +132,7 @@ table.insert(fixtures, {
 		slimes = {
 			slimeV2("v4-a", 4, 1, { mutation = "Glow", mutations = { "Glow", "Gold" }, species = "pudding" }),
 			slimeV2("v4-b", 7, 2, { mutation = "Rainbow", mutations = { "Rainbow" }, species = "clover" }),
-			slimeV2("v4-c", 2, 3, { mutations = {}, species = "gummy" }),
+			slimeV2("v4-c", 1, 3, { mutations = {}, species = "gummy" }),
 		},
 		favoriteId = "v4-a",
 		lastOnline = NOW - 20,

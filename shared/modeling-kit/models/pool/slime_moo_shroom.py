@@ -63,7 +63,7 @@ def grid_decal(name, poly, color, frame=FRONT, off=0.008, th=0.012, on=None, ste
     o = obj_from_bm(name, bm, None if callable(color) else color)
     if callable(color):
         paint_fn(o, color)
-    return keep(o, False)
+    return separate(keep(o, False), frame, on, off=off)
 
 RED, RED_D, RED_L = hexc("f22a36"), hexc("b0142a"), hexc("ff6e5e")
 SPOT, STEM, STEM_D = hexc("fffaf0"), hexc("fff0d6"), hexc("ecc898")

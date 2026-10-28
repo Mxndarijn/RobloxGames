@@ -8,7 +8,6 @@ local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local Income = require("../src/server/Income")
 local PlayerData = require("../src/shared/PlayerData")
-local Progression = require("../src/shared/Progression")
 local Remotes = require("../src/shared/Remotes")
 local ServerFixtures = require("./ServerFixtures")
 local SlimeRoster = require("../src/shared/SlimeRoster")
@@ -150,19 +149,13 @@ describe("MergeVat: a brewing vat locks its slimes", function()
 		expect(call(world, 1, "MoveSlime", { "x", 1 }).message).toBe("That slime is brewing in the vat")
 	end)
 
-	it("refuses to load a slime the next rebirth would use up, and loads a spare of that species", function()
+	it("loads a slime the next rebirth would use up", function()
 		local species = Config.REBIRTH_SLIMES[1][1]
 		local tier = (SlimeRoster.get(species) :: any).tier
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, {
-			slime("weak", tier, { species = species, size = 0.5 }),
-			slime("strong", tier, { species = species, size = 1.5 }),
-		}, 1e9)
-		local res = call(world, 1, "VatAdd", { "weak" })
-		expect(res.ok).toBe(false)
-		expect(res.message).toBe(Progression.NEEDED_TEXT)
-		expect(#VatState.ids(s.data)).toBe(0)
-		expect(call(world, 1, "VatAdd", { "strong" }).ok).toBe(true)
+		local s = ServerFixtures.join(world, 1, { slime("only", tier, { species = species }) }, 1e9)
+		expect(call(world, 1, "VatAdd", { "only" }).ok).toBe(true)
+		expect(VatState.contains(s.data, "only")).toBe(true)
 	end)
 
 	it("a rebirth that needs a brewing slime waits for the brew", function()

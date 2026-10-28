@@ -22,7 +22,9 @@
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
 	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
+	  * a dropped wild Mystery Egg smashing on the ground (EggSmashFx, EggSmashedAt)
 	  * the Mystery Egg hatch show on the pad (EggHatchFx) from a hatched slime's HatchedAt / HatchedFrom / HatchLucky
+	  * the Lucky Charm show on the pad (LuckyFx) from a promoted slime's LuckyAt / LuckyFromTier
 	  * home plot marker (HomePlotMarker): beacon, floor rim, "Your plot" tag and edge arrow on the local player's own plot
 	  * next pad marker (NextPadMarker): a mint outline and a "Buy pad $X" tag on the next pad you can buy
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
@@ -566,6 +568,24 @@ do
 		warn(`[VisualsClient] egg hatch show disabled: {err}`)
 	end
 end
+local luckyFx: any = nil
+do
+	local ok, err = pcall(function()
+		luckyFx = require(script:WaitForChild("LuckyFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] lucky charm show disabled: {err}`)
+	end
+end
+local eggSmashFx: any = nil
+do
+	local ok, err = pcall(function()
+		eggSmashFx = require(script:WaitForChild("EggSmashFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] egg smash disabled: {err}`)
+	end
+end
 local bossTelegraph: any = nil
 do
 	local ok, err = pcall(function()
@@ -603,6 +623,12 @@ RunService.RenderStepped:Connect(function()
 	end
 	if eggHatchFx then
 		eggHatchFx.tick(camera)
+	end
+	if luckyFx then
+		luckyFx.tick(camera)
+	end
+	if eggSmashFx then
+		eggSmashFx.tick(camera)
 	end
 	if ritualFx then
 		ritualFx.tick(camera)

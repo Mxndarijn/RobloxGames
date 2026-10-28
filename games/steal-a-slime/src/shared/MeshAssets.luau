@@ -988,25 +988,25 @@ entries["fountain_split_slide"] = {
 -- Slime pool species (contract/slime-pool.md, SlimeLooks kit "slime_<id>"): rigged, fully coloured
 -- Models from shared/modeling-kit/models/pool, worn by server SlimeMesh, never world slots (not in
 -- NAMES). size = native size of a size-1 slime; offset = bbox centre minus the slime's bottom centre.
-entries["slime_gummy"] = { assetId = 109275905134159, size = { 3.008, 2.95, 3.041 }, offset = { 0, 1.475, -0.016 } }
-entries["slime_mochi"] = { assetId = 88468109163483, size = { 3.339, 2.159, 3.116 }, offset = { -0, 1.079, -0.01 } }
+entries["slime_gummy"] = { assetId = 109275905134159, size = { 3.008, 2.95, 3.042 }, offset = { 0, 1.475, -0.017 } }
+entries["slime_mochi"] = { assetId = 88468109163483, size = { 3.339, 2.159, 3.125 }, offset = { -0, 1.079, -0.014 } }
 entries["slime_bubbles"] = { assetId = 136117360920606, size = { 3.299, 3.86, 3.47 }, offset = { -0.1, 1.93, -0.185 } }
 entries["slime_pebble"] =
 	{ assetId = 124134851993528, size = { 3.219, 2.823, 3.223 }, offset = { 0.032, 1.412, -0.003 } }
-entries["slime_sprout"] = { assetId = 95596092652471, size = { 2.783, 4.029, 2.987 }, offset = { 0, 2.014, -0.029 } }
+entries["slime_sprout"] = { assetId = 95596092652471, size = { 2.783, 4.029, 3.001 }, offset = { 0, 2.014, -0.036 } }
 entries["slime_cheddar"] =
-	{ assetId = 104100743814476, size = { 2.907, 2.543, 2.914 }, offset = { 0.005, 1.272, -0.009 } }
-entries["slime_bumble"] = { assetId = 140176590528302, size = { 3.141, 3.9, 4.131 }, offset = { 0, 1.95, 0.392 } }
-entries["slime_mushie"] = { assetId = 117092813936490, size = { 4.16, 3.487, 4.16 }, offset = { 0, 1.743, -0 } }
+	{ assetId = 104100743814476, size = { 2.907, 2.549, 2.914 }, offset = { 0.005, 1.275, -0.009 } }
+entries["slime_bumble"] = { assetId = 140176590528302, size = { 3.141, 3.9, 4.147 }, offset = { 0, 1.95, 0.384 } }
+entries["slime_mushie"] = { assetId = 117092813936490, size = { 4.16, 3.493, 4.16 }, offset = { 0, 1.747, -0 } }
 entries["slime_prickles"] =
 	{ assetId = 128744905531044, size = { 4.864, 3.799, 3.05 }, offset = { -0.004, 1.899, 0.032 } }
 entries["slime_froggo"] = { assetId = 71274428079528, size = { 3.698, 2.684, 3.113 }, offset = { 0, 1.311, -0.046 } }
-entries["slime_flan"] = { assetId = 89380442384228, size = { 3.156, 3.97, 3.136 }, offset = { 0.004, 1.985, 0.013 } }
+entries["slime_flan"] = { assetId = 89380442384228, size = { 3.156, 3.97, 3.142 }, offset = { 0.004, 1.985, 0.009 } }
 entries["slime_chomp"] = { assetId = 95926102417193, size = { 4.568, 3.62, 4.121 }, offset = { 0, 1.81, 0.368 } }
 entries["slime_whiskers"] =
-	{ assetId = 133896172858214, size = { 4.173, 3.003, 3.297 }, offset = { -0.36, 1.501, -0.019 } }
+	{ assetId = 133896172858214, size = { 4.198, 3.003, 3.307 }, offset = { -0.347, 1.501, -0.024 } }
 entries["slime_lop"] = { assetId = 107798862734190, size = { 3.541, 3.616, 3.447 }, offset = { 0.001, 1.808, 0.203 } }
-entries["slime_moo"] = { assetId = 120951185287411, size = { 3.935, 2.915, 3.633 }, offset = { 0, 1.457, -0.115 } }
+entries["slime_moo"] = { assetId = 120951185287411, size = { 3.935, 2.915, 3.653 }, offset = { 0, 1.457, -0.105 } }
 entries["slime_pengoo"] = { assetId = 96963913146270, size = { 4.596, 3.9, 3.2 }, offset = { 0, 1.947, -0.156 } }
 entries["slime_blaze"] = { assetId = 136135987150514, size = { 3.36, 4.938, 3.159 }, offset = { -0.01, 2.469, -0.023 } }
 entries["slime_frostbite"] =
@@ -1014,7 +1014,7 @@ entries["slime_frostbite"] =
 entries["slime_zap"] = { assetId = 80334558020467, size = { 4.078, 3.688, 3.418 }, offset = { 0, 1.844, -0.003 } }
 entries["slime_imp"] = { assetId = 84166464527451, size = { 4.596, 3.491, 3.884 }, offset = { 0, 1.746, 0.443 } }
 entries["slime_octo"] = { assetId = 121886155113536, size = { 5.058, 3.495, 4.192 }, offset = { 0, 1.673, -0.141 } }
-entries["slime_drako"] = { assetId = 85981669582151, size = { 4.194, 3.272, 3.993 }, offset = { 0, 1.636, 0.327 } }
+entries["slime_drako"] = { assetId = 85981669582151, size = { 4.194, 3.272, 4 }, offset = { 0, 1.636, 0.323 } }
 entries["slime_king"] = { assetId = 108773001876450, size = { 3.783, 3.812, 3.378 }, offset = { 0, 1.874, 0.093 } }
 entries["slime_ninja"] = { assetId = 99942777828950, size = { 3.747, 3.08, 3.861 }, offset = { 0.085, 1.54, 0.45 } }
 entries["slime_robo"] = { assetId = 74626917754091, size = { 3.946, 4.16, 3.679 }, offset = { 0, 2.08, 0.321 } }
@@ -1025,13 +1025,13 @@ entries["slime_amethyst"] =
 entries["slime_prism"] = { assetId = 97296414747568, size = { 4.266, 4.392, 4.155 }, offset = { -0.001, 2.005, 0.137 } }
 entries["slime_midas"] = { assetId = 84348651618165, size = { 3.895, 3.51, 3.729 }, offset = { 0.035, 1.665, 0.022 } }
 entries["slime_eclipse"] =
-	{ assetId = 73912580635466, size = { 4.872, 4.374, 3.446 }, offset = { 0.039, 2.114, 0.089 } }
+	{ assetId = 73912580635466, size = { 4.872, 4.374, 3.447 }, offset = { 0.039, 2.114, 0.089 } }
 entries["slime_sir_goo"] =
 	{ assetId = 86600172378002, size = { 4.595, 4.834, 3.745 }, offset = { 0.165, 2.417, -0.077 } }
 entries["slime_phoenix"] =
 	{ assetId = 112027311988161, size = { 6.524, 4.458, 5.718 }, offset = { -0.096, 2.229, 0.842 } }
 entries["slime_sunny"] =
-	{ assetId = 76150467529446, size = { 5.386, 4.365, 3.025 }, offset = { -0.114, 1.829, -0.023 } }
+	{ assetId = 76150467529446, size = { 5.386, 4.365, 3.049 }, offset = { -0.114, 1.829, -0.035 } }
 entries["slime_elder_oak"] =
 	{ assetId = 116150728691082, size = { 5.105, 5.144, 4.5 }, offset = { 0.003, 2.502, 0.074 } }
 entries["slime_gaia"] = { assetId = 83101861537427, size = { 4.999, 4.34, 4.201 }, offset = { 0.049, 2.17, -0.108 } }
@@ -1040,7 +1040,7 @@ entries["slime_captain_goo"] =
 entries["slime_yeti"] = { assetId = 87284738623950, size = { 4.645, 3.526, 4.118 }, offset = { -0.053, 1.763, 0.168 } }
 entries["slime_abyss"] = { assetId = 70673494347652, size = { 5.346, 4.135, 4.888 }, offset = { 0, 2.067, 0.044 } }
 entries["slime_lunara"] = { assetId = 90322048434782, size = { 4.903, 4.264, 4.244 }, offset = { -0.202, 1.835, -0 } }
-entries["slime_solaris"] = { assetId = 137966278045601, size = { 5.78, 4.881, 3.21 }, offset = { 0, 2.141, -0.02 } }
+entries["slime_solaris"] = { assetId = 137966278045601, size = { 5.78, 4.881, 3.219 }, offset = { 0, 2.141, -0.024 } }
 entries["slime_nebulon"] =
 	{ assetId = 137952210983806, size = { 5.053, 4.384, 5.215 }, offset = { 0.034, 2.192, 0.82 } }
 entries["slime_aurora"] = { assetId = 81245681557355, size = { 4.638, 5.097, 3.874 }, offset = { -0.015, 2.548, -0 } }
@@ -1054,19 +1054,19 @@ entries["slime_goo_god"] =
 	{ assetId = 130069852439424, size = { 7.565, 6.557, 4.401 }, offset = { -0.12, 3.278, 0.209 } }
 entries["slime_boo"] = { assetId = 96310373601330, size = { 4.198, 3.849, 2.926 }, offset = { 0.015, 1.846, -0.002 } }
 
-entries["slime_soda"] = { assetId = 95888248190580, size = { 3.602, 4.483, 3.085 }, offset = { -0.08, 2.242, -0.023 } }
+entries["slime_soda"] = { assetId = 95888248190580, size = { 3.602, 4.483, 3.1 }, offset = { -0.08, 2.242, -0.023 } }
 entries["slime_rocky_road"] =
 	{ assetId = 74244309584071, size = { 3.137, 3.518, 3.138 }, offset = { 0.009, 1.759, 0.004 } }
 entries["slime_bloom"] = { assetId = 99167270842330, size = { 4.607, 3.658, 4.751 }, offset = { 0, 1.829, -0.092 } }
 entries["slime_honey_toad"] = { assetId = 76639819710103, size = { 3.698, 2.903, 3.181 }, offset = { 0, 1.42, -0.012 } }
 entries["slime_truffle"] =
 	{ assetId = 107050144207287, size = { 3.813, 5.14, 3.734 }, offset = { -0.004, 2.57, 0.033 } }
-entries["slime_sushi"] = { assetId = 79864638354637, size = { 3.734, 3.746, 3.506 }, offset = { -0.201, 1.873, 0.326 } }
+entries["slime_sushi"] = { assetId = 79864638354637, size = { 3.734, 3.746, 3.529 }, offset = { -0.201, 1.873, 0.314 } }
 entries["slime_snow_bunny"] = { assetId = 122177895345867, size = { 3.482, 4.842, 3.482 }, offset = { 0, 2.376, -0 } }
 entries["slime_moo_shroom"] =
 	{ assetId = 110396997416743, size = { 3.993, 3.467, 3.882 }, offset = { 0, 1.734, -0.021 } }
 entries["slime_catfish"] = { assetId = 76770603623417, size = { 4.699, 3.573, 4.43 }, offset = { 0, 1.764, 0.481 } }
-entries["slime_steam"] = { assetId = 107367947074628, size = { 4.794, 4.72, 3.279 }, offset = { 0, 2.36, -0.013 } }
+entries["slime_steam"] = { assetId = 107367947074628, size = { 4.794, 4.72, 3.335 }, offset = { 0, 2.36, 0.005 } }
 entries["slime_kraken"] =
 	{ assetId = 70503828098080, size = { 5.49, 4.449, 4.185 }, offset = { -0.025, 2.215, -0.041 } }
 entries["slime_thunderbee"] =
@@ -1076,24 +1076,24 @@ entries["slime_cyber_ninja"] =
 entries["slime_dragon_king"] =
 	{ assetId = 88961374433419, size = { 5.566, 4.129, 4.424 }, offset = { 0, 2.065, 0.301 } }
 entries["slime_nightwing"] =
-	{ assetId = 112164365401063, size = { 6.262, 4.163, 3.798 }, offset = { 0.036, 2.081, 0.38 } }
+	{ assetId = 112164365401063, size = { 6.262, 4.163, 3.802 }, offset = { 0.036, 2.081, 0.378 } }
 entries["slime_goozilla"] = { assetId = 95597031533993, size = { 3.204, 3.927, 5.049 }, offset = { 0, 1.907, 0.617 } }
 entries["slime_queen_jelly"] =
 	{ assetId = 108716301261458, size = { 4.401, 4.653, 4.403 }, offset = { -0.032, 2.337, 0.024 } }
 entries["slime_klawdius"] =
-	{ assetId = 110829970779610, size = { 6.072, 5.294, 5.242 }, offset = { 0.445, 2.64, 1.028 } }
-entries["slime_pumpking"] = { assetId = 95135050927158, size = { 3.54, 4.066, 3.57 }, offset = { 0, 2.033, -0.015 } }
-entries["slime_mecha_goo"] = { assetId = 78640546070601, size = { 4.48, 3.5, 3.579 }, offset = { 0, 1.75, 0.091 } }
+	{ assetId = 110829970779610, size = { 6.072, 5.292, 5.219 }, offset = { 0.445, 2.641, 1.039 } }
+entries["slime_pumpking"] = { assetId = 95135050927158, size = { 3.54, 4.066, 3.575 }, offset = { 0, 2.033, -0.018 } }
+entries["slime_mecha_goo"] = { assetId = 78640546070601, size = { 4.48, 3.5, 3.568 }, offset = { 0, 1.75, 0.097 } }
 entries["slime_goomancer"] =
 	{ assetId = 118089713951424, size = { 4.683, 6.309, 3.725 }, offset = { 0.447, 3.042, -0.075 } }
 entries["slime_glitch"] =
-	{ assetId = 112653965607800, size = { 5.349, 4.23, 3.122 }, offset = { -0.037, 2.115, -0.011 } }
+	{ assetId = 112653965607800, size = { 5.349, 4.23, 3.126 }, offset = { -0.037, 2.115, -0.013 } }
 entries["slime_doodle"] = { assetId = 74559390612314, size = { 4.192, 4.199, 3.276 }, offset = { 0, 2.025, -0.041 } }
 entries["slime_origami"] = { assetId = 102661066928788, size = { 6.542, 4.521, 4.442 }, offset = { 0, 2.261, 0.608 } }
-entries["slime_disco"] = { assetId = 89692353422465, size = { 5.368, 3.97, 3.485 }, offset = { -0.095, 1.985, -0.054 } }
+entries["slime_disco"] = { assetId = 89692353422465, size = { 5.368, 3.97, 3.525 }, offset = { -0.095, 1.985, -0.073 } }
 entries["slime_isle"] = { assetId = 106246529336627, size = { 4.667, 5.736, 3.95 }, offset = { 0.055, 2.818, 0.298 } }
 entries["slime_chrono"] = { assetId = 80629324297687, size = { 4.982, 4.791, 3.6 }, offset = { 0.013, 2.355, -0 } }
-entries["slime_kitsune"] = { assetId = 129157153377304, size = { 7.571, 5.424, 3.51 }, offset = { -0, 2.712, 0.216 } }
+entries["slime_kitsune"] = { assetId = 129157153377304, size = { 7.571, 5.424, 3.518 }, offset = { -0, 2.712, 0.212 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)

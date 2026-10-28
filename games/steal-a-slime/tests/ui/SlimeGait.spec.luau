@@ -19,9 +19,18 @@ end
 local FPS = 60
 
 -- Walks an anchor along +X at `speed` studs / s for `seconds` and records every pose.
-local function run(persona: SlimePersona.Persona, speed: number, seconds: number, seed: number?)
+local function run(
+	persona: SlimePersona.Persona,
+	speed: number,
+	seconds: number,
+	seed: number?,
+	setup: ((SlimeGait.State) -> ())?
+)
 	local rand = lcg(seed or 1)
 	local st = SlimeGait.new(0, 0, 0, 0)
+	if setup then
+		setup(st)
+	end
 	local poses = {}
 	for f = 1, math.floor(seconds * FPS) do
 		local t = f / FPS
@@ -235,5 +244,45 @@ describe("SlimeGait other gaits", function()
 		for _, r in run(SlimePersona.of("bumble"), 0, 2) do
 			expect(r.p.lift > 0.5).toBe(true)
 		end
+	end)
+end)
+
+describe("SlimeGait boss steps", function()
+	-- counts the waddle's steps: the roll flips side on every step
+	local function steps(stride: number): number
+		local n, last = 0, 0
+		for _, r in
+			run(SlimePersona.of("klawdius"), 4.5, 6, 1, function(st)
+				st.stride = stride
+			end)
+		do
+			local side = if r.p.roll > 0.01 then 1 elseif r.p.roll < -0.01 then -1 else 0
+			if side ~= 0 and side ~= last then
+				n += 1
+				last = side
+			end
+		end
+		return n
+	end
+	it("a boss-sized stride takes proportionally fewer, bigger steps", function()
+		local small, big = steps(1), steps(3)
+		expect(big > 2).toBe(true)
+		expect(math.abs(small / big - 3) < 0.6).toBe(true)
+	end)
+	it("without tricks a hopper only does plain hops (no belly flops, boings or zig-zags)", function()
+		local kinds = {}
+		for _, r in
+			run(SlimePersona.of("pumpking"), 4, 60, 7, function(st)
+				st.tricks = false
+			end)
+		do
+			if r.p.kind then
+				kinds[r.p.kind] = true
+			end
+		end
+		for kind in kinds do
+			expect(kind == "normal" or kind == "big").toBe(true)
+		end
+		expect(kinds.normal).toBe(true)
 	end)
 end)
