@@ -1,4 +1,4 @@
-# 49. Cash pads: income piles up at each slime and the owner walks over it to collect
+# 49. Cash pads: income piles up on a gold coin at each slime and the owner walks over it to collect
 
 **Status:** behind `Config.FEATURES.CashPads`. With the flag off, income goes straight to cash and nothing below exists. Server-authoritative; no remote, one State field (`padCash`: the whole cash waiting on all my pads, nil with the flag off), **no save version bump** (one optional key).
 
