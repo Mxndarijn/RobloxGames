@@ -70,7 +70,7 @@ function Income.step(world: World, dt: number, now: number?, features: { [string
 	end
 end
 
--- Pays capped offline income once, on load. Returns the amount paid (or piled onto the cash pads).
+-- Pays offline income (capped by the offline time) once, on load. Returns the amount paid (or piled onto the cash pads).
 function Income.applyOffline(world: World, session: Session, now: number, features: { [string]: any }?): number
 	local data = session.data
 	local skip = VatState.lockedSet(data) -- brewing vat slimes earn nothing

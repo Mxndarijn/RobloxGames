@@ -1755,23 +1755,21 @@ local Config = {
 	PLOT_PAD_PROMPT_DISTANCE = 10,
 	PLOT_PAD_RANGE_SLACK = 4,
 
-	-- Cash pads (FEATURES.CashPads, CashPads / server/CashPadView): a flat gold disc on the floor FRONT[f] studs in front
-	-- of each slime pad's centre on floor f (towards the jar, well past the pad's name sign; the top jar is the smallest
-	-- and keeps clear of the stair hole), RADIUS studs across the middle and HEIGHT thick,
-	-- its bottom LIFT studs above the pad's bottom (the floor's look stands about a stud above its walk collider).
-	-- A player's root part within RADIUS + TOUCH_SLACK studs (flat distance) and 0..TOUCH_HEIGHT studs above the disc
-	-- is standing on it. LABEL_DISTANCE: the pile counter shows from this many studs away. HINT_AT: cash waiting on
-	-- the pads that triggers the "walk over a pad" toast (Income; once a session, only while the tutorial runs).
-	-- NAG_SECONDS: a visitor on someone else's pad sees "Not your cash" at most this often. FLASH_SECONDS: how long
-	-- the counter shows "+$X" after a collect. SYNC_SECONDS: discs are rebuilt / relabelled at most this often.
+	-- Cash pads (FEATURES.CashPads, CashPads / server/CashPadView): a raised gold coin on the floor in front of each slime
+	-- pad (towards the jar, clear of the pad's name sign), per floor (Config.BASE_FLOORS; the last entry covers any floor
+	-- above): DIAMETER studs across, its centre FRONT studs from the pad's centre, its bottom LIFT studs above the pad's
+	-- bottom (that floor's walk surface: the ground floor's look stands above its collider). The small top jar has the
+	-- least room between the signs and the stair landing. A player's root part within DIAMETER / 2 + TOUCH_SLACK studs
+	-- (flat distance) and 0..TOUCH_HEIGHT studs above the coin is standing on it. HINT_AT: cash waiting on the pads that
+	-- triggers the "walk over a pad" toast (Income; once a session, only while the tutorial runs). NAG_SECONDS: a
+	-- visitor on someone else's coin sees "Not your cash" at most this often. FLASH_SECONDS: how long the coin shows
+	-- "+$X" after a collect. SYNC_SECONDS: coins are rebuilt / relabelled at most this often.
 	CASH_PAD = table.freeze({
-		FRONT = table.freeze({ 8, 8, 8, 6.6 }) :: { number }, -- per floor (Config.BASE_FLOORS); the last entry covers any floor above
-		RADIUS = 1.6,
-		HEIGHT = 0.3,
-		LIFT = 1.15,
+		DIAMETER = table.freeze({ 2.75, 2.75, 2.75, 2 }) :: { number },
+		FRONT = table.freeze({ 6.3, 6.3, 6.3, 5.42 }) :: { number },
+		LIFT = table.freeze({ 0.36, 0, 0, 0 }) :: { number },
 		TOUCH_SLACK = 0.9,
 		TOUCH_HEIGHT = 6,
-		LABEL_DISTANCE = 60,
 		HINT_AT = 10,
 		NAG_SECONDS = 4,
 		FLASH_SECONDS = 1.2,

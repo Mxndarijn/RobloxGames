@@ -5,19 +5,17 @@
 	With the flag on, a slime's income piles up on its pad instead of going straight to cash. `data.padCash`
 	maps a pad index to its pile (fractional cash). A pile belongs to the pad, not the slime: it stays when the
 	slime is stolen, sold, merged or moved, and only the plot owner collects it (whole cash; the fraction stays).
-	A pad stops filling at its cap: what the slime on it earns in the player's offline cap time
-	(Perks.offlineCap, so Night Shift raises it). Offline income goes onto the pads with the same cap.
-	Rebirth clears every pile along with the cash.
+	A pad has no cap: it keeps filling while the player is online. Offline income goes onto the pads too, for at
+	most the offline cap time (Economy.offlineIncome, Perks.offlineCap: Night Shift raises it). Rebirth clears every
+	pile along with the cash. `floorLook` and `face` describe the coin the view draws on each pad.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
-local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Perks = if script then require(script.Parent.Perks) else require("./Perks")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 
 type Data = PlayerData.Data
-type Slime = Genome.Slime
 
 local CashPads = {}
 
@@ -58,34 +56,14 @@ function CashPads.total(data: Data): number
 	return sum
 end
 
--- Most a pad holds while a slime earning `perSec` sits on it.
-function CashPads.cap(data: Data, perSec: number): number
-	return math.max(0, perSec) * Perks.offlineCap(data)
-end
-
--- Adds up to `amount` to `pad`, stopping at `cap` (a pile already above the cap keeps what it has). Returns what was added.
-function CashPads.add(data: Data, pad: number, amount: number, cap: number): number
+-- Adds `amount` to `pad`'s pile. Returns what was added.
+function CashPads.add(data: Data, pad: number, amount: number): number
 	if amount <= 0 or amount ~= amount then
 		return 0
 	end
 	local map = piles(data)
-	local before = map[pad] or 0
-	local after = math.max(before, math.min(before + amount, cap))
-	if after > before then
-		map[pad] = after
-	end
-	return after - before
-end
-
--- Is `pad`'s pile at its cap for the slime on it now? False for an empty pad. `onPad` saves the lookup when the
--- caller already knows the slime on that pad.
-function CashPads.full(data: Data, pad: number, onPad: Slime?): boolean
-	local slime = onPad or PlayerData.slimeOnPad(data, pad)
-	if not slime then
-		return false
-	end
-	local cap = CashPads.cap(data, PlayerData.slimeIncome(data, slime))
-	return cap > 0 and CashPads.pile(data, pad) >= cap
+	map[pad] = math.min((map[pad] or 0) + amount, MAX_PILE)
+	return amount
 end
 
 -- Fills every pad from its slime for `seconds` of online income. `skip` holds slime ids that earn nothing now
@@ -100,7 +78,7 @@ function CashPads.accrue(data: Data, seconds: number, skip: { [string]: boolean 
 		if pad and not (skip and skip[slime.id]) then
 			local perSec = PlayerData.slimeIncome(data, slime)
 			if perSec > 0 then
-				added += CashPads.add(data, pad, perSec * seconds, CashPads.cap(data, perSec))
+				added += CashPads.add(data, pad, perSec * seconds)
 			end
 		end
 	end
@@ -118,34 +96,46 @@ function CashPads.accrueOffline(data: Data, lastOnline: number, now: number, ski
 			local perSec = PlayerData.slimeIncome(data, slime)
 			local amount = Economy.offlineIncome(perSec, lastOnline, now, capSeconds)
 			if amount > 0 then
-				added += CashPads.add(data, pad, amount, CashPads.cap(data, perSec))
+				added += CashPads.add(data, pad, amount)
 			end
 		end
 	end
 	return added
 end
 
--- Studs from pad `pad`'s centre to its disc's centre (Config.CASH_PAD.FRONT of the pad's floor).
-function CashPads.front(pad: number): number
-	local fronts = Config.CASH_PAD.FRONT
-	local floor = math.clamp(math.ceil(pad / Config.PADS_PER_FLOOR), 1, #fronts)
-	return fronts[floor]
+export type FloorLook = { diameter: number, front: number, lift: number }
+
+-- The coin on pad `pad`: its diameter, studs from the pad's centre to the coin's centre (towards the jar), and how
+-- far its bottom sits above the pad's bottom (where that floor's walk surface is). Config.CASH_PAD per floor; the last
+-- entry covers any floor above.
+function CashPads.floorLook(pad: number): FloorLook
+	local c = Config.CASH_PAD
+	local floor = math.max(1, math.ceil(pad / Config.PADS_PER_FLOOR))
+	local function at(list: { number }): number
+		return list[math.min(floor, #list)]
+	end
+	return { diameter = at(c.DIAMETER), front = at(c.FRONT), lift = at(c.LIFT) }
 end
 
--- Is a player's root at (dx, dy, dz) from a disc's centre standing on it (Config.CASH_PAD)?
-function CashPads.touching(dx: number, dy: number, dz: number): boolean
+-- Is a player's root at (dx, dy, dz) from the centre of a coin `diameter` across standing on it (Config.CASH_PAD)?
+function CashPads.touching(dx: number, dy: number, dz: number, diameter: number): boolean
 	local c = Config.CASH_PAD
-	local reach = c.RADIUS + c.TOUCH_SLACK
+	local reach = diameter / 2 + c.TOUCH_SLACK
 	return dx * dx + dz * dz <= reach * reach and dy >= 0 and dy <= c.TOUCH_HEIGHT
 end
 
--- Counter text above a pad: "" while nothing whole is piled up.
-function CashPads.label(pile: number, full: boolean): string
-	if pile < 1 then
-		return ""
+export type Face = { state: "empty" | "waiting" | "collected", amount: string, collect: boolean }
+
+-- What the coin shows: "$0" (empty, dimmed, no COLLECT) while less than $1 waits, the amount plus COLLECT while cash
+-- waits, and "+$X" for a moment after the owner collected `paid` (`flashing`).
+function CashPads.face(pile: number, flashing: boolean, paid: number?): Face
+	if flashing and paid and paid >= 1 then
+		return { state = "collected", amount = `+${Economy.formatNumber(math.floor(paid))}`, collect = false }
 	end
-	local text = `${Economy.formatNumber(math.floor(pile))}`
-	return if full then `FULL {text}` else text
+	if pile < 1 then
+		return { state = "empty", amount = "$0", collect = false }
+	end
+	return { state = "waiting", amount = `${Economy.formatNumber(math.floor(pile))}`, collect = true }
 end
 
 -- Moves the whole cash of `pad`'s pile into the player's cash (PlayerData.earn); the fraction stays. Returns what was paid.

@@ -2,12 +2,12 @@
 --[[
 	CashPadView (Roblox adapter, FEATURES.CashPads, contract/cash-pads.md)
 
-	Keeps one gold disc ("CashPad", under each Pad_<j>) on every owned plot's pads that have a slime or a pile, with a
-	BillboardGui counter showing the pile (CashPads.label), and turns players standing on a disc into
-	CashPadService.touch calls when a player steps onto a disc (once per step-on, not every tick while standing). The
-	owner's collect flashes "+$X" on the counter for CASH_PAD.FLASH_SECONDS. Discs are rebuilt and relabelled at
-	most every CASH_PAD.SYNC_SECONDS, text and transparency written only when they change. Holds no rules: who may
-	collect is CashPadService's call.
+	Keeps one raised gold coin ("CashPad", under each Pad_<j>) on every owned plot's pads that have a slime or a pile.
+	Everyone sees it. Its top shows CashPads.face: the amount plus COLLECT while cash waits, a dimmed "$0" when empty,
+	and "+$X" in green for CASH_PAD.FLASH_SECONDS after the owner collects. Size, distance and height come per floor
+	from CashPads.floorLook. A player who steps onto a coin calls CashPadService.touch once per step-on (not every tick
+	while standing). Coins are rebuilt and relabelled at most every CASH_PAD.SYNC_SECONDS, and properties are written
+	only when they change. Holds no rules: who may collect is CashPadService's call.
 ]]
 
 local Players = game:GetService("Players")
@@ -16,42 +16,62 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CashPadService = require(script.Parent.CashPadService)
 local CashPads = require(ReplicatedStorage.Shared.CashPads)
 local Config = require(ReplicatedStorage.Shared.Config)
-local Economy = require(ReplicatedStorage.Shared.Economy)
 local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
 
+type Look = { face: Color3, base: Color3, amount: Color3 }
+
 local LOOK = table.freeze({
-	disc = Color3.fromRGB(255, 200, 40),
-	text = Color3.fromRGB(255, 255, 255),
-	stroke = Color3.fromRGB(60, 40, 0),
-	full = Color3.fromRGB(255, 214, 64),
-	flash = Color3.fromRGB(120, 255, 150),
-	rim = Color3.fromRGB(176, 120, 10),
-	rimExtra = 0.3, -- studs the rim sticks out past the disc
-	labelSize = UDim2.fromOffset(190, 46),
-	labelLift = 3.2, -- studs above the disc
-	signSize = UDim2.fromScale(1, 1),
+	waiting = table.freeze({
+		face = Color3.fromRGB(226, 178, 52),
+		base = Color3.fromRGB(176, 128, 28),
+		amount = Color3.fromRGB(60, 36, 0),
+	}) :: Look,
+	empty = table.freeze({
+		face = Color3.fromRGB(150, 132, 92),
+		base = Color3.fromRGB(110, 96, 64),
+		amount = Color3.fromRGB(70, 60, 40),
+	}) :: Look,
+	collected = table.freeze({
+		face = Color3.fromRGB(226, 178, 52),
+		base = Color3.fromRGB(176, 128, 28),
+		amount = Color3.fromRGB(20, 120, 50),
+	}) :: Look,
+	collect = Color3.fromRGB(110, 70, 0), -- the COLLECT word
+	stroke = Color3.fromRGB(255, 240, 190), -- light outline round the amount
+	faceThickness = 0.04, -- studs: the printed top
+	baseThickness = 0.16, -- studs: the raised edge under it
+	baseExtra = 0.18, -- studs the edge sticks out past the top (across)
+	pixelsPerStud = 60,
 	font = Enum.Font.FredokaOne,
+	-- Text boxes as fractions of the coin's top: the amount sits higher when COLLECT is under it.
+	amountSize = UDim2.fromScale(0.84, 0.34),
+	amountWith = UDim2.fromScale(0.08, 0.24),
+	amountAlone = UDim2.fromScale(0.08, 0.33),
+	collectSize = UDim2.fromScale(0.6, 0.14),
+	collectAt = UDim2.fromScale(0.2, 0.6),
 })
 
 type Disc = {
 	plotIndex: number,
 	pad: number,
-	part: BasePart,
-	rim: BasePart,
-	sign: SurfaceGui,
-	label: TextLabel,
+	diameter: number,
+	part: BasePart, -- the printed top; Position is the touch centre
+	base: BasePart,
+	amount: TextLabel,
+	collect: TextLabel,
+	state: string,
 	text: string,
-	shown: boolean,
 	flashUntil: number,
+	paid: number,
 }
 
 type Bounds = { x0: number, x1: number, z0: number, z1: number }
 
 export type State = {
 	discs: { [string]: Disc }, -- "plot|pad"
-	bounds: { [number]: Bounds }, -- plotIndex -> flat box round its shown discs (touch pre-check)
-	standing: { [number]: { [string]: boolean } }, -- userId -> discs they stood on at the last step
+	bounds: { [number]: Bounds }, -- plotIndex -> flat box round its coins (touch pre-check)
+	standing: { [number]: { [string]: boolean } }, -- userId -> coins they stood on at the last step
 	nags: CashPadService.Nags,
 	syncedAt: number,
 }
@@ -66,112 +86,98 @@ local function key(plotIndex: number, pad: number): string
 	return `{plotIndex}|{pad}`
 end
 
-local function build(pad: BasePart, plotIndex: number, j: number): Disc
-	local c = Config.CASH_PAD
+local function cylinder(name: string, thickness: number, diameter: number): Part
 	local part = Instance.new("Part")
-	part.Name = "CashPad"
+	part.Name = name
 	part.Shape = Enum.PartType.Cylinder
-	part.Size = Vector3.new(c.HEIGHT, c.RADIUS * 2, c.RADIUS * 2)
+	part.Size = Vector3.new(thickness, diameter, diameter)
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanQuery = false
 	part.CanTouch = false
 	part.CastShadow = false
-	part.Material = Enum.Material.Neon
-	part.Color = LOOK.disc
-	part.Transparency = 1
-	local rim = Instance.new("Part")
-	rim.Name = "Rim"
-	rim.Shape = Enum.PartType.Cylinder
-	rim.Size = Vector3.new(c.HEIGHT * 0.6, (c.RADIUS + LOOK.rimExtra) * 2, (c.RADIUS + LOOK.rimExtra) * 2)
-	rim.Anchored = true
-	rim.CanCollide = false
-	rim.CanQuery = false
-	rim.CanTouch = false
-	rim.CastShadow = false
-	rim.Material = Enum.Material.SmoothPlastic
-	rim.Color = LOOK.rim
-	rim.Transparency = 1
-	rim.Parent = part
-	-- A "$" on the top face (the cylinder's +X points up, see discCFrame).
-	local top = Instance.new("SurfaceGui")
-	top.Name = "Sign"
-	top.Face = Enum.NormalId.Right
-	top.LightInfluence = 0
-	top.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	top.PixelsPerStud = 40
-	top.Parent = part
-	local dollar = Instance.new("TextLabel")
-	dollar.BackgroundTransparency = 1
-	dollar.Size = LOOK.signSize
-	dollar.Font = LOOK.font
-	dollar.TextScaled = true
-	dollar.Text = "$"
-	dollar.TextColor3 = LOOK.rim
-	dollar.Parent = top
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "CashPadLabel"
-	gui.Size = LOOK.labelSize
-	gui.StudsOffsetWorldSpace = Vector3.new(0, LOOK.labelLift, 0)
-	gui.MaxDistance = c.LABEL_DISTANCE
-	gui.LightInfluence = 0
-	gui.Parent = part
+	part.Material = Enum.Material.SmoothPlastic
+	return part
+end
+
+local function text(name: string, parent: Instance): TextLabel
 	local label = Instance.new("TextLabel")
+	label.Name = name
 	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 1)
 	label.Font = LOOK.font
 	label.TextScaled = true
-	label.TextColor3 = LOOK.text
+	label.Parent = parent
+	return label
+end
+
+local function build(pad: BasePart, plotIndex: number, j: number): Disc
+	local diameter = CashPads.floorLook(j).diameter
+	local part = cylinder("CashPad", LOOK.faceThickness, diameter)
+	local base = cylinder("Base", LOOK.baseThickness, diameter + LOOK.baseExtra)
+	base.Parent = part
+	-- The printed top: the cylinder's +X points up (coinFrames), so the Right face is the top.
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Face"
+	gui.Face = Enum.NormalId.Right
+	gui.LightInfluence = 0
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = LOOK.pixelsPerStud
+	gui.Parent = part
+	local amount = text("Amount", gui)
+	amount.Size = LOOK.amountSize
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = LOOK.stroke
-	stroke.Thickness = 2.5
-	stroke.Parent = label
-	label.Text = ""
-	label.Parent = gui
+	stroke.Thickness = 2
+	stroke.Parent = amount
+	local collect = text("Collect", gui)
+	collect.Size = LOOK.collectSize
+	collect.Position = LOOK.collectAt
+	collect.Text = "COLLECT"
+	collect.TextColor3 = LOOK.collect
 	part.Parent = pad
 	return {
 		plotIndex = plotIndex,
 		pad = j,
+		diameter = diameter,
 		part = part,
-		rim = rim,
-		sign = top,
-		label = label,
+		base = base,
+		amount = amount,
+		collect = collect,
+		state = "",
 		text = "",
-		shown = false,
 		flashUntil = 0,
+		paid = 0,
 	}
 end
 
--- Disc frame: flat, LIFT studs above the pad's bottom and CashPads.front(j) studs in front of the pad (the pad's -Z
--- faces the jar).
-local function discCFrame(pad: BasePart, j: number): CFrame
-	local c = Config.CASH_PAD
-	return pad.CFrame
-		* CFrame.new(0, -pad.Size.Y / 2 + c.LIFT + c.HEIGHT / 2, -CashPads.front(j))
-		* CFrame.Angles(0, 0, math.rad(90))
+-- The coin's top and raised edge, flat on that floor's walk surface, CashPads.floorLook(j).front studs in front of the
+-- pad (the pad's -Z faces the jar), turned so the text reads for a player facing the slime.
+local function coinFrames(pad: BasePart, j: number): (CFrame, CFrame)
+	local look = CashPads.floorLook(j)
+	local bottom = -pad.Size.Y / 2 + look.lift
+	local turn = CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(math.rad(90), 0, 0)
+	local face = pad.CFrame * CFrame.new(0, bottom + LOOK.baseThickness + LOOK.faceThickness / 2, -look.front) * turn
+	local base = pad.CFrame * CFrame.new(0, bottom + LOOK.baseThickness / 2, -look.front) * turn
+	return face, base
 end
 
-local function setText(disc: Disc, text: string, color: Color3)
-	if disc.text ~= text then
-		disc.text = text
-		disc.label.Text = text
+local function setFace(disc: Disc, face: CashPads.Face)
+	if disc.state ~= face.state then
+		disc.state = face.state
+		local look: Look = (LOOK :: any)[face.state]
+		disc.part.Color = look.face
+		disc.base.Color = look.base
+		disc.amount.TextColor3 = look.amount
+		disc.collect.Visible = face.collect
+		disc.amount.Position = if face.collect then LOOK.amountWith else LOOK.amountAlone
 	end
-	if disc.label.TextColor3 ~= color then
-		disc.label.TextColor3 = color
-	end
-end
-
-local function setShown(disc: Disc, shown: boolean)
-	if disc.shown ~= shown then
-		disc.shown = shown
-		disc.part.Transparency = if shown then 0 else 1
-		disc.rim.Transparency = if shown then 0 else 1
-		disc.sign.Enabled = shown
-		disc.label.Visible = shown
+	if disc.text ~= face.amount then
+		disc.text = face.amount
+		disc.amount.Text = face.amount
 	end
 end
 
--- Builds, places and labels every disc; drops discs of plots that lost their owner or pads that are gone.
+-- Builds, places and labels every coin; drops coins of plots that lost their owner or pads that are gone.
 function CashPadView.sync(state: State, world: World.World, now: number)
 	local c = Config.CASH_PAD
 	if now - state.syncedAt < c.SYNC_SECONDS then
@@ -211,17 +217,13 @@ function CashPadView.sync(state: State, world: World.World, now: number)
 						disc = build(pad, plotIndex, j)
 						state.discs[k] = disc
 					end
-					local frame = discCFrame(pad, j)
-					if disc.part.CFrame ~= frame then
-						disc.part.CFrame = frame
-						disc.rim.CFrame = frame * CFrame.new(-c.HEIGHT * 0.2, 0, 0)
+					local face, baseFrame = coinFrames(pad, j)
+					if disc.part.CFrame ~= face then
+						disc.part.CFrame = face
+						disc.base.CFrame = baseFrame
 					end
-					setShown(disc, true)
-					if now >= disc.flashUntil then
-						local full = CashPads.full(data, j, slime)
-						setText(disc, CashPads.label(pile, full), if full then LOOK.full else LOOK.text)
-					end
-					local at = frame.Position
+					setFace(disc, CashPads.face(pile, now < disc.flashUntil, disc.paid))
+					local at = face.Position
 					if box then
 						box.x0, box.x1 = math.min(box.x0, at.X), math.max(box.x1, at.X)
 						box.z0, box.z1 = math.min(box.z0, at.Z), math.max(box.z1, at.Z)
@@ -243,11 +245,10 @@ function CashPadView.sync(state: State, world: World.World, now: number)
 	end
 end
 
--- A player who steps onto a shown disc touches it once (CashPadService.touch); the owner's collect flashes the
+-- A player who steps onto a coin touches it once (CashPadService.touch); the owner's collect flashes the
 -- counter. Standing still on it does nothing more until they step off and back on.
 function CashPadView.step(state: State, world: World.World, now: number)
 	local c = Config.CASH_PAD
-	local reach = c.RADIUS + c.TOUCH_SLACK
 	for _, player in Players:GetPlayers() do
 		local userId = player.UserId
 		local was = state.standing[userId]
@@ -257,13 +258,14 @@ function CashPadView.step(state: State, world: World.World, now: number)
 			local p = root.Position
 			for k, disc in state.discs do
 				local box = state.bounds[disc.plotIndex]
+				local reach = disc.diameter / 2 + c.TOUCH_SLACK
 				local near = box ~= nil
 					and p.X >= box.x0 - reach
 					and p.X <= box.x1 + reach
 					and p.Z >= box.z0 - reach
 					and p.Z <= box.z1 + reach
 				local d = disc.part.Position
-				if near and disc.shown and CashPads.touching(p.X - d.X, p.Y - d.Y, p.Z - d.Z) then
+				if near and CashPads.touching(p.X - d.X, p.Y - d.Y, p.Z - d.Z, disc.diameter) then
 					local hits: { [string]: boolean } = on or {}
 					hits[k] = true
 					on = hits
@@ -271,7 +273,8 @@ function CashPadView.step(state: State, world: World.World, now: number)
 						local paid = CashPadService.touch(world, state.nags, userId, disc.plotIndex, disc.pad, now)
 						if paid > 0 then
 							disc.flashUntil = now + c.FLASH_SECONDS
-							setText(disc, `+${Economy.formatNumber(paid)}`, LOOK.flash)
+							disc.paid = paid
+							setFace(disc, CashPads.face(0, true, paid))
 						end
 					end
 				end
