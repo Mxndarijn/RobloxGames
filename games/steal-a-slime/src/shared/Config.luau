@@ -557,6 +557,72 @@ local PET_SEATS: { PetSeat } = {
 	seat("clam_shell", "Clam Shell", "pet_mount_clam_shell", 0.80, { 250, 150, 140 }, EXCLUSIVE),
 }
 
+-- Exclusive Shop (FEATURES.ExclusiveShop, contract/exclusive-shop.md). The one source of every Robux product and pass.
+-- productId / passId are Roblox ids; 0 = not created yet: the UI shows the price with "Not on sale yet" and only
+-- StudioHooks can grant it. robux is the shown price and must match the Creator Dashboard. Keys are permanent
+-- save / receipt ids: never rename.
+local function product(robux: number, grant: { [string]: any }): { [string]: any }
+	return table.freeze({ productId = 0, robux = robux, grant = table.freeze(grant) })
+end
+local EXCLUSIVE_PRODUCTS: { [string]: any } = {
+	StarterBundle = product(
+		149,
+		{ kind = "bundle", seats = table.freeze({ "leaf" }), boostMult = 2, boostSeconds = 900 }
+	),
+	FinishBrew_1 = product(15, { kind = "finishBrew" }), -- time left <= finishBrewBrackets[1]
+	FinishBrew_2 = product(35, { kind = "finishBrew" }),
+	FinishBrew_3 = product(59, { kind = "finishBrew" }),
+	FinishBrew_4 = product(99, { kind = "finishBrew" }),
+	HatchNow_speckled = product(25, { kind = "hatchNow" }),
+	HatchNow_shiny = product(35, { kind = "hatchNow" }),
+	HatchNow_golden = product(45, { kind = "hatchNow" }),
+	HatchNow_cosmic = product(49, { kind = "hatchNow" }),
+	DoubleOffline = product(49, { kind = "doubleOffline" }),
+	ServerLuckPotion = product(79, { kind = "serverPotion" }), -- a paid probability modifier: odds shown, hidden where paid random items are restricted
+}
+-- Exclusive seat prices by how showy the model is (ideas doc C1).
+local SEAT_ROBUX: { [string]: number } = {
+	leaf = 99,
+	bubble = 99,
+	lily_pad = 99,
+	mushroom = 99,
+	pancakes = 99,
+	storm_cloud = 199,
+	sunset_cloud = 199,
+	ice_cloud = 199,
+	flame_cloud = 199,
+	star_cushion = 199,
+	crescent_moon = 199,
+	clam_shell = 199,
+	magic_carpet = 399,
+	ufo = 399,
+	royal_cushion = 399,
+	hoverboard = 399,
+}
+for _, seat in PET_SEATS do
+	if seat.unlock.kind == "exclusive" then
+		local robux = SEAT_ROBUX[seat.id]
+		assert(robux, "Exclusive seat without a price: " .. seat.id)
+		EXCLUSIVE_PRODUCTS["Seat_" .. seat.id] = product(robux, { kind = "seat", seat = seat.id })
+	end
+end
+local EXCLUSIVE_SHOP = table.freeze({
+	products = table.freeze(EXCLUSIVE_PRODUCTS),
+	passes = table.freeze({
+		Income2x = table.freeze({ passId = 0, robux = 449, incomeMult = 2 }), -- x2 base income (one more Perks factor)
+		Offline2x = table.freeze({ passId = 0, robux = 199, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
+	}),
+	tabs = table.freeze({ "Featured", "Clouds", "Perks", "Boosts" }),
+	finishBrewBrackets = table.freeze({ 300, 1800, 3600, math.huge }) :: { number }, -- seconds left -> FinishBrew_<i>
+	featuredCount = 4, -- seats in the weekly rotation (ExclusiveRotation), the same on every server
+	receiptMemory = 200, -- processed PurchaseIds kept in the save, newest last
+	creditMax = 99, -- most saved skip credits per kind
+	spinRpm = 2.5, -- carousel turns per minute (client visual)
+	riderBob = 0.6, -- studs up / down each rider bobs
+	riderBobSeconds = 3, -- one bob cycle
+	drawDistance = 220, -- studs: beyond this the client stops animating the carousel
+})
+
 -- PvP ladder (FEATURES.PvP, CONTRACT.md §26, docs/PVP.md). Every gate is a REBIRTH_TIERS threshold; the price is
 -- derived (PvpRules.price = factor x Economy.rebirthCost(gate), at least PVP.PRICE_MIN). Nothing here has a damage field.
 local function withExtra(tool: { [string]: any }, extra: { [string]: any }): PvpTool
@@ -848,6 +914,7 @@ local Config = {
 	PLOT_BASE_DEFAULT = "jar",
 	PET_SEATS = table.freeze(PET_SEATS), -- what the follow pet rides on (PetSeats, contract/pet-seats.md)
 	PET_SEAT_DEFAULT = "cloud",
+	EXCLUSIVE_SHOP = EXCLUSIVE_SHOP, -- Robux products, passes and the carousel tunables (contract/exclusive-shop.md)
 
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 120,
@@ -999,6 +1066,7 @@ local Config = {
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
 		BaseShapes = false, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
+		ExclusiveShop = false, -- the Exclusive Shop (contract/exclusive-shop.md): the carousel on the plaza, Robux products and passes, quick-buys (Finish now, Hatch now, Double it, server Luck Potion); false = no carousel, no MarketplaceService callbacks, no Robux buttons, Exclusive seats stay unowned
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
 	}),
 

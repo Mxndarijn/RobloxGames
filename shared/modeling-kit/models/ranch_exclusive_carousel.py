@@ -352,9 +352,50 @@ CAROUSEL_CENTRE = (round(CX - OFF[0], 2), round(CYc - OFF[1], 2), round(PZ - OFF
 CAROUSEL_SPOTS = [(round(x - OFF[0], 2), round(y - OFF[1], 2), round(z - OFF[2], 2), round(yaw, 1)) for x, y, z, yaw in SPOTS]
 print("CAROUSEL_CENTRE", CAROUSEL_CENTRE, "SPOTS", CAROUSEL_SPOTS)
 
+# ---- split for the game: a spinning part (deck, drum, poles, saddles) and a static part (everything else) ------
+# CAROUSEL_PART=spin|static picks one (models/ranch_exclusive_carousel_spin.py / _static.py); empty = the whole look.
+import json
+
+SPIN_PREFIXES = ("Deck", "Drum", "Panel", "Pole", "Collar", "Saddle")
+
+
+def is_spin(o):
+    return o.name.split(".")[0].startswith(SPIN_PREFIXES)
+
+
+def bottom_centre(objs):
+    vs = [o.matrix_world @ v.co for o in objs for v in o.data.vertices]
+    return ((min(v.x for v in vs) + max(v.x for v in vs)) / 2, (min(v.y for v in vs) + max(v.y for v in vs)) / 2, min(v.z for v in vs))
+
+
+PART = os.environ.get("CAROUSEL_PART", "")
+spin_parts = [o for o in parts if is_spin(o)]
+static_parts = [o for o in parts if not is_spin(o)]
+if PART:
+    so, po = bottom_centre(static_parts), bottom_centre(spin_parts)
+    rel = lambda p, o: [round(p[0] - o[0], 3), round(p[1] - o[1], 3), round(p[2] - o[2], 3)]
+    layout = {
+        "note": "Blender frame, studs: x right, y back (front faces -y), z up. Roblox: X = x, Y = z, Z = -y.",
+        "static_origin_to_spin_origin": rel(po, so),
+        "spin_axis_in_spin_frame": rel((CX, CYc, po[2]), po),
+        "riders_in_spin_frame": [rel((x, y, z), po) for x, y, z, _ in SPOTS],
+        "kiosk_counter_top_in_static_frame": rel((9.4, -6.4, CH + 0.5), so),
+        "kiosk_yaw_deg": 32,
+        "platform_radius": PR,
+        "deck_top_in_static_frame": round(PZ - so[2], 3),
+    }
+    out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out", "ranch_exclusive_carousel_layout.json")
+    with open(out, "w", newline="") as f:
+        json.dump(layout, f, indent=1)
+    print("LAYOUT", json.dumps(layout))
+    keep = spin_parts if PART == "spin" else static_parts
+    for o in parts:
+        if o not in keep:
+            bpy.data.objects.remove(o)
+    parts = keep
 _t = {}
 for o in parts:
     key = "".join(ch for ch in o.name.split(".")[0] if not ch.isdigit() and ch not in "-")
     _t[key] = _t.get(key, 0) + sum(len(pp.vertices) - 2 for pp in o.data.polygons)
 print("TRIS BY PART", sorted(_t.items(), key=lambda kv: -kv[1])[:12])
-finish("ranch_exclusive_carousel", parts)
+finish("ranch_exclusive_carousel" + (("_" + PART) if PART else ""), parts)
