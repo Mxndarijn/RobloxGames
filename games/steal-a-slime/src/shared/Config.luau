@@ -1008,6 +1008,19 @@ local Config = {
 	LOCK_SECONDS = 120,
 	LOCK_SECONDS_PER_REBIRTH = 10, -- a lock lasts this much longer per rebirth, up to LOCK_MAX_SECONDS
 	LOCK_MAX_SECONDS = 240, -- the longest single lock (4 min); locks never stack or extend
+	-- The lock pad: a ring of segments on the floor round the LockButton (LockPad, CONTRACT.md §8.5). The owner stands
+	-- in it for STAND_SECONDS to lock (the same Lock action as the prompt); while locked the lit segments count down.
+	LOCK_PAD = table.freeze({
+		STAND_SECONDS = 1,
+		SEGMENTS = 12,
+		RADIUS = 4.6, -- studs from the LockButton's centre to the middle of the ring
+		WIDTH = 1.6, -- studs across the ring
+		THICKNESS = 0.12, -- studs thick
+		LIFT = 0.4, -- studs the ring's underside sits above the walk floor, on top of the goo floor mesh (0.36 up)
+		REACH = 5.6, -- studs from the LockButton's centre (flat) that count as standing on the pad
+		HEIGHT = 7, -- studs above the floor the root part may be (standing on the button top counts)
+		READY_FLASH_SECONDS = 1.5, -- all segments flash green this long after a lock runs out
+	}),
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
 	HOLD_CONFIRM_SECONDS = 0.8,
@@ -1202,7 +1215,7 @@ local Config = {
 			rebirth = "Rebirth",
 			alarm = "Alarm",
 			error = "ErrorSoft",
-			click = "rbxasset://sounds/button.wav",
+			click = "Click",
 		}),
 		-- Ambience: a looped bed per time of day, plus a night one-shot played now and then over it.
 		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds: own 20 s seamless loop (Merijn's upload)

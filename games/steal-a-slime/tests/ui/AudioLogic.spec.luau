@@ -3,6 +3,7 @@
 local AudioLogic = require("../../src/ui/AudioLogic")
 local Config = require("../../src/shared/Config")
 local DayNight = require("../../src/shared/DayNight")
+local Sounds = require("../../src/ui/Sounds")
 local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -260,6 +261,22 @@ describe("AudioLogic one-shot spec and variants", function()
 	it("jitter stays within base +- spread", function()
 		expect(AudioLogic.jitter(1, 0.1, fixed(0))).toBe(0.9)
 		expect(AudioLogic.jitter(1, 0.1, fixed(1))).toBe(1.1)
+	end)
+	it("playSpeed varies the frequent one-shots and leaves the rest alone", function()
+		local spread = cfg.SFX_SPEED_JITTER
+		expect(AudioLogic.playSpeed(cfg, "Cash", nil, fixed(0))).toBe(1 - spread)
+		expect(AudioLogic.playSpeed(cfg, "Cash", nil, fixed(1))).toBe(1 + spread)
+		-- A registry name varies like the sound it maps to ("buy" -> Cash).
+		expect(AudioLogic.playSpeed(cfg, "buy", nil, fixed(1))).toBe(1 + spread)
+		expect(AudioLogic.playSpeed(cfg, "Rebirth", nil, fixed(1))).toBe(1)
+		expect(AudioLogic.playSpeed(cfg, "Rebirth", 0.5, fixed(1))).toBe(0.5)
+	end)
+	it("playSpeed keeps a sound's own SPEED and the caller's speed", function()
+		for name, speed in Sounds.SPEED do
+			local got = AudioLogic.playSpeed(cfg, name, 0.5, fixed(0.5))
+			expect(math.abs(got - 0.5 * speed) < 1e-9).toBe(true)
+		end
+		expect(AudioLogic.playSpeed(cfg, "Lucky", 0.5, fixed(0))).toBe(0.5)
 	end)
 	it("pick covers the whole list and nil for an empty one", function()
 		expect(AudioLogic.pick({ "a", "b", "c" }, fixed(0))).toBe("a")

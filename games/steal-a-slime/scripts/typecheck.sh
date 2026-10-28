@@ -49,8 +49,18 @@ luau-lsp analyze --platform roblox --sourcemap sourcemap.json \
 	src/shared src/server src/ui src/visuals/shared src/visuals/client >raw.txt 2>&1
 set -e
 
-# One line per diagnostic, repo-relative, without the [game/...] instance path.
-grep -E "^($tmp/)?src/" raw.txt | sed -E "s#^$tmp/##; s# \[[^]]*\]##" | sort -u >errors.txt || true
+# One line per diagnostic, repo-relative, without the [game/...] instance path. On Windows luau-lsp prints
+# "c:\Users\...\Temp\tmp.X\src\..." for the file Git Bash calls /tmp/tmp.X/src/..., so backslashes become slashes and
+# everything up to the temp folder's own name is cut.
+tmpname="$(basename "$tmp" | sed 's/[.]/\\./g')" # a regex: mktemp's "tmp.XXXX" has a dot
+tr '\\' '/' <raw.txt >norm.txt
+grep -E "^(.*/$tmpname/)?src/" norm.txt | sed -E "s#^.*/$tmpname/##; s# \[[^]]*\]##" | sort -u >errors.txt || true
+# Errors on lines that name no checked file mean the path mapping is broken, not that the code is clean.
+if grep -E "TypeError|SyntaxError" norm.txt | grep -qvE "^(.*/$tmpname/|src/|lib/)"; then
+	echo "typecheck: luau-lsp errors that don't map to a file here; first lines:" >&2
+	grep -E "TypeError|SyntaxError" norm.txt | grep -vE "^(.*/$tmpname/|src/|lib/)" | head -5 >&2
+	exit 1
+fi
 
 count() { grep -cE "^$1" errors.txt || true; }
 owned=$(count "src/(server|shared)/")

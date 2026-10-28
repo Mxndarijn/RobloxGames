@@ -26,6 +26,7 @@ local CONTRACT_NAMES = {
 	"Goal",
 	"Secret",
 	"ErrorSoft",
+	"Click",
 	"Announce",
 	"WeeklyEvent",
 	"DailyReward",
@@ -58,7 +59,6 @@ local CONTRACT_NAMES = {
 	"SlimeSquish1",
 	"SlimeSquish2",
 	"SlimeSquish3",
-	"SlimeSquishLib",
 	"SlimeBlip1",
 	"SlimeBlip2",
 	"SlimeBlip3",
@@ -179,6 +179,26 @@ describe("Sounds tables", function()
 			expect(#names > 0).toBe(true)
 			for _, name in names do
 				expect(known(name)).toBe(true)
+			end
+		end
+	end)
+	it("VARY names known sounds that are not in a variant group (those vary already)", function()
+		for name, on in Sounds.VARY do
+			expect(known(name)).toBe(true)
+			expect(on).toBe(true)
+			for _, names in Sounds.VARIANTS do
+				expect(table.find(names, name)).toBe(nil)
+			end
+		end
+	end)
+	it("no two different sounds share one asset id", function()
+		local seen: { [string]: string } = {}
+		for name, id in Sounds.IDS do
+			if id ~= "" then
+				if seen[id] ~= nil then
+					error(`{name} and {seen[id]} share {id}`)
+				end
+				seen[id] = name
 			end
 		end
 	end)
