@@ -20,6 +20,7 @@ FACE = ("Eye", "Iris", "Pupil", "Mouth", "Teeth", "Tongue", "Cheek", "Brow", "La
         "Stache", "Lens", "Glint", "Bridge", "Visor", "Tooth", "Fang", "Tear", "Freckle", "Unibrow")
 EYES = ("Eye", "Iris", "Pupil")  # EyeHi*, EyeW*, EyeC* start with Eye too
 LID_IN = 0.15  # studs the hidden lids sit inside the body
+LID_OUT = 0.165  # studs the game moves them out to blink (ui/SlimeBones.LID_OUT): shown 0.015 over the face
 
 
 def _role(name):
@@ -50,8 +51,15 @@ def add_lids(parts):
         w = max(xs) - min(xs)
         side = 1 if u > 0 else -1
         try:  # an eye that isn't on the Body front (custom eyes, sockets) gets no lid
-            out.append(sp.decal(f"BlinkLid{side}", sp.arc(u, v + 0.02, w * 0.36, 200, 340, 0.08), sp.INK,
-                                off=-LID_IN, th=0.03, on=getattr(sp, "FACE_ON", None) or ["Body"]))
+            # built where it shows mid-blink (open eyes are hidden then, so they don't count), then sunk
+            lid = sp.decal(f"BlinkLid{side}", sp.arc(u, v + 0.02, w * 0.36, 200, 340, 0.08), sp.INK,
+                           off=LID_OUT - LID_IN, th=0.03, on=sp.PAINTED_ON.get(o.name) or getattr(sp, "FACE_ON", None) or ["Body"],
+                           ignore=EYES, register_it=False)
+            back = lid.matrix_world.inverted().to_3x3() @ (Vector(sp.FRONT.D).normalized() * -LID_OUT)
+            for vtx in lid.data.vertices:
+                vtx.co += back
+            lid.data.update()
+            out.append(lid)
         except ValueError:
             pass
     return out
@@ -66,6 +74,20 @@ def _hugs(o, body_bvh):
         if hit[0] is None or hit[3] > SKIN_GAP:
             return False
     return True
+
+
+def _carries(o, face_pts, body_bvh, reach=0.05):
+    from mathutils.bvhtree import BVHTree
+    import bmesh
+    bm = bmesh.new(); bm.from_mesh(o.data); bm.transform(o.matrix_world)
+    t = BVHTree.FromBMesh(bm); bm.free()
+    for p in face_pts:
+        hit = t.find_nearest(p, reach)
+        if hit[0] is not None:
+            b = body_bvh.find_nearest(p) if body_bvh else (None, None, None, 9.0)
+            if b[0] is None or hit[3] < b[3]:
+                return True
+    return False
 
 
 def tag_parts(parts):
@@ -95,6 +117,11 @@ def tag_parts(parts):
     for r in roles:  # a patch painted onto the skin (bib, emblem, moss) bends with the jelly like the face
         o, role, _ = r
         if role == "acc" and body_bvh and _hugs(o, body_bvh):
+            r[1] = "face"
+    face_pts = [o.matrix_world @ v.co for o, role, _ in roles if role in ("face", "Eyes") for v in o.data.vertices]
+    for r in roles:  # a part the face is painted on (pilot, eye bump, tiles) must bend like the face too
+        o, role, _ = r
+        if role == "acc" and face_pts and _carries(o, face_pts, body_bvh):
             r[1] = "face"
     for r in roles:
         o, role, key = r

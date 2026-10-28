@@ -62,7 +62,7 @@ def grid_decal(name, poly, color, frame=FRONT, off=0.008, th=0.012, on=None, ste
     o = obj_from_bm(name, bm, None if callable(color) else color)
     if callable(color):
         paint_fn(o, color)
-    return keep(o, False)
+    return separate(keep(o, False), frame, on, off=off)
 
 
 NAVY, NAVY_D, NAVY_L = hexc("27346e"), hexc("161d45"), hexc("3f55a8")
