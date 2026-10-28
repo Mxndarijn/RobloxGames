@@ -480,7 +480,7 @@ function Props.exclusiveJar(): Model
 	local axis = vec(WorldLayout.jarPoint(def.glassOrigin)) -- the glass mesh's bottom centre, on the jar's axis
 	local glass = meshSlot(m, "Glass", def.glass, axis)
 	glass:SetAttribute("MeshMaterial", WorldLayout.JAR_GLASS_MATERIAL)
-	glass:SetAttribute("MeshTransparency", WorldLayout.JAR_GLASS_MESH_TRANSPARENCY)
+	glass:SetAttribute("MeshTransparency", WorldLayout.EXCLUSIVE_JAR.glassTransparency)
 	glass:SetAttribute("MeshCastShadow", false)
 	local glassR, glassH = glass.Size.X / 2, glass.Size.Y
 	local glassTop = axis.Y + glassH

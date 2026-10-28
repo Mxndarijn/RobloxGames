@@ -320,7 +320,8 @@ WorldLayout.EXCLUSIVE_JAR = table.freeze({
 	signFace = table.freeze({ 0, -6.755, 8.151 }),
 	signSize = table.freeze({ 6.4, 1.4 }),
 	footprint = 9.6,
-	displayWidth = 2.2,
+	displayWidth = 3.2, -- the seats' own size: smaller ones vanish behind the glass
+	glassTransparency = 0.88, -- clearer than a base jar's glass, so the clouds inside read from the plaza
 })
 
 -- A kit point of the jar (Blender frame, native studs) in the stand's own frame at the stand's scale, the stand's
