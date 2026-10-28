@@ -41,13 +41,14 @@ src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts
   DataService (retries + session lock, backend injected), Leaderboard,
   PlotLookup (plot / pad by PlotIndex / PadIndex attribute), SlimeMesh
   (mesh look over ModelFactory, loader + factory injected), Rescue (kill plane),
-  PlotPrompts (plot prompt texts / lock + pad attributes, §8.5), Milestones
+  PlotPrompts (plot prompt texts / lock + pad attributes, §8.5), LockPad (the lock pad ring's stand timer and look,
+  §8.5), Milestones
   (goal + Slimedex payouts, §8.8), TestHooks (test sessions only, §8.12),
   HabitatPads (pad
   habitat state, FEATURES.Habitats), PodiumAvatars (top-3 podium rigs:
   description cache, fallback, debounced refresh; adapter injected)
   Roblox adapters: WorldView (models, prompts, plot attributes, HomeZone,
-  WalkSpeed, Speed Coil tool, kill-plane rescue), WorldProps (ItemShopStand,
+  WalkSpeed, Speed Coil tool, kill-plane rescue), LockPadView (the lock pad ring's parts), WorldProps (ItemShopStand,
   UpgradeShopStand, the Hall of Fame boards, arch and ProfessorGoo, TutorialNpc, §5.3, §27), FallbackWorld (greybox §5.3 if
   WorldBuilder is missing), PodiumRigs (R15 avatar rigs on Podium_1..3 in
   workspace.PodiumAvatars, BillboardGui NameLabel)
@@ -99,7 +100,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Merge:** the plot's merge vat brews three slimes of one rarity into one of a higher rarity (`VatState`, `TripleMerge`, §21).
 - **Steal and lock:**
   - On join, the plot is locked for `JOIN_LOCK_SECONDS` (120).
-  - `Request("Lock")` starts one free lock of `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s (at most `LOCK_MAX_SECONDS`, 4 min) in one go (`Steal.lockDuration`, `Steal.buyLock`). A lock can only start while none is running: while `lockUntil > now` the server refuses with `"your base is already locked"` and changes nothing (no extending, no stacking; the join lock counts). The `LockPrompt` is disabled while locked and comes back at expiry; its ObjectText `LOCKED m:ss` is the time left. Locks are started only on the owner's own plot (the `LockButton` prompt, or the HUD Lock button, which needs the player at their lock pad). No shop sells locks or longer locks.
+  - `Request("Lock")` starts one free lock of `LOCK_SECONDS + LOCK_SECONDS_PER_REBIRTH × rebirths` s (at most `LOCK_MAX_SECONDS`, 4 min) in one go (`Steal.lockDuration`, `Steal.buyLock`). A lock can only start while none is running: while `lockUntil > now` the server refuses with `"your base is already locked"` and changes nothing (no extending, no stacking; the join lock counts). The `LockPrompt` is disabled while locked and comes back at expiry; its ObjectText `LOCKED m:ss` is the time left. Locks are started only on the owner's own plot (the `LockButton` prompt, standing on the `LockPad` ring round it for `Config.LOCK_PAD.STAND_SECONDS` (§8.5), or the HUD Lock button, which needs the player at their lock button). No shop sells locks or longer locks.
   - Stealing pings the owner (Notify `"bad"` plus `SlimeView.stolenBy`).
   - **No time limit:** a thief can hold a stolen slime as long as they like. It escapes home only when the carrier is hit (the Bat or any PvP item that touches them), drops it, dies / respawns or leaves. A carried wild slime is dropped by the same hits and lands at the carrier's feet. The carried slime stays solid for everyone, the thief included. An escaped slime glides back to its pad (flat, no bounce, §37) for 1.5 s (`World.ESCAPE_BOUNCE_SECONDS`, model `State = "Escaping"`). It can't be stolen, sold or merged until it lands.
   - If the thief reaches their own `HomeZone` first, `Steal.complete` moves the slime to the thief.

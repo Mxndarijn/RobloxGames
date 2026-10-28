@@ -52,6 +52,8 @@ local HomeZone = require(ReplicatedStorage.Shared.HomeZone)
 local JarRoute = require(script.Parent.JarRoute)
 local KitDelivery = require(script.Parent.KitDelivery)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
+local LockPad = require(script.Parent.LockPad)
+local LockPadView = require(script.Parent.LockPadView)
 local MeshSwap = require(script.Parent.MeshSwap)
 local MoveWatch = require(script.Parent.MoveWatch)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
@@ -1664,6 +1666,14 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			setIfChanged(plot, Constants.PLOT_GUESTS_ATTRIBUTE, PlotGuests.encode(passes[index] or {}))
 			setBarrierSolid(plot, index, view.locked)
 			setOpenDoorSolid(plot, not view.locked)
+			LockPadView.update(
+				plot,
+				index,
+				WorldView.plotPromptPart(index, "Lock"),
+				if session
+					then LockPad.ring(now, session.lockUntil, session.lockStartedAt, session.lockPadSince)
+					else LockPad.ring(now, 0, 0, nil)
+			)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
 			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)
 			if Config.FEATURES.PlotSkins then
