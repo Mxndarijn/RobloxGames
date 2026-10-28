@@ -363,7 +363,7 @@ describe("stealing an egg", function()
 		thief.data.rebirths = kind("golden").rebirths
 		expect((StealService.steal(world, thief, "e", 2, T0))).toBe(true)
 		local alarm = ServerFixtures.notifications(world, 1)[1]
-		expect(string.find(alarm, "Golden Mystery Egg", 1, true) ~= nil).toBe(true)
+		expect(string.find(alarm, "is stealing your slime!", 1, true) ~= nil).toBe(true)
 		expect((Carry.deposit(world, 2, T0 + 5))).toBe(true)
 		local e = assert(PlayerData.findSlime(thief.data, "e"))
 		expect((e.egg :: any).hatchAt).toBe(T0 + 42)
