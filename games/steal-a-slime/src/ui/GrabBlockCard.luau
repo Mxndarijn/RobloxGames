@@ -7,6 +7,9 @@
 	bubble, and draws a small Goo glass card with the slime's name and the reason while ProximityPromptService
 	shows it. Once the reason goes away the prompt gets its Default style back.
 
+	The card hangs under the slime, its top edge just below the Body: a wild slime's name tag (SlimeInfoCard) sits
+	above the Body, so the two never cover each other.
+
 	The Style switch is local only (the server never writes Style). Holding the key on a blocked prompt still reaches
 	the server, which refuses it with the same reason as a toast.
 
@@ -35,7 +38,7 @@ GrabBlockCard.CARD = table.freeze({
 	reasonSize = 16,
 	radius = 18,
 	stroke = 3,
-	lift = 1, -- studs above the slime's Body top
+	drop = 0.3, -- studs between the slime's Body bottom and the card's top edge
 	maxDistance = 40,
 	bgTransparency = 0.06,
 })
@@ -79,6 +82,11 @@ function GrabBlockCard.setStyle(prompt: any, blocked: boolean, styles: Styles)
 	end
 end
 
+-- Studs from the Body's centre to the card's top edge: below the Body, clear of the name tag above it.
+function GrabBlockCard.offsetY(bodyHeight: number): number
+	return -(bodyHeight / 2 + GrabBlockCard.CARD.drop)
+end
+
 export type Options = {
 	root: Instance, -- where the slimes live (workspace)
 	prompts: ProximityPromptService,
@@ -97,7 +105,7 @@ function GrabBlockCard.start(opts: Options): { refresh: () -> (), stop: () -> ()
 		ResetOnSpawn = false,
 		LightInfluence = 0,
 		MaxDistance = C.maxDistance,
-		SizeOffset = Vector2.new(0, 0.5),
+		SizeOffset = Vector2.new(0, -0.5), -- top edge on the offset point: the card hangs down from it
 		Size = UDim2.fromOffset(C.w, C.pad * 2 + C.titleH + C.reasonH),
 		Parent = opts.playerGui,
 	}) :: BillboardGui
@@ -145,7 +153,7 @@ function GrabBlockCard.start(opts: Options): { refresh: () -> (), stop: () -> ()
 		reasonLabel.Text = text
 		local anchor = body:FindFirstChild(Constants.TAG_ANCHOR)
 		card.Adornee = if anchor and anchor:IsA("Attachment") then anchor else body
-		card.StudsOffsetWorldSpace = Vector3.new(0, body.Size.Y / 2 + C.lift, 0)
+		card.StudsOffsetWorldSpace = Vector3.new(0, GrabBlockCard.offsetY(body.Size.Y), 0)
 		card.Enabled = true
 	end
 
