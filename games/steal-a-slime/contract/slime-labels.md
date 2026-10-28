@@ -19,7 +19,8 @@ State field, no save-format change.
     nil while it is wild, carried or escaping.
   - `LabelHeight` (`Constants.LABEL_HEIGHT_ATTRIBUTE`): studs from the Body's centre to the tag's bottom edge:
     `Growth.labelOffset(top of the model's bounding box - Body centre)`, measured after every scale change (growth,
-    boss scale). The tag never covers the face or the Grab prompt, which sit on the Body.
+    boss scale). The tag never covers the face or the Grab prompt, which sit on the Body. A blocked Grab prompt's
+    reason card (`src/ui/GrabBlockCard`, "Not enough money") hangs under the Body, so it never covers the tag either.
   - Existing attributes the labels also read: `Price` (wild buy price; > 0 shows the price row), `Growth` (whole
     percent, the sign's bar), `Boss` (name prefixed `"BOSS "`).
 - **Pure values (`src/shared/SlimeLabel`).** `SlimeLabel.view(attrs) -> View?` turns the attributes into
