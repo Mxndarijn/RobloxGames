@@ -285,6 +285,53 @@ WorldLayout.SHOP_STANDS = table.freeze({
 	),
 }) :: { [string]: ShopStand }
 
+-- The Exclusive Shop carousel (FEATURES.ExclusiveShop, contract/exclusive-shop.md §7; WorldProps places it,
+-- Props.exclusiveCarousel builds it, the client's CarouselFx spins it). It completes the market row on the east ring
+-- (Upgrade Shop 34.5, Item Shop 67.5, Exclusive Shop 112.5): on the plot 3 / plot 4 bisector, facing the fountain, at
+-- `scale` (full size its footprint crosses the plot fronts). At that scale the footprint only fits at r 92.75-93,
+-- between the ring path (outer edge r 82) and the two plots' front corners (PropClearance); `radius` is the middle.
+-- Two kit meshes: `static` stands still, `spin` turns about its own vertical centre line. The points below are the
+-- kit's (out/ranch_exclusive_carousel_layout.json) in the Blender frame at native size (x right, y back, z up; the
+-- front faces -y), measured from each mesh's bottom centre; WorldLayout.carouselPoint turns one into the stand's frame.
+--   spinOrigin    the spin mesh's bottom centre in the static frame (the spin axis runs straight up through it)
+--   riders        the 8 saddle tops in the spin frame, round the poles (the featured seats ride there)
+--   counter       the ticket kiosk's counter top in the static frame, the kiosk turned `counterYaw` degrees
+--   kiosk         the kiosk's footprint (width, depth) and counter height, native studs
+--   deckTop       the deck's walk surface over the static bottom; deckRadius its radius
+-- `riderWidth` = the widest side of a rider (a seat template is scaled to it), stand studs.
+WorldLayout.EXCLUSIVE_CAROUSEL = table.freeze({
+	model = Constants.SHOP_STAND_EXCLUSIVE,
+	bearing = 112.5,
+	radius = 92.9,
+	scale = 0.9,
+	static = "ranch_exclusive_carousel_static",
+	spin = "ranch_exclusive_carousel_spin",
+	spinOrigin = table.freeze({ -1.747, 0.994, 1.05 }),
+	riders = table.freeze({
+		table.freeze({ 2.334, -5.636, 3.85 }),
+		table.freeze({ 5.636, -2.334, 2.65 }),
+		table.freeze({ 5.636, 2.334, 3.85 }),
+		table.freeze({ 2.334, 5.636, 2.65 }),
+		table.freeze({ -2.334, 5.636, 3.85 }),
+		table.freeze({ -5.636, 2.334, 2.65 }),
+		table.freeze({ -5.636, -2.334, 3.85 }),
+		table.freeze({ -2.334, -5.636, 2.65 }),
+	}),
+	counter = table.freeze({ 7.653, -7.206, 4.1 }),
+	counterYaw = 32,
+	kiosk = table.freeze({ width = 6.4, depth = 3, height = 3.6 }),
+	deckTop = 1.3,
+	deckRadius = 8.6,
+	riderWidth = 2.4,
+})
+
+-- A kit point of the carousel (Blender frame, native studs) in the stand's own frame at the stand's scale: Props
+-- Models face local -Z, the kit front faces -y, so (x, y, z) -> (-x, z, y) x scale.
+function WorldLayout.carouselPoint(p: { number }): Vec
+	local k = WorldLayout.EXCLUSIVE_CAROUSEL.scale
+	return { -p[1] * k, p[3] * k, p[2] * k }
+end
+
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
 -- two spokes. The shop and the Top Earners board face the fountain (Props
@@ -396,8 +443,8 @@ end
 -- UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
 -- The Upcoming Events wall (server/EventBoardView): a Hall of Fame board (Props.leaderboardBoard, its mesh) in the
 -- middle of the lawn between the plot 5 and 6 spokes (the 202.5 bisector, mid-lawn radius), right behind the hub
--- SpawnLocation (r 64 at 202.5), facing the fountain; that lawn holds nothing else (RanchProps moved its picnic table
--- and sunflowers to the 292.5 lawn).
+-- SpawnLocation (r 64 at 202.5), facing the fountain; beside it only the well and its pump, on the plot 6 side
+-- (RanchProps moved its picnic table and sunflowers to the 292.5 lawn).
 WorldLayout.EVENT_BOARD = table.freeze({ model = "EventBoard", bearing = 202.5, radius = 92.25, scale = 1.05 })
 
 local spots: { [string]: Spot } = {
@@ -405,6 +452,10 @@ local spots: { [string]: Spot } = {
 	UpgradeShopStand = propSpot(34.5, true, 96),
 	TutorialNpc = propSpot(247.5, true),
 }
+do
+	local carousel = WorldLayout.EXCLUSIVE_CAROUSEL
+	spots[carousel.model] = propSpot(carousel.bearing, true, carousel.radius)
+end
 do
 	local board = WorldLayout.EVENT_BOARD
 	local spot = propSpot(board.bearing, true, board.radius)

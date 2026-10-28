@@ -48,7 +48,15 @@ PropClearance.SPOT_RADIUS = 12
 -- Spots whose own corner is dressed (RanchProps "Guide*" rows stand round the Guide): their circle is the prop's own
 -- footprint, and the rows keep the walk-up side towards the plaza open.
 -- The Upcoming Events board (WorldLayout.EVENT_BOARD) is a flat 16-stud board: half its width.
-PropClearance.SPOT_RADII = table.freeze({ TutorialNpc = 3, EventBoard = 9 }) :: { [string]: number }
+-- The Exclusive Shop carousel (WorldLayout.EXCLUSIVE_CAROUSEL) is wider than 12: its whole scaled footprint (deck,
+-- kiosk and queue rope), half the static mesh's diagonal.
+local spotRadii: { [string]: number } = { TutorialNpc = 3, EventBoard = 9 }
+do
+	local carousel = WorldLayout.EXCLUSIVE_CAROUSEL
+	local size = WorldLayout.meshSize(carousel.static, carousel.scale)
+	spotRadii[carousel.model] = math.sqrt(size[1] ^ 2 + size[3] ^ 2) / 2
+end
+PropClearance.SPOT_RADII = table.freeze(spotRadii)
 
 function PropClearance.spotRadius(name: string): number
 	return PropClearance.SPOT_RADII[name] or PropClearance.SPOT_RADIUS

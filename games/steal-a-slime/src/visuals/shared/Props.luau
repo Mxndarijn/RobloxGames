@@ -13,6 +13,9 @@
 	      "UpgradeShop" (Props.STAND_STYLES) picks the stand's kit skin
 	      (WorldLayout.SHOP_STANDS) and its sign (mint or gold jelly); the
 	      Model's box is the skin's box.
+	  Props.exclusiveCarousel(): Model   "ExclusiveShopStand" (WorldLayout.EXCLUSIVE_CAROUSEL): the static and
+	      spin kit mesh slots with a primitive carousel standing in, a flat
+	      DeckCollider, PrimaryPart "Counter" (the ticket kiosk) for the ShopPrompt.
 	  Props.speedCoil(): Tool            "SpeedCoil"; "Handle" Part with
 	      welded coil rings, all Massless, CanCollide false, unanchored.
 	  Props.tutorialNpc(): Model         "TutorialNpc"; R6-ish primitives laid
@@ -28,6 +31,7 @@
 	      Value labels), at most Props.LEADERBOARD_ROWS.
 ]]
 
+local Constants = if script then require(script.Parent.Parent.Shared.Constants) else require("../../shared/Constants")
 local Goo = if script then require(script.Parent.Parent.Shared.GooPalette) else require("../../shared/GooPalette")
 local GooIcons = if script then require(script.Parent.Parent.Shared.GooIcons) else require("../../shared/GooIcons")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
@@ -361,6 +365,229 @@ function Props.shopStand(style: string): Model
 		)
 		jar.CastShadow = false
 	end
+	return finish(m, counter)
+end
+
+-- Exclusive Shop carousel -----------------------------------------------------
+
+-- The primitive carousel's colours (RGB): a lilac and butter striped canopy, a lilac deck, gold poles, a plum skirt.
+Props.CAROUSEL_COLORS = table.freeze({
+	Lilac = table.freeze({ 190, 160, 240 }),
+	LilacHi = table.freeze({ 222, 206, 255 }),
+	Butter = table.freeze({ 255, 230, 150 }),
+	Gold = table.freeze({ 255, 210, 63 }),
+	Plum = table.freeze({ 120, 70, 150 }),
+	Wood = table.freeze({ 196, 140, 90 }),
+	Trophy = table.freeze({ 108, 242, 194 }),
+})
+Props.CAROUSEL_CANOPY_SEGMENTS = 8
+
+-- A carousel primitive that only shows until its kit mesh loads (server/MeshSwap hides MeshStandIn parts).
+local function standIn(p: BasePart, mesh: string, solid: boolean?): BasePart
+	p:SetAttribute("MeshStandIn", mesh)
+	p.CanCollide = solid == true
+	if not solid then
+		p.CanQuery = false
+		p.CanTouch = false
+	end
+	return p
+end
+
+-- An invisible MeshAsset slot exactly the kit mesh's box at the stand's scale, kit front (slot +Z, MeshSwap's import
+-- turn) on the stand's front (-Z).
+local function meshSlot(parent: Instance, name: string, mesh: string, bottom: Vector3): Part
+	local size = WorldLayout.meshSize(mesh, WorldLayout.EXCLUSIVE_CAROUSEL.scale)
+	local slot = part(
+		parent,
+		name,
+		Vector3.new(size[1], size[2], size[3]),
+		CFrame.new(bottom + Vector3.new(0, size[2] / 2, 0)) * CFrame.Angles(0, math.pi, 0),
+		rgb(255, 255, 255),
+		{ transparency = 1, canCollide = false }
+	)
+	slot.CanQuery = false
+	slot.CanTouch = false
+	slot:SetAttribute("MeshAsset", mesh)
+	return slot
+end
+
+local function vec(p: { number }): Vector3
+	return Vector3.new(p[1], p[2], p[3])
+end
+
+-- The Exclusive Shop stand (WorldLayout.EXCLUSIVE_CAROUSEL, contract/exclusive-shop.md §7): Model
+-- "ExclusiveShopStand", pivot at the static mesh's bottom centre, front -Z, at the layout's scale. Children:
+--   Static        MeshAsset slot of the static kit mesh; the striped cone canopy, rim, trophy slime and skirt stand
+--                 in for it
+--   ExclusiveCarouselSpin  MeshAsset slot of the spin kit mesh, on the spin axis (its centre line); the deck, drum and
+--                 8 poles are its children, so the client turns them together. Never collides.
+--   DeckCollider  the invisible flat deck players stand on (the turning deck never collides)
+--   Counter       PrimaryPart: the ticket kiosk (solid), its top the kit's counter top, turned like the kiosk; the
+--                 ShopPrompt goes on it (server/WorldProps). Roof and posts over it.
+function Props.exclusiveCarousel(): Model
+	local def = WorldLayout.EXCLUSIVE_CAROUSEL
+	local k = def.scale
+	local C = Props.CAROUSEL_COLORS
+	local m = Instance.new("Model")
+	m.Name = def.model
+	local static = meshSlot(m, "Static", def.static, Vector3.zero)
+	local spinBottom = vec(WorldLayout.carouselPoint(def.spinOrigin))
+	local spin = meshSlot(m, Constants.EXCLUSIVE_CAROUSEL_SPIN, def.spin, spinBottom)
+	local axis = Vector3.new(spinBottom.X, 0, spinBottom.Z)
+	local deckTop, deckR = def.deckTop * k, def.deckRadius * k
+	local poleTop = spinBottom.Y + spin.Size.Y
+
+	-- Static stand-ins: the skirt under the deck, the canopy over the poles, the trophy slime on top.
+	standIn(
+		part(
+			m,
+			"Skirt",
+			Vector3.new(deckTop - 0.3, deckR * 2 + 0.4, deckR * 2 + 0.4),
+			CFrame.new(axis + Vector3.new(0, (deckTop - 0.3) / 2, 0)) * UPRIGHT,
+			ink(C.Plum),
+			{
+				shape = "Cylinder",
+			}
+		),
+		def.static
+	)
+	local collider = part(
+		m,
+		"DeckCollider",
+		Vector3.new(deckTop, deckR * 2, deckR * 2),
+		CFrame.new(axis + Vector3.new(0, deckTop / 2, 0)) * UPRIGHT,
+		ink(C.Lilac),
+		{ shape = "Cylinder", transparency = 1 }
+	)
+	collider.CanTouch = false
+	local canopyR, canopyH = deckR + 0.6, 4.6 * k
+	local segments = Props.CAROUSEL_CANOPY_SEGMENTS
+	local chord = 2 * canopyR * math.tan(math.pi / segments) * 1.02
+	for i = 1, segments do
+		-- A wedge's tall back edge on the axis, its slope running down and out (its front, -Z, faces outward).
+		local a = (i - 0.5) * 2 * math.pi / segments
+		local out = Vector3.new(math.sin(a), 0, math.cos(a))
+		local wedge = Instance.new("WedgePart")
+		wedge.Name = `Canopy{i}`
+		wedge.Size = Vector3.new(chord, canopyH, canopyR)
+		wedge.CFrame = CFrame.new(axis + out * (canopyR / 2) + Vector3.new(0, poleTop + canopyH / 2, 0))
+			* CFrame.Angles(0, a + math.pi, 0)
+		wedge.Color = ink(if i % 2 == 0 then C.Butter else C.Lilac)
+		wedge.Material = Enum.Material.Fabric
+		wedge.TopSurface = Enum.SurfaceType.Smooth
+		wedge.BottomSurface = Enum.SurfaceType.Smooth
+		wedge.Anchored = true
+		wedge.Parent = m
+		standIn(wedge, def.static)
+	end
+	standIn(
+		part(
+			m,
+			"CanopyRim",
+			Vector3.new(0.7, canopyR * 2, canopyR * 2),
+			CFrame.new(axis + Vector3.new(0, poleTop - 0.1, 0)) * UPRIGHT,
+			ink(C.Gold),
+			{
+				shape = "Cylinder",
+			}
+		),
+		def.static
+	)
+	standIn(
+		part(
+			m,
+			"Trophy",
+			Vector3.one * 2.2 * k,
+			CFrame.new(axis + Vector3.new(0, poleTop + canopyH + 1.1 * k, 0)),
+			ink(C.Trophy),
+			{
+				shape = "Ball",
+			}
+		),
+		def.static
+	)
+
+	-- Spin stand-ins, children of the spin slot: the deck, the drum round the axis and a pole through each rider spot.
+	standIn(
+		part(
+			spin,
+			"Deck",
+			Vector3.new(0.35, deckR * 2, deckR * 2),
+			CFrame.new(axis + Vector3.new(0, deckTop - 0.175, 0)) * UPRIGHT,
+			ink(C.LilacHi),
+			{
+				shape = "Cylinder",
+			}
+		),
+		def.spin
+	)
+	local drumH = poleTop - deckTop
+	standIn(
+		part(
+			spin,
+			"Drum",
+			Vector3.new(drumH, 4 * k, 4 * k),
+			CFrame.new(axis + Vector3.new(0, deckTop + drumH / 2, 0)) * UPRIGHT,
+			ink(C.Butter),
+			{
+				shape = "Cylinder",
+			}
+		),
+		def.spin
+	)
+	for i, rider in def.riders do
+		local at = vec(WorldLayout.carouselPoint(rider))
+		standIn(
+			part(
+				spin,
+				`Pole{i}`,
+				Vector3.new(drumH, 0.36, 0.36),
+				CFrame.new(axis.X + at.X, deckTop + drumH / 2, axis.Z + at.Z) * UPRIGHT,
+				ink(C.Gold),
+				{
+					shape = "Cylinder",
+					material = "Metal",
+				}
+			),
+			def.spin
+		)
+	end
+
+	-- The ticket kiosk: a solid counter (the prompt's part) turned like the kit's, a roof on two back posts.
+	local top = vec(WorldLayout.carouselPoint(def.counter))
+	local kiosk = CFrame.new(top.X, 0, top.Z) * CFrame.Angles(0, math.rad(def.counterYaw), 0)
+	local kw, kd = def.kiosk.width * k, def.kiosk.depth * k
+	local counter = part(m, "Counter", Vector3.new(kw, top.Y, kd), kiosk * CFrame.new(0, top.Y / 2, 0), ink(C.Wood), {
+		material = "WoodPlanks",
+	})
+	standIn(counter, def.static, true)
+	local postH = 7.4 * k
+	for side, x in { L = kw / 2 - 0.2, R = -(kw / 2 - 0.2) } do
+		standIn(
+			part(
+				m,
+				`KioskPost{side}`,
+				Vector3.new(0.4, postH, 0.4),
+				kiosk * CFrame.new(x, postH / 2, kd / 2 - 0.3),
+				ink(C.Gold)
+			),
+			def.static
+		)
+	end
+	standIn(
+		part(
+			m,
+			"KioskRoof",
+			Vector3.new(kw + 0.4, 0.3, kd + 1),
+			kiosk * CFrame.new(0, postH - 0.2, 0) * CFrame.Angles(math.rad(-14), 0, 0),
+			ink(C.Plum),
+			{
+				material = "Fabric",
+			}
+		),
+		def.static
+	)
+	static.CastShadow = false
 	return finish(m, counter)
 end
 

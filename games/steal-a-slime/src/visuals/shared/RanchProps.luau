@@ -102,6 +102,8 @@ RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
 	ranch_fence_20 = "plot fence panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
 	phoenix_fence_segment = "plot fence half panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
 	phoenix_gate = "plot gate: the goo jar tower's door and bridge are the plot entrance (CONTRACT.md §5.3), no gate slot",
+	ranch_exclusive_carousel_static = "Exclusive Shop carousel (FEATURES.ExclusiveShop): server/WorldProps builds the ExclusiveShopStand at runtime with this mesh's slot (WorldLayout.EXCLUSIVE_CAROUSEL), no static slot",
+	ranch_exclusive_carousel_spin = "Exclusive Shop carousel (FEATURES.ExclusiveShop): the ExclusiveCarouselSpin slot of the runtime ExclusiveShopStand, spun by the client (CarouselFx), no static slot",
 }) :: { [string]: string }
 
 local rows: { Placement } = {}
@@ -130,14 +132,15 @@ end
 -- prop per plot (a lantern or a mailbox). No second copies of a decorative piece.
 
 -- Plaza edge -------------------------------------------------------------
--- Vignettes on the free bisectors (22.5, 112.5, 292.5, 337.5) and a planter beside the shop (67.5) PROP_SPOT.
--- The 202.5 lawn is the Upcoming Events board's (WorldLayout.EVENT_BOARD), so its picnic table and sunflowers flank
--- the horseshoe pit on the 292.5 lawn.
+-- Vignettes on the free bisectors (22.5, 292.5, 337.5) and a planter beside the shop (67.5) PROP_SPOT. The 112.5
+-- bisector is the Exclusive Shop carousel's (WorldLayout.EXCLUSIVE_CAROUSEL). The 202.5 lawn is the Upcoming Events
+-- board's (WorldLayout.EVENT_BOARD), so its picnic table and sunflowers flank the horseshoe pit on the 292.5 lawn; the
+-- well and its pump stand on that lawn's plot 6 side, between the board and the plot 6 entrance, by the ring path.
 polar("Campfire", "ranch_campfire", "plaza", 22.5, 92, 180, 1.3)
 polar("CampBench", "ranch_bench", "plaza", 16.5, 92, 90, 1.2)
 rows[#rows].face = "Campfire"
-polar("Well", "ranch_well", "plaza", 112.5, 92, 180, 1.2)
-polar("WellPump", "ranch_water_pump", "plaza", 120, 91, 180, 1.2)
+polar("Well", "ranch_well", "plaza", 211.75, 92, 180, 1.2)
+polar("WellPump", "ranch_water_pump", "plaza", 216.25, 93, 180, 1.2)
 polar("PicnicTable", "ranch_picnic_table", "plaza", 301.5, 90, 180, 1.2)
 polar("Sunflowers", "ranch_sunflower_patch", "plaza", 300, 97.5, 180, 1)
 polar("HorseshoePit", "ranch_horseshoe_pit", "plaza", 292.5, 90, 180, 1.2)

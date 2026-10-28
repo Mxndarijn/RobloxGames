@@ -560,7 +560,7 @@ parts(
 parts(
 	"decor_mushrooms",
 	"jolt",
-	13,
+	12,
 	"colliders",
 	DECOR,
 	{ "^Mushroom%d+$" },
@@ -890,6 +890,14 @@ local UNPLACED: { [string]: { string } } = {
 		"a pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
 	},
 	ranch_bat = { "jolt", "the held Bat tool's Handle (BatTool), never a world slot; a tool has no collision" },
+	ranch_exclusive_carousel_static = {
+		"gojo",
+		"the Exclusive Shop carousel (FEATURES.ExclusiveShop, off): WorldProps builds it at runtime; decor over its DeckCollider and solid kiosk Counter",
+	},
+	ranch_exclusive_carousel_spin = {
+		"gojo",
+		"the Exclusive Shop carousel's turning deck (FEATURES.ExclusiveShop, off): client-turned decor, never collides",
+	},
 	ranch_border_fence_broken = { "jolt", "border piece not used by WorldBorder.CHUNKS / DEFS" },
 	ranch_border_hedge_stepped = { "jolt", "border piece not used by WorldBorder.DEFS" },
 	ranch_border_pine_twin = { "jolt", "border piece not used by WorldBorder.DEFS" },
