@@ -15,7 +15,10 @@ DISC_Z = HEIGHT - DISC_R
 def stick():
     prof = [(0.0, 0.0), (0.26, 0.0), (0.36, 0.12), (0.38, 0.3), (0.3, 0.52),  # pommel bead
             (0.27, 0.62), (0.27, 0.8), (0.29, 0.86), (0.29, 1.74), (0.27, 1.8),  # ribbon grip
-            (0.22, 1.86), (0.22, DISC_Z), (0.0, DISC_Z + 0.1)]
+            (0.22, 1.86), (0.22, DISC_Z - DISC_R + 0.12),
+            # inside the candy: taper so the stick stays thinner than the lens and ends below its centre (a stick
+            # running to the centre at full width pokes out of both faces, where the lens is thinnest)
+            (0.13, DISC_Z - DISC_R * 0.62), (0.0, DISC_Z - DISC_R * 0.5)]
 
     def col(i, k, c):
         if 0.82 < c.z < 1.78:

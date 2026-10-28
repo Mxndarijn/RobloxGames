@@ -509,7 +509,7 @@ entries["ranch_bat"] =
 -- collision, NOT world slots. Not uploaded yet: no ids, so the Handle keeps the default Bat. size = kit bbox (studs).
 -- models/bat_skin_<id>.py.
 entries["bat_skin_lollipop"] =
-	{ assetId = 94349711264908, meshId = "rbxassetid://131341946626327", size = { 2.079, 5.09, 0.76 } } -- 808 tris
+	{ assetId = 94349711264908, meshId = "rbxassetid://125426334354361", size = { 2.079, 5.09, 0.76 } } -- 808 tris
 entries["bat_skin_fish"] =
 	{ assetId = 131245947199367, meshId = "rbxassetid://77117254245604", size = { 1.992, 5.089, 1.074 } } -- 740 tris
 entries["bat_skin_foam_finger"] =
