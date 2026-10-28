@@ -14,6 +14,7 @@ StealAlertLayout.LABEL_W = 120 -- the "Thief" label under it (centred on the arr
 StealAlertLayout.LABEL_DROP = 26 -- label top below the arrow centre
 StealAlertLayout.LABEL_H = 18
 StealAlertLayout.FLASH = 40 -- edge flash thickness where nothing hugs the edge
+StealAlertLayout.PING_FILL_TRANSPARENCY = 0.7 -- the red tint inside the thief's outline
 
 -- The box the arrow (with its distance label) stays in: right of the nav, under the shown
 -- banner stack (`bannerH`), `Layout.MARGIN` from the other edges.

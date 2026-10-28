@@ -97,13 +97,17 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 			wild = wild,
 			promptText = Carry.actionText(wild.price),
 			promptHold = Carry.holdDuration(wild.price),
-			promptEnabled = carrier == nil and (not boss or (bossPhase == "haul" and not shrinking)),
+			promptEnabled = carrier == nil
+				and wild.smashedAt == nil
+				and (not boss or (bossPhase == "haul" and not shrinking)),
 			hideFromUserId = nil,
 			guestsOnly = nil,
 			boss = boss,
 			bossScale = bossScale,
 			rare = wild.rare,
-			despawnAt = if carrier or boss
+			despawnAt = if carrier
+					or boss
+					or wild.smashedAt
 				then nil
 				else DespawnTelegraph.attributeValue(
 					now,
@@ -115,7 +119,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 			hatchText = nil,
 			hatch = nil,
 			lucky = nil,
-			key = `{state}|{carrier or 0}|{wild.position ~= nil}|{wild.spawnedAt}|{bossScale or 1}`,
+			key = `{state}|{carrier or 0}|{wild.position ~= nil}|{wild.spawnedAt}|{bossScale or 1}|{wild.smashedAt or 0}`,
 		}
 	end
 

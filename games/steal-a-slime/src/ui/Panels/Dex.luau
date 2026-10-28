@@ -994,12 +994,8 @@ function Dex.new(parent: Instance, ctx: any)
 					selected[currentTab] = first.key
 				end
 			end
-			local items: { Item } = {}
-			for _, line in SlimeDex.lines(cards, grid().columns, ctx.Config) do
-				table.insert(items, { key = line.key, line = line })
-			end
-			rows.sync(items)
-			-- Cards of other tabs leave the grid (kept for when their tab comes back).
+			-- Cards of other tabs leave the grid (kept for when their tab comes back) before the sync, which
+			-- destroys the lines they sat in.
 			local shown: { [string]: boolean } = {}
 			for _, card in cards do
 				shown[card.key] = true
@@ -1009,6 +1005,11 @@ function Dex.new(parent: Instance, ctx: any)
 					v.instance.Parent = nil
 				end
 			end
+			local items: { Item } = {}
+			for _, line in SlimeDex.lines(cards, grid().columns, ctx.Config) do
+				table.insert(items, { key = line.key, line = line })
+			end
+			rows.sync(items)
 			paintSelection()
 		end
 		refreshPreviews()

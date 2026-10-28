@@ -4,7 +4,7 @@
 
 ## 40.1 What it is
 
-Now and then the fountain drops a **Mystery Egg** instead of a slime. It rides the lane like a wild slime and is grabbed, carried, dropped and slapped loose the same way, but it is always **free to grab** (once your rebirths reach the kind's rank, 40.3) and it **can't be sold** (so there is no buy-then-sell loop). Once it is on a pad it **incubates**: after the egg's hatch time (real time, also while the owner is offline) it is **ready**, and the owner holds **Hatch** to get the slime inside. Incubating and ready eggs **can be stolen** like slimes, and the thief keeps the progress. While the owner stands in their own HomeZone, their eggs incubate `WARM_SPEED` x faster.
+Now and then the fountain drops a **Mystery Egg** instead of a slime. It rides the lane like a wild slime and is grabbed and carried the same way, but a wild egg that is dropped or slapped loose **smashes** (40.7) instead of walking back to the lane. It is always **free to grab** (once your rebirths reach the kind's rank, 40.3) and it **can't be sold** (so there is no buy-then-sell loop). Once it is on a pad it **incubates**: after the egg's hatch time (real time, also while the owner is offline) it is **ready**, and the owner holds **Hatch** to get the slime inside. Incubating and ready eggs **can be stolen** like slimes, and the thief keeps the progress. While the owner stands in their own HomeZone, their eggs incubate `WARM_SPEED` x faster.
 
 The hatch is a show on the pad (40.6): the egg rocks, cracks and bursts and the slime pops out, and every nearby player sees it.
 
@@ -63,3 +63,9 @@ An egg never goes in the merge vat ("Eggs can't go in the vat", §21) and is nev
   4. **Pop** (when the slime model reaches the client): the real slime is hidden locally (`LocalTransparencyModifier`; parts the server adds meanwhile too) and sets the client-local attribute **`HatchPopping`** while a local copy springs up from tiny with an overshoot; then the real one shows again. Nothing rescales the real model. Epic and up get a light pillar; a rarity title ("LEGENDARY!", "LUCKY! MYTHIC!") floats up.
 - `SlimeInfoCard` hides the label of a model whose `HatchedAt` is less than `HATCH_REVEAL_SECONDS` old or that has `HatchPopping`.
 - Nothing in the show replicates or decides anything.
+
+## 40.7 A dropped wild egg smashes
+
+- **Server.** When a carry of a wild egg ends without a deposit (`CarryDrop.release`: a drop, a slap or PvP hit, the carrier leaving), the egg does not walk back to the lane: `World.Wild.smashedAt = now`, no return walk, and it is removed `MYSTERY_EGG.SMASH_SECONDS` later (`expiresAt`). Meanwhile it lies where it fell, can't be grabbed (`Carry.grabWild` refuses with "the egg smashed"), its prompt is off and it has no despawn telegraph. A hit carrier hears "You got bonked! The <egg name> smashed." A stolen egg is not wild: it still escapes home to its owner's pad.
+- The egg model carries **`EggSmashedAt`** (server time of the smash) while it lies there.
+- **Client** `EggSmashFx` (`src/visuals/client`) for every viewer within `EggSmashFx.MAX_DISTANCE` that sees the attribute less than `EggSmashFx.LATE_SECONDS` old: the real egg (and its label) is hidden locally and a local copy drops from where it was to the ground with gravity, smacks into it with a squash, then bursts into tumbling shell shards that bounce and fade, a goo splat in the kind's glow colour, a dust ring, sparks and a crack sound. Nothing in it replicates or decides anything.

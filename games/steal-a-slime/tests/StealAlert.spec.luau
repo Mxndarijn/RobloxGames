@@ -90,6 +90,25 @@ describe("StealAlert flash and alarm", function()
 	end)
 end)
 
+describe("StealAlert.thieves", function()
+	it("lists everyone carrying one of my slimes, each once, in slime order", function()
+		local slimes = {
+			{ stolenBy = 7 },
+			{},
+			{ stolenBy = 3 },
+			{ stolenBy = 7 },
+		}
+		local ids = StealAlert.thieves(slimes)
+		expect(#ids).toBe(2)
+		expect(ids[1]).toBe(7)
+		expect(ids[2]).toBe(3)
+	end)
+	it("is empty with no theft or no slimes", function()
+		expect(#StealAlert.thieves({ {}, {} })).toBe(0)
+		expect(#StealAlert.thieves(nil)).toBe(0)
+	end)
+end)
+
 describe("StealAlert log and summary", function()
 	it("records thefts and drops the oldest past LOG_CAP", function()
 		local log: { StealAlert.Entry } = {}

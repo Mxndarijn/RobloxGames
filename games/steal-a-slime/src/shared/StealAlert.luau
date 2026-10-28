@@ -77,6 +77,24 @@ function StealAlert.alarmDue(t: number): number
 	return math.min(cfg.ALARM_REPEATS, math.floor(t / cfg.ALARM_REPEAT))
 end
 
+-- Everyone carrying one of my slimes away (State `slimes[i].stolenBy`), each once, in slime order. The
+-- owner's client outlines each of them in red until they are done (ui/StealAlertFx).
+function StealAlert.thieves(slimes: { any }?): { number }
+	local out: { number } = {}
+	local seen: { [number]: boolean } = {}
+	if slimes == nil then
+		return out
+	end
+	for _, view in slimes do
+		local id = if type(view) == "table" then view.stolenBy else nil
+		if type(id) == "number" and not seen[id] then
+			seen[id] = true
+			table.insert(out, id)
+		end
+	end
+	return out
+end
+
 ---------------------------------------------------------------------------
 -- Saved steal log and the join notice
 ---------------------------------------------------------------------------

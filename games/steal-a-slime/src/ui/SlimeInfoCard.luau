@@ -307,6 +307,7 @@ end
 WATCHED[Constants.LABEL_HEIGHT_ATTRIBUTE] = true
 WATCHED[Constants.HATCHED_AT_ATTRIBUTE] = true
 WATCHED[Constants.HATCH_POPPING_ATTRIBUTE] = true
+WATCHED[Constants.EGG_SMASHED_AT_ATTRIBUTE] = true
 
 export type Options = {
 	collection: CollectionService,
@@ -369,7 +370,11 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 		entry.view = nil
 		-- A slime that just hatched keeps its label hidden until the hatch show reveals it.
 		local hatchedAt = model:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE)
-		if model:GetAttribute(Constants.HATCH_POPPING_ATTRIBUTE) == true then
+		-- A hatching slime and a dropped wild egg that smashed (contract/mystery-egg.md 40.7) show no label.
+		if
+			model:GetAttribute(Constants.HATCH_POPPING_ATTRIBUTE) == true
+			or model:GetAttribute(Constants.EGG_SMASHED_AT_ATTRIBUTE) ~= nil
+		then
 			view = nil
 		elseif view and hatchedAt ~= nil and SlimeLabel.hiddenByHatch(hatchedAt, workspace:GetServerTimeNow()) then
 			view = nil

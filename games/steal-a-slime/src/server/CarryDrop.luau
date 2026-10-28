@@ -4,7 +4,8 @@
 
 	Ending a carry without a deposit, and the rule that a hit makes the carrier drop whatever they hold.
 
-	* release: ends any carry. Wild -> lands at `position`; the hauled boss lies on the spot; stolen -> escapes home.
+	* release: ends any carry. Wild -> lands at `position`; a wild egg smashes there; the hauled boss lies on the
+	  spot; stolen -> escapes home.
 	* knockLoose: the carrier was hit (Bat, PvP item). Same as release, with the "you got bonked" toasts.
 	* slap: a Bat hit on a carrier (reach SLAP_REACH, the slap cooldown), then knockLoose.
 
@@ -14,6 +15,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
@@ -42,7 +44,9 @@ end
 	Ends any carry. Wild -> lands at `position` (opaque, adapter-defined; a
 	Vector3 in the server). A position with numeric X / Z walks back to the
 	parade lane (FEATURES.Parade); any other rests there with a fresh
-	lifetime. Stolen -> escapes home. `reason` is passed to
+	lifetime. A wild Mystery Egg smashes instead: it lies there for
+	MYSTERY_EGG.SMASH_SECONDS (contract/mystery-egg.md 40.7), then goes.
+	Stolen -> escapes home. `reason` is passed to
 	StealService.escape ("drop", "left", "slap", ...).
 ]]
 function CarryDrop.release(world: World, userId: number, now: number, position: any?, reason: string): boolean
@@ -69,6 +73,11 @@ function CarryDrop.release(world: World, userId: number, now: number, position: 
 				BossFight.drop(world.boss.fight)
 			end
 			World.markAllDirty(world)
+		elseif wild.slime.egg then
+			wild.smashedAt = now
+			wild.returning = nil
+			wild.choreo = nil
+			wild.expiresAt = now + Config.MYSTERY_EGG.SMASH_SECONDS
 		else
 			local lifetime = Fountain.wildLifetime(wild.slime)
 			local x, z = spotOf(position)
@@ -102,7 +111,10 @@ function CarryDrop.knockLoose(world: World, victim: Session, now: number, positi
 	CarryDrop.release(world, victim.userId, now, position, "slap")
 	if carry.kind ~= "stolen" then
 		local name = if carry.boss then "boss" else Genome.displayName(carry.slime)
-		World.notify(world, victim.userId, `You got bonked! You dropped the {name}.`, "bad", "Slap", "Slap")
+		local text = if carry.kind == "wild" and carry.slime.egg
+			then `You got bonked! The {name} smashed.`
+			else `You got bonked! You dropped the {name}.`
+		World.notify(world, victim.userId, text, "bad", "Slap", "Slap")
 	end
 	return carry.slimeId
 end
