@@ -2,7 +2,7 @@
 
 Create these on the Creator Dashboard for the Steal a Slime experience (universe 10770917350): **Monetization > Developer Products** and **Monetization > Passes**. Use the name, description and price below. Then paste each new id into the `productId` / `passId` of the same key in `src/shared/Config.luau` (`EXCLUSIVE_SHOP`), or send the list to Claude and it fills them in.
 
-While an id is 0 the shop shows the price with "Not on sale yet". Create the **passes off sale** until `FEATURES.ExclusiveShop` is turned on: a pass on sale shows in the experience's Store tab, and it would do nothing while the flag is off. Developer Products can only be bought from inside the game, so they are safe to create now.
+While an id is 0 the shop shows the price with "Not on sale yet". Create the **passes off sale** until their ids are in `Config.EXCLUSIVE_SHOP.passes`: a pass on sale shows in the experience's Store tab, and it would do nothing while its id is 0. Developer Products can only be bought from inside the game, so they are safe to create now.
 
 Prices must match the `robux` in Config (the shop shows that number).
 

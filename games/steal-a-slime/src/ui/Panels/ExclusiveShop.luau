@@ -16,7 +16,7 @@
 	State.exclusiveShop says the seat is owned, the pane shows "Bought" with Equip (Request EquipPetSeat). An item
 	without a Roblox id yet shows its price and a disabled "Not on sale yet". The server Luck Potion (Boosts) shows
 	only where paid random items are allowed and has a "Details" button with its effect and the fountain odds
-	without and with it. Without State.exclusiveShop (FEATURES.ExclusiveShop off) the card is one closed line.
+	without and with it. Without State.exclusiveShop (before the first State) the card is one closed line.
 
 	Style: carry trails and Bat skins, bought like a seat; owned ones Equip (EquipTrail / EquipBatSkin) and the worn one
 	has a secondary "Unequip" / "Use default Bat" (the request with ""). Every cosmetic (cloud, trail, Bat skin) has a

@@ -38,7 +38,6 @@ local function setup(opts: { saveOk: boolean?, owns: { [number]: boolean }?, res
 		changed = function()
 			calls.changed += 1
 		end,
-		ctx = { features = { ExclusiveShop = o.on ~= false } },
 		attempts = 1,
 	})
 	return world, service, calls, function(ok: boolean)
@@ -47,15 +46,12 @@ local function setup(opts: { saveOk: boolean?, owns: { [number]: boolean }?, res
 end
 
 describe("PurchaseService receipts", function()
-	it("is not processed yet for a player who is not loaded, an unknown product id or while the flag is off", function()
+	it("is not processed yet for a player who is not loaded, an unknown product id ", function()
 		local world, service = setup()
 		expect(service.grantProduct(5, "Seat_ufo", "p1")).toBe("NotProcessedYet")
 		ServerFixtures.join(world, 1)
 		expect(service.processReceipt({ PlayerId = 1, ProductId = 123, PurchaseId = "p1" })).toBe("NotProcessedYet")
 		expect(service.processReceipt({ PlayerId = 1, ProductId = 0, PurchaseId = "p1" })).toBe("NotProcessedYet")
-		local offWorld, off = setup({ on = false })
-		ServerFixtures.join(offWorld, 1)
-		expect(off.grantProduct(1, "Seat_ufo", "p1")).toBe("NotProcessedYet")
 	end)
 	it("grants, records and saves once; the same PurchaseId again is granted without a second grant", function()
 		local world, service, calls = setup()

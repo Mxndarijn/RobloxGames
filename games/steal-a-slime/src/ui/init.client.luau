@@ -717,7 +717,7 @@ local function setOpen(key: string?)
 end
 
 -- The Exclusive shop on card `key` ("seat:ufo"; nil = Featured), `withDetails` with its odds open. Only while
--- State has the shop (FEATURES.ExclusiveShop).
+-- State has the shop.
 function ctx.openExclusiveShop(key: string?, withDetails: boolean?)
 	if latest and latest.exclusiveShop then
 		panelByKey.ExclusiveShop.show(key, withDetails)
@@ -906,7 +906,7 @@ local slimeKeys = SlimeKeys.start({
 	style = Enum.ProximityPromptStyle.Custom,
 	moveKey = if slimeMove then SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.move) else nil,
 	onMove = if slimeMove then slimeMove.start else nil,
-	-- FEATURES.ExclusiveShop (State.exclusiveShop): "Hatch now" on an incubating egg, or "Use credit".
+	-- State.exclusiveShop: "Hatch now" on an incubating egg, or "Use credit".
 	hatchNow = {
 		key = SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.hatch),
 		quick = function(slimeId: string, state: any): any
@@ -927,7 +927,7 @@ local slimeKeys = SlimeKeys.start({
 	},
 })
 
--- FEATURES.ExclusiveShop (State.exclusiveShop): "Open locked door" / "Use lock break" on other players' locked doors.
+-- State.exclusiveShop: "Open locked door" / "Use lock break" on other players' locked doors.
 local lockBreakPrompt = LockBreakPrompt.start({
 	plots = workspace:WaitForChild(Constants.PLOTS_FOLDER),
 	localUserId = player.UserId,

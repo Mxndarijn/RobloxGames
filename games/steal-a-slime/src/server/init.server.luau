@@ -285,7 +285,7 @@ end)
 -- Services
 ---------------------------------------------------------------------------
 
--- Robux purchases (FEATURES.ExclusiveShop): the one ProcessReceipt, Game Passes and the paid random items policy.
+-- Robux purchases: the one ProcessReceipt, Game Passes and the paid random items policy.
 local purchases = PurchaseService.service({
 	world = world,
 	backend = PurchaseService.robloxBackend(),

@@ -122,8 +122,8 @@ RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
 	ranch_fence_20 = "plot fence panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
 	phoenix_fence_segment = "plot fence half panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
 	phoenix_gate = "plot gate: the goo jar tower's door and bridge are the plot entrance (CONTRACT.md §5.3), no gate slot",
-	exclusive_jar_boutique = "Exclusive Shop jar (FEATURES.ExclusiveShop): server/WorldProps builds the ExclusiveShopStand at runtime with this mesh's Shop slot (WorldLayout.EXCLUSIVE_JAR), no static slot",
-	exclusive_jar_boutique_glass = "Exclusive Shop jar glass (FEATURES.ExclusiveShop): the Glass slot of the runtime ExclusiveShopStand (WorldLayout.EXCLUSIVE_JAR), no static slot",
+	exclusive_jar_boutique = "Exclusive Shop jar: server/WorldProps builds the ExclusiveShopStand at runtime with this mesh's Shop slot (WorldLayout.EXCLUSIVE_JAR), no static slot",
+	exclusive_jar_boutique_glass = "Exclusive Shop jar glass: the Glass slot of the runtime ExclusiveShopStand (WorldLayout.EXCLUSIVE_JAR), no static slot",
 }) :: { [string]: string }
 
 local rows: { Placement } = {}

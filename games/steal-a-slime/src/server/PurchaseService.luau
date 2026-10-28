@@ -1,6 +1,6 @@
 --!strict
 --[[
-	PurchaseService (contract/exclusive-shop.md §3, FEATURES.ExclusiveShop)
+	PurchaseService (contract/exclusive-shop.md §3)
 
 	Robux purchases between MarketplaceService and Purchases:
 	  * `service(options)` (backend injected, runs under Lune): `processReceipt` decides one Developer Product
@@ -68,10 +68,6 @@ function PurchaseService.service(options: Options): Service
 	local self = {} :: Service
 	self.options = options
 
-	function self.enabled(): boolean
-		return Purchases.enabled(options.ctx)
-	end
-
 	local function changed()
 		if options.changed then
 			pcall(options.changed) -- a view hiccup never turns a saved grant into an error
@@ -105,9 +101,6 @@ function PurchaseService.service(options: Options): Service
 	}
 
 	function self.grantProduct(userId: number, productKey: string, purchaseId: string): Decision
-		if not self.enabled() then
-			return "NotProcessedYet"
-		end
 		local session = World.session(world, userId)
 		if not session or Purchases.product(productKey) == nil then
 			return "NotProcessedYet"
@@ -160,7 +153,7 @@ function PurchaseService.service(options: Options): Service
 
 	-- Checks every Game Pass with an id and the paid random items policy (yields); the session must exist.
 	function self.join(userId: number)
-		if not self.enabled() or not World.session(world, userId) then
+		if not World.session(world, userId) then
 			return
 		end
 		local mine = owned[userId] or {}
@@ -183,7 +176,7 @@ function PurchaseService.service(options: Options): Service
 	end
 
 	function self.setPass(userId: number, passKey: string, has: boolean): boolean
-		if not self.enabled() or Config.EXCLUSIVE_SHOP.passes[passKey] == nil or not World.session(world, userId) then
+		if Config.EXCLUSIVE_SHOP.passes[passKey] == nil or not World.session(world, userId) then
 			return false
 		end
 		local mine = owned[userId] or {}
@@ -203,7 +196,7 @@ function PurchaseService.service(options: Options): Service
 
 	function self.setPaidRandomAllowed(userId: number, allowed: boolean): boolean
 		local session = World.session(world, userId)
-		if not self.enabled() or not session then
+		if not session then
 			return false
 		end
 		session.paidRandomAllowed = allowed
@@ -239,9 +232,6 @@ end
 
 -- Roblox wiring: the one ProcessReceipt, the Game Pass prompt, and `join` for each player once their data loaded.
 function PurchaseService.start(service: Service)
-	if not service.enabled() then
-		return
-	end
 	local MarketplaceService = game:GetService("MarketplaceService")
 	local Players = game:GetService("Players")
 	MarketplaceService.ProcessReceipt = function(receipt: any)

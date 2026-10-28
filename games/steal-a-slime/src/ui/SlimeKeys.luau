@@ -13,7 +13,7 @@
 	  * `MovePrompt` (E, gamepad DPadRight; tap), only with `moveKey` / `onMove` (FEATURES.MoveSlime): "Move" calls
 	    `onMove(slimeId, model)`, which starts move mode (SlimeMove).
 
-	Hatch stays the server's HatchPrompt (F, gamepad ButtonX). With `hatchNow` (FEATURES.ExclusiveShop) an egg that
+	Hatch stays the server's HatchPrompt (F, gamepad ButtonX). With `hatchNow` an egg that
 	is still incubating gets `HatchNowPrompt` on the same key: "Hatch now · R$25" or "Use credit" from
 	`hatchNow.quick`, calling `hatchNow.trigger(slimeId)`. The two never show together: one is for an egg that
 	waits, the server's for one that is ready; `tick()` drops it the moment the egg turns ready. Every key comes from
@@ -41,7 +41,7 @@ export type Options = {
 	style: Enum.ProximityPromptStyle?, -- Custom in the game: SlimeKeyCard draws one card for all of them
 	moveKey: Key?, -- FEATURES.MoveSlime: the Move prompt's keys; nil = no Move prompt
 	onMove: ((slimeId: string, model: Model) -> ())?,
-	hatchNow: HatchNow?, -- FEATURES.ExclusiveShop: the Robux skip on an incubating egg; nil = none
+	hatchNow: HatchNow?, -- the Robux skip on an incubating egg; nil = none
 }
 
 -- The "Hatch now" quick-buy on an incubating egg: what it says (nil = no prompt) and what a press does.

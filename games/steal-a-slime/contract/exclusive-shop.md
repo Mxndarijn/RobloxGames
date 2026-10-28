@@ -1,6 +1,6 @@
 # 47. Exclusive Shop: Robux purchases, the Golden Jar Boutique, quick-buys (2026-10-28)
 
-**Status:** behind `Config.FEATURES.ExclusiveShop` (default off; Studio review via `PcwFlag_ExclusiveShop`). Approved
+**Status:** live, no feature flag. Approved
 by Merijn: the jar shop model (`shared/modeling-kit/models/exclusive_jar_boutique.py`), the UI direction A with B's
 stage (`docs/exclusive-shop-ui-mockup.html`) and the first set from `docs/exclusive-shop-ideas.md` §6.
 

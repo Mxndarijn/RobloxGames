@@ -10,8 +10,6 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
-local ON = { features = { ExclusiveShop = true } }
-local OFF = { features = { ExclusiveShop = false } }
 
 local function ctx(features: { [string]: boolean }, saveUser: ((number, any) -> boolean)?): Actions.Context
 	return {
@@ -43,13 +41,12 @@ describe("carry trails and Bat skins", function()
 	it("a Trail_ / BatSkin_ purchase adds it to the owned list once", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
-		expect(Purchases.grant(world, s, "Trail_rainbow", T0, ON)).toBe(true)
-		expect(Purchases.grant(world, s, "Trail_rainbow", T0, ON)).toBe(true)
-		expect(Purchases.grant(world, s, "BatSkin_golden", T0, ON)).toBe(true)
+		expect(Purchases.grant(world, s, "Trail_rainbow", T0)).toBe(true)
+		expect(Purchases.grant(world, s, "Trail_rainbow", T0)).toBe(true)
+		expect(Purchases.grant(world, s, "BatSkin_golden", T0)).toBe(true)
 		expect(s.data.ownedTrails).toEqual({ "rainbow" })
 		expect(s.data.ownedBatSkins).toEqual({ "golden" })
 		expect(s.data.trail).toBeNil()
-		expect(select(2, Purchases.grant(world, s, "Trail_sparkle", T0, OFF))).toBe("the Exclusive Shop is off")
 	end)
 
 	it('EquipTrail / EquipBatSkin wear an owned one, "" takes it off, anything else is refused', function()
@@ -57,19 +54,16 @@ describe("carry trails and Bat skins", function()
 		local s = ServerFixtures.join(world, 1)
 		s.data.ownedTrails = { "hearts" }
 		s.data.ownedBatSkins = { "fish" }
-		local c = ctx({ ExclusiveShop = true })
+		local c = ctx({})
 		expect(call(world, 1, T0, c, "EquipTrail", "sparkle").message).toBe("you don't own that trail")
 		expect(call(world, 1, T0 + 1, c, "EquipTrail", "hearts").ok).toBe(true)
 		expect(s.data.trail).toBe("hearts")
 		expect(call(world, 1, T0 + 2, c, "EquipBatSkin", "golden").message).toBe("you don't own that Bat skin")
 		expect(call(world, 1, T0 + 3, c, "EquipBatSkin", "fish").ok).toBe(true)
 		expect(s.data.batSkin).toBe("fish")
-		local trail, skin = Purchases.worn(s, ON)
+		local trail, skin = Purchases.worn(s)
 		expect(trail).toBe("hearts")
 		expect(skin).toBe("fish")
-		local offTrail, offSkin = Purchases.worn(s, OFF)
-		expect(offTrail).toBeNil()
-		expect(offSkin).toBeNil()
 		expect(call(world, 1, T0 + 4, c, "EquipTrail", "").ok).toBe(true)
 		expect(call(world, 1, T0 + 5, c, "EquipBatSkin", "").ok).toBe(true)
 		expect(s.data.trail).toBeNil()
@@ -77,8 +71,6 @@ describe("carry trails and Bat skins", function()
 		expect(call(world, 1, T0 + 6, c, "EquipTrail", "bad id!").message).toBe("bad argument")
 		expect(call(world, 1, T0 + 7, c, "EquipTrail", "hearts").ok).toBe(true)
 		expect(call(world, 1, T0 + 7.1, c, "EquipTrail", "").message).toBe("too fast")
-		local off = ctx({ ExclusiveShop = false })
-		expect(call(world, 1, T0 + 9, off, "EquipBatSkin", "fish").message).toBe("the Exclusive Shop is off")
 	end)
 
 	it("State.exclusiveShop shows the owned and worn trail and skin and the credits", function()
@@ -117,21 +109,17 @@ describe("gifts", function()
 		for _, key in { "LockBreak", "ServerLuckPotion", "FinishBrew_1", "StarterBundle", "Gift_Seat_ufo", "nope" } do
 			expect(select(2, Purchases.aimGift(world, buyer, key, 2, T0))).toBe("that can't be gifted")
 		end
-		local c = ctx({ ExclusiveShop = true })
+		local c = ctx({})
 		expect(call(world, 1, T0, c, "AimGift", "Seat_ufo", "2").message).toBe("bad argument")
 		expect(call(world, 1, T0 + 1, c, "AimGift", "Seat_ufo", 2).ok).toBe(true)
 		expect(buyer.giftAim).toEqual({ item = "Seat_ufo", targetId = 2, at = T0 + 1 })
-		local off = ctx({ ExclusiveShop = false })
-		expect(call(world, 1, T0 + 5, off, "AimGift", "Seat_ufo", 2).message).toBe("the Exclusive Shop is off")
 	end)
 
 	it("gives the item to the aimed player, writes their save first and tells both", function()
 		local world, buyer, target = setup()
 		local written, save = saver(true)
 		assert(Purchases.aimGift(world, buyer, "BatSkin_golden", 2, T0))
-		expect(Purchases.grant(world, buyer, "Gift_BatSkin_golden", T0 + 1, { features = ON.features, save = save })).toBe(
-			true
-		)
+		expect(Purchases.grant(world, buyer, "Gift_BatSkin_golden", T0 + 1, { save = save })).toBe(true)
 		expect(target.data.ownedBatSkins).toEqual({ "golden" })
 		expect(buyer.data.ownedBatSkins).toEqual({})
 		expect(buyer.data.giftCredits).toEqual({})
@@ -145,7 +133,7 @@ describe("gifts", function()
 		local world, buyer, target = setup()
 		local _, save = saver(true)
 		assert(Purchases.aimGift(world, buyer, "Seat_ufo", 2, T0))
-		Purchases.grant(world, buyer, "Gift_Seat_ufo", T0 + 1, { features = ON.features, save = save })
+		Purchases.grant(world, buyer, "Gift_Seat_ufo", T0 + 1, { save = save })
 		expect(target.data.ownedSeats).toEqual({ "ufo" })
 	end)
 
@@ -155,23 +143,23 @@ describe("gifts", function()
 			local world, buyer, target = setup()
 			local written, failing = saver(false)
 			assert(Purchases.aimGift(world, buyer, "Trail_sparkle", 2, T0))
-			Purchases.grant(world, buyer, "Gift_Trail_sparkle", T0 + 1, { features = ON.features, save = failing })
+			Purchases.grant(world, buyer, "Gift_Trail_sparkle", T0 + 1, { save = failing })
 			expect(written).toEqual({ 2 })
 			expect(target.data.ownedTrails).toEqual({}) -- taken back: the target never has an unsaved gift
 			expect(buyer.data.giftCredits).toEqual({ "Trail_sparkle" })
 			local _, save = saver(true)
 			assert(Purchases.aimGift(world, buyer, "Trail_hearts", 2, T0 + 2))
 			target.data.ownedTrails = { "hearts" }
-			Purchases.grant(world, buyer, "Gift_Trail_hearts", T0 + 3, { features = ON.features, save = save })
+			Purchases.grant(world, buyer, "Gift_Trail_hearts", T0 + 3, { save = save })
 			assert(Purchases.aimGift(world, buyer, "Seat_leaf", 2, T0 + 4))
 			world.sessions[2] = nil
-			Purchases.grant(world, buyer, "Gift_Seat_leaf", T0 + 5, { features = ON.features, save = save })
-			Purchases.grant(world, buyer, "Gift_Seat_ufo", T0 + 6, { features = ON.features, save = save })
+			Purchases.grant(world, buyer, "Gift_Seat_leaf", T0 + 5, { save = save })
+			Purchases.grant(world, buyer, "Gift_Seat_ufo", T0 + 6, { save = save })
 			expect(buyer.data.giftCredits).toEqual({ "Trail_sparkle", "Trail_hearts", "Seat_leaf", "Seat_ufo" })
 			-- No save given at all: the same.
 			world.sessions[2] = target
 			assert(Purchases.aimGift(world, buyer, "BatSkin_fish", 2, T0 + 7))
-			Purchases.grant(world, buyer, "Gift_BatSkin_fish", T0 + 8, ON)
+			Purchases.grant(world, buyer, "Gift_BatSkin_fish", T0 + 8)
 			expect(target.data.ownedBatSkins).toEqual({})
 			expect(buyer.data.giftCredits[5]).toBe("BatSkin_fish")
 		end
@@ -181,10 +169,10 @@ describe("gifts", function()
 		local world, buyer, target = setup()
 		local _, save = saver(true)
 		assert(Purchases.aimGift(world, buyer, "Seat_ufo", 2, T0))
-		Purchases.grant(world, buyer, "Gift_Seat_leaf", T0 + 1, { features = ON.features, save = save })
+		Purchases.grant(world, buyer, "Gift_Seat_leaf", T0 + 1, { save = save })
 		assert(Purchases.aimGift(world, buyer, "Seat_ufo", 2, T0 + 2))
 		local late = T0 + 3 + Config.EXCLUSIVE_SHOP.gift.aimSeconds
-		Purchases.grant(world, buyer, "Gift_Seat_ufo", late, { features = ON.features, save = save })
+		Purchases.grant(world, buyer, "Gift_Seat_ufo", late, { save = save })
 		expect(target.data.ownedSeats).toEqual({})
 		expect(buyer.data.giftCredits).toEqual({ "Seat_leaf", "Seat_ufo" })
 	end)
@@ -196,7 +184,7 @@ describe("gifts", function()
 			full[i] = "Seat_leaf"
 		end
 		buyer.data.giftCredits = full
-		local ok, reason = Purchases.grant(world, buyer, "Gift_Seat_ufo", T0, ON)
+		local ok, reason = Purchases.grant(world, buyer, "Gift_Seat_ufo", T0)
 		expect(ok).toBe(false)
 		expect(reason).toBe("too many unsent gifts")
 		expect(#buyer.data.giftCredits).toBe(Config.EXCLUSIVE_SHOP.gift.creditMax)
@@ -206,13 +194,13 @@ describe("gifts", function()
 		local world, buyer, target = setup()
 		buyer.data.giftCredits = { "Trail_rainbow", "Seat_ufo" }
 		local written, failing = saver(false)
-		local bad = call(world, 1, T0, ctx({ ExclusiveShop = true }, failing), "SendGift", "Trail_rainbow", 2)
+		local bad = call(world, 1, T0, ctx({}, failing), "SendGift", "Trail_rainbow", 2)
 		expect(bad.message).toBe("the gift couldn't be delivered, try again")
 		expect(written).toEqual({ 2 })
 		expect(target.data.ownedTrails).toEqual({})
 		expect(buyer.data.giftCredits).toEqual({ "Trail_rainbow", "Seat_ufo" })
 		local _, save = saver(true)
-		local c = ctx({ ExclusiveShop = true }, save)
+		local c = ctx({}, save)
 		expect(call(world, 1, T0 + 1, c, "SendGift", "Trail_rainbow", 2).ok).toBe(true)
 		expect(target.data.ownedTrails).toEqual({ "rainbow" })
 		expect(buyer.data.giftCredits).toEqual({ "Seat_ufo" })
@@ -220,8 +208,6 @@ describe("gifts", function()
 			"you have no unsent gift of that"
 		)
 		expect(call(world, 1, T0 + 3, c, "SendGift", "Seat_ufo", 1).message).toBe("you can't gift yourself")
-		local off = ctx({ ExclusiveShop = false }, save)
-		expect(call(world, 1, T0 + 4, off, "SendGift", "Seat_ufo", 2).message).toBe("the Exclusive Shop is off")
 		expect(buyer.data.giftCredits).toEqual({ "Seat_ufo" })
 	end)
 end)
@@ -248,7 +234,6 @@ describe("PurchaseService gifts", function()
 				return T0
 			end,
 			wait = function() end,
-			ctx = ON,
 			attempts = 1,
 		})
 		return world, service, saves

@@ -1,5 +1,5 @@
 --!nocheck
--- The Exclusive Shop's jar in the booted server with FEATURES.ExclusiveShop on (contract/exclusive-shop.md §7): the
+-- The Exclusive Shop's jar in the booted server (contract/exclusive-shop.md §7): the
 -- stand at its spot, the two kit mesh slots (the glass worn see-through) with a primitive jar standing in, the solid
 -- Counter with its ShopPrompt and ShopId, the sign, and the prompt -> OpenShop "ExclusiveShop" -> range close round
 -- trip. The built Props model is checked under Lune too.
@@ -136,10 +136,6 @@ local rt = Runtime.new(path, {
 	end,
 })
 fs.removeFile(path)
-local config = rt.game:GetService("ReplicatedStorage").Shared.Config
-local patched, n = string.gsub(config.Source, "ExclusiveShop = %a+,", "ExclusiveShop = true,")
-assert(n == 1, "FEATURES.ExclusiveShop line not found in Config")
-config.Source = patched
 rt:boot()
 rt:advance(2)
 local map = rt.workspace.Map

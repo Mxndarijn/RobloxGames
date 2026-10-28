@@ -1,6 +1,6 @@
 --!strict
 --[[
-	CarryTrailFx (VisualsClient module, FEATURES.ExclusiveShop, contract/exclusive-shop.md §9)
+	CarryTrailFx (VisualsClient module, contract/exclusive-shop.md §9)
 
 	Draws every player's equipped carry trail while they carry a slime: Player attribute CarryTrail (the trail id,
 	Constants.CARRY_TRAIL_ATTRIBUTE, set by the server only with the flag on) plus Player attribute Carrying (the
