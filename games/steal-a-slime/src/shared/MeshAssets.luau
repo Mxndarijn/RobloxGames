@@ -225,7 +225,7 @@ entries["ranch_item_shop"] =
 	{ assetId = 105082858859876, meshId = "rbxassetid://135059318016634", size = { 15.391, 16.558, 8.15 } }
 entries["ranch_upgrade_cabinet"] =
 	{ assetId = 112507254723244, meshId = "rbxassetid://139845226619480", size = { 16.407, 15.29, 9.93 } }
--- The Exclusive Shop's Golden Jar Boutique (FEATURES.ExclusiveShop, contract/exclusive-shop.md §7;
+-- The Exclusive Shop's Golden Jar Boutique (contract/exclusive-shop.md §7;
 -- models/exclusive_jar_boutique.py split in two): the solid shop (plinth, goo dome, lid, trophy slime, pedestals, shop
 -- front, awning, sign board) and the see-through jar wall. Not uploaded yet: no id, so the stand's primitive jar shows.
 entries["exclusive_jar_boutique"] =

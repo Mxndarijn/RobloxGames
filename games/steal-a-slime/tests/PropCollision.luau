@@ -972,11 +972,11 @@ local UNPLACED: { [string]: { string } } = {
 	},
 	exclusive_jar_boutique = {
 		"gojo",
-		"the Exclusive Shop jar (FEATURES.ExclusiveShop, off): WorldProps builds it at runtime; decor over its solid plinth, glass, counter and posts",
+		"the Exclusive Shop jar (off): WorldProps builds it at runtime; decor over its solid plinth, glass, counter and posts",
 	},
 	exclusive_jar_boutique_glass = {
 		"gojo",
-		"the Exclusive Shop jar's glass wall (FEATURES.ExclusiveShop, off): WorldProps builds it at runtime; see-through decor over the solid GlassWall",
+		"the Exclusive Shop jar's glass wall (off): WorldProps builds it at runtime; see-through decor over the solid GlassWall",
 	},
 	ranch_border_fence_broken = { "jolt", "border piece not used by WorldBorder.CHUNKS / DEFS" },
 	ranch_border_hedge_stepped = { "jolt", "border piece not used by WorldBorder.DEFS" },

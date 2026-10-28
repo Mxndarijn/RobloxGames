@@ -1,6 +1,6 @@
 --!strict
 --[[
-	ShopDisplay (pure, FEATURES.ExclusiveShop, contract/exclusive-shop.md §7)
+	ShopDisplay (pure, contract/exclusive-shop.md §7)
 
 	Where the featured seats float in the Exclusive Shop's jar at a server time `t` (seconds), so every client shows
 	the same pose. The client (visuals/client/ShopDisplayFx) puts them into the world with the stand's pivot. No Roblox

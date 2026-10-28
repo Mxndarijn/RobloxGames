@@ -5,7 +5,7 @@
 	Player attributes that follow the World right away, not only on the 0.1 s view tick:
 	  * `Carrying` (and `Stealing` with FEATURES.StealAlerts): pickup, drop, deposit, escape, death;
 	  * `OpenShop`: the session's open world shop, nil = closed;
-	  * `CarryTrail` / `BatSkin` (FEATURES.ExclusiveShop): the equipped carry trail and Bat skin (Purchases.worn).
+	  * `CarryTrail` / `BatSkin`: the equipped carry trail and Bat skin (Purchases.worn).
 ]]
 
 local Players = game:GetService("Players")

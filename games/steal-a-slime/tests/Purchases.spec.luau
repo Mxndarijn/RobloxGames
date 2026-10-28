@@ -20,8 +20,7 @@ local VatState = require("../src/shared/VatState")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
-local ON = { features = { ExclusiveShop = true } }
-local OFF = { features = { ExclusiveShop = false } }
+local ON = { features = {} }
 
 local function egg(id: string, kind: string, hatchAt: number?, tier: number?): any
 	return Fixtures.slime(id, tier or 4, { species = "lop", egg = { kind = kind, hatchAt = hatchAt } })
@@ -55,10 +54,9 @@ local function ctx(features: { [string]: boolean }): Actions.Context
 end
 
 describe("Purchases.grant", function()
-	it("refuses while the shop is off and for an unknown product, changing nothing", function()
+	it("refuses an unknown product, changing nothing", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
-		expect(select(2, Purchases.grant(world, s, "Seat_ufo", T0, OFF))).toBe("the Exclusive Shop is off")
 		expect(select(2, Purchases.grant(world, s, "Nope", T0, ON))).toBe("unknown product")
 		expect(s.data.ownedSeats).toEqual({})
 	end)
@@ -183,37 +181,34 @@ describe("Purchases.grant", function()
 end)
 
 describe("UseCredit", function()
-	it("is refused while the shop is off and for bad arguments", function()
+	it("is refused for bad arguments", function()
 		local world = ServerFixtures.world()
 		ServerFixtures.join(world, 1)
-		local off = Actions.handle(world, 1, "UseCredit", table.pack("brew"), T0, ctx({ ExclusiveShop = false }))
-		expect(off.message).toBe("the Exclusive Shop is off")
-		local bad = Actions.handle(world, 1, "UseCredit", table.pack(5), T0, ctx({ ExclusiveShop = true }))
+		local bad = Actions.handle(world, 1, "UseCredit", table.pack(5), T0, ctx({}))
 		expect(bad.message).toBe("bad argument")
-		local kind = Actions.handle(world, 1, "UseCredit", table.pack("gold"), T0 + 1, ctx({ ExclusiveShop = true }))
+		local kind = Actions.handle(world, 1, "UseCredit", table.pack("gold"), T0 + 1, ctx({}))
 		expect(kind.message).toBe("unknown credit")
 	end)
 	it("spends a brew credit on the running brew, and keeps it when there is none", function()
 		local world = ServerFixtures.world()
 		local s = brewing(world, 1)
 		s.data.credits.brew = 1
-		local res = Actions.handle(world, 1, "UseCredit", table.pack("brew"), T0 + 5, ctx({ ExclusiveShop = true }))
+		local res = Actions.handle(world, 1, "UseCredit", table.pack("brew"), T0 + 5, ctx({}))
 		expect(res.ok).toBe(true)
 		expect(s.data.credits.brew).toBe(0)
 		expect(VatState.isReady(s.data, T0 + 5)).toBe(true)
-		local none = Actions.handle(world, 1, "UseCredit", table.pack("brew"), T0 + 6, ctx({ ExclusiveShop = true }))
+		local none = Actions.handle(world, 1, "UseCredit", table.pack("brew"), T0 + 6, ctx({}))
 		expect(none.message).toBe("no brew credits")
 	end)
 	it("spends a hatch credit on the named egg", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, { egg("g1", "golden", T0 + 900), egg("g2", "golden", T0 + 300) }, 0)
 		s.data.credits.hatch = 2
-		local res = Actions.handle(world, 1, "UseCredit", table.pack("hatch", "g1"), T0, ctx({ ExclusiveShop = true }))
+		local res = Actions.handle(world, 1, "UseCredit", table.pack("hatch", "g1"), T0, ctx({}))
 		expect(res.ok).toBe(true)
 		expect((s.data.slimes[1].egg :: any).hatchAt).toBe(T0)
 		expect(s.data.credits.hatch).toBe(1)
-		local again =
-			Actions.handle(world, 1, "UseCredit", table.pack("hatch", "g1"), T0 + 1, ctx({ ExclusiveShop = true }))
+		local again = Actions.handle(world, 1, "UseCredit", table.pack("hatch", "g1"), T0 + 1, ctx({}))
 		expect(again.message).toBe("no egg to hatch")
 		expect(s.data.credits.hatch).toBe(1)
 	end)

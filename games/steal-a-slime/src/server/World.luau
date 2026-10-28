@@ -84,12 +84,12 @@ export type Session = {
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
 	offlineRate: number?, -- the offline rate the join payout used (Income.applyOffline), runtime only
 	offlinePaid: number?, -- the join payout's cash (Income.applyOffline; a pass top-up adds to it), runtime only
-	passes: { [string]: boolean }?, -- FEATURES.ExclusiveShop: Game Passes owned, by Config.EXCLUSIVE_SHOP.passes key (PurchaseService), runtime only
-	hatchTarget: string?, -- FEATURES.ExclusiveShop: the egg the next HatchNow receipt is for (AimHatch), runtime only
-	paidRandomAllowed: boolean?, -- FEATURES.ExclusiveShop: PolicyService allows paid random items; nil = not checked yet (false), runtime only
-	lockBreakAim: { plot: number, ownerId: number, at: number }?, -- FEATURES.ExclusiveShop: the locked base the next LockBreak receipt opens (AimLockBreak), runtime only
-	lockBreak: LockBreakPass?, -- FEATURES.ExclusiveShop: this player's running lock break (LockBreak), runtime only
-	giftAim: { item: string, targetId: number, at: number }?, -- FEATURES.ExclusiveShop: who the next Gift_<item> receipt is for (AimGift), runtime only
+	passes: { [string]: boolean }?, -- Game Passes owned, by Config.EXCLUSIVE_SHOP.passes key (PurchaseService), runtime only
+	hatchTarget: string?, -- the egg the next HatchNow receipt is for (AimHatch), runtime only
+	paidRandomAllowed: boolean?, -- PolicyService allows paid random items; nil = not checked yet (false), runtime only
+	lockBreakAim: { plot: number, ownerId: number, at: number }?, -- the locked base the next LockBreak receipt opens (AimLockBreak), runtime only
+	lockBreak: LockBreakPass?, -- this player's running lock break (LockBreak), runtime only
+	giftAim: { item: string, targetId: number, at: number }?, -- who the next Gift_<item> receipt is for (AimGift), runtime only
 	breatherUntil: number?, -- the end of the breather lock SlimeGuard gave this base after a steal (lockUntil equal to it = in the breather), runtime only
 	boardRanks: { [string]: number }?, -- my rank per global board stat from the last refresh (-n = deeper than #n, Leaderboard.sessionRanks); runtime only
 	coilHeld: boolean?, -- the SpeedCoil Tool is equipped (WorldView sets it each tick); runtime only

@@ -1,6 +1,6 @@
 --!strict
 --[[
-	LockBreak (pure, FEATURES.ExclusiveShop, contract/exclusive-shop.md §11)
+	LockBreak (pure, contract/exclusive-shop.md §11)
 
 	"Open locked door": a paid pass for one player through one locked base's LockBarrier. Owns `session.lockBreakAim`
 	(the base the next LockBreak receipt opens, AimLockBreak) and `session.lockBreak` (the running pass: plot, the

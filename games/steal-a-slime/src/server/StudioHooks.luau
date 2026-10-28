@@ -12,7 +12,7 @@
 	Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
 
-	Exclusive Shop (FEATURES.ExclusiveShop, contract/exclusive-shop.md §3): `grantProduct(userId, productKey)`,
+	Exclusive Shop (contract/exclusive-shop.md §3): `grantProduct(userId, productKey)`,
 	`setPass(userId, passKey, owned)` and `setPaidRandomAllowed(userId, allowed)` run the real PurchaseService paths
 	(Purchases.grant, a "studio-<guid>" receipt id, the save) without a productId or a Robux prompt. They only write
 	player attributes ("PcwGrantProduct", "PcwPass" = "<passKey>=true|false", "PcwPaidRandom") that the running
