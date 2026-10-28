@@ -113,7 +113,7 @@ local BY_SPECIES: { [string]: Persona } = {
 	-- boss slimes
 	goozilla = p("Waddle", "Feisty", "goozilla"),
 	queen_jelly = p("Float", "Showoff", "queen_jelly"),
-	klawdius = p("Scoot", "Feisty", "klawdius"),
+	klawdius = p("Waddle", "Feisty", "klawdius"), -- a crab: side-to-side steps
 	pumpking = p("Hop", "Bouncy", "pumpking"),
 	mecha_goo = p("Waddle", "Feisty", "mecha_goo"),
 	goomancer = p("Float", "Curious", "goomancer"),

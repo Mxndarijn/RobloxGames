@@ -109,6 +109,8 @@ export type State = {
 	fwd: number, -- last visible forward speed
 	changedAt: number, -- when the anchor last moved (the Body replicates in steps)
 	phase: number, -- per-slime offset for the float bob
+	stride: number, -- stride multiplier: 1 for a slime; a boss sets its drawn size, so its big body takes big steps
+	tricks: boolean, -- false: plain hops only (a boss: a giant belly flop or zig-zag reads as a glitch)
 }
 
 export type Pose = {
@@ -170,6 +172,8 @@ function SlimeGait.new(x: number, z: number, now: number, phase: number?): State
 		fwd = 0,
 		changedAt = now,
 		phase = phase or 0,
+		stride = 1,
+		tricks = true,
 	}
 end
 
@@ -252,7 +256,9 @@ local function nextKind(persona: SlimePersona.Persona, st: State, rand: Rand): K
 	end
 	local temper = persona.temper
 	local x = rand()
-	if temper == "Bouncy" and x < 0.04 then
+	if not st.tricks then
+		return if st.n % 3 == 2 then "big" else "normal"
+	elseif temper == "Bouncy" and x < 0.04 then
 		return "boing"
 	elseif (temper == "Bouncy" or temper == "Curious") and x < 0.07 then
 		return "belly"
@@ -372,7 +378,7 @@ local function stride(st: State, persona: SlimePersona.Persona, now: number, p: 
 	local speed = math.sqrt(st.vx * st.vx + st.vz * st.vz)
 	local gate = smooth(speed / 2.2) -- a standing slime doesn't step
 	local gait = persona.gait
-	local f = (st.travelled / (SlimeGait.STRIDES[gait] or 2)) % 1
+	local f = (st.travelled / ((SlimeGait.STRIDES[gait] or 2) * st.stride)) % 1
 	local g = math.sin(math.pi * f)
 	if gait == "Ooze" then
 		-- inchworm surge: stretches forward, then pulls its back in
@@ -380,7 +386,7 @@ local function stride(st: State, persona: SlimePersona.Persona, now: number, p: 
 		p.sy = 1 - 0.13 * g * gate
 		p.tilt = 0.1 * math.sin(2 * math.pi * f) * gate
 	elseif gait == "Waddle" then
-		local step = math.floor(st.travelled / SlimeGait.STRIDES.Waddle) % 2
+		local step = math.floor(st.travelled / (SlimeGait.STRIDES.Waddle * st.stride)) % 2
 		p.roll = (if step == 0 then -1 else 1) * 0.2 * g * gate
 		p.lift = 0.18 * g * gate
 		p.sy = 1 - 0.05 * (1 - g) * gate

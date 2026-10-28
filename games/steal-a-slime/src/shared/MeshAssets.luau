@@ -1081,9 +1081,9 @@ entries["slime_goozilla"] = { assetId = 95597031533993, size = { 3.204, 3.927, 5
 entries["slime_queen_jelly"] =
 	{ assetId = 108716301261458, size = { 4.401, 4.653, 4.403 }, offset = { -0.032, 2.337, 0.024 } }
 entries["slime_klawdius"] =
-	{ assetId = 110829970779610, size = { 6.072, 5.294, 5.242 }, offset = { 0.445, 2.64, 1.028 } }
+	{ assetId = 110829970779610, size = { 6.072, 5.292, 5.219 }, offset = { 0.445, 2.641, 1.039 } }
 entries["slime_pumpking"] = { assetId = 95135050927158, size = { 3.54, 4.066, 3.57 }, offset = { 0, 2.033, -0.015 } }
-entries["slime_mecha_goo"] = { assetId = 78640546070601, size = { 4.48, 3.5, 3.579 }, offset = { 0, 1.75, 0.091 } }
+entries["slime_mecha_goo"] = { assetId = 78640546070601, size = { 4.48, 3.5, 3.563 }, offset = { 0, 1.75, 0.099 } }
 entries["slime_goomancer"] =
 	{ assetId = 118089713951424, size = { 4.683, 6.309, 3.725 }, offset = { 0.447, 3.042, -0.075 } }
 entries["slime_glitch"] =
