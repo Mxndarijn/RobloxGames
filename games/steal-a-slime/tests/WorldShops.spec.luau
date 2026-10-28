@@ -151,6 +151,15 @@ describe("ShopGuard validation order", function()
 		open.access = nil
 		expect(ShopGuard.check(open)).toBe("OutOfRange")
 	end)
+	it("opens the Exclusive Shop panel like a shop (range, alive) but never buys through ShopBuy", function()
+		local id = Constants.EXCLUSIVE_SHOP_ID
+		expect(Shops.shop(id)).toBeNil() -- no cash shop: not in Shops.ORDER
+		expect(ShopGuard.check({ shopId = id, access = near })).toBeNil()
+		expect(ShopGuard.check({ shopId = id, access = nil })).toBe("OutOfRange")
+		expect(ShopGuard.check({ shopId = id, access = { distance = 3, alive = false } })).toBe("Dead")
+		expect(ShopGuard.check({ shopId = id, itemId = "SpeedCoil", openShop = id, access = near })).toBe("BadShop")
+		expect(ShopGuard.closeReason(id, { distance = RANGE + 1, alive = true })).toBe("range")
+	end)
 	it("maps delegated refusals to deny codes", function()
 		local cases = {
 			["not enough cash"] = "NoCash",

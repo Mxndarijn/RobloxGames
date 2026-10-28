@@ -5,8 +5,10 @@
 	A plot's merge vat, saved as `data.vat`. Players Move up to Config.VAT_SIZE of their own pad slimes of one
 	rarity into it. A slime in the vat keeps its pad (the pad shows a see-through copy), so `ids` only names
 	which owned slimes are in. Start sets `endsAt` (unix seconds, so a brew runs on while the player is
-	offline); Cancel clears it; Collect, once `endsAt` has passed, merges the three (TripleMerge.apply: the
-	child takes the first input's pad) and empties the vat.
+	offline) and fixes the roll: `seed` seeds the Rng Collect merges with, so the result is decided when the brew
+	starts and finishing early only changes time (a vat saved without a seed rolls on the caller's Rng). Cancel
+	clears both; Collect, once `endsAt` has passed, merges the three (TripleMerge.apply: the child takes the first
+	input's pad) and empties the vat.
 
 	  * Waiting (no `endsAt`): the inputs earn as usual and can be stolen or sold; one that leaves the plot
 	    leaves the vat too (`prune`).
@@ -29,6 +31,7 @@ export type Vat = {
 	ids: { string }, -- owned slime ids in the vat, in the order they went in (spot 1, 2, 3)
 	endsAt: number?, -- unix seconds the brew is done; nil = not brewing
 	startedAt: number?, -- unix seconds the brew started (for the progress bar); set with endsAt
+	seed: number?, -- the merge roll's Rng seed, set with endsAt; nil = roll on the caller's Rng
 }
 
 local VatState = {}
@@ -86,6 +89,7 @@ function VatState.prune(data: Data): boolean
 	end
 	if vat.endsAt == nil then
 		vat.startedAt = nil
+		vat.seed = nil
 	end
 	if #kept == 0 and vat.endsAt == nil then
 		setVat(data, nil)
@@ -259,8 +263,9 @@ function VatState.gateText(data: Data): string?
 	return nil
 end
 
--- Starts the brew: `endsAt = now + brewSeconds(tier, factor)`. Returns (ok, reason).
-function VatState.start(data: Data, now: number, factor: number?): (boolean, string?)
+-- Starts the brew: `endsAt = now + brewSeconds(tier, factor)`, and fixes the merge roll with `seed` (a whole number
+-- from the caller's Rng, e.g. `world.rng:int(1, Rng.SEED_MAX)`). Returns (ok, reason).
+function VatState.start(data: Data, now: number, factor: number?, seed: number?): (boolean, string?)
 	if VatState.isBrewing(data) then
 		return false, "already brewing"
 	end
@@ -280,6 +285,7 @@ function VatState.start(data: Data, now: number, factor: number?): (boolean, str
 	local vat = ensure(data)
 	vat.startedAt = now
 	vat.endsAt = now + VatState.brewSeconds(slimes[1].tier, factor)
+	vat.seed = seed
 	return true, nil
 end
 
@@ -289,12 +295,12 @@ function VatState.cancel(data: Data): (boolean, string?)
 		return false, "not brewing"
 	end
 	local vat = ensure(data)
-	vat.endsAt, vat.startedAt = nil, nil
+	vat.endsAt, vat.startedAt, vat.seed = nil, nil, nil
 	return true, nil
 end
 
--- Merges a finished brew (TripleMerge.apply; the child takes the first input's pad) and empties the vat.
--- Returns (ok, childOrReason).
+-- Merges a finished brew (TripleMerge.apply; the child takes the first input's pad) and empties the vat. A brew
+-- with a seed rolls on a fresh Rng from it; `rng` only rolls a brew saved without one. Returns (ok, childOrReason).
 function VatState.collect(
 	data: Data,
 	now: number,
@@ -308,7 +314,8 @@ function VatState.collect(
 	if not VatState.isReady(data, now) then
 		return false, "still brewing"
 	end
-	local ok, result = TripleMerge.apply(data, VatState.ids(data), busy, rng, newId)
+	local seed = (vatOf(data) :: Vat).seed
+	local ok, result = TripleMerge.apply(data, VatState.ids(data), busy, if seed then Rng.new(seed) else rng, newId)
 	if not ok then
 		return false, result
 	end
@@ -316,7 +323,21 @@ function VatState.collect(
 	return true, result
 end
 
--- Cleans a loaded `vat` table (SaveData.deserialize): ids as strings, endsAt as a number. Returns nil for junk.
+-- Ends a running brew now (a paid "Finish now" or a brew credit): `endsAt = now`, so Collect works at once. The
+-- roll is still the one the seed fixed at Start. Returns (ok, reason).
+function VatState.finishNow(data: Data, now: number): (boolean, string?)
+	if not VatState.isBrewing(data) then
+		return false, "not brewing"
+	end
+	local vat = ensure(data)
+	if (vat.endsAt :: number) > now then
+		vat.endsAt = now
+	end
+	return true, nil
+end
+
+-- Cleans a loaded `vat` table (SaveData.deserialize): ids as strings, endsAt as a number, seed as a whole number
+-- (only with endsAt). Returns nil for junk.
 function VatState.sanitize(raw: any): Vat?
 	if type(raw) ~= "table" or type(raw.ids) ~= "table" then
 		return nil
@@ -335,7 +356,11 @@ function VatState.sanitize(raw: any): Vat?
 	end
 	local endsAt = time(raw.endsAt)
 	local startedAt = if endsAt then time(raw.startedAt) or endsAt else nil
-	return { ids = ids, endsAt = endsAt, startedAt = startedAt }
+	local seed = raw.seed
+	if not (endsAt and type(seed) == "number" and seed % 1 == 0 and seed >= 1 and seed <= Rng.SEED_MAX) then
+		seed = nil
+	end
+	return { ids = ids, endsAt = endsAt, startedAt = startedAt, seed = seed }
 end
 
 return table.freeze(VatState)

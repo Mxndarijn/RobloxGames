@@ -9,6 +9,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
 local Shops = if Shared then require(Shared.Shops) else require("../shared/Shops")
 
 export type Access = { distance: number?, alive: boolean? } -- distance nil = no character / no stand
@@ -54,10 +55,15 @@ export type Check = {
 	access: Access?,
 }
 
+-- Shops that only open a panel: OpenShop / CloseShop and the range close work as for a cash shop, ShopBuy does not
+-- (the Exclusive Shop's jar; its panel buys through MarketplaceService, contract/exclusive-shop.md §7).
+ShopGuard.PANEL_SHOPS = table.freeze({ [Constants.EXCLUSIVE_SHOP_ID] = true }) :: { [string]: boolean }
+
 -- Validation order of OpenShop (no itemId) and ShopBuy: shop id, item membership, open (ShopBuy only), alive,
 -- range. Returns nil when everything holds, else the deny code.
 function ShopGuard.check(c: Check): string?
-	if Shops.shop(c.shopId) == nil then
+	local panel = c.itemId == nil and type(c.shopId) == "string" and ShopGuard.PANEL_SHOPS[c.shopId] == true
+	if Shops.shop(c.shopId) == nil and not panel then
 		return "BadShop"
 	end
 	if c.itemId ~= nil and Shops.find(c.shopId, c.itemId) == nil then

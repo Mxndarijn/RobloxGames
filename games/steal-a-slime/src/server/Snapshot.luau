@@ -42,6 +42,7 @@ local BossEvent = if script then require(script.Parent.BossEvent) else require("
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local DexSources = if script then require(script.Parent.DexSources) else require("./DexSources")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
+local Purchases = if script then require(script.Parent.Purchases) else require("./Purchases")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -148,6 +149,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		boards = Snapshot.boards(data, now),
 		boardRanks = if session.boardRanks then table.clone(session.boardRanks) else {},
 		vat = VatState.view(data, Perks.brewFactor(data)) :: any,
+		exclusiveShop = if Config.FEATURES.ExclusiveShop then Purchases.view(session, now) else nil,
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		blessed = if data.ritualBonus and session.blessedUntil
 			then { bonus = data.ritualBonus, endsAt = session.blessedUntil }

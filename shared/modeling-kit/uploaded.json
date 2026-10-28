@@ -27,6 +27,32 @@
     "uploadedAt": "2026-10-16T11:27:16Z",
     "versions": 1
   },
+  "exclusive_jar_boutique_glass": {
+    "assetId": "92353179686979",
+    "assetType": "Model",
+    "meshId": "rbxassetid://99607808704355",
+    "meshSize": [
+      12.8,
+      10.5,
+      12.8
+    ],
+    "sha256": "b00c701c5b9c31ed",
+    "uploadedAt": "2026-10-28T17:38:49Z",
+    "versions": 1
+  },
+  "exclusive_jar_boutique_shop": {
+    "assetId": "131532129772503",
+    "assetType": "Model",
+    "meshId": "rbxassetid://102127887082736",
+    "meshSize": [
+      16.86,
+      20.631,
+      18.57
+    ],
+    "sha256": "c7827076f77461ae",
+    "uploadedAt": "2026-10-28T17:38:34Z",
+    "versions": 1
+  },
   "factory_belt": {
     "assetId": "100773088768796",
     "assetType": "Model",
@@ -3485,6 +3511,84 @@
     "uploadedAt": "2026-10-19T04:40:54Z",
     "versions": 2
   },
+  "pet_mount_bubble": {
+    "assetId": "103208190943072",
+    "assetType": "Model",
+    "meshId": "rbxassetid://123993237197371",
+    "meshSize": [
+      3.3,
+      1.22,
+      2.4
+    ],
+    "sha256": "428a89ace6b92fbb",
+    "uploadedAt": "2026-10-28T17:39:49Z",
+    "versions": 1
+  },
+  "pet_mount_clam_shell": {
+    "assetId": "89570872834665",
+    "assetType": "Model",
+    "meshId": "rbxassetid://88169356640094",
+    "meshSize": [
+      3.3,
+      2.264,
+      2.4
+    ],
+    "sha256": "3531984c1acb4071",
+    "uploadedAt": "2026-10-28T17:41:39Z",
+    "versions": 1
+  },
+  "pet_mount_crescent_moon": {
+    "assetId": "110688241059788",
+    "assetType": "Model",
+    "meshId": "rbxassetid://101449917182526",
+    "meshSize": [
+      3.004,
+      0.88,
+      1.765
+    ],
+    "sha256": "d5f48d49ebc2d621",
+    "uploadedAt": "2026-10-28T17:40:36Z",
+    "versions": 1
+  },
+  "pet_mount_flame_cloud": {
+    "assetId": "73807919787058",
+    "assetType": "Model",
+    "meshId": "rbxassetid://98559924143350",
+    "meshSize": [
+      3.3,
+      1.53,
+      2.4
+    ],
+    "sha256": "d823935aa9ac0b69",
+    "uploadedAt": "2026-10-28T17:39:30Z",
+    "versions": 1
+  },
+  "pet_mount_hoverboard": {
+    "assetId": "89642305653421",
+    "assetType": "Model",
+    "meshId": "rbxassetid://108889734002088",
+    "meshSize": [
+      3.269,
+      1.0,
+      1.407
+    ],
+    "sha256": "9bbe960d133b9c7c",
+    "uploadedAt": "2026-10-28T17:41:28Z",
+    "versions": 1
+  },
+  "pet_mount_ice_cloud": {
+    "assetId": "123013660134650",
+    "assetType": "Model",
+    "meshId": "rbxassetid://81194482315831",
+    "meshSize": [
+      3.3,
+      1.703,
+      2.4
+    ],
+    "sha256": "67453c7e2ff11357",
+    "uploadedAt": "2026-10-28T17:39:19Z",
+    "versions": 1
+  },
   "pet_mount_jelly": {
     "assetId": "78994170989597",
     "assetType": "Model",
@@ -3498,6 +3602,71 @@
     "uploadedAt": "2026-10-26T18:44:11Z",
     "versions": 1
   },
+  "pet_mount_leaf": {
+    "assetId": "72183867740662",
+    "assetType": "Model",
+    "meshId": "rbxassetid://128744982003905",
+    "meshSize": [
+      3.3,
+      0.713,
+      2.4
+    ],
+    "sha256": "4dee1c15499326a1",
+    "uploadedAt": "2026-10-28T17:39:39Z",
+    "versions": 1
+  },
+  "pet_mount_lily_pad": {
+    "assetId": "74225581339380",
+    "assetType": "Model",
+    "meshId": "rbxassetid://104928288982313",
+    "meshSize": [
+      3.3,
+      1.557,
+      2.4
+    ],
+    "sha256": "1d558ff885c33ebc",
+    "uploadedAt": "2026-10-28T17:39:58Z",
+    "versions": 1
+  },
+  "pet_mount_magic_carpet": {
+    "assetId": "103202026869992",
+    "assetType": "Model",
+    "meshId": "rbxassetid://116410478481132",
+    "meshSize": [
+      3.3,
+      0.566,
+      2.4
+    ],
+    "sha256": "ace6ed68dbc0877c",
+    "uploadedAt": "2026-10-28T17:40:51Z",
+    "versions": 1
+  },
+  "pet_mount_mushroom": {
+    "assetId": "83517779453621",
+    "assetType": "Model",
+    "meshId": "rbxassetid://139064712022358",
+    "meshSize": [
+      3.3,
+      1.251,
+      2.4
+    ],
+    "sha256": "2da17466c55083b9",
+    "uploadedAt": "2026-10-28T17:40:08Z",
+    "versions": 1
+  },
+  "pet_mount_pancakes": {
+    "assetId": "96206764371173",
+    "assetType": "Model",
+    "meshId": "rbxassetid://118977694092989",
+    "meshSize": [
+      3.3,
+      0.99,
+      2.4
+    ],
+    "sha256": "50b623cc1911c3be",
+    "uploadedAt": "2026-10-28T17:40:17Z",
+    "versions": 1
+  },
   "pet_mount_rainbow_cloud": {
     "assetId": "85703836251595",
     "assetType": "Model",
@@ -3509,6 +3678,71 @@
     ],
     "sha256": "a753557c1adad9b0",
     "uploadedAt": "2026-10-26T18:44:23Z",
+    "versions": 1
+  },
+  "pet_mount_royal_cushion": {
+    "assetId": "107740936871790",
+    "assetType": "Model",
+    "meshId": "rbxassetid://124607204359016",
+    "meshSize": [
+      3.3,
+      0.796,
+      2.4
+    ],
+    "sha256": "2be221498045735c",
+    "uploadedAt": "2026-10-28T17:41:12Z",
+    "versions": 1
+  },
+  "pet_mount_star_cushion": {
+    "assetId": "111190607613387",
+    "assetType": "Model",
+    "meshId": "rbxassetid://121678430177985",
+    "meshSize": [
+      3.093,
+      0.939,
+      2.379
+    ],
+    "sha256": "0f1d9991bca737c5",
+    "uploadedAt": "2026-10-28T17:40:26Z",
+    "versions": 1
+  },
+  "pet_mount_storm_cloud": {
+    "assetId": "85327679325745",
+    "assetType": "Model",
+    "meshId": "rbxassetid://73164924934747",
+    "meshSize": [
+      3.3,
+      1.225,
+      2.4
+    ],
+    "sha256": "45e58d72302581d7",
+    "uploadedAt": "2026-10-28T17:38:58Z",
+    "versions": 1
+  },
+  "pet_mount_sunset_cloud": {
+    "assetId": "113877052438419",
+    "assetType": "Model",
+    "meshId": "rbxassetid://73345244985162",
+    "meshSize": [
+      3.3,
+      1.225,
+      2.4
+    ],
+    "sha256": "ad1e010a64cc8abf",
+    "uploadedAt": "2026-10-28T17:39:09Z",
+    "versions": 1
+  },
+  "pet_mount_ufo": {
+    "assetId": "123494757263958",
+    "assetType": "Model",
+    "meshId": "rbxassetid://140454756003550",
+    "meshSize": [
+      3.3,
+      1.337,
+      2.4
+    ],
+    "sha256": "d4036f4e9de01c61",
+    "uploadedAt": "2026-10-28T17:41:01Z",
     "versions": 1
   },
   "phoenix_corner_post": {

@@ -34,10 +34,14 @@
 	v8: Goo Traps are charges, not an owned tier: pvp.traps = { [GooTrapN] = charges }. v7 -> v8
 	(migrateV7) turns an owned trap tier (pvp.tiers.Trap = n) into Config.PVP.TRAP_MAX_HELD charges of GooTrap<n>
 	and drops tiers.Trap; pure, idempotent.
-	v9 (current): the boss record `boss = { hits, wins = { [species] = n }, hauls, mvps, badges = { [key] = unix } }`
+	v9: the boss record `boss = { hits, wins = { [species] = n }, hauls, mvps, badges = { [key] = unix } }`
 	(BossBadges, contract/boss-event.md) replaces the boss trophy list `trophies`. v8 -> v9 (migrateV8) turns each
 	trophy of a boss species into wins[species] = 1 and drops `trophies`; pure, idempotent. deserialize grants the
 	badges the record has reached (stamped with lastOnline) and counts every won boss species as found.
+	v10 (current, contract/exclusive-shop.md §2): Exclusive Shop purchases `ownedSeats = { seatId }`, `receipts =
+	{ purchaseId }` (capped), `starterBundle`, `credits = { brew, hatch }`, `offlineDouble = { cash, at, used }?` and the
+	roll seeds `vat.seed` / `slimes[i].egg.seed`. v9 -> v10 (migrateV9) adds the empty purchase fields; old vats and
+	eggs keep no seed and roll as before. Pure, idempotent.
 	petSeat (contract/pet-seats.md, no version bump): a Config.PET_SEATS id; missing / unknown / not unlocked -> "cloud".
 	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, speciesRewards = milestones paid;
 	missing -> empty / 0, unknown ids dropped, owned slimes always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
@@ -69,6 +73,10 @@ local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require
 local StealAlert = if script then require(script.Parent.StealAlert) else require("./StealAlert")
 local VatState = if script then require(script.Parent.VatState) else require("./VatState")
 local TutorialProgress = if script then require(script.Parent.TutorialProgress) else require("./TutorialProgress")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local ReceiptLedger = if Lib
+	then require(Lib.data.ReceiptLedger)
+	else require("../../../../shared/luau/src/data/ReceiptLedger")
 
 type Data = PlayerData.Data
 type Slime = Genome.Slime
@@ -416,6 +424,72 @@ function SaveData.migrateV8(raw: { [string]: any }): { [string]: any }
 	return out
 end
 
+-- v9 -> v10: the Exclusive Shop purchase fields start empty (fields already there are kept for deserialize to clean).
+function SaveData.migrateV9(raw: { [string]: any }): { [string]: any }
+	local out = table.clone(raw)
+	local from = tonumber(raw.version)
+	if from == nil or from ~= from then
+		from = 0
+	end
+	out.migratedFrom = raw.migratedFrom or from
+	if out.ownedSeats == nil then
+		out.ownedSeats = {}
+	end
+	if out.receipts == nil then
+		out.receipts = {}
+	end
+	if out.starterBundle == nil then
+		out.starterBundle = false
+	end
+	if out.credits == nil then
+		out.credits = { brew = 0, hatch = 0 }
+	end
+	out.version = 10
+	return out
+end
+
+-- Exclusive seat ids of a raw save (read) or of PlayerData (write): known `exclusive` Config.PET_SEATS ids, no
+-- repeats, in the stored order. Missing / junk -> empty.
+function SaveData.cleanOwnedSeats(raw: any): { string }
+	local out: { string } = {}
+	if type(raw) ~= "table" then
+		return out
+	end
+	for _, id in ipairs(raw) do
+		local seat = PetSeats.get(id)
+		if seat and seat.unlock.kind == "exclusive" and not table.find(out, seat.id) then
+			table.insert(out, seat.id)
+		end
+	end
+	return out
+end
+
+-- Processed Robux receipts: unique ids, the newest Config.EXCLUSIVE_SHOP.receiptMemory kept.
+function SaveData.cleanReceipts(raw: any): { string }
+	return ReceiptLedger.clean(raw, Config.EXCLUSIVE_SHOP.receiptMemory)
+end
+
+-- Saved skip credits: whole numbers 0..creditMax per kind.
+function SaveData.cleanCredits(raw: any): PlayerData.Credits
+	local max = Config.EXCLUSIVE_SHOP.creditMax
+	if type(raw) ~= "table" then
+		return { brew = 0, hatch = 0 }
+	end
+	return { brew = num(raw.brew, 0, 0, max), hatch = num(raw.hatch, 0, 0, max) }
+end
+
+-- The last welcome-back payout: cash and time as whole numbers, `used` only when true; junk / no cash -> nil.
+function SaveData.cleanOfflineDouble(raw: any): PlayerData.OfflineDouble?
+	if type(raw) ~= "table" then
+		return nil
+	end
+	local cash = num(raw.cash, 0, 0, MAX_CASH)
+	if cash <= 0 then
+		return nil
+	end
+	return { cash = cash, at = num(raw.at, 0, 0, 1e11), used = raw.used == true }
+end
+
 -- Daily quests: keeps only slots whose pool id still exists (a rolled day with none left re-rolls).
 function SaveData.cleanQuests(raw: any): PlayerData.DailyQuests
 	local out: PlayerData.DailyQuests = { day = 0, slots = {} }
@@ -501,6 +575,9 @@ function SaveData.migrate(raw: any): { [string]: any }?
 	end
 	if version < 9 then
 		migrated = SaveData.migrateV8(migrated)
+	end
+	if version < 10 then
+		migrated = SaveData.migrateV9(migrated)
 	end
 	return migrated
 end
@@ -630,7 +707,12 @@ function SaveData.deserialize(stored: any): Data
 	for species in data.boss.wins do
 		SpeciesDex.record(data, { species = species }) -- a won boss always counts in the SlimeDex
 	end
-	data.petSeat = SaveData.cleanPetSeat(raw.petSeat, data) -- after found / stats: pet seat (no version bump: missing / unknown / locked -> "cloud")
+	data.ownedSeats = SaveData.cleanOwnedSeats(raw.ownedSeats) -- Exclusive Shop (v10): before the pet seat, which reads it
+	data.receipts = SaveData.cleanReceipts(raw.receipts)
+	data.starterBundle = raw.starterBundle == true
+	data.credits = SaveData.cleanCredits(raw.credits)
+	data.offlineDouble = SaveData.cleanOfflineDouble(raw.offlineDouble)
+	data.petSeat = SaveData.cleanPetSeat(raw.petSeat, data) -- after found / stats / ownedSeats: pet seat (no version bump: missing / unknown / locked -> "cloud")
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
 	if type(raw.redeemed) == "table" then
@@ -693,7 +775,12 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			species = slime.species, -- optional (v28), dropped on load if unknown
 			growth = slime.growth, -- optional (FEATURES.GrowingSlimes): missing = 0, no version bump
 			egg = if slime.egg
-				then { kind = slime.egg.kind, hatchAt = slime.egg.hatchAt, lucky = slime.egg.lucky }
+				then {
+					kind = slime.egg.kind,
+					hatchAt = slime.egg.hatchAt,
+					lucky = slime.egg.lucky,
+					seed = slime.egg.seed,
+				}
 				else nil, -- optional (contract/mystery-egg.md): missing = a slime, no version bump
 			brewed = slime.brewed, -- optional: missing = not made in the vat, no version bump
 			shine = slime.shine, -- optional Config.SHINES id: missing = no shine, no version bump
@@ -758,6 +845,11 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		eggLuck = SaveData.cleanEggLuck(data.eggLuck),
 		weekly = SaveData.cleanWeekly(data.weekly, data.totalEarned),
 		vat = VatState.sanitize(data.vat), -- nil while empty: the key is left out
+		ownedSeats = SaveData.cleanOwnedSeats(data.ownedSeats),
+		receipts = SaveData.cleanReceipts(data.receipts),
+		starterBundle = data.starterBundle == true,
+		credits = SaveData.cleanCredits(data.credits),
+		offlineDouble = SaveData.cleanOfflineDouble(data.offlineDouble), -- nil = none: the key is left out
 	}
 end
 

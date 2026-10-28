@@ -101,6 +101,32 @@ describe("SaveData round trip", function()
 	end)
 end)
 
+describe("SaveData Exclusive Shop fields", function()
+	it("round-trips owned seats, receipts, the bundle, credits and the welcome-back payout", function()
+		local data = Fixtures.data(nil, 0)
+		data.ownedSeats = { "leaf", "ufo" }
+		data.receipts = { "p1" }
+		data.starterBundle = true
+		data.credits = { brew = 1, hatch = 3 }
+		data.offlineDouble = { cash = 500, at = 1700000000, used = false }
+		local raw = SaveData.serialize(data, 1700000000)
+		local back = SaveData.deserialize(serde.decode("json", serde.encode("json", raw)))
+		expect(back.ownedSeats).toEqual({ "leaf", "ufo" })
+		expect(back.receipts).toEqual({ "p1" })
+		expect(back.starterBundle).toBe(true)
+		expect(back.credits).toEqual({ brew = 1, hatch = 3 })
+		expect(back.offlineDouble).toEqual({ cash = 500, at = 1700000000, used = false })
+	end)
+	it("a fresh profile owns nothing and has no credits", function()
+		local back = SaveData.deserialize(SaveData.serialize(Fixtures.data(nil, 0), 1700000000))
+		expect(back.ownedSeats).toEqual({})
+		expect(back.receipts).toEqual({})
+		expect(back.starterBundle).toBe(false)
+		expect(back.credits).toEqual({ brew = 0, hatch = 0 })
+		expect(back.offlineDouble).toBeNil()
+	end)
+end)
+
 describe("SaveData hotbar order", function()
 	it("round-trips a saved order and leaves the key out until one is set", function()
 		local data = Fixtures.data(nil, 0)

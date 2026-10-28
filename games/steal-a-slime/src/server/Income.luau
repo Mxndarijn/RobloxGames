@@ -4,12 +4,15 @@
 
 	Pays every session's plot income (Economy.tickIncome, fractional cash
 	kept in `incomeRemainder`). Slimes being carried away pay nothing.
-	`applyOffline` pays OFFLINE_RATE of income for at most
-	OFFLINE_CAP_SECONDS since the last save (Economy.offlineIncome).
+	`applyOffline` pays OFFLINE_RATE of income (the Offline2x Game Pass rate,
+	`data.passOfflineRate`, when owned) for at most OFFLINE_CAP_SECONDS since the
+	last save (Economy.offlineIncome) and records the payout in
+	`data.offlineDouble` for the Exclusive Shop's "Double it".
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Growth = if Shared then require(Shared.Growth) else require("../shared/Growth")
@@ -51,13 +54,21 @@ function Income.step(world: World, dt: number, now: number?)
 	end
 end
 
+-- The share of income paid while offline: the Offline2x Game Pass rate when owned, else Config.OFFLINE_RATE.
+function Income.offlineRate(data: PlayerData.Data): number
+	return math.max(data.passOfflineRate or 0, Config.OFFLINE_RATE)
+end
+
 -- Pays capped offline income once, on load. Returns the amount paid.
 function Income.applyOffline(world: World, session: Session, now: number): number
 	local data = session.data
 	local perSec = PlayerData.incomePerSecond(data, VatState.lockedSet(data)) -- brewing vat slimes earn nothing
-	local amount = Economy.offlineIncome(perSec, data.lastOnline, now, Perks.offlineCap(data))
+	local rate = Income.offlineRate(data)
+	local amount = Economy.offlineIncome(perSec, data.lastOnline, now, Perks.offlineCap(data), rate)
+	session.offlineRate, session.offlinePaid = rate, amount
 	if amount > 0 then
 		PlayerData.earn(data, amount)
+		data.offlineDouble = { cash = amount, at = now, used = false }
 		World.notify(
 			world,
 			session.userId,
