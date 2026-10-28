@@ -278,6 +278,13 @@ export type ExclusiveShopView = {
 	offlineDouble: { cash: number, available: boolean }?, -- the last welcome-back payout "Double it" can repeat
 	paidRandomAllowed: boolean, -- false where paid random items are restricted: hide ServerLuckPotion
 	featured: { string }, -- this week's featured Exclusive seat ids (ExclusiveRotation)
+	trails: { [string]: boolean }, -- owned carry trail ids
+	trail: string?, -- the equipped carry trail id; nil = none
+	batSkins: { [string]: boolean }, -- owned Bat skin ids
+	batSkin: string?, -- the equipped Bat skin id; nil = the default Bat
+	lockBreak: { plot: number, untilTime: number }?, -- an active lock break: the plot index and when it ends
+	lockBreakCredits: number, -- paid lock breaks that found no locked base to open (used with UseCredit "lockBreak")
+	giftCredits: { string }, -- unsent gifts (cosmetic product keys) to send with SendGift
 }
 
 export type VatView = {

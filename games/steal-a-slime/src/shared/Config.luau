@@ -606,13 +606,97 @@ for _, def in PET_SEATS do
 		EXCLUSIVE_PRODUCTS["Seat_" .. def.id] = product(robux, { kind = "seat", seat = def.id })
 	end
 end
+-- Carry trails (contract/exclusive-shop.md §9): what streams behind you while you carry a slime. Purely visual: a trail is
+-- always visible and never hides the carried slime. Ids are permanent save ids.
+local CARRY_TRAILS = table.freeze({
+	table.freeze({
+		id = "sparkle",
+		name = "Sparkle",
+		robux = 49,
+		colors = table.freeze({ { 255, 236, 150 }, { 252, 204, 80 } }),
+		style = "sparkle",
+	}),
+	table.freeze({
+		id = "goo_drip",
+		name = "Goo Drip",
+		robux = 79,
+		colors = table.freeze({ { 196, 250, 220 }, { 110, 226, 170 } }),
+		style = "drip",
+	}),
+	table.freeze({
+		id = "hearts",
+		name = "Hearts",
+		robux = 79,
+		colors = table.freeze({ { 255, 190, 214 }, { 250, 150, 182 } }),
+		style = "hearts",
+	}),
+	table.freeze({
+		id = "starfall",
+		name = "Starfall",
+		robux = 99,
+		colors = table.freeze({ { 255, 244, 194 }, { 196, 166, 232 } }),
+		style = "stars",
+	}),
+	table.freeze({
+		id = "rainbow",
+		name = "Rainbow",
+		robux = 149,
+		colors = table.freeze({
+			{ 250, 96, 96 },
+			{ 252, 216, 110 },
+			{ 110, 226, 170 },
+			{ 110, 180, 245 },
+			{ 196, 166, 232 },
+		}),
+		style = "ribbon",
+	}),
+})
+-- Bat skins (§10): another look for the free Bat. Reach, cooldown, hitbox and knockback are the Bat's, unchanged.
+-- `mesh` = MeshAssets name (shared/modeling-kit models/bat_skin_<id>.py); without an uploaded mesh the default Bat shows.
+local BAT_SKINS = table.freeze({
+	table.freeze({ id = "lollipop", name = "Lollipop", robux = 99, mesh = "bat_skin_lollipop" }),
+	table.freeze({ id = "fish", name = "Fish", robux = 99, mesh = "bat_skin_fish" }),
+	table.freeze({ id = "foam_finger", name = "Foam Finger", robux = 149, mesh = "bat_skin_foam_finger" }),
+	table.freeze({ id = "golden", name = "Golden Bat", robux = 249, mesh = "bat_skin_golden" }),
+})
+for _, def in CARRY_TRAILS do
+	EXCLUSIVE_PRODUCTS["Trail_" .. def.id] = product(def.robux, { kind = "trail", trail = def.id })
+end
+for _, def in BAT_SKINS do
+	EXCLUSIVE_PRODUCTS["BatSkin_" .. def.id] = product(def.robux, { kind = "batSkin", skin = def.id })
+end
+-- Open locked door (§11): the buyer may pass one locked base's door for LOCK_BREAK.seconds. Aimed with AimLockBreak.
+EXCLUSIVE_PRODUCTS.LockBreak = product(499, { kind = "lockBreak" })
+-- Gifts (§12): every cosmetic also sells as Gift_<key>, granted to the player picked with AimGift (cosmetics only).
+local giftable: { string } = {}
+for key, def in EXCLUSIVE_PRODUCTS do
+	local kind = def.grant.kind
+	if kind == "seat" or kind == "trail" or kind == "batSkin" then
+		table.insert(giftable, key)
+	end
+end
+table.sort(giftable)
+for _, key in giftable do
+	EXCLUSIVE_PRODUCTS["Gift_" .. key] = product(EXCLUSIVE_PRODUCTS[key].robux, { kind = "gift", item = key })
+end
+
 local EXCLUSIVE_SHOP = table.freeze({
 	products = table.freeze(EXCLUSIVE_PRODUCTS),
+	trails = CARRY_TRAILS,
+	batSkins = BAT_SKINS,
+	lockBreak = table.freeze({
+		seconds = 60, -- how long the buyer may pass the locked door
+		aimSeconds = 120, -- an AimLockBreak target is forgotten after this long without a receipt
+	}),
+	gift = table.freeze({
+		aimSeconds = 120, -- an AimGift target is forgotten after this long without a receipt
+		creditMax = 20, -- most unsent gifts a player can hold (a gift whose target left or already owns it)
+	}),
 	passes = table.freeze({
 		Income2x = table.freeze({ passId = 0, robux = 449, incomeMult = 2 }), -- x2 base income (one more Perks factor)
 		Offline2x = table.freeze({ passId = 0, robux = 199, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
 	}),
-	tabs = table.freeze({ "Featured", "Clouds", "Perks", "Boosts" }),
+	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = carry trails + Bat skins
 	finishBrewBrackets = table.freeze({ 300, 1800, 3600, math.huge }) :: { number }, -- seconds left -> FinishBrew_<i>
 	featuredCount = 4, -- seats in the weekly rotation (ExclusiveRotation), the same on every server
 	receiptMemory = 200, -- processed PurchaseIds kept in the save, newest last

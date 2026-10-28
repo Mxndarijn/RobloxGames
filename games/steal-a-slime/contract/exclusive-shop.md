@@ -151,3 +151,44 @@ stage behind the preview. Opens from the jar shop's prompt, the Skins panel's go
 and a HUD shop button. Quick-buy buttons live where the wait is: Merge panel ("Finish now", or "Use credit"), egg pad
 sign / hatch prompt area ("Hatch now"), Welcome card ("Double it"), WorldShop Luck Potion row ("Buy for the server").
 Buy buttons call `MarketplaceService` prompts; the panel never grants anything.
+
+## 9. Carry trails
+
+`Config.EXCLUSIVE_SHOP.trails`: five trails (`sparkle`, `goo_drip`, `hearts`, `starfall`, `rainbow`), each sold as
+`Trail_<id>` (grant kind `trail`). Save: `ownedTrails: { string }`, `trail: string?` (equipped; cleaned on load: unknown /
+unowned ids dropped). Request `EquipTrail(trailId: string)` ("" = none), 0.5 s. Player attribute `CarryTrail` = the
+equipped id while the flag is on. The client draws it behind the player **only while they carry a slime** (wild or stolen):
+a Roblox `Trail` plus particles in the trail's colours and style, in the one frame loop, culled by distance. Rule: a trail
+is never transparent, tiny or in front of the carried slime (it makes a thief easier to spot, never harder).
+
+## 10. Bat skins
+
+`Config.EXCLUSIVE_SHOP.batSkins`: four skins (`lollipop`, `fish`, `foam_finger`, `golden`), sold as `BatSkin_<id>`.
+Save: `ownedBatSkins: { string }`, `batSkin: string?`. Request `EquipBatSkin(skinId: string)` ("" = default Bat).
+`BatTool.give` reads the equipped skin: the Handle wears that skin's mesh (`MeshAssets` `bat_skin_<id>`); everything that
+decides a hit (reach `SLAP_REACH`, cooldown, `BatRules.pickTarget`, knockback) is unchanged and never reads the skin.
+A skin without an uploaded mesh shows the default Bat.
+
+## 11. Open locked door (lock break)
+
+`LockBreak` (499 R$, grant kind `lockBreak`). The thief aims first: `AimLockBreak(plotIndex: number)` (0.5 s), refused
+unless that plot is someone else's, locked now, not in its breather lock (`SLIME_GUARD.BREATHER_SECONDS`) and the owner is
+not the buyer's friend-guest. The grant gives the buyer a pass for `lockBreak.seconds` (60): they pass that plot's
+LockBarrier like a guest (`PlotLockGuard` / `PlotGuests` path), only them, only that plot, only until it ends. The lock
+itself stays up for everyone else and its timer is unchanged; the owner is notified "<name> broke into your base!".
+Stealing inside still goes through every SlimeGuard check. A grant whose aimed lock has ended (or no aim) becomes
+`lockBreakCredits += 1`, spent with `UseCredit("lockBreak", plotIndex)`. Save: `lockBreakCredits: number` (0..creditMax).
+The pass itself is runtime only. UI: on a locked base's door a thief sees "Open locked door · R$499" (or "Use lock break").
+
+## 12. Gifts
+
+Every cosmetic (`Seat_*`, `Trail_*`, `BatSkin_*`) also sells as `Gift_<key>` (same price, grant kind `gift`). The buyer
+picks a player in the server: `AimGift(itemKey: string, targetUserId: number)` (0.5 s; refused for yourself, a player not
+in the server, or one who already owns it). The grant gives the item to the aimed target (their save, then their own save
+now) and notifies both ("<name> gave you <item>!"). If the target left or already owns it by then, the buyer keeps a gift
+credit (`giftCredits: { string }`, item keys, at most `gift.creditMax`), sent later with `SendGift(itemKey, targetUserId)`.
+Passes, boosts, quick-buys and lock breaks are never giftable. UI: a "Gift" button next to Buy on every cosmetic opens a
+player picker (friends first).
+
+State (`ExclusiveShopView`): `trails`, `trail`, `batSkins`, `batSkin`, `lockBreak`, `lockBreakCredits`, `giftCredits`.
+Save version 11 (`SaveData.migrateV10`).
