@@ -2,13 +2,13 @@
 --[[
 	LockPad (pure)
 
-	The lock pad round each plot's LockButton (CONTRACT.md §8.5): a shared RingPad of Config.LOCK_PAD.SEGMENTS curved
-	pieces on the floor. The owner standing in it for STAND_SECONDS starts the same Lock action as the LockPrompt.
-	Reads / writes session.lockPadSince (when the owner stepped on). `ring` says how many pieces are lit and in which
+	The lock pad round each plot's LockButton (CONTRACT.md §8.5): a shared RingPad on the floor (Config.LOCK_PAD.STYLE,
+	lit in SEGMENTS steps). The owner standing in it for STAND_SECONDS starts the same Lock action as the LockPrompt.
+	Reads / writes session.lockPadSince (when the owner stepped on). `ring` says how many segments are lit and in which
 	colour:
-	  charge  the owner is standing on it: pieces light up one by one over STAND_SECONDS;
-	  locked  the plot is locked: the lit pieces are the share of the lock still to run;
-	  ready   the lock just ran out: all pieces, for READY_FLASH_SECONDS;
+	  charge  the owner is standing on it: the light sweeps round over STAND_SECONDS;
+	  locked  the plot is locked: the lit share is the share of the lock still to run;
+	  ready   the lock just ran out: the whole ring, for READY_FLASH_SECONDS;
 	  idle    none lit.
 ]]
 
@@ -27,6 +27,7 @@ local LockPad = {}
 
 -- The ring's shape, from Config.LOCK_PAD.
 LockPad.SHAPE = RingPad.shape({
+	style = PAD.STYLE,
 	segments = PAD.SEGMENTS,
 	curve = PAD.CURVE,
 	radius = PAD.RADIUS,

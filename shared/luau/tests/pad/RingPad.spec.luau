@@ -10,9 +10,12 @@ end
 describe("RingPad.shape", function()
 	it("fills the defaults and reaches to the ring's outer edge", function()
 		local s = RingPad.shape({ radius = 5, width = 2 })
-		expect(s.segments).toBe(RingPad.DEFAULTS.segments)
-		expect(s.curve).toBe(RingPad.DEFAULTS.curve)
+		expect(s.style).toBe("ring")
+		expect(s.segments).toBe(RingPad.DEFAULTS.segments.ring)
 		expect(s.reach).toBe(6)
+		local p = RingPad.shape({ style = "pieces" })
+		expect(p.segments).toBe(RingPad.DEFAULTS.segments.pieces)
+		expect(p.curve).toBe(RingPad.DEFAULTS.curve)
 	end)
 	it("keeps a given reach", function()
 		expect(RingPad.shape({ reach = 9 }).reach).toBe(9)
@@ -21,22 +24,20 @@ describe("RingPad.shape", function()
 		expect(pcall(RingPad.shape, { radius = 0 })).toBe(false)
 		expect(pcall(RingPad.shape, { segments = 2.5 })).toBe(false)
 		expect(pcall(RingPad.shape, { radius = 1, width = 2 })).toBe(false)
-		expect(pcall(RingPad.shape, { gap = -1 })).toBe(false)
+		expect(pcall(RingPad.shape, { style = "pieces", gap = -1 })).toBe(false)
 		expect(pcall(RingPad.shape, { width = 0 / 0 })).toBe(false)
+		expect(pcall(RingPad.shape, { style = "square" :: any })).toBe(false)
+		expect(pcall(RingPad.shape, { segments = 2 })).toBe(false)
 	end)
 end)
 
-describe("RingPad.blocks", function()
-	local shape = RingPad.shape({ segments = 12, curve = 4, radius = 4.6, width = 1.6, gap = 0.2 })
-	local blocks = RingPad.blocks(shape)
-	local piece = 2 * math.pi / shape.segments
-	local inner, outer = shape.radius - shape.width / 2, shape.radius + shape.width / 2
+-- a point `r` studs out from the centre at `angle` (clockwise from the front), then `e` studs round the ring
+local function at(angle: number, r: number, e: number): (number, number)
+	return r * math.sin(angle) + e * math.cos(angle), -r * math.cos(angle) + e * math.sin(angle)
+end
 
-	-- a point `r` studs out along the cut's centre line at `angle`, then `e` studs round the ring (clockwise)
-	local function at(angle: number, r: number, e: number): (number, number)
-		return r * math.sin(angle) + e * math.cos(angle), -r * math.cos(angle) + e * math.sin(angle)
-	end
-	local function covered(x: number, z: number): boolean
+local function coverage(blocks: { RingPad.Block }): (number, number) -> boolean
+	return function(x: number, z: number): boolean
 		for _, b in blocks do
 			local a = -b.yaw
 			local dx, dz = x - b.x, z - b.z
@@ -48,6 +49,42 @@ describe("RingPad.blocks", function()
 		end
 		return false
 	end
+end
+
+describe("RingPad.blocks, ring style", function()
+	local shape = RingPad.shape({ radius = 4.6, width = 1.6 })
+	local blocks = RingPad.blocks(shape)
+	local covered = coverage(blocks)
+	local inner, outer = shape.radius - shape.width / 2, shape.radius + shape.width / 2
+
+	it("is one block per segment, starting at the front, clockwise", function()
+		expect(#blocks).toBe(shape.segments)
+		expect(blocks[1].z < 0).toBe(true)
+		expect(blocks[2].x > blocks[1].x).toBe(true)
+	end)
+	it("is one closed circle: no gaps anywhere round it", function()
+		for step = 0, 719 do
+			local angle = 2 * math.pi * step / 720
+			for _, r in { inner + 0.03, shape.radius, outer - 0.03 } do
+				expect(covered(at(angle, r, 0))).toBe(true)
+			end
+		end
+	end)
+	it("stays on the ring: nothing past the edges", function()
+		for step = 0, 71 do
+			local angle = 2 * math.pi * (step + 0.5) / 72
+			expect(covered(at(angle, outer + 0.06, 0))).toBe(false)
+			expect(covered(at(angle, inner - 0.06, 0))).toBe(false)
+		end
+	end)
+end)
+
+describe("RingPad.blocks, pieces style", function()
+	local shape = RingPad.shape({ style = "pieces", segments = 12, curve = 4, radius = 4.6, width = 1.6, gap = 0.2 })
+	local blocks = RingPad.blocks(shape)
+	local covered = coverage(blocks)
+	local piece = 2 * math.pi / shape.segments
+	local inner, outer = shape.radius - shape.width / 2, shape.radius + shape.width / 2
 
 	it("has curve blocks for every piece, in order", function()
 		expect(#blocks).toBe(48)
@@ -96,8 +133,8 @@ describe("RingPad.blocks", function()
 		expect(near(blocks[1].y, shape.lift + shape.thickness / 2)).toBe(true)
 	end)
 	it("refuses a gap wider than a piece's inner edge", function()
-		expect(pcall(RingPad.shape, { radius = 4.6, width = 1.6, gap = 3 })).toBe(false)
-		expect(pcall(RingPad.shape, { curve = 1 })).toBe(false)
+		expect(pcall(RingPad.shape, { style = "pieces", radius = 4.6, width = 1.6, gap = 3 })).toBe(false)
+		expect(pcall(RingPad.shape, { style = "pieces", curve = 1 })).toBe(false)
 	end)
 end)
 

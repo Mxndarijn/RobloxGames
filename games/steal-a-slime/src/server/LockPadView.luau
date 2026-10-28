@@ -3,7 +3,7 @@
 	LockPadView (Roblox adapter)
 
 	Puts each plot's lock pad (CONTRACT.md §8.5) on the floor round its LockButton: a shared RingPadView, Model
-	Plot_<i>.LockPad with a Model Seg_<i> of curved blocks per piece, coloured from LockPad.ring. It follows the
+	Plot_<i>.LockPad with a Model Seg_<i> per lit step, coloured from LockPad.ring. It follows the
 	LockButton when a base swap moves it. `standing` says whether a root part is on a plot's pad. Holds no rules:
 	LockPad decides.
 ]]
