@@ -114,6 +114,8 @@ Rebirth.COPY = table.freeze({
 	keepAll = "Your slimes, pads, upgrades, rank",
 	reset = "Your cash and the slimes above",
 	resetCash = "Your cash",
+	resetPads = "Your cash and %s on your pads", -- %s = State.padCash
+	resetPadsSlimes = "Your cash, %s on pads, the slimes above",
 	lockMax = "Lock time is maxed",
 	newTitle = "A new title",
 	crownSub = "You finished every rebirth.",
@@ -125,12 +127,15 @@ function Rebirth.countText(ready: number, total: number): string
 	return `{ready} of {total} ready`
 end
 
--- The two wells under the checklist: what stays and what the rebirth resets.
-function Rebirth.keepText(slimes: number): (string, string)
-	if slimes == 0 then
-		return Rebirth.COPY.keepAll, Rebirth.COPY.resetCash
+-- The two wells under the checklist: what stays and what the rebirth resets. `padCash` (State.padCash,
+-- FEATURES.CashPads): cash still waiting on the cash pads, which the rebirth clears too.
+function Rebirth.keepText(slimes: number, padCash: number?): (string, string)
+	local keep = if slimes == 0 then Rebirth.COPY.keepAll else Rebirth.COPY.keep
+	if padCash and padCash >= 1 then
+		local pads = Format.formatCash(padCash)
+		return keep, string.format(if slimes == 0 then Rebirth.COPY.resetPads else Rebirth.COPY.resetPadsSlimes, pads)
 	end
-	return Rebirth.COPY.keep, Rebirth.COPY.reset
+	return keep, if slimes == 0 then Rebirth.COPY.resetCash else Rebirth.COPY.reset
 end
 
 local function capitalise(text: string): string
@@ -795,7 +800,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		end
 
 		keepWrap.Position = UDim2.fromOffset(0, plan.keepY)
-		keepBody.Text, resetBody.Text = Rebirth.keepText(#needs)
+		keepBody.Text, resetBody.Text = Rebirth.keepText(#needs, state.padCash)
 
 		-- Button or what is missing.
 		local buttonY = if maxed then CROWN_H + R.gap else plan.buttonY

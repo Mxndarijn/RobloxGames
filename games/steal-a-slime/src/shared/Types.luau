@@ -261,6 +261,7 @@ export type State = {
 	plotBases: { PlotBaseView }?, -- FEATURES.BaseShapes: every base with its rebirth gate (nil when off)
 	petSeat: string, -- the seat the follow pet rides (PetSeats.current)
 	petSeats: { PetSeatView }, -- every pet seat with its unlock progress (contract/pet-seats.md)
+	padCash: number?, -- FEATURES.CashPads: whole cash waiting on all my cash pads (rebirth clears it); nil with the flag off (contract/cash-pads.md)
 	welcomeBack: { away: number, cash: number, grown: number, onPads: boolean? }?, -- join report (seconds away, offline cash paid or piled onto the cash pads (onPads, contract/cash-pads.md), pad slimes grown); nil = none (CONTRACT.md §19)
 	stealAway: string?, -- FEATURES.StealAlerts: "While you were away N slimes were stolen by ..." from the saved steal log; nil = none (CONTRACT.md §17)
 	hotbar: { string }?, -- saved hotbar order (HotbarOrder, CONTRACT.md §5.1): 9 slot keys, "" = empty; nil = never set

@@ -12,6 +12,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
 local BossBadges = if Shared then require(Shared.BossBadges) else require("../shared/BossBadges")
+local CashPads = if Shared then require(Shared.CashPads) else require("../shared/CashPads")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
@@ -144,6 +145,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		petSeats = PetSeats.view(data),
 		stealAway = if Config.FEATURES.StealAlerts then StealAlert.summary(session.awayLog) else nil,
 		welcomeBack = session.welcome,
+		padCash = if CashPads.enabled() then math.floor(CashPads.total(data)) else nil,
 		hotbar = if data.hotbar then table.clone(data.hotbar) else nil,
 		boards = Snapshot.boards(data, now),
 		boardRanks = if session.boardRanks then table.clone(session.boardRanks) else {},

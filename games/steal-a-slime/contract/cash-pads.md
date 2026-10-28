@@ -1,6 +1,6 @@
 # 47. Cash pads: income piles up at each slime and the owner walks over it to collect
 
-**Status:** behind `Config.FEATURES.CashPads` (Studio review: `PcwFlag_CashPads`, FeatureOverride). With the flag off, income goes straight to cash as before and nothing below exists. Server-authoritative; no remote, no new State field, **no save version bump** (one optional key).
+**Status:** behind `Config.FEATURES.CashPads` (Studio review: `PcwFlag_CashPads`, FeatureOverride). With the flag off, income goes straight to cash as before and nothing below exists. Server-authoritative; no remote, one State field (`padCash`: the whole cash waiting on all my pads, nil with the flag off), **no save version bump** (one optional key).
 
 ## Rules (`src/shared/CashPads`, `src/server/CashPadService`)
 
@@ -9,7 +9,7 @@
 - **Pile belongs to the pad.** A stolen, sold, merged or moved slime leaves its pile behind; the owner can still collect it, and the next slime on that pad keeps adding to it.
 - **Offline.** `Income.applyOffline` puts `Economy.offlineIncome` of each slime (`OFFLINE_RATE`, at most the offline cap) on its pad, under the same cap. The join toast and the welcome-back card (`welcomeBack.onPads = true`) say the cash waits on the cash pads.
 - **Collect.** `CashPadService.touch(world, nags, userId, plotIndex, pad, now)`: the plot owner gets the pile's whole cash (`PlayerData.earn`, so `totalEarned`, goals, badges and the boards count it when collected; the fraction stays) and the `"Collect"` effect (§5.4) on their root. Anyone else gets nothing and the `"bad"` toast "Not your cash! Only the owner can collect it." at most once per `Config.CASH_PAD.NAG_SECONDS`, and only while there is a pile. A locked base changes nothing here: visitors can never collect.
-- **Rebirth** (`Progression.rebirth`) clears every pile along with the cash.
+- **Rebirth** (`Progression.rebirth`) clears every pile along with the cash. The Rebirth panel's "Resets" well names the cash waiting on the pads (`State.padCash`), so nobody loses it by surprise.
 
 ## World (`src/server/CashPadView`, Roblox adapter)
 
@@ -25,4 +25,3 @@
 ## Not in this version
 
 - No tutorial step (inserting one would shift saved `tutorialStep` indices). While the tutorial runs, a toast says how to collect once $`CASH_PAD.HINT_AT` waits (once a session); the offline join toast and the counters explain it to everyone else.
-- No warning in the rebirth panel when piles are waiting.

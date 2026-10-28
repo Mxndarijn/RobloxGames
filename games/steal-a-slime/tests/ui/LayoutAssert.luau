@@ -86,6 +86,8 @@ local RebirthPanel = {
 		keep = "Other slimes, pads, upgrades, rank",
 		keepAll = "Your slimes, pads, upgrades, rank",
 		reset = "Your cash and the slimes above",
+		resetPads = "Your cash and %s on your pads",
+		resetPadsSlimes = "Your cash, %s on pads, the slimes above",
 		crownSub = "You finished every rebirth.",
 	},
 	SLIME_IMAGE = 48,
@@ -728,6 +730,22 @@ function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
 			wrapped = true,
 		},
 		{ name = "Rebirth reset", text = copy.reset, size = c.labelSize, w = keepW, h = c.keepBodyH, wrapped = true },
+		{
+			name = "Rebirth reset with pads",
+			text = string.format(copy.resetPads, "$999.9Qa"), -- worst-case State.padCash (FEATURES.CashPads)
+			size = c.labelSize,
+			w = keepW,
+			h = c.keepBodyH,
+			wrapped = true,
+		},
+		{
+			name = "Rebirth reset with pads and slimes",
+			text = string.format(copy.resetPadsSlimes, "$999.9Qa"),
+			size = c.labelSize,
+			w = keepW,
+			h = c.keepBodyH,
+			wrapped = true,
+		},
 		{
 			name = "Rebirth crown title",
 			text = "Gelatinous Legend",
