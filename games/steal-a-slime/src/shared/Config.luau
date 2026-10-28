@@ -1060,7 +1060,7 @@ local Config = {
 			rebirth = "Rebirth",
 			alarm = "Alarm",
 			error = "ErrorSoft",
-			click = "rbxasset://sounds/button.wav",
+			click = "Click",
 		}),
 		-- Ambience: a looped bed per time of day, plus a night one-shot played now and then over it.
 		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds: own 20 s seamless loop (Merijn's upload)

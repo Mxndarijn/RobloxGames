@@ -25,7 +25,7 @@ Sounds.IDS = table.freeze({
 	Alarm = "rbxassetid://129496339606661", -- siren alarm
 	Grab = "rbxassetid://87295773843957", -- "SLIME SQUISHY 1", wet slime squish
 	Stolen = "rbxassetid://9045131605", -- APM "Red Handed - Hit3" sneaky sting
-	Escape = "rbxassetid://12222200", -- swoosh.wav (SPEED: a bit high), the slime zips away
+	Escape = "rbxassetid://9116401192", -- Pro Sound Effects "Magic Movement Airy Whips Swooshes 38": the slime zips away
 	Slap = "rbxassetid://132937320140224", -- cartoon bonk
 	Lock = "rbxassetid://9116324156", -- Pro Sound Effects key in lock + jingle
 	Unlock = "rbxassetid://9117060349", -- Pro Sound Effects "Nasa Transmission Beep 2": your lock is gone
@@ -41,6 +41,7 @@ Sounds.IDS = table.freeze({
 	Goal = "rbxassetid://4612373884", -- Achievement_unlocked ding (0.2 s)
 	Secret = "rbxassetid://71491555548135", -- Skybound_Gacha_GlowUp (1.9 s)
 	ErrorSoft = "rbxassetid://105474838693489", -- "UI bubbly_error"
+	Click = "rbxassetid://9117829428", -- Pro Sound Effects "Pop Airy 22": every UI button
 	-- Announcements
 	Announce = "rbxassetid://15675043410", -- Roblox_UI_Tonal_Stinger: a server-wide message
 	WeeklyEvent = "rbxassetid://1844584807", -- APM "Glamour Fanfare 4"
@@ -65,9 +66,9 @@ Sounds.IDS = table.freeze({
 	EggHatch = "rbxassetid://9116405618", -- Pro Sound Effects "Magic Poofs Short Breathy Bursts Punchy 2"
 	EggReady = "rbxassetid://9116395089", -- Pro Sound Effects "Magic Glows Soft Clusters Of Chiming Hits 4"
 	RitualDone = "rbxassetid://9116394756", -- Pro Sound Effects "Magic Glows Soft Clusters Of Chiming Hits 3"
-	RitualSpot = "rbxassetid://12221996", -- flashbulb.wav (VOLUME: low), a spot gets taken
+	RitualSpot = "rbxassetid://9116393976", -- Pro Sound Effects "Magic Glow Short Pulsing Bursts 9" (VOLUME: low), a spot gets taken
 	DexNew = "rbxassetid://103005200793008", -- audio-kit dex_new (fallback: Goal)
-	Lucky = "", -- the Lucky Charm show's chime (contract/lucky-charm.md); not uploaded yet (fallback: MergeSparkle)
+	Lucky = "rbxassetid://9116394545", -- Pro Sound Effects "Magic Glows Soft Clusters Of Chiming Hits 1": the Lucky Charm show's chime
 	JarFill = "rbxassetid://128015024195428", -- audio-kit jar_fill
 	DespawnPoof = "rbxassetid://9125639751", -- Pro Sound Effects "Magic Poofs Short Breathy Bursts Wheezy Exhale"
 	-- UI
@@ -78,7 +79,6 @@ Sounds.IDS = table.freeze({
 	SlimeSquish1 = "rbxassetid://138542773252631", -- audio-kit slime_squish_1..3
 	SlimeSquish2 = "rbxassetid://130838086896738",
 	SlimeSquish3 = "rbxassetid://87791729719690",
-	SlimeSquishLib = "rbxassetid://87295773843957", -- "SLIME SQUISHY 1"
 	SlimeBlip1 = "rbxassetid://94777402130166", -- audio-kit slime_blip_1..3
 	SlimeBlip2 = "rbxassetid://114873093794765",
 	SlimeBlip3 = "rbxassetid://120922882676473",
@@ -95,17 +95,17 @@ Sounds.IDS = table.freeze({
 	StepSnow1 = "rbxassetid://96692894596329", -- "Snow Footstep - 1"
 	StepSnow2 = "rbxassetid://128551000876862", -- "Snow Footstep - 2"
 	-- PvP feel (FEATURES.PvP, docs/PVP.md): Roblox-created public-domain library sounds.
-	PvpHit = "rbxassetid://12222046", -- hit.wav
-	PvpCollide = "rbxassetid://12221984", -- collide.wav
+	PvpHit = "rbxassetid://9113570289", -- Pro Sound Effects "Boxing Hits 14"
+	PvpCollide = "rbxassetid://9113899113", -- Pro Sound Effects "Construction Cone Impact 11", a rubbery bump
 	PvpGoo = "rbxassetid://72863740720702", -- audio-kit goo_splat (fallback: PvpGooLib)
 	PvpGooLib = "rbxassetid://12222152", -- splat.wav
-	PvpSquirt = "rbxassetid://12222103", -- Rubber band sling shot.wav
+	PvpSquirt = "rbxassetid://9119518898", -- Pro Sound Effects "Spray Bottle 3"
 	PvpBoing = "rbxassetid://110041616643369", -- audio-kit boing (fallback: PvpBoingLib)
 	PvpBoingLib = "rbxassetid://12222124", -- Short spring sound.wav
-	PvpPop = "rbxassetid://12221996", -- flashbulb.wav
+	PvpPop = "rbxassetid://9113263649", -- Pro Sound Effects "Balloon Pop 3"
 	PvpSqueak = "rbxassetid://9125994570", -- Pro Sound Effects rubber squeeze toy
-	PvpFirework = "rbxassetid://12222065", -- Launching rocket.wav
-	PvpBubble = "rbxassetid://12222054", -- Kerplunk.wav
+	PvpFirework = "rbxassetid://9126009951", -- Pro Sound Effects "Super Animal Rocket By Hissing Jet Whooshes"
+	PvpBubble = "rbxassetid://9112751536", -- Pro Sound Effects "Bubble Bloop High Pitched Cute 1"
 	PvpDisco = "rbxassetid://9047231371", -- APM "Copacetic - 15" (15 s), Dance Bomb disco bubble
 })
 
@@ -118,11 +118,10 @@ Sounds.FALLBACK = table.freeze({
 	Bag = "CashSnap",
 	Denied = "ErrorSoft",
 	DexNew = "Goal",
-	Lucky = "MergeSparkle",
 	TutorialTick = "Goal",
-	SlimeSquish1 = "SlimeSquishLib",
-	SlimeSquish2 = "SlimeSquishLib",
-	SlimeSquish3 = "SlimeSquishLib",
+	SlimeSquish1 = "Grab",
+	SlimeSquish2 = "Grab",
+	SlimeSquish3 = "Grab",
 	SlimePickup = "Grab",
 	SlimePutdown = "Deposit",
 	PvpGoo = "PvpGooLib",
@@ -130,6 +129,8 @@ Sounds.FALLBACK = table.freeze({
 })
 
 Sounds.TRIM = table.freeze({
+	RitualSpot = 0.9,
+	Click = 0.3,
 	BossWindup = 1.2,
 	BossGoo = 1.0,
 	BossWarn = 2.6,
@@ -144,7 +145,6 @@ Sounds.VOLUME = table.freeze({
 	SlimeSquish1 = 0.55,
 	SlimeSquish2 = 0.55,
 	SlimeSquish3 = 0.55,
-	SlimeSquishLib = 0.45,
 	SlimeBlip1 = 0.5,
 	SlimeBlip2 = 0.5,
 	SlimeBlip3 = 0.5,
@@ -157,9 +157,26 @@ Sounds.VOLUME = table.freeze({
 	MenuClose = 0.6,
 	DespawnPoof = 0.6,
 })
-Sounds.SPEED = table.freeze({
-	Escape = 1.25,
-	Lucky = 1.2, -- a brighter bell than the merge's
+Sounds.SPEED = table.freeze({})
+
+-- One-shots that play often (every sale, hit, pickup, button): each play gets a small random PlaybackSpeed
+-- change (Config.AUDIO.SFX_SPEED_JITTER), so repeats don't sound identical. Variant groups vary already.
+Sounds.VARY = table.freeze({
+	Click = true,
+	Cash = true,
+	CashSnap = true,
+	Bag = true,
+	Deposit = true,
+	Grab = true,
+	Slap = true,
+	Escape = true,
+	DespawnPoof = true,
+	PvpHit = true,
+	PvpCollide = true,
+	PvpGoo = true,
+	PvpSquirt = true,
+	PvpBoing = true,
+	PvpPop = true,
 })
 
 Sounds.LAYERS = table.freeze({
