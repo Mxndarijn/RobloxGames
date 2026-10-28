@@ -21,6 +21,8 @@
 	  * weather (WeatherFx, FEATURES.Weather): Rain / Snow / Starfall emitters + tint from the workspace attribute Weather
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
 	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst
+	  * the Exclusive Shop's jar (ShopDisplayFx, FEATURES.ExclusiveShop): the featured seats floating over its pedestals
+	  * carry trails (CarryTrailFx, FEATURES.ExclusiveShop): a player's CarryTrail streams behind them while Carrying
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
 	  * a dropped wild Mystery Egg smashing on the ground (EggSmashFx, EggSmashedAt)
 	  * the Mystery Egg hatch show on the pad (EggHatchFx) from a hatched slime's HatchedAt / HatchedFrom / HatchLucky
@@ -550,6 +552,24 @@ do
 		warn(`[VisualsClient] ritual fx disabled: {err}`)
 	end
 end
+local shopDisplayFx: any = nil
+do
+	local ok, err = pcall(function()
+		shopDisplayFx = require(script:WaitForChild("ShopDisplayFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] shop displays disabled: {err}`)
+	end
+end
+local carryTrailFx: any = nil
+do
+	local ok, err = pcall(function()
+		carryTrailFx = require(script:WaitForChild("CarryTrailFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] carry trails disabled: {err}`)
+	end
+end
 local eggFx: any = nil
 do
 	local ok, err = pcall(function()
@@ -632,6 +652,12 @@ RunService.RenderStepped:Connect(function()
 	end
 	if ritualFx then
 		ritualFx.tick(camera)
+	end
+	if shopDisplayFx then
+		shopDisplayFx.tick(camera)
+	end
+	if carryTrailFx then
+		carryTrailFx.tick(camera)
 	end
 	if bossTelegraph then
 		bossTelegraph.tick(camera)

@@ -10,7 +10,9 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 
-export type Egg = { kind: string, hatchAt: number?, lucky: boolean? } -- lucky: never sent to a client
+-- lucky and seed are never sent to a client. seed: the hatch roll's Rng seed, fixed when incubation starts (nil = an
+-- older egg: the hatch rolls on the server's egg Rng).
+export type Egg = { kind: string, hatchAt: number?, lucky: boolean?, seed: number? }
 export type Drop = { tier: number, weight: number }
 export type Kind = {
 	id: string,
@@ -148,7 +150,8 @@ function EggKind.probabilities(kind: Kind): { [number]: number }
 	return out
 end
 
--- Cleans an untrusted `egg` field (saves): a known kind, a finite hatchAt and `lucky` only when true, else nil.
+-- Cleans an untrusted `egg` field (saves): a known kind, a finite hatchAt, `lucky` only when true and a whole
+-- positive seed, else nil.
 function EggKind.sanitize(raw: any): Egg?
 	if type(raw) ~= "table" or not EggKind.get(raw.kind) then
 		return nil
@@ -157,7 +160,11 @@ function EggKind.sanitize(raw: any): Egg?
 	if hatchAt and (hatchAt ~= hatchAt or hatchAt == math.huge or hatchAt == -math.huge) then
 		hatchAt = nil
 	end
-	return { kind = raw.kind, hatchAt = hatchAt, lucky = if raw.lucky == true then true else nil }
+	local seed = tonumber(raw.seed)
+	if seed and (seed ~= seed or seed < 1 or seed >= 2 ^ 31 or seed % 1 ~= 0) then
+		seed = nil
+	end
+	return { kind = raw.kind, hatchAt = hatchAt, lucky = if raw.lucky == true then true else nil, seed = seed }
 end
 
 --[[

@@ -10,7 +10,8 @@
 	Cloud (PetSeatsView): one row per seat (its icon, name, and Equipped / Unlocked, or its unlock in one line with a
 	bar and count, or a gold Exclusive tag with "Only in the Exclusive shop."), and the selected seat's pane: a big
 	icon, the name, "How to unlock" / "How to get it" with the same line, the bar, and Equip, Equipped or a well
-	saying what is missing or "Exclusive shop". Equip asks the server (EquipPetSeat).
+	saying what is missing or "Exclusive shop". Equip asks the server (EquipPetSeat). With the Exclusive shop on
+	(State.exclusiveShop) that last one is a button: it opens the shop on that seat (ctx.openExclusiveShop).
 	With State.plotBases (FEATURES.BaseShapes, contract/base-shapes.md) a strip of base buttons runs across the top:
 	the building the plot stands in, apart from its skin; each says Equip, Equipped or the rebirth it unlocks at
 	(PlotBasesView), and Equip asks the server (EquipPlotBase).
@@ -647,6 +648,22 @@ function Skins.new(parent: Instance, ctx: any)
 		Size = UDim2.fromOffset(0, STYLE.button),
 		Parent = pane,
 	})
+	local shopButton = Widgets.button(
+		{
+			Name = "ExclusiveShop",
+			Text = PetSeatsView.EXCLUSIVE_ACTION,
+			TextSize = STYLE.buttonText,
+			Size = UDim2.fromOffset(0, STYLE.button),
+			Visible = false,
+		},
+		Theme.Accent,
+		function()
+			if selectedSeat and ctx.openExclusiveShop then
+				ctx.openExclusiveShop(`seat:{selectedSeat}`)
+			end
+		end
+	)
+	shopButton.instance.Parent = pane
 	type Cell = { frame: Frame, preview: ViewportFrame, glyph: TextLabel, name: TextLabel, tag: TextLabel }
 	local cells: { Cell } = {}
 
@@ -715,6 +732,7 @@ function Skins.new(parent: Instance, ctx: any)
 		pane.Visible = detail ~= nil
 		paneTag.Visible = false
 		how.Visible = false
+		shopButton.instance.Visible = false
 		if detail == nil then
 			return
 		end
@@ -815,6 +833,7 @@ function Skins.new(parent: Instance, ctx: any)
 		if detail == nil then
 			paneTag.Visible = false
 			how.Visible = false
+			shopButton.instance.Visible = false
 			return
 		end
 		local w = pane.Size.X.Offset
@@ -871,14 +890,19 @@ function Skins.new(parent: Instance, ctx: any)
 			y += 18 + 8
 		end
 		local canEquip = detail.state == "unlocked"
+		local canShop = detail.exclusive
+			and ctx.openExclusiveShop ~= nil
+			and type(latest) == "table"
+			and latest.exclusiveShop ~= nil
 		equipButton.instance.Visible = canEquip
-		well.Visible = not canEquip
+		shopButton.instance.Visible = canShop
+		well.Visible = not canEquip and not canShop
 		well.Text = detail.action
 		well.TextColor3 = if detail.state == "equipped"
 			then Theme.Good
 			elseif detail.exclusive then Theme.Gold
 			else Theme.Muted
-		for _, inst in { equipButton.instance :: GuiObject, well } do
+		for _, inst in { equipButton.instance :: GuiObject, shopButton.instance, well } do
 			inst.Position = UDim2.fromOffset(STYLE.pad, y)
 			inst.Size = UDim2.fromOffset(inner, STYLE.button)
 		end

@@ -1,6 +1,6 @@
 {
   "name": "pet_mount_royal_cushion",
-  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_mount_royal_cushion.py",
+  "model": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\models\\pet_mount_royal_cushion.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
   "tris": 1724,
   "meshes": [
@@ -52,7 +52,7 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_royal_cushion.fbx",
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_royal_cushion.fbx",
   "fbx_bytes": 40892,
   "engine": "cycles",
   "mode": "full",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_royal_cushion_0.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_royal_cushion_0.png"
     },
     {
       "view": "side",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_royal_cushion_1.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_royal_cushion_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_royal_cushion_2.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_royal_cushion_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_royal_cushion_3.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_royal_cushion_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.129,
-    "stats_s": 0.004,
-    "setup_s": 0.021,
+    "model_s": 0.165,
+    "stats_s": 0.002,
+    "setup_s": 0.024,
     "render_s": [
-      1.083,
-      0.862,
-      1.069,
-      0.986
+      0.144,
+      0.115,
+      0.116,
+      0.126
     ],
-    "export_s": 0.411
+    "export_s": 0.235
   },
-  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_royal_cushion_sheet.png",
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_royal_cushion_sheet.png",
   "timings": {
-    "wall_s": 6.74,
-    "blender_process_s": 6.65,
-    "compose_s": 0.088,
-    "model_s": 0.129,
-    "stats_s": 0.004,
-    "setup_s": 0.021,
+    "wall_s": 1.34,
+    "blender_process_s": 1.29,
+    "compose_s": 0.046,
+    "model_s": 0.165,
+    "stats_s": 0.002,
+    "setup_s": 0.024,
     "render_s": [
-      1.083,
-      0.862,
-      1.069,
-      0.986
+      0.144,
+      0.115,
+      0.116,
+      0.126
     ],
-    "export_s": 0.411
+    "export_s": 0.235
   }
 }

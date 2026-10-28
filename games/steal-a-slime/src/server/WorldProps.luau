@@ -5,7 +5,9 @@
 	Places the world props from Archer's ReplicatedStorage.Visuals.Props at
 	WorldLayout.PROP_SPOTS under workspace.Map (CONTRACT.md §5.3):
 	ItemShopStand and UpgradeShopStand (each with its own ShopPrompt on Counter and ShopId attribute,
-	CONTRACT.md §27), the five Hall of Fame boards (Leaderboards.BOARDS, each tagged with its LeaderboardStat),
+	CONTRACT.md §27), with FEATURES.ExclusiveShop the ExclusiveShopStand jar (Props.exclusiveJar, its
+	ShopPrompt opens the Exclusive Shop panel, contract/exclusive-shop.md §7), the five Hall of Fame boards
+	(Leaderboards.BOARDS, each tagged with its LeaderboardStat),
 	ProfessorGoo, TutorialNpc (with the "Talk" prompt) and the Upcoming Events board (WorldLayout.EVENT_BOARD,
 	filled by EventBoardView). A prop that already exists anywhere under workspace
 	(e.g. a static copy) is reused. Every part is anchored. A spot with a `scale` scales the built Model.
@@ -14,6 +16,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Leaderboards = require(ReplicatedStorage.Shared.Leaderboards)
@@ -33,7 +36,21 @@ WorldProps.SHOP_PROMPTS = table.freeze({
 		objectText = "Upgrade Shop",
 		actionText = "Browse upgrades",
 	}),
+	[Constants.EXCLUSIVE_SHOP_ID] = table.freeze({
+		name = Constants.SHOP_PROMPT_NAME,
+		objectText = "Exclusive Shop",
+		actionText = "Browse exclusives",
+	}),
 })
+-- The stand of each shop that has a ShopPrompt: the cash shops (Shops.ORDER) and the Exclusive Shop's jar, which
+-- is no cash shop (its panel buys through MarketplaceService) but opens and closes the same way.
+local function standOf(shopId: string): string?
+	if shopId == Constants.EXCLUSIVE_SHOP_ID then
+		return Constants.SHOP_STAND_EXCLUSIVE
+	end
+	local shop = Shops.shop(shopId)
+	return if shop then shop.stand else nil
+end
 -- Professor Goo's prompt only opens the client's Leaderboards panel (the UI listens for PromptTriggered).
 WorldProps.LEADERBOARD_PROMPT = table.freeze({
 	name = Constants.LEADERBOARD_PROMPT_NAME,
@@ -107,8 +124,10 @@ local function standBuilder(Props: any, shopId: string): (() -> Instance)?
 	end
 end
 
--- Places any missing prop. Returns the props by name (missing ones are absent).
-function WorldProps.place(): { [string]: Model }
+-- Places any missing prop. Returns the props by name (missing ones are absent). `features` defaults to
+-- Config.FEATURES: with ExclusiveShop off the Exclusive Shop's jar is not built.
+function WorldProps.place(features: { [string]: any }?): { [string]: Model }
+	local flags = features or Config.FEATURES
 	local Props = visual("Props")
 	local WorldLayout = visual("WorldLayout")
 	local builders: { [string]: any } = {
@@ -132,6 +151,9 @@ function WorldProps.place(): { [string]: Model }
 	end
 	builders[Constants.SHOP_STAND_ITEM] = standBuilder(Props, "ItemShop")
 	builders[Constants.SHOP_STAND_UPGRADE] = standBuilder(Props, "UpgradeShop")
+	if flags.ExclusiveShop == true and Props and Props.exclusiveJar then
+		builders[Constants.SHOP_STAND_EXCLUSIVE] = Props.exclusiveJar
+	end
 	local parent = workspace:FindFirstChild(Constants.MAP_FOLDER) or workspace
 	for name, build in builders do
 		local model = findModel(name)
@@ -199,18 +221,21 @@ local function counterOf(stand: Model?): BasePart?
 	return if counter and counter:IsA("BasePart") then counter else nil
 end
 
--- The Counter of the stand of `shopId` ("ItemShop" | "UpgradeShop"), or nil while it is not placed.
+-- The Counter of the stand of `shopId` ("ItemShop" | "UpgradeShop" | "ExclusiveShop"), or nil while it is not placed.
 function WorldProps.shopCounter(shopId: string): BasePart?
-	local shop = Shops.shop(shopId)
-	return counterOf(if shop then placed[shop.stand] else nil)
+	local stand = standOf(shopId)
+	return counterOf(if stand then placed[stand] else nil)
 end
 
 -- Each stand's ShopPrompt on its Counter plus the ShopId attribute, `onShop(player, shopId)` running on the server
 -- when it is triggered (CONTRACT.md §27.3), and "Talk" on the TutorialNpc's root (CONTRACT.md §5.3).
 -- Call after place().
 function WorldProps.addShopPrompts(onShop: ((player: Player, shopId: string) -> ())?)
-	for _, shopId in Shops.ORDER do
-		local stand = placed[(Shops.shop(shopId) :: Shops.Shop).stand]
+	local shopIds = table.clone(Shops.ORDER)
+	table.insert(shopIds, Constants.EXCLUSIVE_SHOP_ID)
+	for _, shopId in shopIds do
+		local name = standOf(shopId)
+		local stand = if name then placed[name] else nil
 		local counter = counterOf(stand)
 		if stand and counter then
 			stand:SetAttribute(Constants.SHOP_ID_ATTRIBUTE, shopId)

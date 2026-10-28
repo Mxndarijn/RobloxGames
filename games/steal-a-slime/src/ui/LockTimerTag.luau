@@ -6,13 +6,13 @@
 	plot's LockButton (plot attributes OwnerUserId and LockUntil). The owner never sees it on their own base (they
 	have the lock card).
 
-	Seen through glass, not through walls: every POLL seconds a ray from the camera to the tag skips see-through
-	parts (Transparency at least SEE_THROUGH: the jar glass, the drop tube) and characters, and anything else in
-	between hides the tag. Past MAX_DISTANCE studs it is hidden too.
+	Seen through glass, not through walls: on every `tick` (the client's 10 Hz loop) a ray from the camera to the
+	tag skips see-through parts (Transparency at least SEE_THROUGH: the jar glass, the drop tube) and characters, and
+	anything else in between hides the tag. Past MAX_DISTANCE studs it is hidden too.
 
 	The guis live in PlayerGui (Folder FOLDER) with the LockButton as Adornee, so nothing in the shared world changes.
 	Pure helpers (shows, text, seeThrough) are tested under Lune (tests/ui/LockTimerTag.spec.luau); `start` returns
-	a stop function that disconnects everything and removes the tags.
+	{ tick, destroy }: `destroy` removes the tags.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,7 +27,6 @@ local create = Widgets.create
 local LockTimerTag = {}
 
 LockTimerTag.FOLDER = "LockTimerTags"
-LockTimerTag.POLL = 0.2 -- seconds between sight checks and text updates
 LockTimerTag.SEE_THROUGH = 0.3 -- a part at least this transparent doesn't hide the tag (glass)
 LockTimerTag.MAX_DISTANCE = 90 -- studs: hidden beyond
 LockTimerTag.MAX_SKIPS = 8 -- see-through parts one sight ray may pass before it gives up (and hides the tag)
@@ -61,12 +60,13 @@ export type Options = {
 	now: () -> number, -- server time (workspace:GetServerTimeNow)
 	camera: () -> Camera?,
 	characters: () -> { Instance }, -- every player's character, ignored by the sight ray
-	heartbeat: RBXScriptSignal,
 }
+
+export type Handle = { tick: () -> (), destroy: () -> () }
 
 type Tag = { gui: BillboardGui, label: TextLabel }
 
-function LockTimerTag.start(opts: Options): () -> ()
+function LockTimerTag.start(opts: Options): Handle
 	local folder = create("Folder", { Name = LockTimerTag.FOLDER, Parent = opts.playerGui })
 	local tags: { [Instance]: Tag } = {}
 	local S = LockTimerTag.SIZE
@@ -178,21 +178,13 @@ function LockTimerTag.start(opts: Options): () -> ()
 		end
 	end
 
-	local acc = 0
-	local conn = opts.heartbeat:Connect(function(dt: number)
-		acc += dt
-		if acc < LockTimerTag.POLL then
-			return
-		end
-		acc = 0
-		update()
-	end)
-
-	return function()
-		conn:Disconnect()
-		folder:Destroy()
-		table.clear(tags)
-	end
+	return {
+		tick = update,
+		destroy = function()
+			folder:Destroy()
+			table.clear(tags)
+		end,
+	}
 end
 
 return LockTimerTag

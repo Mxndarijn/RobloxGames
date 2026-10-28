@@ -8,7 +8,8 @@
 	    back on its own pad), a padlock instead while brewing, and an empty slot says how to fill it;
 	  * the result card (Shared.MergePreview): "Random slime" with the rarity it will be and the jump chance, or a
 	    found recipe's hybrid by name; after Collect it reveals the new slime and the pad it went to;
-	  * a goo bar with the time left while brewing;
+	  * a goo bar with the time left while brewing, and under it (FEATURES.ExclusiveShop) the "Finish now · R$N"
+    quick-buy (ExclusiveShopView.brewQuickBuy: priced by the time left) or "Use credit" with a saved brew credit;
 	  * one main button: a well saying what is missing, Start merge (VatStart), Hold to cancel (VatCancel) or
 	    Collect (VatCollect). A load the player's rank can't merge yet (Shared.MergeGate) may wait in the vat: a
 	    Warn chip and a padlock on the result orb say so, and the well reads "Rebirth <n> to unlock".
@@ -18,6 +19,7 @@
 ]]
 
 local UI = script.Parent.Parent
+local ExclusiveShopView = require(UI.ExclusiveShopView)
 local Format = require(UI.Format)
 local Layout = require(UI.Layout)
 local SlimePreview = require(UI.SlimePreview)
@@ -432,6 +434,32 @@ function Merge.new(parent: Instance, ctx: any)
 	})
 	local _, setBar = Widgets.bar(timer, Theme.Good, UDim2.new(1, -24, 0, SIZE.barH), UDim2.fromOffset(12, 24))
 
+	-- The Robux skip under the timer, built the first time a brew can be finished (never with the shop off).
+	local quick: Widgets.Button? = nil
+	local quickBuy: ExclusiveShopView.QuickBuy? = nil
+	local function quickButton(): Widgets.Button
+		if quick then
+			return quick
+		end
+		local made = Widgets.button(
+			{ Name = "FinishNow", Text = "", TextSize = SIZE.textTitle, Visible = false, Parent = content },
+			Theme.Accent,
+			function()
+				local q = quickBuy
+				if q == nil then
+					return
+				elseif q.mode == "credit" then
+					ctx.send("UseCredit", "brew")
+				elseif q.mode == "buy" and q.purchase and ctx.purchase then
+					ctx.purchase.prompt(q.purchase)
+				end
+			end
+		)
+		made.instance.Parent = content
+		quick = made
+		return made
+	end
+
 	local well = Widgets.status({ Name = "Missing", Text = "", TextSize = SIZE.textTitle, Parent = body })
 	local startBtn = Widgets.button(
 		{ Name = "StartButton", Text = "Start merge", TextSize = SIZE.textTitle, Parent = body },
@@ -515,6 +543,11 @@ function Merge.new(parent: Instance, ctx: any)
 			timer.Position = UDim2.fromOffset(0, y)
 			timer.Size = UDim2.fromOffset(bodyW, SIZE.timerH)
 			y += SIZE.timerH + SIZE.gap
+		end
+		if quick and quick.instance.Visible then
+			quick.instance.Position = UDim2.fromOffset(math.floor((bodyW - SIZE.buttonW) / 2), y)
+			quick.instance.Size = UDim2.fromOffset(SIZE.buttonW, SIZE.buttonH)
+			y += SIZE.buttonH + SIZE.gap
 		end
 		content.CanvasSize = UDim2.fromOffset(0, y)
 		local bx = math.floor((bodyW - SIZE.buttonW) / 2)
@@ -611,13 +644,25 @@ function Merge.new(parent: Instance, ctx: any)
 			timeLeft.Text = `{Format.formatDuration(v.timeLeft)} left`
 			setBar(v.progress or 0)
 		end
+		local q =
+			ExclusiveShopView.brewQuickBuy(state, now, Config, ctx.actions ~= nil and ctx.actions.UseCredit ~= nil)
+		quickBuy = q
+		local wasQuick = quick ~= nil and quick.instance.Visible
+		if q then
+			local b = quickButton()
+			b.instance.Visible = true
+			b.setText(q.text)
+			b.setEnabled(q.mode == "credit" or (q.mode == "buy" and ctx.purchase ~= nil))
+		elseif quick then
+			quick.instance.Visible = false
+		end
 		well.Visible = v.main.kind == "well"
 		well.Text = v.main.text
 		startBtn.instance.Visible = v.main.kind == "start"
 		startBtn.setText(v.main.text)
 		collectBtn.instance.Visible = v.main.kind == "collect"
 		cancelBtn.instance.Visible = v.main.kind == "cancel"
-		if wasTimer ~= timer.Visible then
+		if wasTimer ~= timer.Visible or wasQuick ~= (q ~= nil) then
 			place()
 		end
 	end

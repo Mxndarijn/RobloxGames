@@ -15,6 +15,7 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | | `ToolProvider` | adapter, client | Lists / equips Roblox Tools, hides the default backpack, number-key and world-press input |
 | `src/core` | `Rng`, `NumberFormat`, `RateLimiter`, `Migrations`, `Signal`, `Spring`, `StepTrack` | pure | Seeded random, number and duration formatting, per-key action limits, versioned save migrations + sanitizers, a small signal, second-order springs for procedural motion, smooth drawing of stepwise (replicated) values |
 | `src/data` | `SessionLock`, `DataService` | pure, server | Session-locked load / save with retries, injected backend, and refusal to overwrite data from a newer save format |
+| | `ReceiptLedger` | pure, server | Developer Product receipts kept in a save: capped list of processed ids, and the grant → record → save decision (Granted only after a successful save) |
 | `src/guide` | `GuideTarget` | pure | Picks the closest candidate on the ground plane, keeping the current pick unless another is clearly closer |
 | | `GuideTrail` | pure | Lays out ground-trail arrows along a route: spacing, scroll phase, fade at both ends, length and count caps |
 | | `GuideEdge` | pure | Screen-edge pointer position and angle for an off-screen target (flips targets behind the camera) |

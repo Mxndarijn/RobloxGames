@@ -9,8 +9,11 @@
 	to the placeholder if that fails. SIZE is the handle's size in studs (the mesh is fitted to it); GRIP is the
 	Tool.Grip offset (position studs, rotation degrees) so the model sits right in the hand: tune it with the mesh.
 	ICON_ID is the Roblox image asset for the Tool's backpack slot (Tool.TextureId); nil = the tool shows its name.
+	`look(skinId)` is the look of an Exclusive Shop Bat skin (Config.EXCLUSIVE_SHOP.batSkins, contract/exclusive-shop.md
+	§10): only the Handle's mesh, size and grip. Nothing that decides a hit reads it.
 ]]
 
+local Config = if script then require(script.Parent.Config) else require("./Config")
 local MeshAssets = if script then require(script.Parent.MeshAssets) else require("./MeshAssets")
 
 local BatModel = {}
@@ -22,5 +25,34 @@ BatModel.SIZE = if entry and entry.size then entry.size else { 1.351, 5.09, 1.35
 BatModel.GRIP = { pos = { 0, -1.345, 0 }, rotDeg = { 0, 0, 0 } } -- the red wrap centre, 1.2 above the pommel
 BatModel.COLOR = { 0.72, 0.5, 0.28 } -- placeholder wood colour (RGB 0..1)
 BatModel.SWING_SOUND = "rbxassetid://12222216" -- whoosh on every swing (classic library sword slash)
+
+export type Look = { meshId: string?, size: { number }, grip: { pos: { number }, rotDeg: { number } } }
+
+-- The default Bat's look (meshId nil = the placeholder block).
+function BatModel.default(): Look
+	return { meshId = BatModel.MESH_ID, size = BatModel.SIZE, grip = BatModel.GRIP }
+end
+
+--[[
+	The Handle look for Bat skin `skinId`: its MeshAssets mesh (`bat_skin_<id>`) at that mesh's own size (a wide skin is
+	never squashed into the default Bat's box), with the default Bat's grip (every skin is modelled around it). nil, an
+	unknown id or a mesh that is not uploaded yet -> the default Bat.
+]]
+function BatModel.look(skinId: string?): Look
+	if skinId == nil then
+		return BatModel.default()
+	end
+	local def = nil
+	for _, skin in Config.EXCLUSIVE_SHOP.batSkins do
+		if skin.id == skinId then
+			def = skin
+		end
+	end
+	local mesh = if def then MeshAssets.get(def.mesh) else nil
+	if not mesh or not mesh.meshId then
+		return BatModel.default()
+	end
+	return { meshId = mesh.meshId, size = mesh.size or BatModel.SIZE, grip = BatModel.GRIP }
+end
 
 return BatModel

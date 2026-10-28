@@ -7,7 +7,8 @@
 	  * VatRemove(id): the menu's X; the slime is simply back on its own pad.
 	  * VatStart / VatCancel: start the brew (Config.MERGE_BREW_SECONDS x Perks.brewFactor) or stop it; cancel
 	    keeps the slimes in the vat.
-	  * VatCollect: a finished brew merges (TripleMerge: recipe or random) onto the first input's pad.
+	  * VatCollect: a finished brew merges (TripleMerge: recipe or random) onto the first input's pad. The roll's
+	    seed is drawn from `world.rng` at Start, so the result is fixed before the clock runs.
 	While brewing the inputs earn nothing and can't be stolen, moved or sold (VatState.isLocked; Income,
 	StealService and Actions read it).
 ]]
@@ -16,6 +17,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local MergeRecipes = if Shared then require(Shared.MergeRecipes) else require("../shared/MergeRecipes")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
+local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -55,7 +57,8 @@ function MergeVat.start(world: World, session: Session, now: number): (boolean, 
 			return false, "slime is busy"
 		end
 	end
-	local ok, reason = VatState.start(session.data, now, Perks.brewFactor(session.data))
+	local seed = world.rng:int(1, Rng.SEED_MAX)
+	local ok, reason = VatState.start(session.data, now, Perks.brewFactor(session.data), seed)
 	if not ok then
 		return false, reason
 	end

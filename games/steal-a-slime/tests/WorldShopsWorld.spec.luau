@@ -107,6 +107,86 @@ describe("world shop placement", function()
 	end)
 end)
 
+describe("Exclusive Shop jar placement (contract/exclusive-shop.md §7.1)", function()
+	local spots = WorldLayout.PROP_SPOTS
+	local jar = WorldLayout.EXCLUSIVE_JAR
+	local name = jar.model
+	local spot = spots[name]
+	local size = WorldLayout.meshSize(jar.shop, jar.scale)
+	local function dist(a: { number }, b: { number }): number
+		return math.sqrt((a[1] - b[1]) ^ 2 + (a[3] - b[3]) ^ 2)
+	end
+	it("stands on the plot 3 / plot 4 bisector at r 93.3, full size, facing the fountain", function()
+		expect(name).toBe(Constants.SHOP_STAND_EXCLUSIVE)
+		expect(spot ~= nil).toBe(true)
+		local at = polar(112.5, 93.3)
+		expect(spot.pos[1]).toBeCloseTo(at[1], 3)
+		expect(spot.pos[3]).toBeCloseTo(at[2], 3)
+		expect(spot.yaw).toBe(112.5) -- Props front (-Z) towards the fountain
+		expect(jar.scale).toBe(1)
+		expect(spot.scale).toBeNil() -- Props.exclusiveJar builds it at the layout scale
+	end)
+	it("completes the market row: Upgrade 34.5, Item 67.5, Exclusive 112.5 on the east ring", function()
+		local function bearing(p: { number }): number
+			return math.deg(math.atan2(p[1], p[3])) % 360
+		end
+		expect(bearing(spots.UpgradeShopStand.pos)).toBeCloseTo(34.5, 3)
+		expect(bearing(spots.ItemShopStand.pos)).toBeCloseTo(67.5, 3)
+		expect(bearing(spot.pos)).toBeCloseTo(112.5, 3)
+	end)
+	it("keeps its footprint off the ring path, both plots, their entrances and every other zone", function()
+		local hits = {}
+		for _, hit in PropClearance.conflicts({ pos = spot.pos, size = size, yaw = spot.yaw }) do
+			if hit ~= name then
+				table.insert(hits, hit)
+			end
+		end
+		expect(hits).toEqual({})
+	end)
+	it("reserves a clearance circle the size of its round footprint, clear of every ranch prop", function()
+		local radius = PropClearance.spotRadius(name)
+		expect(radius).toBeCloseTo(jar.footprint * jar.scale, 6)
+		expect(radius >= math.max(size[1], size[3]) / 2).toBe(true) -- covers the plinth and the counter
+		for _, prop in WorldLayout.RANCH_PROPS do
+			local rad = math.sqrt(prop.size[1] ^ 2 + prop.size[3] ^ 2) / 2
+			expect(`{prop.name} {dist(prop.pos, spot.pos) >= radius + rad}`).toBe(`{prop.name} true`)
+		end
+	end)
+	it("keeps its neighbours apart: the Item Shop and the plaza signpost", function()
+		expect(dist(spot.pos, spots.ItemShopStand.pos) > PropClearance.spotRadius(name) + PropClearance.SPOT_RADIUS).toBe(
+			true
+		)
+		for _, def in WorldLayout.PLAZA_PROPS do
+			if def.name == "Signpost" then
+				local a = math.rad(def.yaw)
+				local sign = { math.sin(a) * def.r, 0, math.cos(a) * def.r }
+				expect(dist(spot.pos, sign) > PropClearance.spotRadius(name) + 5).toBe(true)
+				-- and it never stands between the fountain and the shop: off the shop's sight line by more than the
+				-- shop's own angular half width seen from the plaza centre
+				local shopBearing = math.deg(math.atan2(spot.pos[1], spot.pos[3]))
+				local halfWidth = math.deg(math.asin(PropClearance.spotRadius(name) / dist(spot.pos, { 0, 0, 0 })))
+				local off = math.abs(((def.yaw - shopBearing) + 180) % 360 - 180)
+				expect(off > halfWidth + 2).toBe(true)
+			end
+		end
+	end)
+	it("moved the well and its pump off the bisector, together on a free lawn by the ring path", function()
+		local byName = {}
+		for _, prop in WorldLayout.RANCH_PROPS do
+			byName[prop.name] = prop
+		end
+		local well, pump = byName.Well, byName.WellPump
+		expect(well ~= nil and pump ~= nil).toBe(true)
+		expect(#PropClearance.conflicts(well)).toBe(0)
+		expect(#PropClearance.conflicts(pump)).toBe(0)
+		expect(dist(well.pos, pump.pos) < 10).toBe(true)
+		for _, p in { well, pump } do
+			expect(math.sqrt(p.pos[1] ^ 2 + p.pos[3] ^ 2) < 96).toBe(true)
+			expect(dist(p.pos, spot.pos) > 60).toBe(true)
+		end
+	end)
+end)
+
 local path = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-worldshops-{os.time()}-{math.random(1, 1e9)}.rbxlx`
 local built = process.exec("rojo", { "build", "-o", path })
 assert(built.ok, `rojo build failed: {built.stderr}`)

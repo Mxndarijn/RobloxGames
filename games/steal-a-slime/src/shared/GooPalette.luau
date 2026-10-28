@@ -33,6 +33,8 @@ return table.freeze({
 	Warn = rgb(255, 190, 60),
 	Gold = rgb(255, 210, 63),
 	GoldHi = rgb(255, 244, 194), -- the top of a gold jelly
+	Plum = rgb(150, 104, 206), -- the Exclusive shop stage behind its preview (deep lilac)
+	Butter = rgb(252, 216, 110), -- the Exclusive shop stage behind its preview (butter)
 	GoldDeep = rgb(224, 168, 18), -- the coin's edge and ring, the bottom of a gold jelly
 	Silver = rgb(206, 216, 232), -- second place on a leaderboard
 	Bronze = rgb(232, 150, 92), -- third place on a leaderboard

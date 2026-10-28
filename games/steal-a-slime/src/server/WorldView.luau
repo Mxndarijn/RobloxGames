@@ -1458,14 +1458,15 @@ local function ensureGroups()
 	end
 end
 
--- Guests (PlotGuests) and former guests still inside (SlimeGuard.formerGuests): plot i's stopper also lets player
+-- Guests (PlotGuests), former guests still inside (SlimeGuard.formerGuests) and lock break holders (LockBreak): plot
+-- i's stopper also lets player
 -- p through by making PlotLock_<i> x PlotOwner_<p's plot> non-colliding. Every player owns one plot, so that group is
 -- p's character and no new groups are needed. Only pairs that changed are touched; the settings replicate to every
 -- client. Returns who passes each plot's stopper (SlimeGuard.stopperPasses), for the plot's Guests attribute.
 local guestPairs: { [string]: { lock: string, owner: string } } = {}
-local function syncGuestPairs(world: World.World): { [number]: { number } }
+local function syncGuestPairs(world: World.World, now: number): { [number]: { number } }
 	ensureGroups()
-	local passes = SlimeGuard.stopperPasses(world)
+	local passes = SlimeGuard.stopperPasses(world, nil, now)
 	local wanted: { [string]: { lock: string, owner: string } } = {}
 	for i, ids in passes do
 		for _, id in ids do
@@ -1637,7 +1638,7 @@ end
 function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloors.Context?)
 	local habitatsOn = Config.FEATURES.Habitats
 	HabitatPads.step(habitats, world, now, habitatsOn)
-	local passes = syncGuestPairs(world)
+	local passes = syncGuestPairs(world, now)
 	for index = 1, world.plotCount do
 		local plot = WorldView.plot(index)
 		if plot then

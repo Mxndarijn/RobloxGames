@@ -10,9 +10,13 @@
 	A row is the icon tile (a gold stock tag under it for restocking items), the name, a two-line description,
 	level pips for leveled upgrades, and on the right WorldShopLogic.slot: the green hold-to-buy button, a
 	sunken status well ("✅ Owned", "🔒 Rebirth 12 / to unlock") or the gold MAX stamp.
+	With FEATURES.ExclusiveShop, a second row under the Luck Potion sells one for the whole server for Robux
+	("Buy for the server · R$79", ExclusiveShopView.potionQuickBuy), only where paid random items are allowed; its
+	"Details" opens the Exclusive shop on the potion with its odds shown.
 ]]
 
 local UI = script.Parent.Parent
+local ExclusiveShopView = require(UI.ExclusiveShopView)
 local Format = require(UI.Format)
 local GooIcons = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("GooIcons"))
 local ItemIconView = require(UI.ItemIconView)
@@ -38,6 +42,14 @@ WorldShop.NAME_H = 22
 WorldShop.DESC_H = 34
 WorldShop.EDGE = 8 -- row edge to the icon and to the right slot
 WorldShop.GAP = 10 -- icon to text, text to the right slot
+-- The Robux Luck Potion row under the cash one: name and line beside the icon, Details and Buy under them.
+WorldShop.SERVER_POTION = table.freeze({
+	id = "LuckPotion", -- the cash row it follows
+	row = "LuckPotionServer",
+	h = 8 + 22 + 2 + 18 + 8 + Layout.BUTTON + 8,
+	detailsW = 120,
+	text = "Robux, for everyone here: rarer fountain drops.",
+})
 
 WorldShop.SIZE = table.freeze({
 	desc = Layout.MIN_TEXT,
@@ -329,6 +341,102 @@ function WorldShop.new(parent: Instance, ctx: any)
 		end
 	end)
 
+	-- The server potion row, built the first time it can show (never with the shop off or where restricted).
+	local sp = WorldShop.SERVER_POTION
+	local serverRow: Frame? = nil
+	local serverBuy: Widgets.Button? = nil
+	local serverQuick: ExclusiveShopView.QuickBuy? = nil
+	local function serverPotionRow(): (Frame, Widgets.Button)
+		if serverRow and serverBuy then
+			return serverRow, serverBuy
+		end
+		local frame = Widgets.rowFrame({ Name = sp.row, Size = UDim2.new(1, -10, 0, sp.h), Parent = list })
+		local icon = ItemIconView.new({
+			Name = "Icon",
+			Id = ExclusiveShopView.TEXTS.ServerLuckPotion.icon,
+			Position = UDim2.fromOffset(WorldShop.EDGE, 8),
+			Size = WorldShop.BADGE,
+			Parent = frame,
+		}, ItemIcons.of(ctx))
+		icon.setActive(isOpen)
+		icons[sp.row] = icon
+		Widgets.label({
+			Name = "ItemName",
+			Font = Theme.Font,
+			TextSize = WorldShopLogic.NAME_SIZE,
+			Text = ExclusiveShopView.TEXTS.ServerLuckPotion.title,
+			Position = UDim2.fromOffset(textX, 8),
+			Size = UDim2.new(1, -(textX + WorldShop.EDGE), 0, WorldShop.NAME_H),
+			Parent = frame,
+		})
+		Widgets.label({
+			Name = "Description",
+			FontFace = Theme.FontBody,
+			TextSize = SIZE.desc,
+			TextColor3 = Theme.Muted,
+			Text = sp.text,
+			Position = UDim2.fromOffset(textX, 8 + WorldShop.NAME_H + 2),
+			Size = UDim2.new(1, -(textX + WorldShop.EDGE), 0, 18),
+			Parent = frame,
+		})
+		local buttonY = 8 + WorldShop.NAME_H + 2 + 18 + 8
+		local details = Widgets.button(
+			{
+				Name = "Details",
+				Text = ExclusiveShopView.DETAILS,
+				TextSize = SIZE.buy,
+				Position = UDim2.fromOffset(WorldShop.EDGE, buttonY),
+				Size = UDim2.fromOffset(sp.detailsW, Layout.BUTTON),
+			},
+			Theme.Info,
+			function()
+				if ctx.openExclusiveShop then
+					ctx.openExclusiveShop("product:ServerLuckPotion", true)
+				end
+			end
+		)
+		details.instance.Parent = frame
+		local buy = Widgets.button(
+			{
+				Name = "Buy",
+				Text = "",
+				TextSize = SIZE.buy,
+				Position = UDim2.fromOffset(WorldShop.EDGE * 2 + sp.detailsW, buttonY),
+				Size = UDim2.new(1, -(WorldShop.EDGE * 3 + sp.detailsW), 0, Layout.BUTTON),
+			},
+			Theme.Accent,
+			function()
+				local q = serverQuick
+				if q and q.mode == "buy" and q.purchase and ctx.purchase then
+					ctx.purchase.prompt(q.purchase)
+				end
+			end
+		)
+		buy.instance.Parent = frame
+		serverRow, serverBuy = frame, buy
+		return frame, buy
+	end
+
+	-- Shows the server potion row right under the cash Luck Potion row while it may be sold.
+	local function syncServerPotion(state: any)
+		local cashRow = rows.rows[`{shopId}_{sp.id}`]
+		local q = if cashRow then ExclusiveShopView.potionQuickBuy(state, ctx.Config) else nil
+		serverQuick = q
+		if q == nil then
+			if serverRow and serverRow.Visible then
+				serverRow.Visible = false
+				Widgets.restack(list)
+			end
+			return
+		end
+		local frame, buy = serverPotionRow()
+		frame.Visible = true
+		frame.LayoutOrder = cashRow.instance.LayoutOrder -- its name sorts it right after the cash row
+		buy.setText(q.text)
+		buy.setEnabled(q.mode == "buy" and ctx.purchase ~= nil)
+		Widgets.restack(list)
+	end
+
 	local self = { frame = panel.frame, close = panel.close }
 
 	-- The restock countdown follows the server clock; init.client's 10 Hz tick drives it while the card is open.
@@ -352,6 +460,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 		showRestock()
 		cash.Text = Format.formatCash(if type(state.cash) == "number" then state.cash else 0)
 		rows.sync(WorldShopLogic.rows(id, state, ctx.actions, ctx.Config.FEATURES, ctx.Config))
+		syncServerPotion(state)
 	end
 
 	-- Which shop the card shows (title, corner icon, tagline, rows). Called before the card opens.

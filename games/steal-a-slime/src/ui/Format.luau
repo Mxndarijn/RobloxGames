@@ -23,6 +23,11 @@ Format.formatCash = NumberFormat.cash
 -- Income per second. Small fractional rates keep one decimal: "$1.5/s".
 Format.formatRate = NumberFormat.rate
 
+-- A Robux price: 99 -> "R$99", 1500 -> "R$1.5K".
+function Format.robux(amount: number): string
+	return "R$" .. Format.shortNumber(amount)
+end
+
 -- 1.5 -> "x1.5", 2 -> "x2".
 function Format.formatMultiplier(value: number): string
 	return "x" .. trimZero(string.format("%.1f", value))
