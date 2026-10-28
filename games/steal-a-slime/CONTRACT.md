@@ -453,3 +453,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §45 | [slime-ladder.md](contract/slime-ladder.md) | Slime ladder: rarity and egg gates, time guarantees, Celestial and Divine, shines, jackpots, the Upcoming Events wall |
 | §46 | [lucky-charm.md](contract/lucky-charm.md) | Lucky Charm show: a slime the charm upgrades changes into its new species on the pad |
 | §47 | [exclusive-shop.md](contract/exclusive-shop.md) | Exclusive Shop: the Golden Jar Boutique, Robux products and passes, quick-buys that only buy time (`FEATURES.ExclusiveShop`) |
+| §48 | [notice-cards.md](contract/notice-cards.md) | Notice cards: steal alarm, bonked, slime back home, base locked and plot full on screen |

@@ -667,6 +667,33 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 	return { frame = frame, body = body, title = title, close = close, icon = iconLabel }
 end
 
+-- A notice card in the top stack (Layout.NOTICE_CARD): deep teal glass in a `color` ring (pink danger, gold
+-- guidance, mint good news) with the Ink ring outside it. No UIPadding goes on the card itself: it would pull the
+-- Ink ring (a child frame) inside the coloured one. Returns the card and its coloured stroke.
+function Widgets.noticeCard(props: { [string]: any }, color: Color3): (Frame, UIStroke)
+	local base: { [string]: any } = {
+		Name = "Card",
+		BackgroundColor3 = Theme.Bg,
+		BackgroundTransparency = 0.05,
+	}
+	for k, v in props do
+		base[k] = v
+	end
+	local card = create("Frame", base, { Widgets.corner(Layout.NOTICE_RADIUS) })
+	local stroke = Widgets.ring(card, color, Layout.NOTICE_RADIUS)
+	return card, stroke
+end
+
+-- A notice card's icon: an emoji on a round `color` tile with a thin ink outline (Layout.NOTICE_CARD.icon).
+function Widgets.noticeIcon(props: { [string]: any }, icon: string, color: Color3): TextLabel
+	local N = Layout.NOTICE_CARD
+	local badge = Widgets.iconBadge(props, icon, color, N.icon)
+	badge.TextSize = N.iconText
+	local corner = badge:FindFirstChildOfClass("UICorner") :: UICorner
+	corner.CornerRadius = UDim.new(0.5, 0)
+	return badge
+end
+
 -- An emoji icon tile (shop items, rebirth rewards, goals): `size` square,
 -- `color` fill, rounded with a thin ink outline.
 function Widgets.iconBadge(props: { [string]: any }, icon: string, color: Color3, size: number): TextLabel

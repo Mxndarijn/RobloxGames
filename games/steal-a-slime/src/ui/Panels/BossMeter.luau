@@ -3,10 +3,10 @@
 	Boss card (top centre, under the HUD banner stack) while `State.boss` has a phase (BossMeterLogic). Read-only:
 	hits are Bat swings, grabs the boss's prompt.
 
-	Drawn in the Goo kit as a notice: deep teal glass with a coloured ring (pink while you fight it, gold when it is
-	your moment, muted when it got away) and a band in that colour carrying the title and an Ink timer chip, with two
-	goo drips under it. One row below: the crown on a jelly tile, the goo meter and its percent (or a name instead),
-	and one Ink pill that says what matters now.
+	Drawn like the notice cards (StealCards): deep teal glass in a coloured ring (pink while you fight it, gold when
+	it is your moment, muted when it got away) with the crown on a round tile at the left. Two lines beside it: the
+	title with an Ink timer chip at the right, then the goo meter and its percent (or a name instead) and one Ink pill
+	that says what matters now.
 ]]
 
 local UI = script.Parent.Parent
@@ -15,46 +15,27 @@ local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
-local KIT = Widgets.KIT
-local create = Widgets.create
 
+local N = Layout.NOTICE_CARD
 local SIZE = table.freeze({
-	width = 460,
-	band = 48,
-	radius = 28,
-	padX = 16, -- left and right inside the card
-	bandPadLeft = 20,
-	bandPadRight = 12,
-	rowTop = 20, -- from the band's bottom to the row: room for the drips
-	row = 52,
-	bottom = 14,
-	gap = 12, -- between the row's parts
-	tile = 52,
-	tileText = 30,
-	title = 24,
-	timer = 18,
-	timerHeight = 28,
-	bar = 18,
-	percent = 20,
-	percentWidth = 52,
-	pill = 17,
-	pillWidth = 124,
-	pillHeight = 30,
-	who = 21,
-	stack = 6, -- under the banner stack
+	pad = N.pad + 2, -- inside the card, every side (two lines need a little more room than one)
+	line1 = 30, -- title and timer
+	lineGap = 6,
+	line2 = 30, -- meter or name, percent, pill
+	timer = 16,
+	timerHeight = 26,
+	bar = 14,
+	percent = 17,
+	percentWidth = 46,
+	pill = 15,
+	pillWidth = 118,
+	pillHeight = 28,
 })
 
--- Drips under the band: { x (fraction of the width), drop width, neck length } px; each one's lowest point stays
--- inside SIZE.rowTop, clear of the row.
-local DRIPS = table.freeze({
-	table.freeze({ 0.63, 12, 12 }),
-	table.freeze({ 0.74, 9, 7 }),
-})
+local HEIGHT = SIZE.pad + SIZE.line1 + SIZE.lineGap + SIZE.line2 + SIZE.pad
 
-local HEIGHT = SIZE.band + SIZE.rowTop + SIZE.row + SIZE.bottom
-
--- Band, ring and tile colour per BossMeterLogic tone; the meter's goo; the jelly tile.
-local BAND = table.freeze({ fight = Theme.Bad, gold = Theme.Gold, mute = Theme.Info })
+-- Ring and tile colour per BossMeterLogic tone; the meter's goo.
+local RING = table.freeze({ fight = Theme.Bad, gold = Theme.Gold, mute = Theme.Info })
 local GOO = table.freeze({ fight = Theme.Good, gold = Theme.Gold, mute = Theme.Info })
 local TILE = table.freeze({ fight = Theme.Bad, gold = Theme.Gold, mute = Theme.Text })
 local PILL = table.freeze({
@@ -69,59 +50,33 @@ local BossMeter = {}
 
 function BossMeter.new(parent: Instance, ctx: any)
 	local z = Layout.ZINDEX.Banners
-	local frame = create("Frame", {
+	local frame, ring = Widgets.noticeCard({
 		Name = "BossMeter",
 		Visible = false,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, Layout.TOP),
-		Size = UDim2.fromOffset(SIZE.width, HEIGHT),
-		BackgroundColor3 = Theme.Bg,
-		BackgroundTransparency = 0.04,
+		Size = UDim2.fromOffset(Layout.BANNER_WIDTH, HEIGHT),
 		ZIndex = z,
 		Parent = parent,
-	}, { Widgets.corner(SIZE.radius) })
-	local ring = Widgets.ring(frame, Theme.Bad, SIZE.radius)
+	}, Theme.Bad)
+	-- The round crown tile; the icon is the tile's own text.
+	local tile = Widgets.noticeIcon({
+		Name = "IconTile",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, SIZE.pad, 0.5, 0),
+		ZIndex = z,
+		Parent = frame,
+	}, BossMeterLogic.ICON, Theme.Bad)
+	local icon = tile
 
-	-- The band: rounded on top, square at the bottom (a second strip covers its lower corners).
-	local band = create("Frame", {
-		Name = "Band",
-		BorderSizePixel = 0,
-		BackgroundColor3 = Theme.Bad,
-		Size = UDim2.new(1, 0, 0, SIZE.band),
-		ZIndex = z,
-		Parent = frame,
-	}, { Widgets.corner(SIZE.radius) })
-	local foot = create("Frame", {
-		Name = "BandFoot",
-		BorderSizePixel = 0,
-		BackgroundColor3 = Theme.Bad,
-		Size = UDim2.new(1, 0, 0, SIZE.radius),
-		Position = UDim2.fromOffset(0, SIZE.band - SIZE.radius),
-		ZIndex = z,
-		Parent = frame,
-	})
-	local goo: { Frame } = {}
-	for i, d in DRIPS do
-		local x, w, hang = d[1], d[2], d[3]
-		-- One finger of goo (the Layout.GOO_EDGE recipe): its round top hides in the band.
-		table.insert(
-			goo,
-			create("Frame", {
-				Name = "Drip" .. i,
-				BorderSizePixel = 0,
-				BackgroundColor3 = Theme.Bad,
-				Position = UDim2.new(x, 0, 0, SIZE.band - w),
-				Size = UDim2.fromOffset(w, hang + w),
-				ZIndex = z,
-				Parent = frame,
-			}, { Widgets.pill() })
-		)
-	end
+	local leftX = SIZE.pad + N.icon + N.gap
+	-- Line 1: the title, the timer chip at the right.
+	local line1Y = SIZE.pad + SIZE.line1 / 2
 	local timer = Widgets.chip({
 		Name = "Timer",
 		TextSize = SIZE.timer,
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -SIZE.bandPadRight, 0, SIZE.band / 2),
+		Position = UDim2.new(1, -SIZE.pad - 4, 0, line1Y),
 		Size = UDim2.fromOffset(0, SIZE.timerHeight),
 		ZIndex = z,
 		Parent = frame,
@@ -129,49 +84,27 @@ function BossMeter.new(parent: Instance, ctx: any)
 	local title = Widgets.label({
 		Name = "Title",
 		Font = Theme.Font,
-		TextSize = SIZE.title,
+		TextSize = N.title,
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromOffset(SIZE.bandPadLeft, SIZE.band / 2),
-		Size = UDim2.new(1, -SIZE.bandPadLeft - SIZE.bandPadRight, 0, SIZE.title + 4),
+		Position = UDim2.fromOffset(leftX, line1Y),
+		Size = UDim2.new(1, -leftX - SIZE.pad - 80, 0, N.title + 4), -- 80: room for the timer chip
 		ZIndex = z,
 		Parent = frame,
 	})
 
-	local rowY = SIZE.band + SIZE.rowTop
-	local tile = create("Frame", {
-		Name = "IconTile",
-		Position = UDim2.fromOffset(SIZE.padX, rowY),
-		Size = UDim2.fromOffset(SIZE.tile, SIZE.tile),
-		BackgroundColor3 = Theme.Bad,
-		ZIndex = z,
-		Parent = frame,
-	}, { Widgets.pill(), Widgets.stroke(Theme.Ink, KIT.stroke) })
-	Widgets.shade(tile)
-	local icon = Widgets.label({
-		Name = "Icon",
-		Text = BossMeterLogic.ICON,
-		TextSize = SIZE.tileText,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = z,
-		Parent = tile,
-	})
-	Widgets.centreEmoji(icon, true)
-
-	-- Right to left: the pill, the percent, then the meter (or the name) fills what is left.
-	local midY = rowY + SIZE.row / 2
+	-- Line 2, right to left: the pill, the percent, then the meter (or the name) fills what is left.
+	local midY = SIZE.pad + SIZE.line1 + SIZE.lineGap + SIZE.line2 / 2
 	local pill = Widgets.chip({
 		Name = "Pill",
 		TextSize = SIZE.pill,
 		AutomaticSize = Enum.AutomaticSize.None,
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -SIZE.padX, 0, midY),
+		Position = UDim2.new(1, -SIZE.pad - 4, 0, midY),
 		Size = UDim2.fromOffset(SIZE.pillWidth, SIZE.pillHeight),
 		ZIndex = z,
 		Parent = frame,
 	})
-	local pctRight = SIZE.padX + SIZE.pillWidth + SIZE.gap
+	local pctRight = SIZE.pad + 4 + SIZE.pillWidth + N.gap
 	local percent = Widgets.label({
 		Name = "Percent",
 		Font = Theme.Font,
@@ -183,8 +116,7 @@ function BossMeter.new(parent: Instance, ctx: any)
 		ZIndex = z,
 		Parent = frame,
 	})
-	local leftX = SIZE.padX + SIZE.tile + SIZE.gap
-	local barRight = pctRight + SIZE.percentWidth + SIZE.gap
+	local barRight = pctRight + SIZE.percentWidth + N.gap
 	local bar, setBar = Widgets.bar(
 		frame,
 		Theme.Good,
@@ -199,11 +131,12 @@ function BossMeter.new(parent: Instance, ctx: any)
 	end
 	local who = Widgets.label({
 		Name = "Who",
-		Font = Theme.Font,
-		TextSize = SIZE.who,
+		FontFace = Theme.FontBody,
+		TextSize = N.sub,
+		TextColor3 = Theme.Muted,
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromOffset(leftX, midY),
-		Size = UDim2.new(1, -leftX - pctRight, 0, SIZE.who + 6),
+		Size = UDim2.new(1, -leftX - pctRight, 0, N.sub + 6),
 		ZIndex = z,
 		Parent = frame,
 	})
@@ -221,7 +154,7 @@ function BossMeter.new(parent: Instance, ctx: any)
 	function self.layout(screen: Layout.Screen, heightOfBanners: (() -> number)?)
 		top = screen.banners.y
 		bannerHeight = heightOfBanners or bannerHeight
-		frame.Size = UDim2.fromOffset(math.min(SIZE.width, math.round(screen.banners.w)), HEIGHT)
+		frame.Size = UDim2.fromOffset(math.round(screen.banners.w), HEIGHT) -- as wide as the notice cards
 	end
 
 	function self.update(state: any)
@@ -240,21 +173,14 @@ function BossMeter.new(parent: Instance, ctx: any)
 			return
 		end
 		local height = bannerHeight()
-		frame.Position = UDim2.new(0.5, 0, 0, top + (if height > 0 then height + SIZE.stack else 0))
-		local tone = BAND[view.tone]
-		ring.Color = tone
-		band.BackgroundColor3 = tone
-		foot.BackgroundColor3 = tone
-		for _, part in goo do
-			part.BackgroundColor3 = tone
-		end
+		frame.Position = UDim2.new(0.5, 0, 0, top + (if height > 0 then height + N.stack else 0))
+		ring.Color = RING[view.tone]
 		tile.BackgroundColor3 = TILE[view.tone]
 		if fill then
 			fill.BackgroundColor3 = GOO[view.tone]
 		end
 		icon.Text = view.icon
 		title.Text = view.title
-		Widgets.inkOn(title, tone)
 		timer.Text = view.timer or ""
 		timer.Visible = view.timer ~= nil
 		local meter = view.meter

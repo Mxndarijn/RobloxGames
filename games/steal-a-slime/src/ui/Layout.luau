@@ -728,6 +728,18 @@ Layout.PANEL_CHROME = table.freeze({
 -- Notices (tooltip, tutorial card, carry card, boss meter): one corner radius for their Gold or danger ring.
 Layout.NOTICE_RADIUS = 18
 
+-- Notice cards in the top stack (Widgets.noticeCard: StealCards, the boss card): the round icon, the title and the
+-- small line under it, the padding inside and the gap between stacked cards.
+Layout.NOTICE_CARD = table.freeze({
+	icon = 44,
+	iconText = 30,
+	title = 22,
+	sub = 16,
+	pad = 8,
+	gap = 10,
+	stack = 20, -- between cards; the Ink ring takes 3 px of it on each side
+})
+
 -- The glass bubble behind each status icon (Hud): white at this transparency over the world.
 Layout.STATUS_BUBBLE = table.freeze({ transparency = 0.8 })
 
