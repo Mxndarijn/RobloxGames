@@ -7,12 +7,15 @@
 	WelcomeBack.view decides which rows show, in which order and with which icon. The cash row is
 	the headline (a big gold amount under the away time); the others are cards with a name, a short
 	description and, for the daily reward, its amount or, for the next goal, a progress bar.
+	With FEATURES.ExclusiveShop, a "Double it · R$49" button sits under the amount while that payout can still be
+	doubled (ExclusiveShopView.doubleQuickBuy); it opens Roblox's prompt, the server pays.
 	Content-sized: the card is as tall as its rows plus the button. When the screen clamps the card (a
 	landscape phone), the away line, the amount and the rows scroll above Collect, which stays pinned
 	to the bottom.
 ]]
 
 local UI = script.Parent.Parent
+local ExclusiveShopView = require(UI.ExclusiveShopView)
 local Format = require(UI.Format)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
@@ -56,6 +59,7 @@ Welcome.CARD = table.freeze({
 	sideGap = 8, -- between the name and the amount / count on its right
 })
 Welcome.COLLECT_SIZE = 22
+Welcome.DOUBLE = table.freeze({ w = 240, h = Layout.MIN_TOUCH_DESIGN, size = 18, gap = 8 })
 
 local function plural(n: number, word: string): string
 	return `{n} {word}{if n == 1 then "" else "s"}`
@@ -254,6 +258,35 @@ function Welcome.new(parent: Instance, ctx: any)
 	)
 	collect.instance.Parent = body
 
+	-- "Double it", built the first time a payout can be doubled (never with the shop off).
+	local double: Widgets.Button? = nil
+	local doubleBuy: ExclusiveShopView.QuickBuy? = nil
+	local function doubleButton(): Widgets.Button
+		if double then
+			return double
+		end
+		local d = Welcome.DOUBLE
+		local made = Widgets.button(
+			{
+				Name = "DoubleIt",
+				Text = "",
+				TextSize = d.size,
+				AnchorPoint = Vector2.new(0.5, 0),
+				Size = UDim2.fromOffset(d.w, d.h),
+			},
+			Theme.Accent,
+			function()
+				local q = doubleBuy
+				if q and q.mode == "buy" and q.purchase and ctx.purchase then
+					ctx.purchase.prompt(q.purchase)
+				end
+			end
+		)
+		made.instance.Parent = content
+		double = made
+		return made
+	end
+
 	local self = { frame = panel.frame, close = panel.close }
 
 	-- Each time the card opens it starts at the top (the away line and the amount), wherever it was left.
@@ -275,6 +308,18 @@ function Welcome.new(parent: Instance, ctx: any)
 		earned.Text = `+{Format.formatCash(report.cash)}`
 		earned.Visible = hasCash
 		local y = if hasCash then layout.rowsAt else layout.rowsAtNoCash
+		local q = if hasCash then ExclusiveShopView.doubleQuickBuy(state, ctx.Config) else nil
+		doubleBuy = q
+		if q then
+			local b = doubleButton()
+			b.instance.Visible = true
+			b.instance.Position = UDim2.new(0.5, 0, 0, y - Welcome.DOUBLE.gap)
+			b.setText(q.text)
+			b.setEnabled(q.mode == "buy" and ctx.purchase ~= nil)
+			y += Welcome.DOUBLE.h + Welcome.DOUBLE.gap
+		elseif double then
+			double.instance.Visible = false
+		end
 		local bottom = y
 		for i = 2, WelcomeBack.MAX_ROWS do
 			local row = rows[i]

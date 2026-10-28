@@ -40,6 +40,10 @@ Widgets.Theme = table.freeze({
 	Silver = fromPalette(Goo.Silver), -- leaderboard second place
 	Bronze = fromPalette(Goo.Bronze), -- leaderboard third place
 	Glass = fromPalette(Goo.Glass), -- a glass row on a card (at Goo.GLASS_TRANSPARENCY)
+	-- The carousel's accents, only on the Exclusive shop's stage behind its preview. Until GooPalette has
+	-- Plum / Butter they fall back to the Info teal and the gold jelly top.
+	Plum = fromPalette((Goo :: any).Plum or Goo.Info),
+	Butter = fromPalette((Goo :: any).Butter or Goo.GoldHi),
 	Font = Enum.Font.FredokaOne, -- titles, numbers, buttons, labels
 	FontBody = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold), -- sentences (a FontFace)
 })
