@@ -54,6 +54,7 @@ local ItemIconView = require(script.ItemIconView)
 local ItemIcons = require(script.ItemIcons)
 local KitCache = require(script.KitCache)
 local Layout = require(script.Layout)
+local LockTimerTag = require(script.LockTimerTag)
 local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
@@ -890,6 +891,29 @@ SlimeKeyCard.start({
 	prompts = ProximityPromptService,
 	playerGui = player:WaitForChild("PlayerGui"),
 	tweens = game:GetService("TweenService"),
+})
+
+-- Other players' locked bases show how long the lock lasts over the lock button (seen through glass, not walls).
+LockTimerTag.start({
+	plots = workspace:WaitForChild("Plots"),
+	playerGui = player:WaitForChild("PlayerGui"),
+	me = player.UserId,
+	now = function()
+		return workspace:GetServerTimeNow()
+	end,
+	camera = function()
+		return workspace.CurrentCamera
+	end,
+	characters = function()
+		local out = {}
+		for _, p in Players:GetPlayers() do
+			if p.Character then
+				table.insert(out, p.Character)
+			end
+		end
+		return out
+	end,
+	heartbeat = game:GetService("RunService").Heartbeat,
 })
 
 -- A slime you can't grab (already carrying, plot full, not enough money) shows why instead of a key.
