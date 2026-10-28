@@ -51,7 +51,7 @@ local function build(plot: Instance): Pad
 	local model = Instance.new("Model")
 	model.Name = Constants.LOCK_PAD_NAME
 	local arc = 2 * math.pi * PAD.RADIUS / PAD.SEGMENTS
-	local segments = {}
+	local segments: { BasePart } = {}
 	for i = 1, PAD.SEGMENTS do
 		local part = Instance.new("Part")
 		part.Name = `Seg_{i}`
@@ -110,17 +110,15 @@ function LockPadView.update(plot: Instance, index: number, button: BasePart?, ri
 		end
 		return
 	end
-	if not pad or pad.model.Parent ~= plot then
-		pad = build(plot)
-		pads[index] = pad
-	end
+	local live: Pad = if pad and pad.model.Parent == plot then pad else build(plot)
+	pads[index] = live
 	local p = button.Position
 	local centre = Vector3.new(p.X, floor, p.Z)
-	if not pad.at or (pad.at - centre).Magnitude > MOVE_EPSILON then
+	if not live.at or (live.at - centre).Magnitude > MOVE_EPSILON then
 		local _, yaw = WorldLayout.plotCentre(index)
-		place(pad, centre, yaw)
+		place(live, centre, yaw)
 	end
-	paint(pad, ring)
+	paint(live, ring)
 end
 
 -- True when `root` stands on `plot`'s lock pad round `button` (its LockButton).
