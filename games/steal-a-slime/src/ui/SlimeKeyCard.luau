@@ -85,6 +85,18 @@ function SlimeKeyCard.heading(parent: Instance): (string, string)
 	return title, if sub ~= title then sub else ""
 end
 
+-- The small line under the rows: on the lock card, while its Lock row shows, that standing on the lock pad's ring
+-- locks too (LockPad); "" otherwise. `names` are the shown rows' prompt names.
+SlimeKeyCard.LOCK_PAD_HINT = "or stand on the green ring"
+function SlimeKeyCard.footer(names: { string }): string
+	for _, name in names do
+		if name == Constants.LOCK_PROMPT_NAME then
+			return SlimeKeyCard.LOCK_PAD_HINT
+		end
+	end
+	return ""
+end
+
 -- The world height of the top of a box at `cf` with `size`, however it is turned.
 function SlimeKeyCard.worldTop(cf: CFrame, size: Vector3): number
 	local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
@@ -121,6 +133,7 @@ SlimeKeyCard.CARD = table.freeze({
 	keyTextSize = 17,
 	textSize = 17,
 	hintSize = 14,
+	footGap = 4, -- px between the last row and the line under the rows
 	radius = 22, -- the card's corners
 	stroke = 3, -- Ink outline round the card and the key chips
 	rowStroke = 2,
@@ -209,6 +222,15 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		TextColor3 = Theme.Good,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Position = UDim2.fromOffset(C.pad, C.pad + C.titleH - 2),
+		Size = UDim2.new(1, -C.pad * 2, 0, C.perkH),
+		Visible = false,
+		Parent = frame,
+	})
+	local foot = Widgets.label({
+		Name = "Foot",
+		TextSize = C.hintSize,
+		TextColor3 = Theme.Muted,
+		TextXAlignment = Enum.TextXAlignment.Center,
 		Size = UDim2.new(1, -C.pad * 2, 0, C.perkH),
 		Visible = false,
 		Parent = frame,
@@ -434,9 +456,17 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		perk.Text = perkText
 		perk.Visible = perkText ~= ""
 		local y = C.pad + C.titleH + (if perk.Visible then C.perkH else 0) + C.gap
+		local names = {}
 		for _, prompt in list do
 			rows[prompt] = makeRow(prompt, y)
 			y += C.rowH + C.gap
+			table.insert(names, prompt.Name)
+		end
+		foot.Text = SlimeKeyCard.footer(names)
+		foot.Visible = foot.Text ~= ""
+		if foot.Visible then
+			foot.Position = UDim2.fromOffset(C.pad, y - C.gap + C.footGap)
+			y += C.perkH + C.footGap
 		end
 		-- A click/tap hold whose prompt is no longer drawn has lost its button: end it.
 		for prompt in pointerHolds do

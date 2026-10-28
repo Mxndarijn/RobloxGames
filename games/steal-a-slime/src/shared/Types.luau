@@ -271,7 +271,7 @@ export type State = {
 	boards: { [string]: number }, -- my own value on each global board, by Leaderboards stat (CONTRACT.md §5.1)
 	boardRanks: { [string]: number }, -- my rank on each board from the last refresh; -n = deeper than #n; absent = not ranked yet
 	vat: VatView, -- the plot's merge vat (VatState, CONTRACT.md §21)
-	exclusiveShop: ExclusiveShopView?, -- FEATURES.ExclusiveShop (nil when off; contract/exclusive-shop.md §5)
+	exclusiveShop: ExclusiveShopView?, -- contract/exclusive-shop.md §5 (nil until the first State)
 }
 
 export type ExclusiveShopView = {

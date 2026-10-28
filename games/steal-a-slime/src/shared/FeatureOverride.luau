@@ -22,7 +22,6 @@ FeatureOverride.FLAGS = table.freeze({
 	"ServerProfiler",
 	"Audio",
 	"PvP",
-	"ExclusiveShop",
 })
 
 local allowed: { [string]: boolean } = {}

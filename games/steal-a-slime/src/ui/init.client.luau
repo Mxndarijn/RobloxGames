@@ -58,6 +58,7 @@ local ItemIcons = require(script.ItemIcons)
 local KitCache = require(script.KitCache)
 local Layout = require(script.Layout)
 local LockBreakPrompt = require(script.LockBreakPrompt)
+local LockTimerTag = require(script.LockTimerTag)
 local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
@@ -716,7 +717,7 @@ local function setOpen(key: string?)
 end
 
 -- The Exclusive shop on card `key` ("seat:ufo"; nil = Featured), `withDetails` with its odds open. Only while
--- State has the shop (FEATURES.ExclusiveShop).
+-- State has the shop.
 function ctx.openExclusiveShop(key: string?, withDetails: boolean?)
 	if latest and latest.exclusiveShop then
 		panelByKey.ExclusiveShop.show(key, withDetails)
@@ -905,7 +906,7 @@ local slimeKeys = SlimeKeys.start({
 	style = Enum.ProximityPromptStyle.Custom,
 	moveKey = if slimeMove then SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.move) else nil,
 	onMove = if slimeMove then slimeMove.start else nil,
-	-- FEATURES.ExclusiveShop (State.exclusiveShop): "Hatch now" on an incubating egg, or "Use credit".
+	-- State.exclusiveShop: "Hatch now" on an incubating egg, or "Use credit".
 	hatchNow = {
 		key = SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.hatch),
 		quick = function(slimeId: string, state: any): any
@@ -926,7 +927,7 @@ local slimeKeys = SlimeKeys.start({
 	},
 })
 
--- FEATURES.ExclusiveShop (State.exclusiveShop): "Open locked door" / "Use lock break" on other players' locked doors.
+-- State.exclusiveShop: "Open locked door" / "Use lock break" on other players' locked doors.
 local lockBreakPrompt = LockBreakPrompt.start({
 	plots = workspace:WaitForChild(Constants.PLOTS_FOLDER),
 	localUserId = player.UserId,
@@ -959,6 +960,28 @@ SlimeKeyCard.start({
 	prompts = ProximityPromptService,
 	playerGui = player:WaitForChild("PlayerGui"),
 	tweens = game:GetService("TweenService"),
+})
+
+-- Other players' locked bases show how long the lock lasts over the lock button (seen through glass, not walls).
+local lockTimerTag = LockTimerTag.start({
+	plots = workspace:WaitForChild("Plots"),
+	playerGui = player:WaitForChild("PlayerGui"),
+	me = player.UserId,
+	now = function()
+		return workspace:GetServerTimeNow()
+	end,
+	camera = function()
+		return workspace.CurrentCamera
+	end,
+	characters = function()
+		local out = {}
+		for _, p in Players:GetPlayers() do
+			if p.Character then
+				table.insert(out, p.Character)
+			end
+		end
+		return out
+	end,
 })
 
 -- A slime you can't grab (already carrying, plot full, not enough money) shows why instead of a key.
@@ -1483,6 +1506,7 @@ task.spawn(function()
 			end)
 			guardedTick("slimeKeys", slimeKeys.tick)
 			guardedTick("lockBreak", lockBreakPrompt.tick)
+			guardedTick("lockTimer", lockTimerTag.tick)
 			guardedTick("hint", function()
 				hintOverlay.tick(
 					now,

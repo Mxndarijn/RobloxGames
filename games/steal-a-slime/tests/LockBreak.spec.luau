@@ -18,7 +18,7 @@ local TestRunner = require("./TestRunner")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
 local SECONDS = Config.EXCLUSIVE_SHOP.lockBreak.seconds
-local SHOP = { features = { ExclusiveShop = true, FriendsInBase = true } }
+local SHOP = { features = { FriendsInBase = true } }
 
 local function ctx(features: { [string]: boolean }?): Actions.Context
 	return {
@@ -94,19 +94,8 @@ describe("AimLockBreak", function()
 		expect(reason).toBe("you can already walk in: they let their friends in")
 	end)
 
-	it("goes through Request AimLockBreak, gated by the shop flag", function()
+	it("goes through Request AimLockBreak, with its arguments checked", function()
 		local world, owner, buyer, _ = setup()
-		local off = Actions.handle(
-			world,
-			2,
-			"AimLockBreak",
-			table.pack(owner.plotIndex),
-			T0 + 1,
-			ctx({
-				ExclusiveShop = false,
-			})
-		)
-		expect(off.message).toBe("the Exclusive Shop is off")
 		expect(Actions.handle(world, 2, "AimLockBreak", table.pack("x"), T0 + 2, ctx()).message).toBe("bad argument")
 		expect(Actions.handle(world, 2, "AimLockBreak", table.pack(owner.plotIndex), T0 + 3, ctx()).ok).toBe(true)
 		expect(buyer.lockBreakAim and buyer.lockBreakAim.plot).toBe(owner.plotIndex)

@@ -1,6 +1,6 @@
 --!strict
 --[[
-	CarryTrail (FEATURES.ExclusiveShop, contract/exclusive-shop.md §9)
+	CarryTrail (contract/exclusive-shop.md §9)
 
 	The look of a carry trail: what streams behind a player while they carry a slime, for the equipped
 	Config.EXCLUSIVE_SHOP.trails id (Player attribute CarryTrail). Pure: no Roblox APIs, so the specs run under

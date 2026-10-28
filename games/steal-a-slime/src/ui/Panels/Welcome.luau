@@ -7,7 +7,7 @@
 	WelcomeBack.view decides which rows show, in which order and with which icon. The cash row is
 	the headline (a big gold amount under the away time); the others are cards with a name, a short
 	description and, for the daily reward, its amount or, for the next goal, a progress bar.
-	With FEATURES.ExclusiveShop, a "Double it · R$49" button sits under the amount while that payout can still be
+	A "Double it · R$49" button sits under the amount while that payout can still be
 	doubled (ExclusiveShopView.doubleQuickBuy); it opens Roblox's prompt, the server pays.
 	Content-sized: the card is as tall as its rows plus the button. When the screen clamps the card (a
 	landscape phone), the away line, the amount and the rows scroll above Collect, which stays pinned

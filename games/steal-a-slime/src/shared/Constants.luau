@@ -152,7 +152,7 @@ return table.freeze({
 	-- Owner-only prompts: only this UserId may see it (clients hide it locally); nil = free plot.
 	PROMPT_OWNER_ATTRIBUTE = "ShowOnlyToUserId",
 	LOCK_PROMPT_NAME = "LockPrompt", -- on LockButton
-	LOCK_PAD_NAME = "LockPad", -- Plot_<i> Model: the lock pad's ring segments Seg_1..Seg_n round the LockButton (server-built)
+	LOCK_PAD_NAME = "LockPad", -- Plot_<i> Model: the lock pad (a shared RingPad): Models Seg_1..Seg_n round the LockButton (server-built)
 	FRIENDS_PROMPT_NAME = "FriendsPrompt", -- on LockButton, next to LockPrompt: the owner's friends switch (FEATURES.FriendsInBase)
 	FRIENDS_PROMPT_KEYS = table.freeze({ keyboard = "G", gamepad = "ButtonY" }), -- FriendsPrompt's keys (F is the pad hatch key)
 	BUY_PAD_PROMPT_NAME = "BuyPadPrompt", -- on the lowest locked Pad_<j>
@@ -173,10 +173,10 @@ return table.freeze({
 	HABITAT_ATTRIBUTE = "Habitat", -- Pad_<j>: Shared.Habitats id, "base" = empty pad
 	HABITAT_FROM_ATTRIBUTE = "HabitatFrom", -- Pad_<j>: the id before the latest change
 	HABITAT_AT_ATTRIBUTE = "HabitatAt", -- Pad_<j>: server time of the latest change
-	-- Full steal alerts (FEATURES.StealAlerts, CONTRACT.md §17): Player attributes, set only with the flag on.
+	-- Full steal alerts (FEATURES.StealAlerts, CONTRACT.md §17): Player attributes.
 	STEALING_ATTRIBUTE = "Stealing", -- Player: true while carrying a stolen slime (the client draws the thief trail), nil otherwise
 	SLAP_HIT_ATTRIBUTE = "SlapHitAt", -- Player: server time the player was last slapped off a stolen slime (the client draws the hit effect)
-	-- Exclusive Shop cosmetics (FEATURES.ExclusiveShop, contract/exclusive-shop.md §9-§10): Player attributes, set only with the flag on.
+	-- Exclusive Shop cosmetics (contract/exclusive-shop.md §9-§10): Player attributes.
 	CARRY_TRAIL_ATTRIBUTE = "CarryTrail", -- Player: equipped Config.EXCLUSIVE_SHOP.trails id (the client draws it while they carry a slime), nil = none
 	BAT_SKIN_ATTRIBUTE = "BatSkin", -- Player: equipped Config.EXCLUSIVE_SHOP.batSkins id (the server re-gives the Bat with that look), nil = the default Bat
 	HABITAT_FOLDER = "ClientHabitats", -- client-only workspace folder for habitat looks

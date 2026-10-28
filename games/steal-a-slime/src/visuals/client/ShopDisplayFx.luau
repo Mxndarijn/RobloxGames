@@ -1,6 +1,6 @@
 --!strict
 --[[
-	ShopDisplayFx (VisualsClient module, FEATURES.ExclusiveShop, contract/exclusive-shop.md §7)
+	ShopDisplayFx (VisualsClient module, contract/exclusive-shop.md §7)
 
 	Shows this week's featured seats in the Exclusive Shop's jar on workspace.Map.ExclusiveShopStand (built by
 	server/WorldProps, absent when the flag is off): one clone of each of the first featured seats' templates

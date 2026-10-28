@@ -188,7 +188,7 @@ end)
 describe("MinimapData", function()
 	local MinimapData = require("../src/visuals/shared/MinimapData")
 	it("lists the fountain, every plot, the props and the spawn", function()
-		local points = MinimapData.points({ ExclusiveShop = true })
+		local points = MinimapData.points()
 		local kinds = {}
 		for _, p in points do
 			kinds[p.kind] = (kinds[p.kind] or 0) + 1
@@ -200,22 +200,21 @@ describe("MinimapData", function()
 			expect(kinds[name]).toBe(1)
 		end
 	end)
-	it("pins the Exclusive Shop jar only with FEATURES.ExclusiveShop", function()
-		local function pin(features: { [string]: any }): any
-			for _, p in MinimapData.points(features) do
+	it("pins the Exclusive Shop jar", function()
+		local function pin(): any
+			for _, p in MinimapData.points() do
 				if p.name == Constants.SHOP_STAND_EXCLUSIVE then
 					return p
 				end
 			end
 			return nil
 		end
-		local on = pin({ ExclusiveShop = true })
+		local on = pin()
 		expect(on.label).toBe("Exclusive Shop")
 		expect(on.icon).toBe("👑")
 		local spot = WorldLayout.PROP_SPOTS[Constants.SHOP_STAND_EXCLUSIVE]
 		expect(on.x).toBe(spot.pos[1])
 		expect(on.z).toBe(spot.pos[3])
-		expect(pin({ ExclusiveShop = false })).toBeNil()
 	end)
 	it("pins both world shops with a label and an icon", function()
 		local pins = {}

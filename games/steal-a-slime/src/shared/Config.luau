@@ -557,7 +557,7 @@ local PET_SEATS: { PetSeat } = {
 	seat("clam_shell", "Clam Shell", "pet_mount_clam_shell", 0.80, { 250, 150, 140 }, EXCLUSIVE),
 }
 
--- Exclusive Shop (FEATURES.ExclusiveShop, contract/exclusive-shop.md). The one source of every Robux product and pass.
+-- Exclusive Shop (contract/exclusive-shop.md). The one source of every Robux product and pass.
 -- productId / passId are Roblox ids; 0 = not created yet: the UI shows the price with "Not on sale yet" and only
 -- StudioHooks can grant it. robux is the shown price and must match the Creator Dashboard. Keys are permanent
 -- save / receipt ids: never rename.
@@ -1012,14 +1012,18 @@ local Config = {
 	-- in it for STAND_SECONDS to lock (the same Lock action as the prompt); while locked the lit segments count down.
 	LOCK_PAD = table.freeze({
 		STAND_SECONDS = 1,
-		SEGMENTS = 12,
+		STYLE = "ring" :: "ring" | "pieces", -- RingPad style: "ring" = one smooth circle, "pieces" = curved pieces with straight cuts
+		-- Steps the ring lights in, and parts per plot (blocks round the circle; 12 suits "pieces"). The world part
+		-- budget (tests/RuntimeParts.spec, every plot x SEGMENTS) caps it.
+		SEGMENTS = 48,
+		CURVE = 4, -- "pieces" only: straight blocks per piece
+		GAP = 0.2, -- "pieces" only: studs wide, the straight cut between two pieces
 		RADIUS = 4.6, -- studs from the LockButton's centre to the middle of the ring
 		WIDTH = 1.6, -- studs across the ring
 		THICKNESS = 0.12, -- studs thick
 		LIFT = 0.4, -- studs the ring's underside sits above the walk floor, on top of the goo floor mesh (0.36 up)
 		REACH = 5.6, -- studs from the LockButton's centre (flat) that count as standing on the pad
 		HEIGHT = 7, -- studs above the floor the root part may be (standing on the button top counts)
-		READY_FLASH_SECONDS = 1.5, -- all segments flash green this long after a lock runs out
 	}),
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
@@ -1167,7 +1171,6 @@ local Config = {
 		BaseShapes = false, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
 		CashPads = true, -- each slime's income piles up on a gold cash pad in front of it and only the plot owner collects it by stepping on it; offline income lands there too (CashPads, contract/cash-pads.md); false = income goes straight to cash
-		ExclusiveShop = false, -- the Exclusive Shop (contract/exclusive-shop.md): the Golden Jar Boutique on the plaza, Robux products and passes, quick-buys (Finish now, Hatch now, Double it, server Luck Potion); false = no shop on the plaza, no MarketplaceService callbacks, no Robux buttons, Exclusive seats stay unowned
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
 	}),
 

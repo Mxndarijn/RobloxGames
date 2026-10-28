@@ -24,6 +24,8 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | `src/ranking` | `OrderedBoard` | pure, server | Top-N rankings in OrderedDataStores: value clamping, write-on-change, page → ranked entries, in-memory pages, one store per period (weekly boards) |
 | `src/anticheat` | `MovementGuard` | pure, server | Checks server-read character positions for teleports, speed hacks and flying; tolerates lag freezes, downhill runs and server-made moves (`allow`, `reset`) |
 | | `Suspicion` | pure, server | Points per player that drain over time and reach "pause" / "kick" levels |
+| `src/pad` | `RingPad` | pure | A round floor pad to stand on, in two styles: `"ring"` (one smooth circle, the light sweeps round) or `"pieces"` (curved pieces with even-width cuts, lit a piece at a time). Its block layout, who stands on it, a stand-to-activate timer, and how many segments a charge or countdown lights |
+| | `RingPadView` | adapter | Builds a RingPad as non-colliding parts (Model `Seg_<i>` per piece), places it on a floor point and yaw, and lights pieces 1..n in a named look; looks and a block template can be overridden |
 | `src/ui` | `MenuMouse` | adapter, client | Frees the cursor in first person / shift lock while the game says a menu is open (one hidden `Modal` button) |
 | `testing` | `TestRunner` | Lune only | describe / it / expect used by these specs; games can reuse it |
 
@@ -77,6 +79,25 @@ HotbarView.new(gui, {
 ```
 
 For a completely different look, build your own view on `Hotbar` + `HotbarLayout` and skip `HotbarView`.
+
+## Ring pad: a round pad to stand on
+
+`RingPad` + `RingPadView` make the same round floor pad anywhere (a lock pad, a shop pad, a teleport, a vote spot). The game keeps its own rules: when the pad fires and which look it shows.
+
+```lua
+local pad = RingPadView.new(plot, {
+	name = "LockPad",
+	shape = { radius = 4.6, width = 1.6 }, -- style "ring" (default); { style = "pieces", segments = 12, gap = 0.2 } for pieces
+	looks = { charge = { color = Color3.fromRGB(88, 214, 207), material = Enum.Material.Neon, transparency = 0 } },
+})
+pad:place(floorPoint, yawDegrees)
+
+-- every tick (server):
+local fired
+fired, since = RingPad.hold(since, pad:standing(root.Position), busy, now, 1)
+if fired then doTheThing() end
+pad:show(if since then RingPad.charge(pad.shape.segments, since, now, 1) else 0, "charge")
+```
 
 ## Checks
 
