@@ -113,11 +113,11 @@ for sd in (-1, 1):
 # ---- face: eye patch on its right (viewer's left) with a strap, cocky squint, gold-tooth grin
 f = Face(b, eye_v=1.6, eye_u=0.5, mouth_v=1.0)
 f._eye_round(1, 0.48, 0.62, lid=0.3, tilt=-0.2, iris=hexc("2f7bff"))
-f.d("Brow1", arc(0.5, 1.84, 0.24, 50, 130, 0.09, n=8), INK)
 patch = [(-0.5 + math.cos(a) * 0.26, 1.6 + math.sin(a) * 0.24 - (0.04 if math.sin(a) < 0 else 0)) for a in [k * math.tau / 14 for k in range(14)]]
 f.d("Patch", patch, HAT_D, off=0.02, th=0.04)
 f.d("Strap0", [(-0.68, 1.74), (-0.6, 1.8), (0.95, 2.2), (0.95, 2.1)], HAT_D, off=0.015, th=0.03)
 f.d("Strap1", [(-0.72, 1.55), (-0.72, 1.64), (-1.18, 1.68), (-1.18, 1.6)], HAT_D, off=0.015, th=0.03)
+f.d("Brow1", arc(0.5, 1.84, 0.24, 50, 130, 0.09, n=8), INK)  # after the strap: it crosses the brow's top
 f.mouth("grin", w=0.95)
 f.d("GoldTooth", rect(0.09, f.mv + 0.03, 0.1, 0.085), GOLD, off=0.06, th=0.01)
 f.cheeks(color=hexc("ff8fb0"), w=0.24, h=0.11)

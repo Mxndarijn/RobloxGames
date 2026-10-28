@@ -154,7 +154,7 @@ def ddecal(name, poly, color, frame=FRONT, off=0.02, th=0.025, on=None, rings=4)
         bm.faces.new((back[i], back[j], front[j], front[i]))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     o = obj_from_bm(name, bm, color)
-    return keep(o, False)
+    return separate(keep(o, False), frame, on, off=off)
 
 
 EV, MV = 1.72, 1.05
