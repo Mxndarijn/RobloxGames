@@ -155,6 +155,11 @@ describe("SlimeKeyCard", function()
 		expect(title).toBe("LOCKED 1:42")
 		expect(sub).toBe("Friends can enter")
 	end)
+	it("tells the owner the green ring locks too, only while the Lock row shows", function()
+		expect(SlimeKeyCard.footer({ "LockPrompt", "FriendsPrompt" })).toBe(SlimeKeyCard.LOCK_PAD_HINT)
+		expect(SlimeKeyCard.footer({ "FriendsPrompt" })).toBe("")
+		expect(SlimeKeyCard.footer({ "MovePrompt", "SellPrompt" })).toBe("")
+	end)
 	it("puts the lock card straight up over the barrel, though the LockButton lies on its side", function()
 		local CFrame, Vector3 = roblox.CFrame, roblox.Vector3
 		-- The LockButton: a 0.6 x 4 x 4 disc turned 90 degrees round Z, centred at y 2.8.
