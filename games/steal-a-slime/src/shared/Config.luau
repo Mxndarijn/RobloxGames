@@ -858,7 +858,9 @@ local Config = {
 	-- in it for STAND_SECONDS to lock (the same Lock action as the prompt); while locked the lit segments count down.
 	LOCK_PAD = table.freeze({
 		STAND_SECONDS = 1,
-		SEGMENTS = 12,
+		SEGMENTS = 12, -- curved pieces in the ring; they light up one at a time
+		CURVE = 4, -- straight blocks per piece, so the ring reads as a circle
+		GAP = 0.1, -- share of each piece's arc left as a cut before the next piece
 		RADIUS = 4.6, -- studs from the LockButton's centre to the middle of the ring
 		WIDTH = 1.6, -- studs across the ring
 		THICKNESS = 0.12, -- studs thick
