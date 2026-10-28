@@ -16,11 +16,11 @@ describe("Layout.SCROLL_LIST", function()
 end)
 
 describe("Layout.ZINDEX", function()
-	it("puts the tutorial over the daily popup and the carry panel over both", function()
+	it("puts the banner stack (steal and tutorial cards) under the daily popup and the carry panel over all", function()
 		local z = Layout.ZINDEX
-		expect(z.Base < z.Daily).toBe(true)
-		expect(z.Daily < z.Tutorial).toBe(true)
-		expect(z.Tutorial < z.Carry).toBe(true)
+		expect(z.Base < z.Banners).toBe(true)
+		expect(z.Banners < z.Daily).toBe(true)
+		expect(z.Daily < z.Carry).toBe(true)
 	end)
 end)
 
@@ -68,8 +68,8 @@ describe("Layout rect helpers", function()
 		expect(Layout.overlaps(a, Layout.rect(10, 0, 5, 5))).toBe(false) -- touching edges
 		expect(Layout.fitsInViewport(Layout.rect(12, 12, 10, 10), 100, 100, 12)).toBe(true)
 		expect(Layout.fitsInViewport(Layout.rect(95, 12, 10, 10), 100, 100)).toBe(false)
-		expect(Layout.drawsAbove("Carry", "Tutorial")).toBe(true)
-		expect(Layout.drawsAbove("Daily", "Tutorial")).toBe(false)
+		expect(Layout.drawsAbove("Carry", "Daily")).toBe(true)
+		expect(Layout.drawsAbove("Banners", "Daily")).toBe(false)
 	end)
 	it("estimates text: wider for longer / bold, taller when wrapped", function()
 		expect(Layout.lineWidth("Rebirth", 18) < Layout.lineWidth("Rebirths", 18)).toBe(true)
@@ -82,62 +82,38 @@ describe("Layout rect helpers", function()
 	end)
 end)
 
-describe("Layout.screen tutorial card on short screens", function()
-	local function px(r: Layout.Rect, scale: number)
-		return r.y * scale, (r.y + r.h) * scale
-	end
-	it("844x390 sits at the bottom, clear of the banner stack and toast column", function()
-		local s = Layout.screen(844, 390)
-		expect(s.phone).toBe(true) -- (no longer `short`: the lowered, smaller money block leaves the nav room)
-		for _, r in { s.tutorial, s.tutorialCarrying } do
-			local top, bottom = px(r, s.scale)
-			-- 250 (was 276): the banner stack above lost six banners with the H1 HUD (boss, rain, modifier,
-			-- friends, weekend, next-spawn), and the beside-the-carry-card tutorial is narrower, so taller.
-			-- 180: the plain card now stands above the hotbar, which hugs the bottom edge with the money block.
-			expect(top >= 180).toBe(true)
-			expect(bottom <= 390).toBe(true)
+describe("Layout.screen nav and bottom row", function()
+	it("the nav ends above the carry card and the hotbar", function()
+		for _, v in { { 390, 844 }, { 1920, 1080 }, { 1366, 768 }, { 1024, 768 } } do
+			local s = Layout.screen(v[1], v[2])
+			expect(s.nav.y + s.nav.h + Layout.GAP <= s.carry.y + 0.001).toBe(true)
+			expect(s.nav.y + s.nav.h + Layout.GAP <= s.hotbar.y + 0.001).toBe(true)
 		end
-		-- the carry card (the carrying tutorial stands on it) hugs the bottom edge
-		expect((s.carry.y + s.carry.h) * s.scale >= 390 - 12).toBe(true)
-		-- The hotbar shares the money / events row on the bottom edge (landscape phone), so the plain tutorial card
-		-- stands right above it.
-		expect(s.tutorial.y + s.tutorial.h + Layout.GAP <= s.hotbar.y + 0.001).toBe(true)
-		expect(Layout.overlaps(s.tutorial, s.hotbar)).toBe(false)
 	end)
-	it("carrying: the card sits beside the carry card, not over it", function()
-		local s = Layout.screen(844, 390)
-		expect(Layout.overlaps(s.tutorialCarrying, s.carry)).toBe(false)
-		expect(Layout.fitsInViewport(s.tutorialCarrying, s.width, s.height)).toBe(true)
-	end)
-	it("portrait phone and desktop keep the card above the bottom inset", function()
+	it("portrait phone and desktop keep the carry card above the bottom inset", function()
 		for _, v in { { 390, 844 }, { 1920, 1080 } } do
 			local s = Layout.screen(v[1], v[2])
 			expect(s.short).toBe(false)
-			-- Portrait phones (H1 HUD): the cards sit above the two bottom clusters, which sit above the
-			-- touch-controls rise; desktop keeps them on the inset line.
+			-- Portrait phones (H1 HUD): the carry card sits above the two bottom clusters, which sit above the
+			-- touch-controls rise; desktop keeps it on the inset line.
 			local barH = InventoryLayout.height(s.compact, Layout.MIN_TOUCH_DESIGN, s.tight)
 			local lift = if s.width
 					< Layout.CARRY.w + s.money.rect.w + s.status.rect.w + 2 * (Layout.MARGIN + Layout.GAP)
 				then math.ceil(Layout.TOUCH_RISE / s.scale) + math.max(s.money.rect.h, s.status.rect.h, barH) + Layout.GAP
 				else 0
-			-- S3: on a phone the hotbar shares the money / events row below the cards; on desktop the card sits
-			-- right above the hotbar (the bar is on the same line the card used to be).
-			local tutorialGap = if s.phone then 0 else barH + Layout.GAP
-			expect(s.tutorial.y + s.tutorial.h).toBe(s.height - s.bottomInset - lift - tutorialGap)
 			if s.phone then
 				expect(s.hotbar.y + s.hotbar.h).toBe(s.height - s.bottomInset - Layout.TOUCH_RISE / s.scale)
 			else
 				expect(s.hotbar.y + s.hotbar.h).toBe(s.height - s.bottomInset - lift)
 			end
 			expect(s.carry.y + s.carry.h).toBe(s.height - s.bottomInset - lift)
-			expect(s.tutorialCarrying.y + s.tutorialCarrying.h + Layout.GAP).toBe(s.carry.y)
 		end
-		local d = Layout.screen(1920, 1080)
-		expect(d.tutorial.y).toBe(851)
-		expect(d.tutorialCarrying.y).toBe(819)
-		local p = Layout.screen(390, 844)
-		expect(p.tutorial.y).toBe(659)
-		expect(p.tutorialCarrying.y).toBe(551)
+	end)
+	it("844x390: the carry card hugs the bottom edge", function()
+		local s = Layout.screen(844, 390)
+		expect(s.phone).toBe(true)
+		expect((s.carry.y + s.carry.h) * s.scale >= 390 - 12).toBe(true)
+		expect(Layout.fitsInViewport(s.carry, s.width, s.height)).toBe(true)
 	end)
 end)
 
@@ -150,14 +126,6 @@ describe("Layout.screen landscape phone under the top bar", function()
 			expect(Layout.overlaps(s.carry, s.money.rect)).toBe(false)
 			expect(Layout.overlaps(s.carry, s.status.rect)).toBe(false)
 			expect(Layout.fitsInViewport(s.carry, s.width, s.height)).toBe(true)
-		end)
-		it(`{v[1]}x{v[2]}: the tutorial card stands above the hotbar and clear of the nav and both clusters`, function()
-			expect(s.tutorial.y + s.tutorial.h + Layout.GAP <= s.hotbar.y + 0.001).toBe(true)
-			for _, r in { s.nav, s.money.rect, s.status.rect } do
-				expect(Layout.overlaps(s.tutorial, r)).toBe(false)
-				expect(Layout.overlaps(s.tutorialCarrying, r)).toBe(false)
-			end
-			expect(Layout.overlaps(s.tutorialCarrying, s.carry)).toBe(false)
 		end)
 	end
 end)

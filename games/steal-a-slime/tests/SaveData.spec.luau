@@ -311,12 +311,15 @@ describe("SessionLock", function()
 	end)
 end)
 
-describe("SaveData tutorial remap (v3 BuyPad step)", function()
-	it("moves an old save's Merge / Steal / Rebirth step up one and keeps done / early steps", function()
-		for old, new in { [0] = 0, [1] = 1, [3] = 3, [4] = 5, [5] = 6, [6] = 7 } do
+describe("SaveData tutorial remap (older step lists)", function()
+	it("maps a v2 save's steps (no BuyPad yet) onto the current list", function()
+		-- v2: Grab, Deposit, Lock, Merge, Steal, Rebirth
+		for old, new in { [0] = 0, [1] = 1, [3] = 3, [4] = 7, [5] = 0, [6] = 0 } do
 			local d = SaveData.deserialize({ version = 2, cash = 10, slimes = {}, tutorialStep = old })
 			expect(d.tutorialStep).toBe(new)
 		end
+	end)
+	it("maps a v3..v11 save's BuyPad step to Leaderboard, so the new walking steps come first", function()
 		local v3 = SaveData.deserialize({ version = 3, cash = 10, slimes = {}, tutorialStep = 4 })
 		expect(v3.tutorialStep).toBe(4)
 	end)

@@ -7,7 +7,8 @@
 	that skin's slimes and equips it (the tower turns to its theme), "PcwPetSeat" (a seat id) meets a free seat's goal and
 	equips it (the follow pet rides it), "PcwPads" (a count) the unlocked pads (the upper
 	jars build), "PcwSlimes" (a tier) puts three slimes of that rarity on free pads (a merge vat load), "PcwPlotBase"
-	(a base id) raises the rebirths to that base's gate and equips it (CONTRACT.md §44). ServerLoop's
+	(a base id) raises the rebirths to that base's gate and equips it (CONTRACT.md §44), "PcwTutorial" (a tutorial step
+	name) finishes that step as if the player did its action (contract/tutorial.md). ServerLoop's
 	`pinClock` covers the
 	Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
@@ -209,6 +210,10 @@ local function apply(world: World.World, player: Player, refresh: () -> ())
 			PlayerData.addSlime(profile, fresh)
 		end
 	end
+	local step = player:GetAttribute("PcwTutorial")
+	if type(step) == "string" then
+		World.tutorial(world, session, step) -- as if the player did that step's action
+	end
 	World.markDirty(session)
 	refresh()
 end
@@ -225,7 +230,9 @@ function StudioHooks.start(
 		return
 	end
 	local function watch(player: Player)
-		for _, name in { "PcwGrowth", "PcwPlotSkin", "PcwPetSeat", "PcwPads", "PcwSlimes", "PcwPlotBase" } do
+		for _, name in
+			{ "PcwGrowth", "PcwPlotSkin", "PcwPetSeat", "PcwPads", "PcwSlimes", "PcwPlotBase", "PcwTutorial" }
+		do
 			player:GetAttributeChangedSignal(name):Connect(function()
 				pcall(apply, world, player, refresh)
 			end)

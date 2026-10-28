@@ -134,11 +134,11 @@ describe("PR gate: the checks catch PR #60's bugs", function()
 	end
 	it("844x390: Dex covered by an overlay (not clickable)", function()
 		local s = table.clone(Layout.screen(844, 390)) :: any
-		s.tutorial = s.navButtons[navIndex("Dex")]
+		s.carry = s.navButtons[navIndex("Dex")]
 		local check = LayoutAssert.new("844x390 covered", s)
 		LayoutAssert.navReachable(check)
 		expect(has(check.report(), "Nav.Dex")).toBe(true)
-		expect(has(check.report(), "overlaps Tutorial")).toBe(true)
+		expect(has(check.report(), "overlaps Carry")).toBe(true)
 	end)
 	it("844x390: a squashed nav button and a non-uniform scale", function()
 		local s = table.clone(Layout.screen(844, 390)) :: any

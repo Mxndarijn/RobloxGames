@@ -1030,7 +1030,7 @@ local Config = {
 	HOLD_CONFIRM_SECONDS = 0.8,
 	-- After you drop a slime (Drop, a hit, dying) you can't pick any slime up for this long (Carry.grab).
 	DROP_PICKUP_COOLDOWN = 1.5,
-	TUTORIAL_STEAL_SKIP_SECONDS = 20, -- solo tutorial: Steal step skips itself after this long with nobody to steal from
+	TUTORIAL_LEADERBOARD_RADIUS = 24, -- tutorial Leaderboard step: studs (flat) from the Top Earners board that finish it
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	-- SlimeGuard (FEATURES.SlimeGuard, CONTRACT.md §41). Movement thresholds live in the shared MovementGuard defaults.
 	SLIME_GUARD = table.freeze({
@@ -2056,7 +2056,7 @@ local Config = {
 	}),
 
 	-- Persistence
-	SAVE_VERSION = 11, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7; v9: boss record replaces trophies, SaveData.migrateV8; v10: Exclusive Shop purchases and roll seeds, SaveData.migrateV9; v11: carry trails, Bat skins, lock break and gift credits, SaveData.migrateV10)
+	SAVE_VERSION = 12, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7; v9: boss record replaces trophies, SaveData.migrateV8; v10: Exclusive Shop purchases and roll seeds, SaveData.migrateV9; v11: carry trails, Bat skins, lock break and gift credits, SaveData.migrateV10; v12: new tutorial steps, SaveData.migrateV11)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
 	SAVE_DRAIN_SECONDS = 20, -- a load waits at most this long for the same player's saves still in flight

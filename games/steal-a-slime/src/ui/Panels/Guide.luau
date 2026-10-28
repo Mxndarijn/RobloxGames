@@ -1,12 +1,10 @@
 --!strict
 --[[
-	Guide panel (v28 item 5): what the Guide NPC tells you. Opened by "Talk"
-	(E) at the TutorialNpc (init.client, Constants.GUIDE_PROMPT), closed like
-	every menu (X, Esc, B, tap outside). Not in the nav. One next-goal card
-	and up to GuideTips.MAX_TIPS icon tips (GuideTips.view). While the player
-	has the tutorial card hidden (ctx.tutorial, TutorialOverlay), a "Show the
-	tutorial again" button takes the first tip slot; it brings the card back
-	and closes the Guide.
+	Guide panel: what the Guide NPC tells you. Opened by "Talk" (E) at the TutorialNpc (init.client,
+	Constants.GUIDE_PROMPT), closed like every menu (X, Esc, B, tap outside). Not in the nav. One next-goal card
+	and up to GuideTips.MAX_TIPS icon tips (GuideTips.view). While the tutorial runs, the first slots hold its
+	buttons: "Show the tutorial again" when the player shrank the tutorial card (ctx.tutorial, TutorialCard; it
+	opens the card and closes the Guide), and "Hold to skip the tutorial" (Request SkipTutorial).
 ]]
 
 local UI = script.Parent.Parent
@@ -24,6 +22,7 @@ Guide.TIP_H = 44
 Guide.GAP = 8
 Guide.CONTENT_H = Guide.GOAL_H + Guide.GAP + GuideTips.MAX_TIPS * (Guide.TIP_H + Guide.GAP)
 Guide.SHOW_TEXT = "📖  Show the tutorial again"
+Guide.SKIP_TEXT = "Hold to skip the tutorial"
 
 local function slotY(slot: number): number
 	return Guide.GOAL_H + Guide.GAP + (slot - 1) * (Guide.TIP_H + Guide.GAP)
@@ -121,6 +120,27 @@ function Guide.new(parent: Instance, ctx: any)
 		end
 	)
 
+	-- Ends the tutorial for good (Request SkipTutorial): a hold, like every action that can't be undone.
+	local skipTutorial = Widgets.holdButton(
+		{
+			Name = "SkipTutorial",
+			Text = Guide.SKIP_TEXT,
+			TextSize = 15,
+			Visible = false,
+			Position = UDim2.fromOffset(0, slotY(1)),
+			Size = UDim2.new(1, -8, 0, Guide.TIP_H),
+			Parent = content,
+		},
+		Theme.BgLight,
+		function()
+			if ctx.tutorial then
+				ctx.tutorial.skipping()
+			end
+			ctx.send("SkipTutorial")
+		end,
+		ctx.Config.HOLD_CONFIRM_SECONDS
+	)
+
 	local self = { frame = panel.frame, close = panel.close }
 
 	function self.update(state: any)
@@ -129,8 +149,18 @@ function Guide.new(parent: Instance, ctx: any)
 		goalText.Text = view.goal
 		goalDetail.Text = view.goalDetail
 		local hidden = ctx.tutorial ~= nil and ctx.tutorial.hidden()
+		local running = type(state) == "table" and state.tutorialStepId ~= nil
 		showTutorial.instance.Visible = hidden
-		local first = if hidden then 2 else 1 -- the button takes the first slot
+		skipTutorial.instance.Visible = running
+		-- The tutorial buttons take the first slots, then the tips.
+		local first = 1
+		if hidden then
+			first += 1
+		end
+		if running then
+			skipTutorial.instance.Position = UDim2.fromOffset(0, slotY(first))
+			first += 1
+		end
 		for i, row in tipRows do
 			local tip = view.tips[i - first + 1]
 			row.Visible = tip ~= nil

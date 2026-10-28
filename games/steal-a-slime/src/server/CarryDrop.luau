@@ -147,9 +147,6 @@ function CarryDrop.slap(
 	slapper.lastSlapAt = now
 	CarryDrop.knockLoose(world, target, now, position)
 	World.notify(world, slapper.userId, `You bonked {target.name} with your bat!`, "good", "Slap", "Slap")
-	if carry.kind == "stolen" then
-		World.tutorial(world, slapper, "Steal")
-	end
 	return true, nil
 end
 

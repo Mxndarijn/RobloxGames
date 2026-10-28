@@ -77,6 +77,7 @@ local SpeciesModel = require(script.SpeciesModel)
 local StealAlertFx = require(script.StealAlertFx)
 local TickGuard = require(script.TickGuard)
 local TouchControls = require(script.TouchControls)
+local TutorialCard = require(script.TutorialCard)
 local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
 local WorldShopLogic = require(script.WorldShopLogic)
@@ -95,7 +96,6 @@ local MergePanel = require(Panels.Merge)
 local RebirthPanel = require(Panels.Rebirth)
 local SkinsPanel = require(Panels.Skins)
 local SoundPanel = require(Panels.Sound)
-local TutorialOverlay = require(Panels.TutorialOverlay)
 local WelcomePanel = require(Panels.Welcome)
 local WorldShopPanel = require(Panels.WorldShop)
 
@@ -363,8 +363,8 @@ local stealFx = StealAlertFx.new(gui, {
 local carry = CarryPanel.new(gui, ctx)
 local bossMeter = BossMeterPanel.new(gui, ctx)
 local dailyPopup = DailyPopup.new(gui, ctx)
-local tutorial = TutorialOverlay.new(gui, ctx)
-ctx.tutorial = tutorial -- the Guide offers "Show the tutorial again" after Hide
+local tutorial = TutorialCard.new(hud.banners, ctx, 2) -- under the steal cards (order 1)
+ctx.tutorial = tutorial -- the Guide offers "Show the tutorial again" and Skip
 local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
@@ -1092,7 +1092,7 @@ end
 local lastHint: Hint.View? = nil
 
 function refreshHint()
-	lastHint = if latest then Hint.fromState(latest, openKey) else nil
+	lastHint = if latest then Hint.fromState(latest, openKey, tutorial.finishedShowing()) else nil
 	if lastHint == nil or screen == nil or not nav.Visible then
 		hintOverlay.set(nil)
 		return
@@ -1140,10 +1140,10 @@ function applyLayout()
 	stealFx.layout(s, hud.bannerHeight)
 	bossMeter.layout(s, hud.bannerHeight)
 	carry.layout(s)
+	tutorial.layout(s)
 	if slimeMove then
 		slimeMove.layout(s)
 	end
-	tutorial.layout(s)
 	dailyPopup.layout(s, GuiService:GetGuiInset())
 	layoutNav(s)
 	syncMenus() -- the nav's phone / desktop visibility follows the new size
@@ -1491,6 +1491,13 @@ task.spawn(function()
 			guardedTick("hud", function()
 				hud.tick(now)
 			end)
+			guardedTick("tutorial", function()
+				local finished = tutorial.finishedShowing()
+				tutorial.tick(now)
+				if finished ~= tutorial.finishedShowing() then
+					refreshHint() -- the Goals ring ends with the "Tutorial done" card
+				end
+			end)
 			guardedTick("inventory", inventory.tick)
 			guardedTick("bossMeter", function()
 				bossMeter.tick(now)
@@ -1510,7 +1517,8 @@ task.spawn(function()
 			guardedTick("hint", function()
 				hintOverlay.tick(
 					now,
-					tutorial.shown() and MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+					(tutorial.shown() or tutorial.finishedShowing())
+						and MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen())
 				)
 			end)
 			guardedTick("pvpFun", function()

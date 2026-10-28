@@ -46,7 +46,6 @@ function Rebirth.rebirth(world: World, session: Session): (boolean, string?)
 		World.notify(world, session.userId, `New rank: {tier.title}! {Perks.tierText(tier)}`, "good", "Rebirth")
 	end
 	World.effect(world, "Rebirth", { userId = session.userId })
-	World.tutorial(world, session, "Rebirth")
 	return true, nil
 end
 

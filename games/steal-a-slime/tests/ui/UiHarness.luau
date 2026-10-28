@@ -690,9 +690,10 @@ function UiHarness.descendants(root: any): { any }
 	return out
 end
 
--- Fires one RenderStepped frame (Widgets.holdButton fills on frames; tests drive them by hand).
-function UiHarness.renderStep()
-	services.RunService.RenderStepped:Fire()
+-- Fires one RenderStepped frame of `dt` seconds (default 1/60) to every live frame handler (Widgets.holdButton
+-- fills on frames; tests drive them by hand).
+function UiHarness.renderStep(dt: number?)
+	services.RunService.RenderStepped:Fire(dt or 1 / 60)
 end
 
 -- The first descendant named `name`.

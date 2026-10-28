@@ -49,6 +49,7 @@ local Purchases = if script then require(script.Parent.Purchases) else require("
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
+local TutorialService = if script then require(script.Parent.TutorialService) else require("./TutorialService")
 local World = if script then require(script.Parent.World) else require("./World")
 local Layout = if Shared then require(Shared.Parent.Visuals.WorldLayout) else require("../visuals/shared/WorldLayout")
 local BaseShapes = if Shared then require(Shared.Parent.Visuals.BaseShapes) else require("../visuals/shared/BaseShapes")
@@ -75,6 +76,7 @@ export type Context = {
 	plazaOrigin: (() -> any)?, -- the fountain centre (BossEvent.Context)
 	airborne: ((userId: number) -> boolean)?, -- off the ground: a jump clears a boss ring (BossEvent.Context)
 	exposed: ((userId: number, from: any) -> boolean)?, -- a boss attack at `from` can reach them (BossEvent.Context)
+	propPosition: ((name: string) -> any?)?, -- a world prop's position (TutorialService.Context)
 	groundBelow: ((point: any) -> any?)?,
 	funBubble: ((
 		userId: number,
@@ -134,6 +136,14 @@ local function result(ok: boolean, message: string?): Result
 		return OK
 	end
 	return fail(message or "failed")
+end
+
+-- A buy at the Item Shop or the Upgrade Shop finishes the tutorial's BuyItem step.
+local function shopTutorial(world: World.World, session: Session, res: Result): Result
+	if res.ok then
+		World.tutorial(world, session, "BuyItem")
+	end
+	return res
 end
 
 -- A Roblox Vector3 with finite, sane components (no NaN / inf / absurd magnitudes).
@@ -630,6 +640,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return result(MysteryEgg.hatch(world, session, args[1], now))
 	elseif action == "BuyPad" then
 		return buyPad(world, session)
+	elseif action == "SkipTutorial" then
+		return result(TutorialService.skip(world, session))
 	elseif action == "Daily" then
 		return daily(world, session, now)
 	elseif action == "ClaimQuest" then
@@ -639,7 +651,7 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	elseif action == "BuySpeedCoil" then
 		return buySpeedCoil(world, session)
 	elseif action == "BuyUpgrade" then
-		return buyUpgrade(world, session, args[1])
+		return shopTutorial(world, session, buyUpgrade(world, session, args[1]))
 	elseif action == "EquipPlotSkin" then
 		return equipPlotSkin(world, session, args[1], ctx)
 	elseif action == "EquipPlotBase" then
@@ -649,11 +661,11 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	elseif action == "SetAudioSettings" then
 		return setAudioSettings(session, args[1], args[2], args[3], ctx)
 	elseif action == "BuyConsumable" then
-		return buyConsumable(world, session, args[1], args[2], now, ctx)
+		return shopTutorial(world, session, buyConsumable(world, session, args[1], args[2], now, ctx))
 	elseif action == "UseConsumable" then
 		return useConsumable(world, session, args[1], args[2], now, ctx)
 	elseif action == "BuyPvpItem" then
-		return result(PvpService.buy(world, session, args[1], feature(ctx, "PvP")))
+		return shopTutorial(world, session, result(PvpService.buy(world, session, args[1], feature(ctx, "PvP"))))
 	elseif action == "EquipPvpItem" then
 		return result(PvpService.equip(session, args[1], feature(ctx, "PvP")))
 	elseif action == "UsePvpItem" then
