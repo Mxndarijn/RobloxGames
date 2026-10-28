@@ -356,6 +356,46 @@ describe("H1 HUD: featured Secret status slot", function()
 		expect(slots[2].id).toBe("Mvp")
 	end)
 
+	it(
+		"shows the code / quest income boost with its time left, after Boss Champion, and nothing once it ends",
+		function()
+			local boost = HudClusters.boost({ boostMult = 2, boostEndsAt = 1600 }, 1000) :: HudClusters.Slot
+			expect(boost.id).toBe("Boost")
+			expect(boost.text).toBe("10:00")
+			expect(boost.icon).toBe("Boost_Code")
+			expect(boost.kind).toBe("active")
+			local tip = HudClusters.tooltip(boost)
+			expect(tip.title).toBe("Income boost")
+			expect(tip.body).toBe("x2 income from a code or quest reward.")
+			expect(tip.time).toBe("Time left: 10:00")
+			expect(HudClusters.boost(nil, 1000)).toBeNil()
+			expect(HudClusters.boost({ boostMult = 1, boostEndsAt = 0 }, 1000)).toBeNil()
+			expect(HudClusters.boost({ boostMult = 2, boostEndsAt = 1000 }, 1000)).toBeNil()
+			expect(HudClusters.boost({ boostMult = 0 / 0, boostEndsAt = 1600 } :: any, 1000)).toBeNil()
+			local slots = HudClusters.status({
+				modifierEnabled = false,
+				friendsEnabled = false,
+				mvpBoost = { bonus = 0.5, endsAt = 1300 },
+				codes = { boostMult = 2, boostEndsAt = 1600 },
+				petPerk = { kind = "income", value = 0.05, icon = "x", text = "+5% income" },
+			}, 1000, 4)
+			expect(slots[1].id).toBe("Mvp")
+			expect(slots[2].id).toBe("Boost")
+			expect(slots[3].id).toBe("Pet")
+		end
+	)
+
+	it("the mounted income boost slot shows the potion icon and the time left", function()
+		local hud, gui = mount(1920, 1080)
+		hud.update(state({ codes = { boostMult = 3, boostEndsAt = 1600, redeemed = 1 } }))
+		local boost = slot(gui, "Boost")
+		expect(boost.Visible).toBe(true)
+		expect(UiHarness.find(boost, "Timer").Text).toBe("10:00")
+		expect(UiHarness.find(boost, "Icon"):GetAttribute("ItemId")).toBe("Boost_Code")
+		hud.update(state({ codes = { boostMult = 1, boostEndsAt = 0, redeemed = 1 } }))
+		expect(boost.Visible).toBe(false)
+	end)
+
 	it("with all five events running, the featured Secret makes way for the row's four places", function()
 		local all = {
 			rain = { active = true, endsAt = 1097 },
