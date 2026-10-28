@@ -1,12 +1,13 @@
 --!strict
 -- Writes the goo jar tower's numbers from WorldLayout to shared/modeling-kit/inputs/goo_jar_dims.json, so every kit
--- model of the tower (jar glass, frame, stand, door, stopper, tube, mascot) is built to the game's own sizes and the
+-- model of the tower (jar glass, frame, stand, door, stopper, tube, mascot, floors kept clear of the cash pad coins) is built to the game's own sizes and the
 -- assembled preview sits where the game puts things. Run from games/steal-a-slime:
 --   lune run scripts/export-jar-dims
 -- tests/JarMeshes.spec.luau fails when the committed JSON is stale.
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
 
+local CashPads = require("../src/shared/CashPads")
 local Config = require("../src/shared/Config")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -19,7 +20,15 @@ local function dims(): { [string]: any }
 		for k = 1, Config.PADS_PER_FLOOR do
 			local j = (f - 1) * Config.PADS_PER_FLOOR + k
 			local x, z = WorldLayout.padOffset(j)
-			table.insert(pads, { x = x, z = z, angle = WorldLayout.padAngle(j) })
+			local angle = WorldLayout.padAngle(j)
+			local coin = CashPads.floorLook(j)
+			local cx, cz = WorldLayout.polar(WorldLayout.PAD_RINGS[f] - coin.front, angle)
+			table.insert(pads, {
+				x = x,
+				z = z,
+				angle = angle,
+				coin = { x = cx, z = cz, diameter = coin.diameter }, -- the cash pad coin (FEATURES.CashPads)
+			})
 		end
 		local treads = {}
 		if f < #Config.BASE_FLOORS then
