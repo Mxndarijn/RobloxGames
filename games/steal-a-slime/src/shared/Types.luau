@@ -11,6 +11,7 @@
 
 local Collection = if script then require(script.Parent.Collection) else require("./Collection")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local NoticeCards = if script then require(script.Parent.NoticeCards) else require("./NoticeCards")
 local PlotBases = if script then require(script.Parent.PlotBases) else require("./PlotBases")
 local PetSeats = if script then require(script.Parent.PetSeats) else require("./PetSeats")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
@@ -262,6 +263,8 @@ export type State = {
 	petSeat: string, -- the seat the follow pet rides (PetSeats.current)
 	petSeats: { PetSeatView }, -- every pet seat with its unlock progress (contract/pet-seats.md)
 	welcomeBack: { away: number, cash: number, grown: number }?, -- join report (seconds away, offline cash paid, pad slimes grown); nil = none (CONTRACT.md §19)
+	notices: { NoticeCards.Notice }, -- live notice cards: bonked, slime back home, base locked (contract/notice-cards.md)
+	plotFull: boolean, -- carrying a slime in my own full plot: the carry card asks to sell or merge (contract/notice-cards.md)
 	stealAway: string?, -- FEATURES.StealAlerts: "While you were away N slimes were stolen by ..." from the saved steal log; nil = none (CONTRACT.md §17)
 	hotbar: { string }?, -- saved hotbar order (HotbarOrder, CONTRACT.md §5.1): 9 slot keys, "" = empty; nil = never set
 	boards: { [string]: number }, -- my own value on each global board, by Leaderboards stat (CONTRACT.md §5.1)

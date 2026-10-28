@@ -90,6 +90,13 @@ function Carry.new(parent: Instance, ctx: any)
 			border.Color = if stolen then Theme.Bad else Theme.Gold
 			sub.Text = if stolen then "Bring the slime to your plot!" else "Wild slime - bring it to your plot"
 			sub.TextColor3 = if stolen then Theme.Warn else Theme.Muted
+			-- In my own full plot (State.plotFull, contract/notice-cards.md): guidance instead of the slime.
+			if state.plotFull == true then
+				border.Color = Theme.Gold
+				name.Text = "Your plot is full"
+				sub.Text = "Sell or merge a slime"
+				sub.TextColor3 = Theme.Muted
+			end
 		end
 	end
 

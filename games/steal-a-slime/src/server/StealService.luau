@@ -134,6 +134,7 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 	local name = Genome.displayName(carry.slime)
 	if reason == "slap" then
 		World.notify(world, carrier.userId, `You got bonked! The {name} bounced home.`, "bad", "Slap", "Slap")
+		World.notice(world, carrier, { id = "Bonked", at = now })
 	elseif reason == "unsaved" then
 		World.notify(
 			world,
@@ -148,6 +149,7 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 		World.notify(world, carrier.userId, `You dropped the {name}. It went home.`, "bad", "Escape")
 	end
 	World.notify(world, owner.userId, `Your {name} escaped back to you!`, "good", "Escape")
+	World.notice(world, owner, { id = "SlimeHome", at = now, name = carrier.name })
 	return carry.slimeId
 end
 

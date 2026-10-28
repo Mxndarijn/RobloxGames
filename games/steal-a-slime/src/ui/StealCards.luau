@@ -1,9 +1,10 @@
 --!strict
 --[[
-	StealCards (client): the owner's steal alarm in the top banner stack. A pink-ringed card per thief
-	("Ann is stealing your slime!"), a short "Ann has stolen one of your slimes" card with a draining bar
-	after a theft, and a "+N more" chip past StealCardsLogic.MAX_CARDS. Which cards show is
-	StealCardsLogic; this module only draws them.
+	StealCards (client, contract/notice-cards.md): the cards in the top banner stack. The owner's steal alarm
+	("Ann is stealing your slime!", then "Ann has stolen one of your slimes"), and the notices: bonked, slime back
+	home, base locked. Timed cards drain a bar along their bottom edge; a "+N more" chip counts what does not fit.
+	The ring says what it is: pink danger, mint good news, gold guidance. Which cards show is StealCardsLogic;
+	this module only draws them.
 ]]
 
 local TweenService = game:GetService("TweenService")
@@ -26,7 +27,14 @@ local SIZE = table.freeze({
 	stack = 20, -- between cards; the Ink ring takes 3 px of it on each side
 })
 
-local ICON = table.freeze({ stealing = "🚨", stolen = "💔" })
+local ICON = table.freeze({ stealing = "🚨", stolen = "💔", bonked = "💥", home = "💚", locked = "🔒" })
+local COLOR = table.freeze({
+	stealing = Theme.Bad,
+	stolen = Theme.Bad,
+	bonked = Theme.Bad,
+	home = Theme.Good,
+	locked = Theme.Gold,
+})
 
 local StealCards = {}
 
@@ -55,7 +63,7 @@ local function buildCard(parent: Instance, order: number): any
 		Widgets.corner(Layout.NOTICE_RADIUS),
 	})
 	-- No UIPadding on the card itself: it would pull the Ink ring (a child frame) inside the pink one.
-	Widgets.ring(card, Theme.Bad, Layout.NOTICE_RADIUS)
+	local ring = Widgets.ring(card, Theme.Bad, Layout.NOTICE_RADIUS)
 	local row = create("Frame", {
 		Name = "Row",
 		BackgroundTransparency = 1,
@@ -112,7 +120,7 @@ local function buildCard(parent: Instance, order: number): any
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = column,
 	})
-	-- The "stolen" card's time left: a pink line along the bottom edge that drains to the left.
+	-- A timed card's time left: a line in the ring's colour along the bottom edge that drains to the left.
 	local bar = create("Frame", {
 		Name = "Timer",
 		AnchorPoint = Vector2.new(0, 1),
@@ -123,7 +131,7 @@ local function buildCard(parent: Instance, order: number): any
 		Visible = false,
 		Parent = card,
 	}, { Widgets.pill() })
-	return { card = card, icon = icon, title = title, sub = sub, bar = bar, barWidth = bar.Size }
+	return { card = card, ring = ring, icon = icon, title = title, sub = sub, bar = bar, barWidth = bar.Size }
 end
 
 function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
@@ -175,9 +183,15 @@ function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
 
 	local function render(now: number)
 		local cards, hidden = StealCardsLogic.cards(memory, now)
+		local names: { string } = {}
+		local subs: { string? } = {}
 		local parts = {}
-		for _, card in cards do
-			table.insert(parts, `{card.kind}:{card.thief}:{card.startedAt or ""}`)
+		for i, card in cards do
+			local who = if card.thief then ctx.playerName(card.thief) else card.name or "someone"
+			names[i] = who
+			-- Several cards: only the first keeps its hint line, so the stack stays short.
+			subs[i] = if i == 1 then StealCardsLogic.subtitle(card, who, now) else nil
+			table.insert(parts, `{card.kind}:{who}:{card.startedAt or ""}:{subs[i] or ""}`)
 		end
 		local sig = `{table.concat(parts, ";")}|{hidden}`
 		if sig == shownSig then
@@ -193,24 +207,24 @@ function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
 			local card = cards[i]
 			slot.card.Visible = card ~= nil
 			if card then
+				local color = COLOR[card.kind]
+				slot.ring.Color = color
+				slot.icon.BackgroundColor3 = color
+				slot.bar.BackgroundColor3 = color
 				slot.icon.Text = ICON[card.kind]
-				slot.title.Text = StealCardsLogic.title(card, nameMarkup(ctx.playerName(card.thief)))
-				-- Several cards: only the first keeps its hint line, so the stack stays short.
-				local sub = if i == 1 then StealCardsLogic.subtitle(card) else nil
+				slot.title.Text = StealCardsLogic.title(card, nameMarkup(names[i]))
+				local sub = subs[i]
 				slot.sub.Text = sub or ""
 				slot.sub.Visible = sub ~= nil
-				local timed = card.kind == "stolen"
+				local timed = card.endsAt ~= nil and card.startedAt ~= nil
 				slot.bar.Visible = timed
 				if timed then
-					local left = math.clamp(
-						(card.startedAt :: number) + StealCardsLogic.STOLEN_SECONDS - now,
-						0,
-						StealCardsLogic.STOLEN_SECONDS
-					)
+					local total = math.max((card.endsAt :: number) - (card.startedAt :: number), 0.01)
+					local left = math.clamp((card.endsAt :: number) - now, 0, total)
 					local full = slot.barWidth
 					slot.bar.Size = UDim2.new(
-						full.X.Scale * left / StealCardsLogic.STOLEN_SECONDS,
-						full.X.Offset * left / StealCardsLogic.STOLEN_SECONDS,
+						full.X.Scale * left / total,
+						full.X.Offset * left / total,
 						full.Y.Scale,
 						full.Y.Offset
 					)
@@ -231,7 +245,7 @@ function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
 	local self = {} :: StealCards
 	self.frame = frame
 	function self.update(state: any, now: number)
-		memory = StealCardsLogic.observe(memory, state.slimes, now)
+		memory = StealCardsLogic.observe(memory, state, now)
 		render(now)
 	end
 	function self.tick(now: number)
