@@ -251,9 +251,11 @@ describe("SlimeGait boss steps", function()
 	-- counts the waddle's steps: the roll flips side on every step
 	local function steps(stride: number): number
 		local n, last = 0, 0
-		for _, r in run(SlimePersona.of("klawdius"), 4.5, 6, 1, function(st)
-			st.stride = stride
-		end) do
+		for _, r in
+			run(SlimePersona.of("klawdius"), 4.5, 6, 1, function(st)
+				st.stride = stride
+			end)
+		do
 			local side = if r.p.roll > 0.01 then 1 elseif r.p.roll < -0.01 then -1 else 0
 			if side ~= 0 and side ~= last then
 				n += 1
@@ -269,9 +271,11 @@ describe("SlimeGait boss steps", function()
 	end)
 	it("without tricks a hopper only does plain hops (no belly flops, boings or zig-zags)", function()
 		local kinds = {}
-		for _, r in run(SlimePersona.of("pumpking"), 4, 60, 7, function(st)
-			st.tricks = false
-		end) do
+		for _, r in
+			run(SlimePersona.of("pumpking"), 4, 60, 7, function(st)
+				st.tricks = false
+			end)
+		do
 			if r.p.kind then
 				kinds[r.p.kind] = true
 			end
