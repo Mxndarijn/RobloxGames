@@ -152,7 +152,7 @@ function SoundController.new(config: any, player: Player, dayNight: any, ctx: Co
 		sound.SoundId = id
 		sound.SoundGroup = sfxGroup
 		sound.Volume = (o.volume or 1) * (Sounds.VOLUME[name] or 1)
-		sound.PlaybackSpeed = (o.speed or 1) * (Sounds.SPEED[name] or 1)
+		sound.PlaybackSpeed = AudioLogic.playSpeed(cfg, name, o.speed, roll)
 		local temp: Instance? = nil
 		if o.at ~= nil then
 			sound.RollOffMode = Enum.RollOffMode.InverseTapered

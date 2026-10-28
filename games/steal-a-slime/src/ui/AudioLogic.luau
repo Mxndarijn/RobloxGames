@@ -18,6 +18,7 @@
 	  AudioLogic.oneshotSpeed(cfg, rng)            PlaybackSpeed for one call
 	  AudioLogic.layerTargets(input, cfg, dayNight) -> every looped layer that should sound now (music, beds, weather)
 	  AudioLogic.jitter(base, spread, rng)         base +- spread (PlaybackSpeed variation for repeated SFX)
+	  AudioLogic.playSpeed(cfg, name, speed?, rng) PlaybackSpeed for one play (Sounds.SPEED, Sounds.VARY jitter)
 	  AudioLogic.pick(list, rng)                   one entry of a variant list
 ]]
 
@@ -195,6 +196,18 @@ end
 
 function AudioLogic.jitter(base: number, spread: number, rng: () -> number): number
 	return base + (math.clamp(rng(), 0, 1) * 2 - 1) * spread
+end
+
+-- PlaybackSpeed for one play of `name` (a registry name like "click" or a Sounds.IDS name): the caller's speed
+-- times the sound's own Sounds.SPEED, with a jitter on top for names in Sounds.VARY.
+function AudioLogic.playSpeed(cfg: any, name: string, speed: number?, rng: () -> number): number
+	local entry = cfg.SFX[name]
+	local soundName = if type(entry) == "string" and Sounds.IDS[entry] ~= nil then entry else name
+	local base = (speed or 1) * (Sounds.SPEED[soundName] or 1)
+	if Sounds.VARY[soundName] then
+		return base * AudioLogic.jitter(1, cfg.SFX_SPEED_JITTER, rng)
+	end
+	return base
 end
 
 function AudioLogic.pick<T>(list: { T }, rng: () -> number): T?
