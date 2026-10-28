@@ -861,6 +861,7 @@ LayoutAssert.PANEL_TITLES = table.freeze({
 	Sound = "Sound",
 	Guide = "Guide",
 	Welcome = "Welcome back",
+	ExclusiveShop = "Exclusive shop",
 })
 
 -- Every menu key the UI opens: Nav.ENTRIES order, then "Guide", "Welcome".
@@ -870,6 +871,7 @@ function LayoutAssert.menuKeys(): { string }
 		table.insert(keys, entry.key)
 	end
 	table.insert(keys, "WorldShop")
+	table.insert(keys, "ExclusiveShop")
 	table.insert(keys, "Inventory")
 	table.insert(keys, "Sound")
 	table.insert(keys, "Guide")

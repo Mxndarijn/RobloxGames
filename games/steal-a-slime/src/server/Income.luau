@@ -4,16 +4,18 @@
 
 	Pays every session's plot income (Economy.tickIncome, fractional cash
 	kept in `incomeRemainder`). Slimes being carried away pay nothing.
-	`applyOffline` pays OFFLINE_RATE of income for at most
-	OFFLINE_CAP_SECONDS since the last save (Economy.offlineIncome).
+	`applyOffline` pays OFFLINE_RATE of income (the Offline2x Game Pass rate,
+	`data.passOfflineRate`, when owned) for at most OFFLINE_CAP_SECONDS since the
+	last save (Economy.offlineIncome) and records the payout in
+	`data.offlineDouble` for the Exclusive Shop's "Double it".
 	With FEATURES.CashPads on, both go onto the slimes' cash pads instead of
 	into cash (CashPads); the owner collects them there (CashPadService).
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local CashPads = if Shared then require(Shared.CashPads) else require("../shared/CashPads")
-local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Growth = if Shared then require(Shared.Growth) else require("../shared/Growth")
@@ -70,13 +72,22 @@ function Income.step(world: World, dt: number, now: number?, features: { [string
 	end
 end
 
--- Pays offline income (capped by the offline time) once, on load. Returns the amount paid (or piled onto the cash pads).
+-- The share of income paid while offline: the Offline2x Game Pass rate when owned, else Config.OFFLINE_RATE.
+function Income.offlineRate(data: PlayerData.Data): number
+	return math.max(data.passOfflineRate or 0, Config.OFFLINE_RATE)
+end
+
+-- Pays offline income (for at most the offline cap time) once, on load. Returns the amount paid, or piled onto the
+-- cash pads with FEATURES.CashPads.
 function Income.applyOffline(world: World, session: Session, now: number, features: { [string]: any }?): number
 	local data = session.data
 	local skip = VatState.lockedSet(data) -- brewing vat slimes earn nothing
+	local rate = Income.offlineRate(data)
 	if CashPads.enabled(features) then
-		local piled = math.floor(CashPads.accrueOffline(data, data.lastOnline, now, skip))
+		local piled = math.floor(CashPads.accrueOffline(data, data.lastOnline, now, skip, rate))
+		session.offlineRate, session.offlinePaid = rate, piled
 		if piled > 0 then
+			data.offlineDouble = { cash = piled, at = now, used = false }
 			World.notify(
 				world,
 				session.userId,
@@ -89,9 +100,11 @@ function Income.applyOffline(world: World, session: Session, now: number, featur
 		return piled
 	end
 	local perSec = PlayerData.incomePerSecond(data, skip)
-	local amount = Economy.offlineIncome(perSec, data.lastOnline, now, Perks.offlineCap(data))
+	local amount = Economy.offlineIncome(perSec, data.lastOnline, now, Perks.offlineCap(data), rate)
+	session.offlineRate, session.offlinePaid = rate, amount
 	if amount > 0 then
 		PlayerData.earn(data, amount)
+		data.offlineDouble = { cash = amount, at = now, used = false }
 		World.notify(
 			world,
 			session.userId,

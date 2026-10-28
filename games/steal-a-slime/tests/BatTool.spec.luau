@@ -2,11 +2,13 @@
 -- The default Bat (server/BatTool + shared/BatRules, CONTRACT.md §26 "Bat"): LIVE for everyone, not behind FEATURES.PvP.
 -- A swing picks its own target from the swinger's pose, then runs the base slap (CarryDrop.slap) plus a knockback.
 -- Every swing passes the PvP flag explicitly so the specs hold in the forced-flag CI runs too.
+local BatModel = require("../src/shared/BatModel")
 local BatRules = require("../src/shared/BatRules")
 local BatTool = require("../src/server/BatTool")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
+local MeshAssets = require("../src/shared/MeshAssets")
 local PvpKnockbackRules = require("../src/shared/PvpKnockbackRules")
 local PvpService = require("../src/server/PvpService")
 local ServerFixtures = require("./ServerFixtures")
@@ -325,5 +327,53 @@ describe("BatTool.swing on the boss (contract/boss-event.md)", function()
 		expect(world.wild[id].position).toBe(ORIGIN)
 		expect(b.lastSlapAt).toBe(t + 2)
 		done()
+	end)
+end)
+
+-- Bat skins (contract/exclusive-shop.md §10): only the Handle's look changes; every hit rule is the default Bat's.
+describe("Bat skins", function()
+	-- One scripted fight with the swinger wearing `skin`: a whiff, a hit at reach, a swing on cooldown, a swing too
+	-- soon, a thief just out of reach. Returns everything that came out of it.
+	local function fight(skin: string?): { any }
+		local out = {}
+		local world, owner, thief = setup()
+		owner.data.ownedBatSkins = if skin then { skin } else {}
+		owner.data.batSkin = skin
+		table.insert(out, { BatTool.swing(world, owner, T0 + 100, bat, false) })
+		poses[2] = { X = ORIGIN.X + Config.SLAP_REACH - 0.01, Y = 3, Z = ORIGIN.Z }
+		Carry.grab(world, 2, "gem", 1, T0 + 100)
+		table.insert(out, { BatTool.swing(world, owner, T0 + 101, bat, false) })
+		table.insert(out, { thief.carry == nil, owner.lastSlapAt, #moves })
+		Carry.grab(world, 2, "gem", 1, T0 + 103)
+		table.insert(out, { BatTool.swing(world, owner, T0 + 101 + Config.SLAP_COOLDOWN - 0.1, bat, false) })
+		table.insert(out, { BatTool.swing(world, owner, T0 + 101 + Config.SLAP_COOLDOWN - 0.05, bat, false) })
+		poses[2] = { X = ORIGIN.X + Config.SLAP_REACH + 0.01, Y = 3, Z = ORIGIN.Z }
+		table.insert(out, { BatTool.swing(world, owner, T0 + 110, bat, false) })
+		table.insert(out, { thief.carry ~= nil, owner.lastSlapAt, #moves })
+		local push = moves[1] and moves[1].push
+		table.insert(out, if push then { push.X, push.Y, push.Z } else {})
+		done()
+		return out
+	end
+
+	it("hits exactly like the default Bat: same reach, cooldown, swing gap and push for every skin", function()
+		local plain = fight(nil)
+		expect(plain[2][1]).toBe(true) -- the scripted hit landed, so the comparison means something
+		for _, def in Config.EXCLUSIVE_SHOP.batSkins do
+			expect(fight(def.id)).toEqual(plain)
+		end
+	end)
+
+	it("BatModel.look falls back to the default Bat for no skin, an unknown one or one without a mesh", function()
+		expect(BatModel.look(nil)).toEqual(BatModel.default())
+		expect(BatModel.look("nope")).toEqual(BatModel.default())
+		for _, def in Config.EXCLUSIVE_SHOP.batSkins do
+			local look = BatModel.look(def.id)
+			local meshId = MeshAssets.meshId(def.mesh)
+			expect(look.meshId).toBe(meshId or BatModel.MESH_ID)
+			if not meshId then
+				expect(look).toEqual(BatModel.default())
+			end
+		end
 	end)
 end)

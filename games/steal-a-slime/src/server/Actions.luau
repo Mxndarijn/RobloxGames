@@ -43,7 +43,9 @@ local ShopGuard = if script then require(script.Parent.ShopGuard) else require("
 local ConsumableShop = if script then require(script.Parent.ConsumableShop) else require("./ConsumableShop")
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
+local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
+local Purchases = if script then require(script.Parent.Purchases) else require("./Purchases")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
@@ -99,6 +101,9 @@ export type Context = {
 	-- RequestKits: replicates these kit meshes (KitRequest kit names) to that player only (KitDelivery). nil = no
 	-- world: the request is accepted and nothing is sent.
 	sendKits: ((userId: number, kits: { string }) -> ())?,
+	-- Writes another player's session data now (the session-locked Persistence save; yields), true = written: SendGift
+	-- saves the gift's receiver before it counts. nil = can't save: the gift stays unsent.
+	saveUser: ((userId: number, data: any) -> boolean)?,
 }
 
 local Actions = {}
@@ -118,6 +123,11 @@ local function feature(ctx: Context, name: string): boolean
 	return (Config.FEATURES :: any)[name] == true
 end
 Actions.feature = feature
+
+-- Purchases.Context for a request: the flag overrides and the save a gift needs.
+local function purchaseCtx(ctx: Context): Purchases.Context
+	return { features = ctx.features, save = ctx.saveUser }
+end
 
 local function result(ok: boolean, message: string?): Result
 	if ok then
@@ -155,6 +165,31 @@ function Actions.parseArgs(action: string, raw: { any }): ({ any }?, string?)
 		if kind == "string" or kind == "string?" then
 			if value == nil and kind == "string?" then
 				out[i] = nil
+			else
+				local id = Validate.slimeId(value)
+				if not id then
+					return nil, "bad argument"
+				end
+				out[i] = id
+			end
+		elseif kind == "cosmetic" then
+			if value == "" then
+				out[i] = ""
+			else
+				local id = Validate.slimeId(value)
+				if not id then
+					return nil, "bad argument"
+				end
+				out[i] = id
+			end
+		elseif kind == "target?" then
+			if value == nil then
+				out[i] = nil
+			elseif type(value) == "number" then
+				if value ~= value or math.abs(value) == math.huge then
+					return nil, "bad argument"
+				end
+				out[i] = value
 			else
 				local id = Validate.slimeId(value)
 				if not id then
@@ -625,6 +660,39 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return result(PvpService.use(world, session, args[1], args[2], args[3], now, feature(ctx, "PvP"), ctx, args[4]))
 	elseif action == "SetHotbar" then
 		return result(HotbarOrder.set(session.data, args[1]))
+	elseif action == "AimHatch" then
+		if not feature(ctx, "ExclusiveShop") then
+			return fail("the Exclusive Shop is off")
+		end
+		return result(Purchases.aimHatch(world, session, args[1], now))
+	elseif action == "UseCredit" then
+		if not feature(ctx, "ExclusiveShop") then
+			return fail("the Exclusive Shop is off")
+		end
+		return result(Purchases.useCredit(world, session, args[1], args[2], now, purchaseCtx(ctx)))
+	elseif action == "EquipTrail" or action == "EquipBatSkin" then
+		if not feature(ctx, "ExclusiveShop") then
+			return fail("the Exclusive Shop is off")
+		end
+		if action == "EquipTrail" then
+			return result(Purchases.equipTrail(session, args[1]))
+		end
+		return result(Purchases.equipBatSkin(session, args[1]))
+	elseif action == "AimLockBreak" then
+		if not feature(ctx, "ExclusiveShop") then
+			return fail("the Exclusive Shop is off")
+		end
+		return result(LockBreak.aim(world, session, args[1], now, ctx.features))
+	elseif action == "AimGift" then
+		if not feature(ctx, "ExclusiveShop") then
+			return fail("the Exclusive Shop is off")
+		end
+		return result(Purchases.aimGift(world, session, args[1], args[2], now))
+	elseif action == "SendGift" then
+		if not feature(ctx, "ExclusiveShop") then
+			return fail("the Exclusive Shop is off")
+		end
+		return result(Purchases.sendGift(world, session, args[1], args[2], purchaseCtx(ctx)))
 	elseif action == "Drop" then
 		if not session.carry then
 			return fail("not carrying")

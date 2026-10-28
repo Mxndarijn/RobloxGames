@@ -6,7 +6,8 @@
 
 	* Money (bottom-left): the cash amount on the coin plate, with the income/s and rebirths chips under it.
 	* Status (bottom-right): one icon + timer slot per running thing, packed to the right edge, left to right:
-	    Rain   Slime Rain (workspace RainActive / RainEndsAt / RainNextAt, else State.rain): the time left while it
+	    LockBreak a running lock break (State.exclusiveShop.lockBreak) with the time left to pass that locked door;
+	    Rain  Slime Rain (workspace RainActive / RainEndsAt / RainNextAt, else State.rain): the time left while it
 	           rains, a dimmed countdown for the last RainTimer.SOON_SECONDS before the next one;
 	    Event  the live server modifier (State.modifier: dawn / dusk modifier, admin Luck event) with the
 	           time left;
@@ -50,7 +51,10 @@ export type Inputs = {
 	mvpBoost: Blessed?,
 	petPerk: PetPerk?,
 	featuredSecret: FeaturedSecret?,
+	lockBreak: LockBreak?,
 }
+-- State.exclusiveShop.lockBreak: the running lock break (contract/exclusive-shop.md §11), `untilTime` in server time.
+export type LockBreak = { plot: number, untilTime: number }
 -- State.blessed: the ritual's Blessed income bonus, `endsAt` in server time. State.mvpBoost (the Boss MVP boost) has
 -- the same shape.
 export type Blessed = { bonus: number, endsAt: number }
@@ -62,7 +66,7 @@ export type FeaturedSecret = { id: string, name: string, endsAt: number }
 local HudClusters = {}
 
 -- Slot ids in display order, left to right (Layout.STATUS_SLOTS).
-HudClusters.STATUS_IDS = table.freeze({ "Rain", "Event", "Friend", "Blessed", "Mvp", "Pet", "Secret" })
+HudClusters.STATUS_IDS = table.freeze({ "LockBreak", "Rain", "Event", "Friend", "Blessed", "Mvp", "Pet", "Secret" })
 
 HudClusters.ICONS = table.freeze({
 	Cash = "Cash",
@@ -74,7 +78,11 @@ HudClusters.ICONS = table.freeze({
 	Mvp = "Boost_Mvp",
 	Pet = "Pet",
 	Secret = "Badge_FirstSecret",
+	LockBreak = "Lock",
 })
+
+HudClusters.LOCK_BREAK_NAME = "Lock break"
+HudClusters.LOCK_BREAK_EFFECT = "You can walk through that base's locked door. It stays locked for everyone else."
 
 HudClusters.RAIN_EFFECT = "Slimes pour from the sky and rarer ones show up more often. Grab them!"
 
@@ -243,9 +251,32 @@ function HudClusters.secret(view: FeaturedSecret?, now: number): Slot?
 	}
 end
 
+-- The lock break slot (State.exclusiveShop.lockBreak) while it runs: "0:42" left to pass that base's locked door.
+function HudClusters.lockBreak(view: LockBreak?, now: number): Slot?
+	if type(view) ~= "table" or type(view.untilTime) ~= "number" or view.untilTime ~= view.untilTime then
+		return nil
+	end
+	local remaining = Format.remainingSeconds(view.untilTime, now)
+	if remaining <= 0 then
+		return nil
+	end
+	return {
+		id = "LockBreak",
+		icon = HudClusters.ICONS.LockBreak,
+		text = Format.formatDuration(remaining),
+		kind = "active",
+		name = HudClusters.LOCK_BREAK_NAME,
+		effect = HudClusters.LOCK_BREAK_EFFECT,
+	}
+end
+
 -- The shown slots, left to right; at most `places` (Layout.STATUS.count), the featured Secret dropped first.
 function HudClusters.status(input: Inputs, now: number, places: number): { Slot }
 	local out: { Slot } = {}
+	local lockBreak = HudClusters.lockBreak(input.lockBreak, now)
+	if lockBreak then
+		table.insert(out, lockBreak)
+	end
 	local rain = HudClusters.rain(input.rain, now)
 	if rain then
 		table.insert(out, rain)

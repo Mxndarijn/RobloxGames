@@ -172,13 +172,14 @@ local function rank(p: Persistence, userId: number, playerData: PlayerData.Data,
 	end
 end
 
--- Saves (yields); `release` drops the session lock. Also ranks the player on every global board.
-function Persistence.save(p: Persistence, userId: number, playerData: PlayerData.Data, release: boolean)
+-- Saves (yields); `release` drops the session lock. Also ranks the player on every global board. Returns whether
+-- the save was written (a Studio fallback profile never is).
+function Persistence.save(p: Persistence, userId: number, playerData: PlayerData.Data, release: boolean): boolean
 	if p.unsaved[userId] then
 		if release then
 			p.unsaved[userId] = nil
 		end
-		return
+		return false
 	end
 	p.gate.pending += 1
 	Leaderboards.rollWeek(playerData, WeeklyEvents.weekIndex(os.time()))
@@ -197,6 +198,7 @@ function Persistence.save(p: Persistence, userId: number, playerData: PlayerData
 		p.ranked[userId] = nil
 	end
 	p.gate.pending -= 1
+	return ok
 end
 
 -- Starts a save of every session, each in its own thread.

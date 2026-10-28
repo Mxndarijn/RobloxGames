@@ -1,6 +1,6 @@
 {
   "name": "pet_mount_lily_pad",
-  "model": "models/pet_mount_lily_pad.py",
+  "model": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\models\\pet_mount_lily_pad.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
   "tris": 1800,
   "meshes": [
@@ -52,7 +52,7 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "out/pet_mount_lily_pad.fbx",
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_lily_pad.fbx",
   "fbx_bytes": 44492,
   "engine": "cycles",
   "mode": "full",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "out/.tiles/pet_mount_lily_pad_0.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_lily_pad_0.png"
     },
     {
       "view": "side",
-      "path": "out/.tiles/pet_mount_lily_pad_1.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_lily_pad_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "out/.tiles/pet_mount_lily_pad_2.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_lily_pad_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "out/.tiles/pet_mount_lily_pad_3.png"
+      "path": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\.tiles\\pet_mount_lily_pad_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.099,
-    "stats_s": 0.002,
-    "setup_s": 0.001,
+    "model_s": 0.177,
+    "stats_s": 0.003,
+    "setup_s": 0.022,
     "render_s": [
-      0.451,
-      0.448,
-      0.517,
-      0.587
+      0.148,
+      0.119,
+      0.115,
+      0.127
     ],
-    "export_s": 0.073
+    "export_s": 0.237
   },
-  "sheet": "out/pet_mount_lily_pad_sheet.png",
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-wt\\exclusive-shop\\shared\\modeling-kit\\out\\pet_mount_lily_pad_sheet.png",
   "timings": {
-    "wall_s": 2.6,
-    "blender_process_s": 2.53,
-    "compose_s": 0.076,
-    "model_s": 0.099,
-    "stats_s": 0.002,
-    "setup_s": 0.001,
+    "wall_s": 1.34,
+    "blender_process_s": 1.3,
+    "compose_s": 0.045,
+    "model_s": 0.177,
+    "stats_s": 0.003,
+    "setup_s": 0.022,
     "render_s": [
-      0.451,
-      0.448,
-      0.517,
-      0.587
+      0.148,
+      0.119,
+      0.115,
+      0.127
     ],
-    "export_s": 0.073
+    "export_s": 0.237
   }
 }

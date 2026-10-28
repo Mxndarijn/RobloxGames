@@ -557,6 +557,159 @@ local PET_SEATS: { PetSeat } = {
 	seat("clam_shell", "Clam Shell", "pet_mount_clam_shell", 0.80, { 250, 150, 140 }, EXCLUSIVE),
 }
 
+-- Exclusive Shop (FEATURES.ExclusiveShop, contract/exclusive-shop.md). The one source of every Robux product and pass.
+-- productId / passId are Roblox ids; 0 = not created yet: the UI shows the price with "Not on sale yet" and only
+-- StudioHooks can grant it. robux is the shown price and must match the Creator Dashboard. Keys are permanent
+-- save / receipt ids: never rename.
+local function product(robux: number, grant: { [string]: any }): { [string]: any }
+	return table.freeze({ productId = 0, robux = robux, grant = table.freeze(grant) })
+end
+local EXCLUSIVE_PRODUCTS: { [string]: any } = {
+	StarterBundle = product(
+		149,
+		{ kind = "bundle", seats = table.freeze({ "leaf" }), boostMult = 2, boostSeconds = 900 }
+	),
+	FinishBrew_1 = product(15, { kind = "finishBrew" }), -- time left <= finishBrewBrackets[1]
+	FinishBrew_2 = product(35, { kind = "finishBrew" }),
+	FinishBrew_3 = product(59, { kind = "finishBrew" }),
+	FinishBrew_4 = product(99, { kind = "finishBrew" }),
+	HatchNow_speckled = product(25, { kind = "hatchNow" }),
+	HatchNow_shiny = product(35, { kind = "hatchNow" }),
+	HatchNow_golden = product(45, { kind = "hatchNow" }),
+	HatchNow_cosmic = product(49, { kind = "hatchNow" }),
+	DoubleOffline = product(49, { kind = "doubleOffline" }),
+	ServerLuckPotion = product(79, { kind = "serverPotion" }), -- a paid probability modifier: odds shown, hidden where paid random items are restricted
+}
+-- Exclusive seat prices by how showy the model is (ideas doc C1).
+local SEAT_ROBUX: { [string]: number } = {
+	leaf = 99,
+	bubble = 99,
+	lily_pad = 99,
+	mushroom = 99,
+	pancakes = 99,
+	storm_cloud = 199,
+	sunset_cloud = 199,
+	ice_cloud = 199,
+	flame_cloud = 199,
+	star_cushion = 199,
+	crescent_moon = 199,
+	clam_shell = 199,
+	magic_carpet = 399,
+	ufo = 399,
+	royal_cushion = 399,
+	hoverboard = 399,
+}
+for _, def in PET_SEATS do
+	if def.unlock.kind == "exclusive" then
+		local robux = SEAT_ROBUX[def.id]
+		assert(robux, "Exclusive seat without a price: " .. def.id)
+		EXCLUSIVE_PRODUCTS["Seat_" .. def.id] = product(robux, { kind = "seat", seat = def.id })
+	end
+end
+-- Carry trails (contract/exclusive-shop.md §9): what streams behind you while you carry a slime. Purely visual: a trail is
+-- always visible and never hides the carried slime. Ids are permanent save ids.
+local CARRY_TRAILS = table.freeze({
+	table.freeze({
+		id = "sparkle",
+		name = "Sparkle",
+		robux = 49,
+		colors = table.freeze({ { 255, 236, 150 }, { 252, 204, 80 } }),
+		style = "sparkle",
+	}),
+	table.freeze({
+		id = "goo_drip",
+		name = "Goo Drip",
+		robux = 79,
+		colors = table.freeze({ { 196, 250, 220 }, { 110, 226, 170 } }),
+		style = "drip",
+	}),
+	table.freeze({
+		id = "hearts",
+		name = "Hearts",
+		robux = 79,
+		colors = table.freeze({ { 255, 190, 214 }, { 250, 150, 182 } }),
+		style = "hearts",
+	}),
+	table.freeze({
+		id = "starfall",
+		name = "Starfall",
+		robux = 99,
+		colors = table.freeze({ { 255, 244, 194 }, { 196, 166, 232 } }),
+		style = "stars",
+	}),
+	table.freeze({
+		id = "rainbow",
+		name = "Rainbow",
+		robux = 149,
+		colors = table.freeze({
+			{ 250, 96, 96 },
+			{ 252, 216, 110 },
+			{ 110, 226, 170 },
+			{ 110, 180, 245 },
+			{ 196, 166, 232 },
+		}),
+		style = "ribbon",
+	}),
+})
+-- Bat skins (§10): another look for the free Bat. Reach, cooldown, hitbox and knockback are the Bat's, unchanged.
+-- `mesh` = MeshAssets name (shared/modeling-kit models/bat_skin_<id>.py); without an uploaded mesh the default Bat shows.
+local BAT_SKINS = table.freeze({
+	table.freeze({ id = "lollipop", name = "Lollipop", robux = 99, mesh = "bat_skin_lollipop" }),
+	table.freeze({ id = "fish", name = "Fish", robux = 99, mesh = "bat_skin_fish" }),
+	table.freeze({ id = "foam_finger", name = "Foam Finger", robux = 149, mesh = "bat_skin_foam_finger" }),
+	table.freeze({ id = "golden", name = "Golden Bat", robux = 249, mesh = "bat_skin_golden" }),
+})
+for _, def in CARRY_TRAILS do
+	EXCLUSIVE_PRODUCTS["Trail_" .. def.id] = product(def.robux, { kind = "trail", trail = def.id })
+end
+for _, def in BAT_SKINS do
+	EXCLUSIVE_PRODUCTS["BatSkin_" .. def.id] = product(def.robux, { kind = "batSkin", skin = def.id })
+end
+-- Open locked door (§11): the buyer may pass one locked base's door for LOCK_BREAK.seconds. Aimed with AimLockBreak.
+EXCLUSIVE_PRODUCTS.LockBreak = product(499, { kind = "lockBreak" })
+-- Gifts (§12): every cosmetic also sells as Gift_<key>, granted to the player picked with AimGift (cosmetics only).
+local giftable: { string } = {}
+for key, def in EXCLUSIVE_PRODUCTS do
+	local kind = def.grant.kind
+	if kind == "seat" or kind == "trail" or kind == "batSkin" then
+		table.insert(giftable, key)
+	end
+end
+table.sort(giftable)
+for _, key in giftable do
+	EXCLUSIVE_PRODUCTS["Gift_" .. key] = product(EXCLUSIVE_PRODUCTS[key].robux, { kind = "gift", item = key })
+end
+
+-- Game Passes, keyed by a permanent pass key (passId 0 = not created yet).
+local EXCLUSIVE_PASSES: { [string]: { passId: number, robux: number, incomeMult: number?, offlineRate: number? } } = {
+	Income2x = table.freeze({ passId = 0, robux = 449, incomeMult = 2 }), -- x2 base income (one more Perks factor)
+	Offline2x = table.freeze({ passId = 0, robux = 199, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
+}
+
+local EXCLUSIVE_SHOP = table.freeze({
+	products = table.freeze(EXCLUSIVE_PRODUCTS),
+	trails = CARRY_TRAILS,
+	batSkins = BAT_SKINS,
+	lockBreak = table.freeze({
+		seconds = 60, -- how long the buyer may pass the locked door
+		aimSeconds = 120, -- an AimLockBreak target is forgotten after this long without a receipt
+	}),
+	gift = table.freeze({
+		aimSeconds = 120, -- an AimGift target is forgotten after this long without a receipt
+		creditMax = 20, -- most unsent gifts a player can hold (a gift whose target left or already owns it)
+	}),
+	passes = table.freeze(EXCLUSIVE_PASSES),
+	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = carry trails + Bat skins
+	finishBrewBrackets = table.freeze({ 300, 1800, 3600, math.huge }) :: { number }, -- seconds left -> FinishBrew_<i>
+	featuredCount = 4, -- seats in the weekly rotation (ExclusiveRotation), the same on every server
+	receiptMemory = 200, -- processed PurchaseIds kept in the save, newest last
+	creditMax = 99, -- most saved skip credits per kind
+	displayRpm = 3, -- turns per minute of each featured seat shown in the jar (client visual)
+	displayBob = 0.35, -- studs each shown seat floats up over its pedestal and back down
+	displayBobSeconds = 3, -- one bob cycle
+	drawDistance = 220, -- studs: beyond this the client stops animating the jar's seats
+})
+
 -- PvP ladder (FEATURES.PvP, CONTRACT.md §26, docs/PVP.md). Every gate is a REBIRTH_TIERS threshold; the price is
 -- derived (PvpRules.price = factor x Economy.rebirthCost(gate), at least PVP.PRICE_MIN). Nothing here has a damage field.
 local function withExtra(tool: { [string]: any }, extra: { [string]: any }): PvpTool
@@ -848,6 +1001,7 @@ local Config = {
 	PLOT_BASE_DEFAULT = "jar",
 	PET_SEATS = table.freeze(PET_SEATS), -- what the follow pet rides on (PetSeats, contract/pet-seats.md)
 	PET_SEAT_DEFAULT = "cloud",
+	EXCLUSIVE_SHOP = EXCLUSIVE_SHOP, -- Robux products, passes and the jar's display tunables (contract/exclusive-shop.md)
 
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 120,
@@ -1013,6 +1167,7 @@ local Config = {
 		BaseShapes = false, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
 		CashPads = true, -- each slime's income piles up on a gold cash pad in front of it and only the plot owner collects it by stepping on it; offline income lands there too (CashPads, contract/cash-pads.md); false = income goes straight to cash
+		ExclusiveShop = false, -- the Exclusive Shop (contract/exclusive-shop.md): the Golden Jar Boutique on the plaza, Robux products and passes, quick-buys (Finish now, Hatch now, Double it, server Luck Potion); false = no shop on the plaza, no MarketplaceService callbacks, no Robux buttons, Exclusive seats stay unowned
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
 	}),
 
@@ -1898,7 +2053,7 @@ local Config = {
 	}),
 
 	-- Persistence
-	SAVE_VERSION = 9, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7; v9: boss record replaces trophies, SaveData.migrateV8)
+	SAVE_VERSION = 11, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7; v9: boss record replaces trophies, SaveData.migrateV8; v10: Exclusive Shop purchases and roll seeds, SaveData.migrateV9; v11: carry trails, Bat skins, lock break and gift credits, SaveData.migrateV10)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
 	SAVE_DRAIN_SECONDS = 20, -- a load waits at most this long for the same player's saves still in flight

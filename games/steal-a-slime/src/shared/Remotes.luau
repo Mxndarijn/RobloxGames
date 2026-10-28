@@ -16,7 +16,8 @@ export type RemoteDef = { name: string, class: RemoteClass, direction: Direction
 -- Argument type names for each `Request` action, in call order.
 -- "string?" means the argument may be nil; "number?" / "vector3?" likewise. "vector3" = a finite Roblox Vector3.
 -- "string" is an id (Validate.slimeId); "code" is free text up to 64 chars; "hotbar" is a string up to
--- HotbarOrder.MAX_LENGTH whose keys HotbarOrder.parse checks.
+-- HotbarOrder.MAX_LENGTH whose keys HotbarOrder.parse checks. "cosmetic" is "" or an id (Validate.slimeId). "target?"
+-- is nil, an id (Validate.slimeId) or a finite number.
 export type ActionDef = { args: { string } }
 
 local Remotes = {}
@@ -64,6 +65,13 @@ Remotes.ACTIONS = table.freeze({
 	OpenShop = table.freeze({ args = { "string" } }), -- shopId "ItemShop" | "UpgradeShop" (CONTRACT.md §27)
 	CloseShop = table.freeze({ args = {} }), -- clears the open shop
 	ShopBuy = table.freeze({ args = { "string", "string", "string?" } }), -- shopId, itemId, unused slot (string?); delegates to the item's existing buy action
+	AimHatch = table.freeze({ args = { "string" } }), -- the pad egg id a "Hatch now" purchase is for, sent just before the Roblox prompt (FEATURES.ExclusiveShop)
+	UseCredit = table.freeze({ args = { "string", "target?" } }), -- "brew" | "hatch" | "lockBreak", target: the hatch egg id (nil = the one closest to ready) or the locked base's plot index: spends a saved Exclusive Shop credit (FEATURES.ExclusiveShop)
+	EquipTrail = table.freeze({ args = { "cosmetic" } }), -- owned Config.EXCLUSIVE_SHOP.trails id, "" = none (FEATURES.ExclusiveShop)
+	EquipBatSkin = table.freeze({ args = { "cosmetic" } }), -- owned Config.EXCLUSIVE_SHOP.batSkins id, "" = the default Bat (FEATURES.ExclusiveShop)
+	AimLockBreak = table.freeze({ args = { "number" } }), -- plot index of the locked base the next LockBreak purchase opens, sent just before the Roblox prompt (FEATURES.ExclusiveShop)
+	AimGift = table.freeze({ args = { "string", "number" } }), -- cosmetic product key (Seat_* / Trail_* / BatSkin_*), target userId: who the next Gift_<key> purchase is for (FEATURES.ExclusiveShop)
+	SendGift = table.freeze({ args = { "string", "number" } }), -- product key of an unsent gift, target userId: sends it (FEATURES.ExclusiveShop)
 	SetHotbar = table.freeze({ args = { "hotbar" } }), -- order: up to 9 slot keys joined by "," ("" = empty slot) (HotbarOrder, CONTRACT.md §3)
 	RequestKits = table.freeze({ args = { "kits" } }), -- species: up to KitRequest.MAX species ids joined by ","; their kit meshes replicate to this player only (KitRequest, CONTRACT.md §3)
 	Sync = table.freeze({ args = {} }), -- server re-sends State

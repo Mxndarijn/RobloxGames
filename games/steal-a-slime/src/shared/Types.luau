@@ -268,6 +268,24 @@ export type State = {
 	boards: { [string]: number }, -- my own value on each global board, by Leaderboards stat (CONTRACT.md §5.1)
 	boardRanks: { [string]: number }, -- my rank on each board from the last refresh; -n = deeper than #n; absent = not ranked yet
 	vat: VatView, -- the plot's merge vat (VatState, CONTRACT.md §21)
+	exclusiveShop: ExclusiveShopView?, -- FEATURES.ExclusiveShop (nil when off; contract/exclusive-shop.md §5)
+}
+
+export type ExclusiveShopView = {
+	owned: { [string]: boolean }, -- Exclusive seat ids this player owns
+	passes: { [string]: boolean }, -- Config.EXCLUSIVE_SHOP.passes keys: owned or not
+	starterClaimed: boolean,
+	credits: { brew: number, hatch: number }, -- paid skips saved for later
+	offlineDouble: { cash: number, available: boolean }?, -- the last welcome-back payout "Double it" can repeat
+	paidRandomAllowed: boolean, -- false where paid random items are restricted: hide ServerLuckPotion
+	featured: { string }, -- this week's featured Exclusive seat ids (ExclusiveRotation)
+	trails: { [string]: boolean }, -- owned carry trail ids
+	trail: string?, -- the equipped carry trail id; nil = none
+	batSkins: { [string]: boolean }, -- owned Bat skin ids
+	batSkin: string?, -- the equipped Bat skin id; nil = the default Bat
+	lockBreak: { plot: number, untilTime: number }?, -- an active lock break: the plot index and when it ends
+	lockBreakCredits: number, -- paid lock breaks that found no locked base to open (used with UseCredit "lockBreak")
+	giftCredits: { string }, -- unsent gifts (cosmetic product keys) to send with SendGift
 }
 
 export type VatView = {

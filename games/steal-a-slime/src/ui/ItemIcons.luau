@@ -32,6 +32,7 @@ export type Spec = {
 	image: number?, -- uploaded asset id, from IMAGES
 	source: "model" | "image" | "drawn" | "placeholder",
 	brief: string, -- what Archer renders for the 512x512 icon (ITEM-ICONS-NEEDED.md)
+	colors: { { number } }?, -- a drawn scene's own colours (carry trails, Bat skins), 0..255 RGB
 }
 
 local ItemIcons = {}
@@ -411,6 +412,15 @@ local PVP_COLORS: { [string]: { number } } =
 	{ Knockback = { 230, 120, 80 }, Trap = { 110, 200, 120 }, Blaster = { 90, 160, 240 }, Fun = { 255, 200, 60 } }
 local PVP_GLYPHS: { [string]: string } = { Knockback = "🥊", Trap = "🟢", Blaster = "🔫", Fun = "🎉" }
 
+-- Bat skin scene colours (barrel, then grip) for the drawn Style icons; Config's skins carry no colour.
+local BAT_SKIN_COLORS: { [string]: { { number } } } = {
+	lollipop = { { 255, 120, 170 }, { 250, 244, 236 } },
+	fish = { { 110, 180, 245 }, { 255, 200, 90 } },
+	foam_finger = { { 90, 140, 230 }, { 255, 214, 60 } },
+	golden = { { 255, 204, 60 }, { 200, 140, 20 } },
+	default = { { 222, 170, 110 }, { 150, 100, 60 } },
+}
+
 local function finish(partial: { [string]: any }): Spec
 	local model = partial.model
 	local image = ItemIcons.IMAGES[partial.id]
@@ -540,6 +550,33 @@ function ItemIcons.build(config: any)
 			color = seat.color,
 			glyph = "🌥",
 			brief = `The '{seat.name}' pet seat (models/{seat.mesh}.py) alone, no slime; 3/4 view.`,
+		})
+	end
+
+	-- Exclusive shop Style tab (contract/exclusive-shop.md §9, §10): carry trails and Bat skins, UI-drawn in their
+	-- own colours until pictures are rendered (ItemIconArt Trail_ / BatSkin_ scenes).
+	local shop = config.EXCLUSIVE_SHOP
+	for _, trail in (if shop then shop.trails else nil) or {} do
+		add({
+			id = `Trail_{trail.id}`,
+			name = trail.name,
+			group = "gear",
+			color = trail.colors[1],
+			colors = trail.colors,
+			glyph = "✨",
+			brief = `The '{trail.name}' carry trail: a streak in its colours behind a running slime; side view.`,
+		})
+	end
+	for _, skin in (if shop then shop.batSkins else nil) or {} do
+		local colors = BAT_SKIN_COLORS[skin.id] or BAT_SKIN_COLORS.default
+		add({
+			id = `BatSkin_{skin.id}`,
+			name = skin.name,
+			group = "gear",
+			color = colors[1],
+			colors = colors,
+			glyph = "🏏",
+			brief = `The '{skin.name}' Bat skin (models/{skin.mesh}.py) alone, tilted; 3/4 view.`,
 		})
 	end
 

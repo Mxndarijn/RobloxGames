@@ -57,6 +57,7 @@ ForcedFlags.offModules = {
 
 -- All flags on: these pin a flag that ships off (ServerProfiler) or the shipped defaults.
 ForcedFlags.on = {
+	["Snapshot exclusive shop > leaves State.exclusiveShop out while FEATURES.ExclusiveShop is off (the shipped default)"] = "ExclusiveShop off",
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",
 	["Profiler > is off by default and the flag is declared"] = "ServerProfiler",
 	["MoveWatch wiring > is off by default and records no allow-window while off"] = "MoveGuardLog",

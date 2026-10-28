@@ -27,6 +27,8 @@ local NAMES = {
 	"ranch_plaza_signpost",
 	"ranch_item_shop",
 	"ranch_upgrade_cabinet",
+	"exclusive_jar_boutique",
+	"exclusive_jar_boutique_glass",
 	"phoenix_plaza_podium_1",
 	"phoenix_plaza_podium_2",
 	"phoenix_plaza_podium_3",
@@ -154,11 +156,31 @@ local NAMES = {
 	"giant_sequoia_spire",
 	"giant_cloud_tree",
 	"ranch_bat",
+	"bat_skin_lollipop",
+	"bat_skin_fish",
+	"bat_skin_foam_finger",
+	"bat_skin_golden",
 	"ranch_floor_deck",
 	"ranch_floor_paths",
 	"pet_cloud",
 	"pet_mount_jelly",
 	"pet_mount_rainbow_cloud",
+	"pet_mount_storm_cloud",
+	"pet_mount_sunset_cloud",
+	"pet_mount_ice_cloud",
+	"pet_mount_flame_cloud",
+	"pet_mount_leaf",
+	"pet_mount_bubble",
+	"pet_mount_lily_pad",
+	"pet_mount_mushroom",
+	"pet_mount_pancakes",
+	"pet_mount_star_cushion",
+	"pet_mount_crescent_moon",
+	"pet_mount_magic_carpet",
+	"pet_mount_ufo",
+	"pet_mount_royal_cushion",
+	"pet_mount_hoverboard",
+	"pet_mount_clam_shell",
 	-- Held PvP items (Shared.PvpModels, server/PvpHeld): the placeholder Parts stand in while a mesh fails to load.
 	"pvp_knock_glove_1",
 	"pvp_knock_glove_2",
@@ -203,6 +225,13 @@ entries["ranch_item_shop"] =
 	{ assetId = 105082858859876, meshId = "rbxassetid://135059318016634", size = { 15.391, 16.558, 8.15 } }
 entries["ranch_upgrade_cabinet"] =
 	{ assetId = 112507254723244, meshId = "rbxassetid://139845226619480", size = { 16.407, 15.29, 9.93 } }
+-- The Exclusive Shop's Golden Jar Boutique (FEATURES.ExclusiveShop, contract/exclusive-shop.md §7;
+-- models/exclusive_jar_boutique.py split in two): the solid shop (plinth, goo dome, lid, trophy slime, pedestals, shop
+-- front, awning, sign board) and the see-through jar wall. Not uploaded yet: no id, so the stand's primitive jar shows.
+entries["exclusive_jar_boutique"] =
+	{ assetId = 131532129772503, meshId = "rbxassetid://102127887082736", size = { 16.86, 20.631, 18.57 } }
+entries["exclusive_jar_boutique_glass"] =
+	{ assetId = 92353179686979, meshId = "rbxassetid://99607808704355", size = { 12.8, 10.5, 12.8 } }
 entries["phoenix_plaza_podium_1"] =
 	{ assetId = 77650457545661, meshId = "rbxassetid://94983834296700", size = { 8.923, 7.192, 8.58 } }
 entries["phoenix_plaza_podium_2"] =
@@ -475,6 +504,18 @@ entries["giant_cloud_tree"] =
 -- (the red wrap centre, 1.2 above the pommel; mesh centre = bbox centre). 606 tris. models/ranch_bat.py.
 entries["ranch_bat"] =
 	{ assetId = 111246965997524, meshId = "rbxassetid://94306599639554", size = { 1.351, 5.09, 1.351 } }
+-- Bat skins (contract/exclusive-shop.md §10, Config.EXCLUSIVE_SHOP.batSkins): other meshes for the same Handle, held
+-- with ranch_bat's Grip (each is 5.09 tall, grip 1.2 above the bottom, bbox centred on the grip axis). Held, no
+-- collision, NOT world slots. Not uploaded yet: no ids, so the Handle keeps the default Bat. size = kit bbox (studs).
+-- models/bat_skin_<id>.py.
+entries["bat_skin_lollipop"] =
+	{ assetId = 94349711264908, meshId = "rbxassetid://125426334354361", size = { 2.079, 5.09, 0.76 } } -- 808 tris
+entries["bat_skin_fish"] =
+	{ assetId = 131245947199367, meshId = "rbxassetid://77117254245604", size = { 1.992, 5.089, 1.074 } } -- 740 tris
+entries["bat_skin_foam_finger"] =
+	{ assetId = 135901471533511, meshId = "rbxassetid://103574945844021", size = { 1.5, 5.09, 0.955 } } -- 808 tris
+entries["bat_skin_golden"] =
+	{ assetId = 99603213734708, meshId = "rbxassetid://129112512417990", size = { 1.28, 5.09, 1.482 } } -- 808 tris
 
 -- Held PvP items (Shared.PvpModels, server/PvpHeld; a placed Goo Trap / Bounce Pad marker too, ui/PvpEffects).
 -- Held, no collision (not in COLLISION), NOT world slots. size = the native size Roblox reports (Open Cloud size-check);
@@ -534,6 +575,39 @@ entries["pet_mount_jelly"] =
 	{ assetId = 78994170989597, meshId = "rbxassetid://119025780203249", size = { 3.3, 2.177, 2.4 } }
 entries["pet_mount_rainbow_cloud"] =
 	{ assetId = 85703836251595, meshId = "rbxassetid://133503703482477", size = { 3.3, 1.737, 2.4 } }
+-- The 16 Exclusive pet seats (contract/pet-seats.md, sold in the Exclusive Shop).
+entries["pet_mount_bubble"] =
+	{ assetId = 103208190943072, meshId = "rbxassetid://123993237197371", size = { 3.3, 1.22, 2.4 } }
+entries["pet_mount_clam_shell"] =
+	{ assetId = 89570872834665, meshId = "rbxassetid://88169356640094", size = { 3.3, 2.264, 2.4 } }
+entries["pet_mount_crescent_moon"] =
+	{ assetId = 110688241059788, meshId = "rbxassetid://101449917182526", size = { 3.004, 0.88, 1.765 } }
+entries["pet_mount_flame_cloud"] =
+	{ assetId = 73807919787058, meshId = "rbxassetid://98559924143350", size = { 3.3, 1.53, 2.4 } }
+entries["pet_mount_hoverboard"] =
+	{ assetId = 89642305653421, meshId = "rbxassetid://108889734002088", size = { 3.269, 1, 1.407 } }
+entries["pet_mount_ice_cloud"] =
+	{ assetId = 123013660134650, meshId = "rbxassetid://81194482315831", size = { 3.3, 1.703, 2.4 } }
+entries["pet_mount_leaf"] =
+	{ assetId = 72183867740662, meshId = "rbxassetid://128744982003905", size = { 3.3, 0.713, 2.4 } }
+entries["pet_mount_lily_pad"] =
+	{ assetId = 74225581339380, meshId = "rbxassetid://104928288982313", size = { 3.3, 1.557, 2.4 } }
+entries["pet_mount_magic_carpet"] =
+	{ assetId = 103202026869992, meshId = "rbxassetid://116410478481132", size = { 3.3, 0.566, 2.4 } }
+entries["pet_mount_mushroom"] =
+	{ assetId = 83517779453621, meshId = "rbxassetid://139064712022358", size = { 3.3, 1.251, 2.4 } }
+entries["pet_mount_pancakes"] =
+	{ assetId = 96206764371173, meshId = "rbxassetid://118977694092989", size = { 3.3, 0.99, 2.4 } }
+entries["pet_mount_royal_cushion"] =
+	{ assetId = 107740936871790, meshId = "rbxassetid://124607204359016", size = { 3.3, 0.796, 2.4 } }
+entries["pet_mount_star_cushion"] =
+	{ assetId = 111190607613387, meshId = "rbxassetid://121678430177985", size = { 3.093, 0.939, 2.379 } }
+entries["pet_mount_storm_cloud"] =
+	{ assetId = 85327679325745, meshId = "rbxassetid://73164924934747", size = { 3.3, 1.225, 2.4 } }
+entries["pet_mount_sunset_cloud"] =
+	{ assetId = 113877052438419, meshId = "rbxassetid://73345244985162", size = { 3.3, 1.225, 2.4 } }
+entries["pet_mount_ufo"] =
+	{ assetId = 123494757263958, meshId = "rbxassetid://140454756003550", size = { 3.3, 1.337, 2.4 } }
 -- BEGIN goo jar tower themes (generated by shared/modeling-kit/tools/goo_jar_theme_assets.py from uploaded.json):
 -- each plot skin's own tower pieces, "<piece>@<skin>" (models/_goo_jar.py, JAR_THEME), and its companions (props,
 -- hat). Not map slots, so not in NAMES: server/MeshSwap shows them on a plot whose PlotSkin is that skin

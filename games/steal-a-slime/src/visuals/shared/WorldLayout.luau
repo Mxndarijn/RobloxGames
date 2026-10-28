@@ -285,6 +285,53 @@ WorldLayout.SHOP_STANDS = table.freeze({
 	),
 }) :: { [string]: ShopStand }
 
+-- The Exclusive Shop's Golden Jar Boutique (FEATURES.ExclusiveShop, contract/exclusive-shop.md §7; WorldProps places it,
+-- Props.exclusiveJar builds it, the client's ShopDisplayFx shows the featured seats in it). It completes the market row
+-- on the east ring (Upgrade Shop 34.5, Item Shop 67.5, Exclusive Shop 112.5): on the plot 3 / plot 4 bisector, facing
+-- the fountain, at `scale`. At full size its footprint fits r 92.3-94.35, between the ring path (outer edge r 82) and
+-- the two plots' front corners (PropClearance); `radius` is the middle. Two kit meshes
+-- (models/exclusive_jar_boutique.py): `shop` (plinth, goo dome, gold lid, trophy slime, pedestals, shop front, awning,
+-- sign board) and `glass`, the see-through jar wall. The points below are the
+-- kit's (out/exclusive_jar_boutique_layout.json) in the Blender frame at native size (x right, y back, z up; the front
+-- faces -y), measured from the shop mesh's bottom centre; WorldLayout.jarPoint turns one into the stand's frame.
+--   groundZ       the grass over the shop mesh's bottom (its goo drips hang below the ground)
+--   glassOrigin   the glass mesh's bottom centre; the jar's axis runs straight up through it
+--   displays      the 3 pedestal spots inside the jar: the bottom of each floating featured seat
+--   counter       the counter top's centre; counterSize its width and depth
+--   signFace      the centre of the sign board's lilac face (its front plane); signSize its width and height
+--   footprint     the plinth's radius with its goo rim and lanterns
+-- `displayWidth` = the widest side of a shown seat (a seat template is scaled to it), stand studs.
+WorldLayout.EXCLUSIVE_JAR = table.freeze({
+	model = Constants.SHOP_STAND_EXCLUSIVE,
+	bearing = 112.5,
+	radius = 93.3,
+	scale = 1,
+	shop = "exclusive_jar_boutique",
+	glass = "exclusive_jar_boutique_glass",
+	groundZ = 0.201,
+	glassOrigin = table.freeze({ 0, 0.855, 1.401 }),
+	displays = table.freeze({
+		table.freeze({ -3.3, 2.255, 7.551 }),
+		table.freeze({ 0, 3.455, 9.751 }),
+		table.freeze({ 3.3, 2.255, 7.551 }),
+	}),
+	counter = table.freeze({ 0, -6.345, 4.301 }),
+	counterSize = table.freeze({ 9.6, 2.6 }),
+	signFace = table.freeze({ 0, -6.755, 8.151 }),
+	signSize = table.freeze({ 6.4, 1.4 }),
+	footprint = 9.6,
+	displayWidth = 3.2, -- the seats' own size: smaller ones vanish behind the glass
+	glassTransparency = 0.88, -- clearer than a base jar's glass, so the clouds inside read from the plaza
+})
+
+-- A kit point of the jar (Blender frame, native studs) in the stand's own frame at the stand's scale, the stand's
+-- origin on the ground: Props Models face local -Z, the kit front faces -y, so (x, y, z) -> (-x, z - groundZ, y) x scale.
+function WorldLayout.jarPoint(p: { number }): Vec
+	local jar = WorldLayout.EXCLUSIVE_JAR
+	local k = jar.scale
+	return { -p[1] * k, (p[3] - jar.groundZ) * k, p[2] * k }
+end
+
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
 -- two spokes. The shop and the Top Earners board face the fountain (Props
@@ -396,8 +443,8 @@ end
 -- UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
 -- The Upcoming Events wall (server/EventBoardView): a Hall of Fame board (Props.leaderboardBoard, its mesh) in the
 -- middle of the lawn between the plot 5 and 6 spokes (the 202.5 bisector, mid-lawn radius), right behind the hub
--- SpawnLocation (r 64 at 202.5), facing the fountain; that lawn holds nothing else (RanchProps moved its picnic table
--- and sunflowers to the 292.5 lawn).
+-- SpawnLocation (r 64 at 202.5), facing the fountain; beside it only the well and its pump, on the plot 6 side
+-- (RanchProps moved its picnic table and sunflowers to the 292.5 lawn).
 WorldLayout.EVENT_BOARD = table.freeze({ model = "EventBoard", bearing = 202.5, radius = 92.25, scale = 1.05 })
 
 local spots: { [string]: Spot } = {
@@ -405,6 +452,10 @@ local spots: { [string]: Spot } = {
 	UpgradeShopStand = propSpot(34.5, true, 96),
 	TutorialNpc = propSpot(247.5, true),
 }
+do
+	local jar = WorldLayout.EXCLUSIVE_JAR
+	spots[jar.model] = propSpot(jar.bearing, true, jar.radius)
+end
 do
 	local board = WorldLayout.EVENT_BOARD
 	local spot = propSpot(board.bearing, true, board.radius)
@@ -982,7 +1033,7 @@ local function podiumProp(rank: number, mesh: string): any
 	return plazaProp(`Podium_{rank}`, mesh, bearing, r, 0.7)
 end
 WorldLayout.PLAZA_PROPS = table.freeze({
-	plazaProp("Signpost", "ranch_plaza_signpost", 112.5, 68, 0.62),
+	plazaProp("Signpost", "ranch_plaza_signpost", 124.5, 68, 0.62), -- off the Exclusive Shop's sight line from the fountain (it stands at 112.5)
 	podiumProp(1, "phoenix_plaza_podium_1"),
 	podiumProp(2, "phoenix_plaza_podium_2"),
 	podiumProp(3, "phoenix_plaza_podium_3"),

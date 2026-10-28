@@ -346,7 +346,7 @@ Layout.MONEY_TIGHT = table.freeze({
 Layout.STATUS_TIGHT = table.freeze({ slot = 44, icon = 34, label = 15, labelSize = 10, overlap = 5, pillPad = 3 })
 
 -- Slot ids, left to right (HudClusters.STATUS_IDS lists the same). At most STATUS.count show at once.
-Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend", "Blessed", "Mvp", "Pet", "Secret" })
+Layout.STATUS_SLOTS = table.freeze({ "LockBreak", "Rain", "Event", "Friend", "Blessed", "Mvp", "Pet", "Secret" })
 
 -- One size class of the money block: coin diameter, chip height, chip overlap under the pill, the tab under
 -- the income chip, and how far the coin protrudes above / below the pill (`pad`).
@@ -757,6 +757,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Goals = 500,
 	Dex = 600,
 	Skins = 600,
+	ExclusiveShop = 600, -- a list menu: tabs, the card grid and the pane fill the window
 	Codes = 300,
 	Sound = 291,
 	Guide = 380,

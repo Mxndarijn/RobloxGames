@@ -40,6 +40,9 @@ Widgets.Theme = table.freeze({
 	Silver = fromPalette(Goo.Silver), -- leaderboard second place
 	Bronze = fromPalette(Goo.Bronze), -- leaderboard third place
 	Glass = fromPalette(Goo.Glass), -- a glass row on a card (at Goo.GLASS_TRANSPARENCY)
+	-- The Exclusive shop's accents, only on the stage behind its preview.
+	Plum = fromPalette(Goo.Plum),
+	Butter = fromPalette(Goo.Butter),
 	Font = Enum.Font.FredokaOne, -- titles, numbers, buttons, labels
 	FontBody = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold), -- sentences (a FontFace)
 })

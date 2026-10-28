@@ -85,16 +85,23 @@ function CashPads.accrue(data: Data, seconds: number, skip: { [string]: boolean 
 	return added
 end
 
--- Offline income (Economy.offlineIncome per slime: OFFLINE_RATE for at most the offline cap) onto the pads.
+-- Offline income (Economy.offlineIncome per slime: `rate`, default OFFLINE_RATE, for at most the offline cap time)
+-- onto the pads.
 -- Returns the total added.
-function CashPads.accrueOffline(data: Data, lastOnline: number, now: number, skip: { [string]: boolean }?): number
+function CashPads.accrueOffline(
+	data: Data,
+	lastOnline: number,
+	now: number,
+	skip: { [string]: boolean }?,
+	rate: number?
+): number
 	local capSeconds = Perks.offlineCap(data)
 	local added = 0
 	for _, slime in data.slimes do
 		local pad = slime.pad
 		if pad and not (skip and skip[slime.id]) then
 			local perSec = PlayerData.slimeIncome(data, slime)
-			local amount = Economy.offlineIncome(perSec, lastOnline, now, capSeconds)
+			local amount = Economy.offlineIncome(perSec, lastOnline, now, capSeconds, rate)
 			if amount > 0 then
 				added += CashPads.add(data, pad, amount)
 			end
