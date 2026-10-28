@@ -26,6 +26,7 @@ local PlayerData = if Shared then require(Shared.PlayerData) else require("../sh
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local LuckyShow = if script then require(script.Parent.LuckyShow) else require("./LuckyShow")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -56,6 +57,7 @@ export type Entry = {
 	hatchReady: boolean, -- a ready Mystery Egg resting on its owner's pad: the owner-only HatchPrompt is on
 	hatchText: string?, -- a ready egg: the HatchPrompt ObjectText, the egg name and the owner's lucky meter
 	hatch: World.Hatch?, -- a slime hatched moments ago: its show (model attributes HatchedAt / HatchedFrom / HatchLucky)
+	lucky: World.Lucky?, -- a slime the Lucky Charm just upgraded: its show (model attributes LuckyAt / LuckyFromTier)
 	key: string, -- changes whenever the model must be re-placed
 }
 
@@ -116,6 +118,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 			hatchReady = false,
 			hatchText = nil,
 			hatch = nil,
+			lucky = nil,
 			key = `{state}|{carrier or 0}|{wild.position ~= nil}|{wild.spawnedAt}|{bossScale or 1}|{wild.smashedAt or 0}`,
 		}
 	end
@@ -132,9 +135,10 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				else "Pad"
 			-- A slime hatched moments ago still shows as its egg until the show's burst (contract/mystery-egg.md §40.6).
 			local hatch = world.hatches[slime.id]
+			-- A slime the Lucky Charm just upgraded still shows as it was caught until the morph (contract/lucky-charm.md).
 			local shown = if hatch and now < hatch.at + Config.MYSTERY_EGG.HATCH_BURST_SECONDS
 				then MysteryEgg.shell(slime, hatch.kind, hatch.at)
-				else slime
+				else LuckyShow.shown(world, slime, now)
 			local ready = shown == slime and state == "Pad" and EggKind.isReady(slime, now)
 			local kind = EggKind.of(slime)
 			entries[slime.id] = {
@@ -166,6 +170,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 					then `{EggKind.displayName(kind)} · {MysteryEgg.meterText(session.data, kind)}`
 					else nil,
 				hatch = hatch,
+				lucky = LuckyShow.get(world, slime.id),
 				key = `{state}|{carrier or 0}|{session.plotIndex}|{slime.pad or 0}`,
 			}
 		end

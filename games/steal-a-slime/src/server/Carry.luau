@@ -32,6 +32,7 @@ local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local CarryDrop = if script then require(script.Parent.CarryDrop) else require("./CarryDrop")
+local LuckyShow = if script then require(script.Parent.LuckyShow) else require("./LuckyShow")
 local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
@@ -226,15 +227,9 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		local nextOpen = slime.tier < Config.MAX_TIER
 			and session.data.rebirths >= (Config.CATCH_REBIRTHS[slime.tier + 1] or 0)
 		if not egg and nextOpen and world.rng:float() < Perks.luckChance(session.data) then
-			local old = Genome.rarity(slime.tier).name
+			local before = Genome.copy(slime)
 			Genome.promote(slime, world.rng:float())
-			World.notify(
-				world,
-				userId,
-				`Lucky! Your {old} slime became {Genome.rarity(slime.tier).name}!`,
-				"good",
-				"Cash"
-			)
+			LuckyShow.record(world, userId, before, slime, now)
 			name = Genome.displayName(slime)
 		end
 		if now then

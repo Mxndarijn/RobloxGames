@@ -11,6 +11,7 @@
 local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local Income = if script then require(script.Parent.Income) else require("./Income")
+local LuckyShow = if script then require(script.Parent.LuckyShow) else require("./LuckyShow")
 local Milestones = if script then require(script.Parent.Milestones) else require("./Milestones")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
@@ -25,6 +26,7 @@ function GameLoop.step(world: World.World, now: number, ctx: BossEvent.Context?)
 	BossEvent.step(world, now, ctx)
 	BossCredit.expire(world, now)
 	StealService.step(world, now)
+	LuckyShow.step(world, now)
 	local elapsed = now - world.lastSecondAt
 	if elapsed < 0 then
 		world.lastSecondAt = now -- the clock stepped back: restart the one-second tick from here
