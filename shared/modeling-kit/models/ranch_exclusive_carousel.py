@@ -1,4 +1,4 @@
-# ranch_exclusive_carousel: the Exclusive Shop as a county-fair CAROUSEL. The exclusive pet mounts ride the gold poles
+# ranch_exclusive_carousel: the Exclusive Shop as a county-fair CAROUSEL. The exclusive pet mounts ride the wooden poles
 # where the horses would be (the game places the real mount meshes on CAROUSEL_SPOTS and spins + bobs them), a gold
 # trophy slime with a crown stands on the top, light bulbs ring the canopy and the centre drum. A ticket counter in
 # front (10.4 wide, top z 4.1, like the other shops) holds the prompts and the sign. Front faces -Y.
@@ -13,8 +13,12 @@ from models._phoenix_ranch import *
 from models._shop_parts import prism, gcyl, counter
 
 LILAC = PALETTE["ranch_lilac"]
-PLUM = rgb(150, 104, 206)            # deeper lilac: stripes + drum (value stays >= ~115)
-PLUM_LO = rgb(122, 80, 178)
+PLUM = LILAC                         # theme pass: palette ranch_lilac (was an off-palette plum)
+PLUM_LO = mix(LILAC, ROOF_D, 0.3)    # lilac low, same recipe as the sibling shops
+GOO = PALETTE["ranch_goo"]
+GOO_HI = PALETTE["ranch_goo_hi"]
+GOO_LO = mix(GOO, rgb(70, 170, 130), 0.5)
+PLANK = mix(WOOD, CREAM, 0.12)
 LILAC_HI = mix(LILAC, CREAM, 0.3)
 GOLD = rgb(252, 204, 80)
 GOLD_LO = rgb(232, 146, 46)
@@ -80,11 +84,11 @@ def bulb(name, pos, r=0.2):
 
 
 # ---- platform: wood deck on a gold-trimmed lilac skirt, two steps at the front -----------------------------
-skirt = lathe("Skirt", [(PR, 0), (PR, PZ - 0.35), (0, PZ - 0.35)], (CX, CYc, 0), segs=24, col=PLUM)
-paint(skirt, gores(24, PLUM, LILAC_HI, PLUM_LO, LILAC, 0, PZ))
+skirt = lathe("Skirt", [(PR, 0), (PR, PZ - 0.35), (0, PZ - 0.35)], (CX, CYc, 0), segs=24, col=WOOD)
+paint(skirt, gores(24, WOOD, PLANK, WOOD_LO, shade(PLANK, 0.85), 0, PZ))
 parts.append(skirt)
-parts.append(lathe("SkirtTrim", [(PR + 0.25, PZ - 0.5), (PR + 0.25, PZ - 0.2), (0, PZ - 0.2)], (CX, CYc, 0), segs=24, col=GOLD))
-gradient(parts[-1], GOLD_LO, GOLD)
+parts.append(lathe("SkirtTrim", [(PR + 0.25, PZ - 0.5), (PR + 0.25, PZ - 0.2), (0, PZ - 0.2)], (CX, CYc, 0), segs=24, col=LILAC))
+gradient(parts[-1], PLUM_LO, LILAC)
 deck = lathe("Deck", [(PR - 0.1, PZ - 0.25), (PR - 0.1, PZ), (0, PZ)], (CX, CYc, 0), segs=24, col=PLAZA)
 paint(deck, lambda c, n: mix(PLAZA, WOOD, 0.35) if int((math.atan2(c.y - CYc, c.x - CX) + math.pi) / math.tau * 24) % 2 else PLAZA)
 parts.append(deck)
@@ -94,18 +98,18 @@ for k in range(0):                   # (skirt bulbs dropped for budget)
 
 # ---- centre drum: plum column with cream-framed mirror panels and gold bands ------------------------------
 DR = 2.4
-drum = lathe("Drum", [(DR, PZ), (DR, CZ - 0.2), (0, CZ - 0.2)], (CX, CYc, 0), segs=12, col=PLUM)
-gradient(drum, PLUM, mix(PLUM, LILAC, 0.6))
+drum = lathe("Drum", [(DR, PZ), (DR, CZ - 0.2), (0, CZ - 0.2)], (CX, CYc, 0), segs=12, col=WOOD)
+paint(drum, gores(12, WOOD, PLANK, WOOD_LO, shade(PLANK, 0.88), PZ, CZ))
 parts.append(drum)
 for k in range(6):
     a = k * math.tau / 6 + math.pi / 12
     px, py = CX + math.cos(a) * (DR + 0.05), CYc + math.sin(a) * (DR + 0.05)
     yaw = math.degrees(a) + 90
-    parts.append(bbox(f"PanelFrame{k}", (1.5, 0.2, 3.6), (px, py, PZ + 4.3), GOLD_LO, GOLD, bev=0.06, rot=(0, 0, yaw)))
+    parts.append(bbox(f"PanelFrame{k}", (1.5, 0.2, 3.6), (px, py, PZ + 4.3), shade(CREAM, 0.85), CREAM, bev=0.06, rot=(0, 0, yaw)))
     parts.append(bbox(f"Panel{k}", (1.1, 0.2, 3.1), (px + math.cos(a) * 0.08, py + math.sin(a) * 0.08, PZ + 4.3), LILAC, mix(LILAC_HI, CREAM, 0.5), bev=0, rot=(0, 0, yaw)))
 for z in (PZ + 1.6, PZ + 7.0):
-    parts.append(lathe(f"DrumBand{z:.0f}", [(DR + 0.25, z - 0.3), (DR + 0.25, z + 0.3), (0, z + 0.3)], (CX, CYc, 0), segs=12, col=GOLD))
-    gradient(parts[-1], GOLD_LO, GOLD)
+    parts.append(lathe(f"DrumBand{z:.0f}", [(DR + 0.25, z - 0.3), (DR + 0.25, z + 0.3), (0, z + 0.3)], (CX, CYc, 0), segs=12, col=WOOD_D))
+    gradient(parts[-1], shade(WOOD_D, 0.9), WOOD_D)
     for k in range(0):
         a = k * math.tau / 6
         parts.append(bulb(f"DrumBulb{z:.0f}{k}", (CX + math.cos(a) * (DR + 0.35), CYc + math.sin(a) * (DR + 0.35), z), 0.17))
@@ -115,7 +119,7 @@ RR = 6.1
 for k in range(N):
     a = -math.pi / 2 + (k + 0.5) * math.tau / N
     px, py = CX + math.cos(a) * RR, CYc + math.sin(a) * RR
-    parts.append(gcyl(f"Pole{k}", 0.2, CZ - PZ, (px, py, PZ), GOLD_LO, GOLD_HI, segs=6))
+    parts.append(gcyl(f"Pole{k}", 0.24, CZ - PZ, (px, py, PZ), WOOD_LO, mix(WOOD, PLANK, 0.5), segs=6))
     for j in range(2):               # twist collars read as a barley-twist pole
         parts.append(gcyl(f"Collar{k}{j}", 0.3, 0.22, (px, py, PZ + 1.2 + j * 5.6), GOLD_LO, GOLD, segs=6))
     zt = PZ + (2.4 if k % 2 else 3.6)
@@ -125,18 +129,56 @@ for k in range(N):
 # ---- canopy: plum / butter striped cone with a deep scalloped valance, bulbs round the rim -----------------
 CR = PR + 0.6
 can = lathe("Canopy", [(CR, 0), (CR - 0.2, 0.35), (CR * 0.62, 2.0), (CR * 0.34, 3.4), (CR * 0.14, 4.4), (0.5, 5.0), (0.0, 5.15)], (CX, CYc, CZ), segs=24, col=PLUM)
-paint(can, gores(24, PLUM, BUTTER, PLUM_LO, BUTTER_LO, CZ, CZ + 5))
+paint(can, gores(24, PLUM, BUTTER, PLUM_LO, BUTTER_LO, CZ - 1, CZ + 7))
 parts.append(can)
 parts.append(lathe("RimRoll", [(CR + 0.35, -0.4), (CR + 0.45, 0.1), (CR + 0.2, 0.4), (CR - 0.4, 0.4), (CR - 0.5, -0.4)], (CX, CYc, CZ), segs=24, col=GOLD))
 gradient(parts[-1], GOLD_LO, GOLD)
 for k in range(24):
     a = (k + 0.5) * math.tau / 24
     px, py = CX + math.cos(a) * (CR + 0.15), CYc + math.sin(a) * (CR + 0.15)
-    col, lo = (PLUM, PLUM_LO) if k % 2 else (BUTTER, BUTTER_LO)
-    sc = cylinder(f"Val{k}", 1.05, 0.22, (px, py, CZ - 0.75), col, segs=7, rot=(90, 0, math.degrees(a) + 90))
+    col, lo = ((LILAC, PLUM_LO), (BUTTER, BUTTER_LO), (PINK, mix(PINK, ROOF, 0.35)))[k % 3]
+    sc = cylinder(f"Val{k}", 1.05, 0.22, (px, py, CZ - 0.75), col, segs=6, rot=(90, 0, math.degrees(a) + 90))
     gradient(sc, mix(lo, col, 0.4), col)
     parts.append(sc)
-    parts.append(bulb(f"RimBulb{k}", (CX + math.cos(a + math.pi / 24) * (CR + 0.5), CYc + math.sin(a + math.pi / 24) * (CR + 0.5), CZ + 0.05), 0.24))
+    if k % 3 != 2:
+        parts.append(bulb(f"RimBulb{k}", (CX + math.cos(a + math.pi / 24) * (CR + 0.5), CYc + math.sin(a + math.pi / 24) * (CR + 0.5), CZ + 0.05), 0.24))
+
+
+def goo_ring(name, cx, cy, z0, Rr, n=48, seed=4, drip=(0.7, 2.0), thick=0.55):
+    """Closed goo band poured over a round edge at radius Rr / height z0, with tapered drips hanging down."""
+    import random
+    rnd = random.Random(seed)
+    tips = {}
+    k = 0
+    while k < n:
+        tips[k] = rnd.uniform(*drip)
+        k += rnd.choice((5, 6, 6, 7))
+    d = [0.0] * n
+    for i in range(n):
+        for t, L in tips.items():
+            gap = min((i - t) % n, (t - i) % n)
+            d[i] = max(d[i], L * (1.0, 0.8, 0.3)[gap] if gap < 3 else 0.0)   # U-shaped, round-tipped drips
+    loop = lambda di: [(Rr - thick, 0.62), (Rr + 0.3, 0.48), (Rr + 0.55, 0.05), (Rr + 0.58, -0.25 - di),
+                       (Rr + 0.2, -0.32 - di * 0.92), (Rr - thick, 0.2)]
+    bm = bmesh.new()
+    rings = []
+    for i in range(n):
+        a = i * math.tau / n
+        rings.append([bm.verts.new((cx + math.cos(a) * r, cy + math.sin(a) * r, z0 + z)) for r, z in loop(d[i])])
+    m = len(rings[0])
+    for i in range(n):
+        A, B = rings[i], rings[(i + 1) % n]
+        for j in range(m):
+            jj = (j + 1) % m
+            bm.faces.new((A[j], A[jj], B[jj], B[j]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    o = obj_from_bm(name, bm, GOO)
+    paint(o, lambda c, nrm: mix(GOO, GOO_HI, 0.55) if nrm.z > 0.8 else (GOO if c.z > z0 - 0.2 else mix(GOO_LO, GOO, min(1, max(0, (c.z - z0 + 2.2) / 2.0)))))
+    return o
+
+
+parts.append(goo_ring("CanopyGoo", CX, CYc, CZ, CR, n=72, seed=4))
+
 # pennant ring round the canopy shoulder
 for k in range(8):
     a = k * math.tau / 8
@@ -152,6 +194,7 @@ for k in range(8):
 TZ = CZ + 5.0
 parts.append(gcyl("TopPlinth", 1.5, 0.7, (CX, CYc, TZ - 0.1), GOLD_LO, GOLD, segs=12, r_top=1.25))
 parts.append(gcyl("TopPlinth2", 1.0, 0.4, (CX, CYc, TZ + 0.6), PLUM_LO, PLUM, segs=12))
+parts.append(goo_ring("TopGoo", CX, CYc, TZ + 0.45, 1.25, n=40, seed=9, drip=(0.3, 0.8), thick=1.1))
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out")
 
 
@@ -216,6 +259,8 @@ def gold_shine(c, n):
 
 
 slime = import_fbx(["slime_base"], 3.8, (CX, CYc, TZ + 1.0), [gold_shine])
+for o in slime:
+    decimate(o, 0.55)
 parts += slime
 sz = max((v.co.z for o in slime for v in o.data.vertices))
 from mathutils.bvhtree import BVHTree
@@ -271,7 +316,7 @@ st = [(math.cos(math.radians(90 + i * 36)) * (0.7 if i % 2 == 0 else 0.3), CH - 
 kiosk.append(gcyl("Medal", 0.9, 0.25, (0, -CD / 2 - 0.35, CH - 1.35), GOLD_LO, GOLD, segs=12, rot=(90, 0, 0)))
 kiosk.append(prism("MedalStar", st, -CD / 2 - 0.62, -CD / 2 - 0.42, PLUM_LO, LILAC_HI))
 for sx in (-1, 1):                    # two candy-striped posts + a little scalloped awning
-    kiosk.append(gcyl(f"KPost{sx}", 0.35, 7.4, (sx * (KW / 2 - 0.2), CD / 2 - 0.3, 0), GOLD_LO, GOLD, segs=8))
+    kiosk.append(gcyl(f"KPost{sx}", 0.4, 7.4, (sx * (KW / 2 - 0.2), CD / 2 - 0.3, 0), WOOD_LO, WOOD, segs=8))
     kiosk.append(blob(f"KKnob{sx}", 0.45, (sx * (KW / 2 - 0.2), CD / 2 - 0.3, 7.6), GOLD, subdiv=2, jitter=0))
 for k in range(5):
     x = -KW / 2 + KW * (k + 0.5) / 5
