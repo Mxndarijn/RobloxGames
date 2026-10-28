@@ -15,8 +15,15 @@ local LockPad = require(script.Parent.LockPad)
 local RingPadView = require(ReplicatedStorage.Lib.pad.RingPadView)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
--- Look per mode: lit segments wear the mode's look, the rest `dim`; while charging the rest stays green (ready).
+-- Look per mode: lit segments wear the mode's look, the rest `dim`; while charging the rest stays green (ready),
+-- while locked the run-down part is dark red (lockedRest), so a locked pad is red all round.
+local REST = table.freeze({ charge = "ready", locked = "lockedRest" } :: { [string]: string })
 local LOOKS = table.freeze({
+	lockedRest = table.freeze({
+		color = Color3.fromRGB(110, 28, 34),
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0,
+	}),
 	dim = table.freeze({
 		color = Color3.fromRGB(31, 111, 120),
 		material = Enum.Material.SmoothPlastic,
@@ -63,7 +70,7 @@ function LockPadView.update(plot: Instance, index: number, button: BasePart?, ri
 	local p = button.Position
 	local _, yaw = WorldLayout.plotCentre(index)
 	live:place(Vector3.new(p.X, floor, p.Z), yaw)
-	live:show(ring.lit, ring.mode, if ring.mode == "charge" then "ready" else "dim")
+	live:show(ring.lit, ring.mode, REST[ring.mode] or "dim")
 end
 
 -- True when `root` stands on `plot`'s lock pad round `button` (its LockButton).
