@@ -161,6 +161,12 @@ describe("Exclusive Shop jar placement (contract/exclusive-shop.md §7.1)", func
 				local a = math.rad(def.yaw)
 				local sign = { math.sin(a) * def.r, 0, math.cos(a) * def.r }
 				expect(dist(spot.pos, sign) > PropClearance.spotRadius(name) + 5).toBe(true)
+				-- and it never stands between the fountain and the shop: off the shop's sight line by more than the
+				-- shop's own angular half width seen from the plaza centre
+				local shopBearing = math.deg(math.atan2(spot.pos[1], spot.pos[3]))
+				local halfWidth = math.deg(math.asin(PropClearance.spotRadius(name) / dist(spot.pos, { 0, 0, 0 })))
+				local off = math.abs(((def.yaw - shopBearing) + 180) % 360 - 180)
+				expect(off > halfWidth + 2).toBe(true)
 			end
 		end
 	end)

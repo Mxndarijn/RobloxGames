@@ -1032,7 +1032,7 @@ local function podiumProp(rank: number, mesh: string): any
 	return plazaProp(`Podium_{rank}`, mesh, bearing, r, 0.7)
 end
 WorldLayout.PLAZA_PROPS = table.freeze({
-	plazaProp("Signpost", "ranch_plaza_signpost", 112.5, 68, 0.62),
+	plazaProp("Signpost", "ranch_plaza_signpost", 124.5, 68, 0.62), -- off the Exclusive Shop's sight line from the fountain (it stands at 112.5)
 	podiumProp(1, "phoenix_plaza_podium_1"),
 	podiumProp(2, "phoenix_plaza_podium_2"),
 	podiumProp(3, "phoenix_plaza_podium_3"),
