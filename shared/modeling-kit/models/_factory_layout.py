@@ -12,11 +12,12 @@
 #   the next run A starts straight ahead (+x). Both lanes are 4.5 wide; runs slope atan(8 / 18) = 24 degrees.
 # Floor 1 front: a 10 x 11 doorway with a roll-up shutter (the LockBarrier), the merge vat inside left and the lock
 # button inside right; spawn at (0, -12.5). 8 pads per floor in two rows of 4. Owner exit: a hatch in the east wall of
-# the top floor into the drop pipe, a metal pipe straight down the outside to a goo pool (scripted move, no collision).
+# the top floor into the drop pipe, a metal pipe straight down the outside to a goo pool (scripted move; the pipe never
+# collides, an invisible guard round its foot keeps players out of it).
 import math
 import os
 
-from models._base_design_common import floor_top, FLOOR_H
+from models._base_design_common import EXIT_TUBE_R, exit_guards, floor_top, FLOOR_H
 
 ID = "factory"
 NAME = "Goo Factory"
@@ -62,6 +63,15 @@ HATCH_Y = -14.0
 EXIT = {"floor": FLOORS, "hatch": (WC, HATCH_Y, floor_top(FLOORS) + 3.0), "lands": (31.0, -8.0),
         "floor_check": "owner inside the top floor's box: |x|, |y| < 23 and floor_top(top) <= y_root < floor_top(top) + 16"}
 CHUTE_X = HALF + 2.0    # the chute's centre line, outside the east wall
+PIPE_R = EXIT_TUBE_R + 0.2   # the drop pipe's radius
+
+
+def pipe_path(top):
+    """The drop pipe's centre line from floor top's hatch, floor 1's walking surface at z = 0 (the pipe mesh's frame;
+    layout z is floor_top(1) higher): out of the east wall, straight down, and out to its outlet over the pool."""
+    zh = (top - 1) * FLOOR_H + 4.5
+    x0, xs, y = HALF + 0.3, HALF + 3.0, HATCH_Y
+    return [(x0 - 0.5, y, zh), (xs - 1.6, y, zh), (xs, y, zh - 1.6), (xs, y, 3.0), (xs + 1.6, y, 1.6), (xs + 2.6, y, 1.6)]
 
 # ---- walls (centre lines) per floor ----
 WALLS = []
@@ -238,6 +248,13 @@ for f in range(1, FLOORS + 1):
         C("CoreCapA", f, "floor", "box", ((XS + XL) / 2, LANE_A, z - SLAB / 2), (XL - XS, LANE_W, SLAB))
         C("CoreCapLanding", f, "floor", "box", ((XE + XL) / 2, LANE_B, z - SLAB / 2), (XL - XE, LANE_W, SLAB))
         C("Roof", f, "roof", "box", (0, 0, z + FLOOR_H + 0.4), (2 * HALF, 2 * HALF, 0.8))
+        if f > 1:
+            # the drop pipe: invisible guards round its foot (shown and solid only while this is the top floor, like
+            # the pipe's mesh)
+            path = [(x, y, zz + floor_top(1)) for x, y, zz in pipe_path(f)]
+            for k, (c, s, yaw) in enumerate(exit_guards(path, PIPE_R + 0.3, floor_top(1))):
+                C(f"DropGuard_{k + 1}", f, "drop pipe guard", "box", c, s, (0, 0, yaw), hidden=True,
+                  ignore_footprint=True)
     if f > 1:
         C("Belt", f, "goo belt (collides: 1.2 tall)", "box", ((BELT["x0"] + BELT["x1"]) / 2, BELT["y"], z + BELT["h"] / 2),
           (BELT["x1"] - BELT["x0"], BELT["w"], BELT["h"]))
