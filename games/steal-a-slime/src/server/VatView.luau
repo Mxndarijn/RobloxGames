@@ -34,6 +34,7 @@ VatView.ID_SUFFIX = "#vat" -- appended to the slime's id in the copy's SlimeId
 VatView.SPOT_RADIUS = 2.2 -- studs from the vat's centre to each spot when the vat mesh isn't there (plain disc)
 VatView.SPOT_LIFT = 0.15 -- studs above the goo
 VatView.TAG_NAME = "VatTag"
+VatView.ANCHOR_NAME = "VatTagAnchor" -- attachment on the disc the tag hangs on
 VatView.SPOTS_NAME = "VatSpots"
 VatView.FADED_ATTRIBUTE = Constants.OWN_TRANSPARENCY_ATTRIBUTE -- on a faded part: its own transparency before the fade
 VatView.TAG = table.freeze({
@@ -47,6 +48,7 @@ VatView.TAG = table.freeze({
 	cap = 26,
 	capSize = 17,
 	lift = 2,
+	maxDistance = 60, -- studs from the camera: hidden beyond, so other plots' vats don't float tags across the map
 })
 
 export type Line = { text: string, color: "Mint" | "Gold" | "MutedWell" | "Warn" }
@@ -120,18 +122,40 @@ local function vatTop(vat: BasePart): CFrame
 		local box, size = mesh:GetBoundingBox()
 		return CFrame.new(box.Position + Vector3.new(0, size.Y / 2, 0))
 	end
-	return CFrame.new(vat.Position + Vector3.new(0, vat.Size.Y / 2, 0))
+	-- The disc is a cylinder lying on its side: its world height is the size along whichever axis points up.
+	local up = vat.CFrame:VectorToObjectSpace(Vector3.new(0, 1, 0))
+	local half = (math.abs(up.X) * vat.Size.X + math.abs(up.Y) * vat.Size.Y + math.abs(up.Z) * vat.Size.Z) / 2
+	return CFrame.new(vat.Position + Vector3.new(0, half, 0))
+end
+
+-- Keeps the tag hung on an attachment `T.lift` studs over the vat's top centre (made if missing). The disc is a
+-- cylinder lying on its side, so the tag can't use the disc's own axes; this follows a vat mesh that arrives late
+-- or moves.
+local function placeAnchor(vat: BasePart, tag: BillboardGui)
+	local anchor = vat:FindFirstChild(VatView.ANCHOR_NAME)
+	if not (anchor and anchor:IsA("Attachment")) then
+		local made = Instance.new("Attachment")
+		made.Name = VatView.ANCHOR_NAME
+		made.Parent = vat
+		anchor = made
+	end
+	local attachment = anchor :: Attachment
+	if tag.Adornee ~= attachment then
+		tag.Adornee = attachment
+	end
+	local at = vat.CFrame:PointToObjectSpace(vatTop(vat).Position + Vector3.new(0, VatView.TAG.lift, 0))
+	if (attachment.CFrame.Position - at).Magnitude > 1e-3 then
+		attachment.CFrame = CFrame.new(at)
+	end
 end
 
 local function buildTag(vat: BasePart): BillboardGui
 	local T = VatView.TAG
 	local gui = Instance.new("BillboardGui")
 	gui.Name = VatView.TAG_NAME
-	gui.Adornee = vat
 	gui.Size = UDim2.fromOffset(T.w, T.h)
 	gui.SizeOffset = Vector2.new(0, 0.5)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, vatTop(vat).Position.Y - vat.Position.Y + T.lift, 0)
-	gui.MaxDistance = 120
+	gui.MaxDistance = T.maxDistance
 	gui.LightInfluence = 0
 	local head = Instance.new("TextLabel")
 	head.Name = "Title"
@@ -368,6 +392,7 @@ function VatView.sync(
 
 	-- The tag over the vat.
 	local tag = vat:FindFirstChild(VatView.TAG_NAME) or buildTag(vat)
+	placeAnchor(vat, tag :: BillboardGui)
 	local line = (tag :: Instance):FindFirstChild("Line") :: TextLabel?
 	if line then
 		local view = if data then VatView.tagLine(data, now) else { text = "", color = "MutedWell" }
