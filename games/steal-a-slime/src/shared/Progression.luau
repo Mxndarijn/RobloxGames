@@ -129,7 +129,7 @@ end
 
 --[[
 	Applies a rebirth in place: the required slimes (Progression.payment) are
-	used up, cash goes back to STARTING_CASH (uncollected cash pad piles are cleared too) and every other slime stays where
+	used up, cash goes back to STARTING_CASH (uncollected cash pad piles stay) and every other slime stays where
 	it is. The favourite is cleared only when it was used up.
 	Returns (ok, reason).
 ]]
@@ -153,8 +153,7 @@ function Progression.rebirth(data: PlayerData.Data): (boolean, string?)
 		data.favoriteId = nil
 	end
 	data.rebirths += 1
-	data.cash = Config.STARTING_CASH
-	data.padCash = nil -- uncollected cash pad piles go with the cash (CashPads)
+	data.cash = Config.STARTING_CASH -- cash pad piles stay on their pads (CashPads)
 	return true, nil
 end
 

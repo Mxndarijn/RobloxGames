@@ -9,7 +9,7 @@
 - **Pile belongs to the pad.** A stolen, sold, merged or moved slime leaves its pile behind; the owner can still collect it, and the next slime on that pad keeps adding to it.
 - **Offline.** `Income.applyOffline` puts `Economy.offlineIncome` of each slime (`OFFLINE_RATE`, for at most the offline cap time: `Perks.offlineCap`, `OFFLINE_CAP_SECONDS` plus Night Shift) on its pad. The join toast and the welcome-back card (`welcomeBack.onPads = true`) say the cash waits on the cash pads.
 - **Collect.** `CashPadService.touch(world, nags, userId, plotIndex, pad, now)`: the plot owner gets the pile's whole cash (`PlayerData.earn`, so `totalEarned`, goals, badges and the boards count it when collected; the fraction stays), the `"Collect"` effect (§5.4) on their root, and a Notify with the soft `"CashPadCollect"` coin sound (only they hear it, once per collect; volume and pitch in `ui/Sounds`). Anyone else gets nothing and the `"bad"` toast "Not your cash! Only the owner can collect it." at most once per `Config.CASH_PAD.NAG_SECONDS`, and only while there is a pile. A locked base changes nothing here: visitors can never collect.
-- **Rebirth** (`Progression.rebirth`) clears every pile along with the cash. The Rebirth panel's "Resets" well names the cash waiting on the pads (`State.padCash`), so nobody loses it by surprise.
+- **Rebirth** (`Progression.rebirth`) resets the cash but leaves every pile on its pad, to collect after the rebirth.
 
 ## World (`src/server/CashPadView`, Roblox adapter)
 
