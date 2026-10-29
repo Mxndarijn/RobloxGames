@@ -278,7 +278,9 @@ export type ExclusiveShopView = {
 	owned: { [string]: boolean }, -- Exclusive seat ids this player owns
 	passes: { [string]: boolean }, -- Config.EXCLUSIVE_SHOP.passes keys: owned or not
 	starterClaimed: boolean,
-	credits: { brew: number, hatch: number }, -- paid skips saved for later
+	credits: { brew: number, hatch: number, rain: number, boss: number, totem: number, snack: number }, -- saved for later (UseCredit)
+	serverBoosts: { rain: boolean, boss: boolean }, -- a paid Slime Rain / boss summon could start right now on this server
+	streakKeepable: boolean, -- the daily streak broke and KeepStreak would carry it on
 	offlineDouble: { cash: number, available: boolean }?, -- the last welcome-back payout "Double it" can repeat
 	paidRandomAllowed: boolean, -- false where paid random items are restricted: hide ServerLuckPotion
 	featured: { string }, -- this week's featured Exclusive seat ids (ExclusiveRotation)
@@ -289,6 +291,10 @@ export type ExclusiveShopView = {
 	lockBreak: { plot: number, untilTime: number }?, -- an active lock break: the plot index and when it ends
 	lockBreakCredits: number, -- paid lock breaks that found no locked base to open (used with UseCredit "lockBreak")
 	giftCredits: { string }, -- unsent gifts (cosmetic product keys) to send with SendGift
+	subscriptions: { [string]: boolean }, -- Config.EXCLUSIVE_SHOP.subscriptions keys: active or not
+	vipPotion: boolean, -- a VIP whose free server Luck Potion of today is unused (ClaimPerk "vipPotion")
+	luck: { base: number, bonus: number }, -- Lucky Charm chance without the Lucky Charm+ pass, and what the pass adds
+	radar: { number }, -- Thief Radar: userIds of the players in your base now (empty without the pass)
 }
 
 export type VatView = {

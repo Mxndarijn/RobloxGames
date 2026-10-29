@@ -92,7 +92,7 @@ describe("SaveData.migrateV9", function()
 		expect(egg and egg.kind).toBe("golden")
 		expect(egg and egg.seed).toBeNil()
 		expect(d.ownedSeats).toEqual({})
-		expect(d.credits).toEqual({ brew = 0, hatch = 0 })
+		expect(d.credits).toEqual({ brew = 0, hatch = 0, rain = 0, boss = 0, totem = 0, snack = 0 })
 		expect(d.starterBundle).toBe(false)
 	end)
 end)
@@ -112,7 +112,14 @@ describe("SaveData v10 purchase fields", function()
 		expect(d.ownedSeats).toEqual({ "ufo", "leaf" })
 		expect(d.receipts).toEqual({ "r1", "r2" })
 		expect(d.starterBundle).toBe(false)
-		expect(d.credits).toEqual({ brew = Config.EXCLUSIVE_SHOP.creditMax, hatch = 0 })
+		expect(d.credits).toEqual({
+			brew = Config.EXCLUSIVE_SHOP.creditMax,
+			hatch = 0,
+			rain = 0,
+			boss = 0,
+			totem = 0,
+			snack = 0,
+		})
 		expect(d.offlineDouble).toBeNil()
 		expect(d.vat and d.vat.seed).toBeNil()
 		expect(d.slimes[4].egg and d.slimes[4].egg.seed).toBeNil()
@@ -142,7 +149,7 @@ describe("SaveData v10 purchase fields", function()
 		expect(back.ownedSeats).toEqual({ "ufo", "magic_carpet" })
 		expect(back.receipts).toEqual({ "p1", "p2" })
 		expect(back.starterBundle).toBe(true)
-		expect(back.credits).toEqual({ brew = 2, hatch = 1 })
+		expect(back.credits).toEqual({ brew = 2, hatch = 1, rain = 0, boss = 0, totem = 0, snack = 0 })
 		expect(back.offlineDouble).toEqual({ cash = 1234, at = T + 5, used = true })
 		expect(back.vat and back.vat.seed).toBe(424242)
 		expect(back.slimes[4].egg and back.slimes[4].egg.seed).toBe(99)

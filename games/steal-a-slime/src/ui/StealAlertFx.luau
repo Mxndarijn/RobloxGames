@@ -11,6 +11,8 @@
 	* Thief (and everyone watching): a short Trail on any player whose Player attribute
 	  `Stealing` is set.
 	* Bat hit: a hit effect (flash, "BONK!" pop, burst) on the player whose `SlapHitAt` changes.
+	* Thief Radar (contract/exclusive-shop.md §13): the players in my base (State.exclusiveShop.radar) get a calmer
+	  "IN YOUR BASE" ping, and while no theft runs the arrow points at the first of them, labelled "Visitor".
 
 	Only Instances that are not parts: Frames, a BillboardGui, a Highlight, a Trail with two
 	Attachments, a ParticleEmitter. The maths is Shared.StealAlert (tests/StealAlert.spec).
@@ -117,6 +119,8 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	local thiefIds: { number } = {}
 	-- The ping (THIEF sign + red outline) on each thief's character.
 	local pings: { [Model]: { Instance } } = {}
+	local pingKinds: { [Model]: string } = {}
+	local radarIds: { number } = {}
 	local sweepClock = 0
 	local screen: Layout.Screen? = nil
 	local bannerHeight: () -> number = function()
@@ -142,11 +146,13 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		Debris:AddItem(sound, 5)
 	end
 
-	local function addPing(character: Model)
+	local function addPing(character: Model, kind: string)
 		local rootPart = character:FindFirstChild("HumanoidRootPart")
 		if not rootPart or not rootPart:IsA("BasePart") then
 			return
 		end
+		local radar = kind == "radar"
+		local tint = if radar then Theme.Warn else Theme.Thief
 		local sign = create("BillboardGui", {
 			Name = "StealPing",
 			Adornee = rootPart,
@@ -158,43 +164,42 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			create("TextLabel", {
 				Size = UDim2.fromScale(1, 1),
 				BackgroundTransparency = 1,
-				Text = "🚨 THIEF",
-				TextSize = 22,
+				Text = if radar then "📡 IN YOUR BASE" else "🚨 THIEF",
+				TextSize = if radar then 18 else 22,
 				Font = Theme.Font,
 				TextColor3 = Color3.new(1, 1, 1),
 				TextStrokeTransparency = 0,
-				TextStrokeColor3 = Theme.Thief,
+				TextStrokeColor3 = tint,
 			}),
 		})
 		local outline = create("Highlight", {
 			Name = "StealHighlight",
 			Adornee = character,
-			FillColor = Theme.Thief,
-			FillTransparency = StealAlertLayout.PING_FILL_TRANSPARENCY,
-			OutlineColor = Theme.Thief,
+			FillColor = tint,
+			FillTransparency = if radar then 1 else StealAlertLayout.PING_FILL_TRANSPARENCY,
+			OutlineColor = tint,
 			DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
 			Parent = character,
 		})
 		pings[character] = { sign, outline }
+		pingKinds[character] = kind
 	end
 
-	-- Keeps exactly one ping on each of `characters`; each one is made once and stays until that thief is done.
-	local function syncPings(characters: { Model })
-		local wanted: { [Model]: boolean } = {}
-		for _, character in characters do
-			wanted[character] = true
-		end
+	-- Keeps exactly one ping on each wanted character ("thief" or "radar"); each is made once and stays until that
+	-- player is done (a radar visitor who starts a theft becomes a thief ping).
+	local function syncPings(wanted: { [Model]: string })
 		for character, parts in pings do
-			if not wanted[character] or parts[2].Parent ~= character then
+			if wanted[character] ~= pingKinds[character] or parts[2].Parent ~= character then
 				for _, part in parts do
 					part:Destroy()
 				end
 				pings[character] = nil
+				pingKinds[character] = nil
 			end
 		end
-		for character in wanted do
+		for character, kind in wanted do
 			if not pings[character] then
-				addPing(character)
+				addPing(character, kind)
 			end
 		end
 	end
@@ -349,6 +354,8 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			return
 		end
 		thiefIds = StealAlert.thieves(state.slimes)
+		local shop = state.exclusiveShop
+		radarIds = if type(shop) == "table" and type(shop.radar) == "table" then shop.radar else {}
 		local thiefId = thiefIds[1]
 		if thiefId ~= nil then
 			if theft == nil or theft.thiefId ~= thiefId then
@@ -376,30 +383,46 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			theft = nil
 		end
 		-- The pings follow the thefts alone; the arrow below only decides whether it also shows.
-		local thieves: { Model } = {}
+		local wanted: { [Model]: string } = {}
+		if not debug then
+			for _, id in radarIds do
+				local visitor = characterOf(id)
+				if visitor then
+					wanted[visitor] = "radar"
+				end
+			end
+		end
 		if theft and not debug then
 			for _, id in thiefIds do
 				local thief = characterOf(id)
 				if thief then
-					table.insert(thieves, thief)
+					wanted[thief] = "thief"
 				end
 			end
 		end
-		syncPings(thieves)
+		syncPings(wanted)
 		local character = thiefCharacter()
+		local visitor = if theft == nil and radarIds[1] ~= nil then characterOf(radarIds[1]) else nil
+		arrowLabel.Text = if theft == nil and visitor then "Visitor" else "Thief"
 		if theft == nil then
 			flashStroke.Transparency = 1
-			hideArrow()
-			return
+			if visitor then
+				character = visitor -- the radar's arrow: no flash, no alarm
+			else
+				hideArrow()
+				return
+			end
 		end
-		local elapsed = os.clock() - theft.startedAt
-		-- Studio fake: hold the flash at its peak so the frame shows it.
-		local flashAt = if debug then cfg.FLASH_SECONDS / (4 * cfg.FLASH_PULSES) else elapsed
-		flashStroke.Transparency = 1 - StealAlert.flashAlpha(flashAt)
-		local due = StealAlert.alarmDue(elapsed)
-		if due > theft.played then
-			theft.played = due
-			playAlarm()
+		if theft then
+			local elapsed = os.clock() - theft.startedAt
+			-- Studio fake: hold the flash at its peak so the frame shows it.
+			local flashAt = if debug then cfg.FLASH_SECONDS / (4 * cfg.FLASH_PULSES) else elapsed
+			flashStroke.Transparency = 1 - StealAlert.flashAlpha(flashAt)
+			local due = StealAlert.alarmDue(elapsed)
+			if due > theft.played then
+				theft.played = due
+				playAlarm()
+			end
 		end
 
 		local camera = workspace.CurrentCamera

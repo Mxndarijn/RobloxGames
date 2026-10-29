@@ -85,7 +85,11 @@ describe("PurchaseService passes and policy", function()
 		service.join(1)
 		expect(calls.owns).toBe(0) -- every Config pass id is still 0
 		expect(s.paidRandomAllowed).toBe(true)
-		expect(s.passes).toEqual({ Income2x = false, Offline2x = false })
+		local none = {}
+		for key in Config.EXCLUSIVE_SHOP.passes do
+			none[key] = false
+		end
+		expect(s.passes).toEqual(none)
 	end)
 	it("keeps paid random items hidden when the policy restricts them or can't be read", function()
 		local world, service = setup({ restricted = true })

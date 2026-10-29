@@ -68,6 +68,8 @@ Remotes.ACTIONS = table.freeze({
 	ShopBuy = table.freeze({ args = { "string", "string", "string?" } }), -- shopId, itemId, unused slot (string?); delegates to the item's existing buy action
 	AimHatch = table.freeze({ args = { "string" } }), -- the pad egg id a "Hatch now" purchase is for, sent just before the Roblox prompt
 	UseCredit = table.freeze({ args = { "string", "target?" } }), -- "brew" | "hatch" | "lockBreak", target: the hatch egg id (nil = the one closest to ready) or the locked base's plot index: spends a saved Exclusive Shop credit
+	AimSnack = table.freeze({ args = { "string" } }), -- slimeId: the slime the next GrowthSnack purchase feeds
+	ClaimPerk = table.freeze({ args = { "string" } }), -- "vipPotion": a VIP's free server Luck Potion of the day
 	EquipTrail = table.freeze({ args = { "cosmetic" } }), -- owned Config.EXCLUSIVE_SHOP.trails id, "" = none
 	EquipBatSkin = table.freeze({ args = { "cosmetic" } }), -- owned Config.EXCLUSIVE_SHOP.batSkins id, "" = the default Bat
 	AimLockBreak = table.freeze({ args = { "number" } }), -- plot index of the locked base the next LockBreak purchase opens, sent just before the Roblox prompt

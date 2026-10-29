@@ -1,13 +1,15 @@
 --!strict
 --[[
 	Daily reward popup: a centred modal card (the shared Widgets.panel frame) with the streak
-	track, today's amount and Claim (`Request("Daily")`). Opens by itself when a claim becomes
+	track, today's amount and Claim (`Request("Daily")`). When the streak broke, a "Keep my streak" Robux button
+	(ExclusiveShopView.streakQuickBuy) shares Claim's row. Opens by itself when a claim becomes
 	available and the tutorial is done (PopupQueue, init.client) and from the HUD Daily button.
 	Once the server reports it claimed, it shows "Claimed" and closes.
 ]]
 
 local UI = script.Parent.Parent
 local Daily = require(UI.Daily)
+local ExclusiveShopView = require(UI.ExclusiveShopView)
 local Format = require(UI.Format)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
@@ -195,6 +197,27 @@ function DailyPopup.new(parent: Instance, ctx: any)
 	)
 	claim.instance.Parent = body
 
+	-- "Keep my streak · R$25": half of Claim's row while State says the streak broke.
+	local keepGap = 8
+	local latestState: any = nil
+	local keep = Widgets.button(
+		{
+			Name = "KeepStreak",
+			TextSize = rows.claimSize,
+			Position = UDim2.new(0.5, keepGap / 2, 1, -Layout.BUTTON),
+			Size = UDim2.new(0.5, -keepGap / 2, 0, Layout.BUTTON),
+			Visible = false,
+		},
+		Theme.Plum,
+		function()
+			local q = ExclusiveShopView.streakQuickBuy(latestState, ctx.Config)
+			if q and q.mode == "buy" and q.purchase and ctx.purchase then
+				ctx.purchase.prompt(q.purchase)
+			end
+		end
+	)
+	keep.instance.Parent = body
+
 	local self = { frame = backdrop }
 
 	panel.close.Activated:Connect(function()
@@ -264,6 +287,16 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		amount.Text = if available then `+{Format.formatCash(daily.amount)}` else "Claimed"
 		claim.setEnabled(available)
 		claim.setText(if available then "Claim" else "Claimed")
+		latestState = state
+		local q = if available then ExclusiveShopView.streakQuickBuy(state, ctx.Config) else nil
+		keep.instance.Visible = q ~= nil
+		if q then
+			keep.setText(q.text)
+			keep.setEnabled(q.mode == "buy" and ctx.purchase ~= nil)
+		end
+		claim.instance.Size = if q
+			then UDim2.new(0.5, -keepGap / 2, 0, Layout.BUTTON)
+			else UDim2.new(1, 0, 0, Layout.BUTTON)
 
 		if wasAvailable == true and not available and backdrop.Visible then
 			-- Just claimed: let the "Claimed!" state show, then close.

@@ -9,7 +9,8 @@
 	    id and save now (`options.save`, the session-locked Persistence save); only a written save answers
 	    PurchaseGranted. A gift (Gift_<item>) writes its target's save through the same `options.save` inside the
 	    grant; a target save that fails leaves the buyer a gift credit instead. `join` checks the Game Passes (UserOwnsGamePassAsync; passId 0 is skipped) and the paid
-	    random items policy once per player; `passPurchased` handles PromptGamePassPurchaseFinished. `grantProduct`,
+	    random items policy once per player, then the subscriptions (`checkSubscriptions`, again on
+	    UserSubscriptionStatusChanged; an id of "" is skipped); `passPurchased` handles PromptGamePassPurchaseFinished. `grantProduct`,
 	    `setPass` and `setPaidRandomAllowed` are the same paths for StudioHooks.
 	  * `start(service)` (Roblox only): sets the one `MarketplaceService.ProcessReceipt`, connects the Game Pass prompt
 	    and runs `join` for every player once their session exists. Does nothing while the flag is off.
@@ -33,6 +34,7 @@ export type Receipt = { PlayerId: number, ProductId: number, PurchaseId: string 
 export type Backend = {
 	ownsPass: (userId: number, passId: number) -> boolean, -- may error
 	paidRandomRestricted: (userId: number) -> boolean, -- PolicyService ArePaidRandomItemsRestricted; may error
+	subscribed: ((userId: number, subscriptionId: string) -> boolean)?, -- GetUserSubscriptionStatusAsync; may error
 }
 
 export type Options = {
@@ -42,7 +44,7 @@ export type Options = {
 	now: () -> number,
 	wait: (seconds: number) -> (),
 	changed: (() -> ())?, -- after a grant or pass change: push the view and State
-	ctx: Purchases.Context?,
+	ctx: any, -- Actions.Context (features, requestWeather), read when a grant runs; nil in tests
 	attempts: number?, -- tries per Game Pass / policy call (default 3)
 }
 
@@ -53,6 +55,8 @@ export type Service = {
 	passPurchased: (userId: number, passId: number, purchased: boolean) -> (),
 	setPass: (userId: number, passKey: string, owned: boolean) -> boolean,
 	setPaidRandomAllowed: (userId: number, allowed: boolean) -> boolean,
+	setSubscription: (userId: number, key: string, active: boolean) -> boolean,
+	checkSubscriptions: (userId: number) -> (),
 	release: (userId: number) -> (),
 	enabled: () -> boolean,
 	options: Options,
@@ -65,6 +69,7 @@ function PurchaseService.service(options: Options): Service
 	local attempts = options.attempts or 3
 	local pending: { [number]: { [string]: boolean } } = {} -- userId -> PurchaseIds granted but not saved yet
 	local owned: { [number]: { [string]: boolean } } = {} -- userId -> pass key -> owned
+	local subs: { [number]: { [string]: boolean } } = {} -- userId -> subscription key -> active
 	local self = {} :: Service
 	self.options = options
 
@@ -94,6 +99,10 @@ function PurchaseService.service(options: Options): Service
 	-- (session-locked, now) before it counts.
 	local grantCtx: Purchases.Context = {
 		features = if options.ctx then options.ctx.features else nil,
+		requestWeather = function(id: string): boolean
+			local request = options.ctx and options.ctx.requestWeather
+			return request ~= nil and request(id) == true
+		end,
 		save = function(targetId: number, data: any): boolean
 			local ok, written = pcall(options.save, targetId, data)
 			return ok and written == true
@@ -152,6 +161,46 @@ function PurchaseService.service(options: Options): Service
 	end
 
 	-- Checks every Game Pass with an id and the paid random items policy (yields); the session must exist.
+	local function applySubs(userId: number)
+		local session = World.session(world, userId)
+		if session then
+			Purchases.applySubscriptions(world, session, subs[userId] or {}, options.now())
+			changed()
+		end
+	end
+
+	-- Asks Roblox again for every subscription with an id (join, UserSubscriptionStatusChanged).
+	function self.checkSubscriptions(userId: number)
+		local check = options.backend.subscribed
+		if not World.session(world, userId) or check == nil then
+			return
+		end
+		local mine = subs[userId] or {}
+		subs[userId] = mine
+		for key, def in Config.EXCLUSIVE_SHOP.subscriptions do
+			if def.subscriptionId ~= "" then
+				local active = try(function()
+					return check(userId, def.subscriptionId)
+				end)
+				if active ~= nil then
+					mine[key] = active
+				end
+			end
+		end
+		applySubs(userId)
+	end
+
+	function self.setSubscription(userId: number, key: string, active: boolean): boolean
+		if Config.EXCLUSIVE_SHOP.subscriptions[key] == nil or not World.session(world, userId) then
+			return false
+		end
+		local mine = subs[userId] or {}
+		subs[userId] = mine
+		mine[key] = active
+		applySubs(userId)
+		return true
+	end
+
 	function self.join(userId: number)
 		if not World.session(world, userId) then
 			return
@@ -173,6 +222,7 @@ function PurchaseService.service(options: Options): Service
 			session.paidRandomAllowed = not restricted
 		end
 		apply(userId)
+		self.checkSubscriptions(userId)
 	end
 
 	function self.setPass(userId: number, passKey: string, has: boolean): boolean
@@ -208,6 +258,7 @@ function PurchaseService.service(options: Options): Service
 	function self.release(userId: number)
 		pending[userId] = nil
 		owned[userId] = nil
+		subs[userId] = nil
 	end
 
 	return self
@@ -226,6 +277,14 @@ function PurchaseService.robloxBackend(): Backend
 				error("player left")
 			end
 			return PolicyService:GetPolicyInfoForPlayerAsync(player).ArePaidRandomItemsRestricted == true
+		end,
+		subscribed = function(userId: number, subscriptionId: string): boolean
+			local player = game:GetService("Players"):GetPlayerByUserId(userId)
+			if not player then
+				error("player left")
+			end
+			local status = game:GetService("MarketplaceService"):GetUserSubscriptionStatusAsync(player, subscriptionId)
+			return status.IsSubscribed == true
 		end,
 	}
 end
@@ -260,6 +319,9 @@ function PurchaseService.start(service: Service)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		service.release(player.UserId)
+	end)
+	Players.UserSubscriptionStatusChanged:Connect(function(player: Player, _subscriptionId: string)
+		task.spawn(service.checkSubscriptions, player.UserId)
 	end)
 	for _, player in Players:GetPlayers() do
 		task.spawn(joined, player)

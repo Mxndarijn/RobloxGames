@@ -665,6 +665,15 @@ end
 for _, def in BAT_SKINS do
 	EXCLUSIVE_PRODUCTS["BatSkin_" .. def.id] = product(def.robux, { kind = "batSkin", skin = def.id })
 end
+-- Server boosts (§14): the whole server gets them; each waits for a free moment and is kept as a credit until then.
+EXCLUSIVE_PRODUCTS.SlimeRain = product(179, { kind = "slimeRain" }) -- a Slime Rain now (a paid probability modifier)
+EXCLUSIVE_PRODUCTS.SummonBoss = product(199, { kind = "summonBoss" }) -- the boss arrives after its usual warning
+EXCLUSIVE_PRODUCTS.WeatherTotem = product(59, { kind = "weatherTotem" }) -- the Item shop totem's weather is next
+-- Personal boosts and small comforts (§14).
+EXCLUSIVE_PRODUCTS.IncomeBoost15 = product(49, { kind = "boost", mult = 2, seconds = 900 }) -- into the capped code boost
+EXCLUSIVE_PRODUCTS.IncomeBoost60 = product(129, { kind = "boost", mult = 2, seconds = 3600 })
+EXCLUSIVE_PRODUCTS.KeepStreak = product(25, { kind = "keepStreak" }) -- a broken daily streak carries on
+EXCLUSIVE_PRODUCTS.GrowthSnack = product(19, { kind = "growthSnack" }) -- one slime grows growthSnackSeconds at once
 -- Open locked door (§11): the buyer may pass one locked base's door for LOCK_BREAK.seconds. Aimed with AimLockBreak.
 EXCLUSIVE_PRODUCTS.LockBreak = product(499, { kind = "lockBreak" })
 -- Gifts (§12): every cosmetic also sells as Gift_<key>, granted to the player picked with AimGift (cosmetics only).
@@ -680,11 +689,39 @@ for _, key in giftable do
 	EXCLUSIVE_PRODUCTS["Gift_" .. key] = product(EXCLUSIVE_PRODUCTS[key].robux, { kind = "gift", item = key })
 end
 
--- Game Passes, keyed by a permanent pass key (passId 0 = not created yet).
-local EXCLUSIVE_PASSES: { [string]: { passId: number, robux: number, incomeMult: number?, offlineRate: number? } } = {
-	Income2x = table.freeze({ passId = 0, robux = 449, incomeMult = 2 }), -- x2 base income (one more Perks factor)
-	Offline2x = table.freeze({ passId = 0, robux = 199, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
+-- Game Passes, keyed by a permanent pass key (passId 0 = not created yet). Each field is one effect
+-- (Purchases.applyPasses); a pass may have several. `order` is where the Perks tab shows it.
+export type ExclusivePass = {
+	passId: number,
+	robux: number,
+	order: number,
+	incomeMult: number?, -- multiplies into Perks.bonusMultiplier (several owned passes multiply)
+	offlineRate: number?, -- the offline income rate (Config.OFFLINE_RATE for everyone else)
+	brewFactor: number?, -- multiplies every merge brew time (Perks.brewFactor)
+	warmAway: boolean?, -- pad eggs incubate at MYSTERY_EGG.WARM_SPEED while the owner is away from home too
+	luckBonus: number?, -- added to the Lucky Charm chance on a wild deposit (a paid probability modifier: odds shown)
+	radar: boolean?, -- Thief Radar: told and shown who walks into your base (ThiefRadar)
+	vip: boolean?, -- VIP: the tag, and one free server Luck Potion per UTC day (ClaimPerk "vipPotion")
 }
+local EXCLUSIVE_PASSES: { [string]: ExclusivePass } = {
+	VIP = table.freeze({ passId = 0, robux = 599, order = 1, incomeMult = 1.1, vip = true }),
+	Income2x = table.freeze({ passId = 0, robux = 449, order = 2, incomeMult = 2 }),
+	Offline2x = table.freeze({ passId = 0, robux = 199, order = 3, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
+	FastBrew = table.freeze({ passId = 0, robux = 249, order = 4, brewFactor = 0.5 }), -- merges brew in half the time
+	WarmNest = table.freeze({ passId = 0, robux = 129, order = 5, warmAway = true }),
+	LuckyCharmPlus = table.freeze({ passId = 0, robux = 249, order = 6, luckBonus = 0.05 }),
+	ThiefRadar = table.freeze({ passId = 0, robux = 149, order = 7, radar = true }),
+}
+-- Roblox subscriptions, keyed by a permanent key. `subscriptionId` is the "EXP-..." id ("" = not created yet);
+-- `robux` is the shown monthly price (Robux subscriptions cost at least 49) and must match the Creator Dashboard.
+export type ExclusiveSubscription = { subscriptionId: string, robux: number, daily: { brew: number, hatch: number } }
+local EXCLUSIVE_SUBSCRIPTIONS: { [string]: ExclusiveSubscription } = table.freeze({
+	SlimeClub = table.freeze({
+		subscriptionId = "",
+		robux = 99,
+		daily = table.freeze({ brew = 1, hatch = 1 }), -- skip credits added once per UTC day while subscribed
+	}),
+})
 
 local EXCLUSIVE_SHOP = table.freeze({
 	products = table.freeze(EXCLUSIVE_PRODUCTS),
@@ -699,11 +736,20 @@ local EXCLUSIVE_SHOP = table.freeze({
 		creditMax = 20, -- most unsent gifts a player can hold (a gift whose target left or already owns it)
 	}),
 	passes = table.freeze(EXCLUSIVE_PASSES),
+	subscriptions = EXCLUSIVE_SUBSCRIPTIONS,
+	radar = table.freeze({
+		maxShown = 4, -- most visitors the Thief Radar pings at once
+	}),
 	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = carry trails + Bat skins
 	finishBrewBrackets = table.freeze({ 300, 1800, 3600, math.huge }) :: { number }, -- seconds left -> FinishBrew_<i>
 	featuredCount = 4, -- seats in the weekly rotation (ExclusiveRotation), the same on every server
 	receiptMemory = 200, -- processed PurchaseIds kept in the save, newest last
 	creditMax = 99, -- most saved skip credits per kind
+	growthSnackSeconds = 3 * 3600, -- how much growth one Growth Snack gives (GROWTH_SECONDS of growth = fully grown)
+	serverBoosts = table.freeze({
+		rainCooldown = 20 * 60, -- seconds between two paid Slime Rains on one server
+		summonCooldown = 20 * 60, -- seconds between two summoned bosses on one server
+	}),
 	displayRpm = 3, -- turns per minute of each featured seat shown in the jar (client visual)
 	displayBob = 0.35, -- studs each shown seat floats up over its pedestal and back down
 	displayBobSeconds = 3, -- one bob cycle

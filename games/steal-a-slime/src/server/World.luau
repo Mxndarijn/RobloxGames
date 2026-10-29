@@ -84,10 +84,14 @@ export type Session = {
 	offlineRate: number?, -- the offline rate the join payout used (Income.applyOffline), runtime only
 	offlinePaid: number?, -- the join payout's cash (Income.applyOffline; a pass top-up adds to it), runtime only
 	passes: { [string]: boolean }?, -- Game Passes owned, by Config.EXCLUSIVE_SHOP.passes key (PurchaseService), runtime only
+	subscriptions: { [string]: boolean }?, -- Roblox subscriptions active, by Config.EXCLUSIVE_SHOP.subscriptions key, runtime only
+	radar: { number }?, -- Thief Radar: userIds of the players in this owner's base now (ThiefRadar), runtime only
+	radarSeen: { [number]: boolean }?, -- Thief Radar: visitors already announced this visit, runtime only
 	hatchTarget: string?, -- the egg the next HatchNow receipt is for (AimHatch), runtime only
 	paidRandomAllowed: boolean?, -- PolicyService allows paid random items; nil = not checked yet (false), runtime only
 	lockBreakAim: { plot: number, ownerId: number, at: number }?, -- the locked base the next LockBreak receipt opens (AimLockBreak), runtime only
 	lockBreak: LockBreakPass?, -- this player's running lock break (LockBreak), runtime only
+	snackTarget: string?, -- the slime the next GrowthSnack receipt feeds (AimSnack), runtime only
 	giftAim: { item: string, targetId: number, at: number }?, -- who the next Gift_<item> receipt is for (AimGift), runtime only
 	breatherUntil: number?, -- the end of the breather lock SlimeGuard gave this base after a steal (lockUntil equal to it = in the breather), runtime only
 	boardRanks: { [string]: number }?, -- my rank per global board stat from the last refresh (-n = deeper than #n, Leaderboard.sessionRanks); runtime only
@@ -241,6 +245,8 @@ export type World = {
 	raining: boolean,
 	rainForcedUntil: number?, -- seconds since start (Progression.rainStatus)
 	nextBossAt: number, -- server time of the next boss arrival (server/BossEvent)
+	paidRainAt: number?, -- server time the last paid Slime Rain started (Purchases, the rain cooldown)
+	summonedAt: number?, -- server time the boss was last summoned with Robux (Purchases, the summon cooldown)
 	boss: BossEvent?, -- the running boss event, nil between bosses
 	bossIndex: number, -- position in Config.BOSS.ROTATION of the next boss (1-based)
 	modifier: CycleModifier.Modifier, -- FEATURES.CycleModifier: active dawn / dusk modifier

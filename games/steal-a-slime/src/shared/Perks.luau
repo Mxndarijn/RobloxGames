@@ -30,6 +30,8 @@ export type Progress = {
 	ritualBonus: number?, -- runtime "Blessed" bonus from the co-op ritual (Ritual, never saved), nil / 0 = none
 	mvpBonus: number?, -- runtime Boss Champion bonus (BossCredit, never saved), nil / 0 = none
 	passIncomeMult: number?, -- runtime Income2x Game Pass factor (Purchases.applyPasses, never saved), nil / 1 = none
+	passBrewFactor: number?, -- runtime FastBrew Game Pass factor on brew times, nil / 1 = none
+	passLuckBonus: number?, -- runtime LuckyCharmPlus Game Pass chance added to the Lucky Charm, nil / 0 = none
 }
 
 local Perks = {}
@@ -207,14 +209,20 @@ function Perks.offlineCap(data: Progress): number
 	return Config.OFFLINE_CAP_SECONDS + upgradeEffect(data, "OfflineCap")
 end
 
--- Multiplier on merge vat brew times (Quick Brew; 1 = full time).
+-- Multiplier on merge vat brew times (Quick Brew x the Fast Brew pass; 1 = full time).
 function Perks.brewFactor(data: Progress): number
-	return math.max(0, 1 - upgradeEffect(data, "QuickBrew"))
+	local pass = math.clamp(data.passBrewFactor or 1, 0, 1)
+	return math.max(0, 1 - upgradeEffect(data, "QuickBrew")) * pass
 end
 
--- Chance that a wild slime this player deposits is one rarity higher.
-function Perks.luckChance(data: Progress): number
+-- Chance that a wild slime this player deposits is one rarity higher, without the Lucky Charm+ pass.
+function Perks.baseLuckChance(data: Progress): number
 	return upgradeEffect(data, "Luck") + petValue(data, "luck")
+end
+
+-- Chance that a wild slime this player deposits is one rarity higher (the Lucky Charm+ pass included).
+function Perks.luckChance(data: Progress): number
+	return Perks.baseLuckChance(data) + math.max(data.passLuckBonus or 0, 0)
 end
 
 return table.freeze(Perks)

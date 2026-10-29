@@ -25,7 +25,9 @@ disabled with "Not on sale yet" (never "Coming soon"); Studio can still grant it
   - `HatchNow_<eggKind>`: `{ kind = "hatchNow" }`, robux 25 / 35 / 45 / 49 by egg kind (speckled → cosmic).
   - `DoubleOffline`: `{ kind = "doubleOffline" }`, robux 49.
   - `ServerLuckPotion`: `{ kind = "serverPotion" }`, robux 79. A paid probability modifier: odds disclosure + policy (§5).
-- `passes` (Game Passes, keyed by pass key): `Income2x` 449 (`incomeMult = 2`), `Offline2x` 199 (`offlineRate = 0.5`).
+- `passes` (Game Passes, keyed by pass key, shown by `order`): `VIP`, `Income2x` 449 (`incomeMult = 2`), `Offline2x` 199
+  (`offlineRate = 0.5`), `FastBrew`, `WarmNest`, `LuckyCharmPlus`, `ThiefRadar` (§13). `subscriptions`: `SlimeClub` (§13).
+  Server boosts and comforts: §14.
 - `tabs`: `{ "Featured", "Clouds", "Perks", "Boosts" }` in this order. Featured = StarterBundle (while unclaimed) +
   the 4 rotation seats (§6). Clouds = the 16 seats. Perks = passes. Boosts = ServerLuckPotion (and the quick-buys'
   explanation rows; they are bought where they appear).
@@ -200,3 +202,41 @@ player picker (friends first).
 
 State (`ExclusiveShopView`): `trails`, `trail`, `batSkins`, `batSkin`, `lockBreak`, `lockBreakCredits`, `giftCredits`.
 Save version 11 (`SaveData.migrateV10`).
+
+## 13. More passes and the Slime Club
+
+Each pass field is one effect (`Config.ExclusivePass`), applied by `Purchases.applyPasses` into runtime `data.pass*`
+fields (never saved):
+- `VIP` 599: `incomeMult = 1.1` (multiplies with Income2x), a gold VIP tag over the head and in chat, and once per UTC
+  day a free server Luck Potion: Request `ClaimPerk("vipPotion")` (1 s; refused for non-VIPs and where paid random
+  items are restricted). Save: `perkDays.vipPotion` (UTC day number; no version bump).
+- `FastBrew` 249: `brewFactor = 0.5`, every merge brews in half the time (`Perks.brewFactor`, stacks with Quick Brew).
+- `WarmNest` 129: pad eggs incubate at `WARM_SPEED` while the owner is away from home too (`MysteryEgg.step`).
+- `LuckyCharmPlus` 249: `luckBonus = 0.05` on the Lucky Charm (wild deposits only, as before). A paid probability
+  modifier: hidden where paid random items are restricted; its pane shows the player's chance with and without it
+  (`State.exclusiveShop.luck = { base, bonus }`).
+- `ThiefRadar` 149: `server/ThiefRadar` reads SlimeGuard's plot visits once a second; `State.exclusiveShop.radar` lists
+  the userIds inside your base (friends the base lets in left out, at most `radar.maxShown`). An away owner is told
+  once per visit. The client gives them an "IN YOUR BASE" ping and, with no theft running, a "Visitor" arrow. Information only.
+- `SlimeClub` subscription (`subscriptions.SlimeClub`, `subscriptionId` "EXP-..." or "" = not created, 99 R$/month):
+  checked on join and on `Players.UserSubscriptionStatusChanged` (`GetUserSubscriptionStatusAsync`, server), prompted
+  with `PromptSubscriptionPurchase`. Benefits: a CLUB tag, and once per UTC day +1 brew and +1 hatch credit
+  (`Purchases.stepDaily`, `perkDays.club`). Studio: `StudioHooks.setSubscription(userId, key, active)` (`PcwSubscription`).
+- Player attribute `Member` (`Constants.MEMBER_ATTRIBUTE`): "vip" / "club" (VIP wins); `ui/MemberTags` draws the chip
+  and the chat prefix. State: `subscriptions`, `vipPotion`, `luck`, `radar`.
+
+## 14. Server boosts and comforts
+
+Developer Products; a grant that can't apply now is kept as a credit (`data.credits.rain|boss|totem|snack`, 0..creditMax,
+no version bump), spent with `UseCredit(kind, target?)` or the shop's "Use credit".
+- `SlimeRain` 179: `Spawner.forceRain` for the server; refused during rain or a boss and within
+  `serverBoosts.rainCooldown` (20 min) of the last paid rain (`world.paidRainAt`). Paid probability modifier: hidden where restricted.
+- `SummonBoss` 199: `nextBossAt = now + BOSS.WARNING_SECONDS`; refused with a boss on, one already due, rain in the way
+  (`BossEvent.rainBlocks`) or within `summonCooldown` (`world.summonedAt`).
+- `WeatherTotem` 59: the Item shop totem's weather is next (`ctx.requestWeather`); hidden where restricted.
+- `IncomeBoost15` 49 / `IncomeBoost60` 129: x2 into the capped code boost (`Codes.addBoost`).
+- `KeepStreak` 25: while `State.exclusiveShop.streakKeepable` (streak >= 2, last claim before yesterday) sets
+  `daily.lastDay` to yesterday so today's claim continues the streak. Sold on the Daily reward card.
+- `GrowthSnack` 19: one slime grows `growthSnackSeconds` (3 h). `AimSnack(slimeId)` (0.5 s) names it before the prompt,
+  else the least grown pad slime. Sold on the slime's pad card (the hatch key: an egg never grows).
+State: `credits` (all six kinds), `serverBoosts = { rain, boss }` (could start now), `streakKeepable`.

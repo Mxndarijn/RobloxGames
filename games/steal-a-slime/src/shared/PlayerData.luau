@@ -40,7 +40,8 @@ export type Pvp = {
 }
 
 -- Exclusive Shop paid skips that arrived with nothing to skip (contract/exclusive-shop.md §2), 0..creditMax each.
-export type Credits = { brew: number, hatch: number }
+-- Paid skips and server boosts kept for later (Request UseCredit). rain / boss / totem / snack: no version bump.
+export type Credits = { brew: number, hatch: number, rain: number, boss: number, totem: number, snack: number }
 
 -- The last welcome-back payout, so a "Double it" receipt pays the right amount once (contract/exclusive-shop.md §2).
 export type OfflineDouble = { cash: number, at: number, used: boolean }
@@ -104,8 +105,15 @@ export type Data = {
 	giftCredits: { string }, -- unsent gifts: giftable product keys (Seat_* / Trail_* / BatSkin_*), at most gift.creditMax
 	passIncomeMult: number?, -- runtime only (never saved): Income2x Game Pass factor (Purchases.applyPasses); nil = 1
 	passOfflineRate: number?, -- runtime only (never saved): Offline2x offline rate (Purchases.applyPasses); nil = Config.OFFLINE_RATE
+	passBrewFactor: number?, -- runtime only (never saved): FastBrew brew time factor (Purchases.applyPasses); nil = 1
+	passWarmNest: boolean?, -- runtime only (never saved): WarmNest: pad eggs warm while away from home too
+	passLuckBonus: number?, -- runtime only (never saved): LuckyCharmPlus, added to Perks.luckChance; nil = 0
+	perkDays: PerkDays?, -- UTC day numbers a daily perk was last used (Purchases; no version bump: missing -> never)
 	padCash: { [number]: number }?, -- FEATURES.CashPads: uncollected cash per pad index (CashPads, contract/cash-pads.md; no version bump)
 }
+
+-- UTC day numbers (os.time() // 86400) a daily Exclusive Shop perk was last used.
+export type PerkDays = { vipPotion: number?, club: number? }
 
 local PlayerData = {}
 
@@ -145,7 +153,7 @@ function PlayerData.new(): Data
 		ownedSeats = {},
 		receipts = {},
 		starterBundle = false,
-		credits = { brew = 0, hatch = 0 },
+		credits = { brew = 0, hatch = 0, rain = 0, boss = 0, totem = 0, snack = 0 },
 		ownedTrails = {},
 		ownedBatSkins = {},
 		lockBreakCredits = 0,

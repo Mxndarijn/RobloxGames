@@ -3,8 +3,8 @@
 	PurchasePrompt
 
 	The client's one door to Roblox's purchase prompts (contract/exclusive-shop.md §3, §8). A Buy button hands it
-	a `Purchase` (a Developer Product or a Game Pass id from Config.EXCLUSIVE_SHOP) and it opens Roblox's own
-	prompt with MarketplaceService:PromptProductPurchase / PromptGamePassPurchase. It grants nothing: the server's
+	a `Purchase` (a Developer Product, Game Pass or subscription id from Config.EXCLUSIVE_SHOP) and it opens Roblox's
+	own prompt with MarketplaceService:PromptProductPurchase / PromptGamePassPurchase / PromptSubscriptionPurchase. It grants nothing: the server's
 	ProcessReceipt does, and the UI follows State. An id of 0 (not created on the Creator Dashboard yet) never
 	reaches Roblox. `onClosed` tells the shop a prompt closed (bought or not), so its "Waiting for Roblox" well
 	can go back to Buy.
@@ -12,7 +12,7 @@
 	`new(market, player)` takes MarketplaceService and the local player, so UI specs pass a fake market.
 ]]
 
-export type Purchase = { kind: "product" | "pass", id: number }
+export type Purchase = { kind: "product" | "pass" | "subscription", id: number, subscriptionId: string? }
 
 export type Adapter = {
 	-- Opens Roblox's prompt; false when there is nothing to prompt (id 0, no market) or the call failed.
@@ -25,6 +25,9 @@ local PurchasePrompt = {}
 
 -- True for a purchase Roblox can sell: a positive whole id.
 function PurchasePrompt.onSale(purchase: Purchase?): boolean
+	if purchase ~= nil and purchase.kind == "subscription" then
+		return type(purchase.subscriptionId) == "string" and purchase.subscriptionId ~= ""
+	end
 	return purchase ~= nil and type(purchase.id) == "number" and purchase.id > 0 and purchase.id % 1 == 0
 end
 
@@ -54,7 +57,9 @@ function PurchasePrompt.new(market: any, player: any): Adapter
 				return false
 			end
 			local ok = pcall(function()
-				if purchase.kind == "pass" then
+				if purchase.kind == "subscription" then
+					market:PromptSubscriptionPurchase(player, purchase.subscriptionId)
+				elseif purchase.kind == "pass" then
 					market:PromptGamePassPurchase(player, purchase.id)
 				else
 					market:PromptProductPurchase(player, purchase.id)

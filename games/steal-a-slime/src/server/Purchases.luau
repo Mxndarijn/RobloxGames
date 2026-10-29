@@ -19,8 +19,9 @@
 	    (`ctx.save`). A target who left, already owns it or whose save failed leaves the buyer a `data.giftCredits`
 	    entry instead (sent later with SendGift). The item is never lost: with no room for a credit the grant is
 	    refused and Roblox asks again later.
-	`useCredit` spends a saved credit (Request UseCredit), `applyPasses` sets the runtime Game Pass factors
-	(`data.passIncomeMult`, `data.passOfflineRate`) and `view` builds State.exclusiveShop. Receipts, saving and the
+	`useCredit` spends a saved credit (Request UseCredit), `applyPasses` sets the runtime Game Pass effects
+	(`data.pass*`), `applySubscriptions` / `stepDaily` the Slime Club and its daily credits, `claimPerk` the VIP's
+	daily server potion, and `view` builds State.exclusiveShop. Receipts, saving and the
 	MarketplaceService callbacks live in PurchaseService. Never errors; no Roblox APIs.
 ]]
 
@@ -32,11 +33,15 @@ local EggKind = if Shared then require(Shared.EggKind) else require("../shared/E
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local ExclusiveRotation = if Shared then require(Shared.ExclusiveRotation) else require("../shared/ExclusiveRotation")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local Growth = if Shared then require(Shared.Growth) else require("../shared/Growth")
+local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared/PetSeats")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
+local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -46,6 +51,7 @@ type Session = World.Session
 -- session data now (the session-locked Persistence save; yields), true = written; nil = can't (a gift becomes a credit).
 export type Context = {
 	features: { [string]: boolean }?,
+	requestWeather: ((id: string) -> boolean)?, -- the Weather service (Weather Totem); nil = no weather here
 	save: ((userId: number, data: any) -> boolean)?,
 }
 
@@ -93,7 +99,7 @@ local function addSeat(data: PlayerData.Data, seatId: string): boolean
 	return true
 end
 
-local function addCredit(data: PlayerData.Data, kind: "brew" | "hatch")
+local function addCredit(data: PlayerData.Data, kind: "brew" | "hatch" | "rain" | "boss" | "totem" | "snack")
 	data.credits[kind] = math.min(data.credits[kind] + 1, SHOP.creditMax)
 end
 
@@ -360,6 +366,129 @@ function Purchases.equipBatSkin(session: Session, skinId: string): (boolean, str
 	return true, nil
 end
 
+-- Server boosts (contract/exclusive-shop.md §14): Slime Rain now, the boss now, the Weather Totem. Each is refused
+-- (and kept as a credit) while it can't happen: a rain or boss already on, the server's cooldown, no weather service.
+
+-- Why a paid Slime Rain can't start now on this server; nil = it can.
+function Purchases.rainRefusal(world: World, now: number): string?
+	if world.raining or Spawner.rain(world, now) then
+		return "a Slime Rain is already falling"
+	end
+	if world.boss ~= nil then
+		return "not during a boss"
+	end
+	local last = world.paidRainAt
+	if last and now - last < SHOP.serverBoosts.rainCooldown then
+		return `the next paid rain is possible in {math.ceil((SHOP.serverBoosts.rainCooldown - (now - last)) / 60)} min`
+	end
+	return nil
+end
+
+-- Why the boss can't be summoned now on this server; nil = it can.
+function Purchases.summonRefusal(world: World, now: number): string?
+	if world.boss ~= nil then
+		return "the boss is already here"
+	end
+	local warning = Config.BOSS.WARNING_SECONDS
+	if world.nextBossAt - now <= warning then
+		return "the boss is on its way already"
+	end
+	if BossEvent.rainBlocks(world, now, now + warning) then
+		return "not during a Slime Rain"
+	end
+	local last = world.summonedAt
+	if last and now - last < SHOP.serverBoosts.summonCooldown then
+		return `the boss can be summoned again in {math.ceil((SHOP.serverBoosts.summonCooldown - (now - last)) / 60)} min`
+	end
+	return nil
+end
+
+local function startRain(world: World, session: Session, now: number): (boolean, string?)
+	local refusal = Purchases.rainRefusal(world, now)
+	if refusal then
+		return false, refusal
+	end
+	world.paidRainAt = now
+	Spawner.forceRain(world, now)
+	World.notify(world, nil, `{session.name} started a Slime Rain for everyone!`, "good", "Rain")
+	World.markAllDirty(world)
+	return true, nil
+end
+
+local function summonBoss(world: World, session: Session, now: number): (boolean, string?)
+	local refusal = Purchases.summonRefusal(world, now)
+	if refusal then
+		return false, refusal
+	end
+	world.summonedAt = now
+	world.nextBossAt = now + Config.BOSS.WARNING_SECONDS
+	World.notify(world, nil, `{session.name} summoned the boss! It arrives soon.`, "good", nil)
+	World.markAllDirty(world)
+	return true, nil
+end
+
+local function callWeather(world: World, session: Session, now: number, ctx: Context?): (boolean, string?)
+	local request = ctx and ctx.requestWeather
+	if not (request and Config.FEATURES.Weather == true) then
+		return false, "no weather here"
+	end
+	local _, weather = Consumables.stock(Consumables.slotAt(now))
+	local ok, called = pcall(request, weather)
+	if not (ok and called) then
+		return false, "the weather can't change that way right now"
+	end
+	World.notify(world, nil, `{session.name} used a Weather Totem: {weather} is next!`, "good", nil)
+	World.markAllDirty(world)
+	return true, nil
+end
+
+-- The owned slime a Growth Snack feeds: `slimeId` when it is a grown-up-able slime on a pad, else the least grown
+-- one on a pad. Eggs and fully grown slimes never.
+function Purchases.snackTarget(world: World, session: Session, slimeId: string?): Genome.Slime?
+	local best: Genome.Slime? = nil
+	for _, slime in session.data.slimes do
+		local fits = slime.pad ~= nil
+			and slime.egg == nil
+			and (slime.growth or 0) < 1
+			and not World.isBusy(world, slime.id)
+		if fits and slime.id == slimeId then
+			return slime
+		end
+		if fits and (best == nil or (slime.growth or 0) < ((best :: Genome.Slime).growth or 0)) then
+			best = slime
+		end
+	end
+	return best
+end
+
+local function feedSnack(world: World, session: Session, slimeId: string?): boolean
+	local slime = Purchases.snackTarget(world, session, slimeId)
+	if not slime then
+		return false
+	end
+	Growth.advance(slime, SHOP.growthSnackSeconds)
+	World.markDirty(session)
+	World.notify(world, session.userId, `{Genome.displayName(slime)} ate a Growth Snack and grew!`, "good", "Gift")
+	return true
+end
+
+-- AimSnack: remembers which slime the next GrowthSnack receipt feeds. Returns (ok, reason).
+function Purchases.aimSnack(world: World, session: Session, slimeId: string): (boolean, string?)
+	local slime = Purchases.snackTarget(world, session, slimeId)
+	if not slime or slime.id ~= slimeId then
+		return false, "that slime can't grow any more"
+	end
+	session.snackTarget = slimeId
+	return true, nil
+end
+
+-- True when the daily streak is broken and a KeepStreak would save it: a streak of 2+ days whose last claim was
+-- before yesterday, today not claimed yet.
+function Purchases.streakKeepable(data: PlayerData.Data, now: number): boolean
+	local today = Purchases.day(now)
+	return data.daily.streak >= 2 and data.daily.lastDay < today - 1
+end
+
 --[[
 	Applies one purchase of `productKey` to `session`. Returns (ok, reason): false only for an unknown product or the
 	shop being off, and then nothing changed. A purchase with nothing to apply right now (a seat already owned, no
@@ -433,6 +562,48 @@ function Purchases.grant(
 		world.potionUntil = Consumables.extendPotion(world.potionUntil, now)
 		World.notify(world, nil, `{session.name} gave the server a Luck Potion!`, "good", nil)
 		World.markAllDirty(world)
+	elseif kind == "slimeRain" or kind == "summonBoss" or kind == "weatherTotem" then
+		local credit: "rain" | "boss" | "totem" = if kind == "slimeRain"
+			then "rain"
+			elseif kind == "summonBoss" then "boss"
+			else "totem"
+		local ok = if kind == "slimeRain"
+			then startRain(world, session, now)
+			elseif kind == "summonBoss" then summonBoss(world, session, now)
+			else callWeather(world, session, now, ctx)
+		if not ok then
+			addCredit(data, credit)
+			World.notify(
+				world,
+				userId,
+				"Not possible right now: saved as a credit. Use it in the Exclusive shop.",
+				"info",
+				nil
+			)
+		end
+	elseif kind == "boost" then
+		Codes.addBoost(data, grant.mult, grant.seconds / 60, now)
+		World.notify(world, userId, `{grant.mult}x income for {math.floor(grant.seconds / 60)} min!`, "good", "Gift")
+	elseif kind == "keepStreak" then
+		if Purchases.streakKeepable(data, now) then
+			data.daily.lastDay = Purchases.day(now) - 1
+			World.notify(
+				world,
+				userId,
+				`Your {data.daily.streak} day streak is safe! Claim today's reward.`,
+				"good",
+				"Daily"
+			)
+		else
+			World.notify(world, userId, "Your streak is safe.", "good", "Daily")
+		end
+	elseif kind == "growthSnack" then
+		local target = session.snackTarget
+		session.snackTarget = nil
+		if not feedSnack(world, session, target) then
+			addCredit(data, "snack")
+			World.notify(world, userId, "No slime can grow right now: saved as a snack credit.", "info", nil)
+		end
 	elseif kind == "trail" or kind == "batSkin" then
 		Purchases.giveItem(data, productKey)
 		World.notify(world, userId, `{Purchases.itemName(productKey)} is yours! Wear it in Style.`, "good", "Gift")
@@ -499,6 +670,33 @@ function Purchases.useCredit(
 		end
 		data.lockBreakCredits -= 1
 		return true, nil
+	elseif kind == "rain" or kind == "boss" or kind == "totem" then
+		local credits = data.credits :: any
+		if credits[kind] < 1 then
+			return false, "no credit of that"
+		end
+		local ok, reason
+		if kind == "rain" then
+			ok, reason = startRain(world, session, now)
+		elseif kind == "boss" then
+			ok, reason = summonBoss(world, session, now)
+		else
+			ok, reason = callWeather(world, session, now, ctx)
+		end
+		if not ok then
+			return false, reason
+		end
+		credits[kind] -= 1
+		return true, nil
+	elseif kind == "snack" then
+		if data.credits.snack < 1 then
+			return false, "no snack credits"
+		end
+		if not feedSnack(world, session, slimeId) then
+			return false, "no slime can grow right now"
+		end
+		data.credits.snack -= 1
+		return true, nil
 	elseif kind == "brew" then
 		if data.credits.brew < 1 then
 			return false, "no brew credits"
@@ -535,19 +733,36 @@ function Purchases.useCredit(
 end
 
 --[[
-	Sets the runtime Game Pass factors from `passes` (pass key -> owned): Income2x into Perks.bonusMultiplier,
-	Offline2x as the offline rate. When the offline rate goes up after this join's payout was made (pass checks
-	finish after the join), the difference is paid now. Returns that top-up (0 when none).
+	Sets the runtime Game Pass effects from `passes` (pass key -> owned), field by field (Config.ExclusivePass):
+	incomeMult (every owned one multiplies) into Perks.bonusMultiplier, offlineRate as the offline rate, brewFactor
+	into Perks.brewFactor, warmAway, luckBonus into Perks.luckChance; radar and vip are read from `session.passes`.
+	When the offline rate goes up after this join's payout was made (pass checks finish after the join), the
+	difference is paid now. Returns that top-up (0 when none).
 ]]
 function Purchases.applyPasses(session: Session, passes: { [string]: boolean }): number
 	local data = session.data
 	local owned: { [string]: boolean } = {}
-	for key in SHOP.passes do
+	local income, brew, luck = 1, 1, 0
+	local offline: number? = nil
+	local warm = false
+	for key, def in SHOP.passes do
 		owned[key] = passes[key] == true
+		if owned[key] then
+			income *= def.incomeMult or 1
+			if def.offlineRate then
+				offline = math.max(offline or 0, def.offlineRate)
+			end
+			brew *= def.brewFactor or 1
+			warm = warm or def.warmAway == true
+			luck += def.luckBonus or 0
+		end
 	end
 	session.passes = owned
-	data.passIncomeMult = if owned.Income2x then SHOP.passes.Income2x.incomeMult else nil
-	data.passOfflineRate = if owned.Offline2x then SHOP.passes.Offline2x.offlineRate else nil
+	data.passIncomeMult = if income ~= 1 then income else nil
+	data.passOfflineRate = offline
+	data.passBrewFactor = if brew ~= 1 then brew else nil
+	data.passWarmNest = if warm then true else nil
+	data.passLuckBonus = if luck > 0 then luck else nil
 	World.markDirty(session)
 	local paidRate, paid = session.offlineRate, session.offlinePaid or 0
 	local rate = math.max(data.passOfflineRate or 0, Config.OFFLINE_RATE)
@@ -568,6 +783,113 @@ function Purchases.applyPasses(session: Session, passes: { [string]: boolean }):
 		welcome.cash += extra
 	end
 	return extra
+end
+
+-- True when `session` owns the Game Pass `key` (checked on join, never saved).
+function Purchases.hasPass(session: Session, key: string): boolean
+	return session.passes ~= nil and session.passes[key] == true
+end
+
+-- True when `session` owns a pass with the effect `field` (a Config.ExclusivePass field, e.g. "radar", "vip").
+function Purchases.hasEffect(session: Session, field: string): boolean
+	for key, def in SHOP.passes do
+		if (def :: any)[field] and Purchases.hasPass(session, key) then
+			return true
+		end
+	end
+	return false
+end
+
+-- True while `session` is subscribed to `key` (Config.EXCLUSIVE_SHOP.subscriptions; checked on join, never saved).
+function Purchases.subscribed(session: Session, key: string): boolean
+	return session.subscriptions ~= nil and session.subscriptions[key] == true
+end
+
+-- The tag `session` wears (Constants.MEMBER_ATTRIBUTE): "vip", "club" or nil. VIP wins when both.
+function Purchases.member(session: Session): string?
+	if Purchases.hasEffect(session, "vip") then
+		return "vip"
+	elseif Purchases.subscribed(session, "SlimeClub") then
+		return "club"
+	end
+	return nil
+end
+
+-- The UTC day number of `now`: daily perks reset at 00:00 UTC, the same on every server.
+function Purchases.day(now: number): number
+	return math.floor(now / 86400)
+end
+
+local function perkDays(data: PlayerData.Data): PlayerData.PerkDays
+	local days = data.perkDays or {}
+	data.perkDays = days
+	return days
+end
+
+--[[
+	Once per UTC day while subscribed to the Slime Club, its daily skip credits (subscriptions.SlimeClub.daily) join
+	`data.credits` (capped at creditMax) and the player is told. Cheap enough to call every second.
+]]
+function Purchases.stepDaily(world: World, session: Session, now: number)
+	if not Purchases.subscribed(session, "SlimeClub") then
+		return
+	end
+	local today = Purchases.day(now)
+	local days = perkDays(session.data)
+	if days.club == today then
+		return
+	end
+	days.club = today
+	local daily = SHOP.subscriptions.SlimeClub.daily
+	local credits = session.data.credits
+	credits.brew = math.min(credits.brew + daily.brew, SHOP.creditMax)
+	credits.hatch = math.min(credits.hatch + daily.hatch, SHOP.creditMax)
+	World.markDirty(session)
+	World.notify(world, session.userId, "Slime Club: a free Finish now and Hatch now for today!", "good", "Gift")
+end
+
+-- Sets the runtime subscriptions from `subs` (subscription key -> active), then gives today's Club credits.
+function Purchases.applySubscriptions(world: World, session: Session, subs: { [string]: boolean }, now: number)
+	local active: { [string]: boolean } = {}
+	for key in SHOP.subscriptions do
+		active[key] = subs[key] == true
+	end
+	session.subscriptions = active
+	World.markDirty(session)
+	Purchases.stepDaily(world, session, now)
+end
+
+-- True while a VIP's free server Luck Potion of today is still unused.
+function Purchases.vipPotionReady(session: Session, now: number): boolean
+	if not Purchases.hasEffect(session, "vip") then
+		return false
+	end
+	local days = session.data.perkDays
+	return not (days and days.vipPotion == Purchases.day(now))
+end
+
+--[[
+	ClaimPerk: "vipPotion" gives the server a Luck Potion, once per UTC day, for a VIP. Refused where paid random items
+	are restricted (the potion changes the fountain odds). Returns (ok, player-facing reason).
+]]
+function Purchases.claimPerk(world: World, session: Session, perk: string, now: number): (boolean, string?)
+	if perk ~= "vipPotion" then
+		return false, "unknown perk"
+	end
+	if not Purchases.hasEffect(session, "vip") then
+		return false, "that is a VIP perk"
+	end
+	if session.paidRandomAllowed ~= true then
+		return false, "not available in your region"
+	end
+	if not Purchases.vipPotionReady(session, now) then
+		return false, "you gave today's potion already: back tomorrow"
+	end
+	perkDays(session.data).vipPotion = Purchases.day(now)
+	world.potionUntil = Consumables.extendPotion(world.potionUntil, now)
+	World.notify(world, nil, `VIP {session.name} gave the server a Luck Potion!`, "good", nil)
+	World.markAllDirty(world)
+	return true, nil
 end
 
 -- The carry trail and Bat skin `session` wears now.
@@ -599,12 +921,21 @@ function Purchases.view(session: Session, now: number, world: World?): Types.Exc
 	for key in SHOP.passes do
 		passes[key] = session.passes ~= nil and session.passes[key] == true
 	end
+	local subscriptions: { [string]: boolean } = {}
+	for key in SHOP.subscriptions do
+		subscriptions[key] = session.subscriptions ~= nil and session.subscriptions[key] == true
+	end
 	local record = data.offlineDouble
 	return {
 		owned = owned,
 		passes = passes,
 		starterClaimed = data.starterBundle == true,
-		credits = { brew = data.credits.brew, hatch = data.credits.hatch },
+		credits = table.clone(data.credits),
+		serverBoosts = {
+			rain = if world then Purchases.rainRefusal(world, now) == nil else false,
+			boss = if world then Purchases.summonRefusal(world, now) == nil else false,
+		},
+		streakKeepable = Purchases.streakKeepable(data, now),
 		offlineDouble = if record then { cash = record.cash, available = not record.used } else nil,
 		paidRandomAllowed = session.paidRandomAllowed == true,
 		featured = ExclusiveRotation.featured(ExclusiveRotation.week(now)),
@@ -615,6 +946,10 @@ function Purchases.view(session: Session, now: number, world: World?): Types.Exc
 		lockBreak = if pass then { plot = pass.plot, untilTime = pass.untilTime } else nil,
 		lockBreakCredits = data.lockBreakCredits,
 		giftCredits = table.clone(data.giftCredits),
+		subscriptions = subscriptions,
+		vipPotion = Purchases.vipPotionReady(session, now),
+		luck = { base = Perks.baseLuckChance(data), bonus = SHOP.passes.LuckyCharmPlus.luckBonus or 0 },
+		radar = if session.radar then table.clone(session.radar) else {},
 	}
 end
 

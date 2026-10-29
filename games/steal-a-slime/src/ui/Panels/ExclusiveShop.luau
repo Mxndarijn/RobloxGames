@@ -937,6 +937,9 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local equip = action.equip
 		local canEquip = equip ~= nil and hasAction(equip.request)
 		equipButton.instance.Visible = action.kind == "equip" and canEquip
+		if action.kind == "equip" then
+			equipButton.setText(action.text)
+		end
 		local ownedWell = action.kind == "equip" and not canEquip -- the server can't equip it yet
 		well.Visible = isWaiting or action.kind == "well" or ownedWell
 		well.Text = if isWaiting

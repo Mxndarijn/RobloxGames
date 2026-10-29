@@ -256,13 +256,15 @@ describe("State.exclusiveShop", function()
 		local s = ServerFixtures.join(world, 1)
 		Purchases.grant(world, s, "Seat_ufo", T0, ON)
 		Purchases.applyPasses(s, { Income2x = true })
-		s.data.credits = { brew = 2, hatch = 0 }
+		s.data.credits = { brew = 2, hatch = 0, rain = 1, boss = 0, totem = 0, snack = 0 }
 		s.data.offlineDouble = { cash = 50, at = T0, used = false }
 		local view = Purchases.view(s, T0)
 		expect(view.owned).toEqual({ ufo = true })
-		expect(view.passes).toEqual({ Income2x = true, Offline2x = false })
+		expect(view.passes.Income2x).toBe(true)
+		expect(view.passes.Offline2x).toBe(false)
+		expect(view.passes.VIP).toBe(false)
 		expect(view.starterClaimed).toBe(false)
-		expect(view.credits).toEqual({ brew = 2, hatch = 0 })
+		expect(view.credits).toEqual({ brew = 2, hatch = 0, rain = 1, boss = 0, totem = 0, snack = 0 })
 		expect(view.offlineDouble).toEqual({ cash = 50, available = true })
 		expect(view.paidRandomAllowed).toBe(false)
 		expect(view.featured).toEqual(ExclusiveRotation.featured(ExclusiveRotation.week(T0)))
@@ -328,5 +330,192 @@ describe("roll first", function()
 		expect(type((b.data.vat :: any).seed)).toBe("number")
 		expect(VatState.cancel(b.data)).toBe(true)
 		expect((b.data.vat :: any).seed).toBeNil()
+	end)
+end)
+
+describe("Game Pass effects", function()
+	it("VIP and x2 income multiply; Fast Brew halves brews; Warm Nest and Lucky Charm+ set their fields", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		local brewBefore = Perks.brewFactor(s.data)
+		local luckBefore = Perks.luckChance(s.data)
+		Purchases.applyPasses(
+			s,
+			{ VIP = true, Income2x = true, FastBrew = true, WarmNest = true, LuckyCharmPlus = true }
+		)
+		expect(math.abs((s.data.passIncomeMult :: number) - 2.2) < 1e-9).toBe(true)
+		expect(Perks.brewFactor(s.data)).toBe(brewBefore * 0.5)
+		expect(s.data.passWarmNest).toBe(true)
+		expect(math.abs(Perks.luckChance(s.data) - (luckBefore + 0.05)) < 1e-9).toBe(true)
+		expect(Perks.baseLuckChance(s.data)).toBe(luckBefore)
+		Purchases.applyPasses(s, {})
+		expect(s.data.passIncomeMult).toBeNil()
+		expect(s.data.passBrewFactor).toBeNil()
+		expect(s.data.passWarmNest).toBeNil()
+		expect(s.data.passLuckBonus).toBeNil()
+		expect(Perks.brewFactor(s.data)).toBe(brewBefore)
+	end)
+	it("Warm Nest warms pad eggs while the owner is away from home", function()
+		local function hatchAtAfter(warm: boolean): number
+			local world = ServerFixtures.world()
+			local pad = egg("e", "speckled", T0 + 600, 1)
+			local s = ServerFixtures.join(world, 1, { pad }, 0)
+			s.home = false
+			if warm then
+				Purchases.applyPasses(s, { WarmNest = true })
+			end
+			require("../src/server/MysteryEgg").step(world, 10, T0 + 10)
+			return pad.egg.hatchAt
+		end
+		expect(hatchAtAfter(true) < hatchAtAfter(false)).toBe(true)
+	end)
+end)
+
+describe("Slime Club and VIP perks", function()
+	it("the Club gives one Finish now and one Hatch now credit per UTC day", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		Purchases.applySubscriptions(world, s, { SlimeClub = true }, T0)
+		expect(s.data.credits.brew).toBe(1)
+		expect(s.data.credits.hatch).toBe(1)
+		Purchases.stepDaily(world, s, T0 + 60)
+		expect(s.data.credits.brew).toBe(1) -- once a day
+		Purchases.stepDaily(world, s, T0 + 86400)
+		expect(s.data.credits.brew).toBe(2)
+		Purchases.applySubscriptions(world, s, { SlimeClub = false }, T0 + 2 * 86400)
+		expect(s.data.credits.brew).toBe(2) -- not a member any more
+		expect(Purchases.member(s)).toBeNil()
+	end)
+	it("a VIP gives the server a Luck Potion once a day, never where paid random items are restricted", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		expect(select(2, Purchases.claimPerk(world, s, "vipPotion", T0))).toBe("that is a VIP perk")
+		Purchases.applyPasses(s, { VIP = true })
+		expect(Purchases.member(s)).toBe("vip")
+		s.paidRandomAllowed = false
+		expect(select(2, Purchases.claimPerk(world, s, "vipPotion", T0))).toBe("not available in your region")
+		s.paidRandomAllowed = true
+		expect(Purchases.vipPotionReady(s, T0)).toBe(true)
+		expect((Purchases.claimPerk(world, s, "vipPotion", T0))).toBe(true)
+		expect((world.potionUntil or 0) > T0).toBe(true)
+		expect((Purchases.claimPerk(world, s, "vipPotion", T0 + 60))).toBe(false)
+		expect(Purchases.vipPotionReady(s, T0 + 86400)).toBe(true)
+	end)
+end)
+
+describe("Thief Radar", function()
+	it("lists who is in the owner's base and tells an away owner once per visit", function()
+		local ThiefRadar = require("../src/server/ThiefRadar")
+		local world = ServerFixtures.world()
+		local owner = ServerFixtures.join(world, 1)
+		local visitor = ServerFixtures.join(world, 2)
+		Purchases.applyPasses(owner, { ThiefRadar = true })
+		owner.home = false
+		world.guard[2] = { plot = { index = owner.plotIndex, since = T0 } } :: any
+		ThiefRadar.step(world, nil)
+		expect(owner.radar).toEqual({ 2 })
+		local function told(): number
+			local n = 0
+			for _, text in ServerFixtures.notifications(world, 1) do
+				if string.find(text, visitor.name, 1, true) then
+					n += 1
+				end
+			end
+			return n
+		end
+		expect(told()).toBe(1)
+		ThiefRadar.step(world, nil)
+		expect(told()).toBe(1) -- once per visit
+		world.guard[2] = { plot = nil } :: any
+		ThiefRadar.step(world, nil)
+		expect(owner.radar).toEqual({})
+		Purchases.applyPasses(owner, {})
+		ThiefRadar.step(world, nil)
+		expect(owner.radar).toBeNil()
+	end)
+end)
+
+describe("Server boosts and small comforts", function()
+	it("a paid Slime Rain starts now, once per server cooldown; refused it becomes a credit", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		expect(Purchases.rainRefusal(world, T0)).toBeNil()
+		expect((Purchases.grant(world, s, "SlimeRain", T0, ON))).toBe(true)
+		expect(world.paidRainAt).toBe(T0)
+		expect(world.rainForcedUntil ~= nil).toBe(true)
+		local later = T0 + Config.RAIN_DURATION + 1
+		expect(Purchases.rainRefusal(world, later) ~= nil).toBe(true) -- the cooldown
+		Purchases.grant(world, s, "SlimeRain", later, ON)
+		expect(s.data.credits.rain).toBe(1)
+		local free = T0 + Config.EXCLUSIVE_SHOP.serverBoosts.rainCooldown + Config.RAIN_DURATION + 1
+		if Purchases.rainRefusal(world, free) == nil then
+			expect((Purchases.useCredit(world, s, "rain", nil, free, ON))).toBe(true)
+			expect(s.data.credits.rain).toBe(0)
+		end
+	end)
+	it("summoning the boss brings it after the warning, never twice within the cooldown", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		world.nextBossAt = T0 + 5000
+		expect(Purchases.summonRefusal(world, T0)).toBeNil()
+		Purchases.grant(world, s, "SummonBoss", T0, ON)
+		expect(world.nextBossAt).toBe(T0 + Config.BOSS.WARNING_SECONDS)
+		world.nextBossAt = T0 + 5000
+		Purchases.grant(world, s, "SummonBoss", T0 + 60, ON)
+		expect(s.data.credits.boss).toBe(1)
+		expect(world.nextBossAt).toBe(T0 + 5000)
+	end)
+	it("the Weather Totem asks the weather service; without one it is a credit", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		Purchases.grant(world, s, "WeatherTotem", T0, ON)
+		expect(s.data.credits.totem).toBe(1)
+		if Config.FEATURES.Weather == true then
+			local asked = nil
+			local weatherCtx = {
+				features = {},
+				requestWeather = function(id: string): boolean
+					asked = id
+					return true
+				end,
+			}
+			Purchases.grant(world, s, "WeatherTotem", T0, weatherCtx)
+			expect(asked ~= nil).toBe(true)
+			expect(s.data.credits.totem).toBe(1)
+		end
+	end)
+	it("an income boost adds x2 into the capped code boost", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		Purchases.grant(world, s, "IncomeBoost15", T0, ON)
+		expect(s.data.boostMult >= 2).toBe(true)
+		expect(s.data.boostUntil).toBe(T0 + 900)
+	end)
+	it("Keep my streak carries a broken streak on to today's claim", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		local today = math.floor(T0 / 86400)
+		s.data.daily = { lastDay = today - 3, streak = 5 }
+		expect(Purchases.streakKeepable(s.data, T0)).toBe(true)
+		Purchases.grant(world, s, "KeepStreak", T0, ON)
+		expect(Purchases.streakKeepable(s.data, T0)).toBe(false)
+		local Progression = require("../src/shared/Progression")
+		Progression.claimDaily(s.data, T0)
+		expect(s.data.daily.streak).toBe(6)
+	end)
+	it("a Growth snack feeds the aimed slime, else the least grown one; nothing to feed is a credit", function()
+		local world = ServerFixtures.world()
+		local a, b = Fixtures.slime("a", 1), Fixtures.slime("b", 1)
+		a.growth, b.growth = 0.5, 0.1
+		local s = ServerFixtures.join(world, 1, { a, b }, 0)
+		expect((Purchases.aimSnack(world, s, "a"))).toBe(true)
+		Purchases.grant(world, s, "GrowthSnack", T0, ON)
+		expect((a.growth :: number) > 0.5).toBe(true)
+		expect(b.growth).toBe(0.1)
+		Purchases.grant(world, s, "GrowthSnack", T0, ON)
+		expect((b.growth :: number) > 0.1).toBe(true)
+		a.growth, b.growth = 1, 1
+		Purchases.grant(world, s, "GrowthSnack", T0, ON)
+		expect(s.data.credits.snack).toBe(1)
 	end)
 end)

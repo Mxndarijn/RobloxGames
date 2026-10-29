@@ -16,7 +16,8 @@
 	Hatch stays the server's HatchPrompt (F, gamepad ButtonX). With `hatchNow` an egg that
 	is still incubating gets `HatchNowPrompt` on the same key: "Hatch now · R$25" or "Use credit" from
 	`hatchNow.quick`, calling `hatchNow.trigger(slimeId)`. The two never show together: one is for an egg that
-	waits, the server's for one that is ready; `tick()` drops it the moment the egg turns ready. Every key comes from
+	waits, the server's for one that is ready; `tick()` drops it the moment the egg turns ready. A slime that is no egg
+	gets the same prompt when `hatchNow.quick` offers something for it (the Growth snack). Every key comes from
 	Constants.SLIME_PROMPT_KEYS, where no two prompts share one. The server's GrabPrompt on the same
 	Body is hidden from the owner (PromptHide). Prompts go when the slime leaves the pad (carried, escaping, sold,
 	merged) and come back when it returns. `update(state)` refreshes their texts from the latest State.
@@ -209,9 +210,7 @@ function SlimeKeys.start(opts: Options): Handle
 			return
 		end
 		local isEgg = entry.model:GetAttribute(EGG_ATTRIBUTE) ~= nil
-		if isEgg then
-			hatchNowLabel(body, entry, id)
-		end
+		hatchNowLabel(body, entry, id) -- an egg's Hatch now, or a growing slime's Growth snack (`hatchNow.quick` decides)
 		local l = SlimeKeys.labels(id, nameOf(body), isEgg, state, opts.formatCash)
 		if entry.favorite and l.favorite then
 			entry.favorite.ActionText = l.favorite.action

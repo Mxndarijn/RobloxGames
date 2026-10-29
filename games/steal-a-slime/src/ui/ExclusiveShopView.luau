@@ -22,14 +22,17 @@ local Format = if script then require(script.Parent.Format) else require("./Form
 
 local ExclusiveShopView = {}
 
-export type Purchase = { kind: "product" | "pass", id: number }
+local boostCredit: (state: any, card: any) -> string?
+
+-- `id`: the Developer Product / Game Pass id; a subscription sells by `subscriptionId` ("EXP-...") and keeps id 0.
+export type Purchase = { kind: "product" | "pass" | "subscription", id: number, subscriptionId: string? }
 
 export type CardState = "buy" | "offsale" | "owned" | "equipped" | "info"
 
-export type Kind = "seat" | "trail" | "batSkin" | "product" | "pass" | "info"
+export type Kind = "seat" | "trail" | "batSkin" | "product" | "pass" | "subscription" | "info"
 
 export type Card = {
-	key: string, -- "seat:<id>", "trail:<id>", "batSkin:<id>", "product:<key>", "pass:<key>", "info:<key>"
+	key: string, -- "seat:<id>", "trail:<id>", "batSkin:<id>", "product:<key>", "pass:<key>", "sub:<key>", "info:<key>"
 	kind: Kind,
 	id: string, -- seat id, product key or pass key
 	title: string,
@@ -39,7 +42,7 @@ export type Card = {
 	tag: string, -- the card's chip: the price, "Owned", "Equipped" or where it is sold
 }
 
-export type Equip = { request: string, arg: string } -- Request(request, arg): EquipPetSeat / EquipTrail / EquipBatSkin
+export type Equip = { request: string, arg: string } -- Request(request, arg): EquipPetSeat / EquipTrail / EquipBatSkin / ClaimPerk
 
 export type Action = {
 	kind: "buy" | "offsale" | "equip" | "well",
@@ -72,8 +75,8 @@ export type Detail = {
 	state: CardState,
 	exclusive: boolean, -- an Exclusive seat: the gold tag
 	action: Action,
-	odds: { OddsRow }?, -- the paid Luck Potion: fountain odds without / with it
-	effect: { string }?, -- the paid Luck Potion: its effect in numbers
+	odds: { OddsRow }?, -- a paid probability modifier (Luck Potion, Lucky Charm+): the odds without / with it
+	effect: { string }?, -- a paid probability modifier: its effect in numbers
 	unequip: Equip?, -- an equipped trail / Bat skin: Request(request, "") takes it off
 	unequipText: string?,
 	gift: Gift?, -- every cosmetic (seat, trail, Bat skin); never a pass or a boost
@@ -116,6 +119,10 @@ ExclusiveShopView.UNEQUIP_TRAIL = "Unequip"
 ExclusiveShopView.DEFAULT_BAT = "Use default Bat"
 ExclusiveShopView.TRAIL_TEXT = "Streams behind you while you carry a slime. Everyone can see it."
 ExclusiveShopView.BAT_TEXT = "A new look for your Bat. It hits exactly like the default Bat."
+ExclusiveShopView.VIP_POTION = "Give the server a potion"
+ExclusiveShopView.VIP_POTION_USED = "Potion given today"
+ExclusiveShopView.SUBSCRIBED = "Member"
+ExclusiveShopView.LUCK_NOTE = "Only for wild slimes you bring home. Stolen slimes never get the Lucky Charm."
 ExclusiveShopView.ODDS_NOTE = "Fountain drops before rain and events. Each potion adds time; the boost never stacks."
 
 -- Shop texts per product / pass key (Config.EXCLUSIVE_SHOP keys).
@@ -139,6 +146,75 @@ ExclusiveShopView.TEXTS = table.freeze({
 		title = "x2 offline cash",
 		icon = "Upgrade_OfflineCap",
 		text = "Earn half your income while you are away instead of a quarter, for good.",
+	}),
+	VIP = table.freeze({
+		title = "VIP",
+		icon = "Badge_Millionaire",
+		text = "A gold VIP tag over your name and in chat, +10% income, and one free Luck Potion for the whole server every day.",
+	}),
+	FastBrew = table.freeze({
+		title = "Fast brew",
+		icon = "Upgrade_QuickBrew",
+		text = "Every merge brews in half the time, for good. Stacks with the Quick Brew upgrade.",
+	}),
+	WarmNest = table.freeze({
+		title = "Warm nest",
+		icon = "MysteryEgg",
+		text = "Mystery Eggs on your pads incubate at the warm speed even while you are away from home.",
+	}),
+	LuckyCharmPlus = table.freeze({
+		title = "Lucky Charm+",
+		icon = "Upgrade_Luck",
+		text = "+5% chance that a wild slime you bring home turns one rarity higher.",
+	}),
+	ThiefRadar = table.freeze({
+		title = "Thief radar",
+		icon = "Goal_Steal",
+		text = "Tells you when someone walks into your base while you are away, and points you to them. Information only.",
+	}),
+	SlimeClub = table.freeze({
+		title = "Slime Club",
+		icon = "Daily",
+		text = "Monthly: a CLUB tag, and a free Finish now and Hatch now credit every day while you are a member.",
+	}),
+	SlimeRain = table.freeze({
+		title = "Slime Rain",
+		icon = "Event_rain",
+		text = "Starts a Slime Rain for the whole server right now: more slimes and rarer ones. At most one paid rain per server every 20 minutes, never during a boss. If it can't start, you keep it as a credit.",
+	}),
+	SummonBoss = table.freeze({
+		title = "Summon the boss",
+		icon = "Slap",
+		text = "The boss comes to this server after its usual warning. Once per server every 20 minutes. If it can't come now, you keep it as a credit.",
+	}),
+	WeatherTotem = table.freeze({
+		title = "Weather Totem",
+		icon = "Consumable_WeatherTotem",
+		text = "Makes the Item shop totem's weather the next one, for everyone on the server. If the weather can't change now, you keep it as a credit.",
+	}),
+	IncomeBoost15 = table.freeze({
+		title = "x2 income, 15 min",
+		icon = "Boost_Code",
+		text = "Doubles your income for 15 minutes. Adds to a running boost, up to the boost cap.",
+	}),
+	IncomeBoost60 = table.freeze({
+		title = "x2 income, 1 hour",
+		icon = "Boost_Code",
+		text = "Doubles your income for an hour. Adds to a running boost, up to the boost cap.",
+	}),
+	KeepStreak = table.freeze({
+		title = "Keep my streak",
+		icon = "Daily",
+		text = "Missed a day? Your daily streak carries on as if you had not.",
+		where = "Buy it on the Daily reward",
+		tag = "Daily",
+	}),
+	GrowthSnack = table.freeze({
+		title = "Growth snack",
+		icon = "Pet",
+		text = "One slime of yours grows 3 hours at once. Pick the slime on its pad.",
+		where = "Buy it on a slime's card",
+		tag = "On slime",
 	}),
 	FinishBrew = table.freeze({
 		title = "Finish now",
@@ -165,7 +241,19 @@ ExclusiveShopView.TEXTS = table.freeze({
 
 ExclusiveShopView.SEAT_TEXT = "Your follow pet rides on it, everywhere you go."
 
-local INFO_KEYS = { "FinishBrew", "HatchNow", "DoubleOffline" }
+local INFO_KEYS = { "FinishBrew", "HatchNow", "DoubleOffline", "KeepStreak", "GrowthSnack" }
+
+-- Boosts tab products, in order. `random`: changes the odds (hidden where paid random items are restricted).
+-- `credit`: the State.exclusiveShop.credits kind a refused one is kept as (spent with UseCredit).
+local BOOSTS = table.freeze({
+	table.freeze({ key = "ServerLuckPotion", random = true }),
+	table.freeze({ key = "SlimeRain", random = true, credit = "rain" }),
+	table.freeze({ key = "WeatherTotem", random = true, credit = "totem" }),
+	table.freeze({ key = "SummonBoss", credit = "boss" }),
+	table.freeze({ key = "IncomeBoost15" }),
+	table.freeze({ key = "IncomeBoost60" }),
+})
+ExclusiveShopView.BOOSTS = BOOSTS
 
 local function shopOf(state: any): any?
 	return if type(state) == "table" and type(state.exclusiveShop) == "table" then state.exclusiveShop else nil
@@ -189,13 +277,29 @@ function ExclusiveShopView.passPurchase(config: any, key: string): Purchase?
 end
 
 local function onSale(p: Purchase?): boolean
+	if p ~= nil and p.kind == "subscription" then
+		return type(p.subscriptionId) == "string" and p.subscriptionId ~= ""
+	end
 	return p ~= nil and type(p.id) == "number" and p.id > 0
+end
+
+function ExclusiveShopView.subscriptionPurchase(config: any, key: string): Purchase?
+	local cat = catalogueOf(config)
+	local def = cat and cat.subscriptions and cat.subscriptions[key]
+	return if def then { kind = "subscription", id = 0, subscriptionId = def.subscriptionId } else nil
 end
 
 local function robuxOf(config: any, key: string, pass: boolean?): number
 	local cat = catalogueOf(config)
 	local def = if cat then (if pass then cat.passes[key] else cat.products[key]) else nil
 	return if def then def.robux else 0
+end
+
+-- True for a pass that changes a roll (Lucky Charm+): hidden where paid random items are restricted.
+local function paidRandomPass(config: any, key: string): boolean
+	local cat = catalogueOf(config)
+	local def = cat and cat.passes[key]
+	return def ~= nil and def.luckBonus ~= nil
 end
 
 -- The Exclusive seat `id`'s name from Config.PET_SEATS (sentence case, as the Skins menu shows it).
@@ -340,6 +444,27 @@ local function passCard(shop: any, config: any, key: string): Card
 	}
 end
 
+local function subscriptionCard(shop: any, config: any, key: string): Card
+	local t = (ExclusiveShopView.TEXTS :: any)[key]
+	local cat = catalogueOf(config) :: any
+	local price = `{Format.robux(cat.subscriptions[key].robux)}/mo`
+	local active = type(shop.subscriptions) == "table" and shop.subscriptions[key] == true
+	local s: CardState = if active
+		then "owned"
+		elseif onSale(ExclusiveShopView.subscriptionPurchase(config, key)) then "buy"
+		else "offsale"
+	return {
+		key = `sub:{key}`,
+		kind = "subscription",
+		id = key,
+		title = t.title,
+		icon = t.icon,
+		priceText = price,
+		state = s,
+		tag = if active then ExclusiveShopView.SUBSCRIBED else price,
+	}
+end
+
 local function infoCard(key: string): Card
 	local t = (ExclusiveShopView.TEXTS :: any)[key]
 	return {
@@ -363,10 +488,26 @@ function ExclusiveShopView.tabs(state: any, config: any): { string }
 	return table.clone(cat.tabs)
 end
 
--- The pass keys in a fixed order (Config's table has none).
+-- The pass keys in their Perks tab order (Config.EXCLUSIVE_SHOP.passes[key].order, then by key).
 local function passKeys(config: any): { string }
+	local passes = (catalogueOf(config) :: any).passes
 	local keys = {}
-	for key in (catalogueOf(config) :: any).passes do
+	for key in passes do
+		table.insert(keys, key)
+	end
+	table.sort(keys, function(a: string, b: string): boolean
+		local oa, ob = passes[a].order or math.huge, passes[b].order or math.huge
+		if oa ~= ob then
+			return oa < ob
+		end
+		return a < b
+	end)
+	return keys
+end
+
+local function subscriptionKeys(config: any): { string }
+	local keys = {}
+	for key in (catalogueOf(config) :: any).subscriptions or {} do
 		table.insert(keys, key)
 	end
 	table.sort(keys)
@@ -403,11 +544,19 @@ function ExclusiveShopView.cards(tab: string, state: any, config: any): { Card }
 		end
 	elseif tab == "Perks" then
 		for _, key in passKeys(config) do
-			table.insert(out, passCard(shop, config, key))
+			if shop.paidRandomAllowed == true or not paidRandomPass(config, key) then
+				table.insert(out, passCard(shop, config, key))
+			end
+		end
+		for _, key in subscriptionKeys(config) do
+			table.insert(out, subscriptionCard(shop, config, key))
 		end
 	elseif tab == "Boosts" then
-		if shop.paidRandomAllowed == true then
-			table.insert(out, productCard(config, "ServerLuckPotion", false))
+		local products = (catalogueOf(config) :: any).products
+		for _, boost in BOOSTS do
+			if products[boost.key] and (shop.paidRandomAllowed == true or not boost.random) then
+				table.insert(out, productCard(config, boost.key, false))
+			end
 		end
 		for _, key in INFO_KEYS do
 			table.insert(out, infoCard(key))
@@ -464,6 +613,28 @@ function ExclusiveShopView.potionOdds(config: any): { OddsRow }
 	return out
 end
 
+-- The Lucky Charm odds without and with the Lucky Charm+ pass (State.exclusiveShop.luck: this player's chance).
+function ExclusiveShopView.luckOdds(state: any): ({ OddsRow }, { string })
+	local shop = shopOf(state)
+	local luck = shop and shop.luck
+	local base = if type(luck) == "table" and type(luck.base) == "number" then luck.base else 0
+	local bonus = if type(luck) == "table" and type(luck.bonus) == "number" then luck.bonus else 0
+	local rows = {
+		{
+			name = "Lucky Charm",
+			tier = 0,
+			base = ExclusiveShopView.percent(base),
+			boosted = ExclusiveShopView.percent(base + bonus),
+		},
+	}
+	local effect = {
+		`Your chance now: {ExclusiveShopView.percent(base)}`,
+		`With Lucky Charm+: {ExclusiveShopView.percent(base + bonus)}`,
+		ExclusiveShopView.LUCK_NOTE,
+	}
+	return rows, effect
+end
+
 -- The potion's effect in numbers.
 function ExclusiveShopView.potionEffect(config: any): { string }
 	local rare = config.RARITIES[3]
@@ -472,6 +643,21 @@ function ExclusiveShopView.potionEffect(config: any): { string }
 		`+{config.LUCK_POTION_SECONDS // 60} min for everyone on the server`,
 		`Up to {config.LUCK_POTION_MAX_SECONDS // 60} min queued`,
 	}
+end
+
+-- The credit kind a Boosts card spends instead of buying ("rain", "boss", "totem"), when State holds one.
+function boostCredit(state: any, card: Card): string?
+	if card.kind ~= "product" then
+		return nil
+	end
+	for _, boost in BOOSTS do
+		if boost.key == card.id and boost.credit then
+			local shop = shopOf(state)
+			local n = shop and type(shop.credits) == "table" and shop.credits[boost.credit]
+			return if type(n) == "number" and n > 0 then boost.credit else nil
+		end
+	end
+	return nil
 end
 
 local function findCard(key: string, state: any, config: any): Card?
@@ -507,12 +693,27 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 	elseif card.kind == "pass" then
 		purchase = ExclusiveShopView.passPurchase(config, card.id)
 		text = (ExclusiveShopView.TEXTS :: any)[card.id].text
+	elseif card.kind == "subscription" then
+		purchase = ExclusiveShopView.subscriptionPurchase(config, card.id)
+		text = (ExclusiveShopView.TEXTS :: any)[card.id].text
 	else
 		text = (ExclusiveShopView.TEXTS :: any)[card.id].text
 	end
 	local action: Action
 	if card.state == "equipped" then
 		action = { kind = "well", text = ExclusiveShopView.EQUIPPED }
+	elseif card.state == "owned" and card.kind == "pass" and card.id == "VIP" then
+		local shop = shopOf(state) :: any
+		action = if shop.vipPotion == true and shop.paidRandomAllowed == true
+			then {
+				kind = "equip",
+				text = ExclusiveShopView.VIP_POTION,
+				equip = { request = "ClaimPerk", arg = "vipPotion" },
+			}
+			elseif shop.paidRandomAllowed == true then { kind = "well", text = ExclusiveShopView.VIP_POTION_USED }
+			else { kind = "well", text = ExclusiveShopView.OWNED }
+	elseif card.state == "owned" and card.kind == "subscription" then
+		action = { kind = "well", text = ExclusiveShopView.SUBSCRIBED }
 	elseif card.state == "owned" then
 		local equip: Equip? = if card.kind == "seat"
 			then { request = "EquipPetSeat", arg = card.id }
@@ -523,12 +724,22 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 			else { kind = "well", text = ExclusiveShopView.OWNED }
 	elseif card.state == "info" then
 		action = { kind = "well", text = (ExclusiveShopView.TEXTS :: any)[card.id].where }
+	elseif card.state == "buy" and boostCredit(state, card) then
+		action = {
+			kind = "equip",
+			text = ExclusiveShopView.USE_CREDIT,
+			equip = { request = "UseCredit", arg = boostCredit(state, card) :: string },
+		}
 	elseif card.state == "buy" then
 		action = { kind = "buy", text = `Buy · {card.priceText}`, purchase = purchase }
 	else
 		action = { kind = "offsale", text = ExclusiveShopView.OFF_SALE }
 	end
 	local potion = card.id == "ServerLuckPotion"
+	local luckRows, luckEffect = nil, nil
+	if card.kind == "pass" and paidRandomPass(config, card.id) then
+		luckRows, luckEffect = ExclusiveShopView.luckOdds(state)
+	end
 	local itemKey = ExclusiveShopView.itemKeyOf(card.key)
 	local worn = style ~= nil and card.state == "equipped"
 	return {
@@ -542,8 +753,8 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 		state = card.state,
 		exclusive = card.kind == "seat",
 		action = action,
-		odds = if potion then ExclusiveShopView.potionOdds(config) else nil,
-		effect = if potion then ExclusiveShopView.potionEffect(config) else nil,
+		odds = if potion then ExclusiveShopView.potionOdds(config) else luckRows,
+		effect = if potion then ExclusiveShopView.potionEffect(config) else luckEffect,
 		unequip = if worn then { request = style.request, arg = "" } else nil,
 		unequipText = if worn then style.unequip else nil,
 		gift = if itemKey then ExclusiveShopView.gift(itemKey, state, config) else nil,
@@ -628,7 +839,7 @@ end
 function ExclusiveShopView.tabOf(key: string): string
 	if string.sub(key, 1, 5) == "seat:" then
 		return "Clouds"
-	elseif string.sub(key, 1, 5) == "pass:" then
+	elseif string.sub(key, 1, 5) == "pass:" or string.sub(key, 1, 4) == "sub:" then
 		return "Perks"
 	elseif string.sub(key, 1, 6) == "trail:" or string.sub(key, 1, 8) == "batSkin:" then
 		return "Style"
@@ -720,6 +931,34 @@ function ExclusiveShopView.doubleQuickBuy(state: any, config: any): QuickBuy?
 		return nil
 	end
 	return quickBuy(config, "DoubleOffline", "Double it", false)
+end
+
+-- The Daily reward's "Keep my streak · R$25" while State says the streak broke (State.exclusiveShop.streakKeepable).
+function ExclusiveShopView.streakQuickBuy(state: any, config: any): QuickBuy?
+	local shop = shopOf(state)
+	if shop == nil or shop.streakKeepable ~= true then
+		return nil
+	end
+	return quickBuy(config, "KeepStreak", "Keep my streak", false)
+end
+
+-- A slime's "Growth snack · R$19" (or "Use credit" with a snack credit and `canUseCredit`): own slimes on a pad
+-- that are not eggs and not fully grown.
+function ExclusiveShopView.snackQuickBuy(state: any, slimeId: string, config: any, canUseCredit: boolean?): QuickBuy?
+	local shop = shopOf(state)
+	if shop == nil or type(state.slimes) ~= "table" or (catalogueOf(config) :: any).products.GrowthSnack == nil then
+		return nil
+	end
+	for _, view in state.slimes do
+		local slime = if type(view) == "table" then view.slime else nil
+		if type(slime) == "table" and slime.id == slimeId then
+			if slime.egg ~= nil or (type(slime.growth) == "number" and slime.growth >= 1) then
+				return nil
+			end
+			return quickBuy(config, "GrowthSnack", "Growth snack", canUseCredit == true and credits(shop, "snack") > 0)
+		end
+	end
+	return nil
 end
 
 -- What the client knows about a base door (Plot_<i> attributes) for the lock break quick-buy.

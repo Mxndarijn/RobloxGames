@@ -299,6 +299,7 @@ local purchases = PurchaseService.service({
 	end,
 	now = now,
 	wait = task.wait,
+	ctx = ctx, -- read when a grant runs: the Weather Totem's requestWeather is set further down
 	changed = function()
 		local t = now()
 		refreshView(t)

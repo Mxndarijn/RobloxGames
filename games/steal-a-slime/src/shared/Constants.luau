@@ -179,6 +179,7 @@ return table.freeze({
 	-- Exclusive Shop cosmetics (contract/exclusive-shop.md §9-§10): Player attributes.
 	CARRY_TRAIL_ATTRIBUTE = "CarryTrail", -- Player: equipped Config.EXCLUSIVE_SHOP.trails id (the client draws it while they carry a slime), nil = none
 	BAT_SKIN_ATTRIBUTE = "BatSkin", -- Player: equipped Config.EXCLUSIVE_SHOP.batSkins id (the server re-gives the Bat with that look), nil = the default Bat
+	MEMBER_ATTRIBUTE = "Member", -- Player: "vip" (VIP pass) or "club" (Slime Club subscriber; VIP wins when both): the name tag and chat tag, nil = none
 	HABITAT_FOLDER = "ClientHabitats", -- client-only workspace folder for habitat looks
 	HABITAT_MESHES = "HabitatMeshes", -- ReplicatedStorage folder: server-made overlay MeshPart templates (MeshSwap)
 	PVP_MARKER_MESHES = "PvpMarkerMeshes", -- ReplicatedStorage folder: placed trap / pad MeshPart templates (FEATURES.PvP, MeshSwap)

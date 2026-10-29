@@ -556,6 +556,23 @@ function SaveData.cleanEquipped(raw: any, owned: { string }): string?
 	return nil
 end
 
+-- Daily perk days (PlayerData.PerkDays, no version bump): whole UTC day numbers; missing / junk -> nil.
+function SaveData.cleanPerkDays(raw: any): PlayerData.PerkDays?
+	if type(raw) ~= "table" then
+		return nil
+	end
+	local out: PlayerData.PerkDays = {}
+	local any = false
+	for _, key in { "vipPotion", "club" } do
+		local day = raw[key]
+		if type(day) == "number" and day == day and day >= 0 and day < 1e7 then
+			(out :: any)[key] = math.floor(day)
+			any = true
+		end
+	end
+	return if any then out else nil
+end
+
 -- Unsent gifts: product keys that sell as Gift_<key>, the first gift.creditMax kept (repeats allowed: two of a kind).
 function SaveData.cleanGiftCredits(raw: any): { string }
 	local out: { string } = {}
@@ -599,9 +616,16 @@ end
 function SaveData.cleanCredits(raw: any): PlayerData.Credits
 	local max = Config.EXCLUSIVE_SHOP.creditMax
 	if type(raw) ~= "table" then
-		return { brew = 0, hatch = 0 }
+		return { brew = 0, hatch = 0, rain = 0, boss = 0, totem = 0, snack = 0 }
 	end
-	return { brew = num(raw.brew, 0, 0, max), hatch = num(raw.hatch, 0, 0, max) }
+	return {
+		brew = num(raw.brew, 0, 0, max),
+		hatch = num(raw.hatch, 0, 0, max),
+		rain = num(raw.rain, 0, 0, max),
+		boss = num(raw.boss, 0, 0, max),
+		totem = num(raw.totem, 0, 0, max),
+		snack = num(raw.snack, 0, 0, max),
+	}
 end
 
 -- The last welcome-back payout: cash and time as whole numbers, `used` only when true; junk / no cash -> nil.
@@ -846,6 +870,7 @@ function SaveData.deserialize(stored: any): Data
 	data.batSkin = SaveData.cleanEquipped(raw.batSkin, data.ownedBatSkins)
 	data.lockBreakCredits = num(raw.lockBreakCredits, 0, 0, Config.EXCLUSIVE_SHOP.creditMax)
 	data.giftCredits = SaveData.cleanGiftCredits(raw.giftCredits)
+	data.perkDays = SaveData.cleanPerkDays(raw.perkDays) -- daily perks (no version bump: missing -> never used)
 	data.petSeat = SaveData.cleanPetSeat(raw.petSeat, data) -- after found / stats / ownedSeats: pet seat (no version bump: missing / unknown / locked -> "cloud")
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
@@ -991,6 +1016,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		batSkin = SaveData.cleanEquipped(data.batSkin, data.ownedBatSkins), -- nil = the default Bat
 		lockBreakCredits = num(data.lockBreakCredits, 0, 0, Config.EXCLUSIVE_SHOP.creditMax),
 		giftCredits = SaveData.cleanGiftCredits(data.giftCredits),
+		perkDays = SaveData.cleanPerkDays(data.perkDays), -- nil = never used: the key is left out
 	}
 end
 

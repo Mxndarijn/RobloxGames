@@ -6,7 +6,8 @@
 	(Spawner), the boss event (BossEvent), escape bounces and lock expiry (StealService.step), lock breaks that
 	ended (LockBreak.step), and once a
 	second income (Income.step), the tutorial's Leaderboard step (TutorialService.tick), goal / SlimeDex
-	rewards (Milestones.step) and Mystery Egg incubation (MysteryEgg.step).
+	rewards (Milestones.step), Mystery Egg incubation (MysteryEgg.step), the Slime Club's daily credits
+	(Purchases.stepDaily) and the Thief Radar (ThiefRadar.step).
 ]]
 
 local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
@@ -16,8 +17,10 @@ local LockBreak = if script then require(script.Parent.LockBreak) else require("
 local LuckyShow = if script then require(script.Parent.LuckyShow) else require("./LuckyShow")
 local Milestones = if script then require(script.Parent.Milestones) else require("./Milestones")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
+local Purchases = if script then require(script.Parent.Purchases) else require("./Purchases")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
+local ThiefRadar = if script then require(script.Parent.ThiefRadar) else require("./ThiefRadar")
 local TutorialService = if script then require(script.Parent.TutorialService) else require("./TutorialService")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -40,6 +43,10 @@ function GameLoop.step(world: World.World, now: number, ctx: (BossEvent.Context 
 		TutorialService.tick(world, ctx)
 		Milestones.step(world, now)
 		MysteryEgg.step(world, elapsed, now)
+		for _, session in world.sessions do
+			Purchases.stepDaily(world, session, now)
+		end
+		ThiefRadar.step(world, if ctx then (ctx :: any).features else nil)
 	end
 end
 
