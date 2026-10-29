@@ -860,6 +860,7 @@ export type ExclusivePass = {
 	luckBonus: number?, -- added to the Lucky Charm chance on a wild deposit (a paid probability modifier: odds shown)
 	radar: boolean?, -- Thief Radar: told and shown who walks into your base (ThiefRadar)
 	vip: boolean?, -- VIP: the tag, and one free server Luck Potion per UTC day (ClaimPerk "vipPotion")
+	autoCollect: boolean?, -- Auto Collect: income goes straight to cash instead of piling on the cash pads (Income.step)
 }
 local EXCLUSIVE_PASSES: { [string]: ExclusivePass } = {
 	VIP = table.freeze({ passId = ExclusiveIds.passes.VIP or 0, robux = 599, order = 1, incomeMult = 1.1, vip = true }),
@@ -874,6 +875,12 @@ local EXCLUSIVE_PASSES: { [string]: ExclusivePass } = {
 		luckBonus = 0.05,
 	}),
 	ThiefRadar = table.freeze({ passId = ExclusiveIds.passes.ThiefRadar or 0, robux = 149, order = 7, radar = true }),
+	AutoCollect = table.freeze({
+		passId = ExclusiveIds.passes.AutoCollect or 0,
+		robux = 299,
+		order = 8,
+		autoCollect = true,
+	}),
 }
 -- Roblox subscriptions, keyed by a permanent key. `subscriptionId` is the "EXP-..." id ("" = not created yet);
 -- `robux` is the shown monthly price (Robux subscriptions cost at least 49) and must match the Creator Dashboard.

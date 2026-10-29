@@ -197,6 +197,11 @@ ExclusiveShopView.TEXTS = table.freeze({
 		icon = "Goal_Steal",
 		text = "Tells you when someone walks into your base while you are away, and points you to them. Information only.",
 	}),
+	AutoCollect = table.freeze({
+		title = "Auto collect",
+		icon = "Cash",
+		text = "Your slimes' cash goes straight into your wallet, wherever you are. No more walking over the cash pads.",
+	}),
 	SlimeClub = table.freeze({
 		title = "Slime Club",
 		icon = "Daily",

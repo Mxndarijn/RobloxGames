@@ -22,6 +22,11 @@
 
 `padCash` is an optional dense list, entry i = the pile on pad i (0 = empty), left out when nothing is piled up. Missing / junk -> no piles; non-numbers, NaN, non-positive entries and pads past `padsUnlocked` are dropped (`CashPads.clean`). An older build ignores the key, so a rollback only loses the uncollected piles.
 
+## Auto Collect (contract/exclusive-shop.md §13)
+
+With the `AutoCollect` Game Pass the owner's income skips the pads (paid as with the flag off) and piles already
+waiting are swept into cash; that plot shows no coins.
+
 ## Not in this version
 
 - No tutorial step (inserting one would shift saved `tutorialStep` indices). While the tutorial runs, a toast says how to collect once $`CASH_PAD.HINT_AT` waits (once a session); the offline join toast and the COLLECT on every coin explain it to everyone else.

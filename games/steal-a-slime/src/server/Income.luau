@@ -51,7 +51,22 @@ function Income.step(world: World, dt: number, now: number?, features: { [string
 		session.data.weekendMult = if weekend > 1 then weekend else nil
 		local skip = World.incomeSkip(world, session)
 		Growth.advanceAll(session.data.slimes, seconds, carried)
-		if pads then
+		if pads and session.data.passAutoCollect then
+			-- Auto Collect: income skips the pads (paid below); piles already waiting (offline, from before the pass)
+			-- come in at once.
+			local swept = Income.sweepPads(session.data)
+			if swept > 0 then
+				World.trackCash(world, session, "source", "Income", swept)
+				World.markDirty(session)
+				World.notify(
+					world,
+					session.userId,
+					`Auto Collect: +${Economy.formatNumber(swept)} from your cash pads.`,
+					"good",
+					"CashPadCollect"
+				)
+			end
+		elseif pads then
 			if CashPads.accrue(session.data, seconds, skip) > 0 then
 				World.markDirty(session) -- State at least once a second while earning, as without the pads
 			end
@@ -71,6 +86,15 @@ function Income.step(world: World, dt: number, now: number?, features: { [string
 			World.markDirty(session) -- State at least once a second while earning
 		end
 	end
+end
+
+-- Collects every pad's pile into cash (CashPads.collect; the fractions stay). Returns the cash paid.
+function Income.sweepPads(data: PlayerData.Data): number
+	local paid = 0
+	for pad = 1, data.padsUnlocked do
+		paid += CashPads.collect(data, pad)
+	end
+	return paid
 end
 
 -- The share of income paid while offline: the Offline2x Game Pass rate when owned, else Config.OFFLINE_RATE.

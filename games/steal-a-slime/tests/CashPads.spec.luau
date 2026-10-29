@@ -321,3 +321,46 @@ describe("CashPads in State", function()
 		expect(state.padCash).toBe(if Config.FEATURES.CashPads then 50 else nil)
 	end)
 end)
+
+describe("Auto Collect pass", function()
+	local Purchases = require("../src/server/Purchases")
+	it("income goes straight to cash, nothing piles on the pads", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 0)
+		Purchases.applyPasses(s, { AutoCollect = true })
+		local before = s.data.cash
+		Income.step(world, 1, nil, ON)
+		expect(s.data.cash > before).toBe(true)
+		expect(CashPads.total(s.data)).toBe(0)
+	end)
+	it("sweeps piles already waiting (offline cash) into cash once, with one toast", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 0)
+		CashPads.add(s.data, padOf(s.data, "a"), 500)
+		local before = s.data.cash
+		Purchases.applyPasses(s, { AutoCollect = true })
+		Income.step(world, 1, nil, ON)
+		expect(s.data.cash >= before + 500).toBe(true)
+		expect(CashPads.total(s.data) < 1).toBe(true)
+		local toasts = 0
+		for _, text in ServerFixtures.notifications(world, 1) do
+			toasts += if string.find(text, "Auto Collect", 1, true) then 1 else 0
+		end
+		Income.step(world, 1, nil, ON)
+		local again = 0
+		for _, text in ServerFixtures.notifications(world, 1) do
+			again += if string.find(text, "Auto Collect", 1, true) then 1 else 0
+		end
+		expect(toasts).toBe(1)
+		expect(again).toBe(1) -- nothing new to sweep, no new toast
+	end)
+	it("without the pass income still piles up on the pads", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 0)
+		Purchases.applyPasses(s, {})
+		local before = s.data.cash
+		Income.step(world, 1, nil, ON)
+		expect(s.data.cash).toBe(before)
+		expect(CashPads.total(s.data) > 0).toBe(true)
+	end)
+end)

@@ -136,6 +136,7 @@ return table.freeze({
 		WeatherTotem = 3723567221,
 	} :: { [string]: number }),
 	passes = table.freeze({
+		AutoCollect = 2060807163,
 		FastBrew = 2061832467,
 		Income2x = 2060651077,
 		LuckyCharmPlus = 2061094586,

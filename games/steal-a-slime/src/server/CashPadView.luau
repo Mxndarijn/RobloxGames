@@ -191,7 +191,8 @@ function CashPadView.sync(state: State, world: World.World, now: number)
 	for plotIndex = 1, world.plotCount do
 		local ownerId = world.plots[plotIndex]
 		local owner = if ownerId then World.session(world, ownerId) else nil
-		if owner then
+		-- An Auto Collect owner's income never piles up: no coins on that plot (any left are swept by Income.step).
+		if owner and owner.data.passAutoCollect ~= true then
 			local data = owner.data
 			local pads = WorldView.pads(plotIndex) -- one scan of the plot's children
 			local slimes: { [number]: any } = {}
