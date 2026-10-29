@@ -977,6 +977,18 @@ SlimeKeyCard.start({
 	tweens = game:GetService("TweenService"),
 })
 
+-- Exclusive slime hats on the slimes standing on pads (Plot_<i>.SlimeHat).
+local slimeHats = require(script.SlimeHatsFx).start({
+	collection = game:GetService("CollectionService"),
+	tag = Constants.SLIME_TAG,
+	plots = workspace:WaitForChild(Constants.PLOTS_FOLDER),
+	templates = function(): Instance?
+		return ReplicatedStorage:FindFirstChild("SlimeHatMeshes")
+	end,
+	hats = Config.EXCLUSIVE_SHOP.hats,
+	hatAttribute = Constants.PLOT_SLIME_HAT_ATTRIBUTE,
+	clock = os.clock,
+})
 -- VIP and Slime Club tags over heads and in chat (Player attribute Member).
 require(script.MemberTags).start({
 	Players = Players,
@@ -1536,6 +1548,7 @@ task.spawn(function()
 			guardedTick("slimeKeys", slimeKeys.tick)
 			guardedTick("lockBreak", lockBreakPrompt.tick)
 			guardedTick("lockTimer", lockTimerTag.tick)
+			guardedTick("slimeHats", slimeHats.tick)
 			guardedTick("hint", function()
 				hintOverlay.tick(
 					now,

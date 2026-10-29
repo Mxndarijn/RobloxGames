@@ -109,6 +109,8 @@ export type Data = {
 	passWarmNest: boolean?, -- runtime only (never saved): WarmNest: pad eggs warm while away from home too
 	passLuckBonus: number?, -- runtime only (never saved): LuckyCharmPlus, added to Perks.luckChance; nil = 0
 	perkDays: PerkDays?, -- UTC day numbers a daily perk was last used (Purchases; no version bump: missing -> never)
+	ownedStyles: { [string]: { string } }, -- Exclusive style ids bought, by kind: fanfare / lockStyle / hat / plotSkin (no version bump)
+	wornStyles: { [string]: string }, -- the worn fanfare / lockStyle / hat id by kind (owned ids only; no version bump)
 	padCash: { [number]: number }?, -- FEATURES.CashPads: uncollected cash per pad index (CashPads, contract/cash-pads.md; no version bump)
 }
 
@@ -154,6 +156,8 @@ function PlayerData.new(): Data
 		receipts = {},
 		starterBundle = false,
 		credits = { brew = 0, hatch = 0, rain = 0, boss = 0, totem = 0, snack = 0 },
+		ownedStyles = {},
+		wornStyles = {},
 		ownedTrails = {},
 		ownedBatSkins = {},
 		lockBreakCredits = 0,

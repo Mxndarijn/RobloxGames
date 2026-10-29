@@ -160,10 +160,12 @@ describe("ExclusiveShopView cards", function()
 	end)
 	it("Featured is the Starter bundle while unclaimed, then this week's seats", function()
 		local keys = keysOf(ExclusiveShopView.cards("Featured", shopState(), Config))
-		expect(table.concat(keys, ",")).toBe("product:StarterBundle,seat:storm_cloud,seat:ufo,seat:leaf,seat:bubble")
+		expect(table.concat(keys, ",")).toBe(
+			"product:StarterBundle,product:BoutiqueBundle,product:SkyBundle,seat:storm_cloud,seat:ufo,seat:leaf,seat:bubble"
+		)
 		local claimed = keysOf(ExclusiveShopView.cards("Featured", shopState({ starterClaimed = true }), Config))
-		expect(claimed[1]).toBe("seat:storm_cloud")
-		expect(#claimed).toBe(4)
+		expect(claimed[1]).toBe("product:BoutiqueBundle")
+		expect(#claimed).toBe(6)
 	end)
 	it("Clouds lists the 16 Exclusive seats with their Robux price", function()
 		local cards = ExclusiveShopView.cards("Clouds", shopState(), Config)
@@ -845,21 +847,32 @@ end)
 
 describe("Style tab and gifts (ExclusiveShopView)", function()
 	local cat = Config.EXCLUSIVE_SHOP
-	it("Style lists every carry trail, then every Bat skin, priced from Config", function()
-		local cards = ExclusiveShopView.cards("Style", shopState(), Config)
-		expect(#cards).toBe(#cat.trails + #cat.batSkins)
-		for i, def in cat.trails do
-			expect(cards[i].key).toBe(`trail:{def.id}`)
-			expect(cards[i].icon).toBe(`Trail_{def.id}`)
-			expect(cards[i].title).toBe(def.name)
-			expect(cards[i].tag).toBe(Format.robux(def.robux))
-			expect(cards[i].state).toBe("offsale")
+	local function byKey(cards: { any }): { [string]: any }
+		local out = {}
+		for i, card in cards do
+			card.index = i
+			out[card.key] = card
 		end
-		for i, def in cat.batSkins do
-			local card = cards[#cat.trails + i]
-			expect(card.key).toBe(`batSkin:{def.id}`)
-			expect(card.icon).toBe(`BatSkin_{def.id}`)
+		return out
+	end
+	it("Style lists base skins, lock styles, trails, fanfares, hats, then Bat skins, priced from Config", function()
+		local cards = byKey(ExclusiveShopView.cards("Style", shopState(), Config))
+		for _, def in cat.trails do
+			local card = cards[`trail:{def.id}`]
+			expect(card.icon).toBe(`Trail_{def.id}`)
+			expect(card.title).toBe(def.name)
+			expect(card.tag).toBe(Format.robux(def.robux))
+			expect(card.state).toBe("offsale")
 		end
+		for _, def in cat.batSkins do
+			expect(cards[`batSkin:{def.id}`].icon).toBe(`BatSkin_{def.id}`)
+		end
+		expect(cards["plotSkin:fairground"].index < cards["lockStyle:candy"].index).toBe(true)
+		expect(cards["lockStyle:candy"].index < cards["trail:sparkle"].index).toBe(true)
+		expect(cards["fanfare:confetti"].index < cards["hat:party"].index).toBe(true)
+		expect(cards["hat:party"].index < cards["batSkin:fish"].index).toBe(true)
+		expect(ExclusiveShopView.tabOf("hat:party")).toBe("Style")
+		expect(ExclusiveShopView.tabOf("plotSkin:space")).toBe("Style")
 		expect(ExclusiveShopView.tabOf("trail:hearts")).toBe("Style")
 		expect(ExclusiveShopView.tabOf("batSkin:fish")).toBe("Style")
 	end)
@@ -884,7 +897,7 @@ describe("Style tab and gifts (ExclusiveShopView)", function()
 		expect((worn.unequip :: any).request).toBe("EquipBatSkin")
 		expect((worn.unequip :: any).arg).toBe("")
 		expect(worn.unequipText).toBe("Use default Bat")
-		local card = ExclusiveShopView.cards("Style", state, Config)[#cat.trails + 4]
+		local card = byKey(ExclusiveShopView.cards("Style", state, Config))["batSkin:golden"]
 		expect(card.tag).toBe("Equipped")
 	end)
 	it("a Gift on every cosmetic, never on passes, boosts, the bundle or info cards", function()
@@ -972,7 +985,7 @@ describe("Style tab and gifts (panel)", function()
 		expect(trail ~= nil).toBe(true)
 		expect(UiHarness.find(grid, "batSkin:golden") ~= nil).toBe(true)
 		expect(UiHarness.find(trail, "CardIcon"):GetAttribute("ItemId")).toBe("Trail_sparkle")
-		expect(panel.selected()).toBe("trail:sparkle")
+		expect(panel.selected()).toBe("plotSkin:fairground") -- the first Style card
 		expect(UiHarness.find(UiHarness.find(panel.frame, "Pane"), "Buy").Text).toBe("Not on sale yet")
 	end)
 	it("Buy on a trail prompts Trail_<id>; once owned, Equip asks EquipTrail and the worn one Unequips", function()
@@ -1287,5 +1300,45 @@ describe("PurchasePrompt subscriptions", function()
 		expect(adapter.prompt({ kind = "subscription", id = 0, subscriptionId = "" })).toBe(false)
 		expect(adapter.prompt({ kind = "subscription", id = 0, subscriptionId = "EXP-1" })).toBe(true)
 		expect(table.concat(calls, ",")).toBe("EXP-1")
+	end)
+end)
+
+describe("Exclusive styles, seasons and bundles (ExclusiveShopView)", function()
+	it("seasonal items show only in their season; owned ones always", function()
+		local out = keysOf(ExclusiveShopView.cards("Style", shopState(), Config))
+		expect(table.find(out, "hat:witch")).toBeNil()
+		expect(table.find(out, "plotSkin:haunted")).toBeNil()
+		local open = keysOf(ExclusiveShopView.cards("Style", shopState({ seasons = { halloween = true } }), Config))
+		expect(table.find(open, "hat:witch") ~= nil).toBe(true)
+		expect(table.find(open, "plotSkin:haunted") ~= nil).toBe(true)
+		local owner = shopState({ styles = { hat = { witch = true } } })
+		expect(table.find(keysOf(ExclusiveShopView.cards("Style", owner, Config)), "hat:witch") ~= nil).toBe(true)
+	end)
+	it('an owned hat equips with EquipStyle(kind, id) and the worn one takes off with ""', function()
+		local state = shopState({ styles = { hat = { party = true, bow = true } }, worn = { hat = "party" } })
+		local owned = ExclusiveShopView.detail("hat:bow", state, Config) :: any
+		expect(owned.action.equip.request).toBe("EquipStyle")
+		expect(table.concat(owned.action.equip.args, ",")).toBe("hat,bow")
+		local worn = ExclusiveShopView.detail("hat:party", state, Config) :: any
+		expect(worn.state).toBe("equipped")
+		expect(table.concat(worn.unequip.args, ",")).toBe("hat,")
+		expect(worn.gift ~= nil).toBe(true)
+	end)
+	it("an owned base skin equips with EquipPlotSkin and shows Equipped from State.plotSkins", function()
+		local state = shopState({ styles = { plotSkin = { space = true } } })
+		local owned = ExclusiveShopView.detail("plotSkin:space", state, Config) :: any
+		expect(owned.action.equip.request).toBe("EquipPlotSkin")
+		expect(owned.action.equip.arg).toBe("space")
+		state.plotSkins = { { id = "space", equipped = true } }
+		expect((ExclusiveShopView.detail("plotSkin:space", state, Config) :: any).state).toBe("equipped")
+	end)
+	it("a bundle shows Owned once everything in it is owned", function()
+		local all = shopState({
+			owned = { magic_carpet = true },
+			styles = { plotSkin = { fairground = true }, fanfare = { confetti = true } },
+		})
+		expect(ExclusiveShopView.packOwned(all.exclusiveShop, Config, "BoutiqueBundle")).toBe(true)
+		local some = shopState({ owned = { magic_carpet = true } })
+		expect(ExclusiveShopView.packOwned(some.exclusiveShop, Config, "BoutiqueBundle")).toBe(false)
 	end)
 end)

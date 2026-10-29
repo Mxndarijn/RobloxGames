@@ -240,3 +240,28 @@ no version bump), spent with `UseCredit(kind, target?)` or the shop's "Use credi
 - `GrowthSnack` 19: one slime grows `growthSnackSeconds` (3 h). `AimSnack(slimeId)` (0.5 s) names it before the prompt,
   else the least grown pad slime. Sold on the slime's pad card (the hatch key: an egg never grows).
 State: `credits` (all six kinds), `serverBoosts = { rain, boss }` (could start now), `streakKeepable`.
+
+## 15. Base skins, lock styles, fanfares, hats, seasons and bundles
+
+Cosmetics only; each also sells as a gift (`Gift_<key>`). Save (no version bump): `ownedStyles = { [kind]: { id } }`
+and `wornStyles = { [kind]: id }` for kinds `fanfare`, `lockStyle`, `hat` (worn) and `plotSkin` (owned; worn as
+`plotSkin`). `deserialize` drops unknown ids and worn ids that are not owned; owned styles load before the plot skin.
+Request `EquipStyle(kind, id)` (0.5 s; "" = take off). State: `exclusiveShop.styles`, `worn`, `seasons`.
+- **Base skins** (`Skin_<id>`, `Config.PLOT_SKINS[].exclusive`): Fairground 299, Beach Hut 249, Space Station 399,
+  Winter Cabin 249, Haunted Ranch 299 (Halloween). `PlotSkins.unlocked` = owned; equipped with `EquipPlotSkin`. The
+  tower meshes are kit themes (`models/_goo_jar_themes.py`, `goo_jar_*@<id>`); until uploaded the classic pieces
+  show with the skin's floor and trim. The Skins menu shows an unowned one with a gold "Exclusive" and
+  "Only in the Exclusive shop.".
+- **Lock styles** (`LockStyle_<id>`, `EXCLUSIVE_SHOP.lockStyles`, kit `lock_stopper_<id>`, the classic stopper's box):
+  the owner's worn style is Plot attribute `LockStyle`; MeshSwap shows its stopper on `StopperShut` only (the door
+  parked open keeps the classic plug, so the style's red reads "locked" only when locked). Collision is unchanged.
+- **Fanfares** (`Fanfare_<id>`, `EXCLUSIVE_SHOP.fanfares`): on every deposit (wild, stolen, boss) `Carry.fanfare`
+  emits the worn one's `Effect` (`Effects.BURSTS.Fanfare_<id>`, ≤ 2 s) on the slime.
+- **Slime hats** (`Hat_<id>`, `EXCLUSIVE_SHOP.hats`, kit `slime_hat_<id>`): Plot attribute `SlimeHat`; the client
+  (`ui/SlimeHatsFx`) welds the template from `ReplicatedStorage.SlimeHatMeshes` (`MeshSwap.publishHatTemplates`) on
+  every non-egg slime in State "Pad" of that owner. The hat belongs to the pad: a carried or stolen slime has none.
+- **Seasons** (`EXCLUSIVE_SHOP.seasons`, `shared/Seasons`, UTC month-day windows): halloween 10-15..11-07 (Pumpkin
+  seat, Haunted Ranch, Witch Hat), winter 12-01..01-07 (Snow Globe seat). Out of season an unowned seasonal item is
+  not shown (shop, Skins menu, `PetSeats.view` / `PlotSkins.view` with `now`) and never featured; owners keep it.
+- **Bundles** (grant kind `pack`, owned items skipped): `BoutiqueBundle` 549 (Magic Carpet, Fairground, Confetti),
+  `SkyBundle` 599 (Storm, Sunset, Ice, Flame clouds). Shown in Featured; "Owned" once everything is.

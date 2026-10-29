@@ -53,13 +53,13 @@ local function equip(world: any, userId: number, id: any)
 end
 
 describe("pet seats: config", function()
-	it("lists the default cloud first, then Jelly and Rainbow Cloud, then 16 Exclusives", function()
+	it("lists the default cloud first, then Jelly and Rainbow Cloud, then 16 Exclusives and 2 seasonal ones", function()
 		expect(Config.PET_SEAT_DEFAULT).toBe("cloud")
 		expect(Config.PET_SEATS[1].id).toBe("cloud")
 		expect(Config.PET_SEATS[1].mesh).toBe("pet_cloud")
 		expect(Config.PET_SEATS[2].id).toBe("jelly")
 		expect(Config.PET_SEATS[3].id).toBe("rainbow_cloud")
-		expect(#Config.PET_SEATS).toBe(19)
+		expect(#Config.PET_SEATS).toBe(21)
 		local kinds: { [string]: number } = {}
 		for _, s in Config.PET_SEATS do
 			kinds[s.unlock.kind] = (kinds[s.unlock.kind] or 0) + 1
@@ -67,7 +67,14 @@ describe("pet seats: config", function()
 		expect(kinds.free).toBe(1)
 		expect(kinds.merges).toBe(1)
 		expect(kinds.dex).toBe(1)
-		expect(kinds.exclusive).toBe(16)
+		expect(kinds.exclusive).toBe(18)
+		local seasonal = {}
+		for _, s in Config.PET_SEATS do
+			if s.season then
+				table.insert(seasonal, `{s.id}:{s.season}`)
+			end
+		end
+		expect(table.concat(seasonal, ",")).toBe("pumpkin:halloween,snowglobe:winter")
 	end)
 	it("unlocks Jelly at 200 merges and Rainbow Cloud at 80 % of the SlimeDex", function()
 		expect(seat("jelly").unlock.kind).toBe("merges")
@@ -188,7 +195,14 @@ describe("pet seats: State and attribute", function()
 		local session = ServerFixtures.join(world, 1, {}, 0)
 		local state = Snapshot.build(world, session, T0)
 		expect(state.petSeat).toBe("cloud")
-		expect(#state.petSeats).toBe(#Config.PET_SEATS)
+		local Seasons = require("../src/shared/Seasons")
+		local shown = 0
+		for _, s in Config.PET_SEATS do
+			if s.season == nil or Seasons.active(s.season, T0) then
+				shown += 1
+			end
+		end
+		expect(#state.petSeats).toBe(shown) -- an unowned seasonal seat is left out of season
 		expect(state.petSeats[1].equipped).toBe(true)
 	end)
 	it("names the Player attribute the client reads", function()

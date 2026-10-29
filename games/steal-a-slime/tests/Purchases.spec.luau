@@ -519,3 +519,93 @@ describe("Server boosts and small comforts", function()
 		expect(s.data.credits.snack).toBe(1)
 	end)
 end)
+
+describe("Exclusive styles, bundles and seasons", function()
+	local PlotSkins = require("../src/shared/PlotSkins")
+	local SaveData = require("../src/shared/SaveData")
+	local Seasons = require("../src/shared/Seasons")
+	local Carry = require("../src/server/Carry")
+	it(
+		"a hat, fanfare, lock style and base skin are owned once bought and worn with EquipStyle / EquipPlotSkin",
+		function()
+			local world = ServerFixtures.world()
+			local s = ServerFixtures.join(world, 1)
+			expect((Purchases.equipStyle(s, "hat", "party"))).toBe(false)
+			for _, key in { "Hat_party", "Fanfare_confetti", "LockStyle_candy", "Skin_space" } do
+				Purchases.grant(world, s, key, T0, ON)
+			end
+			expect(s.data.ownedStyles.hat).toEqual({ "party" })
+			expect(s.data.ownedStyles.plotSkin).toEqual({ "space" })
+			expect((Purchases.equipStyle(s, "hat", "party"))).toBe(true)
+			expect((Purchases.equipStyle(s, "lockStyle", "candy"))).toBe(true)
+			expect(s.data.wornStyles.hat).toBe("party")
+			expect((Purchases.equipStyle(s, "hat", ""))).toBe(true)
+			expect(s.data.wornStyles.hat).toBeNil()
+			expect((Purchases.equipStyle(s, "trail", "sparkle"))).toBe(false)
+			expect(PlotSkins.unlocked(s.data, PlotSkins.get("space") :: any)).toBe(true)
+			expect((PlotSkins.equip(s.data, "space"))).toBe(true)
+			expect(PlotSkins.unlocked(s.data, PlotSkins.get("beach") :: any)).toBe(false)
+		end
+	)
+	it("styles survive a save round trip; unknown and unowned ids are dropped", function()
+		local data = Fixtures.data(nil, 0)
+		data.ownedStyles = { hat = { "party", "nope", "party" }, plotSkin = { "space" }, junk = { "x" } } :: any
+		data.wornStyles = { hat = "party", fanfare = "confetti" }
+		data.plotSkin = "space"
+		local back = SaveData.deserialize(SaveData.serialize(data, T0))
+		expect(back.ownedStyles.hat).toEqual({ "party" })
+		expect(back.ownedStyles.plotSkin).toEqual({ "space" })
+		expect((back.ownedStyles :: any).junk).toBeNil()
+		expect(back.wornStyles.hat).toBe("party")
+		expect(back.wornStyles.fanfare).toBeNil() -- not owned
+		expect(back.plotSkin).toBe("space")
+	end)
+	it("a bundle gives every item in it, skipping owned ones", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		Purchases.grant(world, s, "Seat_magic_carpet", T0, ON)
+		Purchases.grant(world, s, "BoutiqueBundle", T0, ON)
+		expect(s.data.ownedSeats).toEqual({ "magic_carpet" })
+		expect(s.data.ownedStyles.plotSkin).toEqual({ "fairground" })
+		expect(s.data.ownedStyles.fanfare).toEqual({ "confetti" })
+	end)
+	it("seasonal items sell only in their season window (UTC, wrapping the new year)", function()
+		local function at(month: number, day: number): number
+			return os.time({ year = 2026, month = month, day = day, hour = 12 }) :: number
+		end
+		expect(Seasons.ofProduct("Hat_witch")).toBe("halloween")
+		expect(Seasons.ofProduct("Skin_haunted")).toBe("halloween")
+		expect(Seasons.ofProduct("Gift_Hat_witch")).toBe("halloween")
+		expect(Seasons.ofProduct("Hat_party")).toBeNil()
+		expect(Seasons.active("halloween", at(10, 31))).toBe(true)
+		expect(Seasons.active("halloween", at(12, 1))).toBe(false)
+		expect(Seasons.active("winter", at(12, 24))).toBe(true)
+		expect(Seasons.active("winter", at(1, 3))).toBe(true)
+		expect(Seasons.active("winter", at(2, 1))).toBe(false)
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		local hidden = PlotSkins.view(s.data, at(3, 1))
+		for _, v in hidden do
+			expect(v.id ~= "haunted").toBe(true)
+		end
+		local shown = false
+		for _, v in PlotSkins.view(s.data, at(10, 31)) do
+			shown = shown or v.id == "haunted"
+		end
+		expect(shown).toBe(true)
+	end)
+	it("a worn fanfare bursts on the slime when it lands on your pad", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		Purchases.grant(world, s, "Fanfare_starburst", T0, ON)
+		Purchases.equipStyle(s, "fanfare", "starburst")
+		Carry.fanfare(world, s, "slime1")
+		local found = false
+		for _, event in world.outbox do
+			if event.type == "Effect" and event.effect == "Fanfare_starburst" and event.slimeId == "slime1" then
+				found = true
+			end
+		end
+		expect(found).toBe(true)
+	end)
+end)

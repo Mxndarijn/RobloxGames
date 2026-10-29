@@ -13,6 +13,8 @@
 	  * serverPotion: extends the server-wide Luck Potion (Consumables.extendPotion) and tells everyone who gave it.
 	  * trail / batSkin (Trail_<id>, BatSkin_<id>): the carry trail / Bat skin joins `data.ownedTrails` /
 	    `data.ownedBatSkins` (worn with EquipTrail / EquipBatSkin).
+	  * fanfare / lockStyle / hat / plotSkin (Fanfare_, LockStyle_, Hat_, Skin_<id>): joins `data.ownedStyles[kind]`
+	    (worn with EquipStyle; a plot skin with EquipPlotSkin). pack (a bundle): each of its `items`.
 	  * lockBreak: opens the locked base aimed with AimLockBreak for the buyer (LockBreak.open), else one
 	    `data.lockBreakCredits` (spent with UseCredit "lockBreak").
 	  * gift (Gift_<item>): gives the cosmetic `item` to the player aimed with AimGift and writes their save now
@@ -36,6 +38,8 @@ local Genome = if Shared then require(Shared.Genome) else require("../shared/Gen
 local Growth = if Shared then require(Shared.Growth) else require("../shared/Growth")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared/PetSeats")
+local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
+local Seasons = if Shared then require(Shared.Seasons) else require("../shared/Seasons")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
@@ -177,6 +181,14 @@ local function findDef(list: { any }, id: string): any?
 	return nil
 end
 
+-- The Exclusive style kinds kept in data.ownedStyles / data.wornStyles, with their Config catalogue.
+local STYLE_KINDS: { [string]: { list: { any }?, noun: string } } = {
+	fanfare = { list = SHOP.fanfares, noun = "fanfare" },
+	lockStyle = { list = SHOP.lockStyles, noun = "lock" },
+	hat = { list = SHOP.hats, noun = "" },
+	plotSkin = { list = nil, noun = "base skin" },
+}
+
 -- The owned list a cosmetic product key adds to and the id it adds; nil for a key that is no cosmetic.
 local function cosmetic(data: PlayerData.Data, itemKey: string): ({ string }?, string?)
 	local def = Purchases.product(itemKey)
@@ -190,6 +202,14 @@ local function cosmetic(data: PlayerData.Data, itemKey: string): ({ string }?, s
 		return data.ownedTrails, grant.trail
 	elseif grant.kind == "batSkin" then
 		return data.ownedBatSkins, grant.skin
+	elseif STYLE_KINDS[grant.kind] then
+		local owned = data.ownedStyles
+		local list = owned[grant.kind]
+		if not list then
+			list = {}
+			owned[grant.kind] = list
+		end
+		return list, grant.style
 	end
 	return nil, nil
 end
@@ -235,6 +255,14 @@ local function takeItem(data: PlayerData.Data, itemKey: string)
 	if id and data.petSeat == id then
 		data.petSeat = Config.PET_SEAT_DEFAULT
 	end
+	local def = Purchases.product(itemKey)
+	local kind = def and def.grant.kind
+	if kind and STYLE_KINDS[kind] and data.wornStyles[kind] == id then
+		data.wornStyles[kind] = nil
+	end
+	if kind == "plotSkin" and data.plotSkin == id then
+		data.plotSkin = Config.PLOT_SKIN_DEFAULT
+	end
 end
 
 local function seatName(seatId: string): string
@@ -255,6 +283,14 @@ function Purchases.itemName(itemKey: string): string
 		local skin = findDef(SHOP.batSkins, grant.skin)
 		local name = if skin then skin.name else grant.skin
 		return if string.find(name, "Bat", 1, true) then `the {name}` else `the {name} Bat`
+	elseif grant and grant.kind == "plotSkin" then
+		local skin = PlotSkins.get(grant.style)
+		return `the {if skin then skin.name else grant.style} base skin`
+	elseif grant and STYLE_KINDS[grant.kind] then
+		local style = STYLE_KINDS[grant.kind]
+		local d = findDef(style.list or {}, grant.style)
+		local name = if d then d.name else grant.style
+		return if style.noun == "" then `the {name}` else `the {name} {style.noun}`
 	end
 	return itemKey
 end
@@ -343,6 +379,30 @@ function Purchases.sendGift(
 	end
 	World.markDirty(session)
 	return true, nil
+end
+
+-- EquipStyle: wears an owned fanfare / lockStyle / hat ("" takes that kind off). Returns (ok, reason).
+function Purchases.equipStyle(session: Session, kind: string, id: string): (boolean, string?)
+	if kind ~= "fanfare" and kind ~= "lockStyle" and kind ~= "hat" then
+		return false, "unknown style"
+	end
+	local data = session.data
+	local owned = data.ownedStyles[kind]
+	if id ~= "" and not (owned and table.find(owned, id)) then
+		return false, "you don't own that"
+	end
+	if id == "" then
+		data.wornStyles[kind] = nil
+	else
+		data.wornStyles[kind] = id
+	end
+	World.markDirty(session)
+	return true, nil
+end
+
+-- The worn style of `kind` ("fanfare", "lockStyle", "hat"), or nil.
+function Purchases.wornStyle(data: PlayerData.Data, kind: string): string?
+	return data.wornStyles[kind]
 end
 
 -- EquipTrail / EquipBatSkin: wears an owned carry trail / Bat skin; "" takes it off. Returns (ok, reason).
@@ -604,9 +664,15 @@ function Purchases.grant(
 			addCredit(data, "snack")
 			World.notify(world, userId, "No slime can grow right now: saved as a snack credit.", "info", nil)
 		end
-	elseif kind == "trail" or kind == "batSkin" then
+	elseif kind == "trail" or kind == "batSkin" or STYLE_KINDS[kind] then
 		Purchases.giveItem(data, productKey)
-		World.notify(world, userId, `{Purchases.itemName(productKey)} is yours! Wear it in Style.`, "good", "Gift")
+		local where = if kind == "plotSkin" then "Pick it in Skins." else "Wear it in the Exclusive shop."
+		World.notify(world, userId, `{Purchases.itemName(productKey)} is yours! {where}`, "good", "Gift")
+	elseif kind == "pack" then
+		for _, item in grant.items do
+			Purchases.giveItem(data, item)
+		end
+		World.notify(world, userId, "Bundle unlocked! Everything in it is yours.", "good", "Gift")
 	elseif kind == "lockBreak" then
 		local plot = LockBreak.aimed(world, session, now)
 		if not (plot and LockBreak.open(world, session, plot, now, if ctx then ctx.features else nil)) then
@@ -921,6 +987,14 @@ function Purchases.view(session: Session, now: number, world: World?): Types.Exc
 	for key in SHOP.passes do
 		passes[key] = session.passes ~= nil and session.passes[key] == true
 	end
+	local styles: { [string]: { [string]: boolean } } = {}
+	for kind in STYLE_KINDS do
+		styles[kind] = set(data.ownedStyles[kind] or {})
+	end
+	local seasons: { [string]: boolean } = {}
+	for id in (SHOP :: any).seasons :: { [string]: any } do
+		seasons[id] = Seasons.active(id, now)
+	end
 	local subscriptions: { [string]: boolean } = {}
 	for key in SHOP.subscriptions do
 		subscriptions[key] = session.subscriptions ~= nil and session.subscriptions[key] == true
@@ -946,6 +1020,9 @@ function Purchases.view(session: Session, now: number, world: World?): Types.Exc
 		lockBreak = if pass then { plot = pass.plot, untilTime = pass.untilTime } else nil,
 		lockBreakCredits = data.lockBreakCredits,
 		giftCredits = table.clone(data.giftCredits),
+		styles = styles,
+		worn = table.clone(data.wornStyles),
+		seasons = seasons,
 		subscriptions = subscriptions,
 		vipPotion = Purchases.vipPotionReady(session, now),
 		luck = { base = Perks.baseLuckChance(data), bonus = SHOP.passes.LuckyCharmPlus.luckBonus or 0 },

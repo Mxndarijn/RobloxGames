@@ -84,6 +84,9 @@ export type PlotSkin = {
 	floor: { color: { number }, material: string }?, -- plot Base; nil = leave as built
 	trim: { number }?,
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
+	exclusive: boolean?, -- sold in the Exclusive Shop (Skin_<id>, contract/exclusive-shop.md §15): owned, never earned
+	robux: number?, -- an exclusive skin's price
+	season: string?, -- an exclusive sold only in this Config.SEASONS window (owners keep it)
 }
 
 -- A plot base: the building a plot stands in (FEATURES.BaseShapes, CONTRACT.md §44), chosen apart from the skin.
@@ -106,6 +109,7 @@ export type PetSeat = {
 	seat: number,
 	color: { number }, -- icon tile colour, RGB 0..255
 	unlock: { kind: "free" | "merges" | "dex" | "exclusive", count: number?, percent: number? },
+	season: string?, -- an Exclusive sold only in this Config.SEASONS window (contract/exclusive-shop.md §15)
 }
 
 -- A PvP tool or fun item (FEATURES.PvP, CONTRACT.md §26). Price is derived (PvpRules.price), never stored.
@@ -507,6 +511,58 @@ local PLOT_SKINS: { PlotSkin } = {
 		trim = { 255, 214, 196 },
 		decor = "plot_skin_mushroom",
 	},
+	-- Exclusive Shop skins (contract/exclusive-shop.md §15): bought, never earned. Kit themes models/_goo_jar_themes.py.
+	{
+		id = "fairground",
+		name = "Fairground",
+		exclusive = true,
+		robux = 299,
+		color = { 124, 178, 252 },
+		floor = { color = { 222, 188, 136 }, material = "WoodPlanks" },
+		trim = { 240, 178, 58 },
+		decor = "plot_skin_fairground",
+	},
+	{
+		id = "beach",
+		name = "Beach Hut",
+		exclusive = true,
+		robux = 249,
+		color = { 36, 192, 214 },
+		floor = { color = { 240, 216, 162 }, material = "Sand" },
+		trim = { 246, 128, 112 },
+		decor = "plot_skin_beach",
+	},
+	{
+		id = "space",
+		name = "Space Station",
+		exclusive = true,
+		robux = 399,
+		color = { 70, 226, 252 },
+		floor = { color = { 136, 144, 214 }, material = "DiamondPlate" },
+		trim = { 236, 234, 250 },
+		decor = "plot_skin_space",
+	},
+	{
+		id = "winter",
+		name = "Winter Cabin",
+		exclusive = true,
+		robux = 249,
+		color = { 252, 192, 84 },
+		floor = { color = { 196, 166, 132 }, material = "WoodPlanks" },
+		trim = { 214, 92, 84 },
+		decor = "plot_skin_winter",
+	},
+	{
+		id = "haunted",
+		name = "Haunted Ranch",
+		exclusive = true,
+		robux = 299,
+		season = "halloween",
+		color = { 250, 150, 62 },
+		floor = { color = { 184, 150, 172 }, material = "Ground" },
+		trim = { 168, 212, 96 },
+		decor = "plot_skin_haunted",
+	},
 }
 
 local PLOT_BASES: { PlotBase } = {
@@ -517,7 +573,15 @@ local PLOT_BASES: { PlotBase } = {
 for _, base in PLOT_BASES do
 	table.freeze(base)
 end
-local function seat(id: string, name: string, mesh: string, height: number, color: { number }, unlock: any): PetSeat
+local function seat(
+	id: string,
+	name: string,
+	mesh: string,
+	height: number,
+	color: { number },
+	unlock: any,
+	season: string?
+): PetSeat
 	return table.freeze({
 		id = id,
 		name = name,
@@ -525,6 +589,7 @@ local function seat(id: string, name: string, mesh: string, height: number, colo
 		seat = height,
 		color = color,
 		unlock = table.freeze(table.clone(unlock)),
+		season = season,
 	})
 end
 local EXCLUSIVE = { kind = "exclusive" }
@@ -555,6 +620,9 @@ local PET_SEATS: { PetSeat } = {
 	seat("royal_cushion", "Royal Cushion", "pet_mount_royal_cushion", 0.80, { 140, 60, 190 }, EXCLUSIVE),
 	seat("hoverboard", "Hoverboard", "pet_mount_hoverboard", 0.70, { 130, 70, 220 }, EXCLUSIVE),
 	seat("clam_shell", "Clam Shell", "pet_mount_clam_shell", 0.80, { 250, 150, 140 }, EXCLUSIVE),
+	-- Seasonal Exclusives: sold only in their season, back the next year.
+	seat("pumpkin", "Pumpkin", "pet_mount_pumpkin", 1.20, { 246, 134, 40 }, EXCLUSIVE, "halloween"),
+	seat("snowglobe", "Snow Globe", "pet_mount_snowglobe", 2.05, { 150, 216, 244 }, EXCLUSIVE, "winter"),
 }
 
 -- Exclusive Shop (contract/exclusive-shop.md). The one source of every Robux product and pass.
@@ -598,6 +666,8 @@ local SEAT_ROBUX: { [string]: number } = {
 	ufo = 399,
 	royal_cushion = 399,
 	hoverboard = 399,
+	pumpkin = 249,
+	snowglobe = 249,
 }
 for _, def in PET_SEATS do
 	if def.unlock.kind == "exclusive" then
@@ -659,9 +729,63 @@ local BAT_SKINS = table.freeze({
 	table.freeze({ id = "foam_finger", name = "Foam Finger", robux = 149, mesh = "bat_skin_foam_finger" }),
 	table.freeze({ id = "golden", name = "Golden Bat", robux = 249, mesh = "bat_skin_golden" }),
 })
+-- Seasons (UTC month-day windows, inclusive; a window may wrap the new year). Seasonal Exclusives are sold only
+-- inside theirs and come back the next year; owners keep them.
+local SEASONS = table.freeze({
+	halloween = table.freeze({ name = "Halloween", from = { 10, 15 }, to = { 11, 7 } }),
+	winter = table.freeze({ name = "Winter", from = { 12, 1 }, to = { 1, 7 } }),
+})
+-- Deposit fanfares (§15): a short burst (≤ 2 s, Effects.BURSTS[burst]) on the slime when it lands on your pad.
+local FANFARES = table.freeze({
+	table.freeze({ id = "confetti", name = "Confetti", robux = 49, burst = "Fanfare_confetti" }),
+	table.freeze({ id = "goo_splash", name = "Goo Splash", robux = 49, burst = "Fanfare_goo_splash" }),
+	table.freeze({ id = "starburst", name = "Starburst", robux = 79, burst = "Fanfare_starburst" }),
+	table.freeze({ id = "heart_pop", name = "Heart Pop", robux = 79, burst = "Fanfare_heart_pop" }),
+})
+-- Lock stopper styles (§15): another look for the plug that closes a locked base (kit models/lock_stopper_<id>.py).
+-- The same slot box and invisible collision as the default stopper, and a red lock signal: it locks exactly the same.
+local LOCK_STYLES = table.freeze({
+	table.freeze({ id = "candy", name = "Candy Bar", robux = 79, mesh = "lock_stopper_candy" }),
+	table.freeze({ id = "carousel", name = "Carousel Rope", robux = 99, mesh = "lock_stopper_carousel" }),
+	table.freeze({ id = "sleepy", name = "Sleepy Guard", robux = 99, mesh = "lock_stopper_sleepy" }),
+})
+-- Slime hats (§15): worn by every slime on your own pads (kit models/slime_hat_<id>.py). The hat belongs to the pad:
+-- a stolen slime arrives bare. A hat never makes a slime look like another rarity.
+local SLIME_HATS = table.freeze({
+	table.freeze({ id = "party", name = "Party Hat", robux = 49, mesh = "slime_hat_party" }),
+	table.freeze({ id = "bow", name = "Big Bow", robux = 49, mesh = "slime_hat_bow" }),
+	table.freeze({ id = "chef", name = "Chef Hat", robux = 79, mesh = "slime_hat_chef" }),
+	table.freeze({ id = "flower_crown", name = "Flower Crown", robux = 79, mesh = "slime_hat_flower_crown" }),
+	table.freeze({ id = "top_hat", name = "Top Hat", robux = 99, mesh = "slime_hat_top_hat" }),
+	table.freeze({ id = "witch", name = "Witch Hat", robux = 99, mesh = "slime_hat_witch", season = "halloween" }),
+})
 for _, def in CARRY_TRAILS do
 	EXCLUSIVE_PRODUCTS["Trail_" .. def.id] = product(def.robux, { kind = "trail", trail = def.id })
 end
+for _, def in FANFARES do
+	EXCLUSIVE_PRODUCTS["Fanfare_" .. def.id] = product(def.robux, { kind = "fanfare", style = def.id })
+end
+for _, def in LOCK_STYLES do
+	EXCLUSIVE_PRODUCTS["LockStyle_" .. def.id] = product(def.robux, { kind = "lockStyle", style = def.id })
+end
+for _, def in SLIME_HATS do
+	EXCLUSIVE_PRODUCTS["Hat_" .. def.id] = product(def.robux, { kind = "hat", style = def.id })
+end
+for _, skin in PLOT_SKINS do
+	if skin.exclusive then
+		assert(skin.robux, "Exclusive plot skin without a price: " .. skin.id)
+		EXCLUSIVE_PRODUCTS["Skin_" .. skin.id] = product(skin.robux, { kind = "plotSkin", style = skin.id })
+	end
+end
+-- Bundles (§15): cosmetics together for less than their parts (`items` are product keys; owned ones are skipped).
+EXCLUSIVE_PRODUCTS.BoutiqueBundle = product(
+	549,
+	{ kind = "pack", items = table.freeze({ "Seat_magic_carpet", "Skin_fairground", "Fanfare_confetti" }) }
+)
+EXCLUSIVE_PRODUCTS.SkyBundle = product(599, {
+	kind = "pack",
+	items = table.freeze({ "Seat_storm_cloud", "Seat_sunset_cloud", "Seat_ice_cloud", "Seat_flame_cloud" }),
+})
 for _, def in BAT_SKINS do
 	EXCLUSIVE_PRODUCTS["BatSkin_" .. def.id] = product(def.robux, { kind = "batSkin", skin = def.id })
 end
@@ -680,7 +804,15 @@ EXCLUSIVE_PRODUCTS.LockBreak = product(499, { kind = "lockBreak" })
 local giftable: { string } = {}
 for key, def in EXCLUSIVE_PRODUCTS do
 	local kind = def.grant.kind
-	if kind == "seat" or kind == "trail" or kind == "batSkin" then
+	if
+		kind == "seat"
+		or kind == "trail"
+		or kind == "batSkin"
+		or kind == "fanfare"
+		or kind == "lockStyle"
+		or kind == "hat"
+		or kind == "plotSkin"
+	then
 		table.insert(giftable, key)
 	end
 end
@@ -727,6 +859,10 @@ local EXCLUSIVE_SHOP = table.freeze({
 	products = table.freeze(EXCLUSIVE_PRODUCTS),
 	trails = CARRY_TRAILS,
 	batSkins = BAT_SKINS,
+	fanfares = FANFARES,
+	lockStyles = LOCK_STYLES,
+	hats = SLIME_HATS,
+	seasons = SEASONS,
 	lockBreak = table.freeze({
 		seconds = 60, -- how long the buyer may pass the locked door
 		aimSeconds = 120, -- an AimLockBreak target is forgotten after this long without a receipt
@@ -740,7 +876,7 @@ local EXCLUSIVE_SHOP = table.freeze({
 	radar = table.freeze({
 		maxShown = 4, -- most visitors the Thief Radar pings at once
 	}),
-	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = carry trails + Bat skins
+	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = base skins, lock styles, trails, fanfares, hats, Bat skins
 	finishBrewBrackets = table.freeze({ 300, 1800, 3600, math.huge }) :: { number }, -- seconds left -> FinishBrew_<i>
 	featuredCount = 4, -- seats in the weekly rotation (ExclusiveRotation), the same on every server
 	receiptMemory = 200, -- processed PurchaseIds kept in the save, newest last

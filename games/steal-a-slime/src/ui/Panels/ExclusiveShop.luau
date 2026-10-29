@@ -589,7 +589,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		function()
 			local equip = current and current.action.equip
 			if equip and ctx.request and hasAction(equip.request) then
-				ctx.request(equip.request, function() end, equip.arg)
+				ctx.request(equip.request, function() end, table.unpack(equip.args or { equip.arg }))
 			end
 		end
 	)
@@ -604,7 +604,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		function()
 			local unequip = current and current.unequip
 			if unequip and ctx.request and hasAction(unequip.request) then
-				ctx.request(unequip.request, function() end, unequip.arg)
+				ctx.request(unequip.request, function() end, table.unpack(unequip.args or { unequip.arg }))
 			end
 		end
 	)

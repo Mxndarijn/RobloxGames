@@ -1684,6 +1684,10 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 					if session then PlotSkins.current(session.data) else Config.PLOT_SKIN_DEFAULT
 				)
 			end
+			-- Exclusive Shop styles worn by the owner (contract/exclusive-shop.md §15).
+			local worn = if session then session.data.wornStyles else nil
+			setIfChanged(plot, Constants.PLOT_LOCK_STYLE_ATTRIBUTE, if worn then worn.lockStyle else nil)
+			setIfChanged(plot, Constants.PLOT_SLIME_HAT_ATTRIBUTE, if worn then worn.hat else nil)
 			local pads = plotPads(index)
 			for pad = 1, Config.PADS_MAX do
 				local part = pads[pad]

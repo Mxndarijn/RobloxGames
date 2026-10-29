@@ -987,6 +987,55 @@ local UNPLACED: { [string]: { string } } = {
 	plot_skin_mushroom = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_candy = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_crystal = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
+	pet_mount_pumpkin = {
+		"jolt",
+		"a seasonal pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	pet_mount_snowglobe = {
+		"jolt",
+		"a seasonal pet seat (Config.PET_SEATS; published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
+	slime_hat_party = {
+		"jolt",
+		"a slime hat (published by MeshSwap, welded on pad slimes by client SlimeHatsFx), never a world slot; no collision",
+	},
+	slime_hat_bow = {
+		"jolt",
+		"a slime hat (published by MeshSwap, welded on pad slimes by client SlimeHatsFx), never a world slot; no collision",
+	},
+	slime_hat_chef = {
+		"jolt",
+		"a slime hat (published by MeshSwap, welded on pad slimes by client SlimeHatsFx), never a world slot; no collision",
+	},
+	slime_hat_flower_crown = {
+		"jolt",
+		"a slime hat (published by MeshSwap, welded on pad slimes by client SlimeHatsFx), never a world slot; no collision",
+	},
+	slime_hat_top_hat = {
+		"jolt",
+		"a slime hat (published by MeshSwap, welded on pad slimes by client SlimeHatsFx), never a world slot; no collision",
+	},
+	slime_hat_witch = {
+		"jolt",
+		"a slime hat (published by MeshSwap, welded on pad slimes by client SlimeHatsFx), never a world slot; no collision",
+	},
+	lock_stopper_candy = {
+		"gojo",
+		"a lock style: the look MeshSwap puts in a plot's StopperShut goo_jar_stopper slot; decor, the door collider is its own part",
+	},
+	lock_stopper_carousel = {
+		"gojo",
+		"a lock style: the look MeshSwap puts in a plot's StopperShut goo_jar_stopper slot; decor, the door collider is its own part",
+	},
+	lock_stopper_sleepy = {
+		"gojo",
+		"a lock style: the look MeshSwap puts in a plot's StopperShut goo_jar_stopper slot; decor, the door collider is its own part",
+	},
+	plot_skin_fairground = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
+	plot_skin_beach = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
+	plot_skin_space = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
+	plot_skin_winter = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
+	plot_skin_haunted = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	habitat_crystal_grotto_overlay = {
 		"gojo",
 		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",

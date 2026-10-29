@@ -115,6 +115,11 @@ local NAMES = {
 	"ranch_fence_20",
 	"plot_skin_mushroom",
 	"plot_skin_candy",
+	"plot_skin_fairground",
+	"plot_skin_beach",
+	"plot_skin_space",
+	"plot_skin_winter",
+	"plot_skin_haunted",
 	"plot_skin_crystal",
 	"merge_vat",
 	"goo_cork_stand",
@@ -181,6 +186,17 @@ local NAMES = {
 	"pet_mount_royal_cushion",
 	"pet_mount_hoverboard",
 	"pet_mount_clam_shell",
+	"pet_mount_pumpkin",
+	"pet_mount_snowglobe",
+	"slime_hat_party",
+	"slime_hat_bow",
+	"slime_hat_chef",
+	"slime_hat_flower_crown",
+	"slime_hat_top_hat",
+	"slime_hat_witch",
+	"lock_stopper_candy",
+	"lock_stopper_carousel",
+	"lock_stopper_sleepy",
 	-- Held PvP items (Shared.PvpModels, server/PvpHeld): the placeholder Parts stand in while a mesh fails to load.
 	"pvp_knock_glove_1",
 	"pvp_knock_glove_2",
@@ -516,6 +532,26 @@ entries["bat_skin_foam_finger"] =
 	{ assetId = 135901471533511, meshId = "rbxassetid://103574945844021", size = { 1.5, 5.09, 0.955 } } -- 808 tris
 entries["bat_skin_golden"] =
 	{ assetId = 99603213734708, meshId = "rbxassetid://129112512417990", size = { 1.28, 5.09, 1.482 } } -- 808 tris
+
+-- Exclusive Shop cosmetics (contract/exclusive-shop.md §15). Not uploaded yet: size only (kit bbox, studs), so
+-- nothing shows until an upload fills the ids (a seat's pet rides the default cloud, a hat shows nothing, a lock
+-- style or base skin keeps the classic pieces). models/<name>.py.
+entries["pet_mount_pumpkin"] = { size = { 3.3, 1.638, 2.4 } } -- 1970 tris, seat 1.20
+entries["pet_mount_snowglobe"] = { size = { 2.32, 2.05, 2.32 } } -- 1992 tris, seat 2.05
+entries["slime_hat_party"] = { size = { 2.05, 2.174, 1.95 } } -- 732 tris
+entries["slime_hat_bow"] = { size = { 2.1, 1.17, 0.53 } } -- 792 tris
+entries["slime_hat_chef"] = { size = { 2.35, 1.85, 2.07 } } -- 672 tris
+entries["slime_hat_flower_crown"] = { size = { 2.22, 0.6, 2.16 } } -- 792 tris
+entries["slime_hat_top_hat"] = { size = { 2.0, 1.43, 2.0 } } -- 616 tris
+entries["slime_hat_witch"] = { size = { 2.24, 2.34, 2.24 } } -- 792 tris
+entries["lock_stopper_candy"] = { size = { 9.889, 9.66, 1.508 } } -- 1198 tris, goo_jar_stopper's box
+entries["lock_stopper_carousel"] = { size = { 9.889, 9.66, 1.508 } } -- 1860 tris
+entries["lock_stopper_sleepy"] = { size = { 9.889, 9.66, 1.508 } } -- 1602 tris
+entries["plot_skin_fairground"] = { size = { 2.518, 7.823, 1.26 } } -- 698 tris
+entries["plot_skin_beach"] = { size = { 5.2, 5.226, 5.2 } } -- 308 tris
+entries["plot_skin_space"] = { size = { 4.42, 7.182, 4.42 } } -- 404 tris
+entries["plot_skin_winter"] = { size = { 4.534, 7.241, 4.459 } } -- 902 tris
+entries["plot_skin_haunted"] = { size = { 3.406, 4.353, 3.808 } } -- 432 tris
 
 -- Held PvP items (Shared.PvpModels, server/PvpHeld; a placed Goo Trap / Bounce Pad marker too, ui/PvpEffects).
 -- Held, no collision (not in COLLISION), NOT world slots. size = the native size Roblox reports (Open Cloud size-check);

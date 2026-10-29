@@ -683,6 +683,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return result(Purchases.equipBatSkin(session, args[1]))
 	elseif action == "AimSnack" then
 		return result(Purchases.aimSnack(world, session, args[1]))
+	elseif action == "EquipStyle" then
+		return result(Purchases.equipStyle(session, args[1], args[2]))
 	elseif action == "ClaimPerk" then
 		return result(Purchases.claimPerk(world, session, args[1], now))
 	elseif action == "AimLockBreak" then

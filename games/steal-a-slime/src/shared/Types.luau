@@ -291,6 +291,9 @@ export type ExclusiveShopView = {
 	lockBreak: { plot: number, untilTime: number }?, -- an active lock break: the plot index and when it ends
 	lockBreakCredits: number, -- paid lock breaks that found no locked base to open (used with UseCredit "lockBreak")
 	giftCredits: { string }, -- unsent gifts (cosmetic product keys) to send with SendGift
+	styles: { [string]: { [string]: boolean } }, -- owned Exclusive styles by kind: fanfare / lockStyle / hat / plotSkin
+	worn: { [string]: string }, -- worn fanfare / lockStyle / hat id by kind
+	seasons: { [string]: boolean }, -- Config.EXCLUSIVE_SHOP.seasons open right now
 	subscriptions: { [string]: boolean }, -- Config.EXCLUSIVE_SHOP.subscriptions keys: active or not
 	vipPotion: boolean, -- a VIP whose free server Luck Potion of today is unused (ClaimPerk "vipPotion")
 	luck: { base: number, bonus: number }, -- Lucky Charm chance without the Lucky Charm+ pass, and what the pass adds

@@ -47,6 +47,7 @@ Validate.ACTIONS = table.freeze({
 	UseCredit = 0.5,
 	AimHatch = 0.5,
 	AimSnack = 0.5,
+	EquipStyle = 0.5,
 	ClaimPerk = 1,
 	EquipTrail = 0.5,
 	EquipBatSkin = 0.5,

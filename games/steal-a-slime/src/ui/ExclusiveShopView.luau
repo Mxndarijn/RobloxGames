@@ -19,6 +19,8 @@
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
+local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Seasons = if Shared then require(Shared.Seasons) else require("../shared/Seasons")
 
 local ExclusiveShopView = {}
 
@@ -29,7 +31,18 @@ export type Purchase = { kind: "product" | "pass" | "subscription", id: number, 
 
 export type CardState = "buy" | "offsale" | "owned" | "equipped" | "info"
 
-export type Kind = "seat" | "trail" | "batSkin" | "product" | "pass" | "subscription" | "info"
+export type Kind =
+	"seat"
+	| "trail"
+	| "batSkin"
+	| "fanfare"
+	| "lockStyle"
+	| "hat"
+	| "plotSkin"
+	| "product"
+	| "pass"
+	| "subscription"
+	| "info"
 
 export type Card = {
 	key: string, -- "seat:<id>", "trail:<id>", "batSkin:<id>", "product:<key>", "pass:<key>", "sub:<key>", "info:<key>"
@@ -42,7 +55,8 @@ export type Card = {
 	tag: string, -- the card's chip: the price, "Owned", "Equipped" or where it is sold
 }
 
-export type Equip = { request: string, arg: string } -- Request(request, arg): EquipPetSeat / EquipTrail / EquipBatSkin / ClaimPerk
+-- Request(request, table.unpack(args or { arg })): EquipPetSeat / EquipTrail / EquipBatSkin / EquipStyle / ClaimPerk ...
+export type Equip = { request: string, arg: string, args: { any }? }
 
 export type Action = {
 	kind: "buy" | "offsale" | "equip" | "well",
@@ -117,6 +131,14 @@ ExclusiveShopView.BACK = "Back"
 ExclusiveShopView.FRIEND = "Friend"
 ExclusiveShopView.UNEQUIP_TRAIL = "Unequip"
 ExclusiveShopView.DEFAULT_BAT = "Use default Bat"
+ExclusiveShopView.FANFARE_TEXT =
+	"A burst over every slime you bring home, wild or stolen. Short, and only over your pad."
+ExclusiveShopView.LOCK_TEXT =
+	"A new look for the plug that closes your base when you lock it. It locks exactly the same."
+ExclusiveShopView.HAT_TEXT = "Every slime on your pads wears it. A slime that leaves your pads takes it off."
+ExclusiveShopView.SKIN_TEXT = "Dresses your whole goo jar tower. Pick it in Skins, Base tab."
+ExclusiveShopView.UNEQUIP_STYLE = "Take off"
+ExclusiveShopView.SEASON_BACK = "Only in its season. Back next year."
 ExclusiveShopView.TRAIL_TEXT = "Streams behind you while you carry a slime. Everyone can see it."
 ExclusiveShopView.BAT_TEXT = "A new look for your Bat. It hits exactly like the default Bat."
 ExclusiveShopView.VIP_POTION = "Give the server a potion"
@@ -216,6 +238,16 @@ ExclusiveShopView.TEXTS = table.freeze({
 		where = "Buy it on a slime's card",
 		tag = "On slime",
 	}),
+	BoutiqueBundle = table.freeze({
+		title = "Boutique bundle",
+		icon = "Gift",
+		text = "The Magic Carpet cloud, the Fairground base skin and the Confetti fanfare, for less than the three.",
+	}),
+	SkyBundle = table.freeze({
+		title = "Sky bundle",
+		icon = "Gift",
+		text = "Storm, Sunset, Ice and Flame clouds together, for less than the four.",
+	}),
 	FinishBrew = table.freeze({
 		title = "Finish now",
 		icon = "Upgrade_QuickBrew",
@@ -245,14 +277,15 @@ local INFO_KEYS = { "FinishBrew", "HatchNow", "DoubleOffline", "KeepStreak", "Gr
 
 -- Boosts tab products, in order. `random`: changes the odds (hidden where paid random items are restricted).
 -- `credit`: the State.exclusiveShop.credits kind a refused one is kept as (spent with UseCredit).
-local BOOSTS = table.freeze({
-	table.freeze({ key = "ServerLuckPotion", random = true }),
+type Boost = { key: string, random: boolean, credit: string? }
+local BOOSTS: { Boost } = table.freeze({
+	table.freeze({ key = "ServerLuckPotion", random = true, credit = nil }),
 	table.freeze({ key = "SlimeRain", random = true, credit = "rain" }),
 	table.freeze({ key = "WeatherTotem", random = true, credit = "totem" }),
-	table.freeze({ key = "SummonBoss", credit = "boss" }),
-	table.freeze({ key = "IncomeBoost15" }),
-	table.freeze({ key = "IncomeBoost60" }),
-})
+	table.freeze({ key = "SummonBoss", random = false, credit = "boss" }),
+	table.freeze({ key = "IncomeBoost15", random = false, credit = nil }),
+	table.freeze({ key = "IncomeBoost60", random = false, credit = nil }),
+} :: { Boost })
 ExclusiveShopView.BOOSTS = BOOSTS
 
 local function shopOf(state: any): any?
@@ -352,14 +385,85 @@ local function seatCard(state: any, shop: any, config: any, id: string): Card
 	}
 end
 
--- Config.EXCLUSIVE_SHOP.trails / batSkins entries.
-local function styleDefs(config: any, kind: "trail" | "batSkin"): { any }
+-- Config.EXCLUSIVE_SHOP.trails / batSkins / fanfares / lockStyles / hats entries, or the Exclusive plot skins.
+local function styleDefs(config: any, kind: string): { any }
 	local cat = catalogueOf(config)
-	local list = cat and (if kind == "trail" then cat.trails else cat.batSkins)
+	if kind == "plotSkin" then
+		local out = {}
+		for _, skin in config.PLOT_SKINS or {} do
+			if skin.exclusive then
+				table.insert(out, skin)
+			end
+		end
+		return out
+	end
+	local field = if kind == "trail"
+		then "trails"
+		elseif kind == "batSkin" then "batSkins"
+		elseif kind == "fanfare" then "fanfares"
+		elseif kind == "lockStyle" then "lockStyles"
+		elseif kind == "hat" then "hats"
+		else nil
+	local list = cat and field and cat[field]
 	return if type(list) == "table" then list else {}
 end
 
+-- Owned / worn of a style kind in State.exclusiveShop: trails and Bat skins have their own fields, the rest
+-- live in `styles[kind]` / `worn[kind]` (a plot skin is worn as State.plotSkins' equipped one).
+local function styleOwned(state: any, shop: any, kind: string, id: string): (boolean, boolean)
+	if kind == "trail" then
+		return type(shop.trails) == "table" and shop.trails[id] == true, shop.trail == id
+	elseif kind == "batSkin" then
+		return type(shop.batSkins) == "table" and shop.batSkins[id] == true, shop.batSkin == id
+	end
+	local set = type(shop.styles) == "table" and shop.styles[kind]
+	local owned = type(set) == "table" and set[id] == true
+	if kind == "plotSkin" then
+		local equipped = false
+		for _, view in (if type(state.plotSkins) == "table" then state.plotSkins else {}) :: { any } do
+			if type(view) == "table" and view.id == id and view.equipped == true then
+				equipped = true
+			end
+		end
+		return owned, equipped
+	end
+	return owned, type(shop.worn) == "table" and shop.worn[kind] == id
+end
+
+-- True while `productKey` may be shown for sale at `now` (State's serverNow): seasonal ones only in season.
+local function inSeason(shop: any, productKey: string): boolean
+	local season = Seasons.ofProduct(productKey)
+	return season == nil or (type(shop.seasons) == "table" and shop.seasons[season] == true)
+end
+
 local STYLE_KINDS = table.freeze({
+	fanfare = table.freeze({
+		prefix = "Fanfare_",
+		list = "fanfares",
+		style = true,
+		text = ExclusiveShopView.FANFARE_TEXT,
+		unequip = ExclusiveShopView.UNEQUIP_STYLE,
+	}),
+	lockStyle = table.freeze({
+		prefix = "LockStyle_",
+		list = "lockStyles",
+		style = true,
+		text = ExclusiveShopView.LOCK_TEXT,
+		unequip = ExclusiveShopView.UNEQUIP_STYLE,
+	}),
+	hat = table.freeze({
+		prefix = "Hat_",
+		list = "hats",
+		style = true,
+		text = ExclusiveShopView.HAT_TEXT,
+		unequip = ExclusiveShopView.UNEQUIP_STYLE,
+	}),
+	plotSkin = table.freeze({
+		prefix = "Skin_",
+		style = true,
+		text = ExclusiveShopView.SKIN_TEXT,
+		unequip = ExclusiveShopView.UNEQUIP_STYLE,
+	}),
 	trail = table.freeze({
 		prefix = "Trail_",
 		owned = "trails",
@@ -378,24 +482,23 @@ local STYLE_KINDS = table.freeze({
 	}),
 })
 
--- The card of carry trail / Bat skin `def` (Config.EXCLUSIVE_SHOP.trails / batSkins).
-local function styleCard(shop: any, config: any, kind: "trail" | "batSkin", def: any): Card
-	local k = STYLE_KINDS[kind]
+-- The card of a style `def` of `kind` (trail, Bat skin, fanfare, lock style, hat, Exclusive plot skin).
+local function styleCard(state: any, shop: any, config: any, kind: string, def: any): Card
+	local k = (STYLE_KINDS :: any)[kind]
 	local key = `{k.prefix}{def.id}`
 	local price = Format.robux(robuxOf(config, key))
-	local ownedSet = shop[k.owned]
-	local owned = type(ownedSet) == "table" and ownedSet[def.id] == true
-	local s: CardState = if owned and shop[k.worn] == def.id
+	local owned, worn = styleOwned(state, shop, kind, def.id)
+	local s: CardState = if owned and worn
 		then "equipped"
 		elseif owned then "owned"
 		elseif onSale(ExclusiveShopView.productPurchase(config, key)) then "buy"
 		else "offsale"
 	return {
 		key = `{kind}:{def.id}`,
-		kind = kind,
+		kind = kind :: Kind,
 		id = def.id,
 		title = def.name,
-		icon = key,
+		icon = if kind == "plotSkin" then `PlotSkin_{def.id}` else key,
 		priceText = price,
 		state = s,
 		tag = if s == "equipped"
@@ -525,6 +628,12 @@ function ExclusiveShopView.cards(tab: string, state: any, config: any): { Card }
 		if shop.starterClaimed ~= true then
 			table.insert(out, productCard(config, "StarterBundle", false))
 		end
+		for _, key in { "BoutiqueBundle", "SkyBundle" } do
+			local def = (catalogueOf(config) :: any).products[key]
+			if def and inSeason(shop, key) then
+				table.insert(out, productCard(config, key, ExclusiveShopView.packOwned(shop, config, key)))
+			end
+		end
 		for _, id in (if type(shop.featured) == "table" then shop.featured else {}) :: { any } do
 			if type(id) == "string" and (catalogueOf(config) :: any).products[`Seat_{id}`] then
 				table.insert(out, seatCard(state, shop, config, id))
@@ -532,13 +641,20 @@ function ExclusiveShopView.cards(tab: string, state: any, config: any): { Card }
 		end
 	elseif tab == "Clouds" then
 		for _, id in exclusiveSeats(config) do
-			table.insert(out, seatCard(state, shop, config, id))
+			local card = seatCard(state, shop, config, id)
+			if card.state == "owned" or card.state == "equipped" or inSeason(shop, `Seat_{id}`) then
+				table.insert(out, card)
+			end
 		end
 	elseif tab == "Style" then
-		for _, kind in { "trail", "batSkin" } :: { "trail" | "batSkin" } do
+		for _, kind in { "plotSkin", "lockStyle", "trail", "fanfare", "hat", "batSkin" } do
 			for _, def in styleDefs(config, kind) do
-				if (catalogueOf(config) :: any).products[`{STYLE_KINDS[kind].prefix}{def.id}`] then
-					table.insert(out, styleCard(shop, config, kind, def))
+				local key = `{(STYLE_KINDS :: any)[kind].prefix}{def.id}`
+				if (catalogueOf(config) :: any).products[key] then
+					local card = styleCard(state, shop, config, kind, def)
+					if card.state == "owned" or card.state == "equipped" or inSeason(shop, key) then
+						table.insert(out, card)
+					end
 				end
 			end
 		end
@@ -565,17 +681,44 @@ function ExclusiveShopView.cards(tab: string, state: any, config: any): { Card }
 	return out
 end
 
--- "3/16 owned" over the Clouds.
+-- True when every item of bundle `key` is owned already (the bundle shows Owned).
+function ExclusiveShopView.packOwned(shop: any, config: any, key: string): boolean
+	local def = (catalogueOf(config) :: any).products[key]
+	local items = def and def.grant.items
+	if type(items) ~= "table" then
+		return false
+	end
+	for _, item in items do
+		local kind, id = string.match(item, "^(%a+)_(.+)$")
+		local owned = false
+		if kind == "Seat" then
+			owned = type(shop.owned) == "table" and shop.owned[id] == true
+		elseif kind == "Skin" then
+			owned = type(shop.styles) == "table"
+				and type(shop.styles.plotSkin) == "table"
+				and shop.styles.plotSkin[id] == true
+		elseif kind == "Fanfare" then
+			owned = type(shop.styles) == "table"
+				and type(shop.styles.fanfare) == "table"
+				and shop.styles.fanfare[id] == true
+		end
+		if not owned then
+			return false
+		end
+	end
+	return true
+end
+
+-- "3/16 owned" over the Clouds: the clouds the tab shows (seasonal ones only in season or when owned).
 function ExclusiveShopView.ownedSummary(state: any, config: any): string
-	local shop = shopOf(state)
-	local seats = exclusiveSeats(config)
+	local cards = ExclusiveShopView.cards("Clouds", state, config)
 	local n = 0
-	for _, id in seats do
-		if shop and type(shop.owned) == "table" and shop.owned[id] == true then
+	for _, card in cards do
+		if card.state == "owned" or card.state == "equipped" then
 			n += 1
 		end
 	end
-	return `{n}/{#seats} owned`
+	return `{n}/{#cards} owned`
 end
 
 -- "52%" / "0.4%" / "0.004%": enough digits that a rare tier never reads 0%.
@@ -717,6 +860,12 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 	elseif card.state == "owned" then
 		local equip: Equip? = if card.kind == "seat"
 			then { request = "EquipPetSeat", arg = card.id }
+			elseif card.kind == "plotSkin" then { request = "EquipPlotSkin", arg = card.id }
+			elseif style and style.style then {
+				request = "EquipStyle",
+				arg = card.id,
+				args = { card.kind :: any, card.id },
+			}
 			elseif style then { request = style.request, arg = card.id }
 			else nil
 		action = if equip
@@ -741,7 +890,7 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 		luckRows, luckEffect = ExclusiveShopView.luckOdds(state)
 	end
 	local itemKey = ExclusiveShopView.itemKeyOf(card.key)
-	local worn = style ~= nil and card.state == "equipped"
+	local worn = style ~= nil and card.state == "equipped" and card.kind ~= "plotSkin"
 	return {
 		key = card.key,
 		kind = card.kind,
@@ -755,7 +904,10 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 		action = action,
 		odds = if potion then ExclusiveShopView.potionOdds(config) else luckRows,
 		effect = if potion then ExclusiveShopView.potionEffect(config) else luckEffect,
-		unequip = if worn then { request = style.request, arg = "" } else nil,
+		unequip = if worn and style.style
+			then { request = "EquipStyle", arg = "", args = { card.kind :: any, "" } }
+			elseif worn then { request = style.request, arg = "" }
+			else nil,
 		unequipText = if worn then style.unequip else nil,
 		gift = if itemKey then ExclusiveShopView.gift(itemKey, state, config) else nil,
 	}
@@ -771,6 +923,14 @@ function ExclusiveShopView.itemKeyOf(cardKey: string): string?
 		return `Trail_{id}`
 	elseif kind == "batSkin" then
 		return `BatSkin_{id}`
+	elseif kind == "fanfare" then
+		return `Fanfare_{id}`
+	elseif kind == "lockStyle" then
+		return `LockStyle_{id}`
+	elseif kind == "hat" then
+		return `Hat_{id}`
+	elseif kind == "plotSkin" then
+		return `Skin_{id}`
 	end
 	return nil
 end
@@ -841,9 +1001,16 @@ function ExclusiveShopView.tabOf(key: string): string
 		return "Clouds"
 	elseif string.sub(key, 1, 5) == "pass:" or string.sub(key, 1, 4) == "sub:" then
 		return "Perks"
-	elseif string.sub(key, 1, 6) == "trail:" or string.sub(key, 1, 8) == "batSkin:" then
+	elseif
+		string.sub(key, 1, 9) == "plotSkin:"
+		or string.sub(key, 1, 10) == "lockStyle:"
+		or string.sub(key, 1, 6) == "trail:"
+		or string.sub(key, 1, 8) == "batSkin:"
+		or string.sub(key, 1, 8) == "fanfare:"
+		or string.sub(key, 1, 4) == "hat:"
+	then
 		return "Style"
-	elseif key == "product:StarterBundle" then
+	elseif key == "product:StarterBundle" or key == "product:BoutiqueBundle" or key == "product:SkyBundle" then
 		return "Featured"
 	end
 	return "Boosts"

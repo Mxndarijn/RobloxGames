@@ -105,6 +105,7 @@ safeCall("PlotThemeView.start", PlotThemeView.start) -- FEATURES.PlotSkins: each
 task.spawn(safeCall, "MeshSwap.publishSkinTemplates", MeshSwap.publishSkinTemplates) -- FEATURES.PlotSkins
 task.spawn(safeCall, "MeshSwap.publishHabitatTemplates", MeshSwap.publishHabitatTemplates) -- FEATURES.Habitats
 task.spawn(safeCall, "MeshSwap.publishPetSeatTemplates", MeshSwap.publishPetSeatTemplates) -- what follow pets ride
+task.spawn(safeCall, "MeshSwap.publishHatTemplates", MeshSwap.publishHatTemplates) -- Exclusive slime hats
 task.spawn(safeCall, "MeshSwap.publishPvpMarkerTemplates", MeshSwap.publishPvpMarkerTemplates) -- FEATURES.PvP placed traps
 
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction

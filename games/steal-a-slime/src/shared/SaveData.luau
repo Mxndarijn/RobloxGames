@@ -556,6 +556,67 @@ function SaveData.cleanEquipped(raw: any, owned: { string }): string?
 	return nil
 end
 
+-- The Config catalogue of a style kind (fanfare / lockStyle / hat / plotSkin): the ids that exist.
+local function styleIds(kind: string): { [string]: boolean }
+	local out: { [string]: boolean } = {}
+	local shop = Config.EXCLUSIVE_SHOP :: any
+	local list = if kind == "fanfare"
+		then shop.fanfares
+		elseif kind == "lockStyle" then shop.lockStyles
+		elseif kind == "hat" then shop.hats
+		else nil
+	if kind == "plotSkin" then
+		for _, skin in Config.PLOT_SKINS do
+			if skin.exclusive then
+				out[skin.id] = true
+			end
+		end
+	end
+	for _, def in list or {} do
+		out[def.id] = true
+	end
+	return out
+end
+SaveData.STYLE_KINDS = table.freeze({ "fanfare", "lockStyle", "hat", "plotSkin" })
+
+-- Owned Exclusive styles by kind (no version bump): unknown kinds and ids dropped, repeats dropped.
+function SaveData.cleanOwnedStyles(raw: any): { [string]: { string } }
+	local out: { [string]: { string } } = {}
+	if type(raw) ~= "table" then
+		return out
+	end
+	for _, kind in SaveData.STYLE_KINDS do
+		local ids, list = styleIds(kind), raw[kind]
+		if type(list) == "table" then
+			local kept: { string } = {}
+			for _, id in list do
+				if type(id) == "string" and ids[id] and not table.find(kept, id) then
+					table.insert(kept, id)
+				end
+			end
+			if #kept > 0 then
+				out[kind] = kept
+			end
+		end
+	end
+	return out
+end
+
+-- Worn styles by kind: only owned ids of fanfare / lockStyle / hat (a plot skin is worn as data.plotSkin).
+function SaveData.cleanWornStyles(raw: any, owned: { [string]: { string } }): { [string]: string }
+	local out: { [string]: string } = {}
+	if type(raw) ~= "table" then
+		return out
+	end
+	for _, kind in { "fanfare", "lockStyle", "hat" } do
+		local id = raw[kind]
+		if type(id) == "string" and owned[kind] and table.find(owned[kind], id) then
+			out[kind] = id
+		end
+	end
+	return out
+end
+
 -- Daily perk days (PlayerData.PerkDays, no version bump): whole UTC day numbers; missing / junk -> nil.
 function SaveData.cleanPerkDays(raw: any): PlayerData.PerkDays?
 	if type(raw) ~= "table" then
@@ -842,6 +903,7 @@ function SaveData.deserialize(stored: any): Data
 	end
 	data.quests = SaveData.cleanQuests(raw.quests) -- daily quests (no version bump: missing -> nothing rolled)
 	data.speciesRewards = num(raw.speciesRewards, 0, 0, #Config.DEX_MILESTONES.species)
+	data.ownedStyles = SaveData.cleanOwnedStyles(raw.ownedStyles) -- Exclusive styles (no version bump: missing -> none); before the plot skin, which reads it
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
 	data.plotBase = PlotBases.clean(raw.plotBase) -- FEATURES.BaseShapes (no version bump: missing / unknown -> jar)
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
@@ -871,6 +933,7 @@ function SaveData.deserialize(stored: any): Data
 	data.lockBreakCredits = num(raw.lockBreakCredits, 0, 0, Config.EXCLUSIVE_SHOP.creditMax)
 	data.giftCredits = SaveData.cleanGiftCredits(raw.giftCredits)
 	data.perkDays = SaveData.cleanPerkDays(raw.perkDays) -- daily perks (no version bump: missing -> never used)
+	data.wornStyles = SaveData.cleanWornStyles(raw.wornStyles, data.ownedStyles)
 	data.petSeat = SaveData.cleanPetSeat(raw.petSeat, data) -- after found / stats / ownedSeats: pet seat (no version bump: missing / unknown / locked -> "cloud")
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
@@ -1017,6 +1080,8 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		lockBreakCredits = num(data.lockBreakCredits, 0, 0, Config.EXCLUSIVE_SHOP.creditMax),
 		giftCredits = SaveData.cleanGiftCredits(data.giftCredits),
 		perkDays = SaveData.cleanPerkDays(data.perkDays), -- nil = never used: the key is left out
+		ownedStyles = SaveData.cleanOwnedStyles(data.ownedStyles),
+		wornStyles = SaveData.cleanWornStyles(data.wornStyles, SaveData.cleanOwnedStyles(data.ownedStyles)),
 	}
 end
 

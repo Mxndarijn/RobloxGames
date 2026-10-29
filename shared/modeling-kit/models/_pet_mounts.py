@@ -400,6 +400,321 @@ def lily_pad():
     return parts
 
 
+# ---------------------------------------------------------------- seasonal (limited): pumpkin, snow globe
+# Faces, trees and snowflakes are decals: flat 2D outlines pressed onto the body with a BVH ray cast per vertex (a thin
+# closed slab just above the surface), so they keep crisp edges on a smooth mesh without extra body resolution.
+from models._pet_mounts_extra import rings_mesh, lathe_rings, ellipse  # noqa: E402
+
+
+def _bvh(o):
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    bmesh.ops.triangulate(bm, faces=bm.faces)
+    t = BVHTree.FromBMesh(bm)
+    bm.free()
+    return t
+
+
+def decal(name, pts, tree, out=0.025, back=0.05, along=(0, 1, 0), centre=(0, 0, 0), long_edge=0.22, sphere_c=None, all_edges=False):
+    """A flat 2D polygon pts [(x, z)] pressed onto a surface: drawn in the plane through `centre` facing -`along`, cast
+    along `along` from in front, every vertex lands on the surface (top layer `out` above it, bottom `back` below);
+    long inner edges are split first so it follows the curve."""
+    d = Vector(along).normalized()
+    u = d.cross(Vector((0, 0, 1)))
+    u = u.normalized() if u.length > 1e-4 else Vector((1, 0, 0))
+    v = u.cross(d).normalized()
+    if v.z < 0:
+        v = -v
+    bm = bmesh.new()
+    vs = [bm.verts.new((x, 0, z)) for x, z in pts]
+    f = bm.faces.new(vs)
+    bmesh.ops.triangulate(bm, faces=[f], quad_method="BEAUTY", ngon_method="BEAUTY")
+    for _ in range(2):
+        long = [e for e in bm.edges if e.calc_length() > long_edge and (all_edges or not e.is_boundary)]
+        if long:
+            bmesh.ops.subdivide_edges(bm, edges=long, cuts=1, use_grid_fill=False)
+            bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
+    top = set(bm.verts)
+    r = bmesh.ops.extrude_face_region(bm, geom=list(bm.faces))
+    bot = [x for x in r["geom"] if isinstance(x, bmesh.types.BMVert)]
+    c = Vector(centre)
+    for vv in list(top) + bot:
+        o = c + u * vv.co.x + v * vv.co.z - d * 6.0
+        hit, n, _, _ = tree.ray_cast(o, d)
+        if hit is None:
+            continue
+        if sphere_c is not None:  # smooth radial normal instead of the facet's
+            n = (hit - Vector(sphere_c)).normalized()
+        vv.co = hit + n * (out if vv in top else -back)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return obj_from_bm(name, bm)
+
+
+def drape(o, tree, lift):
+    """drop every vertex of a flat part onto the surface below it (keeps its own thickness above the hit)."""
+    me = o.data
+    for v in me.vertices:
+        hit = tree.ray_cast(Vector((v.co.x, v.co.y, 9.0)), Vector((0, 0, -1)))[0]
+        if hit is not None:
+            v.co.z = hit.z + lift + v.co.z
+    me.update()
+    return o
+
+
+def pumpkin():
+    """A squat jack-o'-lantern: 8 round lobes with sharp grooves, a friendly carved face on the front (decals that glow
+    amber), a stout stem at the back of the top and a curly vine with a leaf over the back shoulders."""
+    a, b, N, M = 1.65, 1.2, 8, 48
+    phi = -math.pi / 2 - math.pi / N  # grooves sit either side of the front: a full lobe faces the camera
+
+    def groove(t):
+        return 1 - abs(math.sin(N * (t - phi) / 2))
+
+    def outline(t):
+        k = 1 - 0.075 + 0.075 * (1 - groove(t)) ** 0.55
+        return (a * math.cos(t) * k, b * math.sin(t) * k)
+    prof = [(0.4, 0.0), (0.8, 0.1), (0.96, 0.28), (1.0, 0.48), (0.98, 0.68), (0.9, 0.88), (0.76, 1.03),
+            (0.5, 1.15), (0.2, 1.2)]
+    body = rings_mesh("Pumpkin", lathe_rings(outline, prof, M), poles=(Vector((0, 0, 0.0)), Vector((0, 0, 1.2))))
+    stops = [(0, rgb(212, 96, 34)), (0.45, rgb(246, 134, 40)), (1, rgb(255, 172, 66))]
+
+    def f(co, n):
+        t = math.atan2(co.y / b, co.x / a)
+        g = groove(t) ** 2 * clamp(1 - abs(co.z - 0.55) / 0.75)
+        c = mixn(stops, clamp(co.z / 1.15))
+        return shade(c, (1 - 0.24 * g) * (1 - 0.16 * clamp(-n.z * 1.2 + 0.1)))
+    paint(body, f)
+    tree = _bvh(body)
+    parts = [body]
+
+    # the face: rounded triangle eyes, a small nose, a wide smile with one tooth up and one down
+    def rtri(cx, cz, w, h, tilt=0.0, n=5):
+        corners = [(-w / 2, -h / 2), (w / 2, -h / 2), (0, h / 2)]
+        pts = []
+        for i in range(3):
+            p0, p1, p2 = Vector(corners[i - 1]), Vector(corners[i]), Vector(corners[(i + 1) % 3])
+            a0, a1 = p1 + (p0 - p1) * 0.22, p1 + (p2 - p1) * 0.22
+            for s in range(n):  # rounded corner (quadratic Bezier)
+                u = s / (n - 1)
+                q = a0 * (1 - u) ** 2 + p1 * 2 * u * (1 - u) + a1 * u * u
+                pts.append(q)
+        ct, st = math.cos(tilt), math.sin(tilt)
+        return [(cx + p.x * ct - p.y * st, cz + p.x * st + p.y * ct) for p in pts]
+
+    def smile(cx, cz, w, n=10):
+        top, bot = [], []
+        for i in range(n + 1):
+            u = -1 + 2 * i / n
+            x = cx + w * u
+            top.append((x, cz - 0.13 * (1 - u * u)))
+            bot.append((x, cz - 0.38 * (1 - u * u) ** 0.75))
+        return top + bot[::-1][1:-1]
+
+    def grow(pts, d):
+        """offset a ccw-or-cw simple polygon outward by d (mitred, capped)."""
+        n = len(pts)
+        area = sum(pts[i][0] * pts[(i + 1) % n][1] - pts[(i + 1) % n][0] * pts[i][1] for i in range(n))
+        sgn = 1 if area > 0 else -1
+        out = []
+        for i in range(n):
+            p0, p1, p2 = Vector(pts[i - 1]), Vector(pts[i]), Vector(pts[(i + 1) % n])
+            e0, e1 = (p1 - p0).normalized(), (p2 - p1).normalized()
+            n0, n1 = Vector((e0.y, -e0.x)) * sgn, Vector((e1.y, -e1.x)) * sgn
+            m = (n0 + n1)
+            m = m.normalized() if m.length > 1e-6 else n0
+            k = d / max(0.5, m.dot(n0))
+            q = p1 + m * k
+            out.append((q.x, q.y))
+        return out
+    shapes = [("EyeL", rtri(-0.43, 0.88, 0.38, 0.32, 0.12)), ("EyeR", rtri(0.43, 0.88, 0.38, 0.32, -0.12)),
+              ("Nose", rtri(0.0, 0.7, 0.17, 0.14)), ("Mouth", smile(0.0, 0.6, 0.66))]
+    GLOW_T, GLOW_B, RIM = rgb(236, 128, 30), rgb(255, 226, 104), rgb(176, 72, 24)
+    for nm, pts in shapes:
+        zs = [p[1] for p in pts]
+        z0, z1 = min(zs), max(zs)
+        d = decal(nm, pts, tree, out=0.03)
+        paint(d, lambda co, n, z0=z0, z1=z1: mix(GLOW_B, GLOW_T, sstep(0.3, 1.0, (co.z - z0) / (z1 - z0))))
+        r = decal(nm + "Rim", grow(pts, 0.045), tree, out=0.014, long_edge=0.3)
+        paint(r, lambda co, n: RIM)
+        parts += [d, r]
+    # two uncarved teeth standing in the glow: one hanging from the top lip, one on the bottom lip
+    MZ, MW = 0.6, 0.66
+    for nm, x, top in (("ToothT", -0.26, True), ("ToothB", 0.24, False)):
+        u = x / MW
+        if top:
+            z, h = MZ - 0.13 * (1 - u * u) + 0.04, -0.17
+        else:
+            z, h = MZ - 0.38 * (1 - u * u) ** 0.75 - 0.04, 0.17
+        w = 0.09
+        pts = [(x - w, z), (x + w, z), (x + w * 0.9, z + h * 0.85), (x + w * 0.6, z + h), (x - w * 0.6, z + h), (x - w * 0.9, z + h * 0.85)]
+        if h < 0:
+            pts = pts[::-1]
+        t = decal(nm, pts, tree, out=0.045, back=0.02)
+        paint(t, lambda co, n: rgb(250, 142, 44))
+        parts.append(t)
+
+    # stem: stout, leaning back, ridged look from a 7-sided tube, flared foot sunk into the top
+    sp = [(0.0, 0.76, 0.98), (0.0, 0.8, 1.16), (0.02, 0.86, 1.32), (0.07, 0.96, 1.44), (0.13, 1.06, 1.5), (0.17, 1.12, 1.5)]
+    stem = soft_tube("Stem", sp, [0.24, 0.17, 0.145, 0.135, 0.145, 0.1], segs=8)
+    paint(stem, lambda co, n: mix(rgb(112, 138, 56), rgb(168, 194, 92), clamp((co.z - 1.05) / 0.45)))
+    parts.append(stem)
+
+    # curly vine from the stem foot over the right-back shoulder, ending in a loop
+    vp = []
+    plan = [(0.12 + 0.24 * i, 0.76 + 0.05 * math.sin(i * 0.9)) for i in range(4)]
+    for i in range(15):  # the curl: a shrinking spiral, a turn and a quarter
+        u = i / 14
+        ang = math.pi * 0.95 - u * math.tau * 1.25
+        rr = 0.21 * (1 - 0.5 * u)
+        plan.append((1.05 + rr * math.cos(ang) + 0.04 * u, 0.7 + rr * math.sin(ang)))
+    for x, y in plan:
+        hit = tree.ray_cast(Vector((x, y, 9)), Vector((0, 0, -1)))[0]
+        vp.append((x, y, (hit.z if hit else 0.8) + 0.03))
+    vine = soft_tube("Vine", vp, [0.065] * 18 + [0.045], segs=5)
+    paint(vine, lambda co, n: mix(rgb(96, 150, 60), rgb(140, 196, 84), clamp(n.z * 0.5 + 0.5)))
+    parts.append(vine)
+
+    # a leaf lying over the left-back shoulder
+    def leaf_out(t):  # a five-lobed pumpkin leaf, pointed lobes
+        w = abs(math.cos(2.5 * (t - math.pi / 2)))
+        r = 0.46 * (0.62 + 0.38 * w ** 3)
+        return (r * math.cos(t), r * math.sin(t) * 0.92)
+    lf = slab("Leaf", leaf_out, 0.035, M=20, nt=1, nr=2, nb=1, e=0.03,
+              bend=lambda p: Vector((p.x, p.y, p.z + 0.12 * (p.x * p.x + p.y * p.y) / 0.21)))  # edges curl up
+    lf.data.transform(Matrix.Translation((-0.62, 0.6, 0)) @ Matrix.Rotation(0.6, 4, "Z"))
+    drape(lf, tree, 0.02)
+    paint(lf, lambda co, n: mix(rgb(78, 146, 60), rgb(128, 196, 86), clamp(n.z * 0.7 + 0.3)))
+    parts.append(lf)
+    return parts
+
+
+
+def snowglobe():
+    """A snow globe on a round wooden base: red band and a butter-yellow lip on the base, pale icy glass with a white
+    highlight, a snowy floor and a little pine tree inside (painted on the glass as decals: the mesh is opaque), and a
+    flat snow cap frosting the top of the globe, where the pet sits. Built at its own size (round, not fitted)."""
+    M = 32
+    WOOD, WOOD_D, RED, RED_D, LIP = rgb(206, 146, 92), rgb(164, 112, 70), rgb(222, 74, 70), rgb(186, 56, 58), rgb(252, 214, 112)
+
+    # --- base: wooden foot, butter trim, red band, butter trim, wooden lip
+    bprof = [(1.12, 0.0), (1.16, 0.06), (1.12, 0.14), (1.03, 0.19), (1.0, 0.37), (1.06, 0.43), (1.05, 0.53), (0.78, 0.58)]
+
+    def bcol(i, k, cen):  # band i = faces from ring i-1 to ring i (0 = bottom fan, 8 = top fan)
+        if i == 4:
+            return mix(RED_D, RED, clamp((cen.z - 0.19) / 0.18))
+        if i in (3, 5):
+            return LIP
+        return mix(WOOD_D, WOOD, clamp(cen.z / 0.5))
+    base = rings_mesh("Base", lathe_rings(ellipse(1, 1), bprof, M), colour=bcol, poles=(Vector((0, 0, 0)), Vector((0, 0, 0.59))))
+    parts = [base]
+
+    # --- the glass globe: a sphere sunk into the base, cut flat at the top under the snow cap
+    R, Z0 = 1.0, 1.1
+    ZC = Z0 + 0.8
+    gz = [Z0 - 0.7, Z0 - 0.3, Z0 - 0.1, Z0 + 0.1, Z0 + 0.3, Z0 + 0.48, Z0 + 0.65, ZC]
+    gprof = [(math.sqrt(max(0.0, R * R - (z - Z0) ** 2)), z) for z in gz]
+    glass = rings_mesh("Glass", lathe_rings(ellipse(1, 1), gprof, M), poles=(Vector((0, 0, gz[0])), Vector((0, 0, ZC))))
+    L = Vector((-0.62, -0.72, 0.3)).normalized()  # the shine sits upper left on the front, below the cap
+    G_LO, G_HI, SHINE = rgb(150, 216, 244), rgb(198, 238, 254), rgb(238, 247, 255)  # saturated sky cyan: pale blue-grey goes slate in the game light
+
+    def gcol(co, n):
+        c = mix(G_LO, G_HI, clamp((co.z - Z0 + 0.5) / 1.1))
+        h = n.dot(L)
+        return mix(c, rgb(222, 240, 252), sstep(0.8, 0.95, h))
+    paint(glass, gcol)
+    parts.append(glass)
+    tree = _bvh(glass)
+
+    # --- snowy floor inside: a band just outside the glass up to a gently rolling snow line
+    SL = Z0 - 0.3
+
+    def snow_line(t):
+        return SL + 0.07 * math.sin(3 * t + 0.6) + 0.04 * math.sin(5 * t)
+    rings = []
+    for z in (Z0 - 0.66, Z0 - 0.5, None):
+        ring = []
+        for k in range(M):
+            t = k * math.tau / M
+            zz = snow_line(t) if z is None else z
+            rr = math.sqrt(max(0.0, R * R - (zz - Z0) ** 2)) + 0.022
+            ring.append(Vector((rr * math.cos(t), rr * math.sin(t), zz)))
+        rings.append(ring)
+    snow = rings_mesh("SnowFloor", rings, poles=(Vector((0, 0, Z0 - 0.68)), Vector((0, 0, SL - 0.1))))
+    paint(snow, lambda co, n: mix(rgb(200, 220, 242), rgb(238, 246, 255), clamp((co.z - Z0 + 0.6) / 0.3)))
+    parts.append(snow)
+
+    # --- a little pine tree (front) and a smaller one (back right), with a star; snowflakes on the glass
+    def pine(nm, cx, zb, h, w, along):
+        """a pine as convex pieces (a trunk and three overlapping tier triangles, upper ones on top): robust to
+        triangulate, and each tier gets its own shade."""
+        out = []
+        trunk = [(cx - w * 0.09, zb), (cx + w * 0.09, zb), (cx + w * 0.09, zb + h * 0.2), (cx - w * 0.09, zb + h * 0.2)]
+        t = decal(nm + "Trunk", trunk, tree, out=0.025, back=0.04, along=along, sphere_c=(0, 0, Z0))  # (small: no split)
+        paint(t, lambda co, n: rgb(150, 104, 66), smooth=False)
+        out.append(t)
+        for i, (b0, hw, t0) in enumerate([(0.14, 0.5, 0.56), (0.36, 0.4, 0.8), (0.58, 0.29, 1.0)]):
+            tri = [(cx - w * hw, zb + h * b0), (cx + w * hw, zb + h * b0), (cx, zb + h * t0)]
+            g = decal("%sTier%d" % (nm, i), tri, tree, out=0.03 + 0.008 * i, back=0.04, along=along, sphere_c=(0, 0, Z0),
+                      long_edge=0.2, all_edges=True)
+            c0, c1 = [(rgb(46, 128, 76), rgb(70, 160, 92)), (rgb(58, 146, 84), rgb(84, 176, 100)), (rgb(70, 160, 92), rgb(104, 192, 110))][i]
+            paint(g, lambda co, n, c0=c0, c1=c1, z0=zb + h * b0, z1=zb + h * t0: mix(c0, c1, clamp((co.z - z0) / (z1 - z0))), smooth=False)
+            out.append(g)
+        return out
+    parts += pine("TreeF", 0.08, SL - 0.06, 0.78, 0.62, (0, 1, 0))
+    parts += pine("TreeB", 0.0, SL - 0.06, 0.56, 0.44, (-0.6, -1, 0))
+    # a cartoon shine: a soft white crescent streak on the upper left of the glass
+    arc = []
+    for k in range(7):
+        a = math.radians(122 + 42 * k / 6)
+        wdt = 0.05 * math.sin(math.pi * k / 6) + 0.01
+        arc.append((0.72 * math.cos(a), Z0 + 0.72 * math.sin(a) - 0.12, wdt))
+    shine = [(x + wd * math.cos(math.atan2(z - Z0 + 0.12, x)), z + wd * math.sin(math.atan2(z - Z0 + 0.12, x))) for x, z, wd in arc]
+    shine += [(x - wd * math.cos(math.atan2(z - Z0 + 0.12, x)), z - wd * math.sin(math.atan2(z - Z0 + 0.12, x))) for x, z, wd in arc[::-1]]
+    sh = decal("Shine", shine, tree, out=0.015, back=0.03, sphere_c=(0, 0, Z0), long_edge=0.3)
+    paint(sh, lambda co, n: SHINE)
+    parts.append(sh)
+    star = [(0.08 + (0.1 if k % 2 == 0 else 0.042) * math.cos(math.pi / 2 + k * math.pi / 5),
+             SL - 0.06 + 0.78 + 0.02 + (0.1 if k % 2 == 0 else 0.042) * math.sin(math.pi / 2 + k * math.pi / 5)) for k in range(10)]
+    st = decal("Star", star, tree, out=0.05, back=0.0, sphere_c=(0, 0, Z0))
+    paint(st, lambda co, n: rgb(255, 214, 72))
+    parts.append(st)
+    flakes = [(-0.3, -0.9, 0.05), (0.62, -0.7, 0.42), (0.5, -0.8, 0.05), (-0.85, -0.3, 0.05),
+              (0.9, -0.2, 0.3), (-0.5, 0.75, 0.2), (0.85, 0.4, 0.1)]
+    for k, (x, y, z) in enumerate(flakes):
+        dvec = Vector((x, y, z)).normalized()
+        rr = 0.06 if k % 3 else 0.08
+        pts = [(rr * math.cos(a * math.tau / 6), rr * math.sin(a * math.tau / 6)) for a in range(6)]
+        fl = decal("Flake%d" % k, pts, tree, out=0.02, back=0.02, along=-dvec, centre=Vector((0, 0, Z0)) + dvec * R, long_edge=9, sphere_c=(0, 0, Z0))
+        paint(fl, lambda co, n: rgb(240, 247, 255))
+        parts.append(fl)
+
+    # --- the snow cap: frosting over the cut top of the globe, flat on top for the pet, a soft wavy rim with drips
+    TOP = ZC + 0.14
+
+    def sph_r(z):
+        return math.sqrt(max(0.0, R * R - (z - Z0) ** 2))
+
+    def drip(t):
+        return max(0.0, math.cos(5 * t + 0.4)) ** 3 * (0.6 + 0.4 * math.sin(3 * t))
+    crings = []
+    spec = [(0.0, 0.05), (0.4, 0.1)]  # (fraction up from the rim to ZC, thickness)
+    for fr, th in spec:
+        ring = []
+        for k in range(M):
+            t = k * math.tau / M
+            zr = ZC - 0.08 - 0.16 * drip(t)
+            z = zr + (ZC - zr) * fr if fr >= 0 else zr + 0.04
+            rr = sph_r(z) + th
+            ring.append(Vector((rr * math.cos(t), rr * math.sin(t), z + (0.0 if fr > 0.01 else 0.0))))
+        crings.append(ring)
+    for rr, z in ((sph_r(ZC) + 0.08, ZC + 0.06), (sph_r(ZC) + 0.02, TOP - 0.02), (sph_r(ZC) - 0.12, TOP)):
+        crings.append([Vector((rr * math.cos(k * math.tau / M), rr * math.sin(k * math.tau / M), z)) for k in range(M)])
+    cap = rings_mesh("SnowCap", crings, poles=(Vector((0, 0, ZC - 0.1)), Vector((0, 0, TOP + 0.005))))
+    paint(cap, lambda co, n: mix(rgb(196, 218, 242), rgb(240, 247, 255), clamp(n.z * 0.7 + 0.35)))
+    parts.append(cap)
+    return parts
+
+
 MOUNTS = {
     "storm_cloud": storm_cloud,
     "rainbow_cloud": rainbow_cloud,
@@ -411,8 +726,11 @@ MOUNTS = {
     "magic_carpet": magic_carpet,
     "ufo": ufo,
     "lily_pad": lily_pad,
+    "pumpkin": pumpkin,  # Halloween (limited)
+    "snowglobe": snowglobe,  # winter (limited)
 }
 
 # the second set (star cushion, moon, mushroom, pancakes, jelly, hoverboard, clam shell, royal cushion)
 from models._pet_mounts_extra import EXTRA, NOFIT  # noqa: E402
 MOUNTS.update(EXTRA)
+NOFIT.add("snowglobe")  # round: keeps its own 2.32 x 2.32 footprint

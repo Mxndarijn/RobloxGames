@@ -69,6 +69,7 @@ Remotes.ACTIONS = table.freeze({
 	AimHatch = table.freeze({ args = { "string" } }), -- the pad egg id a "Hatch now" purchase is for, sent just before the Roblox prompt
 	UseCredit = table.freeze({ args = { "string", "target?" } }), -- "brew" | "hatch" | "lockBreak", target: the hatch egg id (nil = the one closest to ready) or the locked base's plot index: spends a saved Exclusive Shop credit
 	AimSnack = table.freeze({ args = { "string" } }), -- slimeId: the slime the next GrowthSnack purchase feeds
+	EquipStyle = table.freeze({ args = { "string", "cosmetic" } }), -- "fanfare" | "lockStyle" | "hat", an owned id ("" = none)
 	ClaimPerk = table.freeze({ args = { "string" } }), -- "vipPotion": a VIP's free server Luck Potion of the day
 	EquipTrail = table.freeze({ args = { "cosmetic" } }), -- owned Config.EXCLUSIVE_SHOP.trails id, "" = none
 	EquipBatSkin = table.freeze({ args = { "cosmetic" } }), -- owned Config.EXCLUSIVE_SHOP.batSkins id, "" = the default Bat
