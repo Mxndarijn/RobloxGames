@@ -350,3 +350,18 @@ describe("ritual circle placement", function()
 		end
 	end)
 end)
+
+describe("ritual label range", function()
+	it("hides the orb label past LABEL_DISTANCE, so it doesn't float over the plaza from far away", function()
+		expect(Ritual.labelDistance(nil)).toBe(R.LABEL_DISTANCE)
+		expect(Ritual.labelDistance(1080)).toBe(R.LABEL_DISTANCE)
+		expect(Ritual.labelDistance(R.LABEL_SMALL_VIEWPORT_PX)).toBe(R.LABEL_DISTANCE)
+		expect(R.LABEL_DISTANCE <= 60).toBeTruthy()
+	end)
+
+	it("uses the shorter range on a phone-sized viewport", function()
+		expect(Ritual.labelDistance(390)).toBe(R.LABEL_DISTANCE_SMALL)
+		expect(Ritual.labelDistance(R.LABEL_SMALL_VIEWPORT_PX - 1)).toBe(R.LABEL_DISTANCE_SMALL)
+		expect(R.LABEL_DISTANCE_SMALL < R.LABEL_DISTANCE).toBeTruthy()
+	end)
+end)
