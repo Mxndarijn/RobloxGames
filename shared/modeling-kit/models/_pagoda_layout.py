@@ -11,7 +11,7 @@
 import math
 import os
 
-from models._base_design_common import FLOOR_H, PAD, floor_top, polar
+from models._base_design_common import EXIT_TUBE_R, FLOOR_H, PAD, exit_guards, floor_top, polar
 
 ID = "pagoda"
 NAME = "Mushroom Pagoda"
@@ -84,7 +84,8 @@ for _j in range(1, 33):
     _x, _y = polar(PAD_R[_f - 1], pad_angle(_j))
     PADS.append({"j": _j, "floor": _f, "x": round(_x, 3), "y": round(_y, 3), "yaw": round(90 - pad_angle(_j), 3)})
 
-# ---- the owner exit: a curved glass goo tube over the caps (a scripted move, never collides) ----
+# ---- the owner exit: a curved glass goo tube over the caps (a scripted move; the tube never collides, an invisible
+# guard round its low end keeps players out of it) ----
 HATCH_A = 191.0                         # on the room wall between pads at 171.4 and 210.9 (floors 2-4)
 
 
@@ -199,6 +200,24 @@ def eave_profile(f):
     zt = floor_top(f + 1) - 0.4       # 0.2 above the visual cap at both ends: the domed top bulges 0.45 in the middle
     ze = floor_top(f) + CAP_UNDER + 1.2
     return [(room_out(f + 1), zt), (eave_r(f), ze)]
+
+
+CAP_END_A = 236.0            # where the drop tube reaches the ground (between the hatch at 191 and the door at 270)
+
+
+def cap_path(top, n=10):
+    """The drop tube's centre line from floor top's hatch: out of the hatch, over the next cap's slope, round the eave
+    and down at r 35.6 (models/_drop_exit_styles.pagoda_cap builds the tube along it)."""
+    hx, hy, hz = hatch_pos(top)
+    a0 = HATCH_A
+    (ri, zt), (re, ze) = eave_profile(top - 1)
+    pts = [(hx, hy, hz - 0.3), (*polar(room_out(top) + 1.2, a0), hz - 1.2), (*polar(re + 1.8, a0 + 4), ze + 0.9)]
+    for k in range(1, n + 1):
+        t = k / n
+        a = a0 + 4 + (CAP_END_A - a0 - 4) * t
+        r = re + 1.8 + (35.6 - re - 1.8) * min(1.0, t * 3)
+        pts.append((*polar(r, a), (ze + 0.9) * (1 - t) ** 1.25 + 1.6 * t))
+    return pts
 
 
 def dome_profile(f, rim=None):
@@ -342,6 +361,12 @@ for _f in range(1, FLOORS + 1):
             _sx, _sy = polar(room_out(_f) + 0.4, HATCH_A + _s * 7.0)
             COLLIDERS.append(_box(f"DropShield_{_s}", _f, "contract: blocks the prompt's line of sight from outside",
                                   (_sx, _sy, _z + 4.0), (0.4, 3.0, 7.0), (0, 0, HATCH_A + _s * 7.0), collide=False))
+    # the top floor's drop tube: invisible guards round the stretch a player on the ground can reach (shown and solid
+    # only while this is the top floor, like the tube's mesh)
+    if _top and _f > 1:
+        for _k, (_c, _s, _yaw) in enumerate(exit_guards(cap_path(_f), EXIT_TUBE_R + 0.3, floor_top(1))):
+            COLLIDERS.append(_box(f"DropGuard_{_k + 1}", _f, "drop tube guard", _c, _s, (0, 0, _yaw), hidden=True,
+                                  ignore_footprint=True))
 # floor 1: the lock (cork-style door barrier) and the open door's collider
 COLLIDERS.append(_box("LockBarrier", 1, "lock", (0, DOOR["y"] - 0.2, floor_top(1) + DOOR["height"] / 2),
                       (DOOR["width"], 1.6, DOOR["height"]), note="solid for non-owners while locked; off when open"))

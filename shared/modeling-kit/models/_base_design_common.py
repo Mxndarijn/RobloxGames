@@ -308,3 +308,25 @@ def theme(tid):
     """The jar tower's theme palette for skin id tid (classic, garden, crystal, starlight, candy, mushroom)."""
     from models._goo_jar_themes import THEMES
     return THEMES[tid]
+
+
+# ---- owner drop exits: the tube's size and the invisible guard round the part a player on the ground can reach ----
+EXIT_TUBE_R = 2.0        # a drop tube's radius (a player is about 2 wide)
+EXIT_GUARD_REACH = 6.0   # a stretch of tube whose underside is lower than this is reachable from the ground
+EXIT_GUARD_H = 11.0      # the guard's height above the ground: higher than a jump (about 7.2), so it can't be climbed
+
+
+def exit_guards(path, r, ground):
+    """Invisible upright boxes over the stretches of a drop tube (centre line `path`, radius r) that a player on the
+    ground at height `ground` can walk or jump into: [(centre (x, y, z), size (sx, sy, sz), yaw degrees)], each the
+    stretch's footprint widened by r on every side, from the ground up EXIT_GUARD_H. They keep players out of the tube
+    without turning it into a ramp; the tube itself stays decor."""
+    out = []
+    for (x0, y0, z0), (x1, y1, z1) in zip(path, path[1:]):
+        if min(z0, z1) - r - ground >= EXIT_GUARD_REACH:
+            continue
+        dx, dy = x1 - x0, y1 - y0
+        run = math.hypot(dx, dy)
+        yaw = math.degrees(math.atan2(dy, dx)) if run > 1e-6 else 0.0
+        out.append((((x0 + x1) / 2, (y0 + y1) / 2, ground + EXIT_GUARD_H / 2), (run + 2 * r, 2 * r, EXIT_GUARD_H), yaw))
+    return out

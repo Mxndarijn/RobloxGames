@@ -167,6 +167,10 @@ local function partNode(
 		node.canCollide = false
 		node.canTouch = false
 		node.transparency = 1
+	elseif p.hidden then
+		-- an invisible guard (round a drop tube's foot): it collides but is never anyone's look
+		node.transparency = 1
+		node.canTouch = false
 	end
 	local attributes: { [string]: any } = {}
 	if p.show and plain then
@@ -179,7 +183,7 @@ local function partNode(
 		attributes.JarShow = p.show
 		attributes.JarHidden = p.show == "covered"
 		attributes.JarCollide = if p.collide then true else nil
-		attributes.JarShowSelf = if p.collide then true else nil
+		attributes.JarShowSelf = if p.collide and not p.hidden then true else nil
 		if p.show == "covered" or not p.collide then
 			node.transparency = 1
 		end
@@ -517,6 +521,10 @@ local PAGODA_STAND_INS: { [string]: string } = {
 	["deck#2"] = "pagoda_deck_2",
 	["deck#3"] = "pagoda_deck_3",
 	["deck#4"] = "pagoda_deck_4",
+	-- the eave slopes round a floor with a room on it: their look is that floor's mushroom cap
+	["eave cap#1"] = "pagoda_cap_1_mid",
+	["eave cap#2"] = "pagoda_cap_2_mid",
+	["eave cap#3"] = "pagoda_cap_3_mid",
 	ramp = "pagoda_ramp",
 	-- the turret storey meshes carry the landing, the post and the wall; the top floor's is the tall one with the cap
 	landing = "pagoda_turret_mid",
