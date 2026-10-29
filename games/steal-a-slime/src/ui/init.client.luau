@@ -1271,6 +1271,13 @@ if game:GetService("RunService"):IsStudio() then
 			worldShop.onEvent({ kind = "Open", shopId = if type(shopId) == "string" then shopId else "ItemShop" })
 			return
 		end
+		local adminTab = if type(key) == "string" then string.match(key, "^Admin:(%a+)$") else nil
+		if adminTab and panelByKey.Admin then
+			-- the admin menu on one tab (only once State made this player an admin)
+			setOpen("Admin")
+			panelByKey.Admin.showTab(adminTab)
+			return
+		end
 		local shopTab = if type(key) == "string" then string.match(key, "^ExclusiveShop:(%a+)$") else nil
 		if shopTab then
 			-- the Exclusive shop on one tab (scripts can't press the tab)

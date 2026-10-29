@@ -7,6 +7,7 @@
 ]]
 
 local UI = script.Parent.Parent
+local ExclusiveShopView = require(UI.ExclusiveShopView)
 local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
@@ -183,9 +184,9 @@ function Admin.rows(ctx: any): { [string]: { Row } }
 			},
 		})
 	end
-	table.insert(items, head("hExclusive", "Exclusive shop"))
+	local shop = Config.EXCLUSIVE_SHOP
 	local function product(key: string, name: string)
-		if Config.EXCLUSIVE_SHOP.products[key] ~= nil then
+		if shop.products[key] ~= nil then
 			table.insert(items, {
 				key = `product_{key}`,
 				command = "grantProduct",
@@ -194,17 +195,117 @@ function Admin.rows(ctx: any): { [string]: { Row } }
 			})
 		end
 	end
+	-- On / Off for a pass, the Slime Club or the paid random items policy (amount 1 = on).
+	local function toggle(key: string, command: string, label: string, arg: string?)
+		table.insert(items, {
+			key = key,
+			command = command,
+			label = label,
+			buttons = {
+				{ text = "On", arg = arg, amount = fixed(1), color = Theme.Gold },
+				{ text = "Off", arg = arg, amount = fixed(0), color = Theme.Info },
+			},
+		})
+	end
+	-- "VIP", "Fast brew": the shop's own names; a season's name ("Halloween") for a seasonal item.
+	local function shopName(key: string): string
+		local t = (ExclusiveShopView.TEXTS :: any)[key]
+		return if t then t.title else key
+	end
+	local function seasonName(id: string?): string?
+		local def = if id and shop.seasons then shop.seasons[id] else nil
+		return if def then def.name else id
+	end
+	local function sortedKeys(t: { [string]: any }, order: ((string) -> number)?): { string }
+		local keys = {}
+		for key in t do
+			table.insert(keys, key)
+		end
+		table.sort(keys, function(a: string, b: string): boolean
+			local oa, ob = if order then order(a) else 0, if order then order(b) else 0
+			if oa ~= ob then
+				return oa < ob
+			end
+			return a < b
+		end)
+		return keys
+	end
+
+	table.insert(items, head("hPasses", "Exclusive shop: passes"))
+	toggle("paidRandom", "setPaidRandom", "Paid random items allowed")
+	for _, key in
+		sortedKeys(shop.passes, function(k: string): number
+			return shop.passes[k].order or math.huge
+		end)
+	do
+		toggle(`pass_{key}`, "setPass", shopName(key), key)
+	end
+	for _, key in sortedKeys(shop.subscriptions or {}) do
+		toggle(`sub_{key}`, "setSubscription", shopName(key), key)
+	end
+
+	table.insert(items, head("hBundles", "Exclusive shop: bundles"))
 	product("StarterBundle", "Starter bundle")
+	product("BoutiqueBundle", "Boutique bundle")
+	product("SkyBundle", "Sky bundle")
+
+	table.insert(items, head("hClouds", "Exclusive shop: clouds"))
 	for _, seat in Config.PET_SEATS do
 		if seat.unlock.kind == "exclusive" then
-			product(`Seat_{seat.id}`, `{seat.name} seat`)
+			local season = (seat :: any).season
+			product(`Seat_{seat.id}`, if season then `{seat.name} seat ({seasonName(season)})` else `{seat.name} seat`)
 		end
 	end
-	for _, trail in Config.EXCLUSIVE_SHOP.trails do
+
+	table.insert(items, head("hBase", "Exclusive shop: base"))
+	for _, skin in Config.PLOT_SKINS do
+		if skin.exclusive then
+			product(
+				`Skin_{skin.id}`,
+				if skin.season then `{skin.name} skin ({seasonName(skin.season)})` else `{skin.name} skin`
+			)
+		end
+	end
+	for _, base in Config.PLOT_BASES do
+		if (base :: any).exclusive then
+			product(`Base_{base.id}`, `{base.name} base`)
+		end
+	end
+	for _, def in shop.lockStyles or {} do
+		product(`LockStyle_{def.id}`, `{def.name} lock`)
+	end
+
+	table.insert(items, head("hStyle", "Exclusive shop: style"))
+	for _, trail in shop.trails do
 		product(`Trail_{trail.id}`, `{trail.name} trail`)
 	end
-	for _, skin in Config.EXCLUSIVE_SHOP.batSkins do
+	for _, def in shop.fanfares or {} do
+		product(`Fanfare_{def.id}`, `{def.name} fanfare`)
+	end
+	for _, def in shop.hats or {} do
+		product(`Hat_{def.id}`, if def.season then `{def.name} ({seasonName(def.season)})` else def.name)
+	end
+	for _, skin in shop.batSkins do
 		product(`BatSkin_{skin.id}`, `{skin.name} bat skin`)
+	end
+
+	table.insert(items, head("hBoosts", "Exclusive shop: boosts"))
+	for _, entry in
+		{
+			{ "ServerLuckPotion", "Server Luck Potion" },
+			{ "SlimeRain", "Slime Rain now" },
+			{ "SummonBoss", "Summon the boss" },
+			{ "WeatherTotem", "Weather Totem" },
+			{ "IncomeBoost15", "x2 income, 15 min" },
+			{ "IncomeBoost60", "x2 income, 1 hour" },
+			{ "DoubleOffline", "Double offline cash" },
+			{ "KeepStreak", "Keep my streak" },
+			{ "GrowthSnack", "Growth snack" },
+			{ "FinishBrew_4", "Finish brew now" },
+			{ "LockBreak", "Lock break (credit)" },
+		}
+	do
+		product(entry[1], entry[2])
 	end
 	tabs.Items = items
 
