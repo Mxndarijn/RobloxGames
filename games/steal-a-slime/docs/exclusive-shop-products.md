@@ -1,10 +1,10 @@
-# Exclusive Shop: Robux products and passes to create
+# Exclusive Shop: Robux products and passes
 
-Create these on the Creator Dashboard for the Steal a Slime experience (universe 10770917350): **Monetization > Developer Products** and **Monetization > Passes**. Use the name, description and price below. Then paste each new id into the `productId` / `passId` of the same key in `src/shared/Config.luau` (`EXCLUSIVE_SHOP`), or send the list to Claude and it fills them in.
-
-While an id is 0 the shop shows the price with "Not on sale yet". Create the **passes off sale** until their ids are in `Config.EXCLUSIVE_SHOP.passes`: a pass on sale shows in the experience's Store tab, and it would do nothing while its id is 0. Developer Products can only be bought from inside the game, so they are safe to create now.
-
-Prices must match the `robux` in Config (the shop shows that number).
+**Created (2026-10-29):** every Developer Product (121, with the Exclusive bases) and the 7 Game Passes exist on
+Roblox for universe 10770917350, made with `tools/monetization` (Open Cloud). Their ids are in
+`src/shared/ExclusiveIds.luau`; `tools/monetization/created_ids.json` is the record. The passes were created off
+sale: turn them on sale on the Creator Dashboard once a version with their ids is published. The Slime Club
+subscription is created on the Dashboard (no API). The tables below are the first set's original sheet.
 
 ## Developer Products: clouds, bundle, quick-buys (27)
 
