@@ -250,8 +250,8 @@ and `wornStyles = { [kind]: id }` for kinds `fanfare`, `lockStyle`, `hat` (worn)
 Request `EquipStyle(kind, id)` (0.5 s; "" = take off). State: `exclusiveShop.styles`, `worn`, `seasons`.
 - **Base skins** (`Skin_<id>`, `Config.PLOT_SKINS[].exclusive`): Fairground 299, Beach Hut 249, Space Station 399,
   Winter Cabin 249, Haunted Ranch 299 (Halloween). `PlotSkins.unlocked` = owned; equipped with `EquipPlotSkin`. The
-  tower meshes are kit themes (`models/_goo_jar_themes.py`, `goo_jar_*@<id>`); until uploaded the classic pieces
-  show with the skin's floor and trim. The Skins menu shows an unowned one with a gold "Exclusive" and
+  tower meshes are kit themes (`models/_goo_jar_themes.py`, `goo_jar_*@<id>`, uploaded; MeshAssets block from
+  `tools/goo_jar_theme_assets.py`). The Skins menu shows an unowned one with a gold "Exclusive" and
   "Only in the Exclusive shop.".
 - **Bases** (`Base_<id>`, `Config.PLOT_BASES[].exclusive`, contract/base-shapes.md): Carousel Tent 599, Space Rocket
   499, Tree House 499, Lighthouse 399, Snow Globe 399. `PlotBases.unlocked` = owned (rebirths never unlock one);
@@ -265,7 +265,7 @@ Request `EquipStyle(kind, id)` (0.5 s; "" = take off). State: `exclusiveShop.sty
   emits the worn one's `Effect` (`Effects.BURSTS.Fanfare_<id>`, ≤ 2 s) on the slime.
 - **Slime hats** (`Hat_<id>`, `EXCLUSIVE_SHOP.hats`, kit `slime_hat_<id>`): Plot attribute `SlimeHat`; the client
   (`ui/SlimeHatsFx`) welds the template from `ReplicatedStorage.SlimeHatMeshes` (`MeshSwap.publishHatTemplates`) on
-  every non-egg slime in State "Pad" of that owner. The hat belongs to the pad: a carried or stolen slime has none.
+  top of the visible `Mesh` of every non-egg slime in State "Pad" of that owner. The hat belongs to the pad: a carried or stolen slime has none.
 - **Seasons** (`EXCLUSIVE_SHOP.seasons`, `shared/Seasons`, UTC month-day windows): halloween 10-15..11-07 (Pumpkin
   seat, Haunted Ranch, Witch Hat), winter 12-01..01-07 (Snow Globe seat). Out of season an unowned seasonal item is
   not shown (shop, Skins menu, `PetSeats.view` / `PlotSkins.view` with `now`) and never featured; owners keep it.

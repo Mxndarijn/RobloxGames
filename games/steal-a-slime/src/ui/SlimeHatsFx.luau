@@ -5,7 +5,8 @@
 	Exclusive slime hats: every slime standing on a pad wears the hat its owner's plot shows (Plot_<i> attribute
 	SlimeHat, the owner's worn hat id). The hat belongs to the pad: a slime that leaves its pad (carried, stolen) loses
 	it. The hat is a clone of the server's template (ReplicatedStorage.SlimeHatMeshes, MeshSwap.publishHatTemplates),
-	scaled to the slime's width, welded on top of its Body, Archivable false so a FollowPets clone never copies it.
+	scaled to the slime's width, welded on top of its visible `Mesh` (the Body is a taller invisible box; a model
+	without a Mesh uses the Body), Archivable false so a FollowPets clone never copies it.
 	A hat without an uploaded template shows nothing. Cosmetic only: no collision, no queries.
 
 	Pure helpers (`want`, `fit`) are tested under Lune (tests/ui/SlimeHatsFx.spec.luau). `start` returns `tick`
@@ -17,8 +18,8 @@ local SlimeHatsFx = {}
 SlimeHatsFx.HAT_NAME = "ExclusiveHat"
 SlimeHatsFx.PAD_STATE = "Pad"
 SlimeHatsFx.RECHECK = 0.5 -- seconds between sweeps
-SlimeHatsFx.WIDTH = 0.62 -- hat width over the slime Body's width
-SlimeHatsFx.SINK = 0.18 -- share of the Body's height the hat sits below its top (the slime's dome is round)
+SlimeHatsFx.WIDTH = 0.55 -- hat width over the slime mesh's width (measured in Studio on a pad slime)
+SlimeHatsFx.SINK = 0.2 -- share of the mesh's height the hat sits below its top (the slime's dome is round)
 
 -- The hat mesh a slime should wear: its owner's plot hat (by Config.EXCLUSIVE_SHOP.hats id) while it stands on a pad.
 -- `plotHats`: owner userId -> worn hat id. Returns the kit mesh name, or nil.
@@ -44,8 +45,8 @@ function SlimeHatsFx.want(
 	return nil
 end
 
--- The hat's size and its offset up from the Body's centre, for a Body of `bodySize` and a template of `hatSize`
--- (x, y, z as numbers): one uniform scale so the hat is WIDTH of the Body wide.
+-- The hat's size and its offset up from the slime mesh's centre, for a mesh of `bodySize` and a template of
+-- `hatSize` (x, y, z as numbers): one uniform scale so the hat is WIDTH of the mesh wide.
 function SlimeHatsFx.fit(bodySize: { number }, hatSize: { number }): ({ number }, number)
 	local width = math.max(bodySize[1], bodySize[3]) * SlimeHatsFx.WIDTH
 	local scale = width / math.max(hatSize[1], hatSize[3], 1e-3)
@@ -96,7 +97,8 @@ function SlimeHatsFx.start(opts: Options)
 				continue
 			end
 			local model = inst :: Model
-			local body = model:FindFirstChild("Body")
+			local visible = model:FindFirstChild("Mesh")
+			local body = if visible and visible:IsA("BasePart") then visible else model:FindFirstChild("Body")
 			local mesh = SlimeHatsFx.want(
 				model:GetAttribute("OwnerUserId"),
 				model:GetAttribute("State"),

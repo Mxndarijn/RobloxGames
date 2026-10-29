@@ -514,6 +514,9 @@ end
 -- The owned slime a Growth Snack feeds: `slimeId` when it is a grown-up-able slime on a pad, else the least grown
 -- one on a pad. Eggs and fully grown slimes never.
 function Purchases.snackTarget(world: World, session: Session, slimeId: string?): Genome.Slime?
+	if not Growth.enabled() then
+		return nil -- slimes don't grow on this server: a snack is kept as a credit
+	end
 	local best: Genome.Slime? = nil
 	for _, slime in session.data.slimes do
 		local fits = slime.pad ~= nil

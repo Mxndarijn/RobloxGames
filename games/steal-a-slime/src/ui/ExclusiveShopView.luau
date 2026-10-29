@@ -1133,6 +1133,9 @@ function ExclusiveShopView.snackQuickBuy(state: any, slimeId: string, config: an
 	if shop == nil or type(state.slimes) ~= "table" or (catalogueOf(config) :: any).products.GrowthSnack == nil then
 		return nil
 	end
+	if type(config.FEATURES) == "table" and config.FEATURES.GrowingSlimes ~= true then
+		return nil -- slimes don't grow: nothing to sell
+	end
 	for _, view in state.slimes do
 		local slime = if type(view) == "table" then view.slime else nil
 		if type(slime) == "table" and slime.id == slimeId then
