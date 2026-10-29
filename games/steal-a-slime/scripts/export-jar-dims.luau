@@ -1,7 +1,7 @@
 --!strict
 -- Writes the goo jar tower's numbers from WorldLayout to shared/modeling-kit/inputs/goo_jar_dims.json, so every kit
--- model of the tower (jar glass, frame, stand, door, stopper, tube, mascot, floors kept clear of the cash pad coins) is built to the game's own sizes and the
--- assembled preview sits where the game puts things. Run from games/steal-a-slime:
+-- model of the tower (jar glass, frame, stand, door, stopper, tube, mascot, floors kept clear of the cash pad coins)
+-- is built to the game's own sizes and the assembled preview sits where the game puts things. Run from games/steal-a-slime:
 --   lune run scripts/export-jar-dims
 -- tests/JarMeshes.spec.luau fails when the committed JSON is stale.
 local fs = require("@lune/fs")
