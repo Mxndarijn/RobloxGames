@@ -80,7 +80,7 @@ ForcedFlags.needOff = {
 	["plot skins: equip > the Request refuses a locked skin, and equips an unlocked one"] = "PlotSkins",
 	["plot skins: equip > with the flag off the Request is refused, even for an unlocked skin"] = "PlotSkins",
 	["plot skins: equip > flag off: State carries no plot skin fields"] = "PlotSkins",
-	["plot bases: unlock and equip > with the flag off the Request is refused and State carries no base fields"] = "BaseShapes (ships off)",
+	["plot bases: unlock and equip > with the flag off the Request is refused and State carries no base fields"] = "BaseShapes",
 	-- FEATURES.FountainSplit on: the fountain is 5 PCD pieces and the hand-placed colliders stay off (tests/FountainSplit.spec);
 	-- these pin the single Mesh child and the colliders turned on by it
 	["fountain collider, mesh loading > stays that way while the fountain's CreateMeshPartAsync is in flight"] = "FountainSplit",

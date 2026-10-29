@@ -1,6 +1,6 @@
 # 44. Base shapes: the goo jar tower, the Goo Factory and the Mushroom Pagoda
 
-**Status:** contract first. `Config.FEATURES.BaseShapes` (default **off** until the new bases have their meshes); `false` = no remote, no State fields, no plot attribute, every plot is the goo jar tower. The save field is still read and written.
+**Status:** live. `Config.FEATURES.BaseShapes` is **on** (the Factory and Pagoda meshes are uploaded); `false` = no remote, no State fields, no plot attribute, every plot is the goo jar tower. The save field is still read and written. The flag and its off path go one release after this ships.
 
 **Design (2026-10-26, Merijn):** a plot's *base* is the building it stands in; its *skin* (§15) is the colour theme. They are chosen separately, so any base can wear any skin. The goo jar tower stays the default; the Goo Factory and the Mushroom Pagoda are rewards for rebirths. Every base keeps the same rules (§5.3): 4 floors of `PADS_PER_FLOOR` pads, floor f walks at `WorldLayout.floorTop(f)`, the only way in is the floor-1 door on the plot's -Z side, the merge vat and lock button stand inside on floor 1, players spawn at `WorldLayout.SPAWN_SPOT`, the owner leaves the top floor by an owner-only drop exit. Design pages: base concepts and the detailed Factory / Pagoda designs (kit `models/_factory_layout.py`, `models/_pagoda_layout.py`).
 
