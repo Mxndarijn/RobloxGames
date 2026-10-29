@@ -454,38 +454,88 @@ describe("v28 item 5: the Guide NPC opens a next-goal + tips card", function()
 		local panel = Guide.new(UiHarness.root(), ctx())
 		panel.update({ tutorialStepId = "Grab", slimes = {} })
 		expect(UiHarness.find(panel.frame, "GoalText").Text).toBe(GuideTips.STEP_GOALS.Grab)
-		expect(UiHarness.find(panel.frame, "Tip1").Visible).toBe(true)
+		expect(UiHarness.find(panel.frame, "Tip2").Visible).toBe(true) -- Skip has the first slot
 		expect(panel.close ~= nil).toBe(true)
 		expect(UiHarness.find(panel.frame, "ShowTutorial").Visible).toBe(false)
 	end)
-	it("after Hide the Guide offers the tutorial again, shows it and closes", function()
+	it("after the tutorial card is shrunk the Guide offers it again, opens it and closes", function()
 		local Guide = UiHarness.ui("Panels/Guide")
 		local root = UiHarness.root()
-		local overlay = UiHarness.ui("Panels/TutorialOverlay").new(root, {})
+		local card = UiHarness.ui("TutorialCard").new(root, {}, 2)
 		local toggled: { string } = {}
 		local panel = Guide.new(
 			root,
 			ctx({
-				tutorial = overlay,
+				tutorial = card,
 				togglePanel = function(key: string)
 					table.insert(toggled, key)
 				end,
 			})
 		)
 		local state = { tutorialStepId = "Grab", slimes = {} }
-		overlay.update(state)
-		UiHarness.fire(UiHarness.find(overlay.frame, "Hide"), "Activated")
+		card.update(state)
+		UiHarness.fire(UiHarness.find(card.frame, "Tap"), "Activated")
+		expect(card.hidden()).toBe(true)
 		panel.update(state)
 		local show = UiHarness.find(panel.frame, "ShowTutorial")
+		local skip = UiHarness.find(panel.frame, "SkipTutorial")
 		expect(show.Visible).toBe(true)
-		expect(UiHarness.find(panel.frame, "Tip1").Visible).toBe(false) -- the button has the first slot
-		expect(UiHarness.find(panel.frame, "Tip2").Visible).toBe(true)
+		expect(skip.Visible).toBe(true)
+		-- the two tutorial buttons take the first two slots, the tips follow
+		expect(show.Position.Y.Offset < skip.Position.Y.Offset).toBe(true)
+		expect(UiHarness.find(panel.frame, "Tip1").Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "Tip2").Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "Tip3").Visible).toBe(true)
 		UiHarness.fire(show, "Activated")
-		expect(overlay.hidden()).toBe(false)
-		expect(overlay.frame.Visible).toBe(true)
+		expect(card.hidden()).toBe(false)
+		expect(card.shown()).toBe(true)
 		expect(toggled[1]).toBe("Guide")
 		panel.update(state)
 		expect(show.Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "Tip1").Visible).toBe(false) -- Skip keeps the first slot
+		expect(UiHarness.find(panel.frame, "Tip2").Visible).toBe(true)
+	end)
+	it("Skip shows only while the tutorial runs, beside the tips", function()
+		local Guide = UiHarness.ui("Panels/Guide")
+		local panel = Guide.new(UiHarness.root(), ctx())
+		panel.update({ tutorialStepId = "Merge", slimes = {} })
+		expect(UiHarness.find(panel.frame, "SkipTutorial").Visible).toBe(true)
+		expect(UiHarness.find(panel.frame, "SkipTutorial").Text).toBe(Guide.SKIP_TEXT)
+		expect(UiHarness.find(panel.frame, "Tip1").Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "Tip2").Visible).toBe(true)
+		panel.update({ slimes = {} })
+		expect(UiHarness.find(panel.frame, "SkipTutorial").Visible).toBe(false)
 		expect(UiHarness.find(panel.frame, "Tip1").Visible).toBe(true)
+	end)
+	it("holding Skip asks the server to end the tutorial, with no Tutorial done card after", function()
+		local Guide = UiHarness.ui("Panels/Guide")
+		local root = UiHarness.root()
+		local card = UiHarness.ui("TutorialCard").new(root, {}, 2)
+		local sent: { string } = {}
+		local panel = Guide.new(
+			root,
+			ctx({
+				tutorial = card,
+				send = function(action: string)
+					table.insert(sent, action)
+				end,
+			})
+		)
+		local state = { tutorialStepId = "Lock", slimes = {} }
+		card.update(state)
+		panel.update(state)
+		panel.frame.Visible = true
+		local skip = UiHarness.find(panel.frame, "SkipTutorial")
+		UiHarness.virtualTime(true)
+		UiHarness.fire(skip, "InputBegan", { UserInputType = roblox.Enum.UserInputType.MouseButton1 })
+		UiHarness.renderStep()
+		expect(#sent).toBe(0) -- a tap is not enough
+		UiHarness.advance(Config.HOLD_CONFIRM_SECONDS + 0.1)
+		UiHarness.renderStep()
+		UiHarness.virtualTime(false)
+		expect(table.concat(sent, ",")).toBe("SkipTutorial")
+		card.update({ slimes = {} }) -- the server ended the tutorial
+		expect(card.finishedShowing()).toBe(false)
+		expect(card.frame.Visible).toBe(false)
 	end)
 end)

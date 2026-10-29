@@ -240,6 +240,17 @@ describe("SlimeGait other gaits", function()
 			expect(moved).toBe(true)
 		end
 	end)
+	it("waddlers rock from side to side but keep their feet on the ground", function()
+		for _, id in { "pengoo", "moo" } do
+			local rocked, highest = false, 0
+			for _, r in run(SlimePersona.of(id), 4, 3) do
+				highest = math.max(highest, r.p.lift)
+				rocked = rocked or math.abs(r.p.roll) > 0.1
+			end
+			expect(rocked).toBe(true)
+			expect(highest < 0.05).toBe(true)
+		end
+	end)
 	it("floaters hover above the ground even standing still", function()
 		for _, r in run(SlimePersona.of("bumble"), 0, 2) do
 			expect(r.p.lift > 0.5).toBe(true)

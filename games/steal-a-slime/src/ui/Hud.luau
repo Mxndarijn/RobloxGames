@@ -5,7 +5,7 @@
 	Always-visible HUD (H1 / B4, see HudClusters / Layout.moneyCluster): bottom-left the money plate with a
 	big coin and amount, the income/s and rebirths chips under it; bottom-right status icons with timers
 	in a pill tucked onto each icon's bottom edge (Slime Rain from the workspace RainActive / RainEndsAt /
-	RainNextAt attributes, else State.rain; the live server modifier; the friend boost; the ritual's Blessed boost, State.blessed; the Boss MVP boost, State.mvpBoost; this week's featured
+	RainNextAt attributes, else State.rain; the live server modifier; the friend boost; the ritual's Blessed boost, State.blessed; the Boss MVP boost, State.mvpBoost; the code / quest income boost, State.codes; this week's featured
 	event Secret, State.featuredSecret). Hovering an icon with the mouse, or tapping it on touch, opens a tooltip
 	(B8: name, what it does, time left); a second tap or a tap elsewhere closes it. A stack of banners at the
 	top centre (hidden ones collapse): "your slime is being stolen" and the Mystery Egg hatch. The top bar (lock block, Lock, Buy pad, Daily) is gone (B7), and so are the toasts (B6, init.client).
@@ -320,6 +320,7 @@ function Hud.new(parent: Instance, ctx: any)
 	local slotRects: { [string]: Layout.Rect } = {} -- shown slots' boxes in design px, for the tap-elsewhere test
 
 	local self = {}
+	self.banners = banners -- the top stack: other notice cards (TutorialCard) join it
 
 	local function touchInput(): boolean
 		return UserInputService:GetLastInputType() == Enum.UserInputType.Touch
@@ -553,6 +554,7 @@ function Hud.new(parent: Instance, ctx: any)
 			friendsEnabled = ctx.Config.FEATURES.FriendBonus == true,
 			blessed = current.blessed,
 			mvpBoost = current.mvpBoost,
+			codes = current.codes,
 			petPerk = current.petPerk,
 			featuredSecret = current.featuredSecret,
 			lockBreak = if type(current.exclusiveShop) == "table" then current.exclusiveShop.lockBreak else nil,

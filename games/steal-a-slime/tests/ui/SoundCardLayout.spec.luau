@@ -29,7 +29,7 @@ end
 describe("Sound card placement", function()
 	local Sound = UiHarness.ui("Panels/Sound")
 	for _, vp in viewports() do
-		it(`{vp.name}: the card clears nav, tutorial and carry and stays in the panel`, function()
+		it(`{vp.name}: the card clears nav and carry and stays in the panel`, function()
 			do
 				local screen = Layout.screen(vp.w, vp.h)
 				local check = LayoutAssert.new(`[{vp.name}]`, screen)
@@ -42,16 +42,9 @@ describe("Sound card placement", function()
 					end
 				end
 				-- A phone-landscape strip can be shorter than the one-row card (compactCardH):
-				-- then the card stays compact at the top of the panel and may touch the cards below.
-				local cards = {
-					tutorial = screen.tutorial,
-					tutorialCarrying = screen.tutorialCarrying,
-					carry = screen.carry,
-				}
-				local strip = math.huge
-				for _, name in { "tutorial", "tutorialCarrying", "carry" } do
-					strip = math.min(strip, cards[name].y - Layout.GAP - screen.panel.y)
-				end
+				-- then the card stays compact at the top of the panel and may touch the carry card below.
+				local cards = { carry = screen.carry }
+				local strip = screen.carry.y - Layout.GAP - screen.panel.y
 				if strip >= Sound.compactCardH() or card.h >= Layout.cardHeight(Sound.CONTENT_H) then
 					for name, rect in cards do
 						check.noOverlap("Sound card", card, name, rect)

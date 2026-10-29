@@ -5,7 +5,7 @@
 	Everything time-driven, in one call per frame: the fountain and Slime Rain
 	(Spawner), the boss event (BossEvent), escape bounces and lock expiry (StealService.step), lock breaks that
 	ended (LockBreak.step), and once a
-	second income (Income.step), goal / SlimeDex
+	second income (Income.step), the tutorial's Leaderboard step (TutorialService.tick), goal / SlimeDex
 	rewards (Milestones.step) and Mystery Egg incubation (MysteryEgg.step).
 ]]
 
@@ -18,12 +18,13 @@ local Milestones = if script then require(script.Parent.Milestones) else require
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
+local TutorialService = if script then require(script.Parent.TutorialService) else require("./TutorialService")
 local World = if script then require(script.Parent.World) else require("./World")
 
 local GameLoop = {}
 
--- `ctx` (optional) gives the boss the players' positions (BossEvent.Context).
-function GameLoop.step(world: World.World, now: number, ctx: BossEvent.Context?)
+-- `ctx` (optional) gives the boss and the tutorial the players' positions (BossEvent.Context, TutorialService.Context).
+function GameLoop.step(world: World.World, now: number, ctx: (BossEvent.Context & TutorialService.Context)?)
 	Spawner.step(world, now)
 	BossEvent.step(world, now, ctx)
 	BossCredit.expire(world, now)
@@ -36,7 +37,7 @@ function GameLoop.step(world: World.World, now: number, ctx: BossEvent.Context?)
 	elseif elapsed >= 1 then
 		world.lastSecondAt = now
 		Income.step(world, elapsed, now)
-		StealService.tickTutorial(world, now)
+		TutorialService.tick(world, ctx)
 		Milestones.step(world, now)
 		MysteryEgg.step(world, elapsed, now)
 	end

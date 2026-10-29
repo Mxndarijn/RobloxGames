@@ -20,6 +20,7 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | | `GuideTrail` | pure | Lays out ground-trail arrows along a route: spacing, scroll phase, fade at both ends, length and count caps |
 | | `GuideEdge` | pure | Screen-edge pointer position and angle for an off-screen target (flips targets behind the camera) |
 | | `GuideMarker` | pure | Height of the marker above a target that carries its own floating labels (studs-plus-pixels BillboardGuis) |
+| | `GuideRoute` | pure | Route bookkeeping: approach spots around a target's footprint, forward-only progress along a route, off-route distance, when to recompute (with back-off), arrival fade |
 | | `GuideView` | adapter, client | Leads the local player to a target: neon chevrons snapped to the ground (optional pathfinding route), ring, labelled marker (optionally lifted above the target's own labels, `clearLabels`), Highlight outline, screen-edge pointer; colours, sizes and the arrow template can be overridden |
 | `src/ranking` | `OrderedBoard` | pure, server | Top-N rankings in OrderedDataStores: value clamping, write-on-change, page → ranked entries, in-memory pages, one store per period (weekly boards) |
 | `src/anticheat` | `MovementGuard` | pure, server | Checks server-read character positions for teleports, speed hacks and flying; tolerates lag freezes, downhill runs and server-made moves (`allow`, `reset`) |
@@ -121,10 +122,17 @@ local guide = GuideView.new({
 	trail = { spacing = 4, maxLength = 120 }, -- GuideTrail.Options
 	usePathfinding = true, -- false: a straight line on the ground
 	getIgnore = function() return { workspace.Enemies } end, -- the trail never lands on these
+	agentParams = function() -- or a table; merged over AgentRadius 2, AgentHeight 5, AgentCanJump true
+		return { Costs = { Plot_3 = math.huge } } -- called for every path, so costs can follow the player
+	end,
 })
 guide:setTarget(model, "Buy $40") -- any PVInstance; nil or guide:clear() hides everything
+guide:setTarget(model, "Buy $40", spot) -- the trail ends at `spot`; ring, marker and outline stay on `model`
+guide:setTrail({ maxLength = 200, spacing = 5 }) -- replaces the trail options at any time
 guide:setEdgeHidden(true) -- hides only the screen-edge pointer (say, while a menu is open)
 guide:destroy()
 ```
+
+The trail never ends inside the target. Without a goal it ends at a descendant Attachment named `GuideGoal` when the target has one, else at a free spot just outside the target's footprint, closest to the player (`approach = true`, `approachDirections = 12`, `approachMargin = 4`). With pathfinding the route is only recomputed when the player strays more than `offRoute` (6) studs from it, the goal moves more than `goalMoved` (6) studs, or every `routeRefresh` (5) seconds. Until the first route for a target is found no ground arrows show (failed computes retry after 1, 2, 4 s); `straightFallback = true` draws a straight line meanwhile. Within `arriveDistance` (10) studs of the goal the ground arrows fade out.
 
 Picking the target is the game's job: build the candidates it allows (affordable, unlocked...) and let `GuideTarget.pick(candidates, from, currentKey)` choose, so the guide does not flick between two targets at nearly the same distance.

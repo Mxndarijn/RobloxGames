@@ -11,15 +11,35 @@
 	  * a Highlight outline on the target
 	  * a screen-edge pointer while the target is off screen (GuideEdge)
 
-	The route is a straight line, or a PathfindingService route refreshed
-	every `routeRefresh` seconds when `usePathfinding` is on (the straight
-	line covers the gap while a route is computing or when none is found).
+	The ring, marker, highlight and edge pointer sit on the target; the
+	trail leads to a goal next to it. The goal is the `goal` given to
+	setTarget, else (with `approach` on) the WorldPosition of a descendant
+	Attachment named "GuideGoal", else a free spot on a ring just outside
+	the target's footprint, grounded with a raycast and closest to the
+	player (GuideRoute). It is picked again when the target changes or its
+	pivot moves more than `goalMoved` studs. With `approach` off the goal is
+	the ground under the target, pushed out toward the player.
+
+	With `usePathfinding` on, the trail follows a PathfindingService route
+	(a path that ends more than a few studs from the goal counts as failed).
+	The player's progress along it only moves forward, and a new path is
+	computed when there is none, when the player is more than `offRoute`
+	studs from the rest of the route, when the goal moved more than
+	`goalMoved` studs, or every `routeRefresh` seconds. A failed compute
+	keeps the last good route for this target; without one no ground arrows
+	show (the rest of the guide does) and it retries after 1, 2, 4 s.
+	`straightFallback` draws a straight line instead while there is no
+	route; `usePathfinding = false` always draws the straight line. Within
+	`arriveDistance` studs of the goal the ground arrows fade out.
+
 	Everything is client-only: the parts and the Highlight under one Folder
 	"Guide" in workspace, the label (BillboardGui "GuideLabel") and the edge
 	pointer (ScreenGui "GuideEdge") in PlayerGui; destroy() removes them all.
 
 	  local guide = GuideView.new(options?)
-	  guide:setTarget(target: PVInstance?, label: string?)   -- nil clears
+	  guide:setTarget(target: PVInstance?, label: string?, goal: Vector3?)   -- nil target clears
+	  guide:setTrail(trail: GuideTrail.Options?)   -- replaces the trail options
+	  guide:setEdgeHidden(hidden)
 	  guide:clear()
 	  guide:step(dt)        -- called on RenderStepped unless autoStep = false
 	  guide:destroy()
@@ -27,12 +47,15 @@
 	Options (all optional): color, trail (GuideTrail.Options), arrowSize
 	(Vector2 width x depth), arrowThickness, arrowTransparency, hover,
 	arrowTemplate (a BasePart or Model cloned per arrow, pointing along -Z),
-	usePathfinding, routeRefresh, agentParams, showRing, showMarker,
-	showHighlight, showEdgePointer, edgeMargin, getIgnore (extra Instances
-	the ground raycast skips), getOrigin (default: local HumanoidRootPart),
-	distanceText (studs -> string?), autoStep, playerGui, clearLabels (lift
-	the marker above the target's own enabled BillboardGuis, GuideMarker;
-	default off).
+	usePathfinding, routeRefresh (safety refresh, s), offRoute, goalMoved,
+	straightFallback, approach, approachDirections, approachMargin,
+	arriveDistance, agentParams (a table, or a function returning one,
+	called per path compute; merged over DEFAULTS.agentParams), showRing,
+	showMarker, showHighlight, showEdgePointer, edgeMargin, getIgnore (extra
+	Instances the ground raycast skips), getOrigin (default: local
+	HumanoidRootPart), distanceText (studs -> string?), autoStep,
+	playerGui, clearLabels (lift the marker above the target's own enabled
+	BillboardGuis, GuideMarker; default off).
 ]]
 
 local PathfindingService = game:GetService("PathfindingService")
@@ -41,6 +64,7 @@ local RunService = game:GetService("RunService")
 
 local GuideEdge = if script then require(script.Parent.GuideEdge) else require("./GuideEdge")
 local GuideMarker = if script then require(script.Parent.GuideMarker) else require("./GuideMarker")
+local GuideRoute = if script then require(script.Parent.GuideRoute) else require("./GuideRoute")
 local GuideTrail = if script then require(script.Parent.GuideTrail) else require("./GuideTrail")
 
 export type Options = {
@@ -53,7 +77,14 @@ export type Options = {
 	arrowTemplate: (BasePart | Model)?,
 	usePathfinding: boolean?,
 	routeRefresh: number?,
-	agentParams: { [string]: any }?,
+	offRoute: number?,
+	goalMoved: number?,
+	straightFallback: boolean?,
+	approach: boolean?,
+	approachDirections: number?,
+	approachMargin: number?,
+	arriveDistance: number?,
+	agentParams: ({ [string]: any } | () -> { [string]: any })?,
 	showRing: boolean?,
 	showMarker: boolean?,
 	showHighlight: boolean?,
@@ -68,7 +99,10 @@ export type Options = {
 }
 
 export type Guide = {
-	setTarget: (self: Guide, target: PVInstance?, label: string?) -> (),
+	-- `goal`: where the trail ends (default: picked next to the target); the ring, marker and highlight stay on the target.
+	setTarget: (self: Guide, target: PVInstance?, label: string?, goal: Vector3?) -> (),
+	-- Replaces the trail options (GuideTrail.Options; nil restores the defaults).
+	setTrail: (self: Guide, trail: GuideTrail.Options?) -> (),
 	clear: (self: Guide) -> (),
 	step: (self: Guide, dt: number) -> (),
 	-- Hides the screen-edge pointer while `hidden` (say, while a menu covers the screen); the rest keeps going.
@@ -84,13 +118,21 @@ GuideView.DEFAULTS = table.freeze({
 	arrowThickness = 0.5,
 	arrowTransparency = 0.1,
 	hover = 0.5, -- above the collision ground: visual floors (CanQuery off) often sit a little higher
-	routeRefresh = 1,
+	routeRefresh = 5,
+	offRoute = 6,
+	goalMoved = 6,
+	arriveDistance = 10,
+	approachDirections = 12,
+	approachMargin = 4,
 	edgeMargin = 56,
 	agentParams = table.freeze({ AgentRadius = 2, AgentHeight = 5, AgentCanJump = true }),
 })
 
 local RAY_UP = 8 -- studs above the route point a ground ray starts
 local RAY_DOWN = 30
+local APPROACH_UP = 3 -- studs above the target's base an approach ray starts (below most roofs and overhangs)
+local CLEARANCE = Vector3.new(3, 4.5, 3) -- free space an approach spot needs above the ground
+local IGNORE_REFRESH = 1 -- seconds between re-reads of the ignore list
 local MARKER_SIZE = Vector2.new(2.4, 1.8)
 
 type Piece = { parts: { BasePart }, offsets: { CFrame }, base: { number }, alpha: number }
@@ -167,6 +209,25 @@ local function footprint(target: PVInstance): (CFrame, Vector3)
 	return target:GetPivot(), Vector3.new(4, 4, 4)
 end
 
+local function toPoint(v: Vector3): GuideRoute.Point
+	return { x = v.X, y = v.Y, z = v.Z }
+end
+
+local function toVector(p: GuideRoute.Point): Vector3
+	return Vector3.new(p.x, p.y, p.z)
+end
+
+local function flatDistance(a: Vector3, b: Vector3): number
+	return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
+end
+
+-- Half extent of an oriented box along a world direction.
+local function halfAlong(box: CFrame, size: Vector3, direction: Vector3): number
+	return math.abs(box.RightVector:Dot(direction)) * size.X / 2
+		+ math.abs(box.UpVector:Dot(direction)) * size.Y / 2
+		+ math.abs(box.LookVector:Dot(direction)) * size.Z / 2
+end
+
 local function edgePointer(color: Color3): (ScreenGui, Frame, Frame)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "GuideEdge"
@@ -211,41 +272,54 @@ function GuideView.new(options: Options?): Guide
 	local o: Options = options or {}
 	local D = GuideView.DEFAULTS
 	local color = o.color or D.color
-	local trailOptions = o.trail
+	local trailOptions: GuideTrail.Options? = o.trail
 	local arrowSize = o.arrowSize or D.arrowSize
 	local thickness = o.arrowThickness or D.arrowThickness
 	local arrowTransparency = o.arrowTransparency or D.arrowTransparency
 	local hover = o.hover or D.hover
 	local usePathfinding = o.usePathfinding ~= false
-	local routeRefresh = o.routeRefresh or D.routeRefresh
+	local straightFallback = o.straightFallback == true
+	local approach = o.approach ~= false
+	local arriveDistance = o.arriveDistance or D.arriveDistance
 	local edgeMargin = o.edgeMargin or D.edgeMargin
 	local distanceText = o.distanceText or defaultDistanceText
-	local maxCount = if trailOptions and trailOptions.maxCount
-		then trailOptions.maxCount
-		else GuideTrail.DEFAULTS.maxCount
+	local goalMoved = o.goalMoved or D.goalMoved
+	local routeOptions: GuideRoute.Options = {
+		directions = o.approachDirections or D.approachDirections,
+		margin = o.approachMargin or D.approachMargin,
+		offRoute = o.offRoute or D.offRoute,
+		goalMoved = goalMoved,
+		safetyRefresh = o.routeRefresh or D.routeRefresh,
+	}
 	local player = Players.LocalPlayer
 
 	local folder = Instance.new("Folder")
 	folder.Name = "Guide"
 
-	-- arrow pool
+	-- arrow pool, grown to the trail's maxCount
 	local arrows: { Piece } = {}
-	for i = 1, maxCount do
-		local model: Instance
-		if o.arrowTemplate then
-			model = o.arrowTemplate:Clone()
-		else
-			model = chevronModel(`Arrow_{i}`, arrowSize.X, arrowSize.Y, thickness, color)
-			for _, d in model:GetChildren() do
-				(d :: BasePart).Transparency = arrowTransparency
+	local function fillPool()
+		local maxCount = if trailOptions and trailOptions.maxCount
+			then trailOptions.maxCount
+			else GuideTrail.DEFAULTS.maxCount
+		for i = #arrows + 1, maxCount do
+			local model: Instance
+			if o.arrowTemplate then
+				model = o.arrowTemplate:Clone()
+			else
+				model = chevronModel(`Arrow_{i}`, arrowSize.X, arrowSize.Y, thickness, color)
+				for _, d in model:GetChildren() do
+					(d :: BasePart).Transparency = arrowTransparency
+				end
 			end
+			local pivot = if model:IsA("Model") then model:GetPivot() else (model :: BasePart).CFrame
+			local p = piece(model, pivot)
+			setAlpha(p, 0)
+			model.Parent = folder
+			arrows[i] = p
 		end
-		local pivot = if model:IsA("Model") then model:GetPivot() else (model :: BasePart).CFrame
-		local p = piece(model, pivot)
-		setAlpha(p, 0)
-		model.Parent = folder
-		arrows[i] = p
 	end
+	fillPool()
 
 	-- ring under the target
 	local ring = Instance.new("Part")
@@ -316,13 +390,23 @@ function GuideView.new(options: Options?): Guide
 	local edgeHidden = false
 	local phase = 0
 	local clock = 0
-	local route: { Vector3 }? = nil -- latest pathfinding waypoints for `target`
-	local routeAt = -math.huge
+	local givenGoal: Vector3? = nil -- the goal passed to setTarget
+	local goalAttachment: Attachment? = nil -- the target's "GuideGoal" Attachment (approach)
+	local goal: Vector3? = nil -- the picked goal next to the target
+	local goalAnchor: Vector3? = nil -- the target's position when `goal` was picked
+	local route: { GuideRoute.Point }? = nil -- last good pathfinding route for `target`
+	local routeGoal: Vector3? = nil -- the goal `route` was computed for
+	local along = 0 -- the player's progress along `route`, in ground-plane studs
+	local attemptAt = -math.huge
+	local failures = 0
 	local computing = false
 	local generation = 0 -- bumps on every target change so late routes are dropped
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
 	rayParams.RespectCanCollide = true
+	local overlapParams = OverlapParams.new()
+	overlapParams.FilterType = Enum.RaycastFilterType.Exclude
+	overlapParams.RespectCanCollide = true
 	local ignoreAt = -math.huge
 	local ownLabels: { BillboardGui } = {} -- the target's BillboardGuis (clearLabels), re-read with the ignore list
 	local destroyed = false
@@ -355,12 +439,22 @@ function GuideView.new(options: Options?): Guide
 			end
 		end
 		rayParams.FilterDescendantsInstances = list
+		overlapParams.FilterDescendantsInstances = list
 		ignoreAt = clock
 		ownLabels = {}
-		if o.clearLabels and target then
-			for _, d in target:GetDescendants() do
-				if d:IsA("BillboardGui") then
+		local current = target
+		local findGoal = approach
+			and current ~= nil
+			and not (goalAttachment ~= nil and goalAttachment:IsDescendantOf(current))
+		if findGoal then
+			goalAttachment = nil
+		end
+		if current and (o.clearLabels or findGoal) then
+			for _, d in current:GetDescendants() do
+				if o.clearLabels and d:IsA("BillboardGui") then
 					table.insert(ownLabels, d)
+				elseif findGoal and not goalAttachment and d.Name == "GuideGoal" and d:IsA("Attachment") then
+					goalAttachment = d
 				end
 			end
 		end
@@ -397,51 +491,108 @@ function GuideView.new(options: Options?): Guide
 		return workspace:Raycast(position + Vector3.new(0, RAY_UP, 0), Vector3.new(0, -RAY_DOWN, 0), rayParams)
 	end
 
-	local function requestRoute(from: Vector3, to: Vector3)
-		if computing or not usePathfinding then
-			return
+	local function agentParams(): { [string]: any }
+		local given: any = o.agentParams
+		local extra = if type(given) == "function" then given() else given
+		local params = table.clone(D.agentParams) :: { [string]: any }
+		if type(extra) == "table" then
+			for k, v in extra do
+				params[k] = v
+			end
 		end
+		return params
+	end
+
+	local function requestRoute(from: Vector3, to: Vector3)
 		computing = true
-		routeAt = clock
+		attemptAt = clock
 		local mine = generation
 		task.spawn(function()
-			local ok, points = pcall(function(): { Vector3 }?
-				local path = PathfindingService:CreatePath(o.agentParams or D.agentParams)
+			local ok, points = pcall(function(): { GuideRoute.Point }?
+				local path = PathfindingService:CreatePath(agentParams())
 				path:ComputeAsync(from, to)
 				if path.Status ~= Enum.PathStatus.Success and path.Status ~= Enum.PathStatus.ClosestNoPath then
 					return nil
 				end
 				local out = {}
 				for _, waypoint in path:GetWaypoints() do
-					table.insert(out, waypoint.Position)
+					table.insert(out, toPoint(waypoint.Position))
 				end
 				return out
 			end)
+			if destroyed or mine ~= generation then
+				return
+			end
 			computing = false
-			if not destroyed and mine == generation then
-				route = if ok then points else nil
+			if ok and points and #points >= 2 and GuideRoute.reaches(points, toPoint(to)) then
+				route, routeGoal, along, failures = points, to, 0, 0
+			else
+				failures += 1
+				if not ok then
+					warn(`[GuideView] path: {points}`)
+				end
 			end
 		end)
 	end
 
-	-- live origin, then the waypoints still ahead of the player, then the live target
-	local function currentRoute(from: Vector3, to: Vector3): { GuideTrail.Point }
-		local points: { GuideTrail.Point } = { { x = from.X, y = from.Y, z = from.Z } }
-		if route and #route >= 2 then
-			local nearest, nearestDistance = 1, math.huge
-			for i, point in route do
-				local d = (Vector3.new(point.X, from.Y, point.Z) - from).Magnitude
-				if d < nearestDistance then
-					nearest, nearestDistance = i, d
+	-- A free spot next to the target, closest to the player; nil when none is found.
+	local function approachSpot(box: CFrame, size: Vector3, from: Vector3): Vector3?
+		local axis = Vector3.new(box.RightVector.X, 0, box.RightVector.Z)
+		if axis.Magnitude < 0.1 then
+			axis = Vector3.new(box.LookVector.X, 0, box.LookVector.Z)
+		end
+		axis = if axis.Magnitude < 0.1 then Vector3.xAxis else axis.Unit
+		local other = Vector3.new(-axis.Z, 0, axis.X)
+		local baseY = box.Position.Y - halfAlong(box, size, Vector3.yAxis)
+		local shape: GuideRoute.Footprint = {
+			x = box.Position.X,
+			z = box.Position.Z,
+			axisX = axis.X,
+			axisZ = axis.Z,
+			halfA = halfAlong(box, size, axis),
+			halfB = halfAlong(box, size, other),
+		}
+		local spots: { GuideRoute.Point } = {}
+		for _, candidate in GuideRoute.approachCandidates(shape, baseY, routeOptions) do
+			local hit = workspace:Raycast(
+				Vector3.new(candidate.x, baseY + APPROACH_UP, candidate.z),
+				Vector3.new(0, -RAY_DOWN, 0),
+				rayParams
+			)
+			if hit then
+				local room = CFrame.new(hit.Position + Vector3.new(0, 0.5 + CLEARANCE.Y / 2, 0))
+				if #workspace:GetPartBoundsInBox(room, CLEARANCE, overlapParams) == 0 then
+					table.insert(spots, toPoint(hit.Position))
 				end
 			end
-			for i = nearest + 1, #route - 1 do
-				local point = route[i]
-				table.insert(points, { x = point.X, y = point.Y, z = point.Z })
-			end
 		end
-		table.insert(points, { x = to.X, y = to.Y, z = to.Z })
-		return points
+		local best = GuideRoute.pickApproach(spots, toPoint(from), baseY, routeOptions)
+		return if best then toVector(best) else nil
+	end
+
+	-- The ground under the target, pushed out of its footprint toward the player.
+	local function frontSpot(box: CFrame, size: Vector3, from: Vector3): Vector3
+		local to = box.Position
+		local floor = ground(to)
+		local flat = Vector3.new(from.X - to.X, 0, from.Z - to.Z)
+		local front = if flat.Magnitude > 0.01 then flat.Unit * (math.max(size.X, size.Z) / 2 + 2) else Vector3.zero
+		return (if floor then floor.Position else to) + front
+	end
+
+	local function currentGoal(box: CFrame, size: Vector3, from: Vector3): Vector3
+		if givenGoal then
+			return givenGoal
+		end
+		if approach and goalAttachment then
+			return goalAttachment.WorldPosition
+		end
+		local picked = goal
+		if picked and goalAnchor and (box.Position - goalAnchor).Magnitude <= goalMoved then
+			return picked
+		end
+		local spot = (if approach then approachSpot(box, size, from) else nil) or frontSpot(box, size, from)
+		goal, goalAnchor = spot, box.Position
+		return spot
 	end
 
 	local function hideAll()
@@ -457,15 +608,20 @@ function GuideView.new(options: Options?): Guide
 		folder.Parent = nil
 	end
 
-	function guide.setTarget(_self: Guide, newTarget: PVInstance?, newLabel: string?)
+	function guide.setTarget(_self: Guide, newTarget: PVInstance?, newLabel: string?, newGoal: Vector3?)
 		label = newLabel
+		if newGoal ~= givenGoal then
+			givenGoal = newGoal
+			goal, goalAnchor = nil, nil
+		end
 		if newTarget == target then
 			return
 		end
 		target = newTarget
 		generation += 1
-		route = nil
-		routeAt = -math.huge
+		route, routeGoal, along = nil, nil, 0
+		goal, goalAnchor, goalAttachment = nil, nil, nil
+		attemptAt, failures, computing = -math.huge, 0, false
 		if not newTarget then
 			hideAll()
 			return
@@ -474,6 +630,11 @@ function GuideView.new(options: Options?): Guide
 		refreshIgnore()
 		highlight.Adornee = newTarget
 		highlight.Enabled = o.showHighlight ~= false
+	end
+
+	function guide.setTrail(_self: Guide, trail: GuideTrail.Options?)
+		trailOptions = trail
+		fillPool()
 	end
 
 	function guide.setEdgeHidden(_self: Guide, hidden: boolean)
@@ -504,24 +665,47 @@ function GuideView.new(options: Options?): Guide
 			end
 			return
 		end
-		if clock - ignoreAt >= routeRefresh then
+		if clock - ignoreAt >= IGNORE_REFRESH then
 			refreshIgnore()
 		end
 		local boxCFrame, boxSize = footprint(current)
 		local to = boxCFrame.Position
-		if clock - routeAt >= routeRefresh then
-			-- aim just in front of the target: a goal inside the target's own collision has no path
-			local floor = ground(to)
-			local flat = Vector3.new(from.X - to.X, 0, from.Z - to.Z)
-			local front = if flat.Magnitude > 0.01
-				then flat.Unit * (math.max(boxSize.X, boxSize.Z) / 2 + 2)
-				else Vector3.zero
-			requestRoute(from, (if floor then floor.Position else to) + front)
+		local goalAt = currentGoal(boxCFrame, boxSize, from)
+
+		-- route
+		local here = toPoint(from)
+		local path: { GuideTrail.Point }? = nil
+		if usePathfinding then
+			local off, moved = 0, 0
+			local known = route
+			if known then
+				along = GuideRoute.advance(known, here, along, routeOptions)
+				off = GuideRoute.offRoute(known, here, along)
+				moved = if routeGoal then (goalAt - routeGoal).Magnitude else 0
+			end
+			local again = GuideRoute.shouldRecompute({
+				hasRoute = known ~= nil,
+				computing = computing,
+				failures = failures,
+				sinceAttempt = clock - attemptAt,
+				offRoute = off,
+				goalMoved = moved,
+			}, routeOptions)
+			if again then
+				requestRoute(from, goalAt)
+			end
+			if known then
+				path = GuideRoute.ahead(known, along, here)
+			end
+		end
+		if not path and (not usePathfinding or straightFallback) then
+			path = { here, toPoint(goalAt) }
 		end
 
-		-- trail
+		-- trail, faded out near the goal
 		phase = GuideTrail.advance(phase, dt, trailOptions)
-		local layout = GuideTrail.layout(currentRoute(from, to), phase, trailOptions)
+		local layout = if path then GuideTrail.layout(path, phase, trailOptions) else {}
+		local arrive = GuideRoute.arrival(flatDistance(from, goalAt), arriveDistance)
 		local moveParts: { BasePart } = {}
 		local moveFrames: { CFrame } = {}
 		for i, arrow in arrows do
@@ -537,7 +721,7 @@ function GuideView.new(options: Options?): Guide
 					table.insert(moveParts, part)
 					table.insert(moveFrames, frame * arrow.offsets[k])
 				end
-				setAlpha(arrow, placed.alpha)
+				setAlpha(arrow, placed.alpha * arrive)
 			else
 				setAlpha(arrow, 0)
 			end
@@ -559,7 +743,7 @@ function GuideView.new(options: Options?): Guide
 
 		-- marker and label
 		local camera = workspace.CurrentCamera
-		local distance = (Vector3.new(to.X, from.Y, to.Z) - from).Magnitude
+		local distance = flatDistance(from, to)
 		if o.showMarker ~= false and camera then
 			local baseY = to.Y + boxSize.Y / 2
 			if o.clearLabels then

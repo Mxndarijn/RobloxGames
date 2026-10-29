@@ -436,6 +436,11 @@ end
 local function chores(world: World, bot: Bot, session: Session, t: number, keep: { [string]: boolean })
 	local data = bot.data
 	collectPads(world, bot, session, t)
+	-- The tutorial's walking steps: a player strolls to the leaderboard and talks to the Guide between trips.
+	local step = TutorialProgress.currentId(data)
+	if step == "Leaderboard" or step == "Guide" then
+		World.tutorial(world, session, step)
+	end
 	act(world, bot, t, "Daily")
 	for i = 1, 3 do
 		act(world, bot, t, "ClaimQuest", i)

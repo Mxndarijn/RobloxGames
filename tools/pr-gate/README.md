@@ -47,12 +47,7 @@ To change a limit, edit the right `budgets.json` and explain the change in its `
 
 ### Known findings (tolerated, must still occur)
 
-There are real layout bugs on a portrait phone under the top bar (390x786 ScreenGui on a 390x844 screen). Both the Lune and the rhr check find them:
-
-- The tutorial card that shows while carrying overlaps the bottom of the nav, which covers `Nav.Leaders`.
-- With the nav expanded on a portrait phone, the banner column overlaps the labelled nav. Lune treats banners as reaching the bottom of the screen.
-
-These are listed in `KNOWN` in `tests/ui/LayoutGate.spec.luau` and `rhr_check.py`. Any *new* problem fails the gate. A KNOWN entry that stops occurring also fails the gate, so fixing the bug forces its removal. The fix belongs in `Layout.screen` (Jolt).
+None at the moment. A layout bug the gate has to tolerate for a while goes in `KNOWN` in `tests/ui/LayoutGate.spec.luau` and `rhr_check.py`. Any *new* problem fails the gate. A KNOWN entry that stops occurring also fails the gate, so fixing the bug forces its removal. The fix belongs in `Layout.screen` (Jolt).
 
 ### rhr notes
 

@@ -13,15 +13,14 @@ local function state(step: string?, daily: boolean?): any
 end
 
 describe("PopupQueue.blocker", function()
-	it("is the tutorial during Grab..BuyPad, nil from Merge onward and when finished", function()
+	it("is the tutorial during Grab, Deposit, Lock and BuyPad, nil on the other steps and when finished", function()
 		for _, id in { "Grab", "Deposit", "Lock", "BuyPad" } do
 			expect(PopupQueue.blocker(state(id))).toBe("Tutorial")
 		end
-		for _, id in { "Merge", "Steal", "Rebirth" } do
+		for _, id in { "Leaderboard", "Guide", "Merge", "BuyItem" } do
 			expect(PopupQueue.blocker(state(id))).toBeNil()
 		end
 		expect(PopupQueue.blocker(state(nil))).toBeNil()
-		expect(PopupQueue.blocker({ tutorialStep = 2 })).toBe("Tutorial") -- v12 numeric steps
 		expect(PopupQueue.blocker({ tutorialStepId = "Done" })).toBeNil() -- unknown = finished
 		expect(PopupQueue.blocker(nil)).toBeNil()
 	end)
@@ -44,8 +43,8 @@ describe("PopupQueue.update", function()
 		expect(q.update(state(nil, true))).toBe("Daily")
 		expect(q.update(state(nil, true))).toBeNil()
 	end)
-	it("opens the queued daily popup during Merge, Steal and Rebirth", function()
-		for _, id in { "Merge", "Steal", "Rebirth" } do
+	it("opens the queued daily popup during the steps that don't block", function()
+		for _, id in { "Leaderboard", "Guide", "Merge", "BuyItem" } do
 			local q = PopupQueue.new()
 			expect(q.update(state("Grab", true))).toBeNil()
 			expect(q.update(state(id, true))).toBe("Daily")

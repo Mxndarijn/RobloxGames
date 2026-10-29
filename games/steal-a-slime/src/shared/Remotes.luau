@@ -48,6 +48,7 @@ Remotes.ACTIONS = table.freeze({
 	HatchEgg = table.freeze({ args = { "string" } }), -- slime id of the owner's ready Mystery Egg (contract/mystery-egg.md)
 	BuyPad = table.freeze({ args = {} }),
 	Daily = table.freeze({ args = {} }),
+	SkipTutorial = table.freeze({ args = {} }), -- ends the tutorial (Guide panel)
 	ClaimQuest = table.freeze({ args = { "number" } }), -- daily quest slot 1..Config.DAILY_QUESTS.count (Quests.claim)
 	BuySpeedCoil = table.freeze({ args = {} }),
 	BuyUpgrade = table.freeze({ args = { "string" } }), -- Config.UPGRADES id (CONTRACT.md §8.1)

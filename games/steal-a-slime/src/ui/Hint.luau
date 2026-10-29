@@ -2,12 +2,9 @@
 --[[
 	Hint
 
-	First-minutes "where do I tap" hint (v18). Pure (tests/ui/Hint.spec.luau);
-	Panels/HintOverlay draws it. While a tutorial step asks for a button in
-	the UI chrome (Rebirth in the left menu; the top bar is gone, so Lock and Buy pad are world prompts now,
-	and the Merge step is the vat in the world), a ring goes round that button with a short bubble next to it.
-	Steps that happen in the world (Grab, Deposit, Lock, Buy pad, Steal) get no hint: Archer's TutorialArrow
-	points there.
+	The "where do I tap" ring round a left-menu button (Pure, tests/ui/Hint.spec.luau; Panels/HintOverlay draws
+	it). Every tutorial step happens in the world, where the TutorialArrow trail leads, so the only hint is the one
+	after the last step: while the "Tutorial done" card shows, a ring round Goals with a short bubble.
 
 	Reads Tutorial.fromState only; the server owns progression.
 ]]
@@ -38,9 +35,9 @@ local function navText(key: string): string
 	return `Tap {entry.icon} {entry.label} in the left menu`
 end
 
--- Tutorial step id -> what to point at.
+-- Tutorial step id -> what to point at. "Finished": while the "Tutorial done" card shows, Goals has what's next.
 Hint.STEPS = table.freeze({
-	Rebirth = table.freeze({ text = navText("Rebirth"), target = table.freeze({ kind = "nav", name = "Rebirth" }) }),
+	Finished = table.freeze({ text = navText("Goals"), target = table.freeze({ kind = "nav", name = "Goals" }) }),
 } :: { [string]: { text: string, target: Target } })
 
 Hint.TEXT_SIZE = 16
@@ -49,18 +46,19 @@ Hint.MIN_HEIGHT = 36
 Hint.GAP = 8
 Hint.RING = 4 -- the ring sits this far outside the target
 
--- The hint for a State snapshot; nil when the tutorial is finished, the step
--- is in the world, or the panel it points at is already open (`openPanel`).
-function Hint.fromState(state: any, openPanel: string?): View?
+-- The hint for a State snapshot; nil when the step is in the world, the tutorial is over and its "Tutorial done"
+-- card is gone (`finished` false), or the panel it points at is already open (`openPanel`).
+function Hint.fromState(state: any, openPanel: string?, finished: boolean?): View?
 	local step = Tutorial.fromState(state)
-	if step == nil then
+	local id = if step then step.id elseif finished then "Finished" else nil
+	if id == nil then
 		return nil
 	end
-	local hint = Hint.STEPS[step.id]
+	local hint = Hint.STEPS[id]
 	if hint == nil or hint.target.name == openPanel then
 		return nil
 	end
-	return { id = step.id, text = hint.text, target = hint.target }
+	return { id = id, text = hint.text, target = hint.target }
 end
 
 -- The target's box on `screen`; nil when it isn't shown.

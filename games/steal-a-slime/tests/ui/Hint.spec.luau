@@ -1,50 +1,53 @@
 --!strict
--- "Tap here" hint for tutorial steps that need a menu button (src/ui/Hint.luau).
+-- "Tap here" ring round a left-menu button (src/ui/Hint.luau): every tutorial step is in the world, so the only
+-- hint is the Goals ring while the "Tutorial done" card shows.
 local Hint = require("../../src/ui/Hint")
 local Layout = require("../../src/ui/Layout")
+local Nav = require("../../src/ui/Nav")
 local TestRunner = require("../TestRunner")
 local Tutorial = require("../../src/ui/Tutorial")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-describe("Hint.fromState", function()
-	it("points only at the menu's Rebirth: no top bar (B7), Lock / Buy pad / Merge are world prompts", function()
-		expect(Hint.fromState({ tutorialStepId = "Lock" })).toBeNil()
-		expect(Hint.fromState({ tutorialStepId = "BuyPad" })).toBeNil()
-		expect(Hint.fromState({ tutorialStepId = "Merge" })).toBeNil() -- the vat in the world, H1 HUD
-		local rebirth = Hint.fromState({ tutorialStepId = "Rebirth" }) :: Hint.View
-		expect(rebirth.text).toBe("Tap ♻️ Rebirth in the left menu")
-		expect(rebirth.target.kind).toBe("nav")
-		expect(rebirth.target.name).toBe("Rebirth")
-	end)
-	it("has no hint for world steps (Archer's arrow) or a finished tutorial", function()
-		for _, id in { "Grab", "Deposit", "Lock", "BuyPad", "Steal" } do
-			expect(Hint.fromState({ tutorialStepId = id })).toBeNil()
+local function navIndex(key: string): number
+	for i, entry in Nav.ENTRIES do
+		if entry.key == key then
+			return i
 		end
+	end
+	error(key)
+end
+
+describe("Hint.fromState", function()
+	it("has no hint during any tutorial step: they all happen in the world", function()
+		for _, step in Tutorial.STEPS do
+			expect(Hint.fromState({ tutorialStepId = step.id })).toBeNil()
+			expect(Hint.fromState({ tutorialStepId = step.id }, nil, true)).toBeNil()
+		end
+	end)
+	it("rings Goals while the tutorial-done card shows, and not after", function()
+		local view = Hint.fromState({}, nil, true) :: Hint.View
+		expect(view.id).toBe("Finished")
+		expect(view.target.kind).toBe("nav")
+		expect(view.target.name).toBe("Goals")
+		local goals = Nav.ENTRIES[navIndex("Goals")]
+		expect(string.find(view.text, `{goals.icon} {goals.label}`, 1, true) ~= nil).toBe(true)
+		expect(Hint.fromState({}, nil, false)).toBeNil()
 		expect(Hint.fromState({})).toBeNil()
 		expect(Hint.fromState(nil)).toBeNil()
 	end)
-	it("goes away once the menu panel it points at is open", function()
-		expect(Hint.fromState({ tutorialStepId = "Rebirth" }, "Rebirth")).toBeNil()
-		expect(Hint.fromState({ tutorialStepId = "Rebirth" }, "Shop")).toBeTruthy()
-	end)
-	it("reads v12 numeric steps through Tutorial", function()
-		local view = Hint.fromState({ tutorialStep = 6 }) :: Hint.View -- LEGACY_IDS[6] = Rebirth
-		expect(view.id).toBe("Rebirth")
-	end)
-	it("only names tutorial steps that exist", function()
-		for id in Hint.STEPS do
-			expect(Tutorial.find(id)).toBeTruthy()
-		end
+	it("goes away once Goals is open", function()
+		expect(Hint.fromState({}, "Goals", true)).toBeNil()
+		expect(Hint.fromState({}, "Shop", true)).toBeTruthy()
 	end)
 end)
 
 describe("Hint.place", function()
 	it("rings the nav button and puts the bubble beside the nav", function()
 		local s = Layout.screen(1920, 1080)
-		local view = Hint.fromState({ tutorialStepId = "Rebirth" }) :: Hint.View
+		local view = Hint.fromState({}, nil, true) :: Hint.View
 		local p = Hint.place(s, view) :: Hint.Placement
-		expect(p.target).toBe(s.navButtons[1]) -- Rebirth first
+		expect(p.target).toBe(s.navButtons[navIndex("Goals")])
 		expect(p.ring.x).toBe(p.target.x - Hint.RING)
 		expect(p.ring.w).toBe(p.target.w + Hint.RING * 2)
 		expect(p.bubble.x).toBe(s.nav.x + s.nav.w + Hint.GAP)

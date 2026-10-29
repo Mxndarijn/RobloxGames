@@ -78,14 +78,13 @@ function Sound.compactCardH(): number
 end
 
 -- The Sound card on `screen`: the usual centred menu card, unless that sits on
--- the tutorial / carry cards (phone landscape). Then it moves to the top of the
--- backdrop and ends above them (ceiling = their top - GAP); wide cards use the
--- one-row layout (compact), never shorter than compactCardH, so on the shortest
--- phone windows it can still reach the tutorial card.
+-- the carry card (phone landscape). Then it moves to the top of the backdrop
+-- and ends above it (ceiling = its top - GAP); wide cards use the one-row
+-- layout (compact), never shorter than compactCardH.
 function Sound.place(screen: Screen): (Rect, boolean)
 	local r = Layout.panelFor(screen, "Sound", Sound.CONTENT_H)
 	local ceiling = math.huge
-	for _, other in { screen.tutorial, screen.tutorialCarrying, screen.carry } do
+	for _, other in { screen.carry } do
 		if Layout.overlaps(r, other) then
 			ceiling = math.min(ceiling, other.y - Layout.GAP)
 		end

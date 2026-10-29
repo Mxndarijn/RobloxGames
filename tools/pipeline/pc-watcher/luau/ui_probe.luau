@@ -1,6 +1,6 @@
 -- Client datamodel: SlimeUI state plus click centres of the buttons the watcher clicks: cx/cy with
 -- the GuiInset added (unless IgnoreGuiInset), rx/ry without it (the watcher's retry). Names come from src/ui (init.client, Hud, Nav, Widgets.panel,
--- Panels/TutorialOverlay).
+-- TutorialCard: Banners.Tutorial.Step).
 local GuiService = game:GetService("GuiService")
 local p = game:GetService("Players").LocalPlayer
 local gui = p.PlayerGui:FindFirstChild("SlimeUI")
@@ -51,7 +51,7 @@ end
 -- Fixed paths, plus every nav / HUD button (the nav is text-less icon buttons named by Nav.ENTRIES key)
 -- and every <Key>Panel with its Close.
 local paths =
-	{ "WorldShopPanel", "WorldShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" }
+	{ "WorldShopPanel", "WorldShopPanel.Close", "Banners.Tutorial", "Banners.Tutorial.Step", "Banners.Tutorial.Step.Tap", "DailyPopup" }
 for _, holder in { "Nav", "Hud" } do
 	local h = gui:FindFirstChild(holder)
 	for _, c in (if h then h:GetChildren() else {}) do
@@ -85,8 +85,8 @@ end
 for _, name in openPanels do
 	table.insert(overlays, name)
 end
-local counter = find("TutorialOverlay.Counter")
-local title = find("TutorialOverlay.Title")
+local counter = find("Banners.Tutorial.Step.Counter")
+local title = find("Banners.Tutorial.Step.Row.Text.Title")
 return {
 	gui = true,
 	inset = { inset.X, inset.Y },
@@ -94,7 +94,7 @@ return {
 	gui_size = { gui.AbsoluteSize.X, gui.AbsoluteSize.Y },
 	overlays = overlays,
 	shop_open = targets.WorldShopPanel.found and targets.WorldShopPanel.shown,
-	tutorial_visible = targets.TutorialOverlay.found and targets.TutorialOverlay.shown,
+	tutorial_visible = targets["Banners.Tutorial.Step"].found and targets["Banners.Tutorial.Step"].shown,
 	tutorial_counter = if counter then counter.Text else nil,
 	tutorial_title = if title then title.Text else nil,
 	step = p:GetAttribute("TutorialStep"),

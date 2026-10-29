@@ -40,7 +40,7 @@ local Tutorial = require("../../src/ui/Tutorial")
 local WorldShopLogic = require("../../src/ui/WorldShopLogic")
 
 -- Row geometry constants only (Panels/* build Instances in .new, never at load).
-local GuidePanel = { TIP_H = 44, SHOW_TEXT = "📖  Show the tutorial again" }
+local GuidePanel = { TIP_H = 44, SHOW_TEXT = "📖  Show the tutorial again", SKIP_TEXT = "Hold to skip the tutorial" }
 -- Panels/Rebirth's sizes and copy (LayoutAssert.spec checks this copy against the module).
 local RebirthPanel = {
 	ROWS = { gap = 10, hero = 74, perks = 28, rank = 70, head = 24, row = 62, keep = 64 },
@@ -414,41 +414,77 @@ function LayoutAssert.navTexts(screen: Layout.Screen): { TextDesc }
 	return out
 end
 
+-- The tutorial notice cards in the banner stack (TutorialCard): the step card (icon, title, hint, "3/8" column)
+-- and the mint done card, at the banner width.
 function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 	local out: { TextDesc } = {}
-	local t = Layout.TUTORIAL
-	for _, card in { { "tutorial", screen.tutorial }, { "tutorialCarrying", screen.tutorialCarrying } } do
-		local r = card[2]
-		for index, step in Tutorial.STEPS do
-			local view = Tutorial.view(index) :: Tutorial.StepView
-			table.insert(out, {
-				name = `{card[1]} {step.id} counter`,
-				text = view.counter,
-				size = 12,
-				bold = true,
-				w = r.w - 100,
-				h = 16,
-			})
-			table.insert(
-				out,
-				{ name = `{card[1]} {step.id} title`, text = step.title, size = 20, bold = true, w = r.w - 100, h = 24 }
-			)
-			for i, text in Tutorial.texts(step) do
-				table.insert(out, {
-					name = `{card[1]} {step.id} body ({i})`,
-					text = text,
-					size = t.bodyTextSize,
-					w = r.w - t.padX * 2,
-					h = r.h - t.bodyTop - t.padBottom,
-					wrapped = true,
-				})
-			end
-		end
-		table.insert(
-			out,
-			{ name = `{card[1]} Hide`, text = "Hide", size = 13, bold = true, w = 72, h = Layout.MIN_TOUCH_DESIGN }
-		)
+	local N = Layout.NOTICE_CARD
+	local inner = screen.banners.w - N.pad * 2 - 4 - N.icon - N.gap
+	-- TutorialCard.COUNTER_W, left out under TutorialCard.NARROW_W (300) on phones
+	local counterW = if screen.banners.w < 300 then 0 else 44
+	local stepW = inner - counterW
+	-- `n` lines of `size` text (Layout.textSize / wrappedHeight measure LINE_HEIGHT per line)
+	local function lines(size: number, n: number): number
+		return size * Layout.LINE_HEIGHT * n
 	end
+	for index, step in Tutorial.STEPS do
+		local view = Tutorial.view(index) :: Tutorial.StepView
+		if counterW > 0 then
+			table.insert(out, {
+				name = `tutorial {step.id} counter`,
+				text = view.counter,
+				size = N.sub,
+				bold = true,
+				w = counterW,
+				h = lines(N.sub, 1),
+			})
+		end
+		table.insert(out, {
+			name = `tutorial {step.id} title`,
+			text = step.title,
+			size = N.title,
+			bold = true,
+			w = stepW,
+			h = lines(N.title, 2),
+			wrapped = true,
+		})
+		for i, text in Tutorial.texts(step) do
+			table.insert(out, {
+				name = `tutorial {step.id} hint ({i})`,
+				text = text,
+				size = N.sub,
+				w = stepW,
+				h = lines(N.sub, 3),
+				wrapped = true,
+			})
+		end
+		table.insert(out, {
+			name = `tutorial {step.id} done`,
+			text = step.done,
+			size = N.title,
+			bold = true,
+			w = inner,
+			h = lines(N.title, 2),
+			wrapped = true,
+		})
+	end
+	table.insert(out, {
+		name = "tutorial finished",
+		text = Tutorial.FINISHED,
+		size = N.title,
+		bold = true,
+		w = inner,
+		h = lines(N.title, 2),
+		wrapped = true,
+	})
+	table.insert(out, {
+		name = "tutorial finished sub",
+		text = Tutorial.FINISHED_SUB,
+		size = N.sub,
+		w = inner,
+		h = lines(N.sub, 2),
+		wrapped = true,
+	})
 	return out
 end
 
@@ -795,6 +831,14 @@ function LayoutAssert.guideTexts(panel: Rect): { TextDesc }
 		w = w,
 		h = GuidePanel.TIP_H,
 	})
+	table.insert(out, {
+		name = "Guide skip tutorial",
+		text = GuidePanel.SKIP_TEXT,
+		size = 15,
+		bold = true,
+		w = w,
+		h = GuidePanel.TIP_H,
+	})
 	return out
 end
 
@@ -945,8 +989,6 @@ function LayoutAssert.panelChecks(check: Checker)
 		for _, other in
 			{
 				{ "Carry", screen.carry },
-				{ "Tutorial", screen.tutorial },
-				{ "TutorialCarrying", screen.tutorialCarrying },
 			}
 		do
 			check.noOverlap(closeName, close, other[1] :: string, other[2] :: Rect)
@@ -993,8 +1035,6 @@ function LayoutAssert.overlays(screen: Layout.Screen): { { name: string, rect: R
 		{ name = "Money", rect = screen.money.rect },
 		{ name = "Status", rect = screen.status.rect },
 		{ name = "Carry", rect = screen.carry },
-		{ name = "Tutorial", rect = screen.tutorial },
-		{ name = "TutorialCarrying", rect = screen.tutorialCarrying },
 	}
 	if not screen.compact then -- phones hide the nav while a menu is open
 		table.insert(out, { name = "Panel", rect = screen.panel })
@@ -1180,8 +1220,6 @@ function LayoutAssert.clusterChecks(check: Checker)
 			{
 				{ "Nav", screen.nav },
 				{ "Carry", screen.carry },
-				{ "Tutorial", screen.tutorial },
-				{ "TutorialCarrying", screen.tutorialCarrying },
 				{ "Sound", screen.sound },
 				{ "Banners", screen.banners },
 			}
@@ -1241,7 +1279,6 @@ function LayoutAssert.hotbarChecks(check: Checker)
 			{ "Nav", screen.nav },
 			{ "Money", screen.money.rect },
 			{ "Status", screen.status.rect },
-			{ "Tutorial", screen.tutorial },
 			{ "Sound", screen.sound },
 			{ "Banners", screen.banners },
 			zones[1],
@@ -1355,29 +1392,13 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	check.onScreen("column", screen.column, m)
 	LayoutAssert.panelChecks(check)
 
-	-- Bottom cards: on screen, above the touch-control inset, clear of the nav.
+	-- The carry card: on screen, above the touch-control inset, clear of the nav.
 	local floor = screen.height - screen.bottomInset
-	for _, card in
-		{
-			{ "Carry", screen.carry },
-			{ "Tutorial", screen.tutorial },
-			{ "TutorialCarrying", screen.tutorialCarrying },
-		}
-	do
-		local name, r = card[1] :: string, card[2] :: Rect
-		-- Short phones: the tutorial card hugs the bottom edge (Layout.TUTORIAL_SHORT_MARGIN).
-		local edge = if string.sub(name, 1, 8) == "Tutorial"
-				and screen.short
-				and screen.viewportH < Layout.TUTORIAL_SHORT_HEIGHT
-			then Layout.TUTORIAL_SHORT_MARGIN / screen.scale
-			else nil
-		check.onScreen(name, r, edge or m)
-		if r.y + r.h > (if edge then screen.height - edge else floor) + EPS then
-			check.fail(`{name} {fmt(r)} reaches into the bottom inset (floor {floor})`)
-		end
-		check.noOverlap(name, r, "Nav", screen.nav)
+	check.onScreen("Carry", screen.carry, m)
+	if screen.carry.y + screen.carry.h > floor + EPS then
+		check.fail(`Carry {fmt(screen.carry)} reaches into the bottom inset (floor {floor})`)
 	end
-	check.noOverlap("TutorialCarrying", screen.tutorialCarrying, "Carry", screen.carry)
+	check.noOverlap("Carry", screen.carry, "Nav", screen.nav)
 
 	-- The Sound button (FEATURES.Audio) sits where a menu's X would: tappable, clear of everything idle,
 	-- and out of the bottom-right thumb zone (Roblox's jump button: the bottom TOUCH_CONTROLS_HEIGHT strip
@@ -1396,8 +1417,6 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 		{
 			{ "Nav", screen.nav },
 			{ "Carry", screen.carry },
-			{ "Tutorial", screen.tutorial },
-			{ "TutorialCarrying", screen.tutorialCarrying },
 			{ "Banners", screen.banners },
 		}
 	do

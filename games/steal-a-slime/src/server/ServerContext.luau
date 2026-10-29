@@ -92,6 +92,11 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 		launch = function(userId: number, push, _landing): boolean
 			return PvpLaunch.launch(userId, push, now())
 		end,
+		-- The tutorial's Leaderboard step (TutorialService.Context).
+		propPosition = function(name: string)
+			local p = WorldProps.position(name)
+			return p and { X = p.X, Y = p.Y, Z = p.Z }
+		end,
 		pose = function(userId: number)
 			local root = rootOf(userId)
 			if not root then

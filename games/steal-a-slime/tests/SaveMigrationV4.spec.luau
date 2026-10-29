@@ -125,7 +125,7 @@ describe("SaveData.migrate / deserialize of old saves", function()
 		expect(d.tutorialStep).toBe(0)
 		expect(d.version).toBe(Config.SAVE_VERSION)
 	end)
-	it("migrates a v2 save through v3 and v4 (tutorial shift still applies)", function()
+	it("migrates a v2 save through v3 and v4 (the old Steal step ends the tutorial)", function()
 		local d = SaveData.deserialize({
 			version = 2,
 			cash = 10,
@@ -134,7 +134,7 @@ describe("SaveData.migrate / deserialize of old saves", function()
 			tutorialStep = 5,
 		})
 		expect((d.slimes[1] :: any).mutations).toBeNil()
-		expect(d.tutorialStep).toBe(6)
+		expect(d.tutorialStep).toBe(0)
 		expect(d.stats.caught >= 1).toBe(true)
 	end)
 	it("migrates a v1 prototype save", function()

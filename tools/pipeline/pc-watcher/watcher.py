@@ -1209,11 +1209,14 @@ def step_onboarding(run):
     if not before.get("tutorial_visible"):
         return "fail", dict(detail, error="tutorial card not shown for a fresh profile")
     # No MCP mouse input (it moves the real OS cursor): hide through the in-engine hook / Visible.
-    hidden, via = set_visible(run, "TutorialOverlay", False)
+    hidden, via = set_visible(run, TUTORIAL_CARD, False)
     detail.update(hide_method=via, card_visible_after_hide=not hidden)
     if not hidden:
         return "fail", dict(detail, error="could not hide the tutorial card in-engine")
     return "pass", detail
+
+
+TUTORIAL_CARD = "Banners.Tutorial"  # the tutorial notice cards in the top banner stack (src/ui/TutorialCard)
 
 
 def set_visible(run, name, show):
@@ -1222,7 +1225,7 @@ def set_visible(run, name, show):
     time.sleep(0.4)
     p = ui_probe(run)
     via = d.get("via", "visible_fallback") if ok and isinstance(d, dict) else "error: %s" % str(d)[:120]
-    if name == "TutorialOverlay":
+    if name == TUTORIAL_CARD:
         return bool(p.get("tutorial_visible")) == show, via
     return (name in (p.get("open_panels") or [])) == show, via
 

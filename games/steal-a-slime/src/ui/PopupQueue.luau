@@ -6,11 +6,8 @@
 	init.client opens what `update` returns.
 
 	The early tutorial steps (BLOCKING_STEPS: Grab, Deposit, Lock, BuyPad) block
-	every queued popup: a new player no longer gets the daily reward on top of
-	step 1 (v15 playtest). From Merge onward the queue runs normally: the
-	tutorial only ends at the first Rebirth, and the daily popup is its only
-	opener (the HUD Daily button is gone), so blocking until then hid the
-	daily reward and the welcome-back card from everyone who had not rebirthed.
+	every queued popup, so a new player does not get the daily reward on top of
+	their first steps. The other steps let the queue run.
 	The daily popup is queued on its availability edge (Daily.shouldAutoOpen)
 	and dropped again when the claim goes away. The welcome-back card
 	(State.welcomeBack, once per join) queues the same way and goes first;
