@@ -24,6 +24,9 @@ local MergeGate = if Shared then require(Shared.MergeGate) else require("../shar
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local VatDecor = if Shared then require(Shared.Parent.Visuals.VatDecor) else require("../visuals/shared/VatDecor")
 local StealGhost = if script then require(script.Parent.StealGhost) else require("./StealGhost")
+local LabelFit = if Shared
+	then require(Shared.Parent.Lib.ui.LabelFit)
+	else require("../../../../shared/luau/src/ui/LabelFit")
 
 local VatView = {}
 
@@ -49,6 +52,7 @@ VatView.TAG = table.freeze({
 	capSize = 17,
 	lift = 2,
 	maxDistance = 60, -- studs from the camera: hidden beyond, so other plots' vats don't float tags across the map
+	phoneMaxDistance = 40, -- studs, on a phone-sized screen
 })
 
 export type Line = { text: string, color: "Mint" | "Gold" | "MutedWell" | "Warn" }
@@ -157,6 +161,7 @@ local function buildTag(vat: BasePart): BillboardGui
 	gui.SizeOffset = Vector2.new(0, 0.5)
 	gui.MaxDistance = T.maxDistance
 	gui.LightInfluence = 0
+	LabelFit.mark(gui, { phoneDistance = T.phoneMaxDistance }) -- each client shrinks it on a phone
 	local head = Instance.new("TextLabel")
 	head.Name = "Title"
 	head.BackgroundTransparency = 1

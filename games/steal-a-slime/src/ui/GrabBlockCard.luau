@@ -21,6 +21,8 @@ local UI = script.Parent
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
 local GrabBlock = require(Shared:WaitForChild("GrabBlock"))
+local LabelFit =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -109,6 +111,7 @@ function GrabBlockCard.start(opts: Options): { refresh: () -> (), stop: () -> ()
 		Size = UDim2.fromOffset(C.w, C.pad * 2 + C.titleH + C.reasonH),
 		Parent = opts.playerGui,
 	}) :: BillboardGui
+	LabelFit.mark(card) -- smaller pixels on a phone (Lib.ui.LabelFitView)
 	local frame = create("Frame", {
 		Name = "Card",
 		BackgroundColor3 = Theme.Bg,

@@ -17,6 +17,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local LabelFit = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
 local NumberFormat = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core"):WaitForChild("NumberFormat"))
 local SlimeKeyCard = require(script.Parent.SlimeKeyCard)
 local Widgets = require(script.Parent.Widgets)
@@ -29,6 +30,7 @@ local LockTimerTag = {}
 LockTimerTag.FOLDER = "LockTimerTags"
 LockTimerTag.SEE_THROUGH = 0.3 -- a part at least this transparent doesn't hide the tag (glass)
 LockTimerTag.MAX_DISTANCE = 90 -- studs: hidden beyond
+LockTimerTag.PHONE_MAX_DISTANCE = 60 -- studs, on a phone-sized screen: several bases' timers stack up there
 LockTimerTag.MAX_SKIPS = 8 -- see-through parts one sight ray may pass before it gives up (and hides the tag)
 LockTimerTag.SIZE = table.freeze({
 	w = 150,
@@ -89,6 +91,7 @@ function LockTimerTag.start(opts: Options): Handle
 			Enabled = false,
 			Parent = folder,
 		})
+		LabelFit.mark(gui, { phoneDistance = LockTimerTag.PHONE_MAX_DISTANCE })
 		local pill = create("Frame", {
 			Name = "Pill",
 			BackgroundColor3 = Theme.Bad,

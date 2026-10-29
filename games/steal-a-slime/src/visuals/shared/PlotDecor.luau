@@ -33,6 +33,7 @@ local PlotDecor = {}
 PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
 PlotDecor.UNLOCKED_COLOR = { 90, 220, 110 }
 PlotDecor.FREE_COLOR = { 255, 205, 60 }
+PlotDecor.SIGN_MAX_DISTANCE = 150 -- studs: thieves read LOCKED and the timer from across the path
 -- The locked door as the plot's owner and its guests see it: they pass through it, so it shows half see-through.
 PlotDecor.OWNER_DOOR_TRANSPARENCY = 0.5
 
@@ -75,6 +76,7 @@ local function labels(part: Instance, rows: { number }): { TextLabel }
 		g.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 		g.PixelsPerStud = 40
 		g.LightInfluence = 0
+		g.MaxDistance = PlotDecor.SIGN_MAX_DISTANCE
 		local y = 0
 		for k, height in rows do
 			local l = Instance.new("TextLabel")
