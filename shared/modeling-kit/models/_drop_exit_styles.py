@@ -83,6 +83,7 @@ def factory(style, top, L, col, pool=True):
         solid += _arrow_sign("Sign", (L.HALF + 0.5, y + 3.2, zh + 2.0), 0, col["board"], col["ink"])
     elif style == "pipe":
         path = L.pipe_path(top)
+        xs, zh = path[2][0], path[0][2]    # the pipe's upright and its arm's height, from the layout
         solid.append(tube("ExitPipe", path, [L.PIPE_R] * len(path), col["metal"], segs=20, twist_free=True))
         for k, zz in enumerate(range(int(zh) - 4, 4, -6)):
             solid.append(tube(f"Ring{k}", [(xs, y, zz - 0.35), (xs, y, zz + 0.35)], [TUBE_R + 0.55] * 2,

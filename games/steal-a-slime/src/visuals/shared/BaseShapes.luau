@@ -167,12 +167,14 @@ local function partNode(
 		node.canCollide = false
 		node.canTouch = false
 		node.transparency = 1
-	elseif p.hidden then
-		-- an invisible guard (round a drop tube's foot): it collides but is never anyone's look
+	end
+	local attributes: { [string]: any } = {}
+	if p.collide and p.hidden then
+		-- an invisible guard (round a drop tube's foot): it collides but is never anyone's look. It is still ground to
+		-- rays (Roblox queries every colliding part), but the slime ground probes start below its top
 		node.transparency = 1
 		node.canTouch = false
 	end
-	local attributes: { [string]: any } = {}
 	if p.show and plain then
 		-- in the roof folder (only ever on the current top floor): a plain collider, its look a mesh slot
 		node.transparency = 1
