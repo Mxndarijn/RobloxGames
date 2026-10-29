@@ -47,6 +47,7 @@ local CONTRACT_NAMES = {
 	"EggCrack",
 	"EggHatch",
 	"EggReady",
+	"CashPadCollect",
 	"RitualDone",
 	"RitualSpot",
 	"DexNew",

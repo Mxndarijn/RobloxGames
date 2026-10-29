@@ -26,6 +26,7 @@ local SoundService = game:GetService("SoundService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local AdminCommands = require(Shared:WaitForChild("AdminCommands"))
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
@@ -42,6 +43,7 @@ local SpeciesDex = require(Shared:WaitForChild("SpeciesDex"))
 local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local Types = require(Shared:WaitForChild("Types"))
 
+local AdminMenu = require(script.AdminMenu)
 local DexJarView = require(script.DexJarView)
 local ExclusiveShopView = require(script.ExclusiveShopView)
 local Format = require(script.Format)
@@ -81,6 +83,7 @@ local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
 local WorldShopLogic = require(script.WorldShopLogic)
 local Panels = script.Panels
+local AdminPanel = require(Panels.Admin)
 local BossMeterPanel = require(Panels.BossMeter)
 local CarryPanel = require(Panels.Carry)
 local CodesPanel = require(Panels.Codes)
@@ -135,6 +138,10 @@ local gui = Widgets.create("ScreenGui", {
 -- First person / shift lock pin the cursor to the screen centre: while a menu, a popup or the bag is
 -- open (syncTutorial below) Lib MenuMouse frees it so every button can be clicked.
 local menuMouse = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("MenuMouse")).new(gui)
+
+-- World labels tagged LabelFit (pixel tags, guides/roblox-world-labels.md) shrink on a phone and use their
+-- phone MaxDistance there. Runs for the whole session.
+require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFitView")).new()
 
 -- Phones: shrink the whole UI (Layout.uiScale; 1 on desktop). Set with the
 -- rest of the layout in applyLayout below.
@@ -837,7 +844,13 @@ for _, entry in allPanels do
 		setOpen(nil)
 	end)
 end
-backdrop.Activated:Connect(function()
+Widgets.closeOnTapOutside(backdrop, function()
+	local cards = {}
+	for _, entry in allPanels do
+		table.insert(cards, entry.panel.frame)
+	end
+	return cards
+end, function()
 	setOpen(nil)
 end)
 
@@ -1240,6 +1253,27 @@ function ctx.togglePanel(key: string)
 	setOpen(if openKey == key then nil else key)
 end
 
+-- The admin menu (contract/admin-menu.md): built the first State that names this player an admin, then a menu card
+-- like the others (F2 or "/admin" toggles it).
+ctx.AdminCommands = AdminCommands
+local updateAdminMenu = AdminMenu.start({
+	gui = gui,
+	ctx = ctx,
+	input = UserInputService,
+	chat = game:GetService("TextChatService"),
+	build = AdminPanel.new,
+	addPanel = function(key: string, panel: any)
+		table.insert(allPanels, { key = key, nav = nil, panel = panel })
+		table.insert(allKeys, key)
+		panelByKey[key] = panel
+		panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
+		layoutCards()
+	end,
+	toggle = function()
+		ctx.togglePanel(AdminMenu.PANEL_KEY)
+	end,
+})
+
 -- Queued popups (welcome-back card, then the daily popup) wait for the tutorial and for each other.
 function pumpPopups(state: Types.State)
 	local next = popups.update(state, openKey == "Welcome")
@@ -1261,6 +1295,7 @@ local function render(realState: Types.State)
 		SoundController.setBoss(require(script.SoundCues).bossMusic(realState))
 	end
 	hud.update(state)
+	updateAdminMenu(state)
 	inventory.update(state)
 	slimeKeys.update(state)
 	lockBreakPrompt.update(state)

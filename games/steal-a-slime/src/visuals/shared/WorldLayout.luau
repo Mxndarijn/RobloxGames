@@ -218,9 +218,10 @@ WorldLayout.STAIR_TOP = table.freeze({ landing = 120, step = 30 })
 WorldLayout.STAIR_NEWEL = table.freeze({ radius = 1.7, height = 4 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; the top jar's hatch sits at this angle, the tube lands in the goo moat.
--- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
+-- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass), its width, and how far
+-- along the moat a dropped player lands from the tube's foot (clear of its solid upright, still on the splash pool).
 WorldLayout.DROP_ANGLE = 70
-WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3 })
+WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3, landSide = 2.8 })
 -- Jar 1's ground pieces (plot-local; angles as above). The bridge crosses the moat to the door. Floor 1's pads spread
 -- evenly from FLOOR1_PAD_ARC[1] to FLOOR1_PAD_ARC[2] degrees round from the door, leaving the front either side of the
 -- door free: the MergeVat and the LockButton stand there, one each side, the first things you see coming in (inside
@@ -1852,10 +1853,19 @@ local function jarLooks(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	return out
 end
 
--- Plot-local landing point (x, y, z) of the drop tube: in the goo moat behind the tower.
-function WorldLayout.dropLanding(): Vec
+-- Plot-local middle (x, y, z) of the drop tube's splash pool: in the goo moat behind the tower, under the tube's foot.
+function WorldLayout.dropPool(): Vec
 	local x, z = polar((WorldLayout.MOAT.inner + WorldLayout.MOAT.outer) / 2, WorldLayout.DROP_ANGLE)
-	return { x, WorldLayout.PLOT_FLOOR_TOP + 3, z }
+	return { x, WorldLayout.PLOT_FLOOR_TOP, z }
+end
+
+-- Plot-local landing point (x, y, z) of the drop tube: on the splash pool, DROP_TUBE.landSide along the moat from the
+-- pool's middle, so the player lands beside the tube's solid foot instead of inside it.
+function WorldLayout.dropLanding(): Vec
+	local pool = WorldLayout.dropPool()
+	local a = math.rad(WorldLayout.DROP_ANGLE)
+	local side = WorldLayout.DROP_TUBE.landSide
+	return { pool[1] - math.sin(a) * side, WorldLayout.PLOT_FLOOR_TOP + 3, pool[3] + math.cos(a) * side }
 end
 
 -- The plot-local angles of the glass segments either side of the drop hatch (the DropShield's segments).
@@ -1964,7 +1974,10 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 	standIns(wall, `goo_jar_glass_{f}_top`)
 	standIns(stair, "goo_jar_stair")
 	-- jar f - 1's walls above its top-jar height stand while this jar does
-	for _, list in { deck, wall, jarUpperWalls(f - 1, at, yaw), stair, stairTop(f, at, yaw), jarLooks(f, at, yaw) } do
+	-- jar f - 1's walls above its top-jar height: their look is that jar's covered glass, so they hide once it loads
+	local upper = jarUpperWalls(f - 1, at, yaw)
+	standIns(upper, `goo_jar_glass_{f - 1}_mid`)
+	for _, list in { deck, wall, upper, stair, stairTop(f, at, yaw), jarLooks(f, at, yaw) } do
 		for _, node in list do
 			table.insert(children, node)
 		end
@@ -1997,8 +2010,9 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 		shield.transparency = 1
 		table.insert(children, shield)
 	end
-	-- The goo tube (decor, never collides): an arm from the hatch out through the glass, and this floor's length of
-	-- the upright tube down to the next arm below (floor 2's reaches the ground and its splash pool).
+	-- The goo tube: an arm from the hatch out through the glass, and this floor's length of the upright tube down to the
+	-- next arm below (floor 2's reaches the ground and its splash pool). The arm is decor (out of reach); the upright is
+	-- solid so nobody stands inside the tube, and smooth and straight up so nobody climbs it.
 	local tube = WorldLayout.DROP_TUBE
 	local armIn = WorldLayout.jarRadius(f) + WorldLayout.JAR_WALL
 	local armY = WorldLayout.floorTop(f) + 2
@@ -2027,8 +2041,9 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 			JAR_GOO, WorldLayout.JAR_GLASS_MATERIAL, WorldLayout.JAR_GLASS_TRANSPARENCY
 		table.insert(children, standIn(ghost(node, WorldLayout.JAR_GLASS_TRANSPARENCY), `goo_drop_tube_goo_{f}`))
 	end
+	pipe.canCollide = true
 	if f == 2 then
-		local land = WorldLayout.dropLanding()
+		local land = WorldLayout.dropPool()
 		table.insert(
 			children,
 			ghost(

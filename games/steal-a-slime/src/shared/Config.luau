@@ -1924,10 +1924,11 @@ local Config = {
 	-- (flat distance) and 0..TOUCH_HEIGHT studs above the coin is standing on it. HINT_AT: cash waiting on the pads that
 	-- triggers the "walk over a pad" toast (Income; once a session, only while the tutorial runs). NAG_SECONDS: a
 	-- visitor on someone else's coin sees "Not your cash" at most this often. FLASH_SECONDS: how long the coin shows
-	-- "+$X" after a collect. SYNC_SECONDS: coins are rebuilt / relabelled at most this often.
+	-- "+$X" after a collect. SYNC_SECONDS: coins are rebuilt / relabelled at most this often. A collect plays the
+	-- "CashPadCollect" sound for the collector only (ui/Sounds: volume and pitch there).
 	CASH_PAD = table.freeze({
-		DIAMETER = table.freeze({ 2.75, 2.75, 2.75, 2 }) :: { number },
-		FRONT = table.freeze({ 6.3, 6.3, 6.3, 5.42 }) :: { number },
+		DIAMETER = table.freeze({ 3.25, 3.25, 3.25, 2.75 }) :: { number },
+		FRONT = table.freeze({ 6.55, 6.55, 6.55, 5.795 }) :: { number },
 		LIFT = table.freeze({ 0.36, 0, 0, 0 }) :: { number },
 		TOUCH_SLACK = 0.9,
 		TOUCH_HEIGHT = 6,

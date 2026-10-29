@@ -3,7 +3,7 @@
 	CashPadService (pure, FEATURES.CashPads, contract/cash-pads.md)
 
 	What happens when a player steps on a cash pad (CashPadView reports the touch). The plot owner collects the
-	pad's pile into cash (CashPads.collect) and gets the "Collect" burst; anyone else gets nothing and a
+	pad's pile into cash (CashPads.collect), the "Collect" burst and the "CashPadCollect" sound (once per collect); anyone else gets nothing and a
 	"Not your cash" toast at most once per CASH_PAD.NAG_SECONDS. A touch on an empty pad, an unowned plot or with the
 	flag off does nothing. `nags` (userId -> next allowed toast time) is runtime state the caller owns.
 ]]
@@ -18,6 +18,8 @@ type World = World.World
 export type Nags = { [number]: number }
 
 local CashPadService = {}
+
+CashPadService.SOUND = "CashPadCollect" -- ui/Sounds name played for the collector
 
 -- Returns the cash paid to `userId` (0 for anyone but the owner, or an empty pad).
 function CashPadService.touch(
@@ -48,6 +50,8 @@ function CashPadService.touch(
 	if paid > 0 then
 		World.markDirty(owner)
 		World.effect(world, "Collect", { userId = userId })
+		-- The collector hears a soft coin, once per collect (a Notify only plays its sound; the text is unused).
+		World.notify(world, userId, "", "good", CashPadService.SOUND)
 	end
 	return paid
 end

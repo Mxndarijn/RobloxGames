@@ -315,25 +315,69 @@ def jar_trim(f, top, crown=False):
                         mix(GOO, GOO_HI, 0.5), subdiv=2, squash=(1.3, 0.3, 1.1), jitter=0.05, rot=(0, 0, deg + 90)))
     return out
 
+# Floor bubbles stay off what stands on the floor round each pad (game numbers): the cash pad coin (D floors[].pads[].coin),
+# the pad's name sign (ui/SlimePadSign: its plank stands SIGN_FRONT studs in front of the pad centre, SIGN_HALF either
+# side) and the cork stand's foot (radius STAND_R).
+SIGN_FRONT, SIGN_HALF, STAND_R = 4.2, 2.3, 3.9
+
+
+def clear_of_pads(f, x, y, r):
+    """Is a bubble of radius r at (x, y) on floor f clear of every coin, sign and stand?"""
+    fl = D["floors"][f - 1]
+    for p in fl["pads"]:
+        coin = p.get("coin")
+        if coin and math.hypot(x - coin["x"], y - coin["z"]) < coin["diameter"] / 2 + r + 1.2:
+            return False
+        a = math.radians(p["angle"])
+        d = fl["padRing"] - SIGN_FRONT
+        if math.hypot(x - d * math.cos(a), y - d * math.sin(a)) < SIGN_HALF + 0.3 + r:
+            return False
+        if math.hypot(x - p["x"], y - p["z"]) < STAND_R + 0.3 + r:
+            return False
+    return True
+
+
+def floor_bubbles(f, rr, n, lo, hi, z):
+    """n goo bubbles on floor f between radii lo and hi at height z: each where the seeded roll puts it, or, when that
+    spot is under a coin, sign or stand, the nearest free spot round it (its own seeded search)."""
+    out = []
+    r_out = radius(f) - 1.5
+    lo_free = (D["stair"]["hole"] + 1.2) if f > 1 else lo
+    for k in range(n):
+        a, d = rr.uniform(0, math.tau), rr.uniform(lo, hi)
+        size = rr.uniform(0.35, 0.8)
+        x, y = d * math.cos(a), d * math.sin(a)
+        if not clear_of_pads(f, x, y, size):
+            near = random.Random(int((x + 100) * 1000) ^ int((y + 100) * 7))
+            for _ in range(2000):
+                na, nd = math.atan2(y, x) + near.uniform(-0.9, 0.9), math.hypot(x, y) + near.uniform(-5, 5)
+                nx, ny = nd * math.cos(na), nd * math.sin(na)
+                if lo_free + size <= nd <= r_out - size and clear_of_pads(f, nx, ny, size):
+                    x, y = nx, ny
+                    break
+            else:
+                print(f"floor_bubbles: floor {f} Bubble{k} has no free spot, left out")  # shows in iterate.py -v
+                continue
+        out.append(blob(f"Bubble{k}", size, (x, y, z), GOO_HI, subdiv=1, squash=(1, 1, 0.8), jitter=0))
+    return out
+
+
 def jar_deck(f):
-    """Jar f's floor above the ground: a goo pool in a wooden ring and a few bubbles, the stair hole in the middle with
+    """Jar f's floor above the ground: a goo pool in a wooden ring and a few bubbles (clear of the pads' coins, signs and stands), the stair hole in the middle with
     no rim: the goo rolls over its edge and lines the hole's wall, so the floor's thickness doesn't show from the stair.
     Top of the goo at z = 0 (the floor's walking surface)."""
     r, hole = radius(f), D["stair"]["hole"]
     out = [painted(lathe("Wood", [(hole + 0.2, -1.0), (r - 1.0, -1.0), (r - 1.0, -0.05)], CORK, double=False), shade(CORK, 0.95), CORK)]
     out.append(painted(lathe("Pool", [(r - 0.4, 0.0), (hole + 0.3, 0.0), (hole, -0.25), (hole, -1.05)], GOO, double=False),
                        shade(GOO, 0.8), GOO))
-    rr = random.Random(90 + f)
-    for k in range(7):
-        a, d = rr.uniform(0, math.tau), rr.uniform(hole + 2, r - 3)
-        out.append(blob(f"Bubble{k}", rr.uniform(0.35, 0.8), (d * math.cos(a), d * math.sin(a), 0.15), GOO_HI, subdiv=1, squash=(1, 1, 0.8), jitter=0))
+    out += floor_bubbles(f, random.Random(90 + f), 7, hole + 2, r - 3, 0.15)
     return out
 
 
 def jar_foot():
     """The whole round plot floor (z = 0 is its top, the floor players walk on; the game's PlotFloor collider is under
     it): a sandy ring out to the plot's edge with a cork rim and its 1-stud edge down to the ground, a low round
-    wooden foot, the goo moat round it on a sandy bed, jar 1's goo pool with bubbles. The top is decor a few tenths of
+    wooden foot, the goo moat round it on a sandy bed, jar 1's goo pool with bubbles (clear of the pads' coins, signs and stands). The top is decor a few tenths of
     a stud thick, so feet hardly sink in."""
     r1, m = radius(1), D["moat"]
     edge = D["plotFloorRadius"]
@@ -345,10 +389,7 @@ def jar_foot():
     out.append(painted(lathe("MoatRim", [(m["outer"], 0.06), (m["outer"], 0.3), (m["outer"] - 0.4, 0.3)], WOOD_D, double=False)))
     out.append(painted(lathe("Moat", [(m["outer"] - 0.3, 0.18), (m["inner"], 0.18)], GOO, double=False), shade(GOO, 0.9), GOO))
     out.append(painted(cylinder("Pool", r1 - 0.4, 0.06, (0, 0, 0.3), GOO, segs=SEGS), shade(GOO, 0.9), GOO))
-    rr = random.Random(91)
-    for k in range(8):
-        a, d = rr.uniform(0, math.tau), rr.uniform(8, r1 - 3)
-        out.append(blob(f"Bubble{k}", rr.uniform(0.35, 0.8), (d * math.cos(a), d * math.sin(a), 0.45), GOO_HI, subdiv=1, squash=(1, 1, 0.8), jitter=0))
+    out += floor_bubbles(1, random.Random(91), 8, 8, r1 - 3, 0.45)
     return out
 
 

@@ -761,6 +761,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Dex = 600,
 	Skins = 600,
 	ExclusiveShop = 600, -- a list menu: tabs, the card grid and the pane fill the window
+	Admin = 600, -- a list menu: tabs and the command rows fill the window
 	Codes = 300,
 	Sound = 291,
 	Guide = 380,

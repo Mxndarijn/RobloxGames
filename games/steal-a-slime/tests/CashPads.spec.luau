@@ -196,6 +196,24 @@ describe("CashPadService.touch", function()
 		expect(s.data.cash).toBe(250)
 		expect(s.dirty).toBe(true)
 	end)
+	it("a collect plays the soft coin sound for the collector only, once", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1) }, 0)
+		ServerFixtures.join(world, 2, {}, 0)
+		local pad = padOf(s.data, "a")
+		CashPads.add(s.data, pad, 40)
+		ServerFixtures.clearEvents(world)
+		CashPadService.touch(world, {}, 1, s.plotIndex, pad, T0, ON)
+		CashPadService.touch(world, {}, 1, s.plotIndex, pad, T0 + 1, ON) -- nothing left: no second sound
+		local sounds = {}
+		for _, event in world.outbox do
+			if event.type == "Notify" and event.sound == CashPadService.SOUND then
+				table.insert(sounds, event.userId)
+			end
+		end
+		expect(#sounds).toBe(1)
+		expect(sounds[1]).toBe(1)
+	end)
 	it("another player gets nothing and one nag per NAG_SECONDS", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1) }, 0)

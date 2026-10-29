@@ -22,10 +22,10 @@ parts.append(bbox("Core", (FW + 1.2, 1.0, FH + 1.2), (0, 0, FZ), shade(WOOD, 0.8
 # cream face panels, identical both sides
 for j, y in enumerate((-0.6, 0.6)):
     parts.append(bbox(f"Face{j}", (FW, 0.3, FH), (0, y, FZ), shade(CREAM, 0.94), CREAM, bev=0.06))
-# frame rails (top/bottom) and a mid divider under the title band, both sides
+# bottom frame rail, both sides. No title divider: the SurfaceGui draws its own title banner,
+# and a mesh strip showed through the GUI across the first row.
 for j, y in enumerate((-0.75, 0.75)):
     parts.append(bbox(f"RailB{j}", (FW + 1.4, 0.5, 0.7), (0, y, FZ - FH / 2 - 0.2), shade(WOOD_D, 0.9), WOOD_D, bev=0.12))
-    parts.append(bbox(f"Title{j}", (FW - 0.6, 0.12, 0.25), (0, y * 1.0, FZ + FH / 2 - 2.5), shade(ROOF, 0.85), ROOF, bev=0))
 # red barn roof cap over the board
 def prism(name, prof, x0, x1, col):
     bm = bmesh.new(); a = [bm.verts.new((x0, y, z)) for y, z in prof]; b = [bm.verts.new((x1, y, z)) for y, z in prof]

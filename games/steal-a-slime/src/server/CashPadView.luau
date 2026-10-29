@@ -43,6 +43,7 @@ local LOOK = table.freeze({
 	baseThickness = 0.16, -- studs: the raised edge under it
 	baseExtra = 0.18, -- studs the edge sticks out past the top (across)
 	pixelsPerStud = 60,
+	maxDistance = 60, -- studs: the amount is about a stud tall, unreadable much farther; one coin per pad
 	font = Enum.Font.FredokaOne,
 	-- Text boxes as fractions of the coin's top: the amount sits higher when COLLECT is under it.
 	amountSize = UDim2.fromScale(0.84, 0.34),
@@ -122,6 +123,7 @@ local function build(pad: BasePart, plotIndex: number, j: number): Disc
 	gui.LightInfluence = 0
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = LOOK.pixelsPerStud
+	gui.MaxDistance = LOOK.maxDistance
 	gui.Parent = part
 	local amount = text("Amount", gui)
 	amount.Size = LOOK.amountSize
