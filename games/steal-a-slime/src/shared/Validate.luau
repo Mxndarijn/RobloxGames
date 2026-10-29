@@ -53,6 +53,7 @@ Validate.ACTIONS = table.freeze({
 	SendGift = 0.5,
 	SetHotbar = 0.3,
 	RequestKits = 0.25,
+	Admin = 0.25,
 })
 
 function Validate.slimeId(value: any): string?
