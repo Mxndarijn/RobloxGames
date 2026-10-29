@@ -21,6 +21,11 @@ FACE = ("Eye", "Iris", "Pupil", "Mouth", "Teeth", "Tongue", "Cheek", "Brow", "La
 EYES = ("Eye", "Iris", "Pupil")  # EyeHi*, EyeW*, EyeC* start with Eye too
 LID_IN = 0.15  # studs the hidden lids sit inside the body
 LID_OUT = 0.165  # studs the game moves them out to blink (ui/SlimeBones.LID_OUT): shown 0.015 over the face
+# Every eye and lid vertex gets exactly this Eyes / Lids weight (ui/SlimeBones.EYE_SHARE), taken out of its Top
+# weight. The bones are children of Top, so the squash is unchanged, and a blink moves every eye layer by the same
+# amount on every species: eyes sink exactly EYE_IN, lids come out exactly LID_OUT. Below the lowest Top weight
+# any eye gets on a pool slime (~0.26), so no vertex is short of it.
+EYE_SHARE = 0.25
 
 
 def _role(name):
@@ -38,6 +43,37 @@ def _role(name):
     return "acc", None
 
 
+def _hidden_share(sp, lid):
+    """share of the lid's vertices that some registered surface (body, bump, hat) covers from the front."""
+    D = Vector(sp.FRONT.D).normalized()
+    pts = [lid.matrix_world @ vt.co for vt in lid.data.vertices]
+    hidden = 0
+    for p in pts:
+        for t in sp.SURFACES.values():
+            h = t.ray_cast(p + D * 12, -D, 12)
+            if h[0] is not None and h[3] < 12 - 0.005:
+                hidden += 1
+                break
+    return hidden / max(1, len(pts))
+
+
+def _visible_lid(sp, side, u, v, w, on):
+    """the closed-eye arc for one eye, built where it shows mid-blink (open eyes are hidden then, so they don't
+    count). It follows the curve (a flat strip across a round eye bump sinks into it in the middle) and slides
+    up the eye while something covers it: Froggo's eye bumps are half buried in the body."""
+    k = sp.DECALS["scale"]
+    lid = None
+    for step in range(9):
+        if lid is not None:
+            bpy.data.objects.remove(lid, do_unlink=True)
+        lid = sp.conform_decal(f"BlinkLid{side}", sp.arc(u, v + 0.02 + step * 0.05 * w, w * 0.36, 200, 340, 0.08),
+                               sp.INK, off=(LID_OUT - LID_IN) * k, th=0.03 * k, step=0.04, on=on, ignore=EYES,
+                               register_it=False)
+        if _hidden_share(sp, lid) < 0.1:
+            break
+    return lid
+
+
 def add_lids(parts):
     """closed-eye arcs (^ shape flipped: content closed lids) hidden behind each round eye."""
     from models import _slimepool as sp
@@ -48,13 +84,12 @@ def add_lids(parts):
         xs = [v.co.x for v in o.data.vertices]
         zs = [v.co.z for v in o.data.vertices]
         u, v = (min(xs) + max(xs)) / 2, (min(zs) + max(zs)) / 2
-        w = max(xs) - min(xs)
         side = 1 if u > 0 else -1
+        # as wide as the whole eye: a white drawn around the dark eye (Froggo's EyeW) counts too
+        whites = [p for p in parts if p.name.split(".")[0] == f"EyeW{side}"]
+        w = max([max(xs) - min(xs)] + [max(q.co.x for q in p.data.vertices) - min(q.co.x for q in p.data.vertices) for p in whites])
         try:  # an eye that isn't on the Body front (custom eyes, sockets) gets no lid
-            # built where it shows mid-blink (open eyes are hidden then, so they don't count), then sunk
-            lid = sp.decal(f"BlinkLid{side}", sp.arc(u, v + 0.02, w * 0.36, 200, 340, 0.08), sp.INK,
-                           off=LID_OUT - LID_IN, th=0.03, on=sp.PAINTED_ON.get(o.name) or getattr(sp, "FACE_ON", None) or ["Body"],
-                           ignore=EYES, register_it=False)
+            lid = _visible_lid(sp, side, u, v, w, sp.PAINTED_ON.get(o.name) or getattr(sp, "FACE_ON", None) or ["Body"])
             back = lid.matrix_world.inverted().to_3x3() @ (Vector(sp.FRONT.D).normalized() * -LID_OUT)
             for vtx in lid.data.vertices:
                 vtx.co += back
@@ -192,7 +227,7 @@ def build_rig(o, body_h=None):
 
     vg = {n: o.vertex_groups.new(name=n) for n in ["Root", "Top", "SideL", "SideR", "SideF", "SideB", "Eyes", "Lids"] + list(pivots)}
 
-    def body_w(p):
+    def body_w(p, most=4):
         top = 0.15 + 0.85 * min(1.0, max(0.0, (p.z - 0.12 * H) / (0.75 * H)))
         top = top if p.z > 0.02 else 0.0
         w = {"Top": top, "Root": 1 - top}
@@ -202,9 +237,8 @@ def build_rig(o, body_h=None):
             k = (p.x * dx + p.y * dy) / max(rho, 1e-6)
             if k > 0:
                 w[n] = bell * k * k
-        s = sum(w.values())
-        # keep the 4 biggest (Roblox: max 4 influences per vertex)
-        top4 = sorted(w.items(), key=lambda kv: -kv[1])[:4]
+        # keep the biggest `most` (Roblox: max 4 influences per vertex)
+        top4 = sorted(w.items(), key=lambda kv: -kv[1])[:most]
         s = sum(x for _, x in top4)
         return {n: x / s for n, x in top4 if x > 1e-4}
 
@@ -213,11 +247,16 @@ def build_rig(o, body_h=None):
         p = v.co
         if g == "R_body" or g == "R_face":
             ws = body_w(p)
-        elif g in ("R_Eyes", "R_Lids"):  # ride the jelly like the face; the Top share goes to Eyes/Lids
-            ws = body_w(p)
+        elif g in ("R_Eyes", "R_Lids"):  # ride the jelly like the face; EYE_SHARE of the Top weight goes to Eyes/Lids
+            ws = body_w(p, 3)  # one influence left for Eyes / Lids
             k = "Eyes" if g == "R_Eyes" else "Lids"
-            ws[k] = ws.pop("Top", 0.0)
-            eye_w.append(ws[k])
+            share = min(EYE_SHARE, ws.get("Top", 0.0))
+            if share > 0:
+                ws["Top"] = ws["Top"] - share
+                if ws["Top"] <= 1e-4:
+                    del ws["Top"]
+                ws[k] = share
+            eye_w.append(share)
         elif g.startswith("S_"):
             ws = {g[2:]: 1.0}
         else:  # rigid accessory: high ones ride Top, low ones the body weights where they sit
@@ -227,8 +266,11 @@ def build_rig(o, body_h=None):
     for g in list(o.vertex_groups):
         if g.name.startswith(("R_", "S_")):
             o.vertex_groups.remove(g)
+    short = sum(1 for w in eye_w if w < EYE_SHARE - 1e-6)
+    if short:
+        print(f"RIG WARNING {o.name}: {short} eye/lid vertices have less Top weight than EYE_SHARE; they blink short")
     # blink offsets are scaled by this: the eyes only get this share of an Eyes/Lids move
-    ao["eye_share"] = sum(eye_w) / len(eye_w) if eye_w else 1.0
+    ao["eye_share"] = EYE_SHARE if eye_w else 1.0
     o.parent = ao
     o.modifiers.new("Armature", "ARMATURE").object = ao
     return ao, {"H": H, "R": R, "pivots": {k: (tuple(a), tuple(b)) for k, (a, b) in pivots.items()}}
