@@ -1,7 +1,7 @@
 --!strict
 -- Plot kit meshes: MeshSwap fits a mesh to its slot box, so every slot must be
 -- the mesh's native size times one scale, turned with the plot. Also the plot
--- Sign (the plot's sign on its SignPost).
+-- Sign (the plot's sign on its two legs).
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -165,7 +165,7 @@ end)
 
 describe("plot sign", function()
 	it(
-		"puts the sign on its post by the bridge at eye level, its Front face (the drawn face) out of the plot",
+		"puts the sign on its two legs by the bridge at eye level, its Front face (the drawn face) out of the plot",
 		function()
 			expect(PlotSigns.FACES).toEqual({ "Front" })
 			local board = WorldLayout.NAME_BOARD
@@ -173,21 +173,26 @@ describe("plot sign", function()
 			for i, plot in plots do
 				local _, yaw = WorldLayout.plotCentre(i)
 				local sign = child(plot, "Sign")
-				local post = child(plot, "SignPost")
+				local legs = { child(plot, "SignLeg_1"), child(plot, "SignLeg_2") }
 				local size = sign.size :: Vec
 				local p = toPlot(i, sign.pos :: Vec)
-				local q = toPlot(i, post.pos :: Vec)
-				local postSize = post.size :: Vec
+
 				expect(size[1]).toBeCloseTo(board.width)
 				expect(size[2]).toBeCloseTo(board.height)
 				expect(p[2]).toBeCloseTo(board.y)
 				-- invisible: only the sign PlotSigns draws shows, no square board behind it
 				expect(sign.transparency).toBe(1)
-				-- on its post (the post stands behind the board and reaches into it), over the moat in front of the jar
-				expect(p[1]).toBeCloseTo(q[1])
-				expect(p[3] < q[3]).toBe(true)
+				-- on its legs, one under each end, behind the board and reaching into it, over the moat in front of the jar
 				expect(p[1]).toBeCloseTo(spot[1] + 1.5)
-				expect(q[2] + postSize[2] / 2 > p[2] - size[2] / 2).toBe(true)
+				local q1, q2 = toPlot(i, legs[1].pos :: Vec), toPlot(i, legs[2].pos :: Vec)
+				expect((q1[1] + q2[1]) / 2).toBeCloseTo(p[1])
+				expect(math.abs(q1[1] - q2[1]) > size[1] / 2).toBe(true)
+				for k, leg in legs do
+					local q = if k == 1 then q1 else q2
+					expect(p[3] < q[3]).toBe(true)
+					expect(q[2] + (leg.size :: Vec)[2] / 2 > p[2] - size[2] / 2).toBe(true)
+					expect(q[2] - (leg.size :: Vec)[2] / 2).toBeCloseTo(BASE_TOP)
+				end
 				-- at eye level: off the ground, its top no higher than a player's head (about 5 studs up)
 				expect(p[2] - size[2] / 2 > BASE_TOP).toBe(true)
 				expect(p[2] + size[2] / 2 - BASE_TOP <= 5).toBe(true)

@@ -192,14 +192,14 @@ local function buildExtras(deps: Deps, root: any)
 		bit.Rotation = spot[3]
 	end
 
-	-- Forest: a small acorn cap worn like a hat, with its little stem on top (the top of a rounded frame, cut off flat
-	-- by its holder, so it sits on the head like a cap).
+	-- Forest: a small acorn cap worn like a hat: a half circle (a circle cut in half by its holder; the face is 2:1, so
+	-- the circle is w = h / 2), a rim along its cut edge and a little stem on top.
 	local acorn = make(deps, "Frame", { Name = "acorn", BackgroundTransparency = 1, ZIndex = 2 }, root)
 	place(deps, acorn, { 0, 0, 1, 1 })
-	frame(deps, acorn, "Stem", C.acornDark, { 0.494, 0.03, 0.014, 0.06 }, 2, 0.4)
+	frame(deps, acorn, "Stem", C.acornDark, { 0.494, 0.01, 0.012, 0.05 }, 2, 0.4)
 	local holder =
 		make(deps, "Frame", { Name = "Cap", BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 2 }, acorn)
-	place(deps, holder, { 0.41, 0.075, 0.18, 0.135 })
+	place(deps, holder, { 0.41, 0.045, 0.18, 0.18 })
 	local cap = frame(deps, holder, "Dome", GooPalette.White, { 0, 0, 1, 2 }, 2, 1)
 	make(deps, "UIStroke", { Color = color(deps, C.acornDark), Thickness = 1.5 }, cap)
 	local K = deps.ColorSequenceKeypoint
@@ -207,17 +207,18 @@ local function buildExtras(deps: Deps, root: any)
 		Rotation = 90,
 		Color = deps.ColorSequence.new({
 			K.new(0, color(deps, C.acornHi)),
-			K.new(0.6, color(deps, C.acorn)),
+			K.new(0.35, color(deps, C.acorn)),
 			K.new(1, color(deps, C.acorn)),
 		}),
 	}, cap)
-	-- the cap's scales: two rows of small darker dots
-	for i, d in
-		{ { 0.22, 0.2 }, { 0.42, 0.14 }, { 0.62, 0.14 }, { 0.8, 0.2 }, { 0.32, 0.38 }, { 0.52, 0.34 }, { 0.71, 0.38 } }
-	do
-		frame(deps, cap, `Scale{i}`, C.acornDark, { d[1] - 0.05, d[2], 0.1, 0.09 }, 2, 1).BackgroundTransparency = 0.45
+	-- the cap's scales: two rows of small darker dots, well inside the curve (dome units: the visible half is y 0..0.5)
+	local scales =
+		{ { 0.36, 0.2 }, { 0.5, 0.17 }, { 0.64, 0.2 }, { 0.27, 0.36 }, { 0.43, 0.33 }, { 0.57, 0.33 }, { 0.73, 0.36 } }
+	for i, d in scales do
+		local dot = frame(deps, cap, `Scale{i}`, C.acornDark, { d[1] - 0.04, d[2], 0.08, 0.08 }, 2, 1)
+		dot.BackgroundTransparency = 0.45
 	end
-	frame(deps, acorn, "Rim", C.acornDark, { 0.405, 0.2, 0.19, 0.02 }, 2, 0.5)
+	frame(deps, acorn, "Rim", C.acornDark, { 0.405, 0.215, 0.19, 0.022 }, 2, 0.5)
 end
 
 -- Every piece of the sign, filling `parent`; finds an existing one first, so callers stay idempotent.
