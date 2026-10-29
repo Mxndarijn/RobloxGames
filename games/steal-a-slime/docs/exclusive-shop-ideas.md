@@ -271,7 +271,7 @@ The shop is the fairground carousel. Suggested **tabs for the shop UI** (one lis
 | **Speed / Speed Coil+ / carry-slow reduction** | Faster grabs, faster getaways and faster thief chases. Strong Arms stays a cash upgrade. |
 | **PvP item passes, cooldown cuts, immunity** | PvP is cash plus rank by design (`docs/PVP.md`). |
 | **Higher catch rank** | Skips `CATCH_REBIRTHS`. |
-| **Auto-collect** | Income is already automatic; nothing to sell. |
+| **Auto-collect** | Built later as the Auto Collect pass (Merijn, 2026-10-29): income now piles on cash pads, and only the owner can collect, so it is comfort. |
 
 ---
 
