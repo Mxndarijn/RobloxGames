@@ -15,7 +15,7 @@ local WEEK_SECONDS = 7 * 24 * 3600
 
 local exclusives: { string } = {}
 for _, seat in Config.PET_SEATS do
-	if seat.unlock.kind == "exclusive" then
+	if seat.unlock.kind == "exclusive" and seat.season == nil then -- seasonal seats are never featured: they sell only in season
 		table.insert(exclusives, seat.id)
 	end
 end

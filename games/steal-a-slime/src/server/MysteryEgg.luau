@@ -102,7 +102,7 @@ end
 --[[
 	Once a second: revealed hatches are toasted, every pad egg gets a hatch clock (and its hatch roll's seed from
 	`world.eggRng`, so "Hatch now" only changes time),
-	the eggs of owners at home (`session.home`) incubate WARM_SPEED x, and an owner
+	the eggs of owners at home (`session.home`, or anywhere with the Warm Nest pass) incubate WARM_SPEED x, and an owner
 	hears once when one of their eggs is ready. Eggs being carried off are left alone.
 ]]
 function MysteryEgg.step(world: World, seconds: number, now: number)
@@ -119,7 +119,7 @@ function MysteryEgg.step(world: World, seconds: number, now: number)
 			end
 		end
 		if any then
-			if session.home then
+			if session.home or data.passWarmNest == true then
 				SharedEgg.warm(data, seconds, now, world.carriedBy)
 			end
 			local told = session.eggsReady or {}

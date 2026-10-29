@@ -15,7 +15,7 @@ import re
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RECORD = os.path.join(KIT, "uploaded.json")
 MESH_ASSETS = os.path.join(KIT, "..", "..", "games", "steal-a-slime", "src", "shared", "MeshAssets.luau")
-ORDER = ["garden", "crystal", "starlight", "candy", "mushroom"]
+ORDER = ["garden", "crystal", "starlight", "candy", "mushroom", "fairground", "beach", "space", "winter", "haunted"]
 
 
 def main():

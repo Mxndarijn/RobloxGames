@@ -48,6 +48,16 @@ local JarMeshes = {
 	["goo_jar_props@candy"] = { size = { 67.869, 13.355, 59.830 }, centre = { 0.100, 6.283, 2.189 } },
 	["goo_jar_hat@mushroom"] = { size = { 1.617, 0.765, 1.700 }, centre = { 0.000, 1.380, 0.000 } },
 	["goo_jar_props@mushroom"] = { size = { 69.204, 5.031, 65.316 }, centre = { 0.000, 2.074, 0.145 } },
+	["goo_jar_hat@fairground"] = { size = { 1.440, 0.740, 1.440 }, centre = { 0.000, 1.730, 0.000 } },
+	["goo_jar_props@fairground"] = { size = { 67.475, 13.039, 58.452 }, centre = { 0.000, 6.619, 2.879 } },
+	["goo_jar_hat@haunted"] = { size = { 3.836, 1.287, 0.376 }, centre = { 0.000, 1.225, 0.068 } },
+	["goo_jar_props@haunted"] = { size = { 69.198, 4.475, 60.131 }, centre = { 0.000, 2.338, 2.692 } },
+	["goo_jar_hat@beach"] = { size = { 2.068, 1.220, 2.100 }, centre = { 0.000, 1.860, 0.000 } },
+	["goo_jar_props@beach"] = { size = { 68.844, 8.262, 63.204 }, centre = { 0.149, 3.969, 3.041 } },
+	["goo_jar_hat@space"] = { size = { 1.527, 1.178, 0.260 }, centre = { 0.000, 1.821, 0.000 } },
+	["goo_jar_props@space"] = { size = { 70.640, 7.950, 59.421 }, centre = { -0.093, 4.025, 3.489 } },
+	["goo_jar_hat@winter"] = { size = { 2.190, 2.179, 2.120 }, centre = { -0.001, 0.910, 0.000 } },
+	["goo_jar_props@winter"] = { size = { 68.353, 8.869, 60.556 }, centre = { -0.053, 3.966, 3.117 } },
 }
 
 return table.freeze(JarMeshes)

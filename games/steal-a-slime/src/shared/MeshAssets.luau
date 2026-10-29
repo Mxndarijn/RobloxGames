@@ -115,6 +115,11 @@ local NAMES = {
 	"ranch_fence_20",
 	"plot_skin_mushroom",
 	"plot_skin_candy",
+	"plot_skin_fairground",
+	"plot_skin_beach",
+	"plot_skin_space",
+	"plot_skin_winter",
+	"plot_skin_haunted",
 	"plot_skin_crystal",
 	"merge_vat",
 	"goo_cork_stand",
@@ -181,6 +186,17 @@ local NAMES = {
 	"pet_mount_royal_cushion",
 	"pet_mount_hoverboard",
 	"pet_mount_clam_shell",
+	"pet_mount_pumpkin",
+	"pet_mount_snowglobe",
+	"slime_hat_party",
+	"slime_hat_bow",
+	"slime_hat_chef",
+	"slime_hat_flower_crown",
+	"slime_hat_top_hat",
+	"slime_hat_witch",
+	"lock_stopper_candy",
+	"lock_stopper_carousel",
+	"lock_stopper_sleepy",
 	-- Held PvP items (Shared.PvpModels, server/PvpHeld): the placeholder Parts stand in while a mesh fails to load.
 	"pvp_knock_glove_1",
 	"pvp_knock_glove_2",
@@ -518,6 +534,41 @@ entries["bat_skin_foam_finger"] =
 entries["bat_skin_golden"] =
 	{ assetId = 99603213734708, meshId = "rbxassetid://129112512417990", size = { 1.28, 5.09, 1.482 } } -- 808 tris
 
+-- Exclusive Shop cosmetics (contract/exclusive-shop.md §15): seasonal pet seats, slime hats (client SlimeHatsFx),
+-- lock stoppers (the StopperShut look) and the Exclusive skins' decor. size = the uploaded MeshPart's. models/<name>.py.
+entries["pet_mount_pumpkin"] =
+	{ assetId = 133229159089234, meshId = "rbxassetid://125584818822362", size = { 3.3, 1.638, 2.4 } } -- 1970 tris, seat 1.20
+entries["pet_mount_snowglobe"] =
+	{ assetId = 105048616075979, meshId = "rbxassetid://116051767660418", size = { 2.32, 2.045, 2.32 } } -- 1992 tris, seat 2.05
+entries["slime_hat_party"] =
+	{ assetId = 87297006103002, meshId = "rbxassetid://127939688826641", size = { 2.05, 2.174, 1.95 } } -- 732 tris
+entries["slime_hat_bow"] =
+	{ assetId = 86786632589246, meshId = "rbxassetid://106183691450476", size = { 2.1, 1.169, 0.533 } } -- 792 tris
+entries["slime_hat_chef"] =
+	{ assetId = 137126006681878, meshId = "rbxassetid://123115694387781", size = { 2.354, 1.85, 2.067 } } -- 672 tris
+entries["slime_hat_flower_crown"] =
+	{ assetId = 122506525490113, meshId = "rbxassetid://95589743366200", size = { 2.217, 0.599, 2.163 } } -- 792 tris
+entries["slime_hat_top_hat"] =
+	{ assetId = 73481090748614, meshId = "rbxassetid://79813661118777", size = { 2, 1.43, 2 } } -- 616 tris
+entries["slime_hat_witch"] =
+	{ assetId = 87431147313574, meshId = "rbxassetid://123651178194074", size = { 2.24, 2.341, 2.24 } } -- 792 tris
+entries["lock_stopper_candy"] =
+	{ assetId = 115676624703904, meshId = "rbxassetid://137801705548524", size = { 9.889, 9.66, 1.508 } } -- 1198 tris, goo_jar_stopper's box
+entries["lock_stopper_carousel"] =
+	{ assetId = 136210729503457, meshId = "rbxassetid://122085660724386", size = { 9.889, 9.66, 1.508 } } -- 1860 tris
+entries["lock_stopper_sleepy"] =
+	{ assetId = 78448357227087, meshId = "rbxassetid://83720293612988", size = { 9.889, 9.66, 1.508 } } -- 1602 tris
+entries["plot_skin_fairground"] =
+	{ assetId = 102535530047931, meshId = "rbxassetid://95542705899245", size = { 2.518, 7.823, 1.26 } } -- 698 tris
+entries["plot_skin_beach"] =
+	{ assetId = 83588268067966, meshId = "rbxassetid://128124664474065", size = { 5.2, 5.226, 5.2 } } -- 308 tris
+entries["plot_skin_space"] =
+	{ assetId = 137192406643018, meshId = "rbxassetid://121418111401175", size = { 4.42, 7.183, 4.42 } } -- 404 tris
+entries["plot_skin_winter"] =
+	{ assetId = 116237845591059, meshId = "rbxassetid://92094625768196", size = { 4.534, 7.241, 4.459 } } -- 902 tris
+entries["plot_skin_haunted"] =
+	{ assetId = 111511264347604, meshId = "rbxassetid://84147893318518", size = { 3.406, 4.353, 3.808 } } -- 432 tris
+
 -- Held PvP items (Shared.PvpModels, server/PvpHeld; a placed Goo Trap / Bounce Pad marker too, ui/PvpEffects).
 -- Held, no collision (not in COLLISION), NOT world slots. size = the native size Roblox reports (Open Cloud size-check);
 -- grips and orientation are in PvpModels.
@@ -833,6 +884,226 @@ entries["goo_jar_trim_4_top@mushroom"] =
 	{ assetId = 95112597764822, meshId = "rbxassetid://82581930746006", size = { 41.048, 18.788, 40.681 } }
 entries["goo_lock_button@mushroom"] =
 	{ assetId = 91904618316828, meshId = "rbxassetid://91586327828683", size = { 5, 3.966, 5 } }
+entries["goo_cork_stand@fairground"] =
+	{ assetId = 116901934140027, meshId = "rbxassetid://82184096518967", size = { 7.8, 2.45, 7.8 } }
+entries["goo_drop_tube_goo_2@fairground"] =
+	{ assetId = 116126519191068, meshId = "rbxassetid://104998099000996", size = { 8.657, 21.794, 13.688 } }
+entries["goo_drop_tube_goo_3@fairground"] =
+	{ assetId = 97244512301286, meshId = "rbxassetid://81338354994448", size = { 9.683, 37.692, 16.489 } }
+entries["goo_drop_tube_goo_4@fairground"] =
+	{ assetId = 138398936312645, meshId = "rbxassetid://134546084737452", size = { 10.638, 53.692, 18.838 } }
+entries["goo_jar_deck_2@fairground"] =
+	{ assetId = 72819279424191, meshId = "rbxassetid://102863817305599", size = { 53.2, 1.839, 53.2 } }
+entries["goo_jar_deck_3@fairground"] =
+	{ assetId = 136809364710294, meshId = "rbxassetid://128014365231619", size = { 47.2, 1.839, 47.2 } }
+entries["goo_jar_deck_4@fairground"] =
+	{ assetId = 110146206934739, meshId = "rbxassetid://140232285677071", size = { 42.2, 1.78, 42.2 } }
+entries["goo_jar_door@fairground"] =
+	{ assetId = 94470394990684, meshId = "rbxassetid://81151404106439", size = { 14.521, 13.06, 3.419 } }
+entries["goo_jar_foot@fairground"] =
+	{ assetId = 87724091103416, meshId = "rbxassetid://92158850274432", size = { 80.1, 2.076, 80.1 } }
+entries["goo_jar_hat@fairground"] =
+	{ assetId = 97062415537911, meshId = "rbxassetid://105665934574397", size = { 1.44, 0.74, 1.44 } }
+entries["goo_jar_mascot@fairground"] =
+	{ assetId = 82123699541460, meshId = "rbxassetid://90906026826705", size = { 2.2, 1.567, 2.138 } }
+entries["goo_jar_props@fairground"] =
+	{ assetId = 140408660519148, meshId = "rbxassetid://135116680451149", size = { 67.475, 13.039, 58.452 } }
+entries["goo_jar_stair@fairground"] =
+	{ assetId = 135634238132134, meshId = "rbxassetid://99312952459270", size = { 10.99, 17.026, 10.99 } }
+entries["goo_jar_stopper@fairground"] =
+	{ assetId = 136639702563052, meshId = "rbxassetid://117390545708066", size = { 9.889, 9.66, 1.508 } }
+entries["goo_jar_trim_1_mid@fairground"] =
+	{ assetId = 107237550907330, meshId = "rbxassetid://114100208987565", size = { 60.418, 16.05, 58.464 } }
+entries["goo_jar_trim_1_top@fairground"] =
+	{ assetId = 132509878961834, meshId = "rbxassetid://129337568485475", size = { 60.418, 22.688, 58.464 } }
+entries["goo_jar_trim_2_mid@fairground"] =
+	{ assetId = 127417837405327, meshId = "rbxassetid://113354468439482", size = { 53.188, 16.05, 51.073 } }
+entries["goo_jar_trim_2_top@fairground"] =
+	{ assetId = 89329078954331, meshId = "rbxassetid://85023063438160", size = { 53.188, 20.047, 51.073 } }
+entries["goo_jar_trim_3_mid@fairground"] =
+	{ assetId = 98319663354379, meshId = "rbxassetid://128051615170975", size = { 47.643, 16.05, 45.978 } }
+entries["goo_jar_trim_3_top@fairground"] =
+	{ assetId = 127620439981611, meshId = "rbxassetid://123620139678093", size = { 47.411, 20.212, 45.529 } }
+entries["goo_jar_trim_4_top@fairground"] =
+	{ assetId = 81148850057973, meshId = "rbxassetid://135786295979776", size = { 41.18, 18.788, 40.91 } }
+entries["goo_lock_button@fairground"] =
+	{ assetId = 105861314727773, meshId = "rbxassetid://109303859527592", size = { 5, 3.966, 5 } }
+entries["goo_cork_stand@beach"] =
+	{ assetId = 86488644167567, meshId = "rbxassetid://109066828991860", size = { 7.8, 2.45, 7.8 } }
+entries["goo_drop_tube_goo_2@beach"] =
+	{ assetId = 122333435149711, meshId = "rbxassetid://127804986913969", size = { 8.657, 21.794, 13.688 } }
+entries["goo_drop_tube_goo_3@beach"] =
+	{ assetId = 92343878198921, meshId = "rbxassetid://77874185878882", size = { 9.683, 37.692, 16.489 } }
+entries["goo_drop_tube_goo_4@beach"] =
+	{ assetId = 114840862539422, meshId = "rbxassetid://91511892676512", size = { 10.638, 53.692, 18.838 } }
+entries["goo_jar_deck_2@beach"] =
+	{ assetId = 132232048786549, meshId = "rbxassetid://99385151152830", size = { 53.2, 1.839, 53.2 } }
+entries["goo_jar_deck_3@beach"] =
+	{ assetId = 75522391687813, meshId = "rbxassetid://128240265229811", size = { 47.2, 1.839, 47.2 } }
+entries["goo_jar_deck_4@beach"] =
+	{ assetId = 109074984048313, meshId = "rbxassetid://101157942055160", size = { 42.2, 1.78, 42.2 } }
+entries["goo_jar_door@beach"] =
+	{ assetId = 74046412248991, meshId = "rbxassetid://98473255969075", size = { 14.521, 13.06, 3.419 } }
+entries["goo_jar_foot@beach"] =
+	{ assetId = 81555025961392, meshId = "rbxassetid://85633273157816", size = { 80.1, 2.076, 80.1 } }
+entries["goo_jar_hat@beach"] =
+	{ assetId = 111688158648588, meshId = "rbxassetid://104197775600649", size = { 2.068, 1.22, 2.1 } }
+entries["goo_jar_mascot@beach"] =
+	{ assetId = 79390414978428, meshId = "rbxassetid://85630276964121", size = { 2.2, 1.567, 2.138 } }
+entries["goo_jar_props@beach"] =
+	{ assetId = 135712857151286, meshId = "rbxassetid://85196689268107", size = { 68.844, 8.262, 63.204 } }
+entries["goo_jar_stair@beach"] =
+	{ assetId = 122289245840700, meshId = "rbxassetid://79009015963391", size = { 10.99, 17.026, 10.99 } }
+entries["goo_jar_stopper@beach"] =
+	{ assetId = 119509709081762, meshId = "rbxassetid://119179082940690", size = { 9.889, 9.66, 1.508 } }
+entries["goo_jar_trim_1_mid@beach"] =
+	{ assetId = 135984102768362, meshId = "rbxassetid://93619987914597", size = { 60.418, 16.05, 58.464 } }
+entries["goo_jar_trim_1_top@beach"] =
+	{ assetId = 88845393964616, meshId = "rbxassetid://115483689445351", size = { 60.418, 22.688, 58.464 } }
+entries["goo_jar_trim_2_mid@beach"] =
+	{ assetId = 86885043802609, meshId = "rbxassetid://134074020154803", size = { 53.188, 16.05, 51.073 } }
+entries["goo_jar_trim_2_top@beach"] =
+	{ assetId = 70847950405363, meshId = "rbxassetid://95536674049656", size = { 53.188, 20.047, 51.073 } }
+entries["goo_jar_trim_3_mid@beach"] =
+	{ assetId = 96666360984884, meshId = "rbxassetid://130951459352533", size = { 47.643, 16.05, 45.978 } }
+entries["goo_jar_trim_3_top@beach"] =
+	{ assetId = 101984028601725, meshId = "rbxassetid://140491595020663", size = { 47.411, 20.212, 45.529 } }
+entries["goo_jar_trim_4_top@beach"] =
+	{ assetId = 73507129811734, meshId = "rbxassetid://129227217878913", size = { 41.18, 18.788, 40.91 } }
+entries["goo_lock_button@beach"] =
+	{ assetId = 126940530942467, meshId = "rbxassetid://72199697758711", size = { 5, 3.966, 5 } }
+entries["goo_cork_stand@space"] =
+	{ assetId = 101514156225281, meshId = "rbxassetid://93572211222811", size = { 7.8, 2.45, 7.8 } }
+entries["goo_drop_tube_goo_2@space"] =
+	{ assetId = 97515377320869, meshId = "rbxassetid://130404239786124", size = { 8.657, 21.794, 13.688 } }
+entries["goo_drop_tube_goo_3@space"] =
+	{ assetId = 100643166952959, meshId = "rbxassetid://85419496250478", size = { 9.683, 37.692, 16.489 } }
+entries["goo_drop_tube_goo_4@space"] =
+	{ assetId = 122336962275868, meshId = "rbxassetid://107782639847742", size = { 10.638, 53.692, 18.838 } }
+entries["goo_jar_deck_2@space"] =
+	{ assetId = 75532659796436, meshId = "rbxassetid://107177244899920", size = { 53.2, 1.839, 53.2 } }
+entries["goo_jar_deck_3@space"] =
+	{ assetId = 131045422940877, meshId = "rbxassetid://81121080937617", size = { 47.2, 1.839, 47.2 } }
+entries["goo_jar_deck_4@space"] =
+	{ assetId = 80536694626872, meshId = "rbxassetid://114943542205369", size = { 42.2, 1.78, 42.2 } }
+entries["goo_jar_door@space"] =
+	{ assetId = 107316968066642, meshId = "rbxassetid://131048840806341", size = { 14.521, 13.06, 3.419 } }
+entries["goo_jar_foot@space"] =
+	{ assetId = 116304040792392, meshId = "rbxassetid://77019757456904", size = { 80.1, 2.076, 80.1 } }
+entries["goo_jar_hat@space"] =
+	{ assetId = 79200168435959, meshId = "rbxassetid://77796178285002", size = { 1.527, 1.178, 0.26 } }
+entries["goo_jar_mascot@space"] =
+	{ assetId = 124544583264738, meshId = "rbxassetid://102739444000621", size = { 2.2, 1.567, 2.138 } }
+entries["goo_jar_props@space"] =
+	{ assetId = 91324997704292, meshId = "rbxassetid://107811386168026", size = { 70.64, 7.95, 59.421 } }
+entries["goo_jar_stair@space"] =
+	{ assetId = 122250827035156, meshId = "rbxassetid://122859187330117", size = { 10.99, 17.026, 10.99 } }
+entries["goo_jar_stopper@space"] =
+	{ assetId = 124809692882219, meshId = "rbxassetid://76947715559709", size = { 9.889, 9.66, 1.508 } }
+entries["goo_jar_trim_1_mid@space"] =
+	{ assetId = 107072326071653, meshId = "rbxassetid://104958033528368", size = { 60.374, 16.05, 58.379 } }
+entries["goo_jar_trim_1_top@space"] =
+	{ assetId = 121790985107522, meshId = "rbxassetid://126708599763625", size = { 60.374, 22.688, 58.379 } }
+entries["goo_jar_trim_2_mid@space"] =
+	{ assetId = 139645343343936, meshId = "rbxassetid://91395103324675", size = { 53.143, 16.05, 50.988 } }
+entries["goo_jar_trim_2_top@space"] =
+	{ assetId = 132770873915212, meshId = "rbxassetid://115873094833067", size = { 53.143, 20.047, 50.988 } }
+entries["goo_jar_trim_3_mid@space"] =
+	{ assetId = 125281028265174, meshId = "rbxassetid://82380460244255", size = { 47.643, 16.05, 45.978 } }
+entries["goo_jar_trim_3_top@space"] =
+	{ assetId = 89390564721287, meshId = "rbxassetid://78624485691633", size = { 47.366, 20.212, 45.444 } }
+entries["goo_jar_trim_4_top@space"] =
+	{ assetId = 111431645600871, meshId = "rbxassetid://127426595042140", size = { 41.135, 18.788, 40.825 } }
+entries["goo_lock_button@space"] =
+	{ assetId = 93359199153259, meshId = "rbxassetid://94078373296906", size = { 5, 3.966, 5 } }
+entries["goo_cork_stand@winter"] =
+	{ assetId = 74094188426777, meshId = "rbxassetid://79632623851937", size = { 7.8, 2.45, 7.8 } }
+entries["goo_drop_tube_goo_2@winter"] =
+	{ assetId = 116395976685400, meshId = "rbxassetid://83300176689330", size = { 8.657, 21.794, 13.688 } }
+entries["goo_drop_tube_goo_3@winter"] =
+	{ assetId = 135562251808227, meshId = "rbxassetid://74136350557181", size = { 9.683, 37.692, 16.489 } }
+entries["goo_drop_tube_goo_4@winter"] =
+	{ assetId = 125506386985020, meshId = "rbxassetid://103741145849340", size = { 10.638, 53.692, 18.838 } }
+entries["goo_jar_deck_2@winter"] =
+	{ assetId = 124194408952360, meshId = "rbxassetid://74171421383042", size = { 53.2, 1.839, 53.2 } }
+entries["goo_jar_deck_3@winter"] =
+	{ assetId = 93854426484899, meshId = "rbxassetid://135245995469744", size = { 47.2, 1.839, 47.2 } }
+entries["goo_jar_deck_4@winter"] =
+	{ assetId = 86895083529501, meshId = "rbxassetid://90327729021722", size = { 42.2, 1.78, 42.2 } }
+entries["goo_jar_door@winter"] =
+	{ assetId = 128948294612556, meshId = "rbxassetid://131000054196089", size = { 14.521, 13.06, 3.419 } }
+entries["goo_jar_foot@winter"] =
+	{ assetId = 93637875571697, meshId = "rbxassetid://72079229536747", size = { 80.1, 2.076, 80.1 } }
+entries["goo_jar_hat@winter"] =
+	{ assetId = 134052171807095, meshId = "rbxassetid://80313502143930", size = { 2.19, 2.179, 2.12 } }
+entries["goo_jar_mascot@winter"] =
+	{ assetId = 93139794904628, meshId = "rbxassetid://94328015081946", size = { 2.2, 1.567, 2.138 } }
+entries["goo_jar_props@winter"] =
+	{ assetId = 119385962053752, meshId = "rbxassetid://123446446653553", size = { 68.353, 8.869, 60.556 } }
+entries["goo_jar_stair@winter"] =
+	{ assetId = 91941251661873, meshId = "rbxassetid://121176769072659", size = { 10.99, 17.026, 10.99 } }
+entries["goo_jar_stopper@winter"] =
+	{ assetId = 87437290550291, meshId = "rbxassetid://140522041008591", size = { 9.889, 9.66, 1.508 } }
+entries["goo_jar_trim_1_mid@winter"] =
+	{ assetId = 103567521531028, meshId = "rbxassetid://138599445569630", size = { 60.321, 16.05, 58.251 } }
+entries["goo_jar_trim_1_top@winter"] =
+	{ assetId = 124459426978816, meshId = "rbxassetid://81187444249730", size = { 60.321, 22.688, 58.292 } }
+entries["goo_jar_trim_2_mid@winter"] =
+	{ assetId = 105757773741548, meshId = "rbxassetid://111317036105790", size = { 53.091, 16.05, 50.909 } }
+entries["goo_jar_trim_2_top@winter"] =
+	{ assetId = 81263273660427, meshId = "rbxassetid://117017304496862", size = { 53.091, 20.047, 50.905 } }
+entries["goo_jar_trim_3_mid@winter"] =
+	{ assetId = 118454146919383, meshId = "rbxassetid://98640530868832", size = { 47.643, 16.05, 45.978 } }
+entries["goo_jar_trim_3_top@winter"] =
+	{ assetId = 106311753032908, meshId = "rbxassetid://127675406147184", size = { 47.314, 20.212, 45.364 } }
+entries["goo_jar_trim_4_top@winter"] =
+	{ assetId = 132927014483751, meshId = "rbxassetid://110140845047664", size = { 41.082, 18.788, 40.746 } }
+entries["goo_lock_button@winter"] =
+	{ assetId = 91052891039602, meshId = "rbxassetid://109987625824792", size = { 5, 3.966, 5 } }
+entries["goo_cork_stand@haunted"] =
+	{ assetId = 73581621531164, meshId = "rbxassetid://114301522796374", size = { 7.8, 2.45, 7.8 } }
+entries["goo_drop_tube_goo_2@haunted"] =
+	{ assetId = 70483075865209, meshId = "rbxassetid://88108208327810", size = { 8.657, 21.794, 13.688 } }
+entries["goo_drop_tube_goo_3@haunted"] =
+	{ assetId = 91769791049640, meshId = "rbxassetid://126053389882877", size = { 9.683, 37.692, 16.489 } }
+entries["goo_drop_tube_goo_4@haunted"] =
+	{ assetId = 133902367351223, meshId = "rbxassetid://79083300906433", size = { 10.638, 53.692, 18.838 } }
+entries["goo_jar_deck_2@haunted"] =
+	{ assetId = 103400149661321, meshId = "rbxassetid://125117090292076", size = { 53.2, 1.839, 53.2 } }
+entries["goo_jar_deck_3@haunted"] =
+	{ assetId = 84561175945846, meshId = "rbxassetid://73318624993190", size = { 47.2, 1.839, 47.2 } }
+entries["goo_jar_deck_4@haunted"] =
+	{ assetId = 74807397984555, meshId = "rbxassetid://110742228977325", size = { 42.2, 1.78, 42.2 } }
+entries["goo_jar_door@haunted"] =
+	{ assetId = 94105731118446, meshId = "rbxassetid://132866177493662", size = { 14.521, 13.06, 3.419 } }
+entries["goo_jar_foot@haunted"] =
+	{ assetId = 97412286454327, meshId = "rbxassetid://114326594035198", size = { 80.1, 2.076, 80.1 } }
+entries["goo_jar_hat@haunted"] =
+	{ assetId = 131308399887923, meshId = "rbxassetid://123612131708093", size = { 3.836, 1.287, 0.376 } }
+entries["goo_jar_mascot@haunted"] =
+	{ assetId = 110894296288981, meshId = "rbxassetid://95525000271641", size = { 2.2, 1.567, 2.138 } }
+entries["goo_jar_props@haunted"] =
+	{ assetId = 111991897731148, meshId = "rbxassetid://80175267874643", size = { 69.198, 4.475, 60.131 } }
+entries["goo_jar_stair@haunted"] =
+	{ assetId = 113169763082851, meshId = "rbxassetid://138931537571453", size = { 10.99, 17.026, 10.99 } }
+entries["goo_jar_stopper@haunted"] =
+	{ assetId = 115792268446459, meshId = "rbxassetid://81649865609987", size = { 9.889, 9.66, 1.508 } }
+entries["goo_jar_trim_1_mid@haunted"] =
+	{ assetId = 84656043187868, meshId = "rbxassetid://119908185769596", size = { 60.321, 16.05, 58.307 } }
+entries["goo_jar_trim_1_top@haunted"] =
+	{ assetId = 125906125322164, meshId = "rbxassetid://96210792256978", size = { 60.321, 22.688, 58.307 } }
+entries["goo_jar_trim_2_mid@haunted"] =
+	{ assetId = 76212716095903, meshId = "rbxassetid://117791511742492", size = { 53.091, 16.05, 50.916 } }
+entries["goo_jar_trim_2_top@haunted"] =
+	{ assetId = 126971550307034, meshId = "rbxassetid://105550570547530", size = { 53.091, 20.047, 50.916 } }
+entries["goo_jar_trim_3_mid@haunted"] =
+	{ assetId = 129936832901616, meshId = "rbxassetid://109979005006990", size = { 47.643, 16.05, 45.978 } }
+entries["goo_jar_trim_3_top@haunted"] =
+	{ assetId = 76106514065572, meshId = "rbxassetid://125916269775312", size = { 47.314, 20.212, 45.373 } }
+entries["goo_jar_trim_4_top@haunted"] =
+	{ assetId = 110737774795080, meshId = "rbxassetid://88818169036953", size = { 41.082, 18.788, 40.753 } }
+entries["goo_lock_button@haunted"] =
+	{ assetId = 83453529502308, meshId = "rbxassetid://120162979510517", size = { 5, 3.966, 5 } }
 -- END goo jar tower themes
 -- BEGIN base shape meshes (generated by shared/modeling-kit/tools/base_mesh_assets.py from uploaded.json): the
 -- other bases' pieces and their skins' themed ones, "<piece>@<skin>" (CONTRACT.md §44). Not map slots, so not in

@@ -297,3 +297,17 @@ Format: `- [model/YYYY-MM-DD/bot] lesson` — one concrete, reusable sentence or
 ## Slime eye depth (2026-10-29)
 - [pool/2026-10-29/claude] Blink and face moves need one known eye weight. The rig gave the eyes the Top share of the body weights where they sit (0.27-0.99, even inside one eye), while the game assumed 0.6 for every mesh: 33 slimes kept their closed-eye lids inside the body (Klawdius, Aurora, Mochi: eyeless when shut) and 25 bulged their eyes up to 0.2 stud out when surprised. Now every eye and lid vertex gets exactly `EYE_SHARE` (0.25) taken out of its Top weight; Eyes and Lids are children of Top, so the squash is unchanged. Keep `_slimerig.EYE_SHARE` and `ui/SlimeBones.EYE_SHARE` equal, and upload the meshes together with the game change.
 - [pool/2026-10-29/claude] Lids are `conform_decal`s and slide up the eye until no registered surface covers them: Froggo's and Honey Toad's eye bumps are half buried in the body, and a lid on the buried half never shows. Check faces posed the way the game poses them (open, shut, surprised), not only at rest: an audit that raycasts the posed mesh from the front found all of this; renders at rest looked fine.
+
+## Exclusive Shop cosmetics (hats, seasonal seats, stopper styles, jar themes), 2026-10-29
+
+- Wearables: judge a hat at its real size on a stand-in slime (`HAT_PREVIEW=1 ... --no-export --no-ref --name <name>_preview`); next to the avatar block it is too small to read.
+- Spiral stripes on a lathe: turn each ring by `TWIST * z` and colour by column (`(k // 2) % 2`); per-face paint stair-steps.
+- Ribbon loops (bows): sweep the path in XY with the width along Z, so the front view shows the ribbon's face, not a wire outline.
+- Polka dots: thin flat discs flush on the surface normal; squashed icospheres read as gems.
+- Butter yellow turns gold in the Roblox look: on a cosmetic that must not look like a rarity, use pink or cool white.
+- Faces / pictures on a smooth body: press a flat 2D outline onto it vertex by vertex (ray cast, thin slab); split long inner and outline edges first or the middle sinks. Build concave outlines (a pine) from overlapping convex pieces.
+- Pale blue-grey glass goes slate on the shadow side in the Roblox look; a saturated sky cyan holds up.
+- Matching a slot box: build close to size, then stretch each axis to the measured classic box; keep the stretch near 1 (flatten anything that sticks out in depth).
+- A curve under a round knob in the middle of a disc reads as a face; keep ropes low and taut.
+- A themed jar tower is read through its goo (moat, pools, lid rolls) far more than lid paint: change the goo hue first and compare all themes side by side. Theme details need about 1 stud to show at tower scale; side bumps on ribs widen the jar's box.
+- `from models._goo_jar import *` copies theme colours at import time: set `JAR_THEME` before the import. `_goo_jar_bounds.py` writes the game's `JarMeshes.luau` on every run.

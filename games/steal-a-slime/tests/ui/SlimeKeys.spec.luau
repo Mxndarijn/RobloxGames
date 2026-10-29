@@ -393,33 +393,48 @@ describe("Hatch now on an incubating egg", function()
 			},
 		})
 	end
-	it("shows what `quick` says on my waiting egg and calls trigger; none on slimes or others' eggs", function()
+	it("a slime that is no egg gets the prompt when `quick` offers something for it (the Growth snack)", function()
 		local root = instance("Folder", "Workspace")
-		local eggModel, egg = slime("e1", ME, "Pad", true)
 		local plainModel, plain = slime("s1", ME, "Pad")
-		local otherModel, other = slime("e2", OTHER, "Pad", true)
-		parent(root, eggModel, root)
 		parent(root, plainModel, root)
-		parent(root, otherModel, root)
-		local waiting = true
-		local triggered = {}
 		local handle = startHatch(root, function(id: string): any
-			return if waiting then { text = `Hatch now · R$25 {id}`, enabled = true } else nil
-		end, triggered)
+			return { text = `Growth snack · R$19 {id}`, enabled = true }
+		end, {})
 		handle.update({})
-		local prompt = egg:FindFirstChild(SlimeKeys.HATCH_NOW_PROMPT)
+		local prompt = plain:FindFirstChild(SlimeKeys.HATCH_NOW_PROMPT)
 		expect(prompt ~= nil).toBe(true)
-		expect(prompt.ActionText).toBe("Hatch now · R$25 e1")
-		expect(prompt.KeyboardKeyCode).toBe("F")
-		expect(plain:FindFirstChild(SlimeKeys.HATCH_NOW_PROMPT)).toBeNil()
-		expect(other:FindFirstChild(SlimeKeys.HATCH_NOW_PROMPT)).toBeNil()
-		prompt.Triggered:Fire()
-		expect(triggered[1]).toBe("e1")
-		-- the egg turns ready: the next tick drops the prompt (the server's Hatch takes over)
-		waiting = false
-		handle.tick()
-		expect(egg:FindFirstChild(SlimeKeys.HATCH_NOW_PROMPT)).toBeNil()
+		expect(prompt.ActionText).toBe("Growth snack · R$19 s1")
 	end)
+	it(
+		"shows what `quick` says on my waiting egg and calls trigger; none where quick offers nothing or others' eggs",
+		function()
+			local root = instance("Folder", "Workspace")
+			local eggModel, egg = slime("e1", ME, "Pad", true)
+			local plainModel, plain = slime("s1", ME, "Pad")
+			local otherModel, other = slime("e2", OTHER, "Pad", true)
+			parent(root, eggModel, root)
+			parent(root, plainModel, root)
+			parent(root, otherModel, root)
+			local waiting = true
+			local triggered = {}
+			local handle = startHatch(root, function(id: string): any
+				return if waiting and id ~= "s1" then { text = `Hatch now · R$25 {id}`, enabled = true } else nil
+			end, triggered)
+			handle.update({})
+			local prompt = egg:FindFirstChild(SlimeKeys.HATCH_NOW_PROMPT)
+			expect(prompt ~= nil).toBe(true)
+			expect(prompt.ActionText).toBe("Hatch now · R$25 e1")
+			expect(prompt.KeyboardKeyCode).toBe("F")
+			expect(plain:FindFirstChild(SlimeKeys.HATCH_NOW_PROMPT)).toBeNil()
+			expect(other:FindFirstChild(SlimeKeys.HATCH_NOW_PROMPT)).toBeNil()
+			prompt.Triggered:Fire()
+			expect(triggered[1]).toBe("e1")
+			-- the egg turns ready: the next tick drops the prompt (the server's Hatch takes over)
+			waiting = false
+			handle.tick()
+			expect(egg:FindFirstChild(SlimeKeys.HATCH_NOW_PROMPT)).toBeNil()
+		end
+	)
 	it("a disabled quick-buy (not on sale yet) shows but does not trigger", function()
 		local root = instance("Folder", "Workspace")
 		local eggModel, egg = slime("e1", ME, "Pad", true)

@@ -5,7 +5,8 @@
 	Player attributes that follow the World right away, not only on the 0.1 s view tick:
 	  * `Carrying` (and `Stealing` with FEATURES.StealAlerts): pickup, drop, deposit, escape, death;
 	  * `OpenShop`: the session's open world shop, nil = closed;
-	  * `CarryTrail` / `BatSkin`: the equipped carry trail and Bat skin (Purchases.worn).
+	  * `CarryTrail` / `BatSkin`: the equipped carry trail and Bat skin (Purchases.worn);
+	  * `Member`: "vip" / "club" for the name and chat tag (Purchases.member).
 ]]
 
 local Players = game:GetService("Players")
@@ -53,6 +54,10 @@ function PlayerAttributes.syncCosmetics(world: World.World, player: Player)
 	end
 	if player:GetAttribute(Constants.BAT_SKIN_ATTRIBUTE) ~= skin then
 		player:SetAttribute(Constants.BAT_SKIN_ATTRIBUTE, skin)
+	end
+	local member = if session then Purchases.member(session) else nil
+	if player:GetAttribute(Constants.MEMBER_ATTRIBUTE) ~= member then
+		player:SetAttribute(Constants.MEMBER_ATTRIBUTE, member)
 	end
 end
 

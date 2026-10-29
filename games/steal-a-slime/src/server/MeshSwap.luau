@@ -46,6 +46,8 @@ local VatDecor = require(ReplicatedStorage.Visuals.VatDecor)
 
 local MeshSwap = {}
 
+MeshSwap.STOPPER_MESH = "goo_jar_stopper" -- the jar door's plug: an Exclusive lock style may replace its look
+
 -- Templates fetched at the same time (fetchAll: the boot prefetch(), and a theme switch or new jar's slots).
 MeshSwap.PREFETCH_WORKERS = 24
 -- Waits (seconds) between the tries of the pet cloud load: 1 try + #delays retries, then the pets keep their Mount.
@@ -322,8 +324,32 @@ local function uploaded(name: string): boolean
 	return MeshAssets.meshId(name) ~= nil
 end
 
--- The mesh a slot for `name` shows: its plot skin's themed piece when that is uploaded, else `name`.
+-- The kit mesh of the Exclusive lock style worn on the plot `inst` stands in (Plot_<i>.LockStyle), or nil.
+local function lockStyleOf(inst: Instance): string?
+	local plots = workspace:FindFirstChild("Plots")
+	local node: Instance? = inst
+	while node and node.Parent ~= plots do
+		node = node.Parent
+	end
+	local id = if node and plots then node:GetAttribute(Constants.PLOT_LOCK_STYLE_ATTRIBUTE) else nil
+	for _, def in (Config.EXCLUSIVE_SHOP :: any).lockStyles do
+		if def.id == id then
+			return def.mesh
+		end
+	end
+	return nil
+end
+
+-- The mesh a slot for `name` shows: the stopper of a worn lock style (contract/exclusive-shop.md §15) when that is
+-- uploaded, else its plot skin's themed piece when that is uploaded, else `name`. Only the shut door
+-- (StopperShut) wears the lock style: its red lock signal would be wrong on the door parked open.
 local function lookOf(target: Instance, name: string): string
+	if name == MeshSwap.STOPPER_MESH and target.Name == "StopperShut" then
+		local style = lockStyleOf(target)
+		if style and uploaded(style) then
+			return style
+		end
+	end
 	return ThemeMeshes.look(name, skinOf(target), uploaded)
 end
 
@@ -617,6 +643,41 @@ function MeshSwap.publishPvpMarkerTemplates(): number
 			mesh.CanQuery = false
 			mesh.CanTouch = false
 			mesh.CastShadow = false
+			mesh.Parent = folder
+			count += 1
+		end
+	end
+	return count
+end
+
+-- One template per Exclusive slime hat mesh that MeshAssets has (Config.EXCLUSIVE_SHOP.hats), in
+-- ReplicatedStorage.SlimeHatMeshes (named by mesh, native size), cloned onto pad slimes by the client
+-- (ui/SlimeHatsFx). A hat whose mesh is not uploaded has no template and shows nothing. Yields; returns the count.
+MeshSwap.HAT_FOLDER = "SlimeHatMeshes"
+function MeshSwap.publishHatTemplates(): number
+	local folder = ReplicatedStorage:FindFirstChild(MeshSwap.HAT_FOLDER)
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = MeshSwap.HAT_FOLDER
+		folder.Parent = ReplicatedStorage
+	end
+	local count = 0
+	for _, hat in (Config.EXCLUSIVE_SHOP :: any).hats do
+		local meshId = MeshAssets.meshId(hat.mesh)
+		local entry = MeshAssets.get(hat.mesh)
+		if not (meshId and entry and entry.size) or (folder :: Folder):FindFirstChild(hat.mesh) then
+			continue
+		end
+		local base = template(meshId)
+		if base then
+			local mesh: BasePart = base:Clone()
+			mesh.Name = hat.mesh
+			mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+			mesh.Anchored = false
+			mesh.CanCollide = false
+			mesh.CanQuery = false
+			mesh.CanTouch = false
+			mesh.Massless = true
 			mesh.Parent = folder
 			count += 1
 		end

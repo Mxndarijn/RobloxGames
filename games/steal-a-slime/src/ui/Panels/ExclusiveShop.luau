@@ -589,7 +589,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		function()
 			local equip = current and current.action.equip
 			if equip and ctx.request and hasAction(equip.request) then
-				ctx.request(equip.request, function() end, equip.arg)
+				ctx.request(equip.request, function() end, table.unpack(equip.args or { equip.arg }))
 			end
 		end
 	)
@@ -604,7 +604,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		function()
 			local unequip = current and current.unequip
 			if unequip and ctx.request and hasAction(unequip.request) then
-				ctx.request(unequip.request, function() end, unequip.arg)
+				ctx.request(unequip.request, function() end, table.unpack(unequip.args or { unequip.arg }))
 			end
 		end
 	)
@@ -937,6 +937,9 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local equip = action.equip
 		local canEquip = equip ~= nil and hasAction(equip.request)
 		equipButton.instance.Visible = action.kind == "equip" and canEquip
+		if action.kind == "equip" then
+			equipButton.setText(action.text)
+		end
 		local ownedWell = action.kind == "equip" and not canEquip -- the server can't equip it yet
 		well.Visible = isWaiting or action.kind == "well" or ownedWell
 		well.Text = if isWaiting
@@ -1142,8 +1145,28 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		repaint()
 	end
 
+	-- Roblox's own price text per subscription key, filled in once per client (regional pricing).
+	local displayPrices: { [string]: string } = {}
+	local adapter = ctx.purchase
+	if adapter and adapter.subscriptionPrice then
+		for key, def in (Config.EXCLUSIVE_SHOP.subscriptions or {}) :: { [string]: any } do
+			adapter.subscriptionPrice(def.subscriptionId, function(text: string?)
+				if text then
+					displayPrices[key] = text
+					if latest and type(latest.exclusiveShop) == "table" then
+						latest.exclusiveShop.displayPrices = displayPrices
+						repaint()
+					end
+				end
+			end)
+		end
+	end
+
 	function self.update(state: any)
 		watchBought(state)
+		if type(state) == "table" and type(state.exclusiveShop) == "table" then
+			state.exclusiveShop.displayPrices = displayPrices
+		end
 		latest = state
 		repaint()
 	end

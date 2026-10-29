@@ -18,6 +18,7 @@
 ]]
 
 local UI = script.Parent.Parent
+local ExclusiveShopView = require(UI.ExclusiveShopView)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
@@ -381,12 +382,19 @@ function Skins.new(parent: Instance, ctx: any)
 		r.icon.setActive(open)
 		r.title.Text = row.title
 		r.title.TextColor3 = if locked then Theme.Muted else Theme.Text
-		r.state.Visible = not locked
-		r.state.Text = if row.state == "equipped" then PlotSkinsView.EQUIPPED else "Unlocked"
-		r.state.TextColor3 = if row.state == "equipped" then Theme.Good else Theme.Muted
-		r.bar.Visible = locked
+		-- An Exclusive skin not owned yet: a gold "Exclusive" instead of a progress bar.
+		r.state.Visible = not locked or row.exclusive
+		r.state.Text = if row.exclusive
+			then ExclusiveShopView.EXCLUSIVE
+			elseif row.state == "equipped" then PlotSkinsView.EQUIPPED
+			else "Unlocked"
+		r.state.TextColor3 = if row.exclusive
+			then Theme.Gold
+			elseif row.state == "equipped" then Theme.Good
+			else Theme.Muted
+		r.bar.Visible = locked and not row.exclusive
 		r.setBar(row.fraction)
-		r.count.Visible = locked
+		r.count.Visible = locked and not row.exclusive
 		r.count.Text = row.count
 	end
 

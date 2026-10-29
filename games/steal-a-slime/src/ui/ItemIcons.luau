@@ -171,6 +171,13 @@ ItemIcons.AWAITING_UPLOAD = table.freeze({
 	"Dex_40",
 	"Boost_Mvp",
 	"Upgrade_QuickBrew",
+	"PlotSkin_fairground",
+	"PlotSkin_beach",
+	"PlotSkin_space",
+	"PlotSkin_winter",
+	"PlotSkin_haunted",
+	"PetSeat_pumpkin",
+	"PetSeat_snowglobe",
 } :: { string })
 
 -- id -> MeshAssets name: an item that shows that kit mesh as a live model, with its picture as the fallback.
@@ -578,6 +585,37 @@ function ItemIcons.build(config: any)
 			glyph = "🏏",
 			brief = `The '{skin.name}' Bat skin (models/{skin.mesh}.py) alone, tilted; 3/4 view.`,
 		})
+	end
+
+	-- Fanfares, lock styles and slime hats (§15): UI-drawn glyph tiles until pictures are rendered.
+	local STYLE_ICONS = {
+		{
+			list = "fanfares",
+			prefix = "Fanfare_",
+			glyph = "🎉",
+			color = { 252, 216, 110 },
+			what = "deposit fanfare burst",
+		},
+		{
+			list = "lockStyles",
+			prefix = "LockStyle_",
+			glyph = "🔒",
+			color = { 250, 150, 182 },
+			what = "lock stopper",
+		},
+		{ list = "hats", prefix = "Hat_", glyph = "🎩", color = { 196, 166, 232 }, what = "slime hat on a slime" },
+	}
+	for _, kind in STYLE_ICONS do
+		for _, def in (if shop then shop[kind.list] else nil) or {} do
+			add({
+				id = `{kind.prefix}{def.id}`,
+				name = def.name,
+				group = "gear",
+				color = kind.color,
+				glyph = kind.glyph,
+				brief = `The '{def.name}' {kind.what}{if def.mesh then ` (models/{def.mesh}.py)` else ""}; 3/4 view.`,
+			})
+		end
 	end
 
 	return {

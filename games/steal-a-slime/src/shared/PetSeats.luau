@@ -11,6 +11,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local Seasons = if script then require(script.Parent.Seasons) else require("./Seasons")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require("./SpeciesDex")
 
@@ -100,12 +101,21 @@ function PetSeats.equip(data: Data, id: any): (boolean, string?)
 end
 
 -- State.petSeats: every seat in Config order.
-function PetSeats.view(data: Data): { View }
+-- True for a seasonal Exclusive seat the player doesn't own while its season is closed (needs `now`).
+function PetSeats.hiddenOffSeason(seat: Config.PetSeat, unlocked: boolean, now: number?): boolean
+	return seat.season ~= nil and now ~= nil and not unlocked and not Seasons.active(seat.season, now)
+end
+
+-- With `now`, a seasonal Exclusive seat the player doesn't own is left out while its season is closed.
+function PetSeats.view(data: Data, now: number?): { View }
 	local equipped = PetSeats.current(data)
 	local out: { View } = {}
 	for _, seat in Config.PET_SEATS do
 		local have, need = PetSeats.progress(data, seat)
-		local unlocked = PetSeats.unlocked(data, seat)
+		local unlocked: boolean = PetSeats.unlocked(data, seat)
+		if PetSeats.hiddenOffSeason(seat, unlocked, now) then
+			continue
+		end
 		table.insert(out, {
 			id = seat.id,
 			name = seat.name,
