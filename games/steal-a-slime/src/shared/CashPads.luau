@@ -6,8 +6,8 @@
 	maps a pad index to its pile (fractional cash). A pile belongs to the pad, not the slime: it stays when the
 	slime is stolen, sold, merged or moved, and only the plot owner collects it (whole cash; the fraction stays).
 	A pad has no cap: it keeps filling while the player is online. Offline income goes onto the pads too, for at
-	most the offline cap time (Economy.offlineIncome, Perks.offlineCap: Night Shift raises it). Rebirth clears every
-	pile along with the cash. `floorLook` and `face` describe the coin the view draws on each pad.
+	most the offline cap time (Economy.offlineIncome, Perks.offlineCap: Night Shift raises it). Rebirth leaves every
+	pile where it is. `floorLook` and `face` describe the coin the view draws on each pad.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -161,11 +161,6 @@ function CashPads.collect(data: Data, pad: number): number
 	end
 	PlayerData.earn(data, paid)
 	return paid
-end
-
--- Empties every pile (rebirth).
-function CashPads.clear(data: Data)
-	data.padCash = nil
 end
 
 -- Saved form: a dense list, entry i = pad i's pile (0 = empty); nil when nothing is piled up.
