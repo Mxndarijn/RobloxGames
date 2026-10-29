@@ -8,6 +8,7 @@
 
 local UI = script.Parent.Parent
 local Layout = require(UI.Layout)
+local SlimePreview = require(UI.SlimePreview)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -30,11 +31,22 @@ function Carry.new(parent: Instance, ctx: any)
 	-- A notice: the Gold info ring while you carry a wild slime, the danger ring for a stolen one.
 	local border = Widgets.ring(frame, Theme.Gold, Layout.NOTICE_RADIUS)
 
+	-- The carried slime as the menus show it (SlimePreview.mountSlime); the well keeps its colour if no model builds.
 	local swatch = create("Frame", {
+		Name = "Swatch",
 		Size = UDim2.fromOffset(48, 48),
 		Position = UDim2.fromOffset(12, 12),
 		Parent = frame,
 	}, { Widgets.corner(24) })
+	local preview = create("ViewportFrame", {
+		Name = "Preview",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		Parent = swatch,
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) }) :: ViewportFrame
+	local builders: SlimePreview.Builders = { species = ctx.buildSpecies, slime = ctx.buildSlime }
+	local wellColor = Theme.Row:Lerp(Theme.Ink, SlimePreview.WELL_TINT)
 	local name = Widgets.label({
 		Font = Theme.Font,
 		TextSize = 18,
@@ -82,9 +94,13 @@ function Carry.new(parent: Instance, ctx: any)
 	function self.update(state: any)
 		carrying = state.carrying
 		frame.Visible = carrying ~= nil
+		if not carrying then
+			SlimePreview.unmountSlime(preview)
+		end
 		if carrying then
 			local slime = carrying.slime
-			swatch.BackgroundColor3 = Widgets.color3(slime.color)
+			SlimePreview.mountSlime(preview, slime, builders)
+			swatch.BackgroundColor3 = if preview.Visible then wellColor else Widgets.color3(slime.color)
 			name.Text = ctx.Genome.displayName(slime)
 			local stolen = carrying.kind == "stolen"
 			border.Color = if stolen then Theme.Bad else Theme.Gold
