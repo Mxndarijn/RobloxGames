@@ -75,6 +75,7 @@ Remotes.ACTIONS = table.freeze({
 	SendGift = table.freeze({ args = { "string", "number" } }), -- product key of an unsent gift, target userId: sends it
 	SetHotbar = table.freeze({ args = { "hotbar" } }), -- order: up to 9 slot keys joined by "," ("" = empty slot) (HotbarOrder, CONTRACT.md §3)
 	RequestKits = table.freeze({ args = { "kits" } }), -- species: up to KitRequest.MAX species ids joined by ","; their kit meshes replicate to this player only (KitRequest, CONTRACT.md §3)
+	Admin = table.freeze({ args = { "string", "string?", "number?" } }), -- AdminCommands id, an id argument, a number argument (contract/admin-menu.md)
 	Sync = table.freeze({ args = {} }), -- server re-sends State
 } :: { [string]: ActionDef })
 

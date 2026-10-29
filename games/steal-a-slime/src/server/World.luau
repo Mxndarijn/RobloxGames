@@ -219,7 +219,11 @@ export type Lucky = {
 	told: boolean, -- the Notify went out
 }
 
+-- The admin menu (server/AdminService.setup): the place owner and whether this server is on a test save.
+export type AdminConfig = { creatorId: number?, cheats: boolean }
+
 export type World = {
+	admin: AdminConfig?, -- nil = no admin service: every Admin request is refused
 	sessions: { [number]: Session },
 	plots: { [number]: number }, -- plotIndex -> userId
 	plotCount: number,

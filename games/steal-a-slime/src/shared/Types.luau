@@ -203,6 +203,9 @@ export type StatsView = {
 }
 
 -- Payload of the `State` RemoteEvent: always a full snapshot.
+-- The admin menu (contract/admin-menu.md §4): only players who get the menu receive it.
+export type AdminView = { cheats: boolean }
+
 export type State = {
 	serverTime: number,
 	plotIndex: number, -- 1..8, workspace.Plots.Plot_<plotIndex>
@@ -271,6 +274,7 @@ export type State = {
 	boards: { [string]: number }, -- my own value on each global board, by Leaderboards stat (CONTRACT.md §5.1)
 	boardRanks: { [string]: number }, -- my rank on each board from the last refresh; -n = deeper than #n; absent = not ranked yet
 	vat: VatView, -- the plot's merge vat (VatState, CONTRACT.md §21)
+	admin: AdminView?, -- the admin menu; nil = no menu for this player (contract/admin-menu.md)
 	exclusiveShop: ExclusiveShopView?, -- contract/exclusive-shop.md §5 (nil until the first State)
 }
 

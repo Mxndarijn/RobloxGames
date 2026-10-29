@@ -40,6 +40,7 @@ local Types = if Shared then require(Shared.Types) else require("../shared/Types
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local AdminService = if script then require(script.Parent.AdminService) else require("./AdminService")
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local DexSources = if script then require(script.Parent.DexSources) else require("./DexSources")
@@ -154,6 +155,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		boards = Snapshot.boards(data, now),
 		boardRanks = if session.boardRanks then table.clone(session.boardRanks) else {},
 		vat = VatState.view(data, Perks.brewFactor(data)) :: any,
+		admin = AdminService.view(world, session.userId),
 		exclusiveShop = Purchases.view(session, now, world),
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		blessed = if data.ritualBonus and session.blessedUntil

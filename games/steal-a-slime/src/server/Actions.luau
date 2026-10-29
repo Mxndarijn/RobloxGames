@@ -37,6 +37,7 @@ local Types = if Shared then require(Shared.Types) else require("../shared/Types
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local AdminService = if script then require(script.Parent.AdminService) else require("./AdminService")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local PlotPadGuard = if script then require(script.Parent.PlotPadGuard) else require("./PlotPadGuard")
 local ShopGuard = if script then require(script.Parent.ShopGuard) else require("./ShopGuard")
@@ -106,6 +107,9 @@ export type Context = {
 	-- Writes another player's session data now (the session-locked Persistence save; yields), true = written: SendGift
 	-- saves the gift's receiver before it counts. nil = can't save: the gift stays unsent.
 	saveUser: ((userId: number, data: any) -> boolean)?,
+	-- The admin menu (AdminService.Context): the live admin events service and a move onto the hub spawn.
+	adminEvents: any?,
+	toHub: ((userId: number) -> boolean)?,
 }
 
 local Actions = {}
@@ -606,6 +610,10 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return closeShopAction(session, ctx)
 	elseif action == "ShopBuy" then
 		return shopBuy(world, session, args[1], args[2], args[3], now, ctx)
+	elseif action == "Admin" then
+		-- The menu shows the line on success too.
+		local ok, message = AdminService.run(world, session, args[1], args[2], args[3], now, ctx :: any)
+		return { ok = ok, message = if ok then message else message or "failed" }
 	end
 	local blocked = strictGate(session, action, ctx)
 	if blocked then

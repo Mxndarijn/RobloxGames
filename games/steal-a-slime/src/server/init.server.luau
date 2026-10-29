@@ -29,6 +29,7 @@ local Types = require(Shared:WaitForChild("Types"))
 
 local Actions = require(script.Actions)
 local AdminEventsService = require(script.AdminEventsService)
+local AdminService = require(script.AdminService)
 local Badges = require(script.Badges)
 local BaseFloors = require(script.BaseFloors)
 local BorderTerrainView = require(script.BorderTerrainView)
@@ -334,6 +335,8 @@ local creatorOk, creatorId = pcall(function()
 	return if game.CreatorType == Enum.CreatorType.User then game.CreatorId else nil
 end)
 local adminEvents = AdminEventsService.new(world, if creatorOk then creatorId else nil, nil)
+AdminService.setup(world, if creatorOk then creatorId else nil) -- the admin menu (contract/admin-menu.md)
+ctx.adminEvents = adminEvents
 if Config.FEATURES.AdminEvents then
 	AdminEventsService.start(adminEvents, now)
 end

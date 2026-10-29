@@ -94,6 +94,35 @@ function Widgets.backdrop(props: { [string]: any }): TextButton
 	return create("TextButton", base)
 end
 
+-- True when the point (x, y) is outside every rect: a tap there is a tap on the backdrop, not on a card.
+function Widgets.outsideAll(x: number, y: number, rects: { Layout.Rect }): boolean
+	for _, r in rects do
+		if x >= r.x and x <= r.x + r.w and y >= r.y and y <= r.y + r.h then
+			return false
+		end
+	end
+	return true
+end
+
+-- Wires a backdrop's tap to `close`, but only for a tap outside every visible card `cards()` returns. The cards
+-- already sink their own taps (Widgets.panel's InputSink); this keeps a tap that still reaches the backdrop over
+-- a card from closing it.
+function Widgets.closeOnTapOutside(backdrop: GuiButton, cards: () -> { GuiObject }, close: () -> ())
+	backdrop.Activated:Connect(function(input: InputObject?)
+		local rects: { Layout.Rect } = {}
+		for _, card in cards() do
+			if card.Visible then
+				local p, s = card.AbsolutePosition, card.AbsoluteSize
+				table.insert(rects, { x = p.X, y = p.Y, w = s.X, h = s.Y })
+			end
+		end
+		local at = if input then input.Position else nil
+		if at == nil or Widgets.outsideAll(at.X, at.Y, rects) then
+			close()
+		end
+	end)
+end
+
 function Widgets.corner(radius: number?): UICorner
 	return create("UICorner", { CornerRadius = UDim.new(0, radius or 8) })
 end
@@ -572,7 +601,10 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		BackgroundColor3 = Theme.Bg,
 		BackgroundTransparency = 0.04,
 		ZIndex = Layout.ZINDEX.Menu,
-		Active = true, -- a tap on the card is not a tap on the backdrop behind it (which closes the menu)
+		-- A tap on the card is not a tap on the backdrop button behind it (which closes the menu). Active only stops
+		-- clicks reaching the 3D world; InputSink is what keeps them from the button behind.
+		Active = true,
+		InputSink = Enum.InputSink.Activate,
 		Parent = parent,
 	}, { Widgets.corner(radius), Widgets.stroke(Theme.Ink, kit.stroke) })
 	-- The band: rounded on top, square at the bottom (a second, unrounded strip covers the lower corners).
