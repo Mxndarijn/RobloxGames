@@ -46,13 +46,13 @@ MascotSign.COLORS = table.freeze({
 	cheek = rgb(245, 154, 176),
 	sprout = rgb(95, 191, 74),
 	sproutDark = rgb(47, 106, 42),
+	acorn = rgb(150, 101, 58), -- Forest's acorn cap
+	acornHi = rgb(196, 146, 92),
+	acornDark = rgb(86, 54, 27),
 	ice = rgb(214, 244, 255),
 	iceEdge = rgb(44, 111, 136),
 	star = rgb(255, 224, 110),
 	starEdge = rgb(196, 140, 20),
-	cap = rgb(226, 85, 78),
-	capEdge = rgb(122, 38, 34),
-	capRim = rgb(255, 238, 214), -- the toadstool stems
 	sprinkles = table.freeze({ rgb(255, 226, 122), rgb(127, 208, 239), rgb(255, 255, 255), rgb(154, 214, 160) }),
 })
 
@@ -82,7 +82,7 @@ MascotSign.EXTRAS = table.freeze({
 	crystal = "crystal",
 	starlight = "star",
 	candy = "sprinkles",
-	mushroom = "toadstool",
+	mushroom = "acorn",
 } :: { [string]: string })
 
 local function color(deps: Deps, c: { number }): any
@@ -192,25 +192,32 @@ local function buildExtras(deps: Deps, root: any)
 		bit.Rotation = spot[3]
 	end
 
-	-- Forest: two little toadstools growing on its head, each a cream stem under a rounded red cap with white spots
-	-- (the cap is the top of a rounded frame, cut off flat by its holder).
-	local toad = make(deps, "Frame", { Name = "toadstool", BackgroundTransparency = 1, ZIndex = 2 }, root)
-	place(deps, toad, { 0, 0, 1, 1 })
-	for i, m in { { 0.4, 0.045, 0.07, 0.06, 0.07 }, { 0.535, 0.08, 0.055, 0.045, 0.055 } } do
-		local x, y, w, h, stemH = m[1], m[2], m[3], m[4], m[5]
-		frame(deps, toad, `Stem{i}`, C.capRim, { x + w * 0.36, y + h * 0.8, w * 0.28, stemH }, 2, 0.4)
-		local holder = make(
-			deps,
-			"Frame",
-			{ Name = `Cap{i}`, BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 2 },
-			toad
-		)
-		place(deps, holder, { x, y, w, h })
-		local cap = frame(deps, holder, "Cap", C.cap, { 0, 0, 1, 2 }, 2, 0.5)
-		make(deps, "UIStroke", { Color = color(deps, C.capEdge), Thickness = 1.5 }, cap)
-		frame(deps, cap, "SpotA", C.eye, { 0.22, 0.14, 0.2, 0.16 }, 2, 1)
-		frame(deps, cap, "SpotB", C.eye, { 0.6, 0.1, 0.18, 0.14 }, 2, 1)
+	-- Forest: a small acorn cap worn like a hat, with its little stem on top (the top of a rounded frame, cut off flat
+	-- by its holder, so it sits on the head like a cap).
+	local acorn = make(deps, "Frame", { Name = "acorn", BackgroundTransparency = 1, ZIndex = 2 }, root)
+	place(deps, acorn, { 0, 0, 1, 1 })
+	frame(deps, acorn, "Stem", C.acornDark, { 0.494, 0.03, 0.014, 0.06 }, 2, 0.4)
+	local holder =
+		make(deps, "Frame", { Name = "Cap", BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 2 }, acorn)
+	place(deps, holder, { 0.41, 0.075, 0.18, 0.135 })
+	local cap = frame(deps, holder, "Dome", GooPalette.White, { 0, 0, 1, 2 }, 2, 1)
+	make(deps, "UIStroke", { Color = color(deps, C.acornDark), Thickness = 1.5 }, cap)
+	local K = deps.ColorSequenceKeypoint
+	make(deps, "UIGradient", {
+		Rotation = 90,
+		Color = deps.ColorSequence.new({
+			K.new(0, color(deps, C.acornHi)),
+			K.new(0.6, color(deps, C.acorn)),
+			K.new(1, color(deps, C.acorn)),
+		}),
+	}, cap)
+	-- the cap's scales: two rows of small darker dots
+	for i, d in
+		{ { 0.22, 0.2 }, { 0.42, 0.14 }, { 0.62, 0.14 }, { 0.8, 0.2 }, { 0.32, 0.38 }, { 0.52, 0.34 }, { 0.71, 0.38 } }
+	do
+		frame(deps, cap, `Scale{i}`, C.acornDark, { d[1] - 0.05, d[2], 0.1, 0.09 }, 2, 1).BackgroundTransparency = 0.45
 	end
+	frame(deps, acorn, "Rim", C.acornDark, { 0.405, 0.2, 0.19, 0.02 }, 2, 0.5)
 end
 
 -- Every piece of the sign, filling `parent`; finds an existing one first, so callers stay idempotent.
