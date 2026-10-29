@@ -54,6 +54,7 @@ local LOOK = table.freeze({
 	popupPx = Vector2.new(140, 48), -- the BONK! / CHOMP! label
 	popupText = 34,
 	popupY = 4, -- studs above the head
+	popupMaxDistance = 120, -- studs: a fixed-size BONK on a far-away speck is noise
 	popupRise = 2, -- studs it floats up while fading
 	boltWidth = 0.5,
 	boltCurve = 3, -- studs of random bend at each end of the lightning
@@ -420,6 +421,7 @@ local function popup(character: Model?, spec: { text: string, color: Logic.RGB, 
 	gui.Size = UDim2.fromOffset(LOOK.popupPx.X, LOOK.popupPx.Y)
 	gui.StudsOffset = Vector3.new(0, LOOK.popupY, 0)
 	gui.LightInfluence = 0
+	gui.MaxDistance = LOOK.popupMaxDistance
 	gui.Adornee = head :: any
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1

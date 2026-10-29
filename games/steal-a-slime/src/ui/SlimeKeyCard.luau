@@ -39,6 +39,8 @@ local UI = script.Parent
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
+local LabelFit =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -200,6 +202,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		SizeOffset = Vector2.new(0, 0.5), -- the card's bottom edge sits on the anchor point
 		Parent = opts.playerGui,
 	}) :: BillboardGui
+	LabelFit.mark(card) -- smaller pixels on a phone (Lib.ui.LabelFitView)
 	local frame = create("Frame", {
 		Name = "Card",
 		BackgroundColor3 = Theme.Bg,

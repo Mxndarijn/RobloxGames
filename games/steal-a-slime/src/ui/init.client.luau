@@ -142,6 +142,10 @@ local gui = Widgets.create("ScreenGui", {
 -- open (syncTutorial below) Lib MenuMouse frees it so every button can be clicked.
 local menuMouse = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("MenuMouse")).new(gui)
 
+-- World labels tagged LabelFit (pixel tags, guides/roblox-world-labels.md) shrink on a phone and use their
+-- phone MaxDistance there. Runs for the whole session.
+require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFitView")).new()
+
 -- Phones: shrink the whole UI (Layout.uiScale; 1 on desktop). Set with the
 -- rest of the layout in applyLayout below.
 local uiScale = Widgets.create("UIScale", { Name = "ViewportScale", Parent = gui }) :: UIScale

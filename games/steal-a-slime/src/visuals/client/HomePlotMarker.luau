@@ -28,6 +28,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
 local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
+local LabelFit = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
 local Visuals = ReplicatedStorage:WaitForChild("Visuals")
 local Look = require(Visuals:WaitForChild("HomePlotMarker"))
 local WorldLayout = require(Visuals:WaitForChild("WorldLayout"))
@@ -215,6 +216,7 @@ local function buildTag(adornee: BasePart): BillboardGui
 	tag.Size = UDim2.fromOffset(T.w, T.badge + T.gap + T.text)
 	tag.StudsOffsetWorldSpace = Vector3.new(0, Look.TAG_HEIGHT, 0)
 	tag.ResetOnSpawn = false
+	LabelFit.mark(tag) -- smaller pixels on a phone (Lib.ui.LabelFitView)
 
 	local icon = homeBadge(tag, T.badge)
 	icon.AnchorPoint = Vector2.new(0.5, 0)

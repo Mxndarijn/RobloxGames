@@ -112,6 +112,15 @@ function methods.GetAttribute(self: any, name: string): any
 	return rawget(self, "_attributes")[name]
 end
 
+-- CollectionService tags, kept per fake instance (LabelFit.mark tags world labels).
+function methods.AddTag(self: any, tag: string)
+	rawget(self, "_tags")[tag] = true
+end
+
+function methods.HasTag(self: any, tag: string): boolean
+	return rawget(self, "_tags")[tag] == true
+end
+
 function methods.GetPropertyChangedSignal(): any
 	return signal
 end
@@ -284,6 +293,7 @@ function newInstance(className: string): any
 		_props = {},
 		_children = {},
 		_attributes = {},
+		_tags = {},
 		_parent = nil,
 	}, Mock)
 	wrappers[self] = true
