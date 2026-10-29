@@ -16,15 +16,7 @@ local LockPadRing = require(ReplicatedStorage.Shared.LockPadRing)
 local RingPadView = require(ReplicatedStorage.Lib.pad.RingPadView)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
--- LockPadRing's looks as RingPadView looks.
-local LOOKS: { [string]: RingPadView.Look } = {}
-for name, look in LockPadRing.LOOKS do
-	LOOKS[name] = {
-		color = Color3.fromRGB(look.rgb[1], look.rgb[2], look.rgb[3]),
-		material = (Enum.Material :: any)[look.material],
-		transparency = look.transparency,
-	}
-end
+local LOOKS: { [string]: RingPadView.Look } = LockPadRing.partLooks()
 
 local pads: { [number]: RingPadView.Pad } = {}
 

@@ -43,6 +43,22 @@ LockPadRing.LOOKS = table.freeze({
 } :: { [string]: Look })
 LockPadRing.REST = table.freeze({ charge = "ready", locked = "lockedRest" } :: { [string]: string })
 
+export type PartLook = { color: Color3, material: Enum.Material, transparency: number }
+
+-- LOOKS as part properties (Color3, Enum.Material): RingPadView's looks. Builds with the Roblox API, so call it at
+-- run time, not at load.
+function LockPadRing.partLooks(): { [string]: PartLook }
+	local out: { [string]: PartLook } = {}
+	for name, look in LockPadRing.LOOKS do
+		out[name] = {
+			color = Color3.fromRGB(look.rgb[1], look.rgb[2], look.rgb[3]),
+			material = (Enum.Material :: any)[look.material],
+			transparency = look.transparency,
+		}
+	end
+	return out
+end
+
 --[[
 	What the ring shows for a plot: `owned` = the plot has an owner, `lockUntil` / `lockStartedAt` of their current
 	lock, `since` = when the owner stepped onto the pad (nil = off it, or the server's own draw).

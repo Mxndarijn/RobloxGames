@@ -186,11 +186,12 @@ local function applyBoard(sign: Instance, owned: boolean, locked: boolean, remai
 end
 
 -- The swapped mesh under a jar tower look slot (server/MeshSwap names it "Mesh"), or nil before it lands.
-local function lookMesh(plot: Instance, name: string): BasePart?
+function PlotDecor.lookMesh(plot: Instance, name: string): BasePart?
 	local slot = plot:FindFirstChild(name)
 	local mesh = slot and slot:FindFirstChild("Mesh")
 	return if mesh and mesh:IsA("BasePart") then mesh else nil
 end
+local lookMesh = PlotDecor.lookMesh
 
 local function applyLock(
 	plot: Instance,

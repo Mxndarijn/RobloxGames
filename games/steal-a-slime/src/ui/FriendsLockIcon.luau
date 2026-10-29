@@ -27,6 +27,7 @@ FriendsLockIcon.SIZE = table.freeze({
 	stickerStuds = 3.2, -- the sticker's square on the door face
 	stickerPixelsPerStud = 50,
 	stickerMaxDistance = 120,
+	settleSeconds = 1, -- after a lock / open, longer than the door's swing (DoorSwing.TIMING)
 	ring = 0.07, -- ring thickness, fraction of the disc
 	icon = 0.78, -- icon size, fraction of the disc
 })
@@ -118,10 +119,10 @@ function FriendsLockIcon.start(opts: Options): () -> ()
 		if not (door and base and base:IsA("BasePart")) then
 			return false
 		end
-		if gui.Adornee ~= door then
-			gui.Adornee = door
-			gui.Face = FriendsLockIcon.faceToward(door, base.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -1)))
-		end
+		gui.Adornee = door
+		-- The face is the mesh's own, so it holds through a swing; one picked while the door is mid-swing (LockMotion)
+		-- is corrected once the door stops (SIZE.settleSeconds).
+		gui.Face = FriendsLockIcon.faceToward(door, base.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -1)))
 		return true
 	end
 
@@ -183,14 +184,20 @@ function FriendsLockIcon.start(opts: Options): () -> ()
 				entry.conns,
 				plot:GetAttributeChangedSignal(name):Connect(function()
 					apply(plot)
+					-- Again once the door has stopped: a lock can start while it is still swinging open.
+					task.delay(S.settleSeconds, function()
+						if entries[plot] == entry then
+							apply(plot)
+						end
+					end)
 				end)
 			)
 		end
-		-- The door's mesh lands (MeshSwap) or comes back after a base swap: move the sticker onto it.
+		-- The door's mesh (or its whole slot) lands (MeshSwap) or comes back after a base swap: move the sticker onto it.
 		table.insert(
 			entry.conns,
 			plot.DescendantAdded:Connect(function(d)
-				if d.Name == "Mesh" and d.Parent and d.Parent.Name == "StopperShut" then
+				if d.Name == "StopperShut" or (d.Name == "Mesh" and d.Parent and d.Parent.Name == "StopperShut") then
 					apply(plot)
 				end
 			end)

@@ -35,15 +35,8 @@ LockMotion.DUST = table.freeze({
 	texture = "rbxasset://textures/particles/smoke_main.dds",
 })
 
-type Look = { color: Color3, material: Enum.Material, transparency: number }
-local LOOKS: { [string]: Look } = {}
-for name, look in LockPadRing.LOOKS do
-	LOOKS[name] = {
-		color = Color3.fromRGB(look.rgb[1], look.rgb[2], look.rgb[3]),
-		material = (Enum.Material :: any)[look.material],
-		transparency = look.transparency,
-	}
-end
+type Look = LockPadRing.PartLook
+local LOOKS = LockPadRing.partLooks()
 
 type Swing = {
 	closing: boolean,
@@ -59,12 +52,7 @@ type Swing = {
 }
 type Plot = { shut: boolean, swing: Swing?, painted: number?, segments: { { BasePart } }?, pad: Instance? }
 
--- The swapped mesh under a look slot (server/MeshSwap names it "Mesh"), or nil before it lands.
-local function lookMesh(plot: Instance, name: string): BasePart?
-	local slot = plot:FindFirstChild(name)
-	local mesh = slot and slot:FindFirstChild("Mesh")
-	return if mesh and mesh:IsA("BasePart") then mesh else nil
-end
+local lookMesh = PlotDecor.lookMesh
 
 -- True when two poses are the same up to float rounding (a pose read back from a part).
 local function same(a: CFrame, b: CFrame): boolean
@@ -228,11 +216,14 @@ function LockMotion.new(): Motion
 	end
 
 	local function stepCharge(plot: Instance, st: Plot, owned: boolean, now: number)
+		local since = plot:GetAttribute(Constants.PLOT_LOCK_PAD_SINCE_ATTRIBUTE)
+		if since == nil and st.painted == nil then
+			return -- nobody charging and nothing painted: the ring is the server's
+		end
 		local pad = plot:FindFirstChild(Constants.LOCK_PAD_NAME)
 		if not pad then
 			return
 		end
-		local since = plot:GetAttribute(Constants.PLOT_LOCK_PAD_SINCE_ATTRIBUTE)
 		local lockUntil = plot:GetAttribute("LockUntil")
 		local startedAt = plot:GetAttribute(Constants.PLOT_LOCK_STARTED_AT_ATTRIBUTE)
 		local ring = LockPadRing.ring(
