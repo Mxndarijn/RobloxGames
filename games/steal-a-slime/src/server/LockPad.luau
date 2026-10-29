@@ -4,12 +4,7 @@
 
 	The lock pad round each plot's LockButton (CONTRACT.md §8.5): a shared RingPad on the floor (Config.LOCK_PAD.STYLE,
 	lit in SEGMENTS steps). The owner standing in it for STAND_SECONDS starts the same Lock action as the LockPrompt.
-	Reads / writes session.lockPadSince (when the owner stepped on). `ring` says how many segments are lit and in which
-	colour:
-	  ready   the owner can lock: the whole ring (green);
-	  charge  the owner is standing on it: the light sweeps round over STAND_SECONDS;
-	  locked  the plot is locked: the lit share is the share of the lock still to run;
-	  idle    nobody can use it (a free plot): none lit.
+	Reads / writes session.lockPadSince (when the owner stepped on). What the ring shows: shared/LockPadRing.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -17,9 +12,6 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local World = if script then require(script.Parent.World) else require("./World")
 local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
 local RingPad = if Lib then require(Lib.pad.RingPad) else require("../../../../shared/luau/src/pad/RingPad")
-
-export type Mode = "idle" | "charge" | "locked" | "ready"
-export type Ring = { mode: Mode, lit: number }
 
 local PAD = Config.LOCK_PAD
 
@@ -53,24 +45,6 @@ function LockPad.step(session: World.Session, onPad: boolean, locked: boolean, n
 	local fired, since = RingPad.hold(session.lockPadSince, onPad, locked, now, PAD.STAND_SECONDS)
 	session.lockPadSince = since
 	return fired
-end
-
---[[
-	What the ring shows for a plot: `owned` = the plot has an owner, `lockUntil` / `lockStartedAt` of their current
-	lock, `since` = session.lockPadSince.
-]]
-function LockPad.ring(owned: boolean, now: number, lockUntil: number, lockStartedAt: number, since: number?): Ring
-	if not owned then
-		return { mode = "idle", lit = 0 }
-	end
-	local n = PAD.SEGMENTS
-	if now < lockUntil then
-		return { mode = "locked", lit = RingPad.countdown(n, lockStartedAt, lockUntil, now) }
-	end
-	if since ~= nil then
-		return { mode = "charge", lit = RingPad.charge(n, since, now, PAD.STAND_SECONDS) }
-	end
-	return { mode = "ready", lit = n }
 end
 
 return LockPad

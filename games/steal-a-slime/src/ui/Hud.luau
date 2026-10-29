@@ -323,7 +323,7 @@ function Hud.new(parent: Instance, ctx: any)
 	local slotRects: { [string]: Layout.Rect } = {} -- shown slots' boxes in design px, for the tap-elsewhere test
 
 	local self = {}
-	self.banners = banners -- the top stack: other notice cards (TutorialCard) join it
+	self.banners = banners -- the top stack of notice cards
 
 	local function touchInput(): boolean
 		return UserInputService:GetLastInputType() == Enum.UserInputType.Touch

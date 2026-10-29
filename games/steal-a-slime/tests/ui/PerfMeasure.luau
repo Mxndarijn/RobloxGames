@@ -124,7 +124,7 @@ function PerfMeasure.measure(): { [string]: any }
 		end,
 		itemIcons = itemIcons,
 	}
-	local hud = UiHarness.ui("Hud").new(gui, ctx)
+	UiHarness.ui("Hud").new(gui, ctx)
 	local panels: { [string]: any } = {}
 	for _, key in { "Merge", "Rebirth", "Goals", "Dex", "Skins", "Codes", "Guide", "Welcome" } do
 		local module = UiHarness.ui(`Panels/{key}`)
@@ -139,7 +139,7 @@ function PerfMeasure.measure(): { [string]: any }
 	})
 	UiHarness.ui("Panels/Carry").new(gui, ctx)
 	UiHarness.ui("Panels/DailyPopup").new(gui, ctx)
-	UiHarness.ui("TutorialCard").new(hud.banners, ctx, 2)
+	UiHarness.ui("TutorialCard").new(gui, ctx, 2)
 	UiHarness.ui("Panels/HintOverlay").new(gui)
 
 	local idleInstances = count(gui)

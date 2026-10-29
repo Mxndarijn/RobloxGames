@@ -5,6 +5,8 @@
 	  * PlotDecor.apply on every workspace.Plots.Plot_<i> at UPDATE_RATE Hz
 	    against workspace:GetServerTimeNow() (lock barrier + countdown sign),
 	    and the jar tower's mascot and goo ooze (PlotMascot).
+	  * LockMotion every frame, before PlotDecor: the door swinging shut / open and the lock pad's charge sweep
+	    (PlotDecor leaves the door looks alone while a swing plays).
 	  * RareSpawn effects on wild slimes (State == "Wild") by the RareSpawn
 	    attribute (CONTRACT §8.4, Legendary+) or else Tier, kept in a
 	    local workspace folder "ClientRareFx" and posed on the slime's pivot
@@ -31,12 +33,15 @@ local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild(
 local Visuals = ReplicatedStorage:WaitForChild("Visuals")
 local EffectPrefs = require(Visuals:WaitForChild("EffectPrefs"))
 local Effects = require(Visuals:WaitForChild("Effects"))
+local LockMotion = require(script.Parent:WaitForChild("LockMotion"))
 local PlotDecor = require(Visuals:WaitForChild("PlotDecor"))
 local PlotMascot = require(Visuals:WaitForChild("PlotMascot"))
 local RareSpawn = require(Visuals:WaitForChild("RareSpawn"))
 local TopTierFx = require(Visuals:WaitForChild("TopTierFx"))
 
 local PlotVisuals = {}
+
+local lockMotion = LockMotion.new()
 
 PlotVisuals.UPDATE_RATE = 4 -- plot decor refreshes per second
 PlotVisuals.MAX_FX_DISTANCE = 150 -- beyond this the fx is unparented, never left behind at a stale spot
@@ -103,7 +108,13 @@ local function refreshPlots(now: number)
 	for _, plot in plots:GetChildren() do
 		if plot:IsA("Model") then
 			local viewer = Players.LocalPlayer
-			local ok, err = pcall(PlotDecor.apply, plot, now, if viewer then viewer.UserId else nil)
+			local ok, err = pcall(
+				PlotDecor.apply,
+				plot,
+				now,
+				if viewer then viewer.UserId else nil,
+				{ door = not lockMotion.busy(plot) }
+			)
 			if not ok then
 				warn(`[VisualsClient] PlotDecor {plot.Name}: {err}`)
 			end
@@ -404,6 +415,15 @@ function PlotVisuals.start()
 	local nextSweep = 0
 	RunService.RenderStepped:Connect(function()
 		local t = os.clock()
+		local plots = workspace:FindFirstChild(Constants.PLOTS_FOLDER)
+		if plots then
+			local viewer = Players.LocalPlayer
+			local ok, err =
+				pcall(lockMotion.step, plots, workspace:GetServerTimeNow(), t, if viewer then viewer.UserId else nil)
+			if not ok then
+				warn(`[VisualsClient] LockMotion: {err}`)
+			end
+		end
 		if t >= nextRefresh then
 			nextRefresh = t + 1 / PlotVisuals.UPDATE_RATE
 			refreshPlots(workspace:GetServerTimeNow())

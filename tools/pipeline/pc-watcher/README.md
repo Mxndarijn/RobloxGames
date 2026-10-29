@@ -79,7 +79,7 @@ attributes. Budget: most probes are under ~10 s of work (bug 5 waits up to 9 s f
 |---|---|---|---|
 | 1 "Leaving" text | `bug_text_scan` "leaving" (Client) | no visible Billboard/SurfaceGui text with it, and `ParadeLane.warnText` no longer writes it | goo drain, BillboardGuis kept on |
 | 2 "Your Spot" | `bug_text_scan` "your spot" (Client) | none | Podium_1, billboards on |
-| 3 "FREE PLOT" | `bug_text_scan` "free plot" (Client) | none | an empty plot's LockSign |
+| 3 "FREE PLOT" | `bug_text_scan` "free plot" (Client) | none | an empty plot's Sign |
 | 4 angular lane | `bug04_lane_smooth` (Server) | lane (drawPoints, resampled every 2 studs) turns <= 20 deg per 2 studs | aerial of the lane |
 | 5 glide at start | `bug05_lane_start` (Server) | a new wild slime starts within 4 studs of the emerge point, first 8 studs on the ride, moving within 0.5 s (null if none spawns in 9 s) | slide from the plaza |
 | 6 walk path to drain | `bug06_drain_walk_path` (Server) | no `Map.Paths` part reaches the goo drain (the bug asks to REMOVE it) | goo drain |

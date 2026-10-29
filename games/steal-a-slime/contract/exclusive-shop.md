@@ -219,7 +219,7 @@ fields (never saved):
   (`State.exclusiveShop.luck = { base, bonus }`).
 - `ThiefRadar` 149: `server/ThiefRadar` reads SlimeGuard's plot visits once a second; `State.exclusiveShop.radar` lists
   the userIds inside your base (friends the base lets in left out, at most `radar.maxShown`). An away owner is told
-  once per visit. The client gives them an "IN YOUR BASE" ping and, with no theft running, a "Visitor" arrow. Information only.
+  once per visit. The client gives them a yellow outline and, with no theft running, a "Visitor" arrow. Information only.
 - `SlimeClub` subscription (`subscriptions.SlimeClub`, `subscriptionId` "EXP-..." or "" = not created, 99 R$/month):
   checked on join and on `Players.UserSubscriptionStatusChanged` (`GetUserSubscriptionStatusAsync`, server), prompted
   with `PromptSubscriptionPurchase`. Its price uses Roblox regional pricing, so the shop shows Roblox's own

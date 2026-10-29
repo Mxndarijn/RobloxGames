@@ -95,8 +95,7 @@ local function textReport()
 			end
 		elseif d:IsA("BasePart") and string.find(d.Name, "Sign") then
 			-- Only signs that carry a SurfaceGui, plus each plot's own Sign (the server writes its
-			-- text via PlotSigns). Kit mesh props (Signpost, GooSign) have no text, and
-			-- LockSign's labels are made client-side by PlotDecor, so a playerless server has none.
+			-- text via PlotSigns). Kit mesh props (Signpost, GooSign) and each plot's SignPost have no text.
 			local plotSign = d.Name == "Sign"
 				and d.Parent ~= nil
 				and d.Parent.Parent == workspace:FindFirstChild("Plots")

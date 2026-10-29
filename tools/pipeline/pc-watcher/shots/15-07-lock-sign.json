@@ -2,6 +2,6 @@
   "id": "07-lock-sign",
   "todo": "7",
   "kind": "world",
-  "target": "LockSign",
+  "target": "Sign",
   "note": "TODO 7"
 }

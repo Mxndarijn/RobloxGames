@@ -33,5 +33,5 @@ Unchanged names: `State.tutorialStep` (1..8, nil = done), `State.tutorialStepId`
 
 ## Client
 
-- **Card (`ui/TutorialCard`):** a Gold notice card in the top banner stack under the steal cards: step icon, title, one hint line naming the device's control (`ui/Tutorial`), "3/8". Tapping it shrinks it to its icon. A mint card shows what was just done; after the last step "Tutorial done" with a ring round Goals (`ui/Hint`). No bottom card.
+- **Card (`ui/TutorialCard`):** a Gold notice card just above the item bar (above the carry card while carrying), at the banner width: step icon, title, one hint line naming the device's control (`ui/Tutorial`), "3/8". Tapping it shrinks it to its icon. A mint card shows what was just done; after the last step "Tutorial done" with a ring round Goals (`ui/Hint`). No bottom card.
 - **Trail (`visuals/client/TutorialArrow`, shared `guide/GuideView`):** Leaderboard → `Map.LeaderboardBoard`, Guide → `Map.TutorialNpc`, BuyItem → the closer of `ItemShopStand` / `UpgradeShopStand`; the own-plot and slime targets as before. Routes end next to solid targets (or on the pad / zone the player must stand on) and are never drawn straight through walls.

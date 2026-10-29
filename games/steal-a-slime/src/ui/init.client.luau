@@ -394,7 +394,7 @@ local stealFx = StealAlertFx.new(gui, {
 local carry = CarryPanel.new(gui, ctx)
 local bossMeter = BossMeterPanel.new(gui, ctx)
 local dailyPopup = DailyPopup.new(gui, ctx)
-local tutorial = TutorialCard.new(hud.banners, ctx, 2) -- under the steal cards (order 1)
+local tutorial = TutorialCard.new(gui, ctx, 2) -- just above the hotbar
 ctx.tutorial = tutorial -- the Guide offers "Show the tutorial again" and Skip
 local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
@@ -1101,7 +1101,7 @@ local grabBlock = GrabBlockCard.start({
 	end,
 })
 
--- FEATURES.FriendsInBase: the friend icon on the stopper and over the lock button of every base that lets friends in.
+-- FEATURES.FriendsInBase: the friend icon on the shut door of every locked base that lets friends in.
 if Config.FEATURES.FriendsInBase == true then
 	FriendsLockIcon.start({
 		plots = workspace:WaitForChild("Plots"),
