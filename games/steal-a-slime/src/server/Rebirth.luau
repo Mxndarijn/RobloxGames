@@ -46,6 +46,21 @@ function Rebirth.rebirth(world: World, session: Session): (boolean, string?)
 		World.notify(world, session.userId, `New rank: {tier.title}! {Perks.tierText(tier)}`, "good", "Rebirth")
 	end
 	World.effect(world, "Rebirth", { userId = session.userId })
+	local rebirths = session.data.rebirths
+	World.track(world, session.userId, {
+		op = "progression",
+		name = "Rebirth",
+		status = "Complete",
+		value = rebirths,
+		step = Perks.tier(rebirths).title,
+	})
+	-- Hours played until this rebirth: the number the economy sim's pacing is checked against.
+	World.track(world, session.userId, {
+		op = "event",
+		name = "RebirthHours",
+		value = math.floor((session.data.stats.playSeconds or 0) / 36) / 100,
+		fields = { `Rebirth - {rebirths}` },
+	})
 	return true, nil
 end
 

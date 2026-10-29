@@ -12,6 +12,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Badges = if script then require(script.Parent.Badges) else require("./Badges")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Quests = if Shared then require(Shared.Quests) else require("../shared/Quests")
+local SpeciesDex = if Shared then require(Shared.SpeciesDex) else require("../shared/SpeciesDex")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -26,6 +27,7 @@ function Milestones.check(world: World.World, session: World.Session, now: numbe
 	end
 	for _, paid in Goals.check(session.data) do
 		n += 1
+		World.trackCash(world, session, "source", "Goal", paid.reward, paid.id)
 		World.notify(
 			world,
 			session.userId,
@@ -36,6 +38,7 @@ function Milestones.check(world: World.World, session: World.Session, now: numbe
 	end
 	for _, paid in Collection.check(session.data) do
 		n += 1
+		World.trackCash(world, session, "source", "DexMilestone", paid.reward)
 		World.notify(
 			world,
 			session.userId,
@@ -49,6 +52,12 @@ function Milestones.check(world: World.World, session: World.Session, now: numbe
 	if n > 0 then
 		World.markDirty(session)
 	end
+	-- New SlimeDex species since the last check (the first check of a session only sets the baseline).
+	local species = SpeciesDex.count(session.data)
+	if session.dexSeen and species > session.dexSeen then
+		World.track(world, session.userId, { op = "event", name = "SpeciesFound", value = species })
+	end
+	session.dexSeen = species
 	return n
 end
 
