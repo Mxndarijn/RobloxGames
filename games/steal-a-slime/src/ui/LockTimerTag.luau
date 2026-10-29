@@ -2,9 +2,9 @@
 --[[
 	LockTimerTag
 
-	Shows other players how long a locked base stays locked: a red goo pill "LOCKED 1:42" floating over each locked
-	plot's LockButton (plot attributes OwnerUserId and LockUntil). The owner never sees it on their own base (they
-	have the lock card).
+	Shows how long a locked base stays locked: a red goo pill "LOCKED 1:42" floating over each locked plot's
+	LockButton (plot attributes OwnerUserId and LockUntil). Everyone sees it, the owner on their own base too, except
+	while the owner's SlimeKeyCard is open on that button: its title already says "LOCKED 1:42".
 
 	Seen through glass, not through walls: on every `tick` (the client's 10 Hz loop) a ray from the camera to the
 	tag skips see-through parts (Transparency at least SEE_THROUGH: the jar glass, the drop tube) and characters, and
@@ -40,9 +40,9 @@ LockTimerTag.SIZE = table.freeze({
 	lift = 1.5, -- studs above the LockButton's barrel
 })
 
--- Whether player `me` sees a plot's timer: someone else's base with a lock still running.
-function LockTimerTag.shows(ownerUserId: number?, me: number, lockUntil: number?, now: number): boolean
-	return type(ownerUserId) == "number" and ownerUserId ~= 0 and ownerUserId ~= me and (lockUntil or 0) > now
+-- Whether a plot's timer shows: an owned base (yours or someone else's) with a lock still running.
+function LockTimerTag.shows(ownerUserId: number?, lockUntil: number?, now: number): boolean
+	return type(ownerUserId) == "number" and ownerUserId ~= 0 and (lockUntil or 0) > now
 end
 
 -- The tag's text for `remaining` seconds of lock.
@@ -58,7 +58,6 @@ end
 export type Options = {
 	plots: Instance, -- workspace.Plots
 	playerGui: Instance,
-	me: number, -- the local player's UserId
 	now: () -> number, -- server time (workspace:GetServerTimeNow)
 	camera: () -> Camera?,
 	characters: () -> { Instance }, -- every player's character, ignored by the sight ray
@@ -134,6 +133,12 @@ function LockTimerTag.start(opts: Options): Handle
 		return false
 	end
 
+	-- The SlimeKeyCard sits on the same button and already shows the time left; don't stack a second label on it.
+	local function covered(button: BasePart): boolean
+		local card = opts.playerGui:FindFirstChild(SlimeKeyCard.NAME)
+		return card ~= nil and card:IsA("BillboardGui") and card.Enabled and card.Adornee == button
+	end
+
 	local function update()
 		local camera = opts.camera()
 		local now = opts.now()
@@ -146,10 +151,10 @@ function LockTimerTag.start(opts: Options): Handle
 				and button:IsA("BasePart")
 				and LockTimerTag.shows(
 					if type(owner) == "number" then owner else nil,
-					opts.me,
 					if type(lockUntil) == "number" then lockUntil else nil,
 					now
 				)
+				and not covered(button :: BasePart)
 			if not show then
 				local tag = tags[plot]
 				if tag then

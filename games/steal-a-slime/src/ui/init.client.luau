@@ -1027,11 +1027,10 @@ SlimeKeyCard.start({
 	tweens = game:GetService("TweenService"),
 })
 
--- Other players' locked bases show how long the lock lasts over the lock button (seen through glass, not walls).
+-- Locked bases (your own too) show how long the lock lasts over the lock button (seen through glass, not walls).
 local lockTimerTag = LockTimerTag.start({
 	plots = workspace:WaitForChild("Plots"),
 	playerGui = player:WaitForChild("PlayerGui"),
-	me = player.UserId,
 	now = function()
 		return workspace:GetServerTimeNow()
 	end,
