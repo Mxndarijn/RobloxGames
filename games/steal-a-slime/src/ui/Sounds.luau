@@ -32,6 +32,7 @@ Sounds.IDS = table.freeze({
 	Merge = "rbxassetid://9112872235", -- Pro Sound Effects "Small Bubbles Float Up Pop 7" (+ MergeSparkle)
 	MergeSparkle = "rbxassetid://9126073001", -- Pro Sound Effects "Synth Sparkle Bell Ding"
 	Cash = "rbxassetid://125468534978868", -- audio-kit coin (fallback: CashSnap)
+	CashPadCollect = "", -- you collected a cash pad: plays the Cash coin, softer (VOLUME), until it gets its own file
 	CashSnap = "rbxassetid://12222140", -- snap.wav
 	CashRegister = "rbxassetid://85324618959424", -- audio-kit cash_register (fallback: Cash)
 	Deposit = "rbxassetid://18145114696", -- "cartoon plop sound"
@@ -112,6 +113,7 @@ Sounds.IDS = table.freeze({
 -- A sound whose own file is not uploaded yet plays this one instead.
 Sounds.FALLBACK = table.freeze({
 	Cash = "CashSnap",
+	CashPadCollect = "Cash",
 	CashRegister = "Cash",
 	LevelUp = "Goal",
 	PadUnlock = "Goal",
@@ -141,6 +143,7 @@ Sounds.TRIM = table.freeze({
 
 -- Per-name volume (0..1, default 1) and PlaybackSpeed (default 1).
 Sounds.VOLUME = table.freeze({
+	CashPadCollect = 0.35, -- very subtle: it plays on every coin you walk over
 	RitualSpot = 0.35,
 	SlimeSquish1 = 0.55,
 	SlimeSquish2 = 0.55,
@@ -164,6 +167,7 @@ Sounds.SPEED = table.freeze({})
 Sounds.VARY = table.freeze({
 	Click = true,
 	Cash = true,
+	CashPadCollect = true,
 	CashSnap = true,
 	Bag = true,
 	Deposit = true,

@@ -3,7 +3,7 @@
 	CashPadService (pure, FEATURES.CashPads, contract/cash-pads.md)
 
 	What happens when a player steps on a cash pad (CashPadView reports the touch). The plot owner collects the
-	pad's pile into cash (CashPads.collect) and gets the "Collect" burst; anyone else gets nothing and a
+	pad's pile into cash (CashPads.collect), the "Collect" burst and the "CashPadCollect" sound (once per collect); anyone else gets nothing and a
 	"Not your cash" toast at most once per CASH_PAD.NAG_SECONDS. A touch on an empty pad, an unowned plot or with the
 	flag off does nothing. `nags` (userId -> next allowed toast time) is runtime state the caller owns.
 ]]
@@ -11,6 +11,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local CashPads = if Shared then require(Shared.CashPads) else require("../shared/CashPads")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -18,6 +19,8 @@ type World = World.World
 export type Nags = { [number]: number }
 
 local CashPadService = {}
+
+CashPadService.SOUND = "CashPadCollect" -- ui/Sounds name played for the collector
 
 -- Returns the cash paid to `userId` (0 for anyone but the owner, or an empty pad).
 function CashPadService.touch(
@@ -48,6 +51,8 @@ function CashPadService.touch(
 	if paid > 0 then
 		World.markDirty(owner)
 		World.effect(world, "Collect", { userId = userId })
+		-- The collector hears a soft coin, once per collect (a Notify only plays its sound).
+		World.notify(world, userId, `+${Economy.formatNumber(paid)}`, "good", CashPadService.SOUND)
 	end
 	return paid
 end
