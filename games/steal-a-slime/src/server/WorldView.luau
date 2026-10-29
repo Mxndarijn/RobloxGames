@@ -52,7 +52,7 @@ local HomeZone = require(ReplicatedStorage.Shared.HomeZone)
 local JarRoute = require(script.Parent.JarRoute)
 local KitDelivery = require(script.Parent.KitDelivery)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
-local LockPad = require(script.Parent.LockPad)
+local LockPadRing = require(ReplicatedStorage.Shared.LockPadRing)
 local LockPadView = require(script.Parent.LockPadView)
 local MeshSwap = require(script.Parent.MeshSwap)
 local MoveWatch = require(script.Parent.MoveWatch)
@@ -1662,6 +1662,8 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			local view = PlotPrompts.describe(world, index, now)
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)
 			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
+			setIfChanged(plot, Constants.PLOT_LOCK_STARTED_AT_ATTRIBUTE, if session then session.lockStartedAt else 0)
+			setIfChanged(plot, Constants.PLOT_LOCK_PAD_SINCE_ATTRIBUTE, if session then session.lockPadSince else nil)
 			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
 			setIfChanged(plot, Constants.PLOT_FRIENDS_ALLOWED_ATTRIBUTE, if view.friendsAllowed then true else nil)
 			setIfChanged(plot, Constants.PLOT_GUESTS_ATTRIBUTE, PlotGuests.encode(passes[index] or {}))
@@ -1671,9 +1673,10 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 				plot,
 				index,
 				WorldView.plotPromptPart(index, "Lock"),
+				-- No charge on the server: every client paints it from LockPadSince (visuals LockMotion).
 				if session
-					then LockPad.ring(true, now, session.lockUntil, session.lockStartedAt, session.lockPadSince)
-					else LockPad.ring(false, now, 0, 0, nil)
+					then LockPadRing.ring(true, now, session.lockUntil, session.lockStartedAt, nil)
+					else LockPadRing.ring(false, now, 0, 0, nil)
 			)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
 			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)

@@ -140,5 +140,7 @@ return table.freeze({
 		VIP = 2057345943,
 		WarmNest = 2061664509,
 	} :: { [string]: number }),
-	subscriptions = table.freeze({} :: { [string]: string }),
+	subscriptions = table.freeze({
+		SlimeClub = "EXP-8257242520182981195",
+	} :: { [string]: string }),
 })

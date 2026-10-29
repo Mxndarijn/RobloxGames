@@ -11,15 +11,18 @@
 	in its Guests list (friends let in, PlotGuests).
 
 	Plot attributes read (CONTRACT.md §5.2 + new ones, all optional):
-	  OwnerUserId  0 = free      -> LockSign shows no text
-	  LockUntil    server time   -> LockBarrier stopper / ParkedStopper + LockSign "LOCKED m:ss" / "UNLOCKED"
-	  Locked       boolean (§8.4) -> used only when LockUntil is missing
+	  OwnerUserId    0 = free
+	  LockUntil      server time   -> LockBarrier stopper / ParkedStopper and the door looks
+	  Locked         boolean (§8.4) -> used only when LockUntil is missing
 	Rebirths never change the base.
 
-	PlotDecor.locked(lockUntil, now) / clock(seconds) are pure
+	`opts.door = false` leaves the door looks (StopperShut / StopperParked meshes, DoorRing) alone: LockMotion moves
+	them while it plays a lock or an open.
+
+	PlotDecor.locked(lockUntil, now) is pure
 	(Lune-safe, used by the render proof).
-	PlotDecor.apply builds its SurfaceGuis on first use and only writes
-	properties that changed, so calling it every frame is cheap.
+	PlotDecor.apply only writes properties that changed, so calling it every
+	frame is cheap.
 ]]
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
@@ -31,9 +34,6 @@ local MeshAssets = if script
 local PlotDecor = {}
 
 PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
-PlotDecor.UNLOCKED_COLOR = { 90, 220, 110 }
-PlotDecor.FREE_COLOR = { 255, 205, 60 }
-PlotDecor.SIGN_MAX_DISTANCE = 150 -- studs: thieves read LOCKED and the timer from across the path
 -- The locked door as the plot's owner and its guests see it: they pass through it, so it shows half see-through.
 PlotDecor.OWNER_DOOR_TRANSPARENCY = 0.5
 
@@ -43,11 +43,6 @@ function PlotDecor.locked(lockUntil: number?, now: number): (boolean, number)
 		return true, remaining
 	end
 	return false, 0
-end
-
-function PlotDecor.clock(seconds: number): string
-	local s = math.max(0, math.ceil(seconds))
-	return string.format("%d:%02d", s // 60, s % 60)
 end
 
 local function rgb(c: { number }): Color3
@@ -66,50 +61,15 @@ local function show(part: Instance?, visible: boolean, transparency: number?)
 	end
 end
 
--- SurfaceGui (Face Front) with one TextLabel per line, stacked top-down.
-local function labels(part: Instance, rows: { number }): { TextLabel }
-	local gui = part:FindFirstChild("DecorGui")
-	if not gui then
-		local g = Instance.new("SurfaceGui")
-		g.Name = "DecorGui"
-		g.Face = Enum.NormalId.Front
-		g.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		g.PixelsPerStud = 40
-		g.LightInfluence = 0
-		g.MaxDistance = PlotDecor.SIGN_MAX_DISTANCE
-		local y = 0
-		for k, height in rows do
-			local l = Instance.new("TextLabel")
-			l.Name = `Line{k}`
-			l.BackgroundTransparency = 1
-			l.Position = UDim2.fromScale(0.04, y)
-			l.Size = UDim2.fromScale(0.92, height)
-			l.TextScaled = true
-			l.Font = Enum.Font.FredokaOne
-			l.TextColor3 = Color3.new(1, 1, 1)
-			l.TextStrokeTransparency = 0.4
-			l.Text = ""
-			l.Parent = g
-			y += height
-		end
-		g.Parent = part
-		gui = g
-	end
-	local out = {}
-	for k in rows do
-		out[k] = (gui :: Instance):FindFirstChild(`Line{k}`) :: TextLabel
-	end
-	return out
-end
-
 -- The swapped mesh under a jar tower look slot (server/MeshSwap names it "Mesh"), or nil before it lands.
-local function lookMesh(plot: Instance, name: string): BasePart?
+function PlotDecor.lookMesh(plot: Instance, name: string): BasePart?
 	local slot = plot:FindFirstChild(name)
 	local mesh = slot and slot:FindFirstChild("Mesh")
 	return if mesh and mesh:IsA("BasePart") then mesh else nil
 end
+local lookMesh = PlotDecor.lookMesh
 
-local function applyLock(plot: Instance, owned: boolean, locked: boolean, remaining: number, mine: boolean)
+local function applyLock(plot: Instance, owned: boolean, locked: boolean, mine: boolean, doorLooks: boolean)
 	local shut = owned and locked
 	local door = if mine then PlotDecor.OWNER_DOOR_TRANSPARENCY else nil
 	local barrier = plot:FindFirstChild("LockBarrier")
@@ -122,30 +82,14 @@ local function applyLock(plot: Instance, owned: boolean, locked: boolean, remain
 		end
 	end
 	show(plot:FindFirstChild("ParkedStopper"), not shut and meshes == nil)
-	if meshes then
+	if meshes and doorLooks then
 		show(meshes, shut, door)
 		show(lookMesh(plot, "StopperParked"), not shut)
 	end
 	local ring = lookMesh(plot, "DoorRing")
-	if ring then
-		set(ring, "Color", if shut then rgb(PlotDecor.LOCKED_COLOR) else rgb(PlotDecor.RING_COLOR))
+	if ring and doorLooks then
+		set(ring, "Color", PlotDecor.ringColor(shut))
 	end
-	local sign = plot:FindFirstChild("LockSign")
-	if not sign then
-		return
-	end
-	local color = if not owned
-		then PlotDecor.FREE_COLOR
-		elseif locked then PlotDecor.LOCKED_COLOR
-		else PlotDecor.UNLOCKED_COLOR
-	local lamp = sign:FindFirstChild("Lamp")
-	if lamp and lamp:IsA("BasePart") then
-		set(lamp, "Color", rgb(color))
-	end
-	local lines = labels(sign, { 0.55, 0.45 })
-	set(lines[1], "Text", if not owned then "" elseif locked then "LOCKED" else "UNLOCKED")
-	set(lines[1], "TextColor3", rgb(color))
-	set(lines[2], "Text", if not owned then "" elseif locked then PlotDecor.clock(remaining) else "stealable!")
 end
 
 -- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15) ---------------------------------
@@ -291,16 +235,38 @@ function PlotDecor.passes(plot: Instance, owner: any, viewerUserId: number?): bo
 	return type(guests) == "string" and string.find(guests, `,{viewerUserId},`, 1, true) ~= nil
 end
 
--- Applies every cosmetic of one Plot_<i> model for server time `now`, as player `viewerUserId` sees it.
-function PlotDecor.apply(plot: Instance, now: number, viewerUserId: number?)
+export type Lock = { owned: boolean, locked: boolean, shut: boolean, see: boolean }
+
+-- A plot's lock as player `viewerUserId` sees it at server time `now`: `shut` = the door is shut (owned and locked),
+-- `see` = the viewer walks through it, so the shut door shows half see-through to them.
+function PlotDecor.lockOf(plot: Instance, now: number, viewerUserId: number?): Lock
 	local owner = plot:GetAttribute("OwnerUserId")
 	local owned = type(owner) == "number" and owner ~= 0
 	local lockUntil = plot:GetAttribute("LockUntil")
-	local locked, remaining = PlotDecor.locked(if type(lockUntil) == "number" then lockUntil else 0, now)
+	local locked = PlotDecor.locked(if type(lockUntil) == "number" then lockUntil else 0, now)
 	if type(lockUntil) ~= "number" and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) == true then
 		locked = true
 	end
-	applyLock(plot, owned, locked, remaining, owned and PlotDecor.passes(plot, owner, viewerUserId))
+	return {
+		owned = owned,
+		locked = locked,
+		shut = owned and locked,
+		see = owned and PlotDecor.passes(plot, owner, viewerUserId),
+	}
+end
+
+-- The door's lock ring colour: red while shut, brass while open.
+function PlotDecor.ringColor(shut: boolean): Color3
+	return rgb(if shut then PlotDecor.LOCKED_COLOR else PlotDecor.RING_COLOR)
+end
+
+export type Options = { door: boolean? }
+
+-- Applies every cosmetic of one Plot_<i> model for server time `now`, as player `viewerUserId` sees it.
+function PlotDecor.apply(plot: Instance, now: number, viewerUserId: number?, opts: Options?)
+	local lock = PlotDecor.lockOf(plot, now, viewerUserId)
+	local doorLooks = opts == nil or opts.door ~= false
+	applyLock(plot, lock.owned, lock.locked, lock.see, doorLooks)
 end
 
 return table.freeze(PlotDecor)

@@ -1,5 +1,5 @@
 --!strict
--- The tutorial notice cards in the top banner stack (src/ui/TutorialCard.luau): the step card, tap to shrink,
+-- The tutorial notice cards above the hotbar (src/ui/TutorialCard.luau): the step card, tap to shrink,
 -- the mint done card between steps and the "Tutorial done" card at the end.
 local TestRunner = require("../TestRunner")
 local Tutorial = require("../../src/ui/Tutorial")
