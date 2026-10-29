@@ -325,30 +325,47 @@ end
 -- Ends any carry without a deposit (CarryDrop.release: wild lands at `position`, the boss lies there, stolen escapes).
 Carry.release = CarryDrop.release
 
---[[
-	Swaps a dropped slime's straight walk back for the `route` the server's
-	pathfinding found (ParadeLane.reroute: round walls, through doorways, down
-	stairs). Only the walk planned at `startAt` (a later drop has its own),
-	only once, and only while it has barely started (REROUTE_GRACE). Its lane
-	times follow the longer walk. False when nothing changed.
-]]
-function Carry.reroute(world: World, slimeId: string, startAt: number, route: { number }, now: number): boolean
+-- The walk back planned at `startAt` for a slime nobody carries, or nil (a later drop has its own, or it arrived).
+local function walking(world: World, slimeId: string, startAt: number, now: number): (World.Wild?, ParadeLane.Return?)
 	local wild = world.wild[slimeId]
 	local plan = wild and wild.returning
-	if
-		not wild
-		or not plan
-		or plan.startAt ~= startAt
-		or plan.route ~= nil
-		or world.carriedBy[slimeId] ~= nil
-		or now > plan.startAt + ParadeLane.REROUTE_GRACE
-		or #route < 2
-	then
+	if not wild or not plan or plan.startAt ~= startAt or world.carriedBy[slimeId] ~= nil or now >= plan.arriveAt then
+		return nil, nil
+	end
+	return wild, plan
+end
+
+--[[
+	Swaps a dropped slime's walk back for `route` (ParadeLane.reroute): the path the server found round walls, off a
+	ledge, through doorways, or a new one when something got in its way. Any time while it walks, as often as needed:
+	`route` starts with the points it already walked (ParadeLane.walkedRoute), so it carries on from where it is.
+	Only the walk planned at `startAt`, never a carried slime. Its lane times follow the new length. False when
+	nothing changed.
+]]
+function Carry.replan(world: World, slimeId: string, startAt: number, route: { number }, now: number): boolean
+	local wild, plan = walking(world, slimeId, startAt, now)
+	if not wild or not plan or #route < 2 then
 		return false
 	end
 	local walk = ParadeLane.reroute(plan, route)
 	wild.returning = walk
 	wild.spawnedAt, wild.expiresAt = ParadeLane.rejoin(walk.s, Fountain.wildLifetime(wild.slime), walk.arriveAt)
+	return true
+end
+
+--[[
+	A slime with no way back (boxed in, nothing clear to walk) stops walking and is on the lane at once, at the merge
+	point its walk was headed for (the adapter puffs it away and back). Same rules as replan. False when nothing
+	changed.
+]]
+function Carry.pop(world: World, slimeId: string, startAt: number, now: number): boolean
+	local wild, plan = walking(world, slimeId, startAt, now)
+	if not wild or not plan then
+		return false
+	end
+	wild.returning = nil
+	wild.position = nil
+	wild.spawnedAt, wild.expiresAt = ParadeLane.rejoin(plan.s, Fountain.wildLifetime(wild.slime), now)
 	return true
 end
 

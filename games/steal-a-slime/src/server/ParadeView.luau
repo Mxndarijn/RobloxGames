@@ -18,10 +18,11 @@
 	  (drops, landings) pass through. Glossy goo in the slide's water colour
 	  (ParadeLane.COLOR). Idempotent.
 
-	ParadeView.splash(effects): Instance?
+	ParadeView.splash(effects, at?): Instance?
 	  The goo splash at the drain when a lane slime leaves (World event
-	  "Drained"): Visuals.Effects' "Eruption" goo puffs on a short burst,
-	  cleaned up with Debris. nil without Effects.
+	  "Drained"), or at `at` (a slime with no way back popping onto the lane):
+	  Visuals.Effects' "Eruption" goo puffs on a short burst, cleaned up with
+	  Debris. nil without Effects.
 ]]
 
 local Debris = game:GetService("Debris")
@@ -112,7 +113,7 @@ function ParadeView.place(load: ((string) -> MeshPart?)?): Folder?
 	return folder
 end
 
-function ParadeView.splash(effects: any): Instance?
+function ParadeView.splash(effects: any, at: Vector3?): Instance?
 	if not effects or type(effects.emitter) ~= "function" then
 		return nil
 	end
@@ -127,7 +128,7 @@ function ParadeView.splash(effects: any): Instance?
 	holder.CanTouch = false
 	holder.CastShadow = false
 	-- The preset blows along local +X (the Crater cylinder's up): turn +X to world up.
-	holder.CFrame = CFrame.new(d.x, d.lipY, d.z) * CFrame.Angles(0, 0, math.pi / 2)
+	holder.CFrame = CFrame.new(at or Vector3.new(d.x, d.lipY, d.z)) * CFrame.Angles(0, 0, math.pi / 2)
 	local emitter = effects.emitter(ParadeView.SPLASH_EMITTER) :: ParticleEmitter
 	emitter.Rate = ParadeView.SPLASH_COUNT / ParadeView.SPLASH_SECONDS
 	emitter.Parent = holder

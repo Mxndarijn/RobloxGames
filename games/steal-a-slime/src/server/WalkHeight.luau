@@ -6,8 +6,8 @@
 	(WorldView) finds the ground under the slime's next spot with a ray from STEP_UP above its height down to
 	RAY_DEPTH, and passes it here (nil = nothing below).
 
-	* A step: ground at most STEP_DOWN below, or anything above (stairs, ramps, a curb): the slime eases onto it at
-	  Y_RATE, so it never snaps over an edge.
+	* A step: ground at most STEP_DOWN below, or anything above (stairs, ramps, a curb): the slime eases onto it (down
+	  at Y_RATE, up at the quicker UP_RATE), so it never snaps over an edge.
 	* A ledge: ground more than STEP_DOWN below (off the fountain, a jar roof, a bridge): it falls with GRAVITY while
 	  it keeps walking, so it drops off the edge in an arc, and lands on that ground.
 	* Nothing below (off the map's edge): it keeps its height.
@@ -18,7 +18,8 @@ local WalkHeight = {}
 WalkHeight.STEP_UP = 3 -- studs above its height the ground ray starts (steps and ramps it walks up)
 WalkHeight.STEP_DOWN = 1.5 -- studs: ground further below than this is a ledge it falls off
 WalkHeight.RAY_DEPTH = 300 -- studs below its height the ground ray looks (the fountain crown is under 50 up)
-WalkHeight.Y_RATE = 10 -- 1 / s: how fast its height follows a step
+WalkHeight.Y_RATE = 10 -- 1 / s: how fast its height follows a step down
+WalkHeight.UP_RATE = 30 -- 1 / s: and a step up (quick, or its body clips the step's edge while it rises)
 WalkHeight.GRAVITY = 140 -- studs / s^2 it falls with (characters fall at 196; a slime drops a little softer)
 
 export type State = {
@@ -48,7 +49,8 @@ function WalkHeight.step(state: State, ground: number?, dt: number): State
 		end
 		return { y = y, vy = vy }
 	end
-	return { y = state.y + (ground - state.y) * math.min(1, dt * WalkHeight.Y_RATE), vy = 0 }
+	local rate = if ground > state.y then WalkHeight.UP_RATE else WalkHeight.Y_RATE
+	return { y = state.y + (ground - state.y) * math.min(1, dt * rate), vy = 0 }
 end
 
 return WalkHeight

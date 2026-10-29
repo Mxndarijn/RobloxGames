@@ -59,6 +59,7 @@ local MoveWatch = require(script.Parent.MoveWatch)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
+local ParadeView = require(script.Parent.ParadeView)
 local Perks = require(ReplicatedStorage.Shared.Perks)
 local PetSeats = require(ReplicatedStorage.Shared.PetSeats)
 local PlotBases = require(ReplicatedStorage.Shared.PlotBases)
@@ -86,6 +87,7 @@ local StealGhost = require(script.Parent.StealGhost)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
 local VatView = require(script.Parent.VatView)
 local WalkHeight = require(script.Parent.WalkHeight)
+local WalkRoute = require(script.Parent.WalkRoute)
 local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 local WorldProps = require(script.Parent.WorldProps)
@@ -624,16 +626,39 @@ local function followBoss(id: string, key: string, wild: World.Wild)
 	end)
 end
 
+WorldView.FRONT_TURNS = table.freeze({ 0, math.rad(50), -math.rad(50) }) -- where round its front a step up counts
+
 -- Ground height under a returning slime at (x, z), searched from WalkHeight.STEP_UP over its height `y` down to
 -- RAY_DEPTH under it, easing onto the goo crown (LANE_Y) over its last lane width so it hands over to the lane pose
--- without a step. nil where there is no ground. WalkHeight turns it into a step or a fall off a ledge.
-local function walkGround(plan: ParadeLane.Return, x: number, z: number, y: number, now: number): number?
+-- without a step. nil where there is no ground. WalkHeight turns it into a step or a fall off a ledge. A step up
+-- under its front (`reach` studs out along its heading hx, hz, and turned FRONT_TURNS either way) counts already: its
+-- body meets the step's edge before its middle does. A drop under its front does not: it walks off a ledge with its
+-- middle.
+local function walkGround(
+	plan: ParadeLane.Return,
+	x: number,
+	z: number,
+	y: number,
+	now: number,
+	hx: number,
+	hz: number,
+	reach: number
+): number?
 	local up = WalkHeight.STEP_UP
 	local ground = surfaceBelow(Vector3.new(x, y + up, z), up + WalkHeight.RAY_DEPTH)
 	if not ground then
 		return nil
 	end
 	local target = ground.Y
+	-- its front and its front corners (a step's edge met at an angle)
+	for _, turn in WorldView.FRONT_TURNS do
+		local c, sn = math.cos(turn), math.sin(turn)
+		local fx, fz = hx * c - hz * sn, hx * sn + hz * c
+		local front = surfaceBelow(Vector3.new(x + fx * reach, y + up, z + fz * reach), up + WalkHeight.STEP_DOWN)
+		if front and front.Y > target then
+			target = front.Y
+		end
+	end
 	local left = plan.length - ParadeLane.returnTravelled(now - plan.startAt, plan.speed)
 	local onto = 1 - math.clamp(left / (2 * ParadeLane.HALF_WIDTH), 0, 1)
 	return target + (ParadeLane.LANE_Y - target) * onto * onto * (3 - 2 * onto)
@@ -654,9 +679,187 @@ local function returnStart(wild: World.Wild, plan: ParadeLane.Return): CFrame
 	return returnCFrame(plan, if ground then ground.Y else ParadeLane.LANE_Y, plan.startAt)
 end
 
+-- The walk back's route (contract/slime-walk.md, server/WalkRoute): the engine's path sized to the slime, every leg
+-- checked with a body sweep, a drop off a ledge from a roof or the fountain, a new route when something gets in its
+-- way, and a pop onto the lane when there is no way back.
+WorldView.PATH_AGENT = table.freeze({
+	AgentRadius = 1.5, -- at least; a bigger slime's own radius
+	AgentHeight = 4, -- at least; a taller slime's height plus a little (no path under a table top it doesn't fit under)
+	AgentCanJump = false, -- a slime can't jump: a path may not hop over a rail or onto a ledge (off the slide: down its trough)
+	AgentCanClimb = false,
+	WaypointSpacing = 4,
+})
+WorldView.PATH_WIDEN = 2 -- studs added to the agent's radius for a second search when the first one cut a corner
+WorldView.CLEAR_LOW = 1.6 -- studs over its feet the body sweep starts: anything lower (curbs) it steps over
+WorldView.CLEAR_SHARE = 0.7 -- the sweep's radius as a share of the body's (it may brush a corner, not go through)
+WorldView.GUARD_INTERVAL = 0.2 -- s between looks ahead while it walks
+WorldView.GUARD_AHEAD = 0.6 -- s of its walk it looks ahead
+WorldView.GUARD_QUIET = 1 -- s after a new route before it looks again
+WorldView.GUARD_END = 6 -- studs before the end of its walk it stops looking (merging onto the lane)
+
+local sweepCache: { params: RaycastParams, builtAt: number }? = nil
+
+-- What a body sweep ignores: what the ground rays ignore (slimes, characters, triggers) and the lock barriers
+-- (pass-through for slimes, setBarrierSolid). Built at most once per GROUND_PARAMS_TTL.
+local function sweepParams(): RaycastParams
+	local clock = os.clock()
+	local cached = sweepCache
+	if cached and clock - cached.builtAt < WorldView.GROUND_PARAMS_TTL then
+		return cached.params
+	end
+	local exclude = groundParams().FilterDescendantsInstances
+	local plots = workspace:FindFirstChild(Constants.PLOTS_FOLDER)
+	for _, plot in if plots then plots:GetChildren() else {} do
+		local barrier = plot:FindFirstChild("LockBarrier")
+		if barrier then
+			table.insert(exclude, barrier)
+		end
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.RespectCanCollide = true
+	params.FilterDescendantsInstances = exclude
+	sweepCache = { params = params, builtAt = clock }
+	return params
+end
+
+local function toP(v: Vector3): WalkRoute.P
+	return { x = v.X, y = v.Y, z = v.Z }
+end
+
+local function toV(p: WalkRoute.P): Vector3
+	return Vector3.new(p.x, p.y, p.z)
+end
+
+-- The world as WalkRoute sees it, for a slime `id` (its body size).
+local function walkProbe(id: string): WalkRoute.Probe
+	local record = records[id]
+	local radius = if record then record.body.Size.X / 2 else WorldView.PATH_AGENT.AgentRadius
+	local tall = if record then record.body.Size.Y else WorldView.PATH_AGENT.AgentHeight
+	local sweep = math.max(0.5, radius * WorldView.CLEAR_SHARE)
+	local lift = Vector3.new(0, WorldView.CLEAR_LOW + sweep, 0)
+	local agent = table.clone(WorldView.PATH_AGENT) :: any
+	agent.AgentRadius = math.max(agent.AgentRadius, radius)
+	agent.AgentHeight = math.max(agent.AgentHeight, tall + 0.5)
+	local wideAgent = table.clone(agent) :: any
+	wideAgent.AgentRadius = agent.AgentRadius + WorldView.PATH_WIDEN
+	return {
+		ground = function(x: number, z: number, fromY: number): number?
+			local hit = surfaceBelow(Vector3.new(x, fromY, z), WalkHeight.RAY_DEPTH + WalkHeight.STEP_UP)
+			return if hit then hit.Y else nil
+		end,
+		clear = function(from: WalkRoute.P, to: WalkRoute.P): boolean
+			local a = toV(from) + lift
+			local dir = toV(to) + lift - a
+			if dir.Magnitude < 0.05 then
+				return true
+			end
+			return workspace:Spherecast(a, sweep, dir, sweepParams()) == nil
+		end,
+		path = function(from: WalkRoute.P, to: WalkRoute.P, wide: boolean): { WalkRoute.P }?
+			local path = PathfindingService:CreatePath(if wide then wideAgent else agent)
+			local ok = pcall(function()
+				path:ComputeAsync(toV(from), toV(to))
+			end)
+			if not ok or path.Status ~= Enum.PathStatus.Success then
+				return nil
+			end
+			local out = {}
+			local waypoints = path:GetWaypoints()
+			for k = 2, #waypoints do
+				table.insert(out, toP(waypoints[k].Position))
+			end
+			return out
+		end,
+	}
+end
+
+local effects: any = nil
+
+-- A goo puff at `at` (ParadeView.splash), for a slime that pops away and back onto the lane.
+local function poof(at: Vector3)
+	if effects == nil then
+		local visuals = ReplicatedStorage:FindFirstChild("Visuals")
+		local module = visuals and visuals:FindFirstChild("Effects")
+		local ok, loaded = false, nil
+		if module and module:IsA("ModuleScript") then
+			ok, loaded = pcall(require, module)
+		end
+		effects = if ok then loaded else false
+	end
+	if effects then
+		ParadeView.splash(effects, at)
+	end
+end
+
+local planning: { [string]: boolean } = {} -- slime ids with a route search running
+
+--[[
+	Finds a route (WalkRoute.plan) for slime `id` on the walk planned at `startAt`, from foot spot `from`, and swaps it
+	in from where the slime is by then (ParadeLane.walkedRoute + Carry.replan). `lead` (JarRoute's tower leg, world x,
+	z) comes first when given, and `from` is where it ends. No route and no lead: it pops onto the lane (Carry.pop)
+	with a puff where it was and where it lands. One search per slime at a time.
+]]
+local function planWalk(world: World.World, id: string, startAt: number, from: Vector3, lead: { number }?)
+	if planning[id] then
+		return
+	end
+	planning[id] = true
+	task.spawn(function()
+		local ok, err = pcall(function(): string?
+			local wild = world.wild[id]
+			local plan = wild and wild.returning
+			if not plan or plan.startAt ~= startAt then
+				return nil
+			end
+			local goal = { x = plan.x1, y = ParadeLane.LANE_Y, z = plan.z1 }
+			-- up on the fountain or its slide there is no way down to walk: it pops (Fountain.upOn)
+			local points = if Fountain.upOn(from.X, from.Y, from.Z)
+				then nil
+				else WalkRoute.plan(toP(from), goal, walkProbe(id), {
+					speed = plan.speed,
+					gravity = WalkHeight.GRAVITY,
+					stepUp = WalkHeight.STEP_UP,
+					stepDown = WalkHeight.STEP_DOWN,
+				})
+			local now = workspace:GetServerTimeNow()
+			local current = world.wild[id] and world.wild[id].returning
+			if not current or current.startAt ~= startAt then
+				return nil -- grabbed, arrived or popped while it searched
+			end
+			if not points and not lead then
+				local x, z = ParadeLane.returnPose(current, now)
+				if Carry.pop(world, id, startAt, now) then
+					poof(Vector3.new(x, from.Y + 1, z))
+					poof(Vector3.new(current.x2, ParadeLane.LANE_Y + 1, current.z2))
+				end
+				return nil
+			end
+			local route = ParadeLane.walkedRoute(current, now)
+			if lead then
+				table.move(lead, 1, #lead, #route + 1, route)
+			end
+			-- the goal itself is left out: the walk's Bezier merges onto the lane from the last point
+			for k = 1, if points then #points - 1 else 0 do
+				local p = (points :: { WalkRoute.P })[k]
+				table.insert(route, p.x)
+				table.insert(route, p.z)
+			end
+			Carry.replan(world, id, startAt, route, now)
+			return nil
+		end)
+		planning[id] = nil
+		if not ok then
+			warn(`[Server] WorldView.planWalk {id}: {err}`)
+		end
+	end)
+end
+
 -- Walks a dropped slime back to the parade lane (contract/slime-walk.md): the server pivots it along
--- ParadeLane.returnPose every Heartbeat, on the ground under it, until its record changes (grabbed, or arrived:
--- Spawner clears wild.returning and the lane takes over) or the model is gone.
+-- ParadeLane.returnPose every Heartbeat, on the ground under it, until its record changes (grabbed, a new route, or
+-- arrived: Spawner clears wild.returning and the lane takes over) or the model is gone. Every GUARD_INTERVAL it
+-- looks GUARD_AHEAD along its walk with the body sweep; something in the way (a trap, a closed door, a wall) gets a
+-- new route from where it is (planWalk).
 WorldView.STEP_ASIDE_RATE = 4 -- 1 / s: how fast a walking slime steps round a slime or the boss in its way
 
 -- The other slime bodies near (x, z), for LaneTraffic.push.
@@ -674,11 +877,13 @@ local function bodiesNear(self: string, x: number, z: number, reach: number): { 
 	return out
 end
 
-local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0: number)
+local function followReturn(world: World.World, id: string, key: string, plan: ParadeLane.Return, y0: number)
 	task.spawn(function()
 		local height = WalkHeight.new(y0)
 		local dt = 0
 		local asideX, asideZ = 0, 0 -- steps round other slimes and the boss
+		local probe = walkProbe(id)
+		local nextLook = os.clock() + WorldView.GUARD_INTERVAL
 		while true do
 			local record = records[id]
 			if not record or record.key ~= key or not record.model.Parent then
@@ -687,6 +892,27 @@ local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0
 			if os.clock() >= record.rideUntil then
 				local now = workspace:GetServerTimeNow()
 				local x, z = ParadeLane.returnPose(plan, now)
+				-- Something in the way of its next steps: a new route from here.
+				local left = plan.length - ParadeLane.returnTravelled(now - plan.startAt, plan.speed)
+				if
+					os.clock() >= nextLook
+					and now >= plan.startAt
+					and left > WorldView.GUARD_END
+					and not WalkHeight.falling(height)
+					and not planning[id]
+				then
+					nextLook = os.clock() + WorldView.GUARD_INTERVAL
+					local ax, az = ParadeLane.returnPose(plan, now + WorldView.GUARD_AHEAD)
+					local ground =
+						surfaceBelow(Vector3.new(ax, height.y + WalkHeight.STEP_UP, az), WalkHeight.STEP_UP + 2)
+					local ahead = { x = ax, y = math.max(height.y, if ground then ground.Y else height.y), z = az }
+					-- a look that fails (no sweep where this runs) never stops the walk
+					local looked, clear = pcall(probe.clear, { x = x, y = height.y, z = z }, ahead)
+					if looked and not clear then
+						nextLook = os.clock() + WorldView.GUARD_QUIET
+						planWalk(world, id, plan.startAt, Vector3.new(x, height.y, z), nil)
+					end
+				end
 				-- Step round anything in the way, easing back onto the path once it is clear (gone by arrival).
 				local radius = record.body.Size.X / 2
 				local px, pz = LaneTraffic.push(x, z, radius, bodiesNear(id, x, z, radius + 12))
@@ -696,7 +922,9 @@ local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0
 				asideZ += (pz * fade - asideZ) * k
 				x, z = x + asideX, z + asideZ
 				-- steps and ramps eased, ledges fallen off (WalkHeight)
-				height = WalkHeight.step(height, walkGround(plan, x, z, height.y, now), dt)
+				local _, _, hx, hz = ParadeLane.returnPose(plan, now)
+				local ground = walkGround(plan, x, z, height.y, now, hx, hz, radius)
+				height = WalkHeight.step(height, ground, dt)
 				local cf = returnCFrame(plan, height.y, now)
 				record.model:PivotTo(cf + Vector3.new(asideX, 0, asideZ))
 			end
@@ -704,17 +932,6 @@ local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0
 		end
 	end)
 end
-
--- The walk back's path (contract/slime-walk.md): PathfindingService round walls, through doorways (the lock
--- barrier is pass-through, setBarrierSolid) and over bridges; JarRoute down a jar tower's spiral stair first, which
--- the navmesh can't see.
-WorldView.PATH_AGENT = table.freeze({
-	AgentRadius = 1.5,
-	AgentHeight = 4, -- above WalkHeight.STEP_UP: nothing over the path is low enough for the ground ray to land on
-	AgentCanJump = true,
-	AgentCanClimb = false,
-	WaypointSpacing = 4,
-})
 
 local function plotFrame(index: number): CFrame
 	local centre, yaw = WorldLayout.plotCentre(index)
@@ -753,38 +970,11 @@ local function towerLeg(at: Vector3): ({ number }?, Vector3?)
 	return nil, nil
 end
 
--- PathfindingService waypoints (world x, z) between `from` and `goal`, both ends left out; nil when there is no path.
-local function groundLeg(from: Vector3, goal: Vector3): { number }?
-	local path = PathfindingService:CreatePath(WorldView.PATH_AGENT :: any)
-	local ok = pcall(function()
-		path:ComputeAsync(from, goal)
-	end)
-	if not ok or path.Status ~= Enum.PathStatus.Success then
-		return nil
-	end
-	local waypoints = path:GetWaypoints()
-	local out = {}
-	for k = 2, #waypoints - 1 do
-		local p = waypoints[k].Position
-		append(out, p.X, p.Z)
-	end
-	return out
-end
-
--- Finds the path for a slime that was just dropped at `start` and swaps it in (Carry.reroute) while it falls.
+-- Finds the route for a slime that was just dropped at `start` (planWalk; the tower's stair first when it is on an
+-- upper floor) and swaps it in while it falls and starts walking.
 local function routeHome(world: World.World, id: string, plan: ParadeLane.Return, start: Vector3)
-	task.spawn(function()
-		local route: { number } = {}
-		local tower, foot = towerLeg(start)
-		if tower then
-			table.move(tower, 1, #tower, 1, route)
-		end
-		local ground = groundLeg(foot or start, Vector3.new(plan.x1, ParadeLane.LANE_Y, plan.z1))
-		if ground then
-			table.move(ground, 1, #ground, #route + 1, route)
-		end
-		Carry.reroute(world, id, plan.startAt, route, workspace:GetServerTimeNow())
-	end)
+	local tower, foot = towerLeg(start)
+	planWalk(world, id, plan.startAt, foot or start, tower)
 end
 
 -- An escaped slime glides home flat (eased, facing its pad), no arc.
@@ -1034,7 +1224,7 @@ local function place(world: World.World, record: Record, entry: Scene.Entry, pre
 			local walking = record.walking
 			record.walking = plan
 			if previous ~= nil and walking and walking.startAt == plan.startAt then
-				-- The same walk on its new path (Carry.reroute): finish the fall it was in, then walk.
+				-- The same walk on a new route (Carry.replan): finish the fall it was in, then walk on.
 				local left = fallUntil - os.clock()
 				if left > 0 then
 					record.rideUntil = os.clock() + left
@@ -1042,19 +1232,19 @@ local function place(world: World.World, record: Record, entry: Scene.Entry, pre
 						return from:Lerp(start, t)
 					end)
 				end
-				followReturn(entry.id, entry.key, plan, if left > 0 then start.Y else from.Y)
+				followReturn(world, entry.id, entry.key, plan, if left > 0 then start.Y else from.Y)
 			elseif previous ~= nil then
 				record.rideUntil = os.clock() + WorldView.FALL_SECONDS
 				animate(entry.id, entry.key, WorldView.FALL_SECONDS, function(t: number): CFrame
 					return from:Lerp(start, t * t)
 				end)
-				followReturn(entry.id, entry.key, plan, start.Y)
+				followReturn(world, entry.id, entry.key, plan, start.Y)
 				routeHome(world, entry.id, plan, start.Position)
 			else
 				local now = workspace:GetServerTimeNow()
 				local y = if now > plan.startAt then ParadeLane.LANE_Y else start.Y
 				model:PivotTo(returnCFrame(plan, y, now))
-				followReturn(entry.id, entry.key, plan, y)
+				followReturn(world, entry.id, entry.key, plan, y)
 			end
 			return true
 		end
