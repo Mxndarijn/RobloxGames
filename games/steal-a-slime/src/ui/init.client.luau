@@ -838,7 +838,13 @@ for _, entry in allPanels do
 		setOpen(nil)
 	end)
 end
-backdrop.Activated:Connect(function()
+Widgets.closeOnTapOutside(backdrop, function()
+	local cards = {}
+	for _, entry in allPanels do
+		table.insert(cards, entry.panel.frame)
+	end
+	return cards
+end, function()
 	setOpen(nil)
 end)
 

@@ -206,22 +206,77 @@ end)
 
 -- A menu card sits over a full-window backdrop button that closes the menu; a tap on the card (its rows,
 -- labels, padding) must stop at the card, so only a tap outside it or the X closes the menu.
+-- Active alone only stops taps reaching the 3D world; InputSink is what stops them at the card.
 describe("Menu cards block taps to the backdrop behind them", function()
+	local Activate = (require("@lune/roblox") :: any).Enum.InputSink.Activate
 	for _, key in { "Codes", "Dex", "Goals", "Guide", "Merge", "Rebirth", "Welcome" } do
-		it(`{key} card is Active`, function()
+		it(`{key} card sinks taps`, function()
 			local panel = UiHarness.ui(`Panels/{key}`).new(UiHarness.root(), ctx())
-			expect(panel.frame.Active).toBe(true)
+			expect(panel.frame.InputSink).toBe(Activate)
 		end)
 	end
 	for _, shopId in { "ItemShop", "UpgradeShop" } do
-		it(`{shopId} card is Active`, function()
+		it(`{shopId} card sinks taps`, function()
 			local panel = UiHarness.ui("Panels/WorldShop").new(UiHarness.root(), ctx())
 			panel.setShop(shopId)
-			expect(panel.frame.Active).toBe(true)
+			expect(panel.frame.InputSink).toBe(Activate)
 		end)
 	end
-	it("Daily reward card is Active", function()
+	it("Daily reward card sinks taps", function()
 		local popup = UiHarness.ui("Panels/DailyPopup").new(UiHarness.root(), ctx())
-		expect(UiHarness.find(popup.frame, "Card").Active).toBe(true)
+		expect(UiHarness.find(popup.frame, "Card").InputSink).toBe(Activate)
+	end)
+end)
+
+describe("A backdrop tap closes the menu only outside the card", function()
+	local Widgets = UiHarness.ui("Widgets")
+	local function setup()
+		local handlers = {}
+		local backdrop = {
+			Activated = {
+				Connect = function(_, fn)
+					table.insert(handlers, fn)
+				end,
+			},
+		}
+		local card = { Visible = true, AbsolutePosition = { X = 100, Y = 50 }, AbsoluteSize = { X = 200, Y = 300 } }
+		local closed = 0
+		Widgets.closeOnTapOutside(backdrop :: any, function()
+			return { card :: any }
+		end, function()
+			closed += 1
+		end)
+		local function tap(x: number?, y: number?)
+			for _, fn in handlers do
+				fn(if x then { Position = { X = x, Y = y } } else nil)
+			end
+		end
+		return card, tap, function()
+			return closed
+		end
+	end
+	it("a tap on the card keeps the menu open", function()
+		local _, tap, closed = setup()
+		tap(150, 200)
+		tap(100, 50) -- the corner counts as the card
+		expect(closed()).toBe(0)
+	end)
+	it("a tap outside the card closes the menu", function()
+		local _, tap, closed = setup()
+		tap(20, 200)
+		expect(closed()).toBe(1)
+		tap(150, 351)
+		expect(closed()).toBe(2)
+	end)
+	it("a hidden card does not keep the menu open", function()
+		local card, tap, closed = setup()
+		card.Visible = false
+		tap(150, 200)
+		expect(closed()).toBe(1)
+	end)
+	it("an Activated with no input (a gamepad press) still closes", function()
+		local _, tap, closed = setup()
+		tap()
+		expect(closed()).toBe(1)
 	end)
 end)
