@@ -1,7 +1,7 @@
 --!strict
 -- Plot kit meshes: MeshSwap fits a mesh to its slot box, so every slot must be
 -- the mesh's native size times one scale, turned with the plot. Also the plot
--- Sign (the name board on the LockSign's post).
+-- Sign (the plot's sign on its SignPost).
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -165,29 +165,32 @@ end)
 
 describe("plot sign", function()
 	it(
-		"puts the name board on the LockSign's post by the bridge, its Front face (the text face) out of the plot",
+		"puts the sign on its post by the bridge at eye level, its Front face (the drawn face) out of the plot",
 		function()
 			expect(PlotSigns.FACES).toEqual({ "Front" })
 			local board = WorldLayout.NAME_BOARD
-			local spot = WorldLayout.LOCK_SIGN_SPOT
+			local spot = WorldLayout.SIGN_SPOT
 			for i, plot in plots do
 				local _, yaw = WorldLayout.plotCentre(i)
 				local sign = child(plot, "Sign")
-				local lock = child(plot, "LockSign")
+				local post = child(plot, "SignPost")
 				local size = sign.size :: Vec
 				local p = toPlot(i, sign.pos :: Vec)
-				local q = toPlot(i, lock.pos :: Vec)
+				local q = toPlot(i, post.pos :: Vec)
+				local postSize = post.size :: Vec
 				expect(size[1]).toBeCloseTo(board.width)
 				expect(size[2]).toBeCloseTo(board.height)
 				expect(p[2]).toBeCloseTo(board.y)
-				-- invisible: only PlotSigns' round board draws, no square corners behind it
+				-- invisible: only the sign PlotSigns draws shows, no square board behind it
 				expect(sign.transparency).toBe(1)
-				-- right above the lock sign, over the moat in front of the jar, above a character's head
+				-- on its post (the post stands behind the board and reaches into it), over the moat in front of the jar
 				expect(p[1]).toBeCloseTo(q[1])
-				expect(p[3]).toBeCloseTo(q[3])
+				expect(p[3] < q[3]).toBe(true)
 				expect(p[1]).toBeCloseTo(spot[1] + 1.5)
-				expect(p[2] - size[2] / 2 >= q[2] + (lock.size :: Vec)[2] / 2).toBe(true)
-				expect(p[2] - size[2] / 2 >= BASE_TOP + 5).toBe(true)
+				expect(q[2] + postSize[2] / 2 > p[2] - size[2] / 2).toBe(true)
+				-- at eye level: off the ground, its top no higher than a player's head (about 5 studs up)
+				expect(p[2] - size[2] / 2 > BASE_TOP).toBe(true)
+				expect(p[2] + size[2] / 2 - BASE_TOP <= 5).toBe(true)
 				expect(math.abs(p[3]) > WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL).toBe(true)
 				-- Roblox's Front face is local -Z: it points out of the plot (plot-local -Z, the entrance side)
 				local rel = math.rad((sign.rot :: Vec)[2] - yaw)

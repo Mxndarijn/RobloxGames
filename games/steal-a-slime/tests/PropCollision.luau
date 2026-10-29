@@ -838,16 +838,7 @@ parts(
 	"on",
 	"lock button and its pedestal"
 )
-parts(
-	"plot_lock_sign",
-	"gojo",
-	16,
-	"off",
-	"Plots",
-	{ "^LockSign$", "^Post$" },
-	"off",
-	"0.5 stud post and a 0.3 thick sign: slim, in the plot front"
-)
+parts("plot_sign_post", "gojo", 8, "off", "Plots", { "^SignPost$" }, "off", "0.5 stud post: slim, in the plot front")
 parts(
 	"plot_lock_barrier",
 	"gojo",

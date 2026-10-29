@@ -1,12 +1,13 @@
 --!nocheck
--- Plot Signs: pure text from PlotSigns.lines and the ranch plank PlotSigns.ensure builds with @lune/roblox.
+-- Plot Signs: pure text from PlotSigns.lines and the mascot sign PlotSigns.ensure builds with @lune/roblox.
 local roblox = require("@lune/roblox")
 
+local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
+local MascotSign = require("../src/shared/MascotSign")
 local NumberFormat = require("../src/shared/NumberFormat")
 local PlayerData = require("../src/shared/PlayerData")
 local PlotSigns = require("../src/server/PlotSigns")
-local RanchSign = require("../src/shared/RanchSign")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -32,16 +33,6 @@ local function rgb(c)
 	return roblox.Color3.fromRGB(c[1], c[2], c[3])
 end
 
-local function texts(sign)
-	local out = {}
-	for _, d in sign:GetDescendants() do
-		if d:IsA("TextLabel") then
-			table.insert(out, d.Text)
-		end
-	end
-	return out
-end
-
 describe("PlotSigns.lines", function()
 	it("shows a placeholder on free plots, never blank", function()
 		local lines = PlotSigns.lines(3, nil)
@@ -58,6 +49,13 @@ describe("PlotSigns.lines", function()
 		expect(lines.stats).toBe(`{income}, 2 rebirths, 1 steal`)
 		expect(PlotSigns.lines(1, owner("Ann", nil, 1, 0)).stats).toBe("+$0/s, 1 rebirth, 0 steals")
 	end)
+	it(
+		"carries the owner's plot theme for the mascot (classic until another skin is unlocked); none on a free plot",
+		function()
+			expect(PlotSigns.lines(1, owner("Ann", nil, 0, 0)).skin).toBe(Config.PLOT_SKIN_DEFAULT)
+			expect(PlotSigns.lines(1, nil).skin).toBe(nil)
+		end
+	)
 	it("shows the income the HUD shows when the server passes it (carried slimes left out)", function()
 		local o = owner("Merijn", { Fixtures.slime("a", 3) }, 0, 0)
 		expect(PlotSigns.lines(1, o, 0).stats).toBe("+$0/s, 0 rebirths, 0 steals")
@@ -66,69 +64,74 @@ describe("PlotSigns.lines", function()
 end)
 
 describe("PlotSigns.apply", function()
-	it("adds a SurfaceGui with the plank's Title / Stats on the front (the board face) of a bare Sign", function()
+	local function face(sign)
+		return sign:FindFirstChild(PlotSigns.GUI_PREFIX .. "Front"):FindFirstChild(MascotSign.ROOT)
+	end
+
+	it("adds a SurfaceGui with the mascot sign on the front (the drawn face) of a bare Sign", function()
 		expect(PlotSigns.FACES).toEqual({ "Front" })
 		local sign = roblox.Instance.new("Part")
 		sign.Name = "Sign"
 		PlotSigns.apply(sign, PlotSigns.lines(2, nil), DEPS)
-		for _, face in PlotSigns.FACES do
-			local gui = sign:FindFirstChild(PlotSigns.GUI_PREFIX .. face)
-			expect(gui ~= nil).toBe(true)
-			expect(gui.Face).toBe(roblox.Enum.NormalId[face])
-			local plank = gui:FindFirstChild(RanchSign.PLANK)
-			expect(plank.Title.Text).toBe("Plot 2")
-			expect(plank.Stats.Text).toBe("Empty plot")
-			expect(plank.Title.Font).toBe(roblox.Enum.Font.LuckiestGuy)
-		end
+		local gui = sign:FindFirstChild(PlotSigns.GUI_PREFIX .. "Front")
+		expect(gui.Face).toBe(roblox.Enum.NormalId.Front)
+		expect(gui.MaxDistance).toBe(PlotSigns.MAX_DISTANCE)
+		local root = face(sign)
+		expect(root.Bar.Title.Text).toBe("Plot 2")
+		expect(root.Bar.Stats.Text).toBe("Empty plot")
 	end)
-	it("carves an owned plot's name in bright cream and a free plot's quieter", function()
+
+	it("puts a free plot's mascot to sleep and wakes it in the owner's theme colour", function()
 		local sign = roblox.Instance.new("Part")
 		PlotSigns.apply(sign, PlotSigns.lines(4, nil), DEPS)
-		local plank = sign[PlotSigns.GUI_PREFIX .. "Front"]:FindFirstChild(RanchSign.PLANK)
-		expect(plank.Title.TextColor3).toBe(rgb(RanchSign.COLORS.freeName))
-		PlotSigns.apply(sign, PlotSigns.lines(4, owner("Ann", nil, 0, 0)), DEPS)
-		expect(plank.Title.TextColor3).toBe(rgb(RanchSign.COLORS.name))
-		-- the name sits above the stats line, both inside the plank
-		local t, st = plank.Title, plank.Stats
-		expect(t.Position.Y.Scale + t.Size.Y.Scale <= st.Position.Y.Scale).toBe(true)
-		expect(st.Position.Y.Scale + st.Size.Y.Scale <= 1).toBe(true)
+		local root = face(sign)
+		expect(root.Mascot.Eye1.Visible).toBe(false)
+		expect(root.Mascot.Lid1.Visible).toBe(true)
+		expect(root.Zz.Visible).toBe(true)
+		expect(root.Paw1.BackgroundColor3).toBe(rgb(MascotSign.COLORS.asleep))
+		local owned = PlotSigns.lines(4, owner("Ann", nil, 0, 0))
+		PlotSigns.apply(sign, owned, DEPS)
+		expect(root.Mascot.Eye1.Visible).toBe(true)
+		expect(root.Mascot.Lid1.Visible).toBe(false)
+		expect(root.Zz.Visible).toBe(false)
+		expect(root.Paw1.BackgroundColor3).toBe(rgb(MascotSign.bodyColor(owned)))
+		expect(MascotSign.bodyColor(owned)).toEqual(
+			MascotSign.bodyColor({ title = "", stats = "", owned = true, skin = Config.PLOT_SKINS[1].id })
+		)
 	end)
+
+	it("dresses the mascot for each theme: its own colour and only that skin's extra", function()
+		local seen = {}
+		local sign = roblox.Instance.new("Part")
+		for _, skin in Config.PLOT_SKINS do
+			local lines = PlotSigns.lines(1, owner("Ann", nil, 0, 0))
+			lines.skin = skin.id
+			PlotSigns.apply(sign, lines, DEPS)
+			local root = face(sign)
+			expect(root.Paw1.BackgroundColor3).toBe(rgb(MascotSign.bodyColor(lines)))
+			for id, extra in MascotSign.EXTRAS do
+				expect(root[extra].Visible).toBe(id == skin.id)
+			end
+			local key = table.concat(MascotSign.bodyColor(lines), ",")
+			expect(seen[key]).toBe(nil) -- no two themes share a mascot colour
+			seen[key] = true
+		end
+	end)
+
+	it("keeps the mascot's eyes above the nameplate and the bar inside the face", function()
+		local B = MascotSign.BOX
+		local m = B.mascot
+		expect(m[2] + m[4] * B.eyeY < B.bar[2]).toBe(true)
+		expect(B.bar[2] + B.bar[4] <= 1).toBe(true)
+		expect(m[2] >= 0).toBe(true)
+	end)
+
 	it("updates in place when the owner changes (no duplicate guis)", function()
 		local sign = roblox.Instance.new("Part")
 		PlotSigns.apply(sign, PlotSigns.lines(1, nil), DEPS)
 		PlotSigns.apply(sign, PlotSigns.lines(1, owner("Ann", nil, 0, 0)), DEPS)
 		expect(#sign:GetChildren()).toBe(#PlotSigns.FACES)
-		local all = texts(sign)
-		expect(#all).toBe(2 * #PlotSigns.FACES)
-		for _, text in all do
-			expect(text ~= "" and text ~= "Plot 1" and text ~= "Empty plot").toBe(true)
-		end
-		expect(sign[PlotSigns.GUI_PREFIX .. "Front"]:FindFirstChild(RanchSign.PLANK).Title.Text).toBe("Ann's plot")
-	end)
-end)
-
-describe("RanchSign.plate", function()
-	it("is red with the padlock shut while locked, green with it lifted while open", function()
-		local gui = roblox.Instance.new("SurfaceGui")
-		local plate = RanchSign.plate(gui, DEPS, 6 / 2.6)
-		RanchSign.paintPlate(plate, DEPS, true, "1:37", "Locked")
-		expect(plate.plate.BackgroundColor3).toBe(rgb(RanchSign.COLORS.locked))
-		expect(plate.big.Text).toBe("1:37")
-		expect(plate.small.Text).toBe("Locked")
-		local shut = plate.shackle.Position
-		RanchSign.paintPlate(plate, DEPS, false, "Open", "stealable!")
-		expect(plate.plate.BackgroundColor3).toBe(rgb(RanchSign.COLORS.open))
-		expect(plate.big.Text).toBe("Open")
-		expect(plate.shackle.Position.Y.Scale < shut.Y.Scale).toBe(true)
-		-- built once: a second call finds the same plate
-		expect(RanchSign.plate(gui, DEPS, 6 / 2.6).plate).toBe(plate.plate)
-		expect(#gui:GetChildren()).toBe(1)
-	end)
-	it("hangs the plate under its chains, inside the face", function()
-		local B = RanchSign.PLATE_BOX
-		expect(B.plate[2] > 0 and B.plate[2] + B.plate[4] <= 1).toBe(true)
-		for _, x in B.chains do
-			expect(x > B.plate[1] and x < B.plate[1] + B.plate[3]).toBe(true)
-		end
+		expect(#sign:FindFirstChild(PlotSigns.GUI_PREFIX .. "Front"):GetChildren()).toBe(1)
+		expect(face(sign).Bar.Title.Text).toBe("Ann's plot")
 	end)
 end)

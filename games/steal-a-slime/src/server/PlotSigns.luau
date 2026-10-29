@@ -2,49 +2,47 @@
 --[[
 	PlotSigns (Roblox adapter + pure text)
 
-	Writes the owner and stats onto each plot's `Sign` part: the name plank of the ranch sign by the bridge
-	(shared/RanchSign; the lock plate hangs under it on the LockSign, drawn by each client). The static world
-	(world/Plots.rbxmx, WorldLayout.NAME_BOARD) ships the Sign as an invisible board with no SurfaceGui, so the server
-	adds one on its Front face (facing out of the jar) and draws the plank on it: the owner's name carved in, their
-	income, rebirths and steals under it; a free plot shows "Plot n" and "Empty plot". No Back face: it lies against
-	the glass. Server-side so the text replicates to every client.
+	Draws each plot's `Sign` by the bridge: the jar's slime mascot peeking over a glass nameplate with the owner's
+	name, income, rebirths and steals (shared/MascotSign). The mascot wears the owner's plot theme (PlotSkins);
+	a free plot shows "Plot n", "Empty plot" and a pale mascot asleep. The static world (world/Plots.rbxmx,
+	WorldLayout.NAME_BOARD) ships the Sign as an invisible board with no SurfaceGui, so the server adds one on its
+	Front face (facing out of the jar). Server-side so it replicates to every client.
 
-	PlotSigns.lines(plotIndex, owner?, income?) -> { title, stats, owned }   -- pure
-	PlotSigns.ensure(sign, deps?) -> { TextLabel }                  -- idempotent
+	PlotSigns.lines(plotIndex, owner?, income?) -> Lines            -- pure
+	PlotSigns.ensure(sign, deps?) -> MascotSign.Sign per face      -- idempotent
 	PlotSigns.apply(sign, lines, deps?)                             -- writes on change
 
-	`deps` (RanchSign.Deps) defaults to the Roblox globals; Lune tests pass @lune/roblox's.
+	`deps` (MascotSign.Deps) defaults to the Roblox globals; Lune tests pass @lune/roblox's.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local MascotSign = if Shared then require(Shared.MascotSign) else require("../shared/MascotSign")
 local NumberFormat = if Shared then require(Shared.NumberFormat) else require("../shared/NumberFormat")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
-local RanchSign = if Shared then require(Shared.RanchSign) else require("../shared/RanchSign")
-local WorldLayout = if Shared
-	then require(Shared.Parent.Visuals.WorldLayout)
-	else require("../visuals/shared/WorldLayout")
+local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 
-export type Lines = { title: string, stats: string, owned: boolean }
-export type Owner = { name: string, data: PlayerData.Data } -- reads slimes, rebirths, totalStolen
-type Deps = RanchSign.Deps
+export type Lines = MascotSign.Look
+export type Owner = { name: string, data: PlayerData.Data } -- reads slimes, rebirths, totalStolen, the plot skin
+type Deps = MascotSign.Deps
 
 local PlotSigns = {}
 
 PlotSigns.GUI_PREFIX = "SignGui"
 PlotSigns.FACES = table.freeze({ "Front" })
-PlotSigns.PIXELS_PER_STUD = RanchSign.PIXELS_PER_STUD
--- The name board's width / height (round nails).
-PlotSigns.ASPECT = WorldLayout.NAME_BOARD.width / WorldLayout.NAME_BOARD.height
+PlotSigns.PIXELS_PER_STUD = MascotSign.PIXELS_PER_STUD
+PlotSigns.MAX_DISTANCE = 250 -- studs: find a friend's plot from the plaza
 
 local function plural(n: number, word: string): string
 	return `{NumberFormat.short(n)} {word}{if n == 1 then "" else "s"}`
 end
 
 -- `income` is the owner's income per second as the HUD shows it (World.incomeOf); without it, the plot's
--- full income (PlayerData.incomePerSecond).
+-- full income (PlayerData.incomePerSecond). `skin` is the owner's plot theme (the default while
+-- FEATURES.PlotSkins is off).
 function PlotSigns.lines(plotIndex: number, owner: Owner?, income: number?): Lines
 	if not owner then
-		return { title = `Plot {plotIndex}`, stats = "Empty plot", owned = false }
+		return { title = `Plot {plotIndex}`, stats = "Empty plot", owned = false, skin = nil }
 	end
 	local data = owner.data
 	return {
@@ -54,6 +52,7 @@ function PlotSigns.lines(plotIndex: number, owner: Owner?, income: number?): Lin
 			"steal"
 		)}`,
 		owned = true,
+		skin = if Config.FEATURES.PlotSkins then PlotSkins.current(data) else Config.PLOT_SKIN_DEFAULT,
 	}
 end
 
@@ -69,11 +68,10 @@ local function defaults(): Deps
 	}
 end
 
--- Makes sure `sign` has a SurfaceGui with the plank and its Title / Stats labels on each face; returns every
--- label (Title, Stats per face).
-function PlotSigns.ensure(sign: Instance, deps: Deps?): { TextLabel }
+-- Makes sure `sign` has a SurfaceGui with the mascot sign on each face; returns each face's sign.
+function PlotSigns.ensure(sign: Instance, deps: Deps?): { MascotSign.Sign }
 	local d = deps or defaults()
-	local labels = {}
+	local out = {}
 	for _, face in PlotSigns.FACES do
 		local name = PlotSigns.GUI_PREFIX .. face
 		local gui = sign:FindFirstChild(name)
@@ -84,27 +82,25 @@ function PlotSigns.ensure(sign: Instance, deps: Deps?): { TextLabel }
 			created.SizingMode = d.Enum.SurfaceGuiSizingMode.PixelsPerStud
 			created.PixelsPerStud = PlotSigns.PIXELS_PER_STUD
 			created.LightInfluence = 0
+			created.MaxDistance = PlotSigns.MAX_DISTANCE
 			created.Parent = sign
 			gui = created
 		end
-		local plank = RanchSign.plank(gui, d, PlotSigns.ASPECT)
-		table.insert(labels, plank.title)
-		table.insert(labels, plank.stats)
+		table.insert(out, MascotSign.build(gui, d))
 	end
-	return labels
+	return out
 end
 
+PlotSigns.PAINTED_ATTRIBUTE = "Painted" -- on each SurfaceGui: the look last painted, so a reconcile that changes nothing writes nothing
+
 function PlotSigns.apply(sign: Instance, lines: Lines, deps: Deps?)
+	local key = `{lines.title}|{lines.stats}|{lines.owned}|{lines.skin or ""}`
 	local d = deps or defaults()
-	for _, text in PlotSigns.ensure(sign, d) do
-		local want = if text.Name == "Title" then lines.title else lines.stats
-		if text.Text == want then
-			continue
-		end
-		text.Text = want
-		if text.Name == "Title" then
-			local frame = text.Parent :: Instance
-			RanchSign.paintPlank({ frame = frame, title = text, stats = frame:FindFirstChild("Stats") }, d, lines.owned)
+	for i, face in PlotSigns.ensure(sign, d) do
+		local gui = sign:FindFirstChild(PlotSigns.GUI_PREFIX .. PlotSigns.FACES[i]) :: Instance
+		if gui:GetAttribute(PlotSigns.PAINTED_ATTRIBUTE) ~= key then
+			MascotSign.paint(face, d, lines)
+			gui:SetAttribute(PlotSigns.PAINTED_ATTRIBUTE, key)
 		end
 	end
 end

@@ -11,22 +11,18 @@
 	in its Guests list (friends let in, PlotGuests).
 
 	Plot attributes read (CONTRACT.md §5.2 + new ones, all optional):
-	  OwnerUserId    0 = free      -> no lock plate
-	  LockUntil      server time   -> LockBarrier stopper / ParkedStopper + the lock plate
+	  OwnerUserId    0 = free
+	  LockUntil      server time   -> LockBarrier stopper / ParkedStopper and the door looks
 	  Locked         boolean (§8.4) -> used only when LockUntil is missing
 	Rebirths never change the base.
-
-	The lock plate hangs from the name plank on the LockSign's Front face (shared/RanchSign): red with a shut padlock,
-	"Locked" and the time left; green with the padlock open, "stealable!" and "Open". A free plot shows no plate. It
-	is the only place other players see a lock's time.
 
 	`opts.door = false` leaves the door looks (StopperShut / StopperParked meshes, DoorRing) alone: LockMotion moves
 	them while it plays a lock or an open.
 
-	PlotDecor.locked(lockUntil, now) / clock(seconds) are pure
+	PlotDecor.locked(lockUntil, now) is pure
 	(Lune-safe, used by the render proof).
-	PlotDecor.apply builds its SurfaceGuis on first use and only writes
-	properties that changed, so calling it every frame is cheap.
+	PlotDecor.apply only writes properties that changed, so calling it every
+	frame is cheap.
 ]]
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
@@ -34,13 +30,10 @@ local Constants = if script then require(script.Parent.Parent.Shared.Constants) 
 local MeshAssets = if script
 	then require(script.Parent.Parent.Shared.MeshAssets)
 	else require("../../shared/MeshAssets")
-local RanchSign = if script then require(script.Parent.Parent.Shared.RanchSign) else require("../../shared/RanchSign")
-local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
 local PlotDecor = {}
 
 PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
-PlotDecor.UNLOCKED_COLOR = { 90, 220, 110 }
 -- The locked door as the plot's owner and its guests see it: they pass through it, so it shows half see-through.
 PlotDecor.OWNER_DOOR_TRANSPARENCY = 0.5
 
@@ -50,11 +43,6 @@ function PlotDecor.locked(lockUntil: number?, now: number): (boolean, number)
 		return true, remaining
 	end
 	return false, 0
-end
-
-function PlotDecor.clock(seconds: number): string
-	local s = math.max(0, math.ceil(seconds))
-	return string.format("%d:%02d", s // 60, s % 60)
 end
 
 local function rgb(c: { number }): Color3
@@ -73,52 +61,6 @@ local function show(part: Instance?, visible: boolean, transparency: number?)
 	end
 end
 
-PlotDecor.LOCK_PLATE_GUI = "LockPlate"
--- The LockSign's width / height, so the padlock and rim come out even.
-PlotDecor.LOCK_PLATE_ASPECT = WorldLayout.LOCK_SIGN.width / WorldLayout.LOCK_SIGN.height
-
-local function globals(): RanchSign.Deps
-	return {
-		Instance = Instance,
-		Enum = Enum,
-		UDim = UDim,
-		UDim2 = UDim2,
-		Color3 = Color3,
-		ColorSequence = ColorSequence,
-		ColorSequenceKeypoint = ColorSequenceKeypoint,
-	}
-end
-
--- The lock plate on `sign`'s Front face, built on first use.
-local function plate(sign: Instance): (SurfaceGui, RanchSign.Plate)
-	local gui = sign:FindFirstChild(PlotDecor.LOCK_PLATE_GUI) :: SurfaceGui?
-	if not gui then
-		local g = Instance.new("SurfaceGui")
-		g.Name = PlotDecor.LOCK_PLATE_GUI
-		g.Face = Enum.NormalId.Front
-		g.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		g.PixelsPerStud = RanchSign.PIXELS_PER_STUD
-		g.LightInfluence = 0
-		g.Parent = sign
-		gui = g
-	end
-	return gui :: SurfaceGui, RanchSign.plate(gui, globals(), PlotDecor.LOCK_PLATE_ASPECT)
-end
-
--- Draws the lock plate: none on a free plot (`owned` false), else locked with `remaining` s left, or open.
-local function applyPlate(sign: Instance, owned: boolean, locked: boolean, remaining: number)
-	local gui, p = plate(sign)
-	set(gui, "Enabled", owned)
-	if not owned then
-		return
-	end
-	if locked then
-		RanchSign.paintPlate(p, globals(), true, PlotDecor.clock(remaining), "Locked")
-	else
-		RanchSign.paintPlate(p, globals(), false, "Open", "stealable!")
-	end
-end
-
 -- The swapped mesh under a jar tower look slot (server/MeshSwap names it "Mesh"), or nil before it lands.
 function PlotDecor.lookMesh(plot: Instance, name: string): BasePart?
 	local slot = plot:FindFirstChild(name)
@@ -127,14 +69,7 @@ function PlotDecor.lookMesh(plot: Instance, name: string): BasePart?
 end
 local lookMesh = PlotDecor.lookMesh
 
-local function applyLock(
-	plot: Instance,
-	owned: boolean,
-	locked: boolean,
-	remaining: number,
-	mine: boolean,
-	doorLooks: boolean
-)
+local function applyLock(plot: Instance, owned: boolean, locked: boolean, mine: boolean, doorLooks: boolean)
 	local shut = owned and locked
 	local door = if mine then PlotDecor.OWNER_DOOR_TRANSPARENCY else nil
 	local barrier = plot:FindFirstChild("LockBarrier")
@@ -154,10 +89,6 @@ local function applyLock(
 	local ring = lookMesh(plot, "DoorRing")
 	if ring and doorLooks then
 		set(ring, "Color", PlotDecor.ringColor(shut))
-	end
-	local sign = plot:FindFirstChild("LockSign")
-	if sign then
-		applyPlate(sign, owned, locked, remaining)
 	end
 end
 
@@ -336,7 +267,7 @@ export type Options = { door: boolean? }
 function PlotDecor.apply(plot: Instance, now: number, viewerUserId: number?, opts: Options?)
 	local lock = PlotDecor.lockOf(plot, now, viewerUserId)
 	local doorLooks = opts == nil or opts.door ~= false
-	applyLock(plot, lock.owned, lock.locked, lock.remaining, lock.see, doorLooks)
+	applyLock(plot, lock.owned, lock.locked, lock.see, doorLooks)
 end
 
 return table.freeze(PlotDecor)

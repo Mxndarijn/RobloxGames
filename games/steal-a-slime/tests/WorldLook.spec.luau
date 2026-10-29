@@ -55,7 +55,7 @@ describe("decor rocks", function()
 end)
 
 describe("plot lock pieces", function()
-	it("builds the LockSign's Post and the LockButton Pedestal in wood; the LockSign board is invisible", function()
+	it("builds the SignPost and the LockButton Pedestal in wood", function()
 		local function child(n: any, name: string): any
 			for _, c in n.children or {} do
 				if c.name == name then
@@ -65,12 +65,9 @@ describe("plot lock pieces", function()
 			error(`no {name} under {n.name}`)
 		end
 		for _, plot in WorldLayout.build()[2].children do
-			local sign = child(plot, "LockSign")
-			for _, n in { child(sign, "Post"), child(child(plot, "LockButton"), "Pedestal") } do
+			for _, n in { child(plot, "SignPost"), child(child(plot, "LockButton"), "Pedestal") } do
 				expect(string.find(n.material, "Wood") ~= nil).toBe(true)
 			end
-			-- PlotDecor draws the round goo lock board on it: no square corners behind the board.
-			expect(sign.transparency).toBe(1)
 		end
 	end)
 end)

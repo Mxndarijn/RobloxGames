@@ -23,7 +23,7 @@
 	           glass wall + Lid, Moat, JarFloor, Bridge) with Pad_1..PADS_PER_FLOOR
 	           on its pad ring, HomeZone, MergeVat, LockButton, Sign (the
 	           plot's name board), Slimes folder, and the PlotDecor cosmetics
-	           (LockBarrier stopper, ParkedStopper, LockSign).
+	           (LockBarrier stopper, ParkedStopper); SignPost under the Sign.
 	           Upper jars come from WorldLayout.floor (server/BaseFloors)
 	Every Part is anchored (WorldBuilder forces it). PROP_SPOTS suggests
 	where Props go.
@@ -225,8 +225,8 @@ WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3, landSide = 2.8 })
 -- Jar 1's ground pieces (plot-local; angles as above). The bridge crosses the moat to the door. Floor 1's pads spread
 -- evenly from FLOOR1_PAD_ARC[1] to FLOOR1_PAD_ARC[2] degrees round from the door, leaving the front either side of the
 -- door free: the MergeVat and the LockButton stand there, one each side, the first things you see coming in (inside
--- and on the ground floor, so nobody camps an owner's button from outside). The LockSign (status) stands outside by the bridge with the plot's name
--- board (Sign, PlotSigns writes on its Front face) on the same post.
+-- and on the ground floor, so nobody camps an owner's button from outside). The plot's sign (Sign, PlotSigns draws on its
+-- Front face) stands outside by the bridge on its SignPost.
 -- Players spawn on the walkway between the stair and the pads, in front of the door.
 WorldLayout.BRIDGE_WIDTH = 10
 WorldLayout.FLOOR1_PAD_ARC = table.freeze({ 60, 300 })
@@ -236,12 +236,10 @@ WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ -11.27, -21.19 }) -- inside, right
 -- (PlotFloor), its look the goo_jar_foot mesh; the square Base part stays as the plot's anchor (invisible, never
 -- collides).
 WorldLayout.PLOT_FLOOR_RADIUS = 40
-WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
--- The plot sign by the bridge is one ranch sign (shared/RanchSign), 6 x 4.8 studs: the owner's name plank (Sign)
--- and right under it the LockSign, the lock plate hanging from the plank on two chains. Same width, so the two read
--- as one sign.
-WorldLayout.NAME_BOARD = table.freeze({ width = 6, height = 2.2, y = 9.9 })
-WorldLayout.LOCK_SIGN = table.freeze({ width = 6, height = 2.6, y = 7.48 }) -- chains + lock plate, just under the plank
+WorldLayout.SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
+-- The plot sign by the bridge (Sign, shared/MascotSign): the jar's mascot peeking over a glass nameplate, 6 x 3 studs,
+-- at eye level on a short post: its bottom a stud above the ground, its top just under a player's head.
+WorldLayout.NAME_BOARD = table.freeze({ width = 6, height = 3, y = 3.5 })
 -- Jar 1's door is a round plank door on two hinges on its left (-X). Locked, it sits shut in the doorway (StopperShut);
 -- open, it swings DOOR_SWING.angle degrees out of the jar round its hinge pin (StopperParked): past square, so it
 -- leans back over the moat on the hinge side and its far edge stays about a stud inside the plot's edge (a 90
@@ -1431,17 +1429,14 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local parked = disc("ParkedStopper", 2.6, WorldLayout.DOOR.width * 0.8, at({ px, 1.4, pz }), JAR_CORK, "Wood", yaw)
 	table.insert(nodes, ghost(parked))
 
-	-- Lock sign by the bridge, facing out of the plot (Front face); the post carries the name board (Sign) above it.
-	local bx, bz = WorldLayout.LOCK_SIGN_SPOT[1], WorldLayout.LOCK_SIGN_SPOT[2]
-	local postH = WorldLayout.NAME_BOARD.y + WorldLayout.NAME_BOARD.height / 2 - 1
-	local ls = WorldLayout.LOCK_SIGN
-	-- Invisible: PlotDecor draws the round goo lock board on its Front face, with no square corners behind it.
-	local lockSign =
-		ghost(block("LockSign", { ls.width, ls.height, 0.3 }, at({ bx + 1.5, ls.y, bz + 2.6 }), FENCE, "Wood", r), 1)
-	lockSign.children = {
-		ghost(block("Post", { 0.5, postH, 0.5 }, at({ bx + 1.5, 1 + postH / 2, bz + 3.0 }), FENCE, "Wood", r)),
-	}
-	table.insert(nodes, lockSign)
+	-- The sign's post by the bridge: from the ground up behind the nameplate (Sign), a stud into it.
+	local bx, bz = WorldLayout.SIGN_SPOT[1], WorldLayout.SIGN_SPOT[2]
+	local board = WorldLayout.NAME_BOARD
+	local postH = board.y - board.height / 2
+	table.insert(
+		nodes,
+		ghost(block("SignPost", { 0.5, postH, 0.5 }, at({ bx + 1.5, 1 + postH / 2, bz + 3.0 }), FENCE, "Wood", r))
+	)
 
 	return nodes
 end
@@ -2189,13 +2184,12 @@ local function plot(i: number): WorldNode
 	table.insert(children, button)
 	table.insert(children, jarLook("ButtonLook", "goo_lock_button", { bx, WorldLayout.floorTop(1), bz }, at, yaw))
 
-	-- Sign = the plot's name board on the LockSign's post by the bridge (PlotSigns writes on its Front face, out of
-	-- the plot).
+	-- Sign = the plot's sign on its SignPost by the bridge (PlotSigns draws on its Front face, out of the plot).
 	local board = WorldLayout.NAME_BOARD
-	local sx, sz = WorldLayout.LOCK_SIGN_SPOT[1] + 1.5, WorldLayout.LOCK_SIGN_SPOT[2] + 2.6
+	local sx, sz = WorldLayout.SIGN_SPOT[1] + 1.5, WorldLayout.SIGN_SPOT[2] + 2.6
 	local sign = block("Sign", { board.width, board.height, 0.3 }, at({ sx, board.y, sz }), SIGN, "WoodPlanks", r)
 	sign.canQuery = false
-	sign.transparency = 1 -- only the board PlotSigns draws shows: no square wooden corners behind its round ones
+	sign.transparency = 1 -- only the sign PlotSigns draws shows: no square board behind the mascot and nameplate
 	table.insert(children, sign)
 
 	for _, node in cosmetics(at, yaw) do
