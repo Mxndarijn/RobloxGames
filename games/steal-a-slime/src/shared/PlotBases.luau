@@ -4,8 +4,9 @@
 
 	Plot bases: the building a plot stands in (Config.PLOT_BASES, FEATURES.BaseShapes, CONTRACT.md §44), chosen
 	apart from the plot skin (the colours, PlotSkins). The goo jar tower is everyone's; the other bases unlock at a
-	rebirth count (`rebirths`). The equipped base is data.plotBase; `equip` refuses a locked base and `current` never
-	returns one, so a base saved before its rebirths shows the jar until the player gets there.
+	rebirth count (`rebirths`), or, for an Exclusive base, once bought (Base_<id>, data.ownedStyles.plotBase; rebirths
+	never unlock it). The equipped base is data.plotBase; `equip` refuses a locked base and `current` never returns
+	one, so a base saved before its rebirths, or no longer owned, shows the jar.
 	Pure: no Roblox APIs.
 ]]
 
@@ -17,9 +18,12 @@ type Data = PlayerData.Data
 export type View = {
 	id: string,
 	name: string,
-	rebirths: number, -- rebirths that unlock it (0 = everyone)
+	rebirths: number, -- rebirths that unlock it (0 = everyone or an Exclusive base)
 	unlocked: boolean,
 	equipped: boolean,
+	exclusive: boolean?, -- sold in the Exclusive Shop, never earned
+	productKey: string?, -- an Exclusive base's product ("Base_<id>")
+	robux: number?, -- an Exclusive base's price
 }
 
 local PlotBases = {}
@@ -38,7 +42,13 @@ function PlotBases.get(id: any): Config.PlotBase?
 	return nil
 end
 
+-- An Exclusive base is unlocked once bought (data.ownedStyles.plotBase); the others by rebirths.
 function PlotBases.unlocked(data: Data, base: Config.PlotBase): boolean
+	if base.exclusive then
+		local owned = (data :: any).ownedStyles
+		local list = if type(owned) == "table" then owned.plotBase else nil
+		return type(list) == "table" and table.find(list, base.id) ~= nil
+	end
 	return (data.rebirths or 0) >= (base.rebirths or 0)
 end
 
@@ -74,6 +84,9 @@ function PlotBases.view(data: Data): { View }
 			rebirths = base.rebirths or 0,
 			unlocked = PlotBases.unlocked(data, base),
 			equipped = base.id == equipped,
+			exclusive = if base.exclusive then true else nil,
+			productKey = if base.exclusive then `Base_{base.id}` else nil,
+			robux = if base.exclusive then base.robux else nil,
 		})
 	end
 	return out

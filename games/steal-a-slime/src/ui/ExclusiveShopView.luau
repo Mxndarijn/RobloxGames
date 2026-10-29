@@ -39,6 +39,7 @@ export type Kind =
 	| "lockStyle"
 	| "hat"
 	| "plotSkin"
+	| "plotBase"
 	| "product"
 	| "pass"
 	| "subscription"
@@ -137,6 +138,8 @@ ExclusiveShopView.LOCK_TEXT =
 	"A new look for the plug that closes your base when you lock it. It locks exactly the same."
 ExclusiveShopView.HAT_TEXT = "Every slime on your pads wears it. A slime that leaves your pads takes it off."
 ExclusiveShopView.SKIN_TEXT = "Dresses your whole goo jar tower. Pick it in Skins, Base tab."
+ExclusiveShopView.BASE_TEXT =
+	"A new building for your plot, with the same pads, floors and door. Any base skin fits. Pick it in Skins, Base tab."
 ExclusiveShopView.UNEQUIP_STYLE = "Take off"
 ExclusiveShopView.SEASON_BACK = "Only in its season. Back next year."
 ExclusiveShopView.TRAIL_TEXT = "Streams behind you while you carry a slime. Everyone can see it."
@@ -385,14 +388,14 @@ local function seatCard(state: any, shop: any, config: any, id: string): Card
 	}
 end
 
--- Config.EXCLUSIVE_SHOP.trails / batSkins / fanfares / lockStyles / hats entries, or the Exclusive plot skins.
+-- Config.EXCLUSIVE_SHOP.trails / batSkins / fanfares / lockStyles / hats entries, or the Exclusive plot skins / bases.
 local function styleDefs(config: any, kind: string): { any }
 	local cat = catalogueOf(config)
-	if kind == "plotSkin" then
+	if kind == "plotSkin" or kind == "plotBase" then
 		local out = {}
-		for _, skin in config.PLOT_SKINS or {} do
-			if skin.exclusive then
-				table.insert(out, skin)
+		for _, def in (if kind == "plotSkin" then config.PLOT_SKINS else config.PLOT_BASES) or {} do
+			if def.exclusive then
+				table.insert(out, def)
 			end
 		end
 		return out
@@ -409,7 +412,7 @@ local function styleDefs(config: any, kind: string): { any }
 end
 
 -- Owned / worn of a style kind in State.exclusiveShop: trails and Bat skins have their own fields, the rest
--- live in `styles[kind]` / `worn[kind]` (a plot skin is worn as State.plotSkins' equipped one).
+-- live in `styles[kind]` / `worn[kind]` (a plot skin / base is worn as State.plotSkins' / plotBases' equipped one).
 local function styleOwned(state: any, shop: any, kind: string, id: string): (boolean, boolean)
 	if kind == "trail" then
 		return type(shop.trails) == "table" and shop.trails[id] == true, shop.trail == id
@@ -418,9 +421,10 @@ local function styleOwned(state: any, shop: any, kind: string, id: string): (boo
 	end
 	local set = type(shop.styles) == "table" and shop.styles[kind]
 	local owned = type(set) == "table" and set[id] == true
-	if kind == "plotSkin" then
+	if kind == "plotSkin" or kind == "plotBase" then
+		local views = if kind == "plotSkin" then state.plotSkins else state.plotBases
 		local equipped = false
-		for _, view in (if type(state.plotSkins) == "table" then state.plotSkins else {}) :: { any } do
+		for _, view in (if type(views) == "table" then views else {}) :: { any } do
 			if type(view) == "table" and view.id == id and view.equipped == true then
 				equipped = true
 			end
@@ -464,6 +468,12 @@ local STYLE_KINDS = table.freeze({
 		text = ExclusiveShopView.SKIN_TEXT,
 		unequip = ExclusiveShopView.UNEQUIP_STYLE,
 	}),
+	plotBase = table.freeze({
+		prefix = "Base_",
+		style = true,
+		text = ExclusiveShopView.BASE_TEXT,
+		unequip = ExclusiveShopView.UNEQUIP_STYLE,
+	}),
 	trail = table.freeze({
 		prefix = "Trail_",
 		owned = "trails",
@@ -482,7 +492,7 @@ local STYLE_KINDS = table.freeze({
 	}),
 })
 
--- The card of a style `def` of `kind` (trail, Bat skin, fanfare, lock style, hat, Exclusive plot skin).
+-- The card of a style `def` of `kind` (trail, Bat skin, fanfare, lock style, hat, Exclusive plot skin or base).
 local function styleCard(state: any, shop: any, config: any, kind: string, def: any): Card
 	local k = (STYLE_KINDS :: any)[kind]
 	local key = `{k.prefix}{def.id}`
@@ -498,7 +508,10 @@ local function styleCard(state: any, shop: any, config: any, kind: string, def: 
 		kind = kind :: Kind,
 		id = def.id,
 		title = def.name,
-		icon = if kind == "plotSkin" then `PlotSkin_{def.id}` else key,
+		icon = if kind == "plotSkin"
+			then `PlotSkin_{def.id}`
+			elseif kind == "plotBase" then `PlotBase_{def.id}`
+			else key,
 		priceText = price,
 		state = s,
 		tag = if s == "equipped"
@@ -651,7 +664,7 @@ function ExclusiveShopView.cards(tab: string, state: any, config: any): { Card }
 			end
 		end
 	elseif tab == "Style" then
-		for _, kind in { "plotSkin", "lockStyle", "trail", "fanfare", "hat", "batSkin" } do
+		for _, kind in { "plotSkin", "plotBase", "lockStyle", "trail", "fanfare", "hat", "batSkin" } do
 			for _, def in styleDefs(config, kind) do
 				local key = `{(STYLE_KINDS :: any)[kind].prefix}{def.id}`
 				if (catalogueOf(config) :: any).products[key] then
@@ -865,6 +878,7 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 		local equip: Equip? = if card.kind == "seat"
 			then { request = "EquipPetSeat", arg = card.id }
 			elseif card.kind == "plotSkin" then { request = "EquipPlotSkin", arg = card.id }
+			elseif card.kind == "plotBase" then { request = "EquipPlotBase", arg = card.id }
 			elseif style and style.style then {
 				request = "EquipStyle",
 				arg = card.id,
@@ -894,7 +908,7 @@ function ExclusiveShopView.detail(key: string, state: any, config: any): Detail?
 		luckRows, luckEffect = ExclusiveShopView.luckOdds(state)
 	end
 	local itemKey = ExclusiveShopView.itemKeyOf(card.key)
-	local worn = style ~= nil and card.state == "equipped" and card.kind ~= "plotSkin"
+	local worn = style ~= nil and card.state == "equipped" and card.kind ~= "plotSkin" and card.kind ~= "plotBase"
 	return {
 		key = card.key,
 		kind = card.kind,
@@ -935,6 +949,8 @@ function ExclusiveShopView.itemKeyOf(cardKey: string): string?
 		return `Hat_{id}`
 	elseif kind == "plotSkin" then
 		return `Skin_{id}`
+	elseif kind == "plotBase" then
+		return `Base_{id}`
 	end
 	return nil
 end
@@ -1007,6 +1023,7 @@ function ExclusiveShopView.tabOf(key: string): string
 		return "Perks"
 	elseif
 		string.sub(key, 1, 9) == "plotSkin:"
+		or string.sub(key, 1, 9) == "plotBase:"
 		or string.sub(key, 1, 10) == "lockStyle:"
 		or string.sub(key, 1, 6) == "trail:"
 		or string.sub(key, 1, 8) == "batSkin:"

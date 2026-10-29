@@ -99,14 +99,21 @@ for i in range(FLOORS):
         ring_wall(f"Deck{f}", RAMP_OUT, rin + 0.2, z - 0.6, 0.6, DECK, segs=40, into=None)
         ring_wall(f"DeckEdge{f}", RAMP_OUT, RAMP_OUT + 0.4, z, 0.15, HAZ, segs=40, into=None)
     # Hull (shell), joint band at its top.
-    hull(f"Hull{f}", RB[i], RT[i], z if f > 1 else 1.0, FLOOR_H if f > 1 else FLOOR_H, STAGE_COL[i],
-         gap=DOOR_GAP if f == 1 else None, gap_h=DOOR_H)
+    # See-through rule: a low hull band, a glass band and a top band per stage, so the slimes always show.
+    zs = z if f > 1 else 1.0
+    rr = lambda dz, i=i: RB[i] + (RT[i] - RB[i]) * dz / FLOOR_H
+    g = DOOR_GAP if f == 1 else None
+    hull(f"HullLo{f}", RB[i], rr(3.0), zs, 3.0, STAGE_COL[i], gap=g, gap_h=3.0)
+    hull(f"HullGlass{f}", rr(3.0) - 0.3, rr(FLOOR_H - 2.5) - 0.3, zs + 3.0, FLOOR_H - 5.5, rgb(190, 225, 245), gap=g,
+         gap_h=FLOOR_H, thick=0.4)
+    glass.append(shell.pop())
+    hull(f"HullHi{f}", rr(FLOOR_H - 2.5), RT[i], zs + FLOOR_H - 2.5, 2.5, STAGE_COL[i])
+    for k in range(10):
+        a = -90 + 18 + k * 36
+        x, y = polar(rr(8.0) + 0.1, a)
+        S(cylinder(f"Rib{f}_{k}", 0.5, FLOOR_H - 5.5, (x, y, zs + 3.0), STAGE_COL[i], segs=6))
     ring_wall(f"Joint{f}", RT[i] - 0.6, RT[i] + 0.35, z + FLOOR_H - 0.4, 0.8, RED_H, segs=40)
     # Portholes round the stage (stage 1 keeps clear of the door and the fins).
-    angles = [0, 90, 180] if f == 1 else [-90, 0, 90, 180]
-    rp = RB[i] + (RT[i] - RB[i]) * 9 / FLOOR_H
-    for k, a in enumerate(angles):
-        porthole(f"Port{f}_{k}", rp, a, z + 9.0)
     # Pads round the outer hull; floor 1 leaves the front either side of the hatch free.
     ring = rin - 4.5 - 3.2
     if f == 1:

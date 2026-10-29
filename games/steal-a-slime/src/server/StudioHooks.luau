@@ -7,10 +7,9 @@
 	that skin's slimes and equips it (the tower turns to its theme), "PcwPetSeat" (a seat id) meets a free seat's goal and
 	equips it (the follow pet rides it), "PcwPads" (a count) the unlocked pads (the upper
 	jars build), "PcwSlimes" (a tier) puts three slimes of that rarity on free pads (a merge vat load), "PcwPlotBase"
-	(a base id) raises the rebirths to that base's gate and equips it (CONTRACT.md §44), "PcwTutorial" (a tutorial step
-	name) finishes that step as if the player did its action (contract/tutorial.md). ServerLoop's
-	`pinClock` covers the
-	Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
+	(a base id) raises the rebirths to that base's gate, or owns an Exclusive base, and equips it (CONTRACT.md §44),
+	"PcwTutorial" (a tutorial step name) finishes that step as if the player did its action (contract/tutorial.md).
+	ServerLoop's `pinClock` covers the Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
 
 	Exclusive Shop (contract/exclusive-shop.md §3): `grantProduct(userId, productKey)`,
@@ -198,7 +197,12 @@ local function apply(world: World.World, player: Player, refresh: () -> ())
 	end
 	local base = PlotBases.get(player:GetAttribute("PcwPlotBase"))
 	if base then
-		profile.rebirths = math.max(profile.rebirths, base.rebirths or 0)
+		-- An Exclusive base is owned on this test save; any other gets its rebirths.
+		if base.exclusive then
+			Purchases.giveItem(profile, `Base_{base.id}`)
+		else
+			profile.rebirths = math.max(profile.rebirths, base.rebirths or 0)
+		end
 		PlotBases.equip(profile, base.id)
 	end
 	local seat = PetSeats.get(player:GetAttribute("PcwPetSeat"))
