@@ -8,6 +8,7 @@
 -- nil, so every `if script then require(script...)` Roblox path goes untested.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
+local Vector3 = require("@lune/roblox").Vector3
 
 local Checks = require("../tools/livetest/Checks")
 local Config = require("../src/shared/Config")
@@ -15,6 +16,7 @@ local Constants = require("../src/shared/Constants")
 local Habitats = require("../src/shared/Habitats")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
+local VatView = require("../src/server/VatView")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -129,6 +131,36 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 		expect(#guide).toBe(1)
 		expect(guide[1].Name).toBe(Constants.GUIDE_PROMPT_NAME)
 		expect(guide[1].ActionText).toBe("Talk")
+	end)
+	it("hangs every merge vat tag centred over the vat's top", function()
+		local count = 0
+		for _, plot in rt.workspace.Plots:GetChildren() do
+			local vat = plot:FindFirstChild("MergeVat")
+			if not vat then
+				continue
+			end
+			count += 1
+			local tag = vat:FindFirstChild(VatView.TAG_NAME)
+			local anchor = vat:FindFirstChild(VatView.ANCHOR_NAME)
+			expect(tag ~= nil and anchor ~= nil).toBe(true)
+			expect(tag.Adornee == anchor).toBe(true)
+			expect(tag.MaxDistance).toBe(VatView.TAG.maxDistance)
+			local mesh = vat:FindFirstChild("VatMesh")
+			local centre, top
+			if mesh then
+				centre = mesh.CFrame.Position
+				top = centre.Y + mesh.Size.Y / 2
+			else
+				centre = vat.CFrame.Position
+				local up = vat.CFrame:VectorToObjectSpace(Vector3.new(0, 1, 0))
+				top = centre.Y
+					+ (math.abs(up.X) * vat.Size.X + math.abs(up.Y) * vat.Size.Y + math.abs(up.Z) * vat.Size.Z) / 2
+			end
+			local at = (vat.CFrame * anchor.CFrame).Position
+			expect(math.abs(at.X - centre.X) < 0.01 and math.abs(at.Z - centre.Z) < 0.01).toBe(true)
+			expect(math.abs(at.Y - (top + VatView.TAG.lift)) < 0.01).toBe(true)
+		end
+		expect(count > 0).toBe(true)
 	end)
 	it("builds the Exclusive Shop jar", function()
 		local stand = rt.workspace.Map:FindFirstChild(Constants.SHOP_STAND_EXCLUSIVE)
