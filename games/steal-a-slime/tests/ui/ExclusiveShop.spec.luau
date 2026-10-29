@@ -578,14 +578,15 @@ describe("Exclusive shop panel", function()
 					})
 				end
 				local grid = UiHarness.find(panel.frame, "Grid")
+				local gridBox = LayoutAssert.box(grid) -- where the grid shows (its frame bleeds past it)
 				local pane = UiHarness.find(panel.frame, "Pane")
-				expect(grid.Position.Y.Offset >= lastTab.Size.Y.Offset).toBe(true)
-				expect(grid.Position.X.Offset + grid.Size.X.Offset <= body.w).toBe(true)
+				expect(gridBox.y >= lastTab.Size.Y.Offset).toBe(true)
+				expect(gridBox.x >= 0 and gridBox.x + gridBox.w <= body.w).toBe(true)
 				expect(pane.Position.X.Offset + pane.Size.X.Offset <= body.w + 1e-6).toBe(true)
 				expect(pane.Position.Y.Offset + pane.Size.Y.Offset <= body.h + 1e-6).toBe(true)
 				for _, card in grid:GetChildren() do
 					if card:IsA("GuiObject") then
-						expect(card.Position.X.Offset + card.Size.X.Offset <= grid.Size.X.Offset).toBe(true)
+						expect(card.Position.X.Offset + card.Size.X.Offset <= gridBox.w).toBe(true)
 						local name = UiHarness.find(card, "CardName")
 						check.text({
 							name = `{tab}.{card.Name}.name`,
@@ -602,7 +603,7 @@ describe("Exclusive shop panel", function()
 							text = tag.Text,
 							size = tag.TextSize,
 							bold = true,
-							w = tag.Size.X.Offset - 8,
+							w = tag.Size.X.Offset - UiHarness.ui("Panels/ExclusiveShop").STYLE.tagPad * 2,
 							h = tag.Size.Y.Offset,
 						})
 					end

@@ -22,7 +22,7 @@ local Codes = {}
 -- Body rows top to bottom (design px; the body is Layout.panelBody of the Codes card).
 Codes.ROWS = table.freeze({
 	input = { y = 0, h = 56, size = 22, pad = 14 },
-	error = { y = 62, h = 18, size = Layout.MIN_TEXT, pad = 12 }, -- under the box, only after a refused code
+	error = { y = 62, h = 18, size = Layout.MIN_TEXT }, -- under the box, only after a refused code
 	button = { y = 68, h = Layout.BUTTON, size = 22 },
 	boost = { y = 136, h = 28, size = 14 },
 	note = { y = 172, h = 18, size = Layout.MIN_TEXT },
@@ -86,8 +86,8 @@ function Codes.new(parent: Instance, ctx: any)
 				Name = "Error",
 				TextSize = rows.error.size,
 				TextColor3 = Theme.Bad,
-				Position = UDim2.fromOffset(rows.error.pad, rows.error.y),
-				Size = UDim2.new(1, -rows.error.pad, 0, rows.error.h),
+				Position = UDim2.fromOffset(rows.input.pad, rows.error.y), -- in line with the code box's text
+				Size = UDim2.new(1, -rows.input.pad * 2, 0, rows.error.h),
 				Parent = content,
 			})
 		end

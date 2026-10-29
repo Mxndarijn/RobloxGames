@@ -129,7 +129,6 @@ function Welcome.new(parent: Instance, ctx: any)
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,
-		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- a showing bar narrows the rows, never covers them
 		Size = UDim2.new(1, 0, 1, -Layout.BUTTON),
 		Parent = body,
 	})

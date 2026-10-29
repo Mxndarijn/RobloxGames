@@ -433,29 +433,33 @@ describe("SlimeDex panel", function()
 			function()
 				local panel, r = openDex(vp.w, vp.h, DEX)
 				local body = Layout.panelBody(r)
-				local list = UiHarness.find(panel.frame, "List")
-				local pane = UiHarness.find(panel.frame, "Pane")
-				expect(list.Position.X.Offset + list.Size.X.Offset <= pane.Position.X.Offset).toBe(true)
-				expect(pane.Position.X.Offset + pane.Size.X.Offset <= body.w + 1e-6).toBe(true)
-				local line = UiHarness.find(list, "cards:1:1")
+				local list = LayoutAssert.box(UiHarness.find(panel.frame, "List"))
+				local pane = LayoutAssert.box(UiHarness.find(panel.frame, "Pane"))
+				expect(list.x + list.w <= pane.x).toBe(true)
+				expect(pane.x + pane.w <= body.w + 1e-6).toBe(true)
+				-- cards are sized by scale: resolve them against the list's content width (its box)
+				local line = UiHarness.find(UiHarness.find(panel.frame, "List"), "cards:1:1")
 				local right = 0
 				for _, c in line:GetChildren() do
 					if c:IsA("GuiObject") and c:GetAttribute("Found") ~= nil then
-						right = math.max(right, c.Position.X.Offset + c.Size.X.Offset)
-						expect(c.Size.X.Offset >= SlimeDex.CARD.minW).toBe(true)
+						local w = c.Size.X.Scale * list.w + c.Size.X.Offset
+						right = math.max(right, c.Position.X.Scale * list.w + c.Position.X.Offset + w)
+						expect(w >= SlimeDex.CARD.minW).toBe(true)
 					end
 				end
-				expect(right <= list.Size.X.Offset).toBe(true)
+				expect(right <= list.w + 1e-3).toBe(true) -- scales are 32-bit floats
 				expect(panel.grid().columns >= 2).toBe(true)
 				panel.selectTab("hybrid")
 				local soda = recipe(panel, "soda")
-				local rowW = UiHarness.find(panel.frame, "Recipes").Size.X.Offset - 10
+				-- a recipe row is the list's full content width; its parts are resolved against it
+				local rowW = LayoutAssert.box(UiHarness.find(panel.frame, "Recipes")).w
 				local x = 0
 				for _, name in { "Slot1", "Slot2", "Slot3", "Result" } do
 					local part = UiHarness.find(soda, name)
 					expect(part.Position.X.Offset >= x).toBe(true)
-					x = part.Position.X.Offset + part.Size.X.Offset
-					expect(part.Size.X.Offset >= 60).toBe(true) -- room for a 14 px name
+					local w = part.Size.X.Scale * rowW + part.Size.X.Offset
+					x = part.Position.X.Offset + w
+					expect(w >= 60).toBe(true) -- room for a 14 px name
 					expect(part.Position.Y.Offset + part.Size.Y.Offset <= soda.Size.Y.Offset).toBe(true)
 				end
 				expect(x <= rowW + 1e-6).toBe(true)

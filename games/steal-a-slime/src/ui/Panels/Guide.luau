@@ -20,7 +20,6 @@ local Guide = {}
 Guide.GOAL_H = 96
 Guide.TIP_H = 44
 Guide.GAP = 8
-Guide.CONTENT_H = Guide.GOAL_H + Guide.GAP + GuideTips.MAX_TIPS * (Guide.TIP_H + Guide.GAP)
 Guide.SHOW_TEXT = "📖  Show the tutorial again"
 Guide.SKIP_TEXT = "Hold to skip the tutorial"
 
@@ -28,19 +27,24 @@ local function slotY(slot: number): number
 	return Guide.GOAL_H + Guide.GAP + (slot - 1) * (Guide.TIP_H + Guide.GAP)
 end
 
+-- Canvas height for the goal card and `slots` filled slots (tutorial buttons and tips) under it.
+function Guide.contentHeight(slots: number): number
+	return Guide.GOAL_H + slots * (Guide.TIP_H + Guide.GAP)
+end
+
 function Guide.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "GuidePanel", "Guide", "🧙")
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,
-		CanvasSize = UDim2.fromOffset(0, Guide.CONTENT_H),
+		CanvasSize = UDim2.fromOffset(0, Guide.contentHeight(0)),
 		Parent = panel.body,
 	})
 
 	local goalCard = create("Frame", {
 		Name = "Goal",
 		BackgroundColor3 = Theme.Row,
-		Size = UDim2.new(1, -8, 0, Guide.GOAL_H),
+		Size = UDim2.new(1, 0, 0, Guide.GOAL_H),
 		Parent = content,
 	}, { Widgets.corner(12) })
 	local goalIcon = Widgets.iconBadge({
@@ -86,7 +90,7 @@ function Guide.new(parent: Instance, ctx: any)
 			BackgroundTransparency = 0,
 			BackgroundColor3 = Theme.BgLight,
 			Position = UDim2.fromOffset(0, slotY(i)),
-			Size = UDim2.new(1, -8, 0, Guide.TIP_H),
+			Size = UDim2.new(1, 0, 0, Guide.TIP_H),
 			Parent = content,
 		})
 		Widgets.corner(10).Parent = row
@@ -106,7 +110,7 @@ function Guide.new(parent: Instance, ctx: any)
 			TextSize = 15,
 			Visible = false,
 			Position = UDim2.fromOffset(0, slotY(1)),
-			Size = UDim2.new(1, -8, 0, Guide.TIP_H),
+			Size = UDim2.new(1, 0, 0, Guide.TIP_H),
 			Parent = content,
 		},
 		Theme.Info,
@@ -128,7 +132,7 @@ function Guide.new(parent: Instance, ctx: any)
 			TextSize = 15,
 			Visible = false,
 			Position = UDim2.fromOffset(0, slotY(1)),
-			Size = UDim2.new(1, -8, 0, Guide.TIP_H),
+			Size = UDim2.new(1, 0, 0, Guide.TIP_H),
 			Parent = content,
 		},
 		Theme.BgLight,
@@ -161,11 +165,17 @@ function Guide.new(parent: Instance, ctx: any)
 			skipTutorial.instance.Position = UDim2.fromOffset(0, slotY(first))
 			first += 1
 		end
+		local slots = first - 1
 		for i, row in tipRows do
 			local tip = view.tips[i - first + 1]
 			row.Visible = tip ~= nil
 			row.Text = if tip then `{tip.icon}  {tip.text}` else ""
+			if tip then
+				slots = math.max(slots, i)
+			end
 		end
+		-- The card ends under the last filled slot (init.client sizes it by Widgets.contentHeight).
+		content.CanvasSize = UDim2.fromOffset(0, Guide.contentHeight(slots))
 	end
 
 	return self

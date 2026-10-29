@@ -145,7 +145,7 @@ PlayerSettings.TABS = table.freeze({
 				id = "effects",
 				icon = "💧",
 				name = "Goo effects",
-				hint = "Sparkles, splashes and puffs",
+				hint = "Sparkles, splashes, puffs",
 				labels = { "Low", "Full" },
 				attribute = "SettingEffects",
 			},

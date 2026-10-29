@@ -247,7 +247,6 @@ function Rebirth.new(parent: Instance, ctx: any)
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,
-		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- a showing bar narrows the content, never covers it
 		Parent = panel.body,
 	})
 
