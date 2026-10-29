@@ -40,12 +40,17 @@ describe("idle HUD: no menu overlay", function()
 	end)
 end)
 
-describe("top-centre banners vs open menu", function()
-	it("every banner shows only with no menu open", function()
-		expect(MenuState.bannersVisible(nil)).toBe(true)
+describe("top-centre notices vs open overlays", function()
+	it("every notice shows only with no menu open", function()
+		expect(MenuState.noticesVisible(nil)).toBe(true)
 		for _, key in keys do
-			expect(MenuState.bannersVisible(key)).toBe(false)
+			expect(MenuState.noticesVisible(key)).toBe(false)
 		end
+	end)
+	it("the daily popup and the open bag panel hide them too", function()
+		expect(MenuState.noticesVisible(nil, false, false)).toBe(true)
+		expect(MenuState.noticesVisible(nil, true, false)).toBe(false)
+		expect(MenuState.noticesVisible(nil, false, true)).toBe(false)
 	end)
 end)
 

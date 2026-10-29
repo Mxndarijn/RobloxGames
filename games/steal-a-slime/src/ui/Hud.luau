@@ -324,6 +324,7 @@ function Hud.new(parent: Instance, ctx: any)
 
 	local self = {}
 	self.banners = banners -- the top stack: other notice cards (TutorialCard) join it
+	self.stealCards = stealCards -- the boss card folds them into its alarm strip
 
 	local function touchInput(): boolean
 		return UserInputService:GetLastInputType() == Enum.UserInputType.Touch
@@ -604,8 +605,8 @@ function Hud.new(parent: Instance, ctx: any)
 		setTooltip(id)
 	end
 
-	-- A menu card open hides the whole banner stack (MenuState.bannersVisible) and the tooltip:
-	-- nothing can cover a card's title or X.
+	-- An open overlay (menu card, daily popup, bag panel: MenuState.noticesVisible) hides the whole banner stack
+	-- and the tooltip: nothing can cover a card's title or X.
 	function self.setMenuOpen(isOpen: boolean)
 		if menuOpen ~= isOpen then
 			menuOpen = isOpen

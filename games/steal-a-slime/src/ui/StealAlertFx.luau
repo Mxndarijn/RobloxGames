@@ -127,6 +127,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		return 0
 	end
 	local lastSlap: { [Player]: number } = {}
+	local menuOpen = false -- an overlay is open: the arrow steps aside (the flash and alarm still play)
 
 	local function debugOn(): boolean
 		return isStudio and gui:GetAttribute("PcwStealAlert") == true
@@ -360,6 +361,11 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		flashStroke.Thickness = StealAlertLayout.flashThickness(s)
 	end
 
+	-- An open overlay (MenuState.noticesVisible) hides the arrow and its label until it closes.
+	function self.setMenuOpen(isOpen: boolean)
+		menuOpen = isOpen
+	end
+
 	-- Every State push: start / end the theft alert and show the join notice once.
 	function self.update(state: any)
 		if not (StealAlert.enabled() or debugOn()) then
@@ -445,7 +451,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			hideArrow() -- close enough to see them (the outline stays)
 			return
 		end
-		if not screen then
+		if not screen or menuOpen then
 			hideArrow()
 			return
 		end
