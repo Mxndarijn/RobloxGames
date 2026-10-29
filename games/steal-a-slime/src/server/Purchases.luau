@@ -13,8 +13,9 @@
 	  * serverPotion: extends the server-wide Luck Potion (Consumables.extendPotion) and tells everyone who gave it.
 	  * trail / batSkin (Trail_<id>, BatSkin_<id>): the carry trail / Bat skin joins `data.ownedTrails` /
 	    `data.ownedBatSkins` (worn with EquipTrail / EquipBatSkin).
-	  * fanfare / lockStyle / hat / plotSkin (Fanfare_, LockStyle_, Hat_, Skin_<id>): joins `data.ownedStyles[kind]`
-	    (worn with EquipStyle; a plot skin with EquipPlotSkin). pack (a bundle): each of its `items`.
+	  * fanfare / lockStyle / hat / plotSkin / plotBase (Fanfare_, LockStyle_, Hat_, Skin_, Base_<id>): joins
+	    `data.ownedStyles[kind]` (worn with EquipStyle; a plot skin with EquipPlotSkin, a plot base with
+	    EquipPlotBase). pack (a bundle): each of its `items`.
 	  * lockBreak: opens the locked base aimed with AimLockBreak for the buyer (LockBreak.open), else one
 	    `data.lockBreakCredits` (spent with UseCredit "lockBreak").
 	  * gift (Gift_<item>): gives the cosmetic `item` to the player aimed with AimGift and writes their save now
@@ -38,6 +39,7 @@ local Genome = if Shared then require(Shared.Genome) else require("../shared/Gen
 local Growth = if Shared then require(Shared.Growth) else require("../shared/Growth")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared/PetSeats")
+local PlotBases = if Shared then require(Shared.PlotBases) else require("../shared/PlotBases")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Seasons = if Shared then require(Shared.Seasons) else require("../shared/Seasons")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
@@ -187,6 +189,7 @@ local STYLE_KINDS: { [string]: { list: { any }?, noun: string } } = {
 	lockStyle = { list = SHOP.lockStyles, noun = "lock" },
 	hat = { list = SHOP.hats, noun = "" },
 	plotSkin = { list = nil, noun = "base skin" },
+	plotBase = { list = nil, noun = "base" },
 }
 
 -- The owned list a cosmetic product key adds to and the id it adds; nil for a key that is no cosmetic.
@@ -263,6 +266,9 @@ local function takeItem(data: PlayerData.Data, itemKey: string)
 	if kind == "plotSkin" and data.plotSkin == id then
 		data.plotSkin = Config.PLOT_SKIN_DEFAULT
 	end
+	if kind == "plotBase" and data.plotBase == id then
+		data.plotBase = Config.PLOT_BASE_DEFAULT
+	end
 end
 
 local function seatName(seatId: string): string
@@ -286,6 +292,9 @@ function Purchases.itemName(itemKey: string): string
 	elseif grant and grant.kind == "plotSkin" then
 		local skin = PlotSkins.get(grant.style)
 		return `the {if skin then skin.name else grant.style} base skin`
+	elseif grant and grant.kind == "plotBase" then
+		local base = PlotBases.get(grant.style)
+		return `the {if base then base.name else grant.style} base`
 	elseif grant and STYLE_KINDS[grant.kind] then
 		local style = STYLE_KINDS[grant.kind]
 		local d = findDef(style.list or {}, grant.style)
@@ -666,7 +675,9 @@ function Purchases.grant(
 		end
 	elseif kind == "trail" or kind == "batSkin" or STYLE_KINDS[kind] then
 		Purchases.giveItem(data, productKey)
-		local where = if kind == "plotSkin" then "Pick it in Skins." else "Wear it in the Exclusive shop."
+		local where = if kind == "plotSkin" or kind == "plotBase"
+			then "Pick it in Skins."
+			else "Wear it in the Exclusive shop."
 		World.notify(world, userId, `{Purchases.itemName(productKey)} is yours! {where}`, "good", "Gift")
 	elseif kind == "pack" then
 		for _, item in grant.items do

@@ -259,7 +259,7 @@ export type State = {
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
 	plotBase: string?, -- FEATURES.BaseShapes: equipped base id (nil when off)
-	plotBases: { PlotBaseView }?, -- FEATURES.BaseShapes: every base with its rebirth gate (nil when off)
+	plotBases: { PlotBaseView }?, -- FEATURES.BaseShapes: every base with its rebirth gate or Exclusive price (nil when off)
 	petSeat: string, -- the seat the follow pet rides (PetSeats.current)
 	petSeats: { PetSeatView }, -- every pet seat with its unlock progress (contract/pet-seats.md)
 	padCash: number?, -- FEATURES.CashPads: whole cash waiting on all my cash pads (rebirth clears it); nil with the flag off (contract/cash-pads.md)
@@ -291,7 +291,7 @@ export type ExclusiveShopView = {
 	lockBreak: { plot: number, untilTime: number }?, -- an active lock break: the plot index and when it ends
 	lockBreakCredits: number, -- paid lock breaks that found no locked base to open (used with UseCredit "lockBreak")
 	giftCredits: { string }, -- unsent gifts (cosmetic product keys) to send with SendGift
-	styles: { [string]: { [string]: boolean } }, -- owned Exclusive styles by kind: fanfare / lockStyle / hat / plotSkin
+	styles: { [string]: { [string]: boolean } }, -- owned Exclusive styles by kind: fanfare / lockStyle / hat / plotSkin / plotBase
 	worn: { [string]: string }, -- worn fanfare / lockStyle / hat id by kind
 	seasons: { [string]: boolean }, -- Config.EXCLUSIVE_SHOP.seasons open right now
 	subscriptions: { [string]: boolean }, -- Config.EXCLUSIVE_SHOP.subscriptions keys: active or not
