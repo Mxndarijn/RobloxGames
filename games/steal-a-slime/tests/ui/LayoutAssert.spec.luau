@@ -169,8 +169,8 @@ describe("v18 viewports", function()
 		local a = Layout.panelFor(s, "WorldShop")
 		expect(a.w).toBe(s.column.w)
 		expect(a.x).toBe(Layout.MARGIN)
-		expect(s.panel.h > s.column.h).toBe(true) -- the backdrop runs on under the bottom cards
-		expect(Layout.drawsAbove("Carry", "Base") and Layout.drawsAbove("Tutorial", "Base")).toBe(true)
+		expect(s.panel.h > s.column.h).toBe(true) -- the backdrop runs on under the carry card
+		expect(Layout.drawsAbove("Carry", "Base") and Layout.drawsAbove("Banners", "Base")).toBe(true)
 	end)
 	it("hint bubbles sit right of the nav (menu targets)", function()
 		for _, entry in LayoutAssert.screens() do
@@ -405,9 +405,10 @@ describe("landscape phone (v27 gate N1)", function()
 end)
 
 describe("ZIndex order", function()
-	it("Daily < Tutorial < Carry, banners / hint over the side panels", function()
-		expect(LayoutAssert.zOrder({ "Base", "Banners", "Daily", "Tutorial", "Carry" })).toBeNil()
-		expect(LayoutAssert.zOrder({ "Tutorial", "Daily" })).toBeTruthy()
+	it("Banners < Daily < Carry, over the side panels", function()
+		expect(LayoutAssert.zOrder({ "Base", "Menu", "Banners", "Daily", "Carry" })).toBeNil()
+		expect(LayoutAssert.zOrder({ "Daily", "Banners" })).toBeTruthy()
+		expect(LayoutAssert.zOrder({ "Carry", "Daily" })).toBeTruthy()
 	end)
 end)
 

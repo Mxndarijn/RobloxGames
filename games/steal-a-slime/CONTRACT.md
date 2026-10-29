@@ -123,14 +123,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - The podium (`Podium_1..3`, PodiumRigs) shows the `TotalEarned` top 3 only.
 - **Shop:** `src/shared/Shop.luau` (pure). `"BuySpeedCoil"` buys an **item** (Item Shop, 2026-10-18: it works while held, so it has a hotbar slot; §27.1). Its price is in `State.shop` (§5.1).
 - **Speed Coil** (2026-10-22: only while held, see §8.10): owning it (`data.speedCoil`) keeps one `SpeedCoil` Tool (`Props.speedCoil()`, a `Handle` Part plus welded decor, unanchored, CanCollide false) in your Backpack or character, re-added after respawns. While that Tool is **equipped** (in the character) the server sets WalkSpeed to `SPEED_COIL_WALK_SPEED`; in the Backpack it does nothing. Carrying puts tools away, so the coil never helps while carrying.
-- **Tutorial** (v13: 7 steps with `BuyPad` as step 4, see §8.3): `src/shared/TutorialProgress.luau` (pure). The server owns the step; the client only shows it (`State.tutorialStep`, Player attribute `TutorialStep`). Steps (1-based, same order as the UI's `Tutorial.STEPS`):
-  1. `Grab`: grab or buy a wild slime.
-  2. `Deposit`: bring any carried slime home onto a pad.
-  3. `Lock`: buy a lock (`Request("Lock")` or the LockButton).
-  4. `Merge`: collect a merge from the vat.
-  5. `Steal`: start a steal or hit a thief with the Bat.
-  6. `Rebirth`: rebirth.
-  Doing a step's action finishes that step and every step before it (so a rebirth finishes the tutorial). Doing an *earlier* step's action again does nothing. After step 6 the tutorial is done (`tutorialStep = nil`). New profiles start at 1. Saves made before the field existed start at 1 if they have no slimes and no rebirths, otherwise done. Saved as `tutorialStep` (0 = done) and kept on rebirth.
+- **Tutorial** (§49, [tutorial.md](contract/tutorial.md)): `src/shared/TutorialProgress.luau` (pure). The server owns the step; the client only shows it (`State.tutorialStepId`, Player attribute `TutorialStepId`). Eight steps: Grab, Deposit, Lock, Leaderboard, Guide, BuyPad, Merge, BuyItem; no rewards; `Request("SkipTutorial")` ends it. New profiles start at 1. Saves made before the field existed start at 1 if they have no slimes and no rebirths, otherwise done. Saved as `tutorialStep` (0 = done) and kept on rebirth.
 - **Daily reward:** `Request("Daily")` (`Progression.claimDaily`). `State.daily` says whether it's available, the streak and what the pending claim pays (`day`, `amount`).
 - **Effects:** the server plays `Effects.play` bursts on gameplay events (§5.4).
 - **Extras** (each behind `Config.FEATURES.<name>`, `false` turns it fully off, except the ones marked *always on*, whose flag is retired):
@@ -173,6 +166,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"BuyPad"` | none | Unlocks the next pad (`Economy.padCost`) once the player has the rebirths it needs (`Economy.padRebirths`); else "Rebirth <n> to unlock this pad". |
 | `"MoveSlime"` | `slimeId: string, pad: number` | `FEATURES.MoveSlime`: moves that owned, not-busy slime to `pad` (an unlocked pad, `1..padsUnlocked`, a whole number). If another slime sits there, the two swap pads; that slime must not be busy either. Moving to its own pad is a no-op. Fails with `"moving slimes is off"`, `"not your slime"`, `"pad is locked"`, `"slime is busy"`, `"That slime is brewing in the vat"`. Only `slime.pad` changes (no save change); the slime models re-place on the next world refresh. |
 | `"Daily"` | none | Claims the daily reward (`Progression.claimDaily`). |
+| `"SkipTutorial"` | none | Ends the tutorial (§49); refused when it is already over. |
 | `"ClaimQuest"` | `slot: number` | Claims daily quest `slot` (1..`DAILY_QUESTS.count`) once finished (`Quests.claim`): cash x rebirth multiplier or an income boost. `State.dailyQuests` has the 3 quests rolled per UTC day (progress = gained since the roll, saved as `quests`; missing = nothing rolled). |
 | `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While the coil is held (equipped), WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Saved and kept on rebirth. An **item**, not an upgrade (Item Shop row, §27.1; a `SpeedCoil` Tool in the Backpack, hotbar slot, inventory panel). |
 | `"BuyConsumable"` | `itemId: string, slimeId: string?` | `FEATURES.Consumables`. Buys one Luck Potion / Weather Totem: checks the restock allowance, cash and the held cap (`CONSUMABLE_HELD_MAX`), then **adds one to the held stack** (`data.consumables.held`). Nothing is applied on purchase; `slimeId` is ignored. See [restocking-shop.md](contract/restocking-shop.md). |
@@ -272,7 +266,7 @@ The client always replaces its copy and never diffs.
 		SpeedCoil: { price: number?, owned: boolean },                      -- price nil = owned
 	},
 	egg: { hatched: { slime: SlimeData, at: number }? },  -- newest Mystery Egg hatch, never saved
-	tutorialStep: number?,   -- 1..6 (§2 Tutorial); nil = finished
+	tutorialStep: number?,   -- 1..8 (§49); nil = finished
 	hotbar: { string }?,     -- saved hotbar order: exactly 9 slot keys ("" = empty), nil until the player first sends SetHotbar
 	boards: { [string]: number }, -- my own value on each global board, keyed by stat ("TotalEarned", "WeeklyEarned", "Steals", "Dex", "Merges")
 	boardRanks: { [string]: number }, -- my rank on each board at the last refresh; -n = deeper than #n (not reached); absent = not on the board yet
@@ -317,7 +311,7 @@ The client always replaces its copy and never diffs.
   - `SlimeLook: string` (`Constants.SLIME_LOOK_ATTRIBUTE`): `"Mesh"` if the slime mesh asset loaded at server start, `"Procedural"` if the server fell back to ModelFactory's look (see §4).
   - `RainActive: boolean` (same value as `SlimeRain`), `RainEndsAt: number?` and `RainNextAt: number?` (server time) for the HUD countdowns. Names: `Constants.RAIN_ACTIVE_ATTRIBUTE`, `RAIN_ENDS_AT_ATTRIBUTE`, `RAIN_NEXT_AT_ATTRIBUTE`.
 - **Player (more):**
-  - `TutorialStep: number?` (`Constants.TUTORIAL_STEP_ATTRIBUTE`): same as `State.tutorialStep`, so VisualsClient can draw the tutorial arrow without remotes (targets: 1 → `Map.Volcano.Crater`, 2 → own plot `HomeZone`, 3 → own `LockButton`, 4 → own `MergeVat`, 5 → another owned plot's `Base`, 6 → none). nil = finished or not loaded.
+  - `TutorialStep: number?` (`Constants.TUTORIAL_STEP_ATTRIBUTE`): same as `State.tutorialStep`; `TutorialStepId: string?` the step's name, which VisualsClient keys the tutorial trail on (targets in §49). nil = finished or not loaded.
   - `SpeedCoil: boolean?` (`Constants.SPEED_COIL_ATTRIBUTE`): `true` once the Speed Coil is owned (for a cosmetic coil on the character).
   - `PetSlimeId: string?` (`Constants.PET_ATTRIBUTE`): the slime that follows the player (FollowPets, §2 Extras).
   - `PetSeat: string` (`Constants.PET_SEAT_ATTRIBUTE`): the `Config.PET_SEATS` id that pet rides ([pet-seats.md](contract/pet-seats.md)).
@@ -349,8 +343,8 @@ The server finds plots by the `PlotIndex` attribute and pads by `PadIndex` (`Con
   - **The Hall of Fame boards** (`WorldLayout.HALL_OF_FAME`, a round plaza between plots 4 and 5 reached by a plank path from the ring path): `LeaderboardBoard` (`Constants.LEADERBOARD_BOARD`, Top Earners, 1.6x), `WeeklyEarnersBoard`, `TopStealsBoard`, `TopDexBoard`, `TopMergesBoard` (`Leaderboards.BOARDS` `model`). Each Model has attribute `LeaderboardStat` (`Constants.LEADERBOARD_STAT_ATTRIBUTE`) = the board's `stat`, and: `Board` (Part) > SurfaceGui `BoardGui` (Face Front) > Frame `Content` > Frame `Header` (the board's colour) > TextLabel `Title`, + Frame `Rows` (UIListLayout), plus `Frame`, `PostL` / `PostR`, `Collider`. **The server fills `Rows`** of each board on every leaderboard refresh: `Row_<k>` Frames (k = 1..`LEADERBOARD_SIZE`, LayoutOrder k) with TextLabels `Rank` (`"#k"`), `Name`, `Value` (`Leaderboards.format`: `"$1.5K"` on cash boards, `"1.5K"` on counts). Rows are updated in place when the count is unchanged (so client-side tweaks like the UI's own-row highlight survive), rebuilt otherwise; an empty board shows one `Row_1` "No entries yet". Clients may re-render the same rows locally (the UI's `WorldLeaderboard` does).
   - **`HallOfFameArch`** (`Constants.HALL_ARCH`): two solid posts over the Hall of Fame path where it leaves the ring path, a beam and a red sign reading "HALL OF FAME" on both faces (decor, high above head height).
   - **`ProfessorGoo`** (`Constants.PROFESSOR_GOO`): the Hall of Fame greeter at the plaza entrance. Block body (the collider), invisible `Bounds` (the skin's box), `NameTag` BillboardGui "Professor Goo"; skinned with the `guide_professor` mesh. Its `HumanoidRootPart` holds ProximityPrompt `LeaderboardPrompt` (`Constants.LEADERBOARD_PROMPT_NAME`, E, ObjectText "Professor Goo", ActionText "View leaderboards") and the Model a ClickDetector `LeaderboardClick` (`Constants.LEADERBOARD_CLICK_NAME`, 32 studs); the prompt, a click or a right-click opens the client's Leaderboards panel. No server effect.
-  - **`TutorialNpc`** (`Constants.TUTORIAL_NPC`): R6-style primitives, no Humanoid, PrimaryPart `HumanoidRootPart`, `NameTag` BillboardGui, Attachment `ArrowStart` in `SlimeHat` (start of the tutorial arrow). v28: `HumanoidRootPart` holds ProximityPrompt `GuidePrompt` (`Constants.GUIDE_PROMPT_NAME`, E, ObjectText "Guide", ActionText "Talk"); the triggering client opens the Guide card (next goal + tips, `src/ui/GuideTips.luau`). No server effect.
-  - **`TutorialArrow`** (client-only Beam): VisualsClient draws `Props.tutorialArrow` from the local character's `HumanoidRootPart` to the target of the player's `TutorialStep` (§5.2) and removes it when the step is nil or has no target.
+  - **`TutorialNpc`** (`Constants.TUTORIAL_NPC`): R6-style primitives, no Humanoid, PrimaryPart `HumanoidRootPart`, `NameTag` BillboardGui, Attachment `ArrowStart` in `SlimeHat` (start of the tutorial arrow). v28: `HumanoidRootPart` holds ProximityPrompt `GuidePrompt` (`Constants.GUIDE_PROMPT_NAME`, E, ObjectText "Guide", ActionText "Talk"); the triggering client opens the Guide card (next goal + tips, `src/ui/GuideTips.luau`); the server only counts it for the tutorial's Guide step (§49).
+  - **`TutorialArrow`** (client only): VisualsClient leads the local player along a ground trail to the target of their `TutorialStepId` (§49) and clears it when the step is nil or has no target.
 
 ### 5.4 Effects (Archer's `ReplicatedStorage.Visuals.Effects`)
 
@@ -455,4 +449,5 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §46 | [lucky-charm.md](contract/lucky-charm.md) | Lucky Charm show: a slime the charm upgrades changes into its new species on the pad |
 | §47 | [exclusive-shop.md](contract/exclusive-shop.md) | Exclusive Shop: the Golden Jar Boutique, Robux products and passes, quick-buys that only buy time (§47) |
 | §48 | [notice-cards.md](contract/notice-cards.md) | Notice cards: steal alarm, bonked, slime back home, base locked and plot full on screen |
+| §49 | [tutorial.md](contract/tutorial.md) | Tutorial: eight steps (loop and places), no rewards, skip, the card in the notice stack, save v12 |
 | §49 | [cash-pads.md](contract/cash-pads.md) | Cash pads: income piles up on a raised gold coin at each slime, only the owner collects by walking over it (`FEATURES.CashPads`) |

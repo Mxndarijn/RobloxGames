@@ -456,7 +456,7 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		expect(d.speedCoil).toBe(true)
 		expect(d.daily.streak).toBe(4)
 		expect(PlayerData.dexCount(d)).toBe(0) -- old combination keys are ignored; these slimes have no species
-		expect(d.tutorialStep).toBe(6) -- still Steal, now step 6
+		expect(d.tutorialStep).toBe(0) -- Steal, which is no longer a step: done
 		expect(next(d.upgrades)).toBeNil()
 		expect(next(d.goals)).toBeNil()
 		expect(d.speciesRewards).toBe(0)
@@ -499,7 +499,7 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		expect(back.stats.caught).toBe(8)
 		expect(back.goals.Merge).toBe(1)
 		expect(back.speciesRewards).toBe(2)
-		expect(back.tutorialStep).toBe(6)
+		expect(back.tutorialStep).toBe(0)
 	end)
 	it("survives garbage in the v3 fields", function()
 		local raw = v12Save()

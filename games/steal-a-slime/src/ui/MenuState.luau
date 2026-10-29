@@ -37,9 +37,8 @@ function MenuState.tutorialVisible(openKey: string?, bagOpen: boolean?): boolean
 	return openKey == nil and not bagOpen
 end
 
--- The daily popup is not a menu key, but its card (z 5) sits under the tutorial
--- card (z 15) and the card would cover its Claim button: it hides while the
--- popup is open too. (The welcome-back card is a menu key, so tutorialVisible
+-- The daily popup is not a menu key; the tutorial cards hide while it is open
+-- too, so the player deals with one thing at a time. (The welcome-back card is a menu key, so tutorialVisible
 -- already covers it.) `bagOpen`: as tutorialVisible.
 function MenuState.tutorialShown(openKey: string?, dailyOpen: boolean, bagOpen: boolean?): boolean
 	return MenuState.tutorialVisible(openKey, bagOpen) and not dailyOpen

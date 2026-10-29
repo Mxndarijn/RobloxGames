@@ -6,11 +6,17 @@ if not gui then
 end
 local keep = %%KEEP%%
 local names = {}
-for _, c in gui:GetChildren() do
+local banners = gui:FindFirstChild("Banners")
+local tutorial = banners and banners:FindFirstChild("Tutorial") -- the tutorial notice cards (src/ui/TutorialCard)
+local list = gui:GetChildren()
+if tutorial then
+	table.insert(list, tutorial)
+end
+for _, c in list do
 	if not c:IsA("GuiObject") or c.Name == keep then
 		continue
 	end
-	local other = c.Name == "TutorialOverlay" or string.sub(c.Name, -5) == "Panel" or string.sub(c.Name, -5) == "Popup"
+	local other = c == tutorial or string.sub(c.Name, -5) == "Panel" or string.sub(c.Name, -5) == "Popup"
 	if %%HIDE%% then
 		if other and c.Visible then
 			c:SetAttribute("PcwUiHidden", true)

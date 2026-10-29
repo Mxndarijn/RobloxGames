@@ -28,7 +28,6 @@
 
 local InventoryLayout = if script then require(script.Parent.InventoryLayout) else require("./InventoryLayout")
 local Nav = if script then require(script.Parent.Nav) else require("./Nav")
-local Tutorial = if script then require(script.Parent.Tutorial) else require("./Tutorial")
 
 export type Rect = { x: number, y: number, w: number, h: number }
 -- Bottom-left cluster (H1): the money plate, the income / rebirths chips under it.
@@ -59,8 +58,6 @@ export type Screen = {
 	menuX: number, -- left edge of every menu card (Layout.panelFor)
 	menuW: number, -- width of every menu card
 	carry: Rect,
-	tutorial: Rect,
-	tutorialCarrying: Rect, -- the tutorial card while the carry panel shows
 	daily: Rect,
 }
 
@@ -72,15 +69,14 @@ local Layout = {}
 Layout.CLOSE_WITH_ESCAPE = true
 
 -- Top-level ZIndex per overlay (ScreenGui uses ZIndexBehavior.Sibling, so
--- children render with their parent). Higher draws on top: banners over
--- menu panels, the tutorial over the daily popup, and the carry panel
--- (Drop) over both.
+-- children render with their parent). Higher draws on top: banners (steal
+-- and tutorial cards) over menu panels, the daily popup over them, and the
+-- carry panel (Drop) over all.
 Layout.ZINDEX = table.freeze({
 	Base = 1, -- bottom clusters, nav, the menu backdrop
 	Menu = 2, -- menu cards (over the backdrop, whatever their sibling order)
-	Banners = 3, -- HUD banners and the tutorial hint
+	Banners = 3, -- HUD banners, the notice cards (steal, tutorial) and the tutorial hint
 	Daily = 5,
-	Tutorial = 15,
 	Carry = 30,
 })
 
@@ -204,7 +200,7 @@ function Layout.fitsInViewport(r: Rect, width: number, height: number, margin: n
 	return r.w >= 0 and r.h >= 0 and r.x >= m and r.y >= m and r.x + r.w <= width - m and r.y + r.h <= height - m
 end
 
--- Which of two overlay layers draws on top ("Daily" < "Tutorial" < "Carry").
+-- Which of two overlay layers draws on top ("Banners" < "Daily" < "Carry").
 function Layout.drawsAbove(top: string, below: string): boolean
 	local z = Layout.ZINDEX :: any
 	local a, b = z[top], z[below]
@@ -701,14 +697,8 @@ end
 Layout.CARRY = table.freeze({ w = 420, h = 96 })
 -- Carry card text column = card width minus this (swatch left, Drop right).
 Layout.CARRY_TEXT_RESERVE = 190
-Layout.CARRY_MIN_W = 320 -- narrowest carry card (short screens, beside the tutorial card)
-Layout.TUTORIAL_BESIDE_MIN = 260 -- narrowest tutorial card beside the carry card
 Layout.DAILY = table.freeze({ w = 420, h = 308 })
-Layout.TUTORIAL = table.freeze({ w = 520, bodyTop = 68, bodyTextSize = 14, padX = 14, padBottom = 12 })
--- Short (landscape phone) screens: the tutorial card sits this many screen px
--- above the bottom edge, below the banner stack.
-Layout.TUTORIAL_SHORT_MARGIN = 8
-Layout.TUTORIAL_SHORT_HEIGHT = 500 -- viewport px: shorter than this is a landscape phone
+Layout.PHONE_SHORT_HEIGHT = 500 -- viewport px: a compact screen shorter than this is a landscape phone
 
 -- Menu panel chrome (Widgets.panel): the coloured title band holds the
 -- menu icon, the title and the close "X" (top-right, MIN_TOUCH_DESIGN
@@ -792,22 +782,10 @@ function Layout.bottomInset(compact: boolean): number
 	return if compact then math.ceil(Layout.TOUCH_CONTROLS_HEIGHT / Layout.MIN_SCALE) else Layout.MARGIN * 2
 end
 
--- Tutorial card height for a width: fits the longest step body.
-function Layout.tutorialHeight(width: number): number
-	local t = Layout.TUTORIAL
-	local body = 0
-	for _, step in Tutorial.STEPS do
-		for _, text in Tutorial.texts(step) do
-			body = math.max(body, Layout.wrappedHeight(text, t.bodyTextSize, width - t.padX * 2))
-		end
-	end
-	return math.ceil(t.bodyTop + body + t.padBottom)
-end
-
 -- The full-window menu box: right of the nav (so the player can switch
 -- menus), from the top margin down to the bottom inset (touch controls on
--- phones). The bottom cards (carry, tutorial) draw above it (ZINDEX), so
--- Drop / Hide stay tappable while a menu is open.
+-- phones). The carry card draws above it (ZINDEX), so Drop stays tappable
+-- while a menu is open.
 function Layout.fullWindowRect(columnX: number, top: number, width: number, height: number, inset: number): Rect
 	local w = width - Layout.MARGIN - columnX
 	return Layout.rect(columnX, top, math.max(w, 0), math.max(height - inset - top, 0))
@@ -887,11 +865,6 @@ end
 
 export type ScreenOptions = { touch: boolean? } -- touch: Roblox's jump button is on screen (TouchControls)
 
--- Bottom cards centred on the screen inside `row` (x / w only): carry on the
--- bottom line, tutorial above the inset, and above the carry card while
--- carrying, or (`beside`) the carry card at the row's left and the
--- tutorial next to it. `cardMargin` (short screens): the tutorial card hugs the
--- bottom edge that far up and, while carrying, sits next to the carry card.
 -- The jump button rect for a ScreenGui of viewportW x viewportH (screen px).
 function Layout.jumpRect(viewportW: number, viewportH: number): Rect
 	if math.min(viewportW, viewportH) <= Layout.JUMP_SMALL_MAX then
@@ -900,48 +873,25 @@ function Layout.jumpRect(viewportW: number, viewportH: number): Rect
 	return Layout.rect(viewportW - 170, viewportH - 210, 120, 120)
 end
 
-local function bottomCards(
-	row: Rect,
-	W: number,
-	H: number,
-	inset: number,
-	beside: boolean?,
-	cardMargin: number?,
-	tutorialLift: number?
-)
-	local gap = Layout.GAP
-	local carryX, carryW = centredIn(row, W, Layout.CARRY.w)
-	local carry = Layout.rect(carryX, H - inset - Layout.CARRY.h, carryW, Layout.CARRY.h)
-	local tutX, tutW = centredIn(row, W, Layout.TUTORIAL.w)
-	local tutH = Layout.tutorialHeight(tutW)
-	local cardBottom = H - (cardMargin or inset)
-	local tutorial = Layout.rect(tutX, cardBottom - (tutorialLift or 0) - tutH, tutW, tutH)
-	local tutorialCarrying = Layout.rect(tutX, carry.y - gap - tutH, tutW, tutH)
-	if beside or cardMargin then
-		-- The carry card gives up width (down to CARRY_MIN_W) so the tutorial card beside it keeps
-		-- TUTORIAL_BESIDE_MIN: its title and Hide button need ~250 px.
-		carryW = math.clamp(row.w - gap - Layout.TUTORIAL_BESIDE_MIN, math.min(Layout.CARRY_MIN_W, carryW), carryW)
-		carry = Layout.rect(row.x, carry.y, carryW, carry.h)
-		local besideW = math.max(math.min(Layout.TUTORIAL.w, row.w - carryW - gap), 0)
-		local besideH = Layout.tutorialHeight(besideW)
-		tutorialCarrying = Layout.rect(carry.x + carryW + gap, cardBottom - besideH, besideW, besideH)
-	end
-	return carry, tutorial, tutorialCarrying
+-- The carry card, centred on the screen inside `row` (x / w only), on the bottom line `inset` up.
+local function carryCard(row: Rect, W: number, H: number, inset: number): Rect
+	local x, w = centredIn(row, W, Layout.CARRY.w)
+	return Layout.rect(x, H - inset - Layout.CARRY.h, w, Layout.CARRY.h)
 end
 
 -- Every top-level box for a ScreenGui of viewportW x viewportH (see header).
--- One pass in priority order: the bottom clusters, nav, bottom cards, then the menu column
+-- One pass in priority order: the bottom clusters, nav, the carry card, then the menu column
 -- and overlays in what is left, so nothing has to be moved afterwards.
 function Layout.screen(viewportW: number, viewportH: number, options: ScreenOptions?): Screen
 	local scale = Layout.uiScale(viewportW, viewportH)
 	local W, H = viewportW / scale, viewportH / scale
 	local compact = Layout.isCompact(viewportW, viewportH)
 	local m, gap = Layout.MARGIN, Layout.GAP
-	-- Phones (portrait, or landscape under TUTORIAL_SHORT_HEIGHT): the nav grid sits at the very top and the
+	-- Phones (portrait, or landscape under PHONE_SHORT_HEIGHT): the nav grid sits at the very top and the
 	-- money block, the hotbar and the events row share one bottom row (`rowBottom`). Portrait too narrow for
 	-- the full-size row (money + events + a 3-item hotbar) goes `tight`. A tablet-sized compact screen
 	-- (1024x768) is not a phone and keeps the desktop arrangement.
-	local phone = compact and (viewportW < Layout.COMPACT_WIDTH or viewportH < Layout.TUTORIAL_SHORT_HEIGHT)
+	local phone = compact and (viewportW < Layout.COMPACT_WIDTH or viewportH < Layout.PHONE_SHORT_HEIGHT)
 	-- Landscape phone: the row hugs the bottom edge (small inset, no rise); portrait phones lift it off the
 	-- thumbstick / jump button.
 	local landscapePhone = phone and viewportW > viewportH
@@ -979,43 +929,33 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local hotbarH = InventoryLayout.height(compact, Layout.MIN_TOUCH_DESIGN, tight)
 
 	-- 1. "Short" (landscape phone): the default two nav columns won't fit above the money cluster, so
-	-- the nav starts at the top margin, takes more columns, and the bottom cards go between the clusters.
+	-- the nav starts at the top margin, takes more columns, and the carry card goes between the clusters.
 	local short = compact and Layout.TOP + Layout.navHeight(compact) + gap > money.rect.y - gap
 	local top = if short or phone then Layout.TOP else Layout.NAV.top
-	-- Narrower than the carry card plus both clusters (portrait phones): the bottom cards sit above
-	-- the clusters instead of beside them. Never on a landscape phone: lifted that far, the cards would sit in
-	-- the middle of a short screen; there the carry card takes the hotbar's place (the bar hides meanwhile) and
-	-- the tutorial card stands right above the hotbar.
+	-- Where the centred carry card would touch either cluster (portrait phones, tablets): it sits above
+	-- the clusters instead of beside them. Never on a landscape phone: lifted that far, the card would sit in
+	-- the middle of a short screen; there the carry card takes the hotbar's place (the bar hides meanwhile).
 	local clusterH = math.max(money.rect.h, status.rect.h + statusRaise, if phone then hotbarH else 0)
-	local cardW = math.max(Layout.CARRY.w, Layout.TUTORIAL.w)
+	local cardHalf = Layout.CARRY.w / 2 + gap
 	local lift = if not short
 			and not landscapePhone
-			and W < cardW + money.rect.w + (W - m - status.rect.x) + 2 * (m + gap)
+			and (W / 2 - cardHalf < money.rect.x + money.rect.w or W / 2 + cardHalf > status.rect.x)
 		then rise + clusterH + gap
 		else 0
 	local cardInset = inset + lift
 	-- S3 hotbar (InventoryLayout): bottom-centre between the clusters, above them on a narrow phone; short
 	-- phones hug the bottom edge. The server unequips tools while carrying, so the bar is hidden then and the
-	-- carry cards may use its place; only the plain tutorial card rises above it (`tutorialLift`).
-	local cardMargin = if short and viewportH < Layout.TUTORIAL_SHORT_HEIGHT
-		then Layout.TUTORIAL_SHORT_MARGIN / scale
-		else nil
-	-- Short and too low to stack the tutorial over the carry card: they go side by side.
-	local beside = short and H - inset - top < Layout.CARRY.h + gap + Layout.tutorialHeight(Layout.TUTORIAL.w)
+	-- carry card may use its place.
 
 	-- 2. Nav: left, 2 columns, low (short: as many as it takes to fit from the top down to the money
-	-- cluster; the bottom cards then sit right of the money cluster, step 3).
-	-- A status cluster stepped left of the jump button also pushes the bottom cards left of it, unless they sit above it.
+	-- cluster; the carry card then sits right of the money cluster, step 3).
+	-- A status cluster stepped left of the jump button also pushes the carry card left of it, unless it sits above it.
 	local fullRowRight = if steppedLeft and lift == 0 then status.rect.x - gap else W - m
 	local fullRow = Layout.rect(m, 0, fullRowRight - m, 0)
 	local hotbarBottom = if phone then rowBottom else H - cardInset
-	-- Phones: the tutorial card already clears the row (portrait: the cards sit above it; landscape: the card hugs
-	-- the bottom edge, below the row), so only the desktop arrangement lifts it above the hotbar.
-	local tutorialLift = if phone and not landscapePhone
-		then 0
-		else (H - (cardMargin or cardInset)) - (hotbarBottom - hotbarH) + gap
-	local _, tutorial0, tutorialCarrying0 = bottomCards(fullRow, W, H, cardInset, nil, nil, tutorialLift)
-	local navBottom = if short then money.rect.y - gap else math.min(tutorial0.y, tutorialCarrying0.y) - gap
+	-- The nav ends above the carry card and the hotbar.
+	local carry0 = carryCard(fullRow, W, H, cardInset)
+	local navBottom = if short then money.rect.y - gap else math.min(carry0.y, hotbarBottom - hotbarH) - gap
 	navBottom = math.min(navBottom, money.rect.y - gap)
 	local columns = if short then Layout.navColumns(compact, navBottom - top) else Layout.NAV.columns
 	-- The nav sits low on the left, its bottom on `navBottom`, so it stays clear of Roblox's chat window
@@ -1030,15 +970,15 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local columnX = if compact then m else navRight
 	local columnW = W - m - columnX
 
-	-- 3. Bottom cards. Full screen width (the nav ends above them); short: between the money cluster
-	-- and the status cluster (the nav sits above the money cluster, clear of the cards).
-	-- Landscape phone: the nav runs down to the cards' height, so they keep right of it.
+	-- 3. The carry card. Full screen width (the nav ends above it); short: between the money cluster
+	-- and the status cluster (the nav sits above the money cluster, clear of the card).
+	-- Landscape phone: the nav runs down to the card's height, so it keeps right of it.
 	local cardsX = money.rect.x + money.rect.w + gap
 	local row = if short
 		then Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0)
 		elseif landscapePhone then Layout.rect(navRight, 0, math.max(fullRowRight - navRight, 0), 0)
 		else fullRow
-	local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, cardInset, beside, cardMargin, tutorialLift)
+	local carry = carryCard(row, W, H, cardInset)
 	local between = Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0)
 	-- Truly bottom-centre: the zone is symmetric about the screen centre, as wide as the nearer cluster allows.
 	local half = math.max(math.min(W / 2 - between.x, between.x + between.w - W / 2), 0)
@@ -1047,10 +987,10 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local hotbarW = if stacked then W - m * 2 else half * 2
 	local hotbar = Layout.rect(hotbarX, hotbarBottom - hotbarH, hotbarW, hotbarH)
 
-	-- 4. The column (right of the nav) above the bottom cards; menus use the
+	-- 4. The column (right of the nav) above the carry card and the hotbar; menus use the
 	-- full-window box, which runs on down to the bottom inset.
 	local column =
-		Layout.rect(columnX, Layout.TOP, columnW, math.max(math.min(tutorial.y, carry.y) - gap - Layout.TOP, 0))
+		Layout.rect(columnX, Layout.TOP, columnW, math.max(math.min(carry.y, hotbar.y) - gap - Layout.TOP, 0))
 	local panel = Layout.fullWindowRect(columnX, Layout.TOP, W, H, inset)
 
 	-- Menu cards: MENU_WIDTH (at most the backdrop), centred in it.
@@ -1094,8 +1034,6 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		menuX = menuX,
 		menuW = menuW,
 		carry = carry,
-		tutorial = tutorial,
-		tutorialCarrying = tutorialCarrying,
 		daily = daily,
 	}
 end

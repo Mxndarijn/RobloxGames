@@ -14,8 +14,8 @@
 -- 1.0.0rc1 applies a UIScale only to GuiObjects, not to a ScreenGui, so the
 -- UIScale sits on a transparent "Root" frame of design size (scaled back to
 -- the gui size): the same rects on screen. Overlays
--- that take clicks (menu panel, carry card, tutorial cards) are Active
--- frames at their Layout.ZINDEX, drawn invisible; banners are plain labels, as in the game.
+-- that take clicks (menu panel, carry card) are Active frames at their Layout.ZINDEX, drawn invisible; banners
+-- (the notice cards, the tutorial card among them) are plain labels, as in the game.
 -- The pictures are the ItemIcons placeholder tiles (colour + glyph), the same a player sees until the
 -- uploaded image loads.
 local fs = require("@lune/fs")
@@ -337,8 +337,6 @@ local function buildCase(vp: { name: string, w: number, h: number }, tooltipSlot
 		Position = UDim2.fromOffset(math.round(b.x), math.round(b.y)),
 		Size = UDim2.fromOffset(math.round(b.w), 160), -- four stacked banners
 	}, root)
-	frame("Tutorial", s.tutorial, root, Z.Tutorial, true)
-	frame("TutorialCarrying", s.tutorialCarrying, root, Z.Tutorial, true)
 	frame("Carry", s.carry, root, Z.Carry, true)
 
 	local file = `{outDir}/{case}.rbxmx`

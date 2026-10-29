@@ -1,156 +1,129 @@
 --!strict
--- Tutorial overlay step text (src/ui/Tutorial.luau, CONTRACT §8.3).
+-- Tutorial card text (src/ui/Tutorial.luau): one step per TutorialProgress step, wording per device.
 local TestRunner = require("../TestRunner")
 local Tutorial = require("../../src/ui/Tutorial")
+local TutorialProgress = require("../../src/shared/TutorialProgress")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
--- CONTRACT §8.3 TutorialProgress.STEPS (v13).
-local V13 = { "Grab", "Deposit", "Lock", "BuyPad", "Merge", "Steal", "Rebirth" }
+local function has(text: string, needle: string): boolean
+	return string.find(text, needle, 1, true) ~= nil
+end
+
+local function body(id: string, kind: Tutorial.Kind?, key: string?): string
+	return (Tutorial.viewById(id, kind, key) :: Tutorial.StepView).body
+end
 
 describe("Tutorial.STEPS", function()
-	it("follows the CONTRACT §8.3 order", function()
-		local ids = {}
+	it("has one card per server step, in the server's order", function()
+		expect(#Tutorial.STEPS).toBe(#TutorialProgress.STEPS)
 		for i, step in Tutorial.STEPS do
-			ids[i] = step.id
+			expect(step.id).toBe(TutorialProgress.STEPS[i])
 		end
-		expect(table.concat(ids, ",")).toBe(table.concat(V13, ","))
 	end)
-	it("has non-empty text for every step, and copy for every legacy id", function()
+	it("every step has an icon, a title, a done line and a hint", function()
 		for _, step in Tutorial.STEPS do
-			expect(#step.title > 0 and #step.body > 0).toBe(true)
+			expect(#step.icon > 0).toBe(true)
+			expect(#step.title > 0).toBe(true)
+			expect(#step.done > 0).toBe(true)
+			expect(#step.body > 0).toBe(true)
+			expect(step.done ~= step.title).toBe(true)
 		end
-		for _, id in Tutorial.LEGACY_IDS do
-			expect(Tutorial.find(id)).toBeTruthy()
-		end
 	end)
-	it("teaches the lock (LOCKED / UNLOCKED) and buying pads", function()
-		local lock = Tutorial.find("Lock") :: Tutorial.Step
-		expect(string.find(lock.body, "LOCKED", 1, true) ~= nil).toBe(true)
-		expect(string.find(lock.body, "UNLOCKED", 1, true) ~= nil).toBe(true)
-		local pad = Tutorial.find("BuyPad") :: Tutorial.Step
-		expect(pad.title).toBe("Buy a pad")
-		expect(string.find(pad.body, "Buy pad", 1, true) ~= nil).toBe(true)
-	end)
-end)
-
-describe("Tutorial copy matches the real prompts (v15 playtest)", function()
-	local function body(id: string): string
-		return (Tutorial.find(id) :: Tutorial.Step).body
-	end
-	local function has(text: string, needle: string): boolean
-		return string.find(text, needle, 1, true) ~= nil
-	end
-	it("Grab is a tap / E press, and explains Grab vs Buy $X", function()
-		local grab = body("Grab")
-		expect(has(string.lower(grab), "hold")).toBe(false)
-		expect(has(grab, "press E")).toBe(true)
-		expect(has(grab, "tap")).toBe(true)
-		expect(has(grab, '"Grab"')).toBe(true)
-		expect(has(grab, '"Buy $X"')).toBe(true)
-	end)
-	it("names the prompts players actually see", function()
-		expect(has(body("Deposit"), "no button needed")).toBe(true)
-		expect(has(body("Lock"), '"Lock base"')).toBe(true)
-		expect(has(body("BuyPad"), '"Buy pad $X"')).toBe(true)
-		expect(has(body("Steal"), 'hold E on "Steal"')).toBe(true)
-		expect(has(body("Steal"), "bat")).toBe(true)
-	end)
-	it("fits the overlay card (about three lines)", function()
+	it("find knows every step and nothing else", function()
 		for _, step in Tutorial.STEPS do
-			expect(#step.body <= 160).toBe(true)
+			expect(Tutorial.find(step.id)).toBe(step)
+		end
+		expect(Tutorial.find("Steal")).toBeNil()
+		expect(Tutorial.find("Rebirth")).toBeNil()
+	end)
+	it("hints stay one short line on the card", function()
+		for _, step in Tutorial.STEPS do
+			for _, text in Tutorial.texts(step) do
+				expect(#text <= 60).toBe(true)
+			end
 		end
 	end)
 end)
 
-describe("Tutorial.stepOf", function()
-	it("reads an optional numeric state.tutorialStep", function()
-		expect(Tutorial.stepOf({ tutorialStep = 2 })).toBe(2)
-		expect(Tutorial.stepOf({ tutorialStep = 2.7 })).toBe(2)
-		expect(Tutorial.stepOf({})).toBeNil()
-		expect(Tutorial.stepOf({ tutorialStep = "2" })).toBeNil()
-		expect(Tutorial.stepOf({ tutorialStep = 0 / 0 })).toBeNil()
-		expect(Tutorial.stepOf(nil)).toBeNil()
-	end)
-end)
-
-describe("Tutorial.view", function()
-	it("returns title, body and a counter for valid steps", function()
+describe("Tutorial.view / viewById", function()
+	it("returns the step with an n/total counter", function()
+		local total = #Tutorial.STEPS
 		local view = Tutorial.view(1) :: Tutorial.StepView
+		expect(view.id).toBe(Tutorial.STEPS[1].id)
 		expect(view.title).toBe(Tutorial.STEPS[1].title)
-		expect(view.counter).toBe(`Step 1 of {#Tutorial.STEPS}`)
-		expect((Tutorial.view(#Tutorial.STEPS) :: Tutorial.StepView).index).toBe(#Tutorial.STEPS)
+		expect(view.icon).toBe(Tutorial.STEPS[1].icon)
+		expect(view.counter).toBe(`1/{total}`)
+		local last = Tutorial.view(total) :: Tutorial.StepView
+		expect(last.index).toBe(total)
+		expect(last.counter).toBe(`{total}/{total}`)
+		local pad = Tutorial.viewById("BuyPad") :: Tutorial.StepView
+		expect(pad.index).toBe(table.find(TutorialProgress.STEPS, "BuyPad"))
+		expect(pad.counter).toBe(`{pad.index}/{total}`)
 	end)
-	it("hides before the first and after the last step", function()
+	it("is nil before the first step, after the last and for unknown ids", function()
 		expect(Tutorial.view(nil)).toBeNil()
 		expect(Tutorial.view(0)).toBeNil()
 		expect(Tutorial.view(#Tutorial.STEPS + 1)).toBeNil()
+		expect(Tutorial.viewById("Nope")).toBeNil()
+		expect(Tutorial.viewById(nil)).toBeNil()
+		expect(Tutorial.viewById(3)).toBeNil()
 	end)
 end)
 
 describe("Tutorial.fromState", function()
-	it("prefers tutorialStepId (v13)", function()
-		local view = Tutorial.fromState({ tutorialStep = 4, tutorialStepId = "BuyPad" }) :: Tutorial.StepView
-		expect(view.id).toBe("BuyPad")
-		expect(view.counter).toBe("Step 4 of 7")
-		expect(Tutorial.fromState({ tutorialStep = 4, tutorialStepId = "Nope" })).toBeNil()
-	end)
-	it("reads a v12 numeric step in the old 6-step order", function()
-		local view = Tutorial.fromState({ tutorialStep = 4 }) :: Tutorial.StepView
+	it("reads the step id the server sends", function()
+		local view = Tutorial.fromState({ tutorialStepId = "Merge" }) :: Tutorial.StepView
 		expect(view.id).toBe("Merge")
-		expect(view.counter).toBe("Step 4 of 6")
-		expect(Tutorial.fromState({ tutorialStep = 7 })).toBeNil()
+		expect(view.title).toBe((Tutorial.find("Merge") :: Tutorial.Step).title)
 	end)
-	it("shows nothing when finished", function()
+	it("shows nothing once finished, for an unknown id or a numeric step alone", function()
 		expect(Tutorial.fromState({})).toBeNil()
 		expect(Tutorial.fromState(nil)).toBeNil()
+		expect(Tutorial.fromState({ tutorialStepId = "Done" })).toBeNil()
+		expect(Tutorial.fromState({ tutorialStep = 2 })).toBeNil()
+	end)
+	it("passes the device and key through", function()
+		local view = Tutorial.fromState({ tutorialStepId = "Grab" }, "gamepad", "Square") :: Tutorial.StepView
+		expect(view.body).toBe(body("Grab", "gamepad", "Square"))
 	end)
 end)
 
 describe("Tutorial device wording", function()
-	local function body(id: string, kind: Tutorial.Kind): string
-		return (Tutorial.viewById(id, kind) :: Tutorial.StepView).body
-	end
-	local function has(text: string, needle: string): boolean
-		return string.find(text, needle, 1, true) ~= nil
-	end
-	it("keyboard is the default and holds E for the hold prompts", function()
-		expect(body("Lock", "keyboard")).toBe((Tutorial.find("Lock") :: Tutorial.Step).body)
-		expect(Tutorial.fromState({ tutorialStepId = "Lock" }).body).toBe(body("Lock", "keyboard"))
-		expect(has(body("Lock", "keyboard"), 'Hold E on "Lock base"')).toBe(true)
-		expect(has(body("BuyPad", "keyboard"), 'Hold E on "Buy pad $X"')).toBe(true)
-		expect(has(body("Merge", "keyboard"), "Press E at the merge vat")).toBe(true)
-		expect(has(body("Steal", "keyboard"), 'hold E on "Steal"')).toBe(true)
+	it("keyboard is the default and names E", function()
+		expect(body("Grab")).toBe((Tutorial.find("Grab") :: Tutorial.Step).body)
+		expect(body("Grab", "keyboard")).toBe(body("Grab"))
+		expect(has(body("Grab", "keyboard"), "press E")).toBe(true)
+		expect(has(body("Guide", "keyboard"), "Press E")).toBe(true)
+		expect(has(body("BuyPad", "keyboard"), "Hold E")).toBe(true)
 	end)
-	it("touch taps and holds the prompt, gamepad uses X", function()
+	it("touch taps / holds the prompt, gamepad uses X", function()
 		expect(has(body("Grab", "touch"), "tap the prompt")).toBe(true)
-		expect(has(body("Lock", "touch"), 'Tap and hold the prompt on "Lock base"')).toBe(true)
-		expect(has(body("Steal", "touch"), 'tap and hold the prompt on "Steal"')).toBe(true)
+		expect(has(body("BuyPad", "touch"), "Hold the prompt")).toBe(true)
 		expect(has(body("Grab", "gamepad"), "press X")).toBe(true)
-		expect(has(body("Lock", "gamepad"), 'Hold X on "Lock base"')).toBe(true)
-		expect(has(body("Merge", "gamepad"), "Press X at the merge vat")).toBe(true)
-		expect(has(body("Merge", "touch"), "Tap the prompt at the merge vat")).toBe(true)
-		expect(has(body("Steal", "gamepad"), 'hold X on "Steal"')).toBe(true)
+		expect(has(body("BuyPad", "gamepad"), "Hold X")).toBe(true)
 	end)
-	it("no key name leaks into the other devices and no placeholder is left", function()
+	it("no key name leaks into another device and no placeholder is left", function()
 		for _, step in Tutorial.STEPS do
-			expect(has(step.bodies.touch, " E")).toBe(false)
-			expect(has(step.bodies.gamepad, " E ")).toBe(false)
+			-- "E" as a word (the key), not the E of "Earners"
+			expect(string.find(step.bodies.touch, "%f[%w]E%f[%W]")).toBeNil()
+			expect(string.find(step.bodies.gamepad, "%f[%w]E%f[%W]")).toBeNil()
 			for _, kind in Tutorial.KINDS do
 				expect(string.find(step.bodies[kind], "{", 1, true)).toBeNil()
-				expect(#step.bodies[kind] <= 160).toBe(true)
 			end
 		end
 	end)
-	it("only the prompt wording differs between devices", function()
-		for _, id in { "Deposit", "Rebirth" } do
+	it("steps without a prompt read the same on every device", function()
+		for _, id in { "Deposit", "Lock", "Leaderboard", "BuyItem" } do
 			expect(body(id, "touch")).toBe(body(id, "keyboard"))
 			expect(body(id, "gamepad")).toBe(body(id, "keyboard"))
 		end
 	end)
-	it("the merge vat opens its menu at once: a press, never a hold", function()
-		for _, kind in Tutorial.KINDS do
-			expect(has(string.lower(body("Merge", kind)), "hold")).toBe(false)
+	it("the merge vat and the Guide open at a press, never a hold", function()
+		for _, id in { "Merge", "Guide", "Grab" } do
+			for _, kind in Tutorial.KINDS do
+				expect(has(string.lower(body(id, kind)), "hold")).toBe(false)
+			end
 		end
 	end)
 	it("names the prompt's real button: PlayStation shapes and the keyboard layout's own letter", function()
@@ -159,22 +132,17 @@ describe("Tutorial device wording", function()
 		expect(Tutorial.gamepadLabel("ButtonSquare")).toBe("Square")
 		expect(Tutorial.gamepadLabel("ButtonCross")).toBe("Cross")
 		expect(Tutorial.gamepadLabel("ButtonL3")).toBe("L3")
-		local square = (Tutorial.viewById("Lock", "gamepad", "Square") :: Tutorial.StepView).body
-		expect(has(square, 'Hold Square on "Lock base"')).toBe(true)
+		local square = body("BuyPad", "gamepad", "Square")
+		expect(has(square, "Hold Square")).toBe(true)
 		expect(has(square, " X ")).toBe(false)
-		local grab = (Tutorial.fromState({ tutorialStepId = "Grab" }, "gamepad", "Square") :: Tutorial.StepView).body
-		expect(has(grab, "press Square")).toBe(true)
-		local azerty = (Tutorial.viewById("Steal", "keyboard", "Z") :: Tutorial.StepView).body
-		expect(has(azerty, 'hold Z on "Steal"')).toBe(true)
-		local legacy = (Tutorial.fromState({ tutorialStep = 3 }, "gamepad", "Square") :: Tutorial.StepView).body
-		expect(has(legacy, "Hold Square")).toBe(true)
+		expect(has(body("Grab", "keyboard", "Z"), "press Z")).toBe(true)
 	end)
 	it("touch ignores a key name", function()
-		expect(body("Lock", "touch")).toBe((Tutorial.viewById("Lock", "touch", "Square") :: Tutorial.StepView).body)
+		expect(body("BuyPad", "touch", "Square")).toBe(body("BuyPad", "touch"))
 	end)
-	it("the card measures every device and the longest button name", function()
-		local texts = Tutorial.texts(Tutorial.find("Lock") :: Tutorial.Step)
+	it("the card is measured for every device and the longest button name", function()
+		local texts = Tutorial.texts(Tutorial.find("BuyPad") :: Tutorial.Step)
 		expect(#texts).toBe(#Tutorial.KINDS + 1)
-		expect(has(texts[#texts], 'Hold Triangle on "Lock base"')).toBe(true)
+		expect(has(texts[#texts], "Hold Triangle")).toBe(true)
 	end)
 end)

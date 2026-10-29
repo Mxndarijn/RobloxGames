@@ -3,5 +3,5 @@
   "todo": "v18",
   "kind": "world",
   "target": "TutorialNpc",
-  "note": "v18: guide NPC on a solo server; the Steal tutorial step now skips itself after TUTORIAL_STEAL_SKIP_SECONDS with nobody to steal from (tests/TutorialSolo.spec)"
+  "note": "The Guide NPC: talking to it finishes the tutorial's Guide step (contract/tutorial.md)"
 }

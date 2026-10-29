@@ -59,6 +59,7 @@ local ServerContext = require(script.ServerContext)
 local ServerLoop = require(script.ServerLoop)
 local Snapshot = require(script.Snapshot)
 local StudioHooks = require(script.StudioHooks)
+local TutorialService = require(script.TutorialService)
 local WeatherService = require(script.WeatherService)
 local WeeklyEventService = require(script.WeeklyEventService)
 local World = require(script.World)
@@ -275,10 +276,14 @@ if floors then
 end
 
 -- The shop stands' "Open Shop" prompts open that shop on the server (CONTRACT.md §27.3), purchases go through
--- Request ShopBuy; the TutorialNpc's "Talk" prompt opens the Guide menu on the client.
+-- Request ShopBuy; the TutorialNpc's "Talk" prompt opens the Guide menu on the client and finishes the tutorial's
+-- Guide step here.
 WorldProps.addShopPrompts(function(player: Player, shopId: string)
 	Actions.openFromPrompt(world, player.UserId, shopId, ctx)
 	PlayerAttributes.syncOpenShop(world, player)
+end, function(player: Player)
+	TutorialService.talkedToGuide(world, player.UserId)
+	refreshAfter(true)
 end)
 
 ---------------------------------------------------------------------------

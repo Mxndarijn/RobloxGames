@@ -27,7 +27,7 @@ EPS = 0.51  # rhr rects are within ~0.5 px of the rounded UDim offsets
 ASPECT_TOLERANCE = 0.03
 MIN_TOUCH = 44
 
-# Findings the gate tolerates (none now: the portrait nav no longer runs into the tutorial card).
+# Findings the gate tolerates (none now).
 KNOWN: list[str] = []
 
 

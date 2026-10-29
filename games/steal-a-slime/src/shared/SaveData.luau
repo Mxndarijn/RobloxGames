@@ -19,7 +19,7 @@
 	    goals = { [goalId] = stagesPaid }, dexRewards = n
 	    plus (no bump; missing -> none) redeemed = { code }, boost = { mult, untilAt }
 	    v2 -> v3: zero upgrades / goals / dexRewards, stats.caught seeded with
-	    #slimes, tutorialStep 4..6 -> 5..7 (BuyPad step).
+	    #slimes, tutorialStep 4..6 -> 5..7 (BuyPad step; applied in migrateV11).
 	  v4 / v5: slime mutation lists (SaveData.migrateV3 / migrateV4); stripped again by v7 (migrateV6).
 	plotSkin (FEATURES.PlotSkins, CONTRACT.md §15): missing / unknown / not unlocked -> "classic"
 	(SaveData.migratePlotSkin, run by deserialize). stealLog (FEATURES.StealAlerts, CONTRACT.md §17):
@@ -42,10 +42,13 @@
 	{ purchaseId }` (capped), `starterBundle`, `credits = { brew, hatch }`, `offlineDouble = { cash, at, used }?` and the
 	roll seeds `vat.seed` / `slimes[i].egg.seed`. v9 -> v10 (migrateV9) adds the empty purchase fields; old vats and
 	eggs keep no seed and roll as before. Pure, idempotent.
-	v11 (current, contract/exclusive-shop.md §9-§12): `ownedTrails = { trailId }`, `trail = trailId?`, `ownedBatSkins =
+	v11 (contract/exclusive-shop.md §9-§12): `ownedTrails = { trailId }`, `trail = trailId?`, `ownedBatSkins =
 	{ skinId }`, `batSkin = skinId?`, `lockBreakCredits = n` and `giftCredits = { productKey }`. v10 -> v11 (migrateV10)
 	adds them empty; deserialize drops unknown / repeated ids, an equipped id that is not owned, gift keys that are not
 	giftable, and clamps the counts. Pure, idempotent.
+	v12 (current, contract/tutorial.md): the tutorial's step list changed, so v11 -> v12 (migrateV11) maps a saved
+	`tutorialStep` onto the new order (TUTORIAL_V11_TO_V12); a player who reached the old Steal or Rebirth step is
+	done. A save from before v3 first moves its Merge / Steal / Rebirth (4..6) up one for the old BuyPad step.
 	petSeat (contract/pet-seats.md, no version bump): a Config.PET_SEATS id; missing / unknown / not unlocked -> "cloud".
 	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, speciesRewards = milestones paid;
 	missing -> empty / 0, unknown ids dropped, owned slimes always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
@@ -212,8 +215,8 @@ end
 
 -- v3 (or older v2-shaped) -> v4. Pure: returns a copy, never mutates `raw`. Adds
 -- `mutations` to every slime table that has none, from the legacy `mutation` field.
--- Idempotent. `migratedFrom` remembers the version it came from (deserialize needs
--- it for the v2 -> v3 steps); it is never serialized.
+-- Idempotent. `migratedFrom` remembers the version it came from (deserialize and migrateV11
+-- need it for the v2 -> v3 steps); it is never serialized.
 function SaveData.migrateV3(raw: { [string]: any }): { [string]: any }
 	local out = table.clone(raw)
 	local from = tonumber(raw.version)
@@ -480,6 +483,38 @@ function SaveData.migrateV10(raw: { [string]: any }): { [string]: any }
 	return out
 end
 
+-- v11 step order: Grab, Deposit, Lock, BuyPad, Merge, Steal, Rebirth. Each maps to the step a player resumes at.
+SaveData.TUTORIAL_V11_TO_V12 = table.freeze({
+	[0] = 0,
+	[1] = 1,
+	[2] = 2,
+	[3] = 3,
+	[4] = 4,
+	[5] = 7,
+	[6] = 0,
+	[7] = 0,
+} :: { [number]: number })
+
+-- v11 -> v12: `tutorialStep` moves onto the new step list (TUTORIAL_V11_TO_V12).
+function SaveData.migrateV11(raw: { [string]: any }): { [string]: any }
+	local out = table.clone(raw)
+	local from = tonumber(raw.migratedFrom or raw.version)
+	if from == nil or from ~= from then
+		from = 0
+	end
+	out.migratedFrom = raw.migratedFrom or from
+	local step = tonumber(raw.tutorialStep)
+	if step ~= nil and step == step then
+		step = math.clamp(math.floor(step), 0, 7)
+		if from < 3 and step >= 4 then
+			step = math.min(step + 1, 7) -- v3 inserted BuyPad as step 4
+		end
+		out.tutorialStep = SaveData.TUTORIAL_V11_TO_V12[step]
+	end
+	out.version = 12
+	return out
+end
+
 local function catalogueIds(list: { any }): { [string]: boolean }
 	local out = {}
 	for _, def in list do
@@ -673,6 +708,9 @@ function SaveData.migrate(raw: any): { [string]: any }?
 	if version < 11 then
 		migrated = SaveData.migrateV10(migrated)
 	end
+	if version < 12 then
+		migrated = SaveData.migrateV11(migrated)
+	end
 	return migrated
 end
 
@@ -744,12 +782,7 @@ function SaveData.deserialize(stored: any): Data
 
 	data.speedCoil = raw.speedCoil == true
 	if raw.tutorialStep ~= nil then
-		local step = num(raw.tutorialStep, 0, 0, #TutorialProgress.STEPS)
-		-- v3 inserted "BuyPad" as step 4: an older save's Merge / Steal / Rebirth (4..6) moves up one.
-		if (tonumber(raw.migratedFrom or raw.version) or 0) < 3 and step >= 4 then
-			step = math.min(step + 1, #TutorialProgress.STEPS)
-		end
-		data.tutorialStep = step
+		data.tutorialStep = num(raw.tutorialStep, 0, 0, #TutorialProgress.STEPS)
 	else
 		-- Saved before the tutorial existed: only brand-new profiles get it.
 		data.tutorialStep = if #data.slimes == 0 and data.rebirths == 0 then 1 else 0

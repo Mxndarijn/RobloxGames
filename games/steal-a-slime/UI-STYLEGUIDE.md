@@ -91,10 +91,10 @@ Decided by Merijn on 2026-10-21; the Goo look was chosen the same week. Mockups 
 
 Notices appear on their own; menus are opened by the player.
 
-- **Border colour says what it is:** `Gold` border for info and tips (status tooltips, tutorial card, carry card, hotbar tip), `Bad` border for danger (steal banner, boss meter). Menus, HUD clusters and popups keep the plain Ink outline.
+- **Border colour says what it is:** `Gold` border for info and tips (status tooltips, the tutorial notice card, carry card, hotbar tip), `Bad` border for danger (steal banner, boss meter). Menus, HUD clusters and popups keep the plain Ink outline.
 - **Where they go:**
   - Alarms (STOLEN!, boss) stack top-centre, under each other, in the banner stack.
-  - Guidance (tutorial card, carry card) sits bottom-centre above the hotbar.
+  - The tutorial is a Gold notice card in the top stack, under the alarms; the carry card sits bottom-centre above the hotbar.
   - Tooltips open above the thing they explain and stay on screen.
   - Edge arrows (thief, home, next step) sit on the screen edge pointing at their target.
 - **No toasts.** A notice that only reports something plays its sound. If players must see it, it gets a place above.
@@ -138,4 +138,4 @@ The first thing players see, built by `first/LoadingScreen.luau`: a `Bg` to `BgD
 
 The Goo redesign (the kit, the HUD and notices, copy and per-screen layouts, world labels and the loading screen, and the clean-up) fixed every line of the first audit: sentence case and no "!" everywhere, gold and pink notice rings, matching status bubbles, an empty Bag message, nothing under `Layout.MIN_TEXT`, the Goo loading screen, and the unreachable Top earners and old Shop cards are gone.
 
-Not checked again since: the shared top line for every short card, the tutorial "Hide" button against the secondary button style, and phone and tablet layouts beyond the `LayoutAssert` viewports.
+Not checked again since: the shared top line for every short card, and phone and tablet layouts beyond the `LayoutAssert` viewports.

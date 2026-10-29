@@ -13,11 +13,9 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
-local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
-local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
@@ -102,7 +100,6 @@ function StealService.steal(
 	World.notify(world, owner.userId, `{thief.name} is stealing your slime!`, "bad", "Alarm")
 	World.notify(world, thief.userId, "Bring the slime to your plot!", "info", "Grab")
 	World.effect(world, "Steal", { slimeId = slimeId, userId = thief.userId })
-	World.tutorial(world, thief, "Steal")
 	return true, nil
 end
 
@@ -153,36 +150,6 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 	World.notify(world, owner.userId, `Your {name} escaped back to you!`, "good", "Escape")
 	World.notice(world, owner, { id = "SlimeHome", at = now, name = carrier.name })
 	return carry.slimeId
-end
-
--- True when some other player has a slime on a pad (a possible Steal target).
-local function hasStealTarget(world: World, session: Session): boolean
-	for userId, other in world.sessions do
-		if userId ~= session.userId then
-			for _, slime in other.data.slimes do
-				if slime.pad ~= nil then
-					return true
-				end
-			end
-		end
-	end
-	return false
-end
-
--- Call once per second: a player on the tutorial's Steal step with nobody to steal from
--- (solo server, or empty plots) gets the step skipped after TUTORIAL_STEAL_SKIP_SECONDS.
-function StealService.tickTutorial(world: World, now: number)
-	for _, session in world.sessions do
-		if TutorialProgress.currentId(session.data) ~= "Steal" or hasStealTarget(world, session) then
-			session.stealWaitSince = nil
-		elseif not session.stealWaitSince then
-			session.stealWaitSince = now
-		elseif now - session.stealWaitSince >= Config.TUTORIAL_STEAL_SKIP_SECONDS then
-			session.stealWaitSince = nil
-			World.notify(world, session.userId, "Nobody to steal from here, so Steal is skipped.", "good", nil)
-			World.tutorial(world, session, "Steal")
-		end
-	end
 end
 
 -- Call every frame: finishes escape bounces and pushes State on lock expiry.

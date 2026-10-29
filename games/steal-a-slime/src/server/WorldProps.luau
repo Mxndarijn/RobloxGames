@@ -57,7 +57,8 @@ WorldProps.LEADERBOARD_PROMPT = table.freeze({
 	actionText = "View leaderboards",
 })
 WorldProps.LEADERBOARD_CLICK_DISTANCE = 32
--- The Guide's prompt only opens a client menu (the UI listens for PromptTriggered).
+-- The Guide's prompt opens a client menu (the UI listens for PromptTriggered); the server only counts it for the
+-- tutorial's Guide step.
 WorldProps.GUIDE_PROMPT = table.freeze({
 	name = Constants.GUIDE_PROMPT_NAME,
 	objectText = "Guide",
@@ -219,6 +220,12 @@ local function counterOf(stand: Model?): BasePart?
 end
 
 -- The Counter of the stand of `shopId` ("ItemShop" | "UpgradeShop" | "ExclusiveShop"), or nil while it is not placed.
+-- Where placed prop `name` stands (its pivot), nil when it was not placed.
+function WorldProps.position(name: string): Vector3?
+	local model = placed[name]
+	return if model and model.Parent then model:GetPivot().Position else nil
+end
+
 function WorldProps.shopCounter(shopId: string): BasePart?
 	local stand = standOf(shopId)
 	return counterOf(if stand then placed[stand] else nil)
@@ -227,7 +234,10 @@ end
 -- Each stand's ShopPrompt on its Counter plus the ShopId attribute, `onShop(player, shopId)` running on the server
 -- when it is triggered (CONTRACT.md §27.3), and "Talk" on the TutorialNpc's root (CONTRACT.md §5.3).
 -- Call after place().
-function WorldProps.addShopPrompts(onShop: ((player: Player, shopId: string) -> ())?)
+function WorldProps.addShopPrompts(
+	onShop: ((player: Player, shopId: string) -> ())?,
+	onGuide: ((player: Player) -> ())?
+)
 	local shopIds = table.clone(Shops.ORDER)
 	table.insert(shopIds, Constants.EXCLUSIVE_SHOP_ID)
 	for _, shopId in shopIds do
@@ -246,7 +256,12 @@ function WorldProps.addShopPrompts(onShop: ((player: Player, shopId: string) -> 
 		end
 	end
 	local npc = placed[Constants.TUTORIAL_NPC]
-	addPrompt(npc and (npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart), WorldProps.GUIDE_PROMPT)
+	local npcRoot = npc and (npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart)
+	addPrompt(npcRoot, WorldProps.GUIDE_PROMPT)
+	local guide = npcRoot and npcRoot:FindFirstChild(Constants.GUIDE_PROMPT_NAME)
+	if onGuide and guide and guide:IsA("ProximityPrompt") then
+		guide.Triggered:Connect(onGuide)
+	end
 	-- Professor Goo: "View leaderboards" (E / tap) and a ClickDetector for a click or right-click; both only open
 	-- the client's Leaderboards panel.
 	local professor = placed[Constants.PROFESSOR_GOO]

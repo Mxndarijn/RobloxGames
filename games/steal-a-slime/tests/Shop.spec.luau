@@ -15,6 +15,7 @@ local Spawner = require("../src/server/Spawner")
 local Steal = require("../src/shared/Steal")
 local TestRunner = require("./TestRunner")
 local TutorialProgress = require("../src/shared/TutorialProgress")
+local TutorialService = require("../src/server/TutorialService")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
@@ -118,13 +119,12 @@ describe("TutorialProgress", function()
 		expect((TutorialProgress.complete(data, "Nope"))).toBe(false)
 	end)
 	it("skips steps the saved data shows are already done", function()
-		-- Bought a pad and merged during Grab: Deposit and Lock still show, BuyPad / Merge don't.
+		-- Bought a pad, merged and bought an upgrade during Grab: Deposit, Lock, Leaderboard and Guide still show.
 		local data = {
 			tutorialStep = 1,
 			stats = { caught = 0, merges = 1, locks = 0 },
 			padsUnlocked = Config.PADS_START + 1,
-			totalStolen = 0,
-			rebirths = 0,
+			upgrades = { [Config.UPGRADES[1].id] = 1 },
 		}
 		expect((TutorialProgress.complete(data, "BuyPad"))).toBe(false)
 		expect((TutorialProgress.complete(data, "Grab"))).toBe(true)
@@ -134,51 +134,57 @@ describe("TutorialProgress", function()
 		expect(TutorialProgress.currentId(data)).toBe("Lock")
 		data.stats.locks = 1
 		TutorialProgress.complete(data, "Lock")
-		expect(TutorialProgress.currentId(data)).toBe("Steal")
-		-- A rebirth while at Steal (solo server) finishes Steal and Rebirth.
-		data.rebirths = 1
-		local changed, finished = TutorialProgress.complete(data, "Rebirth")
+		expect(TutorialProgress.currentId(data)).toBe("Leaderboard")
+		TutorialProgress.complete(data, "Leaderboard")
+		expect(TutorialProgress.currentId(data)).toBe("Guide")
+		-- BuyPad, Merge and BuyItem are already done, so the Guide ends it.
+		local changed, finished = TutorialProgress.complete(data, "Guide")
 		expect(changed).toBe(true)
 		expect(finished).toBe(true)
 		expect(data.tutorialStep).toBe(0)
 	end)
-	it("has UI overlay copy for every step", function()
+	it("has UI card copy for every step", function()
 		local UiTutorial = require("../src/ui/Tutorial")
 		for _, name in TutorialProgress.STEPS do
 			expect(UiTutorial.find(name)).toBeTruthy()
 		end
 	end)
-	it("advances from real gameplay: grab, deposit, lock, buy pad, merge, steal, rebirth", function()
+	it("advances from real gameplay and pays nothing for it", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, nil, 1e7)
-		s.data.padsUnlocked = Config.PADS_START -- not done yet, or BuyPad is skipped (§9.2)
+		s.data.padsUnlocked = Config.PADS_START -- not done yet, or BuyPad is skipped
 		expect(s.data.tutorialStep).toBe(1)
 		local id = Spawner.spawnOne(world, T0)
 		world.wild[id].price = 0
 		expect((Carry.grab(world, 1, id, 1, T0))).toBe(true)
-		expect(s.data.tutorialStep).toBe(2)
+		expect(TutorialProgress.currentId(s.data)).toBe("Deposit")
 		expect((Carry.deposit(world, 1))).toBe(true)
-		expect(s.data.tutorialStep).toBe(3)
+		expect(TutorialProgress.currentId(s.data)).toBe("Lock")
 		s.lockUntil = 0
 		expect(call(world, 1, "Lock").ok).toBe(true)
-		expect(s.data.tutorialStep).toBe(4)
+		expect(TutorialProgress.currentId(s.data)).toBe("Leaderboard")
+		TutorialService.tick(world, {
+			pose = function()
+				return { X = 5, Y = 0, Z = 5 }, nil
+			end,
+			propPosition = function()
+				return { X = 0, Y = 3, Z = 0 }
+			end,
+		})
+		expect(TutorialProgress.currentId(s.data)).toBe("Guide")
+		TutorialService.talkedToGuide(world, 1)
 		expect(TutorialProgress.currentId(s.data)).toBe("BuyPad")
 		expect(call(world, 1, "BuyPad").ok).toBe(true)
-		expect(s.data.tutorialStep).toBe(5)
+		expect(TutorialProgress.currentId(s.data)).toBe("Merge")
 		PlayerData.addSlime(s.data, Fixtures.slime("m1", 1))
 		PlayerData.addSlime(s.data, Fixtures.slime("m2", 1))
 		PlayerData.addSlime(s.data, Fixtures.slime("m3", 1))
 		expect(brew(world, { "m1", "m2", "m3" })).toBe(true)
-		expect(s.data.tutorialStep).toBe(6)
-		local victim = ServerFixtures.join(world, 2, { Fixtures.slime("gem", 2) })
-		ServerFixtures.unlock(victim)
-		expect((Carry.grab(world, 1, "gem", 1, T0 + 1))).toBe(true)
-		expect(s.data.tutorialStep).toBe(7)
-		Carry.release(world, 1, T0 + 2, nil, "drop")
-		world.escaping = {}
-		PlayerData.addSlime(s.data, Fixtures.slime("need", 2, { species = FIRST }))
-		expect(call(world, 1, "Rebirth").ok).toBe(true)
+		expect(TutorialProgress.currentId(s.data)).toBe("BuyItem")
+		local cash = s.data.cash
+		expect(call(world, 1, "BuyUpgrade", Config.UPGRADES[1].id).ok).toBe(true)
 		expect(s.data.tutorialStep).toBe(0)
+		expect(s.data.cash < cash).toBe(true) -- paid for the upgrade, got nothing back
 		local texts = table.concat(ServerFixtures.notifications(world, 1), "\n")
 		expect(string.find(texts, "Tutorial complete", 1, true) ~= nil).toBeTruthy()
 	end)

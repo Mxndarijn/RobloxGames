@@ -3,29 +3,30 @@
 	TutorialArrow (VisualsClient module)
 
 	Leads the local player to the target of the current tutorial step
-	(CONTRACT.md §8.3) with the shared ground guide (Lib.guide.GuideView):
-	neon chevrons on the ground, a ring and a labelled marker on the target,
-	an outline and a screen-edge pointer.
+	(contract/tutorial.md) with the shared ground guide (Lib.guide.GuideView):
+	neon chevrons on the ground along a pathfinding route, a ring and a
+	labelled marker on the target, an outline and a screen-edge pointer.
 
-	  Grab     the closest wild slime the player can afford, else the
-	           cheapest one ("Need $X") (TutorialTargets.grab)
-	  Deposit  own HomeZone          Lock   own LockButton
-	  BuyPad   closest own pad with an enabled BuyPadPrompt
-	  Merge    own MergeVat
-	  Steal    closest slime with an enabled steal prompt on another
-	           player's unlocked plot
-	  Rebirth  none (ui/Hint rings the Rebirth menu button)
+	  Grab         the closest wild slime the player can afford, else the
+	               cheapest one ("Need $X") (TutorialTargets.grab)
+	  Deposit      own HomeZone              Lock    own LockButton (the pad)
+	  Leaderboard  Map.LeaderboardBoard      Guide   Map.TutorialNpc
+	  BuyPad       closest own pad with an enabled BuyPadPrompt
+	  Merge        own MergeVat
+	  BuyItem      the closer of the Item Shop and Upgrade Shop stands
 
-	Keyed on the Player attribute TutorialStepId (falls back to TutorialStep
-	via TutorialProgress.STEPS). The target is re-picked every POLL seconds;
-	GuideTarget keeps the current pick unless another is clearly closer.
+	Where the player must stand on the target (the home zone, the lock pad, a
+	pad, a slime) the route ends on it; elsewhere GuideView picks a free spot
+	next to the target. The walks across the plaza get a longer trail
+	(FAR_TRAIL). Keyed on the Player attribute TutorialStepId. The target is
+	re-picked every POLL seconds; GuideTarget keeps the current pick unless
+	another is clearly closer.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
-local TutorialProgress = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("TutorialProgress"))
 local TutorialTargets = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("TutorialTargets"))
 local Guide = ReplicatedStorage:WaitForChild("Lib"):WaitForChild("guide")
 local GuideTarget = require(Guide:WaitForChild("GuideTarget"))
@@ -34,13 +35,26 @@ local GuideView = require(Guide:WaitForChild("GuideView"))
 local TutorialArrow = {}
 
 TutorialArrow.POLL = 0.25
+-- `standOn`: the route ends on the part itself (the player has to stand there), not next to it.
 TutorialArrow.OWN_PLOT_TARGETS = table.freeze({
-	Deposit = table.freeze({ part = "HomeZone", label = "Bring it home" }),
-	Lock = table.freeze({ part = "LockButton", label = "Lock base" }),
-	Merge = table.freeze({ part = "MergeVat", label = "Merge" }),
+	Deposit = table.freeze({ part = "HomeZone", label = "Bring it home", standOn = true }),
+	Lock = table.freeze({ part = "LockButton", label = "Stand here", standOn = true }),
+	Merge = table.freeze({ part = "MergeVat", label = "Merge", standOn = false }),
 })
+-- Props under workspace.Map, by step.
+TutorialArrow.MAP_TARGETS = table.freeze({
+	Leaderboard = table.freeze({ { name = Constants.LEADERBOARD_BOARD, label = "Leaderboard" } }),
+	Guide = table.freeze({ { name = Constants.TUTORIAL_NPC, label = "Talk to the Guide" } }),
+	BuyItem = table.freeze({
+		{ name = Constants.SHOP_STAND_ITEM, label = "Item Shop" },
+		{ name = Constants.SHOP_STAND_UPGRADE, label = "Upgrade Shop" },
+	}),
+} :: { [string]: { { name: string, label: string } } })
+-- Trail for the walks across the plaza; the other steps use GuideTrail's defaults.
+TutorialArrow.FAR_TRAIL = table.freeze({ maxLength = 200, spacing = 5, maxCount = 40 })
 
-type Choice = { target: PVInstance, key: string, label: string? }
+-- `goal`: where the route ends when the player has to stand on the target; nil = next to it (GuideView).
+type Choice = { target: PVInstance, key: string, label: string?, goal: Vector3? }
 
 -- A stable key per Instance (two slimes can share a name).
 local keys: { [Instance]: string } = setmetatable({}, { __mode = "k" }) :: any
@@ -57,11 +71,7 @@ end
 
 local function stepId(player: Player): string?
 	local id = player:GetAttribute(Constants.TUTORIAL_STEP_ID_ATTRIBUTE)
-	if type(id) == "string" then
-		return id
-	end
-	local step = player:GetAttribute(Constants.TUTORIAL_STEP_ATTRIBUTE)
-	return if type(step) == "number" then TutorialProgress.STEPS[step] else nil
+	return if type(id) == "string" then id else nil
 end
 
 local function cash(player: Player): number
@@ -80,9 +90,15 @@ local function closest(list: { GuideTarget.Candidate<Choice> }, from: Vector3, c
 	return if picked then picked.value else nil
 end
 
-local function candidate(target: PVInstance, key: string, label: string?): GuideTarget.Candidate<Choice>
+local function candidate(
+	target: PVInstance,
+	key: string,
+	label: string?,
+	standOn: boolean?
+): GuideTarget.Candidate<Choice>
 	local at = target:GetPivot().Position
-	return { key = key, x = at.X, z = at.Z, value = { target = target, key = key, label = label } }
+	local goal = if standOn then at else nil
+	return { key = key, x = at.X, z = at.Z, value = { target = target, key = key, label = label, goal = goal } }
 end
 
 local function grab(player: Player, from: Vector3, currentKey: string?): Choice?
@@ -109,12 +125,28 @@ local function grab(player: Player, from: Vector3, currentKey: string?): Choice?
 		end
 	end
 	local slime, label = TutorialTargets.grab(wild, cash(player), { x = from.X, z = from.Z }, currentKey)
-	return if slime then { target = slime.value, key = slime.key, label = label } else nil
+	if not slime then
+		return nil
+	end
+	local model = slime.value :: PVInstance
+	return { target = model, key = slime.key, label = label, goal = model:GetPivot().Position }
 end
 
 local function choose(player: Player, id: string?, from: Vector3, currentKey: string?): Choice?
 	if id == "Grab" then
 		return grab(player, from, currentKey)
+	end
+	local props = if id then TutorialArrow.MAP_TARGETS[id] else nil
+	if props then
+		local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
+		local list: { GuideTarget.Candidate<Choice> } = {}
+		for _, prop in props do
+			local model = map and map:FindFirstChild(prop.name, true)
+			if model and model:IsA("PVInstance") then
+				table.insert(list, candidate(model, keyOf(model), prop.label))
+			end
+		end
+		return closest(list, from, currentKey)
 	end
 	local plots = workspace:FindFirstChild(Constants.PLOTS_FOLDER)
 	if not plots or not id then
@@ -127,26 +159,13 @@ local function choose(player: Player, id: string?, from: Vector3, currentKey: st
 		if owner == player.UserId and own then
 			local part = plot:FindFirstChild(own.part)
 			if part and part:IsA("PVInstance") then
-				table.insert(list, candidate(part, keyOf(part), own.label))
+				table.insert(list, candidate(part, keyOf(part), own.label, own.standOn))
 			end
 		elseif owner == player.UserId and id == "BuyPad" then
 			for _, pad in plot:GetChildren() do
 				local prompt = enabledPrompt(pad, Constants.BUY_PAD_PROMPT_NAME)
 				if prompt and pad:IsA("PVInstance") then
-					table.insert(list, candidate(pad, keyOf(pad), prompt.ActionText))
-				end
-			end
-		elseif
-			id == "Steal"
-			and type(owner) == "number"
-			and owner ~= 0
-			and owner ~= player.UserId
-			and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) ~= true
-		then
-			local slimes = plot:FindFirstChild(Constants.PLOT_SLIMES_FOLDER)
-			for _, model in if slimes then slimes:GetChildren() else {} do
-				if model:IsA("Model") and enabledPrompt(model, Constants.GRAB_PROMPT_NAME) then
-					table.insert(list, candidate(model, keyOf(model), "Steal"))
+					table.insert(list, candidate(pad, keyOf(pad), prompt.ActionText, true))
 				end
 			end
 		end
@@ -176,15 +195,24 @@ function TutorialArrow.start(): () -> ()
 	-- clearLabels: the marker floats above the target slime's own tag instead of over it.
 	local guide = GuideView.new({ getIgnore = ignoreList, clearLabels = true })
 	local currentKey: string? = nil
+	local far = false
 	local running = true
 	local function update()
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
-		local choice = if root and root:IsA("BasePart")
-			then choose(player, stepId(player), root.Position, currentKey)
-			else nil
+		local id = stepId(player)
+		local choice = if root and root:IsA("BasePart") then choose(player, id, root.Position, currentKey) else nil
 		currentKey = if choice then choice.key else nil
-		guide:setTarget(if choice then choice.target else nil, if choice then choice.label else nil)
+		local wantFar = id ~= nil and TutorialArrow.MAP_TARGETS[id] ~= nil
+		if wantFar ~= far then
+			far = wantFar
+			guide:setTrail(if far then TutorialArrow.FAR_TRAIL else nil)
+		end
+		guide:setTarget(
+			if choice then choice.target else nil,
+			if choice then choice.label else nil,
+			if choice then choice.goal else nil
+		)
 		local gui = player:FindFirstChild("PlayerGui")
 		local ui = gui and gui:FindFirstChild(Constants.UI_GUI_NAME)
 		guide:setEdgeHidden(ui ~= nil and ui:GetAttribute(Constants.MENU_OPEN_ATTRIBUTE) == true)

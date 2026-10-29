@@ -62,9 +62,9 @@ describe("overlays start hidden and follow their menu", function()
 	it("popup overlays (daily, tutorial, hint) start hidden", function()
 		local root = UiHarness.root()
 		UiHarness.ui("Panels/DailyPopup").new(root, ctx())
-		UiHarness.ui("Panels/TutorialOverlay").new(root, ctx())
+		UiHarness.ui("TutorialCard").new(root, ctx(), 2)
 		UiHarness.ui("Panels/HintOverlay").new(root)
-		for _, name in { "DailyPopup", "HintRing" } do
+		for _, name in { "DailyPopup", "Tutorial", "HintRing" } do
 			expect(UiHarness.find(root, name).Visible).toBe(false)
 		end
 	end)
