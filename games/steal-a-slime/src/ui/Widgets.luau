@@ -759,13 +759,13 @@ function Widgets.bleed(position: UDim2, size: UDim2): (UDim2, UDim2)
 		UDim2.new(size.X.Scale, size.X.Offset + r * 2, size.Y.Scale, size.Y.Offset)
 end
 
--- Moves a Widgets.scroll so its box is `position` / `size` (bled as above unless it is a card). Use it, not
--- Position / Size, after the scroll area is made.
+-- Moves a Widgets.scroll so its box is `position` / `size`: bled as above when it carries the Ring padding
+-- (a list), as is when it is a card. Use it, not Position / Size, after the scroll area is made.
 function Widgets.place(frame: GuiObject, position: UDim2, size: UDim2)
-	if frame.BackgroundTransparency < 1 then
-		frame.Position, frame.Size = position, size
-	else
+	if frame:FindFirstChild("Ring") then
 		frame.Position, frame.Size = Widgets.bleed(position, size)
+	else
+		frame.Position, frame.Size = position, size
 	end
 end
 

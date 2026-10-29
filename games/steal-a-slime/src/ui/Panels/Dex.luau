@@ -369,8 +369,9 @@ function Dex.new(parent: Instance, ctx: any)
 		return math.max(C.minW, bodyW - paneWidth() - c.gutter)
 	end
 
+	-- Columns that still fit while the list scrolls (its bar takes room); the cards then fill the row by scale.
 	local function grid(): SlimeDex.Grid
-		return SlimeDex.grid(gridWidth())
+		return SlimeDex.grid(gridWidth() - list.ScrollBarThickness)
 	end
 
 	-- Chips in the band, right to left from the close button.

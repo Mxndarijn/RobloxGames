@@ -86,8 +86,8 @@ function Codes.new(parent: Instance, ctx: any)
 				Name = "Error",
 				TextSize = rows.error.size,
 				TextColor3 = Theme.Bad,
-				Position = UDim2.fromOffset(0, rows.error.y),
-				Size = UDim2.new(1, 0, 0, rows.error.h),
+				Position = UDim2.fromOffset(rows.input.pad, rows.error.y), -- in line with the code box's text
+				Size = UDim2.new(1, -rows.input.pad * 2, 0, rows.error.h),
 				Parent = content,
 			})
 		end

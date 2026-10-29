@@ -319,7 +319,7 @@ function Skins.new(parent: Instance, ctx: any)
 		local n = #baseRows
 		local w, h = grid.w, grid.h
 		local half = STYLE.baseH // 2
-		strip.CanvasSize = UDim2.fromOffset(grid.canvasW, 0)
+		strip.CanvasSize = UDim2.fromOffset(grid.canvasW + c.ring * 2, 0) -- its Ring padding sits inside the canvas
 		for i, row in baseRows do
 			local b = baseButton(i)
 			local locked = row.state == "locked"
@@ -482,8 +482,9 @@ function Skins.new(parent: Instance, ctx: any)
 	)
 
 	-- Seat rows (Cloud tab): taller while they carry an unlock line.
+	-- The unlock line's width while the list scrolls (its bar takes room), so a wrap measured here never grows.
 	local function seatTextWidth(): number
-		return listWidth() - STYLE.rowPad * 3 - STYLE.icon
+		return listWidth() - STYLE.rowPad * 3 - STYLE.icon - seatList.ScrollBarThickness
 	end
 	local function seatRowHeight(row: PetSeatsView.Row): number
 		if row.state ~= "locked" then

@@ -56,6 +56,7 @@ ExclusiveShop.STYLE = table.freeze({
 	columnsMax = 3,
 	cardMin = 80,
 	cardGap = 8,
+	gridFoot = 6, -- canvas under the last row of cards
 	cardPad = 6,
 	iconMax = 96,
 	name = Layout.MIN_TEXT,
@@ -267,15 +268,18 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 	local function gridWidth(): number
 		return if wide() then bodyW - paneWidth() - c.gutter else bodyW
 	end
-	-- The cards on the current tab and the grid's visible height (placeBody): when the cards overflow it, the bar
-	-- takes its width from the grid (ScrollBarInset), so the columns are worked out without it.
+	-- The grid's canvas height for `lines` rows of cards `cardH` tall.
+	local function canvasHeight(lines: number, cardH: number): number
+		return lines * cardH + math.max(lines - 1, 0) * STYLE.cardGap + STYLE.gridFoot
+	end
+	-- The cards on the current tab and the grid's visible height (placeBody; 0 until the first layout): when the
+	-- cards overflow it, the bar takes its width from the grid (ScrollBarInset), so the columns leave it out.
 	local shownCards, gridH = 0, 0
 	local function cardWidth(): (number, number)
 		local w = gridWidth()
 		local columns, cardW = ExclusiveShop.grid(w)
 		local _, cardH = ExclusiveShop.card(cardW)
-		local lines = math.ceil(shownCards / columns)
-		if lines * cardH + math.max(lines - 1, 0) * STYLE.cardGap + 6 > gridH then -- the canvas repaint sets
+		if gridH > 0 and canvasHeight(math.ceil(shownCards / columns), cardH) > gridH then
 			return ExclusiveShop.grid(w - grid.ScrollBarThickness)
 		end
 		return columns, cardW
@@ -1094,7 +1098,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		local columns, cardW = cardWidth()
 		local _, cardH = ExclusiveShop.card(cardW)
 		local lines = math.ceil(#list / columns)
-		grid.CanvasSize = UDim2.fromOffset(0, lines * cardH + math.max(lines - 1, 0) * STYLE.cardGap + 6)
+		grid.CanvasSize = UDim2.fromOffset(0, canvasHeight(lines, cardH))
 		paintPane(if selected then ExclusiveShopView.detail(selected, latest, Config) else nil)
 		paintPicker()
 	end
