@@ -149,7 +149,6 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 | Ritual rules sign | `server/RitualView` | SG 6×1.8, 50 ppS | 80 | no |
 | BONK / CHOMP popup | `ui/PvpEffects` | px 140×48 | 120 | no |
 | Fun FX text | `ui/PvpFunFx` | px 220×60 × scale | 150 | yes |
-| Steal ping over thief | `ui/StealAlertFx` | px 110×56 | 400 | yes |
 | Slap pop | `ui/StealAlertFx` | px 120×50 | 120 | yes |
 | Boss hit pop | `visuals/client/BossTelegraph` | px 120×50 | 220 (same as its code check) | yes |
 | Your plot marker | `visuals/client/HomePlotMarker` | px 170×98, fit | 2000, fades in code | yes |

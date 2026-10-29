@@ -5,14 +5,14 @@
 	The v21 full steal alerts, drawn on top of the HUD banner:
 
 	* Owner: a red screen-edge flash and repeat alarms when a theft starts, a direction
-	  arrow on the screen edge plus a world ping (billboard + outline, seen through walls)
-	  on the thief while they carry my slime. (The "while you were away" toast from `State.stealAway` is gone
+	  arrow on the screen edge plus a red outline (seen through walls) on the thief while
+	  they carry my slime. (The "while you were away" toast from `State.stealAway` is gone
 	  with all toasts, B6.)
 	* Thief (and everyone watching): a short Trail on any player whose Player attribute
 	  `Stealing` is set.
 	* Bat hit: a hit effect (flash, "BONK!" pop, burst) on the player whose `SlapHitAt` changes.
 
-	Only Instances that are not parts: Frames, a BillboardGui, a Highlight, a Trail with two
+	Only Instances that are not parts: Frames, a BillboardGui (the BONK! pop), Highlights, a Trail with two
 	Attachments, a ParticleEmitter. The maths is Shared.StealAlert (tests/StealAlert.spec).
 	Studio only: the SlimeUI attribute `PcwStealAlert` = true fakes one theft (flash held at
 	its peak, arrow pointing right) and the notice, for the pc-watcher proof shot.
@@ -119,8 +119,8 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	local theft: { thiefId: number?, startedAt: number, played: number }? = nil
 	-- Everyone carrying one of my slimes right now (the arrow follows `theft.thiefId`, the first of them).
 	local thiefIds: { number } = {}
-	-- The ping (THIEF sign + red outline) on each thief's character.
-	local pings: { [Model]: { Instance } } = {}
+	-- The ping (red outline) on each thief's character.
+	local pings: { [Model]: Highlight } = {}
 	local sweepClock = 0
 	local screen: Layout.Screen? = nil
 	local bannerHeight: () -> number = function()
@@ -151,32 +151,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	end
 
 	local function addPing(character: Model)
-		local rootPart = character:FindFirstChild("HumanoidRootPart")
-		if not rootPart or not rootPart:IsA("BasePart") then
-			return
-		end
-		local sign = create("BillboardGui", {
-			Name = "StealPing",
-			Adornee = rootPart,
-			AlwaysOnTop = true,
-			Size = UDim2.fromOffset(110, 56),
-			MaxDistance = 400, -- studs: find the thief on your base from anywhere near it
-			LightInfluence = 0,
-			StudsOffset = Vector3.new(0, 4.5, 0),
-			Parent = character,
-		}, {
-			create("TextLabel", {
-				Size = UDim2.fromScale(1, 1),
-				BackgroundTransparency = 1,
-				Text = "🚨 THIEF",
-				TextSize = 22,
-				Font = Theme.Font,
-				TextColor3 = Color3.new(1, 1, 1),
-				TextStrokeTransparency = 0,
-				TextStrokeColor3 = Theme.Thief,
-			}),
-		})
-		local outline = create("Highlight", {
+		pings[character] = create("Highlight", {
 			Name = "StealHighlight",
 			Adornee = character,
 			FillColor = Theme.Thief,
@@ -185,7 +160,6 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
 			Parent = character,
 		})
-		pings[character] = { sign, outline }
 	end
 
 	-- Keeps exactly one ping on each of `characters`; each one is made once and stays until that thief is done.
@@ -194,11 +168,9 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		for _, character in characters do
 			wanted[character] = true
 		end
-		for character, parts in pings do
-			if not wanted[character] or parts[2].Parent ~= character then
-				for _, part in parts do
-					part:Destroy()
-				end
+		for character, outline in pings do
+			if not wanted[character] or outline.Parent ~= character then
+				outline:Destroy()
 				pings[character] = nil
 			end
 		end
