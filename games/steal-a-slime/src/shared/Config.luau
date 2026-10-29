@@ -6,6 +6,9 @@
 	APIs, so it loads unchanged on the server, the client and under Lune.
 ]]
 
+-- The Roblox ids of the Exclusive Shop products, passes and subscriptions (generated, contract/exclusive-shop.md §1).
+local ExclusiveIds = if script then require(script.Parent.ExclusiveIds) else require("./ExclusiveIds")
+
 export type Rarity = {
 	tier: number,
 	name: string,
@@ -630,7 +633,7 @@ local PET_SEATS: { PetSeat } = {
 -- StudioHooks can grant it. robux is the shown price and must match the Creator Dashboard. Keys are permanent
 -- save / receipt ids: never rename.
 local function product(robux: number, grant: { [string]: any }): { [string]: any }
-	return table.freeze({ productId = 0, robux = robux, grant = table.freeze(grant) })
+	return { productId = 0, robux = robux, grant = table.freeze(grant) } -- the id is filled in from ExclusiveIds below
 end
 local EXCLUSIVE_PRODUCTS: { [string]: any } = {
 	StarterBundle = product(
@@ -821,6 +824,12 @@ for _, key in giftable do
 	EXCLUSIVE_PRODUCTS["Gift_" .. key] = product(EXCLUSIVE_PRODUCTS[key].robux, { kind = "gift", item = key })
 end
 
+-- Each product's Roblox id (ExclusiveIds; 0 = not created yet), then frozen.
+for key, def in EXCLUSIVE_PRODUCTS do
+	def.productId = ExclusiveIds.products[key] or 0
+	table.freeze(def)
+end
+
 -- Game Passes, keyed by a permanent pass key (passId 0 = not created yet). Each field is one effect
 -- (Purchases.applyPasses); a pass may have several. `order` is where the Perks tab shows it.
 export type ExclusivePass = {
@@ -836,20 +845,25 @@ export type ExclusivePass = {
 	vip: boolean?, -- VIP: the tag, and one free server Luck Potion per UTC day (ClaimPerk "vipPotion")
 }
 local EXCLUSIVE_PASSES: { [string]: ExclusivePass } = {
-	VIP = table.freeze({ passId = 0, robux = 599, order = 1, incomeMult = 1.1, vip = true }),
-	Income2x = table.freeze({ passId = 0, robux = 449, order = 2, incomeMult = 2 }),
-	Offline2x = table.freeze({ passId = 0, robux = 199, order = 3, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
-	FastBrew = table.freeze({ passId = 0, robux = 249, order = 4, brewFactor = 0.5 }), -- merges brew in half the time
-	WarmNest = table.freeze({ passId = 0, robux = 129, order = 5, warmAway = true }),
-	LuckyCharmPlus = table.freeze({ passId = 0, robux = 249, order = 6, luckBonus = 0.05 }),
-	ThiefRadar = table.freeze({ passId = 0, robux = 149, order = 7, radar = true }),
+	VIP = table.freeze({ passId = ExclusiveIds.passes.VIP or 0, robux = 599, order = 1, incomeMult = 1.1, vip = true }),
+	Income2x = table.freeze({ passId = ExclusiveIds.passes.Income2x or 0, robux = 449, order = 2, incomeMult = 2 }),
+	Offline2x = table.freeze({ passId = ExclusiveIds.passes.Offline2x or 0, robux = 199, order = 3, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
+	FastBrew = table.freeze({ passId = ExclusiveIds.passes.FastBrew or 0, robux = 249, order = 4, brewFactor = 0.5 }), -- merges brew in half the time
+	WarmNest = table.freeze({ passId = ExclusiveIds.passes.WarmNest or 0, robux = 129, order = 5, warmAway = true }),
+	LuckyCharmPlus = table.freeze({
+		passId = ExclusiveIds.passes.LuckyCharmPlus or 0,
+		robux = 249,
+		order = 6,
+		luckBonus = 0.05,
+	}),
+	ThiefRadar = table.freeze({ passId = ExclusiveIds.passes.ThiefRadar or 0, robux = 149, order = 7, radar = true }),
 }
 -- Roblox subscriptions, keyed by a permanent key. `subscriptionId` is the "EXP-..." id ("" = not created yet);
 -- `robux` is the shown monthly price (Robux subscriptions cost at least 49) and must match the Creator Dashboard.
 export type ExclusiveSubscription = { subscriptionId: string, robux: number, daily: { brew: number, hatch: number } }
 local EXCLUSIVE_SUBSCRIPTIONS: { [string]: ExclusiveSubscription } = table.freeze({
 	SlimeClub = table.freeze({
-		subscriptionId = "",
+		subscriptionId = ExclusiveIds.subscriptions.SlimeClub or "",
 		robux = 99,
 		daily = table.freeze({ brew = 1, hatch = 1 }), -- skip credits added once per UTC day while subscribed
 	}),

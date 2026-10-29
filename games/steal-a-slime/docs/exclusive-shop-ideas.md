@@ -303,7 +303,7 @@ Two timers end in a random roll **at the end** today: the Mystery Egg rolls its 
 | Q12 | **Co-op ritual cooldown**: 10 min server and player (`shared/Ritual.luau:83,173-187`) | players | Skip your own ritual cooldown. | – | ✅ | Skip: needs 2 players anyway, low value |
 | Q13 | **Plot full**: GrabBlockCard "plot full" (`ui/GrabBlockCard.luau`, `Carry.luau:115,215`) | both | ~~Buy a pad with Robux~~ | – | ❌ skips the per-rebirth pad decision | No. Offer a free "sell your cheapest slime" shortcut instead |
 | Q14 | **Lock ended**: toast "Your base is unlocked!" (`server/StealService.luau:199`), lock already running (`shared/Steal.luau:90`) | owner | ~~Extend lock / lock again now~~ | – | ❌ paid defence | No. Relocking is already free |
-| Q15 | **Base locked** (thief side, `Steal.luau:110`), breather lock 20 s (`SlimeGuard.luau:296`), join lock 120 s (`Steal.luau:72`) | thief | ~~Break the lock~~ | – | ❌ paid attack | No |
+| Q15 | **Base locked** (thief side, `Steal.luau:110`), breather lock 20 s (`SlimeGuard.luau:296`), join lock 120 s (`Steal.luau:72`) | thief | ~~Break the lock~~ | – | ❌ paid attack | No | Approved later (Merijn, 2026-10-29): built as the lock break, contract §11.
 | Q16 | **Your slime is being stolen**: alarm toast + HUD banner (`StealService:100`, `ui/Hud.luau:11`) | owner | ~~Send it home now / protect~~ | – | ❌ | No. P8 Thief Radar is the fair version |
 | Q17 | **Thief got bonked / pickup cooldown 1.5 s** (`StealService:136`, `Carry.luau:161`) | thief | ~~Skip cooldown~~ | – | ❌ | No |
 | Q18 | **PvP cooldowns, control immunity, item rank gates** (`shared/PvpRules.luau:172-194,268-275,317`) | all | ~~Skip / unlock~~ | – | ❌ | No (`docs/PVP.md` principle 1) |

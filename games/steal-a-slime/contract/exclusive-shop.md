@@ -5,8 +5,10 @@ by Merijn: the jar shop model (`shared/modeling-kit/models/exclusive_jar_boutiqu
 stage (`docs/exclusive-shop-ui-mockup.html`) and the first set from `docs/exclusive-shop-ideas.md` §6.
 
 **Fairness rules (from the ideas doc §1.1, binding):** sell looks freely, time and comfort carefully, never safety from
-thieves or PvP power. No paid lock, no paid lock break ("open a locked door"), no paid pads, speed, PvP, rank skips,
-no paid random outcomes. A paid timer skip only buys time: the outcome is fixed when the timer starts.
+thieves or PvP power. No paid lock, no paid pads, speed, PvP, rank skips, no paid random outcomes. A paid timer skip
+only buys time: the outcome is fixed when the timer starts. One approved exception (Merijn, 2026-10-29): the lock
+break ("open a locked door", §11) stays on sale; the lock stays up for everyone else and stealing inside still goes
+through every SlimeGuard check.
 
 ## 1. Catalogue (`Config.EXCLUSIVE_SHOP`, the one source of truth)
 

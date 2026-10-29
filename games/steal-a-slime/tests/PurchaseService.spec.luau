@@ -79,11 +79,15 @@ describe("PurchaseService receipts", function()
 end)
 
 describe("PurchaseService passes and policy", function()
-	it("skips passes without an id and reads the paid random items policy", function()
+	it("asks Roblox about every pass with an id (none without) and reads the paid random items policy", function()
 		local world, service, calls = setup({ restricted = false })
 		local s = ServerFixtures.join(world, 1)
 		service.join(1)
-		expect(calls.owns).toBe(0) -- every Config pass id is still 0
+		local withId = 0
+		for _, def in Config.EXCLUSIVE_SHOP.passes do
+			withId += if def.passId ~= 0 then 1 else 0
+		end
+		expect(calls.owns).toBe(withId)
 		expect(s.paidRandomAllowed).toBe(true)
 		local none = {}
 		for key in Config.EXCLUSIVE_SHOP.passes do
