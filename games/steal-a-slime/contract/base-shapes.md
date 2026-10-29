@@ -13,7 +13,7 @@
 - **Floor 1 is static as the jar** (`world/Plots.rbxmx`, `WorldLayout.build` unchanged). When a plot's `PlotBase` changes, the server (`server/BaseShapeSwap`) rebuilds floor 1 in place:
   1. anyone inside the plot is moved to the spawn spot; floors 2..4 are removed (prompts parked as today);
   2. the base's floor-1 pieces replace the other base's: everything under the plot except **kept** parts is destroyed, then the new base's `floor1(i)` nodes are built (`WorldBuilder.ensure`);
-  3. **kept** parts keep their instance (and their prompts, meshes and client hooks) and are only moved and resized to the new base's node of the same name: `Base`, `PlotFloor`, `HomeZone`, `Slimes`, `Pad_1..8`, `MergeVat`, `LockButton` (with `Pedestal`), `Sign`, `LockSign`, `LockBarrier` (with `Stopper`);
+  3. **kept** parts keep their instance (and their prompts, meshes and client hooks) and are only moved and resized to the new base's node of the same name: `Base`, `PlotFloor`, `HomeZone`, `Slimes`, `Pad_1..8`, `MergeVat`, `LockButton` (with `Pedestal`), `Sign`, `SignPost`, `LockBarrier` (with `Stopper`);
   4. the new slots get their meshes (`MeshSwap.applyUnder`), every slime on a pad is placed again, and `BaseFloors.sync` builds the upper floors of the new base.
   Going back to the jar does the same with the jar's nodes from `WorldLayout.plot(i)`.
 - **Upper floors and roof:** `BaseFloors` asks the plot's shape (`build`/`top` get the base). A shape may put its roof in the floor as "shown only while top" pieces (`JarFloor = f`, `JarShow = "top"`, `JarCollide` for colliders): the factory does. Or it keeps the top floor's own colliders in the plot's `TopColliders` folder, rebuilt on whichever floor is on top: the jar and the pagoda (its dome and tall turret).
