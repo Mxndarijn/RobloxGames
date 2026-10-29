@@ -49,9 +49,10 @@ the side away from the lane, `gap` studs out) or `lane = share, out = studs` (of
 | Check | Fails when |
 |---|---|
 | inside | a solid part is within 60% of the body's half size on more than 2% of frames |
-| floats | more than 10 frames over 1 stud above the ground under it, off the lane, after the drop, not counting frames where it is falling (down faster than 2 studs/s) |
+| floats | more than 10 frames over 1 stud above the highest ground under its body (middle and 4 spots at 80% of its radius), off the lane, after the drop, not counting frames where it is falling (down faster than 2 studs/s) |
 | back | it never reached the lane (within `ParadeLane.HALF_WIDTH`) and stayed |
 | detour | warn only: walked more than 3x the straight line to the nearest lane point |
+| popped | warn only: it moved more than 10 studs between two samples (no way back: `Carry.pop` put it on the lane) |
 
 Output: `DIR/results.json`, `DIR/report.html` (a top view per case: solid parts, lane, the path coloured by check)
 and `DIR/<case>.jpg`. `out/` is gitignored. Dev tool only: nothing in the game requires it.

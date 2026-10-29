@@ -29,6 +29,7 @@ import mcp_client  # noqa: E402
 INSIDE_SHARE = 0.02  # more than 2% of frames inside a solid part = walks through
 FLOAT_FRAMES = 10  # more frames than this floating = floats
 DETOUR_WARN = 3.0
+POP_STUDS = 10  # a move this far between two 0.1 s samples is a pop (Carry.pop), not a walk
 
 
 def read(name):
@@ -119,10 +120,14 @@ def verdict(r):
         out.append("floats (up to %.1f studs over the ground)" % r["maxFloat"])
     if r.get("reachedAt") is None:
         out.append("never back on the lane (%s)" % r.get("ended"))
+    path = r.get("path") or []
+    pops = [b[0] for a, b in zip(path, path[1:]) if ((b[1] - a[1]) ** 2 + (b[3] - a[3]) ** 2) ** 0.5 > POP_STUDS]
+    if pops:
+        out.append("popped onto the lane at %.1f s" % pops[0])
     detour = r["walked"] / max(1.0, r["straight"])
-    if detour > DETOUR_WARN:
+    if detour > DETOUR_WARN and not pops:
         out.append("long detour (%.1fx the straight line)" % detour)
-    bad = [x for x in out if not x.startswith("long detour")]
+    bad = [x for x in out if not x.startswith("long detour") and not x.startswith("popped")]
     return ("fail" if bad else "warn" if out else "pass"), out
 
 

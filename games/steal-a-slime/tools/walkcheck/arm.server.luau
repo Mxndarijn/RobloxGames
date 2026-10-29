@@ -118,7 +118,13 @@ task.spawn(function()
 		local now = os.clock()
 		local t = now - t0
 		if not model.Parent or model:GetAttribute("State") ~= "Wild" then
+			-- the model is rebuilt now and then (a new route, a mesh swap): give its new one a moment to turn up
 			local again = modelOf(id)
+			local waitedFor = os.clock()
+			while not again and os.clock() - waitedFor < 1.5 do
+				RunService.Heartbeat:Wait()
+				again = modelOf(id)
+			end
 			if not again then
 				local state = nil
 				for _, m in CS:GetTagged("Slime") do
@@ -150,9 +156,17 @@ task.spawn(function()
 				end
 			end
 		end
-		-- float: pivot height over the first solid surface below it
-		local hit = workspace:Raycast(p + Vector3.new(0, 1.5, 0), Vector3.new(0, -300, 0), gp)
-		local float = if hit then p.Y - hit.Position.Y else 999
+		-- float: pivot height over the highest ground under its body (its middle and four spots at 80% of its radius:
+		-- a body resting on a step's edge is not floating)
+		local reach = if body then 0.8 * body.Size.X / 2 else 0
+		local top: number? = nil
+		for _, off in { Vector3.zero, Vector3.xAxis, -Vector3.xAxis, Vector3.zAxis, -Vector3.zAxis } do
+			local hit = workspace:Raycast(p + off * reach + Vector3.new(0, 1.5, 0), Vector3.new(0, -300, 0), gp)
+			if hit and (top == nil or hit.Position.Y > top) then
+				top = hit.Position.Y
+			end
+		end
+		local float = if top then p.Y - top else 999
 		local _, away = ParadeLane.nearest(p.X, p.Z)
 		local onLane = away <= ParadeLane.HALF_WIDTH
 		if onLane and not laneFloat and t > 1 then
