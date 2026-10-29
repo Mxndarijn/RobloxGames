@@ -96,7 +96,7 @@ A stud or hybrid tag grows without bound as the camera comes closer. Cap it: com
 ## 5. Look and placement
 
 - `LightInfluence = 0` on every label: it stays readable at night and in shade.
-- `AlwaysOnTop = false` by default, so walls hide it. Use `true` only for labels about the viewer (Your plot, a thief on your base, a hit you landed) or with a sight check (LockTimerTag casts a ray, so glass doesn't hide it but walls do). An always-on-top label without a limit shows through the whole map.
+- `AlwaysOnTop = false` by default, so walls hide it. Use `true` only for labels about the viewer (Your plot, a hit you landed) or with a sight check (LockTimerTag casts a ray, so glass doesn't hide it but walls do). An always-on-top label without a limit shows through the whole map.
 - Anchor with `SizeOffset`: `(0, 0.5)` puts the bottom edge on the anchor point (a tag above a head), `(0, -0.5)` hangs it below. Put the anchor on the object's top plus a small lift (1 to 2 studs) so the tag never hides the object.
 - `StudsOffsetWorldSpace` for "above this object", `StudsOffset` only for camera-relative pops.
 - Text: Fredoka/Nunito bold, an Ink `UIStroke` (2 to 3 px) round white text, `TextScaled` with a `UITextSizeConstraint` (max) so a long name shrinks instead of overflowing.
@@ -149,7 +149,6 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 | Ritual rules sign | `server/RitualView` | SG 6×1.8, 50 ppS | 80 | no |
 | BONK / CHOMP popup | `ui/PvpEffects` | px 140×48 | 120 | no |
 | Fun FX text | `ui/PvpFunFx` | px 220×60 × scale | 150 | yes |
-| Steal ping over thief | `ui/StealAlertFx` | px 110×56 | 400 | yes |
 | Slap pop | `ui/StealAlertFx` | px 120×50 | 120 | yes |
 | Boss hit pop | `visuals/client/BossTelegraph` | px 120×50 | 220 (same as its code check) | yes |
 | Your plot marker | `visuals/client/HomePlotMarker` | px 170×98, fit | 2000, fades in code | yes |
