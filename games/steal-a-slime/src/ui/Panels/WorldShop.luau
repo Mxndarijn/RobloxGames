@@ -196,7 +196,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 		local leveled = view.maxLevel ~= nil
 		local frame = Widgets.rowFrame({
 			Name = view.id,
-			Size = UDim2.new(1, -10, 0, if leveled then WorldShop.ROW_LEVELS else WorldShop.ROW),
+			Size = UDim2.new(1, 0, 0, if leveled then WorldShop.ROW_LEVELS else WorldShop.ROW),
 		})
 		local icon = ItemIconView.new({
 			Name = "Icon",
@@ -350,7 +350,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 		if serverRow and serverBuy then
 			return serverRow, serverBuy
 		end
-		local frame = Widgets.rowFrame({ Name = sp.row, Size = UDim2.new(1, -10, 0, sp.h), Parent = list })
+		local frame = Widgets.rowFrame({ Name = sp.row, Size = UDim2.new(1, 0, 0, sp.h), Parent = list })
 		local icon = ItemIconView.new({
 			Name = "Icon",
 			Id = ExclusiveShopView.TEXTS.ServerLuckPotion.icon,

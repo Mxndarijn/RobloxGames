@@ -43,7 +43,6 @@ local ROW = table.freeze({
 	metaY = 49,
 	metaH = 17,
 	fade = 0.35, -- a finished row's background transparency
-	scrollBar = 10,
 	listGap = 8,
 })
 
@@ -80,7 +79,7 @@ end
 local function headingRow(name: string, text: string, order: number): (Frame, TextLabel)
 	local frame = create("Frame", {
 		Name = name,
-		Size = UDim2.new(1, -ROW.scrollBar, 0, TOP.headingH),
+		Size = UDim2.new(1, 0, 0, TOP.headingH),
 		BackgroundTransparency = 1,
 		LayoutOrder = order,
 	})
@@ -221,7 +220,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	local function newRowFrame(name: string, fill: Color3): Frame
 		return Widgets.rowFrame({
 			Name = name,
-			Size = UDim2.new(1, -ROW.scrollBar, 0, ROW.h),
+			Size = UDim2.new(1, 0, 0, ROW.h),
 			BackgroundColor3 = fill,
 		})
 	end

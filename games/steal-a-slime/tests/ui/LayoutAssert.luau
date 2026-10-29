@@ -127,7 +127,7 @@ local SettingsPanel = {
 	STYLE = {
 		tabH = 40,
 		tabGap = 6,
-		tabSize = 18,
+		tabSize = 17,
 		rowPad = 12,
 		icon = 30,
 		nameSize = 18,
@@ -142,13 +142,12 @@ local SettingsPanel = {
 		percentW = 64,
 		actionW = 120,
 		holdW = 150,
-		scrollBar = 10,
 	},
 	COPY = {
 		on = "On",
 		off = "Off",
 		replay = "Replay tutorial",
-		replayHint = "Walk through the first steps again",
+		replayHint = "Walk through the first steps",
 		replayButton = "Replay",
 		replayRunning = "Running",
 		version = "Game version",
@@ -217,6 +216,17 @@ function LayoutAssert.screens(
 end
 
 -- nil when `desc` fits, else why not.
+-- The visible box of a GuiObject placed in offsets. A scroll list (Widgets.scroll with a "Ring" padding) reaches
+-- PANEL_CHROME.ring past its box on the left and right; this takes that bleed off again.
+function LayoutAssert.box(inst: any): Rect
+	local x, w = inst.Position.X.Offset, inst.Size.X.Offset
+	if inst.ClassName == "ScrollingFrame" and inst:FindFirstChild("Ring") then
+		local ring = Layout.PANEL_CHROME.ring
+		x, w = x + ring, w - ring * 2
+	end
+	return Layout.rect(x, inst.Position.Y.Offset, w, inst.Size.Y.Offset)
+end
+
 function LayoutAssert.textFits(desc: TextDesc): string?
 	if desc.scaled then
 		return nil
@@ -635,15 +645,11 @@ local function rowTexts(prefix: string, rows: { RowText }, textW: number, buyW: 
 	end
 end
 
--- World shop rows (Panels/WorldShop), worst-case numbers, every row of both shops: body = card - 24
--- (PANEL_CHROME.pad), row = body - 10, text = row - icon column - Buy column; one line of name, up to two of
+-- World shop rows (Panels/WorldShop), worst-case numbers, every row of both shops: row = body (card minus
+-- PANEL_CHROME.pad each side), text = row - icon column - Buy column; one line of name, up to two of
 -- description, the level chip under the icon.
 function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
-	local textW = panel.w
-		- Layout.PANEL_CHROME.pad * 2
-		- 10
-		- (8 + WorldShopPanel.BADGE + 10)
-		- (WorldShopPanel.BUY_W + 16)
+	local textW = panel.w - Layout.PANEL_CHROME.pad * 2 - (8 + WorldShopPanel.BADGE + 10) - (WorldShopPanel.BUY_W + 16)
 	local out: { TextDesc } = {}
 	local upgrades = {}
 	for _, u in Config.UPGRADES do
@@ -831,9 +837,10 @@ function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
 	}
 end
 
--- Guide tips (Panels/Guide): one line each, body = card - 24, row - 8 - padding 12.
+-- Guide tips (Panels/Guide): one line each, row = body (card minus PANEL_CHROME.pad each side), text = row minus
+-- its left padding of 12.
 function LayoutAssert.guideTexts(panel: Rect): { TextDesc }
-	local w = panel.w - Layout.PANEL_CHROME.pad * 2 - 8 - 12
+	local w = panel.w - Layout.PANEL_CHROME.pad * 2 - 12
 	local out: { TextDesc } = {}
 	local tips = { "Thief has your slime: use your bat!", "Free pad: bring home another slime" }
 	for _, tip in GuideTips.GENERAL do
@@ -900,13 +907,12 @@ end
 function LayoutAssert.settingsTexts(panel: Rect): { TextDesc }
 	local S, C = SettingsPanel.STYLE, SettingsPanel.COPY
 	local w = Layout.panelBody(panel).w
-	local rowW = w - S.scrollBar
 	local x = S.rowPad + S.icon + 8
 	local out: { TextDesc } = {}
 	local tabs = PlayerSettings.TABS
 	local tabW = math.floor((w - S.tabGap * (#tabs - 1)) / #tabs)
 	local function row(name: string, title: string, hint: string?, right: number)
-		local textW = rowW - (x + right)
+		local textW = w - (x + right) -- rows use the full body width
 		table.insert(
 			out,
 			{ name = `Settings {name} name`, text = title, size = S.nameSize, bold = true, w = textW, h = S.nameH }

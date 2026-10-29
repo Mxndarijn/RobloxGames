@@ -226,8 +226,8 @@ export type Arrangement = {
 }
 
 -- Everything the panel places: stacked (the default) or, when `bodyHeight` is known and the stacked plate would
--- leave the grid less than one cell tall, side by side.
-function InventoryLayout.arrange(bodyWidth: number, bodyHeight: number?): Arrangement
+-- leave the grid less than one cell tall, side by side, `gutter` apart (the panel's column gap; default CELL.gap).
+function InventoryLayout.arrange(bodyWidth: number, bodyHeight: number?, gutter: number?): Arrangement
 	local c, p = InventoryLayout.CELL, InventoryLayout.PLATE
 	local slot = InventoryLayout.plateSlot(bodyWidth, bodyHeight)
 	local headingY, gridY = InventoryLayout.bagTop(slot)
@@ -261,7 +261,7 @@ function InventoryLayout.arrange(bodyWidth: number, bodyHeight: number?): Arrang
 			h = sideSlot,
 		}
 	end
-	local gridX = w + c.gap
+	local gridX = w + (gutter or c.gap)
 	return {
 		side = true,
 		slot = sideSlot,

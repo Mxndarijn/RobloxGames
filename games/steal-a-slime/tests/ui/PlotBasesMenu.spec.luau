@@ -213,7 +213,7 @@ describe("Plot skins menu: the base strip", function()
 			local panel, r = open(vp.w, vp.h, { dex = Fixtures.dex({}), plotSkins = skins(), plotBases = bases(25) })
 			local body = Layout.panelBody(r)
 			local strip = UiHarness.find(panel.frame, "Bases")
-			expect(strip.Size.X.Offset <= body.w + 1e-6).toBe(true)
+			expect(LayoutAssert.box(strip).w <= body.w + 1e-6).toBe(true)
 			local canvasW = strip.CanvasSize.X.Offset
 			local boxes = {}
 			for i = 1, #Config.PLOT_BASES do

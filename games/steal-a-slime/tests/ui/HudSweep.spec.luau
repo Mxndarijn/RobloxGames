@@ -35,8 +35,9 @@ describe("Goals 'Next:' preview", function()
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
 		it(`{vp.name}: every goal step's Next line fits one row line`, function()
 			local s = Layout.screen(vp.w, vp.h)
-			-- Row text width: menu card minus its padding / scrollbar, the row inset and the 40 px icon column.
-			local textW = s.menuW - 24 - 10 - (8 + 40 + 8) - 10
+			-- Row text width: the body (menu card minus its padding; rows use its full width), the row inset and the
+			-- 40 px icon column.
+			local textW = s.menuW - Layout.PANEL_CHROME.pad * 2 - (8 + 40 + 8) - 10
 			local check = LayoutAssert.new(vp.name, s)
 			for _, goal in Config.GOALS do
 				for stage = 3, #goal.targets do

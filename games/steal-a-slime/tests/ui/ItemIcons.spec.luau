@@ -541,7 +541,7 @@ describe("item icon layout (LayoutAssert at the 5 gate viewports)", function()
 			local check = LayoutAssert.new(vp.name, screen)
 			local panel = Layout.panelFor(screen, "Goals")
 			-- Panels/Goals ROW: pad 10, ICON 50, gap 12; the reward top-right, "Next" right of the meta line.
-			local rowW = panel.w - Layout.PANEL_CHROME.pad * 2 - 10
+			local rowW = panel.w - Layout.PANEL_CHROME.pad * 2 -- rows use the full body width
 			local textW = rowW - (10 + 50 + 12) - 10
 			local nextW = math.ceil(Layout.lineWidth("Next: $1.0B", 12)) + 2 + 6
 			local rewardW = math.ceil(Layout.lineWidth("+$12.5K", 15, true)) + 2 + 8

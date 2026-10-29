@@ -149,8 +149,11 @@ describe("SlimeDex panel previews", function()
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
 		it(`{vp.name}: a ViewportFrame per card fills the square preview box inside the card`, function()
 			local panel = openDex(vp.w, vp.h, DEX)
+			-- cards are sized by scale: resolve them against the list's content width (its box)
+			local listW = LayoutAssert.box(UiHarness.find(panel.frame, "List")).w
 			for _, id in { "gummy", "pebble" } do
 				local card = cardIn(panel, id)
+				local cardW = card.Size.X.Scale * listW + card.Size.X.Offset
 				local image = card:FindFirstChild("Image")
 				local preview = image:FindFirstChild("Preview")
 				expect(preview.ClassName).toBe("ViewportFrame")
@@ -158,7 +161,7 @@ describe("SlimeDex panel previews", function()
 				expect(preview.Size).toBe(UDim2.fromScale(1, 1))
 				expect(image.Size.X.Offset).toBe(image.Size.Y.Offset)
 				expect(image.Size.Y.Offset <= card.Size.Y.Offset).toBe(true)
-				expect(image.Size.X.Offset <= card.Size.X.Offset).toBe(true)
+				expect(image.Size.X.Offset <= cardW).toBe(true)
 			end
 			-- No species mesh builder here: the blob in the species colour, black for an unfound species.
 			local found = UiHarness.find(cardIn(panel, "gummy"), "World"):GetChildren()[1]
