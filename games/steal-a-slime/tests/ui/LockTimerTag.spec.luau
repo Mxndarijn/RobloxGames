@@ -1,5 +1,5 @@
 --!strict
--- LockTimerTag (src/ui/LockTimerTag.luau): other players see how long a locked base stays locked, through glass only.
+-- LockTimerTag (src/ui/LockTimerTag.luau): everyone, the owner too, sees how long a locked base stays locked, through glass only.
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
@@ -10,13 +10,13 @@ local LockTimerTag = UiHarness.ui("LockTimerTag")
 local ME, OWNER, T0 = 7, 42, 1000
 
 describe("LockTimerTag", function()
-	it("shows on someone else's locked base only", function()
-		expect(LockTimerTag.shows(OWNER, ME, T0 + 60, T0)).toBe(true)
-		expect(LockTimerTag.shows(ME, ME, T0 + 60, T0)).toBe(false) -- your own base: you have the lock card
-		expect(LockTimerTag.shows(OWNER, ME, T0, T0)).toBe(false) -- the lock ran out
-		expect(LockTimerTag.shows(OWNER, ME, nil, T0)).toBe(false)
-		expect(LockTimerTag.shows(0, ME, T0 + 60, T0)).toBe(false) -- a free plot
-		expect(LockTimerTag.shows(nil, ME, T0 + 60, T0)).toBe(false)
+	it("shows on every locked base, your own included", function()
+		expect(LockTimerTag.shows(OWNER, T0 + 60, T0)).toBe(true)
+		expect(LockTimerTag.shows(ME, T0 + 60, T0)).toBe(true) -- your own base
+		expect(LockTimerTag.shows(OWNER, T0, T0)).toBe(false) -- the lock ran out
+		expect(LockTimerTag.shows(OWNER, nil, T0)).toBe(false)
+		expect(LockTimerTag.shows(0, T0 + 60, T0)).toBe(false) -- a free plot
+		expect(LockTimerTag.shows(nil, T0 + 60, T0)).toBe(false)
 	end)
 	it("says how long is left", function()
 		expect(LockTimerTag.text(102)).toBe("LOCKED 1:42")
