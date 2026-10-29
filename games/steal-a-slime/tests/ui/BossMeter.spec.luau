@@ -88,14 +88,26 @@ describe("BossMeterLogic.view", function()
 end)
 
 describe("Panels/BossMeter", function()
-	local function mount(): (any, any)
+	local function mount(steals: any?): (any, any)
 		local root = UiHarness.root()
 		local panel = UiHarness.ui("Panels/BossMeter").new(root, {
 			serverNow = function()
 				return 1000
 			end,
-		})
+		}, steals)
 		return panel, UiHarness.find(root, "BossMeter")
+	end
+
+	-- A stand-in for the HUD's StealCards: what it was told and what strip it offers.
+	local function fakeSteals(strip: any?): any
+		local fake = { folded = false, strip = nil :: any }
+		fake.setFolded = function(isFolded: boolean)
+			fake.folded = isFolded
+		end
+		fake.strip = function(_now: number)
+			return strip
+		end
+		return fake
 	end
 
 	it("is hidden without an event and fills its meter during the fight", function()
@@ -137,5 +149,39 @@ describe("Panels/BossMeter", function()
 		expect(ring.Color).toBe(Theme.Info)
 		expect(ring.Color == Theme.Good).toBe(false) -- a lost boss never looks like a win
 		expect(timer.Visible).toBe(false)
+	end)
+	it("folds the steal cards into a strip across its top while it shows", function()
+		local Theme = UiHarness.ui("Widgets").Theme
+		local steals =
+			fakeSteals({ kind = "stealing", text = "Ann and Bo are stealing your slimes!", hint = "Chase them" })
+		local panel, frame = mount(steals)
+		panel.update({ boss = boss({ phase = "fight", meter = 0.4, endsAt = 1060 }) })
+		expect(steals.folded).toBe(true)
+		local strip = UiHarness.find(frame, "StealStrip")
+		expect(strip.Visible).toBe(true)
+		expect(strip.BackgroundColor3).toBe(Theme.Bad)
+		expect(UiHarness.find(strip, "StealText").Text).toBe("🚨 Ann and Bo are stealing your slimes! · Chase them")
+		local body = UiHarness.find(frame, "Body")
+		expect(body.Position.Y.Offset > 0).toBe(true) -- the boss rows sit under the strip
+		expect(frame.Size.Y.Offset).toBe(body.Position.Y.Offset + body.Size.Y.Offset)
+		panel.update({ boss = { active = false, meter = 0 } })
+		expect(steals.folded).toBe(false) -- no boss: the steal cards stack again
+	end)
+	it("is one plain card when nobody steals", function()
+		local panel, frame = mount(fakeSteals(nil))
+		panel.update({ boss = boss({ phase = "fight", meter = 0.4, endsAt = 1060 }) })
+		expect(UiHarness.find(frame, "StealStrip").Visible).toBe(false)
+		expect(UiHarness.find(frame, "Body").Position.Y.Offset).toBe(0)
+	end)
+	it("steps aside while an overlay is open and comes back when it closes", function()
+		local panel, frame = mount()
+		panel.update({ boss = boss({ phase = "fight", meter = 0.4, endsAt = 1060 }) })
+		expect(frame.Visible).toBe(true)
+		panel.setMenuOpen(true)
+		expect(frame.Visible).toBe(false)
+		panel.tick(1001)
+		expect(frame.Visible).toBe(false)
+		panel.setMenuOpen(false)
+		expect(frame.Visible).toBe(true)
 	end)
 end)

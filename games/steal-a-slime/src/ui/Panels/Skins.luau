@@ -14,10 +14,14 @@
 	(State.exclusiveShop) that last one is a button: it opens the shop on that seat (ctx.openExclusiveShop).
 	With State.plotBases (FEATURES.BaseShapes, contract/base-shapes.md) a strip of base buttons runs across the top:
 	the building the plot stands in, apart from its skin; each says Equip, Equipped or the rebirth it unlocks at
-	(PlotBasesView), and Equip asks the server (EquipPlotBase).
+	(PlotBasesView), and Equip asks the server (EquipPlotBase). An Exclusive base not owned yet carries a gold
+	"Exclusive" tag and "Buy · R$<price>": Buy opens Roblox's prompt (ctx.purchase), or the Exclusive shop on that base
+	while it is not on sale. More bases than fit in one row take two rows (Skins.baseGrid), scrolling sideways when
+	two rows are not enough.
 ]]
 
 local UI = script.Parent.Parent
+local ExclusiveShopView = require(UI.ExclusiveShopView)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
@@ -77,7 +81,33 @@ local STYLE = table.freeze({
 	baseGap = 8,
 	baseTitle = 14,
 	baseState = Layout.MIN_TEXT,
+	baseMinW = 136, -- narrowest base button: its longest name still fits
+	baseTagH = 20, -- the gold "Exclusive" tag between name and action
+	baseScroll = 6, -- the strip's sideways scroll bar
 })
+
+export type BaseGrid = {
+	columns: number,
+	rows: number,
+	w: number, -- one button
+	h: number,
+	canvasW: number, -- every column; wider than `bodyW` = the strip scrolls sideways
+	stripH: number,
+}
+
+-- How `n` base buttons sit in a strip `bodyW` wide: one row when they fit at STYLE.baseMinW, else two rows, as
+-- wide as fits (at least baseMinW, scrolling sideways past the body). `tall`: a button carries the Exclusive tag.
+function Skins.baseGrid(n: number, bodyW: number, tall: boolean): BaseGrid
+	local gap = STYLE.baseGap
+	local fit = math.max(1, math.floor((bodyW + gap) / (STYLE.baseMinW + gap)))
+	local rows = if n > fit then 2 else 1
+	local columns = math.max(1, math.ceil(n / rows))
+	local w = math.max(STYLE.baseMinW, math.floor((bodyW - gap * (columns - 1)) / columns))
+	local h = STYLE.baseH + (if tall then STYLE.baseTagH else 0)
+	local canvasW = columns * w + gap * (columns - 1)
+	local stripH = rows * h + gap * (rows - 1) + (if canvasW > bodyW then STYLE.baseScroll + 2 else 0)
+	return { columns = columns, rows = rows, w = w, h = h, canvasW = canvasW, stripH = stripH }
+end
 
 -- The pane's slime cells: how many fit across `inner` px and how wide each is.
 function Skins.cells(inner: number): (number, number)
@@ -132,9 +162,11 @@ function Skins.new(parent: Instance, ctx: any)
 		Visible = false,
 		Parent = content,
 	})
-	local strip = create("Frame", {
+	local strip = Widgets.scroll({
 		Name = "Bases",
-		BackgroundTransparency = 1,
+		AutomaticCanvasSize = Enum.AutomaticSize.None,
+		ScrollingDirection = Enum.ScrollingDirection.X,
+		ScrollBarThickness = STYLE.baseScroll,
 		Visible = false,
 		Parent = content,
 	})
@@ -157,6 +189,7 @@ function Skins.new(parent: Instance, ctx: any)
 	local selectedSeat: string? = nil
 	local tab = Skins.TABS[1].key
 	local bodyW, bodyH = Layout.MENU_WIDTH - c.pad * 2, fullH
+	local stripH = STYLE.baseH
 	local repaint: () -> ()
 	local paneW = 0 -- the pane's width (layout sets it)
 
@@ -195,10 +228,9 @@ function Skins.new(parent: Instance, ctx: any)
 		end
 		local lw = listWidth()
 		local top = STYLE.tabH + STYLE.gap
-		strip.Position = UDim2.fromOffset(0, top)
-		strip.Size = UDim2.fromOffset(bodyW, STYLE.baseH)
+		Widgets.place(strip, UDim2.fromOffset(0, top), UDim2.fromOffset(bodyW, stripH))
 		if strip.Visible then
-			top += STYLE.baseH + STYLE.baseGap
+			top += stripH + STYLE.baseGap
 		end
 		local h = math.max(bodyH - top, 0)
 		for _, l in { list, seatList } do
@@ -210,7 +242,14 @@ function Skins.new(parent: Instance, ctx: any)
 	end
 
 	-- Base buttons, reused by index.
-	type BaseButton = { frame: TextButton, stroke: UIStroke, title: TextLabel, state: TextLabel }
+	type BaseButton = {
+		frame: TextButton,
+		stroke: UIStroke,
+		title: TextLabel,
+		state: TextLabel,
+		tag: TextLabel,
+		row: PlotBasesView.Row?,
+	}
 	local baseButtons: { BaseButton } = {}
 	local function baseButton(i: number): BaseButton
 		local existing = baseButtons[i]
@@ -245,29 +284,57 @@ function Skins.new(parent: Instance, ctx: any)
 			Size = UDim2.new(1, -8, 0.5, -3),
 			Parent = frame,
 		})
+		local tag = Widgets.chip({
+			Name = "Exclusive",
+			Text = PlotBasesView.EXCLUSIVE,
+			TextSize = STYLE.baseState,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(0, STYLE.baseTagH),
+			Visible = false,
+			Parent = frame,
+		}, Theme.Gold)
+		local made: BaseButton
 		frame.Activated:Connect(function()
-			local id = frame:GetAttribute("BaseId")
-			if frame:GetAttribute("State") == "unlocked" and type(id) == "string" and ctx.request then
-				ctx.request("EquipPlotBase", function() end, id)
+			local row = made.row
+			if row == nil then
+				return
+			end
+			if row.state == "unlocked" and ctx.request then
+				ctx.request("EquipPlotBase", function() end, row.id)
+			elseif row.exclusive then
+				if row.purchase and ctx.purchase then
+					ctx.purchase.prompt(row.purchase)
+				elseif row.shopKey and ctx.openExclusiveShop then
+					ctx.openExclusiveShop(row.shopKey)
+				end
 			end
 		end)
-		local made = { frame = frame, stroke = stroke, title = title, state = state }
+		made = { frame = frame, stroke = stroke, title = title, state = state, tag = tag, row = nil }
 		baseButtons[i] = made
 		return made
 	end
 
-	local function paintBases(baseRows: { PlotBasesView.Row })
+	local function paintBases(baseRows: { PlotBasesView.Row }, grid: BaseGrid)
 		local n = #baseRows
-		local w = if n > 0 then math.floor((bodyW - STYLE.baseGap * (n - 1)) / n) else 0
-		local lastW = bodyW - (n - 1) * (w + STYLE.baseGap) -- the last button takes the remainder
+		local w, h = grid.w, grid.h
+		local half = STYLE.baseH // 2
+		strip.CanvasSize = UDim2.fromOffset(grid.canvasW, 0)
 		for i, row in baseRows do
 			local b = baseButton(i)
 			local locked = row.state == "locked"
+			local col, line = (i - 1) % grid.columns, (i - 1) // grid.columns
+			b.row = row
 			b.frame.Visible = true
 			b.frame:SetAttribute("BaseId", row.id)
 			b.frame:SetAttribute("State", row.state)
-			b.frame.Position = UDim2.fromOffset((i - 1) * (w + STYLE.baseGap), 0)
-			b.frame.Size = UDim2.fromOffset(if i == n then lastW else w, STYLE.baseH)
+			b.frame:SetAttribute("Exclusive", row.exclusive)
+			b.frame.Position = UDim2.fromOffset(col * (w + STYLE.baseGap), line * (h + STYLE.baseGap))
+			b.frame.Size = UDim2.fromOffset(w, h)
+			b.title.Size = UDim2.new(1, -8, 0, half - 2)
+			b.state.Position = UDim2.new(0, 4, 1, -half)
+			b.state.Size = UDim2.new(1, -8, 0, half - 3)
+			b.tag.Visible = row.exclusive
 			b.frame.BackgroundColor3 = if row.state == "equipped" then Theme.BgLight else Theme.Row
 			b.stroke.Color = if row.state == "equipped" then Theme.Good else Theme.Ink
 			b.stroke.Thickness = if row.state == "equipped" then STYLE.selectStroke else Widgets.KIT.rowStroke
@@ -276,7 +343,7 @@ function Skins.new(parent: Instance, ctx: any)
 			b.state.Text = row.action
 			b.state.TextColor3 = if row.state == "equipped"
 				then Theme.Good
-				elseif row.state == "unlocked" then Theme.Accent
+				elseif row.state == "unlocked" or row.exclusive then Theme.Accent
 				else Theme.Muted
 		end
 		for i = n + 1, #baseButtons do
@@ -387,12 +454,19 @@ function Skins.new(parent: Instance, ctx: any)
 		r.icon.setActive(open)
 		r.title.Text = row.title
 		r.title.TextColor3 = if locked then Theme.Muted else Theme.Text
-		r.state.Visible = not locked
-		r.state.Text = if row.state == "equipped" then PlotSkinsView.EQUIPPED else "Unlocked"
-		r.state.TextColor3 = if row.state == "equipped" then Theme.Good else Theme.Muted
-		r.bar.Visible = locked
+		-- An Exclusive skin not owned yet: a gold "Exclusive" instead of a progress bar.
+		r.state.Visible = not locked or row.exclusive
+		r.state.Text = if row.exclusive
+			then ExclusiveShopView.EXCLUSIVE
+			elseif row.state == "equipped" then PlotSkinsView.EQUIPPED
+			else "Unlocked"
+		r.state.TextColor3 = if row.exclusive
+			then Theme.Gold
+			elseif row.state == "equipped" then Theme.Good
+			else Theme.Muted
+		r.bar.Visible = locked and not row.exclusive
 		r.setBar(row.fraction)
-		r.count.Visible = locked
+		r.count.Visible = locked and not row.exclusive
 		r.count.Text = row.count
 	end
 
@@ -972,12 +1046,18 @@ function Skins.new(parent: Instance, ctx: any)
 			return
 		end
 		attach()
-		local baseRows = PlotBasesView.rows(latest.plotBases)
-		if strip.Visible ~= (#baseRows > 0) then
+		local baseRows = PlotBasesView.rows(latest.plotBases, ctx.Config)
+		local tall = false
+		for _, row in baseRows do
+			tall = tall or row.exclusive
+		end
+		local grid = Skins.baseGrid(#baseRows, bodyW, tall)
+		if strip.Visible ~= (#baseRows > 0) or stripH ~= grid.stripH then
 			strip.Visible = #baseRows > 0
+			stripH = grid.stripH
 			placeBody()
 		end
-		paintBases(baseRows)
+		paintBases(baseRows, grid)
 		rows.sync(skinRows)
 		local cards = SlimeDex.cards(latest.dex, ctx.Config, function(id: string)
 			local entry = if ctx.SlimeRoster then ctx.SlimeRoster.get(id) else nil

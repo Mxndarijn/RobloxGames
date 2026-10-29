@@ -21,12 +21,11 @@ function MenuState.view(openKey: string?, keys: { string }): View
 	return { backdrop = openKey ~= nil, cards = cards, nav = nav }
 end
 
--- Every HUD banner (steal alert, rare / Secret drop, rain, modifier, weather,
--- admin event, egg, friend, pad hint) sits top-centre, right over a
--- content-sized card's title and X on phones: the whole stack shows only with
--- no menu open.
-function MenuState.bannersVisible(openKey: string?): boolean
-	return openKey == nil
+-- The top-centre notices (the banner stack, the boss card, the thief arrow) sit right over a
+-- content-sized card's title and X on phones: they show only with no overlay open, so no menu card, no
+-- daily popup (`dailyOpen`) and no open bag panel (`bagOpen`). Closing it brings them back.
+function MenuState.noticesVisible(openKey: string?, dailyOpen: boolean?, bagOpen: boolean?): boolean
+	return openKey == nil and not dailyOpen and not bagOpen
 end
 
 -- The tutorial card and its hint ring / bubble sit over a content-sized card's

@@ -25,6 +25,8 @@ front -Y, 1 BU = 1 stud), same smooth, soft, rounded slime-cartoon style (smooth
 | `pet_mount_hoverboard` | 1928 | 3.27 x 1.00 x 1.41 | 0.70 | purple deck, two cyan neon stripes, dark grip pad, magenta rim, kicked-up nose and tail, two thruster pods with pale cyan glow cones (own proportions) |
 | `pet_mount_clam_shell` | 1376 | 3.30 x 2.26 x 2.40 | 0.80 | coral scallop dish with 11 ribs and a pearly inside, the lid standing open behind the pet, a pearl in front |
 | `pet_mount_royal_cushion` | 1724 | 3.30 x 0.80 x 2.40 | 0.80 | plump purple velvet cushion, gold button, gold piping round the seam, a gold tassel on each corner |
+| `pet_mount_pumpkin` | 1970 | 3.30 x 1.64 x 2.40 | 1.20 | Halloween (limited): squat 8-lobed jack-o'-lantern, friendly carved face (amber glow decals with a dark rim, two uncarved teeth), stem at the back of the top, curly vine + five-lobed leaf on the back shoulders |
+| `pet_mount_snowglobe` | 1992 | 2.32 x 2.05 x 2.32 | 2.05 | winter (limited): round wooden base with red band and butter trims, sky-cyan globe with a shine streak, snowy floor, two pine trees + star and snowflakes as decals, flat snow cap with soft drips for the seat (own proportions, `NOFIT`) |
 
 Seat height = top surface under the mount's centre (what a pet's foot should touch; the pet_cloud is 1.2). The clouds, bubble, ufo and
 lily pad sit at 1.0 to 1.23; the thin leaf (0.25) and carpet (0.30) float much lower because nothing is under them. The game must

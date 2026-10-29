@@ -5,8 +5,10 @@ by Merijn: the jar shop model (`shared/modeling-kit/models/exclusive_jar_boutiqu
 stage (`docs/exclusive-shop-ui-mockup.html`) and the first set from `docs/exclusive-shop-ideas.md` §6.
 
 **Fairness rules (from the ideas doc §1.1, binding):** sell looks freely, time and comfort carefully, never safety from
-thieves or PvP power. No paid lock, no paid lock break ("open a locked door"), no paid pads, speed, PvP, rank skips,
-no paid random outcomes. A paid timer skip only buys time: the outcome is fixed when the timer starts.
+thieves or PvP power. No paid lock, no paid pads, speed, PvP, rank skips, no paid random outcomes. A paid timer skip
+only buys time: the outcome is fixed when the timer starts. One approved exception (Merijn, 2026-10-29): the lock
+break ("open a locked door", §11) stays on sale; the lock stays up for everyone else and stealing inside still goes
+through every SlimeGuard check.
 
 ## 1. Catalogue (`Config.EXCLUSIVE_SHOP`, the one source of truth)
 
@@ -25,7 +27,9 @@ disabled with "Not on sale yet" (never "Coming soon"); Studio can still grant it
   - `HatchNow_<eggKind>`: `{ kind = "hatchNow" }`, robux 25 / 35 / 45 / 49 by egg kind (speckled → cosmic).
   - `DoubleOffline`: `{ kind = "doubleOffline" }`, robux 49.
   - `ServerLuckPotion`: `{ kind = "serverPotion" }`, robux 79. A paid probability modifier: odds disclosure + policy (§5).
-- `passes` (Game Passes, keyed by pass key): `Income2x` 449 (`incomeMult = 2`), `Offline2x` 199 (`offlineRate = 0.5`).
+- `passes` (Game Passes, keyed by pass key, shown by `order`): `VIP`, `Income2x` 449 (`incomeMult = 2`), `Offline2x` 199
+  (`offlineRate = 0.5`), `FastBrew`, `WarmNest`, `LuckyCharmPlus`, `ThiefRadar` (§13). `subscriptions`: `SlimeClub` (§13).
+  Server boosts and comforts: §14.
 - `tabs`: `{ "Featured", "Clouds", "Perks", "Boosts" }` in this order. Featured = StarterBundle (while unclaimed) +
   the 4 rotation seats (§6). Clouds = the 16 seats. Perks = passes. Boosts = ServerLuckPotion (and the quick-buys'
   explanation rows; they are bought where they appear).
@@ -200,3 +204,74 @@ player picker (friends first).
 
 State (`ExclusiveShopView`): `trails`, `trail`, `batSkins`, `batSkin`, `lockBreak`, `lockBreakCredits`, `giftCredits`.
 Save version 11 (`SaveData.migrateV10`).
+
+## 13. More passes and the Slime Club
+
+Each pass field is one effect (`Config.ExclusivePass`), applied by `Purchases.applyPasses` into runtime `data.pass*`
+fields (never saved):
+- `VIP` 599: `incomeMult = 1.1` (multiplies with Income2x), a gold VIP tag over the head and in chat, and once per UTC
+  day a free server Luck Potion: Request `ClaimPerk("vipPotion")` (1 s; refused for non-VIPs and where paid random
+  items are restricted). Save: `perkDays.vipPotion` (UTC day number; no version bump).
+- `FastBrew` 249: `brewFactor = 0.5`, every merge brews in half the time (`Perks.brewFactor`, stacks with Quick Brew).
+- `WarmNest` 129: pad eggs incubate at `WARM_SPEED` while the owner is away from home too (`MysteryEgg.step`).
+- `LuckyCharmPlus` 249: `luckBonus = 0.05` on the Lucky Charm (wild deposits only, as before). A paid probability
+  modifier: hidden where paid random items are restricted; its pane shows the player's chance with and without it
+  (`State.exclusiveShop.luck = { base, bonus }`).
+- `ThiefRadar` 149: `server/ThiefRadar` reads SlimeGuard's plot visits once a second; `State.exclusiveShop.radar` lists
+  the userIds inside your base (friends the base lets in left out, at most `radar.maxShown`). An away owner is told
+  once per visit. The client gives them a yellow outline and, with no theft running, a "Visitor" arrow. Information only.
+- `SlimeClub` subscription (`subscriptions.SlimeClub`, `subscriptionId` "EXP-..." or "" = not created, 99 R$/month):
+  checked on join and on `Players.UserSubscriptionStatusChanged` (`GetUserSubscriptionStatusAsync`, server), prompted
+  with `PromptSubscriptionPurchase`. Its price uses Roblox regional pricing, so the shop shows Roblox's own
+  `DisplayPrice` for the player (`PurchasePrompt.subscriptionPrice`, `GetSubscriptionProductInfoAsync`, cached; the
+  panel puts it in `exclusiveShop.displayPrices`), and Config's `robux` until that is known. Benefits: a CLUB tag, and once per UTC day +1 brew and +1 hatch credit
+  (`Purchases.stepDaily`, `perkDays.club`). Studio: `StudioHooks.setSubscription(userId, key, active)` (`PcwSubscription`).
+- Player attribute `Member` (`Constants.MEMBER_ATTRIBUTE`): "vip" / "club" (VIP wins); `ui/MemberTags` draws the chip
+  (and the chat prefix with TextChatService); `server/MemberChatTags` sets the legacy chat's speaker "Tags" (the game
+  runs LegacyChatService). Studio: SlimeUI `PcwOpen` = "ExclusiveShop:<Tab>" opens the shop on that tab. State: `subscriptions`, `vipPotion`, `luck`, `radar`.
+
+## 14. Server boosts and comforts
+
+Developer Products; a grant that can't apply now is kept as a credit (`data.credits.rain|boss|totem|snack`, 0..creditMax,
+no version bump), spent with `UseCredit(kind, target?)` or the shop's "Use credit".
+- `SlimeRain` 179: `Spawner.forceRain` for the server; refused during rain or a boss and within
+  `serverBoosts.rainCooldown` (20 min) of the last paid rain (`world.paidRainAt`). Paid probability modifier: hidden where restricted.
+- `SummonBoss` 199: `nextBossAt = now + BOSS.WARNING_SECONDS`; refused with a boss on, one already due, rain in the way
+  (`BossEvent.rainBlocks`) or within `summonCooldown` (`world.summonedAt`).
+- `WeatherTotem` 59: the Item shop totem's weather is next (`ctx.requestWeather`); hidden where restricted.
+- `IncomeBoost15` 49 / `IncomeBoost60` 129: x2 into the capped code boost (`Codes.addBoost`).
+- `KeepStreak` 25: while `State.exclusiveShop.streakKeepable` (streak >= 2, last claim before yesterday) sets
+  `daily.lastDay` to yesterday so today's claim continues the streak. Sold on the Daily reward card.
+- `GrowthSnack` 19: one slime grows `growthSnackSeconds` (3 h). `AimSnack(slimeId)` (0.5 s) names it before the prompt,
+  else the least grown pad slime. Sold on the slime's pad card (the hatch key: an egg never grows).
+State: `credits` (all six kinds), `serverBoosts = { rain, boss }` (could start now), `streakKeepable`.
+
+## 15. Base skins, lock styles, fanfares, hats, seasons and bundles
+
+Cosmetics only; each also sells as a gift (`Gift_<key>`). Save (no version bump): `ownedStyles = { [kind]: { id } }`
+and `wornStyles = { [kind]: id }` for kinds `fanfare`, `lockStyle`, `hat` (worn), `plotSkin` (owned; worn as
+`plotSkin`) and `plotBase` (owned; worn as `plotBase`). `deserialize` drops unknown ids and worn ids that are not owned; owned styles load before the plot skin.
+Request `EquipStyle(kind, id)` (0.5 s; "" = take off). State: `exclusiveShop.styles`, `worn`, `seasons`.
+- **Base skins** (`Skin_<id>`, `Config.PLOT_SKINS[].exclusive`): Fairground 299, Beach Hut 249, Space Station 399,
+  Winter Cabin 249, Haunted Ranch 299 (Halloween). `PlotSkins.unlocked` = owned; equipped with `EquipPlotSkin`. The
+  tower meshes are kit themes (`models/_goo_jar_themes.py`, `goo_jar_*@<id>`, uploaded; MeshAssets block from
+  `tools/goo_jar_theme_assets.py`). The Skins menu shows an unowned one with a gold "Exclusive" and
+  "Only in the Exclusive shop.".
+- **Bases** (`Base_<id>`, `Config.PLOT_BASES[].exclusive`, contract/base-shapes.md): Carousel Tent 599, Space Rocket
+  499, Tree House 499, Lighthouse 399, Snow Globe 399. `PlotBases.unlocked` = owned (rebirths never unlock one);
+  equipped with `EquipPlotBase` ("Pick it in Skins."). Shown on the Style tab after the base skins (card key `plotBase:<id>`, icon
+  `PlotBase_<id>`, UI-drawn), and in the Skins menu's base row with a gold "Exclusive" and "Buy · R$<price>". A base
+  taken back (a gift whose save failed) is taken off: `plotBase` goes back to `jar`.
+- **Lock styles** (`LockStyle_<id>`, `EXCLUSIVE_SHOP.lockStyles`, kit `lock_stopper_<id>`, the classic stopper's box):
+  the owner's worn style is Plot attribute `LockStyle`; MeshSwap shows its stopper on `StopperShut` only (the door
+  parked open keeps the classic plug, so the style's red reads "locked" only when locked). Collision is unchanged.
+- **Fanfares** (`Fanfare_<id>`, `EXCLUSIVE_SHOP.fanfares`): on every deposit (wild, stolen, boss) `Carry.fanfare`
+  emits the worn one's `Effect` (`Effects.BURSTS.Fanfare_<id>`, ≤ 2 s) on the slime.
+- **Slime hats** (`Hat_<id>`, `EXCLUSIVE_SHOP.hats`, kit `slime_hat_<id>`): Plot attribute `SlimeHat`; the client
+  (`ui/SlimeHatsFx`) welds the template from `ReplicatedStorage.SlimeHatMeshes` (`MeshSwap.publishHatTemplates`) on
+  top of the visible `Mesh` of every non-egg slime in State "Pad" of that owner. The hat belongs to the pad: a carried or stolen slime has none.
+- **Seasons** (`EXCLUSIVE_SHOP.seasons`, `shared/Seasons`, UTC month-day windows): halloween 10-15..11-07 (Pumpkin
+  seat, Haunted Ranch, Witch Hat), winter 12-01..01-07 (Snow Globe seat). Out of season an unowned seasonal item is
+  not shown (shop, Skins menu, `PetSeats.view` / `PlotSkins.view` with `now`) and never featured; owners keep it.
+- **Bundles** (grant kind `pack`, owned items skipped): `BoutiqueBundle` 549 (Magic Carpet, Fairground, Confetti),
+  `SkyBundle` 599 (Storm, Sunset, Ice, Flame clouds). Shown in Featured; "Owned" once everything is.

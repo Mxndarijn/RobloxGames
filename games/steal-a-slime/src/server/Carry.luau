@@ -50,6 +50,20 @@ local Carry = {}
 Carry.CATCH_ANNOUNCE_TIER = Config.SECRET_TIER - 1
 
 -- Prompt ActionText for a slime as seen by a non-owner.
+-- The depositor's worn Exclusive fanfare (contract/exclusive-shop.md §15) bursts on the slime that just landed.
+function Carry.fanfare(world: World.World, session: World.Session, slimeId: string?)
+	local id = session.data.wornStyles and session.data.wornStyles.fanfare
+	if not id then
+		return
+	end
+	for _, def in (Config.EXCLUSIVE_SHOP :: any).fanfares do
+		if def.id == id then
+			World.effect(world, def.burst, { slimeId = slimeId, userId = session.userId })
+			return
+		end
+	end
+end
+
 function Carry.actionText(price: number?): string
 	if price == nil then
 		return "Steal"
@@ -186,6 +200,7 @@ function Carry.depositBoss(world: World, session: Session, carry: World.CarrySta
 		BossCredit.win(world, fight, session, carry.slime, now)
 	end
 	World.effect(world, "Collect", { userId = session.userId })
+	Carry.fanfare(world, session, carry.slimeId)
 	return true, nil
 end
 
@@ -263,6 +278,7 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 			userId,
 			{ op = "event", name = "SlimeCaught", fields = { GameAnalytics.tierField(slime.tier) } }
 		)
+		Carry.fanfare(world, session, slime.id)
 		World.tutorial(world, session, "Deposit")
 		return true, nil
 	end
@@ -301,6 +317,7 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 	World.notify(world, userId, `You stole a {name}!`, "good", "Stolen")
 	World.notify(world, owner.userId, `{session.name} has stolen one of your slimes`, "bad", "Stolen")
 	World.effect(world, "Collect", { userId = userId })
+	Carry.fanfare(world, session, carry.slimeId)
 	World.tutorial(world, session, "Deposit")
 	return true, nil
 end

@@ -133,7 +133,7 @@ Actions.feature = feature
 
 -- Purchases.Context for a request: the flag overrides and the save a gift needs.
 local function purchaseCtx(ctx: Context): Purchases.Context
-	return { features = ctx.features, save = ctx.saveUser }
+	return { features = ctx.features, save = ctx.saveUser, requestWeather = ctx.requestWeather }
 end
 
 local function result(ok: boolean, message: string?): Result
@@ -711,6 +711,12 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 			return result(Purchases.equipTrail(session, args[1]))
 		end
 		return result(Purchases.equipBatSkin(session, args[1]))
+	elseif action == "AimSnack" then
+		return result(Purchases.aimSnack(world, session, args[1]))
+	elseif action == "EquipStyle" then
+		return result(Purchases.equipStyle(session, args[1], args[2]))
+	elseif action == "ClaimPerk" then
+		return result(Purchases.claimPerk(world, session, args[1], now))
 	elseif action == "AimLockBreak" then
 		return result(LockBreak.aim(world, session, args[1], now, ctx.features))
 	elseif action == "AimGift" then

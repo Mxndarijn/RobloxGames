@@ -1,10 +1,12 @@
 --!strict
 --[[
 	StealCards (client, contract/notice-cards.md): the cards in the top banner stack. The owner's steal alarm
-	("Ann is stealing your slime!", then "Ann has stolen one of your slimes"), and the notices: bonked, slime back
+	("Ann is stealing your slime!" / "Ann and 2 others are stealing your slimes!", then "Ann has stolen one of your
+	slimes"), and the notices: bonked, slime back
 	home, base locked. Timed cards drain a bar along their bottom edge; a "+N more" chip counts what does not fit.
 	The ring says what it is: pink danger, mint good news, gold guidance. Which cards show is StealCardsLogic;
-	this module only draws them.
+	this module only draws them. While the boss card shows (`setFolded`), the cards fold into its alarm strip
+	(`strip`) instead of stacking above it.
 ]]
 
 local TweenService = game:GetService("TweenService")
@@ -37,7 +39,13 @@ export type StealCards = {
 	frame: Frame,
 	update: (state: any, now: number) -> (),
 	tick: (now: number) -> (),
+	setFolded: (folded: boolean) -> (),
+	strip: (now: number) -> StealCardsLogic.Strip?,
 }
+
+-- Icon and colour per card kind, for the boss card's alarm strip.
+StealCards.ICON = ICON
+StealCards.COLOR = COLOR
 
 local function nameMarkup(name: string): string
 	local safe = string.gsub(string.gsub(string.gsub(name, "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
@@ -164,8 +172,14 @@ function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
 
 	local memory = StealCardsLogic.new()
 	local shownSig = ""
+	local folded = false
 
 	local function render(now: number)
+		if folded then
+			frame.Visible = false
+			shownSig = ""
+			return
+		end
 		local cards, hidden = StealCardsLogic.cards(memory, now)
 		local names: { string } = {}
 		local subs: { string? } = {}
@@ -175,7 +189,10 @@ function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
 			names[i] = who
 			-- Several cards: only the first keeps its hint line, so the stack stays short.
 			subs[i] = if i == 1 then StealCardsLogic.subtitle(card, who, now) else nil
-			table.insert(parts, `{card.kind}:{who}:{card.startedAt or ""}:{subs[i] or ""}`)
+			-- The second thief's name too: a name that resolves later redraws the card.
+			local second = if card.thieves and card.thieves[2] then ctx.playerName(card.thieves[2]) else ""
+			local crew = if card.thieves then `{table.concat(card.thieves, ",")}/{second}` else ""
+			table.insert(parts, `{card.kind}:{who}:{crew}:{card.startedAt or ""}:{subs[i] or ""}`)
 		end
 		local sig = `{table.concat(parts, ";")}|{hidden}`
 		if sig == shownSig then
@@ -196,7 +213,14 @@ function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
 				slot.icon.BackgroundColor3 = color
 				slot.bar.BackgroundColor3 = color
 				slot.icon.Text = ICON[card.kind]
-				slot.title.Text = StealCardsLogic.title(card, nameMarkup(names[i]))
+				local thieves = card.thieves
+				slot.title.Text = if thieves and #thieves > 1
+					then StealCardsLogic.thievesText(
+						nameMarkup(names[i]),
+						nameMarkup(ctx.playerName(thieves[2])),
+						#thieves
+					)
+					else StealCardsLogic.title(card, nameMarkup(names[i]))
 				local sub = subs[i]
 				slot.sub.Text = sub or ""
 				slot.sub.Visible = sub ~= nil
@@ -234,6 +258,16 @@ function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
 	end
 	function self.tick(now: number)
 		render(now)
+	end
+	-- The boss card is up: the cards hide and the boss card shows `strip` instead (and back when it goes).
+	function self.setFolded(isFolded: boolean)
+		if folded ~= isFolded then
+			folded = isFolded
+			render(ctx.serverNow())
+		end
+	end
+	function self.strip(now: number): StealCardsLogic.Strip?
+		return StealCardsLogic.strip(memory, now, ctx.playerName)
 	end
 	return self
 end

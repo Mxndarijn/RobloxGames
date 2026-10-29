@@ -614,6 +614,47 @@ local function batRecipe(id: string): ((Pen, any) -> ())?
 	end
 end
 
+-- Fanfares (Fanfare_), lock styles (LockStyle_), slime hats (Hat_) and Exclusive plot bases (PlotBase_) of the
+-- Exclusive shop (§15), drawn in the spec's colour until pictures are rendered.
+local function styleRecipe(id: string): ((Pen, any) -> ())?
+	local kind = string.match(id, "^(%a+)_")
+	if kind ~= "Fanfare" and kind ~= "LockStyle" and kind ~= "Hat" and kind ~= "PlotBase" then
+		return nil
+	end
+	return function(p, spec)
+		local c = color3(spec and spec.color, GOLD)
+		if kind == "PlotBase" then
+			local colors = if spec and type(spec.colors) == "table" then spec.colors else {}
+			local roof = color3(colors[2], c:Lerp(INK, 0.3))
+			p:shape(0.5, 0.86, 0.86, 0.14, GREEN, { round = 0.5 })
+			p:shape(0.5, 0.58, 0.48, 0.5, c, { round = 0.2 })
+			p:circle(0.5, 0.3, 0.3, roof)
+			p:shape(0.5, 0.7, 0.16, 0.24, c:Lerp(INK, 0.45), { round = 0.4 })
+			p:circle(0.5, 0.5, 0.07, c:Lerp(WHITE, 0.6), { stroke = false, flat = true })
+		elseif kind == "Fanfare" then
+			blob(p, 0.5, 0.66, 0.42, GREEN)
+			for i = 0, 5 do
+				local a = i * math.pi / 3
+				p:circle(
+					0.5 + 0.34 * math.cos(a),
+					0.36 + 0.24 * math.sin(a),
+					0.07,
+					if i % 2 == 0 then c else rgb(250, 150, 182)
+				)
+			end
+		elseif kind == "LockStyle" then
+			p:circle(0.5, 0.5, 0.36, c)
+			p:circle(0.5, 0.5, 0.24, c:Lerp(WHITE, 0.4), { stroke = false, flat = true })
+			p:shape(0.5, 0.58, 0.2, 0.16, RED, { round = 0.2 })
+			p:shape(0.5, 0.46, 0.12, 0.12, RED, { round = 0.5 })
+		else
+			blob(p, 0.5, 0.66, 0.46, GREEN)
+			p:shape(0.5, 0.32, 0.22, 0.26, c, { round = 0.3 })
+			p:shape(0.5, 0.44, 0.38, 0.06, c:Lerp(INK, 0.2), { round = 0.5 })
+		end
+	end
+end
+
 -- Plot skins: a small ranch diorama (floor slab, fence posts, decor) per skin.
 local function diorama(p: Pen, floor: Color, fence: Color, decor: (Pen) -> ())
 	p:shape(0.5, 0.74, 0.92, 0.42, floor:Lerp(INK, 0.25), { round = 0.2 })
@@ -688,6 +729,59 @@ RECIPES.PlotSkin_starlight = function(p)
 	end)
 end
 
+-- Exclusive base skins (contract/exclusive-shop.md §15), drawn until their tower pictures are rendered.
+RECIPES.PlotSkin_fairground = function(p)
+	diorama(p, rgb(214, 176, 120), rgb(252, 216, 110), function(q)
+		q:shape(0.5, 0.66, 0.05, 0.34, rgb(250, 240, 220), { round = 0.4 })
+		q:shape(0.5, 0.36, 0.5, 0.2, rgb(92, 200, 196), { round = 0.5 })
+		q:shape(0.38, 0.36, 0.1, 0.2, rgb(250, 240, 220), { round = 0.2 })
+		q:shape(0.62, 0.36, 0.1, 0.2, rgb(250, 240, 220), { round = 0.2 })
+		q:circle(0.5, 0.24, 0.06, GOLD)
+		q:circle(0.2, 0.78, 0.1, rgb(250, 150, 182))
+		q:circle(0.82, 0.76, 0.1, GOLD)
+	end)
+end
+
+RECIPES.PlotSkin_beach = function(p)
+	diorama(p, rgb(238, 214, 160), rgb(250, 150, 130), function(q)
+		q:shape(0.5, 0.58, 0.05, 0.42, rgb(176, 128, 92), { round = 0.4 })
+		q:shape(0.5, 0.34, 0.5, 0.14, rgb(92, 210, 220), { round = 0.5 })
+		q:shape(0.5, 0.34, 0.16, 0.14, rgb(250, 240, 220), { round = 0.2 })
+		q:circle(0.2, 0.78, 0.1, rgb(250, 150, 130))
+		q:shape(0.82, 0.76, 0.14, 0.14, rgb(252, 216, 110), { rot = 45, round = 0.3 })
+	end)
+end
+
+RECIPES.PlotSkin_space = function(p)
+	diorama(p, rgb(150, 150, 196), rgb(140, 232, 244), function(q)
+		q:circle(0.5, 0.48, 0.26, rgb(140, 120, 220))
+		q:shape(0.5, 0.48, 0.66, 0.08, rgb(140, 232, 244), { rot = -15, round = 0.5 })
+		sparkle(q, 0.2, 0.26, 0.14)
+		sparkle(q, 0.82, 0.74, 0.12)
+	end)
+end
+
+RECIPES.PlotSkin_winter = function(p)
+	diorama(p, rgb(236, 240, 248), rgb(226, 96, 96), function(q)
+		q:shape(0.5, 0.56, 0.36, 0.3, rgb(176, 120, 84), { round = 0.2 })
+		q:shape(0.5, 0.38, 0.46, 0.12, WHITE, { round = 0.5 })
+		q:shape(0.5, 0.58, 0.1, 0.1, rgb(250, 206, 120), { round = 0.3 })
+		q:circle(0.2, 0.78, 0.1, rgb(226, 96, 96))
+		q:circle(0.82, 0.78, 0.1, WHITE)
+	end)
+end
+
+RECIPES.PlotSkin_haunted = function(p)
+	diorama(p, rgb(140, 112, 160), rgb(250, 160, 80), function(q)
+		q:circle(0.5, 0.5, 0.24, rgb(250, 150, 70))
+		q:shape(0.5, 0.28, 0.06, 0.1, rgb(110, 170, 90), { round = 0.4 })
+		q:shape(0.44, 0.46, 0.06, 0.06, rgb(80, 60, 90), { rot = 45 })
+		q:shape(0.56, 0.46, 0.06, 0.06, rgb(80, 60, 90), { rot = 45 })
+		q:shape(0.5, 0.58, 0.16, 0.04, rgb(80, 60, 90), { round = 0.5 })
+		q:circle(0.8, 0.26, 0.07, rgb(250, 240, 220))
+	end)
+end
+
 RECIPES.Code_SLIMEBOOST = RECIPES.Boost_Code
 RECIPES.Code_WELCOME = RECIPES.Cash
 RECIPES.Code_LAUNCH = RECIPES.Cash
@@ -696,7 +790,7 @@ ItemIconArt.RECIPES = table.freeze(RECIPES)
 
 local function recipeOf(id: string): ((Pen, any) -> ())?
 	local fixed: any = RECIPES[id] or trophyRecipe(id) or seatRecipe(id)
-	return fixed or trailRecipe(id) or batRecipe(id)
+	return fixed or trailRecipe(id) or batRecipe(id) or styleRecipe(id)
 end
 
 function ItemIconArt.has(id: string): boolean

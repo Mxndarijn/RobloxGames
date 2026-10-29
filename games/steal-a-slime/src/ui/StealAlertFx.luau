@@ -5,14 +5,16 @@
 	The v21 full steal alerts, drawn on top of the HUD banner:
 
 	* Owner: a red screen-edge flash and repeat alarms when a theft starts, a direction
-	  arrow on the screen edge plus a world ping (billboard + outline, seen through walls)
-	  on the thief while they carry my slime. (The "while you were away" toast from `State.stealAway` is gone
+	  arrow on the screen edge plus a red outline (seen through walls) on the thief while
+	  they carry my slime. (The "while you were away" toast from `State.stealAway` is gone
 	  with all toasts, B6.)
 	* Thief (and everyone watching): a short Trail on any player whose Player attribute
 	  `Stealing` is set.
 	* Bat hit: a hit effect (flash, "BONK!" pop, burst) on the player whose `SlapHitAt` changes.
+	* Thief Radar (contract/exclusive-shop.md §13): the players in my base (State.exclusiveShop.radar) get a calmer
+	  yellow outline, and while no theft runs the arrow points at the first of them, labelled "Visitor".
 
-	Only Instances that are not parts: Frames, a BillboardGui, a Highlight, a Trail with two
+	Only Instances that are not parts: Frames, a BillboardGui (the BONK! pop), Highlights, a Trail with two
 	Attachments, a ParticleEmitter. The maths is Shared.StealAlert (tests/StealAlert.spec).
 	Studio only: the SlimeUI attribute `PcwStealAlert` = true fakes one theft (flash held at
 	its peak, arrow pointing right) and the notice, for the pc-watcher proof shot.
@@ -119,14 +121,17 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	local theft: { thiefId: number?, startedAt: number, played: number }? = nil
 	-- Everyone carrying one of my slimes right now (the arrow follows `theft.thiefId`, the first of them).
 	local thiefIds: { number } = {}
-	-- The ping (THIEF sign + red outline) on each thief's character.
-	local pings: { [Model]: { Instance } } = {}
+	-- The ping (an outline, no sign) on each thief's character, and on Thief Radar visitors in my base.
+	local pings: { [Model]: Highlight } = {}
+	local pingKinds: { [Model]: string } = {}
+	local radarIds: { number } = {}
 	local sweepClock = 0
 	local screen: Layout.Screen? = nil
 	local bannerHeight: () -> number = function()
 		return 0
 	end
 	local lastSlap: { [Player]: number } = {}
+	local menuOpen = false -- an overlay is open: the arrow steps aside (the flash and alarm still play)
 
 	local function debugOn(): boolean
 		return isStudio and gui:GetAttribute("PcwStealAlert") == true
@@ -150,61 +155,35 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		Debris:AddItem(sound, 5)
 	end
 
-	local function addPing(character: Model)
-		local rootPart = character:FindFirstChild("HumanoidRootPart")
-		if not rootPart or not rootPart:IsA("BasePart") then
-			return
-		end
-		local sign = create("BillboardGui", {
-			Name = "StealPing",
-			Adornee = rootPart,
-			AlwaysOnTop = true,
-			Size = UDim2.fromOffset(110, 56),
-			MaxDistance = 400, -- studs: find the thief on your base from anywhere near it
-			LightInfluence = 0,
-			StudsOffset = Vector3.new(0, 4.5, 0),
-			Parent = character,
-		}, {
-			create("TextLabel", {
-				Size = UDim2.fromScale(1, 1),
-				BackgroundTransparency = 1,
-				Text = "🚨 THIEF",
-				TextSize = 22,
-				Font = Theme.Font,
-				TextColor3 = Color3.new(1, 1, 1),
-				TextStrokeTransparency = 0,
-				TextStrokeColor3 = Theme.Thief,
-			}),
-		})
-		local outline = create("Highlight", {
+	-- `kind` "thief": the red outline; "radar" (a visitor the Thief Radar shows): a yellow outline, no fill.
+	local function addPing(character: Model, kind: string)
+		local radar = kind == "radar"
+		local tint = if radar then Theme.Warn else Theme.Thief
+		pingKinds[character] = kind
+		pings[character] = create("Highlight", {
 			Name = "StealHighlight",
 			Adornee = character,
-			FillColor = Theme.Thief,
-			FillTransparency = StealAlertLayout.PING_FILL_TRANSPARENCY,
-			OutlineColor = Theme.Thief,
+			FillColor = tint,
+			FillTransparency = if radar then 1 else StealAlertLayout.PING_FILL_TRANSPARENCY,
+			OutlineColor = tint,
 			DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
 			Parent = character,
 		})
-		pings[character] = { sign, outline }
 	end
 
-	-- Keeps exactly one ping on each of `characters`; each one is made once and stays until that thief is done.
-	local function syncPings(characters: { Model })
-		local wanted: { [Model]: boolean } = {}
-		for _, character in characters do
-			wanted[character] = true
-		end
-		for character, parts in pings do
-			if not wanted[character] or parts[2].Parent ~= character then
-				for _, part in parts do
-					part:Destroy()
-				end
+	-- Keeps exactly one ping on each wanted character ("thief" or "radar"); each is made once and stays until that
+	-- player is done (a radar visitor who starts a theft becomes a thief ping).
+	local function syncPings(wanted: { [Model]: string })
+		for character, outline in pings do
+			if wanted[character] ~= pingKinds[character] or outline.Parent ~= character then
+				outline:Destroy()
 				pings[character] = nil
+				pingKinds[character] = nil
 			end
 		end
-		for character in wanted do
+		for character, kind in wanted do
 			if not pings[character] then
-				addPing(character)
+				addPing(character, kind)
 			end
 		end
 	end
@@ -360,12 +339,19 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		flashStroke.Thickness = StealAlertLayout.flashThickness(s)
 	end
 
+	-- An open overlay (MenuState.noticesVisible) hides the arrow and its label until it closes.
+	function self.setMenuOpen(isOpen: boolean)
+		menuOpen = isOpen
+	end
+
 	-- Every State push: start / end the theft alert and show the join notice once.
 	function self.update(state: any)
 		if not (StealAlert.enabled() or debugOn()) then
 			return
 		end
 		thiefIds = StealAlert.thieves(state.slimes)
+		local shop = state.exclusiveShop
+		radarIds = if type(shop) == "table" and type(shop.radar) == "table" then shop.radar else {}
 		local thiefId = thiefIds[1]
 		if thiefId ~= nil then
 			if theft == nil or theft.thiefId ~= thiefId then
@@ -393,30 +379,46 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			theft = nil
 		end
 		-- The pings follow the thefts alone; the arrow below only decides whether it also shows.
-		local thieves: { Model } = {}
+		local wanted: { [Model]: string } = {}
+		if not debug then
+			for _, id in radarIds do
+				local visitor = characterOf(id)
+				if visitor then
+					wanted[visitor] = "radar"
+				end
+			end
+		end
 		if theft and not debug then
 			for _, id in thiefIds do
 				local thief = characterOf(id)
 				if thief then
-					table.insert(thieves, thief)
+					wanted[thief] = "thief"
 				end
 			end
 		end
-		syncPings(thieves)
+		syncPings(wanted)
 		local character = thiefCharacter()
+		local visitor = if theft == nil and radarIds[1] ~= nil then characterOf(radarIds[1]) else nil
+		arrowLabel.Text = if theft == nil and visitor then "Visitor" else "Thief"
 		if theft == nil then
 			flashStroke.Transparency = 1
-			hideArrow()
-			return
+			if visitor then
+				character = visitor -- the radar's arrow: no flash, no alarm
+			else
+				hideArrow()
+				return
+			end
 		end
-		local elapsed = os.clock() - theft.startedAt
-		-- Studio fake: hold the flash at its peak so the frame shows it.
-		local flashAt = if debug then cfg.FLASH_SECONDS / (4 * cfg.FLASH_PULSES) else elapsed
-		flashStroke.Transparency = 1 - StealAlert.flashAlpha(flashAt)
-		local due = StealAlert.alarmDue(elapsed)
-		if due > theft.played then
-			theft.played = due
-			playAlarm()
+		if theft then
+			local elapsed = os.clock() - theft.startedAt
+			-- Studio fake: hold the flash at its peak so the frame shows it.
+			local flashAt = if debug then cfg.FLASH_SECONDS / (4 * cfg.FLASH_PULSES) else elapsed
+			flashStroke.Transparency = 1 - StealAlert.flashAlpha(flashAt)
+			local due = StealAlert.alarmDue(elapsed)
+			if due > theft.played then
+				theft.played = due
+				playAlarm()
+			end
 		end
 
 		local camera = workspace.CurrentCamera
@@ -445,7 +447,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			hideArrow() -- close enough to see them (the outline stays)
 			return
 		end
-		if not screen then
+		if not screen or menuOpen then
 			hideArrow()
 			return
 		end

@@ -7,14 +7,13 @@
 	that skin's slimes and equips it (the tower turns to its theme), "PcwPetSeat" (a seat id) meets a free seat's goal and
 	equips it (the follow pet rides it), "PcwPads" (a count) the unlocked pads (the upper
 	jars build), "PcwSlimes" (a tier) puts three slimes of that rarity on free pads (a merge vat load), "PcwPlotBase"
-	(a base id) raises the rebirths to that base's gate and equips it (CONTRACT.md §44), "PcwTutorial" (a tutorial step
-	name) finishes that step as if the player did its action (contract/tutorial.md). ServerLoop's
-	`pinClock` covers the
-	Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
+	(a base id) raises the rebirths to that base's gate, or owns an Exclusive base, and equips it (CONTRACT.md §44),
+	"PcwTutorial" (a tutorial step name) finishes that step as if the player did its action (contract/tutorial.md).
+	ServerLoop's `pinClock` covers the Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
 
 	Exclusive Shop (contract/exclusive-shop.md §3): `grantProduct(userId, productKey)`,
-	`setPass(userId, passKey, owned)` and `setPaidRandomAllowed(userId, allowed)` run the real PurchaseService paths
+	`setPass(userId, passKey, owned)`, `setSubscription(userId, key, active)` ("PcwSubscription") and `setPaidRandomAllowed(userId, allowed)` run the real PurchaseService paths
 	(Purchases.grant, a "studio-<guid>" receipt id, the save) without a productId or a Robux prompt. They only write
 	player attributes ("PcwGrantProduct", "PcwPass" = "<passKey>=true|false", "PcwPaidRandom") that the running
 	server's watcher applies, so they work from any Lua context in a Studio playtest, e.g. Studio MCP execute_luau:
@@ -57,6 +56,7 @@ local PASS_ATTRIBUTE = "PcwPass"
 local PAID_RANDOM_ATTRIBUTE = "PcwPaidRandom"
 local LOCK_BREAK_ATTRIBUTE = "PcwLockBreak"
 local GIFT_ATTRIBUTE = "PcwGift"
+local SUBSCRIPTION_ATTRIBUTE = "PcwSubscription"
 
 local function playerOf(userId: number): Player?
 	return Players:GetPlayerByUserId(userId)
@@ -79,6 +79,16 @@ function StudioHooks.setPass(userId: number, passKey: string, owned: boolean): b
 		return false
 	end
 	player:SetAttribute(PASS_ATTRIBUTE, `{passKey}={if owned then "true" else "false"}`)
+	return true
+end
+
+-- Starts or ends a subscription (a Config.EXCLUSIVE_SHOP.subscriptions key) for this Studio session.
+function StudioHooks.setSubscription(userId: number, key: string, active: boolean): boolean
+	local player = playerOf(userId)
+	if not player then
+		return false
+	end
+	player:SetAttribute(SUBSCRIPTION_ATTRIBUTE, `{key}={if active then "true" else "false"}`)
 	return true
 end
 
@@ -146,6 +156,12 @@ local function applyPurchase(player: Player, purchases: PurchaseService.Service,
 		if key then
 			print(`[StudioHooks] setPass {key} {flag}: {purchases.setPass(userId, key, flag == "true")}`)
 		end
+	elseif name == SUBSCRIPTION_ATTRIBUTE and type(value) == "string" then
+		local key, flag = string.match(value, "^(%w+)=(%a+)$")
+		if key then
+			local done = purchases.setSubscription(userId, key, flag == "true")
+			print(`[StudioHooks] setSubscription {key} {flag}: {done}`)
+		end
 	elseif name == PAID_RANDOM_ATTRIBUTE and type(value) == "boolean" then
 		print(`[StudioHooks] setPaidRandomAllowed {value}: {purchases.setPaidRandomAllowed(userId, value)}`)
 	end
@@ -181,7 +197,12 @@ local function apply(world: World.World, player: Player, refresh: () -> ())
 	end
 	local base = PlotBases.get(player:GetAttribute("PcwPlotBase"))
 	if base then
-		profile.rebirths = math.max(profile.rebirths, base.rebirths or 0)
+		-- An Exclusive base is owned on this test save; any other gets its rebirths.
+		if base.exclusive then
+			Purchases.giveItem(profile, `Base_{base.id}`)
+		else
+			profile.rebirths = math.max(profile.rebirths, base.rebirths or 0)
+		end
 		PlotBases.equip(profile, base.id)
 	end
 	local seat = PetSeats.get(player:GetAttribute("PcwPetSeat"))
@@ -239,7 +260,14 @@ function StudioHooks.start(
 		end
 		if purchases then
 			for _, name in
-				{ GRANT_ATTRIBUTE, PASS_ATTRIBUTE, PAID_RANDOM_ATTRIBUTE, LOCK_BREAK_ATTRIBUTE, GIFT_ATTRIBUTE }
+				{
+					GRANT_ATTRIBUTE,
+					PASS_ATTRIBUTE,
+					PAID_RANDOM_ATTRIBUTE,
+					LOCK_BREAK_ATTRIBUTE,
+					GIFT_ATTRIBUTE,
+					SUBSCRIPTION_ATTRIBUTE,
+				}
 			do
 				player:GetAttributeChangedSignal(name):Connect(function()
 					task.spawn(function() -- the grant saves, which yields

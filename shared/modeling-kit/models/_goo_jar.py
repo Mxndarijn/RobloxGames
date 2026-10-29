@@ -11,7 +11,7 @@ import random
 
 import bmesh
 import bpy
-from mathutils import Vector
+from mathutils import Euler, Matrix, Vector
 
 from lib import *
 
@@ -29,7 +29,7 @@ def set_theme(theme_id):
     """Build every piece from here on in theme `theme_id` (models/_goo_jar_themes.py): the builders read these colours
     when they run, so one process can build several themes (models/_goo_jar_bounds.py does)."""
     global THEME_ID, THEME, WOOD, WOOD_D, CREAM, GOO, GOO_HI, METAL, PINK, LILAC, BUTTER, PATH, GLASS, CORK, SAND
-    global STRIPE, LEAVES, ICICLES, GREEN, BUDS, TRIM
+    global STRIPE, LEAVES, ICICLES, GREEN, BUDS, BUD_R, BUD_SIDE, TRIM, AWNING, FLOOR_STRIPES, BATS, SNOW
     THEME_ID, THEME = theme_id, THEMES[theme_id]
     t = THEME
     WOOD, WOOD_D, CREAM = t["wood"], t["wood_d"], t["cream"]
@@ -41,6 +41,12 @@ def set_theme(theme_id):
     ICICLES = t.get("icicles", False)  # icicles hang from the lids
     GREEN = LEAVES or PALETTE["ranch_field_light"]  # stems and bushes on the props
     BUDS = t.get("buds")  # colours of little buds (flowers, sparkles) dotted up the ribs
+    BUD_R = t.get("bud_size", 0.3)  # their radius
+    BUD_SIDE = t.get("bud_side", 0.32)  # how far to the rib's side they sit (0: on the rib, for big buds: keeps the box)
+    AWNING = t.get("awning")  # colours striped round the cork stopper and lids (paint only, no new shape)
+    FLOOR_STRIPES = t.get("floor_stripes")  # two tones in wedges round the sandy plot floor (paint only)
+    BATS = t.get("bats")  # bat colour: little bats perch on the ribs' sides
+    SNOW = t.get("snow")  # snow colour: the lids' goo roll is snow, and the stopper wears a snow cap
     TRIM = mix(LILAC, CREAM, 0.15)
 
 
@@ -108,6 +114,52 @@ def painted(o, lo=None, hi=None):
     return o
 
 
+def stripes(o, cols, n, lo=0.85, phase=0.0, centre=(0.0, 0.0)):
+    """Repaint o in n wedges round a vertical axis through `centre` (x, y), cycling through `cols`, each dark below and
+    light above (lo..1): awning stripes on a lid, carousel wedges on a floor. Paint only, the shape stays."""
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    layer = bm.loops.layers.color.get("Col") or bm.loops.layers.color.new("Col")
+    zs = [v.co.z for v in bm.verts]
+    z0, span = min(zs), max(max(zs) - min(zs), 1e-6)
+    for f in bm.faces:
+        c = f.calc_center_median()
+        a = (math.atan2(c.y - centre[1], c.x - centre[0]) + phase) % math.tau
+        col = shade(cols[int(a / math.tau * n) % len(cols)], lo + (1 - lo) * (c.z - z0) / span)
+        for lp in f.loops:
+            lp[layer] = col
+    bm.to_mesh(o.data)
+    bm.free()
+    return o
+
+
+def lid_paint(o):
+    """A lid or stopper in an awning theme gets its stripes; otherwise it stays as painted."""
+    return stripes(o, AWNING, 6 * len(AWNING) if len(AWNING) > 2 else 16, lo=0.82) if AWNING else o
+
+
+def bat(name, p, side, col, k=1.8):
+    """A little bat perched on a rib's side (k = its size): a round body, two fan wings spread along the rib's tangent,
+    pointy ears and two cream eyes facing out (friendly, never scary)."""
+    out_dir = Vector((p.x, p.y, 0)).normalized()
+    tan = Vector((-p.y, p.x, 0)).normalized()
+    up = Vector((0, 0, 1))
+    c = p + tan * side + out_dir * 0.2 * k
+    deg = math.degrees(math.atan2(out_dir.y, out_dir.x))
+    lo, hi = shade(col, 0.85), mix(col, LILAC, 0.35)
+    parts = [painted(blob(name + "Body", 0.26 * k, tuple(c), col, subdiv=2, squash=(0.8, 1, 1.1), jitter=0, rot=(0, 0, deg)), lo, hi)]
+    tdeg = math.degrees(math.atan2(tan.y, tan.x))
+    for s in (-1, 1):
+        for j, (dx, dz, tilt, ln) in enumerate(((0.42, 0.14, 30, 0.34), (0.5, -0.02, 0, 0.3))):
+            wc = c + tan * s * dx * k + up * dz * k
+            parts.append(painted(blob(f"{name}Wing{s}{j}", ln * k, tuple(wc), col, subdiv=1, squash=(1, 0.25, 0.5), jitter=0,
+                                      rot=(0, -s * tilt, tdeg)), lo, hi))
+        parts.append(cone(f"{name}Ear{s}", 0.07 * k, 0.18 * k, tuple(c + tan * s * 0.1 * k + up * 0.22 * k), col, segs=4))
+        parts.append(blob(f"{name}Eye{s}", 0.065 * k, tuple(c + tan * s * 0.09 * k + out_dir * 0.2 * k + up * 0.05 * k), CREAM,
+                          subdiv=1, jitter=0))
+    return parts
+
+
 # --- Lathe: a profile of (r, z) points turned round the Z axis over an angle range, double-sided. -----------------
 def lathe(name, profile, color, a0=0.0, a1=360.0, segs=SEGS, thick=0.15, double=True):
     """Outer surface from `profile`, inner surface `thick` inside it with flipped faces, so glass shows from inside
@@ -149,18 +201,22 @@ def loop(name, r, thick, center, normal_axis, col, segs=28, arc=(0.0, 360.0), tw
     return tube(name, pts, [thick] * len(pts), col, segs=8, twist_free=twist_free)
 
 
-def teardrop(name, x, y, z_top, length, thick):
+def teardrop(name, x, y, z_top, length, thick, col=None):
     """A drip that stretches out of the goo above it: a tapering neck into a round drop (no loose bulbs)."""
+    col = col or GOO
     parts = [painted(tube(name, [(x, y, z_top + thick * 0.3), (x, y, z_top - length * 0.45), (x, y, z_top - length)],
-                          [thick * 0.8, thick * 0.38, thick * 0.42], GOO, segs=8), shade(GOO, 0.9), GOO)]
-    parts.append(blob(name + "Tip", thick * 0.58, (x, y, z_top - length - thick * 0.25), GOO, subdiv=2, squash=(1, 1, 1.15), jitter=0))
+                          [thick * 0.8, thick * 0.38, thick * 0.42], col, segs=8), shade(col, 0.9), col)]
+    parts.append(blob(name + "Tip", thick * 0.58, (x, y, z_top - length - thick * 0.25), col, subdiv=2, squash=(1, 1, 1.15), jitter=0))
     return parts
 
 
 def ooze(name, r, z_rim, thick, drops, seed):
     """A roll of goo oozing round a rim at height z_rim, with drops of uneven length hanging from it."""
     ring = [(r * math.cos(k / 48 * math.tau), r * math.sin(k / 48 * math.tau), z_rim) for k in range(49)]
-    out = [painted(tube(name, ring, [thick] * len(ring), GOO, segs=8, seed=seed, jitter=0.12), shade(GOO, 0.9), GOO_HI)]
+    if SNOW:  # a snow roll on the lid instead of goo (the drips stay goo: lantern goo running out from under the snow)
+        out = [painted(tube(name, ring, [thick] * len(ring), SNOW, segs=8, seed=seed, jitter=0.12), mix(SNOW, GLASS, 0.5), SNOW)]
+    else:
+        out = [painted(tube(name, ring, [thick] * len(ring), GOO, segs=8, seed=seed, jitter=0.12), shade(GOO, 0.9), GOO_HI)]
     rr = random.Random(seed)
     for k in range(drops):
         a = rr.uniform(0, math.tau)
@@ -196,8 +252,17 @@ def rib(name, pts):
         for i in range(2, len(dense) - 1, 3):
             # on the rib's sides, left and right in turn: the piece keeps its classic box (models/_goo_jar_bounds.py)
             p = Vector(dense[i])
-            side = Vector((-p.y, p.x, 0)).normalized() * (0.32 if (i // 3) % 2 == 0 else -0.32)
-            out.append(blob(f"{name}Bud{i}", 0.3, tuple(p + side), BUDS[(i // 3) % len(BUDS)], subdiv=1, jitter=0, seed=i))
+            side = Vector((-p.y, p.x, 0)).normalized() * (BUD_SIDE if (i // 3) % 2 == 0 else -BUD_SIDE)
+            out.append(blob(f"{name}Bud{i}", BUD_R, tuple(p + side), BUDS[(i // 3) % len(BUDS)], subdiv=1, jitter=0, seed=i))
+    if BATS:
+        # bats roost where the rib has curved in over the shoulder (well inside the jar's widest radius, so their wings
+        # don't widen the piece's box): two per rib, on alternate sides, the first one's height varying rib to rib
+        dense = resample(pts, 1.0)
+        r_max = max(math.hypot(q[0], q[1]) for q in dense)
+        roost = [i for i in range(1, len(dense) - 1) if math.hypot(dense[i][0], dense[i][1]) < r_max - 1.9]
+        start = sum(map(ord, name)) % 3
+        for j, i in enumerate(roost[start::4][:2]):
+            out += bat(f"{name}Bat{i}", Vector(dense[i]), 0.6 if j % 2 == 0 else -0.6, BATS)
     return out
 
 
@@ -291,19 +356,23 @@ def jar_trim(f, top, crown=False):
                            shade(CORK, 0.75), CORK))
         out.append(painted(loop("LandingGoo", post + 0.2, 0.2, (0, 0, 0.08), "z", GOO, segs=24, arc=(a0, a1)), shade(GOO, 0.9), GOO_HI))
     if top and not crown:  # the top jar while growing: a tall cork stopper, wider at the top
-        out.append(painted(cylinder("Cork", nk + 0.1, CORK_H, (0, 0, lip_top), CORK, segs=SEGS, r_top=nk + 0.9), shade(CORK, 0.8), CORK))
-        out.append(cylinder("CorkRing", nk + 1.0, 0.5, (0, 0, lip_top + CORK_H - 0.8), shade(CORK, 0.88), segs=SEGS))
+        out.append(lid_paint(painted(cylinder("Cork", nk + 0.1, CORK_H, (0, 0, lip_top), CORK, segs=SEGS, r_top=nk + 0.9),
+                                     shade(CORK, 0.8), CORK)))
+        out.append(lid_paint(cylinder("CorkRing", nk + 1.0, 0.5, (0, 0, lip_top + CORK_H - 0.8), shade(CORK, 0.88), segs=SEGS)))
         lid_top = lip_top + CORK_H
+        if SNOW:  # a snow cap on the stopper (lower than the goo roll's top, so the piece keeps its box)
+            out.append(painted(blob("SnowCap", nk + 0.75, (0, 0, lid_top - 0.05), SNOW, subdiv=3, squash=(1, 1, 0.75 / (nk + 0.75)),
+                                    jitter=0.01, lumps=0.04), mix(SNOW, GLASS, 0.5), SNOW))
     elif top:  # the crowned last jar: a flat cork lid the mascot sits on
-        out.append(painted(cylinder("Lid", nk + 0.4, LID_H, (0, 0, lip_top), CORK, segs=SEGS), shade(CORK, 0.85), CORK))
+        out.append(lid_paint(painted(cylinder("Lid", nk + 0.4, LID_H, (0, 0, lip_top), CORK, segs=SEGS), shade(CORK, 0.85), CORK)))
         lid_top = lip_top + LID_H
     else:  # a cork ring the next jar stands in (its deck covers the middle, the stair comes up through it)
         # it reaches up to the underside of the next jar's deck (FLOOR_H - 1): at nz + LID_H it stopped short and left an
         # open band all round the joint, seen through the next jar's glass foot
         inner = radius(f + 1) - 1.2
         lid_top = max(nz + LID_H, FLOOR_H - 1.0)
-        out.append(painted(lathe("Lid", [(nk + 0.3, nz), (nk + 0.3, lid_top), (inner, lid_top)], CORK, double=False),
-                           shade(CORK, 0.85), CORK))
+        out.append(lid_paint(painted(lathe("Lid", [(nk + 0.3, nz), (nk + 0.3, lid_top), (inner, lid_top)], CORK, double=False),
+                                     shade(CORK, 0.85), CORK)))
     # a covered jar's goo roll has no drips or icicles: right under it the jar's glass shoulder flares out, so
     # anything hanging from the roll would pass through the glass
     out += ooze("Ooze", nk + 0.6, lid_top - (0.4 if not top else 0.2), 1.0 + 0.15 * f, 7 + f if top else 0, seed=40 + f)
@@ -381,8 +450,11 @@ def jar_foot():
     a stud thick, so feet hardly sink in."""
     r1, m = radius(1), D["moat"]
     edge = D["plotFloorRadius"]
-    out = [painted(lathe("Sand", [(edge, -1.0), (edge, 0.0), (edge - 0.4, 0.06), (m["outer"] - 0.2, 0.06)], SAND, double=False),
-                   shade(SAND, 0.82), SAND),
+    sand = painted(lathe("Sand", [(edge, -1.0), (edge, 0.0), (edge - 0.4, 0.06), (m["outer"] - 0.2, 0.06)], SAND, double=False),
+                   shade(SAND, 0.82), SAND)
+    if FLOOR_STRIPES:
+        stripes(sand, FLOOR_STRIPES, 32, lo=0.82)
+    out = [sand,
            painted(lathe("Rim", [(edge + 0.05, -0.15), (edge + 0.05, 0.12), (edge - 0.5, 0.12)], WOOD_D, double=False), shade(WOOD_D, 0.85), WOOD_D)]
     out.append(painted(cylinder("Foot", m["inner"], 0.3, (0, 0, 0), WOOD, segs=SEGS), shade(WOOD, 0.85), WOOD))
     out.append(painted(lathe("MoatBed", [(m["outer"], 0.0), (m["outer"], 0.06), (m["inner"], 0.06)], shade(PATH, 0.95), double=False)))
@@ -761,7 +833,235 @@ def theme_props():
                 b = a + 0.25 + j * 0.08
                 out.append(blob(f"{n}Fern{j}", 1.3, ((ring + 0.6) * math.cos(b), (ring + 0.6) * math.sin(b), 0.5), LEAVES, subdiv=1,
                                 squash=(0.4, 1.0, 0.7), jitter=0.05, rot=(rr.uniform(-30, 30), 0, math.degrees(b))))
+        elif THEME_ID in EXCLUSIVE_PROPS:
+            out += EXCLUSIVE_PROPS[THEME_ID](n, k, deg, x, y, rr)
+    if THEME_ID == "fairground":
+        out += bunting(ring)
     return out
+
+
+# --- Exclusive shop themes' props (one prop group per spot round the foot; plot-local, floor 1 at z = 0) -------------
+def _out(a):
+    return math.cos(a), math.sin(a)
+
+
+def fair_pole(n, k, deg, x, y, rr):
+    """A striped fair pole with a gold knob and a bunch of three balloons on strings."""
+    h = FAIR_POLE_H
+    a = math.radians(deg)
+    out = [cylinder(n + "Pole", 0.32, h, (x, y, 0.1), AWNING[0], segs=12), cylinder(n + "Foot", 0.9, 0.5, (x, y, 0.1), WOOD_D, segs=12),
+           blob(n + "Knob", 0.5, (x, y, h + 0.25), METAL, subdiv=2, jitter=0)]
+    # the pole's spiral stripes: bands cut across it
+    for j in range(5):
+        out.append(cylinder(f"{n}Band{j}", 0.36, 0.55, (x, y, 1.0 + j * (h - 1.5) / 5), AWNING[1], segs=12))
+    tx, ty = -math.sin(a), math.cos(a)
+    for j, (dx, dz, col) in enumerate(((-1.1, 3.6, PINK), (0.0, 4.4, THEME.get("balloon", LILAC)), (1.1, 3.4, BUTTER))):
+        bx, by, bz = x + tx * dx, y + ty * dx, h + dz
+        out.append(painted(blob(f"{n}Balloon{j}", 1.05, (bx, by, bz), col, subdiv=2, squash=(1, 1, 1.18), jitter=0),
+                           shade(col, 0.82), mix(col, CREAM, 0.25)))
+        out.append(cone(f"{n}Tie{j}", 0.22, 0.3, (bx, by, bz - 1.45), shade(col, 0.85), segs=6))
+        out.append(tube(f"{n}String{j}", [(x, y, h + 0.5), (bx, by, bz - 1.3)], [0.05, 0.05], CREAM, segs=4))
+    return out
+
+
+FAIR_POLE_H = 7.5
+
+
+def bunting(ring):
+    """Garlands of pennants sagging between neighbouring fair poles (only where the poles stand close: not across the door
+    or the drop tube)."""
+    out = []
+    for k in range(len(PROP_ANGLES) - 1):
+        a0, a1 = math.radians(PROP_ANGLES[k]), math.radians(PROP_ANGLES[k + 1])
+        if a1 - a0 > math.radians(50):
+            continue
+        p0 = Vector((ring * math.cos(a0), ring * math.sin(a0), FAIR_POLE_H - 0.3))
+        p1 = Vector((ring * math.cos(a1), ring * math.sin(a1), FAIR_POLE_H - 0.3))
+        pts = []
+        for i in range(11):
+            t = i / 10
+            q = p0.lerp(p1, t)
+            q.z -= 1.6 * 4 * t * (1 - t)  # the sag
+            pts.append(tuple(q))
+        out.append(tube(f"Garland{k}", pts, [0.06] * len(pts), CREAM, segs=4))
+        cols = (AWNING[0], PINK, AWNING[1], LILAC)
+        for i in range(1, 10):
+            q = pts[i]
+            out.append(cone(f"Pennant{k}_{i}", 0.5, 1.0, (q[0], q[1], q[2] - 0.05), cols[(i + k) % 4], segs=3, rot=(180, 0, 0)))
+    return out
+
+
+def haunted_prop(n, k, deg, x, y, rr):
+    """Pumpkins (a big one and a little one) or a small smiling ghost, alternately."""
+    a = math.radians(deg)
+    ox, oy = _out(a)
+    out = []
+    pump = THEME["pumpkin"]
+    if k % 2 == 0:
+        for j, (dx, s) in enumerate(((0.0, 1.0), (2.2, 0.62))):
+            cx, cy = x + dx * math.cos(a + 1.6), y + dx * math.sin(a + 1.6)
+            r = 2.0 * s
+            body = blob(f"{n}Pumpkin{j}", r, (cx, cy, 0.1 + r * 0.72), pump, subdiv=3, squash=(1.12, 1.12, 0.72), jitter=0)
+            # pumpkin ribs: pull the surface in along 8 grooves
+            for v in body.data.vertices:
+                ang = math.atan2(v.co.y - cy, v.co.x - cx)
+                k8 = 0.5 + 0.5 * math.cos(ang * 8)
+                f = 1.0 - 0.07 * (1 - k8)
+                v.co.x = cx + (v.co.x - cx) * f
+                v.co.y = cy + (v.co.y - cy) * f
+            out.append(painted(body, shade(pump, 0.8), mix(pump, BUTTER, 0.25)))
+            out.append(painted(cylinder(f"{n}Stem{j}", 0.28 * s, 0.9 * s, (cx, cy, 0.1 + r * 1.36), METAL, segs=6, r_top=0.18 * s,
+                                        rot=(10, 0, 0)), shade(METAL, 0.75), METAL))
+            out.append(blob(f"{n}Leaf{j}", 0.45 * s, (cx + 0.45 * s, cy, 0.1 + r * 1.42), METAL, subdiv=1, squash=(1, 0.5, 0.25), jitter=0))
+    else:
+        g = THEME["ghost"]
+        out.append(painted(blob(f"{n}Ghost", 1.5, (x, y, 2.4), g, subdiv=3, squash=(1, 1, 1.45), jitter=0),
+                           mix(g, LILAC, 0.45), g))
+        for j in range(6):  # the wavy hem, flared out
+            ha = j * math.tau / 6 + 0.3
+            out.append(painted(blob(f"{n}Hem{j}", 0.7, (x + 1.45 * math.cos(ha), y + 1.45 * math.sin(ha), 0.7), g, subdiv=2,
+                                    squash=(1, 1, 0.8), jitter=0), mix(g, LILAC, 0.5), mix(g, LILAC, 0.2)))
+        tx, ty = -math.sin(a), math.cos(a)
+        for s in (-1, 1):  # little arms up, a friendly boo
+            out.append(painted(tube(f"{n}Arm{s}", [(x + tx * s * 1.2, y + ty * s * 1.2, 2.4),
+                                                   (x + tx * s * 1.9 + ox * 0.3, y + ty * s * 1.9 + oy * 0.3, 3.1)],
+                                    [0.4, 0.28], g, segs=6), mix(g, LILAC, 0.3), g))
+        for s in (-1, 1):  # eyes and cheeks on its outward face
+            ex, ey = x + ox * 1.4 + tx * s * 0.45, y + oy * 1.4 + ty * s * 0.45
+            out.append(blob(f"{n}Eye{s}", 0.2, (ex, ey, 3.0), EYE_D, subdiv=1, squash=(1, 1, 1.3), jitter=0))
+            out.append(blob(f"{n}Cheek{s}", 0.18, (ex + tx * s * 0.3, ey + ty * s * 0.3, 2.55), PINK, subdiv=1, squash=(1, 1, 0.6), jitter=0))
+        out.append(blob(f"{n}Mouth", 0.18, (x + ox * 1.45, y + oy * 1.45, 2.45), EYE_D, subdiv=1, squash=(1, 1, 0.8), jitter=0))
+    return out
+
+
+def beach_prop(n, k, deg, x, y, rr):
+    """A striped beach umbrella over a towel, a sandcastle with a flag, or a starfish, in turn."""
+    a = math.radians(deg)
+    out = []
+    kind = k % 3
+    if kind == 0:
+        h = 7.0
+        out.append(cylinder(n + "Pole", 0.22, h, (x, y, 0.1), CREAM, segs=8))
+        canopy = cylinder(n + "Canopy", 4.0, 1.6, (x, y, h - 0.9), AWNING[0], segs=24, r_top=0.25)
+        out.append(stripes(canopy, AWNING, 12, lo=0.85, centre=(x, y)))
+        out.append(blob(n + "Tip", 0.3, (x, y, h + 0.8), CREAM, subdiv=1, jitter=0))
+        towel = box(n + "Towel", (2.4, 4.4, 0.12), (x + 1.2 * math.cos(a + 1.6), y + 1.2 * math.sin(a + 1.6), 0.12),
+                    AWNING[2], rot=(0, 0, deg))
+        out.append(towel)
+        for j in range(3):
+            out.append(box(f"{n}TowelStripe{j}", (2.42, 0.5, 0.14), (x + 1.2 * math.cos(a + 1.6) + (j - 1) * 1.2 * math.cos(a),
+                                                                      y + 1.2 * math.sin(a + 1.6) + (j - 1) * 1.2 * math.sin(a), 0.13),
+                           CREAM if j != 1 else BUTTER, rot=(0, 0, deg + 90)))
+    elif kind == 1:
+        s = SAND
+        out.append(painted(cylinder(n + "Keep", 1.7, 2.6, (x, y, 0.1), s, segs=12, r_top=1.5), shade(s, 0.82), s))
+        out.append(painted(cylinder(n + "Top", 1.1, 1.4, (x, y, 2.7), s, segs=12, r_top=0.95), shade(s, 0.85), s))
+        for j in range(6):
+            ca = j * math.tau / 6
+            out.append(box(f"{n}Merlon{j}", (0.45, 0.45, 0.45), (x + 1.35 * math.cos(ca), y + 1.35 * math.sin(ca), 2.9), s,
+                           rot=(0, 0, math.degrees(ca))))
+        for j, dx in enumerate((-2.3, 2.3)):
+            tx, ty = x + dx * math.cos(a + 1.6), y + dx * math.sin(a + 1.6)
+            out.append(painted(cylinder(f"{n}Tower{j}", 0.8, 2.0, (tx, ty, 0.1), s, segs=10, r_top=0.65), shade(s, 0.82), s))
+            out.append(cone(f"{n}Roof{j}", 0.7, 0.8, (tx, ty, 2.1), shade(s, 1.04), segs=10))
+        out.append(cylinder(n + "Mast", 0.07, 2.0, (x, y, 4.1), CREAM, segs=5))
+        out.append(box(n + "Flag", (0.9, 0.08, 0.6), (x + 0.45 * math.cos(a + 1.6), y + 0.45 * math.sin(a + 1.6), 5.75),
+                       AWNING[0], rot=(0, 0, deg + 90)))
+        out.append(blob(n + "Shell", 0.5, (x + 1.6 * math.cos(a), y + 1.6 * math.sin(a), 0.35), PINK, subdiv=1,
+                        squash=(1, 1, 0.5), jitter=0))
+    else:
+        col = PINK if k % 2 else BUTTER
+        cx, cy = x, y
+        for j in range(5):
+            sa = j * math.tau / 5 + rr.uniform(-0.1, 0.1)
+            out.append(painted(tube(f"{n}Arm{j}", [(cx, cy, 0.4), (cx + 1.9 * math.cos(sa), cy + 1.9 * math.sin(sa), 0.3)], [0.65, 0.18],
+                                    col, segs=6), shade(col, 0.85), col))
+        out.append(blob(n + "Middle", 0.7, (cx, cy, 0.45), col, subdiv=2, squash=(1, 1, 0.55), jitter=0))
+        for j in range(5):
+            sa = j * math.tau / 5
+            out.append(blob(f"{n}Dot{j}", 0.13, (cx + 0.9 * math.cos(sa), cy + 0.9 * math.sin(sa), 0.68), CREAM, subdiv=1, jitter=0))
+    return out
+
+
+def space_prop(n, k, deg, x, y, rr):
+    """A little rocket on its fins, or a ringed planet on a stand, in turn."""
+    out = []
+    if k % 2 == 0:
+        body = METAL
+        out.append(painted(cylinder(n + "Body", 1.2, 4.6, (x, y, 1.2), body, segs=16, r_top=1.05), shade(body, 0.82), body))
+        out.append(painted(cone(n + "Nose", 1.05, 2.2, (x, y, 5.8), BUTTER, segs=16), shade(BUTTER, 0.88), BUTTER))
+        out.append(cylinder(n + "Band", 1.25, 0.4, (x, y, 4.6), LILAC, segs=16))
+        a = math.radians(deg)
+        ox, oy = _out(a)
+        out.append(cylinder(n + "Window", 0.5, 0.3, (x + ox * 1.1, y + oy * 1.1, 3.6), GOO, segs=12, rot=(90, 0, deg + 90)))
+        for j in range(3):
+            fa = j * math.tau / 3 + a
+            out.append(painted(box(f"{n}Fin{j}", (1.4, 0.3, 2.0), (x + 1.4 * math.cos(fa), y + 1.4 * math.sin(fa), 1.4), LILAC,
+                                   rot=(0, 0, math.degrees(fa))), shade(LILAC, 0.8), LILAC))
+        out.append(painted(cone(n + "Flame", 0.8, 1.2, (x, y, 1.25), GOO, segs=8, rot=(180, 0, 0)), GOO_HI, GOO))
+    else:
+        h = rr.uniform(4.0, 5.5)
+        out.append(cylinder(n + "Stand", 0.18, h, (x, y, 0.1), WOOD_D, segs=6))
+        out.append(cylinder(n + "Base", 1.0, 0.4, (x, y, 0.1), WOOD, segs=12))
+        col = (PINK, BUTTER, LILAC)[(k // 2) % 3]
+        out.append(painted(blob(n + "Planet", 1.6, (x, y, h + 1.5), col, subdiv=2, jitter=0), shade(col, 0.8), mix(col, CREAM, 0.3)))
+        # the ring tilted about the planet's centre: built round the origin, turned, then moved there
+        ring = loop(n + "Ring", 2.5, 0.22, (0, 0, 0), "z", GOO_HI, segs=24)
+        ring.data.transform(Matrix.Translation((x, y, h + 1.5)) @ Euler((math.radians(20), math.radians(10), 0)).to_matrix().to_4x4())
+        out.append(ring)
+        for j in range(2):
+            sa = rr.uniform(0, math.tau)
+            out.append(blob(f"{n}Star{j}", 0.3, (x + 2.6 * math.cos(sa), y + 2.6 * math.sin(sa), 0.6 + j * 0.3), BUTTER, subdiv=1, jitter=0))
+    return out
+
+
+def winter_prop(n, k, deg, x, y, rr):
+    """A snowy pine, a snowman with a carrot nose, or a lantern post with lantern goo, in turn."""
+    a = math.radians(deg)
+    ox, oy = _out(a)
+    tx, ty = -math.sin(a), math.cos(a)
+    out = []
+    kind = k % 3
+    pine = mix(PALETTE["ranch_field_dark"], PALETTE["ranch_field"], 0.3)
+    if kind == 0:
+        out.append(cylinder(n + "Trunk", 0.45, 1.6, (x, y, 0.1), WOOD_D, segs=8))
+        for j, (r, z, hh) in enumerate(((2.6, 1.4, 3.2), (2.0, 3.4, 2.9), (1.4, 5.3, 2.6))):
+            out.append(painted(cone(f"{n}Tier{j}", r, hh, (x, y, z), pine, segs=10), shade(pine, 0.85), mix(pine, PALETTE["ranch_field_light"], 0.5)))
+            out.append(painted(cone(f"{n}Snow{j}", r * 0.62, hh * 0.45, (x, y, z + hh * 0.56), SNOW, segs=10), mix(SNOW, GLASS, 0.5), SNOW))
+        out.append(blob(n + "Star", 0.4, (x, y, 8.0), GOO, subdiv=1, jitter=0))
+        out.append(painted(blob(n + "Drift", 2.2, (x, y, 0.1), SNOW, subdiv=2, squash=(1.2, 1.2, 0.25), jitter=0.05, seed=k),
+                           mix(SNOW, GLASS, 0.5), SNOW))
+    elif kind == 1:
+        for j, (r, z) in enumerate(((1.6, 1.4), (1.15, 3.6), (0.85, 5.2))):
+            out.append(painted(blob(f"{n}Ball{j}", r, (x, y, z), SNOW, subdiv=2, jitter=0.02, seed=j), mix(SNOW, GLASS, 0.6), SNOW))
+        out.append(cone(n + "Nose", 0.18, 0.8, (x + ox * 0.8, y + oy * 0.8, 5.2), GOO, segs=6,
+                        rot=(0, 90, deg)))
+        for s in (-1, 1):
+            out.append(blob(f"{n}Eye{s}", 0.11, (x + ox * 0.75 + tx * s * 0.32, y + oy * 0.75 + ty * s * 0.32, 5.5), EYE_D, subdiv=1, jitter=0))
+        # a red-and-cream knitted scarf and a bobble hat
+        out.append(stripes(loop(n + "Scarf", 0.95, 0.28, (x, y, 4.55), "z", METAL, segs=16), [METAL, STRIPE], 8, lo=0.9, centre=(x, y)))
+        out.append(painted(tube(n + "ScarfTail", [(x + ox * 0.9, y + oy * 0.9, 4.5), (x + ox * 1.15 + tx * 0.4, y + oy * 1.15 + ty * 0.4, 3.4)],
+                                [0.25, 0.22], METAL, segs=6), shade(METAL, 0.85), METAL))
+        out.append(painted(blob(n + "Hat", 0.75, (x, y, 5.85), METAL, subdiv=2, squash=(1, 1, 0.75), jitter=0), shade(METAL, 0.85), METAL))
+        out.append(cylinder(n + "HatBand", 0.8, 0.22, (x, y, 5.7), STRIPE, segs=16))
+        out.append(blob(n + "Bobble", 0.28, (x, y, 6.5), STRIPE, subdiv=2, jitter=0.08))
+        for j in range(2):  # stick arms
+            s = (-1, 1)[j]
+            out.append(tube(f"{n}Arm{j}", [(x + tx * s * 1.0, y + ty * s * 1.0, 3.7), (x + tx * s * 2.1, y + ty * s * 2.1, 4.5)], [0.1, 0.06],
+                            WOOD_D, segs=4))
+    else:
+        h = 5.5
+        out.append(cylinder(n + "Post", 0.25, h, (x, y, 0.1), WOOD_D, segs=8))
+        out.append(box(n + "Arm", (0.25, 0.25, 1.4), (x, y, h), WOOD_D))
+        out.append(painted(box(n + "Lantern", (1.1, 1.1, 1.3), (x, y, h + 0.2), GOO), shade(GOO, 0.95), GOO_HI))
+        out.append(cone(n + "Roof", 0.95, 0.6, (x, y, h + 0.85), WOOD_D, segs=4, rot=(0, 0, 45)))
+        out.append(blob(n + "RoofSnow", 0.55, (x, y, h + 1.3), SNOW, subdiv=1, squash=(1, 1, 0.5), jitter=0))
+        out.append(painted(blob(n + "Drift", 1.5, (x, y, 0.1), SNOW, subdiv=2, squash=(1.2, 1.2, 0.3), jitter=0.05, seed=k),
+                           mix(SNOW, GLASS, 0.5), SNOW))
+    return out
+
+
+EXCLUSIVE_PROPS = {"fairground": fair_pole, "haunted": haunted_prop, "beach": beach_prop, "space": space_prop, "winter": winter_prop}
 
 
 def mascot_hat():
@@ -785,6 +1085,38 @@ def mascot_hat():
                 painted(tube("Hat", [(0, 0, 1.3), (0.05, 0, 1.8), (0.25, 0, 2.25), (0.45, 0, 2.4)], [0.55, 0.35, 0.16, 0.05], CORK, segs=12),
                         shade(CORK, 0.85), mix(CORK, LILAC, 0.4)),
                 blob("Star", 0.13, (0.15, -0.42, 1.65), BUTTER, subdiv=1, jitter=0)]
+    if THEME_ID == "fairground":  # a little striped ringmaster top hat with a gold band
+        crown_ = stripes(cylinder("Crown", 0.42, 0.62, (0, 0, 1.42), AWNING[0], segs=16, r_top=0.46), AWNING, 8, lo=0.88)
+        return [painted(cylinder("Brim", 0.72, 0.08, (0, 0, 1.36), AWNING[0], segs=20), shade(AWNING[0], 0.85), AWNING[0]), crown_,
+                cylinder("Band", 0.44, 0.12, (0, 0, 1.46), METAL, segs=16),
+                cylinder("Top", 0.47, 0.06, (0, 0, 2.04), AWNING[0], segs=16)]
+    if THEME_ID == "haunted":  # bat wings and pointy ears: the slime dresses up as a friendly bat
+        out = []
+        for s in (-1, 1):
+            # each wing a fan of three flat lobes from the slime's side: the overlaps make the scalloped edge
+            for j, (dx, dz, tilt, ln) in enumerate(((0.5, 0.42, 38, 0.62), (0.62, 0.12, 8, 0.55), (0.5, -0.16, -22, 0.45))):
+                out.append(painted(blob(f"Wing{s}{j}", ln, (s * (0.78 + dx), 0.12, 1.0 + dz), BATS, subdiv=2, squash=(1, 0.22, 0.48),
+                                        jitter=0, rot=(0, -s * tilt, 0)), shade(BATS, 0.85), mix(BATS, LILAC, 0.35)))
+            out.append(painted(cone(f"Ear{s}", 0.17, 0.42, (s * 0.38, 0.05, 1.42), BATS, segs=6, rot=(0, s * -12, 0)), shade(BATS, 0.85), mix(BATS, PINK, 0.3)))
+        return out
+    if THEME_ID == "beach":  # a little striped beach umbrella stuck in the slime
+        canopy = stripes(cylinder("Canopy", 1.05, 0.42, (0, 0, 1.95), AWNING[0], segs=18, r_top=0.08), AWNING, 6, lo=0.85)
+        return [cylinder("Pole", 0.05, 1.05, (0, 0, 1.25), CREAM, segs=6), canopy, blob("Tip", 0.07, (0, 0, 2.4), CREAM, subdiv=1, jitter=0)]
+    if THEME_ID == "space":  # an antenna headband: a band over the top and two antennae with glowing tips
+        out = [loop("Band", 0.86, 0.06, (0, 0, 0.78), "y", WOOD, segs=24, arc=(35, 145))]
+        for s in (-1, 1):
+            out.append(tube(f"Antenna{s}", [(s * 0.35, 0, 1.55), (s * 0.5, 0, 1.95), (s * 0.62, 0, 2.2)], [0.04, 0.04, 0.035], WOOD, segs=5))
+            out.append(blob(f"Glow{s}", 0.13, (s * 0.64, 0, 2.28), GOO if s < 0 else BUTTER, subdiv=2, jitter=0))
+        return out
+    if THEME_ID == "winter":  # red-and-cream knitted earmuffs and scarf
+        out = [loop("Band", 0.98, 0.07, (0, 0, 0.95), "y", METAL, segs=24, arc=(15, 165))]
+        for s in (-1, 1):
+            out.append(painted(blob(f"Muff{s}", 0.26, (s * 0.94, 0, 1.0), STRIPE, subdiv=2, squash=(0.6, 1, 1), jitter=0.05),
+                               shade(STRIPE, 0.88), STRIPE))
+        scarf = stripes(loop("Scarf", 0.9, 0.16, (0, 0, 0.36), "z", METAL, segs=24), [METAL, STRIPE], 12, lo=0.9)
+        out += [scarf, painted(tube("ScarfTail", [(0.45, -0.78, 0.34), (0.55, -0.9, 0.05), (0.6, -0.92, -0.15)], [0.15, 0.14, 0.13],
+                                    METAL, segs=6), shade(METAL, 0.85), METAL)]
+        return out
     if THEME_ID == "mushroom":
         out = [painted(blob("Cap", 0.85, (0, 0, 1.38), PINK, subdiv=2, squash=(1, 1, 0.45), jitter=0), shade(PINK, 0.8), PINK)]
         for d in range(5):

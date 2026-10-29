@@ -94,7 +94,7 @@ Notices appear on their own; menus are opened by the player.
 - **Border colour says what it is:** `Gold` border for info and tips (status tooltips, the tutorial notice card, carry card, hotbar tip), `Bad` border for danger (steal banner, boss meter). Menus, HUD clusters and popups keep the plain Ink outline.
 - **Where they go:**
   - Alarms (STOLEN!, boss) stack top-centre, under each other, in the banner stack.
-  - The tutorial is a Gold notice card in the top stack, under the alarms; the carry card sits bottom-centre above the hotbar.
+  - The tutorial is a Gold notice card just above the hotbar (above the carry card while carrying); the carry card sits bottom-centre above the hotbar.
   - Tooltips open above the thing they explain and stay on screen.
   - Edge arrows (thief, home, next step) sit on the screen edge pointing at their target.
 - **No toasts.** A notice that only reports something plays its sound. If players must see it, it gets a place above.

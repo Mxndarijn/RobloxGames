@@ -392,9 +392,9 @@ local stealFx = StealAlertFx.new(gui, {
 	serverNow = serverNow,
 })
 local carry = CarryPanel.new(gui, ctx)
-local bossMeter = BossMeterPanel.new(gui, ctx)
+local bossMeter = BossMeterPanel.new(gui, ctx, hud.stealCards)
 local dailyPopup = DailyPopup.new(gui, ctx)
-local tutorial = TutorialCard.new(hud.banners, ctx, 2) -- under the steal cards (order 1)
+local tutorial = TutorialCard.new(gui, ctx, 2) -- just above the hotbar
 ctx.tutorial = tutorial -- the Guide offers "Show the tutorial again" and Skip
 local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
@@ -675,15 +675,19 @@ local function panelState(key: string, realState: any): any
 	return view
 end
 
--- The tutorial card steps aside for an open menu card, the daily popup and the open bag panel.
+-- The tutorial card and the top notices step aside for an open menu card, the daily popup and the open bag panel.
 local function syncTutorial()
 	-- Settings: "Tutorial hints" off hides the card for good (the server still tracks the step).
 	local hintsOff = not PlayerSettings.on(player, "tutorialHints")
 	tutorial.setMenuOpen(hintsOff or not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
+	-- The top notices (banners, boss card, thief arrow) step aside for the same overlays, so none covers a card.
+	local noticesHidden = not MenuState.noticesVisible(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+	hud.setMenuOpen(noticesHidden)
+	bossMeter.setMenuOpen(noticesHidden)
+	stealFx.setMenuOpen(noticesHidden)
 	-- Visuals' edge arrows and the Your plot tag step aside while a menu, a popup or the bag covers the screen.
-	local menuOpen = openKey ~= nil or dailyPopup.isOpen() or inventory.panelOpen()
-	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, menuOpen)
-	menuMouse.setOpen(menuOpen)
+	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, noticesHidden)
+	menuMouse.setOpen(noticesHidden)
 end
 
 local function syncMenus()
@@ -725,7 +729,6 @@ local function syncMenus()
 			pumpPopups(latest)
 		end
 	end
-	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
 	syncTutorial()
 	backdrop.Visible = visibleKey ~= nil
@@ -955,22 +958,37 @@ local slimeKeys = SlimeKeys.start({
 	style = Enum.ProximityPromptStyle.Custom,
 	moveKey = if slimeMove then SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.move) else nil,
 	onMove = if slimeMove then slimeMove.start else nil,
-	-- State.exclusiveShop: "Hatch now" on an incubating egg, or "Use credit".
+	-- State.exclusiveShop: "Hatch now" on an incubating egg, "Growth snack" on a growing slime, or "Use credit".
+	-- An egg never grows, so the two share the hatch key.
 	hatchNow = {
 		key = SlimeKeys.keyOf(Constants.SLIME_PROMPT_KEYS.hatch),
 		quick = function(slimeId: string, state: any): any
-			local q =
-				ExclusiveShopView.hatchQuickBuy(state, slimeId, serverNow(), Config, Remotes.ACTIONS.UseCredit ~= nil)
+			local canCredit = Remotes.ACTIONS.UseCredit ~= nil
+			local q = ExclusiveShopView.hatchQuickBuy(state, slimeId, serverNow(), Config, canCredit)
+				or (
+					if Remotes.ACTIONS.AimSnack
+						then ExclusiveShopView.snackQuickBuy(state, slimeId, Config, canCredit)
+						else nil
+				)
 			return if q then { text = q.text, enabled = q.mode ~= "offsale" } else nil
 		end,
 		trigger = function(slimeId: string)
-			local q =
-				ExclusiveShopView.hatchQuickBuy(latest, slimeId, serverNow(), Config, Remotes.ACTIONS.UseCredit ~= nil)
+			local canCredit = Remotes.ACTIONS.UseCredit ~= nil
+			local q = ExclusiveShopView.hatchQuickBuy(latest, slimeId, serverNow(), Config, canCredit)
 			if q and q.mode == "credit" then
 				send("UseCredit", "hatch", slimeId)
 			elseif q and q.mode == "buy" and q.purchase then
 				send("AimHatch", slimeId) -- the receipt can't name the egg, so the server is told first
 				ctx.purchase.prompt(q.purchase)
+			end
+			local snack = if q == nil and Remotes.ACTIONS.AimSnack
+				then ExclusiveShopView.snackQuickBuy(latest, slimeId, Config, canCredit)
+				else nil
+			if snack and snack.mode == "credit" then
+				send("UseCredit", "snack", slimeId)
+			elseif snack and snack.mode == "buy" and snack.purchase then
+				send("AimSnack", slimeId) -- the receipt can't name the slime either
+				ctx.purchase.prompt(snack.purchase)
 			end
 		end,
 	},
@@ -1027,6 +1045,25 @@ SlimeKeyCard.start({
 	tweens = game:GetService("TweenService"),
 })
 
+-- Exclusive slime hats on the slimes standing on pads (Plot_<i>.SlimeHat).
+local slimeHats = require(script.SlimeHatsFx).start({
+	collection = game:GetService("CollectionService"),
+	tag = Constants.SLIME_TAG,
+	plots = workspace:WaitForChild(Constants.PLOTS_FOLDER),
+	templates = function(): Instance?
+		return ReplicatedStorage:FindFirstChild("SlimeHatMeshes")
+	end,
+	hats = Config.EXCLUSIVE_SHOP.hats,
+	hatAttribute = Constants.PLOT_SLIME_HAT_ATTRIBUTE,
+	clock = os.clock,
+})
+-- VIP and Slime Club tags over heads and in chat (Player attribute Member).
+require(script.MemberTags).start({
+	Players = Players,
+	TextChatService = game:GetService("TextChatService"),
+	attribute = Constants.MEMBER_ATTRIBUTE,
+	playerGui = player:WaitForChild("PlayerGui"),
+})
 -- Locked bases (your own too) show how long the lock lasts over the lock button (seen through glass, not walls).
 local lockTimerTag = LockTimerTag.start({
 	plots = workspace:WaitForChild("Plots"),
@@ -1201,7 +1238,10 @@ function applyLayout()
 	screen = s
 	hud.layout(s)
 	inventory.layout(s, GuiService:GetGuiInset())
-	stealFx.layout(s, hud.bannerHeight)
+	-- The thief arrow keeps under the whole top stack: the banners and, during a boss, the boss card.
+	stealFx.layout(s, function(): number
+		return math.max(hud.bannerHeight(), bossMeter.stackHeight())
+	end)
 	bossMeter.layout(s, hud.bannerHeight)
 	carry.layout(s)
 	tutorial.layout(s)
@@ -1235,6 +1275,20 @@ if game:GetService("RunService"):IsStudio() then
 			-- the world shop card as the stand's prompt opens it; the shop comes from the PcwWorldShop attribute
 			local shopId = gui:GetAttribute("PcwWorldShop")
 			worldShop.onEvent({ kind = "Open", shopId = if type(shopId) == "string" then shopId else "ItemShop" })
+			return
+		end
+		local adminTab = if type(key) == "string" then string.match(key, "^Admin:(%a+)$") else nil
+		if adminTab and panelByKey.Admin then
+			-- the admin menu on one tab (only once State made this player an admin)
+			setOpen("Admin")
+			panelByKey.Admin.showTab(adminTab)
+			return
+		end
+		local shopTab = if type(key) == "string" then string.match(key, "^ExclusiveShop:(%a+)$") else nil
+		if shopTab then
+			-- the Exclusive shop on one tab (scripts can't press the tab)
+			setOpen("ExclusiveShop")
+			panelByKey.ExclusiveShop.setTab(shopTab)
 			return
 		end
 		if key == "Skins:cloud" then
@@ -1556,6 +1610,7 @@ task.spawn(function()
 			guardedTick("slimeKeys", slimeKeys.tick)
 			guardedTick("lockBreak", lockBreakPrompt.tick)
 			guardedTick("lockTimer", lockTimerTag.tick)
+			guardedTick("slimeHats", slimeHats.tick)
 			guardedTick("hint", function()
 				hintOverlay.tick(
 					now,

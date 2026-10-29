@@ -75,6 +75,40 @@ describe("Admin panel", function()
 		UiHarness.fire(button(panel, "species_mochi", 1), "Activated")
 		expect(sent[1]).toEqual({ "Admin", "spawnSlime", "mochi", 1 })
 	end)
+	it("Items has a grant row for every Exclusive product but gifts, and On / Off for passes and the Club", function()
+		local rows = UiHarness.ui("Panels/Admin").rows({ Config = Config, SlimeRoster = SlimeRoster })
+		local keys: { [string]: any } = {}
+		for _, row in rows.Items do
+			keys[row.key] = row
+		end
+		for _, key in
+			{
+				"Skin_space",
+				"Skin_haunted",
+				"LockStyle_sleepy",
+				"Fanfare_confetti",
+				"Hat_witch",
+				"Seat_pumpkin",
+				"BoutiqueBundle",
+				"SlimeRain",
+				"KeepStreak",
+			}
+		do
+			expect(`{key}: {keys[`product_{key}`] ~= nil}`).toBe(`{key}: true`)
+		end
+		for key in Config.EXCLUSIVE_SHOP.passes do
+			expect(keys[`pass_{key}`].buttons[1].text).toBe("On")
+		end
+		expect(keys.sub_SlimeClub ~= nil).toBe(true)
+		expect(keys.paidRandom ~= nil).toBe(true)
+	end)
+	it("a pass's Off sends setPass with 0", function()
+		local panel, sent = build()
+		panel.update({ admin = { cheats = true } })
+		panel.showTab("Items")
+		UiHarness.fire(button(panel, "pass_VIP", 2), "Activated")
+		expect(sent[1]).toEqual({ "Admin", "setPass", "VIP", 0 })
+	end)
 	it("every row names a known command", function()
 		local rows = UiHarness.ui("Panels/Admin").rows({ Config = Config, SlimeRoster = SlimeRoster })
 		for _, tab in AdminCommands.TABS do

@@ -41,8 +41,11 @@ Each entry: `{ id, tab, level, label }`; `level` is `"cheat"` (test save only, r
 | Me | `skipTutorial` | cheat | none | `TutorialService.skip` |
 | Me | `resetSave` | cheat | none | `TestHooks.resetSave`: the save becomes a new player's; refused while carrying or while one of your slimes is busy |
 | Me | `goHome` / `goHub` | admin | none | moves your character home (`ctx.dropDown`) or onto the hub spawn (`ctx.toHub`) |
-| Items | `grantProduct` | cheat | text = an `EXCLUSIVE_SHOP.products` key: `Seat_*`, `Trail_*`, `BatSkin_*`, `StarterBundle` | `TestHooks.grantProduct` → `Purchases.grant` (same grant as a receipt, no receipt id) |
-| Items | `grantCosmetics` | cheat | none | every `Seat_*`, `Trail_*`, `BatSkin_*` product |
+| Items | `grantProduct` | cheat | text = any `EXCLUSIVE_SHOP.products` key but `Gift_*` (cosmetics, bundles, boosts, quick-buys; seasonal ones on any date) | `TestHooks.grantProduct` → `Purchases.grant` (same grant as a receipt, no receipt id; a boost that can't start becomes a credit) |
+| Items | `grantCosmetics` | cheat | none | every cosmetic product (`TestHooks.COSMETIC_KINDS`: seats, base skins and bases, lock styles, trails, fanfares, hats, Bat skins) |
+| Items | `setPass` | cheat | text = an `EXCLUSIVE_SHOP.passes` key, amount 1 on / 0 off | `TestHooks.setPass` → `Purchases.applyPasses` (this session; a rejoin asks Roblox again) |
+| Items | `setSubscription` | cheat | text = an `EXCLUSIVE_SHOP.subscriptions` key, amount 1 / 0 | `TestHooks.setSubscription` → `Purchases.applySubscriptions` (today's Club credits) |
+| Items | `setPaidRandom` | cheat | amount 1 allowed / 0 restricted | `TestHooks.setPaidRandom`: the PolicyService answer for this session (hides the potion, Slime Rain, totem, Lucky Charm+) |
 | Items | `unlockSkins` | cheat | none | `TestHooks.unlockSkins`: marks each plot skin's slimes found, so every skin unlocks |
 | Items | `unlockSeats` | cheat | none | `TestHooks.unlockSeats`: meets the free seats' goals (merges, Dex share) |
 | Items | `giveConsumable` | cheat | text = `CONSUMABLES` id, amount 1..`CONSUMABLE_HELD_MAX` | adds to `consumables.held`, up to the cap |
@@ -75,3 +78,5 @@ reason (`Widgets.status`). `resetSave` is a hold button.
   (`tests/TestHooks.spec`, §8.12).
 - `tests/AdminService.spec` checks: non-admins refused on a real server, cheats refused on a real server even for
   the owner, everyone allowed on a test save, bad text and numbers refused or clamped.
+
+Studio only: SlimeUI `PcwOpen` = "Admin:<Tab>" opens the admin menu on that tab (once State made the player an admin).

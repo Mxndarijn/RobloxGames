@@ -58,8 +58,7 @@ describe("FeatureOverride", function()
 	it("leaves the shipped defaults unchanged under Lune (install is a no-op)", function()
 		-- Every built feature ships on (2026-10-18); the override list stays so the pc-watcher shots that
 		-- set PcwFlag_<name> keep working (a no-op for the flags that ship on). ServerProfiler is a dev tool.
-		-- BaseShapes ships off until the new bases have their meshes (CONTRACT.md §44).
-		local SHIPS_OFF = { ServerProfiler = true, BaseShapes = true }
+		local SHIPS_OFF = { ServerProfiler = true }
 		for _, name in FeatureOverride.FLAGS do
 			expect((Config.FEATURES :: any)[name]).toBe(SHIPS_OFF[name] ~= true)
 		end

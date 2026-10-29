@@ -58,6 +58,12 @@ function PlotThemeView.start(): () -> ()
 				run(plot)
 			end)
 		)
+		table.insert( -- an Exclusive lock style swaps the stopper the same way (MeshSwap lookOf)
+			connections,
+			plot:GetAttributeChangedSignal(Constants.PLOT_LOCK_STYLE_ATTRIBUTE):Connect(function()
+				run(plot)
+			end)
+		)
 	end
 	local function runAll()
 		for _, plot in (plots :: Instance):GetChildren() do

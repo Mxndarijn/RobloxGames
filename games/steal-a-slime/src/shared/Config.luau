@@ -6,6 +6,9 @@
 	APIs, so it loads unchanged on the server, the client and under Lune.
 ]]
 
+-- The Roblox ids of the Exclusive Shop products, passes and subscriptions (generated, contract/exclusive-shop.md §1).
+local ExclusiveIds = if script then require(script.Parent.ExclusiveIds) else require("./ExclusiveIds")
+
 export type Rarity = {
 	tier: number,
 	name: string,
@@ -84,14 +87,20 @@ export type PlotSkin = {
 	floor: { color: { number }, material: string }?, -- plot Base; nil = leave as built
 	trim: { number }?,
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
+	exclusive: boolean?, -- sold in the Exclusive Shop (Skin_<id>, contract/exclusive-shop.md §15): owned, never earned
+	robux: number?, -- an exclusive skin's price
+	season: string?, -- an exclusive sold only in this Config.SEASONS window (owners keep it)
 }
 
 -- A plot base: the building a plot stands in (FEATURES.BaseShapes, CONTRACT.md §44), chosen apart from the skin.
--- `rebirths` = the rebirth count that unlocks it (nil = everyone). Ids are permanent save ids.
+-- `rebirths` = the rebirth count that unlocks it (nil = everyone); an `exclusive` base is sold in the Exclusive Shop
+-- instead (Base_<id>) and unlocks only once owned. Ids are permanent save ids.
 export type PlotBase = {
 	id: string, -- permanent save id; never rename
 	name: string,
 	rebirths: number?,
+	exclusive: boolean?, -- sold in the Exclusive Shop (Base_<id>, contract/exclusive-shop.md §15): owned, never earned
+	robux: number?, -- an exclusive base's price
 }
 
 -- Pet seats (contract/pet-seats.md): what the follow pet rides on, picked in the Skins menu's Cloud tab. `mesh` is the
@@ -106,6 +115,7 @@ export type PetSeat = {
 	seat: number,
 	color: { number }, -- icon tile colour, RGB 0..255
 	unlock: { kind: "free" | "merges" | "dex" | "exclusive", count: number?, percent: number? },
+	season: string?, -- an Exclusive sold only in this Config.SEASONS window (contract/exclusive-shop.md §15)
 }
 
 -- A PvP tool or fun item (FEATURES.PvP, CONTRACT.md §26). Price is derived (PvpRules.price), never stored.
@@ -507,17 +517,82 @@ local PLOT_SKINS: { PlotSkin } = {
 		trim = { 255, 214, 196 },
 		decor = "plot_skin_mushroom",
 	},
+	-- Exclusive Shop skins (contract/exclusive-shop.md §15): bought, never earned. Kit themes models/_goo_jar_themes.py.
+	{
+		id = "fairground",
+		name = "Fairground",
+		exclusive = true,
+		robux = 299,
+		color = { 124, 178, 252 },
+		floor = { color = { 222, 188, 136 }, material = "WoodPlanks" },
+		trim = { 240, 178, 58 },
+		decor = "plot_skin_fairground",
+	},
+	{
+		id = "beach",
+		name = "Beach Hut",
+		exclusive = true,
+		robux = 249,
+		color = { 36, 192, 214 },
+		floor = { color = { 240, 216, 162 }, material = "Sand" },
+		trim = { 246, 128, 112 },
+		decor = "plot_skin_beach",
+	},
+	{
+		id = "space",
+		name = "Space Station",
+		exclusive = true,
+		robux = 399,
+		color = { 70, 226, 252 },
+		floor = { color = { 136, 144, 214 }, material = "DiamondPlate" },
+		trim = { 236, 234, 250 },
+		decor = "plot_skin_space",
+	},
+	{
+		id = "winter",
+		name = "Winter Cabin",
+		exclusive = true,
+		robux = 249,
+		color = { 252, 192, 84 },
+		floor = { color = { 196, 166, 132 }, material = "WoodPlanks" },
+		trim = { 214, 92, 84 },
+		decor = "plot_skin_winter",
+	},
+	{
+		id = "haunted",
+		name = "Haunted Ranch",
+		exclusive = true,
+		robux = 299,
+		season = "halloween",
+		color = { 250, 150, 62 },
+		floor = { color = { 184, 150, 172 }, material = "Ground" },
+		trim = { 168, 212, 96 },
+		decor = "plot_skin_haunted",
+	},
 }
 
 local PLOT_BASES: { PlotBase } = {
 	{ id = "jar", name = "Goo Jar Tower" },
 	{ id = "factory", name = "Goo Factory", rebirths = 20 },
 	{ id = "pagoda", name = "Mushroom Pagoda", rebirths = 25 },
+	{ id = "carousel", name = "Carousel Tent", exclusive = true, robux = 599 },
+	{ id = "rocket", name = "Space Rocket", exclusive = true, robux = 499 },
+	{ id = "treehouse", name = "Tree House", exclusive = true, robux = 499 },
+	{ id = "lighthouse", name = "Lighthouse", exclusive = true, robux = 399 },
+	{ id = "snowglobe", name = "Snow Globe", exclusive = true, robux = 399 },
 }
 for _, base in PLOT_BASES do
 	table.freeze(base)
 end
-local function seat(id: string, name: string, mesh: string, height: number, color: { number }, unlock: any): PetSeat
+local function seat(
+	id: string,
+	name: string,
+	mesh: string,
+	height: number,
+	color: { number },
+	unlock: any,
+	season: string?
+): PetSeat
 	return table.freeze({
 		id = id,
 		name = name,
@@ -525,6 +600,7 @@ local function seat(id: string, name: string, mesh: string, height: number, colo
 		seat = height,
 		color = color,
 		unlock = table.freeze(table.clone(unlock)),
+		season = season,
 	})
 end
 local EXCLUSIVE = { kind = "exclusive" }
@@ -555,6 +631,9 @@ local PET_SEATS: { PetSeat } = {
 	seat("royal_cushion", "Royal Cushion", "pet_mount_royal_cushion", 0.80, { 140, 60, 190 }, EXCLUSIVE),
 	seat("hoverboard", "Hoverboard", "pet_mount_hoverboard", 0.70, { 130, 70, 220 }, EXCLUSIVE),
 	seat("clam_shell", "Clam Shell", "pet_mount_clam_shell", 0.80, { 250, 150, 140 }, EXCLUSIVE),
+	-- Seasonal Exclusives: sold only in their season, back the next year.
+	seat("pumpkin", "Pumpkin", "pet_mount_pumpkin", 1.20, { 246, 134, 40 }, EXCLUSIVE, "halloween"),
+	seat("snowglobe", "Snow Globe", "pet_mount_snowglobe", 2.05, { 150, 216, 244 }, EXCLUSIVE, "winter"),
 }
 
 -- Exclusive Shop (contract/exclusive-shop.md). The one source of every Robux product and pass.
@@ -562,7 +641,7 @@ local PET_SEATS: { PetSeat } = {
 -- StudioHooks can grant it. robux is the shown price and must match the Creator Dashboard. Keys are permanent
 -- save / receipt ids: never rename.
 local function product(robux: number, grant: { [string]: any }): { [string]: any }
-	return table.freeze({ productId = 0, robux = robux, grant = table.freeze(grant) })
+	return { productId = 0, robux = robux, grant = table.freeze(grant) } -- the id is filled in from ExclusiveIds below
 end
 local EXCLUSIVE_PRODUCTS: { [string]: any } = {
 	StarterBundle = product(
@@ -598,6 +677,8 @@ local SEAT_ROBUX: { [string]: number } = {
 	ufo = 399,
 	royal_cushion = 399,
 	hoverboard = 399,
+	pumpkin = 249,
+	snowglobe = 249,
 }
 for _, def in PET_SEATS do
 	if def.unlock.kind == "exclusive" then
@@ -659,19 +740,97 @@ local BAT_SKINS = table.freeze({
 	table.freeze({ id = "foam_finger", name = "Foam Finger", robux = 149, mesh = "bat_skin_foam_finger" }),
 	table.freeze({ id = "golden", name = "Golden Bat", robux = 249, mesh = "bat_skin_golden" }),
 })
+-- Seasons (UTC month-day windows, inclusive; a window may wrap the new year). Seasonal Exclusives are sold only
+-- inside theirs and come back the next year; owners keep them.
+local SEASONS = table.freeze({
+	halloween = table.freeze({ name = "Halloween", from = { 10, 15 }, to = { 11, 7 } }),
+	winter = table.freeze({ name = "Winter", from = { 12, 1 }, to = { 1, 7 } }),
+})
+-- Deposit fanfares (§15): a short burst (≤ 2 s, Effects.BURSTS[burst]) on the slime when it lands on your pad.
+local FANFARES = table.freeze({
+	table.freeze({ id = "confetti", name = "Confetti", robux = 49, burst = "Fanfare_confetti" }),
+	table.freeze({ id = "goo_splash", name = "Goo Splash", robux = 49, burst = "Fanfare_goo_splash" }),
+	table.freeze({ id = "starburst", name = "Starburst", robux = 79, burst = "Fanfare_starburst" }),
+	table.freeze({ id = "heart_pop", name = "Heart Pop", robux = 79, burst = "Fanfare_heart_pop" }),
+})
+-- Lock stopper styles (§15): another look for the plug that closes a locked base (kit models/lock_stopper_<id>.py).
+-- The same slot box and invisible collision as the default stopper, and a red lock signal: it locks exactly the same.
+local LOCK_STYLES = table.freeze({
+	table.freeze({ id = "candy", name = "Candy Bar", robux = 79, mesh = "lock_stopper_candy" }),
+	table.freeze({ id = "carousel", name = "Carousel", robux = 99, mesh = "lock_stopper_carousel" }),
+	table.freeze({ id = "sleepy", name = "Sleepy Guard", robux = 99, mesh = "lock_stopper_sleepy" }),
+})
+-- Slime hats (§15): worn by every slime on your own pads (kit models/slime_hat_<id>.py). The hat belongs to the pad:
+-- a stolen slime arrives bare. A hat never makes a slime look like another rarity.
+local SLIME_HATS = table.freeze({
+	table.freeze({ id = "party", name = "Party Hat", robux = 49, mesh = "slime_hat_party" }),
+	table.freeze({ id = "bow", name = "Big Bow", robux = 49, mesh = "slime_hat_bow" }),
+	table.freeze({ id = "chef", name = "Chef Hat", robux = 79, mesh = "slime_hat_chef" }),
+	table.freeze({ id = "flower_crown", name = "Flower Crown", robux = 79, mesh = "slime_hat_flower_crown" }),
+	table.freeze({ id = "top_hat", name = "Top Hat", robux = 99, mesh = "slime_hat_top_hat" }),
+	table.freeze({ id = "witch", name = "Witch Hat", robux = 99, mesh = "slime_hat_witch", season = "halloween" }),
+})
 for _, def in CARRY_TRAILS do
 	EXCLUSIVE_PRODUCTS["Trail_" .. def.id] = product(def.robux, { kind = "trail", trail = def.id })
 end
+for _, def in FANFARES do
+	EXCLUSIVE_PRODUCTS["Fanfare_" .. def.id] = product(def.robux, { kind = "fanfare", style = def.id })
+end
+for _, def in LOCK_STYLES do
+	EXCLUSIVE_PRODUCTS["LockStyle_" .. def.id] = product(def.robux, { kind = "lockStyle", style = def.id })
+end
+for _, def in SLIME_HATS do
+	EXCLUSIVE_PRODUCTS["Hat_" .. def.id] = product(def.robux, { kind = "hat", style = def.id })
+end
+for _, skin in PLOT_SKINS do
+	if skin.exclusive then
+		assert(skin.robux, "Exclusive plot skin without a price: " .. skin.id)
+		EXCLUSIVE_PRODUCTS["Skin_" .. skin.id] = product(skin.robux, { kind = "plotSkin", style = skin.id })
+	end
+end
+for _, base in PLOT_BASES do
+	if base.exclusive then
+		assert(base.robux, "Exclusive plot base without a price: " .. base.id)
+		EXCLUSIVE_PRODUCTS["Base_" .. base.id] = product(base.robux, { kind = "plotBase", style = base.id })
+	end
+end
+-- Bundles (§15): cosmetics together for less than their parts (`items` are product keys; owned ones are skipped).
+EXCLUSIVE_PRODUCTS.BoutiqueBundle = product(
+	549,
+	{ kind = "pack", items = table.freeze({ "Seat_magic_carpet", "Skin_fairground", "Fanfare_confetti" }) }
+)
+EXCLUSIVE_PRODUCTS.SkyBundle = product(599, {
+	kind = "pack",
+	items = table.freeze({ "Seat_storm_cloud", "Seat_sunset_cloud", "Seat_ice_cloud", "Seat_flame_cloud" }),
+})
 for _, def in BAT_SKINS do
 	EXCLUSIVE_PRODUCTS["BatSkin_" .. def.id] = product(def.robux, { kind = "batSkin", skin = def.id })
 end
+-- Server boosts (§14): the whole server gets them; each waits for a free moment and is kept as a credit until then.
+EXCLUSIVE_PRODUCTS.SlimeRain = product(179, { kind = "slimeRain" }) -- a Slime Rain now (a paid probability modifier)
+EXCLUSIVE_PRODUCTS.SummonBoss = product(199, { kind = "summonBoss" }) -- the boss arrives after its usual warning
+EXCLUSIVE_PRODUCTS.WeatherTotem = product(59, { kind = "weatherTotem" }) -- the Item shop totem's weather is next
+-- Personal boosts and small comforts (§14).
+EXCLUSIVE_PRODUCTS.IncomeBoost15 = product(49, { kind = "boost", mult = 2, seconds = 900 }) -- into the capped code boost
+EXCLUSIVE_PRODUCTS.IncomeBoost60 = product(129, { kind = "boost", mult = 2, seconds = 3600 })
+EXCLUSIVE_PRODUCTS.KeepStreak = product(25, { kind = "keepStreak" }) -- a broken daily streak carries on
+EXCLUSIVE_PRODUCTS.GrowthSnack = product(19, { kind = "growthSnack" }) -- one slime grows growthSnackSeconds at once
 -- Open locked door (§11): the buyer may pass one locked base's door for LOCK_BREAK.seconds. Aimed with AimLockBreak.
 EXCLUSIVE_PRODUCTS.LockBreak = product(499, { kind = "lockBreak" })
 -- Gifts (§12): every cosmetic also sells as Gift_<key>, granted to the player picked with AimGift (cosmetics only).
 local giftable: { string } = {}
 for key, def in EXCLUSIVE_PRODUCTS do
 	local kind = def.grant.kind
-	if kind == "seat" or kind == "trail" or kind == "batSkin" then
+	if
+		kind == "seat"
+		or kind == "trail"
+		or kind == "batSkin"
+		or kind == "fanfare"
+		or kind == "lockStyle"
+		or kind == "hat"
+		or kind == "plotSkin"
+		or kind == "plotBase"
+	then
 		table.insert(giftable, key)
 	end
 end
@@ -680,16 +839,59 @@ for _, key in giftable do
 	EXCLUSIVE_PRODUCTS["Gift_" .. key] = product(EXCLUSIVE_PRODUCTS[key].robux, { kind = "gift", item = key })
 end
 
--- Game Passes, keyed by a permanent pass key (passId 0 = not created yet).
-local EXCLUSIVE_PASSES: { [string]: { passId: number, robux: number, incomeMult: number?, offlineRate: number? } } = {
-	Income2x = table.freeze({ passId = 0, robux = 449, incomeMult = 2 }), -- x2 base income (one more Perks factor)
-	Offline2x = table.freeze({ passId = 0, robux = 199, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
+-- Each product's Roblox id (ExclusiveIds; 0 = not created yet), then frozen.
+for key, def in EXCLUSIVE_PRODUCTS do
+	def.productId = ExclusiveIds.products[key] or 0
+	table.freeze(def)
+end
+
+-- Game Passes, keyed by a permanent pass key (passId 0 = not created yet). Each field is one effect
+-- (Purchases.applyPasses); a pass may have several. `order` is where the Perks tab shows it.
+export type ExclusivePass = {
+	passId: number,
+	robux: number,
+	order: number,
+	incomeMult: number?, -- multiplies into Perks.bonusMultiplier (several owned passes multiply)
+	offlineRate: number?, -- the offline income rate (Config.OFFLINE_RATE for everyone else)
+	brewFactor: number?, -- multiplies every merge brew time (Perks.brewFactor)
+	warmAway: boolean?, -- pad eggs incubate at MYSTERY_EGG.WARM_SPEED while the owner is away from home too
+	luckBonus: number?, -- added to the Lucky Charm chance on a wild deposit (a paid probability modifier: odds shown)
+	radar: boolean?, -- Thief Radar: told and shown who walks into your base (ThiefRadar)
+	vip: boolean?, -- VIP: the tag, and one free server Luck Potion per UTC day (ClaimPerk "vipPotion")
 }
+local EXCLUSIVE_PASSES: { [string]: ExclusivePass } = {
+	VIP = table.freeze({ passId = ExclusiveIds.passes.VIP or 0, robux = 599, order = 1, incomeMult = 1.1, vip = true }),
+	Income2x = table.freeze({ passId = ExclusiveIds.passes.Income2x or 0, robux = 449, order = 2, incomeMult = 2 }),
+	Offline2x = table.freeze({ passId = ExclusiveIds.passes.Offline2x or 0, robux = 199, order = 3, offlineRate = 0.5 }), -- offline rate 0.25 -> 0.5
+	FastBrew = table.freeze({ passId = ExclusiveIds.passes.FastBrew or 0, robux = 249, order = 4, brewFactor = 0.5 }), -- merges brew in half the time
+	WarmNest = table.freeze({ passId = ExclusiveIds.passes.WarmNest or 0, robux = 129, order = 5, warmAway = true }),
+	LuckyCharmPlus = table.freeze({
+		passId = ExclusiveIds.passes.LuckyCharmPlus or 0,
+		robux = 249,
+		order = 6,
+		luckBonus = 0.05,
+	}),
+	ThiefRadar = table.freeze({ passId = ExclusiveIds.passes.ThiefRadar or 0, robux = 149, order = 7, radar = true }),
+}
+-- Roblox subscriptions, keyed by a permanent key. `subscriptionId` is the "EXP-..." id ("" = not created yet);
+-- `robux` is the shown monthly price (Robux subscriptions cost at least 49) and must match the Creator Dashboard.
+export type ExclusiveSubscription = { subscriptionId: string, robux: number, daily: { brew: number, hatch: number } }
+local EXCLUSIVE_SUBSCRIPTIONS: { [string]: ExclusiveSubscription } = table.freeze({
+	SlimeClub = table.freeze({
+		subscriptionId = ExclusiveIds.subscriptions.SlimeClub or "",
+		robux = 99,
+		daily = table.freeze({ brew = 1, hatch = 1 }), -- skip credits added once per UTC day while subscribed
+	}),
+})
 
 local EXCLUSIVE_SHOP = table.freeze({
 	products = table.freeze(EXCLUSIVE_PRODUCTS),
 	trails = CARRY_TRAILS,
 	batSkins = BAT_SKINS,
+	fanfares = FANFARES,
+	lockStyles = LOCK_STYLES,
+	hats = SLIME_HATS,
+	seasons = SEASONS,
 	lockBreak = table.freeze({
 		seconds = 60, -- how long the buyer may pass the locked door
 		aimSeconds = 120, -- an AimLockBreak target is forgotten after this long without a receipt
@@ -699,11 +901,20 @@ local EXCLUSIVE_SHOP = table.freeze({
 		creditMax = 20, -- most unsent gifts a player can hold (a gift whose target left or already owns it)
 	}),
 	passes = table.freeze(EXCLUSIVE_PASSES),
-	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = carry trails + Bat skins
+	subscriptions = EXCLUSIVE_SUBSCRIPTIONS,
+	radar = table.freeze({
+		maxShown = 4, -- most visitors the Thief Radar pings at once
+	}),
+	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = bases, base skins, lock styles, trails, fanfares, hats, Bat skins
 	finishBrewBrackets = table.freeze({ 300, 1800, 3600, math.huge }) :: { number }, -- seconds left -> FinishBrew_<i>
 	featuredCount = 4, -- seats in the weekly rotation (ExclusiveRotation), the same on every server
 	receiptMemory = 200, -- processed PurchaseIds kept in the save, newest last
 	creditMax = 99, -- most saved skip credits per kind
+	growthSnackSeconds = 3 * 3600, -- how much growth one Growth Snack gives (GROWTH_SECONDS of growth = fully grown)
+	serverBoosts = table.freeze({
+		rainCooldown = 20 * 60, -- seconds between two paid Slime Rains on one server
+		summonCooldown = 20 * 60, -- seconds between two summoned bosses on one server
+	}),
 	displayRpm = 3, -- turns per minute of each featured seat shown in the jar (client visual)
 	displayBob = 0.35, -- studs each shown seat floats up over its pedestal and back down
 	displayBobSeconds = 3, -- one bob cycle
@@ -997,7 +1208,7 @@ local Config = {
 	}),
 	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §15)
 	PLOT_SKIN_DEFAULT = "classic",
-	PLOT_BASES = table.freeze(PLOT_BASES), -- plot bases unlocked by rebirths (CONTRACT.md §44)
+	PLOT_BASES = table.freeze(PLOT_BASES), -- plot bases unlocked by rebirths or bought (CONTRACT.md §44)
 	PLOT_BASE_DEFAULT = "jar",
 	PET_SEATS = table.freeze(PET_SEATS), -- what the follow pet rides on (PetSeats, contract/pet-seats.md)
 	PET_SEAT_DEFAULT = "cloud",
@@ -1168,7 +1379,7 @@ local Config = {
 		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
 		SlimeChoreo = true, -- species gaits and hops, lane beats and reactions to players (SlimePersona, ParadeChoreo, ui/SlimeGait, contract/slime-life.md); false = every slime glides the lane at one pace
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
-		BaseShapes = false, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
+		BaseShapes = true, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20), the Mushroom Pagoda (rebirth 25) and the Exclusive bases (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
 		CashPads = true, -- each slime's income piles up on a gold cash pad in front of it and only the plot owner collects it by stepping on it; offline income lands there too (CashPads, contract/cash-pads.md); false = income goes straight to cash
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone

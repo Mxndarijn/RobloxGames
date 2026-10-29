@@ -212,15 +212,25 @@ function TestHooks.hatchEggs(world: World, userId: number, now: number): (boolea
 end
 
 -- Product keys the admin menu may grant: the cosmetics and the starter bundle, never a quick-buy or a gift.
+-- Every Exclusive Shop product but a gift (Gift_* needs a target player; grant the item itself instead).
 function TestHooks.grantable(productKey: string): boolean
 	if (Config.EXCLUSIVE_SHOP.products :: any)[productKey] == nil then
 		return false
 	end
-	return productKey == "StarterBundle"
-		or string.match(productKey, "^Seat_") ~= nil
-		or string.match(productKey, "^Trail_") ~= nil
-		or string.match(productKey, "^BatSkin_") ~= nil
+	return string.match(productKey, "^Gift_") == nil
 end
+
+-- The grant kinds that are cosmetics (owned for good): what "Every Exclusive cosmetic" gives.
+TestHooks.COSMETIC_KINDS = table.freeze({
+	seat = true,
+	trail = true,
+	batSkin = true,
+	fanfare = true,
+	lockStyle = true,
+	hat = true,
+	plotSkin = true,
+	plotBase = true,
+} :: { [string]: boolean })
 
 -- The Exclusive Shop grant for `productKey`, as a receipt would give it (no receipt id, no Robux).
 function TestHooks.grantProduct(world: World, userId: number, productKey: string, now: number): (boolean, string?)
@@ -235,12 +245,12 @@ function TestHooks.grantProduct(world: World, userId: number, productKey: string
 	return changed(session, `Granted {productKey}`)
 end
 
--- Every Exclusive seat, trail and bat skin.
+-- Every Exclusive cosmetic (TestHooks.COSMETIC_KINDS), seasonal ones too, whatever the date.
 function TestHooks.grantCosmetics(world: World, userId: number, now: number): (boolean, string?)
 	local session = sessionOf(world, userId)
 	local keys = {}
-	for key in Config.EXCLUSIVE_SHOP.products :: any do
-		if key ~= "StarterBundle" and TestHooks.grantable(key) then
+	for key, def in Config.EXCLUSIVE_SHOP.products :: any do
+		if TestHooks.grantable(key) and TestHooks.COSMETIC_KINDS[def.grant.kind] then
 			table.insert(keys, key)
 		end
 	end
@@ -252,6 +262,45 @@ function TestHooks.grantCosmetics(world: World, userId: number, now: number): (b
 		end
 	end
 	return changed(session, `Granted {count} cosmetics`)
+end
+
+-- Gives (on) or takes (off) a Game Pass for this session, as a pass check would (Purchases.applyPasses). The
+-- purchase service's own cache is not touched: a rejoin asks Roblox again.
+function TestHooks.setPass(world: World, userId: number, passKey: string, on: boolean): (boolean, string?)
+	local session = sessionOf(world, userId)
+	if (Config.EXCLUSIVE_SHOP.passes :: any)[passKey] == nil then
+		return false, "not a pass"
+	end
+	local passes = table.clone(session.passes or {})
+	passes[passKey] = on
+	Purchases.applyPasses(session, passes)
+	return changed(session, `{passKey} {if on then "on" else "off"}`)
+end
+
+-- Starts (on) or ends (off) a subscription for this session (Purchases.applySubscriptions: today's Club credits).
+function TestHooks.setSubscription(
+	world: World,
+	userId: number,
+	key: string,
+	on: boolean,
+	now: number
+): (boolean, string?)
+	local session = sessionOf(world, userId)
+	if (Config.EXCLUSIVE_SHOP.subscriptions :: any)[key] == nil then
+		return false, "not a subscription"
+	end
+	local subs = table.clone(session.subscriptions or {})
+	subs[key] = on
+	Purchases.applySubscriptions(world, session, subs, now)
+	return changed(session, `{key} {if on then "on" else "off"}`)
+end
+
+-- Overrides the PolicyService answer for this session: whether paid random items (the Luck Potion, Slime Rain,
+-- the Weather Totem, Lucky Charm+) may be shown and sold.
+function TestHooks.setPaidRandom(world: World, userId: number, allowed: boolean): (boolean, string?)
+	local session = sessionOf(world, userId)
+	session.paidRandomAllowed = allowed
+	return changed(session, if allowed then "Paid random items allowed" else "Paid random items restricted")
 end
 
 -- Marks every plot skin's slimes found, so each skin's collection goal is met.
