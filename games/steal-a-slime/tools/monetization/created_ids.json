@@ -127,5 +127,10 @@
  "product:Trail_sparkle": 3723567209,
  "product:Trail_starfall": 3723567216,
  "product:WeatherTotem": 3723567221,
- "sub:SlimeClub": "EXP-8257242520182981195"
+ "sub:SlimeClub": "EXP-8257242520182981195",
+ "product:Base_factory": 3723593690,
+ "product:Base_pagoda": 3723593692,
+ "product:Gift_Base_factory": 3723593695,
+ "product:Gift_Base_pagoda": 3723593698,
+ "pass:AutoCollect": 2060807163
 }

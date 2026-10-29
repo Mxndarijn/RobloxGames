@@ -44,7 +44,7 @@ local RESUMES_AT = {
 
 describe("SaveData.migrateV11", function()
 	it("stamps version 12 and maps every old step onto the new list", function()
-		expect(Config.SAVE_VERSION).toBe(12)
+		expect(Config.SAVE_VERSION >= 12).toBe(true) -- later versions chain on (SaveData.migrate)
 		for old, want in RESUMES_AT do
 			local out = SaveData.migrateV11(v11Save(old))
 			expect(out.version).toBe(12)

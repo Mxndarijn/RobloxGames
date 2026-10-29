@@ -824,7 +824,7 @@ function Purchases.applyPasses(session: Session, passes: { [string]: boolean }):
 	local owned: { [string]: boolean } = {}
 	local income, brew, luck = 1, 1, 0
 	local offline: number? = nil
-	local warm = false
+	local warm, auto = false, false
 	for key, def in SHOP.passes do
 		owned[key] = passes[key] == true
 		if owned[key] then
@@ -834,6 +834,7 @@ function Purchases.applyPasses(session: Session, passes: { [string]: boolean }):
 			end
 			brew *= def.brewFactor or 1
 			warm = warm or def.warmAway == true
+			auto = auto or def.autoCollect == true
 			luck += def.luckBonus or 0
 		end
 	end
@@ -842,6 +843,7 @@ function Purchases.applyPasses(session: Session, passes: { [string]: boolean }):
 	data.passOfflineRate = offline
 	data.passBrewFactor = if brew ~= 1 then brew else nil
 	data.passWarmNest = if warm then true else nil
+	data.passAutoCollect = if auto then true else nil
 	data.passLuckBonus = if luck > 0 then luck else nil
 	World.markDirty(session)
 	local paidRate, paid = session.offlineRate, session.offlinePaid or 0

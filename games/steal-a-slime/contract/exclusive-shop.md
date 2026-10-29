@@ -220,6 +220,10 @@ fields (never saved):
 - `ThiefRadar` 149: `server/ThiefRadar` reads SlimeGuard's plot visits once a second; `State.exclusiveShop.radar` lists
   the userIds inside your base (friends the base lets in left out, at most `radar.maxShown`). An away owner is told
   once per visit. The client gives them a yellow outline and, with no theft running, a "Visitor" arrow. Information only.
+- `AutoCollect` 299: `autoCollect = true` (runtime `data.passAutoCollect`): `Income.step` pays income straight to cash
+  instead of piling it on the cash pads, and sweeps any pile already waiting (offline income, piles from before the
+  pass) into cash with one toast (`Income.sweepPads`); `CashPadView` shows no coins on that owner's plot. Fair: only
+  the owner can ever collect a pile, so it buys comfort, not safety.
 - `SlimeClub` subscription (`subscriptions.SlimeClub`, `subscriptionId` "EXP-..." or "" = not created, 99 R$/month):
   checked on join and on `Players.UserSubscriptionStatusChanged` (`GetUserSubscriptionStatusAsync`, server), prompted
   with `PromptSubscriptionPurchase`. Its price uses Roblox regional pricing, so the shop shows Roblox's own

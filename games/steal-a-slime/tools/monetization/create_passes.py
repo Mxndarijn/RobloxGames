@@ -15,6 +15,7 @@ PASSES = [
     ("FastBrew", "Fast Brew", "Every merge brews in half the time, for good. Stacks with the Quick Brew upgrade.", 249),
     ("WarmNest", "Warm Nest", "Mystery Eggs on your pads incubate at the warm speed even while you are away from home.", 129),
     ("LuckyCharmPlus", "Lucky Charm+", "+5% chance that a wild slime you bring home turns one rarity higher. Wild slimes only.", 249),
+    ("AutoCollect", "Auto Collect", "Your slimes' cash goes straight into your wallet, wherever you are. No more walking over the cash pads.", 299),
     ("ThiefRadar", "Thief Radar", "Tells you when someone walks into your base while you are away, and points you to them. Information only.", 149),
 ]
 
@@ -37,7 +38,7 @@ def main():
             break
         gid = r.json()["gamePassId"]
         ids[f"pass:{k}"] = gid
-        json.dump(ids, open(OUT, "w"), indent=1)
+        json.dump(ids, open(OUT, "w", newline="\n"), indent=1)  # LF, as checked in
         print("created", k, gid)
         time.sleep(0.5)
 

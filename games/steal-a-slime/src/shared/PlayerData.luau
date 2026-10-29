@@ -110,6 +110,7 @@ export type Data = {
 	passBrewFactor: number?, -- runtime only (never saved): FastBrew brew time factor (Purchases.applyPasses); nil = 1
 	passWarmNest: boolean?, -- runtime only (never saved): WarmNest: pad eggs warm while away from home too
 	passLuckBonus: number?, -- runtime only (never saved): LuckyCharmPlus, added to Perks.luckChance; nil = 0
+	passAutoCollect: boolean?, -- runtime only (never saved): AutoCollect: income skips the cash pads (Income.step)
 	perkDays: PerkDays?, -- UTC day numbers a daily perk was last used (Purchases; no version bump: missing -> never)
 	ownedStyles: { [string]: { string } }, -- Exclusive style ids bought, by kind: fanfare / lockStyle / hat / plotSkin / plotBase (no version bump)
 	wornStyles: { [string]: string }, -- the worn fanfare / lockStyle / hat id by kind (owned ids only; no version bump)

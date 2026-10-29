@@ -10,7 +10,9 @@
 return table.freeze({
 	products = table.freeze({
 		Base_carousel = 3723566739,
+		Base_factory = 3723593690,
 		Base_lighthouse = 3723566745,
+		Base_pagoda = 3723593692,
 		Base_rocket = 3723566749,
 		Base_snowglobe = 3723566752,
 		Base_treehouse = 3723566754,
@@ -29,7 +31,9 @@ return table.freeze({
 		FinishBrew_3 = 3723566819,
 		FinishBrew_4 = 3723566825,
 		Gift_Base_carousel = 3723566829,
+		Gift_Base_factory = 3723593695,
 		Gift_Base_lighthouse = 3723566833,
+		Gift_Base_pagoda = 3723593698,
 		Gift_Base_rocket = 3723566838,
 		Gift_Base_snowglobe = 3723566842,
 		Gift_Base_treehouse = 3723566847,
@@ -132,6 +136,7 @@ return table.freeze({
 		WeatherTotem = 3723567221,
 	} :: { [string]: number }),
 	passes = table.freeze({
+		AutoCollect = 2060807163,
 		FastBrew = 2061832467,
 		Income2x = 2060651077,
 		LuckyCharmPlus = 2061094586,

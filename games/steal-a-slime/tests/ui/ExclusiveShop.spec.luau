@@ -195,7 +195,7 @@ describe("ExclusiveShopView cards", function()
 		function()
 			local perks = keysOf(ExclusiveShopView.cards("Perks", shopState(), Config))
 			expect(table.concat(perks, ",")).toBe(
-				"pass:VIP,pass:Income2x,pass:Offline2x,pass:FastBrew,pass:WarmNest,pass:LuckyCharmPlus,pass:ThiefRadar,sub:SlimeClub"
+				"pass:VIP,pass:Income2x,pass:Offline2x,pass:FastBrew,pass:WarmNest,pass:LuckyCharmPlus,pass:ThiefRadar,pass:AutoCollect,sub:SlimeClub"
 			)
 			local boosts = keysOf(ExclusiveShopView.cards("Boosts", shopState(), Config))
 			expect(table.concat(boosts, ",")).toBe(
