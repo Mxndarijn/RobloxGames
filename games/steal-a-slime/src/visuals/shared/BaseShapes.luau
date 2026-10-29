@@ -2,8 +2,9 @@
 --[[
 	BaseShapes (pure)
 
-	The buildings a plot can stand in (CONTRACT.md §44): the goo jar tower (today's WorldLayout jar), the Goo Factory
-	and the Mushroom Pagoda. BaseShapes.get(id) is the one place that knows each base's geometry; servers and clients
+	The buildings a plot can stand in (CONTRACT.md §44): the goo jar tower (today's WorldLayout jar), the Goo Factory,
+	the Mushroom Pagoda and the round Exclusive bases (Carousel Tent, Space Rocket, Tree House, Lighthouse, Snow
+	Globe: one inside, models/_round_base_layout.py). BaseShapes.get(id) is the one place that knows each base's geometry; servers and clients
 	ask it instead of the jar's numbers. Every base keeps WorldLayout.floorTop, SPAWN_SPOT, the door on the plot's -Z
 	side and PADS_PER_FLOOR pads per floor.
 
@@ -30,6 +31,33 @@ local PagodaMeshes = if script
 local FactoryMeshes = if script
 	then require(script.Parent.BaseShapeData.FactoryMeshes)
 	else require("./BaseShapeData/FactoryMeshes")
+-- the round Exclusive bases (models/_round_base_layout.py): same inside, their own shell and roof
+local Carousel = if script then require(script.Parent.BaseShapeData.Carousel) else require("./BaseShapeData/Carousel")
+local Rocket = if script then require(script.Parent.BaseShapeData.Rocket) else require("./BaseShapeData/Rocket")
+local Treehouse = if script
+	then require(script.Parent.BaseShapeData.Treehouse)
+	else require("./BaseShapeData/Treehouse")
+local Lighthouse = if script
+	then require(script.Parent.BaseShapeData.Lighthouse)
+	else require("./BaseShapeData/Lighthouse")
+local Snowglobe = if script
+	then require(script.Parent.BaseShapeData.Snowglobe)
+	else require("./BaseShapeData/Snowglobe")
+local CarouselMeshes = if script
+	then require(script.Parent.BaseShapeData.CarouselMeshes)
+	else require("./BaseShapeData/CarouselMeshes")
+local RocketMeshes = if script
+	then require(script.Parent.BaseShapeData.RocketMeshes)
+	else require("./BaseShapeData/RocketMeshes")
+local TreehouseMeshes = if script
+	then require(script.Parent.BaseShapeData.TreehouseMeshes)
+	else require("./BaseShapeData/TreehouseMeshes")
+local SnowglobeMeshes = if script
+	then require(script.Parent.BaseShapeData.SnowglobeMeshes)
+	else require("./BaseShapeData/SnowglobeMeshes")
+local LighthouseMeshes = if script
+	then require(script.Parent.BaseShapeData.LighthouseMeshes)
+	else require("./BaseShapeData/LighthouseMeshes")
 local JarMeshes = if script then require(script.Parent.JarMeshes) else require("./JarMeshes")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
@@ -541,6 +569,127 @@ local PAGODA_STAND_INS: { [string]: string } = {
 }
 local PAGODA_DOOR_SHIFT = (WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL / 2) + Pagoda.door.z
 
+-- The round Exclusive bases: walls, decks, ramp and roof are the looks of their colliders (BaseShapeData/<Name>Meshes
+-- once modelled); the door is the jar's round door moved to the base's doorway, the foot the jar's.
+local ROUND: { [string]: any } = {
+	carousel = Carousel,
+	rocket = Rocket,
+	treehouse = Treehouse,
+	lighthouse = Lighthouse,
+	snowglobe = Snowglobe,
+}
+local ROUND_LOOKS: { [string]: any } = {
+	carousel = CarouselMeshes,
+	rocket = RocketMeshes,
+	treehouse = TreehouseMeshes,
+	lighthouse = LighthouseMeshes,
+	snowglobe = SnowglobeMeshes,
+}
+local ROUND_STAND_INS: { [string]: { [string]: string } } = {
+	-- the roof's stripes are two meshes (a MeshPart has one colour); the striped one stands in for the cone
+	carousel = {
+		["room wall#1"] = "carousel_room_1",
+		["room wall"] = "carousel_room",
+		deck = "carousel_deck",
+		ramp = "carousel_ramp",
+		landing = "carousel_ramp",
+		post = "carousel_gold",
+		["post#1"] = "carousel_gold_1",
+		["roof#1"] = "carousel_roof_stripe_1",
+		["roof#2"] = "carousel_roof_stripe_2",
+		["roof#3"] = "carousel_roof_stripe_3",
+		["roof#4"] = "carousel_roof_stripe_4",
+		mascot = "goo_jar_mascot",
+	},
+	-- each deck mesh carries its floor's landing and post; one nose mesh is scaled onto whichever floor is on top
+	rocket = {
+		["room wall#1"] = "rocket_hull_1",
+		["room wall#2"] = "rocket_hull_2",
+		["room wall#3"] = "rocket_hull_3",
+		["room wall#4"] = "rocket_hull_4",
+		["deck#2"] = "rocket_deck_2",
+		["deck#3"] = "rocket_deck_3",
+		["deck#4"] = "rocket_deck_4",
+		["landing#2"] = "rocket_deck_2",
+		["landing#3"] = "rocket_deck_3",
+		["landing#4"] = "rocket_deck_4",
+		["post#1"] = "rocket_post",
+		["post#2"] = "rocket_deck_2",
+		["post#3"] = "rocket_deck_3",
+		["post#4"] = "rocket_deck_4",
+		ramp = "rocket_ramp",
+		roof = "rocket_nose",
+		mascot = "goo_jar_mascot",
+	},
+	treehouse = {
+		["room wall#1"] = "treehouse_room_1",
+		["room wall#2"] = "treehouse_room_2",
+		["room wall#3"] = "treehouse_room_3",
+		["room wall#4"] = "treehouse_room_4",
+		["deck#2"] = "treehouse_deck_2",
+		["deck#3"] = "treehouse_deck_3",
+		["deck#4"] = "treehouse_deck_4",
+		["landing#2"] = "treehouse_deck_2",
+		["landing#3"] = "treehouse_deck_3",
+		["landing#4"] = "treehouse_deck_4",
+		ramp = "treehouse_ramp",
+		post = "treehouse_post",
+		roof = "treehouse_canopy",
+		mascot = "goo_jar_mascot",
+	},
+	-- floors 2-4 have no wall mesh of their own (the globe's glass is the look): the snow drift along the glass is
+	-- the wall's stand-in; the dome comes in two sizes for the narrow and the wide top floors
+	snowglobe = {
+		["room wall#1"] = "snowglobe_ped",
+		["room wall#2"] = "snowglobe_snow_2",
+		["room wall#3"] = "snowglobe_snow_3",
+		["room wall#4"] = "snowglobe_snow_4",
+		deck = "snowglobe_deck",
+		["post#1"] = "snowglobe_post",
+		post = "snowglobe_core",
+		ramp = "snowglobe_core",
+		landing = "snowglobe_core",
+		roof = "snowglobe_dome_s",
+		["roof#1"] = "snowglobe_dome_l",
+		["roof#3"] = "snowglobe_dome_l",
+		mascot = "goo_jar_mascot",
+	},
+	-- the gallery ring (roof#f) is its own mesh per top floor; the lantern drum stands on it
+	lighthouse = {
+		["room wall#1"] = "lighthouse_room_1",
+		["room wall#2"] = "lighthouse_room_2",
+		["room wall#3"] = "lighthouse_room_3",
+		["room wall#4"] = "lighthouse_room_4",
+		["post#1"] = "lighthouse_room_1",
+		["post#2"] = "lighthouse_room_2",
+		["post#3"] = "lighthouse_room_3",
+		["post#4"] = "lighthouse_room_4",
+		["deck#2"] = "lighthouse_deck_2",
+		["deck#3"] = "lighthouse_deck_3",
+		["deck#4"] = "lighthouse_deck_4",
+		["landing#2"] = "lighthouse_deck_2",
+		["landing#3"] = "lighthouse_deck_3",
+		["landing#4"] = "lighthouse_deck_4",
+		ramp = "lighthouse_ramp",
+		Lantern = "lighthouse_lantern",
+		["roof#1"] = "lighthouse_gallery_1",
+		["roof#2"] = "lighthouse_gallery_2",
+		["roof#3"] = "lighthouse_gallery_3",
+		["roof#4"] = "lighthouse_gallery_4",
+		mascot = "goo_jar_mascot",
+	},
+}
+
+local function roundShape(data: any): Shape
+	return fromData(data, {
+		looks = ROUND_LOOKS[data.id],
+		standIns = ROUND_STAND_INS[data.id],
+		topFolder = true,
+		jarDoor = (WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL / 2) + data.door.z,
+		jarFoot = true,
+	})
+end
+
 local SHAPES: { [string]: Shape } = {
 	jar = jar,
 	factory = fromData(Factory, {
@@ -556,7 +705,13 @@ local SHAPES: { [string]: Shape } = {
 		jarFoot = true,
 	}),
 }
+for id, data in ROUND do
+	SHAPES[id] = roundShape(data)
+end
 local TINTS: { [string]: any } = { factory = FactoryMeshes.tints, pagoda = PagodaMeshes.tints }
+for id, looks in ROUND_LOOKS do
+	TINTS[id] = looks.tints
+end
 
 -- The MeshPart.Color (sRGB 0..255) of a tint-only piece of base `base` in plot skin `skin` for theme role `role`;
 -- the classic skin's when the skin has none, nil for a base without tints (the jar's themes are their own meshes).
@@ -576,7 +731,12 @@ end
 
 -- The generated data of base `id` (tests), or nil for the jar.
 function BaseShapes.data(id: string): any
-	return if id == "factory" then Factory elseif id == "pagoda" then Pagoda else nil
+	if id == "factory" then
+		return Factory
+	elseif id == "pagoda" then
+		return Pagoda
+	end
+	return ROUND[id]
 end
 
 return table.freeze(BaseShapes)

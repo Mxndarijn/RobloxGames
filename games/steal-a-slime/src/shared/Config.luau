@@ -93,11 +93,14 @@ export type PlotSkin = {
 }
 
 -- A plot base: the building a plot stands in (FEATURES.BaseShapes, CONTRACT.md §44), chosen apart from the skin.
--- `rebirths` = the rebirth count that unlocks it (nil = everyone). Ids are permanent save ids.
+-- `rebirths` = the rebirth count that unlocks it (nil = everyone); an `exclusive` base is sold in the Exclusive Shop
+-- instead (Base_<id>) and unlocks only once owned. Ids are permanent save ids.
 export type PlotBase = {
 	id: string, -- permanent save id; never rename
 	name: string,
 	rebirths: number?,
+	exclusive: boolean?, -- sold in the Exclusive Shop (Base_<id>, contract/exclusive-shop.md §15): owned, never earned
+	robux: number?, -- an exclusive base's price
 }
 
 -- Pet seats (contract/pet-seats.md): what the follow pet rides on, picked in the Skins menu's Cloud tab. `mesh` is the
@@ -572,6 +575,11 @@ local PLOT_BASES: { PlotBase } = {
 	{ id = "jar", name = "Goo Jar Tower" },
 	{ id = "factory", name = "Goo Factory", rebirths = 20 },
 	{ id = "pagoda", name = "Mushroom Pagoda", rebirths = 25 },
+	{ id = "carousel", name = "Carousel Tent", exclusive = true, robux = 599 },
+	{ id = "rocket", name = "Space Rocket", exclusive = true, robux = 499 },
+	{ id = "treehouse", name = "Tree House", exclusive = true, robux = 499 },
+	{ id = "lighthouse", name = "Lighthouse", exclusive = true, robux = 399 },
+	{ id = "snowglobe", name = "Snow Globe", exclusive = true, robux = 399 },
 }
 for _, base in PLOT_BASES do
 	table.freeze(base)
@@ -780,6 +788,12 @@ for _, skin in PLOT_SKINS do
 		EXCLUSIVE_PRODUCTS["Skin_" .. skin.id] = product(skin.robux, { kind = "plotSkin", style = skin.id })
 	end
 end
+for _, base in PLOT_BASES do
+	if base.exclusive then
+		assert(base.robux, "Exclusive plot base without a price: " .. base.id)
+		EXCLUSIVE_PRODUCTS["Base_" .. base.id] = product(base.robux, { kind = "plotBase", style = base.id })
+	end
+end
 -- Bundles (§15): cosmetics together for less than their parts (`items` are product keys; owned ones are skipped).
 EXCLUSIVE_PRODUCTS.BoutiqueBundle = product(
 	549,
@@ -815,6 +829,7 @@ for key, def in EXCLUSIVE_PRODUCTS do
 		or kind == "lockStyle"
 		or kind == "hat"
 		or kind == "plotSkin"
+		or kind == "plotBase"
 	then
 		table.insert(giftable, key)
 	end
@@ -890,7 +905,7 @@ local EXCLUSIVE_SHOP = table.freeze({
 	radar = table.freeze({
 		maxShown = 4, -- most visitors the Thief Radar pings at once
 	}),
-	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = base skins, lock styles, trails, fanfares, hats, Bat skins
+	tabs = table.freeze({ "Featured", "Clouds", "Style", "Perks", "Boosts" }), -- Style = bases, base skins, lock styles, trails, fanfares, hats, Bat skins
 	finishBrewBrackets = table.freeze({ 300, 1800, 3600, math.huge }) :: { number }, -- seconds left -> FinishBrew_<i>
 	featuredCount = 4, -- seats in the weekly rotation (ExclusiveRotation), the same on every server
 	receiptMemory = 200, -- processed PurchaseIds kept in the save, newest last
@@ -1193,7 +1208,7 @@ local Config = {
 	}),
 	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §15)
 	PLOT_SKIN_DEFAULT = "classic",
-	PLOT_BASES = table.freeze(PLOT_BASES), -- plot bases unlocked by rebirths (CONTRACT.md §44)
+	PLOT_BASES = table.freeze(PLOT_BASES), -- plot bases unlocked by rebirths or bought (CONTRACT.md §44)
 	PLOT_BASE_DEFAULT = "jar",
 	PET_SEATS = table.freeze(PET_SEATS), -- what the follow pet rides on (PetSeats, contract/pet-seats.md)
 	PET_SEAT_DEFAULT = "cloud",
@@ -1364,7 +1379,7 @@ local Config = {
 		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
 		SlimeChoreo = true, -- species gaits and hops, lane beats and reactions to players (SlimePersona, ParadeChoreo, ui/SlimeGait, contract/slime-life.md); false = every slime glides the lane at one pace
 		SlimeAlive = true, -- pad slimes fidget and greet you, put-downs drop in, a Move hops over, escapes race home sweating, the slide ride grins, jelly springs on top (ui/SlimeFidget, contract/slime-life.md "Alive motion"); false = pad slimes only breathe and glance, a Move snaps
-		BaseShapes = true, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20) and the Mushroom Pagoda (rebirth 25) (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
+		BaseShapes = true, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20), the Mushroom Pagoda (rebirth 25) and the Exclusive bases (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
 		CashPads = true, -- each slime's income piles up on a gold cash pad in front of it and only the plot owner collects it by stepping on it; offline income lands there too (CashPads, contract/cash-pads.md); false = income goes straight to cash
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone

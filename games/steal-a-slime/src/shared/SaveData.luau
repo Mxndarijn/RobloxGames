@@ -556,7 +556,7 @@ function SaveData.cleanEquipped(raw: any, owned: { string }): string?
 	return nil
 end
 
--- The Config catalogue of a style kind (fanfare / lockStyle / hat / plotSkin): the ids that exist.
+-- The Config catalogue of a style kind (fanfare / lockStyle / hat / plotSkin / plotBase): the ids that exist.
 local function styleIds(kind: string): { [string]: boolean }
 	local out: { [string]: boolean } = {}
 	local shop = Config.EXCLUSIVE_SHOP :: any
@@ -571,13 +571,19 @@ local function styleIds(kind: string): { [string]: boolean }
 				out[skin.id] = true
 			end
 		end
+	elseif kind == "plotBase" then
+		for _, base in Config.PLOT_BASES do
+			if base.exclusive then
+				out[base.id] = true
+			end
+		end
 	end
 	for _, def in list or {} do
 		out[def.id] = true
 	end
 	return out
 end
-SaveData.STYLE_KINDS = table.freeze({ "fanfare", "lockStyle", "hat", "plotSkin" })
+SaveData.STYLE_KINDS = table.freeze({ "fanfare", "lockStyle", "hat", "plotSkin", "plotBase" })
 
 -- Owned Exclusive styles by kind (no version bump): unknown kinds and ids dropped, repeats dropped.
 function SaveData.cleanOwnedStyles(raw: any): { [string]: { string } }
@@ -602,7 +608,8 @@ function SaveData.cleanOwnedStyles(raw: any): { [string]: { string } }
 	return out
 end
 
--- Worn styles by kind: only owned ids of fanfare / lockStyle / hat (a plot skin is worn as data.plotSkin).
+-- Worn styles by kind: only owned ids of fanfare / lockStyle / hat (a plot skin / base is worn as data.plotSkin /
+-- data.plotBase).
 function SaveData.cleanWornStyles(raw: any, owned: { [string]: { string } }): { [string]: string }
 	local out: { [string]: string } = {}
 	if type(raw) ~= "table" then
