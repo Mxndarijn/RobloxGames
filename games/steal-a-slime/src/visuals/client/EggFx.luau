@@ -5,7 +5,7 @@
 	Looks on every Mystery Egg model (tag Constants.SLIME_TAG with the
 	EggKind attribute) resting on a pad, from its EggHatchAt /
 	EggHatchSeconds attributes and the server clock:
-	  * a glow in the kind's colour that pulses faster the closer the hatch;
+	  * a glow in the kind's colour that breathes a little faster the closer the hatch (EggGlow);
 	  * ready: a bright glow and sparkles until the owner hatches it.
 	Everything it adds is local (never replicates) and goes when the egg
 	leaves its pad or the model goes (a hatch rebuilds the model as its slime).
@@ -17,6 +17,7 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local EggGlow = require(ReplicatedStorage.Visuals.EggGlow)
 local EggModel = require(ReplicatedStorage.Visuals.EggModel)
 
 local EggFx = {}
@@ -41,11 +42,6 @@ function EggFx.stage(progress: number): number
 		return 1
 	end
 	return 0
-end
-
--- Glow pulses per second at a progress 0..1: slow at the start, quick near the hatch.
-function EggFx.pulseRate(progress: number): number
-	return 0.4 + 2.6 * math.clamp(progress, 0, 1) ^ 2
 end
 
 local function clear(egg: Egg)
@@ -116,10 +112,9 @@ local function apply(egg: Egg, progress: number?, t: number, near: boolean)
 	ensureGlow(egg)
 	local light = egg.light :: PointLight
 	if stage >= 3 then
-		light.Brightness = 2.5 + 1.2 * math.sin(t * 6)
+		light.Brightness = EggGlow.ready(t)
 	elseif near then
-		local wave = 0.5 + 0.5 * math.sin(t * math.pi * 2 * EggFx.pulseRate(progress))
-		light.Brightness = (0.3 + 1.4 * progress) * wave
+		light.Brightness = EggGlow.incubating(progress, t)
 	end
 end
 
