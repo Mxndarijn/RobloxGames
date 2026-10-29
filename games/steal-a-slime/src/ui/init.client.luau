@@ -1209,6 +1209,13 @@ if game:GetService("RunService"):IsStudio() then
 			worldShop.onEvent({ kind = "Open", shopId = if type(shopId) == "string" then shopId else "ItemShop" })
 			return
 		end
+		local shopTab = if type(key) == "string" then string.match(key, "^ExclusiveShop:(%a+)$") else nil
+		if shopTab then
+			-- the Exclusive shop on one tab (scripts can't press the tab)
+			setOpen("ExclusiveShop")
+			panelByKey.ExclusiveShop.setTab(shopTab)
+			return
+		end
 		if key == "Skins:cloud" then
 			-- the Skins menu on its Cloud tab (scripts can't press the tab)
 			setOpen("Skins")

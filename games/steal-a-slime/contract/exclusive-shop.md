@@ -223,7 +223,8 @@ fields (never saved):
   with `PromptSubscriptionPurchase`. Benefits: a CLUB tag, and once per UTC day +1 brew and +1 hatch credit
   (`Purchases.stepDaily`, `perkDays.club`). Studio: `StudioHooks.setSubscription(userId, key, active)` (`PcwSubscription`).
 - Player attribute `Member` (`Constants.MEMBER_ATTRIBUTE`): "vip" / "club" (VIP wins); `ui/MemberTags` draws the chip
-  and the chat prefix. State: `subscriptions`, `vipPotion`, `luck`, `radar`.
+  (and the chat prefix with TextChatService); `server/MemberChatTags` sets the legacy chat's speaker "Tags" (the game
+  runs LegacyChatService). Studio: SlimeUI `PcwOpen` = "ExclusiveShop:<Tab>" opens the shop on that tab. State: `subscriptions`, `vipPotion`, `luck`, `radar`.
 
 ## 14. Server boosts and comforts
 

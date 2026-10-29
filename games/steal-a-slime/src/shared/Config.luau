@@ -746,7 +746,7 @@ local FANFARES = table.freeze({
 -- The same slot box and invisible collision as the default stopper, and a red lock signal: it locks exactly the same.
 local LOCK_STYLES = table.freeze({
 	table.freeze({ id = "candy", name = "Candy Bar", robux = 79, mesh = "lock_stopper_candy" }),
-	table.freeze({ id = "carousel", name = "Carousel Rope", robux = 99, mesh = "lock_stopper_carousel" }),
+	table.freeze({ id = "carousel", name = "Carousel", robux = 99, mesh = "lock_stopper_carousel" }),
 	table.freeze({ id = "sleepy", name = "Sleepy Guard", robux = 99, mesh = "lock_stopper_sleepy" }),
 })
 -- Slime hats (§15): worn by every slime on your own pads (kit models/slime_hat_<id>.py). The hat belongs to the pad:

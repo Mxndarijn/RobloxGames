@@ -106,6 +106,7 @@ task.spawn(safeCall, "MeshSwap.publishSkinTemplates", MeshSwap.publishSkinTempla
 task.spawn(safeCall, "MeshSwap.publishHabitatTemplates", MeshSwap.publishHabitatTemplates) -- FEATURES.Habitats
 task.spawn(safeCall, "MeshSwap.publishPetSeatTemplates", MeshSwap.publishPetSeatTemplates) -- what follow pets ride
 task.spawn(safeCall, "MeshSwap.publishHatTemplates", MeshSwap.publishHatTemplates) -- Exclusive slime hats
+task.spawn(safeCall, "MemberChatTags.start", require(script.MemberChatTags).start) -- [VIP] / [CLUB] in the legacy chat
 task.spawn(safeCall, "MeshSwap.publishPvpMarkerTemplates", MeshSwap.publishPvpMarkerTemplates) -- FEATURES.PvP placed traps
 
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction

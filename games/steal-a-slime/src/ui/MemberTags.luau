@@ -18,7 +18,7 @@ local create = Widgets.create
 local MemberTags = {}
 
 MemberTags.FOLDER = "MemberTags"
-MemberTags.SIZE = table.freeze({ w = 64, h = 24, textSize = 18, stroke = 2, lift = 2.6, maxDistance = 80 })
+MemberTags.SIZE = table.freeze({ w = 76, h = 28, textSize = 21, stroke = 2, lift = 2.8, maxDistance = 80 })
 
 export type Look = { text: string, color: Color3, hex: string }
 

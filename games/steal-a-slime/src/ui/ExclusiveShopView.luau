@@ -171,7 +171,7 @@ ExclusiveShopView.TEXTS = table.freeze({
 	}),
 	VIP = table.freeze({
 		title = "VIP",
-		icon = "Badge_Millionaire",
+		icon = "Boost_Mvp",
 		text = "A gold VIP tag over your name and in chat, +10% income, and one free Luck Potion for the whole server every day.",
 	}),
 	FastBrew = table.freeze({
