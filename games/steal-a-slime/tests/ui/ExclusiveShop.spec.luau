@@ -1284,6 +1284,14 @@ describe("Exclusive shop perks and boosts (ExclusiveShopView)", function()
 		state.exclusiveShop.credits = { brew = 0, hatch = 0, rain = 0, boss = 0, totem = 0, snack = 2 }
 		expect((ExclusiveShopView.snackQuickBuy(state, "a", config, true) :: any).mode).toBe("credit")
 	end)
+	it("no Growth snack is offered on a server where slimes don't grow", function()
+		local config = sellingConfig()
+		config.FEATURES = table.clone(Config.FEATURES)
+		config.FEATURES.GrowingSlimes = false
+		local state = shopState()
+		state.slimes = { { slime = { id = "a", growth = 0.2 } } }
+		expect(ExclusiveShopView.snackQuickBuy(state, "a", config)).toBeNil()
+	end)
 end)
 
 describe("PurchasePrompt subscriptions", function()
