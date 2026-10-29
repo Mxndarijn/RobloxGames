@@ -70,7 +70,8 @@ Build with `SLIME_RIG=1` to get the armature (exported with the FBX, max 4 influ
 Not verified yet: a kit FBX with this armature uploaded and driven in Studio. The old `slime_*` bodies
 shipped a 2-bone rig, but nothing in the game uses those bones. Load rigged species as a Model
 (InsertService:LoadAsset, as SlimeMesh does), not via CreateMeshPartAsync.
-Known rough spots: eyes on bumps (Froggo) get no blink lid; Lop's long goo ears clip at full squash.
+Every eye and lid vertex has the same `Eyes` / `Lids` weight (`_slimerig.EYE_SHARE`, the game's `SlimeBones.EYE_SHARE`),
+so a blink moves every eye layer by the same depth on every species. Known rough spots: Lop's long goo ears clip at full squash.
 
 ## Library notes from the modelers (todo for `_slimepool.py`)
 - `decal()` makes one flat face: decals wider than ~0.5 stud sink into curved bodies. Three agents wrote a
