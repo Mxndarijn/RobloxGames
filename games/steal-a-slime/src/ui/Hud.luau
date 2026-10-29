@@ -315,6 +315,7 @@ function Hud.new(parent: Instance, ctx: any)
 	end
 	readRainAttrs()
 	local current: any = nil
+	local shownCash: number? = nil -- CashFly's counted-up number while its coins land
 	local screen: Layout.Screen? = nil
 	local compact = false
 	local statusTight = false -- the status slots use Layout.STATUS_TIGHT sizes
@@ -530,11 +531,20 @@ function Hud.new(parent: Instance, ctx: any)
 		return if banners.Visible and screen then banners.AbsoluteSize.Y / screen.scale else 0
 	end
 
+	local function numberStyle(): string?
+		return if ctx.settings then ctx.settings.get("numberStyle") else nil
+	end
+
+	-- The coin carries the "$", so the amount shows without it.
+	local function showCash(text: string)
+		cashLabel.Text = (string.gsub(text, "^%$", ""))
+	end
+
 	function self.update(state: any)
 		current = state
-		local money = HudClusters.money(state, if ctx.settings then ctx.settings.get("numberStyle") else nil)
-		-- The coin carries the "$", so the amount shows without it; the income chip reads "+5.93M/s".
-		cashLabel.Text = (string.gsub(money.cash, "^%$", ""))
+		local money = HudClusters.money(state, numberStyle())
+		-- The income chip reads "+5.93M/s".
+		showCash(if shownCash then HudClusters.cashText(shownCash, numberStyle()) else money.cash)
 		incomeLabel.Text = (string.gsub(money.income, "^%$", "+"))
 		rebirthLabel.Text = money.rebirthCount
 		badgeLabel.Text = money.multiplier
@@ -598,6 +608,19 @@ function Hud.new(parent: Instance, ctx: any)
 			end
 			refreshTooltip() -- the open slot's timer, or closed when its slot is gone
 		end
+	end
+
+	-- CashFly counts the number up while its coins land: `cash` shows instead of State's cash; nil goes back to it.
+	function self.setShownCash(cash: number?)
+		shownCash = cash
+		if current then
+			showCash(HudClusters.cashText(cash or current.cash, numberStyle()))
+		end
+	end
+
+	-- Where CashFly's coins land (the coin) and its +/- rows sit (over the amount). Read only: never moved or restyled.
+	function self.cashAnchors(): (GuiObject, GuiObject)
+		return coin, cashLabel
 	end
 
 	-- Studio only (PC watcher shot): opens the tooltip of a status slot id (HudClusters.STATUS_IDS); nil closes.
