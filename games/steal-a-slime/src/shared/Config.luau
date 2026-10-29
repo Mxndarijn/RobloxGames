@@ -573,8 +573,10 @@ local PLOT_SKINS: { PlotSkin } = {
 
 local PLOT_BASES: { PlotBase } = {
 	{ id = "jar", name = "Goo Jar Tower" },
-	{ id = "factory", name = "Goo Factory", rebirths = 20 },
-	{ id = "pagoda", name = "Mushroom Pagoda", rebirths = 25 },
+	-- Exclusive since save v13 (Merijn, 2026-10-29): players who had earned them by rebirths keep them
+	-- (SaveData.migrateV12, the old gates in SaveData.REBIRTH_BASES_V12).
+	{ id = "factory", name = "Goo Factory", exclusive = true, robux = 399 },
+	{ id = "pagoda", name = "Mushroom Pagoda", exclusive = true, robux = 399 },
 	{ id = "carousel", name = "Carousel Tent", exclusive = true, robux = 599 },
 	{ id = "rocket", name = "Space Rocket", exclusive = true, robux = 499 },
 	{ id = "treehouse", name = "Tree House", exclusive = true, robux = 499 },
@@ -2271,7 +2273,7 @@ local Config = {
 	}),
 
 	-- Persistence
-	SAVE_VERSION = 12, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7; v9: boss record replaces trophies, SaveData.migrateV8; v10: Exclusive Shop purchases and roll seeds, SaveData.migrateV9; v11: carry trails, Bat skins, lock break and gift credits, SaveData.migrateV10; v12: new tutorial steps, SaveData.migrateV11)
+	SAVE_VERSION = 13, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7; v9: boss record replaces trophies, SaveData.migrateV8; v10: Exclusive Shop purchases and roll seeds, SaveData.migrateV9; v11: carry trails, Bat skins, lock break and gift credits, SaveData.migrateV10; v12: new tutorial steps, SaveData.migrateV11; v13: the Goo Factory and Mushroom Pagoda are Exclusive, SaveData.migrateV12)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
 	SAVE_DRAIN_SECONDS = 20, -- a load waits at most this long for the same player's saves still in flight

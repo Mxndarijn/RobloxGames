@@ -1,6 +1,6 @@
 """Create every Exclusive Shop Developer Product for Steal a Slime (universe 10770917350), once each.
 
-Reads products.json (dumped from Config) plus the five Exclusive bases. Dry run unless --go. Ids go to
+Reads products.json (dumped from Config: every product, the Exclusive bases included). Dry run unless --go. Ids go to
 created_ids.json (product:<key> -> id); a key already there is skipped, so a rerun resumes. The key is never printed.
 Developer Products can only be bought inside the game, so they are created on sale.
 """
@@ -12,8 +12,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "created_ids.json")
 data = json.load(open(os.path.join(HERE, "products.json")))
 
-BASES = [("carousel", "Carousel Tent", 599), ("rocket", "Space Rocket", 499), ("treehouse", "Tree House", 499),
-         ("lighthouse", "Lighthouse", 399), ("snowglobe", "Snow Globe", 399)]
 
 
 def find(lst, i):
@@ -73,7 +71,7 @@ def item(key, grant):
         n = find(data["skins"], grant["style"])["name"]
         return f"{n} base skin", f"Dresses your whole goo jar tower as the {n}. Yours to keep."
     if k == "plotBase":
-        n = dict((b[0], b[1]) for b in BASES)[grant["style"]]
+        n = find(data["bases"], grant["style"])["name"]
         return f"{n} base", f"Your base becomes the {n}. Same pads, door and lock as every base. Yours to keep."
     return FIXED[key]
 
@@ -81,9 +79,6 @@ def item(key, grant):
 def catalogue():
     rows = []
     products = {p["key"]: p for p in data["products"]}
-    for bid, name, robux in BASES:
-        products[f"Base_{bid}"] = {"key": f"Base_{bid}", "robux": robux, "grant": {"kind": "plotBase", "style": bid}}
-        products[f"Gift_Base_{bid}"] = {"key": f"Gift_Base_{bid}", "robux": robux, "grant": {"kind": "gift", "item": f"Base_{bid}"}}
     for key in sorted(products):
         p = products[key]
         g = p["grant"]
@@ -129,7 +124,7 @@ def main():
             print("FAIL", key, r.status_code, r.text[:300])
             sys.exit(1)
         ids[f"product:{key}"] = r.json()["productId"]
-        json.dump(ids, open(OUT, "w"), indent=1)
+        json.dump(ids, open(OUT, "w", newline="\n"), indent=1)  # LF, as checked in
         made += 1
         time.sleep(0.4)  # 3 requests per second per user
     print("created", made, "total", sum(1 for k in ids if k.startswith("product:")))

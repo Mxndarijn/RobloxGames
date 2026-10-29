@@ -37,7 +37,7 @@ def main():
             break
         gid = r.json()["gamePassId"]
         ids[f"pass:{k}"] = gid
-        json.dump(ids, open(OUT, "w"), indent=1)
+        json.dump(ids, open(OUT, "w", newline="\n"), indent=1)  # LF, as checked in
         print("created", k, gid)
         time.sleep(0.5)
 
