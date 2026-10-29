@@ -11,15 +11,14 @@
 	in its Guests list (friends let in, PlotGuests).
 
 	Plot attributes read (CONTRACT.md §5.2 + new ones, all optional):
-	  OwnerUserId    0 = free      -> no lock board
-	  LockUntil      server time   -> LockBarrier stopper / ParkedStopper + the lock board
-	  LockStartedAt  server time   -> how far the lock board's bar has drained
+	  OwnerUserId    0 = free      -> no lock plate
+	  LockUntil      server time   -> LockBarrier stopper / ParkedStopper + the lock plate
 	  Locked         boolean (§8.4) -> used only when LockUntil is missing
 	Rebirths never change the base.
 
-	The lock board is a Goo board (shared/GooBoard, like the name board above it on the post) on the LockSign's
-	Front face: a red LOCKED band, the time left and a bar that drains over the lock; a green OPEN band and
-	"stealable!" while open. It is the only place other players see a lock's time.
+	The lock plate hangs from the name plank on the LockSign's Front face (shared/RanchSign): red with a shut padlock,
+	"Locked" and the time left; green with the padlock open, "stealable!" and "Open". A free plot shows no plate. It
+	is the only place other players see a lock's time.
 
 	`opts.door = false` leaves the door looks (StopperShut / StopperParked meshes, DoorRing) alone: LockMotion moves
 	them while it plays a lock or an open.
@@ -35,10 +34,7 @@ local Constants = if script then require(script.Parent.Parent.Shared.Constants) 
 local MeshAssets = if script
 	then require(script.Parent.Parent.Shared.MeshAssets)
 	else require("../../shared/MeshAssets")
-local GooBoard = if script then require(script.Parent.Parent.Shared.GooBoard) else require("../../shared/GooBoard")
-local GooPalette = if script
-	then require(script.Parent.Parent.Shared.GooPalette)
-	else require("../../shared/GooPalette")
+local RanchSign = if script then require(script.Parent.Parent.Shared.RanchSign) else require("../../shared/RanchSign")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
 local PlotDecor = {}
@@ -77,112 +73,50 @@ local function show(part: Instance?, visible: boolean, transparency: number?)
 	end
 end
 
-PlotDecor.LOCK_BOARD_GUI = "LockBoard"
-PlotDecor.LOCK_BOARD_PIXELS_PER_STUD = 50
--- The lock board's width / height, so the goo drops come out round.
-PlotDecor.LOCK_BOARD_ASPECT = WorldLayout.LOCK_SIGN.width / WorldLayout.LOCK_SIGN.height
-PlotDecor.LOCK_BOARD = table.freeze({
-	band = 0.36,
-	radius = 0.2,
-	drips = table.freeze({
-		-- clear of the time in the middle
-		table.freeze({ x = 0.1, w = 0.035, len = 0.05 }),
-		table.freeze({ x = 0.25, w = 0.04, len = 0.08 }),
-		table.freeze({ x = 0.86, w = 0.03, len = 0.04 }),
-	}),
-	stroke = 6, -- px at LOCK_BOARD_PIXELS_PER_STUD
-	glassTransparency = 0,
-} :: GooBoard.Spec)
--- Boxes as fractions of the board { x, y, w, h }.
-PlotDecor.LOCK_BOARD_TEXT = table.freeze({
-	status = table.freeze({ 0.08, 0.05, 0.84, 0.27 }), -- LOCKED / OPEN, in the band
-	time = table.freeze({ 0.1, 0.4, 0.8, 0.4 }), -- m:ss / stealable!
-	bar = table.freeze({ 0.14, 0.83, 0.72, 0.07 }), -- the drain bar's track
-})
+PlotDecor.LOCK_PLATE_GUI = "LockPlate"
+-- The LockSign's width / height, so the padlock and rim come out even.
+PlotDecor.LOCK_PLATE_ASPECT = WorldLayout.LOCK_SIGN.width / WorldLayout.LOCK_SIGN.height
 
-local function globals(): GooBoard.Deps
-	return { Instance = Instance, Enum = Enum, UDim = UDim, UDim2 = UDim2, Color3 = Color3 }
-end
-
-local function box(inst: GuiObject, b: { number })
-	inst.Position = UDim2.fromScale(b[1], b[2])
-	inst.Size = UDim2.fromScale(b[3], b[4])
-end
-
-type Board = { gui: SurfaceGui, card: Frame, status: TextLabel, time: TextLabel, track: Frame, fill: Frame }
-
--- The lock board on `sign`'s Front face, built on first use.
-local function board(sign: Instance): Board
-	local deps = globals()
-	local gui = sign:FindFirstChild(PlotDecor.LOCK_BOARD_GUI) :: SurfaceGui?
-	if not gui then
-		local g = Instance.new("SurfaceGui")
-		g.Name = PlotDecor.LOCK_BOARD_GUI
-		g.Face = Enum.NormalId.Front
-		g.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		g.PixelsPerStud = PlotDecor.LOCK_BOARD_PIXELS_PER_STUD
-		g.LightInfluence = 0
-		local card = GooBoard.build(g, deps, PlotDecor.LOCK_BOARD, PlotDecor.LOCK_BOARD_ASPECT)
-		box(GooBoard.text(card, deps, "Status", GooPalette.White, 4), PlotDecor.LOCK_BOARD_TEXT.status)
-		box(GooBoard.text(card, deps, "Time", GooPalette.Text, 3), PlotDecor.LOCK_BOARD_TEXT.time)
-		local track = Instance.new("Frame")
-		track.Name = "Track"
-		track.BorderSizePixel = 0
-		track.BackgroundColor3 = rgb(GooPalette.Ink)
-		box(track, PlotDecor.LOCK_BOARD_TEXT.bar)
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(1, 0)
-		corner.Parent = track
-		local fill = Instance.new("Frame")
-		fill.Name = "Fill"
-		fill.BorderSizePixel = 0
-		fill.Size = UDim2.fromScale(1, 1)
-		corner:Clone().Parent = fill
-		fill.Parent = track
-		track.Parent = card
-		g.Parent = sign
-		gui = g
-	end
-	local g = gui :: SurfaceGui
-	local card = g:FindFirstChild(GooBoard.CARD) :: Frame
-	local track = card:FindFirstChild("Track") :: Frame
+local function globals(): RanchSign.Deps
 	return {
-		gui = g,
-		card = card,
-		status = card:FindFirstChild("Status") :: TextLabel,
-		time = card:FindFirstChild("Time") :: TextLabel,
-		track = track,
-		fill = track:FindFirstChild("Fill") :: Frame,
+		Instance = Instance,
+		Enum = Enum,
+		UDim = UDim,
+		UDim2 = UDim2,
+		Color3 = Color3,
+		ColorSequence = ColorSequence,
+		ColorSequenceKeypoint = ColorSequenceKeypoint,
 	}
 end
 
--- The share of a lock still to run, 0..1 (1 when its start is unknown).
-function PlotDecor.lockShare(lockStartedAt: number?, lockUntil: number?, now: number): number
-	local untilTime = lockUntil or 0
-	local started = lockStartedAt or 0
-	if started <= 0 or untilTime <= started then
-		return 1
+-- The lock plate on `sign`'s Front face, built on first use.
+local function plate(sign: Instance): (SurfaceGui, RanchSign.Plate)
+	local gui = sign:FindFirstChild(PlotDecor.LOCK_PLATE_GUI) :: SurfaceGui?
+	if not gui then
+		local g = Instance.new("SurfaceGui")
+		g.Name = PlotDecor.LOCK_PLATE_GUI
+		g.Face = Enum.NormalId.Front
+		g.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		g.PixelsPerStud = RanchSign.PIXELS_PER_STUD
+		g.LightInfluence = 0
+		g.Parent = sign
+		gui = g
 	end
-	return math.clamp((untilTime - now) / (untilTime - started), 0, 1)
+	return gui :: SurfaceGui, RanchSign.plate(gui, globals(), PlotDecor.LOCK_PLATE_ASPECT)
 end
 
--- Draws the lock board: hidden on a free plot (`owned` false), else locked with `remaining` s and `share` left, or open.
-local function applyBoard(sign: Instance, owned: boolean, locked: boolean, remaining: number, share: number)
-	local b = board(sign)
-	set(b.gui, "Enabled", owned)
+-- Draws the lock plate: none on a free plot (`owned` false), else locked with `remaining` s left, or open.
+local function applyPlate(sign: Instance, owned: boolean, locked: boolean, remaining: number)
+	local gui, p = plate(sign)
+	set(gui, "Enabled", owned)
 	if not owned then
 		return
 	end
-	local color = if locked then PlotDecor.LOCKED_COLOR else PlotDecor.UNLOCKED_COLOR
-	local status = if locked then "LOCKED" else "OPEN"
-	if b.status.Text ~= status then
-		GooBoard.paint(b.card, globals(), color)
-		b.status.Text = status
-		set(b.fill, "BackgroundColor3", rgb(color))
+	if locked then
+		RanchSign.paintPlate(p, globals(), true, PlotDecor.clock(remaining), "Locked")
+	else
+		RanchSign.paintPlate(p, globals(), false, "Open", "stealable!")
 	end
-	set(b.time, "Text", if locked then PlotDecor.clock(remaining) else "stealable!")
-	set(b.track, "Visible", locked)
-	set(b.fill, "Size", UDim2.fromScale(share, 1))
 end
 
 -- The swapped mesh under a jar tower look slot (server/MeshSwap names it "Mesh"), or nil before it lands.
@@ -198,7 +132,6 @@ local function applyLock(
 	owned: boolean,
 	locked: boolean,
 	remaining: number,
-	share: number,
 	mine: boolean,
 	doorLooks: boolean
 )
@@ -224,7 +157,7 @@ local function applyLock(
 	end
 	local sign = plot:FindFirstChild("LockSign")
 	if sign then
-		applyBoard(sign, owned, locked, remaining, share)
+		applyPlate(sign, owned, locked, remaining)
 	end
 end
 
@@ -402,15 +335,8 @@ export type Options = { door: boolean? }
 -- Applies every cosmetic of one Plot_<i> model for server time `now`, as player `viewerUserId` sees it.
 function PlotDecor.apply(plot: Instance, now: number, viewerUserId: number?, opts: Options?)
 	local lock = PlotDecor.lockOf(plot, now, viewerUserId)
-	local startedAt = plot:GetAttribute(Constants.PLOT_LOCK_STARTED_AT_ATTRIBUTE)
-	local lockUntil = plot:GetAttribute("LockUntil")
-	local share = PlotDecor.lockShare(
-		if type(startedAt) == "number" then startedAt else nil,
-		if type(lockUntil) == "number" then lockUntil else nil,
-		now
-	)
 	local doorLooks = opts == nil or opts.door ~= false
-	applyLock(plot, lock.owned, lock.locked, lock.remaining, share, lock.see, doorLooks)
+	applyLock(plot, lock.owned, lock.locked, lock.remaining, lock.see, doorLooks)
 end
 
 return table.freeze(PlotDecor)

@@ -1,13 +1,12 @@
 --!nocheck
--- Plot Signs: pure text from PlotSigns.lines and the Goo board PlotSigns.ensure builds with @lune/roblox.
+-- Plot Signs: pure text from PlotSigns.lines and the ranch plank PlotSigns.ensure builds with @lune/roblox.
 local roblox = require("@lune/roblox")
 
 local Fixtures = require("./Fixtures")
-local GooBoard = require("../src/shared/GooBoard")
-local GooPalette = require("../src/shared/GooPalette")
 local NumberFormat = require("../src/shared/NumberFormat")
 local PlayerData = require("../src/shared/PlayerData")
 local PlotSigns = require("../src/server/PlotSigns")
+local RanchSign = require("../src/shared/RanchSign")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -18,6 +17,8 @@ local DEPS = {
 	UDim = roblox.UDim,
 	UDim2 = roblox.UDim2,
 	Color3 = roblox.Color3,
+	ColorSequence = roblox.ColorSequence,
+	ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
 }
 
 local function owner(name, slimes, rebirths, stolen)
@@ -65,7 +66,7 @@ describe("PlotSigns.lines", function()
 end)
 
 describe("PlotSigns.apply", function()
-	it("adds a SurfaceGui with Title / Stats on the front (the board face) of a bare Sign", function()
+	it("adds a SurfaceGui with the plank's Title / Stats on the front (the board face) of a bare Sign", function()
 		expect(PlotSigns.FACES).toEqual({ "Front" })
 		local sign = roblox.Instance.new("Part")
 		sign.Name = "Sign"
@@ -74,40 +75,23 @@ describe("PlotSigns.apply", function()
 			local gui = sign:FindFirstChild(PlotSigns.GUI_PREFIX .. face)
 			expect(gui ~= nil).toBe(true)
 			expect(gui.Face).toBe(roblox.Enum.NormalId[face])
-			expect(gui.GooCard.Title.Text).toBe("Plot 2")
-			expect(gui.GooCard.Stats.Text).toBe("Empty plot")
+			local plank = gui:FindFirstChild(RanchSign.PLANK)
+			expect(plank.Title.Text).toBe("Plot 2")
+			expect(plank.Stats.Text).toBe("Empty plot")
+			expect(plank.Title.Font).toBe(roblox.Enum.Font.LuckiestGuy)
 		end
 	end)
-	it("draws a mint band with the name in Ink on an owned plot, plain glass on a free one", function()
+	it("carves an owned plot's name in bright cream and a free plot's quieter", function()
 		local sign = roblox.Instance.new("Part")
 		PlotSigns.apply(sign, PlotSigns.lines(4, nil), DEPS)
-		local gui = sign[PlotSigns.GUI_PREFIX .. "Front"]
-		local card = gui:FindFirstChild(GooBoard.CARD)
-		expect(card.Band.Visible).toBe(false)
-		expect(card.Title.TextColor3).toBe(rgb(GooPalette.Text))
-		expect(card.Stats.TextColor3).toBe(rgb(GooPalette.MutedWell))
+		local plank = sign[PlotSigns.GUI_PREFIX .. "Front"]:FindFirstChild(RanchSign.PLANK)
+		expect(plank.Title.TextColor3).toBe(rgb(RanchSign.COLORS.freeName))
 		PlotSigns.apply(sign, PlotSigns.lines(4, owner("Ann", nil, 0, 0)), DEPS)
-		expect(card.Band.Visible).toBe(true)
-		expect(card.Band.BackgroundColor3).toBe(rgb(GooPalette.Mint))
-		for _, piece in card.Band:GetDescendants() do
-			if piece:IsA("Frame") and piece.Name ~= "Goo" then
-				expect(piece.BackgroundColor3).toBe(rgb(GooPalette.Mint))
-			end
-		end
-		expect(card.Title.TextColor3).toBe(rgb(GooPalette.Ink))
-		expect(card.Stats.TextColor3).toBe(rgb(GooPalette.Text))
-		-- the name sits inside the band
-		local t = card.Title
-		expect(t.Position.Y.Scale + t.Size.Y.Scale <= PlotSigns.BOARD.band).toBe(true)
-	end)
-	it("keeps every drip clear of the stats line", function()
-		local stats = PlotSigns.TEXT.stats
-		for _, d in PlotSigns.BOARD.drips do
-			local x, y, w, h = GooBoard.dripBox(PlotSigns.BOARD, d, PlotSigns.ASPECT)
-			local besideText = x + w <= stats[1] or x >= stats[1] + stats[3]
-			expect(besideText or y + h <= stats[2]).toBe(true)
-		end
-		expect(GooBoard.gooBottom(PlotSigns.BOARD, PlotSigns.ASPECT) < 1).toBe(true)
+		expect(plank.Title.TextColor3).toBe(rgb(RanchSign.COLORS.name))
+		-- the name sits above the stats line, both inside the plank
+		local t, st = plank.Title, plank.Stats
+		expect(t.Position.Y.Scale + t.Size.Y.Scale <= st.Position.Y.Scale).toBe(true)
+		expect(st.Position.Y.Scale + st.Size.Y.Scale <= 1).toBe(true)
 	end)
 	it("updates in place when the owner changes (no duplicate guis)", function()
 		local sign = roblox.Instance.new("Part")
@@ -119,6 +103,32 @@ describe("PlotSigns.apply", function()
 		for _, text in all do
 			expect(text ~= "" and text ~= "Plot 1" and text ~= "Empty plot").toBe(true)
 		end
-		expect(sign[PlotSigns.GUI_PREFIX .. "Front"].GooCard.Title.Text).toBe("Ann's plot")
+		expect(sign[PlotSigns.GUI_PREFIX .. "Front"]:FindFirstChild(RanchSign.PLANK).Title.Text).toBe("Ann's plot")
+	end)
+end)
+
+describe("RanchSign.plate", function()
+	it("is red with the padlock shut while locked, green with it lifted while open", function()
+		local gui = roblox.Instance.new("SurfaceGui")
+		local plate = RanchSign.plate(gui, DEPS, 6 / 2.6)
+		RanchSign.paintPlate(plate, DEPS, true, "1:37", "Locked")
+		expect(plate.plate.BackgroundColor3).toBe(rgb(RanchSign.COLORS.locked))
+		expect(plate.big.Text).toBe("1:37")
+		expect(plate.small.Text).toBe("Locked")
+		local shut = plate.shackle.Position
+		RanchSign.paintPlate(plate, DEPS, false, "Open", "stealable!")
+		expect(plate.plate.BackgroundColor3).toBe(rgb(RanchSign.COLORS.open))
+		expect(plate.big.Text).toBe("Open")
+		expect(plate.shackle.Position.Y.Scale < shut.Y.Scale).toBe(true)
+		-- built once: a second call finds the same plate
+		expect(RanchSign.plate(gui, DEPS, 6 / 2.6).plate).toBe(plate.plate)
+		expect(#gui:GetChildren()).toBe(1)
+	end)
+	it("hangs the plate under its chains, inside the face", function()
+		local B = RanchSign.PLATE_BOX
+		expect(B.plate[2] > 0 and B.plate[2] + B.plate[4] <= 1).toBe(true)
+		for _, x in B.chains do
+			expect(x > B.plate[1] and x < B.plate[1] + B.plate[3]).toBe(true)
+		end
 	end)
 end)

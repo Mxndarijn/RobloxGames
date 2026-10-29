@@ -236,9 +236,11 @@ WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ -11.27, -21.19 }) -- inside, right
 -- collides).
 WorldLayout.PLOT_FLOOR_RADIUS = 40
 WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
--- The owner's name board above the LockSign, on its post: as wide as the LockSign, so the two read as one sign
-WorldLayout.NAME_BOARD = table.freeze({ width = 8, height = 2.6, y = 10.5 })
-WorldLayout.LOCK_SIGN = table.freeze({ width = 8, height = 3.2, y = 7 }) -- the lock status board by the bridge
+-- The plot sign by the bridge is one ranch sign (shared/RanchSign), 6 x 4.8 studs: the owner's name plank (Sign)
+-- and right under it the LockSign, the lock plate hanging from the plank on two chains. Same width, so the two read
+-- as one sign.
+WorldLayout.NAME_BOARD = table.freeze({ width = 6, height = 2.2, y = 9.9 })
+WorldLayout.LOCK_SIGN = table.freeze({ width = 6, height = 2.6, y = 7.48 }) -- chains + lock plate, just under the plank
 -- Jar 1's door is a round plank door on two hinges on its left (-X). Locked, it sits shut in the doorway (StopperShut);
 -- open, it swings DOOR_SWING.angle degrees out of the jar round its hinge pin (StopperParked): past square, so it
 -- leans back over the moat on the hinge side and its far edge stays about a stud inside the plot's edge (a 90
