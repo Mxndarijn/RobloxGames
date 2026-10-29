@@ -34,6 +34,7 @@ VatView.ID_SUFFIX = "#vat" -- appended to the slime's id in the copy's SlimeId
 VatView.SPOT_RADIUS = 2.2 -- studs from the vat's centre to each spot when the vat mesh isn't there (plain disc)
 VatView.SPOT_LIFT = 0.15 -- studs above the goo
 VatView.TAG_NAME = "VatTag"
+VatView.ANCHOR_NAME = "VatTagAnchor" -- attachment on the disc the tag hangs on
 VatView.SPOTS_NAME = "VatSpots"
 VatView.FADED_ATTRIBUTE = Constants.OWN_TRANSPARENCY_ATTRIBUTE -- on a faded part: its own transparency before the fade
 VatView.TAG = table.freeze({
@@ -123,14 +124,29 @@ local function vatTop(vat: BasePart): CFrame
 	return CFrame.new(vat.Position + Vector3.new(0, vat.Size.Y / 2, 0))
 end
 
+-- Keeps the tag's anchor `T.lift` studs over the vat's top centre. The disc is a cylinder lying on its side, so the
+-- tag hangs on this attachment rather than on the disc's own axes; it follows a vat mesh that arrives late or moves.
+local function placeAnchor(vat: BasePart)
+	local anchor = vat:FindFirstChild(VatView.ANCHOR_NAME)
+	if not (anchor and anchor:IsA("Attachment")) then
+		return
+	end
+	local at = vat.CFrame:PointToObjectSpace(vatTop(vat).Position + Vector3.new(0, VatView.TAG.lift, 0))
+	if (anchor.CFrame.Position - at).Magnitude > 1e-3 then
+		anchor.CFrame = CFrame.new(at)
+	end
+end
+
 local function buildTag(vat: BasePart): BillboardGui
 	local T = VatView.TAG
+	local anchor = Instance.new("Attachment")
+	anchor.Name = VatView.ANCHOR_NAME
+	anchor.Parent = vat
 	local gui = Instance.new("BillboardGui")
 	gui.Name = VatView.TAG_NAME
-	gui.Adornee = vat
+	gui.Adornee = anchor
 	gui.Size = UDim2.fromOffset(T.w, T.h)
 	gui.SizeOffset = Vector2.new(0, 0.5)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, vatTop(vat).Position.Y - vat.Position.Y + T.lift, 0)
 	gui.MaxDistance = 120
 	gui.LightInfluence = 0
 	local head = Instance.new("TextLabel")
@@ -368,6 +384,7 @@ function VatView.sync(
 
 	-- The tag over the vat.
 	local tag = vat:FindFirstChild(VatView.TAG_NAME) or buildTag(vat)
+	placeAnchor(vat)
 	local line = (tag :: Instance):FindFirstChild("Line") :: TextLabel?
 	if line then
 		local view = if data then VatView.tagLine(data, now) else { text = "", color = "MutedWell" }
