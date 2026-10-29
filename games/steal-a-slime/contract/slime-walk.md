@@ -30,8 +30,12 @@ When a carry of a wild slime ends (`Carry.release`: the carrier drops it, is sla
    (`expiresAt - spawnedAt` = `Fountain.wildLifetime`). Dropped near the drain = drains soon after it rejoins.
 3. `wild.returning` holds the plan (`{ fromX, fromZ, x1, z1, x2, z2, s, startAt, arriveAt, speed, length }`) and
    `wild.position` the drop spot while it walks (off the lane: `ParadeLane.onLane` is false, so it never emits
-   `Drained` from there). `ParadeLane.returnPose(plan, now)` gives its spot and heading; the y is the ground under it
-   (the adapter's raycast, `LANE_Y` when there is none).
+   `Drained` from there). `ParadeLane.returnPose(plan, now)` gives its spot and heading. Its height comes from
+   `server/WalkHeight` each Heartbeat, over the ground the adapter's ray finds under that spot (from
+   `WalkHeight.STEP_UP` above it down to `RAY_DEPTH` below): ground up to `STEP_DOWN` lower, or higher, is a step it
+   eases onto; ground further down is a ledge (off the fountain, a jar roof) that it falls off with `GRAVITY` while
+   it keeps walking, and lands on; with no ground at all it keeps its height. Over its last lane width the ground
+   eases onto `LANE_Y`.
 4. `Spawner.step` ends the walk at `arriveAt`: `wild.position` and `wild.returning` go back to nil, the slime is on
    the lane again and walks on from the merge point at the same pace (no jump: the lane pose at `arriveAt` is the
    plan's end point).

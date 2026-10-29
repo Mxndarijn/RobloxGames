@@ -85,6 +85,7 @@ local StackGuard = require(script.Parent.StackGuard)
 local StealGhost = require(script.Parent.StealGhost)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
 local VatView = require(script.Parent.VatView)
+local WalkHeight = require(script.Parent.WalkHeight)
 local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 local WorldProps = require(script.Parent.WorldProps)
@@ -623,16 +624,16 @@ local function followBoss(id: string, key: string, wild: World.Wild)
 	end)
 end
 
-WorldView.WALK_STEP_UP = 3 -- studs above its last height a walking slime looks for the ground (steps, ramps)
-WorldView.WALK_RAY_DEPTH = 12 -- and how far below that
-WorldView.WALK_Y_RATE = 10 -- 1 / s: how fast its height follows the ground (no snapping over an edge)
-
--- Ground height under a returning slime at (x, z), near `y`, easing onto the goo crown (LANE_Y) over its last
--- lane width so it hands over to the lane pose without a step. Keeps `y` where there is no ground.
-local function walkHeight(plan: ParadeLane.Return, x: number, z: number, y: number, now: number): number
-	local up = WorldView.WALK_STEP_UP
-	local ground = surfaceBelow(Vector3.new(x, y + up, z), up + WorldView.WALK_RAY_DEPTH)
-	local target = if ground then ground.Y else y
+-- Ground height under a returning slime at (x, z), searched from WalkHeight.STEP_UP over its height `y` down to
+-- RAY_DEPTH under it, easing onto the goo crown (LANE_Y) over its last lane width so it hands over to the lane pose
+-- without a step. nil where there is no ground. WalkHeight turns it into a step or a fall off a ledge.
+local function walkGround(plan: ParadeLane.Return, x: number, z: number, y: number, now: number): number?
+	local up = WalkHeight.STEP_UP
+	local ground = surfaceBelow(Vector3.new(x, y + up, z), up + WalkHeight.RAY_DEPTH)
+	if not ground then
+		return nil
+	end
+	local target = ground.Y
 	local left = plan.length - ParadeLane.returnTravelled(now - plan.startAt, plan.speed)
 	local onto = 1 - math.clamp(left / (2 * ParadeLane.HALF_WIDTH), 0, 1)
 	return target + (ParadeLane.LANE_Y - target) * onto * onto * (3 - 2 * onto)
@@ -675,7 +676,7 @@ end
 
 local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0: number)
 	task.spawn(function()
-		local y = y0
+		local height = WalkHeight.new(y0)
 		local dt = 0
 		local asideX, asideZ = 0, 0 -- steps round other slimes and the boss
 		while true do
@@ -694,9 +695,9 @@ local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0
 				asideX += (px * fade - asideX) * k
 				asideZ += (pz * fade - asideZ) * k
 				x, z = x + asideX, z + asideZ
-				local target = walkHeight(plan, x, z, y, now)
-				y += (target - y) * math.min(1, dt * WorldView.WALK_Y_RATE)
-				local cf = returnCFrame(plan, y, now)
+				-- steps and ramps eased, ledges fallen off (WalkHeight)
+				height = WalkHeight.step(height, walkGround(plan, x, z, height.y, now), dt)
+				local cf = returnCFrame(plan, height.y, now)
 				record.model:PivotTo(cf + Vector3.new(asideX, 0, asideZ))
 			end
 			dt = RunService.Heartbeat:Wait()
@@ -709,7 +710,7 @@ end
 -- the navmesh can't see.
 WorldView.PATH_AGENT = table.freeze({
 	AgentRadius = 1.5,
-	AgentHeight = 4, -- above WALK_STEP_UP: nothing over the path is low enough for the ground ray to land on
+	AgentHeight = 4, -- above WalkHeight.STEP_UP: nothing over the path is low enough for the ground ray to land on
 	AgentCanJump = true,
 	AgentCanClimb = false,
 	WaypointSpacing = 4,
