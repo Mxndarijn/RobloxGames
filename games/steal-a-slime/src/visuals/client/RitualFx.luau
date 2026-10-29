@@ -15,12 +15,14 @@
 	    the rest runs down
 	The look numbers live in Visuals.RitualLook and the particle presets in Visuals.Effects. Everything it
 	adds is local; it never fires remotes. Past RitualLook.MAX_DISTANCE from the camera it stops the
-	emitters and skips the per-frame work. Call `tick` once a frame from the client's frame loop.
+	emitters and skips the per-frame work. On a phone-sized viewport it shortens the orb label's MaxDistance
+	(Ritual.labelDistance). Call `tick` once a frame from the client's frame loop.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
+local Ritual = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Ritual"))
 local Visuals = ReplicatedStorage:WaitForChild("Visuals")
 local Effects = require(Visuals:WaitForChild("Effects"))
 local RitualLook = require(Visuals:WaitForChild("RitualLook"))
@@ -29,6 +31,7 @@ local RitualFx = {}
 
 RitualFx.FOLDER_NAME = "ClientRitualFx"
 RitualFx.CIRCLE_NAME = "RitualCircle" -- server/RitualView.MODEL_NAME
+RitualFx.SIGN_NAME = "RitualSign" -- the orb's BillboardGui (server/RitualView)
 RitualFx.FIND_EVERY = 1 -- seconds between looks for the circle while it isn't there
 
 export type Controller = { tick: (camera: Camera?) -> (), stop: () -> () }
@@ -387,6 +390,14 @@ function RitualFx.start(): Controller
 			rig = current
 			if not current then
 				return
+			end
+		end
+		-- The server sets the label's full range; a phone-sized viewport gets the shorter one.
+		local sign = current.orb:FindFirstChild(RitualFx.SIGN_NAME)
+		if camera and sign and sign:IsA("BillboardGui") then
+			local range = Ritual.labelDistance(camera.ViewportSize.Y)
+			if sign.MaxDistance ~= range then
+				sign.MaxDistance = range
 			end
 		end
 		local near = camera == nil or (camera.CFrame.Position - current.centre).Magnitude <= RitualLook.MAX_DISTANCE
