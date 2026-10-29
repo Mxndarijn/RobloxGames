@@ -23,7 +23,7 @@ Owners: Phoenix (`src/server`, `src/shared`), Jolt (`src/ui`).
 
 ## 42.3 Attributes
 
-- `Plot_<i>.FriendsAllowed: true?` (`Constants.PLOT_FRIENDS_ALLOWED_ATTRIBUTE`): set while the owner's switch is on. `src/ui/FriendsLockIcon` shows the friend icon (`ItemIcons` `Boost_Friend`) as a sticker on the outer face of the shut stopper (`LockBarrier.Stopper`) while the plot is also `Locked`, and as a badge over the `LockButton` while the switch is on. Nothing shows with the switch off.
+- `Plot_<i>.FriendsAllowed: true?` (`Constants.PLOT_FRIENDS_ALLOWED_ATTRIBUTE`): set while the owner's switch is on. `src/ui/FriendsLockIcon` shows the friend icon (`ItemIcons` `Boost_Friend`) as a sticker on the outer face of the shut door (`StopperShut.Mesh`, or `LockBarrier.Stopper` until that mesh lands) while the plot is also `Locked`. Nothing shows with the switch off or the plot open.
 - `Plot_<i>.Guests: string?` (`Constants.PLOT_GUESTS_ATTRIBUTE`): `",<id>,<id>,"` of the players plot `i`'s stopper lets through besides the owner (`SlimeGuard.stopperPasses`), nil for none. `PlotDecor` shows the shut door half see-through (`OWNER_DOOR_TRANSPARENCY`) to those viewers, as it does to the owner.
 - `GrabPrompt.GuestsOnly: string?` (`Constants.PROMPT_GUESTS_ATTRIBUTE`): on the Steal prompts of a locked base that has guests in the server, `",<id>,<id>,"`. Such a prompt is `Enabled` on the server, and `src/ui/PromptHide` keeps it disabled on every client whose UserId is not in the list. The server writes `GuestsOnly` before `Enabled`, so a client applies the list first. `Carry.grab` still refuses a non-guest.
 

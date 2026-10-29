@@ -97,6 +97,8 @@ return table.freeze({
 	BAT_SWING_ATTRIBUTE = "BatSwingAt", -- Player: server time of the last Bat swing (every client plays the swing, CONTRACT.md §26.2)
 	REBIRTH_TITLE_ATTRIBUTE = "RebirthTitle", -- Player: rank title (Config.REBIRTH_TIERS)
 	PLOT_LOCKED_ATTRIBUTE = "Locked", -- Plot_<i>: true while LockUntil > now
+	PLOT_LOCK_STARTED_AT_ATTRIBUTE = "LockStartedAt", -- Plot_<i>: server time the current lock began (0 = none)
+	PLOT_LOCK_PAD_SINCE_ATTRIBUTE = "LockPadSince", -- Plot_<i>: server time the owner stepped onto the lock pad, nil = off it
 	PLOT_FRIENDS_ALLOWED_ATTRIBUTE = "FriendsAllowed", -- Plot_<i>: true while the owner lets friends in (FEATURES.FriendsInBase)
 	PLOT_GUESTS_ATTRIBUTE = "Guests", -- Plot_<i>: ",<id>,<id>," of the players its locked stopper lets through besides the owner
 	PLOT_PADS_UNLOCKED_ATTRIBUTE = "PadsUnlocked", -- Plot_<i>: owner's unlocked pads, 0 = free plot

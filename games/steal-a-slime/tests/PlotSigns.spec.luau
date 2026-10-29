@@ -1,10 +1,10 @@
 --!nocheck
--- Plot Signs: pure text from PlotSigns.lines and the Goo board PlotSigns.ensure builds with @lune/roblox.
+-- Plot Signs: pure text from PlotSigns.lines and the mascot sign PlotSigns.ensure builds with @lune/roblox.
 local roblox = require("@lune/roblox")
 
+local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
-local GooBoard = require("../src/shared/GooBoard")
-local GooPalette = require("../src/shared/GooPalette")
+local MascotSign = require("../src/shared/MascotSign")
 local NumberFormat = require("../src/shared/NumberFormat")
 local PlayerData = require("../src/shared/PlayerData")
 local PlotSigns = require("../src/server/PlotSigns")
@@ -18,6 +18,8 @@ local DEPS = {
 	UDim = roblox.UDim,
 	UDim2 = roblox.UDim2,
 	Color3 = roblox.Color3,
+	ColorSequence = roblox.ColorSequence,
+	ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
 }
 
 local function owner(name, slimes, rebirths, stolen)
@@ -29,16 +31,6 @@ end
 
 local function rgb(c)
 	return roblox.Color3.fromRGB(c[1], c[2], c[3])
-end
-
-local function texts(sign)
-	local out = {}
-	for _, d in sign:GetDescendants() do
-		if d:IsA("TextLabel") then
-			table.insert(out, d.Text)
-		end
-	end
-	return out
 end
 
 describe("PlotSigns.lines", function()
@@ -57,6 +49,13 @@ describe("PlotSigns.lines", function()
 		expect(lines.stats).toBe(`{income}, 2 rebirths, 1 steal`)
 		expect(PlotSigns.lines(1, owner("Ann", nil, 1, 0)).stats).toBe("+$0/s, 1 rebirth, 0 steals")
 	end)
+	it(
+		"carries the owner's plot theme for the mascot (classic until another skin is unlocked); none on a free plot",
+		function()
+			expect(PlotSigns.lines(1, owner("Ann", nil, 0, 0)).skin).toBe(Config.PLOT_SKIN_DEFAULT)
+			expect(PlotSigns.lines(1, nil).skin).toBe(nil)
+		end
+	)
 	it("shows the income the HUD shows when the server passes it (carried slimes left out)", function()
 		local o = owner("Merijn", { Fixtures.slime("a", 3) }, 0, 0)
 		expect(PlotSigns.lines(1, o, 0).stats).toBe("+$0/s, 0 rebirths, 0 steals")
@@ -65,60 +64,80 @@ describe("PlotSigns.lines", function()
 end)
 
 describe("PlotSigns.apply", function()
-	it("adds a SurfaceGui with Title / Stats on the front (the board face) of a bare Sign", function()
+	local function face(sign)
+		return sign:FindFirstChild(PlotSigns.GUI_PREFIX .. "Front"):FindFirstChild(MascotSign.ROOT)
+	end
+
+	it("adds a SurfaceGui with the mascot sign on the front (the drawn face) of a bare Sign", function()
 		expect(PlotSigns.FACES).toEqual({ "Front" })
 		local sign = roblox.Instance.new("Part")
 		sign.Name = "Sign"
 		PlotSigns.apply(sign, PlotSigns.lines(2, nil), DEPS)
-		for _, face in PlotSigns.FACES do
-			local gui = sign:FindFirstChild(PlotSigns.GUI_PREFIX .. face)
-			expect(gui ~= nil).toBe(true)
-			expect(gui.Face).toBe(roblox.Enum.NormalId[face])
-			expect(gui.GooCard.Title.Text).toBe("Plot 2")
-			expect(gui.GooCard.Stats.Text).toBe("Empty plot")
-		end
+		local gui = sign:FindFirstChild(PlotSigns.GUI_PREFIX .. "Front")
+		expect(gui.Face).toBe(roblox.Enum.NormalId.Front)
+		expect(gui.MaxDistance).toBe(PlotSigns.MAX_DISTANCE)
+		local root = face(sign)
+		expect(root.Bar.Title.Text).toBe("Plot 2")
+		expect(root.Bar.Stats.Text).toBe("Empty plot")
 	end)
-	it("draws a mint band with the name in Ink on an owned plot, plain glass on a free one", function()
+
+	it("puts a free plot's mascot to sleep and wakes it in the owner's theme colour", function()
 		local sign = roblox.Instance.new("Part")
 		PlotSigns.apply(sign, PlotSigns.lines(4, nil), DEPS)
-		local gui = sign[PlotSigns.GUI_PREFIX .. "Front"]
-		local card = gui:FindFirstChild(GooBoard.CARD)
-		expect(card.Band.Visible).toBe(false)
-		expect(card.Title.TextColor3).toBe(rgb(GooPalette.Text))
-		expect(card.Stats.TextColor3).toBe(rgb(GooPalette.MutedWell))
-		PlotSigns.apply(sign, PlotSigns.lines(4, owner("Ann", nil, 0, 0)), DEPS)
-		expect(card.Band.Visible).toBe(true)
-		expect(card.Band.BackgroundColor3).toBe(rgb(GooPalette.Mint))
-		for _, piece in card.Band:GetDescendants() do
-			if piece:IsA("Frame") and piece.Name ~= "Goo" then
-				expect(piece.BackgroundColor3).toBe(rgb(GooPalette.Mint))
-			end
-		end
-		expect(card.Title.TextColor3).toBe(rgb(GooPalette.Ink))
-		expect(card.Stats.TextColor3).toBe(rgb(GooPalette.Text))
-		-- the name sits inside the band
-		local t = card.Title
-		expect(t.Position.Y.Scale + t.Size.Y.Scale <= PlotSigns.BOARD.band).toBe(true)
+		local root = face(sign)
+		expect(root.Mascot.Eye1.Visible).toBe(false)
+		expect(root.Mascot.Lid1.Visible).toBe(true)
+		expect(root.Zz.Visible).toBe(true)
+		expect(root.Paw1.BackgroundColor3).toBe(rgb(MascotSign.COLORS.asleep))
+		local owned = PlotSigns.lines(4, owner("Ann", nil, 0, 0))
+		PlotSigns.apply(sign, owned, DEPS)
+		expect(root.Mascot.Eye1.Visible).toBe(true)
+		expect(root.Mascot.Lid1.Visible).toBe(false)
+		expect(root.Zz.Visible).toBe(false)
+		expect(root.Paw1.BackgroundColor3).toBe(rgb(MascotSign.bodyColor(owned)))
+		expect(MascotSign.bodyColor(owned)).toEqual(
+			MascotSign.bodyColor({ title = "", stats = "", owned = true, skin = Config.PLOT_SKINS[1].id })
+		)
 	end)
-	it("keeps every drip clear of the stats line", function()
-		local stats = PlotSigns.TEXT.stats
-		for _, d in PlotSigns.BOARD.drips do
-			local x, y, w, h = GooBoard.dripBox(PlotSigns.BOARD, d, PlotSigns.ASPECT)
-			local besideText = x + w <= stats[1] or x >= stats[1] + stats[3]
-			expect(besideText or y + h <= stats[2]).toBe(true)
+
+	it("colours the mascot and the nameplate's goo for each theme, a different colour per theme", function()
+		local sign = roblox.Instance.new("Part")
+		local seen = {}
+		for _, skin in Config.PLOT_SKINS do
+			local lines = PlotSigns.lines(1, owner("Ann", nil, 0, 0))
+			lines.skin = skin.id
+			PlotSigns.apply(sign, lines, DEPS)
+			local root = face(sign)
+			local body = rgb(MascotSign.bodyColor(lines))
+			expect(root.Paw1.BackgroundColor3).toBe(body)
+			expect(root.Goo.BackgroundColor3).toBe(body)
+			expect(root.Drip1.BackgroundColor3).toBe(body)
+			local key = table.concat(MascotSign.bodyColor(lines), ",")
+			expect(seen[key]).toBe(nil) -- no two themes share a colour
+			seen[key] = true
 		end
-		expect(GooBoard.gooBottom(PlotSigns.BOARD, PlotSigns.ASPECT) < 1).toBe(true)
 	end)
+
+	it("keeps the goo drips at the ends of the nameplate, clear of the text", function()
+		for _, d in MascotSign.GOO.drips do
+			expect(d[1] < 0.2 or d[1] > 0.8).toBe(true)
+		end
+	end)
+
+	it("keeps the mascot's eyes above the nameplate and the bar inside the face", function()
+		local B = MascotSign.BOX
+		local m = B.mascot
+		expect(m[2] + m[4] * B.eyeY < B.bar[2]).toBe(true)
+		expect(B.bar[2] + B.bar[4] <= 1).toBe(true)
+		expect(m[2] >= 0).toBe(true)
+	end)
+
 	it("updates in place when the owner changes (no duplicate guis)", function()
 		local sign = roblox.Instance.new("Part")
 		PlotSigns.apply(sign, PlotSigns.lines(1, nil), DEPS)
 		PlotSigns.apply(sign, PlotSigns.lines(1, owner("Ann", nil, 0, 0)), DEPS)
 		expect(#sign:GetChildren()).toBe(#PlotSigns.FACES)
-		local all = texts(sign)
-		expect(#all).toBe(2 * #PlotSigns.FACES)
-		for _, text in all do
-			expect(text ~= "" and text ~= "Plot 1" and text ~= "Empty plot").toBe(true)
-		end
-		expect(sign[PlotSigns.GUI_PREFIX .. "Front"].GooCard.Title.Text).toBe("Ann's plot")
+		expect(#sign:FindFirstChild(PlotSigns.GUI_PREFIX .. "Front"):GetChildren()).toBe(1)
+		expect(face(sign).Bar.Title.Text).toBe("Ann's plot")
 	end)
 end)

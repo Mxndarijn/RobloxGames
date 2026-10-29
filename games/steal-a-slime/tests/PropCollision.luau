@@ -839,14 +839,14 @@ parts(
 	"lock button and its pedestal"
 )
 parts(
-	"plot_lock_sign",
+	"plot_sign_legs",
 	"gojo",
-	24,
+	16,
 	"off",
 	"Plots",
-	{ "^LockSign$", "^Lamp$", "^Post$" },
+	{ "^SignLeg_%d$" },
 	"off",
-	"0.5 stud lamp post and a 0.3 thick sign: slim, in the plot front"
+	"two short legs under the sign, in the plot front"
 )
 parts(
 	"plot_lock_barrier",

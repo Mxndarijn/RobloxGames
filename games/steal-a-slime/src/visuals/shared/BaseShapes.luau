@@ -64,7 +64,7 @@ local BaseShapes = {}
 -- where the jar has them. Everything else on floor 1 belongs to one base and is rebuilt on a swap.
 BaseShapes.KEPT_MOVED = table.freeze({ "MergeVat", "LockButton", "ButtonLook", "Bridge", "LockBarrier" })
 BaseShapes.KEPT_STILL =
-	table.freeze({ "Base", "PlotFloor", "HomeZone", "Slimes", "Moat", "JarFloor", "Sign", "LockSign" })
+	table.freeze({ "Base", "PlotFloor", "HomeZone", "Slimes", "Moat", "JarFloor", "Sign", "SignLeg_1", "SignLeg_2" })
 
 local function isPad(name: string): boolean
 	local j = tonumber(string.match(name, "^Pad_(%d+)$"))

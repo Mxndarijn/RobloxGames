@@ -1067,7 +1067,7 @@ local grabBlock = GrabBlockCard.start({
 	end,
 })
 
--- FEATURES.FriendsInBase: the friend icon on the stopper and over the lock button of every base that lets friends in.
+-- FEATURES.FriendsInBase: the friend icon on the shut door of every locked base that lets friends in.
 if Config.FEATURES.FriendsInBase == true then
 	FriendsLockIcon.start({
 		plots = workspace:WaitForChild("Plots"),

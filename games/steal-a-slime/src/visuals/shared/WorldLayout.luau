@@ -23,7 +23,7 @@
 	           glass wall + Lid, Moat, JarFloor, Bridge) with Pad_1..PADS_PER_FLOOR
 	           on its pad ring, HomeZone, MergeVat, LockButton, Sign (the
 	           plot's name board), Slimes folder, and the PlotDecor cosmetics
-	           (LockBarrier stopper, ParkedStopper, LockSign).
+	           (LockBarrier stopper, ParkedStopper); SignLeg_1 / SignLeg_2 under the Sign.
 	           Upper jars come from WorldLayout.floor (server/BaseFloors)
 	Every Part is anchored (WorldBuilder forces it). PROP_SPOTS suggests
 	where Props go.
@@ -225,8 +225,8 @@ WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3, landSide = 2.8 })
 -- Jar 1's ground pieces (plot-local; angles as above). The bridge crosses the moat to the door. Floor 1's pads spread
 -- evenly from FLOOR1_PAD_ARC[1] to FLOOR1_PAD_ARC[2] degrees round from the door, leaving the front either side of the
 -- door free: the MergeVat and the LockButton stand there, one each side, the first things you see coming in (inside
--- and on the ground floor, so nobody camps an owner's button from outside). The LockSign (status) stands outside by the bridge with the plot's name
--- board (Sign, PlotSigns writes on its Front face) on the same post.
+-- and on the ground floor, so nobody camps an owner's button from outside). The plot's sign (Sign, PlotSigns draws on its
+-- Front face) stands outside by the bridge on two short legs (SignLeg_1, SignLeg_2).
 -- Players spawn on the walkway between the stair and the pads, in front of the door.
 WorldLayout.BRIDGE_WIDTH = 10
 WorldLayout.FLOOR1_PAD_ARC = table.freeze({ 60, 300 })
@@ -236,10 +236,11 @@ WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ -11.27, -21.19 }) -- inside, right
 -- (PlotFloor), its look the goo_jar_foot mesh; the square Base part stays as the plot's anchor (invisible, never
 -- collides).
 WorldLayout.PLOT_FLOOR_RADIUS = 40
-WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
--- The owner's name board above the LockSign, on its post: as wide as the LockSign, so the two read as one sign
-WorldLayout.NAME_BOARD = table.freeze({ width = 8, height = 2.6, y = 10.5 })
-WorldLayout.LOCK_SIGN = table.freeze({ width = 8, height = 3.2, y = 7 }) -- the lock status board by the bridge
+WorldLayout.SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
+-- The plot sign by the bridge (Sign, shared/MascotSign): the jar's mascot peeking over a glass nameplate, 6 x 3 studs,
+-- at eye level on two short legs: its bottom a stud above the ground, its top just under a player's head.
+WorldLayout.SIGN_LEGS = table.freeze({ width = 0.7, depth = 0.6, inset = 0.9 }) -- studs; inset = from each end of the sign to a leg's centre
+WorldLayout.NAME_BOARD = table.freeze({ width = 6, height = 3, y = 3.5 })
 -- Jar 1's door is a round plank door on two hinges on its left (-X). Locked, it sits shut in the doorway (StopperShut);
 -- open, it swings DOOR_SWING.angle degrees out of the jar round its hinge pin (StopperParked): past square, so it
 -- leans back over the moat on the hinge side and its far edge stays about a stud inside the plot's edge (a 90
@@ -563,7 +564,6 @@ local PLAZA = { 222, 198, 150 } -- ranch_plaza sand
 local WOOD = { 110, 74, 48 }
 local SIGN = { 222, 178, 120 }
 local FENCE = { 150, 104, 68 }
-local SIGN_BOARD = { 62, 42, 30 } -- dark wood: the lock sign's coloured text stays readable
 local GOO = { 120, 255, 140 }
 
 local function light(preset: string): WorldNode
@@ -1430,19 +1430,27 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local parked = disc("ParkedStopper", 2.6, WorldLayout.DOOR.width * 0.8, at({ px, 1.4, pz }), JAR_CORK, "Wood", yaw)
 	table.insert(nodes, ghost(parked))
 
-	-- Lock sign by the bridge, facing out of the plot (Front face); the post carries the name board (Sign) above it.
-	local bx, bz = WorldLayout.LOCK_SIGN_SPOT[1], WorldLayout.LOCK_SIGN_SPOT[2]
-	local postH = WorldLayout.NAME_BOARD.y + WorldLayout.NAME_BOARD.height / 2 - 1
-	local ls = WorldLayout.LOCK_SIGN
-	local lockSign =
-		ghost(block("LockSign", { ls.width, ls.height, 0.3 }, at({ bx + 1.5, ls.y, bz + 2.6 }), SIGN_BOARD, "Wood", r))
-	lockSign.children = {
-		ghost(block("Post", { 0.5, postH, 0.5 }, at({ bx + 1.5, 1 + postH / 2, bz + 3.0 }), FENCE, "Wood", r)),
-		ghost(
-			disc("Lamp", 0.4, 1.3, at({ bx + 1.5 - ls.width / 2 - 0.4, ls.y, bz + 2.6 }), { 90, 220, 110 }, "Neon", yaw)
-		),
-	}
-	table.insert(nodes, lockSign)
+	-- The sign's two short legs by the bridge: from the ground up behind the nameplate (Sign), half a stud into it, one
+	-- under each end.
+	local bx, bz = WorldLayout.SIGN_SPOT[1], WorldLayout.SIGN_SPOT[2]
+	local board, legs = WorldLayout.NAME_BOARD, WorldLayout.SIGN_LEGS
+	local legH = board.y - board.height / 2 + 0.5 - 1 -- from the ground (y 1) to half a stud into the board
+	for i, side in { -1, 1 } do
+		local lx = bx + 1.5 + side * (board.width / 2 - legs.inset)
+		table.insert(
+			nodes,
+			ghost(
+				block(
+					`SignLeg_{i}`,
+					{ legs.width, legH, legs.depth },
+					at({ lx, 1 + legH / 2, bz + 3.0 }),
+					FENCE,
+					"Wood",
+					r
+				)
+			)
+		)
+	end
 
 	return nodes
 end
@@ -2190,13 +2198,12 @@ local function plot(i: number): WorldNode
 	table.insert(children, button)
 	table.insert(children, jarLook("ButtonLook", "goo_lock_button", { bx, WorldLayout.floorTop(1), bz }, at, yaw))
 
-	-- Sign = the plot's name board on the LockSign's post by the bridge (PlotSigns writes on its Front face, out of
-	-- the plot).
+	-- Sign = the plot's sign on its two legs by the bridge (PlotSigns draws on its Front face, out of the plot).
 	local board = WorldLayout.NAME_BOARD
-	local sx, sz = WorldLayout.LOCK_SIGN_SPOT[1] + 1.5, WorldLayout.LOCK_SIGN_SPOT[2] + 2.6
+	local sx, sz = WorldLayout.SIGN_SPOT[1] + 1.5, WorldLayout.SIGN_SPOT[2] + 2.6
 	local sign = block("Sign", { board.width, board.height, 0.3 }, at({ sx, board.y, sz }), SIGN, "WoodPlanks", r)
 	sign.canQuery = false
-	sign.transparency = 1 -- only the board PlotSigns draws shows: no square wooden corners behind its round ones
+	sign.transparency = 1 -- only the sign PlotSigns draws shows: no square board behind the mascot and nameplate
 	table.insert(children, sign)
 
 	for _, node in cosmetics(at, yaw) do

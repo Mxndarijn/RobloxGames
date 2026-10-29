@@ -3,7 +3,7 @@
 	LockPadView (Roblox adapter)
 
 	Puts each plot's lock pad (CONTRACT.md §8.5) on the floor round its LockButton: a shared RingPadView, Model
-	Plot_<i>.LockPad with a Model Seg_<i> per lit step, coloured from LockPad.ring. It follows the
+	Plot_<i>.LockPad with a Model Seg_<i> per lit step, coloured from LockPadRing.ring. It follows the
 	LockButton when a base swap moves it. `standing` says whether a root part is on a plot's pad. Holds no rules:
 	LockPad decides.
 ]]
@@ -12,32 +12,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local LockPad = require(script.Parent.LockPad)
+local LockPadRing = require(ReplicatedStorage.Shared.LockPadRing)
 local RingPadView = require(ReplicatedStorage.Lib.pad.RingPadView)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
--- Look per mode: lit segments wear the mode's look, the rest `dim`; while charging the rest stays green (ready),
--- while locked the run-down part is dark red (lockedRest), so a locked pad is red all round.
-local REST = table.freeze({ charge = "ready", locked = "lockedRest" } :: { [string]: string })
-local LOOKS = table.freeze({
-	lockedRest = table.freeze({
-		color = Color3.fromRGB(110, 28, 34),
-		material = Enum.Material.SmoothPlastic,
-		transparency = 0,
-	}),
-	dim = table.freeze({
-		color = Color3.fromRGB(31, 111, 120),
-		material = Enum.Material.SmoothPlastic,
-		transparency = 0,
-	}),
-	-- dark green, not Neon: Neon would glow it up to the bright ready green round it
-	charge = table.freeze({
-		color = Color3.fromRGB(20, 85, 30),
-		material = Enum.Material.SmoothPlastic,
-		transparency = 0,
-	}),
-	locked = table.freeze({ color = Color3.fromRGB(229, 72, 77), material = Enum.Material.Neon, transparency = 0 }),
-	ready = table.freeze({ color = Color3.fromRGB(40, 150, 25), material = Enum.Material.Neon, transparency = 0 }),
-})
+local LOOKS: { [string]: RingPadView.Look } = LockPadRing.partLooks()
 
 local pads: { [number]: RingPadView.Pad } = {}
 
@@ -60,7 +39,7 @@ end
 --[[
 	Makes plot `index`'s pad match `ring`, round `button` (its LockButton). No button: the pad goes away.
 ]]
-function LockPadView.update(plot: Instance, index: number, button: BasePart?, ring: LockPad.Ring)
+function LockPadView.update(plot: Instance, index: number, button: BasePart?, ring: LockPadRing.Ring)
 	local pad = pads[index]
 	local floor = floorY(plot)
 	if not button or not floor then
@@ -75,7 +54,7 @@ function LockPadView.update(plot: Instance, index: number, button: BasePart?, ri
 	local p = button.Position
 	local _, yaw = WorldLayout.plotCentre(index)
 	live:place(Vector3.new(p.X, floor, p.Z), yaw)
-	live:show(ring.lit, ring.mode, REST[ring.mode] or "dim")
+	live:show(ring.lit, ring.mode, LockPadRing.REST[ring.mode] or "dim")
 end
 
 -- True when `root` stands on `plot`'s lock pad round `button` (its LockButton).

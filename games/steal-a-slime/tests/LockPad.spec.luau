@@ -1,6 +1,6 @@
 --!strict
 -- The lock pad round the LockButton (LockPad, CONTRACT.md §8.5): standing on it for STAND_SECONDS locks the base with
--- the Lock action's rules, and the ring shows the charge, the lock counting down and the ready flash.
+-- the Lock action's rules.
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")
 local LockPad = require("../src/server/LockPad")
@@ -64,28 +64,5 @@ describe("LockPad.step", function()
 		expect(Actions.triggerPlotPrompt(world, 1, session.plotIndex, "Lock", now, {} :: any).ok).toBe(true)
 		expect(session.lockUntil > now).toBe(true)
 		expect(LockPad.step(session, true, now < session.lockUntil, now + 0.1)).toBe(false)
-	end)
-end)
-
-describe("LockPad.ring", function()
-	local n = PAD.SEGMENTS
-	it("is dark on a free plot", function()
-		expect(LockPad.ring(false, T0, 0, 0, nil)).toEqual({ mode = "idle", lit = 0 })
-		expect(LockPad.ring(false, T0, T0 + 60, T0, T0)).toEqual({ mode = "idle", lit = 0 })
-	end)
-	it("is green all round while the owner can lock", function()
-		expect(LockPad.ring(true, T0, 0, 0, nil)).toEqual({ mode = "ready", lit = n })
-		expect(LockPad.ring(true, T0 + 60, T0, T0 - 120, nil)).toEqual({ mode = "ready", lit = n })
-	end)
-	it("sweeps round while the owner stands on it", function()
-		expect(LockPad.ring(true, T0, 0, 0, T0).lit).toBe(0)
-		expect(LockPad.ring(true, T0 + PAD.STAND_SECONDS / 2, 0, 0, T0)).toEqual({ mode = "charge", lit = n / 2 })
-		expect(LockPad.ring(true, T0 + PAD.STAND_SECONDS * 2, 0, 0, T0).lit).toBe(n)
-	end)
-	it("counts the lock down, never below one segment, then turns green again", function()
-		expect(LockPad.ring(true, T0, T0 + 120, T0, nil)).toEqual({ mode = "locked", lit = n })
-		expect(LockPad.ring(true, T0 + 60, T0 + 120, T0, nil).lit).toBe(n / 2)
-		expect(LockPad.ring(true, T0 + 119.9, T0 + 120, T0, nil).lit).toBe(1)
-		expect(LockPad.ring(true, T0 + 120, T0 + 120, T0, nil)).toEqual({ mode = "ready", lit = n })
 	end)
 end)
