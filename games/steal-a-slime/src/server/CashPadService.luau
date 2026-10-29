@@ -11,7 +11,6 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local CashPads = if Shared then require(Shared.CashPads) else require("../shared/CashPads")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
-local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -51,8 +50,8 @@ function CashPadService.touch(
 	if paid > 0 then
 		World.markDirty(owner)
 		World.effect(world, "Collect", { userId = userId })
-		-- The collector hears a soft coin, once per collect (a Notify only plays its sound).
-		World.notify(world, userId, `+${Economy.formatNumber(paid)}`, "good", CashPadService.SOUND)
+		-- The collector hears a soft coin, once per collect (a Notify only plays its sound; the text is unused).
+		World.notify(world, userId, "", "good", CashPadService.SOUND)
 	end
 	return paid
 end
