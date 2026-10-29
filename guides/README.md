@@ -10,6 +10,7 @@ How we build, test and release the games in this repo. Copied from the team's bo
 - [roblox-building.md](roblox-building.md): worktrees, Rojo files, done criteria
 - [roblox-toolchain-linux.md](roblox-toolchain-linux.md): toolchain on Linux
 - [roblox-planning.md](roblox-planning.md): from funnel data to a roadmap
+- [roblox-world-labels.md](roblox-world-labels.md): BillboardGui / SurfaceGui sizing, view distance, phone rules, and the registry of every label. Read before adding one.
 
 ## Models and assets
 - [roblox-modeling-process.md](roblox-modeling-process.md), [roblox-modeling-kit.md](roblox-modeling-kit.md), [roblox-modeling-weak-spots.md](roblox-modeling-weak-spots.md)
