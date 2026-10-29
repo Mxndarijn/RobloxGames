@@ -8,9 +8,8 @@
 	equips it (the follow pet rides it), "PcwPads" (a count) the unlocked pads (the upper
 	jars build), "PcwSlimes" (a tier) puts three slimes of that rarity on free pads (a merge vat load), "PcwPlotBase"
 	(a base id) raises the rebirths to that base's gate, or owns an Exclusive base, and equips it (CONTRACT.md §44),
-	"PcwTutorial" (a tutorial step name) finishes that step as if the player did its action (contract/tutorial.md). ServerLoop's
-	`pinClock` covers the
-	Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
+	"PcwTutorial" (a tutorial step name) finishes that step as if the player did its action (contract/tutorial.md).
+	ServerLoop's `pinClock` covers the Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
 
 	Exclusive Shop (contract/exclusive-shop.md §3): `grantProduct(userId, productKey)`,
