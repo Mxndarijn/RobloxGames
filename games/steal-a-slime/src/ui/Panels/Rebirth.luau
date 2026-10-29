@@ -115,7 +115,7 @@ Rebirth.COPY = table.freeze({
 	reset = "Your cash and the slimes above",
 	resetCash = "Your cash",
 	resetPads = "Your cash and %s on your pads", -- %s = State.padCash
-	resetPadsSlimes = "Your cash, %s on pads, the slimes above",
+	resetPadsSlimes = "Cash, %s on pads, the slimes above",
 	lockMax = "Lock time is maxed",
 	newTitle = "A new title",
 	crownSub = "You finished every rebirth.",
@@ -253,7 +253,6 @@ function Rebirth.new(parent: Instance, ctx: any)
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,
-		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- a showing bar narrows the content, never covers it
 		Parent = panel.body,
 	})
 

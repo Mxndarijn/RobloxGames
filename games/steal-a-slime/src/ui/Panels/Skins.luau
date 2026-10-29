@@ -35,7 +35,6 @@ local Skins = {}
 
 local STYLE = table.freeze({
 	tabH = Layout.MIN_TOUCH_DESIGN,
-	tabW = 110,
 	tabGap = 6,
 	tabText = 17,
 	seatLine = Layout.MIN_TEXT,
@@ -47,8 +46,7 @@ local STYLE = table.freeze({
 	listShare = 0.44, -- of the body width
 	listMin = 180,
 	listMax = 240,
-	gap = 10,
-	scrollBar = 8,
+	gap = 10, -- tabs to the blocks under them
 	rowH = 64,
 	rowGap = 8,
 	rowPad = 8,
@@ -158,22 +156,22 @@ function Skins.new(parent: Instance, ctx: any)
 	local selected: string? = nil
 	local selectedSeat: string? = nil
 	local tab = Skins.TABS[1].key
-	local bodyW, bodyH = 536, 505
+	local bodyW, bodyH = Layout.MENU_WIDTH - c.pad * 2, fullH
 	local repaint: () -> ()
+	local paneW = 0 -- the pane's width (layout sets it)
 
 	local function listWidth(): number
 		return math.clamp(math.floor(bodyW * STYLE.listShare), STYLE.listMin, STYLE.listMax)
 	end
 
 	local tabs: { [string]: any } = {}
-	for i, def in Skins.TABS do
+	for _, def in Skins.TABS do
 		local button = Widgets.button(
 			{
 				Name = `Tab_{def.key}`,
 				Text = def.label,
 				TextSize = STYLE.tabText,
-				Position = UDim2.fromOffset((i - 1) * (STYLE.tabW + STYLE.tabGap), 0),
-				Size = UDim2.fromOffset(STYLE.tabW, STYLE.tabH),
+				Size = UDim2.fromOffset(0, STYLE.tabH),
 				Parent = content,
 			},
 			Theme.Info,
@@ -187,6 +185,14 @@ function Skins.new(parent: Instance, ctx: any)
 	end
 
 	local function placeBody()
+		-- Tabs share the body width; the last one takes the remainder.
+		local n = #Skins.TABS
+		local tabW = math.floor((bodyW - STYLE.tabGap * (n - 1)) / n)
+		for i, def in Skins.TABS do
+			local x = (i - 1) * (tabW + STYLE.tabGap)
+			tabs[def.key].instance.Position = UDim2.fromOffset(x, 0)
+			tabs[def.key].instance.Size = UDim2.fromOffset(if i == n then bodyW - x else tabW, STYLE.tabH)
+		end
 		local lw = listWidth()
 		local top = STYLE.tabH + STYLE.gap
 		strip.Position = UDim2.fromOffset(0, top)
@@ -196,12 +202,11 @@ function Skins.new(parent: Instance, ctx: any)
 		end
 		local h = math.max(bodyH - top, 0)
 		for _, l in { list, seatList } do
-			l.Position = UDim2.fromOffset(0, top)
-			l.Size = UDim2.fromOffset(lw, h)
+			Widgets.place(l, UDim2.fromOffset(0, top), UDim2.fromOffset(lw, h))
 		end
 		empty.Position = UDim2.fromOffset(0, top)
-		pane.Position = UDim2.fromOffset(lw + STYLE.gap, top)
-		pane.Size = UDim2.fromOffset(bodyW - lw - STYLE.gap, h)
+		paneW = bodyW - lw - c.gutter
+		Widgets.place(pane, UDim2.fromOffset(lw + c.gutter, top), UDim2.fromOffset(paneW, h))
 	end
 
 	-- Base buttons, reused by index.
@@ -254,6 +259,7 @@ function Skins.new(parent: Instance, ctx: any)
 	local function paintBases(baseRows: { PlotBasesView.Row })
 		local n = #baseRows
 		local w = if n > 0 then math.floor((bodyW - STYLE.baseGap * (n - 1)) / n) else 0
+		local lastW = bodyW - (n - 1) * (w + STYLE.baseGap) -- the last button takes the remainder
 		for i, row in baseRows do
 			local b = baseButton(i)
 			local locked = row.state == "locked"
@@ -261,7 +267,7 @@ function Skins.new(parent: Instance, ctx: any)
 			b.frame:SetAttribute("BaseId", row.id)
 			b.frame:SetAttribute("State", row.state)
 			b.frame.Position = UDim2.fromOffset((i - 1) * (w + STYLE.baseGap), 0)
-			b.frame.Size = UDim2.fromOffset(w, STYLE.baseH)
+			b.frame.Size = UDim2.fromOffset(if i == n then lastW else w, STYLE.baseH)
 			b.frame.BackgroundColor3 = if row.state == "equipped" then Theme.BgLight else Theme.Row
 			b.stroke.Color = if row.state == "equipped" then Theme.Good else Theme.Ink
 			b.stroke.Thickness = if row.state == "equipped" then STYLE.selectStroke else Widgets.KIT.rowStroke
@@ -296,7 +302,7 @@ function Skins.new(parent: Instance, ctx: any)
 			AutoButtonColor = false,
 			BackgroundColor3 = Theme.Row,
 			BorderSizePixel = 0,
-			Size = UDim2.new(1, -STYLE.scrollBar, 0, STYLE.rowH),
+			Size = UDim2.new(1, 0, 0, STYLE.rowH),
 		}, { Widgets.corner(Widgets.KIT.rowRadius) }) :: TextButton
 		local stroke = Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke)
 		stroke.Parent = frame
@@ -402,9 +408,8 @@ function Skins.new(parent: Instance, ctx: any)
 	)
 
 	-- Seat rows (Cloud tab): taller while they carry an unlock line.
-	local seatTextW = STYLE.listMax - STYLE.scrollBar - STYLE.rowPad * 3 - STYLE.icon
 	local function seatTextWidth(): number
-		return listWidth() - STYLE.scrollBar - STYLE.rowPad * 3 - STYLE.icon
+		return listWidth() - STYLE.rowPad * 3 - STYLE.icon
 	end
 	local function seatRowHeight(row: PetSeatsView.Row): number
 		if row.state ~= "locked" then
@@ -422,7 +427,7 @@ function Skins.new(parent: Instance, ctx: any)
 			AutoButtonColor = false,
 			BackgroundColor3 = Theme.Row,
 			BorderSizePixel = 0,
-			Size = UDim2.new(1, -STYLE.scrollBar, 0, STYLE.rowH),
+			Size = UDim2.new(1, 0, 0, STYLE.rowH),
 		}, { Widgets.corner(Widgets.KIT.rowRadius) :: Instance }) :: TextButton
 		local stroke = Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke)
 		stroke.Parent = frame
@@ -473,7 +478,7 @@ function Skins.new(parent: Instance, ctx: any)
 			TextTruncate = Enum.TextTruncate.None,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			Position = UDim2.fromOffset(textX, 8 + STYLE.nameH + 2),
-			Size = UDim2.fromOffset(seatTextW, 18),
+			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, 18),
 			Parent = frame,
 		})
 		local countW = 64
@@ -518,7 +523,7 @@ function Skins.new(parent: Instance, ctx: any)
 		local on = row.id == selectedSeat
 		local textX = STYLE.rowPad * 2 + STYLE.icon
 		local textW = seatTextWidth()
-		r.instance.Size = UDim2.new(1, -STYLE.scrollBar, 0, seatRowHeight(row))
+		r.instance.Size = UDim2.new(1, 0, 0, seatRowHeight(row))
 		r.instance:SetAttribute("SeatId", row.id)
 		r.instance:SetAttribute("State", row.state)
 		r.instance:SetAttribute("Selected", on)
@@ -543,7 +548,7 @@ function Skins.new(parent: Instance, ctx: any)
 		r.line.Visible = locked
 		r.line.Text = row.line
 		r.line.Position = UDim2.fromOffset(textX, y)
-		r.line.Size = UDim2.fromOffset(textW, lineH)
+		r.line.Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, lineH)
 		local hasBar = locked and not row.exclusive
 		local barY = y + lineH + 6
 		r.bar.Visible = hasBar
@@ -736,8 +741,7 @@ function Skins.new(parent: Instance, ctx: any)
 		if detail == nil then
 			return
 		end
-		local w = pane.Size.X.Offset
-		local inner = math.max(w - STYLE.pad * 2, 1)
+		local inner = math.max(paneW - STYLE.pad * 2, 1)
 		local y = STYLE.pad
 		bigWell.Position = UDim2.new(0.5, 0, 0, y)
 		bigWell.BackgroundColor3 = Theme.BgLight
@@ -836,8 +840,7 @@ function Skins.new(parent: Instance, ctx: any)
 			shopButton.instance.Visible = false
 			return
 		end
-		local w = pane.Size.X.Offset
-		local inner = math.max(w - STYLE.pad * 2, 1)
+		local inner = math.max(paneW - STYLE.pad * 2, 1)
 		local y = STYLE.pad
 		bigWell.Position = UDim2.new(0.5, 0, 0, y)
 		bigWell.BackgroundColor3 = Theme.BgLight

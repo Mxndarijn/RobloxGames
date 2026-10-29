@@ -180,21 +180,36 @@ end)
 describe("Widgets.scrollList", function()
 	local Widgets = UiHarness.ui("Widgets")
 
-	it("has no UIListLayout / UIPadding to move rows, and a fixed canvas", function()
-		local list = Widgets.scrollList({ Name = "List", Parent = UiHarness.root() }, 6)
-		expect(list.ClassName).toBe("ScrollingFrame")
-		for _, child in list:GetChildren() do
-			expect(child:IsA("UIGridStyleLayout") or child:IsA("UIPadding")).toBe(false)
+	it(
+		"has no UIListLayout or vertical padding to move rows (only the side Ring padding), and a fixed canvas",
+		function()
+			local list = Widgets.scrollList({ Name = "List", Parent = UiHarness.root() }, 6)
+			expect(list.ClassName).toBe("ScrollingFrame")
+			local paddings = 0
+			for _, child in list:GetChildren() do
+				expect(child:IsA("UIGridStyleLayout")).toBe(false)
+				if child:IsA("UIPadding") then
+					paddings += 1
+					-- the outline room on the left and right (PANEL_CHROME.ring); rows are placed vertically by restack
+					expect(child.Name).toBe("Ring")
+					local ring = Layout.PANEL_CHROME.ring
+					expect(`{child.PaddingLeft.Scale} {child.PaddingLeft.Offset}`).toBe(`0 {ring}`)
+					expect(`{child.PaddingRight.Scale} {child.PaddingRight.Offset}`).toBe(`0 {ring}`)
+					expect(`{child.PaddingTop.Scale} {child.PaddingTop.Offset}`).toBe("0 0")
+					expect(`{child.PaddingBottom.Scale} {child.PaddingBottom.Offset}`).toBe("0 0")
+				end
+			end
+			expect(paddings).toBe(1)
+			expect(list.AutomaticCanvasSize).toBe(Enum.AutomaticSize.None)
+			expect(list:GetAttribute("ListGap")).toBe(6)
 		end
-		expect(list.AutomaticCanvasSize).toBe(Enum.AutomaticSize.None)
-		expect(list:GetAttribute("ListGap")).toBe(6)
-	end)
+	)
 	it("restacks after rows are added, hidden, reordered and removed", function()
 		local list = Widgets.scrollList({ Name = "List", Parent = UiHarness.root() }, 6)
 		local rows = Widgets.keyedList(list, function(k: string)
 			return k
 		end, function(k: string)
-			return { instance = Widgets.create("Frame", { Name = k, Size = UDim2.new(1, -10, 0, 84) }) }
+			return { instance = Widgets.create("Frame", { Name = k, Size = UDim2.new(1, 0, 0, 84) }) }
 		end, function() end)
 		rows.sync({ "a", "b", "c" })
 		local top = Layout.SCROLL_LIST.paddingTop

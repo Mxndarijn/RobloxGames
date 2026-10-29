@@ -285,7 +285,7 @@ function Admin.new(parent: Instance, ctx: any)
 	local content = create("Frame", {
 		Name = "Content",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(Layout.MENU_WIDTH, fullH),
+		Size = UDim2.new(1, 0, 0, fullH),
 		Parent = panel.body,
 	})
 
@@ -360,7 +360,7 @@ function Admin.new(parent: Instance, ctx: any)
 		local frame = Widgets.rowFrame({
 			Name = row.key,
 			LayoutOrder = order,
-			Size = UDim2.new(1, -8, 0, S.rowH),
+			Size = UDim2.new(1, 0, 0, S.rowH),
 			Parent = list,
 		})
 		local locked = if command then AdminCommands.lockedReason(command, cheats) else "unknown command"
@@ -436,16 +436,24 @@ function Admin.new(parent: Instance, ctx: any)
 		rebuild()
 	end
 
-	local tabX = 0
+	-- Equal tabs across the body width `w`, `tabGap` apart; the last one takes the rounding remainder.
+	local function placeTabs(w: number)
+		local n = #AdminCommands.TABS
+		local tabW = math.floor((w - S.tabGap * (n - 1)) / n)
+		for i, name in AdminCommands.TABS do
+			local b = tabButtons[name].instance
+			local x = (i - 1) * (tabW + S.tabGap)
+			b.Position = UDim2.fromOffset(x, 0)
+			b.Size = UDim2.fromOffset(if i == n then w - x else tabW, S.tabH)
+		end
+	end
+
 	for _, name in AdminCommands.TABS do
-		local w = buttonWidth(name) + 8
 		local btn = Widgets.button(
 			{
 				Name = `Tab{name}`,
 				Text = name,
 				TextSize = S.tabSize,
-				Position = UDim2.fromOffset(tabX, 0),
-				Size = UDim2.fromOffset(w, S.tabH),
 			},
 			Theme.Row,
 			function()
@@ -454,8 +462,8 @@ function Admin.new(parent: Instance, ctx: any)
 		)
 		btn.instance.Parent = content
 		tabButtons[name] = btn
-		tabX += w + S.tabGap
 	end
+	placeTabs(Layout.MENU_WIDTH - c.pad * 2)
 	tabButtons[tab].setColor(Theme.Accent)
 	rebuild()
 
@@ -473,9 +481,12 @@ function Admin.new(parent: Instance, ctx: any)
 
 	function self.layout(r: Layout.Rect)
 		local body = Layout.panelBody(r)
-		local w, h = math.floor(body.w), math.floor(body.h)
-		content.Size = UDim2.fromOffset(w, fullH)
-		list.Size = UDim2.fromOffset(w, math.max(S.rowH, h - S.listY))
+		placeTabs(math.floor(body.w))
+		Widgets.place(
+			list,
+			UDim2.fromOffset(0, S.listY),
+			UDim2.new(1, 0, 0, math.max(S.rowH, math.floor(body.h) - S.listY))
+		)
 	end
 
 	-- The open tab (tests), and switching to one.

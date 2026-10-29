@@ -42,7 +42,6 @@ local ExclusiveShop = {}
 
 ExclusiveShop.STYLE = table.freeze({
 	tabH = Layout.MIN_TOUCH_DESIGN,
-	tabMaxW = 116,
 	tabGap = 6,
 	tabText = 17, -- shrinks to fit the narrowest tab, never under Layout.MIN_TEXT
 	tabTextPad = 8, -- each side of a tab's text
@@ -54,7 +53,6 @@ ExclusiveShop.STYLE = table.freeze({
 	paneShare = 0.44, -- of the body width, beside the grid
 	paneMin = 200,
 	paneMax = 240,
-	scrollBar = 8,
 	columnsMax = 3,
 	cardMin = 80,
 	cardGap = 8,
@@ -64,7 +62,7 @@ ExclusiveShop.STYLE = table.freeze({
 	nameH = 34, -- two lines
 	tag = Layout.MIN_TEXT,
 	tagH = 22,
-	tagPad = 4, -- each side of a card's chip text
+	tagPad = 3, -- each side of a card's chip text
 	selectStroke = 3,
 	-- pane
 	pad = 10,
@@ -243,7 +241,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 				Name = `Tab_{key}`,
 				Text = key,
 				TextSize = STYLE.tabText,
-				Size = UDim2.fromOffset(STYLE.tabMaxW, STYLE.tabH),
+				Size = UDim2.fromOffset(0, STYLE.tabH),
 				Visible = false,
 			},
 			Theme.Info,
@@ -267,10 +265,20 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		return if wide() then math.clamp(math.floor(bodyW * STYLE.paneShare), STYLE.paneMin, STYLE.paneMax) else bodyW
 	end
 	local function gridWidth(): number
-		return if wide() then bodyW - paneWidth() - STYLE.gap else bodyW
+		return if wide() then bodyW - paneWidth() - c.gutter else bodyW
 	end
+	-- The cards on the current tab and the grid's visible height (placeBody): when the cards overflow it, the bar
+	-- takes its width from the grid (ScrollBarInset), so the columns are worked out without it.
+	local shownCards, gridH = 0, 0
 	local function cardWidth(): (number, number)
-		return ExclusiveShop.grid(gridWidth() - STYLE.scrollBar)
+		local w = gridWidth()
+		local columns, cardW = ExclusiveShop.grid(w)
+		local _, cardH = ExclusiveShop.card(cardW)
+		local lines = math.ceil(shownCards / columns)
+		if lines * cardH + math.max(lines - 1, 0) * STYLE.cardGap + 6 > gridH then -- the canvas repaint sets
+			return ExclusiveShop.grid(w - grid.ScrollBarThickness)
+		end
+		return columns, cardW
 	end
 
 	local sheetClose: TextButton
@@ -278,28 +286,28 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 	local function placeBody()
 		local tabs = Config.EXCLUSIVE_SHOP.tabs
 		local n = #tabs
-		local tabW = math.min(STYLE.tabMaxW, math.floor((bodyW - STYLE.tabGap * (n - 1)) / n))
+		-- equal tabs across the body; the last one takes the floored remainder so the row ends at the edge
+		local tabW = math.floor((bodyW - STYLE.tabGap * (n - 1)) / n)
 		local tabText = ExclusiveShop.tabTextSize(tabs, tabW)
 		for i, key in tabs do
 			local b = tabButtons[key].instance
-			b.Position = UDim2.fromOffset((i - 1) * (tabW + STYLE.tabGap), 0)
-			b.Size = UDim2.fromOffset(tabW, STYLE.tabH)
+			local x = (i - 1) * (tabW + STYLE.tabGap)
+			b.Position = UDim2.fromOffset(x, 0)
+			b.Size = UDim2.fromOffset(if i == n then bodyW - x else tabW, STYLE.tabH)
 			b.TextSize = tabText
 		end
 		local top = STYLE.tabH + STYLE.gap
 		local h = math.max(bodyH - top, 0)
+		gridH = h
 		empty.Position = UDim2.fromOffset(0, top)
 		empty.Size = UDim2.fromOffset(bodyW, 40)
-		grid.Position = UDim2.fromOffset(0, top)
-		grid.Size = UDim2.fromOffset(gridWidth(), h)
+		Widgets.place(grid, UDim2.fromOffset(0, top), UDim2.fromOffset(gridWidth(), h))
 		if wide() then
-			pane.Position = UDim2.fromOffset(gridWidth() + STYLE.gap, top)
-			pane.Size = UDim2.fromOffset(paneWidth(), h)
+			Widgets.place(pane, UDim2.fromOffset(gridWidth() + c.gutter, top), UDim2.fromOffset(paneWidth(), h))
 			paneStroke.Thickness = KIT.rowStroke
 		else
 			local sheetH = math.min(h, math.max(STYLE.sheetMin, math.floor(h * STYLE.sheetShare)))
-			pane.Position = UDim2.fromOffset(0, top + h - sheetH)
-			pane.Size = UDim2.fromOffset(bodyW, sheetH)
+			Widgets.place(pane, UDim2.fromOffset(0, top + h - sheetH), UDim2.fromOffset(bodyW, sheetH))
 			paneStroke.Thickness = KIT.stroke
 			sheetClose.Position = UDim2.fromOffset(bodyW - STYLE.sheetX - 6, top + h - sheetH + 6)
 		end
@@ -801,8 +809,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		pickerFrame.Position = pane.Position
 		pickerFrame.Size = pane.Size
 		pickerStroke.Thickness = paneStroke.Thickness
-		local w = pane.Size.X.Offset
-		local inner = math.max(w - STYLE.pad * 2, 1)
+		local inner = math.max(pane.Size.X.Offset - STYLE.pad * 2, 1)
 		-- the sheet's X sits over the top-right corner
 		local titleW = if wide() then inner else math.max(inner - STYLE.sheetX - 4, 1)
 		local y = STYLE.pad
@@ -856,8 +863,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		if detail == nil or not shown then
 			return
 		end
-		local w = pane.Size.X.Offset
-		local inner = math.max(w - STYLE.pad * 2, 1)
+		local inner = math.max(pane.Size.X.Offset - STYLE.pad * 2, 1)
 		-- the sheet's X sits over the pane's top-right corner: the stage stops short of it
 		local stageW = if wide() then inner else math.max(inner - STYLE.sheetX - 4, 1)
 		local y = STYLE.pad
@@ -1080,6 +1086,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			return
 		end
 		attach()
+		shownCards = #list
 		cards.sync(list)
 		local columns, cardW = cardWidth()
 		local _, cardH = ExclusiveShop.card(cardW)

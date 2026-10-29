@@ -337,7 +337,8 @@ describe("Inventory panel on a short landscape phone", function()
 			expect(empty.Size.X.Scale).toBe(0)
 			expect(x >= plate.Position.X.Offset + plate.Size.X.Offset).toBe(true)
 			expect(w > 0 and x + w <= body.w).toBe(true)
-			expect(x).toBe(UiHarness.find(frame, "Grid").Position.X.Offset)
+			-- the grid frame reaches PANEL_CHROME.ring past its box (Widgets.scroll); the message lines up with the box
+			expect(x).toBe(UiHarness.find(frame, "Grid").Position.X.Offset + Layout.PANEL_CHROME.ring)
 		end)
 	end
 end)

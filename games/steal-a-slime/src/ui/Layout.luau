@@ -80,16 +80,6 @@ Layout.ZINDEX = table.freeze({
 	Carry = 30,
 })
 
--- Scroll lists: rows start at the top (VerticalAlignment Center clipped the
--- first / last rows, v15 playtest) with padding so neither edge is cut off.
--- Rows are placed by Layout.stackRows (Widgets.restack), not a UIListLayout:
--- list sync often runs while the panel is Visible=false (init setOpen) and the
--- engine then never reflows, stacking every row at Y=0 (v26 live shop).
-Layout.SCROLL_LIST = table.freeze({
-	paddingTop = 4,
-	paddingBottom = 8,
-})
-
 -- Y offsets for scroll-list rows of the given heights (design px; starts at
 -- SCROLL_LIST.paddingTop, `gap` between rows) and the canvas height.
 function Layout.stackRows(heights: { number }, gap: number): ({ number }, number)
@@ -699,15 +689,19 @@ end
 Layout.CARRY = table.freeze({ w = 420, h = 96 })
 -- Carry card text column = card width minus this (swatch left, Drop right).
 Layout.CARRY_TEXT_RESERVE = 190
-Layout.DAILY = table.freeze({ w = 420, h = 308 })
+Layout.DAILY = table.freeze({ w = 420, h = 324 })
 Layout.PHONE_SHORT_HEIGHT = 500 -- viewport px: a compact screen shorter than this is a landscape phone
 
 -- Menu panel chrome (Widgets.panel): the coloured title band holds the
 -- menu icon, the title and the close "X" (top-right, MIN_TOUCH_DESIGN
 -- square, same spot on every panel); the body fills the rest, `pad` in from
--- the sides and bottom.
+-- the sides and bottom. Content inside the body uses its full width: no panel
+-- adds its own side margin or keeps a strip free for a scroll bar.
 Layout.PANEL_CHROME = table.freeze({
-	pad = 12,
+	pad = 20, -- body inset from the card's left, right and bottom edge: the one padding every menu shares
+	tileX = 12, -- the corner icon tile's left edge (the title follows it)
+	gutter = 12, -- between two columns in a body (a list and its side pane)
+	ring = 3, -- the widest outline (Widgets.KIT.stroke): room a scroll area keeps so outlines at its edge aren't clipped
 	close = Layout.MIN_TOUCH_DESIGN,
 	closeInset = 6,
 	titleSize = 26,
@@ -716,6 +710,16 @@ Layout.PANEL_CHROME = table.freeze({
 	iconSize = 32, -- the emoji on that tile
 	bodyGap = 16, -- space between the band and the body: the goo lip and drips hang in it
 	header = Layout.MIN_TOUCH_DESIGN + 12 + 16, -- the band (closeInset above and below the X) plus bodyGap
+})
+
+-- Scroll lists: rows start at the top with the outline room (PANEL_CHROME.ring) above the first row and
+-- under the last, so neither row's outline is clipped.
+-- Rows are placed by Layout.stackRows (Widgets.restack), not a UIListLayout:
+-- list sync often runs while the panel is Visible=false (init setOpen) and the
+-- engine then never reflows, stacking every row at Y=0.
+Layout.SCROLL_LIST = table.freeze({
+	paddingTop = Layout.PANEL_CHROME.ring,
+	paddingBottom = Layout.PANEL_CHROME.ring,
 })
 
 -- Notices (tooltip, tutorial card, carry card, boss meter): one corner radius for their Gold or danger ring.
@@ -758,7 +762,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Merge = 520,
 	WorldShop = 520,
 	Inventory = 460,
-	Rebirth = 735, -- three slimes and a rank row (Panels/Rebirth.plan)
+	Rebirth = 741, -- three slimes and a rank row (Panels/Rebirth.plan)
 	Goals = 500,
 	Dex = 600,
 	Skins = 600,
@@ -850,7 +854,7 @@ end
 
 function Layout.panelTitle(panel: Rect): Rect
 	local c = Layout.PANEL_CHROME
-	local left = c.pad + c.icon + 6
+	local left = c.tileX + c.icon + 6
 	return Layout.rect(panel.x + left, panel.y + c.closeInset, panel.w - left - c.close - c.closeInset * 2, c.close)
 end
 

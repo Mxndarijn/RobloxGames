@@ -4,6 +4,7 @@
 local fs = require("@lune/fs")
 
 local Config = require("../../src/shared/Config")
+local GuideTips = require("../../src/ui/GuideTips")
 local Hint = require("../../src/ui/Hint")
 local InventoryLayout = require("../../src/ui/InventoryLayout")
 local Layout = require("../../src/ui/Layout")
@@ -122,9 +123,11 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 	it("every card fits its content at the tallest gate viewport (no scroll on desktop)", function()
 		local s = Layout.screen(1920, 1080)
 		local chrome = Layout.PANEL_CHROME.header + Layout.PANEL_CHROME.pad
-		local rebirth = UiHarness.ui("Panels/Rebirth").plan(3, 3 * 14 * Layout.LINE_HEIGHT) -- the tallest: three slimes
-		expect(Layout.panelFor(s, "Rebirth").h >= chrome + rebirth.height).toBe(true)
-		expect(Layout.panelFor(s, "Guide").h >= chrome + 96 + 8 + 3 * (44 + 8)).toBe(true) -- Guide.CONTENT_H
+		-- cards are sized by their measured content (init.client: Widgets.contentHeight), capped at the backdrop
+		local rebirth = UiHarness.ui("Panels/Rebirth").plan(3, true).height -- the tallest: three slimes and a rank row
+		expect(Layout.panelFor(s, "Rebirth", rebirth).h >= chrome + rebirth).toBe(true)
+		local guide = UiHarness.ui("Panels/Guide").contentHeight(GuideTips.MAX_TIPS) -- the goal and every slot filled
+		expect(Layout.panelFor(s, "Guide", guide).h >= chrome + guide).toBe(true)
 		for _, key in LayoutAssert.menuKeys() do
 			local r = Layout.panelFor(s, key)
 			expect(r.w < s.panel.w and r.h < s.panel.h).toBe(true) -- smaller than the window

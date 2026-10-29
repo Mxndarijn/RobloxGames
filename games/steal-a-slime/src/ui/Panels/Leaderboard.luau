@@ -46,7 +46,6 @@ LeaderboardPanel.ROWS = table.freeze({
 	row = table.freeze({ h = 40, gap = 6, pad = 12, rankW = 44, rank = 17, name = 16, value = 17, valueW = 130 }),
 	empty = table.freeze({ h = 30, size = Layout.MIN_TEXT }),
 	footer = table.freeze({ h = 34, gap = 8, size = 17 }),
-	scrollBar = 10,
 })
 
 export type Row = { rank: number, rankText: string, name: string, value: string, isMe: boolean }
@@ -105,19 +104,21 @@ function LeaderboardPanel.new(parent: Instance, ctx: any)
 	local mine: { [string]: any } = {}
 	local ranks: { [string]: any } = {} -- State.boardRanks
 
-	-- Tabs: five equal jelly buttons across the body, `gap` apart.
+	-- Tabs: five equal jelly buttons across the body, `gap` apart; the last one ends on the body's right edge.
 	local count = #Leaderboards.BOARDS
 	local tabs: { [string]: any } = {}
 	local render: () -> ()
 	for i, def in Leaderboards.BOARDS do
 		local stat = def.stat
+		local left = math.floor((i - 1) * R.tabs.gap / count)
+		local right = if i == count then 0 else math.floor(i * R.tabs.gap / count) - R.tabs.gap
 		local tab = Widgets.button(
 			{
 				Name = `Tab_{stat}`,
 				Text = LeaderboardPanel.TABS[stat] or def.title,
 				TextSize = R.tabs.size,
-				Position = UDim2.new((i - 1) / count, math.floor((i - 1) * R.tabs.gap / count), 0, R.tabs.y),
-				Size = UDim2.new(1 / count, -math.ceil(R.tabs.gap * (count - 1) / count), 0, R.tabs.h),
+				Position = UDim2.new((i - 1) / count, left, 0, R.tabs.y),
+				Size = UDim2.new(1 / count, right - left, 0, R.tabs.h),
 			},
 			Theme.Info,
 			function()
@@ -153,7 +154,7 @@ function LeaderboardPanel.new(parent: Instance, ctx: any)
 		TextSize = R.empty.size,
 		TextColor3 = Theme.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.new(1, -R.scrollBar, 0, R.empty.h),
+		Size = UDim2.new(1, 0, 0, R.empty.h),
 		LayoutOrder = 0,
 		Parent = list,
 	})
@@ -180,7 +181,7 @@ function LeaderboardPanel.new(parent: Instance, ctx: any)
 	end, function(row: Row)
 		local frame = Widgets.rowFrame({
 			Name = `Row_{row.rank}`,
-			Size = UDim2.new(1, -R.scrollBar, 0, R.row.h),
+			Size = UDim2.new(1, 0, 0, R.row.h),
 		})
 		local rank = Widgets.label({
 			Name = "Rank",

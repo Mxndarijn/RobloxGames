@@ -26,7 +26,7 @@ local Settings = {}
 Settings.STYLE = table.freeze({
 	tabH = 40,
 	tabGap = 6,
-	tabSize = 18,
+	tabSize = 17,
 	listY = 50,
 	listGap = 6,
 	rowH = 62,
@@ -51,14 +51,13 @@ Settings.STYLE = table.freeze({
 	percentW = 64,
 	actionW = 120,
 	holdW = 150,
-	scrollBar = 10,
 })
 
 Settings.COPY = table.freeze({
 	on = "On",
 	off = "Off",
 	replay = "Replay tutorial",
-	replayHint = "Walk through the first steps again",
+	replayHint = "Walk through the first steps",
 	replayButton = "Replay",
 	replayRunning = "Running",
 	version = "Game version",
@@ -82,13 +81,12 @@ function Settings.new(parent: Instance, ctx: any)
 	local PlayerSettings = ctx.PlayerSettings
 	local controller = ctx.settings
 	local panel = Widgets.panel(parent, "SettingsPanel", "Settings", Icons.SETTINGS)
-	local c = Layout.PANEL_CHROME
-	local fullH = Layout.menuHeight("Settings") - c.header - c.pad
-	-- As tall as a full menu body, so init.client (Widgets.contentHeight) sizes this list menu to fill the window.
+	-- The tabs and the lists; its height (set once the rows are built) is what init.client measures
+	-- (Widgets.contentHeight) to size the card.
 	local content = create("Frame", {
 		Name = "Content",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(Layout.MENU_WIDTH, fullH),
+		Size = UDim2.fromScale(1, 0),
 		Parent = panel.body,
 	})
 
@@ -104,7 +102,7 @@ function Settings.new(parent: Instance, ctx: any)
 		return Widgets.rowFrame({
 			Name = name,
 			LayoutOrder = order,
-			Size = UDim2.new(1, -S.scrollBar, 0, h),
+			Size = UDim2.new(1, 0, 0, h),
 			Parent = list,
 		})
 	end
@@ -345,11 +343,13 @@ function Settings.new(parent: Instance, ctx: any)
 		end
 	end
 
+	-- Every list is as tall as the longest one, so the card (and its X) keeps one height on every tab.
+	local listH = 0
 	for _, def in PlayerSettings.TABS do
 		local list = Widgets.scrollList({
 			Name = `List_{def.key}`,
 			Position = UDim2.fromOffset(0, S.listY),
-			Size = UDim2.new(1, 0, 0, fullH - S.listY),
+			Size = UDim2.fromScale(1, 0),
 			Visible = def.key == tab,
 			Parent = content,
 		}, S.listGap)
@@ -366,6 +366,27 @@ function Settings.new(parent: Instance, ctx: any)
 		end
 		extraRows(def.key, list, #def.entries + 1)
 		Widgets.restack(list)
+		listH = math.max(listH, list.CanvasSize.Y.Offset)
+	end
+	content.Size = UDim2.new(1, 0, 0, S.listY + listH)
+
+	local function placeLists(h: number)
+		for _, list in lists do
+			Widgets.place(list, UDim2.fromOffset(0, S.listY), UDim2.new(1, 0, 0, h))
+		end
+	end
+	placeLists(listH)
+
+	-- Equal tabs across the body width `w`, `tabGap` apart; the last one takes the rounding remainder.
+	local function placeTabs(w: number)
+		local n = #PlayerSettings.TABS
+		local tabW = math.floor((w - S.tabGap * (n - 1)) / n)
+		for i, def in PlayerSettings.TABS do
+			local b = tabButtons[def.key].instance
+			local x = (i - 1) * (tabW + S.tabGap)
+			b.Position = UDim2.fromOffset(x, 0)
+			b.Size = UDim2.fromOffset(if i == n then w - x else tabW, S.tabH)
+		end
 	end
 
 	local function selectTab(key: string)
@@ -384,17 +405,12 @@ function Settings.new(parent: Instance, ctx: any)
 		end
 	end
 
-	local tabX = 0
 	for _, def in PlayerSettings.TABS do
-		local w =
-			math.floor((Layout.MENU_WIDTH - c.pad * 2 - S.tabGap * (#PlayerSettings.TABS - 1)) / #PlayerSettings.TABS)
 		local btn = Widgets.button(
 			{
 				Name = `Tab_{def.key}`,
 				Text = `{def.icon} {def.label}`,
 				TextSize = S.tabSize,
-				Position = UDim2.fromOffset(tabX, 0),
-				Size = UDim2.fromOffset(w, S.tabH),
 			},
 			Theme.Row,
 			function()
@@ -403,8 +419,8 @@ function Settings.new(parent: Instance, ctx: any)
 		)
 		btn.instance.Parent = content
 		tabButtons[def.key] = btn
-		tabX += w + S.tabGap
 	end
+	placeTabs(Layout.MENU_WIDTH - Layout.PANEL_CHROME.pad * 2)
 	selectTab(tab)
 
 	-- Called by init.client when any setting changed (and once at build).
@@ -425,17 +441,8 @@ function Settings.new(parent: Instance, ctx: any)
 
 	function self.layout(r: Layout.Rect)
 		local body = Layout.panelBody(r)
-		local w, h = math.floor(body.w), math.floor(body.h)
-		content.Size = UDim2.fromOffset(w, fullH)
-		local tabW = math.floor((w - S.tabGap * (#PlayerSettings.TABS - 1)) / #PlayerSettings.TABS)
-		for i, def in PlayerSettings.TABS do
-			local b = tabButtons[def.key].instance
-			b.Position = UDim2.fromOffset((i - 1) * (tabW + S.tabGap), 0)
-			b.Size = UDim2.fromOffset(tabW, S.tabH)
-		end
-		for _, list in lists do
-			list.Size = UDim2.fromOffset(w, math.max(S.rowH, h - S.listY))
-		end
+		placeTabs(math.floor(body.w))
+		placeLists(math.min(listH, math.max(S.rowH, math.floor(body.h) - S.listY)))
 	end
 
 	-- The open tab (tests), and switching to one.

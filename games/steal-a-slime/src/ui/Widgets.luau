@@ -647,7 +647,7 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		Name = "IconTile",
 		BackgroundColor3 = Theme.Text,
 		Size = UDim2.fromOffset(c.icon, c.icon),
-		Position = UDim2.fromOffset(c.pad, -c.iconRise),
+		Position = UDim2.fromOffset(c.tileX, -c.iconRise),
 		Parent = frame,
 	}, { Widgets.pill(), Widgets.stroke(Theme.Ink, kit.stroke) })
 	Widgets.shade(tile)
@@ -661,7 +661,7 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		Parent = tile,
 	})
 	Widgets.centreEmoji(iconLabel, true)
-	local titleX = c.pad + c.icon + 10
+	local titleX = c.tileX + c.icon + 10
 	local title = Widgets.label({
 		Name = "Title",
 		Text = titleText,
@@ -749,20 +749,53 @@ function Widgets.iconBadge(props: { [string]: any }, icon: string, color: Color3
 	return badge
 end
 
+-- A scroll area clips its children, so a row's outline at its left or right edge would be cut off. A scroll
+-- area reaches PANEL_CHROME.ring past its box on both sides and pads its content back in by as much
+-- (Widgets.scroll): the rows line up with the body's edge and their outline shows whole. Returns the bled
+-- Position and Size for a box at `position` / `size`.
+function Widgets.bleed(position: UDim2, size: UDim2): (UDim2, UDim2)
+	local r = Layout.PANEL_CHROME.ring
+	return UDim2.new(position.X.Scale, position.X.Offset - r, position.Y.Scale, position.Y.Offset),
+		UDim2.new(size.X.Scale, size.X.Offset + r * 2, size.Y.Scale, size.Y.Offset)
+end
+
+-- Moves a Widgets.scroll so its box is `position` / `size` (bled as above unless it is a card). Use it, not
+-- Position / Size, after the scroll area is made.
+function Widgets.place(frame: GuiObject, position: UDim2, size: UDim2)
+	if frame.BackgroundTransparency < 1 then
+		frame.Position, frame.Size = position, size
+	else
+		frame.Position, frame.Size = Widgets.bleed(position, size)
+	end
+end
+
+-- A vertical scroll area whose box is props.Position / props.Size (default the whole parent). Its content uses
+-- the full width; the bar takes its room only while the content scrolls (ScrollBarInset), so nothing keeps a
+-- strip free for it. A list (no background) bleeds by the ring as above; a scroll area with its own background
+-- (a side pane) is a card itself: it sits on its box and pads its own content.
 function Widgets.scroll(props: { [string]: any }): ScrollingFrame
 	local base = {
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 6,
+		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Position = UDim2.new(),
 		Size = UDim2.fromScale(1, 1),
 	}
 	for k, v in props do
 		base[k] = v
 	end
-	return create("ScrollingFrame", base)
+	if base.BackgroundTransparency < 1 then
+		return create("ScrollingFrame", base)
+	end
+	base.Position, base.Size = Widgets.bleed(base.Position, base.Size)
+	local r = Layout.PANEL_CHROME.ring
+	return create("ScrollingFrame", base, {
+		create("UIPadding", { Name = "Ring", PaddingLeft = UDim.new(0, r), PaddingRight = UDim.new(0, r) }),
+	})
 end
 
 -- Row gap of a scroll list (attribute on its ScrollingFrame).

@@ -944,7 +944,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		local bodyH = placePanel()
 		local empty = Inventory.bagEmpty(entries)
 		-- Hotbar plate (stacked over the grid, or left of it on a short body).
-		local a = InventoryLayout.arrange(bodyW, bodyH)
+		local a = InventoryLayout.arrange(bodyW, bodyH, Layout.PANEL_CHROME.gutter)
 		local plateRect, plateRects = a.plate, a.slots
 		p.barHeading.Position = fromOffset(0, 0)
 		p.barHeading.Size = if a.side then fromOffset(a.barHeadingW, CELL.top) else UDim2.new(1, 0, 0, CELL.top)
@@ -970,8 +970,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		p.list.Visible = not empty
 		p.countChip.Visible = not empty
 		showEmpty(empty, a.gridX, a.gridY, a.gridW)
-		p.list.Position = fromOffset(a.gridX, a.gridY)
-		p.list.Size = UDim2.new(1, -a.gridX, 1, -a.gridY)
+		Widgets.place(p.list, fromOffset(a.gridX, a.gridY), UDim2.new(1, -a.gridX, 1, -a.gridY))
 		local gridBodyW = a.gridW
 		local cols = InventoryLayout.columns(gridBodyW)
 		local size = InventoryLayout.cellSize(gridBodyW)

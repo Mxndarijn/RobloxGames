@@ -178,9 +178,8 @@ local function openDex(w: number, h: number, dex: any, extra: { [string]: any }?
 	return panel
 end
 
-local function rect(inst: any): Layout.Rect
-	return Layout.rect(inst.Position.X.Offset, inst.Position.Y.Offset, inst.Size.X.Offset, inst.Size.Y.Offset)
-end
+-- Where `inst` shows: a scroll list's box, without its ring bleed.
+local rect = LayoutAssert.box
 
 -- The last spawn species: the bottom of the Fountain tab's grid.
 local LAST_SPAWN: string = SpeciesDex.ENTRIES[1].id
@@ -220,7 +219,7 @@ describe("SlimeDex body", function()
 			-- The band chips sit between the title text and the close X.
 			local close = UiHarness.find(panel.frame, "Close")
 			local closeLeft = panel.frame.Size.X.Offset - Layout.PANEL_CHROME.closeInset - close.Size.X.Offset
-			local titleRight = Layout.PANEL_CHROME.pad
+			local titleRight = Layout.PANEL_CHROME.tileX
 				+ Layout.PANEL_CHROME.icon
 				+ 10
 				+ Layout.lineWidth("SlimeDex", Layout.PANEL_CHROME.titleSize, true)

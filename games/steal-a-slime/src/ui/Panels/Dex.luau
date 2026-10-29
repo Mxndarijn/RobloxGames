@@ -45,7 +45,6 @@ local STYLE = table.freeze({
 	rewardText = 15,
 	rewardTextH = 18,
 	rewardBar = 10,
-	scrollBar = 10, -- list width kept free for the scroll bar
 	listGap = 8,
 	heading = 17,
 	headingH = 24,
@@ -61,7 +60,6 @@ local PANE = table.freeze({
 	minW = 170,
 	maxW = 230,
 	share = 0.4, -- of the body width
-	gap = 10, -- grid to pane
 	pad = 10,
 	preview = 92,
 	title = 19,
@@ -109,7 +107,7 @@ local function headingRow(name: string): any
 	local frame = create("Frame", {
 		Name = name,
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -STYLE.scrollBar, 0, STYLE.headingH),
+		Size = UDim2.new(1, 0, 0, STYLE.headingH),
 	})
 	local title = Widgets.label({
 		Name = "Title",
@@ -354,8 +352,10 @@ function Dex.new(parent: Instance, ctx: any)
 	end
 
 	-- Body box from layout(); nil = wide and tall enough for everything.
-	local bodyW: number = 536
-	local bodyH: number = 505
+	local bodyW: number = Layout.MENU_WIDTH - c.pad * 2
+	local bodyH: number = fullH
+
+	local paneW: number = 0 -- the pane's width (layout sets it)
 
 	local function contentTop(): number
 		return SlimeDex.contentTop(reward.Visible)
@@ -366,11 +366,11 @@ function Dex.new(parent: Instance, ctx: any)
 	end
 
 	local function gridWidth(): number
-		return math.max(C.minW, bodyW - paneWidth() - PANE.gap)
+		return math.max(C.minW, bodyW - paneWidth() - c.gutter)
 	end
 
 	local function grid(): SlimeDex.Grid
-		return SlimeDex.grid(gridWidth() - STYLE.scrollBar)
+		return SlimeDex.grid(gridWidth())
 	end
 
 	-- Chips in the band, right to left from the close button.
@@ -395,8 +395,9 @@ function Dex.new(parent: Instance, ctx: any)
 		local n = math.max(#shown, 1)
 		local tabW = math.floor((bodyW - STYLE.tabGap * (n - 1)) / n)
 		for i, tab in shown do
-			tab.instance.Position = UDim2.fromOffset((i - 1) * (tabW + STYLE.tabGap), 0)
-			tab.instance.Size = UDim2.fromOffset(tabW, STYLE.tabH)
+			local x = (i - 1) * (tabW + STYLE.tabGap)
+			tab.instance.Position = UDim2.fromOffset(x, 0)
+			tab.instance.Size = UDim2.fromOffset(if i == n then bodyW - x else tabW, STYLE.tabH)
 		end
 		reward.Position = UDim2.fromOffset(0, STYLE.tabH + STYLE.gap)
 		local top = contentTop()
@@ -408,16 +409,18 @@ function Dex.new(parent: Instance, ctx: any)
 		showAll.instance.Visible = merges and filter ~= nil
 		recipeList.Visible = merges
 		local gw = gridWidth()
-		list.Position = UDim2.fromOffset(0, top)
-		list.Size = UDim2.fromOffset(gw, height)
-		pane.Position = UDim2.fromOffset(gw + PANE.gap, top)
-		pane.Size = UDim2.fromOffset(bodyW - gw - PANE.gap, height)
+		paneW = bodyW - gw - c.gutter
+		Widgets.place(list, UDim2.fromOffset(0, top), UDim2.fromOffset(gw, height))
+		Widgets.place(pane, UDim2.fromOffset(gw + c.gutter, top), UDim2.fromOffset(paneW, height))
 		local legendH = if filter then STYLE.tabH else RECIPE.legendH
 		legend.Position = UDim2.fromOffset(0, top + (legendH - RECIPE.legendH) // 2)
 		legend.Size = UDim2.fromOffset(bodyW - (if filter then RECIPE.showAllW + STYLE.gap else 0), RECIPE.legendH)
 		showAll.instance.Position = UDim2.new(1, 0, 0, top)
-		recipeList.Position = UDim2.fromOffset(0, top + legendH + RECIPE.legendGap)
-		recipeList.Size = UDim2.fromOffset(bodyW, math.max(height - legendH - RECIPE.legendGap, 0))
+		Widgets.place(
+			recipeList,
+			UDim2.fromOffset(0, top + legendH + RECIPE.legendGap),
+			UDim2.fromOffset(bodyW, math.max(height - legendH - RECIPE.legendGap, 0))
+		)
 	end
 
 	-------------------------------------------------------------------------------------------------------------
@@ -585,9 +588,11 @@ function Dex.new(parent: Instance, ctx: any)
 		)
 	end
 
+	-- Columns by scale, so a line fills its row whether or not the scroll bar takes room.
 	local function sizeCard(v: any, g: SlimeDex.Grid, column: number)
-		v.instance.Size = UDim2.fromOffset(g.cardW, g.cardH)
-		v.instance.Position = UDim2.fromOffset((column - 1) * (g.cardW + g.gap), 0)
+		local n = g.columns
+		v.instance.Size = UDim2.new(1 / n, -math.round(g.gap * (n - 1) / n), 0, g.cardH)
+		v.instance.Position = UDim2.new((column - 1) / n, math.round((column - 1) * g.gap / n), 0, 0)
 	end
 
 	type Item = { key: string, line: SlimeDex.Line }
@@ -600,7 +605,7 @@ function Dex.new(parent: Instance, ctx: any)
 		local frame = create("Frame", {
 			Name = item.key,
 			BackgroundTransparency = 1,
-			Size = UDim2.new(1, -STYLE.scrollBar, 0, C.h),
+			Size = UDim2.new(1, 0, 0, C.h),
 		})
 		return { instance = frame }
 	end, function(r: any, item: Item)
@@ -614,7 +619,7 @@ function Dex.new(parent: Instance, ctx: any)
 			return
 		end
 		local g = grid()
-		r.instance.Size = UDim2.new(1, -STYLE.scrollBar, 0, g.cardH)
+		r.instance.Size = UDim2.new(1, 0, 0, g.cardH)
 		for column, card in line.cards or {} do
 			local v = cardViews[card.key]
 			if v == nil then
@@ -633,8 +638,7 @@ function Dex.new(parent: Instance, ctx: any)
 	local inBase: { [string]: number } = {}
 
 	local function placePane(detail: SlimeDex.Detail?)
-		local w = pane.Size.X.Offset
-		local inner = math.max(w - PANE.pad * 2, 1)
+		local inner = math.max(paneW - PANE.pad * 2, 1)
 		for _, child in pane:GetChildren() do
 			if child:IsA("GuiObject") then
 				(child :: GuiObject).Visible = detail ~= nil
@@ -733,7 +737,7 @@ function Dex.new(parent: Instance, ctx: any)
 	local function makeRecipe(recipe: SlimeDex.Recipe): any
 		local frame = Widgets.rowFrame({
 			Name = recipe.key,
-			Size = UDim2.new(1, -STYLE.scrollBar, 0, RECIPE.h),
+			Size = UDim2.new(1, 0, 0, RECIPE.h),
 		})
 		local stroke = frame:FindFirstChildOfClass("UIStroke") :: UIStroke
 		local function op(name: string, text: string): TextLabel
@@ -829,7 +833,7 @@ function Dex.new(parent: Instance, ctx: any)
 	end
 
 	local function placeRecipe(r: any)
-		local inner = bodyW - STYLE.scrollBar - RECIPE.pad * 2
+		local inner = bodyW - RECIPE.pad * 2
 		local resultW = math.floor(inner * RECIPE.resultShare)
 		local slotW = math.max(math.floor((inner - resultW - RECIPE.op * 3) / 3), 1)
 		local x = RECIPE.pad
@@ -842,7 +846,7 @@ function Dex.new(parent: Instance, ctx: any)
 			x += RECIPE.op
 		end
 		r.result.Position = UDim2.fromOffset(x, r.result.Position.Y.Offset)
-		r.result.Size = UDim2.fromOffset(inner + RECIPE.pad - x, RECIPE.slotH)
+		r.result.Size = UDim2.new(1, -(x + RECIPE.pad), 0, RECIPE.slotH)
 	end
 
 	local function updateRecipe(r: any, recipe: SlimeDex.Recipe)
