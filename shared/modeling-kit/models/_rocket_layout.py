@@ -7,9 +7,24 @@ ID = "rocket"
 NAME = "Space Rocket"
 
 
+NOSE_RIM = 26.0  # floor 4's rim (room_out(4)): the nose is built for it and scaled to the top floor's rim
+
+
+def nose_k(f):
+    """The nose on top floor f is floor 4's scaled by this, about its rim (one mesh fits every top floor)."""
+    return (SPEC["ROOM_R"][f - 1] + 1.0) / NOSE_RIM
+
+
+NOSE_H = 30.0  # floor 4's nose height (rim to the cockpit floor)
+# the ogive's rows as (radius / rim, height / NOSE_H): a bowed-out bullet, flat-topped for the cockpit
+NOSE_ROWS = ((1.0, 0.0), (0.97, 0.14), (0.87, 0.32), (0.70, 0.52), (0.49, 0.72), (0.33, 0.88), (0.23, 1.0))
+
+
 def roof(f, rim):
     zt = floor_top(f) + WALL_H
-    return [(rim + 0.5, zt), (rim * 0.8, zt + 9.0), (rim * 0.42, zt + 23.0), (6.0, zt + 29.0)]  # an ogive nose
+    k = rim / NOSE_RIM
+    # proportional to the rim, so a uniform scale of floor 4's nose mesh fits every top floor
+    return [(rim * a + (0.5 * k if i == 0 else 0.0), zt + NOSE_H * k * b) for i, (a, b) in enumerate(NOSE_ROWS)]
 
 
 SPEC = {
@@ -17,6 +32,6 @@ SPEC = {
     "ROOM_R": (28.0, 27.0, 26.0, 25.0),
     "PAD_R": (19.0, 16.0, 16.0, 16.0),
     "ROOF": roof,
-    "MASCOT_Z": lambda f: floor_top(f) + WALL_H + 29.0,  # the pilot in the glass cockpit
+    "MASCOT_Z": lambda f: floor_top(f) + WALL_H + NOSE_H * nose_k(f),  # the pilot in the glass cockpit
 }
 globals().update(build(SPEC))
