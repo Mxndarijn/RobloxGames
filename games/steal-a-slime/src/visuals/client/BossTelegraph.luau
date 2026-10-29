@@ -117,6 +117,8 @@ function BossTelegraph.start()
 		local gui = Instance.new("BillboardGui")
 		gui.Size = UDim2.fromOffset(120, 50)
 		gui.AlwaysOnTop = true
+		gui.MaxDistance = BossTelegraph.MAX_DISTANCE
+		gui.LightInfluence = 0
 		gui.StudsOffsetWorldSpace = Vector3.new(0, 10, 0)
 		gui.Adornee = model.PrimaryPart
 		local label = Instance.new("TextLabel")

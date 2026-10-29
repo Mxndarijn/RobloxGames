@@ -52,13 +52,17 @@ So a text line `h` studs tall (SurfaceGui or stud tag) **reads up to**:
 | 720p | 37 × h | 19 | 56 |
 | Phone | 20 × h | 10 | 30 |
 
-A pixel tag reads at any distance, but on a phone a 44 px tag already takes 11% of the screen height. Keep a pixel tag **≤ 60 px tall at the 720p reference** and scale its pixel size with the viewport:
+A pixel tag reads at any distance, but on a phone a 44 px tag already takes 11% of the screen height. Keep a pixel tag **≤ 60 px tall at the 720p reference** and let it shrink on small screens: `pxScale = clamp(viewportHeight / 720, 0.6, 1)`.
+
+You don't write that yourself. The shared [LabelFit](../shared/luau/src/ui/LabelFit.luau) module has the maths (`pxPerStud`, `readDistance`, `pxScale`, `maxDistance`), and [LabelFitView](../shared/luau/src/ui/LabelFitView.luau) applies it on the client. Mark a pixel tag once, on the server or the client:
 
 ```lua
-pxScale = math.clamp(viewportHeight / 720, 0.6, 1)   -- SlimeInfoCard.fit()
+LabelFit.mark(gui)                                              -- shrink its pixels on a phone
+LabelFit.mark(gui, { phoneDistance = 40 })                      -- and a shorter MaxDistance there
+LabelFit.mark(gui, { phoneDistance = 40, keepSize = true })     -- only the shorter distance
 ```
 
-Re-fit on `Camera:GetPropertyChangedSignal("ViewportSize")` (rotating a phone, resizing a window).
+The game runs one `LabelFitView.new()` on the client (Steal a Slime: `ui/init.client.luau`). It multiplies the gui's pixel `Size` by `pxScale` and adds a `UIScale` of the same value under the gui, so the contents keep laying out in the original pixel canvas (fixed `TextSize`s included) and are drawn smaller. It re-fits when the screen size changes, and a later `Size` or `MaxDistance` you set becomes the new base. Only mark pixel tags: a hybrid tag like SlimeInfoCard does its own fit.
 
 ## 3. MaxDistance: always set it
 
@@ -110,43 +114,45 @@ Each drawn label is a small render target. Dozens are fine; hundreds are not. `M
 2. Work out the read distance on a phone (section 2). Is the text big enough for where players stand?
 3. Set `MaxDistance` (section 3), and a phone value if it is a pixel or hybrid tag.
 4. `LightInfluence = 0`; decide `AlwaysOnTop` on purpose.
-5. Pixel or hybrid tag: scale the pixels with the viewport (`pxScale`), cap close-up growth.
-6. Check it in Studio at 844×390 and at 1920×1080, near and at `MaxDistance`. `screen_capture` leaves BillboardGuis out during Play, so read on-screen size with `execute_luau` (`gui.AbsoluteSize`, or `Camera:WorldToViewportPoint` on its corners) and say so in the PR.
+5. Pixel tag: `LabelFit.mark(gui)` (with `phoneDistance` if it needs a shorter range on a phone). Hybrid tag: fit it yourself like SlimeInfoCard, and cap close-up growth.
+6. Check it in Studio at 844×390 and at 1920×1080, near and at `MaxDistance`. `screen_capture` leaves BillboardGuis out during Play, so read on-screen size with `execute_luau` (`gui.AbsoluteSize`, or `Camera:WorldToViewportPoint` on its corners) and say so in the PR. To see the phone size on a desktop Studio, run a second `LabelFitView.new({ tag = "Test", camera = ... })` with a fake camera whose `ViewportSize` is 844×390 on a clone of the label.
 7. Add the label to the registry below.
+
+`tests/WorldLabels.spec` (Steal a Slime) fails the build when a file under `src/` or `shared/luau/src` creates a BillboardGui or SurfaceGui without setting `MaxDistance` within 40 lines.
 
 ## Registry: every label in the world
 
-Game: steal-a-slime unless noted. "px" = pixel tag, "studs", "hybrid", "SG" = SurfaceGui. MaxDistance in studs; "default" means not set (BillboardGui: infinite, SurfaceGui: 1000).
+Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = marked with `LabelFit.mark` (smaller pixels on a phone). MaxDistance in studs; "phone" is the value on a phone-sized screen.
 
 | Label | Code | Kind / size | MaxDistance | AlwaysOnTop |
 |---|---|---|---|---|
-| Slime info tag (rarity, name, income, price) | `ui/SlimeInfoCard` | hybrid 3.4 st + 160 px, pxScale 0.6..1, close 12 | 60 / phone 40 | yes |
-| Grab key card | `ui/SlimeKeyCard` | px | 40 | yes |
-| Can't-grab card | `ui/GrabBlockCard` | px 24+22 rows | 40 | yes |
-| Pad sign plank | `ui/SlimePadSign` | SG 4.6×1.5, 80 ppS | 80 | no |
-| Lock timer on other bases | `ui/LockTimerTag` | px 150×44 | 90 | yes + sight ray |
-| Friends-lock sticker | `ui/FriendsLockIcon` | SG 3.2 st | 120 | no |
+| Slime info tag (rarity, name, income, price) | `ui/SlimeInfoCard` | hybrid 3.4 st + 160 px, own fit 0.6..1, close 12 | 60 / phone 40 | yes |
+| Grab key card | `ui/SlimeKeyCard` | px, fit | 40 | yes |
+| Can't-grab card | `ui/GrabBlockCard` | px, fit | 40 | yes |
+| Next pad tag | `visuals/client/NextPadMarker` | px 176×42, fit | 40 | no |
+| Vat tag | `server/VatView` | px 220×104, fit | 60 / phone 40 | no |
+| Ritual orb label | `server/RitualView` | px 300×96, fit | 60 / phone 40 (RitualFx) | no |
+| Podium name board | `server/PodiumRigs` | px 120×61, fit | 50 | no |
+| Tutorial NPC name | `visuals/shared/Props.tutorialNpc` | px 170×44, fit | 60 / phone 40 | no |
+| Professor Goo name | `visuals/shared/Props.professorGoo` | px 220×44, fit | 60 / phone 40 | no |
+| Slime emote bubble | `ui/SlimeEmotes` | px 34×34 (keeps size) | 60 / phone 40 | no |
 | Friends-lock badge | `ui/FriendsLockIcon` | studs 2.2×2.2 | 70 | no |
-| Slime emote bubble | `ui/SlimeEmotes` | px 34×34 | 70 | no |
-| BONK/CHOMP popup | `ui/PvpEffects` | px 140×48 | default | no |
-| Fun FX text | `ui/PvpFunFx` | px 220×60 × scale | 220 | yes |
-| Steal ping over thief | `ui/StealAlertFx` | px 110×56 | default | yes |
-| Slap pop | `ui/StealAlertFx` | px 120×50 | default | yes |
-| Vat tag | `server/VatView` | px 220×104 | 60 | no |
-| Ritual orb label | `server/RitualView` | px 300×96 | 60 / phone 40 | no |
-| Ritual rules sign | `server/RitualView` | SG 6×1.8, 50 ppS | default | no |
-| Podium name board | `server/PodiumRigs` | px 120×61 | 50 | no |
-| Plot name board | `server/PlotSigns` | SG 8×2.6, 50 ppS | default | no |
-| Lock sign (LOCKED / timer) | `visuals/shared/PlotDecor` | SG 8×3.2, 40 ppS | default | no |
-| Cash pad coin | `server/CashPadView` | SG, 60 ppS | default | no |
-| Shop stand signs | `visuals/shared/Props.standSign` | SG, 80 ppS | default | no |
-| Hall arch banner | `visuals/shared/Props.hallArch` | SG, 40 ppS | default | no |
-| Leaderboard boards | `visuals/shared/Props.leaderboardBoard`, `ui/WorldLeaderboard` | SG, 40 ppS | default | no |
-| Tutorial NPC name | `visuals/shared/Props.tutorialNpc` | px 170×44 | 80 | no |
-| Professor Goo name | `visuals/shared/Props.professorGoo` | px 220×44 | 80 | no |
-| Your plot marker | `visuals/client/HomePlotMarker` | px 170×98 | 2000, fades in code | yes |
-| Next pad tag | `visuals/client/NextPadMarker` | px 176×42 | 40 | no |
-| Boss hit pop | `visuals/client/BossTelegraph` | px 120×50 | default (code culls at 220) | yes |
 | Egg hatch title | `visuals/client/EggHatchFx` | studs 6×1.2 | 45 | no |
 | Lucky title | `visuals/client/LuckyFx` | studs 6×2.16 | 45 | no |
-| Tutorial guide label (shared) | `shared/luau/src/guide/GuideView` | px 220×56 | 400 | no |
+| Lock timer on other bases | `ui/LockTimerTag` | px 150×44, fit | 90 / phone 60 | yes + sight ray |
+| Lock sign (LOCKED / timer) | `visuals/shared/PlotDecor` | SG 8×3.2, 40 ppS | 150 | no |
+| Friends-lock sticker | `ui/FriendsLockIcon` | SG 3.2 st | 120 | no |
+| Pad sign plank | `ui/SlimePadSign` | SG 4.6×1.5, 80 ppS | 80 | no |
+| Cash pad coin | `server/CashPadView` | SG, 60 ppS | 60 | no |
+| Plot name board | `server/PlotSigns` | SG 8×2.6, 50 ppS | 250 | no |
+| Shop stand signs | `visuals/shared/Props.standSign` | SG, 80 ppS | 300 | no |
+| Hall arch banner | `visuals/shared/Props.hallArch` | SG, 40 ppS | 300 | no |
+| Leaderboard boards | `visuals/shared/Props.leaderboardBoard`, `ui/WorldLeaderboard` | SG, 40 ppS | 150 | no |
+| Ritual rules sign | `server/RitualView` | SG 6×1.8, 50 ppS | 80 | no |
+| BONK / CHOMP popup | `ui/PvpEffects` | px 140×48 | 120 | no |
+| Fun FX text | `ui/PvpFunFx` | px 220×60 × scale | 150 | yes |
+| Steal ping over thief | `ui/StealAlertFx` | px 110×56 | 400 | yes |
+| Slap pop | `ui/StealAlertFx` | px 120×50 | 120 | yes |
+| Boss hit pop | `visuals/client/BossTelegraph` | px 120×50 | 220 (same as its code check) | yes |
+| Your plot marker | `visuals/client/HomePlotMarker` | px 170×98, fit | 2000, fades in code | yes |
+| Tutorial guide label (shared) | `shared/luau/src/guide/GuideView` | px 220×56, fit | 400 | no |

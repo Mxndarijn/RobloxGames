@@ -66,6 +66,7 @@ local GuideEdge = if script then require(script.Parent.GuideEdge) else require("
 local GuideMarker = if script then require(script.Parent.GuideMarker) else require("./GuideMarker")
 local GuideRoute = if script then require(script.Parent.GuideRoute) else require("./GuideRoute")
 local GuideTrail = if script then require(script.Parent.GuideTrail) else require("./GuideTrail")
+local LabelFit = if script then require(script.Parent.Parent.ui.LabelFit) else require("../ui/LabelFit")
 
 export type Options = {
 	color: Color3?,
@@ -354,6 +355,7 @@ function GuideView.new(options: Options?): Guide
 	billboard.Size = UDim2.fromOffset(220, 56)
 	billboard.StudsOffsetWorldSpace = Vector3.new(0, 1.8, 0)
 	billboard.MaxDistance = 400
+	LabelFit.mark(billboard) -- smaller pixels on a phone when the game runs Lib.ui.LabelFitView
 	billboard.Enabled = false
 	billboard.ResetOnSpawn = false
 	local text = Instance.new("TextLabel")

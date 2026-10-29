@@ -15,6 +15,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local HomePlotMarker = require(script.Parent:WaitForChild("HomePlotMarker"))
+local LabelFit = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
 local Look = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("NextPad"))
 
 local NextPadMarker = {}
@@ -79,6 +80,7 @@ local function build(pad: BasePart): Marker
 		StudsOffsetWorldSpace = Vector3.new(0, L.tagHeight, 0),
 		ResetOnSpawn = false,
 	}, pad)
+	LabelFit.mark(tag) -- smaller pixels on a phone (Lib.ui.LabelFitView)
 	local pill = make("Frame", {
 		Name = "Pill",
 		Size = UDim2.new(1, -L.stroke * 2, 1, -L.stroke * 2),
