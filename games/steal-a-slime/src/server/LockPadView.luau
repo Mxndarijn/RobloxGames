@@ -29,7 +29,12 @@ local LOOKS = table.freeze({
 		material = Enum.Material.SmoothPlastic,
 		transparency = 0,
 	}),
-	charge = table.freeze({ color = Color3.fromRGB(225, 255, 235), material = Enum.Material.Neon, transparency = 0 }),
+	-- dark green, not Neon: Neon would glow it up to the bright ready green round it
+	charge = table.freeze({
+		color = Color3.fromRGB(20, 85, 30),
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0,
+	}),
 	locked = table.freeze({ color = Color3.fromRGB(229, 72, 77), material = Enum.Material.Neon, transparency = 0 }),
 	ready = table.freeze({ color = Color3.fromRGB(40, 150, 25), material = Enum.Material.Neon, transparency = 0 }),
 })
