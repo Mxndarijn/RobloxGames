@@ -1,6 +1,6 @@
 --!strict
--- The friend icon on bases that let friends in (src/ui/FriendsLockIcon.luau): when the sticker and the badge show,
--- and the sticker's face. The guis in the real world are checked in a Studio playtest.
+-- The friend icon on locked bases that let friends in (src/ui/FriendsLockIcon.luau): when the sticker shows, which
+-- part it goes on and its face. The guis in the real world are checked in a Studio playtest.
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 local roblox = require("@lune/roblox") :: any
@@ -9,15 +9,29 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local FriendsLockIcon = UiHarness.ui("FriendsLockIcon")
 
 describe("FriendsLockIcon", function()
-	it("shows the badge while friends are allowed and the sticker only while the base is also locked", function()
-		local function shown(allowed: any, locked: any): string
-			local s = FriendsLockIcon.shown(allowed, locked)
-			return `{s.sticker},{s.badge}`
-		end
-		expect(shown(true, true)).toBe("true,true")
-		expect(shown(true, false)).toBe("false,true")
-		expect(shown(nil, true)).toBe("false,false")
-		expect(shown(nil, nil)).toBe("false,false")
+	it("shows the sticker only while friends are allowed and the base is locked", function()
+		expect(FriendsLockIcon.shown(true, true)).toBe(true)
+		expect(FriendsLockIcon.shown(true, false)).toBe(false)
+		expect(FriendsLockIcon.shown(nil, true)).toBe(false)
+		expect(FriendsLockIcon.shown(nil, nil)).toBe(false)
+	end)
+
+	it("puts the sticker on the shut door's mesh, or on the doorway collider before the mesh lands", function()
+		local plot = UiHarness.Instance.new("Model")
+		local barrier = UiHarness.Instance.new("Model")
+		barrier.Name = "LockBarrier"
+		barrier.Parent = plot
+		local stopper = UiHarness.Instance.new("Part")
+		stopper.Name = "Stopper"
+		stopper.Parent = barrier
+		local slot = UiHarness.Instance.new("Part")
+		slot.Name = "StopperShut"
+		slot.Parent = plot
+		expect(FriendsLockIcon.doorOf(plot)).toBe(stopper)
+		local mesh = UiHarness.Instance.new("Part")
+		mesh.Name = "Mesh"
+		mesh.Parent = slot
+		expect(FriendsLockIcon.doorOf(plot)).toBe(mesh)
 	end)
 
 	it("puts the sticker on the face that looks out of the plot", function()

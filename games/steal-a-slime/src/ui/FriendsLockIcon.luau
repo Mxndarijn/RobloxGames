@@ -2,16 +2,15 @@
 --[[
 	FriendsLockIcon
 
-	Shows everyone which bases let friends in (FEATURES.FriendsInBase, plot attribute FriendsAllowed), with the
-	friend bonus icon (ItemIcons "Boost_Friend": two slimes high-fiving with a heart):
+	Shows everyone which locked bases let friends in (FEATURES.FriendsInBase, plot attribute FriendsAllowed): a
+	sticker with the friend bonus icon (ItemIcons "Boost_Friend": two slimes high-fiving with a heart), a white disc
+	with a pink ring, on the outer face of the shut door while the base is locked. It is what a friend walking up the
+	bridge looks at. It sits on the door's look (StopperShut.Mesh), so it swings with the door; until that mesh lands
+	it sits on the doorway's collider (LockBarrier.Stopper).
 
-	  * Sticker: on the outer face of the shut stopper (LockBarrier.Stopper, the doorway's collider), a white disc
-	    with a pink ring, while the base is locked. It is what a friend walking up the bridge looks at.
-	  * Badge: a small goo-glass disc floating over the LockButton, while the switch is on (locked or not).
-
-	With the switch off both are hidden, so a normal base looks as it always did. The guis live in PlayerGui with
-	an Adornee in the plot, so nothing in the shared world changes. Event driven: plot attribute changes only, no
-	frame loop. `start` returns a stop function that removes everything it made.
+	With the switch off, or the base open, nothing shows. The gui lives in PlayerGui with an Adornee in the plot, so
+	nothing in the shared world changes. Event driven: plot attribute changes and the door mesh landing, no frame
+	loop. `start` returns a stop function that removes everything it made.
 ]]
 
 local ItemIconView = require(script.Parent.ItemIconView)
@@ -25,22 +24,16 @@ local FriendsLockIcon = {}
 FriendsLockIcon.ICON = "Boost_Friend"
 FriendsLockIcon.FOLDER = "FriendsLockIcons"
 FriendsLockIcon.SIZE = table.freeze({
-	stickerStuds = 3.2, -- the sticker's square on the stopper face
+	stickerStuds = 3.2, -- the sticker's square on the door face
 	stickerPixelsPerStud = 50,
-	badgeStuds = 2.2, -- the floating badge's square
-	badgeLift = 4.5, -- studs above the LockButton's top
-	badgeMaxDistance = 70, -- studs: hidden beyond
 	stickerMaxDistance = 120,
 	ring = 0.07, -- ring thickness, fraction of the disc
 	icon = 0.78, -- icon size, fraction of the disc
 })
 
-export type Shown = { sticker: boolean, badge: boolean }
-
--- What a plot shows for its FriendsAllowed / Locked attributes.
-function FriendsLockIcon.shown(friendsAllowed: any, locked: any): Shown
-	local on = friendsAllowed == true
-	return { sticker = on and locked == true, badge = on }
+-- Whether a plot shows the sticker for its FriendsAllowed / Locked attributes.
+function FriendsLockIcon.shown(friendsAllowed: any, locked: any): boolean
+	return friendsAllowed == true and locked == true
 end
 
 -- The face of `part` that points most along `direction` (world space).
@@ -61,6 +54,18 @@ function FriendsLockIcon.faceToward(part: BasePart, direction: Vector3): Enum.No
 		end
 	end
 	return best
+end
+
+-- The part the sticker goes on: the shut door's mesh, else the doorway's collider before the mesh lands.
+function FriendsLockIcon.doorOf(plot: Instance): BasePart?
+	local slot = plot:FindFirstChild("StopperShut")
+	local mesh = slot and slot:FindFirstChild("Mesh")
+	if mesh and mesh:IsA("BasePart") then
+		return mesh
+	end
+	local barrier = plot:FindFirstChild("LockBarrier")
+	local stopper = barrier and barrier:FindFirstChild("Stopper")
+	return if stopper and stopper:IsA("BasePart") then stopper else nil
 end
 
 export type Options = {
@@ -102,22 +107,27 @@ end
 function FriendsLockIcon.start(opts: Options): () -> ()
 	local S = FriendsLockIcon.SIZE
 	local folder = create("Folder", { Name = FriendsLockIcon.FOLDER, Parent = opts.playerGui })
-	type Entry = { sticker: SurfaceGui?, badge: BillboardGui?, conns: { RBXScriptConnection } }
+	type Entry = { sticker: SurfaceGui?, conns: { RBXScriptConnection } }
 	local entries: { [Instance]: Entry } = {}
 
-	local function stickerFor(plot: Instance): SurfaceGui?
-		local barrier = plot:FindFirstChild("LockBarrier")
-		local stopper = barrier and barrier:FindFirstChild("Stopper")
+	-- Puts `gui` on the face of the plot's door that looks out of the plot (the door is at the plot's -Z). False when
+	-- the door or the plot's Base hasn't streamed in.
+	local function stick(plot: Instance, gui: SurfaceGui): boolean
+		local door = FriendsLockIcon.doorOf(plot)
 		local base = plot:FindFirstChild("Base")
-		if not (stopper and stopper:IsA("BasePart") and base and base:IsA("BasePart")) then
-			return nil
+		if not (door and base and base:IsA("BasePart")) then
+			return false
 		end
-		-- The door is at the plot's -Z: the sticker goes on the stopper face that looks out of the plot.
-		local out = base.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -1))
+		if gui.Adornee ~= door then
+			gui.Adornee = door
+			gui.Face = FriendsLockIcon.faceToward(door, base.CFrame:VectorToWorldSpace(Vector3.new(0, 0, -1)))
+		end
+		return true
+	end
+
+	local function stickerFor(plot: Instance): SurfaceGui?
 		local gui = create("SurfaceGui", {
 			Name = `{plot.Name}_Sticker`,
-			Adornee = stopper,
-			Face = FriendsLockIcon.faceToward(stopper, out),
 			SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud,
 			PixelsPerStud = S.stickerPixelsPerStud,
 			LightInfluence = 0,
@@ -126,6 +136,10 @@ function FriendsLockIcon.start(opts: Options): () -> ()
 			Enabled = false,
 			Parent = folder,
 		}) :: SurfaceGui
+		if not stick(plot, gui) then
+			gui:Destroy()
+			return nil
+		end
 		local px = S.stickerStuds * S.stickerPixelsPerStud
 		local holder = create("Frame", {
 			Name = "Sticker",
@@ -139,26 +153,6 @@ function FriendsLockIcon.start(opts: Options): () -> ()
 		return gui
 	end
 
-	local function badgeFor(plot: Instance): BillboardGui?
-		local button = plot:FindFirstChild("LockButton")
-		if not (button and button:IsA("BasePart")) then
-			return nil
-		end
-		local gui = create("BillboardGui", {
-			Name = `{plot.Name}_Badge`,
-			Adornee = button,
-			Size = UDim2.fromScale(S.badgeStuds, S.badgeStuds),
-			StudsOffsetWorldSpace = Vector3.new(0, button.Size.Y / 2 + S.badgeLift, 0),
-			LightInfluence = 0,
-			MaxDistance = S.badgeMaxDistance,
-			AlwaysOnTop = false,
-			Enabled = false,
-			Parent = folder,
-		}) :: BillboardGui
-		disc(gui, Theme.Bg, Theme.Ink, opts.registry)
-		return gui
-	end
-
 	local function apply(plot: Instance)
 		local entry = entries[plot]
 		if not entry then
@@ -169,17 +163,12 @@ function FriendsLockIcon.start(opts: Options): () -> ()
 			plot:GetAttribute(opts.attributes.locked)
 		)
 		-- Built on first need: the plot's parts may stream in after the plot model.
-		if shown.sticker and not entry.sticker then
+		if shown and not entry.sticker then
 			entry.sticker = stickerFor(plot)
 		end
-		if shown.badge and not entry.badge then
-			entry.badge = badgeFor(plot)
-		end
-		if entry.sticker then
-			entry.sticker.Enabled = shown.sticker
-		end
-		if entry.badge then
-			entry.badge.Enabled = shown.badge
+		local sticker = entry.sticker
+		if sticker then
+			sticker.Enabled = shown and stick(plot, sticker)
 		end
 	end
 
@@ -187,7 +176,7 @@ function FriendsLockIcon.start(opts: Options): () -> ()
 		if entries[plot] or not plot:IsA("Model") then
 			return
 		end
-		local entry: Entry = { sticker = nil, badge = nil, conns = {} }
+		local entry: Entry = { sticker = nil, conns = {} }
 		entries[plot] = entry
 		for _, name in { opts.attributes.friendsAllowed, opts.attributes.locked } do
 			table.insert(
@@ -197,6 +186,15 @@ function FriendsLockIcon.start(opts: Options): () -> ()
 				end)
 			)
 		end
+		-- The door's mesh lands (MeshSwap) or comes back after a base swap: move the sticker onto it.
+		table.insert(
+			entry.conns,
+			plot.DescendantAdded:Connect(function(d)
+				if d.Name == "Mesh" and d.Parent and d.Parent.Name == "StopperShut" then
+					apply(plot)
+				end
+			end)
+		)
 		apply(plot)
 	end
 
@@ -211,9 +209,6 @@ function FriendsLockIcon.start(opts: Options): () -> ()
 		end
 		if entry.sticker then
 			entry.sticker:Destroy()
-		end
-		if entry.badge then
-			entry.badge:Destroy()
 		end
 	end
 

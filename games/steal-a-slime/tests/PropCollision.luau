@@ -841,12 +841,12 @@ parts(
 parts(
 	"plot_lock_sign",
 	"gojo",
-	24,
+	16,
 	"off",
 	"Plots",
-	{ "^LockSign$", "^Lamp$", "^Post$" },
+	{ "^LockSign$", "^Post$" },
 	"off",
-	"0.5 stud lamp post and a 0.3 thick sign: slim, in the plot front"
+	"0.5 stud post and a 0.3 thick sign: slim, in the plot front"
 )
 parts(
 	"plot_lock_barrier",

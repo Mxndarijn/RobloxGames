@@ -11,10 +11,18 @@
 	in its Guests list (friends let in, PlotGuests).
 
 	Plot attributes read (CONTRACT.md §5.2 + new ones, all optional):
-	  OwnerUserId  0 = free      -> LockSign shows no text
-	  LockUntil    server time   -> LockBarrier stopper / ParkedStopper + LockSign "LOCKED m:ss" / "UNLOCKED"
-	  Locked       boolean (§8.4) -> used only when LockUntil is missing
+	  OwnerUserId    0 = free      -> no lock board
+	  LockUntil      server time   -> LockBarrier stopper / ParkedStopper + the lock board
+	  LockStartedAt  server time   -> how far the lock board's bar has drained
+	  Locked         boolean (§8.4) -> used only when LockUntil is missing
 	Rebirths never change the base.
+
+	The lock board is a Goo board (shared/GooBoard, like the name board above it on the post) on the LockSign's
+	Front face: a red LOCKED band, the time left and a bar that drains over the lock; a green OPEN band and
+	"stealable!" while open. It is the only place other players see a lock's time.
+
+	`opts.door = false` leaves the door looks (StopperShut / StopperParked meshes, DoorRing) alone: LockMotion moves
+	them while it plays a lock or an open.
 
 	PlotDecor.locked(lockUntil, now) / clock(seconds) are pure
 	(Lune-safe, used by the render proof).
@@ -27,12 +35,16 @@ local Constants = if script then require(script.Parent.Parent.Shared.Constants) 
 local MeshAssets = if script
 	then require(script.Parent.Parent.Shared.MeshAssets)
 	else require("../../shared/MeshAssets")
+local GooBoard = if script then require(script.Parent.Parent.Shared.GooBoard) else require("../../shared/GooBoard")
+local GooPalette = if script
+	then require(script.Parent.Parent.Shared.GooPalette)
+	else require("../../shared/GooPalette")
+local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
 local PlotDecor = {}
 
 PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
 PlotDecor.UNLOCKED_COLOR = { 90, 220, 110 }
-PlotDecor.FREE_COLOR = { 255, 205, 60 }
 -- The locked door as the plot's owner and its guests see it: they pass through it, so it shows half see-through.
 PlotDecor.OWNER_DOOR_TRANSPARENCY = 0.5
 
@@ -65,39 +77,112 @@ local function show(part: Instance?, visible: boolean, transparency: number?)
 	end
 end
 
--- SurfaceGui (Face Front) with one TextLabel per line, stacked top-down.
-local function labels(part: Instance, rows: { number }): { TextLabel }
-	local gui = part:FindFirstChild("DecorGui")
+PlotDecor.LOCK_BOARD_GUI = "LockBoard"
+PlotDecor.LOCK_BOARD_PIXELS_PER_STUD = 50
+-- The lock board's width / height, so the goo drops come out round.
+PlotDecor.LOCK_BOARD_ASPECT = WorldLayout.LOCK_SIGN.width / WorldLayout.LOCK_SIGN.height
+PlotDecor.LOCK_BOARD = table.freeze({
+	band = 0.36,
+	radius = 0.2,
+	drips = table.freeze({
+		-- clear of the time in the middle
+		table.freeze({ x = 0.1, w = 0.035, len = 0.05 }),
+		table.freeze({ x = 0.25, w = 0.04, len = 0.08 }),
+		table.freeze({ x = 0.86, w = 0.03, len = 0.04 }),
+	}),
+	stroke = 6, -- px at LOCK_BOARD_PIXELS_PER_STUD
+	glassTransparency = 0,
+} :: GooBoard.Spec)
+-- Boxes as fractions of the board { x, y, w, h }.
+PlotDecor.LOCK_BOARD_TEXT = table.freeze({
+	status = table.freeze({ 0.08, 0.05, 0.84, 0.27 }), -- LOCKED / OPEN, in the band
+	time = table.freeze({ 0.1, 0.4, 0.8, 0.4 }), -- m:ss / stealable!
+	bar = table.freeze({ 0.14, 0.83, 0.72, 0.07 }), -- the drain bar's track
+})
+
+local function globals(): GooBoard.Deps
+	return { Instance = Instance, Enum = Enum, UDim = UDim, UDim2 = UDim2, Color3 = Color3 }
+end
+
+local function box(inst: GuiObject, b: { number })
+	inst.Position = UDim2.fromScale(b[1], b[2])
+	inst.Size = UDim2.fromScale(b[3], b[4])
+end
+
+type Board = { gui: SurfaceGui, card: Frame, status: TextLabel, time: TextLabel, track: Frame, fill: Frame }
+
+-- The lock board on `sign`'s Front face, built on first use.
+local function board(sign: Instance): Board
+	local deps = globals()
+	local gui = sign:FindFirstChild(PlotDecor.LOCK_BOARD_GUI) :: SurfaceGui?
 	if not gui then
 		local g = Instance.new("SurfaceGui")
-		g.Name = "DecorGui"
+		g.Name = PlotDecor.LOCK_BOARD_GUI
 		g.Face = Enum.NormalId.Front
 		g.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		g.PixelsPerStud = 40
+		g.PixelsPerStud = PlotDecor.LOCK_BOARD_PIXELS_PER_STUD
 		g.LightInfluence = 0
-		local y = 0
-		for k, height in rows do
-			local l = Instance.new("TextLabel")
-			l.Name = `Line{k}`
-			l.BackgroundTransparency = 1
-			l.Position = UDim2.fromScale(0.04, y)
-			l.Size = UDim2.fromScale(0.92, height)
-			l.TextScaled = true
-			l.Font = Enum.Font.FredokaOne
-			l.TextColor3 = Color3.new(1, 1, 1)
-			l.TextStrokeTransparency = 0.4
-			l.Text = ""
-			l.Parent = g
-			y += height
-		end
-		g.Parent = part
+		local card = GooBoard.build(g, deps, PlotDecor.LOCK_BOARD, PlotDecor.LOCK_BOARD_ASPECT)
+		box(GooBoard.text(card, deps, "Status", GooPalette.White, 4), PlotDecor.LOCK_BOARD_TEXT.status)
+		box(GooBoard.text(card, deps, "Time", GooPalette.Text, 3), PlotDecor.LOCK_BOARD_TEXT.time)
+		local track = Instance.new("Frame")
+		track.Name = "Track"
+		track.BorderSizePixel = 0
+		track.BackgroundColor3 = rgb(GooPalette.Ink)
+		box(track, PlotDecor.LOCK_BOARD_TEXT.bar)
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(1, 0)
+		corner.Parent = track
+		local fill = Instance.new("Frame")
+		fill.Name = "Fill"
+		fill.BorderSizePixel = 0
+		fill.Size = UDim2.fromScale(1, 1)
+		corner:Clone().Parent = fill
+		fill.Parent = track
+		track.Parent = card
+		g.Parent = sign
 		gui = g
 	end
-	local out = {}
-	for k in rows do
-		out[k] = (gui :: Instance):FindFirstChild(`Line{k}`) :: TextLabel
+	local g = gui :: SurfaceGui
+	local card = g:FindFirstChild(GooBoard.CARD) :: Frame
+	local track = card:FindFirstChild("Track") :: Frame
+	return {
+		gui = g,
+		card = card,
+		status = card:FindFirstChild("Status") :: TextLabel,
+		time = card:FindFirstChild("Time") :: TextLabel,
+		track = track,
+		fill = track:FindFirstChild("Fill") :: Frame,
+	}
+end
+
+-- The share of a lock still to run, 0..1 (1 when its start is unknown).
+function PlotDecor.lockShare(lockStartedAt: number?, lockUntil: number?, now: number): number
+	local untilTime = lockUntil or 0
+	local started = lockStartedAt or 0
+	if started <= 0 or untilTime <= started then
+		return 1
 	end
-	return out
+	return math.clamp((untilTime - now) / (untilTime - started), 0, 1)
+end
+
+-- Draws the lock board: hidden on a free plot (`owned` false), else locked with `remaining` s and `share` left, or open.
+local function applyBoard(sign: Instance, owned: boolean, locked: boolean, remaining: number, share: number)
+	local b = board(sign)
+	set(b.gui, "Enabled", owned)
+	if not owned then
+		return
+	end
+	local color = if locked then PlotDecor.LOCKED_COLOR else PlotDecor.UNLOCKED_COLOR
+	local status = if locked then "LOCKED" else "OPEN"
+	if b.status.Text ~= status then
+		GooBoard.paint(b.card, globals(), color)
+		b.status.Text = status
+		set(b.fill, "BackgroundColor3", rgb(color))
+	end
+	set(b.time, "Text", if locked then PlotDecor.clock(remaining) else "stealable!")
+	set(b.track, "Visible", locked)
+	set(b.fill, "Size", UDim2.fromScale(share, 1))
 end
 
 -- The swapped mesh under a jar tower look slot (server/MeshSwap names it "Mesh"), or nil before it lands.
@@ -107,7 +192,15 @@ local function lookMesh(plot: Instance, name: string): BasePart?
 	return if mesh and mesh:IsA("BasePart") then mesh else nil
 end
 
-local function applyLock(plot: Instance, owned: boolean, locked: boolean, remaining: number, mine: boolean)
+local function applyLock(
+	plot: Instance,
+	owned: boolean,
+	locked: boolean,
+	remaining: number,
+	share: number,
+	mine: boolean,
+	doorLooks: boolean
+)
 	local shut = owned and locked
 	local door = if mine then PlotDecor.OWNER_DOOR_TRANSPARENCY else nil
 	local barrier = plot:FindFirstChild("LockBarrier")
@@ -120,30 +213,18 @@ local function applyLock(plot: Instance, owned: boolean, locked: boolean, remain
 		end
 	end
 	show(plot:FindFirstChild("ParkedStopper"), not shut and meshes == nil)
-	if meshes then
+	if meshes and doorLooks then
 		show(meshes, shut, door)
 		show(lookMesh(plot, "StopperParked"), not shut)
 	end
 	local ring = lookMesh(plot, "DoorRing")
-	if ring then
-		set(ring, "Color", if shut then rgb(PlotDecor.LOCKED_COLOR) else rgb(PlotDecor.RING_COLOR))
+	if ring and doorLooks then
+		set(ring, "Color", PlotDecor.ringColor(shut))
 	end
 	local sign = plot:FindFirstChild("LockSign")
-	if not sign then
-		return
+	if sign then
+		applyBoard(sign, owned, locked, remaining, share)
 	end
-	local color = if not owned
-		then PlotDecor.FREE_COLOR
-		elseif locked then PlotDecor.LOCKED_COLOR
-		else PlotDecor.UNLOCKED_COLOR
-	local lamp = sign:FindFirstChild("Lamp")
-	if lamp and lamp:IsA("BasePart") then
-		set(lamp, "Color", rgb(color))
-	end
-	local lines = labels(sign, { 0.55, 0.45 })
-	set(lines[1], "Text", if not owned then "" elseif locked then "LOCKED" else "UNLOCKED")
-	set(lines[1], "TextColor3", rgb(color))
-	set(lines[2], "Text", if not owned then "" elseif locked then PlotDecor.clock(remaining) else "stealable!")
 end
 
 -- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15) ---------------------------------
@@ -289,8 +370,11 @@ function PlotDecor.passes(plot: Instance, owner: any, viewerUserId: number?): bo
 	return type(guests) == "string" and string.find(guests, `,{viewerUserId},`, 1, true) ~= nil
 end
 
--- Applies every cosmetic of one Plot_<i> model for server time `now`, as player `viewerUserId` sees it.
-function PlotDecor.apply(plot: Instance, now: number, viewerUserId: number?)
+export type Lock = { owned: boolean, locked: boolean, remaining: number, shut: boolean, see: boolean }
+
+-- A plot's lock as player `viewerUserId` sees it at server time `now`: `shut` = the door is shut (owned and locked),
+-- `see` = the viewer walks through it, so the shut door shows half see-through to them.
+function PlotDecor.lockOf(plot: Instance, now: number, viewerUserId: number?): Lock
 	local owner = plot:GetAttribute("OwnerUserId")
 	local owned = type(owner) == "number" and owner ~= 0
 	local lockUntil = plot:GetAttribute("LockUntil")
@@ -298,7 +382,34 @@ function PlotDecor.apply(plot: Instance, now: number, viewerUserId: number?)
 	if type(lockUntil) ~= "number" and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) == true then
 		locked = true
 	end
-	applyLock(plot, owned, locked, remaining, owned and PlotDecor.passes(plot, owner, viewerUserId))
+	return {
+		owned = owned,
+		locked = locked,
+		remaining = remaining,
+		shut = owned and locked,
+		see = owned and PlotDecor.passes(plot, owner, viewerUserId),
+	}
+end
+
+-- The door's lock ring colour: red while shut, brass while open.
+function PlotDecor.ringColor(shut: boolean): Color3
+	return rgb(if shut then PlotDecor.LOCKED_COLOR else PlotDecor.RING_COLOR)
+end
+
+export type Options = { door: boolean? }
+
+-- Applies every cosmetic of one Plot_<i> model for server time `now`, as player `viewerUserId` sees it.
+function PlotDecor.apply(plot: Instance, now: number, viewerUserId: number?, opts: Options?)
+	local lock = PlotDecor.lockOf(plot, now, viewerUserId)
+	local startedAt = plot:GetAttribute(Constants.PLOT_LOCK_STARTED_AT_ATTRIBUTE)
+	local lockUntil = plot:GetAttribute("LockUntil")
+	local share = PlotDecor.lockShare(
+		if type(startedAt) == "number" then startedAt else nil,
+		if type(lockUntil) == "number" then lockUntil else nil,
+		now
+	)
+	local doorLooks = opts == nil or opts.door ~= false
+	applyLock(plot, lock.owned, lock.locked, lock.remaining, share, lock.see, doorLooks)
 end
 
 return table.freeze(PlotDecor)

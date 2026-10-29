@@ -562,7 +562,6 @@ local PLAZA = { 222, 198, 150 } -- ranch_plaza sand
 local WOOD = { 110, 74, 48 }
 local SIGN = { 222, 178, 120 }
 local FENCE = { 150, 104, 68 }
-local SIGN_BOARD = { 62, 42, 30 } -- dark wood: the lock sign's coloured text stays readable
 local GOO = { 120, 255, 140 }
 
 local function light(preset: string): WorldNode
@@ -1433,13 +1432,11 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local bx, bz = WorldLayout.LOCK_SIGN_SPOT[1], WorldLayout.LOCK_SIGN_SPOT[2]
 	local postH = WorldLayout.NAME_BOARD.y + WorldLayout.NAME_BOARD.height / 2 - 1
 	local ls = WorldLayout.LOCK_SIGN
+	-- Invisible: PlotDecor draws the round goo lock board on its Front face, with no square corners behind it.
 	local lockSign =
-		ghost(block("LockSign", { ls.width, ls.height, 0.3 }, at({ bx + 1.5, ls.y, bz + 2.6 }), SIGN_BOARD, "Wood", r))
+		ghost(block("LockSign", { ls.width, ls.height, 0.3 }, at({ bx + 1.5, ls.y, bz + 2.6 }), FENCE, "Wood", r), 1)
 	lockSign.children = {
 		ghost(block("Post", { 0.5, postH, 0.5 }, at({ bx + 1.5, 1 + postH / 2, bz + 3.0 }), FENCE, "Wood", r)),
-		ghost(
-			disc("Lamp", 0.4, 1.3, at({ bx + 1.5 - ls.width / 2 - 0.4, ls.y, bz + 2.6 }), { 90, 220, 110 }, "Neon", yaw)
-		),
 	}
 	table.insert(nodes, lockSign)
 
