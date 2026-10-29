@@ -235,7 +235,7 @@ function PlotDecor.passes(plot: Instance, owner: any, viewerUserId: number?): bo
 	return type(guests) == "string" and string.find(guests, `,{viewerUserId},`, 1, true) ~= nil
 end
 
-export type Lock = { owned: boolean, locked: boolean, remaining: number, shut: boolean, see: boolean }
+export type Lock = { owned: boolean, locked: boolean, shut: boolean, see: boolean }
 
 -- A plot's lock as player `viewerUserId` sees it at server time `now`: `shut` = the door is shut (owned and locked),
 -- `see` = the viewer walks through it, so the shut door shows half see-through to them.
@@ -243,14 +243,13 @@ function PlotDecor.lockOf(plot: Instance, now: number, viewerUserId: number?): L
 	local owner = plot:GetAttribute("OwnerUserId")
 	local owned = type(owner) == "number" and owner ~= 0
 	local lockUntil = plot:GetAttribute("LockUntil")
-	local locked, remaining = PlotDecor.locked(if type(lockUntil) == "number" then lockUntil else 0, now)
+	local locked = PlotDecor.locked(if type(lockUntil) == "number" then lockUntil else 0, now)
 	if type(lockUntil) ~= "number" and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) == true then
 		locked = true
 	end
 	return {
 		owned = owned,
 		locked = locked,
-		remaining = remaining,
 		shut = owned and locked,
 		see = owned and PlotDecor.passes(plot, owner, viewerUserId),
 	}
