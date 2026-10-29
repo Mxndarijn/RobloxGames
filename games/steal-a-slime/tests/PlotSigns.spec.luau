@@ -100,21 +100,27 @@ describe("PlotSigns.apply", function()
 		)
 	end)
 
-	it("dresses the mascot for each theme: its own colour and only that skin's extra", function()
-		local seen = {}
+	it("colours the mascot and the nameplate's goo for each theme, a different colour per theme", function()
 		local sign = roblox.Instance.new("Part")
+		local seen = {}
 		for _, skin in Config.PLOT_SKINS do
 			local lines = PlotSigns.lines(1, owner("Ann", nil, 0, 0))
 			lines.skin = skin.id
 			PlotSigns.apply(sign, lines, DEPS)
 			local root = face(sign)
-			expect(root.Paw1.BackgroundColor3).toBe(rgb(MascotSign.bodyColor(lines)))
-			for id, extra in MascotSign.EXTRAS do
-				expect(root[extra].Visible).toBe(id == skin.id)
-			end
+			local body = rgb(MascotSign.bodyColor(lines))
+			expect(root.Paw1.BackgroundColor3).toBe(body)
+			expect(root.Goo.BackgroundColor3).toBe(body)
+			expect(root.Drip1.BackgroundColor3).toBe(body)
 			local key = table.concat(MascotSign.bodyColor(lines), ",")
-			expect(seen[key]).toBe(nil) -- no two themes share a mascot colour
+			expect(seen[key]).toBe(nil) -- no two themes share a colour
 			seen[key] = true
+		end
+	end)
+
+	it("keeps the goo drips at the ends of the nameplate, clear of the text", function()
+		for _, d in MascotSign.GOO.drips do
+			expect(d[1] < 0.2 or d[1] > 0.8).toBe(true)
 		end
 	end)
 

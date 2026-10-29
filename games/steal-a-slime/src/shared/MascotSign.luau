@@ -3,8 +3,8 @@
 	MascotSign (Instance builders, no Roblox API at load time)
 
 	The plot sign by the bridge: the jar's slime mascot peeking over a glass nameplate, its two paws on the edge.
-	The nameplate has the owner's name and stats. The mascot wears the plot's theme (Config.PLOT_SKINS): the skin's
-	colour and a small extra on its head or body. A free plot shows a pale mascot asleep. PlotSigns draws it on the
+	The nameplate has the owner's name and stats. The plot's theme (Config.PLOT_SKINS) colours the mascot and a strip of
+	goo along the nameplate's top edge that drips down its face. A free plot shows a pale mascot asleep. PlotSigns draws it on the
 	plot's Sign part, server-side, so every player sees the same sign.
 
 	  MascotSign.build(parent, deps) -> Sign      every piece, filling `parent` (a SurfaceGui); finds an existing one
@@ -44,16 +44,6 @@ MascotSign.COLORS = table.freeze({
 	eye = rgb(255, 255, 255),
 	pupil = rgb(16, 20, 24),
 	cheek = rgb(245, 154, 176),
-	sprout = rgb(95, 191, 74),
-	sproutDark = rgb(47, 106, 42),
-	acorn = rgb(150, 101, 58), -- Forest's acorn cap
-	acornHi = rgb(196, 146, 92),
-	acornDark = rgb(86, 54, 27),
-	ice = rgb(214, 244, 255),
-	iceEdge = rgb(44, 111, 136),
-	star = rgb(255, 224, 110),
-	starEdge = rgb(196, 140, 20),
-	sprinkles = table.freeze({ rgb(255, 226, 122), rgb(127, 208, 239), rgb(255, 255, 255), rgb(154, 214, 160) }),
 })
 
 -- Boxes { x, y, w, h } as fractions of the face (2:1), or of the mascot's square for its own pieces.
@@ -76,14 +66,19 @@ MascotSign.BOX = table.freeze({
 	stroke = 5, -- px, the bar's outline
 })
 
--- What each skin puts on its mascot (skin ids from Config.PLOT_SKINS); none for the rest.
-MascotSign.EXTRAS = table.freeze({
-	garden = "sprout",
-	crystal = "crystal",
-	starlight = "star",
-	candy = "sprinkles",
-	mushroom = "acorn",
-} :: { [string]: string })
+-- The goo along the nameplate's top edge: the strip { x, y, w, h } on the face and its drips { x, length } (face
+-- fractions), kept near the ends so they stay clear of the text.
+MascotSign.GOO = table.freeze({
+	strip = table.freeze({ 0.02, 0.44, 0.96, 0.075 }),
+	drips = table.freeze({
+		table.freeze({ 0.07, 0.15 }),
+		table.freeze({ 0.16, 0.09 }),
+		table.freeze({ 0.84, 0.12 }),
+		table.freeze({ 0.93, 0.07 }),
+	}),
+	drip = 0.032, -- drip width
+	dripTop = 0.47, -- where the drips start, inside the strip
+})
 
 local function color(deps: Deps, c: { number }): any
 	return deps.Color3.fromRGB(c[1], c[2], c[3])
@@ -142,85 +137,6 @@ function MascotSign.bodyColor(look: Look): { number }
 	return mix(swatch, GooPalette.Ink, MascotSign.BOX.deepen)
 end
 
--- The extra a look's mascot wears, or nil.
-function MascotSign.extra(look: Look): string?
-	return if look.owned and look.skin then MascotSign.EXTRAS[look.skin] else nil
-end
-
-local function buildExtras(deps: Deps, root: any)
-	local C = MascotSign.COLORS
-	local sprout = make(deps, "Frame", { Name = "sprout", BackgroundTransparency = 1, ZIndex = 2 }, root)
-	place(deps, sprout, { 0.455, 0.0, 0.09, 0.17 })
-	frame(deps, sprout, "Stem", C.sproutDark, { 0.44, 0.5, 0.12, 0.5 }, 2)
-	local l = frame(deps, sprout, "LeafL", C.sprout, { -0.05, 0.1, 0.55, 0.45 }, 2, 1)
-	l.Rotation = -25
-	local r = frame(deps, sprout, "LeafR", C.sprout, { 0.5, 0.1, 0.55, 0.45 }, 2, 1)
-	r.Rotation = 25
-
-	-- Frost: a little crown of ice crystals sitting on the head (the face is 2:1, so a square is w = h / 2).
-	local crystal = make(deps, "Frame", { Name = "crystal", BackgroundTransparency = 1, ZIndex = 2 }, root)
-	place(deps, crystal, { 0, 0, 1, 1 })
-	for i, c in { { 0.48, 0.07, 0.04, 45 }, { 0.443, 0.105, 0.028, 30 }, { 0.529, 0.105, 0.028, 60 } } do
-		local gem = frame(deps, crystal, `Gem{i}`, C.ice, { c[1], c[2], c[3], c[3] * 2 }, 2, 0.15)
-		gem.Rotation = c[4]
-		make(deps, "UIStroke", { Color = color(deps, C.iceEdge), Thickness = 2 }, gem)
-	end
-
-	-- Starlight: an eight-point star on the head.
-	local star = make(deps, "Frame", { Name = "star", BackgroundTransparency = 1, ZIndex = 2 }, root)
-	place(deps, star, { 0.45, 0.0, 0.1, 0.2 })
-	for i, rot in { 0, 45 } do
-		local ray = frame(deps, star, `Ray{i}`, C.star, { 0.2, 0.2, 0.6, 0.6 }, 2, 0.12)
-		ray.Rotation = rot
-		make(deps, "UIStroke", { Color = color(deps, C.starEdge), Thickness = 1.5 }, ray)
-	end
-
-	-- Candy: sprinkles on the top of the head, clear of the eyes.
-	local sprinkles = make(deps, "Frame", { Name = "sprinkles", BackgroundTransparency = 1, ZIndex = 2 }, root)
-	place(deps, sprinkles, { 0, 0, 1, 1 })
-	local spots = {
-		{ 0.37, 0.21, -30 },
-		{ 0.46, 0.165, 20 },
-		{ 0.55, 0.17, 70 },
-		{ 0.63, 0.22, -40 },
-		{ 0.345, 0.3, 10 },
-		{ 0.655, 0.3, 60 },
-	}
-	for i, spot in spots do
-		local c = C.sprinkles[(i - 1) % #C.sprinkles + 1]
-		local bit = frame(deps, sprinkles, `Bit{i}`, c, { spot[1], spot[2], 0.026, 0.026 }, 2, 0.5)
-		bit.Rotation = spot[3]
-	end
-
-	-- Forest: a small acorn cap worn like a hat: a half circle (a circle cut in half by its holder; the face is 2:1, so
-	-- the circle is w = h / 2), a rim along its cut edge and a little stem on top.
-	local acorn = make(deps, "Frame", { Name = "acorn", BackgroundTransparency = 1, ZIndex = 2 }, root)
-	place(deps, acorn, { 0, 0, 1, 1 })
-	frame(deps, acorn, "Stem", C.acornDark, { 0.494, 0.01, 0.012, 0.05 }, 2, 0.4)
-	local holder =
-		make(deps, "Frame", { Name = "Cap", BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 2 }, acorn)
-	place(deps, holder, { 0.41, 0.045, 0.18, 0.18 })
-	local cap = frame(deps, holder, "Dome", GooPalette.White, { 0, 0, 1, 2 }, 2, 1)
-	make(deps, "UIStroke", { Color = color(deps, C.acornDark), Thickness = 1.5 }, cap)
-	local K = deps.ColorSequenceKeypoint
-	make(deps, "UIGradient", {
-		Rotation = 90,
-		Color = deps.ColorSequence.new({
-			K.new(0, color(deps, C.acornHi)),
-			K.new(0.35, color(deps, C.acorn)),
-			K.new(1, color(deps, C.acorn)),
-		}),
-	}, cap)
-	-- the cap's scales: two rows of small darker dots, well inside the curve (dome units: the visible half is y 0..0.5)
-	local scales =
-		{ { 0.36, 0.2 }, { 0.5, 0.17 }, { 0.64, 0.2 }, { 0.27, 0.36 }, { 0.43, 0.33 }, { 0.57, 0.33 }, { 0.73, 0.36 } }
-	for i, d in scales do
-		local dot = frame(deps, cap, `Scale{i}`, C.acornDark, { d[1] - 0.04, d[2], 0.08, 0.08 }, 2, 1)
-		dot.BackgroundTransparency = 0.45
-	end
-	frame(deps, acorn, "Rim", C.acornDark, { 0.405, 0.215, 0.19, 0.022 }, 2, 0.5)
-end
-
 -- Every piece of the sign, filling `parent`; finds an existing one first, so callers stay idempotent.
 function MascotSign.build(parent: any, deps: Deps): Sign
 	local C, B = MascotSign.COLORS, MascotSign.BOX
@@ -250,7 +166,6 @@ function MascotSign.build(parent: any, deps: Deps): Sign
 				frame(deps, mascot, `Cheek{i}`, C.cheek, { x - B.cheek[1] / 2, B.cheekY, B.cheek[1], B.cheek[2] }, 1, 1)
 			cheek.BackgroundTransparency = 0.1
 		end
-		buildExtras(deps, root)
 		-- The nameplate, over the mascot's lower half.
 		local bar = frame(deps, root, "Bar", GooPalette.White, B.bar, 3)
 		make(deps, "UICorner", { CornerRadius = deps.UDim.new(B.corner, 0) }, bar)
@@ -279,6 +194,12 @@ function MascotSign.build(parent: any, deps: Deps): Sign
 				ZIndex = 4,
 			}, bar)
 			place(deps, label, spec.box)
+		end
+		-- The theme's goo along the bar's top edge, dripping down its face (painted in the mascot's colour).
+		local G = MascotSign.GOO
+		frame(deps, root, "Goo", C.asleep, G.strip, 5, 0.5)
+		for i, d in G.drips do
+			frame(deps, root, `Drip{i}`, C.asleep, { d[1] - G.drip / 2, G.dripTop, G.drip, d[2] }, 5, 1)
 		end
 		-- Its paws on the bar's top edge.
 		for i, x in B.paws do
@@ -313,7 +234,7 @@ function MascotSign.build(parent: any, deps: Deps): Sign
 	}
 end
 
--- Paints `sign` for `look`: the text, the mascot's colour, awake or asleep, and its theme's extra.
+-- Paints `sign` for `look`: the text, awake or asleep, and the theme colour on the mascot and the nameplate's goo.
 function MascotSign.paint(sign: Sign, deps: Deps, look: Look)
 	sign.title.Text = look.title
 	sign.stats.Text = look.stats
@@ -334,9 +255,9 @@ function MascotSign.paint(sign: Sign, deps: Deps, look: Look)
 		sign.root:FindFirstChild(`Paw{i}`).BackgroundColor3 = color(deps, body)
 	end
 	sign.root:FindFirstChild("Zz").Visible = not awake
-	local extra = MascotSign.extra(look)
-	for _, name in MascotSign.EXTRAS do
-		sign.root:FindFirstChild(name).Visible = name == extra
+	sign.root:FindFirstChild("Goo").BackgroundColor3 = color(deps, body)
+	for i in MascotSign.GOO.drips do
+		sign.root:FindFirstChild(`Drip{i}`).BackgroundColor3 = color(deps, body)
 	end
 end
 
