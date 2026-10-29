@@ -356,7 +356,8 @@ def floor_bubbles(f, rr, n, lo, hi, z):
                     x, y = nx, ny
                     break
             else:
-                continue  # no free spot: leave this bubble out
+                print(f"floor_bubbles: floor {f} Bubble{k} has no free spot, left out")  # shows in iterate.py -v
+                continue
         out.append(blob(f"Bubble{k}", size, (x, y, z), GOO_HI, subdiv=1, squash=(1, 1, 0.8), jitter=0))
     return out
 
