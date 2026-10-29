@@ -72,7 +72,8 @@ local function disc(
 end
 
 -- The orb's label (canvas GooWorldSigns "Ritual label"): the phase in outlined white Fredoka, the count or the
--- timer on a flat Ink pill with a mint edge under it. Pixel-sized so it reads from across the plaza.
+-- timer on a flat Ink pill with a mint edge under it. Pixel-sized, so it stays the same size on screen at any range;
+-- it hides past Ritual.labelDistance studs from the camera (shorter on phones, set by visuals/client/RitualFx).
 RitualView.LABEL = table.freeze({ w = 300, h = 96, title = 34, titleSize = 30, line = 32, lineSize = 20, gap = 8 })
 
 local function corner(parent: Instance, radius: UDim)
@@ -166,7 +167,7 @@ function RitualView.setup(): Model?
 	gui.Size = UDim2.fromOffset(RitualView.LABEL.w, RitualView.LABEL.h)
 	gui.SizeOffset = Vector2.new(0, 0.5) -- the label's bottom edge sits over the orb
 	gui.StudsOffsetWorldSpace = Vector3.new(0, 2, 0)
-	gui.MaxDistance = 140
+	gui.MaxDistance = Ritual.labelDistance(nil)
 	gui.AlwaysOnTop = false
 	gui.LightInfluence = 0
 	gui.Parent = core

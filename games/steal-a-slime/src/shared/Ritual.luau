@@ -206,6 +206,16 @@ function Ritual.label(state: State, now: number): (string, string)
 	return "Slime Ritual", `{state.count}/{r.MIN_PLAYERS} players`
 end
 
+-- How far from the camera (studs) the orb's label still shows on a viewport `viewportHeight` px tall: shorter on a
+-- phone, where the pixel-sized label covers more of the screen. Without a height, the full distance.
+function Ritual.labelDistance(viewportHeight: number?): number
+	local r = Config.RITUAL
+	if viewportHeight and viewportHeight < r.LABEL_SMALL_VIEWPORT_PX then
+		return r.LABEL_DISTANCE_SMALL
+	end
+	return r.LABEL_DISTANCE
+end
+
 -- Where the explanation sign stands (x, z): on the circle's edge on the plaza side (toward the fountain axis),
 -- a few studs off to the side so it doesn't hide the near pad from the plaza.
 function Ritual.signSpot(): (number, number)
