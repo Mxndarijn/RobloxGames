@@ -46,7 +46,9 @@
 	{ skinId }`, `batSkin = skinId?`, `lockBreakCredits = n` and `giftCredits = { productKey }`. v10 -> v11 (migrateV10)
 	adds them empty; deserialize drops unknown / repeated ids, an equipped id that is not owned, gift keys that are not
 	giftable, and clamps the counts. Pure, idempotent.
-	v12 (current, contract/tutorial.md): the tutorial's step list changed, so v11 -> v12 (migrateV11) maps a saved
+	v13 (current, contract/base-shapes.md): the Goo Factory and Mushroom Pagoda became Exclusive; v12 -> v13
+	(migrateV12) gives a player whose rebirths had unlocked them (REBIRTH_BASES_V12) `ownedStyles.plotBase` ownership.
+	v12 (contract/tutorial.md): the tutorial's step list changed, so v11 -> v12 (migrateV11) maps a saved
 	`tutorialStep` onto the new order (TUTORIAL_V11_TO_V12); a player who reached the old Steal or Rebirth step is
 	done. A save from before v3 first moves its Merge / Steal / Rebirth (4..6) up one for the old BuyPad step.
 	petSeat (contract/pet-seats.md, no version bump): a Config.PET_SEATS id; missing / unknown / not unlocked -> "cloud".
@@ -515,6 +517,36 @@ function SaveData.migrateV11(raw: { [string]: any }): { [string]: any }
 	return out
 end
 
+-- The rebirth gates the Goo Factory and Mushroom Pagoda had before save v13 made them Exclusive.
+SaveData.REBIRTH_BASES_V12 = table.freeze({ factory = 20, pagoda = 25 } :: { [string]: number })
+
+-- v12 -> v13: a player whose rebirths had unlocked the Goo Factory (20) or Mushroom Pagoda (25) owns it now
+-- (`ownedStyles.plotBase`), so nobody loses a base that became Exclusive. Pure, idempotent.
+function SaveData.migrateV12(raw: { [string]: any }): { [string]: any }
+	local out = table.clone(raw)
+	local from = tonumber(raw.migratedFrom or raw.version)
+	if from == nil or from ~= from then
+		from = 0
+	end
+	out.migratedFrom = raw.migratedFrom or from
+	local rebirths = tonumber(raw.rebirths)
+	if rebirths ~= nil and rebirths == rebirths then
+		local styles: { [string]: any } = if type(raw.ownedStyles) == "table" then table.clone(raw.ownedStyles) else {}
+		local owned: { string } = if type(styles.plotBase) == "table" then table.clone(styles.plotBase) else {}
+		for _, id in { "factory", "pagoda" } do
+			if rebirths >= SaveData.REBIRTH_BASES_V12[id] and not table.find(owned, id) then
+				table.insert(owned, id)
+			end
+		end
+		if #owned > 0 then
+			styles.plotBase = owned
+			out.ownedStyles = styles
+		end
+	end
+	out.version = 13
+	return out
+end
+
 local function catalogueIds(list: { any }): { [string]: boolean }
 	local out = {}
 	for _, def in list do
@@ -802,6 +834,9 @@ function SaveData.migrate(raw: any): { [string]: any }?
 	end
 	if version < 12 then
 		migrated = SaveData.migrateV11(migrated)
+	end
+	if version < 13 then
+		migrated = SaveData.migrateV12(migrated)
 	end
 	return migrated
 end

@@ -38,7 +38,7 @@ local function reborn(n: number): PlayerData.Data
 	return data
 end
 
-local EXCLUSIVE = { "carousel", "rocket", "treehouse", "lighthouse", "snowglobe" }
+local EXCLUSIVE = { "factory", "pagoda", "carousel", "rocket", "treehouse", "lighthouse", "snowglobe" }
 
 local function owning(ids: { string }, rebirths: number?): PlayerData.Data
 	local data = reborn(rebirths or 0)
@@ -47,21 +47,25 @@ local function owning(ids: { string }, rebirths: number?): PlayerData.Data
 end
 
 describe("plot bases: config", function()
-	it(
-		"lists the jar first (everyone's), the factory at rebirth 20, the pagoda at 25, then the Exclusive bases",
-		function()
-			expect(Config.PLOT_BASE_DEFAULT).toBe("jar")
-			local ids, gates = {}, {}
-			for _, base in Config.PLOT_BASES do
-				table.insert(ids, base.id)
-				table.insert(gates, base.rebirths or 0)
-			end
-			expect(ids).toEqual({ "jar", "factory", "pagoda", table.unpack(EXCLUSIVE) })
-			expect(gates).toEqual({ 0, 20, 25, 0, 0, 0, 0, 0 })
+	it("lists the jar first (everyone's), then the Exclusive bases; none is unlocked by rebirths", function()
+		expect(Config.PLOT_BASE_DEFAULT).toBe("jar")
+		local ids = {}
+		for _, base in Config.PLOT_BASES do
+			table.insert(ids, base.id)
+			expect(`{base.id}: {base.rebirths}`).toBe(`{base.id}: nil`)
 		end
-	)
+		expect(ids).toEqual({ "jar", table.unpack(EXCLUSIVE) })
+	end)
 	it("sells each Exclusive base as Base_<id> at its price, also as a gift", function()
-		local prices = { carousel = 599, rocket = 499, treehouse = 499, lighthouse = 399, snowglobe = 399 }
+		local prices = {
+			factory = 399,
+			pagoda = 399,
+			carousel = 599,
+			rocket = 499,
+			treehouse = 499,
+			lighthouse = 399,
+			snowglobe = 399,
+		}
 		for _, id in EXCLUSIVE do
 			local base = PlotBases.get(id) :: Config.PlotBase
 			expect(base.exclusive).toBe(true)
@@ -73,7 +77,7 @@ describe("plot bases: config", function()
 			expect(Purchases.giftable(`Base_{id}`)).toBe(true)
 			expect(Config.EXCLUSIVE_SHOP.products[`Gift_Base_{id}`].robux).toBe(prices[id])
 		end
-		expect(Config.EXCLUSIVE_SHOP.products.Base_factory).toBeNil()
+		expect(Config.EXCLUSIVE_SHOP.products.Base_jar).toBeNil()
 	end)
 	it("is a rate-limited Request action", function()
 		expect(Remotes.ACTIONS.EquipPlotBase.args[1]).toBe("string")
@@ -82,13 +86,13 @@ describe("plot bases: config", function()
 end)
 
 describe("plot bases: unlock and equip", function()
-	it("unlocks a base at its rebirth count: one short is locked", function()
+	it("the Goo Factory and Mushroom Pagoda are bought, never unlocked by rebirths", function()
 		local factory = PlotBases.get("factory") :: Config.PlotBase
-		expect(PlotBases.unlocked(reborn(19), factory)).toBe(false)
-		expect(PlotBases.unlocked(reborn(20), factory)).toBe(true)
+		expect(PlotBases.unlocked(reborn(30), factory)).toBe(false)
+		expect(PlotBases.unlocked(owning({ "factory" }), factory)).toBe(true)
 		local pagoda = PlotBases.get("pagoda") :: Config.PlotBase
-		expect(PlotBases.unlocked(reborn(24), pagoda)).toBe(false)
-		expect(PlotBases.unlocked(reborn(25), pagoda)).toBe(true)
+		expect(PlotBases.unlocked(reborn(30), pagoda)).toBe(false)
+		expect(PlotBases.unlocked(owning({ "pagoda" }), pagoda)).toBe(true)
 		expect(PlotBases.unlocked(reborn(0), PlotBases.get("jar") :: Config.PlotBase)).toBe(true)
 	end)
 	it("equip refuses unknown and locked bases and leaves the profile alone", function()
@@ -98,15 +102,15 @@ describe("plot bases: unlock and equip", function()
 		expect(data.plotBase).toBe("jar")
 		expect((PlotBases.equip(data, "jar"))).toBe(true)
 	end)
-	it("current() shows the jar while a saved base is still locked", function()
-		local data = reborn(10)
+	it("current() shows the jar while a saved base is not owned", function()
+		local data = reborn(30)
 		data.plotBase = "pagoda"
 		expect(PlotBases.current(data)).toBe("jar")
-		data.rebirths = 25
+		data.ownedStyles.plotBase = { "pagoda" }
 		expect(PlotBases.current(data)).toBe("pagoda")
 	end)
-	it("view() lists every base with its gate, the equipped one marked", function()
-		local data = reborn(20)
+	it("view() lists every base, the owned and equipped one marked", function()
+		local data = owning({ "factory" })
 		data.plotBase = "factory"
 		local view = PlotBases.view(data)
 		expect(#view).toBe(#Config.PLOT_BASES)
@@ -114,15 +118,16 @@ describe("plot bases: unlock and equip", function()
 		expect(view[2].unlocked).toBe(true)
 		expect(view[2].equipped).toBe(true)
 		expect(view[3].unlocked).toBe(false)
-		expect(view[3].rebirths).toBe(25)
+		expect(view[3].productKey).toBe("Base_pagoda")
 	end)
-	it("the Request refuses a locked base, and equips it once the rebirths are there", function()
+	it("the Request refuses a base not owned, and equips it once bought", function()
 		local world = ServerFixtures.world()
 		local session = ServerFixtures.join(world, 1, {}, 0)
+		session.data.rebirths = 30
 		local res = equip(world, 1, "factory")
 		expect(res.ok).toBe(false)
 		expect(res.message).toBe("plot base is locked")
-		session.data.rebirths = 20
+		expect(Purchases.grant(world, session, "Base_factory", T0, { features = {} })).toBe(true)
 		res = equip(world, 1, "factory")
 		expect(res.ok).toBe(true)
 		expect(session.data.plotBase).toBe("factory")
@@ -137,7 +142,7 @@ describe("plot bases: unlock and equip", function()
 	it("with the flag off the Request is refused and State carries no base fields", function()
 		local world = ServerFixtures.world()
 		local session = ServerFixtures.join(world, 1, {}, 0)
-		session.data.rebirths = 30
+		session.data.ownedStyles.plotBase = { "pagoda" }
 		local res = equip(world, 1, "pagoda", offCtx)
 		expect(res.ok).toBe(false)
 		expect(res.message).toBe("plot bases are off")
@@ -183,9 +188,10 @@ describe("plot bases: Exclusive", function()
 		expect(byId.carousel.robux).toBe(599)
 		expect(byId.carousel.unlocked).toBe(false)
 		expect(byId.treehouse.unlocked).toBe(true)
-		expect(byId.pagoda.exclusive).toBeNil()
-		expect(byId.pagoda.productKey).toBeNil()
-		expect(byId.pagoda.unlocked).toBe(true)
+		expect(byId.pagoda.exclusive).toBe(true)
+		expect(byId.pagoda.productKey).toBe("Base_pagoda")
+		expect(byId.pagoda.unlocked).toBe(false) -- 30 rebirths no longer unlock it
+		expect(byId.jar.exclusive).toBeNil()
 	end)
 	it("the Request refuses an Exclusive base until it is bought, then equips it", function()
 		local world = ServerFixtures.world()
@@ -221,7 +227,7 @@ describe("plot bases: save", function()
 		expect(SaveData.deserialize(nil).plotBase).toBe("jar")
 	end)
 	it("keeps owned Exclusive bases and drops unknown, non-exclusive and repeated ids", function()
-		local data = owning({ "rocket", "factory", "castle", "rocket", "lighthouse" })
+		local data = owning({ "rocket", "jar", "castle", "rocket", "lighthouse" })
 		data.plotBase = "rocket"
 		local back = SaveData.deserialize(SaveData.serialize(data, T0))
 		expect(back.ownedStyles.plotBase).toEqual({ "rocket", "lighthouse" })
