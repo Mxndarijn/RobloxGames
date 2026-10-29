@@ -189,7 +189,9 @@ function StealCards.new(parent: Instance, ctx: any, order: number): StealCards
 			names[i] = who
 			-- Several cards: only the first keeps its hint line, so the stack stays short.
 			subs[i] = if i == 1 then StealCardsLogic.subtitle(card, who, now) else nil
-			local crew = if card.thieves then table.concat(card.thieves, ",") else ""
+			-- The second thief's name too: a name that resolves later redraws the card.
+			local second = if card.thieves and card.thieves[2] then ctx.playerName(card.thieves[2]) else ""
+			local crew = if card.thieves then `{table.concat(card.thieves, ",")}/{second}` else ""
 			table.insert(parts, `{card.kind}:{who}:{crew}:{card.startedAt or ""}:{subs[i] or ""}`)
 		end
 		local sig = `{table.concat(parts, ";")}|{hidden}`

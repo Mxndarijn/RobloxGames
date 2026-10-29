@@ -2,6 +2,7 @@
 -- The owner's steal cards in the top banner stack (src/ui/StealCardsLogic.luau).
 local StealCardsLogic = require("../../src/ui/StealCardsLogic")
 local TestRunner = require("../TestRunner")
+local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -163,5 +164,43 @@ describe("StealCardsLogic.strip", function()
 		local lockStrip = StealCardsLogic.strip(locked, 10, nameOf) :: StealCardsLogic.Strip
 		expect(lockStrip.text).toBe("This base is locked")
 		expect(lockStrip.hint).toBe("Opens in 0:25")
+	end)
+end)
+
+describe("StealCards widget", function()
+	local NAMES: { [number]: string } = { [7] = "Ann", [8] = "Bo", [9] = "Cy" }
+	local function mount(): (any, any)
+		local root = UiHarness.root()
+		local cards = UiHarness.ui("StealCards").new(root, {
+			serverNow = function()
+				return 0
+			end,
+			playerName = function(id: number): string
+				return NAMES[id] or "someone"
+			end,
+		}, 1)
+		return cards, cards.frame
+	end
+	local robbed = { slimes = { view("a", 9), view("b", 7), view("c", 8) } }
+
+	it("puts every thief on one card", function()
+		local cards, frame = mount()
+		cards.update(robbed, 0)
+		expect(frame.Visible).toBe(true)
+		local title = UiHarness.find(frame, "Title").Text
+		expect(string.find(title, "Ann", 1, true) ~= nil).toBe(true)
+		expect(string.find(title, "and 2 others are stealing your slimes!", 1, true) ~= nil).toBe(true)
+		expect((cards.strip(0) :: any).text).toBe("Ann and 2 others are stealing your slimes!")
+	end)
+
+	it("hides while folded into the boss card and comes back after", function()
+		local cards, frame = mount()
+		cards.update(robbed, 0)
+		cards.setFolded(true)
+		expect(frame.Visible).toBe(false)
+		cards.tick(1)
+		expect(frame.Visible).toBe(false)
+		cards.setFolded(false)
+		expect(frame.Visible).toBe(true)
 	end)
 end)

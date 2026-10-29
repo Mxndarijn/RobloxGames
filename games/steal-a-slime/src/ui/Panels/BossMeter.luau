@@ -186,6 +186,7 @@ function BossMeter.new(parent: Instance, ctx: any, steals: StealCards.StealCards
 	local top = Layout.TOP
 	local width = Layout.BANNER_WIDTH
 	local hidden = false -- an overlay is open
+	local stripSig = "" -- what the strip last showed (kind|text|hint|width), so a steady line is not rebuilt each frame
 	local bannerHeight: () -> number = function()
 		return 0
 	end
@@ -212,6 +213,15 @@ function BossMeter.new(parent: Instance, ctx: any, steals: StealCards.StealCards
 			end
 		end
 		return line
+	end
+
+	-- How far the top stack reaches with this card in it (layout px from the stack's top), 0 while it is hidden:
+	-- the thief arrow keeps under it.
+	function self.stackHeight(): number
+		if not frame.Visible then
+			return 0
+		end
+		return frame.Position.Y.Offset - top + frame.Size.Y.Offset
 	end
 
 	-- An open overlay (MenuState.noticesVisible) hides the card; closing it brings it back.
@@ -241,16 +251,20 @@ function BossMeter.new(parent: Instance, ctx: any, steals: StealCards.StealCards
 			return
 		end
 		local alarm = if steals then steals.strip(now) else nil
-		strip.Visible = alarm ~= nil
-		if alarm then
-			local color = StealCards.COLOR[alarm.kind]
-			strip.BackgroundColor3 = color
-			stripText.Text = stripLine(alarm)
-			Widgets.inkOn(stripText, color)
+		local sig = if alarm then `{alarm.kind}|{alarm.text}|{alarm.hint or ""}|{width}` else `|{width}`
+		if sig ~= stripSig then
+			stripSig = sig
+			strip.Visible = alarm ~= nil
+			if alarm then
+				local color = StealCards.COLOR[alarm.kind]
+				strip.BackgroundColor3 = color
+				stripText.Text = stripLine(alarm)
+				Widgets.inkOn(stripText, color)
+			end
+			local lift = if alarm then STRIP_HEIGHT else 0
+			body.Position = UDim2.fromOffset(0, lift)
+			frame.Size = UDim2.fromOffset(width, HEIGHT + lift)
 		end
-		local lift = if alarm then STRIP_HEIGHT else 0
-		body.Position = UDim2.fromOffset(0, lift)
-		frame.Size = UDim2.fromOffset(width, HEIGHT + lift)
 		local height = bannerHeight()
 		frame.Position = UDim2.new(0.5, 0, 0, top + (if height > 0 then height + N.stack else 0))
 		ring.Color = RING[view.tone]

@@ -1204,7 +1204,10 @@ function applyLayout()
 	screen = s
 	hud.layout(s)
 	inventory.layout(s, GuiService:GetGuiInset())
-	stealFx.layout(s, hud.bannerHeight)
+	-- The thief arrow keeps under the whole top stack: the banners and, during a boss, the boss card.
+	stealFx.layout(s, function(): number
+		return math.max(hud.bannerHeight(), bossMeter.stackHeight())
+	end)
 	bossMeter.layout(s, hud.bannerHeight)
 	carry.layout(s)
 	tutorial.layout(s)
