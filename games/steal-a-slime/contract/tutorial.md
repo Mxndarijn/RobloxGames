@@ -21,7 +21,7 @@ Finishing the last step sends Notify "Tutorial complete! You're a slime tycoon n
 
 ## Skip
 
-`Request("SkipTutorial")` (no arguments, rate 1 s): ends the tutorial (`tutorialStep = 0`); refused when it is already over. The Guide panel offers it as a hold button while the tutorial runs.
+`Request("SkipTutorial")` (no arguments, rate 1 s): ends the tutorial (`tutorialStep = 0`); refused when it is already over. The Guide panel offers it as a hold button while the tutorial runs. `Request("ReplayTutorial")` (Settings menu, [settings.md](settings.md)) starts a finished tutorial again at step 1; during that replay every step waits for its own action.
 
 ## State and attributes
 

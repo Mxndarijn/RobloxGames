@@ -25,6 +25,7 @@
 	PvpEffects.play(payload) is the same entry for a probe; PvpEffects.activeCount() / markerCount(); PvpEffects.stop().
 ]]
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -34,6 +35,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
+local EffectPrefs = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("EffectPrefs"))
 local PvpKnockbackRules = require(Shared:WaitForChild("PvpKnockbackRules"))
 local PvpModels = require(Shared:WaitForChild("PvpModels"))
 
@@ -88,11 +90,13 @@ local SHAKE_BIND = "PvpEffectsShake"
 local anim: any = nil -- the ui/PvpAnim handle given to start (nil = no animations)
 local fun: any = nil -- the ui/PvpFunFx handle given to start (nil = Fun events are not drawn)
 
+-- Low graphics quality or "Goo effects: Low": fewer particles.
 local function lowQuality(): boolean
 	local ok, settings = pcall(function()
 		return UserSettings():GetService("UserGameSettings")
 	end)
-	return ok and SlimeLod.isLow(Config.SLIME_LOD, SlimeLod.readQuality(settings)) or false
+	local qualityLow = ok and SlimeLod.isLow(Config.SLIME_LOD, SlimeLod.readQuality(settings)) or false
+	return EffectPrefs.isLow(Players.LocalPlayer, qualityLow)
 end
 
 local function color3(c: Logic.RGB): Color3
@@ -284,9 +288,10 @@ local function stopShake()
 	end)
 end
 
+-- No shake with Camera shake off or reduced motion on.
 local function shake(seconds: number, amplitude: number)
 	local camera = workspace.CurrentCamera
-	if not camera then
+	if not camera or not EffectPrefs.cameraMoves(Players.LocalPlayer, GuiService) then
 		return
 	end
 	local entry = { startedAt = os.clock(), seconds = seconds, amplitude = amplitude }
@@ -750,6 +755,10 @@ PvpEffects.applyLaunch = applyLaunch
 function PvpEffects.play(payload: any)
 	if type(payload) ~= "table" then
 		return
+	end
+	local me = Players.LocalPlayer
+	if not Logic.shows(payload, me.UserId, EffectPrefs.showOthers(me)) then
+		return -- "Other players' effects" off and this one is neither mine nor aimed at me
 	end
 	if fun and fun.handles(payload) then
 		fun.play(payload)

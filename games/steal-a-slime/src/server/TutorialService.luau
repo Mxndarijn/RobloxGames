@@ -64,4 +64,13 @@ function TutorialService.skip(world: World.World, session: World.Session): (bool
 	return true, nil
 end
 
+-- Request ReplayTutorial: starts the tutorial again from its first step. Returns (ok, reason).
+function TutorialService.restart(_world: World.World, session: World.Session): (boolean, string?)
+	if not TutorialProgress.restart(session.data) then
+		return false, "the tutorial is already running"
+	end
+	World.markDirty(session)
+	return true, nil
+end
+
 return TutorialService

@@ -14,5 +14,6 @@ Icons.FAV_ON = "★"
 Icons.FAV_OFF = "+"
 Icons.SOUND_ON = "🔊"
 Icons.SOUND_OFF = "🔇"
+Icons.SETTINGS = "⚙️"
 
 return Icons

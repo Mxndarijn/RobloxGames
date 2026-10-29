@@ -25,6 +25,7 @@
 	Reads attributes only; never fires remotes. Nothing replicates.
 ]]
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -32,6 +33,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
+local EffectPrefs = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("EffectPrefs"))
 local HabitatMorph = require(Shared:WaitForChild("HabitatMorph"))
 local Habitats = require(Shared:WaitForChild("Habitats"))
 local WorldLayout = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WorldLayout"))
@@ -324,9 +326,9 @@ local function snap(track: Track)
 	apply(track)
 end
 
+-- Roblox's Reduced Motion or the game's setting (the ReducedMotion attribute).
 local function reducedMotion(): boolean
-	local player = Players.LocalPlayer
-	return player ~= nil and player:GetAttribute(Config.HABITAT_ANIM.REDUCED_ATTRIBUTE) == true
+	return EffectPrefs.reducedMotion(Players.LocalPlayer, GuiService)
 end
 
 local function cameraDistance(pad: BasePart): number?
@@ -361,7 +363,11 @@ local function onHabitat(track: Track)
 		return
 	end
 	track.id = nextId
-	emitBurst(track, nextId, HabitatMorph.burst(Config.HABITAT_ANIM, quality))
+	local count = HabitatMorph.burst(Config.HABITAT_ANIM, quality)
+	if EffectPrefs.isLow(Players.LocalPlayer) then
+		count = math.min(count, Config.HABITAT_ANIM.BURST_SIMPLE) -- Goo effects Low: the small puff
+	end
+	emitBurst(track, nextId, count)
 end
 
 local function watch(pad: BasePart)

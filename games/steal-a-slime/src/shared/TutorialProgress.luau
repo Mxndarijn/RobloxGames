@@ -97,10 +97,17 @@ function TutorialProgress.complete(data: any, name: string): (boolean, boolean)
 	if index == step then
 		step += 1
 	end
-	while step <= #TutorialProgress.STEPS and TutorialProgress.isDone(data, TutorialProgress.STEPS[step]) do
+	while
+		not data.tutorialReplay
+		and step <= #TutorialProgress.STEPS
+		and TutorialProgress.isDone(data, TutorialProgress.STEPS[step])
+	do
 		step += 1
 	end
 	data.tutorialStep = if step > #TutorialProgress.STEPS then 0 else step
+	if data.tutorialStep == 0 then
+		data.tutorialReplay = nil
+	end
 	return data.tutorialStep ~= before, data.tutorialStep == 0
 end
 
@@ -110,6 +117,18 @@ function TutorialProgress.skip(data: any): boolean
 		return false
 	end
 	data.tutorialStep = 0
+	data.tutorialReplay = nil
+	return true
+end
+
+-- Starts the tutorial again from the first step (Settings menu). During the replay every step waits for its own
+-- action, even one the save shows as done. Returns false while the tutorial is still running.
+function TutorialProgress.restart(data: any): boolean
+	if TutorialProgress.current(data) ~= nil then
+		return false
+	end
+	data.tutorialStep = 1
+	data.tutorialReplay = true
 	return true
 end
 

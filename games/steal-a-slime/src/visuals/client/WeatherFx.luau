@@ -6,13 +6,14 @@
 	draws it: a sheet of anchored emitter tiles over the camera (WeatherShelter: snapped to a world
 	grid, moved on Heartbeat only while a weather is showing) and a ColorCorrection tint, both tweened
 	in / out over WEATHER_FADE_SECONDS. Tiles near a goo jar emit nothing, so no weather falls inside one.
-	Emitter rates = base * quality scale (graphics level, touch) under Config.WEATHER_PARTICLE_CAP,
+	Emitter rates = base * quality scale (graphics level, touch; the lowest level on "Goo effects: Low") under Config.WEATHER_PARTICLE_CAP,
 	shared out over the tiles.
 	Nothing is drawn while FEATURES.Weather is off, except for the Constants.WEATHER_DEBUG_ATTRIBUTE
 	preview that the pc-watcher sets on one client for proof frames.
 ]]
 
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -21,6 +22,7 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
+local EffectPrefs = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("EffectPrefs"))
 local Weather = require(Shared:WaitForChild("Weather"))
 local WeatherGrade = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherGrade"))
 local WeatherLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherLook"))
@@ -49,6 +51,9 @@ local token = 0
 local started = false
 
 local function quality(): number
+	if EffectPrefs.isLow(Players.LocalPlayer) then
+		return Weather.qualityScale(1, UserInputService.TouchEnabled)
+	end
 	local ok, level = pcall(function()
 		return (UserSettings():GetService("UserGameSettings") :: any).SavedQualityLevel.Value
 	end)

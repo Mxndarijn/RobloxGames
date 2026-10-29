@@ -135,7 +135,7 @@ local burstCalls = {
 	{ "Favorite" },
 	{ "CloseShop" },
 	{ "SetHotbar", "" },
-	{ "SetAudioSettings", 0.5, 0.5, false },
+	{ "SetSettings", { muted = false } },
 	{ "Daily" },
 	{ "Rebirth" },
 	{ "Lock" },

@@ -60,6 +60,7 @@ describe("Actions.handle guards", function()
 						then 1
 						elseif kind == "boolean" then true
 						elseif kind == "kits" then "gummy"
+						elseif kind == "settings" then { muted = true }
 						else "id-1"
 				end
 			end

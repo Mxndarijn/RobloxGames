@@ -1,5 +1,6 @@
 --!strict
 
+local PlayerSettings = require("../src/shared/PlayerSettings")
 local PodiumAvatars = require("../src/server/PodiumAvatars")
 local TestRunner = require("./TestRunner")
 
@@ -157,5 +158,32 @@ describe("PodiumAvatars", function()
 		expect(log.fetches[10]).toBeNil()
 		podiums:request(board({ 20, 900 }))
 		expect(#log.timers).toBe(2)
+	end)
+	it("stands a hidden player on the podium as the default rig, without looking them up", function()
+		local adapter, log = fake()
+		local names = 0
+		adapter.displayName = function(_, fallback)
+			names += 1
+			return fallback
+		end
+		local podiums = PodiumAvatars.new(adapter)
+		local hidden = {
+			stat = "TotalEarned",
+			entries = {
+				{ rank = 1, userId = 0, name = PlayerSettings.HIDDEN_NAME, value = 900, hidden = true },
+				{ rank = 2, userId = 0, name = "N0", value = 500 },
+			},
+		} :: any
+		podiums:apply(hidden)
+		expect(next(log.fetches)).toBeNil()
+		expect(names).toBe(0)
+		expect(log.mounted[1].kind).toBe("default")
+		expect(log.mounted[1].text).toBe(PlayerSettings.HIDDEN_NAME .. "\n$900")
+		expect(log.mounted[2].kind).toBe("default") -- userId 0 alone also counts as hidden
+		expect(log.mounted[2].text).toBe(PlayerSettings.HIDDEN_NAME .. "\n$500")
+		-- not a fallback: the next refresh keeps the rig
+		podiums:apply(hidden)
+		expect(log.built).toBe(2)
+		expect(#log.destroyed).toBe(0)
 	end)
 end)
