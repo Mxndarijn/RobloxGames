@@ -75,6 +75,7 @@ Decided by Merijn on 2026-10-21; the Goo look was chosen the same week. Mockups 
 - **Irreversible actions hold to confirm** (`Widgets.holdButton`): Rebirth, Sell.
 - Disabled is `Theme.Disabled` with Muted text and the reason as its label, never a greyed-out main colour.
 - A **state is not a button**: "Owned", "Max", "Locked" use `Widgets.status` (a sunken well). A **fact** in a header line ("Resets in 3:05", "0/7 done") is a `Widgets.chip`.
+- **Done is one mark**: met, owned and claimed show `Widgets.check` (a mint disc with an Ink tick), never a check emoji. Beside a well's text use `Widgets.setStatusCheck`; for a check that may never show use `Widgets.showCheck`, which builds it the first time.
 - Every tap target is at least `Layout.MIN_TOUCH` screen px.
 
 ## Menus

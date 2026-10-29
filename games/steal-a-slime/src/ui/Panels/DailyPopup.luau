@@ -49,10 +49,11 @@ DailyPopup.TILE = table.freeze({
 -- Share of the top line the chip may take; the streak line gets the rest.
 DailyPopup.CHIP_SHARE = 0.58
 
--- The tile label: "Day N" for today and the last day, the bare number otherwise, a tick once claimed.
+-- The tile label: "Day N" for today and the last day, the bare number otherwise, empty once claimed (the
+-- tile's check shows there instead).
 function DailyPopup.dayLabel(day: number, state: string, cap: number): string
 	if state == "claimed" then
-		return "\u{2705}"
+		return ""
 	end
 	return if state == "today" or day == cap then `Day {day}` else tostring(day)
 end
@@ -113,6 +114,12 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		Parent = body,
 	}, { Widgets.list(Enum.FillDirection.Horizontal, tile.gap, Enum.HorizontalAlignment.Center) })
 	type Tile = { frame: Frame, stroke: UIStroke, label: TextLabel, amount: TextLabel }
+	-- A claimed tile's check, where its day label was (built the first time the day is claimed).
+	local CLAIMED = table.freeze({
+		Name = "Claimed",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, tile.labelY),
+	})
 	local tiles: { Tile } = {}
 	for day = 1, cap do
 		local last = day == cap
@@ -268,6 +275,7 @@ function DailyPopup.new(parent: Instance, ctx: any)
 				t.frame.BackgroundColor3 = fill
 				t.stroke.Thickness = if today then Widgets.KIT.stroke else Widgets.KIT.rowStroke
 				t.label.Text = DailyPopup.dayLabel(c.day, c.state, cap)
+				Widgets.showCheck(t.frame, c.state == "claimed", tile.labelH, CLAIMED)
 				t.amount.Text = Format.formatCash(Daily.reward(c.day, base, mult))
 				if today then
 					Widgets.inkOn(t.label, fill)

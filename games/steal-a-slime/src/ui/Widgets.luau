@@ -30,6 +30,8 @@ Widgets.Theme = table.freeze({
 	Muted = fromPalette(Goo.Muted),
 	Accent = fromPalette(Goo.Mint),
 	Good = fromPalette(Goo.Mint),
+	MintHi = fromPalette(Goo.MintHi), -- the top of a mint jelly (Widgets.check)
+	MintLo = fromPalette(Goo.MintLo), -- the bottom of a mint jelly
 	Bad = fromPalette(Goo.Bad),
 	Thief = fromPalette(Goo.Thief), -- the outline on a player carrying your slime
 	Info = fromPalette(Goo.Info),
@@ -186,7 +188,6 @@ local EMOJI_BMP: { [number]: boolean } = {
 	[0x23F1] = true,
 	[0x26A1] = true,
 	[0x26F2] = true,
-	[0x2705] = true,
 	[0x2728] = true,
 	[0x2B06] = true,
 	[0x2B50] = true,
@@ -360,7 +361,92 @@ function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () ->
 	return self
 end
 
--- A sunken Ink well holding a state, not an action ("✓ Owned", "🔒 Rebirth 12", "Max"). Never pressable.
+-- The one "done" mark of the game (met, owned, claimed): a mint jelly disc with an Ink ring and an Ink tick,
+-- drawn from frames so it looks the same on every device and stays crisp at any size. Use it instead of
+-- a check emoji (tests/ui/GlyphCheck keeps those off the glyph allowlist).
+Widgets.CHECK = table.freeze({
+	tick = 0.13, -- the tick's stroke, a fraction of the disc
+	ring = 0.08, -- the Ink ring, a fraction of the disc (at least 2 px)
+	gap = 6, -- px between a check and the text beside it
+	textScale = 1.15, -- a check beside text is this many times the TextSize
+	-- The tick's three points in 0..1 of the disc: the short leg's top, the bottom corner, the long leg's top.
+	points = table.freeze({
+		table.freeze({ 0.28, 0.53 }),
+		table.freeze({ 0.44, 0.69 }),
+		table.freeze({ 0.74, 0.35 }),
+	}),
+})
+
+-- A check `size` px across. `props` (Name, Position, AnchorPoint, Visible, Parent, ...) go on the disc.
+function Widgets.check(size: number, props: { [string]: any }?): Frame
+	local cfg = Widgets.CHECK
+	local base: { [string]: any } = {
+		Name = "Check",
+		BackgroundColor3 = Color3.new(1, 1, 1), -- the gradient below is the colour
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(size, size),
+	}
+	if props then
+		for k, v in props do
+			base[k] = v
+		end
+	end
+	local parent = base.Parent
+	base.Parent = nil
+	local disc = create("Frame", base, {
+		Widgets.pill(),
+		Widgets.stroke(Theme.Ink, math.max(2, math.round(size * cfg.ring))),
+		create("UIGradient", {
+			Rotation = 90,
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Theme.MintHi),
+				ColorSequenceKeypoint.new(0.45, Theme.Good),
+				ColorSequenceKeypoint.new(1, Theme.MintLo),
+			}),
+		}),
+	}) :: Frame
+	-- Each leg is a rounded bar centred between two points and turned to join them; it runs half a stroke
+	-- past each end so the corner closes.
+	for i = 1, 2 do
+		local a, b = cfg.points[i], cfg.points[i + 1]
+		local dx, dy = b[1] - a[1], b[2] - a[2]
+		create("Frame", {
+			Name = `Tick{i}`,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = Theme.Ink,
+			BorderSizePixel = 0,
+			Position = UDim2.fromScale((a[1] + b[1]) / 2, (a[2] + b[2]) / 2),
+			Size = UDim2.fromScale(math.sqrt(dx * dx + dy * dy) + cfg.tick, cfg.tick),
+			Rotation = math.deg(math.atan2(dy, dx)),
+			ZIndex = disc.ZIndex,
+			Parent = disc,
+		}, { Widgets.pill() })
+	end
+	disc.Parent = parent
+	return disc
+end
+
+-- Shows or hides the check named `props.Name` (default "Check") under `parent`, building it the first time
+-- it shows, so a check that never shows costs no instances. Returns it, or nil while it was never shown.
+function Widgets.showCheck(parent: Instance, on: boolean, size: number, props: { [string]: any }?): Frame?
+	local name = (props and props.Name) or "Check"
+	local check = parent:FindFirstChild(name) :: Frame?
+	if check then
+		check.Visible = on
+	elseif on then
+		local base: { [string]: any } = { Parent = parent }
+		if props then
+			for k, v in props do
+				base[k] = v
+			end
+		end
+		check = Widgets.check(size, base)
+	end
+	return check
+end
+
+-- A sunken Ink well holding a state, not an action ("Owned" with a check, "🔒 Rebirth 12", "Max").
+-- Never pressable.
 function Widgets.status(props: { [string]: any }): TextLabel
 	local base = {
 		Name = "Status",
@@ -380,6 +466,45 @@ function Widgets.status(props: { [string]: any }): TextLabel
 	Widgets.pill().Parent = label
 	Widgets.stroke(Theme.Ink, Widgets.KIT.stroke).Parent = label
 	return label
+end
+
+-- Room (px) a check takes left of a status well's text at `textSize`: the disc and its gap.
+function Widgets.checkRoom(textSize: number): number
+	return math.round(textSize * Widgets.CHECK.textScale) + Widgets.CHECK.gap
+end
+
+-- Shows or hides a check left of a status well's one-line text, the pair centred together in the well.
+-- Call it after setting the well's Text and TextSize.
+function Widgets.setStatusCheck(well: TextLabel, on: boolean)
+	local check = well:FindFirstChild("Check") :: Frame?
+	local pad = well:FindFirstChild("CheckPad") :: UIPadding?
+	if not on then
+		if check then
+			check.Visible = false
+		end
+		if pad then
+			pad.PaddingLeft = UDim.new(0, 0)
+		end
+		return
+	end
+	local size = math.round(well.TextSize * Widgets.CHECK.textScale)
+	local room = Widgets.checkRoom(well.TextSize)
+	if not check or (check :: Frame).Size.X.Offset ~= size then
+		if check then
+			check:Destroy()
+		end
+		check = Widgets.check(size, { AnchorPoint = Vector2.new(0, 0.5), ZIndex = well.ZIndex, Parent = well })
+	end
+	if not pad then
+		pad = create("UIPadding", { Name = "CheckPad", Parent = well }) :: UIPadding
+	end
+	-- The padding moves the text and the check's frame of reference right by `room`; the check then sits
+	-- `room` left of where the centred text starts.
+	local textW = Layout.lineWidth(well.Text, well.TextSize, true)
+	local c = check :: Frame
+	c.Visible = true
+	c.Position = UDim2.new(0.5, -math.ceil(textW / 2) - room, 0.5, 0);
+	(pad :: UIPadding).PaddingLeft = UDim.new(0, room)
 end
 
 -- A small Ink pill for a fact in a panel's top line ("3/8 pads", "$4.66B", "Resets in 3:05").
