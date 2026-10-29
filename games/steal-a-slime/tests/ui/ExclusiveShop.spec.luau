@@ -2,7 +2,7 @@
 -- The Exclusive shop client (contract/exclusive-shop.md §1, §5, §8): ExclusiveShopView's cards, details and
 -- quick-buys, the PurchasePrompt adapter, the Panels/ExclusiveShop card (tabs, owned / equipped / not on sale, the
 -- restricted potion, Buy prompting Roblox with the right id, Bought, flag off) and its layout at the gate sizes.
-local Config = require("../../src/shared/Config")
+local Config = require("./UnsoldConfig") -- every Exclusive id cleared: the specs start from "not on sale yet"
 local Constants = require("../../src/shared/Constants")
 local ExclusiveShopView = require("../../src/ui/ExclusiveShopView")
 local Format = require("../../src/ui/Format")

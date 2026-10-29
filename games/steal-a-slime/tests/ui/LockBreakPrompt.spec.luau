@@ -2,7 +2,7 @@
 -- Open locked door (contract/exclusive-shop.md §11) on the client: ExclusiveShopView.lockBreakQuickBuy's rules (own,
 -- free, open, locked, guest, a running break, flag off), the LockBreakPrompt door prompts through mock plots (aim
 -- first, then Roblox's prompt; a credit; a refusal on the prompt), the HUD's "Lock break" timer slot, and GiftPlayers.
-local Config = require("../../src/shared/Config")
+local Config = require("./UnsoldConfig") -- every Exclusive id cleared: the specs start from "not on sale yet"
 local ExclusiveShopView = require("../../src/ui/ExclusiveShopView")
 local Format = require("../../src/ui/Format")
 local GiftPlayers = require("../../src/ui/GiftPlayers")
