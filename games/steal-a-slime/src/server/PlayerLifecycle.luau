@@ -52,6 +52,8 @@ export type Deps = {
 	refreshView: (t: number) -> (),
 	refreshFriends: () -> (),
 	onJoin: (player: Player) -> (), -- extra per-player hooks (admin chat)
+	onSession: ((player: Player, session: World.Session) -> ())?, -- the session is live (analytics join)
+	onLeave: ((player: Player, session: World.Session?) -> ())?, -- after the leave ran (analytics leave)
 }
 
 local PlayerLifecycle = {}
@@ -123,6 +125,9 @@ local function onPlayerAdded(deps: Deps, player: Player)
 	end
 	LeaderboardView.createStats(player)
 	LeaderboardView.updateStats(player, session)
+	if deps.onSession then
+		deps.safeCall("onSession", deps.onSession, player, session)
+	end
 	if Persistence.readOnly(deps.persistence, userId) then
 		World.notify(
 			world,
@@ -158,7 +163,7 @@ end
 
 local function onPlayerRemoving(deps: Deps, player: Player)
 	local userId = player.UserId
-	PlayerLeave.run(deps.world, userId, deps.now(), {
+	local session = PlayerLeave.run(deps.world, userId, deps.now(), {
 		safeCall = deps.safeCall,
 		cleanup = {
 			{
@@ -217,10 +222,13 @@ local function onPlayerRemoving(deps: Deps, player: Player)
 			},
 		},
 		refreshView = deps.refreshView,
-		save = function(session)
-			task.spawn(Persistence.save, deps.persistence, userId, session.data, true)
+		save = function(leaving)
+			task.spawn(Persistence.save, deps.persistence, userId, leaving.data, true)
 		end,
 	})
+	if deps.onLeave then
+		deps.safeCall("onLeave", deps.onLeave, player, session)
+	end
 end
 
 -- Connects join / leave (and runs join for players already in), shutdown and the autosave loop.

@@ -7,7 +7,7 @@
 	    logged and the server keeps going), the yielding mesh swaps in the background;
 	  * the World, Persistence (save backend + DataStoreStatus), the one ctx (ServerContext) and the PvP lines;
 	  * `Request` -> Actions.handle, then a view refresh and the State pushes; plot and shop prompts;
-	  * Outbox plays the World events (Effects, Notify, PvpEvent, badges, rare-drop attributes);
+	  * Outbox plays the World events (Effects, Notify, PvpEvent, badges, rare-drop attributes, analytics);
 	  * Robux purchases (PurchaseService), friends, admin events, weather and weekly events;
 	  * PlayerLifecycle (join / spawn / leave / shutdown / autosave), ServerLoop (Heartbeat), the leaderboard
 	    refresh loop and the Studio-only review hooks.
@@ -30,6 +30,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Actions = require(script.Actions)
 local AdminEventsService = require(script.AdminEventsService)
 local AdminService = require(script.AdminService)
+local AnalyticsHost = require(script.AnalyticsHost)
 local Badges = require(script.Badges)
 local BaseFloors = require(script.BaseFloors)
 local BorderTerrainView = require(script.BorderTerrainView)
@@ -163,6 +164,8 @@ local badges = Badges.service({
 })
 
 local effects = EffectsView.new()
+-- AnalyticsService events (GameAnalytics): systems queue them with World.track, the Outbox hands them over.
+local analytics = AnalyticsHost.start(warn)
 local outbox: Outbox.Deps = {
 	now = now,
 	playerOf = function(userId: number): Player?
@@ -178,6 +181,7 @@ local outbox: Outbox.Deps = {
 	end,
 	safeCall = safeCall,
 	spawn = task.spawn :: any,
+	track = analytics.track,
 }
 
 -- PvP lines (FEATURES.PvP; CONTRACT.md §26): each reads the engine through ctx, the look is client FX from PvpEvent.
@@ -394,6 +398,8 @@ PlayerLifecycle.start({
 	refreshView = refreshView,
 	refreshFriends = refreshFriends,
 	onJoin = watchAdminChat,
+	onSession = analytics.join,
+	onLeave = analytics.leave,
 })
 
 StudioHooks.start(world, persistence.memoryMode, function()

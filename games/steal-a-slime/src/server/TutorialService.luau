@@ -54,10 +54,12 @@ function TutorialService.talkedToGuide(world: World.World, userId: number)
 end
 
 -- Request SkipTutorial: ends the tutorial. Returns (ok, reason).
-function TutorialService.skip(_world: World.World, session: World.Session): (boolean, string?)
+function TutorialService.skip(world: World.World, session: World.Session): (boolean, string?)
+	local step = TutorialProgress.currentId(session.data)
 	if not TutorialProgress.skip(session.data) then
 		return false, "the tutorial is already done"
 	end
+	World.track(world, session.userId, { op = "event", name = "TutorialSkipped", fields = { `Step - {step}` } })
 	World.markDirty(session)
 	return true, nil
 end

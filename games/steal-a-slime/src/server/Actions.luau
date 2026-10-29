@@ -46,6 +46,7 @@ local MergeVat = if script then require(script.Parent.MergeVat) else require("./
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
+local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local Purchases = if script then require(script.Parent.Purchases) else require("./Purchases")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
@@ -267,10 +268,16 @@ local function sell(world: World, session: Session, id: string): Result
 	if VatState.isLocked(session.data, id) then
 		return fail("That slime is brewing in the vat")
 	end
+	local slime = PlayerData.findSlime(session.data, id)
 	local ok, value = PlayerData.sell(session.data, id)
 	if not ok then
 		return fail(value :: string)
 	end
+	World.track(world, session.userId, {
+		op = "event",
+		name = "SlimeSold",
+		fields = { GameAnalytics.tierField(slime and slime.tier) },
+	})
 	World.notify(world, session.userId, `Sold for ${Economy.formatNumber(value :: number)}`, "good", "Cash", "Cash")
 	return OK
 end
@@ -477,7 +484,7 @@ function Actions.shopTick(session: Session, ctx: Context)
 	end
 end
 
-local function openShop(session: Session, shopId: string, ctx: Context): Result
+local function openShop(world: World, session: Session, shopId: string, ctx: Context): Result
 	local code = ShopGuard.check({
 		shopId = shopId,
 		openShop = session.openShop,
@@ -488,6 +495,7 @@ local function openShop(session: Session, shopId: string, ctx: Context): Result
 	end
 	session.openShop = shopId
 	shopEvent(ctx, session.userId, { kind = "Open", shopId = shopId })
+	World.track(world, session.userId, { op = "startFunnel", name = "Shop", fields = { `Shop - {shopId}` } })
 	return OK
 end
 
@@ -498,7 +506,7 @@ function Actions.openFromPrompt(world: World, userId: number, shopId: string, ct
 	if not session then
 		return fail("still loading")
 	end
-	return openShop(session, shopId, ctx)
+	return openShop(world, session, shopId, ctx)
 end
 
 local function closeShopAction(session: Session, ctx: Context): Result
@@ -546,11 +554,19 @@ local function shopBuy(
 	if row.argIsItem then
 		args = { itemId, arg }
 	end
+	World.track(world, userId, { op = "funnelStep", name = "Shop", step = "Tried", fields = { `Item - {itemId}` } })
 	local cashBefore = session.data.cash
 	local res = dispatch(world, session, row.action, args, now, ctx)
 	if not res.ok then
-		return denied(ctx, userId, shopId, itemId, ShopGuard.classify(res.message), res.message)
+		local reason = ShopGuard.classify(res.message)
+		World.track(world, userId, {
+			op = "count",
+			name = "ShopDenied",
+			fields = { `Shop - {shopId}`, `Reason - {reason}`, `Item - {itemId}` },
+		})
+		return denied(ctx, userId, shopId, itemId, reason, res.message)
 	end
+	World.track(world, userId, { op = "funnelStep", name = "Shop", step = "Bought", fields = { `Item - {itemId}` } })
 	shopEvent(ctx, userId, {
 		kind = "Purchased",
 		shopId = shopId,
@@ -605,7 +621,7 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		end
 		return OK
 	elseif action == "OpenShop" then
-		return openShop(session, args[1], ctx)
+		return openShop(world, session, args[1], ctx)
 	elseif action == "CloseShop" then
 		return closeShopAction(session, ctx)
 	elseif action == "ShopBuy" then
@@ -743,10 +759,12 @@ function Actions.handle(
 	if not allowed then
 		return fail("too fast"), false
 	end
+	local cashBefore = session.data.cash
 	local ok, res = pcall(dispatch, world, session, action, args, now, ctx)
 	if not ok then
 		return fail("server error"), true
 	end
+	GameAnalytics.afterAction(world, session, action, args, cashBefore, res.ok)
 	if QUIET[action] then
 		return res, false
 	end

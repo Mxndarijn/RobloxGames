@@ -14,6 +14,7 @@ local BossFight = if Shared then require(Shared.BossFight) else require("../shar
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
+local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local World = if script then require(script.Parent.World) else require("./World")
 
 local BOSS = Config.BOSS
@@ -53,6 +54,8 @@ end
 ]]
 function BossCredit.win(world: World, fight: BossFight.State, carrier: Session, slime: Genome.Slime, now: number)
 	local top = BossFight.top(fight)
+	GameAnalytics.bossOver(world, fight.contributions, "Won")
+	World.track(world, carrier.userId, { op = "event", name = "BossWon", fields = { `Species - {fight.species}` } })
 	for _, session in world.sessions do
 		local isCarrier = session.userId == carrier.userId
 		if isCarrier then

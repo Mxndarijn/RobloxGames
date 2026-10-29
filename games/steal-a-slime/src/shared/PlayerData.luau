@@ -25,7 +25,8 @@ export type QuestSlot = { id: string, target: number, base: number, claimed: boo
 export type DailyQuests = { day: number, slots: { QuestSlot } }
 
 -- Counters for goals (CONTRACT.md §8.8); stolen / earned / rebirths / pads live elsewhere.
-export type Stats = { caught: number, merges: number, locks: number, sold: number }
+-- playSeconds: time played in total (analytics: hours until each rebirth).
+export type Stats = { caught: number, merges: number, locks: number, sold: number, playSeconds: number }
 
 -- Purchases of Consumables in restock `slot` (a new slot resets `bought`), and the stack held per item id
 -- (`held`: bought, not used yet; it survives the restock).
@@ -126,7 +127,7 @@ function PlayerData.new(): Data
 		speedCoil = false,
 		tutorialStep = 1,
 		upgrades = {},
-		stats = { caught = 0, merges = 0, locks = 0, sold = 0 },
+		stats = { caught = 0, merges = 0, locks = 0, sold = 0, playSeconds = 0 },
 		goals = {},
 		speciesRewards = 0,
 		plotSkin = Config.PLOT_SKIN_DEFAULT,

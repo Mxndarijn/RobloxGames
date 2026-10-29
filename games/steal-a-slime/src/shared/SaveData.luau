@@ -15,7 +15,7 @@
 	    (lockLevel / speedCoil / tutorialStep were added later without a version
 	    bump: missing -> 0 / false / 1 for an empty profile, else 0 = done)
 	  v3 (CONTRACT.md §8.9): v2 plus
-	    upgrades = { [id] = level }, stats = { caught, merges, locks, sold },
+	    upgrades = { [id] = level }, stats = { caught, merges, locks, sold, playSeconds },
 	    goals = { [goalId] = stagesPaid }, dexRewards = n
 	    plus (no bump; missing -> none) redeemed = { code }, boost = { mult, untilAt }
 	    v2 -> v3: zero upgrades / goals / dexRewards, stats.caught seeded with
@@ -803,6 +803,7 @@ function SaveData.deserialize(stored: any): Data
 		merges = num(stats.merges, 0, 0, 1e9),
 		locks = num(stats.locks, 0, 0, 1e9),
 		sold = num(stats.sold, 0, 0, 1e9),
+		playSeconds = num(stats.playSeconds, 0, 0, 1e10), -- no version bump: missing -> 0
 	}
 	if (tonumber(raw.migratedFrom or raw.version) or 0) < 3 then
 		-- v2 never counted catches: every slime on the plot was caught or merged at least.
@@ -956,6 +957,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			merges = data.stats.merges,
 			locks = data.stats.locks,
 			sold = data.stats.sold,
+			playSeconds = data.stats.playSeconds,
 		},
 		goals = table.clone(data.goals),
 		speciesRewards = data.speciesRewards,
