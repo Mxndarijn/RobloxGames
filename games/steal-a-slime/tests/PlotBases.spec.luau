@@ -1,10 +1,11 @@
 --!strict
--- Plot bases: the building a plot stands in, unlocked by rebirths and chosen apart from the skin (CONTRACT.md §44):
--- the config, the unlock rule, the equip remote, State and the save field. FEATURES.BaseShapes is off by default.
+-- Plot bases: the building a plot stands in, unlocked by rebirths or bought (Exclusive) and chosen apart from the skin
+-- (CONTRACT.md §44): the config, the unlock rule, the equip remote, State and the save field.
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")
 local PlayerData = require("../src/shared/PlayerData")
 local PlotBases = require("../src/shared/PlotBases")
+local Purchases = require("../src/server/Purchases")
 local Remotes = require("../src/shared/Remotes")
 local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
@@ -37,16 +38,42 @@ local function reborn(n: number): PlayerData.Data
 	return data
 end
 
+local EXCLUSIVE = { "carousel", "rocket", "treehouse", "lighthouse", "snowglobe" }
+
+local function owning(ids: { string }, rebirths: number?): PlayerData.Data
+	local data = reborn(rebirths or 0)
+	data.ownedStyles.plotBase = table.clone(ids)
+	return data
+end
+
 describe("plot bases: config", function()
-	it("lists the jar first (everyone's), then the factory at rebirth 20 and the pagoda at rebirth 25", function()
-		expect(Config.PLOT_BASE_DEFAULT).toBe("jar")
-		local ids, gates = {}, {}
-		for _, base in Config.PLOT_BASES do
-			table.insert(ids, base.id)
-			table.insert(gates, base.rebirths or 0)
+	it(
+		"lists the jar first (everyone's), the factory at rebirth 20, the pagoda at 25, then the Exclusive bases",
+		function()
+			expect(Config.PLOT_BASE_DEFAULT).toBe("jar")
+			local ids, gates = {}, {}
+			for _, base in Config.PLOT_BASES do
+				table.insert(ids, base.id)
+				table.insert(gates, base.rebirths or 0)
+			end
+			expect(ids).toEqual({ "jar", "factory", "pagoda", table.unpack(EXCLUSIVE) })
+			expect(gates).toEqual({ 0, 20, 25, 0, 0, 0, 0, 0 })
 		end
-		expect(ids).toEqual({ "jar", "factory", "pagoda" })
-		expect(gates).toEqual({ 0, 20, 25 })
+	)
+	it("sells each Exclusive base as Base_<id> at its price, also as a gift", function()
+		local prices = { carousel = 599, rocket = 499, treehouse = 499, lighthouse = 399, snowglobe = 399 }
+		for _, id in EXCLUSIVE do
+			local base = PlotBases.get(id) :: Config.PlotBase
+			expect(base.exclusive).toBe(true)
+			local product = Config.EXCLUSIVE_SHOP.products[`Base_{id}`]
+			expect(product.robux).toBe(prices[id])
+			expect(product.robux).toBe(base.robux)
+			expect(product.grant.kind).toBe("plotBase")
+			expect(product.grant.style).toBe(id)
+			expect(Purchases.giftable(`Base_{id}`)).toBe(true)
+			expect(Config.EXCLUSIVE_SHOP.products[`Gift_Base_{id}`].robux).toBe(prices[id])
+		end
+		expect(Config.EXCLUSIVE_SHOP.products.Base_factory).toBeNil()
 	end)
 	it("is a rate-limited Request action", function()
 		expect(Remotes.ACTIONS.EquipPlotBase.args[1]).toBe("string")
@@ -121,6 +148,56 @@ describe("plot bases: unlock and equip", function()
 	end)
 end)
 
+describe("plot bases: Exclusive", function()
+	it("an Exclusive base is locked until owned, and no number of rebirths unlocks it", function()
+		local rocket = PlotBases.get("rocket") :: Config.PlotBase
+		expect(PlotBases.unlocked(reborn(0), rocket)).toBe(false)
+		expect(PlotBases.unlocked(reborn(1000), rocket)).toBe(false)
+		expect(PlotBases.unlocked(owning({ "rocket" }), rocket)).toBe(true)
+		expect(PlotBases.unlocked(owning({ "carousel" }, 1000), rocket)).toBe(false)
+	end)
+	it("equip refuses an Exclusive base not owned and equips an owned one", function()
+		local data = reborn(1000)
+		expect(select(2, PlotBases.equip(data, "lighthouse"))).toBe("plot base is locked")
+		expect(data.plotBase).toBe("jar")
+		data.ownedStyles.plotBase = { "lighthouse" }
+		expect((PlotBases.equip(data, "lighthouse"))).toBe(true)
+		expect(data.plotBase).toBe("lighthouse")
+		expect(PlotBases.current(data)).toBe("lighthouse")
+	end)
+	it("current() falls back to the jar once an equipped Exclusive base is no longer owned", function()
+		local data = owning({ "snowglobe" })
+		assert(PlotBases.equip(data, "snowglobe"))
+		data.ownedStyles.plotBase = {}
+		expect(PlotBases.current(data)).toBe("jar")
+		expect(data.plotBase).toBe("snowglobe") -- kept: it shows again if owned again
+	end)
+	it("view() gives an Exclusive base its flag, product key and price; owned ones unlocked", function()
+		local view = PlotBases.view(owning({ "treehouse" }, 30))
+		local byId = {}
+		for _, v in view do
+			byId[v.id] = v
+		end
+		expect(byId.carousel.exclusive).toBe(true)
+		expect(byId.carousel.productKey).toBe("Base_carousel")
+		expect(byId.carousel.robux).toBe(599)
+		expect(byId.carousel.unlocked).toBe(false)
+		expect(byId.treehouse.unlocked).toBe(true)
+		expect(byId.pagoda.exclusive).toBeNil()
+		expect(byId.pagoda.productKey).toBeNil()
+		expect(byId.pagoda.unlocked).toBe(true)
+	end)
+	it("the Request refuses an Exclusive base until it is bought, then equips it", function()
+		local world = ServerFixtures.world()
+		local session = ServerFixtures.join(world, 1, {}, 0)
+		session.data.rebirths = 100
+		expect(equip(world, 1, "carousel").message).toBe("plot base is locked")
+		expect(Purchases.grant(world, session, "Base_carousel", T0, { features = {} })).toBe(true)
+		expect(equip(world, 1, "carousel").ok).toBe(true)
+		expect(PlotBases.current(session.data)).toBe("carousel")
+	end)
+end)
+
 describe("plot bases: save", function()
 	it("round-trips the equipped base at the current SAVE_VERSION", function()
 		local data = reborn(25)
@@ -142,5 +219,15 @@ describe("plot bases: save", function()
 		raw.rebirths = 0
 		expect(SaveData.deserialize(raw).plotBase).toBe("factory")
 		expect(SaveData.deserialize(nil).plotBase).toBe("jar")
+	end)
+	it("keeps owned Exclusive bases and drops unknown, non-exclusive and repeated ids", function()
+		local data = owning({ "rocket", "factory", "castle", "rocket", "lighthouse" })
+		data.plotBase = "rocket"
+		local back = SaveData.deserialize(SaveData.serialize(data, T0))
+		expect(back.ownedStyles.plotBase).toEqual({ "rocket", "lighthouse" })
+		expect(back.plotBase).toBe("rocket")
+		expect(PlotBases.current(back)).toBe("rocket")
+		local none = SaveData.deserialize(SaveData.serialize(reborn(0), T0))
+		expect(none.ownedStyles.plotBase).toBeNil()
 	end)
 end)

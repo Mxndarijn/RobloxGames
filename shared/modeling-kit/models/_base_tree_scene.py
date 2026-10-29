@@ -107,21 +107,25 @@ disc("ShaftFloor", TRUNK_IN, 0.25, (0, 0, 0.75), DECK, segs=24)
 DOOR_GAP = (-90 - 10, -90 + 10)
 inner = lambda a: STUMP_IN
 outer = lambda a: STUMP_IN + 2.6
-lop_ring("StumpWallLo", 1, inner, outer, 0.7, 11.3, [BARK, shade(BARK, 0.88)], gap=DOOR_GAP)
 bark_top = top(BARK_FLOORS + 1)
-lop_ring("StumpWallHi", 1, inner, outer, 12.0, bark_top - 12.0, [BARK, shade(BARK, 0.88)])
+# See-through rule: every floor is a low bark wall, a glass band and a bark top band, so the slimes always show.
+TREE_GLASS = mix(GOO_HI, rgb(190, 236, 210), 0.5)
+for f in range(1, BARK_FLOORS + 1):
+    zf = 0.7 if f == 1 else top(f)
+    g = DOOR_GAP if f == 1 else None
+    lop_ring(f"StumpKick{f}", 1, inner, outer, zf, top(f) + 3.0 - zf, [BARK, shade(BARK, 0.88)], gap=g)
+    lop_ring(f"StumpGlass{f}", 1, lambda a: STUMP_IN + 1.0, lambda a: STUMP_IN + 1.4, top(f) + 3.0, FLOOR_H - 5.5,
+             [TREE_GLASS], into="glass", gap=g)
+    lop_ring(f"StumpBand{f}", 1, inner, outer, top(f) + FLOOR_H - 2.5, 2.5, [BARK, shade(BARK, 0.88)])
+    for k in range(12):
+        a = -90 + 15 + k * 30
+        disc(f"StumpPost{f}_{k}", 0.9, FLOOR_H - 5.5, (*polar(STUMP_IN + 1.9, a), top(f) + 3.0), BARK_L, segs=8, into="shell")
 revolve("StumpFlare", [(STUMP_IN + 2.4, 0.5), (STUMP_IN + 5.5, 0.5), (STUMP_IN + 2.4, 6.0)], BARK, segs=40, gap=DOOR_GAP)
 # a tapered bark skin over the trunk walls: fat at the roots, slimmer at the top; ridges for bark
 skin_r = lambda z: STUMP_IN + 4.4 - 2.6 * min(z / 33.0, 1.0)
-for nm, z0, z1_, g in (("SkinLo", 0.6, 11.3, DOOR_GAP), ("SkinHi", 11.3, bark_top - 1.0, None)):
+for nm, z0, z1_, g in (("SkinLo", 0.6, 4.0, DOOR_GAP),):
     revolve(nm, [(STUMP_IN + 2.5, z0), (skin_r(z0), z0), (skin_r(z1_), z1_), (STUMP_IN + 2.5, z1_)], BARK, segs=40,
             lo=shade(BARK, 0.82), gap=g)
-for k in range(18):
-    a = k * 20 + 5
-    if -112 < a - 360 * (a > 180) < -68:
-        continue
-    pts = [(*polar(skin_r(z) + 0.15, a + 3 * math.sin(z / 5)), z) for z in (1.0, bark_top * 0.35, bark_top * 0.7, bark_top - 1.2)]
-    S(tube(f"Ridge{k}", pts, [0.5] * 4, shade(BARK, 0.8), segs=5))
 revolve("StumpLip", [(STUMP_IN - 0.2, bark_top - 1.0), (STUMP_IN + 2.6 + 0.8 * (FLOORS < 2), bark_top - 1.0), (STUMP_IN + 2.6 + 0.8 * (FLOORS < 2), bark_top),
                      (STUMP_IN - 0.2, bark_top)], BARK_L)
 for k, a in enumerate((-50, -15, 25, 70, 115, 160, 205, 240)):
@@ -139,14 +143,10 @@ lock_button(lx, ly, z1)
 avatar(0, -12.5, z1)
 avatar(4, -STUMP_IN - 9.0, 1.3, rgb(230, 120, 90))
 pad_ring(1, PAD_R[1], n=8, a0=-90 + 60, arc=240, trim=LEAF)
-for k, a in enumerate((-35, 30, 150, 215)):
-    window(f"Knot1_{k}", STUMP_IN + 2.6, a, 9.0, size=1.5)
 if FLOORS >= 2:
     z2 = top(2)
     ring_wall("Deck2", TRUNK_OUT, STUMP_IN, z2 - 1.0, 1.0, DECK, segs=48, into=None)
     pad_ring(2, PAD_R[2], n=8, a0=-90 + 22.5, trim=LEAF)
-    for k in range(6):
-        window(f"Knot2_{k}", STUMP_IN + 2.6, -90 + 30 + k * 60, z2 + 7.5, size=2.0)
     for k, a in enumerate((-20, 200)):
         p0, p1 = polar(STUMP_IN + 2.0, a), polar(STUMP_IN + 8.0, a + 5)
         S(tube(f"Stub{k}", [(*p0, z2 + 10), (*p1, z2 + 14)], [1.4, 0.7], BARK, segs=6))
@@ -157,7 +157,7 @@ if FLOORS >= 3:
         zb = top(3) - 3.0
         p0, p1, p2 = polar(STUMP_IN, a), polar(STUMP_IN + 7.0, a + 4), polar(STUMP_IN + 11.0, a + 10)
         S(tube(f"Arm{k}", [(*p0, zb - 4), (*p1, zb + 1), (*p2, zb + 8)], [2.2, 1.5, 0.8], BARK, segs=8), shade(BARK, 0.85), BARK)
-        for j, (dr, da, dz, rad) in enumerate(((11.5, 11, 10, 5.0), (9.0, 18, 12.5, 4.0), (13.0, 2, 13, 3.6))):
+        for j, (dr, da, dz, rad) in enumerate(((11.5, 11, 0, 5.0), (9.0, 18, 1.5, 4.0), (13.0, 2, 2, 3.6))):
             puff(f"ArmLeaf{k}_{j}", rad, (*polar(STUMP_IN + dr, a + da), zb + dz), [LEAF, LEAF_L, LEAF_D][j], seed=80 + k * 3 + j)
 
 # ---- the shaft: a bark tube up the middle with the spiral ramp, an arch onto every floor at the front ----
@@ -181,16 +181,19 @@ for f in range(3, FLOORS + 1):
     z = top(f)
     lop_ring(f"Deck{f}", f, lambda a: TRUNK_OUT, lambda a, f=f: rad_at(f, a) + 1.6, z - 1.0, 1.0, [DECK, shade(DECK, 0.9)],
              into=None)
-    lop_ring(f"Wall{f}", f, lambda a, f=f: rad_at(f, a), lambda a, f=f: rad_at(f, a) + 1.0, z, FLOOR_H - 1.6,
+    lop_ring(f"Wall{f}", f, lambda a, f=f: rad_at(f, a), lambda a, f=f: rad_at(f, a) + 1.0, z, 3.0,
              [PLANK, PLANK_D])
+    lop_ring(f"Glass{f}", f, lambda a, f=f: rad_at(f, a) + 0.3, lambda a, f=f: rad_at(f, a) + 0.7, z + 3.0,
+             FLOOR_H - 5.2, [TREE_GLASS], into="glass")
+    for k in range(12):
+        a = k * 30
+        disc(f"CabinPost{f}_{k}", 0.6, FLOOR_H - 5.2, (*polar(rad_at(f, a) + 0.5, a), z + 3.0), PLANK_D, segs=6,
+             into="shell")
     rim = RIMS[(f - 3) % len(RIMS)]
     lop_ring(f"Rim{f}", f, lambda a, f=f: rad_at(f, a) - 0.2, lambda a, f=f: rad_at(f, a) + 1.8, z + FLOOR_H - 2.2, 1.4,
              [rim])
     lop_ring(f"DeckRim{f}", f, lambda a, f=f: rad_at(f, a) + 1.0, lambda a, f=f: rad_at(f, a) + 1.9, z - 1.6, 1.2,
              [BARK_L])
-    for k in range(7):
-        a = -90 + 25 + k * 360 / 7 + f * 11
-        window(f"Win{f}_{k}", rad_at(f, a) + 1.0, a, z + 7.5)
     below = (lambda a: STUMP_IN + 2.0) if f == 3 else (lambda a, g=f - 1: rad_at(g, a) + 1.9)
     for k in range(12):
         a = k * 30 + 15
@@ -203,7 +206,7 @@ for f in range(3, FLOORS + 1):
     for k in range(5):
         a = k * 360 / 5 + f * 23
         r = rad_at(f, a) + 2.4
-        puff(f"Hug{f}_{k}", 3.2 + (k % 3) * 0.6, (*polar(r, a), z + FLOOR_H - 3.0 + (k % 2)), [LEAF, LEAF_L, LEAF_D][k % 3],
+        puff(f"Hug{f}_{k}", 3.2 + (k % 3) * 0.6, (*polar(r, a), z - 2.0 - (k % 2)), [LEAF, LEAF_L, LEAF_D][k % 3],
              seed=60 + f * 10 + k)
 
 # ---- the crown: canopy puffs that hang over the edge of the top floor, bird nest + mascot ----
@@ -211,7 +214,7 @@ cr = CABIN[FLOORS][0]
 revolve("Roof", [(TRUNK_OUT, crown_z + 6.0), (cr + 3.0, crown_z - 0.5), (cr + 3.0, crown_z - 1.6),
                  (TRUNK_OUT, crown_z - 1.0)], LEAF_D, segs=36)
 rr = random.Random(3)
-cz = crown_z
+cz = crown_z + 7.0  # the canopy sits above the top floor's glass, never over it
 for k in range(10):
     a = k * 36 + rr.uniform(-6, 6)
     puff(f"Canopy{k}", rr.uniform(7.5, 9.0), (*polar(cr + 1.0 + rr.uniform(-1, 1.5), a), cz + 2.0 + rr.uniform(-1, 2)),

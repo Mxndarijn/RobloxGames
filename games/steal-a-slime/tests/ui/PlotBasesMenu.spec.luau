@@ -1,7 +1,8 @@
 --!strict
 -- The base strip in the Plot skins menu (FEATURES.BaseShapes, contract/base-shapes.md): one button per base across
--- the top, each saying Equip, Equipped or the rebirth it unlocks at; Equip asks the server (EquipPlotBase). Without
--- State.plotBases there is no strip and the menu looks as before.
+-- the top (two rows, scrolling sideways when they don't fit), each saying Equip, Equipped or the rebirth it unlocks
+-- at; Equip asks the server (EquipPlotBase). An Exclusive base not owned yet has a gold Exclusive tag and Buy, which
+-- prompts Base_<id> (or opens the Exclusive shop on it while not on sale). Without State.plotBases there is no strip.
 local Config = require("../../src/shared/Config")
 local Constants = require("../../src/shared/Constants")
 local Fixtures = require("../Fixtures")
@@ -18,20 +19,32 @@ local SlimeRoster = require("../../src/shared/SlimeRoster")
 local SpeciesDex = require("../../src/shared/SpeciesDex")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
+local UnsoldConfig = require("./UnsoldConfig")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
-local UDim2 = (require("@lune/roblox") :: any).UDim2
+local roblox = require("@lune/roblox") :: any
+local UDim2 = roblox.UDim2
 
-local function bases(rebirths: number, equipped: string?): { any }
+local function bases(rebirths: number, equipped: string?, owned: { string }?): { any }
 	local data = PlayerData.new()
 	data.rebirths = rebirths
 	data.plotBase = equipped or "jar"
+	data.ownedStyles.plotBase = owned
 	return PlotBases.view(data)
 end
 
-local function ctx(requests: { any }?): any
+-- Config with Base_rocket on sale (a Roblox product id), everything else not on sale yet (UnsoldConfig).
+local function onSaleConfig(): any
+	local products = setmetatable({
+		Base_rocket = { productId = 4242, robux = 499, grant = { kind = "plotBase", style = "rocket" } },
+	}, { __index = UnsoldConfig.EXCLUSIVE_SHOP.products })
+	local shop = setmetatable({ products = products }, { __index = UnsoldConfig.EXCLUSIVE_SHOP })
+	return setmetatable({ EXCLUSIVE_SHOP = shop }, { __index = UnsoldConfig })
+end
+
+local function ctx(requests: { any }?, config: any?): any
 	return {
-		Config = Config,
+		Config = config or UnsoldConfig, -- the shop ids cleared: nothing on sale unless a spec says so
 		Constants = Constants,
 		Genome = Genome,
 		SlimeRoster = SlimeRoster,
@@ -53,8 +66,8 @@ local function ctx(requests: { any }?): any
 	}
 end
 
-local function open(w: number, h: number, state: any, requests: { any }?): (any, Layout.Rect)
-	local panel = UiHarness.ui("Panels/Skins").new(UiHarness.root(), ctx(requests))
+local function open(w: number, h: number, state: any, requests: { any }?, c: any?): (any, Layout.Rect)
+	local panel = UiHarness.ui("Panels/Skins").new(UiHarness.root(), c or ctx(requests))
 	local raw = Layout.panelFor(Layout.screen(w, h), "Skins")
 	local r = Layout.rect(math.floor(raw.x), math.floor(raw.y), math.floor(raw.w), math.floor(raw.h))
 	panel.frame.Size = UDim2.fromOffset(r.w, r.h)
@@ -82,6 +95,37 @@ describe("PlotBasesView.rows", function()
 		expect(rows[2].action).toBe(PlotBasesView.EQUIP)
 		expect(rows[3].state).toBe("locked")
 		expect(rows[3].action).toBe("Rebirth 25")
+		expect(rows[3].exclusive).toBe(false)
+	end)
+	it("an Exclusive base not owned is Exclusive with Buy and its price; owned it is Equip / Equipped", function()
+		local rows = PlotBasesView.rows(bases(100, "rocket", { "rocket", "lighthouse" }), UnsoldConfig)
+		local byId = {}
+		for _, row in rows do
+			byId[row.id] = row
+		end
+		expect(byId.carousel.exclusive).toBe(true)
+		expect(byId.carousel.state).toBe("locked")
+		expect(byId.carousel.action).toBe("Buy · R$599")
+		expect(byId.carousel.shopKey).toBe("plotBase:carousel")
+		expect(byId.carousel.purchase).toBeNil() -- productId 0: not on sale yet
+		expect(byId.snowglobe.action).toBe("Buy · R$399")
+		expect(byId.rocket.exclusive).toBe(false)
+		expect(byId.rocket.action).toBe(PlotBasesView.EQUIPPED)
+		expect(byId.lighthouse.action).toBe(PlotBasesView.EQUIP)
+		local sale = PlotBasesView.rows(bases(0), onSaleConfig())
+		for _, row in sale do
+			if row.id == "rocket" then
+				expect(row.purchase).toEqual({ kind = "product", id = 4242 })
+			end
+		end
+		-- as shipped every Exclusive base is on sale: Buy prompts its Base_<id> product
+		for _, row in PlotBasesView.rows(bases(0), Config) do
+			if row.exclusive then
+				local id = Config.EXCLUSIVE_SHOP.products[`Base_{row.id}`].productId
+				expect(id > 0).toBe(true)
+				expect(row.purchase).toEqual({ kind = "product", id = id })
+			end
+		end
 	end)
 end)
 
@@ -113,35 +157,101 @@ describe("Plot skins menu: the base strip", function()
 		expect(requests[1][1]).toBe("EquipPlotBase")
 		expect(requests[1][2]).toBe("factory")
 	end)
-	for _, vp in LayoutAssert.GATE_VIEWPORTS do
-		it(
-			`{vp.name}: the strip's buttons fit the body side by side, their text fits, and the list sits below`,
-			function()
-				local panel, r =
-					open(vp.w, vp.h, { dex = Fixtures.dex({}), plotSkins = skins(), plotBases = bases(25) })
-				local body = Layout.panelBody(r)
-				local strip = UiHarness.find(panel.frame, "Bases")
-				local right = 0
-				for i = 1, #Config.PLOT_BASES do
-					local b = UiHarness.find(strip, `Base{i}`)
-					expect(b.Position.X.Offset >= right - 1e-6).toBe(true)
-					right = b.Position.X.Offset + b.Size.X.Offset
-					for _, name in { "Title", "State" } do
-						local label = UiHarness.find(b, name)
-						local problem = LayoutAssert.textFits({
-							text = label.Text,
-							size = label.TextSize,
-							w = b.Size.X.Offset - 8,
-							h = math.floor(b.Size.Y.Offset / 2) - 2,
-							bold = true,
-						} :: any)
-						expect(problem).toBeNil()
-					end
-				end
-				expect(right <= body.w + 1e-6).toBe(true)
-				local list = UiHarness.find(panel.frame, "List")
-				expect(list.Position.Y.Offset + list.Size.Y.Offset <= body.h + 1e-6).toBe(true)
+	it(
+		"an Exclusive base not owned shows the gold Exclusive tag; Buy opens the shop on it while not on sale",
+		function()
+			local requests, opened = {}, {}
+			local c = ctx(requests)
+			c.openExclusiveShop = function(key: string?)
+				table.insert(opened, key)
 			end
-		)
+			local panel =
+				open(1920, 1080, { dex = Fixtures.dex({}), plotSkins = skins(), plotBases = bases(0) }, nil, c)
+			local strip = UiHarness.find(panel.frame, "Bases")
+			local carousel = UiHarness.find(strip, "Base4")
+			expect(carousel:GetAttribute("BaseId")).toBe("carousel")
+			expect(UiHarness.find(carousel, "Exclusive").Visible).toBe(true)
+			expect(UiHarness.find(carousel, "Exclusive").Text).toBe("Exclusive")
+			expect(UiHarness.find(carousel, "State").Text).toBe("Buy · R$599")
+			expect(UiHarness.find(UiHarness.find(strip, "Base1"), "Exclusive").Visible).toBe(false)
+			UiHarness.fire(carousel, "Activated")
+			expect(opened).toEqual({ "plotBase:carousel" })
+			expect(#requests).toBe(0)
+		end
+	)
+	it("Buy on an Exclusive base on sale opens Roblox's prompt; once owned it is Equip (EquipPlotBase)", function()
+		local requests, prompts = {}, {}
+		local c = ctx(requests, onSaleConfig())
+		c.purchase = {
+			prompt = function(p: any): boolean
+				table.insert(prompts, p)
+				return true
+			end,
+		}
+		local state = { dex = Fixtures.dex({}), plotSkins = skins(), plotBases = bases(0) }
+		local panel = open(1920, 1080, state, nil, c)
+		local strip = UiHarness.find(panel.frame, "Bases")
+		local rocket = UiHarness.find(strip, "Base5")
+		expect(rocket:GetAttribute("BaseId")).toBe("rocket")
+		UiHarness.fire(rocket, "Activated")
+		expect(prompts).toEqual({ { kind = "product", id = 4242 } })
+		expect(#requests).toBe(0)
+		panel.update({ dex = state.dex, plotSkins = state.plotSkins, plotBases = bases(0, nil, { "rocket" }) })
+		expect(UiHarness.find(rocket, "Exclusive").Visible).toBe(false)
+		expect(UiHarness.find(rocket, "State").Text).toBe(PlotBasesView.EQUIP)
+		UiHarness.fire(rocket, "Activated")
+		expect(#prompts).toBe(1)
+		expect(requests[1][1]).toBe("EquipPlotBase")
+		expect(requests[1][2]).toBe("rocket")
+	end)
+	for _, vp in LayoutAssert.GATE_VIEWPORTS do
+		it(`{vp.name}: the strip's buttons don't overlap, their text and tag fit, and the list sits below`, function()
+			local panel, r = open(vp.w, vp.h, { dex = Fixtures.dex({}), plotSkins = skins(), plotBases = bases(25) })
+			local body = Layout.panelBody(r)
+			local strip = UiHarness.find(panel.frame, "Bases")
+			expect(strip.Size.X.Offset <= body.w + 1e-6).toBe(true)
+			local canvasW = strip.CanvasSize.X.Offset
+			local boxes = {}
+			for i = 1, #Config.PLOT_BASES do
+				local b = UiHarness.find(strip, `Base{i}`)
+				local x, y, w, h = b.Position.X.Offset, b.Position.Y.Offset, b.Size.X.Offset, b.Size.Y.Offset
+				for _, o in boxes do
+					local apart = x >= o.x + o.w or o.x >= x + w or y >= o.y + o.h or o.y >= y + h
+					expect(apart).toBe(true)
+				end
+				table.insert(boxes, { x = x, y = y, w = w, h = h })
+				expect(x + w <= canvasW + 1e-6).toBe(true)
+				expect(y + h <= strip.Size.Y.Offset + 1e-6).toBe(true)
+				for _, name in { "Title", "State" } do
+					local label = UiHarness.find(b, name)
+					local problem = LayoutAssert.textFits({
+						text = label.Text,
+						size = label.TextSize,
+						w = label.Size.X.Offset + w * label.Size.X.Scale,
+						h = label.Size.Y.Offset,
+						bold = true,
+					} :: any)
+					expect(problem).toBeNil()
+				end
+				local tag = UiHarness.find(b, "Exclusive")
+				if tag.Visible then
+					local problem = LayoutAssert.textFits({
+						text = tag.Text,
+						size = tag.TextSize,
+						w = w - 20,
+						h = tag.Size.Y.Offset,
+						bold = true,
+					} :: any)
+					expect(problem).toBeNil()
+				end
+			end
+			if canvasW > strip.Size.X.Offset then
+				expect(strip.ScrollingDirection).toBe(roblox.Enum.ScrollingDirection.X)
+			end
+			local list = UiHarness.find(panel.frame, "List")
+			expect(list.Position.Y.Offset >= strip.Position.Y.Offset + strip.Size.Y.Offset).toBe(true)
+			expect(list.Position.Y.Offset + list.Size.Y.Offset <= body.h + 1e-6).toBe(true)
+			expect(list.Size.Y.Offset > 0).toBe(true)
+		end)
 	end
 end)

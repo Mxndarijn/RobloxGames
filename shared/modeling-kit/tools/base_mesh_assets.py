@@ -71,7 +71,7 @@ def probe(prefixes):
 
 # Every base's mesh prefix: write always puts all of them in the block (it replaces the whole block, so writing one
 # base alone would drop the others' entries).
-BASE_PREFIXES = ("factory_", "pagoda_")
+BASE_PREFIXES = ("factory_", "pagoda_", "carousel_", "rocket_", "treehouse_", "lighthouse_", "snowglobe_")
 
 
 def write(prefixes):

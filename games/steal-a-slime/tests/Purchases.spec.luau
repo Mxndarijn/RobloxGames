@@ -560,6 +560,46 @@ describe("Exclusive styles, bundles and seasons", function()
 		expect(back.wornStyles.fanfare).toBeNil() -- not owned
 		expect(back.plotSkin).toBe("space")
 	end)
+	it("an Exclusive base is owned once bought, says where to pick it, and State lists it", function()
+		local PlotBases = require("../src/shared/PlotBases")
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		expect(Purchases.owns(s.data, "Base_rocket")).toBe(false)
+		expect(Purchases.grant(world, s, "Base_rocket", T0, ON)).toBe(true)
+		expect(s.data.ownedStyles.plotBase).toEqual({ "rocket" })
+		expect(Purchases.owns(s.data, "Base_rocket")).toBe(true)
+		expect(Purchases.giveItem(s.data, "Base_rocket")).toBe(false) -- once
+		expect(ServerFixtures.notifications(world, 1)).toEqual({ "the Space Rocket base is yours! Pick it in Skins." })
+		expect(PlotBases.unlocked(s.data, PlotBases.get("rocket") :: any)).toBe(true)
+		expect(Purchases.view(s, T0, world).styles.plotBase).toEqual({ rocket = true })
+	end)
+	it("a gifted Exclusive base goes to the target; a gift taken back takes the base off", function()
+		local PlotBases = require("../src/shared/PlotBases")
+		local world = ServerFixtures.world()
+		local buyer, target = ServerFixtures.join(world, 1), ServerFixtures.join(world, 2)
+		assert(Purchases.aimGift(world, buyer, "Base_lighthouse", 2, T0))
+		Purchases.grant(world, buyer, "Gift_Base_lighthouse", T0 + 1, {
+			save = function()
+				return true
+			end,
+		})
+		expect(target.data.ownedStyles.plotBase).toEqual({ "lighthouse" })
+		expect(buyer.data.ownedStyles.plotBase).toBeNil()
+		expect(ServerFixtures.notifications(world, 2)).toEqual({ "P1 gave you the Lighthouse base!" })
+		expect(select(2, Purchases.aimGift(world, buyer, "Base_lighthouse", 2, T0 + 2))).toBe("they already have it")
+		-- The target's save fails: the base is taken back and taken off; the buyer keeps a gift credit.
+		target.data.plotBase = "carousel"
+		assert(Purchases.aimGift(world, buyer, "Base_carousel", 2, T0 + 3))
+		Purchases.grant(world, buyer, "Gift_Base_carousel", T0 + 4, {
+			save = function()
+				return false
+			end,
+		})
+		expect(target.data.ownedStyles.plotBase).toEqual({ "lighthouse" })
+		expect(target.data.plotBase).toBe("jar")
+		expect(PlotBases.current(target.data)).toBe("jar")
+		expect(buyer.data.giftCredits).toEqual({ "Base_carousel" })
+	end)
 	it("a bundle gives every item in it, skipping owned ones", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)

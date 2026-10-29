@@ -428,6 +428,16 @@ local BAT_SKIN_COLORS: { [string]: { { number } } } = {
 	default = { { 222, 170, 110 }, { 150, 100, 60 } },
 }
 
+-- Exclusive plot base tile colours (walls, then roof) for the drawn Style icons; Config's bases carry no colour.
+local BASE_COLORS: { [string]: { { number } } } = {
+	carousel = { { 250, 150, 182 }, { 252, 216, 110 } },
+	rocket = { { 220, 226, 240 }, { 250, 96, 96 } },
+	treehouse = { { 196, 140, 90 }, { 110, 200, 110 } },
+	lighthouse = { { 245, 245, 245 }, { 230, 80, 80 } },
+	snowglobe = { { 150, 216, 244 }, { 240, 248, 255 } },
+	default = { { 200, 200, 200 }, { 150, 150, 150 } },
+}
+
 local function finish(partial: { [string]: any }): Spec
 	local model = partial.model
 	local image = ItemIcons.IMAGES[partial.id]
@@ -585,6 +595,22 @@ function ItemIcons.build(config: any)
 			glyph = "🏏",
 			brief = `The '{skin.name}' Bat skin (models/{skin.mesh}.py) alone, tilted; 3/4 view.`,
 		})
+	end
+
+	-- Exclusive plot bases (§15, contract/base-shapes.md): a small building drawn in its colours until pictured.
+	for _, base in config.PLOT_BASES or {} do
+		if base.exclusive then
+			local colors = BASE_COLORS[base.id] or BASE_COLORS.default
+			add({
+				id = `PlotBase_{base.id}`,
+				name = base.name,
+				group = "gear",
+				color = colors[1],
+				colors = colors,
+				glyph = "🏡",
+				brief = `The '{base.name}' plot base building alone, no slimes; 3/4 view.`,
+			})
+		end
 	end
 
 	-- Fanfares, lock styles and slime hats (§15): UI-drawn glyph tiles until pictures are rendered.

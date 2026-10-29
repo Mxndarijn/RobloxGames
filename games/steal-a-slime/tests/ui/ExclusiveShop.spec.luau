@@ -988,6 +988,27 @@ describe("Style tab and gifts (panel)", function()
 		expect(panel.selected()).toBe("plotSkin:fairground") -- the first Style card
 		expect(UiHarness.find(UiHarness.find(panel.frame, "Pane"), "Buy").Text).toBe("Not on sale yet")
 	end)
+	it("a base card prompts Base_<id>; once owned, Equip asks EquipPlotBase", function()
+		local config = sellingConfig()
+		local market = fakeMarket()
+		local sent, request = requests()
+		local c = ctx(config, { purchase = PurchasePrompt.new(market, PLAYER), request = request })
+		local panel = openShop(1920, 1080, shopState(), c, "plotBase:carousel")
+		expect(panel.tab()).toBe("Style")
+		local grid = UiHarness.find(panel.frame, "Grid")
+		local card = UiHarness.find(grid, "plotBase:carousel")
+		expect(UiHarness.find(card, "CardIcon"):GetAttribute("ItemId")).toBe("PlotBase_carousel")
+		local pane = UiHarness.find(panel.frame, "Pane")
+		expect(UiHarness.find(pane, "Buy").Text).toBe("Buy · R$599")
+		UiHarness.fire(UiHarness.find(pane, "Buy"), "Activated")
+		expect(market.calls[1][3]).toBe(config.EXCLUSIVE_SHOP.products.Base_carousel.productId)
+		panel.update(shopState({ styles = { plotBase = { carousel = true } } }))
+		local equip = UiHarness.find(pane, "Equip")
+		expect(equip.Visible).toBe(true)
+		UiHarness.fire(equip, "Activated")
+		expect(sent[1][1]).toBe("EquipPlotBase")
+		expect(sent[1][2]).toBe("carousel")
+	end)
 	it("Buy on a trail prompts Trail_<id>; once owned, Equip asks EquipTrail and the worn one Unequips", function()
 		local config = sellingConfig()
 		local market = fakeMarket()
@@ -1339,6 +1360,49 @@ describe("Exclusive styles, seasons and bundles (ExclusiveShopView)", function()
 		expect(owned.action.equip.arg).toBe("space")
 		state.plotSkins = { { id = "space", equipped = true } }
 		expect((ExclusiveShopView.detail("plotSkin:space", state, Config) :: any).state).toBe("equipped")
+	end)
+	it("the Exclusive bases are Style cards after the base skins: name, price, Buy and Gift", function()
+		local cards = ExclusiveShopView.cards("Style", shopState(), Config)
+		local index: { [string]: number } = {}
+		for i, card in cards do
+			index[card.key] = i
+		end
+		for _, base in Config.PLOT_BASES do
+			local key = `plotBase:{base.id}`
+			if base.exclusive then
+				local card = cards[index[key]]
+				expect(card.title).toBe(base.name)
+				expect(card.icon).toBe(`PlotBase_{base.id}`)
+				expect(card.tag).toBe(Format.robux(base.robux :: number))
+				expect(card.state).toBe("offsale")
+				expect(index[key] > index["plotSkin:fairground"]).toBe(true)
+				expect(index[key] < index["lockStyle:candy"]).toBe(true)
+				expect(ExclusiveShopView.tabOf(key)).toBe("Style")
+				expect(ExclusiveShopView.itemKeyOf(key)).toBe(`Base_{base.id}`)
+			else
+				expect(index[key]).toBeNil()
+			end
+		end
+		local selling = sellingConfig()
+		local detail = ExclusiveShopView.detail("plotBase:rocket", shopState(), selling) :: any
+		expect(detail.text).toBe(ExclusiveShopView.BASE_TEXT)
+		expect(detail.action.kind).toBe("buy")
+		expect(detail.action.text).toBe("Buy · R$499")
+		expect(detail.action.purchase.id).toBe(selling.EXCLUSIVE_SHOP.products.Base_rocket.productId)
+		expect(detail.gift.mode).toBe("buy")
+		expect(detail.gift.text).toBe("Gift · R$499")
+		expect(detail.gift.purchase.id).toBe(selling.EXCLUSIVE_SHOP.products.Gift_Base_rocket.productId)
+	end)
+	it("an owned base equips with EquipPlotBase and shows Equipped from State.plotBases", function()
+		local state = shopState({ styles = { plotBase = { rocket = true } } })
+		local owned = ExclusiveShopView.detail("plotBase:rocket", state, Config) :: any
+		expect(owned.state).toBe("owned")
+		expect(owned.action.equip.request).toBe("EquipPlotBase")
+		expect(owned.action.equip.arg).toBe("rocket")
+		state.plotBases = { { id = "rocket", equipped = true } }
+		local worn = ExclusiveShopView.detail("plotBase:rocket", state, Config) :: any
+		expect(worn.state).toBe("equipped")
+		expect(worn.unequip).toBeNil() -- a base is swapped in Skins, never taken off
 	end)
 	it("a bundle shows Owned once everything in it is owned", function()
 		local all = shopState({
