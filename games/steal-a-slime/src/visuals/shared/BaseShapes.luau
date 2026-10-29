@@ -2,8 +2,9 @@
 --[[
 	BaseShapes (pure)
 
-	The buildings a plot can stand in (CONTRACT.md §44): the goo jar tower (today's WorldLayout jar), the Goo Factory
-	and the Mushroom Pagoda. BaseShapes.get(id) is the one place that knows each base's geometry; servers and clients
+	The buildings a plot can stand in (CONTRACT.md §44): the goo jar tower (today's WorldLayout jar), the Goo Factory,
+	the Mushroom Pagoda and the round Exclusive bases (Carousel Tent, Space Rocket, Tree House, Lighthouse, Snow
+	Globe: one inside, models/_round_base_layout.py). BaseShapes.get(id) is the one place that knows each base's geometry; servers and clients
 	ask it instead of the jar's numbers. Every base keeps WorldLayout.floorTop, SPAWN_SPOT, the door on the plot's -Z
 	side and PADS_PER_FLOOR pads per floor.
 
@@ -30,6 +31,18 @@ local PagodaMeshes = if script
 local FactoryMeshes = if script
 	then require(script.Parent.BaseShapeData.FactoryMeshes)
 	else require("./BaseShapeData/FactoryMeshes")
+-- the round Exclusive bases (models/_round_base_layout.py): same inside, their own shell and roof
+local Carousel = if script then require(script.Parent.BaseShapeData.Carousel) else require("./BaseShapeData/Carousel")
+local Rocket = if script then require(script.Parent.BaseShapeData.Rocket) else require("./BaseShapeData/Rocket")
+local Treehouse = if script
+	then require(script.Parent.BaseShapeData.Treehouse)
+	else require("./BaseShapeData/Treehouse")
+local Lighthouse = if script
+	then require(script.Parent.BaseShapeData.Lighthouse)
+	else require("./BaseShapeData/Lighthouse")
+local Snowglobe = if script
+	then require(script.Parent.BaseShapeData.Snowglobe)
+	else require("./BaseShapeData/Snowglobe")
 local JarMeshes = if script then require(script.Parent.JarMeshes) else require("./JarMeshes")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
@@ -531,6 +544,28 @@ local PAGODA_STAND_INS: { [string]: string } = {
 }
 local PAGODA_DOOR_SHIFT = (WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL / 2) + Pagoda.door.z
 
+-- The round Exclusive bases: walls, decks, ramp and roof are the looks of their colliders (BaseShapeData/<Name>Meshes
+-- once modelled); the door is the jar's round door moved to the base's doorway, the foot the jar's.
+local ROUND: { [string]: any } = {
+	carousel = Carousel,
+	rocket = Rocket,
+	treehouse = Treehouse,
+	lighthouse = Lighthouse,
+	snowglobe = Snowglobe,
+}
+local ROUND_LOOKS: { [string]: any } = {}
+local ROUND_STAND_INS: { [string]: { [string]: string } } = {}
+
+local function roundShape(data: any): Shape
+	return fromData(data, {
+		looks = ROUND_LOOKS[data.id],
+		standIns = ROUND_STAND_INS[data.id],
+		topFolder = true,
+		jarDoor = (WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL / 2) + data.door.z,
+		jarFoot = true,
+	})
+end
+
 local SHAPES: { [string]: Shape } = {
 	jar = jar,
 	factory = fromData(Factory, {
@@ -546,7 +581,13 @@ local SHAPES: { [string]: Shape } = {
 		jarFoot = true,
 	}),
 }
+for id, data in ROUND do
+	SHAPES[id] = roundShape(data)
+end
 local TINTS: { [string]: any } = { factory = FactoryMeshes.tints, pagoda = PagodaMeshes.tints }
+for id, looks in ROUND_LOOKS do
+	TINTS[id] = looks.tints
+end
 
 -- The MeshPart.Color (sRGB 0..255) of a tint-only piece of base `base` in plot skin `skin` for theme role `role`;
 -- the classic skin's when the skin has none, nil for a base without tints (the jar's themes are their own meshes).
@@ -566,7 +607,12 @@ end
 
 -- The generated data of base `id` (tests), or nil for the jar.
 function BaseShapes.data(id: string): any
-	return if id == "factory" then Factory elseif id == "pagoda" then Pagoda else nil
+	if id == "factory" then
+		return Factory
+	elseif id == "pagoda" then
+		return Pagoda
+	end
+	return ROUND[id]
 end
 
 return table.freeze(BaseShapes)
