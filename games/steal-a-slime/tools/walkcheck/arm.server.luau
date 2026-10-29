@@ -101,7 +101,9 @@ task.spawn(function()
 	local t0 = os.clock()
 	local first = model:GetPivot().Position
 	local last = first
-	local walked, frames, insideFrames, floatFrames = 0, 0, 0, 0
+	local walked, frames, insideFrames, floatFrames, fallFrames = 0, 0, 0, 0, 0
+	local recent: { { number } } = {} -- (t, y) over the last SINK_WINDOW
+	local SINK_WINDOW = 0.15
 	local maxFloat, maxSpeed, maxInside = 0, 0, 0
 	local hits: { [string]: number } = {}
 	local path = {}
@@ -156,7 +158,18 @@ task.spawn(function()
 		if onLane and not laneFloat and t > 1 then
 			laneFloat = float
 		end
-		if t > 0.9 and not onLane then
+		-- a fall off a ledge is not floating: only count it while it is not on its way down (its speed over the last
+		-- SINK_WINDOW: the walk and this recorder both run on Heartbeat, so one frame can show no move at all)
+		table.insert(recent, { t, p.Y })
+		while recent[1][1] < t - SINK_WINDOW do
+			table.remove(recent, 1)
+		end
+		local span = t - recent[1][1]
+		local sinking = span > 0 and (p.Y - recent[1][2]) / span < -2
+		if sinking then
+			fallFrames += 1
+		end
+		if t > 0.9 and not onLane and not sinking then
 			maxFloat = math.max(maxFloat, float)
 			if float > 1 then
 				floatFrames += 1
@@ -222,6 +235,7 @@ task.spawn(function()
 		hits = { table.unpack(hitList, 1, math.min(#hitList, 6)) },
 		maxFloat = maxFloat,
 		floatFrames = floatFrames,
+		fallSeconds = fallFrames / 60,
 		laneFloat = laneFloat,
 		maxSpeed = maxSpeed,
 		path = path,

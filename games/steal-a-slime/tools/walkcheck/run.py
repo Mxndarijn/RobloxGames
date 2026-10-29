@@ -5,7 +5,7 @@
 Needs a Studio in play mode on the memory store (CLAUDE.md hard rule), reachable over StudioMCP (pc-watcher's
 mcp_client); --studio names exactly one connected Studio (its place name). Mute the playtest first.
 Each case in cases.json: the Server arms a recorder (arm.server.luau), the Client grabs a lane slime, carries it to the
-spot and sends the real "Drop" request (drop.client.luau), the camera takes one shot mid-walk (cam.client.luau), and
+spot and sends the real "Drop" request (drop.client.luau), Studio takes one screenshot mid-walk, and
 the recorder samples the slime every Heartbeat until it is back on the lane. Checks per case:
   inside   a solid part within 60% of the body's half size (walks through things)
   floats   more than 1 stud over the ground under it, off the lane, after the fall
@@ -250,21 +250,20 @@ def main():
                     st.luau(background(case, "drop.client.luau", job), "Client")
                     t = time.time()
                     dropped = {"state": "running"}
-                    while dropped.get("state") == "running" and time.time() - t < 300:
+                    while dropped.get("state") == "running" and time.time() - t < 600:
                         time.sleep(1)
                         dropped = st.luau(job_result(job), "Client")
                     if dropped.get("state") == "running":
-                        dropped = {"error": "client step took over 300 s"}
+                        dropped = {"error": "client step took over 600 s"}
                     if dropped.get("error"):
                         r = {"error": dropped["error"]}
                     else:
                         print("   dropped", dropped.get("species"), "size %.1f" % (dropped.get("size") or 0), flush=True)
                         if not a.no_shots:
-                            time.sleep(1.8)
-                            st.luau(script(dict(case, slime=dropped["slime"], spot=dropped["spot"]), "cam.client.luau"), "Client")
-                            time.sleep(0.4)
+                            # the player's own follow camera: a script-set camera is undone by Studio after each
+                            # execute_luau, and one left pointing away hides every prompt (no more grabs)
+                            time.sleep(1.5)
                             st.shot(os.path.join(a.out, case["id"] + ".jpg"))
-                            st.luau(script(dict(case, reset=True), "cam.client.luau"), "Client")
                         t = time.time()
                         while time.time() - t < case.get("seconds", 60) + 60:
                             r = st.luau(script(case, "collect.server.luau"), "Server")

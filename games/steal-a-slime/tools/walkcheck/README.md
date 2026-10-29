@@ -27,8 +27,12 @@ Mute the playtest first (root `CLAUDE.md`).
      writes are undone by the physics step.
    - Collisions are put back afterwards, or the character falls through the floor and the game's rescue moves it.
    - A newer run stops an older one that broke off (`_G.WalkCheckRun`).
-3. `cam.client.luau` tries to point the camera at the slime for one screenshot mid-walk. Studio resets the camera
-   after each script, so most shots show the default follow camera; the report's top view is the main evidence.
+   - Before each grab: `resetSave` (a carry that glides through our own plot deposits the slime, and a full plot
+     refuses grabs silently), the target prompt set to `AlwaysShow` (slime prompts are `OnePerButton`), and it waits
+     while a boss is out.
+3. Studio takes one screenshot mid-walk with the player's follow camera. A script-set camera does not work here:
+   Studio puts back the camera type a script changed when it ends, and a camera left pointing away hides every
+   prompt (the game only shows prompts on screen), so grabs fail without a word.
 4. The recorder samples the slime every Heartbeat until it has been on the lane for 1.5 s (or `seconds`, default 60);
    `collect.server.luau` returns the result plus the solid parts round the path.
 
@@ -45,7 +49,7 @@ the side away from the lane, `gap` studs out) or `lane = share, out = studs` (of
 | Check | Fails when |
 |---|---|
 | inside | a solid part is within 60% of the body's half size on more than 2% of frames |
-| floats | more than 10 frames over 1 stud above the ground under it, off the lane, after the fall |
+| floats | more than 10 frames over 1 stud above the ground under it, off the lane, after the drop, not counting frames where it is falling (down faster than 2 studs/s) |
 | back | it never reached the lane (within `ParadeLane.HALF_WIDTH`) and stayed |
 | detour | warn only: walked more than 3x the straight line to the nearest lane point |
 

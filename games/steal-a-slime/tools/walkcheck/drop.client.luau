@@ -16,6 +16,13 @@ local GLIDE_SPEED = 12
 _G.WalkCheckRun = (_G.WalkCheckRun or 0) + 1
 local run = _G.WalkCheckRun
 local humanoid = char:WaitForChild("Humanoid") :: Humanoid
+-- The player's follow camera: the game only shows prompts on screen, so a camera left pointing elsewhere (Studio
+-- restores the camera type a script set after it ends) means no grab. Set after a moment: this runs as a job.
+task.delay(0.2, function()
+	local cam = workspace.CurrentCamera
+	cam.CameraType = Enum.CameraType.Custom
+	cam.CameraSubject = humanoid
+end)
 hrp.Anchored = false
 humanoid.PlatformStand = true
 -- each part's own CanCollide, read once per character (a broken run may have left them off), put back on release
@@ -93,13 +100,15 @@ local spot, why = resolveSpot(CASE)
 if not spot then
 	return { error = why }
 end
--- Cash for any lane slime and no tutorial in the way: the admin menu's test-save cheats (memory store only).
-request:InvokeServer("Admin", "cashSet", nil, 1e15)
-request:InvokeServer("Admin", "skipTutorial")
 if lp:GetAttribute("Carrying") then
 	request:InvokeServer("Drop") -- left over from a case that broke off
 	task.wait(1)
 end
+-- The admin menu's test-save cheats (memory store only): an empty plot (a carry that glides through our own plot
+-- deposits the slime, and a full plot refuses every grab without a toast), cash for any lane slime, no tutorial.
+request:InvokeServer("Admin", "resetSave")
+request:InvokeServer("Admin", "cashSet", nil, 1e15)
+request:InvokeServer("Admin", "skipTutorial")
 
 local function grabbable(m: Instance): boolean
 	local species = tostring(m:GetAttribute("Species") or "")
@@ -116,6 +125,7 @@ local function grabbable(m: Instance): boolean
 		and not m:GetAttribute("Riding")
 		and not m:GetAttribute(Constants.BOSS_ATTRIBUTE)
 		and not m:GetAttribute(Constants.GRAB_REBIRTHS_ATTRIBUTE)
+		and species ~= "" -- eggs carry no species (and smash when dropped)
 		and not string.find(string.lower(species .. m.Name), "egg")
 		and (m:GetAttribute("Price") or 1e9) <= (if cash then cash.Value else 0)
 		and (m :: Model).PrimaryPart ~= nil
@@ -185,6 +195,9 @@ local function tryGrab(): (string?, string?, number?, string?)
 				held:InputHoldEnd()
 			end
 			held = prompt
+			-- slime prompts are OnePerButton: a neighbour's prompt can be the one shown, and a hold on a hidden
+			-- prompt does nothing. Show this one too (client side only).
+			prompt.Exclusivity = Enum.ProximityPromptExclusivity.AlwaysShow
 			prompt:InputHoldBegin()
 		end
 		task.wait(0.05)
@@ -199,6 +212,20 @@ local function tryGrab(): (string?, string?, number?, string?)
 		return nil, nil, nil, string.format("%s %s", tostring(species), if current() then "still there" else "gone")
 	end
 	return id, species, size, nil
+end
+
+-- Grabs are refused (silently) while a boss is out: wait for it to leave
+local function bossOut(): boolean
+	for _, m in CS:GetTagged("Slime") do
+		if m:GetAttribute(Constants.BOSS_ATTRIBUTE) then
+			return true
+		end
+	end
+	return false
+end
+local waited = os.clock()
+while bossOut() and os.clock() - waited < 300 do
+	hold(hrp.Position, 1)
 end
 
 local slimeId, species, size, failed
