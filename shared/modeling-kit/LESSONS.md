@@ -293,3 +293,17 @@ Format: `- [model/YYYY-MM-DD/bot] lesson` — one concrete, reusable sentence or
 ## Bat skins (2026-10-28: bat_skin_lollipop, _fish, _foam_finger, _golden)
 - [bat_skin_*/2026-10-28/claude] A skin that swaps the mesh on an existing held tool must keep that tool's frame exactly, or the shared Tool.Grip lands the hand somewhere else: same bbox height (ranch_bat 5.09), same grip height (1.2), bbox centred on the grip axis in X and Y. `models/_bat_skin.py ship_skin()` asserts all three before `finish()`; parts that only sit on one side (finger roll + thumb on the front of the foam hand) get the whole group shifted so the depth stays centred, and a lathe disc needs `phase` so a vertex lands on the top (22 segs without it ended at 5.079). Bevelled slab tips rise ~0.02: put them 0.02 below z = 0. Check them all in the hand at once: `tools/bat_in_hand.py --model <name>` (+append the renders).
 - [bat_skin_*/2026-10-28/claude] One oversized cue per skin at hand size: a 2.1-wide swirl disc (4-arm spiral `int(a/tau*4 + r*4.2) % 4`, 6 face rings; 4 rings read as a pinwheel), a fish flat in Y so its eye side faces front/back with the forked tail as the pommel, a raised "#1" of 7 unbevelled slabs per side (bevelled ones cost 44 tris each: 1308 -> 808), a gem in a bezel on both faces of a gold bat. Gold under `--look roblox` goes orange/brown below lows of ~(246,188,56); keep the gradient lows close to the base on every skin (fish, foam) or the shadow side goes brown-red. All 640-808 tris, 3-4 rounds.
+
+## Exclusive Shop cosmetics (hats, seasonal seats, stopper styles, jar themes), 2026-10-29
+
+- Wearables: judge a hat at its real size on a stand-in slime (`HAT_PREVIEW=1 ... --no-export --no-ref --name <name>_preview`); next to the avatar block it is too small to read.
+- Spiral stripes on a lathe: turn each ring by `TWIST * z` and colour by column (`(k // 2) % 2`); per-face paint stair-steps.
+- Ribbon loops (bows): sweep the path in XY with the width along Z, so the front view shows the ribbon's face, not a wire outline.
+- Polka dots: thin flat discs flush on the surface normal; squashed icospheres read as gems.
+- Butter yellow turns gold in the Roblox look: on a cosmetic that must not look like a rarity, use pink or cool white.
+- Faces / pictures on a smooth body: press a flat 2D outline onto it vertex by vertex (ray cast, thin slab); split long inner and outline edges first or the middle sinks. Build concave outlines (a pine) from overlapping convex pieces.
+- Pale blue-grey glass goes slate on the shadow side in the Roblox look; a saturated sky cyan holds up.
+- Matching a slot box: build close to size, then stretch each axis to the measured classic box; keep the stretch near 1 (flatten anything that sticks out in depth).
+- A curve under a round knob in the middle of a disc reads as a face; keep ropes low and taut.
+- A themed jar tower is read through its goo (moat, pools, lid rolls) far more than lid paint: change the goo hue first and compare all themes side by side. Theme details need about 1 stud to show at tower scale; side bumps on ribs widen the jar's box.
+- `from models._goo_jar import *` copies theme colours at import time: set `JAR_THEME` before the import. `_goo_jar_bounds.py` writes the game's `JarMeshes.luau` on every run.

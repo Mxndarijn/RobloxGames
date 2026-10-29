@@ -11,6 +11,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local Seasons = if script then require(script.Parent.Seasons) else require("./Seasons")
 local FountainTiers = if script then require(script.Parent.FountainTiers) else require("./FountainTiers")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
@@ -28,6 +29,8 @@ export type View = {
 	fraction: number, -- owned / total, 0..1
 	unlocked: boolean,
 	equipped: boolean,
+	exclusive: boolean?, -- sold in the Exclusive Shop, never earned
+	productKey: string?, -- an Exclusive skin's product ("Skin_<id>")
 }
 
 local PlotSkins = {}
@@ -80,7 +83,13 @@ function PlotSkins.needed(skin: Config.PlotSkin): number
 	return math.ceil(#PlotSkins.slimes(skin) * (skin.threshold or 1) - 1e-9)
 end
 
+-- An Exclusive skin is unlocked once bought (data.ownedStyles.plotSkin); the others by collecting their slimes.
 function PlotSkins.unlocked(data: Data, skin: Config.PlotSkin): boolean
+	if skin.exclusive then
+		local owned = (data :: any).ownedStyles
+		local list = if type(owned) == "table" then owned.plotSkin else nil
+		return type(list) == "table" and table.find(list, skin.id) ~= nil
+	end
 	return PlotSkins.owned(data, skin) >= PlotSkins.needed(skin)
 end
 
@@ -117,11 +126,15 @@ local function groupName(skin: Config.PlotSkin): string?
 	return if skin.species then skin.name else nil
 end
 
--- State.plotSkins: classic first, then Config order.
-function PlotSkins.view(data: Data): { View }
+-- State.plotSkins: classic first, then Config order. With `now`, a seasonal Exclusive skin the player doesn't own is
+-- left out while its season is closed (it can't be bought then).
+function PlotSkins.view(data: Data, now: number?): { View }
 	local equipped = PlotSkins.current(data)
 	local out: { View } = {}
 	for _, skin in Config.PLOT_SKINS do
+		if skin.season and now and not PlotSkins.unlocked(data, skin) and not Seasons.active(skin.season, now) then
+			continue
+		end
 		local total = #PlotSkins.slimes(skin)
 		local owned = PlotSkins.owned(data, skin)
 		table.insert(out, {
@@ -135,6 +148,8 @@ function PlotSkins.view(data: Data): { View }
 			fraction = if total > 0 then owned / total else 1,
 			unlocked = PlotSkins.unlocked(data, skin),
 			equipped = skin.id == equipped,
+			exclusive = if skin.exclusive then true else nil,
+			productKey = if skin.exclusive then `Skin_{skin.id}` else nil,
 		})
 	end
 	return out

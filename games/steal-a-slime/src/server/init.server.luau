@@ -107,6 +107,8 @@ safeCall("PlotThemeView.start", PlotThemeView.start) -- FEATURES.PlotSkins: each
 task.spawn(safeCall, "MeshSwap.publishSkinTemplates", MeshSwap.publishSkinTemplates) -- FEATURES.PlotSkins
 task.spawn(safeCall, "MeshSwap.publishHabitatTemplates", MeshSwap.publishHabitatTemplates) -- FEATURES.Habitats
 task.spawn(safeCall, "MeshSwap.publishPetSeatTemplates", MeshSwap.publishPetSeatTemplates) -- what follow pets ride
+task.spawn(safeCall, "MeshSwap.publishHatTemplates", MeshSwap.publishHatTemplates) -- Exclusive slime hats
+task.spawn(safeCall, "MemberChatTags.start", require(script.MemberChatTags).start) -- [VIP] / [CLUB] in the legacy chat
 task.spawn(safeCall, "MeshSwap.publishPvpMarkerTemplates", MeshSwap.publishPvpMarkerTemplates) -- FEATURES.PvP placed traps
 
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
@@ -304,6 +306,7 @@ local purchases = PurchaseService.service({
 	end,
 	now = now,
 	wait = task.wait,
+	ctx = ctx, -- read when a grant runs: the Weather Totem's requestWeather is set further down
 	changed = function()
 		local t = now()
 		refreshView(t)

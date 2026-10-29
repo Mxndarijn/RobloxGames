@@ -77,9 +77,13 @@ describe("plot skins: config", function()
 		for _, id in { "classic", "garden", "crystal", "starlight", "candy", "mushroom" } do
 			expect(ids[id]).toBe(true)
 		end
-		expect(#Config.PLOT_SKINS).toBe(6)
+		local earned = 0
+		for _, s in Config.PLOT_SKINS do
+			earned += if s.exclusive then 0 else 1
+		end
+		expect(earned).toBe(6) -- the rest are Exclusive Shop skins (contract/exclusive-shop.md §15), never earned
 		for i, s in Config.PLOT_SKINS do
-			if i > 1 then
+			if i > 1 and not s.exclusive then
 				expect((s.family ~= nil) ~= (s.species ~= nil)).toBe(true)
 				expect(s.threshold).toBe(0.75)
 				expect(size(s.id) >= 4).toBe(true)
@@ -345,8 +349,12 @@ describe("plot skins: visuals applied per plot", function()
 			end
 			expect(tinted).toBe(#PlotDecor.TRIM_PARTS) -- the lid is an invisible roof now; its look is the jar trim mesh
 			local mesh = slot:FindFirstChild(PlotDecor.SKIN_DECOR_NAME)
-			expect(mesh ~= nil and mesh:GetAttribute("Skin") == s.decor).toBe(true)
-			expect(slot.Transparency).toBe(1)
+			if s.decor then
+				expect(mesh ~= nil and mesh:GetAttribute("Skin") == s.decor).toBe(true)
+				expect(slot.Transparency).toBe(1)
+			else
+				expect(mesh).toBeNil() -- a skin without a decor prop leaves the mailbox as built
+			end
 			-- every other plot is untouched
 			expect(look(p2)).toEqual(classic2)
 		end

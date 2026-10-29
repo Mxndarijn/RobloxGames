@@ -104,6 +104,16 @@ local function cheat(
 		return TestHooks.grantProduct(world, userId, text, now)
 	elseif id == "grantCosmetics" then
 		return TestHooks.grantCosmetics(world, userId, now)
+	elseif id == "setPass" or id == "setSubscription" then
+		if not text then
+			return false, "pick an item"
+		end
+		if id == "setPass" then
+			return TestHooks.setPass(world, userId, text, amount == 1)
+		end
+		return TestHooks.setSubscription(world, userId, text, amount == 1, now)
+	elseif id == "setPaidRandom" then
+		return TestHooks.setPaidRandom(world, userId, amount == 1)
 	elseif id == "unlockSkins" then
 		return TestHooks.unlockSkins(world, userId)
 	elseif id == "unlockSeats" then
