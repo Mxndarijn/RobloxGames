@@ -1,6 +1,6 @@
 --!strict
 --[[
-	TutorialCard (client, contract/tutorial.md): the tutorial in the top banner stack, as notice cards like the steal
+	TutorialCard (client, contract/tutorial.md): the tutorial just above the item bar, as notice cards like the steal
 	cards (Widgets.noticeCard / noticeIcon).
 
 	* The step card: Gold ring (guidance), the step's icon, title and one hint line that names the current
@@ -9,9 +9,10 @@
 	* The done card: Good (mint) ring, "🎉 <what was done>" for DONE_SECONDS after a step is done; after the last
 	  step "Tutorial done" with a pointer to Goals. Their time is paused while a menu or popup hides them.
 
-	The cards sit under the steal cards in the stack (a higher LayoutOrder), so an alarm is never pushed down by
-	the tutorial. The whole stack hides while a menu is open (Hud); `setMenuOpen` also hides the cards for the
-	daily popup and the bag. The UI never advances the tutorial; it only shows State.
+	The cards stack upwards from just above the hotbar (Layout.screen `hotbar`), at the banner width and clear of
+	the nav. While the player carries a slime the bar is hidden and the carry card takes its place, so the cards
+	sit above the carry card instead. `setMenuOpen` hides them for an open menu, the daily popup and the bag.
+	The UI never advances the tutorial; it only shows State.
 ]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -32,6 +33,7 @@ TutorialCard.DONE_SECONDS = 2.5
 TutorialCard.FINISHED_SECONDS = 6
 TutorialCard.COUNTER_W = 44 -- the "3/8" column on the right
 TutorialCard.NARROW_W = 300 -- banner stacks narrower than this (design px) leave the "3/8" column out
+TutorialCard.GAP = 10 -- design px between the cards and the hotbar (or the carry card) under them
 
 export type TutorialCard = {
 	frame: Frame,
@@ -139,10 +141,21 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		LayoutOrder = order,
 		Visible = false,
 		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 0),
+		AnchorPoint = Vector2.new(0, 1),
+		Size = UDim2.fromOffset(Layout.BANNER_WIDTH, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
+		ZIndex = Layout.ZINDEX.Banners,
 		Parent = parent,
-	}, { Widgets.list(Enum.FillDirection.Vertical, N.stack, Enum.HorizontalAlignment.Center) })
+	}, {
+		-- Bottom-aligned: the step card sits on the hotbar line and the done card stacks above it.
+		create("UIListLayout", {
+			FillDirection = Enum.FillDirection.Vertical,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Bottom,
+			Padding = UDim.new(0, N.stack),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
 
 	local latest: any = nil
 	local shownId: string? = nil
@@ -153,6 +166,8 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 	local doneUntil = 0
 	local finishedUntil = 0
 	local skipped = false -- the player asked to skip: no "Tutorial done" card
+	local screen: Layout.Screen? = nil
+	local carrying = false -- the carry card has the hotbar's place
 
 	-- The cards are built the first time something shows, so a player past the tutorial carries none.
 	local parts: any = nil
@@ -234,6 +249,16 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		end
 	end
 
+	-- Bottom edge just above the hotbar, or above the carry card while carrying (the bar is hidden then).
+	local function place()
+		if not screen then
+			return
+		end
+		local under = if carrying then math.min(screen.carry.y, screen.hotbar.y) else screen.hotbar.y
+		frame.Size = UDim2.fromOffset(math.round(screen.banners.w), 0)
+		frame.Position = UDim2.fromOffset(math.round(screen.banners.x), math.round(under - TutorialCard.GAP))
+	end
+
 	local self = {} :: TutorialCard
 	self.frame = frame
 
@@ -255,6 +280,11 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 			skipped = false
 		end
 		wanted = id ~= nil
+		local nowCarrying = type(state) == "table" and state.carrying ~= nil
+		if nowCarrying ~= carrying then
+			carrying = nowCarrying
+			place()
+		end
 		draw()
 		refresh()
 	end
@@ -277,8 +307,10 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 
 	-- Phones' narrow banner stack (Layout.screen banners narrower than NARROW_W) drops the "3/8" column so the
 	-- title and hint keep their width.
-	function self.layout(screen: Layout.Screen)
-		narrow = screen.banners.w < TutorialCard.NARROW_W
+	function self.layout(s: Layout.Screen)
+		screen = s
+		narrow = s.banners.w < TutorialCard.NARROW_W
+		place()
 		refresh()
 	end
 

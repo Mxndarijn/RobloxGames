@@ -451,7 +451,7 @@ function LayoutAssert.navTexts(screen: Layout.Screen): { TextDesc }
 	return out
 end
 
--- The tutorial notice cards in the banner stack (TutorialCard): the step card (icon, title, hint, "3/8" column)
+-- The tutorial notice cards above the hotbar (TutorialCard): the step card (icon, title, hint, "3/8" column)
 -- and the mint done card, at the banner width.
 function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 	local out: { TextDesc } = {}
