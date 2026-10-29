@@ -79,6 +79,7 @@ export type Session = {
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch (State.egg, never saved)
 	home: boolean?, -- standing in their own HomeZone (the adapter sets it); warms their Mystery Eggs, runtime only
 	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
+	dexSeen: number?, -- SlimeDex species count at the last Milestones check (SpeciesFound analytics), runtime only
 	cashPadHinted: boolean?, -- FEATURES.CashPads: the "walk over the gold pads" hint went out this session, runtime only
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
 	offlineRate: number?, -- the offline rate the join payout used (Income.applyOffline), runtime only
@@ -146,7 +147,7 @@ export type StealRecord = {
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
 export type Event = {
-	type: "Notify" | "Escaped" | "Rain" | "Effect" | "Rare" | "Drained" | "Badge" | "PvpEvent", -- Drained: a lane slime left down the goo drain (FEATURES.Parade)
+	type: "Notify" | "Escaped" | "Rain" | "Effect" | "Rare" | "Drained" | "Badge" | "PvpEvent" | "Analytics", -- Drained: a lane slime left down the goo drain (FEATURES.Parade)
 	userId: number?, -- Notify / PvpEvent target; nil = everyone
 	text: string?,
 	kind: string?, -- "info" | "good" | "bad"
@@ -162,6 +163,23 @@ export type Event = {
 	badge: string?, -- Badge: Config.BADGES key just reached (userId = the player)
 	tier: number?, -- Rare: the drop's tier (workspace RareSpawn* attributes)
 	payload: { [string]: any }?, -- PvpEvent: the remote payload (CONTRACT.md §26.1)
+	track: Track?, -- Analytics: one AnalyticsService call for userId (server/GameAnalytics)
+}
+
+-- One analytics call queued by a system (World.track); server/GameAnalytics turns it into an AnalyticsService event.
+-- op: "onboarding" (name = step) | "startFunnel" / "funnelStep" (name = funnel, step) | "event" / "count"
+-- (name = event, value) | "source" / "spend" (name = transaction, value = amount, sku, balance)
+-- | "progression" (name = path, status, value = level, step = level name).
+export type Track = {
+	op: string,
+	name: string,
+	step: string?,
+	value: number?,
+	balance: number?,
+	sku: string?,
+	status: string?,
+	fields: { string }?,
+	batch: boolean?,
 }
 
 -- A spit attack's `burst` (Config.BOSS.MOVES): its puddle bursts into a ring `delay` s after it lands.
@@ -223,7 +241,11 @@ export type Lucky = {
 	told: boolean, -- the Notify went out
 }
 
+-- The admin menu (server/AdminService.setup): the place owner and whether this server is on a test save.
+export type AdminConfig = { creatorId: number?, cheats: boolean }
+
 export type World = {
+	admin: AdminConfig?, -- nil = no admin service: every Admin request is refused
 	sessions: { [number]: Session },
 	plots: { [number]: number }, -- plotIndex -> userId
 	plotCount: number,
@@ -378,11 +400,49 @@ function World.effect(world: World, effect: string, target: { userId: number?, s
 	})
 end
 
+-- Queues one analytics call for `userId` (server/GameAnalytics lists the names it accepts).
+function World.track(world: World, userId: number, track: Track)
+	World.emit(world, { type = "Analytics", userId = userId, track = track })
+end
+
+-- Coins in for analytics: `transaction` is the source ("Sale", "Income", ...), `sku` what it was for.
+function World.trackCash(
+	world: World,
+	session: Session,
+	flow: "source" | "spend",
+	transaction: string,
+	amount: number,
+	sku: string?,
+	fields: { string }?,
+	batch: boolean?
+)
+	if amount > 0 then
+		World.track(world, session.userId, {
+			op = flow,
+			name = transaction,
+			value = amount,
+			balance = session.data.cash,
+			sku = sku,
+			fields = fields,
+			batch = batch,
+		})
+	end
+end
+
 -- Advances the session's tutorial past `step` (TutorialProgress.complete).
 function World.tutorial(world: World, session: Session, step: string)
 	local changed, finished = TutorialProgress.complete(session.data, step)
 	if changed then
 		session.dirty = true
+		-- The onboarding funnel gets the last step finished (Roblox counts the skipped ones as done).
+		local after = session.data.tutorialStep
+		local last = if finished then #TutorialProgress.STEPS else after - 1
+		if last >= 1 then
+			World.track(world, session.userId, { op = "onboarding", name = TutorialProgress.STEPS[last] })
+		end
+		if finished then
+			World.track(world, session.userId, { op = "onboarding", name = "Done" })
+		end
 	end
 	if finished then
 		World.notify(world, session.userId, "Tutorial complete! You're a slime tycoon now.", "good", nil)

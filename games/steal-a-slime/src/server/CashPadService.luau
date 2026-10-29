@@ -49,6 +49,7 @@ function CashPadService.touch(
 	local paid = CashPads.collect(owner.data, pad)
 	if paid > 0 then
 		World.markDirty(owner)
+		World.trackCash(world, owner, "source", "Income", paid, nil, nil, true) -- batched: collects are frequent
 		World.effect(world, "Collect", { userId = userId })
 		-- The collector hears a soft coin, once per collect (a Notify only plays its sound; the text is unused).
 		World.notify(world, userId, "", "good", CashPadService.SOUND)

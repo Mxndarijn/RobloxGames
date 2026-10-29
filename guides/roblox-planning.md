@@ -28,7 +28,7 @@ Both come from `AnalyticsService` and show up in the **Creator Dashboard** (Anal
 
 Keep step numbers and names fixed once they ship. Renaming or renumbering a step breaks the comparison with older versions.
 
-Note: no game code logs funnel events yet (checked 2026-10-15). Adding them is the first roadmap item for each game. Until then, planning has no funnel data and must say so.
+Status: steal-a-slime logs onboarding, shop, economy, progression and custom events through the shared tracker (`shared/luau/src/analytics`); its event list and how to read it are in [games/steal-a-slime/docs/ANALYTICS.md](../games/steal-a-slime/docs/ANALYTICS.md). speed-escape logs none yet: until it does, planning for it has no funnel data and must say so. New games mount the same tracker from day one.
 
 ## Hard rule: server scripts only
 Funnel events are logged from **server scripts only**. Roblox drops them when sent from:

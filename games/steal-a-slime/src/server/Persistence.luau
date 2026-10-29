@@ -26,12 +26,15 @@ local SaveGate = require(script.Parent.SaveGate)
 local WeeklyEvents = require(ReplicatedStorage.Shared.WeeklyEvents)
 local World = require(script.Parent.World)
 
+-- The last board write of a player: its value and key prefix (nil after a failed remove of the other prefix).
+type BoardWrite = { value: number, prefix: string? }
+
 export type Persistence = {
 	data: DataService.DataService,
 	memoryMode: boolean,
 	boardStore: ((name: string) -> OrderedDataStore?)?, -- global boards by store name; nil in memory mode
 	unsaved: { [number]: boolean }, -- Studio fallback profiles: never written
-	ranked: { [number]: { [string]: number } }, -- the last value written per player, per board store name
+	ranked: { [number]: { [string]: BoardWrite } }, -- the last write per player, per board store name
 	gate: SaveGate.Gate, -- loads and saves in flight, closing
 }
 
@@ -148,25 +151,37 @@ function Persistence.canSave(p: Persistence, userId: number): boolean
 	return not p.unsaved[userId] and DataService.canSave(p.data, userId)
 end
 
--- Writes each global board value of `userId` that changed since its last write (yields).
+-- Writes each global board value of `userId` that changed since its last write, under the player's current key
+-- prefix (Leaderboard.prefixFor); the first write of a session and a prefix change also remove the key under the
+-- other prefix, so a hidden player never stays on a board under their real id (yields).
 local function rank(p: Persistence, userId: number, playerData: PlayerData.Data, saved: boolean, readOnly: boolean)
 	local open = p.boardStore
 	if not open then
 		return
 	end
 	local week = WeeklyEvents.weekIndex(os.time())
+	local prefix = Leaderboard.prefixFor(playerData)
 	local written = p.ranked[userId] or {}
 	p.ranked[userId] = written
 	for _, def in Leaderboards.BOARDS do
 		local name = Leaderboards.storeName(def, week)
 		local value = Leaderboard.storeValue(def.stat, playerData, week)
+		local last = written[name]
+		local moved = last ~= nil and last.prefix ~= prefix
 		local store = open(name)
-		if store and Leaderboard.shouldWrite(saved, readOnly, written[name], value) then
+		if
+			store and Leaderboard.shouldWrite(saved, readOnly, if last and not moved then last.value else nil, value)
+		then
+			local keys = Leaderboard.boardWrites(if last then last.prefix else nil, prefix, userId)
 			local ok = pcall(function()
-				store:SetAsync(DataService.key(userId), value)
+				store:SetAsync(keys.set, value)
 			end)
 			if ok then
-				written[name] = value
+				local removed = keys.remove == nil or pcall(function()
+					store:RemoveAsync(keys.remove)
+				end)
+				-- A failed remove leaves no prefix, so the next save writes and removes again.
+				written[name] = { value = value, prefix = if removed then prefix else nil }
 			end
 		end
 	end

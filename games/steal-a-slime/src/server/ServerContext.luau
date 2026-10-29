@@ -86,6 +86,16 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 			return WorldView.pointInHomeZone(Vector3.new(point.X, point.Y, point.Z), session.plotIndex)
 		end,
 		dropDown = WorldView.dropDown,
+		-- The admin menu's "Go to the hub": onto the hub SpawnLocation.
+		toHub = function(userId: number): boolean
+			local root = rootOf(userId)
+			local spot = WorldView.hubSpawn()
+			if not root or not spot then
+				return false
+			end
+			root.CFrame = spot
+			return true
+		end,
 		plotPointOf = WorldView.plotPoint,
 		sendKits = WorldView.sendKits,
 		-- Knockback gloves, Fun items and the Bat: the server only launches; the look is client FX from PvpEvent.

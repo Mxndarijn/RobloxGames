@@ -26,6 +26,7 @@ local SoundService = game:GetService("SoundService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local AdminCommands = require(Shared:WaitForChild("AdminCommands"))
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
@@ -34,6 +35,7 @@ local Genome = require(Shared:WaitForChild("Genome"))
 local GrabBlock = require(Shared:WaitForChild("GrabBlock"))
 local KitRequest = require(Shared:WaitForChild("KitRequest"))
 local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
+local PlayerSettings = require(Shared:WaitForChild("PlayerSettings"))
 local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local SlimeLooks = require(Shared:WaitForChild("SlimeLooks"))
@@ -42,6 +44,7 @@ local SpeciesDex = require(Shared:WaitForChild("SpeciesDex"))
 local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local Types = require(Shared:WaitForChild("Types"))
 
+local AdminMenu = require(script.AdminMenu)
 local DexJarView = require(script.DexJarView)
 local ExclusiveShopView = require(script.ExclusiveShopView)
 local Format = require(script.Format)
@@ -67,6 +70,7 @@ local PopupQueue = require(script.PopupQueue)
 local PurchasePrompt = require(script.PurchasePrompt)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
+local SettingsController = require(script.SettingsController)
 local SlimeInfoCard = require(script.SlimeInfoCard)
 local SlimeKeyCard = require(script.SlimeKeyCard)
 local SlimeKeys = require(script.SlimeKeys)
@@ -82,6 +86,7 @@ local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
 local WorldShopLogic = require(script.WorldShopLogic)
 local Panels = script.Panels
+local AdminPanel = require(Panels.Admin)
 local BossMeterPanel = require(Panels.BossMeter)
 local CarryPanel = require(Panels.Carry)
 local CodesPanel = require(Panels.Codes)
@@ -94,8 +99,8 @@ local HintOverlay = require(Panels.HintOverlay)
 local LeaderboardPanel = require(Panels.Leaderboard)
 local MergePanel = require(Panels.Merge)
 local RebirthPanel = require(Panels.Rebirth)
+local SettingsPanel = require(Panels.Settings)
 local SkinsPanel = require(Panels.Skins)
-local SoundPanel = require(Panels.Sound)
 local WelcomePanel = require(Panels.Welcome)
 local WorldShopPanel = require(Panels.WorldShop)
 
@@ -137,6 +142,10 @@ local gui = Widgets.create("ScreenGui", {
 -- open (syncTutorial below) Lib MenuMouse frees it so every button can be clicked.
 local menuMouse = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("MenuMouse")).new(gui)
 
+-- World labels tagged LabelFit (pixel tags, guides/roblox-world-labels.md) shrink on a phone and use their
+-- phone MaxDistance there. Runs for the whole session.
+require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFitView")).new()
+
 -- Phones: shrink the whole UI (Layout.uiScale; 1 on desktop). Set with the
 -- rest of the layout in applyLayout below.
 local uiScale = Widgets.create("UIScale", { Name = "ViewportScale", Parent = gui }) :: UIScale
@@ -158,6 +167,9 @@ ItemIconView.builders.mesh = ItemIconView.meshBuilder(MeshAssets, AssetService)
 -- B6 (Merijn, 2026-10-18): no top-right notifications. A Notify only plays its sound (the steal alarm, the
 -- cash ring ...); nothing is drawn.
 local function playNotifySound(sound: string?)
+	if sound == SoundController.ALARM and not PlayerSettings.on(player, "stealAlarm") then
+		return -- Settings: steal alarm off (the red flash still shows)
+	end
 	if sound and SoundController.play(sound) then
 		return
 	end
@@ -178,6 +190,9 @@ local soundController = if Config.FEATURES.Audio == true
 			local w = if Config.FEATURES.Weather then workspace:GetAttribute(Constants.WEATHER_ATTRIBUTE) else nil
 			return if type(w) == "string" then w else nil
 		end,
+		alarmOn = function(): boolean
+			return PlayerSettings.on(player, "stealAlarm")
+		end,
 	})
 	else nil
 -- Game sounds beyond the toasts (FEATURES.Audio): State cues (boss result, Dex, tutorial), world sounds from
@@ -186,7 +201,9 @@ local nextSoundCues: ((state: Types.State) -> { { name: string } })? = nil
 local worldAudioTick: ((now: number) -> ())? = nil
 local footstepsStep: ((dt: number?) -> ())? = nil
 if soundController then
-	require(script.ButtonClicks).start(gui, SoundController.play)
+	require(script.ButtonClicks).start(gui, SoundController.play, function(): boolean
+		return PlayerSettings.on(player, "buttonClicks")
+	end)
 	nextSoundCues = require(script.SoundCues).watcher(player.DisplayName)
 	local _stopWorldAudio, worldTick = require(script.WorldAudio).start()
 	worldAudioTick = worldTick
@@ -252,6 +269,16 @@ local function send(action: string, ...: any)
 	invoke(action, nil, ...)
 end
 
+-- The Settings menu values on LocalPlayer attributes: loaded from the first State, changes sent back.
+local settings = SettingsController.new({
+	player = player,
+	PlayerSettings = PlayerSettings,
+	send = send,
+	delay = function(seconds: number, fn: () -> ())
+		task.delay(seconds, fn)
+	end,
+})
+
 -- Species kit meshes come on demand: a preview missing its kit asks for it (RequestKits); wants of one frame go
 -- out together. Arrivals are watched below (watchKits), once the panels exist.
 local kitCache = KitCache.new({
@@ -309,6 +336,10 @@ local ctx: { [string]: any } = {
 	serverNow = serverNow,
 	playerName = playerName,
 	userId = player.UserId, -- the local player (their own row on the leaderboards)
+	-- The Settings menu: its values and rows, and the build it runs on (shown for bug reports).
+	settings = settings,
+	PlayerSettings = PlayerSettings,
+	placeVersion = game.PlaceVersion,
 	itemIcons = itemIcons,
 	buildSlime = if modelFactory then buildSlime else nil,
 	-- SlimeDex cards: species names / colours and the species mesh preview.
@@ -410,14 +441,10 @@ for _, key in { "Merge", "WorldShop", "ExclusiveShop" } do
 end
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
 table.insert(allPanels, { key = "Welcome", nav = nil, panel = WelcomePanel.new(gui, ctx) })
--- FEATURES.Audio: the Sound card (no nav button) opens from a speaker icon in the top-right slot.
-local soundPanel = if soundController then SoundPanel.new(gui, soundController) else nil
-if soundPanel then
-	table.insert(allPanels, { key = "Sound", nav = nil, panel = soundPanel })
-	for _, attr in { "AudioMuted", "AudioSfxVolume", "AudioMusicVolume" } do
-		player:GetAttributeChangedSignal(attr):Connect(soundPanel.refresh)
-	end
-end
+-- The Settings card (no nav button) opens from the gear in the top-right slot.
+local settingsPanel = SettingsPanel.new(gui, ctx)
+table.insert(allPanels, { key = "Settings", nav = nil, panel = settingsPanel })
+settings.onChanged(settingsPanel.refresh)
 
 local allKeys: { string } = {}
 for _, entry in allPanels do
@@ -442,7 +469,7 @@ type NavButton = {
 }
 
 local openKey: string? = nil
-local soundButton: any = nil -- FEATURES.Audio only
+local settingsButton: any = nil -- the gear in the top-right slot (made once setOpen exists)
 local navButtons: { [string]: NavButton } = {}
 local screen: Layout.Screen? = nil
 local applyLayout: () -> ()
@@ -650,7 +677,9 @@ end
 
 -- The tutorial card steps aside for an open menu card, the daily popup and the open bag panel.
 local function syncTutorial()
-	tutorial.setMenuOpen(not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
+	-- Settings: "Tutorial hints" off hides the card for good (the server still tracks the step).
+	local hintsOff = not PlayerSettings.on(player, "tutorialHints")
+	tutorial.setMenuOpen(hintsOff or not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
 	-- Visuals' edge arrows and the Your plot tag step aside while a menu, a popup or the bag covers the screen.
 	local menuOpen = openKey ~= nil or dailyPopup.isOpen() or inventory.panelOpen()
 	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, menuOpen)
@@ -702,8 +731,8 @@ local function syncMenus()
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
-	if soundButton then
-		soundButton.instance.Visible = visibleKey == nil
+	if settingsButton then
+		settingsButton.instance.Visible = visibleKey == nil
 	end
 	refreshHint()
 end
@@ -714,6 +743,14 @@ local function setOpen(key: string?)
 		entry.panel.frame.Visible = view.cards[entry.key]
 	end
 	syncMenus()
+end
+
+-- The daily reward popup on demand (the Goals row's "Open"): it shows over the world, so the menu closes first.
+function ctx.openDaily()
+	setOpen(nil)
+	if not dailyPopup.isOpen() then
+		dailyPopup.open()
+	end
 end
 
 -- The Exclusive shop on card `key` ("seat:ufo"; nil = Featured), `withDetails` with its odds open. Only while
@@ -730,27 +767,33 @@ for _, entry in allPanels do
 end
 inventory.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncTutorial)
 
--- Sound button (FEATURES.Audio): icon only, shown with no menu open; the open card has its own X.
-if soundPanel then
-	soundButton = Widgets.button(
-		{
-			Name = "SoundButton",
-			Text = Icons.SOUND_ON,
-			TextSize = 28,
-			Visible = false,
-		},
-		Theme.BgLight,
-		function()
-			setOpen("Sound")
-		end
-	)
-	soundButton.instance.Parent = gui
-	local function refreshIcon()
-		soundButton.setText(if soundController.settings().muted then Icons.SOUND_OFF else Icons.SOUND_ON)
+-- Settings button: the gear, icon only, shown with no menu open; the open card has its own X. A small mute badge
+-- on its corner says why the game is quiet.
+settingsButton = Widgets.button(
+	{
+		Name = "SettingsButton",
+		Text = Icons.SETTINGS,
+		TextSize = 28,
+		Visible = false,
+	},
+	Theme.BgLight,
+	function()
+		setOpen("Settings")
 	end
-	refreshIcon()
-	player:GetAttributeChangedSignal("AudioMuted"):Connect(refreshIcon)
+)
+settingsButton.instance.Parent = gui
+local muteBadge = Widgets.iconBadge({
+	Name = "MuteBadge",
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.92, 0.92),
+	Visible = false,
+	Parent = settingsButton.instance,
+}, Icons.SOUND_OFF, Theme.Bad, Layout.SETTINGS_BADGE)
+local function refreshMuteBadge()
+	muteBadge.Visible = PlayerSettings.on(player, "muted")
 end
+refreshMuteBadge()
+settings.onChanged(refreshMuteBadge)
 
 -- Reduced Motion: Roblox's own setting or the game's (the LocalPlayer attribute HabitatFx reads too).
 local function reducedMotion(): boolean
@@ -838,7 +881,13 @@ for _, entry in allPanels do
 		setOpen(nil)
 	end)
 end
-backdrop.Activated:Connect(function()
+Widgets.closeOnTapOutside(backdrop, function()
+	local cards = {}
+	for _, entry in allPanels do
+		table.insert(cards, entry.panel.frame)
+	end
+	return cards
+end, function()
 	setOpen(nil)
 end)
 
@@ -942,6 +991,22 @@ local slimeKeys = SlimeKeys.start({
 	},
 })
 
+-- Settings: "Hold to sell" off makes Sell a tap.
+local function applySellHold()
+	slimeKeys.setSellHold(if PlayerSettings.on(player, "holdToSell") then Config.HOLD_CONFIRM_SECONDS else 0)
+end
+applySellHold()
+settings.onChanged(function(id: string)
+	if id == "holdToSell" then
+		applySellHold()
+	elseif id == "tutorialHints" then
+		syncTutorial()
+		refreshHint()
+	elseif id == "numberStyle" and latest then
+		hud.update(latest)
+	end
+end)
+
 -- State.exclusiveShop: "Open locked door" / "Use lock break" on other players' locked doors.
 local lockBreakPrompt = LockBreakPrompt.start({
 	plots = workspace:WaitForChild(Constants.PLOTS_FOLDER),
@@ -996,11 +1061,10 @@ require(script.MemberTags).start({
 	attribute = Constants.MEMBER_ATTRIBUTE,
 	playerGui = player:WaitForChild("PlayerGui"),
 })
--- Other players' locked bases show how long the lock lasts over the lock button (seen through glass, not walls).
+-- Locked bases (your own too) show how long the lock lasts over the lock button (seen through glass, not walls).
 local lockTimerTag = LockTimerTag.start({
 	plots = workspace:WaitForChild("Plots"),
 	playerGui = player:WaitForChild("PlayerGui"),
-	me = player.UserId,
 	now = function()
 		return workspace:GetServerTimeNow()
 	end,
@@ -1126,7 +1190,9 @@ end
 local lastHint: Hint.View? = nil
 
 function refreshHint()
-	lastHint = if latest then Hint.fromState(latest, openKey, tutorial.finishedShowing()) else nil
+	lastHint = if latest and PlayerSettings.on(player, "tutorialHints")
+		then Hint.fromState(latest, openKey, tutorial.finishedShowing())
+		else nil
 	if lastHint == nil or screen == nil or not nav.Visible then
 		hintOverlay.set(nil)
 		return
@@ -1144,9 +1210,7 @@ function layoutCards()
 	end
 	for _, entry in allPanels do
 		local body = entry.panel.frame:FindFirstChild("Body")
-		local r = if entry.key == "Sound"
-			then (SoundPanel.place(s))
-			else Layout.panelFor(s, entry.key, Widgets.contentHeight(body or entry.panel.frame))
+		local r = Layout.panelFor(s, entry.key, Widgets.contentHeight(body or entry.panel.frame))
 		local frame = entry.panel.frame
 		frame.AnchorPoint = Vector2.zero
 		frame.Position = UDim2.fromOffset(r.x, r.y)
@@ -1181,10 +1245,8 @@ function applyLayout()
 	dailyPopup.layout(s, GuiService:GetGuiInset())
 	layoutNav(s)
 	syncMenus() -- the nav's phone / desktop visibility follows the new size
-	if soundButton then
-		soundButton.instance.Position = UDim2.fromOffset(s.sound.x, s.sound.y)
-		soundButton.instance.Size = UDim2.fromOffset(s.sound.w, s.sound.h)
-	end
+	settingsButton.instance.Position = UDim2.fromOffset(s.settings.x, s.settings.y)
+	settingsButton.instance.Size = UDim2.fromOffset(s.settings.w, s.settings.h)
 	local guiInset = GuiService:GetGuiInset()
 	local back = Layout.backdrop(s, guiInset.X, guiInset.Y)
 	backdrop.Position = UDim2.fromOffset(back.x, back.y)
@@ -1304,13 +1366,34 @@ function ctx.togglePanel(key: string)
 	setOpen(if openKey == key then nil else key)
 end
 
+-- The admin menu (contract/admin-menu.md): built the first State that names this player an admin, then a menu card
+-- like the others (F2 or "/admin" toggles it).
+ctx.AdminCommands = AdminCommands
+local updateAdminMenu = AdminMenu.start({
+	gui = gui,
+	ctx = ctx,
+	input = UserInputService,
+	chat = game:GetService("TextChatService"),
+	build = AdminPanel.new,
+	addPanel = function(key: string, panel: any)
+		table.insert(allPanels, { key = key, nav = nil, panel = panel })
+		table.insert(allKeys, key)
+		panelByKey[key] = panel
+		panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
+		layoutCards()
+	end,
+	toggle = function()
+		ctx.togglePanel(AdminMenu.PANEL_KEY)
+	end,
+})
+
 -- Queued popups (welcome-back card, then the daily popup) wait for the tutorial and for each other.
 function pumpPopups(state: Types.State)
 	local next = popups.update(state, openKey == "Welcome")
 	if next == "Welcome" then
 		setOpen("Welcome")
-	elseif next == "Daily" and not dailyPopup.isOpen() then
-		dailyPopup.open()
+	elseif next == "Daily" and not dailyPopup.isOpen() and PlayerSettings.on(player, "dailyPopup") then
+		dailyPopup.open() -- Settings: with the popup off the reward waits in Goals (and the Goals tile badge)
 	end
 end
 
@@ -1325,6 +1408,7 @@ local function render(realState: Types.State)
 		SoundController.setBoss(require(script.SoundCues).bossMusic(realState))
 	end
 	hud.update(state)
+	updateAdminMenu(state)
 	inventory.update(state)
 	slimeKeys.update(state)
 	lockBreakPrompt.update(state)
@@ -1409,55 +1493,13 @@ if isStudio then
 	end
 end
 
--- FEATURES.Audio: the saved Sound card values are applied once on join; later slider / mute changes
--- go back to the server after SETTINGS_SEND_DELAY (> the 0.5 s rate limit) without a new change.
-local SETTINGS_SEND_DELAY = 0.6
-local settingsLoaded = false
-local settingsSent = nil
-local settingsToken = 0
-local function currentSettings(): any
-	local s = soundController.settings()
-	return { musicVolume = s.music, sfxVolume = s.sfx, muted = s.muted }
-end
-local function sameSettings(a: any, b: any): boolean
-	return a ~= nil
-		and b ~= nil
-		and a.musicVolume == b.musicVolume
-		and a.sfxVolume == b.sfxVolume
-		and a.muted == b.muted
-end
-local function queueSettingsSend()
-	settingsToken += 1
-	local token = settingsToken
-	task.delay(SETTINGS_SEND_DELAY, function()
-		local now = currentSettings()
-		if token ~= settingsToken or sameSettings(now, settingsSent) then
-			return
-		end
-		settingsSent = now
-		send("SetAudioSettings", now.musicVolume, now.sfxVolume, now.muted)
-	end)
-end
-if soundController then
-	for _, attr in { "AudioMuted", "AudioSfxVolume", "AudioMusicVolume" } do
-		player:GetAttributeChangedSignal(attr):Connect(function()
-			if settingsLoaded then
-				queueSettingsSend()
-			end
-		end)
-	end
-end
-
 stateEvent.OnClientEvent:Connect(function(state: Types.State)
 	if type(state) ~= "table" then
 		return
 	end
-	if soundController and not settingsLoaded and type(state.settings) == "table" then
-		soundController.load(state.settings)
-		settingsSent = currentSettings()
-		task.defer(function()
-			settingsLoaded = true
-		end)
+	-- The saved Settings menu values, applied once on join.
+	if type(state.settings) == "table" then
+		settings.load(state.settings)
 	end
 	latest = state
 	grabBlock.refresh()
@@ -1559,7 +1601,8 @@ task.spawn(function()
 			guardedTick("hint", function()
 				hintOverlay.tick(
 					now,
-					(tutorial.shown() or tutorial.finishedShowing())
+					PlayerSettings.on(player, "tutorialHints")
+						and (tutorial.shown() or tutorial.finishedShowing())
 						and MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen())
 				)
 			end)

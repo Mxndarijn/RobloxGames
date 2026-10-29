@@ -17,6 +17,7 @@ local EggKind = if Shared then require(Shared.EggKind) else require("../shared/E
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -85,6 +86,7 @@ function StealService.steal(
 		stealsPaused = guard and guard.stealsPaused,
 	})
 	if not ok then
+		World.track(world, thief.userId, { op = "count", name = "StealBlocked", fields = { `Reason - {reason}` } })
 		return false, reason
 	end
 	thief.carry = {
@@ -100,6 +102,11 @@ function StealService.steal(
 	World.notify(world, owner.userId, `{thief.name} is stealing your slime!`, "bad", "Alarm")
 	World.notify(world, thief.userId, "Bring the slime to your plot!", "info", "Grab")
 	World.effect(world, "Steal", { slimeId = slimeId, userId = thief.userId })
+	World.track(world, thief.userId, {
+		op = "event",
+		name = "StealStarted",
+		fields = { GameAnalytics.tierField(slime.tier) },
+	})
 	return true, nil
 end
 
@@ -115,6 +122,7 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 	carrier.carry = nil
 	world.carriedBy[carry.slimeId] = nil
 	World.markDirty(carrier)
+	World.track(world, carrier.userId, { op = "event", name = "StealFailed", fields = { `Reason - {reason}` } })
 
 	local owner = if carry.ownerUserId then World.session(world, carry.ownerUserId) else nil
 	local _, stillOwned = World.ownerOf(world, carry.slimeId)

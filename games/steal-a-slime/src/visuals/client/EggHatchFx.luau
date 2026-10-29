@@ -21,11 +21,13 @@
 ]]
 
 local CollectionService = game:GetService("CollectionService")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local EffectPrefs = require(ReplicatedStorage.Visuals.EffectPrefs)
 local EggKind = require(ReplicatedStorage.Shared.EggKind)
 local EggModel = require(ReplicatedStorage.Visuals.EggModel)
 local LocalCopy = require(script.Parent.LocalCopy)
@@ -638,6 +640,9 @@ function EggHatchFx.start(): Controller
 			if os.clock() - b.at > 30 then
 				burstDone[id] = nil
 			end
+		end
+		if zoom > 0 and not EffectPrefs.cameraMoves(player, GuiService) then
+			zoom = 0 -- reduced motion or Camera shake off: the camera keeps its FOV
 		end
 		if camera then
 			if zoom > 0 then

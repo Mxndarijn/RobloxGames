@@ -117,6 +117,7 @@ function PurchaseService.service(options: Options): Service
 		local mine = pending[userId] or {}
 		pending[userId] = mine
 		local data = session.data
+		local cashBefore = data.cash
 		local decision = ReceiptLedger.process({
 			list = data.receipts,
 			id = purchaseId,
@@ -130,6 +131,16 @@ function PurchaseService.service(options: Options): Service
 				return ok and written == true
 			end,
 		})
+		if decision == "Granted" then
+			local product = Purchases.product(productKey) :: any
+			World.track(world, userId, {
+				op = "event",
+				name = "RobuxPurchase",
+				value = product.robux,
+				fields = { `Product - {productKey}`, `Kind - {product.grant.kind}` },
+			})
+			World.trackCash(world, session, "source", "Robux", data.cash - cashBefore, productKey)
+		end
 		changed()
 		return if decision == "Granted" then "PurchaseGranted" else "NotProcessedYet"
 	end
@@ -240,6 +251,7 @@ function PurchaseService.service(options: Options): Service
 		local key = Purchases.keyForPassId(passId)
 		if purchased and key and self.setPass(userId, key, true) then
 			World.notify(world, userId, "Game Pass unlocked. Thank you!", "good", "Gift")
+			World.track(world, userId, { op = "event", name = "GamePassBought", fields = { `Pass - {key}` } })
 			changed()
 		end
 	end

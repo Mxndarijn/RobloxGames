@@ -27,6 +27,7 @@ Validate.ACTIONS = table.freeze({
 	BuyPad = 0.5,
 	Daily = 1,
 	SkipTutorial = 1,
+	ReplayTutorial = 2,
 	ClaimQuest = 0.3,
 	BuySpeedCoil = 0.5,
 	BuyUpgrade = 0.5,
@@ -37,7 +38,7 @@ Validate.ACTIONS = table.freeze({
 	EquipPetSeat = 0.5,
 	BuyConsumable = 0.5,
 	UseConsumable = 0.5,
-	SetAudioSettings = 0.5,
+	SetSettings = 0.5,
 	BuyPvpItem = 0.5,
 	EquipPvpItem = 0.5,
 	UsePvpItem = 0.2,
@@ -56,6 +57,7 @@ Validate.ACTIONS = table.freeze({
 	SendGift = 0.5,
 	SetHotbar = 0.3,
 	RequestKits = 0.25,
+	Admin = 0.25,
 })
 
 function Validate.slimeId(value: any): string?

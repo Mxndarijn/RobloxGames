@@ -10,7 +10,8 @@
 	    it, so the burst follows the part.
 	  * target is a Vector3 / CFrame: an invisible, anchored, non-colliding
 	    Part "Effect_<kind>" goes into workspace.
-	On the client the emitters fire once with :Emit(count). On the server
+	On the client the emitters fire once with :Emit(count), fewer on "Goo
+	effects: Low" (EffectPrefs.count). On the server
 	:Emit doesn't replicate, so the emitters run at count / BURST_TIME for
 	BURST_TIME seconds instead. Either way the holder is handed to Debris and
 	cleans itself up. Unknown kinds return nil (never error).
@@ -43,6 +44,8 @@ export type EmitterPreset = {
 }
 
 export type LightPreset = { color: { number }, brightness: number, range: number }
+
+local EffectPrefs = if script then require(script.Parent.EffectPrefs) else require("./EffectPrefs")
 
 local Effects = {}
 
@@ -425,6 +428,7 @@ function Effects.play(kind: string, target: Vector3 | CFrame | BasePart): Instan
 		return nil
 	end
 	local isClient = game:GetService("RunService"):IsClient()
+	local low = isClient and EffectPrefs.isLow(game:GetService("Players").LocalPlayer)
 	local longest = 0
 	local emitters = {}
 	for _, name in burst.emitters do
@@ -435,7 +439,7 @@ function Effects.play(kind: string, target: Vector3 | CFrame | BasePart): Instan
 		if isClient then
 			e.Rate = 0
 			e.Parent = holder
-			e:Emit(count)
+			e:Emit(EffectPrefs.count(count, low))
 		else
 			e.Rate = count / Effects.BURST_TIME
 			e.Parent = holder

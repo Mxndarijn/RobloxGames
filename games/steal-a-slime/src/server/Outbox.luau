@@ -4,7 +4,7 @@
 
 	Plays what the systems queued in world.outbox (World.drain), in order: Effect bursts, the slap-hit stamp
 	(FEATURES.StealAlerts), the goo-drain splash, the rare-drop workspace attributes (CONTRACT.md §8.4), badge
-	grants, Notify toasts and PvpEvents (CONTRACT.md §26.1). Every engine call comes in through `Deps`, so the
+	grants, Notify toasts, PvpEvents (CONTRACT.md §26.1) and Analytics calls (GameAnalytics). Every engine call comes in through `Deps`, so the
 	routing runs under Lune with recorders. A handler that errors is logged through `safeCall` and the rest of
 	the events still go out.
 ]]
@@ -32,6 +32,7 @@ export type Deps = {
 	setWorldAttribute: (name: string, value: any) -> (), -- workspace:SetAttribute
 	safeCall: SafeCall.Call,
 	spawn: (fn: (...any) -> (), ...any) -> (), -- task.spawn
+	track: ((player: any, track: World.Track) -> ())?, -- GameAnalytics.play for the player; nil = analytics off
 }
 
 local Outbox = {}
@@ -72,6 +73,14 @@ local function play(event: World.Event, deps: Deps)
 	elseif kind == "Notify" then
 		if event.text then
 			fireTo(deps.notify, deps, event.userId, event.text, event.kind or "info", event.sound, event.itemId)
+		end
+	elseif kind == "Analytics" then
+		local track = deps.track
+		if track and event.track and event.userId then
+			local player = deps.playerOf(event.userId)
+			if player then
+				track(player, event.track)
+			end
 		end
 	elseif kind == "PvpEvent" then
 		local payload = event.payload

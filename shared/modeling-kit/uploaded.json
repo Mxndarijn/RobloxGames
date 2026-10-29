@@ -5464,15 +5464,15 @@
   "phoenix_top_earners_board": {
     "assetId": "126155085567089",
     "assetType": "Model",
-    "meshId": "rbxassetid://98390738410954",
+    "meshId": "rbxassetid://77180258500694",
     "meshSize": [
       21.103,
       19.934,
       4.097
     ],
-    "sha256": "4c956e3094afe337",
-    "uploadedAt": "2026-10-15T21:29:51Z",
-    "versions": 1
+    "sha256": "934590de21d94c2f",
+    "uploadedAt": "2026-10-29T10:29:40Z",
+    "versions": 2
   },
   "plot_skin_beach": {
     "assetId": "83588268067966",

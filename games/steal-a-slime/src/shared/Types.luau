@@ -203,6 +203,9 @@ export type StatsView = {
 }
 
 -- Payload of the `State` RemoteEvent: always a full snapshot.
+-- The admin menu (contract/admin-menu.md §4): only players who get the menu receive it.
+export type AdminView = { cheats: boolean }
+
 export type State = {
 	serverTime: number,
 	plotIndex: number, -- 1..8, workspace.Plots.Plot_<plotIndex>
@@ -255,7 +258,7 @@ export type State = {
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
 	featuredSecret: FeaturedSecretView?, -- this week's event Secret in the Secret pool
 	petPerk: PetPerkView?, -- Perks.petPassive; nil without a favourite
-	settings: { musicVolume: number, sfxVolume: number, muted: boolean }?, -- FEATURES.Audio: saved Sound card values (nil when off)
+	settings: { [string]: boolean | number | string }?, -- Settings menu values (PlayerSettings.clean)
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
 	plotBase: string?, -- FEATURES.BaseShapes: equipped base id (nil when off)
@@ -271,6 +274,7 @@ export type State = {
 	boards: { [string]: number }, -- my own value on each global board, by Leaderboards stat (CONTRACT.md §5.1)
 	boardRanks: { [string]: number }, -- my rank on each board from the last refresh; -n = deeper than #n; absent = not ranked yet
 	vat: VatView, -- the plot's merge vat (VatState, CONTRACT.md §21)
+	admin: AdminView?, -- the admin menu; nil = no menu for this player (contract/admin-menu.md)
 	exclusiveShop: ExclusiveShopView?, -- contract/exclusive-shop.md §5 (nil until the first State)
 }
 
@@ -308,7 +312,8 @@ export type VatView = {
 	seconds: number?, -- how long a brew of `tier` takes now (Quick Brew applied); nil while empty
 }
 
-export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }
+-- `hidden`: the player turned "Show me on leaderboards" off; userId is then 0 and name PlayerSettings.HIDDEN_NAME.
+export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number, hidden: boolean? }
 
 -- Which board a payload is for (Leaderboards.BOARDS).
 export type LeaderboardStat = "TotalEarned" | "WeeklyEarned" | "Steals" | "Dex" | "Merges"

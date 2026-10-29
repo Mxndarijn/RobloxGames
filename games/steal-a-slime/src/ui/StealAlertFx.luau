@@ -22,9 +22,13 @@
 
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
+
+local EffectPrefs = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("EffectPrefs"))
+local PlayerSettings = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PlayerSettings"))
 
 local Layout = require(script.Parent.Layout)
 local SoundController = require(script.Parent.SoundController)
@@ -132,7 +136,11 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		return isStudio and gui:GetAttribute("PcwStealAlert") == true
 	end
 
+	-- Silent with the Steal alarm setting off (the flash and the arrow still show).
 	local function playAlarm()
+		if not PlayerSettings.on(Players.LocalPlayer, "stealAlarm") then
+			return
+		end
 		if SoundController.play("Alarm") then
 			return
 		end
@@ -158,6 +166,8 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			Adornee = rootPart,
 			AlwaysOnTop = true,
 			Size = UDim2.fromOffset(110, 56),
+			MaxDistance = 400, -- studs: find the thief on your base from anywhere near it
+			LightInfluence = 0,
 			StudsOffset = Vector3.new(0, 4.5, 0),
 			Parent = character,
 		}, {
@@ -261,7 +271,12 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	end
 
 	-- Hit effect: white flash on the character, a "BONK!" pop and a small burst.
+	-- Skipped on someone else with "Other players' effects" off.
 	local function slapFx(player: Player)
+		local me = Players.LocalPlayer
+		if player ~= me and not EffectPrefs.showOthers(me) then
+			return
+		end
 		local character = player.Character
 		local rootPart = character and character:FindFirstChild("HumanoidRootPart")
 		if not character or not rootPart or not rootPart:IsA("BasePart") then
@@ -295,6 +310,8 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			Adornee = rootPart,
 			AlwaysOnTop = true,
 			Size = UDim2.fromOffset(120, 50),
+			MaxDistance = 120, -- studs: a short pop, noise farther away
+			LightInfluence = 0,
 			StudsOffset = Vector3.new(0, 3, 0),
 			Parent = character,
 		}, { label })

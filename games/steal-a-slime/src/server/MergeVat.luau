@@ -19,6 +19,7 @@ local MergeRecipes = if Shared then require(Shared.MergeRecipes) else require(".
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -94,6 +95,14 @@ function MergeVat.collect(world: World, session: Session, now: number): (boolean
 	World.notify(world, session.userId, text, "good", if recipe then "Rare" else "Merge")
 	World.effect(world, "Merge", { plotIndex = session.plotIndex, userId = session.userId })
 	World.tutorial(world, session, "Merge")
+	World.track(
+		world,
+		session.userId,
+		{ op = "count", name = "Merged", fields = { GameAnalytics.tierField(child.tier) } }
+	)
+	if recipe and not found[recipe.id] then
+		World.track(world, session.userId, { op = "event", name = "RecipeFound", fields = { `Recipe - {recipe.id}` } })
+	end
 	return true, nil
 end
 

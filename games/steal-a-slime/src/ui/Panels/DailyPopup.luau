@@ -311,8 +311,10 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		wasAvailable = available
 	end
 
-	backdrop.Activated:Connect(function()
-		self.close() -- click outside the card
+	Widgets.closeOnTapOutside(backdrop, function()
+		return { card }
+	end, function()
+		self.close()
 	end)
 
 	return self

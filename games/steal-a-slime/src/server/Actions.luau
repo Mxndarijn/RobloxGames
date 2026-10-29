@@ -16,8 +16,8 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
-local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local PlayerSettings = if Shared then require(Shared.PlayerSettings) else require("../shared/PlayerSettings")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local HotbarOrder = if Shared then require(Shared.HotbarOrder) else require("../shared/HotbarOrder")
@@ -37,6 +37,7 @@ local Types = if Shared then require(Shared.Types) else require("../shared/Types
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local AdminService = if script then require(script.Parent.AdminService) else require("./AdminService")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local PlotPadGuard = if script then require(script.Parent.PlotPadGuard) else require("./PlotPadGuard")
 local ShopGuard = if script then require(script.Parent.ShopGuard) else require("./ShopGuard")
@@ -45,6 +46,7 @@ local MergeVat = if script then require(script.Parent.MergeVat) else require("./
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
+local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local Purchases = if script then require(script.Parent.Purchases) else require("./Purchases")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
@@ -106,6 +108,9 @@ export type Context = {
 	-- Writes another player's session data now (the session-locked Persistence save; yields), true = written: SendGift
 	-- saves the gift's receiver before it counts. nil = can't save: the gift stays unsent.
 	saveUser: ((userId: number, data: any) -> boolean)?,
+	-- The admin menu (AdminService.Context): the live admin events service and a move onto the hub spawn.
+	adminEvents: any?,
+	toHub: ((userId: number) -> boolean)?,
 }
 
 local Actions = {}
@@ -219,6 +224,12 @@ function Actions.parseArgs(action: string, raw: { any }): ({ any }?, string?)
 				return nil, "bad argument"
 			end
 			out[i] = value
+		elseif kind == "settings" then
+			local changes = PlayerSettings.parse(value)
+			if not changes then
+				return nil, "bad argument"
+			end
+			out[i] = changes
 		elseif kind == "kits" then
 			local kits = KitRequest.parse(value)
 			if not kits then
@@ -263,10 +274,16 @@ local function sell(world: World, session: Session, id: string): Result
 	if VatState.isLocked(session.data, id) then
 		return fail("That slime is brewing in the vat")
 	end
+	local slime = PlayerData.findSlime(session.data, id)
 	local ok, value = PlayerData.sell(session.data, id)
 	if not ok then
 		return fail(value :: string)
 	end
+	World.track(world, session.userId, {
+		op = "event",
+		name = "SlimeSold",
+		fields = { GameAnalytics.tierField(slime and slime.tier) },
+	})
 	World.notify(world, session.userId, `Sold for ${Economy.formatNumber(value :: number)}`, "good", "Cash", "Cash")
 	return OK
 end
@@ -390,11 +407,9 @@ local function equipPetSeat(world: World, session: Session, id: string): Result
 	return OK
 end
 
-local function setAudioSettings(session: Session, music: number, sfx: number, muted: boolean, ctx: Context): Result
-	if not feature(ctx, "Audio") then
-		return fail("audio settings are off")
-	end
-	session.data.settings = AudioSettings.clean({ musicVolume = music, sfxVolume = sfx, muted = muted })
+-- Settings menu values (PlayerSettings): `changes` is already parsed (known ids, valid values only).
+local function setSettings(session: Session, changes: PlayerSettings.Values): Result
+	session.data.settings = PlayerSettings.apply(session.data.settings, changes)
 	return OK
 end
 
@@ -473,7 +488,7 @@ function Actions.shopTick(session: Session, ctx: Context)
 	end
 end
 
-local function openShop(session: Session, shopId: string, ctx: Context): Result
+local function openShop(world: World, session: Session, shopId: string, ctx: Context): Result
 	local code = ShopGuard.check({
 		shopId = shopId,
 		openShop = session.openShop,
@@ -484,6 +499,7 @@ local function openShop(session: Session, shopId: string, ctx: Context): Result
 	end
 	session.openShop = shopId
 	shopEvent(ctx, session.userId, { kind = "Open", shopId = shopId })
+	World.track(world, session.userId, { op = "startFunnel", name = "Shop", fields = { `Shop - {shopId}` } })
 	return OK
 end
 
@@ -494,7 +510,7 @@ function Actions.openFromPrompt(world: World, userId: number, shopId: string, ct
 	if not session then
 		return fail("still loading")
 	end
-	return openShop(session, shopId, ctx)
+	return openShop(world, session, shopId, ctx)
 end
 
 local function closeShopAction(session: Session, ctx: Context): Result
@@ -542,11 +558,19 @@ local function shopBuy(
 	if row.argIsItem then
 		args = { itemId, arg }
 	end
+	World.track(world, userId, { op = "funnelStep", name = "Shop", step = "Tried", fields = { `Item - {itemId}` } })
 	local cashBefore = session.data.cash
 	local res = dispatch(world, session, row.action, args, now, ctx)
 	if not res.ok then
-		return denied(ctx, userId, shopId, itemId, ShopGuard.classify(res.message), res.message)
+		local reason = ShopGuard.classify(res.message)
+		World.track(world, userId, {
+			op = "count",
+			name = "ShopDenied",
+			fields = { `Shop - {shopId}`, `Reason - {reason}`, `Item - {itemId}` },
+		})
+		return denied(ctx, userId, shopId, itemId, reason, res.message)
 	end
+	World.track(world, userId, { op = "funnelStep", name = "Shop", step = "Bought", fields = { `Item - {itemId}` } })
 	shopEvent(ctx, userId, {
 		kind = "Purchased",
 		shopId = shopId,
@@ -601,11 +625,15 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		end
 		return OK
 	elseif action == "OpenShop" then
-		return openShop(session, args[1], ctx)
+		return openShop(world, session, args[1], ctx)
 	elseif action == "CloseShop" then
 		return closeShopAction(session, ctx)
 	elseif action == "ShopBuy" then
 		return shopBuy(world, session, args[1], args[2], args[3], now, ctx)
+	elseif action == "Admin" then
+		-- The menu shows the line on success too.
+		local ok, message = AdminService.run(world, session, args[1], args[2], args[3], now, ctx :: any)
+		return { ok = ok, message = if ok then message else message or "failed" }
 	end
 	local blocked = strictGate(session, action, ctx)
 	if blocked then
@@ -642,6 +670,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return buyPad(world, session)
 	elseif action == "SkipTutorial" then
 		return result(TutorialService.skip(world, session))
+	elseif action == "ReplayTutorial" then
+		return result(TutorialService.restart(world, session))
 	elseif action == "Daily" then
 		return daily(world, session, now)
 	elseif action == "ClaimQuest" then
@@ -658,8 +688,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return equipPlotBase(world, session, args[1], ctx)
 	elseif action == "EquipPetSeat" then
 		return equipPetSeat(world, session, args[1])
-	elseif action == "SetAudioSettings" then
-		return setAudioSettings(session, args[1], args[2], args[3], ctx)
+	elseif action == "SetSettings" then
+		return setSettings(session, args[1])
 	elseif action == "BuyConsumable" then
 		return shopTutorial(world, session, buyConsumable(world, session, args[1], args[2], now, ctx))
 	elseif action == "UseConsumable" then
@@ -741,10 +771,12 @@ function Actions.handle(
 	if not allowed then
 		return fail("too fast"), false
 	end
+	local cashBefore = session.data.cash
 	local ok, res = pcall(dispatch, world, session, action, args, now, ctx)
 	if not ok then
 		return fail("server error"), true
 	end
+	GameAnalytics.afterAction(world, session, action, args, cashBefore, res.ok)
 	if QUIET[action] then
 		return res, false
 	end

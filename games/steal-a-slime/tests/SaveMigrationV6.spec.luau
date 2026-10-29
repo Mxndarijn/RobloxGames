@@ -1,16 +1,11 @@
 --!strict
 -- Save v5 -> v6: plotSkin / stealLog / settings are versioned and normalised (SaveData.migrateV5),
--- plus the SetAudioSettings Request. Written with ctx overrides so it runs in both flag matrices.
-local Actions = require("../src/server/Actions")
-local AudioSettings = require("../src/shared/AudioSettings")
+-- The Settings menu request lives in PlayerSettings.spec.
 local Config = require("../src/shared/Config")
 local PlayerData = require("../src/shared/PlayerData")
-local Remotes = require("../src/shared/Remotes")
 local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
-local Snapshot = require("../src/server/Snapshot")
 local TestRunner = require("./TestRunner")
-local Validate = require("../src/shared/Validate")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
@@ -126,89 +121,5 @@ describe("save v6: round trip and flags", function()
 		expect(again.settings.sfxVolume).toBe(0.6)
 		expect(again.settings.muted).toBe(true)
 		expect(#again.stealLog).toBe(1)
-	end)
-end)
-
-describe("save v6: SetAudioSettings", function()
-	local function ctx(audio: boolean): Actions.Context
-		return {
-			distanceBetween = function()
-				return 2
-			end,
-			positionOf = function()
-				return nil
-			end,
-			features = { Audio = audio },
-		}
-	end
-	local function send(world: any, userId: number, args: { any }, c: Actions.Context, now: number?)
-		return Actions.handle(world, userId, "SetAudioSettings", args, now or T0 + 100, c)
-	end
-
-	it("is declared with a rate limit", function()
-		expect(#Remotes.ACTIONS.SetAudioSettings.args).toBe(3)
-		expect(Validate.ACTIONS.SetAudioSettings).toBe(0.5)
-	end)
-	it("stores clamped values with the flag on and State carries them", function()
-		local world = ServerFixtures.world()
-		local session = ServerFixtures.join(world, 1, {}, 0)
-		local res = send(world, 1, { 0.25, 7, true }, ctx(true))
-		expect(res.ok).toBe(true)
-		expect(session.data.settings.musicVolume).toBe(0.25)
-		expect(session.data.settings.sfxVolume).toBe(1)
-		expect(session.data.settings.muted).toBe(true)
-		send(world, 1, { -4, 0.456, false }, ctx(true), T0 + 200)
-		expect(session.data.settings.musicVolume).toBe(0)
-		expect(session.data.settings.sfxVolume).toBe(0.46)
-		local state = Snapshot.build(world, session, T0)
-		if Config.FEATURES.Audio then
-			expect(state.settings ~= nil and state.settings.sfxVolume == 0.46).toBe(true)
-		else
-			expect(state.settings).toBeNil()
-		end
-	end)
-	it("is refused with the flag off and changes nothing", function()
-		local world = ServerFixtures.world()
-		local session = ServerFixtures.join(world, 1, {}, 0)
-		local res = send(world, 1, { 0, 0, true }, ctx(false))
-		expect(res.ok).toBe(false)
-		expect(res.message).toBe("audio settings are off")
-		expect(session.data.settings.muted).toBe(false)
-		expect(session.data.settings.sfxVolume).toBe(Config.AUDIO.DEFAULT_SFX_VOLUME)
-	end)
-	it("rejects wrong types and non-finite numbers", function()
-		local world = ServerFixtures.world()
-		local session = ServerFixtures.join(world, 1, {}, 0)
-		local bad = {
-			{ "1", 1, true },
-			{ 1, nil, true },
-			{ 1, 1, "true" },
-			{ 1, 1, 1 },
-			{ 0 / 0, 1, true },
-			{ 1, math.huge, true },
-			{},
-		}
-		for i, args in bad do
-			local res = send(world, 1, args, ctx(true), T0 + 100 + i)
-			expect(res.ok).toBe(false)
-			expect(res.message).toBe("bad argument")
-		end
-		expect(session.data.settings.muted).toBe(false)
-	end)
-	it("is rate limited", function()
-		local world = ServerFixtures.world()
-		local session = ServerFixtures.join(world, 1, {}, 0)
-		expect(send(world, 1, { 0.1, 0.1, false }, ctx(true), T0 + 100).ok).toBe(true)
-		local res = send(world, 1, { 0.9, 0.9, false }, ctx(true), T0 + 100.2)
-		expect(res.ok).toBe(false)
-		expect(res.message).toBe("too fast")
-		expect(session.data.settings.musicVolume).toBe(0.1)
-		expect(send(world, 1, { 0.9, 0.9, false }, ctx(true), T0 + 100.7).ok).toBe(true)
-		expect(session.data.settings.musicVolume).toBe(0.9)
-	end)
-	it("AudioSettings.volume rounds to 0.01 and defaults non-numbers", function()
-		expect(AudioSettings.volume(0.123, 0.5)).toBe(0.12)
-		expect(AudioSettings.volume("x", 0.5)).toBe(0.5)
-		expect(AudioSettings.volume(2, 0.5)).toBe(1)
 	end)
 end)

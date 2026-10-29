@@ -10,7 +10,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
-local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
+local PlayerSettings = if Shared then require(Shared.PlayerSettings) else require("../shared/PlayerSettings")
 local BossBadges = if Shared then require(Shared.BossBadges) else require("../shared/BossBadges")
 local CashPads = if Shared then require(Shared.CashPads) else require("../shared/CashPads")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
@@ -40,6 +40,7 @@ local Types = if Shared then require(Shared.Types) else require("../shared/Types
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
+local AdminService = if script then require(script.Parent.AdminService) else require("./AdminService")
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local DexSources = if script then require(script.Parent.DexSources) else require("./DexSources")
@@ -138,7 +139,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		petPerk = Perks.petPassive(data),
 		weekend = Weekend.view(now),
 		featuredSecret = EventSecrets.view(now),
-		settings = if Config.FEATURES.Audio then AudioSettings.clean(data.settings) else nil,
+		settings = PlayerSettings.clean(data.settings),
 		plotSkin = if Config.FEATURES.PlotSkins then PlotSkins.current(data) else nil,
 		plotSkins = if Config.FEATURES.PlotSkins then PlotSkins.view(data, now) else nil,
 		plotBase = if Config.FEATURES.BaseShapes then PlotBases.current(data) else nil,
@@ -154,6 +155,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		boards = Snapshot.boards(data, now),
 		boardRanks = if session.boardRanks then table.clone(session.boardRanks) else {},
 		vat = VatState.view(data, Perks.brewFactor(data)) :: any,
+		admin = AdminService.view(world, session.userId),
 		exclusiveShop = Purchases.view(session, now, world),
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		blessed = if data.ritualBonus and session.blessedUntil

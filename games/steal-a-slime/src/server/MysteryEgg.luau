@@ -18,6 +18,7 @@ local EggKind = if Shared then require(Shared.EggKind) else require("../shared/E
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local SharedEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
+local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -60,6 +61,11 @@ function MysteryEgg.hatch(world: World, session: Session, slimeId: string, now: 
 	end
 	session.egg = { slime = slime, at = now }
 	World.markDirty(session)
+	World.track(
+		world,
+		session.userId,
+		{ op = "event", name = "EggHatched", fields = { GameAnalytics.tierField(slime.tier) } }
+	)
 	world.hatches[slimeId] = {
 		at = now,
 		kind = info.kind,

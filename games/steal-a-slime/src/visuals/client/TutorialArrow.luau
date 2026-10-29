@@ -27,6 +27,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
+local PlayerSettings = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PlayerSettings"))
 local TutorialTargets = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("TutorialTargets"))
 local Guide = ReplicatedStorage:WaitForChild("Lib"):WaitForChild("guide")
 local GuideTarget = require(Guide:WaitForChild("GuideTarget"))
@@ -200,7 +201,8 @@ function TutorialArrow.start(): () -> ()
 	local function update()
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
-		local id = stepId(player)
+		-- Settings: "Tutorial hints" off means no arrow at all.
+		local id = if PlayerSettings.on(player, "tutorialHints") then stepId(player) else nil
 		local choice = if root and root:IsA("BasePart") then choose(player, id, root.Position, currentKey) else nil
 		currentKey = if choice then choice.key else nil
 		local wantFar = id ~= nil and TutorialArrow.MAP_TARGETS[id] ~= nil

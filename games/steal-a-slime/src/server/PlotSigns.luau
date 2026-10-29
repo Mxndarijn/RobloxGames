@@ -34,6 +34,7 @@ local PlotSigns = {}
 PlotSigns.GUI_PREFIX = "SignGui"
 PlotSigns.FACES = table.freeze({ "Front" })
 PlotSigns.PIXELS_PER_STUD = 50
+PlotSigns.MAX_DISTANCE = 250 -- studs: find a friend's plot from the plaza
 -- The name board's width / height, so the goo drops come out round.
 PlotSigns.ASPECT = WorldLayout.NAME_BOARD.width / WorldLayout.NAME_BOARD.height
 
@@ -106,6 +107,7 @@ function PlotSigns.ensure(sign: Instance, deps: Deps?): { TextLabel }
 			created.SizingMode = d.Enum.SurfaceGuiSizingMode.PixelsPerStud
 			created.PixelsPerStud = PlotSigns.PIXELS_PER_STUD
 			created.LightInfluence = 0
+			created.MaxDistance = PlotSigns.MAX_DISTANCE
 			created.Parent = sign
 			gui = created
 		end

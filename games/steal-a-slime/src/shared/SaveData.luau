@@ -15,7 +15,7 @@
 	    (lockLevel / speedCoil / tutorialStep were added later without a version
 	    bump: missing -> 0 / false / 1 for an empty profile, else 0 = done)
 	  v3 (CONTRACT.md §8.9): v2 plus
-	    upgrades = { [id] = level }, stats = { caught, merges, locks, sold },
+	    upgrades = { [id] = level }, stats = { caught, merges, locks, sold, playSeconds },
 	    goals = { [goalId] = stagesPaid }, dexRewards = n
 	    plus (no bump; missing -> none) redeemed = { code }, boost = { mult, untilAt }
 	    v2 -> v3: zero upgrades / goals / dexRewards, stats.caught seeded with
@@ -24,7 +24,7 @@
 	plotSkin (FEATURES.PlotSkins, CONTRACT.md §15): missing / unknown / not unlocked -> "classic"
 	(SaveData.migratePlotSkin, run by deserialize). stealLog (FEATURES.StealAlerts, CONTRACT.md §17):
 	a capped list of { thief, slime, at }; missing / junk -> empty. Both were unversioned before v6.
-	v6: v5 plus `settings = { musicVolume, sfxVolume, muted }` (AudioSettings, FEATURES.Audio) and
+	v6: v5 plus `settings = { musicVolume, sfxVolume, muted }` (the Settings menu values, PlayerSettings) and
 	the two unversioned fields above are now versioned: v5 -> v6 (migrateV5) keeps a known plotSkin id and
 	cleans stealLog / settings, junk or missing -> classic / empty / defaults. Pure, idempotent and
 	independent of every feature flag: a flag that is off leaves its field stored, just unused.
@@ -68,8 +68,8 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local PlayerSettings = if script then require(script.Parent.PlayerSettings) else require("./PlayerSettings")
 local EggKind = if script then require(script.Parent.EggKind) else require("./EggKind")
-local AudioSettings = if script then require(script.Parent.AudioSettings) else require("./AudioSettings")
 local CashPads = if script then require(script.Parent.CashPads) else require("./CashPads")
 local BossBadges = if script then require(script.Parent.BossBadges) else require("./BossBadges")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
@@ -289,7 +289,7 @@ end
 
 -- v5 -> v6. Pure copy, idempotent, flag-independent. Normalises the three fields that were added
 -- without a version: plotSkin (a known skin id is kept, anything else -> "classic"; whether it is
--- unlocked is decided on load), stealLog (StealAlert.clean) and settings (AudioSettings.clean,
+-- unlocked is decided on load), stealLog (StealAlert.clean) and settings (PlayerSettings.clean,
 -- missing -> defaults).
 function SaveData.migrateV5(raw: { [string]: any }): { [string]: any }
 	local out = table.clone(raw)
@@ -300,7 +300,7 @@ function SaveData.migrateV5(raw: { [string]: any }): { [string]: any }
 	out.migratedFrom = raw.migratedFrom or from
 	out.plotSkin = if PlotSkins.get(raw.plotSkin) then raw.plotSkin else Config.PLOT_SKIN_DEFAULT
 	out.stealLog = StealAlert.clean(raw.stealLog)
-	out.settings = AudioSettings.clean(raw.settings)
+	out.settings = PlayerSettings.clean(raw.settings)
 	out.version = 6
 	return out
 end
@@ -888,6 +888,7 @@ function SaveData.deserialize(stored: any): Data
 		merges = num(stats.merges, 0, 0, 1e9),
 		locks = num(stats.locks, 0, 0, 1e9),
 		sold = num(stats.sold, 0, 0, 1e9),
+		playSeconds = num(stats.playSeconds, 0, 0, 1e10), -- no version bump: missing -> 0
 	}
 	if (tonumber(raw.migratedFrom or raw.version) or 0) < 3 then
 		-- v2 never counted catches: every slime on the plot was caught or merged at least.
@@ -907,7 +908,7 @@ function SaveData.deserialize(stored: any): Data
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
 	data.plotBase = PlotBases.clean(raw.plotBase) -- FEATURES.BaseShapes (no version bump: missing / unknown -> jar)
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
-	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
+	data.settings = PlayerSettings.clean(raw.settings) -- Settings menu (no version bump: missing ids -> defaults)
 	data.allowFriends = if raw.allowFriends == true then true else nil -- friends switch (no version bump: missing / junk -> off)
 	data.pvp = SaveData.cleanPvp(raw.pvp) -- FEATURES.PvP (missing -> nothing owned)
 	data.boss = BossBadges.clean(raw.boss) -- boss record and badges (missing / junk -> zeros)
@@ -1044,6 +1045,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			merges = data.stats.merges,
 			locks = data.stats.locks,
 			sold = data.stats.sold,
+			playSeconds = data.stats.playSeconds,
 		},
 		goals = table.clone(data.goals),
 		speciesRewards = data.speciesRewards,
@@ -1052,7 +1054,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		plotBase = data.plotBase,
 		petSeat = data.petSeat,
 		stealLog = StealAlert.clean(data.stealLog),
-		settings = AudioSettings.clean(data.settings),
+		settings = PlayerSettings.clean(data.settings),
 		allowFriends = if data.allowFriends == true then true else nil,
 		redeemed = redeemed,
 		boost = { mult = data.boostMult, untilAt = num(data.boostUntil, 0, 0, 1e11) },

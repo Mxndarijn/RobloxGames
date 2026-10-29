@@ -23,11 +23,16 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | | `GuideRoute` | pure | Route bookkeeping: approach spots around a target's footprint, forward-only progress along a route, off-route distance, when to recompute (with back-off), arrival fade |
 | | `GuideView` | adapter, client | Leads the local player to a target: neon chevrons snapped to the ground (optional pathfinding route), ring, labelled marker (optionally lifted above the target's own labels, `clearLabels`), Highlight outline, screen-edge pointer; colours, sizes and the arrow template can be overridden |
 | `src/ranking` | `OrderedBoard` | pure, server | Top-N rankings in OrderedDataStores: value clamping, write-on-change, page → ranked entries, in-memory pages, one store per period (weekly boards) |
+| `src/analytics` | `Analytics` | pure, server | AnalyticsService events behind a catalog of names (onboarding steps, funnels, custom events, currencies, progression paths), a per-minute rate budget, batched counts and economy flows, once-per-session onboarding steps, funnel session ids, custom fields as a list; `recorder()` sink for specs and Studio |
+| | `AnalyticsSink` | adapter, server | Sends tracker calls to AnalyticsService with the right Enums inside `pcall`; `tee` sends to two sinks |
 | `src/anticheat` | `MovementGuard` | pure, server | Checks server-read character positions for teleports, speed hacks and flying; tolerates lag freezes, downhill runs and server-made moves (`allow`, `reset`) |
 | | `Suspicion` | pure, server | Points per player that drain over time and reach "pause" / "kick" levels |
 | `src/pad` | `RingPad` | pure | A round floor pad to stand on, in two styles: `"ring"` (one smooth circle, the light sweeps round) or `"pieces"` (curved pieces with even-width cuts, lit a piece at a time). Its block layout, who stands on it, a stand-to-activate timer, and how many segments a charge or countdown lights |
 | | `RingPadView` | adapter | Builds a RingPad as non-colliding parts (Model `Seg_<i>` per piece), places it on a floor point and yaw, and lights pieces 1..n in a named look; looks and a block template can be overridden |
+| `src/settings` | `SettingsSchema` | pure | A list of player settings (toggles, sliders, choices): defaults, cleaning saved values, checking values a client sends, applying changes |
 | `src/ui` | `MenuMouse` | adapter, client | Frees the cursor in first person / shift lock while the game says a menu is open (one hidden `Modal` button) |
+| | `LabelFit` | pure | World-label maths: px per stud, read distance, phone pixel scale and MaxDistance; `mark(gui)` tags a pixel tag for the fitter ([guide](../../guides/roblox-world-labels.md)) |
+| | `LabelFitView` | adapter, client | Shrinks every marked BillboardGui on a phone-sized screen (Size × scale plus a UIScale) and applies its phone MaxDistance; re-fits on screen-size changes |
 | `testing` | `TestRunner` | Lune only | describe / it / expect used by these specs; games can reuse it |
 
 ## Mounting in a game

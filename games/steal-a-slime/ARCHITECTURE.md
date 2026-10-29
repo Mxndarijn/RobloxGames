@@ -168,7 +168,7 @@ return Thing
 
 - `lune run tests` runs every `*.spec.luau` under `tests/` (incl. `tests/ui`) with `tests/TestRunner.luau` (`describe`, `it`, `expect`).
 - Test behaviour, not text: build state with `tests/Fixtures.luau` (slimes, profiles, roll sequences) and `tests/ServerFixtures.luau` (a `World` with joined players, `notifications`), call the real functions, assert on `World`, `State` or the outbox. UI: load the real panel through `tests/ui/UiHarness.luau`, feed it a State, read Instance properties.
-- Source-text asserts (reading a `.luau` file and matching a string) are only for safety guards that can't be checked by running code: TestHooks not referenced from `src/`, no `DataStoreMode` in a place, no DataStore calls in tests. New ones go through one shared helper in `tests/` (add it with the first new guard; the per-spec `read()` copies are existing debt). Don't assert that a comment, a line of layout code or a variable name exists.
+- Source-text asserts (reading a `.luau` file and matching a string) are only for safety guards that can't be checked by running code: TestHooks referenced from no `src/` file but AdminService, no `DataStoreMode` in a place, no DataStore calls in tests. New ones go through one shared helper in `tests/` (add it with the first new guard; the per-spec `read()` copies are existing debt). Don't assert that a comment, a line of layout code or a variable name exists.
 - A test that pins a doc (`ITEM-ICONS-NEEDED.md`, a contract file) must say which generator or owner keeps it current.
 - A bug fix comes with a test that fails without the fix. The test name says the behaviour, not the bug number or the date.
 
