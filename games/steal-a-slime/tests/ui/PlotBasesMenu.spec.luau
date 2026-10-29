@@ -19,6 +19,7 @@ local SlimeRoster = require("../../src/shared/SlimeRoster")
 local SpeciesDex = require("../../src/shared/SpeciesDex")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
+local UnsoldConfig = require("./UnsoldConfig")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local roblox = require("@lune/roblox") :: any
@@ -32,18 +33,18 @@ local function bases(rebirths: number, equipped: string?, owned: { string }?): {
 	return PlotBases.view(data)
 end
 
--- Config with Base_rocket on sale (a Roblox product id), everything else as shipped.
+-- Config with Base_rocket on sale (a Roblox product id), everything else not on sale yet (UnsoldConfig).
 local function onSaleConfig(): any
 	local products = setmetatable({
 		Base_rocket = { productId = 4242, robux = 499, grant = { kind = "plotBase", style = "rocket" } },
-	}, { __index = Config.EXCLUSIVE_SHOP.products })
-	local shop = setmetatable({ products = products }, { __index = Config.EXCLUSIVE_SHOP })
-	return setmetatable({ EXCLUSIVE_SHOP = shop }, { __index = Config })
+	}, { __index = UnsoldConfig.EXCLUSIVE_SHOP.products })
+	local shop = setmetatable({ products = products }, { __index = UnsoldConfig.EXCLUSIVE_SHOP })
+	return setmetatable({ EXCLUSIVE_SHOP = shop }, { __index = UnsoldConfig })
 end
 
 local function ctx(requests: { any }?, config: any?): any
 	return {
-		Config = config or Config,
+		Config = config or UnsoldConfig, -- the shop ids cleared: nothing on sale unless a spec says so
 		Constants = Constants,
 		Genome = Genome,
 		SlimeRoster = SlimeRoster,
@@ -97,7 +98,7 @@ describe("PlotBasesView.rows", function()
 		expect(rows[3].exclusive).toBe(false)
 	end)
 	it("an Exclusive base not owned is Exclusive with Buy and its price; owned it is Equip / Equipped", function()
-		local rows = PlotBasesView.rows(bases(100, "rocket", { "rocket", "lighthouse" }), Config)
+		local rows = PlotBasesView.rows(bases(100, "rocket", { "rocket", "lighthouse" }), UnsoldConfig)
 		local byId = {}
 		for _, row in rows do
 			byId[row.id] = row
@@ -115,6 +116,14 @@ describe("PlotBasesView.rows", function()
 		for _, row in sale do
 			if row.id == "rocket" then
 				expect(row.purchase).toEqual({ kind = "product", id = 4242 })
+			end
+		end
+		-- as shipped every Exclusive base is on sale: Buy prompts its Base_<id> product
+		for _, row in PlotBasesView.rows(bases(0), Config) do
+			if row.exclusive then
+				local id = Config.EXCLUSIVE_SHOP.products[`Base_{row.id}`].productId
+				expect(id > 0).toBe(true)
+				expect(row.purchase).toEqual({ kind = "product", id = id })
 			end
 		end
 	end)
