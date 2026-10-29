@@ -152,6 +152,8 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			Adornee = rootPart,
 			AlwaysOnTop = true,
 			Size = UDim2.fromOffset(110, 56),
+			MaxDistance = 400, -- studs: find the thief on your base from anywhere near it
+			LightInfluence = 0,
 			StudsOffset = Vector3.new(0, 4.5, 0),
 			Parent = character,
 		}, {
@@ -290,6 +292,8 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			Adornee = rootPart,
 			AlwaysOnTop = true,
 			Size = UDim2.fromOffset(120, 50),
+			MaxDistance = 120, -- studs: a short pop, noise farther away
+			LightInfluence = 0,
 			StudsOffset = Vector3.new(0, 3, 0),
 			Parent = character,
 		}, { label })

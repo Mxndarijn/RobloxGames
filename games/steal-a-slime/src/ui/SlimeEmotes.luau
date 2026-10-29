@@ -12,12 +12,16 @@
 	  SlimeEmotes.destroy(pool)
 ]]
 
+local LabelFit =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
+
 local SlimeEmotes = {}
 
 SlimeEmotes.MAX = 6 -- bubbles on screen at once
 SlimeEmotes.SIZE = 34 -- px
 SlimeEmotes.POP_SECONDS = 0.18
-SlimeEmotes.MAX_DISTANCE = 70 -- studs: the bubble hides further away (BillboardGui.MaxDistance)
+SlimeEmotes.MAX_DISTANCE = 60 -- studs: the bubble hides further away (BillboardGui.MaxDistance), like the slime tag
+SlimeEmotes.PHONE_MAX_DISTANCE = 40 -- studs, on a phone-sized screen
 SlimeEmotes.SIDE = 1.1 -- studs to the right of the slime's top (the info card sits right above it)
 -- Emote name (SlimeBeats.Emote) -> what the bubble shows.
 SlimeEmotes.GLYPHS = table.freeze({
@@ -53,6 +57,7 @@ function SlimeEmotes.new(parent: Instance): Pool
 		gui.LightInfluence = 0
 		gui.AlwaysOnTop = false
 		gui.MaxDistance = SlimeEmotes.MAX_DISTANCE
+		LabelFit.mark(gui, { phoneDistance = SlimeEmotes.PHONE_MAX_DISTANCE, keepSize = true })
 		gui.ResetOnSpawn = false
 		gui.Enabled = false
 		local bubble = Instance.new("Frame")

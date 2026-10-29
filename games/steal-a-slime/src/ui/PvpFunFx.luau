@@ -66,6 +66,7 @@ local LOOK = table.freeze({
 	hat_colors = { { 0.45, 0.9, 0.4 }, { 1, 0.5, 0.75 }, { 0.4, 0.75, 1 }, { 1, 0.8, 0.25 }, { 0.75, 0.5, 1 } },
 	text_size = UDim2.fromOffset(220, 60),
 	text_rise = 3, -- studs a text pop-up floats up
+	text_max_distance = 150, -- studs: the always-on-top text hides beyond (the effect itself still shows)
 	text_seconds = 0.9,
 	text_color = { 1, 0.95, 0.4 },
 	text_stroke = { 0.35, 0.15, 0.45 },
@@ -329,7 +330,7 @@ function PvpFunFx.start(opts: Options): Handle
 			UDim2.new(LOOK.text_size.X.Scale, LOOK.text_size.X.Offset * scale, 0, LOOK.text_size.Y.Offset * scale)
 		gui.AlwaysOnTop = true
 		gui.LightInfluence = 0
-		gui.MaxDistance = FUN.FX_RANGE
+		gui.MaxDistance = LOOK.text_max_distance
 		gui.Adornee = holder
 		gui.Parent = holder
 		local label = Instance.new("TextLabel")
