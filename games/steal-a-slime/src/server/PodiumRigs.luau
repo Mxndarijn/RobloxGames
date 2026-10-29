@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GooBoard = require(ReplicatedStorage.Shared.GooBoard)
 local GooPalette = require(ReplicatedStorage.Shared.GooPalette)
+local LabelFit = require(ReplicatedStorage.Lib.ui.LabelFit)
 local PodiumAvatars = require(script.Parent.PodiumAvatars)
 
 local PodiumRigs = {}
@@ -69,6 +70,7 @@ local function label(rig: Model, text: string)
 		made.StudsOffsetWorldSpace = Vector3.new(0, px.lift, 0)
 		made.MaxDistance = px.maxDistance
 		made.LightInfluence = 0
+		LabelFit.mark(made) -- each client shrinks it on a phone
 		local adornee = rig:FindFirstChild("Head") or rig.PrimaryPart
 		if adornee then
 			made.Adornee = adornee

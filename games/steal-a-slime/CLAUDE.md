@@ -4,7 +4,7 @@
 
 - Tests, live checks and scripted sessions run on the **in-memory store only**: workspace attribute `DataStoreMode = "Memory"` (CONTRACT.md §2 DataStore).
 - Open Cloud Luau Execution runs on the real place, where **DataStores are real**. Every cloud script that boots the Server entry must set `DataStoreMode = "Memory"` first (`tools/livetest/cloud/live.luau`, `cloud/session.luau` and `live-testing/ci/playtest.luau` do). `cloud/smoke.luau` only requires modules and never calls DataService. Never call `DataStoreService`, `GetDataStore`, `GetOrderedDataStore`, `UpdateAsync`, `SetAsync` or `RemoveAsync` from a test, a cloud script or a one-off probe. Don't read or "clean up" player keys either.
-- Cash and time cheats go through `src/server/TestHooks.luau` only. Its guard (contract/v13-additions.md §8.12): `TestHooks.enable` refuses unless `DataStoreMode == "Memory"`. No remote, prompt or chat command reaches it, and `tests/TestHooks.spec` fails if any other `src/` file references it. Never weaken that guard.
+- Every cheat (cash, time, saves, slimes, items) goes through `src/server/TestHooks.luau` only. Its guard (contract/v13-additions.md §8.12): `TestHooks.enable` refuses unless `DataStoreMode == "Memory"`. Its one caller in `src/` is `server/AdminService` (the admin menu, contract/admin-menu.md); no other remote, prompt or chat command reaches it, and `tests/TestHooks.spec` fails if any other `src/` file references it. Never weaken that guard.
 - Never ship a place that sets `DataStoreMode`. `scripts/check-place` and `tests/PlaceSafety.spec` fail on it; don't bypass them.
 
 ## Release rules

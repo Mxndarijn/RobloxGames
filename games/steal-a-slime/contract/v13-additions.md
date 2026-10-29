@@ -186,10 +186,9 @@ Migration (`SaveData.migrate`, pure, tested with a v12-shaped save): v1 -> v2 as
 
 ## 8.9c DataStore schema v6: settings, plotSkin, stealLog (`Config.SAVE_VERSION = 6`)
 
-- **New field:** `settings = { musicVolume: number 0..1, sfxVolume: number 0..1, muted: boolean }` (`Shared.AudioSettings`; volumes rounded to 0.01; defaults `Config.AUDIO.DEFAULT_MUSIC_VOLUME` / `DEFAULT_SFX_VOLUME`, not muted). Missing or junk fields load as their default.
-- **Migration:** `SaveData.migrateV5` (v5 -> v6, pure, idempotent) normalises three fields that were unversioned before: `plotSkin` (a known skin id is kept, else `"classic"`; unlock is still checked on load), `stealLog` (`StealAlert.clean`, capped at `LOG_CAP` 12, junk -> empty) and `settings` (`AudioSettings.clean`). It never looks at a feature flag: with `PlotSkins`, `StealAlerts` or `Audio` off the field is kept, saved again and simply unused.
-- **Remote:** `Request("SetAudioSettings", musicVolume: number, sfxVolume: number, muted: boolean)`, rate limit 0.5 s. Wrong types and non-finite numbers are `"bad argument"`; numbers are clamped to 0..1. With `FEATURES.Audio` off it is refused (`"audio settings are off"`) and the save is not touched.
-- **State:** `settings?` (same shape), only with `FEATURES.Audio` on.
+- **New field:** `settings = { musicVolume: number 0..1, sfxVolume: number 0..1, muted: boolean }` (now `Shared.PlayerSettings`, [settings.md](settings.md); volumes rounded to 0.01; defaults `Config.AUDIO.DEFAULT_MUSIC_VOLUME` / `DEFAULT_SFX_VOLUME`, not muted). Missing or junk fields load as their default.
+- **Migration:** `SaveData.migrateV5` (v5 -> v6, pure, idempotent) normalises three fields that were unversioned before: `plotSkin` (a known skin id is kept, else `"classic"`; unlock is still checked on load), `stealLog` (`StealAlert.clean`, capped at `LOG_CAP` 12, junk -> empty) and `settings` (`PlayerSettings.clean`). It never looks at a feature flag: with `PlotSkins`, `StealAlerts` or `Audio` off the field is kept, saved again and simply unused.
+- **Remote and State:** now the Settings menu's `Request("SetSettings", changes)` and `State.settings`; the field holds every Settings menu value, see [settings.md](settings.md) (§51).
 
 ## 8.9d DataStore schema v7: no slime mutations (`Config.SAVE_VERSION = 7`)
 
@@ -205,4 +204,4 @@ A dropped wild slime is snapped to the first **collidable** surface under the dr
 
 ## 8.12 Test hooks (server-only, never live)
 
-`src/server/TestHooks.luau` lets scripted sessions grant cash and skip time on a live `world`. **Guard:** (1) it is not wired to any remote, prompt or chat command, so no client can reach it; only server code that already runs with full authority (a Luau Execution task, Lune tests) can call it; (2) `TestHooks.enable(world)` refuses (returns false, every hook then errors) unless `workspace.DataStoreMode == "Memory"`, and the publish checks (`scripts/check-place`, `tests/PlaceSafety.spec`) already fail any place that sets that attribute; (3) `tests/TestHooks.spec` fails if any `src/` file other than TestHooks and its spec references it.
+`src/server/TestHooks.luau` lets scripted sessions grant cash and skip time on a live `world`. **Guard:** (1) its only caller in `src/` is `server/AdminService` (the admin menu, contract/admin-menu.md), which reaches it through the `Admin` request; every other caller is server code that already runs with full authority (a Luau Execution task, Lune tests); (2) `TestHooks.enable(world)` refuses (returns false, every hook then errors) unless `workspace.DataStoreMode == "Memory"`, and the publish checks (`scripts/check-place`, `tests/PlaceSafety.spec`) already fail any place that sets that attribute; (3) `tests/TestHooks.spec` fails if any `src/` file other than TestHooks and AdminService references it. Every admin menu cheat is a TestHooks function, so the guard covers all of them.

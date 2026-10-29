@@ -258,6 +258,10 @@ describe("jar tower: deck and glass", function()
 			expect(#walls).toBe(n)
 			local upper = if f < FLOORS then named(floorParts(1, f + 1), "WallUpper_") else {}
 			expect(#upper).toBe(if f < FLOORS then n else 0)
+			-- their look is this jar's covered glass: they hide once it loads instead of showing as a glass ring
+			for _, w in upper do
+				expect(w.attributes and w.attributes.MeshStandIn).toBe(`goo_jar_glass_{f}_mid`)
+			end
 			local rc = WorldLayout.jarWallRadius(f)
 			-- the inner faces' corners sit on the glass, never outside it
 			expect((rc - WorldLayout.JAR_WALL / 2) / math.cos(math.pi / n) <= WorldLayout.jarRadius(f) + 1e-6).toBe(

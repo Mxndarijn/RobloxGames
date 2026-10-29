@@ -67,6 +67,7 @@ function Income.step(world: World, dt: number, now: number?, features: { [string
 			local paid, remainder = Economy.tickIncome(0, session.incomeRemainder, perSec, seconds)
 			session.incomeRemainder = remainder
 			PlayerData.earn(session.data, paid)
+			World.trackCash(world, session, "source", "Income", paid, nil, nil, true) -- batched: earned every tick
 			World.markDirty(session) -- State at least once a second while earning
 		end
 	end
@@ -104,6 +105,7 @@ function Income.applyOffline(world: World, session: Session, now: number, featur
 	session.offlineRate, session.offlinePaid = rate, amount
 	if amount > 0 then
 		PlayerData.earn(data, amount)
+		World.trackCash(world, session, "source", "Offline", amount)
 		data.offlineDouble = { cash = amount, at = now, used = false }
 		World.notify(
 			world,

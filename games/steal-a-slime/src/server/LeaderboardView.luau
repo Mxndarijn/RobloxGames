@@ -5,7 +5,8 @@
 	The player list `leaderstats` (Leaderboard.STATS) and the global boards (Leaderboards.BOARDS): `refresh` reads
 	the top Config.LEADERBOARD_SIZE of each board's OrderedDataStore (in memory mode: this server's players), fills
 	that board's world prop, sends it to every client on the Leaderboard remote and dresses the podium from the
-	podium board (Top Earners). A player who joins later gets the latest boards right away. Ranking rules live in
+	podium board (Top Earners). Players who hide themselves go out as Leaderboard rows without a userId (Leaderboard
+	`fromPage`, with this server's sessions over the stored keys). A player who joins later gets the latest boards right away. Ranking rules live in
 	Leaderboard (pure).
 ]]
 
@@ -138,7 +139,7 @@ local function readPages(view: LeaderboardView, def: Leaderboards.Board, week: n
 		wanted[userId] = true
 	end
 	while not pages.IsFinished and #items < Config.LEADERBOARD_RANK_DEPTH do
-		if OrderedBoard.allFound(OrderedBoard.ranks(items, wanted), wanted) or not budgetLeft() then
+		if OrderedBoard.allFound(Leaderboard.ranks(items, wanted), wanted) or not budgetLeft() then
 			break
 		end
 		local advanced = pcall(function()
@@ -171,9 +172,10 @@ function LeaderboardView.refresh(view: LeaderboardView)
 		local page, finished = readPages(view, def, week)
 		if page then
 			rankSessions(view, def, page, finished)
+			-- This server's players over the stored keys, so a "Show me on leaderboards" change shows right away.
 			local board = Leaderboard.fromPage(page, function(userId: number): string
 				return nameOf(view, userId)
-			end, def.stat)
+			end, def.stat, view.world.sessions :: any)
 			view.latest[def.stat] = board
 			-- Fill the world board first so clients re-render (own-row highlight) after it replicates.
 			local filled, err = pcall(WorldProps.fillBoard :: any, board)

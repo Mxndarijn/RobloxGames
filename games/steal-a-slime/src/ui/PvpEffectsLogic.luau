@@ -14,6 +14,7 @@
 	  PvpEffectsLogic.shakeOffset(t, seconds, amp) -> x, y camera offset (decaying)
 	  PvpEffectsLogic.scaleCount(n, low)           particle counts at low graphics quality
 	  PvpEffectsLogic.tracker()                    acquire / release counters (activeCount() must end at 0)
+	  PvpEffectsLogic.shows(payload, localId, others) whether this client draws a PvpEvent ("Other players' effects")
 ]]
 
 local PvpEffectsLogic = {}
@@ -414,6 +415,29 @@ end
 
 function PvpEffectsLogic.inRange(distance: number): boolean
 	return distance == distance and distance <= PvpEffectsLogic.FX_RANGE
+end
+
+-- Whether this client draws a PvpEvent. With other players' effects off (`others` false) only an Effect that
+-- the local player fired, was hit by or owns shows; trap markers (TrapPlaced / TrapCleared) always do.
+function PvpEffectsLogic.shows(payload: { [string]: any }, localId: number, others: boolean): boolean
+	if others then
+		return true
+	end
+	local kind = payload.kind
+	if kind == "TrapPlaced" or kind == "TrapCleared" then
+		return true
+	end
+	if payload.attacker == localId or payload.target == localId or payload.owner == localId then
+		return true
+	end
+	if type(payload.targets) == "table" then
+		for _, id in payload.targets do
+			if id == localId then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 -- Live-instance counters per kind. activeCount() is what the probe asserts to be 0 after the effects ended.

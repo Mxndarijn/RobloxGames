@@ -39,12 +39,16 @@ local UI = script.Parent
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
+local LabelFit =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
 local create = Widgets.create
 
 local SlimeKeyCard = {}
+
+SlimeKeyCard.NAME = "SlimeKeyCard" -- the card's BillboardGui in PlayerGui
 
 -- Row order by prompt name (the server's HatchPrompt, SlimeKeys.MOVE_PROMPT / FAVORITE_PROMPT / SELL_PROMPT; the
 -- LockButton's Constants.LOCK_PROMPT_NAME / FRIENDS_PROMPT_NAME).
@@ -190,7 +194,7 @@ export type Options = {
 function SlimeKeyCard.start(opts: Options): () -> ()
 	local C = SlimeKeyCard.CARD
 	local card = create("BillboardGui", {
-		Name = "SlimeKeyCard",
+		Name = SlimeKeyCard.NAME,
 		Enabled = false,
 		Active = true,
 		AlwaysOnTop = true,
@@ -200,6 +204,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		SizeOffset = Vector2.new(0, 0.5), -- the card's bottom edge sits on the anchor point
 		Parent = opts.playerGui,
 	}) :: BillboardGui
+	LabelFit.mark(card) -- smaller pixels on a phone (Lib.ui.LabelFitView)
 	local frame = create("Frame", {
 		Name = "Card",
 		BackgroundColor3 = Theme.Bg,

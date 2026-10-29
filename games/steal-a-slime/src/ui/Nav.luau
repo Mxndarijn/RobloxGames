@@ -79,6 +79,10 @@ function Nav.badges(state: any): { [string]: string }
 	if state.canRebirth == true then
 		out.Rebirth = "!"
 	end
+	-- The daily reward waits in Goals (its popup was closed or is switched off in Settings).
+	if type(state.daily) == "table" and state.daily.available == true then
+		out.Goals = "!"
+	end
 	return out
 end
 

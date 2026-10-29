@@ -118,6 +118,9 @@ describe("base shapes: the Goo Factory's generated layout", function()
 	end)
 	it("stays inside the moat: no collider reaches past its inner edge", function()
 		for _, p in Factory.parts do
+			if p.role == "drop pipe guard" then
+				continue -- round the drop pipe, out over the moat like the pipe itself
+			end
 			for _, c in corners(p) do
 				expect(math.sqrt(c[1] * c[1] + c[2] * c[2]) <= MOAT_IN + 1e-6).toBe(true)
 			end
@@ -288,6 +291,77 @@ describe("base shapes: shapes", function()
 		end
 		expect(factory.top).toBeNil()
 		expect(factory.route).toBe(false)
+	end)
+end)
+
+-- Every node under `nodes` (depth first) whose name matches `pattern`.
+local function findNodes(nodes: { any }, pattern: string, out: { any }?): { any }
+	local found = out or {}
+	for _, node in nodes do
+		if string.match(node.name, pattern) then
+			table.insert(found, node)
+		end
+		if node.children then
+			findNodes(node.children, pattern, found)
+		end
+	end
+	return found
+end
+
+describe("base shapes: nobody stands inside a drop tube", function()
+	for _, id in { "factory", "pagoda" } do
+		it(`guards the {id}'s drop tube where it can be reached from the ground, on every top floor`, function()
+			local shape = BaseShapes.get(id)
+			local data = BaseShapes.data(id)
+			local lands = data.exit.lands
+			for f = 2, #Config.BASE_FLOORS do
+				-- on the floor (shown and solid only while it is the top one), or in the roof folder built for the top
+				-- floor (a base with one)
+				local onFloor = findNodes(shape.floor(1, f), "^DropGuard_%d+$")
+				local inRoof = if shape.top then findNodes((shape.top :: any)(1, f).children, "^DropGuard_%d+$") else {}
+				expect(#onFloor + #inRoof > 0).toBe(true)
+				local guards = table.clone(onFloor)
+				table.move(inRoof, 1, #inRoof, #guards + 1, guards)
+				for _, g in guards do
+					-- solid, invisible and never anyone's look
+					expect(g.canCollide ~= false).toBe(true)
+					expect(g.transparency).toBe(1)
+					local a = g.attributes or {}
+					expect(a.JarShowSelf).toBeNil()
+					expect(a.MeshStandIn).toBeNil()
+				end
+				for _, g in onFloor do
+					if f < #Config.BASE_FLOORS then
+						local a = g.attributes or {}
+						expect(a.JarShow).toBe("top")
+						expect(a.JarCollide).toBe(true)
+					end
+				end
+				for _, g in guards do
+					-- from the plot floor up past a jump, so it can't be climbed
+					expect(math.abs(g.pos[2] - g.size[2] / 2 - WorldLayout.PLOT_FLOOR_TOP) < 1e-3).toBe(true)
+					expect(g.size[2] > 7.5).toBe(true)
+				end
+				-- the drop lands clear of every guard
+				for _, p in data.parts do
+					if p.floor == f and string.match(p.name, "^DropGuard_") then
+						expect(toWall(lands[1], lands[2], p) > 1.5).toBe(true)
+					end
+				end
+			end
+		end)
+	end
+	it("hides the pagoda's eave slabs behind the mushroom cap of their floor", function()
+		local pagoda = BaseShapes.get("pagoda")
+		local eaves = findNodes(pagoda.floor1(1), "^Eave1_%d+$")
+		for f = 2, #Config.BASE_FLOORS - 1 do
+			findNodes(pagoda.floor(1, f), `^Eave{f}_%d+$`, eaves)
+		end
+		expect(#eaves > 0).toBe(true)
+		for _, e in eaves do
+			local f = tonumber(string.match(e.name, "^Eave(%d)_"))
+			expect(e.attributes.MeshStandIn).toBe(`pagoda_cap_{f}_mid`)
+		end
 	end)
 end)
 

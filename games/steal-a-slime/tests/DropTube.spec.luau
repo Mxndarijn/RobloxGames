@@ -123,14 +123,13 @@ describe("drop tube geometry", function()
 		end
 		return nil
 	end
-	it("gives every upper jar one hatch and a ghost tube; floor 2 also has the splash pool", function()
+	it("gives every upper jar one hatch and a tube no ray hits; floor 2 also has the splash pool", function()
 		for f = 2, #Config.BASE_FLOORS do
 			local parts = WorldLayout.floor(1, f)[1].children
 			expect(named(parts, "DropHatch") ~= nil).toBe(true)
 			for _, name in { "TubeArm", "Tube" } do
 				local node = named(parts, name)
 				expect(node ~= nil).toBe(true)
-				expect(node.canCollide).toBe(false)
 				expect(node.canQuery).toBe(false)
 			end
 			expect(named(parts, "SplashPool") ~= nil).toBe(f == 2)
@@ -162,6 +161,34 @@ describe("drop tube geometry", function()
 		local land = WorldLayout.dropLanding()
 		local r = math.sqrt(land[1] ^ 2 + land[3] ^ 2)
 		expect(r > WorldLayout.MOAT.inner and r < WorldLayout.MOAT.outer).toBe(true)
+	end)
+	it("makes the upright tube solid (nobody stands inside it) and keeps the arm out of reach as decor", function()
+		for f = 2, #Config.BASE_FLOORS do
+			local tube, arm = nil, nil
+			for _, node in WorldLayout.floor(1, f)[1].children do
+				if node.name == "Tube" then
+					tube = node
+				elseif node.name == "TubeArm" then
+					arm = node
+				end
+			end
+			expect(tube ~= nil and arm ~= nil).toBe(true)
+			expect(tube.canCollide).toBe(true)
+			expect(arm.canCollide).toBe(false)
+		end
+	end)
+	it("lands the drop on the splash pool beside the tube's solid foot, not inside it", function()
+		local tube = WorldLayout.DROP_TUBE
+		local tx, tz = WorldLayout.polar(tube.radius, WorldLayout.DROP_ANGLE)
+		local land, pool = WorldLayout.dropLanding(), WorldLayout.dropPool()
+		local function flat(x: number, z: number): number
+			return math.sqrt((land[1] - x) ^ 2 + (land[3] - z) ^ 2)
+		end
+		-- a character is about 2 wide: its root lands at least half a body clear of the tube
+		expect(flat(tx, tz) >= tube.width / 2 + 1).toBe(true)
+		-- still on the pool (6 across), whose middle is under the tube's foot
+		expect(flat(pool[1], pool[3]) < 3).toBe(true)
+		expect(math.sqrt((pool[1] - tx) ^ 2 + (pool[3] - tz) ^ 2) < tube.width / 2).toBe(true)
 	end)
 	it("keeps the landing clear of the lock button", function()
 		local land = WorldLayout.dropLanding()

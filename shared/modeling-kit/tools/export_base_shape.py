@@ -167,7 +167,8 @@ def export(base_id, game_dir):
             names.append(name)
             parts.append({"name": name, "floor": f, "role": c["role"], "shape": shape,
                           "size": [round(v, 4) for v in size], "pos": pos, "rot": rot, "collide": collide,
-                          "show": show, "color": list(look[0]), "material": look[1]})
+                          "show": show, "hidden": c.get("hidden") or None, "color": list(look[0]),
+                          "material": look[1]})
     spots = {}
     for c in full.COLLIDERS:
         if c["name"] in KEPT_MOVED:

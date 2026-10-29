@@ -9,7 +9,8 @@
 	hold-to-confirm buttons (a tap does nothing, so it shouldn't sound like it did) and disabled
 	Widgets buttons.
 
-	`play` is injected (SoundController.play in the client, a stub in tests/ui/ButtonClicks.spec.luau).
+	`play` is injected (SoundController.play in the client, a stub in tests/ui/ButtonClicks.spec.luau), and so is
+	`enabled` (optional; the Settings menu's "Button clicks" switch): while it returns false no button clicks.
 	start() returns a cleanup that disconnects everything it made.
 ]]
 
@@ -27,12 +28,12 @@ local function muted(inst: Instance): boolean
 	return false
 end
 
-function ButtonClicks.start(root: Instance, play: (string) -> any): () -> ()
+function ButtonClicks.start(root: Instance, play: (string) -> any, enabled: (() -> boolean)?): () -> ()
 	local conns: { [Instance]: RBXScriptConnection } = setmetatable({}, { __mode = "k" }) :: any
 	local function watch(inst: Instance)
 		if conns[inst] == nil and inst:IsA("GuiButton") then
 			conns[inst] = (inst :: GuiButton).Activated:Connect(function()
-				if not muted(inst) then
+				if not muted(inst) and (enabled == nil or enabled()) then
 					play(ButtonClicks.SOUND)
 				end
 			end)

@@ -21,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CarryTrail = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("CarryTrail"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
+local EffectPrefs = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("EffectPrefs"))
 
 local CarryTrailFx = {}
 
@@ -128,7 +129,12 @@ function CarryTrailFx.start(): Controller
 		local eye = camera.CFrame.Position
 		local candidates = {}
 		local roots: { [Player]: BasePart } = {}
+		local me = Players.LocalPlayer
+		local others = EffectPrefs.showOthers(me)
 		for _, player in Players:GetPlayers() do
+			if player ~= me and not others then
+				continue -- "Other players' effects" off: only my own trail (their rigs go below)
+			end
 			local root = rootOf(player)
 			if not root then
 				continue

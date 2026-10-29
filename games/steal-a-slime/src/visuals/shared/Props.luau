@@ -35,10 +35,18 @@ local Constants = if script then require(script.Parent.Parent.Shared.Constants) 
 local Goo = if script then require(script.Parent.Parent.Shared.GooPalette) else require("../../shared/GooPalette")
 local GooIcons = if script then require(script.Parent.Parent.Shared.GooIcons) else require("../../shared/GooIcons")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
+local LabelFit = if script
+	then require((script.Parent.Parent :: any).Lib.ui.LabelFit)
+	else require("../../../../../shared/luau/src/ui/LabelFit")
 
 local Props = {}
 
 Props.LEADERBOARD_ROWS = 10
+-- MaxDistance (studs) of the world labels built here (guides/roblox-world-labels.md).
+Props.NAME_TAG_DISTANCE = 60 -- NPC name tags (pixel-sized)
+Props.NAME_TAG_PHONE_DISTANCE = 40 -- the same on a phone-sized screen
+Props.LANDMARK_SIGN_DISTANCE = 300 -- shop stand signs and the hall arch: landmarks, their colour reads far
+Props.BOARD_DISTANCE = 150 -- leaderboard boards: the rows read only up close, the header from about 100
 Props.LEADERBOARD_TITLE = "Top Earners"
 
 -- Hall of Fame board colours (RGB), the same look as the Upcoming Events board (server/EventBoardView): a light
@@ -220,6 +228,7 @@ function Props.standSign(sign: BasePart, look: StandStyle, aspect: number): Surf
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = S.pixelsPerStud
 	gui.LightInfluence = 0 -- unlit: the sign stays readable at night
+	gui.MaxDistance = Props.LANDMARK_SIGN_DISTANCE
 	gui.Parent = sign
 	local j = S.jelly
 	local hi, mid, lo = tone(look.jelly[1]), tone(look.jelly[2]), tone(look.jelly[3])
@@ -945,8 +954,9 @@ function Props.tutorialNpc(): Model
 	-- Straight above the head, clear of the slime on the hat.
 	tag.StudsOffset = Vector3.new(0, (GUIDE_TOP - 5.375) * GUIDE_SCALE + 0.9, 0)
 	tag.AlwaysOnTop = false
-	tag.MaxDistance = 80
+	tag.MaxDistance = Props.NAME_TAG_DISTANCE
 	tag.LightInfluence = 0 -- the white stays white in shade
+	LabelFit.mark(tag, { phoneDistance = Props.NAME_TAG_PHONE_DISTANCE })
 	tag.Parent = head
 	-- Outlined white Fredoka, like every world label (canvas GooWorldSigns "Guide").
 	local text = label(tag, "Text", "Guide", tone(Goo.White))
@@ -1050,6 +1060,7 @@ function Props.hallArch(): Model
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 		gui.PixelsPerStud = 40
 		gui.LightInfluence = 0
+		gui.MaxDistance = Props.LANDMARK_SIGN_DISTANCE
 		gui.Adornee = sign
 		gui.Parent = sign
 		local bar = Instance.new("Frame")
@@ -1122,8 +1133,9 @@ function Props.professorGoo(): Model
 	tag.Size = UDim2.fromOffset(220, 44)
 	tag.StudsOffset = Vector3.new(0, size[2] - 5.8 + 1.1, 0)
 	tag.AlwaysOnTop = false
-	tag.MaxDistance = 80
+	tag.MaxDistance = Props.NAME_TAG_DISTANCE
 	tag.LightInfluence = 0
+	LabelFit.mark(tag, { phoneDistance = Props.NAME_TAG_PHONE_DISTANCE })
 	tag.Parent = head
 	local text = label(tag, "Text", "Professor Goo", tone(Goo.White))
 	text.Size = UDim2.fromScale(1, 1)
@@ -1168,6 +1180,7 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 40
 	gui.LightInfluence = 0
+	gui.MaxDistance = Props.BOARD_DISTANCE
 	gui.Adornee = board
 	gui.Parent = board
 	-- The light face covers the skin's cream panel (and its divider), like the Upcoming Events board.

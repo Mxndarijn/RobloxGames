@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local GooPalette = require(ReplicatedStorage.Shared.GooPalette)
+local LabelFit = require(ReplicatedStorage.Lib.ui.LabelFit)
 local Ritual = require(ReplicatedStorage.Shared.Ritual)
 local RitualLook = require(ReplicatedStorage.Visuals.RitualLook)
 
@@ -74,6 +75,7 @@ end
 -- The orb's label (canvas GooWorldSigns "Ritual label"): the phase in outlined white Fredoka, the count or the
 -- timer on a flat Ink pill with a mint edge under it. Pixel-sized, so it stays the same size on screen at any range;
 -- it hides past Ritual.labelDistance studs from the camera (shorter on phones, set by visuals/client/RitualFx).
+RitualView.SIGN_MAX_DISTANCE = 80 -- studs: the rules sign is read standing at the circle
 RitualView.LABEL = table.freeze({ w = 300, h = 96, title = 34, titleSize = 30, line = 32, lineSize = 20, gap = 8 })
 
 local function corner(parent: Instance, radius: UDim)
@@ -170,6 +172,7 @@ function RitualView.setup(): Model?
 	gui.MaxDistance = Ritual.labelDistance(nil)
 	gui.AlwaysOnTop = false
 	gui.LightInfluence = 0
+	LabelFit.mark(gui) -- each client shrinks it on a phone; RitualFx sets the phone range
 	gui.Parent = core
 	title, line = buildLabel(gui)
 
@@ -188,6 +191,7 @@ function RitualView.setup(): Model?
 	face.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	face.PixelsPerStud = 50
 	face.LightInfluence = 0
+	face.MaxDistance = RitualView.SIGN_MAX_DISTANCE
 	face.Parent = board
 	-- A glass card with the rule in Nunito, like the canvas's rule card under the ritual label.
 	local card = Instance.new("Frame")

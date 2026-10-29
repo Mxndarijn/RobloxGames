@@ -39,6 +39,10 @@ function GameLoop.step(world: World.World, now: number, ctx: (BossEvent.Context 
 		world.lastSecondAt = now -- the clock stepped back: restart the one-second tick from here
 	elseif elapsed >= 1 then
 		world.lastSecondAt = now
+		for _, session in world.sessions do
+			local stats = session.data.stats
+			stats.playSeconds = (stats.playSeconds or 0) + math.min(elapsed, 5) -- a long server hitch is not play time
+		end
 		Income.step(world, elapsed, now)
 		TutorialService.tick(world, ctx)
 		Milestones.step(world, now)

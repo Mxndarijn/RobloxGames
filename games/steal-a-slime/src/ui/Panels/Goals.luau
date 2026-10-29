@@ -9,9 +9,12 @@
 	next target right), and one fixed right slot (Layout.ROW_SLOT): the reward in a sunken Ink well, or for a
 	finished quest the gold "Claim $100" button. A finished goal sinks to the bottom of its section, faded,
 	with a green "Done" (or "Claimed") well in that slot.
+	While the daily reward waits, a "Daily reward" row with a gold Open button heads the quests (its popup can be
+	closed or switched off in Settings).
 ]]
 
 local UI = script.Parent.Parent
+local Format = require(UI.Format)
 local Goals = require(UI.Goals)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
@@ -57,11 +60,13 @@ local TOP = table.freeze({
 })
 
 -- Section order in the list: quests, then goals.
-local ORDER = table.freeze({ questHeader = -100, quest = -90, claimedQuest = -60, goalHeader = -10 })
+local ORDER = table.freeze({ questHeader = -100, daily = -95, quest = -90, claimedQuest = -60, goalHeader = -10 })
 
 -- What a row's right slot says (Layout.ROW_SLOT).
 GoalsPanel.DONE = "✅ Done"
 GoalsPanel.CLAIMED = "✅ Claimed"
+GoalsPanel.DAILY_TITLE = "Daily reward"
+GoalsPanel.DAILY_OPEN = "Open"
 
 -- The Claim button's label: the cash it pays ("Claim $100"), or "Claim boost" for a timed boost.
 function GoalsPanel.claimText(reward: string, boost: boolean): string
@@ -295,6 +300,36 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	}, Theme.Muted)
 	local goalHeader = headingRow("GoalHeader", "Milestones", ORDER.goalHeader)
 
+	-- The daily reward while it waits: its popup can be closed or switched off in Settings, so it is always one tap
+	-- away here too ("Open" shows the popup with its Claim).
+	local daily = rowParts(
+		newRowFrame("DailyReward", Theme.BgLight),
+		"DailyTitle",
+		ItemIcons.forGoal(ItemIcons.of(ctx), "Daily"),
+		ctx
+	)
+	daily.instance.LayoutOrder = ORDER.daily
+	icons.DailyReward = daily.icon
+	local slot = Layout.ROW_SLOT
+	local openDaily = Widgets.button(
+		{
+			Name = "OpenDaily",
+			Text = GoalsPanel.DAILY_OPEN,
+			TextSize = ROW.reward,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -ROW.pad, 0.5, 0),
+			Size = UDim2.fromOffset(slot.w, slot.h),
+		},
+		Theme.Gold,
+		function()
+			if ctx.openDaily then
+				ctx.openDaily()
+			end
+		end
+	)
+	openDaily.instance.Parent = daily.instance
+	setSlot(daily, nil, Theme.Gold)
+
 	local self = { frame = panel.frame, close = panel.close }
 
 	function self.setOpen(open: boolean)
@@ -312,6 +347,13 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		rows.sync(Goals.sorted(goals))
 		local quests, resets = Goals.quests(state.dailyQuests)
 		questHeader.Parent = if #quests > 0 then list else nil
+		local reward = state.daily
+		local ready = type(reward) == "table" and reward.available == true
+		daily.instance.Parent = if ready then list else nil
+		if ready then
+			local amount = if type(reward.amount) == "number" then Format.formatCash(reward.amount) else ""
+			paintRow(daily, GoalsPanel.DAILY_TITLE, false, 1, `Ready to claim {amount}`, nil)
+		end
 		goalHeader.Parent = if #goals > 0 then list else nil
 		headerReset.Text = resets
 		questRows.sync(Goals.sortedQuests(quests))

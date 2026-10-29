@@ -7,10 +7,10 @@
 import math
 
 from lib import blob, box, cone, cylinder, shade, tube
-from models._base_design_common import floor_top, polar
+from models._base_design_common import EXIT_TUBE_R, floor_top, polar
 
 GOO_R = 0.55          # the goo stream inside a tube
-TUBE_R = 2.0          # tube radius (a player is about 2 wide)
+TUBE_R = EXIT_TUBE_R
 
 
 def _arrow_sign(name, pos, facing_deg, board, ink):
@@ -82,8 +82,9 @@ def factory(style, top, L, col, pool=True):
         solid += _pool("Pool", L.CHUTE_X + 1.5, pts[-1][1] + (3 if pts[-1][1] > 0 else -3), col["metal"], col["goo"])
         solid += _arrow_sign("Sign", (L.HALF + 0.5, y + 3.2, zh + 2.0), 0, col["board"], col["ink"])
     elif style == "pipe":
-        path = [(x0 - 0.5, y, zh), (xs - 1.6, y, zh), (xs, y, zh - 1.6), (xs, y, 3.0), (xs + 1.6, y, 1.6), (xs + 2.6, y, 1.6)]
-        solid.append(tube("ExitPipe", path, [TUBE_R + 0.2] * len(path), col["metal"], segs=20, twist_free=True))
+        path = L.pipe_path(top)
+        xs, zh = path[2][0], path[0][2]    # the pipe's upright and its arm's height, from the layout
+        solid.append(tube("ExitPipe", path, [L.PIPE_R] * len(path), col["metal"], segs=20, twist_free=True))
         for k, zz in enumerate(range(int(zh) - 4, 4, -6)):
             solid.append(tube(f"Ring{k}", [(xs, y, zz - 0.35), (xs, y, zz + 0.35)], [TUBE_R + 0.55] * 2,
                               shade(col["metal"], 0.75), segs=20))
@@ -210,25 +211,8 @@ def pagoda(style, top, L, col, rider=True):
 
 
 # ---- the pagoda's exits that hug the caps (the old vine's path, no straight arm out of the hatch) ----
-CAP_END_A = 236.0            # where the path reaches the ground (between the hatch at 191 and the door at 270)
-
-
-def cap_path(L, top, n=10):
-    """The old vine's line, smoothed: out of the hatch, over the next cap's slope, round the eave and down at r 35.6."""
-    hx, hy, hz = L.hatch_pos(top)
-    a0 = L.HATCH_A
-    (ri, zt), (re, ze) = L.eave_profile(top - 1)
-    pts = [(hx, hy, hz - 0.3), (*polar(L.room_out(top) + 1.2, a0), hz - 1.2), (*polar(re + 1.8, a0 + 4), ze + 0.9)]
-    for k in range(1, n + 1):
-        t = k / n
-        a = a0 + 4 + (CAP_END_A - a0 - 4) * t
-        r = re + 1.8 + (35.6 - re - 1.8) * min(1.0, t * 3)
-        pts.append((*polar(r, a), (ze + 0.9) * (1 - t) ** 1.25 + 1.6 * t))
-    return pts
-
-
-def pagoda_cap_pool_at():
-    return polar(34.0, CAP_END_A + 7.0)
+def pagoda_cap_pool_at(L):
+    return polar(34.0, L.CAP_END_A + 7.0)
 
 
 def _box_along(name, p0, p1, w, th, col, up=0.0, side=0.0):
@@ -245,7 +229,7 @@ def _box_along(name, p0, p1, w, th, col, up=0.0, side=0.0):
 
 def pagoda_cap(style, top, L, col, rider=True):
     """captube: a see-through goo tube along the cap path; capslide: an open goo slide along it."""
-    pts = cap_path(L, top)
+    pts = L.cap_path(top)
     solid, glass = [], []
     if style == "captube":
         glass.append(tube("ExitGlass", pts, [TUBE_R] * len(pts), col["glass"], segs=18, twist_free=True))
@@ -269,7 +253,7 @@ def pagoda_cap(style, top, L, col, rider=True):
                 solid.append(_box_along(f"Rail{k}{sd}", a, b, 0.35, 1.5, col["cap"], up=0.7, side=sd * 1.75))
         if rider:
             solid.append(_slime_in("Rider", (pts[6][0], pts[6][1], pts[6][2] + 1.0), col["goo"]))
-    x, y = pagoda_cap_pool_at()
+    x, y = pagoda_cap_pool_at(L)
     solid += _pool("Pool", x, y, col["wood"], col["goo"], z=1.0)
     solid += _arrow_sign("Sign", (*polar(L.room_out(top) + 0.4, L.HATCH_A + 9.0), floor_top(top) + 6.5), L.HATCH_A,
                          col["board"], col["ink"])
