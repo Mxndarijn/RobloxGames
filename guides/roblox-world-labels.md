@@ -96,7 +96,7 @@ A stud or hybrid tag grows without bound as the camera comes closer. Cap it: com
 ## 5. Look and placement
 
 - `LightInfluence = 0` on every label: it stays readable at night and in shade.
-- `AlwaysOnTop = false` by default, so walls hide it. Use `true` only for labels about the viewer (Your plot, a thief on your base, a hit you landed) or with a sight check (LockTimerTag casts a ray, so glass doesn't hide it but walls do). An always-on-top label without a limit shows through the whole map.
+- `AlwaysOnTop = false` by default, so walls hide it. Use `true` only for labels about the viewer (Your plot, a hit you landed) or with a sight check (LockTimerTag casts a ray, so glass doesn't hide it but walls do). An always-on-top label without a limit shows through the whole map.
 - Anchor with `SizeOffset`: `(0, 0.5)` puts the bottom edge on the anchor point (a tag above a head), `(0, -0.5)` hangs it below. Put the anchor on the object's top plus a small lift (1 to 2 studs) so the tag never hides the object.
 - `StudsOffsetWorldSpace` for "above this object", `StudsOffset` only for camera-relative pops.
 - Text: Fredoka/Nunito bold, an Ink `UIStroke` (2 to 3 px) round white text, `TextScaled` with a `UITextSizeConstraint` (max) so a long name shrinks instead of overflowing.
