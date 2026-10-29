@@ -11,3 +11,4 @@ sourcemap.json
 !animations/*.rbxmx
 tools/slimesim/out/
 tools/slimecam/out/
+tools/walkcheck/out/
