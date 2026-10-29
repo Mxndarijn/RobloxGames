@@ -49,11 +49,11 @@ export type PartLook = { color: Color3, material: Enum.Material, transparency: n
 -- run time, not at load.
 function LockPadRing.partLooks(): { [string]: PartLook }
 	local out: { [string]: PartLook } = {}
-	for name, look in LockPadRing.LOOKS do
+	for name, l in LockPadRing.LOOKS do
 		out[name] = {
-			color = Color3.fromRGB(look.rgb[1], look.rgb[2], look.rgb[3]),
-			material = (Enum.Material :: any)[look.material],
-			transparency = look.transparency,
+			color = Color3.fromRGB(l.rgb[1], l.rgb[2], l.rgb[3]),
+			material = (Enum.Material :: any)[l.material],
+			transparency = l.transparency,
 		}
 	end
 	return out
