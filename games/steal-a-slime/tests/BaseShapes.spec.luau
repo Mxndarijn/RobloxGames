@@ -389,3 +389,146 @@ describe("base shapes: the pagoda's stair turret counts as inside", function()
 		expect(pagoda.inside(3, 0, 34)).toBe(false)
 	end)
 end)
+
+-- The round Exclusive bases share one inside (kit models/_round_base_layout.py): a centre spiral ramp, 8 pads a
+-- floor on a ring, the door, vat and lock on floor 1's front, the owner hatch on floors 2-4, the roof on the top floor.
+local ROUND = { "carousel", "rocket", "treehouse", "lighthouse", "snowglobe" }
+
+local function padsOf(data, f: number)
+	local out = {}
+	for _, pad in data.pads do
+		if math.ceil(pad.j / Config.PADS_PER_FLOOR) == f then
+			table.insert(out, pad)
+		end
+	end
+	return out
+end
+
+describe("base shapes: the round Exclusive bases' generated layouts", function()
+	for _, id in ROUND do
+		local data = BaseShapes.data(id)
+		it(`{id}: has its own data and shape`, function()
+			expect(data ~= nil).toBe(true)
+			expect(data.id).toBe(id)
+			expect(BaseShapes.get(id).id).toBe(id)
+			expect(BaseShapes.get(id).route).toBe(false)
+		end)
+		it(`{id}: keeps the pads clear of the room wall, the ramp shaft and each other on every floor`, function()
+			local shaft = 0
+			for _, r in data.ramps do
+				shaft = math.max(shaft, r.r_out)
+			end
+			for f = 1, #Config.BASE_FLOORS do
+				local pads = padsOf(data, f)
+				expect(#pads).toBe(Config.PADS_PER_FLOOR)
+				local room = data.inside.radii[f]
+				for a = 1, #pads do
+					local r = math.sqrt(pads[a].x ^ 2 + pads[a].z ^ 2)
+					expect(room - r - PAD / 2 * math.sqrt(2) >= GAP).toBe(true)
+					expect(r - PAD / 2 * math.sqrt(2) - shaft >= GAP - 1.5).toBe(true)
+					for b = a + 1, #pads do
+						local d = math.sqrt((pads[a].x - pads[b].x) ^ 2 + (pads[a].z - pads[b].z) ^ 2)
+						expect(d - PAD >= GAP - 0.1).toBe(true)
+					end
+				end
+			end
+		end)
+		it(`{id}: climbs a centre helix at least 4 wide and no steeper than 32 degrees, one per floor`, function()
+			expect(#data.ramps).toBe(#Config.BASE_FLOORS - 1)
+			for k, r in data.ramps do
+				expect(r.kind).toBe("helix")
+				expect(r.r_out - r.r_in >= 4).toBe(true)
+				local walk = (r.r_in + r.r_out) / 2
+				expect(math.deg(math.atan2(r.rise, math.rad(r.sweep) * walk)) <= 32).toBe(true)
+				expect(math.abs(r.y0 - WorldLayout.floorTop(k)) < 1e-3).toBe(true)
+				expect(math.abs(r.y0 + r.rise - WorldLayout.floorTop(k + 1)) < 1e-3).toBe(true)
+			end
+		end)
+		it(`{id}: stays inside the moat and puts the vat and lock inside the door, the spawn in floor 1`, function()
+			for _, p in data.parts do
+				if p.collide and p.role ~= "mascot" then
+					for _, c in corners(p) do
+						expect(math.sqrt(c[1] ^ 2 + c[2] ^ 2) <= MOAT_IN + 1e-3).toBe(true)
+					end
+				end
+			end
+			local shape = BaseShapes.get(id)
+			for _, spot in { data.vat, data.lockButton, data.spawn } do
+				expect(spot[2] > data.door.z + 1).toBe(true)
+				expect(shape.inside(1, spot[1], spot[2])).toBe(true)
+			end
+			expect(data.spawn[1]).toBe(WorldLayout.SPAWN_SPOT[1])
+		end)
+		it(`{id}: has a drop hatch on floors 2-4 and its roof only on the top floor`, function()
+			local shape = BaseShapes.get(id)
+			for f = 2, #Config.BASE_FLOORS do
+				local hatch, roofHere = nil, false
+				for _, child in shape.floor(1, f)[1].children :: { any } do
+					if child.name == "DropHatch" then
+						hatch = child
+					end
+					if
+						string.sub(child.name, 1, 4) == "Roof" and not (child.attributes and child.attributes.MeshAsset)
+					then
+						roofHere = true
+					end
+				end
+				expect(hatch ~= nil).toBe(true)
+				-- floors 2-3 keep their roof in the TopColliders folder; floor 4 is always the top one
+				expect(roofHere).toBe(f == #Config.BASE_FLOORS)
+			end
+			local roof = (shape.top :: any)(1, 2)
+			expect(roof.name).toBe("TopColliders")
+			local pieces = 0
+			for _, child in roof.children do
+				if string.sub(child.name, 1, 4) == "Roof" then
+					pieces += 1
+				end
+			end
+			expect(pieces > 0).toBe(true)
+		end)
+		it(`{id}: counts the ramp shaft as inside and the moat as outside, on every floor`, function()
+			local shape = BaseShapes.get(id)
+			for f = 1, #Config.BASE_FLOORS do
+				expect(shape.inside(f, 0, 4.8)).toBe(true)
+				expect(shape.inside(f, 0, -(data.inside.radii[f] - 1))).toBe(true)
+				expect(shape.inside(f, 0, -(data.inside.radii[f] + 2))).toBe(false)
+				expect(shape.inside(f, 36, 0)).toBe(false)
+				local y = WorldLayout.floorTop(f) + 4
+				expect(PlotLockGuard.insideJar(0, y, 4.8, shape.guard :: any, #Config.BASE_FLOORS, true)).toBe(true)
+			end
+		end)
+	end
+end)
+
+describe("base shapes: jar -> each round base -> jar", function()
+	it("moves the jar's door to each base's wall and builds its own pieces, keeping the pads", function()
+		withRoblox(function()
+			local plot = WorldBuilder.ensure(roblox.Instance.new("Folder"), WorldLayout.plotNode(1))
+			local pad1 = plot:FindFirstChild("Pad_1")
+			local jarRing = plot:FindFirstChild("DoorRing").CFrame
+			local from = nil
+			for _, id in ROUND do
+				local data = BaseShapes.data(id)
+				WorldBuilder.rebase(plot, 1, from, id)
+				from = id
+				expect(plot:FindFirstChild("BaseShape"):GetAttribute("PlotBase")).toBe(id)
+				expect(plot:FindFirstChild("Jar")).toBeNil()
+				expect(plot:FindFirstChild("FootLook"):GetAttribute("MeshAsset")).toBe("goo_jar_foot")
+				local moved = jarRing:PointToObjectSpace(plot:FindFirstChild("DoorRing").CFrame.Position)
+				local shift = (WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL / 2) + data.door.z
+				expect(math.abs(moved.Magnitude - math.abs(shift)) < 1e-3).toBe(true)
+				expect(plot:FindFirstChild("OpenDoorCollider") ~= nil).toBe(true)
+				expect(plot:FindFirstChild("Pad_1")).toBe(pad1)
+				local at = WorldLayout.plotFrame(1)
+				local want = at({ data.pads[1].x, 0, data.pads[1].z })
+				expect(math.abs(pad1.CFrame.Position.X - want[1]) < 1e-3).toBe(true)
+				expect(math.abs(pad1.CFrame.Position.Z - want[3]) < 1e-3).toBe(true)
+			end
+			WorldBuilder.rebase(plot, 1, from, nil)
+			expect(plot:FindFirstChild("BaseShape")).toBeNil()
+			expect(plot:FindFirstChild("Jar") ~= nil).toBe(true)
+			expect((plot:FindFirstChild("DoorRing").CFrame.Position - jarRing.Position).Magnitude < 1e-3).toBe(true)
+		end)
+	end)
+end)
