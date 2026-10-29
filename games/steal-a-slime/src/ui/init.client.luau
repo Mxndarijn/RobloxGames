@@ -392,7 +392,7 @@ local stealFx = StealAlertFx.new(gui, {
 	serverNow = serverNow,
 })
 local carry = CarryPanel.new(gui, ctx)
-local bossMeter = BossMeterPanel.new(gui, ctx)
+local bossMeter = BossMeterPanel.new(gui, ctx, hud.stealCards)
 local dailyPopup = DailyPopup.new(gui, ctx)
 local tutorial = TutorialCard.new(gui, ctx, 2) -- just above the hotbar
 ctx.tutorial = tutorial -- the Guide offers "Show the tutorial again" and Skip
@@ -675,15 +675,19 @@ local function panelState(key: string, realState: any): any
 	return view
 end
 
--- The tutorial card steps aside for an open menu card, the daily popup and the open bag panel.
+-- The tutorial card and the top notices step aside for an open menu card, the daily popup and the open bag panel.
 local function syncTutorial()
 	-- Settings: "Tutorial hints" off hides the card for good (the server still tracks the step).
 	local hintsOff = not PlayerSettings.on(player, "tutorialHints")
 	tutorial.setMenuOpen(hintsOff or not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
+	-- The top notices (banners, boss card, thief arrow) step aside for the same overlays, so none covers a card.
+	local noticesHidden = not MenuState.noticesVisible(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+	hud.setMenuOpen(noticesHidden)
+	bossMeter.setMenuOpen(noticesHidden)
+	stealFx.setMenuOpen(noticesHidden)
 	-- Visuals' edge arrows and the Your plot tag step aside while a menu, a popup or the bag covers the screen.
-	local menuOpen = openKey ~= nil or dailyPopup.isOpen() or inventory.panelOpen()
-	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, menuOpen)
-	menuMouse.setOpen(menuOpen)
+	gui:SetAttribute(Constants.MENU_OPEN_ATTRIBUTE, noticesHidden)
+	menuMouse.setOpen(noticesHidden)
 end
 
 local function syncMenus()
@@ -725,7 +729,6 @@ local function syncMenus()
 			pumpPopups(latest)
 		end
 	end
-	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
 	syncTutorial()
 	backdrop.Visible = visibleKey ~= nil
@@ -1235,7 +1238,10 @@ function applyLayout()
 	screen = s
 	hud.layout(s)
 	inventory.layout(s, GuiService:GetGuiInset())
-	stealFx.layout(s, hud.bannerHeight)
+	-- The thief arrow keeps under the whole top stack: the banners and, during a boss, the boss card.
+	stealFx.layout(s, function(): number
+		return math.max(hud.bannerHeight(), bossMeter.stackHeight())
+	end)
 	bossMeter.layout(s, hud.bannerHeight)
 	carry.layout(s)
 	tutorial.layout(s)

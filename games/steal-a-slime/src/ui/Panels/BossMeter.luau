@@ -7,11 +7,16 @@
 	it is your moment, muted when it got away) with the crown on a round tile at the left. Two lines beside it: the
 	title with an Ink timer chip at the right, then the goo meter and its percent (or a name instead) and one Ink pill
 	that says what matters now.
+
+	During the boss this is the one card at the top: the steal cards fold into a strip across its top
+	(StealCards.strip, "Ann and Bo are stealing your slimes! · Chase them") in the card kind's colour. An open overlay
+	(menu card, daily popup, bag panel) hides the card (`setMenuOpen`).
 ]]
 
 local UI = script.Parent.Parent
 local BossMeterLogic = require(UI.BossMeterLogic)
 local Layout = require(UI.Layout)
+local StealCards = require(UI.StealCards)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -30,9 +35,14 @@ local SIZE = table.freeze({
 	pill = 15,
 	pillWidth = 118,
 	pillHeight = 28,
+	strip = 30, -- the alarm strip across the top
+	stripText = 17,
+	stripPad = 10, -- text inset inside the strip
+	stripRadius = 10,
 })
 
 local HEIGHT = SIZE.pad + SIZE.line1 + SIZE.lineGap + SIZE.line2 + SIZE.pad
+local STRIP_HEIGHT = SIZE.pad + SIZE.strip -- what the strip adds on top (the body keeps its own top pad)
 
 -- Ring and tile colour per BossMeterLogic tone; the meter's goo.
 local RING = table.freeze({ fight = Theme.Bad, gold = Theme.Gold, mute = Theme.Info })
@@ -48,7 +58,8 @@ local PILL = table.freeze({
 
 local BossMeter = {}
 
-function BossMeter.new(parent: Instance, ctx: any)
+-- `steals` (optional): the HUD's StealCards, folded into the alarm strip while the card shows.
+function BossMeter.new(parent: Instance, ctx: any, steals: StealCards.StealCards?)
 	local z = Layout.ZINDEX.Banners
 	local frame, ring = Widgets.noticeCard({
 		Name = "BossMeter",
@@ -59,13 +70,42 @@ function BossMeter.new(parent: Instance, ctx: any)
 		ZIndex = z,
 		Parent = parent,
 	}, Theme.Bad)
+	-- The boss rows; they move down under the alarm strip when it shows.
+	local body = Widgets.create("Frame", {
+		Name = "Body",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, HEIGHT),
+		ZIndex = z,
+		Parent = frame,
+	})
+	local strip = Widgets.create("Frame", {
+		Name = "StealStrip",
+		Visible = false,
+		BackgroundColor3 = Theme.Bad,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(SIZE.pad, SIZE.pad),
+		Size = UDim2.new(1, -2 * SIZE.pad, 0, SIZE.strip),
+		ZIndex = z,
+		Parent = frame,
+	}, { Widgets.corner(SIZE.stripRadius), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
+	local stripText = Widgets.label({
+		Name = "StealText",
+		Font = Theme.Font,
+		TextSize = SIZE.stripText,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		Position = UDim2.fromOffset(SIZE.stripPad, 0),
+		Size = UDim2.new(1, -2 * SIZE.stripPad, 1, 0),
+		ZIndex = z,
+		Parent = strip,
+	})
 	-- The round crown tile; the icon is the tile's own text.
 	local tile = Widgets.noticeIcon({
 		Name = "IconTile",
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, SIZE.pad, 0.5, 0),
 		ZIndex = z,
-		Parent = frame,
+		Parent = body,
 	}, BossMeterLogic.ICON, Theme.Bad)
 	local icon = tile
 
@@ -79,7 +119,7 @@ function BossMeter.new(parent: Instance, ctx: any)
 		Position = UDim2.new(1, -SIZE.pad - 4, 0, line1Y),
 		Size = UDim2.fromOffset(0, SIZE.timerHeight),
 		ZIndex = z,
-		Parent = frame,
+		Parent = body,
 	}, Theme.Gold)
 	local title = Widgets.label({
 		Name = "Title",
@@ -89,7 +129,7 @@ function BossMeter.new(parent: Instance, ctx: any)
 		Position = UDim2.fromOffset(leftX, line1Y),
 		Size = UDim2.new(1, -leftX - SIZE.pad - 80, 0, N.title + 4), -- 80: room for the timer chip
 		ZIndex = z,
-		Parent = frame,
+		Parent = body,
 	})
 
 	-- Line 2, right to left: the pill, the percent, then the meter (or the name) fills what is left.
@@ -102,7 +142,7 @@ function BossMeter.new(parent: Instance, ctx: any)
 		Position = UDim2.new(1, -SIZE.pad - 4, 0, midY),
 		Size = UDim2.fromOffset(SIZE.pillWidth, SIZE.pillHeight),
 		ZIndex = z,
-		Parent = frame,
+		Parent = body,
 	})
 	local pctRight = SIZE.pad + 4 + SIZE.pillWidth + N.gap
 	local percent = Widgets.label({
@@ -114,11 +154,11 @@ function BossMeter.new(parent: Instance, ctx: any)
 		Position = UDim2.new(1, -pctRight, 0, midY),
 		Size = UDim2.fromOffset(SIZE.percentWidth, SIZE.percent + 6),
 		ZIndex = z,
-		Parent = frame,
+		Parent = body,
 	})
 	local barRight = pctRight + SIZE.percentWidth + N.gap
 	local bar, setBar = Widgets.bar(
-		frame,
+		body,
 		Theme.Good,
 		UDim2.new(1, -leftX - barRight, 0, SIZE.bar),
 		UDim2.fromOffset(leftX, midY - SIZE.bar / 2)
@@ -138,12 +178,15 @@ function BossMeter.new(parent: Instance, ctx: any)
 		Position = UDim2.fromOffset(leftX, midY),
 		Size = UDim2.new(1, -leftX - pctRight, 0, N.sub + 6),
 		ZIndex = z,
-		Parent = frame,
+		Parent = body,
 	})
 
 	local boss: any = nil
 	local badgesBefore: number? = nil -- the player's boss badges before this fight, for the win's "+1 badge"
 	local top = Layout.TOP
+	local width = Layout.BANNER_WIDTH
+	local hidden = false -- an overlay is open
+	local stripSig = "" -- what the strip last showed (kind|text|hint|width), so a steady line is not rebuilt each frame
 	local bannerHeight: () -> number = function()
 		return 0
 	end
@@ -154,7 +197,39 @@ function BossMeter.new(parent: Instance, ctx: any)
 	function self.layout(screen: Layout.Screen, heightOfBanners: (() -> number)?)
 		top = screen.banners.y
 		bannerHeight = heightOfBanners or bannerHeight
-		frame.Size = UDim2.fromOffset(math.round(screen.banners.w), HEIGHT) -- as wide as the notice cards
+		width = math.round(screen.banners.w) -- as wide as the notice cards
+		frame.Size = UDim2.fromOffset(width, frame.Size.Y.Offset)
+	end
+
+	-- The strip's line: the hint goes when the whole line would not fit.
+	local function stripLine(view: any): string
+		local glyph = StealCards.ICON[view.kind]
+		local line = `{glyph} {view.text}`
+		if view.hint then
+			local full = `{line} · {view.hint}`
+			local room = width - 2 * SIZE.pad - 2 * SIZE.stripPad
+			if Layout.lineWidth(full, SIZE.stripText, true) <= room then
+				return full
+			end
+		end
+		return line
+	end
+
+	-- How far the top stack reaches with this card in it (layout px from the stack's top), 0 while it is hidden:
+	-- the thief arrow keeps under it.
+	function self.stackHeight(): number
+		if not frame.Visible then
+			return 0
+		end
+		return frame.Position.Y.Offset - top + frame.Size.Y.Offset
+	end
+
+	-- An open overlay (MenuState.noticesVisible) hides the card; closing it brings it back.
+	function self.setMenuOpen(isOpen: boolean)
+		if hidden ~= isOpen then
+			hidden = isOpen
+			self.tick(ctx.serverNow())
+		end
 	end
 
 	function self.update(state: any)
@@ -168,9 +243,27 @@ function BossMeter.new(parent: Instance, ctx: any)
 
 	function self.tick(now: number)
 		local view = BossMeterLogic.view(boss, now, badgesBefore)
-		frame.Visible = view ~= nil
+		if steals then
+			steals.setFolded(view ~= nil)
+		end
+		frame.Visible = view ~= nil and not hidden
 		if not view then
 			return
+		end
+		local alarm = if steals then steals.strip(now) else nil
+		local sig = if alarm then `{alarm.kind}|{alarm.text}|{alarm.hint or ""}|{width}` else `|{width}`
+		if sig ~= stripSig then
+			stripSig = sig
+			strip.Visible = alarm ~= nil
+			if alarm then
+				local color = StealCards.COLOR[alarm.kind]
+				strip.BackgroundColor3 = color
+				stripText.Text = stripLine(alarm)
+				Widgets.inkOn(stripText, color)
+			end
+			local lift = if alarm then STRIP_HEIGHT else 0
+			body.Position = UDim2.fromOffset(0, lift)
+			frame.Size = UDim2.fromOffset(width, HEIGHT + lift)
 		end
 		local height = bannerHeight()
 		frame.Position = UDim2.new(0.5, 0, 0, top + (if height > 0 then height + N.stack else 0))
