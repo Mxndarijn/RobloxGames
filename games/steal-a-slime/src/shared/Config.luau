@@ -1698,6 +1698,9 @@ local Config = {
 		PLAYER_COOLDOWN = 600, -- seconds before the same player can count again
 		BLESS_SECONDS = 180,
 		BONUS = table.freeze({ [2] = 0.3, [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants; tiers above SPOTS stay as data but can't be reached (Ritual.bonus caps at SPOTS)
+		LABEL_DISTANCE = 60, -- studs from the camera: the orb's label hides further away (Ritual.labelDistance)
+		LABEL_SMALL_VIEWPORT_PX = 500, -- a viewport shorter than this (a phone) uses LABEL_DISTANCE_SMALL
+		LABEL_DISTANCE_SMALL = 40, -- studs: the pixel-sized label covers more of a small screen
 	}),
 
 	-- Follow-pet passives (Perks.petPassive, CONTRACT.md §14). The kind comes from the favourite slime's tier;
