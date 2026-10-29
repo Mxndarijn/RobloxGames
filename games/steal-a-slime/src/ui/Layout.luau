@@ -50,7 +50,7 @@ export type Screen = {
 	status: StatusHud, -- bottom-right: event timers + friend boost (above the touch inset)
 	hotbar: Rect, -- S3 inventory hotbar zone: bottom-centre between the clusters (above them on a narrow phone)
 	banners: Rect,
-	sound: Rect, -- FEATURES.Audio button: the top-right slot a menu's X would use (hidden while a menu is open)
+	settings: Rect, -- the Settings gear: the top-right slot a menu's X would use (hidden while a menu is open)
 	nav: Rect,
 	navButtons: { Rect }, -- Nav.ENTRIES order (a tile and its label)
 	column: Rect, -- right of the nav, above the bottom cards
@@ -620,6 +620,8 @@ Layout.NAV_TILE_Z = table.freeze({ goo = 0, icon = 1, text = 2 })
 -- Nav badge chip: top-right corner of its button, inset so it never leaves the
 -- button (init.client builds the same numbers).
 Layout.NAV_BADGE = table.freeze({ inset = 2, height = 16, minWidth = 16, textSize = 11, padding = 4 })
+-- The mute badge on the Settings gear's corner (design px square).
+Layout.SETTINGS_BADGE = 22
 
 function Layout.navBadge(button: Rect, text: string): Rect
 	local b = Layout.NAV_BADGE
@@ -763,7 +765,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	ExclusiveShop = 600, -- a list menu: tabs, the card grid and the pane fill the window
 	Admin = 600, -- a list menu: tabs and the command rows fill the window
 	Codes = 300,
-	Sound = 291,
+	Settings = 560, -- a list menu: tabs and the setting rows fill the window
 	Guide = 380,
 	Welcome = 380,
 })
@@ -1027,7 +1029,7 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		status = status,
 		hotbar = hotbar,
 		banners = banners,
-		sound = wideClose,
+		settings = wideClose,
 		nav = nav,
 		navButtons = Layout.navButtons(compact, nav, nil, columns),
 		column = column,

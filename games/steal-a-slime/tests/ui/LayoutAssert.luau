@@ -29,10 +29,10 @@ local Format = require("../../src/ui/Format")
 local GuideTips = require("../../src/ui/GuideTips")
 local Hint = require("../../src/ui/Hint")
 local HudClusters = require("../../src/ui/HudClusters")
-local Icons = require("../../src/ui/Icons")
 local InventoryLayout = require("../../src/ui/InventoryLayout")
 local Layout = require("../../src/ui/Layout")
 local Nav = require("../../src/ui/Nav")
+local PlayerSettings = require("../../src/shared/PlayerSettings")
 local Remotes = require("../../src/shared/Remotes")
 local Shops = require("../../src/shared/Shops")
 local SlimeDex = require("../../src/ui/SlimeDex")
@@ -124,11 +124,48 @@ export type Checker = {
 	report: () -> string,
 }
 
+-- Panels/Settings' sizes and copy (LayoutAssert.spec checks them against the module).
+local SettingsPanel = {
+	STYLE = {
+		tabH = 40,
+		tabGap = 6,
+		tabSize = 18,
+		rowPad = 12,
+		icon = 30,
+		nameSize = 18,
+		nameH = 22,
+		hintSize = Layout.MIN_TEXT,
+		hintH = 18,
+		toggleW = 84,
+		choiceW = 76,
+		btnH = 40,
+		btnSize = 17,
+		btnGap = 6,
+		percentW = 64,
+		actionW = 120,
+		holdW = 150,
+		scrollBar = 10,
+	},
+	COPY = {
+		on = "On",
+		off = "Off",
+		replay = "Replay tutorial",
+		replayHint = "Walk through the first steps again",
+		replayButton = "Replay",
+		replayRunning = "Running",
+		version = "Game version",
+		reset = "Reset settings",
+		resetHint = "Your slimes and cash stay",
+		resetButton = "Hold to reset",
+	},
+}
+
 local LayoutAssert = {}
 
 -- The copied panel numbers, for the spec that checks them against the real panels.
 LayoutAssert.REBIRTH = RebirthPanel
 LayoutAssert.WORLD_SHOP = WorldShopPanel
+LayoutAssert.SETTINGS = SettingsPanel
 
 LayoutAssert.VIEWPORTS = table.freeze({
 	table.freeze({ name = "390x844", w = 390, h = 844 }),
@@ -876,21 +913,68 @@ function LayoutAssert.welcomeTexts(panel: Rect): { TextDesc }
 	}
 end
 
--- Sound card texts (Panels/Sound): the mute button in both states, the two slider names and their percent.
-function LayoutAssert.soundTexts(panel: Rect): { TextDesc }
+-- Settings card texts (Panels/Settings): the tab labels, every row's name and hint beside its controls, and the
+-- control texts in their buttons. Mirrors SettingsPanel.STYLE.
+function LayoutAssert.settingsTexts(panel: Rect): { TextDesc }
+	local S, C = SettingsPanel.STYLE, SettingsPanel.COPY
 	local w = Layout.panelBody(panel).w
+	local rowW = w - S.scrollBar
+	local x = S.rowPad + S.icon + 8
 	local out: { TextDesc } = {}
-	for _, muted in { true, false } do
-		local text = if muted then `{Icons.SOUND_OFF} Muted` else `{Icons.SOUND_ON} Sound on`
+	local tabs = PlayerSettings.TABS
+	local tabW = math.floor((w - S.tabGap * (#tabs - 1)) / #tabs)
+	local function row(name: string, title: string, hint: string?, right: number)
+		local textW = rowW - (x + right)
 		table.insert(
 			out,
-			{ name = `Sound mute ({text})`, text = text, size = 22, bold = true, w = w, h = Layout.BUTTON }
+			{ name = `Settings {name} name`, text = title, size = S.nameSize, bold = true, w = textW, h = S.nameH }
+		)
+		if hint then
+			table.insert(out, { name = `Settings {name} hint`, text = hint, size = S.hintSize, w = textW, h = S.hintH })
+		end
+	end
+	local function button(name: string, text: string, bw: number)
+		table.insert(
+			out,
+			{ name = `Settings {name}`, text = text, size = S.btnSize, bold = true, w = bw - 8, h = S.btnH }
 		)
 	end
-	for _, name in { "🎵 Music", "🔔 SFX" } do
-		table.insert(out, { name = `Sound {name}`, text = name, size = 18, bold = true, w = w * 0.7, h = 24 })
+	for _, tab in tabs do
+		table.insert(out, {
+			name = `Settings tab {tab.key}`,
+			text = `{tab.icon} {tab.label}`,
+			size = S.tabSize,
+			bold = true,
+			w = tabW - 8,
+			h = S.tabH,
+		})
+		for _, entry in tab.entries do
+			local def = PlayerSettings.schema.byId[entry.id]
+			if def.kind == "slider" then
+				row(entry.id, entry.name, nil, S.rowPad + S.percentW)
+			elseif def.kind == "choice" then
+				local n = #(def.choices :: { string })
+				row(entry.id, entry.name, entry.hint, S.rowPad + n * S.choiceW + (n - 1) * S.btnGap + S.btnGap)
+				for _, label in entry.labels or {} do
+					button(`{entry.id} {label}`, label, S.choiceW)
+				end
+			else
+				row(entry.id, entry.name, entry.hint, S.rowPad + S.toggleW + S.btnGap)
+			end
+		end
 	end
-	table.insert(out, { name = "Sound percent", text = "100%", size = 18, bold = true, w = w * 0.3, h = 24 })
+	button("on", C.on, S.toggleW)
+	button("off", C.off, S.toggleW)
+	row("replay", C.replay, C.replayHint, S.rowPad + S.actionW + S.btnGap)
+	button("replay", C.replayButton, S.actionW)
+	button("running", C.replayRunning, S.actionW)
+	row("version", C.version, "Player ID 9999999999", S.rowPad + S.actionW + S.btnGap)
+	row("reset", C.reset, C.resetHint, S.rowPad + S.holdW + S.btnGap)
+	button("reset", C.resetButton, S.holdW)
+	table.insert(
+		out,
+		{ name = "Settings percent", text = "100%", size = S.nameSize, bold = true, w = S.percentW, h = S.nameH }
+	)
 	return out
 end
 
@@ -902,7 +986,7 @@ LayoutAssert.PANEL_TITLES = table.freeze({
 	Goals = "Goals",
 	Dex = "SlimeDex",
 	Codes = "Codes",
-	Sound = "Sound",
+	Settings = "Settings",
 	Guide = "Guide",
 	Welcome = "Welcome back",
 	ExclusiveShop = "Exclusive shop",
@@ -917,7 +1001,7 @@ function LayoutAssert.menuKeys(): { string }
 	table.insert(keys, "WorldShop")
 	table.insert(keys, "ExclusiveShop")
 	table.insert(keys, "Inventory")
-	table.insert(keys, "Sound")
+	table.insert(keys, "Settings")
 	table.insert(keys, "Guide")
 	table.insert(keys, "Welcome")
 	return keys
@@ -1220,7 +1304,7 @@ function LayoutAssert.clusterChecks(check: Checker)
 			{
 				{ "Nav", screen.nav },
 				{ "Carry", screen.carry },
-				{ "Sound", screen.sound },
+				{ "Settings", screen.settings },
 				{ "Banners", screen.banners },
 			}
 		do
@@ -1279,7 +1363,7 @@ function LayoutAssert.hotbarChecks(check: Checker)
 			{ "Nav", screen.nav },
 			{ "Money", screen.money.rect },
 			{ "Status", screen.status.rect },
-			{ "Sound", screen.sound },
+			{ "Settings", screen.settings },
 			{ "Banners", screen.banners },
 			zones[1],
 			zones[2],
@@ -1400,16 +1484,16 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	end
 	check.noOverlap("Carry", screen.carry, "Nav", screen.nav)
 
-	-- The Sound button (FEATURES.Audio) sits where a menu's X would: tappable, clear of everything idle,
+	-- The Settings gear sits where a menu's X would: tappable, clear of everything idle,
 	-- and out of the bottom-right thumb zone (Roblox's jump button: the bottom TOUCH_CONTROLS_HEIGHT strip
 	-- plus a 120 px square above it).
-	check.onScreen("Sound", screen.sound, m)
-	check.touch("Sound", screen.sound)
+	check.onScreen("Settings", screen.settings, m)
+	check.touch("Settings", screen.settings)
 	local thumbSide = 120
 	local thumbTop = screen.height - Layout.TOUCH_CONTROLS_HEIGHT - thumbSide
 	check.noOverlap(
-		"Sound",
-		screen.sound,
+		"Settings",
+		screen.settings,
 		"JumpZone",
 		Layout.rect(screen.width - thumbSide, thumbTop, thumbSide, screen.height - thumbTop)
 	)
@@ -1420,7 +1504,7 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			{ "Banners", screen.banners },
 		}
 	do
-		check.noOverlap("Sound", screen.sound, other[1] :: string, other[2] :: Rect)
+		check.noOverlap("Settings", screen.settings, other[1] :: string, other[2] :: Rect)
 	end
 
 	-- Overlays.
@@ -1462,7 +1546,7 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			LayoutAssert.worldShopTexts(Layout.panelFor(panelScreen, "WorldShop")),
 			LayoutAssert.rebirthTexts(Layout.panelFor(panelScreen, "Rebirth")),
 			LayoutAssert.guideTexts(Layout.panelFor(panelScreen, "Guide")),
-			LayoutAssert.soundTexts(Layout.panelFor(panelScreen, "Sound")),
+			LayoutAssert.settingsTexts(Layout.panelFor(panelScreen, "Settings")),
 			LayoutAssert.welcomeTexts(Layout.panelFor(panelScreen, "Welcome")),
 		}
 	do

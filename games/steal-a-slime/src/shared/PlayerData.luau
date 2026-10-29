@@ -8,7 +8,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
-local AudioSettings = if script then require(script.Parent.AudioSettings) else require("./AudioSettings")
+local PlayerSettings = if script then require(script.Parent.PlayerSettings) else require("./PlayerSettings")
 local BossBadges = if script then require(script.Parent.BossBadges) else require("./BossBadges")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
@@ -63,6 +63,7 @@ export type Data = {
 	totalStolen: number,
 	speedCoil: boolean, -- Shop: Speed Coil owned
 	tutorialStep: number, -- TutorialProgress: 1..#STEPS, 0 = finished
+	tutorialReplay: boolean?, -- runtime only (never saved): a replay started from the Settings menu, so done steps are not skipped
 	-- v3 (CONTRACT.md §8.9)
 	upgrades: { [string]: number }, -- Config.UPGRADES id -> level
 	stats: Stats,
@@ -80,7 +81,7 @@ export type Data = {
 	mvpBonus: number?, -- runtime only (never saved): Boss Champion income bonus, also +BOSS.MVP_SPEED walk speed (BossCredit); nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
 	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
-	settings: AudioSettings.Settings, -- Sound card values (save v6; used only with FEATURES.Audio)
+	settings: PlayerSettings.Values, -- Settings menu values (save v6; PlayerSettings, missing ids -> defaults)
 	allowFriends: boolean?, -- the lock button's friends switch (FEATURES.FriendsInBase): true = friends pass a locked base; nil = off
 	consumables: Consumables, -- restocking shop purchases (added without a version bump)
 	pvp: Pvp, -- FEATURES.PvP owned items (PvpRules, CONTRACT.md §26; added without a version bump)
@@ -136,7 +137,7 @@ function PlayerData.new(): Data
 		boostMult = 1,
 		boostUntil = 0,
 		stealLog = {},
-		settings = AudioSettings.defaults(),
+		settings = PlayerSettings.defaults(),
 		consumables = { slot = 0, bought = {}, held = {} },
 		pvp = { tiers = {}, traps = {}, fun = {} },
 		boss = BossBadges.new(),

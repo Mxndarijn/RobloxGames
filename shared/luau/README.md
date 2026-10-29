@@ -27,6 +27,7 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | | `Suspicion` | pure, server | Points per player that drain over time and reach "pause" / "kick" levels |
 | `src/pad` | `RingPad` | pure | A round floor pad to stand on, in two styles: `"ring"` (one smooth circle, the light sweeps round) or `"pieces"` (curved pieces with even-width cuts, lit a piece at a time). Its block layout, who stands on it, a stand-to-activate timer, and how many segments a charge or countdown lights |
 | | `RingPadView` | adapter | Builds a RingPad as non-colliding parts (Model `Seg_<i>` per piece), places it on a floor point and yaw, and lights pieces 1..n in a named look; looks and a block template can be overridden |
+| `src/settings` | `SettingsSchema` | pure | A list of player settings (toggles, sliders, choices): defaults, cleaning saved values, checking values a client sends, applying changes |
 | `src/ui` | `MenuMouse` | adapter, client | Frees the cursor in first person / shift lock while the game says a menu is open (one hidden `Modal` button) |
 | `testing` | `TestRunner` | Lune only | describe / it / expect used by these specs; games can reuse it |
 

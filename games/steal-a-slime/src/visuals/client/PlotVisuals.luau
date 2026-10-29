@@ -21,6 +21,7 @@
 ]]
 
 local CollectionService = game:GetService("CollectionService")
+local GuiService = game:GetService("GuiService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,6 +29,7 @@ local RunService = game:GetService("RunService")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local Visuals = ReplicatedStorage:WaitForChild("Visuals")
+local EffectPrefs = require(Visuals:WaitForChild("EffectPrefs"))
 local Effects = require(Visuals:WaitForChild("Effects"))
 local PlotDecor = require(Visuals:WaitForChild("PlotDecor"))
 local PlotMascot = require(Visuals:WaitForChild("PlotMascot"))
@@ -294,13 +296,14 @@ local function tintEffect(): ColorCorrectionEffect
 	return c
 end
 
--- The Secret "fountain eruption": a splash burst on the crown, then ERUPTION_SECONDS of camera shake and sky tint.
+-- The Secret "fountain eruption": a splash burst on the crown, then ERUPTION_SECONDS of camera shake and sky tint
+-- (the tint only with Camera shake off or reduced motion on).
 -- Bound to render step (after the camera) only while it plays.
 local function erupt()
 	local crown = crater()
 	local splash = crown and crown:FindFirstChild("Eruption")
 	if splash and splash:IsA("ParticleEmitter") then
-		splash:Emit(Effects.EMITTERS.Eruption.count or 24)
+		splash:Emit(EffectPrefs.count(Effects.EMITTERS.Eruption.count or 24, EffectPrefs.isLow(Players.LocalPlayer)))
 	end
 	local tint = tintEffect()
 	local c = TopTierFx.TINT
@@ -313,7 +316,7 @@ local function erupt()
 		tint.TintColor = Color3.new(1, 1, 1):Lerp(tintColor, 0.35 * k)
 		tint.Saturation = TopTierFx.TINT_SATURATION * k
 		local camera = workspace.CurrentCamera
-		if camera and shake > 0 then
+		if camera and shake > 0 and EffectPrefs.cameraMoves(Players.LocalPlayer, GuiService) then
 			camera.CFrame = camera.CFrame * CFrame.new(math.sin(t * 47) * shake, math.sin(t * 61 + 1) * shake, 0)
 		end
 		if t >= TopTierFx.ERUPTION_SECONDS then

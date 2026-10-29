@@ -3,6 +3,7 @@ local Config = require("../src/shared/Config")
 local Leaderboard = require("../src/server/Leaderboard")
 local Leaderboards = require("../src/shared/Leaderboards")
 local PlayerData = require("../src/shared/PlayerData")
+local PlayerSettings = require("../src/shared/PlayerSettings")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -120,5 +121,95 @@ describe("Leaderboard.sessionRanks", function()
 	end)
 	it("leaves a player off a fully read board unranked", function()
 		expect(Leaderboard.sessionRanks(items, sessions, true)[7]).toBe(nil)
+	end)
+end)
+
+local HIDDEN = PlayerSettings.HIDDEN_NAME
+
+local function hiddenData(): PlayerData.Data
+	local data = PlayerData.new()
+	data.settings.showOnBoards = false
+	return data
+end
+
+describe("Leaderboard hidden players", function()
+	it("writes a player under h_ when they hide themselves", function()
+		expect(Leaderboard.prefixFor(PlayerData.new())).toBe("u_")
+		expect(Leaderboard.prefixFor(hiddenData())).toBe(Leaderboard.HIDDEN_PREFIX)
+		expect(Leaderboard.prefixFor({})).toBe("u_") -- no settings: the default shows the player
+	end)
+	it("removes the other prefix's key on the first write and whenever the prefix changes", function()
+		expect(Leaderboard.boardWrites(nil, "u_", 5)).toEqual({ set = "u_5", remove = "h_5" })
+		expect(Leaderboard.boardWrites("u_", "u_", 5)).toEqual({ set = "u_5" })
+		expect(Leaderboard.boardWrites("u_", "h_", 5)).toEqual({ set = "h_5", remove = "u_5" })
+		expect(Leaderboard.boardWrites("h_", "h_", 5)).toEqual({ set = "h_5" })
+		expect(Leaderboard.boardWrites("h_", "u_", 5)).toEqual({ set = "u_5", remove = "h_5" })
+	end)
+	it("shows h_ keys as the hidden name, without a userId and without a name lookup", function()
+		local asked = {}
+		local board = Leaderboard.fromPage({
+			{ key = "u_10", value = 500 },
+			{ key = "h_20", value = 400 },
+			{ key = "h_x", value = 350 },
+			{ key = "u_30", value = 300 },
+		}, function(userId)
+			table.insert(asked, userId)
+			return `N{userId}`
+		end, "Steals")
+		expect(board.entries).toEqual({
+			{ rank = 1, userId = 10, name = "N10", value = 500 },
+			{ rank = 2, userId = 0, name = HIDDEN, value = 400, hidden = true },
+			{ rank = 3, userId = 30, name = "N30", value = 300 },
+		})
+		expect(asked).toEqual({ 10, 30 })
+	end)
+	it("lists a player found under both prefixes once, hidden", function()
+		local board = Leaderboard.fromPage({
+			{ key = "u_10", value = 500 },
+			{ key = "h_10", value = 450 },
+			{ key = "u_20", value = 300 },
+		}, nameOf, "Steals")
+		expect(board.entries).toEqual({
+			{ rank = 1, userId = 0, name = HIDDEN, value = 500, hidden = true },
+			{ rank = 2, userId = 20, name = "N20", value = 300 },
+		})
+	end)
+	it("memory mode puts a hidden session under h_", function()
+		local a, b = PlayerData.new(), hiddenData()
+		a.totalEarned, b.totalEarned = 5, 50
+		local page = Leaderboard.pageFromSessions(
+			{ [1] = { userId = 1, data = a }, [2] = { userId = 2, data = b } },
+			"TotalEarned",
+			1
+		)
+		expect(page[1].key).toBe("h_2")
+		expect(page[2].key).toBe("u_1")
+		local board = Leaderboard.fromPage(page, nameOf, "TotalEarned")
+		expect(board.entries[1].name).toBe(HIDDEN)
+		expect(board.entries[1].userId).toBe(0)
+		expect(board.entries[2].name).toBe("N1")
+	end)
+	it("still ranks a hidden player's own session", function()
+		local items = { { key = "u_1", value = 90 }, { key = "h_2", value = 70 }, { key = "u_3", value = 60 } }
+		local ranks = Leaderboard.sessionRanks(items, { [2] = { userId = 2 }, [3] = { userId = 3 } }, true)
+		expect(ranks[2]).toBe(2)
+		expect(ranks[3]).toBe(3)
+		expect(Leaderboard.ranks(items, { [2] = true })).toEqual({ [2] = 2 })
+	end)
+	it("an online player's current setting wins over the stored key", function()
+		local page = { { key = "u_1", value = 90 }, { key = "h_2", value = 70 }, { key = "u_3", value = 60 } }
+		local sessions = {
+			[1] = { userId = 1, data = hiddenData() }, -- just turned it off, not saved yet
+			[2] = { userId = 2, data = PlayerData.new() }, -- just turned it back on
+		}
+		local board = Leaderboard.fromPage(page, nameOf, "Steals", sessions)
+		expect(board.entries).toEqual({
+			{ rank = 1, userId = 0, name = HIDDEN, value = 90, hidden = true },
+			{ rank = 2, userId = 2, name = "N2", value = 70 },
+			{ rank = 3, userId = 3, name = "N3", value = 60 },
+		})
+		local rows = Leaderboard.overlay(Leaderboard.rows(page), sessions)
+		expect(rows[1]).toEqual({ userId = 1, value = 90, hidden = true })
+		expect(rows[3].hidden).toBe(false)
 	end)
 end)

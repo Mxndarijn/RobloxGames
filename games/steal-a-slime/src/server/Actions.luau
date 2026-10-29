@@ -16,8 +16,8 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
-local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local PlayerSettings = if Shared then require(Shared.PlayerSettings) else require("../shared/PlayerSettings")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local HotbarOrder = if Shared then require(Shared.HotbarOrder) else require("../shared/HotbarOrder")
@@ -223,6 +223,12 @@ function Actions.parseArgs(action: string, raw: { any }): ({ any }?, string?)
 				return nil, "bad argument"
 			end
 			out[i] = value
+		elseif kind == "settings" then
+			local changes = PlayerSettings.parse(value)
+			if not changes then
+				return nil, "bad argument"
+			end
+			out[i] = changes
 		elseif kind == "kits" then
 			local kits = KitRequest.parse(value)
 			if not kits then
@@ -394,11 +400,9 @@ local function equipPetSeat(world: World, session: Session, id: string): Result
 	return OK
 end
 
-local function setAudioSettings(session: Session, music: number, sfx: number, muted: boolean, ctx: Context): Result
-	if not feature(ctx, "Audio") then
-		return fail("audio settings are off")
-	end
-	session.data.settings = AudioSettings.clean({ musicVolume = music, sfxVolume = sfx, muted = muted })
+-- Settings menu values (PlayerSettings): `changes` is already parsed (known ids, valid values only).
+local function setSettings(session: Session, changes: PlayerSettings.Values): Result
+	session.data.settings = PlayerSettings.apply(session.data.settings, changes)
 	return OK
 end
 
@@ -650,6 +654,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return buyPad(world, session)
 	elseif action == "SkipTutorial" then
 		return result(TutorialService.skip(world, session))
+	elseif action == "ReplayTutorial" then
+		return result(TutorialService.restart(world, session))
 	elseif action == "Daily" then
 		return daily(world, session, now)
 	elseif action == "ClaimQuest" then
@@ -666,8 +672,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return equipPlotBase(world, session, args[1], ctx)
 	elseif action == "EquipPetSeat" then
 		return equipPetSeat(world, session, args[1])
-	elseif action == "SetAudioSettings" then
-		return setAudioSettings(session, args[1], args[2], args[3], ctx)
+	elseif action == "SetSettings" then
+		return setSettings(session, args[1])
 	elseif action == "BuyConsumable" then
 		return shopTutorial(world, session, buyConsumable(world, session, args[1], args[2], now, ctx))
 	elseif action == "UseConsumable" then

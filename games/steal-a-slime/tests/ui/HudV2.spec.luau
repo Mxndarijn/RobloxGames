@@ -590,8 +590,8 @@ describe("H1 HUD: nothing new top-right / top-middle", function()
 			)
 			expect(s.money.rect.x).toBe(Layout.MARGIN)
 			expect(s.status.rect.x + s.status.rect.w).toBe(s.width - Layout.MARGIN)
-			-- the corner the sound slot uses (top-right) stays its
-			expect(Layout.overlaps(s.status.rect, s.sound)).toBe(false)
+			-- the corner the Settings gear uses (top-right) stays its
+			expect(Layout.overlaps(s.status.rect, s.settings)).toBe(false)
 		end
 	end)
 end)
