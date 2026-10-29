@@ -85,3 +85,61 @@ describe("emoji icons sit in the middle of their spot", function()
 		expect(icon.Position.Y.Offset).toBe(drop)
 	end)
 end)
+
+describe("the game's check", function()
+	local Widgets = UiHarness.ui("Widgets")
+
+	it("is a mint disc with an Ink ring and a two-leg Ink tick that join at the corner", function()
+		local check = Widgets.check(32, { Name = "Tick" })
+		expect(check.Name).toBe("Tick")
+		expect(check.Size.X.Offset).toBe(32)
+		expect(check.Size.Y.Offset).toBe(32)
+		expect(check:FindFirstChildOfClass("UIStroke").Color).toBe(Widgets.Theme.Ink)
+		expect(check:FindFirstChildOfClass("UIStroke").Thickness >= 2).toBe(true)
+		local short, long = check:FindFirstChild("Tick1"), check:FindFirstChild("Tick2")
+		expect(short.BackgroundColor3).toBe(Widgets.Theme.Ink)
+		expect(long.Size.X.Scale > short.Size.X.Scale).toBe(true)
+		expect(short.Rotation > 0 and long.Rotation < 0).toBe(true)
+		local p = Widgets.CHECK.points
+		for _, pt in p do
+			expect(pt[1] > 0.15 and pt[1] < 0.85 and pt[2] > 0.15 and pt[2] < 0.85).toBe(true)
+		end
+	end)
+
+	it("sits left of a status well's text, the pair centred, and hides without leaving room", function()
+		local well = Widgets.status({ Text = "Owned", TextSize = 15 })
+		local w = well.Size.X.Offset
+		Widgets.setStatusCheck(well, true)
+		local check = well:FindFirstChild("Check")
+		local room = Widgets.checkRoom(15)
+		local textW = Layout.lineWidth("Owned", 15, true)
+		expect(check.Visible).toBe(true)
+		expect(well:FindFirstChild("CheckPad").PaddingLeft.Offset).toBe(room)
+		-- centre of the pair = the well's centre, give or take the rounding of half the text
+		local contentCentre = (w + room) / 2
+		local left = contentCentre + check.Position.X.Offset
+		local right = contentCentre + textW / 2
+		expect(math.abs((left + right) / 2 - w / 2) <= 1).toBe(true)
+		Widgets.setStatusCheck(well, true)
+		expect(#well:GetChildren()).toBe(4) -- corner, stroke, check, padding: no second check
+		Widgets.setStatusCheck(well, false)
+		expect(check.Visible).toBe(false)
+		expect(well:FindFirstChild("CheckPad").PaddingLeft.Offset).toBe(0)
+	end)
+
+	it("showCheck builds a check only once it shows, then reuses it", function()
+		local row = Widgets.status({})
+		expect(Widgets.showCheck(row, false, 20, { Name = "Tick" })).toBeNil()
+		expect(row:FindFirstChild("Tick")).toBeNil()
+		local shown = Widgets.showCheck(row, true, 20, { Name = "Tick" })
+		expect(shown.Visible).toBe(true)
+		expect(Widgets.showCheck(row, false, 20, { Name = "Tick" })).toBe(shown)
+		expect(shown.Visible).toBe(false)
+	end)
+
+	it("a claimed Daily tile shows the check instead of its day label", function()
+		local DailyPopup = UiHarness.ui("Panels/DailyPopup")
+		expect(DailyPopup.dayLabel(3, "claimed", 7)).toBe("")
+		expect(DailyPopup.dayLabel(3, "today", 7)).toBe("Day 3")
+	end)
+end)

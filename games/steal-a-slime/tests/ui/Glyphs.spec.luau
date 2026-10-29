@@ -12,6 +12,15 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local GlyphCheck = require("./GlyphCheck")
 local stripComments, bad = GlyphCheck.stripComments, GlyphCheck.bad
 
+-- "\u{2705}" in a string literal is the same glyph as typing it, so it is checked the same way.
+local function decodeEscapes(src: string): string
+	return (
+		string.gsub(src, "\\u{(%x+)}", function(hex: string): string
+			return utf8.char(tonumber(hex, 16) :: number)
+		end)
+	)
+end
+
 local function collect(dir: string, out: { string })
 	for _, name in fs.readDir(dir) do
 		local path = `{dir}/{name}`
@@ -28,7 +37,7 @@ describe("UI glyphs", function()
 		local files = {}
 		collect("src/ui", files)
 		for _, path in files do
-			local found = bad(stripComments(fs.readFile(path)))
+			local found = bad(decodeEscapes(stripComments(fs.readFile(path))))
 			expect(`{path}: {table.concat(found, ",")}`).toBe(`{path}: `)
 		end
 	end)
@@ -38,6 +47,8 @@ describe("UI glyphs", function()
 		expect(#bad("\u{1F468}\u{200D}\u{1F4BB}")).toBe(1)
 		expect(#bad("\u{2500}\u{2190}\u{25C0}")).toBe(3)
 		expect(#bad("x\u{FE0F}")).toBe(1)
+		expect(#bad("\u{2705}\u{2713}\u{2714}")).toBe(3) -- "done" is Widgets.check
+		expect(#bad(decodeEscapes("\\u{2705}"))).toBe(1)
 		expect(#bad("\u{267B}\u{FE0F}")).toBe(0)
 	end)
 	it("HUD chrome icons and nav badges are safe", function()
