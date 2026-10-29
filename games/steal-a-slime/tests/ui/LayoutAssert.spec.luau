@@ -109,6 +109,16 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 		end
 		same(LayoutAssert.REBIRTH, real, "Rebirth")
 	end)
+	it("the Settings sizes and copy it measures are the panel's own", function()
+		local real = UiHarness.ui("Panels/Settings")
+		for _, part in { "STYLE", "COPY" } do
+			for k, v in LayoutAssert.SETTINGS[part] do
+				if real[part][k] ~= v then
+					error(`LayoutAssert's Settings.{part}.{k} is {v}, Panels/Settings has {real[part][k]}`)
+				end
+			end
+		end
+	end)
 	it("every card fits its content at the tallest gate viewport (no scroll on desktop)", function()
 		local s = Layout.screen(1920, 1080)
 		local chrome = Layout.PANEL_CHROME.header + Layout.PANEL_CHROME.pad

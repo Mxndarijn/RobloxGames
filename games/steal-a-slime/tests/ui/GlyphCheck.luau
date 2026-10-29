@@ -16,9 +16,11 @@ local ALLOWED: { [number]: boolean } = {
 	[0x26A1] = true, -- high voltage
 	[0x2705] = true, -- check mark button
 	[0x2728] = true, -- sparkles
+	[0x2699] = true, -- gear (the Settings button, seen in a Studio playtest frame)
 }
 -- U+FE0F is only valid after these emoji bases (as in the proven recycle icon).
-local VS16_BASES: { [number]: boolean } = { [0x267B] = true, [0x23F1] = true, [0x2B06] = true, [0x1F590] = true }
+local VS16_BASES: { [number]: boolean } =
+	{ [0x2699] = true, [0x267B] = true, [0x23F1] = true, [0x2B06] = true, [0x1F590] = true }
 
 function GlyphCheck.stripComments(src: string): string
 	src = string.gsub(src, "%-%-%[%[.-%]%]", "")

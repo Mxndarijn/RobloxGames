@@ -32,6 +32,7 @@ local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local CarryDrop = if script then require(script.Parent.CarryDrop) else require("./CarryDrop")
+local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local LuckyShow = if script then require(script.Parent.LuckyShow) else require("./LuckyShow")
 local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
@@ -124,6 +125,7 @@ function Carry.grabWild(
 	if wild.price > 0 and not PlayerData.spend(session.data, wild.price) then
 		return false, `need ${Economy.formatNumber(wild.price)}`
 	end
+	World.trackCash(world, session, "spend", "WildSlime", wild.price, nil, { GameAnalytics.tierField(wild.slime.tier) })
 	-- wild.price stays: dropped, it costs the full price again, also for whoever paid (CONTRACT.md §Carry).
 	wild.returning = nil
 	wild.choreo = nil -- it walks back with a plain glide (contract/slime-life.md)
@@ -256,6 +258,11 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 			World.notify(world, nil, caught, "info", nil)
 		end
 		World.effect(world, "Collect", { userId = userId })
+		World.track(
+			world,
+			userId,
+			{ op = "event", name = "SlimeCaught", fields = { GameAnalytics.tierField(slime.tier) } }
+		)
 		World.tutorial(world, session, "Deposit")
 		return true, nil
 	end
@@ -286,6 +293,11 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 	if Config.FEATURES.StealAlerts then
 		StealAlert.record(owner.data.stealLog, session.name, name, os.time())
 	end
+	World.track(world, userId, {
+		op = "event",
+		name = "StealDone",
+		fields = { GameAnalytics.tierField((result :: Genome.Slime).tier) },
+	})
 	World.notify(world, userId, `You stole a {name}!`, "good", "Stolen")
 	World.notify(world, owner.userId, `{session.name} has stolen one of your slimes`, "bad", "Stolen")
 	World.effect(world, "Collect", { userId = userId })

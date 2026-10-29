@@ -49,6 +49,7 @@ Remotes.ACTIONS = table.freeze({
 	BuyPad = table.freeze({ args = {} }),
 	Daily = table.freeze({ args = {} }),
 	SkipTutorial = table.freeze({ args = {} }), -- ends the tutorial (Guide panel)
+	ReplayTutorial = table.freeze({ args = {} }), -- starts the tutorial again from its first step (Settings menu)
 	ClaimQuest = table.freeze({ args = { "number" } }), -- daily quest slot 1..Config.DAILY_QUESTS.count (Quests.claim)
 	BuySpeedCoil = table.freeze({ args = {} }),
 	BuyUpgrade = table.freeze({ args = { "string" } }), -- Config.UPGRADES id (CONTRACT.md §8.1)
@@ -59,7 +60,7 @@ Remotes.ACTIONS = table.freeze({
 	EquipPetSeat = table.freeze({ args = { "string" } }), -- Config.PET_SEATS id (contract/pet-seats.md)
 	BuyConsumable = table.freeze({ args = { "string", "string?" } }), -- Config.CONSUMABLES id, slimeId (ignored: buying only adds to the held stack) (FEATURES.Consumables)
 	UseConsumable = table.freeze({ args = { "string", "string?" } }), -- held Config.CONSUMABLES id, unused slot (string?): applies the effect, stack -1 (FEATURES.Consumables)
-	SetAudioSettings = table.freeze({ args = { "number", "number", "boolean" } }), -- musicVolume, sfxVolume (clamped 0..1), muted (FEATURES.Audio, CONTRACT.md §8.9c)
+	SetSettings = table.freeze({ args = { "settings" } }), -- { [settingId] = value }: changed Settings menu values (PlayerSettings, CONTRACT.md §8.9c)
 	BuyPvpItem = table.freeze({ args = { "string" } }), -- Config.PVP_TOOLS id (FEATURES.PvP, CONTRACT.md §26)
 	EquipPvpItem = table.freeze({ args = { "string?" } }), -- owned Config.PVP_TOOLS id, nil unequips (FEATURES.PvP)
 	UsePvpItem = table.freeze({ args = { "string", "number?", "vector3?", "boolean?" } }), -- itemId, targetUserId, aim point, charged (held: power punch, mega confetti, fireworks volley) (FEATURES.PvP)

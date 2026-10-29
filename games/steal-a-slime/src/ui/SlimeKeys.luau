@@ -59,6 +59,7 @@ export type Labels = {
 export type Handle = {
 	update: (state: any) -> (),
 	tick: () -> (), -- re-checks the incubating eggs' Hatch now (the client's 10 Hz tick)
+	setSellHold: (seconds: number) -> (), -- Sell's hold on every pad now and on later ones (0 = a tap sells)
 	destroy: () -> (),
 }
 
@@ -143,6 +144,7 @@ function SlimeKeys.start(opts: Options): Handle
 	}
 	local bound: { [Instance]: Entry } = {}
 	local state: any = nil
+	local sellHold = opts.holdSeconds
 
 	local function idOf(model: Model): string?
 		local id = model:GetAttribute(ID_ATTRIBUTE)
@@ -277,7 +279,7 @@ function SlimeKeys.start(opts: Options): Handle
 			entry.triggers.favorite = conn
 		end
 		if not isEgg and not entry.sell then
-			local prompt, conn = makePrompt(body, SlimeKeys.SELL_PROMPT, opts.sellKey, opts.holdSeconds, function()
+			local prompt, conn = makePrompt(body, SlimeKeys.SELL_PROMPT, opts.sellKey, sellHold, function()
 				local id = idOf(model)
 				if id and SlimeKeys.wants(model, opts.localUserId) and model:GetAttribute(EGG_ATTRIBUTE) == nil then
 					opts.send("Sell", id)
@@ -375,6 +377,14 @@ function SlimeKeys.start(opts: Options): Handle
 					if id then
 						hatchNowLabel(body :: BasePart, entry, id)
 					end
+				end
+			end
+		end,
+		setSellHold = function(seconds: number)
+			sellHold = math.max(seconds, 0)
+			for _, entry in bound do
+				if entry.sell then
+					entry.sell.HoldDuration = sellHold
 				end
 			end
 		end,

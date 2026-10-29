@@ -37,7 +37,7 @@ end
 LockPadRing.LOOKS = table.freeze({
 	lockedRest = look(110, 28, 34, "SmoothPlastic"),
 	dim = look(31, 111, 120, "SmoothPlastic"),
-	charge = look(225, 255, 235, "Neon"),
+	charge = look(20, 85, 30, "SmoothPlastic"), -- dark green, not Neon: Neon would glow it up to the bright ready green round it
 	locked = look(229, 72, 77, "Neon"),
 	ready = look(40, 150, 25, "Neon"),
 } :: { [string]: Look })

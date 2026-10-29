@@ -19,6 +19,7 @@ end
 -- 950 -> "950", 1250 -> "1.25K", 15300000 -> "15.3M". Non-finite values -> "0".
 Format.shortNumber = NumberFormat.short
 Format.formatCash = NumberFormat.cash
+Format.formatFullCash = NumberFormat.fullCash
 
 -- Income per second. Small fractional rates keep one decimal: "$1.5/s".
 Format.formatRate = NumberFormat.rate

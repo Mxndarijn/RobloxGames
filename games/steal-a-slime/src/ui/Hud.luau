@@ -92,12 +92,15 @@ function Hud.new(parent: Instance, ctx: any)
 		Font = CHUNKY,
 		TextColor3 = AMOUNT,
 		TextSize = Layout.MONEY.amountSize,
+		-- Scaled but capped at the layout size: a short amount looks the same, a long full-style one shrinks to fit.
+		TextScaled = true,
 		TextStrokeColor3 = INK,
 		TextStrokeTransparency = 0,
 		TextTruncate = Enum.TextTruncate.None,
 		ZIndex = 2,
 		Parent = cashPlate,
 	})
+	local cashFit = create("UITextSizeConstraint", { MaxTextSize = Layout.MONEY.amountSize, Parent = cashLabel })
 	-- No coin picture exists (the "Cash" icon is a pile), so the coin is drawn: a darker disc under the face
 	-- gives the 3D edge, the face has a lighter top, a ring and the dark "$".
 	local coin = create("Frame", {
@@ -440,6 +443,7 @@ function Hud.new(parent: Instance, ctx: any)
 		local tight = s.tight
 		local T = Layout.MONEY_TIGHT
 		cashLabel.TextSize = if tight then T.amountSize elseif compact then M.camountSize else M.amountSize
+		cashFit.MaxTextSize = cashLabel.TextSize
 		local chipText = if tight then T.chipSize elseif compact then M.cchipSize else M.chipSize
 		incomeLabel.TextSize = chipText -- "$98.7T/s" fits a phone chip
 		local rb = Layout.moneyRebirth(compact, tight)
@@ -527,7 +531,7 @@ function Hud.new(parent: Instance, ctx: any)
 
 	function self.update(state: any)
 		current = state
-		local money = HudClusters.money(state)
+		local money = HudClusters.money(state, if ctx.settings then ctx.settings.get("numberStyle") else nil)
 		-- The coin carries the "$", so the amount shows without it; the income chip reads "+5.93M/s".
 		cashLabel.Text = (string.gsub(money.cash, "^%$", ""))
 		incomeLabel.Text = (string.gsub(money.income, "^%$", "+"))

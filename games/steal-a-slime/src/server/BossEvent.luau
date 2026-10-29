@@ -23,6 +23,7 @@ local BossSlime = if Shared then require(Shared.BossSlime) else require("../shar
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -206,6 +207,7 @@ local function escape(world: World, event: World.BossEvent, now: number, reason:
 		then "The boss got away! Fill the meter faster next time."
 		else "Nobody brought the boss home! It got away."
 	World.notify(world, nil, text, "info", "Announce")
+	GameAnalytics.bossOver(world, event.fight.contributions, `Lost - {reason}`)
 end
 
 -- A player as the boss sees them: plaza spot, root height and whether they are off the ground.

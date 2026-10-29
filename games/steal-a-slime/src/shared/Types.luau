@@ -258,7 +258,7 @@ export type State = {
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
 	featuredSecret: FeaturedSecretView?, -- this week's event Secret in the Secret pool
 	petPerk: PetPerkView?, -- Perks.petPassive; nil without a favourite
-	settings: { musicVolume: number, sfxVolume: number, muted: boolean }?, -- FEATURES.Audio: saved Sound card values (nil when off)
+	settings: { [string]: boolean | number | string }?, -- Settings menu values (PlayerSettings.clean)
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
 	plotBase: string?, -- FEATURES.BaseShapes: equipped base id (nil when off)
@@ -303,7 +303,8 @@ export type VatView = {
 	seconds: number?, -- how long a brew of `tier` takes now (Quick Brew applied); nil while empty
 }
 
-export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }
+-- `hidden`: the player turned "Show me on leaderboards" off; userId is then 0 and name PlayerSettings.HIDDEN_NAME.
+export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number, hidden: boolean? }
 
 -- Which board a payload is for (Leaderboards.BOARDS).
 export type LeaderboardStat = "TotalEarned" | "WeeklyEarned" | "Steals" | "Dex" | "Merges"

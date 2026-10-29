@@ -48,6 +48,8 @@ local create = Widgets.create
 
 local SlimeKeyCard = {}
 
+SlimeKeyCard.NAME = "SlimeKeyCard" -- the card's BillboardGui in PlayerGui
+
 -- Row order by prompt name (the server's HatchPrompt, SlimeKeys.MOVE_PROMPT / FAVORITE_PROMPT / SELL_PROMPT; the
 -- LockButton's Constants.LOCK_PROMPT_NAME / FRIENDS_PROMPT_NAME).
 SlimeKeyCard.ORDER = table.freeze({
@@ -192,7 +194,7 @@ export type Options = {
 function SlimeKeyCard.start(opts: Options): () -> ()
 	local C = SlimeKeyCard.CARD
 	local card = create("BillboardGui", {
-		Name = "SlimeKeyCard",
+		Name = SlimeKeyCard.NAME,
 		Enabled = false,
 		Active = true,
 		AlwaysOnTop = true,

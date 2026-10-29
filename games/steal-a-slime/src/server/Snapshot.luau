@@ -10,7 +10,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
-local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
+local PlayerSettings = if Shared then require(Shared.PlayerSettings) else require("../shared/PlayerSettings")
 local BossBadges = if Shared then require(Shared.BossBadges) else require("../shared/BossBadges")
 local CashPads = if Shared then require(Shared.CashPads) else require("../shared/CashPads")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
@@ -139,7 +139,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		petPerk = Perks.petPassive(data),
 		weekend = Weekend.view(now),
 		featuredSecret = EventSecrets.view(now),
-		settings = if Config.FEATURES.Audio then AudioSettings.clean(data.settings) else nil,
+		settings = PlayerSettings.clean(data.settings),
 		plotSkin = if Config.FEATURES.PlotSkins then PlotSkins.current(data) else nil,
 		plotSkins = if Config.FEATURES.PlotSkins then PlotSkins.view(data) else nil,
 		plotBase = if Config.FEATURES.BaseShapes then PlotBases.current(data) else nil,

@@ -12,10 +12,14 @@
 	* Descriptions are cached per userId; a failed fetch is not cached (the
 	  next refresh retries it). Fetch failure -> default rig; rig failure or
 	  empty slot -> placeholder.
+	* A hidden entry ("Show me on leaderboards" off: `hidden`, or userId 0) gets
+	  the default rig and PlayerSettings.HIDDEN_NAME; no avatar fetch, no
+	  display-name lookup.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
+local PlayerSettings = if Shared then require(Shared.PlayerSettings) else require("../shared/PlayerSettings")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 
 local PodiumAvatars = {}
@@ -107,13 +111,18 @@ local function description(self: Podiums, userId: number): any?
 	return nil
 end
 
--- (rig, fallback?) for a user, or the placeholder for an empty slot.
-local function build(self: Podiums, userId: number?): (any, boolean)
+-- True for an entry of a player who hides themselves: never look up their avatar or name.
+function PodiumAvatars.isHidden(entry: Types.LeaderboardEntry?): boolean
+	return entry ~= nil and (entry.hidden == true or entry.userId == 0)
+end
+
+-- (rig, fallback?) for a user (the default rig for a hidden one), or the placeholder for an empty slot.
+local function build(self: Podiums, userId: number?, hidden: boolean): (any, boolean)
 	if userId then
-		local desc = description(self, userId)
+		local desc = if hidden then nil else description(self, userId)
 		local ok, rig = pcall(self.adapter.buildRig, desc)
 		if ok and rig ~= nil then
-			return rig, desc == nil
+			return rig, desc == nil and not hidden
 		end
 		self.adapter.warn(`[PodiumAvatars] rig build failed for {userId}: {rig}`)
 	end
@@ -130,16 +139,18 @@ end
 function Podiums.apply(self: Podiums, board: Types.Leaderboard?)
 	for rank = 1, PodiumAvatars.SLOTS do
 		local entry = entryAt(board, rank)
-		local userId = if entry then entry.userId else nil
+		local hidden = PodiumAvatars.isHidden(entry)
+		local userId = if hidden then 0 elseif entry then entry.userId else nil
 		local slot = self.slots[rank]
-		local text = PodiumAvatars.labelText(
-			if entry then self.adapter.displayName(entry.userId, entry.name) else nil,
-			if entry then entry.value else nil
-		)
+		local name = if hidden
+			then PlayerSettings.HIDDEN_NAME
+			elseif entry then self.adapter.displayName(entry.userId, entry.name)
+			else nil
+		local text = PodiumAvatars.labelText(name, if entry then entry.value else nil)
 		local fresh = slot == nil or slot.userId ~= userId or (slot.fallback and userId ~= nil)
 		if fresh then
 			release(self, slot)
-			local rig, fallback = build(self, userId)
+			local rig, fallback = build(self, userId, hidden)
 			if rig ~= nil then
 				local ok, err = pcall(function()
 					self.adapter.mount(rank, rig, text)

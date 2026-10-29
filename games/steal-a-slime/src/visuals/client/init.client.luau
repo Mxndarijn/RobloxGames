@@ -543,6 +543,15 @@ do
 		warn(`[VisualsClient] habitats disabled: {err}`)
 	end
 end
+do
+	-- "Goo effects: Low" for the particles the server makes.
+	local ok, err = pcall(function()
+		require(script:WaitForChild("EffectsDimmer")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] effects dimmer disabled: {err}`)
+	end
+end
 local ritualFx: any = nil
 do
 	local ok, err = pcall(function()

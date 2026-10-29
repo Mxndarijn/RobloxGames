@@ -54,9 +54,20 @@ function TutorialService.talkedToGuide(world: World.World, userId: number)
 end
 
 -- Request SkipTutorial: ends the tutorial. Returns (ok, reason).
-function TutorialService.skip(_world: World.World, session: World.Session): (boolean, string?)
+function TutorialService.skip(world: World.World, session: World.Session): (boolean, string?)
+	local step = TutorialProgress.currentId(session.data)
 	if not TutorialProgress.skip(session.data) then
 		return false, "the tutorial is already done"
+	end
+	World.track(world, session.userId, { op = "event", name = "TutorialSkipped", fields = { `Step - {step}` } })
+	World.markDirty(session)
+	return true, nil
+end
+
+-- Request ReplayTutorial: starts the tutorial again from its first step. Returns (ok, reason).
+function TutorialService.restart(_world: World.World, session: World.Session): (boolean, string?)
+	if not TutorialProgress.restart(session.data) then
+		return false, "the tutorial is already running"
 	end
 	World.markDirty(session)
 	return true, nil

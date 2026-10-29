@@ -9,8 +9,8 @@
 	crossfaded. At night an owl call plays now and then, during rain a thunder clap.
 	One-shots play flat (UI) or as 3D sounds at a point (`opts.at`), throttled per name.
 	Settings (mute, SFX / music volume) live in LocalPlayer attributes AudioMuted /
-	AudioSfxVolume / AudioMusicVolume. They are saved server-side (save v6 `settings`):
-	`load` applies State.settings once on join, the UI sends changes (SetAudioSettings).
+	AudioSfxVolume / AudioMusicVolume, set by the SettingsController (loaded from State, saved with
+	SetSettings). The steal alarm stays silent while the Settings menu's "Steal alarm" switch is off.
 
 	SoundController.play(name, opts?) is static: it returns false when no controller is
 	active (flag off or not built yet) so callers keep their legacy sound path.
@@ -24,6 +24,9 @@ local Sounds = require(script.Parent.Sounds)
 
 local SoundController = {}
 
+-- The steal alarm's sound name (Notify sound and StealAlertFx repeats).
+SoundController.ALARM = "Alarm"
+
 export type PlayOptions = {
 	at: (Vector3 | BasePart)?, -- 3D sound at this point / part; nil = flat (UI) sound
 	volume: number?, -- scale on top of the SFX group (default 1)
@@ -31,8 +34,9 @@ export type PlayOptions = {
 	maxDistance: number?, -- 3D only: heard within this many studs (default AUDIO.SFX_3D_MAX_DISTANCE)
 }
 
--- What the controller reads from the world: the current weather id (nil = no weather beds).
-export type Context = { weather: (() -> string?)? }
+-- What the controller reads from the world: the current weather id (nil = no weather beds), and whether the
+-- steal alarm may sound (the Settings menu switch; nil = always).
+export type Context = { weather: (() -> string?)?, alarmOn: (() -> boolean)? }
 
 local active: any = nil
 
@@ -101,17 +105,6 @@ function SoundController.new(config: any, player: Player, dayNight: any, ctx: Co
 			AudioLogic.clampVolume(v, 0)
 		)
 	end
-	-- Applies the saved values (State.settings, already clean on the server) to the attributes.
-	function self.load(saved: any)
-		local s = AudioLogic.sanitize({
-			muted = saved.muted,
-			sfx = saved.sfxVolume,
-			music = saved.musicVolume,
-		}, cfg)
-		player:SetAttribute("AudioMuted", s.muted)
-		player:SetAttribute("AudioSfxVolume", s.sfx)
-		player:SetAttribute("AudioMusicVolume", s.music)
-	end
 	function self.settings()
 		return settings()
 	end
@@ -137,6 +130,9 @@ function SoundController.new(config: any, player: Player, dayNight: any, ctx: Co
 	-- back to their legacy sound path. The Sound goes when it ends, or after SFX_MAX_SECONDS if it never does.
 	local sfxState = AudioLogic.newSfxState()
 	function self.play(name: string, opts: PlayOptions?): boolean
+		if name == SoundController.ALARM and ctx and ctx.alarmOn and not ctx.alarmOn() then
+			return true -- switched off: callers must not fall back to their own alarm
+		end
 		local id = AudioLogic.resolveSfx(cfg, name)
 		if not id then
 			return false
