@@ -1,5 +1,5 @@
 --!strict
--- TestHooks guard (CONTRACT.md §8.12): off by default, never wired into src/, place check refuses memory mode.
+-- TestHooks guard (CONTRACT.md §8.12): off by default, only AdminService in src/ calls it, place check refuses memory mode.
 local fs = require("@lune/fs")
 
 local Fixtures = require("./Fixtures")
@@ -45,11 +45,12 @@ describe("TestHooks", function()
 		expect(s.data.cash > 1000).toBe(true)
 		expect(s.lockUntil).toBe(lock - 100)
 	end)
-	it("is not referenced by any other src/ file (no remote, prompt or boot wiring)", function()
+	it("is referenced by no src/ file but AdminService (the admin menu)", function()
 		local offenders = {}
 		for _, path in luauFiles("src", {}) do
 			if
 				not string.find(path, "TestHooks.luau", 1, true)
+				and not string.find(path, "server/AdminService.luau", 1, true)
 				and string.find(fs.readFile(path), "TestHooks", 1, true)
 			then
 				table.insert(offenders, path)

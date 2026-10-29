@@ -81,16 +81,9 @@ function AdminEventsService.receive(service: Service, raw: any, now: number): bo
 	return true
 end
 
--- A player's chat line. Non-admins and non-commands do nothing at all (no reply either).
--- Returns a status string for the admin, nil otherwise.
-function AdminEventsService.command(service: Service, userId: number, text: string, now: number): string?
-	if not AdminShared.isAdmin(userId, service.creatorId) then
-		return nil
-	end
-	local id, seconds = AdminShared.parse(text)
-	if not id or not seconds then
-		return nil
-	end
+-- Starts event `id` for `seconds` here and in every server, as admin `userId`. The caller has checked that they are
+-- an admin. Returns a status line.
+function AdminEventsService.trigger(service: Service, userId: number, id: string, seconds: number, now: number): string
 	if not AdminShared.allow(service.limiter, now) then
 		return "Event cooldown: wait a few seconds."
 	end
@@ -104,6 +97,19 @@ function AdminEventsService.command(service: Service, userId: number, text: stri
 	end
 	AdminEventsService.apply(service, payload, now)
 	return if sent then "Event started in all servers." else "Event started here (cross-server send failed)."
+end
+
+-- A player's chat line. Non-admins and non-commands do nothing at all (no reply either).
+-- Returns a status string for the admin, nil otherwise.
+function AdminEventsService.command(service: Service, userId: number, text: string, now: number): string?
+	if not AdminShared.isAdmin(userId, service.creatorId) then
+		return nil
+	end
+	local id, seconds = AdminShared.parse(text)
+	if not id or not seconds then
+		return nil
+	end
+	return AdminEventsService.trigger(service, userId, id, seconds, now)
 end
 
 -- Roblox only: subscribes to the topic (pcall; Studio / throttling may refuse) and returns the transport.

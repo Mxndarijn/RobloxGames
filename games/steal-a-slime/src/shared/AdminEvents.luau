@@ -25,15 +25,21 @@ function AdminEvents.def(id: any): Def?
 	return nil
 end
 
--- True for a listed admin or the place owner (`creatorId` is nil/0 for groups and unpublished places).
-function AdminEvents.isAdmin(userId: any, creatorId: number?): boolean
-	if not Config.FEATURES.AdminEvents or type(userId) ~= "number" or userId ~= userId or userId <= 0 then
+-- True for a listed admin or the place owner (`creatorId` is nil/0 for groups and unpublished places), whatever
+-- the flags say (the admin menu uses it too).
+function AdminEvents.listed(userId: any, creatorId: number?): boolean
+	if type(userId) ~= "number" or userId ~= userId or userId <= 0 then
 		return false
 	end
 	if creatorId and creatorId > 0 and userId == creatorId then
 		return true
 	end
 	return table.find(Config.ADMIN_USER_IDS, userId) ~= nil
+end
+
+-- May trigger live events: a listed admin while FEATURES.AdminEvents is on.
+function AdminEvents.isAdmin(userId: any, creatorId: number?): boolean
+	return Config.FEATURES.AdminEvents == true and AdminEvents.listed(userId, creatorId)
 end
 
 local function clampSeconds(seconds: any): number?
