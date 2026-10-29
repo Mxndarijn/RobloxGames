@@ -217,8 +217,9 @@ entries["phoenix_gate"] =
 	{ assetId = 92840827180297, meshId = "rbxassetid://95862556594894", size = { 20.2, 13.4, 2.6 } }
 entries["phoenix_pad_crate"] =
 	{ assetId = 122007188029546, meshId = "rbxassetid://78946442257134", size = { 7.8, 2.61, 7.8 } }
+-- Version 2 of the asset (2026-10-29) drops the red title strip that showed through the boards' SurfaceGui.
 entries["phoenix_top_earners_board"] =
-	{ assetId = 126155085567089, meshId = "rbxassetid://98390738410954", size = { 21.103, 19.934, 4.097 } }
+	{ assetId = 126155085567089, meshId = "rbxassetid://77180258500694", size = { 21.103, 19.934, 4.097 } }
 entries["ranch_plaza_signpost"] =
 	{ assetId = 131934867179344, meshId = "rbxassetid://73448923703025", size = { 12.648, 14.515, 7.55 } }
 entries["ranch_item_shop"] =
