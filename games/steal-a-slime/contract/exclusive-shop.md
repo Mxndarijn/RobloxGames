@@ -222,7 +222,9 @@ fields (never saved):
   once per visit. The client gives them an "IN YOUR BASE" ping and, with no theft running, a "Visitor" arrow. Information only.
 - `SlimeClub` subscription (`subscriptions.SlimeClub`, `subscriptionId` "EXP-..." or "" = not created, 99 R$/month):
   checked on join and on `Players.UserSubscriptionStatusChanged` (`GetUserSubscriptionStatusAsync`, server), prompted
-  with `PromptSubscriptionPurchase`. Benefits: a CLUB tag, and once per UTC day +1 brew and +1 hatch credit
+  with `PromptSubscriptionPurchase`. Its price uses Roblox regional pricing, so the shop shows Roblox's own
+  `DisplayPrice` for the player (`PurchasePrompt.subscriptionPrice`, `GetSubscriptionProductInfoAsync`, cached; the
+  panel puts it in `exclusiveShop.displayPrices`), and Config's `robux` until that is known. Benefits: a CLUB tag, and once per UTC day +1 brew and +1 hatch credit
   (`Purchases.stepDaily`, `perkDays.club`). Studio: `StudioHooks.setSubscription(userId, key, active)` (`PcwSubscription`).
 - Player attribute `Member` (`Constants.MEMBER_ATTRIBUTE`): "vip" / "club" (VIP wins); `ui/MemberTags` draws the chip
   (and the chat prefix with TextChatService); `server/MemberChatTags` sets the legacy chat's speaker "Tags" (the game

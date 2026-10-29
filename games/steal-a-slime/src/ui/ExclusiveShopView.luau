@@ -550,7 +550,11 @@ end
 local function subscriptionCard(shop: any, config: any, key: string): Card
 	local t = (ExclusiveShopView.TEXTS :: any)[key]
 	local cat = catalogueOf(config) :: any
-	local price = `{Format.robux(cat.subscriptions[key].robux)}/mo`
+	-- Roblox's own price for this player (regional pricing: PurchasePrompt.subscriptionPrice), else Config's.
+	local shown = type(shop.displayPrices) == "table" and shop.displayPrices[key]
+	local price = if type(shown) == "string" and shown ~= ""
+		then `{shown}/mo`
+		else `{Format.robux(cat.subscriptions[key].robux)}/mo`
 	local active = type(shop.subscriptions) == "table" and shop.subscriptions[key] == true
 	local s: CardState = if active
 		then "owned"

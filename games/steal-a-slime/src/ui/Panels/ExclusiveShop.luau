@@ -1145,8 +1145,28 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 		repaint()
 	end
 
+	-- Roblox's own price text per subscription key, filled in once per client (regional pricing).
+	local displayPrices: { [string]: string } = {}
+	local adapter = ctx.purchase
+	if adapter and adapter.subscriptionPrice then
+		for key, def in (Config.EXCLUSIVE_SHOP.subscriptions or {}) :: { [string]: any } do
+			adapter.subscriptionPrice(def.subscriptionId, function(text: string?)
+				if text then
+					displayPrices[key] = text
+					if latest and type(latest.exclusiveShop) == "table" then
+						latest.exclusiveShop.displayPrices = displayPrices
+						repaint()
+					end
+				end
+			end)
+		end
+	end
+
 	function self.update(state: any)
 		watchBought(state)
+		if type(state) == "table" and type(state.exclusiveShop) == "table" then
+			state.exclusiveShop.displayPrices = displayPrices
+		end
 		latest = state
 		repaint()
 	end

@@ -1350,3 +1350,39 @@ describe("Exclusive styles, seasons and bundles (ExclusiveShopView)", function()
 		expect(ExclusiveShopView.packOwned(some.exclusiveShop, Config, "BoutiqueBundle")).toBe(false)
 	end)
 end)
+
+describe("Slime Club price from Roblox", function()
+	it("the card shows Roblox's own price for this player when the client knows it", function()
+		local state = shopState({ displayPrices = { SlimeClub = "R$ 79" } })
+		local card = ExclusiveShopView.detail("sub:SlimeClub", state, Config) :: any
+		expect(card.priceText).toBe("R$ 79/mo")
+		local plain = ExclusiveShopView.detail("sub:SlimeClub", shopState(), Config) :: any
+		expect(plain.priceText).toBe(`{Format.robux(Config.EXCLUSIVE_SHOP.subscriptions.SlimeClub.robux)}/mo`)
+	end)
+	it("PurchasePrompt asks Roblox once per subscription and remembers the answer", function()
+		local asked = 0
+		local market: any = {
+			PromptProductPurchaseFinished = { Connect = function() end },
+			PromptGamePassPurchaseFinished = { Connect = function() end },
+			GetSubscriptionProductInfoAsync = function(_self: any, id: string): any
+				asked += 1
+				return { DisplayPrice = `R$ 99 {id}` }
+			end,
+		}
+		local adapter = PurchasePrompt.new(market, { UserId = 1 })
+		local got = {}
+		adapter.subscriptionPrice("EXP-1", function(text)
+			table.insert(got, text)
+		end)
+		adapter.subscriptionPrice("EXP-1", function(text)
+			table.insert(got, text)
+		end)
+		adapter.subscriptionPrice("", function(text)
+			table.insert(got, text or "none")
+		end)
+		expect(asked).toBe(1)
+		expect(got[1]).toBe("R$ 99 EXP-1")
+		expect(got[2]).toBe("R$ 99 EXP-1")
+		expect(got[3]).toBe("none")
+	end)
+end)

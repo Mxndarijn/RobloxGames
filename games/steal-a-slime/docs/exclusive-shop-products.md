@@ -4,7 +4,8 @@
 Roblox for universe 10770917350, made with `tools/monetization` (Open Cloud). Their ids are in
 `src/shared/ExclusiveIds.luau`; `tools/monetization/created_ids.json` is the record. The passes were created off
 sale: turn them on sale on the Creator Dashboard once a version with their ids is published. The Slime Club
-subscription is created on the Dashboard (no API). The tables below are the first set's original sheet.
+subscription (EXP-8257242520182981195, 99 Robux a month, Durable, regional pricing) was created on the Dashboard (no
+API) and is Inactive: activate it after that publish too. The tables below are the first set's original sheet.
 
 ## Developer Products: clouds, bundle, quick-buys (27)
 

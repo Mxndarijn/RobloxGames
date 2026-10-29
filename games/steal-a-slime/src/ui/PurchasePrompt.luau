@@ -19,6 +19,9 @@ export type Adapter = {
 	prompt: (purchase: Purchase) -> boolean,
 	-- `fn(bought)` runs when a prompt this client opened closes.
 	onClosed: (fn: (bought: boolean) -> ()) -> (),
+	-- Roblox's price text for a subscription for this player ("R$ 99": regional pricing), asked once and cached;
+	-- `done(text)` runs when it is known (nil when Roblox can't say). Yields inside its own thread only.
+	subscriptionPrice: ((subscriptionId: string, done: (text: string?) -> ()) -> ())?,
 }
 
 local PurchasePrompt = {}
@@ -33,6 +36,7 @@ end
 
 function PurchasePrompt.new(market: any, player: any): Adapter
 	local listeners: { (boolean) -> () } = {}
+	local prices: { [string]: string | false } = {} -- subscription id -> DisplayPrice (false: Roblox couldn't say)
 	local function closed(bought: boolean)
 		for _, fn in table.clone(listeners) do
 			fn(bought)
@@ -69,6 +73,35 @@ function PurchasePrompt.new(market: any, player: any): Adapter
 		end,
 		onClosed = function(fn: (boolean) -> ())
 			table.insert(listeners, fn)
+		end,
+		subscriptionPrice = function(subscriptionId: string, done: (string?) -> ())
+			if market == nil or type(subscriptionId) ~= "string" or subscriptionId == "" then
+				done(nil)
+				return
+			end
+			local cached = prices[subscriptionId]
+			if cached ~= nil then
+				done(if cached == false then nil else cached :: string)
+				return
+			end
+			-- its own thread in Roblox (the lookup yields); inline where there is no task library (Lune specs)
+			local run = if typeof(task) == "table"
+				then task.spawn
+				else function(fn: () -> ())
+					fn()
+				end
+			run(function()
+				local ok, info = pcall(function()
+					return market:GetSubscriptionProductInfoAsync(subscriptionId)
+				end)
+				local text = if ok
+						and type(info) == "table"
+						and type(info.DisplayPrice) == "string"
+					then info.DisplayPrice
+					else nil
+				prices[subscriptionId] = text or false
+				done(text)
+			end)
 		end,
 	}
 end
