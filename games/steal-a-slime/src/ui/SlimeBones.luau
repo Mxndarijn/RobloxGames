@@ -39,7 +39,7 @@ SlimeBones.BULGE = 0.55 -- side push per unit of squash
 SlimeBones.SIDE_DROP = 0.3 -- side drop per unit of squash
 SlimeBones.EYE_IN = 0.13 -- studs at mesh scale 1, before the eye share
 SlimeBones.LID_OUT = 0.165
-SlimeBones.EYE_SHARE = 0.6 -- share of an Eyes / Lids move the eye vertices get (their skin weight)
+SlimeBones.EYE_SHARE = 0.25 -- the Eyes / Lids skin weight of every eye and lid vertex (modeling-kit _slimerig.EYE_SHARE)
 SlimeBones.EYE_SHARE_ATTRIBUTE = "EyeShare"
 SlimeBones.BLINK_TIME = 0.13
 SlimeBones.BLINK_EVERY = { 2.5, 5.5 }
@@ -313,7 +313,7 @@ end
 -- closed 0..1 (lids shut: happy, asleep, squeeze), pop 0..1 (eyes bulge out: surprised).
 export type Extra = { air: number?, vy: number?, jiggle: number?, closed: number?, pop: number? }
 
-SlimeBones.POP_OUT = 0.5 -- share of the blink depth the eyes bulge out by at pop = 1
+SlimeBones.POP_OUT = 0.25 -- share of the blink depth the eyes bulge out by at pop = 1
 SlimeBones.EAR_FLOP = 0.06 -- radians of ear flop per stud / s of falling speed
 SlimeBones.EAR_FLOP_MAX = 1.1
 

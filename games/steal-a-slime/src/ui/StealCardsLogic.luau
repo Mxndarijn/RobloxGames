@@ -3,12 +3,12 @@
 	StealCardsLogic: which cards show in the top banner stack (contract/notice-cards.md). Pure
 	(tests/ui/StealCards.spec).
 
-	* "stealing": one card per player carrying one of my slimes away right now (SlimeView.stolenBy).
+	* "stealing": one card for everyone carrying one of my slimes away right now (SlimeView.stolenBy).
 	* "stolen": a slime that was being carried and is now gone from my plot was stolen; that card shows for
 	  STOLEN_SECONDS. (A slime that escapes comes back with stolenBy cleared, so it is never gone.)
 	* "bonked" / "home" / "locked": State.notices (shared/NoticeCards), each shown once for its seconds.
 
-	At most MAX_CARDS cards show (live thieves first, then the newest); the rest are counted for a "+N more" chip.
+	At most MAX_CARDS cards show (the thieves first, then the newest); the rest are counted for a "+N more" chip.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -23,7 +23,8 @@ export type Kind = "stealing" | "stolen" | "bonked" | "home" | "locked"
 
 export type Card = {
 	kind: Kind,
-	thief: number?, -- UserId: "stealing" / "stolen"
+	thief: number?, -- UserId: "stealing" (the first thief) / "stolen"
+	thieves: { number }?, -- "stealing": every live thief, `thief` first
 	name: string?, -- "home": who had the slime
 	startedAt: number?, -- timed cards: when it happened
 	endsAt: number?, -- timed cards: when it goes
@@ -98,9 +99,8 @@ function StealCardsLogic.observe(memory: Memory, state: StateLike, now: number):
 	return { carried = carried, timed = timed, seen = seen }
 end
 
--- The cards to show at `now` (stealing first, then the newest timed cards) and how many more are hidden.
-function StealCardsLogic.cards(memory: Memory, now: number): ({ Card }, number)
-	local all: { Card } = {}
+-- Everyone carrying one of my slimes right now, by UserId, each once.
+local function thievesOf(memory: Memory): { number }
 	local seen: { [number]: boolean } = {}
 	local thieves: { number } = {}
 	for _, thief in memory.carried do
@@ -110,8 +110,15 @@ function StealCardsLogic.cards(memory: Memory, now: number): ({ Card }, number)
 		end
 	end
 	table.sort(thieves)
-	for _, thief in thieves do
-		table.insert(all, { kind = "stealing", thief = thief })
+	return thieves
+end
+
+-- The cards to show at `now` (stealing first, then the newest timed cards) and how many more are hidden.
+function StealCardsLogic.cards(memory: Memory, now: number): ({ Card }, number)
+	local all: { Card } = {}
+	local thieves = thievesOf(memory)
+	if #thieves > 0 then
+		table.insert(all, { kind = "stealing", thief = thieves[1], thieves = thieves })
 	end
 	for i = #memory.timed, 1, -1 do
 		local card = memory.timed[i]
@@ -124,6 +131,16 @@ function StealCardsLogic.cards(memory: Memory, now: number): ({ Card }, number)
 		shown[i] = all[i]
 	end
 	return shown, #all - #shown
+end
+
+-- The thieves' line: `first` and `second` are the first two names (rich-text safe), `count` how many there are.
+function StealCardsLogic.thievesText(first: string, second: string?, count: number): string
+	if count <= 1 then
+		return `{first} is stealing your slime!`
+	elseif count == 2 then
+		return `{first} and {second or "someone"} are stealing your slimes!`
+	end
+	return `{first} and {count - 1} others are stealing your slimes!`
 end
 
 -- The card's title. `name` is the thief's display name (rich-text safe) for "stealing" / "stolen" / "home".
@@ -156,6 +173,37 @@ function StealCardsLogic.subtitle(card: Card, name: string, now: number): string
 	end
 	local left = math.max(math.ceil(card.opensAt - now), 0)
 	return string.format("Opens in %d:%02d", left // 60, left % 60)
+end
+
+-- One line for the alarm strip on the boss card (Panels/BossMeter): during a boss the stack's cards fold into it.
+-- Every live thief in one sentence, else the newest timed card; nil when there is nothing to say.
+-- `nameOf` turns a UserId into a display name (plain text: the strip is not rich text).
+export type Strip = { kind: Kind, text: string, hint: string? }
+
+local STRIP_HINT: { [Kind]: string } = {
+	stealing = "Chase them",
+	stolen = "Lock your base",
+	bonked = "It bounced home",
+}
+
+function StealCardsLogic.strip(memory: Memory, now: number, nameOf: (userId: number) -> string): Strip?
+	local cards = StealCardsLogic.cards(memory, now)
+	local first = cards[1]
+	if first == nil then
+		return nil
+	end
+	if first.kind == "stealing" then
+		local thieves = first.thieves or { first.thief :: number }
+		local second = if thieves[2] then nameOf(thieves[2]) else nil
+		local text = StealCardsLogic.thievesText(nameOf(thieves[1]), second, #thieves)
+		return { kind = "stealing", text = text, hint = STRIP_HINT.stealing }
+	end
+	local who = if first.thief then nameOf(first.thief) else first.name or "someone"
+	local hint = STRIP_HINT[first.kind]
+	if first.kind == "locked" then
+		hint = StealCardsLogic.subtitle(first, who, now)
+	end
+	return { kind = first.kind, text = StealCardsLogic.title(first, who), hint = hint }
 end
 
 -- The "+N more" chip text, nil when nothing is hidden.
