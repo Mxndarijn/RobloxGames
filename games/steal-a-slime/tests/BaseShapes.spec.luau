@@ -593,6 +593,13 @@ describe("base shapes: jar -> each round base -> jar", function()
 				local shift = (WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL / 2) + data.door.z
 				expect(math.abs(moved.Magnitude - math.abs(shift)) < 1e-3).toBe(true)
 				expect(plot:FindFirstChild("OpenDoorCollider") ~= nil).toBe(true)
+				-- the door's two looks LockMotion swings between, moved with the door
+				for _, look in { "StopperShut", "StopperParked" } do
+					local node = plot:FindFirstChild(look)
+					expect(node ~= nil).toBe(true)
+					local off = jarRing:PointToObjectSpace(node.CFrame.Position)
+					expect(math.abs(off.Magnitude) < 20).toBe(true)
+				end
 				expect(plot:FindFirstChild("Pad_1")).toBe(pad1)
 				local at = WorldLayout.plotFrame(1)
 				local want = at({ data.pads[1].x, 0, data.pads[1].z })
