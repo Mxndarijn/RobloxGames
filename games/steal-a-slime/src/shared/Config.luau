@@ -1642,7 +1642,7 @@ local Config = {
 		REDUCED_ATTRIBUTE = "ReducedMotion", -- LocalPlayer attribute; true = no tween, no puff
 	}),
 
-	-- Goo Gauntlet sky obby (Shared.ObbyCourse, Shared.ObbyRules, server/ObbyService, contract/obby.md). Seconds
+	-- The Obby, a sky course (Shared.ObbyCourse, Shared.ObbyRules, server/ObbyService, contract/obby.md). Seconds
 	-- unless noted. Finishing grants +BONUS income for BOOST_SECONDS; the next run counts COOLDOWN_SECONDS after the
 	-- boost ends. The course rebuilds every ROTATION_SECONDS from SECTIONS in ORDER (tiers), each with one of LAYOUTS.
 	OBBY = table.freeze({
@@ -1685,10 +1685,10 @@ local Config = {
 			}),
 		}),
 		LAYOUTS = 6, -- layouts per section
-		MIN_SECTION_SECONDS = 1.5, -- a checkpoint reached faster than this after the last one doesn't count
-		FALL_DEPTH = 18, -- studs under the lowest floor of the course that count as a fall (back to the checkpoint)
+		MIN_RUN_SECONDS = 12, -- a finish faster than this doesn't count (the whole course at a speed-coil walk takes longer)
+		FALL_DEPTH = 18, -- studs under the section's lower end that count as a fall (back to the start pad)
 		REBUILD_GRACE = 90, -- a new rotation waits this long for runners to finish before it sends them home
-		RESPAWN_LIFT = 3, -- studs above a checkpoint pad a respawned runner appears
+		RESPAWN_LIFT = 3, -- studs above the start pad a runner appears (on entering and after a fall)
 		MOVE_GRACE = 1.5, -- after the server moves a runner, their old position may still arrive once: no fall / off-course checks
 	}),
 

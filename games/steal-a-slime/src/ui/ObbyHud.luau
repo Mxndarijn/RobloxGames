@@ -2,8 +2,8 @@
 --[[
 	ObbyHud (UI module, contract/obby.md)
 
-	The Goo Gauntlet on this player's screen, from State.obby:
-	  * a run card at the top of the screen while a run is on: the checkpoint reached and the run clock
+	The Obby on this player's screen, from State.obby:
+	  * a run card at the top of the screen while a run is on: the section the runner is on (x / 5) and the run clock
 	  * the portal sign's two lines (workspace.Obby.Portal, server/ObbyView), filled locally for this player: their
 	    boost status ("Step in: x1.5 income!", "Boost 3:12", "Boost ready in 1:40") and when the course changes
 	The boost itself shows in the HUD's status row (HudClusters.obby). Text comes from the pure functions below
@@ -23,7 +23,7 @@ export type View = {
 	readyAt: number?,
 	sections: { string },
 	rotatesAt: number,
-	run: { reached: number, of: number, startedAt: number }?,
+	run: { section: number, of: number, startedAt: number }?,
 	best: number?,
 }
 
@@ -78,9 +78,9 @@ function ObbyHud.runText(view: View?, now: number): (string?, string?)
 	if not valid(view) or (view :: View).run == nil then
 		return nil, nil
 	end
-	local run = (view :: View).run :: { reached: number, of: number, startedAt: number }
+	local run = (view :: View).run :: { section: number, of: number, startedAt: number }
 	local elapsed = math.max(0, now - run.startedAt)
-	local title = if run.reached <= 0 then "GOO GAUNTLET" else `CHECKPOINT {run.reached}/{run.of}`
+	local title = if run.section <= 0 then "OBBY" else `SECTION {math.min(run.section, run.of)}/{run.of}`
 	local m = math.floor(elapsed / 60)
 	return title, string.format("%d:%04.1f", m, elapsed - m * 60)
 end

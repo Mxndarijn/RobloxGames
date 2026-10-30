@@ -413,7 +413,7 @@ local stealFx = StealAlertFx.new(gui, {
 })
 local carry = CarryPanel.new(gui, ctx)
 local bossMeter = BossMeterPanel.new(gui, ctx, hud.stealCards)
-local obbyHud = require(script.ObbyHud).new(gui) -- Goo Gauntlet run card and portal sign lines
+local obbyHud = require(script.ObbyHud).new(gui) -- Obby run card and portal sign lines
 local dailyPopup = DailyPopup.new(gui, ctx)
 local tutorial = TutorialCard.new(gui, ctx, 2) -- just above the hotbar
 ctx.tutorial = tutorial -- the Guide offers "Show the tutorial again" and Skip

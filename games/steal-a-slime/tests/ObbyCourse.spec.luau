@@ -169,42 +169,71 @@ describe("ObbyCourse sections", function()
 		end
 	end)
 
-	it("lays a checkpoint pad after every section, the last one the finish", function()
+	it("joins the sections with plain connectors, no checkpoint pads, and ends on the finish", function()
 		local course = ObbyCourse.build(4100)
-		expect(#course.checkpoints).toBe(#OBBY.ORDER)
-		local finishes = 0
+		expect(#course.spans).toBe(#OBBY.ORDER)
+		local finishes, links = 0, 0
 		for _, part in course.parts do
 			if part.look == "finish" then
 				finishes += 1
+			elseif part.look == "pad" then
+				links += 1
+				expect(part.size[1]).toBe(ObbyCourse.LINK_LENGTH)
 			end
 		end
 		expect(finishes).toBe(1)
-		for i = 2, #course.checkpoints do
-			expect(course.checkpoints[i].pos[1] > course.checkpoints[i - 1].pos[1]).toBe(true)
+		expect(links).toBe(#OBBY.ORDER - 1)
+		expect(course.spans[1].from).toBe(ObbyCourse.START_LENGTH)
+		for i = 2, #course.spans do
+			expect(course.spans[i].from).toBe(course.spans[i - 1].to)
 		end
+		expect(course.finish.pos[1] - course.finish.size[1] / 2).toBe(course.spans[#course.spans].to)
 		expect(course.length <= ObbyCourse.START_LENGTH + #OBBY.ORDER * (SECTION_MAX_LENGTH + 12)).toBe(true)
+	end)
+
+	it("a whole course with connectors is a makeable path", function()
+		for slot = 4100, 4140 do
+			local course = ObbyCourse.build(slot)
+			local prev: ObbyCourse.Part? = nil
+			for _, part in course.parts do
+				if part.step then
+					if prev and not special(part) and not special(prev) and not prev.motion then
+						if gap(prev, part) > GAP_MAX then
+							error(`slot {slot}: gap {gap(prev, part)} before a {part.look}`)
+						end
+					end
+					prev = part
+				end
+			end
+		end
 	end)
 end)
 
-describe("ObbyCourse checkpoints and frames", function()
+describe("ObbyCourse sections, finish and frames", function()
 	local course = ObbyCourse.build(4100)
-	local cp = course.checkpoints[2]
+	local zone = course.finish
 
-	it("counts standing on a pad, not walking past it", function()
-		expect(ObbyCourse.onCheckpoint(cp, { cp.pos[1], cp.pos[2] + 3, cp.pos[3] })).toBe(true)
-		expect(ObbyCourse.onCheckpoint(cp, { cp.pos[1] + cp.size[1], cp.pos[2] + 3, cp.pos[3] })).toBe(false)
-		expect(ObbyCourse.onCheckpoint(cp, { cp.pos[1], cp.pos[2] + 30, cp.pos[3] })).toBe(false)
-		expect(ObbyCourse.onCheckpoint(cp, { cp.pos[1], cp.pos[2] - 5, cp.pos[3] })).toBe(false)
+	it("counts standing on the finish pad, not flying over it", function()
+		expect(ObbyCourse.onFinish(course, { zone.pos[1], zone.pos[2] + 3, zone.pos[3] })).toBe(true)
+		expect(ObbyCourse.onFinish(course, { zone.pos[1] + zone.size[1], zone.pos[2] + 3, zone.pos[3] })).toBe(false)
+		expect(ObbyCourse.onFinish(course, { zone.pos[1], zone.pos[2] + 30, zone.pos[3] })).toBe(false)
+		expect(ObbyCourse.onFinish(course, { zone.pos[1], zone.pos[2] - 5, zone.pos[3] })).toBe(false)
 	end)
 
-	it("respawns above the last pad and falls below the lower pad", function()
-		expect(ObbyCourse.respawn(course, 0)[1]).toBe(course.start[1])
-		local r = ObbyCourse.respawn(course, 2)
-		expect(r[1]).toBe(cp.pos[1])
-		expect(r[2]).toBe(cp.pos[2] + OBBY.RESPAWN_LIFT)
+	it("knows which section a point is over", function()
+		expect(ObbyCourse.sectionAt(course, course.start)).toBe(0)
+		for _, span in course.spans do
+			expect(ObbyCourse.sectionAt(course, { (span.from + span.to) / 2, 0, 0 })).toBe(span.index)
+		end
+		expect(ObbyCourse.sectionAt(course, zone.pos)).toBe(#course.spans + 1)
+	end)
+
+	it("falls are measured below the section's lower end", function()
 		expect(ObbyCourse.fallHeight(course, 0)).toBe(-OBBY.FALL_DEPTH)
+		local span = course.spans[3]
+		expect(ObbyCourse.fallHeight(course, 3)).toBe(span.floor - OBBY.FALL_DEPTH)
+		expect(ObbyCourse.fallHeight(course, #course.spans + 1)).toBe(zone.pos[2] - OBBY.FALL_DEPTH)
 	end)
-
 	it("toLocal undoes toWorld", function()
 		local frame = { origin = { -90, 150, 220 }, yaw = 157.5 }
 		local p = { 37, 4, -3 }

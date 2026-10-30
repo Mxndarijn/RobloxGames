@@ -5,7 +5,7 @@
 	The server's one Heartbeat: the kill plane (Rescue, with the PvP void guard) and GameLoop.step every frame;
 	every VIEW_INTERVAL the day / night clock, the per-player step (lock enforcement, HomeZone deposits with one
 	"plot full" toast per visit, WorldView.updatePlayer incl. the PvP ticks, the open world shop's range check,
-	thief plots, leaderstats), the cash pads (FEATURES.CashPads), the Goo Gauntlet obby, the co-op ritual, world attributes, the view refresh and the State pushes.
+	thief plots, leaderstats), the cash pads (FEATURES.CashPads), the Obby, the co-op ritual, world attributes, the view refresh and the State pushes.
 	Each stage runs through safeCall so one failing player or model never stops the pushes. Profiler
 	(FEATURES.ServerProfiler) times the stages.
 ]]

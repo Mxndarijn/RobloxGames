@@ -235,7 +235,7 @@ function HudClusters.obby(view: ObbyBoost?, now: number): Slot?
 	end
 	slot.id = "Obby"
 	slot.icon = HudClusters.ICONS.Obby
-	slot.name = "Goo Gauntlet"
+	slot.name = "Obby"
 	slot.effect = `{Format.formatMultiplier(1 + view.bonus)} income for clearing the sky obby.`
 	return slot
 end

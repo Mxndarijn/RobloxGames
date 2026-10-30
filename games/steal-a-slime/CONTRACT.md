@@ -458,4 +458,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §50 | [admin-menu.md](contract/admin-menu.md) | Admin menu: every cheat on a test save, admin tools for admins, `Request Admin`, `State.admin` |
 | §51 | [settings.md](contract/settings.md) | Settings menu: the gear card (Sound, Game, Visuals, Me), `PlayerSettings`, `Request SetSettings` / `ReplayTutorial`, hidden on boards |
 | §49 | [cash-pads.md](contract/cash-pads.md) | Cash pads: income piles up on a raised gold coin at each slime, only the owner collects by walking over it (`FEATURES.CashPads`) |
-| §52 | [obby.md](contract/obby.md) | Goo Gauntlet: a sky obby that rebuilds every 10 min from new sections; clearing it gives x1.5 income for 5 min, then a 5-min cooldown |
+| §52 | [obby.md](contract/obby.md) | Obby: a sky course that rebuilds every 10 min from new sections; clearing it gives x1.5 income for 5 min, then a 5-min cooldown |

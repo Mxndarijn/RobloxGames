@@ -57,13 +57,12 @@ export type CarryState = {
 -- `ownerId` still owns that plot.
 export type LockBreakPass = { plot: number, ownerId: number, untilTime: number }
 
--- A Goo Gauntlet run (ObbyService): `reached` = last checkpoint stood on (0 = the start pad).
+-- An Obby run (ObbyService): `section` = the furthest section the runner has been over, in order (0 = the start pad).
 export type ObbyRun = {
 	slot: number,
-	reached: number,
+	section: number,
 	startedAt: number,
-	lastAt: number,
-	invalid: boolean?,
+	invalid: boolean?, -- skipped a section or finished too fast: the finish earns nothing
 	settleUntil: number?, -- the server just moved the runner: fall and off-course checks wait until then
 }
 
@@ -87,7 +86,7 @@ export type Session = {
 	friendIds: { [number]: boolean }?, -- user ids of those friends (Friends.refresh; PlotGuests), runtime only
 	blessedUntil: number?, -- when the co-op ritual's Blessed bonus (data.ritualBonus) ends (RitualService), runtime only
 	mvpUntil: number?, -- when the Boss Champion boost (data.mvpBonus) ends (BossCredit), runtime only
-	obbyRun: ObbyRun?, -- the Goo Gauntlet run in progress (ObbyService), runtime only
+	obbyRun: ObbyRun?, -- the Obby run in progress (ObbyService), runtime only
 	obbyOnPortal: boolean?, -- stood in the obby portal last tick (ObbyService: a run starts on stepping in), runtime only
 	obbyBest: { slot: number, seconds: number }?, -- best finish on the current course (ObbyService), runtime only
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch (State.egg, never saved)
@@ -298,7 +297,7 @@ export type World = {
 	guard: { [number]: GuardEntry }, -- SlimeGuard per player, runtime only
 	stealLedger: { StealRecord }, -- SlimeGuard: completed steals of the last UNDO_SECONDS, runtime only
 	guardMode: ("off" | "watch" | "enforce")?, -- tests: overrides FEATURES.SlimeGuard / SLIME_GUARD.ENFORCE
-	obby: ObbyCourse.Course?, -- the Goo Gauntlet course standing now (ObbyService.setup); nil until the adapter builds it
+	obby: ObbyCourse.Course?, -- the Obby course standing now (ObbyService.setup); nil until the adapter builds it
 }
 
 export type Options = {

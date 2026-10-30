@@ -990,7 +990,7 @@ function SaveData.deserialize(stored: any): Data
 			end
 		end
 	end
-	-- Goo Gauntlet timers (added without a version bump: missing -> never earned).
+	-- Obby timers (added without a version bump: missing -> never earned).
 	local obby = ObbyRules.clean(raw.obby)
 	data.obbyUntil, data.obbyReadyAt = obby.obbyUntil, obby.obbyReadyAt
 	if type(raw.boost) == "table" then
