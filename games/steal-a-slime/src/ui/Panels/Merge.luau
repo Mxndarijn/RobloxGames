@@ -45,7 +45,8 @@ local SIZE = table.freeze({
 	rarityH = 16,
 	x = Layout.MIN_TOUCH_DESIGN, -- a slot's X: the tap area (invisible) around its badge
 	badge = 26, -- the X and padlock badge drawn on a slot's top-right edge
-	badgeText = 14,
+	badgeText = 14, -- the X on its badge
+	lockText = 12, -- the padlock emoji on its badge
 	badgeInset = 10, -- px from the slot's top-right corner box to the badge's centre
 	arrowW = 30,
 	orb = 72,
@@ -324,18 +325,22 @@ function Merge.new(parent: Instance, ctx: any)
 			ZIndex = 3,
 			Parent = load,
 		}) :: TextButton
-		local badge = create("TextLabel", {
+		local badge = Widgets.label({
 			Name = "Badge",
 			Text = "X",
 			Font = Theme.Font,
 			TextSize = SIZE.badgeText,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextTruncate = Enum.TextTruncate.None,
+			BackgroundTransparency = 0,
 			BackgroundColor3 = Theme.Bad,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromOffset(SIZE.badge, SIZE.badge),
 			Parent = x,
-		}, { Widgets.pill() }) :: TextLabel
-		Widgets.stroke(Theme.Ink, KIT.stroke).Parent = badge
+		})
+		Widgets.pill().Parent = badge
+		Widgets.stroke(Theme.Ink, KIT.rowStroke).Parent = badge
 		Widgets.inkOn(badge, Theme.Bad)
 		x.Activated:Connect(function()
 			local slot = view and view.slots[i]
@@ -346,7 +351,7 @@ function Merge.new(parent: Instance, ctx: any)
 		local lock = Widgets.status({
 			Name = `Lock{i}`,
 			Text = "🔒",
-			TextSize = SIZE.badgeText - 2,
+			TextSize = SIZE.lockText,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Size = UDim2.fromOffset(SIZE.badge, SIZE.badge),
 			ZIndex = 3,
