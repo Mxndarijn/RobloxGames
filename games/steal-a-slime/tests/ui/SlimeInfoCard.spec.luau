@@ -365,10 +365,10 @@ describe("SlimeInfoCard render", function()
 			expect(label.TextScaled).toBe(true)
 		end
 	end)
-	it("puts a shine on its own pill next to the rarity, under the plain name (MutationLooks)", function()
+	it("puts a shine on its own pill next to the rarity, under the plain name", function()
 		local gui = SlimeInfoCard.build()
 		local a = { name = "Mochi", tier = 1, income = 4, shine = "Diamond" }
-		SlimeInfoCard.render(gui, assert(SlimeLabel.view(a :: any, nil, true)), 3)
+		SlimeInfoCard.render(gui, assert(SlimeLabel.view(a :: any)), 3)
 		local card = gui:FindFirstChild("Card")
 		local rarity, shine = card:FindFirstChild("Rarity"), card:FindFirstChild("Shine")
 		expect(shine.Visible).toBe(true)
@@ -391,11 +391,7 @@ describe("SlimeInfoCard render", function()
 		local c = row.color
 		expect(shine.BackgroundColor3).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
 		-- back to a plain slime: one centred rarity pill
-		SlimeInfoCard.render(
-			gui,
-			assert(SlimeLabel.view({ name = "Mochi", tier = 1, income = 4 } :: any, nil, true)),
-			3
-		)
+		SlimeInfoCard.render(gui, assert(SlimeLabel.view({ name = "Mochi", tier = 1, income = 4 } :: any)), 3)
 		expect(shine.Visible).toBe(false)
 		expect(rarity.AnchorPoint.X).toBe(0.5)
 		expect(rarity.Position.X.Scale).toBe(0.5)
@@ -404,7 +400,7 @@ describe("SlimeInfoCard render", function()
 	it("fills a rainbow shine's pill with a rainbow", function()
 		local gui = SlimeInfoCard.build()
 		local a = { name = "Mochi", tier = 1, income = 4, shine = "Rainbow" }
-		SlimeInfoCard.render(gui, assert(SlimeLabel.view(a :: any, nil, true)), 3)
+		SlimeInfoCard.render(gui, assert(SlimeLabel.view(a :: any)), 3)
 		local shine = gui:FindFirstChild("Card"):FindFirstChild("Shine")
 		expect(#shine:FindFirstChild("Fill").Color.Keypoints > 3).toBe(true)
 	end)

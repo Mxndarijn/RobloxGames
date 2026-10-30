@@ -25,10 +25,10 @@ State field, no save-format change.
     reason card (`src/ui/GrabBlockCard`, "Not enough money") hangs under the Body, so it never covers the tag either.
   - Existing attributes the labels also read: `Price` (wild buy price; > 0 shows the price row), `Growth` (whole
     percent, the sign's bar), `Boss` (name prefixed `"BOSS "`), `Shine` (`Constants.SHINE_ATTRIBUTE`, written by
-    `server/SlimeShineView`; with `FEATURES.MutationLooks` the tag draws it as a pill next to the rarity and `LabelName`
-    leaves it out, contract/slime-ladder.md 45.5; without the flag `LabelName` is `"Gold Lop"`).
+    `server/SlimeShineView`; the tag draws it as a pill next to the rarity and `LabelName` leaves it out,
+    contract/slime-ladder.md 45.5).
 - **Pure values (`src/shared/SlimeLabel`).** `SlimeLabel.view(attrs) -> View?` turns the attributes into
-  `{ name, rarity, tier, rarityColor, income, price, growth, pad, shine }` (`shine`: the `Config.SHINES` row, MutationLooks only): `income = "+$1.25K/s"` (`NumberFormat.rate`; nil for a boss, whose tag shows only rarity and name),
+  `{ name, rarity, tier, rarityColor, income, price, growth, pad, shine }` (`shine`: the `Config.SHINES` row or nil): `income = "+$1.25K/s"` (`NumberFormat.rate`; nil for a boss, whose tag shows only rarity and name),
   `price = "$500"` (priced wild) or nil, `growth` = whole percent 0..100, `pad` = index or nil. nil when `LabelName`
   is missing.
 - **Tag (`src/ui/SlimeInfoCard`, started from `init.client`).** One `BillboardGui` per tagged slime model

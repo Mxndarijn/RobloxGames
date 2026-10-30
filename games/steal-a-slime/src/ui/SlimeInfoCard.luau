@@ -6,7 +6,7 @@
 	or escaping slime gets a floating tag above its mesh (canvas
 	GooWorldLabels "Wild slime tag"), no panel: the rarity on a goo pill in
 	the rarity colour (a rainbow for Secret), the species name in white
-	outlined in Ink (with FEATURES.MutationLooks a shining slime's shine sits on
+	outlined in Ink (a shining slime's shine sits on
 	its own pill next to the rarity), the income per second in mint and, while it is for sale
 	and the player stands within priceDistance, a "Buy $price" chip. Where
 	tags overlap on screen the nearest one shows and the ones behind it hide
@@ -101,7 +101,7 @@ function SlimeInfoCard.pillLook(view: SlimeLabel.View): (Color3, ColorSequence, 
 	return fill, ColorSequence.new(Color3.new(1, 1, 1)), Theme.Text, 0
 end
 
--- The shine pill's look (FEATURES.MutationLooks), as pillLook: the shine's colour lit from the top, or a rainbow.
+-- The shine pill's look, as pillLook: the shine's colour lit from the top, or a rainbow.
 function SlimeInfoCard.shineLook(shine: Genome.ShineRow): (Color3, ColorSequence, Color3, number)
 	if shine.rainbow then
 		return Color3.new(1, 1, 1), SlimePadSign.rainbow(), Theme.Ink, 1

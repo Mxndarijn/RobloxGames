@@ -335,7 +335,7 @@ function SlimePadSign.render(part: Part, view: SlimeLabel.View)
 	rarity.TextColor3 = ink
 	bandStroke.Transparency = strokeHidden
 	rarity.Text = view.rarity
-	-- The plank has no pill row: a shine the tag shows as a pill (MutationLooks) leads the name here, "Gold Mochi".
+	-- The plank has no pill row: a shine the tag shows as a pill leads the name here, "Gold Mochi".
 	title.Text = if view.shine then `{view.shine.id} {view.name}` else view.name
 	income.Text = view.income or ""
 	fill.Size = UDim2.fromScale(math.clamp(view.growth, 0, 100) / 100, 1)

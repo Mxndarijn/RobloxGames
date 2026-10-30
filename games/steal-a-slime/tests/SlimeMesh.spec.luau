@@ -340,15 +340,12 @@ describe("SlimeMesh mutation kits", function()
 			local mesh = setup(function(): any
 				return meshAsset()
 			end)
-			mesh.deps.mutationLooks = true
 			local slime = Fixtures.slime("s", 1, { species = "gummy", shine = "Diamond" })
 			local kit, row = SlimeMesh.mutationKit(mesh, slime)
 			expect(kit).toBe(`slime_gummy_{diamond.kit}`)
 			expect(row).toBe(diamond)
 			expect(MeshAssets.get(kit :: string).size).toBe((MeshAssets.get("slime_gummy") :: any).size)
 			expect((SlimeMesh.mutationKit(mesh, Fixtures.slime("p", 1, { species = "gummy" })))).toBeNil()
-			mesh.deps.mutationLooks = false
-			expect((SlimeMesh.mutationKit(mesh, slime))).toBeNil()
 		end)
 	end)
 
@@ -356,7 +353,6 @@ describe("SlimeMesh mutation kits", function()
 		local mesh = setup(function(): any
 			return meshAsset()
 		end)
-		mesh.deps.mutationLooks = true
 		mesh.kits.slime_gummy = meshAsset():FindFirstChildWhichIsA() :: any
 		local slime = Fixtures.slime("s", 1, { species = "gummy", shine = "Gold" })
 		local saved = MeshAssets.entries.slime_gummy_gold
@@ -381,7 +377,6 @@ describe("SlimeMesh mutation kits", function()
 					table.insert(fetches, fetch)
 				end,
 				warn = function() end,
-				mutationLooks = true,
 			})
 			mesh.kits.slime_gummy = {} :: any -- the species kit is in; dressing the fake model just fails over
 			local slime = Fixtures.slime("s", 1, { species = "gummy", shine = "Gold" })
@@ -392,29 +387,6 @@ describe("SlimeMesh mutation kits", function()
 			fetches[1]()
 			expect(requested).toEqual({ 777 })
 			expect(SlimeMesh.hasKit(mesh, `slime_gummy_{gold.kit}`)).toBe(true)
-			expect(SlimeMesh.pendingKit(mesh, slime)).toBeNil()
-		end)
-	end)
-
-	it("without MutationLooks a shining slime wears its species kit and fetches no copy", function()
-		local gold = shineRow("Gold")
-		withCopy(gold.kit, 777, function()
-			local fetches: { () -> () } = {}
-			local mesh = SlimeMesh.new({
-				factory = fakeFactory() :: any,
-				loadAsset = function(): any
-					return meshAsset()
-				end,
-				spawn = function(fetch: () -> ())
-					table.insert(fetches, fetch)
-				end,
-				warn = function() end,
-				mutationLooks = false,
-			})
-			mesh.kits.slime_gummy = {} :: any
-			local slime = Fixtures.slime("s", 1, { species = "gummy", shine = "Gold" })
-			SlimeMesh.build(mesh, slime)
-			expect(#fetches).toBe(0)
 			expect(SlimeMesh.pendingKit(mesh, slime)).toBeNil()
 		end)
 	end)
@@ -435,7 +407,6 @@ describe("SlimeMesh mutation kits", function()
 				warn = function(message: string)
 					error(message)
 				end,
-				mutationLooks = true,
 			})
 			local copy = roblox.Instance.new("MeshPart")
 			copy:SetAttribute("Copy", true)

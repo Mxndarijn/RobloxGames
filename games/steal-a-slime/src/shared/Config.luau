@@ -1319,7 +1319,7 @@ local Config = {
 	JACKPOT_SHARE = 0.1, -- a jackpot species (SlimeRoster.jackpot) is this share of its rarity's drops, whatever else is in the pool
 	-- Shines (weather mutations): a wild slime rolls at most one when it spawns. `weather` = only while that
 	-- Config.WEATHER id is on (nil = any weather); `chance` per wild slime; income x `mult`. Ids are saved: never rename.
-	-- The look (FEATURES.MutationLooks): the species wears its recoloured kit `slime_<id>_<kit>` (MeshAssets.mutationKit)
+	-- The look: the species wears its recoloured kit `slime_<id>_<kit>` (MeshAssets.mutationKit)
 	-- in `material` with `reflectance`, tinted `tint` (MeshPart.Color; nil = white); sparkles and the tag pill take
 	-- `color` (`rainbow` = drawn in every colour).
 	SHINES = table.freeze({
@@ -1436,7 +1436,6 @@ local Config = {
 		BaseShapes = true, -- choosable plot bases next to the skins: the goo jar tower, the Goo Factory (rebirth 20), the Mushroom Pagoda (rebirth 25) and the Exclusive bases (PlotBases, BaseShapes, CONTRACT.md §44); false = no remote, State fields or plot attribute, every plot is the jar
 		SlimeGuard = true, -- anti-cheat for stealing (SlimeGuard, CONTRACT.md §41): movement checks, steal gate, deposit check, steal record, breather lock, locked-base intruders reported (never moved); false = none of it
 		CashPads = true, -- each slime's income piles up on a gold cash pad in front of it and only the plot owner collects it by stepping on it; offline income lands there too (CashPads, contract/cash-pads.md); false = income goes straight to cash
-		MutationLooks = true, -- a shining slime (Config.SHINES) wears its gold / diamond / rainbow recoloured species kit and bigger sparkles, and its tag shows the shine as a pill next to the rarity with the plain species name (SlimeMesh, SlimeShineView, SlimeLabel, contract/slime-ladder.md 45.5); false = the species kit, small sparkles and "Gold Mochi" in the name
 		MoveGuardLog = false, -- log-only server movement check (MoveGuard, server/MoveWatch): counts root moves a player could not have walked and logs a rate-limited summary; never moves, kicks or releases anyone
 	}),
 

@@ -29,12 +29,11 @@ Every stretch of the game has its own rarity to chase: Legendary in the first ho
 
 - `Genome.Slime.shine: string?`, a `Config.SHINES` id: `Gold` x1.5 (any weather, 3 %), `Diamond` x2 (Snow, 4 %), `Rainbow` x3 (Starfall, 2 %). A wild slime rolls at most one when it spawns (`Spawner.rollShine`, on `world.shineRng` so the fountain's slime sequence never shifts; `world.weather` is the live weather). Eggs, bosses and merges never roll one.
 - `Genome.baseIncome` multiplies by it, so prices follow. It travels when stolen. A merge child keeps a shine only when all three parents share it.
-- Saved as the optional slime field `shine` (missing = none, no version bump; the old v4-v6 `mutation` field stays stripped). Shown in the name ("Gold Bumble": `Genome.displayName` in the menus, the rare toast) and as a sparkle (`server/SlimeShineView`: a `ShineFx` ParticleEmitter on the Body; the model attribute `Constants.SHINE_ATTRIBUTE` = the id).
-- **Look (`FEATURES.MutationLooks`).** Each `Config.SHINES` row has `kit` (`gold`, `diamond`, `rainbow`), `material`, `reflectance` and `rainbow` (drawn in every colour).
+- Saved as the optional slime field `shine` (missing = none, no version bump; the old v4-v6 `mutation` field stays stripped). Shown in the menu name ("Gold Bumble": `Genome.displayName`, the rare toast), in the look below and as a sparkle (`server/SlimeShineView`: a `ShineFx` ParticleEmitter on the Body; the model attribute `Constants.SHINE_ATTRIBUTE` = the id).
+- **Look.** Each `Config.SHINES` row has `kit` (`gold`, `diamond`, `rainbow`), `material`, `reflectance`, `tint` and `rainbow` (drawn in every colour).
   - Model: the slime wears the recoloured copy of its species kit, `slime_<id>_<kit>` (`MeshAssets.mutationKit`; the same mesh and size as `slime_<id>`, other vertex colours: gold, icy diamond, rainbow bands, dark face kept), in the row's material. Copies are made by `shared/modeling-kit/tools/slime_pool_export.py --mutation all` (`models/_slimepool.py` `mutate`) and uploaded as Models; `tools/slime_mutation_assets.py` writes the `MeshAssets` block from `uploaded.json` (`tests/SlimeMutationKits.spec`). `server/SlimeMesh` fetches a copy the first time a slime needs it; until it arrives the slime wears its species kit and `SlimeMesh.pendingKit` names the copy, so `WorldView` rebuilds it.
   - Sparkles: bigger, on the slime's surface, white glints fading into the shine's colour (a rainbow for `rainbow`), 12-16 a second.
   - Tag (`contract/slime-labels.md`): `LabelName` is the plain name ("Bumble"); the floating tag reads `Constants.SHINE_ATTRIBUTE` and draws the shine on its own pill next to the rarity pill (`SlimeLabel.View.shine`). The pad plank has no pill row and writes "Gold Bumble".
-  - `false`: the species kit, the small sparkles, and "Gold Bumble" in `LabelName`.
 
 ## 45.6 Jackpots
 

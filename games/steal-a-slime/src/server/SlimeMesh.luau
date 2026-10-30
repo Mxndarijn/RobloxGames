@@ -36,7 +36,7 @@
 	so they are not world mesh slots (WorldLayout.MESH_SLOT_BUDGET counts
 	MeshAsset tags only).
 
-	Shining slimes (FEATURES.MutationLooks, Config.SHINES): a slime with a shine wears the
+	Shining slimes (Config.SHINES): a slime with a shine wears the
 	recoloured copy of its species kit (MeshAssets.mutationKit, e.g. slime_mochi_gold) in the
 	shine's material. Copies are fetched the first time a slime needs one; until it arrives the
 	slime wears its species kit and pendingKit names the copy.
@@ -62,7 +62,6 @@ export type Deps = {
 	spawn: ((() -> ()) -> ())?, -- runs a kit fetch; default task.spawn (inline without it)
 	warn: ((string) -> ())?,
 	onKit: ((kit: string, mesh: MeshPart) -> ())?, -- a species kit finished loading (WorldView replicates it for the SlimeDex)
-	mutationLooks: boolean?, -- FEATURES.MutationLooks for tests; nil = Config
 }
 
 export type SlimeMesh = {
@@ -371,16 +370,9 @@ local function finish(self: SlimeMesh, model: Model, slimeData: Types.SlimeData,
 	return model
 end
 
--- The recoloured kit a shining slime wears (FEATURES.MutationLooks) and its Config.SHINES row; nil for a slime
--- without a shine, without a species kit or whose copy isn't uploaded.
-function SlimeMesh.mutationKit(self: SlimeMesh, slimeData: Types.SlimeData): (string?, Genome.ShineRow?)
-	local on = self.deps.mutationLooks
-	if on == nil then
-		on = Config.FEATURES.MutationLooks == true
-	end
-	if not on then
-		return nil, nil
-	end
+-- The recoloured kit a shining slime wears and its Config.SHINES row; nil for a slime without a shine, without a
+-- species kit or whose copy isn't uploaded.
+function SlimeMesh.mutationKit(_self: SlimeMesh, slimeData: Types.SlimeData): (string?, Genome.ShineRow?)
 	local row = Genome.shine(slimeData)
 	local look = SlimeLooks.get(slimeData.species)
 	local kit = if row and look then MeshAssets.mutationKit(look.kit, row.kit) else nil

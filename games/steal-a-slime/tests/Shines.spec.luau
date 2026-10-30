@@ -140,19 +140,12 @@ describe("a shine on a slime", function()
 		expect(Genome.shineMultiplier(Fixtures.slime("c", 4))).toBe(1)
 		expect(Genome.shineMultiplier(Fixtures.slime("d", 4, { shine = "Mud" }))).toBe(1)
 	end)
-	it("prefixes the display name, and the label name without MutationLooks", function()
+	it("prefixes the display name; the label name is the plain species name (the shine is a pill)", function()
 		local slime = Fixtures.slime("a", 5, { name = "Globble", shine = "Diamond" })
 		expect(Genome.displayName(slime)).toBe("Diamond Legendary Globble")
-		expect((SlimeLabel.attributes(slime, false))).toBe("Diamond Globble")
 		expect(Genome.displayName(Fixtures.slime("b", 5, { name = "Globble" }))).toBe("Legendary Globble")
-		expect((SlimeLabel.attributes(Fixtures.slime("c", 5, { name = "Globble", shine = "Gold", brewed = 1 }), false))).toBe(
-			"Gold Brewed Globble"
-		)
-	end)
-	it("with MutationLooks the label name is the plain species name (the shine is a pill)", function()
-		local slime = Fixtures.slime("a", 5, { name = "Globble", shine = "Diamond" })
-		expect((SlimeLabel.attributes(slime, true))).toBe("Globble")
-		expect((SlimeLabel.attributes(Fixtures.slime("c", 5, { name = "Globble", shine = "Gold", brewed = 1 }), true))).toBe(
+		expect((SlimeLabel.attributes(slime))).toBe("Globble")
+		expect((SlimeLabel.attributes(Fixtures.slime("c", 5, { name = "Globble", shine = "Gold", brewed = 1 })))).toBe(
 			"Brewed Globble"
 		)
 	end)
