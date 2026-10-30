@@ -137,7 +137,7 @@ local function rowsOf(gui: any): { any }
 	local card = gui:FindFirstChild("Card")
 	local out = {}
 	for _, spec in SlimeInfoCard.ROWS do
-		local label = card:FindFirstChild(spec.name)
+		local label = SlimeInfoCard.label(card, spec.name)
 		if label.Visible then
 			table.insert(out, label)
 		end
@@ -357,9 +357,10 @@ describe("SlimeInfoCard render", function()
 		expect(rows[4].BackgroundColor3).toBe(Theme.Ink)
 		expect(gui.Size).toBe(SlimeInfoCard.size(4))
 		for _, label in rows do
-			-- pills hang from their centre (AnchorPoint 0.5), text rows from their top
-			local top = label.Position.Y.Scale - label.AnchorPoint.Y * label.Size.Y.Scale
-			local height = label.Size.Y.Scale
+			-- the rarity row is the pill row frame; pills hang from their centre (AnchorPoint 0.5), text rows from their top
+			local box = if label.Name == "Rarity" then label.Parent else label
+			local top = box.Position.Y.Scale - box.AnchorPoint.Y * box.Size.Y.Scale
+			local height = box.Size.Y.Scale
 			expect(top >= -EPS and top + height <= 1 + EPS).toBe(true)
 			expect(label.Size.X.Scale).toBe(1)
 			expect(label.TextScaled).toBe(true)
@@ -370,17 +371,25 @@ describe("SlimeInfoCard render", function()
 		local a = { name = "Mochi", tier = 1, income = 4, shine = "Diamond" }
 		SlimeInfoCard.render(gui, assert(SlimeLabel.view(a :: any)), 3)
 		local card = gui:FindFirstChild("Card")
-		local rarity, shine = card:FindFirstChild("Rarity"), card:FindFirstChild("Shine")
+		local rarity, shine = SlimeInfoCard.label(card, "Rarity"), SlimeInfoCard.label(card, "Shine")
 		expect(shine.Visible).toBe(true)
 		expect(shine.Text).toBe("Diamond")
 		expect(card:FindFirstChild("Title").Text).toBe("Mochi")
 		expect(rarity.Text).toBe(Config.RARITIES[1].name)
-		-- side by side on the rarity row: rarity left of the middle, shine right of it, each at most half the tag
-		expect(rarity.Position.Y.Scale).toBeCloseTo(shine.Position.Y.Scale, EPS)
-		expect(rarity.AnchorPoint.X).toBe(1)
-		expect(shine.AnchorPoint.X).toBe(0)
-		expect(rarity.Position.X.Scale < 0.5 and shine.Position.X.Scale > 0.5).toBe(true)
-		expect(rarity.Size.X.Scale <= 0.5 and shine.Size.X.Scale <= 0.5).toBe(true)
+		-- side by side in one row, rarity first, each at most half the row; the row's layout centres the pair as a
+		-- group under the name, whatever the two pills' widths
+		local row = card:FindFirstChild(SlimeInfoCard.PILL_ROW)
+		expect(rarity.Parent).toBe(row)
+		expect(shine.Parent).toBe(row)
+		expect(row.AnchorPoint.X).toBe(0.5)
+		expect(row.Position.X.Scale).toBe(0.5)
+		expect(row.Size.X.Scale).toBe(1)
+		local layout = row:FindFirstChildOfClass("UIListLayout")
+		expect(layout.FillDirection).toBe(roblox.Enum.FillDirection.Horizontal)
+		expect(layout.HorizontalAlignment).toBe(roblox.Enum.HorizontalAlignment.Center)
+		expect(rarity.LayoutOrder < shine.LayoutOrder).toBe(true)
+		expect(rarity.Size.X.Scale * 2 + layout.Padding.Scale <= 1 + EPS).toBe(true)
+		expect(shine.Size.X.Scale).toBe(rarity.Size.X.Scale)
 		expect(shine:FindFirstChild("Fit").AspectRatio).toBe(SlimeInfoCard.pillAspect("Diamond"))
 		local row
 		for _, r in Config.SHINES do
@@ -390,18 +399,16 @@ describe("SlimeInfoCard render", function()
 		end
 		local c = row.color
 		expect(shine.BackgroundColor3).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
-		-- back to a plain slime: one centred rarity pill
+		-- back to a plain slime: the rarity pill alone in the centred row
 		SlimeInfoCard.render(gui, assert(SlimeLabel.view({ name = "Mochi", tier = 1, income = 4 } :: any)), 3)
 		expect(shine.Visible).toBe(false)
-		expect(rarity.AnchorPoint.X).toBe(0.5)
-		expect(rarity.Position.X.Scale).toBe(0.5)
 		expect(rarity.Size.X.Scale).toBe(1)
 	end)
 	it("fills a rainbow shine's pill with a rainbow", function()
 		local gui = SlimeInfoCard.build()
 		local a = { name = "Mochi", tier = 1, income = 4, shine = "Rainbow" }
 		SlimeInfoCard.render(gui, assert(SlimeLabel.view(a :: any)), 3)
-		local shine = gui:FindFirstChild("Card"):FindFirstChild("Shine")
+		local shine = SlimeInfoCard.label(gui:FindFirstChild("Card"), "Shine")
 		expect(#shine:FindFirstChild("Fill").Color.Keypoints > 3).toBe(true)
 	end)
 	it("drops the price row again and hides without a view", function()

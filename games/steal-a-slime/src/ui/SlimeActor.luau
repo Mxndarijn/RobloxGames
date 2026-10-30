@@ -87,8 +87,9 @@ SlimeActor.MOVING = 0.8 -- studs / s: faster than this a slime counts as on the 
 SlimeActor.AIR_TURN = 0.85 -- share of a look turn a hopper drops while it squats and jumps (it jumps nose first)
 SlimeActor.AIR_RATE = 14 -- 1 / s: how fast that share fades in and out
 -- The name tag and the Buy card hang on a TagAnchor that follows the drawn slime through this spring (Lib Spring:
--- f Hz, zeta, r): it glides along with a hopper's leaps instead of jumping, and never steps with the Body.
-SlimeActor.TAG = table.freeze({ f = 3, zeta = 1, r = 0.5 })
+-- f Hz, zeta, r): it glides along with a hopper's leaps instead of jumping, and never steps with the Body. Quick
+-- enough that a walking or hopping slime keeps its tag over it (it trails speed * zeta * (2 - r) / (2 pi f)).
+SlimeActor.TAG = table.freeze({ f = 6, zeta = 1, r = 1 })
 -- The tag rises with the slime (a float, a slow rise in a fidget) through a softer spring, so a quick hop only nudges
 -- it and the slime never rises into its own label.
 SlimeActor.TAG_LIFT = table.freeze({ f = 1.2, zeta = 1, r = 0 })
