@@ -82,6 +82,26 @@ return table.freeze({
 	LEADERBOARD_STAT_ATTRIBUTE = "LeaderboardStat", -- on each board Model: the Types.Leaderboard `stat` it shows
 	PROFESSOR_GOO = "ProfessorGoo", -- the Hall of Fame greeter NPC under workspace.Map
 	HALL_ARCH = "HallOfFameArch", -- the Hall of Fame entrance arch under workspace.Map
+	-- Goo Gauntlet obby (contract/obby.md): server/ObbyView builds workspace.Obby with Portal and Course
+	OBBY_FOLDER = "Obby",
+	OBBY_COURSE = "Course", -- workspace.Obby.Course: the parts of the course standing now (attribute Slot)
+	OBBY_PORTAL = "Portal", -- workspace.Obby.Portal: the ring, its column and the status sign
+	OBBY_SIGN_STATUS = "Status", -- TextLabel on the portal sign the client fills with its own boost status
+	OBBY_SIGN_COURSE = "CourseInfo", -- TextLabel on the portal sign the client fills with the course and rotation
+	-- Course part attributes (ObbyCourse.Motion, played by visuals/client/ObbyFx)
+	OBBY_MOTION = "ObbyMotion", -- "slide" | "spin" | "melt" | "flip" | "shrink" | "bounce" | "lift" | "swing" | "rock"
+	OBBY_BASE = "ObbyBase", -- CFrame at rest
+	OBBY_AXIS = "ObbyAxis", -- slide: world direction (Vector3)
+	OBBY_AMP = "ObbyAmp", -- slide: studs; swing / rock: degrees
+	OBBY_PERIOD = "ObbyPeriod", -- slide / spin / flip / shrink: seconds (negative spin = the other way)
+	OBBY_PHASE = "ObbyPhase", -- 0..1 of a period
+	OBBY_DELAY = "ObbyDelay", -- melt: seconds from stepping on to dropping away
+	OBBY_AWAY = "ObbyAway", -- melt: seconds it stays away
+	OBBY_DUTY = "ObbyDuty", -- flip: share of the period it is solid
+	OBBY_MIN = "ObbyMin", -- shrink: smallest scale
+	OBBY_SHRINK_AXES = "ObbyShrinkAxes", -- shrink: "xz" (block) or "yz" (disc) size axes that breathe
+	OBBY_POWER = "ObbyPower", -- bounce: launch speed up; lift: rising speed (studs / s)
+	OBBY_ARM = "ObbyArm", -- swing: studs from the pivot down to the part
 	TUTORIAL_NPC = "TutorialNpc",
 	SPEED_COIL_TOOL = "SpeedCoil", -- Tool in the Backpack while owned
 	-- ProximityPrompt on every slime's Body (grab / steal); Jolt's PromptHide matches this name.

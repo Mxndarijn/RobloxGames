@@ -82,6 +82,9 @@ export type Data = {
 	ritualBonus: number?, -- runtime only (never saved): "Blessed" income bonus from the co-op ritual; nil = none
 	mvpBonus: number?, -- runtime only (never saved): Boss Champion income bonus, also +BOSS.MVP_SPEED walk speed (BossCredit); nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
+	obbyUntil: number, -- server time the Goo Gauntlet boost ends (ObbyRules; 0 = never earned; no version bump)
+	obbyReadyAt: number, -- server time a finish earns the boost again (ObbyRules; 0 = now)
+	obbyBonus: number?, -- runtime only (never saved): the Goo Gauntlet income bonus while boosted (ObbyService); nil = none
 	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
 	settings: PlayerSettings.Values, -- Settings menu values (save v6; PlayerSettings, missing ids -> defaults)
 	allowFriends: boolean?, -- the lock button's friends switch (FEATURES.FriendsInBase): true = friends pass a locked base; nil = off
@@ -148,6 +151,8 @@ function PlayerData.new(): Data
 		redeemed = {},
 		boostMult = 1,
 		boostUntil = 0,
+		obbyUntil = 0,
+		obbyReadyAt = 0,
 		stealLog = {},
 		settings = PlayerSettings.defaults(),
 		consumables = { slot = 0, bought = {}, held = {} },

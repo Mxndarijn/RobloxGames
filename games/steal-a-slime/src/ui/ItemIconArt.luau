@@ -355,6 +355,16 @@ RECIPES.Boost_Mvp = function(p)
 	p:text("👑", 0.5, 0.16, 0.4, GOLD)
 end
 
+RECIPES.Boost_Obby = function(p)
+	local green = rgb(120, 220, 120)
+	p:shape(0.24, 0.74, 0.22, 0.16, green, { round = 0.25 })
+	p:shape(0.5, 0.6, 0.22, 0.16, green, { round = 0.25 })
+	p:shape(0.76, 0.46, 0.22, 0.16, green, { round = 0.25 })
+	p:shape(0.8, 0.27, 0.04, 0.24, rgb(90, 70, 50), { stroke = false })
+	p:shape(0.87, 0.2, 0.14, 0.1, GOLD, { round = 0.2 })
+	sparkle(p, 0.2, 0.3, 0.2)
+end
+
 RECIPES.Boost_Weekend = function(p)
 	local colors = { RED, BLUE, GREEN, PURPLE, GOLD }
 	for i = 1, 10 do

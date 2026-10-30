@@ -1593,6 +1593,56 @@ local Config = {
 		REDUCED_ATTRIBUTE = "ReducedMotion", -- LocalPlayer attribute; true = no tween, no puff
 	}),
 
+	-- Goo Gauntlet sky obby (Shared.ObbyCourse, Shared.ObbyRules, server/ObbyService, contract/obby.md). Seconds
+	-- unless noted. Finishing grants +BONUS income for BOOST_SECONDS; the next run counts COOLDOWN_SECONDS after the
+	-- boost ends. The course rebuilds every ROTATION_SECONDS from SECTIONS in ORDER (tiers), each with one of LAYOUTS.
+	OBBY = table.freeze({
+		BONUS = 0.5, -- +50 % income: x1.5
+		BOOST_SECONDS = 5 * 60,
+		COOLDOWN_SECONDS = 5 * 60, -- counted from the end of the boost
+		ROTATION_SECONDS = 10 * 60,
+		CHAIN_SLOTS = 144, -- rotations per chain (a day): "no section of the last course" holds inside one chain
+		ORDER = table.freeze({ "easy", "easy", "medium", "medium", "hard" }),
+		SECTIONS = table.freeze({
+			easy = table.freeze({
+				"JellySteps",
+				"WobbleBridge",
+				"BubbleHop",
+				"GooConveyor",
+				"TrampolineField",
+				"GooCascade",
+				"GooPipe",
+				"StickyLadder",
+			}),
+			medium = table.freeze({
+				"MeltingTiles",
+				"Spinner",
+				"LilyLift",
+				"JellyWallHop",
+				"BlobPendulums",
+				"FanShaft",
+				"PoppingBubbles",
+				"SlimeSeesaw",
+			}),
+			hard = table.freeze({
+				"Tightrope",
+				"FlipFloor",
+				"IceGauntlet",
+				"ShrinkingPads",
+				"SlimeCannon",
+				"GooGates",
+				"BlobDrop",
+				"Turntables",
+			}),
+		}),
+		LAYOUTS = 6, -- layouts per section
+		MIN_SECTION_SECONDS = 1.5, -- a checkpoint reached faster than this after the last one doesn't count
+		FALL_DEPTH = 18, -- studs under the lowest floor of the course that count as a fall (back to the checkpoint)
+		REBUILD_GRACE = 90, -- a new rotation waits this long for runners to finish before it sends them home
+		RESPAWN_LIFT = 3, -- studs above a checkpoint pad a respawned runner appears
+		MOVE_GRACE = 1.5, -- after the server moves a runner, their old position may still arrive once: no fall / off-course checks
+	}),
+
 	-- Boss event (server/BossEvent, Shared.BossFight, contract/boss-event.md). Seconds unless noted.
 	BOSS = table.freeze({
 		FIRST_AT = 8 * 60, -- first arrival after server start

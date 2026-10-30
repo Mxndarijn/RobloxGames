@@ -47,6 +47,9 @@ GameAnalytics.CATALOG = table.freeze({
 		"EggHatched", -- (field: tier)
 		"BossHits", -- per player online when a boss fight ends; value = their hits (fields: outcome, joined)
 		"BossWon", -- the carrier who brought the boss home (field: species)
+		"ObbyStarted", -- stepped into the Goo Gauntlet portal
+		"ObbyFinished", -- value = run seconds (field: boost earned or not)
+		"ObbyFell", -- fell off a section (field: section)
 		"TutorialSkipped", -- (field: the step it was on)
 		"ShopDenied", -- a shop buy refused (field: shop, reason)
 		"RobuxPurchase", -- a Developer Product granted; value = Robux (field: product)

@@ -96,7 +96,9 @@ function SlimeGuardView.step(world: World.World, player: Player, session: World.
 		SlimeGuard.serverMoved(world, userId, now)
 	end
 	local state = PvpService.state(session)
-	if PvpLaunch.guardActive(userId, state and state.controlUntil, now) then
+	-- A Goo Gauntlet run: trampolines, slime cannons and fans throw the runner up fast (contract/obby.md). The course
+	-- hangs in the sky away from every base, and the run has its own checkpoint timing check.
+	if PvpLaunch.guardActive(userId, state and state.controlUntil, now) or session.obbyRun then
 		SlimeGuard.launchWindow(world, userId, now)
 	end
 

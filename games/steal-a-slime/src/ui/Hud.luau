@@ -569,6 +569,7 @@ function Hud.new(parent: Instance, ctx: any)
 			friendsEnabled = ctx.Config.FEATURES.FriendBonus == true,
 			blessed = current.blessed,
 			mvpBoost = current.mvpBoost,
+			obby = current.obby,
 			codes = current.codes,
 			petPerk = current.petPerk,
 			featuredSecret = current.featuredSecret,
