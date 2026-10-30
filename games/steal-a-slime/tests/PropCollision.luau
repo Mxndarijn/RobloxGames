@@ -363,7 +363,16 @@ mesh(
 	ON_MESH,
 	"sign boards on posts, 12.6x14.5x7.5; the old slot box was this bbox"
 )
-mesh("goo_sign", "ranch_goo_sign", "jolt", 4, "Box", DECOR, ON_MESH, "8.8x8.2x3.7 signboard")
+mesh(
+	"goo_sign",
+	"ranch_goo_sign",
+	"jolt",
+	4,
+	"Default",
+	DECOR,
+	ON_MESH,
+	"8.8x8.2x3.7 signboard on two posts: Default follows board and posts"
+)
 for i = 1, 3 do
 	mesh(
 		`plaza_podium_{i}`,
@@ -439,7 +448,7 @@ parts(
 	{ walk = false, flag = { name = "Parade", off = 0 } }
 )
 
--- World decor (RanchProps): bug #11 converted these; kept exactly. Box / Hull per docs/COLLISION.md.
+-- World decor (RanchProps): Box / Hull per docs/COLLISION.md, Default where a box or hull leaves invisible space.
 local DECOR_PROPS: { { string | number } } = {
 	-- kind, mesh, count, fidelity, reason
 	{ "decor_crate", "ranch_crate", 2, "Box", "3x3x3 cube: the box is the shape" },
@@ -454,17 +463,29 @@ local DECOR_PROPS: { { string | number } } = {
 		"2.5x2.6x2.7 near-cylinder, a box has faces a walker stops against (v196)",
 	},
 	{ "decor_fence_stile", "ranch_fence_stile", 2, "Box", "5.8x5.5x4.9 solid block players jump onto (v196)" },
-	{ "decor_hitching_post", "ranch_hitching_post", 3, "Box", "7.3x4.8x3.2 rail between posts" },
+	{
+		"decor_hitching_post",
+		"ranch_hitching_post",
+		3,
+		"Default",
+		"7.3x4.8x3.2 rail between posts: nobody stands on air over the gap",
+	},
 	{ "decor_water_trough", "ranch_water_trough", 5, "Box", "9.7x3.6x3.2 low box" },
-	{ "decor_wagon", "ranch_wagon", 2, "Box", "9.9x3x5.8 cart, flat bed to stand on" },
-	{ "decor_compost_bin", "ranch_compost_bin", 2, "Box", "5.5x4.8x5.3 slatted bin" },
+	{ "decor_wagon", "ranch_wagon", 2, "Default", "9.9x3x5.8 cart, flat bed to stand on, follows the wheels" },
+	{ "decor_compost_bin", "ranch_compost_bin", 2, "Default", "5.5x4.8x5.3 slatted bin, follows the slats" },
 	{ "decor_tool_rack", "ranch_tool_rack", 1, "Box", "7.7x8x3 rack, a flat wall" },
 	{ "decor_flower_planter", "ranch_flower_planter", 6, "Box", "5.2x3.2x2 planter box" },
 	{ "decor_picnic_table", "ranch_picnic_table", 2, "Box", "8.1x3.4x6 table with benches" },
 	{ "decor_well", "ranch_well", 2, "Box", "6.9x7.7x5.5 stone well with a roof (v196)" },
-	{ "decor_bench", "ranch_bench", 6, "Box", "6x4x2.4 bench with a back" },
+	{
+		"decor_bench",
+		"ranch_bench",
+		6,
+		"Default",
+		"6x4x2.4 bench with a back: sit-height seat, nobody stands on air over it",
+	},
 	{ "decor_shed", "ranch_shed", 1, "Hull", "10.6x9.3x8.6 gabled shed: the hull follows the roof" },
-	{ "decor_slime_coop", "ranch_slime_coop", 2, "Hull", "7.4x7.7x7.8 gabled coop" },
+	{ "decor_slime_coop", "ranch_slime_coop", 2, "Default", "7.4x7.7x7.8 gabled coop: walkers stop at the walls" },
 	{ "decor_rain_barrel", "ranch_rain_barrel", 2, "Hull", "3.3x5.6x5.5 barrel with a pipe" },
 	{ "decor_barrel_stack", "ranch_barrel_stack", 2, "Hull", "5.2x5.4x4.7 pyramid of barrels" },
 	{ "decor_milk_churn", "ranch_milk_churn", 5, "Hull", "2.7x6.1x2.5 churn" },
@@ -485,8 +506,8 @@ local DECOR_PROPS: { { string | number } } = {
 		"decor_windmill",
 		"ranch_windmill",
 		2,
-		"Hull",
-		"8.4x17.4x9.7 tower: the hull is the tower, the sails are overhead",
+		"Default",
+		"8.4x17.4x9.7 tower with sails: Default keeps tower and sails apart (a hull wraps the sails)",
 	},
 	{ "decor_birdhouse", "ranch_birdhouse", 3, "Hull", "3.6x8x3.4 house on a pole" },
 	{ "decor_water_pump", "ranch_water_pump", 2, "Hull", "3.8x4.4x4.9 pump" },
@@ -564,9 +585,51 @@ parts(
 	"colliders",
 	DECOR,
 	{ "^Mushroom%d+$" },
-	"on (cap Ball + stem)",
-	"mushrooms (1.6-3.2 studs) are primitives that collide on their own",
+	"on (one invisible flat-top Collider; cap Ball and stem off)",
+	"mushrooms (1.6-3.2 studs): a ball cap at knee height snags walkers or lifts them over, so a flat-top cylinder under it is the collision",
 	{ models = true }
+)
+-- The sand yard (YardProps) dressed with border meshes: rocks, fences and the hedge collide as meshes (the same lines in
+-- MeshAssets.COLLISION make their copies behind the wall solid too); trees are decor with invisible trunk posts.
+for _, y in
+	{
+		{ "yard_rock_boulder", "ranch_border_rock_boulder", 3, "Hull", "boulder: solid, players climb over it" },
+		{ "yard_rock_cluster", "ranch_border_rock_cluster", 2, "Hull", "low cluster of rocks" },
+		{ "yard_rock_slab", "ranch_border_rock_slab", 1, "Hull", "flat rock slab" },
+		{ "yard_fence_straight", "ranch_border_fence_straight", 6, "Box", "straight fence panel, a flat wall" },
+		{ "yard_hedge_long", "ranch_border_hedge_long", 1, "Box", "long hedge, a flat wall" },
+	} :: { { any } }
+do
+	mesh(y[1], y[2], "jolt", y[3], y[4], DECOR, ON_MESH, y[5])
+end
+for _, y in
+	{
+		{ "yard_oak_round", "ranch_border_oak_round", 1 },
+		{ "yard_pine_broad", "ranch_border_pine_broad", 1 },
+		{ "yard_pine_tall", "ranch_border_pine_tall", 1 },
+		{ "yard_sapling_trio", "ranch_border_sapling_trio", 2 },
+	} :: { { any } }
+do
+	mesh(
+		y[1],
+		y[2],
+		"jolt",
+		y[3],
+		"off",
+		DECOR,
+		"mesh off, slot off",
+		"tree: the leaves are walk-through, the trunk collides through yard_tree_trunks (a hull is an invisible cone round the canopy)"
+	)
+end
+parts(
+	"yard_tree_trunks",
+	"jolt",
+	9,
+	"colliders",
+	DECOR,
+	{ "^Yard_.+_Trunk%d+$" },
+	"on (invisible upright posts, WorldLayout.TREE_TRUNKS)",
+	"one post per yard tree trunk: nobody walks through a trunk"
 )
 -- Meadow clusters (visuals/shared/Meadow): ground cover
 parts(
@@ -634,12 +697,7 @@ local BORDER_MESHES: { { string | number } } = {
 	{ "border_pine_broad", "ranch_border_pine_broad", 4, "pine" },
 	{ "border_oak_round", "ranch_border_oak_round", 1, "oak" },
 	{ "border_sapling_trio", "ranch_border_sapling_trio", 1, "saplings" },
-	{ "border_rock_slab", "ranch_border_rock_slab", 1, "rock" },
-	{ "border_rock_boulder", "ranch_border_rock_boulder", 1, "rock" },
-	{ "border_rock_cluster", "ranch_border_rock_cluster", 1, "rock" },
-	{ "border_fence_straight", "ranch_border_fence_straight", 8, "fence" },
 	{ "border_fence_long", "ranch_border_fence_long", 5, "fence" },
-	{ "border_hedge_long", "ranch_border_hedge_long", 6, "hedge" },
 	{ "border_hedge_xl", "ranch_border_hedge_xl", 6, "hedge" },
 	{ "border_hedge_round", "ranch_border_hedge_round", 1, "hedge" },
 	{ "border_accent_pumpkin_patch", "ranch_pumpkin_patch", 1, "accent prop" },
@@ -657,18 +715,30 @@ for _, b in BORDER_MESHES do
 		{ walk = false }
 	)
 end
--- the one border piece that is a collidable mesh (a ranch accent, Hull), also behind the wall
-mesh(
-	"border_accent_windmill",
-	"ranch_windmill",
-	"jolt",
-	1,
-	"Hull",
-	BORDER,
-	ON_MESH,
-	"ranch accent behind the wall ring; keeps the shared windmill Hull",
-	{ walk = false }
-)
+-- border pieces whose mesh is solid because the sand yard uses it (MeshAssets.COLLISION is per mesh), and the ranch
+-- windmill accent: collidable, all behind the wall
+for _, b in
+	{
+		{ "border_rock_slab", "ranch_border_rock_slab", 1, "Hull", "rock" },
+		{ "border_rock_boulder", "ranch_border_rock_boulder", 1, "Hull", "rock" },
+		{ "border_rock_cluster", "ranch_border_rock_cluster", 1, "Hull", "rock" },
+		{ "border_fence_straight", "ranch_border_fence_straight", 8, "Box", "fence" },
+		{ "border_hedge_long", "ranch_border_hedge_long", 6, "Box", "hedge" },
+		{ "border_accent_windmill", "ranch_windmill", 1, "Default", "ranch accent windmill" },
+	} :: { { any } }
+do
+	mesh(
+		b[1],
+		b[2],
+		"jolt",
+		b[3],
+		b[4],
+		BORDER,
+		ON_MESH,
+		`{b[5]}: solid like the yard's copies; {BEHIND_WALL}`,
+		{ walk = false }
+	)
+end
 
 --------------------------------------------------------------------------------------------------------------------
 -- GOJO: plot-level props (reported; the play probe only fails what is already collidable)
