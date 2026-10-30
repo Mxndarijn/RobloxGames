@@ -147,13 +147,25 @@ td:first-child { font-weight: 700; }
 .swatches { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .sw { width: 26px; height: 26px; border-radius: 8px; border: 2px solid #08262a; }
 
-/* planned tabs */
-.plan-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
-.pill { font: 700 11px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; background: var(--gold-soft); color: var(--gold); border: 2px solid var(--gold); }
-.plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 20px; }
-.plan-grid > div { background: var(--panel); border: 2px solid var(--line); border-radius: 16px; padding: 14px 16px 4px; min-width: 0; }
-.plan-grid h4 { font: 600 17px/1.3 var(--f-display); margin: 0 0 6px; }
-.plan-grid ul { font-size: 15px; padding-left: 18px; }
+/* other tabs */
+.page { max-width: 900px; min-width: 0; }
+.page > h2 { margin-top: 0; }
+.lead { font-size: 17px; color: var(--muted); max-width: 66ch; margin-bottom: 20px; }
+.filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+.chipbtn { font: 700 13px/1 var(--f-body); padding: 8px 12px; min-height: 36px; border-radius: 999px; border: 2px solid var(--line); background: var(--panel); color: var(--fg); cursor: pointer; }
+.chipbtn[aria-pressed="true"] { background: var(--band); border-color: var(--ink); color: var(--band-ink); }
+.chipbtn:focus-visible, .search input:focus-visible { outline: 3px solid var(--mint); outline-offset: 2px; }
+#declog td:first-child { white-space: nowrap; color: var(--muted); font-size: 13px; }
+#declog td:nth-child(3) { color: var(--muted); }
+.search { display: flex; gap: 10px; align-items: center; margin: 4px 0 8px; font-weight: 700; }
+.search input { flex: 1; max-width: 360px; min-width: 0; font: 600 15px var(--f-body); color: var(--fg); background: var(--panel); border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.gloss { display: grid; gap: 0; margin: 0 0 8px; border: 2px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden; }
+.gloss > div { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.gloss > div:last-child { border-bottom: 0; }
+.gloss dt { font-family: var(--f-display); font-weight: 600; }
+.gloss dd { margin: 0; color: var(--fg); }
+@media (max-width: 560px) { .gloss > div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.empty { color: var(--muted); font-style: italic; }
 
 footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-top: 2px solid var(--line); }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
@@ -166,12 +178,12 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
     <p class="lede">How we build Roblox games with AI agents: what the AI can do on its own, how it checks its own work, and what still needs a human yes. Written from what happened on Steal a Slime, PRs #1 to #655.</p>
     <nav class="tabs" role="tablist" aria-label="Guidebook sections">
       <button class="tab" role="tab" id="t-guides" aria-controls="guides" aria-selected="true">Guides</button>
-      <button class="tab" role="tab" id="t-newgame" aria-controls="newgame" aria-selected="false">New game checklist <span class="tag">Planned</span></button>
-      <button class="tab" role="tab" id="t-briefs" aria-controls="briefs" aria-selected="false">Briefs &amp; prompts <span class="tag">Planned</span></button>
-      <button class="tab" role="tab" id="t-economy" aria-controls="economy" aria-selected="false">Economy &amp; data <span class="tag">Planned</span></button>
-      <button class="tab" role="tab" id="t-release" aria-controls="release" aria-selected="false">Release <span class="tag">Planned</span></button>
-      <button class="tab" role="tab" id="t-decisions" aria-controls="decisions" aria-selected="false">Decision log <span class="tag">Planned</span></button>
-      <button class="tab" role="tab" id="t-glossary" aria-controls="glossary" aria-selected="false">Glossary <span class="tag">Planned</span></button>
+      <button class="tab" role="tab" id="t-newgame" aria-controls="newgame" aria-selected="false">New game checklist</button>
+      <button class="tab" role="tab" id="t-briefs" aria-controls="briefs" aria-selected="false">Briefs &amp; prompts</button>
+      <button class="tab" role="tab" id="t-economy" aria-controls="economy" aria-selected="false">Economy &amp; data</button>
+      <button class="tab" role="tab" id="t-release" aria-controls="release" aria-selected="false">Release</button>
+      <button class="tab" role="tab" id="t-decisions" aria-controls="decisions" aria-selected="false">Decision log</button>
+      <button class="tab" role="tab" id="t-glossary" aria-controls="glossary" aria-selected="false">Glossary</button>
     </nav>
   </div>
   <svg class="drips" viewBox="0 0 1200 18" preserveAspectRatio="none" aria-hidden="true"><path fill="currentColor" d="M0 0h1200v4c-20 0-24 10-34 10s-12-10-30-10-18 6-40 6-30-6-60-6-26 12-38 12-14-12-40-12-52 4-90 4-30-4-60-4-20 14-34 14-16-14-46-14-60 5-110 5-34-5-70-5-22 10-36 10-14-10-44-10-50 3-100 3-30-3-60-3-18 13-32 13-18-13-44-13-40 4-80 4-40-4-70-4-24 8-38 8-12-8-30-8-30 3-60 3-20-3-38-3z"/></svg>
@@ -487,65 +499,337 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
 </div>
 </section>
 
-<!-- ============================ PLANNED TABS ============================ -->
+<!-- ============================ NEW GAME ============================ -->
 <section id="newgame" role="tabpanel" aria-labelledby="t-newgame" hidden>
-  <div class="plan-head"><h2>New game checklist</h2><span class="pill">Proposed</span></div>
-  <p>A one-page list a bot follows on day one of a new game, so the second game starts where Steal a Slime ended instead of where it began.</p>
-  <div class="plan-grid">
-    <div><h4>Repo and gates</h4><ul><li>Folder under <code>games/</code>, its own <code>CLAUDE.md</code></li><li>Tests, lint, typecheck, place safety and layout gate wired in from the first commit</li><li>Budgets file for parts, triangles, instances</li></ul></div>
-    <div><h4>Look</h4><ul><li>Theme sheet and palette picked from renders</li><li>The kit (chapter 03) before the first screen</li><li>Style guide decided with Merijn</li></ul></div>
-    <div><h4>Shared code</h4><ul><li>Saves, inventory, rate limits, analytics from <code>shared/luau</code></li><li>What is new and game-agnostic goes back to shared</li></ul></div>
-    <div><h4>Safety</h4><ul><li>Memory DataStore mode and test hooks guard</li><li>Upload and publish dry-run by default</li></ul></div>
-  </div>
+<div class="page">
+  <h2>New game checklist</h2>
+  <p class="lead">What a bot sets up in the first days of a new game, so game two starts where Steal a Slime ended instead of where it began. Each step is something we had to add later on Steal a Slime, often after it went wrong.</p>
+
+  <h3>Before any code</h3>
+  <ol class="steps">
+    <li><div><b>Pitch page.</b> An HTML proposal with the core loop, the first five minutes of play and what makes it fun. Merijn answers in a "Decided" section.</div></li>
+    <li><div><b>Theme from renders.</b> Render two or three looks on a few key props and pick one before modelling everything. Volcanic Meadow was locked and dropped on the same day, after 21 meshes were already recoloured <span class="pr">#5 → #7</span>.</div></li>
+    <li><div><b>Write the theme sheet.</b> Palette, materials, what is banned (on Steal a Slime: cream on big surfaces, cold metal). It goes in <code>shared/modeling-kit/THEME.md</code> or the game's own theme file.</div></li>
+  </ol>
+
+  <h3>First commit: repo and gates</h3>
+  <ol class="steps">
+    <li><div><b>Folder and rules.</b> <code>games/&lt;name&gt;/</code> with its own <code>CLAUDE.md</code>. Copy the hard rules from Steal a Slime: Memory DataStore, no Published upload, no secrets, ownership, no history in code.</div></li>
+    <li><div><b>Toolchain.</b> <code>rokit.toml</code> (Rojo, Lune, selene, stylua, luau-lsp), a test runner, <code>check-place</code>, <code>typecheck.sh</code>, and a CI workflow that runs them on every PR.</div></li>
+    <li><div><b>Safety switches.</b> <code>DataStoreMode = "Memory"</code> for tests, a TestHooks module with the guard and its spec, upload scripts that dry-run by default.</div></li>
+    <li><div><b>Budgets file.</b> Part, triangle, mesh-slot and UI instance limits in one <code>budgets.json</code>. Raising one needs Merijn's OK and a reason <span class="pr">#652</span>.</div></li>
+  </ol>
+
+  <h3>First playable: shared systems and kit</h3>
+  <ol class="steps">
+    <li><div><b>Mount <code>shared/luau</code></b> as <code>ReplicatedStorage.Lib</code> and use what is there before writing anything: saves with session lock and migrations, inventory and hotbar, rate limiter, number format, settings, receipt ledger, guide arrows, label fitting.</div></li>
+    <li><div><b>Analytics from day one.</b> The shared tracker with an onboarding funnel and a shop funnel. Without it, the first release gives you no numbers to plan from.</div></li>
+    <li><div><b>The kit</b> (Guides, chapter 03): palette file, two fonts, UI parts, size table, style guide, layout gate at six sizes, instance budget. Before the first real screen.</div></li>
+    <li><div><b>World as data.</b> A WorldLayout tree, generated world files with a "stale" spec, one floor height constant, a collision choice per prop and a world label registry.</div></li>
+    <li><div><b>Hidden Studio check.</b> Make sure a bot can open the place with <code>studio_hidden.py</code>, mute it and take screenshots, before the first visual PR.</div></li>
+  </ol>
+
+  <h3>Copy, or make new?</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Copy from Steal a Slime</th><th>Make new for each game</th></tr></thead>
+    <tbody>
+      <tr><td>Hard rules in <code>CLAUDE.md</code>, code structure (<code>ctx</code>, entry scripts only wire)</td><td>Theme, palette and fonts</td></tr>
+      <tr><td>Test harness, layout gate, perf budget spec, place safety check</td><td>The kit's parts and style guide</td></tr>
+      <tr><td>Release pipeline, terrain probe, hidden Studio tooling</td><td>World layout and props</td></tr>
+      <tr><td>Everything in <code>shared/luau</code>, the modeling kit and the audio kit</td><td>Economy numbers and the pacing sim's bot profiles</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note"><div><span class="k">Rule of thumb</span><p>If a step above is missing when the first feature PR opens, that PR adds it first. Adding gates later means fixing everything that slipped through before them, as with the label sizes on Steal a Slime <span class="pr">#623</span>.</p></div></div>
+</div>
 </section>
 
+<!-- ============================ BRIEFS ============================ -->
 <section id="briefs" role="tabpanel" aria-labelledby="t-briefs" hidden>
-  <div class="plan-head"><h2>Briefs and prompts</h2><span class="pill">Proposed</span></div>
-  <p>Copy-paste starting points that worked, so Merijn and Niels spend less time explaining.</p>
-  <div class="plan-grid">
-    <div><h4>Task brief template</h4><ul><li>Goal, finish line, evidence, scope, forbidden, timebox</li><li>Good and bad examples from real tasks</li></ul></div>
-    <div><h4>Prompt starters</h4><ul><li>"Make a mockup with three options for…"</li><li>"Audit X with before/after pictures"</li><li>"Model X, six rounds max, report the limit"</li></ul></div>
-    <div><h4>Review requests</h4><ul><li>What a PR body must show for a model, a UI, a sound</li></ul></div>
+<div class="page">
+  <h2>Briefs and prompts</h2>
+  <p class="lead">A good brief saves a review round. A bot rejects a brief without a goal or a checkable finish line, and asks for a better one before it starts.</p>
+
+  <h3>The task brief</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Field</th><th>What to write</th></tr></thead>
+    <tbody>
+      <tr><td>Goal</td><td>The outcome, in one sentence</td></tr>
+      <tr><td>Finish</td><td>A condition that is true or false. Not "looks good".</td></tr>
+      <tr><td>Evidence</td><td>What the report shows: screenshots, numbers, test output, commit</td></tr>
+      <tr><td>Scope</td><td>The paths and branch the bot may touch</td></tr>
+      <tr><td>Verify</td><td>The exact commands or Studio checks that prove it works</td></tr>
+      <tr><td>Forbidden</td><td>What the bot must not do</td></tr>
+      <tr><td>Timebox</td><td>Maximum time or rounds, and what to do when it runs out</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="verdicts">
+    <div class="v ok"><h4>Good brief</h4><ul>
+      <li><strong>Goal:</strong> the Ritual label stops showing across the map.</li>
+      <li><strong>Finish:</strong> hidden past 60 studs (40 on phone), measured in Studio.</li>
+      <li><strong>Evidence:</strong> before/after shots, the measured show/hide distances.</li>
+      <li><strong>Scope:</strong> the label's view module and the label registry.</li>
+      <li><strong>Forbidden:</strong> fading, other labels, uploads.</li>
+      <li><strong>Timebox:</strong> one PR; report if Studio can't measure it.</li>
+    </ul></div>
+    <div class="v no"><h4>Weak brief</h4><ul>
+      <li>"Make the labels better."</li>
+      <li>No finish line, so the bot decides when it's done.</li>
+      <li>No scope, so it restyles every label at once.</li>
+      <li>No evidence asked, so the PR says "looks good".</li>
+    </ul></div>
   </div>
+
+  <h3>Prompt starters</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>For</th><th>Start with</th></tr></thead>
+    <tbody>
+      <tr><td>A big feature</td><td>"Write an HTML proposal in <code>docs/</code> for X: the problem, two or three options with pictures, your recommendation, and a Decided section I fill in. Don't build yet."</td></tr>
+      <tr><td>A screen</td><td>"Make a mockup page with the current screen and options A, B and C at phone size, built from the kit. Fewest words wins."</td></tr>
+      <tr><td>A 3D model</td><td>"Model X with the modeling kit. Match the old mesh's size within 10%. Six rounds at most; if it isn't good by then, show me the best round and say what limits it."</td></tr>
+      <tr><td>A sound</td><td>"Find three free library options for X, or synthesise one with the audio kit. Give ids, lengths and measurements. Don't upload."</td></tr>
+      <tr><td>A world problem</td><td>"Audit X in a hidden Studio: walk into it from four sides, measure, and make a page with before/after pictures and one fix per problem for me to approve."</td></tr>
+      <tr><td>A bug</td><td>"Reproduce X, write a test that fails because of it, then fix it. Show the failing and passing output."</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>What a PR body must show</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Change</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr><td>3D model</td><td>Final sheet, round log, triangle count, in-game shots from the front, at an angle and from behind</td></tr>
+      <tr><td>UI</td><td>Phone and PC screenshots, layout gate result, the option Merijn picked</td></tr>
+      <tr><td>Sound</td><td>Asset ids, measurements, which sounds were logged as played, and "not listened to by ear"</td></tr>
+      <tr><td>World</td><td>Measured distances, collision walk test, burial probe if anything touches the ground</td></tr>
+      <tr><td>Logic</td><td>The test that failed before the fix, the checks run, what was not tested</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Feedback that sticks</h3>
+  <ul>
+    <li>Pick from options ("option A"), and the PR quotes your words. Bots follow quotes better than summaries.</li>
+    <li>When you decide something for good, ask the bot to add it to the Decision log tab, so the next bot doesn't propose it again.</li>
+    <li>Say what you don't want as well: "no Coming soon placeholders" saved a later round on the cloud skins.</li>
+  </ul>
+</div>
 </section>
 
+<!-- ============================ ECONOMY ============================ -->
 <section id="economy" role="tabpanel" aria-labelledby="t-economy" hidden>
-  <div class="plan-head"><h2>Economy and data</h2><span class="pill">Proposed</span></div>
-  <p>How we balance before players see it, and how we decide what to build next after they do.</p>
-  <div class="plan-grid">
-    <div><h4>Pacing sim</h4><ul><li>Bot players on the real game code: casual, grinder, thief, victim</li><li>Before/after tables, as in the economy rework <span class="pr">#561</span></li></ul></div>
-    <div><h4>Analytics</h4><ul><li>Server-only events, stable step names</li><li>Onboarding and shop funnels</li></ul></div>
-    <div><h4>Planning rule</h4><ul><li>At least 7 days or 1,000 players of data</li><li>Fix the biggest drop first; "a competitor has it" is not a reason</li></ul></div>
-  </div>
+<div class="page">
+  <h2>Economy and data</h2>
+  <p class="lead">The AI can't feel pacing, but it can run hundreds of simulated players on the real game code and read the funnels. Balance before release with the sim; decide what to build next from analytics.</p>
+
+  <h3>The loop</h3>
+  <ol class="steps">
+    <li><div><b>Simulate.</b> Run the pacing sim on the real game code and compare before and after.</div></li>
+    <li><div><b>Ship</b> with the analytics events in place.</div></li>
+    <li><div><b>Wait for data:</b> at least 7 days or 1,000 players in the first step, whichever comes later.</div></li>
+    <li><div><b>Find the biggest drop</b> between two funnel steps. That is the next target, with at most one second target.</div></li>
+    <li><div><b>Write the goal</b> as step, from, to, by when. For example: "first slime to first sale, from 41% to 55%, within 7 days of release."</div></li>
+    <li><div><b>Only then look at ideas</b>, including competitors'. "Steal a Brainrot has it" is not a reason.</div></li>
+  </ol>
+
+  <h3>Pacing sim</h3>
+  <p>Bots play the real <code>World</code>, <code>GameLoop</code> and <code>Actions</code> code under Lune. Profiles: casual, average, grinder, casual15, thief, victim. Results are medians with 10–90% ranges. Code in <code>tools/livetest/pacing</code>; a spec keeps it working.</p>
+<pre><code>lune run tools/livetest/pacing --seeds 1-20 --days 7
+lune run tools/livetest/pacing --seeds 1-4 --days 55 --mix average=5,grinder=5,casual=6</code></pre>
+  <p>What the economy rework changed, measured this way <span class="pr">#561</span>:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Measure</th><th>Before</th><th>After</th></tr></thead>
+    <tbody>
+      <tr><td>First Legendary</td><td>5 min</td><td>39 min</td></tr>
+      <tr><td>First rebirth</td><td>5 min</td><td>32 min</td></tr>
+      <tr><td>Grinder to rebirth 30</td><td>Walled around rebirth 19</td><td>176 h</td></tr>
+      <tr><td>Buy a slime and resell it</td><td>Could profit</td><td>Always loses</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Analytics rules</h3>
+  <ul>
+    <li>Send events from the server only. Roblox drops client events and everything from Studio.</li>
+    <li>Use the shared tracker (<code>shared/luau/src/analytics</code>). It keeps names to a catalog and stays at 80% of Roblox's rate limit, batching frequent events per minute.</li>
+    <li>Never rename or renumber a funnel step after it ships; it breaks the comparison with older versions.</li>
+    <li>One currency with fewer than 20 transaction types. Roblox lumps the rest into "Other"; a spec checks the count.</li>
+    <li>Read numbers from the Creator Dashboard on a published version, never from a Studio session.</li>
+  </ul>
+
+  <h3>A roadmap item needs all four</h3>
+  <ul>
+    <li>A measurable goal: a number, a direction and a time window.</li>
+    <li>The event that measures it: funnel, step number, step name.</li>
+    <li>The baseline from the current live version.</li>
+    <li>Proof the event is logged on the server: file and line.</li>
+  </ul>
+  <p>Anything missing one of these goes on the parked list. Park it as well if it targets a step that already converts well, adds a parallel system where an existing one could grow, or needs paid random rewards.</p>
+</div>
 </section>
 
+<!-- ============================ RELEASE ============================ -->
 <section id="release" role="tabpanel" aria-labelledby="t-release" hidden>
-  <div class="plan-head"><h2>Release</h2><span class="pill">Proposed</span></div>
-  <p>From merge to live, with the gates and who presses which button.</p>
-  <div class="plan-grid">
-    <div><h4>Pipeline</h4><ul><li>Merge, cloud tests, Studio report, Saved upload, smoke check, Published</li><li>Only the newest fully gated build goes out</li></ul></div>
-    <div><h4>Release checks</h4><ul><li>The 12:00 and 19:00 check with Merijn</li><li>Terrain probe and rollback plan</li></ul></div>
-    <div><h4>Release notes</h4><ul><li>Player-facing wording, reviewed like any UI text</li></ul></div>
-  </div>
+<div class="page">
+  <h2>Release</h2>
+  <p class="lead">Bots build, test and prepare a release on their own. Players only get it after Merijn approves it at the 12:00 or 19:00 release check. Auto-publish is off.</p>
+
+  <h3>From merge to live</h3>
+  <ol class="steps">
+    <li><div><b>Merge to <code>main</code></b> by Merijn, after review.</div></li>
+    <li><div><b>Cloud tests.</b> A test build runs on a real Roblox server. That build is never promoted.</div></li>
+    <li><div><b>Full Studio report.</b> A hidden Studio run takes frames on every device size. A named reviewer marks the frames reviewed. Partial runs never count.</div></li>
+    <li><div><b>Gate.</b> Cloud tests pass, the full report passes and is newer than the merge. Only the newest fully gated commit goes out; older ones are skipped.</div></li>
+    <li><div><b>Clean build</b> without test code, uploaded as a <code>Saved</code> version.</div></li>
+    <li><div><b>Smoke test and terrain probe</b> on that exact Saved version. A failure stops the release.</div></li>
+    <li><div><b>Merijn's OK</b> at the release check.</div></li>
+    <li><div><b>Published upload</b> of the same file, then the probe again on the live version.</div></li>
+    <li><div><b>First hour:</b> watch errors and funnels, and send a short release note to SuperBottie.</div></li>
+  </ol>
+
+  <h3>First hour after a release</h3>
+  <ul>
+    <li>Errors: the Creator Dashboard error report and server console. Re-run the release check on the live version.</li>
+    <li>Funnels: compare each onboarding and shop step with the previous version.</li>
+    <li>A clear drop or a new error means roll back.</li>
+  </ul>
+
+  <h3>Rolling back</h3>
+  <ol class="steps">
+    <li><div><b>Write down what is live</b> before every publish, so you know what to go back to.</div></li>
+    <li><div><b>Re-upload the previous file</b> as Published (it becomes a new version with the old content), or restore it in Creator Hub's version history.</div></li>
+    <li><div><b>Check it</b> with the release check, and tell SuperBottie what was rolled back and why.</div></li>
+  </ol>
+
+  <div class="tbl"><table>
+    <thead><tr><th>Situation</th><th>What the bot does</th></tr></thead>
+    <tbody>
+      <tr><td>Upload returns 409 "Server is busy"</td><td>Retry after 1, 2, 4 and 8 minutes, then stop and report</td></tr>
+      <tr><td>Studio report missing or partial</td><td>Wait; the commit is not released</td></tr>
+      <tr><td>Smoke test or terrain probe fails</td><td>Stop; nothing is published</td></tr>
+      <tr><td>Something is published by mistake</td><td>Roll back first, explain after</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note bad"><div><span class="k">Never</span><p>Upload <code>Published</code> without Merijn's OK, ship a place that sets <code>DataStoreMode</code>, or print the Open Cloud key. A place-safety check and a spec fail the build if <code>DataStoreMode</code> is set.</p></div></div>
+  <p class="src">Sources: <code>docs/release-pipeline.md</code>, <code>guides/roblox-release-process.md</code>, <code>guides/roblox-publishing.md</code>.</p>
+</div>
 </section>
 
+<!-- ============================ DECISIONS ============================ -->
 <section id="decisions" role="tabpanel" aria-labelledby="t-decisions" hidden>
-  <div class="plan-head"><h2>Decision log</h2><span class="pill">Proposed</span></div>
-  <p>One line per decision Merijn or Niels made, with the PR, so bots stop proposing what was already rejected.</p>
-  <div class="plan-grid">
-    <div><h4>Examples already made</h4><ul><li>Mutations removed, then back as visible shines <span class="pr">#367 #655</span></li><li>New-player shield added then removed <span class="pr">#402 #411</span></li><li>StreamingEnabled not merged: small gain for the risk <span class="pr">#560</span></li><li>No feature flags unless asked</li></ul></div>
-    <div><h4>Why it matters</h4><ul><li>Many removals say what changed but not why; the log keeps the why</li></ul></div>
+<div class="page">
+  <h2>Decision log</h2>
+  <p class="lead">Decisions Merijn and Niels made on Steal a Slime, so no bot proposes again what was already decided. Where the PR doesn't record why, the Why column says so. Fill those in when you remember.</p>
+  <div class="filter" role="group" aria-label="Filter by area">
+    <button class="chipbtn" aria-pressed="true" data-area="all">All</button>
+    <button class="chipbtn" aria-pressed="false" data-area="Look">Look</button>
+    <button class="chipbtn" aria-pressed="false" data-area="UI">UI</button>
+    <button class="chipbtn" aria-pressed="false" data-area="World">World</button>
+    <button class="chipbtn" aria-pressed="false" data-area="Gameplay">Gameplay</button>
+    <button class="chipbtn" aria-pressed="false" data-area="Economy">Economy</button>
+    <button class="chipbtn" aria-pressed="false" data-area="Sound">Sound</button>
+    <button class="chipbtn" aria-pressed="false" data-area="Process">Process</button>
   </div>
+  <div class="tbl"><table id="declog">
+    <thead><tr><th>Area</th><th>Decision</th><th>Why</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr data-area="Look"><td>Look</td><td>Slime Ranch theme instead of Volcanic Meadow. No cream on big surfaces; metal is warm pewter or brass.</td><td>Cream looked flat on big surfaces, metal looked cold</td><td class="pr">#7</td></tr>
+      <tr data-area="Look"><td>Look</td><td>The Goo look for all UI, with one style guide</td><td>Chosen on a redesign canvas, 2026-10-21</td><td class="pr">#448–#506</td></tr>
+      <tr data-area="Look"><td>Look</td><td>Shop is a cabinet showing the six upgrades, not themed buildings (tower, hut, barn, silo, windmill)</td><td>A shop reads as a shop when it shows what it sells</td><td class="pr">#422</td></tr>
+      <tr data-area="Look"><td>Look</td><td>Mutations removed, then back as visible Gold, Diamond and Rainbow shines; Rainbow is ×3, not ×4</td><td>The old look didn't fit the new fully coloured slime meshes</td><td class="pr">#367 #655</td></tr>
+      <tr data-area="Look"><td>Look</td><td>Clouds: Fluffy for everyone, Jelly for 200 merges, Rainbow for 80% of the SlimeDex. The other 16 are Exclusive; never "Coming soon".</td><td>Most clouds are paid exclusives; placeholders look unfinished</td><td class="pr">skins mockup</td></tr>
+      <tr data-area="UI"><td>UI</td><td>"Next rebirth: 4" instead of "Rebirth 4"</td><td>Read as your current rebirth</td><td class="pr">#651</td></tr>
+      <tr data-area="UI"><td>UI</td><td>A drawn check mark, never the check emoji</td><td>Emoji clashed with the look</td><td class="pr">#642</td></tr>
+      <tr data-area="UI"><td>UI</td><td>Thieves card folds into the boss card during a boss; the red outline is enough, no thief icon</td><td>Top of the screen too busy</td><td class="pr">#630 #631</td></tr>
+      <tr data-area="UI"><td>UI</td><td>No "leaving!", "Your spot?" or "FREE PLOT" world labels</td><td>Not recorded</td><td class="pr">#255</td></tr>
+      <tr data-area="UI"><td>UI</td><td>Labels hide at a set distance (Ritual: 60 studs, 40 on phone), with no fade</td><td>Labels floated across the map</td><td class="pr">#615</td></tr>
+      <tr data-area="World"><td>World</td><td>Bases are jars, not trees or islands</td><td>Picked from rendered concepts</td><td class="pr">#400</td></tr>
+      <tr data-area="World"><td>World</td><td>Every floor of every base shows its slimes from outside; nothing covers the glass</td><td>Thieves must see what they can steal; a paid base must never be harder to rob</td><td class="pr">2026-10-29</td></tr>
+      <tr data-area="World"><td>World</td><td>No <code>Glass</code> material anywhere</td><td>Roblox hides see-through things behind it</td><td class="pr">#541 #549</td></tr>
+      <tr data-area="Gameplay"><td>Gameplay</td><td>Merge vat: slimes go in only by Move. No swapping, no Pick for me, no Auto-merge, no Keep.</td><td>The menu had too many options</td><td class="pr">#535</td></tr>
+      <tr data-area="Gameplay"><td>Gameplay</td><td>PvP anywhere, no safe zones. A thief caught by any PvP item returns the slime to its owner.</td><td>Decided on the PvP proposals, 2026-10-19</td><td class="pr">PVP.md</td></tr>
+      <tr data-area="Gameplay"><td>Gameplay</td><td>Every PvP item is usable now; how they work gets reworked later</td><td>Items could be bought but not used</td><td class="pr">2026-10-19</td></tr>
+      <tr data-area="Gameplay"><td>Gameplay</td><td>15-minute new-player shield added, then removed</td><td>Not recorded</td><td class="pr">#402 #411</td></tr>
+      <tr data-area="Gameplay"><td>Gameplay</td><td>Revenge steal and the steal time limit removed</td><td>Not recorded</td><td class="pr">#432</td></tr>
+      <tr data-area="Gameplay"><td>Gameplay</td><td>Mystery Egg out of the shop; Appraise (size reroll) removed</td><td>Not recorded</td><td class="pr">#393 #415</td></tr>
+      <tr data-area="Gameplay"><td>Gameplay</td><td>Tutorial doesn't teach stealing and doesn't pay rewards</td><td>Not recorded</td><td class="pr">#611</td></tr>
+      <tr data-area="Gameplay"><td>Gameplay</td><td>Obby: 5-minute cooldown after the boost, your base can be stolen while you run, course rotates every 10 minutes, about a minute per run, no Robux at launch</td><td>Decided in the obby proposal</td><td class="pr">#652</td></tr>
+      <tr data-area="Economy"><td>Economy</td><td>Locks stay free and anyone can rob anyone, rich players included</td><td>Rich players being hard to rob is intended, not a bug</td><td class="pr">#561</td></tr>
+      <tr data-area="Economy"><td>Economy</td><td>30 rebirths max; about 150–170 played hours for a grinder to max; raise the cap with updates</td><td>Rebirths walled at 19, and 41+ was impossible</td><td class="pr">#561</td></tr>
+      <tr data-area="Economy"><td>Economy</td><td>Offline income 25%; pads open per rebirth and cost 25% of the next rebirth</td><td>Pads should feel meaningful</td><td class="pr">#561</td></tr>
+      <tr data-area="Economy"><td>Economy</td><td>Common and Uncommon slimes last longer early</td><td>Early tiers lasted about a minute</td><td class="pr">#561</td></tr>
+      <tr data-area="Economy"><td>Economy</td><td>Fresh start for saves and leaderboards (<code>_v2</code> stores)</td><td>Not recorded</td><td class="pr">#563</td></tr>
+      <tr data-area="Sound"><td>Sound</td><td>Birds at night, not crickets; a real owl as random one-shots, no synth wind or owls</td><td>Crickets were annoying</td><td class="pr">#380</td></tr>
+      <tr data-area="Sound"><td>Sound</td><td>Rare and Secret drops stay silent</td><td>Not recorded</td><td class="pr">#381</td></tr>
+      <tr data-area="Process"><td>Process</td><td>New features ship on, with no feature flag unless asked</td><td>Not recorded</td><td class="pr">#655</td></tr>
+      <tr data-area="Process"><td>Process</td><td>StreamingEnabled not turned on</td><td>Small gain for the risk</td><td class="pr">#560</td></tr>
+      <tr data-area="Process"><td>Process</td><td>Auto-publish off; Merijn approves releases at 12:00 and 19:00</td><td>Releases had gone live before the Studio check found UI bugs</td><td class="pr">guides</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><div><span class="k">Adding a decision</span><p>One row per decision: area, what was decided in a few words, why, and the PR or proposal. A bot adds the row in the same PR that carries the decision out.</p></div></div>
+</div>
 </section>
 
+<!-- ============================ GLOSSARY ============================ -->
 <section id="glossary" role="tabpanel" aria-labelledby="t-glossary" hidden>
-  <div class="plan-head"><h2>Glossary</h2><span class="pill">Proposed</span></div>
-  <p>Our words, for a new person or a new bot.</p>
-  <div class="plan-grid">
-    <div><h4>Team</h4><ul><li>Phoenix (server and world), Jolt (UI), Archer (visuals), Gojo (planning and review), SuperBottie (coordinator)</li></ul></div>
-    <div><h4>Tools</h4><ul><li>Rojo, Lune, rhr, hidden Studio, modeling kit, audio kit, pr-gate</li></ul></div>
-    <div><h4>Game terms</h4><ul><li>Kit, contact sheet, round, slot, Saved vs Published, Memory mode</li></ul></div>
-  </div>
+<div class="page">
+  <h2>Glossary</h2>
+  <p class="lead">Our own words, for a new person or a new bot.</p>
+  <label class="search" for="gloss-q"><span>Search</span><input id="gloss-q" type="search" placeholder="e.g. kit, Saved, probe" autocomplete="off"></label>
+
+  <h3>Team</h3>
+  <dl class="gloss">
+    <div><dt>Merijn</dt><dd>Owner. Approves visuals, sounds, uploads and releases, and merges PRs.</dd></div>
+    <div><dt>Niels</dt><dd>Co-reviewer. Signs off models, UI and other visible work alongside Merijn.</dd></div>
+    <div><dt>Phoenix</dt><dd>Bot that owns server, shared code, the world and scripts.</dd></div>
+    <div><dt>Jolt</dt><dd>Bot that owns the UI (<code>src/ui</code>, <code>tests/ui</code>).</dd></div>
+    <div><dt>Archer</dt><dd>Bot that owns <code>src/visuals</code>.</dd></div>
+    <div><dt>Gojo</dt><dd>Bot for planning from funnel data and for critical review.</dd></div>
+    <div><dt>SuperBottie</dt><dd>Coordinator bot: checks proposals, gets release notes, asks "is this already built?".</dd></div>
+  </dl>
+
+  <h3>Tools</h3>
+  <dl class="gloss">
+    <div><dt>Rojo</dt><dd>Builds the place file from the files in the repo. The repo is the source of truth; Studio edits are lost.</dd></div>
+    <div><dt>Lune</dt><dd>Runs Luau outside Roblox. Used for tests, world generation and the pacing sim.</dd></div>
+    <div><dt>rokit</dt><dd>Installs the pinned toolchain versions from <code>rokit.toml</code>.</dd></div>
+    <div><dt>selene, stylua, luau-lsp</dt><dd>Linter, formatter and type checker.</dd></div>
+    <div><dt>Studio MCP</dt><dd>Lets a bot read the game tree, run Luau, start playtests and take screenshots in Studio.</dd></div>
+    <div><dt>Hidden Studio</dt><dd>Studio opened on a hidden desktop with <code>studio_hidden.py</code>, so bots never disturb the person at the PC.</dd></div>
+    <div><dt>pc-watcher</dt><dd>Runs Studio checks for each commit on <code>main</code> and writes the Studio report.</dd></div>
+    <div><dt>pr-gate</dt><dd>Fast checks on a PR: logic tests, layout at five sizes, budgets, types.</dd></div>
+    <div><dt>rhr</dt><dd>Headless renderer for a quick static check. Draws unknown meshes as boxes, so it is not proof of looks.</dd></div>
+    <div><dt>Open Cloud</dt><dd>Roblox's web API for uploading places and assets and running Luau on a real server (Luau Execution).</dd></div>
+    <div><dt>Modeling kit</dt><dd><code>shared/modeling-kit</code>: Blender models as Python scripts, rendered and checked headless.</dd></div>
+    <div><dt>Audio kit</dt><dd><code>shared/audio-kit</code>: synthesised sounds as Python recipes, with measured checks.</dd></div>
+    <div><dt>shared/luau</dt><dd>Game-agnostic Luau systems every game reuses: saves, inventory, analytics and more.</dd></div>
+  </dl>
+
+  <h3>Words we use</h3>
+  <dl class="gloss">
+    <div><dt>Kit (GooKit)</dt><dd>A game's UI building blocks: palette, fonts, parts, sizes and style guide. GooKit is Steal a Slime's.</dd></div>
+    <div><dt>GooPalette</dt><dd>The one file that holds every Steal a Slime colour.</dd></div>
+    <div><dt>Contact sheet</dt><dd>The four-view picture the modeling kit renders each round, with an avatar block for scale.</dd></div>
+    <div><dt>Round</dt><dd>One pass of change, render and critique on a model. About six is the limit.</dd></div>
+    <div><dt>Roblox look</dt><dd><code>--look roblox</code>: a render with game-like lighting. Close, but not calibrated against Studio.</dd></div>
+    <div><dt>Slot</dt><dd>An invisible collider part in the world that a kit mesh is swapped onto.</dd></div>
+    <div><dt>Collision fidelity</dt><dd>How a mesh collides (Box, Hull, Default, Precise). Fixed at import, so pick it before uploading.</dd></div>
+    <div><dt>Saved / Published</dt><dd>A Saved version is uploaded but not live. Published is what players get, and needs Merijn's OK.</dd></div>
+    <div><dt>Memory mode</dt><dd><code>DataStoreMode = "Memory"</code>: saves stay in memory, so tests never touch real player data.</dd></div>
+    <div><dt>TestHooks</dt><dd>The one guarded place for cheats (cash, time, slimes). Only works in Memory mode.</dd></div>
+    <div><dt>Contract</dt><dd><code>CONTRACT.md</code> and <code>contract/*.md</code>: shared names and rules, written before the code.</dd></div>
+    <div><dt>WorldLayout</dt><dd>The data tree that describes the whole map.</dd></div>
+    <div><dt>Label registry</dt><dd>The list of every world label with its size kind and view distance, in the world labels guide.</dd></div>
+    <div><dt>Layout gate</dt><dd>Test that checks every screen at six sizes for overlaps, touch size and text fit.</dd></div>
+    <div><dt>Budget ratchet</dt><dd>A limit that fails when you go over and also when you come in under, until the limit is lowered.</dd></div>
+    <div><dt>Pacing sim</dt><dd>Simulated players on the real game code to check how fast progress goes.</dd></div>
+    <div><dt>Funnel</dt><dd>A list of steps players go through (onboarding, shop). The biggest drop between steps is what to fix.</dd></div>
+    <div><dt>Terrain probe</dt><dd>A check on a real server that nothing is buried in the ground before and after a release.</dd></div>
+    <div><dt>Studio report</dt><dd>Frames and results from a full hidden Studio run for one commit, reviewed by name.</dd></div>
+    <div><dt>Fully gated</dt><dd>A commit with passing cloud tests and a reviewed, passing full Studio report. Only the newest one releases.</dd></div>
+    <div><dt>Worktree</dt><dd>A separate folder and branch per task, so bots don't switch each other's checkout.</dd></div>
+    <div><dt><code>ctx</code></dt><dd>The one way to pass engine access and test overrides into a module.</dd></div>
+  </dl>
+  <p class="empty" id="gloss-empty" hidden>No term matches. Try a shorter word.</p>
+</div>
 </section>
 
 </div>
@@ -581,5 +865,37 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
     else { try { start = localStorage.getItem('guidebook-tab') || 'guides'; } catch (e) { start = 'guides'; } }
   }
   show(start);
+  window.addEventListener('hashchange', function () {
+    var h = (location.hash || '').slice(1);
+    if (ids.indexOf(h) >= 0) show(h);
+  });
+
+  // Decision log: filter rows by area
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chipbtn'));
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#declog tbody tr'));
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () {
+      var area = c.getAttribute('data-area');
+      chips.forEach(function (o) { o.setAttribute('aria-pressed', o === c ? 'true' : 'false'); });
+      rows.forEach(function (r) { r.hidden = area !== 'all' && r.getAttribute('data-area') !== area; });
+    });
+  });
+
+  // Glossary: search terms and meanings
+  var q = document.getElementById('gloss-q');
+  var items = Array.prototype.slice.call(document.querySelectorAll('.gloss > div'));
+  var empty = document.getElementById('gloss-empty');
+  q.addEventListener('input', function () {
+    var s = q.value.trim().toLowerCase(), shown = 0;
+    items.forEach(function (it) {
+      var hit = !s || it.textContent.toLowerCase().indexOf(s) >= 0;
+      it.hidden = !hit; if (hit) shown++;
+    });
+    document.querySelectorAll('#glossary .gloss').forEach(function (dl) {
+      var any = Array.prototype.some.call(dl.children, function (d) { return !d.hidden; });
+      dl.hidden = !any; dl.previousElementSibling.hidden = !any;
+    });
+    empty.hidden = shown > 0;
+  });
 })();
 </script>
