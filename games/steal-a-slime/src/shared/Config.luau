@@ -2262,6 +2262,12 @@ local Config = {
 			POP_RANGE = 40, -- other players this close may click a bubble to pop it
 			STREAMS_MAX = 8, -- live streams on the server (the oldest goes)
 			SLIME_FLOAT_SECONDS = 2.5, -- a wild slime a bubble touches floats this long (client only)
+			-- The bubble around a bubbled player (server/PvpFunView) and a floating wild slime (ui/PvpFunFx).
+			LOOK = table.freeze({
+				MATERIAL = "ForceField", -- Enum.Material name
+				COLOR = table.freeze({ 150, 215, 255 }), -- RGB 0..255
+				TRANSPARENCY = 0.35,
+			}),
 		}),
 		BOUNCE_PAD = table.freeze({
 			SECONDS = 60, -- a pad lives this long
