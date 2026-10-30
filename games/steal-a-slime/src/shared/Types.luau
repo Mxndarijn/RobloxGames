@@ -248,7 +248,7 @@ export type State = {
 	-- v13 (CONTRACT.md §8.2)
 	walkSpeed: number, -- server base WalkSpeed (Speed Coil included); carry.walkSpeed has the carry slowdown applied
 	tutorialStepId: string?, -- TutorialProgress.STEPS name; nil = finished
-	incomeMultiplier: number, -- rebirth x upgrade x rank x dex
+	incomeMultiplier: number, -- Perks.incomeMultiplier: rebirths x every income bonus (wild slime tags scale by it)
 	rebirthTitle: string,
 	rebirthTiers: { RebirthTierView },
 	nextRebirthTier: NextRebirthTier?,
