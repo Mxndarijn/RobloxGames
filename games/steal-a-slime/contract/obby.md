@@ -45,7 +45,7 @@ A short parkour course in its own sky world, reached through a portal in the yar
 - `ObbyLook.isInside` (set by `ObbyWorld` each frame, `onInsideChanged` for changes) is the one "in the obby world" signal on the client. While it is true the home plot marker (beacon, tag, edge arrow) hides, the weather (`WeatherFx`) and Slime Rain draw nothing, and the tutorial guide computes no paths (`GuideView` `shouldPath`) and hides its edge pointer. All of it comes back on the way out.
 - `workspace.Obby.Course` (attribute `Slot`): one Part per `ObbyCourse.Part` (a TrussPart for ladders). Moving parts carry `Constants.OBBY_*` attributes (motion kind, rest CFrame, axis, amplitude, period, phase, delay, away, duty, min, shrink axes, power, arm). Motion kinds: slide, spin, melt, flip, shrink, bounce (trampolines and cannons throw the local player up at `power`), lift (wind columns), swing (pendulums), rock (seesaws). Belts have a surface velocity, ice no friction.
 - Slime Guard opens its launch window for players on a run (`SlimeGuardView`): bounces and fans rise faster than a jump.
-- `workspace.Obby.Portal`: ring, floor, light column and a SurfaceGui sign (`Title`, `Constants.OBBY_SIGN_STATUS`, `Constants.OBBY_SIGN_COURSE`), MaxDistance 200 (guides/roblox-world-labels.md).
+- `workspace.Obby.Portal`: ring, floor and a SurfaceGui sign (no light column: the path and the OBBY arch lead players there) (`Title`, `Constants.OBBY_SIGN_STATUS`, `Constants.OBBY_SIGN_COURSE`), MaxDistance 200 (guides/roblox-world-labels.md).
 
 ## 6. Analytics
 

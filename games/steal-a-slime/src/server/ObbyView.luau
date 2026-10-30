@@ -2,11 +2,12 @@
 --[[
 	ObbyView (Roblox adapter, contract/obby.md)
 
-	Builds the Goo Gauntlet in workspace.Obby: the portal (a goo ring on the ground in the yard, a see-through light
-	column and a status sign) once, and the course (`build`, from ObbyCourse data) each rotation, in the obby's own
-	world far from the map (WorldLayout.obbyFrame; the client dresses it, visuals/client/ObbyBackdrop). Moving parts get their rest
-	CFrame and motion as attributes (the OBBY_* names in Constants); visuals/client/ObbyFx plays them on every client. Belts get a
-	surface velocity, ice no friction. `positions` reads every live character's root position for ObbyService.step
+	Builds the Goo Gauntlet in workspace.Obby: the portal (a goo ring and floor on the ground at the end of the obby
+	path, and a status sign; no light column, the path and the OBBY arch lead players there) once, and the course
+	(`build`, from ObbyCourse data) each rotation, in the obby's own world far from the map (WorldLayout.obbyFrame; the
+	client dresses it, visuals/client/ObbyBackdrop). Moving parts get their rest CFrame and motion as attributes (the
+	OBBY_* names in Constants); visuals/client/ObbyFx plays them on every client. Belts get a surface velocity, ice no
+	friction. `positions` reads every live character's root position for ObbyService.step
 	and `apply` makes its teleports. Holds no rules.
 
 	The portal sign is a SurfaceGui (landmark, guides/roblox-world-labels.md): a 1.6-stud title reads from about 30
@@ -86,9 +87,7 @@ local LOOKS: { [string]: Look } = {
 
 local PORTAL = table.freeze({
 	ring = Color3.fromRGB(150, 230, 70),
-	column = Color3.fromRGB(170, 255, 140),
-	columnHeight = 60, -- studs: a light you spot from the plaza
-	columnTransparency = 0.82,
+	floor = Color3.fromRGB(170, 255, 140),
 	sign = Color3.fromRGB(46, 38, 70),
 	ink = Color3.fromRGB(255, 255, 255),
 	stroke = Color3.fromRGB(30, 22, 48),
@@ -306,23 +305,7 @@ function ObbyView.buildPortal()
 		return part
 	end
 	cylinder("Ring", 0.4, r + 0.6, 0.2, PORTAL.ring, 0)
-	cylinder("Floor", 0.5, r, 0.3, PORTAL.column, 0.4).Material = Enum.Material.SmoothPlastic
-	local column = cylinder(
-		"Column",
-		PORTAL.columnHeight,
-		r - 0.5,
-		PORTAL.columnHeight / 2,
-		PORTAL.column,
-		PORTAL.columnTransparency
-	)
-	column.CanCollide = false
-	column.CanQuery = false
-	column.CanTouch = false
-	local light = Instance.new("PointLight")
-	light.Color = PORTAL.column
-	light.Range = 16
-	light.Brightness = 2
-	light.Parent = column
+	cylinder("Floor", 0.5, r, 0.3, PORTAL.floor, 0.4).Material = Enum.Material.SmoothPlastic
 
 	-- The sign stands behind the portal (away from the plaza) and faces the plaza.
 	local _, yaw = WorldLayout.obbyPortal()
