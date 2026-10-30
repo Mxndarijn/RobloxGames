@@ -407,13 +407,14 @@ describe("base shapes: turning a plot into another base and back", function()
 			local jarPad = pad1.CFrame
 
 			local created = WorldBuilder.rebase(plot, 1, nil, "factory")
-			-- the BaseShape model and the factory's own looks the game finds on the plot: foot, shut and open shutter
+			-- the BaseShape model, the factory's own looks the game finds on the plot (foot, shut and open shutter) and
+			-- the planks on its bridge
 			local made = {}
 			for _, inst in created do
 				made[inst.Name] = true
 			end
-			expect(#created).toBe(4)
-			for _, name in { "BaseShape", "FootLook", "StopperShut", "StopperParked" } do
+			expect(#created).toBe(5)
+			for _, name in { "BaseShape", "FootLook", "StopperShut", "StopperParked", "BridgeLook" } do
 				expect(made[name]).toBe(true)
 			end
 			expect(plot:FindFirstChild("FootLook"):GetAttribute("MeshAsset")).toBe("factory_foot")

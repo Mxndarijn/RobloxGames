@@ -377,6 +377,7 @@ describe("PropWalk geometry against walk paths", function()
 						v.item ~= item
 						and v.kind ~= owner
 						and not (item.mesh ~= nil and v.entry.mesh == item.mesh) -- a mesh slot sits on its own colliders
+						and v.path:sub(1, #item.path + 6) ~= item.path .. "_Trunk" -- a yard tree stands on its own trunk posts
 						and reachable(v)
 						and v.path ~= item.path
 						and item.path:sub(1, #v.path + 1) ~= v.path .. "."
