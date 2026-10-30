@@ -81,7 +81,10 @@ local RebirthPanel = {
 		button = "Hold to rebirth",
 		getOne = "Catch or merge one",
 		missing = "Missing",
-		nextLabel = "After rebirth",
+		nextTitle = "Next rebirth",
+		maxTitle = "Max rebirth",
+		nowLabel = "Now · Rebirth",
+		nextLabel = "After Rebirth",
 		keepTitle = "You keep",
 		keep = "Other slimes, pads, upgrades, rank",
 		keepAll = "Your slimes, pads, upgrades, rank",
@@ -715,13 +718,13 @@ function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
 	return {
 		{
 			name = "Rebirth title",
-			text = "Rebirth 50", -- the next rebirth's number, Config.MAX_REBIRTHS at most
+			text = `{copy.nextTitle}: 50`, -- the next rebirth's number, Config.MAX_REBIRTHS at most
 			size = Layout.PANEL_CHROME.titleSize,
 			bold = true,
 			w = title.w,
 			h = title.h,
 		},
-		{ name = "Rebirth hero label", text = copy.nextLabel, size = c.labelSize, w = half, h = c.heroLabelH },
+		{ name = "Rebirth hero label", text = `{copy.nowLabel} 49`, size = c.labelSize, w = half, h = c.heroLabelH },
 		{
 			name = "Rebirth hero value",
 			text = "x99.5",
