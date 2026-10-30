@@ -18,7 +18,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LabelFit = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
-local NumberFormat = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core"):WaitForChild("NumberFormat"))
 local SlimeKeyCard = require(script.Parent.SlimeKeyCard)
 local Widgets = require(script.Parent.Widgets)
 
@@ -47,7 +46,7 @@ end
 
 -- The tag's text for `remaining` seconds of lock.
 function LockTimerTag.text(remaining: number): string
-	return `LOCKED {NumberFormat.clock(remaining)}`
+	return SlimeKeyCard.lockText(remaining)
 end
 
 -- Whether a part this transparent lets you see the tag through it (glass does, walls don't).
@@ -146,7 +145,7 @@ function LockTimerTag.start(opts: Options): Handle
 		for _, plot in opts.plots:GetChildren() do
 			local button = plot:FindFirstChild("LockButton", true)
 			local owner = plot:GetAttribute("OwnerUserId")
-			local lockUntil = plot:GetAttribute("LockUntil")
+			local lockUntil = plot:GetAttribute(SlimeKeyCard.LOCK_UNTIL_ATTRIBUTE)
 			local show = button ~= nil
 				and button:IsA("BasePart")
 				and LockTimerTag.shows(
