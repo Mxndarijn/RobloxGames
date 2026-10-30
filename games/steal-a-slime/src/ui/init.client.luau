@@ -1240,6 +1240,8 @@ function layoutCards()
 		end
 	end
 end
+-- A panel whose content grows or shrinks between State pushes (the Codes error line) re-sizes its card.
+ctx.relayout = layoutCards
 
 -- Roblox's touch jump button on screen or not (the status icons step left of it); polled in the frame loop.
 local touchControls = TouchControls.watch({ playerGui = player:WaitForChild("PlayerGui") })
