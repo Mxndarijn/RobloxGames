@@ -244,7 +244,7 @@ end
 function SlimeInfoCard.label(card: Instance, name: string): TextLabel
 	local row = card:FindFirstChild(SlimeInfoCard.PILL_ROW)
 	local inRow = row and row:FindFirstChild(name)
-	return (inRow or card:FindFirstChild(name)) :: TextLabel
+	return assert(inRow or card:FindFirstChild(name), `SlimeInfoCard: no {name} label`) :: TextLabel
 end
 
 -- A pill: text on a rounded fill, as wide as its text (UIAspectRatioConstraint "Fit", set on render) and
@@ -345,7 +345,8 @@ local function placeRarityRow(tag: Frame, view: SlimeLabel.View, r: Row)
 	local rarity = row:FindFirstChild("Rarity") :: TextLabel
 	local shine = row:FindFirstChild("Shine") :: TextLabel
 	row.Position = UDim2.fromScale(0.5, r.y + r.h / 2)
-	row.Size = UDim2.fromScale(1, r.h * SlimeInfoCard.SIZE.pill)
+	row.Size = UDim2.fromScale(1, r.h * SlimeInfoCard.SIZE.pill);
+	(rarity:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(view.rarity)
 	shine.Visible = view.shine ~= nil
 	if not view.shine then
 		rarity.Size = UDim2.fromScale(1, 1)
@@ -391,14 +392,12 @@ function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height:
 		if r then
 			local value = texts[spec.name] or ""
 			label.Text = value
-			if spec.name == "Rarity" then -- placed by placeRarityRow
-				(label:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(value)
-			elseif PILLS[spec.name] then
+			if PILLS[spec.name] then
 				local h = r.h * SlimeInfoCard.SIZE.pill
 				label.Position = UDim2.fromScale(0.5, r.y + r.h / 2)
 				label.Size = UDim2.fromScale(1, h);
 				(label:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(value)
-			else
+			elseif spec.name ~= "Rarity" then -- the rarity row is placed by placeRarityRow
 				label.Position = UDim2.fromScale(0, r.y)
 				label.Size = UDim2.fromScale(1, r.h)
 			end
