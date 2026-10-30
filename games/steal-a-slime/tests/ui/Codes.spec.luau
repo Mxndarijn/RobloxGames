@@ -92,6 +92,38 @@ describe("Codes panel", function()
 		expect(box:FindFirstChildOfClass("UIStroke").Color).toBe(Theme.Ink)
 		expect(redeem.Position.Y.Offset).toBe(buttonY)
 	end)
+	it("the card grows to fit the error line, so the content never needs a scroll bar", function()
+		local Codes = UiHarness.ui("Panels/Codes")
+		local Widgets = UiHarness.ui("Widgets")
+		local asked, relayouts = {}, 0
+		local ctx: any = {
+			Config = Config,
+			send = function() end,
+			ask = function(_action: string, done: any)
+				table.insert(asked, done)
+			end,
+			relayout = function()
+				relayouts += 1
+			end,
+			serverNow = function()
+				return 0
+			end,
+		}
+		local panel = Codes.new(UiHarness.root(), ctx)
+		local body = panel.frame:FindFirstChild("Body")
+		local box = UiHarness.find(panel.frame, "CodeBox")
+		local before = Widgets.contentHeight(body)
+		expect(before).toBe(Codes.CONTENT_H)
+		box.Text = "NOTACODE"
+		UiHarness.fire(UiHarness.find(panel.frame, "RedeemButton"), "Activated")
+		asked[1]({ ok = false, message = "That code doesn't exist" })
+		expect(Widgets.contentHeight(body)).toBe(before + Codes.ERROR_SHIFT)
+		expect(relayouts).toBe(1)
+		box.Text = "NOTACOD" -- editing drops the line and the card shrinks back, once
+		box.Text = "NOTACO"
+		expect(Widgets.contentHeight(body)).toBe(before)
+		expect(relayouts).toBe(2)
+	end)
 	it("errorText makes the server's reason a sentence, with a fallback", function()
 		local Codes = UiHarness.ui("Panels/Codes")
 		expect(Codes.errorText({ ok = false, message = "That code has expired" })).toBe("That code has expired.")

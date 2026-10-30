@@ -4,7 +4,8 @@
 	works too), a chip for the active income boost (State.codes) and a line on what codes give.
 	The server decides (Codes.redeem): a good code shows in the boost chip and the box clears once
 	State.codes.redeemed grows; a refused one keeps the text, turns the box's outline pink and shows
-	the server's reason in a pink line under it until the box is edited again.
+	the server's reason in a pink line under it until the box is edited again. The line pushes the rows
+	under the box down and the card grows to fit (ctx.relayout), so nothing scrolls or gets cut off.
 ]]
 
 local UI = script.Parent.Parent
@@ -92,7 +93,7 @@ function Codes.new(parent: Instance, ctx: any)
 			})
 		end
 		local line = errorLine
-		if line == nil then
+		if line == nil or (line.Visible == shown and line.Text == (text or "")) then
 			return
 		end
 		line.Visible = shown
@@ -103,6 +104,10 @@ function Codes.new(parent: Instance, ctx: any)
 			item.Position = UDim2.new(item.Position.X, UDim.new(0, (item:GetAttribute("RowY") :: number) + shift))
 		end
 		content.CanvasSize = UDim2.fromOffset(0, Codes.CONTENT_H + shift)
+		-- The card is sized to the content: measure it again now, not at the next State push.
+		if ctx.relayout then
+			ctx.relayout()
+		end
 	end
 	-- Clicking back into the box to fix the code, or the box clearing after a good one, drops the error.
 	box.Focused:Connect(function()
