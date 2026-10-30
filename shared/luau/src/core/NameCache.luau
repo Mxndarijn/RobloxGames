@@ -2,9 +2,9 @@
 --[[
 	NameCache (pure)
 
-	Resolves a userId to a name through an injected `fetch` (Players:GetNameFromUserIdAsync in the adapter).
+	Resolves a userId to a name through an injected `fetch` (Players:GetNameFromUserIdAsync in Roblox).
 	A name that was fetched is kept for good; a failed fetch answers `Player <id>` for this call only and is
-	retried on the next one (the board refreshes every Config.LEADERBOARD_INTERVAL, so retries stay bounded).
+	retried on the next one, so callers that refresh on a timer (a leaderboard) keep retries bounded.
 ]]
 
 local NameCache = {}
@@ -24,4 +24,4 @@ function NameCache.resolve(cache: Cache, userId: number, fetch: (number) -> stri
 	return `Player {userId}`
 end
 
-return NameCache
+return table.freeze(NameCache)

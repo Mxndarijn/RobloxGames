@@ -2,7 +2,7 @@
 -- Outbox: the server's routing of World events to remotes, attributes, badges and Effects, through fakes.
 local Constants = require("../src/shared/Constants")
 local Outbox = require("../src/server/Outbox")
-local SafeCall = require("../src/server/SafeCall")
+local SafeCall = require("../../../shared/luau/src/core/SafeCall")
 local ServerFixtures = require("./ServerFixtures")
 local TestRunner = require("./TestRunner")
 local World = require("../src/server/World")

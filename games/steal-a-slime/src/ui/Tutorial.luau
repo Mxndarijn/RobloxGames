@@ -9,7 +9,8 @@
 	(finished). The server owns progression; the UI never advances it.
 ]]
 
-local InputKind = if script then require(script.Parent.InputKind) else require("./InputKind")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local InputKind = if Lib then require(Lib.ui.InputKind) else require("../../../../shared/luau/src/ui/InputKind")
 
 export type Kind = InputKind.Kind
 export type Step = {

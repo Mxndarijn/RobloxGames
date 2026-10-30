@@ -14,7 +14,7 @@ The player's own settings, in one card opened from the gear (⚙️) in the top-
 | Sound | `muted` | toggle, off | Every SoundGroup at 0; a 🔇 badge on the gear |
 | | `musicVolume`, `sfxVolume` | slider 0..1, `Config.AUDIO` defaults | Music / SFX SoundGroup volume (the card moves in 5 % steps) |
 | | `stealAlarm` | toggle, on | Off: no alarm sound (`SoundController.play("Alarm")`, the Notify fallback, StealAlertFx repeats); the red flash and arrow stay |
-| | `buttonClicks` | toggle, on | Off: `ui/ButtonClicks` plays nothing |
+| | `buttonClicks` | toggle, on | Off: `Lib.ui.ButtonClicks` plays nothing |
 | Game | `holdToSell` | toggle, on | Off: the pad Sell prompt is a tap (`SlimeKeys.setSellHold(0)`) |
 | | `tutorialHints` | toggle, on | Off: no tutorial card, no Goals ring, no tutorial arrow. The server still tracks the step |
 | | `dailyPopup` | toggle, on | Off: the daily popup does not open by itself; the reward waits in Goals ("Daily reward" row with Open, a `!` on the Goals tile) |

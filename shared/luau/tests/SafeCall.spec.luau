@@ -1,7 +1,7 @@
 --!strict
--- SafeCall: the entry scripts' one pcall + log helper.
-local SafeCall = require("../src/server/SafeCall")
-local TestRunner = require("./TestRunner")
+-- SafeCall: one pcall + log helper for steps that may fail.
+local SafeCall = require("../src/core/SafeCall")
+local TestRunner = require("../testing/TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -31,5 +31,15 @@ describe("SafeCall", function()
 		expect(ok).toBe(false)
 		expect(err).toBe("no mesh")
 		expect(log).toEqual({ "[Server] MeshSwap.apply failed: no mesh" })
+	end)
+	it("puts the given tag in front of the log line", function()
+		local log = {}
+		local safeCall = SafeCall.new(function(message)
+			table.insert(log, message)
+		end, "[UI]")
+		safeCall("panel", function()
+			error("bad", 0)
+		end)
+		expect(log).toEqual({ "[UI] panel failed: bad" })
 	end)
 end)

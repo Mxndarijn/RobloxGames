@@ -1,11 +1,10 @@
 --!strict
--- The 10 Hz countdown loop in init.client runs every component tick through TickGuard: a thrown tick is
--- caught, logged once per component, and the others keep running.
-local TestRunner = require("../TestRunner")
-local UiHarness = require("./UiHarness")
+-- A frame or countdown loop runs every component tick through TickGuard: a thrown tick is caught, logged once
+-- per component, and the others keep running.
+local TestRunner = require("../testing/TestRunner")
+local TickGuard = require("../src/core/TickGuard")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
-local TickGuard = UiHarness.ui("TickGuard")
 
 describe("TickGuard", function()
 	it("catches a failing tick, logs it once per component and lets the next tick run", function()

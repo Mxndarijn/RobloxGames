@@ -127,7 +127,7 @@ return Thing
 
 ### 2.6 Entry scripts
 
-`init.server.luau` and `init.client.luau` wire modules together: create remotes, build panels, connect signals, run the frame loop. New behaviour goes in a module with a test, and the entry gets one line that calls it. Studio-only review fakes (`force*` helpers, `Pcw*` attributes) belong in a dedicated module (`StudioHooks` on the server), not in the entry script. A step that may fail without stopping the server goes through `safeCall(name, fn, ...)` (`server/SafeCall`), never a hand-written `pcall` + `warn`.
+`init.server.luau` and `init.client.luau` wire modules together: create remotes, build panels, connect signals, run the frame loop. New behaviour goes in a module with a test, and the entry gets one line that calls it. Studio-only review fakes (`force*` helpers, `Pcw*` attributes) belong in a dedicated module (`StudioHooks` on the server), not in the entry script. A step that may fail without stopping the server goes through `safeCall(name, fn, ...)` (`Lib.core.SafeCall`, shared/luau), never a hand-written `pcall` + `warn`.
 
 ## 3. Recipes (each lists the tests it needs)
 

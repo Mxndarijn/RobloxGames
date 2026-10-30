@@ -1,7 +1,7 @@
 --!strict
--- Retry: bounded tries with waits between them (src/shared/Retry), used for the pet cloud template load.
-local Retry = require("../src/shared/Retry")
-local TestRunner = require("./TestRunner")
+-- Retry: bounded tries with waits between them.
+local Retry = require("../src/core/Retry")
+local TestRunner = require("../testing/TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 

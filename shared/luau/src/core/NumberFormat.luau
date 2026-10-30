@@ -5,6 +5,8 @@
 	short: three significant digits, truncated (never rounded up past a suffix), trailing zeros trimmed:
 	  999 -> "999", 1250 -> "1.25K", 12500 -> "12.5K", 125000 -> "125K", 3.4e6 -> "3.4M", 1.25e9 -> "1.25B".
 	cash:  short with a currency prefix ("$" unless given): "$1.25K", "-$40".
+	full / fullCash: every digit with thousands commas: 1234567 -> "1,234,567", "$1,234,567".
+	rate: cash per second; small fractional rates keep one truncated decimal: 1.58 -> "$1.5/s", 1250 -> "$1.25K/s".
 	duration: the two largest units: 42 -> "42s", 245 -> "4m 05s", 3900 -> "1h 05m", 93600 -> "1d 02h".
 	clock: 65 -> "1:05", 3725 -> "1:02:05".
 	Partial seconds round up in duration and clock, so "0s" / "0:00" means done.
@@ -26,6 +28,13 @@ local function trim(text: string): string
 	return text
 end
 
+local function prefixed(text: string, mark: string): string
+	if string.sub(text, 1, 1) == "-" then
+		return "-" .. mark .. string.sub(text, 2)
+	end
+	return mark .. text
+end
+
 -- Non-finite or non-number values give "0".
 function NumberFormat.short(value: number): string
 	if not finite(value) then
@@ -44,18 +53,50 @@ function NumberFormat.short(value: number): string
 	end
 	local decimals = if n < 10 then 2 elseif n < 100 then 1 else 0
 	local scale = 10 ^ decimals
-	local text = string.format("%." .. decimals .. "f", math.floor(n * scale + 1e-6) / scale)
+	-- Three digits at most: the float-error nudge must not carry 999.999999 over to 1000 of the same suffix.
+	-- The last suffix has nothing above it, so it keeps every digit (5e36 -> "5000Dc").
+	local digits = math.floor(n * scale + 1e-6)
+	if index < #SUFFIXES then
+		digits = math.min(digits, 999)
+	end
+	local text = string.format("%." .. decimals .. "f", digits / scale)
 	return sign .. trim(text) .. SUFFIXES[index]
 end
 
 -- short with a prefix in front of the digits; the minus sign goes before the prefix.
 function NumberFormat.cash(value: number, prefix: string?): string
-	local mark = prefix or "$"
-	local text = NumberFormat.short(value)
-	if string.sub(text, 1, 1) == "-" then
-		return "-" .. mark .. string.sub(text, 2)
+	return prefixed(NumberFormat.short(value), prefix or "$")
+end
+
+-- Past FULL_MAX the digits stop being exact, so full keeps the short form there. Non-finite or non-number give "0".
+NumberFormat.FULL_MAX = 1e15
+function NumberFormat.full(value: number): string
+	if not finite(value) then
+		return "0"
 	end
-	return mark .. text
+	if math.abs(value) >= NumberFormat.FULL_MAX then
+		return NumberFormat.short(value)
+	end
+	local whole = math.floor(math.abs(value))
+	local sign = if value < 0 and whole > 0 then "-" else ""
+	local digits = string.format("%.0f", whole)
+	local out = string.reverse((string.gsub(string.reverse(digits), "(%d%d%d)", "%1,")))
+	out = string.gsub(out, "^,", "")
+	return sign .. out
+end
+
+-- full with a prefix in front of the digits (see cash).
+function NumberFormat.fullCash(value: number, prefix: string?): string
+	return prefixed(NumberFormat.full(value), prefix or "$")
+end
+
+-- Cash per second with a "/s" suffix.
+function NumberFormat.rate(value: number, prefix: string?): string
+	local mark = prefix or "$"
+	if finite(value) and value > 0 and value < 100 and value ~= math.floor(value) then
+		return mark .. (string.gsub(string.format("%.1f", math.floor(value * 10) / 10), "%.0$", "")) .. "/s"
+	end
+	return NumberFormat.cash(value, mark) .. "/s"
 end
 
 local function wholeSeconds(seconds: number): number

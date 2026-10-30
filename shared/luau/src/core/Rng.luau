@@ -26,6 +26,9 @@ local MULTIPLIER = 48271
 local Rng = {}
 Rng.__index = Rng
 
+-- Largest seed `new` keeps as given: draw seeds for later generators with `rng:int(1, Rng.SEED_MAX)`.
+Rng.SEED_MAX = MODULUS - 1
+
 local function normalizeSeed(seed: number?): number
 	local n = tonumber(seed) or 1
 	if n ~= n or n == math.huge or n == -math.huge then

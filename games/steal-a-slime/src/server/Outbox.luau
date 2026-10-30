@@ -12,7 +12,8 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
-local SafeCall = if script then require(script.Parent.SafeCall) else require("./SafeCall")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local SafeCall = if Lib then require(Lib.core.SafeCall) else require("../../../../shared/luau/src/core/SafeCall")
 local World = if script then require(script.Parent.World) else require("./World")
 
 -- The two RemoteEvent methods the outbox uses.

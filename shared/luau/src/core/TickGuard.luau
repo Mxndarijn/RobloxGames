@@ -2,8 +2,8 @@
 --[[
 	TickGuard
 
-	Runs a UI component's tick under pcall so one failing component cannot end the shared countdown loop.
-	The error is logged once per component name (no spam at 10 Hz). No Roblox APIs, so it loads under Lune.
+	Runs a component's tick under pcall so one failing component cannot end a shared frame or countdown loop.
+	The error is logged once per component name, so a loop at 10 Hz does not spam the output. Pure.
 ]]
 local TickGuard = {}
 
@@ -19,4 +19,4 @@ function TickGuard.new(log: (...any) -> ()): (string, () -> ()) -> boolean
 	end
 end
 
-return TickGuard
+return table.freeze(TickGuard)

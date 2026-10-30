@@ -26,6 +26,38 @@ for _, root in ROOTS do
 	files(root, all)
 end
 
+local function collect(source: string, name: string, members: { [string]: boolean })
+	for member in string.gmatch(source, "\nfunction " .. name .. "[%.:]([%w_]+)") do
+		members[member] = true
+	end
+	for member in string.gmatch(source, "\n%s*" .. name .. "%.([%w_]+)%s*=") do
+		members[member] = true
+	end
+	for member in string.gmatch(source, "export type ([%w_]+)") do
+		members[member] = true
+	end
+	for member in string.gmatch(source, "\n\t([%w_]+)%s*=") do -- table-literal modules (Config, Constants)
+		members[member] = true
+	end
+end
+
+-- `dir` joined with a relative require path, ".." resolved.
+local function join(dir: string, relative: string): string
+	local parts = string.split(dir, "/")
+	for _, part in string.split(relative, "/") do
+		if part == ".." then
+			if #parts > 0 and parts[#parts] ~= ".." then
+				table.remove(parts)
+			else
+				table.insert(parts, "..")
+			end
+		elseif part ~= "." then
+			table.insert(parts, part)
+		end
+	end
+	return table.concat(parts, "/")
+end
+
 -- module name -> defined members (modules of one name, like shared and server MysteryEgg, pool theirs)
 local defined: { [string]: { [string]: boolean } } = {}
 for _, path in all do
@@ -33,17 +65,15 @@ for _, path in all do
 	if not string.find(name, "^init") then
 		local source = fs.readFile(path)
 		local members = defined[name] or {}
-		for member in string.gmatch(source, "\nfunction " .. name .. "[%.:]([%w_]+)") do
-			members[member] = true
-		end
-		for member in string.gmatch(source, "\n%s*" .. name .. "%.([%w_]+)%s*=") do
-			members[member] = true
-		end
-		for member in string.gmatch(source, "export type ([%w_]+)") do
-			members[member] = true
-		end
-		for member in string.gmatch(source, "\n\t([%w_]+)%s*=") do -- table-literal modules (Config, Constants)
-			members[member] = true
+		collect(source, name, members)
+		-- A game module that hands out a shared/luau module of the same name also has that module's members.
+		local dir = string.match(path, "^(.*)/[^/]+$") :: string
+		for relative in string.gmatch(source, 'require%("([%./]+shared/luau/src/[%w_/]+)"%)') do
+			local sharedName = string.match(relative, "([%w_]+)$")
+			local target = join(dir, relative) .. ".luau"
+			if sharedName == name and fs.isFile(target) then
+				collect(fs.readFile(target), name, members)
+			end
 		end
 		defined[name] = members
 	end

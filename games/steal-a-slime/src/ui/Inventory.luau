@@ -31,7 +31,8 @@
 	item the player no longer holds (InventoryCore.placeNew), so a new purchase still lands on the bar.
 ]]
 
-local InputKind = require(script.Parent.InputKind)
+local InputKind =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("InputKind"))
 local InventoryCore = require(script.Parent.InventoryCore)
 local InventoryLayout = require(script.Parent.InventoryLayout)
 local ItemIconView = require(script.Parent.ItemIconView)
