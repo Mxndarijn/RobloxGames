@@ -13,7 +13,9 @@ State field, no save-format change.
   - `LabelIncome` (`Constants.LABEL_INCOME_ATTRIBUTE`): cash per second of this slime. Owned slimes (pad, escaping,
     carried away by a thief): `PlayerData.slimeIncome(owner data, slime)` (size, growth, the owner's rebirth
     multiplier and income perks), the same number as `State` `SlimeView.income`. Wild slimes: `Economy.slimeIncome(slime, 0)`
-    (no rebirths). Rewritten only when `SlimeLabel.incomeText` of the new value differs from the shown one, so growth
+    (no rebirths, nobody's bonuses); each client multiplies it by its own `State.incomeMultiplier`
+    (`SlimeLabel.shownIncome`, a wild slime is one with `OwnerUserId` 0), so a wild tag reads what that slime would
+    earn on the viewer's pad. Rewritten only when `SlimeLabel.incomeText` of the new value differs from the shown one, so growth
     does not replicate an attribute every tick.
   - `LabelPad` (`Constants.LABEL_PAD_ATTRIBUTE`): the pad index while the slime rests on it (Scene state `"Pad"`);
     nil while it is wild, carried or escaping.
