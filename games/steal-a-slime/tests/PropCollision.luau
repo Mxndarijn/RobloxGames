@@ -320,6 +320,17 @@ parts(
 	{ models = true }
 )
 parts(
+	"obby_arch",
+	"jolt",
+	1,
+	"colliders",
+	MAP,
+	{ "^ObbyArch$" },
+	"posts on; beam and sign off (above head height)",
+	"the Hall of Fame arch's build over the obby path: two solid posts beside it, the beam and the sign 15+ studs up",
+	{ models = true }
+)
+parts(
 	"ground_and_hub_spawn",
 	"jolt",
 	2,

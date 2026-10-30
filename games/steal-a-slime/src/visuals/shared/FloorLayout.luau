@@ -55,7 +55,11 @@ export type Geometry = {
 	plotFloorTop: number, -- absolute top of every plot's Base floor
 	plots: number, -- spokes / wedges
 	hall: Hall?, -- the Hall of Fame plaza and its path (WorldLayout.HALL_OF_FAME)
+	obbyPath: Walk?, -- the star walk from the ring path out to the obby portal (WorldLayout.obbyPath)
 }
+
+-- A straight walk: centre, width, length and the bearing of its long axis (from the ring path out).
+export type Walk = { x: number, z: number, width: number, length: number, bearing: number }
 
 -- The Hall of Fame floor, in world studs: the round plaza (rim + floor), the podium stage disc on it and the plank
 -- path from the ring path out to it (centre, width, length, bearing of its long axis).
@@ -65,7 +69,7 @@ export type Hall = {
 	radius: number,
 	rim: number, -- width of the darker rim round the floor
 	stage: { x: number, z: number, radius: number },
-	path: { x: number, z: number, width: number, length: number, bearing: number },
+	path: Walk,
 }
 
 local FloorLayout = {}
@@ -98,6 +102,7 @@ FloorLayout.COLORS = table.freeze({
 	hallRim = { 214, 186, 138 },
 	hallStage = { 240, 206, 120 },
 	hallStar = { 236, 184, 72 }, -- the star walk's stars: a deeper gold than the stage so they read on cream
+	obbyStar = { 96, 200, 120 }, -- the obby path's stars: goo green, so the two walks read apart
 	plank = { 184, 134, 84 }, -- kit PLANK_A
 	plankB = { 168, 120, 72 }, -- kit PLANK_B
 	rail = { 112, 72, 42 }, -- kit TRIM_DARK: the boardwalk's rails
@@ -219,7 +224,14 @@ end
 -- One flat right triangle (a Wedge part) lying on the floor with its right angle at `m`, one leg to `p` and the other
 -- to `tip` (x, z world points), top at height `y`. The wedge's own triangle is in its Y/Z plane: turned on its side
 -- (Z rotation +-90) it lies flat; its local Z runs from the tip to `m`, its local Y from `m` to `p`.
-local function flatTriangle(name: string, m: { number }, p: { number }, tip: { number }, y: number): Node
+local function flatTriangle(
+	name: string,
+	m: { number },
+	p: { number },
+	tip: { number },
+	y: number,
+	color: { number }
+): Node
 	local t = FloorLayout.STAR_WALK.starThick
 	local zx, zz = m[1] - tip[1], m[2] - tip[2]
 	local l = math.sqrt(zx * zx + zz * zz)
@@ -233,7 +245,7 @@ local function flatTriangle(name: string, m: { number }, p: { number }, tip: { n
 		{ t, h, l },
 		{ (p[1] + tip[1]) / 2, y - t / 2, (p[2] + tip[2]) / 2 }, -- the wedge's box centre
 		{ 0, math.deg(yaw), roll },
-		FloorLayout.COLORS.hallStar
+		color
 	)
 	node.shape = "Wedge"
 	return node
@@ -241,7 +253,15 @@ end
 
 -- A five-point star of radius `r` at (x, z), one tip toward `bearing` (degrees), as five overlapping triangles
 -- (each tip with the inner pentagon edge across from it), each split into two flat wedges.
-local function star(name: string, x: number, z: number, r: number, bearing: number, y: number): { Node }
+local function star(
+	name: string,
+	x: number,
+	z: number,
+	r: number,
+	bearing: number,
+	y: number,
+	color: { number }
+): { Node }
 	local inner = r * 0.381966 -- the inner pentagon's corner radius (1 / golden ratio squared)
 	local apothem, half = inner * math.cos(math.rad(36)), inner * math.sin(math.rad(36))
 	local out = {}
@@ -252,14 +272,16 @@ local function star(name: string, x: number, z: number, r: number, bearing: numb
 		local m = { x - dx * apothem, z - dz * apothem }
 		for side, s in { -1, 1 } do
 			local p = { m[1] + s * dz * half, m[2] - s * dx * half }
-			table.insert(out, flatTriangle(`{name}_{k + 1}_{side}`, m, p, tip, y))
+			table.insert(out, flatTriangle(`{name}_{k + 1}_{side}`, m, p, tip, y, color))
 		end
 	end
 	return out
 end
 
--- The star walk along `walk` (centre, width, length, bearing of its long axis, from the ring path out).
-function FloorLayout.starWalk(walk: { x: number, z: number, width: number, length: number, bearing: number }): Node
+-- The star walk along `walk` (centre, width, length, bearing of its long axis, from the ring path out), named `name`
+-- (default "HallPath") with stars of `starColor` (default COLORS.hallStar).
+function FloorLayout.starWalk(walk: Walk, name: string?, starColor: { number }?): Node
+	local color = starColor or FloorLayout.COLORS.hallStar
 	local sw = FloorLayout.STAR_WALK
 	local b = math.rad(walk.bearing)
 	local fx, fz = math.sin(b), math.cos(b) -- along the walk, outward
@@ -293,11 +315,11 @@ function FloorLayout.starWalk(walk: { x: number, z: number, width: number, lengt
 	for k = 1, count do
 		local d = -walk.length / 2 + sw.first + (k - 1) * sw.spacing
 		local cx, cz = walk.x + fx * d, walk.z + fz * d
-		for _, node in star(`Star_{k}`, cx, cz, sw.starRadius, walk.bearing, top(FloorLayout.LAYER.trim)) do
+		for _, node in star(`Star_{k}`, cx, cz, sw.starRadius, walk.bearing, top(FloorLayout.LAYER.trim), color) do
 			table.insert(children, node)
 		end
 	end
-	return { name = "HallPath", class = "Model", children = children }
+	return { name = name or "HallPath", class = "Model", children = children }
 end
 
 -- The up-ramp from the boardwalk's end to the plot floor: a tilted plank, solid (it is the one walkable floor piece
@@ -463,6 +485,9 @@ function FloorLayout.build(g: Geometry): { Node }
 			at(discNode("HallStage", st.radius, layer.plank, c.hallStage, "SmoothPlastic", "path"), st.x, st.z)
 		)
 		table.insert(paths, FloorLayout.starWalk(hall.path))
+	end
+	if g.obbyPath then
+		table.insert(paths, FloorLayout.starWalk(g.obbyPath, "ObbyPath", c.obbyStar))
 	end
 	local lawns: { Node } = {}
 	local step = 360 / g.plots

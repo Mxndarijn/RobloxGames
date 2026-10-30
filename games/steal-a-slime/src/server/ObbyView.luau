@@ -2,8 +2,9 @@
 --[[
 	ObbyView (Roblox adapter, contract/obby.md)
 
-	Builds the Goo Gauntlet in workspace.Obby: the portal (a goo ring on the ground, a see-through light column and a
-	status sign) once, and the course (`build`, from ObbyCourse data) each rotation. Moving parts get their rest
+	Builds the Goo Gauntlet in workspace.Obby: the portal (a goo ring on the ground in the yard, a see-through light
+	column and a status sign) once, and the course (`build`, from ObbyCourse data) each rotation, in the obby's own
+	world far from the map (WorldLayout.obbyFrame; server/ObbyBackdrop dresses it). Moving parts get their rest
 	CFrame and motion as attributes (the OBBY_* names in Constants); visuals/client/ObbyFx plays them on every client. Belts get a
 	surface velocity, ice no friction. `positions` reads every live character's root position for ObbyService.step
 	and `apply` makes its teleports. Holds no rules.
@@ -119,6 +120,11 @@ local function getFolder(): Folder
 	return f
 end
 
+-- workspace.Obby (made on first use).
+function ObbyView.root(): Folder
+	return getFolder()
+end
+
 -- Ground height under (x, z): a ray down onto the map, ignoring the obby itself; 0 if nothing is hit.
 local function groundAt(x: number, z: number): number
 	local params = RaycastParams.new()
@@ -133,15 +139,19 @@ function ObbyView.place(): ObbyService.Place
 	if place then
 		return place
 	end
-	local portal, yaw = WorldLayout.obbyPortal()
+	local portal, toCentre = WorldLayout.obbyPortal()
 	local y = groundAt(portal[1], portal[3])
-	local a = math.rad(yaw)
+	local a = math.rad(toCentre)
 	local step = WorldLayout.OBBY.exitStep
+	local origin, yaw = WorldLayout.obbyFrame()
+	local centre, radius = WorldLayout.obbyZone()
 	local p: ObbyService.Place = {
-		frame = { origin = { portal[1], y + WorldLayout.OBBY.skyHeight, portal[3] }, yaw = yaw },
+		frame = { origin = origin, yaw = yaw },
 		portal = { portal[1], y, portal[3] },
 		portalRadius = WorldLayout.OBBY.portalRadius,
 		exit = { portal[1] + math.sin(a) * step, y + 3, portal[3] + math.cos(a) * step },
+		exitYaw = (toCentre + 180) % 360,
+		zone = { centre = centre, radius = radius },
 	}
 	place = p
 	return p

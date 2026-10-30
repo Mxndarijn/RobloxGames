@@ -15,9 +15,9 @@
 	  circle PROP_SPOTS (shops, Hall of Fame boards, arch, Professor Goo: 12 like WorldLayout's
 	         decor; the tutorial NPC only its own footprint, SPOT_RADII, so its
 	         corner can be dressed), the plaza showpieces (signpost, podiums =
-	         the leaderboard stands), the Hall of Fame plaza (r 50), the Goo Gauntlet
+	         the leaderboard stands), the Hall of Fame plaza (r 50), the obby
 	         portal (WorldLayout.OBBY.clearRadius)
-	  rect   the Hall of Fame path from the ring path out to the plaza
+	  rect   the Hall of Fame path from the ring path out to the plaza, and the obby path out to its portal
 	  edge   the WorldBorder wall ring (inner face r 292) and its edge decor:
 	         props stay inside r EDGE_RADIUS (12 studs short of the walls)
 ]]
@@ -191,13 +191,19 @@ do
 		rect = { cx = mid[1], cz = mid[3], hx = hall.pathWidth / 2, hz = (to - from) / 2, yaw = hall.bearing },
 	})
 end
--- The Goo Gauntlet portal and its sign.
+-- The obby portal and its sign, and the path out to it.
 do
 	local portal = WorldLayout.obbyPortal()
 	table.insert(
 		zones,
 		{ name = "Obby portal", kind = "circle", x = portal[1], z = portal[3], radius = WorldLayout.OBBY.clearRadius }
 	)
+	local path = WorldLayout.obbyPath()
+	table.insert(zones, {
+		name = "Obby path",
+		kind = "rect",
+		rect = { cx = path.x, cz = path.z, hx = path.width / 2, hz = path.length / 2, yaw = path.bearing },
+	})
 end
 PropClearance.ZONES = table.freeze(zones)
 

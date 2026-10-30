@@ -989,9 +989,27 @@ Props.RANCH_COLORS = table.freeze({
 	Goo = table.freeze({ 110, 226, 170 }),
 })
 
-function Props.hallArch(): Model
+-- An arch's title and look: the Model name, the banner text, the roof's two tones and the banner's gradient.
+type ArchLook = {
+	name: string,
+	title: string,
+	roof: { number },
+	roofDark: { number },
+	bar: Color3, -- the banner gradient, top to bottom
+	barDark: Color3,
+}
+
+-- The obby arch: the Hall of Fame arch with a goo-green roof and banner reading "OBBY", over the obby path.
+Props.OBBY_ARCH_LOOK = table.freeze({
+	roof = table.freeze({ 96, 200, 120 }),
+	roofDark = table.freeze({ 70, 160, 96 }),
+	bar = table.freeze({ 150, 236, 120 }),
+	barDark = table.freeze({ 60, 168, 110 }),
+})
+
+local function arch(look: ArchLook): Model
 	local m = Instance.new("Model")
-	m.Name = "HallOfFameArch"
+	m.Name = look.name
 	local A, C = Props.HALL_ARCH, Props.RANCH_COLORS
 	-- Parts render lighter than the kit's vertex colours: darken the wood to match the board posts.
 	local wood = tone(C.Wood):Lerp(Color3.new(), 0.22)
@@ -1046,7 +1064,7 @@ function Props.hallArch(): Model
 		-- a WedgePart's slope rises toward its -Z: turn the front half round so both slopes meet at the ridge
 		roof.CFrame = CFrame.new(0, h + 0.5 + rise / 2, s * depth / 2)
 			* CFrame.Angles(0, if s < 0 then math.pi else 0, 0)
-		roof.Color = if s < 0 then tone(C.Roof) else tone(C.RoofDark)
+		roof.Color = if s < 0 then tone(look.roof) else tone(look.roofDark)
 		roof.Material = Enum.Material.SmoothPlastic
 		roof.TopSurface, roof.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
 		roof.Anchored, roof.CanCollide, roof.CanQuery, roof.CanTouch = true, false, false, false
@@ -1079,11 +1097,10 @@ function Props.hallArch(): Model
 		edge.LineJoinMode = Enum.LineJoinMode.Round
 		edge.Parent = bar
 		local gradient = Instance.new("UIGradient")
-		gradient.Color =
-			ColorSequence.new(tone(C.Roof):Lerp(Color3.new(1, 1, 1), 0.25), tone(C.RoofDark):Lerp(Color3.new(), 0.2))
+		gradient.Color = ColorSequence.new(look.bar, look.barDark)
 		gradient.Rotation = 90
 		gradient.Parent = bar
-		local text = label(bar, "Text", "HALL OF FAME", rgb(255, 255, 255))
+		local text = label(bar, "Text", look.title, rgb(255, 255, 255))
 		text.Position = UDim2.fromScale(0.05, 0.12)
 		text.Size = UDim2.fromScale(0.9, 0.76)
 		local outline = Instance.new("UIStroke")
@@ -1093,6 +1110,30 @@ function Props.hallArch(): Model
 		outline.Parent = text
 	end
 	return finish(m, root)
+end
+
+function Props.hallArch(): Model
+	local C = Props.RANCH_COLORS
+	return arch({
+		name = "HallOfFameArch",
+		title = "HALL OF FAME",
+		roof = C.Roof,
+		roofDark = C.RoofDark,
+		bar = tone(C.Roof):Lerp(Color3.new(1, 1, 1), 0.25),
+		barDark = tone(C.RoofDark):Lerp(Color3.new(), 0.2),
+	})
+end
+
+function Props.obbyArch(): Model
+	local look = Props.OBBY_ARCH_LOOK
+	return arch({
+		name = "ObbyArch",
+		title = "OBBY",
+		roof = look.roof,
+		roofDark = look.roofDark,
+		bar = tone(look.bar),
+		barDark = tone(look.barDark),
+	})
 end
 
 -- Professor Goo -------------------------------------------------------------

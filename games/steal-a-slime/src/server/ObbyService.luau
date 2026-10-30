@@ -9,6 +9,7 @@
 	  * standing on the next checkpoint pad counts it; one reached faster than OBBY.MIN_SECTION_SECONDS after the last
 	    marks the run invalid (it still finishes, but earns nothing)
 	  * falling below the course sends the runner back to the last pad they reached; wandering far off it ends the run
+	  * the course stands in its own world (Place.zone): anyone there without a run is set down by the portal
 	  * the finish pad ends the run: the time, a best on this course, and the boost when ObbyRules says it is ready
 	    (data.obbyUntil / obbyReadyAt, saved); then the player is set down by the portal
 	  * a new rotation (ObbyCourse.slot) rebuilds the course once no one is running, or after OBBY.REBUILD_GRACE
@@ -35,6 +36,8 @@ export type Place = {
 	portal: Vec, -- portal circle centre on the ground
 	portalRadius: number,
 	exit: Vec, -- where a player is set down after a run (in front of the portal)
+	exitYaw: number, -- the way they face there (towards the portal)
+	zone: { centre: Vec, radius: number }, -- the obby world (WorldLayout.inObbyWorld): no one stays there without a run
 }
 
 export type Move = { userId: number, pos: Vec, yaw: number }
@@ -78,7 +81,7 @@ local function worldMove(place: Place, userId: number, at: Vec): Move
 end
 
 local function exitMove(place: Place, userId: number): Move
-	return { userId = userId, pos = table.clone(place.exit), yaw = place.frame.yaw + 180 }
+	return { userId = userId, pos = table.clone(place.exit), yaw = place.exitYaw }
 end
 
 local function sectionName(course: ObbyCourse.Course, index: number): string
@@ -208,6 +211,11 @@ local function progress(world: World, session: Session, place: Place, pos: Vec, 
 	return nil
 end
 
+local function inZone(place: Place, pos: Vec): boolean
+	local c = place.zone.centre
+	return (pos[1] - c[1]) ^ 2 + (pos[3] - c[3]) ^ 2 < place.zone.radius ^ 2
+end
+
 local function inPortal(place: Place, pos: Vec): boolean
 	local dx, dz = pos[1] - place.portal[1], pos[3] - place.portal[3]
 	local dy = pos[2] - place.portal[2]
@@ -255,6 +263,9 @@ function ObbyService.step(world: World, place: Place, positions: { [number]: Vec
 			if move then
 				table.insert(moves, move)
 			end
+		elseif inZone(place, pos) then
+			table.insert(moves, exitMove(place, userId)) -- in the obby world without a run (left the course)
+			session.obbyOnPortal = nil
 		else
 			local inside = inPortal(place, pos)
 			if inside and not session.obbyOnPortal then

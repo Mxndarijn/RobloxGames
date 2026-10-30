@@ -7,7 +7,8 @@
 	on every Lighting.ClockTime change (the server's DayNight cycle) blends
 	Ambient / OutdoorAmbient / Brightness / ExposureCompensation and the
 	Atmosphere towards NightLook.NIGHT by NightLook.factor. The weather grade (WeatherGrade, driven by
-	WeatherFx) is layered on top of that look, re-applied each frame while it tweens.
+	WeatherFx) is layered on top of that look, re-applied each frame while it tweens, and the obby world's look
+	(ObbyLook, driven by ObbyWorld) over both while the local player is in the obby world.
 
 	The day values are the place's own (default.project.json), captured once
 	into "NightLookDay_<key>" attributes on Lighting / the Atmosphere, so a
@@ -18,6 +19,7 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local NightLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("NightLook"))
+local ObbyLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("ObbyLook"))
 local WeatherGrade = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherGrade"))
 
 local NightSky = {}
@@ -89,6 +91,10 @@ function NightSky.start()
 			look.Haze = WeatherGrade.haze(look.Haze, grade)
 			look.ExposureCompensation = WeatherGrade.exposure(look.ExposureCompensation, grade)
 		end
+		local obby = ObbyLook.get()
+		if obby > 0 then -- the obby world's own look (ObbyWorld) over all of that
+			look = ObbyLook.blend(look, obby)
+		end
 		for _, key in NightLook.KEYS do
 			local holder: any = if ATMOSPHERE_KEYS[key] then atmosphere else Lighting
 			holder[key] = look[key]
@@ -96,6 +102,7 @@ function NightSky.start()
 	end
 	Lighting:GetPropertyChangedSignal("ClockTime"):Connect(apply)
 	WeatherGrade.onChanged(apply)
+	ObbyLook.onChanged(apply)
 	apply()
 end
 

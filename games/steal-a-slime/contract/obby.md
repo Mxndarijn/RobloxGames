@@ -1,6 +1,6 @@
 # Goo Gauntlet: the sky obby
 
-A short parkour course floating above the map. Clearing it earns **x1.5 income for 5 minutes**; the next run earns it again **5 minutes after the boost ends**. The course rebuilds every **10 minutes** from new sections. Design: `docs/obby-proposal.html`. Tunables: `Config.OBBY`. No feature flag (it ships on).
+A short parkour course in its own sky world, reached through a portal in the yard. Clearing it earns **x1.5 income for 5 minutes**; the next run earns it again **5 minutes after the boost ends**. The course rebuilds every **10 minutes** from new sections. Design: `docs/obby-proposal.html`. Tunables: `Config.OBBY`. No feature flag (it ships on).
 
 ## 1. Modules
 
@@ -36,7 +36,7 @@ A short parkour course floating above the map. Clearing it earns **x1.5 income f
 
 ## 5. World
 
-- `WorldLayout.OBBY`: the portal in the yard between plots 8 and 1 (bearing 337.5, r 238). `PropClearance` keeps `clearRadius` round the portal clear.
+- `WorldLayout.OBBY`: the portal in the lawn lane between plots 8 and 1 (bearing 337.5, r 155), in front of the yard's windmill scene. `PropClearance` keeps `clearRadius` round the portal clear.
 - **Path**: a star walk (`WorldLayout.obbyPath`, the Hall of Fame path's style with goo-green stars) from the ring path's outer rail out to the portal, `pathWidth` wide, and the `Constants.OBBY_ARCH` arch ("OBBY", `Props.obbyArch`, a `PROP_SPOTS` entry) where it leaves the ring path, `archDistance` from the map centre. `PropClearance` keeps the path clear ("Obby path"), so the yard dressing (`YardProps`) and the plaza props stand off it.
 - **Obby world**: the course stands in its own zone, `WorldLayout.OBBY.world`, thousands of studs from the map (past any view distance and the Atmosphere), so nothing of it shows from the plots, plaza or bases and nothing of the map shows from it. The course frame is `world.origin` / `world.yaw`. `WorldLayout.inObbyWorld(pos)` is true inside `world.radius` of the zone's centre.
 - `workspace.Obby.Backdrop` (`Constants.OBBY_BACKDROP`, `server/ObbyBackdrop`, built once from `WorldLayout.obbyBackdrop()`): floating goo islands, cloud puffs and a cloud sea round the course. Decor only: no collision, no queries, no touches.

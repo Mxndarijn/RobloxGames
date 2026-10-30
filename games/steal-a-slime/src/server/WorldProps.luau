@@ -132,6 +132,7 @@ function WorldProps.place(): { [string]: Model }
 		[Constants.TUTORIAL_NPC] = Props and Props.tutorialNpc,
 		[Constants.PROFESSOR_GOO] = Props and Props.professorGoo,
 		[Constants.HALL_ARCH] = Props and Props.hallArch,
+		[Constants.OBBY_ARCH] = Props and Props.obbyArch,
 	}
 	for _, def in Leaderboards.BOARDS do
 		builders[def.model] = if Props and Props.leaderboardBoard

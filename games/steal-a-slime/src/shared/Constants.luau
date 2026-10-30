@@ -82,10 +82,12 @@ return table.freeze({
 	LEADERBOARD_STAT_ATTRIBUTE = "LeaderboardStat", -- on each board Model: the Types.Leaderboard `stat` it shows
 	PROFESSOR_GOO = "ProfessorGoo", -- the Hall of Fame greeter NPC under workspace.Map
 	HALL_ARCH = "HallOfFameArch", -- the Hall of Fame entrance arch under workspace.Map
+	OBBY_ARCH = "ObbyArch", -- the "OBBY" arch where the obby path leaves the ring path, under workspace.Map
 	-- Goo Gauntlet obby (contract/obby.md): server/ObbyView builds workspace.Obby with Portal and Course
 	OBBY_FOLDER = "Obby",
 	OBBY_COURSE = "Course", -- workspace.Obby.Course: the parts of the course standing now (attribute Slot)
 	OBBY_PORTAL = "Portal", -- workspace.Obby.Portal: the ring, its column and the status sign
+	OBBY_BACKDROP = "Backdrop", -- workspace.Obby.Backdrop: the obby world's islands and clouds (decor only)
 	OBBY_SIGN_STATUS = "Status", -- TextLabel on the portal sign the client fills with its own boost status
 	OBBY_SIGN_COURSE = "CourseInfo", -- TextLabel on the portal sign the client fills with the course and rotation
 	-- Course part attributes (ObbyCourse.Motion, played by visuals/client/ObbyFx)
