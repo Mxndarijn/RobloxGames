@@ -1313,7 +1313,7 @@ WorldLayout.BRIDGE_LOOK = table.freeze({
 	railRise = 0.12,
 	colors = table.freeze({ { 214, 170, 116 }, { 196, 138, 86 } }), -- cork, light wood (kit ranch_wood)
 	shades = table.freeze({ 1, 0.97, 1.03, 0.98, 1.02 }),
-	railColor = { 158, 108, 68 }, -- kit ranch_wood_dark
+	railColor = { 112, 72, 42 }, -- the boardwalk's and the gate ramp's rails (kit TRIM_DARK)
 })
 function WorldLayout.bridgeLook(bridge: WorldNode): WorldNode
 	local look = WorldLayout.BRIDGE_LOOK

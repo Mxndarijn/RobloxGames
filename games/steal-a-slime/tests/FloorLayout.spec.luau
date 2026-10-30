@@ -100,7 +100,7 @@ describe("FloorLayout height", function()
 		FloorLayout.FLOOR_Y = old
 		for _, n in moved do
 			local b = before[n.name]
-			if string.match(n.name, "^GateRamp") then
+			if string.match(n.name, "^GateRamp") or string.match(n.name, "^Ramp") then
 				continue
 			end
 			expect(n.pos[2] - b[2]).toBeCloseTo(3, 1e-9)
@@ -120,7 +120,8 @@ describe("FloorLayout walkability", function()
 	end)
 	it("keeps every floor surface within the trim top: no lip over the terrain", function()
 		for _, n in floorParts() do
-			if string.match(n.name, "^GateRamp") then
+			-- the gate ramps and their planks and rails climb to the plot floor
+			if string.match(n.name, "^GateRamp") or string.match(n.name, "^Ramp") then
 				continue
 			end
 			-- a part turned on its side (Z rotation 90, like the cylinders and the star wedges) is size X tall
@@ -213,7 +214,7 @@ describe("FloorLayout meshes", function()
 	it("centres both slots on the hub, invisible, never solid, tinted by the slot colour, one per mesh", function()
 		local seen = {}
 		for _, n in folder("Paths").children do
-			if n.attributes.MeshAsset then
+			if n.attributes and n.attributes.MeshAsset then
 				seen[n.attributes.MeshAsset] = n
 				expect(n.pos[1]).toBe(0)
 				expect(n.pos[3]).toBe(0)
@@ -352,13 +353,18 @@ describe("FloorLayout terrain grass swap", function()
 end)
 
 describe("FloorLayout budget", function()
-	it("adds a handful of parts: field 3, paths 11, lawns 32, yard patches (YardProps.PATCHES)", function()
+	it("adds a handful of parts: field 3, paths 3 + a ramp and its look per gate, lawns 32, yard patches", function()
+		local rampLook = FloorLayout.RAMP_LOOK.planks + 2 -- planks and two rails
 		expect(#folder("Field").children).toBe(3)
 		expect(#folder("YardPatches").children).toBe(#YardProps.PATCHES)
-		expect(#folder("Paths").children).toBe(3 + Config.PLOT_COUNT)
+		expect(#folder("Paths").children).toBe(3 + 2 * Config.PLOT_COUNT)
 		expect(#folder("Lawns").children).toBe(FloorLayout.LAWN_BLOCKS * Config.PLOT_COUNT)
 		expect(#floorParts()).toBe(
-			3 + 3 + Config.PLOT_COUNT + FloorLayout.LAWN_BLOCKS * Config.PLOT_COUNT + #YardProps.PATCHES
+			3
+				+ 3
+				+ Config.PLOT_COUNT * (1 + rampLook)
+				+ FloorLayout.LAWN_BLOCKS * Config.PLOT_COUNT
+				+ #YardProps.PATCHES
 		)
 	end)
 	it("is built into Map as Field / Paths / Lawns / YardPatches with unique names", function()

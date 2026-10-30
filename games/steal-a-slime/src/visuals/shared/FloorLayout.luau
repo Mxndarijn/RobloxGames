@@ -98,7 +98,10 @@ FloorLayout.COLORS = table.freeze({
 	hallRim = { 214, 186, 138 },
 	hallStage = { 240, 206, 120 },
 	hallStar = { 236, 184, 72 }, -- the star walk's stars: a deeper gold than the stage so they read on cream
-	plank = { 184, 134, 84 },
+	plank = { 184, 134, 84 }, -- kit PLANK_A
+	plankB = { 168, 120, 72 }, -- kit PLANK_B
+	rail = { 112, 72, 42 }, -- kit TRIM_DARK: the boardwalk's rails
+	rampGap = { 110, 74, 48 }, -- the gate ramp's top between its planks
 	deckBase = { 244, 232, 200 }, -- slot colour of the deck mesh (kit INLAY): its brightest colour
 	pathBase = { 196, 146, 92 }, -- slot colour of the boardwalk mesh (kit BASE)
 } :: { [string]: { number } })
@@ -317,13 +320,79 @@ function FloorLayout.ramp(bearing: number, plotFloorTop: number): Node
 		size = { FloorLayout.RAMP_WIDTH, t, length },
 		pos = { math.sin(b) * sc, yc, math.cos(b) * sc },
 		rot = { -math.deg(tilt), bearing, 0 },
-		color = FloorLayout.COLORS.plank,
+		color = FloorLayout.COLORS.rampGap,
 		material = "SmoothPlastic",
 		canCollide = true,
 		canQuery = false,
 		canTouch = false,
 		attributes = { [FloorLayout.SNOW_KIND_ATTRIBUTE] = "path" },
 	}
+end
+
+-- The ramp's look, the boardwalk spoke carried up the ramp (kit ranch_floor_paths): cross planks with a gap (the
+-- ramp's own dark top shows through) and the spoke's dark rails on both edges. Decor on top of the `ramp` collider.
+FloorLayout.RAMP_LOOK = table.freeze({
+	planks = 2,
+	gap = 0.2,
+	plankWidth = 8, -- the spoke's planks
+	rail = 0.8, -- outside the planks, like the spoke's rails
+	plankRise = 0.01, -- plank top above the ramp top
+	railRise = 0.04, -- the kit's rail top over its plank top (TRIM_TOP - PLANK_TOP)
+})
+function FloorLayout.rampLook(ramp: Node, index: number): Node
+	local look = FloorLayout.RAMP_LOOK
+	local size, pos, rot = ramp.size :: { number }, ramp.pos :: { number }, ramp.rot :: { number }
+	local tilt, b = math.rad(-rot[1]), math.rad(rot[2])
+	-- ramp-local (x across, y up its normal, z up the slope) to world: CFrame.fromOrientation(-tilt, b, 0)
+	local function place(x: number, y: number, z: number): { number }
+		local ly, lz = y * math.cos(tilt) + z * math.sin(tilt), -y * math.sin(tilt) + z * math.cos(tilt)
+		return { pos[1] + x * math.cos(b) + lz * math.sin(b), pos[2] + ly, pos[3] - x * math.sin(b) + lz * math.cos(b) }
+	end
+	local function part(name: string, partSize: { number }, at: { number }, color: { number }): Node
+		return {
+			name = name,
+			class = "Part",
+			shape = "Block",
+			size = partSize,
+			pos = at,
+			rot = rot,
+			color = color,
+			material = "SmoothPlastic",
+			canCollide = false,
+			canQuery = false,
+			canTouch = false,
+			attributes = { [FloorLayout.SNOW_KIND_ATTRIBUTE] = "path" },
+		}
+	end
+	local surface = size[2] / 2
+	local children: { Node } = {}
+	local pitch = size[3] / look.planks
+	local thick = 0.1
+	for k = 1, look.planks do
+		local z = -size[3] / 2 + pitch * (k - 0.5)
+		table.insert(
+			children,
+			part(
+				`RampPlank{index}_{k}`,
+				{ look.plankWidth, thick, pitch - look.gap },
+				place(0, surface + look.plankRise - thick / 2, z),
+				if k % 2 == 1 then FloorLayout.COLORS.plank else FloorLayout.COLORS.plankB
+			)
+		)
+	end
+	for side, sx in { -1, 1 } do
+		local railThick = 0.16
+		table.insert(
+			children,
+			part(
+				`RampRail{index}_{side}`,
+				{ look.rail, railThick, size[3] },
+				place(sx * (look.plankWidth / 2 + look.rail / 2), surface + look.railRise - railThick / 2, 0),
+				FloorLayout.COLORS.rail
+			)
+		)
+	end
+	return { name = `RampLook{index}`, class = "Model", children = children }
 end
 
 -- One lawn block: a chord block of the sector, tangent to the mid radius, bearings a0..a1.
@@ -400,8 +469,10 @@ function FloorLayout.build(g: Geometry): { Node }
 	local margin, blocks = FloorLayout.LAWN_MARGIN_DEG, FloorLayout.LAWN_BLOCKS
 	for k = 0, g.plots - 1 do
 		local spoke = step * k
-		table.insert(paths, FloorLayout.ramp(spoke, g.plotFloorTop))
-		paths[#paths].name = `GateRamp{k + 1}`
+		local ramp = FloorLayout.ramp(spoke, g.plotFloorTop)
+		ramp.name = `GateRamp{k + 1}`
+		table.insert(paths, ramp)
+		table.insert(paths, FloorLayout.rampLook(ramp, k + 1))
 		local a0, a1 = spoke + margin, spoke + step - margin
 		for i = 0, blocks - 1 do
 			local lo = a0 + (a1 - a0) * i / blocks
