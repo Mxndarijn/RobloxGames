@@ -190,12 +190,12 @@ describe("yard dressing: floor, collision, snow, variety", function()
 			if trunks then
 				trees += 1
 				expect(MeshAssets.collision(p.mesh)).toBe(nil) -- the tree mesh stays decor: the posts are its collision
-				for i, t in trunks do
+				for i in trunks do
 					local post = slots[`{p.name}_Trunk{i}`]
 					expect(post ~= nil).toBe(true)
 					expect(post.transparency).toBe(1)
 					expect(post.canCollide ~= false and post.canQuery ~= false).toBe(true)
-					expect(post.size[1]).toBe(t[4] * p.scale)
+					expect(post.size[1]).toBe(p.size[2]) -- the full tree height: no post top to stand on in the leaves
 					-- the post centre lies inside the tree's own footprint, with room for its radius
 					local dx, dz = post.pos[1] - p.pos[1], post.pos[3] - p.pos[3]
 					local yaw = math.rad(p.yaw)
@@ -208,6 +208,16 @@ describe("yard dressing: floor, collision, snow, variety", function()
 			end
 		end
 		expect(trees > 0).toBe(true)
+	end)
+	it("lets slime walk sweeps and ground rays see the yard's solid border meshes (MeshCanQuery)", function()
+		local n = 0
+		for _, p in yard do
+			if string.sub(p.mesh, 1, 13) == "ranch_border_" and MeshAssets.collision(p.mesh) ~= nil then
+				n += 1
+				expect(slots[p.name].attributes.MeshCanQuery).toBe(true)
+			end
+		end
+		expect(n > 0).toBe(true)
 	end)
 	it("opts out of snow (SnowKind none) and wears a slight tint: MeshTint, near white", function()
 		for _, p in yard do

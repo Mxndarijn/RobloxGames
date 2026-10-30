@@ -1008,13 +1008,14 @@ function WorldLayout.meadowClusters(): { Meadow.Cluster }
 end
 
 -- Tree meshes stay decor (a hull of a tree is an invisible cone round the canopy); an invisible upright post per trunk
--- is the collision, so the leaves stay walk-through. Per mesh: { x, z, diameter, height } in the slot's own axes at the
--- mesh's native size (scaled with the slot), measured on the uploaded meshes at their trunk bases.
+-- is the collision, so the leaves stay walk-through. Each post runs the tree's full height, so nobody jumps onto a post
+-- top hidden in the leaves. Per mesh: { x, z, diameter } in the slot's own axes at the mesh's native size (scaled with
+-- the slot), measured on the uploaded meshes at their trunk bases.
 WorldLayout.TREE_TRUNKS = table.freeze({
-	ranch_border_oak_round = { { -0.97, 0.17, 2.4, 8 } },
-	ranch_border_pine_broad = { { 0.23, -0.33, 2, 8 } },
-	ranch_border_pine_tall = { { 0.18, -0.33, 1.8, 10 } },
-	ranch_border_sapling_trio = { { 3.87, -0.28, 1.4, 6 }, { 0.07, -1.88, 1.2, 5 }, { -3.33, 0.12, 1.3, 5 } },
+	ranch_border_oak_round = { { -0.97, 0.17, 2.4 } },
+	ranch_border_pine_broad = { { 0.23, -0.33, 2 } },
+	ranch_border_pine_tall = { { 0.18, -0.33, 1.8 } },
+	ranch_border_sapling_trio = { { 3.87, -0.28, 1.4 }, { 0.07, -1.88, 1.2 }, { -3.33, 0.12, 1.3 } },
 } :: { [string]: { { number } } })
 
 local function trunkPosts(prop: RanchProp): { WorldNode }
@@ -1026,7 +1027,7 @@ local function trunkPosts(prop: RanchProp): { WorldNode }
 	local at = frame(prop.pos, prop.yaw)
 	for _, t in trunks do
 		local base = at({ t[1] * prop.scale, -prop.size[2] / 2, t[2] * prop.scale })
-		local height = t[4] * prop.scale
+		local height = prop.size[2]
 		local post = disc("Trunk", height, t[3] * prop.scale, { base[1], height / 2, base[3] }, WOOD)
 		post.transparency = 1
 		post.canTouch = false -- queryable: slime walk sweeps (WorldView, RespectCanCollide) route round it
@@ -1052,6 +1053,10 @@ local function decor(): WorldNode
 			-- Yard dressing: the slot colour is a slight tint of the mesh (MeshTint multiplies the vertex colours, so near white
 			-- keeps the kit's look). SnowKind "none": under snow the props keep their own colours, only the sand yard whitens.
 			slot.attributes = { MeshTint = true, [FloorLayout.SNOW_KIND_ATTRIBUTE] = "none" }
+			if string.sub(prop.mesh, 1, 13) == "ranch_border_" and MeshAssets.collision(prop.mesh) ~= nil then
+				-- the yard's solid rocks, fences and hedge: slime walk sweeps and ground rays see them, like the trunk posts
+				slot.attributes.MeshCanQuery = true
+			end
 			slot.color = prop.tint or slot.color
 		end
 		table.insert(children, meshSlot(slot, prop.mesh))

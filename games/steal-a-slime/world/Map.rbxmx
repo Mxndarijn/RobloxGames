@@ -21619,7 +21619,7 @@
         <Properties>
           <string name="Name">Yard_fence_straight_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAwAAABNZXNoQ2FuUXVlcnkDAQgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>189.41777</X>
@@ -21654,7 +21654,7 @@
         <Properties>
           <string name="Name">Yard_fence_straight_2</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAwAAABNZXNoQ2FuUXVlcnkDAQgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>182.4374</X>
@@ -21689,7 +21689,7 @@
         <Properties>
           <string name="Name">Yard_fence_straight_3</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAwAAABNZXNoQ2FuUXVlcnkDAQgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>179.59276</X>
@@ -21864,7 +21864,7 @@
         <Properties>
           <string name="Name">Yard_fence_straight_4</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAwAAABNZXNoQ2FuUXVlcnkDAQgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-181.01671</X>
@@ -21899,7 +21899,7 @@
         <Properties>
           <string name="Name">Yard_fence_straight_5</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAwAAABNZXNoQ2FuUXVlcnkDAQgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-167.70454</X>
@@ -21934,7 +21934,7 @@
         <Properties>
           <string name="Name">Yard_fence_straight_6</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGwAAAHJhbmNoX2JvcmRlcl9mZW5jZV9zdHJhaWdodAwAAABNZXNoQ2FuUXVlcnkDAQgAAABNZXNoVGludAMBCAAAAFNub3dLaW5kAgQAAABub25l</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-179.35165</X>
@@ -22354,7 +22354,7 @@
         <Properties>
           <string name="Name">Yard_hedge_long_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCFwAAAHJhbmNoX2JvcmRlcl9oZWRnZV9sb25nCAAAAE1lc2hUaW50AwEIAAAAU25vd0tpbmQCBAAAAG5vbmU=</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCFwAAAHJhbmNoX2JvcmRlcl9oZWRnZV9sb25nDAAAAE1lc2hDYW5RdWVyeQMBCAAAAE1lc2hUaW50AwEIAAAAU25vd0tpbmQCBAAAAG5vbmU=</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>177.84492</X>
@@ -22672,7 +22672,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>66.22574</X>
-            <Y>4</Y>
+            <Y>8.221497</Y>
             <Z>177.47987</Z>
             <R00>-0</R00>
             <R01>-1</R01>
@@ -22691,7 +22691,7 @@
           <token name="Material">272</token>
           <token name="shape">2</token>
           <Vector3 name="size">
-            <X>8</X>
+            <X>16.443008</X>
             <Y>2.399994</Y>
             <Z>2.399994</Z>
           </Vector3>
@@ -22741,7 +22741,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>50.55713</X>
-            <Y>3</Y>
+            <Y>4.6755066</Y>
             <Z>188.05573</Z>
             <R00>-0</R00>
             <R01>-1</R01>
@@ -22760,7 +22760,7 @@
           <token name="Material">272</token>
           <token name="shape">2</token>
           <Vector3 name="size">
-            <X>6</X>
+            <X>9.350998</X>
             <Y>1.3999939</Y>
             <Z>1.3999939</Z>
           </Vector3>
@@ -22775,7 +22775,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>53.193253</X>
-            <Y>2.5</Y>
+            <Y>4.6755066</Y>
             <Z>184.88542</Z>
             <R00>-0</R00>
             <R01>-1</R01>
@@ -22794,7 +22794,7 @@
           <token name="Material">272</token>
           <token name="shape">2</token>
           <Vector3 name="size">
-            <X>5</X>
+            <X>9.350998</X>
             <Y>1.199997</Y>
             <Z>1.199997</Z>
           </Vector3>
@@ -22809,7 +22809,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>52.268677</X>
-            <Y>2.5</Y>
+            <Y>4.6755066</Y>
             <Z>181.05069</Z>
             <R00>-0</R00>
             <R01>-1</R01>
@@ -22828,7 +22828,7 @@
           <token name="Material">272</token>
           <token name="shape">2</token>
           <Vector3 name="size">
-            <X>5</X>
+            <X>9.350998</X>
             <Y>1.300003</Y>
             <Z>1.300003</Z>
           </Vector3>
@@ -22910,7 +22910,7 @@
         <Properties>
           <string name="Name">Yard_rock_boulder_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGQAAAHJhbmNoX2JvcmRlcl9yb2NrX2JvdWxkZXIIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGQAAAHJhbmNoX2JvcmRlcl9yb2NrX2JvdWxkZXIMAAAATWVzaENhblF1ZXJ5AwEIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>73.27919</X>
@@ -23018,7 +23018,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-65.96396</X>
-            <Y>4.8399963</Y>
+            <Y>8.191696</Y>
             <Z>-173.8213</Z>
             <R00>-0</R00>
             <R01>-1</R01>
@@ -23037,7 +23037,7 @@
           <token name="Material">272</token>
           <token name="shape">2</token>
           <Vector3 name="size">
-            <X>9.680008</X>
+            <X>16.383408</X>
             <Y>2.4199982</Y>
             <Z>2.4199982</Z>
           </Vector3>
@@ -23087,7 +23087,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-78.40924</X>
-            <Y>3.850006</Y>
+            <Y>9.574951</Y>
             <Z>-166.94135</Z>
             <R00>-0</R00>
             <R01>-1</R01>
@@ -23106,7 +23106,7 @@
           <token name="Material">272</token>
           <token name="shape">2</token>
           <Vector3 name="size">
-            <X>7.699997</X>
+            <X>19.149902</X>
             <Y>1.3860016</Y>
             <Z>1.3860016</Z>
           </Vector3>
@@ -23258,7 +23258,7 @@
         <Properties>
           <string name="Name">Yard_rock_cluster_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGQAAAHJhbmNoX2JvcmRlcl9yb2NrX2NsdXN0ZXIIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGQAAAHJhbmNoX2JvcmRlcl9yb2NrX2NsdXN0ZXIMAAAATWVzaENhblF1ZXJ5AwEIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-77.6824</X>
@@ -23538,7 +23538,7 @@
         <Properties>
           <string name="Name">Yard_rock_boulder_2</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGQAAAHJhbmNoX2JvcmRlcl9yb2NrX2JvdWxkZXIIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGQAAAHJhbmNoX2JvcmRlcl9yb2NrX2JvdWxkZXIMAAAATWVzaENhblF1ZXJ5AwEIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-170.02026</X>
@@ -23573,7 +23573,7 @@
         <Properties>
           <string name="Name">Yard_rock_boulder_3</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGQAAAHJhbmNoX2JvcmRlcl9yb2NrX2JvdWxkZXIIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGQAAAHJhbmNoX2JvcmRlcl9yb2NrX2JvdWxkZXIMAAAATWVzaENhblF1ZXJ5AwEIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-171.45352</X>
@@ -23608,7 +23608,7 @@
         <Properties>
           <string name="Name">Yard_rock_slab_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9yb2NrX3NsYWIIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9yb2NrX3NsYWIMAAAATWVzaENhblF1ZXJ5AwEIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-161.77011</X>
@@ -23681,7 +23681,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-176.92215</X>
-            <Y>2.7599945</Y>
+            <Y>4.3014526</Y>
             <Z>110.13336</Z>
             <R00>-0</R00>
             <R01>-1</R01>
@@ -23700,7 +23700,7 @@
           <token name="Material">272</token>
           <token name="shape">2</token>
           <Vector3 name="size">
-            <X>5.5200043</X>
+            <X>8.602921</X>
             <Y>1.2879944</Y>
             <Z>1.2879944</Z>
           </Vector3>
@@ -23715,7 +23715,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-175.32646</X>
-            <Y>2.300003</Y>
+            <Y>4.3014526</Y>
             <Z>113.57468</Z>
             <R00>-0</R00>
             <R01>-1</R01>
@@ -23734,7 +23734,7 @@
           <token name="Material">272</token>
           <token name="shape">2</token>
           <Vector3 name="size">
-            <X>4.600006</X>
+            <X>8.602921</X>
             <Y>1.1040039</Y>
             <Z>1.1040039</Z>
           </Vector3>
@@ -23749,7 +23749,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-171.77443</X>
-            <Y>2.300003</Y>
+            <Y>4.3014526</Y>
             <Z>114.31833</Z>
             <R00>-0</R00>
             <R01>-1</R01>
@@ -23768,7 +23768,7 @@
           <token name="Material">272</token>
           <token name="shape">2</token>
           <Vector3 name="size">
-            <X>4.600006</X>
+            <X>8.602921</X>
             <Y>1.1959991</Y>
             <Z>1.1959991</Z>
           </Vector3>
@@ -23780,7 +23780,7 @@
         <Properties>
           <string name="Name">Yard_rock_cluster_2</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AwAAAAkAAABNZXNoQXNzZXQCGQAAAHJhbmNoX2JvcmRlcl9yb2NrX2NsdXN0ZXIIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
+          <BinaryString name="AttributesSerialize">BAAAAAkAAABNZXNoQXNzZXQCGQAAAHJhbmNoX2JvcmRlcl9yb2NrX2NsdXN0ZXIMAAAATWVzaENhblF1ZXJ5AwEIAAAATWVzaFRpbnQDAQgAAABTbm93S2luZAIEAAAAbm9uZQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-163.28053</X>

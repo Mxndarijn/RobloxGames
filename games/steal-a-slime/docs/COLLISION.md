@@ -9,7 +9,7 @@ from Roblox docs / memory and has not been measured in this game.
 |---|---|---|---|
 | `Box` | the mesh's bounding box | cheapest | crates, signs, anything box-like; pure decor you still want to bump |
 | `Hull` | one convex hull round the mesh | cheap | blobs and piles (slimes, rocks, bushes) that nobody should stand inside. Fills any dent or gap |
-| `Default` | a coarse convex decomposition | between Hull and PCD | medium concave things where a hull is too fat. Exact behaviour: **Studio check** |
+| `Default` | a coarse convex decomposition | between Hull and PCD | open or concave shapes where a box or hull leaves invisible space (benches, signs on posts, the windmill); measured against PCD in "Invisible space" below |
 | `PreciseConvexDecomposition` | many convex pieces, close to the mesh | most expensive: more pieces, slower physics and more memory | only when the exact surface matters (stairs, a walkable arch). Never for big or many parts |
 
 Cheapest of all is no collision: `CanCollide = false`, `CanQuery = false`, `CanTouch = false` for
@@ -208,9 +208,9 @@ after #11 / #16 / #10):
   that is right: every piece sits behind the 48-block wall ring (`WorldBorder.RADIUS` 292, 80 studs tall, inner face at r 292; the
   nearest piece footprint starts at r >= 290, which is a round hill's empty bounding-box corner). Players cannot reach them, so no
   trunk collider or hull is added (zero parts). `PropCollision.spec` re-computes every piece's footprint from `WorldBorder.pieces()`
-  and fails if one comes inside r 289. The one border piece that already collides (the windmill accent) keeps its Hull.
-- **World decor, signs, podiums, shop stands, vat, barn, loft, windmill, wagons, barrels, crates, stiles:** unchanged, already `Box` /
-  `Hull` / `PreciseConvexDecomposition` (see Conversions above). The decor boulders (45) and mushrooms (15) are primitives that
+  and fails if one comes inside r 289. The border pieces that collide (the windmill accent, `Default`, and the rocks, fence panels and long hedges the sand yard also uses) are solid because `MeshAssets.COLLISION` is per mesh; see "Invisible space" below.
+- **World decor, signs, podiums, shop stands, vat, barn, loft, windmill, wagons, barrels, crates, stiles:** `Box` / `Hull` /
+  `Default` / `PreciseConvexDecomposition` (see Conversions above). The decor boulders (45) and mushrooms (15) are primitives that
   collide on their own.
 - **Fountain tower (22 colliders), slide colliders (145; 132 with FEATURES.SlidePCD), StackGuard:** untouched, only inventoried.
 
@@ -268,7 +268,8 @@ mesh, float = how far its feet rest above it.
   `MaxSlopeAngle` is 89), its fence panels and hedge `Box`. `MeshAssets.COLLISION` is per mesh, so the same pieces behind
   the wall ring are solid too; nobody reaches them. Trees stay decor: a hull is an invisible cone round the canopy (it
   stopped walkers 4-7 studs out and let one climb 10 studs up a pine). `WorldLayout.TREE_TRUNKS` places one invisible
-  upright post per trunk instead, so trunks block and leaves stay walk-through.
+  upright post per trunk instead (the tree's full height, so no post top hides in the leaves), so trunks block and leaves
+  stay walk-through. The yard's solid border meshes carry `MeshCanQuery`, so dropped slimes route round them like the posts.
 - A scattered mushroom's ball cap overhangs at knee height: as the collision it snagged walkers about 2 studs out or
   lifted them 2.5-3.3 studs over it. Cap and stem are decor; one invisible flat-top cylinder (90% of the cap's width)
   is the collision.
