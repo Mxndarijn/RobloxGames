@@ -6,7 +6,8 @@
 
 	* release: ends any carry. Wild -> lands at `position`; a wild egg smashes there; the hauled boss lies on the
 	  spot; stolen -> escapes home.
-	* knockLoose: the carrier was hit (Bat, PvP item). Same as release, with the "you got bonked" toasts.
+	* knockLoose: the carrier was hit (Bat, PvP item). Same as release, with the "you got bonked" toasts. A boss
+	  attack calls release itself (reason "boss"): its hit toast is the only text.
 	* slap: a Bat hit on a carrier (reach SLAP_REACH, the slap cooldown), then knockLoose.
 
 	Carry.release is this module's release; PvpService.hitCarrier calls knockLoose (Carry itself can't be required

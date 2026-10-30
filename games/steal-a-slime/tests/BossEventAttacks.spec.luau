@@ -463,6 +463,18 @@ describe("a boss hit makes a carrier drop their slime", function()
 		expect(said(w, 1, "went home")).toBe(false)
 	end)
 
+	it("a wild Mystery Egg smashes where they stood", function()
+		local w, ctx, at = fight(1)
+		w.sessions[1].data.rebirths = Config.REBIRTH_TIERS[#Config.REBIRTH_TIERS].rebirths
+		local id = Spawner.spawnEgg(w, T0)
+		expect((Carry.grab(w, 1, id, 1, T0))).toBe(true)
+		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+		stomp(w, ctx, at, 1, t)
+		expect(w.sessions[1].carry).toBeNil()
+		expect(w.wild[id].smashedAt ~= nil and w.wild[id].smashedAt > t).toBe(true)
+		expect(said(w, 1, "smashed")).toBe(false)
+	end)
+
 	it("a strike that can't reach them leaves the slime in their hands", function()
 		local w, ctx, at = fight(2)
 		ctx.exposed = function(_userId: number, _from: any): boolean
