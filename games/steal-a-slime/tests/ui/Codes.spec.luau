@@ -119,8 +119,8 @@ describe("Codes panel", function()
 		asked[1]({ ok = false, message = "That code doesn't exist" })
 		expect(Widgets.contentHeight(body)).toBe(before + Codes.ERROR_SHIFT)
 		expect(relayouts).toBe(1)
-		box.Text = "NOTACOD" -- editing drops the line and the card shrinks back, once
-		box.Text = "NOTACO"
+		UiHarness.fire(box, "Focused") -- clicking back in drops the line and the card shrinks back, once
+		UiHarness.fire(box, "Focused")
 		expect(Widgets.contentHeight(body)).toBe(before)
 		expect(relayouts).toBe(2)
 	end)
