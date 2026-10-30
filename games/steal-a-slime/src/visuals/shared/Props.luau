@@ -35,13 +35,14 @@ local Constants = if script then require(script.Parent.Parent.Shared.Constants) 
 local Goo = if script then require(script.Parent.Parent.Shared.GooPalette) else require("../../shared/GooPalette")
 local GooIcons = if script then require(script.Parent.Parent.Shared.GooIcons) else require("../../shared/GooIcons")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
+local BoardFace = if script then require(script.Parent.BoardFace) else require("./BoardFace")
 local LabelFit = if script
 	then require((script.Parent.Parent :: any).Lib.ui.LabelFit)
 	else require("../../../../../shared/luau/src/ui/LabelFit")
 
 local Props = {}
 
-Props.LEADERBOARD_ROWS = 10
+Props.LEADERBOARD_ROWS = BoardFace.ROWS
 -- MaxDistance (studs) of the world labels built here (guides/roblox-world-labels.md).
 Props.NAME_TAG_DISTANCE = 60 -- NPC name tags (pixel-sized)
 Props.NAME_TAG_PHONE_DISTANCE = 40 -- the same on a phone-sized screen
@@ -1195,15 +1196,13 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	local faceCorner = Instance.new("UICorner")
 	faceCorner.CornerRadius = UDim.new(0.04, 0)
 	faceCorner.Parent = content
-	local padding = Instance.new("UIPadding")
-	local pad = UDim.new(0.03, 0)
-	padding.PaddingTop, padding.PaddingBottom, padding.PaddingLeft, padding.PaddingRight = pad, pad, pad, pad
-	padding.Parent = content
+	local chrome = BoardFace.CHROME
+	BoardFace.pad(content, chrome.pad, chrome.pad)
 	-- The title bar: a rounded strip in the board's own colour, light to dark, an ink edge and outlined white text.
 	local accent = if def then def.accent else palette.Title
 	local header = Instance.new("Frame")
 	header.Name = "Header"
-	header.Size = UDim2.fromScale(1, 0.14)
+	BoardFace.placeHeader(header)
 	header.BackgroundColor3 = rgb(255, 255, 255)
 	header.BorderSizePixel = 0
 	header.Parent = content
@@ -1212,7 +1211,7 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	headerCorner.Parent = header
 	local headerEdge = Instance.new("UIStroke")
 	headerEdge.Color = ink(Props.BOARD_INK)
-	headerEdge.Thickness = 4
+	headerEdge.Thickness = chrome.headerStroke
 	headerEdge.LineJoinMode = Enum.LineJoinMode.Round
 	headerEdge.Parent = header
 	local function shade(scale: number): Color3
@@ -1234,22 +1233,25 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	titleEdge.Thickness = 4
 	titleEdge.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
 	titleEdge.Parent = title
+	-- The rows, under the title bar's outline and a gutter, down to a small gap over the "You" line.
+	local stroke, gutter = chrome.headerStroke, chrome.gutter
 	local rows = Instance.new("Frame")
 	rows.Name = "Rows"
-	rows.Position = UDim2.fromScale(0, 0.17)
-	rows.Size = UDim2.fromScale(1, 0.73)
+	rows.Position = UDim2.new(0, 0, chrome.header, stroke + gutter)
+	rows.Size = UDim2.new(1, 0, 1 - chrome.header - chrome.you, -(stroke + gutter + chrome.youGap))
 	rows.BackgroundTransparency = 1
 	rows.Parent = content
 	-- The viewer's own line under the top 10 ("You  $1.2K"), filled and shown by each client (ui/WorldLeaderboard)
 	-- when they are not in the list.
 	local you = Instance.new("Frame")
 	you.Name = "You"
-	you.Position = UDim2.fromScale(0, 0.915)
-	you.Size = UDim2.fromScale(1, 0.085)
+	you.Position = UDim2.fromScale(0, 1 - chrome.you)
+	you.Size = UDim2.fromScale(1, chrome.you)
 	you.BackgroundColor3 = ink(palette.Me)
 	you.BorderSizePixel = 0
 	you.Visible = false
 	you.Parent = content
+	BoardFace.pad(you, chrome.inset, 0)
 	local youCorner = Instance.new("UICorner")
 	youCorner.CornerRadius = UDim.new(0.3, 0)
 	youCorner.Parent = you
@@ -1258,16 +1260,15 @@ function Props.leaderboardBoard(def: BoardDef?): Model
 	youEdge.Thickness = 2
 	youEdge.Parent = you
 	local youName = label(you, "Name", "You", ink(Props.BOARD_PALETTE.Text))
-	youName.Position = UDim2.fromScale(0.04, 0)
 	youName.Size = UDim2.fromScale(0.5, 1)
 	youName.TextXAlignment = Enum.TextXAlignment.Left
 	local youValue = label(you, "Value", "", ink(Props.BOARD_PALETTE.Value))
-	youValue.Position = UDim2.fromScale(0.56, 0)
-	youValue.Size = UDim2.fromScale(0.4, 1)
+	youValue.Position = UDim2.fromScale(0.5, 0)
+	youValue.Size = UDim2.fromScale(0.5, 1)
 	youValue.TextXAlignment = Enum.TextXAlignment.Right
 	local list = Instance.new("UIListLayout")
 	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.Padding = UDim.new(0.01, 0)
+	list.Padding = UDim.new(0, chrome.rowGap)
 	list.Parent = rows
 	return finish(m, board)
 end
@@ -1286,31 +1287,19 @@ function Props.fillLeaderboard(
 			child:Destroy()
 		end
 	end
-	local fmt = format or tostring
-	local palette = Props.BOARD_PALETTE
 	for k, entry in entries do
 		if k > Props.LEADERBOARD_ROWS then
 			break
 		end
-		local row = Instance.new("Frame")
-		row.Name = `Row_{k}`
-		row.LayoutOrder = k
-		row.Size = UDim2.fromScale(1, 1 / Props.LEADERBOARD_ROWS - 0.01)
-		row.BackgroundColor3 = ink(palette.RowAlt) -- one rounded card per row; the client tints the top three
-		row.BackgroundTransparency = 0
-		row.BorderSizePixel = 0
-		corner(row, UDim.new(0.3, 0))
-		local rank = label(row, "Rank", `#{entry.rank}`, ink(palette.Rank[k] or palette.Text))
-		rank.Position = UDim2.fromScale(0.02, 0.1)
-		rank.Size = UDim2.fromScale(0.13, 0.8)
-		local name = label(row, "Name", entry.name, ink(palette.Text))
-		name.Position = UDim2.fromScale(0.17, 0)
-		name.Size = UDim2.fromScale(0.5, 1)
-		name.TextXAlignment = Enum.TextXAlignment.Left
-		local value = label(row, "Value", fmt(entry.value), ink(palette.Value))
-		value.Position = UDim2.fromScale(0.68, 0)
-		value.Size = UDim2.fromScale(0.32, 1)
-		value.TextXAlignment = Enum.TextXAlignment.Right
+		local row = BoardFace.row(k, Props.BOARD_PALETTE)
+		local cells: { [string]: string } = {
+			Rank = `#{entry.rank}`,
+			Name = entry.name,
+			Value = if format then format(entry.value) else tostring(entry.value),
+		}
+		for cell, text in cells do
+			(row:FindFirstChild(cell) :: TextLabel).Text = text
+		end
 		row.Parent = rows
 	end
 end

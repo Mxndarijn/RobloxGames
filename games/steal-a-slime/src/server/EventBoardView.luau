@@ -18,6 +18,7 @@ local WeeklyEvents = if Shared then require(Shared.WeeklyEvents) else require(".
 local WorldLayout = if Shared
 	then require(Shared.Parent.Visuals.WorldLayout)
 	else require("../visuals/shared/WorldLayout")
+local BoardFace = if Shared then require(Shared.Parent.Visuals.BoardFace) else require("../visuals/shared/BoardFace")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -27,6 +28,8 @@ local EventBoardView = {}
 
 EventBoardView.WAIT_SECONDS = 30 -- how long `start` waits for WorldProps to place the board
 EventBoardView.MIN_SLOTS = 5 -- cards share the board height as if at least this many were shown
+EventBoardView.PILL_WIDTH = 0.29 -- the countdown pill, of the card's padded width
+EventBoardView.LIST_HEIGHT = "ListHeight" -- attribute on the card list: its height in canvas px
 
 -- Card icons: an uploaded image (ui/ItemIcons ids) or a glyph. Keys are EventBoard row icons.
 EventBoardView.ICONS = table.freeze({
@@ -126,27 +129,27 @@ local function text(parent: Instance, name: string, value: string, color: Color3
 	return t
 end
 
--- One card for `row` at list position `k` of `count` slots (cleared and rebuilt when the layout changes).
-local function card(list: Frame, row: EventBoard.Row, k: number, count: number)
+-- One card for `row` at list position `k` of `count` slots (cleared and rebuilt when the layout changes). `listHeight`
+-- is the card list's height in canvas px: the icon tile is square, so the text starts one tile width in.
+local function card(list: Frame, row: EventBoard.Row, k: number, count: number, listHeight: number)
+	local chrome = BoardFace.CHROME
 	local f = Instance.new("Frame")
 	f.Name = `Card_{k}`
 	f.LayoutOrder = k
-	f.Size = UDim2.fromScale(1, 1 / count - 0.02)
+	f.Size = UDim2.new(1, 0, 1 / count, -math.ceil(chrome.gutter * (count - 1) / count))
 	f.BackgroundColor3 = pale(row.accent, if row.live then 0.45 else 0.72)
 	f.BorderSizePixel = 0
 	corner(f, 0.25)
 	stroke(f, rgb(row.accent), if k == 1 then 5 else 3)
+	BoardFace.pad(f, chrome.inset, chrome.insetY)
+	local tileSize = math.floor((listHeight - chrome.gutter * (count - 1)) / count - 2 * chrome.insetY)
 	-- icon tile
 	local tile = Instance.new("Frame")
 	tile.Name = "IconTile"
-	tile.Position = UDim2.fromScale(0.012, 0.08)
-	tile.Size = UDim2.fromScale(0.1, 0.84)
+	tile.Size = UDim2.fromOffset(tileSize, tileSize)
 	tile.BackgroundColor3 = rgb(row.accent)
 	tile.BorderSizePixel = 0
 	corner(tile, 0.3)
-	local aspect = Instance.new("UIAspectRatioConstraint")
-	aspect.AspectRatio = 1
-	aspect.Parent = tile
 	tile.Parent = f
 	local icon = EventBoardView.ICONS[row.icon] or "✨"
 	if string.sub(icon, 1, 13) == "rbxassetid://" then
@@ -162,28 +165,32 @@ local function card(list: Frame, row: EventBoard.Row, k: number, count: number)
 		glyph.Position = UDim2.fromScale(0.12, 0.12)
 		glyph.Size = UDim2.fromScale(0.76, 0.76)
 	end
+	local textX = tileSize + chrome.inset
+	local textW = UDim2.new(1 - EventBoardView.PILL_WIDTH, -(textX + chrome.inset), 0, 0)
 	local title = text(f, "Title", row.title, rgb(row.accent, 0.45))
-	title.Position = UDim2.fromScale(0.15, 0.06)
-	title.Size = UDim2.fromScale(0.52, 0.52)
+	title.Position = UDim2.fromOffset(textX, 0)
+	title.Size = textW + UDim2.fromScale(0, 0.6)
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	local detail = text(f, "Detail", row.detail, rgb(CARD_TEXT))
-	detail.Position = UDim2.fromScale(0.15, 0.58)
-	detail.Size = UDim2.fromScale(0.52, 0.34)
+	detail.Position = UDim2.new(0, textX, 0.62, 0)
+	detail.Size = textW + UDim2.fromScale(0, 0.38)
 	detail.TextXAlignment = Enum.TextXAlignment.Left
-	-- countdown pill
+	-- countdown pill, on the card's right edge
 	local pill = Instance.new("Frame")
 	pill.Name = "TimePill"
-	pill.Position = UDim2.fromScale(0.69, 0.14)
-	pill.Size = UDim2.fromScale(0.295, 0.72)
+	pill.AnchorPoint = Vector2.new(1, 0)
+	pill.Position = UDim2.fromScale(1, 0)
+	pill.Size = UDim2.fromScale(EventBoardView.PILL_WIDTH, 1)
 	pill.BackgroundColor3 = if row.live then rgb(row.accent) else rgb(INK)
 	pill.BorderSizePixel = 0
 	pill.Visible = row.time ~= ""
 	corner(pill, 0.5)
 	stroke(pill, rgb(row.accent), 2)
+	BoardFace.pad(pill, chrome.pillInset, 0)
 	pill.Parent = f
 	local time = text(pill, "Time", row.time, rgb(WHITE), if row.live then 2 else nil)
-	time.Position = UDim2.fromScale(0.06, 0.1)
-	time.Size = UDim2.fromScale(0.88, 0.8)
+	time.Position = UDim2.fromScale(0, 0.15)
+	time.Size = UDim2.fromScale(1, 0.7)
 	f.Parent = list
 end
 
@@ -195,8 +202,9 @@ local function fill(list: Frame, rows: { EventBoard.Row }, rebuild: boolean)
 				child:Destroy()
 			end
 		end
+		local listHeight = list:GetAttribute(EventBoardView.LIST_HEIGHT) :: number
 		for k, row in rows do
-			card(list, row, k, math.max(#rows, EventBoardView.MIN_SLOTS))
+			card(list, row, k, math.max(#rows, EventBoardView.MIN_SLOTS), listHeight)
 		end
 		return
 	end
@@ -221,8 +229,17 @@ local function fill(list: Frame, rows: { EventBoard.Row }, rebuild: boolean)
 	end
 end
 
--- Replaces the leaderboard rows on the board's face (Content) with the title bar and the card list. Returns the list.
+-- The canvas height (px) of the SurfaceGui that `content` sits on: its part's face height x PixelsPerStud.
+local function canvasHeight(content: Instance): number
+	local gui = content:FindFirstAncestorWhichIsA("SurfaceGui") :: SurfaceGui
+	local part = (gui.Adornee or gui.Parent) :: BasePart
+	return part.Size.Y * gui.PixelsPerStud
+end
+
+-- Replaces the leaderboard rows on the board's face (Content, already padded by Props.leaderboardBoard) with the
+-- title bar and the card list. Returns the list.
 local function dress(content: Instance): Frame
+	local chrome = BoardFace.CHROME
 	for _, child in content:GetChildren() do
 		if child:IsA("GuiObject") then
 			child:Destroy()
@@ -232,22 +249,16 @@ local function dress(content: Instance): Frame
 	bg.Name = "Face"
 	bg.Size = UDim2.fromScale(1, 1)
 	bg.BackgroundColor3 = rgb(FACE)
+	bg.BackgroundTransparency = 1 -- Content is the face; this only holds the layout
 	bg.BorderSizePixel = 0
-	corner(bg, 0.04)
 	bg.Parent = content
-	local pad = Instance.new("UIPadding")
-	pad.PaddingTop = UDim.new(0.03, 0)
-	pad.PaddingBottom = UDim.new(0.03, 0)
-	pad.PaddingLeft = UDim.new(0.03, 0)
-	pad.PaddingRight = UDim.new(0.03, 0)
-	pad.Parent = bg
 	local header = Instance.new("Frame")
 	header.Name = "Header"
-	header.Size = UDim2.fromScale(1, 0.14)
+	BoardFace.placeHeader(header)
 	header.BackgroundColor3 = rgb(WHITE)
 	header.BorderSizePixel = 0
 	corner(header, 0.3)
-	stroke(header, rgb(INK), 4)
+	stroke(header, rgb(INK), chrome.headerStroke)
 	local gradient = Instance.new("UIGradient")
 	gradient.Color = ColorSequence.new({
 		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 92, 120)),
@@ -261,15 +272,19 @@ local function dress(content: Instance): Frame
 	local title = text(header, "Title", string.upper(EventBoard.TITLE), rgb(WHITE), 4)
 	title.Position = UDim2.fromScale(0.04, 0.1)
 	title.Size = UDim2.fromScale(0.92, 0.8)
+	-- The cards, under the title bar's outline and a gutter, down to the face's padding.
+	local top = chrome.headerStroke + chrome.gutter
 	local list = Instance.new("Frame")
 	list.Name = "Cards"
-	list.Position = UDim2.fromScale(0, 0.18)
-	list.Size = UDim2.fromScale(1, 0.82)
+	list.Position = UDim2.new(0, 0, chrome.header, top)
+	list.Size = UDim2.new(1, 0, 1 - chrome.header, -top)
 	list.BackgroundTransparency = 1
+	local face = canvasHeight(content) - 2 * chrome.pad
+	list:SetAttribute(EventBoardView.LIST_HEIGHT, face * (1 - chrome.header) - top)
 	list.Parent = bg
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0.02, 0)
+	layout.Padding = UDim.new(0, chrome.gutter)
 	layout.Parent = list
 	return list
 end
