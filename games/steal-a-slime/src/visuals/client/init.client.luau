@@ -21,6 +21,7 @@
 	  * weather (WeatherFx, FEATURES.Weather): Rain / Snow / Starfall emitters + tint from the workspace attribute Weather
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
 	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst
+	  * the Goo Gauntlet obby's moving parts (ObbyFx): slides, spinners, melting, flipping and shrinking pads
 	  * the Exclusive Shop's jar (ShopDisplayFx): the featured seats floating over its pedestals
 	  * carry trails (CarryTrailFx): a player's CarryTrail streams behind them while Carrying
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
@@ -561,6 +562,15 @@ do
 		warn(`[VisualsClient] ritual fx disabled: {err}`)
 	end
 end
+local obbyFx: any = nil
+do
+	local ok, err = pcall(function()
+		obbyFx = require(script:WaitForChild("ObbyFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] obby fx disabled: {err}`)
+	end
+end
 local shopDisplayFx: any = nil
 do
 	local ok, err = pcall(function()
@@ -661,6 +671,9 @@ RunService.RenderStepped:Connect(function()
 	end
 	if ritualFx then
 		ritualFx.tick(camera)
+	end
+	if obbyFx then
+		obbyFx.tick(camera)
 	end
 	if shopDisplayFx then
 		shopDisplayFx.tick(camera)

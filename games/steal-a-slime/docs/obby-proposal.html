@@ -1,0 +1,585 @@
+<title>Goo Gauntlet Obby</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column with a sticky contents rail on wide screens; the course strip and section pool are grids that stack on phones. */
+:root {
+  --bg: #f2f5f9;
+  --surface: #ffffff;
+  --ink: #1c2230;
+  --muted: #5a6478;
+  --line: #dbe1ea;
+  --sky: #2f7fd8;
+  --sky-soft: #dceafb;
+  --goo: #1f9e83;
+  --goo-soft: #d8f1ea;
+  --easy: #3f9a3a;
+  --med: #d08a12;
+  --hard: #d0443a;
+  --easy-soft: #e3f3e1;
+  --med-soft: #fbefd8;
+  --hard-soft: #fbe2df;
+  --cool: #8a93a6;
+  --f-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151c; --surface: #19202a; --ink: #e6eaf0; --muted: #9aa5b6; --line: #2a3340;
+    --sky: #6aa9f0; --sky-soft: #172b44; --goo: #45c9a8; --goo-soft: #173a33;
+    --easy: #6cc566; --med: #f0b24a; --hard: #f07a6e;
+    --easy-soft: #1c3320; --med-soft: #3a2d14; --hard-soft: #3d1f1c; --cool: #6c768a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151c; --surface: #19202a; --ink: #e6eaf0; --muted: #9aa5b6; --line: #2a3340;
+  --sky: #6aa9f0; --sky-soft: #172b44; --goo: #45c9a8; --goo-soft: #173a33;
+  --easy: #6cc566; --med: #f0b24a; --hard: #f07a6e;
+  --easy-soft: #1c3320; --med-soft: #3a2d14; --hard-soft: #3d1f1c; --cool: #6c768a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 48px; }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; }
+nav.toc p { font-family: var(--f-display); font-weight: 600; margin: 0 0 8px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; font-size: 12px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+nav.toc a { color: var(--muted); text-decoration: none; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--sky); }
+main { min-width: 0; display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: clamp(32px, 5vw, 46px); font-weight: 700; }
+h2 { font-size: 26px; font-weight: 600; margin-bottom: 14px; }
+h3 { font-size: 18px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+section { display: grid; gap: 14px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--sky); }
+.lede { font-size: 18px; color: var(--muted); }
+code, .mono { font-family: var(--f-mono); font-size: .88em; }
+code { background: var(--sky-soft); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+ul.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 70ch; }
+
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
+.fact { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.fact b { display: block; font-family: var(--f-display); font-size: 26px; font-weight: 600; color: var(--sky); font-variant-numeric: tabular-nums; }
+.fact span { font-size: 13px; color: var(--muted); }
+
+.figure { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; overflow-x: auto; }
+.figure svg { display: block; width: 100%; min-width: 560px; height: auto; }
+.cap { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-display); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+
+/* course roller */
+.roller { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 14px; }
+.roller-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.slotlabel { font-family: var(--f-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.btns { display: flex; gap: 8px; }
+button { font-family: var(--f-display); font-weight: 600; font-size: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+button:hover { border-color: var(--sky); color: var(--sky); }
+button:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+.strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto; gap: 8px; align-items: stretch; }
+.seg { border-radius: 8px; padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.seg small { font-family: var(--f-mono); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
+.seg strong { font-family: var(--f-display); font-weight: 600; font-size: 15px; line-height: 1.25; }
+.seg.E { background: var(--easy-soft); } .seg.E small { color: var(--easy); }
+.seg.M { background: var(--med-soft); } .seg.M small { color: var(--med); }
+.seg.H { background: var(--hard-soft); } .seg.H small { color: var(--hard); }
+.finish { border-radius: 8px; padding: 10px 14px; background: var(--goo-soft); color: var(--goo); font-family: var(--f-display); font-weight: 700; display: grid; place-items: center; text-align: center; }
+.mod { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 15px; }
+.chip { font-family: var(--f-mono); font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--sky-soft); color: var(--sky); }
+
+.pool { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.tier { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; align-content: start; }
+.tier h3 { display: flex; gap: 8px; align-items: center; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.tier ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
+.tier li b { font-family: var(--f-display); font-weight: 600; }
+.tier li span { color: var(--muted); }
+
+.mods { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.modcard { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+.modcard b { font-family: var(--f-display); font-weight: 600; display: block; }
+.modcard span { color: var(--muted); }
+
+.refs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ref { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; font-size: 14px; }
+.ref h3 { font-size: 16px; }
+.ref .take { color: var(--goo); font-weight: 600; }
+.ref a { color: var(--sky); }
+
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 6px; }
+.q .pick { font-size: 14px; color: var(--goo); font-weight: 600; }
+.qs { display: grid; gap: 12px; }
+
+.phases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.phase { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 8px; align-content: start; font-size: 14px; }
+.phase .mono { color: var(--sky); font-size: 12px; }
+.phase ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+
+svg text { font-family: var(--f-body); }
+
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); }
+  nav.toc { display: none; }
+  .facts, .mods { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pool, .phases, .refs { grid-template-columns: minmax(0, 1fr); }
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .finish { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Contents">
+    <p>Contents</p>
+    <ol>
+      <li><a href="#loop">The loop</a></li>
+      <li><a href="#rotation">Rotating course</a></li>
+      <li><a href="#pool">Section pool</a></li>
+      <li><a href="#mods">Modifiers</a></li>
+      <li><a href="#where">Where it lives</a></li>
+      <li><a href="#others">What others do</a></li>
+      <li><a href="#build">How we build it</a></li>
+      <li><a href="#phases">Phases</a></li>
+      <li><a href="#questions">Decided</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header style="display:grid; gap:14px">
+      <span class="eyebrow">Steal a Slime · proposal</span>
+      <h1>Goo Gauntlet: a sky obby that changes every run</h1>
+      <p class="lede">Clear a short parkour course floating above the map and your slimes earn 1.5× cash for 5 minutes. Then a 5-minute cooldown. By the time you can run it again, the course has rebuilt itself from a new set of sections with a new twist.</p>
+      <div class="facts">
+        <div class="fact"><b>1.5×</b><span>income for 5:00</span></div>
+        <div class="fact"><b>5:00</b><span>cooldown after the boost ends</span></div>
+        <div class="fact"><b>~1 min</b><span>goal for a full run: keep it short</span></div>
+        <div class="fact"><b>24 × 3</b><span>sections, each with 3 layouts</span></div>
+      </div>
+    </header>
+
+    <section id="loop">
+      <h2>The loop</h2>
+      <p>A full cycle is 10 minutes: 5 boosted, 5 cooling down. The course rotates on the same 10-minute clock, so every run a player makes is on a course they haven't seen in that form.</p>
+      <div class="figure">
+        <svg viewBox="0 0 760 170" role="img" aria-label="Timeline: run about 1 minute, boost 5 minutes, cooldown 5 minutes, then run again">
+          <line x1="20" y1="110" x2="740" y2="110" stroke="var(--line)" stroke-width="2"/>
+          <rect x="20" y="70" width="60" height="40" rx="6" fill="var(--sky-soft)"/>
+          <text x="50" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="var(--sky)">Run</text>
+          <rect x="80" y="70" width="320" height="40" rx="6" fill="var(--goo-soft)"/>
+          <text x="240" y="95" text-anchor="middle" font-size="14" font-weight="700" fill="var(--goo)">1.5× income · 5:00</text>
+          <rect x="400" y="70" width="320" height="40" rx="6" fill="var(--bg)" stroke="var(--cool)" stroke-dasharray="5 4"/>
+          <text x="560" y="95" text-anchor="middle" font-size="14" font-weight="700" fill="var(--muted)">Cooldown · 5:00</text>
+          <rect x="720" y="70" width="20" height="40" rx="4" fill="var(--sky-soft)"/>
+          <text x="80" y="135" text-anchor="middle" font-size="12" fill="var(--muted)">finish</text>
+          <text x="400" y="135" text-anchor="middle" font-size="12" fill="var(--muted)">boost ends</text>
+          <text x="720" y="135" text-anchor="middle" font-size="12" fill="var(--muted)">ready, new course</text>
+          <line x1="80" y1="62" x2="80" y2="118" stroke="var(--ink)" stroke-width="1.5"/>
+          <line x1="400" y1="62" x2="400" y2="118" stroke="var(--ink)" stroke-width="1.5"/>
+          <line x1="720" y1="62" x2="720" y2="118" stroke="var(--ink)" stroke-width="1.5"/>
+          <text x="20" y="40" font-size="13" font-weight="700" fill="var(--ink)">One cycle ≈ 11 min of play time, 5 of them boosted</text>
+        </svg>
+      </div>
+      <ul class="plain">
+        <li><b>Stacks by multiplying</b>, like every other bonus. It becomes one more factor (<code>obbyBonus</code>) in <code>Perks.bonusMultiplier</code>, next to MVP, Blessed and the weekend boost.</li>
+        <li><b>Survives a rejoin.</b> Save the boost end time and the "ready at" time in the player's data, the way the code boost saves <code>boostUntil</code>. Otherwise leaving and rejoining would skip the cooldown.</li>
+        <li><b>Your base stays open.</b> While you're up in the sky, your slimes can still be stolen. A run takes about a minute, so it's a real choice: go now, or wait until the server is quiet.</li>
+        <li><b>Short on purpose.</b> The goal is a run of about a minute at most. That's a guide, not a hard limit, but it means we never make the course longer to feel bigger. Variety comes from new sections, not more of them. Sections are kept short (see the section pool).</li>
+        <li><b>Falling isn't dying.</b> You respawn at the last checkpoint (one after each section), so a fall costs a few seconds, not the run. No lives, no time limit. Kids on phones must be able to finish.</li>
+        <li><b>Your run timer counts anyway.</b> Every finish shows your time and your best on this course, and the fastest time on the server goes on a board at the portal.</li>
+      </ul>
+    </section>
+
+    <section id="rotation">
+      <h2>Rotating course</h2>
+      <p>Each course is built from 5 sections in a fixed difficulty order (easy, easy, medium, medium, hard), plus one modifier. The pick comes from a seeded random number keyed to the 10-minute time slot, so every server builds the same course at the same time and players can talk about it. We already do this for the Exclusive shop rotation.</p>
+      <div class="roller" aria-live="polite">
+        <div class="roller-head">
+          <div>
+            <h3>Example courses</h3>
+            <span class="slotlabel" id="slotLabel">Slot</span>
+          </div>
+          <div class="btns">
+            <button type="button" id="prevSlot">Previous</button>
+            <button type="button" id="nextSlot">Next rotation</button>
+          </div>
+        </div>
+        <div class="strip" id="strip"></div>
+        <div class="mod">Modifier: <span class="chip" id="modChip">None</span><span id="modText" style="color:var(--muted)"></span></div>
+      </div>
+      <p class="cap">This picker runs the same rules the game would: no section repeats inside a course, no section from the previous course comes back in the next one, and each section rolls one of its 3 layouts. About 1 in 3 courses has no modifier.</p>
+      <h3 style="margin-top:6px">How each run stays unique</h3>
+      <p>Players remember sections, not combinations, so a big pool alone isn't enough. Three layers of variety work together:</p>
+      <ul class="plain">
+        <li><b>New sections every run.</b> With 8 sections per tier and the no-repeat rule, each slot picks from at least 6 sections you didn't see last run. You'll see the same section again maybe once every 4 runs, never twice in a row.</li>
+        <li><b>Every section has 3 layouts.</b> The same seed that picks the section also picks its layout: where the gaps are, how many platforms, which way the spinner turns, how fast the goo rises. Spinner A and Spinner C feel like different obstacles.</li>
+        <li><b>A modifier and mirror on top.</b> A twist like Low Gravity or Night Run, or the whole course flipped, makes even a familiar section play differently.</li>
+      </ul>
+      <p>Together that's over 25,000 section orders before layouts, modifiers and mirror. If analytics show players still getting bored, we add sections each update rather than making courses longer. Each section is a single module, so adding one is cheap.</p>
+      <ul class="plain">
+        <li><b>The floor never vanishes.</b> The sky has two course lanes. The new course builds in the empty lane. The old lane stays until its last runner finishes or 3 minutes pass, then clears.</li>
+        <li><b>Mirror is free variety.</b> Sections are built in code from parts, so any section can be flipped left-to-right. That doubles how many layouts players see.</li>
+      </ul>
+    </section>
+
+    <section id="pool">
+      <h2>Section pool</h2>
+      <p>Every section is about 30 studs long, has an entry pad and an exit pad at fixed heights, and ends on a checkpoint. All of them use the slime look: jelly, goo, bubbles.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Rough target (average player)</th><th>Easy</th><th>Medium</th><th>Hard</th><th>Whole run</th></tr></thead>
+          <tbody>
+            <tr><td>Per section</td><td class="mono">~7 s</td><td class="mono">~9 s</td><td class="mono">~11 s</td><td class="mono">~45 s, a minute with a fall or two</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="cap">These are guide numbers, not hard limits. In playtests we time each layout. If a section feels long, we shorten it rather than accept a longer run. After launch, analytics show the median finish time, so we can see which sections drag.</p>
+      <div class="pool">
+        <div class="tier">
+          <h3><span class="dot" style="background:var(--easy)"></span>Easy</h3>
+          <ul>
+            <li><b>Jelly Steps</b> <span>bouncy cubes that squish when you land</span></li>
+            <li><b>Wobble Bridge</b> <span>wide goo beam that sways slowly</span></li>
+            <li><b>Bubble Hop</b> <span>floating bubbles that bob up and down</span></li>
+            <li><b>Trampoline Field</b> <span>slime pads launch you to higher ledges</span></li>
+            <li><b>Goo Conveyor</b> <span>belts push you sideways while you jump</span></li>
+            <li><b>Slime Slide</b> <span>slide down and dodge rolling blobs</span></li>
+            <li><b>Goo Pipe</b> <span>run through a pipe with holes in the floor</span></li>
+            <li><b>Sticky Ladder</b> <span>climb jelly rungs; some wobble</span></li>
+          </ul>
+        </div>
+        <div class="tier">
+          <h3><span class="dot" style="background:var(--med)"></span>Medium</h3>
+          <ul>
+            <li><b>Melting Tiles</b> <span>tiles turn to goo 0.7 s after you touch them</span></li>
+            <li><b>Spinner</b> <span>a rotating bar sweeps a round platform</span></li>
+            <li><b>Blob Pendulums</b> <span>swinging slimes knock you off a beam</span></li>
+            <li><b>Lily Lift</b> <span>moving platforms on crossing paths</span></li>
+            <li><b>Jelly Wall Hop</b> <span>zigzag up between two sticky walls</span></li>
+            <li><b>Fan Shaft</b> <span>ride an air column past spinning blades</span></li>
+            <li><b>Popping Bubbles</b> <span>bubbles pop 1 s after you land</span></li>
+            <li><b>Slime Seesaw</b> <span>planks tip under your weight</span></li>
+          </ul>
+        </div>
+        <div class="tier">
+          <h3><span class="dot" style="background:var(--hard)"></span>Hard</h3>
+          <ul>
+            <li><b>Rising Goo</b> <span>the goo floor rises behind you; climb fast</span></li>
+            <li><b>Laser Gates</b> <span>timed beams across a narrow walkway</span></li>
+            <li><b>Tightrope</b> <span>thin trusses with gaps and a crosswind</span></li>
+            <li><b>Slime Cannon</b> <span>time the launch to land on a far island</span></li>
+            <li><b>Flip Floor</b> <span>the safe tile pattern swaps every 2 s</span></li>
+            <li><b>Ice Gauntlet</b> <span>slippery path with sweepers</span></li>
+            <li><b>Shrinking Pads</b> <span>pads shrink while you stand on them</span></li>
+            <li><b>Blob Rain</b> <span>falling slimes knock you off a thin path</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="mods">
+      <h2>Modifiers</h2>
+      <p>One modifier per course changes how the whole run feels, like Tower of Hell's mutators. They only change movement or the look, never the reward.</p>
+      <div class="mods">
+        <div class="modcard"><b>Low Gravity</b><span>floaty, long jumps</span></div>
+        <div class="modcard"><b>Speed Goo</b><span>+30% walk speed</span></div>
+        <div class="modcard"><b>Mirror</b><span>whole course flipped</span></div>
+        <div class="modcard"><b>Night Run</b><span>dark sky, glowing platforms</span></div>
+        <div class="modcard"><b>Extra Bouncy</b><span>every surface bounces a little</span></div>
+        <div class="modcard"><b>Windy</b><span>a steady sideways push</span></div>
+        <div class="modcard"><b>Tiny Mode</b><span>players shrink to half size</span></div>
+        <div class="modcard"><b>None</b><span>about 1 in 3 courses</span></div>
+      </div>
+    </section>
+
+    <section id="where">
+      <h2>Where it lives</h2>
+      <p>The ground has little room: plots sit on a ring at radius 140 and the free yards between them are only about 85 studs deep. So the course floats in the sky, and the ground only needs a portal.</p>
+      <div class="figure">
+        <svg viewBox="0 0 760 330" role="img" aria-label="Top-down map: fountain at centre, eight plots on a ring, Hall of Fame yard at bearing 157.5, obby portal in the opposite yard at 337.5, sky course high above">
+          <g transform="translate(200 165)">
+            <circle r="146" fill="none" stroke="var(--line)" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle r="33" fill="var(--sky-soft)"/>
+            <text y="4" text-anchor="middle" font-size="11" fill="var(--sky)">fountain</text>
+            <g fill="var(--bg)" stroke="var(--cool)">
+              <rect x="-20" y="-90" width="40" height="40" rx="4" transform="rotate(0)"/>
+              <rect x="-20" y="-90" width="40" height="40" rx="4" transform="rotate(45)"/>
+              <rect x="-20" y="-90" width="40" height="40" rx="4" transform="rotate(90)"/>
+              <rect x="-20" y="-90" width="40" height="40" rx="4" transform="rotate(135)"/>
+              <rect x="-20" y="-90" width="40" height="40" rx="4" transform="rotate(180)"/>
+              <rect x="-20" y="-90" width="40" height="40" rx="4" transform="rotate(225)"/>
+              <rect x="-20" y="-90" width="40" height="40" rx="4" transform="rotate(270)"/>
+              <rect x="-20" y="-90" width="40" height="40" rx="4" transform="rotate(315)"/>
+            </g>
+            <g transform="rotate(157.5) translate(0 -118)">
+              <circle r="16" fill="var(--med-soft)" stroke="var(--med)"/>
+            </g>
+            <g transform="rotate(337.5) translate(0 -118)">
+              <circle r="16" fill="var(--goo-soft)" stroke="var(--goo)" stroke-width="2"/>
+            </g>
+          </g>
+          <text x="150" y="315" font-size="12" fill="var(--muted)">plots on the ring · free yards between them</text>
+          <line x1="188" y1="40" x2="420" y2="70" stroke="var(--goo)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="244" y="290" font-size="12" fill="var(--med)">Hall of Fame</text>
+          <g>
+            <text x="430" y="40" font-size="14" font-weight="700" fill="var(--ink)">Sky course, ~150 studs up</text>
+            <rect x="430" y="60" width="54" height="22" rx="4" fill="var(--easy-soft)"/>
+            <rect x="490" y="54" width="54" height="22" rx="4" fill="var(--easy-soft)"/>
+            <rect x="550" y="46" width="54" height="22" rx="4" fill="var(--med-soft)"/>
+            <rect x="610" y="38" width="54" height="22" rx="4" fill="var(--med-soft)"/>
+            <rect x="670" y="30" width="54" height="22" rx="4" fill="var(--hard-soft)"/>
+            <text x="430" y="110" font-size="13" fill="var(--muted)">Lane A: current course</text>
+            <rect x="430" y="125" width="294" height="16" rx="4" fill="none" stroke="var(--cool)" stroke-dasharray="4 3"/>
+            <text x="430" y="162" font-size="13" fill="var(--muted)">Lane B: next course builds here</text>
+            <text x="430" y="215" font-size="14" font-weight="700" fill="var(--goo)">Portal yard (bearing 337.5)</text>
+            <text x="430" y="237" font-size="13" fill="var(--muted)">Opposite the Hall of Fame, r 190 to 277.</text>
+            <text x="430" y="257" font-size="13" fill="var(--muted)">Portal ring, status sign, best-time board.</text>
+            <text x="430" y="277" font-size="13" fill="var(--muted)">Finish pad drops you back here.</text>
+          </g>
+        </svg>
+      </div>
+      <ul class="plain">
+        <li><b>The portal shows your status:</b> "Ready", "Boost 3:12" or "Ready in 1:40", plus "New course in 6:05". A world label, so it follows the label guide (phone read distance, explicit <code>MaxDistance</code>, a row in the registry).</li>
+        <li><b>The course is visible from the ground.</b> A goo trail in the sky makes people ask what it is. That's free advertising for the feature.</li>
+        <li><b>Exact yard and height are Archer's call</b> (WorldLayout and PropClearance). Bearing 337.5 is my suggestion because it balances the Hall of Fame on the other side.</li>
+      </ul>
+    </section>
+
+    <section id="others">
+      <h2>What others do</h2>
+      <div class="refs">
+        <div class="ref">
+          <h3>Tower of Hell</h3>
+          <p>Each 8-minute round builds a tower from 8 random sections picked from a pool of hundreds. Server-wide mutators like low gravity or double jump last one round.</p>
+          <p class="take">Take: random sections from a pool, a short timer, one modifier per round.</p>
+          <a href="https://obbywiki.com/wiki/Tower_of_Hell">obbywiki.com</a>
+        </div>
+        <div class="ref">
+          <h3>Grading Simulator</h3>
+          <p>A simulator with pets, rebirths and potions. Finishing its obby gives a 2× boost.</p>
+          <p class="take">Take: the obby is a side activity that pays into the main loop. We go smaller (1.5×) because ours repeats.</p>
+          <a href="https://www.roblox.com/games/96536702463216">roblox.com</a>
+        </div>
+        <div class="ref">
+          <h3>Obby RNG games</h3>
+          <p>Players roll for a stage. Rarer stages are harder and pay more cash.</p>
+          <p class="take">Later idea: an optional hard route with a small cash bonus, without changing the 1.5×.</p>
+          <a href="https://earnaldo.com/blog/obby-rng-free-robux-guide">earnaldo.com</a>
+        </div>
+        <div class="ref">
+          <h3>Infinite obbies</h3>
+          <p>A new random obstacle appears at the end each time, with difficulty rising and a streak that resets when you fall.</p>
+          <p class="take">Take: difficulty climbs inside one run (easy to hard), so the first jumps never scare anyone off.</p>
+          <a href="https://devforum.roblox.com/t/feedback-on-my-infinite-obby">devforum.roblox.com</a>
+        </div>
+      </div>
+      <p class="cap">Speed Escape in this repo already has a stage generator, checkpoints and fall respawn (<code>games/speed-escape/src/shared/StageGenerator.luau</code>). We can reuse its approach.</p>
+    </section>
+
+    <section id="build">
+      <h2>How we build it</h2>
+      <p>The server decides everything. The client only sees the course and the timers.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Piece</th><th>Where</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td>Rotation</td><td class="mono">shared/ObbyRotation.luau</td><td>Pure: time slot → 5 sections + modifier. Seeded, no repeats from the last slot. Specs prove every server gets the same answer.</td></tr>
+            <tr><td>Boost rules</td><td class="mono">shared/ObbyRules.luau</td><td>Pure: state from saved times (ready, boosted, cooling) and whether a finish counts.</td></tr>
+            <tr><td>Service</td><td class="mono">server/ObbyService.luau</td><td>Portal teleport, checkpoints in order, fall respawn, finish check, grant boost, best times.</td></tr>
+            <tr><td>Multiplier</td><td class="mono">shared/Perks.luau</td><td>Add <code>obbyBonus</code> to <code>bonusMultiplier</code>.</td></tr>
+            <tr><td>Saved data</td><td class="mono">PlayerData + migration</td><td><code>obbyUntil</code> and <code>obbyReadyAt</code> timestamps.</td></tr>
+            <tr><td>Course builder</td><td class="mono">visuals/obby/*</td><td>One module per section, built from parts. Each takes a layout number (1 to 3) and a mirror option. Two sky lanes.</td></tr>
+            <tr><td>Layout + tunables</td><td class="mono">WorldLayout · Config.OBBY</td><td>Portal spot and sky height in WorldLayout. 1.5×, 300 s, 300 s, slot length in Config.</td></tr>
+            <tr><td>HUD</td><td class="mono">ui/HudClusters.luau</td><td>A buff slot like MVP: "1.5× 4:32", then "Obby in 3:10". Run timer on screen while on the course.</td></tr>
+            <tr><td>Analytics</td><td class="mono">existing events</td><td>Run started, section where players fall most, finish time. Tells us which sections are too hard.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3 style="margin-top:6px">Stopping cheaters</h3>
+      <ul class="plain">
+        <li>A finish counts only if the server saw every checkpoint in order, each within range of the player's position.</li>
+        <li>A minimum time per section (about a third of a normal run), so teleport or fly finishes fail.</li>
+        <li>The existing <code>MovementGuard</code> from the shared library watches players on the course. The finish touch is rate-limited.</li>
+      </ul>
+      <h3 style="margin-top:6px">Shared code</h3>
+      <p>The rotation picker and the checkpoint validator have nothing slime-specific in them. They go to <code>shared/luau</code> (pure core, Lune specs) so Speed Escape and future games can use them.</p>
+      <h3 style="margin-top:6px">Testing</h3>
+      <ul class="plain">
+        <li>Lune specs for rotation, boost rules and the finish check.</li>
+        <li>Hidden-Studio playtest: run the course with <code>execute_luau</code> (move the character from checkpoint to checkpoint), check the boost lands, the cooldown blocks a second finish, and a rejoin keeps both timers.</li>
+        <li>Screenshot every section and every modifier, at phone size too.</li>
+      </ul>
+    </section>
+
+    <section id="phases">
+      <h2>Phases</h2>
+      <div class="phases">
+        <div class="phase">
+          <span class="mono">Phase 1 · playable</span>
+          <h3>The loop works</h3>
+          <ul>
+            <li>Portal, sky course, checkpoints, finish</li>
+            <li>Boost, cooldown, HUD slot, saved timers</li>
+            <li>Rotation with 12 sections (4 per tier), 3 layouts each</li>
+            <li>Every layout playtested and kept short</li>
+            <li>Cheat checks and tests</li>
+          </ul>
+        </div>
+        <div class="phase">
+          <span class="mono">Phase 2 · variety</span>
+          <h3>Full pool</h3>
+          <ul>
+            <li>All 24 sections</li>
+            <li>Modifiers and mirror</li>
+            <li>Two lanes for clean swaps</li>
+            <li>Best-time board at the portal</li>
+          </ul>
+        </div>
+        <div class="phase">
+          <span class="mono">Phase 3 · later</span>
+          <h3>Extras</h3>
+          <ul>
+            <li>Optional hard route with a small cash bonus</li>
+            <li>Weekly fastest-time leaderboard</li>
+            <li>A badge for 50 finishes</li>
+            <li>New sections every update</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="questions">
+      <h2>Decided</h2>
+      <div class="qs">
+        <div class="q">
+          <h3>The cooldown starts when the boost ends</h3>
+          <p>5 minutes boosted, then 5 minutes cooldown. Starting it at the finish would let players keep 1.5× running nonstop.</p>
+        </div>
+        <div class="q">
+          <h3>Your base can still be stolen while you're on the course</h3>
+          <p>That makes going a real choice and keeps the obby from becoming a hiding spot. Players can't steal or carry slimes on the course.</p>
+        </div>
+        <div class="q">
+          <h3>The course rotates every 10 minutes</h3>
+          <p>That matches the boost cycle, so every run is on a new course.</p>
+        </div>
+        <div class="q">
+          <h3>No Robux at launch</h3>
+          <p>No skips or shorter cooldowns, so the boost doesn't feel pay-to-win. A cosmetic trail for fast times could come later.</p>
+        </div>
+        <div class="q">
+          <h3>Short runs, many sections</h3>
+          <p>A run is about a minute at most. That's a goal, not a hard rule, but we never lengthen the course. We add variety with new sections and layouts.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  var POOL = {
+    E: ["Jelly Steps", "Wobble Bridge", "Bubble Hop", "Trampoline Field", "Goo Conveyor", "Slime Slide", "Goo Pipe", "Sticky Ladder"],
+    M: ["Melting Tiles", "Spinner", "Blob Pendulums", "Lily Lift", "Jelly Wall Hop", "Fan Shaft", "Popping Bubbles", "Slime Seesaw"],
+    H: ["Rising Goo", "Laser Gates", "Tightrope", "Slime Cannon", "Flip Floor", "Ice Gauntlet", "Shrinking Pads", "Blob Rain"]
+  };
+  var LAYOUTS = ["A", "B", "C"];
+  var ORDER = ["E", "E", "M", "M", "H"];
+  var TIER = { E: "Easy", M: "Medium", H: "Hard" };
+  var MODS = [
+    ["Low Gravity", "floaty, long jumps"], ["Speed Goo", "+30% walk speed"], ["Mirror", "whole course flipped"],
+    ["Night Run", "dark sky, glowing platforms"], ["Extra Bouncy", "every surface bounces a little"],
+    ["Windy", "a steady sideways push"], ["Tiny Mode", "players shrink to half size"]
+  ];
+  var SLOT_SECONDS = 600;
+
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function pickRaw(slot, avoid) {
+    var r = rng(slot * 2654435761 + 17);
+    var used = {};
+    var out = [];
+    ORDER.forEach(function (tier) {
+      var options = POOL[tier].filter(function (n) { return !used[n] && !avoid[n]; });
+      if (!options.length) options = POOL[tier].filter(function (n) { return !used[n]; });
+      var name = options[Math.floor(r() * options.length)];
+      used[name] = true;
+      out.push({ tier: tier, name: name, layout: LAYOUTS[Math.floor(r() * LAYOUTS.length)] });
+    });
+    var mod = r() < 0.33 ? null : MODS[Math.floor(r() * MODS.length)];
+    return { sections: out, mod: mod };
+  }
+
+  // Course for a slot avoids sections from the slot before it.
+  var cache = {};
+  function course(slot, depth) {
+    if (cache[slot]) return cache[slot];
+    depth = depth || 0;
+    var avoid = {};
+    if (depth < 6) {
+      course(slot - 1, depth + 1).sections.forEach(function (s) { avoid[s.name] = true; });
+    }
+    var c = pickRaw(slot, avoid);
+    if (depth === 0) cache[slot] = c;
+    return c;
+  }
+
+  var current = Math.floor(Date.now() / 1000 / SLOT_SECONDS);
+  var shown = current;
+
+  function fmt(slot) {
+    var d = new Date(slot * SLOT_SECONDS * 1000);
+    var hh = String(d.getHours()).padStart(2, "0");
+    var mm = String(d.getMinutes()).padStart(2, "0");
+    var label = slot === current ? "now" : (slot > current ? "+" + (slot - current) * 10 + " min" : (slot - current) * 10 + " min");
+    return "Rotation starting " + hh + ":" + mm + " (" + label + ")";
+  }
+
+  function render() {
+    var c = course(shown);
+    var strip = document.getElementById("strip");
+    strip.innerHTML = "";
+    c.sections.forEach(function (s, i) {
+      var el = document.createElement("div");
+      el.className = "seg " + s.tier;
+      el.innerHTML = "<small>" + (i + 1) + " · " + TIER[s.tier] + " · layout " + s.layout + "</small><strong></strong>";
+      el.querySelector("strong").textContent = s.name;
+      strip.appendChild(el);
+    });
+    var fin = document.createElement("div");
+    fin.className = "finish";
+    fin.textContent = "Finish · 1.5×";
+    strip.appendChild(fin);
+    document.getElementById("modChip").textContent = c.mod ? c.mod[0] : "None";
+    document.getElementById("modText").textContent = c.mod ? c.mod[1] : "plain run";
+    document.getElementById("slotLabel").textContent = fmt(shown);
+  }
+
+  document.getElementById("nextSlot").addEventListener("click", function () { shown += 1; render(); });
+  document.getElementById("prevSlot").addEventListener("click", function () { shown -= 1; render(); });
+  render();
+})();
+</script>

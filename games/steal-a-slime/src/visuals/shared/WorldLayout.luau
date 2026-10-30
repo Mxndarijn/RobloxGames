@@ -449,6 +449,27 @@ end
 -- (RanchProps moved its picnic table and sunflowers to the 292.5 lawn).
 WorldLayout.EVENT_BOARD = table.freeze({ model = "EventBoard", bearing = 202.5, radius = 92.25, scale = 1.05 })
 
+-- The Goo Gauntlet sky obby (contract/obby.md, server/ObbyView). Its portal stands in the yard between plots 8 and 1,
+-- opposite the Hall of Fame and behind that yard's props (r 187-210), short of the border hedges (r ~277). The course
+-- starts `skyHeight` studs above the portal and runs from there towards the map centre, so it hangs over the map
+-- where everyone can see it. A finished runner lands `exitStep` studs from the portal, towards the plots.
+WorldLayout.OBBY = table.freeze({
+	bearing = 337.5,
+	portalDistance = 238,
+	portalRadius = 5, -- studs: stepping inside starts a run
+	skyHeight = 150,
+	exitStep = 10,
+	signStep = 9, -- the status sign stands this far behind the portal, facing the plaza
+	clearRadius = 12, -- keep-clear circle for props round the portal and its sign
+})
+
+-- The obby portal centre on the ground (y = 0) and the course frame yaw (forward = towards the map centre).
+function WorldLayout.obbyPortal(): (Vec, number)
+	local o = WorldLayout.OBBY
+	local a = math.rad(o.bearing)
+	return { math.sin(a) * o.portalDistance, 0, math.cos(a) * o.portalDistance }, (o.bearing + 180) % 360
+end
+
 local spots: { [string]: Spot } = {
 	ItemShopStand = propSpot(67.5, true),
 	UpgradeShopStand = propSpot(34.5, true, 96),

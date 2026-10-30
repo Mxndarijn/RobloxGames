@@ -14,6 +14,7 @@
 	    Friend the friend income bonus ("+10%", no timer);
 	    Blessed the co-op ritual's Blessed income bonus (State.blessed) with the time left;
 	    Mvp     the Boss Champion boost (State.mvpBoost) with the time left;
+	    Obby    the Goo Gauntlet boost (State.obby.endsAt) with the time left;
 	    Boost  the income boost from a redeem code or a quest reward (State.codes) with the time left;
 	    Pet    the follow pet's perk (State.petPerk: "+3%", no timer) while the favourite rides along on its cloud;
 	    Secret this week's featured event Secret (State.featuredSecret) with the time until it rotates ("4h 6m").
@@ -34,7 +35,7 @@ local RainTimer = if script then require(script.Parent.RainTimer) else require("
 
 export type Money = { cash: string, income: string, rebirths: string, rebirthCount: string, multiplier: string }
 export type Slot = {
-	id: string, -- "LockBreak" | "Rain" | "Event" | "Friend" | "Blessed" | "Mvp" | "Boost" | "Pet" | "Secret"
+	id: string, -- "LockBreak" | "Rain" | "Event" | "Friend" | "Blessed" | "Mvp" | "Obby" | "Boost" | "Pet" | "Secret"
 	icon: string, -- ItemIcons id
 	text: string, -- the timer, or "+10%"
 	kind: string, -- "active" | "soon" | "boost" | "pet" | "week"
@@ -50,6 +51,7 @@ export type Inputs = {
 	friendsEnabled: boolean,
 	blessed: Blessed?,
 	mvpBoost: Blessed?,
+	obby: ObbyBoost?,
 	codes: CodesBoost?,
 	petPerk: PetPerk?,
 	featuredSecret: FeaturedSecret?,
@@ -60,6 +62,8 @@ export type LockBreak = { plot: number, untilTime: number }
 -- State.blessed: the ritual's Blessed income bonus, `endsAt` in server time. State.mvpBoost (the Boss MVP boost) has
 -- the same shape.
 export type Blessed = { bonus: number, endsAt: number }
+-- State.obby (the Goo Gauntlet): `endsAt` while boosted, in server time.
+export type ObbyBoost = { bonus: number, endsAt: number? }
 -- State.codes: the code / quest income boost (Codes.view), `boostEndsAt` in server time; boostMult 1 = none.
 export type CodesBoost = { boostMult: number, boostEndsAt: number }
 -- State.petPerk: the favourite follow pet's passive (Perks.petPassive), `value` 0.03 = +3 %.
@@ -71,7 +75,7 @@ local HudClusters = {}
 
 -- Slot ids in display order, left to right (Layout.STATUS_SLOTS).
 HudClusters.STATUS_IDS =
-	table.freeze({ "LockBreak", "Rain", "Event", "Friend", "Blessed", "Mvp", "Boost", "Pet", "Secret" })
+	table.freeze({ "LockBreak", "Rain", "Event", "Friend", "Blessed", "Mvp", "Obby", "Boost", "Pet", "Secret" })
 
 HudClusters.ICONS = table.freeze({
 	Cash = "Cash",
@@ -81,6 +85,7 @@ HudClusters.ICONS = table.freeze({
 	Friend = "FriendBoost",
 	Blessed = "Boost_Blessed",
 	Mvp = "Boost_Mvp",
+	Obby = "Boost_Obby",
 	Boost = "Boost_Code",
 	Pet = "Pet",
 	Secret = "Badge_FirstSecret",
@@ -219,6 +224,22 @@ function HudClusters.mvp(view: Blessed?, now: number): Slot?
 	return slot
 end
 
+-- The Goo Gauntlet slot (State.obby) while its boost runs; nil when not boosted, malformed or over.
+function HudClusters.obby(view: ObbyBoost?, now: number): Slot?
+	if type(view) ~= "table" or type(view.endsAt) ~= "number" then
+		return nil
+	end
+	local slot = HudClusters.blessed({ bonus = view.bonus, endsAt = view.endsAt :: number }, now)
+	if not slot then
+		return nil
+	end
+	slot.id = "Obby"
+	slot.icon = HudClusters.ICONS.Obby
+	slot.name = "Goo Gauntlet"
+	slot.effect = `{Format.formatMultiplier(1 + view.bonus)} income for clearing the sky obby.`
+	return slot
+end
+
 -- The code / quest income boost slot (State.codes); nil with no boost, a malformed one or once it ends.
 function HudClusters.boost(view: CodesBoost?, now: number): Slot?
 	if type(view) ~= "table" or type(view.boostMult) ~= "number" or view.boostMult ~= view.boostMult then
@@ -329,6 +350,10 @@ function HudClusters.status(input: Inputs, now: number, places: number): { Slot 
 	local mvp = HudClusters.mvp(input.mvpBoost, now)
 	if mvp then
 		table.insert(out, mvp)
+	end
+	local obby = HudClusters.obby(input.obby, now)
+	if obby then
+		table.insert(out, obby)
 	end
 	local boost = HudClusters.boost(input.codes, now)
 	if boost then

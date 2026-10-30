@@ -147,6 +147,7 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 | Hall arch banner | `visuals/shared/Props.hallArch` | SG, 40 ppS | 300 | no |
 | Leaderboard boards | `visuals/shared/Props.leaderboardBoard`, `ui/WorldLeaderboard` | SG, 40 ppS | 150 | no |
 | Ritual rules sign | `server/RitualView` | SG 6×1.8, 50 ppS | 80 | no |
+| Goo Gauntlet portal sign (title, this player's boost status, next course) | `server/ObbyView`, text from `ui/ObbyHud` | SG 10×5, 50 ppS | 200 | no |
 | BONK / CHOMP popup | `ui/PvpEffects` | px 140×48 | 120 | no |
 | Fun FX text | `ui/PvpFunFx` | px 220×60 × scale | 150 | yes |
 | Slap pop | `ui/StealAlertFx` | px 120×50 | 120 | yes |

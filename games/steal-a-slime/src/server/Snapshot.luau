@@ -44,6 +44,7 @@ local AdminService = if script then require(script.Parent.AdminService) else req
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local DexSources = if script then require(script.Parent.DexSources) else require("./DexSources")
+local ObbyService = if script then require(script.Parent.ObbyService) else require("./ObbyService")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Purchases = if script then require(script.Parent.Purchases) else require("./Purchases")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
@@ -164,6 +165,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		mvpBoost = if data.mvpBonus and session.mvpUntil
 			then { bonus = data.mvpBonus, endsAt = session.mvpUntil }
 			else nil,
+		obby = ObbyService.view(world, session, now) :: any,
 		rebirthTitle = Perks.title(rebirths),
 		rebirthTiers = Snapshot.rebirthTiers(rebirths),
 		nextRebirthTier = Snapshot.nextRebirthTier(rebirths),

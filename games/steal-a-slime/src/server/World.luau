@@ -21,6 +21,7 @@ local BossFight = if Shared then require(Shared.BossFight) else require("../shar
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local NoticeCards = if Shared then require(Shared.NoticeCards) else require("../shared/NoticeCards")
+local ObbyCourse = if Shared then require(Shared.ObbyCourse) else require("../shared/ObbyCourse")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
@@ -56,6 +57,16 @@ export type CarryState = {
 -- `ownerId` still owns that plot.
 export type LockBreakPass = { plot: number, ownerId: number, untilTime: number }
 
+-- A Goo Gauntlet run (ObbyService): `reached` = last checkpoint stood on (0 = the start pad).
+export type ObbyRun = {
+	slot: number,
+	reached: number,
+	startedAt: number,
+	lastAt: number,
+	invalid: boolean?,
+	settleUntil: number?, -- the server just moved the runner: fall and off-course checks wait until then
+}
+
 export type Session = {
 	userId: number,
 	name: string,
@@ -76,6 +87,9 @@ export type Session = {
 	friendIds: { [number]: boolean }?, -- user ids of those friends (Friends.refresh; PlotGuests), runtime only
 	blessedUntil: number?, -- when the co-op ritual's Blessed bonus (data.ritualBonus) ends (RitualService), runtime only
 	mvpUntil: number?, -- when the Boss Champion boost (data.mvpBonus) ends (BossCredit), runtime only
+	obbyRun: ObbyRun?, -- the Goo Gauntlet run in progress (ObbyService), runtime only
+	obbyOnPortal: boolean?, -- stood in the obby portal last tick (ObbyService: a run starts on stepping in), runtime only
+	obbyBest: { slot: number, seconds: number }?, -- best finish on the current course (ObbyService), runtime only
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch (State.egg, never saved)
 	home: boolean?, -- standing in their own HomeZone (the adapter sets it); warms their Mystery Eggs, runtime only
 	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
@@ -284,6 +298,7 @@ export type World = {
 	guard: { [number]: GuardEntry }, -- SlimeGuard per player, runtime only
 	stealLedger: { StealRecord }, -- SlimeGuard: completed steals of the last UNDO_SECONDS, runtime only
 	guardMode: ("off" | "watch" | "enforce")?, -- tests: overrides FEATURES.SlimeGuard / SLIME_GUARD.ENFORCE
+	obby: ObbyCourse.Course?, -- the Goo Gauntlet course standing now (ObbyService.setup); nil until the adapter builds it
 }
 
 export type Options = {
