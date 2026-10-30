@@ -125,15 +125,24 @@ local function recall(part: BasePart)
 	end
 end
 
--- The jar's cork and trim as they show: the bridge, the jar floor, the parked stopper and every jar lid (hidden
--- parts, like a lid under an upper jar, are skipped).
+-- The jar's cork and trim as they show: the bridge and its planks, the jar floor, the parked stopper and every jar
+-- lid (hidden parts, like a lid under an upper jar, are skipped).
 PlotDecor.TRIM_PARTS = table.freeze({ "Bridge", "JarFloor", "ParkedStopper" })
+PlotDecor.TRIM_MODELS = table.freeze({ "BridgeLook" })
 PlotDecor.RING_COLOR = { 168, 148, 110 } -- the door's lock ring while open (ranch_metal brass)
 local function eachTrimPart(plot: Instance, visit: (BasePart) -> ())
 	for _, name in PlotDecor.TRIM_PARTS do
 		local part = plot:FindFirstChild(name)
 		if part and part:IsA("BasePart") and part.Transparency < 1 then
 			visit(part)
+		end
+	end
+	for _, name in PlotDecor.TRIM_MODELS do
+		local model = plot:FindFirstChild(name)
+		for _, part in if model then model:GetChildren() else {} do
+			if part:IsA("BasePart") and part.Transparency < 1 then
+				visit(part)
+			end
 		end
 	end
 	for _, d in plot:GetDescendants() do

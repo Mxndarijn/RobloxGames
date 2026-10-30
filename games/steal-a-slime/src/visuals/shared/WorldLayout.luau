@@ -144,6 +144,7 @@ WorldLayout.VOLCANO_HEIGHT = WorldLayout.FOUNTAIN_HEIGHT
 -- The old straight chute bearing was yaw 22.5; that slide is gone.
 WorldLayout.RING_PATH_RADIUS = 78
 WorldLayout.RING_PATH_WIDTH = 8
+WorldLayout.RING_RAIL_WIDTH = 0.8 -- the boardwalk's dark rails outside its planks (kit ranch_floor_paths RAIL_W)
 -- Props keep this corridor clear in front of every plot's bridge (PropClearance).
 WorldLayout.ENTRANCE_CLEAR = 20
 -- Mesh slots in the whole world, as the pc-watcher counts MeshParts (MeshAsset + pending BorderMesh
@@ -402,7 +403,10 @@ function WorldLayout.hallFloor(): any
 	local hall = WorldLayout.HALL_OF_FAME
 	local centre = WorldLayout.hallPoint(0, 0)
 	local stage = WorldLayout.hallPoint(hall.stage.x, hall.stage.y)
-	local from = WorldLayout.RING_PATH_RADIUS + WorldLayout.RING_PATH_WIDTH / 2 - 0.5
+	-- the path starts at the ring's outer rail: where the rail's curved outer edge crosses the path's two edges, so
+	-- the corners meet the rail and the middle tucks under it
+	local railOut = WorldLayout.RING_PATH_RADIUS + WorldLayout.RING_PATH_WIDTH / 2 + WorldLayout.RING_RAIL_WIDTH
+	local from = math.sqrt(railOut ^ 2 - (hall.pathWidth / 2) ^ 2)
 	local to = hall.distance - hall.radius + hall.rim
 	local mid = WorldLayout.hallPoint(0, (from + to) / 2 - hall.distance)
 	return {
@@ -1353,6 +1357,76 @@ local function ghost(node: WorldNode, transparency: number?): WorldNode
 	return node
 end
 
+-- The door bridge's look: flat cross planks in cork and light wood with a gap (the Bridge's own top shows through)
+-- and a darker rail down each long edge, like the boardwalk spokes (kit ranch_floor_paths). Decor on top of the
+-- Bridge collider; PlotDecor tints it with the plot skin's trim like the Bridge.
+WorldLayout.BRIDGE_LOOK = table.freeze({
+	pitch = 1.8, -- studs per plank along the bridge, gap included
+	gap = 0.2,
+	rail = 0.8, -- rail width
+	plankRise = 0.08, -- plank top above the Bridge top
+	railRise = 0.12,
+	colors = table.freeze({ { 214, 170, 116 }, { 196, 138, 86 } }), -- cork, light wood (kit ranch_wood)
+	shades = table.freeze({ 1, 0.97, 1.03, 0.98, 1.02 }),
+	railColor = { 112, 72, 42 }, -- the boardwalk's and the gate ramp's rails (kit TRIM_DARK)
+})
+function WorldLayout.bridgeLook(bridge: WorldNode): WorldNode
+	local look = WorldLayout.BRIDGE_LOOK
+	local size, pos = bridge.size :: Vec, bridge.pos :: Vec
+	local yaw = ((bridge.rot or { 0, 0, 0 }) :: Vec)[2]
+	local a = math.rad(yaw)
+	local function place(x: number, z: number): (number, number)
+		-- bridge-local (x across, z along) to world, turned like the Bridge (CFrame.Angles(0, a, 0))
+		return pos[1] + x * math.cos(a) + z * math.sin(a), pos[3] - x * math.sin(a) + z * math.cos(a)
+	end
+	local top = pos[2] + size[2] / 2
+	local children: { WorldNode } = {}
+	local count = math.max(1, math.floor(size[3] / look.pitch + 0.5))
+	local pitch = size[3] / count
+	for k = 1, count do
+		local z = -size[3] / 2 + pitch * (k - 0.5)
+		local base = look.colors[k % 2 + 1]
+		local shade = look.shades[k % #look.shades + 1]
+		local color = {}
+		for c = 1, 3 do
+			color[c] = math.clamp(math.floor(base[c] * shade + 0.5), 0, 255)
+		end
+		local x, wz = place(0, z)
+		local thick = 0.1
+		table.insert(
+			children,
+			ghost(
+				block(
+					`Plank_{k}`,
+					{ size[1] - 2 * look.rail, thick, pitch - look.gap },
+					{ x, top + look.plankRise - thick / 2, wz },
+					color,
+					"SmoothPlastic",
+					{ 0, yaw, 0 }
+				)
+			)
+		)
+	end
+	for side, sx in { -1, 1 } do
+		local x, wz = place(sx * (size[1] / 2 - look.rail / 2), 0)
+		local thick = 0.16
+		table.insert(
+			children,
+			ghost(
+				block(
+					`Rail_{side}`,
+					{ look.rail, thick, size[3] },
+					{ x, top + look.railRise - thick / 2, wz },
+					look.railColor,
+					"SmoothPlastic",
+					{ 0, yaw, 0 }
+				)
+			)
+		)
+	end
+	return { name = "BridgeLook", class = "Model", children = children }
+end
+
 -- The doorway through jar 1's glass (plot-local, door at -Z). The stopper's collider (LockBarrier.Stopper) fills it
 -- from DOOR_OUTER_PAD outside the glass to DOOR_INNER_INSET in from the glass.
 WorldLayout.DOOR_OUTER_PAD = 0.5
@@ -2180,11 +2254,12 @@ local function plot(i: number): WorldNode
 		{ WorldLayout.BRIDGE_WIDTH, 0.4, bridgeLen },
 		at({ 0, 1.2, -(s / 2 - bridgeLen / 2) }),
 		WOOD,
-		"WoodPlanks",
+		"SmoothPlastic",
 		r
 	)
 	bridge.canQuery = false
 	table.insert(children, bridge)
+	table.insert(children, WorldLayout.bridgeLook(bridge))
 	local wall1 = jarWall(1, at, yaw)
 	standIns(wall1, "goo_jar_glass_1_top")
 	local jar: WorldNode = { name = "Jar", class = "Model", children = wall1 }

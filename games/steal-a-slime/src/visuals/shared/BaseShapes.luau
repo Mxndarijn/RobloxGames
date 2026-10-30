@@ -455,6 +455,7 @@ local function fromData(data: any, opts: Options): Shape
 			bridge.pos = at(spot.pos)
 			bridge.size = spot.size
 			table.insert(out, bridge)
+			table.insert(out, WorldLayout.bridgeLook(bridge))
 			local barrier = table.clone(find(jarNodes, "LockBarrier") :: WorldNode)
 			local stopper = table.clone(((barrier.children or {}) :: { WorldNode })[1])
 			local door = data.spots.LockBarrier
