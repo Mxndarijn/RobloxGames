@@ -70,6 +70,7 @@ export type RecomputeState = {
 	sinceAttempt: number, -- seconds since the last attempt started
 	offRoute: number, -- studs from the remaining route
 	goalMoved: number, -- studs the goal moved since the route was made
+	paused: boolean?, -- the game asked for no pathing right now (GuideView `shouldPath`)
 }
 
 local GuideRoute = {}
@@ -217,6 +218,9 @@ function GuideRoute.backoff(failures: number, options: Options?): number
 end
 
 function GuideRoute.shouldRecompute(state: RecomputeState, options: Options?): (boolean, string?)
+	if state.paused then
+		return false, "Paused"
+	end
 	if state.computing then
 		return false, nil
 	end

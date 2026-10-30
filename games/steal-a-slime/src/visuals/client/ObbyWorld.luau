@@ -6,7 +6,8 @@
 	WorldLayout.inObbyWorld and moves ObbyLook's mix towards 1 inside, 0 outside (ObbyLook.FADE seconds for the full
 	swap). NightSky re-blends Lighting and the Atmosphere on every mix change; this module tints its own
 	ColorCorrection ("ObbyWorldTint", only while the mix is above 0) and builds the world's backdrop (ObbyBackdrop) on
-	arrival, removing it once the look has faded out again. `start()` returns { tick, stop }.
+	arrival, removing it once the look has faded out again. It also keeps ObbyLook's "inside" flag current, which the
+	plot marker, the weather and the tutorial guide read. `start()` returns { tick, stop }.
 ]]
 
 local Lighting = game:GetService("Lighting")
@@ -65,6 +66,7 @@ function ObbyWorld.start(): Controller
 			local p = root.Position
 			inside = WorldLayout.inObbyWorld({ p.X, p.Y, p.Z })
 		end
+		ObbyLook.setInside(inside)
 		if inside and not backdrop then
 			backdrop = ObbyBackdrop.build(workspace)
 		end
@@ -81,6 +83,7 @@ function ObbyWorld.start(): Controller
 	end
 
 	local function stop()
+		ObbyLook.setInside(false)
 		ObbyLook.set(0)
 		paint(0)
 		if backdrop then

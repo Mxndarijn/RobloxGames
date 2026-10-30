@@ -12,6 +12,10 @@
 	  ObbyLook.blend(base, mix): Look  base -> LOOK by mix (0..1)
 	  ObbyLook.toward(mix, inside, dt) the next mix: moves 1 / FADE per second towards 1 inside, 0 outside
 	  ObbyLook.get / set / onChanged   the current mix (client), like WeatherGrade
+	  ObbyLook.isInside / setInside / onInsideChanged
+	                                   whether the local player is in the obby world now (client; ObbyWorld sets it
+	                                   each frame, listeners hear only changes): the one signal the plot marker, the
+	                                   weather and the tutorial guide read to stand down there
 ]]
 
 local NightLook = if script then require(script.Parent.NightLook) else require("./NightLook")
@@ -81,16 +85,41 @@ function ObbyLook.set(mix: number)
 	end
 end
 
-function ObbyLook.onChanged(fn: (number) -> ()): { Disconnect: () -> () }
-	table.insert(listeners, fn)
+local function subscribe<T>(list: { (T) -> () }, fn: (T) -> ()): { Disconnect: () -> () }
+	table.insert(list, fn)
 	return {
 		Disconnect = function()
-			local i = table.find(listeners, fn)
+			local i = table.find(list, fn)
 			if i then
-				table.remove(listeners, i)
+				table.remove(list, i)
 			end
 		end,
 	}
+end
+
+function ObbyLook.onChanged(fn: (number) -> ()): { Disconnect: () -> () }
+	return subscribe(listeners, fn)
+end
+
+local inside = false
+local insideListeners: { (boolean) -> () } = {}
+
+function ObbyLook.isInside(): boolean
+	return inside
+end
+
+function ObbyLook.setInside(value: boolean)
+	if value == inside then
+		return
+	end
+	inside = value
+	for _, fn in table.clone(insideListeners) do
+		fn(value)
+	end
+end
+
+function ObbyLook.onInsideChanged(fn: (boolean) -> ()): { Disconnect: () -> () }
+	return subscribe(insideListeners, fn)
 end
 
 return ObbyLook

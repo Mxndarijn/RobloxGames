@@ -12,8 +12,8 @@
 	    loads, or if it can't), the words in outlined Fredoka.
 	  * Arrow: the badge with the house on the screen edge pointing home while
 	    the plot is off screen.
-	Beacon, tag and arrow fade out while your character stands on the plot; tag and arrow also hide while a
-	menu or popup is open. Numbers and math
+	Beacon, tag and arrow fade out while your character stands on the plot and hide while you are in the obby world
+	(ObbyLook.isInside); tag and arrow also hide while a menu or popup is open. Numbers and math
 	live in Visuals.HomePlotMarker; this file only builds Instances.
 	Reads attributes only; never fires remotes. Local changes only.
 
@@ -31,6 +31,7 @@ local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local LabelFit = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
 local Visuals = ReplicatedStorage:WaitForChild("Visuals")
 local Look = require(Visuals:WaitForChild("HomePlotMarker"))
+local ObbyLook = require(Visuals:WaitForChild("ObbyLook"))
 local WorldLayout = require(Visuals:WaitForChild("WorldLayout"))
 
 local HomePlotMarker = {}
@@ -455,7 +456,8 @@ function HomePlotMarker.step(now: number, camera: Camera)
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local here = if root and root:IsA("BasePart") then root.Position else camera.CFrame.Position
 	local rel = b.floor:PointToObjectSpace(here)
-	local fade = Look.fade(Look.pastEdge(rel.X, rel.Z, b.radius))
+	-- In the obby world the plot is a world away: beacon, tag and arrow stand down until the player is back.
+	local fade = if ObbyLook.isInside() then 0 else Look.fade(Look.pastEdge(rel.X, rel.Z, b.radius))
 	local pulse = Look.pulse(now)
 
 	b.core.Transparency = 1 - (1 - CORE_ALPHA) * fade
