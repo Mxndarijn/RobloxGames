@@ -199,7 +199,7 @@ function Hud.new(parent: Instance, ctx: any)
 		Size = UDim2.fromOffset(Layout.statusWidth(false), Layout.statusHeight(false)),
 		Parent = parent,
 	})
-	type Slot = { frame: TextButton, icon: any, label: TextLabel, bubble: Frame, ring: UIStroke }
+	type Slot = { frame: TextButton, icon: any, label: TextLabel, bubble: Frame, ring: UIStroke, dim: Frame? }
 	local statusSlots: { [string]: Slot } = {}
 	local shownSlots: { HudClusters.Slot } = {}
 	-- Slots that rarely run are built the first time they show (each slot costs about 16 instances).
@@ -255,6 +255,24 @@ function Hud.new(parent: Instance, ctx: any)
 		local entry = { frame = frame, icon = icon, label = label, bubble = bubble, ring = ring }
 		statusSlots[id] = entry
 		return entry
+	end
+	-- An Ink veil over a slot's icon while it only counts down a cooldown (kind "cooldown": the obby between
+	-- boosts). Made the first time it is needed, inside the icon so the timer pill still draws over it.
+	local function setDim(entry: Slot, on: boolean)
+		if entry.dim == nil and on then
+			local art = entry.icon.picture
+			entry.dim = create("Frame", {
+				Name = "Dim",
+				BackgroundColor3 = Theme.Ink,
+				BackgroundTransparency = Layout.STATUS_BUBBLE.dim,
+				Size = UDim2.fromScale(1, 1),
+				ZIndex = art.ZIndex + 1, -- over the icon's picture, scene or model
+				Parent = entry.icon.instance,
+			}, { Widgets.pill() }) :: Frame
+		end
+		if entry.dim then
+			entry.dim.Visible = on
+		end
 	end
 	for _, id in HudClusters.STATUS_IDS do
 		if not LAZY_SLOTS[id] then
@@ -603,7 +621,9 @@ function Hud.new(parent: Instance, ctx: any)
 				entry.label.Text = slot.text
 				entry.label.Size =
 					UDim2.fromOffset(Layout.statusPillWidth(slot.text, compact, statusTight), entry.label.Size.Y.Offset)
-				entry.label.TextColor3 = if slot.kind == "soon" then Theme.Muted else Theme.Good
+				local waiting = slot.kind == "soon" or slot.kind == "cooldown"
+				entry.label.TextColor3 = if waiting then Theme.Muted else Theme.Good
+				setDim(entry, slot.kind == "cooldown")
 				entry.frame:SetAttribute("Kind", slot.kind)
 				entry.frame.Visible = true
 			end

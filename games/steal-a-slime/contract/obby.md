@@ -12,7 +12,7 @@ A short parkour course floating above the map. Clearing it earns **x1.5 income f
 | `server/ObbyView` | adapter | `workspace.Obby` (Portal once, Course per rotation), root positions, teleports |
 | `visuals/client/ObbyFx` | client | Plays the moving parts locally at server time |
 | `ui/ObbyHud` | client | The run card and the portal sign's two lines (per player) |
-| `ui/HudClusters.obby` | client | The `Obby` status slot while boosted (icon `Boost_Obby`) |
+| `ui/HudClusters.obby` | client | The `Obby` status slot (icon `Boost_Obby`): the boost's time left, then a dimmed cooldown countdown (§4) |
 
 ## 2. Rotation
 
@@ -32,6 +32,7 @@ A short parkour course floating above the map. Clearing it earns **x1.5 income f
 - `PlayerData.obbyUntil` / `obbyReadyAt` (server time, 0 = never), saved as `obby = { untilAt, readyAt }` without a version bump (`SaveData`, missing = never earned). `obbyReadyAt = obbyUntil + COOLDOWN_SECONDS`.
 - `data.obbyBonus` is runtime only: `ObbyService.refresh` (every `GameLoop.step`) sets it from the timers, so it survives a rejoin. `Perks.bonusMultiplier` multiplies `1 + obbyBonus` with the other bonuses.
 - `State.obby` (`Types.ObbyView`): `bonus`, `endsAt?` (while boosted), `readyAt?` (until ready), `sections` (names), `rotatesAt`, `run? = { reached, of, startedAt }`, `best?`.
+- HUD (bottom-right status row, `HudClusters.obby`): while boosted, the slot shows the time left to `endsAt`. After it, until `readyAt`, the same slot shows kind `"cooldown"`: the icon under an Ink veil, the timer muted, tooltip "Next boost ready in m:ss". Once ready the slot goes away (no "Ready!" flash; the portal sign says it). A cooldown slot is the first to give way when the row is full, before the featured Secret.
 - No remote: the server reads positions.
 
 ## 5. World
