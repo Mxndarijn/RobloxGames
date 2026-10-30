@@ -471,9 +471,9 @@ function SlimeKeyCard.start(opts: Options): Handle
 		return nil
 	end
 
-	-- The title over `part`: the running lock countdown on a locked LockButton, else the prompts' heading.
-	local function titleFor(part: Instance): string
-		return SlimeKeyCard.lockTitle(lockUntilOf(part), now()) or (SlimeKeyCard.heading(part))
+	-- The title over `part`: the running lock countdown on a locked LockButton, else `heading` (the prompts' own).
+	local function titleFor(part: Instance, heading: string): string
+		return SlimeKeyCard.lockTitle(lockUntilOf(part), now()) or heading
 	end
 
 	-- Redraws the card for the slime whose prompts are shown.
@@ -507,8 +507,8 @@ function SlimeKeyCard.start(opts: Options): Handle
 		list = SlimeKeyCard.ordered(list, function(p: ProximityPrompt): string
 			return p.Name
 		end)
-		local _, perkText = SlimeKeyCard.heading(best)
-		title.Text = titleFor(best)
+		local name, perkText = SlimeKeyCard.heading(best)
+		title.Text = titleFor(best, name)
 		perk.Text = perkText
 		perk.Visible = perkText ~= ""
 		local y = C.pad + C.titleH + (if perk.Visible then C.perkH else 0) + C.gap
@@ -615,7 +615,7 @@ function SlimeKeyCard.start(opts: Options): Handle
 		tick = function()
 			local part = drawnOn
 			if part and card.Enabled and part:FindFirstChild(Constants.LOCK_PROMPT_NAME) then
-				local text = titleFor(part)
+				local text = titleFor(part, (SlimeKeyCard.heading(part)))
 				if title.Text ~= text then
 					title.Text = text
 				end

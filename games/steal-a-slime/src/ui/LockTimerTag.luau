@@ -145,7 +145,7 @@ function LockTimerTag.start(opts: Options): Handle
 		for _, plot in opts.plots:GetChildren() do
 			local button = plot:FindFirstChild("LockButton", true)
 			local owner = plot:GetAttribute("OwnerUserId")
-			local lockUntil = plot:GetAttribute("LockUntil")
+			local lockUntil = plot:GetAttribute(SlimeKeyCard.LOCK_UNTIL_ATTRIBUTE)
 			local show = button ~= nil
 				and button:IsA("BasePart")
 				and LockTimerTag.shows(

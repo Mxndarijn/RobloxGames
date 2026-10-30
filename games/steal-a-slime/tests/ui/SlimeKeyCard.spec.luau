@@ -388,6 +388,13 @@ describe("SlimeKeyCard", function()
 		env.serverNow = 1078
 		env.tick()
 		expect(title.Text).toBe("OPEN")
+		-- walked away: the card hides and tick no longer touches its title
+		lock.ObjectText = "Merijn's base: LOCKED 1:00"
+		plot:SetAttribute("LockUntil", 2000)
+		env.service.PromptHidden.fire(friends)
+		expect(UiHarness.find(env.playerGui, "SlimeKeyCard").Enabled).toBe(false)
+		env.tick()
+		expect(title.Text).toBe("OPEN")
 		env.stop()
 	end)
 

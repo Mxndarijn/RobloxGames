@@ -1061,9 +1061,6 @@ local slimeKeyCard = SlimeKeyCard.start({
 	prompts = ProximityPromptService,
 	playerGui = player:WaitForChild("PlayerGui"),
 	tweens = game:GetService("TweenService"),
-	now = function()
-		return workspace:GetServerTimeNow()
-	end,
 })
 
 -- Exclusive slime hats on the slimes standing on pads (Plot_<i>.SlimeHat).
