@@ -1345,7 +1345,7 @@ local Config = {
 		}) :: Shine,
 		table.freeze({
 			id = "Rainbow",
-			mult = 4,
+			mult = 3,
 			chance = 0.02,
 			weather = "Starfall",
 			color = { 255, 120, 220 },

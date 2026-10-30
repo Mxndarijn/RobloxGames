@@ -35,12 +35,12 @@ local function inWeather(id: string?): any
 end
 
 describe("Config.SHINES", function()
-	it("Gold x1.5 in any weather, Diamond x2 in Snow, Rainbow x4 in Starfall", function()
+	it("Gold x1.5 in any weather, Diamond x2 in Snow, Rainbow x3 in Starfall", function()
 		local rows = {}
 		for _, row in Config.SHINES do
 			rows[row.id] = `x{row.mult} {row.weather or "any"} {row.chance}`
 		end
-		expect(rows).toEqual({ Gold = "x1.5 any 0.03", Diamond = "x2 Snow 0.04", Rainbow = "x4 Starfall 0.02" })
+		expect(rows).toEqual({ Gold = "x1.5 any 0.03", Diamond = "x2 Snow 0.04", Rainbow = "x3 Starfall 0.02" })
 		for _, row in Config.SHINES do
 			expect(row.weather == nil or Config.WEATHER[row.weather] ~= nil).toBe(true)
 		end

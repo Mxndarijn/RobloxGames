@@ -27,7 +27,7 @@ Every stretch of the game has its own rarity to chase: Legendary in the first ho
 
 ## 45.5 Shines (weather mutations)
 
-- `Genome.Slime.shine: string?`, a `Config.SHINES` id: `Gold` x1.5 (any weather, 3 %), `Diamond` x2 (Snow, 4 %), `Rainbow` x4 (Starfall, 2 %). A wild slime rolls at most one when it spawns (`Spawner.rollShine`, on `world.shineRng` so the fountain's slime sequence never shifts; `world.weather` is the live weather). Eggs, bosses and merges never roll one.
+- `Genome.Slime.shine: string?`, a `Config.SHINES` id: `Gold` x1.5 (any weather, 3 %), `Diamond` x2 (Snow, 4 %), `Rainbow` x3 (Starfall, 2 %). A wild slime rolls at most one when it spawns (`Spawner.rollShine`, on `world.shineRng` so the fountain's slime sequence never shifts; `world.weather` is the live weather). Eggs, bosses and merges never roll one.
 - `Genome.baseIncome` multiplies by it, so prices follow. It travels when stolen. A merge child keeps a shine only when all three parents share it.
 - Saved as the optional slime field `shine` (missing = none, no version bump; the old v4-v6 `mutation` field stays stripped). Shown in the name ("Gold Bumble": `Genome.displayName` in the menus, the rare toast) and as a sparkle (`server/SlimeShineView`: a `ShineFx` ParticleEmitter on the Body; the model attribute `Constants.SHINE_ATTRIBUTE` = the id).
 - **Look (`FEATURES.MutationLooks`).** Each `Config.SHINES` row has `kit` (`gold`, `diamond`, `rainbow`), `material`, `reflectance` and `rainbow` (drawn in every colour).
