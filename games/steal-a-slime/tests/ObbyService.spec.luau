@@ -144,7 +144,7 @@ describe("ObbyService runs", function()
 		enter(world, T)
 		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 8)
 		local cp = world.obby.checkpoints[1]
-		local below = ObbyCourse.toWorld(PLACE.frame, { cp.pos[1] + 10, cp.pos[2] - OBBY.FALL_DEPTH - 2, 0 })
+		local below = ObbyCourse.toWorld(PLACE.frame, { cp.pos[1] + 10, ObbyCourse.fallHeight(world.obby, 1) - 2, 0 })
 		local result = ObbyService.step(world, PLACE, at(below), T + 10)
 		expect(session.obbyRun.reached).toBe(1)
 		expect(#result.moves).toBe(1)

@@ -54,6 +54,33 @@ local LOOKS: { [string]: Look } = {
 	},
 	post = { colors = { Color3.fromRGB(70, 60, 90) }, material = Enum.Material.SmoothPlastic },
 	bar = { colors = { Color3.fromRGB(235, 70, 120) }, material = Enum.Material.Neon },
+	trampoline = {
+		colors = { Color3.fromRGB(80, 170, 255), Color3.fromRGB(255, 110, 200) },
+		material = Enum.Material.Neon,
+	},
+	cannon = { colors = { Color3.fromRGB(255, 140, 40) }, material = Enum.Material.Neon },
+	blob = {
+		colors = { Color3.fromRGB(130, 230, 90) },
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0.1,
+	},
+	pipe = {
+		colors = { Color3.fromRGB(150, 230, 70) },
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0.7,
+	},
+	truss = { colors = { Color3.fromRGB(255, 120, 190) }, material = Enum.Material.SmoothPlastic },
+	fan = { colors = { Color3.fromRGB(90, 96, 120) }, material = Enum.Material.DiamondPlate },
+	wind = {
+		colors = { Color3.fromRGB(235, 250, 255) },
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0.85,
+	},
+	plank = {
+		colors = { Color3.fromRGB(200, 150, 90), Color3.fromRGB(180, 130, 75) },
+		material = Enum.Material.Wood,
+	},
+	gate = { colors = { Color3.fromRGB(235, 70, 120) }, material = Enum.Material.SmoothPlastic, transparency = 0.2 },
 }
 
 local PORTAL = table.freeze({
@@ -140,7 +167,7 @@ end
 
 local function makePart(spec: ObbyCourse.Part, frameCf: CFrame, parent: Instance)
 	local look = LOOKS[spec.look] or LOOKS.pad
-	local part = Instance.new("Part")
+	local part: BasePart = if spec.shape == "truss" then Instance.new("TrussPart") else Instance.new("Part")
 	part.Name = spec.look
 	part.Anchored = true
 	part.TopSurface = Enum.SurfaceType.Smooth
@@ -153,12 +180,20 @@ local function makePart(spec: ObbyCourse.Part, frameCf: CFrame, parent: Instance
 	local disc = spec.shape == "disc"
 	if disc then
 		-- A cylinder's axis is its X: lay it on its side so a flat face points up.
-		part.Shape = Enum.PartType.Cylinder
+		(part :: Part).Shape = Enum.PartType.Cylinder
 		part.Size = Vector3.new(spec.size[2], spec.size[1], spec.size[3])
 		part.CFrame = center * CFrame.Angles(0, 0, math.rad(90))
 	else
+		if spec.shape == "ball" then
+			(part :: Part).Shape = Enum.PartType.Ball
+		end
 		part.Size = Vector3.new(spec.size[1], spec.size[2], spec.size[3])
 		part.CFrame = center
+	end
+	if spec.ghost then
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
 	end
 	if spec.ice then
 		part.CustomPhysicalProperties = ICE
@@ -186,6 +221,11 @@ local function makePart(spec: ObbyCourse.Part, frameCf: CFrame, parent: Instance
 		elseif motion.kind == "shrink" then
 			part:SetAttribute(Constants.OBBY_MIN, motion.min or 0.3)
 			part:SetAttribute(Constants.OBBY_SHRINK_AXES, if disc then "yz" else "xz")
+		elseif motion.kind == "bounce" or motion.kind == "lift" then
+			part:SetAttribute(Constants.OBBY_POWER, motion.power or 50)
+		elseif motion.kind == "swing" or motion.kind == "rock" then
+			part:SetAttribute(Constants.OBBY_AMP, motion.amp or 0)
+			part:SetAttribute(Constants.OBBY_ARM, motion.arm or 0)
 		end
 	end
 	part.Parent = parent

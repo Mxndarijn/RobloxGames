@@ -1604,9 +1604,36 @@ local Config = {
 		CHAIN_SLOTS = 144, -- rotations per chain (a day): "no section of the last course" holds inside one chain
 		ORDER = table.freeze({ "easy", "easy", "medium", "medium", "hard" }),
 		SECTIONS = table.freeze({
-			easy = table.freeze({ "JellySteps", "WobbleBridge", "BubbleHop", "GooConveyor" }),
-			medium = table.freeze({ "MeltingTiles", "Spinner", "LilyLift", "JellyWallHop" }),
-			hard = table.freeze({ "Tightrope", "FlipFloor", "IceGauntlet", "ShrinkingPads" }),
+			easy = table.freeze({
+				"JellySteps",
+				"WobbleBridge",
+				"BubbleHop",
+				"GooConveyor",
+				"TrampolineField",
+				"GooCascade",
+				"GooPipe",
+				"StickyLadder",
+			}),
+			medium = table.freeze({
+				"MeltingTiles",
+				"Spinner",
+				"LilyLift",
+				"JellyWallHop",
+				"BlobPendulums",
+				"FanShaft",
+				"PoppingBubbles",
+				"SlimeSeesaw",
+			}),
+			hard = table.freeze({
+				"Tightrope",
+				"FlipFloor",
+				"IceGauntlet",
+				"ShrinkingPads",
+				"SlimeCannon",
+				"GooGates",
+				"BlobDrop",
+				"Turntables",
+			}),
 		}),
 		LAYOUTS = 6, -- layouts per section
 		MIN_SECTION_SECONDS = 1.5, -- a checkpoint reached faster than this after the last one doesn't count

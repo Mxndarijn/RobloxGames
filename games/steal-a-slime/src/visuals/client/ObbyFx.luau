@@ -9,6 +9,10 @@
 	  * melt    the local player standing on it: fades and drops away after `delay`, comes back after `away`
 	  * flip    solid in its share of the period, blinks just before it goes, see-through and not solid otherwise
 	  * shrink  its width and depth breathe between full size and `min`
+	  * bounce  the local player landing on it is thrown straight up (trampolines, slime cannons)
+	  * lift    the local player inside the wind column rises
+	  * swing   a pendulum swinging across the course, `arm` studs below its pivot (shoves what it hits)
+	  * rock    a seesaw plank tipping forward and back round its centre
 	Every change is local: each player collides with their own copy, so platforms move smoothly at frame rate.
 	Parts farther than MAX_DISTANCE from the camera are skipped. Never fires remotes. Call `tick` once a frame.
 ]]
@@ -24,6 +28,7 @@ ObbyFx.MAX_DISTANCE = 260 -- studs from the camera
 ObbyFx.FIND_EVERY = 1 -- seconds between looks for a new course
 ObbyFx.FLIP_WARN = 0.5 -- seconds a flip tile blinks before it goes
 ObbyFx.GONE_TRANSPARENCY = 0.85
+ObbyFx.BOUNCE_COOLDOWN = 0.4 -- seconds before the same pad throws you again
 
 export type Controller = { tick: (camera: Camera?) -> (), stop: () -> () }
 
@@ -42,8 +47,14 @@ type Mover = {
 	duty: number,
 	min: number,
 	disc: boolean,
+	power: number,
+	arm: number,
 	meltAt: number?, -- melt: local clock time it started melting
+	readyAt: number?, -- bounce: local clock time it may throw again
 }
+
+-- The local player this frame: what they stand on, their root and humanoid.
+type Local = { standingOn: BasePart?, root: BasePart?, humanoid: Humanoid? }
 
 local TAU = 2 * math.pi
 
@@ -75,6 +86,8 @@ local function mover(part: BasePart): Mover?
 		duty = num(part, Constants.OBBY_DUTY, 0.65),
 		min = num(part, Constants.OBBY_MIN, 0.3),
 		disc = part:GetAttribute(Constants.OBBY_SHRINK_AXES) == "yz",
+		power = num(part, Constants.OBBY_POWER, 50),
+		arm = num(part, Constants.OBBY_ARM, 0),
 	}
 end
 
@@ -87,8 +100,16 @@ local function setSolid(m: Mover, solid: boolean, transparency: number)
 	end
 end
 
-local function play(m: Mover, t: number, clock: number, standingOn: BasePart?)
+-- True when `p` is inside `part`'s box.
+local function inside(part: BasePart, p: Vector3): boolean
+	local q = part.CFrame:PointToObjectSpace(p)
+	local half = part.Size / 2
+	return math.abs(q.X) <= half.X and math.abs(q.Y) <= half.Y and math.abs(q.Z) <= half.Z
+end
+
+local function play(m: Mover, t: number, clock: number, me: Local)
 	local part = m.part
+	local standingOn = me.standingOn
 	-- Only the fraction of the cycle: server time is ~1.8e9 s, and CFrame angles are 32-bit floats.
 	local cycle = (t / m.period + m.phase) % 1
 	if m.kind == "slide" then
@@ -96,8 +117,38 @@ local function play(m: Mover, t: number, clock: number, standingOn: BasePart?)
 		part.CFrame = m.base + m.axis * (m.amp * math.sin(angle))
 		part.AssemblyLinearVelocity = m.axis * (m.amp * TAU / m.period * math.cos(angle))
 	elseif m.kind == "spin" then
-		part.CFrame = m.base * CFrame.Angles(0, TAU * cycle, 0)
+		-- Round the world's up axis, so a disc laid on its side spins flat like a bar does.
+		part.CFrame = CFrame.new(m.base.Position) * CFrame.fromAxisAngle(Vector3.yAxis, TAU * cycle) * m.base.Rotation
 		part.AssemblyAngularVelocity = Vector3.new(0, TAU / m.period, 0)
+	elseif m.kind == "swing" then
+		local amp = math.rad(m.amp)
+		local angle = amp * math.sin(TAU * cycle)
+		local pivot = m.base * CFrame.new(0, m.arm, 0)
+		local swung = pivot * CFrame.Angles(angle, 0, 0)
+		part.CFrame = swung * CFrame.new(0, -m.arm, 0)
+		local rate = amp * TAU / m.period * math.cos(TAU * cycle)
+		part.AssemblyLinearVelocity = swung.ZVector * (-m.arm * rate)
+	elseif m.kind == "rock" then
+		local amp = math.rad(m.amp)
+		part.CFrame = m.base * CFrame.Angles(0, 0, amp * math.sin(TAU * cycle))
+		part.AssemblyAngularVelocity = m.base.ZVector * (amp * TAU / m.period * math.cos(TAU * cycle))
+	elseif m.kind == "bounce" then
+		if standingOn == part and me.root and clock >= (m.readyAt or 0) then
+			m.readyAt = clock + ObbyFx.BOUNCE_COOLDOWN
+			if me.humanoid then
+				me.humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			end
+			local v = me.root.AssemblyLinearVelocity
+			me.root.AssemblyLinearVelocity = Vector3.new(v.X, m.power, v.Z)
+		end
+	elseif m.kind == "lift" then
+		local root = me.root
+		if root and inside(part, root.Position) then
+			local v = root.AssemblyLinearVelocity
+			if v.Y < m.power then
+				root.AssemblyLinearVelocity = Vector3.new(v.X, m.power, v.Z)
+			end
+		end
 	elseif m.kind == "flip" then
 		local frac = cycle
 		if frac >= m.duty then
@@ -185,13 +236,17 @@ function ObbyFx.start(): Controller
 		local camPos = if camera then camera.CFrame.Position else nil
 		local character = Players.LocalPlayer and Players.LocalPlayer.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		local standingOn = floorUnder(root, params)
+		local me: Local = {
+			standingOn = floorUnder(root, params),
+			root = root,
+			humanoid = character and character:FindFirstChildOfClass("Humanoid"),
+		}
 		local far = ObbyFx.MAX_DISTANCE * ObbyFx.MAX_DISTANCE
 		for _, m in movers do
 			if m.part.Parent ~= nil then
 				local d = if camPos then m.base.Position - camPos else Vector3.zero
 				if d:Dot(d) <= far then
-					play(m, t, clock, standingOn)
+					play(m, t, clock, me)
 				end
 			end
 		end

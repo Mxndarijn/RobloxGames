@@ -10,6 +10,27 @@ local OBBY = Config.OBBY
 local GAP_MAX = 6
 local RISE_MAX = 3.5
 local SECTION_MAX_LENGTH = 36 -- keeps a whole run near a minute
+local GRAVITY = 196.2 -- workspace.Gravity
+local WALK = 16 -- studs / s while airborne after a launch (the walk speed steers you)
+
+-- How a step is reached: "climb" (a ladder), "lift" (a wind column) or nil (walk / jump).
+local function special(p: ObbyCourse.Part): string?
+	if p.shape == "truss" then
+		return "climb"
+	end
+	return if p.motion and p.motion.kind == "lift" then "lift" else nil
+end
+
+-- Launched straight up at `power`: can you land `rise` studs higher, `g` studs away? (20 % spare on the walk)
+local function launchReaches(power: number, rise: number, g: number): (boolean, string)
+	local peak = power * power / (2 * GRAVITY)
+	if rise > peak - 1.5 then
+		return false, `rise {rise} over a {peak}-stud launch`
+	end
+	local t = (power + math.sqrt(power * power - 2 * GRAVITY * rise)) / GRAVITY
+	local reach = WALK * t * 0.8
+	return g <= reach, `gap {g} past a {reach}-stud launch`
+end
 
 local function ids(picks: { ObbyCourse.Pick }): string
 	local out = {}
@@ -65,10 +86,10 @@ describe("ObbyCourse rotation", function()
 		end
 	end)
 
-	it("shows every section and every layout over a day", function()
+	it("shows every section and every layout within three days", function()
 		local seen = {}
 		local first = 4032
-		for slot = first, first + OBBY.CHAIN_SLOTS - 1 do
+		for slot = first, first + 3 * OBBY.CHAIN_SLOTS - 1 do
 			for _, p in ObbyCourse.pick(slot) do
 				seen[`{p.id}#{p.layout}`] = true
 			end
@@ -102,13 +123,32 @@ describe("ObbyCourse sections", function()
 				expect(#steps >= 3).toBe(true)
 				for i = 2, #steps do
 					local label = `{id} layout {layout} step {i}`
-					local g = gap(steps[i - 1], steps[i])
-					if g > GAP_MAX then
-						error(`{label}: gap {g}`)
-					end
-					local rise = top(steps[i]) - top(steps[i - 1])
-					if rise > RISE_MAX then
-						error(`{label}: rise {rise}`)
+					local prev, cur = steps[i - 1], steps[i]
+					local g = gap(prev, cur)
+					local rise = top(cur) - top(prev)
+					local launch = prev.motion and prev.motion.kind == "bounce" and prev.motion.power
+					if special(cur) then
+						-- You walk into a ladder or a wind column from the step before.
+						if g > 1.5 then
+							error(`{label}: gap {g} to a {special(cur)}`)
+						end
+					elseif special(prev) then
+						-- Off the top of a ladder or out of the wind: the next step is at or under its top, close by.
+						if rise > 0.01 or g > 2 then
+							error(`{label}: off a {special(prev)}: rise {rise}, gap {g}`)
+						end
+					elseif launch then
+						local ok, why = launchReaches(launch, rise, g)
+						if not ok then
+							error(`{label}: {why}`)
+						end
+					else
+						if g > GAP_MAX then
+							error(`{label}: gap {g}`)
+						end
+						if rise > RISE_MAX then
+							error(`{label}: rise {rise}`)
+						end
 					end
 				end
 			end
