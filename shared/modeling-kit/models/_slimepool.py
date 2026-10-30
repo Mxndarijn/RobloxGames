@@ -1126,7 +1126,7 @@ def mutate(o, kind, z0, z1):
     h = max(1e-6, z1 - z0)
     mw = o.matrix_world
     bm = bmesh.new(); bm.from_mesh(o.data)
-    bm.faces.ensure_lookup_table()
+    bm.faces.index_update()  # _islands keys faces by index
     col = bm.loops.layers.color.get("Col")
     total = sum(f.calc_area() for f in bm.faces) or 1.0
     for piece in _islands(bm):

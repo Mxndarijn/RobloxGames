@@ -157,6 +157,7 @@ describe("a shine on a slime", function()
 			seen[row.kit] = true
 			expect(`{row.id}: {SlimeLooks.isMaterial(row.material)}`).toBe(`{row.id}: true`) -- never Glass
 			expect(row.reflectance >= 0 and row.reflectance <= 1).toBe(true)
+			expect(row.sparkles > 0).toBe(true)
 			expect(#row.color).toBe(3)
 		end
 	end)

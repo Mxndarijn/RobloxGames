@@ -9,21 +9,21 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local Genome = require(ReplicatedStorage.Shared.Genome)
+local SlimeLabel = require(ReplicatedStorage.Shared.SlimeLabel)
 
 local SlimeShineView = {}
 
 local FX = "ShineFx"
 local TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
 
--- Particles per second, by shine.
-local RATE = table.freeze({ Gold = 12, Diamond = 16, Rainbow = 12 })
-
--- Colour sequence of a shine: a rainbow shine cycles hues, the others a white glint fading into their colour.
+-- Colour sequence of a shine: a rainbow shine runs the labels' rainbow (SlimeLabel.RAINBOW), the others a white
+-- glint fading into their colour.
 local function colors(row: Genome.ShineRow): ColorSequence
 	if row.rainbow then
+		local stops = SlimeLabel.RAINBOW
 		local keys = {}
-		for i = 0, 6 do
-			table.insert(keys, ColorSequenceKeypoint.new(i / 6, Color3.fromHSV(i / 6, 0.7, 1)))
+		for i, c in stops do
+			table.insert(keys, ColorSequenceKeypoint.new((i - 1) / (#stops - 1), Color3.fromRGB(c[1], c[2], c[3])))
 		end
 		return ColorSequence.new(keys)
 	end
@@ -37,7 +37,7 @@ local function emitter(row: Genome.ShineRow): ParticleEmitter
 	e.Color = colors(row)
 	e.SpreadAngle = Vector2.new(180, 180)
 	e.LightEmission = 1
-	e.Rate = RATE[row.id] or 12
+	e.Rate = row.sparkles
 	e.Lifetime = NumberRange.new(0.5, 1)
 	e.Speed = NumberRange.new(0.2, 0.8)
 	e.Rotation = NumberRange.new(0, 360)

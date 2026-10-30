@@ -70,6 +70,7 @@ export type Shine = {
 	kit: string,
 	material: string,
 	reflectance: number,
+	sparkles: number, -- sparkle particles per second
 	tint: { number }?,
 	rainbow: boolean?,
 }
@@ -1321,7 +1322,7 @@ local Config = {
 	-- Config.WEATHER id is on (nil = any weather); `chance` per wild slime; income x `mult`. Ids are saved: never rename.
 	-- The look: the species wears its recoloured kit `slime_<id>_<kit>` (MeshAssets.mutationKit)
 	-- in `material` with `reflectance`, tinted `tint` (MeshPart.Color; nil = white); sparkles and the tag pill take
-	-- `color` (`rainbow` = drawn in every colour).
+	-- `color` (`rainbow` = drawn in every colour), `sparkles` a second.
 	SHINES = table.freeze({
 		table.freeze({
 			id = "Gold",
@@ -1331,6 +1332,7 @@ local Config = {
 			kit = "gold",
 			material = "SmoothPlastic",
 			reflectance = 0.05,
+			sparkles = 12,
 			tint = { 255, 196, 120 },
 		}) :: Shine,
 		table.freeze({
@@ -1342,6 +1344,7 @@ local Config = {
 			kit = "diamond",
 			material = "SmoothPlastic", -- never Glass: it hides tags and faded slimes behind it (GlassMaterial.spec)
 			reflectance = 0.3,
+			sparkles = 16,
 		}) :: Shine,
 		table.freeze({
 			id = "Rainbow",
@@ -1352,6 +1355,7 @@ local Config = {
 			kit = "rainbow",
 			material = "SmoothPlastic",
 			reflectance = 0,
+			sparkles = 12,
 			rainbow = true,
 		}) :: Shine,
 	}) :: { Shine },
