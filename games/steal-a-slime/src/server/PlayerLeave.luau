@@ -10,7 +10,8 @@
 	PlayerLifecycle passes the Roblox side (caches, views, Persistence.save) as `Hooks`.
 ]]
 
-local SafeCall = if script then require(script.Parent.SafeCall) else require("./SafeCall")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local SafeCall = if Lib then require(Lib.core.SafeCall) else require("../../../../shared/luau/src/core/SafeCall")
 local Sessions = if script then require(script.Parent.Sessions) else require("./Sessions")
 local World = if script then require(script.Parent.World) else require("./World")
 

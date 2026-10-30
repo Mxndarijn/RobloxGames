@@ -1,7 +1,7 @@
 --!strict
 local Carry = require("../src/server/Carry")
 local PlayerLeave = require("../src/server/PlayerLeave")
-local SafeCall = require("../src/server/SafeCall")
+local SafeCall = require("../../../shared/luau/src/core/SafeCall")
 local ServerFixtures = require("./ServerFixtures")
 local TestRunner = require("./TestRunner")
 local World = require("../src/server/World")

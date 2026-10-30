@@ -1,8 +1,8 @@
 --!strict
 --[[
-	InputKind: which device the player is using right now, from UserInputService:GetLastInputType()
-	(touch, a gamepad, else keyboard / mouse), and where a pointerless gamepad aims. Pure apart from the service it
-	is handed.
+	InputKind (pure): which device the player is using right now, from UserInputService:GetLastInputType()
+	(touch, a gamepad, else keyboard / mouse), and where a pointerless gamepad aims. Reads only the service it is
+	handed, so specs pass a fake.
 ]]
 
 export type Kind = "keyboard" | "touch" | "gamepad"

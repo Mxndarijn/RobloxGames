@@ -17,7 +17,8 @@
 
 local UserInputService = game:GetService("UserInputService")
 
-local InputKind = require(script.Parent.InputKind)
+local InputKind =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("InputKind"))
 local Layout = require(script.Parent.Layout)
 local Tutorial = require(script.Parent.Tutorial)
 local Widgets = require(script.Parent.Widgets)

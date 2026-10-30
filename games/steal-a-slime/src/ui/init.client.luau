@@ -80,7 +80,7 @@ local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
 local StealAlertFx = require(script.StealAlertFx)
-local TickGuard = require(script.TickGuard)
+local TickGuard = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core"):WaitForChild("TickGuard"))
 local TouchControls = require(script.TouchControls)
 local TutorialCard = require(script.TutorialCard)
 local Widgets = require(script.Widgets)
@@ -202,9 +202,13 @@ local nextSoundCues: ((state: Types.State) -> { { name: string } })? = nil
 local worldAudioTick: ((now: number) -> ())? = nil
 local footstepsStep: ((dt: number?) -> ())? = nil
 if soundController then
-	require(script.ButtonClicks).start(gui, SoundController.play, function(): boolean
-		return PlayerSettings.on(player, "buttonClicks")
-	end)
+	require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("ButtonClicks")).start(
+		gui,
+		SoundController.play,
+		function(): boolean
+			return PlayerSettings.on(player, "buttonClicks")
+		end
+	)
 	nextSoundCues = require(script.SoundCues).watcher(player.DisplayName)
 	local _stopWorldAudio, worldTick = require(script.WorldAudio).start()
 	worldAudioTick = worldTick

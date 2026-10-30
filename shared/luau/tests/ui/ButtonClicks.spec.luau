@@ -1,7 +1,7 @@
 --!strict
--- Every button under the root clicks (src/ui/ButtonClicks.luau), driven through minimal mock instances.
+-- Every button under the root clicks, driven through minimal mock instances.
 local ButtonClicks = require("../../src/ui/ButtonClicks")
-local TestRunner = require("../TestRunner")
+local TestRunner = require("../../testing/TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -92,6 +92,27 @@ describe("ButtonClicks", function()
 		plain.attrs.ClickMuted = nil
 		plain.Activated:Fire()
 		expect(#played).toBe(1)
+	end)
+	it("takes its own sound name, skip attributes and on / off switch", function()
+		local root = instance(false)
+		local button = instance(true)
+		table.insert(root.children, button)
+		local played = {}
+		local on = true
+		ButtonClicks.start(root, function(name)
+			table.insert(played, name)
+		end, function(): boolean
+			return on
+		end, { sound = "tap", skipAttributes = { "Silent" } })
+		button.Activated:Fire()
+		button.attrs.HoldConfirm = 1
+		button.Activated:Fire()
+		button.attrs.Silent = true
+		button.Activated:Fire()
+		button.attrs.Silent = nil
+		on = false
+		button.Activated:Fire()
+		expect(played).toEqual({ "tap", "tap" })
 	end)
 	it("goes quiet after cleanup", function()
 		local root, played, stop = setup()

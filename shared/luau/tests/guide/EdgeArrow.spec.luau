@@ -1,6 +1,6 @@
 --!strict
-local EdgeArrow = require("../src/shared/EdgeArrow")
-local TestRunner = require("./TestRunner")
+local EdgeArrow = require("../../src/guide/EdgeArrow")
+local TestRunner = require("../../testing/TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
