@@ -183,6 +183,32 @@ describe("yard dressing: floor, collision, snow, variety", function()
 			expect(slot.canCollide == false or fidelity ~= nil).toBe(true)
 		end
 	end)
+	it("stands an invisible, solid trunk post inside every yard tree's footprint (WorldLayout.TREE_TRUNKS)", function()
+		local trees = 0
+		for _, p in yard do
+			local trunks = WorldLayout.TREE_TRUNKS[p.mesh]
+			if trunks then
+				trees += 1
+				expect(MeshAssets.collision(p.mesh)).toBe(nil) -- the tree mesh stays decor: the posts are its collision
+				for i, t in trunks do
+					local post = slots[`{p.name}_Trunk{i}`]
+					expect(post ~= nil).toBe(true)
+					expect(post.transparency).toBe(1)
+					expect(post.canCollide ~= false and post.canQuery ~= false).toBe(true)
+					expect(post.size[1]).toBe(t[4] * p.scale)
+					-- the post centre lies inside the tree's own footprint, with room for its radius
+					local dx, dz = post.pos[1] - p.pos[1], post.pos[3] - p.pos[3]
+					local yaw = math.rad(p.yaw)
+					local lx = dx * math.cos(yaw) - dz * math.sin(yaw)
+					local lz = dx * math.sin(yaw) + dz * math.cos(yaw)
+					expect(math.abs(lx) + post.size[2] / 2 <= p.size[1] / 2).toBe(true)
+					expect(math.abs(lz) + post.size[2] / 2 <= p.size[3] / 2).toBe(true)
+				end
+				expect(slots[`{p.name}_Trunk{#trunks + 1}`]).toBe(nil)
+			end
+		end
+		expect(trees > 0).toBe(true)
+	end)
 	it("opts out of snow (SnowKind none) and wears a slight tint: MeshTint, near white", function()
 		for _, p in yard do
 			local slot = slots[p.name]

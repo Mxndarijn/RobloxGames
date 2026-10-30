@@ -859,8 +859,7 @@ local function mushroom(name: string, pos: Vec, salt: number): WorldNode
 	local top = h + cap / 2
 	local collider = disc("Collider", top, cap * MUSHROOM_COLLIDER_WIDTH, { pos[1], top / 2, pos[3] }, capColor)
 	collider.transparency = 1
-	collider.canQuery = false
-	collider.canTouch = false
+	collider.canTouch = false -- queryable: slime walk sweeps (WorldView, RespectCanCollide) route round it
 	table.insert(m.children :: { WorldNode }, collider)
 	return m
 end
@@ -1030,8 +1029,7 @@ local function trunkPosts(prop: RanchProp): { WorldNode }
 		local height = t[4] * prop.scale
 		local post = disc("Trunk", height, t[3] * prop.scale, { base[1], height / 2, base[3] }, WOOD)
 		post.transparency = 1
-		post.canQuery = false
-		post.canTouch = false
+		post.canTouch = false -- queryable: slime walk sweeps (WorldView, RespectCanCollide) route round it
 		table.insert(posts, post)
 	end
 	return posts
