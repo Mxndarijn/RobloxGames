@@ -1746,22 +1746,22 @@ MeshAssets.COLLISION = table.freeze({
 	phoenix_plaza_podium_1 = "Box", -- stepped block podium, players and rigs stand on its flat top
 	phoenix_plaza_podium_2 = "Box", -- same as podium_1
 	phoenix_plaza_podium_3 = "Box", -- same as podium_1
-	-- boxy ranch props
+	-- boxy ranch props (Box, or Default where a box would leave invisible space)
 	ranch_crate = "Box", -- 3x3x3 cube
 	ranch_crate_goo = "Box", -- 3x3x3 cube
 	ranch_feed_trough = "Box", -- 6x2.3x2.5 low box, nobody walks inside
 	ranch_hay_bale = "Box", -- 4x2.6x2.6 bale
-	ranch_bench = "Box", -- 6x4x2.4 bench with a back
-	ranch_compost_bin = "Box", -- 5.5x4.8x5.3 slatted bin
+	ranch_bench = "Default", -- 6x4x2.4 bench with a back: Default follows seat and back (a Box stands players on air 2.4 over the seat)
+	ranch_compost_bin = "Default", -- 5.5x4.8x5.3 slatted bin: Default follows the slats (a Box stands players up to 4 studs on air)
 	ranch_flower_planter = "Box", -- 5.2x3.2x2 planter box
-	ranch_goo_sign = "Box", -- 8.8x8.2x3.7 signboard
-	ranch_hitching_post = "Box", -- 7.3x4.8x3.2 rail between posts
+	ranch_goo_sign = "Default", -- 8.8x8.2x3.7 signboard on two posts: Default follows board and posts (a Box stops walkers 2 studs short)
+	ranch_hitching_post = "Default", -- 7.3x4.8x3.2 rail between posts: Default follows rail and posts (a Box stands players on air over the gap)
 	ranch_mailbox = "Box", -- 1.4x5.4x2.7 box on a post
 	ranch_picnic_table = "Box", -- 8.1x3.4x6 table with benches
 	ranch_tool_rack = "Box", -- 7.7x8x3 rack of tools, a flat wall
-	ranch_wagon = "Box", -- 9.9x3x5.8 cart, flat bed to stand on
+	ranch_wagon = "Default", -- 9.9x3x5.8 cart, flat bed to stand on: Default follows bed and wheels (a Box stops walkers 1.5 studs out)
 	ranch_water_trough = "Box", -- 9.7x3.6x3.2 low box
-	-- blobby and roofed ranch props: Hull
+	-- blobby and roofed ranch props: Hull (Default where a hull would leave invisible space)
 	ranch_barrel = "Box", -- 2.5x2.6x2.7 barrel: a box fits the near-cylinder and has flat faces a walker stops against (v196: a round hull let pushes slide round it)
 	ranch_barrel_stack = "Hull", -- 5.2x5.4x4.7 pyramid of barrels
 	ranch_birdhouse = "Hull", -- 3.6x8x3.4 house on a pole
@@ -1775,12 +1775,19 @@ MeshAssets.COLLISION = table.freeze({
 	ranch_rain_barrel = "Hull", -- 3.3x5.6x5.5 barrel with a pipe
 	ranch_scarecrow = "Hull", -- 7.2x9x3.5 pole with arms: the hull tapers up to them, nobody walks through the pole
 	ranch_shed = "Hull", -- 10.6x9.3x8.6 gabled shed: the hull follows the roof, Box would leave invisible corners
-	ranch_slime_coop = "Hull", -- 7.4x7.7x7.8 gabled coop
+	ranch_slime_coop = "Default", -- 7.4x7.7x7.8 gabled coop: Default follows the walls (a Hull stops walkers 1.5 studs short)
 	ranch_water_pump = "Hull", -- 3.8x4.4x4.9 pump
 	ranch_weathervane = "Hull", -- 5x8.6x3.4 vane on a pole
 	ranch_well = "Box", -- 6.9x7.7x5.5 stone well with a roof: nobody falls into or walks under it; the box is the ring + roof footprint (v196: Hull let pushes slide round)
 	ranch_wheelbarrow = "Hull", -- 6.6x3.5x3.8 wheelbarrow
-	ranch_windmill = "Hull", -- 8.4x17.4x9.7 tower: the hull is the tower, the sails are overhead
+	ranch_windmill = "Default", -- 8.4x17.4x9.7 tower with sails: Default keeps tower and sails apart (a Hull wraps the sails and stands players 16 studs up on air)
+	-- the sand yard's dressing (YardProps) reuses border meshes; the same meshes also stand behind the border wall, where
+	-- nobody reaches them, so they are solid there too. Yard trees collide through trunk posts (WorldLayout), not a mesh.
+	ranch_border_rock_boulder = "Hull", -- 11.8x6.7x7.6 boulder: solid, players climb over it
+	ranch_border_rock_cluster = "Hull", -- 14.2x4.8x9.2 low cluster of rocks
+	ranch_border_rock_slab = "Hull", -- 13.8x3.2x6.6 flat rock slab
+	ranch_border_fence_straight = "Box", -- a straight fence panel, a flat wall
+	ranch_border_hedge_long = "Box", -- a long hedge, a flat wall
 	-- walkable concave shapes: PreciseConvexDecomposition (expensive; placed a few times at most). The stile is Box since v196.
 	ranch_fence_stile = "Box", -- 5.8x5.5x4.9 stile: a solid block players jump onto / over (v196: PCD treads let a 4-stud ball ride over and read as walk-through)
 	ranch_barn_loft = "PreciseConvexDecomposition", -- PCD: Phoenix Studio check. Loft platform with an open ground floor: walk under and onto it

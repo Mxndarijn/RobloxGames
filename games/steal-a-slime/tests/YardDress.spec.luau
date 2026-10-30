@@ -175,17 +175,50 @@ describe("yard dressing: floor, collision, snow, variety", function()
 		end
 		expect(n).toBe(#yard)
 	end)
-	it(
-		"adds no collision of its own: only the kit's Box / Hull fidelities, never PCD, nothing new in MeshAssets.COLLISION",
-		function()
-			for _, p in yard do
-				local fidelity = MeshAssets.collision(p.mesh)
-				expect(fidelity == nil or fidelity == "Box" or fidelity == "Hull").toBe(true)
-				local slot = slots[p.name]
-				expect(slot.canCollide == false or fidelity ~= nil).toBe(true)
+	it("adds no collision of its own: only the kit's Box / Hull / Default fidelities, never PCD", function()
+		for _, p in yard do
+			local fidelity = MeshAssets.collision(p.mesh)
+			expect(fidelity == nil or fidelity == "Box" or fidelity == "Hull" or fidelity == "Default").toBe(true)
+			local slot = slots[p.name]
+			expect(slot.canCollide == false or fidelity ~= nil).toBe(true)
+		end
+	end)
+	it("stands an invisible, solid trunk post inside every yard tree's footprint (WorldLayout.TREE_TRUNKS)", function()
+		local trees = 0
+		for _, p in yard do
+			local trunks = WorldLayout.TREE_TRUNKS[p.mesh]
+			if trunks then
+				trees += 1
+				expect(MeshAssets.collision(p.mesh)).toBe(nil) -- the tree mesh stays decor: the posts are its collision
+				for i in trunks do
+					local post = slots[`{p.name}_Trunk{i}`]
+					expect(post ~= nil).toBe(true)
+					expect(post.transparency).toBe(1)
+					expect(post.canCollide ~= false and post.canQuery ~= false).toBe(true)
+					expect(post.size[1]).toBe(p.size[2]) -- the full tree height: no post top to stand on in the leaves
+					-- the post centre lies inside the tree's own footprint, with room for its radius
+					local dx, dz = post.pos[1] - p.pos[1], post.pos[3] - p.pos[3]
+					local yaw = math.rad(p.yaw)
+					local lx = dx * math.cos(yaw) - dz * math.sin(yaw)
+					local lz = dx * math.sin(yaw) + dz * math.cos(yaw)
+					expect(math.abs(lx) + post.size[2] / 2 <= p.size[1] / 2).toBe(true)
+					expect(math.abs(lz) + post.size[2] / 2 <= p.size[3] / 2).toBe(true)
+				end
+				expect(slots[`{p.name}_Trunk{#trunks + 1}`]).toBe(nil)
 			end
 		end
-	)
+		expect(trees > 0).toBe(true)
+	end)
+	it("lets slime walk sweeps and ground rays see the yard's solid border meshes (MeshCanQuery)", function()
+		local n = 0
+		for _, p in yard do
+			if string.sub(p.mesh, 1, 13) == "ranch_border_" and MeshAssets.collision(p.mesh) ~= nil then
+				n += 1
+				expect(slots[p.name].attributes.MeshCanQuery).toBe(true)
+			end
+		end
+		expect(n > 0).toBe(true)
+	end)
 	it("opts out of snow (SnowKind none) and wears a slight tint: MeshTint, near white", function()
 		for _, p in yard do
 			local slot = slots[p.name]

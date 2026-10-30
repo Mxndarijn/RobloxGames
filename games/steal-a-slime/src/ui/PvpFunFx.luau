@@ -56,7 +56,7 @@ local LOOK = table.freeze({
 	discoHeight = 5,
 	slimeBubble = 1.5, -- a floating slime's bubble is this many times the slime's largest side
 	slimeBubbleMin = 3, -- studs: never smaller than this
-	bubbleTransparency = 0.55, -- the Bubble Wand's glass bubbles (the stream and a floating slime's)
+	bubbleTransparency = 0.55, -- the Bubble Wand's stream bubbles (a floating slime's uses PVP_FUN.BUBBLES.LOOK)
 	bubbleReflectance = 0.25,
 	splatThickness = 0.12,
 	rayDrop = 30, -- studs searched below a point for the ground
@@ -659,9 +659,10 @@ function PvpFunFx.start(opts: Options): Handle
 		end
 		local r = record or newRecord(1)
 		local at = anchorAt(r, bubble.Position)
+		local c = bubble.Color
 		emit(r, at, {
 			count = 10,
-			colors = { Logic.BUBBLE, { 1, 1, 1 } },
+			colors = { { c.R, c.G, c.B }, { 1, 1, 1 } }, -- the burst matches the bubble that popped
 			speed = { 4, 9 },
 			size = 0.35,
 			lifetime = { 0.2, 0.45 },
@@ -684,15 +685,15 @@ function PvpFunFx.start(opts: Options): Handle
 		local _, extents = model:GetBoundingBox()
 		local diameter = math.max(LOOK.slimeBubbleMin, math.max(extents.X, extents.Y, extents.Z) * LOOK.slimeBubble)
 		local middle = extents.Y / 2
+		local look = FUN.BUBBLES.LOOK -- the same bubble a bubbled player floats in (server/PvpFunView)
 		local bubble: BasePart? = part(nil, {
 			Name = "FunSlimeBubble",
 			Shape = Enum.PartType.Ball,
 			Size = Vector3.one * diameter,
 			CFrame = proxy.root.CFrame * CFrame.new(0, middle, 0),
-			Color = rgb(Logic.BUBBLE),
-			Material = Enum.Material.SmoothPlastic,
-			Transparency = LOOK.bubbleTransparency,
-			Reflectance = LOOK.bubbleReflectance,
+			Color = Color3.fromRGB(look.COLOR[1], look.COLOR[2], look.COLOR[3]),
+			Material = (Enum.Material :: any)[look.MATERIAL],
+			Transparency = look.TRANSPARENCY,
 			Anchored = false,
 			Massless = true,
 			Parent = proxy.clone,

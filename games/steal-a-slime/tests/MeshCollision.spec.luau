@@ -287,12 +287,13 @@ for _, name in PvpModels.MESHES do
 end
 for _, group in
 	{
-		"ranch_border_", -- the world border pieces: beyond the invisible wall ring (WorldBorder), out of reach
+		"ranch_border_", -- the world border pieces: beyond the invisible wall ring (WorldBorder), out of reach; the ones
+		-- the sand yard also stands are solid (COLLISION), its trees collide through trunk posts (WorldLayout.TREE_TRUNKS)
 		"habitat_", -- overlays on the pad deck round the slime: low client-only decor
 	}
 do
 	for _, name in MeshAssets.NAMES do
-		if string.sub(name, 1, #group) == group then
+		if string.sub(name, 1, #group) == group and MeshAssets.COLLISION[name] == nil then
 			DECOR[name] = `{group}* decor`
 		end
 	end
@@ -343,7 +344,6 @@ describe("real mesh collision", function()
 			{
 				"phoenix_corner_post",
 				"ranch_crate",
-				"ranch_wagon",
 				"ranch_barrel",
 				"ranch_well",
 				"ranch_fence_stile",
@@ -351,8 +351,20 @@ describe("real mesh collision", function()
 		do
 			expect(MeshAssets.COLLISION[name]).toBe("Box")
 		end
-		for _, name in { "ranch_windmill", "ranch_shed" } do
-			expect(MeshAssets.COLLISION[name]).toBe("Hull")
+		expect(MeshAssets.COLLISION.ranch_shed).toBe("Hull")
+		-- a box or hull would leave invisible space round these (players standing on air, stopped short)
+		for _, name in
+			{
+				"ranch_bench",
+				"ranch_compost_bin",
+				"ranch_goo_sign",
+				"ranch_hitching_post",
+				"ranch_wagon",
+				"ranch_slime_coop",
+				"ranch_windmill",
+			}
+		do
+			expect(MeshAssets.COLLISION[name]).toBe("Default")
 		end
 	end)
 

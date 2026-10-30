@@ -836,21 +836,35 @@ local function rock(name: string, pos: Vec, s: number, salt: number): WorldNode
 	}
 end
 
+-- A mushroom's ball cap overhangs at knee height: as the collision it snags walkers or lifts them over it. Stem and cap
+-- are decor; one invisible upright cylinder under the cap (90% of its width, flat top at the cap's top) is the collision,
+-- so a walker stops on the ground and can jump onto the flat top.
+local MUSHROOM_COLLIDER_WIDTH = 0.9
+
 local function mushroom(name: string, pos: Vec, salt: number): WorldNode
 	local h = 1.6 + hash(salt, 21) * 1.6
 	local capColor = if hash(salt, 22) < 0.5 then { 232, 72, 104 } else { 240, 158, 64 }
+	local cap = h * 1.3
 	local m = { name = name, class = "Model", primaryPart = "Stem", children = {} :: { WorldNode } }
-	table.insert(m.children :: { WorldNode }, disc("Stem", h, 0.8, { pos[1], h / 2, pos[3] }, { 246, 232, 206 }))
+	local stem = disc("Stem", h, 0.8, { pos[1], h / 2, pos[3] }, { 246, 232, 206 })
+	stem.canCollide = false
+	table.insert(m.children :: { WorldNode }, stem)
 	table.insert(m.children :: { WorldNode }, {
 		name = "Cap",
 		class = "Part",
 		shape = "Ball",
-		size = { h * 1.3, h * 1.3, h * 1.3 },
+		size = { cap, cap, cap },
 		pos = { pos[1], h, pos[3] },
 		rot = { 0, 0, 0 },
 		color = capColor,
 		material = "SmoothPlastic",
+		canCollide = false,
 	})
+	local top = h + cap / 2
+	local collider = disc("Collider", top, cap * MUSHROOM_COLLIDER_WIDTH, { pos[1], top / 2, pos[3] }, capColor)
+	collider.transparency = 1
+	collider.canTouch = false -- queryable: slime walk sweeps (WorldView, RespectCanCollide) route round it
+	table.insert(m.children :: { WorldNode }, collider)
 	return m
 end
 
@@ -997,6 +1011,35 @@ function WorldLayout.meadowClusters(): { Meadow.Cluster }
 	end)
 end
 
+-- Tree meshes stay decor (a hull of a tree is an invisible cone round the canopy); an invisible upright post per trunk
+-- is the collision, so the leaves stay walk-through. Each post runs the tree's full height, so nobody jumps onto a post
+-- top hidden in the leaves. Per mesh: { x, z, diameter } in the slot's own axes at the mesh's native size (scaled with
+-- the slot), measured on the uploaded meshes at their trunk bases.
+WorldLayout.TREE_TRUNKS = table.freeze({
+	ranch_border_oak_round = { { -0.97, 0.17, 2.4 } },
+	ranch_border_pine_broad = { { 0.23, -0.33, 2 } },
+	ranch_border_pine_tall = { { 0.18, -0.33, 1.8 } },
+	ranch_border_sapling_trio = { { 3.87, -0.28, 1.4 }, { 0.07, -1.88, 1.2 }, { -3.33, 0.12, 1.3 } },
+} :: { [string]: { { number } } })
+
+local function trunkPosts(prop: RanchProp): { WorldNode }
+	local posts: { WorldNode } = {}
+	local trunks = WorldLayout.TREE_TRUNKS[prop.mesh]
+	if not trunks then
+		return posts
+	end
+	local at = frame(prop.pos, prop.yaw)
+	for _, t in trunks do
+		local base = at({ t[1] * prop.scale, -prop.size[2] / 2, t[2] * prop.scale })
+		local height = prop.size[2]
+		local post = disc("Trunk", height, t[3] * prop.scale, { base[1], height / 2, base[3] }, WOOD)
+		post.transparency = 1
+		post.canTouch = false -- queryable: slime walk sweeps (WorldView, RespectCanCollide) route round it
+		table.insert(posts, post)
+	end
+	return posts
+end
+
 local function decor(): WorldNode
 	local children = scatter()
 	table.insert(children, Meadow.build(WorldLayout.meadowClusters()) :: any)
@@ -1014,9 +1057,17 @@ local function decor(): WorldNode
 			-- Yard dressing: the slot colour is a slight tint of the mesh (MeshTint multiplies the vertex colours, so near white
 			-- keeps the kit's look). SnowKind "none": under snow the props keep their own colours, only the sand yard whitens.
 			slot.attributes = { MeshTint = true, [FloorLayout.SNOW_KIND_ATTRIBUTE] = "none" }
+			if string.sub(prop.mesh, 1, 13) == "ranch_border_" and MeshAssets.collision(prop.mesh) ~= nil then
+				-- the yard's solid rocks, fences and hedge: slime walk sweeps and ground rays see them, like the trunk posts
+				slot.attributes.MeshCanQuery = true
+			end
 			slot.color = prop.tint or slot.color
 		end
 		table.insert(children, meshSlot(slot, prop.mesh))
+		for i, post in trunkPosts(prop) do
+			post.name = `{prop.name}_Trunk{i}`
+			table.insert(children, post)
+		end
 	end
 	-- The map edge (walls + edge decor) is WorldBorder, built as Map.Border.
 	return { name = "Decor", class = "Folder", children = children }
