@@ -334,13 +334,16 @@ function ObbyView.buildPortal()
 	sign.Color = PORTAL.sign
 	sign.Material = Enum.Material.SmoothPlastic
 	sign.Parent = model
-	-- The posts run up inside the board (thinner than it), so they show only under it and cover neither face.
+	-- The posts run up inside the board (thinner than it, and stopping just under its top so no faces meet), so they
+	-- show only under it and cover neither face.
+	local postInset = 0.1
 	for _, side in { -1, 1 } do
 		local post = Instance.new("Part")
 		post.Name = "Post"
 		post.Anchored = true
-		post.Size = Vector3.new(0.6, PORTAL.signLift + PORTAL.signSize.Y, PORTAL.signSize.Z * 0.9)
-		post.CFrame = sign.CFrame * CFrame.new(side * (PORTAL.signSize.X / 2 - 0.6), -PORTAL.signLift / 2, 0)
+		post.Size = Vector3.new(0.6, PORTAL.signLift + PORTAL.signSize.Y - postInset, PORTAL.signSize.Z * 0.9)
+		post.CFrame = sign.CFrame
+			* CFrame.new(side * (PORTAL.signSize.X / 2 - 0.6), -(PORTAL.signLift + postInset) / 2, 0)
 		post.Color = PORTAL.sign
 		post.Parent = model
 	end
