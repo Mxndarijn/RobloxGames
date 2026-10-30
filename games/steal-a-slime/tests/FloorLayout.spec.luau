@@ -123,7 +123,9 @@ describe("FloorLayout walkability", function()
 			if string.match(n.name, "^GateRamp") then
 				continue
 			end
-			local top = if n.shape == "Cylinder" then n.pos[2] + n.size[1] / 2 else n.pos[2] + n.size[2] / 2
+			-- a part turned on its side (Z rotation 90, like the cylinders and the star wedges) is size X tall
+			local onSide = n.rot and math.abs(math.abs(n.rot[3]) - 90) < 1e-9
+			local top = if onSide then n.pos[2] + n.size[1] / 2 else n.pos[2] + n.size[2] / 2
 			expect(top <= FloorLayout.FLOOR_Y + FloorLayout.LAYER.trim + 1e-9).toBe(true)
 		end
 	end)
