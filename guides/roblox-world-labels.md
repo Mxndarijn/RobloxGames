@@ -127,7 +127,7 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 
 | Label | Code | Kind / size | MaxDistance | AlwaysOnTop |
 |---|---|---|---|---|
-| Slime info tag (rarity, name, income, price) | `ui/SlimeInfoCard` | hybrid 3.4 st + 160 px, own fit 0.6..1, close 12 | 60 / phone 40 | yes |
+| Slime info tag (rarity, shine pill, name, income, price) | `ui/SlimeInfoCard` | hybrid 3.4 st + 160 px, own fit 0.6..1, close 12 | 60 / phone 40 | yes |
 | Grab key card | `ui/SlimeKeyCard` | px, fit | 40 | yes |
 | Can't-grab card | `ui/GrabBlockCard` | px, fit | 40 | yes |
 | Next pad tag | `visuals/client/NextPadMarker` | px 176×42, fit | 40 | no |

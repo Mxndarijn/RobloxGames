@@ -60,6 +60,21 @@ export type Goal = {
 	cash: boolean?, -- format targets as $
 }
 
+-- One Config.SHINES row (a weather mutation).
+export type Shine = {
+	id: string,
+	mult: number,
+	chance: number,
+	weather: string?,
+	color: { number },
+	kit: string,
+	material: string,
+	reflectance: number,
+	sparkles: number, -- sparkle particles per second
+	tint: { number }?,
+	rainbow: boolean?,
+}
+
 export type DailyQuest = {
 	id: string,
 	stat: string, -- Goals.stat name
@@ -1305,11 +1320,45 @@ local Config = {
 	JACKPOT_SHARE = 0.1, -- a jackpot species (SlimeRoster.jackpot) is this share of its rarity's drops, whatever else is in the pool
 	-- Shines (weather mutations): a wild slime rolls at most one when it spawns. `weather` = only while that
 	-- Config.WEATHER id is on (nil = any weather); `chance` per wild slime; income x `mult`. Ids are saved: never rename.
+	-- The look: the species wears its recoloured kit `slime_<id>_<kit>` (MeshAssets.mutationKit)
+	-- in `material` with `reflectance`, tinted `tint` (MeshPart.Color; nil = white); sparkles and the tag pill take
+	-- `color` (`rainbow` = drawn in every colour), `sparkles` a second.
 	SHINES = table.freeze({
-		table.freeze({ id = "Gold", mult = 1.5, chance = 0.03, color = { 255, 205, 60 } }),
-		table.freeze({ id = "Diamond", mult = 2, chance = 0.04, weather = "Snow", color = { 150, 230, 255 } }),
-		table.freeze({ id = "Rainbow", mult = 4, chance = 0.02, weather = "Starfall", color = { 255, 120, 220 } }),
-	}),
+		table.freeze({
+			id = "Gold",
+			mult = 1.5,
+			chance = 0.03,
+			color = { 255, 205, 60 },
+			kit = "gold",
+			material = "SmoothPlastic",
+			reflectance = 0.05,
+			sparkles = 12,
+			tint = { 255, 196, 120 },
+		}) :: Shine,
+		table.freeze({
+			id = "Diamond",
+			mult = 2,
+			chance = 0.04,
+			weather = "Snow",
+			color = { 150, 230, 255 },
+			kit = "diamond",
+			material = "SmoothPlastic", -- never Glass: it hides tags and faded slimes behind it (GlassMaterial.spec)
+			reflectance = 0.3,
+			sparkles = 16,
+		}) :: Shine,
+		table.freeze({
+			id = "Rainbow",
+			mult = 3,
+			chance = 0.02,
+			weather = "Starfall",
+			color = { 255, 120, 220 },
+			kit = "rainbow",
+			material = "SmoothPlastic",
+			reflectance = 0,
+			sparkles = 12,
+			rainbow = true,
+		}) :: Shine,
+	}) :: { Shine },
 	BREWED_INCOME_MULT = 1.5, -- income x this for a slime the vat made (Slime.brewed = 1)
 	RECIPE_INCOME_MULT = 2, -- income x this for a recipe hybrid the vat made (Slime.brewed = 2)
 

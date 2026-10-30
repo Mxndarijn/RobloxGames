@@ -36,6 +36,11 @@
 	so they are not world mesh slots (WorldLayout.MESH_SLOT_BUDGET counts
 	MeshAsset tags only).
 
+	Shining slimes (Config.SHINES): a slime with a shine wears the
+	recoloured copy of its species kit (MeshAssets.mutationKit, e.g. slime_mochi_gold) in the
+	shine's material. Copies are fetched the first time a slime needs one; until it arrives the
+	slime wears its species kit and pendingKit names the copy.
+
 	Pure apart from the injected functions: Lune tests cover the fallback paths.
 ]]
 
@@ -43,6 +48,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
+local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local SlimeLooks = if Shared then require(Shared.SlimeLooks) else require("../shared/SlimeLooks")
 local MeshAssets = if Shared then require(Shared.MeshAssets) else require("../shared/MeshAssets")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
@@ -63,6 +69,7 @@ export type SlimeMesh = {
 	template: MeshPart?,
 	kits: { [string]: MeshPart },
 	failedKits: { [string]: boolean }, -- kits whose fetch failed: they never arrive
+	loading: { [string]: boolean }, -- kits being fetched
 	look: Look,
 }
 
@@ -71,12 +78,50 @@ local SlimeMesh = {}
 SlimeMesh.MESH_NAME = "Mesh"
 
 function SlimeMesh.new(deps: Deps): SlimeMesh
-	return { deps = deps, template = nil, kits = {}, failedKits = {}, look = "Procedural" }
+	return { deps = deps, template = nil, kits = {}, failedKits = {}, loading = {}, look = "Procedural" }
 end
 
 local function report(self: SlimeMesh, message: string)
 	local log: (string) -> () = self.deps.warn or warn
 	log(`[Server] {message}`)
+end
+
+-- Fetches kit mesh `kit` (an uploaded MeshAssets name) once, side by side with other fetches (deps.spawn). `done`
+-- hears whether it arrived. A kit already in, failed or on its way is not fetched again.
+local function fetch(self: SlimeMesh, kit: string, done: ((boolean) -> ())?)
+	if self.kits[kit] or self.failedKits[kit] or self.loading[kit] then
+		return
+	end
+	self.loading[kit] = true
+	local spawn: (() -> ()) -> () = self.deps.spawn
+		or (if task
+			then task.spawn :: any
+			else function(fn: () -> ())
+				fn()
+			end)
+	spawn(function()
+		local entry = MeshAssets.get(kit)
+		local kitOk, kitMesh = pcall(function(): MeshPart?
+			local asset = self.deps.loadAsset((entry :: MeshAssets.Entry).assetId :: number)
+			local mesh = asset:FindFirstChildWhichIsA("MeshPart", true)
+			local template = if mesh then mesh:Clone() :: MeshPart else nil
+			asset:Destroy()
+			return template
+		end)
+		self.loading[kit] = nil
+		local ok = kitOk and kitMesh ~= nil
+		if ok then
+			self.kits[kit] = kitMesh :: MeshPart
+			if self.deps.onKit then
+				self.deps.onKit(kit, kitMesh :: MeshPart)
+			end
+		else
+			self.failedKits[kit] = true
+		end
+		if done then
+			done(ok)
+		end
+	end)
 end
 
 function SlimeMesh.load(self: SlimeMesh): Look
@@ -99,12 +144,6 @@ function SlimeMesh.load(self: SlimeMesh): Look
 	end
 	-- LoadAsset yields: fetch the kits side by side so server start waits on the
 	-- shared package only. A slime built before its kit arrives wears the shared mesh.
-	local spawn: (() -> ()) -> () = self.deps.spawn
-		or (if task
-			then task.spawn :: any
-			else function(fn: () -> ())
-				fn()
-			end)
 	-- A kit that isn't uploaded yet (no assetId) is never fetched: its slimes keep the shared mesh.
 	local uploaded: { string } = {}
 	for _, kit in SlimeLooks.KITS do
@@ -118,22 +157,8 @@ function SlimeMesh.load(self: SlimeMesh): Look
 	local failed: { string } = {}
 	local pending = #uploaded
 	for _, kit in uploaded do
-		spawn(function()
-			local entry = MeshAssets.get(kit)
-			local kitOk, kitMesh = pcall(function(): MeshPart?
-				local asset = self.deps.loadAsset((entry :: MeshAssets.Entry).assetId :: number)
-				local mesh = asset:FindFirstChildWhichIsA("MeshPart", true)
-				local template = if mesh then mesh:Clone() :: MeshPart else nil
-				asset:Destroy()
-				return template
-			end)
-			if kitOk and kitMesh then
-				self.kits[kit] = kitMesh
-				if self.deps.onKit then
-					self.deps.onKit(kit, kitMesh)
-				end
-			else
-				self.failedKits[kit] = true
+		fetch(self, kit, function(arrived: boolean)
+			if not arrived then
 				table.insert(failed, kit)
 			end
 			pending -= 1
@@ -317,19 +342,59 @@ local function applySpecies(model: Model, slimeData: Types.SlimeData)
 	end
 end
 
-local function finish(self: SlimeMesh, model: Model, slimeData: Types.SlimeData): Model
+-- A shining slime's recoloured kit wears the shine's material and tint (Config.SHINES `material`, `reflectance`,
+-- `tint`).
+local function applyShine(model: Model, row: Genome.ShineRow)
+	local mesh = model:FindFirstChild(SlimeMesh.MESH_NAME)
+	if mesh and mesh:IsA("BasePart") then
+		mesh.Material = (Enum.Material :: any)[row.material]
+		mesh.Reflectance = row.reflectance
+		local tint = row.tint
+		if tint then
+			mesh.Color = Color3.fromRGB(tint[1], tint[2], tint[3])
+		end
+	end
+end
+
+local function finish(self: SlimeMesh, model: Model, slimeData: Types.SlimeData, shine: Genome.ShineRow?): Model
 	local ok, err = pcall(applySpecies :: any, model, slimeData)
 	if not ok then
 		report(self, `slime type look failed for {slimeData.id} ({err})`)
 	end
+	if shine then
+		local shineOk, shineErr = pcall(applyShine :: any, model, shine)
+		if not shineOk then
+			report(self, `slime shine look failed for {slimeData.id} ({shineErr})`)
+		end
+	end
 	return model
+end
+
+-- The recoloured kit a shining slime wears and its Config.SHINES row; nil for a slime without a shine, without a
+-- species kit or whose copy isn't uploaded.
+function SlimeMesh.mutationKit(_self: SlimeMesh, slimeData: Types.SlimeData): (string?, Genome.ShineRow?)
+	local row = Genome.shine(slimeData)
+	local look = SlimeLooks.get(slimeData.species)
+	local kit = if row and look then MeshAssets.mutationKit(look.kit, row.kit) else nil
+	return kit, if kit then row else nil
 end
 
 function SlimeMesh.build(self: SlimeMesh, slimeData: Types.SlimeData): Model
 	local model = self.deps.factory.build(slimeData)
 	local look = SlimeLooks.get(slimeData.species)
 	local kit = look and look.kit
-	local attempts: { { template: MeshPart, kit: string? } } = {}
+	local attempts: { { template: MeshPart, kit: string?, shine: Genome.ShineRow? } } = {}
+	-- A shining slime wears its recoloured kit once it is in; until then (first one of its kind on this server) the
+	-- species kit, and pendingKit tells the caller to rebuild it when the copy arrives.
+	local mutation, shine = SlimeMesh.mutationKit(self, slimeData)
+	if mutation then
+		local copy = self.kits[mutation]
+		if copy then
+			table.insert(attempts, { template = copy, kit = mutation, shine = shine })
+		else
+			fetch(self, mutation)
+		end
+	end
 	local kitTemplate = if kit then self.kits[kit] else nil
 	if kit and kitTemplate then
 		table.insert(attempts, { template = kitTemplate, kit = kit })
@@ -340,7 +405,7 @@ function SlimeMesh.build(self: SlimeMesh, slimeData: Types.SlimeData): Model
 	for _, attempt in attempts do
 		local ok, err = pcall(dress :: any, model, attempt.template, attempt.kit)
 		if ok then
-			return finish(self, model, slimeData)
+			return finish(self, model, slimeData, attempt.shine)
 		end
 		report(self, `slime mesh dress failed for {slimeData.id} ({err}); using fallback look`)
 		model:Destroy()
@@ -356,6 +421,11 @@ function SlimeMesh.pendingKit(self: SlimeMesh, slimeData: Types.SlimeData): stri
 	local kit = look and look.kit
 	if kit and not self.kits[kit] and not self.failedKits[kit] then
 		return kit
+	end
+	-- The species kit is in (or never comes): a shining slime still waits for its recoloured copy.
+	local mutation = SlimeMesh.mutationKit(self, slimeData)
+	if mutation and not self.kits[mutation] and not self.failedKits[mutation] then
+		return mutation
 	end
 	return nil
 end

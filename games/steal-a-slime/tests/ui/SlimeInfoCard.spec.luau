@@ -365,6 +365,45 @@ describe("SlimeInfoCard render", function()
 			expect(label.TextScaled).toBe(true)
 		end
 	end)
+	it("puts a shine on its own pill next to the rarity, under the plain name", function()
+		local gui = SlimeInfoCard.build()
+		local a = { name = "Mochi", tier = 1, income = 4, shine = "Diamond" }
+		SlimeInfoCard.render(gui, assert(SlimeLabel.view(a :: any)), 3)
+		local card = gui:FindFirstChild("Card")
+		local rarity, shine = card:FindFirstChild("Rarity"), card:FindFirstChild("Shine")
+		expect(shine.Visible).toBe(true)
+		expect(shine.Text).toBe("Diamond")
+		expect(card:FindFirstChild("Title").Text).toBe("Mochi")
+		expect(rarity.Text).toBe(Config.RARITIES[1].name)
+		-- side by side on the rarity row: rarity left of the middle, shine right of it, each at most half the tag
+		expect(rarity.Position.Y.Scale).toBeCloseTo(shine.Position.Y.Scale, EPS)
+		expect(rarity.AnchorPoint.X).toBe(1)
+		expect(shine.AnchorPoint.X).toBe(0)
+		expect(rarity.Position.X.Scale < 0.5 and shine.Position.X.Scale > 0.5).toBe(true)
+		expect(rarity.Size.X.Scale <= 0.5 and shine.Size.X.Scale <= 0.5).toBe(true)
+		expect(shine:FindFirstChild("Fit").AspectRatio).toBe(SlimeInfoCard.pillAspect("Diamond"))
+		local row
+		for _, r in Config.SHINES do
+			if r.id == "Diamond" then
+				row = r
+			end
+		end
+		local c = row.color
+		expect(shine.BackgroundColor3).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
+		-- back to a plain slime: one centred rarity pill
+		SlimeInfoCard.render(gui, assert(SlimeLabel.view({ name = "Mochi", tier = 1, income = 4 } :: any)), 3)
+		expect(shine.Visible).toBe(false)
+		expect(rarity.AnchorPoint.X).toBe(0.5)
+		expect(rarity.Position.X.Scale).toBe(0.5)
+		expect(rarity.Size.X.Scale).toBe(1)
+	end)
+	it("fills a rainbow shine's pill with a rainbow", function()
+		local gui = SlimeInfoCard.build()
+		local a = { name = "Mochi", tier = 1, income = 4, shine = "Rainbow" }
+		SlimeInfoCard.render(gui, assert(SlimeLabel.view(a :: any)), 3)
+		local shine = gui:FindFirstChild("Card"):FindFirstChild("Shine")
+		expect(#shine:FindFirstChild("Fill").Color.Keypoints > 3).toBe(true)
+	end)
 	it("drops the price row again and hides without a view", function()
 		local gui = SlimeInfoCard.build()
 		SlimeInfoCard.render(gui, view({ price = 500 }), 3)

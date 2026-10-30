@@ -6,7 +6,8 @@
 	or escaping slime gets a floating tag above its mesh (canvas
 	GooWorldLabels "Wild slime tag"), no panel: the rarity on a goo pill in
 	the rarity colour (a rainbow for Secret), the species name in white
-	outlined in Ink, the income per second in mint and, while it is for sale
+	outlined in Ink (a shining slime's shine sits on
+	its own pill next to the rarity), the income per second in mint and, while it is for sale
 	and the player stands within priceDistance, a "Buy $price" chip. Where
 	tags overlap on screen the nearest one shows and the ones behind it hide
 	(declutter). A slime resting on a pad (LabelPad set) shows no tag:
@@ -31,6 +32,7 @@ local Players = game:GetService("Players")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
+local Genome = require(Shared:WaitForChild("Genome"))
 local SlimeLabel = require(Shared:WaitForChild("SlimeLabel"))
 local SlimePadSign = require(script.Parent.SlimePadSign)
 local Widgets = require(script.Parent.Widgets)
@@ -63,6 +65,7 @@ SlimeInfoCard.SIZE = table.freeze({
 	stroke = 2, -- px Ink outline round the text and the pills
 	pill = 0.86, -- a pill's height, fraction of its row (the rest is the gap to the next row)
 	pillPad = 0.14, -- a pill's text inset top and bottom, fraction of its height
+	pillGap = 0.02, -- with a shine pill: the gap between it and the rarity pill, fraction of the tag's width
 })
 
 -- Rows, top to bottom, with heights relative to one row. The name is the largest; the price chip is next, so
@@ -96,6 +99,19 @@ function SlimeInfoCard.pillLook(view: SlimeLabel.View): (Color3, ColorSequence, 
 		return fill, ColorSequence.new(Color3.new(1, 1, 1)), Theme.Ink, 1
 	end
 	return fill, ColorSequence.new(Color3.new(1, 1, 1)), Theme.Text, 0
+end
+
+-- The shine pill's look, as pillLook: the shine's colour lit from the top, or a rainbow.
+function SlimeInfoCard.shineLook(shine: Genome.ShineRow): (Color3, ColorSequence, Color3, number)
+	if shine.rainbow then
+		return Color3.new(1, 1, 1), SlimePadSign.rainbow(), Theme.Ink, 1
+	end
+	local fill = rgb(shine.color)
+	local light = ColorSequence.new(Color3.new(1, 1, 1):Lerp(fill, 0.25), Color3.new(1, 1, 1))
+	if Widgets.isBright(fill) then
+		return fill, light, Theme.Ink, 1
+	end
+	return fill, light, Theme.Text, 0
 end
 
 -- The rows shown for `count` rows (3 = not for sale, 4 = with the price), stacked top to bottom.
@@ -276,10 +292,47 @@ function SlimeInfoCard.build(): BillboardGui
 	})
 	local rarity = pill("Rarity", Color3.new(1, 1, 1), Theme.Ink, tag)
 	create("UIGradient", { Name = "Fill", Parent = rarity })
+	local shine = pill("Shine", Color3.new(1, 1, 1), Theme.Ink, tag)
+	shine.Visible = false
+	create("UIGradient", { Name = "Fill", Rotation = 90, Parent = shine })
 	text("Title", Color3.new(1, 1, 1), tag)
 	text("Income", Theme.Good, tag)
 	pill("Price", Theme.Ink, Theme.Gold, tag)
 	return gui
+end
+
+-- Paints a pill from a (fill, gradient, ink, strokeHidden) look.
+local function paint(label: TextLabel, fill: Color3, shading: ColorSequence, ink: Color3, strokeHidden: number)
+	label.BackgroundColor3 = fill
+	label.TextColor3 = ink
+	label.TextStrokeTransparency = strokeHidden;
+	(label:FindFirstChild("Fill") :: UIGradient).Color = shading
+end
+
+-- The rarity row: the rarity pill centred, or with a shine the rarity and shine pills side by side, each at most
+-- half the tag wide.
+local function placeRarityRow(tag: Frame, view: SlimeLabel.View, r: Row)
+	local rarity = tag:FindFirstChild("Rarity") :: TextLabel
+	local shine = tag:FindFirstChild("Shine") :: TextLabel
+	local h = r.h * SlimeInfoCard.SIZE.pill
+	local y = r.y + r.h / 2
+	shine.Visible = view.shine ~= nil
+	if not view.shine then
+		rarity.AnchorPoint = Vector2.new(0.5, 0.5)
+		rarity.Position = UDim2.fromScale(0.5, y)
+		rarity.Size = UDim2.fromScale(1, h)
+		return
+	end
+	local gap = SlimeInfoCard.SIZE.pillGap / 2
+	rarity.AnchorPoint = Vector2.new(1, 0.5)
+	rarity.Position = UDim2.fromScale(0.5 - gap, y)
+	rarity.Size = UDim2.fromScale(0.5 - gap, h)
+	shine.AnchorPoint = Vector2.new(0, 0.5)
+	shine.Position = UDim2.fromScale(0.5 + gap, y)
+	shine.Size = UDim2.fromScale(0.5 - gap, h)
+	shine.Text = view.shine.id;
+	(shine:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(view.shine.id)
+	paint(shine, SlimeInfoCard.shineLook(view.shine))
 end
 
 local PILLS = table.freeze({ Rarity = true, Price = true })
@@ -325,13 +378,8 @@ function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height:
 			end
 		end
 	end
-	local rarity = tag:FindFirstChild("Rarity") :: TextLabel
-	local fill, shading, ink, strokeHidden = SlimeInfoCard.pillLook(view)
-	rarity.BackgroundColor3 = fill
-	rarity.TextColor3 = ink
-	rarity.TextStrokeTransparency = strokeHidden
-	local gradient = rarity:FindFirstChild("Fill") :: UIGradient
-	gradient.Color = shading
+	placeRarityRow(tag, view, shown.Rarity)
+	paint(tag:FindFirstChild("Rarity") :: TextLabel, SlimeInfoCard.pillLook(view))
 end
 
 -- The label attributes of a model, as SlimeLabel reads them.
@@ -346,6 +394,7 @@ function SlimeInfoCard.read(model: Instance): SlimeLabel.Attributes
 		boss = model:GetAttribute(a.boss),
 		pad = model:GetAttribute(a.pad),
 		status = model:GetAttribute(a.status),
+		shine = model:GetAttribute(a.shine),
 		owner = model:GetAttribute(a.owner),
 	}
 end

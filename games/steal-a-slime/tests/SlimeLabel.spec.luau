@@ -97,6 +97,17 @@ describe("SlimeLabel.view", function()
 		expect(SlimeLabel.view(attrs({ name = "" }))).toBeNil()
 		expect(SlimeLabel.view(attrs({ name = 5 }))).toBeNil()
 	end)
+	it("carries the shine row of the Shine attribute, for the tag's pill", function()
+		for _, row in Config.SHINES do
+			local v = assert(SlimeLabel.view(attrs({ shine = row.id })))
+			expect(v.shine).toBe(row)
+			expect(v.name).toBe("Lop")
+			expect(SlimeLabel.rows(v)).toBe(3)
+		end
+		expect(assert(SlimeLabel.view(attrs())).shine).toBeNil()
+		expect(assert(SlimeLabel.view(attrs({ shine = "Mud" }))).shine).toBeNil()
+		expect(assert(SlimeLabel.view(attrs({ shine = 7 }))).shine).toBeNil()
+	end)
 end)
 
 describe("SlimeLabel wild income with the viewer's bonuses", function()

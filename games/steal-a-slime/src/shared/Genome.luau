@@ -268,8 +268,10 @@ function Genome.baseIncome(slime: Slime): number
 		* SlimeRoster.incomeBonus(slime.species)
 end
 
+export type ShineRow = Config.Shine
+
 -- The Config.SHINES row of a slime's shine, or nil.
-function Genome.shine(slime: Slime): { id: string, mult: number, chance: number, weather: string?, color: { number } }?
+function Genome.shine(slime: Slime): ShineRow?
 	local id = slime.shine
 	if id == nil then
 		return nil
