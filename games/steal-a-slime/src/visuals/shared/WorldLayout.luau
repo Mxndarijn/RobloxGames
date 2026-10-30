@@ -144,6 +144,7 @@ WorldLayout.VOLCANO_HEIGHT = WorldLayout.FOUNTAIN_HEIGHT
 -- The old straight chute bearing was yaw 22.5; that slide is gone.
 WorldLayout.RING_PATH_RADIUS = 78
 WorldLayout.RING_PATH_WIDTH = 8
+WorldLayout.RING_RAIL_WIDTH = 0.8 -- the boardwalk's dark rails outside its planks (kit ranch_floor_paths RAIL_W)
 -- Props keep this corridor clear in front of every plot's bridge (PropClearance).
 WorldLayout.ENTRANCE_CLEAR = 20
 -- Mesh slots in the whole world, as the pc-watcher counts MeshParts (MeshAsset + pending BorderMesh
@@ -402,7 +403,10 @@ function WorldLayout.hallFloor(): any
 	local hall = WorldLayout.HALL_OF_FAME
 	local centre = WorldLayout.hallPoint(0, 0)
 	local stage = WorldLayout.hallPoint(hall.stage.x, hall.stage.y)
-	local from = WorldLayout.RING_PATH_RADIUS + WorldLayout.RING_PATH_WIDTH / 2 - 0.5
+	-- the path starts at the ring's outer rail: where the rail's curved outer edge crosses the path's two edges, so
+	-- the corners meet the rail and the middle tucks under it
+	local railOut = WorldLayout.RING_PATH_RADIUS + WorldLayout.RING_PATH_WIDTH / 2 + WorldLayout.RING_RAIL_WIDTH
+	local from = math.sqrt(railOut ^ 2 - (hall.pathWidth / 2) ^ 2)
 	local to = hall.distance - hall.radius + hall.rim
 	local mid = WorldLayout.hallPoint(0, (from + to) / 2 - hall.distance)
 	return {
