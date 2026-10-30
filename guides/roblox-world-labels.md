@@ -101,7 +101,7 @@ A stud or hybrid tag grows without bound as the camera comes closer. Cap it: com
 - `StudsOffsetWorldSpace` for "above this object", `StudsOffset` only for camera-relative pops.
 - Text: Fredoka/Nunito bold, an Ink `UIStroke` (2 to 3 px) round white text, `TextScaled` with a `UITextSizeConstraint` (max) so a long name shrinks instead of overflowing.
 - SurfaceGui `PixelsPerStud` 40 to 80. Keep the canvas (part size × PixelsPerStud) under 1024 px per side; more only costs memory.
-- Boards with rows or cards on a face (Steal a Slime's Hall of Fame boards and Upcoming Events board) take their padding from one table, `visuals/shared/BoardFace.CHROME` (20 px to the board edge, 12 px inside each card or row, in canvas px). Build rows with `BoardFace.row` so the server's and the client's rows match.
+- Boards with rows or cards on a face (Steal a Slime's Hall of Fame boards and Upcoming Events board) take their padding from one table, `visuals/shared/BoardFace.CHROME` (canvas px). Build rows with `BoardFace.row` so the server's and the client's rows match.
 - One label per thing. If two labels can stand over the same spot (info tag and key card), let one hide the other.
 - Many tags in one view (a full plot of slimes): test overlap and hide the farther one (SlimeInfoCard `overlapSlack`).
 

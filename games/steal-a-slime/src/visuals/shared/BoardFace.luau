@@ -13,9 +13,10 @@
 
 local BoardFace = {}
 
--- Spacing on the light board faces (the Hall of Fame boards and the Upcoming Events board), in canvas px, measured
--- to the visible outline: the same numbers as the menu cards (ui/Layout.PANEL_CHROME). Heights are fractions of the
--- padded face.
+-- Spacing on the light board faces (the Hall of Fame boards and the Upcoming Events board), in canvas px: the same
+-- numbers as the menu cards (ui/Layout.PANEL_CHROME). The title bar is inset by its outline, so `pad` reaches its
+-- visible edge; cards and rows are measured to their frames, and their outlines (2 to 5 px) draw outside that.
+-- Heights are fractions of the padded face.
 BoardFace.CHROME = table.freeze({
 	pad = 20, -- board edge -> title bar, rows and cards
 	gutter = 12, -- title bar -> list, and between event cards

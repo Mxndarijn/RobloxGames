@@ -28,7 +28,7 @@ export type Row = { rank: number, name: string, value: string, isMe: boolean }
 
 local WorldLeaderboard = {}
 
-WorldLeaderboard.MAX_ROWS = 10
+WorldLeaderboard.MAX_ROWS = BoardFace.ROWS
 WorldLeaderboard.GUI_NAMES = table.freeze({ "Leaderboard" })
 local modelNames = { "Leaderboard" }
 for _, def in Leaderboards.BOARDS do
