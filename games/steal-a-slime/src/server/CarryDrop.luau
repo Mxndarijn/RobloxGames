@@ -47,7 +47,7 @@ end
 	lifetime. A wild Mystery Egg smashes instead: it lies there for
 	MYSTERY_EGG.SMASH_SECONDS (contract/mystery-egg.md 40.7), then goes.
 	Stolen -> escapes home. `reason` is passed to
-	StealService.escape ("drop", "left", "slap", ...).
+	StealService.escape ("drop", "left", "slap", "boss", ...).
 ]]
 function CarryDrop.release(world: World, userId: number, now: number, position: any?, reason: string): boolean
 	local session = World.session(world, userId)
@@ -55,7 +55,7 @@ function CarryDrop.release(world: World, userId: number, now: number, position: 
 	if not session or not carry then
 		return false
 	end
-	if reason == "drop" or reason == "slap" then
+	if reason == "drop" or reason == "slap" or reason == "boss" then
 		session.lastDropAt = now -- no pickups for Config.DROP_PICKUP_COOLDOWN (Carry.grab)
 	end
 	if carry.kind == "stolen" then

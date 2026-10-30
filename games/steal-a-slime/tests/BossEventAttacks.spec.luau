@@ -1,13 +1,15 @@
 --!strict
 -- The boss's attacks over World (src/server/BossEvent.luau, contract/boss-event.md "Attacks"): it winds up from a
 -- stop once an attack is due; a struck player is knocked back and stunned; dazed hits count more; guards hold it out
--- of reach; spit puddles slow; it drops no slimes, during the fight or on a win.
+-- of reach; spit puddles slow; a struck carrier drops their slime; it drops no slimes, during the fight or on a win.
 local BossChoreo = require("../src/shared/BossChoreo")
 local BossEvent = require("../src/server/BossEvent")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
+local Fixtures = require("./Fixtures")
 local ServerFixtures = require("./ServerFixtures")
 local Shop = require("../src/shared/Shop")
+local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -401,5 +403,92 @@ describe("BossEvent signature attacks: every boss has one of its own", function(
 		local before = #launched
 		run(w, ctx, thrown, burst.delay + burst.radius / burst.speed + 0.2)
 		expect(#launched > before).toBe(true)
+	end)
+end)
+
+-- A stomp ring at the boss's spot from `t` that reaches player `userId` 8 studs out; steps 2 s of it.
+local function stomp(w: any, ctx: any, at: { [number]: Vec }, userId: number, t: number)
+	BossEvent.step(w, t, ctx)
+	local move = force(w, "attack", "start.1", t, BOSS.RING_DELAY + 1.5)
+	at[userId] = { X = move.fx + 8, Y = 3, Z = move.fz }
+	for i = 1, 60 do
+		BossEvent.step(w, t + i / 30, ctx)
+	end
+end
+
+local function said(w: any, userId: number, text: string): boolean
+	for _, line in ServerFixtures.notifications(w, userId) do
+		if string.find(line, text, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+
+describe("a boss hit makes a carrier drop their slime", function()
+	it("a wild slime lands where they stood; others may grab it, they wait DROP_PICKUP_COOLDOWN", function()
+		local w, ctx, at, launched = fight(2)
+		ctx.positionOf = function(userId: number): any
+			return `spot of {userId}`
+		end
+		local id = Spawner.spawnOne(w, T0)
+		w.wild[id].price = 0
+		expect((Carry.grab(w, 1, id, 1, T0))).toBe(true)
+		local t = T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS
+		stomp(w, ctx, at, 1, t)
+		expect(launched[1]).toBe(1)
+		local s = w.sessions[1]
+		expect(s.carry).toBeNil()
+		expect(w.carriedBy[id]).toBeNil()
+		expect(w.wild[id].position).toBe("spot of 1")
+		expect(said(w, 1, "Dodge the red")).toBe(true) -- the hit's own toast
+		expect(said(w, 1, "dropped")).toBe(false) -- and nothing else
+		local hitAt = s.lastDropAt
+		expect(hitAt > t).toBe(true)
+		expect(select(2, Carry.grab(w, 1, id, 1, hitAt + Config.DROP_PICKUP_COOLDOWN - 0.1))).toBe(
+			"you just dropped a slime"
+		)
+		expect((Carry.grab(w, 2, id, 1, hitAt + 0.1))).toBe(true)
+	end)
+
+	it("a stolen slime bounces home without a toast of its own", function()
+		local w, ctx, at = fight(2)
+		local owner = ServerFixtures.join(w, 3, { Fixtures.slime("gem", 4) })
+		ServerFixtures.unlock(owner)
+		expect((Carry.grab(w, 1, "gem", 1, T0))).toBe(true)
+		stomp(w, ctx, at, 1, T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS)
+		expect(w.sessions[1].carry).toBeNil()
+		expect(w.escaping.gem ~= nil).toBe(true)
+		expect(said(w, 1, "bounced home")).toBe(false)
+		expect(said(w, 1, "went home")).toBe(false)
+	end)
+
+	it("a strike that can't reach them leaves the slime in their hands", function()
+		local w, ctx, at = fight(2)
+		ctx.exposed = function(_userId: number, _from: any): boolean
+			return false
+		end
+		local id = Spawner.spawnOne(w, T0)
+		w.wild[id].price = 0
+		expect((Carry.grab(w, 1, id, 1, T0))).toBe(true)
+		stomp(w, ctx, at, 1, T0 + BOSS.WARNING_SECONDS + BOSS.ARRIVE_SECONDS)
+		expect(w.sessions[1].carry ~= nil).toBe(true)
+	end)
+
+	it("goo still out when the boss goes down vanishes: the downed boss strikes nobody", function()
+		local w, ctx = fight(1)
+		local t = T0 + BOSS.WARNING_SECONDS
+		table.insert(w.boss.spits, { x = 0, z = 0, landAt = math.huge, seconds = 5, slow = 0.5 })
+		table.insert(
+			w.boss.puddles,
+			{ x = 0, z = 0, untilAt = math.huge, slow = 0.5, burstAt = math.huge, burst = { push = 30 }, struck = {} }
+		)
+		while w.boss.fight.phase == "fight" do
+			BossEvent.hit(w, w.sessions[1], t, nil, ctx)
+			t += BOSS.HIT_GAP
+		end
+		expect(w.boss.fight.phase).toBe("haul")
+		expect(#w.boss.spits).toBe(0)
+		expect(#w.boss.puddles).toBe(0)
 	end)
 end)
