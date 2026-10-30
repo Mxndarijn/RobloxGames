@@ -1608,7 +1608,7 @@ local Config = {
 			medium = table.freeze({ "MeltingTiles", "Spinner", "LilyLift", "JellyWallHop" }),
 			hard = table.freeze({ "Tightrope", "FlipFloor", "IceGauntlet", "ShrinkingPads" }),
 		}),
-		LAYOUTS = 3, -- layouts per section
+		LAYOUTS = 6, -- layouts per section
 		MIN_SECTION_SECONDS = 1.5, -- a checkpoint reached faster than this after the last one doesn't count
 		FALL_DEPTH = 18, -- studs under the lowest floor of the course that count as a fall (back to the checkpoint)
 		REBUILD_GRACE = 90, -- a new rotation waits this long for runners to finish before it sends them home

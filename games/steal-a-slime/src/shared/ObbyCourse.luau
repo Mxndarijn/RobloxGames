@@ -148,6 +148,9 @@ BUILD.JellySteps = function(layout)
 		{ gap = 2.5, size = 4, z = { 0, 2.5, -2.5, 2.5, 0 }, top = { 0, 1, 2, 1, 0 } },
 		{ gap = 2.5, size = 4, z = { -3, 0, 3, 0, -3 }, top = { 0, 1, 1.5, 1, 0.5 } },
 		{ gap = 3.5, size = 4.5, z = { 2.5, -2.5, 2.5, -2.5 }, top = { 0, 2, 0.5, 2.5 } },
+		{ gap = 3, size = 4, z = { -2, 2, -2, 2 }, top = { 1, 2, 3, 2 } },
+		{ gap = 2, size = 3.5, z = { 0, 3, 0, -3, 0, 3 }, top = { 0, 0, 1, 1, 0, 0 } },
+		{ gap = 4, size = 5, z = { 0, 0, 0 }, top = { 1.5, 3, 1.5 } },
 	})[layout]
 	local parts = {}
 	local x = L.gap
@@ -164,6 +167,9 @@ BUILD.WobbleBridge = function(layout)
 		{ beams = 2, length = 11, width = 3, gap = 2.5, amp = 1.2, period = 3, shift = 0.5 },
 		{ beams = 1, length = 22, width = 3, gap = 2.5, amp = 1.8, period = 3.4, shift = 0 },
 		{ beams = 3, length = 7, width = 2.5, gap = 2, amp = 1.5, period = 2.6, shift = 0.33 },
+		{ beams = 2, length = 12, width = 2.5, gap = 2, amp = 2, period = 3.8, shift = 0.25 },
+		{ beams = 4, length = 5, width = 3, gap = 2.5, amp = 1.2, period = 2.2, shift = 0.5 },
+		{ beams = 1, length = 26, width = 2.2, gap = 2.5, amp = 1, period = 2.6, shift = 0 },
 	})[layout]
 	local parts = {}
 	local x = L.gap
@@ -181,6 +187,9 @@ BUILD.BubbleHop = function(layout)
 		{ count = 4, gap = 3, size = 5, amp = 1.2, period = 2.4, z = { 0, 2, -2, 0 } },
 		{ count = 5, gap = 2.5, size = 4, amp = 1.5, period = 2.8, z = { -2, 0, 2, 0, -2 } },
 		{ count = 4, gap = 3, size = 5, amp = 1.8, period = 2.2, z = { 2, -2, 2, -2 } },
+		{ count = 5, gap = 2.5, size = 4, amp = 1, period = 2, z = { 0, -2.5, 0, 2.5, 0 } },
+		{ count = 4, gap = 3.5, size = 4.5, amp = 2.2, period = 3, z = { -2, -2, 2, 2 } },
+		{ count = 3, gap = 4.5, size = 6, amp = 2.5, period = 2.6, z = { 0, 3, -3 } },
 	})[layout]
 	local parts = {}
 	local x = L.gap
@@ -209,6 +218,9 @@ BUILD.GooConveyor = function(layout)
 		{ length = 8, width = 10, gap = 3, belts = { { 0, 0, 6 }, { 0, 0, -6 }, { 0, 0, 6 } } },
 		{ length = 7, width = 9, gap = 2.5, belts = { { 0, 0, -7 }, { 0, 0, 7 }, { 0, 0, -7 } } },
 		{ length = 8, width = 10, gap = 3, belts = { { 0, 0, 8 }, { -5, 0, 0 }, { 0, 0, -8 } } },
+		{ length = 5.5, width = 10, gap = 2.5, belts = { { 0, 0, -6 }, { 0, 0, 6 }, { 0, 0, -6 }, { 0, 0, 6 } } },
+		{ length = 10, width = 9, gap = 3, belts = { { -6, 0, 0 }, { 0, 0, 7 } } },
+		{ length = 7, width = 8, gap = 2.5, belts = { { 0, 0, 9 }, { 0, 0, 9 }, { 0, 0, -9 } } },
 	})[layout]
 	local parts = {}
 	local x = L.gap
@@ -225,6 +237,13 @@ BUILD.MeltingTiles = function(layout)
 		{ cols = 6, delay = 0.7, holes = {} },
 		{ cols = 7, delay = 0.6, holes = { ["2:1"] = true, ["4:3"] = true, ["6:1"] = true } },
 		{ cols = 6, delay = 0.5, holes = { ["2:3"] = true, ["3:1"] = true, ["5:3"] = true } },
+		{ cols = 7, delay = 0.8, holes = { ["1:1"] = true, ["3:3"] = true, ["5:1"] = true, ["7:3"] = true } },
+		{ cols = 6, delay = 0.45, holes = {} },
+		{
+			cols = 7,
+			delay = 0.6,
+			holes = { ["2:1"] = true, ["2:3"] = true, ["4:2"] = true, ["6:1"] = true, ["6:3"] = true },
+		},
 	})[layout]
 	local tile, gap = 4, 0.5
 	local parts = {}
@@ -248,6 +267,9 @@ BUILD.Spinner = function(layout)
 		{ period = 4, bars = 1 },
 		{ period = -3.2, bars = 1 },
 		{ period = 4.4, bars = 2 },
+		{ period = 3, bars = 1 },
+		{ period = -4.4, bars = 2 },
+		{ period = 5, bars = 3 },
 	})[layout]
 	local gap, size = 2, 22
 	local cx = gap + size / 2
@@ -256,7 +278,7 @@ BUILD.Spinner = function(layout)
 		table.insert(
 			parts,
 			prop({ size - 2, 1.2, 1.2 }, { cx, 1.1, 0 }, "bar", {
-				motion = { kind = "spin", period = L.period, phase = (i - 1) * 0.25 },
+				motion = { kind = "spin", period = L.period, phase = (i - 1) * 0.5 / L.bars },
 			})
 		)
 	end
@@ -270,6 +292,9 @@ BUILD.LilyLift = function(layout)
 		{ count = 4, amp = 3.5, period = 3.6, phases = { 0, 0.5, 0, 0.5 } },
 		{ count = 4, amp = 3.5, period = 3, phases = { 0, 0.25, 0.5, 0.75 } },
 		{ count = 4, amp = 4.5, period = 4, phases = { 0, 0.5, 0.2, 0.7 } },
+		{ count = 4, amp = 2.5, period = 2.4, phases = { 0, 0, 0, 0 } },
+		{ count = 4, amp = 4, period = 3.2, phases = { 0, 0.5, 0.5, 0 } },
+		{ count = 3, amp = 5, period = 4.4, phases = { 0, 0.33, 0.66 } },
 	})[layout]
 	local size, gap = 5, 3
 	local parts = {}
@@ -291,6 +316,9 @@ BUILD.JellyWallHop = function(layout)
 		{ count = 5, rise = 2.5, z = { -3.5, 3.5, -3.5, 3.5, 0 } },
 		{ count = 6, rise = 2.5, z = { 3.5, -3.5, 3.5, -3.5, 3.5, 0 } },
 		{ count = 5, rise = 3, z = { 0, -4, 0, 4, 0 } },
+		{ count = 6, rise = 2, z = { -4, -1, 2, 4, 1, -2 } },
+		{ count = 4, rise = 3, z = { 3.5, -3.5, 3.5, 0 } },
+		{ count = 5, rise = 3.5, z = { -3, 3, -3, 3, 0 } },
 	})[layout]
 	local size, spacing, gap = 4, 5.5, 2
 	local parts = {}
@@ -310,6 +338,9 @@ BUILD.Tightrope = function(layout)
 		{ width = 1.2, length = 8, gap = 2.5, z = { 0, 2, -2 } },
 		{ width = 1, length = 5.5, gap = 2.5, z = { -2.5, 0, 2.5, 0 } },
 		{ width = 0.9, length = 8, gap = 3, z = { 2, -2, 1 } },
+		{ width = 1.1, length = 4.5, gap = 2, z = { -3, -1, 1, 3, 1 } },
+		{ width = 1.4, length = 12.5, gap = 3.5, z = { -1.5, 1.5 } },
+		{ width = 0.8, length = 7, gap = 2.5, z = { 0, 0, 0 } },
 	})[layout]
 	local parts = {}
 	local x = L.gap
@@ -326,6 +357,9 @@ BUILD.FlipFloor = function(layout)
 		{ count = 7, period = 4, duty = 0.65, z = { 0, 0, 0, 0, 0, 0, 0 } },
 		{ count = 7, period = 3.4, duty = 0.65, z = { -2, 0, 2, 0, -2, 0, 2 } },
 		{ count = 7, period = 4, duty = 0.6, z = { 2, 2, -2, -2, 2, 2, 0 } },
+		{ count = 6, period = 2.8, duty = 0.7, z = { 0, 0, 0, 0, 0, 0 } },
+		{ count = 7, period = 4.6, duty = 0.6, z = { 0, 2, 0, -2, 0, 2, 0 } },
+		{ count = 5, period = 3.2, duty = 0.65, z = { -2, 2, -2, 2, 0 } },
 	})[layout]
 	local tile, gap = 4, 1
 	local parts = {}
@@ -345,6 +379,9 @@ BUILD.IceGauntlet = function(layout)
 		{ length = 30, width = 7, sweepers = { { 10, 3 }, { 21, -3.5 } } },
 		{ length = 32, width = 7, sweepers = { { 8, -3 }, { 16, 3.4 }, { 24, -3 } } },
 		{ length = 28, width = 5.5, sweepers = { { 9, 2.6 }, { 19, -2.6 } } },
+		{ length = 30, width = 6, sweepers = { { 7, -2.8 }, { 15, 2.8 }, { 23, -2.8 } } },
+		{ length = 26, width = 8, sweepers = { { 13, 2.2 } } },
+		{ length = 32, width = 6.5, sweepers = { { 6, 3.2 }, { 12, -3.2 }, { 20, 3.2 }, { 26, -3.2 } } },
 	})[layout]
 	local gap = 2
 	local parts = { slab(gap + L.length / 2, 0, 0, L.length, L.width, "ice", { ice = true }) }
@@ -367,6 +404,9 @@ BUILD.ShrinkingPads = function(layout)
 		{ count = 4, gap = 3, period = 3, min = 0.3, z = { 0, 0, 0, 0 } },
 		{ count = 4, gap = 2.5, period = 2.6, min = 0.3, z = { 0, 1.5, -1.5, 1.5 } },
 		{ count = 4, gap = 3, period = 3.4, min = 0.2, z = { 2, -2, 2, -2 } },
+		{ count = 4, gap = 2.5, period = 2.2, min = 0.4, z = { 0, 0, 0, 0 } },
+		{ count = 3, gap = 4, period = 4, min = 0.25, z = { 0, 2.5, -2.5 } },
+		{ count = 4, gap = 3, period = 2.8, min = 0.3, z = { -2.5, 2.5, -2.5, 2.5 } },
 	})[layout]
 	local size = 5
 	local parts = {}

@@ -6,7 +6,7 @@ A short parkour course floating above the map. Clearing it earns **x1.5 income f
 
 | Module | Kind | Owns |
 |---|---|---|
-| `shared/ObbyCourse` | pure | Sections (`BUILD`, 12 ids x `LAYOUTS` layouts), the rotation (`slot`, `pick`), the layout (`build`: start pad, sections, a checkpoint pad after each, the last one the finish), checkpoint / fall / respawn geometry, the course frame (`toWorld`, `toLocal`) |
+| `shared/ObbyCourse` | pure | Sections (`BUILD`, 12 ids x `LAYOUTS` (6) layouts), the rotation (`slot`, `pick`), the layout (`build`: start pad, sections, a checkpoint pad after each, the last one the finish), checkpoint / fall / respawn geometry, the course frame (`toWorld`, `toLocal`) |
 | `shared/ObbyRules` | pure | The boost over the saved timers: `phase`, `grant`, `bonus`, `view`, `clean` |
 | `server/ObbyService` | pure | `world.obby`, `session.obbyRun`: portal, checkpoints in order, falls, finish, rotation, `refresh` (data.obbyBonus), `view` (State.obby) |
 | `server/ObbyView` | adapter | `workspace.Obby` (Portal once, Course per rotation), root positions, teleports |
