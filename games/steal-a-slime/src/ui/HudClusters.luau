@@ -96,13 +96,17 @@ local function num(value: any): number
 	return if type(value) == "number" and value == value then value else 0
 end
 
--- `style` is the Settings menu number style: "full" writes the cash with every digit.
+-- The plate's cash text. `style` is the Settings menu number style: "full" writes every digit.
+function HudClusters.cashText(cash: number, style: string?): string
+	return if style == "full" then Format.formatFullCash(num(cash)) else Format.formatCash(num(cash))
+end
+
 function HudClusters.money(state: any, style: string?): Money
 	local count = tostring(num(state.rebirths))
 	local multiplier =
 		Format.formatMultiplier(if type(state.rebirthMultiplier) == "number" then state.rebirthMultiplier else 1)
 	return {
-		cash = if style == "full" then Format.formatFullCash(num(state.cash)) else Format.formatCash(num(state.cash)),
+		cash = HudClusters.cashText(state.cash, style),
 		income = Format.formatRate(num(state.incomePerSec)),
 		rebirths = `{count} {multiplier}`,
 		rebirthCount = count,

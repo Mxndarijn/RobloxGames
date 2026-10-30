@@ -9,7 +9,7 @@
 	Both shops wear the shared panel purple; the title, the corner icon and the tagline chip tell them apart.
 	A row is the icon tile (a gold stock tag under it for restocking items), the name, a two-line description,
 	level pips for leveled upgrades, and on the right WorldShopLogic.slot: the green hold-to-buy button, a
-	sunken status well ("✅ Owned", "🔒 Rebirth 12 / to unlock") or the gold MAX stamp.
+	sunken status well ("Owned" with the game's check, "🔒 Rebirth 12 / to unlock") or the gold MAX stamp.
 	A second row under the Luck Potion sells one for the whole server for Robux
 	("Buy for the server · R$79", ExclusiveShopView.potionQuickBuy), only where paid random items are allowed; its
 	"Details" opens the Exclusive shop on the potion with its odds shown.
@@ -85,6 +85,9 @@ local SIZE = WorldShop.SIZE
 -- Width (design px) of a status well: at least the Buy button, wider when its text needs it ("Rebirth 120").
 function WorldShop.statusWidth(slot: WorldShopLogic.Slot): number
 	local w = Layout.lineWidth(slot.text, SIZE.status, true)
+	if slot.check then
+		w += Widgets.checkRoom(SIZE.status)
+	end
 	if slot.sub then
 		w = math.max(w, Layout.lineWidth(slot.sub, SIZE.statusSub))
 	end
@@ -333,6 +336,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 			row.status.TextColor3 = if slot.good then Theme.Good else Theme.Muted
 			row.status.Size = UDim2.fromOffset(slotW, Layout.BUTTON)
 		end
+		Widgets.setStatusCheck(row.status, slot.kind == "status" and slot.check == true)
 		local w = textWidth(slotW)
 		row.name.Size = UDim2.new(w, UDim.new(0, WorldShop.NAME_H))
 		row.desc.Size = UDim2.new(w, UDim.new(0, WorldShop.DESC_H))

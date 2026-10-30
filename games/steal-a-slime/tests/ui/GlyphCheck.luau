@@ -14,10 +14,10 @@ local ALLOWED: { [number]: boolean } = {
 	[0x2B06] = true, -- up arrow emoji
 	[0x26F2] = true, -- fountain
 	[0x26A1] = true, -- high voltage
-	[0x2705] = true, -- check mark button
 	[0x2728] = true, -- sparkles
 	[0x2699] = true, -- gear (the Settings button, seen in a Studio playtest frame)
 }
+-- Check marks (U+2705, U+2713, U+2714) stay off: "done" is Widgets.check, one drawn mark on every device.
 -- U+FE0F is only valid after these emoji bases (as in the proven recycle icon).
 local VS16_BASES: { [number]: boolean } =
 	{ [0x2699] = true, [0x267B] = true, [0x23F1] = true, [0x2B06] = true, [0x1F590] = true }
