@@ -165,15 +165,16 @@ end)
 
 describe("plot sign", function()
 	it(
-		"puts the sign on its two legs by the bridge at eye level, its Front face (the drawn face) out of the plot",
+		"puts the sign in its cradle by the bridge at eye level, drawn on both faces, its Front face out of the plot",
 		function()
-			expect(PlotSigns.FACES).toEqual({ "Front" })
+			expect(PlotSigns.FACES).toEqual({ "Front", "Back" })
 			local board = WorldLayout.NAME_BOARD
 			local spot = WorldLayout.SIGN_SPOT
 			for i, plot in plots do
 				local _, yaw = WorldLayout.plotCentre(i)
 				local sign = child(plot, "Sign")
 				local legs = { child(plot, "SignLeg_1"), child(plot, "SignLeg_2") }
+				local rail = child(plot, "SignRail")
 				local size = sign.size :: Vec
 				local p = toPlot(i, sign.pos :: Vec)
 
@@ -182,15 +183,24 @@ describe("plot sign", function()
 				expect(p[2]).toBeCloseTo(board.y)
 				-- invisible: only the sign PlotSigns draws shows, no square board behind it
 				expect(sign.transparency).toBe(1)
-				-- on its legs, one under each end, behind the board and reaching into it, over the moat in front of the jar
+				-- seated in the rail, which grips its bottom edge; a stub under each end from the ground up to the rail; all
+				-- in the sign's plane, so neither face is covered; over the moat in front of the jar
 				expect(p[1]).toBeCloseTo(spot[1] + 1.5)
+				local r = toPlot(i, rail.pos :: Vec)
+				local railSize = rail.size :: Vec
+				local signBottom = p[2] - size[2] / 2
+				expect(r[1]).toBeCloseTo(p[1])
+				expect(r[3]).toBeCloseTo(p[3])
+				expect(r[2] + railSize[2] / 2).toBeCloseTo(signBottom + WorldLayout.SIGN_RAIL.grip)
+				expect(railSize[1] < size[1]).toBe(true)
+				expect(railSize[3] > size[3]).toBe(true)
 				local q1, q2 = toPlot(i, legs[1].pos :: Vec), toPlot(i, legs[2].pos :: Vec)
 				expect((q1[1] + q2[1]) / 2).toBeCloseTo(p[1])
 				expect(math.abs(q1[1] - q2[1]) > size[1] / 2).toBe(true)
 				for k, leg in legs do
 					local q = if k == 1 then q1 else q2
-					expect(p[3] < q[3]).toBe(true)
-					expect(q[2] + (leg.size :: Vec)[2] / 2 > p[2] - size[2] / 2).toBe(true)
+					expect(q[3]).toBeCloseTo(p[3])
+					expect(q[2] + (leg.size :: Vec)[2] / 2).toBeCloseTo(r[2] - railSize[2] / 2)
 					expect(q[2] - (leg.size :: Vec)[2] / 2).toBeCloseTo(BASE_TOP)
 				end
 				-- at eye level: off the ground, its top no higher than a player's head (about 5 studs up)

@@ -201,6 +201,7 @@ FloorLayout.STAR_WALK = table.freeze({
 	starRadius = 2.6, -- centre to tip
 	first = 8,
 	spacing = 12,
+	dotSpacing = 20, -- goo dots (the obby path) sit wider apart than stars: the map's part budget is tight
 	starThick = 0.04,
 })
 
@@ -312,9 +313,10 @@ function FloorLayout.starWalk(walk: Walk, name: string?, starColor: { number }?,
 			)
 		)
 	end
-	local count = math.floor((walk.length - 2 * sw.first) / sw.spacing) + 1
+	local spacing = if dots then sw.dotSpacing else sw.spacing
+	local count = math.floor((walk.length - 2 * sw.first) / spacing) + 1
 	for k = 1, count do
-		local d = -walk.length / 2 + sw.first + (k - 1) * sw.spacing
+		local d = -walk.length / 2 + sw.first + (k - 1) * spacing
 		local cx, cz = walk.x + fx * d, walk.z + fz * d
 		if dots then
 			local dot = discNode(`Dot_{k}`, sw.starRadius * 0.8, FloorLayout.LAYER.trim, color, "SmoothPlastic", "path")

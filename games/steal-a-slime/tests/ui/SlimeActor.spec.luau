@@ -260,7 +260,7 @@ describe("SlimeActor on the move (clean lane)", function()
 			end
 			last = tag
 		end)
-		expect(worstGap < 0.6).toBe(true)
+		expect(worstGap < 0.15).toBe(true)
 		expect(worstStep < 0.02).toBe(true)
 	end)
 

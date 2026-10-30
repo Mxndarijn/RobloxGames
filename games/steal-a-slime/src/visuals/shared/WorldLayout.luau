@@ -226,8 +226,8 @@ WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3, landSide = 2.8 })
 -- Jar 1's ground pieces (plot-local; angles as above). The bridge crosses the moat to the door. Floor 1's pads spread
 -- evenly from FLOOR1_PAD_ARC[1] to FLOOR1_PAD_ARC[2] degrees round from the door, leaving the front either side of the
 -- door free: the MergeVat and the LockButton stand there, one each side, the first things you see coming in (inside
--- and on the ground floor, so nobody camps an owner's button from outside). The plot's sign (Sign, PlotSigns draws on its
--- Front face) stands outside by the bridge on two short legs (SignLeg_1, SignLeg_2).
+-- and on the ground floor, so nobody camps an owner's button from outside). The plot's sign (Sign, PlotSigns draws on
+-- both faces) stands outside by the bridge in a cradle (SignRail) on two short stubs (SignLeg_1, SignLeg_2).
 -- Players spawn on the walkway between the stair and the pads, in front of the door.
 WorldLayout.BRIDGE_WIDTH = 10
 WorldLayout.FLOOR1_PAD_ARC = table.freeze({ 60, 300 })
@@ -239,8 +239,16 @@ WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ -11.27, -21.19 }) -- inside, right
 WorldLayout.PLOT_FLOOR_RADIUS = 40
 WorldLayout.SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
 -- The plot sign by the bridge (Sign, shared/MascotSign): the jar's mascot peeking over a glass nameplate, 6 x 3 studs,
--- at eye level on two short legs: its bottom a stud above the ground, its top just under a player's head.
-WorldLayout.SIGN_LEGS = table.freeze({ width = 0.7, depth = 0.6, inset = 0.9 }) -- studs; inset = from each end of the sign to a leg's centre
+-- at eye level, seated in a wooden cradle (SignRail) on two short stubs (SignLeg_1, SignLeg_2): its bottom a stud
+-- above the ground, its top just under a player's head. PlotSigns draws it on both faces, so the cradle and stubs
+-- stand under the sign, not behind it, and the rail grips only the empty strip under the stats line (`grip` studs).
+WorldLayout.SIGN_LEGS = table.freeze({ width = 0.6, depth = 0.5, inset = 0.9 }) -- studs; inset = from each end of the sign to a leg's centre
+WorldLayout.SIGN_RAIL = table.freeze({ width = 5.6, height = 0.3, depth = 0.55, grip = 0.1 })
+
+-- The sign's centre (plot-local x, z): by the bridge, a little in from SIGN_SPOT.
+function WorldLayout.signCentre(): (number, number)
+	return WorldLayout.SIGN_SPOT[1] + 1.5, WorldLayout.SIGN_SPOT[2] + 2.6
+end
 WorldLayout.NAME_BOARD = table.freeze({ width = 6, height = 3, y = 3.5 })
 -- Jar 1's door is a round plank door on two hinges on its left (-X). Locked, it sits shut in the doorway (StopperShut);
 -- open, it swings DOOR_SWING.angle degrees out of the jar round its hinge pin (StopperParked): past square, so it
@@ -375,6 +383,34 @@ WorldLayout.HALL_OF_FAME = table.freeze({
 	archDistance = 88, -- the arch, from the map centre, just past the ring path
 	professor = table.freeze({ x = -9.5, y = -46, faceY = -72 }), -- left of the entrance, turned to the path
 })
+
+-- Where a podium mesh's flat top is, from its model (shared/modeling-kit/models/_phoenix_podium.py, model units):
+-- the top is centred on the model's origin and the base plinth reaches `base` past the column's half width W/2 on
+-- every side, but the goo puddle on one front corner sticks out further on the +X side and at the front. Roblox
+-- centres the mesh (and the Podium_<rank> slot) on that lopsided box, so the top sits off the slot's centre.
+-- `column` is each rank's W; the mesh's own size (MeshAssets) gives how far the puddle reaches.
+WorldLayout.PODIUM_TOPS = table.freeze({
+	column = table.freeze({ 5.6, 5.0, 4.6 }),
+	base = 1.2,
+})
+
+-- The centre of podium `rank`'s flat top in its slot's local studs (x, z) for a slot of `sizeX` x `sizeZ`: the
+-- slot's +X is the puddle side and +Z its front, so the top is a little towards -X and -Z. (0, 0) when the mesh
+-- isn't known.
+function WorldLayout.podiumTopCentre(rank: number, sizeX: number, sizeZ: number): (number, number)
+	local T = WorldLayout.PODIUM_TOPS
+	local entry = MeshAssets.get(`phoenix_plaza_podium_{rank}`)
+	local w = T.column[rank]
+	if not (entry and w) then
+		return 0, 0
+	end
+	local function shift(slot: number, native: number): number
+		-- the box spans -(W/2 + base) .. native - (W/2 + base), the top sits at 0: its centre is this far off
+		local off = native / 2 - (w / 2 + T.base)
+		return -off * slot / native
+	end
+	return shift(sizeX, entry.size[1]), shift(sizeZ, entry.size[3])
+end
 
 -- A Hall of Fame plaza-local point (x right as you walk in, y towards the back) in world studs (y = 0).
 function WorldLayout.hallPoint(x: number, y: number): Vec
@@ -1678,24 +1714,31 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local parked = disc("ParkedStopper", 2.6, WorldLayout.DOOR.width * 0.8, at({ px, 1.4, pz }), JAR_CORK, "Wood", yaw)
 	table.insert(nodes, ghost(parked))
 
-	-- The sign's two short legs by the bridge: from the ground up behind the nameplate (Sign), half a stud into it, one
-	-- under each end.
-	local bx, bz = WorldLayout.SIGN_SPOT[1], WorldLayout.SIGN_SPOT[2]
-	local board, legs = WorldLayout.NAME_BOARD, WorldLayout.SIGN_LEGS
-	local legH = board.y - board.height / 2 + 0.5 - 1 -- from the ground (y 1) to half a stud into the board
+	-- The sign's cradle by the bridge: a rail the nameplate (Sign) sits in, gripping its bottom edge, on two short
+	-- stubs from the ground, one under each end. All in the sign's own plane, so neither face is covered.
+	local sx, sz = WorldLayout.signCentre()
+	local board, legs, rail = WorldLayout.NAME_BOARD, WorldLayout.SIGN_LEGS, WorldLayout.SIGN_RAIL
+	local railTop = board.y - board.height / 2 + rail.grip
+	local legH = railTop - rail.height - 1 -- from the ground (y 1) up to the rail
+	table.insert(
+		nodes,
+		ghost(
+			block(
+				"SignRail",
+				{ rail.width, rail.height, rail.depth },
+				at({ sx, railTop - rail.height / 2, sz }),
+				FENCE,
+				"Wood",
+				r
+			)
+		)
+	)
 	for i, side in { -1, 1 } do
-		local lx = bx + 1.5 + side * (board.width / 2 - legs.inset)
+		local lx = sx + side * (board.width / 2 - legs.inset)
 		table.insert(
 			nodes,
 			ghost(
-				block(
-					`SignLeg_{i}`,
-					{ legs.width, legH, legs.depth },
-					at({ lx, 1 + legH / 2, bz + 3.0 }),
-					FENCE,
-					"Wood",
-					r
-				)
+				block(`SignLeg_{i}`, { legs.width, legH, legs.depth }, at({ lx, 1 + legH / 2, sz }), FENCE, "Wood", r)
 			)
 		)
 	end
@@ -2447,9 +2490,9 @@ local function plot(i: number): WorldNode
 	table.insert(children, button)
 	table.insert(children, jarLook("ButtonLook", "goo_lock_button", { bx, WorldLayout.floorTop(1), bz }, at, yaw))
 
-	-- Sign = the plot's sign on its two legs by the bridge (PlotSigns draws on its Front face, out of the plot).
+	-- Sign = the plot's sign in its cradle by the bridge (PlotSigns draws on both faces; Front looks out of the plot).
 	local board = WorldLayout.NAME_BOARD
-	local sx, sz = WorldLayout.SIGN_SPOT[1] + 1.5, WorldLayout.SIGN_SPOT[2] + 2.6
+	local sx, sz = WorldLayout.signCentre()
 	local sign = block("Sign", { board.width, board.height, 0.3 }, at({ sx, board.y, sz }), SIGN, "WoodPlanks", r)
 	sign.canQuery = false
 	sign.transparency = 1 -- only the sign PlotSigns draws shows: no square board behind the mascot and nameplate

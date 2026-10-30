@@ -922,12 +922,12 @@ parts(
 parts(
 	"plot_sign_legs",
 	"gojo",
-	16,
+	24,
 	"off",
 	"Plots",
-	{ "^SignLeg_%d$" },
+	{ "^SignLeg_%d$", "^SignRail$" },
 	"off",
-	"two short legs under the sign, in the plot front"
+	"the sign's cradle and its two short stubs, in the plot front"
 )
 parts(
 	"plot_lock_barrier",
