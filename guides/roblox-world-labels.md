@@ -101,6 +101,7 @@ A stud or hybrid tag grows without bound as the camera comes closer. Cap it: com
 - `StudsOffsetWorldSpace` for "above this object", `StudsOffset` only for camera-relative pops.
 - Text: Fredoka/Nunito bold, an Ink `UIStroke` (2 to 3 px) round white text, `TextScaled` with a `UITextSizeConstraint` (max) so a long name shrinks instead of overflowing.
 - SurfaceGui `PixelsPerStud` 40 to 80. Keep the canvas (part size × PixelsPerStud) under 1024 px per side; more only costs memory.
+- Boards with rows or cards on a face (Steal a Slime's Hall of Fame boards and Upcoming Events board) take their padding from one table, `visuals/shared/BoardFace.CHROME` (canvas px). Build rows with `BoardFace.row` so the server's and the client's rows match.
 - One label per thing. If two labels can stand over the same spot (info tag and key card), let one hide the other.
 - Many tags in one view (a full plot of slimes): test overlap and hide the farther one (SlimeInfoCard `overlapSlack`).
 
@@ -146,6 +147,7 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 | Shop stand signs | `visuals/shared/Props.standSign` | SG, 80 ppS | 300 | no |
 | Hall arch banner | `visuals/shared/Props.hallArch` | SG, 40 ppS | 300 | no |
 | Leaderboard boards | `visuals/shared/Props.leaderboardBoard`, `ui/WorldLeaderboard` | SG, 40 ppS | 150 | no |
+| Upcoming Events board (on a leaderboard board) | `server/EventBoardView` | SG, 40 ppS (×1.05 model scale) | 150 | no |
 | Ritual rules sign | `server/RitualView` | SG 6×1.8, 50 ppS | 80 | no |
 | BONK / CHOMP popup | `ui/PvpEffects` | px 140×48 | 120 | no |
 | Fun FX text | `ui/PvpFunFx` | px 220×60 × scale | 150 | yes |

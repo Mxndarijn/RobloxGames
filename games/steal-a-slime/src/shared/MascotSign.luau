@@ -49,8 +49,9 @@ MascotSign.COLORS = table.freeze({
 -- Boxes { x, y, w, h } as fractions of the face (2:1), or of the mascot's square for its own pieces.
 MascotSign.BOX = table.freeze({
 	bar = table.freeze({ 0, 0.46, 1, 0.54 }),
-	title = table.freeze({ 0.04, 0.05, 0.92, 0.53 }), -- inside the bar
-	stats = table.freeze({ 0.06, 0.6, 0.88, 0.3 }), -- inside the bar
+	-- inside the bar: the title starts 6 px under the goo strip, 16 px in from the sides; 8 px under the stats
+	title = table.freeze({ 0.055, 0.18, 0.89, 0.43 }),
+	stats = table.freeze({ 0.055, 0.635, 0.89, 0.265 }),
 	mascot = table.freeze({ 0.3, 0.14, 0.4, 0.8 }), -- a circle (0.4 of the width = 0.8 of the height); the bar hides its lower half
 	eyes = table.freeze({ 0.35, 0.65 }), -- eye centres x, inside the mascot
 	eyeY = 0.24,

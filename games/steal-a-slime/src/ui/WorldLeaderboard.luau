@@ -20,13 +20,16 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Leaderboards = if Shared then require(Shared.Leaderboards) else require("../shared/Leaderboards")
+local Visuals = if script then (game:GetService("ReplicatedStorage") :: any).Visuals else nil
+local BoardFace = if Visuals then require(Visuals.BoardFace) else require("../visuals/shared/BoardFace")
 
 export type Row = { rank: number, name: string, value: string, isMe: boolean }
 
 local WorldLeaderboard = {}
 
-WorldLeaderboard.MAX_ROWS = 10
+WorldLeaderboard.MAX_ROWS = Config.LEADERBOARD_SIZE
 WorldLeaderboard.GUI_NAMES = table.freeze({ "Leaderboard" })
 local modelNames = { "Leaderboard" }
 for _, def in Leaderboards.BOARDS do
@@ -150,21 +153,6 @@ local function colors(): any
 	return COLORS
 end
 
-local function textLabel(parent: Instance, name: string, x: number, width: number, align: Enum.TextXAlignment)
-	local label = Instance.new("TextLabel")
-	label.Name = name
-	label.BackgroundTransparency = 1
-	label.Position = UDim2.fromScale(x, 0.1)
-	label.Size = UDim2.fromScale(width, 0.8)
-	label.Font = Enum.Font.FredokaOne
-	label.TextScaled = true
-	label.TextColor3 = colors().Text
-	label.TextXAlignment = align
-	label.TextTruncate = Enum.TextTruncate.AtEnd
-	label.Parent = parent
-	return label
-end
-
 -- Prefers the board's own "Rows" frame; ours (attribute OWN_ROWS) is only a
 -- fallback and is dropped once the real one replicates in.
 local OWN_ROWS = "UIRows"
@@ -197,33 +185,54 @@ local function rowsContainer(gui: SurfaceGui): Instance
 	frame:SetAttribute(OWN_ROWS, true)
 	local list = Instance.new("UIListLayout")
 	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.Padding = UDim.new(0.01, 0)
+	list.Padding = UDim.new(0, BoardFace.CHROME.rowGap)
 	list.Parent = frame
 	frame.Parent = gui
 	return frame
 end
 
+-- Rows this client built (attribute OWN_ROW), as opposed to the server's (Props.fillLeaderboard).
+WorldLeaderboard.OWN_ROW = "ClientRow"
+
+-- Row_<k> of `container`: the server's row when it has one (any row of ours by that name is dropped, so no rank
+-- shows twice), else ours, else a new one of ours. Every row comes from BoardFace.row, so they all look the same.
 local function ensureRow(container: Instance, k: number): Frame
 	local name = `Row_{k}`
-	local row = container:FindFirstChild(name)
-	if row and row:IsA("Frame") and row:FindFirstChild("Value") then
-		return row
+	local server: Frame?, own: Frame? = nil, nil
+	for _, child in container:GetChildren() do
+		if child.Name ~= name then
+			continue
+		end
+		if not (child:IsA("Frame") and child:FindFirstChild("Value")) then
+			-- incomplete: ours goes, a server row still arriving stays hidden until it has its labels
+			if child:GetAttribute(WorldLeaderboard.OWN_ROW) then
+				child:Destroy()
+			elseif child:IsA("GuiObject") then
+				child.Visible = false
+			end
+		elseif child:GetAttribute(WorldLeaderboard.OWN_ROW) then
+			if own then
+				child:Destroy()
+			else
+				own = child :: Frame
+			end
+		elseif server then
+			child:Destroy()
+		else
+			server = child :: Frame
+		end
 	end
-	if row then
-		row:Destroy()
+	if server then
+		if own then
+			own:Destroy()
+		end
+		return server
 	end
-	local frame = Instance.new("Frame")
-	frame.Name = name
-	frame.LayoutOrder = k
-	frame.BorderSizePixel = 0
-	frame.BackgroundColor3 = colors().RowAlt
-	frame.Size = UDim2.fromScale(1, 1 / WorldLeaderboard.MAX_ROWS - 0.01)
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0.3, 0)
-	corner.Parent = frame
-	textLabel(frame, "Rank", 0.02, 0.13, Enum.TextXAlignment.Left)
-	textLabel(frame, "Name", 0.17, 0.5, Enum.TextXAlignment.Left)
-	textLabel(frame, "Value", 0.68, 0.3, Enum.TextXAlignment.Right).TextColor3 = colors().Value
+	if own then
+		return own
+	end
+	local frame = BoardFace.row(k, WorldLeaderboard.MAX_ROWS, WorldLeaderboard.PALETTE)
+	frame:SetAttribute(WorldLeaderboard.OWN_ROW, true)
 	frame.Parent = container
 	return frame
 end
@@ -232,10 +241,11 @@ function WorldLeaderboard.render(gui: SurfaceGui, rows: { Row })
 	local container = rowsContainer(gui)
 	local shown = math.max(#rows, 1) -- row 1 doubles as the "no entries" line
 	for k = 1, WorldLeaderboard.MAX_ROWS do
-		local existing = container:FindFirstChild(`Row_{k}`)
 		if k > shown then
-			if existing and existing:IsA("GuiObject") then
-				existing.Visible = false
+			for _, child in container:GetChildren() do
+				if child.Name == `Row_{k}` and child:IsA("GuiObject") then
+					child.Visible = false
+				end
 			end
 			continue
 		end
@@ -349,11 +359,33 @@ function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
 			end
 		end)
 		-- Deferred so a freshly streamed-in board's own Rows frame can arrive first.
-		task.defer(function()
-			local stat = bound[inst]
-			if stat then
-				WorldLeaderboard.render(inst, latest[stat] or {})
-				showYou(inst, stat)
+		local pending = false
+		local function redraw()
+			if pending then
+				return
+			end
+			pending = true
+			task.defer(function()
+				pending = false
+				local stat = bound[inst]
+				if stat then
+					WorldLeaderboard.render(inst, latest[stat] or {})
+					showYou(inst, stat)
+				end
+			end)
+		end
+		redraw()
+		-- A server row that arrives after ours replaces ours (ensureRow), so no rank shows twice.
+		-- Also when a server row's Value label lands after the row itself (ensureRow hid it until then).
+		inst.DescendantAdded:Connect(function(d)
+			local row = if d.Name == "Value" then d.Parent else d
+			if
+				row
+				and row:IsA("Frame")
+				and string.match(row.Name, "^Row_%d+$")
+				and not row:GetAttribute(WorldLeaderboard.OWN_ROW)
+			then
+				redraw()
 			end
 		end)
 	end
