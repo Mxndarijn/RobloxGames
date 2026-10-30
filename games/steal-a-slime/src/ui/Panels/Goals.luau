@@ -61,9 +61,9 @@ local TOP = table.freeze({
 -- Section order in the list: quests, then goals.
 local ORDER = table.freeze({ questHeader = -100, daily = -95, quest = -90, claimedQuest = -60, goalHeader = -10 })
 
--- What a row's right slot says (Layout.ROW_SLOT).
-GoalsPanel.DONE = "✅ Done"
-GoalsPanel.CLAIMED = "✅ Claimed"
+-- What a row's right slot says (Layout.ROW_SLOT); Done and Claimed sit beside the game's check.
+GoalsPanel.DONE = "Done"
+GoalsPanel.CLAIMED = "Claimed"
 GoalsPanel.DAILY_TITLE = "Daily reward"
 GoalsPanel.DAILY_OPEN = "Open"
 
@@ -175,10 +175,11 @@ local function paintRow(row: any, name: string, done: boolean, fraction: number,
 end
 
 -- The right slot's well: the reward in gold, Done / Claimed in green, hidden behind a Claim.
-local function setSlot(row: any, text: string?, color: Color3)
+local function setSlot(row: any, text: string?, color: Color3, check: boolean?)
 	row.reward.Visible = text ~= nil
 	row.reward.Text = text or ""
 	row.reward.TextColor3 = color
+	Widgets.setStatusCheck(row.reward, check == true)
 end
 
 function GoalsPanel.new(parent: Instance, ctx: any)
@@ -235,7 +236,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	end, function(row: any, g: Goals.Goal)
 		paintRow(row, g.title, g.done, g.fraction, g.meta or g.detail, g.nextShort)
 		if g.done then
-			setSlot(row, GoalsPanel.DONE, Theme.Good)
+			setSlot(row, GoalsPanel.DONE, Theme.Good, true)
 		else
 			setSlot(row, g.reward, Theme.Gold)
 		end
@@ -279,7 +280,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		row.claim.instance.Visible = claimable
 		row.claim.setText(GoalsPanel.claimText(q.reward, q.boost))
 		if q.claimed then
-			setSlot(row, GoalsPanel.CLAIMED, Theme.Good)
+			setSlot(row, GoalsPanel.CLAIMED, Theme.Good, true)
 		else
 			setSlot(row, if claimable then nil else q.reward, Theme.Gold)
 		end

@@ -45,6 +45,7 @@ local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local Types = require(Shared:WaitForChild("Types"))
 
 local AdminMenu = require(script.AdminMenu)
+local CashFly = require(script.CashFly)
 local DexJarView = require(script.DexJarView)
 local ExclusiveShopView = require(script.ExclusiveShopView)
 local Format = require(script.Format)
@@ -360,6 +361,21 @@ local ctx: { [string]: any } = {
 }
 
 local hud = Hud.new(gui, ctx)
+
+-- Reduced Motion: Roblox's own setting or the game's (the LocalPlayer attribute HabitatFx reads too).
+local function reducedMotion(): boolean
+	return (GuiService :: any).ReducedMotionEnabled == true
+		or player:GetAttribute(Config.HABITAT_ANIM.REDUCED_ATTRIBUTE) == true
+end
+
+-- Cash changes: coins fly into the money plate and +/- amounts stack above its number.
+local cashFly = CashFly.new({
+	playerGui = gui.Parent :: Instance,
+	displayOrder = gui.DisplayOrder,
+	anchors = hud.cashAnchors,
+	setShownCash = hud.setShownCash,
+	reducedMotion = reducedMotion,
+})
 -- S3 hotbar + inventory panel (replaces the default Roblox backpack bar).
 InventoryTools.hideDefaultBackpack()
 local inventory = Inventory.new(gui, {
@@ -683,6 +699,7 @@ local function syncTutorial()
 	-- The top notices (banners, boss card, thief arrow) step aside for the same overlays, so none covers a card.
 	local noticesHidden = not MenuState.noticesVisible(openKey, dailyPopup.isOpen(), inventory.panelOpen())
 	hud.setMenuOpen(noticesHidden)
+	cashFly.setMenuOpen(noticesHidden)
 	bossMeter.setMenuOpen(noticesHidden)
 	stealFx.setMenuOpen(noticesHidden)
 	-- Visuals' edge arrows and the Your plot tag step aside while a menu, a popup or the bag covers the screen.
@@ -797,12 +814,6 @@ local function refreshMuteBadge()
 end
 refreshMuteBadge()
 settings.onChanged(refreshMuteBadge)
-
--- Reduced Motion: Roblox's own setting or the game's (the LocalPlayer attribute HabitatFx reads too).
-local function reducedMotion(): boolean
-	return (GuiService :: any).ReducedMotionEnabled == true
-		or player:GetAttribute(Config.HABITAT_ANIM.REDUCED_ATTRIBUTE) == true
-end
 
 for _, entry in panels do
 	local navEntry = entry.nav :: Nav.Entry
@@ -1237,6 +1248,7 @@ function applyLayout()
 	local s = Layout.screen(size.X, size.Y, { touch = touchControls.shown() })
 	screen = s
 	hud.layout(s)
+	cashFly.layout(s)
 	inventory.layout(s, GuiService:GetGuiInset())
 	-- The thief arrow keeps under the whole top stack: the banners and, during a boss, the boss card.
 	stealFx.layout(s, function(): number
@@ -1421,6 +1433,7 @@ local function render(realState: Types.State)
 		SoundController.setBoss(require(script.SoundCues).bossMusic(realState))
 	end
 	hud.update(state)
+	cashFly.update(realState)
 	updateAdminMenu(state)
 	inventory.update(state)
 	slimeKeys.update(state)
@@ -1587,6 +1600,7 @@ task.spawn(function()
 			guardedTick("hud", function()
 				hud.tick(now)
 			end)
+			guardedTick("cashFly", cashFly.tick)
 			guardedTick("tutorial", function()
 				local finished = tutorial.finishedShowing()
 				tutorial.tick(now)

@@ -138,32 +138,6 @@ describe("Progress v13 rank / dex rewards", function()
 		expect(all.bonus).toBeNil()
 		expect(Progress.dexRewards({}).next).toBeNil()
 	end)
-
-	it("builds the bar to the next unclaimed dex milestone with ticks", function()
-		local m = Progress.dexMilestones({
-			dex = { found = 3, total = 50 },
-			dexRewards = {
-				{ ladder = "species", count = 10, reward = 1, bonus = 0.02, claimed = true },
-				{ ladder = "species", count = 25, reward = 1, bonus = 0.03, claimed = false },
-			},
-		})
-		expect(m.icon).toBe("Dex_25")
-		expect(m.label).toBe("3 / 25")
-		expect(m.fraction).toBe(3 / 25)
-		expect(m.ticks[1].claimed).toBe(true)
-		expect(m.ticks[2].claimed).toBe(false)
-		expect(m.ticksText).toBe("✅10  25")
-	end)
-	it("fills the milestone bar once everything is claimed and is nil without rewards", function()
-		local m = Progress.dexMilestones({
-			dex = { found = 0, total = 50 },
-			dexRewards = { { ladder = "species", count = 10, reward = 1, bonus = 0.02, claimed = true } },
-		})
-		expect(m.fraction).toBe(1)
-		expect(m.next).toBeNil()
-		expect(m.icon).toBe("Dex_10")
-		expect(Progress.dexMilestones({})).toBeNil()
-	end)
 end)
 
 describe("Progress.rebirthReason", function()

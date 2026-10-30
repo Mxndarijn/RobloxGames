@@ -336,7 +336,8 @@ export type Slot = {
 	kind: "buy" | "status" | "stamp", -- hold-to-buy button, sunken state well, or the small gold MAX stamp
 	text: string,
 	sub: string?, -- small second line of a status well
-	good: boolean?, -- status text in the buy green ("✅ Owned")
+	good: boolean?, -- status text in the buy green ("Owned")
+	check: boolean?, -- the game's check left of the text (Widgets.setStatusCheck)
 }
 
 -- What a row shows on its right: the Buy button while it can be bought (disabled when you can't afford it),
@@ -348,7 +349,7 @@ function WorldShopLogic.slot(r: { status: Status, buttonText: string }): Slot
 	elseif status == "maxed" then
 		return { kind = "stamp", text = "Max" }
 	elseif status == "owned" then
-		return { kind = "status", text = "✅ Owned", good = true }
+		return { kind = "status", text = "Owned", good = true, check = true }
 	elseif status == "locked" then
 		return { kind = "status", text = `🔒 {r.buttonText}`, sub = "to unlock" }
 	end

@@ -68,7 +68,6 @@ Rebirth.CARD = table.freeze({
 	barH = 12,
 	rightW = 112, -- the chip or tick at the row's right end
 	tick = 32,
-	tickSize = 26,
 	chipH = 28,
 	stateSize = 15,
 	badge = 40,
@@ -264,20 +263,14 @@ function Rebirth.new(parent: Instance, ctx: any)
 		return Widgets.label(props)
 	end
 
-	-- The check mark emoji at a met row's right end.
-	local function tick(parentRow: Instance): TextLabel
-		local t = text({
-			Name = "Tick",
-			Text = "✅",
-			TextSize = C.tickSize,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -C.pad, 0.5, 0),
-			Size = UDim2.fromOffset(C.tick, C.tick),
-			Parent = parentRow,
-		})
-		Widgets.centreEmoji(t)
-		return t
+	-- The game's check (Widgets.check) at a met row's right end, built the first time the row is met.
+	local TICK = table.freeze({
+		Name = "Tick",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -C.pad, 0.5, 0),
+	})
+	local function setTick(parentRow: Instance, met: boolean)
+		Widgets.showCheck(parentRow, met, C.tick, TICK)
 	end
 
 	-- A state chip at a row's right end ("Missing", what you have).
@@ -445,7 +438,6 @@ function Rebirth.new(parent: Instance, ctx: any)
 	local have = stateChip(cashRow)
 	have.Name = "Have"
 	have.TextColor3 = Theme.Gold
-	local cashTick = tick(cashRow)
 
 	-- A slime row: the slime (greyed out while you don't have it), its name, a line on what happens to it,
 	-- and Missing or a tick. The first is built now, the others the first time a rebirth needs them.
@@ -456,7 +448,6 @@ function Rebirth.new(parent: Instance, ctx: any)
 		name: TextLabel,
 		desc: TextLabel,
 		state: TextLabel,
-		tick: TextLabel,
 	}
 	local slimeRows: { SlimeRow } = {}
 	local function slimeRow(i: number): SlimeRow
@@ -504,7 +495,6 @@ function Rebirth.new(parent: Instance, ctx: any)
 			name = name,
 			desc = desc,
 			state = state,
-			tick = tick(frame),
 		}
 		return slimeRows[i]
 	end
@@ -573,7 +563,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		row.name.TextColor3 = if slime.owned then Theme.Text else Theme.Muted
 		row.desc.Text = if slime.owned then COPY.usedUp else COPY.getOne
 		row.state.Visible = not slime.owned
-		row.tick.Visible = slime.owned
+		setTick(row.frame, slime.owned)
 		showSlime(row, slime)
 	end
 
@@ -781,7 +771,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		setBar(nextUp.fraction)
 		have.Text = Format.formatCash(nextUp.have)
 		have.Visible = not cashMet
-		cashTick.Visible = cashMet
+		setTick(cashRow, cashMet)
 
 		for i = 1, math.max(#needs, #slimeRows) do
 			local slime = needs[i]

@@ -29,6 +29,12 @@ for i, rarity in Config.RARITIES do
 	RARITY_NAMES[i] = rarity.name
 end
 
+-- A Rebirth row's check is built the first time the row is met, so a row that never was has none.
+local function tickShown(row: any): boolean
+	local tick = row:FindFirstChild("Tick")
+	return tick ~= nil and tick.Visible
+end
+
 local function has(text: string, needle: string): boolean
 	return string.find(text, needle, 1, true) ~= nil
 end
@@ -213,7 +219,7 @@ describe("v28 item 4: Rebirth shows only the next rebirth", function()
 		expect(costLabel.TextColor3).toBe(Theme.Muted) -- can't pay it yet
 		local cashRow = UiHarness.find(panel.frame, "Need")
 		expect(UiHarness.find(cashRow, "Have").Visible).toBe(true)
-		expect(UiHarness.find(cashRow, "Tick").Visible).toBe(false)
+		expect(tickShown(cashRow)).toBe(false)
 		expect(UiHarness.find(panel.frame, "Count").Text).toBe("0 of 1 ready")
 		-- Not ready: no button, a sunken well with what is missing.
 		local button = UiHarness.find(panel.frame, "RebirthButton")
@@ -225,7 +231,7 @@ describe("v28 item 4: Rebirth shows only the next rebirth", function()
 		panel.update(rebirthState(0, cost))
 		expect(costLabel.TextColor3).toBe(Theme.Gold)
 		expect(UiHarness.find(cashRow, "Have").Visible).toBe(false)
-		expect(UiHarness.find(cashRow, "Tick").Visible).toBe(true)
+		expect(tickShown(cashRow)).toBe(true)
 		expect(UiHarness.find(panel.frame, "Count").Text).toBe("1 of 1 ready")
 		expect(reason.Visible).toBe(false)
 		expect(button.Visible).toBe(true)
@@ -343,7 +349,7 @@ describe("Rebirth needs specific slimes and uses them up", function()
 		local stamp = UiHarness.find(row, "SlimeState")
 		expect(stamp.Visible).toBe(true)
 		expect(stamp.Text).toBe("Missing")
-		expect(UiHarness.find(row, "Tick").Visible).toBe(false)
+		expect(tickShown(row)).toBe(false)
 		expect(UiHarness.find(row, "SlimeDesc").Text).toBe("Catch or merge one")
 		expect(UiHarness.find(panel.frame, "Count").Text).toBe("1 of 2 ready")
 		-- greyed out, not the black silhouette: the preview body is the grey tint
@@ -357,7 +363,7 @@ describe("Rebirth needs specific slimes and uses them up", function()
 		expect(reason.Text).toBe("Need a Sprout Slime")
 		panel.update(stateWith(true, 1e9))
 		expect(stamp.Visible).toBe(false)
-		expect(UiHarness.find(row, "Tick").Visible).toBe(true)
+		expect(tickShown(row)).toBe(true)
 		expect(UiHarness.find(row, "SlimeDesc").Text).toBe("Used up on rebirth")
 		expect(UiHarness.find(panel.frame, "Count").Text).toBe("2 of 2 ready")
 		expect(preview.ImageTransparency).toBe(0)
