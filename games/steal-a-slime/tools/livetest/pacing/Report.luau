@@ -402,6 +402,44 @@ local function victimTable(lines: { string }, groups: { [string]: { Record } }, 
 	end
 end
 
+-- Goo Gauntlet runs and shines per profile: how much of the online time the obby boost was on, what the runs
+-- took, and how many shining slimes a player owned on average.
+local function boostTable(lines: { string }, groups: { [string]: { Record } }, names: { string })
+	table.insert(lines, "## Obby boost and shines (per player, online time)")
+	table.insert(lines, "")
+	table.insert(
+		lines,
+		"| profile | players | obby runs | boosts | time on the course | boost on | mean income x from the obby | shining slimes owned (mean) |"
+	)
+	table.insert(lines, "|---|---|---|---|---|---|---|---|")
+	for _, name in names do
+		local list = groups[name]
+		local n = #list
+		local runs, boosts, course, boosted, shine, online = 0, 0, 0, 0, 0, 0
+		for _, r in list do
+			local st = r.stats
+			runs += st.obbyRuns
+			boosts += st.obbyBoosts
+			course += st.obbyRunSeconds
+			boosted += st.boostedSeconds
+			shine += st.shineSeconds
+			online += st.lockedSeconds + st.unlockedSeconds
+		end
+		local share = ratio(boosted, online)
+		table.insert(
+			lines,
+			`| {name} | {n} | {string.format("%.0f", runs / n)} | {string.format("%.0f", boosts / n)} | {string.format(
+				"%.1f%%",
+				ratio(course, online) * 100
+			)} | {string.format("%.1f%%", share * 100)} | {string.format("%.3f", 1 + Config.OBBY.BONUS * share)} | {string.format(
+				"%.2f",
+				ratio(shine, online)
+			)} |`
+		)
+	end
+	table.insert(lines, "")
+end
+
 function Report.markdown(records: { Record }, meta: Meta): string
 	local groups = byProfile(records)
 	local names = profilesIn(groups)
@@ -555,6 +593,7 @@ function Report.markdown(records: { Record }, meta: Meta): string
 	tripTable(lines, groups, names)
 	table.insert(lines, "")
 	flipTable(lines, groups, names)
+	boostTable(lines, groups, names)
 	table.insert(lines, "## Victims and locks")
 	table.insert(lines, "")
 	victimTable(lines, groups, names)
