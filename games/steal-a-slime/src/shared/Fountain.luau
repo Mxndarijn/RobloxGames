@@ -41,6 +41,17 @@ function Fountain.inRingBand(r: number): boolean
 	return r > Fountain.RING_BAND_INNER - Fountain.SLIME_RADIUS and r < Fountain.MIN_RADIUS
 end
 
+Fountain.UP_ON_HEIGHT = 3 -- studs over the plaza floor (y 0) a spot inside RING_BAND_INNER is up on the fountain
+
+--[[
+	Whether a spot (x, y, z: its feet) is up on the fountain or its slide, inside RING_BAND_INNER and more than
+	UP_ON_HEIGHT over the plaza floor. A slime dropped up there has no way down to walk (the dome, the slide head and
+	the slide's railed trough): it pops back onto the lane (contract/slime-walk.md). Under the slide is not up on it.
+]]
+function Fountain.upOn(x: number, y: number, z: number): boolean
+	return x * x + z * z < Fountain.RING_BAND_INNER * Fountain.RING_BAND_INNER and y > Fountain.UP_ON_HEIGHT
+end
+
 -- (x, z) moved straight out from the axis to MIN_RADIUS when it sits in the ring band.
 function Fountain.clearOfRing(x: number, z: number): (number, number)
 	local r = math.sqrt(x * x + z * z)

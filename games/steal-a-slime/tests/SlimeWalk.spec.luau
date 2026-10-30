@@ -184,6 +184,18 @@ describe("Carry.release + Spawner: a dropped wild slime walks back and rejoins t
 		expect(entry.state).toBe("Wild")
 		expect(entry.promptEnabled).toBe(true)
 	end)
+	it("a long walk back (its lane times far ahead) never hides the slime", function()
+		local world, id = carried()
+		local x, z = offLane(10, 15) -- near the lane's start: its lane slot comes early in its lifetime
+		Carry.release(world, 1, T0 + 25, spot(x, z), "drop")
+		local wild = world.wild[id]
+		local plan = wild.returning
+		-- a very long way round (down the whole slide, say)
+		local far = { plan.fromX + 150, plan.fromZ, plan.fromX + 150, plan.fromZ + 150, plan.fromX, plan.fromZ + 150 }
+		expect(Carry.replan(world, id, plan.startAt, far, T0 + 25.2)).toBe(true)
+		expect(wild.spawnedAt > T0 + 26).toBe(true) -- its lane times start after now
+		expect(Scene.describe(world, T0 + 26)[id] ~= nil).toBe(true)
+	end)
 	it("while it walks it is off the lane; at arriveAt Spawner puts it back on and it walks on from there", function()
 		local world, id = carried()
 		local x, z = offLane(ParadeLane.LENGTH / 3, 15)
@@ -254,7 +266,7 @@ describe("Carry.release + Spawner: a dropped wild slime walks back and rejoins t
 	end)
 end)
 
--- The walk back along the server's path (ParadeLane.reroute / Carry.reroute).
+-- The walk back along the server's path (ParadeLane.reroute / walkedRoute, Carry.replan / pop).
 local LATERAL = 0.5
 
 local function carried()
@@ -330,37 +342,116 @@ describe("ParadeLane.reroute: the walk back along the server's path", function()
 	end)
 end)
 
-describe("Carry.reroute: the server's path swapped into a dropped slime's walk", function()
-	it("Carry.reroute swaps the walk in once, and its lane times follow the longer walk", function()
+-- Appends `extra` to `prefix` (both flat x, z lists).
+local function join(prefix: { number }, extra: { number }): { number }
+	local out = table.clone(prefix)
+	table.move(extra, 1, #extra, #out + 1, out)
+	return out
+end
+
+describe("ParadeLane.walkedRoute: a new route carries on from where it is", function()
+	it("is empty before the first step", function()
+		local plan = planned()
+		local walked, left = ParadeLane.walkedRoute(plan, plan.startAt)
+		expect(#walked).toBe(0)
+		expect(left).toBeCloseTo(plan.length, 1e-9)
+	end)
+	it("ends on the spot it is on, so a replan never makes it jump (straight walk and routed walk)", function()
+		local plan = planned()
+		for _, walk in { plan, ParadeLane.reroute(plan, detour(plan)) } do
+			for _, share in { 0.1, 0.4, 0.8, 0.97 } do
+				local now = walk.startAt + (walk.arriveAt - walk.startAt) * share
+				local walked, left = ParadeLane.walkedRoute(walk, now)
+				local x, z = ParadeLane.returnPose(walk, now)
+				expect(hdist(walked[#walked - 1], walked[#walked], x, z) < 1e-3).toBe(true)
+				-- a sideways detour from here on: the spot at `now` stays put
+				local hx, hz = -(walk.z1 - z), walk.x1 - x
+				local d = math.sqrt(hx * hx + hz * hz)
+				local replanned = ParadeLane.reroute(walk, join(walked, { x + hx / d * 8, z + hz / d * 8 }))
+				local nx, nz = ParadeLane.returnPose(replanned, now)
+				expect(hdist(nx, nz, x, z) < 0.05).toBe(true)
+				local travelled = ParadeLane.returnTravelled(now - walk.startAt, walk.speed)
+				expect(left).toBeCloseTo(walk.length - travelled, 1e-6)
+			end
+		end
+	end)
+end)
+
+describe("Carry.replan: a new path swapped into a dropped slime's walk", function()
+	it("swaps the walk in at any time, again and again, and its lane times follow the new length", function()
 		local world, id = carried()
 		local x, z = offLane(ParadeLane.LENGTH / 3, 30)
 		Carry.release(world, 1, T0 + 25, spot(x, z), "drop")
 		local wild = world.wild[id]
 		local plan = wild.returning
-		expect(Carry.reroute(world, id, plan.startAt, detour(plan), T0 + 25.2)).toBe(true)
+		expect(Carry.replan(world, id, plan.startAt, detour(plan), T0 + 25.2)).toBe(true)
 		local walk = wild.returning
 		expect(walk.route ~= nil and walk.arriveAt > plan.arriveAt).toBe(true)
 		expect(wild.expiresAt - wild.spawnedAt).toBeCloseTo(Fountain.wildLifetime(wild.slime), 1e-9)
 		expect(ParadeLane.distance(wild.spawnedAt, wild.expiresAt, walk.arriveAt)).toBeCloseTo(walk.s, 1e-6)
-		expect(Carry.reroute(world, id, plan.startAt, detour(plan), T0 + 25.3)).toBe(false)
-		Spawner.step(world, plan.arriveAt + 0.01)
-		expect(wild.returning).toBe(walk) -- still on its longer path
-		Spawner.step(world, walk.arriveAt)
+		-- halfway, something gets in its way: a new path from where it is
+		local now = (walk.startAt + walk.arriveAt) / 2
+		local walked = ParadeLane.walkedRoute(walk, now)
+		local bx, bz = ParadeLane.returnPose(walk, now)
+		expect(Carry.replan(world, id, plan.startAt, join(walked, { bx + 10, bz + 10 }), now)).toBe(true)
+		local again = wild.returning
+		local ax, az = ParadeLane.returnPose(again, now)
+		expect(hdist(ax, az, bx, bz) < 0.05).toBe(true)
+		Spawner.step(world, again.arriveAt)
 		expect(wild.returning).toBe(nil)
 		expect(ParadeLane.onLane(wild, false)).toBe(true)
 	end)
-	it("Carry.reroute ignores a stale path: another walk, well under way, grabbed again, or gone", function()
+	it("ignores a stale path: another walk, arrived, grabbed again, or gone", function()
 		local world, id = carried()
 		local x, z = offLane(ParadeLane.LENGTH / 3, 30)
 		Carry.release(world, 1, T0 + 25, spot(x, z), "drop")
 		local plan = world.wild[id].returning
 		local path = detour(plan)
-		expect(Carry.reroute(world, id, plan.startAt - 1, path, T0 + 25.2)).toBe(false)
-		expect(Carry.reroute(world, id, plan.startAt, path, plan.startAt + ParadeLane.REROUTE_GRACE + 0.01)).toBe(false)
+		expect(Carry.replan(world, id, plan.startAt - 1, path, T0 + 25.2)).toBe(false)
+		expect(Carry.replan(world, id, plan.startAt, path, plan.arriveAt)).toBe(false)
+		expect(Carry.replan(world, id, plan.startAt, {}, T0 + 25.2)).toBe(false)
 		expect(world.wild[id].returning).toBe(plan)
 		ServerFixtures.join(world, 2, nil, 0)
 		expect((Carry.grab(world, 2, id, 3, T0 + 25.3))).toBe(true)
-		expect(Carry.reroute(world, id, plan.startAt, path, T0 + 25.4)).toBe(false)
-		expect(Carry.reroute(world, "nobody", plan.startAt, path, T0 + 25.4)).toBe(false)
+		expect(Carry.replan(world, id, plan.startAt, path, T0 + 25.4)).toBe(false)
+		expect(Carry.replan(world, "nobody", plan.startAt, path, T0 + 25.4)).toBe(false)
+	end)
+end)
+
+describe("Carry.pop: a slime with no way back is on the lane at once", function()
+	it("ends the walk and puts it on its merge point now, keeping its lifetime", function()
+		local world, id = carried()
+		local x, z = offLane(ParadeLane.LENGTH / 3, 30)
+		Carry.release(world, 1, T0 + 25, spot(x, z), "drop")
+		local wild = world.wild[id]
+		local plan = wild.returning
+		local now = T0 + 26
+		expect(Carry.pop(world, id, plan.startAt, now)).toBe(true)
+		expect(wild.returning).toBe(nil)
+		expect(ParadeLane.onLane(wild, false)).toBe(true)
+		expect(ParadeLane.distance(wild.spawnedAt, wild.expiresAt, now)).toBeCloseTo(plan.s, 1e-6)
+		expect(wild.expiresAt - wild.spawnedAt).toBeCloseTo(Fountain.wildLifetime(wild.slime), 1e-9)
+		expect(Carry.pop(world, id, plan.startAt, now)).toBe(false) -- once
+	end)
+	it("never pops a carried slime or another walk", function()
+		local world, id = carried()
+		local x, z = offLane(ParadeLane.LENGTH / 3, 30)
+		Carry.release(world, 1, T0 + 25, spot(x, z), "drop")
+		local plan = world.wild[id].returning
+		expect(Carry.pop(world, id, plan.startAt - 1, T0 + 26)).toBe(false)
+		ServerFixtures.join(world, 2, nil, 0)
+		expect((Carry.grab(world, 2, id, 3, T0 + 25.3))).toBe(true)
+		expect(Carry.pop(world, id, plan.startAt, T0 + 26)).toBe(false)
+	end)
+end)
+
+describe("Fountain.upOn: dropped up on the fountain, a slime pops back onto the lane", function()
+	it("is up on the dome, the crown and the slide, not on the plaza floor or under the slide", function()
+		expect(Fountain.upOn(0, 36, 10)).toBe(true) -- the dome
+		expect(Fountain.upOn(3, 47, 3)).toBe(true) -- the crown
+		expect(Fountain.upOn(-9, 14, 14)).toBe(true) -- on the slide
+		expect(Fountain.upOn(-9.4, 0, 14.1)).toBe(false) -- under the slide
+		expect(Fountain.upOn(-18, 0.3, 18)).toBe(false) -- the plaza
+		expect(Fountain.upOn(99, 30, 99)).toBe(false) -- a jar roof: it walks off that
 	end)
 end)

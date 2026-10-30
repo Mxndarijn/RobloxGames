@@ -34,26 +34,46 @@ When a carry of a wild slime ends (`Carry.release`: the carrier drops it, is sla
    `server/WalkHeight` each Heartbeat, over the ground the adapter's ray finds under that spot (from
    `WalkHeight.STEP_UP` above it down to `RAY_DEPTH` below): ground up to `STEP_DOWN` lower, or higher, is a step it
    eases onto; ground further down is a ledge (off the fountain, a jar roof) that it falls off with `GRAVITY` while
-   it keeps walking, and lands on; with no ground at all it keeps its height. Over its last lane width the ground
-   eases onto `LANE_Y`.
+   it keeps walking, and lands on; with no ground at all it keeps its height. A step up under its front (one body
+   radius ahead) counts already, so its body doesn't clip the step's edge; a drop under its front does not. Over
+   its last lane width the ground eases onto `LANE_Y`.
 4. `Spawner.step` ends the walk at `arriveAt`: `wild.position` and `wild.returning` go back to nil, the slime is on
    the lane again and walks on from the merge point at the same pace (no jump: the lane pose at `arriveAt` is the
    plan's end point).
 5. It stays grabbable the whole way (`Grab` / `Buy $` prompt, `Carry.grab` ends the walk).
-6. It walks round things, not through them. While it falls, the server (`WorldView.routeHome`) finds its path from
-   the landing spot to the nearest lane point and swaps it in with `Carry.reroute(world, id, startAt, route, now)`:
+6. It walks round things, not through them. While it falls, the server (`WorldView.routeHome` / `planWalk`) finds
+   its route from the landing spot to the nearest lane point and swaps it in with
+   `Carry.replan(world, id, startAt, route, now)`:
    - Dropped on an upper jar floor: `JarRoute.down` (pure, from WorldLayout) walks it round the deck on
      `DECK_RADIUS`, onto the top of the spiral stair, down it (`floor - 1` turns at `RAMP.walk`) and off at its
      foot on the ground floor. Roblox pathfinding can't use that stair (finer than its navmesh).
-   - From there, or from any other drop spot: `PathfindingService` (`WorldView.PATH_AGENT`) round walls and props,
-     out of the jar door and over the moat bridge. The lock barrier carries a pass-through `PathfindingModifier`,
-     so a shut door never blocks it.
+   - From there, or from any other drop spot, `WalkRoute.plan` (pure; the world through a probe):
+     1. `PathfindingService` with the agent sized to the slime (`WorldView.PATH_AGENT` at least; its radius, its
+        height plus a little, so no path under a table top it doesn't fit under) round walls and props, out of the
+        jar door and over the moat bridge. Taken only when every leg is clear: a body sweep (a sphere of
+        `CLEAR_SHARE` of its radius, from `CLEAR_LOW` over its feet, so curbs don't count) hits nothing solid. A
+        path that cuts a corner gets one more search with the agent `PATH_WIDEN` wider. The agent can't jump, so a
+        path never hops over a rail. The lock barrier carries a pass-through `PathfindingModifier` and the sweep
+        ignores it, so a shut door never blocks it.
+     2. Off a roof or the fountain (no clear path from up there): a ledge in one of `WalkRoute.DIRECTIONS` within
+        `REACH`, walking down steps it can take on the way; it walks to the edge, drops off (`WalkHeight`) where the
+        fall carries it, and takes the path from where it lands. Landings on the ground beat landings on the slide
+        (`LOW_WEIGHT`); the walk to the edge and the fall past the edge's lip (`LIP`) are swept too.
+     3. No clear way back (boxed in), only one `WalkRoute.MAX_DETOUR` times the straight line or longer, or dropped up
+        on the fountain or its slide (`Fountain.upOn`: inside `RING_BAND_INNER`, over `UP_ON_HEIGHT`; the dome, the
+        slide head and the railed trough have no way down to walk; under the slide is fine): `Carry.pop` ends the walk and it is on the lane at once, at its merge point,
+        with a goo puff (`ParadeView.splash`) where it was and where it lands. At most `MAX_PATHS` engine searches
+        and `MAX_DROPS` ledges in a row.
+   - While it walks, every `GUARD_INTERVAL` it sweeps the next `GUARD_AHEAD` of its walk (not while it falls, not
+     over the last `GUARD_END` studs); something in the way (a trap, a wall, a door) gets a new route from where it
+     is the same way (then `GUARD_QUIET` before it looks again). One search per slime at a time.
    - `ParadeLane.reroute(plan, route)` keeps the start, `startAt`, pace and merge point; the slime walks the route
      (`route` / `routeLength` on the plan, facing `RETURN_LOOK` studs ahead), then the Bezier from the route's last
-     point onto the lane. `length` / `arriveAt` grow with the detour and `rejoin` re-runs, so it still lands on the
-     merge point exactly when the lane takes over.
-   - Only the walk planned at `startAt`, only once, and only up to `REROUTE_GRACE` after `startAt`; a carried slime
-     is never rerouted. No path found: it keeps the straight walk.
+     point onto the lane. `length` / `arriveAt` follow the new route and `rejoin` re-runs, so it still lands on the
+     merge point exactly when the lane takes over. A new route starts with the points already walked
+     (`ParadeLane.walkedRoute`), so it carries on from where it is, any time, as often as needed.
+   - Only the walk planned at `startAt`; a carried slime is never rerouted or popped. A long walk can put its lane
+     times after now (`rejoin`); `Scene` still shows it (only a drop waiting for its slide slot has no model).
 
 A drop spot without numeric `X` / `Z` (tests, a missing character), or more than `RETURN_MAX_GAP` studs from the lane
 (off the ground, over the void), keeps the old rule: it rests where it was put with

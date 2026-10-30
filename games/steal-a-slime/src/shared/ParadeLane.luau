@@ -120,7 +120,6 @@ ParadeLane.RETURN_EASE = 0.8 -- seconds to speed up from a stand to its lane pac
 ParadeLane.RETURN_MERGE = 8 -- studs past the nearest lane point where it merges onto the lane (at most half the walk)
 ParadeLane.RETURN_SAMPLES = 24 -- Bezier chords for its arc length
 ParadeLane.RETURN_LOOK = 3 -- studs ahead a slime on its route faces (turns ease round the waypoints)
-ParadeLane.REROUTE_GRACE = 0.5 -- seconds past startAt a route may still replace the straight walk (it has barely moved)
 -- Farther than this from the lane is off the map (the ground is 640 x 640 round the fountain, its corners ~385 studs
 -- from the lane): no walk, it goes back to its fountain spot like any drop over the void (CONTRACT.md §8.11).
 ParadeLane.RETURN_MAX_GAP = 400
@@ -818,6 +817,55 @@ function ParadeLane.reroute(plan: Return, path: { number }): Return
 	out.length = (out.routeLength :: number) + bezierLength(out)
 	out.arriveAt = out.startAt + walkSeconds(out.length, out.speed)
 	return out
+end
+
+--[[
+	The walk so far at `now`, as route points (flat x, z pairs from just after the start): the route points passed,
+	then the Bezier's chord points passed, then the spot it is on. A new route that starts with these points keeps
+	every spot up to `now` where it was (ParadeLane.reroute measures the same chords), so a replan never makes it
+	jump. Empty before it starts walking. The second result is how many studs are left.
+]]
+function ParadeLane.walkedRoute(plan: Return, now: number): ({ number }, number)
+	local want = ParadeLane.returnTravelled(now - plan.startAt, plan.speed)
+	local out: { number } = {}
+	if want <= 1e-6 then
+		return out, plan.length
+	end
+	want = math.min(want, plan.length)
+	local path = plan.route or {}
+	local walked = 0
+	local px, pz = plan.fromX, plan.fromZ
+	for i = 1, #path - 1, 2 do
+		local x, z = path[i], path[i + 1]
+		local chord = math.sqrt((x - px) ^ 2 + (z - pz) ^ 2)
+		if walked + chord >= want then
+			local k = if chord > 1e-9 then (want - walked) / chord else 0
+			table.insert(out, px + (x - px) * k)
+			table.insert(out, pz + (z - pz) * k)
+			return out, plan.length - want
+		end
+		table.insert(out, x)
+		table.insert(out, z)
+		walked += chord
+		px, pz = x, z
+	end
+	-- on the Bezier: its chord points up to the spot
+	for i = 1, ParadeLane.RETURN_SAMPLES do
+		local x, z = bezier(plan, i / ParadeLane.RETURN_SAMPLES)
+		local chord = math.sqrt((x - px) ^ 2 + (z - pz) ^ 2)
+		if walked + chord >= want then
+			-- the spot itself (returnPose's: on the curve, not on the chord)
+			local sx, sz = bezier(plan, bezierAt(plan, want - (plan.routeLength or 0)))
+			table.insert(out, sx)
+			table.insert(out, sz)
+			return out, plan.length - want
+		end
+		table.insert(out, x)
+		table.insert(out, z)
+		walked += chord
+		px, pz = x, z
+	end
+	return out, plan.length - want
 end
 
 -- Spot `want` studs into the walk (route leg, then the Bezier).
