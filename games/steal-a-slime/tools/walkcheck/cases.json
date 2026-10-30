@@ -1,0 +1,20 @@
+[
+  {"id": "open-lawn", "what": "Control: open lawn 20 studs off the lane, nothing in the way", "lane": 0.55, "out": 20},
+  {"id": "next-to-lane", "what": "2 studs past the lane edge", "lane": 0.6, "out": 7},
+  {"id": "behind-well", "what": "Behind the well, on the side away from the lane", "behind": "Map/Decor/Well", "gap": 3},
+  {"id": "behind-event-board", "what": "Behind the event board wall", "behind": "Map/EventBoard/Collider", "gap": 3},
+  {"id": "behind-shop-stand", "what": "Behind the item shop stand's back wall", "behind": "Map/ItemShopStand/Back", "gap": 3},
+  {"id": "behind-signpost", "what": "Behind the signpost", "behind": "Map/Plaza/Signpost", "gap": 3},
+  {"id": "behind-jar", "what": "Plot 3 (unowned) yard, behind the jar (far side from the lane)", "at": [184, 0], "top": 6},
+  {"id": "behind-plot", "what": "Behind plot 3 altogether, past its back edge", "at": [192, 0], "top": 6},
+  {"id": "plot-corner", "what": "Plot 3 back corner, beside the jar", "at": [172, -30], "top": 6},
+  {"id": "behind-picnic-table", "what": "Behind the picnic table", "behind": "Map/Decor/PicnicTable", "gap": 2},
+  {"id": "bridge", "what": "On plot 3's moat bridge", "at": [104, 0], "top": 6},
+  {"id": "fountain-dome", "what": "On top of the fountain dome", "at": [0, 10], "top": 80},
+  {"id": "fountain-crown", "what": "On the fountain crown, the highest spot", "at": [3, 3], "top": 80},
+  {"id": "plaza-ring", "what": "Plaza between the fountain and the landing curbs", "at": [-18, 18], "top": 6},
+  {"id": "under-slide", "what": "Under the slide trough", "at": [-9.4, 14.1], "top": 6},
+  {"id": "jar-roof", "what": "On top of plot 2's jar", "at": [99, 99], "top": 80},
+  {"id": "boxed-in", "what": "Inside four walls with no way out", "lane": 0.1, "out": 16, "box": 5},
+  {"id": "blocked-mid-walk", "what": "A wall appears 6 studs ahead 2 s after the drop", "lane": 0.35, "out": 22, "blockAt": 2.0}
+]
