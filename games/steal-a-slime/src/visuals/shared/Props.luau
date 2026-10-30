@@ -31,6 +31,7 @@
 	      Value labels), at most Props.LEADERBOARD_ROWS.
 ]]
 
+local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
 local Constants = if script then require(script.Parent.Parent.Shared.Constants) else require("../../shared/Constants")
 local Goo = if script then require(script.Parent.Parent.Shared.GooPalette) else require("../../shared/GooPalette")
 local GooIcons = if script then require(script.Parent.Parent.Shared.GooIcons) else require("../../shared/GooIcons")
@@ -42,7 +43,7 @@ local LabelFit = if script
 
 local Props = {}
 
-Props.LEADERBOARD_ROWS = BoardFace.ROWS
+Props.LEADERBOARD_ROWS = Config.LEADERBOARD_SIZE
 -- MaxDistance (studs) of the world labels built here (guides/roblox-world-labels.md).
 Props.NAME_TAG_DISTANCE = 60 -- NPC name tags (pixel-sized)
 Props.NAME_TAG_PHONE_DISTANCE = 40 -- the same on a phone-sized screen
@@ -1291,7 +1292,7 @@ function Props.fillLeaderboard(
 		if k > Props.LEADERBOARD_ROWS then
 			break
 		end
-		local row = BoardFace.row(k, Props.BOARD_PALETTE)
+		local row = BoardFace.row(k, Props.LEADERBOARD_ROWS, Props.BOARD_PALETTE)
 		local cells: { [string]: string } = {
 			Rank = `#{entry.rank}`,
 			Name = entry.name,

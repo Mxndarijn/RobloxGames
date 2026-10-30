@@ -20,6 +20,7 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Leaderboards = if Shared then require(Shared.Leaderboards) else require("../shared/Leaderboards")
 local Visuals = if script then (game:GetService("ReplicatedStorage") :: any).Visuals else nil
 local BoardFace = if Visuals then require(Visuals.BoardFace) else require("../visuals/shared/BoardFace")
@@ -28,7 +29,7 @@ export type Row = { rank: number, name: string, value: string, isMe: boolean }
 
 local WorldLeaderboard = {}
 
-WorldLeaderboard.MAX_ROWS = BoardFace.ROWS
+WorldLeaderboard.MAX_ROWS = Config.LEADERBOARD_SIZE
 WorldLeaderboard.GUI_NAMES = table.freeze({ "Leaderboard" })
 local modelNames = { "Leaderboard" }
 for _, def in Leaderboards.BOARDS do
@@ -203,8 +204,11 @@ local function ensureRow(container: Instance, k: number): Frame
 			continue
 		end
 		if not (child:IsA("Frame") and child:FindFirstChild("Value")) then
+			-- incomplete: ours goes, a server row still arriving stays hidden until it has its labels
 			if child:GetAttribute(WorldLeaderboard.OWN_ROW) then
 				child:Destroy()
+			elseif child:IsA("GuiObject") then
+				child.Visible = false
 			end
 		elseif child:GetAttribute(WorldLeaderboard.OWN_ROW) then
 			if own then
@@ -227,7 +231,7 @@ local function ensureRow(container: Instance, k: number): Frame
 	if own then
 		return own
 	end
-	local frame = BoardFace.row(k, WorldLeaderboard.PALETTE)
+	local frame = BoardFace.row(k, WorldLeaderboard.MAX_ROWS, WorldLeaderboard.PALETTE)
 	frame:SetAttribute(WorldLeaderboard.OWN_ROW, true)
 	frame.Parent = container
 	return frame
@@ -372,11 +376,14 @@ function WorldLeaderboard.start(root: Instance, myUserId: number): Handle
 		end
 		redraw()
 		-- A server row that arrives after ours replaces ours (ensureRow), so no rank shows twice.
+		-- Also when a server row's Value label lands after the row itself (ensureRow hid it until then).
 		inst.DescendantAdded:Connect(function(d)
+			local row = if d.Name == "Value" then d.Parent else d
 			if
-				d:IsA("Frame")
-				and string.match(d.Name, "^Row_%d+$")
-				and not d:GetAttribute(WorldLeaderboard.OWN_ROW)
+				row
+				and row:IsA("Frame")
+				and string.match(row.Name, "^Row_%d+$")
+				and not row:GetAttribute(WorldLeaderboard.OWN_ROW)
 			then
 				redraw()
 			end

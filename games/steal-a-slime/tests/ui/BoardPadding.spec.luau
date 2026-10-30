@@ -14,6 +14,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local Props = StaticWorld.visual("Props")
 local WorldLeaderboard = UiHarness.ui("WorldLeaderboard")
 local chrome = BoardFace.CHROME
+local ROWS = Props.LEADERBOARD_ROWS
 
 type Rect = { x: number, y: number, w: number, h: number }
 
@@ -75,19 +76,19 @@ describe("Hall of Fame board spacing", function()
 		expect(canvas.h - (you.y + you.h)).toBeCloseTo(chrome.pad, 0.5)
 	end)
 
-	it("fits ten rows and their gaps in the list", function()
+	it("fits every row and the gaps between them in the list", function()
 		local gui, canvas = board()
-		Props.fillLeaderboard(gui.Parent.Parent, entries(10))
+		Props.fillLeaderboard(gui.Parent.Parent, entries(ROWS))
 		local rows = rect(gui.Content.Rows, canvas)
 		local rowH = udim(gui.Content.Rows.Row_1.Size.Y, rows.h)
-		local used = 10 * rowH + 9 * chrome.rowGap
+		local used = ROWS * rowH + (ROWS - 1) * chrome.rowGap
 		expect(used <= rows.h + 0.5).toBe(true)
 		expect(used >= rows.h - 5).toBe(true)
 	end)
 
 	it("lays every row out alike: rank and name left, value right, 12 px in, one text height", function()
 		local gui = board()
-		Props.fillLeaderboard(gui.Parent.Parent, entries(10))
+		Props.fillLeaderboard(gui.Parent.Parent, entries(ROWS))
 		local function shape(row: any): string
 			local pad = row:FindFirstChildOfClass("UIPadding")
 			local parts = { tostring(pad.PaddingLeft), tostring(pad.PaddingRight), tostring(row.Size) }
@@ -109,7 +110,7 @@ describe("Hall of Fame board spacing", function()
 			expect(label.Size.Y.Scale).toBe(first.Rank.Size.Y.Scale)
 			expect(label.Position.Y.Scale).toBe(first.Rank.Position.Y.Scale)
 		end
-		for k = 2, 10 do
+		for k = 2, ROWS do
 			expect(shape(gui.Content.Rows[`Row_{k}`])).toBe(shape(first))
 		end
 	end)
@@ -163,6 +164,22 @@ describe("WorldLeaderboard rows", function()
 		expect(#left).toBe(1)
 		expect(left[1]).toBe(server)
 		expect(server:FindFirstChild("Name").Text).toBe("Ann")
+	end)
+
+	it("hides a server row that arrives without its labels instead of showing it beside ours", function()
+		local gui, rows = container()
+		local early = UiHarness.Instance.new("Frame")
+		early.Name = "Row_1"
+		early.Parent = rows
+		WorldLeaderboard.render(gui, one)
+		expect(early.Visible).toBe(false)
+		local visible = 0
+		for _, row in named(rows, "Row_1") do
+			if row.Visible then
+				visible += 1
+			end
+		end
+		expect(visible).toBe(1)
 	end)
 end)
 

@@ -8,7 +8,7 @@
 
 	  BoardFace.pad(frame, x, y) -> UIPadding     x px left and right, y px top and bottom
 	  BoardFace.placeHeader(header)               the title bar at the top of the padded face
-	  BoardFace.row(k, palette) -> Frame          one leaderboard row card "Row_<k>" (Rank, Name, Value)
+	  BoardFace.row(k, count, palette) -> Frame   one of `count` leaderboard row cards "Row_<k>" (Rank, Name, Value)
 ]]
 
 local BoardFace = {}
@@ -30,9 +30,6 @@ BoardFace.CHROME = table.freeze({
 	you = 0.085, -- the "You" line's height
 	text = 0.86, -- a leaderboard row's text, of the row's height
 })
-
--- Leaderboard rows per board.
-BoardFace.ROWS = 10
 
 -- Row label columns { x, width } as fractions of the row's padded width.
 BoardFace.COLUMNS = table.freeze({
@@ -67,9 +64,8 @@ end
 -- One leaderboard row card "Row_<k>", unparented: a rounded card padded `inset` px left and right, with the rank
 -- and name left-aligned and the value right-aligned, all at the same text height. The server's rows and the
 -- client's both come from here, so every row has the same layout.
-function BoardFace.row(k: number, palette: Palette): Frame
+function BoardFace.row(k: number, count: number, palette: Palette): Frame
 	local chrome = BoardFace.CHROME
-	local count = BoardFace.ROWS
 	local row = Instance.new("Frame")
 	row.Name = `Row_{k}`
 	row.LayoutOrder = k
