@@ -40,6 +40,7 @@ local SIZE = table.freeze({
 	gap = 10,
 	slot = 76,
 	slotGap = 10,
+	slotTop = 6, -- px from the top of the load row to the slots
 	nameH = 18,
 	rarityH = 16,
 	x = Layout.MIN_TOUCH_DESIGN, -- a slot's X: the tap area (invisible) around its badge
@@ -332,15 +333,14 @@ function Merge.new(parent: Instance, ctx: any)
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromOffset(SIZE.badge, SIZE.badge),
-			ZIndex = 3,
 			Parent = x,
 		}, { Widgets.pill() }) :: TextLabel
 		Widgets.stroke(Theme.Ink, KIT.stroke).Parent = badge
 		Widgets.inkOn(badge, Theme.Bad)
 		x.Activated:Connect(function()
-			local id = view and view.slots[i].id
-			if id and view and view.slots[i].canRemove then
-				ctx.send("VatRemove", id)
+			local slot = view and view.slots[i]
+			if slot and slot.id and slot.canRemove then
+				ctx.send("VatRemove", slot.id)
 			end
 		end)
 		local lock = Widgets.status({
@@ -520,13 +520,13 @@ function Merge.new(parent: Instance, ctx: any)
 		local loadH = SIZE.slot + SIZE.nameH + SIZE.rarityH + 6
 		for i, ui in slotUis do
 			local x = slotsX + (i - 1) * (SIZE.slot + SIZE.slotGap)
-			ui.well.Position = UDim2.fromOffset(x, 6)
+			ui.well.Position = UDim2.fromOffset(x, SIZE.slotTop)
 			ui.name.Position = UDim2.fromOffset(x - 8, SIZE.slot + 10)
 			ui.name.Size = UDim2.fromOffset(SIZE.slot + 16, SIZE.nameH)
 			ui.rarity.Position = UDim2.fromOffset(x - 8, SIZE.slot + 10 + SIZE.nameH)
 			ui.rarity.Size = UDim2.fromOffset(SIZE.slot + 16, SIZE.rarityH)
 			-- Both badges centred on the same spot, near the slot's top-right edge.
-			local corner = UDim2.fromOffset(x + SIZE.slot - SIZE.badgeInset, 6 + SIZE.badgeInset)
+			local corner = UDim2.fromOffset(x + SIZE.slot - SIZE.badgeInset, SIZE.slotTop + SIZE.badgeInset)
 			ui.x.Position = corner
 			ui.lock.Position = corner
 		end
@@ -538,7 +538,7 @@ function Merge.new(parent: Instance, ctx: any)
 			loadH += SIZE.gap + resultH
 		else
 			arrow.Visible = true
-			arrow.Position = UDim2.fromOffset(slotsW + SIZE.gap, 6)
+			arrow.Position = UDim2.fromOffset(slotsW + SIZE.gap, SIZE.slotTop)
 			arrow.Size = UDim2.fromOffset(SIZE.arrowW, SIZE.slot)
 			result.Position = UDim2.fromOffset(slotsW + SIZE.arrowW + SIZE.gap * 2, 0)
 			result.Size = UDim2.fromOffset(resultW, math.max(resultH, SIZE.slot + 12))
