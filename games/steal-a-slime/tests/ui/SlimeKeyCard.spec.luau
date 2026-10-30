@@ -71,14 +71,18 @@ local function startCard(): any
 		},
 		userInput = { InputEnded = fakeSignal() },
 		now = 0,
+		serverNow = 1000,
 		tweens = {} :: { { instance: any, time: number } },
 	}
-	env.stop = SlimeKeyCard.start({
+	local handle = SlimeKeyCard.start({
 		prompts = env.service :: any,
 		playerGui = env.playerGui,
 		userInput = env.userInput :: any,
 		clock = function()
 			return env.now
+		end,
+		now = function()
+			return env.serverNow
 		end,
 		tweens = {
 			Create = function(_self: any, instance: any, info: any)
@@ -87,6 +91,8 @@ local function startCard(): any
 			end,
 		} :: any,
 	})
+	env.stop = handle.stop
+	env.tick = handle.tick
 	function env.show(p: any)
 		env.service.PromptShown.fire(p, roblox.Enum.ProximityPromptInputType.Keyboard)
 	end
@@ -180,6 +186,15 @@ describe("SlimeKeyCard", function()
 		expect(math.abs(world.X) < 1e-4 and math.abs(world.Z) < 1e-4).toBe(true)
 		expect(math.abs(world.Y - 3.2) < 1e-4).toBe(true)
 	end)
+	it("words the lock status like the lock timer pill, and has no lock title once the lock is over", function()
+		expect(SlimeKeyCard.lockText(102)).toBe("LOCKED 1:42")
+		expect(SlimeKeyCard.lockTitle(1102, 1000)).toBe("LOCKED 1:42")
+		expect(SlimeKeyCard.lockTitle(1000.4, 1000)).toBe("LOCKED 0:01")
+		expect(SlimeKeyCard.lockTitle(1000, 1000)).toBeNil()
+		expect(SlimeKeyCard.lockTitle(0, 1000)).toBeNil()
+		expect(SlimeKeyCard.lockTitle(nil, 1000)).toBeNil()
+		expect(SlimeKeyCard.lockTitle("soon", 1000)).toBeNil()
+	end)
 	it("shows the keyboard key, or the gamepad button's short name", function()
 		expect(SlimeKeyCard.keyLabel("E", false)).toBe("E")
 		expect(SlimeKeyCard.keyLabel("ButtonX", true)).toBe("X")
@@ -227,7 +242,7 @@ describe("SlimeKeyCard", function()
 			prompt("SellPrompt", "X", "Sell $45", 1),
 		}
 		local playerGui = UiHarness.Instance.new("Folder")
-		local stop = SlimeKeyCard.start({ prompts = service :: any, playerGui = playerGui, tweens = {} :: any })
+		local stop = SlimeKeyCard.start({ prompts = service :: any, playerGui = playerGui, tweens = {} :: any }).stop
 		for _, p in shown do
 			for _, fn in handlers.PromptShown do
 				fn(p, roblox.Enum.ProximityPromptInputType.Keyboard)
@@ -341,5 +356,60 @@ describe("SlimeKeyCard", function()
 		expect(sell.ends).toBe(1)
 		env.stop()
 		expect(sell.ends).toBe(1)
+	end)
+
+	it("counts the lock down on the owner's lock card while they stand at the button", function()
+		local env = startCard()
+		-- Plot_1 locked until 1078; its Lock prompt is off while locked, so only Friends is shown.
+		local plot = UiHarness.Instance.new("Model")
+		plot:SetAttribute("LockUntil", 1078)
+		local button = UiHarness.Instance.new("Part")
+		button.Parent = plot
+		local lock = UiHarness.Instance.new("ProximityPrompt")
+		lock.Name = "LockPrompt"
+		lock.ObjectText = "Merijn's base: LOCKED 1:18"
+		lock.Parent = button
+		local friends = holdPrompt("FriendsPrompt", button)
+		friends.HoldDuration = 0
+		env.show(friends)
+		local title = UiHarness.find(env.playerGui, "Title")
+		local friendsRow = env.row("FriendsPrompt")
+		expect(title.Text).toBe("LOCKED 1:18")
+		-- seconds pass with no prompt shown or changed: the title follows the lock, the row is not redrawn
+		env.serverNow = 1001
+		env.tick()
+		expect(title.Text).toBe("LOCKED 1:17")
+		env.serverNow = 1037.5
+		env.tick()
+		expect(title.Text).toBe("LOCKED 0:41")
+		expect(env.row("FriendsPrompt")).toBe(friendsRow)
+		-- the lock runs out before the server's redraw: back to the Lock prompt's own text
+		lock.ObjectText = "Merijn's base: OPEN"
+		env.serverNow = 1078
+		env.tick()
+		expect(title.Text).toBe("OPEN")
+		-- walked away: the card hides and tick no longer touches its title
+		lock.ObjectText = "Merijn's base: LOCKED 1:00"
+		plot:SetAttribute("LockUntil", 2000)
+		env.service.PromptHidden.fire(friends)
+		expect(UiHarness.find(env.playerGui, "SlimeKeyCard").Enabled).toBe(false)
+		env.tick()
+		expect(title.Text).toBe("OPEN")
+		env.stop()
+	end)
+
+	it("leaves a slime card's title alone on tick", function()
+		local env = startCard()
+		local grab = UiHarness.Instance.new("ProximityPrompt")
+		grab.Name = "GrabPrompt"
+		grab.ObjectText = "Goo Pup"
+		grab.Parent = env.body
+		env.show(holdPrompt("MovePrompt", env.body))
+		local title = UiHarness.find(env.playerGui, "Title")
+		expect(title.Text).toBe("Goo Pup")
+		env.serverNow = 5000
+		env.tick()
+		expect(title.Text).toBe("Goo Pup")
+		env.stop()
 	end)
 end)

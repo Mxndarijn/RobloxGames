@@ -4,7 +4,8 @@
 	works too), a chip for the active income boost (State.codes) and a line on what codes give.
 	The server decides (Codes.redeem): a good code shows in the boost chip and the box clears once
 	State.codes.redeemed grows; a refused one keeps the text, turns the box's outline pink and shows
-	the server's reason in a pink line under it until the box is edited again.
+	the server's reason in a pink line under it until the box is edited again. The line pushes the rows
+	under the box down and the card grows to fit (ctx.relayout), so nothing scrolls or gets cut off.
 ]]
 
 local UI = script.Parent.Parent
@@ -47,13 +48,20 @@ function Codes.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "CodesPanel", "Codes", "🎁")
 	local rows = Codes.ROWS
 	-- Scrolls only when the card is shorter than the content (landscape
-	-- phones); a fixed canvas, nothing in it moves.
+	-- phones); a fixed canvas, nothing in it moves. The scroll area also reaches
+	-- `ring` above the body and pads back in, so the code box's outline (pink
+	-- after a refused code) shows whole along its top edge.
+	local ring = Layout.PANEL_CHROME.ring
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,
-		CanvasSize = UDim2.fromOffset(0, Codes.CONTENT_H),
+		CanvasSize = UDim2.fromOffset(0, Codes.CONTENT_H + ring),
+		Position = UDim2.fromOffset(0, -ring),
+		Size = UDim2.new(1, 0, 1, ring),
 		Parent = panel.body,
 	})
+	local contentPad = content:FindFirstChild("Ring") :: UIPadding
+	contentPad.PaddingTop = UDim.new(0, ring)
 
 	local box = create("TextBox", {
 		Name = "CodeBox",
@@ -92,7 +100,7 @@ function Codes.new(parent: Instance, ctx: any)
 			})
 		end
 		local line = errorLine
-		if line == nil then
+		if line == nil or (line.Visible == shown and line.Text == (text or "")) then
 			return
 		end
 		line.Visible = shown
@@ -102,7 +110,11 @@ function Codes.new(parent: Instance, ctx: any)
 		for _, item in moved do
 			item.Position = UDim2.new(item.Position.X, UDim.new(0, (item:GetAttribute("RowY") :: number) + shift))
 		end
-		content.CanvasSize = UDim2.fromOffset(0, Codes.CONTENT_H + shift)
+		content.CanvasSize = UDim2.fromOffset(0, Codes.CONTENT_H + ring + shift)
+		-- The card is sized to the content: measure it again now, not at the next State push.
+		if ctx.relayout then
+			ctx.relayout()
+		end
 	end
 	-- Clicking back into the box to fix the code, or the box clearing after a good one, drops the error.
 	box.Focused:Connect(function()
