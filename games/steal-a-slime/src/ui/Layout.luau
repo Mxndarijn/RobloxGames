@@ -609,7 +609,7 @@ Layout.NAV_TILE_Z = table.freeze({ goo = 0, icon = 1, text = 2 })
 
 -- Nav badge chip: top-right corner of its button, inset so it never leaves the
 -- button (init.client builds the same numbers).
-Layout.NAV_BADGE = table.freeze({ inset = 2, height = 16, minWidth = 16, textSize = 11, padding = 4 })
+Layout.NAV_BADGE = table.freeze({ inset = 2, height = 26, minWidth = 26, textSize = 22, padding = 6 })
 -- The mute badge on the Settings gear's corner (design px square).
 Layout.SETTINGS_BADGE = 22
 
