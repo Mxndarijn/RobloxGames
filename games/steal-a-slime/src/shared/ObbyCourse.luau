@@ -274,11 +274,11 @@ BUILD.MeltingTiles = function(layout)
 	local parts = {}
 	for col = 1, L.cols do
 		local x = gap + (col - 1) * (tile + gap) + tile / 2
-		for row = 1, 3 do
-			if not L.holes[`{col}:{row}`] then
+		for lane = 1, 3 do
+			if not L.holes[`{col}:{lane}`] then
 				local motion = { kind = "melt", delay = L.delay, away = 2.5 }
-				local part = slab(x, 0, (row - 2) * (tile + gap), tile, tile, "tile", { motion = motion, tone = row })
-				part.step = row == 2 -- the middle row is the reference path
+				local part = slab(x, 0, (lane - 2) * (tile + gap), tile, tile, "tile", { motion = motion, tone = lane })
+				part.step = lane == 2 -- the middle row is the reference path
 				table.insert(parts, part)
 			end
 		end
