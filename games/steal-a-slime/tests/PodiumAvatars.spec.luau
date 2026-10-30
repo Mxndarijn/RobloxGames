@@ -79,6 +79,12 @@ describe("PodiumAvatars", function()
 		expect(only).toBe("Solo")
 		expect(none).toBe("")
 	end)
+	it("stands a rig on its feet, not on an accessory that hangs below them", function()
+		-- Podium top at 5, feet at 1, a cape reaching down to 0.2: the feet land on the top.
+		expect(PodiumAvatars.standLift(5, 1, 0.2)).toBe(4)
+		-- No feet (the placeholder): the bounding-box bottom lands on the top.
+		expect(PodiumAvatars.standLift(5, nil, 0.2)).toBe(4.8)
+	end)
 	it("mounts avatar rigs for the top three and placeholders for empty slots", function()
 		local adapter, log = fake()
 		PodiumAvatars.new(adapter):apply(board({ 10, 500 }, { 20, 300 }))

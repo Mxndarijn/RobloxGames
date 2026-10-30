@@ -67,6 +67,13 @@ function PodiumAvatars.splitLabel(text: string): (string, string)
 	return name or text, stat or ""
 end
 
+-- How far to raise a rig so it stands on a podium top at `topY`. A rig stands on its feet (`feetY`, the lowest foot
+-- bottom), so a cape, tail or skirt that hangs below them doesn't lift it off the podium. A rig without feet (the
+-- placeholder) rests its bounding-box bottom (`boxBottomY`) on the top instead.
+function PodiumAvatars.standLift(topY: number, feetY: number?, boxBottomY: number): number
+	return topY - (feetY or boxBottomY)
+end
+
 local function entryAt(board: Types.Leaderboard?, rank: number): Types.LeaderboardEntry?
 	if not board then
 		return nil

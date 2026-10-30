@@ -114,6 +114,19 @@ local function freeze(rig: Model)
 	end
 end
 
+-- The lowest foot bottom of an R15 rig in world Y, or nil when it has no feet.
+local function feetBottom(rig: Model): number?
+	local low: number? = nil
+	for _, name in { "LeftFoot", "RightFoot" } do
+		local foot = rig:FindFirstChild(name)
+		if foot and foot:IsA("BasePart") then
+			local y = foot.Position.Y - foot.Size.Y / 2
+			low = if low then math.min(low, y) else y
+		end
+	end
+	return low
+end
+
 -- Grey block stand-in for an empty slot or when every rig call failed.
 local function placeholder(): Model
 	local rig = Instance.new("Model")
@@ -159,7 +172,7 @@ function PodiumRigs.adapter(): PodiumAvatars.Adapter
 			local top = base.CFrame * CFrame.new(0, base.Size.Y / 2, 0) * CFrame.Angles(0, math.pi, 0)
 			model:PivotTo(top)
 			local box, size = model:GetBoundingBox()
-			local lift = top.Position.Y - (box.Position.Y - size.Y / 2)
+			local lift = PodiumAvatars.standLift(top.Position.Y, feetBottom(model), box.Position.Y - size.Y / 2)
 			model:PivotTo(top + Vector3.new(0, lift, 0))
 			label(model, text)
 		end,
