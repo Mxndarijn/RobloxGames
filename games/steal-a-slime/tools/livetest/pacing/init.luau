@@ -8,7 +8,7 @@
 	                                 [--profile grinder] [--stagger 3] [--plots 8]
 	                                 [--hours 0.5,1,2,4,8,12,20,30] [--no-steal] [--out report.md]
 	                                 [--json series.json] [--late casual@5x4] [--friends 3] [--party]
-	                                 [--no-codes] [--no-eggs] [--consumables 20] [--flip full|always] [--set casual.lock=1] [--start-level N]
+	                                 [--no-codes] [--no-eggs] [--no-weather] [--consumables 20] [--flip full|always] [--set casual.lock=1] [--start-level N]
 
 	Each seed is one server with a population of bots (Profiles) that join and
 	leave on daily schedules, take wild slimes, steal from each other, defend,
@@ -19,7 +19,9 @@
 	`--late casual@5x4` adds 4 casual bots that all join on day 5 (reported as late-casual); use more --days.
 	`--friends K` deals the bots into friend groups of K (Friends.refresh counts the ones online together,
 	`--party` puts a group on one schedule). `--no-codes` / `--no-eggs` turn off redeeming codes on the first
-	join / taking Mystery Eggs (free to grab, can't be sold); bots merge in the plot vat (VatAdd x3 + VatStart, VatCollect once the brew is done; never top-tier slimes); `--flip full|always` makes every bot buy wild slimes to sell at once (profiles flipper / flipall do it for one bot kind; flipprobe + `--start-level N` is a 60 minute flip-only session at rebirth N with unlimited cash); `--consumables N` makes every bot buy and drink Luck Potions that cost under 1/N of its cash.
+	join / taking Mystery Eggs (free to grab, can't be sold); the weather cycles (so Diamond and Rainbow shines roll),
+	`--no-weather` keeps it Clear; bots run the Goo Gauntlet obby for its boost (profile `obby`, `obbySeconds`;
+	`--set grinder.obby=0` turns it off for one kind); bots merge in the plot vat (VatAdd x3 + VatStart, VatCollect once the brew is done; never top-tier slimes); `--flip full|always` makes every bot buy wild slimes to sell at once (profiles flipper / flipall do it for one bot kind; flipprobe + `--start-level N` is a 60 minute flip-only session at rebirth N with unlimited cash); `--consumables N` makes every bot buy and drink Luck Potions that cost under 1/N of its cash.
 	Prints Markdown tables (Report); `--out` also writes them to a file; `--json` writes every bot's time
 	series, milestones, cash ledger and steal events (Report.json).
 ]]
@@ -67,6 +69,7 @@ local opts = {
 	steal = true,
 	codes = true,
 	eggs = true,
+	weather = true,
 	consumables = nil :: number?,
 	flip = nil :: string?,
 	startLevel = nil :: number?,
@@ -88,6 +91,10 @@ while i <= #args do
 		continue
 	elseif flag == "--no-eggs" then
 		opts.eggs = false
+		i += 1
+		continue
+	elseif flag == "--no-weather" then
+		opts.weather = false
 		i += 1
 		continue
 	elseif flag == "--party" then
@@ -193,6 +200,7 @@ for _, seed in opts.seeds do
 			plots = opts.plots,
 			late = opts.late,
 			codes = opts.codes,
+			weather = opts.weather,
 			friends = opts.friends,
 			party = opts.party,
 			startLevel = opts.startLevel,

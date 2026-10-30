@@ -26,6 +26,10 @@ export type Profile = {
 	rebirth: boolean?, -- false = never rebirths
 	afk: number?, -- chance that a trip is followed by an AFK stretch (still online, so still a target)
 	afkSeconds: number?, -- length of one AFK stretch
+	-- Goo Gauntlet (Config.OBBY): chance they go and run it each time the boost is ready again (a "no" waits one
+	-- cooldown), and the mean seconds a run takes them (portal to finish, falls included; +-30 %). nil / 0 = never.
+	obby: number?,
+	obbySeconds: number?,
 }
 
 local Profiles = {} :: { LIST: { Profile }, [string]: any }
@@ -45,6 +49,8 @@ Profiles.LIST = {
 		lock = 0.3,
 		padRatio = 2,
 		upgradeRatio = 3,
+		obby = 0.25,
+		obbySeconds = 180,
 	},
 	{
 		name = "average",
@@ -60,6 +66,8 @@ Profiles.LIST = {
 		lock = 0.7,
 		padRatio = 3,
 		upgradeRatio = 5,
+		obby = 0.6,
+		obbySeconds = 120,
 	},
 	{
 		name = "grinder",
@@ -75,6 +83,8 @@ Profiles.LIST = {
 		lock = 1,
 		padRatio = 3,
 		upgradeRatio = 5,
+		obby = 0.9,
+		obbySeconds = 80,
 	},
 }
 
@@ -94,6 +104,8 @@ table.insert(Profiles.LIST, {
 	lock = 0.3,
 	padRatio = 2,
 	upgradeRatio = 3,
+	obby = 0.25,
+	obbySeconds = 180,
 })
 -- thief: regular skill, steals whenever a target is open and worth more than a wild slime, hardly defends.
 table.insert(Profiles.LIST, {
@@ -110,6 +122,8 @@ table.insert(Profiles.LIST, {
 	lock = 0.3,
 	padRatio = 3,
 	upgradeRatio = 5,
+	obby = 0.3,
+	obbySeconds = 120,
 })
 -- victim: long sessions, half of it AFK on the plot, never locks, hardly defends: the easiest plot on the server.
 table.insert(Profiles.LIST, {
@@ -149,6 +163,7 @@ do
 	copy.steal = 0
 	copy.lock = 0
 	copy.rebirth = false
+	copy.obby = 0
 	copy.padRatio = 1e18
 	copy.upgradeRatio = 1e18
 	table.insert(Profiles.LIST, copy)

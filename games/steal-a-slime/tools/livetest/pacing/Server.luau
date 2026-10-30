@@ -23,6 +23,7 @@ local Schedule = require("./Schedule")
 local Sessions = require("../../../src/server/Sessions")
 local Spawner = require("../../../src/server/Spawner")
 local TutorialProgress = require("../../../src/shared/TutorialProgress")
+local Weather = require("../../../src/shared/Weather")
 local World = require("../../../src/server/World")
 
 export type Snap = {
@@ -86,6 +87,7 @@ export type Options = {
 	seriesEvery: number?, -- played seconds between time series points (default 300)
 	startLevel: number?, -- every bot starts at this rebirth level with `startCash` (flip probes)
 	startCash: number?,
+	weather: boolean?, -- false = always Clear (no Diamond / Rainbow shines); default: the weather cycles like WeatherService
 }
 
 local Server = {}
@@ -158,6 +160,19 @@ function Server.run(options: Options): { Record }
 	local T0 = Server.T0
 	local rng = Rng.new(options.seed)
 	local world = World.new({ now = T0, seed = options.seed, plotCount = options.plots })
+	-- The weather cycles like WeatherService (Weather.pick / Weather.duration), so the weather shines roll.
+	local weatherRng = Rng.new(options.seed * 7919 + 17)
+	if options.weather ~= false then
+		world.weather = { id = Weather.CLEAR, changeAt = T0 + Config.WEATHER_FIRST_AT }
+	end
+	local function advanceWeather(now: number)
+		local w = world.weather
+		while w and now >= w.changeAt do
+			local id = Weather.pick(w.id, weatherRng:float())
+			w = { id = id, changeAt = w.changeAt + Weather.duration(id, weatherRng:float()) }
+			world.weather = w
+		end
+	end
 	Ledger.install()
 	local clock = T0
 	Spawner.unixTime = function()
@@ -260,6 +275,7 @@ function Server.run(options: Options): { Record }
 				bot.data.lastOnline = t -- what SaveData.serialize writes on the leave save
 				bot.online = false
 				bot.task = nil
+				bot.obbyDoneAt = nil -- leaving mid-run: no boost
 				bot.next += 1
 				changed = true
 			end
@@ -306,6 +322,7 @@ function Server.run(options: Options): { Record }
 				t += 1
 			end
 		else
+			advanceWeather(t)
 			GameLoop.step(world, t)
 			world.outbox = {}
 			for _, bot in bots do

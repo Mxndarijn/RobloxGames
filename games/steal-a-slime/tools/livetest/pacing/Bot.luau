@@ -11,6 +11,10 @@
 	take it first. A stolen slime can be slapped back home on the way if its
 	owner is online and defends.
 
+	Between trips a bot may run the Goo Gauntlet obby (profile.obby): it is
+	busy for about profile.obbySeconds, then the real ObbyRules.grant gives
+	the boost and GameLoop (ObbyService.refresh) applies it to income.
+
 	Every trip is counted (Stats.wild / Stats.steal) and every steal attempt is
 	kept as a StealEvent, so the report can weigh stealing against farming.
 ]]
@@ -29,6 +33,7 @@ local GrabBlock = require("../../../src/shared/GrabBlock")
 local Ledger = require("./Ledger")
 local MergeGate = require("../../../src/shared/MergeGate")
 local MergeRecipes = require("../../../src/shared/MergeRecipes")
+local ObbyRules = require("../../../src/shared/ObbyRules")
 local PlayerData = require("../../../src/shared/PlayerData")
 local Profiles = require("./Profiles")
 local Progression = require("../../../src/shared/Progression")
@@ -123,6 +128,11 @@ export type Stats = {
 	unlockedSeconds: number,
 	friendSeconds: number, -- online seconds with a friend bonus
 	eggsHatched: number,
+	obbyRuns: number, -- finished Goo Gauntlet runs
+	obbyBoosts: number, -- runs that earned the boost
+	obbyRunSeconds: number, -- online seconds spent on the course
+	boostedSeconds: number, -- online seconds with the obby boost on
+	shineSeconds: number, -- online seconds x shining slimes on the pads (mean = shineSeconds / online seconds)
 	wild: Agg,
 	steal: Agg,
 	flip: Agg, -- gainSell = revenue of the sold flips
@@ -145,6 +155,8 @@ export type Bot = {
 	codes: boolean, -- redeems every active code on its first join
 	codesDone: boolean,
 	rebirthLog: { { level: number, income: number, cash: number } }, -- income per second and cash at each rebirth, before it
+	obbyDoneAt: number?, -- on the course until then
+	obbyWaitUntil: number, -- skipped this ready window: don't ask again before this
 }
 
 local Bot = {}
@@ -199,6 +211,11 @@ function Bot.new(
 			unlockedSeconds = 0,
 			friendSeconds = 0,
 			eggsHatched = 0,
+			obbyRuns = 0,
+			obbyBoosts = 0,
+			obbyRunSeconds = 0,
+			boostedSeconds = 0,
+			shineSeconds = 0,
 			wild = agg(),
 			steal = agg(),
 			flip = agg(),
@@ -208,6 +225,8 @@ function Bot.new(
 		codes = codes == true,
 		codesDone = false,
 		rebirthLog = {},
+		obbyDoneAt = nil,
+		obbyWaitUntil = 0,
 	}
 end
 
@@ -820,6 +839,18 @@ function Bot.step(world: World, bot: Bot, t: number, bots: { [number]: Bot }, pl
 	if (bot.data.friendBonus or 0) > 0 then
 		stats.friendSeconds += 1
 	end
+	if (bot.data.obbyBonus or 0) > 0 then
+		stats.boostedSeconds += 1
+	end
+	if math.floor(t) % 30 == 0 then
+		local shining = 0
+		for _, slime in bot.data.slimes do
+			if slime.shine then
+				shining += 1
+			end
+		end
+		stats.shineSeconds += shining * 30
+	end
 	local level = levelStats(bot)
 	level.secs += 1
 	if math.floor(t) % 30 == 0 then
@@ -835,8 +866,30 @@ function Bot.step(world: World, bot: Bot, t: number, bots: { [number]: Bot }, pl
 		stepTask(world, bot, session, t, bots, played or 0)
 		return
 	end
+	if bot.obbyDoneAt then
+		session.home = false
+		stats.obbyRunSeconds += 1
+		if t < bot.obbyDoneAt then
+			return
+		end
+		bot.obbyDoneAt = nil
+		stats.obbyRuns += 1
+		if ObbyRules.grant(bot.data, t) then
+			stats.obbyBoosts += 1
+		end
+		bot.nextActAt = t + bot.profile.think
+	end
 	if t < bot.nextActAt then
 		return
+	end
+	local obbyChance = bot.profile.obby or 0
+	if obbyChance > 0 and t >= bot.obbyWaitUntil and ObbyRules.ready(bot.data, t) then
+		if bot.rng:float() < obbyChance then
+			local mean = bot.profile.obbySeconds or 120
+			bot.obbyDoneAt = t + math.max(30, mean * (0.7 + 0.6 * bot.rng:float()))
+			return
+		end
+		bot.obbyWaitUntil = t + Config.OBBY.COOLDOWN_SECONDS
 	end
 	local vatFree = tendVat(world, bot, t)
 	local keep, missing, recipeIds = rebirthNeeds(bot)
