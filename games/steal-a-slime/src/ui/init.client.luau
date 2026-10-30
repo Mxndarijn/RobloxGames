@@ -1056,10 +1056,14 @@ local lockBreakPrompt = LockBreakPrompt.start({
 })
 
 -- One card over the slime draws those prompts (they use the Custom style), instead of three stacked bubbles.
-SlimeKeyCard.start({
+-- Its lock card (your own LockButton) counts the lock down on the frame loop below.
+local slimeKeyCard = SlimeKeyCard.start({
 	prompts = ProximityPromptService,
 	playerGui = player:WaitForChild("PlayerGui"),
 	tweens = game:GetService("TweenService"),
+	now = function()
+		return workspace:GetServerTimeNow()
+	end,
 })
 
 -- Exclusive slime hats on the slimes standing on pads (Plot_<i>.SlimeHat).
@@ -1635,6 +1639,7 @@ task.spawn(function()
 			guardedTick("slimeKeys", slimeKeys.tick)
 			guardedTick("lockBreak", lockBreakPrompt.tick)
 			guardedTick("lockTimer", lockTimerTag.tick)
+			guardedTick("lockCard", slimeKeyCard.tick)
 			guardedTick("slimeHats", slimeHats.tick)
 			guardedTick("hint", function()
 				hintOverlay.tick(
