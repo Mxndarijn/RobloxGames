@@ -161,8 +161,8 @@ ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
 
 -- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
--- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet, the Boss MVP boost and the
--- Quick Brew upgrade.
+-- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet, the Boss MVP and Goo Gauntlet
+-- boosts and the Quick Brew upgrade.
 ItemIcons.AWAITING_UPLOAD = table.freeze({
 	"Dex_8",
 	"Dex_15",
@@ -170,6 +170,7 @@ ItemIcons.AWAITING_UPLOAD = table.freeze({
 	"Dex_32",
 	"Dex_40",
 	"Boost_Mvp",
+	"Boost_Obby",
 	"Upgrade_QuickBrew",
 	"PlotSkin_fairground",
 	"PlotSkin_beach",
@@ -287,6 +288,14 @@ local HAND: { Hand } = {
 		color = { 255, 200, 60 },
 		glyph = "👑",
 		brief = "A gold crown sitting on a stack of gold coins; front view.",
+	},
+	{
+		id = "Boost_Obby",
+		name = "Goo Gauntlet",
+		group = "boost",
+		color = { 150, 230, 70 },
+		glyph = "🏃",
+		brief = "Three green jelly steps rising to a small gold finish flag, with a lime goo drip; front view.",
 	},
 	{
 		id = "Boost_Weekend",

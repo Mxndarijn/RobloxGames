@@ -76,6 +76,7 @@ local CashPads = if script then require(script.Parent.CashPads) else require("./
 local BossBadges = if script then require(script.Parent.BossBadges) else require("./BossBadges")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local HotbarOrder = if script then require(script.Parent.HotbarOrder) else require("./HotbarOrder")
+local ObbyRules = if script then require(script.Parent.ObbyRules) else require("./ObbyRules")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local PlotBases = if script then require(script.Parent.PlotBases) else require("./PlotBases")
 local PetSeats = if script then require(script.Parent.PetSeats) else require("./PetSeats")
@@ -989,6 +990,9 @@ function SaveData.deserialize(stored: any): Data
 			end
 		end
 	end
+	-- Goo Gauntlet timers (added without a version bump: missing -> never earned).
+	local obby = ObbyRules.clean(raw.obby)
+	data.obbyUntil, data.obbyReadyAt = obby.obbyUntil, obby.obbyReadyAt
 	if type(raw.boost) == "table" then
 		local until_ = num(raw.boost.untilAt, 0, 0, 1e11)
 		local mult = num(raw.boost.mult, 1, 1, Config.CODE_BOOST_MAX_MULT)
@@ -1100,6 +1104,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		allowFriends = if data.allowFriends == true then true else nil,
 		redeemed = redeemed,
 		boost = { mult = data.boostMult, untilAt = num(data.boostUntil, 0, 0, 1e11) },
+		obby = { untilAt = num(data.obbyUntil, 0, 0, 1e11), readyAt = num(data.obbyReadyAt, 0, 0, 1e11) },
 		consumables = {
 			slot = data.consumables.slot,
 			bought = table.clone(data.consumables.bought),

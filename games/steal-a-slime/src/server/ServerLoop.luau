@@ -5,7 +5,7 @@
 	The server's one Heartbeat: the kill plane (Rescue, with the PvP void guard) and GameLoop.step every frame;
 	every VIEW_INTERVAL the day / night clock, the per-player step (lock enforcement, HomeZone deposits with one
 	"plot full" toast per visit, WorldView.updatePlayer incl. the PvP ticks, the open world shop's range check,
-	thief plots, leaderstats), the cash pads (FEATURES.CashPads), the co-op ritual, world attributes, the view refresh and the State pushes.
+	thief plots, leaderstats), the cash pads (FEATURES.CashPads), the Goo Gauntlet obby, the co-op ritual, world attributes, the view refresh and the State pushes.
 	Each stage runs through safeCall so one failing player or model never stops the pushes. Profiler
 	(FEATURES.ServerProfiler) times the stages.
 ]]
@@ -27,6 +27,8 @@ local LockPad = require(script.Parent.LockPad)
 local LockPadView = require(script.Parent.LockPadView)
 local MoveGuard = require(ReplicatedStorage.Shared.MoveGuard)
 local MoveWatch = require(script.Parent.MoveWatch)
+local ObbyService = require(script.Parent.ObbyService)
+local ObbyView = require(script.Parent.ObbyView)
 local PlayerAttributes = require(script.Parent.PlayerAttributes)
 local PlotPadGuard = require(script.Parent.PlotPadGuard)
 local Profiler = require(script.Parent.Profiler)
@@ -178,6 +180,17 @@ local function stepPlayers(loop: Loop, t: number)
 		loop.safeCall("cash pads", function()
 			CashPadView.sync(loop.cashPads, world, t)
 			CashPadView.step(loop.cashPads, world, t)
+		end)
+	end
+	if world.obby then
+		loop.safeCall("obby step", function()
+			local result = ObbyService.step(world, ObbyView.place(), ObbyView.positions(), t)
+			if result.rebuilt and world.obby then
+				ObbyView.build(world.obby)
+			end
+			ObbyView.apply(result.moves, function(userId: number)
+				SlimeGuard.serverMoved(world, userId, t) -- the anti-cheat must not read the lift as a teleport hack
+			end)
 		end)
 	end
 	if Config.FEATURES.CoopRitual then

@@ -35,12 +35,13 @@ These show their UI-drawn scene (`src/ui/ItemIconArt.luau`) until a picture is u
 | Dex_20 | Dex 20 species | Gold trophy with a slime on top and the number 20 on the base; front view. |
 | Dex_32 | Dex 32 species | Gold trophy with a slime on top and the number 32 on the base; front view. |
 | Dex_40 | Dex 40 species | Gold trophy with a slime on top and the number 40 on the base; front view. |
-| Boost_Mvp | Boss MVP | A gold crown sitting on a stack of gold coins; front view. |
+| Boost_Mvp | Boss Champion | A gold crown sitting on a stack of gold coins; front view. |
+| Boost_Obby | Goo Gauntlet | Three green jelly steps rising to a small gold finish flag, with a lime goo drip; front view. |
 | Upgrade_QuickBrew | Quick Brew | A copper merge vat full of mint goo with a gold lightning bolt over it; three-quarter view. |
 | PlotSkin_fairground | Fairground | Top of the 'Fairground' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view. |
 | PlotSkin_beach | Beach Hut | Top of the 'Beach Hut' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view. |
 | PlotSkin_space | Space Station | Top of the 'Space Station' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view. |
 | PlotSkin_winter | Winter Cabin | Top of the 'Winter Cabin' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view. |
+| PlotSkin_haunted | Haunted Ranch | Top of the 'Haunted Ranch' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view. |
 | PetSeat_pumpkin | Pumpkin | The 'Pumpkin' pet seat (models/pet_mount_pumpkin.py) alone, no slime; 3/4 view. |
 | PetSeat_snowglobe | Snow Globe | The 'Snow Globe' pet seat (models/pet_mount_snowglobe.py) alone, no slime; 3/4 view. |
-| PlotSkin_haunted | Haunted Ranch | Top of the 'Haunted Ranch' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view. |
