@@ -1055,10 +1055,97 @@ def goo(name, balls, color, tris=None, resolution=0.12, smooth=True):
     return keep(o, smooth)
 
 
+# ---------------------------------------------------------------- mutations
+# A mutation (the game's Config.SHINES: Gold, Diamond, Rainbow) recolours the whole species mesh. Ink-dark
+# corners of small loose pieces (eyes, mouth, spots: under INK_AREA of the mesh) keep a dark tone of the
+# mutation so the face stays readable; a big dark piece (a ninja's suit, a night body) is recoloured like
+# the rest. t runs 0 at the bottom to 1 at the top, so the top catches the light. Colours are the sRGB
+# values picked in Studio.
+INK_AREA = 0.04
+def _lum(c):
+    return 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2]
+
+
+def _lerp(a, b, t):
+    t = min(1.0, max(0.0, t))
+    return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
+
+
+def _c(r, g, b):
+    return (r / 255, g / 255, b / 255)
+
+
+def _gold(c, t, ink):
+    # the game tints the gold kit warm (Config.SHINES Gold `tint`); these are the colours under that tint
+    if ink:
+        return _c(120, 60, 0)
+    k = 0.55 * min(1.0, max(0.0, (_lum(c) - 0.18) / 0.6)) + 0.45 * t
+    return _lerp(_c(240, 150, 0), _c(255, 240, 120), k)
+
+
+def _diamond(c, t, ink):
+    if ink:
+        return _c(50, 90, 140)
+    k = 0.6 * min(1.0, max(0.0, (_lum(c) - 0.18) / 0.5)) + 0.4 * t
+    return _lerp(_c(150, 215, 255), _c(255, 255, 255), k)
+
+
+def _rainbow(c, t, ink):
+    import colorsys
+    if ink:
+        return _c(40, 20, 50)
+    return colorsys.hsv_to_rgb((t * 0.85) % 1.0, 0.6, 0.8 + 0.2 * min(1.0, max(0.0, _lum(c))))
+
+
+MUTATIONS = {"gold": _gold, "diamond": _diamond, "rainbow": _rainbow}
+
+
+def _islands(bm):
+    """loose pieces of bm: lists of faces joined by shared vertices."""
+    seen, out = set(), []
+    for start in bm.faces:
+        if start.index in seen:
+            continue
+        stack, piece = [start], []
+        seen.add(start.index)
+        while stack:
+            f = stack.pop()
+            piece.append(f)
+            for v in f.verts:
+                for g in v.link_faces:
+                    if g.index not in seen:
+                        seen.add(g.index)
+                        stack.append(g)
+        out.append(piece)
+    return out
+
+
+def mutate(o, kind, z0, z1):
+    """recolour every "Col" corner of the shipped mesh o for mutation `kind` (a MUTATIONS key)."""
+    fn = MUTATIONS[kind]
+    h = max(1e-6, z1 - z0)
+    mw = o.matrix_world
+    bm = bmesh.new(); bm.from_mesh(o.data)
+    bm.faces.ensure_lookup_table()
+    col = bm.loops.layers.color.get("Col")
+    total = sum(f.calc_area() for f in bm.faces) or 1.0
+    for piece in _islands(bm):
+        small = sum(f.calc_area() for f in piece) / total < INK_AREA
+        for f in piece:
+            for lp in f.loops:
+                c = tuple(lp[col][:3])
+                t = ((mw @ lp.vert.co).z - z0) / h
+                r, g, b = fn(c, t, small and _lum(c) < 0.18)
+                lp[col] = (r, g, b, 1.0)
+    bm.to_mesh(o.data); bm.free()
+    return o
+
+
 # ---------------------------------------------------------------- shipping
 def ship(name, parts):
     """finish() + keep smooth flags + turn to face Roblox -Z (unless SLIME_PREVIEW=1) and print
-    where this mesh sits relative to the slime's bottom centre (Roblox axes)."""
+    where this mesh sits relative to the slime's bottom centre (Roblox axes). SLIME_MUTATION=gold|diamond|rainbow
+    recolours the whole mesh (mutate())."""
     preview = os.environ.get("SLIME_PREVIEW") == "1"
     rig = os.environ.get("SLIME_RIG") == "1"  # skinned bones (models/_slimerig.py)
     if rig:
@@ -1084,6 +1171,9 @@ def ship(name, parts):
     for p, d in zip(o.data.polygons, a.data):
         p.use_smooth = bool(d.value)
     o.data.attributes.remove(a)
+    mutation = os.environ.get("SLIME_MUTATION", "")
+    if mutation:
+        mutate(o, mutation, lo.z, hi.z)
     if rig:
         _slimerig.build_rig(o)
     c = (lo + hi) / 2

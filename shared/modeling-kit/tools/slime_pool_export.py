@@ -15,10 +15,14 @@ from concurrent.futures import ThreadPoolExecutor
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def export(model, out):
+def export(model, out, mutation=""):
     name = os.path.splitext(os.path.basename(model))[0]
     env = dict(os.environ, SLIME_RIG="1")
     env.pop("SLIME_PREVIEW", None)
+    env.pop("SLIME_MUTATION", None)
+    if mutation:
+        env["SLIME_MUTATION"] = mutation
+        name = f"{name}_{mutation}"
     cmd = [sys.executable, os.path.join(KIT, "iterate.py"), model, "--no-ref", "--name", name, "--out", out,
            "--views", "0", "--res", "128", "--samples", "4", "-v"]
     r = subprocess.run(cmd, cwd=KIT, env=env, capture_output=True, text=True)
@@ -62,14 +66,18 @@ def main():
     p.add_argument("--only", default="")
     p.add_argument("--jobs", type=int, default=4)
     p.add_argument("--meshassets", default="")
+    p.add_argument("--mutation", default="", help="gold, diamond, rainbow or all: export the recoloured copies "
+                   "slime_<id>_<mutation>.fbx (models/_slimepool.py mutate()) instead of the species")
     a = p.parse_args()
     out = os.path.abspath(os.path.join(KIT, a.out))
     os.makedirs(out, exist_ok=True)
     only = {f"slime_{x}" for x in a.only.split(",") if x}
     models = [m for m in sorted(glob.glob(os.path.join(KIT, "models", "pool", "slime_*.py")))
               if not only or os.path.splitext(os.path.basename(m))[0] in only]
+    mutations = ["gold", "diamond", "rainbow"] if a.mutation == "all" else [a.mutation] if a.mutation else [""]
+    jobs = [(m, mu) for m in models for mu in mutations]
     with ThreadPoolExecutor(a.jobs) as ex:
-        results = list(ex.map(lambda m: export(m, out), models))
+        results = list(ex.map(lambda j: export(j[0], out, j[1]), jobs))
     attach_path = os.path.join(out, "attach.json")
     attach = json.load(open(attach_path)) if os.path.exists(attach_path) else {}
     attach.update({n: v for n, v in results if v})
