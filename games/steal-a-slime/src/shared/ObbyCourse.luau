@@ -306,19 +306,19 @@ end
 
 -- A round platform swept by spinning goo bars: jump them as they come round.
 BUILD.Spinner = function(layout)
-	-- bars: { height of the bar's centre, period, length }
+	-- spin: the disc's own turn (0 = still); bars: { height of the bar's centre, period, length }
 	local L = ({
-		{ spin = nil, bars = { { 1.1, 3.4, 18 } } },
-		{ spin = nil, bars = { { 1.1, 3, 18 }, { 1.1, -4.6, 10 } } },
+		{ spin = 0, bars = { { 1.1, 3.4, 18 } } },
+		{ spin = 0, bars = { { 1.1, 3, 18 }, { 1.1, -4.6, 10 } } },
 		{ spin = 7, bars = { { 1.1, -3.6, 18 } } },
-		{ spin = nil, bars = { { 1.1, 2.6, 18 }, { 2.4, -3.8, 18 } } },
+		{ spin = 0, bars = { { 1.1, 2.6, 18 }, { 2.4, -3.8, 18 } } },
 		{ spin = -8, bars = { { 1.1, 3.2, 18 }, { 1.1, 3.2, 18 } } },
 		{ spin = 6, bars = { { 1.1, -2.8, 18 }, { 1.1, 4.4, 10 } } },
 	})[layout]
 	local gap, size = 2, 20
 	local cx = gap + size / 2
 	local disc = slab(cx, 0, 0, size, size, "jelly", { shape = "disc", tone = 2 })
-	if L.spin then
+	if L.spin ~= 0 then
 		disc.motion = { kind = "spin", period = L.spin }
 	end
 	local parts = { disc }
