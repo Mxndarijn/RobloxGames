@@ -215,6 +215,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-
       <li><div><strong>Report what you did not check.</strong> Every PR lists the checks it ran and the ones it could not. Missing evidence counts as a fail, and "not listened to by ear" or "not tested on phone" is said out loud.</div></li>
       <li><div><strong>One task, one worktree, one branch.</strong> Cut from a freshly pulled <code>main</code>, stage your own files by path, never commit to <code>main</code>.</div></li>
       <li><div><strong>One place for every value.</strong> Colours in the palette file, sizes in Layout, tunables in Config, world sizes in WorldLayout. Never copy a number into a second file.</div></li>
+      <li><div><strong>Common systems live in shared, not in a game.</strong> Inventory and hotbar, session-locked saves, save migrations, rate limiting, number formatting, seeded random and analytics are in <code>shared/luau</code>. Before building one of these, use or extend the shared module. When something you built in a game has nothing game-specific in it, move it to shared.<p>Shared modules are a pure core plus a thin Roblox adapter, take their dependencies as arguments, ship overridable defaults (like the default hotbar UI) and have Lune specs. See <code>shared/luau/CLAUDE.md</code>.</p></div></li>
       <li><div><strong>No secrets in output.</strong> The Open Cloud key is never printed or committed.</div></li>
     </ol>
   </section>
