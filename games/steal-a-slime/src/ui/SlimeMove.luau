@@ -24,7 +24,8 @@
 ]]
 
 local UI = script.Parent
-local InputKind = require(UI.InputKind)
+local InputKind =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("InputKind"))
 local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 

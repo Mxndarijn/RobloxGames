@@ -40,7 +40,7 @@ local JarMeshes = require(ReplicatedStorage.Visuals.JarMeshes)
 local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
 local PetCloud = require(ReplicatedStorage.Visuals.PetCloud)
 local PvpModels = require(ReplicatedStorage.Shared.PvpModels)
-local Retry = require(ReplicatedStorage.Shared.Retry)
+local Retry = require(ReplicatedStorage.Lib.core.Retry)
 local ThemeMeshes = require(ReplicatedStorage.Shared.ThemeMeshes)
 local VatDecor = require(ReplicatedStorage.Visuals.VatDecor)
 

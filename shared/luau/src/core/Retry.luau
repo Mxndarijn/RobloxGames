@@ -1,7 +1,7 @@
 --!strict
 --[[
 	Retry (pure): run `attempt` once, then once more after each delay in `delays` while it returns nil. Bounded
-	(1 + #delays calls), never a hot loop; `wait` is injected (task.wait on the server, a recorder in specs).
+	(1 + #delays calls), never a hot loop; `wait` is injected (task.wait in Roblox, a recorder in specs).
 	Returns the first non-nil result, or nil once every attempt failed. A throwing attempt counts as a failure.
 ]]
 
@@ -20,4 +20,4 @@ function Retry.run<T>(attempt: () -> T?, delays: { number }, wait: (number) -> (
 	return nil
 end
 
-return Retry
+return table.freeze(Retry)

@@ -1,6 +1,6 @@
 --!strict
-local NameCache = require("../src/server/NameCache")
-local TestRunner = require("./TestRunner")
+local NameCache = require("../src/core/NameCache")
+local TestRunner = require("../testing/TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 

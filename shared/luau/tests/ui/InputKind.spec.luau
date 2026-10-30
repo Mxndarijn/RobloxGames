@@ -1,7 +1,7 @@
 --!strict
--- Which device the player is using (src/ui/InputKind.luau).
+-- Which device the player is using.
 local InputKind = require("../../src/ui/InputKind")
-local TestRunner = require("../TestRunner")
+local TestRunner = require("../../testing/TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 

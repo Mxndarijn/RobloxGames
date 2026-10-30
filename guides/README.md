@@ -3,6 +3,7 @@
 How we build, test and release the games in this repo. Copied from the team's box guides (`/workspace/guides`) on 2026-10-18; this folder is now the source of truth. Code comments that say `/guides/<name>.md` mean `guides/<name>.md` here.
 
 ## Start here
+- [ai-guidebook.html](ai-guidebook.html): the AI Game Guidebook. House rules, the game kit, UI, 3D models, world placement, sound and verifying, with what Merijn and Niels approved and what needed rework. Open it in a browser.
 - [roblox-pipeline-index.md](roblox-pipeline-index.md): map of the whole pipeline
 - [task-brief.md](task-brief.md): how to write a task brief
 
