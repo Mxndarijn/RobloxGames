@@ -16,10 +16,9 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local PvpFunView = {}
 
 PvpFunView.NAME = "PvpBubble"
+local LOOK = Config.PVP_FUN.BUBBLES.LOOK
 local BUBBLE = table.freeze({
 	size = 7, -- studs across: fits an R15 character
-	color = Color3.fromRGB(150, 215, 255),
-	transparency = 0.35,
 	responsiveness = 25, -- AlignPosition: how quickly it floats up
 	maxForce = 1e6,
 })
@@ -45,9 +44,9 @@ function PvpFunView.bubble(
 	ball.Name = PvpFunView.NAME
 	ball.Shape = Enum.PartType.Ball
 	ball.Size = Vector3.one * BUBBLE.size
-	ball.Material = Enum.Material.ForceField
-	ball.Color = BUBBLE.color
-	ball.Transparency = BUBBLE.transparency
+	ball.Material = (Enum.Material :: any)[LOOK.MATERIAL]
+	ball.Color = Color3.fromRGB(LOOK.COLOR[1], LOOK.COLOR[2], LOOK.COLOR[3])
+	ball.Transparency = LOOK.TRANSPARENCY
 	ball.CanCollide = false
 	ball.CanTouch = false
 	ball.CanQuery = true -- the ClickDetector needs the mouse ray to hit it

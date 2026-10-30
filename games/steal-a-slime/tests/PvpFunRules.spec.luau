@@ -53,6 +53,18 @@ describe("PvpFunRules bubbles", function()
 		expect(PvpFunRules.bubbleAt(stream, 1, 100 + FUN.BUBBLES.LIFETIME + 0.01)).toBe(nil)
 		expect(PvpFunRules.streamEnds(stream) >= born + FUN.BUBBLES.LIFETIME).toBe(true)
 	end)
+	it("the bubble look (player and wild slime) is a real material, an RGB colour and see-through", function()
+		local look = FUN.BUBBLES.LOOK
+		local ok = pcall(function()
+			return (roblox.Enum.Material :: any)[look.MATERIAL]
+		end)
+		expect(ok).toBe(true)
+		expect(#look.COLOR).toBe(3)
+		for _, c in look.COLOR do
+			expect(c >= 0 and c <= 255 and c == math.floor(c)).toBe(true)
+		end
+		expect(look.TRANSPARENCY > 0 and look.TRANSPARENCY < 1).toBe(true)
+	end)
 end)
 
 describe("PvpFunRules hat shot", function()
