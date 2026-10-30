@@ -112,7 +112,8 @@ end
 
 --[[
 	Ends a stolen carry: the slime bounces home. `reason` is "slap" | "drop" |
-	"left" | "unsaved" (a player's save stopped being writable mid-carry) | "guard" (SlimeGuard). Returns the slime id or nil.
+	"left" | "unsaved" (a player's save stopped being writable mid-carry) | "guard" (SlimeGuard) | "boss" (a boss attack
+	hit the carrier: its own toast is the only text). Returns the slime id or nil.
 ]]
 function StealService.escape(world: World, carrier: Session, now: number, reason: string): string?
 	local carry = carrier.carry
@@ -152,7 +153,7 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 		)
 	elseif reason == "guard" then
 		World.notify(world, carrier.userId, `The {name} slipped away and went home.`, "bad", "Escape")
-	elseif reason ~= "left" then
+	elseif reason ~= "left" and reason ~= "boss" then
 		World.notify(world, carrier.userId, `You dropped the {name}. It went home.`, "bad", "Escape")
 	end
 	World.notify(world, owner.userId, `Your {name} escaped back to you!`, "good", "Escape")
