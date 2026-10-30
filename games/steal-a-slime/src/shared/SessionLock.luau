@@ -1,92 +1,40 @@
 --!strict
 --[[
-	SessionLock
+	SessionLock: the shared session-locking rules (shared/luau/src/data/SessionLock) with this game's stale time,
+	Config.SESSION_STALE_SECONDS, filled in. Used inside DataStore:UpdateAsync so two servers never both own a
+	player's data.
 
-	Pure session-locking rules used inside DataStore:UpdateAsync so that two
-	servers never both own a player's data (rejoin on another server before
-	the old one saved, duplicated slimes, etc.).
-
-	Stored record: { data = <SaveData.serialize output>, session = { jobId, time }? }
-	Records without the wrapper (older saves) are read as unlocked data.
-
-	The server:
-	  * loads with `acquire` (retrying while "locked", kicking after N tries),
-	  * saves with `write(..., release = false)` and refreshes `time`,
-	  * releases on leave / shutdown with `write(..., release = true)`.
-	A lock whose `time` is older than SESSION_STALE_SECONDS (crashed server)
-	can be taken over.
+	Stored record: { data = <SaveData.serialize output>, session = { jobId, time }? }. Records without the wrapper
+	are read as unlocked data.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
+local Core = if Lib then require(Lib.data.SessionLock) else require("../../../../shared/luau/src/data/SessionLock")
 
-export type Session = { jobId: string, time: number }
-export type Record = { data: any, session: Session? }
-export type Status = "free" | "own" | "stale" | "locked"
+export type Session = Core.Session
+export type Record = Core.Record
+export type Status = Core.Status
 
 local SessionLock = {}
 
-function SessionLock.unwrap(record: any): (any, Session?)
-	if type(record) ~= "table" then
-		return nil, nil
-	end
-	if record.data == nil and record.session == nil then
-		return record, nil -- legacy, unwrapped save
-	end
-	local s = record.session
-	if type(s) == "table" and type(s.jobId) == "string" and type(s.time) == "number" then
-		return record.data, { jobId = s.jobId, time = s.time }
-	end
-	return record.data, nil
-end
+SessionLock.unwrap = Core.unwrap
+SessionLock.backoff = Core.backoff
 
+-- `staleAfter` defaults to Config.SESSION_STALE_SECONDS.
 function SessionLock.status(session: Session?, jobId: string, now: number, staleAfter: number?): Status
-	if not session then
-		return "free"
-	end
-	if session.jobId == jobId then
-		return "own"
-	end
-	if now - session.time > (staleAfter or Config.SESSION_STALE_SECONDS) then
-		return "stale"
-	end
-	return "locked"
+	return Core.status(session, jobId, now, staleAfter or Config.SESSION_STALE_SECONDS)
 end
 
---[[
-	UpdateAsync transform for loading. Returns (newRecord?, status, data).
-	newRecord is nil when another live server holds the lock: return nil from
-	the UpdateAsync callback to cancel the write, then retry later.
-]]
+-- UpdateAsync transform for loading: (newRecord?, status, data); newRecord is nil while another live server holds
+-- the lock.
 function SessionLock.acquire(record: any, jobId: string, now: number): (Record?, Status, any)
-	local data, session = SessionLock.unwrap(record)
-	local status: Status = SessionLock.status(session, jobId, now)
-	if status == "locked" then
-		return nil, status, data
-	end
-	return { data = data, session = { jobId = jobId, time = now } }, status, data
+	return Core.acquire(record, jobId, now, Config.SESSION_STALE_SECONDS)
 end
 
---[[
-	UpdateAsync transform for saving. Returns (newRecord?, ok). ok is false
-	(and newRecord nil: cancel the write) when another server has taken the
-	session over: this server must stop saving that player.
-]]
+-- UpdateAsync transform for saving: (newRecord?, ok); ok is false once another server owns the session.
 function SessionLock.write(record: any, jobId: string, now: number, data: any, release: boolean): (Record?, boolean)
-	local _, session = SessionLock.unwrap(record)
-	local status = SessionLock.status(session, jobId, now)
-	if status ~= "own" then
-		-- Another server took the session over (and maybe already released it).
-		return nil, false
-	end
-	if release then
-		return { data = data, session = nil }, true
-	end
-	return { data = data, session = { jobId = jobId, time = now } }, true
+	return Core.write(record, jobId, now, data, release, Config.SESSION_STALE_SECONDS)
 end
 
--- Seconds to wait before load attempt `attempt` (1-based) is retried.
-function SessionLock.backoff(attempt: number): number
-	return math.min(2 ^ attempt, 10)
-end
-
-return SessionLock
+return table.freeze(SessionLock)
