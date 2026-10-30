@@ -210,6 +210,21 @@ describe("Merge menu: the card", function()
 		expect(sent[#sent][2]).toBe("b")
 	end)
 
+	it("a slot's X and padlock are small badges, and the X keeps a thumb-sized tap area", function()
+		local panel = build()
+		panel.update(state({ "a", "b", "c" }))
+		local x = find(panel, "Remove1")
+		local slot = find(panel, "Slot1").Size.X.Offset
+		expect(x.Size.X.Offset >= Layout.MIN_TOUCH_DESIGN).toBe(true)
+		expect(x.Size.Y.Offset >= Layout.MIN_TOUCH_DESIGN).toBe(true)
+		expect(UiHarness.find(x, "Badge").Size.X.Offset <= slot / 2).toBe(true)
+		expect(find(panel, "Lock1").Size.X.Offset <= slot / 2).toBe(true)
+		-- The badge sits on the slot's top-right edge, not over the middle of the slime.
+		local badgeX = x.Position.X.Offset
+		local slotX = find(panel, "Slot1").Position.X.Offset
+		expect(badgeX > slotX + slot * 0.75).toBe(true)
+	end)
+
 	it("Start merge sends VatStart; while brewing the X turns into a padlock and the hold cancels", function()
 		local panel, sent = build()
 		panel.update(state({ "a", "b", "c" }))

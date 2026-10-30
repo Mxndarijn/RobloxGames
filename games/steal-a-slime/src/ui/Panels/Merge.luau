@@ -40,9 +40,14 @@ local SIZE = table.freeze({
 	gap = 10,
 	slot = 76,
 	slotGap = 10,
+	slotTop = 6, -- px from the top of the load row to the slots
 	nameH = 18,
 	rarityH = 16,
-	x = Layout.MIN_TOUCH_DESIGN - 4,
+	x = Layout.MIN_TOUCH_DESIGN, -- a slot's X: the tap area (invisible) around its badge
+	badge = 26, -- the X and padlock badge drawn on a slot's top-right edge
+	badgeText = 14, -- the X on its badge
+	lockText = 12, -- the padlock emoji on its badge
+	badgeInset = 10, -- px from the slot's top-right corner box to the badge's centre
 	arrowW = 30,
 	orb = 72,
 	resultMin = 170,
@@ -263,7 +268,7 @@ function Merge.new(parent: Instance, ctx: any)
 		empty: TextLabel,
 		name: TextLabel,
 		rarity: TextLabel,
-		x: any,
+		x: TextButton,
 		lock: TextLabel,
 	}
 	local slotUis: { SlotUi } = {}
@@ -309,28 +314,46 @@ function Merge.new(parent: Instance, ctx: any)
 			TextXAlignment = Enum.TextXAlignment.Center,
 			Parent = load,
 		})
-		local x = Widgets.button(
-			{
-				Name = `Remove{i}`,
-				Text = "X",
-				TextSize = 20,
-				Size = UDim2.fromOffset(SIZE.x, SIZE.x),
-				ZIndex = 3,
-				Parent = load,
-			},
-			Theme.Bad,
-			function()
-				local id = view and view.slots[i].id
-				if id then
-					ctx.send("VatRemove", id)
-				end
+		-- The X: a thumb-sized invisible button with a small red badge in its middle.
+		local x = create("TextButton", {
+			Name = `Remove{i}`,
+			Text = "",
+			BackgroundTransparency = 1,
+			AutoButtonColor = false,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Size = UDim2.fromOffset(SIZE.x, SIZE.x),
+			ZIndex = 3,
+			Parent = load,
+		}) :: TextButton
+		local badge = Widgets.label({
+			Name = "Badge",
+			Text = "X",
+			Font = Theme.Font,
+			TextSize = SIZE.badgeText,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextTruncate = Enum.TextTruncate.None,
+			BackgroundTransparency = 0,
+			BackgroundColor3 = Theme.Bad,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(SIZE.badge, SIZE.badge),
+			Parent = x,
+		})
+		Widgets.pill().Parent = badge
+		Widgets.stroke(Theme.Ink, KIT.rowStroke).Parent = badge
+		Widgets.inkOn(badge, Theme.Bad)
+		x.Activated:Connect(function()
+			local slot = view and view.slots[i]
+			if slot and slot.id and slot.canRemove then
+				ctx.send("VatRemove", slot.id)
 			end
-		)
+		end)
 		local lock = Widgets.status({
 			Name = `Lock{i}`,
 			Text = "🔒",
-			TextSize = SIZE.text,
-			Size = UDim2.fromOffset(SIZE.x - 6, SIZE.x - 6),
+			TextSize = SIZE.lockText,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Size = UDim2.fromOffset(SIZE.badge, SIZE.badge),
 			ZIndex = 3,
 			Visible = false,
 			Parent = load,
@@ -502,13 +525,15 @@ function Merge.new(parent: Instance, ctx: any)
 		local loadH = SIZE.slot + SIZE.nameH + SIZE.rarityH + 6
 		for i, ui in slotUis do
 			local x = slotsX + (i - 1) * (SIZE.slot + SIZE.slotGap)
-			ui.well.Position = UDim2.fromOffset(x, 6)
+			ui.well.Position = UDim2.fromOffset(x, SIZE.slotTop)
 			ui.name.Position = UDim2.fromOffset(x - 8, SIZE.slot + 10)
 			ui.name.Size = UDim2.fromOffset(SIZE.slot + 16, SIZE.nameH)
 			ui.rarity.Position = UDim2.fromOffset(x - 8, SIZE.slot + 10 + SIZE.nameH)
 			ui.rarity.Size = UDim2.fromOffset(SIZE.slot + 16, SIZE.rarityH)
-			ui.x.instance.Position = UDim2.fromOffset(x + SIZE.slot - SIZE.x + 10, 0)
-			ui.lock.Position = UDim2.fromOffset(x + SIZE.slot - SIZE.x + 13, 2)
+			-- Both badges centred on the same spot, near the slot's top-right edge.
+			local corner = UDim2.fromOffset(x + SIZE.slot - SIZE.badgeInset, SIZE.slotTop + SIZE.badgeInset)
+			ui.x.Position = corner
+			ui.lock.Position = corner
 		end
 		local resultH = SIZE.orb + 30
 		if stacked then
@@ -518,7 +543,7 @@ function Merge.new(parent: Instance, ctx: any)
 			loadH += SIZE.gap + resultH
 		else
 			arrow.Visible = true
-			arrow.Position = UDim2.fromOffset(slotsW + SIZE.gap, 6)
+			arrow.Position = UDim2.fromOffset(slotsW + SIZE.gap, SIZE.slotTop)
 			arrow.Size = UDim2.fromOffset(SIZE.arrowW, SIZE.slot)
 			result.Position = UDim2.fromOffset(slotsW + SIZE.arrowW + SIZE.gap * 2, 0)
 			result.Size = UDim2.fromOffset(resultW, math.max(resultH, SIZE.slot + 12))
@@ -591,8 +616,7 @@ function Merge.new(parent: Instance, ctx: any)
 			ui.name.Text = if filled then slot.name else ""
 			ui.rarity.Text = slot.rarity or ""
 			ui.rarity.TextColor3 = rgb(slot.color)
-			ui.x.instance.Visible = filled and not slot.locked
-			ui.x.setEnabled(slot.canRemove)
+			ui.x.Visible = slot.canRemove
 			ui.lock.Visible = slot.locked
 		end
 
