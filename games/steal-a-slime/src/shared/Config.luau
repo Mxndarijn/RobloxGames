@@ -2242,7 +2242,7 @@ local Config = {
 			-- The bubble around a bubbled player (server/PvpFunView) and a floating wild slime (ui/PvpFunFx).
 			LOOK = table.freeze({
 				MATERIAL = "ForceField", -- Enum.Material name
-				COLOR = { 150, 215, 255 }, -- RGB 0..255
+				COLOR = table.freeze({ 150, 215, 255 }), -- RGB 0..255
 				TRANSPARENCY = 0.35,
 			}),
 		}),

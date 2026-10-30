@@ -659,9 +659,10 @@ function PvpFunFx.start(opts: Options): Handle
 		end
 		local r = record or newRecord(1)
 		local at = anchorAt(r, bubble.Position)
+		local c = bubble.Color
 		emit(r, at, {
 			count = 10,
-			colors = { Logic.BUBBLE, { 1, 1, 1 } },
+			colors = { { c.R, c.G, c.B }, { 1, 1, 1 } }, -- the burst matches the bubble that popped
 			speed = { 4, 9 },
 			size = 0.35,
 			lifetime = { 0.2, 0.45 },
