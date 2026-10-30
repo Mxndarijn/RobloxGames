@@ -1,0 +1,584 @@
+<title>AI Game Guidebook</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a goo header band with tabs, then a sticky contents rail beside long-form chapters (stacks on phone).
+   Palette follows the Steal a Slime GooKit (shared/GooPalette): ink teal glass, mint for actions, gold for money, pink for danger. */
+:root {
+  --bg: #eef7f3;
+  --panel: #ffffff;
+  --row: #e2f1eb;
+  --ink: #08262a;
+  --fg: #0c3436;
+  --muted: #3f6663;
+  --line: #c4ddd5;
+  --mint: #1f9d74;
+  --mint-soft: #d3f5e8;
+  --band: #6cf2c2;
+  --band-ink: #08262a;
+  --gold: #a87400;
+  --gold-soft: #fff2c7;
+  --bad: #c42d52;
+  --bad-soft: #fde1e8;
+  --info: #2f6f68;
+  --code-bg: #e2f1eb;
+  --f-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #072426; --panel: #0c3436; --row: #1c4849; --ink: #04181a; --fg: #f1fff9; --muted: #a6e3d2;
+    --line: #285f5f; --mint: #6cf2c2; --mint-soft: #164a43; --band: #6cf2c2; --band-ink: #08262a;
+    --gold: #ffd23f; --gold-soft: #3d3514; --bad: #ff7d9b; --bad-soft: #4a1d2a; --info: #8fd3c8; --code-bg: #08262a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #072426; --panel: #0c3436; --row: #1c4849; --ink: #04181a; --fg: #f1fff9; --muted: #a6e3d2;
+  --line: #285f5f; --mint: #6cf2c2; --mint-soft: #164a43; --band: #6cf2c2; --band-ink: #08262a;
+  --gold: #ffd23f; --gold-soft: #3d3514; --bad: #ff7d9b; --bad-soft: #4a1d2a; --info: #8fd3c8; --code-bg: #08262a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 16px; line-height: 1.6; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--band); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* header band */
+header.band { background: var(--band); color: var(--band-ink); border-bottom: 4px solid var(--ink); position: relative; }
+header.band .wrap { padding-block: 28px 0; }
+.eyebrow { font: 700 12px/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 5vw, 46px); line-height: 1.05; margin: 8px 0 8px; text-wrap: balance; }
+.lede { max-width: 62ch; margin: 0 0 20px; font-weight: 600; }
+.drips { display: block; width: 100%; height: 18px; position: absolute; left: 0; bottom: -18px; color: var(--band); pointer-events: none; }
+
+nav.tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 0; }
+nav.tabs::-webkit-scrollbar { display: none; }
+.tab { font: 600 15px/1 var(--f-display); color: var(--band-ink); background: transparent; border: 3px solid transparent; border-bottom: 0; border-radius: 14px 14px 0 0; padding: 12px 16px 12px; cursor: pointer; white-space: nowrap; display: flex; gap: 8px; align-items: center; }
+.tab:hover { background: color-mix(in srgb, var(--panel) 35%, transparent); }
+.tab[aria-selected="true"] { background: var(--bg); border-color: var(--ink); position: relative; top: 4px; padding-bottom: 16px; color: var(--fg); }
+.tab:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.tab .tag { font: 700 10px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 3px 6px; border-radius: 6px; background: var(--ink); color: var(--band); }
+.tab[aria-selected="true"] .tag { background: var(--row); color: var(--muted); }
+
+main .wrap { padding-block: 44px 64px; }
+
+/* guides layout */
+.layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 40px; align-items: start; }
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); font-size: 14px; }
+.toc .eyebrow { color: var(--muted); opacity: 1; margin-bottom: 10px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: c; }
+.toc a { display: flex; gap: 10px; padding: 6px 10px; border-radius: 10px; color: var(--fg); text-decoration: none; font-weight: 700; }
+.toc a:hover { background: var(--row); }
+.toc a span { font-family: var(--f-mono); font-weight: 400; color: var(--muted); font-size: 12px; padding-top: 2px; }
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .toc { position: static; }
+  .toc ol { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+
+article { min-width: 0; }
+section.ch { padding-block: 8px 40px; border-bottom: 2px dashed var(--line); margin-bottom: 40px; scroll-margin-top: 20px; }
+section.ch:last-child { border-bottom: 0; }
+.chnum { font: 600 13px/1 var(--f-mono); color: var(--mint); }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: clamp(24px, 3.4vw, 32px); line-height: 1.15; margin: 6px 0 12px; text-wrap: balance; }
+h3 { font-family: var(--f-display); font-weight: 600; font-size: 19px; margin: 28px 0 8px; }
+p, li { max-width: 72ch; }
+p { margin: 0 0 12px; }
+ul, ol { padding-left: 22px; margin: 0 0 12px; }
+li { margin-bottom: 4px; }
+li::marker { color: var(--mint); }
+code { font-family: var(--f-mono); font-size: .86em; background: var(--code-bg); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+pre { font-family: var(--f-mono); font-size: 13px; background: var(--code-bg); border: 2px solid var(--line); border-radius: 12px; padding: 14px 16px; overflow-x: auto; line-height: 1.5; margin: 0 0 14px; }
+pre code { background: none; padding: 0; }
+a { color: var(--mint); }
+strong { font-weight: 800; }
+.src { font-size: 13px; color: var(--muted); }
+.src code { font-size: 12px; }
+
+/* pipeline steps: a real sequence, so numbered */
+.steps { list-style: none; padding: 0; display: grid; gap: 10px; counter-reset: s; margin: 8px 0 16px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: start; max-width: none; background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 0; }
+.steps li::before { content: counter(s); font: 700 15px/30px var(--f-display); text-align: center; width: 30px; height: 30px; border-radius: 50%; background: var(--band); color: var(--band-ink); border: 2px solid var(--ink); }
+.steps b { font-family: var(--f-display); font-weight: 600; }
+
+/* worked / rework verdicts */
+.verdicts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 14px 0 18px; }
+@media (max-width: 640px) { .verdicts { grid-template-columns: minmax(0, 1fr); } }
+.v { border-radius: 16px; padding: 14px 16px 6px; border: 2px solid; min-width: 0; }
+.v h4 { margin: 0 0 8px; font: 700 13px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; display: flex; gap: 8px; align-items: center; }
+.v ul { padding-left: 18px; font-size: 15px; }
+.v.ok { background: var(--mint-soft); border-color: var(--mint); }
+.v.ok h4 { color: var(--mint); }
+.v.no { background: var(--bad-soft); border-color: var(--bad); }
+.v.no h4 { color: var(--bad); }
+.pr { font: 600 12px var(--f-mono); color: var(--muted); white-space: nowrap; }
+
+/* tables */
+.tbl { overflow-x: auto; margin: 10px 0 18px; border: 2px solid var(--line); border-radius: 14px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 560px; }
+th, td { text-align: left; padding: 10px 14px; vertical-align: top; border-bottom: 1px solid var(--line); }
+th { font: 700 12px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--row); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 700; }
+
+/* callouts */
+.note { display: grid; grid-template-columns: 6px minmax(0,1fr); gap: 14px; background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 14px 16px 2px 0; margin: 14px 0 18px; overflow: hidden; }
+.note::before { content: ""; background: var(--gold); border-radius: 0 4px 4px 0; }
+.note.bad::before { background: var(--bad); }
+.note p, .note li { max-width: none; }
+.note .k { font: 700 12px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 6px; }
+.note.bad .k { color: var(--bad); }
+
+/* rules */
+.rules { list-style: none; padding: 0; display: grid; gap: 10px; counter-reset: r; }
+.rules li { counter-increment: r; display: grid; grid-template-columns: 54px minmax(0,1fr); gap: 12px; max-width: none; border-bottom: 1px solid var(--line); padding: 8px 0 10px; margin: 0; }
+.rules li::before { content: "R" counter(r); font: 700 18px/1.4 var(--f-display); color: var(--mint); }
+.rules li.key::before { color: var(--bad); }
+.rules li p { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+
+/* kit anatomy */
+.kit { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 12px 0 18px; }
+.kit > div { background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; min-width: 0; }
+.kit b { font-family: var(--f-display); font-weight: 600; display: block; margin-bottom: 4px; }
+.kit p { font-size: 14px; margin: 0; color: var(--muted); }
+.swatches { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.sw { width: 26px; height: 26px; border-radius: 8px; border: 2px solid #08262a; }
+
+/* planned tabs */
+.plan-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.pill { font: 700 11px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; background: var(--gold-soft); color: var(--gold); border: 2px solid var(--gold); }
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 20px; }
+.plan-grid > div { background: var(--panel); border: 2px solid var(--line); border-radius: 16px; padding: 14px 16px 4px; min-width: 0; }
+.plan-grid h4 { font: 600 17px/1.3 var(--f-display); margin: 0 0 6px; }
+.plan-grid ul { font-size: 15px; padding-left: 18px; }
+
+footer { color: var(--muted); font-size: 13px; padding-block: 24px 40px; border-top: 2px solid var(--line); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<header class="band">
+  <div class="wrap">
+    <div class="eyebrow">RobloxGames · Merijn &amp; Niels</div>
+    <h1>AI Game Guidebook</h1>
+    <p class="lede">How we build Roblox games with AI agents: what the AI can do on its own, how it checks its own work, and what still needs a human yes. Written from what happened on Steal a Slime, PRs #1 to #655.</p>
+    <nav class="tabs" role="tablist" aria-label="Guidebook sections">
+      <button class="tab" role="tab" id="t-guides" aria-controls="guides" aria-selected="true">Guides</button>
+      <button class="tab" role="tab" id="t-newgame" aria-controls="newgame" aria-selected="false">New game checklist <span class="tag">Planned</span></button>
+      <button class="tab" role="tab" id="t-briefs" aria-controls="briefs" aria-selected="false">Briefs &amp; prompts <span class="tag">Planned</span></button>
+      <button class="tab" role="tab" id="t-economy" aria-controls="economy" aria-selected="false">Economy &amp; data <span class="tag">Planned</span></button>
+      <button class="tab" role="tab" id="t-release" aria-controls="release" aria-selected="false">Release <span class="tag">Planned</span></button>
+      <button class="tab" role="tab" id="t-decisions" aria-controls="decisions" aria-selected="false">Decision log <span class="tag">Planned</span></button>
+      <button class="tab" role="tab" id="t-glossary" aria-controls="glossary" aria-selected="false">Glossary <span class="tag">Planned</span></button>
+    </nav>
+  </div>
+  <svg class="drips" viewBox="0 0 1200 18" preserveAspectRatio="none" aria-hidden="true"><path fill="currentColor" d="M0 0h1200v4c-20 0-24 10-34 10s-12-10-30-10-18 6-40 6-30-6-60-6-26 12-38 12-14-12-40-12-52 4-90 4-30-4-60-4-20 14-34 14-16-14-46-14-60 5-110 5-34-5-70-5-22 10-36 10-14-10-44-10-50 3-100 3-30-3-60-3-18 13-32 13-18-13-44-13-40 4-80 4-40-4-70-4-24 8-38 8-12-8-30-8-30 3-60 3-20-3-38-3z"/></svg>
+</header>
+
+<main>
+<div class="wrap">
+
+<!-- ============================ GUIDES ============================ -->
+<section id="guides" role="tabpanel" aria-labelledby="t-guides">
+<div class="layout">
+  <aside class="toc" aria-label="Chapters">
+    <div class="eyebrow">Chapters</div>
+    <ol>
+      <li><a href="#g-rules"><span>01</span>House rules</a></li>
+      <li><a href="#g-flow"><span>02</span>Idea to merge</a></li>
+      <li><a href="#g-kit"><span>03</span>The game kit</a></li>
+      <li><a href="#g-ui"><span>04</span>Making UIs</a></li>
+      <li><a href="#g-models"><span>05</span>3D models</a></li>
+      <li><a href="#g-world"><span>06</span>World placement</a></li>
+      <li><a href="#g-audio"><span>07</span>Music &amp; sound</a></li>
+      <li><a href="#g-verify"><span>08</span>Verifying in game</a></li>
+      <li><a href="#g-weak"><span>09</span>Where AI is weak</a></li>
+    </ol>
+  </aside>
+
+  <article>
+
+  <!-- 01 RULES -->
+  <section class="ch" id="g-rules">
+    <div class="chnum">01</div>
+    <h2>House rules</h2>
+    <p>These hold for every game, every bot and every task. The first three are about who decides; the rest keep the game and the PC safe.</p>
+    <ol class="rules">
+      <li class="key"><div><strong>A human signs off everything players see or hear.</strong> 3D models, UI screens, world placement, music, sound effects and player-facing wording are reviewed by Merijn or Niels before they ship.<p>An AI review, a bot reviewer or a playtest subagent "Pass" is evidence, not a sign-off.</p></div></li>
+      <li class="key"><div><strong>Show it before you build it.</strong> Anything visible starts as a mockup, render or before/after page with options. The human picks; the PR quotes the pick.<p>See chapter 02. Every approved UI change on Steal a Slime went this way.</p></div></li>
+      <li class="key"><div><strong>Nothing goes out without Merijn's OK.</strong> No <code>Published</code> upload, no asset upload or re-upload, no merge to <code>main</code> by a bot.<p>Uploading before approval left an unused wind loop on the account (<span class="pr">#380</span>).</p></div></li>
+      <li><div><strong>Never touch production DataStores.</strong> Tests and cloud scripts run with <code>DataStoreMode = "Memory"</code>. Cheats only go through the guarded test hooks.</div></li>
+      <li><div><strong>The AI never plays on a real Roblox account.</strong> Testing happens in Studio over MCP or in Open Cloud Luau Execution. Driving the real client risks a ban that can reach the account that owns the game.</div></li>
+      <li><div><strong>Don't interrupt the person at the PC.</strong> Studio runs on a hidden desktop, muted. No real mouse or keyboard input. Close only the Studio you opened.</div></li>
+      <li><div><strong>Report what you did not check.</strong> Every PR lists the checks it ran and the ones it could not. Missing evidence counts as a fail, and "not listened to by ear" or "not tested on phone" is said out loud.</div></li>
+      <li><div><strong>One task, one worktree, one branch.</strong> Cut from a freshly pulled <code>main</code>, stage your own files by path, never commit to <code>main</code>.</div></li>
+      <li><div><strong>One place for every value.</strong> Colours in the palette file, sizes in Layout, tunables in Config, world sizes in WorldLayout. Never copy a number into a second file.</div></li>
+      <li><div><strong>No secrets in output.</strong> The Open Cloud key is never printed or committed.</div></li>
+    </ol>
+  </section>
+
+  <!-- 02 FLOW -->
+  <section class="ch" id="g-flow">
+    <div class="chnum">02</div>
+    <h2>From idea to merge</h2>
+    <p>Two routes, picked by size. Both end with a human choosing between concrete options, not reading a description.</p>
+    <ol class="steps">
+      <li><div><b>Write a brief.</b> Goal, a checkable finish line, evidence, scope, what is forbidden, a timebox. A brief without a goal or finish line is sent back. <span class="src">(<code>guides/task-brief.md</code>)</span></div></li>
+      <li><div><b>Big feature: an HTML proposal in <code>docs/</code>.</b> The page lays out the options and ends in a "Decided" section with Merijn's answers. Economy, merge vat, rebirth, obby and admin menu all went this way. <span class="pr">#561 #535 #600 #652 #620</span></div></li>
+      <li><div><b>Small or visual change: a claude.ai artifact.</b> Now vs option A, B, C, or an audit with before/after pictures. Merijn picks; the PR quotes the pick. <span class="pr">#593 #613 #617 #651</span></div></li>
+      <li><div><b>Build in a worktree</b>, with the game's checks green: tests, lint, format, typecheck, place safety, layout gate.</div></li>
+      <li><div><b>Check it in the real engine</b> (chapter 08) and put the screenshots and numbers in the PR body.</div></li>
+      <li><div><b>Human review and merge.</b> The bot answers every PR comment with the commit and the tests it ran. Merijn merges.</div></li>
+    </ol>
+    <div class="note"><div><span class="k">Worked</span><p>Mockup first was the common factor of every UI change that was approved without a second round. Changes shipped without a Studio or phone check (<span class="pr">#316 #348 #458</span>) were the ones that came back.</p></div></div>
+  </section>
+
+  <!-- 03 KIT -->
+  <section class="ch" id="g-kit">
+    <div class="chnum">03</div>
+    <h2>Start every game with a kit</h2>
+    <p>Before the first real screen, build the game's <strong>kit</strong>: one palette, two fonts, a small set of UI parts, a size table and a written style guide. On Steal a Slime it is the <strong>GooKit</strong>. Once it existed, one change to the kit restyled every menu at once (<span class="pr">#448</span>), and bots stopped inventing their own buttons.</p>
+    <p>Name it after the game's look (<code>&lt;Look&gt;Kit</code>) and build it in five steps, as GooKit did: kit, HUD, copy and empty states, world labels and loading screen, clean-up plus the style guide <span class="pr">#448 #454 #485 #491 #506</span>.</p>
+
+    <h3>What goes in a kit</h3>
+    <div class="kit">
+      <div><b>Palette file</b><p>Every colour once, as RGB, read by the HUD, world signs and props. GooKit: <code>shared/GooPalette.luau</code>.</p>
+        <div class="swatches" aria-label="GooPalette samples">
+          <span class="sw" style="background:#08262a" title="Ink"></span><span class="sw" style="background:#0c3436" title="Bg"></span><span class="sw" style="background:#1c4849" title="Row"></span><span class="sw" style="background:#6cf2c2" title="Mint"></span><span class="sw" style="background:#ffd23f" title="Gold"></span><span class="sw" style="background:#ee5476" title="Bad"></span><span class="sw" style="background:#ffbe3c" title="Warn"></span>
+        </div></div>
+      <div><b>Two fonts</b><p>A display face for titles, buttons and numbers (Fredoka One), a body face for sentences (Nunito Bold).</p></div>
+      <div><b>UI parts</b><p>Panel with header band and X, button, hold-to-confirm button, status well, chip, row, check mark, notice ring, scroll list. GooKit: <code>src/ui/Widgets.luau</code>.</p></div>
+      <div><b>Size table</b><p>Touch targets at least 44 px, text at least 14 px, panel chrome, draw order, and phone, landscape-phone and narrow modes. <code>src/ui/Layout.luau</code>.</p></div>
+      <div><b>Style guide</b><p>Which colour means what, which button where, how to write. Decided by Merijn, kept in <code>UI-STYLEGUIDE.md</code>.</p></div>
+      <div><b>Gates</b><p>Specs that fail on a broken kit, a layout check at six screen sizes and an instance budget that only ratchets down.</p></div>
+    </div>
+
+    <h3>Colour has one job</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Colour</th><th>Means</th><th>Never use it for</th></tr></thead>
+      <tbody>
+        <tr><td>Gold</td><td>Money, collecting a reward</td><td>Decoration, headings</td></tr>
+        <tr><td>Mint (accent)</td><td>The main action, income, progress</td><td>Secondary buttons</td></tr>
+        <tr><td>Pink (bad)</td><td>Losing something: stolen, sell, delete</td><td>Close buttons on harmless menus</td></tr>
+        <tr><td>Info teal</td><td>Secondary actions</td><td>The main action</td></tr>
+        <tr><td>Warn amber</td><td>Timers and cooldowns</td><td>Errors</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>Gates that keep the kit honest</h3>
+    <ul>
+      <li><strong>Layout gate</strong> at 390×844, 844×390, 768×1024, 1024×768, 1366×768 and 1920×1080, each also minus the 58 px Roblox top bar: on screen, touch size, no overlaps, text fits, nav reachable.</li>
+      <li><strong>Kit specs</strong>: one shared goo edge per screen, fonts and emoji used in the right places, panel padding the same everywhere.</li>
+      <li><strong>Instance budget</strong> (<code>ui-perf-budget.json</code>): going over fails, and so does coming in under until the limit is lowered. It forced shared parts and saved about 830 instances in <span class="pr">#448</span>.</li>
+    </ul>
+    <p class="src">Sources: <code>games/steal-a-slime/UI-STYLEGUIDE.md</code>, <code>src/ui/Widgets.luau</code>, <code>src/ui/Layout.luau</code>, <code>tests/ui/GooKit.spec.luau</code>, <code>tests/ui/LayoutAssert.luau</code>.</p>
+  </section>
+
+  <!-- 04 UI -->
+  <section class="ch" id="g-ui">
+    <div class="chnum">04</div>
+    <h2>Making UIs</h2>
+    <p>The AI builds every screen from kit parts, in code, and checks it at real phone sizes. The hard part is not drawing the screen; it is keeping it simple. Most rework was about too much on screen, not about bugs.</p>
+
+    <h3>How the AI does it</h3>
+    <ol class="steps">
+      <li><div><b>Mockup with options</b> as an artifact or HTML page, at phone size first.</div></li>
+      <li><div><b>Build from kit parts only.</b> No raw Frames, no raw colours, no raw ZIndex numbers.</div></li>
+      <li><div><b>Run the layout gate</b> at all six sizes and the kit specs.</div></li>
+      <li><div><b>Screenshot in a muted hidden Studio</b> on phone and PC sizes, and put the shots in the PR.</div></li>
+      <li><div><b>Human picks and reviews</b> (Merijn or Niels).</div></li>
+    </ol>
+
+    <div class="verdicts">
+      <div class="v ok"><h4>Approved</h4><ul>
+        <li>One status pill per moment: the boss card went from three lines to two <span class="pr">#490</span></li>
+        <li>Say why instead of a dead prompt: "Need $39.9K more", or why a slime can't be grabbed <span class="pr">#485 #543</span></li>
+        <li>Tabs and a side pane instead of one long list: SlimeDex, Skins, Settings <span class="pr">#552 #562 #626</span></li>
+        <li>One card instead of a stack: the thieves card folds into the boss card <span class="pr">#631</span></li>
+        <li>One padding value for every card <span class="pr">#638</span></li>
+        <li>A drawn check mark instead of an emoji <span class="pr">#642</span></li>
+      </ul></div>
+      <div class="v no"><h4>Needed rework</h4><ul>
+        <li><strong>Too busy:</strong> boss card plus steal cards crowding the top <span class="pr">#631</span>; landscape-phone HUD <span class="pr">#556</span>; top bar and toasts removed <span class="pr">#316</span></li>
+        <li><strong>Too many options:</strong> the merge vat picker with filters, Pick for me and Auto-merge lost to "move slimes in, three slots" <span class="pr">#348 → #535</span></li>
+        <li><strong>Wrong size on phone:</strong> X and padlock "way too big" <span class="pr">#653</span>; unreadable slime tags <span class="pr">#556 #623</span>; jump button overlap <span class="pr">#458</span></li>
+        <li><strong>Unclear wording:</strong> "Rebirth 4" read as your current rebirth; now "Next rebirth: 4" <span class="pr">#651</span></li>
+        <li><strong>Covering menus:</strong> banners, arrows and the boss card drawn over open menus <span class="pr">#137 #143 #516</span></li>
+        <li><strong>Placement churn:</strong> the tutorial card moved three times <span class="pr">#611 #629</span></li>
+      </ul></div>
+    </div>
+
+    <h3>Writing on screen</h3>
+    <ul>
+      <li>Fewer words beat smaller words. A hint that would need text under 14 px is cut, not shrunk.</li>
+      <li>Sentence case. ALL CAPS only for alarms ("STOLEN!", "BOSS INCOMING"). No "!" on buttons.</li>
+      <li>One main button per card. Anything you can't undo is hold-to-confirm.</li>
+      <li>A disabled button says what is missing. Every list has an empty state.</li>
+      <li>Nothing new goes on the HUD without a slot in the size table. Notices never cover a menu's X or the hotbar.</li>
+    </ul>
+  </section>
+
+  <!-- 05 MODELS -->
+  <section class="ch" id="g-models">
+    <div class="chnum">05</div>
+    <h2>3D models: create, verify, iterate</h2>
+    <p>The AI cannot use Blender's viewport, so every model is a Python script that headless Blender turns into a mesh, a picture sheet and numbers. The AI looks at the sheet, changes one or two things and runs again. All of it lives in <code>shared/modeling-kit</code>.</p>
+
+    <h3>The loop</h3>
+    <ol class="steps">
+      <li><div><b>Read <code>LESSONS.md</code></b> and look at how the game uses the mesh: its slot, size, what covers it, whether the game tints it.</div></li>
+      <li><div><b>Write the model as code</b>: <code>models/&lt;name&gt;.py</code> from boxes, tubes, lathes and metaballs. 1 unit = 1 stud, Z up, front faces −Y, standing on z=0. Colour is vertex colour only.</div></li>
+      <li><div><b>Render a round</b>: <code>python iterate.py models/&lt;name&gt;.py --sheet sheets/&lt;name&gt;_rNN.png</code>. Four views beside a 5-stud avatar block, plus <code>stats.json</code>. About 3 seconds.</div></li>
+      <li><div><b>Look at the sheet</b>, not just the numbers. Critique in a fixed order: silhouette, proportions, scale against the avatar, colour, triangles. Log the round.</div></li>
+      <li><div><b>Repeat, then stop</b> after about six rounds. If it still isn't good, say so instead of shipping a weak model.</div></li>
+      <li><div><b>Final look</b> with <code>--look roblox --turntable</code>, then a human review of the sheet.</div></li>
+      <li><div><b>Upload with Merijn's OK</b> (<code>upload.py --go</code>; dry run by default), then check it in a Studio playtest from the front, at an angle and from behind.</div></li>
+    </ol>
+
+    <h3>What the checks catch</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>Check</th><th>Fails</th><th>Warns</th></tr></thead>
+      <tbody>
+        <tr><td>Triangles</td><td>10,000+ per mesh</td><td>Outside 500–2,000 for a prop</td></tr>
+        <tr><td>Size</td><td>Over 2,048 studs on any axis</td><td>Script asserts: seat height, fits its box, grip point</td></tr>
+        <tr><td>File</td><td>FBX 20 MB or more</td><td>More than one mesh or material, textures, missing vertex colour</td></tr>
+        <tr><td>Geometry</td><td></td><td>Non-manifold edges</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="verdicts">
+      <div class="v ok"><h4>Approved</h4><ul>
+        <li>Slime Ranch theme, after Volcanic Meadow was dropped the day it was locked <span class="pr">#5 → #7</span></li>
+        <li>A shop cabinet showing the six upgrades <span class="pr">#422</span></li>
+        <li>The jar base, picked from rendered concepts over a tree and islands <span class="pr">#400</span></li>
+        <li>The Exclusive shop as a fair tent, then a carousel</li>
+        <li>Metaballs for goo, drips and blobs</li>
+      </ul></div>
+      <div class="v no"><h4>Needed rework</h4><ul>
+        <li><strong>Off-theme ideas:</strong> gear tower, mushroom hut, gym barn, silo and windmill shops; purple-and-gold "epic" shop concepts</li>
+        <li><strong>Colours:</strong> cream on big surfaces and cold metal; darks that went muddy in Roblox light (red to maroon, butter to olive)</li>
+        <li><strong>Scale:</strong> the first kit oak was 10–45% too big; parts under ~0.5 stud vanish at game distance</li>
+        <li><strong>Only visible in game:</strong> flickering faces from decals too close together, 77 slimes re-uploaded <span class="pr">#601</span>; a title strip showing through a sign <span class="pr">#619</span></li>
+        <li><strong>Unplaced:</strong> 39 of 58 uploaded models had no world slot</li>
+      </ul></div>
+    </div>
+
+    <h3>Lessons worth copying</h3>
+    <ul>
+      <li>Match the size of the mesh you replace within 10%. Render the old one first.</li>
+      <li>Start dark colours at a value of 115 or more and lift them 15–20%. Roblox light crushes darks.</li>
+      <li><code>MeshPart.Color</code> multiplies vertex colours, so a mesh the game tints is modelled in greys.</li>
+      <li>Spend triangles on the silhouette. Bevels on hidden faces took a windmill from 3,372 to 1,970 with no visible loss.</li>
+      <li>Overlapping closed parts beat booleans: no broken edges, exact colours per part.</li>
+      <li>Check axes on the exported file or in Studio, never on the sheet. Kit −Y becomes Roblox +Z.</li>
+    </ul>
+  </section>
+
+  <!-- 06 WORLD -->
+  <section class="ch" id="g-world">
+    <div class="chnum">06</div>
+    <h2>World placement</h2>
+    <p>The map is code: <code>WorldLayout.luau</code> describes every node, a script generates the world files, and tests fail when they are stale. Studio edits are lost on the next build. Most world bugs were found by walking around, so the guides below come from measuring, not from looking at renders.</p>
+
+    <div class="verdicts">
+      <div class="v ok"><h4>Worked well</h4><ul>
+        <li>The world as one data tree, with every value in one place; Lune can check it without Studio</li>
+        <li>Invisible collider slots with kit meshes swapped in</li>
+        <li>A terrain burial probe on a real server before every publish, 0.25-stud threshold <span class="pr">#309</span></li>
+        <li>An explicit collision choice per prop, enforced by a test</li>
+        <li>An audit page with before/after pictures, approved fix by fix <span class="pr">#617</span></li>
+      </ul></div>
+      <div class="v no"><h4>Did not</h4><ul>
+        <li><strong>Sinking:</strong> terrain rendered 2 studs high and buried plots, the fountain and spawn <span class="pr">#308</span></li>
+        <li><strong>Invisible walls:</strong> hulls around open shapes, 16 studs beside the windmill, 4–7 out from tree tops</li>
+        <li><strong>Glass material:</strong> Roblox draws nothing see-through behind it, so slimes and signs vanished <span class="pr">#541 #549</span></li>
+        <li><strong>Labels:</strong> a label floating across the map 140 studs away <span class="pr">#615</span>; stacked tags <span class="pr">#599</span>; a slime covering its own tag <span class="pr">#437</span></li>
+        <li><strong>Standing inside things:</strong> players inside a base's drop tube <span class="pr">#617</span></li>
+      </ul></div>
+    </div>
+
+    <h3>Placement rules</h3>
+    <ul>
+      <li>The visible floor never collides; terrain is the walk surface. One height constant for the floor.</li>
+      <li>Choose collision before upload; it is fixed at import. Use precise collision for open shapes, a post for a tree trunk.</li>
+      <li>No <code>Glass</code> material anywhere. A test bans it.</li>
+      <li>Every floor of every base shows its slimes from outside: glass bands on each floor, nothing covering them.</li>
+      <li>Keep walkways wide enough to walk: 2.5 studs between jar stands.</li>
+      <li>World labels follow <code>guides/roblox-world-labels.md</code>: plan for a phone, at least 14 px on screen, an explicit <code>MaxDistance</code>, and a row in the label registry in the same PR.</li>
+    </ul>
+  </section>
+
+  <!-- 07 AUDIO -->
+  <section class="ch" id="g-audio">
+    <div class="chnum">07</div>
+    <h2>Music and sound</h2>
+    <p>The AI cannot hear. It can measure, log and pick by name and length; the taste call is always human. There are two ways to get a sound, both in or next to <code>shared/audio-kit</code>.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Route</th><th>How</th><th>Best for</th></tr></thead>
+      <tbody>
+        <tr><td>Synthesised</td><td>A Python recipe renders a repeatable <code>.ogg</code> plus a waveform and spectrogram sheet. Checks: onset under 5 ms, peak −1 dBFS, mono 44.1 kHz, loudness stored per sound.</td><td>UI clicks, pops, cash, short game cues</td></tr>
+        <tr><td>Roblox library</td><td>Free public-domain music and effects by asset id, checked as public domain and as loading in Studio.</td><td>Music, ambience, animals, nature</td></tr>
+      </tbody>
+    </table></div>
+    <div class="verdicts">
+      <div class="v ok"><h4>Approved</h4><ul>
+        <li>The music pass with 22 synth sounds <span class="pr">#564</span></li>
+        <li>Birds at night; a real owl as random one-shots every 20–45 s <span class="pr">#380</span></li>
+        <li>Small random pitch on frequent sounds; a test that bans two sounds sharing one id <span class="pr">#605</span></li>
+      </ul></div>
+      <div class="v no"><h4>Rejected</h4><ul>
+        <li>Crickets (annoying), synth wind and synth owls <span class="pr">#380</span></li>
+        <li>Odd first picks: a finger snap for cash, a 6 s rocket for unlock, a sword slash for escape <span class="pr">#564</span></li>
+        <li>Sounds for Rare and Secret drops: they stay silent <span class="pr">#381</span></li>
+      </ul></div>
+    </div>
+    <div class="note bad"><div><span class="k">Test silently</span><p>A hidden Studio still plays through the speakers. Right after starting a playtest, set every <code>Sound</code> and <code>SoundGroup</code> volume to 0 and keep doing it for new ones. Check audio by logging which sounds were created and played.</p></div></div>
+  </section>
+
+  <!-- 08 VERIFY -->
+  <section class="ch" id="g-verify">
+    <div class="chnum">08</div>
+    <h2>Verifying in the real game</h2>
+    <p>Tests prove logic; only the engine proves how it looks and feels. Every visible change gets at least one layer from the engine side.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Layer</th><th>What it proves</th><th>When</th></tr></thead>
+      <tbody>
+        <tr><td>Lune tests and boot test</td><td>Logic, saves, that the game starts</td><td>Every commit</td></tr>
+        <tr><td>Static layout and render check</td><td>UI fits at six sizes; part and triangle budgets</td><td>Every PR</td></tr>
+        <tr><td>Hidden Studio over MCP</td><td>Screenshots, collisions, labels, timings, a 2-player test</td><td>Every visible change</td></tr>
+        <tr><td>Cloud Luau Execution</td><td>Behaviour on a real server: terrain probe, smoke test</td><td>Before publish</td></tr>
+        <tr><td>Human review</td><td>Looks right, feels right, reads right</td><td>Before merge</td></tr>
+        <tr><td>Players and analytics</td><td>Whether it helps the funnel</td><td>After release</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Tips</h3>
+    <ul>
+      <li>Screenshots leave out BillboardGuis. Read label sizes with <code>execute_luau</code> (<code>AbsoluteSize</code>, <code>WorldToViewportPoint</code>).</li>
+      <li>Measure, then state the number: "label shows at 54 studs, hidden at 66" <span class="pr">#615</span>.</li>
+      <li>Walk a dummy into props from four sides to find invisible walls.</li>
+      <li>Drive input with Studio-only attributes, never the real mouse.</li>
+      <li>The PR body lists exact checks and results, and says plainly what was not tested.</li>
+    </ul>
+  </section>
+
+  <!-- 09 WEAK -->
+  <section class="ch" id="g-weak">
+    <div class="chnum">09</div>
+    <h2>Where AI is weak</h2>
+    <p>Plan human time for these. They are where most second rounds came from.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Weak spot</th><th>Why</th><th>What helps</th></tr></thead>
+      <tbody>
+        <tr><td>Taste and simplicity</td><td>The AI adds options, text and features</td><td>Mockups with options; "fewer words" rules in the kit</td></tr>
+        <tr><td>Hearing</td><td>It can't listen</td><td>Measure and log; the human picks by ear</td></tr>
+        <tr><td>Organic shapes</td><td>Primitives read as stubby limbs</td><td>Metaballs, surfaces of revolution, or report the limit</td></tr>
+        <tr><td>Colours in Roblox</td><td>Offline renders don't match Roblox light</td><td>Lift darks; check in Studio</td></tr>
+        <tr><td>Phone feel</td><td>It never holds a phone</td><td>Layout gate at phone sizes; a human on a real device</td></tr>
+        <tr><td>Axes and orientation</td><td>Blender and Roblox axes differ</td><td>Check in Studio, not on the sheet</td></tr>
+        <tr><td>Fun and balance</td><td>It can't feel pacing</td><td>Pacing sim with bot players; funnel data</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  </article>
+</div>
+</section>
+
+<!-- ============================ PLANNED TABS ============================ -->
+<section id="newgame" role="tabpanel" aria-labelledby="t-newgame" hidden>
+  <div class="plan-head"><h2>New game checklist</h2><span class="pill">Proposed</span></div>
+  <p>A one-page list a bot follows on day one of a new game, so the second game starts where Steal a Slime ended instead of where it began.</p>
+  <div class="plan-grid">
+    <div><h4>Repo and gates</h4><ul><li>Folder under <code>games/</code>, its own <code>CLAUDE.md</code></li><li>Tests, lint, typecheck, place safety and layout gate wired in from the first commit</li><li>Budgets file for parts, triangles, instances</li></ul></div>
+    <div><h4>Look</h4><ul><li>Theme sheet and palette picked from renders</li><li>The kit (chapter 03) before the first screen</li><li>Style guide decided with Merijn</li></ul></div>
+    <div><h4>Shared code</h4><ul><li>Saves, inventory, rate limits, analytics from <code>shared/luau</code></li><li>What is new and game-agnostic goes back to shared</li></ul></div>
+    <div><h4>Safety</h4><ul><li>Memory DataStore mode and test hooks guard</li><li>Upload and publish dry-run by default</li></ul></div>
+  </div>
+</section>
+
+<section id="briefs" role="tabpanel" aria-labelledby="t-briefs" hidden>
+  <div class="plan-head"><h2>Briefs and prompts</h2><span class="pill">Proposed</span></div>
+  <p>Copy-paste starting points that worked, so Merijn and Niels spend less time explaining.</p>
+  <div class="plan-grid">
+    <div><h4>Task brief template</h4><ul><li>Goal, finish line, evidence, scope, forbidden, timebox</li><li>Good and bad examples from real tasks</li></ul></div>
+    <div><h4>Prompt starters</h4><ul><li>"Make a mockup with three options for…"</li><li>"Audit X with before/after pictures"</li><li>"Model X, six rounds max, report the limit"</li></ul></div>
+    <div><h4>Review requests</h4><ul><li>What a PR body must show for a model, a UI, a sound</li></ul></div>
+  </div>
+</section>
+
+<section id="economy" role="tabpanel" aria-labelledby="t-economy" hidden>
+  <div class="plan-head"><h2>Economy and data</h2><span class="pill">Proposed</span></div>
+  <p>How we balance before players see it, and how we decide what to build next after they do.</p>
+  <div class="plan-grid">
+    <div><h4>Pacing sim</h4><ul><li>Bot players on the real game code: casual, grinder, thief, victim</li><li>Before/after tables, as in the economy rework <span class="pr">#561</span></li></ul></div>
+    <div><h4>Analytics</h4><ul><li>Server-only events, stable step names</li><li>Onboarding and shop funnels</li></ul></div>
+    <div><h4>Planning rule</h4><ul><li>At least 7 days or 1,000 players of data</li><li>Fix the biggest drop first; "a competitor has it" is not a reason</li></ul></div>
+  </div>
+</section>
+
+<section id="release" role="tabpanel" aria-labelledby="t-release" hidden>
+  <div class="plan-head"><h2>Release</h2><span class="pill">Proposed</span></div>
+  <p>From merge to live, with the gates and who presses which button.</p>
+  <div class="plan-grid">
+    <div><h4>Pipeline</h4><ul><li>Merge, cloud tests, Studio report, Saved upload, smoke check, Published</li><li>Only the newest fully gated build goes out</li></ul></div>
+    <div><h4>Release checks</h4><ul><li>The 12:00 and 19:00 check with Merijn</li><li>Terrain probe and rollback plan</li></ul></div>
+    <div><h4>Release notes</h4><ul><li>Player-facing wording, reviewed like any UI text</li></ul></div>
+  </div>
+</section>
+
+<section id="decisions" role="tabpanel" aria-labelledby="t-decisions" hidden>
+  <div class="plan-head"><h2>Decision log</h2><span class="pill">Proposed</span></div>
+  <p>One line per decision Merijn or Niels made, with the PR, so bots stop proposing what was already rejected.</p>
+  <div class="plan-grid">
+    <div><h4>Examples already made</h4><ul><li>Mutations removed, then back as visible shines <span class="pr">#367 #655</span></li><li>New-player shield added then removed <span class="pr">#402 #411</span></li><li>StreamingEnabled not merged: small gain for the risk <span class="pr">#560</span></li><li>No feature flags unless asked</li></ul></div>
+    <div><h4>Why it matters</h4><ul><li>Many removals say what changed but not why; the log keeps the why</li></ul></div>
+  </div>
+</section>
+
+<section id="glossary" role="tabpanel" aria-labelledby="t-glossary" hidden>
+  <div class="plan-head"><h2>Glossary</h2><span class="pill">Proposed</span></div>
+  <p>Our words, for a new person or a new bot.</p>
+  <div class="plan-grid">
+    <div><h4>Team</h4><ul><li>Phoenix (server and world), Jolt (UI), Archer (visuals), Gojo (planning and review), SuperBottie (coordinator)</li></ul></div>
+    <div><h4>Tools</h4><ul><li>Rojo, Lune, rhr, hidden Studio, modeling kit, audio kit, pr-gate</li></ul></div>
+    <div><h4>Game terms</h4><ul><li>Kit, contact sheet, round, slot, Saved vs Published, Memory mode</li></ul></div>
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer><div class="wrap">Source of truth: <code>guides/ai-guidebook.html</code> in RobloxGames. Facts come from PRs, <code>UI-STYLEGUIDE.md</code>, <code>shared/modeling-kit/LESSONS.md</code>, <code>shared/audio-kit</code> and the guides in <code>guides/</code>, as of PR #655 (2026-10-30).</div></footer>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  var ids = tabs.map(function (t) { return t.getAttribute('aria-controls'); });
+  function show(id, focus) {
+    if (ids.indexOf(id) < 0) id = 'guides';
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('aria-controls') === id;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      if (on && focus) t.focus();
+    });
+    try { localStorage.setItem('guidebook-tab', id); } catch (e) {}
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { show(t.getAttribute('aria-controls')); });
+    t.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (d) { e.preventDefault(); show(ids[(i + d + ids.length) % ids.length], true); }
+    });
+  });
+  var start = (location.hash || '').slice(1);
+  if (ids.indexOf(start) < 0) {
+    if (start && document.getElementById(start)) start = 'guides';
+    else { try { start = localStorage.getItem('guidebook-tab') || 'guides'; } catch (e) { start = 'guides'; } }
+  }
+  show(start);
+})();
+</script>
