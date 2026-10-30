@@ -417,7 +417,8 @@ local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
 -- One label per slime, a tag above it or a sign on its pad (contract/slime-labels.md): event-driven, no frame work.
-local _, slimeTagsTick =
+-- Wild slime tags show their income with this player's bonuses (State.incomeMultiplier).
+local _, slimeTagsTick, setTagIncomeMultiplier =
 	SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = Constants.SLIME_TAG })
 
 -- The dimmed full-window backdrop (Layout.backdrop: the whole viewport, top bar included, square) behind an open menu card (screen.panel).
@@ -1531,6 +1532,7 @@ stateEvent.OnClientEvent:Connect(function(state: Types.State)
 	end
 	latest = state
 	grabBlock.refresh()
+	setTagIncomeMultiplier(state.incomeMultiplier)
 	if worldBoards.setMine then
 		worldBoards.setMine(state.boards, state.boardRanks)
 	end

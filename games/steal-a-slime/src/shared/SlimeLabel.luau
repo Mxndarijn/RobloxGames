@@ -20,7 +20,7 @@ export type View = {
 	rarity: string, -- "Rare"
 	tier: number, -- Config.RARITIES index
 	rarityColor: { number }, -- { r, g, b } of Config.RARITIES
-	income: string?, -- "+$1.25K/s", "+$0.8/s"; nil for a boss, which earns nothing on its tag
+	income: string?, -- "+$1.25K/s", "+$0.8/s" (a wild slime's with the viewer's bonuses); nil for a boss
 	price: string?, -- "$500" for a priced wild slime; nil = not for sale
 	growth: number, -- whole percent 0..100 (the pad sign's bar)
 	pad: number?, -- pad index while the slime rests on a pad: the label is the pad sign, not the tag
@@ -38,6 +38,7 @@ export type Attributes = {
 	pad: any,
 	status: any,
 	shine: any,
+	owner: any, -- OwnerUserId: 0 / nil for a wild slime
 }
 
 local SlimeLabel = {}
@@ -53,6 +54,7 @@ SlimeLabel.ATTRIBUTES = table.freeze({
 	pad = Constants.LABEL_PAD_ATTRIBUTE,
 	status = Constants.LABEL_STATUS_ATTRIBUTE,
 	shine = Constants.SHINE_ATTRIBUTE, -- written by server/SlimeShineView
+	owner = "OwnerUserId",
 })
 
 -- FEATURES.MutationLooks, or the test override `looks`.
@@ -152,9 +154,27 @@ function SlimeLabel.hiddenByHatch(hatchedAt: any, now: number): boolean
 		and now < hatchedAt + Config.MYSTERY_EGG.HATCH_REVEAL_SECONDS
 end
 
--- Label values from the attributes; nil when the model carries no LabelName yet. `looks` overrides
--- FEATURES.MutationLooks (tests).
-function SlimeLabel.view(attrs: Attributes, looks: boolean?): View?
+-- True for a slime nobody owns (OwnerUserId 0 or missing): its LabelIncome is the base rate, before anyone's bonuses.
+function SlimeLabel.isWild(attrs: Attributes): boolean
+	local owner = finite(attrs.owner)
+	return owner == nil or owner <= 0
+end
+
+-- Income a wild slime's tag shows to a player: its base rate times that player's State.incomeMultiplier (rebirths
+-- and every income bonus), what it would earn on their pad. An owned slime's LabelIncome already counts its owner's
+-- bonuses and is shown as is. A missing or bad multiplier counts as 1.
+function SlimeLabel.shownIncome(attrs: Attributes, multiplier: number?): number
+	local income = finite(attrs.income) or 0
+	local mult = finite(multiplier)
+	if not SlimeLabel.isWild(attrs) or mult == nil or mult <= 0 then
+		return income
+	end
+	return income * mult
+end
+
+-- Label values from the attributes; nil when the model carries no LabelName yet. `multiplier` is the viewing
+-- player's State.incomeMultiplier (SlimeLabel.shownIncome); `looks` overrides FEATURES.MutationLooks (tests).
+function SlimeLabel.view(attrs: Attributes, multiplier: number?, looks: boolean?): View?
 	if type(attrs.name) ~= "string" or attrs.name == "" then
 		return nil
 	end
@@ -168,7 +188,7 @@ function SlimeLabel.view(attrs: Attributes, looks: boolean?): View?
 		income = if type(attrs.status) == "string" and attrs.status ~= ""
 			then attrs.status
 			elseif attrs.boss == true then nil
-			else SlimeLabel.incomeText(attrs.income),
+			else SlimeLabel.incomeText(SlimeLabel.shownIncome(attrs, multiplier)),
 		price = SlimeLabel.priceText(attrs.price),
 		growth = Growth.percentAt((finite(attrs.growth) or 0) / 100),
 		pad = if pad and pad >= 1 then math.floor(pad) else nil,

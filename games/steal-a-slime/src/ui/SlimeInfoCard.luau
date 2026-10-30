@@ -395,6 +395,7 @@ function SlimeInfoCard.read(model: Instance): SlimeLabel.Attributes
 		pad = model:GetAttribute(a.pad),
 		status = model:GetAttribute(a.status),
 		shine = model:GetAttribute(a.shine),
+		owner = model:GetAttribute(a.owner),
 	}
 end
 
@@ -430,10 +431,12 @@ type Entry = {
 	signPad: BasePart?,
 }
 
--- Labels every tagged slime model. Returns a cleanup that removes them all, and a tick for the client loop that
--- keeps tags near the camera from growing past their closeLimit size.
-function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
+-- Labels every tagged slime model. Returns a cleanup that removes them all, a tick for the client loop that
+-- keeps tags near the camera from growing past their closeLimit size, and a setter for the local player's
+-- State.incomeMultiplier, which wild slime tags multiply their income by (SlimeLabel.shownIncome).
+function SlimeInfoCard.start(opts: Options): (() -> (), () -> (), (number?) -> ())
 	local cards: { [Instance]: Entry } = {}
+	local incomeMultiplier: number? = nil
 	-- Tagged models whose Body has not replicated yet: the tag can arrive before the model's children.
 	local waiting: { [Instance]: RBXScriptConnection } = {}
 	local ownFolder: Folder? = nil
@@ -491,7 +494,7 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 		if not entry then
 			return
 		end
-		local view = SlimeLabel.view(SlimeInfoCard.read(model))
+		local view = SlimeLabel.view(SlimeInfoCard.read(model), incomeMultiplier)
 		entry.view = nil
 		-- A slime that just hatched keeps its label hidden until the hatch show reveals it.
 		local hatchedAt = model:GetAttribute(Constants.HATCHED_AT_ATTRIBUTE)
@@ -697,6 +700,19 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 		end
 	end
 
+	-- Redraws only the wild tags, and only when the multiplier moves.
+	local function setIncomeMultiplier(multiplier: number?)
+		if multiplier == incomeMultiplier then
+			return
+		end
+		incomeMultiplier = multiplier
+		for model in cards do
+			if SlimeLabel.isWild(SlimeInfoCard.read(model)) then
+				refresh(model)
+			end
+		end
+	end
+
 	local added = opts.collection:GetInstanceAddedSignal(opts.tag):Connect(add)
 	local removed = opts.collection:GetInstanceRemovedSignal(opts.tag):Connect(remove)
 	for _, model in opts.collection:GetTagged(opts.tag) do
@@ -722,7 +738,8 @@ function SlimeInfoCard.start(opts: Options): (() -> (), () -> ())
 			ownFolder = nil
 		end
 	end,
-		tick
+		tick,
+		setIncomeMultiplier
 end
 
 return SlimeInfoCard
