@@ -102,7 +102,7 @@ FloorLayout.COLORS = table.freeze({
 	hallRim = { 214, 186, 138 },
 	hallStage = { 240, 206, 120 },
 	hallStar = { 236, 184, 72 }, -- the star walk's stars: a deeper gold than the stage so they read on cream
-	obbyStar = { 96, 200, 120 }, -- the obby path's stars: goo green, so the two walks read apart
+	obbyStar = { 96, 200, 120 }, -- the obby path's goo dots: green, so the two walks read apart
 	plank = { 184, 134, 84 }, -- kit PLANK_A
 	plankB = { 168, 120, 72 }, -- kit PLANK_B
 	rail = { 112, 72, 42 }, -- kit TRIM_DARK: the boardwalk's rails
@@ -279,8 +279,9 @@ local function star(
 end
 
 -- The star walk along `walk` (centre, width, length, bearing of its long axis, from the ring path out), named `name`
--- (default "HallPath") with stars of `starColor` (default COLORS.hallStar).
-function FloorLayout.starWalk(walk: Walk, name: string?, starColor: { number }?): Node
+-- (default "HallPath") with stars of `starColor` (default COLORS.hallStar). `dots` lays round goo dots (one part
+-- each) in the stars' places instead of stars (ten wedges each).
+function FloorLayout.starWalk(walk: Walk, name: string?, starColor: { number }?, dots: boolean?): Node
 	local color = starColor or FloorLayout.COLORS.hallStar
 	local sw = FloorLayout.STAR_WALK
 	local b = math.rad(walk.bearing)
@@ -315,8 +316,14 @@ function FloorLayout.starWalk(walk: Walk, name: string?, starColor: { number }?)
 	for k = 1, count do
 		local d = -walk.length / 2 + sw.first + (k - 1) * sw.spacing
 		local cx, cz = walk.x + fx * d, walk.z + fz * d
-		for _, node in star(`Star_{k}`, cx, cz, sw.starRadius, walk.bearing, top(FloorLayout.LAYER.trim), color) do
-			table.insert(children, node)
+		if dots then
+			local dot = discNode(`Dot_{k}`, sw.starRadius * 0.8, FloorLayout.LAYER.trim, color, "SmoothPlastic", "path")
+			dot.pos = { cx, (dot.pos :: { number })[2], cz }
+			table.insert(children, dot)
+		else
+			for _, node in star(`Star_{k}`, cx, cz, sw.starRadius, walk.bearing, top(FloorLayout.LAYER.trim), color) do
+				table.insert(children, node)
+			end
 		end
 	end
 	return { name = name or "HallPath", class = "Model", children = children }
@@ -487,7 +494,7 @@ function FloorLayout.build(g: Geometry): { Node }
 		table.insert(paths, FloorLayout.starWalk(hall.path))
 	end
 	if g.obbyPath then
-		table.insert(paths, FloorLayout.starWalk(g.obbyPath, "ObbyPath", c.obbyStar))
+		table.insert(paths, FloorLayout.starWalk(g.obbyPath, "ObbyPath", c.obbyStar, true))
 	end
 	local lawns: { Node } = {}
 	local step = 360 / g.plots

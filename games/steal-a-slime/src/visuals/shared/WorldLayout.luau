@@ -371,7 +371,7 @@ WorldLayout.HALL_OF_FAME = table.freeze({
 		table.freeze({ x = -9.5, y = 33 }),
 		table.freeze({ x = 9.5, y = 33 }),
 	}),
-	pathWidth = 12,
+	pathWidth = 10,
 	archDistance = 88, -- the arch, from the map centre, just past the ring path
 	professor = table.freeze({ x = -9.5, y = -46, faceY = -72 }), -- left of the entrance, turned to the path
 })
@@ -455,11 +455,13 @@ WorldLayout.EVENT_BOARD = table.freeze({ model = "EventBoard", bearing = 202.5, 
 
 -- The obby (contract/obby.md §5, server/ObbyView). Its portal stands in the yard between plots 8 and 1, opposite the
 -- Hall of Fame, in the lawn lane between the two plots' fronts (r 100-185 is clear there), with the yard's windmill
--- scene (YardProps, r 185-210) behind it; a star walk `pathWidth` wide runs to it from the ring path, under the OBBY
--- arch at `archDistance`. Past r ~158 the portal's keep-clear circle would push that windmill scene off its spot. A finished runner lands `exitStep` studs from the portal,
--- towards the plots. The course itself stands in its own world, `world`: `distance` studs out from the map centre at
--- `bearing` (far past any view distance and the map's Atmosphere), `height` studs up, running along `yaw`. Everything
--- within `radius` of the zone's centre counts as the obby world (the client's look swap, the server's send-home).
+-- scene (YardProps, r 185-210) behind it; a walk `pathWidth` wide runs to it from the ring path, under the OBBY arch
+-- at `archDistance` (the ritual circle beside the path's plaza end keeps the arch that far out). Past r ~158 the
+-- portal's keep-clear circle would push that windmill scene off its spot. A finished runner lands `exitStep` studs from
+-- the portal, towards the plots. The course itself stands in its own world, `world`: `distance` studs out from the map
+-- centre at `bearing` (far past any view distance and the map's Atmosphere), `height` studs up, running along `yaw`.
+-- Everything within `radius` of the zone's centre counts as the obby world (the client's look swap, the server's
+-- send-home).
 WorldLayout.OBBY = table.freeze({
 	bearing = 337.5,
 	portalDistance = 155,
@@ -467,8 +469,8 @@ WorldLayout.OBBY = table.freeze({
 	exitStep = 10,
 	signStep = 9, -- the status sign stands this far behind the portal, facing the plaza
 	clearRadius = 12, -- keep-clear circle for props round the portal and its sign
-	pathWidth = 12,
-	archDistance = 88, -- the arch, from the map centre, just past the ring path
+	pathWidth = 10,
+	archDistance = 108, -- the arch, from the map centre: past the ritual circle (Config.RITUAL, bearing 348, r 93)
 	world = table.freeze({
 		bearing = 180,
 		distance = 9000,
@@ -535,7 +537,7 @@ function WorldLayout.onObbyPath(pos: Vec, pad: number): boolean
 	return (pos[1] - portal[1]) ^ 2 + (pos[3] - portal[3]) ^ 2 < (o.clearRadius + pad) ^ 2
 end
 
--- One backdrop piece of the obby world (server/ObbyBackdrop), course-local (x along the course, y up, z right).
+-- One backdrop piece of the obby world (visuals/client/ObbyBackdrop), course-local (x along the course, y up, z right).
 export type ObbyBackdropPiece = { kind: string, pos: Vec, radius: number, tone: number }
 
 -- The obby world's backdrop: goo islands in two loose rows either side of the course (clear of its sides and

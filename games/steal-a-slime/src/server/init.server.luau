@@ -42,7 +42,6 @@ local Friends = require(script.Friends)
 local GroundTerrainView = require(script.GroundTerrainView)
 local LeaderboardView = require(script.LeaderboardView)
 local MeshSwap = require(script.MeshSwap)
-local ObbyBackdrop = require(script.ObbyBackdrop)
 local ObbyService = require(script.ObbyService)
 local ObbyView = require(script.ObbyView)
 local Outbox = require(script.Outbox)
@@ -147,10 +146,9 @@ ctx.saveUser = function(userId: number, data: any): boolean -- SendGift saves th
 	return Persistence.save(persistence, userId, data, false)
 end
 local leaderboard = LeaderboardView.new(world, persistence.boardStore, leaderboardEvent)
--- The obby (contract/obby.md): the portal and its world's backdrop once, this rotation's course (ServerLoop rebuilds it).
+-- The obby (contract/obby.md): the portal once, this rotation's course (ServerLoop rebuilds it).
 safeCall("obby setup", function()
 	ObbyView.buildPortal()
-	ObbyBackdrop.build(ObbyView.root())
 	ObbyView.build(ObbyService.setup(world, now()))
 end)
 local profiler = Profiler.new() -- FEATURES.ServerProfiler (CONTRACT.md §25); off = every call is a no-op

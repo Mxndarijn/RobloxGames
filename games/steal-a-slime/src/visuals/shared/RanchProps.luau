@@ -168,7 +168,7 @@ end
 -- prop per plot (a lantern or a mailbox). No second copies of a decorative piece.
 
 -- Plaza edge -------------------------------------------------------------
--- Vignettes on the free bisectors (22.5, 292.5; the obby path takes 337.5, its goo sign and birdhouse flank the arch) and a planter beside the shop (67.5) PROP_SPOT. The 112.5
+-- Vignettes on the free bisectors (22.5, 292.5; 337.5 is the obby path's, beside the ritual circle) and a planter beside the shop (67.5) PROP_SPOT. The 112.5
 -- bisector is the Exclusive Shop jar's (WorldLayout.EXCLUSIVE_JAR). The 202.5 lawn is the Upcoming Events
 -- board's (WorldLayout.EVENT_BOARD), so its picnic table and sunflowers flank the horseshoe pit on the 292.5 lawn; the
 -- well and its pump stand on that lawn's plot 6 side, between the board and the plot 6 entrance, by the ring path.
@@ -180,8 +180,6 @@ polar("WellPump", "ranch_water_pump", "plaza", 216.25, 93, 180, 1.2)
 polar("PicnicTable", "ranch_picnic_table", "plaza", 301.5, 90, 180, 1.2)
 polar("Sunflowers", "ranch_sunflower_patch", "plaza", 300, 97.5, 180, 1)
 polar("HorseshoePit", "ranch_horseshoe_pit", "plaza", 292.5, 90, 180, 1.2)
-polar("GooSign", "ranch_goo_sign", "plaza", 326, 93, 180, 1.2)
-polar("Birdhouse", "ranch_birdhouse", "plaza", 349.5, 93, 180, 1.2)
 polar("Planter", "ranch_flower_planter", "plaza", 56, 90, 180, 1.2)
 -- The Guide's corner (TutorialNpc spot, 247.5 / r 90, PropClearance.SPOT_RADII): the ranch hand's hay, feed and
 -- goo round the sides and back, a lantern behind; the plaza side stays open to walk up to the Guide.

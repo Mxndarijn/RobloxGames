@@ -4,7 +4,7 @@
 
 	Builds the Goo Gauntlet in workspace.Obby: the portal (a goo ring on the ground in the yard, a see-through light
 	column and a status sign) once, and the course (`build`, from ObbyCourse data) each rotation, in the obby's own
-	world far from the map (WorldLayout.obbyFrame; server/ObbyBackdrop dresses it). Moving parts get their rest
+	world far from the map (WorldLayout.obbyFrame; the client dresses it, visuals/client/ObbyBackdrop). Moving parts get their rest
 	CFrame and motion as attributes (the OBBY_* names in Constants); visuals/client/ObbyFx plays them on every client. Belts get a
 	surface velocity, ice no friction. `positions` reads every live character's root position for ObbyService.step
 	and `apply` makes its teleports. Holds no rules.
@@ -118,11 +118,6 @@ local function getFolder(): Folder
 	f.Parent = workspace
 	folder = f
 	return f
-end
-
--- workspace.Obby (made on first use).
-function ObbyView.root(): Folder
-	return getFolder()
 end
 
 -- Ground height under (x, z): a ray down onto the map, ignoring the obby itself; 0 if nothing is hit.

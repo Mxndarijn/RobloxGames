@@ -1,9 +1,11 @@
 --!strict
 --[[
-	ObbyBackdrop (Roblox adapter, contract/obby.md §5)
+	ObbyBackdrop (VisualsClient module, contract/obby.md §5)
 
-	Dresses the obby's own world once: workspace.Obby.Backdrop, from WorldLayout.obbyBackdrop() (course-local pieces in
-	the course frame, WorldLayout.obbyFrame):
+	Dresses the obby's own world on this client only (ObbyWorld builds it when the local player arrives and removes it
+	when they leave, so the server's world and its part budget never carry it): a Folder named
+	Constants.OBBY_BACKDROP, from WorldLayout.obbyBackdrop() (course-local pieces in the course frame,
+	WorldLayout.obbyFrame):
 	  island  a goo-green grass top on a lilac rock belly, a few goo blobs on top and a drip underneath
 	  cloud   a puff of four overlapping white-pink balls
 	  sea     the cloud sea, a wide flat pastel disc far below the course
@@ -12,8 +14,8 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Constants = require(ReplicatedStorage.Shared.Constants)
-local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
+local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
+local WorldLayout = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WorldLayout"))
 
 local ObbyBackdrop = {}
 
@@ -116,11 +118,8 @@ local function cloud(parent: Instance, k: number, at: CFrame, r: number, tone: n
 	model.Parent = parent
 end
 
--- Builds workspace.Obby.Backdrop under `root` (once).
-function ObbyBackdrop.build(root: Instance)
-	if root:FindFirstChild(Constants.OBBY_BACKDROP) then
-		return
-	end
+-- Builds the backdrop under `parent` and returns its Folder.
+function ObbyBackdrop.build(parent: Instance): Folder
 	local origin, yaw = WorldLayout.obbyFrame()
 	local a = math.rad(yaw)
 	-- course-local: X forward, Y up, Z right (ObbyCourse's axes)
@@ -139,7 +138,8 @@ function ObbyBackdrop.build(root: Instance)
 			disc(folder, "CloudSea", piece.radius, 4, at, LOOK.sea)
 		end
 	end
-	folder.Parent = root
+	folder.Parent = parent
+	return folder
 end
 
 return ObbyBackdrop

@@ -87,7 +87,7 @@ return table.freeze({
 	OBBY_FOLDER = "Obby",
 	OBBY_COURSE = "Course", -- workspace.Obby.Course: the parts of the course standing now (attribute Slot)
 	OBBY_PORTAL = "Portal", -- workspace.Obby.Portal: the ring, its column and the status sign
-	OBBY_BACKDROP = "Backdrop", -- workspace.Obby.Backdrop: the obby world's islands and clouds (decor only)
+	OBBY_BACKDROP = "ObbyBackdrop", -- client-only Folder in workspace: the obby world's islands and clouds (decor only)
 	OBBY_SIGN_STATUS = "Status", -- TextLabel on the portal sign the client fills with its own boost status
 	OBBY_SIGN_COURSE = "CourseInfo", -- TextLabel on the portal sign the client fills with the course and rotation
 	-- Course part attributes (ObbyCourse.Motion, played by visuals/client/ObbyFx)
