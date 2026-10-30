@@ -6,7 +6,7 @@ A short parkour course floating above the map. Clearing it earns **x1.5 income f
 
 | Module | Kind | Owns |
 |---|---|---|
-| `shared/ObbyCourse` | pure | Sections (`BUILD`, 24 ids, 8 per tier, x `LAYOUTS` (6) layouts), the rotation (`slot`, `pick`), the layout (`build`: start pad, sections, a checkpoint pad after each, the last one the finish), checkpoint / fall / respawn geometry, the course frame (`toWorld`, `toLocal`) |
+| `shared/ObbyCourse` | pure | Sections (`BUILD`, 30 ids, 10 per tier, x `LAYOUTS` (6) layouts; each asks for a jump, a timing or a route: `tests/ObbyCourse.spec` fails any layout you can cross by holding forward along the middle line), the rotation (`slot`, `pick`), the layout (`build`: start pad, sections, a checkpoint pad after each, the last one the finish), checkpoint / fall / respawn geometry, the course frame (`toWorld`, `toLocal`) |
 | `shared/ObbyRules` | pure | The boost over the saved timers: `phase`, `grant`, `bonus`, `view`, `clean` |
 | `server/ObbyService` | pure | `world.obby`, `session.obbyRun`: portal, checkpoints in order, falls, finish, rotation, `refresh` (data.obbyBonus), `view` (State.obby) |
 | `server/ObbyView` | adapter | `workspace.Obby` (Portal once, Course per rotation), root positions, teleports |
@@ -37,7 +37,7 @@ A short parkour course floating above the map. Clearing it earns **x1.5 income f
 ## 5. World
 
 - `WorldLayout.OBBY`: the portal in the yard between plots 8 and 1 (bearing 337.5, r 238), the course `skyHeight` studs above it, running towards the map centre. `PropClearance` keeps `clearRadius` round the portal clear.
-- `workspace.Obby.Course` (attribute `Slot`): one Part per `ObbyCourse.Part` (a TrussPart for ladders). Moving parts carry `Constants.OBBY_*` attributes (motion kind, rest CFrame, axis, amplitude, period, phase, delay, away, duty, min, shrink axes, power, arm). Motion kinds: slide, spin, melt, flip, shrink, bounce (trampolines and cannons throw the local player up at `power`), lift (wind columns), swing (pendulums), rock (seesaws). Belts have a surface velocity, ice no friction.
+- `workspace.Obby.Course` (attribute `Slot`): one Part per `ObbyCourse.Part` (a TrussPart for ladders). Moving parts carry `Constants.OBBY_*` attributes (motion kind, rest CFrame, axis, amplitude, period, phase, delay, away, duty, min, shrink axes, power, arm). Motion kinds: slide, spin, melt, flip, shrink, bounce (trampolines and cannons throw the local player up at `power`), lift (wind columns), swing (pendulums), rock (seesaws), roll (logs rolling round their length), punch (out fast, hold, back), gust (a wind zone that blows the local player sideways while on). Belts have a surface velocity, ice no friction.
 - Slime Guard opens its launch window for players on a run (`SlimeGuardView`): bounces and fans rise faster than a jump.
 - `workspace.Obby.Portal`: ring, floor, light column and a SurfaceGui sign (`Title`, `Constants.OBBY_SIGN_STATUS`, `Constants.OBBY_SIGN_COURSE`), MaxDistance 200 (guides/roblox-world-labels.md).
 

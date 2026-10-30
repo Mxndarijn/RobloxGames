@@ -1662,6 +1662,8 @@ local Config = {
 				"GooCascade",
 				"GooPipe",
 				"StickyLadder",
+				"GlowTrail",
+				"TwoWays",
 			}),
 			medium = table.freeze({
 				"MeltingTiles",
@@ -1672,6 +1674,8 @@ local Config = {
 				"FanShaft",
 				"PoppingBubbles",
 				"SlimeSeesaw",
+				"RollingLogs",
+				"GooWave",
 			}),
 			hard = table.freeze({
 				"Tightrope",
@@ -1682,6 +1686,8 @@ local Config = {
 				"GooGates",
 				"BlobDrop",
 				"Turntables",
+				"GooPunchers",
+				"GustyBridge",
 			}),
 		}),
 		LAYOUTS = 6, -- layouts per section

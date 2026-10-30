@@ -90,17 +90,18 @@ return table.freeze({
 	OBBY_SIGN_COURSE = "CourseInfo", -- TextLabel on the portal sign the client fills with the course and rotation
 	-- Course part attributes (ObbyCourse.Motion, played by visuals/client/ObbyFx)
 	OBBY_MOTION = "ObbyMotion", -- "slide" | "spin" | "melt" | "flip" | "shrink" | "bounce" | "lift" | "swing" | "rock"
+	-- | "roll" | "punch" | "gust"
 	OBBY_BASE = "ObbyBase", -- CFrame at rest
-	OBBY_AXIS = "ObbyAxis", -- slide: world direction (Vector3)
-	OBBY_AMP = "ObbyAmp", -- slide: studs; swing / rock: degrees
-	OBBY_PERIOD = "ObbyPeriod", -- slide / spin / flip / shrink: seconds (negative spin = the other way)
+	OBBY_AXIS = "ObbyAxis", -- slide / punch: world direction (Vector3); gust: the way it blows
+	OBBY_AMP = "ObbyAmp", -- slide / punch: studs; swing / rock: degrees
+	OBBY_PERIOD = "ObbyPeriod", -- slide / spin / roll / flip / shrink / punch / gust: seconds (negative = the other way)
 	OBBY_PHASE = "ObbyPhase", -- 0..1 of a period
 	OBBY_DELAY = "ObbyDelay", -- melt: seconds from stepping on to dropping away
 	OBBY_AWAY = "ObbyAway", -- melt: seconds it stays away
-	OBBY_DUTY = "ObbyDuty", -- flip: share of the period it is solid
+	OBBY_DUTY = "ObbyDuty", -- flip: share of the period it is solid; gust: share it blows
 	OBBY_MIN = "ObbyMin", -- shrink: smallest scale
 	OBBY_SHRINK_AXES = "ObbyShrinkAxes", -- shrink: "xz" (block) or "yz" (disc) size axes that breathe
-	OBBY_POWER = "ObbyPower", -- bounce: launch speed up; lift: rising speed (studs / s)
+	OBBY_POWER = "ObbyPower", -- bounce: launch speed up; lift: rising speed; gust: push (studs / s)
 	OBBY_ARM = "ObbyArm", -- swing: studs from the pivot down to the part
 	TUTORIAL_NPC = "TutorialNpc",
 	SPEED_COIL_TOOL = "SpeedCoil", -- Tool in the Backpack while owned
