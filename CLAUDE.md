@@ -1,5 +1,9 @@
 # RobloxGames: notes for Claude
 
+@AGENTS.md
+
+The house rules above (from `AGENTS.md`, the short form of the AI Game Guidebook in `guides/ai-guidebook.html`) apply to every task. Read the guidebook part its table points to before you start.
+
 Monorepo for Merijn's Roblox games. Layout and rules: [README.md](README.md). How we build, test and release: [guides/README.md](guides/README.md). Each game and the modeling kit have their own `CLAUDE.md` with hard rules; read the one for the area you work in (`games/<name>/CLAUDE.md`, `shared/modeling-kit/CLAUDE.md`).
 
 ## World labels
