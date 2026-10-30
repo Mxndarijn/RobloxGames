@@ -391,7 +391,11 @@ describe("SlimeInfoCard render", function()
 		local c = row.color
 		expect(shine.BackgroundColor3).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
 		-- back to a plain slime: one centred rarity pill
-		SlimeInfoCard.render(gui, assert(SlimeLabel.view({ name = "Mochi", tier = 1, income = 4 } :: any, nil, true)), 3)
+		SlimeInfoCard.render(
+			gui,
+			assert(SlimeLabel.view({ name = "Mochi", tier = 1, income = 4 } :: any, nil, true)),
+			3
+		)
 		expect(shine.Visible).toBe(false)
 		expect(rarity.AnchorPoint.X).toBe(0.5)
 		expect(rarity.Position.X.Scale).toBe(0.5)
