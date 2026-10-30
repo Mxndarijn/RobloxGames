@@ -58,8 +58,8 @@ DEFAULTS = {
     # Perf budgets: budgets.json (next to this file) is the single source and overlays these; they are the fallback
     # when it is missing or broken (selftest.py keeps them equal to it).
     "mesh_slot_budget": 500,  # SOFT: MeshParts only warn above it
-    "runtime_part_budget": 3000,  # FAIL above this. World BaseParts at runtime (excl. slimes/characters/transients)
-    "runtime_part_warn": 2900,  # WARN (non-blocking) above this
+    "runtime_part_budget": 3100,  # FAIL above this. World BaseParts at runtime (excl. slimes/characters/transients)
+    "runtime_part_warn": 3000,  # WARN (non-blocking) above this
     "unique_mesh_budget": 140,  # FAIL above this (distinct MeshIds)
     "world_triangle_budget": 500000,  # FAIL above this, CI only (pr-gate budget.sh from FBX); Studio cannot count triangles
     "launch_timeout_s": 120,

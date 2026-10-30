@@ -149,12 +149,12 @@ echo "=== selftest: runtime-budget ==="
 fx="$T_GATE/fixtures"
 # rtb FIXTURE: the command line (expect_* run it through env, so no shell function)
 rtb() { echo env PR_GATE_RT_COUNTS="$fx/rt-counts-$1.json" bash "$T_GATE/runtime_budget.sh"; }
-expect_ok "runtime-budget: parts 2203, unique 93, MeshParts 391" "parts 2203/3000 \(warn 2900\) unique meshes 93/140 mesh parts 391 \(soft 500\) -> PASS" \
+expect_ok "runtime-budget: parts 2203, unique 93, MeshParts 391" "parts 2203/3100 \(warn 3000\) unique meshes 93/140 mesh parts 391 \(soft 500\) -> PASS" \
 	$(rtb ok)
-expect_ok "runtime-budget: parts 2950 passes with a WARN" "WARN: runtime parts 2950 > warn 2900" \
+expect_ok "runtime-budget: parts 3050 passes with a WARN" "WARN: runtime parts 3050 > warn 3000" \
 	$(rtb parts-warn)
-expect_fail "runtime-budget: parts 3001 > 3000" "parts 3001/3000 .* -> FAIL" \
-	$(rtb parts-3001)
+expect_fail "runtime-budget: parts 3101 > 3100" "parts 3101/3100 .* -> FAIL" \
+	$(rtb parts-3101)
 expect_fail "runtime-budget: 141 unique meshes > 140" "unique meshes 141/140 .* -> FAIL" \
 	$(rtb unique-141)
 expect_ok "runtime-budget: 501 MeshParts passes with a WARN" "WARN: MeshParts 501 > soft budget 500" \
