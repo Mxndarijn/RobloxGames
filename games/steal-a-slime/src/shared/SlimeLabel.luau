@@ -24,6 +24,7 @@ export type View = {
 	price: string?, -- "$500" for a priced wild slime; nil = not for sale
 	growth: number, -- whole percent 0..100 (the pad sign's bar)
 	pad: number?, -- pad index while the slime rests on a pad: the label is the pad sign, not the tag
+	shine: Genome.ShineRow?, -- FEATURES.MutationLooks: the Config.SHINES row, drawn as a pill next to the rarity
 }
 
 -- What the label reads; the attribute names are in `SlimeLabel.ATTRIBUTES`.
@@ -36,6 +37,7 @@ export type Attributes = {
 	boss: any,
 	pad: any,
 	status: any,
+	shine: any,
 }
 
 local SlimeLabel = {}
@@ -50,7 +52,16 @@ SlimeLabel.ATTRIBUTES = table.freeze({
 	boss = Constants.BOSS_ATTRIBUTE,
 	pad = Constants.LABEL_PAD_ATTRIBUTE,
 	status = Constants.LABEL_STATUS_ATTRIBUTE,
+	shine = Constants.SHINE_ATTRIBUTE, -- written by server/SlimeShineView
 })
+
+-- FEATURES.MutationLooks, or the test override `looks`.
+local function mutationLooks(looks: boolean?): boolean
+	if looks == nil then
+		return Config.FEATURES.MutationLooks == true
+	end
+	return looks
+end
 
 local function finite(n: any): number?
 	if type(n) ~= "number" or n ~= n or n == math.huge or n == -math.huge then
@@ -90,16 +101,26 @@ function SlimeLabel.priceText(price: any): string?
 end
 
 -- Name / tier attribute values for a slime (LabelIncome is written separately); an egg shows its egg name and tier.
-function SlimeLabel.attributes(slime: Genome.Slime): (string, number)
+-- The shine leads the name ("Gold Mochi") unless MutationLooks draws it as a pill (`looks` overrides the flag).
+function SlimeLabel.attributes(slime: Genome.Slime, looks: boolean?): (string, number)
 	local kind = EggKind.of(slime)
 	if kind then
 		return EggKind.displayName(kind), kind.tier
 	end
 	local name = if slime.brewed == 1 then `Brewed {slime.name}` else slime.name
-	if slime.shine then
+	if slime.shine and not mutationLooks(looks) then
 		name = `{slime.shine} {name}`
 	end
 	return name, Genome.rarity(slime.tier).tier
+end
+
+-- The Config.SHINES row the tag shows as a pill for a model's Shine attribute; nil without MutationLooks or a
+-- known shine.
+function SlimeLabel.shine(id: any, looks: boolean?): Genome.ShineRow?
+	if type(id) ~= "string" or not mutationLooks(looks) then
+		return nil
+	end
+	return Genome.shine({ shine = id } :: any)
 end
 
 -- "m:ss" for a non-negative number of seconds (rounded up).
@@ -131,8 +152,9 @@ function SlimeLabel.hiddenByHatch(hatchedAt: any, now: number): boolean
 		and now < hatchedAt + Config.MYSTERY_EGG.HATCH_REVEAL_SECONDS
 end
 
--- Label values from the attributes; nil when the model carries no LabelName yet.
-function SlimeLabel.view(attrs: Attributes): View?
+-- Label values from the attributes; nil when the model carries no LabelName yet. `looks` overrides
+-- FEATURES.MutationLooks (tests).
+function SlimeLabel.view(attrs: Attributes, looks: boolean?): View?
 	if type(attrs.name) ~= "string" or attrs.name == "" then
 		return nil
 	end
@@ -150,6 +172,7 @@ function SlimeLabel.view(attrs: Attributes): View?
 		price = SlimeLabel.priceText(attrs.price),
 		growth = Growth.percentAt((finite(attrs.growth) or 0) / 100),
 		pad = if pad and pad >= 1 then math.floor(pad) else nil,
+		shine = SlimeLabel.shine(attrs.shine, looks),
 	}
 end
 

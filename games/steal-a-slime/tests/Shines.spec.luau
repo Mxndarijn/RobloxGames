@@ -11,6 +11,7 @@ local Rng = require("../src/shared/Rng")
 local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
 local SlimeLabel = require("../src/shared/SlimeLabel")
+local SlimeLooks = require("../src/shared/SlimeLooks")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
 
@@ -139,14 +140,32 @@ describe("a shine on a slime", function()
 		expect(Genome.shineMultiplier(Fixtures.slime("c", 4))).toBe(1)
 		expect(Genome.shineMultiplier(Fixtures.slime("d", 4, { shine = "Mud" }))).toBe(1)
 	end)
-	it("prefixes the display name and the label name", function()
+	it("prefixes the display name, and the label name without MutationLooks", function()
 		local slime = Fixtures.slime("a", 5, { name = "Globble", shine = "Diamond" })
 		expect(Genome.displayName(slime)).toBe("Diamond Legendary Globble")
-		expect((SlimeLabel.attributes(slime))).toBe("Diamond Globble")
+		expect((SlimeLabel.attributes(slime, false))).toBe("Diamond Globble")
 		expect(Genome.displayName(Fixtures.slime("b", 5, { name = "Globble" }))).toBe("Legendary Globble")
-		expect((SlimeLabel.attributes(Fixtures.slime("c", 5, { name = "Globble", shine = "Gold", brewed = 1 })))).toBe(
+		expect((SlimeLabel.attributes(Fixtures.slime("c", 5, { name = "Globble", shine = "Gold", brewed = 1 }), false))).toBe(
 			"Gold Brewed Globble"
 		)
+	end)
+	it("with MutationLooks the label name is the plain species name (the shine is a pill)", function()
+		local slime = Fixtures.slime("a", 5, { name = "Globble", shine = "Diamond" })
+		expect((SlimeLabel.attributes(slime, true))).toBe("Globble")
+		expect((SlimeLabel.attributes(Fixtures.slime("c", 5, { name = "Globble", shine = "Gold", brewed = 1 }), true))).toBe(
+			"Brewed Globble"
+		)
+	end)
+	it("every shine has a recoloured-kit suffix, a real material and a colour", function()
+		local seen: { [string]: boolean } = {}
+		for _, row in Config.SHINES do
+			expect(type(row.kit) == "string" and row.kit ~= "").toBe(true)
+			expect(seen[row.kit]).toBeNil()
+			seen[row.kit] = true
+			expect(`{row.id}: {SlimeLooks.isMaterial(row.material)}`).toBe(`{row.id}: true`) -- never Glass
+			expect(row.reflectance >= 0 and row.reflectance <= 1).toBe(true)
+			expect(#row.color).toBe(3)
+		end
 	end)
 	it("sanitize keeps only a known shine id", function()
 		local function clean(shine: any): string?

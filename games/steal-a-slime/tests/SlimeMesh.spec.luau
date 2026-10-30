@@ -310,6 +310,149 @@ describe("SlimeMesh species kits", function()
 	end)
 end)
 
+-- Runs `fn` with a recoloured copy `slime_gummy_<suffix>` of the gummy kit registered (asset id `assetId`).
+local function withCopy<T>(suffix: string, assetId: number, fn: () -> T): T
+	local name = `slime_gummy_{suffix}`
+	local base = MeshAssets.entries.slime_gummy :: any
+	local saved = MeshAssets.entries[name]
+	MeshAssets.entries[name] = { assetId = assetId, size = base.size, offset = base.offset }
+	local ok, result = pcall(fn)
+	MeshAssets.entries[name] = saved
+	if not ok then
+		error(result, 0)
+	end
+	return result
+end
+
+local function shineRow(id: string): any
+	for _, row in Config.SHINES do
+		if row.id == id then
+			return row
+		end
+	end
+	error(`no shine {id}`)
+end
+
+describe("SlimeMesh mutation kits", function()
+	it("names the recoloured copy of a shining slime's species kit", function()
+		local diamond = shineRow("Diamond")
+		withCopy(diamond.kit, 4242, function()
+			local mesh = setup(function(): any
+				return meshAsset()
+			end)
+			mesh.deps.mutationLooks = true
+			local slime = Fixtures.slime("s", 1, { species = "gummy", shine = "Diamond" })
+			local kit, row = SlimeMesh.mutationKit(mesh, slime)
+			expect(kit).toBe(`slime_gummy_{diamond.kit}`)
+			expect(row).toBe(diamond)
+			expect(MeshAssets.get(kit :: string).size).toBe((MeshAssets.get("slime_gummy") :: any).size)
+			expect((SlimeMesh.mutationKit(mesh, Fixtures.slime("p", 1, { species = "gummy" })))).toBeNil()
+			mesh.deps.mutationLooks = false
+			expect((SlimeMesh.mutationKit(mesh, slime))).toBeNil()
+		end)
+	end)
+
+	it("keeps the species kit for a shine whose copy isn't uploaded, and waits for nothing", function()
+		local mesh = setup(function(): any
+			return meshAsset()
+		end)
+		mesh.deps.mutationLooks = true
+		mesh.kits.slime_gummy = meshAsset():FindFirstChildWhichIsA() :: any
+		local slime = Fixtures.slime("s", 1, { species = "gummy", shine = "Gold" })
+		local saved = MeshAssets.entries.slime_gummy_gold
+		MeshAssets.entries.slime_gummy_gold = nil
+		expect((SlimeMesh.mutationKit(mesh, slime))).toBeNil()
+		expect(SlimeMesh.pendingKit(mesh, slime)).toBeNil()
+		MeshAssets.entries.slime_gummy_gold = saved
+	end)
+
+	it("fetches a copy the first time a slime needs it, names it pending, and has it once it arrives", function()
+		local gold = shineRow("Gold")
+		withCopy(gold.kit, 777, function()
+			local fetches: { () -> () } = {}
+			local requested: { number } = {}
+			local mesh = SlimeMesh.new({
+				factory = fakeFactory() :: any,
+				loadAsset = function(assetId: number): any
+					table.insert(requested, assetId)
+					return meshAsset()
+				end,
+				spawn = function(fetch: () -> ())
+					table.insert(fetches, fetch)
+				end,
+				warn = function() end,
+				mutationLooks = true,
+			})
+			mesh.kits.slime_gummy = {} :: any -- the species kit is in; dressing the fake model just fails over
+			local slime = Fixtures.slime("s", 1, { species = "gummy", shine = "Gold" })
+			SlimeMesh.build(mesh, slime)
+			SlimeMesh.build(mesh, slime) -- a second slime of the kind asks for no second fetch
+			expect(#fetches).toBe(1)
+			expect(SlimeMesh.pendingKit(mesh, slime)).toBe(`slime_gummy_{gold.kit}`)
+			fetches[1]()
+			expect(requested).toEqual({ 777 })
+			expect(SlimeMesh.hasKit(mesh, `slime_gummy_{gold.kit}`)).toBe(true)
+			expect(SlimeMesh.pendingKit(mesh, slime)).toBeNil()
+		end)
+	end)
+
+	it("without MutationLooks a shining slime wears its species kit and fetches no copy", function()
+		local gold = shineRow("Gold")
+		withCopy(gold.kit, 777, function()
+			local fetches: { () -> () } = {}
+			local mesh = SlimeMesh.new({
+				factory = fakeFactory() :: any,
+				loadAsset = function(): any
+					return meshAsset()
+				end,
+				spawn = function(fetch: () -> ())
+					table.insert(fetches, fetch)
+				end,
+				warn = function() end,
+				mutationLooks = false,
+			})
+			mesh.kits.slime_gummy = {} :: any
+			local slime = Fixtures.slime("s", 1, { species = "gummy", shine = "Gold" })
+			SlimeMesh.build(mesh, slime)
+			expect(#fetches).toBe(0)
+			expect(SlimeMesh.pendingKit(mesh, slime)).toBeNil()
+		end)
+	end)
+
+	it("dresses a shining slime in its copy, in the shine's material", function()
+		local diamond = shineRow("Diamond")
+		withCopy(diamond.kit, 4242, function()
+			local model = slimeModel()
+			local mesh = SlimeMesh.new({
+				factory = {
+					build = function(): any
+						return model
+					end,
+				} :: any,
+				loadAsset = function(): any
+					error("unused")
+				end,
+				warn = function(message: string)
+					error(message)
+				end,
+				mutationLooks = true,
+			})
+			local copy = roblox.Instance.new("MeshPart")
+			copy:SetAttribute("Copy", true)
+			mesh.kits.slime_gummy = roblox.Instance.new("MeshPart") :: any
+			mesh.kits[`slime_gummy_{diamond.kit}`] = copy :: any
+			withRobloxGlobals(function()
+				return SlimeMesh.build(mesh, Fixtures.slime("e", 1, { species = "gummy", shine = "Diamond" }))
+			end)
+			local worn = model:FindFirstChild(SlimeMesh.MESH_NAME) :: any
+			assert(worn, "mesh")
+			expect(worn:GetAttribute("Copy")).toBe(true)
+			expect(worn.Material == (roblox.Enum.Material :: any)[diamond.material]).toBe(true)
+			expect(worn.Reflectance).toBeCloseTo(diamond.reflectance, 1e-6)
+		end)
+	end)
+end)
+
 -- A slime Model from the real SlimeLayout parts, built the way ModelFactory does (Body PrimaryPart at its
 -- bottom-centre pivot, every other part welded to Body), with no rig: Lune has no CollectionService.
 local SlimeLayout = require("../src/visuals/shared/SlimeLayout")
