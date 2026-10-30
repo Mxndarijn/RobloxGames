@@ -1,9 +1,10 @@
 --!strict
 --[[
-	Rebirth panel: only the NEXT rebirth, its number in the title.
+	Rebirth panel: only the NEXT rebirth, named in the title ("Next rebirth: 4").
 
 	Top to bottom:
-	  * Hero: the income multiplier now and after the rebirth ("x3.5 → x4"), in an Ink well.
+	  * Hero: the income multiplier now and after the rebirth ("x3.5 → x4"), in an Ink well, each side
+	    labelled with its rebirth ("Now · Rebirth 3", "After Rebirth 4").
 	  * Perk chips: the lock time it adds, and the rank's income bonus when this rebirth earns a rank.
 	  * Rank row: a Gold-ringed "New rank: Goo Tycoon" when this rebirth reaches one (what that rank does),
 	    else a quiet "Next rank at Rebirth 30". Hidden past the last rank.
@@ -12,7 +13,7 @@
 	    A met row ends in a mint tick.
 	  * "You keep" / "Resets" wells side by side.
 	  * The hold-to-confirm Rebirth button (state.canRebirth), else a sunken well saying what is missing.
-	At max rebirths only the crown card shows: your rank, totals and "All rebirths done".
+	At max rebirths only the crown card shows ("Max rebirth: 30"): your rank, totals and "All rebirths done".
 	Progress.nextRebirth has the numbers; `rank` and `plan` are the pure parts.
 ]]
 
@@ -105,8 +106,10 @@ Rebirth.COPY = table.freeze({
 	usedUp = "Used up on rebirth",
 	getOne = "Catch or merge one",
 	missing = "Missing",
-	nowLabel = "Income now",
-	nextLabel = "After rebirth",
+	nextTitle = "Next rebirth",
+	maxTitle = "Max rebirth",
+	nowLabel = "Now · Rebirth",
+	nextLabel = "After Rebirth",
 	keepTitle = "You keep",
 	resetTitle = "Resets",
 	keep = "Other slimes, pads, upgrades, rank",
@@ -122,6 +125,16 @@ Rebirth.COPY = table.freeze({
 -- "1 of 3 ready": the cash counts as one need, each slime as one more.
 function Rebirth.countText(ready: number, total: number): string
 	return `{ready} of {total} ready`
+end
+
+-- The panel title for a player at `rebirths`: the rebirth they get next, or the last one once all are done.
+function Rebirth.titleText(rebirths: number, maxed: boolean): string
+	return if maxed then `{Rebirth.COPY.maxTitle}: {rebirths}` else `{Rebirth.COPY.nextTitle}: {rebirths + 1}`
+end
+
+-- The hero's two labels: the rebirth you are on and the one you get.
+function Rebirth.heroLabels(rebirths: number): (string, string)
+	return `{Rebirth.COPY.nowLabel} {rebirths}`, `{Rebirth.COPY.nextLabel} {rebirths + 1}`
 end
 
 -- The two wells under the checklist: what stays and what the rebirth resets. Cash waiting on the cash pads
@@ -287,7 +300,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 
 	-- Hero: income now → after the rebirth.
 	local hero = well("Hero", R.hero)
-	local function heroSide(name: string, label: string, x: UDim, color: Color3): TextLabel
+	local function heroSide(name: string, x: UDim, color: Color3): (TextLabel, TextLabel)
 		local side = create("Frame", {
 			Name = name,
 			BackgroundTransparency = 1,
@@ -295,9 +308,8 @@ function Rebirth.new(parent: Instance, ctx: any)
 			Size = UDim2.new(0.5, -C.arrowW / 2, 1, 0),
 			Parent = hero,
 		})
-		text({
+		local label = text({
 			Name = "Label",
-			Text = label,
 			TextSize = C.labelSize,
 			TextColor3 = Theme.Muted,
 			TextXAlignment = Enum.TextXAlignment.Center,
@@ -305,7 +317,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 			Size = UDim2.new(1, 0, 0, C.heroLabelH),
 			Parent = side,
 		})
-		return text({
+		local value = text({
 			Name = "Value",
 			Font = Theme.Font,
 			TextSize = C.heroValueSize,
@@ -316,9 +328,10 @@ function Rebirth.new(parent: Instance, ctx: any)
 			Size = UDim2.new(1, 0, 0, C.heroValueH),
 			Parent = side,
 		})
+		return label, value
 	end
-	local nowValue = heroSide("Now", COPY.nowLabel, UDim.new(0, 0), Theme.Muted)
-	local nextValue = heroSide("Next", COPY.nextLabel, UDim.new(0.5, C.arrowW / 2), Theme.Good)
+	local nowLabel, nowValue = heroSide("Now", UDim.new(0, 0), Theme.Muted)
+	local nextLabel, nextValue = heroSide("Next", UDim.new(0.5, C.arrowW / 2), Theme.Good)
 	text({
 		Name = "Arrow",
 		Text = "→",
@@ -718,7 +731,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		local maxed = nextUp.maxed
 		local rebirths = nextUp.rebirth - 1
 		local cashMet = maxed or nextUp.have >= nextUp.cost
-		panel.title.Text = if maxed then "Rebirth" else `Rebirth {nextUp.rebirth}`
+		panel.title.Text = Rebirth.titleText(rebirths, maxed)
 
 		local rank = if maxed then nil else Rebirth.rank(rebirths, ctx.Config.REBIRTH_TIERS)
 		local plan = Rebirth.plan(#needs, rank ~= nil)
@@ -732,6 +745,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 
 		-- Hero and chips.
 		hero.Position = UDim2.fromOffset(0, plan.heroY)
+		nowLabel.Text, nextLabel.Text = Rebirth.heroLabels(rebirths)
 		nowValue.Text = Format.formatMultiplier(nextUp.current)
 		nextValue.Text = Format.formatMultiplier(nextUp.multiplier)
 		nextValue.TextStrokeTransparency = 0
