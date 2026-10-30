@@ -604,6 +604,35 @@ describe("SlimePadSign", function()
 		local last = band:FindFirstChild(`Drip{#SlimePadSign.DRIPS}`).BackgroundColor3
 		expect(first ~= last).toBe(true)
 	end)
+	it("pins a tilted shine pill over the top-left corner and keeps the name plain", function()
+		local sign = SlimePadSign.build()
+		local board = sign:FindFirstChild("Face"):FindFirstChild("Board")
+		local shine = board:FindFirstChild("Shine")
+		SlimePadSign.render(sign, view({}))
+		expect(shine.Visible).toBe(false)
+		for _, r in Config.SHINES do
+			SlimePadSign.render(sign, view({ shine = r.id }))
+			expect(board:FindFirstChild("Title").Text).toBe("Lop")
+			expect(shine.Visible).toBe(true)
+			expect(shine.Text).toBe(r.id)
+			expect(shine:FindFirstChild("Fit").AspectRatio).toBe(SlimePadSign.pillAspect(r.id))
+			local fill = SlimePadSign.shineLook(r)
+			expect(shine.BackgroundColor3).toBe(fill)
+		end
+		local t = SlimePadSign.TAG
+		expect(shine.Rotation).toBe(t.tilt)
+		-- its centre sits on the top edge, left of the middle: the half above shows (no clipping)
+		expect(shine.Position.X.Scale < 0.5 and math.abs(shine.Position.Y.Scale) < 0.1).toBe(true)
+		expect(sign:FindFirstChild("Face").ClipsDescendants).toBe(false)
+		-- the widest shine still ends left of the middle, clear of the rarity in the band
+		local plankRatio = SlimePadSign.SIZE.width / SlimePadSign.SIZE.height
+		for _, r in Config.SHINES do
+			local halfWidth = SlimePadSign.pillAspect(r.id) * t.h / plankRatio / 2
+			expect(t.x + halfWidth < 0.5).toBe(true)
+		end
+		SlimePadSign.render(sign, view({}))
+		expect(shine.Visible).toBe(false)
+	end)
 	it("writes Ink on bright goo and outlined white on deep goo", function()
 		local Widgets = UiHarness.ui("Widgets")
 		for tier = 1, Config.MAX_TIER do

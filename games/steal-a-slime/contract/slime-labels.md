@@ -46,7 +46,8 @@ State field, no save-format change.
   colour (a rainbow for Secret) runs along its top edge with the rarity written in it (Ink, or outlined white on deep
   goo) and drips down both ends; the plank has an Ink edge; the name (white) and income
   (mint) are written in Ink-outlined Fredoka on the wood; the growth fills an Ink tube with mint goo, its percent
-  beside it.
+  beside it. A shining slime's sign wears a tilted pill in the shine's colour (the tag's shine pill look) pinned
+  over its top-left corner, half above the plank; the name stays plain.
   `MaxDistance` is `SlimePadSign.SIZE.maxDistance`: far enough to spot the rarity goo across a plot. The pad is the plot's part with `PadIndex` =
   `LabelPad`. Moves when the slime changes pad; looked up again when the model moves (it may land in its plot after
   `LabelPad` arrives); removed when it leaves the pad or loses its tag.
