@@ -176,7 +176,8 @@ function RitualView.setup(): Model?
 	gui.Parent = core
 	title, line = buildLabel(gui)
 
-	-- One small board at the circle edge, facing the plaza, that explains the rule (text from Config).
+	-- One small board at the circle edge, facing the plaza, that explains the rule (text from Config), on both faces:
+	-- players reach the circle from every side.
 	local sx, sz = Ritual.signSpot()
 	local board = Instance.new("Part")
 	board.Name = "RuleSign"
@@ -185,34 +186,36 @@ function RitualView.setup(): Model?
 	board.CFrame = CFrame.lookAt(Vector3.new(sx, 1, sz), Vector3.new(0, 1, 0))
 	decor(board, rgb(GooPalette.Ink), Enum.Material.SmoothPlastic)
 	board.Parent = model
-	local face = Instance.new("SurfaceGui")
-	face.Name = "RuleText"
-	face.Face = Enum.NormalId.Front
-	face.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	face.PixelsPerStud = 50
-	face.LightInfluence = 0
-	face.MaxDistance = RitualView.SIGN_MAX_DISTANCE
-	face.Parent = board
-	-- A glass card with the rule in Nunito, like the canvas's rule card under the ritual label.
-	local card = Instance.new("Frame")
-	card.Name = "Card"
-	card.Size = UDim2.fromScale(1, 1)
-	card.BackgroundColor3 = rgb(GooPalette.Bg)
-	card.BorderSizePixel = 0
-	corner(card, UDim.new(0.3, 0))
-	stroke(card, rgb(GooPalette.Ink), 4, 0, false)
-	card.Parent = face
-	local rule = Instance.new("TextLabel")
-	rule.Name = "Rule"
-	rule.BackgroundTransparency = 1
-	rule.Position = UDim2.fromScale(0.06, 0.12)
-	rule.Size = UDim2.fromScale(0.88, 0.76)
-	rule.FontFace = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold)
-	rule.TextScaled = true
-	rule.TextWrapped = true
-	rule.TextColor3 = rgb(GooPalette.Text)
-	rule.Text = Ritual.signText()
-	rule.Parent = card
+	for _, side in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local face = Instance.new("SurfaceGui")
+		face.Name = `RuleText{side.Name}`
+		face.Face = side
+		face.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		face.PixelsPerStud = 50
+		face.LightInfluence = 0
+		face.MaxDistance = RitualView.SIGN_MAX_DISTANCE
+		face.Parent = board
+		-- A glass card with the rule in Nunito, like the canvas's rule card under the ritual label.
+		local card = Instance.new("Frame")
+		card.Name = "Card"
+		card.Size = UDim2.fromScale(1, 1)
+		card.BackgroundColor3 = rgb(GooPalette.Bg)
+		card.BorderSizePixel = 0
+		corner(card, UDim.new(0.3, 0))
+		stroke(card, rgb(GooPalette.Ink), 4, 0, false)
+		card.Parent = face
+		local rule = Instance.new("TextLabel")
+		rule.Name = "Rule"
+		rule.BackgroundTransparency = 1
+		rule.Position = UDim2.fromScale(0.06, 0.12)
+		rule.Size = UDim2.fromScale(0.88, 0.76)
+		rule.FontFace = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Bold)
+		rule.TextScaled = true
+		rule.TextWrapped = true
+		rule.TextColor3 = rgb(GooPalette.Text)
+		rule.Text = Ritual.signText()
+		rule.Parent = card
+	end
 
 	model:SetAttribute(Constants.RITUAL_PHASE_ATTRIBUTE, "Idle")
 	model.Parent = parent

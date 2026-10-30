@@ -2,20 +2,16 @@
 --[[
 	EventBoard (pure)
 	The cards of the Upcoming Events wall at the fountain (server/EventBoardView draws them): the boss, Slime Rain,
-	the weather and which shine it allows, the guaranteed Legendary and Mythic drops, and a running admin or weekly
-	event. Each card has an icon key, an accent colour, a title, a detail line and a "m:ss" countdown. Running
-	events come first, then the rest soonest first; a card with nothing to say is left out.
+	the guaranteed Legendary and Mythic drops, and a running admin or weekly event (the weather is not on it). Each
+	card has an icon key, an accent colour, a title, a detail line and a "m:ss" countdown. Running events come first,
+	then the rest soonest first; a card with nothing to say is left out.
 ]]
-
-local Config = if script then require(script.Parent.Config) else require("./Config")
 
 export type Input = {
 	bossHere: string?, -- name of the boss on the plaza now (nil = none)
 	bossAt: number?, -- server time of the next boss arrival
 	rainEndsAt: number?, -- Slime Rain running until this time
 	rainAt: number?, -- next Slime Rain start (when none runs)
-	weather: string?, -- Config.WEATHER id now (nil = Clear)
-	weatherChangeAt: number?, -- when the weather changes next
 	legendaryIn: number?, -- seconds until the guaranteed Legendary (Spawner.guaranteeIn)
 	mythicIn: number?, -- seconds until the guaranteed Mythic
 	event: string?, -- a running admin or weekly event's label
@@ -23,7 +19,7 @@ export type Input = {
 }
 
 export type Row = {
-	id: string, -- "boss" | "rain" | "weather" | "legendary" | "mythic" | "event"
+	id: string, -- "boss" | "rain" | "legendary" | "mythic" | "event"
 	icon: string, -- EventBoard.ICONS key (the view maps it to an image or a glyph)
 	accent: { number }, -- RGB
 	title: string,
@@ -38,41 +34,22 @@ local EventBoard = {}
 EventBoard.TITLE = "Upcoming Events"
 EventBoard.MAX_ROWS = 6
 
--- Accent colours per card (and per weather).
+-- Accent colours per card.
 EventBoard.ACCENTS = table.freeze({
 	boss = table.freeze({ 255, 84, 84 }),
 	rain = table.freeze({ 70, 170, 255 }),
 	legendary = table.freeze({ 255, 196, 40 }),
 	mythic = table.freeze({ 236, 90, 255 }),
 	event = table.freeze({ 60, 220, 120 }),
-	Clear = table.freeze({ 255, 214, 90 }),
-	Rain = table.freeze({ 110, 150, 230 }),
-	Snow = table.freeze({ 150, 225, 255 }),
-	Starfall = table.freeze({ 170, 120, 255 }),
 })
 
 -- Order among cards that start at the same moment.
-local RANK = table.freeze({ boss = 1, event = 2, rain = 3, mythic = 4, legendary = 5, weather = 6 })
+local RANK = table.freeze({ boss = 1, event = 2, rain = 3, mythic = 4, legendary = 5 })
 
 -- "m:ss" for `seconds` (rounded up, never negative).
 function EventBoard.clock(seconds: number): string
 	local s = math.max(0, math.ceil(seconds))
 	return string.format("%d:%02d", s // 60, s % 60)
-end
-
--- What the weather `id` does to shines: the Config.SHINES row it allows, else the any-weather one.
-function EventBoard.shineHint(id: string?): string
-	for _, row in Config.SHINES do
-		if row.weather ~= nil and row.weather == id then
-			return `{row.id} slimes possible`
-		end
-	end
-	for _, row in Config.SHINES do
-		if row.weather == nil then
-			return `{row.id} slimes possible`
-		end
-	end
-	return ""
 end
 
 local function card(
@@ -116,19 +93,6 @@ function EventBoard.rows(input: Input, now: number): { Row }
 			card("rain", A.rain, "Slime Rain", "slimes pour from the sky", EventBoard.clock(left), false, left)
 		)
 	end
-	local weather = input.weather or "Clear"
-	local change = if input.weatherChangeAt then input.weatherChangeAt - now else math.huge
-	local weatherRow = card(
-		"weather",
-		A[weather] or A.Clear,
-		`Weather: {weather}`,
-		EventBoard.shineHint(weather),
-		if input.weatherChangeAt then `changes {EventBoard.clock(change)}` else "",
-		false,
-		change
-	)
-	weatherRow.icon = `weather{weather}`
-	table.insert(rows, weatherRow)
 	if input.legendaryIn then
 		table.insert(
 			rows,

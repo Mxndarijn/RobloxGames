@@ -3,6 +3,7 @@
 local PlayerSettings = require("../src/shared/PlayerSettings")
 local PodiumAvatars = require("../src/server/PodiumAvatars")
 local TestRunner = require("./TestRunner")
+local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -191,5 +192,26 @@ describe("PodiumAvatars", function()
 		podiums:apply(hidden)
 		expect(log.built).toBe(2)
 		expect(#log.destroyed).toBe(0)
+	end)
+end)
+
+describe("WorldLayout.podiumTopCentre", function()
+	it("finds each podium's flat top where Studio measured it on the placed slots", function()
+		-- slot size (x, z) and the top's centre (x, z) in slot studs, probed straight down in a Studio playtest
+		local measured = {
+			{ 6.246, 6.006, -0.31, -0.19 },
+			{ 5.797, 5.594, -0.29, -0.21 },
+			{ 5.535, 5.31, -0.31, -0.2 },
+		}
+		for rank, m in measured do
+			local x, z = WorldLayout.podiumTopCentre(rank, m[1], m[2])
+			expect(math.abs(x - m[3]) < 0.05).toBe(true)
+			expect(math.abs(z - m[4]) < 0.05).toBe(true)
+		end
+	end)
+	it("leaves an unknown podium at its slot's centre", function()
+		local x, z = WorldLayout.podiumTopCentre(4, 6, 6)
+		expect(x).toBe(0)
+		expect(z).toBe(0)
 	end)
 end)
