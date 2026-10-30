@@ -9,6 +9,7 @@ local NumberFormat = require("../src/shared/NumberFormat")
 local PlayerData = require("../src/shared/PlayerData")
 local PlotSigns = require("../src/server/PlotSigns")
 local TestRunner = require("./TestRunner")
+local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -68,17 +69,25 @@ describe("PlotSigns.apply", function()
 		return sign:FindFirstChild(PlotSigns.GUI_PREFIX .. "Front"):FindFirstChild(MascotSign.ROOT)
 	end
 
-	it("adds a SurfaceGui with the mascot sign on the front (the drawn face) of a bare Sign", function()
-		expect(PlotSigns.FACES).toEqual({ "Front" })
+	it("adds a SurfaceGui with the same mascot sign on the front and the back of a bare Sign", function()
+		expect(PlotSigns.FACES).toEqual({ "Front", "Back" })
 		local sign = roblox.Instance.new("Part")
 		sign.Name = "Sign"
 		PlotSigns.apply(sign, PlotSigns.lines(2, nil), DEPS)
-		local gui = sign:FindFirstChild(PlotSigns.GUI_PREFIX .. "Front")
-		expect(gui.Face).toBe(roblox.Enum.NormalId.Front)
-		expect(gui.MaxDistance).toBe(PlotSigns.MAX_DISTANCE)
-		local root = face(sign)
-		expect(root.Bar.Title.Text).toBe("Plot 2")
-		expect(root.Bar.Stats.Text).toBe("Empty plot")
+		for _, side in PlotSigns.FACES do
+			local gui = sign:FindFirstChild(PlotSigns.GUI_PREFIX .. side)
+			expect(gui.Face).toBe((roblox.Enum.NormalId :: any)[side])
+			expect(gui.MaxDistance).toBe(PlotSigns.MAX_DISTANCE)
+			local root = gui:FindFirstChild(MascotSign.ROOT)
+			expect(root.Bar.Title.Text).toBe("Plot 2")
+			expect(root.Bar.Stats.Text).toBe("Empty plot")
+		end
+	end)
+
+	it("keeps the stats text above the strip the sign's cradle grips", function()
+		local B = MascotSign.BOX
+		local freeStrip = (1 - (B.stats[2] + B.stats[4])) * B.bar[4] * WorldLayout.NAME_BOARD.height
+		expect(WorldLayout.SIGN_RAIL.grip < freeStrip).toBe(true)
 	end)
 
 	it("puts a free plot's mascot to sleep and wakes it in the owner's theme colour", function()
@@ -137,7 +146,9 @@ describe("PlotSigns.apply", function()
 		PlotSigns.apply(sign, PlotSigns.lines(1, nil), DEPS)
 		PlotSigns.apply(sign, PlotSigns.lines(1, owner("Ann", nil, 0, 0)), DEPS)
 		expect(#sign:GetChildren()).toBe(#PlotSigns.FACES)
-		expect(#sign:FindFirstChild(PlotSigns.GUI_PREFIX .. "Front"):GetChildren()).toBe(1)
+		for _, side in PlotSigns.FACES do
+			expect(#sign:FindFirstChild(PlotSigns.GUI_PREFIX .. side):GetChildren()).toBe(1)
+		end
 		expect(face(sign).Bar.Title.Text).toBe("Ann's plot")
 	end)
 end)

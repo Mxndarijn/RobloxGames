@@ -6,7 +6,8 @@
 	name, income, rebirths and steals (shared/MascotSign). The mascot wears the owner's plot theme (PlotSkins);
 	a free plot shows "Plot n", "Empty plot" and a pale mascot asleep. The static world (world/Plots.rbxmx,
 	WorldLayout.NAME_BOARD) ships the Sign as an invisible board with no SurfaceGui, so the server adds one on its
-	Front face (facing out of the jar). Server-side so it replicates to every client.
+	Front face (facing out of the jar) and one on its Back face (read from inside the plot). Server-side so it
+	replicates to every client.
 
 	PlotSigns.lines(plotIndex, owner?, income?) -> Lines            -- pure
 	PlotSigns.ensure(sign, deps?) -> MascotSign.Sign per face      -- idempotent
@@ -29,7 +30,7 @@ type Deps = MascotSign.Deps
 local PlotSigns = {}
 
 PlotSigns.GUI_PREFIX = "SignGui"
-PlotSigns.FACES = table.freeze({ "Front" })
+PlotSigns.FACES = table.freeze({ "Front", "Back" }) -- the same sign both ways: out of the plot and from inside it
 PlotSigns.PIXELS_PER_STUD = MascotSign.PIXELS_PER_STUD
 PlotSigns.MAX_DISTANCE = 250 -- studs: find a friend's plot from the plaza
 

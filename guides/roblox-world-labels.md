@@ -143,13 +143,13 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 | Friends-lock sticker | `ui/FriendsLockIcon` | SG 3.2 st | 120 | no |
 | Pad sign plank | `ui/SlimePadSign` | SG 4.6×1.5, 80 ppS | 80 | no |
 | Cash pad coin | `server/CashPadView` | SG, 60 ppS | 60 | no |
-| Plot sign (mascot + nameplate) | `server/PlotSigns` (`shared/MascotSign`) | SG 6×3, 50 ppS | 250 | no |
+| Plot sign (mascot + nameplate), front and back | `server/PlotSigns` (`shared/MascotSign`) | SG 6×3, 50 ppS, both faces | 250 | no |
 | Shop stand signs | `visuals/shared/Props.standSign` | SG, 80 ppS | 300 | no |
 | Hall arch banner | `visuals/shared/Props.hallArch` | SG, 40 ppS | 300 | no |
 | Leaderboard boards | `visuals/shared/Props.leaderboardBoard`, `ui/WorldLeaderboard` | SG, 40 ppS | 150 | no |
 | Upcoming Events board (on a leaderboard board) | `server/EventBoardView` | SG, 40 ppS (×1.05 model scale) | 150 | no |
-| Ritual rules sign | `server/RitualView` | SG 6×1.8, 50 ppS | 80 | no |
-| Goo Gauntlet portal sign (title, this player's boost status, next course) | `server/ObbyView`, text from `ui/ObbyHud` | SG 10×5, 50 ppS | 200 | no |
+| Ritual rules sign, front and back | `server/RitualView` | SG 6×1.8, 50 ppS, both faces | 80 | no |
+| Goo Gauntlet portal sign (title, this player's boost status, next course), front and back | `server/ObbyView`, text from `ui/ObbyHud` | SG 10×5, 50 ppS, both faces | 200 | no |
 | BONK / CHOMP popup | `ui/PvpEffects` | px 140×48 | 120 | no |
 | Fun FX text | `ui/PvpFunFx` | px 220×60 × scale | 150 | yes |
 | Slap pop | `ui/StealAlertFx` | px 120×50 | 120 | yes |

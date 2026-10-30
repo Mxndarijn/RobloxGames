@@ -14,6 +14,7 @@ local GooBoard = require(ReplicatedStorage.Shared.GooBoard)
 local GooPalette = require(ReplicatedStorage.Shared.GooPalette)
 local LabelFit = require(ReplicatedStorage.Lib.ui.LabelFit)
 local PodiumAvatars = require(script.Parent.PodiumAvatars)
+local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
 local PodiumRigs = {}
 
@@ -167,9 +168,11 @@ function PodiumRigs.adapter(): PodiumAvatars.Adapter
 			-- In the workspace before anchoring/placing, so the rig is scaled and its clothing wrapped first.
 			model.Parent = folder()
 			freeze(model)
-			-- Stand on the podium's top face, turned like its front. The kit front is the slot's +Z (MeshAssets, kit
-			-- fronts face +Z) and a character looks along its own -Z, so the rig gets half a turn.
-			local top = base.CFrame * CFrame.new(0, base.Size.Y / 2, 0) * CFrame.Angles(0, math.pi, 0)
+			-- Stand on the middle of the podium's flat top (off the slot's centre: WorldLayout.podiumTopCentre), turned
+			-- like its front. The kit front is the slot's +Z (MeshAssets, kit fronts face +Z) and a character looks
+			-- along its own -Z, so the rig gets half a turn.
+			local dx, dz = WorldLayout.podiumTopCentre(rank, base.Size.X, base.Size.Z)
+			local top = base.CFrame * CFrame.new(dx, base.Size.Y / 2, dz) * CFrame.Angles(0, math.pi, 0)
 			model:PivotTo(top)
 			local box, size = model:GetBoundingBox()
 			local lift = PodiumAvatars.standLift(top.Position.Y, feetBottom(model), box.Position.Y - size.Y / 2)
