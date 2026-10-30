@@ -36,6 +36,11 @@ local NON_BLOCKING = {
 	meadow_grass = true,
 	meadow_flowers = true,
 	meadow_pebbles = true,
+	-- yard trees: the trunk posts (yard_tree_trunks) collide, the leaves are walk-through
+	yard_oak_round = true,
+	yard_pine_broad = true,
+	yard_pine_tall = true,
+	yard_sapling_trio = true,
 }
 
 describe("PropCollision inventory", function()

@@ -175,17 +175,14 @@ describe("yard dressing: floor, collision, snow, variety", function()
 		end
 		expect(n).toBe(#yard)
 	end)
-	it(
-		"adds no collision of its own: only the kit's Box / Hull fidelities, never PCD, nothing new in MeshAssets.COLLISION",
-		function()
-			for _, p in yard do
-				local fidelity = MeshAssets.collision(p.mesh)
-				expect(fidelity == nil or fidelity == "Box" or fidelity == "Hull").toBe(true)
-				local slot = slots[p.name]
-				expect(slot.canCollide == false or fidelity ~= nil).toBe(true)
-			end
+	it("adds no collision of its own: only the kit's Box / Hull / Default fidelities, never PCD", function()
+		for _, p in yard do
+			local fidelity = MeshAssets.collision(p.mesh)
+			expect(fidelity == nil or fidelity == "Box" or fidelity == "Hull" or fidelity == "Default").toBe(true)
+			local slot = slots[p.name]
+			expect(slot.canCollide == false or fidelity ~= nil).toBe(true)
 		end
-	)
+	end)
 	it("opts out of snow (SnowKind none) and wears a slight tint: MeshTint, near white", function()
 		for _, p in yard do
 			local slot = slots[p.name]

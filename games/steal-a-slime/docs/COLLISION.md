@@ -136,10 +136,11 @@ floor part); it needs no call site and touches no terrain-height file.
 
 | Fidelity | Meshes |
 |---|---|
-| `Box` | `slime_fountain_emerge` (bug #10, main), `phoenix_corner_post` (the stile post), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_bench`, `ranch_compost_bin`, `ranch_flower_planter`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_wagon`, `ranch_water_trough`, `ranch_barrel`, `ranch_well`, `ranch_fence_stile` (v196 follow-up) |
-| `Hull` | `merge_vat`, the pad stands' `goo_cork_stand` (also queryable, so dropped slimes land on it: slot attribute `MeshCanQuery`), the Item / Upgrade stands' `ranch_item_shop` and `ranch_upgrade_cabinet`, `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_slime_coop`, `ranch_water_pump`, `ranch_weathervane`, `ranch_wheelbarrow`, `ranch_windmill` |
+| `Box` | `slime_fountain_emerge` (bug #10, main), `phoenix_corner_post` (the stile post), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_flower_planter`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_water_trough`, `ranch_barrel`, `ranch_well`, `ranch_fence_stile` (v196 follow-up), `ranch_border_fence_straight`, `ranch_border_hedge_long` |
+| `Hull` | `merge_vat`, the pad stands' `goo_cork_stand` (also queryable, so dropped slimes land on it: slot attribute `MeshCanQuery`), the Item / Upgrade stands' `ranch_item_shop` and `ranch_upgrade_cabinet`, `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_water_pump`, `ranch_weathervane`, `ranch_wheelbarrow`, `ranch_border_rock_boulder`, `ranch_border_rock_cluster`, `ranch_border_rock_slab` |
+| `Default` | `ranch_bench`, `ranch_compost_bin`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_wagon`, `ranch_slime_coop`, `ranch_windmill`: shapes where a box or hull leaves invisible space (see "Invisible space" below) |
 | `PreciseConvexDecomposition` | `ranch_barn_loft` (loft over an open floor), marked "PCD: Phoenix Studio check" |
-| none (decor) | `slime_fountain` (tower, hand colliders stay; the split pieces are in `MeshAssets.COLLISION`, the slide only with `SlidePCD`), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring` and `ranch_goo_drain` (decor meshes, solid through the thin `PlazaColliders` parts, see the last section), `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, every slime kit mesh, `slime_lane` |
+| none (decor) | `slime_fountain` (tower, hand colliders stay; the split pieces are in `MeshAssets.COLLISION`, the slide only with `SlidePCD`), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring` and `ranch_goo_drain` (decor meshes, solid through the thin `PlazaColliders` parts, see the last section), `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, the other `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, every slime kit mesh, `slime_lane` |
 
 `tests/MeshCollision.spec` makes every mesh name either solid or decor-with-a-reason.
 
@@ -252,3 +253,23 @@ parts budget is not spent; +25 runtime parts, 2349 to 2374). `PropCollision`: `l
   collider Parts.
 - **Studio check.** The curb steps: walk radially over a tile at 16 studs/s without a jump or a stall; the stake side (mirrored
   stake = an invisible post 12 studs off); the drain disc against the funnel visual; no player stands in the plaque.
+
+## Invisible space, the sand yard and the mushrooms
+
+Measured in a Studio playtest: an R15 dummy walked into each prop type from four sides and was dropped onto five
+spots of its top, against an exact (`PreciseConvexDecomposition`) copy of the mesh. Gap = how far it stops short of the
+mesh, float = how far its feet rest above it.
+
+- A `Box` or `Hull` round an open shape leaves invisible space: a walker stood 2.4 studs over the bench seat, over the
+  gap under the hitching rail, 16 studs up beside the windmill (the hull wraps the sails), and stopped 1.5-2 studs short
+  of the goo sign, slime coop, compost bin and wagon. `Default` measured the same as the exact copy on all of them, so
+  they use `Default`. Props where box or hull fits within about 0.5 studs keep it.
+- The sand yard (`YardProps`) reuses border meshes. Its rocks are `Hull` (solid, players climb over them: Humanoid
+  `MaxSlopeAngle` is 89), its fence panels and hedge `Box`. `MeshAssets.COLLISION` is per mesh, so the same pieces behind
+  the wall ring are solid too; nobody reaches them. Trees stay decor: a hull is an invisible cone round the canopy (it
+  stopped walkers 4-7 studs out and let one climb 10 studs up a pine). `WorldLayout.TREE_TRUNKS` places one invisible
+  upright post per trunk instead, so trunks block and leaves stay walk-through.
+- A scattered mushroom's ball cap overhangs at knee height: as the collision it snagged walkers about 2 studs out or
+  lifted them 2.5-3.3 studs over it. Cap and stem are decor; one invisible flat-top cylinder (90% of the cap's width)
+  is the collision.
+- The scattered rocks are low half-sunk balls (top 0.5-2.4 studs) and stay as they are: walkers step over them.
