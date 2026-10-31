@@ -230,6 +230,9 @@ WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3, landSide = 2.8 })
 -- both faces) stands outside by the bridge in a cradle (SignRail) on two short stubs (SignLeg_1, SignLeg_2).
 -- Players spawn on the walkway between the stair and the pads, in front of the door.
 WorldLayout.BRIDGE_WIDTH = 10
+-- Top of every base's Bridge collider (absolute, over the goo moat). Every bridge runs out to the plot's edge at this
+-- height, where the gate ramp meets it (WorldLayout.gateRampTop).
+WorldLayout.BRIDGE_TOP = 1.4
 WorldLayout.FLOOR1_PAD_ARC = table.freeze({ 60, 300 })
 WorldLayout.VAT_SPOT = table.freeze({ angle = -62, radius = 24 }) -- inside, left of the door as you come in
 WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ -11.27, -21.19 }) -- inside, right of the door (angle -118, radius 24)
@@ -1555,7 +1558,7 @@ local function map(): WorldNode
 			plazaRadius = WorldLayout.PLAZA_RADIUS,
 			plotRing = WorldLayout.PLOT_RING_RADIUS,
 			plotSize = WorldLayout.PLOT_SIZE,
-			plotFloorTop = WorldLayout.PLOT_FLOOR_TOP,
+			rampTop = WorldLayout.gateRampTop(),
 			plots = Config.PLOT_COUNT,
 			hall = WorldLayout.hallFloor(),
 			obbyPath = WorldLayout.obbyPath(),
@@ -1656,6 +1659,12 @@ WorldLayout.BRIDGE_LOOK = table.freeze({
 	shades = table.freeze({ 1, 0.97, 1.03, 0.98, 1.02 }),
 	railColor = { 112, 72, 42 }, -- the boardwalk's and the gate ramp's rails (kit TRIM_DARK)
 })
+-- Where each gate ramp's collider tops out at the plot's edge: its planks (FloorLayout.RAMP_LOOK) end flush with the
+-- bridge's planks, so the walk from the boardwalk to the door has no lip.
+function WorldLayout.gateRampTop(): number
+	return WorldLayout.BRIDGE_TOP + WorldLayout.BRIDGE_LOOK.plankRise - FloorLayout.RAMP_LOOK.plankRise
+end
+
 function WorldLayout.bridgeLook(bridge: WorldNode): WorldNode
 	local look = WorldLayout.BRIDGE_LOOK
 	local size, pos = bridge.size :: Vec, bridge.pos :: Vec
@@ -2545,7 +2554,7 @@ local function plot(i: number): WorldNode
 	local bridge = block(
 		"Bridge",
 		{ WorldLayout.BRIDGE_WIDTH, 0.4, bridgeLen },
-		at({ 0, 1.2, -(s / 2 - bridgeLen / 2) }),
+		at({ 0, WorldLayout.BRIDGE_TOP - 0.2, -(s / 2 - bridgeLen / 2) }),
 		WOOD,
 		"SmoothPlastic",
 		r
