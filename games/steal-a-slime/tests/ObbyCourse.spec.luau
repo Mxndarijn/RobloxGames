@@ -388,27 +388,34 @@ describe("ObbyCourse sections", function()
 		end
 	end)
 
-	it("joins the sections with plain connectors, no checkpoint pads, and ends on the finish", function()
-		local course = ObbyCourse.build(4100)
-		expect(#course.spans).toBe(#OBBY.ORDER)
-		local finishes, links = 0, 0
-		for _, part in course.parts do
-			if part.look == "finish" then
-				finishes += 1
-			elseif part.look == "pad" then
-				links += 1
-				expect(part.size[1]).toBe(ObbyCourse.LINK_LENGTH)
+	it(
+		"joins the sections with jelly blocks in line with the path, no checkpoint pads, and ends on the finish",
+		function()
+			local course = ObbyCourse.build(4100)
+			expect(#course.spans).toBe(#OBBY.ORDER)
+			local finishes, links = 0, 0
+			for _, part in course.parts do
+				if part.look == "finish" then
+					finishes += 1
+				elseif part.link then
+					links += 1
+					expect(part.look).toBe("jelly")
+					expect(part.size[1]).toBe(ObbyCourse.LINK_LENGTH)
+					expect(part.size[3] >= ObbyCourse.LINK_MIN_WIDTH).toBe(true)
+					expect(part.size[3] <= ObbyCourse.WIDTH).toBe(true)
+				end
+				expect(part.look == "pad").toBe(false)
 			end
+			expect(finishes).toBe(1)
+			expect(links).toBe(#OBBY.ORDER - 1)
+			expect(course.spans[1].from).toBe(ObbyCourse.START_LENGTH)
+			for i = 2, #course.spans do
+				expect(course.spans[i].from).toBe(course.spans[i - 1].to)
+			end
+			expect(course.finish.pos[1] - course.finish.size[1] / 2).toBe(course.spans[#course.spans].to)
+			expect(course.length <= ObbyCourse.START_LENGTH + #OBBY.ORDER * (SECTION_MAX_LENGTH + 12)).toBe(true)
 		end
-		expect(finishes).toBe(1)
-		expect(links).toBe(#OBBY.ORDER - 1)
-		expect(course.spans[1].from).toBe(ObbyCourse.START_LENGTH)
-		for i = 2, #course.spans do
-			expect(course.spans[i].from).toBe(course.spans[i - 1].to)
-		end
-		expect(course.finish.pos[1] - course.finish.size[1] / 2).toBe(course.spans[#course.spans].to)
-		expect(course.length <= ObbyCourse.START_LENGTH + #OBBY.ORDER * (SECTION_MAX_LENGTH + 12)).toBe(true)
-	end)
+	)
 
 	it("a whole course with connectors is a makeable path", function()
 		for slot = 4100, 4140 do
@@ -447,11 +454,45 @@ describe("ObbyCourse sections, finish and frames", function()
 		expect(ObbyCourse.sectionAt(course, zone.pos)).toBe(#course.spans + 1)
 	end)
 
-	it("falls are measured below the section's lower end", function()
-		expect(ObbyCourse.fallHeight(course, 0)).toBe(-OBBY.FALL_DEPTH)
-		local span = course.spans[3]
-		expect(ObbyCourse.fallHeight(course, 3)).toBe(span.floor - OBBY.FALL_DEPTH)
-		expect(ObbyCourse.fallHeight(course, #course.spans + 1)).toBe(zone.pos[2] - OBBY.FALL_DEPTH)
+	it("falls are measured under the lowest platform a runner could still land on", function()
+		expect(ObbyCourse.fallHeight(course, course.start)).toBe(-OBBY.FALL_DEPTH)
+		expect(ObbyCourse.fallHeight(course, zone.pos)).toBe(zone.pos[2] - OBBY.FALL_DEPTH)
+		expect(ObbyCourse.fallHeight(course, zone.pos, 20)).toBe(zone.pos[2] - 20)
+	end)
+
+	it("never resets a runner above any platform they could land on, in every section and layout", function()
+		-- Every point a step's top reaches (at rest and at its lowest while it moves) stays above the fall height,
+		-- also the bottom of a drop (Goo Cascade) and the floor under a launch or a wind column.
+		for id in ObbyCourse.BUILD do
+			for layout = 1, OBBY.LAYOUTS do
+				local c = ObbyCourse.build(1, { { id = id, tier = "easy", layout = layout } })
+				for _, part in c.parts do
+					if not part.ghost then
+						local low = part.pos[2] + part.size[2] / 2
+						local motion = part.motion
+						if motion and motion.kind == "slide" and motion.axis == "y" then
+							low -= math.abs(motion.amp or 0)
+						end
+						for _, dx in { -0.5, 0, 0.5 } do
+							local p = { part.pos[1] + dx * part.size[1], low, part.pos[3] }
+							if low < ObbyCourse.fallHeight(c, p) + OBBY.FALL_DEPTH - 1e-6 and part.step then
+								error(`{id} layout {layout}: a {part.look} top at {low} is under the fall floor`)
+							end
+						end
+					end
+				end
+			end
+		end
+	end)
+
+	it("resets a runner soon after they drop off the course", function()
+		local c = ObbyCourse.build(1, { { id = "GooCascade", tier = "easy", layout = 1 } })
+		for _, span in c.spans do
+			local p = { (span.from + span.to) / 2, 0, 0 }
+			-- A fall from the section's top resets within FALL_DEPTH under its lowest floor, not FALL_DEPTH under
+			-- the far lower end of the whole course.
+			expect(ObbyCourse.fallHeight(c, p) >= span.floor - OBBY.FALL_DEPTH - 1e-6).toBe(true)
+		end
 	end)
 	it("toLocal undoes toWorld", function()
 		local frame = { origin = { -90, 150, 220 }, yaw = 157.5 }

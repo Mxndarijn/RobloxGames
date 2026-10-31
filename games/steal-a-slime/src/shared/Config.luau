@@ -1651,7 +1651,7 @@ local Config = {
 		COOLDOWN_SECONDS = 5 * 60, -- counted from the end of the boost
 		ROTATION_SECONDS = 10 * 60,
 		CHAIN_SLOTS = 144, -- rotations per chain (a day): "no section of the last course" holds inside one chain
-		ORDER = table.freeze({ "easy", "easy", "medium", "medium", "hard" }),
+		ORDER = table.freeze({ "easy", "easy", "easy", "medium", "medium", "medium", "hard", "hard" }),
 		SECTIONS = table.freeze({
 			easy = table.freeze({
 				"JellySteps",
@@ -1691,8 +1691,12 @@ local Config = {
 			}),
 		}),
 		LAYOUTS = 6, -- layouts per section
-		MIN_RUN_SECONDS = 12, -- a finish faster than this doesn't count (the whole course at a speed-coil walk takes longer)
-		FALL_DEPTH = 18, -- studs under the section's lower end that count as a fall (back to the start pad)
+		MIN_RUN_SECONDS = 19, -- a finish faster than this doesn't count (the whole course at a speed-coil walk takes longer)
+		-- A runner's root this far under the lowest platform it could still land on (ObbyCourse.fallHeight) has fallen:
+		-- the client puts it back on the start pad that frame (ObbyFx). The server checks FALL_DEPTH + SERVER_FALL_SLACK
+		-- as the backup, so the client always acts first.
+		FALL_DEPTH = 6,
+		SERVER_FALL_SLACK = 8,
 		REBUILD_GRACE = 90, -- a new rotation waits this long for runners to finish before it sends them home
 		RESPAWN_LIFT = 3, -- studs above the start pad a runner appears (on entering and after a fall)
 		MOVE_GRACE = 1.5, -- after the server moves a runner, their old position may still arrive once: no fall / off-course checks

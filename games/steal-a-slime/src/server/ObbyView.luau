@@ -122,6 +122,18 @@ local PORTAL = table.freeze({
 	font = Enum.Font.FredokaOne,
 })
 
+-- The Goo Ring behind the start pad (`Course.home`): a ring like the portal's and a sign facing the start pad.
+-- Its 1-stud text line reads from about 20 studs on a phone; the runner appears about 7 studs from it.
+local HOME = table.freeze({
+	ringWidth = 0.6, -- studs the ring sticks out past the ring radius
+	signSize = Vector3.new(6, 2.2, 0.3), -- studs
+	signLift = 2.6, -- studs from the pad's top to the sign's bottom edge
+	signInset = 0.6, -- studs in from the pad's back edge
+	postWidth = 0.4,
+	maxDistance = 60,
+	text = "Back to the yard",
+})
+
 local ICE = PhysicalProperties.new(0.9, 0, 0.5, 100, 1)
 
 local folder: Folder? = nil
@@ -269,23 +281,6 @@ local function makePart(spec: ObbyCourse.Part, frameCf: CFrame, parent: Instance
 	part.Parent = parent
 end
 
--- Replaces workspace.Obby.Course with `course`.
-function ObbyView.build(course: ObbyCourse.Course)
-	local root = getFolder()
-	local old = root:FindFirstChild(Constants.OBBY_COURSE)
-	if old then
-		old:Destroy()
-	end
-	local model = Instance.new("Model")
-	model.Name = Constants.OBBY_COURSE
-	model:SetAttribute("Slot", course.slot)
-	local frameCf = frameCFrame(ObbyView.place().frame)
-	for _, spec in course.parts do
-		makePart(spec, frameCf, model)
-	end
-	model.Parent = root
-end
-
 local function signLabel(parent: Instance, name: string, text: string, y: number, h: number, maxSize: number)
 	local label = Instance.new("TextLabel")
 	label.Name = name
@@ -304,6 +299,85 @@ local function signLabel(parent: Instance, name: string, text: string, y: number
 	stroke.Thickness = 3
 	stroke.Parent = label
 	label.Parent = parent
+end
+
+local function decor(part: BasePart)
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+end
+
+-- The Goo Ring back to the yard and its sign, on the pad behind the start pad.
+local function buildHome(course: ObbyCourse.Course, frameCf: CFrame, parent: Instance)
+	local ring = course.home
+	local centre = frameCf * CFrame.new(ring.pos[1], ring.pos[2], ring.pos[3])
+	local function disc(name: string, height: number, radius: number, color: Color3, transparency: number): Part
+		local part = Instance.new("Part")
+		part.Name = name
+		part.Shape = Enum.PartType.Cylinder
+		part.Size = Vector3.new(height, radius * 2, radius * 2)
+		part.CFrame = centre * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
+		part.Color = color
+		part.Transparency = transparency
+		part.Material = Enum.Material.Neon
+		decor(part)
+		part.Parent = parent
+		return part
+	end
+	disc("HomeRing", 0.2, ring.radius + HOME.ringWidth, PORTAL.ring, 0)
+	disc("HomeFloor", 0.3, ring.radius, PORTAL.floor, 0.4).Material = Enum.Material.SmoothPlastic
+
+	-- The sign stands at the pad's back edge and faces along the course, towards the start pad.
+	local back = ring.pos[1] - ObbyCourse.HOME_LENGTH / 2 + HOME.signInset
+	local size = HOME.signSize
+	local signCf = frameCf * CFrame.new(back, ring.pos[2] + HOME.signLift + size.Y / 2, ring.pos[3])
+	local signPos = signCf.Position
+	local sign = Instance.new("Part")
+	sign.Name = "HomeSign"
+	sign.Size = size
+	sign.CFrame = CFrame.lookAt(signPos, signPos + frameCf.XVector)
+	sign.Color = PORTAL.sign
+	sign.Material = Enum.Material.SmoothPlastic
+	decor(sign)
+	sign.Parent = parent
+	local post = Instance.new("Part")
+	post.Name = "HomePost"
+	post.Size = Vector3.new(HOME.postWidth, HOME.signLift, HOME.postWidth)
+	post.CFrame = sign.CFrame * CFrame.new(0, -(size.Y + HOME.signLift) / 2, 0)
+	post.Color = PORTAL.sign
+	post.Material = Enum.Material.SmoothPlastic
+	decor(post)
+	post.Parent = parent
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "HomeSignGui"
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = PORTAL.pixelsPerStud
+	gui.MaxDistance = HOME.maxDistance
+	gui.LightInfluence = 0
+	gui.Adornee = sign
+	signLabel(gui, "Title", HOME.text, 0.22, 0.56, PORTAL.pixelsPerStud)
+	gui.Parent = sign
+end
+
+-- Replaces workspace.Obby.Course with `course`.
+function ObbyView.build(course: ObbyCourse.Course)
+	local root = getFolder()
+	local old = root:FindFirstChild(Constants.OBBY_COURSE)
+	if old then
+		old:Destroy()
+	end
+	local model = Instance.new("Model")
+	model.Name = Constants.OBBY_COURSE
+	model:SetAttribute("Slot", course.slot)
+	local frameCf = frameCFrame(ObbyView.place().frame)
+	for _, spec in course.parts do
+		makePart(spec, frameCf, model)
+	end
+	buildHome(course, frameCf, model)
+	model.Parent = root
 end
 
 -- Builds workspace.Obby.Portal (once).
