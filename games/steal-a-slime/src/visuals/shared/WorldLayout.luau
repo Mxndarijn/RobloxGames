@@ -515,9 +515,11 @@ WorldLayout.OBBY = table.freeze({
 		centreAhead = 150, -- the zone's centre, this far along the course from its origin
 		radius = 1500,
 		islands = 16,
+		landmarks = 4, -- big islands far out, past the island rows
 		clouds = 22,
 		seaDepth = 220, -- the cloud sea's top, below the course origin
-		seaRadius = 1000,
+		seaRadius = 1000, -- the flat base under the cloud banks
+		seaRings = table.freeze({ 1, 7, 16 }), -- cloud banks per ring (centre, middle, outer) on the sea
 	}),
 })
 
@@ -574,10 +576,17 @@ function WorldLayout.onObbyPath(pos: Vec, pad: number): boolean
 end
 
 -- One backdrop piece of the obby world (visuals/client/ObbyBackdrop), course-local (x along the course, y up, z right).
-export type ObbyBackdropPiece = { kind: string, pos: Vec, radius: number, tone: number }
+-- kind: "island" | "landmark" | "cloud" | "bank" (a mesh, `model` names it in ObbyBackdrop.MESHES) or "sea" (the flat
+-- base disc). `radius` is the piece's half-width in studs (the mesh is scaled to it), `yaw` its turn in degrees and
+-- `tone` (1..3) a light tint.
+export type ObbyBackdropPiece = { kind: string, model: string?, pos: Vec, radius: number, yaw: number, tone: number }
+
+local OBBY_ISLANDS = { "obby_island_grove", "obby_island_village", "obby_island_crystal" }
+local OBBY_LANDMARKS = { "obby_island_tree", "obby_island_mushroom" }
 
 -- The obby world's backdrop: goo islands in two loose rows either side of the course (clear of its sides and
--- off-course band), cloud puffs farther out and a cloud sea far below. Fixed numbers: every server builds the same.
+-- off-course band), a few big landmark islands far out, clouds farther out and a cloud sea far below: rings of cloud
+-- banks at staggered heights over a flat base disc. Fixed numbers: every client builds the same.
 function WorldLayout.obbyBackdrop(): { ObbyBackdropPiece }
 	local w = WorldLayout.OBBY.world
 	local out: { ObbyBackdropPiece } = {}
@@ -586,8 +595,21 @@ function WorldLayout.obbyBackdrop(): { ObbyBackdropPiece }
 		local side = if k % 2 == 0 then 1 else -1
 		table.insert(out, {
 			kind = "island",
-			pos = { -90 + t * 520, -80 + (k * 37) % 120, side * (75 + (k * 47) % 130) },
-			radius = 12 + (k * 13) % 18,
+			model = OBBY_ISLANDS[k % #OBBY_ISLANDS + 1],
+			pos = { -90 + t * 520, -80 + (k * 37) % 120, side * (85 + (k * 47) % 130) },
+			radius = 14 + (k * 13) % 18,
+			yaw = (k * 67) % 360,
+			tone = k % 3 + 1,
+		})
+	end
+	for k = 1, w.landmarks do
+		local side = if k % 2 == 0 then 1 else -1
+		table.insert(out, {
+			kind = "landmark",
+			model = OBBY_LANDMARKS[k % #OBBY_LANDMARKS + 1],
+			pos = { -60 + (k - 1) * 150, -110 + (k * 41) % 90, side * (430 + (k * 89) % 180) },
+			radius = 55 + (k * 23) % 30,
+			yaw = (k * 101) % 360,
 			tone = k % 3 + 1,
 		})
 	end
@@ -596,12 +618,34 @@ function WorldLayout.obbyBackdrop(): { ObbyBackdropPiece }
 		local side = if k % 2 == 0 then -1 else 1
 		table.insert(out, {
 			kind = "cloud",
-			pos = { -200 + t * 760, -60 + (k * 53) % 200, side * (220 + (k * 71) % 260) },
-			radius = 14 + (k * 17) % 20,
+			model = if k % 3 == 0 then "obby_cloud_tower" else "obby_cloud_puff",
+			pos = { -200 + t * 760, -60 + (k * 53) % 200, side * (260 + (k * 71) % 260) },
+			radius = 22 + (k * 17) % 26,
+			yaw = (k * 53) % 360,
 			tone = k % 2 + 1,
 		})
 	end
-	table.insert(out, { kind = "sea", pos = { w.centreAhead, -w.seaDepth, 0 }, radius = w.seaRadius, tone = 1 })
+	local ringRadius = { 0, w.seaRadius * 0.32, w.seaRadius * 0.66 }
+	local n = 0
+	for ring, count in w.seaRings do
+		for i = 1, count do
+			n += 1
+			local a = (i - 1) / count * math.pi * 2 + ring * 0.7
+			local r = ringRadius[ring]
+			table.insert(out, {
+				kind = "bank",
+				model = "obby_cloudbank",
+				pos = { w.centreAhead + math.cos(a) * r, -w.seaDepth - 26 + (n * 29) % 34, math.sin(a) * r },
+				radius = 130 + (n * 37) % 60 + r * 0.08,
+				yaw = (n * 77) % 360,
+				tone = n % 3 + 1,
+			})
+		end
+	end
+	table.insert(
+		out,
+		{ kind = "sea", pos = { w.centreAhead, -w.seaDepth - 20, 0 }, radius = w.seaRadius * 1.1, yaw = 0, tone = 1 }
+	)
 	return out
 end
 
