@@ -568,7 +568,7 @@ WorldLayout.EVENT_BOARD = table.freeze({ model = "EventBoard", bearing = 202.5, 
 -- scene (YardProps, r 185-210) behind it; a walk `pathWidth` wide runs to it from the ring path, under the OBBY arch
 -- at `archDistance` (the ritual circle beside the path's plaza end keeps the arch that far out). Past r ~158 the
 -- portal's keep-clear circle would push that windmill scene off its spot. A finished runner lands `exitStep` studs from
--- the portal, towards the plots. The course itself stands in its own world, `world`: `distance` studs out from the map
+-- the portal, towards the plots, facing them. The course itself stands in its own world, `world`: `distance` studs out from the map
 -- centre at `bearing` (far past any view distance and the map's Atmosphere), `height` studs up, running along `yaw`.
 -- Everything within `radius` of the zone's centre counts as the obby world (the client's look swap, the server's
 -- send-home).
@@ -576,7 +576,7 @@ WorldLayout.OBBY = table.freeze({
 	bearing = 337.5,
 	portalDistance = 155,
 	portalRadius = 5, -- studs: stepping inside starts a run
-	exitStep = 10,
+	exitStep = 18, -- the camera behind a landed runner (about 13 studs at the default zoom) stays clear of the ring
 	clearRadius = 12, -- keep-clear circle for props round the portal and its sign
 	pathWidth = 10,
 	archDistance = 108, -- the arch, from the map centre: past the ritual circle (Config.RITUAL, bearing 348, r 93)
