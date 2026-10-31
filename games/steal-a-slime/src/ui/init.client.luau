@@ -76,6 +76,7 @@ local SlimeInfoCard = require(script.SlimeInfoCard)
 local SlimeKeyCard = require(script.SlimeKeyCard)
 local SlimeKeys = require(script.SlimeKeys)
 local SlimeMove = require(script.SlimeMove)
+local SlimePreview = require(script.SlimePreview)
 local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
@@ -327,6 +328,12 @@ local function buildSlime(genome: any): Model?
 	return model
 end
 
+local function kitFolder(): Instance?
+	return gui.Parent and gui.Parent:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+end
+-- Remounts the open menu's slime previews; set below with the kit folder watch.
+local previewsChanged: () -> () = function() end
+
 -- togglePanel is filled in below, once the panels exist.
 local ctx: { [string]: any } = {
 	Config = Config,
@@ -360,9 +367,19 @@ local ctx: { [string]: any } = {
 	giftPlayers = GiftPlayers.start(Players, player, function(fn: () -> ())
 		task.spawn(fn)
 	end).list,
-	buildSpecies = SpeciesModel.builder(function()
-		return gui.Parent and gui.Parent:FindFirstChild(Constants.SLIME_KITS_FOLDER)
-	end, MeshAssets.IMPORT_YAW, kitCache.want),
+	buildSpecies = SpeciesModel.builder(kitFolder, MeshAssets.IMPORT_YAW, kitCache.want),
+	-- A species you haven't found or don't have: its mesh in grey.
+	buildGreySpecies = SpeciesModel.greyBuilder({
+		kits = kitFolder,
+		importYaw = MeshAssets.IMPORT_YAW,
+		makeGrey = SpeciesModel.greyMesh(AssetService, SlimePreview.greyOf),
+		spawn = function(fn: () -> ())
+			task.spawn(fn)
+		end,
+		ready = function()
+			previewsChanged()
+		end,
+	}),
 }
 
 local hud = Hud.new(gui, ctx)
@@ -637,7 +654,7 @@ local function forceMvp(state: any): any
 end
 
 -- Studio-only: the SlimeUI attribute "PcwDexRows" = N marks the first N State.dex entries found (named)
--- so the Dex grid can be shot with found cards and silhouettes side by side.
+-- so the Dex grid can be shot with found and grey cards side by side.
 local function forceDex(state: any): any
 	local count = if isStudio then gui:GetAttribute("PcwDexRows") else nil
 	if type(count) ~= "number" or count <= 0 or type(state.dex) ~= "table" then
@@ -1533,6 +1550,7 @@ do
 			end
 		end)
 	end
+	previewsChanged = kitsArrived -- a grey species mesh is ready
 	local function watchKits(folder: Instance)
 		folder.ChildAdded:Connect(kitsArrived)
 		if #folder:GetChildren() > 0 then
