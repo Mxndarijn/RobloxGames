@@ -20,7 +20,7 @@ local function geometry(): any
 		plazaRadius = WorldLayout.PLAZA_RADIUS,
 		plotRing = WorldLayout.PLOT_RING_RADIUS,
 		plotSize = WorldLayout.PLOT_SIZE,
-		plotFloorTop = WorldLayout.PLOT_FLOOR_TOP,
+		rampTop = WorldLayout.gateRampTop(),
 		plots = Config.PLOT_COUNT,
 	}
 end
@@ -89,7 +89,7 @@ describe("FloorLayout height", function()
 			end
 		end
 	end)
-	it("moves the whole floor with the ONE constant FLOOR_Y (the gate ramps still end on the plot floor)", function()
+	it("moves the whole floor with the ONE constant FLOOR_Y (the gate ramps still end on the door bridge)", function()
 		local before = {}
 		for _, n in floorParts() do
 			before[n.name] = { n.pos[1], n.pos[2], n.pos[3] }
@@ -120,7 +120,7 @@ describe("FloorLayout walkability", function()
 	end)
 	it("keeps every floor surface within the trim top: no lip over the terrain", function()
 		for _, n in floorParts() do
-			-- the gate ramps and their planks and rails climb to the plot floor
+			-- the gate ramps and their planks and rails climb to the door bridge
 			if string.match(n.name, "^GateRamp") or string.match(n.name, "^Ramp") then
 				continue
 			end
@@ -131,7 +131,7 @@ describe("FloorLayout walkability", function()
 		end
 	end)
 	it(
-		"has Base floors at WorldLayout.PLOT_FLOOR_TOP, and one ramp per gate climbing flush from the planks to it",
+		"has Base floors at WorldLayout.PLOT_FLOOR_TOP, and one ramp per gate climbing flush from the planks to the bridge",
 		function()
 			local plots = WorldLayout.build()[2]
 			local checked = 0
@@ -148,7 +148,7 @@ describe("FloorLayout walkability", function()
 			for _, n in folder("Paths").children do
 				if string.match(n.name, "^GateRamp%d+$") then
 					ramps += 1
-					-- rotation about X tilts +Z up: the top line runs from (RAMP_START, plank top) to (RAMP_END, floor top)
+					-- rotation about X tilts +Z up: the top line runs from (RAMP_START, plank top) to (RAMP_END, ramp top)
 					local tilt = math.rad(-n.rot[1])
 					local bearing = math.rad(n.rot[2])
 					local length, t = n.size[3], n.size[2]
@@ -160,8 +160,8 @@ describe("FloorLayout walkability", function()
 					expect(topLowS).toBeCloseTo(FloorLayout.RAMP_START, 1e-6)
 					expect(topLowY).toBeCloseTo(FloorLayout.FLOOR_Y + FloorLayout.LAYER.plank, 1e-6)
 					expect(topHighS).toBeCloseTo(FloorLayout.RAMP_END, 1e-6)
-					expect(topHighY).toBeCloseTo(WorldLayout.PLOT_FLOOR_TOP, 1e-6)
-					expect(math.deg(tilt) < 15).toBe(true)
+					expect(topHighY).toBeCloseTo(WorldLayout.gateRampTop(), 1e-6)
+					expect(math.deg(tilt) < 20).toBe(true)
 				end
 			end
 			expect(ramps).toBe(Config.PLOT_COUNT)

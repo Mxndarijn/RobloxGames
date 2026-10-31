@@ -461,9 +461,14 @@ local function fromData(data: any, opts: Options): Shape
 			end
 			-- the bridge and the lock barrier: this base's boxes
 			local bridge = table.clone(find(jarNodes, "Bridge") :: WorldNode)
+			-- this base's box, stretched out to the plot's edge and up to BRIDGE_TOP so the gate ramp meets it flush
 			local spot = data.spots.Bridge
-			bridge.pos = at(spot.pos)
-			bridge.size = spot.size
+			local inner = spot.pos[3] + spot.size[3] / 2
+			local outer = -WorldLayout.PLOT_SIZE / 2
+			local bottom = spot.pos[2] - spot.size[2] / 2
+			local top = WorldLayout.BRIDGE_TOP
+			bridge.pos = at({ spot.pos[1], (bottom + top) / 2, (inner + outer) / 2 })
+			bridge.size = { spot.size[1], top - bottom, inner - outer }
 			table.insert(out, bridge)
 			table.insert(out, WorldLayout.bridgeLook(bridge))
 			local barrier = table.clone(find(jarNodes, "LockBarrier") :: WorldNode)
