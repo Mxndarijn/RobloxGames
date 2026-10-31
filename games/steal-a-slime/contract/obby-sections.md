@@ -193,15 +193,10 @@ else `rbxasset://sounds/...` built-ins; never upload audio. Every sound is quiet
   holds forward and jumps every time it lands may clear a section by luck, never as a plan.
 * The walk model (tests/ObbyCheck, matched to a Studio walk bot: default character, WalkSpeed 16, JumpPower 50):
   * It stands while its floor sensor (1 stud ahead of or behind its middle, 0.5 to the side) is over a floor, and
-    walks or stumbles onto anything up to the root's middle (3 studs) above its feet: the second Studio bot run
-    walked up a 2.5-stud step and a 3-stud one off a belt (Arrow Maze #12). Walking off a ledge is a real fall
-    (gravity 196.2, still 16 studs/s forward), so it lands on a lower floor across a hole when the drop allows it.
-    A hole between floors at the same height must be at least 5 studs long to stop it; a 4.5-stud hole is walked
-    over.
-  * It starts anywhere on the first step: its middle (where the Studio bot stands) and spots 2 studs apart from the
-    back edge (up to 4). For the masher the spot decides where its hops come down; the bot cleared Ice Slide #14
-    and Arrow Maze #12 from the middle, where a back-edge start did not.
-  * Walking into a truss climbs it (0.7 x WalkSpeed, 11.2 studs/s) and goes on over its top.
+    walks or stumbles onto anything up to its hip height (2 studs) above its feet. Walking off a ledge is a real
+    fall (gravity 196.2, still 16 studs/s forward), so it lands on a lower floor across a hole when the drop allows
+    it. A hole between floors at the same height must be at least 4.4 studs long to stop it; a 4-stud hole is
+    walked over.
   * Past the section's end there is always a lane-wide floor at `rise` (the connector or the finish): landing on
     it from any height clears the section.
   * Slide parts run the ObbyMoves slide controller (speed kept, `pull` downhill, holding forward adds 16 studs/s²,
@@ -212,16 +207,12 @@ else `rbxasset://sounds/...` built-ins; never upload audio. Every sound is quiet
     longest period + 2 s (at once when wall and floor never change). Hazards (a 1 x 2 x 5 box, a ball by its real
     sphere) reset it; melting tiles go `delay` s after it lands or leaves (ObbyFx defaults 0.7 / 2.5), spread to
     `next`, come back; drops go at `at`.
-  * Every line across the lane (1 stud apart), every start spot and 48 start times over the longest period (on a
-    1/30 s tick grid).
-* `ObbyCheck.straightWalk`: the walker without jumping must fail for every line, start spot and start time.
-* `ObbyCheck.masher`: the same walker jumping every time it is on a floor or a truss. A hop rises `Kit.JUMP_HEIGHT`
-  (7.2 studs: what JumpPower 50 really lifts), so with the 3-stud catch it gets onto ledges up to 10.2 studs over
-  its floor (the bot hopped Ice Slide #7's 10-stud bumper); a 10.5-stud wall stops it. On a truss the held jump
-  climbs in hops (off at jump speed, grabbed again, hops again once it is down to the climb speed: about 30
-  studs/s up, Climb #13). In a moon zone the hops arc under the zone's gravity. Thrown off a sticky wall 0.2 s
-  after it sticks (the held jump). On its best line and start spot it may clear the section from at most 20 % of
-  the start times (`ObbyCheck.MASHER_SHARE`); the failure names the variant, the line, the spot and the share.
+  * Every line across the lane (1 stud apart) and 48 start times over the longest period (on a 1/30 s tick grid).
+* `ObbyCheck.straightWalk`: the walker without jumping must fail for every line and every start time.
+* `ObbyCheck.masher`: the same walker jumping (JumpPower 50: 6.4 studs up, so ledges up to about 8.3 with the hip
+  catch; a 9-stud wall stops it) every time it is on a floor, and thrown off a sticky wall 0.2 s after it sticks
+  (the held jump). On its best line it may clear the section from at most 20 % of the start times
+  (`ObbyCheck.MASHER_SHARE`); the failure names the variant, the line and the share.
 
 ## 10b. How data reaches the client (fixed, so the pieces can be built in parallel)
 
@@ -257,8 +248,8 @@ gaps up to the limits, more hazards, faster motions); don't drop it.
 * Markers are anchored direct children of their host part (ObbyFx moves and fades them with it); `ghostStop` stays
   in the Course model with `ObbyHost`. `ObbyCheck.MARKER_PARTS` mirrors `ObbyParts.MARKER_PARTS` (keep in sync).
   Gate locks are `Lock1..LockN` (need <= 9).
-* Walk-forward check: see the walk model in §9. Every walking line needs a same-height hole of at least 5 studs, a
-  wall the walker can't climb (over 3 studs; 10.5 or more against the masher), or a hazard it can't slip past at any
+* Walk-forward check: see the walk model in §9. Every walking line needs a same-height hole of at least 4.4 studs, a
+  wall the walker can't climb (over 2 studs; 8.4 or more against the masher), or a hazard it can't slip past at any
   start time. Pads, lifts, belts, boosts, slides and moving floors carry the walker.
 * Width check exempts ladders, wind columns, sticky walls, vines and cannons; bounce pads still need 8.
 * Sounds: only the built-in `rbxasset://sounds/` files (volume_slider, action_jump, action_jump_land,

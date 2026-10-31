@@ -10,10 +10,9 @@
 	  fields        only the motion kinds and fields of the contract; start groups have triggers; gates have keys
 	  makeable      every step of every route is reachable from an earlier one (walk / jump, launch, lift, climb,
 	                sticky wall, vine, cannon, boost jump), moving parts at their closest of SAMPLES points a period
-	  straightWalk  holding forward with no jumping never clears it, on any line across the lane, from any start spot
-	                on the first step, at any start time
-	  masher        holding forward and jumping on every landing clears it from at most MASHER_SHARE of the start times
-	                on any line and start spot (the walk model below the straightWalk header, matched to a Studio bot)
+	  straightWalk  holding forward with no jumping never clears it, on any line across the lane, at any start time
+  masher        holding forward and jumping on every landing clears it from at most MASHER_SHARE of the start times
+                on any line (the walk model below the straightWalk header, matched to a Studio walk bot)
 	  fairness      the runner (16 studs / s, 0.15 s per jump, can wait only where no hazard ever reaches) finds every
 	                stretch of hazards open for WINDOW[tier] s; floods and collapses leave SPARE s (timers)
 	  fall          the fall height never resets a runner above a platform they could land on
@@ -1075,12 +1074,9 @@ end
 	The walk model, tuned to what a Studio walk bot did (default character, WalkSpeed 16, JumpPower 50):
 
 	  * The character stands while its floor sensor (FEET ahead / behind, FEET_SIDE across) is over a floor; anything
-	    up to STEP_UP (the root's middle, where the humanoid's floor rays start) above its feet is walked onto, or
-	    stumbled onto when it comes down by it: a 4.5-stud hole between floors at the same height is walked over.
-	    Walking off a ledge is a real fall (Kit.GRAVITY, still WALK forward), so a walker drops onto a lower floor
-	    across a hole when the drop allows it.
-	  * It starts anywhere on the first step (up to START_SPOTS spots START_STEP apart, and its middle, where the
-	    Studio bot stands): for the masher the spot sets where its hops come down.
+	    up to STEP_UP (its hip height) above its feet is walked onto, or stumbled onto when it comes down by it: a
+	    4-stud hole between floors at the same height is walked over. Walking off a ledge is a real fall (Kit.GRAVITY, still
+	    WALK forward), so a walker drops onto a lower floor across a hole when the drop allows it.
 	  * Past the section's end there is always a lane-wide floor at `rise` (the course's connector or the finish):
 	    landing on it, from any height, clears the section.
 	  * A wall stops the walker's forward speed but not the walker: it keeps pressing on (a moving wall, a gate or
@@ -1095,30 +1091,21 @@ end
 	  * Leaving a floor (walking off, a jump, a pad) keeps the floor's own speed (a belt, a ride) in the air.
 	  * In the air by a sticky wall's side face it holds on (ObbyMoves): no speed into the face, the fall held at
 	    `sticky.fall`, walking along the face goes on.
-	  * Walking into a ladder (a truss) climbs it at CLIMB studs/s until its feet are within STEP_UP of the top, then
-	    it goes on forward over the top.
-	  * The masher is the same walker that jumps (JUMP_SPEED up: Kit.JUMP_HEIGHT) every time it is on a floor or on a ladder (the held
-	    jump climbs a truss in hops: it leaves it at JUMP_SPEED, grabs it again and hops again once its climb is down
-	    to CLIMB) and, holding jump, is thrown off a sticky wall STICK_GRACE s after it sticks; its head stops at a
-	    roof. In a moon zone its hops arc under the zone's gravity.
+	  * The masher is the same walker that jumps (JUMP_POWER up) every time it is on a floor and, holding jump, is
+	    thrown off a sticky wall STICK_GRACE s after it sticks; its head stops at a roof.
 
 	Part positions come from Kit.offsetAt on a fixed tick grid (WALK_DT), cached per part and clock tick, so the many
 	lines and start times share them.
 ]]
 
 local WALK_DT = 1 / 30
--- The root's middle (ROOT_UP): a ledge up to this far over the feet is walked or stumbled onto. A Studio walk bot
--- walked up 2.5 at WalkSpeed and 3 off an 18-stud/s belt (Arrow Maze #12).
-ObbyCheck.STEP_UP = 3
+ObbyCheck.STEP_UP = 2 -- hip height: a ledge up to this far over the feet is walked or stumbled onto
 ObbyCheck.FEET = 1 -- studs past a floor's edge (ahead or behind) the walker still stands: its floor sensor
 ObbyCheck.FEET_SIDE = 0.5 -- and to the side (the sensor sits under the root, not at its edges)
 ObbyCheck.FRONT = 1 -- studs ahead of its middle where a wall stops it
 ObbyCheck.TORSO = table.freeze({ 0.5, 1 }) -- half the character's depth (along its walk) and width a hazard must touch
 ObbyCheck.WALK_LINES = 1 -- studs between the lines across the lane a walker tries
 ObbyCheck.WALK_STARTS = 48 -- start times a walker tries over the longest period
-ObbyCheck.START_SPOTS = 4 -- start spots along the first step from its back edge (plus its middle, the bot's spot),
-ObbyCheck.START_STEP = 2 -- this far apart: 4 of them cover a masher's 8-stud hop
-ObbyCheck.CLIMB = Kit.WALK * 0.7 -- studs / s up a truss (a humanoid climbs at 0.7 of its WalkSpeed)
 ObbyCheck.MASHER_SHARE = 0.2 -- the masher may clear a section from at most this share of start times on any line
 ObbyCheck.MELT_DELAY = 0.7 -- ObbyFx's melt defaults
 ObbyCheck.MELT_AWAY = 2.5
@@ -1133,10 +1120,7 @@ ObbyCheck.THROW_AWAY = 30 -- and the throw off: away from the face,
 ObbyCheck.THROW_UP = 45 -- up,
 ObbyCheck.RESTICK = 0.3 -- seconds before any wall grips again,
 ObbyCheck.SAME_WALL = 0.6 -- and before the same wall does
--- The masher's take-off: JumpPower 50 lifts a humanoid Kit.JUMP_HEIGHT (7.2 studs, Roblox's own equivalence; the
--- hip spring adds to 50² / 2g = 6.4), so with the STEP_UP catch it gets onto ledges up to 10.2 over its floor. A Studio
--- bot hopped a 10-stud bumper that way (Ice Slide #7).
-ObbyCheck.JUMP_SPEED = Kit.JUMP_SPEED
+ObbyCheck.JUMP_POWER = 50 -- the masher's take-off: the root rises 50² / 2g = 6.4 studs (ledges to 8.3)
 
 local STEP_UP = ObbyCheck.STEP_UP
 local FEET, FEET_SIDE = ObbyCheck.FEET, ObbyCheck.FEET_SIDE
@@ -1394,11 +1378,7 @@ local function touchesHazard(w: Walk, b: Body, x: number, y: number, z: number, 
 	return highW(w, b, dy) > y and bottomW(w, b, dy) < y + Kit.HEAD
 end
 
-export type WalkOptions = {
-	jump: boolean?,
-	x: number?,
-	trace: ((tick: number, x: number, y: number, z: number, on: number?, air: boolean) -> ())?,
-}
+export type WalkOptions = { jump: boolean? }
 
 --[[
 	One walker holding forward along the line z = `z0` from the first step, starting at time `t0` (see the model
@@ -1414,12 +1394,11 @@ function ObbyCheck.walkStop(
 ): string?
 	local w: Walk = if prepared then prepared :: any else prepareWalk(section)
 	local jump = options ~= nil and options.jump == true
-	local trace = if options then options.trace else nil
 	local first = w.first
 	if not first then
 		return "no steps"
 	end
-	local x, z = if options and options.x then options.x else Kit.bounds(first.part) + 0.5, z0
+	local x, z = Kit.bounds(first.part) + 0.5, z0
 	if not coversAt(w, first, x, z, 0, 0, 0, 0, 0, 1) then
 		return "the line misses the first step"
 	end
@@ -1501,7 +1480,6 @@ function ObbyCheck.walkStop(
 		local gustX, gustZ = 0, 0
 		local stickB: Body? = nil
 		local stickD = math.huge
-		local ladder: Body? = nil -- a truss in front of it, over its step: it climbs
 		for _, b in near do
 			local part = b.part
 			local clock = tickOf(b)
@@ -1531,9 +1509,6 @@ function ObbyCheck.walkStop(
 					local top, bottom = topW(w, b, x + FRONT, z, dy), bottomW(w, b, dy)
 					if top > y + STEP_UP and bottom < y + Kit.HEAD then
 						blocker, blockTop = b, top
-						if part.shape == "truss" then
-							ladder = b
-						end
 					end
 				end
 				if airborne and vy > 0 and coversAt(w, b, x, z, TORSO_X, TORSO_Z, dx, dz, dyaw, scale) then
@@ -1610,26 +1585,7 @@ function ObbyCheck.walkStop(
 		-- Stand, step down, fall or fly.
 		local standing = false
 		local g = Kit.GRAVITY * grav
-		local climbing = ladder ~= nil and stuck == nil
-		if climbing then
-			-- on a ladder: up at CLIMB; the masher hops up it (off at JUMP_SPEED, grabbed again, hops again at CLIMB)
-			airborne, drive = true, nil
-			ex, ez = 0, 0
-			local climb = ObbyCheck.CLIMB
-			if jump and vy <= climb + 1e-6 then
-				vy = ObbyCheck.JUMP_SPEED
-			end
-			local ny, nvy
-			if vy > climb then
-				ny, nvy = y + vy * WALK_DT - g * WALK_DT * WALK_DT / 2, math.max(vy - g * WALK_DT, climb)
-			else
-				ny, nvy = y + climb * WALK_DT, climb
-			end
-			if ny + Kit.HEAD > roof then
-				ny, nvy = roof - Kit.HEAD, 0
-			end
-			y, vy = ny, nvy
-		elseif airborne then
+		if airborne then
 			-- exact for a constant pull over the tick
 			local ny = y + vy * WALK_DT - g * WALK_DT * WALK_DT / 2
 			local nvy = vy - g * WALK_DT
@@ -1703,7 +1659,7 @@ function ObbyCheck.walkStop(
 			end
 			if jump and not launched then
 				airborne, launched = true, true
-				vy = ObbyCheck.JUMP_SPEED
+				vy = ObbyCheck.JUMP_POWER
 			end
 			if launched then
 				-- off the floor with the floor's speed (a belt, a ride), kept in the air
@@ -1794,9 +1750,6 @@ function ObbyCheck.walkStop(
 		x += vx * WALK_DT
 		z += vz * WALK_DT
 		k += 1
-		if trace then
-			trace(k, x, y, z, if onPart then onPart.index else nil, airborne)
-		end
 		if standing and (onPart == w.finish or (x >= length - 0.25 and math.abs(y - rise) < 1.6)) then
 			return nil
 		end
@@ -1811,8 +1764,6 @@ function ObbyCheck.walkStop(
 		end
 		if x > bestX + 0.1 then
 			bestX, bestK = x, k
-		elseif climbing then
-			bestK = k -- going up a ladder is headway
 		elseif blocker then
 			-- pressed against a wall: give up at once when neither the wall nor the floor can ever change
 			local b = blocker :: Body
@@ -1821,7 +1772,7 @@ function ObbyCheck.walkStop(
 				and onPart.part.conveyor == nil
 				and not (onPart.part.motion and onPart.part.motion.kind == "bounce")
 			local wallStill = w.constant[b] and b.part.gate == nil and b.part.start == nil
-			local over = jump and blockTop <= y + Kit.JUMP_HEIGHT + STEP_UP
+			local over = jump and blockTop <= y + ObbyCheck.JUMP_POWER ^ 2 / (2 * Kit.GRAVITY) + STEP_UP
 			if floorStill and wallStill and drive == nil and not over then
 				return `blocked by part {b.index} ({b.part.look}) at x {at()}`
 			end
@@ -1833,29 +1784,13 @@ function ObbyCheck.walkStop(
 	return "stuck"
 end
 
--- The lines across the lane, the start spots along the first step and the start ticks every walker tries.
-local function walkPlan(w: Walk): ({ number }, { number }, { number })
+-- The lines across the lane and the start ticks every walker of a section tries.
+local function walkPlan(w: Walk): ({ number }, { number })
 	local lines = {}
 	local z = -Kit.HALF + 1
 	while z <= Kit.HALF - 1 + 1e-6 do
 		table.insert(lines, z)
 		z += ObbyCheck.WALK_LINES
-	end
-	-- the first step's middle (where the Studio bot starts), then spots from its back edge
-	local spots = {}
-	local first = w.first
-	if first then
-		local x0, x1 = Kit.bounds(first.part)
-		table.insert(spots, (x0 + x1) / 2)
-		for i = 0, ObbyCheck.START_SPOTS - 1 do
-			local x = x0 + 0.5 + i * ObbyCheck.START_STEP
-			if x > x1 - 0.5 + 1e-6 then
-				break
-			end
-			if math.abs(x - spots[1]) > 0.5 then
-				table.insert(spots, x)
-			end
-		end
 	end
 	local starts, seen = {}, {}
 	local n = if w.period > 0 then ObbyCheck.WALK_STARTS else 1
@@ -1866,82 +1801,62 @@ local function walkPlan(w: Walk): ({ number }, { number }, { number })
 			table.insert(starts, tick * WALK_DT)
 		end
 	end
-	return lines, spots, starts
+	return lines, starts
 end
 
 local function seconds(t: number): number
 	return math.floor(t * 100 + 0.5) / 100
 end
 
-local function studs(x: number): number
-	return math.floor(x * 10 + 0.5) / 10
-end
-
--- nil when no straight walk (no jump) clears the section, on any line from any start spot at any start time;
--- otherwise one that did.
+-- nil when no straight walk (no jump) clears the section, on any line at any start time; otherwise one that did.
 function ObbyCheck.straightWalk(section: Section): string?
 	local w = prepareWalk(section)
-	local lines, spots, starts = walkPlan(w)
+	local lines, starts = walkPlan(w)
 	for _, z in lines do
-		for _, x in spots do
-			local options = { x = x }
-			for _, t0 in starts do
-				local why = ObbyCheck.walkStop(section, z, t0, w :: any, options)
-				if why == nil then
-					return `holding forward along z {z} from x {studs(x)} at t {seconds(t0)} clears it`
-				elseif why == "the line misses the first step" then
-					break
-				end
+		for _, t0 in starts do
+			if ObbyCheck.walkStop(section, z, t0, w :: any) == nil then
+				return `holding forward along z {z} from t {seconds(t0)} clears it`
 			end
 		end
 	end
 	return nil
 end
 
-export type MasherResult = {
-	share: number,
-	line: number?,
-	x: number?,
-	cleared: number,
-	starts: number,
-	from: number?,
-}
+export type MasherResult = { share: number, line: number?, cleared: number, starts: number, from: number? }
 
 --[[
-	The masher on every line and start spot: the share of start times it clears the section from, where that share is
+	The masher on every line: the share of start times it clears the section from, on the line where that share is
 	highest (lines are cut short once they pass MASHER_SHARE, except the first such line, counted in full).
 ]]
 function ObbyCheck.masherShare(section: Section): MasherResult
 	local w = prepareWalk(section)
-	local lines, spots, starts = walkPlan(w)
+	local lines, starts = walkPlan(w)
 	local n = #starts
 	local limit = math.floor(ObbyCheck.MASHER_SHARE * n + 1e-9)
-	local best: MasherResult = { share = 0, line = nil, x = nil, cleared = 0, starts = n, from = nil }
+	local best: MasherResult = { share = 0, line = nil, cleared = 0, starts = n, from = nil }
+	local options = { jump = true }
 	for _, z in lines do
-		for _, x in spots do
-			local options = { jump = true, x = x }
-			local cleared, from = 0, nil
-			local tried = 0
-			for i, t0 in starts do
-				local why = ObbyCheck.walkStop(section, z, t0, w :: any, options)
-				if why == "the line misses the first step" then
-					break
-				end
-				tried = i
-				if why == nil then
-					cleared += 1
-					from = from or t0
-				end
-				-- below the best even if every start left cleared it: this spot can't be the best one
-				if cleared + (n - i) <= best.cleared then
-					break
-				end
+		local cleared, from = 0, nil
+		local tried = 0
+		for i, t0 in starts do
+			local why = ObbyCheck.walkStop(section, z, t0, w :: any, options)
+			if why == "the line misses the first step" then
+				break
 			end
-			if tried > 0 and cleared > best.cleared then
-				best = { share = cleared / n, line = z, x = x, cleared = cleared, starts = n, from = from }
-				if cleared > limit then
-					return best
-				end
+			tried = i
+			if why == nil then
+				cleared += 1
+				from = from or t0
+			end
+			-- below the limit even if every start left cleared it: this line can't be the best one
+			if cleared + (n - i) <= best.cleared then
+				break
+			end
+		end
+		if tried > 0 and cleared > best.cleared then
+			best = { share = cleared / n, line = z, cleared = cleared, starts = n, from = from }
+			if cleared > limit then
+				return best
 			end
 		end
 	end
@@ -1949,15 +1864,14 @@ function ObbyCheck.masherShare(section: Section): MasherResult
 end
 
 -- nil when jumping on every landing (holding forward on one line) clears the section from at most MASHER_SHARE of
--- the start times on every line and start spot; otherwise where it did.
+-- the start times on every line; otherwise where it did.
 function ObbyCheck.masher(section: Section): string?
 	local r = ObbyCheck.masherShare(section)
 	if r.share > ObbyCheck.MASHER_SHARE + 1e-9 then
 		local pct = math.floor(r.share * 100 + 0.5)
-		local most = math.floor(ObbyCheck.MASHER_SHARE * 100 + 0.5)
-		return `jumping on every landing along z {r.line} from x {studs(r.x or 0)} clears it from {r.cleared} of {r.starts} start times ({pct} %, at most {most} %), first from t {seconds(
-			r.from or 0
-		)}`
+		return `jumping on every landing along z {r.line} clears it from {r.cleared} of {r.starts} start times ({pct} %, at most {math.floor(
+			ObbyCheck.MASHER_SHARE * 100 + 0.5
+		)} %), first from t {seconds(r.from or 0)}`
 	end
 	return nil
 end
