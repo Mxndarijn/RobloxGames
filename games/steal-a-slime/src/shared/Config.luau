@@ -308,7 +308,7 @@ local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 12, title = "Gel Emperor", income = 0.35 },
 	{ rebirths = 15, title = "Gelatinous Legend", income = 0.5, merge = 6 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1, merge = 7 },
-	{ rebirths = 25, title = "Goo Titan", income = 1.5 },
+	{ rebirths = 25, title = "Goo Titan", income = 1.5, merge = 8 }, -- Celestials only merge in a recipe (Ryujin)
 	{ rebirths = 30, title = "Slime Deity", income = 2 },
 }
 
