@@ -439,6 +439,7 @@ local BAT_SKIN_COLORS: { [string]: { { number } } } = {
 
 -- Exclusive plot base tile colours (walls, then roof) for the drawn Style icons; Config's bases carry no colour.
 local BASE_COLORS: { [string]: { { number } } } = {
+	jar = { { 110, 226, 170 }, { 200, 240, 255 } },
 	carousel = { { 250, 150, 182 }, { 252, 216, 110 } },
 	rocket = { { 220, 226, 240 }, { 250, 96, 96 } },
 	treehouse = { { 196, 140, 90 }, { 110, 200, 110 } },
@@ -606,20 +607,19 @@ function ItemIcons.build(config: any)
 		})
 	end
 
-	-- Exclusive plot bases (§15, contract/base-shapes.md): a small building drawn in its colours until pictured.
+	-- Plot bases (contract/base-shapes.md; the Exclusive ones §15): a small building drawn in its colours until
+	-- pictured. The Skins menu's Building tab shows every base, the jar too.
 	for _, base in config.PLOT_BASES or {} do
-		if base.exclusive then
-			local colors = BASE_COLORS[base.id] or BASE_COLORS.default
-			add({
-				id = `PlotBase_{base.id}`,
-				name = base.name,
-				group = "gear",
-				color = colors[1],
-				colors = colors,
-				glyph = "🏡",
-				brief = `The '{base.name}' plot base building alone, no slimes; 3/4 view.`,
-			})
-		end
+		local colors = BASE_COLORS[base.id] or BASE_COLORS.default
+		add({
+			id = `PlotBase_{base.id}`,
+			name = base.name,
+			group = "gear",
+			color = colors[1],
+			colors = colors,
+			glyph = "🏡",
+			brief = `The '{base.name}' plot base building alone, no slimes; 3/4 view.`,
+		})
 	end
 
 	-- Fanfares, lock styles and slime hats (§15): UI-drawn glyph tiles until pictures are rendered.

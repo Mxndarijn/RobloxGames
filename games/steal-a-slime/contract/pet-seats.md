@@ -32,9 +32,11 @@ the 19 models in `shared/modeling-kit` (`models/pet_cloud.py` and `models/pet_mo
   cloud; without any template, the invisible Mount. The slime's foot sinks `CLOUD_SINK` into the seat surface
   (`SeatHeight`), so decoration above it (Jelly's cherry, the rainbow arch) does not lift the pet. When the seat or
   the available template changes, the pet is built again where it glides.
-- **Menu (`Panels/Skins`, `PetSeatsView`):** the menu is titled "Skins" with two tabs, Base (plot skins, §15) and
-  Cloud; every open starts on Base. Cloud: one row per seat with its icon (`PetSeat_<id>`, pictures from
-  `shared/modeling-kit/tools/icons/recipes_seat.py`), its name and Equipped / Unlocked; a free unlock shows its line
-  ("Merge 200 slimes.", "Complete 80% of the SlimeDex.") with a bar and count; an Exclusive a gold "Exclusive" tag
-  and "Only in the Exclusive shop.". The pane repeats it under "How to unlock" / "How to get it" and ends in Equip
-  (`EquipPetSeat`), Equipped, what is still missing ("Merge 64 more slimes"), or a gold "Exclusive shop" well.
+- **Menu (`Panels/Skins`, `PetSeatsView`):** the menu is titled "Skins" with three tabs, Base (plot skins, §15),
+  Building (plot bases, [base-shapes.md](base-shapes.md)) and Cloud; every open starts on Base. Cloud: one row per seat
+  with its icon (`PetSeat_<id>`, pictures from `shared/modeling-kit/tools/icons/recipes_seat.py`), its name and
+  Equipped / Unlocked; a free unlock shows its line ("Merge 200 slimes.", "Complete 80% of the SlimeDex.") with a bar
+  and count; an Exclusive not owned yet a gold "Exclusive" tag and its Robux price. The pane repeats it under "How to
+  unlock" / "How to get it" and ends in Equip (`EquipPetSeat`), Equipped, what is still missing ("Merge 64 more
+  slimes"), or "Buy · R$<price>": Roblox's prompt for `Seat_<id>`, or the Exclusive shop on that seat while the
+  product is not on sale.

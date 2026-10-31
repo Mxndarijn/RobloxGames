@@ -1,23 +1,20 @@
 --!strict
 --[[
-	Skins menu (Nav key "Skins"). Two tabs under the band: Base (plot skins, contract/plot-skins.md) and Cloud (pet
-	seats, contract/pet-seats.md); it opens on Base. In the band: "n/m unlocked" for the open tab.
-	Base: the skins on the left, one row each (its icon, name, and a bar with the count toward unlocking it, or Equipped /
-	Unlocked), and the selected skin's pane on the right (PlotSkinsView.detail): a big icon, the name, "Find 4 of
-	these 5 slimes" over a bar, the slimes themselves (found in colour, the rest as silhouettes with their set or
-	"Merge"), and Equip, Equipped or a well saying how many slimes are still needed. Equip asks the server
-	(EquipPlotSkin); it decides nothing itself. Without State.plotSkins: one empty line.
-	Cloud (PetSeatsView): one row per seat (its icon, name, and Equipped / Unlocked, or its unlock in one line with a
-	bar and count, or a gold Exclusive tag with "Only in the Exclusive shop."), and the selected seat's pane: a big
-	icon, the name, "How to unlock" / "How to get it" with the same line, the bar, and Equip, Equipped or a well
-	saying what is missing or "Exclusive shop". Equip asks the server (EquipPetSeat). With the Exclusive shop on
-	(State.exclusiveShop) that last one is a button: it opens the shop on that seat (ctx.openExclusiveShop).
-	With State.plotBases (FEATURES.BaseShapes, contract/base-shapes.md) a strip of base buttons runs across the top:
-	the building the plot stands in, apart from its skin; each says Equip, Equipped or the rebirth it unlocks at
-	(PlotBasesView), and Equip asks the server (EquipPlotBase). An Exclusive base not owned yet carries a gold
-	"Exclusive" tag and "Buy · R$<price>": Buy opens Roblox's prompt (ctx.purchase), or the Exclusive shop on that base
-	while it is not on sale. More bases than fit in one row take two rows (Skins.baseGrid), scrolling sideways when
-	two rows are not enough.
+	Skins menu (Nav key "Skins"). Three tabs under the band: Base (plot skins, contract/plot-skins.md), Building (plot
+	bases, contract/base-shapes.md) and Cloud (pet seats, contract/pet-seats.md); it opens on Base. In the band:
+	"n/m unlocked" for the open tab. Every tab is a list on the left and the selected item's pane on the right.
+	Base: one row per skin (its icon, name, and a bar with the count toward unlocking it, or Equipped / Unlocked), and
+	the selected skin's pane (PlotSkinsView.detail): a big icon, the name, "Find 4 of these 5 slimes" over a bar, the
+	slimes themselves (found in colour, the rest as silhouettes with their set or "Merge"), and Equip, Equipped or a
+	well saying how many slimes are still needed. Equip asks the server (EquipPlotSkin); it decides nothing itself.
+	Without State.plotSkins: one empty line.
+	Building (PlotBasesView, with State.plotBases) and Cloud (PetSeatsView): one row per base or seat (its icon, name,
+	and Equipped / Unlocked, or its unlock in one line with a bar and count), and the selected one's pane: a big icon,
+	the name, "How to unlock" / "How to get it" with that line, the bar, and Equip (EquipPlotBase / EquipPetSeat),
+	Equipped or a well saying what is missing.
+	An Exclusive item not owned yet, in any tab, shows a gold Exclusive tag and its Robux price in its row, and its
+	pane's button is Buy · R$<price>: it opens Roblox's prompt (ctx.purchase). While the product is not on sale the
+	button says "Exclusive shop" and opens the shop on that item (ctx.openExclusiveShop, with State.exclusiveShop).
 ]]
 
 local UI = script.Parent.Parent
@@ -76,38 +73,8 @@ local STYLE = table.freeze({
 	button = Layout.MIN_TOUCH_DESIGN,
 	buttonText = 17,
 	wellRadius = 11,
-	-- base strip
-	baseH = Layout.MIN_TOUCH_DESIGN,
-	baseGap = 8,
-	baseTitle = 14,
-	baseState = Layout.MIN_TEXT,
-	baseMinW = 136, -- narrowest base button: its longest name still fits
-	baseTagH = 20, -- the gold "Exclusive" tag between name and action
-	baseScroll = 6, -- the strip's sideways scroll bar
+	priceW = 56, -- an Exclusive row's price, right-aligned ("R$599")
 })
-
-export type BaseGrid = {
-	columns: number,
-	rows: number,
-	w: number, -- one button
-	h: number,
-	canvasW: number, -- every column; wider than `bodyW` = the strip scrolls sideways
-	stripH: number,
-}
-
--- How `n` base buttons sit in a strip `bodyW` wide: one row when they fit at STYLE.baseMinW, else two rows, as
--- wide as fits (at least baseMinW, scrolling sideways past the body). `tall`: a button carries the Exclusive tag.
-function Skins.baseGrid(n: number, bodyW: number, tall: boolean): BaseGrid
-	local gap = STYLE.baseGap
-	local fit = math.max(1, math.floor((bodyW + gap) / (STYLE.baseMinW + gap)))
-	local rows = if n > fit then 2 else 1
-	local columns = math.max(1, math.ceil(n / rows))
-	local w = math.max(STYLE.baseMinW, math.floor((bodyW - gap * (columns - 1)) / columns))
-	local h = STYLE.baseH + (if tall then STYLE.baseTagH else 0)
-	local canvasW = columns * w + gap * (columns - 1)
-	local stripH = rows * h + gap * (rows - 1) + (if canvasW > bodyW then STYLE.baseScroll + 2 else 0)
-	return { columns = columns, rows = rows, w = w, h = h, canvasW = canvasW, stripH = stripH }
-end
 
 -- The pane's slime cells: how many fit across `inner` px and how wide each is.
 function Skins.cells(inner: number): (number, number)
@@ -118,7 +85,19 @@ end
 -- The tabs, in order. "base" is the one the menu opens on.
 Skins.TABS = table.freeze({
 	table.freeze({ key = "base", label = "Base" }),
+	table.freeze({ key = "building", label = "Building" }),
 	table.freeze({ key = "cloud", label = "Cloud" }),
+})
+
+-- Building and Cloud draw the same rows and pane; what differs per tab.
+type ItemTab = {
+	iconPrefix: string, -- ItemIcons id prefix ("PlotBase_" / "PetSeat_")
+	idAttribute: string, -- the row's id attribute ("BaseId" / "SeatId")
+	equip: string, -- the Request that equips it
+}
+local ITEM_TABS: { [string]: ItemTab } = table.freeze({
+	building = table.freeze({ iconPrefix = "PlotBase_", idAttribute = "BaseId", equip = "EquipPlotBase" }),
+	cloud = table.freeze({ iconPrefix = "PetSeat_", idAttribute = "SeatId", equip = "EquipPetSeat" }),
 })
 
 function Skins.new(parent: Instance, ctx: any)
@@ -162,16 +141,12 @@ function Skins.new(parent: Instance, ctx: any)
 		Visible = false,
 		Parent = content,
 	})
-	local strip = Widgets.scroll({
-		Name = "Bases",
-		AutomaticCanvasSize = Enum.AutomaticSize.None,
-		ScrollingDirection = Enum.ScrollingDirection.X,
-		ScrollBarThickness = STYLE.baseScroll,
-		Visible = false,
-		Parent = content,
-	})
 	local list = Widgets.scrollList({ Name = "List", Parent = content }, STYLE.rowGap)
-	local seatList = Widgets.scrollList({ Name = "SeatList", Visible = false, Parent = content }, STYLE.rowGap)
+	-- The Building and Cloud tabs' lists, by tab key.
+	local itemLists: { [string]: ScrollingFrame } = {
+		building = Widgets.scrollList({ Name = "BaseList", Visible = false, Parent = content }, STYLE.rowGap),
+		cloud = Widgets.scrollList({ Name = "SeatList", Visible = false, Parent = content }, STYLE.rowGap),
+	}
 	local pane = Widgets.scroll({
 		Name = "Pane",
 		BackgroundTransparency = 0,
@@ -186,10 +161,9 @@ function Skins.new(parent: Instance, ctx: any)
 	local open = false
 	local latest: any = nil
 	local selected: string? = nil
-	local selectedSeat: string? = nil
+	local picks: { [string]: string? } = {} -- the selected base / seat, by tab key
 	local tab = Skins.TABS[1].key
 	local bodyW, bodyH = Layout.MENU_WIDTH - c.pad * 2, fullH
-	local stripH = STYLE.baseH
 	local repaint: () -> ()
 	local paneW = 0 -- the pane's width (layout sets it)
 
@@ -228,12 +202,9 @@ function Skins.new(parent: Instance, ctx: any)
 		end
 		local lw = listWidth()
 		local top = STYLE.tabH + STYLE.gap
-		Widgets.place(strip, UDim2.fromOffset(0, top), UDim2.fromOffset(bodyW, stripH))
-		if strip.Visible then
-			top += stripH + STYLE.baseGap
-		end
 		local h = math.max(bodyH - top, 0)
-		for _, l in { list, seatList } do
+		Widgets.place(list, UDim2.fromOffset(0, top), UDim2.fromOffset(lw, h))
+		for _, l in itemLists do
 			Widgets.place(l, UDim2.fromOffset(0, top), UDim2.fromOffset(lw, h))
 		end
 		empty.Position = UDim2.fromOffset(0, top)
@@ -241,124 +212,32 @@ function Skins.new(parent: Instance, ctx: any)
 		Widgets.place(pane, UDim2.fromOffset(lw + c.gutter, top), UDim2.fromOffset(paneW, h))
 	end
 
-	-- Base buttons, reused by index.
-	type BaseButton = {
-		frame: TextButton,
-		stroke: UIStroke,
-		title: TextLabel,
-		state: TextLabel,
-		tag: TextLabel,
-		row: PlotBasesView.Row?,
-	}
-	local baseButtons: { BaseButton } = {}
-	local function baseButton(i: number): BaseButton
-		local existing = baseButtons[i]
-		if existing then
-			return existing
-		end
-		local frame = create("TextButton", {
-			Name = `Base{i}`,
-			Text = "",
-			AutoButtonColor = false,
-			BackgroundColor3 = Theme.Row,
-			BorderSizePixel = 0,
-			Parent = strip,
-		}, { Widgets.corner(Widgets.KIT.rowRadius) }) :: TextButton
-		local stroke = Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke)
-		stroke.Parent = frame
-		local title = Widgets.label({
-			Name = "Title",
-			Font = Theme.Font,
-			TextSize = STYLE.baseTitle,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			Position = UDim2.fromOffset(4, 3),
-			Size = UDim2.new(1, -8, 0.5, -2),
-			Parent = frame,
-		})
-		local state = Widgets.label({
-			Name = "State",
-			Font = Theme.Font,
-			TextSize = STYLE.baseState,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			Position = UDim2.new(0, 4, 0.5, 0),
-			Size = UDim2.new(1, -8, 0.5, -3),
-			Parent = frame,
-		})
-		local tag = Widgets.chip({
-			Name = "Exclusive",
-			Text = PlotBasesView.EXCLUSIVE,
-			TextSize = STYLE.baseState,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromOffset(0, STYLE.baseTagH),
-			Visible = false,
-			Parent = frame,
-		}, Theme.Gold)
-		local made: BaseButton
-		frame.Activated:Connect(function()
-			local row = made.row
-			if row == nil then
-				return
-			end
-			if row.state == "unlocked" and ctx.request then
-				ctx.request("EquipPlotBase", function() end, row.id)
-			elseif row.exclusive then
-				if row.purchase and ctx.purchase then
-					ctx.purchase.prompt(row.purchase)
-				elseif row.shopKey and ctx.openExclusiveShop then
-					ctx.openExclusiveShop(row.shopKey)
-				end
-			end
-		end)
-		made = { frame = frame, stroke = stroke, title = title, state = state, tag = tag, row = nil }
-		baseButtons[i] = made
-		return made
-	end
-
-	local function paintBases(baseRows: { PlotBasesView.Row }, grid: BaseGrid)
-		local n = #baseRows
-		local w, h = grid.w, grid.h
-		local half = STYLE.baseH // 2
-		strip.CanvasSize = UDim2.fromOffset(grid.canvasW + c.ring * 2, 0) -- its Ring padding sits inside the canvas
-		for i, row in baseRows do
-			local b = baseButton(i)
-			local locked = row.state == "locked"
-			local col, line = (i - 1) % grid.columns, (i - 1) // grid.columns
-			b.row = row
-			b.frame.Visible = true
-			b.frame:SetAttribute("BaseId", row.id)
-			b.frame:SetAttribute("State", row.state)
-			b.frame:SetAttribute("Exclusive", row.exclusive)
-			b.frame.Position = UDim2.fromOffset(col * (w + STYLE.baseGap), line * (h + STYLE.baseGap))
-			b.frame.Size = UDim2.fromOffset(w, h)
-			b.title.Size = UDim2.new(1, -8, 0, half - 2)
-			b.state.Position = UDim2.new(0, 4, 1, -half)
-			b.state.Size = UDim2.new(1, -8, 0, half - 3)
-			b.tag.Visible = row.exclusive
-			b.frame.BackgroundColor3 = if row.state == "equipped" then Theme.BgLight else Theme.Row
-			b.stroke.Color = if row.state == "equipped" then Theme.Good else Theme.Ink
-			b.stroke.Thickness = if row.state == "equipped" then STYLE.selectStroke else Widgets.KIT.rowStroke
-			b.title.Text = row.title
-			b.title.TextColor3 = if locked then Theme.Muted else Theme.Text
-			b.state.Text = row.action
-			b.state.TextColor3 = if row.state == "equipped"
-				then Theme.Good
-				elseif row.state == "unlocked" or row.exclusive then Theme.Accent
-				else Theme.Muted
-		end
-		for i = n + 1, #baseButtons do
-			baseButtons[i].frame.Visible = false
-		end
-	end
-
 	local function equip(id: string)
 		if ctx.request then
-			if tab == "cloud" then
-				ctx.request("EquipPetSeat", function() end, id)
-			else
-				ctx.request("EquipPlotSkin", function() end, id)
-			end
+			local item = ITEM_TABS[tab]
+			ctx.request(if item then item.equip else "EquipPlotSkin", function() end, id)
 		end
+	end
+
+	-- The id shown in the pane for the open tab.
+	local function current(): string?
+		return if ITEM_TABS[tab] then picks[tab] else selected
+	end
+
+	-- An Exclusive row's Robux price, right-aligned at `y`.
+	local function priceLabel(frame: Instance, y: number): TextLabel
+		return Widgets.label({
+			Name = "Price",
+			Font = Theme.Font,
+			TextSize = STYLE.state,
+			TextColor3 = Theme.Accent,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -STYLE.rowPad, 0, y),
+			Size = UDim2.fromOffset(STYLE.priceW, 18),
+			Visible = false,
+			Parent = frame,
+		})
 	end
 
 	-- Skin rows.
@@ -422,6 +301,7 @@ function Skins.new(parent: Instance, ctx: any)
 			Size = UDim2.fromOffset(countW, 18),
 			Parent = frame,
 		})
+		local price = priceLabel(frame, 10 + STYLE.nameH + 4)
 		frame.Activated:Connect(function()
 			selected = frame:GetAttribute("SkinId") :: string?
 			repaint()
@@ -436,6 +316,7 @@ function Skins.new(parent: Instance, ctx: any)
 			bar = bar,
 			setBar = setBar,
 			count = count,
+			price = price,
 		}
 	end
 
@@ -468,6 +349,8 @@ function Skins.new(parent: Instance, ctx: any)
 		r.setBar(row.fraction)
 		r.count.Visible = locked and not row.exclusive
 		r.count.Text = row.count
+		r.price.Visible = row.exclusive and row.price ~= ""
+		r.price.Text = row.price
 	end
 
 	local rows = Widgets.keyedList(
@@ -481,21 +364,21 @@ function Skins.new(parent: Instance, ctx: any)
 		end
 	)
 
-	-- Seat rows (Cloud tab): taller while they carry an unlock line.
+	-- Building and Cloud rows: taller while they carry an unlock line.
 	-- The unlock line's width while the list scrolls (its bar takes room), so a wrap measured here never grows.
-	local function seatTextWidth(): number
-		return listWidth() - STYLE.rowPad * 3 - STYLE.icon - seatList.ScrollBarThickness
+	local function itemTextWidth(): number
+		return listWidth() - STYLE.rowPad * 3 - STYLE.icon - itemLists.cloud.ScrollBarThickness
 	end
-	local function seatRowHeight(row: PetSeatsView.Row): number
-		if row.state ~= "locked" then
+	local function itemRowHeight(row: PetSeatsView.Row): number
+		if row.state ~= "locked" or row.exclusive then
 			return STYLE.rowH
 		end
-		local lineH = math.ceil(Layout.wrappedHeight(row.line, STYLE.seatLine, seatTextWidth()))
-		local extra = if row.exclusive then STYLE.seatTagH + 2 else STYLE.bar + 6
-		return math.max(STYLE.rowH, 8 + STYLE.nameH + 2 + lineH + extra + 8)
+		local lineH = math.ceil(Layout.wrappedHeight(row.line, STYLE.seatLine, itemTextWidth()))
+		return math.max(STYLE.rowH, 8 + STYLE.nameH + 2 + lineH + STYLE.bar + 6 + 8)
 	end
 
-	local function makeSeatRow(row: PetSeatsView.Row): any
+	local function makeItemRow(key: string, row: PetSeatsView.Row): any
+		local item = ITEM_TABS[key]
 		local frame = create("TextButton", {
 			Name = row.key,
 			Text = "",
@@ -514,12 +397,13 @@ function Skins.new(parent: Instance, ctx: any)
 			Parent = frame,
 		}, { Widgets.corner(Widgets.KIT.radius) :: Instance, Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
 		local icon = ItemIconView.new({
-			Name = "SeatIcon",
-			Id = `PetSeat_{row.id}`,
+			Name = "ItemIcon",
+			Id = `{item.iconPrefix}{row.id}`,
 			Size = STYLE.icon,
 			Parent = image,
 		}, icons)
 		local textX = STYLE.rowPad * 2 + STYLE.icon
+		local lineY = 8 + STYLE.nameH + 2
 		local title = Widgets.label({
 			Name = "Title",
 			Font = Theme.Font,
@@ -532,7 +416,7 @@ function Skins.new(parent: Instance, ctx: any)
 			Name = "State",
 			Font = Theme.Font,
 			TextSize = STYLE.state,
-			Position = UDim2.fromOffset(textX, 8 + STYLE.nameH + 2),
+			Position = UDim2.fromOffset(textX, lineY),
 			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, 18),
 			Parent = frame,
 		})
@@ -540,10 +424,11 @@ function Skins.new(parent: Instance, ctx: any)
 			Name = "Exclusive",
 			Text = PetSeatsView.EXCLUSIVE,
 			TextSize = STYLE.state,
-			Position = UDim2.fromOffset(textX, 8 + STYLE.nameH + 2),
+			Position = UDim2.fromOffset(textX, lineY),
 			Size = UDim2.fromOffset(0, STYLE.seatTagH),
 			Parent = frame,
 		}, Theme.Gold)
+		local price = priceLabel(frame, lineY + 1)
 		local line = Widgets.label({
 			Name = "Line",
 			[Widgets.fontKey(Theme.FontBody)] = Theme.FontBody,
@@ -552,7 +437,7 @@ function Skins.new(parent: Instance, ctx: any)
 			TextWrapped = true,
 			TextTruncate = Enum.TextTruncate.None,
 			TextYAlignment = Enum.TextYAlignment.Top,
-			Position = UDim2.fromOffset(textX, 8 + STYLE.nameH + 2),
+			Position = UDim2.fromOffset(textX, lineY),
 			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, 18),
 			Parent = frame,
 		})
@@ -575,7 +460,7 @@ function Skins.new(parent: Instance, ctx: any)
 			Parent = frame,
 		})
 		frame.Activated:Connect(function()
-			selectedSeat = frame:GetAttribute("SeatId") :: string?
+			picks[key] = frame:GetAttribute(item.idAttribute) :: string?
 			repaint()
 		end)
 		return {
@@ -586,6 +471,7 @@ function Skins.new(parent: Instance, ctx: any)
 			title = title,
 			state = stateLabel,
 			tag = tag,
+			price = price,
 			line = line,
 			bar = bar,
 			setBar = setBar,
@@ -593,13 +479,12 @@ function Skins.new(parent: Instance, ctx: any)
 		}
 	end
 
-	local function updateSeatRow(r: any, row: PetSeatsView.Row)
+	local function updateItemRow(key: string, r: any, row: PetSeatsView.Row)
 		local locked = row.state == "locked"
-		local on = row.id == selectedSeat
+		local on = row.id == picks[key]
 		local textX = STYLE.rowPad * 2 + STYLE.icon
-		local textW = seatTextWidth()
-		r.instance.Size = UDim2.new(1, 0, 0, seatRowHeight(row))
-		r.instance:SetAttribute("SeatId", row.id)
+		r.instance.Size = UDim2.new(1, 0, 0, itemRowHeight(row))
+		r.instance:SetAttribute(ITEM_TABS[key].idAttribute, row.id)
 		r.instance:SetAttribute("State", row.state)
 		r.instance:SetAttribute("Selected", on)
 		r.instance.BackgroundColor3 = if on then Theme.BgLight else Theme.Row
@@ -614,36 +499,36 @@ function Skins.new(parent: Instance, ctx: any)
 		r.state.Visible = not locked
 		r.state.Text = if row.state == "equipped" then PlotSkinsView.EQUIPPED else "Unlocked"
 		r.state.TextColor3 = if row.state == "equipped" then Theme.Good else Theme.Muted
+		-- An Exclusive not owned yet: the gold tag and its price instead of an unlock line and bar.
 		r.tag.Visible = row.exclusive
+		r.price.Visible = row.exclusive and row.price ~= ""
+		r.price.Text = row.price
+		local hasLine = locked and not row.exclusive
 		local y = 8 + STYLE.nameH + 2
-		if row.exclusive then
-			y += STYLE.seatTagH + 2
-		end
-		local lineH = if locked then math.ceil(Layout.wrappedHeight(row.line, STYLE.seatLine, textW)) else 0
-		r.line.Visible = locked
+		local lineH = if hasLine then math.ceil(Layout.wrappedHeight(row.line, STYLE.seatLine, itemTextWidth())) else 0
+		r.line.Visible = hasLine
 		r.line.Text = row.line
 		r.line.Position = UDim2.fromOffset(textX, y)
 		r.line.Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, lineH)
-		local hasBar = locked and not row.exclusive
 		local barY = y + lineH + 6
-		r.bar.Visible = hasBar
-		r.count.Visible = hasBar
+		r.bar.Visible = hasLine
+		r.count.Visible = hasLine
 		r.bar.Position = UDim2.fromOffset(textX, barY)
 		r.count.Position = UDim2.new(1, -STYLE.rowPad, 0, barY + STYLE.bar // 2 - 9)
 		r.setBar(row.fraction)
 		r.count.Text = row.count
 	end
 
-	local seatRows = Widgets.keyedList(
-		seatList,
-		function(row: PetSeatsView.Row)
+	local itemRows: { [string]: any } = {}
+	for key, l in itemLists do
+		itemRows[key] = Widgets.keyedList(l, function(row: PetSeatsView.Row)
 			return row.key
-		end,
-		makeSeatRow,
-		function(r: any, row: PetSeatsView.Row)
-			updateSeatRow(r, row)
-		end
-	)
+		end, function(row: PetSeatsView.Row)
+			return makeItemRow(key, row)
+		end, function(r: any, row: PetSeatsView.Row)
+			updateItemRow(key, r, row)
+		end)
+	end
 
 	-- The pane: built once, its slime cells reused by index.
 	local bigWell = create("Frame", {
@@ -716,7 +601,7 @@ function Skins.new(parent: Instance, ctx: any)
 		},
 		Theme.Accent,
 		function()
-			local id = if tab == "cloud" then selectedSeat else selected
+			local id = current()
 			if id then
 				equip(id)
 			end
@@ -728,6 +613,24 @@ function Skins.new(parent: Instance, ctx: any)
 		Size = UDim2.fromOffset(0, STYLE.button),
 		Parent = pane,
 	})
+	-- The shown Exclusive's Purchase and shop card (Buy / Exclusive shop read them).
+	local paneOffer: { purchase: any?, shopKey: string? } = {}
+	local buyButton = Widgets.button(
+		{
+			Name = "Buy",
+			Text = "",
+			TextSize = STYLE.buttonText,
+			Size = UDim2.fromOffset(0, STYLE.button),
+			Visible = false,
+		},
+		Theme.Accent,
+		function()
+			if paneOffer.purchase and ctx.purchase then
+				ctx.purchase.prompt(paneOffer.purchase)
+			end
+		end
+	)
+	buyButton.instance.Parent = pane
 	local shopButton = Widgets.button(
 		{
 			Name = "ExclusiveShop",
@@ -738,12 +641,40 @@ function Skins.new(parent: Instance, ctx: any)
 		},
 		Theme.Accent,
 		function()
-			if selectedSeat and ctx.openExclusiveShop then
-				ctx.openExclusiveShop(`seat:{selectedSeat}`)
+			if paneOffer.shopKey and ctx.openExclusiveShop then
+				ctx.openExclusiveShop(paneOffer.shopKey)
 			end
 		end
 	)
 	shopButton.instance.Parent = pane
+
+	-- The pane's bottom button at `y`: Equip, Buy, Exclusive shop, or a well with `detail.action`.
+	-- Returns the y under it.
+	local function paintAction(detail: any, y: number, inner: number): number
+		local exclusive = detail.exclusive == true
+		local canEquip = detail.state == "unlocked"
+		local canBuy = exclusive and detail.purchase ~= nil and ctx.purchase ~= nil
+		local canShop = exclusive
+			and not canBuy
+			and detail.shopKey ~= nil
+			and ctx.openExclusiveShop ~= nil
+			and type(latest) == "table"
+			and latest.exclusiveShop ~= nil
+		paneOffer.purchase = if canBuy then detail.purchase else nil
+		paneOffer.shopKey = if canShop then detail.shopKey else nil
+		equipButton.instance.Visible = canEquip
+		buyButton.instance.Visible = canBuy
+		buyButton.instance.Text = detail.action
+		shopButton.instance.Visible = canShop
+		well.Visible = not canEquip and not canBuy and not canShop
+		well.Text = detail.action
+		well.TextColor3 = if detail.state == "equipped" then Theme.Good elseif exclusive then Theme.Gold else Theme.Muted
+		for _, inst in { equipButton.instance :: GuiObject, buyButton.instance, shopButton.instance, well } do
+			inst.Position = UDim2.fromOffset(STYLE.pad, y)
+			inst.Size = UDim2.fromOffset(inner, STYLE.button)
+		end
+		return y + STYLE.button + STYLE.pad
+	end
 	type Cell = { frame: Frame, preview: ViewportFrame, glyph: TextLabel, name: TextLabel, tag: TextLabel }
 	local cells: { Cell } = {}
 
@@ -812,6 +743,7 @@ function Skins.new(parent: Instance, ctx: any)
 		pane.Visible = detail ~= nil
 		paneTag.Visible = false
 		how.Visible = false
+		buyButton.instance.Visible = false
 		shopButton.instance.Visible = false
 		if detail == nil then
 			return
@@ -887,21 +819,12 @@ function Skins.new(parent: Instance, ctx: any)
 			local lines = math.ceil(#detail.slimes / columns)
 			y += lines * STYLE.cellH + (lines - 1) * STYLE.cellGap + STYLE.pad
 		end
-		local canEquip = detail.state == "unlocked"
-		equipButton.instance.Visible = canEquip
-		well.Visible = not canEquip
-		well.Text = detail.action
-		well.TextColor3 = if detail.state == "equipped" then Theme.Good else Theme.Muted
-		for _, inst in { equipButton.instance, well } do
-			inst.Position = UDim2.fromOffset(STYLE.pad, y)
-			inst.Size = UDim2.fromOffset(inner, STYLE.button)
-		end
-		y += STYLE.button + STYLE.pad
+		y = paintAction(detail, y, inner)
 		pane.CanvasSize = UDim2.fromOffset(0, y)
 	end
 
-	-- The pane for a seat: big icon, name, the Exclusive tag, how to get it, the bar and the button or well.
-	local function paintSeatPane(detail: PetSeatsView.Detail?)
+	-- The pane for a base or seat: big icon, name, the Exclusive tag, how to get it, the bar and the button or well.
+	local function paintItemPane(detail: PetSeatsView.Detail?, iconPrefix: string)
 		pane.Visible = detail ~= nil
 		for _, cl in cells do
 			cl.frame.Visible = false
@@ -912,6 +835,7 @@ function Skins.new(parent: Instance, ctx: any)
 		if detail == nil then
 			paneTag.Visible = false
 			how.Visible = false
+			buyButton.instance.Visible = false
 			shopButton.instance.Visible = false
 			return
 		end
@@ -919,7 +843,7 @@ function Skins.new(parent: Instance, ctx: any)
 		local y = STYLE.pad
 		bigWell.Position = UDim2.new(0.5, 0, 0, y)
 		bigWell.BackgroundColor3 = Theme.BgLight
-		local iconId = `PetSeat_{detail.id}`
+		local iconId = `{iconPrefix}{detail.id}`
 		if bigWell:GetAttribute("SkinId") ~= iconId then
 			bigWell:SetAttribute("SkinId", iconId)
 			bigIcon.set(iconId)
@@ -967,54 +891,42 @@ function Skins.new(parent: Instance, ctx: any)
 			paneCount.Size = UDim2.fromOffset(countW, 18)
 			y += 18 + 8
 		end
-		local canEquip = detail.state == "unlocked"
-		local canShop = detail.exclusive
-			and ctx.openExclusiveShop ~= nil
-			and type(latest) == "table"
-			and latest.exclusiveShop ~= nil
-		equipButton.instance.Visible = canEquip
-		shopButton.instance.Visible = canShop
-		well.Visible = not canEquip and not canShop
-		well.Text = detail.action
-		well.TextColor3 = if detail.state == "equipped"
-			then Theme.Good
-			elseif detail.exclusive then Theme.Gold
-			else Theme.Muted
-		for _, inst in { equipButton.instance :: GuiObject, shopButton.instance, well } do
-			inst.Position = UDim2.fromOffset(STYLE.pad, y)
-			inst.Size = UDim2.fromOffset(inner, STYLE.button)
-		end
-		y += STYLE.button + STYLE.pad
+		y = paintAction(detail, y, inner)
 		pane.CanvasSize = UDim2.fromOffset(0, y)
 	end
 
-	-- Cloud tab: the seat rows and the selected seat's pane.
-	local function repaintSeats()
-		local seatRowsList = PetSeatsView.rows(latest.petSeats, ctx.Config)
-		if strip.Visible then
-			-- the base strip belongs to the Base tab
-			strip.Visible = false
-			placeBody()
-		end
-		empty.Text = PetSeatsView.EMPTY
-		empty.Visible = #seatRowsList == 0
+	-- Building or Cloud tab: the rows and the selected one's pane.
+	local function repaintItems(key: string)
+		local isCloud = key == "cloud"
+		local itemRowsList: { PetSeatsView.Row } = if isCloud
+			then PetSeatsView.rows(latest.petSeats, ctx.Config)
+			else PlotBasesView.rows(latest.plotBases, ctx.Config)
+		empty.Text = if isCloud then PetSeatsView.EMPTY else PlotBasesView.EMPTY
+		empty.Visible = #itemRowsList == 0
 		list.Visible = false
-		seatList.Visible = #seatRowsList > 0
-		summary.Visible = #seatRowsList > 0
-		summary.Text = PetSeatsView.summary(seatRowsList)
+		for k, l in itemLists do
+			l.Visible = k == key and #itemRowsList > 0
+		end
+		summary.Visible = #itemRowsList > 0
+		summary.Text = PetSeatsView.summary(itemRowsList)
 		local known = false
-		for _, row in seatRowsList do
-			known = known or row.id == selectedSeat
+		for _, row in itemRowsList do
+			known = known or row.id == picks[key]
 		end
 		if not known then
-			selectedSeat = PetSeatsView.firstSelected(seatRowsList)
+			picks[key] = PetSeatsView.firstSelected(itemRowsList)
 		end
 		if not open then
 			return
 		end
 		attach()
-		seatRows.sync(seatRowsList)
-		paintSeatPane(if selectedSeat then PetSeatsView.detail(latest.petSeats, selectedSeat) else nil)
+		itemRows[key].sync(itemRowsList)
+		local id = picks[key]
+		local detail = if id == nil
+			then nil
+			elseif isCloud then PetSeatsView.detail(latest.petSeats, id, ctx.Config)
+			else PlotBasesView.detail(latest.plotBases, id, ctx.Config)
+		paintItemPane(detail, ITEM_TABS[key].iconPrefix)
 	end
 
 	function repaint()
@@ -1025,11 +937,13 @@ function Skins.new(parent: Instance, ctx: any)
 		if latest == nil then
 			return
 		end
-		if tab == "cloud" then
-			repaintSeats()
+		if ITEM_TABS[tab] then
+			repaintItems(tab)
 			return
 		end
-		seatList.Visible = false
+		for _, l in itemLists do
+			l.Visible = false
+		end
 		empty.Text = PlotSkinsView.EMPTY
 		local skinRows = PlotSkinsView.rows(latest.plotSkins, ctx.Config)
 		empty.Visible = #skinRows == 0
@@ -1047,18 +961,6 @@ function Skins.new(parent: Instance, ctx: any)
 			return
 		end
 		attach()
-		local baseRows = PlotBasesView.rows(latest.plotBases, ctx.Config)
-		local tall = false
-		for _, row in baseRows do
-			tall = tall or row.exclusive
-		end
-		local grid = Skins.baseGrid(#baseRows, bodyW, tall)
-		if strip.Visible ~= (#baseRows > 0) or stripH ~= grid.stripH then
-			strip.Visible = #baseRows > 0
-			stripH = grid.stripH
-			placeBody()
-		end
-		paintBases(baseRows, grid)
 		rows.sync(skinRows)
 		local cards = SlimeDex.cards(latest.dex, ctx.Config, function(id: string)
 			local entry = if ctx.SlimeRoster then ctx.SlimeRoster.get(id) else nil
@@ -1070,7 +972,9 @@ function Skins.new(parent: Instance, ctx: any)
 			local def = if ctx.PlotSkins then ctx.PlotSkins.get(id) else nil
 			return if def then ctx.PlotSkins.slimes(def) else {}
 		end
-		paintPane(if selected then PlotSkinsView.detail(latest.plotSkins, selected, cards, slimesOf) else nil)
+		paintPane(
+			if selected then PlotSkinsView.detail(latest.plotSkins, selected, cards, slimesOf, ctx.Config) else nil
+		)
 	end
 
 	local self = { frame = panel.frame, close = panel.close }
@@ -1083,8 +987,10 @@ function Skins.new(parent: Instance, ctx: any)
 		for _, r in rows.rows do
 			r.icon.setActive(isOpen)
 		end
-		for _, r in seatRows.rows do
-			r.icon.setActive(isOpen)
+		for _, keyed in itemRows do
+			for _, r in keyed.rows do
+				r.icon.setActive(isOpen)
+			end
 		end
 		bigIcon.setActive(isOpen)
 		if not isOpen then
@@ -1105,19 +1011,19 @@ function Skins.new(parent: Instance, ctx: any)
 		repaint()
 	end
 
-	-- The skin or seat shown in the pane (tests), and picking one (the rows do the same).
+	-- The skin, base or seat shown in the pane (tests), and picking one (the rows do the same).
 	function self.selected(): string?
-		return if tab == "cloud" then selectedSeat else selected
+		return current()
 	end
 	function self.select(id: string)
-		if tab == "cloud" then
-			selectedSeat = id
+		if ITEM_TABS[tab] then
+			picks[tab] = id
 		else
 			selected = id
 		end
 		repaint()
 	end
-	-- The open tab ("base" / "cloud") and switching it (the tab buttons do the same).
+	-- The open tab ("base" / "building" / "cloud") and switching it (the tab buttons do the same).
 	function self.tab(): string
 		return tab
 	end
