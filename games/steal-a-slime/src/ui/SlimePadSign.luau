@@ -7,7 +7,8 @@
 	stand (the side facing the jar's centre, where players walk), dipped in goo
 	of the slime's rarity colour. The goo runs along the top edge with the
 	rarity written in it and drips down both ends; the name and income are written in outlined Fredoka on the wood, and
-	the growth fills an Ink tube with mint goo. Built and filled by
+	the growth fills an Ink tube with mint goo. A shining slime's sign wears a
+	tilted shine pill over its top-left corner. Built and filled by
 	SlimeInfoCard, which owns the lifecycle; this module only makes the part
 	and draws a SlimeLabel.View on it.
 
@@ -18,6 +19,7 @@
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
+local Genome = require(Shared:WaitForChild("Genome"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local SlimeLabel = require(Shared:WaitForChild("SlimeLabel"))
 local Widgets = require(script.Parent.Widgets)
@@ -71,6 +73,19 @@ SlimePadSign.DRIPS = table.freeze({
 	{ x = 0.95, w = 16, len = 0.24 },
 })
 
+-- A shining slime's sign wears a tilted pill in the shine's colour pinned over its top-left corner, half above
+-- the plank (the SurfaceGui doesn't clip it). x / y: the pill's centre, h: its height (fractions of the plank);
+-- its width follows the text (pillAspect). It ends left of the middle, clear of the rarity in the band.
+SlimePadSign.TAG = table.freeze({
+	x = 0.13,
+	y = 0.02,
+	h = 0.27,
+	tilt = -8, -- degrees
+	pad = 0.14, -- text inset top and bottom, fraction of its height
+	stroke = 3, -- px Ink rim
+	zIndex = 2, -- above the band
+})
+
 -- { r, g, b } (Config.RARITIES, SlimeLabel.RAINBOW) as a Color3.
 function SlimePadSign.rgb(color: { number }): Color3
 	return Color3.fromRGB(color[1], color[2], color[3])
@@ -85,6 +100,26 @@ function SlimePadSign.rainbow(): ColorSequence
 		table.insert(points, ColorSequenceKeypoint.new((i - 1) / (#stops - 1), rgb(c)))
 	end
 	return ColorSequence.new(points)
+end
+
+-- Width / height of a pill holding `text`: Fredoka glyphs are about 0.4 of the pill's height wide at the
+-- pill's text size, plus half a height of goo at each end. Too long a text only shrinks (TextScaled).
+function SlimePadSign.pillAspect(text: string): number
+	return 0.4 * (utf8.len(text) or #text) + 1
+end
+
+-- A shine pill's look (the tag's and the sign's): its fill, the gradient over it (the shine's colour lit from
+-- the top, or a rainbow) and the text colour and text-stroke transparency that read on it.
+function SlimePadSign.shineLook(shine: Genome.ShineRow): (Color3, ColorSequence, Color3, number)
+	if shine.rainbow then
+		return Color3.new(1, 1, 1), SlimePadSign.rainbow(), Theme.Ink, 1
+	end
+	local fill = rgb(shine.color)
+	local light = ColorSequence.new(Color3.new(1, 1, 1):Lerp(fill, 0.25), Color3.new(1, 1, 1))
+	if Widgets.isBright(fill) then
+		return fill, light, Theme.Ink, 1
+	end
+	return fill, light, Theme.Text, 0
 end
 
 -- Text in the goo: Ink on bright goo, white edged in Ink on deep goo; a rainbow is bright enough for Ink.
@@ -230,6 +265,7 @@ function SlimePadSign.build(): Part
 		PixelsPerStud = s.pixelsPerStud,
 		LightInfluence = 0,
 		MaxDistance = s.maxDistance,
+		ClipsDescendants = false, -- the shine tag hangs over the top edge
 		Parent = part,
 	})
 	local board = create("Frame", {
@@ -308,6 +344,43 @@ function SlimePadSign.build(): Part
 		Size = UDim2.fromScale(1 - 2 * l.inset - l.tubeWidth, l.growth.h + 0.08),
 		TextXAlignment = Enum.TextXAlignment.Right,
 	}, board)
+	local t = SlimePadSign.TAG
+	create(
+		"TextLabel",
+		{
+			Name = "Shine",
+			Visible = false,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(t.x, t.y),
+			Size = UDim2.fromScale(1, t.h), -- the Fit constraint sets the width
+			Rotation = t.tilt,
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			Font = Theme.Font,
+			TextScaled = true,
+			TextStrokeColor3 = Theme.Ink,
+			ZIndex = t.zIndex,
+			Parent = board,
+		},
+		{
+			Widgets.pill(),
+			create("UIStroke", {
+				Name = "Stroke",
+				Thickness = t.stroke,
+				Color = Theme.Ink,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			}),
+			create("UIGradient", { Name = "Fill", Rotation = 90 }),
+			create("UIAspectRatioConstraint", {
+				Name = "Fit",
+				AspectRatio = 3,
+				DominantAxis = Enum.DominantAxis.Height,
+			}),
+			create("UIPadding", {
+				PaddingTop = UDim.new(t.pad, 0),
+				PaddingBottom = UDim.new(t.pad, 0),
+			}),
+		} :: { Instance }
+	)
 	return part
 end
 
@@ -335,8 +408,18 @@ function SlimePadSign.render(part: Part, view: SlimeLabel.View)
 	rarity.TextColor3 = ink
 	bandStroke.Transparency = strokeHidden
 	rarity.Text = view.rarity
-	-- The plank has no pill row: a shine the tag shows as a pill leads the name here, "Gold Mochi".
-	title.Text = if view.shine then `{view.shine.id} {view.name}` else view.name
+	title.Text = view.name
+	local shine = board:FindFirstChild("Shine") :: TextLabel
+	shine.Visible = view.shine ~= nil
+	if view.shine then
+		local pillFill, shading, pillInk, pillStroke = SlimePadSign.shineLook(view.shine)
+		shine.Text = view.shine.id
+		shine.BackgroundColor3 = pillFill
+		shine.TextColor3 = pillInk
+		shine.TextStrokeTransparency = pillStroke;
+		(shine:FindFirstChild("Fill") :: UIGradient).Color = shading;
+		(shine:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimePadSign.pillAspect(view.shine.id)
+	end
 	income.Text = view.income or ""
 	fill.Size = UDim2.fromScale(math.clamp(view.growth, 0, 100) / 100, 1)
 	fill.Visible = view.growth > 0

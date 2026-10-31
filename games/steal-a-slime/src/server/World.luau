@@ -169,7 +169,7 @@ export type Event = {
 	slimeId: string?,
 	ownerUserId: number?,
 	carrierUserId: number?,
-	reason: string?, -- Escaped: "slap" | "drop" | "left" | "unsaved" | "guard" (SlimeGuard)
+	reason: string?, -- Escaped: "slap" | "drop" | "left" | "unsaved" | "guard" (SlimeGuard) | "boss"
 	active: boolean?,
 	effect: string?, -- Effect: Effects.KINDS name ("Collect" | "Steal" | "Merge" | "Rebirth")
 	plotIndex: number?, -- Effect: plot whose MergeVat is the target

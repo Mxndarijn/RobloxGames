@@ -10,7 +10,7 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
 |---|---|---|
 | `"warning"` | `BOSS.WARNING_SECONDS` | Server-wide Notify (heads-up) and `State.boss.phase = "warning"`. No model yet. |
 | `"fight"` | up to `BOSS.FIGHT_SECONDS` | A wild slime with `boss = true` drops onto the plaza boss spot and moves round the boss area (Moves, below), `BOSS.SCALE` x its size, prompt disabled. Bat hits fill the goo meter. |
-| `"haul"` | up to `BOSS.HAUL_SECONDS` | The boss stops where it stood (move `down`) and shrinks to carry size over `BOSS.SHRINK_SECONDS`; then scale 1, prompt "Grab", hold 0. Carried through `Carry` like a wild slime. |
+| `"haul"` | up to `BOSS.HAUL_SECONDS` | The boss stops where it stood (move `down`) and shrinks to carry size over `BOSS.SHRINK_SECONDS`; then scale 1, prompt "Grab", hold 0. Carried through `Carry` like a wild slime. Spits still in the air and puddles still on the ground vanish as it goes down: the downed boss strikes nobody. |
 | `"won"` / `"failed"` | `BOSS.LINGER_SECONDS` | Result shown in `State.boss`, then the event clears. |
 
 - **Schedule (`server/BossEvent`).** The first boss arrives `BOSS.FIRST_AT` after server start, then every
@@ -94,7 +94,10 @@ It replaces the old "first grab wins" Boss Slime (`Spawner.spawnBoss`, `BOSS_TIE
   Without `exposed` (Lune tests) every strike in range lands.
   A struck player is knocked `push` studs away from the boss, `BOSS.HIT_ARC` high (`ctx.launch` + a PvpEvent
   Knockback, live whatever `FEATURES.PvP` says), stunned for `BOSS.STUN_SECONDS` (`Session.bossStunUntil`) and toasted.
-  Each attack strikes a player once. The meter never drains during `windup`, `attack`, `hop`, `rise` or `land`. Every
+  A struck carrier also drops what they hold, before the knockback (`Carry.release` reason `"boss"`, at
+  `Context.positionOf`): a wild slime lands where they stood and anyone may grab it (they wait
+  `DROP_PICKUP_COOLDOWN`), a wild Mystery Egg smashes, a stolen slime bounces home. No extra toast or notice card: the
+  hit's own toast is the only text. A blocked strike drops nothing. Each attack strikes a player once. The meter never drains during `windup`, `attack`, `hop`, `rise` or `land`. Every
   `BOSS.STAGE_EVERY` of the meter reached speeds its moves and attack gaps by `BOSS.STAGE_SPEEDUP`.
 - **Haul.** For the first `BOSS.PRIORITY_SECONDS` only the top contributor may grab it (if still on the server); then
   anyone. The carrier walks at `BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW)`: no Speed Coil, no Strong Arms

@@ -8,8 +8,13 @@
 	Pure helpers (`look`, `chatPrefix`) are tested under Lune (tests/ui/MemberTags.spec.luau). `start` builds the
 	chips (in PlayerGui, Adornee = the head, so nothing in the shared world changes) and sets
 	TextChatService.OnIncomingMessage; it returns a stop function.
+
+	The chip is a pixel tag (guides/roblox-world-labels.md), marked with LabelFit so it shrinks on a phone. Its Ink
+	outline is on the pill's edge, not round the Ink letters, which would run them together.
 ]]
 
+local LabelFit =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
 local Widgets = require(script.Parent.Widgets)
 
 local Theme = Widgets.Theme
@@ -18,7 +23,7 @@ local create = Widgets.create
 local MemberTags = {}
 
 MemberTags.FOLDER = "MemberTags"
-MemberTags.SIZE = table.freeze({ w = 76, h = 28, textSize = 21, stroke = 2, lift = 2.8, maxDistance = 80 })
+MemberTags.SIZE = table.freeze({ w = 100, h = 38, textSize = 30, stroke = 2.5, lift = 3.1, maxDistance = 80 })
 
 export type Look = { text: string, color: Color3, hex: string }
 
@@ -88,7 +93,13 @@ function MemberTags.start(opts: { [string]: any }): () -> ()
 				Parent = chip,
 			})
 			Widgets.corner(size.h // 2).Parent = label
-			create("UIStroke", { Color = Theme.Ink, Thickness = size.stroke, Parent = label })
+			create("UIStroke", {
+				Color = Theme.Ink,
+				Thickness = size.stroke,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				Parent = label,
+			})
+			LabelFit.mark(chip :: BillboardGui) -- smaller pixels on a phone (Lib.ui.LabelFitView)
 			chips[player] = chip
 		end
 		local label = (chip :: BillboardGui):FindFirstChild("Tag") :: TextLabel

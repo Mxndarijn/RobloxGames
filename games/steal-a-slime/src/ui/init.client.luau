@@ -1056,7 +1056,8 @@ local lockBreakPrompt = LockBreakPrompt.start({
 })
 
 -- One card over the slime draws those prompts (they use the Custom style), instead of three stacked bubbles.
-SlimeKeyCard.start({
+-- Its lock card (your own LockButton) counts the lock down on the frame loop below.
+local slimeKeyCard = SlimeKeyCard.start({
 	prompts = ProximityPromptService,
 	playerGui = player:WaitForChild("PlayerGui"),
 	tweens = game:GetService("TweenService"),
@@ -1240,6 +1241,8 @@ function layoutCards()
 		end
 	end
 end
+-- A panel whose content grows or shrinks between State pushes (the Codes error line) re-sizes its card.
+ctx.relayout = layoutCards
 
 -- Roblox's touch jump button on screen or not (the status icons step left of it); polled in the frame loop.
 local touchControls = TouchControls.watch({ playerGui = player:WaitForChild("PlayerGui") })
@@ -1635,6 +1638,7 @@ task.spawn(function()
 			guardedTick("slimeKeys", slimeKeys.tick)
 			guardedTick("lockBreak", lockBreakPrompt.tick)
 			guardedTick("lockTimer", lockTimerTag.tick)
+			guardedTick("lockCard", slimeKeyCard.tick)
 			guardedTick("slimeHats", slimeHats.tick)
 			guardedTick("hint", function()
 				hintOverlay.tick(
