@@ -185,6 +185,11 @@ else `rbxasset://sounds/...` built-ins; never upload audio. Every sound is quiet
 * Only motion kinds and fields from this file. Every `start` group has a `trigger`; every `gate` has enough keys
   reachable on its route.
 * Fall height never resets a runner above a platform they could land on (existing check).
+* **Walk-forward test (Merijn, 2026-10-31): just walking forward, no jumping, must never clear a section.** Two
+  layers: the straight-walk check above runs for every variant, every route and seeds 1..20 (a walker holding
+  forward, following moving floors, belts and boosts it lands on); and a Studio walk bot (verification step) holds
+  forward from each section's first step in a real playtest and fails any section it reaches the end of. A variant
+  that fails is tightened, not dropped.
 
 ## 10b. How data reaches the client (fixed, so the pieces can be built in parallel)
 

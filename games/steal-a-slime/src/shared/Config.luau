@@ -1683,7 +1683,7 @@ local Config = {
 
 	-- The Obby, a sky course (Shared.ObbyCourse, Shared.ObbyRules, server/ObbyService, contract/obby.md). Seconds
 	-- unless noted. Finishing grants +BONUS income for BOOST_SECONDS; the next run counts COOLDOWN_SECONDS after the
-	-- boost ends. The course rebuilds every ROTATION_SECONDS from SECTIONS in ORDER (tiers), each with one of LAYOUTS.
+	-- boost ends. The course rebuilds every ROTATION_SECONDS: one ObbySections idea per ORDER slot (tiers).
 	OBBY = table.freeze({
 		BONUS = 0.5, -- +50 % income: x1.5
 		BOOST_SECONDS = 5 * 60,
@@ -1691,45 +1691,8 @@ local Config = {
 		ROTATION_SECONDS = 10 * 60,
 		CHAIN_SLOTS = 144, -- rotations per chain (a day): "no section of the last course" holds inside one chain
 		ORDER = table.freeze({ "easy", "easy", "easy", "medium", "medium", "medium", "hard", "hard" }),
-		SECTIONS = table.freeze({
-			easy = table.freeze({
-				"JellySteps",
-				"WobbleBridge",
-				"BubbleHop",
-				"GooConveyor",
-				"TrampolineField",
-				"GooCascade",
-				"GooPipe",
-				"StickyLadder",
-				"GlowTrail",
-				"TwoWays",
-			}),
-			medium = table.freeze({
-				"MeltingTiles",
-				"Spinner",
-				"LilyLift",
-				"JellyWallHop",
-				"BlobPendulums",
-				"FanShaft",
-				"PoppingBubbles",
-				"SlimeSeesaw",
-				"RollingLogs",
-				"GooWave",
-			}),
-			hard = table.freeze({
-				"Tightrope",
-				"FlipFloor",
-				"IceGauntlet",
-				"ShrinkingPads",
-				"SlimeCannon",
-				"GooGates",
-				"BlobDrop",
-				"Turntables",
-				"GooPunchers",
-				"GustyBridge",
-			}),
-		}),
-		LAYOUTS = 6, -- layouts per section
+		-- The sections themselves are the ideas in Shared.ObbySections (one module per idea, variants per tier); ORDER
+		-- says which tier each slot of a course takes (ObbyCourse.pick).
 		MIN_RUN_SECONDS = 19, -- a finish faster than this doesn't count (the whole course at a speed-coil walk takes longer)
 		-- A runner's root this far under the lowest platform it could still land on (ObbyCourse.fallHeight) has fallen:
 		-- the client puts it back on the start pad that frame (ObbyFx). The server checks FALL_DEPTH + SERVER_FALL_SLACK
