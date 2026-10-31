@@ -41,6 +41,7 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local EffectPrefs = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("EffectPrefs"))
 local HabitatMorph = require(Shared:WaitForChild("HabitatMorph"))
 local Habitats = require(Shared:WaitForChild("Habitats"))
+local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local WorldLayout = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WorldLayout"))
 
 local HabitatFx = {}
@@ -114,6 +115,9 @@ end
 -- Pad-local turn that puts a kit mesh's front on the walkway side, and that side's direction.
 local FRONT = CFrame.Angles(0, math.rad(Habitats.FRONT_YAW), 0)
 local FRONT_DIR = FRONT:VectorToWorldSpace(Vector3.zAxis)
+-- An uploaded MeshPart comes in turned from the kit's axes (MeshAssets.IMPORT_YAW, as every MeshSwap slot); offsets
+-- are in the kit's axes, so only the part itself takes this turn.
+local IMPORT_TURN = CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
 
 -- A layer's mesh: a clone of the server's MeshPart template at native size. A MeshPart's origin is its bbox centre:
 -- the bottom sits `drop` below the deck. Frame, glow and theme are centred on the dish and rise out of it (height
@@ -140,7 +144,7 @@ local function meshPiece(model: Model, template: BasePart, layer: Habitats.Layer
 	return {
 		part = part,
 		size = size,
-		offset = CFrame.new(at) * FRONT,
+		offset = CFrame.new(at) * FRONT * IMPORT_TURN,
 		transparency = 0,
 		rise = layer.kind ~= "prop",
 	}

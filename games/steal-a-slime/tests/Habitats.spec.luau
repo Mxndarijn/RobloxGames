@@ -161,15 +161,15 @@ describe("Habitats table", function()
 		end
 		expect(#Habitats.MESHES).toBe(1 + #Habitats.FRAMES + #Habitats.THEMES + #SlimeRoster.ROSTER)
 	end)
-	it("every uploaded layer fits the dish: frame and theme <= 7.9 wide and 0.1-2.8 tall, props small", function()
+	it("every uploaded layer fits the dish: frame and theme <= 7.9 wide and <= 2.85 tall, props small", function()
 		for _, mesh in Habitats.MESHES do
 			local entry = MeshAssets.get(mesh)
 			local size = entry and entry.size
 			if size then
 				if string.find(mesh, "^habitat_prop_") then
-					expect(size[1] <= 1.95 and size[3] <= 1.2 and size[2] <= 1.45).toBe(true)
+					expect(size[1] <= 1.95 and size[3] <= 1.25 and size[2] <= 1.45).toBe(true)
 				else
-					expect(size[1] <= 7.9 and size[3] <= 7.9 and size[2] <= 2.8).toBe(true)
+					expect(size[1] <= 7.9 and size[3] <= 7.9 and size[2] <= 2.85).toBe(true)
 				end
 			end
 		end

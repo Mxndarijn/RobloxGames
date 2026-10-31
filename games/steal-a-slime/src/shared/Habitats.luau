@@ -84,7 +84,8 @@ Habitats.TRANSFORM_SECONDS = 1
 Habitats.GLOW_MESH = "habitat_frame_glow"
 -- The signature prop stands this far from the dish centre on the front of the rim (pad-local, toward the walkway).
 Habitats.PROP_RADIUS = 3.15
--- Yaw (degrees) that turns a kit mesh's front (kit -Y, pad-local +Z) to the walkway side of the pad.
+-- Yaw (degrees) that turns a kit mesh's front (kit -Y = +Z in the kit's Roblox axes) to the walkway side of the pad.
+-- The client adds MeshAssets.IMPORT_YAW on top for an uploaded MeshPart, as every MeshSwap slot does.
 Habitats.FRONT_YAW = 180
 
 local function theme(

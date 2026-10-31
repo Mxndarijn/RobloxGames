@@ -278,6 +278,7 @@ end
 -- bottom on the deck (or `drop` below it), turned to the walkway; the
 -- signature prop on the front of the rim. The pad and stand stay.
 local FRONT = CFrame.Angles(0, math.rad(Habitats.FRONT_YAW), 0)
+local IMPORT_TURN = CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
 for _, h in HABITAT_PADS do
 	local pad = built.plots:FindFirstChild(`Plot_{h[1]}`):FindFirstChild(`Pad_{h[2]}`)
 	for _, layer in Habitats.layers(Habitats.forType(h[3], nil)) do
@@ -291,7 +292,7 @@ for _, h in HABITAT_PADS do
 				else CFrame.new()
 			table.insert(meshes, {
 				mesh = layer.mesh,
-				cf = cfOf(pad.CFrame * slot * up * FRONT),
+				cf = cfOf(pad.CFrame * slot * up * FRONT * IMPORT_TURN),
 				size = size,
 				path = `{pad:GetFullName()}.Habitat.{layer.kind}`,
 			})
