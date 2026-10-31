@@ -20,13 +20,13 @@ describe("Nav.ENTRIES", function()
 		end
 	end)
 	it(
-		"is exactly Rebirth, Goals, SlimeDex, Codes, Skins, Leaders (Plot, Merge, Shop and Top have no button)",
+		"is exactly Rebirth, Goals, SlimeDex, Codes, Skins, Leaders, Settings (Plot, Merge, Shop and Top have no button)",
 		function()
 			local keys = {}
 			for _, entry in Nav.ENTRIES do
 				table.insert(keys, entry.key)
 			end
-			expect(table.concat(keys, ",")).toBe("Rebirth,Goals,Dex,Codes,Skins,Leaderboard")
+			expect(table.concat(keys, ",")).toBe("Rebirth,Goals,Dex,Codes,Skins,Leaderboard,Settings")
 		end
 	)
 	it("shows the Dex entry as SlimeDex (internal key stays Dex)", function()

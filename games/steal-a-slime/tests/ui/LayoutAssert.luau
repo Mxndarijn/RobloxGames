@@ -1295,7 +1295,6 @@ function LayoutAssert.clusterChecks(check: Checker)
 			{
 				{ "Nav", screen.nav },
 				{ "Carry", screen.carry },
-				{ "Settings", screen.settings },
 				{ "Banners", screen.banners },
 			}
 		do
@@ -1354,7 +1353,6 @@ function LayoutAssert.hotbarChecks(check: Checker)
 			{ "Nav", screen.nav },
 			{ "Money", screen.money.rect },
 			{ "Status", screen.status.rect },
-			{ "Settings", screen.settings },
 			{ "Banners", screen.banners },
 			zones[1],
 			zones[2],
@@ -1474,29 +1472,6 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 		check.fail(`Carry {fmt(screen.carry)} reaches into the bottom inset (floor {floor})`)
 	end
 	check.noOverlap("Carry", screen.carry, "Nav", screen.nav)
-
-	-- The Settings gear sits where a menu's X would: tappable, clear of everything idle,
-	-- and out of the bottom-right thumb zone (Roblox's jump button: the bottom TOUCH_CONTROLS_HEIGHT strip
-	-- plus a 120 px square above it).
-	check.onScreen("Settings", screen.settings, m)
-	check.touch("Settings", screen.settings)
-	local thumbSide = 120
-	local thumbTop = screen.height - Layout.TOUCH_CONTROLS_HEIGHT - thumbSide
-	check.noOverlap(
-		"Settings",
-		screen.settings,
-		"JumpZone",
-		Layout.rect(screen.width - thumbSide, thumbTop, thumbSide, screen.height - thumbTop)
-	)
-	for _, other in
-		{
-			{ "Nav", screen.nav },
-			{ "Carry", screen.carry },
-			{ "Banners", screen.banners },
-		}
-	do
-		check.noOverlap("Settings", screen.settings, other[1] :: string, other[2] :: Rect)
-	end
 
 	-- Overlays.
 	check.onScreen("Daily", screen.daily, m)
