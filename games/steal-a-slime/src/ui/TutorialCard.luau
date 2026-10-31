@@ -253,7 +253,7 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		parts.pill.Position = if narrow
 			then UDim2.new(0, N.pad - 4 + N.icon / 2, 1, -N.pad)
 			else UDim2.new(0.5, 0, 1, -N.pad)
-		parts.pill.Size = UDim2.new(0, if narrow then N.icon else TutorialCard.SIDE_W - 4, 0, TutorialCard.HIDE_H)
+		parts.pill.Size = UDim2.fromOffset(if narrow then N.icon else TutorialCard.SIDE_W - 4, TutorialCard.HIDE_H)
 	end
 
 	local function showDone(title: string, sub: string?, seconds: number)
