@@ -76,7 +76,8 @@ function NightSky.start()
 	local atmosphere = ensure("Atmosphere")
 	local day = dayLook(atmosphere)
 	local function apply()
-		local look: any = NightLook.blend(day, NightLook.factor(Lighting.ClockTime))
+		local night = NightLook.factor(Lighting.ClockTime)
+		local look: any = NightLook.blend(day, night)
 		local grade = WeatherGrade.get()
 		if grade ~= WeatherGrade.NEUTRAL then -- weather grade (WeatherFx) layered on the day / night look
 			look.Color =
@@ -93,7 +94,7 @@ function NightSky.start()
 		end
 		local obby = ObbyLook.get()
 		if obby > 0 then -- the obby world's own look (ObbyWorld) over all of that
-			look = ObbyLook.blend(look, obby)
+			look = ObbyLook.blend(look, obby, night)
 		end
 		for _, key in NightLook.KEYS do
 			local holder: any = if ATMOSPHERE_KEYS[key] then atmosphere else Lighting

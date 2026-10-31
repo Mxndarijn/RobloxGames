@@ -2,14 +2,18 @@
 --[[
 	ObbyLook (pure, contract/obby.md §5)
 
-	The obby world's own look: a candy-pink, lilac-hazed sky world, whatever the time of day or weather on the map.
+	The obby world's own look: a clear candy sky world (blue zenith, violet-pink horizon), whatever the time of day or weather on the map.
 	VisualsClient ObbyWorld fades `mix` from 0 (the map's look) to 1 (this look) over FADE seconds while the local
 	player is in the obby world (WorldLayout.inObbyWorld) and back when they leave; NightSky blends LOOK over its day /
 	night and weather look by that mix, and ObbyWorld tints a ColorCorrection by it.
 
-	  ObbyLook.LOOK                    Lighting + Atmosphere values at mix 1 (NightLook.Look keys)
-	  ObbyLook.TINT                    ColorCorrection at mix 1 (TintColor, Saturation, Brightness)
-	  ObbyLook.blend(base, mix): Look  base -> LOOK by mix (0..1)
+	  ObbyLook.LOOK / NIGHT            Lighting + Atmosphere values at mix 1 by day / by night (NightLook.Look keys)
+	  ObbyLook.TINT                    ColorCorrection at mix 1 (TintColor, Saturation, Brightness, Contrast)
+	  ObbyLook.BLOOM / SUN_RAYS / ATMOSPHERE
+	                                   the place's Bloom, SunRays and Atmosphere Offset at mix 1 (ObbyWorld blends them)
+	  ObbyLook.target(night): Look     LOOK -> NIGHT by the night factor (0..1, NightLook.factor)
+	  ObbyLook.blend(base, mix, night?): Look
+	                                   base -> target(night) by mix (0..1)
 	  ObbyLook.toward(mix, inside, dt) the next mix: moves 1 / FADE per second towards 1 inside, 0 outside
 	  ObbyLook.get / set / onChanged   the current mix (client), like WeatherGrade
 	  ObbyLook.isInside / setInside / onInsideChanged
@@ -28,23 +32,47 @@ local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
 end
 
+-- Clear candy sky: a blue zenith fading into a violet-pink horizon band (Haze tints only the low sky), thin enough
+-- that the backdrop keeps its edges, low ambient so the sun casts readable shadows on the course, and exposure below
+-- the map's so nothing washes out.
 ObbyLook.LOOK = table.freeze({
-	Ambient = rgb(170, 140, 200),
-	OutdoorAmbient = rgb(214, 180, 230),
-	Brightness = 2.4,
-	ExposureCompensation = 0.25,
-	Density = 0.42, -- Atmosphere: thick enough that the backdrop melts into the haze
-	Haze = 2.2,
-	Glare = 0.4,
-	Color = rgb(255, 196, 232),
-	Decay = rgb(170, 130, 230),
+	Ambient = rgb(96, 84, 128),
+	OutdoorAmbient = rgb(132, 114, 164),
+	Brightness = 2.2,
+	ExposureCompensation = -0.1,
+	Density = 0.3,
+	Haze = 1.2,
+	Glare = 0,
+	Color = rgb(255, 150, 195),
+	Decay = rgb(255, 170, 210),
+} :: NightLook.Look)
+
+-- The same world at night (blended in by NightLook.factor): a starry sky fading into an indigo-plum horizon, with
+-- enough ambient to read the course.
+ObbyLook.NIGHT = table.freeze({
+	Ambient = rgb(92, 80, 132),
+	OutdoorAmbient = rgb(118, 104, 166),
+	Brightness = 1.4,
+	ExposureCompensation = 0.1,
+	Density = 0.3,
+	Haze = 1.6,
+	Glare = 0,
+	Color = rgb(150, 90, 170),
+	Decay = rgb(90, 50, 120),
 } :: NightLook.Look)
 
 ObbyLook.TINT = table.freeze({
-	TintColor = rgb(255, 236, 248),
-	Saturation = 0.2,
-	Brightness = 0.03,
+	TintColor = rgb(255, 246, 252),
+	Saturation = 0.12,
+	Brightness = -0.03,
+	Contrast = 0.1,
 })
+
+-- Post effects at mix 1: almost no Bloom (bright parts keep their edges), no SunRays, and a high Atmosphere Offset
+-- so the horizon band fades softly into the sky.
+ObbyLook.BLOOM = table.freeze({ Intensity = 0.12, Size = 16, Threshold = 2.4 })
+ObbyLook.SUN_RAYS = table.freeze({ Intensity = 0 })
+ObbyLook.ATMOSPHERE = table.freeze({ Offset = 0.7 })
 
 local function lerp(a: any, b: any, t: number): any
 	if typeof(a) == "Color3" then
@@ -53,11 +81,21 @@ local function lerp(a: any, b: any, t: number): any
 	return a + (b - a) * t
 end
 
-function ObbyLook.blend(base: NightLook.Look, mix: number): NightLook.Look
-	local t = math.clamp(mix, 0, 1)
+function ObbyLook.target(night: number?): NightLook.Look
+	local n = math.clamp(night or 0, 0, 1)
 	local out: any = {}
 	for _, key in NightLook.KEYS do
-		out[key] = lerp((base :: any)[key], (ObbyLook.LOOK :: any)[key], t)
+		out[key] = lerp((ObbyLook.LOOK :: any)[key], (ObbyLook.NIGHT :: any)[key], n)
+	end
+	return out :: NightLook.Look
+end
+
+function ObbyLook.blend(base: NightLook.Look, mix: number, night: number?): NightLook.Look
+	local t = math.clamp(mix, 0, 1)
+	local target: any = ObbyLook.target(night)
+	local out: any = {}
+	for _, key in NightLook.KEYS do
+		out[key] = lerp((base :: any)[key], target[key], t)
 	end
 	return out :: NightLook.Look
 end
