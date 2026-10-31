@@ -32,7 +32,6 @@ local Players = game:GetService("Players")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
-local Genome = require(Shared:WaitForChild("Genome"))
 local SlimeLabel = require(Shared:WaitForChild("SlimeLabel"))
 local SlimePadSign = require(script.Parent.SlimePadSign)
 local Widgets = require(script.Parent.Widgets)
@@ -85,11 +84,8 @@ export type Fit = { pxScale: number, maxDistance: number } -- how a tag is sized
 
 local rgb = SlimePadSign.rgb
 
--- Width / height of a pill holding `text`: Fredoka glyphs are about 0.4 of the pill's height wide at the
--- pill's text size, plus half a height of goo at each end. Too long a text only shrinks (TextScaled).
-function SlimeInfoCard.pillAspect(text: string): number
-	return 0.4 * (utf8.len(text) or #text) + 1
-end
+-- Width / height of a pill holding `text` (shared with the pad sign's shine tag).
+SlimeInfoCard.pillAspect = SlimePadSign.pillAspect
 
 -- The rarity pill's look: its fill colour, the gradient over it (a rainbow for Secret, plain white otherwise,
 -- which leaves the fill as it is) and the text colours that read on it.
@@ -104,18 +100,8 @@ function SlimeInfoCard.pillLook(view: SlimeLabel.View): (Color3, ColorSequence, 
 	return fill, ColorSequence.new(Color3.new(1, 1, 1)), Theme.Text, 0
 end
 
--- The shine pill's look, as pillLook: the shine's colour lit from the top, or a rainbow.
-function SlimeInfoCard.shineLook(shine: Genome.ShineRow): (Color3, ColorSequence, Color3, number)
-	if shine.rainbow then
-		return Color3.new(1, 1, 1), SlimePadSign.rainbow(), Theme.Ink, 1
-	end
-	local fill = rgb(shine.color)
-	local light = ColorSequence.new(Color3.new(1, 1, 1):Lerp(fill, 0.25), Color3.new(1, 1, 1))
-	if Widgets.isBright(fill) then
-		return fill, light, Theme.Ink, 1
-	end
-	return fill, light, Theme.Text, 0
-end
+-- The shine pill's look, as pillLook (shared with the pad sign's shine tag).
+SlimeInfoCard.shineLook = SlimePadSign.shineLook
 
 -- The rows shown for `count` rows (3 = not for sale, 4 = with the price), stacked top to bottom.
 function SlimeInfoCard.rows(count: number): { Row }
