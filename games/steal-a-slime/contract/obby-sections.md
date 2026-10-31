@@ -213,3 +213,22 @@ The old course was too easy. Tiers shift up one notch from the drafts:
 * **hard** = tight: windows 0.75-1.0 s, small margins, long sequences without a rest. Still passes every check.
 Where a draft variant is too easy for its tier after this shift, tighten its numbers (shorter windows, longer
 gaps up to the limits, more hazards, faster motions); don't drop it.
+
+## 11. Settled while building the kit (these win over earlier wording)
+
+* Rotation: `CFrame.fromEulerAnglesYXZ(rad(pitch), rad(yaw), rad(roll))` in the course frame. A positive `roll`
+  lifts the part's forward (+x) end: that is how a ramp climbs (`Kit.ramp` sets it). `pitch` banks sideways.
+* `Pick = { id, tier, variant, seed }`; `variant = 0` is the idea's generator. Part ids: `s` start, `h` home catch
+  pad, `f` finish, `l<n>` connectors, `<section>.<index>` section parts; `motion.next` holds those ids.
+* Motion timing has ONE source of truth: `Kit.offsetAt / pathAt / patternAt / sweepAt / punchAt / conveyorAt`. The
+  checks sample them and ObbyFx plays them, so what a player sees is what the checks measured.
+* Markers are anchored direct children of their host part (ObbyFx moves and fades them with it); `ghostStop` stays
+  in the Course model with `ObbyHost`. `ObbyCheck.MARKER_PARTS` mirrors `ObbyParts.MARKER_PARTS` (keep in sync).
+  Gate locks are `Lock1..LockN` (need <= 9).
+* Walk-forward check: a 2-stud walker stepping up 1-stud ledges crosses holes shorter than about 3.6 studs, so every
+  walking line needs a gap >= 4, a wall, or an always-present hazard. Pads, lifts, belts, boosts and moving floors
+  carry the walker.
+* Width check exempts ladders, wind columns, sticky walls, vines and cannons; bounce pads still need 8.
+* Sounds: only the built-in `rbxasset://sounds/` files (volume_slider, action_jump, action_jump_land,
+  action_footsteps_plastic, impact_water) at different pitches, through `ObbyFx.sound(name)`.
+* Dark zones tint with their own ColorCorrection ("ObbyMovesDark"), never writing Lighting.
