@@ -589,17 +589,6 @@ parts(
 	"on (Ball primitives, half sunk)",
 	"scattered boulders (3-10 studs) are plain Ball parts that collide: nobody walks through them"
 )
-parts(
-	"decor_mushrooms",
-	"jolt",
-	12,
-	"colliders",
-	DECOR,
-	{ "^Mushroom%d+$" },
-	"on (one invisible flat-top Collider; cap Ball and stem off)",
-	"mushrooms (1.6-3.2 studs): a ball cap at knee height snags walkers or lifts them over, so a flat-top cylinder under it is the collision",
-	{ models = true }
-)
 -- The sand yard (YardProps) dressed with border meshes: rocks, fences and the hedge collide as meshes (the same lines in
 -- MeshAssets.COLLISION make their copies behind the wall solid too); trees are decor with invisible trunk posts.
 for _, y in
@@ -646,7 +635,7 @@ parts(
 parts(
 	"meadow_grass",
 	"jolt",
-	153,
+	129,
 	"off",
 	"Map.Decor.Meadow",
 	{ "^M%d+Tuft%d+Blade%d+$" },
@@ -656,7 +645,7 @@ parts(
 parts(
 	"meadow_flowers",
 	"jolt",
-	219,
+	249,
 	"off",
 	"Map.Decor.Meadow",
 	{ "^M%d+Flower%d+Head$", "^M%d+Flower%d+Stem$", "^M%d+Bunch%d+Head%d+$", "^M%d+Bunch%d+Leaves$" },
@@ -666,7 +655,7 @@ parts(
 parts(
 	"meadow_pebbles",
 	"jolt",
-	22,
+	20,
 	"off",
 	"Map.Decor.Meadow",
 	{ "^M%d+Rock%d+$" },

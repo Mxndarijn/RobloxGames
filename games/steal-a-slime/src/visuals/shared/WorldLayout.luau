@@ -14,7 +14,7 @@
 	           on top = the drop origin), Chute (primitive slide, hidden once
 	           the fountain mesh loads), Plaza
 	           (signpost, podiums, landing-ring tiles, goo drain), Decor
-	           (rocks, mushrooms, the RanchProps kit props), Border
+	           (rocks, the RanchProps kit props), Border
 	           (WorldBorder: the invisible wall ring + seeded hedges, fences,
 	           pines, hills, rocks along the edge). Kit meshes go on MeshAsset
 	           slots via server/MeshSwap.
@@ -1038,38 +1038,6 @@ local function rock(name: string, pos: Vec, s: number, salt: number): WorldNode
 	}
 end
 
--- A mushroom's ball cap overhangs at knee height: as the collision it snags walkers or lifts them over it. Stem and cap
--- are decor; one invisible upright cylinder under the cap (90% of its width, flat top at the cap's top) is the collision,
--- so a walker stops on the ground and can jump onto the flat top.
-local MUSHROOM_COLLIDER_WIDTH = 0.9
-
-local function mushroom(name: string, pos: Vec, salt: number): WorldNode
-	local h = 1.6 + hash(salt, 21) * 1.6
-	local capColor = if hash(salt, 22) < 0.5 then { 232, 72, 104 } else { 240, 158, 64 }
-	local cap = h * 1.3
-	local m = { name = name, class = "Model", primaryPart = "Stem", children = {} :: { WorldNode } }
-	local stem = disc("Stem", h, 0.8, { pos[1], h / 2, pos[3] }, { 246, 232, 206 })
-	stem.canCollide = false
-	table.insert(m.children :: { WorldNode }, stem)
-	table.insert(m.children :: { WorldNode }, {
-		name = "Cap",
-		class = "Part",
-		shape = "Ball",
-		size = { cap, cap, cap },
-		pos = { pos[1], h, pos[3] },
-		rot = { 0, 0, 0 },
-		color = capColor,
-		material = "SmoothPlastic",
-		canCollide = false,
-	})
-	local top = h + cap / 2
-	local collider = disc("Collider", top, cap * MUSHROOM_COLLIDER_WIDTH, { pos[1], top / 2, pos[3] }, capColor)
-	collider.transparency = 1
-	collider.canTouch = false -- queryable: slime walk sweeps (WorldView, RespectCanCollide) route round it
-	table.insert(m.children :: { WorldNode }, collider)
-	return m
-end
-
 -- Keeps decor off the drop ring (34..62 + margin), the ring path, plots,
 -- spoke paths, the chute, the prop spots and the border wall.
 local function clearSpot(pos: Vec, radius: number): boolean
@@ -1166,7 +1134,7 @@ local function resolveProp(p: RanchProps.Placement): RanchProp
 	}
 end
 
--- Scattered rocks and mushrooms between and behind the plots, and where they
+-- Scattered rocks between and behind the plots, and where they
 -- landed (x, z, radius).
 local function scatter(): ({ WorldNode }, { { number } })
 	local children: { WorldNode } = {}
@@ -1179,7 +1147,7 @@ local function scatter(): ({ WorldNode }, { { number } })
 		end
 		return false
 	end
-	local rocks, mushrooms = 0, 0
+	local rocks = 0
 	for k = 1, 120 do
 		local yaw = hash(k, 1) * 360
 		local r = 90 + hash(k, 2) * 205
@@ -1189,10 +1157,6 @@ local function scatter(): ({ WorldNode }, { { number } })
 			if add(rock(`Rock{rocks + 1}`, pos, s, k), pos, s) then
 				rocks += 1
 			end
-		else
-			if add(mushroom(`Mushroom{mushrooms + 1}`, pos, k), pos, 2) then
-				mushrooms += 1
-			end
 		end
 	end
 	return children, placed
@@ -1200,7 +1164,7 @@ end
 
 -- Meadow clusters in the grass band behind the plots (Meadow), clear of the
 -- same ground as the scatter (plots, spoke paths, prop spots, kit props) and
--- of the scattered rocks and mushrooms themselves.
+-- of the scattered rocks themselves.
 function WorldLayout.meadowClusters(): { Meadow.Cluster }
 	local _, placed = scatter()
 	return Meadow.clusters(function(x: number, z: number, radius: number): boolean
@@ -1246,7 +1210,7 @@ local function decor(): WorldNode
 	local children = scatter()
 	table.insert(children, Meadow.build(WorldLayout.meadowClusters()) :: any)
 	-- Kit ranch props (RanchProps table, PropClearance keeps them off the
-	-- lanes); the rocks and mushrooms above already stepped round them.
+	-- lanes); the rocks above already stepped round them.
 	for _, prop in WorldLayout.RANCH_PROPS do
 		local look = RANCH_LOOKS[prop.mesh] or { WOOD, "WoodPlanks" }
 		local slot = block(prop.name, prop.size, prop.pos, look[1], look[2], { 0, prop.yaw, 0 })
