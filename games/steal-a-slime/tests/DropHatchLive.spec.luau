@@ -90,6 +90,22 @@ local four = grow(#Config.BASE_FLOORS)
 local two = grow(2)
 local three = grow(3)
 
+-- { [floor]: { TubeOpen, TubeOwner } } on every DropPrompt standing now (the client shows it from these)
+local function tubeMarks()
+	local out = {}
+	for f = 2, #Config.BASE_FLOORS do
+		local floor = plot():FindFirstChild(`Floor_{f}`)
+		local prompt = floor
+			and floor:FindFirstChild("DropHatch")
+			and floor.DropHatch:FindFirstChild("DropPrompt", true)
+		if prompt then
+			out[f] = { prompt:GetAttribute("TubeOpen"), prompt:GetAttribute("TubeOwner") }
+		end
+	end
+	return out
+end
+local marks = tubeMarks()
+
 describe("stair top (the flat landing stands only on the top jar)", function()
 	it("makes only the top jar's landing solid, and follows the top as the tower changes", function()
 		for f = 2, #Config.BASE_FLOORS do
@@ -124,5 +140,9 @@ describe("drop hatches (only the top jar drops you down the tube)", function()
 		expect(two[3]).toBe(nil)
 		expect(three[2]).toEqual({ false, false, false })
 		expect(three[3]).toEqual({ true, true, true })
+	end)
+	it("marks each tube prompt open (top jar only) and with its owner, for the client to show", function()
+		expect(marks[2]).toEqual({ false, 2003 })
+		expect(marks[3]).toEqual({ true, 2003 })
 	end)
 end)

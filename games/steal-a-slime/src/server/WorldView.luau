@@ -1849,7 +1849,13 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 				setIfChanged(plot, Constants.PLOT_BASE_ATTRIBUTE, base)
 			end
 			if floors then
-				BaseFloors.sync(plot, index, if session then session.data.padsUnlocked else 0, floors)
+				BaseFloors.sync(
+					plot,
+					index,
+					if session then session.data.padsUnlocked else 0,
+					if session then session.userId else nil,
+					floors
+				)
 			end
 			local view = PlotPrompts.describe(world, index, now)
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)

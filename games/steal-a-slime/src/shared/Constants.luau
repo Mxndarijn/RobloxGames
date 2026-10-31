@@ -184,6 +184,10 @@ return table.freeze({
 	BUY_PAD_PROMPT_NAME = "BuyPadPrompt", -- on the lowest locked Pad_<j>
 	MERGE_PROMPT_NAME = "MergePrompt", -- on MergeVat
 	DROP_PROMPT_NAME = "DropPrompt", -- in every upper jar's DropHatch (CONTRACT.md §5.3): the owner, inside the top jar
+	-- On every DropPrompt (CONTRACT.md §5.3): TubeOpen = the top jar's hatch, TubeOwner = the plot owner's UserId (nil
+	-- on a free plot). Each client shows the prompt only when it is open, theirs, and they carry nothing.
+	DROP_PROMPT_OPEN_ATTRIBUTE = "TubeOpen",
+	DROP_PROMPT_OWNER_ATTRIBUTE = "TubeOwner",
 	-- One ShopPrompt (E) on each shop stand's Counter (CONTRACT.md §27.3; the server opens that shop) and "Talk" (E)
 	-- on the TutorialNpc (CONTRACT.md §5.3; the UI opens the Guide menu on PromptTriggered).
 	SHOP_PROMPT_NAME = "ShopPrompt",
