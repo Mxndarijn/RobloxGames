@@ -1537,7 +1537,7 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 				local keys = Constants.FRIENDS_PROMPT_KEYS
 				prompt.KeyboardKeyCode = (Enum.KeyCode :: any)[keys.keyboard]
 				prompt.GamepadKeyCode = (Enum.KeyCode :: any)[keys.gamepad]
-				prompt.HoldDuration = 0 -- free and undoable
+				-- keeps HOLD_CONFIRM_SECONDS like Lock: letting people in is risky, and one stray tap must not flip it
 			end
 			prompt.RequiresLineOfSight = false
 			prompt.MaxActivationDistance = Config.PLOT_PAD_PROMPT_DISTANCE

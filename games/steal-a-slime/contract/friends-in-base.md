@@ -18,8 +18,8 @@ Owners: Phoenix (`src/server`, `src/shared`), Jolt (`src/ui`).
 |---|---|---|
 | `"ToggleFriends"` | none | Flips `data.allowFriends`. Toasts the owner; on switching on, toasts each friend in the server "<name> lets you into their base". Refused with `"unknown action"` when the feature is off. Rate limit 0.5 s. |
 
-- `FriendsPrompt` (`Constants.FRIENDS_PROMPT_NAME`) is an owner-only plot prompt on the `LockButton`, next to `LockPrompt`, with the plot prompt rules of §8.5 (`ShowOnlyToUserId`, range check through `PlotPadGuard`, kind `"ToggleFriends"`). Keys `Constants.FRIENDS_PROMPT_KEYS` (G, gamepad ButtonY; F is the pad hatch key). Instant. `ActionText` "Allow friends" / "Block friends", `ObjectText` "Friends: blocked" / "Friends can enter".
-- `LockPrompt` and `FriendsPrompt` use `ProximityPromptStyle.Custom`: `src/ui/SlimeKeyCard` draws one card over the button, titled with the lock status from the `LockPrompt` ObjectText ("LOCKED 1:42" / "OPEN", without the "<name>'s base: " part), the `FriendsPrompt` ObjectText under it, one row per prompt (lock first).
+- `FriendsPrompt` (`Constants.FRIENDS_PROMPT_NAME`) is an owner-only plot prompt on the `LockButton`, next to `LockPrompt`, with the plot prompt rules of §8.5 (`ShowOnlyToUserId`, range check through `PlotPadGuard`, kind `"ToggleFriends"`). Keys `Constants.FRIENDS_PROMPT_KEYS` (G, gamepad ButtonY; F is the pad hatch key). A hold of `Config.HOLD_CONFIRM_SECONDS`, like `LockPrompt`, so a stray tap never flips it. `ActionText` "Allow friends" / "Block friends", `ObjectText` "Friends: blocked" / "Friends can enter".
+- `LockPrompt` and `FriendsPrompt` use `ProximityPromptStyle.Custom`: `src/ui/SlimeKeyCard` draws one card over the button, titled with the lock status from the `LockPrompt` ObjectText ("LOCKED 1:42" / "OPEN", without the "<name>'s base: " part), the `FriendsPrompt` ObjectText under it, one row per prompt (lock first). While the base is locked its `LockPrompt` is off, so the card draws a greyed "Locked" row in the lock row's place (no key, no input): the friends row never moves up under a finger that meant to lock.
 
 ## 42.3 Attributes
 
