@@ -166,7 +166,7 @@ describe("meadow: clearances", function()
 			end
 		end
 	end)
-	it("keeps clear of the kit props and the scattered rocks and mushrooms", function()
+	it("keeps clear of the kit props, the scattered rocks and the ground decor", function()
 		local others = {}
 		for _, prop in WorldLayout.RANCH_PROPS do
 			table.insert(others, { prop.pos[1], prop.pos[3], prop.radius })
@@ -174,9 +174,8 @@ describe("meadow: clearances", function()
 		for _, n in decor.children do
 			if string.match(n.name, "^Rock%d+$") then
 				table.insert(others, { n.pos[1], n.pos[3], math.max(n.size[1], n.size[3]) / 2 })
-			elseif string.match(n.name, "^Mushroom%d+$") then
-				local stem = n.children[1]
-				table.insert(others, { stem.pos[1], stem.pos[3], 2 })
+			elseif n.attributes and n.attributes.MeshAsset and string.sub(n.attributes.MeshAsset, 1, 6) == "decor_" then
+				table.insert(others, { n.pos[1], n.pos[3], math.sqrt(n.size[1] ^ 2 + n.size[3] ^ 2) / 2 })
 			end
 		end
 		for _, p in allParts() do
