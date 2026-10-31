@@ -3,7 +3,7 @@
 	Guide panel: what the Guide NPC tells you. Opened by "Talk" (E) at the TutorialNpc (init.client,
 	Constants.GUIDE_PROMPT), closed like every menu (X, Esc, B, tap outside). Not in the nav. One next-goal card
 	and up to GuideTips.MAX_TIPS icon tips (GuideTips.view). While the tutorial runs, the first slots hold its
-	buttons: "Show the tutorial again" when the player shrank the tutorial card (ctx.tutorial, TutorialCard; it
+	buttons: "Show the tutorial again" when the player hid the tutorial card (ctx.tutorial, TutorialCard; it
 	opens the card and closes the Guide), and "Hold to skip the tutorial" (Request SkipTutorial).
 ]]
 

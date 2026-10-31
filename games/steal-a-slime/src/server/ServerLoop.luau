@@ -43,6 +43,7 @@ local Shop = require(ReplicatedStorage.Shared.Shop)
 local SlimeGuard = require(script.Parent.SlimeGuard)
 local SlimeGuardView = require(script.Parent.SlimeGuardView)
 local Spawner = require(script.Parent.Spawner)
+local Steal = require(ReplicatedStorage.Shared.Steal)
 local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
 
@@ -119,7 +120,7 @@ local function stepLockPad(loop: Loop, player: Player, session: World.Session, t
 		and button ~= nil
 		and LockPadView.standing(plot, button, root)
 		and (loop.ctx.plotPadAccess == nil or PlotPadGuard.check(loop.ctx.plotPadAccess(session.userId, "Lock")) == nil)
-	if LockPad.step(session, onPad, t < session.lockUntil, t) then
+	if LockPad.step(session, onPad, Steal.lockBlocked(session.data, session.lockUntil, t), t) then
 		Actions.triggerPlotPrompt(loop.world, session.userId, session.plotIndex, "Lock", t, loop.ctx)
 	end
 end

@@ -19,6 +19,7 @@ export type Progress = {
 	tutorialStep: number,
 	stats: { caught: number?, merges: number?, locks: number? }?,
 	padsUnlocked: number?,
+	speedCoil: boolean?,
 	upgrades: { [string]: number }?,
 	consumables: { held: { [string]: number }? }?,
 	pvp: { tiers: { [string]: number }?, traps: { [string]: number }?, fun: { string }? }?,
@@ -59,7 +60,8 @@ end
 -- True when the player owns anything from the Item Shop or the Upgrade Shop.
 local function ownsShopItem(progress: Progress): boolean
 	local pvp = progress.pvp
-	return anyPositive(progress.upgrades)
+	return progress.speedCoil == true
+		or anyPositive(progress.upgrades)
 		or anyPositive(progress.consumables and progress.consumables.held)
 		or (pvp ~= nil and (anyPositive(pvp.tiers) or anyPositive(pvp.traps) or #(pvp.fun or {}) > 0))
 end

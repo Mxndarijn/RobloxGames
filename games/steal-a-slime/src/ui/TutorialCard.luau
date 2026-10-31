@@ -4,8 +4,9 @@
 	cards (Widgets.noticeCard / noticeIcon).
 
 	* The step card: Gold ring (guidance), the step's icon, title and one hint line that names the current
-	  device's control (Tutorial.fromState), and "3/8" on the right. It stays until the server moves the step on.
-	  Tapping it shrinks it to its icon; tapping again opens it. The Guide's "Show the tutorial again" opens it too.
+	  device's control (Tutorial.fromState), and on the right "3/8" over a Hide button. It stays until the server
+	  moves the step on. The card itself takes no taps; Hide puts it away until the next step, and the Guide's
+	  "Show the tutorial again" brings it back.
 	* The done card: Good (mint) ring, "🎉 <what was done>" for DONE_SECONDS after a step is done; after the last
 	  step "Tutorial done" with a pointer to Goals. Their time is paused while a menu or popup hides them.
 
@@ -32,8 +33,10 @@ local TutorialCard = {}
 
 TutorialCard.DONE_SECONDS = 2.5
 TutorialCard.FINISHED_SECONDS = 6
-TutorialCard.COUNTER_W = 44 -- the "3/8" column on the right
-TutorialCard.NARROW_W = 300 -- banner stacks narrower than this (design px) leave the "3/8" column out
+TutorialCard.SIDE_W = Layout.MIN_TOUCH_DESIGN -- the right column: "3/8" over Hide; the whole column is Hide's tap area
+TutorialCard.HIDE_H = 26 -- the Hide pill (design px)
+TutorialCard.HIDE_TEXT = "Hide"
+TutorialCard.NARROW_W = 300 -- banner stacks narrower than this (design px) leave the "3/8" out and put Hide under the icon
 TutorialCard.GAP = 10 -- design px between the cards and the hotbar (or the carry card) under them
 
 export type TutorialCard = {
@@ -160,15 +163,17 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 
 	local latest: any = nil
 	local shownId: string? = nil
-	local collapsed = false
+	local collapsed = false -- the player hid the current step's card
 	local menuOpen = false
-	local narrow = false -- a phone's narrow stack: no "3/8" column
+	local narrow = false -- a phone's narrow stack: no "3/8"
 	local wanted = false -- a step is running
 	local doneUntil = 0
 	local finishedUntil = 0
 	local skipped = false -- the player asked to skip: no "Tutorial done" card
 	local screen: Layout.Screen? = nil
 	local carrying = false -- the carry card has the hotbar's place
+
+	local refresh: () -> ()
 
 	-- The cards are built the first time something shows, so a player past the tutorial carries none.
 	local parts: any = nil
@@ -177,34 +182,51 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 			return parts
 		end
 		local done = buildCard(frame, "Done", 1, Theme.Good, 0)
-		local step = buildCard(frame, "Step", 2, Theme.Gold, TutorialCard.COUNTER_W)
-		local counter = Widgets.label({
-			Name = "Counter",
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -(N.pad + 4), 0.5, 0),
-			Size = UDim2.fromOffset(TutorialCard.COUNTER_W, N.title),
-			Font = Theme.Font,
-			TextSize = N.sub,
-			TextColor3 = Theme.Gold,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			Parent = step.card,
-		})
-		-- The whole step card is the tap target that shrinks / opens it.
-		local tap = create("TextButton", {
-			Name = "Tap",
+		local step = buildCard(frame, "Step", 2, Theme.Gold, TutorialCard.SIDE_W)
+		local function hide()
+			collapsed = true
+			refresh()
+		end
+		-- The right column, full card height, is Hide's tap area (at least MIN_TOUCH on a phone); the rest of the
+		-- card takes no taps.
+		local side = create("TextButton", {
+			Name = "Hide",
 			Text = "",
 			AutoButtonColor = false,
 			BackgroundTransparency = 1,
-			Size = UDim2.fromScale(1, 1),
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -4, 0, 0),
+			Size = UDim2.new(0, TutorialCard.SIDE_W, 1, 0),
 			ZIndex = 2,
 			Parent = step.card,
 		})
-		parts = { done = done, step = step, counter = counter, tap = tap }
+		side.Activated:Connect(hide)
+		local counter = Widgets.label({
+			Name = "Counter",
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, N.pad),
+			Size = UDim2.new(1, 0, 0, N.sub),
+			Font = Theme.Font,
+			TextSize = N.sub,
+			TextColor3 = Theme.Gold,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Parent = side,
+		})
+		local pill = Widgets.button({
+			Name = "HideButton",
+			Text = TutorialCard.HIDE_TEXT,
+			TextSize = 14,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -N.pad),
+			Size = UDim2.new(1, -4, 0, TutorialCard.HIDE_H),
+			Parent = side,
+		}, Theme.Info, hide)
+		parts = { done = done, step = step, counter = counter, pill = pill.instance, side = side }
 		return parts
 	end
 
-	local function refresh()
-		local showStep = wanted and not menuOpen
+	function refresh()
+		local showStep = wanted and not menuOpen and not collapsed
 		local showDone = os.clock() < doneUntil and not menuOpen
 		frame.Visible = showStep or showDone
 		if not parts then
@@ -213,13 +235,23 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		local step, counter = parts.step, parts.counter
 		step.card.Visible = showStep
 		parts.done.card.Visible = showDone
-		step.column.Visible = not collapsed
-		step.column.Size = UDim2.new(1, -(N.icon + N.gap + (if narrow then 0 else TutorialCard.COUNTER_W)), 0, 0)
-		counter.Visible = not collapsed and not narrow
-		step.card.AutomaticSize = if collapsed then Enum.AutomaticSize.XY else Enum.AutomaticSize.Y
-		step.card.Size = if collapsed then UDim2.fromOffset(0, 0) else UDim2.fromScale(1, 0)
-		step.row.AutomaticSize = if collapsed then Enum.AutomaticSize.XY else Enum.AutomaticSize.Y
-		step.row.Size = if collapsed then UDim2.fromOffset(0, 0) else UDim2.fromScale(1, 0)
+		-- On a phone's narrow stack the "3/8" goes and Hide moves under the icon, so the title and hint keep the
+		-- card's full width; the card is then at least as tall as the icon and the pill.
+		local sideW = if narrow then 0 else TutorialCard.SIDE_W
+		step.column.Size = UDim2.new(1, -(N.icon + N.gap + sideW), 0, 0)
+		counter.Visible = not narrow
+		local list = step.row:FindFirstChildOfClass("UIListLayout") :: UIListLayout
+		list.VerticalAlignment = if narrow then Enum.VerticalAlignment.Top else Enum.VerticalAlignment.Center
+		step.card.Size = UDim2.new(1, 0, 0, if narrow then N.pad * 2 + N.icon + 4 + TutorialCard.HIDE_H else 0)
+		parts.side.AnchorPoint = if narrow then Vector2.new(0, 1) else Vector2.new(1, 0)
+		parts.side.Position = if narrow then UDim2.new(0, 4, 1, 0) else UDim2.new(1, -4, 0, 0)
+		parts.side.Size = if narrow
+			then UDim2.fromOffset(TutorialCard.SIDE_W, TutorialCard.SIDE_W)
+			else UDim2.new(0, TutorialCard.SIDE_W, 1, 0)
+		parts.pill.Position = if narrow
+			then UDim2.new(0, N.pad - 4 + N.icon / 2, 1, -N.pad)
+			else UDim2.new(0.5, 0, 1, -N.pad)
+		parts.pill.Size = UDim2.new(0, if narrow then N.icon else TutorialCard.SIDE_W - 4, 0, TutorialCard.HIDE_H)
 	end
 
 	local function showDone(title: string, sub: string?, seconds: number)
@@ -241,13 +273,6 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		p.step.title.Text = view.title
 		p.step.sub.Text = view.body
 		p.counter.Text = view.counter
-		if not p.wired then
-			p.wired = true
-			p.tap.Activated:Connect(function()
-				collapsed = not collapsed
-				refresh()
-			end)
-		end
 	end
 
 	-- Bottom edge just above the hotbar, or above the carry card while carrying (the bar is hidden then).
@@ -306,8 +331,7 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		end
 	end
 
-	-- Phones' narrow banner stack (Layout.screen banners narrower than NARROW_W) drops the "3/8" column so the
-	-- title and hint keep their width.
+	-- Phones' narrow banner stack (Layout.screen banners narrower than NARROW_W) drops the "3/8" and keeps Hide.
 	function self.layout(s: Layout.Screen)
 		screen = s
 		narrow = s.banners.w < TutorialCard.NARROW_W
@@ -320,12 +344,12 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		refresh()
 	end
 
-	-- A step is running and its card is not shrunk (the hint ring follows it).
+	-- A step is running and its card is not hidden (the hint ring follows it).
 	function self.shown(): boolean
 		return wanted and not collapsed
 	end
 
-	-- The player shrank the current step's card (the Guide offers to show it again).
+	-- The player hid the current step's card (the Guide offers to show it again).
 	function self.hidden(): boolean
 		return wanted and collapsed
 	end

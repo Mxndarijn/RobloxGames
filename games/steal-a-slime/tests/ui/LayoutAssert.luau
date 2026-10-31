@@ -462,15 +462,27 @@ function LayoutAssert.navTexts(screen: Layout.Screen): { TextDesc }
 	return out
 end
 
--- The tutorial notice cards above the hotbar (TutorialCard): the step card (icon, title, hint, "3/8" column)
--- and the mint done card, at the banner width.
+-- The tutorial notice cards above the hotbar (TutorialCard): the step card (icon, title, hint, the right
+-- column with "3/8" over Hide) and the mint done card, at the banner width.
 function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 	local out: { TextDesc } = {}
 	local N = Layout.NOTICE_CARD
 	local inner = screen.banners.w - N.pad * 2 - 4 - N.icon - N.gap
-	-- TutorialCard.COUNTER_W, left out under TutorialCard.NARROW_W (300) on phones
-	local counterW = if screen.banners.w < 300 then 0 else 44
-	local stepW = inner - counterW
+	-- TutorialCard.SIDE_W (always there: Hide); the "3/8" in it is left out under TutorialCard.NARROW_W (300)
+	local sideW = Layout.MIN_TOUCH_DESIGN
+	local counterW = if screen.banners.w < 300 then 0 else sideW
+	-- On the narrow stack Hide sits under the icon (a pill N.icon wide) and the text takes the full width.
+	local narrowStack = screen.banners.w < 300
+	local columnW = if narrowStack then 0 else sideW
+	local stepW = inner - columnW
+	table.insert(out, {
+		name = "tutorial hide",
+		text = "Hide",
+		size = 14,
+		bold = true,
+		w = (if narrowStack then N.icon else sideW - 4) - 6, -- the pill inside its Ink outline
+		h = 26,
+	})
 	-- `n` lines of `size` text (Layout.textSize / wrappedHeight measure LINE_HEIGHT per line)
 	local function lines(size: number, n: number): number
 		return size * Layout.LINE_HEIGHT * n

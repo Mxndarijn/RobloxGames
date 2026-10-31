@@ -4,6 +4,7 @@ local Fixtures = require("./Fixtures")
 local PlayerData = require("../src/shared/PlayerData")
 local Steal = require("../src/shared/Steal")
 local TestRunner = require("./TestRunner")
+local TutorialProgress = require("../src/shared/TutorialProgress")
 local VatState = require("../src/shared/VatState")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -71,6 +72,28 @@ describe("Steal lock", function()
 		local ok2, again = Steal.buyLock(data, untilT, untilT)
 		expect(ok2).toBe(true)
 		expect(again).toBe(untilT + full)
+	end)
+end)
+
+describe("Steal lock on the tutorial's Lock step", function()
+	it("starts a lock inside the join lock, keeping the later end", function()
+		local data = Fixtures.data(nil, 0)
+		data.tutorialStep = assert(TutorialProgress.indexOf("Lock"))
+		expect(Steal.lockBlocked(data, 530, 500)).toBe(false)
+		local ok, untilT = Steal.buyLock(data, 530, 500) -- 30 s of join lock left
+		expect(ok).toBe(true)
+		expect(untilT).toBe(500 + Config.LOCK_SECONDS)
+		local ok2, longer = Steal.buyLock(data, 500 + Config.LOCK_SECONDS + 50, 500)
+		expect(ok2).toBe(true)
+		expect(longer).toBe(500 + Config.LOCK_SECONDS + 50) -- never shortens a running lock
+	end)
+	it("any other step (or none) keeps the one-lock rule", function()
+		local data = Fixtures.data(nil, 0)
+		for _, step in { 0, assert(TutorialProgress.indexOf("Grab")), assert(TutorialProgress.indexOf("Leaderboard")) } do
+			data.tutorialStep = step
+			expect(Steal.lockBlocked(data, 530, 500)).toBe(true)
+			expect((Steal.buyLock(data, 530, 500))).toBe(false)
+		end
 	end)
 end)
 
