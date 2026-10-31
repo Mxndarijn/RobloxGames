@@ -7,7 +7,7 @@ local roblox = require("@lune/roblox")
 local Actions = require("../src/server/Actions")
 local BaseShapes = require("../src/visuals/shared/BaseShapes")
 local Config = require("../src/shared/Config")
-local PlotLockGuard = require("../src/server/PlotLockGuard")
+local JarInside = require("../src/shared/JarInside")
 local TestRunner = require("./TestRunner")
 local WorldBuilder = require("../src/visuals/shared/WorldBuilder")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
@@ -457,7 +457,7 @@ describe("base shapes: the pagoda's stair turret counts as inside", function()
 		for f = 1, #Config.BASE_FLOORS do
 			expect(pagoda.inside(f, x, z)).toBe(true)
 			local y = WorldLayout.floorTop(f) + 4
-			expect(PlotLockGuard.insideJar(x, y, z, pagoda.guard :: any, #Config.BASE_FLOORS, true)).toBe(true)
+			expect(JarInside.inside(x, y, z, pagoda.guard :: any, #Config.BASE_FLOORS, true)).toBe(true)
 		end
 		-- just outside the turret wall, beside it: still outside
 		expect(pagoda.inside(3, 10.5, 25)).toBe(false)
@@ -570,7 +570,7 @@ describe("base shapes: the round Exclusive bases' generated layouts", function()
 				expect(shape.inside(f, 0, -(data.inside.radii[f] + 2))).toBe(false)
 				expect(shape.inside(f, 36, 0)).toBe(false)
 				local y = WorldLayout.floorTop(f) + 4
-				expect(PlotLockGuard.insideJar(0, y, 4.8, shape.guard :: any, #Config.BASE_FLOORS, true)).toBe(true)
+				expect(JarInside.inside(0, y, 4.8, shape.guard :: any, #Config.BASE_FLOORS, true)).toBe(true)
 			end
 		end)
 	end

@@ -80,6 +80,7 @@ local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
 local StealAlertFx = require(script.StealAlertFx)
+local StealReach = require(script.StealReach)
 local TickGuard = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core"):WaitForChild("TickGuard"))
 local TouchControls = require(script.TouchControls)
 local TutorialCard = require(script.TutorialCard)
@@ -1019,6 +1020,36 @@ local slimeKeys = SlimeKeys.start({
 	},
 })
 
+-- A Steal prompt never shows to a player outside that base or on another floor of it (StealReach, JarInside).
+local BaseShapes = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("BaseShapes"))
+local WorldLayout = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WorldLayout"))
+local stealReach = StealReach.start({
+	plots = function(): Instance?
+		return workspace:FindFirstChild(Constants.PLOTS_FOLDER)
+	end,
+	localUserId = player.UserId,
+	root = function(): BasePart?
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		return if root and root:IsA("BasePart") then root else nil
+	end,
+	jarOf = function(plot: Instance): any
+		local base = plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE)
+		return BaseShapes.get(if type(base) == "string" then base else nil).guard
+	end,
+	localPoint = function(plot: Instance, at: Vector3): { number }?
+		local base = plot:FindFirstChild("Base")
+		if not base or not base:IsA("BasePart") then
+			return nil
+		end
+		local p = base.CFrame:PointToObjectSpace(at)
+		return { p.X, p.Y - base.Size.Y / 2 + WorldLayout.PLOT_FLOOR_TOP, p.Z }
+	end,
+	slimesFolder = Constants.PLOT_SLIMES_FOLDER,
+	promptName = Constants.GRAB_PROMPT_NAME,
+	padsAttribute = Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE,
+})
+
 -- Settings: "Hold to sell" off makes Sell a tap.
 local function applySellHold()
 	slimeKeys.setSellHold(if PlayerSettings.on(player, "holdToSell") then Config.HOLD_CONFIRM_SECONDS else 0)
@@ -1644,6 +1675,7 @@ task.spawn(function()
 				panelByKey.WorldShop.tick()
 			end)
 			guardedTick("slimeKeys", slimeKeys.tick)
+			guardedTick("stealReach", stealReach.tick)
 			guardedTick("lockBreak", lockBreakPrompt.tick)
 			guardedTick("lockTimer", lockTimerTag.tick)
 			guardedTick("lockCard", slimeKeyCard.tick)
