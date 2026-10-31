@@ -456,7 +456,7 @@ local backdrop = Widgets.backdrop({
 })
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
--- order: Rebirth, Goals, SlimeDex, Codes, Skins, Leaders) or a world prompt, closed with their X, the backdrop, Esc or
+-- order: Rebirth, Goals, SlimeDex, Codes, Skins, Leaders, Settings) or a world prompt, closed with their X, the backdrop, Esc or
 -- gamepad B.
 local panelByKey: { [string]: any } = {
 	Merge = MergePanel.new(gui, ctx),
@@ -468,6 +468,7 @@ local panelByKey: { [string]: any } = {
 	Skins = SkinsPanel.new(gui, ctx),
 	Codes = CodesPanel.new(gui, ctx),
 	Leaderboard = LeaderboardPanel.new(gui, ctx),
+	Settings = SettingsPanel.new(gui, ctx),
 }
 type PanelEntry = { key: string, nav: Nav.Entry?, panel: any }
 local panels: { PanelEntry } = {}
@@ -485,10 +486,7 @@ for _, key in { "Merge", "WorldShop", "ExclusiveShop" } do
 end
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
 table.insert(allPanels, { key = "Welcome", nav = nil, panel = WelcomePanel.new(gui, ctx) })
--- The Settings card (no nav button) opens from the gear in the top-right slot.
-local settingsPanel = SettingsPanel.new(gui, ctx)
-table.insert(allPanels, { key = "Settings", nav = nil, panel = settingsPanel })
-settings.onChanged(settingsPanel.refresh)
+settings.onChanged(panelByKey.Settings.refresh)
 
 local allKeys: { string } = {}
 for _, entry in allPanels do
@@ -513,7 +511,6 @@ type NavButton = {
 }
 
 local openKey: string? = nil
-local settingsButton: any = nil -- the gear in the top-right slot (made once setOpen exists)
 local navButtons: { [string]: NavButton } = {}
 local screen: Layout.Screen? = nil
 local applyLayout: () -> ()
@@ -779,9 +776,6 @@ local function syncMenus()
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
-	if settingsButton then
-		settingsButton.instance.Visible = visibleKey == nil
-	end
 	refreshHint()
 end
 
@@ -814,34 +808,6 @@ for _, entry in allPanels do
 	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
 end
 inventory.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncTutorial)
-
--- Settings button: the gear, icon only, shown with no menu open; the open card has its own X. A small mute badge
--- on its corner says why the game is quiet.
-settingsButton = Widgets.button(
-	{
-		Name = "SettingsButton",
-		Text = Icons.SETTINGS,
-		TextSize = 28,
-		Visible = false,
-	},
-	Theme.BgLight,
-	function()
-		setOpen("Settings")
-	end
-)
-settingsButton.instance.Parent = gui
-local muteBadge = Widgets.iconBadge({
-	Name = "MuteBadge",
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.92, 0.92),
-	Visible = false,
-	Parent = settingsButton.instance,
-}, Icons.SOUND_OFF, Theme.Bad, Layout.SETTINGS_BADGE)
-local function refreshMuteBadge()
-	muteBadge.Visible = PlayerSettings.on(player, "muted")
-end
-refreshMuteBadge()
-settings.onChanged(refreshMuteBadge)
 
 for _, entry in panels do
 	local navEntry = entry.nav :: Nav.Entry
@@ -917,6 +883,21 @@ for _, entry in panels do
 		jar = if entry.key == "Dex" then DexJarView.new(tile, reducedMotion) else nil,
 	}
 end
+
+-- A small mute badge on the Settings tile's corner says why the game is quiet.
+local muteBadge = Widgets.iconBadge({
+	Name = "MuteBadge",
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.92, 0.92),
+	Visible = false,
+	ZIndex = Layout.NAV_TILE_Z.text + 1,
+	Parent = navButtons.Settings.tile,
+}, Icons.SOUND_OFF, Theme.Bad, Layout.SETTINGS_BADGE)
+local function refreshMuteBadge()
+	muteBadge.Visible = PlayerSettings.on(player, "muted")
+end
+refreshMuteBadge()
+settings.onChanged(refreshMuteBadge)
 
 for _, entry in allPanels do
 	entry.panel.close.Activated:Connect(function()
@@ -1334,8 +1315,6 @@ function applyLayout()
 	dailyPopup.layout(s, GuiService:GetGuiInset())
 	layoutNav(s)
 	syncMenus() -- the nav's phone / desktop visibility follows the new size
-	settingsButton.instance.Position = UDim2.fromOffset(s.settings.x, s.settings.y)
-	settingsButton.instance.Size = UDim2.fromOffset(s.settings.w, s.settings.h)
 	local guiInset = GuiService:GetGuiInset()
 	local back = Layout.backdrop(s, guiInset.X, guiInset.Y)
 	backdrop.Position = UDim2.fromOffset(back.x, back.y)
