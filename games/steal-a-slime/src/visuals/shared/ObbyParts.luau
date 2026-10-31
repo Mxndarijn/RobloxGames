@@ -576,7 +576,8 @@ local function addMarker(
 		local m = spec.motion
 		local offsets: { Vector3 } = {}
 		if m and (m.kind == "slide" or m.kind == "punch") then
-			local axis = if m.axis == "x" then Vector3.xAxis elseif m.axis == "y" then Vector3.yAxis else Vector3.zAxis
+			-- Kit.offsetAt's axes: "x", "z", anything else (nil included) is up.
+			local axis = if m.axis == "x" then Vector3.xAxis elseif m.axis == "z" then Vector3.zAxis else Vector3.yAxis
 			local amp = (m.amp :: number?) or 0
 			table.insert(offsets, axis * amp)
 			if m.kind == "slide" then

@@ -39,7 +39,11 @@ describe("ObbyCourse layout", function()
 					expect(part.size[3] >= ObbyCourse.LINK_MIN_WIDTH).toBe(true)
 					expect(part.size[3] <= ObbyCourse.WIDTH).toBe(true)
 				end
-				expect(part.look == "pad").toBe(false)
+				-- no checkpoint pads: the course itself adds only start, home, connectors and finish (section
+				-- parts, ids "<section>.<index>", may use the light "pad" look as a material)
+				if part.id and not string.find(part.id, ".", 1, true) then
+					expect(part.look == "pad").toBe(false)
+				end
 			end
 			expect(finishes).toBe(1)
 			expect(links).toBe(#OBBY.ORDER - 1)
@@ -203,9 +207,15 @@ describe("ObbyCourse sections, finish and frames", function()
 			local c = ObbyCourse.build(slot)
 			for _, span in c.spans do
 				local p = { (span.from + span.to) / 2, 0, 0 }
-				-- A fall resets within FALL_DEPTH under the section's lowest floor, not under the far lower end of the
-				-- whole course.
-				expect(ObbyCourse.fallHeight(c, p) >= span.floor - OBBY.FALL_DEPTH - 1e-6).toBe(true)
+				-- A fall resets within FALL_DEPTH under the lowest floor of this section (a section may dip below its
+				-- entry and exit, e.g. a low road), never under the far lower end of the whole course.
+				local low = span.floor
+				for _, floor in c.floors do
+					if floor.to >= span.from and floor.from <= span.to then
+						low = math.min(low, floor.top)
+					end
+				end
+				expect(ObbyCourse.fallHeight(c, p) >= low - OBBY.FALL_DEPTH - 1e-6).toBe(true)
 			end
 		end
 	end)
