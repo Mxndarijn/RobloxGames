@@ -217,7 +217,10 @@ describe("Exclusive Shop claw shop in the booted server", function()
 		expect(prompt.HoldDuration).toBe(0)
 		expect(prompt.MaxActivationDistance).toBe(12)
 	end)
-	it("keeps the stand's solid parts colliding (the kit meshes swap in once uploaded)", function()
+	it("swaps in the uploaded kit meshes and keeps the stand's solid parts colliding under them", function()
+		for _, slot in { "Shop", "Glass", "Hand", "Arm" } do
+			expect(`{slot} {stand[slot]:FindFirstChild("Mesh") ~= nil}`).toBe(`{slot} true`)
+		end
 		expect(stand.Body.CanCollide).toBe(true)
 		expect(stand.GlassFront.CanCollide).toBe(true)
 		expect(stand.Counter.CanCollide).toBe(true)

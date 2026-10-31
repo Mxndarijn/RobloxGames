@@ -245,12 +245,15 @@ entries["ranch_item_shop"] =
 entries["ranch_upgrade_cabinet"] =
 	{ assetId = 112507254723244, meshId = "rbxassetid://139845226619480", size = { 16.407, 15.29, 9.93 } }
 -- The Exclusive Shop's Slime Claw (contract/exclusive-shop.md §7; models/exclusive_slime_claw.py split in four): the
--- solid shop, the claw box glass, and the slime's goo hand and arm that the client moves. Not uploaded yet: no id, so
--- the stand's primitive claw shop shows.
-entries["exclusive_slime_claw_shop"] = { size = { 14.6, 22.232, 12.42 } }
-entries["exclusive_slime_claw_glass"] = { size = { 12.6, 7.65, 7.15 } }
-entries["exclusive_slime_claw_hand"] = { size = { 3.134, 3.378, 2.795 } }
-entries["exclusive_slime_claw_arm"] = { size = { 1.138, 1.7, 1.082 } }
+-- solid shop, the claw box glass, and the slime's goo hand and arm that the client moves.
+entries["exclusive_slime_claw_shop"] =
+	{ assetId = 74396602912152, meshId = "rbxassetid://135954495671820", size = { 14.6, 22.232, 12.42 } }
+entries["exclusive_slime_claw_glass"] =
+	{ assetId = 84556691531950, meshId = "rbxassetid://90052056080502", size = { 12.6, 7.65, 7.15 } }
+entries["exclusive_slime_claw_hand"] =
+	{ assetId = 102211562972917, meshId = "rbxassetid://87354359770991", size = { 3.134, 3.378, 2.795 } }
+entries["exclusive_slime_claw_arm"] =
+	{ assetId = 112584104329070, meshId = "rbxassetid://102864833743351", size = { 1.138, 1.7, 1.082 } }
 entries["phoenix_plaza_podium_1"] =
 	{ assetId = 77650457545661, meshId = "rbxassetid://94983834296700", size = { 8.923, 7.192, 8.58 } }
 entries["phoenix_plaza_podium_2"] =
