@@ -10,62 +10,10 @@
 	The lock never moves anyone. Guests the owner lets in (PlotGuests) pass the stopper too, and a guest who stops
 	being one keeps passing it until they have left the jar (SlimeGuard.formerGuests).
 
-	Positions are plot-local (Base CFrame space, door at -Z). No Roblox APIs: runs unchanged under Lune.
+	Who stands inside which base is JarInside's. No Roblox APIs: runs unchanged under Lune.
 ]]
 
 local PlotLockGuard = {}
-
--- A plot's jar tower in plot-local terms: inner glass radius per floor, floor 1's walking height, storey height.
--- A base's walls per floor (BaseShapes.guard): radii, or half-widths of a square when `square` (the Goo Factory).
-export type Jar = {
-	radii: { number },
-	floorTop: number,
-	floorHeight: number,
-	wall: number,
-	square: boolean?,
-	extra: { { x: number, z: number, r: number } }?, -- more round rooms inside on every floor (a stair turret)
-}
-
-PlotLockGuard.INSIDE_MARGIN = 1.5 -- studs in from the glass before a character counts as inside
-PlotLockGuard.OUTSIDE_MARGIN = 2.5 -- studs out past the glass before a character inside counts as out again
-
---[[
-	True when a character at plot-local (x, y, z) (y on the floorTop scale) is inside one of the plot's `floors`
-	built jars. `wasInside` (last tick) keeps it inside until it is clearly past the glass, so standing against the
-	stopper does not flicker in and out.
-]]
-function PlotLockGuard.insideJar(x: number, y: number, z: number, jar: Jar, floors: number, wasInside: boolean): boolean
-	local built = math.min(floors, #jar.radii)
-	if built < 1 then
-		return false
-	end
-	local pad = if wasInside then 1 else 0
-	local top = jar.floorTop + built * jar.floorHeight
-	if y < jar.floorTop - 2 - pad or y > top + pad then
-		return false
-	end
-	local f = math.clamp(math.floor((y - jar.floorTop) / jar.floorHeight) + 1, 1, built)
-	local r = if jar.square then math.max(math.abs(x), math.abs(z)) else math.sqrt(x * x + z * z)
-	local function within(radius: number, at: number): boolean
-		local limit = if wasInside
-			then radius + jar.wall + PlotLockGuard.OUTSIDE_MARGIN
-			else radius - PlotLockGuard.INSIDE_MARGIN
-		return at <= limit
-	end
-	if within(jar.radii[f], r) then
-		return true
-	end
-	local extra = jar.extra
-	if extra then
-		for _, e in extra do
-			local dx, dz = x - e.x, z - e.z
-			if within(e.r, math.sqrt(dx * dx + dz * dz)) then
-				return true
-			end
-		end
-	end
-	return false
-end
 
 PlotLockGuard.SHUT_GRACE = 2 -- seconds after a lock starts in which getting in is not intrusion
 

@@ -222,7 +222,8 @@ local function refreshView(t: number)
 		local root = WorldView.rootPart(player)
 		local position = WorldView.slimePosition(slimeId)
 		local distance = if root and position then (root.Position - position).Magnitude else math.huge
-		local ok, reason = Carry.grab(world, player.UserId, slimeId, distance, now())
+		local ok, reason =
+			Carry.grab(world, player.UserId, slimeId, distance, now(), WorldView.stealReach(world, player, slimeId))
 		if not ok and reason then
 			World.notify(world, player.UserId, reason, "info", nil)
 		end
