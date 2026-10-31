@@ -2,13 +2,15 @@
 --[[
 	ObbyService (pure, contract/obby.md)
 
-	Server side of the Goo Gauntlet sky obby. `world.obby` is the course standing now (ObbyCourse); `session.obbyRun`
+	Server side of the Obby (the sky course). `world.obby` is the course standing now (ObbyCourse); `session.obbyRun`
 	a player's run. `step` gets where every player stands (the adapter reads root positions) and returns the
 	teleports the adapter must make:
 	  * stepping into the portal circle starts a run (not while carrying a slime) and lifts the player to the start pad
-	  * standing on the next checkpoint pad counts it; one reached faster than OBBY.MIN_SECTION_SECONDS after the last
-	    marks the run invalid (it still finishes, but earns nothing)
-	  * falling below the course sends the runner back to the last pad they reached; wandering far off it ends the run
+	  * there are no checkpoints: the server tracks the furthest section the runner has been over (ObbyCourse.sectionAt),
+	    in order. Skipping a section, or finishing faster than OBBY.MIN_RUN_SECONDS, marks the run invalid (it still
+	    finishes, but earns nothing)
+	  * falling below the section under the runner sends them back to the start pad; the clock keeps running and the
+	    sections already done stay done. Wandering far off the course's ends or sides ends the run
 	  * the course stands in its own world (Place.zone): anyone there without a run is set down by the portal
 	  * the finish pad ends the run: the time, a best on this course, and the boost when ObbyRules says it is ready
 	    (data.obbyUntil / obbyReadyAt, saved); then the player is set down by the portal
@@ -51,7 +53,7 @@ export type View = {
 	readyAt: number?, -- a finish earns the boost again (server time); nil = ready now
 	sections: { string }, -- the current course's section names, in order
 	rotatesAt: number, -- server time the next rotation starts
-	run: { reached: number, of: number, startedAt: number }?, -- the run in progress
+	run: { section: number, of: number, startedAt: number }?, -- the run in progress
 	best: number?, -- best finish on the current course, seconds
 }
 
@@ -93,7 +95,7 @@ end
 function ObbyService.enter(world: World, session: Session, place: Place, now: number): (boolean, string?, Move?)
 	local course = world.obby
 	if not course then
-		return false, "The Goo Gauntlet isn't open yet", nil
+		return false, "The Obby isn't open yet", nil
 	end
 	if session.obbyRun then
 		return false, nil, nil
@@ -104,15 +106,14 @@ function ObbyService.enter(world: World, session: Session, place: Place, now: nu
 	if course.slot ~= ObbyCourse.slot(now) then
 		return false, "A new course is on its way. Back in a moment!", nil
 	end
-	session.obbyRun =
-		{ slot = course.slot, reached = 0, startedAt = now, lastAt = now, settleUntil = now + OBBY.MOVE_GRACE }
+	session.obbyRun = { slot = course.slot, section = 0, startedAt = now, settleUntil = now + OBBY.MOVE_GRACE }
 	World.markDirty(session)
 	World.track(world, session.userId, { op = "event", name = "ObbyStarted" })
 	local status = ObbyRules.phase(session.data, now)
 	local hint = if status == "ready"
 		then "Reach the finish for x1.5 income!"
 		else `Boost ready again in {clock(session.data.obbyReadyAt - now)}`
-	World.notify(world, session.userId, `Goo Gauntlet! {hint}`, "info", nil)
+	World.notify(world, session.userId, `Obby! {hint}`, "info", nil)
 	return true, nil, worldMove(place, session.userId, course.start)
 end
 
@@ -126,6 +127,9 @@ end
 
 local function finish(world: World, session: Session, run: World.ObbyRun, course: ObbyCourse.Course, now: number)
 	local seconds = now - run.startedAt
+	if seconds < OBBY.MIN_RUN_SECONDS then
+		run.invalid = true
+	end
 	session.obbyRun = nil
 	World.markDirty(session)
 	local best = session.obbyBest
@@ -142,9 +146,7 @@ local function finish(world: World, session: Session, run: World.ObbyRun, course
 		World.notify(
 			world,
 			session.userId,
-			`Goo Gauntlet cleared in {runTime(seconds)}! x{1 + OBBY.BONUS} income for {math.floor(
-				OBBY.BOOST_SECONDS / 60 + 0.5
-			)} min`,
+			`Obby cleared in {runTime(seconds)}! x{1 + OBBY.BONUS} income for {math.floor(OBBY.BOOST_SECONDS / 60 + 0.5)} min`,
 			"good",
 			"BossMvp"
 		)
@@ -179,34 +181,32 @@ local function progress(world: World, session: Session, place: Place, pos: Vec, 
 	end
 	local p = ObbyCourse.toLocal(place.frame, pos)
 	local off = ObbyService.OFF_COURSE
-	local fallAt = ObbyCourse.fallHeight(course, run.reached)
-	local inside = p[1] > -off and p[1] < course.length + off and math.abs(p[3]) < off
-	if not inside or p[2] < fallAt - off then
+	if p[1] < -off or p[1] > course.length + off or math.abs(p[3]) > off then
 		ObbyService.cancel(session)
-		World.notify(world, session.userId, "You left the Goo Gauntlet", "info", nil)
+		World.notify(world, session.userId, "You left the Obby", "info", nil)
 		return nil
 	end
-	if p[2] < fallAt then
+	local at = ObbyCourse.sectionAt(course, p)
+	if p[2] < ObbyCourse.fallHeight(course, at) then
+		local over = math.clamp(at, 1, #course.spans)
 		World.track(world, session.userId, {
 			op = "event",
 			name = "ObbyFell",
-			fields = { `Section - {sectionName(course, run.reached + 1)}` },
+			fields = { `Section - {sectionName(course, over)}` },
 		})
 		run.settleUntil = now + OBBY.MOVE_GRACE
-		return worldMove(place, session.userId, ObbyCourse.respawn(course, run.reached))
+		return worldMove(place, session.userId, course.start)
 	end
-	local nextCp = course.checkpoints[run.reached + 1]
-	if nextCp and ObbyCourse.onCheckpoint(nextCp, p) then
-		if now - run.lastAt < OBBY.MIN_SECTION_SECONDS then
-			run.invalid = true
+	if at > run.section then
+		if at > run.section + 1 then
+			run.invalid = true -- got past a section without being over it
 		end
-		run.reached = nextCp.index
-		run.lastAt = now
+		run.section = math.min(at, #course.spans)
 		World.markDirty(session)
-		if nextCp.index >= #course.checkpoints then
-			finish(world, session, run, course, now)
-			return exitMove(place, session.userId)
-		end
+	end
+	if at > #course.spans and ObbyCourse.onFinish(course, p) then
+		finish(world, session, run, course, now)
+		return exitMove(place, session.userId)
 	end
 	return nil
 end
@@ -241,7 +241,7 @@ local function rotate(world: World, place: Place, now: number, moves: { Move }):
 	end
 	for _, session in runners do
 		ObbyService.cancel(session)
-		World.notify(world, session.userId, "The Goo Gauntlet changed! Try the new course.", "info", nil)
+		World.notify(world, session.userId, "The Obby changed! Try the new course.", "info", nil)
 		table.insert(moves, exitMove(place, session.userId))
 	end
 	world.obby = ObbyCourse.build(slot)
@@ -319,7 +319,7 @@ function ObbyService.view(world: World, session: Session, now: number): View?
 		readyAt = boost.readyAt,
 		sections = ObbyCourse.names(course.picks),
 		rotatesAt = ObbyCourse.slotStart(ObbyCourse.slot(now) + 1),
-		run = if run then { reached = run.reached, of = #course.checkpoints, startedAt = run.startedAt } else nil,
+		run = if run then { section = run.section, of = #course.spans, startedAt = run.startedAt } else nil,
 		best = if best and best.slot == course.slot then best.seconds else nil,
 	}
 end

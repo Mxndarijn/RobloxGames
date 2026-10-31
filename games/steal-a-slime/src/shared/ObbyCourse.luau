@@ -2,14 +2,16 @@
 --[[
 	ObbyCourse (pure, contract/obby.md)
 
-	The Goo Gauntlet sky course as data. `pick(slot)` chooses the sections of one rotation (Config.OBBY.ORDER: one
+	The Obby sky course as data. `pick(slot)` chooses the sections of one rotation (Config.OBBY.ORDER: one
 	section per tier entry, no section twice, none from the course before it inside one chain of CHAIN_SLOTS
-	rotations) and a layout for each. `build(slot)` lays the course out: a start pad, then each section followed by a
-	checkpoint pad, the last one being the finish. Every server and client gets the same course for the same slot.
+	rotations) and a layout for each. `build(slot)` lays the course out: a start pad, then the sections joined by short
+	plain connectors (every section starts and ends with a jump), then the finish pad. There are no checkpoints: the
+	server tracks which section a runner is over (`sectionAt`) and sends a fall back to the start pad. Every server
+	and client gets the same course for the same slot.
 
 	Course-local frame: x runs forward along the course, y up, z to the right. A part's `pos` is its centre. Parts
 	flagged `step` are the walking path in order; tests check their gaps and rises at rest. Moving parts carry a
-	`motion` the client plays at server time (visuals/client/ObbyFx); the server only uses the checkpoints and floors.
+	`motion` the client plays at server time (visuals/client/ObbyFx); the server only uses the spans and the finish.
 	`toWorld` / `toLocal` map between this frame and the world for a Frame (origin + yaw, from WorldLayout.OBBY).
 ]]
 
@@ -31,6 +33,10 @@ export type Vec = { number } -- { x, y, z }
 	  lift    a see-through wind column: the local player inside it rises at `power` studs / s
 	  swing   a pendulum: swings `amp` degrees either side across the course, `arm` studs below its pivot
 	  rock    a seesaw plank: tips `amp` degrees forward and back round its centre
+  roll    a log (shape "log"): rolls round its own length once per `period` seconds and carries you sideways
+  punch   shoots out `amp` along `axis` fast, holds, slides back and rests: a shove that knocks you off
+  gust    a see-through wind zone: while frac(t / period + phase) < `duty` it blows the local player inside it
+          along `axis` at `power` studs / s (negative = the other way)
 ]]
 export type Motion = {
 	kind: string,
@@ -49,9 +55,11 @@ export type Motion = {
 export type Part = {
 	size: Vec,
 	pos: Vec,
-	look: string, -- "start" | "pad" | "finish" | "jelly" | "goo" | "bubble" | "ice" | "rope" | "tile" | "post" | "bar"
-	-- | "trampoline" | "blob" | "pipe" | "truss" | "fan" | "wind" | "plank" | "cannon" | "gate"
+	look: string, -- "start" | "pad" (a plain connector) | "finish" | "jelly" | "goo" | "bubble" | "ice" | "rope" | "tile" | "post" | "bar"
+	-- | "trampoline" | "blob" | "pipe" | "truss" | "fan" | "wind" | "plank" | "cannon" | "gate" | "belt" | "glow"
+	-- | "log" | "wave" | "puncher" | "gust"
 	shape: string?, -- "block" (default) | "disc" (a flat cylinder, size.x = diameter) | "ball" | "truss" (climbable)
+	-- | "log" (a cylinder lying along x, size.y = size.z = diameter)
 	ghost: boolean?, -- no collision (wind, pendulum rods)
 	motion: Motion?,
 	conveyor: Vec?, -- surface velocity in course-local studs / s
@@ -62,8 +70,16 @@ export type Part = {
 
 export type Pick = { id: string, tier: string, layout: number }
 
-export type Checkpoint = {
-	index: number, -- 1..#picks; the last one is the finish
+-- One section's stretch of the course along x, with the connector after it.
+export type Span = {
+	index: number, -- 1..#picks
+	from: number, -- course-local x where the section starts
+	to: number, -- course-local x where the next section (or the finish pad) starts
+	floor: number, -- the lower of its entry and exit heights: falls are measured from here
+}
+
+-- The finish pad.
+export type Zone = {
 	pos: Vec, -- pad top centre
 	size: Vec, -- pad footprint (x, _, z) and the height above the top that counts as standing on it (y)
 }
@@ -74,7 +90,8 @@ export type Course = {
 	parts: { Part },
 	start: Vec, -- where a runner appears (above the start pad)
 	startTop: number, -- the start pad's top
-	checkpoints: { Checkpoint },
+	spans: { Span }, -- one per pick, in order
+	finish: Zone,
 	length: number,
 }
 
@@ -85,10 +102,10 @@ type Section = { length: number, rise: number, parts: { Part } }
 local ObbyCourse = {}
 
 ObbyCourse.START_LENGTH = 12
-ObbyCourse.PAD_LENGTH = 8 -- checkpoint pad depth along the course
+ObbyCourse.LINK_LENGTH = 4 -- plain connector between two sections
 ObbyCourse.FINISH_LENGTH = 12
 ObbyCourse.WIDTH = 12 -- pad width across the course
-ObbyCourse.STAND_HEIGHT = 9 -- studs above a pad top that count as standing on it
+ObbyCourse.STAND_HEIGHT = 9 -- studs above the finish pad's top that count as standing on it
 ObbyCourse.THICK = 1 -- platform thickness
 
 ObbyCourse.NAMES = table.freeze({
@@ -116,6 +133,12 @@ ObbyCourse.NAMES = table.freeze({
 	GooGates = "Goo Gates",
 	BlobDrop = "Blob Drop",
 	Turntables = "Turntables",
+	GlowTrail = "Glow Trail",
+	TwoWays = "Two Ways",
+	RollingLogs = "Rolling Logs",
+	GooWave = "Goo Wave",
+	GooPunchers = "Goo Punchers",
+	GustyBridge = "Gusty Bridge",
 })
 
 ---------------------------------------------------------------------------
@@ -167,15 +190,15 @@ local function row(...: any): { any }
 	return { ... }
 end
 
--- Bouncy jelly cubes, staggered across and up.
+-- Bouncy jelly cubes, staggered across and up: real jumps, not steps.
 BUILD.JellySteps = function(layout)
 	local L = ({
-		{ gap = 2.5, size = 4, z = { 0, 2.5, -2.5, 2.5, 0 }, top = { 0, 1, 2, 1, 0 } },
-		{ gap = 2.5, size = 4, z = { -3, 0, 3, 0, -3 }, top = { 0, 1, 1.5, 1, 0.5 } },
-		{ gap = 3.5, size = 4.5, z = { 2.5, -2.5, 2.5, -2.5 }, top = { 0, 2, 0.5, 2.5 } },
-		{ gap = 3, size = 4, z = { -2, 2, -2, 2 }, top = { 1, 2, 3, 2 } },
-		{ gap = 2, size = 3.5, z = { 0, 3, 0, -3, 0, 3 }, top = { 0, 0, 1, 1, 0, 0 } },
-		{ gap = 4, size = 5, z = { 0, 0, 0 }, top = { 1.5, 3, 1.5 } },
+		{ gap = 3, size = 3.5, z = { 0, 2.5, -2.5, 2.5, 0 }, top = { 0, 1, 2, 1, 0 } },
+		{ gap = 3.5, size = 3.5, z = { -3, 0, 3, 0 }, top = { 1, 2, 3, 1.5 } },
+		{ gap = 4, size = 4, z = { 2.5, -2.5, 2.5, -2.5 }, top = { 0, 2, 0.5, 2.5 } },
+		{ gap = 3.5, size = 3, z = { -2, 2, -2, 2, 0 }, top = { 1, 2, 3, 2, 1 } },
+		{ gap = 3, size = 3, z = { 0, 3, 0, -3, 0 }, top = { 0, 1, 2, 1, 0 } },
+		{ gap = 4.5, size = 4, z = { 0, -1.5, 1.5 }, top = { 1.5, 3, 1.5 } },
 	})[layout]
 	local parts = {}
 	local x = L.gap
@@ -186,40 +209,43 @@ BUILD.JellySteps = function(layout)
 	return { length = x, rise = 0, parts = parts }
 end
 
--- Long goo beams that sway from side to side.
+-- Short goo beams sliding side to side, each one the other way: hop across when two line up.
 BUILD.WobbleBridge = function(layout)
 	local L = ({
-		{ beams = 2, length = 11, width = 3, gap = 2.5, amp = 1.2, period = 3, shift = 0.5 },
-		{ beams = 1, length = 22, width = 3, gap = 2.5, amp = 1.8, period = 3.4, shift = 0 },
-		{ beams = 3, length = 7, width = 2.5, gap = 2, amp = 1.5, period = 2.6, shift = 0.33 },
-		{ beams = 2, length = 12, width = 2.5, gap = 2, amp = 2, period = 3.8, shift = 0.25 },
-		{ beams = 4, length = 5, width = 3, gap = 2.5, amp = 1.2, period = 2.2, shift = 0.5 },
-		{ beams = 1, length = 26, width = 2.2, gap = 2.5, amp = 1, period = 2.6, shift = 0 },
+		{ beams = 3, length = 7, width = 3, gap = 2.5, amp = 2.5, period = 3.2 },
+		{ beams = 2, length = 12, width = 2.5, gap = 3, amp = 3, period = 3.6 },
+		{ beams = 4, length = 5, width = 3, gap = 2.5, amp = 2.5, period = 2.8 },
+		{ beams = 3, length = 7, width = 2.5, gap = 3, amp = 3, period = 3 },
+		{ beams = 4, length = 5.5, width = 3, gap = 2.5, amp = 3, period = 3.4 },
+		{ beams = 3, length = 8, width = 2.2, gap = 2.5, amp = 2, period = 2.6 },
 	})[layout]
 	local parts = {}
 	local x = L.gap
 	for i = 1, L.beams do
-		local motion = { kind = "slide", axis = "z", amp = L.amp, period = L.period, phase = (i - 1) * L.shift }
-		table.insert(parts, slab(x + L.length / 2, 0, 0, L.length, L.width, "goo", { motion = motion }))
+		local motion = { kind = "slide", axis = "z", amp = L.amp, period = L.period, phase = (i - 1) * 0.5 }
+		table.insert(
+			parts,
+			slab(x + L.length / 2, 0, 0, L.length, L.width, "goo", { motion = motion, tone = i % 2 + 1 })
+		)
 		x += L.length + L.gap
 	end
 	return { length = x, rise = 0, parts = parts }
 end
 
--- Floating bubble discs that bob up and down.
+-- Bubble discs bobbing up and down, each against the one before: jump when the next one is low.
 BUILD.BubbleHop = function(layout)
 	local L = ({
-		{ count = 4, gap = 3, size = 5, amp = 1.2, period = 2.4, z = { 0, 2, -2, 0 } },
-		{ count = 5, gap = 2.5, size = 4, amp = 1.5, period = 2.8, z = { -2, 0, 2, 0, -2 } },
-		{ count = 4, gap = 3, size = 5, amp = 1.8, period = 2.2, z = { 2, -2, 2, -2 } },
-		{ count = 5, gap = 2.5, size = 4, amp = 1, period = 2, z = { 0, -2.5, 0, 2.5, 0 } },
-		{ count = 4, gap = 3.5, size = 4.5, amp = 2.2, period = 3, z = { -2, -2, 2, 2 } },
-		{ count = 3, gap = 4.5, size = 6, amp = 2.5, period = 2.6, z = { 0, 3, -3 } },
+		{ count = 4, gap = 3.5, size = 4.5, amp = 2.5, period = 2.8, z = { 0, 2, -2, 0 } },
+		{ count = 5, gap = 2.8, size = 3.8, amp = 2, period = 2.6, z = { -2, 0, 2, 0, -2 } },
+		{ count = 4, gap = 3.5, size = 4.5, amp = 3, period = 3.2, z = { 2, -2, 2, -2 } },
+		{ count = 4, gap = 4, size = 4, amp = 2, period = 2.2, z = { 0, -2.5, 0, 2.5 } },
+		{ count = 4, gap = 3.5, size = 4, amp = 3, period = 3, z = { -2, -2, 2, 2 } },
+		{ count = 3, gap = 4.5, size = 5.5, amp = 3.5, period = 3.4, z = { 0, 3, -3 } },
 	})[layout]
 	local parts = {}
 	local x = L.gap
 	for i = 1, L.count do
-		local motion = { kind = "slide", axis = "y", amp = L.amp, period = L.period, phase = (i - 1) * 0.2 }
+		local motion = { kind = "slide", axis = "y", amp = L.amp, period = L.period, phase = (i - 1) * 0.5 }
 		table.insert(
 			parts,
 			slab(
@@ -237,77 +263,85 @@ BUILD.BubbleHop = function(layout)
 	return { length = x, rise = 0, parts = parts }
 end
 
--- Goo belts that push you sideways (or back) while you cross.
+-- Narrow goo belts that push you sideways off the edge: walk into the push, and jump the gaps.
 BUILD.GooConveyor = function(layout)
 	local L = ({
-		{ length = 8, width = 10, gap = 3, belts = { { 0, 0, 6 }, { 0, 0, -6 }, { 0, 0, 6 } } },
-		{ length = 7, width = 9, gap = 2.5, belts = { { 0, 0, -7 }, { 0, 0, 7 }, { 0, 0, -7 } } },
-		{ length = 8, width = 10, gap = 3, belts = { { 0, 0, 8 }, { -5, 0, 0 }, { 0, 0, -8 } } },
-		{ length = 5.5, width = 10, gap = 2.5, belts = { { 0, 0, -6 }, { 0, 0, 6 }, { 0, 0, -6 }, { 0, 0, 6 } } },
-		{ length = 10, width = 9, gap = 3, belts = { { -6, 0, 0 }, { 0, 0, 7 } } },
-		{ length = 7, width = 8, gap = 2.5, belts = { { 0, 0, 9 }, { 0, 0, 9 }, { 0, 0, -9 } } },
+		{ length = 7, width = 5, gap = 2.5, belts = { { 0, 0, 10 }, { 0, 0, -10 }, { 0, 0, 10 } } },
+		{ length = 5.5, width = 4.5, gap = 2.5, belts = { { 0, 0, -11 }, { 0, 0, 11 }, { 0, 0, -11 }, { 0, 0, 11 } } },
+		{ length = 8, width = 5, gap = 3, belts = { { 0, 0, 10 }, { -6, 0, 6 }, { 0, 0, -10 } } },
+		{ length = 9, width = 5.5, gap = 3, belts = { { 0, 0, 8 }, { 0, 0, -8 } } },
+		{ length = 7, width = 4, gap = 2.5, belts = { { -5, 0, 9 }, { 0, 0, -9 }, { -5, 0, 9 } } },
+		{ length = 12, width = 6, gap = 3, belts = { { 0, 0, 9 }, { 0, 0, -9 } } },
 	})[layout]
 	local parts = {}
 	local x = L.gap
 	for _, belt in L.belts do
-		table.insert(parts, slab(x + L.length / 2, 0, 0, L.length, L.width, "goo", { conveyor = belt, tone = 2 }))
+		-- Orange pushes right, blue pushes left.
+		local tone = if belt[3] >= 0 then 1 else 2
+		table.insert(parts, slab(x + L.length / 2, 0, 0, L.length, L.width, "belt", { conveyor = belt, tone = tone }))
 		x += L.length + L.gap
 	end
 	return { length = x, rise = 0, parts = parts }
 end
 
--- A grid of tiles that melt away a moment after you step on them.
+-- Tiles that melt right after you land: keep hopping along the route, never stop.
 BUILD.MeltingTiles = function(layout)
 	local L = ({
-		{ cols = 6, delay = 0.7, holes = {} },
-		{ cols = 7, delay = 0.6, holes = { ["2:1"] = true, ["4:3"] = true, ["6:1"] = true } },
-		{ cols = 6, delay = 0.5, holes = { ["2:3"] = true, ["3:1"] = true, ["5:3"] = true } },
-		{ cols = 7, delay = 0.8, holes = { ["1:1"] = true, ["3:3"] = true, ["5:1"] = true, ["7:3"] = true } },
-		{ cols = 6, delay = 0.45, holes = {} },
-		{
-			cols = 7,
-			delay = 0.6,
-			holes = { ["2:1"] = true, ["2:3"] = true, ["4:2"] = true, ["6:1"] = true, ["6:3"] = true },
-		},
+		{ delay = 0.5, route = { 2, 1, 2, 3, 2 }, holes = { "2:2", "4:2" } },
+		{ delay = 0.45, route = { 1, 1, 2, 3, 3 }, holes = { "1:2", "2:2", "3:1", "3:3", "4:2", "5:2" } },
+		{ delay = 0.4, route = { 2, 3, 3, 2, 1 }, holes = { "2:1", "2:2", "3:2", "4:3", "5:2" } },
+		{ delay = 0.5, route = { 3, 2, 1, 2, 3 }, holes = { "1:2", "3:2", "5:2", "2:3", "4:1" } },
+		{ delay = 0.35, route = { 2, 2, 2, 2, 2 }, holes = {} },
+		{ delay = 0.4, route = { 1, 2, 3, 2, 1 }, holes = { "1:2", "1:3", "3:1", "3:2", "5:2", "5:3" } },
 	})[layout]
-	local tile, gap = 4, 0.5
+	local tile, gap = 3.5, 2.5
+	local pitch = tile + gap
+	local hole = {}
+	for _, key in L.holes do
+		hole[key] = true
+	end
 	local parts = {}
-	for col = 1, L.cols do
-		local x = gap + (col - 1) * (tile + gap) + tile / 2
+	for col, routeLane in L.route do
+		local x = gap + (col - 1) * pitch + tile / 2
 		for lane = 1, 3 do
-			if not L.holes[`{col}:{lane}`] then
+			if not hole[`{col}:{lane}`] then
 				local motion = { kind = "melt", delay = L.delay, away = 2.5 }
-				local part = slab(x, 0, (lane - 2) * (tile + gap), tile, tile, "tile", { motion = motion, tone = lane })
-				part.step = lane == 2 -- the middle row is the reference path
+				local part = slab(x, 0, (lane - 2) * pitch, tile, tile, "tile", { motion = motion, tone = lane })
+				part.step = lane == routeLane
 				table.insert(parts, part)
 			end
 		end
 	end
-	return { length = gap + L.cols * (tile + gap), rise = 0, parts = parts }
+	return { length = gap + #L.route * pitch, rise = 0, parts = parts }
 end
 
--- A round platform swept by a spinning goo bar.
+-- A round platform swept by spinning goo bars: jump them as they come round.
 BUILD.Spinner = function(layout)
+	-- spin: the disc's own turn (0 = still); bars: { height of the bar's centre, period, length }
 	local L = ({
-		{ period = 4, bars = 1 },
-		{ period = -3.2, bars = 1 },
-		{ period = 4.4, bars = 2 },
-		{ period = 3, bars = 1 },
-		{ period = -4.4, bars = 2 },
-		{ period = 5, bars = 3 },
+		{ spin = 0, bars = { { 1.1, 3.4, 18 } } },
+		{ spin = 0, bars = { { 1.1, 3, 18 }, { 1.1, -4.6, 10 } } },
+		{ spin = 7, bars = { { 1.1, -3.6, 18 } } },
+		{ spin = 0, bars = { { 1.1, 2.6, 18 }, { 2.4, -3.8, 18 } } },
+		{ spin = -8, bars = { { 1.1, 3.2, 18 }, { 1.1, 3.2, 18 } } },
+		{ spin = 6, bars = { { 1.1, -2.8, 18 }, { 1.1, 4.4, 10 } } },
 	})[layout]
-	local gap, size = 2, 22
+	local gap, size = 2, 20
 	local cx = gap + size / 2
-	local parts = { slab(cx, 0, 0, size, size, "jelly", { shape = "disc", tone = 2 }) }
-	for i = 1, L.bars do
+	local disc = slab(cx, 0, 0, size, size, "jelly", { shape = "disc", tone = 2 })
+	if L.spin ~= 0 then
+		disc.motion = { kind = "spin", period = L.spin }
+	end
+	local parts = { disc }
+	for i, b in L.bars do
 		table.insert(
 			parts,
-			prop({ size - 2, 1.2, 1.2 }, { cx, 1.1, 0 }, "bar", {
-				motion = { kind = "spin", period = L.period, phase = (i - 1) * 0.5 / L.bars },
+			prop({ b[3], 1.2, 1.2 }, { cx, b[1], 0 }, "bar", {
+				motion = { kind = "spin", period = b[2], phase = (i - 1) * 0.25 },
 			})
 		)
 	end
-	table.insert(parts, prop({ 1.6, 3, 1.6 }, { cx, 1.5, 0 }, "post"))
+	table.insert(parts, prop({ 1.6, 3.4, 1.6 }, { cx, 1.7, 0 }, "post"))
 	return { length = gap * 2 + size, rise = 0, parts = parts }
 end
 
@@ -448,6 +482,7 @@ end
 ObbyCourse.TRAMPOLINE = 62 -- about 9.8 studs high
 ObbyCourse.CANNON = 75 -- about 14 studs high: long enough in the air to walk across a wide gap
 ObbyCourse.FAN_LIFT = 30
+ObbyCourse.GUST = 14 -- sideways push of a wind gust (studs / s): stronger than you can lean into on a narrow bridge
 
 -- Trampolines that bounce you up to higher ledges.
 BUILD.TrampolineField = function(layout)
@@ -475,15 +510,15 @@ BUILD.TrampolineField = function(layout)
 	return { length = x, rise = top, parts = parts }
 end
 
--- Goo terraces stepping down, with blobs rolling across them.
+-- Narrow goo terraces stepping down, swept by rolling blobs: time each drop between them.
 BUILD.GooCascade = function(layout)
 	local L = ({
-		{ n = 4, len = 7, drop = 1.5, gap = 1, blobs = { 2, 3 }, period = 2.6 },
-		{ n = 5, len = 5.5, drop = 1, gap = 0.5, blobs = { 1, 3, 5 }, period = 2.2 },
-		{ n = 3, len = 9, drop = 2.5, gap = 1.5, blobs = { 1, 2, 3 }, period = 3 },
-		{ n = 4, len = 6, drop = 2, gap = 1.5, blobs = { 2, 4 }, period = 2 },
-		{ n = 6, len = 4, drop = 1, gap = 1, blobs = { 2, 4, 6 }, period = 2.4 },
-		{ n = 4, len = 7.5, drop = 1, gap = 0.5, blobs = { 1, 2, 3, 4 }, period = 2.8 },
+		{ n = 4, len = 5, width = 6, drop = 2, gap = 3, blobs = { 2, 3 }, period = 2.2 },
+		{ n = 5, len = 4, width = 5, drop = 1.5, gap = 2.5, blobs = { 1, 3, 5 }, period = 2 },
+		{ n = 3, len = 7, width = 6, drop = 3, gap = 3.5, blobs = { 1, 2, 3 }, period = 2.6 },
+		{ n = 4, len = 5, width = 5, drop = 2.5, gap = 3, blobs = { 2, 4 }, period = 1.8 },
+		{ n = 4, len = 4.5, width = 6, drop = 2, gap = 3.5, blobs = { 1, 2, 3, 4 }, period = 2.4 },
+		{ n = 4, len = 5.5, width = 5, drop = 1.5, gap = 2.5, blobs = { 1, 2, 3, 4 }, period = 2 },
 	})[layout]
 	local blob = {}
 	for _, i in L.blobs do
@@ -494,9 +529,10 @@ BUILD.GooCascade = function(layout)
 	for i = 1, L.n do
 		local top = -i * L.drop
 		local cx = x + L.len / 2
-		table.insert(parts, slab(cx, top, 0, L.len, 10, "goo", { tone = i % 2 + 1 }))
+		table.insert(parts, slab(cx, top, 0, L.len, L.width, "goo", { tone = i % 2 + 1 }))
 		if blob[i] then
-			local motion = { kind = "slide", axis = "z", amp = 3.5, period = L.period, phase = i * 0.3 }
+			-- Rolls from edge to edge of its terrace.
+			local motion = { kind = "slide", axis = "z", amp = L.width / 2, period = L.period, phase = i * 0.3 }
 			table.insert(parts, prop({ 3, 3, 3 }, { cx, top + 1.5, 0 }, "blob", { shape = "ball", motion = motion }))
 		end
 		x += L.len + L.gap
@@ -504,48 +540,99 @@ BUILD.GooCascade = function(layout)
 	return { length = x, rise = -L.n * L.drop, parts = parts }
 end
 
--- A see-through goo pipe with holes in its floor.
+-- A see-through goo pipe with wide holes and a low roof: the roof cuts your jump short, so aim each hop.
 BUILD.GooPipe = function(layout)
+	-- roof: studs from the floor to the roof; holes: the gap before each floor, then the gap to the next pad
 	local L = ({
-		{ width = 7, floors = { 8, 6, 6 }, holes = { 1, 3, 3, 3 } },
-		{ width = 7, floors = { 5, 5, 5, 5 }, holes = { 1, 2.5, 2.5, 2.5, 2.5 } },
-		{ width = 7, floors = { 10, 4, 8 }, holes = { 1, 4, 3.5, 2 } },
-		{ width = 4, floors = { 4, 4, 4, 4, 4 }, holes = { 1, 2, 2, 2, 2, 2 } },
-		{ width = 7, floors = { 6, 3, 3, 6 }, holes = { 1, 3, 3, 3, 3 } },
-		{ width = 3, floors = { 12, 12 }, holes = { 1, 4, 1 } },
+		{ roof = 11, floors = { 4, 3, 3, 4 }, holes = { 2, 3.5, 3.5, 3.5, 2 }, z = { 0, -1.5, 1.5, 0 } },
+		{
+			roof = 10,
+			floors = { 3, 3, 3, 3, 3 },
+			holes = { 2, 3, 3, 3, 3, 2 },
+			z = { -1.5, 1.5, -1.5, 1.5, 0 },
+		},
+		{ roof = 12, floors = { 5, 3, 3, 4 }, holes = { 2, 4, 4, 4, 2 }, z = { 0, 1.5, -1.5, 0 } },
+		{
+			roof = 10,
+			floors = { 3, 2.5, 2.5, 2.5, 3 },
+			holes = { 2, 3.5, 3.5, 3.5, 3.5, 2 },
+			z = { 1.5, -1.5, 1.5, -1.5, 0 },
+		},
+		{ roof = 11, floors = { 4, 3, 3, 3, 4 }, holes = { 2, 4, 3, 4, 3, 2 }, z = { 0, 0, 0, 0, 0 } },
+		{ roof = 13, floors = { 3, 3, 3, 3 }, holes = { 2, 4.5, 4.5, 4.5, 2 }, z = { -1.5, 1.5, -1.5, 1.5 } },
 	})[layout]
 	local parts = {}
 	local x = 0
 	for i, len in L.floors do
 		x += L.holes[i]
-		table.insert(parts, slab(x + len / 2, 0, 0, len, L.width, "goo", { tone = 2 }))
+		table.insert(parts, slab(x + len / 2, 0, L.z[i], len, 4, "goo", { tone = 2 }))
 		x += len
 	end
 	x += L.holes[#L.holes]
-	-- Walls and a roof the whole way along, high enough for a full jump.
-	local inner, height = 8, 15
+	-- Walls and a roof the whole way along.
+	local inner = 8
+	local height = L.roof + 1
 	table.insert(parts, prop({ x, height, 1 }, { x / 2, height / 2 - 1, -inner / 2 - 0.5 }, "pipe"))
 	table.insert(parts, prop({ x, height, 1 }, { x / 2, height / 2 - 1, inner / 2 + 0.5 }, "pipe"))
-	table.insert(parts, prop({ x, 1, inner + 2 }, { x / 2, height - 0.5, 0 }, "pipe"))
+	table.insert(parts, prop({ x, 1, inner + 2 }, { x / 2, L.roof + 0.5, 0 }, "pipe"))
 	return { length = x, rise = 0, parts = parts }
 end
 
--- Climbable jelly ladders up to ledges: the course climbs.
+-- Climbable jelly ladders between small ledges, with a jump across between climbs: the course climbs.
 BUILD.StickyLadder = function(layout)
+	-- { "truss", height, z } climbs; { "ledge", length, z, gap before } stands (gap 0 = right against it)
 	local L = ({
-		{ row("truss", 8, 0), row("ledge", 6, 0), row("truss", 6, 0), row("ledge", 5, 0) },
+		{
+			row("truss", 6, 0),
+			row("ledge", 3, 0, 0),
+			row("ledge", 3, 3, 3),
+			row("truss", 6, 3),
+			row("ledge", 3, 3, 0),
+			row("ledge", 4, 0, 3),
+		},
 		{
 			row("truss", 4, 0),
-			row("ledge", 4, 0),
-			row("truss", 4, 0),
-			row("ledge", 4, 0),
-			row("truss", 4, 0),
-			row("ledge", 5, 0),
+			row("ledge", 3, 0, 0),
+			row("ledge", 3, -3, 3.5),
+			row("truss", 4, -3),
+			row("ledge", 3, -3, 0),
+			row("ledge", 3, 3, 3),
+			row("truss", 4, 3),
+			row("ledge", 4, 0, 0),
 		},
-		{ row("truss", 10, 0), row("ledge", 8, 0) },
-		{ row("truss", 6, -2), row("ledge", 5, 0), row("truss", 6, 2), row("ledge", 6, 0) },
-		{ row("truss", 4, 0), row("ledge", 6, 0), row("truss", 8, 0), row("ledge", 5, 0) },
-		{ row("truss", 12, 0), row("ledge", 8, 0) },
+		{
+			row("truss", 8, 0),
+			row("ledge", 3, 0, 0),
+			row("ledge", 3, 3, 4),
+			row("ledge", 3, -2, 3),
+			row("truss", 6, -2),
+			row("ledge", 4, 0, 0),
+		},
+		{
+			row("truss", 5, -2),
+			row("ledge", 3, -2, 0),
+			row("ledge", 3, 2, 3),
+			row("truss", 5, 2),
+			row("ledge", 3, 2, 0),
+			row("ledge", 3, -2, 3.5),
+			row("truss", 4, -2),
+			row("ledge", 4, 0, 0),
+		},
+		{
+			row("truss", 4, 0),
+			row("ledge", 3, 0, 0),
+			row("ledge", 2.5, 0, 4),
+			row("ledge", 2.5, 2.5, 3.5),
+			row("truss", 8, 2.5),
+			row("ledge", 4, 0, 0),
+		},
+		{
+			row("truss", 10, 0),
+			row("ledge", 3, 0, 0),
+			row("ledge", 3, -3, 3),
+			row("ledge", 3, 3, 3),
+			row("ledge", 4, 0, 3),
+		},
 	})[layout]
 	local parts = {}
 	local x, top = 1, 0
@@ -556,7 +643,8 @@ BUILD.StickyLadder = function(layout)
 			x += 2
 			top += n
 		else
-			table.insert(parts, slab(x + n / 2, top, z, n, 6, "jelly", { tone = i % 3 + 1 }))
+			x += it[4]
+			table.insert(parts, slab(x + n / 2, top, z, n, 3, "jelly", { tone = i % 3 + 1 }))
 			x += n
 		end
 	end
@@ -652,15 +740,15 @@ BUILD.FanShaft = function(layout)
 	return { length = x, rise = top, parts = parts }
 end
 
--- Bubbles that pop a moment after you land on them.
+-- Bubbles in an arc up and down that pop just after you land: climb them without stopping.
 BUILD.PoppingBubbles = function(layout)
 	local L = ({
-		{ gap = 2.5, size = 4, delay = 1, z = { 0, 2, -2, 2, 0 }, top = { 0, 1, 2, 1, 0 } },
-		{ gap = 3, size = 5, delay = 0.8, z = { -2, 2, -2, 2 }, top = { 0, 0, 0, 0 } },
-		{ gap = 2, size = 3.5, delay = 1.2, z = { 0, 0, 0, 0, 0, 0 }, top = { 0, 0.5, 1, 1.5, 2, 2.5 } },
-		{ gap = 3, size = 3.5, delay = 0.7, z = { 3, -3, 3, -3, 0 }, top = { 0, 0, 0, 0, 0 } },
-		{ gap = 4, size = 6, delay = 0.6, z = { 0, 0, 0 }, top = { 1, 2, 1 } },
-		{ gap = 2.5, size = 4, delay = 1, z = { 2, 2, -2, -2, 0 }, top = { 0, 2, 4, 2, 0 } },
+		{ gap = 3, size = 3.5, delay = 0.6, z = { 0, 2.5, -2.5, 2.5, 0 }, top = { 1, 3, 5, 3, 1 } },
+		{ gap = 3, size = 4, delay = 0.55, z = { -2.5, 2.5, -2.5, 2.5 }, top = { 1.5, 3.5, 5.5, 3 } },
+		{ gap = 2.5, size = 3, delay = 0.5, z = { 0, 2, -2, 2, -2, 0 }, top = { 1, 2.5, 4, 5.5, 4, 2 } },
+		{ gap = 3.5, size = 3.5, delay = 0.5, z = { 3, -3, 3, -3 }, top = { 1, 3, 5, 3 } },
+		{ gap = 3.5, size = 4.5, delay = 0.45, z = { 0, -2, 2 }, top = { 2, 4.5, 2 } },
+		{ gap = 3, size = 3.5, delay = 0.55, z = { 2, -2, 2, -2, 0 }, top = { 1, 3, 5, 3, 1 } },
 	})[layout]
 	local parts = {}
 	local x = L.gap
@@ -683,21 +771,22 @@ BUILD.PoppingBubbles = function(layout)
 	return { length = x, rise = 0, parts = parts }
 end
 
--- Planks that rock like seesaws.
+-- Narrow planks that tip together like seesaws: the ends only meet when the planks are level, so jump then.
 BUILD.SlimeSeesaw = function(layout)
 	local L = ({
-		{ count = 3, len = 8, width = 4, gap = 2.5, amp = 12, period = 3, phases = { 0, 0.5, 0 } },
-		{ count = 2, len = 13, width = 4, gap = 3, amp = 10, period = 3.6, phases = { 0, 0.5 } },
-		{ count = 4, len = 6, width = 4, gap = 2, amp = 15, period = 2.6, phases = { 0, 0.25, 0.5, 0.75 } },
-		{ count = 3, len = 8, width = 3, gap = 2.5, amp = 14, period = 2.4, phases = { 0, 0, 0 } },
-		{ count = 3, len = 9, width = 4, gap = 2, amp = 8, period = 4, phases = { 0, 0.33, 0.66 } },
-		{ count = 4, len = 6, width = 3.5, gap = 2, amp = 18, period = 3.2, phases = { 0, 0.5, 0, 0.5 } },
+		{ count = 3, len = 8, width = 3, gap = 2.5, amp = 22, period = 3 },
+		{ count = 2, len = 13, width = 3, gap = 3, amp = 18, period = 3.4 },
+		{ count = 3, len = 8, width = 2.5, gap = 2.5, amp = 25, period = 2.6 },
+		{ count = 3, len = 7, width = 3, gap = 3, amp = 28, period = 2.4 },
+		{ count = 3, len = 8, width = 3, gap = 2.5, amp = 20, period = 3.2 },
+		{ count = 4, len = 5.5, width = 3, gap = 2.5, amp = 30, period = 2.6 },
 	})[layout]
 	local parts = {}
 	local x = L.gap
 	for i = 1, L.count do
 		local cx = x + L.len / 2
-		local motion = { kind = "rock", amp = L.amp, period = L.period, phase = L.phases[i] }
+		-- All in step: where two planks meet, one end is up while the other is down.
+		local motion = { kind = "rock", amp = L.amp, period = L.period, phase = 0 }
 		table.insert(parts, slab(cx, 0, 0, L.len, L.width, "plank", { motion = motion, tone = i % 2 + 1 }))
 		table.insert(parts, prop({ 1, 2, 1 }, { cx, -2, 0 }, "post"))
 		x += L.len + L.gap
@@ -732,27 +821,25 @@ BUILD.SlimeCannon = function(layout)
 	return { length = x, rise = top, parts = parts }
 end
 
--- A walkway through goo gates that drop and lift.
+-- Narrow walkways split by gaps, each with a goo gate that drops and lifts: dash through while it is up.
 BUILD.GooGates = function(layout)
 	local L = ({
-		{ slabs = { 30 }, width = 6, gates = { 8, 16, 24 }, period = 2.8, phases = { 0, 0.33, 0.66 } },
-		{ slabs = { 30 }, width = 5, gates = { 10, 20 }, period = 2.2, phases = { 0, 0.5 } },
-		{ slabs = { 32 }, width = 6, gates = { 6, 12, 18, 24 }, period = 3, phases = { 0, 0.25, 0.5, 0.75 } },
-		{ slabs = { 14, 14 }, width = 6, gates = { 7, 23 }, period = 2.5, phases = { 0, 0.5 } },
-		{ slabs = { 28 }, width = 4, gates = { 9, 19 }, period = 1.8, phases = { 0, 0.5 } },
-		{ slabs = { 30 }, width = 6, gates = { 7, 15, 23 }, period = 3.4, phases = { 0, 0, 0 } },
+		{ slabs = { 8, 8, 8 }, width = 4, gap = 2.5, period = 2.4, shift = 0.33 },
+		{ slabs = { 10, 10 }, width = 3.5, gap = 3, period = 2, shift = 0.5 },
+		{ slabs = { 5.5, 5.5, 5.5, 5.5 }, width = 4, gap = 2.5, period = 2.6, shift = 0.25 },
+		{ slabs = { 7, 7, 7 }, width = 3, gap = 3, period = 2.2, shift = 0.5 },
+		{ slabs = { 12, 12 }, width = 4, gap = 3, period = 1.8, shift = 0.5 },
+		{ slabs = { 8, 8, 8 }, width = 3.5, gap = 2.5, period = 3, shift = 0 },
 	})[layout]
-	local gap = 2
 	local parts = {}
-	local x = gap
-	for _, len in L.slabs do
-		table.insert(parts, slab(x + len / 2, 0, 0, len, L.width, "goo", { tone = 2 }))
-		x += len + gap
-	end
-	for i, at in L.gates do
+	local x = L.gap
+	for i, len in L.slabs do
+		local cx = x + len / 2
+		table.insert(parts, slab(cx, 0, 0, len, L.width, "goo", { tone = 2 }))
 		-- Rests half shut (bottom 4 studs up); its bottom sweeps from the floor to 8 studs up.
-		local motion = { kind = "slide", axis = "y", amp = 4, period = L.period, phase = L.phases[i] }
-		table.insert(parts, prop({ 1.2, 8, L.width + 1 }, { gap + at, 8, 0 }, "gate", { motion = motion }))
+		local motion = { kind = "slide", axis = "y", amp = 4, period = L.period, phase = (i - 1) * L.shift }
+		table.insert(parts, prop({ 1.2, 8, L.width + 1 }, { cx, 8, 0 }, "gate", { motion = motion }))
+		x += len + L.gap
 	end
 	return { length = x, rise = 0, parts = parts }
 end
@@ -792,35 +879,238 @@ BUILD.BlobDrop = function(layout)
 	return { length = x, rise = 0, parts = parts }
 end
 
--- Spinning turntables that carry you round; some with a sweeping bar.
+-- Long planks spinning flat round their middle: jump to the next one when the two point along the course.
 BUILD.Turntables = function(layout)
+	-- flip: every other plank turns the other way (their ends meet side by side; otherwise they cross)
 	local L = ({
-		{ size = 8, gap = 3, period = 6, flip = true, z = { 0, 0, 0 }, bars = {} },
-		{ size = 6, gap = 2, period = 4, flip = false, z = { 0, 0, 0, 0 }, bars = {} },
-		{ size = 12, gap = 3, period = 5, flip = true, z = { 0, 0 }, bars = { 1, 2 } },
-		{ size = 7, gap = 3.5, period = 3, flip = false, z = { 0, 0, 0 }, bars = {} },
-		{ size = 8, gap = 3, period = -4.5, flip = false, z = { -2, 2, -2 }, bars = { 2 } },
-		{ size = 5.5, gap = 2.5, period = 3.5, flip = true, z = { 0, 0, 0, 0 }, bars = {} },
+		{ count = 3, len = 8, width = 3, gap = 2.5, period = 6, flip = true },
+		{ count = 3, len = 8, width = 2.5, gap = 2.5, period = 5, flip = false },
+		{ count = 2, len = 12, width = 3, gap = 3, period = 7, flip = true },
+		{ count = 3, len = 8, width = 3, gap = 3, period = 4.5, flip = true },
+		{ count = 3, len = 7.5, width = 2.5, gap = 2.5, period = -5.5, flip = false },
+		{ count = 4, len = 6, width = 3, gap = 2.2, period = 4, flip = true },
 	})[layout]
-	local bar = {}
-	for _, i in L.bars do
-		bar[i] = true
-	end
 	local parts = {}
 	local x = L.gap
-	for i, z in L.z do
-		local cx = x + L.size / 2
+	for i = 1, L.count do
+		local cx = x + L.len / 2
 		local period = if L.flip and i % 2 == 0 then -L.period else L.period
 		local motion = { kind = "spin", period = period }
+		table.insert(parts, slab(cx, 0, 0, L.len, L.width, "jelly", { motion = motion, tone = i % 3 + 1 }))
+		table.insert(parts, prop({ 1.6, 4, 1.6 }, { cx, -3, 0 }, "post"))
+		x += L.len + L.gap
+	end
+	return { length = x, rise = 0, parts = parts }
+end
+
+-- Glowing tiles that light up one after another along a winding trail: follow the light, don't run ahead.
+BUILD.GlowTrail = function(layout)
+	-- moves from the first tile: "f" one column forward, "l" / "r" one lane left / right; lag: seconds per tile
+	local L = ({
+		{ period = 6, duty = 0.35, lag = 0.35, lane = 2, moves = "frfflfflf" },
+		{ period = 6, duty = 0.35, lag = 0.35, lane = 1, moves = "ffrrfflffr" },
+		{ period = 5, duty = 0.4, lag = 0.3, lane = 3, moves = "fflfflff" },
+		{ period = 7, duty = 0.3, lag = 0.4, lane = 2, moves = "flfrrflff" },
+		{ period = 6, duty = 0.35, lag = 0.35, lane = 2, moves = "fffffff" },
+		{ period = 5.5, duty = 0.35, lag = 0.3, lane = 1, moves = "frfrflflf" },
+	})[layout]
+	local tile, pitch = 3.5, 4
+	local col, lane = 1, L.lane
+	local cells = { { col, lane } }
+	for i = 1, #L.moves do
+		local m = string.sub(L.moves, i, i)
+		if m == "f" then
+			col += 1
+		elseif m == "l" then
+			lane -= 1
+		else
+			lane += 1
+		end
+		table.insert(cells, { col, lane })
+	end
+	local parts = {}
+	for i, cell in cells do
+		local x = (pitch - tile) + (cell[1] - 1) * pitch + tile / 2
+		local motion = { kind = "flip", period = L.period, duty = L.duty, phase = -(i - 1) * L.lag / L.period % 1 }
 		table.insert(
 			parts,
-			slab(cx, 0, z, L.size, L.size, "jelly", { shape = "disc", motion = motion, tone = i % 3 + 1 })
+			slab(x, 0, (cell[2] - 2) * pitch, tile, tile, "glow", { motion = motion, tone = i % 3 + 1 })
 		)
-		if bar[i] then
-			local sweep = { kind = "spin", period = -period * 0.8 }
-			table.insert(parts, prop({ L.size - 1.5, 1, 1 }, { cx, 1, z }, "bar", { motion = sweep }))
-		end
+	end
+	return { length = (pitch - tile) + col * pitch, rise = 0, parts = parts }
+end
+
+-- A wall splits the course: safe steps on the left, a fast tightrope with long jumps on the right.
+BUILD.TwoWays = function(layout)
+	-- safe: pad size, gap, pad tops; fast: beams, gap between them, beam width
+	local L = ({
+		{ size = 4, gap = 2.5, tops = { 0, 1, 2, 1, 0 }, beams = 3, fastGap = 4.5, width = 1.2 },
+		{ size = 4.5, gap = 2.5, tops = { 0, 1.5, 3, 1.5 }, beams = 3, fastGap = 4, width = 1 },
+		{ size = 4, gap = 2, tops = { 1, 2, 3, 2, 1 }, beams = 3, fastGap = 5, width = 1.2 },
+		{ size = 3.5, gap = 2.5, tops = { 0, 1.5, 3, 1.5, 0 }, beams = 2, fastGap = 5, width = 0.9 },
+		{ size = 4, gap = 2.5, tops = { 0, 1, 1.5, 1, 0 }, beams = 4, fastGap = 4, width = 1.2 },
+		{ size = 5, gap = 3, tops = { 1, 2, 3, 2 }, beams = 3, fastGap = 5.5, width = 1.5 },
+	})[layout]
+	local side = 3.5
+	local parts = {}
+	local x = L.gap
+	for i, t in L.tops do
+		table.insert(parts, slab(x + L.size / 2, t, -side, L.size, L.size, "jelly", { tone = i % 3 + 1 }))
 		x += L.size + L.gap
+	end
+	local length = x
+	local beam = (length - (L.beams + 1) * L.fastGap) / L.beams
+	local bx = L.fastGap
+	for i = 1, L.beams do
+		local part = slab(bx + beam / 2, 0, side, beam, L.width, "rope", { tone = i % 3 + 1 })
+		part.step = nil -- the fast way; the safe steps are the reference path
+		table.insert(parts, part)
+		bx += beam + L.fastGap
+	end
+	-- See-through, so you can size up the other way before you pick.
+	table.insert(parts, prop({ length - 2, 9, 1 }, { length / 2, 3.5, 0 }, "pipe"))
+	return { length = length, rise = 0, parts = parts }
+end
+
+-- Wooden logs that roll under your feet and carry you sideways: walk into the roll to stay on.
+BUILD.RollingLogs = function(layout)
+	local L = ({
+		{ count = 3, len = 8, d = 3.5, gap = 2.5, period = 2.4, flip = true, z = { 0, 0, 0 } },
+		{ count = 2, len = 13, d = 4, gap = 3, period = 2.6, flip = true, z = { 0, 0 } },
+		{ count = 3, len = 8, d = 3, gap = 2.5, period = 2, flip = true, z = { -1.5, 1.5, -1.5 } },
+		{ count = 4, len = 5.5, d = 3.5, gap = 2.5, period = 2.2, flip = true, z = { 0, 0, 0, 0 } },
+		{ count = 3, len = 8.5, d = 3, gap = 2.5, period = -1.8, flip = false, z = { 0, 0, 0 } },
+		{ count = 3, len = 8, d = 3.5, gap = 3, period = 1.8, flip = true, z = { 1, -1, 1 } },
+	})[layout]
+	local parts = {}
+	local x = L.gap
+	for i = 1, L.count do
+		local period = if L.flip and i % 2 == 0 then -L.period else L.period
+		table.insert(
+			parts,
+			prop({ L.len, L.d, L.d }, { x + L.len / 2, -L.d / 2, L.z[i] }, "log", {
+				shape = "log",
+				step = true,
+				motion = { kind = "roll", period = period },
+				tone = i % 2 + 1,
+			})
+		)
+		x += L.len + L.gap
+	end
+	return { length = x, rise = 0, parts = parts }
+end
+
+-- A tall goo wave sweeps up and down a narrow path: duck into a side bay when it comes your way.
+BUILD.GooWave = function(layout)
+	local L = ({
+		{ segs = { 8, 8, 8 }, gap = 2.5, period = 6 },
+		{ segs = { 12, 12 }, gap = 3, period = 5.5 },
+		{ segs = { 6, 6, 6, 6 }, gap = 2, period = 6.5 },
+		{ segs = { 8, 8, 8 }, gap = 2.5, period = 5 },
+		{ segs = { 10, 10 }, gap = 3, period = 4.6 },
+		{ segs = { 7, 7, 7 }, gap = 3, period = 5.4 },
+	})[layout]
+	local width, bay = 3, 4
+	local parts = {}
+	local x = L.gap
+	for i, len in L.segs do
+		local cx = x + len / 2
+		table.insert(parts, slab(cx, 0, 0, len, width, "goo", { tone = 1 }))
+		local sideZ = (if i % 2 == 1 then 1 else -1) * (width + bay) / 2
+		local bayPart = slab(cx, 0, sideZ, bay, bay, "jelly", { tone = 2 })
+		bayPart.step = nil
+		table.insert(parts, bayPart)
+		x += len + L.gap
+	end
+	local length = x
+	local motion = { kind = "slide", axis = "x", amp = length / 2 - 3, period = L.period }
+	table.insert(parts, prop({ 2, 7, width + 0.6 }, { length / 2, 3.7, 0 }, "wave", { motion = motion }))
+	return { length = length, rise = 0, parts = parts }
+end
+
+-- Goo punchers shoot out across a narrow path on a beat: cross between the punches or get knocked off.
+BUILD.GooPunchers = function(layout)
+	-- at: puncher positions along the section; side: which side it punches from (1 = right)
+	local L = ({
+		{ segs = { 14, 14 }, gap = 2.5, at = { 6, 12, 20, 26 }, side = { 1, -1, 1, -1 }, period = 2.4, shift = 0.25 },
+		{ segs = { 8.5, 8.5, 8.5 }, gap = 2.5, at = { 7, 18, 29 }, side = { 1, -1, 1 }, period = 2, shift = 0.33 },
+		{ segs = { 30 }, gap = 2.5, at = { 6, 11, 16, 21, 26 }, side = { 1, -1, 1, -1, 1 }, period = 2.6, shift = 0.2 },
+		{ segs = { 13, 13 }, gap = 3, at = { 7, 10, 23, 26 }, side = { 1, -1, -1, 1 }, period = 2.2, shift = 0.5 },
+		{
+			segs = { 8.5, 8.5, 8.5 },
+			gap = 2.5,
+			at = { 5, 9, 16, 20, 27, 31 },
+			side = { 1, -1, 1, -1, 1, -1 },
+			period = 2.8,
+			shift = 0.17,
+		},
+		{ segs = { 30 }, gap = 2.5, at = { 8, 16, 24 }, side = { 1, 1, 1 }, period = 1.8, shift = 0.33 },
+	})[layout]
+	local width, reach = 3, 4
+	local parts = {}
+	local x = L.gap
+	for _, len in L.segs do
+		table.insert(parts, slab(x + len / 2, 0, 0, len, width, "goo", { tone = 2 }))
+		x += len + L.gap
+	end
+	for i, at in L.at do
+		local s = L.side[i]
+		-- Rests just off the path's edge; a punch reaches across the whole path.
+		local motion = { kind = "punch", axis = "z", amp = -s * reach, period = L.period, phase = (i - 1) * L.shift }
+		table.insert(parts, prop({ 2.5, 3, 4 }, { at, 1.5, s * (width / 2 + 2.2) }, "puncher", { motion = motion }))
+	end
+	return { length = x, rise = 0, parts = parts }
+end
+
+-- A narrow bridge crossed by gusts of wind that blow on and off: wait out each gust in the calm gaps.
+BUILD.GustyBridge = function(layout)
+	-- gusts: { from, to, direction (1 = blows right) } along the section
+	local L = ({
+		{ segs = { 32 }, gap = 2, width = 3, gusts = { { 4, 10, 1 }, { 14, 20, -1 }, { 24, 30, 1 } }, period = 4 },
+		{ segs = { 14, 14 }, gap = 2.5, width = 2.5, gusts = { { 4, 12, -1 }, { 20, 28, 1 } }, period = 3.6 },
+		{
+			segs = { 32 },
+			gap = 2,
+			width = 2.5,
+			gusts = { { 3, 9, 1 }, { 12, 18, 1 }, { 21, 27, 1 }, { 30, 34, -1 } },
+			period = 3.2,
+		},
+		{
+			segs = { 9, 9, 9 },
+			gap = 2,
+			width = 3,
+			gusts = { { 3, 10, 1 }, { 13, 20, -1 }, { 24, 31, 1 } },
+			period = 4.4,
+		},
+		{ segs = { 32 }, gap = 2, width = 2, gusts = { { 5, 15, -1 }, { 20, 30, 1 } }, period = 5 },
+		{
+			segs = { 32 },
+			gap = 2,
+			width = 3,
+			gusts = { { 4, 9, 1 }, { 9, 14, -1 }, { 18, 23, 1 }, { 23, 28, -1 } },
+			period = 3,
+		},
+	})[layout]
+	local parts = {}
+	local x = L.gap
+	for _, len in L.segs do
+		table.insert(parts, slab(x + len / 2, 0, 0, len, L.width, "rope", { tone = 3 }))
+		x += len + L.gap
+	end
+	for i, g in L.gusts do
+		local motion = {
+			kind = "gust",
+			axis = "z",
+			power = g[3] * ObbyCourse.GUST,
+			period = L.period,
+			duty = 0.45,
+			phase = (i - 1) * 0.5,
+		}
+		local len = g[2] - g[1]
+		table.insert(
+			parts,
+			prop({ len, 9, 14 }, { (g[1] + g[2]) / 2, 3.5, 0 }, "gust", { motion = motion, ghost = true })
+		)
 	end
 	return { length = x, rise = 0, parts = parts }
 end
@@ -907,61 +1197,67 @@ function ObbyCourse.build(slot: number, picks: { Pick }?): Course
 	local chosen = picks or ObbyCourse.pick(slot)
 	local W, S = ObbyCourse.WIDTH, ObbyCourse.STAND_HEIGHT
 	local parts: { Part } = { slab(ObbyCourse.START_LENGTH / 2, 0, 0, ObbyCourse.START_LENGTH, W, "start") }
-	local checkpoints: { Checkpoint } = {}
+	local spans: { Span } = {}
 	local x, y = ObbyCourse.START_LENGTH, 0
 	for i, pick in chosen do
 		local section = ObbyCourse.section(pick.id, pick.layout)
+		local from, entry = x, y
 		for _, part in section.parts do
 			table.insert(parts, offset(part, x, y))
 		end
 		x += section.length
 		y += section.rise
-		local last = i == #chosen
-		local depth = if last then ObbyCourse.FINISH_LENGTH else ObbyCourse.PAD_LENGTH
-		table.insert(parts, slab(x + depth / 2, y, 0, depth, W, if last then "finish" else "pad"))
-		table.insert(checkpoints, { index = i, pos = { x + depth / 2, y, 0 }, size = { depth, S, W } })
-		x += depth
+		if i < #chosen then
+			local L = ObbyCourse.LINK_LENGTH
+			table.insert(parts, slab(x + L / 2, y, 0, L, W, "pad"))
+			x += L
+		end
+		table.insert(spans, { index = i, from = from, to = x, floor = math.min(entry, y) })
 	end
+	local depth = ObbyCourse.FINISH_LENGTH
+	table.insert(parts, slab(x + depth / 2, y, 0, depth, W, "finish"))
+	local finish = { pos = { x + depth / 2, y, 0 }, size = { depth, S, W } }
+	x += depth
 	return {
 		slot = slot,
 		picks = chosen,
 		parts = parts,
 		start = { ObbyCourse.START_LENGTH / 3, OBBY.RESPAWN_LIFT, 0 },
 		startTop = 0,
-		checkpoints = checkpoints,
+		spans = spans,
+		finish = finish,
 		length = x,
 	}
 end
 
--- True when course-local `p` stands on checkpoint `cp` (over its pad, up to STAND_HEIGHT above the top).
-function ObbyCourse.onCheckpoint(cp: Checkpoint, p: Vec): boolean
-	return math.abs(p[1] - cp.pos[1]) <= cp.size[1] / 2
-		and math.abs(p[3] - cp.pos[3]) <= cp.size[3] / 2
-		and p[2] >= cp.pos[2] - 1
-		and p[2] <= cp.pos[2] + cp.size[2]
+-- True when course-local `p` stands on the finish pad (over it, up to STAND_HEIGHT above its top).
+function ObbyCourse.onFinish(course: Course, p: Vec): boolean
+	local zone = course.finish
+	return math.abs(p[1] - zone.pos[1]) <= zone.size[1] / 2
+		and math.abs(p[3] - zone.pos[3]) <= zone.size[3] / 2
+		and p[2] >= zone.pos[2] - 1
+		and p[2] <= zone.pos[2] + zone.size[2]
 end
 
--- Top of the pad a runner last reached: 0 = the start pad, i = checkpoint i.
-function ObbyCourse.padTop(course: Course, reached: number): number
-	local cp = course.checkpoints[reached]
-	return if cp then cp.pos[2] else course.startTop
-end
-
--- Where a runner who last reached pad `reached` respawns (course-local).
-function ObbyCourse.respawn(course: Course, reached: number): Vec
-	local cp = course.checkpoints[reached]
-	if not cp then
-		return table.clone(course.start)
+-- Which part of the course course-local `p` is over: 0 = the start pad (or before it), i = section i (with the
+-- connector after it), #spans + 1 = the finish pad (or past it).
+function ObbyCourse.sectionAt(course: Course, p: Vec): number
+	local x = p[1]
+	for _, span in course.spans do
+		if x < span.from then
+			return span.index - 1
+		elseif x < span.to then
+			return span.index
+		end
 	end
-	return { cp.pos[1], cp.pos[2] + OBBY.RESPAWN_LIFT, cp.pos[3] }
+	return #course.spans + 1
 end
 
--- A runner heading from pad `reached` to the next one has fallen below this height (course-local y).
-function ObbyCourse.fallHeight(course: Course, reached: number): number
-	local from = ObbyCourse.padTop(course, reached)
-	local nextCp = course.checkpoints[reached + 1]
-	local to = if nextCp then nextCp.pos[2] else from
-	return math.min(from, to) - OBBY.FALL_DEPTH
+-- A runner over part `index` (sectionAt) has fallen below this height (course-local y).
+function ObbyCourse.fallHeight(course: Course, index: number): number
+	local span = course.spans[index]
+	local floor = if span then span.floor elseif index <= 0 then course.startTop else course.finish.pos[2]
+	return floor - OBBY.FALL_DEPTH
 end
 
 ---------------------------------------------------------------------------

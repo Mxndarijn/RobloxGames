@@ -36,7 +36,7 @@ These show their UI-drawn scene (`src/ui/ItemIconArt.luau`) until a picture is u
 | Dex_32 | Dex 32 species | Gold trophy with a slime on top and the number 32 on the base; front view. |
 | Dex_40 | Dex 40 species | Gold trophy with a slime on top and the number 40 on the base; front view. |
 | Boost_Mvp | Boss Champion | A gold crown sitting on a stack of gold coins; front view. |
-| Boost_Obby | Goo Gauntlet | Three green jelly steps rising to a small gold finish flag, with a lime goo drip; front view. |
+| Boost_Obby | Obby | Three green jelly steps rising to a small gold finish flag, with a lime goo drip; front view. |
 | Upgrade_QuickBrew | Quick Brew | A copper merge vat full of mint goo with a gold lightning bolt over it; three-quarter view. |
 | PlotSkin_fairground | Fairground | Top of the 'Fairground' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view. |
 | PlotSkin_beach | Beach Hut | Top of the 'Beach Hut' goo jar tower: the theme's mascot in its hat on a cork lid with goo; 3/4 view. |

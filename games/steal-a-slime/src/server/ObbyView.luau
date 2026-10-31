@@ -83,6 +83,30 @@ local LOOKS: { [string]: Look } = {
 		material = Enum.Material.Wood,
 	},
 	gate = { colors = { Color3.fromRGB(235, 70, 120) }, material = Enum.Material.SmoothPlastic, transparency = 0.2 },
+	-- Belts: orange pushes right, blue pushes left.
+	belt = {
+		colors = { Color3.fromRGB(255, 150, 50), Color3.fromRGB(70, 170, 255) },
+		material = Enum.Material.SmoothPlastic,
+	},
+	glow = {
+		colors = { Color3.fromRGB(255, 240, 120), Color3.fromRGB(150, 255, 170), Color3.fromRGB(140, 220, 255) },
+		material = Enum.Material.Neon,
+	},
+	log = {
+		colors = { Color3.fromRGB(160, 105, 60), Color3.fromRGB(140, 90, 50) },
+		material = Enum.Material.Wood,
+	},
+	wave = {
+		colors = { Color3.fromRGB(110, 220, 90) },
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0.15,
+	},
+	puncher = { colors = { Color3.fromRGB(255, 90, 140) }, material = Enum.Material.SmoothPlastic },
+	gust = {
+		colors = { Color3.fromRGB(235, 250, 255) },
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0.96,
+	},
 }
 
 local PORTAL = table.freeze({
@@ -190,6 +214,9 @@ local function makePart(spec: ObbyCourse.Part, frameCf: CFrame, parent: Instance
 	else
 		if spec.shape == "ball" then
 			(part :: Part).Shape = Enum.PartType.Ball
+		elseif spec.shape == "log" then
+			-- A cylinder's axis is its X, which already runs along the course.
+			(part :: Part).Shape = Enum.PartType.Cylinder
 		end
 		part.Size = Vector3.new(spec.size[1], spec.size[2], spec.size[3])
 		part.CFrame = center
@@ -214,9 +241,16 @@ local function makePart(spec: ObbyCourse.Part, frameCf: CFrame, parent: Instance
 		if motion.period then
 			part:SetAttribute(Constants.OBBY_PERIOD, motion.period)
 		end
-		if motion.kind == "slide" then
+		if motion.kind == "slide" or motion.kind == "punch" then
 			part:SetAttribute(Constants.OBBY_AXIS, localVec(frameCf, motion.axis))
 			part:SetAttribute(Constants.OBBY_AMP, motion.amp or 0)
+		elseif motion.kind == "gust" then
+			-- The axis points the way it blows; the power is the speed.
+			local power = motion.power or 0
+			local sign = if power < 0 then -1 else 1
+			part:SetAttribute(Constants.OBBY_AXIS, localVec(frameCf, motion.axis) * sign)
+			part:SetAttribute(Constants.OBBY_POWER, math.abs(power))
+			part:SetAttribute(Constants.OBBY_DUTY, motion.duty or 0.5)
 		elseif motion.kind == "melt" then
 			part:SetAttribute(Constants.OBBY_DELAY, motion.delay or 0.7)
 			part:SetAttribute(Constants.OBBY_AWAY, motion.away or 2.5)
@@ -346,7 +380,7 @@ function ObbyView.buildPortal()
 		gui.MaxDistance = PORTAL.maxDistance
 		gui.LightInfluence = 0
 		gui.Adornee = sign
-		signLabel(gui, "Title", "GOO GAUNTLET", 0.06, 0.32, 80)
+		signLabel(gui, "Title", "OBBY", 0.06, 0.32, 80)
 		signLabel(gui, Constants.OBBY_SIGN_STATUS, "Step in: x1.5 income!", 0.42, 0.24, 50)
 		signLabel(gui, Constants.OBBY_SIGN_COURSE, "A new course every 10 min", 0.7, 0.2, 40)
 		gui.Parent = sign

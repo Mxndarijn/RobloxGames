@@ -13,6 +13,9 @@
 	  * lift    the local player inside the wind column rises
 	  * swing   a pendulum swinging across the course, `arm` studs below its pivot (shoves what it hits)
 	  * rock    a seesaw plank tipping forward and back round its centre
+	  * roll    a log rolling round its own length; its turn carries a player standing on it sideways
+	  * punch   shoots out along its axis, holds, slides back and rests (shoves what it hits)
+	  * gust    a see-through wind zone that blows on and off; while on, the local player inside is pushed sideways
 	Every change is local: each player collides with their own copy, so platforms move smoothly at frame rate.
 	Parts farther than MAX_DISTANCE from the camera are skipped. Never fires remotes. Call `tick` once a frame.
 ]]
@@ -29,6 +32,13 @@ ObbyFx.FIND_EVERY = 1 -- seconds between looks for a new course
 ObbyFx.FLIP_WARN = 0.5 -- seconds a flip tile blinks before it goes
 ObbyFx.GONE_TRANSPARENCY = 0.85
 ObbyFx.BOUNCE_COOLDOWN = 0.4 -- seconds before the same pad throws you again
+ObbyFx.GUST_ON_TRANSPARENCY = 0.6
+ObbyFx.GUST_OFF_TRANSPARENCY = 0.96
+ObbyFx.GUST_WARN = 0.6 -- seconds a gust flickers before it starts blowing
+-- A punch's beat as shares of its period: out, held, back, then resting.
+ObbyFx.PUNCH_OUT = 0.1
+ObbyFx.PUNCH_HOLD = 0.35
+ObbyFx.PUNCH_BACK = 0.65
 
 export type Controller = { tick: (camera: Camera?) -> (), stop: () -> () }
 
@@ -91,6 +101,20 @@ local function mover(part: BasePart): Mover?
 	}
 end
 
+-- How far out a punch is (0..1) at `cycle`, and how fast that changes per cycle.
+local function punchAt(cycle: number): (number, number)
+	if cycle < ObbyFx.PUNCH_OUT then
+		local a = cycle / ObbyFx.PUNCH_OUT * math.pi / 2
+		return math.sin(a), math.cos(a) * math.pi / 2 / ObbyFx.PUNCH_OUT
+	elseif cycle < ObbyFx.PUNCH_HOLD then
+		return 1, 0
+	elseif cycle < ObbyFx.PUNCH_BACK then
+		local span = ObbyFx.PUNCH_BACK - ObbyFx.PUNCH_HOLD
+		return 1 - (cycle - ObbyFx.PUNCH_HOLD) / span, -1 / span
+	end
+	return 0, 0
+end
+
 local function setSolid(m: Mover, solid: boolean, transparency: number)
 	if m.part.CanCollide ~= solid then
 		m.part.CanCollide = solid
@@ -132,6 +156,35 @@ local function play(m: Mover, t: number, clock: number, me: Local)
 		local amp = math.rad(m.amp)
 		part.CFrame = m.base * CFrame.Angles(0, 0, amp * math.sin(TAU * cycle))
 		part.AssemblyAngularVelocity = m.base.ZVector * (amp * TAU / m.period * math.cos(TAU * cycle))
+	elseif m.kind == "roll" then
+		-- Round its own length (the log's X axis); the top of the log moves sideways.
+		part.CFrame = m.base * CFrame.Angles(TAU * cycle, 0, 0)
+		part.AssemblyAngularVelocity = m.base.XVector * (TAU / m.period)
+	elseif m.kind == "punch" then
+		local out, rate = punchAt(cycle)
+		part.CFrame = m.base + m.axis * (m.amp * out)
+		part.AssemblyLinearVelocity = m.axis * (m.amp * rate / m.period)
+	elseif m.kind == "gust" then
+		local on = cycle < m.duty
+		local warn = not on and cycle >= 1 - ObbyFx.GUST_WARN / math.abs(m.period)
+		local transparency = ObbyFx.GUST_OFF_TRANSPARENCY
+		if on then
+			transparency = ObbyFx.GUST_ON_TRANSPARENCY
+		elseif warn and math.floor(clock * 8) % 2 == 0 then
+			transparency = (ObbyFx.GUST_ON_TRANSPARENCY + ObbyFx.GUST_OFF_TRANSPARENCY) / 2
+		end
+		if part.Transparency ~= transparency then
+			part.Transparency = transparency
+		end
+		local root = me.root
+		if on and root and inside(part, root.Position) then
+			-- m.axis points the way it blows (the sign of its power is folded in by ObbyView).
+			local v = root.AssemblyLinearVelocity
+			local along = v:Dot(m.axis)
+			if along < m.power then
+				root.AssemblyLinearVelocity = v + m.axis * (m.power - along)
+			end
+		end
 	elseif m.kind == "bounce" then
 		if standingOn == part and me.root and clock >= (m.readyAt or 0) then
 			m.readyAt = clock + ObbyFx.BOUNCE_COOLDOWN

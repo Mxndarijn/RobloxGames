@@ -51,6 +51,172 @@ local function top(p: ObbyCourse.Part): number
 	return p.pos[2] + p.size[2] / 2
 end
 
+local function bottom(p: ObbyCourse.Part): number
+	return p.pos[2] - p.size[2] / 2
+end
+
+local JUMP_SPEED = math.sqrt(2 * GRAVITY * 7.2) -- JumpHeight 7.2
+local HEAD = 5 -- feet to the top of the head
+
+-- How far a running jump carries on the flat when a roof `room` studs over the floor stops the head.
+local function jumpUnderRoof(room: number): number
+	local headroom = room - HEAD
+	local peak = JUMP_SPEED * JUMP_SPEED / (2 * GRAVITY)
+	if headroom >= peak then
+		return WALK * 2 * JUMP_SPEED / GRAVITY
+	end
+	local disc = JUMP_SPEED * JUMP_SPEED - 2 * GRAVITY * headroom
+	local up = (JUMP_SPEED - math.sqrt(disc)) / GRAVITY
+	local down = math.sqrt(2 * headroom / GRAVITY)
+	return WALK * (up + down)
+end
+
+-- The lowest solid roof over the middle of two steps, as studs over the higher one, or nil.
+local function roofOver(parts: { ObbyCourse.Part }, a: ObbyCourse.Part, b: ObbyCourse.Part): number?
+	local mx, mz = (a.pos[1] + b.pos[1]) / 2, (a.pos[3] + b.pos[3]) / 2
+	local floor = math.max(top(a), top(b))
+	local best: number? = nil
+	for _, p in parts do
+		if not p.step and not p.ghost and bottom(p) > floor + 0.01 then
+			if math.abs(mx - p.pos[1]) <= p.size[1] / 2 and math.abs(mz - p.pos[3]) <= p.size[3] / 2 then
+				local room = bottom(p) - floor
+				if best == nil or room < best then
+					best = room
+				end
+			end
+		end
+	end
+	return best
+end
+
+-- Every motion kind visuals/client/ObbyFx plays.
+local KINDS = {
+	slide = true,
+	spin = true,
+	melt = true,
+	flip = true,
+	shrink = true,
+	bounce = true,
+	lift = true,
+	swing = true,
+	rock = true,
+	roll = true,
+	punch = true,
+	gust = true,
+}
+
+---------------------------------------------------------------------------
+-- The straight walk: can you hold "forward" along z = 0 and get across without jumping or steering?
+---------------------------------------------------------------------------
+
+local SAMPLE = 0.25 -- studs between samples along x
+local WALK_OVER = 2 -- a hole up to this long is walked over (or stumbled over)
+local STEP_UP = 1 -- a ledge up to this high is walked up
+local FEET = 0.75 -- a part counts on the line while it comes within this far of z = 0
+local MOVING_HAZARDS = { slide = true, spin = true, swing = true, punch = true, gust = true }
+
+type Section = { length: number, rise: number, parts: { ObbyCourse.Part } }
+
+local function covers(p: ObbyCourse.Part, x: number, grow: number): boolean
+	if p.shape == "disc" then
+		local r = p.size[1] / 2 + grow
+		return (x - p.pos[1]) ^ 2 + p.pos[3] ^ 2 <= r * r
+	end
+	return math.abs(x - p.pos[1]) <= p.size[1] / 2 and math.abs(p.pos[3]) <= p.size[3] / 2 + grow
+end
+
+-- A floor you can walk straight over: always there, and it doesn't carry you off its side before you are across.
+local function steadyFloor(p: ObbyCourse.Part): boolean
+	local m = p.motion
+	if m and (m.kind == "flip" or m.kind == "shrink") then
+		return false
+	end
+	local sideways, along = 0, 0
+	if p.conveyor then
+		along, sideways = p.conveyor[1], math.abs(p.conveyor[3])
+	elseif m and m.kind == "roll" then
+		sideways = math.abs(2 * math.pi / (m.period or 1)) * p.size[2] / 2
+	end
+	if sideways > 0 then
+		local speed = WALK + along
+		if speed <= 0 then
+			return false
+		end
+		local drift = sideways * p.size[1] / speed
+		if drift > p.size[3] / 2 - 0.5 then
+			return false
+		end
+	end
+	return true
+end
+
+-- The box a moving hazard sweeps: centre x, half x, centre z, half z, bottom, top.
+local function swept(p: ObbyCourse.Part): (number, number, number, number, number, number)
+	local m = p.motion :: ObbyCourse.Motion
+	local hx, hz = p.size[1] / 2, p.size[3] / 2
+	local cx, cz = p.pos[1], p.pos[3]
+	local y0, y1 = bottom(p), top(p)
+	if m.kind == "slide" or m.kind == "punch" then
+		local amp = m.amp or 0
+		if m.axis == "x" then
+			hx += math.abs(amp)
+		elseif m.axis == "y" then
+			y0 -= math.abs(amp)
+			y1 += math.abs(amp)
+		elseif m.kind == "punch" then
+			-- a punch goes one way only
+			cz += amp / 2
+			hz += math.abs(amp) / 2
+		else
+			hz += math.abs(amp)
+		end
+	elseif m.kind == "spin" then
+		local r = math.sqrt(hx * hx + hz * hz)
+		hx, hz = r, r
+	elseif m.kind == "swing" then
+		local a = math.rad(m.amp or 0)
+		hz += (m.arm or 0) * math.sin(a)
+		y1 += (m.arm or 0) * (1 - math.cos(a))
+	end
+	return cx, hx, cz, hz, y0, y1
+end
+
+-- nil when holding forward along z = 0 gets you across `section`; otherwise what stops you.
+local function straightWalkStop(section: Section): string?
+	local level, hole = 0, 0
+	local x = 0
+	while x <= section.length do
+		local best: number? = nil
+		for _, p in section.parts do
+			local hazard = p.motion ~= nil and MOVING_HAZARDS[p.motion.kind] == true and not p.step
+			if hazard then
+				local cx, hx, cz, hz, y0, y1 = swept(p)
+				if math.abs(x - cx) <= hx and math.abs(cz) <= hz + FEET and y1 > level + 0.5 and y0 < level + HEAD then
+					return `{p.look} sweeps across at x {x}`
+				end
+			elseif not p.ghost and covers(p, x, FEET) then
+				local t, b = top(p), bottom(p)
+				if t > level + STEP_UP and b < level + HEAD and p.look ~= "post" then
+					return `{p.look} blocks at x {x}`
+				end
+				if t <= level + STEP_UP and steadyFloor(p) and (best == nil or t > best) then
+					best = t
+				end
+			end
+		end
+		if best then
+			level, hole = best, 0
+		else
+			hole += SAMPLE
+			if hole > WALK_OVER then
+				return `hole at x {x}`
+			end
+		end
+		x += SAMPLE
+	end
+	return nil
+end
+
 describe("ObbyCourse rotation", function()
 	it("picks one section per tier slot, never the same one twice", function()
 		for slot = 4000, 4300 do
@@ -127,6 +293,8 @@ describe("ObbyCourse sections", function()
 					local g = gap(prev, cur)
 					local rise = top(cur) - top(prev)
 					local launch = prev.motion and prev.motion.kind == "bounce" and prev.motion.power
+					local room = roofOver(course.parts, prev, cur)
+					local gapMax = if room then math.min(GAP_MAX, jumpUnderRoof(room) * 0.8) else GAP_MAX
 					if special(cur) then
 						-- You walk into a ladder or a wind column from the step before.
 						if g > 1.5 then
@@ -143,12 +311,63 @@ describe("ObbyCourse sections", function()
 							error(`{label}: {why}`)
 						end
 					else
-						if g > GAP_MAX then
-							error(`{label}: gap {g}`)
+						if g > gapMax then
+							error(`{label}: gap {g} (at most {gapMax})`)
 						end
 						if rise > RISE_MAX then
 							error(`{label}: rise {rise}`)
 						end
+					end
+				end
+			end
+		end
+	end)
+
+	it("no section can be crossed by walking straight forward", function()
+		local walkable = {}
+		for id in ObbyCourse.BUILD do
+			for layout = 1, OBBY.LAYOUTS do
+				if straightWalkStop(ObbyCourse.section(id, layout)) == nil then
+					table.insert(walkable, `{id}#{layout}`)
+				end
+			end
+		end
+		table.sort(walkable)
+		expect(table.concat(walkable, ", ")).toBe("")
+	end)
+
+	it("the straight-walk check passes a plain bridge, a slow belt and a hole you step over", function()
+		local function part(size: ObbyCourse.Vec, pos: ObbyCourse.Vec, extra: { [string]: any }?): ObbyCourse.Part
+			local p: { [string]: any } = { size = size, pos = pos, look = "goo", step = true }
+			for k, v in extra or {} do
+				p[k] = v
+			end
+			return p :: any
+		end
+		local function section(parts: { ObbyCourse.Part }, length: number): Section
+			return { length = length, rise = 0, parts = parts }
+		end
+		expect(straightWalkStop(section({ part({ 20, 1, 3 }, { 10, -0.5, 0 }) }, 20))).toBeNil()
+		local stepOver =
+			section({ part({ 9.5, 1, 3 }, { 4.75, -0.5, 0 }), part({ 9.5, 1, 3 }, { 15.25, -0.5, 0 }) }, 20)
+		expect(straightWalkStop(stepOver)).toBeNil()
+		local slowBelt = section({ part({ 8, 1, 8 }, { 4, -0.5, 0 }, { conveyor = { 0, 0, 4 } }) }, 8)
+		expect(straightWalkStop(slowBelt)).toBeNil()
+		local fastBelt = section({ part({ 8, 1, 4 }, { 4, -0.5, 0 }, { conveyor = { 0, 0, 10 } }) }, 8)
+		expect(straightWalkStop(fastBelt) ~= nil).toBe(true)
+		local gapped = section({ part({ 8, 1, 3 }, { 4, -0.5, 0 }), part({ 8, 1, 3 }, { 16, -0.5, 0 }) }, 20)
+		expect(straightWalkStop(gapped) ~= nil).toBe(true)
+		local wall =
+			section({ part({ 20, 1, 3 }, { 10, -0.5, 0 }), part({ 20, 8, 1 }, { 10, 3, 0 }, { step = false }) }, 20)
+		expect(straightWalkStop(wall) ~= nil).toBe(true)
+	end)
+
+	it("uses only motion kinds the client plays", function()
+		for id in ObbyCourse.BUILD do
+			for layout = 1, OBBY.LAYOUTS do
+				for _, part in ObbyCourse.section(id, layout).parts do
+					if part.motion and not KINDS[part.motion.kind] then
+						error(`{id} layout {layout}: unknown motion {part.motion.kind}`)
 					end
 				end
 			end
@@ -169,42 +388,71 @@ describe("ObbyCourse sections", function()
 		end
 	end)
 
-	it("lays a checkpoint pad after every section, the last one the finish", function()
+	it("joins the sections with plain connectors, no checkpoint pads, and ends on the finish", function()
 		local course = ObbyCourse.build(4100)
-		expect(#course.checkpoints).toBe(#OBBY.ORDER)
-		local finishes = 0
+		expect(#course.spans).toBe(#OBBY.ORDER)
+		local finishes, links = 0, 0
 		for _, part in course.parts do
 			if part.look == "finish" then
 				finishes += 1
+			elseif part.look == "pad" then
+				links += 1
+				expect(part.size[1]).toBe(ObbyCourse.LINK_LENGTH)
 			end
 		end
 		expect(finishes).toBe(1)
-		for i = 2, #course.checkpoints do
-			expect(course.checkpoints[i].pos[1] > course.checkpoints[i - 1].pos[1]).toBe(true)
+		expect(links).toBe(#OBBY.ORDER - 1)
+		expect(course.spans[1].from).toBe(ObbyCourse.START_LENGTH)
+		for i = 2, #course.spans do
+			expect(course.spans[i].from).toBe(course.spans[i - 1].to)
 		end
+		expect(course.finish.pos[1] - course.finish.size[1] / 2).toBe(course.spans[#course.spans].to)
 		expect(course.length <= ObbyCourse.START_LENGTH + #OBBY.ORDER * (SECTION_MAX_LENGTH + 12)).toBe(true)
+	end)
+
+	it("a whole course with connectors is a makeable path", function()
+		for slot = 4100, 4140 do
+			local course = ObbyCourse.build(slot)
+			local prev: ObbyCourse.Part? = nil
+			for _, part in course.parts do
+				if part.step then
+					if prev and not special(part) and not special(prev) and not prev.motion then
+						if gap(prev, part) > GAP_MAX then
+							error(`slot {slot}: gap {gap(prev, part)} before a {part.look}`)
+						end
+					end
+					prev = part
+				end
+			end
+		end
 	end)
 end)
 
-describe("ObbyCourse checkpoints and frames", function()
+describe("ObbyCourse sections, finish and frames", function()
 	local course = ObbyCourse.build(4100)
-	local cp = course.checkpoints[2]
+	local zone = course.finish
 
-	it("counts standing on a pad, not walking past it", function()
-		expect(ObbyCourse.onCheckpoint(cp, { cp.pos[1], cp.pos[2] + 3, cp.pos[3] })).toBe(true)
-		expect(ObbyCourse.onCheckpoint(cp, { cp.pos[1] + cp.size[1], cp.pos[2] + 3, cp.pos[3] })).toBe(false)
-		expect(ObbyCourse.onCheckpoint(cp, { cp.pos[1], cp.pos[2] + 30, cp.pos[3] })).toBe(false)
-		expect(ObbyCourse.onCheckpoint(cp, { cp.pos[1], cp.pos[2] - 5, cp.pos[3] })).toBe(false)
+	it("counts standing on the finish pad, not flying over it", function()
+		expect(ObbyCourse.onFinish(course, { zone.pos[1], zone.pos[2] + 3, zone.pos[3] })).toBe(true)
+		expect(ObbyCourse.onFinish(course, { zone.pos[1] + zone.size[1], zone.pos[2] + 3, zone.pos[3] })).toBe(false)
+		expect(ObbyCourse.onFinish(course, { zone.pos[1], zone.pos[2] + 30, zone.pos[3] })).toBe(false)
+		expect(ObbyCourse.onFinish(course, { zone.pos[1], zone.pos[2] - 5, zone.pos[3] })).toBe(false)
 	end)
 
-	it("respawns above the last pad and falls below the lower pad", function()
-		expect(ObbyCourse.respawn(course, 0)[1]).toBe(course.start[1])
-		local r = ObbyCourse.respawn(course, 2)
-		expect(r[1]).toBe(cp.pos[1])
-		expect(r[2]).toBe(cp.pos[2] + OBBY.RESPAWN_LIFT)
+	it("knows which section a point is over", function()
+		expect(ObbyCourse.sectionAt(course, course.start)).toBe(0)
+		for _, span in course.spans do
+			expect(ObbyCourse.sectionAt(course, { (span.from + span.to) / 2, 0, 0 })).toBe(span.index)
+		end
+		expect(ObbyCourse.sectionAt(course, zone.pos)).toBe(#course.spans + 1)
+	end)
+
+	it("falls are measured below the section's lower end", function()
 		expect(ObbyCourse.fallHeight(course, 0)).toBe(-OBBY.FALL_DEPTH)
+		local span = course.spans[3]
+		expect(ObbyCourse.fallHeight(course, 3)).toBe(span.floor - OBBY.FALL_DEPTH)
+		expect(ObbyCourse.fallHeight(course, #course.spans + 1)).toBe(zone.pos[2] - OBBY.FALL_DEPTH)
 	end)
-
 	it("toLocal undoes toWorld", function()
 		local frame = { origin = { -90, 150, 220 }, yaw = 157.5 }
 		local p = { 37, 4, -3 }
