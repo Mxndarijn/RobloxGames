@@ -1146,7 +1146,7 @@ local lockTimerTag = LockTimerTag.start({
 	end,
 })
 
--- A slime you can't grab (already carrying, plot full, not enough money) shows why instead of a key.
+-- A slime you can't grab (already carrying, just dropped one, plot full, not enough money) shows why instead of a key.
 local grabBlock = GrabBlockCard.start({
 	root = workspace,
 	prompts = ProximityPromptService,
@@ -1161,6 +1161,8 @@ local grabBlock = GrabBlockCard.start({
 			freePad = GrabBlock.hasFreePad(state.padsUnlocked, state.slimes),
 			cash = state.cash,
 			rebirths = state.rebirths,
+			pickupBlockedUntil = state.pickupBlockedUntil,
+			now = serverNow(),
 		}
 	end,
 })
@@ -1653,6 +1655,7 @@ task.spawn(function()
 			guardedTick("hud", function()
 				hud.tick(now)
 			end)
+			guardedTick("grabBlock", grabBlock.tick)
 			guardedTick("cashFly", cashFly.tick)
 			guardedTick("tutorial", function()
 				local finished = tutorial.finishedShowing()
