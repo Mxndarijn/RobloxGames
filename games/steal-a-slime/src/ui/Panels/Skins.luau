@@ -5,7 +5,7 @@
 	"n/m unlocked" for the open tab. Every tab is a list on the left and the selected item's pane on the right.
 	Base: one row per skin (its icon, name, and a bar with the count toward unlocking it, or Equipped / Unlocked), and
 	the selected skin's pane (PlotSkinsView.detail): a big icon, the name, "Find 4 of these 5 slimes" over a bar, the
-	slimes themselves (found in colour, the rest as silhouettes with their set or "Merge"), and Equip, Equipped or a
+	slimes themselves (found in colour, the rest in grey with their set or "Merge"), and Equip, Equipped or a
 	well saying how many slimes are still needed. Equip asks the server (EquipPlotSkin); it decides nothing itself.
 	Without State.plotSkins: one empty line.
 	Building (PlotBasesView, with State.plotBases) and Cloud (PetSeatsView): one row per base or seat (its icon, name,
@@ -104,7 +104,8 @@ function Skins.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "SkinsPanel", "Skins", "🏠")
 	local c = Layout.PANEL_CHROME
 	local icons = ItemIcons.of(ctx)
-	local builders: SlimePreview.Builders = { species = ctx.buildSpecies, slime = ctx.buildSlime }
+	local builders: SlimePreview.Builders =
+		{ species = ctx.buildSpecies, greySpecies = ctx.buildGreySpecies, slime = ctx.buildSlime }
 
 	local summary = Widgets.chip({
 		Name = "Summary",

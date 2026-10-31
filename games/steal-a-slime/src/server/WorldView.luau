@@ -1537,7 +1537,7 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 				local keys = Constants.FRIENDS_PROMPT_KEYS
 				prompt.KeyboardKeyCode = (Enum.KeyCode :: any)[keys.keyboard]
 				prompt.GamepadKeyCode = (Enum.KeyCode :: any)[keys.gamepad]
-				prompt.HoldDuration = 0 -- free and undoable
+				-- keeps HOLD_CONFIRM_SECONDS like Lock: letting people in is risky, and one stray tap must not flip it
 			end
 			prompt.RequiresLineOfSight = false
 			prompt.MaxActivationDistance = Config.PLOT_PAD_PROMPT_DISTANCE
@@ -1849,7 +1849,13 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 				setIfChanged(plot, Constants.PLOT_BASE_ATTRIBUTE, base)
 			end
 			if floors then
-				BaseFloors.sync(plot, index, if session then session.data.padsUnlocked else 0, floors)
+				BaseFloors.sync(
+					plot,
+					index,
+					if session then session.data.padsUnlocked else 0,
+					if session then session.userId else nil,
+					floors
+				)
 			end
 			local view = PlotPrompts.describe(world, index, now)
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)

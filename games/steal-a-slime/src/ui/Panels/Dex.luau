@@ -8,7 +8,7 @@
 	  * the reward line: the next species milestone and what it pays, over a bar toward it;
 	  * the tab's content:
 	      - a species tab: a scroll list of card lines grouped by rarity (SlimeDex.lines) on the left, each card
-	        only the species mesh (a flat black silhouette while not found) and the name; the selected card's
+	        only the species mesh (in grey while not found) and the name; the selected card's
 	        side pane on the right (SlimeDex.detail): a big preview, the rarity, how to get it, its set, how many
 	        are in your base and the merges it is used in, with "See merges" opening those;
 	      - Merges: one line on what to do, then a scroll list of recipe rows (SlimeDex.recipes): three
@@ -428,7 +428,8 @@ function Dex.new(parent: Instance, ctx: any)
 	-- Previews: every mesh well in both lists and the pane. A well is mounted only while it is in or near its
 	-- list's scroll window (the pane's always), at most SlimePreview.MAX_LIVE at once.
 	type Look = SlimePreview.SpeciesLook
-	local builders: SlimePreview.Builders = { species = ctx.buildSpecies, slime = ctx.buildSlime }
+	local builders: SlimePreview.Builders =
+		{ species = ctx.buildSpecies, greySpecies = ctx.buildGreySpecies, slime = ctx.buildSlime }
 	type Well = {
 		viewport: ViewportFrame,
 		glyph: TextLabel,

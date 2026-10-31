@@ -89,10 +89,29 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 	it("mirrors the panels' row geometry (WorldShop, Guide)", function()
 		local worldShop = UiHarness.ui("Panels/WorldShop")
 		local copy = LayoutAssert.WORLD_SHOP
-		for _, k in { "BADGE", "BUY_W", "DESC_H" } do
+		for _, k in
+			{
+				"BADGE",
+				"BADGE_THIN",
+				"BUY_W",
+				"DESC_H",
+				"DESC_THIN_H",
+				"LABEL_H",
+				"TAB_H",
+				"TAB_GAP",
+				"STEP",
+				"STEP_GAP",
+				"EDGE",
+				"GRID_COLS",
+				"GRID_GAP",
+				"TILE_NAME_H",
+			}
+		do
 			expect(copy[k]).toBe(worldShop[k])
 		end
-		expect(copy.SIZE.tagH).toBe(worldShop.SIZE.tagH)
+		for k, v in copy.SIZE do
+			expect(v).toBe(worldShop.SIZE[k])
+		end
 		local guide = read("src/ui/Panels/Guide.luau")
 		expect(has(guide, "Guide.TIP_H = 44")).toBe(true)
 		expect(UiHarness.ui("Panels/Guide").SHOW_TEXT).toBe("📖  Show the tutorial again")

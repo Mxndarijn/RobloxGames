@@ -10,7 +10,9 @@
 	down on floor 1 (straight below, on the plot's Base) so nobody falls through the tower. A jar's lid (parts with the JarLid
 	attribute) is hidden and non-colliding while the jar above it stands. Only the top jar's DropHatch is open (shown,
 	its DropPrompt on): the tube is taken from the top of the tower, never from a jar in between. Each new jar's DropHatch gets the
-	DropPrompt (`ctx.drop` runs the rule, Actions.useDropTube: the owner, not while carrying). Holds no gameplay rules.
+	DropPrompt (`ctx.drop` runs the rule, Actions.useDropTube: the owner, not while carrying). Every DropPrompt carries
+	TubeOpen and TubeOwner, so each client shows it only to the owner while empty-handed (ui/GooTubePrompt). Holds no
+	gameplay rules.
 ]]
 
 local Players = game:GetService("Players")
@@ -149,6 +151,7 @@ local function setLids(plot: Instance)
 			local prompt = hatch:FindFirstChild(Constants.DROP_PROMPT_NAME, true)
 			if prompt and prompt:IsA("ProximityPrompt") then
 				prompt.Enabled = open
+				prompt:SetAttribute(Constants.DROP_PROMPT_OPEN_ATTRIBUTE, open)
 			end
 		end
 	end
@@ -191,8 +194,20 @@ local function setLids(plot: Instance)
 	end
 end
 
+-- Every DropPrompt of the plot names its owner (client/GooTubePrompt shows it to them only).
+local function setTubeOwner(plot: Instance, ownerUserId: number?)
+	for f = 2, #Config.BASE_FLOORS do
+		local model = plot:FindFirstChild(`Floor_{f}`)
+		local hatch = model and model:FindFirstChild("DropHatch")
+		local prompt = hatch and hatch:FindFirstChild(Constants.DROP_PROMPT_NAME, true)
+		if prompt and prompt:GetAttribute(Constants.DROP_PROMPT_OWNER_ATTRIBUTE) ~= ownerUserId then
+			prompt:SetAttribute(Constants.DROP_PROMPT_OWNER_ATTRIBUTE, ownerUserId)
+		end
+	end
+end
+
 -- Builds or removes plot `plotIndex`'s upper floors for an owner with `padsUnlocked` pads (0 = free plot).
-function BaseFloors.sync(plot: Instance, plotIndex: number, padsUnlocked: number, ctx: Context)
+function BaseFloors.sync(plot: Instance, plotIndex: number, padsUnlocked: number, ownerUserId: number?, ctx: Context)
 	local shown = if padsUnlocked > 0 then Economy.floorsShown(padsUnlocked) else 1
 	local changed = false
 	for floor = 2, #Config.BASE_FLOORS do
@@ -210,6 +225,7 @@ function BaseFloors.sync(plot: Instance, plotIndex: number, padsUnlocked: number
 	if changed then
 		setLids(plot)
 	end
+	setTubeOwner(plot, ownerUserId)
 	-- one roof per plot, on its top jar (also the first time a plot is seen: jar 1)
 	if ctx.top then
 		local top = 1

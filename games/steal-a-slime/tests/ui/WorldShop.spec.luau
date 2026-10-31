@@ -277,6 +277,203 @@ describe("WorldShopLogic.rows", function()
 	end)
 end)
 
+local function shopView(shopId: string, state: any, opts: any?, feats: any?): WorldShopLogic.View
+	return WorldShopLogic.view(shopId, state, ACTIONS, feats or features(), Config, opts)
+end
+
+local function entry(v: WorldShopLogic.View, key: string): WorldShopLogic.Entry
+	for _, e in v.entries do
+		if e.key == key then
+			return e
+		end
+	end
+	error(`no entry {key}`)
+end
+
+local function entryKeys(v: WorldShopLogic.View): { string }
+	local out = {}
+	for _, e in v.entries do
+		table.insert(out, e.key)
+	end
+	return out
+end
+
+local function gloves(state: any, pick: number?): WorldShopLogic.Entry
+	local v = shopView("ItemShop", state, { tab = "PvP", picks = { Knockback = pick } })
+	for _, e in v.entries do
+		if string.find(e.key, "ladder_Knockback", 1, true) then
+			return e
+		end
+	end
+	error("no gloves card")
+end
+
+describe("WorldShopLogic.view: Item Shop", function()
+	it("has the Items, PvP and Fun tabs in order and opens on Items", function()
+		local v = shopView("ItemShop", baseState())
+		local tabIds = {}
+		for _, t in v.tabs do
+			table.insert(tabIds, t.id)
+		end
+		expect(table.concat(tabIds, ",")).toBe("Items,PvP,Fun")
+		expect(v.tab).toBe("Items")
+		expect(shopView("ItemShop", baseState(), { tab = "Nope" }).tab).toBe("Items")
+		expect(shopView("ItemShop", baseState(), { tab = "Fun" }).tab).toBe("Fun")
+	end)
+
+	it("with PvP off only the Items tab is left", function()
+		local v = shopView("ItemShop", baseState(), nil, features({ PvP = false }))
+		expect(#v.tabs).toBe(1)
+		expect(v.tabs[1].id).toBe("Items")
+	end)
+
+	it("a tab gets a dot only while something in it can be bought now", function()
+		local rich = shopView("ItemShop", baseState())
+		for _, t in rich.tabs do
+			expect(t.dot).toBe(true)
+		end
+		local broke = shopView("ItemShop", baseState({ cash = 0 }))
+		for _, t in broke.tabs do
+			expect(t.dot).toBe(false)
+		end
+	end)
+
+	it("Items: gear, then potions with the restock timer; an owned Speed Coil moves to a thin Owned row", function()
+		local v = shopView("ItemShop", baseState())
+		expect(table.concat(entryKeys(v), ",")).toBe(
+			"label_gear,row_SpeedCoil,label_consumables,row_LuckPotion,row_WeatherTotem"
+		)
+		expect(entry(v, "label_consumables").aside).toBe("restock")
+		local owned = baseState()
+		owned.shop.SpeedCoil.owned = true
+		local w = shopView("ItemShop", owned)
+		expect(table.concat(entryKeys(w), ",")).toBe(
+			"label_consumables,row_LuckPotion,row_WeatherTotem,label_owned,row_SpeedCoil_thin"
+		)
+		expect(entry(w, "row_SpeedCoil_thin").thin).toBe(true)
+	end)
+
+	it("PvP: one card per line, gloves then traps then blasters", function()
+		local v = shopView("ItemShop", baseState({ pvp = { rank = 20, owned = {}, charges = {} } }), { tab = "PvP" })
+		expect(table.concat(entryKeys(v), ",")).toBe("label_ladders,ladder_Knockback,ladder_Trap,ladder_Blaster")
+	end)
+
+	it("gloves show the best tier above yours that your rebirths reach", function()
+		local e = gloves(baseState({ pvp = { rank = 8, owned = { KnockGlove1 = true, KnockGlove2 = true } } }))
+		local ladder = e.ladder :: WorldShopLogic.Ladder
+		expect(ladder.row.id).toBe("KnockGlove3")
+		expect(ladder.row.status).toBe("buy")
+		expect(string.find(ladder.row.description, "Yours: Bounce glove", 1, true) ~= nil).toBe(true)
+		local states = {}
+		for _, s in ladder.steps do
+			table.insert(states, `{s.state}{if s.selected then "*" else ""}`)
+		end
+		expect(table.concat(states, ",")).toBe("owned,owned,open*,locked,locked")
+	end)
+
+	it("tiers can be skipped: a Rebirth 12 player with no glove sees the Thunder glove", function()
+		local e = gloves(baseState({ pvp = { rank = 12, owned = {} } }))
+		expect((e.ladder :: any).row.id).toBe("KnockGlove4")
+		expect(string.find((e.ladder :: any).row.description, "none yet", 1, true) ~= nil).toBe(true)
+	end)
+
+	it("with no higher tier unlocked the card shows the next one, locked", function()
+		local e = gloves(baseState({ pvp = { rank = 3, owned = { KnockGlove1 = true } } }))
+		local row = (e.ladder :: any).row
+		expect(row.id).toBe("KnockGlove2")
+		expect(row.status).toBe("locked")
+		expect(row.buttonText).toBe("Rebirth 5")
+	end)
+
+	it("a tapped tier wins, an owned one shows Owned", function()
+		local state = baseState({ pvp = { rank = 8, owned = { KnockGlove1 = true, KnockGlove2 = true } } })
+		expect((gloves(state, 1).ladder :: any).row.status).toBe("owned")
+		expect((gloves(state, 5).ladder :: any).row.status).toBe("locked")
+		expect((gloves(state, 9).ladder :: any).row.id).toBe("KnockGlove3")
+	end)
+
+	it("owning the top glove leaves one thin Max row", function()
+		local owned = {}
+		for i = 1, 5 do
+			owned[`KnockGlove{i}`] = true
+		end
+		local e = gloves(baseState({ pvp = { rank = 30, owned = owned } }))
+		expect(e.kind).toBe("row")
+		expect(e.thin).toBe(true)
+		local row = e.row :: WorldShopLogic.Row
+		expect(row.id).toBe("KnockGlove5")
+		expect(WorldShopLogic.slot(row).kind).toBe("stamp")
+	end)
+
+	it("traps show the best reachable tier with its held tag, and list the other traps you hold", function()
+		local state = baseState({ pvp = { rank = 6, owned = { GooTrap1 = true }, charges = { GooTrap1 = 2 } } })
+		local v = shopView("ItemShop", state, { tab = "PvP" })
+		local ladder = entry(v, "ladder_Trap").ladder :: WorldShopLogic.Ladder
+		expect(ladder.row.id).toBe("GooTrap2")
+		expect(ladder.row.stockText).toBe(`0/{Config.PVP.TRAP_MAX_HELD} held`)
+		expect(string.find(ladder.row.description, "Other traps held: 2", 1, true) ~= nil).toBe(true)
+		expect(ladder.steps[1].state).toBe("owned")
+	end)
+
+	it("Fun: one grid of every fun item, buy tiles show the price only", function()
+		local v = shopView("ItemShop", baseState({ pvp = { rank = 3, owned = {} } }), { tab = "Fun" })
+		expect(table.concat(entryKeys(v), ",")).toBe("label_fun,grid_fun")
+		local tiles = entry(v, "grid_fun").tiles :: { WorldShopLogic.Row }
+		local fun = 0
+		for _, t in Config.PVP_TOOLS do
+			if t.kind == "fun" then
+				fun += 1
+			end
+		end
+		expect(#tiles).toBe(fun)
+		for _, t in tiles do
+			if t.status == "buy" then
+				expect(string.find(t.buttonText, "Buy", 1, true)).toBe(nil)
+			end
+		end
+	end)
+end)
+
+describe("WorldShopLogic.view: Upgrade Shop", function()
+	it("groups the upgrades under labels; no tabs", function()
+		local v = shopView("UpgradeShop", baseState())
+		expect(#v.tabs).toBe(0)
+		expect(table.concat(entryKeys(v), ",")).toBe(
+			"label_group1,row_Income,row_OfflineCap,label_group2,row_CarrySpeed,row_QuickBrew,label_group3,row_Luck"
+		)
+		expect(entry(v, "label_group1").text).toBe("Earn more")
+	end)
+
+	it("maxed and not-yet-unlocked upgrades sink to thin rows at the end of their group", function()
+		local state = baseState()
+		state.upgrades = {
+			upgradeEntry("Income", { level = 2 }),
+			upgradeEntry("OfflineCap", { level = 0, unlocked = false, requires = 3 }),
+			upgradeEntry("CarrySpeed", { level = 4 }),
+			upgradeEntry("QuickBrew", { level = 1 }),
+			upgradeEntry("Luck", { level = 1 }),
+		}
+		local v = shopView("UpgradeShop", state)
+		expect(table.concat(entryKeys(v), ",")).toBe(
+			"label_group1,row_Income,row_OfflineCap_thin,label_group2,row_QuickBrew,row_CarrySpeed_thin,label_group3,row_Luck"
+		)
+		expect((entry(v, "row_OfflineCap_thin").row :: any).description).toBe("Unlocks at Rebirth 3")
+		expect((entry(v, "row_Income").row :: any).description).toBe("+20% → +30% income")
+	end)
+
+	it("upgradeEffect: now -> next, Next at level 0, the total when maxed, hours stay hours", function()
+		expect(WorldShopLogic.upgradeEffect("Income", "+10% income", 0, 25)).toBe("Next: +10% income")
+		expect(WorldShopLogic.upgradeEffect("Income", "+10% income", 25, 25)).toBe("+250% income")
+		expect(WorldShopLogic.upgradeEffect("CarrySpeed", "-15% carry slowdown", 2, 4)).toBe(
+			"-30% → -45% carry slowdown"
+		)
+		expect(WorldShopLogic.upgradeEffect("OfflineCap", "+1h offline income cap", 1, 4)).toBe(
+			"+1h → +2h offline income cap"
+		)
+		expect(WorldShopLogic.upgradeEffect("Odd", "no number here", 1, 4)).toBe("no number here")
+	end)
+end)
+
 describe("WorldShopLogic.slot", function()
 	it("buy rows get the button; every other state a well or the MAX stamp", function()
 		local function slot(status: string, text: string): any
@@ -557,27 +754,31 @@ local function ctx(sent: { any }?): any
 end
 
 describe("Panels/WorldShop", function()
-	it("shows the title, cash, restock and one row per item of the chosen shop", function()
+	local function tap(panel: any, name: string)
+		UiHarness.fire(UiHarness.find(panel.frame, name), "Activated")
+	end
+
+	it("shows the title, the tabs, the restock timer and the rows of the chosen shop; no cash chip", function()
 		local panel = UiHarness.ui("Panels/WorldShop").new(UiHarness.root(), ctx())
 		panel.update(baseState())
 		panel.setShop("ItemShop")
 		expect(UiHarness.find(panel.frame, "Title").Text).toBe("Item shop")
 		expect(panel.shop()).toBe("ItemShop")
-		expect(UiHarness.find(panel.frame, "RestockTimer").Visible).toBe(true)
-		expect(string.find(UiHarness.find(panel.frame, "Cash").Text, "1M", 1, true) ~= nil).toBe(true)
-		local list = UiHarness.find(panel.frame, "List")
-		local want = #WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config)
-		expect(#list:GetChildren() >= want).toBe(true)
+		expect(UiHarness.find(panel.frame, "Tabs").Visible).toBe(true)
+		expect(UiHarness.find(panel.frame, "RestockTimer").Text).toBe("Restocks in 3:10")
+		expect(UiHarness.find(panel.frame, "Cash")).toBeNil()
 		expect(UiHarness.find(panel.frame, "SpeedCoil") ~= nil).toBe(true)
+		expect(UiHarness.find(panel.frame, "KnockGlove1")).toBeNil() -- PvP lives in its own tab
 		expect(UiHarness.find(panel.frame, "Lock")).toBeNil()
 		panel.setShop("UpgradeShop")
 		expect(UiHarness.find(panel.frame, "Title").Text).toBe("Upgrade shop")
-		expect(UiHarness.find(panel.frame, "RestockTimer").Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "Tabs").Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "RestockTimer")).toBeNil()
 		expect(UiHarness.find(panel.frame, "SpeedCoil")).toBeNil()
 		expect(UiHarness.find(panel.frame, "Income") ~= nil).toBe(true)
 	end)
 
-	it("dresses both shops in the shared purple: own title, corner icon and tagline chip", function()
+	it("dresses both shops in the shared panel colours: own title and corner icon", function()
 		local WorldShop = UiHarness.ui("Panels/WorldShop")
 		local Theme = UiHarness.ui("Widgets").Theme
 		local panel = WorldShop.new(UiHarness.root(), ctx())
@@ -588,14 +789,7 @@ describe("Panels/WorldShop", function()
 		expect(tile:FindFirstChild("Icon").Text).toBe(WorldShop.ICON.ItemShop.text)
 		expect(tile.BackgroundColor3).toBe(Theme.Text)
 		expect(UiHarness.find(tile, "UpArrow").Visible).toBe(false)
-		local cash = UiHarness.find(panel.frame, "Cash")
-		expect(cash.Text).toBe("$1M")
-		expect(cash.TextColor3).toBe(Theme.Gold)
-		expect(cash.BackgroundColor3).toBe(Theme.Ink)
-		local restock = UiHarness.find(panel.frame, "RestockTimer")
-		expect(restock.Text).toBe("Restocks in 3:10")
-		expect(restock.TextColor3).toBe(Theme.Muted)
-		expect(UiHarness.find(panel.frame, "Tagline").Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "RestockTimer").TextColor3).toBe(Theme.Gold)
 		local coil = UiHarness.find(panel.frame, "SpeedCoil")
 		expect(coil.BackgroundColor3).toBe(Theme.Row)
 		expect(coil:FindFirstChild("Levels")).toBeNil()
@@ -605,13 +799,37 @@ describe("Panels/WorldShop", function()
 		expect(tile:FindFirstChild("Icon").Text).toBe("")
 		expect(UiHarness.find(tile, "UpArrow").Visible).toBe(true)
 		expect(tile.BackgroundColor3).toBe(Theme.Gold)
-		local tagline = UiHarness.find(panel.frame, "Tagline")
-		expect(tagline.Visible).toBe(true)
-		expect(tagline.Text).toBe("Kept when you rebirth")
-		expect(tagline.TextColor3).toBe(Theme.Muted)
 	end)
 
-	it("item rows: green hold Buy with ink price, gold stock tag, Owned and Rebirth status wells", function()
+	it(
+		"tabs: Items first, a tap switches, the one on show is Accent, others with something to buy get a dot",
+		function()
+			local Theme = UiHarness.ui("Widgets").Theme
+			local panel = UiHarness.ui("Panels/WorldShop").new(UiHarness.root(), ctx())
+			panel.update(baseState())
+			panel.setShop("ItemShop")
+			local items, fun = UiHarness.find(panel.frame, "Tab_Items"), UiHarness.find(panel.frame, "Tab_Fun")
+			expect(items.BackgroundColor3).toBe(Theme.Accent)
+			expect(fun.BackgroundColor3).toBe(Theme.Info)
+			expect(fun:FindFirstChild("Dot").Visible).toBe(true)
+			expect(items:FindFirstChild("Dot").Visible).toBe(false)
+			tap(panel, "Tab_Fun")
+			expect(UiHarness.find(panel.frame, "Tab_Fun").BackgroundColor3).toBe(Theme.Accent)
+			expect(UiHarness.find(panel.frame, "SpeedCoil")).toBeNil()
+			expect(UiHarness.find(panel.frame, "FunGrid") ~= nil).toBe(true)
+			-- every open starts on Items again
+			panel.setShop("ItemShop")
+			expect(panel.tab()).toBe("Items")
+			expect(UiHarness.find(panel.frame, "SpeedCoil") ~= nil).toBe(true)
+			panel.setTab("PvP")
+			expect(panel.tab()).toBe("PvP")
+			expect(UiHarness.find(panel.frame, "Ladder_Knockback") ~= nil).toBe(true)
+			panel.setTab("Nope")
+			expect(panel.tab()).toBe("Items")
+		end
+	)
+
+	it("item rows: green hold Buy with ink price, gold stock tag; an owned Speed Coil is a thin Owned row", function()
 		local WorldShop = UiHarness.ui("Panels/WorldShop")
 		local Theme = UiHarness.ui("Widgets").Theme
 		local panel = WorldShop.new(UiHarness.root(), ctx())
@@ -632,20 +850,61 @@ describe("Panels/WorldShop", function()
 		expect(stock.BackgroundColor3).toBe(Theme.Gold)
 		expect(stock.TextColor3).toBe(Theme.Ink)
 		expect(stock.ZIndex > totem:FindFirstChild("Icon").ZIndex).toBe(true)
-		local owned = UiHarness.find(panel.frame, "KnockGlove1")
-		expect(owned:FindFirstChild("Buy").Visible).toBe(false)
-		local well = owned:FindFirstChild("Status")
+		local owned = baseState()
+		owned.shop.SpeedCoil.owned = true
+		panel.update(owned)
+		coil = UiHarness.find(panel.frame, "SpeedCoil")
+		expect(coil.Size.Y.Offset).toBe(WorldShop.ROW_THIN)
+		local well = coil:FindFirstChild("Status")
 		expect(well.Visible).toBe(true)
 		expect(well.Text).toBe("Owned")
 		expect(well:FindFirstChild("Check").Visible).toBe(true)
 		expect(well.TextColor3).toBe(Theme.Good)
 		expect(well.BackgroundColor3).toBe(Theme.Ink)
-		local locked = UiHarness.find(panel.frame, "FunDanceBomb")
-		expect(locked:FindFirstChild("Buy").Visible).toBe(false)
-		local lockWell = locked:FindFirstChild("Status")
+	end)
+
+	it("PvP: one ladder card per line; tapping a tier shows that tier", function()
+		local WorldShop = UiHarness.ui("Panels/WorldShop")
+		local Theme = UiHarness.ui("Widgets").Theme
+		local sent = {}
+		local panel = WorldShop.new(UiHarness.root(), ctx(sent))
+		panel.update(baseState({ pvp = { rank = 8, owned = { KnockGlove1 = true, KnockGlove2 = true } } }))
+		panel.setShop("ItemShop")
+		tap(panel, "Tab_PvP")
+		local card = UiHarness.find(panel.frame, "Ladder_Knockback")
+		expect(card ~= nil).toBe(true)
+		expect(UiHarness.find(panel.frame, "Ladder_Trap") ~= nil).toBe(true)
+		expect(UiHarness.find(panel.frame, "Ladder_Blaster") ~= nil).toBe(true)
+		expect(UiHarness.find(card, "LineTitle").Text).toBe("Gloves")
+		expect(UiHarness.find(card, "KnockGlove3") ~= nil).toBe(true)
+		local steps = UiHarness.find(card, "Steps")
+		expect(steps:FindFirstChild("Step3").BackgroundColor3).toBe(Theme.Gold)
+		expect(steps:FindFirstChild("Step1").BackgroundColor3).toBe(Theme.Good)
+		expect(steps:FindFirstChild("Step5").BackgroundColor3).toBe(Theme.Disabled)
+		expect(steps:FindFirstChild("Step5").Text).toBe("🔒5")
+		UiHarness.fire(steps:FindFirstChild("Step5"), "Activated")
+		card = UiHarness.find(panel.frame, "Ladder_Knockback")
+		local royal = UiHarness.find(card, "KnockGlove5")
+		expect(royal ~= nil).toBe(true)
+		expect(string.find(royal:FindFirstChild("Status").Text, "🔒 Rebirth 20", 1, true) == 1).toBe(true)
+		expect(#sent).toBe(0)
+	end)
+
+	it("Fun: a grid of tiles with a price-only Buy and rebirth-locked wells", function()
+		local Theme = UiHarness.ui("Widgets").Theme
+		local panel = UiHarness.ui("Panels/WorldShop").new(UiHarness.root(), ctx())
+		panel.update(baseState())
+		panel.setShop("ItemShop")
+		tap(panel, "Tab_Fun")
+		local grid = UiHarness.find(panel.frame, "FunGrid")
+		local confetti = grid:FindFirstChild("FunConfetti")
+		expect(confetti:FindFirstChild("Buy").Visible).toBe(true)
+		expect(string.find(confetti:FindFirstChild("Buy").Text, "Buy", 1, true)).toBeNil()
+		local bomb = grid:FindFirstChild("FunDanceBomb")
+		expect(bomb:FindFirstChild("Buy").Visible).toBe(false)
+		local lockWell = bomb:FindFirstChild("Status")
 		expect(lockWell.Visible).toBe(true)
 		expect(string.find(lockWell.Text, "🔒 Rebirth 8", 1, true) == 1).toBe(true)
-		expect(string.find(lockWell.Text, "to unlock", 1, true) ~= nil).toBe(true)
 		expect(lockWell.TextColor3).toBe(Theme.Muted)
 	end)
 
@@ -659,29 +918,38 @@ describe("Panels/WorldShop", function()
 			WorldShop.BUY_W
 		)
 		local panel = WorldShop.new(UiHarness.root(), ctx())
-		panel.update(baseState())
+		panel.update(baseState({ pvp = { rank = 0, owned = {} } }))
 		panel.setShop("ItemShop")
-		local bomb = UiHarness.find(panel.frame, "FunDanceBomb")
-		local want = WorldShop.statusWidth(WorldShopLogic.slot({ status = "locked", buttonText = "Rebirth 8" }))
-		expect(bomb:FindFirstChild("Status").Size.X.Offset).toBe(want)
-		local name = bomb:FindFirstChild("ItemName")
-		local coilName = UiHarness.find(panel.frame, "SpeedCoil"):FindFirstChild("ItemName")
-		expect(name.Size.X.Offset - coilName.Size.X.Offset).toBe(WorldShop.BUY_W - want)
+		local coilW = UiHarness.find(panel.frame, "SpeedCoil"):FindFirstChild("ItemName").Size.X.Offset
+		tap(panel, "Tab_PvP")
+		local blaster = UiHarness.find(UiHarness.find(panel.frame, "Ladder_Blaster"), "GooBlaster1")
+		local want = WorldShop.statusWidth(WorldShopLogic.slot({ status = "locked", buttonText = "Rebirth 7" }))
+		expect(blaster:FindFirstChild("Status").Size.X.Offset).toBe(want)
+		expect(blaster:FindFirstChild("ItemName").Size.X.Offset - coilW).toBe(WorldShop.BUY_W - want)
 	end)
 
-	it("upgrade rows: one pip per level, gold MAX stamp when maxed, the buyable one highlighted", function()
+	it("upgrade rows: grouped, now -> next text, pips up to PIP_MAX levels and a bar past it, maxed is thin", function()
 		local WorldShop = UiHarness.ui("Panels/WorldShop")
 		local Theme = UiHarness.ui("Widgets").Theme
 		local state = baseState()
-		state.upgrades[1] = upgradeEntry("Income", { level = 3, maxLevel = 10 })
+		state.upgrades[1] = upgradeEntry("Income", { level = 3, maxLevel = 25 })
 		state.upgrades[2] = upgradeEntry("CarrySpeed", { level = 4, maxLevel = 4 })
+		state.upgrades[5] = upgradeEntry("QuickBrew", { level = 1, maxLevel = 4 })
 		local panel = WorldShop.new(UiHarness.root(), ctx())
 		panel.update(state)
 		panel.setShop("UpgradeShop")
+		expect(UiHarness.find(panel.frame, "label_group1") ~= nil).toBe(true)
 		local income = UiHarness.find(panel.frame, "Income")
 		expect(income.Size.Y.Offset).toBe(WorldShop.ROW_LEVELS)
-		local pips = income:FindFirstChild("Levels")
-		expect(#pips:GetChildren()).toBe(10)
+		expect(income:FindFirstChild("Description").Text).toBe("+30% → +40% income")
+		expect(income:FindFirstChild("Levels")).toBeNil()
+		local fill = income:FindFirstChild("LevelBar"):FindFirstChild("Fill")
+		expect(math.abs(fill.Size.X.Scale - 3 / 25) < 1e-6).toBe(true)
+		expect(income.BackgroundColor3).toBe(Theme.BgLight)
+		expect(income:FindFirstChild("Buy").Visible).toBe(true)
+		local brew = UiHarness.find(panel.frame, "QuickBrew")
+		local pips = brew:FindFirstChild("Levels")
+		expect(#pips:GetChildren()).toBe(4)
 		local on = 0
 		for _, pip in pips:GetChildren() do
 			if pip.BackgroundColor3 == Theme.Gold then
@@ -690,28 +958,19 @@ describe("Panels/WorldShop", function()
 				expect(pip.BackgroundColor3).toBe(Theme.Ink)
 			end
 		end
-		expect(on).toBe(3)
-		expect(income.BackgroundColor3).toBe(Theme.BgLight)
-		expect(income:FindFirstChild("Buy").Visible).toBe(true)
-		expect(income:FindFirstChild("Buy").BackgroundColor3).toBe(Theme.Good)
-		expect(income:FindFirstChild("MaxStamp").Visible).toBe(false)
+		expect(on).toBe(1)
 		local carry = UiHarness.find(panel.frame, "CarrySpeed")
-		expect(carry.BackgroundColor3).toBe(Theme.Row)
+		expect(carry.Size.Y.Offset).toBe(WorldShop.ROW_THIN)
 		expect(carry:FindFirstChild("Buy").Visible).toBe(false)
-		expect(carry:FindFirstChild("Status").Visible).toBe(false)
 		local stamp = carry:FindFirstChild("MaxStamp")
 		expect(stamp.Visible).toBe(true)
 		expect(stamp.Text).toBe("Max")
 		expect(stamp.BackgroundColor3).toBe(Theme.Gold)
 		expect(stamp.TextColor3).toBe(Theme.Ink)
-		local all = 0
-		for _, pip in carry:FindFirstChild("Levels"):GetChildren() do
-			expect(pip.BackgroundColor3).toBe(Theme.Gold)
-			all += 1
-		end
-		expect(all).toBe(4)
 		-- can't afford it: no highlight, and the Buy button is a sunken well
-		panel.update(baseState({ cash = 1 }))
+		local broke = table.clone(state)
+		broke.cash = 1
+		panel.update(broke)
 		income = UiHarness.find(panel.frame, "Income")
 		expect(income.BackgroundColor3).toBe(Theme.Row)
 		expect(income:FindFirstChild("Buy").BackgroundColor3).toBe(Theme.Disabled)
@@ -738,14 +997,22 @@ describe("Panels/WorldShop", function()
 		panel.update(baseState())
 		local registry = ItemIcons.build(Config)
 		local seen = 0
-		for _, shopId in Shops.ORDER do
-			panel.setShop(shopId)
+		local function count()
 			for _, inst in UiHarness.descendants(panel.frame) do
 				if inst.Name == "Icon" and inst:GetAttribute("ItemId") then
 					seen += 1
 					expect(registry.byId[inst:GetAttribute("ItemId")] ~= nil).toBe(true)
 				end
 			end
+		end
+		for _, shopId in Shops.ORDER do
+			panel.setShop(shopId)
+			count()
+		end
+		panel.setShop("ItemShop")
+		for _, t in WorldShopLogic.TABS do
+			UiHarness.fire(UiHarness.find(panel.frame, `Tab_{t.id}`), "Activated")
+			count()
 		end
 		expect(seen > 10).toBe(true)
 	end)
