@@ -191,6 +191,9 @@ local function stepPlayers(loop: Loop, t: number)
 			ObbyView.apply(result.moves, function(userId: number)
 				SlimeGuard.serverMoved(world, userId, t) -- the anti-cheat must not read the lift as a teleport hack
 			end)
+			for _, userId in result.resets do
+				SlimeGuard.serverMoved(world, userId, t) -- the client's own fall reset back to the start pad
+			end
 		end)
 	end
 	if Config.FEATURES.CoopRitual then

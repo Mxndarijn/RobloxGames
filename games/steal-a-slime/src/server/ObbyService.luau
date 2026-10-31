@@ -9,8 +9,12 @@
 	  * there are no checkpoints: the server tracks the furthest section the runner has been over (ObbyCourse.sectionAt),
 	    in order. Skipping a section, or finishing faster than OBBY.MIN_RUN_SECONDS, marks the run invalid (it still
 	    finishes, but earns nothing)
-	  * falling below the section under the runner sends them back to the start pad; the clock keeps running and the
-	    sections already done stay done. Wandering far off the course's ends or sides ends the run
+	  * a fall sends the runner back to the start pad; the clock keeps running and the sections already done stay
+	    done. The client puts its own runner back the moment its root drops OBBY.FALL_DEPTH under the lowest platform
+	    it could still land on (visuals/client/ObbyFx); the server sees the jump back (`resets`: the adapter opens
+	    the anti-cheat's server-move window) and counts the fall. Past FALL_DEPTH + SERVER_FALL_SLACK the server
+	    moves the runner itself, as the backup. Wandering far off the course's ends or sides ends the run
+	  * the Goo Ring behind the start pad (ObbyCourse.inHome) ends the run and sets the runner down by the portal
 	  * the course stands in its own world (Place.zone): anyone there without a run is set down by the portal
 	  * the finish pad ends the run: the time, a best on this course, and the boost when ObbyRules says it is ready
 	    (data.obbyUntil / obbyReadyAt, saved); then the player is set down by the portal
@@ -44,7 +48,8 @@ export type Place = {
 
 export type Move = { userId: number, pos: Vec, yaw: number }
 
-export type Result = { moves: { Move }, rebuilt: boolean }
+-- `resets`: runners the client put back on the start pad after a fall this tick.
+export type Result = { moves: { Move }, rebuilt: boolean, resets: { number } }
 
 -- State.obby
 export type View = {
@@ -61,6 +66,7 @@ local ObbyService = {}
 
 ObbyService.OFF_COURSE = 40 -- studs past the course's ends or sides (course-local) that end a run
 ObbyService.PORTAL_HEIGHT = 8 -- studs above the portal centre that still count as standing in it
+ObbyService.RESET_JUMP = 20 -- studs back along the course in one tick, onto the start pad: the client put the runner back
 
 local function clock(seconds: number): string
 	local s = math.max(0, math.ceil(seconds))
@@ -168,34 +174,51 @@ local function finish(world: World, session: Session, run: World.ObbyRun, course
 	})
 end
 
--- One runner's tick. Returns the move the adapter must make, if any.
-local function progress(world: World, session: Session, place: Place, pos: Vec, now: number): Move?
+local function trackFall(world: World, session: Session, course: ObbyCourse.Course, at: number)
+	local over = math.clamp(at, 1, #course.spans)
+	World.track(world, session.userId, {
+		op = "event",
+		name = "ObbyFell",
+		fields = { `Section - {sectionName(course, over)}` },
+	})
+end
+
+-- One runner's tick. Returns the move the adapter must make, if any, and true when the client put the runner back
+-- on the start pad after a fall.
+local function progress(world: World, session: Session, place: Place, pos: Vec, now: number): (Move?, boolean)
 	local run = session.obbyRun :: World.ObbyRun
 	local course = world.obby
 	if not course or run.slot ~= course.slot then
 		ObbyService.cancel(session)
-		return nil
+		return nil, false
 	end
 	if run.settleUntil and now < run.settleUntil then
-		return nil -- the lift or respawn may not have reached the client yet
+		run.lastX = nil
+		return nil, false -- the lift or respawn may not have reached the client yet
 	end
 	local p = ObbyCourse.toLocal(place.frame, pos)
 	local off = ObbyService.OFF_COURSE
 	if p[1] < -off or p[1] > course.length + off or math.abs(p[3]) > off then
 		ObbyService.cancel(session)
 		World.notify(world, session.userId, "You left the Obby", "info", nil)
-		return nil
+		return nil, false
+	end
+	if ObbyCourse.inHome(course, p) then
+		ObbyService.cancel(session) -- the Goo Ring behind the start pad: back to the yard
+		return exitMove(place, session.userId), false
 	end
 	local at = ObbyCourse.sectionAt(course, p)
-	if p[2] < ObbyCourse.fallHeight(course, at) then
-		local over = math.clamp(at, 1, #course.spans)
-		World.track(world, session.userId, {
-			op = "event",
-			name = "ObbyFell",
-			fields = { `Section - {sectionName(course, over)}` },
-		})
+	local lastX = run.lastX
+	run.lastX = p[1]
+	if p[2] < ObbyCourse.fallHeight(course, p, OBBY.FALL_DEPTH + OBBY.SERVER_FALL_SLACK) then
+		trackFall(world, session, course, at)
 		run.settleUntil = now + OBBY.MOVE_GRACE
-		return worldMove(place, session.userId, course.start)
+		run.lastX = nil
+		return worldMove(place, session.userId, course.start), false
+	end
+	if at == 0 and lastX and lastX - p[1] > ObbyService.RESET_JUMP then
+		trackFall(world, session, course, ObbyCourse.sectionAt(course, { lastX, p[2], p[3] }))
+		return nil, true
 	end
 	if at > run.section then
 		if at > run.section + 1 then
@@ -206,9 +229,9 @@ local function progress(world: World, session: Session, place: Place, pos: Vec, 
 	end
 	if at > #course.spans and ObbyCourse.onFinish(course, p) then
 		finish(world, session, run, course, now)
-		return exitMove(place, session.userId)
+		return exitMove(place, session.userId), false
 	end
-	return nil
+	return nil, false
 end
 
 local function inZone(place: Place, pos: Vec): boolean
@@ -252,6 +275,7 @@ end
 -- One server tick: rotation, portal, runs. `positions` = root position per userId (nil = no live character).
 function ObbyService.step(world: World, place: Place, positions: { [number]: Vec }, now: number): Result
 	local moves: { Move } = {}
+	local resets: { number } = {}
 	local rebuilt = rotate(world, place, now, moves)
 	for userId, session in world.sessions do
 		local pos = positions[userId]
@@ -259,9 +283,11 @@ function ObbyService.step(world: World, place: Place, positions: { [number]: Vec
 			ObbyService.cancel(session) -- died or no character: the run is over
 			session.obbyOnPortal = nil
 		elseif session.obbyRun then
-			local move = progress(world, session, place, pos, now)
+			local move, reset = progress(world, session, place, pos, now)
 			if move then
 				table.insert(moves, move)
+			elseif reset then
+				table.insert(resets, userId)
 			end
 		elseif inZone(place, pos) then
 			table.insert(moves, exitMove(place, userId)) -- in the obby world without a run (left the course)
@@ -279,7 +305,7 @@ function ObbyService.step(world: World, place: Place, positions: { [number]: Vec
 			session.obbyOnPortal = inside
 		end
 	end
-	return { moves = moves, rebuilt = rebuilt }
+	return { moves = moves, rebuilt = rebuilt, resets = resets }
 end
 
 -- Keeps data.obbyBonus in step with the saved timers; toasts when a boost runs out. Call every step (GameLoop).

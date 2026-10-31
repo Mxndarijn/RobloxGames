@@ -9,6 +9,9 @@
 -- (runtime_parts_transient in perf_server) so the cap does not flap with play. The count IS perf_server.luau,
 -- run by tools/pr-gate/runtime_count.luau, so the filters cannot drift. This spec compares the RAW offline count;
 -- Studio sees RUNTIME_SLOT_ALLOWANCE (16) more, which tools/pr-gate/runtime_budget.sh adds and gates (CI).
+local Config = require("../src/shared/Config")
+local Constants = require("../src/shared/Constants")
+local ObbyCourse = require("../src/shared/ObbyCourse")
 local Runtime = require("../tools/livetest/Runtime")
 local RuntimeCount = require("../../../tools/pr-gate/runtime_count")
 local TestRunner = require("./TestRunner")
@@ -130,6 +133,32 @@ describe("runtime part budget", function()
 	it(`keeps the world (no wild slimes) within the fixed {PARTS_FAIL} cap, Studio offset included`, function()
 		expect(world > 0).toBe(true)
 		expect(world + RuntimeCount.STUDIO_OFFSET <= PARTS_FAIL).toBe(true)
+	end)
+	it("keeps the obby course off the server, so the heaviest rotation fits the cap too", function()
+		-- The count above sees one rotation slot. Courses differ per slot (contract/obby.md §2); each client builds
+		-- its own (ObbyCourseView), so the server's share of any course must be zero.
+		local obby = rt.workspace:FindFirstChild(Constants.OBBY_FOLDER)
+		expect(obby ~= nil).toBe(true)
+		local slot = obby:GetAttribute(Constants.OBBY_SLOT)
+		expect(type(slot)).toBe("number")
+		local portal = obby:FindFirstChild(Constants.OBBY_PORTAL)
+		local courseOnServer = 0
+		for _, d in obby:GetDescendants() do
+			if d:IsA("BasePart") and not (portal and d:IsDescendantOf(portal)) then
+				courseOnServer += 1
+			end
+		end
+		expect(courseOnServer).toBe(0)
+		-- The heaviest course over 40 chains of rotations, for the record: it adds nothing to the server world.
+		local heaviest = 0
+		for s = slot, slot + Config.OBBY.CHAIN_SLOTS * 40 do
+			heaviest = math.max(heaviest, #ObbyCourse.build(s).parts)
+		end
+		print(`[RuntimeParts] heaviest obby course {heaviest} parts, all client-side; server world {world}`)
+		expect(heaviest > 0).toBe(true)
+		-- Worst case on a live server: this world with its course swapped for the heaviest one, server share 0.
+		local worst = world - courseOnServer + 0 * heaviest
+		expect(worst + RuntimeCount.STUDIO_OFFSET <= PARTS_FAIL).toBe(true)
 	end)
 end)
 

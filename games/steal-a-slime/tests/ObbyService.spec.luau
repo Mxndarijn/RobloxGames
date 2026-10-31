@@ -81,10 +81,14 @@ local function analytics(world: any, name: string): { any }
 	return out
 end
 
--- World position below the fall height over section `i`.
-local function below(world: any, i: number): { number }
+-- World position `extra` studs under the client's fall height over the middle of section `i`, plus the server's
+-- slack unless `clientOnly`.
+local function below(world: any, i: number, clientOnly: boolean?): { number }
 	local span = world.obby.spans[i]
-	return ObbyCourse.toWorld(PLACE.frame, { (span.from + span.to) / 2, ObbyCourse.fallHeight(world.obby, i) - 2, 0 })
+	local p = { (span.from + span.to) / 2, 0, 0 }
+	local depth = OBBY.FALL_DEPTH + if clientOnly then 0 else OBBY.SERVER_FALL_SLACK
+	p[2] = ObbyCourse.fallHeight(world.obby, p, depth) - 2
+	return ObbyCourse.toWorld(PLACE.frame, p)
 end
 
 describe("ObbyService portal", function()
@@ -215,6 +219,49 @@ describe("ObbyService runs", function()
 		expect(session.obbyRun).toBeNil()
 		expect(session.data.obbyUntil).toBe(finishedAt + OBBY.BOOST_SECONDS)
 		expect(session.obbyBest.seconds).toBe(finishedAt - T)
+	end)
+
+	it("just under the client's fall depth the server leaves the reset to the client", function()
+		local world, session = setup()
+		enter(world, T)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 8)
+		local result = ObbyService.step(world, PLACE, at(below(world, 1, true)), T + 9)
+		expect(#result.moves).toBe(0)
+		expect(#result.resets).toBe(0)
+		expect(session.obbyRun ~= nil).toBe(true)
+		expect(#analytics(world, "ObbyFell")).toBe(0)
+	end)
+
+	it("the client's own jump back to the start pad counts as a fall and opens the server-move window", function()
+		local world, session = setup()
+		enter(world, T)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 8)
+		ObbyService.step(world, PLACE, at(onPad(world, 3)), T + 16)
+		local result = ObbyService.step(world, PLACE, at(onPad(world, 0)), T + 16.1)
+		expect(#result.moves).toBe(0)
+		expect(result.resets[1]).toBe(1)
+		expect(session.obbyRun.section).toBe(3)
+		expect(session.obbyRun.startedAt).toBe(T)
+		local fell = analytics(world, "ObbyFell")
+		expect(#fell).toBe(1)
+		expect(fell[1].fields[1]).toBe(`Section - {ObbyCourse.NAMES[world.obby.picks[3].id]}`)
+		-- Walking back onto the start pad is not a reset.
+		local walk = ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 20)
+		expect(#walk.resets).toBe(0)
+	end)
+
+	it("the Goo Ring behind the start pad ends the run and sets the runner down in the yard", function()
+		local world, session = setup()
+		enter(world, T)
+		local home = world.obby.home
+		local spawn = ObbyService.step(world, PLACE, at(onPad(world, 0)), T + 2)
+		expect(#spawn.moves).toBe(0) -- the runner appears out of the ring
+		local p = ObbyCourse.toWorld(PLACE.frame, { home.pos[1], home.pos[2] + 3, home.pos[3] + home.radius * 0.5 })
+		local result = ObbyService.step(world, PLACE, at(p), T + 4)
+		expect(session.obbyRun).toBeNil()
+		expect(#result.moves).toBe(1)
+		expect(result.moves[1].pos[1]).toBe(PLACE.exit[1])
+		expect(#analytics(world, "ObbyFell")).toBe(0)
 	end)
 
 	it("a fall right after a respawn is ignored until the move settles", function()

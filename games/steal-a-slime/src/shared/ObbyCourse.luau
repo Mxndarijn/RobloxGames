@@ -4,9 +4,10 @@
 
 	The Obby sky course as data. `pick(slot)` chooses the sections of one rotation (Config.OBBY.ORDER: one
 	section per tier entry, no section twice, none from the course before it inside one chain of CHAIN_SLOTS
-	rotations) and a layout for each. `build(slot)` lays the course out: a start pad, then the sections joined by short
-	plain connectors (every section starts and ends with a jump), then the finish pad. There are no checkpoints: the
-	server tracks which section a runner is over (`sectionAt`) and sends a fall back to the start pad. Every server
+	rotations) and a layout for each. `build(slot)` lays the course out: a start pad (with the Goo Ring back to the yard behind it), then the sections joined by short
+	jelly connectors in line with the path (every section starts and ends with a jump), then the finish pad. There are
+	no checkpoints: the server tracks which section a runner is over (`sectionAt`), and a runner that drops
+	`fallHeight` under the lowest platform it could still land on goes straight back to the start pad. Every server
 	and client gets the same course for the same slot.
 
 	Course-local frame: x runs forward along the course, y up, z to the right. A part's `pos` is its centre. Parts
@@ -66,6 +67,7 @@ export type Part = {
 	ice: boolean?, -- no friction
 	step: boolean?, -- on the walking path, in order
 	tone: number?, -- colour variant 1..3 for the look
+	link: boolean?, -- the connector between two sections
 }
 
 export type Pick = { id: string, tier: string, layout: number }
@@ -78,18 +80,29 @@ export type Span = {
 	floor: number, -- the lower of its entry and exit heights: falls are measured from here
 }
 
+-- The Goo Ring behind the start pad: stepping in ends the run and sets the runner down in the yard.
+export type Ring = {
+	pos: Vec, -- ring centre on the pad's top
+	radius: number,
+}
+
 -- The finish pad.
 export type Zone = {
 	pos: Vec, -- pad top centre
 	size: Vec, -- pad footprint (x, _, z) and the height above the top that counts as standing on it (y)
 }
 
+-- Where a falling runner could still land: a solid platform's course-local x extent and its lowest top.
+export type Floor = { from: number, to: number, top: number }
+
 export type Course = {
 	slot: number,
 	picks: { Pick },
 	parts: { Part },
+	floors: { Floor }, -- every platform a runner could land on (fallHeight)
 	start: Vec, -- where a runner appears (above the start pad)
 	startTop: number, -- the start pad's top
+	home: Ring, -- the way back to the yard
 	spans: { Span }, -- one per pick, in order
 	finish: Zone,
 	length: number,
@@ -102,8 +115,14 @@ type Section = { length: number, rise: number, parts: { Part } }
 local ObbyCourse = {}
 
 ObbyCourse.START_LENGTH = 12
-ObbyCourse.LINK_LENGTH = 4 -- plain connector between two sections
+ObbyCourse.LINK_LENGTH = 4 -- connector between two sections: a jelly block in line with the path, no checkpoint
+ObbyCourse.LINK_MIN_WIDTH = 4 -- the connector spans the path's ends next to it, at least this wide
+ObbyCourse.LINK_MARGIN = 0.5 -- studs past those ends on either side
+ObbyCourse.FALL_REACH = 10 -- studs along the course a falling runner can still drift onto a platform
 ObbyCourse.FINISH_LENGTH = 12
+ObbyCourse.HOME_LENGTH = 7 -- the pad behind the start pad that holds the Goo Ring back to the yard
+ObbyCourse.HOME_WIDTH = 8
+ObbyCourse.HOME_RADIUS = 2.5 -- studs: stepping inside the Goo Ring ends the run
 ObbyCourse.WIDTH = 12 -- pad width across the course
 ObbyCourse.STAND_HEIGHT = 9 -- studs above the finish pad's top that count as standing on it
 ObbyCourse.THICK = 1 -- platform thickness
@@ -1185,6 +1204,63 @@ local function offset(part: Part, dx: number, dy: number): Part
 	return moved
 end
 
+-- A section's first and last steps (the walking path's ends).
+local function firstStep(section: Section): Part
+	for _, part in section.parts do
+		if part.step then
+			return part
+		end
+	end
+	error("obby section without steps")
+end
+
+local function lastStep(section: Section): Part
+	for i = #section.parts, 1, -1 do
+		if section.parts[i].step then
+			return section.parts[i]
+		end
+	end
+	error("obby section without steps")
+end
+
+-- The z range (across the course) a step can cover: a spinning step sweeps its longest side, a sliding one its amp.
+local function acrossOf(part: Part): (number, number)
+	local half = part.size[3] / 2
+	local motion = part.motion
+	if motion and motion.kind == "spin" then
+		half = math.max(part.size[1], part.size[3]) / 2
+	elseif motion and motion.kind == "slide" and motion.axis == "z" then
+		half += math.abs(motion.amp or 0)
+	end
+	return part.pos[3] - half, part.pos[3] + half
+end
+
+-- Looks a runner can't stand on: obstacles that hit, swing or punch. Ghost parts have no collision at all.
+local NOT_FLOOR = table.freeze({ bar = true, blob = true, puncher = true, gate = true, wave = true })
+
+-- The platforms a falling runner could land on, with the lowest their top gets while they move.
+local function floorsOf(parts: { Part }): { Floor }
+	local out: { Floor } = {}
+	for _, part in parts do
+		if not part.ghost and not NOT_FLOOR[part.look] then
+			local half = part.size[1] / 2
+			local top = part.pos[2] + part.size[2] / 2
+			local motion = part.motion
+			if motion and motion.kind == "spin" then
+				half = math.max(part.size[1], part.size[3]) / 2
+			elseif motion and motion.kind == "slide" and motion.axis == "x" then
+				half += math.abs(motion.amp or 0)
+			elseif motion and motion.kind == "slide" and motion.axis == "y" then
+				top -= math.abs(motion.amp or 0)
+			elseif motion and motion.kind == "rock" then
+				top -= part.size[1] / 2 * math.sin(math.rad(math.abs(motion.amp or 0)))
+			end
+			table.insert(out, { from = part.pos[1] - half, to = part.pos[1] + half, top = top })
+		end
+	end
+	return out
+end
+
 -- One section with the layout given, in section-local coordinates.
 function ObbyCourse.section(id: string, layout: number): Section
 	local build = BUILD[id]
@@ -1196,20 +1272,34 @@ end
 function ObbyCourse.build(slot: number, picks: { Pick }?): Course
 	local chosen = picks or ObbyCourse.pick(slot)
 	local W, S = ObbyCourse.WIDTH, ObbyCourse.STAND_HEIGHT
-	local parts: { Part } = { slab(ObbyCourse.START_LENGTH / 2, 0, 0, ObbyCourse.START_LENGTH, W, "start") }
+	local H = ObbyCourse.HOME_LENGTH
+	local parts: { Part } = {
+		slab(ObbyCourse.START_LENGTH / 2, 0, 0, ObbyCourse.START_LENGTH, W, "start"),
+		slab(-H / 2, 0, 0, H, ObbyCourse.HOME_WIDTH, "start", { step = false }),
+	}
 	local spans: { Span } = {}
 	local x, y = ObbyCourse.START_LENGTH, 0
+	local sections = {}
 	for i, pick in chosen do
-		local section = ObbyCourse.section(pick.id, pick.layout)
+		sections[i] = ObbyCourse.section(pick.id, pick.layout)
+	end
+	for i, section in sections do
 		local from, entry = x, y
 		for _, part in section.parts do
 			table.insert(parts, offset(part, x, y))
 		end
 		x += section.length
 		y += section.rise
-		if i < #chosen then
+		local nextSection = sections[i + 1]
+		if nextSection then
 			local L = ObbyCourse.LINK_LENGTH
-			table.insert(parts, slab(x + L / 2, y, 0, L, W, "pad"))
+			local lo, hi = acrossOf(lastStep(section))
+			local nlo, nhi = acrossOf(firstStep(nextSection))
+			lo, hi = math.min(lo, nlo) - ObbyCourse.LINK_MARGIN, math.max(hi, nhi) + ObbyCourse.LINK_MARGIN
+			local grow = math.max(0, ObbyCourse.LINK_MIN_WIDTH - (hi - lo)) / 2
+			lo, hi = math.max(lo - grow, -W / 2), math.min(hi + grow, W / 2)
+			local tone = (i - 1) % 3 + 1
+			table.insert(parts, slab(x + L / 2, y, (lo + hi) / 2, L, hi - lo, "jelly", { tone = tone, link = true }))
 			x += L
 		end
 		table.insert(spans, { index = i, from = from, to = x, floor = math.min(entry, y) })
@@ -1222,12 +1312,22 @@ function ObbyCourse.build(slot: number, picks: { Pick }?): Course
 		slot = slot,
 		picks = chosen,
 		parts = parts,
+		floors = floorsOf(parts),
 		start = { ObbyCourse.START_LENGTH / 3, OBBY.RESPAWN_LIFT, 0 },
 		startTop = 0,
+		home = { pos = { -H / 2, 0, 0 }, radius = ObbyCourse.HOME_RADIUS },
 		spans = spans,
 		finish = finish,
 		length = x,
 	}
+end
+
+-- True when course-local `p` (a root position) stands in the Goo Ring back to the yard.
+function ObbyCourse.inHome(course: Course, p: Vec): boolean
+	local ring = course.home
+	local dx, dz = p[1] - ring.pos[1], p[3] - ring.pos[3]
+	local dy = p[2] - ring.pos[2]
+	return dx * dx + dz * dz <= ring.radius * ring.radius and dy >= -1 and dy <= ObbyCourse.STAND_HEIGHT
 end
 
 -- True when course-local `p` stands on the finish pad (over it, up to STAND_HEIGHT above its top).
@@ -1253,11 +1353,28 @@ function ObbyCourse.sectionAt(course: Course, p: Vec): number
 	return #course.spans + 1
 end
 
--- A runner over part `index` (sectionAt) has fallen below this height (course-local y).
-function ObbyCourse.fallHeight(course: Course, index: number): number
+-- The lowest platform top a runner at course-local `p` could still land on: every floor within FALL_REACH of it
+-- along the course (the section's floor if none is).
+function ObbyCourse.lowestFloor(course: Course, p: Vec): number
+	local x, reach = p[1], ObbyCourse.FALL_REACH
+	local low = math.huge
+	for _, floor in course.floors do
+		if floor.to >= x - reach and floor.from <= x + reach and floor.top < low then
+			low = floor.top
+		end
+	end
+	if low < math.huge then
+		return low
+	end
+	local index = ObbyCourse.sectionAt(course, p)
 	local span = course.spans[index]
-	local floor = if span then span.floor elseif index <= 0 then course.startTop else course.finish.pos[2]
-	return floor - OBBY.FALL_DEPTH
+	return if span then span.floor elseif index <= 0 then course.startTop else course.finish.pos[2]
+end
+
+-- A runner (root part) at course-local `p` has fallen once it is below this height: `depth` (default
+-- OBBY.FALL_DEPTH) under the lowest platform it could still land on.
+function ObbyCourse.fallHeight(course: Course, p: Vec, depth: number?): number
+	return ObbyCourse.lowestFloor(course, p) - (depth or OBBY.FALL_DEPTH)
 end
 
 ---------------------------------------------------------------------------
