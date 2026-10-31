@@ -386,6 +386,16 @@ describe("Slime Club and VIP perks", function()
 		expect(s.data.credits.brew).toBe(2) -- not a member any more
 		expect(Purchases.member(s)).toBeNil()
 	end)
+	it("hides the member tag while the player turned Show my VIP tag off, and keeps the perks", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		Purchases.applyPasses(s, { VIP = true })
+		s.data.settings.showMemberTag = false
+		expect(Purchases.member(s)).toBeNil()
+		expect(Purchases.hasEffect(s, "vip")).toBe(true)
+		s.data.settings.showMemberTag = true
+		expect(Purchases.member(s)).toBe("vip")
+	end)
 	it("a VIP gives the server a Luck Potion once a day, never where paid random items are restricted", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)

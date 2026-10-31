@@ -11,7 +11,7 @@
 
 	The cards stack upwards from just above the hotbar (Layout.screen `hotbar`), at the banner width and clear of
 	the nav. While the player carries a slime the bar is hidden and the carry card takes its place, so the cards
-	sit above the carry card instead. `setMenuOpen` hides them for an open menu, the daily popup and the bag.
+	sit above the carry card instead; move mode (SlimeMove, `setMoving`) uses the same slot. `setMenuOpen` hides them for an open menu, the daily popup and the bag.
 	The UI never advances the tutorial; it only shows State.
 ]]
 
@@ -41,6 +41,7 @@ export type TutorialCard = {
 	update: (state: any) -> (),
 	tick: (now: number) -> (),
 	setMenuOpen: (isOpen: boolean) -> (),
+	setMoving: (on: boolean) -> (),
 	layout: (screen: Layout.Screen) -> (),
 	shown: () -> boolean,
 	hidden: () -> boolean,
@@ -169,6 +170,7 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 	local skipped = false -- the player asked to skip: no "Tutorial done" card
 	local screen: Layout.Screen? = nil
 	local carrying = false -- the carry card has the hotbar's place
+	local moving = false -- the move card (SlimeMove) has it
 
 	-- The cards are built the first time something shows, so a player past the tutorial carries none.
 	local parts: any = nil
@@ -255,7 +257,7 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		if not screen then
 			return
 		end
-		local under = if carrying then math.min(screen.carry.y, screen.hotbar.y) else screen.hotbar.y
+		local under = if carrying or moving then math.min(screen.carry.y, screen.hotbar.y) else screen.hotbar.y
 		frame.Size = UDim2.fromOffset(math.round(screen.banners.w), 0)
 		frame.Position = UDim2.fromOffset(math.round(screen.banners.x), math.round(under - TutorialCard.GAP))
 	end
@@ -313,6 +315,13 @@ function TutorialCard.new(parent: Instance, _ctx: any, order: number): TutorialC
 		narrow = s.banners.w < TutorialCard.NARROW_W
 		place()
 		refresh()
+	end
+
+	function self.setMoving(on: boolean)
+		if on ~= moving then
+			moving = on
+			place()
+		end
 	end
 
 	function self.setMenuOpen(isOpen: boolean)
