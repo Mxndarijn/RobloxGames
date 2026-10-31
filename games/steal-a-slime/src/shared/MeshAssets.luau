@@ -1941,6 +1941,27 @@ entries["slime_dragon_king"] =
 	{ assetId = 88961374433419, size = { 5.566, 4.129, 4.424 }, offset = { 0, 2.065, 0.301 } }
 entries["slime_nightwing"] =
 	{ assetId = 112164365401063, size = { 6.262, 4.163, 3.802 }, offset = { 0.036, 2.081, 0.378 } }
+entries["slime_jester"] = { size = { 5.089, 4.825, 3.724 }, offset = { 0, 2.412, -0 } }
+entries["slime_cowboy"] = { size = { 4.445, 4.423, 4.1 }, offset = { -0.173, 2.212, -0 } }
+entries["slime_venus"] = { size = { 5.408, 4.386, 3.049 }, offset = { 0, 2.193, -0.02 } }
+entries["slime_bonsai"] = { size = { 4.142, 4.537, 3.28 }, offset = { 0.015, 2.249, -0 } }
+entries["slime_diver"] = { size = { 3.432, 5, 3.855 }, offset = { 0, 2.5, 0.212 } }
+entries["slime_narwhal"] = { size = { 4.367, 4.349, 4.45 }, offset = { 0, 2.175, 0.468 } }
+entries["slime_astronaut"] = { size = { 4.631, 3.28, 3.901 }, offset = { -0.456, 1.64, 0.336 } }
+entries["slime_griffin"] = { size = { 6.855, 3.936, 4.412 }, offset = { 0, 1.968, 0.11 } }
+entries["slime_cerberus"] = { size = { 4.823, 2.858, 3.869 }, offset = { 0, 1.429, 0.205 } }
+entries["slime_willow_wisp"] = { size = { 4.229, 4.039, 3.455 }, offset = { 0.042, 2.02, 0.149 } }
+entries["slime_mammoth"] = { size = { 3.865, 3.407, 4.597 }, offset = { -0, 1.704, -0.369 } }
+entries["slime_siren"] = { size = { 5.036, 3.964, 3.558 }, offset = { 0.23, 1.906, 0.175 } }
+entries["slime_djinn"] = { size = { 3.769, 4.549, 3.288 }, offset = { 0.011, 2.275, -0.084 } }
+entries["slime_sphinx"] = { size = { 3.682, 3.156, 4.176 }, offset = { 0, 1.538, 0.06 } }
+entries["slime_monarch"] = { size = { 6.431, 5.211, 3.21 }, offset = { 0, 2.605, -0.055 } }
+entries["slime_reef"] = { size = { 4.011, 4.14, 4.712 }, offset = { 0, 2.07, 0.054 } }
+entries["slime_supernova"] = { size = { 5.841, 4.368, 5.092 }, offset = { -0.194, 2.184, 0.235 } }
+entries["slime_valkyrie"] = { size = { 5.952, 4.651, 4.13 }, offset = { -0.082, 2.325, 0.151 } }
+entries["slime_hydra"] = { size = { 5.569, 4.531, 4.507 }, offset = { 0.191, 2.166, 0.663 } }
+entries["slime_constellation"] = { size = { 6.089, 4.071, 4.416 }, offset = { 0, 2.036, -0 } }
+entries["slime_ryujin"] = { size = { 4.783, 4.847, 4.426 }, offset = { -0.293, 2.423, 0.04 } }
 entries["slime_goozilla"] = { assetId = 95597031533993, size = { 3.204, 3.927, 5.049 }, offset = { 0, 1.907, 0.617 } }
 entries["slime_queen_jelly"] =
 	{ assetId = 108716301261458, size = { 4.401, 4.653, 4.403 }, offset = { -0.032, 2.337, 0.024 } }

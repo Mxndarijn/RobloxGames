@@ -66,6 +66,9 @@ local RECIPES: { Recipe } = {
 	r("dragon_king", "king", "king", "king", "Three crowns make a dragon."),
 	r("cyber_ninja", "ninja", "ninja", "robo", "Two shadows and a machine."),
 	r("nightwing", "cosmo", "seraph", "seraph", "Two angels fell into the stars."),
+	r("hydra", "siren", "siren", "siren", "Three sirens, one tail."),
+	r("constellation", "abyss", "gaia", "monarch", "Earth, sea and wings, joined by starlight."),
+	r("ryujin", "lunara", "solaris", "supernova", "Moon, sun and a bursting star: a dragon wakes."),
 }
 
 local MergeRecipes = {}
@@ -196,21 +199,8 @@ function MergeRecipes.resolve(inputs: { Input }, ctx: Ctx): Outcome
 			return refused("slimes must be the same rarity")
 		end
 	end
-	if from < Config.MAX_TIER then
-		local recipe = MergeRecipes.find({ inputs[1].species, inputs[2].species, inputs[3].species })
-		if recipe and recipe.tier == from + 1 then
-			return {
-				kind = "recipe",
-				recipe = recipe,
-				tier = recipe.tier,
-				jumpChance = 0,
-				pool = {},
-				assistPool = {},
-				assistChance = 0,
-			}
-		end
-	end
-	-- three slimes of SHINE_RECIPE.from sharing a shine brew a SHINE_RECIPE.into species (no jump, no assist)
+	-- three slimes of SHINE_RECIPE.from sharing a shine brew a SHINE_RECIPE.into species (no jump, no assist);
+	-- this wins over a species recipe made of the same three
 	local shine = inputs[1].shine
 	local sr = Config.SHINE_RECIPE
 	if
@@ -229,6 +219,20 @@ function MergeRecipes.resolve(inputs: { Input }, ctx: Ctx): Outcome
 			assistPool = {},
 			assistChance = 0,
 		}
+	end
+	if from < Config.MAX_TIER then
+		local recipe = MergeRecipes.find({ inputs[1].species, inputs[2].species, inputs[3].species })
+		if recipe and recipe.tier == from + 1 then
+			return {
+				kind = "recipe",
+				recipe = recipe,
+				tier = recipe.tier,
+				jumpChance = 0,
+				pool = {},
+				assistPool = {},
+				assistChance = 0,
+			}
+		end
 	end
 	local tier = if from >= Config.MAX_TIER then Config.MAX_TIER else math.min(from + 1, Config.MERGE_MAX_TIER)
 	local jump = from + 2

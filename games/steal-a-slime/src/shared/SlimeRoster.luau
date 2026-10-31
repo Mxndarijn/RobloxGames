@@ -19,6 +19,7 @@ export type Entry = {
 	kind: Kind, -- "spawn" rolls from the fountain and random merges; the others only from their own system
 	income: number, -- species income bonus within its rarity (INCOME; 1 = the rarity's base income)
 	jackpot: boolean?, -- a jackpot: x JACKPOT_INCOME, Config.JACKPOT_SHARE of its rarity's drops, never merged or asked for
+	dexBonus: boolean?, -- a SlimeDex bonus entry: shown and counted in bonusFound, never in the Dex total or milestones
 }
 
 -- spawn: the fountain and random merges. hybrid: merge recipes only. boss: the boss event only.
@@ -79,6 +80,25 @@ local INCOME: { [string]: number } = {
 	aurora = 1,
 	goo_oracle = 1.1,
 	kirin = 1.2,
+	-- New wild slimes (Legendary and up)
+	jester = 1,
+	cowboy = 1,
+	venus = 1.05,
+	bonsai = 1.05,
+	diver = 1.1,
+	narwhal = 1.1,
+	astronaut = 1.1,
+	griffin = 1,
+	cerberus = 1,
+	willow_wisp = 1.05,
+	mammoth = 1.05,
+	siren = 1.05,
+	djinn = 1.15,
+	sphinx = 1.15,
+	monarch = 1.05,
+	reef = 1.1,
+	supernova = 1.1,
+	valkyrie = 1.1,
 	-- Secret
 	midas = 1,
 	gaia = 1.15,
@@ -90,6 +110,30 @@ local HYBRID_INCOME = 1.2 -- every merge hybrid (on top of Config.RECIPE_INCOME_
 local EVENT_INCOME = 1.4 -- every limited event Secret
 local JACKPOT_INCOME = 5 -- every jackpot
 local JACKPOTS: { [string]: boolean } = { jackpot = true, star_emperor = true, goo_god = true }
+-- Legendary-and-up species that are SlimeDex bonus entries, so the Dex total, milestones and unlocks stay put.
+local DEX_BONUS: { [string]: boolean } = {
+	jester = true,
+	cowboy = true,
+	venus = true,
+	bonsai = true,
+	diver = true,
+	narwhal = true,
+	astronaut = true,
+	griffin = true,
+	cerberus = true,
+	willow_wisp = true,
+	mammoth = true,
+	siren = true,
+	djinn = true,
+	sphinx = true,
+	monarch = true,
+	reef = true,
+	supernova = true,
+	valkyrie = true,
+	hydra = true,
+	constellation = true,
+	ryujin = true,
+}
 
 local function e(id: string, name: string, tier: number, look: string, family: string?, kind: Kind?): Entry
 	return table.freeze({
@@ -106,6 +150,7 @@ local function e(id: string, name: string, tier: number, look: string, family: s
 				elseif kind == "event" then EVENT_INCOME
 				else 1,
 		jackpot = if JACKPOTS[id] then true else nil,
+		dexBonus = if DEX_BONUS[id] then true else nil,
 	})
 end
 
@@ -170,6 +215,24 @@ local ROSTER: { Entry } = {
 	e("jackpot", "Jackpot", SECRET_TIER, "slot machine with 777 reels and spilling coins"),
 	e("star_emperor", "Star Emperor", 8, "starry cape and a crown of tiny planets"),
 	e("goo_god", "Goo God", 9, "huge white-gold slime with a sunburst and orbiting mini-slimes"),
+	e("jester", "Jester", 5, "jester hat with bells, juggling three tiny slimes"),
+	e("cowboy", "Cowboy", 5, "ranch sheriff with a wide hat, star badge and lasso"),
+	e("venus", "Venus", 5, "venus flytrap with snapping leaf jaws", "orchard"),
+	e("bonsai", "Bonsai", 5, "tiny bonsai tree in a clay pot", "orchard"),
+	e("diver", "Diver", 5, "brass diving helmet with a round window", "frost"),
+	e("narwhal", "Narwhal", 5, "pale blue whale with a spiral horn", "frost"),
+	e("astronaut", "Astronaut", 5, "white space suit with a round visor", "starlight"),
+	e("griffin", "Griffin", 6, "eagle head and wings on a lion-gold body"),
+	e("cerberus", "Cerberus", 6, "three-headed puppy with spiked collars"),
+	e("willow_wisp", "Willow Wisp", 6, "glowing forest spirit with a lantern", "orchard"),
+	e("mammoth", "Mammoth", 6, "woolly mammoth with curled tusks", "frost"),
+	e("siren", "Siren", 6, "mermaid with a shell crown and trident", "frost"),
+	e("djinn", "Djinn", 6, "blue genie rising from a golden lamp", "starlight"),
+	e("sphinx", "Sphinx", 6, "sandstone sphinx with a pharaoh headdress", "starlight"),
+	e("monarch", "Monarch", SECRET_TIER, "huge shimmering butterfly wings", "orchard"),
+	e("reef", "Reef", SECRET_TIER, "living coral reef with tiny fish", "frost"),
+	e("supernova", "Supernova", 8, "bursting white-hot star with a shock ring"),
+	e("valkyrie", "Valkyrie", 9, "winged silver helmet and a spear of light"),
 	-- Merge-only hybrids (docs/SLIME-ECONOMY.md §2): never spawn, only from their recipe.
 	k("hybrid", "soda", "Soda Pop", 2, "cola drop with a bottle cap and straw"),
 	k("hybrid", "rocky_road", "Rocky Road", 2, "chocolate scoop in a waffle cone"),
@@ -186,6 +249,9 @@ local ROSTER: { Entry } = {
 	k("hybrid", "cyber_ninja", "Cyber Ninja", 6, "chrome ninja with a neon katana"),
 	k("hybrid", "dragon_king", "Dragon King", 6, "crowned dragon with a cape"),
 	k("hybrid", "nightwing", "Nightwing", SECRET_TIER, "half angel, half void"),
+	k("hybrid", "hydra", "Hydra", SECRET_TIER, "three-headed sea serpent"),
+	k("hybrid", "constellation", "Constellation", 8, "stars joined by glowing lines"),
+	k("hybrid", "ryujin", "Ryujin", 9, "jade cloud dragon holding a pearl"),
 	-- Boss slimes (the boss event, docs/SLIME-ECONOMY.md §3).
 	k("boss", "goozilla", "Goozilla", 6, "roaring kaiju slime"),
 	k("boss", "queen_jelly", "Queen Jelly", 6, "jellyfish queen with a tiara"),
