@@ -85,7 +85,8 @@ return table.freeze({
 	OBBY_ARCH = "ObbyArch", -- the "OBBY" arch where the obby path leaves the ring path, under workspace.Map
 	-- The Obby (contract/obby.md): server/ObbyView builds workspace.Obby with Portal and Course
 	OBBY_FOLDER = "Obby",
-	OBBY_COURSE = "Course", -- workspace.Obby.Course: the parts of the course standing now (attribute Slot)
+	OBBY_COURSE = "Course", -- workspace.Obby.Course: the parts of the course standing now, built by each client (attribute Slot)
+	OBBY_SLOT = "CourseSlot", -- workspace.Obby attribute: the rotation slot of the course standing now (server/ObbyView)
 	OBBY_PORTAL = "Portal", -- workspace.Obby.Portal: the ring, its column and the status sign
 	OBBY_BACKDROP = "ObbyBackdrop", -- client-only Folder in workspace: the obby world's islands and clouds (decor only)
 	OBBY_SIGN_STATUS = "Status", -- TextLabel on the portal sign the client fills with its own boost status

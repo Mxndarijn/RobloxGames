@@ -21,6 +21,7 @@
 	  * weather (WeatherFx, FEATURES.Weather): Rain / Snow / Starfall emitters + tint from the workspace attribute Weather
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
 	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst
+	  * the obby course itself (ObbyCourseView: client-only, built from the slot the server publishes)
 	  * the Goo Gauntlet obby's moving parts (ObbyFx): slides, spinners, melting, flipping and shrinking pads
 	  * the obby world's own look (ObbyWorld): Lighting, Atmosphere and a tint swap while the local player is there
 	  * the obby's fall reset (ObbyFall): a runner who drops off the course is put back on the start pad at once
@@ -565,6 +566,15 @@ do
 		warn(`[VisualsClient] ritual fx disabled: {err}`)
 	end
 end
+local obbyCourse: any = nil
+do
+	local ok, err = pcall(function()
+		obbyCourse = require(script:WaitForChild("ObbyCourseView")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] obby course disabled: {err}`)
+	end
+end
 local obbyFx: any = nil
 do
 	local ok, err = pcall(function()
@@ -673,6 +683,9 @@ applyRain()
 RunService.RenderStepped:Connect(function(dt: number)
 	if obbyWorld then
 		obbyWorld.tick(dt)
+	end
+	if obbyCourse then
+		obbyCourse.tick()
 	end
 	if obbyFall then
 		obbyFall.tick()
