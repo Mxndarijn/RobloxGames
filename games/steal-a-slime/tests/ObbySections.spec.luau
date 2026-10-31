@@ -191,11 +191,11 @@ describe("ObbyCheck models", function()
 		expect(ObbyCheck.walkStop(s, -5, 0) ~= nil).toBe(true)
 	end)
 
-	it("masher: jumping on every landing outclimbs a slow flood up 3-stud steps a walker can't climb", function()
+	it("masher: jumping on every landing outclimbs a slow flood up 3.5-stud steps a walker can't climb", function()
 		local function stairs(speed: number): Kit.Section
 			local parts = {}
 			for i = 0, 5 do
-				table.insert(parts, floorAt(i * 8, i * 8 + 8, i * 3, if i == 0 then { trigger = "goo" } else nil))
+				table.insert(parts, floorAt(i * 8, i * 8 + 8, i * 3.5, if i == 0 then { trigger = "goo" } else nil))
 			end
 			table.insert(
 				parts,
@@ -204,12 +204,66 @@ describe("ObbyCheck models", function()
 					motion = { kind = "rise", speed = speed, delay = 0.5, stop = 30 },
 				})
 			)
-			return section(parts, 48, 15)
+			return section(parts, 48, 17.5)
 		end
 		expect(ObbyCheck.straightWalk(stairs(2))).toBeNil()
 		local why = ObbyCheck.masher(stairs(2))
 		expect(why ~= nil and string.find(why, "1 of 1 start times", 1, true) ~= nil).toBe(true)
 		expect(ObbyCheck.masher(stairs(12))).toBeNil()
+	end)
+
+	-- What a second Studio bot run cleared that the model above still called safe (contract §9).
+	it("walk bot: a walker walks up a 2.5- or 3-stud step (Arrow Maze #12), not a 3.5-stud one", function()
+		local function step(up: number): Kit.Section
+			return section({ floor(0, 10), floorAt(10, 40, up) }, 40, up)
+		end
+		expect(ObbyCheck.walkStop(step(2.5), 0, 0)).toBeNil()
+		expect(ObbyCheck.walkStop(step(3), 0, 0)).toBeNil()
+		expect(ObbyCheck.walkStop(step(3.5), 0, 0) ~= nil).toBe(true)
+		-- so a same-height hole has to be 5 studs to stop it; 4.5 is stumbled over
+		expect(ObbyCheck.walkStop(section({ floor(0, 18), floor(22.5, 40) }, 40), 0, 0)).toBeNil()
+	end)
+
+	it("masher: it starts anywhere on the first step, so its hops land where a back-edge start's don't", function()
+		-- a 7-stud hole after an 8-stud first step: from the back edge the first hop comes down in the hole
+		local s = section({ floor(0, 8), floor(15, 40) }, 40)
+		local opts = function(x: number): ObbyCheck.WalkOptions
+			return { jump = true, x = x }
+		end
+		expect(ObbyCheck.walkStop(s, 0, 0, nil, opts(0.5)) ~= nil).toBe(true)
+		expect(ObbyCheck.walkStop(s, 0, 0, nil, opts(6.5))).toBeNil()
+		local r = ObbyCheck.masherShare(s)
+		expect(r.cleared).toBe(1)
+		expect(r.x ~= nil and r.x > 0.5).toBe(true)
+	end)
+
+	it(
+		"masher: a hop (Kit.JUMP_HEIGHT) and the step catch get it onto a 10-stud wall (Ice Slide #7), not 10.5",
+		function()
+			local function wall(tall: number): Kit.Section
+				local block = part({ 2, tall, Kit.WIDTH }, { 21, tall / 2, 0 })
+				return section({ floor(0, 10), floor(10, 40), block }, 40)
+			end
+			expect(ObbyCheck.masher(wall(10)) ~= nil).toBe(true)
+			expect(ObbyCheck.masher(wall(10.5))).toBeNil()
+			expect(ObbyCheck.straightWalk(wall(10))).toBeNil()
+		end
+	)
+
+	it("walk bot: walking into a truss climbs it; the masher hops up it faster, past a flood (Climb #13)", function()
+		local function tower(shape: string?, speed: number): Kit.Section
+			local ladder = part({ 2, 16, Kit.WIDTH }, { 21, 8, 0 }, { shape = shape })
+			local flood = Kit.hazard({ 24, 20, Kit.WIDTH }, { 10, -11, 0 }, {
+				start = "goo",
+				motion = { kind = "rise", speed = speed, delay = 1.2, stop = 30 },
+			})
+			return section({ floor(0, 20, { trigger = "goo" }), ladder, floorAt(22, 40, 16), flood }, 40, 16)
+		end
+		expect(ObbyCheck.walkStop(tower("truss", 2), 0, 0)).toBeNil()
+		expect(ObbyCheck.walkStop(tower(nil, 2), 0, 0) ~= nil).toBe(true)
+		-- climbing 16 studs at CLIMB takes 1.4 s; hopping up it about half that
+		expect(ObbyCheck.walkStop(tower("truss", 14), 0, 0) ~= nil).toBe(true)
+		expect(ObbyCheck.walkStop(tower("truss", 14), 0, 0, nil, { jump = true })).toBeNil()
 	end)
 
 	it("masher: a jump keeps a backward belt's speed, so mashing on it gets nowhere", function()
