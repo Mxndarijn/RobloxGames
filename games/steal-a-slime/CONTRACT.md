@@ -149,6 +149,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `State` | RemoteEvent | server → client | `FireClient(player, state: Types.State)` (§5) |
 | `Notify` | RemoteEvent | server → client | `FireClient(player, text: string, kind: "info" \| "good" \| "bad", sound: string?, itemId: string?)`. `itemId` (optional) is the UI ItemIcons registry id the toast is about (`"SpeedCoil"`, `"Upgrade_Luck"`, `"PlotSkin_candy"`); absent/unknown ids fall back to the client text heuristic. Global toasts (Slime Rain) use `FireAllClients`. **Oct 18 (B6, Merijn): the client draws no toast any more; a Notify only plays its `sound`.** The server side is unchanged. |
 | `Leaderboard` | RemoteEvent | server → client | `FireClient/FireAllClients(board: { stat: "TotalEarned" \| "WeeklyEarned" \| "Steals" \| "Dex" \| "Merges", entries: { { rank: number, userId: number, name: string, value: number } } })`, one call per board |
+| `ClawShow` | RemoteEvent | server → client | `FireAllClients(event: ClawShow.Event)`: a claw show at the Exclusive Shop after a granted purchase (contract/exclusive-shop.md §7.2) |
 
 `Request` actions (from `Remotes.ACTIONS`; rate limits in `Validate.ACTIONS`):
 

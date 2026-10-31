@@ -296,51 +296,71 @@ WorldLayout.SHOP_STANDS = table.freeze({
 	),
 }) :: { [string]: ShopStand }
 
--- The Exclusive Shop's Golden Jar Boutique (contract/exclusive-shop.md §7; WorldProps places it,
--- Props.exclusiveJar builds it, the client's ShopDisplayFx shows the featured seats in it). It completes the market row
--- on the east ring (Upgrade Shop 34.5, Item Shop 67.5, Exclusive Shop 112.5): on the plot 3 / plot 4 bisector, facing
--- the fountain, at `scale`. At full size its footprint fits r 92.3-94.35, between the ring path (outer edge r 82) and
--- the two plots' front corners (PropClearance); `radius` is the middle. Two kit meshes
--- (models/exclusive_jar_boutique.py): `shop` (plinth, goo dome, gold lid, trophy slime, pedestals, shop front, awning,
--- sign board) and `glass`, the see-through jar wall. The points below are the
--- kit's (out/exclusive_jar_boutique_layout.json) in the Blender frame at native size (x right, y back, z up; the front
--- faces -y), measured from the shop mesh's bottom centre; WorldLayout.jarPoint turns one into the stand's frame.
---   groundZ       the grass over the shop mesh's bottom (its goo drips hang below the ground)
---   glassOrigin   the glass mesh's bottom centre; the jar's axis runs straight up through it
---   displays      the 3 pedestal spots inside the jar: the bottom of each floating featured seat
+-- The Exclusive Shop's Slime Claw (contract/exclusive-shop.md §7; WorldProps places it, Props.exclusiveClaw builds it,
+-- the client's ShopDisplayFx shows the featured seats in it and plays the claw show). It completes the market row on the
+-- east ring (Upgrade Shop 34.5, Item Shop 67.5, Exclusive Shop 112.5): on the plot 3 / plot 4 bisector, facing the
+-- fountain, at `scale`. At full size its footprint fits r 92.3-94.35, between the ring path (outer edge r 82) and the
+-- two plots' front corners (PropClearance); `radius` is the middle. Four kit meshes (models/exclusive_slime_claw.py):
+-- `shop` (the wooden shop, claw box floor, pedestals, capsules, funnel, counter, chute, roof, the trophy slime on its
+-- cushion), `glass` (the box's front and side panes, worn see-through), `hand` (the slime's three-finger goo hand) and
+-- `arm` (the goo arm from the ceiling hole to the hand). The client moves the hand and stretches the arm. The points
+-- below are the kit's (out/exclusive_slime_claw_layout.json) in the Blender frame at native size (x right, y back,
+-- z up; the front faces -y), measured from the shop mesh's bottom centre; WorldLayout.clawPoint turns one into the
+-- stand's frame.
+--   groundZ       the grass over the shop mesh's bottom
+--   glassOrigin   the glass mesh's bottom centre
+--   handOrigin    the hand mesh's bottom centre at rest; armOrigin the arm mesh's bottom centre at rest
+--   armRoot       where the arm leaves the ceiling hole; handIdle the top of the hand (the arm's end) at rest
+--   displays      the 3 goo pedestal tops in the box: the bottom of each shown featured seat
+--   capsule       the prize capsule the claw takes for an item without a 3D model
+--   funnelTop     the top of the gold prize funnel the hand drops the prize into
+--   chuteMouth    the prize chute's opening on the counter, where the prize pops out
+--   boxX, boxZ    the claw box's inside (kit x and y ranges): the hand stays within them
 --   counter       the counter top's centre; counterSize its width and depth
---   signFace      the centre of the sign board's lilac face (its front plane); signSize its width and height
---   footprint     the plinth's radius with its goo rim and lanterns
+--   signFace      the centre of the lilac fascia's butter face (its front plane); signSize its width and height
+--   footprint     half the shop's diagonal (its box from above)
 -- `displayWidth` = the widest side of a shown seat (a seat template is scaled to it), stand studs.
-WorldLayout.EXCLUSIVE_JAR = table.freeze({
+WorldLayout.EXCLUSIVE_CLAW = table.freeze({
 	model = Constants.SHOP_STAND_EXCLUSIVE,
 	bearing = 112.5,
 	radius = 93.3,
 	scale = 1,
-	shop = "exclusive_jar_boutique",
-	glass = "exclusive_jar_boutique_glass",
-	groundZ = 0.201,
-	glassOrigin = table.freeze({ 0, 0.855, 1.401 }),
+	shop = "exclusive_slime_claw_shop",
+	glass = "exclusive_slime_claw_glass",
+	hand = "exclusive_slime_claw_hand",
+	arm = "exclusive_slime_claw_arm",
+	groundZ = 0,
+	glassOrigin = table.freeze({ 0, 0.985, 4.7 }),
+	handOrigin = table.freeze({ 0, 1.031, 7.61 }),
+	armOrigin = table.freeze({ 0, 1.41, 10.9 }),
+	armRoot = table.freeze({ 0, 1.41, 12.6 }),
+	handIdle = table.freeze({ 0, 1.41, 10.9 }),
 	displays = table.freeze({
-		table.freeze({ -3.3, 2.255, 7.551 }),
-		table.freeze({ 0, 3.455, 9.751 }),
-		table.freeze({ 3.3, 2.255, 7.551 }),
+		table.freeze({ -3.4, 1.51, 6.05 }),
+		table.freeze({ -0.3, 3.01, 6.05 }),
+		table.freeze({ 2.7, 2.41, 6.05 }),
 	}),
-	counter = table.freeze({ 0, -6.345, 4.301 }),
-	counterSize = table.freeze({ 9.6, 2.6 }),
-	signFace = table.freeze({ 0, -6.755, 8.151 }),
-	signSize = table.freeze({ 6.4, 1.4 }),
+	capsule = table.freeze({ 1.6, -1.09, 4.4 }),
+	funnelTop = table.freeze({ 4.1, -0.69, 5.75 }),
+	chuteMouth = table.freeze({ 3.9, -4.59, 4.75 }),
+	boxX = table.freeze({ -5.3, 5.3 }),
+	boxZ = table.freeze({ -1.59, 4.21 }),
+	counter = table.freeze({ 0, -4.29, 4.1 }),
+	counterSize = table.freeze({ 10.4, 2.6 }),
+	signFace = table.freeze({ 0, -4.2, 13.5 }),
+	signSize = table.freeze({ 11.8, 1.4 }),
 	footprint = 9.6,
 	displayWidth = 3.2, -- the seats' own size: smaller ones vanish behind the glass
-	glassTransparency = 0.88, -- clearer than a base jar's glass, so the clouds inside read from the plaza
+	glassTransparency = 0.88, -- the kit's glass: clear enough that the clouds read through two panes
 })
 
--- A kit point of the jar (Blender frame, native studs) in the stand's own frame at the stand's scale, the stand's
--- origin on the ground: Props Models face local -Z, the kit front faces -y, so (x, y, z) -> (-x, z - groundZ, y) x scale.
-function WorldLayout.jarPoint(p: { number }): Vec
-	local jar = WorldLayout.EXCLUSIVE_JAR
-	local k = jar.scale
-	return { -p[1] * k, (p[3] - jar.groundZ) * k, p[2] * k }
+-- A kit point of the claw shop (Blender frame, native studs) in the stand's own frame at the stand's scale, the
+-- stand's origin on the ground: Props Models face local -Z, the kit front faces -y, so (x, y, z) -> (-x, z - groundZ, y)
+-- x scale.
+function WorldLayout.clawPoint(p: { number }): Vec
+	local claw = WorldLayout.EXCLUSIVE_CLAW
+	local k = claw.scale
+	return { -p[1] * k, (p[3] - claw.groundZ) * k, p[2] * k }
 end
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
@@ -655,8 +675,8 @@ local spots: { [string]: Spot } = {
 	TutorialNpc = propSpot(247.5, true),
 }
 do
-	local jar = WorldLayout.EXCLUSIVE_JAR
-	spots[jar.model] = propSpot(jar.bearing, true, jar.radius)
+	local claw = WorldLayout.EXCLUSIVE_CLAW
+	spots[claw.model] = propSpot(claw.bearing, true, claw.radius)
 end
 do
 	local board = WorldLayout.EVENT_BOARD

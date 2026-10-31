@@ -228,8 +228,11 @@ layout = {
     "arm_root": rel((HOLE[0], HOLE[1], CZ + 0.2)),
     "hand_idle_top": rel((HOLE[0], HOLE[1], CZ - 1.5)),
     "box_floor_z": rel((0, 0, FZ))[2],
-    "box_inner": {"x": [-X0 + 0.9, X0 - 0.9], "y": [YF + 0.9, YB - 0.9]},
+    "box_inner": {"x": [round(-X0 + 0.9 - OFF[0], 3), round(X0 - 0.9 - OFF[0], 3)], "y": [round(YF + 0.9 - OFF[1], 3), round(YB - 0.9 - OFF[1], 3)]},
+    "hand_origin": rel(bc(hand)),             # the hand mesh's bbox bottom-centre (idle pose) in the shop frame
+    "arm_origin": rel(bc(arm)),               # the arm mesh's bbox bottom-centre (idle pose): it spans arm_root down to the palm
     "funnel_top": rel((FX, FYc, FZ + 1.35)),
+    "capsule_spot": rel((caps[5][0], caps[5][1], FZ)),   # the capsule the claw takes for an item with no 3D model
     "chute_mouth": rel((PX, -5.5, 4.75)),
     "counter_top": rel((0, CY, 4.1)),
     "counter_size": [10.4, CD],

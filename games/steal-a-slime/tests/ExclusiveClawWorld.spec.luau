@@ -1,8 +1,8 @@
 --!nocheck
--- The Exclusive Shop's jar in the booted server (contract/exclusive-shop.md §7): the
--- stand at its spot, the two kit mesh slots (the glass worn see-through) with a primitive jar standing in, the solid
--- Counter with its ShopPrompt and ShopId, the sign, and the prompt -> OpenShop "ExclusiveShop" -> range close round
--- trip. The built Props model is checked under Lune too.
+-- The Exclusive Shop's claw shop in the booted server (contract/exclusive-shop.md §7): the stand at its spot, the four
+-- kit mesh slots (the glass worn see-through, the hand and arm tagged for the claw show) with a primitive claw shop
+-- standing in, the solid Counter with its ShopPrompt and ShopId, the sign, and the prompt -> OpenShop "ExclusiveShop"
+-- -> range close round trip. The built Props model is checked under Lune too.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
@@ -15,7 +15,7 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-local LAYOUT = WorldLayout.EXCLUSIVE_JAR
+local LAYOUT = WorldLayout.EXCLUSIVE_CLAW
 local Props = StaticWorld.visual("Props")
 
 local function parts(root): { any }
@@ -34,8 +34,8 @@ local function bottomOf(p): number
 		- (math.abs(cf.XVector.Y) * half.X + math.abs(cf.YVector.Y) * half.Y + math.abs(cf.ZVector.Y) * half.Z)
 end
 
-describe("Props.exclusiveJar", function()
-	local model = Props.exclusiveJar()
+describe("Props.exclusiveClaw", function()
+	local model = Props.exclusiveClaw()
 	it("is the ExclusiveShopStand with the Counter as its PrimaryPart and its pivot on the ground", function()
 		expect(model.Name).toBe(Constants.SHOP_STAND_EXCLUSIVE)
 		expect(model.PrimaryPart.Name).toBe("Counter")
@@ -49,11 +49,11 @@ describe("Props.exclusiveJar", function()
 		end
 		expect(lowest).toBeCloseTo(0, 3)
 	end)
-	it("carries both kit mesh slots at the layout scale, the shop's bottom groundZ under the grass", function()
-		local shop, glass = model.Shop, model.Glass
-		expect(shop:GetAttribute("MeshAsset")).toBe(LAYOUT.shop)
-		expect(glass:GetAttribute("MeshAsset")).toBe(LAYOUT.glass)
-		for slot, mesh in { [shop] = LAYOUT.shop, [glass] = LAYOUT.glass } do
+	it("carries the four kit mesh slots at the layout scale", function()
+		local slots = { Shop = LAYOUT.shop, Glass = LAYOUT.glass, Hand = LAYOUT.hand, Arm = LAYOUT.arm }
+		for name, mesh in slots do
+			local slot = model[name]
+			expect(slot:GetAttribute("MeshAsset")).toBe(mesh)
 			local size = WorldLayout.meshSize(mesh, LAYOUT.scale)
 			expect(slot.Size.X).toBeCloseTo(size[1], 4)
 			expect(slot.Size.Y).toBeCloseTo(size[2], 4)
@@ -61,46 +61,71 @@ describe("Props.exclusiveJar", function()
 			expect(slot.Transparency).toBe(1)
 			expect(slot.CanCollide).toBe(false)
 		end
-		expect(bottomOf(shop)).toBeCloseTo(-LAYOUT.groundZ * LAYOUT.scale, 4)
-		expect(shop.CFrame.Position.X).toBeCloseTo(0, 4)
-		expect(shop.CFrame.Position.Z).toBeCloseTo(0, 4)
-		local axis = WorldLayout.jarPoint(LAYOUT.glassOrigin)
-		expect(glass.CFrame.Position.X).toBeCloseTo(axis[1], 4)
-		expect(glass.CFrame.Position.Z).toBeCloseTo(axis[3], 4)
-		expect(bottomOf(glass)).toBeCloseTo(axis[2], 4)
-		-- the jar's axis stands behind the counter (Props front is -Z)
-		expect(axis[3] > WorldLayout.jarPoint(LAYOUT.counter)[3]).toBe(true)
+		expect(bottomOf(model.Shop)).toBeCloseTo(-LAYOUT.groundZ * LAYOUT.scale, 4)
+		for name, origin in { Glass = LAYOUT.glassOrigin, Hand = LAYOUT.handOrigin, Arm = LAYOUT.armOrigin } do
+			local at = WorldLayout.clawPoint(origin)
+			local slot = model[name]
+			expect(slot.CFrame.Position.X).toBeCloseTo(at[1], 4)
+			expect(slot.CFrame.Position.Z).toBeCloseTo(at[3], 4)
+			expect(bottomOf(slot)).toBeCloseTo(at[2], 4)
+		end
+		-- the claw box stands behind the counter (Props front is -Z), the arm runs from the ceiling hole to the hand
+		expect(WorldLayout.clawPoint(LAYOUT.glassOrigin)[3] > WorldLayout.clawPoint(LAYOUT.counter)[3]).toBe(true)
+		local arm = model.Arm
+		expect(arm.CFrame.Position.Y + arm.Size.Y / 2).toBeCloseTo(WorldLayout.clawPoint(LAYOUT.armRoot)[2], 2)
+		expect(bottomOf(arm)).toBeCloseTo(WorldLayout.clawPoint(LAYOUT.handIdle)[2], 2)
 	end)
-	it("wears the glass mesh see-through, clearer than a base jar so the clouds read", function()
-		expect(model.Glass:GetAttribute("MeshMaterial")).toBe(WorldLayout.JAR_GLASS_MATERIAL)
-		expect(model.Glass:GetAttribute("MeshTransparency")).toBe(WorldLayout.EXCLUSIVE_JAR.glassTransparency)
-		expect(model.Glass:GetAttribute("MeshCastShadow")).toBe(false)
-	end)
-	it("stands a clean primitive jar in for the meshes: SmoothPlastic, the glass light and see-through", function()
-		local standIns = 0
+	it("tags the hand and arm pieces for the client's claw show", function()
+		local kinds = { Hand = 0, Arm = 0 }
 		for _, p in parts(model) do
-			expect(p.Material.Name).toBe("SmoothPlastic")
-			local look = p:GetAttribute("MeshStandIn")
-			if look ~= nil then
-				standIns += 1
-				expect(look == LAYOUT.shop or look == LAYOUT.glass).toBe(true)
-				if not p.CanCollide then
-					expect(p.CanQuery).toBe(false)
-				end
+			local kind = p:GetAttribute(Constants.CLAW_PIECE_ATTRIBUTE)
+			if kind ~= nil then
+				kinds[kind] += 1
+				expect(p.CanCollide).toBe(false)
 			end
 		end
-		expect(standIns > 20).toBe(true)
-		local pane = model.GlassWall
-		expect(pane:GetAttribute("MeshStandIn")).toBe(LAYOUT.glass)
-		expect(pane.Transparency).toBeCloseTo(Props.JAR_GLASS_TRANSPARENCY, 5)
-		expect(pane.CanCollide).toBe(true)
-		expect(pane.Size.Y).toBeCloseTo(model.Glass.Size.X, 4) -- the glass mesh's width
-		expect(model.Plinth.CanCollide).toBe(true)
-		expect(model.Plinth:GetAttribute("MeshStandIn")).toBe(LAYOUT.shop)
+		expect(model.Hand:GetAttribute(Constants.CLAW_PIECE_ATTRIBUTE)).toBe("Hand")
+		expect(model.Arm:GetAttribute(Constants.CLAW_PIECE_ATTRIBUTE)).toBe("Arm")
+		expect(kinds.Hand >= 5).toBe(true) -- slot, palm, three fingers
+		expect(kinds.Arm >= 2).toBe(true) -- slot, stand-in
 	end)
+	it("wears the glass mesh see-through", function()
+		expect(model.Glass:GetAttribute("MeshMaterial")).toBe(WorldLayout.JAR_GLASS_MATERIAL)
+		expect(model.Glass:GetAttribute("MeshTransparency")).toBe(LAYOUT.glassTransparency)
+		expect(model.Glass:GetAttribute("MeshCastShadow")).toBe(false)
+	end)
+	it(
+		"stands a clean primitive claw shop in for the meshes: SmoothPlastic, solid body and see-through panes",
+		function()
+			local standIns = 0
+			local meshes = { [LAYOUT.shop] = true, [LAYOUT.glass] = true, [LAYOUT.hand] = true, [LAYOUT.arm] = true }
+			for _, p in parts(model) do
+				expect(p.Material.Name).toBe("SmoothPlastic")
+				local look = p:GetAttribute("MeshStandIn")
+				if look ~= nil then
+					standIns += 1
+					expect(meshes[look]).toBe(true)
+					if not p.CanCollide then
+						expect(p.CanQuery).toBe(false)
+					end
+				end
+			end
+			expect(standIns > 20).toBe(true)
+			for _, name in { "GlassFront", "GlassSideL", "GlassSideR" } do
+				local pane = model[name]
+				expect(pane:GetAttribute("MeshStandIn")).toBe(LAYOUT.glass)
+				expect(pane.Transparency).toBeCloseTo(Props.CLAW_GLASS_TRANSPARENCY, 5)
+				expect(pane.CanCollide).toBe(true)
+			end
+			for _, name in { "Body", "BackWall", "Roof", "Chute" } do
+				expect(model[name].CanCollide).toBe(true)
+				expect(model[name]:GetAttribute("MeshStandIn")).toBe(LAYOUT.shop)
+			end
+		end
+	)
 	it("has a solid Counter at the kit's counter top", function()
 		local counter = model.Counter
-		local top = WorldLayout.jarPoint(LAYOUT.counter)
+		local top = WorldLayout.clawPoint(LAYOUT.counter)
 		expect(counter.CanCollide).toBe(true)
 		expect(counter:GetAttribute("MeshStandIn")).toBe(LAYOUT.shop)
 		expect(counter.CFrame.Position.X).toBeCloseTo(top[1], 4)
@@ -111,7 +136,7 @@ describe("Props.exclusiveJar", function()
 	end)
 	it("puts the EXCLUSIVE sign just in front of the kit's sign face", function()
 		local sign = model.Sign
-		local face = WorldLayout.jarPoint(LAYOUT.signFace)
+		local face = WorldLayout.clawPoint(LAYOUT.signFace)
 		expect(sign.Transparency).toBe(1)
 		expect(sign.CanCollide).toBe(false)
 		expect(sign:GetAttribute("MeshStandIn")).toBeNil() -- stays when the mesh loads
@@ -127,7 +152,7 @@ describe("Props.exclusiveJar", function()
 	end)
 end)
 
-local path = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-jar-{os.time()}-{math.random(1, 1e9)}.rbxlx`
+local path = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-claw-{os.time()}-{math.random(1, 1e9)}.rbxlx`
 local built = process.exec("rojo", { "build", "-o", path })
 assert(built.ok, `rojo build failed: {built.stderr}`)
 local rt = Runtime.new(path, {
@@ -161,7 +186,7 @@ if stand then
 	seen.nearAfterWalk = near:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE)
 end
 
-describe("Exclusive Shop jar in the booted server", function()
+describe("Exclusive Shop claw shop in the booted server", function()
 	it("boots clean and places the stand at its layout spot, facing the fountain", function()
 		expect(#rt.errors).toBe(0)
 		expect(stand ~= nil).toBe(true)
@@ -192,11 +217,9 @@ describe("Exclusive Shop jar in the booted server", function()
 		expect(prompt.HoldDuration).toBe(0)
 		expect(prompt.MaxActivationDistance).toBe(12)
 	end)
-	it("swaps in the uploaded kit meshes and keeps the stand's solid parts colliding under them", function()
-		expect(stand.Shop:FindFirstChild("Mesh") ~= nil).toBe(true)
-		expect(stand.Glass:FindFirstChild("Mesh") ~= nil).toBe(true)
-		expect(stand.Plinth.CanCollide).toBe(true)
-		expect(stand.GlassWall.CanCollide).toBe(true)
+	it("keeps the stand's solid parts colliding (the kit meshes swap in once uploaded)", function()
+		expect(stand.Body.CanCollide).toBe(true)
+		expect(stand.GlassFront.CanCollide).toBe(true)
 		expect(stand.Counter.CanCollide).toBe(true)
 	end)
 	it("opens the Exclusive Shop from the prompt and closes it when the player walks away", function()

@@ -1051,13 +1051,21 @@ local UNPLACED: { [string]: { string } } = {
 		"jolt",
 		"a Bat skin: the held Bat tool's Handle mesh (BatTool), never a world slot; a tool has no collision",
 	},
-	exclusive_jar_boutique = {
+	exclusive_slime_claw_shop = {
 		"gojo",
-		"the Exclusive Shop jar (off): WorldProps builds it at runtime; decor over its solid plinth, glass, counter and posts",
+		"the Exclusive Shop claw shop: WorldProps builds it at runtime; decor over its solid body, back wall, posts, roof, counter and chute",
 	},
-	exclusive_jar_boutique_glass = {
+	exclusive_slime_claw_glass = {
 		"gojo",
-		"the Exclusive Shop jar's glass wall (off): WorldProps builds it at runtime; see-through decor over the solid GlassWall",
+		"the Exclusive Shop claw box glass: WorldProps builds it at runtime; see-through decor over the solid glass panes",
+	},
+	exclusive_slime_claw_hand = {
+		"gojo",
+		"the Exclusive Shop claw hand: moved by the client inside the glass box; decor",
+	},
+	exclusive_slime_claw_arm = {
+		"gojo",
+		"the Exclusive Shop claw arm: stretched by the client inside the glass box; decor",
 	},
 	ranch_border_fence_broken = { "jolt", "border piece not used by WorldBorder.CHUNKS / DEFS" },
 	ranch_border_hedge_stepped = { "jolt", "border piece not used by WorldBorder.DEFS" },

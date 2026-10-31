@@ -27,8 +27,10 @@ local NAMES = {
 	"ranch_plaza_signpost",
 	"ranch_item_shop",
 	"ranch_upgrade_cabinet",
-	"exclusive_jar_boutique",
-	"exclusive_jar_boutique_glass",
+	"exclusive_slime_claw_shop",
+	"exclusive_slime_claw_glass",
+	"exclusive_slime_claw_hand",
+	"exclusive_slime_claw_arm",
 	"phoenix_plaza_podium_1",
 	"phoenix_plaza_podium_2",
 	"phoenix_plaza_podium_3",
@@ -242,13 +244,13 @@ entries["ranch_item_shop"] =
 	{ assetId = 105082858859876, meshId = "rbxassetid://135059318016634", size = { 15.391, 16.558, 8.15 } }
 entries["ranch_upgrade_cabinet"] =
 	{ assetId = 112507254723244, meshId = "rbxassetid://139845226619480", size = { 16.407, 15.29, 9.93 } }
--- The Exclusive Shop's Golden Jar Boutique (contract/exclusive-shop.md §7;
--- models/exclusive_jar_boutique.py split in two): the solid shop (plinth, goo dome, lid, trophy slime, pedestals, shop
--- front, awning, sign board) and the see-through jar wall. Not uploaded yet: no id, so the stand's primitive jar shows.
-entries["exclusive_jar_boutique"] =
-	{ assetId = 131532129772503, meshId = "rbxassetid://102127887082736", size = { 16.86, 20.631, 18.57 } }
-entries["exclusive_jar_boutique_glass"] =
-	{ assetId = 92353179686979, meshId = "rbxassetid://99607808704355", size = { 12.8, 10.5, 12.8 } }
+-- The Exclusive Shop's Slime Claw (contract/exclusive-shop.md §7; models/exclusive_slime_claw.py split in four): the
+-- solid shop, the claw box glass, and the slime's goo hand and arm that the client moves. Not uploaded yet: no id, so
+-- the stand's primitive claw shop shows.
+entries["exclusive_slime_claw_shop"] = { size = { 14.6, 22.232, 12.42 } }
+entries["exclusive_slime_claw_glass"] = { size = { 12.6, 7.65, 7.15 } }
+entries["exclusive_slime_claw_hand"] = { size = { 3.134, 3.378, 2.795 } }
+entries["exclusive_slime_claw_arm"] = { size = { 1.138, 1.7, 1.082 } }
 entries["phoenix_plaza_podium_1"] =
 	{ assetId = 77650457545661, meshId = "rbxassetid://94983834296700", size = { 8.923, 7.192, 8.58 } }
 entries["phoenix_plaza_podium_2"] =

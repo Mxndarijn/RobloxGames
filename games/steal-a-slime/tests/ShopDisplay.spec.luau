@@ -1,7 +1,7 @@
 --!strict
--- The featured seats floating in the Exclusive Shop's jar (Visuals.ShopDisplay, contract/exclusive-shop.md §7): the
--- seats on the spots, the spots on the kit's pedestals inside the glass, the turn rate and phases, the bob range and
--- the seat size.
+-- The featured seats in the Exclusive Shop's claw shop (Visuals.ShopDisplay, contract/exclusive-shop.md §7): the seats
+-- on the spots, the spots on the kit's pedestals inside the claw box, the turn rate and phases, the bob range and the
+-- seat size.
 local Config = require("../src/shared/Config")
 local ExclusiveRotation = require("../src/shared/ExclusiveRotation")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -12,7 +12,7 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local SHOP = Config.EXCLUSIVE_SHOP
-local LAYOUT = WorldLayout.EXCLUSIVE_JAR
+local LAYOUT = WorldLayout.EXCLUSIVE_CLAW
 local TAU = 2 * math.pi
 local PERIOD = 60 / SHOP.displayRpm -- seconds a turn takes
 local T0 = 1_790_000_000 -- a server time in 2026
@@ -39,23 +39,24 @@ describe("display seats", function()
 end)
 
 describe("display spots", function()
-	it("are the kit's pedestal tops inside the glass, behind the counter", function()
-		local axis = WorldLayout.jarPoint(LAYOUT.glassOrigin)
+	it("are the kit's pedestal tops inside the claw box, behind the counter", function()
+		local origin = WorldLayout.clawPoint(LAYOUT.glassOrigin) -- the glass box's bottom centre
 		local glass = WorldLayout.meshSize(LAYOUT.glass, LAYOUT.scale)
-		local counter = WorldLayout.jarPoint(LAYOUT.counter)
+		local counter = WorldLayout.clawPoint(LAYOUT.counter)
 		local cloud = (MeshAssets.get("pet_cloud") :: any).size
 		local cloudH = cloud[2] * ShopDisplay.scale(cloud) -- the plain cloud seat, shown at displayWidth
+		local half = LAYOUT.displayWidth * LAYOUT.scale / 2
 		for i = 1, ShopDisplay.COUNT do
 			local p = ShopDisplay.spot(i)
 			local kit = LAYOUT.displays[i]
 			expect(p[1]).toBeCloseTo(-kit[1] * LAYOUT.scale, 6)
 			expect(p[2]).toBeCloseTo((kit[3] - LAYOUT.groundZ) * LAYOUT.scale, 6)
 			expect(p[3]).toBeCloseTo(kit[2] * LAYOUT.scale, 6)
-			local r = math.sqrt((p[1] - axis[1]) ^ 2 + (p[3] - axis[3]) ^ 2)
-			expect(r + LAYOUT.displayWidth * LAYOUT.scale / 2 < glass[1] / 2).toBe(true)
-			expect(p[2] > axis[2]).toBe(true)
-			-- room for a seat and its bob under the glass top
-			expect(p[2] + SHOP.displayBob + cloudH < axis[2] + glass[2]).toBe(true)
+			expect(math.abs(p[1] - origin[1]) + half < glass[1] / 2).toBe(true)
+			expect(math.abs(p[3] - origin[3]) + half < glass[3] / 2 + 0.3).toBe(true)
+			expect(p[2] > origin[2]).toBe(true)
+			-- room for a seat and its bob under the box's ceiling
+			expect(p[2] + SHOP.displayBob + cloudH < origin[2] + glass[2]).toBe(true)
 			expect(p[3] > counter[3]).toBe(true)
 		end
 	end)
