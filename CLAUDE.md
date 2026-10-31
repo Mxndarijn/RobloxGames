@@ -18,7 +18,7 @@ Game-agnostic systems live in [shared/luau](shared/luau/README.md): inventory wi
 
 You may use whatever helps finish the task well, without asking first:
 
-- **Subagents.** Use the Agent tool for broad searches, research and independent pieces of work. Run independent agents in parallel (one message, several calls). Keep design decisions and the final check yourself.
+- **Subagents and subtasks.** You may always use subagents (the Agent tool) and split work into subtasks on your own initiative; Merijn never has to ask for them, and a prompt that doesn't mention them is not a reason to skip them. Use them for broad searches, research, reviews, checks and independent pieces of work. Run independent agents in parallel (one message, several calls). Keep design decisions and the final check yourself.
 - **Roblox Studio MCP** (`mcp__Roblox_Studio__*`). Inspect the game tree, read scripts, run Luau, start/stop playtests, read the console and take screenshots to check your work in the real engine. Generate or search assets, meshes, materials and textures when the task needs them.
 - **Blender.** Build and fix models with the headless Blender loop in [shared/modeling-kit](shared/modeling-kit/README.md) (bpy script → contact sheet → FBX). Always look at the rendered sheet before calling a model done. Blender is not on `PATH` on this Windows machine; find the install or ask Merijn for its path if a step needs it.
 - **Browser** (built-in browser pane) for Roblox docs, the Creator Dashboard and other references.
