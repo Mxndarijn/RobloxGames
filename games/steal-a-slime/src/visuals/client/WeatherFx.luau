@@ -232,8 +232,8 @@ end
 
 -- One tween (0 -> 1 on a NumberValue) moves the tint, the Atmosphere / ambient grade and the emitter rates
 -- together, so the screen changes colour in a single smooth go. A change during a tween starts from what is
--- on screen now.
-local function transition(goal: WeatherGrade.Grade, rates: { [string]: number })
+-- on screen now. `instant` jumps straight to the goal (the way back from the obby world).
+local function transition(goal: WeatherGrade.Grade, rates: { [string]: number }, instant: boolean?)
 	if driverTween then
 		driverTween:Cancel()
 	end
@@ -259,14 +259,20 @@ local function transition(goal: WeatherGrade.Grade, rates: { [string]: number })
 		end
 	end
 	driverConn = value.Changed:Connect(step)
+	if instant then
+		driverTween = nil
+		value.Value = 1
+		step()
+		return
+	end
 	local info = TweenInfo.new(Config.WEATHER_FADE_SECONDS, Enum.EasingStyle.Linear)
 	local t = TweenService:Create(value, info, { Value = 1 })
 	driverTween = t
 	t:Play()
 end
 
--- Draws weather `id` ("Clear" fades everything out, then removes the instances).
-function WeatherFx.show(id: string)
+-- Draws weather `id` ("Clear" fades everything out, then removes the instances); `instant` skips the fade.
+function WeatherFx.show(id: string, instant: boolean?)
 	if id == shown then
 		return
 	end
@@ -288,7 +294,7 @@ function WeatherFx.show(id: string)
 	for name, spec in WeatherLook.EMITTERS do
 		rates[name] = if active[name] then Weather.emitterRate(spec.rate, spec.lifetime, scale, spec.share) else 0
 	end
-	transition(WeatherGrade.of(id), rates)
+	transition(WeatherGrade.of(id), rates, instant)
 	if id == Weather.CLEAR then
 		task.delay(Config.WEATHER_FADE_SECONDS + 4, function()
 			if token == mine then
@@ -299,7 +305,8 @@ function WeatherFx.show(id: string)
 end
 
 -- The obby world has no weather: the sheet and its tint go at once (no fade, so no flakes follow the player in);
--- the map's snow cover stays as it is. refresh() draws the map's weather again on the way back.
+-- the map's snow cover stays as it is. refresh(true) draws the map's weather again on the way back, at once, so
+-- the map never shows a half-faded grade after the swap.
 local function standDown()
 	if shown == Weather.CLEAR and not sheet then
 		return
@@ -312,13 +319,13 @@ local function standDown()
 	teardown()
 end
 
-local function refresh()
+local function refresh(instant: boolean?)
 	if ObbyLook.isInside() then
 		standDown()
 		return
 	end
 	local debug = workspace:GetAttribute(Constants.WEATHER_DEBUG_ATTRIBUTE)
-	WeatherFx.show(Weather.visualId(Config.FEATURES.Weather, Weather.getCurrent(), debug))
+	WeatherFx.show(Weather.visualId(Config.FEATURES.Weather, Weather.getCurrent(), debug), instant == true)
 end
 
 function WeatherFx.start()
@@ -331,9 +338,15 @@ function WeatherFx.start()
 		SnowGround.start(true)
 	end
 	Weather.attach(workspace)
-	Weather.Changed:Connect(refresh)
-	workspace:GetAttributeChangedSignal(Constants.WEATHER_DEBUG_ATTRIBUTE):Connect(refresh)
-	ObbyLook.onInsideChanged(refresh)
+	Weather.Changed:Connect(function()
+		refresh()
+	end)
+	workspace:GetAttributeChangedSignal(Constants.WEATHER_DEBUG_ATTRIBUTE):Connect(function()
+		refresh()
+	end)
+	ObbyLook.onInsideChanged(function()
+		refresh(true)
+	end)
 	refresh()
 end
 

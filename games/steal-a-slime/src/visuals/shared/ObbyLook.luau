@@ -3,9 +3,10 @@
 	ObbyLook (pure, contract/obby.md §5)
 
 	The obby world's own look: a clear candy sky world (blue zenith, violet-pink horizon), whatever the time of day or weather on the map.
-	VisualsClient ObbyWorld fades `mix` from 0 (the map's look) to 1 (this look) over FADE seconds while the local
-	player is in the obby world (WorldLayout.inObbyWorld) and back when they leave; NightSky blends LOOK over its day /
-	night and weather look by that mix, and ObbyWorld tints a ColorCorrection by it.
+	VisualsClient ObbyWorld sets `mix` to 1 (this look) on the frame the local player arrives in the obby world
+	(WorldLayout.inObbyWorld) and back to 0 (the map's look) on the frame they leave, under a short neutral veil;
+	NightSky blends the look over its day / night and weather look by that mix, and ObbyWorld swaps its tint and the
+	place's post effects with it.
 
 	  ObbyLook.LOOK / NIGHT            Lighting + Atmosphere values at mix 1 by day / by night (NightLook.Look keys)
 	  ObbyLook.TINT                    ColorCorrection at mix 1 (TintColor, Saturation, Brightness, Contrast)
@@ -14,7 +15,7 @@
 	  ObbyLook.target(night): Look     LOOK -> NIGHT by the night factor (0..1, NightLook.factor)
 	  ObbyLook.blend(base, mix, night?): Look
 	                                   base -> target(night) by mix (0..1)
-	  ObbyLook.toward(mix, inside, dt) the next mix: moves 1 / FADE per second towards 1 inside, 0 outside
+	  ObbyLook.VEIL                    the swap's veil: start tint, seconds to clear, the camera focus lift
 	  ObbyLook.get / set / onChanged   the current mix (client), like WeatherGrade
 	  ObbyLook.isInside / setInside / onInsideChanged
 	                                   whether the local player is in the obby world now (client; ObbyWorld sets it
@@ -26,7 +27,13 @@ local NightLook = if script then require(script.Parent.NightLook) else require("
 
 local ObbyLook = {}
 
-ObbyLook.FADE = 0.6 -- seconds for the full swap
+-- The swap happens at once under a neutral veil that clears in `seconds`; `focusLift` is where the camera looks
+-- above the root (the default camera's focus) when ObbyWorld steadies it after the teleport.
+ObbyLook.VEIL = table.freeze({
+	color = Color3.fromRGB(128, 126, 134),
+	seconds = 0.35,
+	focusLift = Vector3.new(0, 1.5, 0),
+})
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
@@ -98,11 +105,6 @@ function ObbyLook.blend(base: NightLook.Look, mix: number, night: number?): Nigh
 		out[key] = lerp((base :: any)[key], target[key], t)
 	end
 	return out :: NightLook.Look
-end
-
-function ObbyLook.toward(mix: number, inside: boolean, dt: number): number
-	local step = dt / ObbyLook.FADE
-	return if inside then math.min(1, mix + step) else math.max(0, mix - step)
 end
 
 -- Shared current mix (client). set() notifies listeners (NightSky) in the same frame.
