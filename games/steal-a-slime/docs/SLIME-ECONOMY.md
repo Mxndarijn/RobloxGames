@@ -82,6 +82,19 @@ Counts: 15 / +4 / +5 / +8 = 32. A new player has the whole ladder from minute on
 
 Drop rule change: today 30 % of drops are a family slime (`FAMILY_DROP_CHANCE`, weighted 5/3/2) and the rest are Classic. With families that fill different tiers, that rule would make the Starlight Mythics rarer than Cosmo for no reason. Proposal: **roll the tier, then pick uniformly among the species of that tier in every open family** (drop `FAMILY_DROP_CHANCE` and the family weights). `FountainTiers.luck` (family drops get extra luck) goes too, since the tier is rolled before the species.
 
+### 1.4 Legendary-and-up additions (2026-10-31)
+
+21 more species, picked by Merijn in `docs/new-slimes-proposal.html`. They are normal wild slimes (fountain, random merges, stealing), earn about their tier's mean income bonus, and are **SlimeDex bonus entries** (`SlimeRoster.dexBonus`), so the Dex total, milestones, badges and the Rainbow Cloud unlock don't move.
+
+| Family | Legendary | Mythic | Secret | Celestial | Divine |
+|---|---|---|---|---|---|
+| Meadow | jester, cowboy | griffin, cerberus | | supernova | valkyrie |
+| Garden | venus, bonsai | willow_wisp | monarch | | |
+| Frost & Sea | diver, narwhal | mammoth, siren | reef | | |
+| Starlight | astronaut | djinn, sphinx | | | |
+
+Merge-only (x2.4 like every hybrid): `hydra` (siren x3), `constellation` (abyss + gaia + monarch), `ryujin` (lunara + solaris + supernova, the first recipe that takes Celestials). Rebirths 24 and 28 also ask for a Celestial (lunara, solaris), 29 for aurora and 30 for goo_oracle and kirin. Pacing sim (4 seeds, 55 days): the new species thin out the rebirth species of their tiers, and two Divines at rebirth 30 stop about a third of grinders inside 55 days; see the PR.
+
 `REBIRTH_SLIMES`: every rebirth has its own list of one to three species, and the rebirth uses those slimes up (contract/v13-additions.md §8.8a). The list in `Config` climbs through the Classic species, opens a family's species once the family is catchable, mixes in merge hybrids (rebirth 11 asks for Moo-shroom, the first recipe most players can make) and ends on boss slimes and Secrets.
 
 ---

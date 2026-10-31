@@ -103,7 +103,7 @@ describe("Rebirth slime requirement", function()
 			expect(`{level}: {top >= best - 2}`).toBe(`{level}: true`)
 			best = math.max(best, top)
 		end
-		expect(best).toBe(SlimeRoster.SECRET_TIER)
+		expect(best).toBe(Config.MAX_TIER)
 	end)
 	it("looks up the list for the next rebirth, nothing past the last", function()
 		expect(table.concat(Progression.requiredSpecies(0), ",")).toBe(table.concat(Config.REBIRTH_SLIMES[1], ","))

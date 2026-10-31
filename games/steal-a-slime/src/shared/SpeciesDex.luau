@@ -2,7 +2,8 @@
 --[[
 	SpeciesDex (pure, CONTRACT.md §36)
 
-	The SlimeDex: one entry per spawn, hybrid and boss species (50) and the event Secrets as bonus entries.
+	The SlimeDex: one entry per spawn, hybrid and boss species, plus bonus entries (the event Secrets and every
+	species with SlimeRoster `dexBonus`) that never count toward the total, milestones or unlocks.
 	`record` is what PlayerData.discover runs for every slime a player gets: it sets data.found[species]. Counts feed Collection
 	(milestones), PlotSkins, Badges and the plot attributes; `view` builds State.dex. Recipe hints and the
 	featured-Secret week come in through `Sources`, so this module needs neither MergeRecipes nor EventSecrets.
@@ -48,10 +49,12 @@ export type View = {
 }
 
 local ENTRIES: { Entry } = {}
-local BONUS = SlimeRoster.ofKind("event")
+local BONUS: { Entry } = {}
 local inDex: { [string]: Entry } = {}
 for _, entry in SlimeRoster.ROSTER do
-	if entry.kind == "spawn" or entry.kind == "hybrid" or entry.kind == "boss" then
+	if entry.kind == "event" or entry.dexBonus then
+		table.insert(BONUS, entry)
+	elseif entry.kind == "spawn" or entry.kind == "hybrid" or entry.kind == "boss" then
 		table.insert(ENTRIES, entry)
 		inDex[entry.id] = entry
 	end
@@ -70,7 +73,7 @@ function SpeciesDex.isSpecies(id: any): boolean
 		return false
 	end
 	local entry = SlimeRoster.get(id)
-	return entry ~= nil and (inDex[id] ~= nil or entry.kind == "event")
+	return entry ~= nil and (inDex[id] ~= nil or entry.kind == "event" or entry.dexBonus == true)
 end
 
 -- The set a species belongs to: its FountainTiers family's name, "Meadow" for the Classic species.

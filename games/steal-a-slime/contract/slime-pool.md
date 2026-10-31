@@ -10,14 +10,19 @@ as before (`Genome.sanitize`).
   `orchard`: `sprout cheddar` (1), `prickles flan` (2), `sunny` (5), `elder_oak` (6), `gaia` (7).
   `frost`: `chomp pengoo` (3), `frostbite zap` (4), `ninja captain_goo` (5), `yeti` (6), `abyss` (7).
   `starlight`: `imp drako` (4), `robo` (5), `seraph amethyst prism` (6), `eclipse boo` (7).
+  Legendary-and-up additions (18 spawn): `jester cowboy` (5), `griffin cerberus` (6), `supernova` (8), `valkyrie` (9);
+  `orchard`: `venus bonsai` (5), `willow_wisp` (6), `monarch` (7); `frost`: `diver narwhal` (5), `mammoth siren` (6),
+  `reef` (7); `starlight`: `astronaut` (5), `djinn sphinx` (6). Each earns about its rarity's mean income bonus.
   Families keep their ids and rank gates (§19); a family may now have several species per tier, none at some tiers,
   and Secret species.
 - **Kinds (`Entry.kind`).** `"spawn"` (the 40 above: the fountain and random merges; `SlimeRoster.forTier` returns only
   these), `"hybrid"` (merge recipes only): `soda rocky_road` (2), `bloom honey_toad truffle` (3),
-  `sushi snow_bunny moo_shroom catfish` (4), `steam kraken thunderbee` (5), `cyber_ninja dragon_king` (6), `nightwing` (7);
+  `sushi snow_bunny moo_shroom catfish` (4), `steam kraken thunderbee` (5), `cyber_ninja dragon_king` (6), `nightwing hydra` (7), `constellation` (8), `ryujin` (9);
   `"boss"` (the boss event only): `goozilla queen_jelly klawdius pumpking` (6), `mecha_goo goomancer` (7);
   `"event"` (a limited Secret, only while its event runs): `glitch doodle origami disco isle chrono kitsune` (7). `SlimeRoster.ofKind(kind)` lists one kind.
   Non-spawn species have no family. Every kind has a look and a species mesh.
+- **Dex bonus (`Entry.dexBonus`).** The 21 Legendary-and-up additions above (18 spawn, 3 hybrids) are SlimeDex bonus
+  entries (§36): they never change `SpeciesDex.TOTAL`, milestones, Dex badges or the Rainbow Cloud unlock.
 - **Looks (`Shared.SlimeLooks`).** Every species has `kit = "slime_<id>"`, a fully coloured mesh (body, pattern,
   accessories and face in vertex colours). `colour` stays the species colour for UI and the procedural fallback.
 - **Meshes (`Shared.MeshAssets`).** `entries["slime_<id>"] = { assetId, size, offset }`: `size` is the native size of a

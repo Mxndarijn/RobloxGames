@@ -274,7 +274,7 @@ describe("v28 item 4: Rebirth shows only the next rebirth", function()
 		local ahead = Rebirth.rank(23, Config.REBIRTH_TIERS) :: any -- rebirth 24, Goo Titan at 25
 		expect(ahead.up).toBe(false)
 		expect(ahead.title).toBe("Next rank at Rebirth 25")
-		expect(ahead.desc).toBe("Goo Titan: +150% income")
+		expect(ahead.desc).toBe("Goo Titan: +150% income, opens Celestial merges")
 		local last = Config.REBIRTH_TIERS[#Config.REBIRTH_TIERS].rebirths
 		expect(Rebirth.rank(last, Config.REBIRTH_TIERS)).toBeNil()
 		-- No rank line is longer than the worst case LayoutAssert measures at every viewport.

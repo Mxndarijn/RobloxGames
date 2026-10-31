@@ -87,9 +87,9 @@ end)
 describe("FountainTiers: species", function()
 	it("every family holds its types per tier, each with a look and its own species kit", function()
 		local expected = {
-			orchard = { 2, 2, 0, 0, 1, 1, 1, 0, 0 },
-			frost = { 0, 0, 2, 2, 2, 1, 1, 0, 0 },
-			starlight = { 0, 0, 0, 2, 1, 3, 2, 0, 0 },
+			orchard = { 2, 2, 0, 0, 3, 2, 2, 0, 0 },
+			frost = { 0, 0, 2, 2, 4, 3, 2, 0, 0 },
+			starlight = { 0, 0, 0, 2, 2, 5, 2, 0, 0 },
 		}
 		for _, family in FountainTiers.FAMILIES do
 			local counts = expected[family.id]
@@ -106,7 +106,7 @@ describe("FountainTiers: species", function()
 		end
 	end)
 	it(
-		"Classic rolls never see a family type; the Classic roster is 26 types with Midas and Jackpot its Secrets",
+		"Classic rolls never see a family type; the Classic roster is 32 types with Midas and Jackpot its Secrets",
 		function()
 			local n = 0
 			for _, entry in SlimeRoster.ofKind("spawn") do
@@ -116,7 +116,7 @@ describe("FountainTiers: species", function()
 					expect(FountainTiers.family(entry.family) ~= nil).toBe(true)
 				end
 			end
-			expect(n).toBe(26)
+			expect(n).toBe(32)
 			local secret = {}
 			for _, entry in SlimeRoster.forTier(SlimeRoster.SECRET_TIER) do
 				table.insert(secret, entry.id)

@@ -23,9 +23,13 @@ kind in the roster (§30). No save change: "found" is read from what the save al
   | `dragon_king` | 6 | king king king |
   | `cyber_ninja` | 6 | ninja ninja robo |
   | `nightwing` | 7 | cosmo seraph seraph |
+  | `hydra` | 7 | siren siren siren |
+  | `constellation` | 8 | abyss gaia monarch |
+  | `ryujin` | 9 | lunara solaris supernova |
 
   No two recipes share an input set. A recipe hits whether or not the player knows it. Inputs with a nil species never
-  hit; tier-7 inputs never hit.
+  hit. Three Secrets that share a shine brew by `SHINE_RECIPE` even when they also form a recipe (Constellation).
+  Celestial inputs only merge in a recipe (Ryujin).
 - **API.**
   - `MergeRecipes.RECIPES: { Recipe }`, `Recipe = { id, inputs (sorted), tier, hint }` (frozen; `id` = hybrid id).
   - `MergeRecipes.key(species) -> string`, `MergeRecipes.find(species) -> Recipe?` (exact multiset, nil if any is nil).
