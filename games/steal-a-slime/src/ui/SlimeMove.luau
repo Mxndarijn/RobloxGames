@@ -13,6 +13,9 @@
 	The vat lights green when it takes the slime, yellow when it takes it but the player's rank can't merge that
 	rarity yet (Shared.MergeGate: the place goes through), red when it refuses.
 
+	The picked-up slime leaves its pad for this player and rides on top of their head (a copy, posed like the steal
+	carry: WorldView.carrySeat) until it lands or the move ends.
+
 	Target: the pad under the mouse / the tap, else the unlocked pad nearest the character. Place: click or tap a
 	pad, E, gamepad ButtonX or the Place button, which sends Request MoveSlime(slimeId, pad); a refusal shows its
 	reason in the bar and move mode stays on. Cancel: Q, gamepad ButtonB, the Cancel button, leaving your home
@@ -42,7 +45,8 @@ local SlimeMove = {}
 export type PadClass = "same" | "empty" | "swap" | "locked" | "vat" | "vatGated" | "vatRefused"
 export type PadSpot = { index: number, position: Vector3 }
 
-SlimeMove.FADE = 0.75 -- LocalTransparencyModifier on the picked-up slime
+SlimeMove.FADE = 1 -- LocalTransparencyModifier on the picked-up slime's pad model: its copy rides on the head
+SlimeMove.HEAD_HEIGHT = 3 -- studs above the HumanoidRootPart for the held slime when the character has no Head
 SlimeMove.GHOST_ALPHA = 0.45 -- the ghost keeps this share of each part's opacity
 SlimeMove.HIGHLIGHT_FILL = 0.55 -- pad tint fill transparency
 SlimeMove.SETTLE_SECONDS = 1.5 -- after a place, the ghost waits at most this long for the slime to move
@@ -168,8 +172,18 @@ export type Deps = {
 	uis: UserInputService,
 	cas: ContextActionService,
 	prompts: ProximityPromptService,
+	frame: RBXScriptSignal, -- fires every rendered frame (RenderStepped): the held slime follows the head
 	onActive: ((active: boolean) -> ())?, -- move mode started (true) / ended (false): the hotbar steps aside
 }
+
+-- Where the held slime sits (its pivot is its bottom centre): on top of the Head, turned with the root, as
+-- WorldView.carrySeat places a carried slime. Without a Head it sits HEAD_HEIGHT above the root.
+function SlimeMove.headSeat(root: CFrame, headPosition: Vector3?, headHeight: number?): CFrame
+	if headPosition and headHeight then
+		return root.Rotation + (headPosition + root.UpVector * (headHeight / 2))
+	end
+	return root * CFrame.new(0, SlimeMove.HEAD_HEIGHT, 0)
+end
 
 -- A Move ghost part's transparency from the slime part's `transparency` and its own one before the merge vat's fade
 -- (`own`, Constants.OWN_TRANSPARENCY_ATTRIBUTE): a slime in the vat would otherwise be faded twice into nothing.
@@ -178,9 +192,10 @@ function SlimeMove.ghostTransparency(transparency: number, own: any): number
 	return 1 - (1 - base) * SlimeMove.GHOST_ALPHA
 end
 
--- A see-through, inert copy of `model`: no prompts, scripts, labels, tags or attributes (so no client runner
--- binds it), anchored and not collidable. nil when the model can't be cloned.
-local function makeGhost(model: Model): Model?
+-- An inert copy of `model`: no prompts, scripts, labels, tags or attributes (so no client runner binds it),
+-- anchored and not collidable. See-through (the ghost on the target pad) unless `solid` (the slime held on the
+-- head). nil when the model can't be cloned.
+local function makeGhost(model: Model, solid: boolean?): Model?
 	local ok, clone = pcall(function()
 		return model:Clone()
 	end)
@@ -215,9 +230,19 @@ local function makeGhost(model: Model): Model?
 				d.CanQuery = false
 				d.CanTouch = false
 				d.CastShadow = false
-				d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
+				d.LocalTransparencyModifier = 0
+				if not solid then
+					d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
+				elseif type(own) == "number" then
+					d.Transparency = own
+				end
 			elseif d:IsA("Decal") then
-				d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
+				d.LocalTransparencyModifier = 0
+				if not solid then
+					d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
+				elseif type(own) == "number" then
+					d.Transparency = own
+				end
 			end
 		end
 	end
@@ -332,6 +357,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		pads: { [number]: BasePart },
 		faded: { Instance },
 		ghost: Model?,
+		held: Model?, -- the copy riding on the head
 		tint: Highlight,
 		hover: number?, -- pad under the mouse / tap
 		target: number?,
@@ -441,6 +467,9 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			end
 			if a.ghost then
 				a.ghost:Destroy()
+			end
+			if a.held then
+				a.held:Destroy()
 			end
 		end
 		local body = a.model:FindFirstChild("Body")
@@ -640,6 +669,11 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		if ghost then
 			ghost.Parent = deps.ghostParent()
 		end
+		local held = makeGhost(model, true)
+		if held then
+			held.Name = "SlimeMoveHeld"
+			held.Parent = deps.ghostParent()
+		end
 		local tint = create("Highlight", {
 			Name = "SlimeMovePadTint",
 			FillTransparency = SlimeMove.HIGHLIGHT_FILL,
@@ -654,6 +688,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			pads = padsOf(plot),
 			faded = faded,
 			ghost = ghost,
+			held = held,
 			tint = tint,
 			hover = nil,
 			target = nil,
@@ -671,6 +706,33 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			humanoid:UnequipTools()
+		end
+
+		-- The held copy follows the head every frame (until it is destroyed when the slime lands or the move ends).
+		local function seatHeld()
+			local root = rootPart()
+			if not held or held.Parent == nil or not root then
+				return
+			end
+			local head = root.Parent and root.Parent:FindFirstChild("Head")
+			if head and head:IsA("BasePart") then
+				held:PivotTo(SlimeMove.headSeat(root.CFrame, head.Position, head.Size.Y))
+			else
+				held:PivotTo(SlimeMove.headSeat(root.CFrame))
+			end
+		end
+		seatHeld()
+		if held then
+			local follow: RBXScriptConnection? = nil
+			follow = deps.frame:Connect(function()
+				if held.Parent == nil then
+					if follow then
+						follow:Disconnect()
+					end
+					return
+				end
+				seatHeld()
+			end)
 		end
 
 		local priority = Enum.ContextActionPriority.High.Value + 1

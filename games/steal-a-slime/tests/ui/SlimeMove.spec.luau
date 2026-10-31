@@ -1,6 +1,6 @@
 --!strict
 -- Move mode rules (src/ui/SlimeMove.luau, FEATURES.MoveSlime): what a place on a pad would do, the nearest
--- unlocked pad, and the bar's texts. The live mode (ghost, tint, input) is checked in a Studio playtest.
+-- unlocked pad, the bar's texts and the head seat. The live mode (ghost, held slime, tint, input) is checked in a Studio playtest.
 local MergeGate = require("../../src/shared/MergeGate")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
@@ -121,5 +121,19 @@ describe("SlimeMove.ghostTransparency", function()
 	it("a slime in the merge vat (faded on its pad) gets the same ghost as one that isn't", function()
 		expect(SlimeMove.ghostTransparency(0.6, 0)).toBe(SlimeMove.ghostTransparency(0, nil))
 		expect(SlimeMove.ghostTransparency(1, 1)).toBe(1)
+	end)
+end)
+
+describe("SlimeMove.headSeat", function()
+	local CFrame = roblox.CFrame
+	it("puts the held slime's bottom on top of the Head, turned with the root", function()
+		local root = CFrame.new(10, 3, 5) * CFrame.Angles(0, math.pi / 2, 0)
+		local seat = SlimeMove.headSeat(root, Vector3.new(10, 4.5, 5), 1.2)
+		expect((seat.Position - Vector3.new(10, 5.1, 5)).Magnitude < 1e-6).toBe(true)
+		expect((seat.LookVector - root.LookVector).Magnitude < 1e-6).toBe(true)
+	end)
+	it("without a Head it sits HEAD_HEIGHT above the root", function()
+		local seat = SlimeMove.headSeat(CFrame.new(0, 3, 0))
+		expect((seat.Position - Vector3.new(0, 3 + SlimeMove.HEAD_HEIGHT, 0)).Magnitude < 1e-6).toBe(true)
 	end)
 end)
