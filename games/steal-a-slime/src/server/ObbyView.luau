@@ -25,11 +25,12 @@ local WorldView = require(script.Parent.WorldView)
 
 local ObbyView = {}
 
--- Look per part kind: colour (or three tones), material, transparency.
+-- Look per part kind: colour (or three tones), material, transparency. No Neon: it blooms into blobs against the
+-- obby sky, so even the "glow" tiles are saturated SmoothPlastic.
 type Look = { colors: { Color3 }, material: Enum.Material, transparency: number? }
 local LOOKS: { [string]: Look } = {
 	start = { colors = { Color3.fromRGB(120, 226, 170) }, material = Enum.Material.SmoothPlastic },
-	pad = { colors = { Color3.fromRGB(236, 246, 240) }, material = Enum.Material.SmoothPlastic },
+	pad = { colors = { Color3.fromRGB(214, 226, 238) }, material = Enum.Material.SmoothPlastic },
 	finish = { colors = { Color3.fromRGB(255, 206, 64) }, material = Enum.Material.SmoothPlastic },
 	jelly = {
 		colors = { Color3.fromRGB(255, 120, 190), Color3.fromRGB(120, 220, 120), Color3.fromRGB(110, 170, 255) },
@@ -55,12 +56,12 @@ local LOOKS: { [string]: Look } = {
 		material = Enum.Material.SmoothPlastic,
 	},
 	post = { colors = { Color3.fromRGB(70, 60, 90) }, material = Enum.Material.SmoothPlastic },
-	bar = { colors = { Color3.fromRGB(235, 70, 120) }, material = Enum.Material.Neon },
+	bar = { colors = { Color3.fromRGB(235, 70, 120) }, material = Enum.Material.SmoothPlastic },
 	trampoline = {
 		colors = { Color3.fromRGB(80, 170, 255), Color3.fromRGB(255, 110, 200) },
-		material = Enum.Material.Neon,
+		material = Enum.Material.SmoothPlastic,
 	},
-	cannon = { colors = { Color3.fromRGB(255, 140, 40) }, material = Enum.Material.Neon },
+	cannon = { colors = { Color3.fromRGB(255, 140, 40) }, material = Enum.Material.SmoothPlastic },
 	blob = {
 		colors = { Color3.fromRGB(130, 230, 90) },
 		material = Enum.Material.SmoothPlastic,
@@ -74,7 +75,7 @@ local LOOKS: { [string]: Look } = {
 	truss = { colors = { Color3.fromRGB(255, 120, 190) }, material = Enum.Material.SmoothPlastic },
 	fan = { colors = { Color3.fromRGB(90, 96, 120) }, material = Enum.Material.DiamondPlate },
 	wind = {
-		colors = { Color3.fromRGB(235, 250, 255) },
+		colors = { Color3.fromRGB(205, 230, 250) },
 		material = Enum.Material.SmoothPlastic,
 		transparency = 0.85,
 	},
@@ -89,8 +90,8 @@ local LOOKS: { [string]: Look } = {
 		material = Enum.Material.SmoothPlastic,
 	},
 	glow = {
-		colors = { Color3.fromRGB(255, 240, 120), Color3.fromRGB(150, 255, 170), Color3.fromRGB(140, 220, 255) },
-		material = Enum.Material.Neon,
+		colors = { Color3.fromRGB(255, 200, 50), Color3.fromRGB(80, 215, 120), Color3.fromRGB(70, 170, 240) },
+		material = Enum.Material.SmoothPlastic,
 	},
 	log = {
 		colors = { Color3.fromRGB(160, 105, 60), Color3.fromRGB(140, 90, 50) },

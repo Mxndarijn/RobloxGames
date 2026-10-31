@@ -10,7 +10,8 @@
 
 	During the boss this is the one card at the top: the steal cards fold into a strip across its top
 	(StealCards.strip, "Ann and Bo are stealing your slimes! · Chase them") in the card kind's colour. An open overlay
-	(menu card, daily popup, bag panel) hides the card (`setMenuOpen`).
+	(menu card, daily popup, bag panel) hides the card (`setMenuOpen`), and so does being in the obby world
+	(`setAway`, from ObbyLook's inside flag); it comes back on return while the boss is still on.
 ]]
 
 local UI = script.Parent.Parent
@@ -186,6 +187,7 @@ function BossMeter.new(parent: Instance, ctx: any, steals: StealCards.StealCards
 	local top = Layout.TOP
 	local width = Layout.BANNER_WIDTH
 	local hidden = false -- an overlay is open
+	local away = false -- the local player is in the obby world
 	local stripSig = "" -- what the strip last showed (kind|text|hint|width), so a steady line is not rebuilt each frame
 	local bannerHeight: () -> number = function()
 		return 0
@@ -232,6 +234,14 @@ function BossMeter.new(parent: Instance, ctx: any, steals: StealCards.StealCards
 		end
 	end
 
+	-- In the obby world the boss is far away: the card hides there and comes back on return.
+	function self.setAway(isAway: boolean)
+		if away ~= isAway then
+			away = isAway
+			self.tick(ctx.serverNow())
+		end
+	end
+
 	function self.update(state: any)
 		boss = state.boss
 		local phase = type(boss) == "table" and boss.phase
@@ -246,7 +256,7 @@ function BossMeter.new(parent: Instance, ctx: any, steals: StealCards.StealCards
 		if steals then
 			steals.setFolded(view ~= nil)
 		end
-		frame.Visible = view ~= nil and not hidden
+		frame.Visible = view ~= nil and not hidden and not away
 		if not view then
 			return
 		end
