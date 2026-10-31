@@ -117,14 +117,15 @@ local LOOKS: { [string]: Look } = {
 	},
 }
 
--- The Goo Ring behind the start pad (`Course.home`): a standing ring like the portal's, its plaque facing the start
--- pad. Its 1.2-stud text line reads from about 25 studs on a phone; the runner appears about 7 studs from it.
+-- The Goo Ring home (`Course.home`): the yard's ring at `scale`, standing on the start pad's back edge and facing
+-- along the course, so a runner pops out of it facing the sections. "BACK TO BASE" is painted on the start pad in
+-- front of it (a SurfaceGui on the pad's top: a 1.1-stud line reads from the start pad on a phone).
 local HOME = table.freeze({
-	ringWidth = 0.6, -- studs the floor glow sticks out past the ring radius
-	-- The standing Goo Ring (ObbyParts.gooRing): inner gap about 6 studs, a character walks through it.
-	ring = { radius = 3.6, tube = 1, plaque = Vector3.new(6, 2.2, 0.3) },
+	scale = 0.72, -- of the yard ring: about 9 studs tall, a 6-stud opening a character walks through
+	labelSize = Vector3.new(6.4, 0.05, 1.5), -- studs, lying on the start pad
+	labelInset = 2.1, -- studs from the start pad's back edge to the label's centre
 	maxDistance = 60,
-	text = "Back to base",
+	text = "BACK TO BASE",
 })
 
 local ICE = PhysicalProperties.new(0.9, 0, 0.5, 100, 1)
@@ -251,130 +252,99 @@ local function decor(part: BasePart)
 	part.CastShadow = false
 end
 
--- The standing Goo Ring's look, shared by the yard portal (server/ObbyView) and the ring home (buildHome).
+-- The Goo Ring: kit meshes (shared/modeling-kit models obby_goo_ring, obby_goo_swirl; Shared.MeshAssets), shared by
+-- the yard portal (server/ObbyView, swapped by server/MeshSwap) and the ring home (buildHome, swapped on the client by
+-- visuals/client/ObbyCourseView). The numbers are the yard size (scale 1), from the kit model.
 ObbyParts.GOO = table.freeze({
-	segments = 14, -- tube pieces round the ring
-	overlap = 1.2, -- each piece this much longer than its share of the arc, so the outer edge has no gaps
-	goo = Color3.fromRGB(110, 205, 60),
-	swirl = Color3.fromRGB(100, 70, 210),
-	swirlArm = Color3.fromRGB(200, 180, 255),
-	swirlCore = Color3.fromRGB(251, 234, 240),
-	swirlTransparency = 0.1,
-	spin = 1.6, -- radians a second the swirl turns (visuals/client/ObbyFx)
-	-- Drips under the ring's lower sides: angle round the ring (degrees, 0 = right, -90 = bottom) and size (x tube).
-	drips = { { -25, 0.75 }, { -55, 0.6 }, { -125, 0.65 }, { -152, 0.5 } },
+	ring = "obby_goo_ring_eyes", -- MeshAsset names
+	swirl = "obby_goo_swirl",
+	ringSize = Vector3.new(12.489, 12.076, 5.438), -- the ring mesh's native size (studs)
+	swirlSize = Vector3.new(9.2, 9.2, 0.9),
+	centre = 5.914, -- the ring's centre above its foot (the kit model's CZ)
+	swirlBack = 0.3, -- the swirl stands this far behind the ring's middle, so the drips hang in front of it
+	spin = 1.2, -- radians a second the swirl turns (visuals/client/ObbyFx)
+	glow = Color3.fromRGB(170, 120, 255),
+	sparkle = { Color3.fromRGB(255, 200, 245), Color3.fromRGB(190, 160, 255) },
 })
 
-export type GooRingSpec = {
-	radius: number, -- studs from the ring's centre to the tube's centre line
-	tube: number, -- tube thickness, studs
-	plaque: Vector3, -- the text plaque standing on top of the ring
-}
-
--- A standing Goo Ring: a slime tube round a purple swirl that turns on each client (attributes Constants.GOO_SPIN and
--- Constants.GOO_PIVOT on its arms and core, played by visuals/client/ObbyFx), drips under it and a plaque on top.
--- `ground` is the point under the ring's centre, its LookVector the way the ring faces (you walk through it along
--- that axis). Decor only: no collision, queries or touches. Returns the plaque, for the caller's SurfaceGui.
-function ObbyParts.gooRing(ground: CFrame, spec: GooRingSpec, parent: Instance, prefix: string): Part
-	local G = ObbyParts.GOO
-	local r, t = spec.radius, spec.tube
-	local centre = ground * CFrame.new(0, r + t / 2 + 0.1, 0) -- X right, Y up, Z through the ring
-	local function piece(name: string, shape: Enum.PartType, size: Vector3, cf: CFrame, color: Color3): Part
-		local part = Instance.new("Part")
-		part.Name = prefix .. name
-		part.Shape = shape
-		part.Size = size
-		part.CFrame = cf
-		part.Color = color
-		part.Material = Enum.Material.SmoothPlastic
-		decor(part)
-		part.Parent = parent
-		return part
-	end
-	local n = G.segments
-	local length = 2 * math.pi * r / n * G.overlap
-	for i = 1, n do
-		local a = (i - 0.5) / n * 2 * math.pi
-		local cf = centre * CFrame.new(math.cos(a) * r, math.sin(a) * r, 0) * CFrame.Angles(0, 0, a + math.pi / 2)
-		piece("Tube", Enum.PartType.Cylinder, Vector3.new(length, t, t), cf, G.goo)
-	end
-	for _, drip in G.drips do
-		local a = math.rad(drip[1])
-		local d = t * drip[2]
-		local at = Vector3.new(math.cos(a) * (r + t * 0.15), math.sin(a) * (r + t * 0.15) - t * 0.55, 0)
-		piece("Drip", Enum.PartType.Ball, Vector3.new(d, d, d), centre * CFrame.new(at), G.goo)
-	end
-
-	-- The swirl: a see-through purple disc filling the ring, three pale arms and a core that turn round its centre.
-	local inner = r - t / 2 + 0.05
-	local disc = piece(
-		"Swirl",
-		Enum.PartType.Cylinder,
-		Vector3.new(0.2, inner * 2, inner * 2),
-		centre * CFrame.Angles(0, math.pi / 2, 0),
-		G.swirl
-	)
-	disc.Transparency = G.swirlTransparency -- plain, not Neon: Neon washes the purple out to pink
-	local function spinning(part: Part)
-		part.Material = Enum.Material.Neon
-		part:SetAttribute(Constants.GOO_SPIN, G.spin)
-		part:SetAttribute(Constants.GOO_PIVOT, centre)
-	end
-	for k = 0, 2 do
-		local a = k * 2 * math.pi / 3
-		local armLength = inner * 0.85
-		local cf = centre * CFrame.Angles(0, 0, a) * CFrame.new(armLength / 2, 0, 0) * CFrame.Angles(0, 0, 0.35)
-		spinning(piece("SwirlArm", Enum.PartType.Block, Vector3.new(armLength, inner * 0.14, 0.3), cf, G.swirlArm))
-	end
-	local core = inner * 0.32
-	spinning(piece("SwirlCore", Enum.PartType.Ball, Vector3.new(core, core, core), centre, G.swirlCore))
-
-	-- The plaque sits on the ring's top, facing the same way.
-	local p = spec.plaque
-	local plaque = piece(
-		"Plaque",
-		Enum.PartType.Block,
-		p,
-		centre * CFrame.new(0, r + t / 2 + p.Y / 2 - 0.15, 0),
-		ObbyParts.COLORS.sign
-	)
-	return plaque
+-- An invisible, non-colliding box the mesh swap fills with kit mesh `name` (attribute MeshAsset).
+local function meshSlot(name: string, asset: string, size: Vector3, cf: CFrame, parent: Instance): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Size = size
+	part.CFrame = cf
+	part.Transparency = 1
+	decor(part)
+	part:SetAttribute("MeshAsset", asset)
+	part.Parent = parent
+	return part
 end
 
--- The Goo Ring back to base and its sign, on the pad behind the start pad.
-local function buildHome(course: ObbyCourse.Course, frameCf: CFrame, parent: Instance)
-	local ring = course.home
-	local centre = frameCf * CFrame.new(ring.pos[1], ring.pos[2], ring.pos[3])
-	local function disc(name: string, height: number, radius: number, color: Color3, transparency: number): Part
-		local part = Instance.new("Part")
-		part.Name = name
-		part.Shape = Enum.PartType.Cylinder
-		part.Size = Vector3.new(height, radius * 2, radius * 2)
-		part.CFrame = centre * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
-		part.Color = color
-		part.Transparency = transparency
-		part.Material = Enum.Material.Neon
-		decor(part)
-		part.Parent = parent
-		return part
-	end
-	disc("HomeRing", 0.2, ring.radius + HOME.ringWidth, ObbyParts.COLORS.ring, 0)
-	disc("HomeFloor", 0.3, ring.radius, ObbyParts.COLORS.floor, 0.4).Material = Enum.Material.SmoothPlastic
+-- A standing Goo Ring at `scale` of the yard size: the ring mesh and the swirl inside it, which turns on each client
+-- (Constants.GOO_SPIN and GOO_PIVOT on the swirl's slot, played by visuals/client/ObbyFx) with a purple glow and
+-- sparkles drifting into it. `ground` is the point under the ring's centre, its LookVector the way the eyes face (you
+-- walk through along that axis). Decor only. Names are `prefix` .. "GooRing" / "GooSwirl". Returns the swirl slot.
+function ObbyParts.gooRing(ground: CFrame, scale: number, parent: Instance, prefix: string): Part
+	local G = ObbyParts.GOO
+	local size = G.ringSize * scale
+	meshSlot(prefix .. "GooRing", G.ring, size, ground * CFrame.new(0, size.Y / 2, 0), parent)
+	local centre = ground * CFrame.new(0, G.centre * scale, G.swirlBack * scale) -- +Z: away from the way it faces
+	local swirl = meshSlot(prefix .. "GooSwirl", G.swirl, G.swirlSize * scale, centre, parent)
+	swirl:SetAttribute(Constants.GOO_SPIN, G.spin)
+	swirl:SetAttribute(Constants.GOO_PIVOT, centre)
+	local light = Instance.new("PointLight")
+	light.Color = G.glow
+	light.Brightness = 1.6
+	light.Range = 14 * scale
+	light.Shadows = false
+	light.Parent = swirl
+	-- Sparkles drifting in towards the vortex's core: a disc emitter in the ring's plane, shooting inwards.
+	local at = Instance.new("Attachment")
+	at.Name = "Sparkles"
+	at.CFrame = CFrame.Angles(math.rad(90), 0, 0) -- the attachment's Y axis along the ring's normal: its disc is the swirl
+	at.Parent = swirl
+	local fx = Instance.new("ParticleEmitter")
+	fx.Shape = Enum.ParticleEmitterShape.Disc
+	fx.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
+	fx.ShapeInOut = Enum.ParticleEmitterShapeInOut.Inward
+	fx.ShapePartial = 1
+	fx.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	fx.Color = ColorSequence.new(G.sparkle[1], G.sparkle[2])
+	fx.LightEmission = 1
+	fx.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5 * scale), NumberSequenceKeypoint.new(1, 0) })
+	fx.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
+	fx.Lifetime = NumberRange.new(1.2, 1.8)
+	fx.Speed = NumberRange.new(2 * scale, 2.6 * scale)
+	fx.Rate = 10
+	fx.RotSpeed = NumberRange.new(-90, 90)
+	fx.LockedToPart = true
+	fx.Parent = at
+	return swirl
+end
 
-	-- The standing ring over the disc faces along the course, towards the start pad; its plaque carries the sign.
-	local at = centre.Position
-	local ground = CFrame.lookAt(at, at + frameCf.XVector)
-	local plaque = ObbyParts.gooRing(ground, HOME.ring, parent, "Home")
+-- The Goo Ring home on the start pad's back edge (x = 0 in the course frame), facing along the course, and the
+-- "BACK TO BASE" label painted on the start pad in front of it.
+local function buildHome(frameCf: CFrame, parent: Instance)
+	local ground = frameCf * CFrame.lookAt(Vector3.zero, Vector3.xAxis) -- course-local: X forward, the eyes look down it
+	ObbyParts.gooRing(ground, HOME.scale, parent, "Home")
+	local label = Instance.new("Part")
+	label.Name = "HomeLabel"
+	label.Size = HOME.labelSize
+	label.Transparency = 1
+	-- lying on the pad's top, its front (-Z) towards the ring so the text reads from the start pad
+	label.CFrame = ground * CFrame.new(0, HOME.labelSize.Y / 2 + 0.01, -HOME.labelInset)
+	decor(label)
+	label.Parent = parent
 	local gui = Instance.new("SurfaceGui")
-	gui.Name = "HomeSignGui"
-	gui.Face = Enum.NormalId.Front
+	gui.Name = "HomeLabelGui"
+	gui.Face = Enum.NormalId.Top
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = ObbyParts.PIXELS_PER_STUD
 	gui.MaxDistance = HOME.maxDistance
 	gui.LightInfluence = 0
-	gui.Adornee = plaque
-	ObbyParts.signLabel(gui, "Title", HOME.text, 0.22, 0.56, ObbyParts.PIXELS_PER_STUD)
-	gui.Parent = plaque
+	gui.Adornee = label
+	ObbyParts.signLabel(gui, "Title", HOME.text, 0.08, 0.84, ObbyParts.PIXELS_PER_STUD)
+	gui.Parent = label
 end
 
 -- The course as a Model named Constants.OBBY_COURSE (attribute Slot), in the frame given; not parented.
@@ -386,7 +356,7 @@ function ObbyParts.build(course: ObbyCourse.Course, frame: ObbyCourse.Frame): Mo
 	for _, spec in course.parts do
 		makePart(spec, frameCf, model)
 	end
-	buildHome(course, frameCf, model)
+	buildHome(frameCf, model)
 	return model
 end
 

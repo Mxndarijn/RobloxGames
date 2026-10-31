@@ -5058,6 +5058,45 @@
     "uploadedAt": "2026-10-31T01:17:02Z",
     "versions": 1
   },
+  "obby_goo_ring_eyes": {
+    "assetId": "86481665283840",
+    "assetType": "Model",
+    "sha256": "1275fc49a5b3a0e3",
+    "uploadedAt": "2026-10-31T13:15:20Z",
+    "versions": 1,
+    "meshId": "rbxassetid://89608412271347",
+    "meshSize": [
+      12.489,
+      12.076,
+      5.438
+    ]
+  },
+  "obby_goo_sign": {
+    "assetId": "108894535501924",
+    "assetType": "Model",
+    "sha256": "a191e5406819bbd3",
+    "uploadedAt": "2026-10-31T13:15:50Z",
+    "versions": 1,
+    "meshId": "rbxassetid://131064329268854",
+    "meshSize": [
+      10.516,
+      7.67,
+      3.066
+    ]
+  },
+  "obby_goo_swirl": {
+    "assetId": "126341547160526",
+    "assetType": "Model",
+    "sha256": "48b9139527229ba6",
+    "uploadedAt": "2026-10-31T13:15:37Z",
+    "versions": 1,
+    "meshId": "rbxassetid://124155317882991",
+    "meshSize": [
+      9.2,
+      9.2,
+      0.9
+    ]
+  },
   "obby_island_crystal": {
     "assetId": "97427879227313",
     "assetType": "Model",

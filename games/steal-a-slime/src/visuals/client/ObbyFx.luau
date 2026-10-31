@@ -16,8 +16,8 @@
 	  * roll    a log rolling round its own length; its turn carries a player standing on it sideways
 	  * punch   shoots out along its axis, holds, slides back and rests (shoves what it hits)
 	  * gust    a see-through wind zone that blows on and off; while on, the local player inside is pushed sideways
-	It also turns the Goo Rings' swirls (the portal's and the ring home's: parts with Constants.GOO_SPIN, round their
-	GOO_PIVOT's Z axis).
+	It also turns the Goo Rings' swirls (the portal's and the ring home's: the "Mesh" swapped into a slot with
+	Constants.GOO_SPIN, round its GOO_PIVOT's Z axis; the invisible slot itself stays put).
 	Every change is local: each player collides with their own copy, so platforms move smoothly at frame rate.
 	Parts farther than MAX_DISTANCE from the camera are skipped. Never fires remotes. Call `tick` once a frame.
 ]]
@@ -247,7 +247,7 @@ local function floorUnder(root: BasePart?, params: RaycastParams): BasePart?
 	return if hit and hit.Instance:IsA("BasePart") then hit.Instance else nil
 end
 
-type Swirl = { part: BasePart, pivot: CFrame, offset: CFrame, speed: number }
+type Swirl = { part: BasePart, pivot: CFrame, offset: CFrame, speed: number, mesh: BasePart?, rel: CFrame }
 
 -- The Goo Ring swirl parts under `containers`, each with its rest offset from the ring centre.
 local function findSwirls(containers: { Instance }): { Swirl }
@@ -257,7 +257,14 @@ local function findSwirls(containers: { Instance }): { Swirl }
 			local speed = d:GetAttribute(Constants.GOO_SPIN)
 			local pivot = d:GetAttribute(Constants.GOO_PIVOT)
 			if d:IsA("BasePart") and typeof(speed) == "number" and typeof(pivot) == "CFrame" then
-				table.insert(out, { part = d, pivot = pivot, offset = pivot:ToObjectSpace(d.CFrame), speed = speed })
+				table.insert(out, {
+					part = d,
+					pivot = pivot,
+					offset = pivot:ToObjectSpace(d.CFrame),
+					speed = speed,
+					mesh = nil,
+					rel = CFrame.identity,
+				})
 			end
 		end
 	end
@@ -294,7 +301,18 @@ function ObbyFx.start(): Controller
 		for _, sw in swirls do
 			local d = if camPos then sw.pivot.Position - camPos else Vector3.zero
 			if sw.part.Parent ~= nil and d:Dot(d) <= far then
-				sw.part.CFrame = sw.pivot * CFrame.Angles(0, 0, clock * sw.speed) * sw.offset
+				local mesh = sw.mesh
+				if mesh == nil or mesh.Parent ~= sw.part then
+					-- the swap lands later (it loads): pick the mesh up, at rest, the first frame it is there
+					local found = sw.part:FindFirstChild("Mesh")
+					if not (found and found:IsA("BasePart")) then
+						continue
+					end
+					mesh = found
+					sw.mesh = found
+					sw.rel = sw.part.CFrame:ToObjectSpace(found.CFrame)
+				end
+				(mesh :: BasePart).CFrame = sw.pivot * CFrame.Angles(0, 0, clock * sw.speed) * sw.offset * sw.rel
 			end
 		end
 	end

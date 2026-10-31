@@ -52,6 +52,9 @@ local NAMES = {
 	"ranch_goo_bucket",
 	"ranch_goo_hive",
 	"ranch_goo_sign",
+	"obby_goo_ring_eyes",
+	"obby_goo_swirl",
+	"obby_goo_sign",
 	"ranch_hitching_post",
 	"ranch_horseshoe_pit",
 	"ranch_lantern_post",
@@ -290,6 +293,13 @@ entries["ranch_goo_drain"] =
 	{ assetId = 126810189276613, meshId = "rbxassetid://104526734095121", size = { 8.8, 4.45, 9.75 } }
 entries["ranch_goo_hive"] =
 	{ assetId = 107632231989974, meshId = "rbxassetid://83216405009839", size = { 3.82, 5.715, 4.783 } }
+-- The Obby's Goo Ring portal (server/ObbyView, ObbyParts.gooRing; the ring home is swapped on the client)
+entries["obby_goo_ring_eyes"] =
+	{ assetId = 86481665283840, meshId = "rbxassetid://89608412271347", size = { 12.489, 12.076, 5.438 } }
+entries["obby_goo_swirl"] =
+	{ assetId = 126341547160526, meshId = "rbxassetid://124155317882991", size = { 9.2, 9.2, 0.9 } }
+entries["obby_goo_sign"] =
+	{ assetId = 108894535501924, meshId = "rbxassetid://131064329268854", size = { 10.516, 7.67, 3.066 } }
 entries["ranch_goo_sign"] =
 	{ assetId = 77535983276457, meshId = "rbxassetid://128222132547695", size = { 8.8, 8.205, 3.746 } }
 entries["ranch_hitching_post"] =
