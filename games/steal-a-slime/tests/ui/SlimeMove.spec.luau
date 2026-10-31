@@ -56,16 +56,22 @@ end)
 
 describe("SlimeMove texts", function()
 	it("names what a place would do", function()
-		expect(SlimeMove.statusText("empty", 3)).toBe("Pad 3: empty")
-		expect(SlimeMove.statusText("swap", 2, "Blorp")).toBe("Pad 2: swaps with Blorp")
-		expect(SlimeMove.statusText("locked", 7)).toBe("Pad 7 is locked: buy it first")
-		expect(SlimeMove.statusText("same", 1)).toBe("Pad 1: this slime's own pad")
-		expect(SlimeMove.statusText(nil, nil)).toBe("Point at one of your pads")
+		expect(SlimeMove.statusText("empty", 3)).toBe("Pad 3")
+		expect(SlimeMove.statusText("swap", 2, "Blorp")).toBe("Pad 2: swap with Blorp")
+		expect(SlimeMove.statusText("locked", 7)).toBe("Pad 7 is locked")
+		expect(SlimeMove.statusText("same", 1)).toBe("Pad 1: its own pad")
+		expect(SlimeMove.statusText(nil, nil)).toBe("Point at a pad")
 	end)
-	it("tells each input how to place and cancel", function()
-		expect(SlimeMove.hintText("keyboard")).toBe("Click a pad or the vat, or press E to place · Q to cancel")
-		expect(SlimeMove.hintText("touch")).toBe("Tap a pad or the vat to place it there")
-		expect(SlimeMove.hintText("gamepad")).toBe("X: place on the lit pad or vat · B: cancel")
+	it("names a slime by its species name, an egg by its egg name", function()
+		local function isEgg(s: any): boolean
+			return s.egg == true
+		end
+		local function eggName(_s: any): string
+			return "Golden Mystery Egg"
+		end
+		expect(SlimeMove.shortName({ name = "Froggo", tier = 2 }, isEgg, eggName)).toBe("Froggo")
+		expect(SlimeMove.shortName({ name = "Froggo", egg = true }, isEgg, eggName)).toBe("Golden Mystery Egg")
+		expect(SlimeMove.shortName(nil, isEgg, eggName)).toBe("slime")
 	end)
 end)
 
@@ -80,15 +86,13 @@ describe("SlimeMove into the merge vat", function()
 	it("an empty vat or one of the same rarity with room takes the slime", function()
 		expect(SlimeMove.vatClass({ ids = {} }, slime("a", 1))).toBe("vat")
 		expect(SlimeMove.vatClass({ ids = { "x" }, tier = 1 }, slime("a", 1))).toBe("vat")
-		expect(SlimeMove.vatStatus("vat", "Gummy", 1)).toBe("Merge vat: adds Gummy (2/3)")
+		expect(SlimeMove.vatStatus("vat", 1)).toBe("Merge vat (2/3)")
 	end)
 	it("a rarity the rank can't merge yet still goes in, lit yellow with when it opens", function()
 		local class, why = SlimeMove.vatClass({ ids = {} }, slime("a", 4), EPIC_AT - 1)
 		expect(class).toBe("vatGated")
 		expect(why).toBe(`Epic merges open at Rebirth {EPIC_AT}`)
-		expect(SlimeMove.vatStatus(class, "Blaze", 0, why)).toBe(
-			`Merge vat: adds Blaze (1/3). Epic merges open at Rebirth {EPIC_AT}.`
-		)
+		expect(SlimeMove.vatStatus(class, 0, why)).toBe(`Merge vat (1/3): Epic merges open at Rebirth {EPIC_AT}`)
 		expect(SlimeMove.vatClass({ ids = {} }, slime("a", 4), EPIC_AT)).toBe("vat")
 		expect(SlimeMove.vatClass({ ids = { "x", "y", "z" }, tier = 4 }, slime("a", 4), 1)).toBe("vatRefused")
 	end)

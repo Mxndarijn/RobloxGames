@@ -22,13 +22,13 @@
 	zone, or the slime leaving its pad (stolen, sold, merged). While moving, every ProximityPrompt is off for this
 	player and held tools are put away, so a click places instead of swinging the bat.
 
-	Pure helpers (classify, nearest, statusText, hintText) carry the rules and are tested under Lune
+	The bar shows two short lines: "Moving <name>" and what a place would do; keys stay E / Q / ButtonX / ButtonB.
+
+	Pure helpers (classify, nearest, statusText, shortName) carry the rules and are tested under Lune
 	(tests/ui/SlimeMove.spec.luau); `new` builds the bottom bar and runs the mode in the live game.
 ]]
 
 local UI = script.Parent
-local InputKind =
-	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("InputKind"))
 local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
@@ -57,12 +57,9 @@ SlimeMove.BAR = table.freeze({
 	pad = 12,
 	nameH = 22,
 	nameSize = 18,
-	statusY = 34,
+	lineGap = 4, -- between the name and the status line (the pair is centred in the bar)
 	statusH = 20,
 	statusSize = 15,
-	hintY = 56,
-	hintH = 18,
-	hintSize = 13,
 	buttonW = 80,
 	gap = 8,
 	textReserve = 186, -- room on the right for Place + Cancel
@@ -104,12 +101,23 @@ function SlimeMove.vatClass(vat: any, slime: any, rebirths: number?): (PadClass,
 	return "vat", nil
 end
 
--- The bar's status line for the vat as the target: what goes in and the load after it, or why it can't.
-function SlimeMove.vatStatus(class: PadClass, slimeName: string, count: number, reason: string?): string
+-- The bar's name for `slime`: its species name ("Lop"), an egg's egg name; `isEgg` / `eggName` from Genome.
+function SlimeMove.shortName(slime: any, isEgg: (any) -> boolean, eggName: (any) -> string): string
+	if type(slime) ~= "table" then
+		return "slime"
+	end
+	if isEgg(slime) then
+		return eggName(slime)
+	end
+	return if type(slime.name) == "string" then slime.name else "slime"
+end
+
+-- The bar's status line for the vat as the target: the load after it goes in, or why it can't.
+function SlimeMove.vatStatus(class: PadClass, count: number, reason: string?): string
 	if class == "vat" then
-		return `Merge vat: adds {slimeName} ({count + 1}/{VatState.SIZE})`
+		return `Merge vat ({count + 1}/{VatState.SIZE})`
 	elseif class == "vatGated" then
-		return `Merge vat: adds {slimeName} ({count + 1}/{VatState.SIZE}). {reason or ""}.`
+		return `Merge vat ({count + 1}/{VatState.SIZE}): {reason or ""}`
 	end
 	return reason or "The vat can't take this slime"
 end
@@ -131,25 +139,15 @@ end
 -- The bar's status line for a target pad (`otherName` = the slime a swap would trade with).
 function SlimeMove.statusText(class: PadClass?, pad: number?, otherName: string?): string
 	if class == nil or pad == nil then
-		return "Point at one of your pads"
+		return "Point at a pad"
 	elseif class == "same" then
-		return `Pad {pad}: this slime's own pad`
+		return `Pad {pad}: its own pad`
 	elseif class == "locked" then
-		return `Pad {pad} is locked: buy it first`
+		return `Pad {pad} is locked`
 	elseif class == "swap" then
-		return `Pad {pad}: swaps with {otherName or "that slime"}`
+		return `Pad {pad}: swap with {otherName or "that slime"}`
 	end
-	return `Pad {pad}: empty`
-end
-
--- The bar's controls line for the player's input.
-function SlimeMove.hintText(input: "keyboard" | "touch" | "gamepad"): string
-	if input == "touch" then
-		return "Tap a pad or the vat to place it there"
-	elseif input == "gamepad" then
-		return "X: place on the lit pad or vat · B: cancel"
-	end
-	return "Click a pad or the vat, or press E to place · Q to cancel"
+	return `Pad {pad}`
 end
 
 local function classColor(class: PadClass?): Color3
@@ -298,23 +296,15 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		Name = "SlimeName",
 		Font = Theme.Font,
 		TextSize = B.nameSize,
-		Position = UDim2.fromOffset(B.pad, 8),
+		Position = UDim2.new(0, B.pad, 0.5, -(B.nameH + B.lineGap + B.statusH) / 2),
 		Size = UDim2.new(1, -B.textReserve, 0, B.nameH),
 		Parent = frame,
 	})
 	local status = Widgets.label({
 		Name = "Status",
 		TextSize = B.statusSize,
-		Position = UDim2.fromOffset(B.pad, B.statusY),
+		Position = UDim2.new(0, B.pad, 0.5, (B.nameH + B.lineGap - B.statusH) / 2),
 		Size = UDim2.new(1, -B.textReserve, 0, B.statusH),
-		Parent = frame,
-	})
-	local hint = Widgets.label({
-		Name = "Hint",
-		TextSize = B.hintSize,
-		TextColor3 = Theme.Muted,
-		Position = UDim2.fromOffset(B.pad, B.hintY),
-		Size = UDim2.new(1, -B.textReserve, 0, B.hintH),
 		Parent = frame,
 	})
 
@@ -348,6 +338,10 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		end
 	)
 	cancelBtn.instance.Parent = frame
+
+	local function shortName(slime: any): string
+		return SlimeMove.shortName(slime, ctx.Genome.isEgg, ctx.Genome.displayName)
+	end
 
 	local state: any = nil -- the latest State
 	type Active = {
@@ -401,7 +395,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			local slime = view.slime
 			if type(slime) == "table" and type(slime.pad) == "number" then
 				occupied[slime.pad] = true
-				names[slime.pad] = ctx.Genome.displayName(slime)
+				names[slime.pad] = shortName(slime)
 				if slime.id == id then
 					fromPad = slime.pad
 				end
@@ -436,10 +430,6 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		local character = deps.player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		return if root and root:IsA("BasePart") then root else nil
-	end
-
-	local function inputKind(): InputKind.Kind
-		return InputKind.kind(deps.uis)
 	end
 
 	-- Ends move mode and puts everything back (`keepGhost` = the server is moving the slime: the ghost and the
@@ -536,11 +526,9 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			status.Text = "Moving..."
 			status.TextColor3 = Theme.Muted
 		elseif target == SlimeMove.VAT and class then
-			local slime = slimeOf(a.id)
 			local vat = vatOf()
 			local count = if type(vat) == "table" and type(vat.ids) == "table" then #vat.ids else 0
-			local slimeName = if slime then ctx.Genome.displayName(slime) else "this slime"
-			status.Text = SlimeMove.vatStatus(class, slimeName, count, vatReason)
+			status.Text = SlimeMove.vatStatus(class, count, vatReason)
 			status.TextColor3 = classColor(class)
 		else
 			status.Text = SlimeMove.statusText(class, target, if target then names[target] else nil)
@@ -791,18 +779,13 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			end)
 		)
 
-		local fromPad = layoutOf(id)
 		local view = nil
 		for _, v in (if type(state) == "table" and type(state.slimes) == "table" then state.slimes else {}) do
 			if v.slime and v.slime.id == id then
 				view = v
 			end
 		end
-		name.Text = if view then `Moving {ctx.Genome.displayName(view.slime)}` else "Moving slime"
-		if fromPad then
-			name.Text ..= ` (pad {fromPad})`
-		end
-		hint.Text = SlimeMove.hintText(inputKind())
+		name.Text = `Moving {shortName(view and view.slime)}`
 		frame.Visible = true
 		refresh()
 	end
