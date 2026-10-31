@@ -1,0 +1,76 @@
+{
+ "note": "Blender frame, studs: x right, y back (front faces -y), z up; origin = the shop mesh bbox bottom-centre. Roblox: X = x, Y = z, Z = -y.",
+ "ground_z": -0.0,
+ "glass_origin": [
+  0.0,
+  0.985,
+  4.7
+ ],
+ "glass_transparency": 0.88,
+ "displays": [
+  [
+   -3.4,
+   1.51,
+   6.05
+  ],
+  [
+   -0.3,
+   3.01,
+   6.05
+  ],
+  [
+   2.7,
+   2.41,
+   6.05
+  ]
+ ],
+ "arm_root": [
+  0.0,
+  1.41,
+  12.6
+ ],
+ "hand_idle_top": [
+  0.0,
+  1.41,
+  10.9
+ ],
+ "box_floor_z": 4.4,
+ "box_inner": {
+  "x": [
+   -5.3,
+   5.3
+  ],
+  "y": [
+   -2.5,
+   3.3000000000000003
+  ]
+ },
+ "funnel_top": [
+  4.1,
+  -0.69,
+  5.75
+ ],
+ "chute_mouth": [
+  3.9,
+  -4.59,
+  4.75
+ ],
+ "counter_top": [
+  0.0,
+  -4.29,
+  4.1
+ ],
+ "counter_size": [
+  10.4,
+  2.6
+ ],
+ "sign_face_centre": [
+  0.0,
+  -4.2,
+  13.5
+ ],
+ "sign_face_size": [
+  11.8,
+  1.4
+ ]
+}
