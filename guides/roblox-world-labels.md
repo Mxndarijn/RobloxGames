@@ -134,7 +134,7 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 | Next pad tag | `visuals/client/NextPadMarker` | px 176×42, fit | 40 | no |
 | Vat tag | `server/VatView` | px 220×104, fit | 60 / phone 40 | no |
 | Ritual orb label | `server/RitualView` | px 300×96, fit | 60 / phone 40 (RitualFx) | no |
-| Podium name board | `server/PodiumRigs` | px 120×61, fit | 50 | no |
+| Podium trophy plate and rank medallion (SurfaceGui on parts on each podium's front) | `server/PodiumRigs` | SG on the plate and medallion parts, 100 px/stud | 60 | no |
 | Tutorial NPC name | `visuals/shared/Props.tutorialNpc` | px 170×44, fit | 60 / phone 40 | no |
 | Professor Goo name | `visuals/shared/Props.professorGoo` | px 220×44, fit | 60 / phone 40 | no |
 | Slime emote bubble | `ui/SlimeEmotes` | px 34×34 (keeps size) | 60 / phone 40 | no |

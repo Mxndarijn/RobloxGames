@@ -39,6 +39,8 @@ return table.freeze({
 	Silver = rgb(206, 216, 232), -- second place on a leaderboard
 	Bronze = rgb(232, 150, 92), -- third place on a leaderboard
 	Wood = rgb(138, 90, 52), -- a plank under a goo band
+	PodiumRed = rgb(150, 38, 44), -- the trophy plate on a Top Earners podium (the podium's barn-red plaque)
+	Brass = rgb(226, 178, 82), -- the plate's rim and the rank medallion over it
 	White = rgb(255, 255, 255),
 	GLASS_TRANSPARENCY = 0.91,
 })

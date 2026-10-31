@@ -8,7 +8,7 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 -- A recording fake adapter; rigs are tables { id, desc, kind, text }.
-local function fake(opts: { failFetch: { [number]: number }?, failBuild: boolean? }?)
+local function fake(opts: { failFetch: { [number]: number }?, failBuild: boolean?, failPlaceholder: boolean? }?)
 	local o = opts or {}
 	local failFetch = o.failFetch or {}
 	local log = { fetches = {}, built = 0, destroyed = {}, mounted = {}, labels = {}, timers = {}, warns = 0 }
@@ -33,6 +33,9 @@ local function fake(opts: { failFetch: { [number]: number }?, failBuild: boolean
 			return rig(if desc then "avatar" else "default", desc)
 		end,
 		placeholder = function()
+			if o.failPlaceholder then
+				error("no placeholder")
+			end
 			return rig("placeholder")
 		end,
 		displayName = function(_, fallback)
@@ -42,9 +45,8 @@ local function fake(opts: { failFetch: { [number]: number }?, failBuild: boolean
 			r.text = text
 			log.mounted[rank] = r
 		end,
-		setLabel = function(r, text)
-			r.text = text
-			table.insert(log.labels, text)
+		setLabel = function(rank, text)
+			table.insert(log.labels, `{rank}:{text}`)
 		end,
 		destroy = function(r)
 			table.insert(log.destroyed, r.id)
@@ -123,6 +125,12 @@ describe("PodiumAvatars", function()
 		expect(log.mounted[1].kind).toBe("placeholder")
 		expect(log.mounted[1].text).toBe("N10\n$500")
 	end)
+	it("still writes the plate when no rig can be built at all", function()
+		local adapter, log = fake({ failBuild = true, failPlaceholder = true })
+		PodiumAvatars.new(adapter):apply(board({ 10, 500 }))
+		expect(log.mounted[1]).toBeNil()
+		expect(log.labels).toEqual({ "1:N10\n$500", "2:", "3:" })
+	end)
 	it("rebuilds only slots whose player changed, destroying the old rig", function()
 		local adapter, log = fake()
 		local podiums = PodiumAvatars.new(adapter)
@@ -142,7 +150,7 @@ describe("PodiumAvatars", function()
 		podiums:apply(board({ 10, 500 }))
 		podiums:apply(board({ 10, 2500 }))
 		expect(log.built).toBe(1)
-		expect(log.labels).toEqual({ "N10\n$2.5K" })
+		expect(log.labels).toEqual({ "1:N10\n$2.5K" })
 	end)
 	it("clears a slot to the placeholder when the board shrinks", function()
 		local adapter, log = fake()
@@ -213,5 +221,39 @@ describe("WorldLayout.podiumTopCentre", function()
 		local x, z = WorldLayout.podiumTopCentre(4, 6, 6)
 		expect(x).toBe(0)
 		expect(z).toBe(0)
+	end)
+end)
+
+describe("WorldLayout.podiumPlate", function()
+	-- the placed slots (Studio playtest) at the plaza's 0.7 scale, and the model's numbers (_phoenix_podium.py)
+	local slots = { { 6.246, 5.034, 6.006 }, { 5.797, 3.639, 5.594 }, { 5.535, 2.865, 5.31 } }
+	local SCALE = 0.7
+	local P, T = WorldLayout.PODIUM_PLATE, WorldLayout.PODIUM_TOPS
+	it("fits each plate between the corner posts, over the plinth and under the red band", function()
+		for rank, s in slots do
+			local plate = assert(WorldLayout.podiumPlate(rank, s[1], s[2], s[3])).plate
+			local w, top = T.column[rank] * SCALE, P.height[rank] * SCALE
+			expect(plate.w < w - 0.9 * SCALE).toBe(true) -- inside the posts' inner faces
+			expect(plate.y - plate.h / 2 + s[2] / 2 > 0.8 * SCALE).toBe(true) -- above the plinth and step
+			expect(plate.y + plate.h / 2 + s[2] / 2 < top - 1.25 * SCALE).toBe(true) -- under the band
+			expect(plate.h > 1).toBe(true) -- two lines of text fit even on podium 3
+		end
+	end)
+	it("mounts the plate over the modelled numeral and the medallion over the star", function()
+		for rank, s in slots do
+			local boxes = assert(WorldLayout.podiumPlate(rank, s[1], s[2], s[3]))
+			local _, cz = WorldLayout.podiumTopCentre(rank, s[1], s[3])
+			local half = T.column[rank] / 2 * SCALE
+			local plateFront = boxes.plate.z + boxes.plate.d / 2 - cz
+			local medalFront = boxes.medal.z + boxes.medal.d / 2 - cz
+			expect(plateFront > half + 0.53 * SCALE).toBe(true) -- in front of the numeral's face
+			expect(medalFront > half + 0.45 * SCALE).toBe(true) -- in front of the star
+			expect(medalFront > plateFront).toBe(true) -- the medallion overlaps the plate's top edge
+			expect(boxes.medal.y > boxes.plate.y + boxes.plate.h / 2 - boxes.medal.h / 2).toBe(true)
+			expect(math.abs(boxes.medal.w - boxes.medal.h) < 1e-6).toBe(true) -- a round disc
+		end
+	end)
+	it("has no plate for an unknown podium", function()
+		expect(WorldLayout.podiumPlate(4, 6, 6, 6)).toBeNil()
 	end)
 end)

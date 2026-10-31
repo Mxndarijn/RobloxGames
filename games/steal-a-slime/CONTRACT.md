@@ -51,7 +51,9 @@ src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts
   WalkSpeed, Speed Coil tool, kill-plane rescue), LockPadView (the lock pad ring's parts), WorldProps (ItemShopStand,
   UpgradeShopStand, the Hall of Fame boards, arch and ProfessorGoo, TutorialNpc, §5.3, §27), FallbackWorld (greybox §5.3 if
   WorldBuilder is missing), PodiumRigs (R15 avatar rigs on Podium_1..3 in
-  workspace.PodiumAvatars, BillboardGui NameLabel)
+  workspace.PodiumAvatars; name + stat on a trophy plate with a rank medallion
+  on each podium's front, workspace.PodiumPlates.PodiumPlate_<rank>, SurfaceGui
+  Face, placed by WorldLayout.podiumPlate)
 src/visuals/shared/ -> ReplicatedStorage.Visuals   (ModuleScripts)              Archer
   ModelFactory.luau  slimeData -> Model (§4)
   WorldBuilder.luau  WorldBuilder.build(parent) -> Map, Plots (§5.3); layout in WorldLayout

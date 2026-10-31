@@ -3,8 +3,12 @@
 	PodiumRigs: the Roblox adapter for PodiumAvatars. Builds R15 rigs from
 	HumanoidDescriptions and stands them on workspace Podium_<rank> parts
 	(the plaza mesh slots), root-anchored, non-colliding, facing the fountain like
-	the podium, with a Goo name board (name on a gold band, the stat under it).
-	Rigs live in workspace.PodiumAvatars.
+	the podium. Rigs live in workspace.PodiumAvatars.
+
+	The name and total earned sit on the podium itself: a barn-red trophy plate with a brass rim on the front
+	(name in butter, the stat in white under it) and a brass rank medallion over it, where the mesh has its star.
+	The plate covers the modelled rank numeral. Plates live in workspace.PodiumPlates; WorldLayout.podiumPlate
+	places them.
 ]]
 
 local Players = game:GetService("Players")
@@ -12,21 +16,21 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GooBoard = require(ReplicatedStorage.Shared.GooBoard)
 local GooPalette = require(ReplicatedStorage.Shared.GooPalette)
-local LabelFit = require(ReplicatedStorage.Lib.ui.LabelFit)
 local PodiumAvatars = require(script.Parent.PodiumAvatars)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
 local PodiumRigs = {}
 
 local FOLDER = "PodiumAvatars"
+local PLATES = "PodiumPlates"
 
-local function folder(): Folder
-	local existing = workspace:FindFirstChild(FOLDER)
+local function folder(name: string): Folder
+	local existing = workspace:FindFirstChild(name)
 	if existing and existing:IsA("Folder") then
 		return existing
 	end
 	local made = Instance.new("Folder")
-	made.Name = FOLDER
+	made.Name = name
 	made.Parent = workspace
 	return made
 end
@@ -36,65 +40,139 @@ local function podium(rank: number): BasePart?
 	return if part and part:IsA("BasePart") then part else nil
 end
 
--- The name board over a podium rig (canvas GooWorldSigns): glass with a gold band holding the name in Ink, the
--- total earned in outlined gold under it. Pixel-sized, so it is the same small size on screen however near or far
--- you stand, and hidden past `maxDistance`: it is only for players close to the podium.
-PodiumRigs.BOARD_PX = table.freeze({ w = 120, h = 61, lift = 2.2, maxDistance = 50 })
-PodiumRigs.BOARD = table.freeze({
-	band = 0.44,
-	radius = 0.22,
-	drips = table.freeze({
-		table.freeze({ x = 0.08, w = 0.05, len = 0.06 }),
-		table.freeze({ x = 0.9, w = 0.044, len = 0.03 }),
-	}),
-	stroke = 1.5,
-	glassTransparency = 0.06,
-} :: GooBoard.Spec)
+-- The plate's look. A SurfaceGui is studs-sized: its text shrinks with distance like the podium does (world-labels
+-- guide), so it hides past `maxDistance`, where the text is too small to read anyway. Text boxes are fractions of
+-- the plate; `rim` is the brass border in canvas pixels at `pixelsPerStud`.
+PodiumRigs.PLATE = table.freeze({
+	pixelsPerStud = 100,
+	maxDistance = 60,
+	lightInfluence = 0.4,
+	rim = 12,
+	name = table.freeze({ x = 0.06, y = 0.1, w = 0.88, h = 0.42, outline = 4 }),
+	value = table.freeze({ x = 0.15, y = 0.56, w = 0.7, h = 0.32, outline = 4 }),
+	rank = table.freeze({ x = 0.2, y = 0.15, w = 0.6, h = 0.7 }),
+	ring = 0.9, -- the Ink ring's size, a fraction of the medallion
+	rankStroke = 6,
+})
 
 local DEPS: GooBoard.Deps = { Instance = Instance, Enum = Enum, UDim = UDim, UDim2 = UDim2, Color3 = Color3 }
 
--- An empty text (empty podium) means no label at all: none is created, an existing one is removed.
-local function label(rig: Model, text: string)
-	local gui = rig:FindFirstChild("NameLabel") :: BillboardGui?
-	if text == "" then
-		if gui then
-			gui:Destroy()
-		end
+local function rgb(c: { number }): Color3
+	return Color3.fromRGB(c[1], c[2], c[3])
+end
+
+-- An anchored decor part on a podium: no collisions, queries or touches (the podium mesh already collides).
+local function decorPart(name: string, color: { number }, parent: Instance): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.Material = Enum.Material.SmoothPlastic
+	part.Color = rgb(color)
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Parent = parent
+	return part
+end
+
+local function surface(part: BasePart, face: Enum.NormalId): SurfaceGui
+	local look = PodiumRigs.PLATE
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Face"
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = look.pixelsPerStud
+	gui.MaxDistance = look.maxDistance
+	gui.LightInfluence = look.lightInfluence
+	gui.Parent = part
+	return gui
+end
+
+local function place(label: GuiObject, box: { x: number, y: number, w: number, h: number })
+	label.Position = UDim2.fromScale(box.x, box.y)
+	label.Size = UDim2.fromScale(box.w, box.h)
+end
+
+-- Builds podium `rank`'s plate and medallion once (returns the plate's text canvas), or nil without the podium.
+local function plate(rank: number): Instance?
+	local plates = folder(PLATES)
+	local model = plates:FindFirstChild(`PodiumPlate_{rank}`)
+	if model then
+		return model:FindFirstChild("Plate", true)
+	end
+	local base = podium(rank)
+	local boxes = base and WorldLayout.podiumPlate(rank, base.Size.X, base.Size.Y, base.Size.Z)
+	if not (base and boxes) then
+		return nil
+	end
+	local look = PodiumRigs.PLATE
+	local made = Instance.new("Model")
+	made.Name = `PodiumPlate_{rank}`
+
+	-- the plate: a red board whose front (its -Z face) is turned to the slot's +Z, the podium front
+	local p = boxes.plate
+	local board = decorPart("Plate", GooPalette.PodiumRed, made)
+	board.Size = Vector3.new(p.w, p.h, p.d)
+	board.CFrame = base.CFrame * CFrame.new(p.x, p.y, p.z) * CFrame.Angles(0, math.pi, 0)
+	local canvas = surface(board, Enum.NormalId.Front)
+	local rim = Instance.new("Frame")
+	rim.Name = "Rim"
+	rim.BackgroundTransparency = 1
+	rim.Size = UDim2.fromScale(1, 1)
+	rim.Parent = canvas
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = rgb(GooPalette.Brass)
+	stroke.Thickness = look.rim
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = rim
+	place(GooBoard.text(canvas, DEPS, "Name", GooPalette.Butter, look.name.outline), look.name)
+	place(GooBoard.text(canvas, DEPS, "Value", GooPalette.White, look.value.outline), look.value)
+
+	-- the medallion: a brass disc (a cylinder's axis is its X; a -90 degree turn points it out of the front), the rank on
+	-- its +X end in Ink
+	local m = boxes.medal
+	local medal = decorPart("Medal", GooPalette.Brass, made)
+	medal.Shape = Enum.PartType.Cylinder
+	medal.Size = Vector3.new(m.d, m.h, m.w)
+	medal.CFrame = base.CFrame * CFrame.new(m.x, m.y, m.z) * CFrame.Angles(0, -math.pi / 2, 0)
+	local face = surface(medal, Enum.NormalId.Right)
+	local ring = Instance.new("Frame") -- an Ink ring just inside the disc's edge
+	ring.Name = "Ring"
+	ring.BackgroundTransparency = 1
+	ring.AnchorPoint = Vector2.new(0.5, 0.5)
+	ring.Position = UDim2.fromScale(0.5, 0.5)
+	ring.Size = UDim2.fromScale(look.ring, look.ring)
+	ring.Parent = face
+	local round = Instance.new("UICorner")
+	round.CornerRadius = UDim.new(0.5, 0)
+	round.Parent = ring
+	local ringStroke = Instance.new("UIStroke")
+	ringStroke.Color = rgb(GooPalette.Ink)
+	ringStroke.Thickness = look.rankStroke
+	ringStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	ringStroke.Parent = ring
+	local number = GooBoard.text(face, DEPS, "Rank", GooPalette.Ink)
+	number.Text = tostring(rank)
+	place(number, look.rank)
+
+	made.Parent = plates
+	return board
+end
+
+-- Writes `text` ("name\nstat") on podium `rank`'s plate; an empty text (empty podium) leaves a blank plate.
+local function label(rank: number, text: string)
+	local board = plate(rank)
+	local canvas = board and board:FindFirstChild("Face")
+	if not canvas then
 		return
 	end
-	local px = PodiumRigs.BOARD_PX
-	if not gui then
-		local made = Instance.new("BillboardGui")
-		made.Name = "NameLabel"
-		made.Size = UDim2.fromOffset(px.w, px.h)
-		made.SizeOffset = Vector2.new(0, 0.5) -- the board's bottom edge sits over the head
-		made.StudsOffsetWorldSpace = Vector3.new(0, px.lift, 0)
-		made.MaxDistance = px.maxDistance
-		made.LightInfluence = 0
-		LabelFit.mark(made) -- each client shrinks it on a phone
-		local adornee = rig:FindFirstChild("Head") or rig.PrimaryPart
-		if adornee then
-			made.Adornee = adornee
-		end
-		local card = GooBoard.build(made, DEPS, PodiumRigs.BOARD, px.w / px.h)
-		GooBoard.paint(card, DEPS, GooPalette.Gold)
-		local name = GooBoard.text(card, DEPS, "Name", GooPalette.Ink)
-		name.Position = UDim2.fromScale(0.06, 0.07)
-		name.Size = UDim2.fromScale(0.88, 0.31)
-		local value = GooBoard.text(card, DEPS, "Value", GooPalette.Gold, 1.2)
-		value.Position = UDim2.fromScale(0.1, 0.57)
-		value.Size = UDim2.fromScale(0.8, 0.33)
-		made.Parent = rig
-		gui = made
-	end
-	local card = (gui :: BillboardGui):FindFirstChild(GooBoard.CARD)
-	if card then
-		local name, value = PodiumAvatars.splitLabel(text)
-		local nameLabel = card:FindFirstChild("Name") :: TextLabel
-		local valueLabel = card:FindFirstChild("Value") :: TextLabel
-		nameLabel.Text = name
-		valueLabel.Text = value
-	end
+	local name, value = PodiumAvatars.splitLabel(text)
+	local nameLabel = canvas:FindFirstChild("Name") :: TextLabel
+	local valueLabel = canvas:FindFirstChild("Value") :: TextLabel
+	nameLabel.Text = name
+	valueLabel.Text = value
 end
 
 -- Statue: only the root is anchored, so the Humanoid still builds the scaled R15 joints and layered clothing; no
@@ -164,9 +242,10 @@ function PodiumRigs.adapter(): PodiumAvatars.Adapter
 				model:Destroy()
 				return
 			end
+			label(rank, text) -- the plate first: it shows even when placing the rig fails
 			model.Name = `PodiumRig_{rank}`
 			-- In the workspace before anchoring/placing, so the rig is scaled and its clothing wrapped first.
-			model.Parent = folder()
+			model.Parent = folder(FOLDER)
 			freeze(model)
 			-- Stand on the middle of the podium's flat top (off the slot's centre: WorldLayout.podiumTopCentre), turned
 			-- like its front. The kit front is the slot's +Z (MeshAssets, kit fronts face +Z) and a character looks
@@ -177,10 +256,9 @@ function PodiumRigs.adapter(): PodiumAvatars.Adapter
 			local box, size = model:GetBoundingBox()
 			local lift = PodiumAvatars.standLift(top.Position.Y, feetBottom(model), box.Position.Y - size.Y / 2)
 			model:PivotTo(top + Vector3.new(0, lift, 0))
-			label(model, text)
 		end,
-		setLabel = function(rig: any, text: string)
-			label(rig :: Model, text)
+		setLabel = function(rank: number, text: string)
+			label(rank, text)
 		end,
 		destroy = function(rig: any)
 			(rig :: Instance):Destroy()

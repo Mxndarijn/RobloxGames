@@ -8,7 +8,8 @@
 
 	* `request(board)` debounces: the latest board wins, applied after DEBOUNCE.
 	* A slot rebuilds only when its userId changes, or to retry a fallback rig;
-	  a new stat value only rewrites the label.
+	  a new stat value only rewrites the label (the podium's trophy plate, by rank).
+	* The label is written even when no rig could be built or mounted.
 	* Descriptions are cached per userId; a failed fetch is not cached (the
 	  next refresh retries it). Fetch failure -> default rig; rig failure or
 	  empty slot -> placeholder.
@@ -33,8 +34,8 @@ export type Adapter = {
 	buildRig: (description: any?) -> any, -- nil = default avatar; may error
 	placeholder: () -> any,
 	displayName: (userId: number, fallback: string) -> string,
-	mount: (rank: number, rig: any, text: string) -> (),
-	setLabel: (rig: any, text: string) -> (),
+	mount: (rank: number, rig: any, text: string) -> (), -- places the rig and writes the label
+	setLabel: (rank: number, text: string) -> (), -- writes podium `rank`'s label only
 	destroy: (rig: any) -> (),
 	delay: (seconds: number, fn: () -> ()) -> (),
 	warn: (message: string) -> (),
@@ -53,7 +54,7 @@ export type Podiums = {
 	apply: (self: Podiums, board: Types.Leaderboard?) -> (),
 }
 
--- Billboard text: "<display name>\n$<total earned>", or "" for an empty slot (the adapter shows no label).
+-- Label text: "<display name>\n$<total earned>", or "" for an empty slot (the adapter leaves the plate blank).
 function PodiumAvatars.labelText(displayName: string?, value: number?): string
 	if not displayName then
 		return ""
@@ -61,7 +62,7 @@ function PodiumAvatars.labelText(displayName: string?, value: number?): string
 	return `{displayName}\n${Economy.formatNumber(value or 0)}`
 end
 
--- A label's two lines, the name and the stat (the name board puts them on the band and under it).
+-- A label's two lines, the name and the stat (the trophy plate puts the stat under the name).
 function PodiumAvatars.splitLabel(text: string): (string, string)
 	local name, stat = string.match(text, "^(.-)\n(.*)$")
 	return name or text, stat or ""
@@ -158,21 +159,24 @@ function Podiums.apply(self: Podiums, board: Types.Leaderboard?)
 		if fresh then
 			release(self, slot)
 			local rig, fallback = build(self, userId, hidden)
+			local mounted = false
 			if rig ~= nil then
 				local ok, err = pcall(function()
 					self.adapter.mount(rank, rig, text)
 					return nil
 				end)
+				mounted = ok
 				if not ok then
 					self.adapter.warn(`[PodiumAvatars] mount {rank} failed: {err}`)
 				end
 			end
+			if not mounted then
+				pcall(self.adapter.setLabel, rank, text)
+			end
 			self.slots[rank] = { userId = userId, rig = rig, fallback = fallback, text = text }
 		elseif slot and slot.text ~= text then
 			slot.text = text
-			if slot.rig ~= nil then
-				pcall(self.adapter.setLabel, slot.rig, text)
-			end
+			pcall(self.adapter.setLabel, rank, text)
 		end
 	end
 end
