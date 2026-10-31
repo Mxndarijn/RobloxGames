@@ -1,0 +1,1223 @@
+{
+ "ideas": [
+  {
+   "id": 5,
+   "name": "Updraft",
+   "approach": "handmade",
+   "approachWhy": "Each variant is a small set of columns, ledges and goo shelves; the fun is in hand-placed heights and timings, and there are too few pieces for a generator to add much.",
+   "engine": {
+    "have": [
+     "lift motion: see-through wind column that raises the local player at FAN_LIFT = 30 studs/s (FanShaft)",
+     "gust motion with axis, power and on/off duty (GustyBridge); with axis x it is a forward-carrying wind tunnel",
+     "fan disc and wind looks",
+     "slide motion (for a fan on a rail or a sliding exit ledge) and spin motion (spinning goo bar)",
+     "tests already treat a lift as a valid way to reach a step"
+    ],
+    "new": [
+     {
+      "what": "on/off timer for lift and gust columns: reuse the shared flip clock (period, duty, phase) that Moon Pulse (idea 28) and the erupt beat (idea 21) also use, plus a fade warning on the swirl and the fan hum",
+      "size": "S"
+     },
+     {
+      "what": "lift power per column (slow column) and a hover cap that holds you at the top instead of throwing you",
+      "size": "S"
+     },
+     {
+      "what": "lift catches a falling player: on entry the client sets the upward speed instead of adding to the fall (check in Studio)",
+      "size": "S"
+     },
+     {
+      "what": "lift region follows a moving fan: put the column on idea 3's 'ride' motion (stops with hold time) and its rail line look, and check the client uses the part's live position",
+      "size": "S"
+     },
+     {
+      "what": "hazard touch = back to the start pad for goo shelves and bars (shared with every hazard idea, see idea 1)",
+      "size": "S"
+     },
+     {
+      "what": "one client zone check for lift, gust and the moon zone (idea 28), so the three wind/gravity zones don't fight over the character",
+      "size": "S"
+     },
+     {
+      "what": "streamers and leaves that rise with the wind, plus a fan hum that drops in pitch before a column switches off",
+      "size": "M"
+     },
+     {
+      "what": "test rules for lift reach: rise and exit distance per column, drop-in catch height, column-to-column hand-offs, and for timed columns the time to rise vs the on-time",
+      "size": "S"
+     }
+    ]
+   },
+   "readability": "A dark fan on the floor blows a see-through column with white swirls, rising leaves and a ring at the top, with a steady fan hum. A column about to switch off fades its swirl and the hum drops; a hover cap shows as a bright ring where you stop; a moving fan sits on a visible rail.",
+   "generator": null,
+   "variants": [
+    {
+     "name": "First Breeze",
+     "tier": "easy",
+     "does": "One tall wind column: step in, float straight up, walk off onto the high ledge.",
+     "numbers": "1 column 8x8, rise 12, wind tops out 4 over the ledge",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       78,
+       50,
+       8,
+       "pl"
+      ],
+      [
+       "e",
+       73.0,
+       86,
+       15.0,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       58,
+       10,
+       30,
+       74,
+       "wind"
+      ],
+      [
+       "a",
+       "M73 70 V22"
+      ],
+      [
+       "r",
+       96,
+       30,
+       70,
+       8,
+       "pl"
+      ],
+      [
+       "a",
+       "M80 16 H104"
+      ],
+      [
+       "you",
+       30,
+       78
+      ]
+     ]
+    },
+    {
+     "name": "Lazy Lift",
+     "tier": "easy",
+     "does": "A slow, wide column: you rise gently and have lots of time to steer to the ledge.",
+     "numbers": "1 column 12x12, lift 14 studs/s (normal 30), rise 14",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       78,
+       44,
+       8,
+       "pl"
+      ],
+      [
+       "e",
+       74.0,
+       86,
+       24.0,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       50,
+       12,
+       48,
+       72,
+       "wind"
+      ],
+      [
+       "a",
+       "M74 72 V24"
+      ],
+      [
+       "t",
+       56,
+       52,
+       "slow"
+      ],
+      [
+       "r",
+       104,
+       26,
+       70,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       24,
+       78
+      ]
+     ]
+    },
+    {
+     "name": "Hover Shelf",
+     "tier": "easy",
+     "does": "The column holds you floating at the top instead of throwing you, so you can line up and walk off.",
+     "numbers": "1 column 8x8, rise 10, hovers 2 over the ledge, ledge 5 away",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       78,
+       50,
+       8,
+       "pl"
+      ],
+      [
+       "e",
+       73.0,
+       86,
+       15.0,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       58,
+       22,
+       30,
+       62,
+       "wind"
+      ],
+      [
+       "l",
+       56,
+       22,
+       90,
+       22
+      ],
+      [
+       "a",
+       "M73 70 V30"
+      ],
+      [
+       "a",
+       "M92 28 H120"
+      ],
+      [
+       "r",
+       122,
+       34,
+       70,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       30,
+       78
+      ]
+     ]
+    },
+    {
+     "name": "Catch the Fall",
+     "tier": "easy",
+     "does": "Walk off a high ledge and drop into a column below: the wind brakes your fall and carries you up to the far ledge.",
+     "numbers": "drop 12 into a 10x10 column, rise 14, exit ledge 2 below the start",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       20,
+       46,
+       8,
+       "pl"
+      ],
+      [
+       "e",
+       80,
+       86,
+       18,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       60,
+       14,
+       40,
+       70,
+       "wind"
+      ],
+      [
+       "a",
+       "M40 16 Q66 14 72 60"
+      ],
+      [
+       "a",
+       "M88 64 V24"
+      ],
+      [
+       "r",
+       108,
+       26,
+       80,
+       8,
+       "pl"
+      ],
+      [
+       "a",
+       "M94 20 H114"
+      ],
+      [
+       "you",
+       24,
+       20
+      ]
+     ]
+    },
+    {
+     "name": "Hand-Off",
+     "tier": "easy",
+     "does": "Two columns overlap in the air, the second one higher: step sideways out of the first one's hover into the second, over a safe floor.",
+     "numbers": "column A rise 10 with hover cap, column B 6 to the side rising 12 more, solid floor under both",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       84,
+       220,
+       6,
+       "pl"
+      ],
+      [
+       "e",
+       45,
+       84,
+       14,
+       3,
+       "dk"
+      ],
+      [
+       "r",
+       30,
+       40,
+       30,
+       44,
+       "wind"
+      ],
+      [
+       "l",
+       28,
+       40,
+       62,
+       40
+      ],
+      [
+       "r",
+       68,
+       8,
+       30,
+       52,
+       "wind"
+      ],
+      [
+       "e",
+       83,
+       62,
+       14,
+       3,
+       "dk"
+      ],
+      [
+       "l",
+       83,
+       62,
+       83,
+       84
+      ],
+      [
+       "a",
+       "M45 76 V44 Q56 34 80 48 V14"
+      ],
+      [
+       "r",
+       108,
+       14,
+       80,
+       6,
+       "pl"
+      ],
+      [
+       "you",
+       14,
+       84
+      ]
+     ]
+    },
+    {
+     "name": "First Crosswind",
+     "tier": "easy",
+     "does": "A gentle wind tunnel along the course carries you over a gap you could not jump: walk in and hold forward.",
+     "numbers": "tunnel 14 long, pushes forward 14 studs/s, gap 12, always on",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       60,
+       50,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       50,
+       30,
+       110,
+       30,
+       "wind"
+      ],
+      [
+       "a",
+       "M56 46 H156"
+      ],
+      [
+       "t",
+       90,
+       26,
+       "push"
+      ],
+      [
+       "r",
+       160,
+       60,
+       60,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       30,
+       60
+      ]
+     ]
+    },
+    {
+     "name": "Blink Column",
+     "tier": "medium",
+     "does": "The column switches off for a moment on a timer; the swirl fades first, so start your ride when it just came on.",
+     "numbers": "1 column, rise 14, 4 s on, 1.5 s off, 0.8 s fade warning",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       78,
+       46,
+       8,
+       "pl"
+      ],
+      [
+       "e",
+       71.0,
+       86,
+       15.0,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       56,
+       10,
+       30,
+       74,
+       "gh"
+      ],
+      [
+       "p",
+       "M58 84 H86 V50 H58Z",
+       "wind"
+      ],
+      [
+       "t",
+       56,
+       6,
+       "off soon"
+      ],
+      [
+       "r",
+       96,
+       30,
+       70,
+       8,
+       "pl"
+      ],
+      [
+       "a",
+       "M71 78 V54"
+      ],
+      [
+       "you",
+       28,
+       78
+      ]
+     ]
+    },
+    {
+     "name": "Relay Fans",
+     "tier": "medium",
+     "does": "Two columns side by side take turns: halfway up the first one fades, so step sideways into the second as it comes on, with no ledge in between.",
+     "numbers": "2 columns 8x8 touching, 4 s cycle each, half a cycle apart, 0.8 s overlap, rise 8 + 10",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       80,
+       40,
+       6,
+       "pl"
+      ],
+      [
+       "e",
+       57,
+       86,
+       13,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       44,
+       10,
+       26,
+       74,
+       "gh"
+      ],
+      [
+       "p",
+       "M44 84 H70 V44 H44Z",
+       "wind"
+      ],
+      [
+       "e",
+       85,
+       86,
+       13,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       72,
+       10,
+       26,
+       74,
+       "wind"
+      ],
+      [
+       "a",
+       "M57 76 V48 Q66 40 84 42 V16"
+      ],
+      [
+       "r",
+       104,
+       16,
+       80,
+       6,
+       "pl"
+      ],
+      [
+       "t",
+       40,
+       6,
+       "A fades, B on"
+      ],
+      [
+       "you",
+       14,
+       80
+      ]
+     ]
+    },
+    {
+     "name": "Drifting Column",
+     "tier": "medium",
+     "does": "The fan rides on a rail and the column glides back and forth, pausing at each end: step in as it passes, step off when it lines up with the ledge.",
+     "numbers": "1 column 8x8 sliding 10 studs, 5 s round trip, 1 s pause at each end, rise 12",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       78,
+       40,
+       8,
+       "pl"
+      ],
+      [
+       "l",
+       50,
+       90,
+       150,
+       90
+      ],
+      [
+       "e",
+       97.0,
+       86,
+       15.0,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       82,
+       14,
+       30,
+       70,
+       "wind"
+      ],
+      [
+       "a",
+       "M120 50 H150"
+      ],
+      [
+       "a",
+       "M80 50 H52"
+      ],
+      [
+       "r",
+       160,
+       26,
+       60,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       22,
+       78
+      ]
+     ]
+    },
+    {
+     "name": "Moving Exit",
+     "tier": "medium",
+     "does": "The column holds you at the top while the exit ledge slides up and down beside you: wait in the hover and step off when it arrives.",
+     "numbers": "1 column 8x8, rise 12, hover cap, exit ledge slides 8 up and down, 4 s round trip",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       80,
+       40,
+       6,
+       "pl"
+      ],
+      [
+       "e",
+       70,
+       86,
+       14,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       56,
+       22,
+       28,
+       62,
+       "wind"
+      ],
+      [
+       "l",
+       54,
+       22,
+       86,
+       22
+      ],
+      [
+       "r",
+       92,
+       50,
+       50,
+       6,
+       "gh"
+      ],
+      [
+       "r",
+       92,
+       30,
+       50,
+       6,
+       "pl"
+      ],
+      [
+       "a",
+       "M150 52 V30"
+      ],
+      [
+       "r",
+       160,
+       30,
+       60,
+       6,
+       "pl"
+      ],
+      [
+       "you",
+       20,
+       80
+      ]
+     ]
+    },
+    {
+     "name": "Goo Ring Climb",
+     "tier": "medium",
+     "does": "A wide column with red goo shelves sticking in from the sides at different heights: steer round them as you rise.",
+     "numbers": "1 column 12x12, rise 18, 3 goo shelves 5 deep",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       80,
+       36,
+       6,
+       "pl"
+      ],
+      [
+       "e",
+       74.0,
+       86,
+       30.0,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       44,
+       6,
+       60,
+       78,
+       "wind"
+      ],
+      [
+       "r",
+       44,
+       62,
+       26,
+       5,
+       "hz"
+      ],
+      [
+       "r",
+       78,
+       42,
+       26,
+       5,
+       "hz"
+      ],
+      [
+       "r",
+       44,
+       22,
+       26,
+       5,
+       "hz"
+      ],
+      [
+       "a",
+       "M90 76 Q92 64 84 54 Q60 40 70 30 Q84 18 74 10"
+      ],
+      [
+       "r",
+       112,
+       16,
+       80,
+       6,
+       "pl"
+      ],
+      [
+       "you",
+       18,
+       80
+      ]
+     ]
+    },
+    {
+     "name": "Crosswind Shelf",
+     "tier": "medium",
+     "does": "Ride up, then a sideways wind tunnel along the course carries you over a wide gap to the far ledge; just hold forward.",
+     "numbers": "column rise 10, then a 16-stud wind tunnel pushing forward at 14 studs/s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       80,
+       40,
+       6,
+       "pl"
+      ],
+      [
+       "e",
+       56.0,
+       86,
+       12.0,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       44,
+       26,
+       24,
+       58,
+       "wind"
+      ],
+      [
+       "r",
+       68,
+       14,
+       104,
+       22,
+       "wind"
+      ],
+      [
+       "l",
+       80,
+       36,
+       80,
+       48
+      ],
+      [
+       "l",
+       120,
+       36,
+       120,
+       48
+      ],
+      [
+       "a",
+       "M74 24 H170"
+      ],
+      [
+       "r",
+       176,
+       30,
+       44,
+       6,
+       "pl"
+      ],
+      [
+       "you",
+       20,
+       80
+      ]
+     ]
+    },
+    {
+     "name": "Zigzag Tower",
+     "tier": "medium",
+     "does": "Three columns climb a tower, each ledge on the other side from the last: you turn round in the air every ride.",
+     "numbers": "3 columns, rise 10 each (30 total), ledges swap left and right",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       20,
+       82,
+       40,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       64,
+       58,
+       22,
+       28,
+       "wind"
+      ],
+      [
+       "r",
+       90,
+       60,
+       40,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       60,
+       34,
+       22,
+       26,
+       "wind"
+      ],
+      [
+       "r",
+       20,
+       38,
+       40,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       64,
+       10,
+       22,
+       28,
+       "wind"
+      ],
+      [
+       "r",
+       90,
+       14,
+       40,
+       6,
+       "pl"
+      ],
+      [
+       "a",
+       "M76 82 V62 Q80 56 96 58"
+      ],
+      [
+       "you",
+       34,
+       82
+      ]
+     ]
+    },
+    {
+     "name": "Spinner Shaft",
+     "tier": "hard",
+     "does": "A red goo bar spins through the middle of the column: step in so you pass its height while it is on the far side.",
+     "numbers": "1 column 12x12, rise 16, goo bar 10 long spinning every 3 s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       80,
+       36,
+       6,
+       "pl"
+      ],
+      [
+       "e",
+       72.0,
+       86,
+       28.0,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       44,
+       8,
+       56,
+       76,
+       "wind"
+      ],
+      [
+       "r",
+       44,
+       44,
+       56,
+       5,
+       "hz"
+      ],
+      [
+       "c",
+       72,
+       46,
+       3,
+       "dk"
+      ],
+      [
+       "a",
+       "M60 70 Q72 60 60 52"
+      ],
+      [
+       "r",
+       108,
+       20,
+       80,
+       6,
+       "pl"
+      ],
+      [
+       "you",
+       18,
+       80
+      ]
+     ]
+    },
+    {
+     "name": "Storm Shaft",
+     "tier": "hard",
+     "does": "A blinking column with goo shelves inside: steer round the shelves and reach the top before the wind cuts out.",
+     "numbers": "1 column 12x12, rise 20, 5 s on, 1.5 s off, 3 goo shelves",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       80,
+       36,
+       6,
+       "pl"
+      ],
+      [
+       "e",
+       74.0,
+       86,
+       30.0,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       44,
+       6,
+       60,
+       78,
+       "gh"
+      ],
+      [
+       "p",
+       "M44 84 H104 V40 H44Z",
+       "wind"
+      ],
+      [
+       "r",
+       78,
+       58,
+       26,
+       5,
+       "hz"
+      ],
+      [
+       "r",
+       44,
+       34,
+       26,
+       5,
+       "hz"
+      ],
+      [
+       "r",
+       78,
+       14,
+       26,
+       5,
+       "hz"
+      ],
+      [
+       "t",
+       50,
+       4,
+       "5 s"
+      ],
+      [
+       "r",
+       112,
+       8,
+       90,
+       6,
+       "pl"
+      ],
+      [
+       "you",
+       18,
+       80
+      ]
+     ]
+    },
+    {
+     "name": "Sky Hop",
+     "tier": "hard",
+     "does": "No ledges between the columns: walk out of each column's hover and drop across into the next one, higher each time.",
+     "numbers": "4 columns 8x8, hover caps, 4-stud air gaps, each top 8 higher, fans on thin posts",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       80,
+       28,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       34,
+       50,
+       20,
+       34,
+       "wind"
+      ],
+      [
+       "e",
+       44,
+       86,
+       10,
+       3,
+       "dk"
+      ],
+      [
+       "r",
+       62,
+       34,
+       20,
+       34,
+       "wind"
+      ],
+      [
+       "e",
+       72,
+       70,
+       10,
+       3,
+       "dk"
+      ],
+      [
+       "r",
+       90,
+       18,
+       20,
+       34,
+       "wind"
+      ],
+      [
+       "e",
+       100,
+       54,
+       10,
+       3,
+       "dk"
+      ],
+      [
+       "r",
+       118,
+       4,
+       20,
+       32,
+       "wind"
+      ],
+      [
+       "e",
+       128,
+       38,
+       10,
+       3,
+       "dk"
+      ],
+      [
+       "a",
+       "M44 80 V52 Q56 44 70 58 V36 Q84 28 98 42 V20 Q112 12 126 26 V8 H150"
+      ],
+      [
+       "r",
+       146,
+       8,
+       74,
+       6,
+       "pl"
+      ],
+      [
+       "you",
+       12,
+       80
+      ]
+     ]
+    },
+    {
+     "name": "Gust Gap",
+     "tier": "hard",
+     "does": "Ride up into a forward wind tunnel that blinks on and off over a long gap: enter just as it comes on, or it cuts out mid-gap and you drop.",
+     "numbers": "column rise 12, tunnel 24 long, 14 studs/s forward, 2.4 s on, 1.6 s off, 0.6 s fade warning",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       80,
+       30,
+       6,
+       "pl"
+      ],
+      [
+       "e",
+       45,
+       86,
+       11,
+       4,
+       "dk"
+      ],
+      [
+       "r",
+       34,
+       24,
+       22,
+       60,
+       "wind"
+      ],
+      [
+       "r",
+       56,
+       16,
+       120,
+       26,
+       "gh"
+      ],
+      [
+       "p",
+       "M56 16 H120 V42 H56Z",
+       "wind"
+      ],
+      [
+       "a",
+       "M60 28 H172"
+      ],
+      [
+       "a",
+       "M128 34 Q138 56 140 78"
+      ],
+      [
+       "t",
+       90,
+       10,
+       "2.4 s on"
+      ],
+      [
+       "r",
+       176,
+       30,
+       44,
+       6,
+       "pl"
+      ],
+      [
+       "you",
+       14,
+       80
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,859 @@
+{
+  "ideas": [
+    {
+      "id": 6,
+      "name": "Ice Slide",
+      "approach": "handmade",
+      "approachWhy": "A slide is a shaped track (slope, turns, lip), and its feel depends on hand-tuned angles and speeds. A random track could easily make a turn you can't steer through, so each variant is built and tested by hand.",
+      "engine": {
+        "have": [
+          "\"ice\" look and the ice = true flag (no friction) from Ice Gauntlet",
+          "spinning bar on a post (spin motion) for sweepers",
+          "flat slabs, so holes are just gaps between ice slabs",
+          "red see-through hazard look and the fall-back-to-start rule",
+          "step and gap tests (GAP_MAX 6, RISE_MAX 3.5 at walking speed)",
+          "Ice Gauntlet section today: flat ice slab with spinning sweeper bars (BUILD.IceGauntlet)"
+        ],
+        "new": [
+          {
+            "what": "Ramps: a tilted slab (a pitch angle on a part), the same piece Rolling Blobs (14) plans; fall height measured from the bottom of the slope",
+            "size": "S"
+          },
+          {
+            "what": "Slide controller on the client: on ice you keep your speed, the slope pulls you downhill, and walking only steers (you can't stop). A speed cap keeps it fair. Friction 0 alone does not make a default character slide much. Must not fight Speed Strip's (16) boost controller if both sit in one course",
+            "size": "M"
+          },
+          {
+            "what": "Turned parts (a yaw field), the same one Speed Strip (16) plans, plus a bank (roll) angle, so curves and hairpins are short turned and tilted wedge segments",
+            "size": "M"
+          },
+          {
+            "what": "Soft side rails (low padded walls) that stop you sliding off; they do not push",
+            "size": "S"
+          },
+          {
+            "what": "Brake goo: a dripping green sticky patch on the ice that brings the slide to a stop (the only place you can stand still); same green goo look as Sticky Walls (22)",
+            "size": "S"
+          },
+          {
+            "what": "Hazard touch = back to the start pad, shared with Crusher Alley (1) and every hazard idea",
+            "size": "S"
+          },
+          {
+            "what": "Test that a slide-jump clears its gap at the capped slide speed (the walking GAP_MAX does not apply to the end jump)",
+            "size": "S"
+          },
+          {
+            "what": "Frost sparkles on the ice and a skid sound while you slide",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "Glossy pale-blue ice with frost sparkles and a skid sound the moment you step on it; the track always tilts down, so you know you will keep moving. Red see-through goo patches and dark holes in the ice show where not to steer. Dripping green goo on the ice is the one place you can stop.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "First Slide",
+          "tier": "easy",
+          "does": "A plain gentle slope with rails on both sides that lands on a flat pad: just learn how ice feels.",
+          "numbers": "50 studs long, 8° slope, 16 wide, rails both sides, no gap at the end",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              22,
+              18,
+              8,
+              "pl"
+            ],
+            [
+              "p",
+              "M18 22 L168 62 L168 70 L18 30Z",
+              "ice"
+            ],
+            [
+              "l",
+              18,
+              16,
+              168,
+              56
+            ],
+            [
+              "r",
+              168,
+              62,
+              52,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M40 22 L150 52"
+            ],
+            [
+              "you",
+              30,
+              25
+            ]
+          ]
+        },
+        {
+          "name": "Dodge Left, Dodge Right",
+          "tier": "easy",
+          "does": "Two big red goo patches sit on the slope, one on each side, so you steer once left and once right.",
+          "numbers": "55 studs, 8° slope, 18 wide, 2 goo patches 8 x 6, no rails",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              30,
+              200,
+              36,
+              "ice"
+            ],
+            [
+              "r",
+              60,
+              30,
+              40,
+              18,
+              "hz"
+            ],
+            [
+              "r",
+              130,
+              48,
+              40,
+              18,
+              "hz"
+            ],
+            [
+              "a",
+              "M20 48 Q60 66 100 58 Q130 34 200 44"
+            ],
+            [
+              "you",
+              20,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Bumper Bend",
+          "tier": "easy",
+          "does": "One wide S-turn with soft rails on the outside of each bend, so a bad steer bumps the rail instead of dropping you.",
+          "numbers": "60 studs, 7° slope, 16 wide, 2 bends of 45°, rails on the outside edges",
+          "view": "top",
+          "sketch": [
+            [
+              "p",
+              "M0 20 L70 20 Q110 20 120 50 Q130 76 170 76 L220 76 L220 92 L170 92 Q118 92 104 56 Q96 36 70 36 L0 36Z",
+              "ice"
+            ],
+            [
+              "l",
+              70,
+              18,
+              110,
+              22
+            ],
+            [
+              "l",
+              104,
+              60,
+              170,
+              94
+            ],
+            [
+              "a",
+              "M10 28 L70 28 Q105 30 112 54 Q122 84 210 84"
+            ],
+            [
+              "you",
+              10,
+              28
+            ]
+          ]
+        },
+        {
+          "name": "Steer to the Green",
+          "tier": "easy",
+          "does": "The slope runs out onto flat ice that ends at a drop; only the left half has a green goo brake strip, so you steer onto it to stop before the edge.",
+          "numbers": "45 studs, 9° slope, 16 wide, green brake strip 8 wide x 10 long on the left, hole on the right",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              20,
+              150,
+              56,
+              "ice"
+            ],
+            [
+              "r",
+              150,
+              20,
+              40,
+              28,
+              "gl"
+            ],
+            [
+              "r",
+              150,
+              48,
+              40,
+              28,
+              "dk"
+            ],
+            [
+              "r",
+              190,
+              20,
+              30,
+              28,
+              "pl"
+            ],
+            [
+              "a",
+              "M10 56 Q90 60 130 40 L176 34"
+            ],
+            [
+              "t",
+              152,
+              86,
+              "hole"
+            ],
+            [
+              "you",
+              10,
+              56
+            ]
+          ]
+        },
+        {
+          "name": "Ice Stairs",
+          "tier": "easy",
+          "does": "Three short slopes, each ending in a small drop, so you slide, drop and slide again.",
+          "numbers": "60 studs, 3 slopes of 10°, drops of 2.5 studs, 16 wide",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M0 14 L55 26 L55 32 L0 20Z",
+              "ice"
+            ],
+            [
+              "p",
+              "M60 34 L120 48 L120 54 L60 40Z",
+              "ice"
+            ],
+            [
+              "p",
+              "M125 56 L185 70 L185 76 L125 62Z",
+              "ice"
+            ],
+            [
+              "r",
+              190,
+              78,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M50 22 Q58 24 62 32"
+            ],
+            [
+              "a",
+              "M115 44 Q122 46 127 54"
+            ],
+            [
+              "you",
+              14,
+              17
+            ]
+          ]
+        },
+        {
+          "name": "Wide Sweep",
+          "tier": "easy",
+          "does": "One long 90° turn that tilts inward, so if you hold the turn you stay on; no rails.",
+          "numbers": "55 studs, 7° slope, 18 wide, one 90° banked turn",
+          "view": "top",
+          "sketch": [
+            [
+              "p",
+              "M0 10 L100 10 Q190 10 190 96 L160 96 Q160 34 100 34 L0 34Z",
+              "ice"
+            ],
+            [
+              "a",
+              "M10 22 L100 22 Q176 22 176 90"
+            ],
+            [
+              "t",
+              112,
+              60,
+              "banked"
+            ],
+            [
+              "you",
+              10,
+              22
+            ]
+          ]
+        },
+        {
+          "name": "Hairpins",
+          "tier": "medium",
+          "does": "Two banked hairpin turns zigzag you down the hill; the outer edge has no rail, so you start each turn early.",
+          "numbers": "70 studs of track, 10° slope, 12 wide, 2 hairpins of 180°",
+          "view": "top",
+          "sketch": [
+            [
+              "p",
+              "M0 6 L180 6 Q206 6 206 26 Q206 42 180 42 L40 42 Q20 42 20 60 Q20 76 40 76 L220 76 L220 90 L40 90 Q6 90 6 60 Q6 30 40 30 L180 30 Q192 30 192 24 Q192 18 180 18 L0 18Z",
+              "ice"
+            ],
+            [
+              "a",
+              "M8 12 L180 12 Q200 12 199 25 Q198 36 180 36 L40 36 Q13 38 13 60 Q13 83 40 83 L212 83"
+            ],
+            [
+              "you",
+              8,
+              12
+            ]
+          ]
+        },
+        {
+          "name": "Swiss Cheese",
+          "tier": "medium",
+          "does": "The slope is full of holes in a staggered pattern, and you weave through the ice between them.",
+          "numbers": "60 studs, 10° slope, 20 wide, 5 holes of 6 x 6, ice between them at least 8 wide",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              20,
+              220,
+              56,
+              "ice"
+            ],
+            [
+              "r",
+              40,
+              20,
+              24,
+              22,
+              "dk"
+            ],
+            [
+              "r",
+              40,
+              56,
+              24,
+              20,
+              "dk"
+            ],
+            [
+              "r",
+              95,
+              36,
+              24,
+              24,
+              "dk"
+            ],
+            [
+              "r",
+              150,
+              20,
+              24,
+              22,
+              "dk"
+            ],
+            [
+              "r",
+              150,
+              56,
+              24,
+              20,
+              "dk"
+            ],
+            [
+              "a",
+              "M8 48 Q50 48 80 30 Q100 22 130 64 Q148 50 210 48"
+            ],
+            [
+              "you",
+              8,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Ice Bridge",
+          "tier": "medium",
+          "does": "The wide slope narrows to a long bridge with no rails, so you line up before it and hold straight.",
+          "numbers": "65 studs, 9° slope, 20 wide, narrows to 8 wide for 25 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "p",
+              "M0 18 L60 18 L80 40 L150 40 L170 18 L220 18 L220 78 L170 78 L150 56 L80 56 L60 78 L0 78Z",
+              "ice"
+            ],
+            [
+              "a",
+              "M10 60 Q40 48 76 48 L210 48"
+            ],
+            [
+              "t",
+              92,
+              34,
+              "8 wide"
+            ],
+            [
+              "you",
+              10,
+              60
+            ]
+          ]
+        },
+        {
+          "name": "Ski Jump",
+          "tier": "medium",
+          "does": "A steeper slope ends in an upturned lip that throws you over a long gap; jumping at the lip goes further.",
+          "numbers": "50 studs, 14° slope, 16 wide, 10-stud gap at capped slide speed",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M0 10 L120 52 L120 60 L0 18Z",
+              "ice"
+            ],
+            [
+              "p",
+              "M120 52 Q132 54 140 46 L140 60 L120 60Z",
+              "ice"
+            ],
+            [
+              "a",
+              "M142 42 Q166 18 192 56"
+            ],
+            [
+              "r",
+              180,
+              60,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "t",
+              146,
+              82,
+              "10 studs"
+            ],
+            [
+              "you",
+              16,
+              15
+            ]
+          ]
+        },
+        {
+          "name": "Slalom Posts",
+          "tier": "medium",
+          "does": "Red goo posts stand on the slope in a zigzag, and you snake left-right-left between them.",
+          "numbers": "60 studs, 9° slope, 20 wide, 4 goo posts 3 wide, 12 studs apart",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              20,
+              220,
+              56,
+              "ice"
+            ],
+            [
+              "c",
+              50,
+              34,
+              6,
+              "hz"
+            ],
+            [
+              "c",
+              95,
+              62,
+              6,
+              "hz"
+            ],
+            [
+              "c",
+              140,
+              34,
+              6,
+              "hz"
+            ],
+            [
+              "c",
+              185,
+              62,
+              6,
+              "hz"
+            ],
+            [
+              "a",
+              "M8 48 Q30 66 50 60 Q72 54 95 38 Q118 26 140 58 Q162 70 185 40 L214 46"
+            ],
+            [
+              "you",
+              8,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Fork in the Ice",
+          "tier": "medium",
+          "does": "A red goo island splits the slope in two lanes; pick one early, because the island's nose is pointy.",
+          "numbers": "60 studs, 10° slope, 24 wide, island 8 wide, two 8-wide lanes",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              14,
+              220,
+              68,
+              "ice"
+            ],
+            [
+              "p",
+              "M60 48 L100 36 L170 36 L170 60 L100 60Z",
+              "hz"
+            ],
+            [
+              "a",
+              "M8 48 Q30 48 50 26 L180 24 Q200 30 212 48"
+            ],
+            [
+              "a",
+              "M60 70 L180 72"
+            ],
+            [
+              "you",
+              8,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Brake and Go",
+          "tier": "medium",
+          "does": "A spinning red goo bar waits after each green brake patch: stop on the goo, watch the bar, then step off onto the ice and slide past it while it's away.",
+          "numbers": "60 studs, 8° slope, 16 wide, 2 brake patches 8 x 6, 2 sweepers spinning in 3.2 s, 10 studs after each patch",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              20,
+              220,
+              56,
+              "ice"
+            ],
+            [
+              "r",
+              30,
+              34,
+              26,
+              28,
+              "gl"
+            ],
+            [
+              "c",
+              90,
+              48,
+              3,
+              "dk"
+            ],
+            [
+              "r",
+              88,
+              24,
+              4,
+              48,
+              "hz"
+            ],
+            [
+              "r",
+              120,
+              34,
+              26,
+              28,
+              "gl"
+            ],
+            [
+              "c",
+              180,
+              48,
+              3,
+              "dk"
+            ],
+            [
+              "r",
+              158,
+              46,
+              44,
+              4,
+              "hz"
+            ],
+            [
+              "a",
+              "M8 48 L40 48"
+            ],
+            [
+              "a",
+              "M60 30 Q90 28 124 40"
+            ],
+            [
+              "you",
+              8,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Half-Pipe Hop",
+          "tier": "hard",
+          "does": "You slide down into a U-shaped bowl and up the far side; only a straight, fast line carries you onto the high ledge.",
+          "numbers": "bowl 30 studs across, 12 deep, ledge 2 studs under the start height, 16 wide",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              20,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "p",
+              "M30 20 Q100 110 170 26 L170 34 Q100 118 30 28Z",
+              "ice"
+            ],
+            [
+              "r",
+              172,
+              24,
+              48,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M40 26 Q100 92 168 22"
+            ],
+            [
+              "you",
+              20,
+              20
+            ]
+          ]
+        },
+        {
+          "name": "Red Run",
+          "tier": "hard",
+          "does": "A steep slope packed with holes and goo patches, ending in a ski-jump lip: little time to read each one.",
+          "numbers": "70 studs, 16° slope, 18 wide, 3 holes, 2 goo patches, 11-stud jump at the end",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M0 6 L50 22 L50 28 L0 12Z",
+              "ice"
+            ],
+            [
+              "p",
+              "M60 25 L110 41 L110 47 L60 31Z",
+              "ice"
+            ],
+            [
+              "r",
+              80,
+              30,
+              14,
+              5,
+              "hz"
+            ],
+            [
+              "p",
+              "M120 44 L160 57 Q168 58 172 52 L172 63 L120 50Z",
+              "ice"
+            ],
+            [
+              "a",
+              "M174 48 Q188 32 202 66"
+            ],
+            [
+              "r",
+              196,
+              68,
+              24,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              12,
+              10
+            ]
+          ]
+        },
+        {
+          "name": "Corkscrew",
+          "tier": "hard",
+          "does": "A banked spiral winds down round a tower with no rails and two bites missing from the outer edge.",
+          "numbers": "1.5 turns round a 10-stud tower, 12 wide, 11° slope, 2 edge bites of 4 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "c",
+              110,
+              48,
+              44,
+              "ice"
+            ],
+            [
+              "c",
+              110,
+              48,
+              14,
+              "dk"
+            ],
+            [
+              "p",
+              "M150 30 L158 34 L152 50 L146 46Z",
+              "gh"
+            ],
+            [
+              "p",
+              "M70 66 L62 64 L66 50 L72 52Z",
+              "gh"
+            ],
+            [
+              "a",
+              "M110 8 Q150 10 148 48 Q146 84 110 84 Q74 84 74 48 Q76 24 104 22"
+            ],
+            [
+              "you",
+              110,
+              8
+            ]
+          ]
+        },
+        {
+          "name": "Ice Islands",
+          "tier": "hard",
+          "does": "Short tilted ice pads with gaps between: you land sliding, can't stop, and must jump again before the edge.",
+          "numbers": "4 pads 10 long x 10 wide, 12° tilt, gaps of 5 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M0 20 L40 30 L40 36 L0 26Z",
+              "ice"
+            ],
+            [
+              "p",
+              "M58 36 L98 46 L98 52 L58 42Z",
+              "ice"
+            ],
+            [
+              "p",
+              "M116 52 L156 62 L156 68 L116 58Z",
+              "ice"
+            ],
+            [
+              "p",
+              "M174 68 L214 78 L214 84 L174 74Z",
+              "ice"
+            ],
+            [
+              "a",
+              "M36 26 Q50 16 62 34"
+            ],
+            [
+              "a",
+              "M94 42 Q108 32 120 50"
+            ],
+            [
+              "a",
+              "M152 58 Q166 48 178 66"
+            ],
+            [
+              "you",
+              12,
+              23
+            ]
+          ]
+        },
+        {
+          "name": "Blind Crest",
+          "tier": "hard",
+          "does": "The slope rolls over two humps and you only see what's behind each one from the top; a frost arrow before each crest points to the safe side.",
+          "numbers": "65 studs, 2 crests 3 studs high, a goo patch past each crest on alternating sides, 18 wide",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M0 14 Q40 6 70 30 Q90 18 120 44 Q140 32 220 70 L220 78 Q140 40 120 52 Q90 26 70 38 Q40 14 0 22Z",
+              "ice"
+            ],
+            [
+              "r",
+              84,
+              25,
+              16,
+              5,
+              "hz"
+            ],
+            [
+              "r",
+              134,
+              41,
+              16,
+              5,
+              "hz"
+            ],
+            [
+              "t",
+              40,
+              34,
+              "frost arrow"
+            ],
+            [
+              "a",
+              "M10 12 Q40 2 70 24"
+            ],
+            [
+              "you",
+              10,
+              17
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

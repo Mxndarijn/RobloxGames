@@ -1,0 +1,1743 @@
+{
+  "ideas": [
+    {
+      "id": 15,
+      "name": "Vine Swing",
+      "approach": "handmade",
+      "approachWhy": "Each rope chain has to be tuned by hand so the release always lands (rope length, swing speed and gap decide the throw); a random mix of those three would easily make throws that miss by a stud. 19 hand-made chains cover the three tiers with clear, different twists.",
+      "engine": {
+        "have": [
+          "swing motion kind (pendulum on server time, amp + arm + period + phase), used by Blob Pendulums",
+          "rope look (thin rod) and blob look (the grab knob at the rope end)",
+          "slide motion (for anchors that move) and red see-through goo hazard look",
+          "jelly connectors so each section starts and ends with a jump",
+          "flip motion (for a rope that goes see-through for a while)",
+          "melt trigger from Melting Floor (local player touches it, it cracks, darkens and drops after a hold time), reused for the Snapping Vine"
+        ],
+        "new": [
+          {
+            "what": "hazard touch = back to the start pad (the shared one from Crusher Alley); the goo pit under every chain uses it",
+            "size": "S"
+          },
+          {
+            "what": "swing axis option: today a swing only goes across the course (z); vines need it to swing along the course (x)",
+            "size": "S"
+          },
+          {
+            "what": "client grab controller: touching the rope's lower knob attaches you, you ride the rope end on server time, jump lets go with the rope end's speed plus a jump kick; a short no-grab time after letting go so you don't re-grab the same rope. Build it on the same 'held by a prop, jump lets go' base as Aim the Cannon's cannon seat controller, so both share one client piece",
+            "size": "L"
+          },
+          {
+            "what": "two motions on one part (anchor slides while the rope swings): the same system Merry-go-round plans as 'Wobble' (spin plus rock on one part), not a second one",
+            "size": "M"
+          },
+          {
+            "what": "course tests: a 'swing' step kind built on Climb's planned 'grab' step kind (reach from a ledge to a part over the void), adding a release check: rope-end speed at release plus jump kick must land on the next rope, pad or ladder with 20 % spare, so the gap test doesn't flag the 14 to 22 stud gaps",
+            "size": "M"
+          },
+          {
+            "what": "vine look: reuse Climb's goo ladder look (dripping green goo, handprints, squelch on grab) on the rope and knob; plus a 'sweet spot' flash where the knob glows green in the window where letting go lands (easy tier only) and a creak that ticks at the top of each swing",
+            "size": "S"
+          },
+          {
+            "what": "\"Jump to let go\" hint while hanging (phone-sized screen label, shown the first few times only)",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "Every vine is a dripping green goo rope with a fat knob and handprints at the bottom (the same goo look as Climb's ladders, so 'green goo = grab it' reads across the course); touching it makes a squelch and you hang. While you hang a \"Jump to let go\" hint shows, the rope creaks at the top of each swing and a whoosh plays when you let go.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "First Swing",
+          "tier": "easy",
+          "does": "One slow rope over a short goo pit onto a wide pad; the knob flashes green when letting go lands, so it teaches the whole move.",
+          "numbers": "1 rope, 12 stud rope, 30 deg swing, 4.2 s, 16 stud gap, 12 wide landing, sweet-spot flash on",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              70,
+              50,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              86,
+              120,
+              10,
+              "hz"
+            ],
+            [
+              "r",
+              104,
+              2,
+              12,
+              4,
+              "dk"
+            ],
+            [
+              "l",
+              110,
+              6,
+              92,
+              52
+            ],
+            [
+              "c",
+              92,
+              54,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M60 64 Q76 58 88 56"
+            ],
+            [
+              "a",
+              "M96 58 Q130 66 150 50 Q166 40 180 62"
+            ],
+            [
+              "r",
+              170,
+              70,
+              50,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              40,
+              70
+            ],
+            [
+              "t",
+              82,
+              46,
+              "glows green"
+            ]
+          ]
+        },
+        {
+          "name": "Two in Step",
+          "tier": "easy",
+          "does": "Two ropes that swing together, so when you let go of the first at its front, the second is coming toward you.",
+          "numbers": "2 ropes, 12 stud rope, 30 deg, 4 s, same phase, 15 stud gaps, sweet-spot flash on",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              70,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              34,
+              86,
+              156,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              70,
+              4,
+              82,
+              50
+            ],
+            [
+              "c",
+              82,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              140,
+              4,
+              152,
+              50
+            ],
+            [
+              "c",
+              152,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M86 54 Q112 64 146 52"
+            ],
+            [
+              "a",
+              "M156 54 Q178 50 196 64"
+            ],
+            [
+              "r",
+              190,
+              70,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              24,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Rest Island",
+          "tier": "easy",
+          "does": "Rope, then a wide island to land and breathe, then a second rope; each swing is a fresh start.",
+          "numbers": "2 ropes, 11 stud rope, 30 deg, 3.8 s, island 12 x 12, 14 stud gaps",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              70,
+              28,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              28,
+              86,
+              164,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              56,
+              4,
+              50,
+              50
+            ],
+            [
+              "c",
+              50,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "r",
+              92,
+              70,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "l",
+              160,
+              4,
+              154,
+              50
+            ],
+            [
+              "c",
+              154,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M54 54 Q74 54 104 64"
+            ],
+            [
+              "r",
+              192,
+              70,
+              28,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              110,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Long Lazy Vine",
+          "tier": "easy",
+          "does": "One very long, slow rope with a huge arc: easy to grab, and you have a long time to pick the moment to let go.",
+          "numbers": "1 rope, 18 stud rope, 35 deg, 5 s, 22 stud gap, 14 wide landing, sweet-spot flash on",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              66,
+              44,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              86,
+              136,
+              10,
+              "hz"
+            ],
+            [
+              "r",
+              104,
+              2,
+              12,
+              4,
+              "dk"
+            ],
+            [
+              "l",
+              110,
+              6,
+              110,
+              74
+            ],
+            [
+              "c",
+              110,
+              76,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M60 60 Q110 96 160 60"
+            ],
+            [
+              "r",
+              176,
+              66,
+              44,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              34,
+              66
+            ],
+            [
+              "t",
+              82,
+              30,
+              "5 s swing"
+            ]
+          ]
+        },
+        {
+          "name": "Swing Down",
+          "tier": "easy",
+          "does": "Each rope hangs a bit lower than the last, so letting go early still drops you onto the next rope.",
+          "numbers": "3 ropes, 10 stud rope, 30 deg, 3.6 s, each 3 studs lower, 13 stud gaps",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              40,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              86,
+              166,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              60,
+              2,
+              56,
+              36
+            ],
+            [
+              "c",
+              56,
+              38,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              110,
+              14,
+              106,
+              50
+            ],
+            [
+              "c",
+              106,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              160,
+              26,
+              156,
+              62
+            ],
+            [
+              "c",
+              156,
+              64,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M60 40 Q84 40 102 50"
+            ],
+            [
+              "a",
+              "M110 54 Q134 54 152 64"
+            ],
+            [
+              "r",
+              190,
+              76,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              20,
+              40
+            ]
+          ]
+        },
+        {
+          "name": "Side Swing",
+          "tier": "easy",
+          "does": "The rope swings across the lane, not along it: you ride it sideways and let go onto a pad beside the start, then walk on.",
+          "numbers": "2 ropes, 11 stud rope, 35 deg, 4 s, side pads 10 x 10 at the lane edge (lane 24 wide)",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              36,
+              40,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              0,
+              140,
+              96,
+              "hz"
+            ],
+            [
+              "c",
+              70,
+              48,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M70 48 Q76 26 84 14"
+            ],
+            [
+              "r",
+              78,
+              2,
+              30,
+              18,
+              "pl"
+            ],
+            [
+              "c",
+              130,
+              20,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M130 20 Q140 50 150 80"
+            ],
+            [
+              "r",
+              140,
+              76,
+              30,
+              18,
+              "pl"
+            ],
+            [
+              "r",
+              180,
+              36,
+              40,
+              24,
+              "pl"
+            ],
+            [
+              "you",
+              30,
+              48
+            ],
+            [
+              "t",
+              92,
+              50,
+              "ropes swing sideways"
+            ]
+          ]
+        },
+        {
+          "name": "Three Vine Chain",
+          "tier": "medium",
+          "does": "Three ropes back to back with no island; their swings are offset so you must let go just as the next one comes toward you.",
+          "numbers": "3 ropes, 11 stud rope, 35 deg, 3.4 s, phases 0 / 0.5 / 0, 15 stud gaps, no flash",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              66,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              26,
+              86,
+              168,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              54,
+              4,
+              66,
+              48
+            ],
+            [
+              "c",
+              66,
+              50,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              112,
+              4,
+              100,
+              48
+            ],
+            [
+              "c",
+              100,
+              50,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              166,
+              4,
+              178,
+              48
+            ],
+            [
+              "c",
+              178,
+              50,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M70 52 Q86 60 98 54"
+            ],
+            [
+              "a",
+              "M104 52 Q140 62 174 52"
+            ],
+            [
+              "r",
+              194,
+              66,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              16,
+              66
+            ]
+          ]
+        },
+        {
+          "name": "Quick Vines",
+          "tier": "medium",
+          "does": "Short ropes that swing fast: the right moment to let go is short and comes often.",
+          "numbers": "3 ropes, 7 stud rope, 40 deg, 2.4 s, 12 stud gaps",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              50,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              86,
+              164,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              64,
+              14,
+              72,
+              42
+            ],
+            [
+              "c",
+              72,
+              44,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              112,
+              14,
+              104,
+              42
+            ],
+            [
+              "c",
+              104,
+              44,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              160,
+              14,
+              168,
+              42
+            ],
+            [
+              "c",
+              168,
+              44,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M56 46 Q64 34 80 40"
+            ],
+            [
+              "a",
+              "M150 40 Q160 32 176 40"
+            ],
+            [
+              "r",
+              194,
+              50,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              20,
+              50
+            ],
+            [
+              "t",
+              92,
+              70,
+              "2.4 s"
+            ]
+          ]
+        },
+        {
+          "name": "Narrow Landing",
+          "tier": "medium",
+          "does": "Between two ropes sits a small pad framed by red goo strips: let go too early or late and you touch goo instead of landing.",
+          "numbers": "2 ropes, 12 stud rope, 35 deg, 3.6 s, mid pad 8 x 8 with 3 stud goo strips each side",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              66,
+              28,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              28,
+              86,
+              166,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              60,
+              4,
+              68,
+              50
+            ],
+            [
+              "c",
+              68,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "r",
+              92,
+              66,
+              10,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              102,
+              66,
+              18,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              66,
+              10,
+              8,
+              "hz"
+            ],
+            [
+              "l",
+              160,
+              4,
+              152,
+              50
+            ],
+            [
+              "c",
+              152,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M72 54 Q90 42 110 64"
+            ],
+            [
+              "r",
+              194,
+              66,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              18,
+              66
+            ]
+          ]
+        },
+        {
+          "name": "Vine Climb",
+          "tier": "medium",
+          "does": "Each anchor is higher than the last, so you must let go on the upswing to gain height, not at the bottom.",
+          "numbers": "3 ropes, 10 stud rope, 40 deg, 3.4 s, each 3.5 studs higher, 13 stud gaps, section rises 10 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              88,
+              164,
+              8,
+              "hz"
+            ],
+            [
+              "l",
+              60,
+              36,
+              66,
+              72
+            ],
+            [
+              "c",
+              66,
+              74,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              110,
+              22,
+              116,
+              58
+            ],
+            [
+              "c",
+              116,
+              60,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              160,
+              8,
+              166,
+              44
+            ],
+            [
+              "c",
+              166,
+              46,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M70 72 Q96 52 112 58"
+            ],
+            [
+              "a",
+              "M120 58 Q146 38 162 44"
+            ],
+            [
+              "r",
+              190,
+              40,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              20,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Sliding Anchor",
+          "tier": "medium",
+          "does": "The second rope's anchor slides across the lane on a rail while it swings along the course, so you wait on the first rope until the second is in line before you let go.",
+          "numbers": "2 ropes, 11 stud rope, 35 deg, 3.6 s, anchor slides 6 studs either side every 5 s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              36,
+              34,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              34,
+              0,
+              154,
+              96,
+              "hz"
+            ],
+            [
+              "c",
+              70,
+              48,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M58 48 H84"
+            ],
+            [
+              "l",
+              130,
+              12,
+              130,
+              84
+            ],
+            [
+              "c",
+              130,
+              30,
+              5,
+              "gl"
+            ],
+            [
+              "a",
+              "M138 30 V70"
+            ],
+            [
+              "r",
+              188,
+              36,
+              32,
+              24,
+              "pl"
+            ],
+            [
+              "you",
+              22,
+              48
+            ],
+            [
+              "t",
+              98,
+              92,
+              "anchor slides"
+            ]
+          ]
+        },
+        {
+          "name": "Over the Goo Bar",
+          "tier": "medium",
+          "does": "A red goo bar hangs between two ropes at hand height: let go high and late to fly over it instead of through it.",
+          "numbers": "2 ropes, 12 stud rope, 40 deg, 3.6 s, goo bar 4 studs tall in the middle of a 16 stud gap",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              66,
+              28,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              28,
+              86,
+              166,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              64,
+              4,
+              74,
+              50
+            ],
+            [
+              "c",
+              74,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "r",
+              104,
+              42,
+              12,
+              20,
+              "hz"
+            ],
+            [
+              "l",
+              110,
+              0,
+              110,
+              42
+            ],
+            [
+              "l",
+              156,
+              4,
+              146,
+              50
+            ],
+            [
+              "c",
+              146,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M78 50 Q110 14 142 50"
+            ],
+            [
+              "r",
+              194,
+              66,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              18,
+              66
+            ]
+          ]
+        },
+        {
+          "name": "Zigzag Vines",
+          "tier": "medium",
+          "does": "Ropes swing across the lane, each one carrying you to the other side, so you cross the course in a zigzag from rope to rope.",
+          "numbers": "4 ropes, 10 stud rope, 40 deg, 3.4 s, swing across the lane (z), 12 stud steps forward",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              36,
+              26,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              26,
+              0,
+              168,
+              96,
+              "hz"
+            ],
+            [
+              "c",
+              50,
+              24,
+              4,
+              "gl"
+            ],
+            [
+              "c",
+              90,
+              72,
+              4,
+              "gl"
+            ],
+            [
+              "c",
+              130,
+              24,
+              4,
+              "gl"
+            ],
+            [
+              "c",
+              170,
+              72,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M50 24 Q60 56 86 70"
+            ],
+            [
+              "a",
+              "M94 70 Q104 38 126 26"
+            ],
+            [
+              "a",
+              "M134 26 Q144 58 166 70"
+            ],
+            [
+              "r",
+              194,
+              36,
+              26,
+              24,
+              "pl"
+            ],
+            [
+              "you",
+              14,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Vine to Ladder",
+          "tier": "medium",
+          "does": "The last rope throws you into a goo ladder hanging on a high wall instead of onto a floor: let go on the upswing, stick to the goo, climb out the top.",
+          "numbers": "2 ropes, 11 stud rope, 40 deg, 3.4 s, 13 stud gaps, goo ladder 10 tall x 10 wide, its bottom 4 studs above the knob",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              70,
+              28,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              28,
+              86,
+              160,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              60,
+              4,
+              68,
+              50
+            ],
+            [
+              "c",
+              68,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              120,
+              4,
+              128,
+              50
+            ],
+            [
+              "c",
+              128,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M72 54 Q96 60 124 52"
+            ],
+            [
+              "a",
+              "M132 50 Q150 30 168 34"
+            ],
+            [
+              "r",
+              170,
+              14,
+              10,
+              46,
+              "gl"
+            ],
+            [
+              "r",
+              180,
+              14,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              18,
+              70
+            ],
+            [
+              "t",
+              134,
+              72,
+              "grab the wall"
+            ]
+          ]
+        },
+        {
+          "name": "Five Vine Run",
+          "tier": "hard",
+          "does": "Five ropes in a row over a red goo floor, with alternating swings and no rest: one bad release and you start over.",
+          "numbers": "5 ropes, 10 stud rope, 40 deg, 3 s, phases 0 / 0.5 / 0 / 0.5 / 0, 14 stud gaps, about 85 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              62,
+              20,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              20,
+              86,
+              182,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              42,
+              4,
+              50,
+              44
+            ],
+            [
+              "c",
+              50,
+              46,
+              3,
+              "gl"
+            ],
+            [
+              "l",
+              78,
+              4,
+              70,
+              44
+            ],
+            [
+              "c",
+              70,
+              46,
+              3,
+              "gl"
+            ],
+            [
+              "l",
+              112,
+              4,
+              120,
+              44
+            ],
+            [
+              "c",
+              120,
+              46,
+              3,
+              "gl"
+            ],
+            [
+              "l",
+              148,
+              4,
+              140,
+              44
+            ],
+            [
+              "c",
+              140,
+              46,
+              3,
+              "gl"
+            ],
+            [
+              "l",
+              182,
+              4,
+              190,
+              44
+            ],
+            [
+              "c",
+              190,
+              46,
+              3,
+              "gl"
+            ],
+            [
+              "r",
+              202,
+              62,
+              18,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              10,
+              62
+            ]
+          ]
+        },
+        {
+          "name": "Drifting Beat",
+          "tier": "hard",
+          "does": "Four ropes that each swing at a different speed, so the good moment to jump to the next one shifts every time and you must read each rope fresh.",
+          "numbers": "4 ropes, 9 to 13 stud ropes, periods 2.8 / 3.4 / 2.6 / 3.8 s, 14 stud gaps",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              62,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              22,
+              86,
+              176,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              50,
+              4,
+              58,
+              40
+            ],
+            [
+              "c",
+              58,
+              42,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              96,
+              4,
+              86,
+              54
+            ],
+            [
+              "c",
+              86,
+              56,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              136,
+              4,
+              144,
+              36
+            ],
+            [
+              "c",
+              144,
+              38,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              176,
+              4,
+              168,
+              58
+            ],
+            [
+              "c",
+              168,
+              60,
+              4,
+              "gl"
+            ],
+            [
+              "t",
+              40,
+              80,
+              "2.8"
+            ],
+            [
+              "t",
+              80,
+              80,
+              "3.4"
+            ],
+            [
+              "t",
+              130,
+              80,
+              "2.6"
+            ],
+            [
+              "t",
+              166,
+              80,
+              "3.8"
+            ],
+            [
+              "r",
+              198,
+              62,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              12,
+              62
+            ]
+          ]
+        },
+        {
+          "name": "Pulling Anchors",
+          "tier": "hard",
+          "does": "The anchors slide forward and back along the course, so the gap to the next rope grows and shrinks while you swing.",
+          "numbers": "3 ropes, 11 stud rope, 35 deg, 3.4 s, anchors slide 4 studs along the course every 4.5 s, gaps 12 to 20",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              66,
+              24,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              24,
+              86,
+              170,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              30,
+              3,
+              194,
+              3
+            ],
+            [
+              "l",
+              60,
+              4,
+              66,
+              50
+            ],
+            [
+              "c",
+              66,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M50 10 H74"
+            ],
+            [
+              "l",
+              116,
+              4,
+              110,
+              50
+            ],
+            [
+              "c",
+              110,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M104 10 H130"
+            ],
+            [
+              "l",
+              166,
+              4,
+              172,
+              50
+            ],
+            [
+              "c",
+              172,
+              52,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M156 10 H182"
+            ],
+            [
+              "r",
+              194,
+              66,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              14,
+              66
+            ]
+          ]
+        },
+        {
+          "name": "Pinpoint Drop",
+          "tier": "hard",
+          "does": "Three fast ropes end over a small still pad set low, ringed by red goo: you must let go on the downswing, not at the top, or you overshoot.",
+          "numbers": "3 ropes, 9 stud rope, 40 deg, 2.8 s, final pad 8 x 8 set 6 studs below the knobs, 3 stud goo ring, 14 stud final throw",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              50,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              22,
+              86,
+              198,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              48,
+              6,
+              56,
+              40
+            ],
+            [
+              "c",
+              56,
+              42,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              96,
+              6,
+              88,
+              40
+            ],
+            [
+              "c",
+              88,
+              42,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              140,
+              6,
+              148,
+              40
+            ],
+            [
+              "c",
+              148,
+              42,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M150 44 Q166 46 186 70"
+            ],
+            [
+              "r",
+              174,
+              72,
+              6,
+              6,
+              "hz"
+            ],
+            [
+              "r",
+              180,
+              72,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              202,
+              72,
+              6,
+              6,
+              "hz"
+            ],
+            [
+              "you",
+              12,
+              50
+            ],
+            [
+              "t",
+              160,
+              30,
+              "let go early"
+            ]
+          ]
+        },
+        {
+          "name": "Snapping Vine",
+          "tier": "hard",
+          "does": "Each rope cracks and darkens the moment you grab it and snaps 2 s later, so you cannot wait for a perfect swing: take the first good release you get.",
+          "numbers": "4 ropes, 10 stud rope, 40 deg, 3 s, snap 2.0 s after grab, regrows 3 s later (only for you), 14 stud gaps",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              62,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              22,
+              86,
+              176,
+              10,
+              "hz"
+            ],
+            [
+              "l",
+              50,
+              4,
+              58,
+              44
+            ],
+            [
+              "c",
+              58,
+              46,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              94,
+              4,
+              86,
+              44
+            ],
+            [
+              "c",
+              86,
+              46,
+              4,
+              "gh"
+            ],
+            [
+              "l",
+              138,
+              4,
+              146,
+              44
+            ],
+            [
+              "c",
+              146,
+              46,
+              4,
+              "gl"
+            ],
+            [
+              "l",
+              182,
+              4,
+              174,
+              44
+            ],
+            [
+              "c",
+              174,
+              46,
+              4,
+              "gl"
+            ],
+            [
+              "a",
+              "M62 48 Q72 56 82 48"
+            ],
+            [
+              "r",
+              198,
+              62,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              12,
+              62
+            ],
+            [
+              "t",
+              74,
+              74,
+              "cracks, snaps 2 s"
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1308 @@
+{
+ "ideas": [
+  {
+   "id": 18,
+   "name": "Beat Pads",
+   "approach": "handmade",
+   "approachWhy": "The fun is in rhythm patterns (on-beat, off-beat, waltz, speed-up) that have to feel musical; hand-made patterns sound right, random ones sound like noise. The existing shrink motion makes each one cheap to build.",
+   "engine": {
+    "have": [
+     "shrink motion: pads breathe between full size and `min` on a period and phase, played at server time",
+     "flip motion, for the Beat and Flip mix",
+     "per-pad period and phase, so off-beat, waves and speed-ups are just numbers",
+     "gap and rise tests at rest (gap at most 6, rise at most 3.5, measured at full size)"
+    ],
+    "new": [
+     {
+      "what": "shuttle easing for shrink: snap to full size on the beat, hold, then shrink, instead of a smooth wave, so 'on the beat' is a clear moment. Same hold-move-hold curve as idea 25's 'shuttle' slide; build it once and use it for both",
+      "size": "S"
+     },
+     {
+      "what": "BeatClock: a client beat clock that plays drum ticks in time with server time and can mute bars (Silent Bar). Other ideas that tick before a change (1, 11, 21, 25, 28, 29) can hang their tick on it too",
+      "size": "M"
+     },
+     {
+      "what": "the closing ring: a glowing ring that shrinks onto each pad and meets its edge on the beat (visual only, like idea 10's glow-only motion)",
+      "size": "S"
+     },
+     {
+      "what": "hazard touch = back to the start pad (shared with ideas 1, 8, 25), used for the red goo plate under pads in Goo Heartbeat",
+      "size": "S"
+     },
+     {
+      "what": "tempo steps inside one section (Speed Up, Rush Climb): later pads use a shorter period that still fits the bar, so the beat stays in time. Set by position, not by how long you wait (unlike idea 1's speed-up controller)",
+      "size": "S"
+     },
+     {
+      "what": "Night Groove only: reuse idea 17's Darkness controller; no new night system",
+      "size": "S"
+     }
+    ]
+   },
+   "readability": "Beat pads are pink, glow and pulse to a drum tick; a ring closes onto each pad and touches its edge on the beat, when it is full size. Shrunk pads look faint and see-through. In Night Groove the beat glow is the only light, so the cue is the same one.",
+   "generator": null,
+   "variants": [
+    {
+     "name": "Four on the Floor",
+     "tier": "easy",
+     "does": "Every pad grows together on the same slow beat, so you just hop pad to pad each time the ring closes.",
+     "numbers": "5 pads 10 wide, 4 stud gaps, beat every 3 s, shrinks to 50%",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       8,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       52,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       106.5,
+       67,
+       9.0,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       140,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       184,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "e",
+       67.0,
+       69.5,
+       20.0,
+       7,
+       "gh"
+      ],
+      [
+       "you",
+       23,
+       66
+      ],
+      [
+       "a",
+       "M28 64 Q47.0 44 66 64"
+      ],
+      [
+       "t",
+       70,
+       30,
+       "all on beat 1"
+      ]
+     ]
+    },
+    {
+     "name": "Ping Pong",
+     "tier": "easy",
+     "does": "Pads take turns: the next pad swells as yours shrinks, so you jump on every beat to keep up.",
+     "numbers": "6 pads 10 wide, 4 stud gaps, 2 groups half a beat apart, 3.2 s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       8,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       58.5,
+       67,
+       9.0,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       88,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       138.5,
+       67,
+       9.0,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       168,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "a",
+       "M23 64 Q43.0 44 63 64"
+      ],
+      [
+       "you",
+       23,
+       66
+      ],
+      [
+       "t",
+       40,
+       30,
+       "1 . and . 1"
+      ]
+     ]
+    },
+    {
+     "name": "Soft Beat",
+     "tier": "easy",
+     "does": "Pads only breathe down to about two thirds, so a late landing is still safe; it teaches the ring cue.",
+     "numbers": "4 pads 10 wide, 5 stud gaps, 3.6 s beat, min 65%",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       10,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       60,
+       66,
+       22,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       104,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       158,
+       66,
+       22,
+       7,
+       "pk"
+      ],
+      [
+       "e",
+       119.0,
+       69.5,
+       20.0,
+       7,
+       "gh"
+      ],
+      [
+       "you",
+       25,
+       66
+      ],
+      [
+       "a",
+       "M30 64 Q50.0 44 70 64"
+      ],
+      [
+       "t",
+       60,
+       30,
+       "never tiny"
+      ]
+     ]
+    },
+    {
+     "name": "Drum Rest",
+     "tier": "easy",
+     "does": "A big steady drum pad that never shrinks sits after every two beat pads, so you can stop and listen again.",
+     "numbers": "2 beat pads, drum, 2 beat pads; pads 9 wide, drum 14 wide, 4 stud gaps, 3 s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       6,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       49.1,
+       67,
+       7.8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       78,
+       64,
+       46,
+       10,
+       "pl"
+      ],
+      [
+       "r",
+       132,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       175.1,
+       67,
+       7.8,
+       5,
+       "gh"
+      ],
+      [
+       "t",
+       86,
+       50,
+       "drum: rest"
+      ],
+      [
+       "you",
+       100,
+       64
+      ]
+     ]
+    },
+    {
+     "name": "Backwave",
+     "tier": "medium",
+     "does": "The wave of growing pads rolls toward you, against your way, so you hop onto each pad just as the swell reaches it instead of riding along.",
+     "numbers": "7 pads 9 wide, 4 stud gaps, each a quarter beat before the one behind it, 3 s beat",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       6,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       47,
+       67,
+       8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       72,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       113,
+       67,
+       8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       138,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       179,
+       67,
+       8,
+       5,
+       "gh"
+      ],
+      [
+       "a",
+       "M200 50 H40"
+      ],
+      [
+       "a",
+       "M19 64 Q52 44 85 64"
+      ],
+      [
+       "you",
+       19,
+       66
+      ],
+      [
+       "t",
+       120,
+       38,
+       "wave comes at you"
+      ]
+     ]
+    },
+    {
+     "name": "Off-Beat Hop",
+     "tier": "medium",
+     "does": "Pads grow on the 'and' between beats: the ring and the drum still mark the beat, so you jump in the gaps between them.",
+     "numbers": "5 pads 9 wide, 5 stud gaps, 2.8 s beat, pads half a beat late",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       8,
+       66,
+       28,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       61.8,
+       67,
+       8.4,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       96,
+       66,
+       28,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       149.8,
+       67,
+       8.4,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       184,
+       66,
+       28,
+       7,
+       "pk"
+      ],
+      [
+       "t",
+       40,
+       30,
+       "1 AND 2 AND"
+      ],
+      [
+       "e",
+       66.0,
+       69.5,
+       19.0,
+       7,
+       "gh"
+      ],
+      [
+       "you",
+       22,
+       66
+      ]
+     ]
+    },
+    {
+     "name": "Speed Up",
+     "tier": "medium",
+     "does": "The tempo rises along the section, from a slow beat at the start to a quick one at the end, so you must keep up.",
+     "numbers": "6 pads 9 wide, 4 stud gaps, beat 3.2 s, then 2.4 s, then 1.8 s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       6,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       42,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       87.1,
+       67,
+       7.8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       114,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       159.1,
+       67,
+       7.8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       186,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "t",
+       14,
+       40,
+       "slow"
+      ],
+      [
+       "t",
+       176,
+       40,
+       "fast"
+      ],
+      [
+       "a",
+       "M30 50 H200"
+      ],
+      [
+       "you",
+       19,
+       66
+      ]
+     ]
+    },
+    {
+     "name": "Waltz",
+     "tier": "medium",
+     "does": "A three-beat bar: pad 1, 2 and 3 grow in turn, and pad 3 is a step up, so you count one-two-three as you climb.",
+     "numbers": "6 pads 9 wide, 4 stud gaps, 3 beats of 1 s, every third pad 2.5 studs higher",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       8,
+       70,
+       28,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       63.8,
+       71,
+       8.4,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       100,
+       58,
+       28,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       155.8,
+       71,
+       8.4,
+       5,
+       "gh"
+      ],
+      [
+       "t",
+       108,
+       44,
+       "3!"
+      ],
+      [
+       "t",
+       60,
+       30,
+       "1 . 2 . 3"
+      ],
+      [
+       "a",
+       "M22 68 Q68.0 32 114 56"
+      ],
+      [
+       "you",
+       22,
+       70
+      ]
+     ]
+    },
+    {
+     "name": "Hold and Hurry",
+     "tier": "medium",
+     "does": "A syncopated pattern: one pad stays big for two beats, then the next two flash by fast, so you wait, then run.",
+     "numbers": "1 long pad (2 beats) then 2 short pads (half a beat each), twice; 9 wide, 4 stud gaps, 2.6 s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       6,
+       66,
+       40,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       56,
+       66,
+       24,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       98.4,
+       67,
+       7.2,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       124,
+       66,
+       40,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       174,
+       66,
+       24,
+       7,
+       "pk"
+      ],
+      [
+       "t",
+       12,
+       50,
+       "hold"
+      ],
+      [
+       "t",
+       78,
+       50,
+       "go go"
+      ],
+      [
+       "you",
+       26,
+       66
+      ]
+     ]
+    },
+    {
+     "name": "Beat Stairs",
+     "tier": "medium",
+     "does": "The pads climb like a staircase and each one grows on the beat, so every jump is up and on time.",
+     "numbers": "6 pads 9 wide, 3 stud gaps, each 3 studs higher, 3 s beat",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       6,
+       84,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       47.1,
+       75,
+       7.8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       70,
+       64,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       111.1,
+       55,
+       7.8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       134,
+       44,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       175.1,
+       35,
+       7.8,
+       5,
+       "gh"
+      ],
+      [
+       "a",
+       "M19 82 Q51.0 46 83 62"
+      ],
+      [
+       "you",
+       19,
+       84
+      ]
+     ]
+    },
+    {
+     "name": "Zigzag Groove",
+     "tier": "medium",
+     "does": "Pads swing from the left edge of the lane to the right, so each on-beat jump is also a sideways jump.",
+     "numbers": "6 pads 9 wide, 5 stud diagonal gaps, 7 studs left and right, 2.8 s",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       10,
+       10,
+       26,
+       26,
+       "pk"
+      ],
+      [
+       "r",
+       54,
+       58,
+       26,
+       26,
+       "pk"
+      ],
+      [
+       "r",
+       106,
+       22,
+       10,
+       10,
+       "gh"
+      ],
+      [
+       "r",
+       142,
+       58,
+       26,
+       26,
+       "pk"
+      ],
+      [
+       "a",
+       "M24 24 L66 70 L110 28 L154 70"
+      ],
+      [
+       "you",
+       24,
+       24
+      ],
+      [
+       "t",
+       80,
+       6,
+       "seen from above"
+      ]
+     ]
+    },
+    {
+     "name": "Beat and Flip",
+     "tier": "medium",
+     "does": "Beat pads are mixed with flip tiles that vanish on the off-beat, so you hear one rhythm but read two kinds of pad.",
+     "numbers": "beat pad, flip tile, beat pad, flip tile, beat pad; 9 wide, 4 stud gaps, 3 s, flip solid 50%",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       6,
+       66,
+       28,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       48,
+       66,
+       28,
+       7,
+       "pl"
+      ],
+      [
+       "r",
+       99.8,
+       67,
+       8.4,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       132,
+       66,
+       28,
+       7,
+       "gh"
+      ],
+      [
+       "r",
+       174,
+       66,
+       28,
+       7,
+       "pk"
+      ],
+      [
+       "t",
+       48,
+       54,
+       "flip"
+      ],
+      [
+       "t",
+       132,
+       54,
+       "flip"
+      ],
+      [
+       "you",
+       20,
+       66
+      ]
+     ]
+    },
+    {
+     "name": "Silent Bar",
+     "tier": "medium",
+     "does": "The music drops out for one bar halfway along, so you keep time by the closing rings alone until it comes back.",
+     "numbers": "6 pads 9 wide, 4 stud gaps, 3 s beat, bars 3 and 4 silent",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       6,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       49.1,
+       67,
+       7.8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       74,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       117.1,
+       67,
+       7.8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       142,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       185.1,
+       67,
+       7.8,
+       5,
+       "gh"
+      ],
+      [
+       "e",
+       87.0,
+       69.5,
+       18.0,
+       7,
+       "gh"
+      ],
+      [
+       "e",
+       155.0,
+       69.5,
+       18.0,
+       7,
+       "gh"
+      ],
+      [
+       "t",
+       80,
+       30,
+       "beat ... shh ... beat"
+      ],
+      [
+       "you",
+       19,
+       66
+      ]
+     ]
+    },
+    {
+     "name": "Double Time",
+     "tier": "hard",
+     "does": "A quick beat with pads that shrink almost to nothing, so you land right on the beat and jump again straight away.",
+     "numbers": "6 pads 8 wide, 5 stud gaps, 1.6 s beat, min 10%",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       6,
+       66,
+       24,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       48,
+       68,
+       4,
+       4,
+       "gh"
+      ],
+      [
+       "r",
+       76,
+       66,
+       24,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       118,
+       68,
+       4,
+       4,
+       "gh"
+      ],
+      [
+       "r",
+       146,
+       66,
+       24,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       188,
+       68,
+       4,
+       4,
+       "gh"
+      ],
+      [
+       "a",
+       "M18 64 Q53.0 50 88 64"
+      ],
+      [
+       "you",
+       18,
+       66
+      ],
+      [
+       "t",
+       70,
+       30,
+       "1-2-1-2"
+      ]
+     ]
+    },
+    {
+     "name": "Goo Heartbeat",
+     "tier": "hard",
+     "does": "Each pad sits on a red goo plate: on the beat the pad covers it, off the beat the goo shows round your feet, so stay in the middle.",
+     "numbers": "5 pads 10 wide on 10 wide goo plates, 4 stud gaps, 2.4 s beat, shrinks to 35%",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       8,
+       69,
+       30,
+       5,
+       "hz"
+      ],
+      [
+       "r",
+       8,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       52,
+       69,
+       30,
+       5,
+       "hz"
+      ],
+      [
+       "r",
+       63,
+       66,
+       8,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       96,
+       69,
+       30,
+       5,
+       "hz"
+      ],
+      [
+       "r",
+       96,
+       66,
+       30,
+       7,
+       "pk"
+      ],
+      [
+       "you",
+       67,
+       66
+      ],
+      [
+       "t",
+       50,
+       50,
+       "goo shows"
+      ]
+     ]
+    },
+    {
+     "name": "Two Drummers",
+     "tier": "hard",
+     "does": "Two rows of pads side by side keep different beats (3 and 4 per bar), and you cross between rows when they line up.",
+     "numbers": "2 rows of 6 pads 9 wide, row A 3 beats, row B 4 beats per 4 s bar, 4 stud gaps",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       10,
+       14,
+       24,
+       24,
+       "pk"
+      ],
+      [
+       "r",
+       50,
+       22,
+       8,
+       8,
+       "gh"
+      ],
+      [
+       "r",
+       82,
+       14,
+       24,
+       24,
+       "pk"
+      ],
+      [
+       "r",
+       10,
+       58,
+       8,
+       8,
+       "gh"
+      ],
+      [
+       "r",
+       42,
+       58,
+       24,
+       24,
+       "pk"
+      ],
+      [
+       "r",
+       120,
+       58,
+       24,
+       24,
+       "pk"
+      ],
+      [
+       "a",
+       "M22 26 L54 70 L94 26 L132 70"
+      ],
+      [
+       "you",
+       22,
+       26
+      ],
+      [
+       "t",
+       170,
+       26,
+       "3 per bar"
+      ],
+      [
+       "t",
+       170,
+       70,
+       "4 per bar"
+      ]
+     ]
+    },
+    {
+     "name": "Rush Climb",
+     "tier": "hard",
+     "does": "Stairs that speed up: every pad is higher and the beat gets quicker as you climb, ending at 1.6 s.",
+     "numbers": "7 pads 8 wide, 4 stud gaps, each 3 studs higher, beat 2.8 s down to 1.6 s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       86,
+       24,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       42.4,
+       78,
+       7.2,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       64,
+       68,
+       24,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       102.4,
+       60,
+       7.2,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       124,
+       50,
+       24,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       162.4,
+       42,
+       7.2,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       184,
+       32,
+       24,
+       7,
+       "pk"
+      ],
+      [
+       "t",
+       170,
+       22,
+       "fast"
+      ],
+      [
+       "a",
+       "M16 84 Q46.0 52 76 66"
+      ],
+      [
+       "you",
+       16,
+       86
+      ]
+     ]
+    },
+    {
+     "name": "Night Groove",
+     "tier": "hard",
+     "does": "The section goes dark (borrowed from Lights Out): pads only light up on their beat, so you see where to land only in the moment it is safe.",
+     "numbers": "6 pads 9 wide, 4 stud gaps, 2.6 s beat, pads glow 0.8 s of each beat, shrink to 30%",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       0,
+       220,
+       96,
+       "dk"
+      ],
+      [
+       "r",
+       6,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       49,
+       67,
+       8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       74,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "r",
+       117,
+       67,
+       8,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       142,
+       66,
+       26,
+       7,
+       "pk"
+      ],
+      [
+       "e",
+       87,
+       69.5,
+       18,
+       7,
+       "gh"
+      ],
+      [
+       "you",
+       19,
+       66
+      ],
+      [
+       "a",
+       "M24 64 Q55 44 86 64"
+      ],
+      [
+       "t",
+       60,
+       28,
+       "lit only on beat"
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,1723 @@
+{
+ "ideas": [
+  {
+   "id": 12,
+   "name": "Rising Goo",
+   "approach": "handmade",
+   "approachWhy": "Each variant is a tower shape plus a goo speed, and fairness depends on the exact climb time, so hand-made towers with tested speeds are safer than random ones. The clean shapes (stairs, shaft, spiral, ladders, basin) are few, so a generator would add little.",
+   "engine": {
+    "have": [
+     "rising sections with a step path the tests check (gap at most 6, rise at most 3.5 per step)",
+     "slide motion on axis y: a big red slab on slide y already gives the Tide Pool tide",
+     "slide motion on axis z (Sliding Ledges)",
+     "climbable truss ladders (shape \"truss\")",
+     "sectionAt and the fall rule: dropping below the lowest platform sends you back to start"
+    ],
+    "new": [
+     {
+      "what": "\"flood\" motion: a red see-through slab filling the lane that starts rising when the local player steps onto the section (or passes a start arch), at a set speed or a speed curve (start speed, end speed, like idea 24's 'collapse' wave), with optional pause heights, a stop height, surges and a wave; it drains when you leave or reset",
+      "size": "M"
+     },
+     {
+      "what": "hazard touch = back to the start pad (the shared rule from idea 1, used by every hazard idea), plus a server goo check: the server knows when the runner entered the section, works out the goo height itself and sends them back if they are under it",
+      "size": "M"
+     },
+     {
+      "what": "\"float\" option on a platform: it rides on top of the flood surface (height = goo height + 0.5), bobbing a little, for Float Up",
+      "size": "S"
+     },
+     {
+      "what": "drain valve: reuse the key pickup from idea 20 (touch hides it, chime, client counter); here a touch pauses the flood for a few seconds",
+      "size": "S"
+     },
+     {
+      "what": "looks and sound: bubbling goo surface, height marks on the tower wall, a glowing high-water line, rim glow + tick before a surge (tick from idea 18's client beat clock), bubbling that gets louder as it nears you",
+      "size": "S"
+     },
+     {
+      "what": "test: walk the step path at walk speed with a slow 1.5 s per jump and check the goo never reaches the player's feet (same shape as idea 24's runner test)",
+      "size": "S"
+     }
+    ]
+   },
+   "readability": "The goo is the same red see-through hazard as everywhere else, bubbling and filling the bottom of a tower; height marks on the wall and bubbling that gets louder as it nears you show how much time you have. Pauses show as a glowing ring on the rest ledge; surges show as the rim glowing and ticking first.",
+   "generator": null,
+   "variants": [
+    {
+     "name": "Slow Stairs",
+     "tier": "easy",
+     "does": "A wide stair up the tower; the goo creeps up slowly, so you feel chased but have time to spare.",
+     "numbers": "8 steps 10x10, rise 2.5, gap 4, goo 0.8 studs/s, starts 3 s after you step on",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       84,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       30,
+       77,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       56,
+       70,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       82,
+       63,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       108,
+       56,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       134,
+       49,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       160,
+       42,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       186,
+       35,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       88,
+       220,
+       8,
+       "hz"
+      ],
+      [
+       "a",
+       "M212 92 V72"
+      ],
+      [
+       "you",
+       69,
+       70
+      ],
+      [
+       "t",
+       150,
+       94,
+       "goo 0.8/s"
+      ]
+     ]
+    },
+    {
+     "name": "Low Tide",
+     "tier": "easy",
+     "does": "A short climb of only five steps: the goo rises just high enough to be scary, then stops at a glowing high-water line.",
+     "numbers": "5 steps 12x12, rise 3, gap 4, goo 0.9 studs/s, stops 12 studs up",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       10,
+       84,
+       32,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       50,
+       75,
+       32,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       90,
+       66,
+       32,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       130,
+       57,
+       32,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       170,
+       48,
+       32,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       88,
+       220,
+       8,
+       "hz"
+      ],
+      [
+       "l",
+       0,
+       62,
+       220,
+       62
+      ],
+      [
+       "t",
+       4,
+       58,
+       "high-water line"
+      ],
+      [
+       "a",
+       "M200 92 V66"
+      ],
+      [
+       "you",
+       106,
+       66
+      ]
+     ]
+    },
+    {
+     "name": "Rest Ledges",
+     "tier": "easy",
+     "does": "The goo rises in three short pushes and pauses at two wide rest ledges marked with a glowing ring, so you can catch your breath.",
+     "numbers": "9 steps, 2 rest ledges 12x12, goo 1.0 studs/s, pauses 4 s at each ledge",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       84,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       30,
+       77,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       56,
+       70,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       82,
+       63,
+       40,
+       5,
+       "yl"
+      ],
+      [
+       "r",
+       128,
+       56,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       154,
+       49,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       180,
+       42,
+       40,
+       5,
+       "yl"
+      ],
+      [
+       "r",
+       0,
+       88,
+       220,
+       8,
+       "hz"
+      ],
+      [
+       "t",
+       84,
+       58,
+       "pause here"
+      ],
+      [
+       "a",
+       "M8 94 V78"
+      ],
+      [
+       "you",
+       102,
+       63
+      ]
+     ]
+    },
+    {
+     "name": "Spiral Ramp",
+     "tier": "easy",
+     "does": "A walkable ramp winds round a fat pillar with only a few small jumps; you just keep running before the goo catches up.",
+     "numbers": "1.5 turns, ramp 10 wide, 4 small gaps of 3, goo 0.9 studs/s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       96,
+       10,
+       28,
+       80,
+       "dk"
+      ],
+      [
+       "p",
+       "M10 86 L90 70 L90 75 L10 91 Z",
+       "pl"
+      ],
+      [
+       "p",
+       "M130 62 L210 46 L210 51 L130 67 Z",
+       "pl"
+      ],
+      [
+       "p",
+       "M10 38 L90 22 L90 27 L10 43 Z",
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       90,
+       220,
+       6,
+       "hz"
+      ],
+      [
+       "a",
+       "M110 94 V70"
+      ],
+      [
+       "you",
+       50,
+       78
+      ],
+      [
+       "t",
+       140,
+       94,
+       "round the pillar"
+      ]
+     ]
+    },
+    {
+     "name": "Tide Pool",
+     "tier": "easy",
+     "does": "No chase: the goo goes up and down on a slow tide; cross the low walkway at low tide, then climb above the high-water line.",
+     "numbers": "tide 6 studs, 10 s cycle, low walkway 24 long, then 3 steps up",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       70,
+       30,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       40,
+       80,
+       80,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       84,
+       220,
+       12,
+       "hz"
+      ],
+      [
+       "r",
+       0,
+       72,
+       220,
+       12,
+       "gh"
+      ],
+      [
+       "a",
+       "M30 94 V76"
+      ],
+      [
+       "r",
+       130,
+       70,
+       22,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       160,
+       60,
+       22,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       190,
+       50,
+       30,
+       5,
+       "pl"
+      ],
+      [
+       "l",
+       0,
+       66,
+       220,
+       66
+      ],
+      [
+       "you",
+       70,
+       80
+      ],
+      [
+       "t",
+       130,
+       94,
+       "go at low tide"
+      ]
+     ]
+    },
+    {
+     "name": "Head Start Gate",
+     "tier": "easy",
+     "does": "The goo only starts when you run through a glowing arch at the bottom, after a 3-tick countdown, so you choose when the chase begins.",
+     "numbers": "3-tick countdown, 7 steps, rise 3, goo 1.0 studs/s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       82,
+       40,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       30,
+       56,
+       4,
+       26,
+       "yl"
+      ],
+      [
+       "r",
+       30,
+       54,
+       16,
+       3,
+       "yl"
+      ],
+      [
+       "r",
+       58,
+       76,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       84,
+       67,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       110,
+       58,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       136,
+       49,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       162,
+       40,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       188,
+       31,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       90,
+       220,
+       6,
+       "hz"
+      ],
+      [
+       "you",
+       16,
+       82
+      ],
+      [
+       "t",
+       4,
+       48,
+       "3..2..1"
+      ],
+      [
+       "a",
+       "M200 94 V74"
+      ]
+     ]
+    },
+    {
+     "name": "Wide Switchback",
+     "tier": "easy",
+     "does": "Big shelves zigzag left and right across the lane as they climb; easy jumps, but you turn at each end while the goo follows.",
+     "numbers": "6 shelves 12x10, rise 3, gap 4, goo 0.9 studs/s",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       10,
+       78,
+       70,
+       12,
+       "pl"
+      ],
+      [
+       "r",
+       140,
+       62,
+       70,
+       12,
+       "pl"
+      ],
+      [
+       "r",
+       10,
+       46,
+       70,
+       12,
+       "pl"
+      ],
+      [
+       "r",
+       140,
+       30,
+       70,
+       12,
+       "pl"
+      ],
+      [
+       "r",
+       10,
+       14,
+       70,
+       12,
+       "pl"
+      ],
+      [
+       "a",
+       "M80 84 Q110 76 140 68"
+      ],
+      [
+       "a",
+       "M140 64 Q110 56 80 52"
+      ],
+      [
+       "you",
+       30,
+       84
+      ],
+      [
+       "t",
+       140,
+       92,
+       "seen from above"
+      ]
+     ]
+    },
+    {
+     "name": "Zigzag Shaft",
+     "tier": "medium",
+     "does": "A tall closed shaft: ledges stick out of the left and right walls, and you jump across, back and forth, with the goo close under you.",
+     "numbers": "10 ledges 8x8, rise 3, gap 5 across, goo 1.3 studs/s, shaft 24 wide",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       20,
+       0,
+       6,
+       96,
+       "dk"
+      ],
+      [
+       "r",
+       194,
+       0,
+       6,
+       96,
+       "dk"
+      ],
+      [
+       "r",
+       26,
+       80,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       154,
+       66,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       26,
+       52,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       154,
+       38,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       26,
+       24,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       26,
+       86,
+       168,
+       10,
+       "hz"
+      ],
+      [
+       "a",
+       "M110 94 V70"
+      ],
+      [
+       "you",
+       172,
+       66
+      ]
+     ]
+    },
+    {
+     "name": "Float Up",
+     "tier": "medium",
+     "does": "The fixed steps run out halfway; the rest are pale rafts floating on the goo, so the rising goo itself lifts you, and you hop raft to raft to the top ledge.",
+     "numbers": "5 fixed steps, then 4 floating rafts 10x10 at different heights on the goo, goo 1.0 studs/s, top ledge 4 studs over the last raft's stop",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       80,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       32,
+       72,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       60,
+       64,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       70,
+       220,
+       26,
+       "hz"
+      ],
+      [
+       "r",
+       100,
+       66,
+       30,
+       4,
+       "ice"
+      ],
+      [
+       "r",
+       140,
+       66,
+       30,
+       4,
+       "ice"
+      ],
+      [
+       "a",
+       "M115 62 V44"
+      ],
+      [
+       "a",
+       "M155 62 V44"
+      ],
+      [
+       "r",
+       184,
+       34,
+       36,
+       5,
+       "pl"
+      ],
+      [
+       "you",
+       115,
+       66
+      ],
+      [
+       "t",
+       96,
+       94,
+       "rafts ride the goo"
+      ]
+     ]
+    },
+    {
+     "name": "Ladder Dash",
+     "tier": "medium",
+     "does": "Climbing ladders between ledges is slower than jumping, so the goo is slower too, but there is nowhere to dodge on a ladder.",
+     "numbers": "3 ladders 8 tall, 3 jump gaps of 5, goo 0.9 studs/s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       10,
+       82,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       50,
+       50,
+       6,
+       32,
+       "yl"
+      ],
+      [
+       "r",
+       56,
+       50,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       110,
+       50,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       150,
+       18,
+       6,
+       32,
+       "yl"
+      ],
+      [
+       "r",
+       156,
+       18,
+       50,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       88,
+       220,
+       8,
+       "hz"
+      ],
+      [
+       "a",
+       "M30 94 V76"
+      ],
+      [
+       "you",
+       53,
+       66
+      ]
+     ]
+    },
+    {
+     "name": "Surge",
+     "tier": "medium",
+     "does": "The goo rests, then surges fast; the rim glows and ticks before each surge, so climb in the calm and be high up when it comes.",
+     "numbers": "calm 5 s, surge 4 studs/s for 2 s, warning 1.5 s, 9 steps",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       84,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       30,
+       77,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       56,
+       70,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       82,
+       63,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       108,
+       56,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       134,
+       49,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       160,
+       42,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       186,
+       35,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       80,
+       220,
+       16,
+       "hz"
+      ],
+      [
+       "r",
+       0,
+       62,
+       220,
+       18,
+       "gh"
+      ],
+      [
+       "a",
+       "M14 94 V64"
+      ],
+      [
+       "t",
+       120,
+       94,
+       "glow + tick = surge"
+      ],
+      [
+       "you",
+       147,
+       49
+      ]
+     ]
+    },
+    {
+     "name": "Sliding Ledges",
+     "tier": "medium",
+     "does": "The ledges slide in and out of the tower wall, so you wait for the next one to come out while the goo climbs toward you.",
+     "numbers": "7 ledges 8x8 sliding 5 studs, 3 s period, goo 1.0 studs/s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       200,
+       0,
+       20,
+       96,
+       "dk"
+      ],
+      [
+       "r",
+       140,
+       80,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       100,
+       66,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "a",
+       "M120 62 H160"
+      ],
+      [
+       "r",
+       140,
+       52,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "a",
+       "M180 48 H150"
+      ],
+      [
+       "r",
+       100,
+       38,
+       40,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       88,
+       200,
+       8,
+       "hz"
+      ],
+      [
+       "a",
+       "M10 94 V76"
+      ],
+      [
+       "you",
+       160,
+       80
+      ]
+     ]
+    },
+    {
+     "name": "Flooding Basin",
+     "tier": "medium",
+     "does": "Not a tower: a long basin fills from behind while you cross steps that rise only gently, so the goo closes in from behind and below.",
+     "numbers": "80 studs long, 9 steps rising 1.5 each, goo 0.6 studs/s, fills from the start end",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       80,
+       20,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       28,
+       77,
+       20,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       52,
+       74,
+       20,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       76,
+       71,
+       20,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       100,
+       68,
+       20,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       124,
+       65,
+       20,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       148,
+       62,
+       20,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       172,
+       59,
+       20,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       196,
+       56,
+       20,
+       5,
+       "pl"
+      ],
+      [
+       "p",
+       "M0 96 L0 76 L90 82 L220 96 Z",
+       "hz"
+      ],
+      [
+       "a",
+       "M10 92 L60 80"
+      ],
+      [
+       "you",
+       110,
+       68
+      ],
+      [
+       "t",
+       150,
+       94,
+       "fills from behind"
+      ]
+     ]
+    },
+    {
+     "name": "Spiral Tower",
+     "tier": "medium",
+     "does": "Platforms circle round a central pillar as they climb, so you keep losing sight of the goo; listen for the bubbling getting closer.",
+     "numbers": "12 steps, 30 degrees apart, rise 2.5, goo 1.2 studs/s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       96,
+       6,
+       28,
+       84,
+       "dk"
+      ],
+      [
+       "r",
+       20,
+       80,
+       30,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       60,
+       70,
+       30,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       130,
+       60,
+       30,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       170,
+       50,
+       30,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       130,
+       40,
+       30,
+       5,
+       "gh"
+      ],
+      [
+       "r",
+       60,
+       30,
+       30,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       20,
+       20,
+       30,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       86,
+       220,
+       10,
+       "hz"
+      ],
+      [
+       "a",
+       "M10 94 V74"
+      ],
+      [
+       "you",
+       145,
+       60
+      ]
+     ]
+    },
+    {
+     "name": "Drain Valve",
+     "tier": "medium",
+     "does": "A sparkling valve sits on a side ledge partway up; touch it and the goo stops for 5 s, so the detour buys you time if you take it early.",
+     "numbers": "10 steps, rise 3, goo 1.4 studs/s, valve ledge 8x8 one jump to the side, pause 5 s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       84,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       34,
+       76,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       64,
+       68,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       94,
+       60,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       124,
+       52,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       154,
+       44,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       184,
+       36,
+       30,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       64,
+       46,
+       24,
+       5,
+       "pl"
+      ],
+      [
+       "c",
+       76,
+       40,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M80 66 Q80 52 76 48"
+      ],
+      [
+       "r",
+       0,
+       86,
+       220,
+       10,
+       "hz"
+      ],
+      [
+       "you",
+       76,
+       46
+      ],
+      [
+       "t",
+       120,
+       94,
+       "valve = pause"
+      ]
+     ]
+    },
+    {
+     "name": "Fast Flood",
+     "tier": "hard",
+     "does": "A tight, steep climb with the goo almost as fast as you; one missed jump and it reaches you.",
+     "numbers": "10 steps 8x8, rise 3.5, gap 5, goo 1.7 studs/s, starts 1 s after you step on",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       86,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       26,
+       78,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       48,
+       70,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       70,
+       62,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       92,
+       54,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       114,
+       46,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       136,
+       38,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       158,
+       30,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       180,
+       22,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       200,
+       14,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       70,
+       220,
+       26,
+       "hz"
+      ],
+      [
+       "a",
+       "M8 94 V58"
+      ],
+      [
+       "you",
+       123,
+       46
+      ],
+      [
+       "t",
+       150,
+       94,
+       "goo 1.7/s"
+      ]
+     ]
+    },
+    {
+     "name": "Speeding Flood",
+     "tier": "hard",
+     "does": "A tall, plain stair where the goo starts lazy and keeps speeding up, so the top half becomes a sprint you cannot slow down for.",
+     "numbers": "14 steps 8x8, rise 3, gap 5, goo 0.8 rising to 2.0 studs/s over 20 s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       86,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       30,
+       78,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       56,
+       70,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       82,
+       62,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       108,
+       54,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       134,
+       44,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       160,
+       34,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       186,
+       24,
+       18,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       80,
+       220,
+       16,
+       "hz"
+      ],
+      [
+       "a",
+       "M10 94 V84"
+      ],
+      [
+       "a",
+       "M60 92 V74"
+      ],
+      [
+       "a",
+       "M120 90 V56"
+      ],
+      [
+       "you",
+       143,
+       44
+      ],
+      [
+       "t",
+       150,
+       94,
+       "faster and faster"
+      ]
+     ]
+    },
+    {
+     "name": "Wave Rise",
+     "tier": "hard",
+     "does": "The goo rises fast and also swells up and down in waves, so the safe height changes every second; jump up during the dips.",
+     "numbers": "goo 1.4 studs/s plus a 2-stud wave every 3 s, 10 steps, rise 3",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       84,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       30,
+       76,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       56,
+       68,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       82,
+       60,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       108,
+       52,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       134,
+       44,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       160,
+       36,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       186,
+       28,
+       26,
+       5,
+       "pl"
+      ],
+      [
+       "p",
+       "M0 96 L0 70 Q27 62 55 70 Q82 78 110 70 Q137 62 165 70 Q192 78 220 70 L220 96 Z",
+       "hz"
+      ],
+      [
+       "a",
+       "M12 92 V60"
+      ],
+      [
+       "you",
+       95,
+       60
+      ]
+     ]
+    },
+    {
+     "name": "Surge Ladders",
+     "tier": "hard",
+     "does": "Ladders and short jumps mixed, with fast surges: you must be off each ladder and high up before the surge warning ends.",
+     "numbers": "3 ladders 7 tall, surge 5 studs/s for 2 s every 6 s, goo 0.5 studs/s between surges",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       10,
+       84,
+       34,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       44,
+       56,
+       6,
+       28,
+       "yl"
+      ],
+      [
+       "r",
+       50,
+       56,
+       34,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       46,
+       34,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       130,
+       18,
+       6,
+       28,
+       "yl"
+      ],
+      [
+       "r",
+       136,
+       18,
+       50,
+       5,
+       "pl"
+      ],
+      [
+       "r",
+       0,
+       76,
+       220,
+       20,
+       "hz"
+      ],
+      [
+       "r",
+       0,
+       60,
+       220,
+       16,
+       "gh"
+      ],
+      [
+       "a",
+       "M20 94 V62"
+      ],
+      [
+       "you",
+       47,
+       70
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}
