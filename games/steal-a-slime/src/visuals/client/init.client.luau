@@ -25,7 +25,7 @@
 	  * the Goo Gauntlet obby's moving parts (ObbyFx): slides, spinners, melting, flipping and shrinking pads
 	  * the obby world's own look (ObbyWorld): Lighting, Atmosphere and a tint swap while the local player is there
 	  * the obby's fall reset (ObbyFall): a runner who drops off the course is put back on the start pad at once
-	  * the Exclusive Shop's jar (ShopDisplayFx): the featured seats floating over its pedestals
+	  * the Exclusive Shop's claw shop (ShopDisplayFx): the featured seats on its pedestals and the claw show
 	  * carry trails (CarryTrailFx): a player's CarryTrail streams behind them while Carrying
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
 	  * a dropped wild Mystery Egg smashing on the ground (EggSmashFx, EggSmashedAt)

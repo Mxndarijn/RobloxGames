@@ -326,6 +326,71 @@
     "uploadedAt": "2026-10-29T13:14:16Z",
     "versions": 1
   },
+  "decor_goo_crystals": {
+    "assetId": "98549560827765",
+    "assetType": "Model",
+    "meshId": "rbxassetid://105532250698187",
+    "meshSize": [
+      4.327,
+      3.956,
+      3.387
+    ],
+    "sha256": "ec7193d8ddf05525",
+    "uploadedAt": "2026-10-31T13:47:15Z",
+    "versions": 1
+  },
+  "decor_slime_nest": {
+    "assetId": "78367331209283",
+    "assetType": "Model",
+    "meshId": "rbxassetid://110819446945105",
+    "meshSize": [
+      3.482,
+      1.643,
+      3.515
+    ],
+    "sha256": "103fe4fa4a81b7d4",
+    "uploadedAt": "2026-10-31T13:46:36Z",
+    "versions": 1
+  },
+  "decor_slime_topiary": {
+    "assetId": "81153228075438",
+    "assetType": "Model",
+    "meshId": "rbxassetid://95451042530760",
+    "meshSize": [
+      3.256,
+      3.811,
+      3.209
+    ],
+    "sha256": "371b90a5b92ce27b",
+    "uploadedAt": "2026-10-31T13:46:52Z",
+    "versions": 1
+  },
+  "decor_watering_can": {
+    "assetId": "115477687781361",
+    "assetType": "Model",
+    "meshId": "rbxassetid://124731250551357",
+    "meshSize": [
+      4.788,
+      2.917,
+      2.7
+    ],
+    "sha256": "a90b66e7f3151dba",
+    "uploadedAt": "2026-10-31T13:47:25Z",
+    "versions": 1
+  },
+  "decor_wildflower_clump": {
+    "assetId": "134185703252264",
+    "assetType": "Model",
+    "meshId": "rbxassetid://104962623104512",
+    "meshSize": [
+      3.375,
+      3.761,
+      2.928
+    ],
+    "sha256": "66ee71937f251759",
+    "uploadedAt": "2026-10-31T13:47:04Z",
+    "versions": 1
+  },
   "exclusive_jar_boutique_glass": {
     "assetId": "92353179686979",
     "assetType": "Model",
@@ -350,6 +415,58 @@
     ],
     "sha256": "c7827076f77461ae",
     "uploadedAt": "2026-10-28T17:38:34Z",
+    "versions": 1
+  },
+  "exclusive_slime_claw_arm": {
+    "assetId": "112584104329070",
+    "assetType": "Model",
+    "meshId": "rbxassetid://102864833743351",
+    "meshSize": [
+      1.138,
+      1.7,
+      1.082
+    ],
+    "sha256": "03b3340433bd5650",
+    "uploadedAt": "2026-10-31T13:46:19Z",
+    "versions": 1
+  },
+  "exclusive_slime_claw_glass": {
+    "assetId": "84556691531950",
+    "assetType": "Model",
+    "meshId": "rbxassetid://90052056080502",
+    "meshSize": [
+      12.6,
+      7.65,
+      7.15
+    ],
+    "sha256": "e2309a5813d59e86",
+    "uploadedAt": "2026-10-31T13:45:47Z",
+    "versions": 1
+  },
+  "exclusive_slime_claw_hand": {
+    "assetId": "102211562972917",
+    "assetType": "Model",
+    "meshId": "rbxassetid://87354359770991",
+    "meshSize": [
+      3.134,
+      3.378,
+      2.795
+    ],
+    "sha256": "30bd0e1ea5a449b6",
+    "uploadedAt": "2026-10-31T13:46:01Z",
+    "versions": 1
+  },
+  "exclusive_slime_claw_shop": {
+    "assetId": "74396602912152",
+    "assetType": "Model",
+    "meshId": "rbxassetid://135954495671820",
+    "meshSize": [
+      14.6,
+      22.232,
+      12.42
+    ],
+    "sha256": "40c5e9e1ffb27aeb",
+    "uploadedAt": "2026-10-31T13:45:27Z",
     "versions": 1
   },
   "factory_belt": {

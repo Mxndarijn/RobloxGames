@@ -44,6 +44,8 @@ export type Options = {
 	now: () -> number,
 	wait: (seconds: number) -> (),
 	changed: (() -> ())?, -- after a grant or pass change: push the view and State
+	granted: ((userId: number, key: string, isPass: boolean) -> ())?, -- after a new receipt is granted and saved, or a
+	-- Game Pass is bought here: the claw show (ClawShowService); never for a repeat receipt or a pass found on join
 	ctx: any, -- Actions.Context (features, requestWeather), read when a grant runs; nil in tests
 	attempts: number?, -- tries per Game Pass / policy call (default 3)
 }
@@ -76,6 +78,12 @@ function PurchaseService.service(options: Options): Service
 	local function changed()
 		if options.changed then
 			pcall(options.changed) -- a view hiccup never turns a saved grant into an error
+		end
+	end
+
+	local function granted(userId: number, key: string, isPass: boolean)
+		if options.granted then
+			pcall(options.granted, userId, key, isPass) -- a show hiccup never turns a saved grant into an error
 		end
 	end
 
@@ -118,6 +126,8 @@ function PurchaseService.service(options: Options): Service
 		pending[userId] = mine
 		local data = session.data
 		local cashBefore = data.cash
+		-- a receipt Roblox sends again after it was granted and saved answers Granted too, but plays no second show
+		local fresh = mine[purchaseId] == true or not ReceiptLedger.seen(data.receipts, purchaseId)
 		local decision = ReceiptLedger.process({
 			list = data.receipts,
 			id = purchaseId,
@@ -142,6 +152,9 @@ function PurchaseService.service(options: Options): Service
 			World.trackCash(world, session, "source", "Robux", data.cash - cashBefore, productKey)
 		end
 		changed()
+		if decision == "Granted" and fresh then
+			granted(userId, productKey, false)
+		end
 		return if decision == "Granted" then "PurchaseGranted" else "NotProcessedYet"
 	end
 
@@ -253,6 +266,7 @@ function PurchaseService.service(options: Options): Service
 			World.notify(world, userId, "Game Pass unlocked. Thank you!", "good", "Gift")
 			World.track(world, userId, { op = "event", name = "GamePassBought", fields = { `Pass - {key}` } })
 			changed()
+			granted(userId, key, true)
 		end
 	end
 

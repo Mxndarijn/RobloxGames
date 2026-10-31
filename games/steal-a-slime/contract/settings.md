@@ -23,6 +23,7 @@ The player's own settings, in one card opened from the gear (⚙️) in the top-
 | | `cameraShake` | toggle, on | Off: no PvP hit shake, no shake at a Secret's fountain show, no hatch zoom |
 | | `othersEffects` | toggle, on | Off: other players' carry trails, their PvP hit effects and slap effects are hidden (traps and steal trails stay: they are gameplay) |
 | Me | `showOnBoards` | toggle, on | Off: every global board shows `PlayerSettings.HIDDEN_NAME`, the default podium rig, `userId = 0`, also while offline (below) |
+| | `showMemberTag` | toggle, on | Off: no VIP / CLUB chip over your head and no tag in chat for anyone (`Purchases.member` returns nil, so the `Member` attribute is cleared). The pass and its perks stay |
 | | `numberStyle` | `short` / `full`, short | Full: the HUD cash shows every digit ($1,234,567; `NumberFormat.full`, short again from `FULL_MAX`) |
 
 The Game tab also has **Replay tutorial** and the Me tab the **game version** (`game.PlaceVersion`, "Studio" in Studio) with the player id, and **Reset settings** (hold to confirm; only these values).

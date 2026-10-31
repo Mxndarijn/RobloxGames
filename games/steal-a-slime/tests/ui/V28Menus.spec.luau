@@ -151,12 +151,13 @@ describe("v28 item 2: SlimeDex pictures are real slime renders", function()
 			expect(#built >= 1).toBe(true)
 		end
 	)
-	it("an unfound species renders its model as a dark silhouette", function()
+	it("an unfound species never shows the generated model (it does not look like the species): a grey blob", function()
 		local SlimePreview = UiHarness.ui("SlimePreview")
 		local panel = openDex(DEX, { buildSlime = fakeBuild })
 		local locked = UiHarness.find(UiHarness.find(panel.frame, "List"), "gummy")
-		local body = UiHarness.find(locked:FindFirstChild("Image"):FindFirstChild("Preview"), "Body")
-		expect(body.Color).toBe(SlimePreview.SILHOUETTE)
+		local preview = locked:FindFirstChild("Image"):FindFirstChild("Preview")
+		expect(UiHarness.find(preview, "Slime_Dex_gummy")).toBeNil()
+		expect(UiHarness.find(preview, "Body").Color).toBe(SlimePreview.GREYED)
 	end)
 	it("falls back to the SlimePreview blob when the builders error", function()
 		local panel = openDex(DEX, {
@@ -385,6 +386,39 @@ describe("Rebirth needs specific slimes and uses them up", function()
 		panel.update(rebirthState(0, 0))
 		expect(row.Visible).toBe(false)
 	end)
+	it("a missing slime is its own species mesh in grey, never a generated look-alike", function()
+		local Rebirth = UiHarness.ui("Panels/Rebirth")
+		local generated = 0
+		local function mesh(name: string): any
+			local model = UiHarness.Instance.new("Model")
+			model.Name = name
+			local part = UiHarness.Instance.new("Part")
+			part.Name = "Mesh"
+			part.Parent = model
+			return model
+		end
+		local panel = Rebirth.new(
+			UiHarness.root(),
+			ctx({
+				buildSpecies = function(id: string)
+					return mesh(`Dex_{id}`)
+				end,
+				buildGreySpecies = function(id: string)
+					return mesh(`Grey_{id}`)
+				end,
+				buildSlime = function()
+					generated += 1
+					return mesh("Generated")
+				end,
+			})
+		)
+		panel.update(stateWith(false, 1e9))
+		local preview = UiHarness.find(UiHarness.find(panel.frame, "SlimeNeed"), "Preview")
+		expect(UiHarness.find(preview, "Grey_sprout") ~= nil).toBe(true)
+		panel.update(stateWith(true, 1e9))
+		expect(UiHarness.find(preview, "Dex_sprout") ~= nil).toBe(true)
+		expect(generated).toBe(0)
+	end)
 	it("several slimes: one row each under the cash row, the reason names cash and slimes", function()
 		local Rebirth = UiHarness.ui("Panels/Rebirth")
 		local panel = Rebirth.new(UiHarness.root(), ctx())
@@ -473,7 +507,7 @@ describe("v28 item 5: the Guide NPC opens a next-goal + tips card", function()
 		expect(panel.close ~= nil).toBe(true)
 		expect(UiHarness.find(panel.frame, "ShowTutorial").Visible).toBe(false)
 	end)
-	it("after the tutorial card is shrunk the Guide offers it again, opens it and closes", function()
+	it("after the tutorial card is hidden the Guide offers it again, opens it and closes", function()
 		local Guide = UiHarness.ui("Panels/Guide")
 		local root = UiHarness.root()
 		local card = UiHarness.ui("TutorialCard").new(root, {}, 2)
@@ -489,7 +523,7 @@ describe("v28 item 5: the Guide NPC opens a next-goal + tips card", function()
 		)
 		local state = { tutorialStepId = "Grab", slimes = {} }
 		card.update(state)
-		UiHarness.fire(UiHarness.find(card.frame, "Tap"), "Activated")
+		UiHarness.fire(UiHarness.find(card.frame, "Hide"), "Activated")
 		expect(card.hidden()).toBe(true)
 		panel.update(state)
 		local show = UiHarness.find(panel.frame, "ShowTutorial")

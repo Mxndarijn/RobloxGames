@@ -1,7 +1,7 @@
 --!strict
 --[[
 	Exclusive shop (contract/exclusive-shop.md §8; the approved mockup docs/exclusive-shop-ui-mockup.html,
-	direction A with B's stage). Opens from the jar boutique's ShopPrompt (the server sets OpenShop = "ExclusiveShop";
+	direction A with B's stage). Opens from the claw shop's ShopPrompt (the server sets OpenShop = "ExclusiveShop";
 	on Featured), from the Skins menu's "Exclusive shop" button (on that seat) and from the Item shop's Luck Potion
 	"Details". Not in the nav.
 
@@ -1137,7 +1137,7 @@ function ExclusiveShop.new(parent: Instance, ctx: any)
 			giftWaiting = nil
 			closePicker()
 			if open and ctx.exclusiveShopHidden then
-				ctx.exclusiveShopHidden() -- opened at the jar boutique: the server closes its side too
+				ctx.exclusiveShopHidden() -- opened at the claw shop: the server closes its side too
 			end
 		end
 		open = isOpen

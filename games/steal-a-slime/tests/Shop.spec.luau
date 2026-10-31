@@ -143,6 +143,14 @@ describe("TutorialProgress", function()
 		expect(finished).toBe(true)
 		expect(data.tutorialStep).toBe(0)
 	end)
+	it("buying the Speed Coil finishes BuyItem, and a save that owns it skips the step", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, nil, 1e7)
+		s.data.tutorialStep = assert(TutorialProgress.indexOf("BuyItem"))
+		expect(call(world, 1, "BuySpeedCoil").ok).toBe(true)
+		expect(s.data.tutorialStep).toBe(0)
+		expect(TutorialProgress.isDone({ tutorialStep = 1, speedCoil = true }, "BuyItem")).toBe(true)
+	end)
 	it("has UI card copy for every step", function()
 		local UiTutorial = require("../src/ui/Tutorial")
 		for _, name in TutorialProgress.STEPS do
@@ -160,7 +168,7 @@ describe("TutorialProgress", function()
 		expect(TutorialProgress.currentId(s.data)).toBe("Deposit")
 		expect((Carry.deposit(world, 1))).toBe(true)
 		expect(TutorialProgress.currentId(s.data)).toBe("Lock")
-		s.lockUntil = 0
+		expect(s.lockUntil > T0 + 100).toBe(true) -- still inside the join lock: the Lock step counts anyway
 		expect(call(world, 1, "Lock").ok).toBe(true)
 		expect(TutorialProgress.currentId(s.data)).toBe("Leaderboard")
 		TutorialService.tick(world, {

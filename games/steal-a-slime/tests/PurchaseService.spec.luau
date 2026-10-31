@@ -11,7 +11,7 @@ local T0 = ServerFixtures.T0
 local function setup(opts: { saveOk: boolean?, owns: { [number]: boolean }?, restricted: any?, on: boolean? }?)
 	local o = opts or {}
 	local world = ServerFixtures.world()
-	local calls = { saves = 0, owns = 0, changed = 0 }
+	local calls = { saves = 0, owns = 0, changed = 0, granted = {} :: { string } }
 	local saveOk = o.saveOk ~= false
 	local service = PurchaseService.service({
 		world = world,
@@ -37,6 +37,9 @@ local function setup(opts: { saveOk: boolean?, owns: { [number]: boolean }?, res
 		wait = function() end,
 		changed = function()
 			calls.changed += 1
+		end,
+		granted = function(userId: number, key: string, isPass: boolean)
+			table.insert(calls.granted, `{userId}:{key}:{isPass}`)
 		end,
 		attempts = 1,
 	})
@@ -75,6 +78,33 @@ describe("PurchaseService receipts", function()
 		expect(s.data.ownedSeats).toEqual({ "ufo" })
 		expect(s.data.receipts).toEqual({ "p9" })
 		expect(calls.saves).toBe(2)
+	end)
+	it("reports a grant (the claw show) once per saved receipt, never for a repeat or an unsaved one", function()
+		local world, service, calls, setSave = setup({ saveOk = false })
+		ServerFixtures.join(world, 1, nil, 0)
+		expect(service.grantProduct(1, "Seat_ufo", "p1")).toBe("NotProcessedYet")
+		expect(calls.granted).toEqual({})
+		setSave(true)
+		expect(service.grantProduct(1, "Seat_ufo", "p1")).toBe("PurchaseGranted")
+		expect(service.grantProduct(1, "Seat_ufo", "p1")).toBe("PurchaseGranted")
+		expect(calls.granted).toEqual({ "1:Seat_ufo:false" })
+	end)
+	it("reports a Game Pass bought in this server", function()
+		local world, service, calls = setup()
+		ServerFixtures.join(world, 1)
+		local key, passId
+		for k, def in Config.EXCLUSIVE_SHOP.passes do
+			if def.passId ~= 0 then
+				key, passId = k, def.passId
+				break
+			end
+		end
+		if passId then
+			service.passPurchased(1, passId, false)
+			expect(calls.granted).toEqual({})
+			service.passPurchased(1, passId, true)
+			expect(calls.granted).toEqual({ `1:{key}:true` })
+		end
 	end)
 end)
 

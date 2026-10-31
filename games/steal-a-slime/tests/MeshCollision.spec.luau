@@ -229,6 +229,12 @@ local DECOR = {
 	ranch_horseshoe_pit = "1.8 stud flat sand pit, walk over it",
 	ranch_pumpkin_patch = "low foliage patch, walk through",
 	ranch_sunflower_patch = "foliage, walk through",
+	-- ground decor scattered between the plots (WorldLayout.GROUND_DECOR)
+	decor_slime_nest = "low nest on the grass, walked over",
+	decor_wildflower_clump = "foliage, walk through",
+	decor_goo_crystals = "small ground decor, walk through",
+	decor_slime_topiary = "small ground decor, walk through",
+	decor_watering_can = "low ground decor, walked over",
 	plot_skin_mushroom = "client-cloned plot skin template, not a world slot",
 	plot_skin_candy = "client-cloned plot skin template, not a world slot",
 	plot_skin_crystal = "client-cloned plot skin template, not a world slot",
@@ -279,8 +285,10 @@ local DECOR = {
 	giant_sequoia_spire = "border tree beyond the world wall ring, out of reach",
 	giant_cloud_tree = "border tree beyond the world wall ring, out of reach, canopy overhead",
 	slime_lane = "the goo parade lane: a 0.43 stud flat strip players walk over",
-	exclusive_jar_boutique = "Exclusive Shop jar look: decor over the stand's solid plinth, glass, counter and posts (they keep colliding under it)",
-	exclusive_jar_boutique_glass = "Exclusive Shop jar glass: see-through decor over the stand's solid GlassWall",
+	exclusive_slime_claw_shop = "Exclusive Shop claw shop look: decor over the stand's solid body, back wall, posts, roof, counter and chute (they keep colliding under it)",
+	exclusive_slime_claw_glass = "Exclusive Shop claw box glass: see-through decor over the stand's solid glass panes",
+	exclusive_slime_claw_hand = "Exclusive Shop claw hand: moved by the client inside the glass box, never touched",
+	exclusive_slime_claw_arm = "Exclusive Shop claw arm: stretched by the client inside the glass box, never touched",
 }
 for _, name in PvpModels.MESHES do
 	DECOR[name] = "held PvP item (server/PvpHeld): CanCollide false, never placed in the world"

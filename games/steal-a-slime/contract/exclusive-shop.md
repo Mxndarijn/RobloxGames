@@ -1,7 +1,7 @@
-# 47. Exclusive Shop: Robux purchases, the Golden Jar Boutique, quick-buys (2026-10-28)
+# 47. Exclusive Shop: Robux purchases, the Slime Claw shop, quick-buys (2026-10-28)
 
 **Status:** live, no feature flag. Approved
-by Merijn: the jar shop model (`shared/modeling-kit/models/exclusive_jar_boutique.py`), the UI direction A with B's
+by Merijn: the Slime Claw shop model (`shared/modeling-kit/models/exclusive_slime_claw.py`, 2026-10-31), the UI direction A with B's
 stage (`docs/exclusive-shop-ui-mockup.html`) and the first set from `docs/exclusive-shop-ideas.md` §6.
 
 **Fairness rules (from the ideas doc §1.1, binding):** sell looks freely, time and comfort carefully, never safety from
@@ -107,40 +107,73 @@ Exclusives (`Types.PetSeatView.productKey: string?`). `offlineDouble.available` 
 ## 6. Featured rotation
 
 `shared/ExclusiveRotation.luau` (pure): `featured(weekIndex) -> { seatId x4 }`, seeded by the UTC week number, the
-same on every server; 4 distinct Exclusive seats. No discount in this first version. The jar shop shows the first 3 (§7).
+same on every server; 4 distinct Exclusive seats. No discount in this first version. The claw shop shows the first 3 (§7).
 
-## 7. World: the Golden Jar Boutique
+## 7. World: the Slime Claw
 
-`WorldLayout.EXCLUSIVE_JAR` (placement: §7.1), built by `Props.exclusiveJar`, placed by `server/WorldProps` only with
-the flag on. The shop is the game's own goo jar made premium (`shared/modeling-kit/models/exclusive_jar_boutique.py`):
-a glass jar with gold bands on a wooden plinth ringed with goo, a goo dome with a gold lid and the trophy slime, three
-goo pedestals inside, and a wooden shop front built into the jar's front (counter, striped lilac / butter awning, the
-"EXCLUSIVE" sign). Two kit meshes, each in a `MeshAsset` slot of the `ExclusiveShopStand` Model:
-- `exclusive_jar_boutique` (`Shop`): everything solid. Decor (no `MeshAssets.COLLISION` entry): the stand-in plinth,
-  glass, counter and frame posts stay solid under it.
-- `exclusive_jar_boutique_glass` (`Glass`): the jar wall, worn like the goo jar tower's glass (`MeshMaterial` =
-  `WorldLayout.JAR_GLASS_MATERIAL`, `MeshTransparency` = `WorldLayout.JAR_GLASS_MESH_TRANSPARENCY`, no shadow).
+`WorldLayout.EXCLUSIVE_CLAW` (placement: §7.1), built by `Props.exclusiveClaw`, placed by `server/WorldProps`. The shop
+is a prize claw machine worked by the game's own slime (`shared/modeling-kit/models/exclusive_slime_claw.py`, picked by
+Merijn as variant B): a wooden ranch shop with a glass claw box over the counter; the gold trophy slime sits on a lilac
+cushion on the roof, over a hole in the box's ceiling, and lowers a gold goo arm with a three-finger hand into the box.
+Inside: three goo pedestals with the featured seats, a heap of prize capsules, a gold funnel at the front right. On the
+counter: a pink button (decor) and the prize chute. Four kit meshes, each in a `MeshAsset` slot of the
+`ExclusiveShopStand` Model:
+- `exclusive_slime_claw_shop` (`Shop`): everything solid. Decor (no `MeshAssets.COLLISION` entry): the stand-in body,
+  back wall, posts, panes, roof, counter and chute stay solid under it.
+- `exclusive_slime_claw_glass` (`Glass`): the box's front and side panes (`MeshMaterial` =
+  `WorldLayout.JAR_GLASS_MATERIAL`, `MeshTransparency` = `EXCLUSIVE_CLAW.glassTransparency`, no shadow).
+- `exclusive_slime_claw_hand` (`Hand`) and `exclusive_slime_claw_arm` (`Arm`): the claw. Both slots and their stand-ins
+  carry `ClawPiece` (`Constants.CLAW_PIECE_ATTRIBUTE`) = `"Hand"` / `"Arm"`; the client moves them in a claw show (§7.2).
 
-The kit's points (`out/exclusive_jar_boutique_layout.json`: glass origin, the 3 display spots, counter top and size,
-sign face centre and size, footprint radius, the ground over the mesh bottom) live once in `WorldLayout.EXCLUSIVE_JAR`;
-`WorldLayout.jarPoint` turns one into the stand's frame (front -Z, origin on the ground). The `Counter` (PrimaryPart,
-solid, its top the kit's counter top) carries the `ShopPrompt`; the stand has `ShopId = "ExclusiveShop"`
-(`Constants.EXCLUSIVE_SHOP_ID`, `ShopGuard.PANEL_SHOPS`). The prompt opens the `ExclusiveShop` panel on Featured. The
-`Sign` part just in front of the kit's sign face carries the lilac "EXCLUSIVE" jelly sign (`Props.standSign`,
-`Props.JAR_SIGN`).
+The kit's points (`out/exclusive_slime_claw_layout.json`: glass, hand and arm origins, arm root and the hand's rest,
+the 3 pedestal tops, the capsule spot, funnel top, chute mouth, the box's inside, counter top and size, sign face centre
+and size) live once in `WorldLayout.EXCLUSIVE_CLAW`; `WorldLayout.clawPoint` turns one into the stand's frame (front -Z,
+origin on the ground). The `Counter` (PrimaryPart, solid, its top the kit's counter top) carries the `ShopPrompt`; the
+stand has `ShopId = "ExclusiveShop"` (`Constants.EXCLUSIVE_SHOP_ID`, `ShopGuard.PANEL_SHOPS`). The prompt opens the
+`ExclusiveShop` panel on Featured. The `Sign` part just in front of the kit's sign face (the lilac fascia's butter face)
+carries the lilac "EXCLUSIVE" jelly sign (`Props.standSign`, `Props.CLAW_SIGN`).
 
-Until the meshes are uploaded a primitive jar stands in (`MeshStandIn`, hidden by `server/MeshSwap` once its mesh
-loads), SmoothPlastic only, in the kit's colours (`Props.JAR_COLORS`): wood plinth with a mint goo top, light mint
-glass (`Props.JAR_GLASS_TRANSPARENCY`), two gold bands, a mint goo dome, a gold lid and a butter slime, the wooden
-counter with a lilac band and a gold medal, two posts and a beam, the striped awning with scallops, the gold sign board
-with its lilac face, and two lanterns.
+Until the meshes are uploaded a primitive claw shop stands in (`MeshStandIn`, hidden by `server/MeshSwap` once its mesh
+loads), SmoothPlastic only, in the kit's colours (`Props.CLAW_COLORS`): the wooden body, back wall and posts, three
+light glass panes (`Props.CLAW_GLASS_TRANSPARENCY`), the sand box floor with three goo pedestals and the gold funnel,
+the roof with its lilac fascia and butter sign face, the lilac cushion and the gold slime, the counter with a lilac
+band, a gold medal, the pink button and the chute, and a gold palm, three fingers and arm.
 
 **Displays:** the client (`visuals/client/ShopDisplayFx`, in the one frame loop, culled at
-`Config.EXCLUSIVE_SHOP.drawDistance`) floats a clone of each of the week's first 3 featured seat templates
-(`ReplicatedStorage.PetCloudMeshes`, `ExclusiveRotation.featured`) over the 3 pedestals, scaled to
-`EXCLUSIVE_JAR.displayWidth`, each slowly turning (`displayRpm`) and bobbing up to `displayBob` studs over
+`Config.EXCLUSIVE_SHOP.drawDistance`) stands a clone of each of the week's first 3 featured seat templates
+(`ReplicatedStorage.PetCloudMeshes`, `ExclusiveRotation.featured`) on the 3 pedestals, scaled to
+`EXCLUSIVE_CLAW.displayWidth`, each slowly turning (`displayRpm`) and bobbing up to `displayBob` studs over
 `displayBobSeconds`, a third of a cycle apart, on the server clock (pure pose maths: `visuals/shared/ShopDisplay`). A
 seat without a template shows a small lilac cloud until its template arrives.
+
+### 7.2 The claw show
+
+After a purchase is granted, everyone near the shop sees the slime fetch it. `PurchaseService` calls its `granted`
+option after a new receipt is granted and saved (never for a repeat receipt) and after a Game Pass is bought in this
+server (never for a pass found on join); `server/ClawShowService` turns that into one `ClawShow` event for every client:
+- Which purchases: the grant kinds in `Config.EXCLUSIVE_SHOP.claw.showKinds` (seats, the bundle, gifts, cosmetics, the
+  server Luck Potion) and every Game Pass. Time skips and quick-buys (Finish brew, Hatch now, Double offline, ...) play
+  none. A buyer who left before the show plays none.
+- What the claw takes (`ClawShowService.plan`): a bought seat that stands on a pedestal (the first 3 featured seats,
+  `ShopDisplay.seats`) is taken from its pedestal (`display` 1..3); anything else is a prize capsule (`display` 0,
+  `ClawShow.CAPSULE`). A gift plays as its item.
+- The banner (`ClawShow.bannerText`): "<buyer> got <item>!" for a seat or a cosmetic (`Purchases.itemName`), "<buyer>
+  gifted <item>!" for a gift, "<buyer> got a prize!" otherwise. The buyer is their display name.
+- Timing (`ClawShow.schedule`): a show starts `claw.lead` after the grant, or `claw.gap` after the show before it; one
+  that would start more than `claw.maxWait` after its grant is skipped. The purchase is granted either way.
+
+`ClawShow` event (RemoteEvent, server -> all clients): `{ startAt: number (workspace:GetServerTimeNow()), display:
+number, buyer: string, label: string?, gift: boolean? }` (`ClawShow.Event`).
+
+The show (`visuals/shared/ClawShow`, pure, the same on every client; steps and seconds in `Config.EXCLUSIVE_SHOP.claw.
+steps`): aim (the hand slides over the prize, inside the box), drop (down to `grabDepth` over the prize), grab, lift,
+carry (over the funnel), release (the prize falls into the funnel), pop (it comes out of the chute mouth, `popRise` up
+and `popOut` to the front), show (it hangs there spinning under the banner), fly (it rises `flyRise` and is gone). The
+hand goes home over `returnSeconds` from the pop. A seat taken from its pedestal is out of its spot from the grab to the
+end. `ShopDisplayFx` plays it: it slides the `Hand` pieces, turns and stretches the `Arm` pieces from the arm root to
+the hand, carries a clone of the seat (or a lilac capsule) and shows the banner (a studs-sized BillboardGui over the
+chute, `MaxDistance` = `claw.bannerDistance`). Shows play one at a time in start order; a camera past `drawDistance`
+skips the frame work, and a show that ended meanwhile puts the claw back at once.
 
 ### 7.1 Placement
 
@@ -154,7 +187,7 @@ the flag on) and a `world-shops.md` §27.2 row.
 ## 8. UI
 
 `ui/Panels/ExclusiveShop.luau`: direction A (tabs, card grid, detail pane; phone: bottom sheet) with B's carousel
-stage behind the preview. Opens from the jar shop's prompt, the Skins panel's gold "Exclusive shop" well (on that seat),
+stage behind the preview. Opens from the claw shop's prompt, the Skins panel's gold "Exclusive shop" well (on that seat),
 and a HUD shop button. Quick-buy buttons live where the wait is: Merge panel ("Finish now", or "Use credit"), egg pad
 sign / hatch prompt area ("Hatch now"), Welcome card ("Double it"), WorldShop Luck Potion row ("Buy for the server").
 Buy buttons call `MarketplaceService` prompts; the panel never grants anything.
@@ -259,12 +292,12 @@ Request `EquipStyle(kind, id)` (0.5 s; "" = take off). State: `exclusiveShop.sty
 - **Base skins** (`Skin_<id>`, `Config.PLOT_SKINS[].exclusive`): Fairground 299, Beach Hut 249, Space Station 399,
   Winter Cabin 249, Haunted Ranch 299 (Halloween). `PlotSkins.unlocked` = owned; equipped with `EquipPlotSkin`. The
   tower meshes are kit themes (`models/_goo_jar_themes.py`, `goo_jar_*@<id>`, uploaded; MeshAssets block from
-  `tools/goo_jar_theme_assets.py`). The Skins menu shows an unowned one with a gold "Exclusive" and
-  "Only in the Exclusive shop.".
+  `tools/goo_jar_theme_assets.py`). The Skins menu shows an unowned one with a gold "Exclusive" and its price, and
+  its pane sells it with "Buy · R$<price>" (the shop on that skin while the product is not on sale).
 - **Bases** (`Base_<id>`, `Config.PLOT_BASES[].exclusive`, contract/base-shapes.md): Carousel Tent 599, Space Rocket
   499, Tree House 499, Lighthouse 399, Snow Globe 399. `PlotBases.unlocked` = owned (rebirths never unlock one);
   equipped with `EquipPlotBase` ("Pick it in Skins."). Shown on the Style tab after the base skins (card key `plotBase:<id>`, icon
-  `PlotBase_<id>`, UI-drawn), and in the Skins menu's base row with a gold "Exclusive" and "Buy · R$<price>". A base
+  `PlotBase_<id>`, UI-drawn), and in the Skins menu's Building tab with a gold "Exclusive", its price and "Buy · R$<price>". A base
   taken back (a gift whose save failed) is taken off: `plotBase` goes back to `jar`.
 - **Lock styles** (`LockStyle_<id>`, `EXCLUSIVE_SHOP.lockStyles`, kit `lock_stopper_<id>`, the classic stopper's box):
   the owner's worn style is Plot attribute `LockStyle`; MeshSwap shows its stopper on `StopperShut` only (the door

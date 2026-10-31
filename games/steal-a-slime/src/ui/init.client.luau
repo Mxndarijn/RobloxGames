@@ -76,10 +76,12 @@ local SlimeInfoCard = require(script.SlimeInfoCard)
 local SlimeKeyCard = require(script.SlimeKeyCard)
 local SlimeKeys = require(script.SlimeKeys)
 local SlimeMove = require(script.SlimeMove)
+local SlimePreview = require(script.SlimePreview)
 local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
 local StealAlertFx = require(script.StealAlertFx)
+local StealReach = require(script.StealReach)
 local TickGuard = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core"):WaitForChild("TickGuard"))
 local TouchControls = require(script.TouchControls)
 local TutorialCard = require(script.TutorialCard)
@@ -326,6 +328,12 @@ local function buildSlime(genome: any): Model?
 	return model
 end
 
+local function kitFolder(): Instance?
+	return gui.Parent and gui.Parent:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+end
+-- Remounts the open menu's slime previews; set below with the kit folder watch.
+local previewsChanged: () -> () = function() end
+
 -- togglePanel is filled in below, once the panels exist.
 local ctx: { [string]: any } = {
 	Config = Config,
@@ -359,9 +367,19 @@ local ctx: { [string]: any } = {
 	giftPlayers = GiftPlayers.start(Players, player, function(fn: () -> ())
 		task.spawn(fn)
 	end).list,
-	buildSpecies = SpeciesModel.builder(function()
-		return gui.Parent and gui.Parent:FindFirstChild(Constants.SLIME_KITS_FOLDER)
-	end, MeshAssets.IMPORT_YAW, kitCache.want),
+	buildSpecies = SpeciesModel.builder(kitFolder, MeshAssets.IMPORT_YAW, kitCache.want),
+	-- A species you haven't found or don't have: its mesh in grey.
+	buildGreySpecies = SpeciesModel.greyBuilder({
+		kits = kitFolder,
+		importYaw = MeshAssets.IMPORT_YAW,
+		makeGrey = SpeciesModel.greyMesh(AssetService, SlimePreview.greyOf),
+		spawn = function(fn: () -> ())
+			task.spawn(fn)
+		end,
+		ready = function()
+			previewsChanged()
+		end,
+	}),
 }
 
 local hud = Hud.new(gui, ctx)
@@ -438,7 +456,7 @@ local backdrop = Widgets.backdrop({
 })
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
--- order: Rebirth, Goals, SlimeDex, Codes, Skins, Leaders) or a world prompt, closed with their X, the backdrop, Esc or
+-- order: Rebirth, Goals, SlimeDex, Codes, Skins, Leaders, Settings) or a world prompt, closed with their X, the backdrop, Esc or
 -- gamepad B.
 local panelByKey: { [string]: any } = {
 	Merge = MergePanel.new(gui, ctx),
@@ -450,6 +468,7 @@ local panelByKey: { [string]: any } = {
 	Skins = SkinsPanel.new(gui, ctx),
 	Codes = CodesPanel.new(gui, ctx),
 	Leaderboard = LeaderboardPanel.new(gui, ctx),
+	Settings = SettingsPanel.new(gui, ctx),
 }
 type PanelEntry = { key: string, nav: Nav.Entry?, panel: any }
 local panels: { PanelEntry } = {}
@@ -460,17 +479,14 @@ for _, navEntry in Nav.ENTRIES do
 	end
 end
 -- Every menu: the nav ones plus the cards without a nav button: Merge (opened at the vat), WorldShop (opened by the
--- server at a shop stand), ExclusiveShop (the jar boutique, Skins, the Item shop's potion), the Guide and Welcome cards.
+-- server at a shop stand), ExclusiveShop (the claw shop, Skins, the Item shop's potion), the Guide and Welcome cards.
 local allPanels: { PanelEntry } = table.clone(panels)
 for _, key in { "Merge", "WorldShop", "ExclusiveShop" } do
 	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
 end
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
 table.insert(allPanels, { key = "Welcome", nav = nil, panel = WelcomePanel.new(gui, ctx) })
--- The Settings card (no nav button) opens from the gear in the top-right slot.
-local settingsPanel = SettingsPanel.new(gui, ctx)
-table.insert(allPanels, { key = "Settings", nav = nil, panel = settingsPanel })
-settings.onChanged(settingsPanel.refresh)
+settings.onChanged(panelByKey.Settings.refresh)
 
 local allKeys: { string } = {}
 for _, entry in allPanels do
@@ -495,7 +511,6 @@ type NavButton = {
 }
 
 local openKey: string? = nil
-local settingsButton: any = nil -- the gear in the top-right slot (made once setOpen exists)
 local navButtons: { [string]: NavButton } = {}
 local screen: Layout.Screen? = nil
 local applyLayout: () -> ()
@@ -636,7 +651,7 @@ local function forceMvp(state: any): any
 end
 
 -- Studio-only: the SlimeUI attribute "PcwDexRows" = N marks the first N State.dex entries found (named)
--- so the Dex grid can be shot with found cards and silhouettes side by side.
+-- so the Dex grid can be shot with found and grey cards side by side.
 local function forceDex(state: any): any
 	local count = if isStudio then gui:GetAttribute("PcwDexRows") else nil
 	if type(count) ~= "number" or count <= 0 or type(state.dex) ~= "table" then
@@ -761,9 +776,6 @@ local function syncMenus()
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
-	if settingsButton then
-		settingsButton.instance.Visible = visibleKey == nil
-	end
 	refreshHint()
 end
 
@@ -796,34 +808,6 @@ for _, entry in allPanels do
 	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
 end
 inventory.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncTutorial)
-
--- Settings button: the gear, icon only, shown with no menu open; the open card has its own X. A small mute badge
--- on its corner says why the game is quiet.
-settingsButton = Widgets.button(
-	{
-		Name = "SettingsButton",
-		Text = Icons.SETTINGS,
-		TextSize = 28,
-		Visible = false,
-	},
-	Theme.BgLight,
-	function()
-		setOpen("Settings")
-	end
-)
-settingsButton.instance.Parent = gui
-local muteBadge = Widgets.iconBadge({
-	Name = "MuteBadge",
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.92, 0.92),
-	Visible = false,
-	Parent = settingsButton.instance,
-}, Icons.SOUND_OFF, Theme.Bad, Layout.SETTINGS_BADGE)
-local function refreshMuteBadge()
-	muteBadge.Visible = PlayerSettings.on(player, "muted")
-end
-refreshMuteBadge()
-settings.onChanged(refreshMuteBadge)
 
 for _, entry in panels do
 	local navEntry = entry.nav :: Nav.Entry
@@ -900,6 +884,21 @@ for _, entry in panels do
 	}
 end
 
+-- A small mute badge on the Settings tile's corner says why the game is quiet.
+local muteBadge = Widgets.iconBadge({
+	Name = "MuteBadge",
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.92, 0.92),
+	Visible = false,
+	ZIndex = Layout.NAV_TILE_Z.text + 1,
+	Parent = navButtons.Settings.tile,
+}, Icons.SOUND_OFF, Theme.Bad, Layout.SETTINGS_BADGE)
+local function refreshMuteBadge()
+	muteBadge.Visible = PlayerSettings.on(player, "muted")
+end
+refreshMuteBadge()
+settings.onChanged(refreshMuteBadge)
+
 for _, entry in allPanels do
 	entry.panel.close.Activated:Connect(function()
 		setOpen(nil)
@@ -958,7 +957,11 @@ local slimeMove = if Config.FEATURES.MoveSlime == true
 		uis = game:GetService("UserInputService"),
 		cas = ContextActionService,
 		prompts = ProximityPromptService,
-		onActive = inventory.setMoving,
+		frame = game:GetService("RunService").RenderStepped,
+		onActive = function(on: boolean)
+			inventory.setMoving(on)
+			tutorial.setMoving(on)
+		end,
 	})
 	else nil
 
@@ -1013,6 +1016,36 @@ local slimeKeys = SlimeKeys.start({
 			end
 		end,
 	},
+})
+
+-- A Steal prompt never shows to a player outside that base or on another floor of it (StealReach, JarInside).
+local BaseShapes = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("BaseShapes"))
+local WorldLayout = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WorldLayout"))
+local stealReach = StealReach.start({
+	plots = function(): Instance?
+		return workspace:FindFirstChild(Constants.PLOTS_FOLDER)
+	end,
+	localUserId = player.UserId,
+	root = function(): BasePart?
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		return if root and root:IsA("BasePart") then root else nil
+	end,
+	jarOf = function(plot: Instance): any
+		local base = plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE)
+		return BaseShapes.get(if type(base) == "string" then base else nil).guard
+	end,
+	localPoint = function(plot: Instance, at: Vector3): { number }?
+		local base = plot:FindFirstChild("Base")
+		if not base or not base:IsA("BasePart") then
+			return nil
+		end
+		local p = base.CFrame:PointToObjectSpace(at)
+		return { p.X, p.Y - base.Size.Y / 2 + WorldLayout.PLOT_FLOOR_TOP, p.Z }
+	end,
+	slimesFolder = Constants.PLOT_SLIMES_FOLDER,
+	promptName = Constants.GRAB_PROMPT_NAME,
+	padsAttribute = Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE,
 })
 
 -- Settings: "Hold to sell" off makes Sell a tap.
@@ -1085,6 +1118,12 @@ require(script.MemberTags).start({
 	TextChatService = game:GetService("TextChatService"),
 	attribute = Constants.MEMBER_ATTRIBUTE,
 	playerGui = player:WaitForChild("PlayerGui"),
+})
+-- The goo tube's "Drop down" prompt shows only to the base's owner, on the top jar, while empty-handed.
+require(script.GooTubePrompt).start({
+	root = workspace:WaitForChild("Plots"),
+	player = player,
+	localUserId = player.UserId,
 })
 -- Locked bases (your own too) show how long the lock lasts over the lock button (seen through glass, not walls).
 local lockTimerTag = LockTimerTag.start({
@@ -1160,7 +1199,7 @@ do
 	ctx.worldShop = worldShop
 	local shopEvent = Remotes.get(Constants.SHOP_EVENT) :: RemoteEvent
 	shopEvent.OnClientEvent:Connect(worldShop.onEvent)
-	-- The jar boutique's ShopPrompt opens the Exclusive shop the same way (OpenShop = "ExclusiveShop"; the server
+	-- The claw shop's ShopPrompt opens the Exclusive shop the same way (OpenShop = "ExclusiveShop"; the server
 	-- clears it when the player walks off); closing the card here tells the server with CloseShop.
 	local exclusiveFromServer = false
 	function ctx.exclusiveShopHidden()
@@ -1276,8 +1315,6 @@ function applyLayout()
 	dailyPopup.layout(s, GuiService:GetGuiInset())
 	layoutNav(s)
 	syncMenus() -- the nav's phone / desktop visibility follows the new size
-	settingsButton.instance.Position = UDim2.fromOffset(s.settings.x, s.settings.y)
-	settingsButton.instance.Size = UDim2.fromOffset(s.settings.w, s.settings.h)
 	local guiInset = GuiService:GetGuiInset()
 	local back = Layout.backdrop(s, guiInset.X, guiInset.Y)
 	backdrop.Position = UDim2.fromOffset(back.x, back.y)
@@ -1492,6 +1529,7 @@ do
 			end
 		end)
 	end
+	previewsChanged = kitsArrived -- a grey species mesh is ready
 	local function watchKits(folder: Instance)
 		folder.ChildAdded:Connect(kitsArrived)
 		if #folder:GetChildren() > 0 then
@@ -1640,6 +1678,7 @@ task.spawn(function()
 				panelByKey.WorldShop.tick()
 			end)
 			guardedTick("slimeKeys", slimeKeys.tick)
+			guardedTick("stealReach", stealReach.tick)
 			guardedTick("lockBreak", lockBreakPrompt.tick)
 			guardedTick("lockTimer", lockTimerTag.tick)
 			guardedTick("lockCard", slimeKeyCard.tick)

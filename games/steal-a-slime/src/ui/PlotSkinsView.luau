@@ -5,10 +5,13 @@
 	The Plot skins menu's content (Panels/Skins), pure (tests/ui/PlotSkins.spec). State.plotSkins
 	(contract/plot-skins.md) becomes one row per skin (name, a bar and the count toward unlocking it, or its
 	state) and, for the selected skin, a pane listing the slimes that unlock it, each found or not (State.dex
-	cards), and what its button does: Equip, Equipped, or how many slimes are still needed.
-	The server decides unlocks; this module only formats them.
+	cards), and what its button does: Equip, Equipped, or how many slimes are still needed. An Exclusive skin not
+	owned yet shows its Robux price in its row, and its pane's button is Buy · R$<price> (Skin_<id>, Roblox's
+	prompt; the Exclusive shop on that skin while it is not on sale).
+	The server decides unlocks and grants; this module only formats them.
 ]]
 
+local ExclusiveShopView = if script then require(script.Parent.ExclusiveShopView) else require("./ExclusiveShopView")
 local Format = if script then require(script.Parent.Format) else require("./Format")
 local SlimeDex = if script then require(script.Parent.SlimeDex) else require("./SlimeDex")
 
@@ -24,7 +27,8 @@ export type Row = {
 	count: string, -- "3/4" toward unlocking ("" once unlocked)
 	fraction: number, -- 0..1 toward unlocking (1 once unlocked)
 	color: { number }, -- the skin's colour (icon backdrop)
-	exclusive: boolean, -- sold in the Exclusive shop and not owned: no bar, "Only in the Exclusive shop."
+	exclusive: boolean, -- sold in the Exclusive shop and not owned: no bar, the Exclusive tag and its price
+	price: string, -- an Exclusive's Robux price ("R$299"); "" otherwise
 }
 
 export type SkinSlime = {
@@ -44,7 +48,10 @@ export type Detail = {
 	count: string?, -- "3/4"
 	fraction: number,
 	slimes: { SkinSlime },
-	action: string, -- "Equip" / "Equipped" / "Need 1 more slime"
+	action: string, -- "Equip" / "Equipped" / "Need 1 more slime" / "Buy · R$299" / "Exclusive shop"
+	exclusive: boolean, -- an Exclusive not owned yet
+	purchase: ExclusiveShopView.Purchase?, -- an Exclusive on sale: what Buy prompts
+	shopKey: string?, -- an Exclusive: its Exclusive shop card, opened while it is not on sale
 }
 
 PlotSkinsView.EQUIPPED = "Equipped"
@@ -52,10 +59,11 @@ PlotSkinsView.EQUIP = "Equip"
 PlotSkinsView.FOUND = "Found"
 PlotSkinsView.MERGE = "Merge"
 PlotSkinsView.EMPTY = "Plot skins are not on this server."
-PlotSkinsView.EXCLUSIVE_LINE = "Only in the Exclusive shop."
+PlotSkinsView.EXCLUSIVE_LINE = "Buy it here or in the Exclusive shop."
 PlotSkinsView.EXCLUSIVE_ACTION = "Exclusive shop"
+PlotSkinsView.OWNED_LINE = "You own this skin."
 
-local DEFAULT_COLOR = { 110, 226, 170 }
+local DEFAULT_COLOR: { number } = { 110, 226, 170 }
 
 local function num(v: any): number
 	return if type(v) == "number" and v == v then v else 0
@@ -63,6 +71,11 @@ end
 
 local function stateOf(skin: any): State
 	return if skin.equipped == true then "equipped" elseif skin.unlocked == true then "unlocked" else "locked"
+end
+
+local function offerOf(skin: any, config: any?): ExclusiveShopView.Offer?
+	local key = if type(skin.productKey) == "string" then skin.productKey else `Skin_{skin.id}`
+	return if config ~= nil then ExclusiveShopView.offer(config, key) else nil
 end
 
 -- One row per State.plotSkins entry (classic first, as the server sends them). Empty without the field.
@@ -77,7 +90,7 @@ function PlotSkinsView.rows(plotSkins: any, config: any): { Row }
 	end
 	for _, skin in plotSkins :: { any } do
 		if type(skin) == "table" and type(skin.id) == "string" then
-			local state = stateOf(skin)
+			local state: State = stateOf(skin)
 			local owned, needed = num(skin.owned), num(skin.needed)
 			local exclusive = skin.exclusive == true and state == "locked"
 			table.insert(out, {
@@ -89,6 +102,7 @@ function PlotSkinsView.rows(plotSkins: any, config: any): { Row }
 				fraction = if state ~= "locked" then 1 elseif needed > 0 then math.clamp(owned / needed, 0, 1) else 0,
 				color = colors[skin.id] or DEFAULT_COLOR,
 				exclusive = exclusive,
+				price = if exclusive then (offerOf(skin, config) or { price = "" }).price else "",
 			})
 		end
 	end
@@ -96,11 +110,13 @@ function PlotSkinsView.rows(plotSkins: any, config: any): { Row }
 end
 
 -- The pane for skin `id`: its slimes (`slimesOf`: PlotSkins.slimes for that skin) with their Dex cards.
+-- `config` (shared Config) prices an Exclusive skin.
 function PlotSkinsView.detail(
 	plotSkins: any,
 	id: string,
 	cards: { SlimeDex.Card },
-	slimesOf: (id: string) -> { string }
+	slimesOf: (id: string) -> { string },
+	config: any?
 ): Detail?
 	if type(plotSkins) ~= "table" then
 		return nil
@@ -135,22 +151,28 @@ function PlotSkinsView.detail(
 			})
 		end
 	end
-	local state = stateOf(skin)
+	local state: State = stateOf(skin)
 	local owned, needed, total = num(skin.owned), num(skin.needed), num(skin.total)
 	local left = math.max(needed - owned, 0)
 	if skin.exclusive == true then
+		local locked = state == "locked"
+		local offer = if locked then offerOf(skin, config) else nil
 		return {
 			id = id,
 			title = Format.sentenceCase(if type(skin.name) == "string" then skin.name else id),
 			state = state,
-			line = PlotSkinsView.EXCLUSIVE_LINE,
+			line = if locked then PlotSkinsView.EXCLUSIVE_LINE else PlotSkinsView.OWNED_LINE,
 			count = nil,
-			fraction = if state == "locked" then 0 else 1,
+			fraction = if locked then 0 else 1,
 			slimes = {},
 			action = if state == "equipped"
 				then PlotSkinsView.EQUIPPED
 				elseif state == "unlocked" then PlotSkinsView.EQUIP
+				elseif offer and offer.purchase then offer.text
 				else PlotSkinsView.EXCLUSIVE_ACTION,
+			exclusive = locked,
+			purchase = if offer then offer.purchase else nil,
+			shopKey = if locked then `plotSkin:{id}` else nil,
 		}
 	end
 	return {
@@ -165,6 +187,7 @@ function PlotSkinsView.detail(
 			then PlotSkinsView.EQUIPPED
 			elseif state == "unlocked" then PlotSkinsView.EQUIP
 			else `Need {left} more slime{if left == 1 then "" else "s"}`,
+		exclusive = false,
 	}
 end
 

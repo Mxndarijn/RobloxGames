@@ -7,7 +7,7 @@
 
 	  * carrying: you already hold a slime (any wild grab or steal);
 	  * plotFull: no free pad to bring a wild slime home to (not the boss: its haul doesn't take a pad);
-	  * money: a wild slime's price is more than your cash.
+	  * money: a wild slime's price is more than your cash ("Need $1.2K more", like the shop's Buy buttons).
 
 	Someone else carrying the slime needs no reason: the server turns its prompt off.
 ]]
@@ -29,6 +29,7 @@ export type Target = {
 }
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local NumberFormat = if script then require(script.Parent.NumberFormat) else require("./NumberFormat")
 
 local GrabBlock = {}
 
@@ -72,10 +73,17 @@ function GrabBlock.rebirthsFor(slime: any): number
 	return Config.CATCH_REBIRTHS[slime.tier] or 0
 end
 
--- The text a GrabPrompt shows for `reason` ("Rebirth 5 to grab this" for a rarity the player can't grab yet).
-function GrabBlock.text(reason: Reason, target: Target): string
+-- The text a GrabPrompt shows for `reason` ("Rebirth 5 to grab this" for a rarity the player can't grab yet,
+-- "Need $1.2K more" for a slime that costs more than `me`'s cash).
+function GrabBlock.text(reason: Reason, target: Target, me: Me?): string
 	if reason == "rank" then
 		return `Rebirth {target.rebirths or 0} to grab this`
+	end
+	if reason == "money" and me and target.price then
+		local missing = target.price - me.cash
+		if missing > 0 then
+			return `Need {NumberFormat.cash(missing)} more`
+		end
 	end
 	return GrabBlock.TEXT[reason]
 end
