@@ -1,6 +1,6 @@
 --!strict
 -- SlimePreview (src/ui/SlimePreview.luau) under tests/ui/UiHarness.luau: the
--- Ball + eyes builder, locked silhouettes, viewport mount / recycle, and the
+-- Ball + eyes builder, greyed previews, viewport mount / recycle, the grey species meshes, and the
 -- SlimeDex panel's ViewportFrame previews at every gate viewport, list virtualisation (syncNearest) and the
 -- Plot rows' previews.
 local roblox = require("@lune/roblox") :: any
@@ -78,16 +78,10 @@ describe("SlimePreview.build", function()
 		local body = SlimePreview.build({ 300, -5 }):FindFirstChild("Body")
 		expect(body.Color).toBe(Color3.fromRGB(255, 0, 0))
 	end)
-	it("locked: dark silhouette body whatever the colour, dim half-transparent eyes", function()
-		local model = SlimePreview.build({ 255, 255, 0 }, { locked = true })
-		expect(model:GetAttribute("Locked")).toBe(true)
-		expect(model:FindFirstChild("Body").Color).toBe(SlimePreview.SILHOUETTE)
-		for _, name in { "EyeWhiteL", "EyeWhiteR", "PupilL", "PupilR" } do
-			local part = model:FindFirstChild(name)
-			expect(part.Transparency > 0).toBe(true)
-			expect(part.Color ~= Color3.fromRGB(245, 248, 255)).toBe(true)
-		end
-		expect(SlimePreview.build({ 1, 2, 3 }):GetAttribute("Locked")).toBe(false)
+	it("greyed: a grey body whatever the colour, the eyes as usual", function()
+		local model = SlimePreview.build({ 255, 255, 0 }, { greyed = true })
+		expect(model:FindFirstChild("Body").Color).toBe(SlimePreview.GREYED)
+		expect(model:FindFirstChild("EyeWhiteL").Color).toBe(Color3.fromRGB(245, 248, 255))
 	end)
 end)
 
@@ -106,11 +100,13 @@ describe("SlimePreview.mount", function()
 		local vf = UiHarness.Instance.new("ViewportFrame")
 		SlimePreview.mount(vf, { 1, 2, 3 })
 		local world, cam = vf:FindFirstChild("World"), vf:FindFirstChild("PreviewCamera")
-		SlimePreview.mount(vf, { 9, 9, 9 }, { locked = true })
+		local first = world:GetChildren()[1]
+		SlimePreview.mount(vf, { 9, 9, 9 }, { greyed = true })
 		expect(vf:FindFirstChild("World")).toBe(world)
 		expect(vf:FindFirstChild("PreviewCamera")).toBe(cam)
 		expect(#world:GetChildren()).toBe(1)
-		expect(world:GetChildren()[1].Name).toBe("SlimePreviewLocked")
+		expect(world:GetChildren()[1] ~= first).toBe(true)
+		expect(world:GetChildren()[1]:FindFirstChild("Body").Color).toBe(SlimePreview.GREYED)
 		SlimePreview.unmount(vf)
 		expect(#vf:GetChildren()).toBe(0)
 	end)
@@ -163,14 +159,14 @@ describe("SlimeDex panel previews", function()
 				expect(image.Size.Y.Offset <= card.Size.Y.Offset).toBe(true)
 				expect(image.Size.X.Offset <= cardW).toBe(true)
 			end
-			-- No species mesh builder here: the blob in the species colour, black for an unfound species.
+			-- No species mesh builder here: the blob in the species colour, grey for an unfound species.
 			local found = UiHarness.find(cardIn(panel, "gummy"), "World"):GetChildren()[1]
 			expect(found:FindFirstChild("Body").Color).toBe(rgb(SlimeLooks.get("gummy").color))
 			local silhouette = UiHarness.find(cardIn(panel, "pebble"), "World"):GetChildren()[1]
-			expect(silhouette:FindFirstChild("Body").Color).toBe(SlimePreview.SILHOUETTE)
+			expect(silhouette:FindFirstChild("Body").Color).toBe(SlimePreview.GREYED)
 		end)
 	end
-	it("mounts the species mesh from ctx.buildSpecies, painted black when not found", function()
+	it("mounts the species mesh from ctx.buildSpecies, washed grey when not found", function()
 		local built: { string } = {}
 		local c = ctx()
 		c.SlimeRoster = SlimeRoster
@@ -189,15 +185,45 @@ describe("SlimeDex panel previews", function()
 		local found = UiHarness.find(cardIn(panel, "gummy"), "World"):GetChildren()[1]
 		expect(found:FindFirstChild("Mesh").Color).toBe(Color3.new(1, 1, 1))
 		local silhouette = UiHarness.find(cardIn(panel, "pebble"), "World"):GetChildren()[1]
-		expect(silhouette:FindFirstChild("Mesh").Color).toBe(SlimePreview.SILHOUETTE)
+		expect(silhouette:FindFirstChild("Mesh").Color).toBe(SlimePreview.greyOf(Color3.new(1, 1, 1)))
 		expect(cardIn(panel, "pebble"):FindFirstChild("Image"):FindFirstChild("Glyph").Visible).toBe(false)
+	end)
+	it("an unfound species shows its grey mesh from ctx.buildGreySpecies once that is made", function()
+		local greyReady = false
+		local c = ctx()
+		local function mesh(name: string): any
+			local model = UiHarness.Instance.new("Model")
+			model.Name = name
+			local part = UiHarness.Instance.new("Part")
+			part.Name = "Mesh"
+			part.Color = Color3.new(1, 1, 1)
+			part.Parent = model
+			return model
+		end
+		c.buildSpecies = function(id: string)
+			return mesh(`Dex_{id}`)
+		end
+		c.buildGreySpecies = function(id: string)
+			return if greyReady then mesh(`Grey_{id}`) else nil
+		end
+		local panel = openDex(1920, 1080, DEX, c)
+		local world = UiHarness.find(cardIn(panel, "pebble"), "World")
+		-- Not made yet: the colour mesh washed grey.
+		expect(world:GetChildren()[1].Name).toBe("Dex_pebble")
+		greyReady = true
+		panel.refreshPreviews()
+		local grey = world:GetChildren()[1]
+		expect(grey.Name).toBe("Grey_pebble")
+		expect(grey:FindFirstChild("Mesh").Color).toBe(Color3.new(1, 1, 1)) -- already grey: not tinted again
+		-- A found species never asks for the grey mesh.
+		expect(UiHarness.find(cardIn(panel, "gummy"), "World"):GetChildren()[1].Name).toBe("Dex_gummy")
 	end)
 	it("remounts a card's preview when it gets found", function()
 		local c = ctx()
 		c.SlimeLooks = SlimeLooks
 		local panel = openDex(1920, 1080, DEX, c)
 		local world = UiHarness.find(cardIn(panel, "pebble"), "World")
-		expect(world:GetChildren()[1]:FindFirstChild("Body").Color).toBe(SlimePreview.SILHOUETTE)
+		expect(world:GetChildren()[1]:FindFirstChild("Body").Color).toBe(SlimePreview.GREYED)
 		panel.update({ dex = Fixtures.dex({ "gummy", "mochi", "pebble" }) })
 		expect(world:GetChildren()[1]:FindFirstChild("Body").Color).toBe(rgb(SlimeLooks.get("pebble").color))
 	end)
@@ -388,5 +414,62 @@ describe("SlimePreview.syncNearest", function()
 		other.species = nil
 		SlimePreview.mountSlime(plain, other, builders)
 		expect(speciesAsked).toBe(before)
+	end)
+end)
+
+describe("SpeciesModel.greyBuilder", function()
+	local SpeciesModel = UiHarness.ui("SpeciesModel")
+	local function setup(makeGrey: (any) -> any): (any, { () -> () }, { number })
+		local folder = UiHarness.Instance.new("Folder")
+		local kit = UiHarness.Instance.new("Part")
+		kit.Name = "slime_moo"
+		kit.Parent = folder
+		local pending: { () -> () } = {}
+		local readies = { 0 }
+		local build = SpeciesModel.greyBuilder({
+			kits = function()
+				return folder
+			end,
+			importYaw = 0,
+			makeGrey = makeGrey,
+			spawn = function(fn: () -> ())
+				table.insert(pending, fn)
+			end,
+			ready = function()
+				readies[1] += 1
+			end,
+		})
+		return build, pending, readies
+	end
+	it("makes the grey copy once, off-thread, then clones it into every preview", function()
+		local made = 0
+		local build, pending, readies = setup(function(template: any)
+			made += 1
+			local part = UiHarness.Instance.new("Part")
+			part.Name = `{template.Name}_grey`
+			return part
+		end)
+		expect(build("moo")).toBeNil()
+		expect(build("moo")).toBeNil() -- still being made: not started twice
+		expect(#pending).toBe(1)
+		pending[1]()
+		expect(made).toBe(1)
+		expect(readies[1]).toBe(1)
+		local a, b = build("moo"), build("moo")
+		expect(a:FindFirstChild("Mesh") ~= nil and b:FindFirstChild("Mesh") ~= nil).toBe(true)
+		expect(a:FindFirstChild("Mesh") ~= b:FindFirstChild("Mesh")).toBe(true)
+		expect(made).toBe(1)
+		expect(build("zap")).toBeNil() -- no kit yet: nothing to make
+		expect(#pending).toBe(1)
+	end)
+	it("a failed copy is not retried and never reports ready", function()
+		local build, pending, readies = setup(function()
+			error("mesh not readable")
+		end)
+		build("moo")
+		pending[1]()
+		expect(build("moo")).toBeNil()
+		expect(#pending).toBe(1)
+		expect(readies[1]).toBe(0)
 	end)
 end)

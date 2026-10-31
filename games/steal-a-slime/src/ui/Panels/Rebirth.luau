@@ -21,6 +21,7 @@ local UI = script.Parent.Parent
 local Format = require(UI.Format)
 local Layout = require(UI.Layout)
 local Progress = require(UI.Progress)
+local SlimeDex = require(UI.SlimeDex)
 local SlimePreview = require(UI.SlimePreview)
 local Widgets = require(UI.Widgets)
 
@@ -531,34 +532,18 @@ function Rebirth.new(parent: Instance, ctx: any)
 		})
 	end
 
-	-- Puts `slime` into the row's view: the real model (else a coloured blob), washed grey while missing.
+	-- Puts `slime` into the row's view the way the SlimeDex shows its species: the species mesh, in grey while
+	-- you don't have it.
+	local builders: SlimePreview.Builders =
+		{ species = ctx.buildSpecies, greySpecies = ctx.buildGreySpecies, slime = ctx.buildSlime }
 	local function showSlime(row: SlimeRow, slime: Progress.SlimeNeed)
 		local view = row.view
-		local look = `{slime.id}:{slime.owned}`
-		if view:GetAttribute("Look") ~= look then
-			local opts = { greyed = not slime.owned }
-			local ok = false
-			if ctx.buildSlime then
-				local genome = {
-					id = `Rebirth_{slime.id}`,
-					name = slime.name,
-					tier = slime.tier,
-					color = slime.color,
-					size = 1,
-					pattern = "Plain",
-					eyes = "Round",
-					mouth = "Smile",
-					species = slime.id,
-				}
-				local built, model = pcall(ctx.buildSlime, genome)
-				ok = built and model ~= nil and SlimePreview.mountModel(view, model, opts)
-			end
-			if not ok then
-				ok = SlimePreview.mount(view, slime.color, opts)
-			end
-			view:SetAttribute("Look", look)
-			view.Visible = ok
-		end
+		SlimePreview.mountSpecies(
+			view,
+			{ key = slime.id, found = slime.owned, tier = slime.tier, speciesColor = slime.color },
+			builders,
+			SlimeDex.genome
+		)
 		view.ImageTransparency = if slime.owned then 0 else C.missingFade
 		if not view.Visible then
 			fallbackGlyph(row).Visible = true

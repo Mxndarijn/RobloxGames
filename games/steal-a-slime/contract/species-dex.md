@@ -87,7 +87,7 @@ milestone and its reward over a bar, and four tabs: Fountain (spawn), Merges (hy
 (event; hidden on a server without event Secrets), each with its found count.
 
 - **Fountain, Bosses, Secrets:** a grid of cards grouped by rarity, each card only the species mesh
-  (`ctx.buildSpecies`, else `ctx.buildSlime`, ViewportFrame; a flat black silhouette while not found) and the name.
+  (`ctx.buildSpecies`, ViewportFrame; while not found the same mesh in grey, `ctx.buildGreySpecies`) and the name.
   Tapping a card fills the side pane: a big preview, the rarity, how to get it, its set, how many are in your base
   (`State.slimes`) and the merges it is used in (from `ingredients`), with a button to those merges.
 - **Merges:** one row per hybrid: three ingredient slots, then the result and its status. A slot is "In base" (the
