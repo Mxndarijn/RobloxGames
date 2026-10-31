@@ -126,7 +126,7 @@ local HOME = table.freeze({
 	signInset = 0.6, -- studs in from the pad's back edge
 	postWidth = 0.4,
 	maxDistance = 60,
-	text = "Back to the yard",
+	text = "Back to base",
 })
 
 local ICE = PhysicalProperties.new(0.9, 0, 0.5, 100, 1)
