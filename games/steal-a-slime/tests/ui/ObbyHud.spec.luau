@@ -1,5 +1,5 @@
 --!strict
--- The Goo Gauntlet on screen (contract/obby.md): the HUD status slot (HudClusters.obby), the portal sign's two lines
+-- The Obby on screen (contract/obby.md): the HUD status slot (HudClusters.obby), the portal sign's two lines
 -- and the run card (ui/ObbyHud).
 local HudClusters = require("../../src/ui/HudClusters")
 local Layout = require("../../src/ui/Layout")
@@ -16,14 +16,14 @@ local function view(extra: { [string]: any }?): any
 	return v
 end
 
-describe("Goo Gauntlet HUD slot", function()
+describe("Obby HUD slot", function()
 	it("shows x1.5 with the time left while boosted, and nothing otherwise", function()
 		local slot = HudClusters.obby(view({ endsAt = 1300 }), 1000) :: HudClusters.Slot
 		expect(slot.id).toBe("Obby")
 		expect(slot.icon).toBe("Boost_Obby")
 		expect(slot.text).toBe("5:00")
 		local tip = HudClusters.tooltip(slot)
-		expect(tip.title).toBe("Goo Gauntlet")
+		expect(tip.title).toBe("Obby")
 		expect(string.find(tip.body, "income for clearing the sky obby", 1, true) ~= nil).toBe(true)
 		expect(HudClusters.obby(view(), 1000)).toBeNil()
 		expect(HudClusters.obby(view({ endsAt = 1000 }), 1000)).toBeNil()
@@ -44,7 +44,7 @@ describe("Goo Gauntlet HUD slot", function()
 	end)
 end)
 
-describe("Goo Gauntlet portal sign", function()
+describe("Obby portal sign", function()
 	it("says what this player gets: ready, boosted, or cooling down", function()
 		expect(ObbyHud.statusText(view(), 1000)).toBe("Step in: x1.5 income!")
 		expect(ObbyHud.statusText(view({ endsAt = 1192, readyAt = 1492 }), 1000)).toBe("x1.5 income · 3:12 left")
@@ -57,14 +57,14 @@ describe("Goo Gauntlet portal sign", function()
 	end)
 end)
 
-describe("Goo Gauntlet run card", function()
-	it("shows the checkpoint and the run clock only while running", function()
+describe("Obby run card", function()
+	it("shows the section and the run clock only while running", function()
 		expect(ObbyHud.runText(view(), 1000)).toBeNil()
-		local title, clock = ObbyHud.runText(view({ run = { reached = 0, of = 5, startedAt = 990 } }), 1000)
-		expect(title).toBe("GOO GAUNTLET")
+		local title, clock = ObbyHud.runText(view({ run = { section = 0, of = 5, startedAt = 990 } }), 1000)
+		expect(title).toBe("OBBY")
 		expect(clock).toBe("0:10.0")
-		title, clock = ObbyHud.runText(view({ run = { reached = 2, of = 5, startedAt = 900 } }), 1003.5)
-		expect(title).toBe("CHECKPOINT 2/5")
+		title, clock = ObbyHud.runText(view({ run = { section = 2, of = 5, startedAt = 900 } }), 1003.5)
+		expect(title).toBe("SECTION 2/5")
 		expect(clock).toBe("1:43.5")
 	end)
 end)

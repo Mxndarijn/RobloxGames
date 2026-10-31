@@ -2,14 +2,16 @@
 --[[
 	ObbyCourse (pure, contract/obby.md)
 
-	The Goo Gauntlet sky course as data. `pick(slot)` chooses the sections of one rotation (Config.OBBY.ORDER: one
+	The Obby sky course as data. `pick(slot)` chooses the sections of one rotation (Config.OBBY.ORDER: one
 	section per tier entry, no section twice, none from the course before it inside one chain of CHAIN_SLOTS
-	rotations) and a layout for each. `build(slot)` lays the course out: a start pad, then each section followed by a
-	checkpoint pad, the last one being the finish. Every server and client gets the same course for the same slot.
+	rotations) and a layout for each. `build(slot)` lays the course out: a start pad, then the sections joined by short
+	plain connectors (every section starts and ends with a jump), then the finish pad. There are no checkpoints: the
+	server tracks which section a runner is over (`sectionAt`) and sends a fall back to the start pad. Every server
+	and client gets the same course for the same slot.
 
 	Course-local frame: x runs forward along the course, y up, z to the right. A part's `pos` is its centre. Parts
 	flagged `step` are the walking path in order; tests check their gaps and rises at rest. Moving parts carry a
-	`motion` the client plays at server time (visuals/client/ObbyFx); the server only uses the checkpoints and floors.
+	`motion` the client plays at server time (visuals/client/ObbyFx); the server only uses the spans and the finish.
 	`toWorld` / `toLocal` map between this frame and the world for a Frame (origin + yaw, from WorldLayout.OBBY).
 ]]
 
@@ -49,7 +51,7 @@ export type Motion = {
 export type Part = {
 	size: Vec,
 	pos: Vec,
-	look: string, -- "start" | "pad" | "finish" | "jelly" | "goo" | "bubble" | "ice" | "rope" | "tile" | "post" | "bar"
+	look: string, -- "start" | "pad" (a plain connector) | "finish" | "jelly" | "goo" | "bubble" | "ice" | "rope" | "tile" | "post" | "bar"
 	-- | "trampoline" | "blob" | "pipe" | "truss" | "fan" | "wind" | "plank" | "cannon" | "gate"
 	shape: string?, -- "block" (default) | "disc" (a flat cylinder, size.x = diameter) | "ball" | "truss" (climbable)
 	ghost: boolean?, -- no collision (wind, pendulum rods)
@@ -62,8 +64,16 @@ export type Part = {
 
 export type Pick = { id: string, tier: string, layout: number }
 
-export type Checkpoint = {
-	index: number, -- 1..#picks; the last one is the finish
+-- One section's stretch of the course along x, with the connector after it.
+export type Span = {
+	index: number, -- 1..#picks
+	from: number, -- course-local x where the section starts
+	to: number, -- course-local x where the next section (or the finish pad) starts
+	floor: number, -- the lower of its entry and exit heights: falls are measured from here
+}
+
+-- The finish pad.
+export type Zone = {
 	pos: Vec, -- pad top centre
 	size: Vec, -- pad footprint (x, _, z) and the height above the top that counts as standing on it (y)
 }
@@ -74,7 +84,8 @@ export type Course = {
 	parts: { Part },
 	start: Vec, -- where a runner appears (above the start pad)
 	startTop: number, -- the start pad's top
-	checkpoints: { Checkpoint },
+	spans: { Span }, -- one per pick, in order
+	finish: Zone,
 	length: number,
 }
 
@@ -85,10 +96,10 @@ type Section = { length: number, rise: number, parts: { Part } }
 local ObbyCourse = {}
 
 ObbyCourse.START_LENGTH = 12
-ObbyCourse.PAD_LENGTH = 8 -- checkpoint pad depth along the course
+ObbyCourse.LINK_LENGTH = 4 -- plain connector between two sections
 ObbyCourse.FINISH_LENGTH = 12
 ObbyCourse.WIDTH = 12 -- pad width across the course
-ObbyCourse.STAND_HEIGHT = 9 -- studs above a pad top that count as standing on it
+ObbyCourse.STAND_HEIGHT = 9 -- studs above the finish pad's top that count as standing on it
 ObbyCourse.THICK = 1 -- platform thickness
 
 ObbyCourse.NAMES = table.freeze({
@@ -907,61 +918,67 @@ function ObbyCourse.build(slot: number, picks: { Pick }?): Course
 	local chosen = picks or ObbyCourse.pick(slot)
 	local W, S = ObbyCourse.WIDTH, ObbyCourse.STAND_HEIGHT
 	local parts: { Part } = { slab(ObbyCourse.START_LENGTH / 2, 0, 0, ObbyCourse.START_LENGTH, W, "start") }
-	local checkpoints: { Checkpoint } = {}
+	local spans: { Span } = {}
 	local x, y = ObbyCourse.START_LENGTH, 0
 	for i, pick in chosen do
 		local section = ObbyCourse.section(pick.id, pick.layout)
+		local from, entry = x, y
 		for _, part in section.parts do
 			table.insert(parts, offset(part, x, y))
 		end
 		x += section.length
 		y += section.rise
-		local last = i == #chosen
-		local depth = if last then ObbyCourse.FINISH_LENGTH else ObbyCourse.PAD_LENGTH
-		table.insert(parts, slab(x + depth / 2, y, 0, depth, W, if last then "finish" else "pad"))
-		table.insert(checkpoints, { index = i, pos = { x + depth / 2, y, 0 }, size = { depth, S, W } })
-		x += depth
+		if i < #chosen then
+			local L = ObbyCourse.LINK_LENGTH
+			table.insert(parts, slab(x + L / 2, y, 0, L, W, "pad"))
+			x += L
+		end
+		table.insert(spans, { index = i, from = from, to = x, floor = math.min(entry, y) })
 	end
+	local depth = ObbyCourse.FINISH_LENGTH
+	table.insert(parts, slab(x + depth / 2, y, 0, depth, W, "finish"))
+	local finish = { pos = { x + depth / 2, y, 0 }, size = { depth, S, W } }
+	x += depth
 	return {
 		slot = slot,
 		picks = chosen,
 		parts = parts,
 		start = { ObbyCourse.START_LENGTH / 3, OBBY.RESPAWN_LIFT, 0 },
 		startTop = 0,
-		checkpoints = checkpoints,
+		spans = spans,
+		finish = finish,
 		length = x,
 	}
 end
 
--- True when course-local `p` stands on checkpoint `cp` (over its pad, up to STAND_HEIGHT above the top).
-function ObbyCourse.onCheckpoint(cp: Checkpoint, p: Vec): boolean
-	return math.abs(p[1] - cp.pos[1]) <= cp.size[1] / 2
-		and math.abs(p[3] - cp.pos[3]) <= cp.size[3] / 2
-		and p[2] >= cp.pos[2] - 1
-		and p[2] <= cp.pos[2] + cp.size[2]
+-- True when course-local `p` stands on the finish pad (over it, up to STAND_HEIGHT above its top).
+function ObbyCourse.onFinish(course: Course, p: Vec): boolean
+	local zone = course.finish
+	return math.abs(p[1] - zone.pos[1]) <= zone.size[1] / 2
+		and math.abs(p[3] - zone.pos[3]) <= zone.size[3] / 2
+		and p[2] >= zone.pos[2] - 1
+		and p[2] <= zone.pos[2] + zone.size[2]
 end
 
--- Top of the pad a runner last reached: 0 = the start pad, i = checkpoint i.
-function ObbyCourse.padTop(course: Course, reached: number): number
-	local cp = course.checkpoints[reached]
-	return if cp then cp.pos[2] else course.startTop
-end
-
--- Where a runner who last reached pad `reached` respawns (course-local).
-function ObbyCourse.respawn(course: Course, reached: number): Vec
-	local cp = course.checkpoints[reached]
-	if not cp then
-		return table.clone(course.start)
+-- Which part of the course course-local `p` is over: 0 = the start pad (or before it), i = section i (with the
+-- connector after it), #spans + 1 = the finish pad (or past it).
+function ObbyCourse.sectionAt(course: Course, p: Vec): number
+	local x = p[1]
+	for _, span in course.spans do
+		if x < span.from then
+			return span.index - 1
+		elseif x < span.to then
+			return span.index
+		end
 	end
-	return { cp.pos[1], cp.pos[2] + OBBY.RESPAWN_LIFT, cp.pos[3] }
+	return #course.spans + 1
 end
 
--- A runner heading from pad `reached` to the next one has fallen below this height (course-local y).
-function ObbyCourse.fallHeight(course: Course, reached: number): number
-	local from = ObbyCourse.padTop(course, reached)
-	local nextCp = course.checkpoints[reached + 1]
-	local to = if nextCp then nextCp.pos[2] else from
-	return math.min(from, to) - OBBY.FALL_DEPTH
+-- A runner over part `index` (sectionAt) has fallen below this height (course-local y).
+function ObbyCourse.fallHeight(course: Course, index: number): number
+	local span = course.spans[index]
+	local floor = if span then span.floor elseif index <= 0 then course.startTop else course.finish.pos[2]
+	return floor - OBBY.FALL_DEPTH
 end
 
 ---------------------------------------------------------------------------

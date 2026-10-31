@@ -358,7 +358,7 @@ function ObbyView.buildPortal()
 		gui.MaxDistance = PORTAL.maxDistance
 		gui.LightInfluence = 0
 		gui.Adornee = sign
-		signLabel(gui, "Title", "GOO GAUNTLET", 0.06, 0.32, 80)
+		signLabel(gui, "Title", "OBBY", 0.06, 0.32, 80)
 		signLabel(gui, Constants.OBBY_SIGN_STATUS, "Step in: x1.5 income!", 0.42, 0.24, 50)
 		signLabel(gui, Constants.OBBY_SIGN_COURSE, "A new course every 10 min", 0.7, 0.2, 40)
 		gui.Parent = sign
