@@ -38,10 +38,6 @@ EventBoardView.ICONS = table.freeze({
 	legendary = "rbxassetid://92898240575380", -- Badge_FirstLegendary
 	mythic = "🔮",
 	event = "rbxassetid://130491704533609", -- Boost_Weekend
-	weatherClear = "☀️",
-	weatherRain = "🌧️",
-	weatherSnow = "❄️",
-	weatherStarfall = "🌠",
 } :: { [string]: string })
 
 -- Colours (RGB; Color3 is built at use, so the pure tests can require this module).
@@ -56,7 +52,6 @@ function EventBoardView.input(world: World, now: number, unix: number?): EventBo
 	local boss = if fight then SlimeRoster.get(fight.species) else nil
 	local warning = fight ~= nil and fight.phase == "warning"
 	local raining, rainEndsAt, rainAt = Spawner.rain(world, now)
-	local weather = world.weather
 	local event, eventEndsAt = nil, nil
 	if world.adminEvent then
 		event, eventEndsAt = world.adminEvent.def.label, world.adminEvent.endsAt
@@ -71,8 +66,6 @@ function EventBoardView.input(world: World, now: number, unix: number?): EventBo
 		bossAt = if warning then (fight :: any).endsAt elseif boss then nil else world.nextBossAt,
 		rainEndsAt = if raining then rainEndsAt else nil,
 		rainAt = if raining then nil else rainAt,
-		weather = if weather then weather.id else nil,
-		weatherChangeAt = if weather then weather.changeAt else nil,
 		legendaryIn = Spawner.guaranteeIn(world, 5, now),
 		mythicIn = Spawner.guaranteeIn(world, 6, now),
 		event = event,

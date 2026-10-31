@@ -2,8 +2,8 @@
 --[[
 	ObbyHud (UI module, contract/obby.md)
 
-	The Goo Gauntlet on this player's screen, from State.obby:
-	  * a run card at the top of the screen while a run is on: the checkpoint reached and the run clock
+	The Obby on this player's screen, from State.obby:
+	  * a run card at the top of the screen while a run is on: the section the runner is on (x / 5) and the run clock
 	  * the portal sign's two lines (workspace.Obby.Portal, server/ObbyView), filled locally for this player: their
 	    boost status ("Step in: x1.5 income!", "Boost 3:12", "Boost ready in 1:40") and when the course changes
 	The boost itself shows in the HUD's status row (HudClusters.obby). Text comes from the pure functions below
@@ -23,7 +23,7 @@ export type View = {
 	readyAt: number?,
 	sections: { string },
 	rotatesAt: number,
-	run: { reached: number, of: number, startedAt: number }?,
+	run: { section: number, of: number, startedAt: number }?,
 	best: number?,
 }
 
@@ -78,9 +78,9 @@ function ObbyHud.runText(view: View?, now: number): (string?, string?)
 	if not valid(view) or (view :: View).run == nil then
 		return nil, nil
 	end
-	local run = (view :: View).run :: { reached: number, of: number, startedAt: number }
+	local run = (view :: View).run :: { section: number, of: number, startedAt: number }
 	local elapsed = math.max(0, now - run.startedAt)
-	local title = if run.reached <= 0 then "GOO GAUNTLET" else `CHECKPOINT {run.reached}/{run.of}`
+	local title = if run.section <= 0 then "OBBY" else `SECTION {math.min(run.section, run.of)}/{run.of}`
 	local m = math.floor(elapsed / 60)
 	return title, string.format("%d:%04.1f", m, elapsed - m * 60)
 end
@@ -131,19 +131,27 @@ function ObbyHud.new(gui: Instance)
 	end
 
 	local current: View? = nil
-	local signStatus: TextLabel? = nil
-	local signCourse: TextLabel? = nil
+	-- The portal sign's labels, one of each per face.
+	local signStatus: { TextLabel } = {}
+	local signCourse: { TextLabel } = {}
 
 	local function findSign()
-		if signStatus and signStatus.Parent then
+		if signStatus[1] and signStatus[1].Parent then
 			return
 		end
+		table.clear(signStatus)
+		table.clear(signCourse)
 		local folder = workspace:FindFirstChild(Constants.OBBY_FOLDER)
 		local portal = folder and folder:FindFirstChild(Constants.OBBY_PORTAL)
-		local status = portal and portal:FindFirstChild(Constants.OBBY_SIGN_STATUS, true)
-		local course = portal and portal:FindFirstChild(Constants.OBBY_SIGN_COURSE, true)
-		signStatus = if status and status:IsA("TextLabel") then status else nil
-		signCourse = if course and course:IsA("TextLabel") then course else nil
+		for _, inst in if portal then portal:GetDescendants() else {} do
+			if inst:IsA("TextLabel") then
+				if inst.Name == Constants.OBBY_SIGN_STATUS then
+					table.insert(signStatus, inst)
+				elseif inst.Name == Constants.OBBY_SIGN_COURSE then
+					table.insert(signCourse, inst)
+				end
+			end
+		end
 	end
 
 	local self = {}
@@ -165,16 +173,20 @@ function ObbyHud.new(gui: Instance)
 			end
 		end
 		findSign()
-		if signStatus then
+		if signStatus[1] then
 			local text = ObbyHud.statusText(current, now)
-			if signStatus.Text ~= text then
-				signStatus.Text = text
+			for _, label in signStatus do
+				if label.Text ~= text then
+					label.Text = text
+				end
 			end
 		end
-		if signCourse then
+		if signCourse[1] then
 			local text = ObbyHud.courseText(current, now)
-			if signCourse.Text ~= text then
-				signCourse.Text = text
+			for _, label in signCourse do
+				if label.Text ~= text then
+					label.Text = text
+				end
 			end
 		end
 	end

@@ -2,7 +2,7 @@
 --[[
 	ObbyRules (pure, contract/obby.md)
 
-	The Goo Gauntlet boost over two saved server times on PlayerData: `obbyUntil` (the boost ends) and
+	The Obby boost over two saved server times on PlayerData: `obbyUntil` (the boost ends) and
 	`obbyReadyAt` (a finish earns the boost again: the end of the boost plus Config.OBBY.COOLDOWN_SECONDS). Both 0 =
 	never earned. A finish while not ready still counts as a run (time, best) but earns nothing.
 ]]

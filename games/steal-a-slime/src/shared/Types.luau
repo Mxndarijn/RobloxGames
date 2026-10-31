@@ -62,14 +62,14 @@ export type FeaturedSecretView = { id: string, name: string, endsAt: number }
 -- The co-op ritual's Blessed income bonus (FEATURES.CoopRitual); `endsAt` in server time.
 export type BlessedView = { bonus: number, endsAt: number }
 
--- The Goo Gauntlet obby (server/ObbyService.view, contract/obby.md); times are server time.
+-- The Obby (server/ObbyService.view, contract/obby.md); times are server time.
 export type ObbyView = {
 	bonus: number, -- 0.5 = +50 % while boosted
 	endsAt: number?, -- the boost ends (nil = not boosted)
 	readyAt: number?, -- a finish earns the boost again (nil = ready now)
 	sections: { string }, -- the current course's section names, in order
 	rotatesAt: number, -- the next course starts
-	run: { reached: number, of: number, startedAt: number }?, -- the run in progress (reached 0 = start pad)
+	run: { section: number, of: number, startedAt: number }?, -- the run in progress (section 0 = the start pad)
 	best: number?, -- best finish on this course, seconds
 }
 
@@ -266,7 +266,7 @@ export type State = {
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
 	blessed: BlessedView?, -- FEATURES.CoopRitual: the ritual's Blessed bonus while it lasts; nil = not blessed
 	mvpBoost: BlessedView?, -- the Boss Champion boost (BossCredit, same shape as blessed) while it lasts; nil = none
-	obby: ObbyView?, -- the Goo Gauntlet obby: boost, cooldown, course and run (nil until the course is built)
+	obby: ObbyView?, -- the Obby: boost, cooldown, course and run (nil until the course is built)
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
 	featuredSecret: FeaturedSecretView?, -- this week's event Secret in the Secret pool
 	petPerk: PetPerkView?, -- Perks.petPassive; nil without a favourite

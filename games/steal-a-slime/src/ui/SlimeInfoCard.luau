@@ -7,7 +7,7 @@
 	GooWorldLabels "Wild slime tag"), no panel: the rarity on a goo pill in
 	the rarity colour (a rainbow for Secret), the species name in white
 	outlined in Ink (a shining slime's shine sits on
-	its own pill next to the rarity), the income per second in mint and, while it is for sale
+	its own pill next to the rarity, the two centred together under the name), the income per second in mint and, while it is for sale
 	and the player stands within priceDistance, a "Buy $price" chip. Where
 	tags overlap on screen the nearest one shows and the ones behind it hide
 	(declutter). A slime resting on a pad (LabelPad set) shows no tag:
@@ -32,7 +32,6 @@ local Players = game:GetService("Players")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
-local Genome = require(Shared:WaitForChild("Genome"))
 local SlimeLabel = require(Shared:WaitForChild("SlimeLabel"))
 local SlimePadSign = require(script.Parent.SlimePadSign)
 local Widgets = require(script.Parent.Widgets)
@@ -68,6 +67,9 @@ SlimeInfoCard.SIZE = table.freeze({
 	pillGap = 0.02, -- with a shine pill: the gap between it and the rarity pill, fraction of the tag's width
 })
 
+-- The rarity row is a Frame holding the rarity pill and (on a shining slime) the shine pill, centred as one group.
+SlimeInfoCard.PILL_ROW = "Pills"
+
 -- Rows, top to bottom, with heights relative to one row. The name is the largest; the price chip is next, so
 -- it reads as the thing to act on.
 SlimeInfoCard.ROWS = table.freeze({
@@ -82,11 +84,8 @@ export type Fit = { pxScale: number, maxDistance: number } -- how a tag is sized
 
 local rgb = SlimePadSign.rgb
 
--- Width / height of a pill holding `text`: Fredoka glyphs are about 0.4 of the pill's height wide at the
--- pill's text size, plus half a height of goo at each end. Too long a text only shrinks (TextScaled).
-function SlimeInfoCard.pillAspect(text: string): number
-	return 0.4 * (utf8.len(text) or #text) + 1
-end
+-- Width / height of a pill holding `text` (shared with the pad sign's shine tag).
+SlimeInfoCard.pillAspect = SlimePadSign.pillAspect
 
 -- The rarity pill's look: its fill colour, the gradient over it (a rainbow for Secret, plain white otherwise,
 -- which leaves the fill as it is) and the text colours that read on it.
@@ -101,18 +100,8 @@ function SlimeInfoCard.pillLook(view: SlimeLabel.View): (Color3, ColorSequence, 
 	return fill, ColorSequence.new(Color3.new(1, 1, 1)), Theme.Text, 0
 end
 
--- The shine pill's look, as pillLook: the shine's colour lit from the top, or a rainbow.
-function SlimeInfoCard.shineLook(shine: Genome.ShineRow): (Color3, ColorSequence, Color3, number)
-	if shine.rainbow then
-		return Color3.new(1, 1, 1), SlimePadSign.rainbow(), Theme.Ink, 1
-	end
-	local fill = rgb(shine.color)
-	local light = ColorSequence.new(Color3.new(1, 1, 1):Lerp(fill, 0.25), Color3.new(1, 1, 1))
-	if Widgets.isBright(fill) then
-		return fill, light, Theme.Ink, 1
-	end
-	return fill, light, Theme.Text, 0
-end
+-- The shine pill's look, as pillLook (shared with the pad sign's shine tag).
+SlimeInfoCard.shineLook = SlimePadSign.shineLook
 
 -- The rows shown for `count` rows (3 = not for sale, 4 = with the price), stacked top to bottom.
 function SlimeInfoCard.rows(count: number): { Row }
@@ -237,6 +226,13 @@ local function text(name: string, color: Color3, parent: Instance): TextLabel
 	})
 end
 
+-- A row's label on a tag's Card: the rarity and shine pills sit in the PILL_ROW frame, the other rows on the Card.
+function SlimeInfoCard.label(card: Instance, name: string): TextLabel
+	local row = card:FindFirstChild(SlimeInfoCard.PILL_ROW)
+	local inRow = row and row:FindFirstChild(name)
+	return assert(inRow or card:FindFirstChild(name), `SlimeInfoCard: no {name} label`) :: TextLabel
+end
+
 -- A pill: text on a rounded fill, as wide as its text (UIAspectRatioConstraint "Fit", set on render) and
 -- never wider than the tag.
 local function pill(name: string, fill: Color3, color: Color3, parent: Instance): TextLabel
@@ -290,9 +286,28 @@ function SlimeInfoCard.build(): BillboardGui
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
-	local rarity = pill("Rarity", Color3.new(1, 1, 1), Theme.Ink, tag)
+	-- The pills' widths depend on their text and on the tag's size on screen, so a UIListLayout centres them.
+	local row = create("Frame", {
+		Name = SlimeInfoCard.PILL_ROW,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Parent = tag,
+	}, {
+		create("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(SlimeInfoCard.SIZE.pillGap, 0),
+		}),
+	})
+	local rarity = pill("Rarity", Color3.new(1, 1, 1), Theme.Ink, row)
+	rarity.AnchorPoint = Vector2.zero
+	rarity.LayoutOrder = 1
 	create("UIGradient", { Name = "Fill", Parent = rarity })
-	local shine = pill("Shine", Color3.new(1, 1, 1), Theme.Ink, tag)
+	local shine = pill("Shine", Color3.new(1, 1, 1), Theme.Ink, row)
+	shine.AnchorPoint = Vector2.zero
+	shine.LayoutOrder = 2
 	shine.Visible = false
 	create("UIGradient", { Name = "Fill", Rotation = 90, Parent = shine })
 	text("Title", Color3.new(1, 1, 1), tag)
@@ -309,33 +324,29 @@ local function paint(label: TextLabel, fill: Color3, shading: ColorSequence, ink
 	(label:FindFirstChild("Fill") :: UIGradient).Color = shading
 end
 
--- The rarity row: the rarity pill centred, or with a shine the rarity and shine pills side by side, each at most
--- half the tag wide.
+-- The rarity row: the rarity pill alone, or with a shine the rarity and shine pills side by side, each at most
+-- half the row wide; the row's layout centres them as one group, whatever their widths.
 local function placeRarityRow(tag: Frame, view: SlimeLabel.View, r: Row)
-	local rarity = tag:FindFirstChild("Rarity") :: TextLabel
-	local shine = tag:FindFirstChild("Shine") :: TextLabel
-	local h = r.h * SlimeInfoCard.SIZE.pill
-	local y = r.y + r.h / 2
+	local row = tag:FindFirstChild(SlimeInfoCard.PILL_ROW) :: Frame
+	local rarity = row:FindFirstChild("Rarity") :: TextLabel
+	local shine = row:FindFirstChild("Shine") :: TextLabel
+	row.Position = UDim2.fromScale(0.5, r.y + r.h / 2)
+	row.Size = UDim2.fromScale(1, r.h * SlimeInfoCard.SIZE.pill);
+	(rarity:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(view.rarity)
 	shine.Visible = view.shine ~= nil
 	if not view.shine then
-		rarity.AnchorPoint = Vector2.new(0.5, 0.5)
-		rarity.Position = UDim2.fromScale(0.5, y)
-		rarity.Size = UDim2.fromScale(1, h)
+		rarity.Size = UDim2.fromScale(1, 1)
 		return
 	end
-	local gap = SlimeInfoCard.SIZE.pillGap / 2
-	rarity.AnchorPoint = Vector2.new(1, 0.5)
-	rarity.Position = UDim2.fromScale(0.5 - gap, y)
-	rarity.Size = UDim2.fromScale(0.5 - gap, h)
-	shine.AnchorPoint = Vector2.new(0, 0.5)
-	shine.Position = UDim2.fromScale(0.5 + gap, y)
-	shine.Size = UDim2.fromScale(0.5 - gap, h)
+	local half = 0.5 - SlimeInfoCard.SIZE.pillGap / 2
+	rarity.Size = UDim2.fromScale(half, 1)
+	shine.Size = UDim2.fromScale(half, 1)
 	shine.Text = view.shine.id;
 	(shine:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(view.shine.id)
 	paint(shine, SlimeInfoCard.shineLook(view.shine))
 end
 
-local PILLS = table.freeze({ Rarity = true, Price = true })
+local PILLS = table.freeze({ Price = true }) -- pills on the Card itself (the rarity row places its own)
 
 -- Shows `view` on a built tag, places it `height` studs above its Adornee and sizes it for `fit` (default: a
 -- referenceHeightPx viewport). A nil view hides the tag.
@@ -361,7 +372,7 @@ function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height:
 		shown[r.name] = r
 	end
 	for _, spec in SlimeInfoCard.ROWS do
-		local label = tag:FindFirstChild(spec.name) :: TextLabel
+		local label = SlimeInfoCard.label(tag, spec.name)
 		local r = shown[spec.name]
 		label.Visible = r ~= nil
 		if r then
@@ -372,14 +383,14 @@ function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height:
 				label.Position = UDim2.fromScale(0.5, r.y + r.h / 2)
 				label.Size = UDim2.fromScale(1, h);
 				(label:FindFirstChild("Fit") :: UIAspectRatioConstraint).AspectRatio = SlimeInfoCard.pillAspect(value)
-			else
+			elseif spec.name ~= "Rarity" then -- the rarity row is placed by placeRarityRow
 				label.Position = UDim2.fromScale(0, r.y)
 				label.Size = UDim2.fromScale(1, r.h)
 			end
 		end
 	end
 	placeRarityRow(tag, view, shown.Rarity)
-	paint(tag:FindFirstChild("Rarity") :: TextLabel, SlimeInfoCard.pillLook(view))
+	paint(SlimeInfoCard.label(tag, "Rarity"), SlimeInfoCard.pillLook(view))
 end
 
 -- The label attributes of a model, as SlimeLabel reads them.

@@ -1,5 +1,5 @@
 --!strict
--- The Goo Gauntlet over World (src/server/ObbyService.luau, contract/obby.md): the portal, checkpoints in order, falls,
+-- The Obby over World (src/server/ObbyService.luau, contract/obby.md): the portal, section progress in order, falls,
 -- the finish and its boost, the cooldown, the rotation, the income bonus and State.obby.
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
@@ -31,11 +31,18 @@ local function setup(): (any, any)
 	return world, world.sessions[1]
 end
 
--- World position standing on checkpoint `i` (0 = start pad).
+-- World position over section `i` (0 = the start pad, #spans + 1 = the finish pad), standing at its entry height.
 local function onPad(world: any, i: number): { number }
 	local course = world.obby
-	local cp = course.checkpoints[i]
-	local p = if cp then { cp.pos[1], cp.pos[2] + 3, cp.pos[3] } else { course.start[1], 3, 0 }
+	local span = course.spans[i]
+	local p
+	if span then
+		p = { (span.from + span.to) / 2, span.floor + 3, 0 }
+	elseif i <= 0 then
+		p = { course.start[1], 3, 0 }
+	else
+		p = { course.finish.pos[1], course.finish.pos[2] + 3, 0 }
+	end
 	return ObbyCourse.toWorld(PLACE.frame, p)
 end
 
@@ -49,15 +56,32 @@ local function enter(world: any, now: number): ObbyService.Result
 	return ObbyService.step(world, PLACE, at({ -95, 3, 230 }), now)
 end
 
--- Walks every checkpoint `gap` seconds apart from `start`; returns the finish step's result and time.
+-- Walks every section, then the finish, `gap` seconds apart from `start`; returns the finish step's result and time.
 local function runAll(world: any, start: number, gap: number): (ObbyService.Result, number)
 	local now = start
 	local result
-	for i = 1, #world.obby.checkpoints do
+	for i = 1, #world.obby.spans + 1 do
 		now += gap
 		result = ObbyService.step(world, PLACE, at(onPad(world, i)), now)
 	end
 	return result, now
+end
+
+-- The analytics events named `name` queued in world.outbox, oldest first.
+local function analytics(world: any, name: string): { any }
+	local out = {}
+	for _, event in world.outbox do
+		if event.type == "Analytics" and event.track and event.track.name == name then
+			table.insert(out, event.track)
+		end
+	end
+	return out
+end
+
+-- World position below the fall height over section `i`.
+local function below(world: any, i: number): { number }
+	local span = world.obby.spans[i]
+	return ObbyCourse.toWorld(PLACE.frame, { (span.from + span.to) / 2, ObbyCourse.fallHeight(world.obby, i) - 2, 0 })
 end
 
 describe("ObbyService portal", function()
@@ -65,7 +89,7 @@ describe("ObbyService portal", function()
 		local world, session = setup()
 		local result = enter(world, T)
 		expect(session.obbyRun ~= nil).toBe(true)
-		expect(session.obbyRun.reached).toBe(0)
+		expect(session.obbyRun.section).toBe(0)
 		expect(#result.moves).toBe(1)
 		local start = ObbyCourse.toWorld(PLACE.frame, world.obby.start)
 		expect(result.moves[1].pos[2]).toBe(start[2])
@@ -106,19 +130,44 @@ describe("ObbyService runs", function()
 		expect(session.obbyBest.seconds).toBe(now - T)
 	end)
 
-	it("checkpoints only count in order", function()
+	it("counts the furthest section reached, in order", function()
 		local world, session = setup()
 		enter(world, T)
-		ObbyService.step(world, PLACE, at(onPad(world, 2)), T + 5)
-		expect(session.obbyRun.reached).toBe(0)
-		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 10)
-		expect(session.obbyRun.reached).toBe(1)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 5)
+		expect(session.obbyRun.section).toBe(1)
+		ObbyService.step(world, PLACE, at(onPad(world, 2)), T + 10)
+		expect(session.obbyRun.section).toBe(2)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 12) -- walking back does not undo it
+		expect(session.obbyRun.section).toBe(2)
+		expect(session.obbyRun.invalid).toBeNil()
 	end)
 
-	it("a run with a checkpoint reached too fast earns nothing", function()
+	it("skipping a section marks the run invalid: it finishes but earns nothing", function()
 		local world, session = setup()
 		enter(world, T)
-		runAll(world, T + OBBY.MOVE_GRACE, OBBY.MIN_SECTION_SECONDS / 2)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 8)
+		ObbyService.step(world, PLACE, at(onPad(world, 3)), T + 16)
+		expect(session.obbyRun.invalid).toBe(true)
+		runAll(world, T + 16, 8)
+		expect(session.data.obbyUntil).toBe(0)
+		local texts = ServerFixtures.notifications(world, 1)
+		expect(texts[#texts]).toBe("That run didn't count. Try again!")
+	end)
+
+	it("teleporting straight to the finish earns nothing", function()
+		local world, session = setup()
+		enter(world, T)
+		local result = ObbyService.step(world, PLACE, at(onPad(world, #world.obby.spans + 1)), T + 60)
+		expect(session.obbyRun).toBeNil()
+		expect(result.moves[1].pos[1]).toBe(PLACE.exit[1])
+		expect(session.data.obbyUntil).toBe(0)
+	end)
+
+	it("a finish faster than the minimum run time earns nothing", function()
+		local world, session = setup()
+		enter(world, T)
+		local gap = OBBY.MIN_RUN_SECONDS / (#world.obby.spans + 2)
+		runAll(world, T + OBBY.MOVE_GRACE, gap)
 		expect(session.data.obbyUntil).toBe(0)
 		expect(session.data.obbyBonus).toBeNil()
 		local texts = ServerFixtures.notifications(world, 1)
@@ -139,17 +188,40 @@ describe("ObbyService runs", function()
 		expect(now < later).toBe(true)
 	end)
 
-	it("falling sends the runner back to the last pad reached", function()
+	it("a fall anywhere sends the runner back to the start pad; the clock and the sections done keep going", function()
 		local world, session = setup()
 		enter(world, T)
 		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 8)
-		local cp = world.obby.checkpoints[1]
-		local below = ObbyCourse.toWorld(PLACE.frame, { cp.pos[1] + 10, ObbyCourse.fallHeight(world.obby, 1) - 2, 0 })
-		local result = ObbyService.step(world, PLACE, at(below), T + 10)
-		expect(session.obbyRun.reached).toBe(1)
+		ObbyService.step(world, PLACE, at(onPad(world, 2)), T + 16)
+		local result = ObbyService.step(world, PLACE, at(below(world, 2)), T + 18)
 		expect(#result.moves).toBe(1)
-		local back = ObbyCourse.toWorld(PLACE.frame, ObbyCourse.respawn(world.obby, 1))
-		expect(result.moves[1].pos[2]).toBe(back[2])
+		local start = ObbyCourse.toWorld(PLACE.frame, world.obby.start)
+		for k = 1, 3 do
+			expect(math.abs(result.moves[1].pos[k] - start[k]) < 1e-9).toBe(true)
+		end
+		expect(session.obbyRun.section).toBe(2)
+		expect(session.obbyRun.startedAt).toBe(T)
+		local fell = analytics(world, "ObbyFell")
+		expect(fell[#fell].fields[1]).toBe(`Section - {ObbyCourse.NAMES[world.obby.picks[2].id]}`)
+		-- Back over sections 1 and 2, then on: the run is still valid and earns the boost.
+		local now = T + 18 + OBBY.MOVE_GRACE
+		ObbyService.step(world, PLACE, at(onPad(world, 0)), now)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), now + 5)
+		ObbyService.step(world, PLACE, at(onPad(world, 2)), now + 10)
+		local _, finishedAt = runAll(world, now + 10, 8)
+		expect(session.obbyRun).toBeNil()
+		expect(session.data.obbyUntil).toBe(finishedAt + OBBY.BOOST_SECONDS)
+		expect(session.obbyBest.seconds).toBe(finishedAt - T)
+	end)
+
+	it("a fall right after a respawn is ignored until the move settles", function()
+		local world, session = setup()
+		enter(world, T)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 8)
+		ObbyService.step(world, PLACE, at(below(world, 1)), T + 10)
+		local again = ObbyService.step(world, PLACE, at(below(world, 1)), T + 10.5)
+		expect(#again.moves).toBe(0)
+		expect(session.obbyRun ~= nil).toBe(true)
 	end)
 
 	it("the old ground position arriving just after the lift does not end the run", function()

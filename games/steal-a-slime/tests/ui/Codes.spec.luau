@@ -92,6 +92,48 @@ describe("Codes panel", function()
 		expect(box:FindFirstChildOfClass("UIStroke").Color).toBe(Theme.Ink)
 		expect(redeem.Position.Y.Offset).toBe(buttonY)
 	end)
+	it("the card grows to fit the error line, so the content never needs a scroll bar", function()
+		local Codes = UiHarness.ui("Panels/Codes")
+		local Widgets = UiHarness.ui("Widgets")
+		local asked, relayouts = {}, 0
+		local ctx: any = {
+			Config = Config,
+			send = function() end,
+			ask = function(_action: string, done: any)
+				table.insert(asked, done)
+			end,
+			relayout = function()
+				relayouts += 1
+			end,
+			serverNow = function()
+				return 0
+			end,
+		}
+		local panel = Codes.new(UiHarness.root(), ctx)
+		local body = panel.frame:FindFirstChild("Body")
+		local box = UiHarness.find(panel.frame, "CodeBox")
+		local before = Widgets.contentHeight(body)
+		expect(before).toBe(Codes.CONTENT_H)
+		box.Text = "NOTACODE"
+		UiHarness.fire(UiHarness.find(panel.frame, "RedeemButton"), "Activated")
+		asked[1]({ ok = false, message = "That code doesn't exist" })
+		expect(Widgets.contentHeight(body)).toBe(before + Codes.ERROR_SHIFT)
+		expect(relayouts).toBe(1)
+		UiHarness.fire(box, "Focused") -- clicking back in drops the line and the card shrinks back, once
+		UiHarness.fire(box, "Focused")
+		expect(Widgets.contentHeight(body)).toBe(before)
+		expect(relayouts).toBe(2)
+	end)
+	it("leaves room above the code box so its outline isn't clipped at the top", function()
+		local Codes = UiHarness.ui("Panels/Codes")
+		local Layout = UiHarness.ui("Layout")
+		local panel = build()
+		local content = UiHarness.find(panel.frame, "Content")
+		local ring = Layout.PANEL_CHROME.ring
+		expect(content.Position.Y.Offset).toBe(-ring)
+		expect(content:FindFirstChild("Ring").PaddingTop.Offset).toBe(ring)
+		expect(UiHarness.find(panel.frame, "CodeBox").Position.Y.Offset).toBe(Codes.ROWS.input.y)
+	end)
 	it("errorText makes the server's reason a sentence, with a fallback", function()
 		local Codes = UiHarness.ui("Panels/Codes")
 		expect(Codes.errorText({ ok = false, message = "That code has expired" })).toBe("That code has expired.")

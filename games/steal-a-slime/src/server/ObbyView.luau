@@ -368,27 +368,35 @@ function ObbyView.buildPortal()
 	sign.Color = PORTAL.sign
 	sign.Material = Enum.Material.SmoothPlastic
 	sign.Parent = model
+	-- The posts run up inside the board (thinner than it, and stopping just under its top so no faces meet), so they
+	-- show only under it and cover neither face.
+	local postInset = 0.1
 	for _, side in { -1, 1 } do
 		local post = Instance.new("Part")
 		post.Name = "Post"
 		post.Anchored = true
-		post.Size = Vector3.new(0.6, PORTAL.signLift + PORTAL.signSize.Y, 0.6)
-		post.CFrame = sign.CFrame * CFrame.new(side * (PORTAL.signSize.X / 2 - 0.6), -PORTAL.signLift / 2, 0.4)
+		post.Size = Vector3.new(0.6, PORTAL.signLift + PORTAL.signSize.Y - postInset, PORTAL.signSize.Z * 0.9)
+		post.CFrame = sign.CFrame
+			* CFrame.new(side * (PORTAL.signSize.X / 2 - 0.6), -(PORTAL.signLift + postInset) / 2, 0)
 		post.Color = PORTAL.sign
 		post.Parent = model
 	end
-	local gui = Instance.new("SurfaceGui")
-	gui.Name = "SignGui"
-	gui.Face = Enum.NormalId.Front
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = PORTAL.pixelsPerStud
-	gui.MaxDistance = PORTAL.maxDistance
-	gui.LightInfluence = 0
-	gui.Adornee = sign
-	signLabel(gui, "Title", "GOO GAUNTLET", 0.06, 0.32, 80)
-	signLabel(gui, Constants.OBBY_SIGN_STATUS, "Step in: x1.5 income!", 0.42, 0.24, 50)
-	signLabel(gui, Constants.OBBY_SIGN_COURSE, "A new course every 10 min", 0.7, 0.2, 40)
-	gui.Parent = sign
+	-- The same sign on both faces: from the plaza and from the portal side. ObbyHud fills every Status and
+	-- CourseInfo label it finds.
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = `SignGui{face.Name}`
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = PORTAL.pixelsPerStud
+		gui.MaxDistance = PORTAL.maxDistance
+		gui.LightInfluence = 0
+		gui.Adornee = sign
+		signLabel(gui, "Title", "OBBY", 0.06, 0.32, 80)
+		signLabel(gui, Constants.OBBY_SIGN_STATUS, "Step in: x1.5 income!", 0.42, 0.24, 50)
+		signLabel(gui, Constants.OBBY_SIGN_COURSE, "A new course every 10 min", 0.7, 0.2, 40)
+		gui.Parent = sign
+	end
 	model.Parent = root
 end
 
