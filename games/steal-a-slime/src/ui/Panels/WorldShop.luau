@@ -228,7 +228,17 @@ function WorldShop.new(parent: Instance, ctx: any)
 		return view
 	end
 
-	local list = Widgets.scrollList({ Name = "List", Size = UDim2.fromScale(1, 1), Parent = panel.body }, 6)
+	-- Tabs and list sit in one frame. With tabs (Item Shop) it is a full menu body, so the card keeps one size
+	-- whichever tab is on show and the list scrolls; without tabs it is as tall as the list, so the card fits it.
+	local c = Layout.PANEL_CHROME
+	local fullH = Layout.menuHeight("WorldShop") - c.header - c.pad
+	local content = create("Frame", {
+		Name = "Content",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, fullH),
+		Parent = panel.body,
+	})
+	local list = Widgets.scrollList({ Name = "List", Size = UDim2.fromScale(1, 1), Parent = content }, 6)
 
 	-- Item Shop tabs: shared width, the one on show in Accent, a gold dot on the others with something to buy.
 	local tabBar = create("Frame", {
@@ -236,7 +246,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, WorldShop.TAB_H),
 		Visible = false,
-		Parent = panel.body,
+		Parent = content,
 	})
 	local tabButtons: { [string]: { button: Widgets.Button, dot: Frame } } = {}
 	for _, def in WorldShopLogic.TABS do
@@ -805,6 +815,8 @@ function WorldShop.new(parent: Instance, ctx: any)
 		placeTabs(v.tabs, v.tab)
 		serverQuick = ExclusiveShopView.potionQuickBuy(state, ctx.Config)
 		entries.sync(v.entries)
+		content.Size =
+			UDim2.new(1, 0, 0, if tabBar.Visible then fullH else list.Position.Y.Offset + list.CanvasSize.Y.Offset)
 		showRestock()
 		-- Forget the icons of rows that went away.
 		for i = #icons, 1, -1 do

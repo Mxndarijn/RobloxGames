@@ -778,6 +778,26 @@ describe("Panels/WorldShop", function()
 		expect(UiHarness.find(panel.frame, "Income") ~= nil).toBe(true)
 	end)
 
+	it("keeps the Item Shop card one height on every tab; the Upgrade Shop fits its rows", function()
+		local Widgets = UiHarness.ui("Widgets")
+		local panel = UiHarness.ui("Panels/WorldShop").new(UiHarness.root(), ctx())
+		local body = UiHarness.find(panel.frame, "Body")
+		panel.update(baseState())
+		panel.setShop("ItemShop")
+		local c = Layout.PANEL_CHROME
+		local fullH = Layout.menuHeight("WorldShop") - c.header - c.pad
+		local heights = {}
+		for _, def in WorldShopLogic.TABS do
+			panel.setTab(def.id)
+			expect(panel.tab()).toBe(def.id)
+			heights[def.id] = Widgets.contentHeight(body)
+			expect(heights[def.id]).toBe(fullH)
+		end
+		panel.setShop("UpgradeShop")
+		local list = UiHarness.find(panel.frame, "List")
+		expect(Widgets.contentHeight(body)).toBe(list.CanvasSize.Y.Offset)
+	end)
+
 	it("dresses both shops in the shared panel colours: own title and corner icon", function()
 		local WorldShop = UiHarness.ui("Panels/WorldShop")
 		local Theme = UiHarness.ui("Widgets").Theme
