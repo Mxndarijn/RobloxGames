@@ -41,6 +41,7 @@ export type Context = {
 	plazaOrigin: (() -> Vec)?, -- the fountain centre in world studs (plaza coordinates are round it)
 	airborne: ((userId: number) -> boolean)?, -- off the ground (jumping clears a stomp's ring)
 	launch: ((userId: number, push: Vec, landing: Vec) -> boolean)?, -- an attack's knockback (PvpLaunch)
+	positionOf: ((userId: number) -> any?)?, -- where a struck carrier's slime lands (a Vector3 in the server)
 	-- Whether an attack centred on world point `from` (its x / z; Y = the plaza origin's) can strike `userId`: the
 	-- player is no more than BOSS.STRIKE_HEIGHT above the arena floor there and nothing solid stands between (a wall,
 	-- the silo, a prop). nil = always (tests).
@@ -176,6 +177,9 @@ end
 -- The meter is full: the boss shrinks to carry size and the top contributor's head start runs.
 local function startHaul(world: World, event: World.BossEvent, now: number)
 	local fight = event.fight
+	-- the downed boss strikes nobody: goo still in the air or on the ground goes
+	event.spits = {}
+	event.puddles = {}
 	local wild = event.slimeId and world.wild[event.slimeId]
 	if wild then
 		wild.expiresAt = fight.endsAt
@@ -403,7 +407,8 @@ local function advance(world: World, event: World.BossEvent, now: number, all: {
 	wild.move = move
 end
 
--- Knocks `spot`'s player away from the boss at plaza (bx, bz) and stuns their bat (Config.BOSS.STUN_SECONDS).
+-- Knocks `spot`'s player away from the boss at plaza (bx, bz) and stuns their bat (Config.BOSS.STUN_SECONDS); a
+-- carrier drops their slime first.
 -- Returns whether it struck: not when the adapter says the player is out of the attack's reach (too high above the
 -- arena floor, or behind something solid; Context.exposed).
 local function strike(
@@ -427,6 +432,11 @@ local function strike(
 		if not exposed(spot.userId, { X = bx + ox, Y = oy, Z = bz + oz }) then
 			return false
 		end
+	end
+	if session.carry then
+		-- a carrier drops what they hold where they stand, before the knockback throws them (no toast of its own)
+		local positionOf = ctx and ctx.positionOf
+		Carry.release(world, spot.userId, now, if positionOf then positionOf(spot.userId) else nil, "boss")
 	end
 	local from = { X = bx + ox, Y = spot.y, Z = bz + oz }
 	local at = { X = spot.x + ox, Y = spot.y, Z = spot.z + oz }

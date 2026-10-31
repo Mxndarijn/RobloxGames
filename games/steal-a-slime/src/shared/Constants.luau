@@ -82,7 +82,7 @@ return table.freeze({
 	LEADERBOARD_STAT_ATTRIBUTE = "LeaderboardStat", -- on each board Model: the Types.Leaderboard `stat` it shows
 	PROFESSOR_GOO = "ProfessorGoo", -- the Hall of Fame greeter NPC under workspace.Map
 	HALL_ARCH = "HallOfFameArch", -- the Hall of Fame entrance arch under workspace.Map
-	-- Goo Gauntlet obby (contract/obby.md): server/ObbyView builds workspace.Obby with Portal and Course
+	-- The Obby (contract/obby.md): server/ObbyView builds workspace.Obby with Portal and Course
 	OBBY_FOLDER = "Obby",
 	OBBY_COURSE = "Course", -- workspace.Obby.Course: the parts of the course standing now (attribute Slot)
 	OBBY_PORTAL = "Portal", -- workspace.Obby.Portal: the ring, its column and the status sign

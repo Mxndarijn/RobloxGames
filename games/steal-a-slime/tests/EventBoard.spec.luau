@@ -62,29 +62,12 @@ describe("EventBoard.rows", function()
 		expect((assert(row(EventBoard.rows({ rainAt = NOW + 600 }, NOW), "rain"))).time).toBe("10:00")
 		expect(row(EventBoard.rows({}, NOW), "rain")).toBeNil()
 	end)
-	it("always shows the weather with the shine it allows, its icon and when it changes", function()
-		local clear = assert(row(EventBoard.rows({}, NOW), "weather"))
-		expect(clear.title).toBe("Weather: Clear")
-		expect(clear.detail).toBe("Gold slimes possible")
-		expect(clear.time).toBe("")
-		expect(clear.icon).toBe("weatherClear")
-		local snow = assert(row(EventBoard.rows({ weather = "Snow", weatherChangeAt = NOW + 61 }, NOW), "weather"))
-		expect(snow.detail).toBe("Diamond slimes possible")
-		expect(snow.time).toBe("changes 1:01")
-		expect(snow.icon).toBe("weatherSnow")
-		expect(snow.accent).toBe(EventBoard.ACCENTS.Snow)
-		expect((assert(row(EventBoard.rows({ weather = "Starfall" }, NOW), "weather"))).detail).toBe(
-			"Rainbow slimes possible"
-		)
-	end)
-	it("shineHint names the weather's own shine, else the any-weather one", function()
-		for _, shine in Config.SHINES do
-			if shine.weather then
-				expect(EventBoard.shineHint(shine.weather)).toBe(`{shine.id} slimes possible`)
-			end
+	it("never shows the weather", function()
+		expect(EventBoard.rows({}, NOW)).toEqual({})
+		for _, r in EventBoard.rows({ bossAt = NOW + 1, rainAt = NOW + 2, legendaryIn = 3, mythicIn = 4 }, NOW) do
+			expect(r.id ~= "weather").toBe(true)
+			expect(string.find(r.title, "Weather") == nil).toBe(true)
 		end
-		expect(EventBoard.shineHint(nil)).toBe("Gold slimes possible")
-		expect(EventBoard.shineHint("Clear")).toBe("Gold slimes possible")
 	end)
 	it("gives the guaranteed Legendary and Mythic a card each", function()
 		local rows = EventBoard.rows({ legendaryIn = 125, mythicIn = 600 }, NOW)
@@ -102,15 +85,13 @@ describe("EventBoard.rows", function()
 		local rows = EventBoard.rows({
 			bossAt = NOW + 400,
 			rainAt = NOW + 120,
-			weather = "Snow",
-			weatherChangeAt = NOW + 30,
 			legendaryIn = 10,
 			mythicIn = 900,
 			event = "Party",
 		}, NOW)
-		expect(ids(rows)).toEqual({ "event", "legendary", "weather", "rain", "boss", "mythic" })
+		expect(ids(rows)).toEqual({ "event", "legendary", "rain", "boss", "mythic" })
 		local live = EventBoard.rows({ bossHere = "King Goo", rainEndsAt = NOW + 50, legendaryIn = 5 }, NOW)
-		expect(ids(live)).toEqual({ "boss", "rain", "legendary", "weather" })
+		expect(ids(live)).toEqual({ "boss", "rain", "legendary" })
 	end)
 	it("caps the wall at MAX_ROWS and keys the layout on the order", function()
 		local rows = EventBoard.rows({
@@ -119,7 +100,6 @@ describe("EventBoard.rows", function()
 			legendaryIn = 3,
 			mythicIn = 4,
 			event = "Party",
-			weatherChangeAt = NOW + 5,
 		}, NOW)
 		expect(#rows <= EventBoard.MAX_ROWS).toBe(true)
 		local a = EventBoard.layoutKey(EventBoard.rows({ bossAt = NOW + 10, rainAt = NOW + 20 }, NOW))
@@ -130,13 +110,13 @@ describe("EventBoard.rows", function()
 	end)
 	it("text writes one 'Title: detail (time)' line per card", function()
 		expect(EventBoard.text(EventBoard.rows({ bossAt = NOW + 60 }, NOW))).toBe(
-			"Boss: arrives at the fountain (1:00)\nWeather: Clear: Gold slimes possible"
+			"Boss: arrives at the fountain (1:00)"
 		)
 	end)
 end)
 
 describe("EventBoardView.input", function()
-	it("reads the next boss, the rain clock and Clear weather from a fresh world", function()
+	it("reads the next boss and the rain clock from a fresh world", function()
 		local world = ServerFixtures.world()
 		local input = EventBoardView.input(world, T0)
 		expect(input.bossHere).toBeNil()
@@ -144,29 +124,25 @@ describe("EventBoardView.input", function()
 		local raining, endsAt, startsAt = Spawner.rain(world, T0)
 		expect(input.rainEndsAt).toBe(if raining then endsAt else nil)
 		expect(input.rainAt).toBe(if raining then nil else startsAt)
-		expect(input.weather).toBeNil()
-		expect(input.weatherChangeAt).toBeNil()
 		expect(input.event).toBeNil()
 		-- no drop yet: the guarantee clocks haven't started
 		expect(input.legendaryIn).toBeNil()
 		expect(input.mythicIn).toBeNil()
 	end)
-	it("reads the live weather and the guarantee clocks after a drop", function()
+	it("reads the guarantee clocks after a drop, and leaves the live weather off the board", function()
 		local world = ServerFixtures.world()
 		world.weather = { id = "Snow", changeAt = T0 + 200 }
 		local id = Spawner.spawnSlime(world, T0)
 		local tier = world.wild[id].slime.tier
 		local input = EventBoardView.input(world, T0 + 100)
-		expect(input.weather).toBe("Snow")
-		expect(input.weatherChangeAt).toBe(T0 + 200)
 		expect(input.legendaryIn).toBe(Spawner.guaranteeIn(world, 5, T0 + 100))
 		expect(input.mythicIn).toBe(Spawner.guaranteeIn(world, 6, T0 + 100))
 		if tier < 5 then
 			expect(input.legendaryIn).toBe(Config.GUARANTEE_SECONDS[5] - 100)
 		end
-		local weather = assert(row(EventBoard.rows(input, T0 + 100), "weather"))
-		expect(weather.detail).toBe("Diamond slimes possible")
-		expect(weather.time).toBe("changes 1:40")
+		for _, card in EventBoard.rows(input, T0 + 100) do
+			expect(string.find(card.title, "Weather") == nil).toBe(true)
+		end
 	end)
 	it("names a running admin event and its end", function()
 		local world = ServerFixtures.world()

@@ -55,7 +55,7 @@ describe("decor rocks", function()
 end)
 
 describe("plot lock pieces", function()
-	it("builds the sign's legs and the LockButton Pedestal in wood", function()
+	it("builds the sign's cradle, its stubs and the LockButton Pedestal in wood", function()
 		local function child(n: any, name: string): any
 			for _, c in n.children or {} do
 				if c.name == name then
@@ -66,7 +66,12 @@ describe("plot lock pieces", function()
 		end
 		for _, plot in WorldLayout.build()[2].children do
 			for _, n in
-				{ child(plot, "SignLeg_1"), child(plot, "SignLeg_2"), child(child(plot, "LockButton"), "Pedestal") }
+				{
+					child(plot, "SignRail"),
+					child(plot, "SignLeg_1"),
+					child(plot, "SignLeg_2"),
+					child(child(plot, "LockButton"), "Pedestal"),
+				}
 			do
 				expect(string.find(n.material, "Wood") ~= nil).toBe(true)
 			end

@@ -31,8 +31,12 @@
 	Cancel, or a matching UserInputService.InputEnded) or when a redraw no longer shows its prompt; it never
 	outlives the card.
 
-	Pure helpers (ordered, keyLabel) are tested under Lune (tests/ui/SlimeKeyCard.spec.luau); `start` returns a
-	stop function that disconnects everything and removes the card.
+	The lock card's title counts down on its own: while the base is locked its LockPrompt is off (so never shown, and
+	its ObjectText changes never redraw the card), so `tick` (the client's 10 Hz loop) sets the title from the plot's
+	LockUntil attribute, the same clock as LockTimerTag's pill. Only the title text changes; rows and holds stay.
+
+	Pure helpers (ordered, keyLabel, lockText, lockTitle) are tested under Lune (tests/ui/SlimeKeyCard.spec.luau);
+	`start` returns { tick, stop }: `stop` disconnects everything and removes the card.
 ]]
 
 local UI = script.Parent
@@ -41,6 +45,8 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local LabelFit =
 	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("LabelFit"))
+local NumberFormat =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("core"):WaitForChild("NumberFormat"))
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -49,6 +55,7 @@ local create = Widgets.create
 local SlimeKeyCard = {}
 
 SlimeKeyCard.NAME = "SlimeKeyCard" -- the card's BillboardGui in PlayerGui
+SlimeKeyCard.LOCK_UNTIL_ATTRIBUTE = "LockUntil" -- Plot_<i>: when its lock ends (server time)
 
 -- Row order by prompt name (the server's HatchPrompt, SlimeKeys.MOVE_PROMPT / FAVORITE_PROMPT / SELL_PROMPT; the
 -- LockButton's Constants.LOCK_PROMPT_NAME / FRIENDS_PROMPT_NAME).
@@ -87,6 +94,20 @@ function SlimeKeyCard.heading(parent: Instance): (string, string)
 		sub = objectText(Constants.FRIENDS_PROMPT_NAME)
 	end
 	return title, if sub ~= title then sub else ""
+end
+
+-- The lock status for `remaining` seconds of lock: "LOCKED 1:42" (the lock card's title and LockTimerTag's pill).
+function SlimeKeyCard.lockText(remaining: number): string
+	return `LOCKED {NumberFormat.clock(remaining)}`
+end
+
+-- The lock card's title at `now` for a plot whose LockUntil is `lockUntil`, or nil when it isn't locked (the card
+-- then keeps the LockPrompt's own text, "OPEN").
+function SlimeKeyCard.lockTitle(lockUntil: unknown, now: number): string?
+	if type(lockUntil) == "number" and lockUntil > now then
+		return SlimeKeyCard.lockText(lockUntil - now)
+	end
+	return nil
 end
 
 -- The small line under the rows: on the lock card, while its Lock row shows, that standing on the lock pad's ring
@@ -189,9 +210,12 @@ export type Options = {
 	tweens: TweenService,
 	userInput: UserInputService?, -- releases of a click/tap hold; defaults to the real service
 	clock: (() -> number)?, -- elapsed time of a hold's fill; defaults to os.clock
+	now: (() -> number)?, -- server time for the lock title; defaults to workspace:GetServerTimeNow
 }
 
-function SlimeKeyCard.start(opts: Options): () -> ()
+export type Handle = { tick: () -> (), stop: () -> () }
+
+function SlimeKeyCard.start(opts: Options): Handle
 	local C = SlimeKeyCard.CARD
 	local card = create("BillboardGui", {
 		Name = SlimeKeyCard.NAME,
@@ -249,6 +273,11 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 	local render: () -> ()
 	local userInput: UserInputService = opts.userInput or game:GetService("UserInputService")
 	local clock = opts.clock or os.clock
+	local now = opts.now or function(): number
+		return workspace:GetServerTimeNow()
+	end
+	-- The part the card is drawn over while it shows (the slime Body or the LockButton).
+	local drawnOn: BasePart? = nil
 
 	-- Click/tap holds by prompt: the press's InputObject and the connection that watches it end.
 	type PointerHold = { input: InputObject, conn: RBXScriptConnection? }
@@ -426,6 +455,27 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		return row
 	end
 
+	-- The plot's LockUntil for a LockButton (the plot is an ancestor with that attribute); nil for a slime Body.
+	local function lockUntilOf(part: Instance): unknown
+		if not part:FindFirstChild(Constants.LOCK_PROMPT_NAME) then
+			return nil
+		end
+		local node = part.Parent
+		while node do
+			local value = node:GetAttribute(SlimeKeyCard.LOCK_UNTIL_ATTRIBUTE)
+			if value ~= nil then
+				return value
+			end
+			node = node.Parent
+		end
+		return nil
+	end
+
+	-- The title over `part`: the running lock countdown on a locked LockButton, else `heading` (the prompts' own).
+	local function titleFor(part: Instance, heading: string): string
+		return SlimeKeyCard.lockTitle(lockUntilOf(part), now()) or heading
+	end
+
 	-- Redraws the card for the slime whose prompts are shown.
 	render = function()
 		-- The Body most of the shown prompts sit on (all of them, normally).
@@ -442,6 +492,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		end
 		clearRows()
 		if not best or not best:IsA("BasePart") then
+			drawnOn = nil
 			card.Enabled = false
 			card.Adornee = nil
 			endAllPointerHolds()
@@ -457,7 +508,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 			return p.Name
 		end)
 		local name, perkText = SlimeKeyCard.heading(best)
-		title.Text = name
+		title.Text = titleFor(best, name)
 		perk.Text = perkText
 		perk.Visible = perkText ~= ""
 		local y = C.pad + C.titleH + (if perk.Visible then C.perkH else 0) + C.gap
@@ -493,6 +544,7 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 			card.StudsOffsetWorldSpace = SlimeKeyCard.offsetOver(best :: BasePart, others, C.lift)
 		end
 		card.Enabled = #list > 0
+		drawnOn = if card.Enabled then best :: BasePart else nil
 	end
 
 	local function watch(prompt: ProximityPrompt)
@@ -558,17 +610,29 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		userInput.InputEnded:Connect(releasePointer),
 	}
 
-	return function()
-		for _, c in conns do
-			c:Disconnect()
-		end
-		for prompt in watched do
-			unwatch(prompt)
-		end
-		endAllPointerHolds()
-		clearRows()
-		card:Destroy()
-	end
+	return {
+		-- The lock card's countdown between redraws (title text only).
+		tick = function()
+			local part = drawnOn
+			if part and card.Enabled and part:FindFirstChild(Constants.LOCK_PROMPT_NAME) then
+				local text = titleFor(part, (SlimeKeyCard.heading(part)))
+				if title.Text ~= text then
+					title.Text = text
+				end
+			end
+		end,
+		stop = function()
+			for _, c in conns do
+				c:Disconnect()
+			end
+			for prompt in watched do
+				unwatch(prompt)
+			end
+			endAllPointerHolds()
+			clearRows()
+			card:Destroy()
+		end,
+	}
 end
 
 return SlimeKeyCard
