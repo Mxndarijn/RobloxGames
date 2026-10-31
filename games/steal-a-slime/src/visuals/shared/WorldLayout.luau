@@ -1038,6 +1038,16 @@ local function rock(name: string, pos: Vec, s: number, salt: number): WorldNode
 	}
 end
 
+-- Kit ground decor scattered between the rocks where the space allows, taken in turn so every kind shows up. Mesh
+-- slots, walk-through (no MeshAssets.COLLISION entry): each is a block until MeshSwap places the mesh.
+WorldLayout.GROUND_DECOR = table.freeze({
+	{ mesh = "decor_slime_nest", label = "Nest", look = { 228, 196, 110 } },
+	{ mesh = "decor_wildflower_clump", label = "Wildflowers", look = { 250, 150, 182 } },
+	{ mesh = "decor_goo_crystals", label = "GooCrystals", look = { 110, 226, 170 } },
+	{ mesh = "decor_slime_topiary", label = "Topiary", look = { 88, 160, 92 } },
+	{ mesh = "decor_watering_can", label = "WateringCan", look = { 214, 92, 84 } },
+})
+
 -- Keeps decor off the drop ring (34..62 + margin), the ring path, plots,
 -- spoke paths, the chute, the prop spots and the border wall.
 local function clearSpot(pos: Vec, radius: number): boolean
@@ -1134,7 +1144,7 @@ local function resolveProp(p: RanchProps.Placement): RanchProp
 	}
 end
 
--- Scattered rocks between and behind the plots, and where they
+-- Scattered rocks and ground decor between and behind the plots, and where they
 -- landed (x, z, radius).
 local function scatter(): ({ WorldNode }, { { number } })
 	local children: { WorldNode } = {}
@@ -1147,15 +1157,47 @@ local function scatter(): ({ WorldNode }, { { number } })
 		end
 		return false
 	end
+	local function apart(pos: Vec, radius: number): boolean
+		for _, p in placed do
+			if (p[1] - pos[1]) ^ 2 + (p[2] - pos[3]) ^ 2 < (p[3] + radius + 2) ^ 2 then
+				return false
+			end
+		end
+		return true
+	end
+	local function spot(k: number): Vec
+		return onPolar(hash(k, 1) * 360, 90 + hash(k, 2) * 205, 0)
+	end
 	local rocks = 0
 	for k = 1, 120 do
-		local yaw = hash(k, 1) * 360
-		local r = 90 + hash(k, 2) * 205
-		local pos = onPolar(yaw, r, 0)
 		if hash(k, 30) < 0.6 then
+			local pos = spot(k)
 			local s = 2 + hash(k, 31) * 4
 			if add(rock(`Rock{rocks + 1}`, pos, s, k), pos, s) then
 				rocks += 1
+			end
+		end
+	end
+	-- then the ground decor in the other spots, clear of every rock and of each other
+	local decorCount = 0
+	for k = 1, 120 do
+		if hash(k, 30) >= 0.6 then
+			local kind = WorldLayout.GROUND_DECOR[decorCount % #WorldLayout.GROUND_DECOR + 1]
+			local size = meshSize(kind.mesh, 0.95 + hash(k, 32) * 0.25)
+			local radius = math.sqrt(size[1] ^ 2 + size[3] ^ 2) / 2
+			local pos = spot(k)
+			if clearSpot(pos, radius) and apart(pos, radius) then
+				decorCount += 1
+				local slot = block(
+					`{kind.label}{decorCount}`,
+					size,
+					{ pos[1], size[2] / 2, pos[3] },
+					kind.look,
+					"SmoothPlastic",
+					{ 0, hash(k, 33) * 360, 0 }
+				)
+				slot.canCollide = false
+				add(meshSlot(slot, kind.mesh), pos, radius)
 			end
 		end
 	end

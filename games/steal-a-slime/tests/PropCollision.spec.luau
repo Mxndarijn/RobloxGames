@@ -36,6 +36,12 @@ local NON_BLOCKING = {
 	meadow_grass = true,
 	meadow_flowers = true,
 	meadow_pebbles = true,
+	-- ground decor between the rocks (WorldLayout.GROUND_DECOR)
+	decor_slime_nest = true,
+	decor_wildflower_clump = true,
+	decor_goo_crystals = true,
+	decor_slime_topiary = true,
+	decor_watering_can = true,
 	-- yard trees: the trunk posts (yard_tree_trunks) collide, the leaves are walk-through
 	yard_oak_round = true,
 	yard_pine_broad = true,

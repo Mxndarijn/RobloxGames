@@ -229,6 +229,12 @@ local DECOR = {
 	ranch_horseshoe_pit = "1.8 stud flat sand pit, walk over it",
 	ranch_pumpkin_patch = "low foliage patch, walk through",
 	ranch_sunflower_patch = "foliage, walk through",
+	-- ground decor scattered between the plots (WorldLayout.GROUND_DECOR)
+	decor_slime_nest = "low nest on the grass, walked over",
+	decor_wildflower_clump = "foliage, walk through",
+	decor_goo_crystals = "small ground decor, walk through",
+	decor_slime_topiary = "small ground decor, walk through",
+	decor_watering_can = "low ground decor, walked over",
 	plot_skin_mushroom = "client-cloned plot skin template, not a world slot",
 	plot_skin_candy = "client-cloned plot skin template, not a world slot",
 	plot_skin_crystal = "client-cloned plot skin template, not a world slot",

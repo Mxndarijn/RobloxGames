@@ -326,6 +326,71 @@
     "uploadedAt": "2026-10-29T13:14:16Z",
     "versions": 1
   },
+  "decor_goo_crystals": {
+    "assetId": "98549560827765",
+    "assetType": "Model",
+    "meshId": "rbxassetid://105532250698187",
+    "meshSize": [
+      4.327,
+      3.956,
+      3.387
+    ],
+    "sha256": "ec7193d8ddf05525",
+    "uploadedAt": "2026-10-31T13:47:15Z",
+    "versions": 1
+  },
+  "decor_slime_nest": {
+    "assetId": "78367331209283",
+    "assetType": "Model",
+    "meshId": "rbxassetid://110819446945105",
+    "meshSize": [
+      3.482,
+      1.643,
+      3.515
+    ],
+    "sha256": "103fe4fa4a81b7d4",
+    "uploadedAt": "2026-10-31T13:46:36Z",
+    "versions": 1
+  },
+  "decor_slime_topiary": {
+    "assetId": "81153228075438",
+    "assetType": "Model",
+    "meshId": "rbxassetid://95451042530760",
+    "meshSize": [
+      3.256,
+      3.811,
+      3.209
+    ],
+    "sha256": "371b90a5b92ce27b",
+    "uploadedAt": "2026-10-31T13:46:52Z",
+    "versions": 1
+  },
+  "decor_watering_can": {
+    "assetId": "115477687781361",
+    "assetType": "Model",
+    "meshId": "rbxassetid://124731250551357",
+    "meshSize": [
+      4.788,
+      2.917,
+      2.7
+    ],
+    "sha256": "a90b66e7f3151dba",
+    "uploadedAt": "2026-10-31T13:47:25Z",
+    "versions": 1
+  },
+  "decor_wildflower_clump": {
+    "assetId": "134185703252264",
+    "assetType": "Model",
+    "meshId": "rbxassetid://104962623104512",
+    "meshSize": [
+      3.375,
+      3.761,
+      2.928
+    ],
+    "sha256": "66ee71937f251759",
+    "uploadedAt": "2026-10-31T13:47:04Z",
+    "versions": 1
+  },
   "exclusive_jar_boutique_glass": {
     "assetId": "92353179686979",
     "assetType": "Model",

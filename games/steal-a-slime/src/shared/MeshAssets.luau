@@ -49,6 +49,11 @@ local NAMES = {
 	"ranch_feed_sacks",
 	"ranch_fence_stile",
 	"ranch_flower_planter",
+	"decor_goo_crystals",
+	"decor_slime_nest",
+	"decor_slime_topiary",
+	"decor_watering_can",
+	"decor_wildflower_clump",
 	"ranch_goo_bucket",
 	"ranch_goo_hive",
 	"ranch_goo_sign",
@@ -284,6 +289,17 @@ entries["ranch_fence_stile"] =
 	{ assetId = 109953899748949, meshId = "rbxassetid://121810118872882", size = { 4.85, 4.6, 4.1 } }
 entries["ranch_flower_planter"] =
 	{ assetId = 119401948136413, meshId = "rbxassetid://79181201141280", size = { 5.2, 3.191, 2 } }
+-- ground decor scattered between the plots (WorldLayout.scatter): walk-through
+entries["decor_goo_crystals"] =
+	{ assetId = 98549560827765, meshId = "rbxassetid://105532250698187", size = { 4.327, 3.956, 3.387 } }
+entries["decor_slime_nest"] =
+	{ assetId = 78367331209283, meshId = "rbxassetid://110819446945105", size = { 3.482, 1.643, 3.515 } }
+entries["decor_slime_topiary"] =
+	{ assetId = 81153228075438, meshId = "rbxassetid://95451042530760", size = { 3.256, 3.811, 3.209 } }
+entries["decor_watering_can"] =
+	{ assetId = 115477687781361, meshId = "rbxassetid://124731250551357", size = { 4.788, 2.917, 2.7 } }
+entries["decor_wildflower_clump"] =
+	{ assetId = 134185703252264, meshId = "rbxassetid://104962623104512", size = { 3.375, 3.761, 2.928 } }
 entries["ranch_goo_bucket"] =
 	{ assetId = 129790019317485, meshId = "rbxassetid://102042715713279", size = { 2.164, 2.816, 2.09 } }
 entries["ranch_goo_drain"] =
