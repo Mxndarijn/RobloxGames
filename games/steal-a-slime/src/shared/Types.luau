@@ -238,6 +238,7 @@ export type State = {
 	lockStartedAt: number, -- v16: server time the current lock began (CONTRACT.md §9.3)
 	lockDuration: number,
 	carrying: CarryView?,
+	pickupBlockedUntil: number?, -- server time the after-drop pickup cooldown ends; nil once it is over (CONTRACT.md §3)
 	rain: RainView,
 	dex: DexView, -- the species Dex: counts, entries (CONTRACT.md §36.4)
 	daily: DailyView,

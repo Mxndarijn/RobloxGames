@@ -120,6 +120,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		lockStartedAt = session.lockStartedAt,
 		lockDuration = Steal.lockDuration(rebirths),
 		carrying = carrying,
+		pickupBlockedUntil = Carry.pickupBlockedUntil(session, now),
 		rain = { active = rainActive, endsAt = endsAt, nextAt = nextAt },
 		dex = SpeciesDex.view(data, now, DexSources),
 		daily = {
