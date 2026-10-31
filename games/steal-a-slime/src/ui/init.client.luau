@@ -1086,6 +1086,12 @@ require(script.MemberTags).start({
 	attribute = Constants.MEMBER_ATTRIBUTE,
 	playerGui = player:WaitForChild("PlayerGui"),
 })
+-- The goo tube's "Drop down" prompt shows only to the base's owner, on the top jar, while empty-handed.
+require(script.GooTubePrompt).start({
+	root = workspace:WaitForChild("Plots"),
+	player = player,
+	localUserId = player.UserId,
+})
 -- Locked bases (your own too) show how long the lock lasts over the lock button (seen through glass, not walls).
 local lockTimerTag = LockTimerTag.start({
 	plots = workspace:WaitForChild("Plots"),
