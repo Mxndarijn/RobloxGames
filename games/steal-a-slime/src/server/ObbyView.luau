@@ -120,7 +120,7 @@ function ObbyView.buildPortal()
 	local post = Instance.new("Part")
 	post.Name = "SignPost"
 	post.Size = PORTAL.signSize
-	post.CFrame = signCf * CFrame.new(0, PORTAL.signSize.Y / 2, 0)
+	post.CFrame = signCf * CFrame.new(0, PORTAL.signSize.Y / 2, 0) * ObbyParts.GOO.faceTurn -- the kit sign faces +Y too
 	post.Transparency = 1
 	post.Anchored = true
 	post.CanCollide = false
