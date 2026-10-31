@@ -236,7 +236,9 @@ describe("ObbyService runs", function()
 	it("leaving the course or losing the character ends the run", function()
 		local world, session = setup()
 		enter(world, T)
-		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), T + 3)
+		-- Well off to the side of the course, whatever its length.
+		local away = { world.obby.length / 2, 3, ObbyService.OFF_COURSE + 20 }
+		ObbyService.step(world, PLACE, at(ObbyCourse.toWorld(PLACE.frame, away)), T + 3)
 		expect(session.obbyRun).toBeNil()
 		enter(world, T + 5)
 		ObbyService.step(world, PLACE, {}, T + 6)
