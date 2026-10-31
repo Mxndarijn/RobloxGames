@@ -168,6 +168,12 @@ function Carry.grabWild(
 	return true, nil
 end
 
+-- Server time the after-drop pickup cooldown (Config.DROP_PICKUP_COOLDOWN) ends, or nil when it is over.
+function Carry.pickupBlockedUntil(session: Session, now: number): number?
+	local ends = session.lastDropAt + Config.DROP_PICKUP_COOLDOWN
+	return if now < ends then ends else nil
+end
+
 -- ProximityPrompt entry point: wild slimes are grabbed, pad slimes stolen. `inside` is the server view's
 -- JarInside.canReach for a pad slime (the thief is in the owner's base, on its floor); nil = not measured.
 function Carry.grab(
@@ -182,7 +188,7 @@ function Carry.grab(
 	if not session then
 		return false, "still loading"
 	end
-	if now - session.lastDropAt < Config.DROP_PICKUP_COOLDOWN then
+	if Carry.pickupBlockedUntil(session, now) then
 		return false, "you just dropped a slime"
 	end
 	if world.wild[slimeId] then
