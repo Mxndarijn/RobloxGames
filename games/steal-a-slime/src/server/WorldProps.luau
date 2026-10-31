@@ -5,7 +5,7 @@
 	Places the world props from Archer's ReplicatedStorage.Visuals.Props at
 	WorldLayout.PROP_SPOTS under workspace.Map (CONTRACT.md §5.3):
 	ItemShopStand and UpgradeShopStand (each with its own ShopPrompt on Counter and ShopId attribute,
-	CONTRACT.md §27), the ExclusiveShopStand jar (Props.exclusiveJar, its
+	CONTRACT.md §27), the ExclusiveShopStand claw shop (Props.exclusiveClaw, its
 	ShopPrompt opens the Exclusive Shop panel, contract/exclusive-shop.md §7), the five Hall of Fame boards
 	(Leaderboards.BOARDS, each tagged with its LeaderboardStat),
 	ProfessorGoo, TutorialNpc (with the "Talk" prompt) and the Upcoming Events board (WorldLayout.EVENT_BOARD,
@@ -41,7 +41,7 @@ WorldProps.SHOP_PROMPTS = table.freeze({
 		actionText = "Browse exclusives",
 	}),
 })
--- The stand of each shop that has a ShopPrompt: the cash shops (Shops.ORDER) and the Exclusive Shop's jar, which
+-- The stand of each shop that has a ShopPrompt: the cash shops (Shops.ORDER) and the Exclusive Shop's claw shop, which
 -- is no cash shop (its panel buys through MarketplaceService) but opens and closes the same way.
 local function standOf(shopId: string): string?
 	if shopId == Constants.EXCLUSIVE_SHOP_ID then
@@ -150,8 +150,8 @@ function WorldProps.place(): { [string]: Model }
 	end
 	builders[Constants.SHOP_STAND_ITEM] = standBuilder(Props, "ItemShop")
 	builders[Constants.SHOP_STAND_UPGRADE] = standBuilder(Props, "UpgradeShop")
-	if Props and Props.exclusiveJar then
-		builders[Constants.SHOP_STAND_EXCLUSIVE] = Props.exclusiveJar
+	if Props and Props.exclusiveClaw then
+		builders[Constants.SHOP_STAND_EXCLUSIVE] = Props.exclusiveClaw
 	end
 	local parent = workspace:FindFirstChild(Constants.MAP_FOLDER) or workspace
 	for name, build in builders do

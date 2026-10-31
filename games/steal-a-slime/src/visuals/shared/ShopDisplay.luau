@@ -2,13 +2,13 @@
 --[[
 	ShopDisplay (pure, contract/exclusive-shop.md §7)
 
-	Where the featured seats float in the Exclusive Shop's jar at a server time `t` (seconds), so every client shows
+	Where the featured seats stand in the Exclusive Shop's claw shop at a server time `t` (seconds), so every client shows
 	the same pose. The client (visuals/client/ShopDisplayFx) puts them into the world with the stand's pivot. No Roblox
 	APIs.
 
-	Stand frame: the ExclusiveShopStand's own frame (Roblox axes, origin on the ground, front -Z, WorldLayout.jarPoint).
+	Stand frame: the ExclusiveShopStand's own frame (Roblox axes, origin on the ground, front -Z, WorldLayout.clawPoint).
 
-	  COUNT          the display spots in the jar (WorldLayout.EXCLUSIVE_JAR.displays)
+	  COUNT          the display spots in the claw box (WorldLayout.EXCLUSIVE_CLAW.displays)
 	  seats(f)       the seat id on each spot: the first COUNT featured seats, in order
 	  phase(i)       spot i's phase (radians): the spots a third of a cycle apart
 	  angle(i, t)    spot i's yaw (radians, 0..2pi): Config.EXCLUSIVE_SHOP.displayRpm turns a minute, positive about +Y
@@ -26,7 +26,7 @@ export type Pose = { x: number, y: number, z: number, yaw: number }
 local ShopDisplay = {}
 
 local TAU = 2 * math.pi
-local LAYOUT = WorldLayout.EXCLUSIVE_JAR
+local LAYOUT = WorldLayout.EXCLUSIVE_CLAW
 local SHOP = Config.EXCLUSIVE_SHOP
 
 ShopDisplay.COUNT = #LAYOUT.displays
@@ -52,7 +52,7 @@ function ShopDisplay.lift(i: number, t: number): number
 end
 
 function ShopDisplay.spot(i: number): { number }
-	return WorldLayout.jarPoint(LAYOUT.displays[i])
+	return WorldLayout.clawPoint(LAYOUT.displays[i])
 end
 
 function ShopDisplay.pose(i: number, t: number): Pose

@@ -31,6 +31,7 @@ Remotes.DEFINITIONS = table.freeze({
 	table.freeze({ name = Constants.LEADERBOARD, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef),
 	table.freeze({ name = Constants.PVP_EVENT, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- FEATURES.PvP only fires (CONTRACT.md §26.1)
 	table.freeze({ name = Constants.SHOP_EVENT, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- CONTRACT.md §27.4
+	table.freeze({ name = Constants.CLAW_SHOW, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- contract/exclusive-shop.md §7.2
 } :: { RemoteDef })
 
 Remotes.ACTIONS = table.freeze({

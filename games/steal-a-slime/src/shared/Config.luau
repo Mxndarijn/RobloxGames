@@ -939,10 +939,49 @@ local EXCLUSIVE_SHOP = table.freeze({
 		rainCooldown = 20 * 60, -- seconds between two paid Slime Rains on one server
 		summonCooldown = 20 * 60, -- seconds between two summoned bosses on one server
 	}),
-	displayRpm = 3, -- turns per minute of each featured seat shown in the jar (client visual)
+	displayRpm = 3, -- turns per minute of each featured seat shown in the claw shop (client visual)
 	displayBob = 0.35, -- studs each shown seat floats up over its pedestal and back down
 	displayBobSeconds = 3, -- one bob cycle
-	drawDistance = 220, -- studs: beyond this the client stops animating the jar's seats
+	drawDistance = 220, -- studs: beyond this the client stops animating the claw shop's seats and claw
+	-- The claw show (contract/exclusive-shop.md §7.2): after a purchase is granted, the trophy slime's goo hand grabs
+	-- the bought seat (or a prize capsule) and drops it out of the prize chute. Seconds per step, in order.
+	claw = table.freeze({
+		steps = table.freeze({
+			aim = 1.2, -- the hand slides over the prize
+			drop = 0.9, -- down to it
+			grab = 0.5, -- holds still while the fingers close round it
+			lift = 0.9, -- back up with the prize
+			carry = 1.0, -- over the funnel
+			release = 0.5, -- the prize falls into the funnel
+			pop = 0.6, -- it pops out of the chute
+			show = 2.0, -- it hangs over the chute under the buyer's banner
+			fly = 0.5, -- it flies up and is gone; the hand is home by now
+		}),
+		returnSeconds = 1.2, -- the hand's way home, from the release
+		grabDepth = 3.3, -- studs from the hand's top down to the bottom of the prize it holds
+		popRise = 1.6, -- studs the prize rises over the chute mouth as it pops out
+		popOut = 1.4, -- studs it comes out towards the front
+		flyRise = 6, -- studs it rises as it flies off
+		lead = 0.4, -- seconds between the grant and the show's start (the remote's trip)
+		gap = 0.6, -- seconds between two shows
+		maxWait = 40, -- a show that would start later than this after its grant is skipped (the item is granted anyway)
+		bannerDistance = 60, -- studs: MaxDistance of the buyer's banner over the chute
+		-- The grant kinds (EXCLUSIVE_PRODUCTS[key].grant.kind) that play a show; every Game Pass does too. Time skips and
+		-- quick-buys bought far from the shop don't.
+		showKinds = table.freeze({
+			seat = true,
+			bundle = true,
+			gift = true,
+			trail = true,
+			batSkin = true,
+			plotSkin = true,
+			plotBase = true,
+			hat = true,
+			lockStyle = true,
+			fanfare = true,
+			serverPotion = true,
+		}),
+	}),
 })
 
 -- PvP ladder (FEATURES.PvP, CONTRACT.md §26, docs/PVP.md). Every gate is a REBIRTH_TIERS threshold; the price is
