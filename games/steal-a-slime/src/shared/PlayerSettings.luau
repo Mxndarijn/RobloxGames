@@ -48,6 +48,7 @@ PlayerSettings.IDS = table.freeze({
 	cameraShake = "cameraShake",
 	othersEffects = "othersEffects",
 	showOnBoards = "showOnBoards",
+	showMemberTag = "showMemberTag",
 	numberStyle = "numberStyle",
 })
 
@@ -65,6 +66,7 @@ PlayerSettings.schema = SettingsSchema.new({
 	{ id = "cameraShake", kind = "toggle", default = true },
 	{ id = "othersEffects", kind = "toggle", default = true },
 	{ id = "showOnBoards", kind = "toggle", default = true },
+	{ id = "showMemberTag", kind = "toggle", default = true },
 	{ id = "numberStyle", kind = "choice", default = "short", choices = { "short", "full" } },
 })
 
@@ -177,6 +179,13 @@ PlayerSettings.TABS = table.freeze({
 				hint = "Off: you show as a hidden player",
 				attribute = "SettingShowOnBoards",
 			} :: Entry,
+			{
+				id = "showMemberTag",
+				icon = "👑",
+				name = "Show my VIP tag",
+				hint = "Off: no VIP or Club tag on you",
+				attribute = "SettingShowMemberTag",
+			},
 			{
 				id = "numberStyle",
 				icon = "🔢",

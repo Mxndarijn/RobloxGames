@@ -49,6 +49,7 @@ local Genome = require(ReplicatedStorage.Shared.Genome)
 local GrabBlock = require(ReplicatedStorage.Shared.GrabBlock)
 local HabitatPads = require(script.Parent.HabitatPads)
 local HomeZone = require(ReplicatedStorage.Shared.HomeZone)
+local JarInside = require(ReplicatedStorage.Shared.JarInside)
 local JarRoute = require(script.Parent.JarRoute)
 local KitDelivery = require(script.Parent.KitDelivery)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
@@ -1958,6 +1959,36 @@ function WorldView.plotPoint(userId: number, plotIndex: number): { number }?
 	end
 	local p = base.CFrame:PointToObjectSpace(root.Position)
 	return { p.X, p.Y - base.Size.Y / 2 + WorldLayout.PLOT_FLOOR_TOP, p.Z }
+end
+
+--[[
+	For a slime on someone's plot: true when `player` stands inside that base, on the slime's floor
+	(JarInside.canReach), false when not or when the character, plot or slime can't be found. nil for a slime on no
+	plot (wild, the boss): there are no walls to be inside.
+]]
+function WorldView.stealReach(world: World.World, player: Player, slimeId: string): boolean?
+	local owner = World.ownerOf(world, slimeId)
+	if not owner or not owner.plotIndex then
+		return nil
+	end
+	local root = WorldView.rootPart(player)
+	local plot = WorldView.plot(owner.plotIndex)
+	local base = plot and plot:FindFirstChild("Base")
+	local at = WorldView.slimePosition(slimeId)
+	if not (root and plot and at and base and base:IsA("BasePart")) then
+		return false
+	end
+	local function plotLocal(point: Vector3): { number }
+		local p = base.CFrame:PointToObjectSpace(point)
+		return { p.X, p.Y - base.Size.Y / 2 + WorldLayout.PLOT_FLOOR_TOP, p.Z }
+	end
+	local jar = BaseShapes.get(baseOf(plot)).guard :: JarInside.Jar
+	return JarInside.canReach(
+		plotLocal(root.Position),
+		plotLocal(at),
+		jar,
+		JarInside.builtFloors(owner.data.padsUnlocked)
+	)
 end
 
 -- Drop tube (CONTRACT.md §5.3): puts the player's character in plot `plotIndex`'s splash pool, still. False when

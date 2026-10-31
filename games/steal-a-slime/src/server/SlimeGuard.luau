@@ -14,8 +14,8 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
-local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local JarInside = if Shared then require(Shared.JarInside) else require("../shared/JarInside")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Lib = if script then (game:GetService("ReplicatedStorage") :: any).Lib else nil
 local MovementGuard = if Lib
@@ -309,11 +309,10 @@ end
 
 -- Jar floors built on a plot (the tower the guard counts as "inside").
 function SlimeGuard.floorsOf(owner: Session): number
-	local pads = owner.data.padsUnlocked
-	return if pads > 0 then Economy.floorsShown(pads) else 1
+	return JarInside.builtFloors(owner.data.padsUnlocked)
 end
 
--- The other player's jar the character was in at the last tick (for PlotLockGuard.insideJar's hysteresis).
+-- The other player's jar the character was in at the last tick (for JarInside.inside's hysteresis).
 function SlimeGuard.currentPlot(world: World, userId: number): number?
 	local e = world.guard[userId]
 	return e and e.plot and e.plot.index

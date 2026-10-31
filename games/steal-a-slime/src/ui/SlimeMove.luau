@@ -13,19 +13,22 @@
 	The vat lights green when it takes the slime, yellow when it takes it but the player's rank can't merge that
 	rarity yet (Shared.MergeGate: the place goes through), red when it refuses.
 
+	The picked-up slime leaves its pad for this player and rides on top of their head (a copy, posed like the steal
+	carry: WorldView.carrySeat) until it lands or the move ends.
+
 	Target: the pad under the mouse / the tap, else the unlocked pad nearest the character. Place: click or tap a
 	pad, E, gamepad ButtonX or the Place button, which sends Request MoveSlime(slimeId, pad); a refusal shows its
 	reason in the bar and move mode stays on. Cancel: Q, gamepad ButtonB, the Cancel button, leaving your home
 	zone, or the slime leaving its pad (stolen, sold, merged). While moving, every ProximityPrompt is off for this
 	player and held tools are put away, so a click places instead of swinging the bat.
 
-	Pure helpers (classify, nearest, statusText, hintText) carry the rules and are tested under Lune
+	The bar shows two short lines: "Moving <name>" and what a place would do; keys stay E / Q / ButtonX / ButtonB.
+
+	Pure helpers (classify, nearest, statusText, shortName) carry the rules and are tested under Lune
 	(tests/ui/SlimeMove.spec.luau); `new` builds the bottom bar and runs the mode in the live game.
 ]]
 
 local UI = script.Parent
-local InputKind =
-	require(game:GetService("ReplicatedStorage"):WaitForChild("Lib"):WaitForChild("ui"):WaitForChild("InputKind"))
 local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
@@ -42,7 +45,8 @@ local SlimeMove = {}
 export type PadClass = "same" | "empty" | "swap" | "locked" | "vat" | "vatGated" | "vatRefused"
 export type PadSpot = { index: number, position: Vector3 }
 
-SlimeMove.FADE = 0.75 -- LocalTransparencyModifier on the picked-up slime
+SlimeMove.FADE = 1 -- LocalTransparencyModifier on the picked-up slime's pad model: its copy rides on the head
+SlimeMove.HEAD_HEIGHT = 3 -- studs above the HumanoidRootPart for the held slime when the character has no Head
 SlimeMove.GHOST_ALPHA = 0.45 -- the ghost keeps this share of each part's opacity
 SlimeMove.HIGHLIGHT_FILL = 0.55 -- pad tint fill transparency
 SlimeMove.SETTLE_SECONDS = 1.5 -- after a place, the ghost waits at most this long for the slime to move
@@ -53,12 +57,9 @@ SlimeMove.BAR = table.freeze({
 	pad = 12,
 	nameH = 22,
 	nameSize = 18,
-	statusY = 34,
+	lineGap = 4, -- between the name and the status line (the pair is centred in the bar)
 	statusH = 20,
 	statusSize = 15,
-	hintY = 56,
-	hintH = 18,
-	hintSize = 13,
 	buttonW = 80,
 	gap = 8,
 	textReserve = 186, -- room on the right for Place + Cancel
@@ -100,12 +101,23 @@ function SlimeMove.vatClass(vat: any, slime: any, rebirths: number?): (PadClass,
 	return "vat", nil
 end
 
--- The bar's status line for the vat as the target: what goes in and the load after it, or why it can't.
-function SlimeMove.vatStatus(class: PadClass, slimeName: string, count: number, reason: string?): string
+-- The bar's name for `slime`: its species name ("Lop"), an egg's egg name; `isEgg` / `eggName` from Genome.
+function SlimeMove.shortName(slime: any, isEgg: (any) -> boolean, eggName: (any) -> string): string
+	if type(slime) ~= "table" then
+		return "slime"
+	end
+	if isEgg(slime) then
+		return eggName(slime)
+	end
+	return if type(slime.name) == "string" then slime.name else "slime"
+end
+
+-- The bar's status line for the vat as the target: the load after it goes in, or why it can't.
+function SlimeMove.vatStatus(class: PadClass, count: number, reason: string?): string
 	if class == "vat" then
-		return `Merge vat: adds {slimeName} ({count + 1}/{VatState.SIZE})`
+		return `Merge vat ({count + 1}/{VatState.SIZE})`
 	elseif class == "vatGated" then
-		return `Merge vat: adds {slimeName} ({count + 1}/{VatState.SIZE}). {reason or ""}.`
+		return `Merge vat ({count + 1}/{VatState.SIZE}): {reason or ""}`
 	end
 	return reason or "The vat can't take this slime"
 end
@@ -127,25 +139,15 @@ end
 -- The bar's status line for a target pad (`otherName` = the slime a swap would trade with).
 function SlimeMove.statusText(class: PadClass?, pad: number?, otherName: string?): string
 	if class == nil or pad == nil then
-		return "Point at one of your pads"
+		return "Point at a pad"
 	elseif class == "same" then
-		return `Pad {pad}: this slime's own pad`
+		return `Pad {pad}: its own pad`
 	elseif class == "locked" then
-		return `Pad {pad} is locked: buy it first`
+		return `Pad {pad} is locked`
 	elseif class == "swap" then
-		return `Pad {pad}: swaps with {otherName or "that slime"}`
+		return `Pad {pad}: swap with {otherName or "that slime"}`
 	end
-	return `Pad {pad}: empty`
-end
-
--- The bar's controls line for the player's input.
-function SlimeMove.hintText(input: "keyboard" | "touch" | "gamepad"): string
-	if input == "touch" then
-		return "Tap a pad or the vat to place it there"
-	elseif input == "gamepad" then
-		return "X: place on the lit pad or vat · B: cancel"
-	end
-	return "Click a pad or the vat, or press E to place · Q to cancel"
+	return `Pad {pad}`
 end
 
 local function classColor(class: PadClass?): Color3
@@ -168,8 +170,18 @@ export type Deps = {
 	uis: UserInputService,
 	cas: ContextActionService,
 	prompts: ProximityPromptService,
+	frame: RBXScriptSignal, -- fires every rendered frame (RenderStepped): the held slime follows the head
 	onActive: ((active: boolean) -> ())?, -- move mode started (true) / ended (false): the hotbar steps aside
 }
+
+-- Where the held slime sits (its pivot is its bottom centre): on top of the Head, turned with the root, as
+-- WorldView.carrySeat places a carried slime. Without a Head it sits HEAD_HEIGHT above the root.
+function SlimeMove.headSeat(root: CFrame, headPosition: Vector3?, headHeight: number?): CFrame
+	if headPosition and headHeight then
+		return root.Rotation + (headPosition + root.UpVector * (headHeight / 2))
+	end
+	return root * CFrame.new(0, SlimeMove.HEAD_HEIGHT, 0)
+end
 
 -- A Move ghost part's transparency from the slime part's `transparency` and its own one before the merge vat's fade
 -- (`own`, Constants.OWN_TRANSPARENCY_ATTRIBUTE): a slime in the vat would otherwise be faded twice into nothing.
@@ -178,9 +190,10 @@ function SlimeMove.ghostTransparency(transparency: number, own: any): number
 	return 1 - (1 - base) * SlimeMove.GHOST_ALPHA
 end
 
--- A see-through, inert copy of `model`: no prompts, scripts, labels, tags or attributes (so no client runner
--- binds it), anchored and not collidable. nil when the model can't be cloned.
-local function makeGhost(model: Model): Model?
+-- An inert copy of `model`: no prompts, scripts, labels, tags or attributes (so no client runner binds it),
+-- anchored and not collidable. See-through (the ghost on the target pad) unless `solid` (the slime held on the
+-- head). nil when the model can't be cloned.
+local function makeGhost(model: Model, solid: boolean?): Model?
 	local ok, clone = pcall(function()
 		return model:Clone()
 	end)
@@ -215,9 +228,19 @@ local function makeGhost(model: Model): Model?
 				d.CanQuery = false
 				d.CanTouch = false
 				d.CastShadow = false
-				d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
+				d.LocalTransparencyModifier = 0
+				if not solid then
+					d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
+				elseif type(own) == "number" then
+					d.Transparency = own
+				end
 			elseif d:IsA("Decal") then
-				d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
+				d.LocalTransparencyModifier = 0
+				if not solid then
+					d.Transparency = SlimeMove.ghostTransparency(d.Transparency, own)
+				elseif type(own) == "number" then
+					d.Transparency = own
+				end
 			end
 		end
 	end
@@ -273,23 +296,15 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		Name = "SlimeName",
 		Font = Theme.Font,
 		TextSize = B.nameSize,
-		Position = UDim2.fromOffset(B.pad, 8),
+		Position = UDim2.new(0, B.pad, 0.5, -(B.nameH + B.lineGap + B.statusH) / 2),
 		Size = UDim2.new(1, -B.textReserve, 0, B.nameH),
 		Parent = frame,
 	})
 	local status = Widgets.label({
 		Name = "Status",
 		TextSize = B.statusSize,
-		Position = UDim2.fromOffset(B.pad, B.statusY),
+		Position = UDim2.new(0, B.pad, 0.5, (B.nameH + B.lineGap - B.statusH) / 2),
 		Size = UDim2.new(1, -B.textReserve, 0, B.statusH),
-		Parent = frame,
-	})
-	local hint = Widgets.label({
-		Name = "Hint",
-		TextSize = B.hintSize,
-		TextColor3 = Theme.Muted,
-		Position = UDim2.fromOffset(B.pad, B.hintY),
-		Size = UDim2.new(1, -B.textReserve, 0, B.hintH),
 		Parent = frame,
 	})
 
@@ -324,6 +339,10 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 	)
 	cancelBtn.instance.Parent = frame
 
+	local function shortName(slime: any): string
+		return SlimeMove.shortName(slime, ctx.Genome.isEgg, ctx.Genome.displayName)
+	end
+
 	local state: any = nil -- the latest State
 	type Active = {
 		id: string,
@@ -332,6 +351,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		pads: { [number]: BasePart },
 		faded: { Instance },
 		ghost: Model?,
+		held: Model?, -- the copy riding on the head
 		tint: Highlight,
 		hover: number?, -- pad under the mouse / tap
 		target: number?,
@@ -375,7 +395,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			local slime = view.slime
 			if type(slime) == "table" and type(slime.pad) == "number" then
 				occupied[slime.pad] = true
-				names[slime.pad] = ctx.Genome.displayName(slime)
+				names[slime.pad] = shortName(slime)
 				if slime.id == id then
 					fromPad = slime.pad
 				end
@@ -412,10 +432,6 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		return if root and root:IsA("BasePart") then root else nil
 	end
 
-	local function inputKind(): InputKind.Kind
-		return InputKind.kind(deps.uis)
-	end
-
 	-- Ends move mode and puts everything back (`keepGhost` = the server is moving the slime: the ghost and the
 	-- faded slime stay until the model lands or SETTLE_SECONDS pass).
 	local function finish(keepGhost: boolean?)
@@ -441,6 +457,9 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			end
 			if a.ghost then
 				a.ghost:Destroy()
+			end
+			if a.held then
+				a.held:Destroy()
 			end
 		end
 		local body = a.model:FindFirstChild("Body")
@@ -507,11 +526,9 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			status.Text = "Moving..."
 			status.TextColor3 = Theme.Muted
 		elseif target == SlimeMove.VAT and class then
-			local slime = slimeOf(a.id)
 			local vat = vatOf()
 			local count = if type(vat) == "table" and type(vat.ids) == "table" then #vat.ids else 0
-			local slimeName = if slime then ctx.Genome.displayName(slime) else "this slime"
-			status.Text = SlimeMove.vatStatus(class, slimeName, count, vatReason)
+			status.Text = SlimeMove.vatStatus(class, count, vatReason)
 			status.TextColor3 = classColor(class)
 		else
 			status.Text = SlimeMove.statusText(class, target, if target then names[target] else nil)
@@ -640,6 +657,11 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		if ghost then
 			ghost.Parent = deps.ghostParent()
 		end
+		local held = makeGhost(model, true)
+		if held then
+			held.Name = "SlimeMoveHeld"
+			held.Parent = deps.ghostParent()
+		end
 		local tint = create("Highlight", {
 			Name = "SlimeMovePadTint",
 			FillTransparency = SlimeMove.HIGHLIGHT_FILL,
@@ -654,6 +676,7 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			pads = padsOf(plot),
 			faded = faded,
 			ghost = ghost,
+			held = held,
 			tint = tint,
 			hover = nil,
 			target = nil,
@@ -671,6 +694,33 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			humanoid:UnequipTools()
+		end
+
+		-- The held copy follows the head every frame (until it is destroyed when the slime lands or the move ends).
+		local function seatHeld()
+			local root = rootPart()
+			if not held or held.Parent == nil or not root then
+				return
+			end
+			local head = root.Parent and root.Parent:FindFirstChild("Head")
+			if head and head:IsA("BasePart") then
+				held:PivotTo(SlimeMove.headSeat(root.CFrame, head.Position, head.Size.Y))
+			else
+				held:PivotTo(SlimeMove.headSeat(root.CFrame))
+			end
+		end
+		seatHeld()
+		if held then
+			local follow: RBXScriptConnection? = nil
+			follow = deps.frame:Connect(function()
+				if held.Parent == nil then
+					if follow then
+						follow:Disconnect()
+					end
+					return
+				end
+				seatHeld()
+			end)
 		end
 
 		local priority = Enum.ContextActionPriority.High.Value + 1
@@ -729,18 +779,13 @@ function SlimeMove.new(parent: Instance, ctx: any, deps: Deps)
 			end)
 		)
 
-		local fromPad = layoutOf(id)
 		local view = nil
 		for _, v in (if type(state) == "table" and type(state.slimes) == "table" then state.slimes else {}) do
 			if v.slime and v.slime.id == id then
 				view = v
 			end
 		end
-		name.Text = if view then `Moving {ctx.Genome.displayName(view.slime)}` else "Moving slime"
-		if fromPad then
-			name.Text ..= ` (pad {fromPad})`
-		end
-		hint.Text = SlimeMove.hintText(inputKind())
+		name.Text = `Moving {shortName(view and view.slime)}`
 		frame.Visible = true
 		refresh()
 	end

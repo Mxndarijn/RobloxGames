@@ -1534,7 +1534,7 @@ local Config = {
 		-- World sounds driven by workspace attributes: boss attacks, egg hatches, rituals, the fountain (ui/WorldAudio).
 		WORLD = table.freeze({
 			CULL_DISTANCE = 150, -- studs from the camera: boss / egg / ritual one-shots farther away are skipped
-			BOSS_MAX_DISTANCE = 150, -- boss sounds (3D) are heard within this many studs
+			BOSS_MAX_DISTANCE = 150, -- boss sounds (flat, quieter with distance) are heard within this many studs
 			EGG_MAX_DISTANCE = 80, -- hatch show sounds (3D)
 			RITUAL_MAX_DISTANCE = 80, -- ritual spot / done one-shots (3D)
 			LATE_SECONDS = 0.4, -- a timed cue seen more than this long after its moment is dropped, not played late
