@@ -6,19 +6,22 @@
 	(ui/GrabBlockCard). The server's Carry.grab refuses the same cases; this is only what the prompt shows.
 
 	  * carrying: you already hold a slime (any wild grab or steal);
+	  * dropped: you just dropped one (Config.DROP_PICKUP_COOLDOWN, any slime): "Grab in 1.2s", counting down;
 	  * plotFull: no free pad to bring a wild slime home to (not the boss: its haul doesn't take a pad);
 	  * money: a wild slime's price is more than your cash ("Need $1.2K more", like the shop's Buy buttons).
 
 	Someone else carrying the slime needs no reason: the server turns its prompt off.
 ]]
 
-export type Reason = "carrying" | "rank" | "plotFull" | "money"
+export type Reason = "carrying" | "dropped" | "rank" | "plotFull" | "money"
 
 export type Me = {
 	carrying: boolean,
 	freePad: boolean,
 	cash: number,
 	rebirths: number?,
+	pickupBlockedUntil: number?, -- State.pickupBlockedUntil: server time the after-drop cooldown ends
+	now: number?, -- the client's server time, for that countdown
 }
 
 export type Target = {
@@ -42,6 +45,9 @@ GrabBlock.TEXT = table.freeze({
 function GrabBlock.reason(me: Me, target: Target): Reason?
 	if me.carrying then
 		return "carrying"
+	end
+	if GrabBlock.waitLeft(me) then
+		return "dropped"
 	end
 	if target.state ~= "Wild" or target.boss then
 		return nil
@@ -73,11 +79,25 @@ function GrabBlock.rebirthsFor(slime: any): number
 	return Config.CATCH_REBIRTHS[slime.tier] or 0
 end
 
+-- Seconds left of the after-drop pickup cooldown, or nil when there is none.
+function GrabBlock.waitLeft(me: Me): number?
+	local ends, now = me.pickupBlockedUntil, me.now
+	if not ends or not now or now >= ends then
+		return nil
+	end
+	return ends - now
+end
+
 -- The text a GrabPrompt shows for `reason` ("Rebirth 5 to grab this" for a rarity the player can't grab yet,
 -- "Need $1.2K more" for a slime that costs more than `me`'s cash).
 function GrabBlock.text(reason: Reason, target: Target, me: Me?): string
 	if reason == "rank" then
 		return `Rebirth {target.rebirths or 0} to grab this`
+	end
+	if reason == "dropped" then
+		-- tenths, rounded up: it never reads 0.0s while the server still refuses
+		local left = if me then GrabBlock.waitLeft(me) else nil
+		return string.format("Grab in %.1fs", math.ceil((left or 0) * 10) / 10)
 	end
 	if reason == "money" and me and target.price then
 		local missing = target.price - me.cash

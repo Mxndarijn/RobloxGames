@@ -45,6 +45,33 @@ describe("GrabBlock.reason", function()
 	end)
 end)
 
+describe("GrabBlock after a drop", function()
+	local function dropped(now: number, ends: number?, carrying: boolean?): GrabBlock.Me
+		return { carrying = carrying == true, freePad = true, cash = 1000, pickupBlockedUntil = ends, now = now }
+	end
+	local pad: GrabBlock.Target = { state = "Pad", boss = false }
+	it("blocks every slime until the cooldown ends: wild, the boss and steals", function()
+		expect(GrabBlock.reason(dropped(10, 11.5), wild(0))).toBe("dropped")
+		expect(GrabBlock.reason(dropped(10, 11.5), wild(0, true))).toBe("dropped")
+		expect(GrabBlock.reason(dropped(10, 11.5), pad)).toBe("dropped")
+		expect(GrabBlock.reason(dropped(11.5, 11.5), wild(0))).toBeNil()
+		expect(GrabBlock.reason(dropped(10, nil), pad)).toBeNil()
+	end)
+	it("ranks below carrying and above the rank, plot and money reasons", function()
+		expect(GrabBlock.reason(dropped(10, 11.5, true), wild(0))).toBe("carrying")
+		local broke: GrabBlock.Me =
+			{ carrying = false, freePad = false, cash = 0, rebirths = 0, pickupBlockedUntil = 11, now = 10 }
+		expect(GrabBlock.reason(broke, { state = "Wild", price = 50, boss = false, rebirths = 9 })).toBe("dropped")
+	end)
+	it("counts down in tenths, rounded up so it never says 0.0s too early", function()
+		expect(GrabBlock.text("dropped", wild(0), dropped(10, 11.5))).toBe("Grab in 1.5s")
+		expect(GrabBlock.text("dropped", wild(0), dropped(10.04, 11.5))).toBe("Grab in 1.5s")
+		expect(GrabBlock.text("dropped", wild(0), dropped(11.45, 11.5))).toBe("Grab in 0.1s")
+		expect(GrabBlock.waitLeft(dropped(10, 11.5))).toBeCloseTo(1.5, 1e-9)
+		expect(GrabBlock.waitLeft(dropped(12, 11.5))).toBeNil()
+	end)
+end)
+
 describe("GrabBlock rank gate", function()
 	local function ranked(rebirths: number?, need: number?, price: number?, boss: boolean?): GrabBlock.Reason?
 		local who: GrabBlock.Me = { carrying = false, freePad = true, cash = 1000, rebirths = rebirths }

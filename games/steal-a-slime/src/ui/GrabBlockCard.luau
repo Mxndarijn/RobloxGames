@@ -2,7 +2,7 @@
 --[[
 	GrabBlockCard
 
-	When you can't grab a slime (GrabBlock: already carrying one, plot full, not enough money), its GrabPrompt
+	When you can't grab a slime (GrabBlock: already carrying one, just dropped one, plot full, not enough money), its GrabPrompt
 	shows why instead of a key: this client switches that prompt to the Custom style, so Roblox draws no "E"
 	bubble, and draws a small Goo glass card with the slime's name and the reason while ProximityPromptService
 	shows it. Once the reason goes away the prompt gets its Default style back.
@@ -13,8 +13,12 @@
 	The Style switch is local only (the server never writes Style). Holding the key on a blocked prompt still reaches
 	the server, which refuses it with the same reason as a toast.
 
+	Just after a drop every GrabPrompt counts down ("Grab in 1.2s"): `tick`, from the client's frame loop, refreshes
+	the prompts each time that text changes and once more when the wait is over.
+
 	`reasonText` and `setStyle` work on mock prompts under Lune (tests/ui/GrabBlockCard.spec.luau); `start` returns
-	{ refresh, stop }: refresh after each State, stop disconnects everything and removes the card.
+	{ refresh, tick, stop }: refresh after each State, tick every frame, stop disconnects everything and removes the
+	card.
 ]]
 
 local UI = script.Parent
@@ -64,6 +68,14 @@ function GrabBlockCard.target(prompt: Instance): GrabBlock.Target
 	}
 end
 
+-- The countdown every GrabPrompt shows for `me` right after a drop ("Grab in 1.2s"), or nil when there is none.
+function GrabBlockCard.waitText(me: GrabBlock.Me?): string?
+	if not me or not GrabBlock.waitLeft(me) then
+		return nil
+	end
+	return GrabBlock.text("dropped", { state = nil, price = nil, boss = false }, me)
+end
+
 -- The reason text a GrabPrompt shows for `me` (nil = grabbable, or no State yet).
 function GrabBlockCard.reasonText(prompt: any, me: GrabBlock.Me?): string?
 	local target = GrabBlockCard.target(prompt)
@@ -97,7 +109,7 @@ export type Options = {
 	me: () -> GrabBlock.Me?, -- from the latest State; nil before the first one
 }
 
-function GrabBlockCard.start(opts: Options): { refresh: () -> (), stop: () -> () }
+function GrabBlockCard.start(opts: Options): { refresh: () -> (), tick: () -> (), stop: () -> () }
 	local C = GrabBlockCard.CARD
 	local styles: Styles = { blocked = Enum.ProximityPromptStyle.Custom, normal = Enum.ProximityPromptStyle.Default }
 
@@ -252,6 +264,16 @@ function GrabBlockCard.start(opts: Options): { refresh: () -> (), stop: () -> ()
 		end
 	end
 
+	-- The after-drop countdown: refresh when its text changes (each tenth of a second) and once when it ends.
+	local waitShown: string? = nil
+	local function tick()
+		local text = GrabBlockCard.waitText(opts.me())
+		if text ~= waitShown then
+			waitShown = text
+			refresh()
+		end
+	end
+
 	local function stop()
 		for _, c in conns do
 			c:Disconnect()
@@ -265,7 +287,7 @@ function GrabBlockCard.start(opts: Options): { refresh: () -> (), stop: () -> ()
 		card:Destroy()
 	end
 
-	return { refresh = refresh, stop = stop }
+	return { refresh = refresh, tick = tick, stop = stop }
 end
 
 return GrabBlockCard
