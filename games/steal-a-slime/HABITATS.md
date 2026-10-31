@@ -2,10 +2,11 @@
 
 **Status:** three-layer habitats (frame, theme, signature prop); `Config.FEATURES.Habitats` is the only place the flag is set. **Owners:** data + pad state Phoenix (`src/shared`, `src/server`), habitat FX Archer (`src/visuals`).
 
-The pad never changes. When a slime sits on a pad, that slime's habitat rises out of the cork stand's dish in about 1 s, in three layers round the slime. While a thief carries the slime off (or it bounces home) the habitat stays: only the slime leaves. When the pad empties (steal completed, sold, merged, owner leaves) it sinks away and the bare pad is left. Swapping one slime for another crossfades the two habitats on the same pad.
+The pad never changes. When a slime sits on a pad, that slime's habitat rises out of the cork stand's dish in about 1 s, in layers round the slime. While a thief carries the slime off (or it bounces home) the habitat stays: only the slime leaves. When the pad empties (steal completed, sold, merged, owner leaves) it sinks away and the bare pad is left. Swapping one slime for another crossfades the two habitats on the same pad.
 
 | Layer | What | Mesh |
 |---|---|---|
+| Bed | a thin disc over the stand's goo bed, inside the frame, in the theme's colour and Roblox material (sand for the reef, snow for the ice, red fabric for the royal court); an empty pad keeps its green goo | none: a primitive Cylinder |
 | Frame | the ring round the slime, one per rarity tier: Wood, Painted Wood, Stone, Copper, Gold, Silver and Gems, Shadow (Secret), Starry Glass (Celestial), White Gold (Divine) | `habitat_frame_<tier>` |
 | Glow lip | Secret, Celestial and Divine only: a thin ring inside the frame, Neon in the frame's glow colour; Secret's cycles through the rainbow | `habitat_frame_glow` (white, tinted by the client) |
 | Theme | props on the back and sides of the rim that set the place, shared by the slimes of that theme | `habitat_theme_<id>` |
@@ -16,7 +17,7 @@ The pad never changes. When a slime sits on a pad, that slime's habitat rises ou
 - **Habitat ids** name all three layers: `<theme>.<tier>` or `<theme>.<tier>.<species>` (`reef.5.captain_goo`). Never saved. `base` = the bare pad. `Habitats.resolve` turns anything that doesn't parse (unknown theme, tier or species) into `base`.
 - **Lookup:** `Habitats.forSlime(slime)`: the species' theme (`SPECIES_THEME`, every roster species), the slime's own rarity tier for the frame, the species for the prop. A slime without a species gets `TIER_THEME[tier]` and no prop.
 - **17 themes:** Barnyard, Sweet Treats, Flower Garden, Mushroom Forest, Lily Pond, Royal Court, Arcane Grotto, Ember Rocks, Ice Floe, Ocean Reef, Sky Isle, Starry Space, Tech Lab, Dojo, Spooky, Treasure Vault, Party Stage. Which species is in which theme: `SPECIES_THEME` (the proposal with every pair: `docs/habitat-proposal.html`).
-- `Habitats.layers(id)` lists what to draw in rise order (frame, glow, theme, prop), each with its uploaded mesh (`overlayMesh`: meshId, native size, drop, bbox offset) or nil while not uploaded. `Habitats.MESHES` is every layer mesh (MeshSwap publishes a template for each uploaded one).
+- `Habitats.layers(id)` lists what to draw in rise order (bed, frame, glow, theme, prop), each with its uploaded mesh (`overlayMesh`: meshId, native size, drop, bbox offset) or nil while not uploaded. `Habitats.MESHES` is every layer mesh (MeshSwap publishes a template for each uploaded one).
 - **Where the layers go:** frame, glow and theme centred on the dish, turned by `FRONT_YAW` so the kit front (-Y) faces the walkway; the prop at `PROP_RADIUS` on the front of the rim. A theme keeps its front clear, so its bbox isn't centred: its MeshAssets entry carries `offset` (bbox centre from the dish centre, kit `out/<name>.deck.json`) and the client moves it back.
 
 ## Mesh rules (kit, `shared/modeling-kit/models/`)
@@ -39,6 +40,7 @@ The pad never changes. When a slime sits on a pad, that slime's habitat rises ou
 - One local look per habitat id per pad (folder `workspace.ClientHabitats`, CanCollide / CanQuery / CanTouch off), resting on the dish. The pad and its Stand are never hidden or recoloured.
 - Each look has a weight 0..1 that moves toward 1 (current `Habitat`) or 0 (any other) at `1 / TRANSFORM_SECONDS` (1 s), with a sparkle burst in the theme's colours when a change starts (a leave puffs in the old habitat's colours). Weights live in `Habitats.stepWeights` (pure, Lune-tested).
 - Each layer mesh is a clone of the server's MeshPart template in `ReplicatedStorage.HabitatMeshes` (`Constants.HABITAT_MESHES`, `MeshSwap.publishHabitatTemplates`): a MeshPart keeps the kit's vertex colours, a script-made FileMesh SpecialMesh draws them white.
+- The bed is always a primitive disc (`BED_LIFT` above the dish rim, radius `PAD_DECK.matHalf`); it spreads out from the centre as the habitat rises.
 - Until a layer's template arrives (or with no meshId) the frame is an octagon of strips in the tier colour and the theme three blocks in its colours; the glow lip and the signature prop show nothing. Looks rebuild when a template lands.
 
 ## Animation feel: `src/shared/HabitatMorph.luau` (pure) + `Config.HABITAT_ANIM`

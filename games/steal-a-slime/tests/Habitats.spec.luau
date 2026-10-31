@@ -111,7 +111,7 @@ describe("Habitats table", function()
 			expect((Habitats.frame(tier) :: Habitats.Frame).tier).toBe(tier)
 		end
 	end)
-	it("lists the layers frame first and prop last; only the top tiers get the glowing lip", function()
+	it("lists the layers bed and frame first, prop last; only the top tiers get the glowing lip", function()
 		local function kinds(id: string): { string }
 			local out = {}
 			for _, layer in Habitats.layers(id) do
@@ -119,13 +119,35 @@ describe("Habitats table", function()
 			end
 			return out
 		end
-		expect(kinds("ember.4.blaze")).toEqual({ "frame", "theme", "prop" })
-		expect(kinds("vault.7.midas")).toEqual({ "frame", "glow", "theme", "prop" })
-		expect(kinds("arcane.6")).toEqual({ "frame", "theme" })
+		expect(kinds("ember.4.blaze")).toEqual({ "bed", "frame", "theme", "prop" })
+		expect(kinds("vault.7.midas")).toEqual({ "bed", "frame", "glow", "theme", "prop" })
+		expect(kinds("arcane.6")).toEqual({ "bed", "frame", "theme" })
 		expect(kinds(BASE)).toEqual({})
-		local glow = Habitats.layers("vault.7.midas")[2]
+		local glow = Habitats.layers("vault.7.midas")[3]
 		expect(glow.shimmer).toBe(true)
-		expect(Habitats.layers("space.8.lunara")[2].shimmer).toBe(false)
+		expect(Habitats.layers("space.8.lunara")[3].shimmer).toBe(false)
+	end)
+	it("gives every theme a bed colour and a real Roblox material for the disc over the goo bed", function()
+		local materials = {
+			"Sand",
+			"SmoothPlastic",
+			"Grass",
+			"LeafyGrass",
+			"Glass",
+			"Fabric",
+			"Marble",
+			"Basalt",
+			"Snow",
+			"Slate",
+			"DiamondPlate",
+			"Foil",
+		}
+		for _, t in Habitats.THEMES do
+			expect(#t.bed).toBe(3)
+			expect(table.find(materials, t.bedMaterial) ~= nil).toBe(true)
+		end
+		local bed = Habitats.layers("reef.5.captain_goo")[1]
+		expect({ bed.kind, bed.mesh, bed.material }).toEqual({ "bed", "", "Sand" })
 	end)
 	it("publishes a template name for every layer mesh", function()
 		local meshes: { [string]: boolean } = {}
@@ -134,7 +156,7 @@ describe("Habitats table", function()
 		end
 		for _, entry in SlimeRoster.ROSTER do
 			for _, layer in Habitats.layers(Habitats.forType(entry.id, nil)) do
-				expect(meshes[layer.mesh]).toBe(true)
+				expect(layer.kind == "bed" or meshes[layer.mesh] == true).toBe(true) -- the bed is a primitive
 			end
 		end
 		expect(#Habitats.MESHES).toBe(1 + #Habitats.FRAMES + #Habitats.THEMES + #SlimeRoster.ROSTER)

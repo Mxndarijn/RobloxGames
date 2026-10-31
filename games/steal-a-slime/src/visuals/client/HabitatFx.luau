@@ -16,7 +16,8 @@
 	first time a pad is seen it snaps to its final state (join in progress),
 	no burst.
 
-	A look is the habitat's layers (Habitats.layers): the rarity frame, the
+	A look is the habitat's layers (Habitats.layers): the bed disc (a
+	primitive in the theme's colour and material), the rarity frame, the
 	glowing lip (top tiers; Secret's cycles through the rainbow), the theme
 	props and the signature prop on the front of the rim (Habitats.FRONT_YAW,
 	PROP_RADIUS), rising in that order. A layer with an uploaded mesh is a
@@ -160,6 +161,24 @@ local FRAME_SIDES = 8 -- the placeholder ring: an octagon of flat strips
 -- the placeholder theme props: back and both sides (the front is the signature prop's)
 local THEME_SPOTS = { 180, 90, -90 }
 
+-- The bed: a thin disc over the stand's goo bed (its top sits BED_LIFT above the dish rim), inside the frame, in the
+-- theme's colour and material. Always a primitive; it spreads out from the centre as the habitat rises.
+local BED_LIFT = 0.05
+local BED_THICK = 0.04
+
+local function bedPiece(model: Model, layer: Habitats.Layer): Piece
+	local material = (Enum.Material :: any)[layer.material or ""] or Enum.Material.SmoothPlastic
+	return piece(
+		model,
+		"Bed",
+		Enum.PartType.Cylinder,
+		Vector3.new(BED_THICK, 2 * MAT_EDGE, 2 * MAT_EDGE),
+		CFrame.new(0, BED_LIFT + BED_THICK / 2, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		rgb(layer.color),
+		material
+	)
+end
+
 -- Placeholder primitives for a layer whose mesh isn't uploaded yet: the frame as a ring of strips, the theme as
 -- three blocks. The glow lip and the signature prop show nothing until their mesh arrives.
 local function placeholderPieces(model: Model, layer: Habitats.Layer): { Piece }
@@ -217,7 +236,9 @@ local function buildLook(pad: BasePart, id: string): Look?
 	for _, layer in layers do
 		local overlay = layer.overlay
 		local template = overlay and templateFor(layer.mesh)
-		if overlay and template then
+		if layer.kind == "bed" then
+			table.insert(pieces, bedPiece(model, layer))
+		elseif overlay and template then
 			local p = meshPiece(model, template, layer, overlay)
 			table.insert(pieces, p)
 			if layer.shimmer then

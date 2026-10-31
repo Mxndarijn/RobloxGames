@@ -1,11 +1,12 @@
 # Habitat combo preview (not an asset; always --no-export). Puts one full habitat on the cork stand the way the game
-# draws it (Habitats.luau / HabitatFx): the rarity frame, the glow lip (tiers 7-9, shown white), the theme props moved
+# draws it (Habitats.luau / HabitatFx): the theme's bed disc (flat colour; the game adds its material), the rarity frame, the glow lip (tiers 7-9, shown white), the theme props moved
 # back onto the dish centre by out/<theme>.deck.json, and the signature prop on the front of the rim (kit -Y) at
 # PROP_RADIUS. Reads the exported FBXs in out/, so build those first.
 #   HABITAT_COMBO=reef:5:captain_goo python iterate.py models/_habitat_combo.py --no-export --look roblox \
 #       --sheet sheets/_wip/combo_captain_goo.png
 import json
 import os
+import re
 
 import bpy
 from lib import *
@@ -49,5 +50,12 @@ for o in parts:  # imported meshes carry their own vcol material; give them the 
         mat.node_tree.nodes["Color Attribute"].layer_name = ca[0].name
         o.data.materials.clear()
         o.data.materials.append(mat)
+# The theme's bed colour, read from the game's Habitats.luau (theme("<id>", name, drop, color, accent, bed, material)).
+HABITATS = os.path.join(os.path.dirname(OUT), "..", "..", "games", "steal-a-slime", "src", "shared", "Habitats.luau")
+_m = re.search(r'theme\("%s",[^\n]*\{[^}]*\}, \{[^}]*\}, \{\s*(\d+), (\d+), (\d+)\s*\}' % theme,
+               open(HABITATS, encoding="utf-8").read())
+BED_RGB = tuple(int(v) for v in _m.groups())
+if os.environ.get("HABITAT_BED", "1") == "1":
+    parts.append(cylinder("ThemeBed", 2.6, 0.04, (0, 0, DECK + 0.05), rgb(*BED_RGB), segs=32))
 stand = cork_stand()
 parts += stand

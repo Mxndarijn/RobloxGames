@@ -177,6 +177,7 @@ local grownPlaceholder = {
 	grown:FindFirstChild("Prop1") ~= nil,
 	grown:FindFirstChild("frame") ~= nil,
 	grown:FindFirstChild("prop") ~= nil,
+	grown:FindFirstChild("Bed") ~= nil,
 }
 local grownHidden = standHidden()
 part:SetAttribute("Habitat", "not_a_habitat") -- table drift / bad attribute
@@ -450,15 +451,15 @@ describe("HabitatFx client lifecycle (fake runtime)", function()
 		expect(settledLooks).toBe(0) -- ended at base: no look left
 		expect(#rt.errors).toBe(0)
 	end)
-	it("draws the frame and theme placeholders, and no signature prop, while nothing is uploaded", function()
-		expect(grownPlaceholder).toEqual({ true, true, false, false })
+	it("draws the bed, the frame and theme placeholders, and no signature prop, while nothing is uploaded", function()
+		expect(grownPlaceholder).toEqual({ true, true, false, false, true })
 	end)
 	it("keeps the placeholders until the server's templates arrive", function()
 		expect(waitedPlaceholder).toEqual({ true, false })
 		expect(serverFolder).toBe(true)
 	end)
 	it("then draws one template clone per layer: frame and theme on the deck, the prop on the front rim", function()
-		expect(meshShape).toEqual({ 3, true, true, true })
+		expect(meshShape).toEqual({ 4, true, true, true }) -- the bed disc plus one clone per mesh layer
 		expect(#rt.errors).toBe(0)
 	end)
 	it("shows the bare base pad for an unknown habitat id", function()

@@ -2,9 +2,11 @@
 --[[
 	Habitats (pure, FEATURES.Habitats, HABITATS.md)
 
-	A pad whose slime sits on it shows that slime's habitat: three layers
+	A pad whose slime sits on it shows that slime's habitat: layers
 	that rise out of the cork stand's dish round the slime.
 
+	  bed     a disc over the stand's goo bed in the theme's colour and
+	          material (sand for the reef, snow for the ice...)
 	  frame   the ring round the slime, one per rarity tier (wood for Common
 	          up to white-gold for Divine); Secret, Celestial and Divine add a
 	          glowing lip (the shared glow mesh, tinted, Neon)
@@ -44,6 +46,8 @@ export type Theme = {
 	drop: number, -- studs the theme mesh hangs below the deck (drips over the dish rim); usually 0
 	color: RGB, -- placeholder props and puff, RGB 0..255
 	accent: RGB,
+	bed: RGB, -- the disc over the stand's goo bed, inside the frame
+	bedMaterial: string, -- its Enum.Material name
 }
 
 export type Frame = {
@@ -57,16 +61,17 @@ export type Frame = {
 
 export type Look = { id: string, theme: Theme, frame: Frame, prop: string? }
 
-export type LayerKind = "frame" | "glow" | "theme" | "prop"
+export type LayerKind = "bed" | "frame" | "glow" | "theme" | "prop"
 -- size: native W x H x D studs; offset: the bbox centre from the dish centre (mesh axes, Roblox X, Z)
 export type OverlayMesh = { meshId: string, size: { number }, drop: number, offset: { number } }
 export type Layer = {
 	kind: LayerKind,
-	mesh: string,
+	mesh: string, -- "" for the bed (a primitive disc, nothing to upload)
 	overlay: OverlayMesh?, -- nil until uploaded: the client draws a placeholder (frame, theme) or nothing
 	color: RGB,
 	accent: RGB,
 	glow: RGB?, -- glow layer: its Neon colour
+	material: string?, -- bed layer: its Enum.Material name
 	shimmer: boolean,
 }
 
@@ -82,7 +87,15 @@ Habitats.PROP_RADIUS = 3.15
 -- Yaw (degrees) that turns a kit mesh's front (kit -Y, pad-local +Z) to the walkway side of the pad.
 Habitats.FRONT_YAW = 180
 
-local function theme(id: string, name: string, drop: number, color: RGB, accent: RGB): Theme
+local function theme(
+	id: string,
+	name: string,
+	drop: number,
+	color: RGB,
+	accent: RGB,
+	bed: RGB,
+	bedMaterial: string
+): Theme
 	return table.freeze({
 		id = id,
 		name = name,
@@ -90,27 +103,29 @@ local function theme(id: string, name: string, drop: number, color: RGB, accent:
 		drop = drop,
 		color = table.freeze(color),
 		accent = table.freeze(accent),
+		bed = table.freeze(bed),
+		bedMaterial = bedMaterial,
 	})
 end
 
 local THEMES: { Theme } = {
-	theme("barnyard", "Barnyard", 0, { 205, 60, 50 }, { 245, 215, 120 }),
-	theme("sweets", "Sweet Treats", 0, { 255, 170, 210 }, { 120, 230, 200 }),
-	theme("garden", "Flower Garden", 0, { 110, 180, 90 }, { 255, 140, 190 }),
-	theme("forest", "Mushroom Forest", 0, { 120, 90, 60 }, { 215, 60, 55 }),
-	theme("pond", "Lily Pond", 0, { 70, 170, 120 }, { 120, 200, 240 }),
-	theme("royal", "Royal Court", 0, { 170, 40, 60 }, { 255, 215, 80 }),
-	theme("arcane", "Arcane Grotto", 0, { 110, 100, 130 }, { 190, 150, 255 }),
-	theme("ember", "Ember Rocks", 0, { 70, 50, 50 }, { 255, 120, 30 }),
-	theme("ice", "Ice Floe", 0, { 180, 225, 245 }, { 255, 255, 255 }),
-	theme("reef", "Ocean Reef", 0, { 240, 215, 155 }, { 255, 125, 140 }),
-	theme("sky", "Sky Isle", 0, { 245, 248, 255 }, { 150, 205, 255 }),
-	theme("space", "Starry Space", 0, { 60, 60, 110 }, { 255, 225, 120 }),
-	theme("tech", "Tech Lab", 0, { 150, 160, 175 }, { 80, 230, 255 }),
-	theme("dojo", "Dojo", 0, { 120, 170, 90 }, { 225, 60, 50 }),
-	theme("spooky", "Spooky", 0, { 90, 80, 100 }, { 180, 110, 255 }),
-	theme("vault", "Treasure Vault", 0, { 140, 110, 60 }, { 255, 210, 70 }),
-	theme("party", "Party Stage", 0, { 60, 40, 90 }, { 255, 90, 200 }),
+	theme("barnyard", "Barnyard", 0, { 205, 60, 50 }, { 245, 215, 120 }, { 226, 196, 120 }, "Sand"),
+	theme("sweets", "Sweet Treats", 0, { 255, 170, 210 }, { 120, 230, 200 }, { 255, 190, 215 }, "SmoothPlastic"),
+	theme("garden", "Flower Garden", 0, { 110, 180, 90 }, { 255, 140, 190 }, { 120, 190, 90 }, "Grass"),
+	theme("forest", "Mushroom Forest", 0, { 120, 90, 60 }, { 215, 60, 55 }, { 100, 150, 80 }, "LeafyGrass"),
+	theme("pond", "Lily Pond", 0, { 70, 170, 120 }, { 120, 200, 240 }, { 95, 180, 210 }, "Glass"),
+	theme("royal", "Royal Court", 0, { 170, 40, 60 }, { 255, 215, 80 }, { 175, 45, 65 }, "Fabric"),
+	theme("arcane", "Arcane Grotto", 0, { 110, 100, 130 }, { 190, 150, 255 }, { 135, 110, 185 }, "Marble"),
+	theme("ember", "Ember Rocks", 0, { 70, 50, 50 }, { 255, 120, 30 }, { 140, 110, 100 }, "Basalt"),
+	theme("ice", "Ice Floe", 0, { 180, 225, 245 }, { 255, 255, 255 }, { 232, 243, 255 }, "Snow"),
+	theme("reef", "Ocean Reef", 0, { 240, 215, 155 }, { 255, 125, 140 }, { 240, 214, 160 }, "Sand"),
+	theme("sky", "Sky Isle", 0, { 245, 248, 255 }, { 150, 205, 255 }, { 225, 238, 255 }, "SmoothPlastic"),
+	theme("space", "Starry Space", 0, { 60, 60, 110 }, { 255, 225, 120 }, { 70, 72, 140 }, "Slate"),
+	theme("tech", "Tech Lab", 0, { 150, 160, 175 }, { 80, 230, 255 }, { 155, 165, 182 }, "DiamondPlate"),
+	theme("dojo", "Dojo", 0, { 120, 170, 90 }, { 225, 60, 50 }, { 205, 192, 132 }, "Fabric"),
+	theme("spooky", "Spooky", 0, { 90, 80, 100 }, { 180, 110, 255 }, { 115, 95, 135 }, "Slate"),
+	theme("vault", "Treasure Vault", 0, { 140, 110, 60 }, { 255, 210, 70 }, { 232, 188, 72 }, "Foil"),
+	theme("party", "Party Stage", 0, { 60, 40, 90 }, { 255, 90, 200 }, { 120, 75, 165 }, "SmoothPlastic"),
 }
 
 local function frame(tier: number, name: string, color: RGB, glow: RGB?, shimmer: boolean?): Frame
@@ -335,7 +350,7 @@ function Habitats.overlayMesh(mesh: string, drop: number?): OverlayMesh?
 	}
 end
 
--- What to draw for habitat `id`, in rise order: frame, glow lip, theme props, signature prop. {} for BASE.
+-- What to draw for habitat `id`, in rise order: bed, frame, glow lip, theme props, signature prop. {} for BASE.
 function Habitats.layers(id: string): { Layer }
 	local look = Habitats.look(id)
 	if not look then
@@ -343,6 +358,14 @@ function Habitats.layers(id: string): { Layer }
 	end
 	local t, f = look.theme, look.frame
 	local out: { Layer } = {
+		{
+			kind = "bed",
+			mesh = "",
+			color = t.bed,
+			accent = t.accent,
+			material = t.bedMaterial,
+			shimmer = false,
+		},
 		{
 			kind = "frame",
 			mesh = f.mesh,
