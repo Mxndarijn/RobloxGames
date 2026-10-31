@@ -10,8 +10,11 @@
 	  running: no extending, no stacking. The one exception is the tutorial's Lock
 	  step, which a player often reaches inside the join lock: then a lock starts
 	  anyway and the later of the two ends stays.
-	* Steal: a slime on an unlocked plot can be grabbed by anyone else within
-	  STEAL_REACH who isn't already carrying something. Both players' saves
+	* Steal: a slime on an unlocked plot can be grabbed by anyone else who is
+	  inside that base, on the slime's floor (JarInside.canReach), within
+	  STEAL_REACH and not already carrying something. Distance alone is not
+	  enough: the glass lets prompts through and every pad is within reach of a
+	  spot just outside it. Both players' saves
 	  must be writable: each save is written on its own, so a theft involving
 	  a player whose progress isn't saved would duplicate or lose the slime.
 	* Carry: carrying slows you by the rarity's carrySlow. There is no time
@@ -50,6 +53,7 @@ export type StealContext = {
 	stealsPaused: boolean?, -- SlimeGuard (enforce): the thief's suspicion points paused their steals
 	thiefIsGuest: boolean?, -- the owner lets the thief in (PlotGuests): the lock does not stop them
 	thiefLockBreak: boolean?, -- the thief's lock break opens this base's door now (LockBreak): the lock does not stop them
+	thiefInside: boolean?, -- the thief stands inside the owner's base on the slime's floor (JarInside.canReach); false refuses, nil = not measured
 }
 
 export type SlapContext = {
@@ -62,6 +66,8 @@ export type SlapContext = {
 }
 
 local Steal = {}
+
+Steal.OUTSIDE_TEXT = "Go inside their base to steal"
 
 ---------------------------------------------------------------------------
 -- Lock
@@ -119,6 +125,9 @@ function Steal.canSteal(ctx: StealContext): (boolean, string?)
 	end
 	if Steal.isLocked(ctx.lockUntil, ctx.now) and ctx.thiefIsGuest ~= true and ctx.thiefLockBreak ~= true then
 		return false, "base is locked"
+	end
+	if ctx.thiefInside == false then
+		return false, Steal.OUTSIDE_TEXT
 	end
 	if ctx.stealsPaused then
 		return false, "stealing is paused for a moment"
