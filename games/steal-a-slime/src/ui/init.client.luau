@@ -975,7 +975,11 @@ local slimeMove = if Config.FEATURES.MoveSlime == true
 		uis = game:GetService("UserInputService"),
 		cas = ContextActionService,
 		prompts = ProximityPromptService,
-		onActive = inventory.setMoving,
+		frame = game:GetService("RunService").RenderStepped,
+		onActive = function(on: boolean)
+			inventory.setMoving(on)
+			tutorial.setMoving(on)
+		end,
 	})
 	else nil
 
