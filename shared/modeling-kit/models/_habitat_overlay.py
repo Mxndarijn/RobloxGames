@@ -213,4 +213,17 @@ def overlay_finish(name, parts, drop=0.0):
             o.location.z -= DECK
         return finish(name, parts + stand)
     check(parts, drop)
+    write_deck_offset(name, parts)
     return finish(name, parts)
+
+
+def write_deck_offset(name, parts):
+    """out/<name>.deck.json: the mesh's bbox centre on the deck (kit x, y), so the game can put a lopsided overlay
+    (a theme that keeps its front clear) back on the dish centre; a MeshPart is placed by its bbox centre."""
+    import bpy, json
+    bpy.context.view_layer.update()
+    vs = [p.matrix_world @ v.co for p in parts for v in p.data.vertices]
+    xs, ys = [v.x for v in vs], [v.y for v in vs]
+    out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out", f"{name}.deck.json")
+    with open(out, "w", newline="") as f:
+        json.dump({"centre": [round((max(xs) + min(xs)) / 2, 4), round((max(ys) + min(ys)) / 2, 4)]}, f)

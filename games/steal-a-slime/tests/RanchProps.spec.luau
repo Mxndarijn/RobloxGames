@@ -61,13 +61,11 @@ for _, root in nodes do
 	end)
 end
 
--- Habitat overlays are placed by HabitatFx on the pads at runtime, not by
+-- Habitat layers are placed by HabitatFx on the pads at runtime, not by
 -- WorldLayout.
 local habitatMeshes: { [string]: boolean } = {}
-for _, h in Habitats.LIST do
-	if h.overlay then
-		habitatMeshes[h.overlay] = true
-	end
+for _, mesh in Habitats.MESHES do
+	habitatMeshes[mesh] = true
 end
 
 local function placed(mesh: string): boolean
@@ -99,18 +97,13 @@ describe("ranch props: every kit mesh is placed", function()
 		end
 		expect(missing).toEqual({})
 	end)
-	it("covers the assets main added: fountain emerge, habitat looks, border models", function()
+	it("covers the assets main added: fountain emerge, border models", function()
 		local names = { "slime_fountain_emerge" }
 		for _, k in WorldBorder.CHUNKS do
 			table.insert(names, k.mesh)
 		end
 		for _, mesh in WorldBorder.ACCENTS do
 			table.insert(names, mesh)
-		end
-		for _, h in Habitats.LIST do
-			if h.overlay then
-				table.insert(names, h.overlay)
-			end
 		end
 		local missing = {}
 		for _, name in names do

@@ -16,12 +16,17 @@
 	first time a pad is seen it snaps to its final state (join in progress),
 	no burst.
 
-	An overlay with an uploaded mesh (Habitats.overlayMesh) is a clone of the
-	server's MeshPart template in ReplicatedStorage.HabitatMeshes
+	A look is the habitat's layers (Habitats.layers): the bed disc (a
+	primitive in the theme's colour and material), the rarity frame, the
+	glowing lip (top tiers; Secret's cycles through the rainbow), the theme
+	props and the signature prop on the front of the rim (Habitats.FRONT_YAW,
+	PROP_RADIUS), rising in that order. A layer with an uploaded mesh is a
+	clone of the server's MeshPart template in ReplicatedStorage.HabitatMeshes
 	(MeshSwap.publishHabitatTemplates; a MeshPart keeps the kit's vertex
 	colours) at native size, its bottom on the deck (or `drop` below it).
-	Until its template arrives, or with no meshId, the overlay is PLACEHOLDER
-	primitive rim props in Habitats colours; looks rebuild when one arrives.
+	Until its template arrives the frame and theme are PLACEHOLDER primitives
+	in Habitats colours (glow and prop show nothing); looks rebuild when one
+	arrives.
 	Reads attributes only; never fires remotes. Nothing replicates.
 ]]
 
@@ -36,6 +41,7 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local EffectPrefs = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("EffectPrefs"))
 local HabitatMorph = require(Shared:WaitForChild("HabitatMorph"))
 local Habitats = require(Shared:WaitForChild("Habitats"))
+local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local WorldLayout = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WorldLayout"))
 
 local HabitatFx = {}
@@ -106,12 +112,20 @@ local function piece(
 	return { part = part, size = size, offset = offset, transparency = transparency or 0, rise = false }
 end
 
--- The overlay mesh: a clone of the server's MeshPart template at native size.
--- A MeshPart's origin is its bbox centre: the bottom sits `drop` below the deck.
-local function meshPiece(model: Model, template: BasePart, overlay: Habitats.OverlayMesh): Piece
+-- Pad-local turn that puts a kit mesh's front on the walkway side, and that side's direction.
+local FRONT = CFrame.Angles(0, math.rad(Habitats.FRONT_YAW), 0)
+local FRONT_DIR = FRONT:VectorToWorldSpace(Vector3.zAxis)
+-- An uploaded MeshPart comes in turned from the kit's axes (MeshAssets.IMPORT_YAW, as every MeshSwap slot); offsets
+-- are in the kit's axes, so only the part itself takes this turn.
+local IMPORT_TURN = CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
+
+-- A layer's mesh: a clone of the server's MeshPart template at native size. A MeshPart's origin is its bbox centre:
+-- the bottom sits `drop` below the deck. Frame, glow and theme are centred on the dish and rise out of it (height
+-- only); the signature prop stands on the front of the rim and pops up whole.
+local function meshPiece(model: Model, template: BasePart, layer: Habitats.Layer, overlay: Habitats.OverlayMesh): Piece
 	local size = Vector3.new(overlay.size[1], overlay.size[2], overlay.size[3])
 	local part = template:Clone()
-	part.Name = "Mesh"
+	part.Name = layer.kind
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanQuery = false
@@ -119,13 +133,20 @@ local function meshPiece(model: Model, template: BasePart, overlay: Habitats.Ove
 	part.CastShadow = false
 	part.Size = size
 	part.Transparency = 1
+	if layer.glow then
+		part.Material = Enum.Material.Neon
+		part.Color = Color3.fromRGB(layer.glow[1], layer.glow[2], layer.glow[3])
+	end
 	part.Parent = model
+	local up = Vector3.new(0, size.Y / 2 - overlay.drop, 0)
+	local shift = FRONT:VectorToWorldSpace(Vector3.new(overlay.offset[1], 0, overlay.offset[2]))
+	local at = if layer.kind == "prop" then FRONT_DIR * Habitats.PROP_RADIUS + up else up + shift
 	return {
 		part = part,
 		size = size,
-		offset = CFrame.new(0, size.Y / 2 - overlay.drop, 0),
+		offset = CFrame.new(at) * FRONT * IMPORT_TURN,
 		transparency = 0,
-		rise = true,
+		rise = layer.kind ~= "prop",
 	}
 end
 
@@ -141,88 +162,96 @@ local DECK_EDGE = WorldLayout.PAD_DECK.half
 local MAT_EDGE = WorldLayout.PAD_DECK.matHalf
 local BAND = (DECK_EDGE + MAT_EDGE) / 2
 local FRAME_SIDES = 8 -- the placeholder ring: an octagon of flat strips
--- the placeholder's four props on the ring, on the diagonals
-local DIAG = BAND / math.sqrt(2)
-local CORNERS = { { DIAG, DIAG }, { DIAG, -DIAG }, { -DIAG, DIAG }, { -DIAG, -DIAG } }
+-- the placeholder theme props: back and both sides (the front is the signature prop's)
+local THEME_SPOTS = { 180, 90, -90 }
+
+-- The bed: a thin disc over the stand's goo bed (its top sits BED_LIFT above the dish rim), inside the frame, in the
+-- theme's colour and material. Always a primitive; it spreads out from the centre as the habitat rises.
+local BED_LIFT = 0.05
+local BED_THICK = 0.04
+
+local function bedPiece(model: Model, layer: Habitats.Layer): Piece
+	local material = (Enum.Material :: any)[layer.material or ""] or Enum.Material.SmoothPlastic
+	return piece(
+		model,
+		"Bed",
+		Enum.PartType.Cylinder,
+		Vector3.new(BED_THICK, 2 * MAT_EDGE, 2 * MAT_EDGE),
+		CFrame.new(0, BED_LIFT + BED_THICK / 2, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		rgb(layer.color),
+		material
+	)
+end
+
+-- Placeholder primitives for a layer whose mesh isn't uploaded yet: the frame as a ring of strips, the theme as
+-- three blocks. The glow lip and the signature prop show nothing until their mesh arrives.
+local function placeholderPieces(model: Model, layer: Habitats.Layer): { Piece }
+	local pieces: { Piece } = {}
+	if layer.kind == "frame" then
+		local width = DECK_EDGE - MAT_EDGE
+		local length = 2 * BAND * math.tan(math.pi / FRAME_SIDES) + width * math.tan(math.pi / FRAME_SIDES)
+		for k = 1, FRAME_SIDES do
+			local a = (k - 1) * 2 * math.pi / FRAME_SIDES
+			table.insert(
+				pieces,
+				piece(
+					model,
+					`Frame{k}`,
+					Enum.PartType.Block,
+					Vector3.new(length, 0.14, width),
+					CFrame.Angles(0, a, 0) * CFrame.new(0, 0.07, BAND),
+					rgb(layer.color),
+					Enum.Material.SmoothPlastic
+				)
+			)
+		end
+	elseif layer.kind == "theme" then
+		for k, deg in THEME_SPOTS do
+			local h = if k == 1 then 1.2 else 0.8
+			local dir = (FRONT * CFrame.Angles(0, math.rad(deg), 0)):VectorToWorldSpace(Vector3.zAxis)
+			table.insert(
+				pieces,
+				piece(
+					model,
+					`Prop{k}`,
+					Enum.PartType.Block,
+					Vector3.new(0.8, h, 0.8),
+					CFrame.new(dir * BAND + Vector3.new(0, h / 2, 0)),
+					if k == 1 then rgb(layer.accent) else rgb(layer.color),
+					Enum.Material.SmoothPlastic
+				)
+			)
+		end
+	end
+	return pieces
+end
+
+-- Glow lips that cycle through the rainbow (Secret frames); stepped in HabitatFx.step while near the camera.
+local shimmering: { [BasePart]: boolean } = {}
 
 local function buildLook(pad: BasePart, id: string): Look?
-	local habitat = Habitats.get(id)
-	if not habitat or id == Habitats.BASE then
+	local layers = Habitats.layers(id)
+	if #layers == 0 then
 		return nil
 	end
 	local model = Instance.new("Model")
 	model.Name = `{pad.Parent and pad.Parent.Name or "Plot"}_{pad.Name}_{id}`
-	local overlay = Habitats.overlayMesh(id)
-	local template = overlay and templateFor(habitat.overlay)
-	if overlay and template then
-		local pieces = { meshPiece(model, template, overlay) }
-		model.Parent = folder()
-		return { model = model, pieces = pieces }
-	end
-	local color, accent = rgb(habitat.color), rgb(habitat.accent)
 	local pieces: { Piece } = {}
-	-- Frame: an octagon of flat strips on the dish round the slime, each as long as its side of the ring.
-	local width = DECK_EDGE - MAT_EDGE
-	local length = 2 * BAND * math.tan(math.pi / FRAME_SIDES) + width * math.tan(math.pi / FRAME_SIDES)
-	for k = 1, FRAME_SIDES do
-		local a = (k - 1) * 2 * math.pi / FRAME_SIDES
-		table.insert(
-			pieces,
-			piece(
-				model,
-				`Frame{k}`,
-				Enum.PartType.Block,
-				Vector3.new(length, 0.14, width),
-				CFrame.Angles(0, a, 0) * CFrame.new(0, 0.07, BAND),
-				color,
-				Enum.Material.SmoothPlastic
-			)
-		)
-	end
-	for k, c in CORNERS do
-		local at = CFrame.new(c[1], 0, c[2])
-		if id == "crystal_grotto" then
-			local h = 1.6 + (k % 2) * 0.8
-			table.insert(
-				pieces,
-				piece(
-					model,
-					`Crystal{k}`,
-					Enum.PartType.Block,
-					Vector3.new(0.6, h, 0.6),
-					at * CFrame.new(0, h / 2, 0) * CFrame.Angles(math.rad(c[2] * 14), 0, math.rad(-c[1] * 14)),
-					accent,
-					Enum.Material.Neon,
-					0.25
-				)
-			)
-		elseif id == "candy_patch" then
-			table.insert(
-				pieces,
-				piece(
-					model,
-					`Gumdrop{k}`,
-					Enum.PartType.Ball,
-					Vector3.new(0.9, 0.9, 0.9),
-					at * CFrame.new(0, 0.55, 0),
-					if k % 2 == 0 then accent else color,
-					Enum.Material.SmoothPlastic,
-					0.1
-				)
-			)
+	for _, layer in layers do
+		local overlay = layer.overlay
+		local template = overlay and templateFor(layer.mesh)
+		if layer.kind == "bed" then
+			table.insert(pieces, bedPiece(model, layer))
+		elseif overlay and template then
+			local p = meshPiece(model, template, layer, overlay)
+			table.insert(pieces, p)
+			if layer.shimmer then
+				shimmering[p.part] = true
+			end
 		else
-			table.insert(
-				pieces,
-				piece(
-					model,
-					`Tuft{k}`,
-					Enum.PartType.Block,
-					Vector3.new(0.8, 0.8, 0.8),
-					at * CFrame.new(0, 0.5, 0),
-					accent,
-					Enum.Material.SmoothPlastic
-				)
-			)
+			for _, p in placeholderPieces(model, layer) do
+				table.insert(pieces, p)
+			end
 		end
 	end
 	model.Parent = folder()
@@ -245,10 +274,11 @@ local function poseLook(pad: BasePart, look: Look, w: number, rising: boolean, q
 end
 
 local function emitBurst(track: Track, id: string, count: number)
-	local habitat = Habitats.get(id) or Habitats.get(Habitats.BASE)
-	if not habitat then
+	local look = Habitats.look(id)
+	if not look then
 		return
 	end
+	local habitat = look.theme
 	local emitter = track.burst
 	if not emitter or not emitter.Parent then
 		local attachment = Instance.new("Attachment")
@@ -362,12 +392,13 @@ local function onHabitat(track: Track)
 		snap(track) -- final state at once, no puff
 		return
 	end
+	local leaving = track.id
 	track.id = nextId
 	local count = HabitatMorph.burst(Config.HABITAT_ANIM, quality)
 	if EffectPrefs.isLow(Players.LocalPlayer) then
 		count = math.min(count, Config.HABITAT_ANIM.BURST_SIMPLE) -- Goo effects Low: the small puff
 	end
-	emitBurst(track, nextId, count)
+	emitBurst(track, if nextId == Habitats.BASE then leaving else nextId, count) -- a leave puffs in the old colours
 end
 
 local function watch(pad: BasePart)
@@ -400,13 +431,21 @@ local function isPad(d: Instance): boolean
 	return d:IsA("BasePart") and d:GetAttribute(Constants.PAD_INDEX_ATTRIBUTE) ~= nil
 end
 
+local function usesMesh(id: string, name: string): boolean
+	for _, layer in Habitats.layers(id) do
+		if layer.mesh == name then
+			return true
+		end
+	end
+	return false
+end
+
 -- A template arrived (the server publishes them after boot): rebuild the
--- placeholder looks of that habitat as the mesh, keeping their weights.
+-- looks that use that mesh, keeping their weights.
 local function onTemplate(name: string)
 	for _, track in tracks do
 		for id, look in track.looks do
-			local habitat = Habitats.get(id)
-			if habitat and habitat.overlay == name then
+			if usesMesh(id, name) then
 				look.model:Destroy()
 				track.looks[id] = nil
 			end
@@ -448,7 +487,27 @@ function HabitatFx.attach(plots: Instance): { RBXScriptConnection }
 	return conns
 end
 
--- Moves every unsettled pad one frame along (RenderStepped).
+-- Rainbow glow lips: hue cycles every SHIMMER_PERIOD seconds, only within SHIMMER_RANGE studs of the camera.
+local SHIMMER_PERIOD = 4
+local SHIMMER_RANGE = 160
+
+local function stepShimmer()
+	local camera = workspace.CurrentCamera
+	if not camera or next(shimmering) == nil then
+		return
+	end
+	local hue = (os.clock() / SHIMMER_PERIOD) % 1
+	local eye = camera.CFrame.Position
+	for part in shimmering do
+		if not part.Parent then
+			shimmering[part] = nil
+		elseif (part.Position - eye).Magnitude < SHIMMER_RANGE then
+			part.Color = Color3.fromHSV(hue, 0.55, 1)
+		end
+	end
+end
+
+-- Moves every unsettled pad one frame along, and the rainbow lips (RenderStepped).
 function HabitatFx.step(dt: number)
 	for _, track in tracks do
 		if not Habitats.isSettled(track.weights, track.id) then
@@ -457,6 +516,7 @@ function HabitatFx.step(dt: number)
 			apply(track)
 		end
 	end
+	stepShimmer()
 end
 
 -- Test / teardown hook: drops every pad (looks, burst, listener).

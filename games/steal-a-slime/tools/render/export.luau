@@ -59,14 +59,14 @@ assert(SNOW_PHASE == "settle" or SNOW_PHASE == "melt", "--snow-phase needs settl
 -- The client quantizes the level and tints from the original colour (SnowGround): same maths here.
 local snowTints = if SNOW then SnowCover.tints(SnowCover.quantize(SNOW), SNOW_PHASE == "settle") else nil
 
--- Render staging: which pads show a habitat overlay (plot, pad, habitat id).
+-- Render staging: which pads show a habitat (plot, pad, slime species).
 local HABITAT_PADS = {
-	{ 1, 2, "crystal_grotto" },
-	{ 1, 3, "candy_patch" },
-	{ 1, 6, "crystal_grotto" },
-	{ 2, 1, "candy_patch" },
-	{ 3, 4, "crystal_grotto" },
-	{ 5, 7, "candy_patch" },
+	{ 1, 2, "cosmo" },
+	{ 1, 3, "blaze" },
+	{ 1, 6, "captain_goo" },
+	{ 2, 1, "pengoo" },
+	{ 3, 4, "moo" },
+	{ 5, 7, "gummy" },
 }
 
 local function swappable(name: string): boolean
@@ -274,20 +274,29 @@ for _, plot in built.plots:GetChildren() do
 	end
 end
 
--- Habitat pads (client HabitatFx): the overlay mesh at native size, its
--- bottom on the crate deck (or `drop` below it); the pad and stand stay.
+-- Habitat pads (client HabitatFx): each uploaded layer at native size, its
+-- bottom on the deck (or `drop` below it), turned to the walkway; the
+-- signature prop on the front of the rim. The pad and stand stay.
+local FRONT = CFrame.Angles(0, math.rad(Habitats.FRONT_YAW), 0)
+local IMPORT_TURN = CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
 for _, h in HABITAT_PADS do
 	local pad = built.plots:FindFirstChild(`Plot_{h[1]}`):FindFirstChild(`Pad_{h[2]}`)
-	local habitat = Habitats.get(h[3])
-	local overlay = Habitats.overlayMesh(h[3])
-	if habitat and overlay then
-		local size = overlay.size
-		local deck = -pad.Size.Y / 2 + WorldLayout.PAD_DECK.y
-		local cf = pad.CFrame * CFrame.new(0, deck + size[2] / 2 - overlay.drop, 0)
-		table.insert(
-			meshes,
-			{ mesh = habitat.overlay, cf = cfOf(cf), size = size, path = pad:GetFullName() .. ".Habitat" }
-		)
+	for _, layer in Habitats.layers(Habitats.forType(h[3], nil)) do
+		local overlay = layer.overlay
+		if overlay and not layer.glow then
+			local size = overlay.size
+			local deck = -pad.Size.Y / 2 + WorldLayout.PAD_DECK.y
+			local up = CFrame.new(0, deck + size[2] / 2 - overlay.drop, 0)
+			local slot = if layer.kind == "prop"
+				then CFrame.new(FRONT:VectorToWorldSpace(Vector3.new(0, 0, Habitats.PROP_RADIUS)))
+				else CFrame.new()
+			table.insert(meshes, {
+				mesh = layer.mesh,
+				cf = cfOf(pad.CFrame * slot * up * FRONT * IMPORT_TURN),
+				size = size,
+				path = `{pad:GetFullName()}.Habitat.{layer.kind}`,
+			})
+		end
 	end
 end
 
