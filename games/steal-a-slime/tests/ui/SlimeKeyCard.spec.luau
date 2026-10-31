@@ -370,11 +370,14 @@ describe("SlimeKeyCard", function()
 		lock.ObjectText = "Merijn's base: LOCKED 1:18"
 		lock.Parent = button
 		local friends = holdPrompt("FriendsPrompt", button)
-		friends.HoldDuration = 0
 		env.show(friends)
 		local title = UiHarness.find(env.playerGui, "Title")
 		local friendsRow = env.row("FriendsPrompt")
 		expect(title.Text).toBe("LOCKED 1:18")
+		-- the greyed Locked row keeps the Lock row's place, so Friends stays second
+		local lockedRow = env.row(SlimeKeyCard.LOCKED_ROW)
+		expect(lockedRow ~= nil).toBe(true)
+		expect(lockedRow.Position.Y.Offset < friendsRow.Position.Y.Offset).toBe(true)
 		-- seconds pass with no prompt shown or changed: the title follows the lock, the row is not redrawn
 		env.serverNow = 1001
 		env.tick()
@@ -396,6 +399,45 @@ describe("SlimeKeyCard", function()
 		env.tick()
 		expect(title.Text).toBe("OPEN")
 		env.stop()
+	end)
+
+	it("draws the Friends row in the same place whether the base is open or locked", function()
+		local env = startCard()
+		local button = UiHarness.Instance.new("Part")
+		local real = UiHarness.Instance.new("ProximityPrompt") -- what FindFirstChild sees on the button
+		real.Name = "LockPrompt"
+		real.Parent = button
+		local lock = holdPrompt("LockPrompt", button)
+		local friends = holdPrompt("FriendsPrompt", button)
+		env.show(lock)
+		env.show(friends)
+		local openY = env.row("FriendsPrompt").Position.Y.Offset
+		expect(env.row(SlimeKeyCard.LOCKED_ROW)).toBeNil()
+		-- the lock starts: the server turns LockPrompt off, so it is hidden
+		env.service.PromptHidden.fire(lock)
+		expect(env.row("LockPrompt")).toBeNil()
+		expect(env.row(SlimeKeyCard.LOCKED_ROW) ~= nil).toBe(true)
+		expect(env.row("FriendsPrompt").Position.Y.Offset).toBe(openY)
+		-- a tap on the Locked row presses nothing
+		expect(env.row(SlimeKeyCard.LOCKED_ROW).ClassName).toBe("Frame")
+		expect(friends.begins).toBe(0)
+		-- the lock ends: Lock is back and the Locked row goes
+		env.show(lock)
+		expect(env.row(SlimeKeyCard.LOCKED_ROW)).toBeNil()
+		expect(env.row("FriendsPrompt").Position.Y.Offset).toBe(openY)
+		env.stop()
+	end)
+
+	it("holds the Locked row only on a lock button whose Lock row is hidden", function()
+		local button = UiHarness.Instance.new("Part")
+		local lock = UiHarness.Instance.new("ProximityPrompt")
+		lock.Name = "LockPrompt"
+		lock.Parent = button
+		expect(SlimeKeyCard.holdsLockedRow(button, { "FriendsPrompt" })).toBe(true)
+		expect(SlimeKeyCard.holdsLockedRow(button, { "LockPrompt", "FriendsPrompt" })).toBe(false)
+		expect(SlimeKeyCard.holdsLockedRow(button, {})).toBe(false)
+		local body = UiHarness.Instance.new("Part")
+		expect(SlimeKeyCard.holdsLockedRow(body, { "MovePrompt" })).toBe(false)
 	end)
 
 	it("leaves a slime card's title alone on tick", function()

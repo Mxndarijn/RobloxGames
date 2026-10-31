@@ -336,6 +336,19 @@ local function robuxOf(config: any, key: string, pass: boolean?): number
 	return if def then def.robux else 0
 end
 
+-- A cosmetic sold outside the shop's cards (the Skins menu's rows): its price, the Buy text and, while on sale,
+-- what Roblox's prompt sells. Nil without such a product.
+export type Offer = { price: string, text: string, purchase: Purchase? }
+
+function ExclusiveShopView.offer(config: any, key: string): Offer?
+	local purchase = ExclusiveShopView.productPurchase(config, key)
+	if purchase == nil then
+		return nil
+	end
+	local price = Format.robux(robuxOf(config, key))
+	return { price = price, text = `Buy · {price}`, purchase = if onSale(purchase) then purchase else nil }
+end
+
 -- True for a pass that changes a roll (Lucky Charm+): hidden where paid random items are restricted.
 local function paidRandomPass(config: any, key: string): boolean
 	local cat = catalogueOf(config)

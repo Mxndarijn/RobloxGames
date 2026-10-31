@@ -3,22 +3,22 @@
 	SlimePreview
 
 	Cheap client-side slime model for SlimeDex ViewportFrames. Lives in ui/
-	(not visuals): Ball body + eyes, tinted from the row colour. Locked rows
-	use a dark silhouette body with dim, half-transparent eyes.
+	(not visuals): Ball body + eyes, tinted from the row colour. A species the
+	player has not found or does not have shows grey: its own mesh recoloured
+	grey once that is made, else the mesh or ball washed grey.
 
 	Choice: Ball parts, not SpecialMesh + Config.SLIME_MESH_ASSET_ID. MeshId
 	needs the asset online and fails under Lune; a Ball reads as a blob in a
 	small ViewportFrame and always builds. Real mesh/ModelFactory previews
 	remain a later upgrade once shared client builders exist.
 
-	One untinted template per look (locked or open) is built on first use; every preview is a Clone of it with the body tinted.
+	One untinted template is built on first use; every preview is a Clone of it with the body tinted.
 	mount() recycles the viewport's WorldModel and camera and only swaps the
 	model.
 ]]
 
 export type Opts = {
-	locked: boolean?, -- the dark silhouette (an unknown SlimeDex species)
-	greyed: boolean?, -- every colour washed to grey: a known slime you don't have (a rebirth's missing slime)
+	greyed: boolean?, -- every colour washed to grey: a species not found yet, or a slime you don't have
 }
 
 local SlimePreview = {}
@@ -27,7 +27,6 @@ local SlimePreview = {}
 -- the rest keep the colour swatch.
 SlimePreview.MAX_LIVE = 24
 
-SlimePreview.SILHOUETTE = Color3.fromRGB(28, 30, 38)
 SlimePreview.GREYED = Color3.fromRGB(150, 156, 160) -- the body of a greyed ball preview
 
 -- `color` washed to grey, keeping its lightness so the slime's markings still read.
@@ -39,8 +38,6 @@ end
 
 local WHITE = Color3.fromRGB(245, 248, 255)
 local INK = Color3.fromRGB(20, 22, 30)
-local DIM_EYE = Color3.fromRGB(70, 72, 84)
-local DIM_PUPIL = Color3.fromRGB(40, 42, 50)
 
 local function ball(name: string, diameter: number, color: Color3, position: Vector3, parent: Instance): Part
 	local p = Instance.new("Part")
@@ -60,35 +57,26 @@ local function ball(name: string, diameter: number, color: Color3, position: Vec
 end
 
 -- 2-stud body at the origin, eyes on the +Z face (towards the camera).
-local function buildTemplate(locked: boolean): Model
+local function buildTemplate(): Model
 	local model = Instance.new("Model")
-	model.Name = if locked then "SlimePreviewLocked" else "SlimePreview"
-	model.PrimaryPart = ball("Body", 2, SlimePreview.SILHOUETTE, Vector3.zero, model)
-	local eyeColor = if locked then DIM_EYE else WHITE
-	local pupilColor = if locked then DIM_PUPIL else INK
+	model.Name = "SlimePreview"
+	model.PrimaryPart = ball("Body", 2, SlimePreview.GREYED, Vector3.zero, model)
 	local sides: { { suffix: string, x: number } } = { { suffix = "L", x = -0.35 }, { suffix = "R", x = 0.35 } }
 	for _, side in sides do
 		local suffix, x = side.suffix, side.x
-		local white = ball(`EyeWhite{suffix}`, 0.42, eyeColor, Vector3.new(x, 0.25, 0.72), model)
-		white.Transparency = if locked then 0.35 else 0
-		local pupil = ball(`Pupil{suffix}`, 0.2, pupilColor, Vector3.new(x, 0.22, 0.84), model)
-		pupil.Transparency = if locked then 0.5 else 0
+		ball(`EyeWhite{suffix}`, 0.42, WHITE, Vector3.new(x, 0.25, 0.72), model)
+		ball(`Pupil{suffix}`, 0.2, INK, Vector3.new(x, 0.22, 0.84), model)
 	end
-	model:SetAttribute("Locked", locked)
 	return model
 end
 
-local templates: { [string]: Model } = {}
+local template: Model? = nil
 
-local function templateFor(locked: boolean): Model
-	local key = if locked then "locked" else "open"
-	local cached: Model? = templates[key]
-	if cached then
-		return cached
+local function templateFor(): Model
+	if template == nil then
+		template = buildTemplate()
 	end
-	local built = buildTemplate(locked)
-	templates[key] = built
-	return built
+	return template :: Model
 end
 
 -- The viewport's WorldModel, created on first use.
@@ -111,13 +99,12 @@ local function rgb(colorRgb: { number }): Color3
 end
 
 -- Unparented Model cloned from the template: body tinted to colorRgb
--- (0..255), or the dark silhouette when locked.
+-- (0..255), or grey when greyed.
 function SlimePreview.build(colorRgb: { number }, opts: Opts?): Model
-	local locked = opts ~= nil and opts.locked == true
-	local model = templateFor(locked):Clone()
+	local model = templateFor():Clone()
 	local body = model:FindFirstChild("Body") :: Part
 	local greyed = opts ~= nil and opts.greyed == true
-	body.Color = if locked then SlimePreview.SILHOUETTE elseif greyed then SlimePreview.GREYED else rgb(colorRgb)
+	body.Color = if greyed then SlimePreview.GREYED else rgb(colorRgb)
 	return model
 end
 
@@ -153,21 +140,16 @@ end
 -- Puts an already built slime Model (Visuals.ModelFactory: pivot at the
 -- bottom centre, front = -Z) into `viewport`, framed from the front-above.
 -- Every part is anchored (a viewport runs no physics) and lights /
--- sparkles are dropped; `locked` paints it as the dark silhouette, `greyed` washes every part to grey. Returns
+-- sparkles are dropped; `greyed` washes every part's colour to grey. Returns
 -- false on failure (caller falls back to SlimePreview.mount).
 function SlimePreview.mountModel(viewport: Instance, model: Model, opts: Opts?): boolean
 	local ok, err = pcall(function()
-		local locked = opts ~= nil and opts.locked == true
 		local greyed = opts ~= nil and opts.greyed == true
 		for _, inst in model:GetDescendants() do
 			if inst:IsA("BasePart") then
 				local part = inst :: BasePart
 				part.Anchored = true
-				if locked then
-					part.Color = SlimePreview.SILHOUETTE
-					part.Material = Enum.Material.SmoothPlastic
-					part.Reflectance = 0
-				elseif greyed then
+				if greyed then
 					part.Color = SlimePreview.greyOf(part.Color)
 					part.Reflectance = 0
 				end
@@ -239,6 +221,7 @@ end
 -- shows, `slime` (ctx.buildSlime) the generated model from the genome. Either may be nil.
 export type Builders = {
 	species: ((speciesId: string) -> Model?)?,
+	greySpecies: ((speciesId: string) -> Model?)?, -- the species mesh recoloured grey (SpeciesModel.greyBuilder)
 	slime: ((genome: any) -> Model?)?,
 }
 
@@ -278,13 +261,34 @@ function SlimePreview.mountSlime(viewport: Instance, slime: any, builders: Build
 	(viewport :: ViewportFrame).Visible = ok
 end
 
--- A species as the SlimeDex shows it: its mesh in full colour once found, a flat black silhouette before.
+-- A species as the menus show it: its mesh in full colour once found (or owned), the same mesh in grey before.
 export type SpeciesLook = { key: string, found: boolean, tier: number, speciesColor: { number } }
 
--- Shows `look` in `viewport`: the species mesh (builders.species) when it has replicated, else the model
--- generated from `genome(look)` (builders.slime), else the Ball blob in the species colour. The mounted look
--- names its source, so a well that fell back switches to the mesh once it is there; nothing is rebuilt while
--- the look and source stay the same. Returns whether something is mounted (the viewport is visible then).
+-- Builds the model `look` shows, best source first, and names that source. Found: the species mesh, else the
+-- model generated from `genome(look)`, else the Ball blob in the species colour. Not found: the grey species
+-- mesh, else the species mesh washed grey, else a grey blob; never the generated model, which does not look
+-- like the species.
+local function speciesSource(look: SpeciesLook, b: Builders): (Model?, string)
+	local function try(build: ((string) -> Model?)?): Model?
+		if build == nil then
+			return nil
+		end
+		local ok, model = pcall(build, look.key)
+		return if ok then model else nil
+	end
+	if not look.found then
+		local grey = try(b.greySpecies)
+		if grey then
+			return grey, "grey"
+		end
+	end
+	local species = try(b.species)
+	return species, if species then "mesh" else "none"
+end
+
+-- Shows `look` in `viewport` (see speciesSource). The mounted look names its source, so a well that fell back
+-- switches to the better model once it is there; nothing is rebuilt while the look and source stay the same.
+-- Returns whether something is mounted (the viewport is visible then).
 function SlimePreview.mountSpecies(
 	viewport: Instance,
 	look: SpeciesLook,
@@ -292,23 +296,20 @@ function SlimePreview.mountSpecies(
 	genome: (SpeciesLook) -> any
 ): boolean
 	local b: Builders = builders or {}
-	local species: Model? = nil
-	if b.species then
-		local built, model = pcall(b.species, look.key)
-		species = if built then model else nil
-	end
-	local tag = `{look.key}:{look.found}:{species ~= nil}`
+	local model, source = speciesSource(look, b)
+	local tag = `{look.key}:{look.found}:{source}`
 	if viewport:GetAttribute("Look") == tag then
-		if species then
-			species:Destroy()
+		if model then
+			model:Destroy()
 		end
 		return (viewport :: ViewportFrame).Visible
 	end
-	local opts = { locked = not look.found }
-	local ok = species ~= nil and SlimePreview.mountModel(viewport, species :: Model, opts)
-	if not ok and b.slime then
-		local built, model = pcall(b.slime, genome(look))
-		ok = built and model ~= nil and SlimePreview.mountModel(viewport, model, opts)
+	-- The grey mesh is grey already; anything else is washed grey while the species is not found.
+	local opts = { greyed = not look.found and source ~= "grey" }
+	local ok = model ~= nil and SlimePreview.mountModel(viewport, model :: Model, opts)
+	if not ok and look.found and b.slime then
+		local built, generated = pcall(b.slime, genome(look))
+		ok = built and generated ~= nil and SlimePreview.mountModel(viewport, generated, opts)
 	end
 	if not ok then
 		ok = SlimePreview.mount(viewport, look.speciesColor, opts)

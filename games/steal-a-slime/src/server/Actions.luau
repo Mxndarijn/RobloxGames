@@ -679,7 +679,7 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	elseif action == "Redeem" then
 		return redeem(world, session, args[1], now)
 	elseif action == "BuySpeedCoil" then
-		return buySpeedCoil(world, session)
+		return shopTutorial(world, session, buySpeedCoil(world, session))
 	elseif action == "BuyUpgrade" then
 		return shopTutorial(world, session, buyUpgrade(world, session, args[1]))
 	elseif action == "EquipPlotSkin" then

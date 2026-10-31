@@ -11,7 +11,7 @@ The numbers come from the simulation in [economy-sim/](economy-sim/): `slime_eco
 | Spawns | Keep `SPAWN_INTERVAL` 4 s and the 18-slime wild cap. New weights **52 / 28 / 13 / 5.2 / 1.2 / 0.2 / 0.05**: only Legendary, Mythic and Secret get rarer, because the pool has 3 / 4 / 3 species there instead of 4 / 3 / 2 and merges already feed the top. |
 | Unlocks | 15 species from the start (the full ladder: at least one per tier), then 4 at 3 rebirths, 5 at 6, 8 at 10, through the existing `FountainTiers` families. The rebirth pace sets the Dex pace. |
 | Merge vat | Recipes first: a fixed set of three species gives a fixed hybrid. Anything else falls back to a random spawning species of the next tier. Random merges stop at Mythic (Secret is never a random craft), +2 jumps stop at Legendary, and 35 % of random results are a species you haven't found yet. |
-| Recipes | All three inputs one tier, hybrid one tier up (the vat rule stays "same rarity"). Hybrids show in the Dex as silhouettes; each input reveals itself once you have found that species. |
+| Recipes | All three inputs one tier, hybrid one tier up (the vat rule stays "same rarity"). Hybrids show in the Dex in grey; each input reveals itself once you have found that species. |
 | Bosses | A giant boss every 20 min: a team fight (fill its goo meter with hits), then a carry race where it can be slapped loose and stolen. Bringing it home wins it for every helper: the species in their Dex and boss badges kept in the save (contract §33). The boss earns no income. |
 | Top layer | **No eighth tier.** Make Mythic and Secret feel special with size, aura, a longer parade, and louder announcements. Bosses and the Secret-tier hybrid are the "beyond Secret" chase. |
 | Dex | Species Dex (53 entries), one per species, with a milestone ladder that pays cash and permanent income. |
@@ -130,7 +130,7 @@ Hybrid ids are new and permanent. None clashes with an old roster id.
 
 | Dex state | What the hybrid's Dex card shows |
 |---|---|
-| Not found, no ingredient found | Black silhouette of the hybrid (its real mesh, flat black), tier colour frame, name "???", a "Merge-only" badge, three "?" ingredient slots. |
+| Not found, no ingredient found | Grey copy of the hybrid (its real mesh, every colour washed grey), tier colour frame, name "???", a "Merge-only" badge, three "?" ingredient slots. |
 | Some ingredients found | Each slot whose species you have in the Dex shows that species' icon (x2 / x3 for repeats). |
 | All ingredients found ("known") | Name and hint line shown, all three slots shown. The merge vat menu still shows it as random until the hybrid is crafted (below). |
 | Crafted | Full-colour card, like any species. |

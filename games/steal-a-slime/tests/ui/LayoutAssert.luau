@@ -95,7 +95,23 @@ local RebirthPanel = {
 }
 -- Panels/WorldShop's row geometry (WorldShop.BADGE / BUY_W / DESC_H, SIZE.tagH; LayoutAssert.spec checks it
 -- against the module); tags and text at the minimum.
-local WorldShopPanel = { BADGE = 48, BUY_W = 170, DESC_H = 34, SIZE = { tagH = 18 } }
+local WorldShopPanel = {
+	BADGE = 48,
+	BADGE_THIN = 32,
+	BUY_W = 170,
+	DESC_H = 34,
+	DESC_THIN_H = 18,
+	LABEL_H = 24,
+	TAB_H = Layout.MIN_TOUCH_DESIGN,
+	TAB_GAP = 6,
+	STEP = Layout.MIN_TOUCH_DESIGN,
+	STEP_GAP = 4,
+	EDGE = 8,
+	GRID_COLS = 3,
+	GRID_GAP = 6,
+	TILE_NAME_H = 36,
+	SIZE = { tagH = 18, label = 16, aside = Layout.MIN_TEXT, tab = 17, ladderTitle = 17, step = 16, tileName = 15 },
+}
 
 type Rect = Layout.Rect
 
@@ -462,15 +478,27 @@ function LayoutAssert.navTexts(screen: Layout.Screen): { TextDesc }
 	return out
 end
 
--- The tutorial notice cards above the hotbar (TutorialCard): the step card (icon, title, hint, "3/8" column)
--- and the mint done card, at the banner width.
+-- The tutorial notice cards above the hotbar (TutorialCard): the step card (icon, title, hint, the right
+-- column with "3/8" over Hide) and the mint done card, at the banner width.
 function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 	local out: { TextDesc } = {}
 	local N = Layout.NOTICE_CARD
 	local inner = screen.banners.w - N.pad * 2 - 4 - N.icon - N.gap
-	-- TutorialCard.COUNTER_W, left out under TutorialCard.NARROW_W (300) on phones
-	local counterW = if screen.banners.w < 300 then 0 else 44
-	local stepW = inner - counterW
+	-- TutorialCard.SIDE_W (always there: Hide); the "3/8" in it is left out under TutorialCard.NARROW_W (300)
+	local sideW = Layout.MIN_TOUCH_DESIGN
+	local counterW = if screen.banners.w < 300 then 0 else sideW
+	-- On the narrow stack Hide sits under the icon (a pill N.icon wide) and the text takes the full width.
+	local narrowStack = screen.banners.w < 300
+	local columnW = if narrowStack then 0 else sideW
+	local stepW = inner - columnW
+	table.insert(out, {
+		name = "tutorial hide",
+		text = "Hide",
+		size = 14,
+		bold = true,
+		w = (if narrowStack then N.icon else sideW - 4) - 6, -- the pill inside its Ink outline
+		h = 26,
+	})
 	-- `n` lines of `size` text (Layout.textSize / wrappedHeight measure LINE_HEIGHT per line)
 	local function lines(size: number, n: number): number
 		return size * Layout.LINE_HEIGHT * n
@@ -697,6 +725,141 @@ function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
 			table.insert(rows, text)
 		end
 		rowTexts(`World {shopId}`, rows, textW, WorldShopPanel.BUY_W, out)
+	end
+	-- What WorldShopLogic.view adds: tabs, section labels, thin rows, ladder cards (every tier on show), fun tiles,
+	-- and the Upgrade Shop's "now -> next" lines. Owned glove / blaster tiers and a level-0 locked upgrade too.
+	local p = WorldShopPanel
+	local bodyW = panel.w - Layout.PANEL_CHROME.pad * 2
+	local thinW = bodyW - (8 + p.BADGE_THIN + 10) - (p.BUY_W + 16)
+	local tileW = (bodyW - p.GRID_GAP * (p.GRID_COLS - 1)) / p.GRID_COLS
+	local tabW = (bodyW - p.TAB_GAP * 2) / 3
+	local seen: { [string]: boolean } = {}
+	local function add(desc: TextDesc)
+		local key = `{desc.name}|{desc.text}`
+		if not seen[key] then
+			seen[key] = true
+			table.insert(out, desc)
+		end
+	end
+	local function fullRow(prefix: string, row: any)
+		local text: any = table.clone(row)
+		text.nameSize = WorldShopLogic.nameSize(row.name)
+		local rows: { RowText } = { text }
+		local before = #out
+		rowTexts(prefix, rows, textW, p.BUY_W, out)
+		local fresh = table.move(out, before + 1, #out, 1, {})
+		for i = #out, before + 1, -1 do
+			table.remove(out, i)
+		end
+		for _, d in fresh do
+			add(d)
+		end
+	end
+	local function entries(prefix: string, list: { any })
+		for _, e in list do
+			if e.kind == "label" then
+				local w = if e.aside then bodyW / 2 - 4 else bodyW - 8
+				add({ name = `{prefix} label`, text = e.text, size = p.SIZE.label, bold = true, w = w, h = p.LABEL_H })
+				if e.aside == "restock" then
+					add({
+						name = `{prefix} restock`,
+						text = "Restocks in 59:59",
+						size = p.SIZE.aside,
+						w = w,
+						h = p.LABEL_H,
+					})
+				end
+			elseif e.kind == "row" and e.thin then
+				local r = e.row
+				add({
+					name = `{prefix} {r.id} thin name`,
+					text = r.name,
+					size = WorldShopLogic.nameSize(r.name),
+					bold = true,
+					w = thinW,
+					h = 22,
+				})
+				add({
+					name = `{prefix} {r.id} thin desc`,
+					text = r.description,
+					size = Layout.MIN_TEXT,
+					w = thinW,
+					h = p.DESC_THIN_H,
+				})
+			elseif e.kind == "row" then
+				fullRow(prefix, e.row)
+			elseif e.kind == "ladder" then
+				add({
+					name = `{prefix} ladder title`,
+					text = e.ladder.title,
+					size = p.SIZE.ladderTitle,
+					bold = true,
+					w = bodyW - (#e.ladder.steps * p.STEP + (#e.ladder.steps - 1) * p.STEP_GAP) - p.EDGE * 3 - 4,
+					h = p.STEP,
+				})
+				for _, s in e.ladder.steps do
+					add({
+						name = `{prefix} step`,
+						text = `🔒{s.tier}`,
+						size = p.SIZE.step,
+						bold = true,
+						w = p.STEP,
+						h = p.STEP,
+					})
+				end
+				fullRow(`{prefix} ladder`, e.ladder.row)
+			elseif e.kind == "grid" then
+				for _, t in e.tiles do
+					add({
+						name = `{prefix} tile {t.id} name`,
+						text = t.name,
+						size = p.SIZE.tileName,
+						bold = true,
+						w = tileW - 8,
+						h = p.TILE_NAME_H,
+						wrapped = true,
+					})
+					add({
+						name = `{prefix} tile {t.id} slot`,
+						text = t.buttonText,
+						size = 16,
+						bold = true,
+						w = tileW - 16,
+						h = Layout.BUTTON,
+					})
+				end
+			end
+		end
+	end
+	for _, t in WorldShopLogic.TABS do
+		add({ name = "World tab", text = t.label, size = p.SIZE.tab, bold = true, w = tabW, h = p.TAB_H })
+	end
+	local owned = { rank = 30, owned = {}, best = {}, cooldowns = {}, charges = {} }
+	for _, tool in Config.PVP_TOOLS do
+		if tool.tier < 3 and tool.kind ~= "fun" then
+			owned.owned[tool.id] = true
+		end
+	end
+	for _, pvp in { state.pvp, owned } do
+		local s: any = table.clone(state)
+		s.pvp = pvp
+		for tier = 1, 6 do
+			local picks = { Knockback = tier, Trap = tier, Blaster = tier }
+			for _, tab in WorldShopLogic.TABS do
+				local v = WorldShopLogic.view("ItemShop", s, actions, features, Config, { tab = tab.id, picks = picks })
+				entries(`World view {tab.id}`, v.entries)
+			end
+		end
+	end
+	local mixed = table.clone(upgrades)
+	mixed[1] = table.clone(mixed[1])
+	mixed[1].level, mixed[1].maxLevel = 0, 25
+	mixed[2] = table.clone(mixed[2])
+	mixed[2].level, mixed[2].maxLevel = 4, 4
+	for _, ups in { upgrades, mixed } do
+		local s: any = table.clone(state)
+		s.upgrades = ups
+		entries("World view upgrades", WorldShopLogic.view("UpgradeShop", s, actions, features, Config).entries)
 	end
 	return out
 end
@@ -1295,7 +1458,6 @@ function LayoutAssert.clusterChecks(check: Checker)
 			{
 				{ "Nav", screen.nav },
 				{ "Carry", screen.carry },
-				{ "Settings", screen.settings },
 				{ "Banners", screen.banners },
 			}
 		do
@@ -1354,7 +1516,6 @@ function LayoutAssert.hotbarChecks(check: Checker)
 			{ "Nav", screen.nav },
 			{ "Money", screen.money.rect },
 			{ "Status", screen.status.rect },
-			{ "Settings", screen.settings },
 			{ "Banners", screen.banners },
 			zones[1],
 			zones[2],
@@ -1474,29 +1635,6 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 		check.fail(`Carry {fmt(screen.carry)} reaches into the bottom inset (floor {floor})`)
 	end
 	check.noOverlap("Carry", screen.carry, "Nav", screen.nav)
-
-	-- The Settings gear sits where a menu's X would: tappable, clear of everything idle,
-	-- and out of the bottom-right thumb zone (Roblox's jump button: the bottom TOUCH_CONTROLS_HEIGHT strip
-	-- plus a 120 px square above it).
-	check.onScreen("Settings", screen.settings, m)
-	check.touch("Settings", screen.settings)
-	local thumbSide = 120
-	local thumbTop = screen.height - Layout.TOUCH_CONTROLS_HEIGHT - thumbSide
-	check.noOverlap(
-		"Settings",
-		screen.settings,
-		"JumpZone",
-		Layout.rect(screen.width - thumbSide, thumbTop, thumbSide, screen.height - thumbTop)
-	)
-	for _, other in
-		{
-			{ "Nav", screen.nav },
-			{ "Carry", screen.carry },
-			{ "Banners", screen.banners },
-		}
-	do
-		check.noOverlap("Settings", screen.settings, other[1] :: string, other[2] :: Rect)
-	end
 
 	-- Overlays.
 	check.onScreen("Daily", screen.daily, m)
