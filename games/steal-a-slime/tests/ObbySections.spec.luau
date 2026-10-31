@@ -91,15 +91,16 @@ describe("ObbyCheck models", function()
 		return part({ x1 - x0, 1, Kit.WIDTH }, { (x0 + x1) / 2, -0.5, 0 }, extra)
 	end
 
-	it("a walker holding forward crosses a plain bridge, a 3-stud hole and a slow belt", function()
+	it("a walker holding forward crosses a plain bridge, a 4-stud hole and a slow belt", function()
 		expect(ObbyCheck.walkStop(section({ floor(0, 40) }, 40), 0, 0)).toBeNil()
 		expect(ObbyCheck.walkStop(section({ floor(0, 18), floor(21, 40) }, 40), 0, 0)).toBeNil()
+		expect(ObbyCheck.walkStop(section({ floor(0, 18), floor(22, 40) }, 40), 0, 0)).toBeNil()
 		expect(ObbyCheck.walkStop(section({ floor(0, 40, { conveyor = { 0, 0, 3 } }) }, 40), 0, 0)).toBeNil()
 		expect(ObbyCheck.straightWalk(section({ floor(0, 40) }, 40)) ~= nil).toBe(true)
 	end)
 
-	it("a 4-stud hole, a wall, a hazard or a fast side belt stops the walker", function()
-		expect(ObbyCheck.walkStop(section({ floor(0, 18), floor(22, 40) }, 40), 0, 0) ~= nil).toBe(true)
+	it("a 5-stud hole, a wall, a hazard or a fast side belt stops the walker", function()
+		expect(ObbyCheck.walkStop(section({ floor(0, 18), floor(23, 40) }, 40), 0, 0) ~= nil).toBe(true)
 		local wall = part({ 1, 9, Kit.WIDTH }, { 20, 4.5, 0 }, { step = false })
 		expect(ObbyCheck.walkStop(section({ floor(0, 40), wall }, 40), 0, 0) ~= nil).toBe(true)
 		local goo = Kit.hazard({ 4, 4, Kit.WIDTH }, { 20, 2, 0 })
@@ -116,6 +117,123 @@ describe("ObbyCheck models", function()
 		)
 		local s = section({ floor(0, 10), pad, floor(21, 40) }, 40)
 		expect(ObbyCheck.walkStop(s, 0, 0)).toBeNil()
+	end)
+
+	-- The ways a Studio walk bot (default character, WalkSpeed 16, JumpPower 50) cleared sections the old model
+	-- called safe, each as a small hand-made section (contract §9).
+	local function floorAt(x0: number, x1: number, top: number, extra: { [string]: any }?): Kit.Part
+		return part({ x1 - x0, 1, Kit.WIDTH }, { (x0 + x1) / 2, top - 0.5, 0 }, extra)
+	end
+
+	it(
+		"walk bot: a slide keeps and adds speed, so its end carries the walker over a gap walking can't cross",
+		function()
+			local function slope(extra: { [string]: any }): Kit.Section
+				local ice = Kit.ramp(6, 0, 30, -4, 0, Kit.WIDTH, "ice", extra)
+				return section({ floor(0, 6), ice, floorAt(38, 60, -7) }, 60, -7)
+			end
+			expect(ObbyCheck.walkStop(slope({ step = true, slide = { pull = 40, cap = 30 } }), 0, 0)).toBeNil()
+			expect(ObbyCheck.walkStop(slope({ step = true }), 0, 0) ~= nil).toBe(true)
+		end
+	)
+
+	it("walk bot: walking off the last floor drops onto the connector past the end", function()
+		-- the section's own last step is off to the side; the course's lane-wide connector sits at `rise`
+		local ledge = part({ 4, 1, 4 }, { 38, -8.5, 10 })
+		local s = section({ floor(0, 36), ledge }, 40, -8)
+		expect(ObbyCheck.walkStop(s, 0, 0)).toBeNil()
+		expect(ObbyCheck.straightWalk(s) ~= nil).toBe(true)
+	end)
+
+	it("walk bot: a collapsing bridge with 4-stud holes is outrun; pieces that drop in time stop it", function()
+		local function bridge(late: number): Kit.Section
+			local parts = { floor(0, 8, { trigger = "go" }) }
+			for i = 0, 5 do
+				local x0 = 12 + i * 8
+				local at = (x0 + 4) / Kit.WALK + late
+				table.insert(
+					parts,
+					part({ 4, 1, 10 }, { x0 + 2, -0.5, 0 }, { start = "go", motion = { kind = "drop", at = at } })
+				)
+			end
+			table.insert(parts, floor(60, 66))
+			return section(parts, 66)
+		end
+		expect(ObbyCheck.walkStop(bridge(0.5), 0, 0)).toBeNil()
+		expect(ObbyCheck.walkStop(bridge(-0.3), 0, 0) ~= nil).toBe(true)
+	end)
+
+	it("walk bot: a blinking hazard wall lets a straight walker through at some start time", function()
+		local blink = Kit.hazard({ 1, 6, Kit.WIDTH }, { 20, 3, 0 }, {
+			motion = { kind = "flip", period = 4, duty = 0.93 },
+		})
+		local s = section({ floor(0, 40), blink }, 40)
+		local cleared = 0
+		for k = 0, ObbyCheck.WALK_STARTS - 1 do
+			if ObbyCheck.walkStop(s, 0, k / ObbyCheck.WALK_STARTS * 4) == nil then
+				cleared += 1
+			end
+		end
+		expect(cleared > 0 and cleared < ObbyCheck.WALK_STARTS).toBe(true)
+		expect(ObbyCheck.straightWalk(s) ~= nil).toBe(true)
+		-- a ball counts by its real sphere: one whose box would graze the head lets the walker pass under it
+		local high = Kit.hazard({ 6, 6, 6 }, { 20, 7.6, 2.6 }, { shape = "ball" })
+		expect(ObbyCheck.walkStop(section({ floor(0, 40), high }, 40), 0, 0)).toBeNil()
+		local low = Kit.hazard({ 6, 6, 6 }, { 20, 7, 2 }, { shape = "ball" })
+		expect(ObbyCheck.walkStop(section({ floor(0, 40), low }, 40), 0, 0) ~= nil).toBe(true)
+	end)
+
+	it("walk bot: a walker in the air by a sticky wall slides along it, holding forward", function()
+		local wall = part({ 20, 10, 1 }, { 18, 2, -11 }, { look = "sticky", sticky = { fall = 2 } })
+		local pit = Kit.hazard({ 20, 0.6, Kit.WIDTH }, { 18, -6, 0 })
+		local s = section({ floor(0, 8), wall, pit, floorAt(28, 40, -2) }, 40, -2)
+		expect(ObbyCheck.walkStop(s, -9.5, 0)).toBeNil()
+		expect(ObbyCheck.walkStop(s, -5, 0) ~= nil).toBe(true)
+	end)
+
+	it("masher: jumping on every landing outclimbs a slow flood up 3-stud steps a walker can't climb", function()
+		local function stairs(speed: number): Kit.Section
+			local parts = {}
+			for i = 0, 5 do
+				table.insert(parts, floorAt(i * 8, i * 8 + 8, i * 3, if i == 0 then { trigger = "goo" } else nil))
+			end
+			table.insert(
+				parts,
+				Kit.hazard({ 48, 20, Kit.WIDTH }, { 24, -11, 0 }, {
+					start = "goo",
+					motion = { kind = "rise", speed = speed, delay = 0.5, stop = 30 },
+				})
+			)
+			return section(parts, 48, 15)
+		end
+		expect(ObbyCheck.straightWalk(stairs(2))).toBeNil()
+		local why = ObbyCheck.masher(stairs(2))
+		expect(why ~= nil and string.find(why, "1 of 1 start times", 1, true) ~= nil).toBe(true)
+		expect(ObbyCheck.masher(stairs(12))).toBeNil()
+	end)
+
+	it("masher: a jump keeps a backward belt's speed, so mashing on it gets nowhere", function()
+		local belt = floor(6, 40, { look = "belt", conveyor = { -18, 0, 0 } })
+		local s = section({ floor(0, 6), belt, floor(40, 46) }, 46)
+		expect(ObbyCheck.walkStop(s, 0, 0, nil, { jump = true }) ~= nil).toBe(true)
+		local slow = floor(6, 40, { look = "belt", conveyor = { -6, 0, 0 } })
+		expect(ObbyCheck.walkStop(section({ floor(0, 6), slow, floor(40, 46) }, 46), 0, 0, nil, { jump = true })).toBeNil()
+	end)
+
+	it("masher: clearing from a share of start times over MASHER_SHARE fails, naming the line and the share", function()
+		-- a crusher that is up a quarter of the time: luck, not a strategy, until it is up most of the time
+		local function alley(duty: number): Kit.Section
+			local crusher = Kit.hazard({ 4, 6, Kit.WIDTH }, { 20, 3, 0 }, {
+				motion = { kind = "flip", period = 4, duty = duty },
+			})
+			return section({ floor(0, 40), crusher }, 40)
+		end
+		local r = ObbyCheck.masherShare(alley(0.97))
+		expect(r.share <= ObbyCheck.MASHER_SHARE).toBe(true)
+		local why = ObbyCheck.masher(alley(0.3))
+		expect(why ~= nil and string.find(why, "along z", 1, true) ~= nil and string.find(why, "%", 1, true) ~= nil).toBe(
+			true
+		)
 	end)
 
 	it("makeable: a 7-stud gap or a 4-stud rise fails, a launch pad reaches", function()

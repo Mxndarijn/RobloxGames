@@ -11,12 +11,14 @@
 	  makeable      every step of every route is reachable from an earlier one (walk / jump, launch, lift, climb,
 	                sticky wall, vine, cannon, boost jump), moving parts at their closest of SAMPLES points a period
 	  straightWalk  holding forward with no jumping never clears it, on any line across the lane, at any start time
+  masher        holding forward and jumping on every landing clears it from at most MASHER_SHARE of the start times
+                on any line (the walk model below the straightWalk header, matched to a Studio walk bot)
 	  fairness      the runner (16 studs / s, 0.15 s per jump, can wait only where no hazard ever reaches) finds every
 	                stretch of hazards open for WINDOW[tier] s; floods and collapses leave SPARE s (timers)
 	  fall          the fall height never resets a runner above a platform they could land on
 	  challenge     no section is just walking: at least one hazard, motion or trigger
 
-	The models are deliberately simple (a point walker, straight-line runner, boxes for every shape). Where they are
+	The models are deliberately simple (a box walker, straight-line runner, boxes for most shapes). Where they are
 	too rough for an idea (rides that carry you under hazards, mazes), add an idea spec instead of loosening these.
 ]]
 
@@ -1065,14 +1067,65 @@ function ObbyCheck.makeable(section: Section): string?
 end
 
 ---------------------------------------------------------------------------
--- straightWalk: hold forward, never jump
+-- straightWalk and masher: hold forward on one line (never jump / jump on every landing)
 ---------------------------------------------------------------------------
 
+--[[
+	The walk model, tuned to what a Studio walk bot did (default character, WalkSpeed 16, JumpPower 50):
+
+	  * The character stands while its floor sensor (FEET ahead / behind, FEET_SIDE across) is over a floor; anything
+	    up to STEP_UP (its hip height) above its feet is walked onto, or stumbled onto when it comes down by it: a
+	    4-stud hole between floors at the same height is walked over. Walking off a ledge is a real fall (Kit.GRAVITY, still
+	    WALK forward), so a walker drops onto a lower floor across a hole when the drop allows it.
+	  * Past the section's end there is always a lane-wide floor at `rise` (the course's connector or the finish):
+	    landing on it, from any height, clears the section.
+	  * A wall stops the walker's forward speed but not the walker: it keeps pressing on (a moving wall, a gate or
+	    a ride can still let it on). It only gives up when it has not moved forward for a period plus 2 s, or at once
+	    when the wall and its floor never change.
+	  * Slide parts run the ObbyMoves slide controller: the walker keeps its speed, the slope pulls `slide.pull`
+	    downhill, holding forward adds STEER, capped at `slide.cap`; off the end the speed carries in the air
+	    (GLIDE_MAX s) until it lands on another floor.
+	  * Moving floors, belts, boosts, pads (with their throw), lifts and gusts carry it; a hazard it touches (the
+	    character's TORSO box, HEAD high; a ball by its real sphere) resets it; melting tiles go `delay` s after it
+	    lands (or leaves), spread to their `next` tiles and come back after `away` s; drops go at their `at`.
+	  * Leaving a floor (walking off, a jump, a pad) keeps the floor's own speed (a belt, a ride) in the air.
+	  * In the air by a sticky wall's side face it holds on (ObbyMoves): no speed into the face, the fall held at
+	    `sticky.fall`, walking along the face goes on.
+	  * The masher is the same walker that jumps (JUMP_POWER up) every time it is on a floor and, holding jump, is
+	    thrown off a sticky wall STICK_GRACE s after it sticks; its head stops at a roof.
+
+	Part positions come from Kit.offsetAt on a fixed tick grid (WALK_DT), cached per part and clock tick, so the many
+	lines and start times share them.
+]]
+
 local WALK_DT = 1 / 30
-local STEP_UP = 1 -- a ledge up to this high is walked (or, falling, stumbled) up
-local FEET = 1 -- studs past a floor's edge the walker still stands: half the root part's width
+ObbyCheck.STEP_UP = 2 -- hip height: a ledge up to this far over the feet is walked or stumbled onto
+ObbyCheck.FEET = 1 -- studs past a floor's edge (ahead or behind) the walker still stands: its floor sensor
+ObbyCheck.FEET_SIDE = 0.5 -- and to the side (the sensor sits under the root, not at its edges)
+ObbyCheck.FRONT = 1 -- studs ahead of its middle where a wall stops it
+ObbyCheck.TORSO = table.freeze({ 0.5, 1 }) -- half the character's depth (along its walk) and width a hazard must touch
 ObbyCheck.WALK_LINES = 1 -- studs between the lines across the lane a walker tries
-ObbyCheck.WALK_STARTS = 12 -- start times a walker tries over the longest period
+ObbyCheck.WALK_STARTS = 48 -- start times a walker tries over the longest period
+ObbyCheck.MASHER_SHARE = 0.2 -- the masher may clear a section from at most this share of start times on any line
+ObbyCheck.MELT_DELAY = 0.7 -- ObbyFx's melt defaults
+ObbyCheck.MELT_AWAY = 2.5
+ObbyCheck.STEER = 16 -- ObbyMoves.STEER_ACCEL: what holding forward adds on a slide (studs / s²)
+ObbyCheck.FLAT_SLOPE = math.cos(math.rad(2)) -- ObbyMoves: a floor flatter than this has no downhill pull
+ObbyCheck.GLIDE_MAX = 3 -- ObbyMoves: seconds a slide's speed carries in the air
+ObbyCheck.END_FLOOR = 12 -- studs of lane-wide floor at `rise` past the section's end
+ObbyCheck.ROOT_UP = 3 -- the root's middle over the feet (hip height 2 + half the root)
+ObbyCheck.STICK_REACH = 1.2 -- ObbyMoves' sticky wall: studs from the root's side to the face that grip,
+ObbyCheck.STICK_GRACE = 0.2 -- seconds after sticking before a (held) jump counts,
+ObbyCheck.THROW_AWAY = 30 -- and the throw off: away from the face,
+ObbyCheck.THROW_UP = 45 -- up,
+ObbyCheck.RESTICK = 0.3 -- seconds before any wall grips again,
+ObbyCheck.SAME_WALL = 0.6 -- and before the same wall does
+ObbyCheck.JUMP_POWER = 50 -- the masher's take-off: the root rises 50² / 2g = 6.4 studs (ledges to 8.3)
+
+local STEP_UP = ObbyCheck.STEP_UP
+local FEET, FEET_SIDE = ObbyCheck.FEET, ObbyCheck.FEET_SIDE
+local FRONT = ObbyCheck.FRONT
+local TORSO_X, TORSO_Z = ObbyCheck.TORSO[1], ObbyCheck.TORSO[2]
 
 -- Parts by x bucket, so a walker only looks at what is near it.
 local BUCKET = 4
@@ -1093,253 +1146,732 @@ local function bucketsOf(bodies: { Body }): { [number]: { Body } }
 	return out
 end
 
---[[
-	A walker holding forward along the line z = `z0` from the first step, starting at time `t0`: it stands while any
-	of its 2-stud width is over a floor, walks (and, falling, stumbles) up ledges up to STEP_UP, so a hole under about
-	3.6 studs is walked over and a longer one drops it under the far edge. It rides moving floors, belts, boosts,
-	launch pads, lifts and gusts it meets, starts triggers and picks up keys. Returns nil when it reaches the end of
-	the section (bad: the section can be cleared without a jump), else what stopped it.
-]]
-function ObbyCheck.walkStop(section: Section, z0: number, t0: number, prepared: { [string]: any }?): string?
-	local bodies = if prepared then prepared.bodies else bodiesOf(section)
-	local buckets = if prepared then prepared.buckets else bucketsOf(bodies)
-	local first: Body? = nil
-	for _, b in bodies do
-		if b.part.step then
-			first = b
-			break
+-- A part whose pose never depends on the clock (player-driven motions and pads, columns and gusts without a duty).
+local function constantBody(b: Body): boolean
+	local m = b.part.motion
+	if not m then
+		return true
+	end
+	local kind = m.kind
+	if kind == "melt" or kind == "sink" then
+		return true
+	end
+	return (kind == "bounce" or kind == "lift" or kind == "gust") and m.duty == nil
+end
+
+type Geom = {
+	x0: number,
+	x1: number,
+	y0: number,
+	y1: number,
+	z0: number,
+	z1: number,
+	nx: number,
+	ny: number,
+	nz: number,
+	tx: number,
+	ty: number,
+	tz: number,
+}
+
+-- Everything the walkers of one section share: bodies, buckets and per-part caches.
+type Walk = {
+	section: Section,
+	bodies: { Body },
+	buckets: { [number]: { Body } },
+	first: Body?,
+	finish: Body,
+	lowest: number,
+	period: number,
+	constant: { [Body]: boolean },
+	touchy: { [Body]: boolean },
+	rest: { [Body]: { any } },
+	cache: { [Body]: { [number]: { any } } },
+	cs: { [Body]: { number } },
+	geom: { [Body]: Geom },
+	aabb: { [Body]: { number } },
+	downhill: { [Body]: { number } },
+}
+
+local function prepareWalk(section: Section): Walk
+	local bodies = bodiesOf(section)
+	-- The course's connector (or the finish) past the end, as wide as the lane.
+	local L = ObbyCheck.END_FLOOR
+	local finishPart: Part = {
+		size = { L, 1, Kit.WIDTH },
+		pos = { section.length + L / 2, section.rise - 0.5, 0 },
+		look = "jelly",
+	}
+	local finish = bodiesOf({ length = section.length, rise = section.rise, parts = { finishPart } })[1]
+	finish.index = 0
+	local all = table.clone(bodies)
+	table.insert(all, finish)
+	local w: Walk = {
+		section = section,
+		bodies = bodies,
+		buckets = bucketsOf(all),
+		first = nil,
+		finish = finish,
+		lowest = math.huge,
+		period = 0,
+		constant = {},
+		touchy = {},
+		rest = {},
+		cache = {},
+		cs = {},
+		geom = {},
+		aabb = {},
+		downhill = {},
+	}
+	for _, b in all do
+		local p = b.part
+		local m = p.motion
+		if p.step then
+			w.first = w.first or b
+			w.lowest = math.min(w.lowest, topOf(b, 0))
+		end
+		local constant = constantBody(b)
+		w.constant[b] = constant
+		w.rest[b] = { Kit.offsetAt(p, nil) }
+		w.cache[b] = {}
+		local a = math.rad(p.yaw or 0)
+		w.cs[b] = { math.cos(a), math.sin(a) }
+		if b.tilted then
+			local x0, x1, y0, y1, z0, z1 = Kit.bounds(p)
+			local n = Kit.rotate({ 0, 1, 0 }, p.yaw, p.pitch, p.roll)
+			local u = Kit.rotate({ 0, b.hy, 0 }, p.yaw, p.pitch, p.roll)
+			w.geom[b] = {
+				x0 = x0,
+				x1 = x1,
+				y0 = y0,
+				y1 = y1,
+				z0 = z0,
+				z1 = z1,
+				nx = n[1],
+				ny = n[2],
+				nz = n[3],
+				tx = b.cx + u[1],
+				ty = b.cy + u[2],
+				tz = b.cz + u[3],
+			}
+		end
+		if p.sticky then
+			w.aabb[b] = { Kit.bounds(p) }
+		end
+		if p.slide then
+			local n = Kit.rotate({ 0, 1, 0 }, p.yaw, p.pitch, p.roll)
+			local dx, dz = 0, 0
+			if n[2] < ObbyCheck.FLAT_SLOPE then
+				-- gravity along the surface, flattened: the way a ball would roll (ObbyMoves)
+				dx, dz = n[1] * n[2], n[3] * n[2]
+				local len = math.sqrt(dx * dx + dz * dz)
+				if len > 1e-6 then
+					dx, dz = dx / len, dz / len
+				end
+			end
+			w.downhill[b] = { dx, dz }
+		end
+		w.touchy[b] = p.trigger ~= nil
+			or p.key ~= nil
+			or p.vine ~= nil
+			or p.cannon ~= nil
+			or p.zone ~= nil
+			or (m ~= nil and (m.kind == "lift" or m.kind == "gust"))
+		-- The longest cycle a walker's start time matters for (one-shot clocks have none).
+		local cyclic = not constant and not p.start
+		if p.start and m and (m.period or p.beat) and m.kind ~= "drop" and m.kind ~= "rise" then
+			cyclic = true
+		end
+		if cyclic or (p.conveyor and m and m.kind == "turn") then
+			w.period = math.max(w.period, b.period)
 		end
 	end
+	return w
+end
+
+-- A part's pose at clock tick `clock` (nil: at rest): dx, dy, dz, dyaw, scale, on.
+local function poseAt(w: Walk, b: Body, clock: number?): { any }
+	if clock == nil or w.constant[b] then
+		return w.rest[b]
+	end
+	local cache = w.cache[b]
+	local s = cache[clock]
+	if s == nil then
+		s = { Kit.offsetAt(b.part, clock * WALK_DT) }
+		cache[clock] = s
+	end
+	return s
+end
+
+-- True when the walker's box (half tolx along x, tolz across) at (x, z) overlaps a part's footprint.
+local function coversAt(
+	w: Walk,
+	b: Body,
+	x: number,
+	z: number,
+	tolx: number,
+	tolz: number,
+	dx: number,
+	dz: number,
+	dyaw: number,
+	scale: number
+): boolean
+	local shape = b.part.shape
+	local px, pz = x - b.cx - dx, z - b.cz - dz
+	if shape == "disc" or shape == "ball" then
+		local r = b.hx * scale + math.max(tolx, tolz)
+		return px * px + pz * pz <= r * r
+	end
+	local g = w.geom[b]
+	if g then
+		return x >= g.x0 + dx - tolx and x <= g.x1 + dx + tolx and z >= g.z0 + dz - tolz and z <= g.z1 + dz + tolz
+	end
+	local c, s
+	if dyaw == 0 then
+		local cs = w.cs[b]
+		c, s = cs[1], cs[2]
+	else
+		local a = math.rad((b.part.yaw or 0) + dyaw)
+		c, s = math.cos(a), math.sin(a)
+	end
+	local lx, lz = px * c - pz * s, px * s + pz * c
+	local ac, as = math.abs(c), math.abs(s)
+	return math.abs(lx) <= b.hx * scale + ac * tolx + as * tolz and math.abs(lz) <= b.hz * scale + as * tolx + ac * tolz
+end
+
+local function topW(w: Walk, b: Body, x: number, z: number, dy: number): number
+	local g = w.geom[b]
+	if not g then
+		return b.cy + b.hy + dy
+	end
+	if math.abs(g.ny) < 0.05 then
+		return g.y1 + dy
+	end
+	x, z = math.clamp(x, g.x0, g.x1), math.clamp(z, g.z0, g.z1)
+	return g.ty - (g.nx * (x - g.tx) + g.nz * (z - g.tz)) / g.ny + dy
+end
+
+local function bottomW(w: Walk, b: Body, dy: number): number
+	local g = w.geom[b]
+	return if g then g.y0 + dy else b.cy - b.hy + dy
+end
+
+local function highW(w: Walk, b: Body, dy: number): number
+	local g = w.geom[b]
+	return if g then g.y1 + dy else b.cy + b.hy + dy
+end
+
+-- Does a hazard in this pose touch the walker standing at (x, y, z)?
+local function touchesHazard(w: Walk, b: Body, x: number, y: number, z: number, pose: { any }): boolean
+	local dx, dy, dz, dyaw, scale = pose[1], pose[2], pose[3], pose[4], pose[5]
+	if b.part.shape == "ball" then
+		local r = b.hx * scale
+		local cx, cy, cz = b.cx + dx, b.cy + dy, b.cz + dz
+		local qx = math.clamp(cx, x - TORSO_X, x + TORSO_X) - cx
+		local qy = math.clamp(cy, y, y + Kit.HEAD) - cy
+		local qz = math.clamp(cz, z - TORSO_Z, z + TORSO_Z) - cz
+		return qx * qx + qy * qy + qz * qz <= r * r
+	end
+	if not coversAt(w, b, x, z, TORSO_X, TORSO_Z, dx, dz, dyaw, scale) then
+		return false
+	end
+	return highW(w, b, dy) > y and bottomW(w, b, dy) < y + Kit.HEAD
+end
+
+export type WalkOptions = { jump: boolean? }
+
+--[[
+	One walker holding forward along the line z = `z0` from the first step, starting at time `t0` (see the model
+	above); with `options.jump` it is the masher. Returns nil when it reaches the floor past the end (the section is
+	cleared that way), else what stopped it.
+]]
+function ObbyCheck.walkStop(
+	section: Section,
+	z0: number,
+	t0: number,
+	prepared: { [string]: any }?,
+	options: WalkOptions?
+): string?
+	local w: Walk = if prepared then prepared :: any else prepareWalk(section)
+	local jump = options ~= nil and options.jump == true
+	local first = w.first
 	if not first then
 		return "no steps"
 	end
-	local fx0 = Kit.bounds(first.part)
-	local x, z = fx0 + 0.5, z0
-	if not covers(first, x, z, 0, 0, 0, 0, 1) then
+	local x, z = Kit.bounds(first.part) + 0.5, z0
+	if not coversAt(w, first, x, z, 0, 0, 0, 0, 0, 1) then
 		return "the line misses the first step"
 	end
-	local y = topAt(first, x, z, 0)
+	local length, rise = section.length, section.rise
+	local y = topW(w, first, x, z, 0)
 	local vy, airborne = 0, false
-	local ex, ez = 0, 0 -- sideways / forward speed from a throw or a gust (kept while in the air)
-	local speed, boostEnd = Kit.WALK, -math.huge
-	local started: { [string]: number } = {}
+	local ex, ez = 0, 0 -- a pad's throw, kept while in the air
+	local vx, vz = Kit.WALK, 0 -- the horizontal speed last tick
+	local speed, boostEnd = Kit.WALK, math.huge
+	local boosted = false
+	local drive: string? = nil -- "slide" on a slide part, "glide" in the air off one
+	local hvx, hvz, cap, driveSince = 0, 0, 0, 0
+	local started: { [string]: number } = {} -- trigger group -> tick
 	local keys: { [string]: number } = {}
 	local took: { [Body]: boolean } = {}
-	local melted: { [Body]: number } = {} -- melt start time
+	local melted: { [Body]: number } = {} -- tick a tile starts melting (may lie ahead: a spread)
+	local spreadDone: { [Body]: boolean } = {}
+	local stood: { [Body]: boolean } = {}
 	local was: Body? = nil
-	local t = t0
-	local limit = t0 + section.length / Kit.WALK * 3 + 10
-	local lowest = math.huge
-	for _, b in bodies do
-		if b.part.step then
-			lowest = math.min(lowest, topOf(b, 0))
-		end
-	end
-
-	-- Is `b` there and solid now (on, gate shut, not melted away)? With its offsets.
-	local function solidNow(b: Body, now: number): (boolean, number, number, number, number, number)
-		local dx, dy, dz, dyaw, scale, on = Kit.offsetAt(b.part, clockOf(b, now, started))
-		local here = on and b.solid
-		local gate = b.part.gate
-		if here and gate and (keys[gate.group] or 0) >= gate.need then
-			here = false
-		end
-		local m = b.part.motion
-		local since = melted[b]
-		if here and m and m.kind == "melt" and since then
-			local gone = now - since >= (m.delay or 0)
-			local back = (m.away or -1) >= 0 and now - since >= (m.delay or 0) + (m.away or 0)
-			here = not gone or back
-		end
-		return here, dx, dy, dz, dyaw, scale
-	end
+	local lastFx, lastFz = 0, 0 -- the floor's own speed last tick
+	local stuck: Body? = nil -- the sticky wall it holds on to
+	local stuckSince, stickNx, stickNz = 0, 0, 0
+	local freeAt, lastWall: Body?, lastUntil = 0, nil, 0
+	local k = math.floor(t0 / WALK_DT + 0.5)
+	local kLimit = k + math.ceil((length / Kit.WALK * 3 + 10) / WALK_DT)
+	local bestX, bestK = x, k
+	local stall = math.ceil((w.period + 2) / WALK_DT)
+	local empty: { Body } = {}
 
 	local function at(): number
 		return math.floor(x * 10) / 10
 	end
 
-	while t < limit do
-		local near = buckets[math.floor(x / BUCKET)] or {}
-		local grav = 1
-		-- What is under and in front of the walker now.
-		local support: Body? = nil
-		local supportTop = -math.huge
-		local supportD = { 0, 0, 0 }
-		for _, b in near do
-			local here, dx, dy, dz, dyaw, scale = solidNow(b, t)
-			local over = y + STEP_UP
-			if here and b.floor and covers(b, x, z, FEET, dx, dz, dyaw, scale) then
-				local top = topAt(b, x, z, dy)
-				if b.part.motion and b.part.motion.kind == "sink" and was == b then
-					top -= math.abs(b.part.motion.depth or 0)
-				end
-				if top <= over and top > supportTop then
-					supportTop, support, supportD = top, b, { dx, dy, dz }
-				end
-			end
-			if here and covers(b, x + ObbyCheck.BODY, z, 0.2, dx, dz, dyaw, scale) then
-				local top, bottom = topAt(b, x + ObbyCheck.BODY, z, dy), bottomOf(b, dy)
-				if top > over and bottom < y + Kit.HEAD then
-					return `blocked by part {b.index} ({b.part.look}) at x {at()}`
-				end
-			end
-			if b.part.hazard then
-				local _, _, _, _, _, on = Kit.offsetAt(b.part, clockOf(b, t, started))
-				if on and covers(b, x, z, ObbyCheck.BODY, dx, dz, dyaw, scale) then
-					if topOf(b, dy) > y and bottomOf(b, dy) < y + Kit.HEAD then
-						return `hits hazard part {b.index} at x {at()}`
+	local function tickOf(b: Body): number?
+		local g = b.part.start
+		if g == nil then
+			return k
+		end
+		local s = started[g]
+		return if s then k - s else nil
+	end
+
+	-- Is a melting tile there now? Starts its spread when it goes, comes back after `away`.
+	local function meltSolid(b: Body, m: Kit.Motion): boolean
+		local since = melted[b]
+		if since == nil then
+			return true
+		end
+		local el = (k - since) * WALK_DT
+		local delay = m.delay or ObbyCheck.MELT_DELAY
+		local away = m.away or ObbyCheck.MELT_AWAY
+		if el < delay then
+			return true
+		elseif away < 0 or el < delay + away then
+			if not spreadDone[b] then
+				spreadDone[b] = true
+				for _, n in m.next or {} do
+					local nb = if type(n) == "number" then w.bodies[n] else nil
+					if nb and melted[nb] == nil then
+						melted[nb] = k + math.floor((m.spread or 0) / WALK_DT + 0.5)
 					end
 				end
 			end
-			local touch = covers(b, x, z, 0.5, 0, 0, 0, 1) and y >= bottomOf(b, 0) - 0.5 and y <= topOf(b, 0) + Kit.HEAD
-			if touch then
-				if b.part.trigger and started[b.part.trigger] == nil then
-					started[b.part.trigger] = t
+			return false
+		end
+		melted[b], spreadDone[b], stood[b] = nil, nil, nil
+		return true
+	end
+
+	while k < kLimit do
+		local near = w.buckets[math.floor(x / BUCKET)] or empty
+		local grav = 1
+		local support: Body? = nil
+		local supportTop = -math.huge
+		local supportPose: { any }? = nil
+		local blocker: Body? = nil
+		local blockTop = 0
+		local roof = math.huge
+		local gustX, gustZ = 0, 0
+		local stickB: Body? = nil
+		local stickD = math.huge
+		for _, b in near do
+			local part = b.part
+			local clock = tickOf(b)
+			local pose = poseAt(w, b, clock)
+			local dx, dy, dz, dyaw, scale, on = pose[1], pose[2], pose[3], pose[4], pose[5], pose[6]
+			local here = on and b.solid
+			local m = part.motion
+			if here then
+				local gate = part.gate
+				if gate and (keys[gate.group] or 0) >= gate.need then
+					here = false
+				elseif m and m.kind == "melt" then
+					here = meltSolid(b, m)
 				end
-				if b.part.key and not took[b] then
-					took[b] = true
-					keys[b.part.key] = (keys[b.part.key] or 0) + 1
+			end
+			if here then
+				if b.floor and coversAt(w, b, x, z, FEET, FEET_SIDE, dx, dz, dyaw, scale) then
+					local top = topW(w, b, x, z, dy)
+					if m and m.kind == "sink" and was == b then
+						top -= math.abs(m.depth or 0)
+					end
+					if top <= y + STEP_UP and top > supportTop then
+						supportTop, support, supportPose = top, b, pose
+					end
 				end
-				if b.part.vine or b.part.cannon then
-					return `caught by a {if b.part.vine then "rope" else "cannon"} at x {at()}`
+				if coversAt(w, b, x + FRONT, z, 0.2, 0.2, dx, dz, dyaw, scale) then
+					local top, bottom = topW(w, b, x + FRONT, z, dy), bottomW(w, b, dy)
+					if top > y + STEP_UP and bottom < y + Kit.HEAD then
+						blocker, blockTop = b, top
+					end
 				end
-				local zone = b.part.zone
-				if zone and zone.kind == "moon" then
-					grav = zone.gravity or 1
+				if airborne and vy > 0 and coversAt(w, b, x, z, TORSO_X, TORSO_Z, dx, dz, dyaw, scale) then
+					local bottom = bottomW(w, b, dy)
+					if bottom >= y + Kit.HEAD - 0.05 and bottom < roof then
+						roof = bottom
+					end
 				end
-				local m = b.part.motion
-				if m and (m.kind == "lift" or m.kind == "gust") then
-					local _, _, _, _, _, on = Kit.offsetAt(b.part, clockOf(b, t, started))
-					if on and m.kind == "lift" and y < topOf(b, 0) then
+				if airborne and part.sticky and k >= freeAt and not (b == lastWall and k < lastUntil) then
+					-- in the air by a sticky wall's side face (ObbyMoves: root within STICK_REACH of it)
+					local box = w.aabb[b]
+					local rx, ry, rz = x - dx, y + ObbyCheck.ROOT_UP - dy, z - dz
+					local qx = rx - math.clamp(rx, box[1], box[2])
+					local qy = ry - math.clamp(ry, box[3], box[4])
+					local qz = rz - math.clamp(rz, box[5], box[6])
+					local d = math.sqrt(qx * qx + qy * qy + qz * qz)
+					local ax, ay, az = math.abs(qx), math.abs(qy), math.abs(qz)
+					if d > 1e-4 and d <= TORSO_Z + ObbyCheck.STICK_REACH and d < stickD and math.max(ax, az) >= ay then
+						stickD, stickB = d, b
+						if ax >= az then
+							stickNx, stickNz = math.sign(qx), 0
+						else
+							stickNx, stickNz = 0, math.sign(qz)
+						end
+					end
+				end
+			end
+			if part.hazard and on and touchesHazard(w, b, x, y, z, pose) then
+				return `hits hazard part {b.index} at x {at()}`
+			end
+			if w.touchy[b] then
+				local touch = covers(b, x, z, 0.5, 0, 0, 0, 1)
+					and y >= bottomW(w, b, 0) - 0.5
+					and y <= highW(w, b, 0) + Kit.HEAD
+				if touch then
+					if part.trigger and started[part.trigger] == nil then
+						started[part.trigger] = k
+					end
+					if part.key and not took[b] then
+						took[b] = true
+						keys[part.key] = (keys[part.key] or 0) + 1
+					end
+					if part.vine or part.cannon then
+						return `caught by a {if part.vine then "rope" else "cannon"} at x {at()}`
+					end
+					local zone = part.zone
+					if zone and zone.kind == "moon" then
+						grav = zone.gravity or 1
+					end
+					if m and on and m.kind == "lift" and y < highW(w, b, 0) then
 						airborne = true
-						local cap = m.cap
-						vy = if cap and y >= bottomOf(b, 0) + cap then 0 else (m.power or 0)
-					elseif on and m.kind == "gust" then
+						local liftCap = m.cap
+						vy = if liftCap and y >= bottomW(w, b, 0) + liftCap then 0 else (m.power or 0)
+					elseif m and on and m.kind == "gust" then
 						local p = m.power or 0
-						if m.axis == "x" then
-							ex = p
-						elseif m.axis == "z" then
-							ez = p
+						if m.axis == "z" then
+							gustZ = p
+						else
+							gustX = p
 						end
 					end
 				end
 			end
 		end
 
-		-- Stand, step down, or fall.
+		-- Holding on to a sticky wall: the controller holds the fall at `sticky.fall`.
+		if stickB ~= stuck then
+			stuck, stuckSince = stickB, k
+			if stickB then
+				drive = nil
+			end
+		end
+
+		-- Stand, step down, fall or fly.
 		local standing = false
+		local g = Kit.GRAVITY * grav
 		if airborne then
 			-- exact for a constant pull over the tick
-			local g = Kit.GRAVITY * grav
 			local ny = y + vy * WALK_DT - g * WALK_DT * WALK_DT / 2
+			local nvy = vy - g * WALK_DT
+			local holding = stuck
+			if holding then
+				local fall = math.abs((holding.part.sticky :: any).fall or 0)
+				ny, nvy = y - fall * WALK_DT, -fall
+			end
+			if nvy > 0 and ny + Kit.HEAD > roof then
+				ny, nvy = roof - Kit.HEAD, 0
+			end
 			if support and vy <= 0 and supportTop >= ny - 0.05 then
-				-- landed, or stumbled up onto a ledge just over its feet
+				-- landed, or stumbled up onto a ledge by its feet
 				y, vy, airborne = supportTop, 0, false
 				ex, ez = 0, 0
 				standing = true
 			else
-				vy -= g * WALK_DT
-				y = ny
+				y, vy = ny, nvy
 			end
 		elseif support and supportTop >= y - 0.6 then
 			y = supportTop
 			standing = true
 		else
-			-- walked off: it starts falling this tick
+			-- walked off: it starts falling this tick, with the floor's speed
 			airborne = true
-			local g = Kit.GRAVITY * grav
+			ex, ez = lastFx, lastFz
 			y += -g * WALK_DT * WALK_DT / 2
 			vy = -g * WALK_DT
 		end
 
-		-- What the floor under you does.
+		-- What the floor under it does.
 		local onPart = if standing then support else nil
 		if was and was ~= onPart then
-			local m = was.part.motion
-			if m and m.kind == "melt" and m.on == "leave" and melted[was] == nil then
-				melted[was] = t
+			if stood[was] and melted[was] == nil then
+				melted[was] = k
 			end
 			if was.part.boost then
-				boostEnd = t + (was.part.boost.carry or 0)
+				boostEnd = k + math.floor((was.part.boost.carry or 0) / WALK_DT + 0.5)
 			end
 		end
 		local fx, fz = 0, 0
+		local launched = false
 		if onPart then
-			local m = onPart.part.motion
-			if m and m.kind == "melt" and m.on ~= "leave" and melted[onPart] == nil then
-				melted[onPart] = t
+			local part = onPart.part
+			local m = part.motion
+			if m and m.kind == "melt" then
+				if m.on == "leave" then
+					stood[onPart] = true
+				elseif melted[onPart] == nil then
+					melted[onPart] = k
+				end
 			end
-			if onPart.part.boost then
-				speed = onPart.part.boost.speed
-				boostEnd = math.huge
+			if part.boost then
+				speed, boosted, boostEnd = part.boost.speed, true, math.huge
 			end
-			local belt = Kit.conveyorAt(onPart.part, clockOf(onPart, t, started))
+			local clock = tickOf(onPart)
+			local belt = Kit.conveyorAt(part, if clock then clock * WALK_DT else nil)
 			if belt then
 				fx, fz = belt[1], belt[3]
 			end
-			if onPart.moving then
-				local dx2, _, dz2 = Kit.offsetAt(onPart.part, clockOf(onPart, t + WALK_DT, started))
-				fx += (dx2 - supportD[1]) / WALK_DT
-				fz += (dz2 - supportD[3]) / WALK_DT
+			if onPart.moving and clock and supportPose then
+				local nextPose = poseAt(w, onPart, clock + 1)
+				fx += (nextPose[1] - supportPose[1]) / WALK_DT
+				fz += (nextPose[3] - supportPose[3]) / WALK_DT
 			end
-			if m and m.kind == "bounce" then
-				local _, _, _, _, _, on = Kit.offsetAt(onPart.part, clockOf(onPart, t, started))
-				if on then
-					local throw = m.throw or { 0, 0, 0 }
-					airborne = true
-					vy = (m.power or 0) + throw[2]
-					ex, ez = throw[1], throw[3]
-				end
+			if m and m.kind == "bounce" and (supportPose == nil or supportPose[6]) then
+				local throw = m.throw or { 0, 0, 0 }
+				airborne, launched = true, true
+				vy = (m.power or 0) + throw[2]
+				ex, ez = throw[1], throw[3]
+			end
+			if jump and not launched then
+				airborne, launched = true, true
+				vy = ObbyCheck.JUMP_POWER
+			end
+			if launched then
+				-- off the floor with the floor's speed (a belt, a ride), kept in the air
+				ex, ez = ex + fx, ez + fz
+				fx, fz = 0, 0
 			end
 		end
-		if t > boostEnd then
-			speed, boostEnd = Kit.WALK, -math.huge
+		lastFx, lastFz = fx, fz
+		if boosted and k > boostEnd then
+			speed, boosted, boostEnd = Kit.WALK, false, math.huge
 		end
 		was = onPart
 
-		x += (speed + ex + fx) * WALK_DT
-		z += (ez + fz) * WALK_DT
-		t += WALK_DT
-		if not airborne and x >= section.length - 0.25 and math.abs(y - section.rise) < 1.6 then
+		-- How fast it goes along the ground: walking, or the slide controller's kept speed.
+		local slide = onPart and onPart.part.slide
+		local walking = true
+		if onPart and slide then
+			if drive ~= "slide" then
+				hvx, hvz = vx, vz -- onto the ice with the speed it had
+				drive = "slide"
+			end
+			cap = slide.cap or Kit.WALK * 2
+			local d = w.downhill[onPart]
+			local pull = slide.pull or 0
+			hvx += (d[1] * pull + ObbyCheck.STEER) * WALK_DT
+			hvz += d[2] * pull * WALK_DT
+			walking = false
+		elseif drive and not standing then
+			if drive == "slide" then
+				drive, driveSince = "glide", k
+				cap = math.max(math.sqrt(hvx * hvx + hvz * hvz), Kit.WALK)
+			end
+			if (k - driveSince) * WALK_DT > ObbyCheck.GLIDE_MAX then
+				drive = nil
+			else
+				hvx += ObbyCheck.STEER * WALK_DT
+				walking = false
+			end
+		elseif standing then
+			drive = nil
+		end
+		if walking then
+			vx, vz = speed + ex + fx, ez + fz
+		else
+			local h = math.sqrt(hvx * hvx + hvz * hvz)
+			if h > cap then
+				hvx, hvz = hvx / h * cap, hvz / h * cap
+			end
+			vx, vz = hvx + fx, hvz + fz
+		end
+		-- A gust holds its speed along its axis at least.
+		if gustX > 0 then
+			vx = math.max(vx, gustX)
+		elseif gustX < 0 then
+			vx = math.min(vx, gustX)
+		end
+		if gustZ > 0 then
+			vz = math.max(vz, gustZ)
+		elseif gustZ < 0 then
+			vz = math.min(vz, gustZ)
+		end
+		local holding = stuck
+		if holding and airborne then
+			-- no speed into the wall's face; along it the walk goes on
+			local into = -(vx * stickNx + vz * stickNz)
+			if into > 0 then
+				vx, vz = vx + stickNx * into, vz + stickNz * into
+			end
+			if jump and (k - stuckSince) * WALK_DT >= ObbyCheck.STICK_GRACE then
+				-- the held jump throws it off: away from the face and up, kept in the air
+				vy = ObbyCheck.THROW_UP
+				vx, vz = stickNx * ObbyCheck.THROW_AWAY, stickNz * ObbyCheck.THROW_AWAY
+				drive, driveSince, cap = "glide", k, math.max(ObbyCheck.THROW_AWAY, Kit.WALK)
+				hvx, hvz = vx, vz
+				ex, ez = 0, 0
+				freeAt = k + math.ceil(ObbyCheck.RESTICK / WALK_DT)
+				lastWall, lastUntil = holding, k + math.ceil(ObbyCheck.SAME_WALL / WALK_DT)
+				stuck = nil
+			end
+		elseif holding then
+			stuck = nil
+		end
+		if blocker and vx > 0 then
+			vx = 0
+			hvx = math.min(hvx, 0)
+		end
+
+		x += vx * WALK_DT
+		z += vz * WALK_DT
+		k += 1
+		if standing and (onPart == w.finish or (x >= length - 0.25 and math.abs(y - rise) < 1.6)) then
 			return nil
 		end
-		if x > section.length + 2 then
-			return if y >= section.rise - 1 then nil else "falls past the end"
+		if x > length + ObbyCheck.END_FLOOR then
+			return "falls past the end"
 		end
-		if y < lowest - 20 then
+		if y < w.lowest - 20 then
 			return `falls at x {at()}`
 		end
 		if math.abs(z) > Kit.HALF + 1 then
 			return "carried off the side"
 		end
+		if x > bestX + 0.1 then
+			bestX, bestK = x, k
+		elseif blocker then
+			-- pressed against a wall: give up at once when neither the wall nor the floor can ever change
+			local b = blocker :: Body
+			local floorStill = onPart ~= nil
+				and w.constant[onPart]
+				and onPart.part.conveyor == nil
+				and not (onPart.part.motion and onPart.part.motion.kind == "bounce")
+			local wallStill = w.constant[b] and b.part.gate == nil and b.part.start == nil
+			local over = jump and blockTop <= y + ObbyCheck.JUMP_POWER ^ 2 / (2 * Kit.GRAVITY) + STEP_UP
+			if floorStill and wallStill and drive == nil and not over then
+				return `blocked by part {b.index} ({b.part.look}) at x {at()}`
+			end
+		end
+		if k - bestK > stall then
+			return `stuck at x {at()}`
+		end
 	end
 	return "stuck"
 end
 
--- nil when no straight walk clears the section; otherwise how one did (a line z and a start time).
-function ObbyCheck.straightWalk(section: Section): string?
-	local bodies = bodiesOf(section)
-	local prepared = { bodies = bodies, buckets = bucketsOf(bodies) }
-	local period = 0
-	for _, b in bodies do
-		if b.timed or b.part.start or b.part.conveyor then
-			period = math.max(period, b.period)
-		end
-	end
-	local starts = { 0 }
-	if period > 0 then
-		for k = 1, ObbyCheck.WALK_STARTS - 1 do
-			table.insert(starts, k / ObbyCheck.WALK_STARTS * period)
-		end
-	end
+-- The lines across the lane and the start ticks every walker of a section tries.
+local function walkPlan(w: Walk): ({ number }, { number })
+	local lines = {}
 	local z = -Kit.HALF + 1
 	while z <= Kit.HALF - 1 + 1e-6 do
+		table.insert(lines, z)
+		z += ObbyCheck.WALK_LINES
+	end
+	local starts, seen = {}, {}
+	local n = if w.period > 0 then ObbyCheck.WALK_STARTS else 1
+	for i = 0, n - 1 do
+		local tick = math.floor(i / n * w.period / WALK_DT + 0.5)
+		if not seen[tick] then
+			seen[tick] = true
+			table.insert(starts, tick * WALK_DT)
+		end
+	end
+	return lines, starts
+end
+
+local function seconds(t: number): number
+	return math.floor(t * 100 + 0.5) / 100
+end
+
+-- nil when no straight walk (no jump) clears the section, on any line at any start time; otherwise one that did.
+function ObbyCheck.straightWalk(section: Section): string?
+	local w = prepareWalk(section)
+	local lines, starts = walkPlan(w)
+	for _, z in lines do
 		for _, t0 in starts do
-			if ObbyCheck.walkStop(section, z, t0, prepared) == nil then
-				return `holding forward along z {z} from t {math.floor(t0 * 100) / 100} clears it`
+			if ObbyCheck.walkStop(section, z, t0, w :: any) == nil then
+				return `holding forward along z {z} from t {seconds(t0)} clears it`
 			end
 		end
-		z += ObbyCheck.WALK_LINES
+	end
+	return nil
+end
+
+export type MasherResult = { share: number, line: number?, cleared: number, starts: number, from: number? }
+
+--[[
+	The masher on every line: the share of start times it clears the section from, on the line where that share is
+	highest (lines are cut short once they pass MASHER_SHARE, except the first such line, counted in full).
+]]
+function ObbyCheck.masherShare(section: Section): MasherResult
+	local w = prepareWalk(section)
+	local lines, starts = walkPlan(w)
+	local n = #starts
+	local limit = math.floor(ObbyCheck.MASHER_SHARE * n + 1e-9)
+	local best: MasherResult = { share = 0, line = nil, cleared = 0, starts = n, from = nil }
+	local options = { jump = true }
+	for _, z in lines do
+		local cleared, from = 0, nil
+		local tried = 0
+		for i, t0 in starts do
+			local why = ObbyCheck.walkStop(section, z, t0, w :: any, options)
+			if why == "the line misses the first step" then
+				break
+			end
+			tried = i
+			if why == nil then
+				cleared += 1
+				from = from or t0
+			end
+			-- below the limit even if every start left cleared it: this line can't be the best one
+			if cleared + (n - i) <= best.cleared then
+				break
+			end
+		end
+		if tried > 0 and cleared > best.cleared then
+			best = { share = cleared / n, line = z, cleared = cleared, starts = n, from = from }
+			if cleared > limit then
+				return best
+			end
+		end
+	end
+	return best
+end
+
+-- nil when jumping on every landing (holding forward on one line) clears the section from at most MASHER_SHARE of
+-- the start times on every line; otherwise where it did.
+function ObbyCheck.masher(section: Section): string?
+	local r = ObbyCheck.masherShare(section)
+	if r.share > ObbyCheck.MASHER_SHARE + 1e-9 then
+		local pct = math.floor(r.share * 100 + 0.5)
+		return `jumping on every landing along z {r.line} clears it from {r.cleared} of {r.starts} start times ({pct} %, at most {math.floor(
+			ObbyCheck.MASHER_SHARE * 100 + 0.5
+		)} %), first from t {seconds(r.from or 0)}`
 	end
 	return nil
 end
@@ -1400,6 +1932,7 @@ local function dilate(list: { Interval }, d: number): { Interval }
 	return out
 end
 
+local RUNNER_STEP = 1 -- a ledge the fairness runner walks over without counting it as a wall
 local SLICE = 0.5 -- studs between the runner's x slices
 local START_STEP = 0.05 -- seconds between the start times tried
 local RUN_STEP = 0.05 -- seconds between the runner's samples while it crosses
@@ -1437,7 +1970,7 @@ local function slicesOf(section: Section, bodies: { Body }): { Slice }
 		for _, b in bodies do
 			if b.solid and not b.part.step and not b.moving and not b.part.motion then
 				local z0, z1 = zRangeIn(footprint(b, 0, 0, 0, 1), x - ObbyCheck.BODY, x + ObbyCheck.BODY)
-				if z0 and z1 and bottomOf(b, 0) < high + Kit.HEAD and topOf(b, 0) > low + STEP_UP then
+				if z0 and z1 and bottomOf(b, 0) < high + Kit.HEAD and topOf(b, 0) > low + RUNNER_STEP then
 					free = subtract(free, z0 - ObbyCheck.BODY, z1 + ObbyCheck.BODY)
 				end
 			end
@@ -1737,6 +2270,7 @@ function ObbyCheck.run(case: Case): { string }
 				{ "challenge", ObbyCheck.challenge },
 				{ "makeable", ObbyCheck.makeable },
 				{ "straightWalk", ObbyCheck.straightWalk },
+				{ "masher", ObbyCheck.masher },
 				{ "timers", ObbyCheck.timers },
 			}
 			for _, check in checks do
