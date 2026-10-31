@@ -89,15 +89,11 @@ describe("BounceChain", function()
 		expect(table.concat(bad, ", ")).toBe("")
 	end)
 
-	-- Over the Wall is the one where stepping onto the pad is the move: its wall is the hurdle (a throw from the
-	-- pad's far end, or a plain jump, runs into it), checked by its own test below.
-	local WALK_ON = { ["Over the Wall"] = true }
-
 	it("can't be cleared holding forward from past the opening hole", function()
 		local bad = {}
 		for _, case in ObbyCheck.cases(BounceChain) do
 			local why = ObbyCheck.straightWalk(pastTheHole(case.build(1)))
-			if why and not WALK_ON[BounceChain.variants[case.variant].name] then
+			if why then
 				table.insert(bad, `{case.name}: {why}`)
 			end
 		end

@@ -2,7 +2,7 @@
 --[[
 	Glow Memory (obby idea 10, docs/obby-variants/10.json; contract/obby-sections.md)
 
-	A grid of same-looking green tiles, a row at a time across the lane, with a 4+ stud hole between rows (too long
+	A grid of same-looking green tiles, a row at a time across the lane, with a 4.5+ stud hole between rows (too long
 	to walk over). One tile per row is safe; the others are fakes that crack and drop 0.2 s after you land
 	(`melt`, gone until you are reset). The safe path is shown for a moment, then every tile looks the same again:
 	remember it and hop it.
@@ -387,7 +387,7 @@ M.variants = {
 	variant(
 		"Map Behind You",
 		"medium",
-		{ mode = "board", rows = 7, entry = 10, melt = 1.4, sign = "Map behind you", salt = 10 }
+		{ mode = "board", rows = 7, entry = 8, melt = 1.4, sign = "Map behind you", salt = 10 }
 	),
 	-- Eight rows, a 1.5 s flash every 10 s.
 	variant("Quick Flash", "hard", {
@@ -403,13 +403,13 @@ M.variants = {
 		maxRun = 2,
 		salt = 11,
 	}),
-	-- Two 4-row grids with a rest pad; both glow once, 2.5 s, when you reach the entry pad (again after a reset).
+	-- Two 4-row grids with a rest pad and 4.5-stud holes (a 4-stud hole is walked over); both glow once, 2.5 s, when you reach the entry pad (again after a reset).
 	variant("Two Grids, One Look", "hard", {
 		mode = "once",
 		rows = 8,
 		split = 4,
-		long = 6.5,
-		gap = 4,
+		long = 6,
+		gap = 4.5,
 		entry = 5,
 		exit = 4,
 		on = 2.5,

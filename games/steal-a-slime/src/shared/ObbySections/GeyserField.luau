@@ -9,8 +9,8 @@
 	sends you back to the start pad). A one-shot vent has a see-through bubble cap (the `trigger`): touching it starts
 	the vent's own clock (`start`), the vent blows once after its fuse and then refills for the rest of its period.
 
-	Every variant opens with a 4-stud jump off the entry pad (a walker holding forward drops into it: ObbyCheck
-	.walkStop), and every climb is a rise of 7.5+ studs (over a plain jump's 7.2) or a gap of 8 at a rise of 3, so the
+	Every variant opens with a 4-stud hop off the entry pad (a walker steps over it, ObbyCheck.walkStop, so it is not
+	what stops one: the geysers are), and every climb is a rise of 7.5+ studs (over a plain jump's 7.2) or a gap of 8 at a rise of 3, so the
 	geysers are the only way up (tests/obby/GeyserField.spec takes them away and checks nothing can be made).
 
 	Timing (contract §10; tests/obby/GeyserField.spec measures each one, the shared checks only see crossings):
@@ -18,6 +18,9 @@
 	  * a one-shot vent: its fuse is the time you have to get onto the vent after touching its bubbles;
 	  * a pit column: jump in while it blows with time left to ride up to the hover and step off (or on into the next);
 	  * a red walkway or field geyser: walk past it while it is dry (ObbyCheck.fairness, the real crossing).
+	Walking forward never clears a variant (contract §9): a walker only rides a geyser it happens to stand on at the
+	right time, so where a chain could carry it (Third Time, Spout Catch, Summit Spouts, Pit Spouts) the geysers switch
+	sides of the lane and a straight line misses every other one.
 	Easy windows 1.4..2.0 s, medium 1.0..1.4, hard 0.75..1.0. Vents under a red column sit on rocks with a 3-stud
 	strip the red never reaches (z 4..7): the place to wait.
 
@@ -28,7 +31,7 @@
 local Kit = if script then require(script.Parent.Kit) else require("./Kit")
 
 local ENTRY = 10 -- the entry pad: x 0..ENTRY, full lane
-local JUMP_IN = 4 -- the hole after it: too long to walk over
+local JUMP_IN = 4 -- the hole after it
 local FROM = ENTRY + JUMP_IN -- where the first rock starts
 local VENT = 8 -- a vent's diameter (a bounce pad needs 8 across)
 local VENT_UP = 0.2 -- a vent sits this far proud of its rock
@@ -182,6 +185,11 @@ local STRIP_WIDE = 14
 local VENT_Z = -3
 local RED_Z = -2
 local RED_D = 10
+
+-- Rocks for vents that switch sides from rock to rock (a straight line can only ever catch every other one): 20
+-- across, the vent and the red column over it 5 off the middle, so the two sides never share a line.
+local SWITCH_WIDE = 20
+local SWITCH_Z = 5
 
 -- A red geyser curtain across the whole lane in the gap between two islands, from `bottom` up to `top`: there (and
 -- deadly) `onFor` s from `from` s into each `period`. It reaches higher than any throw, so you can only fly through it
@@ -384,12 +392,13 @@ M.variants = {
 			local period = 3.6
 			for i, r in rocks do
 				local x = r[2] - 5
+				local z = if i % 2 == 0 then SWITCH_Z else -SWITCH_Z -- the vents switch sides: steer across
 				local o = (i - 1) * 1.2 -- each rock a little later: you land as its puffs go
-				table.insert(parts, rock(r[1], r[2], top, 0, STRIP_WIDE, if i % 2 == 0 then 2 else 3))
-				table.insert(parts, vent(x, top, VENT_Z, 14, { period = period, from = o + 1.5, blow = 0.4 }))
-				table.insert(parts, puff(x, top + VENT_UP, VENT_Z, period, o + 0.45, 0.25))
-				table.insert(parts, puff(x, top + VENT_UP, VENT_Z, period, o + 0.9, 0.25))
-				table.insert(parts, red(x, top + VENT_UP, RED_Z, RED_D, period, o + 2, 2))
+				table.insert(parts, rock(r[1], r[2], top, 0, SWITCH_WIDE, if i % 2 == 0 then 2 else 3))
+				table.insert(parts, vent(x, top, z, 14, { period = period, from = o + 1.5, blow = 0.4 }))
+				table.insert(parts, puff(x, top + VENT_UP, z, period, o + 0.45, 0.25))
+				table.insert(parts, puff(x, top + VENT_UP, z, period, o + 0.9, 0.25))
+				table.insert(parts, red(x, top + VENT_UP, z, RED_D, period, o + 2, 2))
 				top += 10.5
 			end
 			table.insert(parts, rock(56, 66, top))
@@ -405,9 +414,10 @@ M.variants = {
 			local parts = {}
 			entry(parts)
 			table.insert(parts, rock(FROM, 24, 0))
-			table.insert(parts, column(32, 0, -PIT_DOWN, 11.5, 3, 0, 1.95))
+			-- the columns sit on opposite sides of the lane: a straight line catches only one of them
+			table.insert(parts, column(32, -SWITCH_Z, -PIT_DOWN, 11.5, 3, 0, 1.95))
 			table.insert(parts, rock(37.5, 50, 10, 0, Kit.WIDTH, 2))
-			table.insert(parts, column(58, 0, 10 - PIT_DOWN, 21.5, 3, 1.5, 1.95))
+			table.insert(parts, column(58, SWITCH_Z, 10 - PIT_DOWN, 21.5, 3, 1.5, 1.95))
 			table.insert(parts, rock(63.5, 74, 20))
 			table.insert(parts, pit(24, 37.5, -PIT_DOWN))
 			table.insert(parts, pit(50, 63.5, 10 - PIT_DOWN))
@@ -500,14 +510,15 @@ M.variants = {
 			entry(parts)
 			local period = 3.4
 			table.insert(parts, rock(FROM, 26, 0))
-			table.insert(parts, vent(21, 0, VENT_Z, 14, { period = period, blow = 0.5 }))
+			table.insert(parts, vent(21, 0, -SWITCH_Z, 14, { period = period, blow = 0.5 }))
 			for i = 1, 3 do
 				local a = 29 + (i - 1) * 13
 				local top = i * 10
+				local z = if i % 2 == 0 then -SWITCH_Z else SWITCH_Z -- each vent on the other side: steer across
 				local o = (i - 1) * 0.75 -- the green that throws you here
-				table.insert(parts, rock(a, a + 10, top, 0, STRIP_WIDE, if i % 2 == 0 then 3 else 2))
-				table.insert(parts, vent(a + 5, top, VENT_Z, 14, { period = period, from = o + 0.75, blow = 0.5 }))
-				table.insert(parts, red(a + 5, top + VENT_UP, RED_Z, RED_D, period, o + 1.5, 2.28))
+				table.insert(parts, rock(a, a + 10, top, 0, SWITCH_WIDE, if i % 2 == 0 then 3 else 2))
+				table.insert(parts, vent(a + 5, top, z, 14, { period = period, from = o + 0.75, blow = 0.5 }))
+				table.insert(parts, red(a + 5, top + VENT_UP, z, RED_D, period, o + 1.5, 2.28))
 			end
 			table.insert(parts, rock(68, 78, 40))
 			return Kit.section(78, 40, parts)
@@ -523,9 +534,10 @@ M.variants = {
 			entry(parts)
 			table.insert(parts, rock(FROM, 24, 0))
 			local bottom = -8
-			table.insert(parts, column(32, 0, bottom, 1.5, 3, 0.4, 1.15))
-			table.insert(parts, column(43, 0, bottom, 3.5, 3, 1, 1.6))
-			table.insert(parts, column(54, 0, bottom, 7.5, 3, 2, 1.6))
+			-- zigzag across the lane: a straight line rides one column and misses the next
+			table.insert(parts, column(32, -SWITCH_Z, bottom, 1.5, 3, 0.4, 1.15))
+			table.insert(parts, column(43, SWITCH_Z, bottom, 3.5, 3, 1, 1.6))
+			table.insert(parts, column(54, -SWITCH_Z, bottom, 7.5, 3, 2, 1.6))
 			table.insert(parts, rock(59.5, 70, 6))
 			table.insert(parts, pit(24, 59.5, bottom))
 			return Kit.section(70, 6, parts)

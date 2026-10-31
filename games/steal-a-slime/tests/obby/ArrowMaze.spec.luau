@@ -103,6 +103,9 @@ describe("ArrowMaze", function()
 				if tier == "easy" and dumps > 0 and not fallback then
 					table.insert(bad, `{tier} {seed}: {dumps} dumps on easy`)
 				end
+				if #(a.bars or {}) == 0 then
+					table.insert(bad, `{tier} {seed}: no goo bar against mashing`)
+				end
 				if ArrowMaze.partCount(a) > ObbyCheck.PARTS_MAX then
 					table.insert(bad, `{tier} {seed}: too many parts`)
 				end

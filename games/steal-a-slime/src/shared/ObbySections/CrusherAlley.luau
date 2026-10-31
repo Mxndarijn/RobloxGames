@@ -24,7 +24,7 @@ local CRUSHER_LIFT = 11 -- studs from the floor to a crusher's bottom at rest: w
 local CRUSHER_THICK = 4 -- crusher block height
 local CRUSHER_LONG = 8 -- along the course: about half a second to walk under
 local ENTRY_LONG = 10 -- the entry pad before the jump in
-local ENTRY_GAP = 4 -- every variant opens with a jump: a 4-stud hole is too long to walk over (ObbyCheck.walkStop)
+local ENTRY_GAP = 5 -- every variant opens with a jump: a 5-stud hole stops a walker (a 4-stud one is walked over, ObbyCheck.walkStop)
 
 local PUNCHER_TALL = 4 -- a wall puncher's height, its bottom half a stud over the floor
 local ROPE = 0.6 -- a pendulum rope's thickness
@@ -66,6 +66,7 @@ export type PunchOpts = {
 	reach: number, -- how far it shoots across
 	long: number, -- along the course (x)
 	snap: boolean?, -- true: a one-beat `pattern` (out, short hold, straight back) instead of a held `punch`
+	tall: number?, -- its height (default PUNCHER_TALL); a tall one can't be jumped over
 }
 
 -- A wall puncher at `x` on the `side` wall (-1 left, +1 right) of a floor whose top is `top`, shooting across.
@@ -80,9 +81,10 @@ local function puncher(x: number, side: number, top: number, period: number, pha
 			beats = { { at = 0, kind = "slam" } },
 		}
 		else { kind = "punch", axis = "z", amp = -side * o.reach, period = period, phase = phase }
+	local tall = o.tall or PUNCHER_TALL
 	return Kit.hazard(
-		{ o.long, PUNCHER_TALL, o.thick },
-		{ x, top + 0.5 + PUNCHER_TALL / 2, side * (Kit.HALF - o.thick / 2) },
+		{ o.long, tall, o.thick },
+		{ x, top + 0.5 + tall / 2, side * (Kit.HALF - o.thick / 2) },
 		{ motion = motion }
 	)
 end
@@ -255,18 +257,21 @@ M.variants = {
 		end,
 	},
 	{
-		-- One big blob swings slowly across a narrow bridge: cross under its pivot while it is out at the far side.
+		-- One big blob swings slowly across a narrow bridge: cross under its pivot while it is out at the far side. A
+		-- tall wall stands in front of the bridge, so you step round it and back onto the bridge's line.
 		name = "Big Swing",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
-			local length = 44
+			local length = 46
 			local parts = {}
 			entry(parts)
-			local bridgeFrom, bridgeTo = 22, 34
+			local bridgeFrom, bridgeTo = 24, 36
 			floor(parts, FLOOR_FROM, bridgeFrom, 0, "goo", 1)
+			-- 12 wide over the bridge's 8: every straight line either hits it or misses the bridge.
+			table.insert(parts, Kit.wall(17, 0, 12, nil, false, { tone = 2 }))
 			floor(parts, bridgeFrom, bridgeTo, 0, "beam", 1, Kit.FLOOR_MIN)
 			floor(parts, bridgeTo, length, 0, "jelly", 2)
-			pendulum(parts, 28, 0, {
+			pendulum(parts, 30, 0, {
 				size = { 6, 6, 6 },
 				ball = true,
 				bottom = 0.5,
@@ -279,7 +284,8 @@ M.variants = {
 	},
 	{
 		-- Three punchers flash out of alternate walls and snap straight back: the danger is the quick shot, so walk
-		-- past right after the snap. A third of a beat apart.
+		-- past right after the snap. Each fires a little earlier than the one before (8 % of a beat), so a runner who
+		-- never stops meets one of them; they stand 7 tall, too tall to hop over.
 		name = "Wall Knock",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
@@ -287,10 +293,10 @@ M.variants = {
 			local parts = {}
 			entry(parts)
 			floor(parts, FLOOR_FROM, length, 0, "goo", 3)
-			local o = { thick = 8, reach = Kit.WIDTH - 8, long = 6, snap = true }
+			local o = { thick = 8, reach = Kit.WIDTH - 8, long = 6, snap = true, tall = 7 }
 			for i = 0, 2 do
 				local side = if i % 2 == 0 then -1 else 1
-				table.insert(parts, puncher(22 + i * 10, side, 0, 2.3, (i / 3) % 1, o))
+				table.insert(parts, puncher(22 + i * 10, side, 0, 2.3, (i * 0.92) % 1, o))
 			end
 			return Kit.section(length, 0, parts)
 		end,
@@ -360,7 +366,8 @@ M.variants = {
 		end,
 	},
 	{
-		-- Punchers from both walls, close together and a quarter beat apart: zigzag through as each pulls back.
+		-- Punchers from both walls, close together and each on its own offset: zigzag through as each pulls back.
+		-- They stand 7 tall (no hopping over), and the offsets keep any one straight line from staying open.
 		name = "Cross-Punch",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -368,11 +375,12 @@ M.variants = {
 			local parts = {}
 			entry(parts)
 			floor(parts, FLOOR_FROM, length, 0, "goo", 3)
-			-- 3-stud seams between them: too thin to wait in, so the four are one run (a phase search: about 1.15 s).
-			local o = { thick = 10, reach = 14, long = 6 }
-			for i = 0, 3 do
-				local side = if i % 2 == 0 then -1 else 1
-				table.insert(parts, puncher(20 + i * 9, side, 0, 3.0, (i * 0.375) % 1, o))
+			-- 3-stud seams between them: too thin to wait in, so the four are one run. These phases (a search) leave
+			-- about 1.05 s for a runner who steers, and almost none for one who holds a line (jumping or not).
+			local o = { thick = 10, reach = 14, long = 6, tall = 7 }
+			for i, phase in { 0, 0.9, 0.3, 0.4 } do
+				local side = if i % 2 == 1 then -1 else 1
+				table.insert(parts, puncher(20 + (i - 1) * 9, side, 0, 3.6, phase, o))
 			end
 			return Kit.section(length, 0, parts)
 		end,

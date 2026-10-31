@@ -10,8 +10,9 @@
 	Timing: the checks don't time melts, so every hold is set from a runner model (tests/obby/MeltingFloor.spec): a
 	jump carries about 90 % of its full reach (less going up), a re-jump costs 0.1 s, so the time a runner must stand
 	on a tile is (its length along the way - what the jump in carried over) / 16 + 0.1. `holdFor` computes it and the
-	grids never set a hold under it. Every walking line has a hole of 4 studs or more, or a floor that melts away
-	under a walker before it crosses (the ladder), so holding forward never clears a variant.
+	grids never set a hold under it. Every walking line meets a hole of 5 studs (a walker drops through 4.4 or more;
+	the grids space their columns 5 apart), a lane change it misses, or a floor that melts away under a walker before
+	it crosses (the ladder), so holding forward never clears a variant, and jumping on every landing doesn't either.
 
 	Kit gaps (simplified, see the variants): no shrink or flip started by landing (Shrinking Puddles breathe on a
 	clock, Flip-Over flips on a clock and shows its red side as a hazard plate while the tile is gone), no part with two
@@ -433,7 +434,7 @@ M.variants = {
 				cols = 5,
 				rows = 3,
 				tile = 8,
-				gap = 4,
+				gap = 5,
 				holes = 0,
 				hold = 0.85,
 				away = 3,
@@ -516,7 +517,7 @@ M.variants = {
 				cols = 5,
 				rows = 3,
 				tile = 8,
-				gap = 4,
+				gap = 5,
 				holes = 0,
 				hold = 0.5,
 				away = 2.5,
@@ -547,7 +548,8 @@ M.variants = {
 	},
 	{
 		-- Tiles in two lanes flip over on a clock, a wave that runs with you: while one is turned, its red goo
-		-- underside is up (a hazard plate) and it is no floor. (Kit: flips run on a clock, not from your landing.)
+		-- underside is up (a hazard plate) and it is no floor. Each hop is a timed diagonal over a 5-stud hole, so
+		-- holding forward drops in the first one. (Kit: flips run on a clock, not from your landing.)
 		name = "Flip-Over",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -556,7 +558,7 @@ M.variants = {
 			local period, duty = 3.2, 0.6
 			local x = ENTRY
 			for i = 1, 7 do
-				x += 4
+				x += 5
 				local z = if i % 2 == 1 then -5 else 5
 				local reach = (x - ENTRY) / Kit.WALK
 				local phase = (0.15 - reach / period) % 1
@@ -576,7 +578,7 @@ M.variants = {
 				)
 				x += 8
 			end
-			return Kit.section(exit(parts, x + 4, 0), 0, parts)
+			return Kit.section(exit(parts, x + 5, 0), 0, parts)
 		end,
 	},
 	{
@@ -753,7 +755,7 @@ M.variants = {
 				cols = 5,
 				rows = 3,
 				tile = 8,
-				gap = 4,
+				gap = 5,
 				holes = 3,
 				hold = 0.9,
 				away = 2.5,
@@ -770,7 +772,7 @@ M.variants = {
 				cols = 6,
 				rows = 2,
 				tile = 10,
-				gap = 4,
+				gap = 5,
 				holes = 3,
 				hold = 0.85,
 				away = 2.5,
@@ -787,7 +789,7 @@ M.variants = {
 				cols = 6,
 				rows = 3,
 				tile = 8,
-				gap = 4,
+				gap = 5,
 				holes = 7,
 				hold = 0.5,
 				away = 2.5,
@@ -805,7 +807,7 @@ M.variants = {
 				cols = 6,
 				rows = 3,
 				tile = 8,
-				gap = 4,
+				gap = 5,
 				holes = 5,
 				hold = 0.5,
 				away = 2.5,
@@ -823,7 +825,7 @@ M.variants = {
 				cols = 7,
 				rows = 3,
 				tile = 8,
-				gap = 4,
+				gap = 5,
 				holes = 12,
 				hold = 0.35,
 				away = -1,
@@ -840,7 +842,7 @@ M.variants = {
 				cols = 6,
 				rows = 3,
 				tile = 8,
-				gap = 4,
+				gap = 5,
 				holes = 6,
 				hold = 0.4,
 				away = 3,
@@ -858,7 +860,7 @@ local function generate(seed: number, tier: string): Kit.Section
 	local rows = if rng:int(1, 3) == 1 then 2 else 3
 	local cols = rng:int(5, 7)
 	local cells = rows * cols
-	local cfg: { [string]: any } = { seed = seed, rows = rows, cols = cols, gap = 4, spread = 0.3 }
+	local cfg: { [string]: any } = { seed = seed, rows = rows, cols = cols, gap = 5, spread = 0.3 }
 	if tier == "easy" then
 		cfg.tile = if rng:int(1, 2) == 1 then 8 else 10
 		cfg.holes = rng:int(0, 3)

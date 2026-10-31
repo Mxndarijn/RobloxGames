@@ -13,8 +13,9 @@
 	seconds before it drops. That keeps every tier honest whatever the layout (contract §10): easy leaves about 1.6 s,
 	medium 1.25 s, hard 1.05 s at the tightest plank (the check needs 1 s, measured by a laxer runner).
 
-	Every variant opens with a 4-stud jump from the entry pad onto the bridge, so walking forward never clears it
-	(contract §11), and ends on a solid exit ledge that never drops.
+	Every variant opens with a 5-stud jump from the entry pad onto the bridge and has holes of at least 4.5 studs on
+	the bridge itself, so walking forward never clears it (contract §9: the walker steps over a 4-stud hole), and ends
+	on a solid exit ledge that never drops.
 
 	Kit simplifications (see the engine gaps in the build summary): a rest island does not pause the wave while you
 	stand on it; it is a grey pad that drops `pause` seconds after the wave reaches it, and the next stretch has its
@@ -27,7 +28,8 @@ local Kit = if script then require(script.Parent.Kit) else require("./Kit")
 type Part = Kit.Part
 
 local ENTRY_LONG = 8 -- the entry pad (full lane width)
-local ENTRY_GAP = 4 -- the jump onto the bridge: too long to walk over (ObbyCheck.walkStop)
+local ENTRY_GAP = 5 -- the jump onto the bridge: too long to walk over (ObbyCheck.walkStop needs 4.4)
+local HOLE = 4.5 -- the shortest hole on the bridge a walker can't step over
 local FROM = ENTRY_LONG + ENTRY_GAP -- where the bridge starts
 local WIDE = 10 -- bridge width across the lane
 local EXIT_LONG = 6
@@ -202,13 +204,16 @@ M.idea = 24
 
 M.variants = {
 	{
-		-- A flat, straight bridge with no gaps once you are on: learn that it falls behind you and keep going.
+		-- A flat, straight bridge with one hole halfway: learn that it falls behind you, keep going and jump the hole.
 		name = "First Crumble",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
 			local parts = {}
 			entry(parts)
-			local bridge, x = planks(parts, FROM, 11, 6, 0)
+			local bridge, x = planks(parts, FROM, 5, 6, 0)
+			local rest
+			rest, x = planks(parts, x + ENTRY_GAP, 6, 6, 0)
+			append(bridge, rest)
 			wave(bridge, { group = "crumble", speed = steady(14), tier = "easy" })
 			exit(parts, x, x + EXIT_LONG)
 			return Kit.section(x + EXIT_LONG, 0, parts)
@@ -245,13 +250,13 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {}
 			entry(parts)
-			local first, x = planks(parts, FROM, 5, 5, 3)
-			x += 2
+			local first, x = planks(parts, FROM, 4, 5, HOLE)
+			x += HOLE
 			local rest = island(x, 10)
 			table.insert(parts, rest)
-			x += 10 + 2
+			x += 10 + HOLE
 			local second
-			second, x = planks(parts, x, 5, 5, 3)
+			second, x = planks(parts, x, 4, 5, HOLE)
 			local leg1 = table.clone(first)
 			table.insert(leg1, rest)
 			wave(leg1, { group = "breath1", speed = steady(13), tier = "easy", pause = { [#leg1] = 2 } })
@@ -294,7 +299,7 @@ M.variants = {
 			local x = FROM
 			for i = 1, 4 do
 				if i > 1 then
-					x += 4
+					x += ENTRY_GAP
 				end
 				local p = plank(x, 14, 0, if i % 2 == 1 then -5 else 5, WIDE, 1 + i % 2)
 				table.insert(parts, p)
@@ -307,8 +312,8 @@ M.variants = {
 		end,
 	},
 	{
-		-- Every row of the bridge is two halves; one half of each row cracks and falls before you get there. Read the
-		-- cracks ahead and switch sides while the wave eats the halves you used.
+		-- Every row of the bridge is two halves with a hole before it; one half of each row cracks and falls before
+		-- you get there. Read the cracks ahead and jump to the safe side while the wave eats the halves you used.
 		name = "Two Halves",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
@@ -320,7 +325,7 @@ M.variants = {
 			local steps, early = { lead }, {}
 			local x = FROM + 6
 			for i, side in { 1, 1, -1, -1, -1, 1, 1, -1 } do
-				x += 2.5
+				x += HOLE
 				local safe = plank(x, 6, 0, side * half / 2, half, 1 + i % 2)
 				local gone = plank(x, 6, 0, -side * half / 2, half, 1 + (i + 1) % 2)
 				gone.step = nil -- not the path: it falls ahead of you
@@ -348,7 +353,7 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {}
 			entry(parts)
-			local bridge, x = planks(parts, FROM, 12, 4, 3.5)
+			local bridge, x = planks(parts, FROM, 11, 4, HOLE)
 			wave(bridge, { group = "faster", speed = rising(13, 21), tier = "medium" })
 			exit(parts, x, x + EXIT_LONG)
 			return Kit.section(x + EXIT_LONG, 0, parts)
@@ -443,7 +448,7 @@ M.variants = {
 			local x = FROM
 			for leg, v in { 13, 15, 17 } do
 				local run
-				run, x = planks(parts, x, 4, 4, 2.5)
+				run, x = planks(parts, x, 3, 4, HOLE)
 				local steps = table.clone(run)
 				local pause: { [number]: number } = {}
 				if leg < 3 then
@@ -506,8 +511,8 @@ M.variants = {
 		end,
 	},
 	{
-		-- The bridge forks at a wide pad: the right branch is three planks with 5.5-stud leaps, the left six planks of
-		-- quick hops. Each branch starts its own wave on its first plank, so it follows whichever one you take.
+		-- The bridge forks at a wide pad: the right branch is three planks with 5.5-stud leaps, the left four planks
+		-- with 4.8-stud hops. Each branch starts its own wave on its first plank, so it follows whichever one you take.
 		name = "Split Bridge",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -520,11 +525,11 @@ M.variants = {
 			wave({ lead, fork }, { group = "split", speed = steady(15), tier = "medium" })
 			local from, to = FROM + 16, FROM + 56
 			local zL, zR = -Kit.HALF + WIDE / 2, Kit.HALF - WIDE / 2
-			-- left (main): 6 planks 4 long, seven 2.3-stud hops (the last onto the exit)
+			-- left (main): 4 planks 4 long, five 4.8-stud hops (the last onto the exit)
 			local left = {}
 			local x = from
-			local hop = (to - from - 6 * 4) / 7
-			for i = 1, 6 do
+			local hop = (to - from - 4 * 4) / 5
+			for i = 1, 4 do
 				x += hop
 				local p = plank(x, 4, 0, zL, WIDE, 1 + i % 2)
 				table.insert(parts, p)
@@ -556,7 +561,7 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {}
 			entry(parts)
-			local bridge, x = planks(parts, FROM, 12, 4, 3.5)
+			local bridge, x = planks(parts, FROM, 11, 4, HOLE)
 			wave(bridge, { group = "sprint", speed = steady(17), tier = "hard" })
 			exit(parts, x, x + EXIT_LONG)
 			return Kit.section(x + EXIT_LONG, 0, parts)

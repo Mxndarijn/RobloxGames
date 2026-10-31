@@ -24,6 +24,9 @@
 	corridors 12 wide), a walk-through `pad` curtain in each opening (ghost, opaque) with the symbol on its face, 9-stud
 	dividers between the corridors, the trapdoors and one red goo pit under them. Optional `gates`: a jelly wall in
 	front of every door that is shut (solid) for `duty` of a beat-snapped period (`flip`), so you go through while open.
+	Optional `lintel` (contract §9, no mashing): red goo fills the top of every doorway from 6 studs up, the door floor
+	runs on through the doorway and the door symbols sit lower. A walker passes under; a jump through hits it, so
+	you land on the door floor, stop jumping and walk in (Blink Board, Closing Doors, the easy and medium generator).
 
 	Symbols are ghost decor drawn on a plane (`Plane`): facing "x" (towards a runner coming down the course), "z" (to
 	the right, a board on the left side of the lane) or "y" (lying flat on a floor). Shapes: circle, square, diamond,
@@ -53,6 +56,10 @@ local TRAP_DELAY = 0.25 -- seconds a trapdoor holds you: its crack is the only t
 local PIT_DROP = 4 -- the goo pit's top under the corridor floors
 local DOOR_SYM = 2.6 -- symbol size on a curtain
 local SYM_Y = 6 -- curtain symbol centre over the floor: over a head, still eye level
+-- A goo lintel fills each doorway from this height over the floor up to the wall top: a walker (head at 5) passes
+-- under it, a jump through the doorway hits it. So you land on the door floor, stop jumping and walk in.
+local LINTEL = 6
+local SYM_LOW = 3.4 -- curtain symbol centre under a lintel
 
 -- Six colours (look, tone): red, green, blue, yellow, purple, orange.
 local COLOURS: { { any } } = {
@@ -555,6 +562,7 @@ end
 export type RoomOpts = {
 	long: number?, -- corridor length (default CORRIDOR)
 	gates: { beat: number, duty: number }?, -- doors shut `duty` of every `beat` beats
+	lintel: boolean?, -- a goo lintel in every doorway (LINTEL): walk through, don't jump
 }
 
 local function doorCentres(n: number): ({ number }, number, number)
@@ -625,9 +633,13 @@ local function room(parts: { Part }, D: number, top: number, clue: Clue, o: Room
 	-- curtains, their symbols and (optional) the closing gates in front
 	for i, z in centres do
 		table.insert(parts, Kit.prop({ 0.4, WALL_H, open }, { D + 0.2, top + WALL_H / 2, z }, "pad", { ghost = true }))
-		local pl: Plane = { x = D, y = top + SYM_Y, z = z, facing = "x" }
+		local pl: Plane = { x = D, y = top + (if opts.lintel then SYM_LOW else SYM_Y), z = z, facing = "x" }
 		local s = if clue.doors[i].t == "slime" then 2.4 else DOOR_SYM
 		drawSym(parts, pl, 0, 0, FACE / 2 + 0.02, clue.doors[i], s, "post")
+		if opts.lintel then
+			local h = WALL_H - LINTEL
+			table.insert(parts, Kit.hazard({ 1, h, open }, { D + 0.5, top + LINTEL + h / 2, z }))
+		end
 		if opts.gates then
 			table.insert(
 				parts,
@@ -729,6 +741,7 @@ export type Std = {
 	gates: { beat: number, duty: number }?,
 	floorMelt: number?, -- the door floor cracks `floorMelt` s after you land and drops away (back 2 s later)
 	bar: { amp: number, period: number, wide: number? }?, -- a low red goo bar sweeping across the door floor
+	lintel: boolean?, -- goo lintels in the doorways: walk in, a jump through hits them
 }
 
 -- Entry pad, hops, door floor, the room, exit; then the board(s) where `o.where` says.
@@ -741,17 +754,18 @@ local function standard(o: Std): (Kit.Section, { Room })
 	end
 	local f0 = x + o.gap
 	local D = f0 + o.floorLong
+	-- under lintels the door floor runs on through the doorways: you walk through, so there is ground under you
 	floor(
 		parts,
 		f0,
-		D,
+		if o.lintel then D + 1 else D,
 		o.top,
 		1,
 		nil,
 		nil,
 		if o.floorMelt then { motion = { kind = "melt", on = "land", delay = o.floorMelt, away = 2 } } else nil
 	)
-	local r = room(parts, D, o.top, o.clue, { gates = o.gates })
+	local r = room(parts, D, o.top, o.clue, { gates = o.gates, lintel = o.lintel })
 	local length = exit(parts, r.x1, o.top)
 
 	local s, h = o.s or 3, o.h or 5
@@ -1016,7 +1030,8 @@ local function behindSweep(seed: number): (Kit.Section, { Room })
 	})
 end
 
--- Blink Board: the board only shows its clue 0.8 s of every 3.6 s beat bar; catch it, then time the bobbing hop.
+-- Blink Board: the board only shows its clue 0.8 s of every 3.6 s beat bar; catch it, then time the bobbing hop and
+-- walk (don't jump) in under the goo lintels.
 local function blinkBoard(seed: number): (Kit.Section, { Room })
 	local rng = rngFor(seed, 11)
 	local kind = if rng:int(1, 2) == 1 then "match" else "slime"
@@ -1032,6 +1047,7 @@ local function blinkBoard(seed: number): (Kit.Section, { Room })
 		w = 8,
 		h = 6,
 		blink = { beat = 6, on = 0.8 },
+		lintel = true,
 	})
 end
 
@@ -1126,7 +1142,7 @@ local function mixClue(seed: number): (Kit.Section, { Room })
 end
 
 -- Closing Doors: the doors open 1 s of every 3.6 s beat bar; the door floor cracks 3.4 s after you land, so time the
--- landing too. Read the board 20 studs back while you time the bobbing hop.
+-- landing too. Read the board 20 studs back while you time the bobbing hop; walk through under the goo lintels.
 local function closingDoors(seed: number): (Kit.Section, { Room })
 	local rng = rngFor(seed, 15)
 	local kinds = { "match", "cross", "count" }
@@ -1144,6 +1160,7 @@ local function closingDoors(seed: number): (Kit.Section, { Room })
 		h = 5,
 		gates = { beat = 6, duty = 0.72 },
 		floorMelt = 3.4,
+		lintel = true,
 	})
 end
 
@@ -1286,6 +1303,7 @@ local function generate(seed: number, tier: string): (Kit.Section, { Room })
 		w = 8,
 		h = 5,
 		look = if kind == "shadow" then "pad" else nil,
+		lintel = tier ~= "hard",
 	}
 	if twist == "back" then
 		o.where, o.back = "back", back

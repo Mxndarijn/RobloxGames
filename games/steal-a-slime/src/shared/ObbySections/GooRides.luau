@@ -160,19 +160,24 @@ local function ferryLine(_seed: number): Kit.Section
 end
 
 -- 5. The way on is off to the side: the shuttle carries you across the lane to where the path goes on. A 4-stud
--- jump on and off (5.5 studs), so you can only make it around the 0.6 s the shuttle waits on your side.
+-- jump on and off (5.5 studs), so you can only make it around the 0.6 s the shuttle waits on your side. The trip
+-- across is slow (2.2 s): stand on the deck and wait; hopping on across it runs you off its front long before it
+-- gets to the exit lane (ObbyCheck.masher).
 local function sideShuttle(_seed: number): Kit.Section
 	local length = 52
 	local side = 7.5 -- the shuttle's two stops (z 3..12 and -12..-3); the entry and exit lanes are z 4..12 / -12..-4
 	local parts = {}
 	table.insert(parts, dock(0, 12, 0, 1, 8, 8))
-	table.insert(parts, raft(17.5, 0, side, 9, 9, shuttle({ 0, 0, -2 * side }, 0.6, 1.6), 2))
+	table.insert(parts, raft(17.5, 0, side, 9, 9, shuttle({ 0, 0, -2 * side }, 0.6, 2.2), 2))
 	table.insert(parts, railZ(22, -Kit.HALF, Kit.HALF, 0))
 	table.insert(parts, dock(32, length, 0, 2, -8, 8))
 	return Kit.section(length, 0, parts)
 end
 
--- 6. Three lifts in a row, each to a higher ledge (8, 10 and 12 up), each at its bottom as you reach it.
+-- 6. Three lifts in a row, each to a higher ledge (8, 10 and 12 up), each at its bottom as you reach it. Each top
+-- stop stands STAIR_GAP studs off its ledge: wait on the deck and jump across while it waits at the top (walking or
+-- hopping off early drops you into the gap).
+local STAIR_GAP = 5
 local function stairLifts(_seed: number): Kit.Section
 	local parts = {}
 	table.insert(parts, dock(0, 8, 0, 1))
@@ -180,7 +185,7 @@ local function stairLifts(_seed: number): Kit.Section
 	for k, up in { 8, 10, 12 } do
 		table.insert(parts, raft(x, top, 0, 9, 9, shuttle({ 0, up, 0 }, 0.8, 1.8, (k - 1) * 3), k))
 		table.insert(parts, pole(x + 4.5, 5.1, top - 1, top + up + 1))
-		x += 9
+		x += 9 + STAIR_GAP
 		table.insert(parts, face(x, top + up, top - 1, k))
 		top += up
 		table.insert(parts, dock(x, x + 8 + (if k == 3 then 1 else 0), top, k % 2 + 1))

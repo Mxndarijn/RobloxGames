@@ -8,8 +8,10 @@
 	("top" / "bottom"), a hidden one ("secret") or a crossing plank ("bail"). A `sign:` marker on each road's first
 	pad says which is which.
 
-	Walk-forward rule (contract §9, §11): every walking line needs a gap of 4 or more, a ledge over 1 stud, a wall or
-	a hazard. Short hops on the safe roads therefore always climb or drop (1.5 or 3 studs), never sit level.
+	Walk-forward rule (contract §9, §11): every walking line needs a same-height hole of 4.4 or more, a ledge over 2
+	studs, a wall or a hazard, so short hops on the safe roads climb 2.5 or more, and level hops leave 5-stud holes.
+	No mashing either: a jump masher is in the air everywhere but where it lands, so most roads hang a low goo `bar`
+	where you walk anyway (a tread on the way down, a long pad between jumps): walk under it, jump and you touch it.
 
 	Variants are appended, never reordered (a pick stores the index). Hand-made: the seed is ignored.
 ]]
@@ -84,6 +86,15 @@ local function pool(x0: number, x1: number, top: number, z: number, w: number): 
 	return Kit.hazard({ x1 - x0, 1, w }, { (x0 + x1) / 2, top - 0.5, z })
 end
 
+-- A low goo bar hanging over a road from x0 to x1: its bottom `clear` studs over the floor at `top` (6: a stud over
+-- a walking head), BAR_TALL deep. Walk under it; jump under it and you touch it. That is what stops a jump masher: it
+-- is in the air everywhere but the tick it lands. Hang one where you walk anyway (a drop, a long pad between jumps).
+local BAR_TALL = 6
+local function bar(x0: number, x1: number, top: number, z: number, w: number, clear: number?): Part
+	local bottom = top + (clear or 6)
+	return Kit.hazard({ x1 - x0, BAR_TALL, w }, { (x0 + x1) / 2, bottom + BAR_TALL / 2, z })
+end
+
 -- Contiguous stair treads from x0 to x1, one per top in `tops`.
 local function stairs(
 	parts: { Part },
@@ -145,13 +156,15 @@ M.variants = {
 			entry(parts)
 			stairs(parts, ENTRY, length - EXIT, { -2.5, -5, -7.5, -5, -2.5 }, LEFT, ROAD, SAFE)
 			table.insert(parts, blob(25, LEFT, -7.5, ROAD, SWEEP.easy, 0))
+			table.insert(parts, bar(19.5, 22.6, -5, LEFT, ROAD)) -- over the second tread down: walk, don't jump
 			table.insert(
 				parts,
 				slab(ENTRY + 6, length - EXIT, 0, RIGHT, ROAD, "goo", { route = "fast", marker = FAST.marker })
 			)
 			table.insert(parts, pool(ENTRY, ENTRY + 6, -4, RIGHT, ROAD))
 			table.insert(parts, blob(31, RIGHT, 0, ROAD, SWEEP.easy, 0.5))
-			divider(parts, ENTRY, length - EXIT, -9, 9)
+			table.insert(parts, bar(19, 24, 0, RIGHT, ROAD)) -- past the big jump: walk under it, then dodge
+			divider(parts, ENTRY, length - EXIT, -9, 11)
 			exit(parts, length, 0)
 			return Kit.section(length, 0, parts)
 		end,
@@ -199,6 +212,7 @@ M.variants = {
 			entry(parts)
 			stairs(parts, x0, x1, { 3, 6, 9, 12, 9, 6, 3 }, LEFT, ROAD, SAFE)
 			table.insert(parts, blob(x0 + (x1 - x0) * 3.5 / 7, LEFT, 12, ROAD, SWEEP.easy, 0))
+			table.insert(parts, bar(43.5, 47.6, 9, LEFT, ROAD)) -- over the first tread down: walk it, don't jump
 			for i, p in lay(x0, x1, 3, 5.5, 5.5, 5.5) do
 				local extra = fastFirst(i)
 				if i == 2 then
@@ -208,6 +222,7 @@ M.variants = {
 				table.insert(parts, slab(p[1], p[2], 0, RIGHT, ROAD, "goo", extra))
 			end
 			table.insert(parts, pool(x0, x1, -3, RIGHT, ROAD))
+			table.insert(parts, bar(17.5, 20.5, 0, RIGHT, ROAD)) -- land, walk under it, then jump
 			divider(parts, x0, x1, -4, 20)
 			exit(parts, length, 0)
 			return Kit.section(length, 0, parts)
@@ -229,6 +244,8 @@ M.variants = {
 			table.insert(parts, slab(57, 60, -3, 0, Kit.WIDTH, "jelly", { tone = 2 }))
 			table.insert(parts, blob(25, 0, -9, Kit.WIDTH, SWEEP.easy, 0))
 			table.insert(parts, blob(43, 0, -9, Kit.WIDTH, SWEEP.easy, 0.5))
+			-- A goo bar over the high road's first pad: land, walk under it, then time the jump onto the slider.
+			table.insert(parts, bar(18.5, 24, 0, 0, Kit.WIDTH))
 			table.insert(
 				parts,
 				slab(14, 30, 0, 0, Kit.WIDTH, "jelly", { route = "fast", marker = FAST.marker, tone = 1 })
@@ -260,6 +277,7 @@ M.variants = {
 			table.insert(parts, slab(31, 35, -1.5, LEFT, ROAD, "jelly", { tone = 3 }))
 			table.insert(parts, Kit.ramp(35, -1.5, 42, 0, LEFT, ROAD, "jelly", { tone = 2 }))
 			table.insert(parts, blob(25.5, LEFT, -4, ROAD, SWEEP.easy, 0))
+			table.insert(parts, bar(20, 23.5, -4, LEFT, ROAD, 9.2)) -- over the bridge's foot: walk under, then dodge
 			table.insert(parts, slab(8, 23, 0, RIGHT, 3, "beam", { route = "fast", marker = FAST.marker }))
 			table.insert(parts, slab(28.5, 42, 0, RIGHT, 3, "beam", { route = "fast" }))
 			table.insert(parts, post(36, RIGHT, 0, 1.4, 4, 0))
@@ -279,6 +297,7 @@ M.variants = {
 			entry(parts)
 			stairs(parts, x0, x1, { 3, 6, 9, 12, 9, 6, 3 }, LEFT, ROAD, SAFE)
 			table.insert(parts, blob(x0 + (x1 - x0) * 5.5 / 7, LEFT, 6, ROAD, SWEEP.easy, 0)) -- on the way down
+			table.insert(parts, bar(38, 40.4, 9, LEFT, ROAD)) -- the first tread down: walk it
 			table.insert(
 				parts,
 				slab(12.5, 20.5, 0, RIGHT, ROAD, "spring", {
@@ -290,7 +309,7 @@ M.variants = {
 			table.insert(parts, Kit.prop({ 1, 10, ROAD }, { 27.5, 5, RIGHT }, "jelly", { tone = 2 }))
 			table.insert(parts, slab(30, x1, 0, RIGHT, ROAD, "goo", { route = "fast", marker = FAST.marker }))
 			table.insert(parts, blob(44, RIGHT, 0, ROAD, SWEEP.easy, 0.5))
-			divider(parts, x0, x1, -1, 20)
+			divider(parts, x0, x1, -1, 22) -- over a jump from the hilltop
 			exit(parts, length, 0)
 			return Kit.section(length, 0, parts)
 		end,
@@ -340,8 +359,8 @@ M.variants = {
 		end,
 	},
 	{
-		-- A gate on the safe road opens and shuts on the beat: arrive while it is shut and you wait, then dodge a
-		-- goo sweeper behind it. The fast road jumps three 6-stud gaps past goo sweepers.
+		-- A gate on the safe road opens and shuts on the beat: arrive while it is shut and you wait, walk on under
+		-- a low goo bar (no jumping), then dodge a goo sweeper. The fast road jumps three 6-stud gaps past goo sweepers.
 		name = "Closing Gate",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -349,7 +368,7 @@ M.variants = {
 			local x0, x1 = ENTRY, length - EXIT
 			local parts = {}
 			entry(parts)
-			table.insert(parts, slab(8, 18, 1.5, LEFT, ROAD, "jelly", { tone = 1, marker = SAFE.marker }))
+			table.insert(parts, slab(8, 18, 2.5, LEFT, ROAD, "jelly", { tone = 1, marker = SAFE.marker }))
 			table.insert(parts, slab(18, 36, 3, LEFT, ROAD, "jelly", { tone = 2 }))
 			table.insert(parts, slab(36, x1, 1.5, LEFT, ROAD, "jelly", { tone = 3 }))
 			table.insert(
@@ -360,6 +379,7 @@ M.variants = {
 				})
 			)
 			table.insert(parts, blob(44, LEFT, 1.5, ROAD, SWEEP.medium, 0))
+			table.insert(parts, bar(29.5, 35.5, 3, LEFT, ROAD)) -- past the gate: walk on through, no jumping
 			local fast = lay(x0, x1, 2, 6, 6, 6)
 			for i, p in fast do
 				table.insert(parts, slab(p[1], p[2], 0, RIGHT, ROAD, "goo", fastFirst(i)))
@@ -383,6 +403,7 @@ M.variants = {
 			entry(parts)
 			stairs(parts, 12, 56, { 3, 6, 9, 6, 3 }, LEFT, ROAD, SAFE)
 			table.insert(parts, blob(34, LEFT, 9, ROAD, SWEEP.medium, 0.5))
+			table.insert(parts, bar(42.8, 48, 6, LEFT, ROAD)) -- the first tread down: walk it
 			table.insert(parts, slab(x0, 57.5, -3.5, -7, PAD, "pipe", { route = "secret", marker = "star" }))
 			table.insert(parts, blob(34, -7, -3.5, PAD, SWEEP.medium, 0))
 			local fast = slab(14, 56, 0, RIGHT, ROAD, "goo", { route = "fast", marker = FAST.marker })
@@ -415,6 +436,8 @@ M.variants = {
 				end
 				table.insert(parts, slab(p[1], p[2], 3.5, 0, PAD, "jelly", extra))
 			end
+			-- a goo bar over the second middle pad: land, walk under it, then jump
+			table.insert(parts, bar(26, 29.4, 3.5, 0, PAD, 8.6))
 			-- bottom, z -12..-4: seven 3-stud hops that climb and drop 2
 			for i, p in lay(8, 72, 7, 3, 3, 0) do
 				local extra: { [string]: any } = { route = "bottom", tone = 1 }
@@ -449,15 +472,15 @@ M.variants = {
 	},
 	{
 		-- Wait or walk: the short right road is three blinking pads you wait on; the left road is six small pads
-		-- that slide back and forth together, so you never stop, but take more jumps.
+		-- (5-stud holes) that slide back and forth together, so you never stop, but take more jumps.
 		name = "Wait or Walk",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
-			local length = 70
+			local length = 80
 			local x0, x1 = ENTRY, length - EXIT
 			local parts = {}
 			entry(parts)
-			for i, p in lay(x0, x1, 6, 4.2, 4.2, 4.2) do
+			for i, p in lay(x0, x1, 6, 5, 5, 5) do
 				local extra: { [string]: any } = {
 					tone = i % 3 + 1,
 					motion = { kind = "slide", axis = "x", amp = 1, period = 2.6 },
@@ -467,7 +490,7 @@ M.variants = {
 				end
 				table.insert(parts, slab(p[1], p[2], 0, LEFT, PAD, "jelly", extra))
 			end
-			for i, p in lay(x0, x1, 3, 4.5, 4.5, 4.5) do
+			for i, p in lay(x0, x1, 3, 5.5, 5.5, 5.5) do
 				table.insert(
 					parts,
 					slab(
@@ -576,6 +599,7 @@ M.variants = {
 			local peak = parts[#parts - 3]
 			peak.look = "glow"
 			peak.motion = { kind = "flip", duty = 0.6, period = 2.6 }
+			table.insert(parts, bar(51.5, 54.5, 6, LEFT, ROAD)) -- the second tread down: walk it
 			for i, p in lay(x0, x1, 4, 4.4, 4.4, 4.4) do
 				local extra = fastFirst(i, { tone = 2 })
 				if i == 3 then
@@ -593,7 +617,8 @@ M.variants = {
 	},
 	{
 		-- The short road is a yellow speed strip (past a goo sweeper) and one 11-stud gap you only clear at
-		-- speed; the long road winds round on six climbing pads, one swept by goo.
+		-- speed (run the strip under a low goo bar, don't jump); the long road winds round on six pads that climb and
+		-- drop 2.5, one swept by goo.
 		name = "Boost Gap",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -601,7 +626,7 @@ M.variants = {
 			local x0, x1 = ENTRY, length - EXIT
 			local parts = {}
 			entry(parts)
-			local tops = { 1.5, 3, 1.5, 3, 1.5, 3 }
+			local tops = { 2.5, 5, 2.5, 5, 2.5, 5 }
 			local bends = { -1.5, 0, 1.5, 1.5, 0, -1.5 }
 			for i, p in lay(x0, x1, 6, 3, 3, 3) do
 				table.insert(
@@ -633,6 +658,7 @@ M.variants = {
 				)
 			)
 			table.insert(parts, blob(21, RIGHT, 0, ROAD, SWEEP.medium, 0))
+			table.insert(parts, bar(12.5, 14.5, 0, RIGHT, ROAD)) -- run the strip under it: jump and you touch it
 			table.insert(parts, slab(43, x1, 0, RIGHT, ROAD, "goo", { route = "fast", marker = FAST.marker }))
 			divider(parts, x0, x1, -1, 12)
 			exit(parts, length, 0)
@@ -653,6 +679,7 @@ M.variants = {
 			local tread = (x1 - x0) / 8
 			table.insert(parts, blob(x0 + tread * 4, -7, 12, PAD, SWEEP.hard, 0))
 			table.insert(parts, blob(x0 + tread * 5.5, -7, 9, PAD, SWEEP.hard, 0.7))
+			table.insert(parts, bar(57.3, 61.5, 6, -7, PAD)) -- the second-last tread: walk it
 			for i, p in lay(x0, x1, 4, 6, 6, 6) do
 				local extra = fastFirst(i, { tone = 2 })
 				if i == 2 then
@@ -832,6 +859,8 @@ M.variants = {
 				end
 				table.insert(parts, slab(p[1], p[2], 3.5, 0, PAD, if i == 3 then "glow" else "jelly", extra))
 			end
+			-- a goo bar over the second middle pad, high: a jump under it touches it
+			table.insert(parts, bar(27.5, 31, 3.5, 0, PAD, 8.6))
 			-- bottom, z -12..-4: six 4-stud gaps, climbing and dropping 3
 			local tops = { 3, 0.5, 3.5, 0.5, 3.5, 0.5 }
 			for i, p in lay(x0, x1, 6, 4, 4, 0) do

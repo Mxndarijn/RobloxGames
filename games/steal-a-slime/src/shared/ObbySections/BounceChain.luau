@@ -24,16 +24,18 @@
 	SIDEWAYS_PIT: ObbyCheck's fairness runner can't follow a throw across the lane, so a goo floor under a sideways
 	throw reads as never open; where the path steps sideways over a hole the goo is left out (falling still resets).
 
-	Every variant opens with a 4-stud hole over goo (too long to walk over, ObbyCheck.walkStop), and the pads' gaps,
-	sideways landings and back throws stop a walker that holds forward.
+	Every variant opens with a hole over goo, and the pads' gaps, sideways landings and back throws stop a walker that
+	holds forward (a 4-stud hole is walked over, ObbyCheck.walkStop; where nothing else stops it, the holes are
+	WIDE_HOLE).
 ]]
 
 local Kit = if script then require(script.Parent.Kit) else require("./Kit")
 
 local LOW, MID, HIGH, STAR = 45, 62, 75, 85
 local ENTRY = 8 -- entry pad length
-local HOLE = 4 -- the opening jump: too long to walk over
+local HOLE = 4 -- the opening jump (a walker gets over it; later pads stop it)
 local FROM = ENTRY + HOLE -- x of the first island
+local WIDE_HOLE = 5 -- a hole a walker can't cross (ObbyCheck.walkStop stops it from 4.4), well inside a jump
 local PIT_DROP = 3 -- goo sits this far under the lowest floor near it
 local TILT = 8 -- degrees an arrow pad leans the way it throws
 local SIDE = 16 -- studs / s sideways throw of an arrow pad
@@ -250,21 +252,24 @@ M.variants = {
 	},
 	{
 		-- Two walls block the lane right past their pads: walk onto each pad (a jump onto its far half runs into the
-		-- wall). The second wall is taller and its pad has three rings.
+		-- wall). The second wall is taller and its pad has three rings. Each pad stands past a 5-stud hole: jump the
+		-- hole, then stop jumping and walk on.
 		name = "Over the Wall",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
 			local parts = {}
 			entry(parts)
 			-- wall 1: 7.5 over the 3-deep two-ring pad (higher than any jump), 1 thick, 1.5 past it
-			add(parts, floor(FROM, 21, 0, 0, Kit.WIDTH, 2), pad(21, 24, 0, 0, 12, MID))
+			add(parts, floor(ENTRY + WIDE_HOLE, 21, 0, 0, Kit.WIDTH, 2), pad(21, 24, 0, 0, 12, MID))
 			add(parts, Kit.prop({ 1, 13.5, Kit.WIDTH }, { 26, 0.75, 0 }, "jelly", { tone = 3 }))
-			-- wall 2: 11.5 over the 4-deep three-ring pad
-			add(parts, floor(30.2, 38, 0, 0, Kit.WIDTH, 1), pad(38, 42, 0, 0, 12, HIGH))
-			add(parts, Kit.prop({ 1, 17.5, Kit.WIDTH }, { 44, 2.75, 0 }, "jelly", { tone = 3 }))
-			add(parts, floor(48.2, 60, 0, 0, Kit.WIDTH, 2))
-			add(parts, pit(ENTRY, FROM, 0)) -- goo in the opening hole only: the fairness runner can't jump a wall
-			return Kit.section(60, 0, parts)
+			-- the landing, a 5-stud hole, then wall 2: 11.5 over the 4-deep three-ring pad
+			add(parts, floor(30.2, 35, 0, 0, Kit.WIDTH, 1))
+			add(parts, floor(35 + WIDE_HOLE, 47, 0, 0, Kit.WIDTH, 2), pad(47, 51, 0, 0, 12, HIGH))
+			add(parts, Kit.prop({ 1, 17.5, Kit.WIDTH }, { 53, 2.75, 0 }, "jelly", { tone = 3 }))
+			add(parts, floor(57.2, 69, 0, 0, Kit.WIDTH, 1))
+			-- goo in the opening hole only: the fairness runner can't jump a wall
+			add(parts, pit(ENTRY, ENTRY + WIDE_HOLE, 0))
+			return Kit.section(69, 0, parts)
 		end,
 	},
 	{
@@ -435,15 +440,18 @@ M.variants = {
 					marker = "cracks",
 				})
 			end
+			-- levels 9 apart: the ledge right past a pad sits 3.7 over its throw's top, out of a stumble's reach, so
+			-- holding forward up a pad can't skip a level
+			local up = 9
 			add(parts, floor(FROM, 22, 0, -7, 10, 2), arrowPad(22, 30, 0, -7, 10, HIGH, back))
-			add(parts, floor(10, 18, 8, 7, 10, 3), beam(30, 8, 10, 24))
-			add(parts, arrowPad(42, 50, 8, 7, 10, HIGH, back))
-			add(parts, floor(30, 38, 16, -7, 10, 2), beam(50, 16, -10, 24))
-			add(parts, arrowPad(62, 70, 16, -7, 10, HIGH, back))
-			add(parts, floor(50, 58, 24, 7, 10, 3), beam(64, 24, 10, 12))
-			add(parts, floor(70, 82, 24, 0, Kit.WIDTH, 1))
+			add(parts, floor(10, 18, up, 7, 10, 3), beam(30, up, 10, 24))
+			add(parts, arrowPad(42, 50, up, 7, 10, HIGH, back))
+			add(parts, floor(30, 38, 2 * up, -7, 10, 2), beam(50, 2 * up, -10, 24))
+			add(parts, arrowPad(62, 70, 2 * up, -7, 10, HIGH, back))
+			add(parts, floor(50, 58, 3 * up, 7, 10, 3), beam(64, 3 * up, 10, 12))
+			add(parts, floor(70, 82, 3 * up, 0, Kit.WIDTH, 1))
 			add(parts, pit(ENTRY, 70, 0))
-			return Kit.section(82, 24, parts)
+			return Kit.section(82, 3 * up, parts)
 		end,
 	},
 	{
@@ -572,20 +580,23 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {}
 			entry(parts)
-			add(parts, floor(FROM, 20, 0, 0, 14, 2))
-			-- pad, a 6.5-stud hole (too far to jump, inside the throw's 10.1), the slider, a 4-stud jump to the next pad
+			local from = ENTRY + WIDE_HOLE
+			add(parts, floor(from, from + 8, 0, 0, 14, 2))
+			-- pad, a 6.5-stud hole (too far to jump, inside the throw's 10.1), the slider, a 5-stud jump (too far to
+			-- walk over) to the next pad
+			local x = from + 8
 			for i = 0, 2 do
-				local x0 = 20 + i * 21.5
-				table.insert(parts, pad(x0, x0 + 3, 0, if i % 2 == 0 then OFF else -OFF, 8, MID))
-				local slider = floor(x0 + 9.5, x0 + 17.5, 0, 0, 8, 3, {
+				table.insert(parts, pad(x, x + 3, 0, if i % 2 == 0 then OFF else -OFF, 8, MID))
+				local slider = floor(x + 9.5, x + 17.5, 0, 0, 8, 3, {
 					motion = { kind = "slide", axis = "z", amp = 5, period = 2.4, phase = i / 3 },
 					marker = "rail",
 				})
 				table.insert(parts, slider)
+				x += 17.5 + WIDE_HOLE
 			end
-			add(parts, floor(84.5, 96.5, 0, 0, Kit.WIDTH, 1))
-			add(parts, pit(ENTRY, 84.5, 0))
-			return Kit.section(96.5, 0, parts)
+			add(parts, floor(x, x + 12, 0, 0, Kit.WIDTH, 1))
+			add(parts, pit(ENTRY, x, 0))
+			return Kit.section(x + 12, 0, parts)
 		end,
 	},
 	{

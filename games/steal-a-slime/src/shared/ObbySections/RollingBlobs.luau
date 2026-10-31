@@ -13,7 +13,7 @@
 	ball needs between two shots (period minus the visible trip) is spent on that hidden way back.
 	Several balls share a launcher with phases (`fire` = seconds into the period it leaves the mouth).
 
-	Layout: an entry pad, then stretches. A stretch is a 4-stud drain pit (the jump in: a walker can't cross it, so
+	Layout: an entry pad, then stretches. A stretch is a 5-stud drain pit (the jump in: a walker can't cross it, so
 	holding forward never clears a variant) and a floor or ramp, with its launcher over the top end. Stretches are
 	joined by rest pads that no ball reaches: the fairness runner (tests/ObbyCheck) can only wait where no hazard ever
 	gets to, so pockets live between stretches rather than beside a ball's line.
@@ -25,7 +25,7 @@ type Part = Kit.Part
 type Vec = Kit.Vec
 
 local ENTRY = 10 -- entry pad length
-local PIT = 4 -- drain pit before every stretch: too long to walk over (ObbyCheck.walkStop)
+local PIT = 5 -- drain pit before every stretch: too long to walk over (a walker crosses 4.4, ObbyCheck.walkStop)
 local LIFT = 8 -- launcher housing bottom over the floor under it: well over a head, you walk under it
 local SINK = 2.5 -- a drained ball's top this far under the floor top (out of reach under a 1-stud floor)
 local HOUSE = 6 -- launcher housing length along the course (at least a ball + 1)
@@ -397,7 +397,7 @@ M.variants = {
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
 			local c = newCourse()
-			local d, speed, gap, slant = 12, 7.5, 2.2, 5
+			local d, speed, gap, slant = 12, 7.5, 2.2, 5.5
 			local st = stretch(c, 56, 6, Kit.WIDTH, 0, d, 1)
 			local spec = rollSpec(st, { d = d, z = -slant, zEnd = slant, speed = speed, period = 1, fire = 0 })
 			local reps = repsFor(tripOf(spec), 2, gap)
@@ -432,7 +432,7 @@ M.variants = {
 			local c = newCourse()
 			local st = stretch(c, 56, 6, 16, 0, 6, 2)
 			local cycle, step, speed = 4.6, 1.0, 11
-			local bursts = { { -4, 4, 0 }, { 4, 0, -4 } }
+			local bursts = { { -5, 5, 0 }, { 5, 0, -5 } }
 			for b, burst in bursts do
 				for i, z in burst do
 					local fire = (b - 1) * cycle + (i - 1) * step
@@ -689,22 +689,23 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local c = newCourse()
 			local st = stretch(c, 66, 8, Kit.WIDTH, 0, 6, 1)
-			local via, z = {}, 8
-			local x = st.mx - 18
+			local amp, leg = 9, 18
+			local via, z = {}, amp
+			local x = st.mx - leg
 			while x > st.from + 6 do
 				z = -z
 				table.insert(via, { x, z })
-				x -= 18
+				x -= leg
 			end
 			local zEnd = -z
 			-- Two grooves, mirror images, crossing in the middle; their balls take turns.
-			local gap, speed = 2.15, 10.5
+			local gap, speed = 2.8, 10.5
 			for side = 1, -1, -2 do
 				local mine = {}
 				for _, q in via do
 					table.insert(mine, { q[1], q[2] * side })
 				end
-				local corners = { { st.mx, 8 * side } }
+				local corners = { { st.mx, amp * side } }
 				for _, q in mine do
 					table.insert(corners, q)
 				end
@@ -713,7 +714,7 @@ M.variants = {
 					table.insert(c.parts, paint(st, corners[k], corners[k + 1], 1.2, "post"))
 				end
 				local o: RollOpts =
-					{ d = 6, z = 8 * side, zEnd = zEnd * side, via = mine, speed = speed, period = 1, fire = 0 }
+					{ d = 6, z = amp * side, zEnd = zEnd * side, via = mine, speed = speed, period = 1, fire = 0 }
 				local n = repsFor(tripOf(rollSpec(st, o)), 1, gap)
 				for i = 1, n do
 					o.period, o.fire = gap * n, (i - 1) * gap + (if side < 0 then gap / 2 else 0)
@@ -771,7 +772,7 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local c = newCourse()
 			local small = { { -7, 2, 7 }, { -2, 7, -7 }, { 7, -7, 2 } }
-			local lp, sp, ls, off = 5.0, 4.5, 13, 2
+			local lp, sp, ls, off = 5.0, 4.5, 13, 2.1
 			local ss, sgap, len = 10, 1.5, 20
 			for k = 1, 3 do
 				local st = stretch(c, len, 2, Kit.WIDTH, 0, 6, k)

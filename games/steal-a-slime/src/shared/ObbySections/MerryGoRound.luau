@@ -15,6 +15,10 @@
 	Second pass (tough review): hazard windows pulled toward the tier floor (easy about 1.5 s, medium 1.05-1.3 s,
 	hard 0.8-0.85 s), a hazard added to most variants that only had a moving floor, and exits raised where the last
 	jump was flat.
+	Third pass (walk-forward and masher checks, §9): jumping on every landing must not be a way across. Single big
+	disks get a red canopy beam over the hub line, just over head height (walk under it, never jump under it), the
+	Blender's second arm rides high for the same reason, the Propeller's plank sits 2.5 up on a pole too tall to
+	jump, and the Clockwork exit sits 2.5 over the plank so nothing walks onto it.
 ]]
 
 local Kit = if script then require(script.Parent.Kit) else require("./Kit")
@@ -24,6 +28,8 @@ local ARM_LOW = 0.5 -- a low arm's bottom over its floor ...
 local ARM_THICK = 1.2 -- ... and its height: the top sits 1.7 over the floor, an easy hop
 local ARM_WIDE = 1.2
 local HUB = 1.6 -- the pivot post on a disk with arms
+local CANOPY = Kit.HEAD + 0.5 -- a canopy beam's bottom over its floor: clear of a head, not of a jump
+local CANOPY_WIDE = 3
 local TAU = 2 * math.pi
 
 local function spin(period: number, phase: number?): Kit.Motion
@@ -53,17 +59,31 @@ local function stand(cx: number, top: number, cz: number?): Kit.Part
 end
 
 -- The pivot post on top of a disk that has arms.
-local function hub(cx: number, top: number, cz: number?): Kit.Part
-	local h = ARM_LOW + ARM_THICK + 0.5
+local function hub(cx: number, top: number, cz: number?, lift: number?): Kit.Part
+	local h = ARM_LOW + (lift or 0) + ARM_THICK + 0.5
 	return Kit.prop({ HUB, h, HUB }, { cx, top + h / 2, cz or 0 }, "post", { shape = "disc" })
 end
 
 -- A low red arm `length` long spinning round (cx, cz) over a floor whose top is `top`.
-local function arm(cx: number, top: number, length: number, period: number, phase: number?, lift: number?): Kit.Part
+local function arm(
+	cx: number,
+	top: number,
+	length: number,
+	period: number,
+	phase: number?,
+	lift: number?,
+	wide: number?
+): Kit.Part
 	local bottom = top + ARM_LOW + (lift or 0)
-	return Kit.hazard({ length, ARM_THICK, ARM_WIDE }, { cx, bottom + ARM_THICK / 2, 0 }, {
+	return Kit.hazard({ length, ARM_THICK, wide or ARM_WIDE }, { cx, bottom + ARM_THICK / 2, 0 }, {
 		motion = spin(period, phase),
 	})
+end
+
+-- A red canopy beam across the lane over (cx, *), its bottom CANOPY over a floor whose top is `top`: just over
+-- a standing head, so you walk under it, but a jump under it hits it (mashing jump is no way across).
+local function canopy(cx: number, top: number): Kit.Part
+	return Kit.hazard({ CANOPY_WIDE, ARM_THICK, Kit.WIDTH }, { cx, top + CANOPY + ARM_THICK / 2, 0 })
 end
 
 -- A red spoke lying on a disk at (cx, 0), `length` long, turning with the disk (same period and phase): a slice
@@ -121,9 +141,13 @@ local function row(parts: { Kit.Part }, disks: { Disk }, gap: number | { number 
 			table.insert(parts, spoke(cx, k.top, k.d, k.motion.period :: number, k.motion.phase or 0))
 		end
 		if k.arms then
-			table.insert(parts, hub(cx, k.top))
+			local lift = 0
 			for _, a in k.arms do
-				table.insert(parts, arm(cx, k.top, a[1], a[2], a[3], a[4]))
+				lift = math.max(lift, a[4] or 0)
+			end
+			table.insert(parts, hub(cx, k.top, 0, lift))
+			for _, a in k.arms do
+				table.insert(parts, arm(cx, k.top, a[1], a[2], a[3], a[4], a[5]))
 			end
 		end
 		table.insert(centres, cx)
@@ -173,6 +197,7 @@ M.variants = {
 	},
 	{
 		-- One big disk with one low red arm going round the other way: hop it (or time it) once, then jump off.
+		-- A red canopy beam hangs over the hub line: cross under it on foot, so hop the arm anywhere but there.
 		name = "One Sweep",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
@@ -180,6 +205,7 @@ M.variants = {
 			local x = row(parts, {
 				{ d = 22, top = 0, motion = spin(6), arms = { { 22, -3.5 } } },
 			}, 4.5, PAD + 2)
+			table.insert(parts, canopy(PAD + 2 + 4.5 + 11, 0))
 			local length = x + 5 + PAD + 2
 			table.insert(parts, pad(x + 5, length, 1.5, 3))
 			return Kit.section(length, 1.5, parts)
@@ -221,37 +247,48 @@ M.variants = {
 	{
 		-- The disk sits still until you step on it, then it turns (kit: at one speed, not faster each lap), carrying
 		-- you round to the small exit pad in the right corner, 2.5 up: ride until the rim passes it, then jump.
+		-- A low red arm goes round it the other way, and a red canopy beam over the hub line: no jumping under it.
 		name = "Wind Up",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
 			local parts = { pad(0, PAD + 2, 0) }
 			local x = row(parts, {
-				{ d = 20, top = 0, motion = spin(5), extra = { trigger = "windup", start = "windup" } },
+				{
+					d = 20,
+					top = 0,
+					motion = spin(5),
+					arms = { { 20, -3.5 } },
+					extra = { trigger = "windup", start = "windup" },
+				},
 			}, 5, PAD + 2)
+			table.insert(parts, canopy(PAD + 2 + 5 + 10, 0))
 			local length = x + 5 + PAD
 			table.insert(parts, Kit.slab(x + 5 + PAD / 2, 2.5, 8, PAD, 8, "jelly", { tone = 3 }))
 			return Kit.section(length, 2.5, parts)
 		end,
 	},
 	{
-		-- No disk, just a wide plank turning on a pole, 1.5 studs over the pad: hop on when an end comes by, ride it
-		-- round, hop up off the other end when it points at the exit.
+		-- No disk, just a wide plank turning on a pole, 2.5 studs over the pad (too high to walk on): hop on when an
+		-- end comes by, ride it round, hop up off the end when it points at the exit. The pole sticks up through the
+		-- middle, too tall to jump, so you ride an end round instead of running across.
 		name = "Propeller",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
 			local parts = { pad(0, PAD, 0) }
 			local cx = PAD + 1.5 + 11
-			table.insert(parts, plank(cx, 1.5, 22, 8, spin(5)))
-			table.insert(parts, stand(cx, 1.5))
+			table.insert(parts, plank(cx, 2.5, 22, 8, spin(4)))
+			table.insert(parts, stand(cx, 2.5))
+			-- the pole it turns on sticks up through the middle, too tall to jump: ride an end round, not across
+			table.insert(parts, Kit.prop({ 4, 10, 4 }, { cx, 2.5 + 5, 0 }, "post", { shape = "disc" }))
 			local x = cx + 11 + 1.5
 			local length = x + PAD
-			table.insert(parts, pad(x, length, 3, 3))
-			return Kit.section(length, 3, parts)
+			table.insert(parts, pad(x, length, 3.5, 3))
+			return Kit.section(length, 3.5, parts)
 		end,
 	},
 	{
 		-- Two red arms going round one disk at different speeds and ways (one full, one half length): the safe gap
-		-- between them keeps moving.
+		-- between them keeps moving. A red canopy beam over the hub line: no hopping under it.
 		name = "Two Arms",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -259,6 +296,7 @@ M.variants = {
 			local x = row(parts, {
 				{ d = 22, top = 0, motion = spin(6), arms = { { 22, 2.8 }, { 11, -4, 0.25, 0 } } },
 			}, 4, PAD + 2)
+			table.insert(parts, canopy(PAD + 2 + 4 + 11, 0))
 			local length = x + 5 + PAD + 2
 			table.insert(parts, pad(x + 5, length, 1.5, 3))
 			return Kit.section(length, 1.5, parts)
@@ -391,12 +429,13 @@ M.variants = {
 	},
 	{
 		-- A fast disk with two red arms going round opposite ways, then a long jump to a small disk turning back.
+		-- The second arm rides high, just over a head: hop the low one, but never while the high one is overhead.
 		name = "Blender",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
 			local parts = { pad(0, PAD + 2, 0) }
 			local x = row(parts, {
-				{ d = 20, top = 0, motion = spin(4), arms = { { 20, 2.5 }, { 18, -3.1, 0.3, 0 } } },
+				{ d = 20, top = 0, motion = spin(4), arms = { { 20, 2.5 }, { 18, -3.1, 0.3, 5 } } },
 				{ d = 10, top = 1, motion = spin(-5) },
 			}, { 4, 6 }, PAD + 2)
 			local length = x + 5 + PAD
@@ -428,7 +467,7 @@ M.variants = {
 	},
 	{
 		-- A plank that turns one way, stops and turns back (sweep), with a red arm going round over it: hop the arm
-		-- while you wait for the plank to line up with the exit.
+		-- while you wait for the plank to line up with the exit. The exit sits 2.5 over the plank: jump up to it.
 		name = "Clockwork",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
@@ -440,8 +479,8 @@ M.variants = {
 			table.insert(parts, arm(cx, 1.5, 22, -2.6))
 			local x = cx + 11 + 3
 			local length = x + PAD
-			table.insert(parts, pad(x, length, 3, 3))
-			return Kit.section(length, 3, parts)
+			table.insert(parts, pad(x, length, 4, 3))
+			return Kit.section(length, 4, parts)
 		end,
 	},
 	{

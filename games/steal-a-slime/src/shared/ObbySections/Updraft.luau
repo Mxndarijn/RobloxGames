@@ -12,6 +12,11 @@
 	(a standing root is about 3 over the floor) and the kerb stops a walker cold: you have to jump in. Catch the Fall
 	is the one column you drop into from above; its exit ledge is beside it, so riding straight up and on misses.
 
+No mashing (§9): a rider holding forward and jumping on every landing crosses a column in half a second and drifts
+straight on. So the way on out of a column (a ledge, the next column, a tunnel) sits on the other side of the lane
+from it, at least 2 studs across: no straight line runs from the pad through the column to it. You steer across
+while you rise or hover.
+
 	Heights: ObbyFx's lift acts on the root (about ROOT = 3 over the feet). An uncapped column's rider tops out at
 	top - ROOT + power^2 / 2g with the feet; a capped one hovers the feet at `bottom + cap - ROOT`. Every exit ledge
 	sits at least a stud under that (tests/obby/Updraft.spec checks it), though ObbyCheck measures from `top` / `cap`.
@@ -146,6 +151,8 @@ local function ledge(parts: Parts, x0: number, x1: number, z0: number, z1: numbe
 	table.insert(parts, Kit.slab((x0 + x1) / 2, top, (z0 + z1) / 2, x1 - x0, z1 - z0, "jelly", { tone = tone or 3 }))
 end
 
+-- First Breeze and Blink Column: the ledge runs on the far half of the lane up to here, then the whole lane.
+local SIDE_TO = 28
 -- First Breeze's goo bar on the ledge, as wide as the lane (seconds a turn).
 local BREEZE_SPIN = 3.5
 -- Blink Column's spinning bar (seconds a turn).
@@ -159,8 +166,9 @@ local EXIT_PHASE = 1 - 3.6 / 6
 local RING = { deep = 6, amp = 2, period = 2, lag = 0.25 }
 -- Spinner Shaft's propeller (seconds a turn).
 local SPINNER = 3
--- Hover Shelf's sinking goo bar: up `hold` s, down `hold` s, 0.8 s moving each way (about 1.7 s under your feet).
-local HOVER_DOOR = { hold = 1, period = 3.6 }
+-- Hover Shelf's goo bar sinks into the shelf's front: up `hold` s, down `hold` s, 0.4 s moving each way (about 1.9 s
+-- under your feet).
+local HOVER_DOOR = { hold = 1.6, period = 4 }
 
 -- The usual opening: pad, kerb, and a first column floating HOP over the pad right after it.
 local function opening(parts: Parts, c: Column)
@@ -178,15 +186,17 @@ M.idea = 5
 
 M.variants = {
 	{
-		-- One tall column: hop in, float up, drift off onto the high ledge, then slip past a goo bar as wide as the
-		-- lane spinning round on it.
+		-- One tall column: hop in, float up, drift across onto the high ledge on the other half of the lane, then
+		-- slip past a goo bar as wide as the lane spinning round on it.
 		name = "First Breeze",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
 			local length, rise = 45, 12
 			local parts: Parts = {}
-			opening(parts, { x0 = PAD, x1 = PAD + 8, z0 = -4, z1 = 4, bottom = HOP, top = rise + 4 })
-			ledge(parts, PAD + 9, length, -Kit.HALF, Kit.HALF, rise)
+			opening(parts, { x0 = PAD, x1 = PAD + 8, z0 = -10, z1 = -2, bottom = HOP, top = rise + 4 })
+			-- The ledge starts on the other half of the lane: steer across as you rise (straight on misses it).
+			ledge(parts, PAD + 9, SIDE_TO, 0, Kit.HALF, rise)
+			ledge(parts, SIDE_TO, length, -Kit.HALF, Kit.HALF, rise)
 			table.insert(
 				parts,
 				Kit.hazard({ 22, 2, 1.5 }, { 32.5, rise + 1, 0 }, { motion = { kind = "spin", period = BREEZE_SPIN } })
@@ -218,8 +228,9 @@ M.variants = {
 		end,
 	},
 	{
-		-- The column holds you hovering 2 over the ledge's height; a goo bar stands in front of you and sinks away
-		-- for a moment: wait in the hover, step off while it is down.
+		-- The column holds you hovering 2 over the ledge's height; the ledge is on the other half of the lane and a
+		-- goo bar stands on its front edge, sinking into it for a moment: wait in the hover, step across while it
+		-- is down.
 		name = "Hover Shelf",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
@@ -229,16 +240,17 @@ M.variants = {
 			opening(parts, {
 				x0 = PAD,
 				x1 = x1,
-				z0 = -4,
-				z1 = 4,
+				z0 = -10,
+				z1 = -2,
 				bottom = HOP,
 				top = rise + 7,
 				hover = rise + 2 + ROOT,
 			})
-			ledge(parts, x1 + 2.5, length, -Kit.HALF, Kit.HALF, rise)
+			-- The shelf is on the other half of the lane: drift across in the hover, step on while the bar on its front sinks into it.
+			ledge(parts, x1 + 2, length, 0, Kit.HALF, rise)
 			table.insert(
 				parts,
-				Kit.hazard({ 1.5, 6, 14 }, { x1 + 1.25, rise + 3, 0 }, {
+				Kit.hazard({ 1.5, 6, 14 }, { x1 + 3.5, rise + 3, 5 }, {
 					motion = {
 						kind = "path",
 						points = { { 0, 0, 0 }, { 0, -8, 0 } },
@@ -297,7 +309,8 @@ M.variants = {
 	},
 	{
 		-- A wind tunnel along the course over a 12-stud gap: hop in, it holds you up and blows you forward; steer
-		-- round the goo block sliding from side to side in the middle.
+		-- round the goo block sliding from side to side in the middle, and out of its side onto the far ledge on
+		-- the other half of the lane.
 		name = "First Crosswind",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
@@ -306,8 +319,8 @@ M.variants = {
 			local tunnel: Column = {
 				x0 = PAD,
 				x1 = PAD + 14,
-				z0 = -6,
-				z1 = 6,
+				z0 = -10,
+				z1 = -2,
 				bottom = HOP,
 				top = HOP + 6.5,
 				hover = HOP + 3,
@@ -317,10 +330,11 @@ M.variants = {
 			kerb(parts, tunnel.z0, tunnel.z1)
 			column(parts, tunnel)
 			gust(parts, tunnel, GUST)
-			ledge(parts, PAD + 12, length, -Kit.HALF, Kit.HALF, 0)
+			-- The far ledge is on the other half of the lane: steer out of the tunnel's side over it.
+			ledge(parts, PAD + 12, length, 0, Kit.HALF, 0)
 			table.insert(
 				parts,
-				Kit.hazard({ 2, 6.5, 4 }, { PAD + 6, HOP + 3.25, 0 }, {
+				Kit.hazard({ 2, 6.5, 4 }, { PAD + 6, HOP + 3.25, -6 }, {
 					motion = { kind = "slide", axis = "z", amp = 3, period = 2.5 },
 				})
 			)
@@ -329,7 +343,8 @@ M.variants = {
 	},
 	{
 		-- The column switches off on a timer; the swirl fades first. A slower ride: start it just as it comes on. Up
-		-- top a goo bar as wide as the lane spins round: slip past it between two sweeps.
+		-- top (across on the other half of the lane) a goo bar as wide as the lane spins round: slip past it between
+		-- two sweeps.
 		name = "Blink Column",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -338,15 +353,16 @@ M.variants = {
 			opening(parts, {
 				x0 = PAD,
 				x1 = PAD + 8,
-				z0 = -4,
-				z1 = 4,
+				z0 = -10,
+				z1 = -2,
 				bottom = HOP,
 				top = rise + 4,
 				power = 20,
 				on = 1.85,
 				off = 1.5,
 			})
-			ledge(parts, PAD + 9, length, -Kit.HALF, Kit.HALF, rise)
+			ledge(parts, PAD + 9, SIDE_TO, 0, Kit.HALF, rise)
+			ledge(parts, SIDE_TO, length, -Kit.HALF, Kit.HALF, rise)
 			table.insert(
 				parts,
 				Kit.hazard({ 22, 2, 1.5 }, { 32, rise + 1, 0 }, { motion = { kind = "spin", period = BLINK_SPIN } })
@@ -356,7 +372,7 @@ M.variants = {
 	},
 	{
 		-- Two columns side by side take turns: hover in A, and while both run (1.2 s) step sideways into B before A
-		-- fades (about a second). B starts too high to jump into from the pad.
+		-- fades (about a second). B starts too high to jump into from the pad, a stud past A's side.
 		name = "Relay Fans",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -373,11 +389,12 @@ M.variants = {
 				on = 3.05,
 				off = 0.95,
 			})
+			-- B starts a stud past A's side: no straight line runs through both.
 			column(parts, {
 				x0 = PAD,
 				x1 = PAD + 8,
-				z0 = -2,
-				z1 = 6,
+				z0 = -1,
+				z1 = 7,
 				bottom = 11.5,
 				top = rise + 4,
 				on = 3.05,
@@ -391,7 +408,8 @@ M.variants = {
 	{
 		-- Hover at the top while a ledge drifts back and forth across the lane, pausing at each end: step onto it
 		-- when it lines up with you, ride it across to the far ledge. The column only runs while the ledge comes
-		-- by (same 5 s beat), so hop in as it comes on; hover too long and it drops you.
+		-- by (same 5 s beat), so hop in as it comes on; hover too long and it drops you. The far ledge only meets
+		-- the drifting one at the end of its trip: ride it all the way.
 		name = "Drifting Column",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -417,7 +435,7 @@ M.variants = {
 					marker = "rail",
 				})
 			)
-			ledge(parts, 31, length, 2, Kit.HALF, rise)
+			ledge(parts, 31, length, 4, Kit.HALF, rise)
 			return Kit.section(length, rise, parts)
 		end,
 	},
@@ -483,20 +501,21 @@ M.variants = {
 		end,
 	},
 	{
-		-- Ride up onto a shelf, hop into a wind tunnel that holds you up and blows you over a 16-stud gap. It blinks:
-		-- go as it comes on.
+		-- Ride up and across onto a shelf on the other half of the lane, hop into a wind tunnel that holds you up and
+		-- blows you over a 16-stud gap. It blinks: go as it comes on.
 		name = "Crosswind Shelf",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
 			local length, rise = 56, 10
 			local parts: Parts = {}
-			opening(parts, { x0 = PAD, x1 = PAD + 8, z0 = -4, z1 = 4, bottom = HOP, top = rise + 5 })
-			ledge(parts, PAD + 9, PAD + 17, -Kit.HALF, Kit.HALF, rise, 2)
+			-- The shelf is on the other half of the lane from the column: steer across as you rise.
+			opening(parts, { x0 = PAD, x1 = PAD + 8, z0 = -10, z1 = -2, bottom = HOP, top = rise + 5 })
+			ledge(parts, PAD + 9, PAD + 17, 0, Kit.HALF, rise, 2)
 			local tunnel: Column = {
 				x0 = PAD + 16,
 				x1 = PAD + 34,
-				z0 = -6,
-				z1 = 6,
+				z0 = 0,
+				z1 = 12,
 				bottom = rise + HOP,
 				top = rise + 10,
 				hover = rise + 6,
@@ -543,19 +562,21 @@ M.variants = {
 	},
 	{
 		-- A red goo propeller (a cross of two paddles) spins through the middle of a slow column: hop in so you pass
-		-- its height between two blades. (Tightened from the draft's single bar, which a rider can always dodge.)
+		-- its height between two blades, and steer across to the ledge on the other side of the lane. (Tightened
+		-- from the draft's single bar, which a rider can always dodge.)
 		name = "Spinner Shaft",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
 			local length, rise = 40, 16
 			local parts: Parts = {}
 			local x0, x1 = PAD, PAD + 12
-			opening(parts, { x0 = x0, x1 = x1, z0 = -6, z1 = 6, bottom = HOP, top = rise + 4.5, power = 14 })
-			ledge(parts, x1 + 1, length, -Kit.HALF, Kit.HALF, rise)
+			-- The ledge is on the other side of the lane from the column: steer across as you rise.
+			opening(parts, { x0 = x0, x1 = x1, z0 = -10, z1 = 2, bottom = HOP, top = rise + 4.5, power = 14 })
+			ledge(parts, x1 + 1, length, 4, Kit.HALF, rise)
 			for _, yaw in { 0, 90 } do
 				table.insert(
 					parts,
-					Kit.hazard({ 18, 1, 3.5 }, { (x0 + x1) / 2, 13.5, 0 }, {
+					Kit.hazard({ 16, 1, 3.5 }, { (x0 + x1) / 2, 13.5, -4 }, {
 						yaw = yaw,
 						motion = { kind = "spin", period = SPINNER },
 					})
@@ -632,19 +653,21 @@ M.variants = {
 		end,
 	},
 	{
-		-- Ride up into a forward wind tunnel over a 24-stud gap that blinks on and off: bob at the column's top, go
-		-- as it comes on, or it cuts out mid-gap and you drop. Halfway across a goo block slides from side to side.
+		-- Ride up, then across into a forward wind tunnel on the other half of the lane, over a 24-stud gap, that
+		-- blinks on and off: bob at the column's top, go as it comes on, or it cuts out mid-gap and you drop.
+		-- Halfway across a goo block slides from side to side.
 		name = "Gust Gap",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
 			local length, rise = 56, 12
 			local parts: Parts = {}
-			opening(parts, { x0 = PAD, x1 = PAD + 8, z0 = -4, z1 = 4, bottom = HOP, top = 16 })
+			-- The tunnel is on the other half of the lane from the column: steer across into it at the top.
+			opening(parts, { x0 = PAD, x1 = PAD + 8, z0 = -12, z1 = -2, bottom = HOP, top = 16 })
 			local tunnel: Column = {
 				x0 = PAD + 8,
 				x1 = PAD + 34,
-				z0 = -6,
-				z1 = 6,
+				z0 = 0,
+				z1 = 12,
 				bottom = 13,
 				top = 20,
 				hover = 16.5,
@@ -656,7 +679,7 @@ M.variants = {
 			gust(parts, tunnel, GUST)
 			table.insert(
 				parts,
-				Kit.hazard({ 2, 7, 4 }, { PAD + 22, 16.5, 0 }, {
+				Kit.hazard({ 2, 7, 4 }, { PAD + 22, 16.5, 6 }, {
 					motion = { kind = "slide", axis = "z", amp = 3, period = 2 },
 				})
 			)

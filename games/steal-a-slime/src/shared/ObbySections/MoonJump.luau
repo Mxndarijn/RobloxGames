@@ -262,7 +262,9 @@ M.variants = {
 	{
 		-- A goo wall stands 2 in front of each 8-long island across a 15-stud gap at 35 % gravity. Up, it is 22 high,
 		-- over the top of the float; it sinks for about 1.1 s (about 1.5 s under the float's path). A full-speed float from the edge overshoots the island,
-		-- so you drop over the wall and pull back onto the island tucked behind it.
+		-- so you drop over the wall and pull back onto the island tucked behind it. The second wall sinks only 0.34 s
+		-- after the first while a hop between them takes about 1.5 s: hop on at once (or mash jump) and it stands in
+		-- your way, so you wait on the first island for it.
 		name = "Over and Back",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -272,7 +274,7 @@ M.variants = {
 			local x = PAD
 			for i = 1, 2 do
 				x += gap
-				sinker(parts, x - 2 - wall / 2, wall, 22, 25, 3.4, 1.35, if i == 1 then 0 else 0.5)
+				sinker(parts, x - 2 - wall / 2, wall, 22, 25, 3.4, 1.35, if i == 1 then 0 else 0.1)
 				island(parts, x, long, 0, 0, 10, 1 + i)
 				x += long
 			end
@@ -491,18 +493,20 @@ M.variants = {
 	},
 	{
 		-- One enormous float at 20 % gravity (36 high, 2.7 s in the air) over a 30-stud gap while three goo blobs slide
-		-- 8.5 side to side through the arc (3 s); land on an 8 x 10 pad, so you jump from the entry pad's first half.
+		-- 8.5 side to side through the arc (3 s); land on an 8 x 10 pad. The entry pad is 14 long and a float is about
+		-- 41 studs, so you run in a few studs first and jump from its middle: one the moment you step on (or mashing
+		-- jump) comes down in the goo just short of the pad.
 		name = "Last Leap",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
-			local g, gap, land = 0.2, 30, 8
+			local g, gap, land, pad = 0.2, 30, 8, 14
 			local parts = {}
-			entry(parts)
-			island(parts, PAD + gap, land, 0, 0, 10, 2)
-			local length = PAD + gap + land
+			entry(parts, pad)
+			island(parts, pad + gap, land, 0, 0, 10, 2)
+			local length = pad + gap + land
 			-- x, y, phase: each blob crosses the lane a little after the one before, so one gap in the three opens
 			-- for about 0.85 s (tests/obby/MoonJump.spec)
-			for _, blob in { { 14, 31, 0 }, { 24, 38, 0.8 }, { 33, 32, 0.6 } } do
+			for _, blob in { { 18, 31, 0 }, { 28, 38, 0.8 }, { 37, 32, 0.6 } } do
 				table.insert(
 					parts,
 					Kit.hazard({ 7, 7, 7 }, { blob[1], blob[2], 0 }, {

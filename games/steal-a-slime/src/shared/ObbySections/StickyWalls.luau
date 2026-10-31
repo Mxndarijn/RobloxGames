@@ -27,7 +27,9 @@
 	tests/obby/StickyWalls.spec.
 
 	Every variant opens on a 10-stud entry pad and has nothing to walk on after it: the walls are the only way over
-	(the walk-forward check finds every line falling or hitting a wall or red goo). Goo Corridor's fall lands on a
+	(the walk-forward check finds every line falling or hitting a wall or red goo). Holding forward by a goo wall
+	slides you along it at walking speed, so no wall line may carry a walker onto a pad: a wall top a mashed jump
+	could land on stands 9 over the pads, and a long wall ends over red goo or too low to step up to the next floor. Goo Corridor's fall lands on a
 	belt that carries you back to two steps up to its start in its first half (its design) and red goo in its second;
 	every other variant has red goo.
 
@@ -359,19 +361,22 @@ M.variants = {
 	},
 	{
 		-- The course drops down a 24-deep shaft (walls 9 apart): each wall catches you and slows the fall, three
-		-- catches down to a small pad standing in a red pool.
+		-- catches down to a small pad standing in a red pool. The right wall is tall (no landing on its top) and a
+		-- red ledge hangs over the last wall's top, so sliding straight down the left side (what holding forward
+		-- does) runs into it: brake on the right wall first, then jump low across.
 		name = "Sticky Brakes",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
-			local length, rise = 44, -24
+			local length, rise = 54, -24
 			local parts = {}
 			entry(parts)
 			table.insert(parts, goo(12, 24, -CHIMNEY_Z, -8, 6, 2.5))
-			table.insert(parts, goo(18, 30, CHIMNEY_Z, -16, -3, 2.5))
-			table.insert(parts, goo(24, 36, -CHIMNEY_Z, -23, -11, 2.5))
-			-- the pad fills the shaft between the wall faces: 8 long, 9 across
+			table.insert(parts, goo(18, 28, CHIMNEY_Z, -16, 9, 2.5))
+			table.insert(parts, goo(24, 42, -CHIMNEY_Z, -23, -11, 2.5))
 			local face = CHIMNEY_Z - WALL_THICK / 2
 			exit(parts, 36, length, rise, -face, face)
+			-- a red ledge over the last wall's top: jump to it from low on the right wall, not straight down the left
+			table.insert(parts, Kit.hazard({ 12.5, 1.5, 4 }, { 35.75, -5.25, -CHIMNEY_Z }))
 			table.insert(parts, pool(10, length, rise - 0.5))
 			return Kit.section(length, rise, parts)
 		end,
@@ -458,14 +463,14 @@ M.variants = {
 	},
 	{
 		-- These walls barely hold (7 studs / s, about 1.4 s a wall) over a red floor at their feet: jump off almost
-		-- as soon as you stick.
+		-- as soon as you stick. Their tops stand 9 over the pads, past a mashed jump, so nobody hops along them.
 		name = "Fast Slide",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
 			local length = 52
 			local parts = {}
 			entry(parts)
-			local bottom, top, fall = -5, 5, 7
+			local bottom, top, fall = -1, 9, 7
 			table.insert(parts, goo(12, 23, -CORRIDOR_Z, bottom, top, fall))
 			table.insert(parts, goo(18, 28, CORRIDOR_Z, bottom, top, fall))
 			table.insert(parts, goo(23, 34, -CORRIDOR_Z, bottom, top, fall))
@@ -476,11 +481,12 @@ M.variants = {
 	},
 	{
 		-- A red screen runs down the middle of the lane with one 7-tall hole; slide down the goo wall until you are
-		-- level with it, then jump through onto the pad behind it.
+		-- level with it, then jump through onto the pad behind it. Hold on to the end and you have slid too low to
+		-- step up onto the next floor.
 		name = "Pick Your Height",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
-			local length, rise = 40, -2
+			local length, rise = 40, 0
 			local parts = {}
 			entry(parts, -Kit.HALF, -4)
 			table.insert(parts, goo(8, length, -10.5, -4, 13, 2))
@@ -491,14 +497,15 @@ M.variants = {
 		end,
 	},
 	{
-		-- The right wall breathes in and out (gap 8 to 16, held 0.6 s at each end, every 2.8 s): jump across when it comes close.
+		-- The right wall breathes in and out (gap 8 to 16, held 0.6 s at each end, every 2.8 s): jump across when it
+		-- comes close. The walls stand 9 over the pads, so a mashed jump can't land on their tops.
 		name = "Breathing Wall",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
 			local length = 58
 			local parts = {}
 			entry(parts)
-			local bottom, top, fall = -3, 5, 2
+			local bottom, top, fall = -3, 9, 2
 			local breathe: Kit.Motion = {
 				kind = "path",
 				points = { { 0, 0, 0 }, { 0, 0, 8 } },
@@ -643,11 +650,11 @@ M.variants = {
 	},
 	{
 		-- Like Pick Your Height, but the hole in the red screen shuttles up and down 8 studs: slide, watch, and jump
-		-- the moment it lines up.
+		-- the moment it lines up (the next floor sits too high to step onto after a slide to the end).
 		name = "Moving Window",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
-			local length, rise = 40, -4
+			local length, rise = 40, -1
 			local parts = {}
 			entry(parts, -Kit.HALF, -4)
 			table.insert(parts, goo(8, length, -10.5, -6, 14, 2.5))

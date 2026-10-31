@@ -464,7 +464,7 @@ describe("Moon Jump real arcs", function()
 		for z = -4, 4, 0.5 do
 			table.insert(lines, z)
 		end
-		local w = bestWindow(section, 2, lines, top, hazardPeriod(section), b)
+		local w = bestWindow(section, 6, lines, top, hazardPeriod(section), b) -- 8 short of the 14-long pad's edge
 		expect(w >= BAND.hard.lo and w <= BAND.hard.hi).toBe(true)
 	end)
 end)

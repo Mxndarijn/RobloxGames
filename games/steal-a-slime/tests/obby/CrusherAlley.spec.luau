@@ -111,6 +111,12 @@ describe("Crusher Alley", function()
 			expect(ObbyCheck.straightWalk(case.build(1))).toBeNil()
 		end
 	end)
+
+	it("never lets mashing jump through as a plan (at most MASHER_SHARE of start times on any line)", function()
+		for _, case in ObbyCheck.cases(CrusherAlley) do
+			expect(`{case.name}: {ObbyCheck.masher(case.build(1)) or "ok"}`).toBe(`{case.name}: ok`)
+		end
+	end)
 end)
 
 describe("Crusher Alley timing twists", function()

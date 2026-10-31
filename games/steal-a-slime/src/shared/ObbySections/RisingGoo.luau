@@ -134,6 +134,14 @@ local function surgeRails(
 	end
 end
 
+--[[
+	A rib: a thin wall at x (0.5 thick) across one side of the lane (z0..z1), from y0 up to y1. Ribs sit between two
+	ledges on the same side of a zigzag so you can't skip the jump across by hopping straight up the same side.
+]]
+local function rib(parts: { Kit.Part }, x: number, z0: number, z1: number, y0: number, y1: number)
+	table.insert(parts, Kit.prop({ 0.5, y1 - y0, z1 - z0 }, { x, (y0 + y1) / 2, (z0 + z1) / 2 }, "post"))
+end
+
 -- A climbable truss ladder at x0..x0+2, from `bottom` to `bottom + height`, `w` across, centred on z.
 local function ladder(x0: number, bottom: number, height: number, z: number, w: number): Kit.Part
 	return Kit.prop({ 2, height, w }, { x0 + 1, bottom + height / 2, z }, "truss", { shape = "truss", step = true })
@@ -177,7 +185,8 @@ M.variants = {
 	},
 	{
 		-- Five steps up; the goo rises just high enough to be scary and stops at a glowing high-water line, a stud
-		-- under the fifth step. (Draft 0.9 studs / s; tuned up, starting 4 s in.)
+		-- under the fifth step. (Draft 0.9 studs / s; tuned up, starting 4 s in.) The steps sit left and right with a
+		-- 3-stud strip between them, so every jump steers across the lane: no straight line touches two in a row.
 		name = "Low Tide",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
@@ -189,8 +198,8 @@ M.variants = {
 						16 * k,
 						16 * k + 12,
 						3 * k,
-						0,
-						12,
+						if k % 2 == 0 then -6.5 else 6.5,
+						10,
 						"jelly",
 						{ tone = tone(k), trigger = if k == 0 then GOO else nil }
 					)
@@ -198,7 +207,7 @@ M.variants = {
 			end
 			local length, rise = 92, 15
 			local line = 11
-			flood(parts, 0, length, 3.5, { { v = 2.3, to = line } })
+			flood(parts, 0, length, 4.2, { { v = 2.1, to = line } })
 			highWater(parts, 0, length, line)
 			return Kit.section(length, rise, parts)
 		end,
@@ -345,7 +354,8 @@ M.variants = {
 	},
 	{
 		-- A closed shaft: ledges stick out of the left and right walls and you jump across, back and forth, 5 studs a
-		-- jump, with the goo close under you.
+		-- jump, with the goo close under you. Ribs stand between ledges on the same wall, so hopping straight up one
+		-- side (6 studs) is walled off: every ledge is a jump across.
 		name = "Zigzag Shaft",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -356,7 +366,7 @@ M.variants = {
 					parts,
 					step(
 						4 * k,
-						4 * k + 8,
+						4 * k + 7,
 						3 * k,
 						z,
 						8,
@@ -364,8 +374,14 @@ M.variants = {
 						{ tone = tone(k), trigger = if k == 0 then GOO else nil }
 					)
 				)
+				if k <= 7 then
+					-- in the 1-stud slot before the next ledge on this wall, 10 over this ledge
+					local inner = if z < 0 then -2.5 else 2.5
+					local outer = if z < 0 then -Kit.HALF + 1 else Kit.HALF - 1
+					rib(parts, 4 * k + 7.5, math.min(inner, outer), math.max(inner, outer), 3 * k - 1, 3 * k + 10)
+				end
 			end
-			local length, rise = 44, 27
+			local length, rise = 43, 27
 			for _, z in { -Kit.HALF + 0.5, Kit.HALF - 0.5 } do
 				table.insert(parts, Kit.prop({ length, rise + 12, 1 }, { length / 2, rise / 2, z }, "post"))
 			end
@@ -426,6 +442,7 @@ M.variants = {
 	},
 	{
 		-- Three ladders between ledges and a 5-stud jump after each: a ladder is slow and there is nowhere to dodge.
+		-- Each ladder is 10 tall, higher than any jump, so climbing it is the only way up.
 		name = "Ladder Dash",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -434,8 +451,8 @@ M.variants = {
 			}
 			local x, top = 8, 0
 			for k = 1, 3 do
-				table.insert(parts, ladder(x + 1, top, 8, 0, 8))
-				top += 8
+				table.insert(parts, ladder(x + 1, top, 10, 0, 8))
+				top += 10
 				table.insert(parts, step(x + 3, x + 11, top, 0, 12, "jelly", { tone = tone(k) }))
 				top += 2
 				table.insert(parts, step(x + 16, x + 24, top, 0, 12, "jelly", { tone = tone(k + 1) }))
@@ -480,6 +497,7 @@ M.variants = {
 	},
 	{
 		-- The ledges slide in and out of the left and right walls; jump when the next one is out, while the goo climbs.
+		-- Ribs between ledges on the same wall stop you hopping straight up one side.
 		name = "Sliding Ledges",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -490,7 +508,7 @@ M.variants = {
 				local right = k % 2 == 1
 				table.insert(
 					parts,
-					step(4 * k, 4 * k + 8, 3 * k, if right then 5.75 else -5.75, 8, "jelly", {
+					step(4 * k, 4 * k + 7, 3 * k, if right then 5.75 else -5.75, 8, "jelly", {
 						tone = tone(k),
 						motion = {
 							kind = "slide",
@@ -502,6 +520,14 @@ M.variants = {
 					})
 				)
 			end
+			-- a rib in front of every ledge from the second on its wall (and of the exit, on the left), 10 over the
+			-- ledge before it on that wall
+			for k = 2, 8 do
+				local right = k % 2 == 1
+				local z0, z1 = if right then 1 else -Kit.HALF + 0.5, if right then Kit.HALF - 0.5 else -1
+				local below = if k == 2 then 0 else 3 * (k - 2)
+				rib(parts, 4 * k - 0.5, z0, z1, below - 1, below + 10)
+			end
 			local length, rise = 44, 24
 			table.insert(parts, step(36, 44, rise, 0, Kit.WIDTH, "jelly", { tone = 2 }))
 			flood(parts, 0, length, 1.6, { { v = 1.9, to = rise - 1 } })
@@ -510,12 +536,12 @@ M.variants = {
 	},
 	{
 		-- Not a tower: a long basin of low steps (1.5 up each) that fills from behind, band by band, so the goo closes in
-		-- from behind and below.
+		-- from behind and below. The steps sit 5 studs apart: too far to walk across, so every one is a jump.
 		name = "Flooding Basin",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
 			local parts = {}
-			local pitch = 9.5
+			local pitch = 12
 			for k = 0, 8 do
 				table.insert(
 					parts,
@@ -708,7 +734,8 @@ M.variants = {
 	},
 	{
 		-- Ladders and short jumps mixed under fast surges: be off each ladder and up high before the warning ends.
-		-- (Ladders are 6 tall: a truss is sized in 2-stud steps. Between surges the goo holds still.)
+		-- (Ladders are 10 tall, higher than any jump, so you have to climb them: a truss is sized in 2-stud steps.
+		-- Between surges the goo holds still.)
 		name = "Surge Ladders",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
@@ -717,15 +744,15 @@ M.variants = {
 			}
 			local x, top = 8, 0
 			for k = 1, 3 do
-				table.insert(parts, ladder(x + 1, top, 6, 0, 8))
-				top += 6
+				table.insert(parts, ladder(x + 1, top, 10, 0, 8))
+				top += 10
 				table.insert(parts, step(x + 3, x + 11, top, 0, 12, "jelly", { tone = tone(k) }))
 				top += 3
 				table.insert(parts, step(x + 15, x + 23, top, 0, 12, "jelly", { tone = tone(k + 1) }))
 				x += 23
 			end
 			local length, rise = x, top
-			local calm, surge, v = 2, 2, 5.3
+			local calm, surge, v = 2, 2, 6.0
 			local plan: { Seg } = {}
 			local h = GOO_TOP
 			while h < rise - 1 - 1e-6 do

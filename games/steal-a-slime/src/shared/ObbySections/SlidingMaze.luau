@@ -336,12 +336,11 @@ local function build(L: Layout): Kit.Section
 	local length = if tops[N] < 0 then xEnd + 8 else xEnd + EXIT_LONG
 	local rise = if tops[N] < 0 then 0 else tops[N]
 
-	-- Outer walls along both lane edges.
+	-- Outer walls along both lane edges, a full wall over the highest floor beside them: over the lookout too, or a
+	-- jump off it lands on their tops and runs along them over the maze (ObbyCheck.masher).
+	local outerTop = (if L.lookout then math.max(high, 0) else high) + Kit.WALL_HEIGHT
 	for _, side in { -1, 1 } do
-		table.insert(
-			parts,
-			wallPart(x0, xEnd, side * OUTER - 0.5, side * OUTER + 0.5, low, high - low + Kit.WALL_HEIGHT)
-		)
+		table.insert(parts, wallPart(x0, xEnd, side * OUTER - 0.5, side * OUTER + 0.5, low, outerTop - low))
 	end
 
 	-- Sealed cells (not part of the maze) are solid jelly blocks, merged along each column.

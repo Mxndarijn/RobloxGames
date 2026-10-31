@@ -318,12 +318,17 @@ describe("Clue Doors", function()
 			for seed = 1, 20, 3 do
 				local section, rooms = ClueDoors.inspect(index, seed, tier)
 				for k, room in rooms do
-					-- the door floor ends at the door wall (room.x0 - 1): start the walker there
+					-- the door floor ends at the door wall (room.x0 - 1), or runs on under it to room.x0 when the
+					-- doorways have goo lintels: start the walker there
 					local parts = {}
 					local started = false
 					for _, p in section.parts do
 						local x0, x1 = Kit.bounds(p)
-						if p.step and not started and math.abs(x1 - (room.x0 - 1)) < 1e-6 then
+						if
+							p.step
+							and not started
+							and (math.abs(x1 - (room.x0 - 1)) < 1e-6 or math.abs(x1 - room.x0) < 1e-6)
+						then
 							started = true
 							table.insert(parts, p)
 						elseif x0 >= room.x0 - 2 then

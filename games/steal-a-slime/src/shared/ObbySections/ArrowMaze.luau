@@ -14,6 +14,10 @@
 	walker off the lane or into goo, and the exit is a ledge (tests/obby/ArrowMaze.spec checks the maze without the
 	exit hop as well).
 
+	Mashing jump doesn't clear one either (contract §9): goo bars hang across the lane at head height over open belt
+	columns (`layout.bars`, picked by M.barCols away from every hop the route needs). You walk under them; a hop
+	anywhere near one, from a belt or an island, runs into it.
+
 	Layouts are three strings (lane 1 = left / -z, lane 2 = middle, lane 3 = right / +z), one character a column:
 	  > < ^ v   belt pushing forward / back / left (-z) / right (+z) at the layout's `speed`
 	  F B U D   the same at the `fast` speed (double chevrons)
@@ -45,6 +49,10 @@ local WEAK = 10 -- a belt this slow lets you walk off it sideways
 local RED_WALL_H = 8 -- a red wall: taller than a jump
 local RED_WALL_T = 2
 local PIT_TOP = 0.2 -- a goo cell bulges this far over the floor: not a floor, and touching its edge counts
+local BAR_CLEAR = 5.2 -- a goo bar's underside over the column's highest floor: you walk under it (head 5), a hop hits it
+local BAR_LEN = 3 -- along the course: a jump anywhere near it touches it
+local BAR_THICK = 5 -- up past the top of any hop, from a belt or an island
+local WALK_UP = 2 -- a riser this high is walked up (the character's hip), no hop
 
 -- Belt speeds per tier (studs / s), shifted up a notch from the drafts (contract §10).
 local SPEED = { easy = 10, medium = 14, hard = 18 }
@@ -81,6 +89,7 @@ export type Layout = {
 	walls: { Wall }?,
 	turn: { period: number, duty: number, phases: { number }? }?,
 	exitHop: number?,
+	bars: { number }?, -- columns with a goo bar across the lane at head height (M.barCols picks them)
 }
 
 export type Cell = {
@@ -197,6 +206,43 @@ function M.parse(layout: Layout): Grid
 		walls = walls,
 		layout = layout,
 	}
+end
+
+--[[
+	Columns fit for a goo bar (a hazard across the lane at head height, contract §9: jumping on every landing must
+	not clear a maze): every cell in it a flat belt or rest cell at one height, no hop needed in or next to it (no
+	trench or island beside it, no riser over WALK_UP on to the next column), and not in `avoid` (columns where the
+	route jumps). Up to `count` of them, spread out: the first and the last fit columns past column 1.
+]]
+function M.barCols(layout: Layout, count: number, avoid: { [number]: boolean }?): { number }
+	local g = M.parse(layout)
+	local fit = {}
+	for c = 2, g.cols do
+		local ok = not (avoid and avoid[c])
+		for l = 1, 3 do
+			local cell = g.cells[c][l]
+			if cell.ch == "." or cell.ch == "~" or cell.base ~= g.cells[c][1].base then
+				ok = false
+			end
+			for _, n in { c - 1, c + 1 } do
+				local nb = g.cells[n] and g.cells[n][l]
+				if nb and (nb.ch == "~" or (n > c and (nb.ch == "." or nb.top - cell.top > WALK_UP))) then
+					ok = false
+				end
+			end
+		end
+		if ok then
+			table.insert(fit, c)
+		end
+	end
+	local out = {}
+	if #fit > 0 and count >= 1 then
+		table.insert(out, fit[1])
+		if count >= 2 and fit[#fit] - fit[1] >= 2 then
+			table.insert(out, fit[#fit])
+		end
+	end
+	return out
 end
 
 ---------------------------------------------------------------------------
@@ -337,6 +383,15 @@ function M.grid(layout: Layout): Kit.Section
 		else
 			table.insert(parts, Kit.prop(size, pos, "jelly", { tone = 3 }))
 		end
+	end
+	for _, c in layout.bars or {} do
+		local cell = g.cells[c][1]
+		local high = -math.huge
+		for l = 1, 3 do
+			high = math.max(high, g.cells[c][l].top)
+		end
+		local y = high + BAR_CLEAR + BAR_THICK / 2
+		table.insert(parts, Kit.hazard({ BAR_LEN, BAR_THICK, Kit.WIDTH }, { (cell.x0 + cell.x1) / 2, y, 0 }))
 	end
 	local length = g.gridEnd + EXIT
 	table.insert(parts, Kit.slab(g.gridEnd + EXIT / 2, g.exitTop, 0, EXIT, Kit.WIDTH, "jelly", { tone = 3 }))
@@ -697,6 +752,17 @@ local function attempt(rng: any, tier: string, opts: GenOpts): (Layout?, { numbe
 		back = math.max(SPEED[tier], 18),
 		turn = if turns > 0 then { period = TURN[tier].period, duty = TURN[tier].duty, phases = phases } else nil,
 	}
+	-- Goo bars over the open stretches (not where the route jumps a dump): a masher hits them.
+	local avoid: { [number]: boolean } = {}
+	if jumpedAt then
+		for dc = -1, 1 do
+			avoid[jumpedAt[1] + dc] = true
+		end
+	end
+	layout.bars = M.barCols(layout, if tier == "easy" then 1 else 2, avoid)
+	if #(layout.bars :: { number }) == 0 then
+		return nil
+	end
 	-- The rules: solvable, enough belts away from the route, the tier's dumps, the part budget.
 	if not M.solve(layout) or not M.linked(layout) then
 		return nil
@@ -879,6 +945,12 @@ local LAYOUTS: { Layout } = {
 	},
 }
 
+-- Goo bars on the mazes a masher (jumping on every landing) would clear: walk under them, never hop there.
+for _, i in { 1, 3, 5, 7, 9, 10, 14 } do
+	LAYOUTS[i].bars = M.barCols(LAYOUTS[i], 2)
+	assert(#(LAYOUTS[i].bars :: { number }) > 0, "ArrowMaze: no column fits a goo bar")
+end
+
 FALLBACK.easy = LAYOUTS[3]
 FALLBACK.medium = LAYOUTS[7]
 FALLBACK.hard = LAYOUTS[12]
@@ -886,7 +958,7 @@ FALLBACK.hard = LAYOUTS[12]
 -- The generator's examples on the design page: a fixed seed and its numbers.
 local SEEDS: { { any } } = {
 	{ "Seed A: Two Picks", "easy", 11, { cols = 6, choices = 2 } },
-	{ "Seed B: Long Carry", "easy", 27, { cols = 7, choices = 2, reds = 1 } },
+	{ "Seed B: Long Carry", "easy", 28, { cols = 7, choices = 2, reds = 1 } },
 	{ "Seed C: Three Picks", "medium", 42, { cols = 8, choices = 3, turns = 0 } },
 	{ "Seed D: One Turner", "medium", 58, { cols = 8, turns = 1 } },
 	{ "Seed F: Snake", "hard", 91, { cols = 10, choices = 2, turns = 0, reds = 3 } },

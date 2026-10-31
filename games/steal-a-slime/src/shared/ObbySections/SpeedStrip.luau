@@ -14,6 +14,10 @@
 	Boost carry: in the game a boost eases back to 16 over 0.3 s once its `carry` runs out, also in the air, so every
 	strip you leap from carries its speed for FLIGHT s (a boosted leap is in the air about 0.55 s).
 
+	No mashing (contract §9): where jumping on every landing would carry you across, a red goo canopy hangs over the
+	strip (`canopy`), so you keep your feet down and leap only at the edge; Stepping Boosts puts its pads in turn
+	left and right instead, so a hop straight on misses.
+
 	Hand-made only: the design file has no generator (each gap is checked against its own boost).
 ]]
 
@@ -29,6 +33,11 @@ local EASY = 3.4 -- about 1.45 s
 local MEDIUM = 2.6 -- about 1.05 s
 local HARD = 2.1 -- about 0.8 s
 local CRUSH = 2.4 -- Left, Right, Leap's crusher (about 0.8 s)
+-- A red goo canopy over a strip: its underside sits CANOPY over the floor, clear of a running head (5) but low
+-- enough that any jump under it touches it. It stops LEAP_ROOM short of the strip's end, so the leap at the edge is
+-- free while a jump anywhere earlier on the strip (mashing jump) is a reset.
+local CANOPY = 6.5
+local LEAP_ROOM = 4
 
 local function plain(x0: number, x1: number, top: number, z: number, wide: number, tone: number?): Kit.Part
 	return Kit.slab((x0 + x1) / 2, top, z, x1 - x0, wide, "jelly", { tone = tone or 1 })
@@ -78,6 +87,11 @@ local function sweeper(
 	})
 end
 
+-- A red goo canopy over a floor whose top is `top`, from x0 to x1 (see CANOPY): run under it, don't jump.
+local function canopy(x0: number, x1: number, top: number, z: number, wide: number): Kit.Part
+	return Kit.hazard({ x1 - x0, 1, wide }, { (x0 + x1) / 2, top + CANOPY + 0.5, z })
+end
+
 -- A still red goo post on a floor (steer round it).
 local function post(x: number, top: number, z: number, wide: number): Kit.Part
 	return Kit.hazard({ SWEEP_LONG, SWEEP_TALL, wide }, { x, top + SWEEP_TALL / 2, z })
@@ -104,6 +118,7 @@ M.variants = {
 			return Kit.section(length, 0, {
 				plain(0, 6, 0, 0, Kit.WIDTH, 1),
 				strip(6, 30, 0, 0, 12, 30),
+				canopy(6, 30 - LEAP_ROOM, 0, 0, Kit.WIDTH),
 				sweeper(18, 0, 0, 10, 5, EASY),
 				plain(41, length, 0, 0, Kit.WIDTH, 3), -- gap 11, landing 12 deep
 			})
@@ -143,6 +158,7 @@ M.variants = {
 			return Kit.section(length, 3, {
 				plain(0, 4, 0, 0, Kit.WIDTH, 1),
 				strip(4, 26, 0, 0, 12, 30),
+				canopy(4, 26 - LEAP_ROOM, 0, 0, Kit.WIDTH),
 				sweeper(23, 0, 0, 10, 5, EASY),
 				plain(36.5, length, 3, 0, Kit.WIDTH, 3), -- gap 10.5, +3
 			})
@@ -162,6 +178,7 @@ M.variants = {
 				-- the plain floor either side: you can run there, but at walking speed
 				Kit.prop({ to - from, Kit.THICK, 8 }, { (from + to) / 2, -Kit.THICK / 2, -8 }, "jelly", { tone = 2 }),
 				Kit.prop({ to - from, Kit.THICK, 8 }, { (from + to) / 2, -Kit.THICK / 2, 8 }, "jelly", { tone = 2 }),
+				canopy(from, to - LEAP_ROOM, 0, 0, Kit.WIDTH),
 				sweeper(18, 0, 0, 8, 8, 3.6),
 				plain(39, length, 0, 0, Kit.WIDTH, 3), -- gap 11
 			})
@@ -231,6 +248,7 @@ M.variants = {
 			return Kit.section(length, 0, {
 				plain(0, 4, 0, 0, Kit.WIDTH, 1),
 				strip(4, 20, 0, 0, 12, 30, { boost = { speed = 30, carry = 1.5 } }),
+				canopy(4, 20 - LEAP_ROOM, 0, 0, Kit.WIDTH),
 				sweeper(12, 0, 0, 10, 5, MEDIUM),
 				-- gap 6 (the draft's 5 is walked over at 30 studs / s); the pad tops your speed up (see engineGaps)
 				strip(26, 32, 0, 0, 8, 30, {
@@ -242,42 +260,48 @@ M.variants = {
 		end,
 	},
 	{
-		-- No long strip, just short boost pads with gaps; each one tops up your speed for the next. The last three
-		-- slide side to side out of step, so every hop is aimed.
+		-- No long strip, just short boost pads with gaps; each one tops up your speed for the next. The pads sit in
+		-- turn in the left and the right half of the lane (never in line with each other) and the last three slide
+		-- side to side out of step, so every hop is aimed across: hopping straight on misses the next pad.
 		name = "Stepping Boosts",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
 			local length = 72
-			local function pad(x0: number, moves: boolean, phase: number): Kit.Part
-				return strip(x0, x0 + 5, 0, 0, 10, 32, {
+			-- 8 wide round z = -6 / +6, sliding 1.5 each way: at least 1 stud of lane between a left and a right pad
+			local function pad(x0: number, side: number, moves: boolean, phase: number): Kit.Part
+				return strip(x0, x0 + 5, 0, side * 6, 8, 32, {
 					boost = { speed = 32, carry = 1.2 },
 					motion = if moves
-						then { kind = "slide", axis = "z", amp = 4, period = 2.2, phase = phase }
+						then { kind = "slide", axis = "z", amp = 1.5, period = 2.2, phase = phase }
 						else nil,
 				})
 			end
 			return Kit.section(length, 0, {
 				plain(0, 4, 0, 0, Kit.WIDTH, 1),
-				pad(9.5, false, 0), -- gap 5.5 from the start pad
-				pad(20.5, true, 0), -- gaps 6: the draft's 5 is walked over at 32
-				pad(31.5, true, 1 / 3),
-				pad(42.5, true, 2 / 3),
+				pad(9.5, -1, false, 0), -- gap 5.5 from the start pad
+				pad(20.5, 1, true, 0), -- gaps 6: the draft's 5 is walked over at 32
+				pad(31.5, -1, true, 1 / 3),
+				pad(42.5, 1, true, 2 / 3),
 				plain(59.5, length, 0, 0, Kit.WIDTH, 3), -- last gap 12
 			})
 		end,
 	},
 	{
-		-- Red goo bumps pop up out of the strip and sink back: hop them or run through as they drop.
+		-- Red goo bumps pop up out of the run-up and sink back: hop them or run through as they drop. Then the strip,
+		-- under a red goo canopy: keep your feet down until the edge (a hop there is a reset), then leap.
 		name = "Hurdles",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
-			local length = 53
+			local length = 69
 			local parts = {
 				plain(0, 4, 0, 0, Kit.WIDTH, 1),
-				strip(4, 30, 0, 0, 12, 30),
+				plain(4, 26, 0, 0, 12, 2), -- the run-up with the bumps, at walking speed
+				strip(26, 46, 0, 0, 12, 30),
+				-- starts 10 past the last bump, so a late hop over it is down before the canopy
+				canopy(32, 46 - LEAP_ROOM, 0, 0, Kit.WIDTH),
 			}
 			local period = 2.9
-			for i, x in { 11, 18, 25 } do
+			for i, x in { 8, 15, 22 } do
 				-- hidden 0.5 under the strip top at rest, 1.5 over it when up
 				table.insert(
 					parts,
@@ -292,7 +316,7 @@ M.variants = {
 					})
 				)
 			end
-			table.insert(parts, plain(41, length, 0, 0, Kit.WIDTH, 3)) -- gap 11
+			table.insert(parts, plain(57, length, 0, 0, Kit.WIDTH, 3)) -- gap 11
 			return Kit.section(length, 0, parts)
 		end,
 	},
@@ -333,6 +357,7 @@ M.variants = {
 					})
 				)
 			end
+			table.insert(parts, canopy(4, 28 - LEAP_ROOM, 0, 0, Kit.WIDTH))
 			table.insert(parts, sweeper(18, 0, 0, 10, 5, MEDIUM))
 			table.insert(parts, plain(39, length, 0, 0, Kit.WIDTH, 3)) -- gap 11
 			return Kit.section(length, 0, parts)
