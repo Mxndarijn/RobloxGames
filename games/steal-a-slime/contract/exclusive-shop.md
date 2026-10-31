@@ -259,12 +259,12 @@ Request `EquipStyle(kind, id)` (0.5 s; "" = take off). State: `exclusiveShop.sty
 - **Base skins** (`Skin_<id>`, `Config.PLOT_SKINS[].exclusive`): Fairground 299, Beach Hut 249, Space Station 399,
   Winter Cabin 249, Haunted Ranch 299 (Halloween). `PlotSkins.unlocked` = owned; equipped with `EquipPlotSkin`. The
   tower meshes are kit themes (`models/_goo_jar_themes.py`, `goo_jar_*@<id>`, uploaded; MeshAssets block from
-  `tools/goo_jar_theme_assets.py`). The Skins menu shows an unowned one with a gold "Exclusive" and
-  "Only in the Exclusive shop.".
+  `tools/goo_jar_theme_assets.py`). The Skins menu shows an unowned one with a gold "Exclusive" and its price, and
+  its pane sells it with "Buy · R$<price>" (the shop on that skin while the product is not on sale).
 - **Bases** (`Base_<id>`, `Config.PLOT_BASES[].exclusive`, contract/base-shapes.md): Carousel Tent 599, Space Rocket
   499, Tree House 499, Lighthouse 399, Snow Globe 399. `PlotBases.unlocked` = owned (rebirths never unlock one);
   equipped with `EquipPlotBase` ("Pick it in Skins."). Shown on the Style tab after the base skins (card key `plotBase:<id>`, icon
-  `PlotBase_<id>`, UI-drawn), and in the Skins menu's base row with a gold "Exclusive" and "Buy · R$<price>". A base
+  `PlotBase_<id>`, UI-drawn), and in the Skins menu's Building tab with a gold "Exclusive", its price and "Buy · R$<price>". A base
   taken back (a gift whose save failed) is taken off: `plotBase` goes back to `jar`.
 - **Lock styles** (`LockStyle_<id>`, `EXCLUSIVE_SHOP.lockStyles`, kit `lock_stopper_<id>`, the classic stopper's box):
   the owner's worn style is Plot attribute `LockStyle`; MeshSwap shows its stopper on `StopperShut` only (the door
