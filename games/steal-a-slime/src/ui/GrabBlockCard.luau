@@ -33,11 +33,12 @@ local GrabBlockCard = {}
 GrabBlockCard.PROMPT_NAME = "GrabPrompt"
 GrabBlockCard.CARD = table.freeze({
 	w = 250,
-	pad = 10,
+	pad = 8,
 	titleH = 24,
 	titleSize = 18,
-	reasonH = 22,
-	reasonSize = 16,
+	reasonH = 26,
+	reasonSize = 20, -- the "Need $2.18K more" line is what the player came to read: larger than the name
+	-- 66 px tall in all (8 + 24 + 26 + 8), the same as before the bigger reason line
 	radius = 18,
 	stroke = 3,
 	drop = 0.3, -- studs between the slime's Body bottom and the card's top edge
