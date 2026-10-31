@@ -53,90 +53,115 @@ local function run(weights: Habitats.Weights, id: string, seconds: number): Habi
 end
 
 describe("Habitats table", function()
-	it("maps every slime type in the roster to a real, non-base habitat", function()
+	it("gives every species in the roster a theme, its rarity frame and its signature prop", function()
 		for _, entry in SlimeRoster.ROSTER do
 			local id = Habitats.forType(entry.id, nil)
-			expect(id ~= BASE).toBe(true)
-			expect(Habitats.get(id) ~= nil).toBe(true)
+			local look = Habitats.look(id)
+			assert(look, `{entry.id}: {id}`)
+			expect(look.theme.id).toBe(Habitats.SPECIES_THEME[entry.id])
+			expect(look.frame.tier).toBe(entry.tier)
+			expect(look.prop).toBe(entry.id)
 		end
 	end)
-	it("gives every rarity tier and the Secret tier a family habitat", function()
+	it("names theme, tier and species in the id; the slime's own tier picks the frame", function()
+		expect(Habitats.forSlime(species("a", "captain_goo"))).toBe("reef.5.captain_goo")
+		expect(Habitats.forSlime(species("b", "blaze"))).toBe("ember.4.blaze")
+		expect(Habitats.forType("pengoo", 3)).toBe("ice.3.pengoo")
+		expect(Habitats.forType("lunara", nil)).toBe("space.8.lunara")
+		expect(Habitats.forType("midas", SlimeRoster.SECRET_TIER)).toBe("vault.7.midas")
+	end)
+	it("puts fire, ice, sea and ghost slimes in a theme that fits them", function()
+		local function theme(speciesId: string): string
+			return (Habitats.look(Habitats.forType(speciesId, nil)) :: Habitats.Look).theme.id
+		end
+		expect(theme("blaze")).toBe("ember")
+		expect(theme("frostbite")).toBe("ice")
+		expect(theme("chomp")).toBe("reef")
+		expect(theme("pengoo")).toBe("ice")
+		expect(theme("phoenix")).toBe("ember")
+		expect(theme("boo")).toBe("spooky")
+	end)
+	it("falls back to the tier's theme, without a prop, for slimes without a species", function()
+		expect(Habitats.forSlime(Fixtures.slime("m", 2))).toBe("garden.2")
+		expect(Habitats.forSlime(Fixtures.slime("m", 6))).toBe("arcane.6")
 		for tier = 1, #Config.RARITIES do
 			expect(Habitats.forType(nil, tier) ~= BASE).toBe(true)
 		end
-		expect(Habitats.forType(nil, SlimeRoster.SECRET_TIER)).toBe("crystal_grotto")
-	end)
-	it("falls back to the tier family for slimes without a type (merged / pre-v28)", function()
-		expect(Habitats.forSlime(Fixtures.slime("m", 2))).toBe("flower_bed")
-		expect(Habitats.forSlime(Fixtures.slime("m", 6))).toBe("crystal_grotto")
 		expect(Habitats.forType("not_a_type", 0)).toBe(BASE)
 	end)
-	it("resolves unknown or missing habitat ids to the base pad", function()
-		expect(Habitats.resolve("crystal_grotto")).toBe("crystal_grotto")
-		expect(Habitats.resolve("not_a_habitat")).toBe(BASE)
+	it("resolves unknown, malformed or missing habitat ids to the base pad", function()
+		expect(Habitats.resolve("reef.5.captain_goo")).toBe("reef.5.captain_goo")
+		expect(Habitats.resolve("arcane.6")).toBe("arcane.6")
+		for _, bad in { "crystal_grotto", "reef", "reef.10", "reef.05", "magma.4", "reef.5.not_a_type", "reef.5.x.y" } do
+			expect(Habitats.resolve(bad)).toBe(BASE)
+		end
 		expect(Habitats.resolve(nil)).toBe(BASE)
 		expect(Habitats.resolve(42)).toBe(BASE)
 	end)
-	it("maps every TYPE and FAMILY entry to a known habitat (no drift)", function()
-		for _, id in Habitats.TYPE do
-			expect(Habitats.get(id) ~= nil).toBe(true)
+	it("has no drift: every theme in the tables exists, every frame tier is a rarity", function()
+		for speciesId, themeId in Habitats.SPECIES_THEME do
+			expect(SlimeRoster.get(speciesId) ~= nil).toBe(true)
+			expect(Habitats.theme(themeId) ~= nil).toBe(true)
 		end
-		for _, id in Habitats.FAMILY do
-			expect(Habitats.get(id) ~= nil).toBe(true)
+		for _, themeId in Habitats.TIER_THEME do
+			expect(Habitats.theme(themeId) ~= nil).toBe(true)
+		end
+		expect(#Habitats.FRAMES).toBe(#Config.RARITIES)
+		for tier = 1, #Config.RARITIES do
+			expect((Habitats.frame(tier) :: Habitats.Frame).tier).toBe(tier)
 		end
 	end)
-	it("prefers a per-type habitat over the family", function()
-		expect(Habitats.forSlime(species("a", "octo"))).toBe("syrup_pool")
-		expect(Habitats.forSlime(species("c", "moo"))).toBe("rodeo_barrel")
-		expect(Habitats.forSlime(species("b", "king"))).toBe("show_stool")
-	end)
-	it("gives every habitat but base its own overlay mesh", function()
-		for _, habitat in Habitats.LIST do
-			if habitat.id == BASE then
-				expect(habitat.overlay).toBe(nil)
-			else
-				expect(habitat.overlay).toBe(`habitat_{habitat.id}_overlay`)
-				expect(MeshAssets.get(habitat.overlay :: string) ~= nil).toBe(true)
+	it("lists the layers frame first and prop last; only the top tiers get the glowing lip", function()
+		local function kinds(id: string): { string }
+			local out = {}
+			for _, layer in Habitats.layers(id) do
+				table.insert(out, layer.kind)
 			end
+			return out
 		end
+		expect(kinds("ember.4.blaze")).toEqual({ "frame", "theme", "prop" })
+		expect(kinds("vault.7.midas")).toEqual({ "frame", "glow", "theme", "prop" })
+		expect(kinds("arcane.6")).toEqual({ "frame", "theme" })
+		expect(kinds(BASE)).toEqual({})
+		local glow = Habitats.layers("vault.7.midas")[2]
+		expect(glow.shimmer).toBe(true)
+		expect(Habitats.layers("space.8.lunara")[2].shimmer).toBe(false)
 	end)
-	it("maps every roster type and tier family to a habitat with an uploaded overlay", function()
+	it("publishes a template name for every layer mesh", function()
+		local meshes: { [string]: boolean } = {}
+		for _, mesh in Habitats.MESHES do
+			meshes[mesh] = true
+		end
 		for _, entry in SlimeRoster.ROSTER do
-			expect(Habitats.overlayMesh(Habitats.forType(entry.id, nil)) ~= nil).toBe(true)
+			for _, layer in Habitats.layers(Habitats.forType(entry.id, nil)) do
+				expect(meshes[layer.mesh]).toBe(true)
+			end
 		end
-		for _, id in Habitats.FAMILY do
-			expect(Habitats.overlayMesh(id) ~= nil).toBe(true)
-		end
+		expect(#Habitats.MESHES).toBe(1 + #Habitats.FRAMES + #Habitats.THEMES + #SlimeRoster.ROSTER)
 	end)
-	it("every overlay fits the crate deck round the slime: <= 7.9 wide, 0.5-2.8 tall above the deck", function()
-		for _, habitat in Habitats.LIST do
-			if habitat.overlay then
-				local size = (MeshAssets.get(habitat.overlay) :: MeshAssets.Entry).size :: { number }
-				expect(size[1] <= 7.9 and size[3] <= 7.9).toBe(true)
-				expect(habitat.drop >= 0 and habitat.drop < size[2]).toBe(true)
-				local above = size[2] - habitat.drop
-				expect(above >= 0.5 and above <= 2.8).toBe(true)
+	it("every uploaded layer fits the dish: frame and theme <= 7.9 wide and 0.1-2.8 tall, props small", function()
+		for _, mesh in Habitats.MESHES do
+			local entry = MeshAssets.get(mesh)
+			local size = entry and entry.size
+			if size then
+				if string.find(mesh, "^habitat_prop_") then
+					expect(size[1] <= 1.95 and size[3] <= 1.2 and size[2] <= 1.45).toBe(true)
+				else
+					expect(size[1] <= 7.9 and size[3] <= 7.9 and size[2] <= 2.8).toBe(true)
+				end
 			end
 		end
 	end)
-	it("draws the placeholder for an overlay with no uploaded meshId", function()
-		local entry = MeshAssets.get("habitat_candy_patch_overlay") :: MeshAssets.Entry
-		local saved = entry.meshId
-		entry.meshId = nil
-		expect(Habitats.overlayMesh("candy_patch")).toBe(nil)
-		entry.meshId = saved
-	end)
-	it("resolves an overlay to its MeshAssets meshId, native size and drop", function()
-		local entry = MeshAssets.get("habitat_crystal_grotto_overlay") :: MeshAssets.Entry
-		local saved = entry.meshId
-		entry.meshId = "rbxassetid://123"
-		local overlay = Habitats.overlayMesh("crystal_grotto")
-		entry.meshId = saved
-		expect(overlay).toEqual({ meshId = "rbxassetid://123", size = entry.size, drop = 0 })
-	end)
-	it("never gives base or unknown ids an overlay mesh", function()
-		expect(Habitats.overlayMesh(BASE)).toBe(nil)
-		expect(Habitats.overlayMesh("not_a_habitat")).toBe(nil)
+	it("resolves an uploaded mesh to its meshId, native size and drop; none while not uploaded", function()
+		expect(Habitats.overlayMesh("habitat_theme_not_uploaded")).toBe(nil)
+		local entries = (MeshAssets :: any).get
+		local fake = { meshId = "rbxassetid://123", size = { 7.5, 1.2, 7.5 } }
+		(MeshAssets :: any).get = function(name: string)
+			return if name == "habitat_theme_reef" then fake else entries(name)
+		end
+		local overlay = Habitats.overlayMesh("habitat_theme_reef", 0.5);
+		(MeshAssets :: any).get = entries
+		expect(overlay).toEqual({ meshId = "rbxassetid://123", size = fake.size, drop = 0.5, offset = { 0, 0 } })
 	end)
 end)
 
@@ -146,7 +171,7 @@ describe("HabitatPads (server pad state)", function()
 		local state = HabitatPads.new()
 		local owner = ServerFixtures.join(world, 1, { species("s1", "cosmo") })
 		tick(state, world, T0)
-		expect(padId(state, owner.plotIndex, 1)).toBe("crystal_grotto")
+		expect(padId(state, owner.plotIndex, 1)).toBe("space.6.cosmo")
 		expect(padId(state, owner.plotIndex, 2)).toBe(BASE)
 		expect(padId(state, owner.plotIndex % world.plotCount + 1, 1)).toBe(BASE)
 		local s = HabitatPads.get(state, owner.plotIndex, 1) :: Habitats.PadState
@@ -162,7 +187,7 @@ describe("HabitatPads (server pad state)", function()
 		tick(state, world, T0 + 5)
 		local s = HabitatPads.get(state, owner.plotIndex, 1) :: Habitats.PadState
 		expect(s.id).toBe(BASE)
-		expect(s.from).toBe("syrup_pool")
+		expect(s.from).toBe("pond.1.bubbles")
 		expect(s.at).toBe(T0 + 5)
 	end)
 	it("keeps the habitat while the slime is carried off: only the slime leaves", function()
@@ -172,10 +197,10 @@ describe("HabitatPads (server pad state)", function()
 		ServerFixtures.join(world, 2)
 		ServerFixtures.unlock(victim)
 		tick(state, world, T0)
-		expect(padId(state, victim.plotIndex, 1)).toBe("candy_patch")
+		expect(padId(state, victim.plotIndex, 1)).toBe("ember.4.blaze")
 		expect((Carry.grab(world, 2, "gem", 1, T0 + 10))).toBe(true)
 		expect(tick(state, world, T0 + 10)).toEqual({})
-		expect(padId(state, victim.plotIndex, 1)).toBe("candy_patch")
+		expect(padId(state, victim.plotIndex, 1)).toBe("ember.4.blaze")
 	end)
 	it("keeps the habitat while a stolen slime bounces home", function()
 		local world = ServerFixtures.world()
@@ -189,13 +214,13 @@ describe("HabitatPads (server pad state)", function()
 		expect(StealService.escape(world, thief, T0 + 2, "slap")).toBe("gem")
 		expect(world.escaping.gem ~= nil).toBe(true)
 		tick(state, world, T0 + 2)
-		expect(padId(state, victim.plotIndex, 1)).toBe("candy_patch")
+		expect(padId(state, victim.plotIndex, 1)).toBe("ember.4.blaze")
 		local landed = T0 + 2 + World.ESCAPE_BOUNCE_SECONDS
 		StealService.step(world, landed)
 		expect(world.escaping.gem).toBeNil()
 		tick(state, world, landed)
 		local s = HabitatPads.get(state, victim.plotIndex, 1) :: Habitats.PadState
-		expect({ s.id, s.from, s.at }).toEqual({ "candy_patch", BASE, T0 })
+		expect({ s.id, s.from, s.at }).toEqual({ "ember.4.blaze", BASE, T0 })
 	end)
 	it("moves with a stolen slime to the thief's pad; the victim's pad reverts", function()
 		local world = ServerFixtures.world()
@@ -211,7 +236,7 @@ describe("HabitatPads (server pad state)", function()
 		assert(moved and moved.pad, "deposited on a pad")
 		expect(padId(state, victim.plotIndex, 1)).toBe(BASE)
 		local s = HabitatPads.get(state, thief.plotIndex, moved.pad) :: Habitats.PadState
-		expect(s.id).toBe("candy_patch")
+		expect(s.id).toBe("ember.4.blaze")
 		expect(s.from).toBe(BASE)
 		expect(s.at).toBe(T0 + 2)
 	end)
@@ -227,22 +252,22 @@ describe("HabitatPads (server pad state)", function()
 		tick(state, world, T0 + 1)
 		local old = HabitatPads.get(state, owner.plotIndex, 1) :: Habitats.PadState
 		local new = HabitatPads.get(state, owner.plotIndex, 3) :: Habitats.PadState
-		expect({ old.id, old.from, old.at }).toEqual({ BASE, "syrup_pool", T0 + 1 })
-		expect({ new.id, new.from, new.at }).toEqual({ "syrup_pool", BASE, T0 + 1 })
+		expect({ old.id, old.from, old.at }).toEqual({ BASE, "pond.1.bubbles", T0 + 1 })
+		expect({ new.id, new.from, new.at }).toEqual({ "pond.1.bubbles", BASE, T0 + 1 })
 	end)
 	it("reverts the pad to base when the slime is sold", function()
 		local world = ServerFixtures.world()
 		local state = HabitatPads.new()
 		local owner = ServerFixtures.join(world, 1, { species("a", "cosmo"), species("b", "bubbles") })
 		tick(state, world, T0)
-		expect(padId(state, owner.plotIndex, 1)).toBe("crystal_grotto")
+		expect(padId(state, owner.plotIndex, 1)).toBe("space.6.cosmo")
 		local res = Actions.handle(world, 1, "Sell", { "a" }, T0 + 3, ctx)
 		expect(res.ok).toBe(true)
 		expect(PlayerData.findSlime(owner.data, "a")).toBeNil()
 		tick(state, world, T0 + 3)
 		local s = HabitatPads.get(state, owner.plotIndex, 1) :: Habitats.PadState
-		expect({ s.id, s.from, s.at }).toEqual({ BASE, "crystal_grotto", T0 + 3 })
-		expect(padId(state, owner.plotIndex, 2)).toBe("syrup_pool") -- the other pad is untouched
+		expect({ s.id, s.from, s.at }).toEqual({ BASE, "space.6.cosmo", T0 + 3 })
+		expect(padId(state, owner.plotIndex, 2)).toBe("pond.1.bubbles") -- the other pad is untouched
 	end)
 	it("a steal completed mid-transform ends at base", function()
 		local world = ServerFixtures.world()
@@ -251,14 +276,14 @@ describe("HabitatPads (server pad state)", function()
 		ServerFixtures.join(world, 2)
 		ServerFixtures.unlock(victim)
 		tick(state, world, T0)
-		local client = run(Habitats.initialWeights(BASE), "crystal_grotto", 0.5) -- half-grown
-		expect(client.crystal_grotto).toBeCloseTo(0.5, 1e-6)
+		local client = run(Habitats.initialWeights(BASE), "space.6.cosmo", 0.5) -- half-grown
+		expect(client["space.6.cosmo"]).toBeCloseTo(0.5, 1e-6)
 		expect((Carry.grab(world, 2, "gem", 1, T0 + 0.5))).toBe(true)
 		expect((Carry.deposit(world, 2))).toBe(true)
 		tick(state, world, T0 + 0.5)
 		local s = HabitatPads.get(state, victim.plotIndex, 1) :: Habitats.PadState
 		expect(s.id).toBe(BASE)
-		expect(s.from).toBe("crystal_grotto")
+		expect(s.from).toBe("space.6.cosmo")
 		client = run(client, s.id, Habitats.TRANSFORM_SECONDS)
 		expect(Habitats.isSettled(client, BASE)).toBe(true)
 		expect(client).toEqual({})
@@ -280,11 +305,11 @@ describe("HabitatPads (server pad state)", function()
 			client = run(client, padId(state, owner.plotIndex, 1) :: string, 0.2)
 		end
 		local s = HabitatPads.get(state, owner.plotIndex, 1) :: Habitats.PadState
-		expect(s.id).toBe("show_stool")
-		expect(s.from).toBe("barn_crate")
+		expect(s.id).toBe("royal.5.king")
+		expect(s.from).toBe("barnyard.3.whiskers")
 		expect(s.at).toBe(now)
 		client = run(client, s.id, Habitats.TRANSFORM_SECONDS)
-		expect(Habitats.isSettled(client, "show_stool")).toBe(true)
+		expect(Habitats.isSettled(client, "royal.5.king")).toBe(true)
 	end)
 	it("only reports pads that changed", function()
 		local world = ServerFixtures.world()
@@ -297,16 +322,16 @@ end)
 
 describe("Habitats client weights", function()
 	it("join in progress shows the final state without animating", function()
-		local w = Habitats.initialWeights("hay_nest")
-		expect(Habitats.isSettled(w, "hay_nest")).toBe(true)
+		local w = Habitats.initialWeights("barnyard.1.moo")
+		expect(Habitats.isSettled(w, "barnyard.1.moo")).toBe(true)
 		expect(Habitats.isSettled(Habitats.initialWeights(BASE), BASE)).toBe(true)
 	end)
 	it("a transform takes TRANSFORM_SECONDS (about 1 s)", function()
 		expect(Habitats.TRANSFORM_SECONDS).toBe(1)
-		local w = run({}, "flower_bed", 0.9)
-		expect(Habitats.isSettled(w, "flower_bed")).toBe(false)
-		w = run(w, "flower_bed", 0.1)
-		expect(Habitats.isSettled(w, "flower_bed")).toBe(true)
+		local w = run({}, "garden.2.bumble", 0.9)
+		expect(Habitats.isSettled(w, "garden.2.bumble")).toBe(false)
+		w = run(w, "garden.2.bumble", 0.1)
+		expect(Habitats.isSettled(w, "garden.2.bumble")).toBe(true)
 	end)
 end)
 

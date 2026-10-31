@@ -2,15 +2,26 @@
 --[[
 	Habitats (pure, FEATURES.Habitats, HABITATS.md)
 
-	Data table: slime type / family -> habitat id, and each habitat's overlay.
-	The pad itself never changes: a pad whose slime sits on it gets that
-	slime's habitat overlay (a themed frame ring and rim props on the cork stand's dish);
-	an empty pad is BASE (no overlay). Habitat ids are never saved.
+	A pad whose slime sits on it shows that slime's habitat: three layers
+	that rise out of the cork stand's dish round the slime.
 
-	  Habitats.forSlime(slime)     type (SlimeRoster id) > tier family > BASE
-	  Habitats.resolve(id)         known id, else BASE (server and client)
-	  Habitats.overlayMesh(id)     the overlay's uploaded mesh (MeshAssets),
-	                               nil = draw the primitive placeholder
+	  frame   the ring round the slime, one per rarity tier (wood for Common
+	          up to white-gold for Divine); Secret, Celestial and Divine add a
+	          glowing lip (the shared glow mesh, tinted, Neon)
+	  theme   props on the back and sides of the rim that set the place
+	          (Ember Rocks, Ocean Reef...), shared by the slimes of that theme
+	  prop    one signature prop on the front of the rim, only this species
+
+	A habitat id names all three: "<theme>.<tier>" or "<theme>.<tier>.<species>"
+	("reef.5.captain_goo"). The server writes it on the pad as before; the
+	client crossfades whole ids, so a swap changes every layer at once. An
+	empty pad is BASE (no overlay). Ids are never saved.
+
+	  Habitats.forSlime(slime)     the slime's habitat id
+	  Habitats.forType(species, tier)
+	  Habitats.resolve(id)         a valid id, else BASE (server and client)
+	  Habitats.look(id)            parsed id: theme, frame, prop
+	  Habitats.layers(id)          what to draw, frame first, prop last
 	  Habitats.transition(prev, target, now)
 	                               server pad state; a change restamps `at`
 	  Habitats.initialWeights(id)  client, first sight: final state, no tween
@@ -24,130 +35,370 @@
 local MeshAssets = if script then require(script.Parent.MeshAssets) else require("./MeshAssets")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
-export type Habitat = {
+type RGB = { number }
+
+export type Theme = {
 	id: string,
 	name: string,
-	overlay: string?, -- shared/modeling-kit overlay mesh (habitat_<id>_overlay); nil = BASE, no overlay
-	drop: number, -- studs the overlay hangs below the dish rim (drips down the stand); 0 = rests on the rim
-	color: { number }, -- placeholder primitive colour and puff, RGB 0..255
-	accent: { number }, -- placeholder accent and puff colour
+	mesh: string, -- habitat_theme_<id> (shared/modeling-kit)
+	drop: number, -- studs the theme mesh hangs below the deck (drips over the dish rim); usually 0
+	color: RGB, -- placeholder props and puff, RGB 0..255
+	accent: RGB,
+}
+
+export type Frame = {
+	tier: number,
+	name: string,
+	mesh: string, -- habitat_frame_<tier>
+	color: RGB, -- placeholder ring
+	glow: RGB?, -- the glowing lip's colour; nil = no lip
+	shimmer: boolean, -- the lip cycles through the rainbow (Secret)
+}
+
+export type Look = { id: string, theme: Theme, frame: Frame, prop: string? }
+
+export type LayerKind = "frame" | "glow" | "theme" | "prop"
+-- size: native W x H x D studs; offset: the bbox centre from the dish centre (mesh axes, Roblox X, Z)
+export type OverlayMesh = { meshId: string, size: { number }, drop: number, offset: { number } }
+export type Layer = {
+	kind: LayerKind,
+	mesh: string,
+	overlay: OverlayMesh?, -- nil until uploaded: the client draws a placeholder (frame, theme) or nothing
+	color: RGB,
+	accent: RGB,
+	glow: RGB?, -- glow layer: its Neon colour
+	shimmer: boolean,
 }
 
 export type PadState = { id: string, from: string, at: number }
-export type OverlayMesh = { meshId: string, size: { number }, drop: number } -- size: native W x H x D studs
 
 local Habitats = {}
 
 Habitats.BASE = "base"
 Habitats.TRANSFORM_SECONDS = 1
+Habitats.GLOW_MESH = "habitat_frame_glow"
+-- The signature prop stands this far from the dish centre on the front of the rim (pad-local, toward the walkway).
+Habitats.PROP_RADIUS = 3.15
+-- Yaw (degrees) that turns a kit mesh's front (kit -Y, pad-local +Z) to the walkway side of the pad.
+Habitats.FRONT_YAW = 180
 
-local function h(id: string, name: string, drop: number, color: { number }, accent: { number }): Habitat
+local function theme(id: string, name: string, drop: number, color: RGB, accent: RGB): Theme
 	return table.freeze({
 		id = id,
 		name = name,
-		overlay = if id == "base" then nil else `habitat_{id}_overlay`,
+		mesh = `habitat_theme_{id}`,
 		drop = drop,
 		color = table.freeze(color),
 		accent = table.freeze(accent),
 	})
 end
 
-local LIST: { Habitat } = {
-	h("base", "Pad", 0, { 200, 200, 200 }, { 255, 255, 255 }),
-	h("hay_nest", "Hay Nest", 0, { 222, 190, 110 }, { 250, 230, 160 }),
-	h("mushroom_ring", "Mushroom Ring", 0, { 200, 60, 55 }, { 250, 240, 220 }),
-	h("flower_bed", "Flower Bed", 0, { 120, 85, 55 }, { 255, 140, 190 }),
-	h("barn_crate", "Barn Crate", 0, { 170, 120, 70 }, { 150, 50, 40 }),
-	h("rodeo_barrel", "Rodeo Barrel", 0, { 140, 90, 50 }, { 120, 220, 110 }),
-	h("syrup_pool", "Syrup Pool", 1.049, { 230, 150, 40 }, { 255, 210, 120 }),
-	h("show_stool", "Show Stool", 0, { 70, 110, 200 }, { 255, 215, 80 }),
-	h("candy_patch", "Candy Patch", 0, { 255, 170, 210 }, { 120, 230, 200 }),
-	h("crystal_grotto", "Crystal Grotto", 0, { 110, 100, 130 }, { 190, 150, 255 }),
+local THEMES: { Theme } = {
+	theme("barnyard", "Barnyard", 0, { 205, 60, 50 }, { 245, 215, 120 }),
+	theme("sweets", "Sweet Treats", 0, { 255, 170, 210 }, { 120, 230, 200 }),
+	theme("garden", "Flower Garden", 0, { 110, 180, 90 }, { 255, 140, 190 }),
+	theme("forest", "Mushroom Forest", 0, { 120, 90, 60 }, { 215, 60, 55 }),
+	theme("pond", "Lily Pond", 0, { 70, 170, 120 }, { 120, 200, 240 }),
+	theme("royal", "Royal Court", 0, { 170, 40, 60 }, { 255, 215, 80 }),
+	theme("arcane", "Arcane Grotto", 0, { 110, 100, 130 }, { 190, 150, 255 }),
+	theme("ember", "Ember Rocks", 0, { 70, 50, 50 }, { 255, 120, 30 }),
+	theme("ice", "Ice Floe", 0, { 180, 225, 245 }, { 255, 255, 255 }),
+	theme("reef", "Ocean Reef", 0, { 240, 215, 155 }, { 255, 125, 140 }),
+	theme("sky", "Sky Isle", 0, { 245, 248, 255 }, { 150, 205, 255 }),
+	theme("space", "Starry Space", 0, { 60, 60, 110 }, { 255, 225, 120 }),
+	theme("tech", "Tech Lab", 0, { 150, 160, 175 }, { 80, 230, 255 }),
+	theme("dojo", "Dojo", 0, { 120, 170, 90 }, { 225, 60, 50 }),
+	theme("spooky", "Spooky", 0, { 90, 80, 100 }, { 180, 110, 255 }),
+	theme("vault", "Treasure Vault", 0, { 140, 110, 60 }, { 255, 210, 70 }),
+	theme("party", "Party Stage", 0, { 60, 40, 90 }, { 255, 90, 200 }),
 }
 
--- Look family per Config.RARITIES tier (SlimeRoster comments), 7 = SlimeRoster.SECRET_TIER.
-local FAMILY_BY_TIER: { [number]: string } = {
-	[1] = "field",
-	[2] = "sprout",
-	[3] = "critter",
-	[4] = "horned",
+local function frame(tier: number, name: string, color: RGB, glow: RGB?, shimmer: boolean?): Frame
+	return table.freeze({
+		tier = tier,
+		name = name,
+		mesh = `habitat_frame_{tier}`,
+		color = table.freeze(color),
+		glow = if glow then table.freeze(glow) else nil,
+		shimmer = shimmer == true,
+	})
+end
+
+-- One per Config.RARITIES tier (SlimeRoster.SECRET_TIER = 7).
+local FRAMES: { Frame } = {
+	frame(1, "Wood", { 168, 116, 63 }),
+	frame(2, "Painted Wood", { 95, 174, 106 }),
+	frame(3, "Stone", { 142, 151, 163 }),
+	frame(4, "Copper", { 196, 122, 60 }),
+	frame(5, "Gold", { 242, 194, 48 }),
+	frame(6, "Silver and Gems", { 214, 224, 236 }),
+	frame(7, "Shadow", { 45, 40, 60 }, { 255, 255, 255 }, true),
+	frame(8, "Starry Glass", { 40, 44, 100 }, { 150, 130, 255 }),
+	frame(9, "White Gold", { 255, 244, 214 }, { 255, 215, 110 }),
+}
+
+-- Every species in SlimeRoster -> its theme (tests/Habitats.spec checks none is missing).
+local SPECIES_THEME: { [string]: string } = {
+	-- Barnyard
+	moo = "barnyard",
+	lop = "barnyard",
+	whiskers = "barnyard",
+	moo_shroom = "barnyard",
+	-- Sweet Treats
+	gummy = "sweets",
+	mochi = "sweets",
+	cheddar = "sweets",
+	flan = "sweets",
+	soda = "sweets",
+	rocky_road = "sweets",
+	sushi = "sweets",
+	-- Flower Garden
+	sprout = "garden",
+	bumble = "garden",
+	prickles = "garden",
+	bloom = "garden",
+	sunny = "garden",
+	gaia = "garden",
+	-- Mushroom Forest
+	pebble = "forest",
+	mushie = "forest",
+	truffle = "forest",
+	elder_oak = "forest",
+	-- Lily Pond
+	bubbles = "pond",
+	froggo = "pond",
+	honey_toad = "pond",
+	-- Royal Court
+	king = "royal",
+	sir_goo = "royal",
+	dragon_king = "royal",
+	-- Arcane Grotto
+	amethyst = "arcane",
+	goo_oracle = "arcane",
+	goomancer = "arcane",
+	chrono = "arcane",
+	-- Ember Rocks
+	blaze = "ember",
+	imp = "ember",
+	drako = "ember",
+	phoenix = "ember",
+	goozilla = "ember",
+	-- Ice Floe
+	pengoo = "ice",
+	frostbite = "ice",
+	snow_bunny = "ice",
+	steam = "ice",
+	yeti = "ice",
+	-- Ocean Reef
+	chomp = "reef",
+	octo = "reef",
+	catfish = "reef",
+	captain_goo = "reef",
+	kraken = "reef",
+	queen_jelly = "reef",
+	klawdius = "reef",
+	abyss = "reef",
+	-- Sky Isle
+	zap = "sky",
+	thunderbee = "sky",
+	seraph = "sky",
+	prism = "sky",
+	aurora = "sky",
+	kirin = "sky",
+	isle = "sky",
+	-- Starry Space
+	cosmo = "space",
+	eclipse = "space",
+	lunara = "space",
+	solaris = "space",
+	nebulon = "space",
+	star_emperor = "space",
+	-- Tech Lab
+	robo = "tech",
+	cyber_ninja = "tech",
+	mecha_goo = "tech",
+	-- Dojo
+	ninja = "dojo",
+	origami = "dojo",
+	kitsune = "dojo",
+	-- Spooky
+	boo = "spooky",
+	pumpking = "spooky",
+	nightwing = "spooky",
+	-- Treasure Vault
+	midas = "vault",
+	jackpot = "vault",
+	goo_god = "vault",
+	-- Party Stage
+	disco = "party",
+	doodle = "party",
+	glitch = "party",
+}
+
+-- Slimes without a species (merged before species existed): a theme by tier.
+local TIER_THEME: { [number]: string } = {
+	[1] = "garden",
+	[2] = "garden",
+	[3] = "barnyard",
+	[4] = "sweets",
 	[5] = "royal",
-	[6] = "crystal",
-	[SlimeRoster.SECRET_TIER] = "secret",
-	[8] = "secret",
-	[9] = "secret",
+	[6] = "arcane",
+	[7] = "arcane",
+	[8] = "space",
+	[9] = "sky",
 }
 
-local FAMILY: { [string]: string } = {
-	field = "hay_nest",
-	sprout = "flower_bed",
-	critter = "barn_crate",
-	horned = "candy_patch",
-	royal = "show_stool",
-	crystal = "crystal_grotto",
-	secret = "crystal_grotto",
-}
-
--- Per-type overrides (SlimeRoster ids); everything else uses its family.
-local TYPE: { [string]: string } = {
-	flan = "syrup_pool",
-	bubbles = "syrup_pool",
-	froggo = "syrup_pool",
-	chomp = "syrup_pool",
-	octo = "syrup_pool",
-	mushie = "mushroom_ring",
-	sprout = "flower_bed",
-	prickles = "flower_bed",
-	moo = "rodeo_barrel",
-	cheddar = "candy_patch",
-	midas = "hay_nest",
-	boo = "mushroom_ring",
-}
-
-local byId: { [string]: Habitat } = {}
-for _, habitat in LIST do
-	byId[habitat.id] = habitat
+local themeById: { [string]: Theme } = {}
+for _, t in THEMES do
+	themeById[t.id] = t
+end
+local frameByTier: { [number]: Frame } = {}
+for _, f in FRAMES do
+	frameByTier[f.tier] = f
 end
 
-Habitats.LIST = table.freeze(LIST)
-Habitats.FAMILY_BY_TIER = table.freeze(FAMILY_BY_TIER)
-Habitats.FAMILY = table.freeze(FAMILY)
-Habitats.TYPE = table.freeze(TYPE)
+Habitats.THEMES = table.freeze(THEMES)
+Habitats.FRAMES = table.freeze(FRAMES)
+Habitats.SPECIES_THEME = table.freeze(SPECIES_THEME)
+Habitats.TIER_THEME = table.freeze(TIER_THEME)
 
-function Habitats.get(id: string): Habitat?
-	return byId[id]
+function Habitats.propMesh(species: string): string
+	return `habitat_prop_{species}`
 end
 
--- A known habitat id, else BASE: a pad never shows a look the table lacks
--- (TYPE / FAMILY drift, a stale or bad attribute).
-function Habitats.resolve(id: any): string
-	return if type(id) == "string" and byId[id] then id else Habitats.BASE
+-- Every kit mesh a habitat can draw (MeshSwap publishes a template for each uploaded one).
+local MESHES: { string } = { Habitats.GLOW_MESH }
+for _, f in FRAMES do
+	table.insert(MESHES, f.mesh)
+end
+for _, t in THEMES do
+	table.insert(MESHES, t.mesh)
+end
+local speciesIds: { string } = {}
+for species in SPECIES_THEME do
+	table.insert(speciesIds, species)
+end
+table.sort(speciesIds)
+for _, species in speciesIds do
+	table.insert(MESHES, Habitats.propMesh(species))
+end
+Habitats.MESHES = table.freeze(MESHES)
+
+function Habitats.theme(id: string): Theme?
+	return themeById[id]
 end
 
--- The overlay's uploaded mesh: its MeshAssets meshId, native size and drop
--- below the deck. nil for BASE, unknown ids, or an overlay with no meshId yet;
--- HabitatFx then draws the primitive placeholder.
-function Habitats.overlayMesh(id: string): OverlayMesh?
-	local habitat = byId[id]
-	if not habitat or not habitat.overlay then
+function Habitats.frame(tier: number): Frame?
+	return frameByTier[tier]
+end
+
+-- The parsed id, or nil for BASE and anything that isn't a valid habitat.
+function Habitats.look(id: any): Look?
+	if type(id) ~= "string" then
 		return nil
 	end
-	local entry = MeshAssets.get(habitat.overlay)
+	local parts = string.split(id, ".")
+	if #parts < 2 or #parts > 3 then
+		return nil
+	end
+	local t = themeById[parts[1]]
+	local f = frameByTier[tonumber(parts[2]) or -1]
+	if not t or not f or `{f.tier}` ~= parts[2] then
+		return nil
+	end
+	local prop = parts[3]
+	if prop and SPECIES_THEME[prop] == nil then
+		return nil
+	end
+	return { id = id, theme = t, frame = f, prop = prop }
+end
+
+-- A valid habitat id, else BASE: a pad never shows a look the tables lack (drift, a stale or bad attribute).
+function Habitats.resolve(id: any): string
+	return if Habitats.look(id) then id else Habitats.BASE
+end
+
+-- The uploaded mesh for kit name `mesh`: its meshId, native size, drop below the deck and bbox-centre offset (a
+-- theme keeps its front clear, so its bbox is not centred on the dish; MeshAssets `offset` = {x, y, z}, y unused).
+-- nil while not uploaded.
+function Habitats.overlayMesh(mesh: string, drop: number?): OverlayMesh?
+	local entry = MeshAssets.get(mesh)
 	if not entry or not entry.meshId or not entry.size then
 		return nil
 	end
-	return { meshId = entry.meshId, size = entry.size, drop = habitat.drop }
+	local o = entry.offset
+	return {
+		meshId = entry.meshId,
+		size = entry.size,
+		drop = drop or 0,
+		offset = if o then { o[1], o[3] } else { 0, 0 },
+	}
 end
 
--- Habitat for a slime type, given its tier for the family fallback.
-function Habitats.forType(species: string?, tier: number?): string
-	local typed = species and TYPE[species]
-	if typed then
-		return Habitats.resolve(typed)
+-- What to draw for habitat `id`, in rise order: frame, glow lip, theme props, signature prop. {} for BASE.
+function Habitats.layers(id: string): { Layer }
+	local look = Habitats.look(id)
+	if not look then
+		return {}
 	end
+	local t, f = look.theme, look.frame
+	local out: { Layer } = {
+		{
+			kind = "frame",
+			mesh = f.mesh,
+			overlay = Habitats.overlayMesh(f.mesh),
+			color = f.color,
+			accent = f.color,
+			shimmer = false,
+		},
+	}
+	if f.glow then
+		table.insert(out, {
+			kind = "glow",
+			mesh = Habitats.GLOW_MESH,
+			overlay = Habitats.overlayMesh(Habitats.GLOW_MESH),
+			color = f.glow,
+			accent = f.glow,
+			glow = f.glow,
+			shimmer = f.shimmer,
+		})
+	end
+	table.insert(out, {
+		kind = "theme",
+		mesh = t.mesh,
+		overlay = Habitats.overlayMesh(t.mesh, t.drop),
+		color = t.color,
+		accent = t.accent,
+		shimmer = false,
+	})
+	if look.prop then
+		local mesh = Habitats.propMesh(look.prop)
+		table.insert(out, {
+			kind = "prop",
+			mesh = mesh,
+			overlay = Habitats.overlayMesh(mesh),
+			color = t.color,
+			accent = t.accent,
+			shimmer = false,
+		})
+	end
+	return out
+end
+
+-- Habitat for a slime type at rarity `tier` (the frame). The species' roster tier stands in for a missing or
+-- out-of-range tier; a slime without a species gets its tier's theme and no signature prop.
+function Habitats.forType(species: string?, tier: number?): string
 	local entry = species and SlimeRoster.get(species)
-	local family = FAMILY_BY_TIER[if entry then entry.tier else tier or 0]
-	return Habitats.resolve(family and FAMILY[family])
+	local frameTier = if tier and frameByTier[tier] then tier elseif entry then entry.tier else nil
+	if not frameTier or not frameByTier[frameTier] then
+		return Habitats.BASE
+	end
+	local themeId = species and SPECIES_THEME[species]
+	if themeId then
+		return `{themeId}.{frameTier}.{species}`
+	end
+	local fallback = TIER_THEME[frameTier]
+	return if fallback then `{fallback}.{frameTier}` else Habitats.BASE
 end
 
 function Habitats.forSlime(slime: { species: string?, tier: number }): string
@@ -162,8 +413,7 @@ function Habitats.transition(prev: PadState?, target: string, now: number): PadS
 	return { id = target, from = if prev then prev.id else Habitats.BASE, at = now }
 end
 
--- Client weights: habitat id -> 0..1 (how much of that overlay shows). BASE
--- has no overlay.
+-- Client weights: habitat id -> 0..1 (how much of that look shows). BASE has no look.
 export type Weights = { [string]: number }
 
 -- First sight of a pad (join in progress, streamed in): the final state.

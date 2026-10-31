@@ -580,9 +580,10 @@ function MeshSwap.publishSkinTemplates(): number
 	return count
 end
 
--- FEATURES.Habitats: one MeshPart template per habitat overlay in ReplicatedStorage.HabitatMeshes (named by
--- mesh, native size). The client clones them onto the pads (HabitatFx): a MeshPart keeps the kit's vertex
--- colours, a script-made FileMesh SpecialMesh draws plain white. Yields; returns how many were published.
+-- FEATURES.Habitats: one MeshPart template per uploaded habitat mesh (Habitats.MESHES: frames, glow lip, themes,
+-- signature props) in ReplicatedStorage.HabitatMeshes (named by mesh, native size). The client clones them onto the
+-- pads (HabitatFx): a MeshPart keeps the kit's vertex colours, a script-made FileMesh SpecialMesh draws plain white.
+-- Yields; returns how many were published.
 function MeshSwap.publishHabitatTemplates(): number
 	if not Config.FEATURES.Habitats then
 		return 0
@@ -594,12 +595,11 @@ function MeshSwap.publishHabitatTemplates(): number
 		folder.Parent = ReplicatedStorage
 	end
 	local count = 0
-	for _, habitat in Habitats.LIST do
-		local name = habitat.overlay
-		local meshId = name and MeshAssets.meshId(name)
-		local entry = name and MeshAssets.get(name)
+	for _, name in Habitats.MESHES do
+		local meshId = MeshAssets.meshId(name)
+		local entry = MeshAssets.get(name)
 		local base = meshId and template(meshId)
-		if name and entry and entry.size and base and not (folder :: Folder):FindFirstChild(name) then
+		if entry and entry.size and base and not (folder :: Folder):FindFirstChild(name) then
 			local mesh = base:Clone()
 			mesh.Name = name
 			mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])

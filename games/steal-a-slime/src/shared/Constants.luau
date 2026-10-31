@@ -196,7 +196,7 @@ return table.freeze({
 	LEADERBOARD_PROMPT_NAME = "LeaderboardPrompt", -- ProfessorGoo: opens the client's Leaderboards panel
 	LEADERBOARD_CLICK_NAME = "LeaderboardClick", -- ProfessorGoo's ClickDetector: a click or right-click opens the same panel
 	-- Slime habitats (FEATURES.Habitats, HABITATS.md): Pad_<j> attributes, only set with the flag on.
-	HABITAT_ATTRIBUTE = "Habitat", -- Pad_<j>: Shared.Habitats id, "base" = empty pad
+	HABITAT_ATTRIBUTE = "Habitat", -- Pad_<j>: Shared.Habitats id ("reef.5.captain_goo"), "base" = empty pad
 	HABITAT_FROM_ATTRIBUTE = "HabitatFrom", -- Pad_<j>: the id before the latest change
 	HABITAT_AT_ATTRIBUTE = "HabitatAt", -- Pad_<j>: server time of the latest change
 	-- Full steal alerts (FEATURES.StealAlerts, CONTRACT.md §17): Player attributes.

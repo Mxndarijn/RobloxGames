@@ -170,8 +170,14 @@ local function standHidden()
 	end)
 	return if ok then v else 0
 end
-local grown = lookOf(part, "crystal_grotto")
-local grownPlaceholder = { grown:FindFirstChild("Frame1") ~= nil, grown:FindFirstChild("Mesh") ~= nil }
+local COSMO = "space.6.cosmo" -- the slime on pad 3: Starry Space, Mythic frame, telescope
+local grown = lookOf(part, COSMO)
+local grownPlaceholder = {
+	grown:FindFirstChild("Frame1") ~= nil,
+	grown:FindFirstChild("Prop1") ~= nil,
+	grown:FindFirstChild("frame") ~= nil,
+	grown:FindFirstChild("prop") ~= nil,
+}
 local grownHidden = standHidden()
 part:SetAttribute("Habitat", "not_a_habitat") -- table drift / bad attribute
 fire()
@@ -194,23 +200,32 @@ local after = listeners(part)
 local afterCount = HabitatFx.count()
 HabitatFx.clear()
 
--- Same pad once habitat_crystal_grotto_overlay has a meshId (set on the
--- runtime's MeshAssets copy only for this case): placeholder until the
--- server's template lands in ReplicatedStorage.HabitatMeshes, then one clone
--- of that MeshPart at native size, its bottom on the stand's dish rim.
-local overlayEntry = meshAssets.entries.habitat_crystal_grotto_overlay
+-- Same pad once its three layers have a meshId (entries added to the runtime's
+-- MeshAssets copy only for this case): placeholders until the server's
+-- templates land in ReplicatedStorage.HabitatMeshes, then one clone of each
+-- MeshPart at native size: frame and theme centred with their bottom on the
+-- dish rim, the signature prop on the front of the rim.
+local LAYER_MESHES = {
+	habitat_frame_6 = { 7.5, 0.42, 7.5 },
+	habitat_theme_space = { 7.6, 2.4, 7.6 },
+	habitat_prop_cosmo = { 1.5, 1.3, 1 },
+}
+for name, size in LAYER_MESHES do
+	meshAssets.entries[name] = { meshId = "rbxassetid://123", size = size }
+end
 local replicated = rt.game:GetService("ReplicatedStorage")
-local deck = rt:require(replicated.Visuals.WorldLayout).PAD_DECK
+local layout = rt:require(replicated.Visuals.WorldLayout)
+local habitatsMod = rt:require(replicated.Shared.Habitats)
+local deck = layout.PAD_DECK
 local deckY = deck.y
 -- One strip of the placeholder's octagon ring at full size: the octagon's side at the dish edge (HabitatFx's
 -- FRAME_SIDES 8 strips reach out to deck.half).
 local FRAME_LEN = 2 * deck.half * math.tan(math.pi / 8)
-overlayEntry.meshId = "rbxassetid://123"
-part:SetAttribute("Habitat", "crystal_grotto")
+part:SetAttribute("Habitat", COSMO)
 local meshConns = HabitatFx.attach(plots)
-local beforeTemplate = lookOf(part, "crystal_grotto")
+local beforeTemplate = lookOf(part, COSMO)
 local waitedPlaceholder =
-	{ beforeTemplate:FindFirstChild("Frame1") ~= nil, beforeTemplate:FindFirstChild("Mesh") ~= nil }
+	{ beforeTemplate:FindFirstChild("Frame1") ~= nil, beforeTemplate:FindFirstChild("frame") ~= nil }
 -- The booted server already made the folder (MeshSwap.publishHabitatTemplates;
 -- no CreateMeshPartAsync here, so it stays empty).
 local templates = replicated:FindFirstChild("HabitatMeshes")
@@ -220,32 +235,53 @@ if not templates then
 	templates.Name = "HabitatMeshes"
 	templates.Parent = replicated
 end
-local template = roblox.Instance.new("MeshPart")
-template.Name = "habitat_crystal_grotto_overlay"
-template.Size = roblox.Vector3.new(overlayEntry.size[1], overlayEntry.size[2], overlayEntry.size[3])
-template.Parent = templates
-signalOf(replicated, "DescendantAdded"):Fire(template)
-rt:runDue()
-local meshLook = lookOf(part, "crystal_grotto")
-local meshPart = meshLook and meshLook:FindFirstChild("Mesh")
+local made = {}
+for name, size in LAYER_MESHES do
+	local template = roblox.Instance.new("MeshPart")
+	template.Name = name
+	template.Size = roblox.Vector3.new(size[1], size[2], size[3])
+	template.Parent = templates
+	signalOf(replicated, "DescendantAdded"):Fire(template)
+	rt:runDue()
+	table.insert(made, template)
+end
+local meshLook = lookOf(part, COSMO)
+local deckTop = part.CFrame.Position.Y - part.Size.Y / 2 + deckY
+local function layerShape(kind: string, mesh: string)
+	local m = meshLook and meshLook:FindFirstChild(kind)
+	local size = LAYER_MESHES[mesh]
+	if not m then
+		return false
+	end
+	local fromCentre = m.CFrame.Position - part.CFrame.Position
+	local flat = math.sqrt(fromCentre.X ^ 2 + fromCentre.Z ^ 2)
+	local wantFlat = if kind == "prop" then habitatsMod.PROP_RADIUS else 0
+	return m.ClassName == "MeshPart"
+		and math.abs(m.Size.X - size[1]) < 1e-4
+		and math.abs(m.CFrame.Position.Y - m.Size.Y / 2 - deckTop) < 1e-4
+		and math.abs(flat - wantFlat) < 1e-3
+		and m.CanCollide == false
+		and m.CanQuery == false
+end
 local meshShape = {
 	meshLook and #meshLook:GetChildren(),
-	meshPart and meshPart.ClassName,
-	meshPart and math.abs(meshPart.Size.X - overlayEntry.size[1]) < 1e-4,
-	meshPart and math.abs(
-		meshPart.CFrame.Position.Y - meshPart.Size.Y / 2 - (part.CFrame.Position.Y - part.Size.Y / 2 + deckY)
-	) < 1e-4,
-	meshPart and meshPart.CanCollide == false and meshPart.CanQuery == false,
+	layerShape("frame", "habitat_frame_6"),
+	layerShape("theme", "habitat_theme_space"),
+	layerShape("prop", "habitat_prop_cosmo"),
 }
 for _, c in meshConns do
 	c:Disconnect()
 end
 HabitatFx.clear()
-template:Destroy()
+for _, t in made do
+	t:Destroy()
+end
+for name in LAYER_MESHES do
+	meshAssets.entries[name] = nil
+end
 
 local emitsLifecycle = emits
 -- Morph behaviour (HabitatMorph through HabitatFx), placeholder looks, camera near the pad.
-overlayEntry.meshId = nil
 cameraAt(20)
 local standColor, padColor
 local function worldParts()
@@ -283,10 +319,10 @@ HabitatFx.attach(plots)
 standColor, padColor = part.Stand.Color, part.Color
 local partsAtBase, meshesAtBase = worldParts()
 local emitsBefore = emits
-setHabitat("crystal_grotto")
+setHabitat(COSMO)
 frames(0.2)
-local early = lookOf(part, "crystal_grotto")
-local stagger = { early.Frame1.Size.X > FRAME_LEN * 0.4, early.Crystal4.Size.Y < 0.3 } -- frame up, last prop not started
+local early = lookOf(part, COSMO)
+local stagger = { early.Frame1.Size.X > FRAME_LEN * 0.4, early.Prop3.Size.Y < 0.3 } -- frame up, last prop not started
 local peak = 0
 for _ = 1, 18 do
 	frames(0.05)
@@ -294,34 +330,34 @@ for _ = 1, 18 do
 end
 local midUntouched = part.Stand.Color == standColor and part.Color == padColor and standHidden() == 0
 frames(1.5)
-local enterSig = sig("crystal_grotto")
+local enterSig = sig(COSMO)
 local enterSettled = { standHidden(), looksOf(part), emits - emitsBefore }
 setHabitat("base")
 frames(0.5)
-local leaveMid = lookOf(part, "crystal_grotto")
+local leaveMid = lookOf(part, COSMO)
 local leaving = leaveMid ~= nil and leaveMid.Frame1.Size.X < FRAME_LEN and standHidden() == 0
 frames(1.2)
 local leftBase = atBase()
 local partsAfterLeave, meshesAfterLeave = worldParts()
 -- Interrupt mid-tween both ways, then settle: still the exact static look, then the exact base pad.
-setHabitat("crystal_grotto")
+setHabitat(COSMO)
 frames(0.4)
 setHabitat("base")
 frames(0.3)
-setHabitat("crystal_grotto")
+setHabitat(COSMO)
 frames(0.2)
-setHabitat("candy_patch")
+setHabitat("ember.4.blaze")
 frames(0.2)
-setHabitat("crystal_grotto")
+setHabitat(COSMO)
 local interruptLooks = 0
 for _ = 1, 40 do
 	frames(0.05)
 	interruptLooks = math.max(interruptLooks, looksOf(part))
 end
-local interruptSig = sig("crystal_grotto")
+local interruptSig = sig(COSMO)
 setHabitat("base")
 frames(0.3)
-setHabitat("crystal_grotto")
+setHabitat(COSMO)
 frames(0.1)
 setHabitat("base")
 frames(2)
@@ -331,17 +367,17 @@ local partsAfterInterrupt = worldParts()
 HabitatFx.clear()
 local colorsAfterClear = part.Stand.Color == standColor and part.Color == padColor
 local emitsLate = emits
-part:SetAttribute("Habitat", "crystal_grotto")
+part:SetAttribute("Habitat", COSMO)
 HabitatFx.attach(plots)
-local lateSig, lateEmits = sig("crystal_grotto"), emits - emitsLate
+local lateSig, lateEmits = sig(COSMO), emits - emitsLate
 HabitatFx.clear()
 -- Far from the camera: the change snaps (final state at once, no puff), the leave too.
 cameraAt(300)
 part:SetAttribute("Habitat", "base")
 HabitatFx.attach(plots)
 emitsLate = emits
-setHabitat("crystal_grotto")
-local farSig, farEmits = sig("crystal_grotto"), emits - emitsLate
+setHabitat(COSMO)
+local farSig, farEmits = sig(COSMO), emits - emitsLate
 setHabitat("base")
 local farLeft = atBase()
 HabitatFx.clear()
@@ -391,14 +427,14 @@ describe("Habitats live (FEATURES.Habitats on, fake runtime)", function()
 		expect(empty).toEqual({ "base", "base" })
 	end)
 	it("writes the slime's habitat on its pad with a server-time stamp", function()
-		expect(placed).toEqual({ "crystal_grotto", "base" })
+		expect(placed).toEqual({ "space.6.cosmo", "base" })
 		expect(type(placedAt)).toBe("number")
 	end)
 	it("keeps the habitat while a thief carries the slime off", function()
-		expect(carried).toEqual({ "crystal_grotto", "base" })
+		expect(carried).toEqual({ COSMO, "base" })
 	end)
 	it("reverts the pad to base once the slime is gone from the plot", function()
-		expect(gone).toEqual({ "base", "crystal_grotto" })
+		expect(gone).toEqual({ "base", COSMO })
 		expect(pad(3):GetAttribute("HabitatAt") > placedAt).toBe(true)
 	end)
 end)
@@ -414,15 +450,15 @@ describe("HabitatFx client lifecycle (fake runtime)", function()
 		expect(settledLooks).toBe(0) -- ended at base: no look left
 		expect(#rt.errors).toBe(0)
 	end)
-	it("draws the placeholder for an overlay with no meshId", function()
-		expect(grownPlaceholder).toEqual({ true, false })
+	it("draws the frame and theme placeholders, and no signature prop, while nothing is uploaded", function()
+		expect(grownPlaceholder).toEqual({ true, true, false, false })
 	end)
-	it("keeps the placeholder until the server's overlay template arrives", function()
+	it("keeps the placeholders until the server's templates arrive", function()
 		expect(waitedPlaceholder).toEqual({ true, false })
 		expect(serverFolder).toBe(true)
 	end)
-	it("then draws a clone of the template MeshPart at native size, bottom on the deck", function()
-		expect(meshShape).toEqual({ 1, "MeshPart", true, true, true })
+	it("then draws one template clone per layer: frame and theme on the deck, the prop on the front rim", function()
+		expect(meshShape).toEqual({ 3, true, true, true })
 		expect(#rt.errors).toBe(0)
 	end)
 	it("shows the bare base pad for an unknown habitat id", function()

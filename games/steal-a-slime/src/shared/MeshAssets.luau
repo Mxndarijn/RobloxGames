@@ -103,15 +103,6 @@ local NAMES = {
 	"ranch_border_chunk_d_m",
 	"ranch_border_chunk_h",
 	"ranch_border_chunk_h_m",
-	"habitat_hay_nest_overlay",
-	"habitat_mushroom_ring_overlay",
-	"habitat_flower_bed_overlay",
-	"habitat_barn_crate_overlay",
-	"habitat_rodeo_barrel_overlay",
-	"habitat_syrup_pool_overlay",
-	"habitat_show_stool_overlay",
-	"habitat_candy_patch_overlay",
-	"habitat_crystal_grotto_overlay",
 	"ranch_fence_20",
 	"plot_skin_mushroom",
 	"plot_skin_candy",
@@ -408,26 +399,8 @@ entries["ranch_border_chunk_h"] =
 	{ assetId = 73419946109730, meshId = "rbxassetid://111017472008949", size = { 53.606, 28.241, 42 } }
 entries["ranch_border_chunk_h_m"] =
 	{ assetId = 88966428868581, meshId = "rbxassetid://104548969463535", size = { 53.606, 28.241, 42 } }
--- Habitat overlays (Habitats.overlayMesh, HABITATS.md): rim dressing on the crate deck.
--- Sizes from the kit build (models/habitat_<id>_overlay.py), native W x H x D studs.
-entries["habitat_hay_nest_overlay"] =
-	{ assetId = 137655301198387, meshId = "rbxassetid://104179250569700", size = { 7.5, 1.562, 7.5 } }
-entries["habitat_mushroom_ring_overlay"] =
-	{ assetId = 96204622852852, meshId = "rbxassetid://125733398451227", size = { 7.5, 1.681, 7.5 } }
-entries["habitat_flower_bed_overlay"] =
-	{ assetId = 130689581528284, meshId = "rbxassetid://126613454986754", size = { 7.511, 1.836, 7.515 } }
-entries["habitat_barn_crate_overlay"] =
-	{ assetId = 118838784104356, meshId = "rbxassetid://121184718923861", size = { 7.5, 1.85, 7.5 } }
-entries["habitat_rodeo_barrel_overlay"] =
-	{ assetId = 139158157244798, meshId = "rbxassetid://111490220492313", size = { 7.5, 1.86, 7.5 } }
-entries["habitat_syrup_pool_overlay"] =
-	{ assetId = 137859014161776, meshId = "rbxassetid://139488288315701", size = { 7.586, 3.362, 7.586 } }
-entries["habitat_show_stool_overlay"] =
-	{ assetId = 79817145042621, meshId = "rbxassetid://79361559269361", size = { 7.5, 2.07, 7.5 } }
-entries["habitat_candy_patch_overlay"] =
-	{ assetId = 127018298955173, meshId = "rbxassetid://100478183132156", size = { 7.521, 1.722, 7.5 } }
-entries["habitat_crystal_grotto_overlay"] =
-	{ assetId = 108153474046130, meshId = "rbxassetid://73986018639306", size = { 7.5, 1.448, 7.5 } }
+-- Habitat layers (Habitats.MESHES, HABITATS.md: rarity frames, glow lip, themes, signature props) are not map
+-- slots, so not in NAMES; their entries go here once uploaded. Until then HabitatFx draws placeholders.
 -- 20-stud plot fence (models/ranch_fence_20.py): Open Cloud size-check.
 entries["ranch_fence_20"] =
 	{ assetId = 93657150564692, meshId = "rbxassetid://90306341034018", size = { 22, 9.02, 1.8 } }
