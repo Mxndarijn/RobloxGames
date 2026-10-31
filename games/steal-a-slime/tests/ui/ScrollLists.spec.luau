@@ -243,14 +243,23 @@ describe("Scroll list panels (opened hidden, as setOpen did)", function()
 	end
 
 	for _, shopId in { "ItemShop", "UpgradeShop" } do
-		it(`{shopId} lists every row of the shop, ROW or ROW_LEVELS tall`, function()
+		it(`{shopId} lists one child per entry of its first view, each a size the panel draws`, function()
 			local WorldShop = UiHarness.ui("Panels/WorldShop")
 			local panel, r = openPanel("WorldShop", 390, 844, shopId)
 			local g = geometry(panel, r)
-			expect(#g.rows).toBe(#WorldShopLogic.rows(shopId, state(), Remotes.ACTIONS, Config.FEATURES, Config))
+			local view = WorldShopLogic.view(shopId, state(), Remotes.ACTIONS, Config.FEATURES, Config)
+			expect(#g.rows).toBe(#view.entries)
 			expect(#g.rows >= 1).toBe(true)
+			local sizes = {
+				[WorldShop.ROW] = true,
+				[WorldShop.ROW_LEVELS] = true,
+				[WorldShop.ROW_THIN] = true,
+				[WorldShop.LABEL_H] = true,
+				[WorldShop.ROW + WorldShop.STRIP_H] = true,
+				[WorldShop.LADDER_HEAD + WorldShop.ROW] = true,
+			}
 			for _, row in g.rows do
-				expect(row.h == WorldShop.ROW or row.h == WorldShop.ROW_LEVELS).toBe(true)
+				expect(sizes[row.h]).toBe(true)
 			end
 			expect(table.concat(rowProblems(g.rows, g.gap, g.canvasH, g.listW), "\n")).toBe("")
 		end)
