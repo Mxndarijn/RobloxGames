@@ -5019,6 +5019,110 @@
     "uploadedAt": "2026-10-19T21:36:47Z",
     "versions": 1
   },
+  "obby_cloud_puff": {
+    "assetId": "89419260882283",
+    "assetType": "Model",
+    "meshId": "rbxassetid://73056391735954",
+    "meshSize": [
+      60.026,
+      23.345,
+      33.757
+    ],
+    "sha256": "aebf0fdcf6f20f27",
+    "uploadedAt": "2026-10-31T01:16:42Z",
+    "versions": 1
+  },
+  "obby_cloud_tower": {
+    "assetId": "135697952599457",
+    "assetType": "Model",
+    "meshId": "rbxassetid://110652712541010",
+    "meshSize": [
+      49.649,
+      38.508,
+      30.953
+    ],
+    "sha256": "e5418575c31b37e0",
+    "uploadedAt": "2026-10-31T01:16:50Z",
+    "versions": 1
+  },
+  "obby_cloudbank": {
+    "assetId": "119041492290006",
+    "assetType": "Model",
+    "meshId": "rbxassetid://112169156426656",
+    "meshSize": [
+      169.39,
+      36.467,
+      179.62
+    ],
+    "sha256": "fb4e5221ebbcd665",
+    "uploadedAt": "2026-10-31T01:17:02Z",
+    "versions": 1
+  },
+  "obby_island_crystal": {
+    "assetId": "97427879227313",
+    "assetType": "Model",
+    "meshId": "rbxassetid://84982111222812",
+    "meshSize": [
+      27.037,
+      38.962,
+      30.647
+    ],
+    "sha256": "2ded3830cdaf453b",
+    "uploadedAt": "2026-10-31T01:16:20Z",
+    "versions": 1
+  },
+  "obby_island_grove": {
+    "assetId": "95360256940130",
+    "assetType": "Model",
+    "meshId": "rbxassetid://103641710213958",
+    "meshSize": [
+      46.487,
+      46.605,
+      42.091
+    ],
+    "sha256": "e13b0de45be467a5",
+    "uploadedAt": "2026-10-31T01:16:00Z",
+    "versions": 1
+  },
+  "obby_island_mushroom": {
+    "assetId": "78633115463881",
+    "assetType": "Model",
+    "meshId": "rbxassetid://71072973768994",
+    "meshSize": [
+      82.312,
+      107.701,
+      85.498
+    ],
+    "sha256": "6d1d231539b03a69",
+    "uploadedAt": "2026-10-31T01:16:30Z",
+    "versions": 1
+  },
+  "obby_island_tree": {
+    "assetId": "81400601569641",
+    "assetType": "Model",
+    "meshId": "rbxassetid://120213025233838",
+    "meshSize": [
+      91.987,
+      116.463,
+      103.75
+    ],
+    "sha256": "d7e44a9cb6ebdda0",
+    "uploadedAt": "2026-10-31T01:16:25Z",
+    "versions": 1
+  },
+  "obby_island_village": {
+    "assetId": "108484176882032",
+    "assetType": "Model",
+    "meshId": "rbxassetid://113762869673065",
+    "meshSize": [
+      48.885,
+      40.595,
+      51.732
+    ],
+    "sha256": "657dd0a2b69bfd10",
+    "uploadedAt": "2026-10-31T01:16:10Z",
+    "versions": 1
+  },
   "pagoda_cap_1_mid": {
     "assetId": "90148981916597",
     "assetType": "Model",
