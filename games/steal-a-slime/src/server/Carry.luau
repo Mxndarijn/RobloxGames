@@ -168,8 +168,16 @@ function Carry.grabWild(
 	return true, nil
 end
 
--- ProximityPrompt entry point: wild slimes are grabbed, pad slimes stolen.
-function Carry.grab(world: World, userId: number, slimeId: string, distance: number, now: number): (boolean, string?)
+-- ProximityPrompt entry point: wild slimes are grabbed, pad slimes stolen. `inside` is the server view's
+-- JarInside.canReach for a pad slime (the thief is in the owner's base, on its floor); nil = not measured.
+function Carry.grab(
+	world: World,
+	userId: number,
+	slimeId: string,
+	distance: number,
+	now: number,
+	inside: boolean?
+): (boolean, string?)
 	local session = World.session(world, userId)
 	if not session then
 		return false, "still loading"
@@ -180,7 +188,7 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	if world.wild[slimeId] then
 		return Carry.grabWild(world, session, slimeId, distance, now)
 	end
-	return StealService.steal(world, session, slimeId, distance, now, SlimeGuard.stealBlock(world, userId, now))
+	return StealService.steal(world, session, slimeId, distance, now, SlimeGuard.stealBlock(world, userId, now), inside)
 end
 
 -- The boss carrier got home: the fight is won: the carrier wins, helpers are credited (BossCredit.win). The boss slime is

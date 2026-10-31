@@ -17,6 +17,7 @@
 	  WorldAudioLogic.popCues(id, hatchedAt, now) -> { Cue }        the hatched slime arrives: crack (if missed) + pop
 	  WorldAudioLogic.ritualCues(prev, next) -> { RitualCue }       ritual circle: a spot taken, the ritual done
 	  WorldAudioLogic.loopId(id) -> string?                         a looped bed's id, nil = silent
+	  WorldAudioLogic.flatVolume(distance, near, far) -> number     volume of a flat (unpanned) sound by distance
 	  WorldAudioLogic.newSchedule() / schedule(s, cues, now, cfg) / due(s, now, cfg) -> { Cue }
 ]]
 
@@ -225,6 +226,21 @@ end
 -- Whether a sound at `distance` studs from the camera is worth playing.
 function WorldAudioLogic.audible(distance: number, cfg: any): boolean
 	return distance <= cfg.CULL_DISTANCE
+end
+
+--[[
+	Volume (0..1) of a flat sound heard `distance` studs away: full inside `near`, then falling off like 1 / distance,
+	tapered to 0 at `far` (the shape of Roblox's InverseTapered rolloff). Boss sounds play flat with this volume:
+	a 3D sound pans hard into one ear when the boss stands to your side.
+]]
+function WorldAudioLogic.flatVolume(distance: number, near: number, far: number): number
+	if distance <= near then
+		return 1
+	end
+	if distance >= far then
+		return 0
+	end
+	return math.min(near / distance, (far - distance) / (far - near))
 end
 
 return table.freeze(WorldAudioLogic)

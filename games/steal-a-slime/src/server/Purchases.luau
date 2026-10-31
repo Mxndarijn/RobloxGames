@@ -38,6 +38,7 @@ local ExclusiveRotation = if Shared then require(Shared.ExclusiveRotation) else 
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Growth = if Shared then require(Shared.Growth) else require("../shared/Growth")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
+local PlayerSettings = if Shared then require(Shared.PlayerSettings) else require("../shared/PlayerSettings")
 local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared/PetSeats")
 local PlotBases = if Shared then require(Shared.PlotBases) else require("../shared/PlotBases")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
@@ -887,9 +888,12 @@ function Purchases.subscribed(session: Session, key: string): boolean
 	return session.subscriptions ~= nil and session.subscriptions[key] == true
 end
 
--- The tag `session` wears (Constants.MEMBER_ATTRIBUTE): "vip", "club" or nil. VIP wins when both.
+-- The tag `session` wears (Constants.MEMBER_ATTRIBUTE): "vip", "club" or nil. VIP wins when both; nil while the
+-- player turned "Show my VIP tag" off (PlayerSettings showMemberTag).
 function Purchases.member(session: Session): string?
-	if Purchases.hasEffect(session, "vip") then
+	if not PlayerSettings.clean(session.data.settings).showMemberTag then
+		return nil
+	elseif Purchases.hasEffect(session, "vip") then
 		return "vip"
 	elseif Purchases.subscribed(session, "SlimeClub") then
 		return "club"

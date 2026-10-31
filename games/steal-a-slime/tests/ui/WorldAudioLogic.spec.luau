@@ -193,4 +193,19 @@ describe("WorldAudioLogic config", function()
 		expect(WorldAudioLogic.audible(WORLD.CULL_DISTANCE, WORLD)).toBe(true)
 		expect(WorldAudioLogic.audible(WORLD.CULL_DISTANCE + 1, WORLD)).toBe(false)
 	end)
+
+	it("flatVolume is full up close, falls off with distance and is silent at the far edge", function()
+		expect(WorldAudioLogic.flatVolume(0, 12, 150)).toBe(1)
+		expect(WorldAudioLogic.flatVolume(12, 12, 150)).toBe(1)
+		expect(WorldAudioLogic.flatVolume(24, 12, 150)).toBe(0.5)
+		expect(WorldAudioLogic.flatVolume(150, 12, 150)).toBe(0)
+		expect(WorldAudioLogic.flatVolume(500, 12, 150)).toBe(0)
+		local last = 1
+		for d = 13, 149 do
+			local v = WorldAudioLogic.flatVolume(d, 12, 150)
+			expect(v < last).toBe(true)
+			expect(v > 0).toBe(true)
+			last = v
+		end
+	end)
 end)

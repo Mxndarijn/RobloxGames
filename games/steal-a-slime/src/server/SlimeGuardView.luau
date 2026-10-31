@@ -14,7 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BaseShapes = require(ReplicatedStorage.Visuals.BaseShapes)
 local Carry = require(script.Parent.Carry)
 local Constants = require(ReplicatedStorage.Shared.Constants)
-local PlotLockGuard = require(script.Parent.PlotLockGuard)
+local JarInside = require(ReplicatedStorage.Shared.JarInside)
 local PvpLaunch = require(script.Parent.PvpLaunch)
 local PvpService = require(script.Parent.PvpService)
 local SlimeGuard = require(script.Parent.SlimeGuard)
@@ -24,7 +24,7 @@ local WorldView = require(script.Parent.WorldView)
 local KICK_MESSAGE = "You were removed from this server. Please rejoin."
 
 -- The walls of plot `plot`'s base (BaseShapes, CONTRACT.md §44): the jar unless the plot says otherwise.
-local function guardOf(plot: Instance): PlotLockGuard.Jar
+local function guardOf(plot: Instance): JarInside.Jar
 	local base = plot:GetAttribute(Constants.PLOT_BASE_ATTRIBUTE)
 	return BaseShapes.get(if type(base) == "string" then base else nil).guard
 end
@@ -64,16 +64,7 @@ local function insidePlot(world: World.World, session: World.Session, root: Base
 		if owner and base and base:IsA("BasePart") then
 			local p = base.CFrame:PointToObjectSpace(root.Position)
 			local y = p.Y + base.Size.Y / 2
-			if
-				PlotLockGuard.insideJar(
-					p.X,
-					y,
-					p.Z,
-					guardOf(plot :: Instance),
-					SlimeGuard.floorsOf(owner),
-					was == index
-				)
-			then
+			if JarInside.inside(p.X, y, p.Z, guardOf(plot :: Instance), SlimeGuard.floorsOf(owner), was == index) then
 				return index
 			end
 		end
