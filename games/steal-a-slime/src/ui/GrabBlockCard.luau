@@ -67,7 +67,7 @@ end
 function GrabBlockCard.reasonText(prompt: any, me: GrabBlock.Me?): string?
 	local target = GrabBlockCard.target(prompt)
 	local reason = if me then GrabBlock.reason(me, target) else nil
-	return if reason then GrabBlock.text(reason, target) else nil
+	return if reason then GrabBlock.text(reason, target, me) else nil
 end
 
 -- Gives a prompt its blocked or normal style. A switch on an enabled prompt turns it off and on again so Roblox
