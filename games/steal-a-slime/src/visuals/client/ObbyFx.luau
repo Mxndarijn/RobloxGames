@@ -16,6 +16,8 @@
 	  * roll    a log rolling round its own length; its turn carries a player standing on it sideways
 	  * punch   shoots out along its axis, holds, slides back and rests (shoves what it hits)
 	  * gust    a see-through wind zone that blows on and off; while on, the local player inside is pushed sideways
+	It also turns the Goo Rings' swirls (the portal's and the ring home's: parts with Constants.GOO_SPIN, round their
+	GOO_PIVOT's Z axis).
 	Every change is local: each player collides with their own copy, so platforms move smoothly at frame rate.
 	Parts farther than MAX_DISTANCE from the camera are skipped. Never fires remotes. Call `tick` once a frame.
 ]]
@@ -245,10 +247,57 @@ local function floorUnder(root: BasePart?, params: RaycastParams): BasePart?
 	return if hit and hit.Instance:IsA("BasePart") then hit.Instance else nil
 end
 
+type Swirl = { part: BasePart, pivot: CFrame, offset: CFrame, speed: number }
+
+-- The Goo Ring swirl parts under `containers`, each with its rest offset from the ring centre.
+local function findSwirls(containers: { Instance }): { Swirl }
+	local out: { Swirl } = {}
+	for _, container in containers do
+		for _, d in container:GetDescendants() do
+			local speed = d:GetAttribute(Constants.GOO_SPIN)
+			local pivot = d:GetAttribute(Constants.GOO_PIVOT)
+			if d:IsA("BasePart") and typeof(speed) == "number" and typeof(pivot) == "CFrame" then
+				table.insert(out, { part = d, pivot = pivot, offset = pivot:ToObjectSpace(d.CFrame), speed = speed })
+			end
+		end
+	end
+	return out
+end
+
 function ObbyFx.start(): Controller
 	local movers: { Mover } = {}
 	local course: Instance? = nil
 	local nextFind = 0
+	local swirls: { Swirl } = {}
+	local swirlKey: { Instance? } = {}
+	local nextSwirlFind = 0
+
+	-- Turns every Goo Ring swirl near the camera; looks for new rings (portal, a rebuilt course) every FIND_EVERY.
+	local function spinSwirls(clock: number, camPos: Vector3?)
+		if clock >= nextSwirlFind then
+			nextSwirlFind = clock + ObbyFx.FIND_EVERY
+			local folder = workspace:FindFirstChild(Constants.OBBY_FOLDER)
+			local portal = folder and folder:FindFirstChild(Constants.OBBY_PORTAL)
+			local built = folder and folder:FindFirstChild(Constants.OBBY_COURSE)
+			if portal ~= swirlKey[1] or built ~= swirlKey[2] then
+				swirlKey = { portal, built }
+				local containers: { Instance } = {}
+				for _, c in { portal, built } do
+					if c then
+						table.insert(containers, c)
+					end
+				end
+				swirls = findSwirls(containers)
+			end
+		end
+		local far = ObbyFx.MAX_DISTANCE * ObbyFx.MAX_DISTANCE
+		for _, sw in swirls do
+			local d = if camPos then sw.pivot.Position - camPos else Vector3.zero
+			if sw.part.Parent ~= nil and d:Dot(d) <= far then
+				sw.part.CFrame = sw.pivot * CFrame.Angles(0, 0, clock * sw.speed) * sw.offset
+			end
+		end
+	end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
 
@@ -267,6 +316,7 @@ function ObbyFx.start(): Controller
 
 	local function tick(camera: Camera?)
 		local clock = os.clock()
+		spinSwirls(clock, if camera then camera.CFrame.Position else nil)
 		if course == nil or course.Parent == nil then
 			if clock < nextFind then
 				return
@@ -310,6 +360,8 @@ function ObbyFx.start(): Controller
 		stop = function()
 			movers = {}
 			course = nil
+			swirls = {}
+			swirlKey = {}
 		end,
 	}
 end

@@ -503,7 +503,6 @@ WorldLayout.OBBY = table.freeze({
 	portalDistance = 155,
 	portalRadius = 5, -- studs: stepping inside starts a run
 	exitStep = 10,
-	signStep = 9, -- the status sign stands this far behind the portal, facing the plaza
 	clearRadius = 12, -- keep-clear circle for props round the portal and its sign
 	pathWidth = 10,
 	archDistance = 108, -- the arch, from the map centre: past the ritual circle (Config.RITUAL, bearing 348, r 93)

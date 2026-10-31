@@ -2,14 +2,14 @@
 --[[
 	ObbyView (Roblox adapter, contract/obby.md)
 
-	Builds workspace.Obby: the portal (a goo ring and floor on the ground at the end of the obby path, and a status
-	sign; no light column, the path and the OBBY arch lead players there) once. The course itself is client-only:
+	Builds workspace.Obby: the portal (a standing Goo Ring at the end of the obby path, with a floor glow and a status
+	plaque on its top; no light column, the path and the OBBY arch lead players there) once. The course itself is client-only:
 	`build` publishes the slot standing now (Constants.OBBY_SLOT on workspace.Obby) and every client builds the
 	course from it in the obby's own world (visuals/client/ObbyCourseView with visuals/shared/ObbyParts; the backdrop
 	is visuals/client/ObbyBackdrop), so the server's part budget never carries it. `positions` reads every live
 	character's root position for ObbyService.step and `apply` makes its teleports. Holds no rules.
 
-	The portal sign is a SurfaceGui (landmark, guides/roblox-world-labels.md): a 1.6-stud title reads from about 30
+	The portal plaque is a SurfaceGui (landmark, guides/roblox-world-labels.md): a 1.6-stud title reads from about 30
 	studs on a phone, the 1-stud status lines from about 20; the client fills the two lines per player (ui/ObbyHud).
 ]]
 
@@ -28,10 +28,9 @@ local ObbyView = {}
 local PORTAL = table.freeze({
 	ring = ObbyParts.COLORS.ring,
 	floor = ObbyParts.COLORS.floor,
-	sign = ObbyParts.COLORS.sign,
-	signSize = Vector3.new(10, 5, 0.4), -- studs
-	signLift = 2, -- studs from the ground to the sign's bottom edge
-	maxDistance = 200, -- landmark sign; past ~60 studs it reads only as a shape (500 x 250 canvas)
+	-- The standing Goo Ring (ObbyParts.gooRing): about 12 studs tall, its plaque on top carries the status.
+	goo = { radius = 5.2, tube = 1.4, plaque = Vector3.new(10, 4.4, 0.4) },
+	maxDistance = 200, -- landmark sign; past ~60 studs it reads only as a shape (500 x 220 canvas)
 })
 
 local folder: Folder? = nil
@@ -126,34 +125,12 @@ function ObbyView.buildPortal()
 	cylinder("Ring", 0.4, r + 0.6, 0.2, PORTAL.ring, 0)
 	cylinder("Floor", 0.5, r, 0.3, PORTAL.floor, 0.4).Material = Enum.Material.SmoothPlastic
 
-	-- The sign stands behind the portal (away from the plaza) and faces the plaza.
+	-- The standing ring over the glow faces the plaza: you walk through it along the obby path.
 	local _, yaw = WorldLayout.obbyPortal()
 	local a = math.rad(yaw)
 	local towards = Vector3.new(math.sin(a), 0, math.cos(a)) -- towards the map centre
-	local signPos = base
-		- towards * WorldLayout.OBBY.signStep
-		+ Vector3.new(0, PORTAL.signLift + PORTAL.signSize.Y / 2, 0)
-	local sign = Instance.new("Part")
+	local sign = ObbyParts.gooRing(CFrame.lookAt(base, base + towards), PORTAL.goo, model, "")
 	sign.Name = "Sign"
-	sign.Anchored = true
-	sign.Size = PORTAL.signSize
-	sign.CFrame = CFrame.lookAt(signPos, signPos + towards)
-	sign.Color = PORTAL.sign
-	sign.Material = Enum.Material.SmoothPlastic
-	sign.Parent = model
-	-- The posts run up inside the board (thinner than it, and stopping just under its top so no faces meet), so they
-	-- show only under it and cover neither face.
-	local postInset = 0.1
-	for _, side in { -1, 1 } do
-		local post = Instance.new("Part")
-		post.Name = "Post"
-		post.Anchored = true
-		post.Size = Vector3.new(0.6, PORTAL.signLift + PORTAL.signSize.Y - postInset, PORTAL.signSize.Z * 0.9)
-		post.CFrame = sign.CFrame
-			* CFrame.new(side * (PORTAL.signSize.X / 2 - 0.6), -(PORTAL.signLift + postInset) / 2, 0)
-		post.Color = PORTAL.sign
-		post.Parent = model
-	end
 	-- The same sign on both faces: from the plaza and from the portal side. ObbyHud fills every Status and
 	-- CourseInfo label it finds.
 	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
@@ -165,9 +142,9 @@ function ObbyView.buildPortal()
 		gui.MaxDistance = PORTAL.maxDistance
 		gui.LightInfluence = 0
 		gui.Adornee = sign
-		ObbyParts.signLabel(gui, "Title", "OBBY", 0.06, 0.32, 80)
-		ObbyParts.signLabel(gui, Constants.OBBY_SIGN_STATUS, "Step in: x1.5 income!", 0.42, 0.24, 50)
-		ObbyParts.signLabel(gui, Constants.OBBY_SIGN_COURSE, "A new course every 10 min", 0.7, 0.2, 40)
+		ObbyParts.signLabel(gui, "Title", "OBBY", 0.04, 0.36, 80)
+		ObbyParts.signLabel(gui, Constants.OBBY_SIGN_STATUS, "Step in: x1.5 income!", 0.44, 0.26, 50)
+		ObbyParts.signLabel(gui, Constants.OBBY_SIGN_COURSE, "A new course every 10 min", 0.74, 0.2, 40)
 		gui.Parent = sign
 	end
 	model.Parent = root
