@@ -11,7 +11,8 @@
 	    charges, fading in and out
 	  * a looped water bed at the plaza fountain (Map.Volcano.Pool)
 	One-shots go through SoundController (SFX group), 3D at the spot; ones farther than WORLD.CULL_DISTANCE from the
-	camera are skipped. The looped beds are 3D Sounds in the Music group, so the Music slider covers them.
+	camera are skipped. Boss sounds play flat (the same in both ears) with a volume from the distance
+	(WorldAudioLogic.flatVolume): as 3D sounds they panned hard into one ear whenever the boss stood to the side. The looped beds are 3D Sounds in the Music group, so the Music slider covers them.
 
 	  local stop, tick = WorldAudio.start(ctx)    tick(now) from the client's 10 Hz loop, `now` = server time
 ]]
@@ -45,7 +46,8 @@ export type Context = {
 }
 
 -- Where a timed cue plays: at a part (it follows it) or a fixed point, heard within `range` studs.
-type Host = { part: BasePart?, pos: Vector3, range: number, variant: boolean? }
+-- `flat`: play it unpanned, only its volume set by the distance.
+type Host = { part: BasePart?, pos: Vector3, range: number, variant: boolean?, flat: boolean? }
 
 local function musicGroup(): SoundGroup
 	local g = SoundService:FindFirstChild("Music")
@@ -89,19 +91,28 @@ function WorldAudio.start(ctx: Context?): (() -> (), (now: number) -> ())
 	local lastLook = -math.huge
 	local lastClock = os.clock()
 
-	local function near(pos: Vector3): boolean
+	local flatNear = (c.config or Config).AUDIO.SFX_3D_MIN_DISTANCE
+
+	-- Studs from the camera to `pos` (0 without a camera).
+	local function distance(pos: Vector3): number
 		local camera = workspace.CurrentCamera
-		return camera == nil or WorldAudioLogic.audible((camera.CFrame.Position - pos).Magnitude, cfg)
+		return if camera then (camera.CFrame.Position - pos).Magnitude else 0
 	end
 
 	local function play(name: string, host: Host)
 		local part = host.part
 		local live = part ~= nil and part.Parent ~= nil
 		local pos = if live then (part :: BasePart).Position else host.pos
-		if not near(pos) then
+		local d = distance(pos)
+		if not WorldAudioLogic.audible(d, cfg) then
 			return
 		end
-		local opts: PlayOptions = { at = if live then part else pos, maxDistance = host.range }
+		local opts: PlayOptions = if host.flat
+			then { volume = WorldAudioLogic.flatVolume(d, flatNear, host.range) }
+			else { at = if live then part else pos, maxDistance = host.range }
+		if opts.volume == 0 then
+			return
+		end
 		if host.variant then
 			variantFn(name, opts)
 		else
@@ -135,11 +146,11 @@ function WorldAudio.start(ctx: Context?): (() -> (), (now: number) -> ())
 		local pivot = model:GetPivot().Position
 		local body = bodyOf(model)
 		local function atBoss(): Host
-			return { part = body, pos = pivot, range = cfg.BOSS_MAX_DISTANCE }
+			return { part = body, pos = pivot, range = cfg.BOSS_MAX_DISTANCE, flat = true }
 		end
 		local function onFloor(cue: WorldAudioLogic.Cue): Host
 			if cue.x and cue.z then
-				return { pos = Vector3.new(cue.x, pivot.Y, cue.z), range = cfg.BOSS_MAX_DISTANCE }
+				return { pos = Vector3.new(cue.x, pivot.Y, cue.z), range = cfg.BOSS_MAX_DISTANCE, flat = true }
 			end
 			return atBoss()
 		end
@@ -167,7 +178,10 @@ function WorldAudio.start(ctx: Context?): (() -> (), (now: number) -> ())
 		if hitAt ~= seenHitAt then
 			seenHitAt = hitAt
 			if type(hitAt) == "number" and now - hitAt <= cfg.LATE_SECONDS then
-				play("BossHit", { part = body, pos = pivot, range = cfg.BOSS_MAX_DISTANCE, variant = true })
+				play(
+					"BossHit",
+					{ part = body, pos = pivot, range = cfg.BOSS_MAX_DISTANCE, variant = true, flat = true }
+				)
 			end
 		end
 	end
