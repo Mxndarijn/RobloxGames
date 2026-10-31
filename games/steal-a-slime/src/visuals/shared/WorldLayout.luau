@@ -432,6 +432,60 @@ function WorldLayout.podiumTopCentre(rank: number, sizeX: number, sizeZ: number)
 	return shift(sizeX, entry.size[1]), shift(sizeZ, entry.size[3])
 end
 
+-- The trophy plate and rank medallion on a podium's front (server/PodiumRigs), in the same model units as
+-- PODIUM_TOPS (_phoenix_podium.py: front at -Y there, the slot's +Z here). `height` is each rank's top H. The plate
+-- fills the opening between the corner posts (posts 0.9 wide at +-W/2) from just over the plinth (`bottom`) to just
+-- under the red band (H - `belowTop`), and is mounted over the old plaque so it hides the modelled numeral (the
+-- numeral's face is at W/2 + 0.53). The medallion is a brass disc over the star under the top rim.
+WorldLayout.PODIUM_PLATE = table.freeze({
+	height = table.freeze({ 7.0, 5.0, 3.9 }),
+	postGap = 1.0, -- plate width = W - postGap
+	bottom = 0.95,
+	belowTop = 1.3,
+	back = 0.28, -- plate back face, past W/2 (inside the plaque, which sits at W/2 + 0.3)
+	front = 0.62, -- plate front face, past W/2 (in front of the numeral)
+	medal = table.freeze({ diameter = 1.1, belowTop = 0.95, back = 0.3, front = 0.68 }),
+})
+
+export type PodiumBox = { x: number, y: number, z: number, w: number, h: number, d: number }
+
+-- Podium `rank`'s plate and medallion as boxes (centre x, y, z and size w, h, d) in its slot's local studs for a slot
+-- of `sizeX` x `sizeY` x `sizeZ` (+Z = the front). nil when the mesh isn't known.
+function WorldLayout.podiumPlate(
+	rank: number,
+	sizeX: number,
+	sizeY: number,
+	sizeZ: number
+): { plate: PodiumBox, medal: PodiumBox }?
+	local P = WorldLayout.PODIUM_PLATE
+	local entry = MeshAssets.get(`phoenix_plaza_podium_{rank}`)
+	local w, top = WorldLayout.PODIUM_TOPS.column[rank], P.height[rank]
+	local native = entry and entry.size
+	if not (native and w and top) then
+		return nil
+	end
+	local sx, sy, sz = sizeX / native[1], sizeY / native[2], sizeZ / native[3]
+	local cx, cz = WorldLayout.podiumTopCentre(rank, sizeX, sizeZ)
+	local function box(width: number, y0: number, y1: number, back: number, front: number): PodiumBox
+		return {
+			x = cx,
+			y = -sizeY / 2 + (y0 + y1) / 2 * sy,
+			z = cz + (w / 2 + (back + front) / 2) * sz,
+			w = width * sx,
+			h = (y1 - y0) * sy,
+			d = (front - back) * sz,
+		}
+	end
+	local m = P.medal
+	local medalY = top - m.belowTop
+	local medal = box(m.diameter, medalY - m.diameter / 2, medalY + m.diameter / 2, m.back, m.front)
+	medal.w = medal.h -- a round disc, whatever the slot's x and y scales
+	return {
+		plate = box(w - P.postGap, P.bottom, top - P.belowTop, P.back, P.front),
+		medal = medal,
+	}
+end
+
 -- A Hall of Fame plaza-local point (x right as you walk in, y towards the back) in world studs (y = 0).
 function WorldLayout.hallPoint(x: number, y: number): Vec
 	local hall = WorldLayout.HALL_OF_FAME

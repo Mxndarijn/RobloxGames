@@ -4,9 +4,9 @@
 
 	The Goo board the world signs share (canvas GooWorldSigns): a glass card with an Ink outline and, on top,
 	a coloured band that drips goo into the empty strip under it: each drip one finger of goo with a round end.
-	PlotSigns draws it on a plot's Sign (mint band, or no band on an empty plot) and PodiumRigs on the podium
-	name boards (gold band). Everything is sized by scale, so the same board fits a SurfaceGui or a
-	BillboardGui of any size; text goes on top through GooBoard.text.
+	PlotSigns draws it on a plot's Sign (mint band, or no band on an empty plot). Everything is sized by scale,
+	so the same board fits a SurfaceGui or a BillboardGui of any size; text goes on top through GooBoard.text
+	(PodiumRigs also uses GooBoard.text for the podium trophy plates).
 
 	`deps` ({ Instance, Enum, UDim, UDim2, Color3 }) is the Roblox globals in the game and @lune/roblox's in tests.
 ]]
