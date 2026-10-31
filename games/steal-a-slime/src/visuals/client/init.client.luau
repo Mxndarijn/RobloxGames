@@ -22,6 +22,7 @@
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
 	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst
 	  * the Goo Gauntlet obby's moving parts (ObbyFx): slides, spinners, melting, flipping and shrinking pads
+	  * the obby world's own look (ObbyWorld): Lighting, Atmosphere and a tint swap while the local player is there
 	  * the Exclusive Shop's jar (ShopDisplayFx): the featured seats floating over its pedestals
 	  * carry trails (CarryTrailFx): a player's CarryTrail streams behind them while Carrying
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
@@ -63,6 +64,7 @@ local BossChoreo = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild
 local CarryWriggle = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("CarryWriggle"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local Effects = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("Effects"))
+local ObbyLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("ObbyLook"))
 local StepTrack = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core"):WaitForChild("StepTrack"))
 
 local MAX_DISTANCE = 150
@@ -571,6 +573,15 @@ do
 		warn(`[VisualsClient] obby fx disabled: {err}`)
 	end
 end
+local obbyWorld: any = nil
+do
+	local ok, err = pcall(function()
+		obbyWorld = require(script:WaitForChild("ObbyWorld")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] obby world look disabled: {err}`)
+	end
+end
 local shopDisplayFx: any = nil
 do
 	local ok, err = pcall(function()
@@ -641,12 +652,18 @@ for _, model in CollectionService:GetTagged(Constants.SLIME_TAG) do
 	onSlime(model)
 end
 
-workspace:GetAttributeChangedSignal(RAIN_ATTRIBUTE):Connect(function()
-	setRain(workspace:GetAttribute(RAIN_ATTRIBUTE) == true)
-end)
-setRain(workspace:GetAttribute(RAIN_ATTRIBUTE) == true)
+-- No Slime Rain in the obby world (ObbyLook.isInside): it comes back on the way out.
+local function applyRain()
+	setRain(workspace:GetAttribute(RAIN_ATTRIBUTE) == true and not ObbyLook.isInside())
+end
+workspace:GetAttributeChangedSignal(RAIN_ATTRIBUTE):Connect(applyRain)
+ObbyLook.onInsideChanged(applyRain)
+applyRain()
 
-RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function(dt: number)
+	if obbyWorld then
+		obbyWorld.tick(dt)
+	end
 	local camera = workspace.CurrentCamera
 	if not camera then
 		return

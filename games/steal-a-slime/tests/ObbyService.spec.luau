@@ -17,11 +17,14 @@ local OBBY = Config.OBBY
 -- 10 s into a rotation, so no test crosses into the next one by accident.
 local T = ObbyCourse.slotStart(ObbyCourse.slot(ServerFixtures.T0) + 1) + 10
 
+-- The portal in the yard, the course in its own world thousands of studs away.
 local PLACE: ObbyService.Place = {
-	frame = { origin = { -90, 150, 220 }, yaw = 157.5 },
+	frame = { origin = { 0, 400, -9000 }, yaw = 180 },
 	portal = { -95, 0, 230 },
 	portalRadius = 5,
 	exit = { -92, 3, 222 },
+	exitYaw = 337.5,
+	zone = { centre = { 0, 400, -9150 }, radius = 1500 },
 }
 
 local function setup(): (any, any)
@@ -236,11 +239,25 @@ describe("ObbyService runs", function()
 	it("leaving the course or losing the character ends the run", function()
 		local world, session = setup()
 		enter(world, T)
-		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), T + 3)
+		-- Well off to the side of the course, whatever its length.
+		local away = { world.obby.length / 2, 3, ObbyService.OFF_COURSE + 20 }
+		ObbyService.step(world, PLACE, at(ObbyCourse.toWorld(PLACE.frame, away)), T + 3)
 		expect(session.obbyRun).toBeNil()
 		enter(world, T + 5)
 		ObbyService.step(world, PLACE, {}, T + 6)
 		expect(session.obbyRun).toBeNil()
+	end)
+
+	it("wandering off the course in the obby world ends the run and sets the player down by the portal", function()
+		local world, session = setup()
+		enter(world, T)
+		local off = ObbyCourse.toWorld(PLACE.frame, { 20, 3, ObbyService.OFF_COURSE + 30 })
+		ObbyService.step(world, PLACE, at(off), T + 3)
+		expect(session.obbyRun).toBeNil()
+		local result = ObbyService.step(world, PLACE, at(off), T + 3.1)
+		expect(#result.moves).toBe(1)
+		expect(result.moves[1].pos[3]).toBe(PLACE.exit[3])
+		expect(result.moves[1].yaw).toBe(PLACE.exitYaw)
 	end)
 end)
 

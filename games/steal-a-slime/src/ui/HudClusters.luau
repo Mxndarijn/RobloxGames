@@ -14,12 +14,14 @@
 	    Friend the friend income bonus ("+10%", no timer);
 	    Blessed the co-op ritual's Blessed income bonus (State.blessed) with the time left;
 	    Mvp     the Boss Champion boost (State.mvpBoost) with the time left;
-	    Obby    the Goo Gauntlet boost (State.obby.endsAt) with the time left;
+	    Obby    the obby boost (State.obby.endsAt) with the time left, then a dimmed "cooldown" countdown to
+	           State.obby.readyAt (a finish earns the boost again); gone once ready;
 	    Boost  the income boost from a redeem code or a quest reward (State.codes) with the time left;
 	    Pet    the follow pet's perk (State.petPerk: "+3%", no timer) while the favourite rides along on its cloud;
 	    Secret this week's featured event Secret (State.featuredSecret) with the time until it rotates ("4h 6m").
 	  The row has Layout.STATUS.count places, fewer than there are slots: the week-long Secret makes way
-	  first, then the last ones in the order above (the always-on Pet next; the others last minutes).
+	  first, unless the obby is only cooling down (that slot gives way before anything else), then the last
+	  ones in the order above (the always-on Pet next; the others last minutes).
 	  The weekend boost is never a slot (Merijn, HUD-DESIGN.md: "Weekend boost: NOT shown").
 	Tooltip (B8, 2026-10-18): each slot also carries its name and what it does; `tooltip` turns that plus the
 	live timer into the 3 lines of the card (name, effect, time left), and `nextTooltip` is the open / close
@@ -38,7 +40,7 @@ export type Slot = {
 	id: string, -- "LockBreak" | "Rain" | "Event" | "Friend" | "Blessed" | "Mvp" | "Obby" | "Boost" | "Pet" | "Secret"
 	icon: string, -- ItemIcons id
 	text: string, -- the timer, or "+10%"
-	kind: string, -- "active" | "soon" | "boost" | "pet" | "week"
+	kind: string, -- "active" | "soon" | "boost" | "pet" | "week" | "cooldown"
 	name: string, -- tooltip title: "Slime Rain"
 	effect: string, -- tooltip body: what the event does
 }
@@ -62,8 +64,8 @@ export type LockBreak = { plot: number, untilTime: number }
 -- State.blessed: the ritual's Blessed income bonus, `endsAt` in server time. State.mvpBoost (the Boss MVP boost) has
 -- the same shape.
 export type Blessed = { bonus: number, endsAt: number }
--- State.obby (the Goo Gauntlet): `endsAt` while boosted, in server time.
-export type ObbyBoost = { bonus: number, endsAt: number? }
+-- State.obby (the obby): `endsAt` while boosted, `readyAt` while boosted or cooling down, in server time.
+export type ObbyBoost = { bonus: number, endsAt: number?, readyAt: number? }
 -- State.codes: the code / quest income boost (Codes.view), `boostEndsAt` in server time; boostMult 1 = none.
 export type CodesBoost = { boostMult: number, boostEndsAt: number }
 -- State.petPerk: the favourite follow pet's passive (Perks.petPassive), `value` 0.03 = +3 %.
@@ -94,6 +96,8 @@ HudClusters.ICONS = table.freeze({
 
 HudClusters.LOCK_BREAK_NAME = "Lock break"
 HudClusters.LOCK_BREAK_EFFECT = "You can walk through that base's locked door. It stays locked for everyone else."
+
+HudClusters.OBBY_NAME = "Obby"
 
 HudClusters.RAIN_EFFECT = "Slimes pour from the sky and rarer ones show up more often. Grab them!"
 
@@ -224,20 +228,38 @@ function HudClusters.mvp(view: Blessed?, now: number): Slot?
 	return slot
 end
 
--- The Goo Gauntlet slot (State.obby) while its boost runs; nil when not boosted, malformed or over.
+-- The obby slot (State.obby): the boost's time left while it runs, then a dimmed "cooldown" countdown until a
+-- finish earns it again; nil when ready, malformed or never earned.
 function HudClusters.obby(view: ObbyBoost?, now: number): Slot?
-	if type(view) ~= "table" or type(view.endsAt) ~= "number" then
+	if type(view) ~= "table" or type(view.bonus) ~= "number" then
 		return nil
 	end
-	local slot = HudClusters.blessed({ bonus = view.bonus, endsAt = view.endsAt :: number }, now)
-	if not slot then
+	local income = Format.formatMultiplier(1 + view.bonus)
+	if type(view.endsAt) == "number" then
+		local slot = HudClusters.blessed({ bonus = view.bonus, endsAt = view.endsAt :: number }, now)
+		if slot then
+			slot.id = "Obby"
+			slot.icon = HudClusters.ICONS.Obby
+			slot.name = HudClusters.OBBY_NAME
+			slot.effect = `{income} income for clearing the obby.`
+			return slot
+		end
+	end
+	if type(view.readyAt) ~= "number" or view.readyAt ~= view.readyAt then
 		return nil
 	end
-	slot.id = "Obby"
-	slot.icon = HudClusters.ICONS.Obby
-	slot.name = "Obby"
-	slot.effect = `{Format.formatMultiplier(1 + view.bonus)} income for clearing the sky obby.`
-	return slot
+	local wait = Format.remainingSeconds(view.readyAt :: number, now)
+	if wait <= 0 then
+		return nil
+	end
+	return {
+		id = "Obby",
+		icon = HudClusters.ICONS.Obby,
+		text = Format.formatDuration(wait),
+		kind = "cooldown",
+		name = HudClusters.OBBY_NAME,
+		effect = `Clear the obby again after this for another {income} income boost.`,
+	}
 end
 
 -- The code / quest income boost slot (State.codes); nil with no boost, a malformed one or once it ends.
@@ -324,7 +346,8 @@ function HudClusters.lockBreak(view: LockBreak?, now: number): Slot?
 	}
 end
 
--- The shown slots, left to right; at most `places` (Layout.STATUS.count), the featured Secret dropped first.
+-- The shown slots, left to right; at most `places` (Layout.STATUS.count). An obby cooldown gives way first, then
+-- the featured Secret, then the last slots.
 function HudClusters.status(input: Inputs, now: number, places: number): { Slot }
 	local out: { Slot } = {}
 	local lockBreak = HudClusters.lockBreak(input.lockBreak, now)
@@ -352,7 +375,8 @@ function HudClusters.status(input: Inputs, now: number, places: number): { Slot 
 		table.insert(out, mvp)
 	end
 	local obby = HudClusters.obby(input.obby, now)
-	if obby then
+	local obbyAt = #out + 1
+	if obby and obby.kind ~= "cooldown" then
 		table.insert(out, obby)
 	end
 	local boost = HudClusters.boost(input.codes, now)
@@ -370,6 +394,9 @@ function HudClusters.status(input: Inputs, now: number, places: number): { Slot 
 	while #out > places do
 		table.remove(out)
 	end
+	if obby and obby.kind == "cooldown" and #out < places then
+		table.insert(out, math.min(obbyAt, #out + 1), obby)
+	end
 	return out
 end
 
@@ -386,6 +413,8 @@ function HudClusters.tooltip(slot: Slot): Tooltip
 		time = "Active now" -- an untimed modifier ("x3") or a rain without an end time ("Now")
 	elseif slot.kind == "soon" then
 		time = `Starts in {slot.text}`
+	elseif slot.kind == "cooldown" then
+		time = `Next boost ready in {slot.text}`
 	else
 		time = `Time left: {slot.text}`
 	end

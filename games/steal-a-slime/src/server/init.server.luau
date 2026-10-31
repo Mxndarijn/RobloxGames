@@ -146,7 +146,7 @@ ctx.saveUser = function(userId: number, data: any): boolean -- SendGift saves th
 	return Persistence.save(persistence, userId, data, false)
 end
 local leaderboard = LeaderboardView.new(world, persistence.boardStore, leaderboardEvent)
--- The Obby sky course (contract/obby.md): the portal once, this rotation's course (ServerLoop rebuilds it).
+-- The obby (contract/obby.md): the portal once, this rotation's course (ServerLoop rebuilds it).
 safeCall("obby setup", function()
 	ObbyView.buildPortal()
 	ObbyView.build(ObbyService.setup(world, now()))

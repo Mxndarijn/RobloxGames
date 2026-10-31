@@ -147,6 +147,7 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 | Plot sign (mascot + nameplate), front and back | `server/PlotSigns` (`shared/MascotSign`) | SG 6×3, 50 ppS, both faces | 250 | no |
 | Shop stand signs | `visuals/shared/Props.standSign` | SG, 80 ppS | 300 | no |
 | Hall arch banner | `visuals/shared/Props.hallArch` | SG, 40 ppS | 300 | no |
+| Obby arch banner ("OBBY", over the obby path) | `visuals/shared/Props.obbyArch` | SG, 40 ppS | 300 | no |
 | Leaderboard boards | `visuals/shared/Props.leaderboardBoard`, `ui/WorldLeaderboard` | SG, 40 ppS | 150 | no |
 | Upcoming Events board (on a leaderboard board) | `server/EventBoardView` | SG, 40 ppS (×1.05 model scale) | 150 | no |
 | Ritual rules sign, front and back | `server/RitualView` | SG 6×1.8, 50 ppS, both faces | 80 | no |

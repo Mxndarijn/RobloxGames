@@ -247,8 +247,6 @@ describe("prop facing audit (TODO #11)", function()
 				"PicnicTable",
 				"Sunflowers",
 				"HorseshoePit",
-				"GooSign",
-				"Birdhouse",
 				"Planter",
 				"Ranch1",
 				"Ranch2",

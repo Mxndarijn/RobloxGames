@@ -8,7 +8,9 @@
 	equips it (the follow pet rides it), "PcwPads" (a count) the unlocked pads (the upper
 	jars build), "PcwSlimes" (a tier) puts three slimes of that rarity on free pads (a merge vat load), "PcwPlotBase"
 	(a base id) raises the rebirths to that base's gate, or owns an Exclusive base, and equips it (CONTRACT.md §44),
-	"PcwTutorial" (a tutorial step name) finishes that step as if the player did its action (contract/tutorial.md).
+	"PcwTutorial" (a tutorial step name) finishes that step as if the player did its action (contract/tutorial.md),
+	"PcwObby" ("boosted", "cooling" or "ready") sets the obby timers to that phase (contract/obby.md §4): a fresh boost,
+	a boost that just ended with 3:12 of cooldown left, or neither.
 	ServerLoop's `pinClock` covers the Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
 
@@ -231,6 +233,20 @@ local function apply(world: World.World, player: Player, refresh: () -> ())
 			PlayerData.addSlime(profile, fresh)
 		end
 	end
+	local obby = player:GetAttribute("PcwObby")
+	if obby == "boosted" or obby == "cooling" or obby == "ready" then
+		local t = workspace:GetServerTimeNow()
+		if obby == "boosted" then
+			profile.obbyUntil = t + Config.OBBY.BOOST_SECONDS
+			profile.obbyReadyAt = profile.obbyUntil + Config.OBBY.COOLDOWN_SECONDS
+		elseif obby == "cooling" then
+			profile.obbyUntil = t - 1
+			profile.obbyReadyAt = t + 192
+		else
+			profile.obbyUntil = 0
+			profile.obbyReadyAt = 0
+		end
+	end
 	local step = player:GetAttribute("PcwTutorial")
 	if type(step) == "string" then
 		World.tutorial(world, session, step) -- as if the player did that step's action
@@ -252,7 +268,16 @@ function StudioHooks.start(
 	end
 	local function watch(player: Player)
 		for _, name in
-			{ "PcwGrowth", "PcwPlotSkin", "PcwPetSeat", "PcwPads", "PcwSlimes", "PcwPlotBase", "PcwTutorial" }
+			{
+				"PcwGrowth",
+				"PcwPlotSkin",
+				"PcwPetSeat",
+				"PcwPads",
+				"PcwSlimes",
+				"PcwPlotBase",
+				"PcwTutorial",
+				"PcwObby",
+			}
 		do
 			player:GetAttributeChangedSignal(name):Connect(function()
 				pcall(apply, world, player, refresh)

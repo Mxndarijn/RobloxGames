@@ -27,6 +27,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
+local ObbyLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("ObbyLook"))
 local PlayerSettings = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PlayerSettings"))
 local TutorialTargets = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("TutorialTargets"))
 local Guide = ReplicatedStorage:WaitForChild("Lib"):WaitForChild("guide")
@@ -194,7 +195,14 @@ end
 function TutorialArrow.start(): () -> ()
 	local player = Players.LocalPlayer
 	-- clearLabels: the marker floats above the target slime's own tag instead of over it.
-	local guide = GuideView.new({ getIgnore = ignoreList, clearLabels = true })
+	-- shouldPath: no pathing from the obby world, a world away from every target (ObbyLook.isInside).
+	local guide = GuideView.new({
+		getIgnore = ignoreList,
+		clearLabels = true,
+		shouldPath = function()
+			return not ObbyLook.isInside()
+		end,
+	})
 	local currentKey: string? = nil
 	local far = false
 	local running = true
@@ -217,7 +225,10 @@ function TutorialArrow.start(): () -> ()
 		)
 		local gui = player:FindFirstChild("PlayerGui")
 		local ui = gui and gui:FindFirstChild(Constants.UI_GUI_NAME)
-		guide:setEdgeHidden(ui ~= nil and ui:GetAttribute(Constants.MENU_OPEN_ATTRIBUTE) == true)
+		-- the edge pointer hides under an open menu, and in the obby world, where every target is a world away
+		guide:setEdgeHidden(
+			(ui ~= nil and ui:GetAttribute(Constants.MENU_OPEN_ATTRIBUTE) == true) or ObbyLook.isInside()
+		)
 	end
 	task.spawn(function()
 		while running do

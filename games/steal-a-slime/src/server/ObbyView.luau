@@ -2,10 +2,12 @@
 --[[
 	ObbyView (Roblox adapter, contract/obby.md)
 
-	Builds the Goo Gauntlet in workspace.Obby: the portal (a goo ring on the ground, a see-through light column and a
-	status sign) once, and the course (`build`, from ObbyCourse data) each rotation. Moving parts get their rest
-	CFrame and motion as attributes (the OBBY_* names in Constants); visuals/client/ObbyFx plays them on every client. Belts get a
-	surface velocity, ice no friction. `positions` reads every live character's root position for ObbyService.step
+	Builds the Goo Gauntlet in workspace.Obby: the portal (a goo ring and floor on the ground at the end of the obby
+	path, and a status sign; no light column, the path and the OBBY arch lead players there) once, and the course
+	(`build`, from ObbyCourse data) each rotation, in the obby's own world far from the map (WorldLayout.obbyFrame; the
+	client dresses it, visuals/client/ObbyBackdrop). Moving parts get their rest CFrame and motion as attributes (the
+	OBBY_* names in Constants); visuals/client/ObbyFx plays them on every client. Belts get a surface velocity, ice no
+	friction. `positions` reads every live character's root position for ObbyService.step
 	and `apply` makes its teleports. Holds no rules.
 
 	The portal sign is a SurfaceGui (landmark, guides/roblox-world-labels.md): a 1.6-stud title reads from about 30
@@ -81,13 +83,35 @@ local LOOKS: { [string]: Look } = {
 		material = Enum.Material.Wood,
 	},
 	gate = { colors = { Color3.fromRGB(235, 70, 120) }, material = Enum.Material.SmoothPlastic, transparency = 0.2 },
+	-- Belts: orange pushes right, blue pushes left.
+	belt = {
+		colors = { Color3.fromRGB(255, 150, 50), Color3.fromRGB(70, 170, 255) },
+		material = Enum.Material.SmoothPlastic,
+	},
+	glow = {
+		colors = { Color3.fromRGB(255, 240, 120), Color3.fromRGB(150, 255, 170), Color3.fromRGB(140, 220, 255) },
+		material = Enum.Material.Neon,
+	},
+	log = {
+		colors = { Color3.fromRGB(160, 105, 60), Color3.fromRGB(140, 90, 50) },
+		material = Enum.Material.Wood,
+	},
+	wave = {
+		colors = { Color3.fromRGB(110, 220, 90) },
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0.15,
+	},
+	puncher = { colors = { Color3.fromRGB(255, 90, 140) }, material = Enum.Material.SmoothPlastic },
+	gust = {
+		colors = { Color3.fromRGB(235, 250, 255) },
+		material = Enum.Material.SmoothPlastic,
+		transparency = 0.96,
+	},
 }
 
 local PORTAL = table.freeze({
 	ring = Color3.fromRGB(150, 230, 70),
-	column = Color3.fromRGB(170, 255, 140),
-	columnHeight = 60, -- studs: a light you spot from the plaza
-	columnTransparency = 0.82,
+	floor = Color3.fromRGB(170, 255, 140),
 	sign = Color3.fromRGB(46, 38, 70),
 	ink = Color3.fromRGB(255, 255, 255),
 	stroke = Color3.fromRGB(30, 22, 48),
@@ -133,15 +157,19 @@ function ObbyView.place(): ObbyService.Place
 	if place then
 		return place
 	end
-	local portal, yaw = WorldLayout.obbyPortal()
+	local portal, toCentre = WorldLayout.obbyPortal()
 	local y = groundAt(portal[1], portal[3])
-	local a = math.rad(yaw)
+	local a = math.rad(toCentre)
 	local step = WorldLayout.OBBY.exitStep
+	local origin, yaw = WorldLayout.obbyFrame()
+	local centre, radius = WorldLayout.obbyZone()
 	local p: ObbyService.Place = {
-		frame = { origin = { portal[1], y + WorldLayout.OBBY.skyHeight, portal[3] }, yaw = yaw },
+		frame = { origin = origin, yaw = yaw },
 		portal = { portal[1], y, portal[3] },
 		portalRadius = WorldLayout.OBBY.portalRadius,
 		exit = { portal[1] + math.sin(a) * step, y + 3, portal[3] + math.cos(a) * step },
+		exitYaw = (toCentre + 180) % 360,
+		zone = { centre = centre, radius = radius },
 	}
 	place = p
 	return p
@@ -186,6 +214,9 @@ local function makePart(spec: ObbyCourse.Part, frameCf: CFrame, parent: Instance
 	else
 		if spec.shape == "ball" then
 			(part :: Part).Shape = Enum.PartType.Ball
+		elseif spec.shape == "log" then
+			-- A cylinder's axis is its X, which already runs along the course.
+			(part :: Part).Shape = Enum.PartType.Cylinder
 		end
 		part.Size = Vector3.new(spec.size[1], spec.size[2], spec.size[3])
 		part.CFrame = center
@@ -210,9 +241,16 @@ local function makePart(spec: ObbyCourse.Part, frameCf: CFrame, parent: Instance
 		if motion.period then
 			part:SetAttribute(Constants.OBBY_PERIOD, motion.period)
 		end
-		if motion.kind == "slide" then
+		if motion.kind == "slide" or motion.kind == "punch" then
 			part:SetAttribute(Constants.OBBY_AXIS, localVec(frameCf, motion.axis))
 			part:SetAttribute(Constants.OBBY_AMP, motion.amp or 0)
+		elseif motion.kind == "gust" then
+			-- The axis points the way it blows; the power is the speed.
+			local power = motion.power or 0
+			local sign = if power < 0 then -1 else 1
+			part:SetAttribute(Constants.OBBY_AXIS, localVec(frameCf, motion.axis) * sign)
+			part:SetAttribute(Constants.OBBY_POWER, math.abs(power))
+			part:SetAttribute(Constants.OBBY_DUTY, motion.duty or 0.5)
 		elseif motion.kind == "melt" then
 			part:SetAttribute(Constants.OBBY_DELAY, motion.delay or 0.7)
 			part:SetAttribute(Constants.OBBY_AWAY, motion.away or 2.5)
@@ -301,23 +339,7 @@ function ObbyView.buildPortal()
 		return part
 	end
 	cylinder("Ring", 0.4, r + 0.6, 0.2, PORTAL.ring, 0)
-	cylinder("Floor", 0.5, r, 0.3, PORTAL.column, 0.4).Material = Enum.Material.SmoothPlastic
-	local column = cylinder(
-		"Column",
-		PORTAL.columnHeight,
-		r - 0.5,
-		PORTAL.columnHeight / 2,
-		PORTAL.column,
-		PORTAL.columnTransparency
-	)
-	column.CanCollide = false
-	column.CanQuery = false
-	column.CanTouch = false
-	local light = Instance.new("PointLight")
-	light.Color = PORTAL.column
-	light.Range = 16
-	light.Brightness = 2
-	light.Parent = column
+	cylinder("Floor", 0.5, r, 0.3, PORTAL.floor, 0.4).Material = Enum.Material.SmoothPlastic
 
 	-- The sign stands behind the portal (away from the plaza) and faces the plaza.
 	local _, yaw = WorldLayout.obbyPortal()

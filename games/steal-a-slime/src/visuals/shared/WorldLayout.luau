@@ -379,7 +379,7 @@ WorldLayout.HALL_OF_FAME = table.freeze({
 		table.freeze({ x = -9.5, y = 33 }),
 		table.freeze({ x = 9.5, y = 33 }),
 	}),
-	pathWidth = 12,
+	pathWidth = 10,
 	archDistance = 88, -- the arch, from the map centre, just past the ring path
 	professor = table.freeze({ x = -9.5, y = -46, faceY = -72 }), -- left of the entrance, turned to the path
 })
@@ -489,25 +489,120 @@ end
 -- (RanchProps moved its picnic table and sunflowers to the 292.5 lawn).
 WorldLayout.EVENT_BOARD = table.freeze({ model = "EventBoard", bearing = 202.5, radius = 92.25, scale = 1.05 })
 
--- The Goo Gauntlet sky obby (contract/obby.md, server/ObbyView). Its portal stands in the yard between plots 8 and 1,
--- opposite the Hall of Fame and behind that yard's props (r 187-210), short of the border hedges (r ~277). The course
--- starts `skyHeight` studs above the portal and runs from there towards the map centre, so it hangs over the map
--- where everyone can see it. A finished runner lands `exitStep` studs from the portal, towards the plots.
+-- The obby (contract/obby.md §5, server/ObbyView). Its portal stands in the yard between plots 8 and 1, opposite the
+-- Hall of Fame, in the lawn lane between the two plots' fronts (r 100-185 is clear there), with the yard's windmill
+-- scene (YardProps, r 185-210) behind it; a walk `pathWidth` wide runs to it from the ring path, under the OBBY arch
+-- at `archDistance` (the ritual circle beside the path's plaza end keeps the arch that far out). Past r ~158 the
+-- portal's keep-clear circle would push that windmill scene off its spot. A finished runner lands `exitStep` studs from
+-- the portal, towards the plots. The course itself stands in its own world, `world`: `distance` studs out from the map
+-- centre at `bearing` (far past any view distance and the map's Atmosphere), `height` studs up, running along `yaw`.
+-- Everything within `radius` of the zone's centre counts as the obby world (the client's look swap, the server's
+-- send-home).
 WorldLayout.OBBY = table.freeze({
 	bearing = 337.5,
-	portalDistance = 238,
+	portalDistance = 155,
 	portalRadius = 5, -- studs: stepping inside starts a run
-	skyHeight = 150,
 	exitStep = 10,
 	signStep = 9, -- the status sign stands this far behind the portal, facing the plaza
 	clearRadius = 12, -- keep-clear circle for props round the portal and its sign
+	pathWidth = 10,
+	archDistance = 108, -- the arch, from the map centre: past the ritual circle (Config.RITUAL, bearing 348, r 93)
+	world = table.freeze({
+		bearing = 180,
+		distance = 9000,
+		height = 400,
+		yaw = 180, -- the course runs on away from the map
+		centreAhead = 150, -- the zone's centre, this far along the course from its origin
+		radius = 1500,
+		islands = 16,
+		clouds = 22,
+		seaDepth = 220, -- the cloud sea's top, below the course origin
+		seaRadius = 1000,
+	}),
 })
 
--- The obby portal centre on the ground (y = 0) and the course frame yaw (forward = towards the map centre).
+-- The obby portal centre on the ground (y = 0) and the yaw facing the map centre.
 function WorldLayout.obbyPortal(): (Vec, number)
 	local o = WorldLayout.OBBY
 	local a = math.rad(o.bearing)
 	return { math.sin(a) * o.portalDistance, 0, math.cos(a) * o.portalDistance }, (o.bearing + 180) % 360
+end
+
+-- The obby course frame in its own world: origin (course-local 0, 0, 0) and yaw (course forward).
+function WorldLayout.obbyFrame(): (Vec, number)
+	local w = WorldLayout.OBBY.world
+	local a = math.rad(w.bearing)
+	return { math.sin(a) * w.distance, w.height, math.cos(a) * w.distance }, w.yaw
+end
+
+-- The obby world's centre (`centreAhead` along the course from its origin) and radius.
+function WorldLayout.obbyZone(): (Vec, number)
+	local w = WorldLayout.OBBY.world
+	local origin, yaw = WorldLayout.obbyFrame()
+	local a = math.rad(yaw)
+	return { origin[1] + math.sin(a) * w.centreAhead, origin[2], origin[3] + math.cos(a) * w.centreAhead }, w.radius
+end
+
+-- True when `pos` is in the obby world (within its radius of the centre, any height).
+function WorldLayout.inObbyWorld(pos: Vec): boolean
+	local c, r = WorldLayout.obbyZone()
+	return (pos[1] - c[1]) ^ 2 + (pos[3] - c[3]) ^ 2 < r * r
+end
+
+-- The obby path for FloorLayout.starWalk: from where the ring's outer rail crosses its edges out to the portal.
+function WorldLayout.obbyPath(): { x: number, z: number, width: number, length: number, bearing: number }
+	local o = WorldLayout.OBBY
+	local railOut = WorldLayout.RING_PATH_RADIUS + WorldLayout.RING_PATH_WIDTH / 2 + WorldLayout.RING_RAIL_WIDTH
+	local from = math.sqrt(railOut ^ 2 - (o.pathWidth / 2) ^ 2)
+	local to = o.portalDistance - o.portalRadius
+	local a = math.rad(o.bearing)
+	local mid = (from + to) / 2
+	return { x = math.sin(a) * mid, z = math.cos(a) * mid, width = o.pathWidth, length = to - from, bearing = o.bearing }
+end
+
+-- True when `pos` is on the obby path or round the portal, grown by `pad` studs.
+function WorldLayout.onObbyPath(pos: Vec, pad: number): boolean
+	local o = WorldLayout.OBBY
+	local a = math.rad(o.bearing)
+	local along = pos[1] * math.sin(a) + pos[3] * math.cos(a)
+	local across = math.abs(-pos[1] * math.cos(a) + pos[3] * math.sin(a))
+	if along > WorldLayout.RING_PATH_RADIUS and along < o.portalDistance and across < o.pathWidth / 2 + pad then
+		return true
+	end
+	local portal = WorldLayout.obbyPortal()
+	return (pos[1] - portal[1]) ^ 2 + (pos[3] - portal[3]) ^ 2 < (o.clearRadius + pad) ^ 2
+end
+
+-- One backdrop piece of the obby world (visuals/client/ObbyBackdrop), course-local (x along the course, y up, z right).
+export type ObbyBackdropPiece = { kind: string, pos: Vec, radius: number, tone: number }
+
+-- The obby world's backdrop: goo islands in two loose rows either side of the course (clear of its sides and
+-- off-course band), cloud puffs farther out and a cloud sea far below. Fixed numbers: every server builds the same.
+function WorldLayout.obbyBackdrop(): { ObbyBackdropPiece }
+	local w = WorldLayout.OBBY.world
+	local out: { ObbyBackdropPiece } = {}
+	for k = 1, w.islands do
+		local t = (k - 1) / (w.islands - 1)
+		local side = if k % 2 == 0 then 1 else -1
+		table.insert(out, {
+			kind = "island",
+			pos = { -90 + t * 520, -80 + (k * 37) % 120, side * (75 + (k * 47) % 130) },
+			radius = 12 + (k * 13) % 18,
+			tone = k % 3 + 1,
+		})
+	end
+	for k = 1, w.clouds do
+		local t = (k - 1) / (w.clouds - 1)
+		local side = if k % 2 == 0 then -1 else 1
+		table.insert(out, {
+			kind = "cloud",
+			pos = { -200 + t * 760, -60 + (k * 53) % 200, side * (220 + (k * 71) % 260) },
+			radius = 14 + (k * 17) % 20,
+			tone = k % 2 + 1,
+		})
+	end
+	table.insert(out, { kind = "sea", pos = { w.centreAhead, -w.seaDepth, 0 }, radius = w.seaRadius, tone = 1 })
+	return out
 end
 
 local spots: { [string]: Spot } = {
@@ -527,6 +622,12 @@ do
 end
 for name, spot in hallSpots() do
 	spots[name] = table.freeze(spot)
+end
+do
+	local o = WorldLayout.OBBY
+	local b = math.rad(o.bearing)
+	spots[Constants.OBBY_ARCH] =
+		table.freeze({ pos = { math.sin(b) * o.archDistance, 0, math.cos(b) * o.archDistance }, yaw = o.bearing })
 end
 WorldLayout.PROP_SPOTS = table.freeze(spots) :: { [string]: Spot }
 
@@ -951,7 +1052,7 @@ local function clearSpot(pos: Vec, radius: number): boolean
 			return false
 		end
 	end
-	if WorldLayout.inHallOfFame(pos, 4 + radius) then
+	if WorldLayout.inHallOfFame(pos, 4 + radius) or WorldLayout.onObbyPath(pos, 4 + radius) then
 		return false
 	end
 	for _, prop in WorldLayout.RANCH_PROPS do
@@ -1330,6 +1431,7 @@ local function map(): WorldNode
 			plotFloorTop = WorldLayout.PLOT_FLOOR_TOP,
 			plots = Config.PLOT_COUNT,
 			hall = WorldLayout.hallFloor(),
+			obbyPath = WorldLayout.obbyPath(),
 		})
 	do
 		table.insert(children, node :: any)

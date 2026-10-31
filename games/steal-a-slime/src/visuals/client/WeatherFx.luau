@@ -8,7 +8,7 @@
 	in / out over WEATHER_FADE_SECONDS. Tiles near a goo jar emit nothing, so no weather falls inside one.
 	Emitter rates = base * quality scale (graphics level, touch; the lowest level on "Goo effects: Low") under Config.WEATHER_PARTICLE_CAP,
 	shared out over the tiles.
-	Nothing is drawn while FEATURES.Weather is off, except for the Constants.WEATHER_DEBUG_ATTRIBUTE
+	Nothing is drawn while the local player is in the obby world (ObbyLook.isInside), nor while FEATURES.Weather is off, except for the Constants.WEATHER_DEBUG_ATTRIBUTE
 	preview that the pc-watcher sets on one client for proof frames.
 ]]
 
@@ -23,6 +23,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local EffectPrefs = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("EffectPrefs"))
+local ObbyLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("ObbyLook"))
 local Weather = require(Shared:WaitForChild("Weather"))
 local WeatherGrade = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherGrade"))
 local WeatherLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherLook"))
@@ -297,7 +298,25 @@ function WeatherFx.show(id: string)
 	end
 end
 
+-- The obby world has no weather: the sheet and its tint go at once (no fade, so no flakes follow the player in);
+-- the map's snow cover stays as it is. refresh() draws the map's weather again on the way back.
+local function standDown()
+	if shown == Weather.CLEAR and not sheet then
+		return
+	end
+	shown = Weather.CLEAR
+	token += 1
+	if driverTween then
+		driverTween:Cancel()
+	end
+	teardown()
+end
+
 local function refresh()
+	if ObbyLook.isInside() then
+		standDown()
+		return
+	end
 	local debug = workspace:GetAttribute(Constants.WEATHER_DEBUG_ATTRIBUTE)
 	WeatherFx.show(Weather.visualId(Config.FEATURES.Weather, Weather.getCurrent(), debug))
 end
@@ -314,6 +333,7 @@ function WeatherFx.start()
 	Weather.attach(workspace)
 	Weather.Changed:Connect(refresh)
 	workspace:GetAttributeChangedSignal(Constants.WEATHER_DEBUG_ATTRIBUTE):Connect(refresh)
+	ObbyLook.onInsideChanged(refresh)
 	refresh()
 end
 

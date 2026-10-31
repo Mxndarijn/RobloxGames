@@ -29,7 +29,10 @@
 	keeps the last good route for this target; without one no ground arrows
 	show (the rest of the guide does) and it retries after 1, 2, 4 s.
 	`straightFallback` draws a straight line instead while there is no
-	route; `usePathfinding = false` always draws the straight line. Within
+	route; `usePathfinding = false` always draws the straight line. While
+	`shouldPath` returns false no path is computed (say, while the player
+	is somewhere the target can't be walked to); the last good route, if
+	any, stays. Within
 	`arriveDistance` studs of the goal the ground arrows fade out.
 
 	Everything is client-only: the parts and the Highlight under one Folder
@@ -53,7 +56,8 @@
 	called per path compute; merged over DEFAULTS.agentParams), showRing,
 	showMarker, showHighlight, showEdgePointer, edgeMargin, getIgnore (extra
 	Instances the ground raycast skips), getOrigin (default: local
-	HumanoidRootPart), distanceText (studs -> string?), autoStep,
+	HumanoidRootPart), shouldPath (() -> boolean, default: always),
+	distanceText (studs -> string?), autoStep,
 	playerGui, clearLabels (lift the marker above the target's own enabled
 	BillboardGuis, GuideMarker; default off).
 ]]
@@ -93,6 +97,7 @@ export type Options = {
 	edgeMargin: number?,
 	getIgnore: (() -> { Instance })?,
 	getOrigin: (() -> Vector3?)?,
+	shouldPath: (() -> boolean)?,
 	distanceText: ((studs: number) -> string?)?,
 	autoStep: boolean?,
 	playerGui: Instance?,
@@ -279,6 +284,7 @@ function GuideView.new(options: Options?): Guide
 	local arrowTransparency = o.arrowTransparency or D.arrowTransparency
 	local hover = o.hover or D.hover
 	local usePathfinding = o.usePathfinding ~= false
+	local shouldPath = o.shouldPath
 	local straightFallback = o.straightFallback == true
 	local approach = o.approach ~= false
 	local arriveDistance = o.arriveDistance or D.arriveDistance
@@ -692,6 +698,7 @@ function GuideView.new(options: Options?): Guide
 				sinceAttempt = clock - attemptAt,
 				offRoute = off,
 				goalMoved = moved,
+				paused = shouldPath ~= nil and not shouldPath(),
 			}, routeOptions)
 			if again then
 				requestRoute(from, goalAt)
