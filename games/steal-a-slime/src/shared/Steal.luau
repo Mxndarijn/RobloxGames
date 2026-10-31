@@ -7,7 +7,9 @@
 	* Lock: every plot is locked for JOIN_LOCK_SECONDS after joining. The plot's
 	  lock button starts one lock of LOCK_SECONDS (+LOCK_SECONDS_PER_REBIRTH per
 	  rebirth, up to LOCK_MAX_SECONDS) in one go. It only works while no lock is
-	  running: no extending, no stacking.
+	  running: no extending, no stacking. The one exception is the tutorial's Lock
+	  step, which a player often reaches inside the join lock: then a lock starts
+	  anyway and the later of the two ends stays.
 	* Steal: a slime on an unlocked plot can be grabbed by anyone else who is
 	  inside that base, on the slime's floor (JarInside.canReach), within
 	  STEAL_REACH and not already carrying something. Distance alone is not
@@ -26,6 +28,7 @@
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
+local TutorialProgress = if script then require(script.Parent.TutorialProgress) else require("./TutorialProgress")
 
 type Slime = Genome.Slime
 
@@ -88,15 +91,22 @@ function Steal.lockRemaining(lockUntil: number, now: number): number
 	return math.max(0, lockUntil - now)
 end
 
+-- True when a running lock stops the player from starting one (the lock pad doesn't count, Lock is refused).
+-- On the tutorial's Lock step nothing does.
+function Steal.lockBlocked(data: PlayerData.Data, lockUntil: number, now: number): boolean
+	return Steal.isLocked(lockUntil, now) and TutorialProgress.currentId(data :: any) ~= "Lock"
+end
+
 --[[
-	Starts the plot lock: the full duration, free. Refused while a lock is still running (no extending).
+	Starts the plot lock: the full duration, free. Refused while a lock is still running (no extending), except on
+	the tutorial's Lock step, where the later end of the running lock and the new one stays.
 	Returns (ok, newLockUntil, reason?).
 ]]
 function Steal.buyLock(data: PlayerData.Data, lockUntil: number, now: number): (boolean, number, string?)
-	if Steal.isLocked(lockUntil, now) then
+	if Steal.lockBlocked(data, lockUntil, now) then
 		return false, lockUntil, "your base is already locked"
 	end
-	return true, now + Steal.lockDuration(data.rebirths), nil
+	return true, math.max(lockUntil, now + Steal.lockDuration(data.rebirths)), nil
 end
 
 ---------------------------------------------------------------------------

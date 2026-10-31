@@ -10,12 +10,12 @@
 |---|---|---|
 | `Grab` | grabbing or buying a wild slime (`Carry`) | `stats.caught > 0` |
 | `Deposit` | bringing a carried slime home (`Carry`) | `stats.caught > 0` |
-| `Lock` | a lock from the lock pad or the HUD Lock button (`StealService.buyLock`) | `stats.locks > 0` |
+| `Lock` | a lock from the lock pad or the HUD Lock button (`StealService.buyLock`); on this step it counts even inside the join lock (`Steal.lockBlocked`), keeping the later lock end | `stats.locks > 0` |
 | `Leaderboard` | standing within `Config.TUTORIAL_LEADERBOARD_RADIUS` studs (flat) of `Map.LeaderboardBoard` (`TutorialService.tick`, once a second) | never |
 | `Guide` | triggering the TutorialNpc's `GuidePrompt` (`TutorialService.talkedToGuide`; the server listens to `Triggered`) | never |
 | `BuyPad` | `Request("BuyPad")` or the `BuyPadPrompt` | `padsUnlocked > PADS_START` |
 | `Merge` | collecting a merge from the vat (`MergeVat`) | `stats.merges > 0` |
-| `BuyItem` | any successful `BuyConsumable`, `BuyPvpItem` or `BuyUpgrade` (directly or through `ShopBuy`) | owns an upgrade level, a held consumable or a PvP item |
+| `BuyItem` | any successful `BuySpeedCoil`, `BuyConsumable`, `BuyPvpItem` or `BuyUpgrade` (directly or through `ShopBuy`) | owns the Speed Coil, an upgrade level, a held consumable or a PvP item |
 
 Finishing the last step sends Notify "Tutorial complete! You're a slime tycoon now." (`"good"`, no sound). Nothing is paid.
 
@@ -33,5 +33,5 @@ Unchanged names: `State.tutorialStep` (1..8, nil = done), `State.tutorialStepId`
 
 ## Client
 
-- **Card (`ui/TutorialCard`):** a Gold notice card just above the item bar (above the carry card while carrying), at the banner width: step icon, title, one hint line naming the device's control (`ui/Tutorial`), "3/8". Tapping it shrinks it to its icon. A mint card shows what was just done; after the last step "Tutorial done" with a ring round Goals (`ui/Hint`). No bottom card.
+- **Card (`ui/TutorialCard`):** a Gold notice card just above the item bar (above the carry card while carrying), at the banner width: step icon, title, one hint line naming the device's control (`ui/Tutorial`), "3/8" over a Hide button. The card itself takes no taps; Hide puts it away until the next step and the Guide's "Show the tutorial again" brings it back. A mint card shows what was just done; after the last step "Tutorial done" with a ring round Goals (`ui/Hint`). No bottom card.
 - **Trail (`visuals/client/TutorialArrow`, shared `guide/GuideView`):** Leaderboard → `Map.LeaderboardBoard`, Guide → `Map.TutorialNpc`, BuyItem → the closer of `ItemShopStand` / `UpgradeShopStand`; the own-plot and slime targets as before. Routes end next to solid targets (or on the pad / zone the player must stand on) and are never drawn straight through walls.
