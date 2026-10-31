@@ -23,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
+local ExclusiveRotation = require(Shared:WaitForChild("ExclusiveRotation"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Ritual = require(Shared:WaitForChild("Ritual"))
 local Types = require(Shared:WaitForChild("Types"))
@@ -35,6 +36,7 @@ local Badges = require(script.Badges)
 local BaseFloors = require(script.BaseFloors)
 local BorderTerrainView = require(script.BorderTerrainView)
 local Carry = require(script.Carry)
+local ClawShowService = require(script.ClawShowService)
 local EffectsView = require(script.EffectsView)
 local EventBoardView = require(script.EventBoardView)
 local FountainColliders = require(script.FountainColliders)
@@ -118,6 +120,7 @@ local stateEvent = Remotes.get(Constants.STATE) :: RemoteEvent
 local notifyEvent = Remotes.get(Constants.NOTIFY) :: RemoteEvent
 local pvpEvent = Remotes.get(Constants.PVP_EVENT) :: RemoteEvent
 local shopEventRemote = Remotes.get(Constants.SHOP_EVENT) :: RemoteEvent
+local clawShowRemote = Remotes.get(Constants.CLAW_SHOW) :: RemoteEvent
 local leaderboardEvent = Remotes.get(Constants.LEADERBOARD) :: RemoteEvent
 
 ---------------------------------------------------------------------------
@@ -230,7 +233,8 @@ local function refreshView(t: number)
 		local root = WorldView.rootPart(player)
 		local position = WorldView.slimePosition(slimeId)
 		local distance = if root and position then (root.Position - position).Magnitude else math.huge
-		local ok, reason = Carry.grab(world, player.UserId, slimeId, distance, now())
+		local ok, reason =
+			Carry.grab(world, player.UserId, slimeId, distance, now(), WorldView.stealReach(world, player, slimeId))
 		if not ok and reason then
 			World.notify(world, player.UserId, reason, "info", nil)
 		end
@@ -312,6 +316,23 @@ end)
 -- Services
 ---------------------------------------------------------------------------
 
+-- The claw show at the Exclusive Shop after a granted purchase (contract/exclusive-shop.md §7.2).
+local clawShows = ClawShowService.new({
+	clock = function(): number
+		return workspace:GetServerTimeNow()
+	end,
+	fire = function(event)
+		clawShowRemote:FireAllClients(event)
+	end,
+	featured = function(t: number): { string }
+		return ExclusiveRotation.featured(ExclusiveRotation.week(t))
+	end,
+	buyerName = function(userId: number): string?
+		local player = Players:GetPlayerByUserId(userId)
+		return if player then player.DisplayName else nil
+	end,
+})
+
 -- Robux purchases: the one ProcessReceipt, Game Passes and the paid random items policy.
 local purchases = PurchaseService.service({
 	world = world,
@@ -327,6 +348,7 @@ local purchases = PurchaseService.service({
 		refreshView(t)
 		flushStates(t)
 	end,
+	granted = clawShows.granted,
 })
 safeCall("PurchaseService.start", PurchaseService.start, purchases)
 

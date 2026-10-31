@@ -14,7 +14,7 @@
 	           on top = the drop origin), Chute (primitive slide, hidden once
 	           the fountain mesh loads), Plaza
 	           (signpost, podiums, landing-ring tiles, goo drain), Decor
-	           (rocks, mushrooms, the RanchProps kit props), Border
+	           (rocks, the RanchProps kit props), Border
 	           (WorldBorder: the invisible wall ring + seeded hedges, fences,
 	           pines, hills, rocks along the edge). Kit meshes go on MeshAsset
 	           slots via server/MeshSwap.
@@ -296,51 +296,71 @@ WorldLayout.SHOP_STANDS = table.freeze({
 	),
 }) :: { [string]: ShopStand }
 
--- The Exclusive Shop's Golden Jar Boutique (contract/exclusive-shop.md §7; WorldProps places it,
--- Props.exclusiveJar builds it, the client's ShopDisplayFx shows the featured seats in it). It completes the market row
--- on the east ring (Upgrade Shop 34.5, Item Shop 67.5, Exclusive Shop 112.5): on the plot 3 / plot 4 bisector, facing
--- the fountain, at `scale`. At full size its footprint fits r 92.3-94.35, between the ring path (outer edge r 82) and
--- the two plots' front corners (PropClearance); `radius` is the middle. Two kit meshes
--- (models/exclusive_jar_boutique.py): `shop` (plinth, goo dome, gold lid, trophy slime, pedestals, shop front, awning,
--- sign board) and `glass`, the see-through jar wall. The points below are the
--- kit's (out/exclusive_jar_boutique_layout.json) in the Blender frame at native size (x right, y back, z up; the front
--- faces -y), measured from the shop mesh's bottom centre; WorldLayout.jarPoint turns one into the stand's frame.
---   groundZ       the grass over the shop mesh's bottom (its goo drips hang below the ground)
---   glassOrigin   the glass mesh's bottom centre; the jar's axis runs straight up through it
---   displays      the 3 pedestal spots inside the jar: the bottom of each floating featured seat
+-- The Exclusive Shop's Slime Claw (contract/exclusive-shop.md §7; WorldProps places it, Props.exclusiveClaw builds it,
+-- the client's ShopDisplayFx shows the featured seats in it and plays the claw show). It completes the market row on the
+-- east ring (Upgrade Shop 34.5, Item Shop 67.5, Exclusive Shop 112.5): on the plot 3 / plot 4 bisector, facing the
+-- fountain, at `scale`. At full size its footprint fits r 92.3-94.35, between the ring path (outer edge r 82) and the
+-- two plots' front corners (PropClearance); `radius` is the middle. Four kit meshes (models/exclusive_slime_claw.py):
+-- `shop` (the wooden shop, claw box floor, pedestals, capsules, funnel, counter, chute, roof, the trophy slime on its
+-- cushion), `glass` (the box's front and side panes, worn see-through), `hand` (the slime's three-finger goo hand) and
+-- `arm` (the goo arm from the ceiling hole to the hand). The client moves the hand and stretches the arm. The points
+-- below are the kit's (out/exclusive_slime_claw_layout.json) in the Blender frame at native size (x right, y back,
+-- z up; the front faces -y), measured from the shop mesh's bottom centre; WorldLayout.clawPoint turns one into the
+-- stand's frame.
+--   groundZ       the grass over the shop mesh's bottom
+--   glassOrigin   the glass mesh's bottom centre
+--   handOrigin    the hand mesh's bottom centre at rest; armOrigin the arm mesh's bottom centre at rest
+--   armRoot       where the arm leaves the ceiling hole; handIdle the top of the hand (the arm's end) at rest
+--   displays      the 3 goo pedestal tops in the box: the bottom of each shown featured seat
+--   capsule       the prize capsule the claw takes for an item without a 3D model
+--   funnelTop     the top of the gold prize funnel the hand drops the prize into
+--   chuteMouth    the prize chute's opening on the counter, where the prize pops out
+--   boxX, boxZ    the claw box's inside (kit x and y ranges): the hand stays within them
 --   counter       the counter top's centre; counterSize its width and depth
---   signFace      the centre of the sign board's lilac face (its front plane); signSize its width and height
---   footprint     the plinth's radius with its goo rim and lanterns
+--   signFace      the centre of the lilac fascia's butter face (its front plane); signSize its width and height
+--   footprint     half the shop's diagonal (its box from above)
 -- `displayWidth` = the widest side of a shown seat (a seat template is scaled to it), stand studs.
-WorldLayout.EXCLUSIVE_JAR = table.freeze({
+WorldLayout.EXCLUSIVE_CLAW = table.freeze({
 	model = Constants.SHOP_STAND_EXCLUSIVE,
 	bearing = 112.5,
 	radius = 93.3,
 	scale = 1,
-	shop = "exclusive_jar_boutique",
-	glass = "exclusive_jar_boutique_glass",
-	groundZ = 0.201,
-	glassOrigin = table.freeze({ 0, 0.855, 1.401 }),
+	shop = "exclusive_slime_claw_shop",
+	glass = "exclusive_slime_claw_glass",
+	hand = "exclusive_slime_claw_hand",
+	arm = "exclusive_slime_claw_arm",
+	groundZ = 0,
+	glassOrigin = table.freeze({ 0, 0.985, 4.7 }),
+	handOrigin = table.freeze({ 0, 1.031, 7.61 }),
+	armOrigin = table.freeze({ 0, 1.41, 10.9 }),
+	armRoot = table.freeze({ 0, 1.41, 12.6 }),
+	handIdle = table.freeze({ 0, 1.41, 10.9 }),
 	displays = table.freeze({
-		table.freeze({ -3.3, 2.255, 7.551 }),
-		table.freeze({ 0, 3.455, 9.751 }),
-		table.freeze({ 3.3, 2.255, 7.551 }),
+		table.freeze({ -3.4, 1.51, 6.05 }),
+		table.freeze({ -0.3, 3.01, 6.05 }),
+		table.freeze({ 2.7, 2.41, 6.05 }),
 	}),
-	counter = table.freeze({ 0, -6.345, 4.301 }),
-	counterSize = table.freeze({ 9.6, 2.6 }),
-	signFace = table.freeze({ 0, -6.755, 8.151 }),
-	signSize = table.freeze({ 6.4, 1.4 }),
+	capsule = table.freeze({ 1.6, -1.09, 4.4 }),
+	funnelTop = table.freeze({ 4.1, -0.69, 5.75 }),
+	chuteMouth = table.freeze({ 3.9, -4.59, 4.75 }),
+	boxX = table.freeze({ -5.3, 5.3 }),
+	boxZ = table.freeze({ -1.59, 4.21 }),
+	counter = table.freeze({ 0, -4.29, 4.1 }),
+	counterSize = table.freeze({ 10.4, 2.6 }),
+	signFace = table.freeze({ 0, -4.2, 13.5 }),
+	signSize = table.freeze({ 11.8, 1.4 }),
 	footprint = 9.6,
 	displayWidth = 3.2, -- the seats' own size: smaller ones vanish behind the glass
-	glassTransparency = 0.88, -- clearer than a base jar's glass, so the clouds inside read from the plaza
+	glassTransparency = 0.88, -- the kit's glass: clear enough that the clouds read through two panes
 })
 
--- A kit point of the jar (Blender frame, native studs) in the stand's own frame at the stand's scale, the stand's
--- origin on the ground: Props Models face local -Z, the kit front faces -y, so (x, y, z) -> (-x, z - groundZ, y) x scale.
-function WorldLayout.jarPoint(p: { number }): Vec
-	local jar = WorldLayout.EXCLUSIVE_JAR
-	local k = jar.scale
-	return { -p[1] * k, (p[3] - jar.groundZ) * k, p[2] * k }
+-- A kit point of the claw shop (Blender frame, native studs) in the stand's own frame at the stand's scale, the
+-- stand's origin on the ground: Props Models face local -Z, the kit front faces -y, so (x, y, z) -> (-x, z - groundZ, y)
+-- x scale.
+function WorldLayout.clawPoint(p: { number }): Vec
+	local claw = WorldLayout.EXCLUSIVE_CLAW
+	local k = claw.scale
+	return { -p[1] * k, (p[3] - claw.groundZ) * k, p[2] * k }
 end
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
@@ -658,8 +678,8 @@ local spots: { [string]: Spot } = {
 	TutorialNpc = propSpot(247.5, true),
 }
 do
-	local jar = WorldLayout.EXCLUSIVE_JAR
-	spots[jar.model] = propSpot(jar.bearing, true, jar.radius)
+	local claw = WorldLayout.EXCLUSIVE_CLAW
+	spots[claw.model] = propSpot(claw.bearing, true, claw.radius)
 end
 do
 	local board = WorldLayout.EVENT_BOARD
@@ -1041,37 +1061,15 @@ local function rock(name: string, pos: Vec, s: number, salt: number): WorldNode
 	}
 end
 
--- A mushroom's ball cap overhangs at knee height: as the collision it snags walkers or lifts them over it. Stem and cap
--- are decor; one invisible upright cylinder under the cap (90% of its width, flat top at the cap's top) is the collision,
--- so a walker stops on the ground and can jump onto the flat top.
-local MUSHROOM_COLLIDER_WIDTH = 0.9
-
-local function mushroom(name: string, pos: Vec, salt: number): WorldNode
-	local h = 1.6 + hash(salt, 21) * 1.6
-	local capColor = if hash(salt, 22) < 0.5 then { 232, 72, 104 } else { 240, 158, 64 }
-	local cap = h * 1.3
-	local m = { name = name, class = "Model", primaryPart = "Stem", children = {} :: { WorldNode } }
-	local stem = disc("Stem", h, 0.8, { pos[1], h / 2, pos[3] }, { 246, 232, 206 })
-	stem.canCollide = false
-	table.insert(m.children :: { WorldNode }, stem)
-	table.insert(m.children :: { WorldNode }, {
-		name = "Cap",
-		class = "Part",
-		shape = "Ball",
-		size = { cap, cap, cap },
-		pos = { pos[1], h, pos[3] },
-		rot = { 0, 0, 0 },
-		color = capColor,
-		material = "SmoothPlastic",
-		canCollide = false,
-	})
-	local top = h + cap / 2
-	local collider = disc("Collider", top, cap * MUSHROOM_COLLIDER_WIDTH, { pos[1], top / 2, pos[3] }, capColor)
-	collider.transparency = 1
-	collider.canTouch = false -- queryable: slime walk sweeps (WorldView, RespectCanCollide) route round it
-	table.insert(m.children :: { WorldNode }, collider)
-	return m
-end
+-- Kit ground decor scattered between the rocks where the space allows, taken in turn so every kind shows up. Mesh
+-- slots, walk-through (no MeshAssets.COLLISION entry): each is a block until MeshSwap places the mesh.
+WorldLayout.GROUND_DECOR = table.freeze({
+	{ mesh = "decor_slime_nest", label = "Nest", look = { 228, 196, 110 } },
+	{ mesh = "decor_wildflower_clump", label = "Wildflowers", look = { 250, 150, 182 } },
+	{ mesh = "decor_goo_crystals", label = "GooCrystals", look = { 110, 226, 170 } },
+	{ mesh = "decor_slime_topiary", label = "Topiary", look = { 88, 160, 92 } },
+	{ mesh = "decor_watering_can", label = "WateringCan", look = { 214, 92, 84 } },
+})
 
 -- Keeps decor off the drop ring (34..62 + margin), the ring path, plots,
 -- spoke paths, the chute, the prop spots and the border wall.
@@ -1169,7 +1167,7 @@ local function resolveProp(p: RanchProps.Placement): RanchProp
 	}
 end
 
--- Scattered rocks and mushrooms between and behind the plots, and where they
+-- Scattered rocks and ground decor between and behind the plots, and where they
 -- landed (x, z, radius).
 local function scatter(): ({ WorldNode }, { { number } })
 	local children: { WorldNode } = {}
@@ -1182,19 +1180,47 @@ local function scatter(): ({ WorldNode }, { { number } })
 		end
 		return false
 	end
-	local rocks, mushrooms = 0, 0
+	local function apart(pos: Vec, radius: number): boolean
+		for _, p in placed do
+			if (p[1] - pos[1]) ^ 2 + (p[2] - pos[3]) ^ 2 < (p[3] + radius + 2) ^ 2 then
+				return false
+			end
+		end
+		return true
+	end
+	local function spot(k: number): Vec
+		return onPolar(hash(k, 1) * 360, 90 + hash(k, 2) * 205, 0)
+	end
+	local rocks = 0
 	for k = 1, 120 do
-		local yaw = hash(k, 1) * 360
-		local r = 90 + hash(k, 2) * 205
-		local pos = onPolar(yaw, r, 0)
 		if hash(k, 30) < 0.6 then
+			local pos = spot(k)
 			local s = 2 + hash(k, 31) * 4
 			if add(rock(`Rock{rocks + 1}`, pos, s, k), pos, s) then
 				rocks += 1
 			end
-		else
-			if add(mushroom(`Mushroom{mushrooms + 1}`, pos, k), pos, 2) then
-				mushrooms += 1
+		end
+	end
+	-- then the ground decor in the other spots, clear of every rock and of each other
+	local decorCount = 0
+	for k = 1, 120 do
+		if hash(k, 30) >= 0.6 then
+			local kind = WorldLayout.GROUND_DECOR[decorCount % #WorldLayout.GROUND_DECOR + 1]
+			local size = meshSize(kind.mesh, 0.95 + hash(k, 32) * 0.25)
+			local radius = math.sqrt(size[1] ^ 2 + size[3] ^ 2) / 2
+			local pos = spot(k)
+			if clearSpot(pos, radius) and apart(pos, radius) then
+				decorCount += 1
+				local slot = block(
+					`{kind.label}{decorCount}`,
+					size,
+					{ pos[1], size[2] / 2, pos[3] },
+					kind.look,
+					"SmoothPlastic",
+					{ 0, hash(k, 33) * 360, 0 }
+				)
+				slot.canCollide = false
+				add(meshSlot(slot, kind.mesh), pos, radius)
 			end
 		end
 	end
@@ -1203,7 +1229,7 @@ end
 
 -- Meadow clusters in the grass band behind the plots (Meadow), clear of the
 -- same ground as the scatter (plots, spoke paths, prop spots, kit props) and
--- of the scattered rocks and mushrooms themselves.
+-- of the scattered rocks themselves.
 function WorldLayout.meadowClusters(): { Meadow.Cluster }
 	local _, placed = scatter()
 	return Meadow.clusters(function(x: number, z: number, radius: number): boolean
@@ -1249,7 +1275,7 @@ local function decor(): WorldNode
 	local children = scatter()
 	table.insert(children, Meadow.build(WorldLayout.meadowClusters()) :: any)
 	-- Kit ranch props (RanchProps table, PropClearance keeps them off the
-	-- lanes); the rocks and mushrooms above already stepped round them.
+	-- lanes); the rocks above already stepped round them.
 	for _, prop in WorldLayout.RANCH_PROPS do
 		local look = RANCH_LOOKS[prop.mesh] or { WOOD, "WoodPlanks" }
 		local slot = block(prop.name, prop.size, prop.pos, look[1], look[2], { 0, prop.yaw, 0 })

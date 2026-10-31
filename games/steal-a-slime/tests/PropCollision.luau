@@ -589,17 +589,30 @@ parts(
 	"on (Ball primitives, half sunk)",
 	"scattered boulders (3-10 studs) are plain Ball parts that collide: nobody walks through them"
 )
-parts(
-	"decor_mushrooms",
-	"jolt",
-	12,
-	"colliders",
-	DECOR,
-	{ "^Mushroom%d+$" },
-	"on (one invisible flat-top Collider; cap Ball and stem off)",
-	"mushrooms (1.6-3.2 studs): a ball cap at knee height snags walkers or lifts them over, so a flat-top cylinder under it is the collision",
-	{ models = true }
-)
+-- Ground decor between the rocks (WorldLayout.GROUND_DECOR): small kit meshes players walk through
+for _, d in
+	{
+		{ "decor_slime_nest", 3, "a low straw nest with three eggs, 1.6 studs tall: walked over" },
+		{
+			"decor_wildflower_clump",
+			2,
+			"a clump of flowers on leaves: walk-through plants (COLLISION.md: patches stay passable)",
+		},
+		{
+			"decor_goo_crystals",
+			2,
+			"a small crystal cluster on a mossy mound, under 5 studs: ground decor, walk-through",
+		},
+		{
+			"decor_slime_topiary",
+			2,
+			"a hedge clipped into a slime in a tub, under 5 studs: ground decor, walk-through",
+		},
+		{ "decor_watering_can", 2, "a watering can by a few flowers and a goo puddle, under 3 studs: walked over" },
+	}
+do
+	mesh(d[1], d[1], "jolt", d[2], "off", DECOR, "mesh off, slot off", d[3])
+end
 -- The sand yard (YardProps) dressed with border meshes: rocks, fences and the hedge collide as meshes (the same lines in
 -- MeshAssets.COLLISION make their copies behind the wall solid too); trees are decor with invisible trunk posts.
 for _, y in
@@ -1063,13 +1076,21 @@ local UNPLACED: { [string]: { string } } = {
 		"jolt",
 		"a Bat skin: the held Bat tool's Handle mesh (BatTool), never a world slot; a tool has no collision",
 	},
-	exclusive_jar_boutique = {
+	exclusive_slime_claw_shop = {
 		"gojo",
-		"the Exclusive Shop jar (off): WorldProps builds it at runtime; decor over its solid plinth, glass, counter and posts",
+		"the Exclusive Shop claw shop: WorldProps builds it at runtime; decor over its solid body, back wall, posts, roof, counter and chute",
 	},
-	exclusive_jar_boutique_glass = {
+	exclusive_slime_claw_glass = {
 		"gojo",
-		"the Exclusive Shop jar's glass wall (off): WorldProps builds it at runtime; see-through decor over the solid GlassWall",
+		"the Exclusive Shop claw box glass: WorldProps builds it at runtime; see-through decor over the solid glass panes",
+	},
+	exclusive_slime_claw_hand = {
+		"gojo",
+		"the Exclusive Shop claw hand: moved by the client inside the glass box; decor",
+	},
+	exclusive_slime_claw_arm = {
+		"gojo",
+		"the Exclusive Shop claw arm: stretched by the client inside the glass box; decor",
 	},
 	ranch_border_fence_broken = { "jolt", "border piece not used by WorldBorder.CHUNKS / DEFS" },
 	ranch_border_hedge_stepped = { "jolt", "border piece not used by WorldBorder.DEFS" },

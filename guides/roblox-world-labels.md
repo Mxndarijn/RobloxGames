@@ -140,6 +140,7 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 | Slime emote bubble | `ui/SlimeEmotes` | px 34×34 (keeps size) | 60 / phone 40 | no |
 | Egg hatch title | `visuals/client/EggHatchFx` | studs 6×1.2 | 45 | no |
 | Lucky title | `visuals/client/LuckyFx` | studs 6×2.16 | 45 | no |
+| Claw show banner ("Mila got UFO!", over the Exclusive Shop's prize chute) | `visuals/client/ShopDisplayFx` | studs 9×1.3 | 60 | no |
 | Lock timer over every locked base's lock button (yours too; hides while your key card is on it) | `ui/LockTimerTag` | px 150×44, fit | 90 / phone 60 | yes + sight ray |
 | Friends-lock sticker | `ui/FriendsLockIcon` | SG 3.2 st | 120 | no |
 | Pad sign plank | `ui/SlimePadSign` | SG 4.6×1.5, 80 ppS | 80 | no |

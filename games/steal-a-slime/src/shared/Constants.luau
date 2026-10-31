@@ -72,8 +72,8 @@ return table.freeze({
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
 	SHOP_STAND_ITEM = "ItemShopStand", -- CONTRACT.md §27.2
 	SHOP_STAND_UPGRADE = "UpgradeShopStand",
-	SHOP_STAND_EXCLUSIVE = "ExclusiveShopStand", -- the Golden Jar Boutique (Model with the Counter) on the plaza
-	EXCLUSIVE_SHOP_ID = "ExclusiveShop", -- ShopId of the jar stand; the client opens the ExclusiveShop panel for it
+	SHOP_STAND_EXCLUSIVE = "ExclusiveShopStand", -- the Slime Claw shop (Model with the Counter) on the plaza
+	EXCLUSIVE_SHOP_ID = "ExclusiveShop", -- ShopId of the claw shop stand; the client opens the ExclusiveShop panel for it
 	LEADERBOARD_BOARD = "LeaderboardBoard", -- the Top Earners board (with the podium)
 	WEEKLY_EARNERS_BOARD = "WeeklyEarnersBoard",
 	TOP_STEALS_BOARD = "TopStealsBoard",
@@ -186,10 +186,16 @@ return table.freeze({
 	BUY_PAD_PROMPT_NAME = "BuyPadPrompt", -- on the lowest locked Pad_<j>
 	MERGE_PROMPT_NAME = "MergePrompt", -- on MergeVat
 	DROP_PROMPT_NAME = "DropPrompt", -- in every upper jar's DropHatch (CONTRACT.md §5.3): the owner, inside the top jar
+	-- On every DropPrompt (CONTRACT.md §5.3): TubeOpen = the top jar's hatch, TubeOwner = the plot owner's UserId (nil
+	-- on a free plot). Each client shows the prompt only when it is open, theirs, and they carry nothing.
+	DROP_PROMPT_OPEN_ATTRIBUTE = "TubeOpen",
+	DROP_PROMPT_OWNER_ATTRIBUTE = "TubeOwner",
 	-- One ShopPrompt (E) on each shop stand's Counter (CONTRACT.md §27.3; the server opens that shop) and "Talk" (E)
 	-- on the TutorialNpc (CONTRACT.md §5.3; the UI opens the Guide menu on PromptTriggered).
 	SHOP_PROMPT_NAME = "ShopPrompt",
 	SHOP_EVENT = "ShopEvent", -- RemoteEvent, ServerToClient (CONTRACT.md §27.4)
+	CLAW_PIECE_ATTRIBUTE = "ClawPiece", -- "Hand" | "Arm" on the claw shop parts the client moves in a claw show
+	CLAW_SHOW = "ClawShow", -- RemoteEvent, ServerToClient: a claw show at the Exclusive Shop (contract/exclusive-shop.md §7.2)
 	OPEN_SHOP_ATTRIBUTE = "OpenShop", -- Player: shopId the server has open for them, nil = closed
 	MENU_OPEN_ATTRIBUTE = "MenuOpen", -- PlayerGui.SlimeUI (client only): a menu or popup is open; edge arrows hide
 	UI_GUI_NAME = "SlimeUI", -- the client's main ScreenGui in PlayerGui

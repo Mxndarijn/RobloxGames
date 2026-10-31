@@ -37,7 +37,7 @@ MinimapData.SPAWN_RADIUS = 64
 MinimapData.SHOP_PINS = table.freeze({
 	[Shops.SHOPS.ItemShop.stand] = table.freeze({ label = Shops.SHOPS.ItemShop.name, icon = "🛒" }),
 	[Shops.SHOPS.UpgradeShop.stand] = table.freeze({ label = Shops.SHOPS.UpgradeShop.name, icon = "⬆️" }),
-	[WorldLayout.EXCLUSIVE_JAR.model] = table.freeze({ label = "Exclusive Shop", icon = "👑" }),
+	[WorldLayout.EXCLUSIVE_CLAW.model] = table.freeze({ label = "Exclusive Shop", icon = "👑" }),
 }) :: { [string]: { label: string, icon: string } }
 
 function MinimapData.points(): { Point }

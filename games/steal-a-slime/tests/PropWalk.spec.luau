@@ -133,7 +133,7 @@ local function matchesFind(find, item)
 	)
 end
 
--- `models` entries (the mushrooms) are Models whose Part children are the solids.
+-- `models` entries are Models whose Part children are the solids.
 local function matchesModel(find, item)
 	return item.model ~= nil and PropCollision.matches(find, item.model.path, item.model.name, nil, false)
 end

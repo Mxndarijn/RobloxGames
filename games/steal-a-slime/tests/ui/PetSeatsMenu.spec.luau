@@ -1,7 +1,8 @@
 --!strict
--- The Skins menu's Base / Cloud tabs (contract/pet-seats.md): the menu is titled "Skins" and opens on Base; the Cloud
--- tab lists every pet seat with how to unlock it (a line with a bar for Jelly and Rainbow Cloud, a gold Exclusive tag
--- for the rest), and Equip asks the server with EquipPetSeat.
+-- The Skins menu's Base / Building / Cloud tabs (contract/pet-seats.md): the menu is titled "Skins" and opens on Base;
+-- the Cloud tab lists every pet seat with how to unlock it (a line with a bar for Jelly and Rainbow Cloud, a gold
+-- Exclusive tag and its price for the rest), Equip asks the server with EquipPetSeat, and Buy on an Exclusive opens
+-- Roblox's prompt for Seat_<id>.
 local Config = require("../../src/shared/Config")
 local Constants = require("../../src/shared/Constants")
 local Fixtures = require("../Fixtures")
@@ -18,6 +19,7 @@ local SlimeRoster = require("../../src/shared/SlimeRoster")
 local SpeciesDex = require("../../src/shared/SpeciesDex")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
+local UnsoldConfig = require("./UnsoldConfig")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local UDim2 = (require("@lune/roblox") :: any).UDim2
@@ -59,8 +61,8 @@ local function ctx(requests: { any }?): any
 	}
 end
 
-local function openSkins(w: number, h: number, state: any, requests: { any }?): (any, Layout.Rect)
-	local panel = UiHarness.ui("Panels/Skins").new(UiHarness.root(), ctx(requests))
+local function openSkins(w: number, h: number, state: any, requests: { any }?, c: any?): (any, Layout.Rect)
+	local panel = UiHarness.ui("Panels/Skins").new(UiHarness.root(), c or ctx(requests))
 	local raw = Layout.panelFor(Layout.screen(w, h), "Skins")
 	local r = Layout.rect(math.floor(raw.x), math.floor(raw.y), math.floor(raw.w), math.floor(raw.h))
 	panel.frame.Size = UDim2.fromOffset(r.w, r.h)
@@ -101,12 +103,15 @@ describe("PetSeatsView.rows", function()
 		expect(rows[3].count).toBe(`{math.floor(26 * 100 / SpeciesDex.TOTAL)}%/80%`)
 		expect(PetSeatsView.summary(rows)).toBe(`1/{#rows} unlocked`)
 	end)
-	it("every other seat is Exclusive: the shop line, no count, never 'Coming soon'", function()
+	it("every other seat is Exclusive: its price, no line or count, never 'Coming soon'", function()
 		for i, row in PetSeatsView.rows(seats(0, 0), Config) do
 			if i > 3 then
 				expect(row.exclusive).toBe(true)
-				expect(row.line).toBe("Only in the Exclusive shop.")
+				expect(row.price).toBe(`R${Config.EXCLUSIVE_SHOP.products[`Seat_{row.id}`].robux}`)
+				expect(row.line).toBe("")
 				expect(row.count).toBe("")
+			else
+				expect(row.price).toBe("")
 			end
 			expect(string.find(string.lower(row.line), "coming soon", 1, true)).toBeNil()
 		end
@@ -131,13 +136,20 @@ describe("PetSeatsView.detail", function()
 		local have = math.floor(26 * 100 / SpeciesDex.TOTAL)
 		expect(rainbow.action).toBe(`{80 - have}% more of the SlimeDex`)
 	end)
-	it("an Exclusive says where to get it", function()
-		local storm = PetSeatsView.detail(seats(0, 0), "storm_cloud") :: PetSeatsView.Detail
+	it("an Exclusive says where to get it and sells Seat_<id>; not on sale it opens the shop", function()
+		local storm = PetSeatsView.detail(seats(0, 0), "storm_cloud", Config) :: PetSeatsView.Detail
+		local product = Config.EXCLUSIVE_SHOP.products.Seat_storm_cloud
 		expect(storm.exclusive).toBe(true)
 		expect(storm.heading).toBe("How to get it")
-		expect(storm.line).toBe("Only in the Exclusive shop.")
+		expect(storm.line).toBe("Buy it here or in the Exclusive shop.")
 		expect(storm.count).toBeNil()
-		expect(storm.action).toBe("Exclusive shop")
+		expect(storm.action).toBe(`Buy · R${product.robux}`)
+		expect(storm.purchase).toEqual({ kind = "product", id = product.productId })
+		expect(storm.shopKey).toBe("seat:storm_cloud")
+		local unsold = PetSeatsView.detail(seats(0, 0), "storm_cloud", UnsoldConfig) :: PetSeatsView.Detail
+		expect(unsold.action).toBe("Exclusive shop")
+		expect(unsold.purchase).toBeNil()
+		expect(unsold.shopKey).toBe("seat:storm_cloud")
 	end)
 	it("Equip once unlocked, Equipped once worn; nil for an unknown seat", function()
 		expect((PetSeatsView.detail(seats(200, 0), "jelly") :: any).action).toBe("Equip")
@@ -186,24 +198,65 @@ describe("Skins menu tabs", function()
 		expect(UiHarness.find(jelly, "Exclusive").Visible).toBe(false)
 		local storm = UiHarness.find(list, "seat:storm_cloud")
 		expect(UiHarness.find(storm, "Exclusive").Visible).toBe(true)
-		expect(UiHarness.find(storm, "Line").Text).toBe("Only in the Exclusive shop.")
+		expect(UiHarness.find(storm, "Price").Visible).toBe(true)
+		expect(UiHarness.find(storm, "Price").Text).toBe(`R${Config.EXCLUSIVE_SHOP.products.Seat_storm_cloud.robux}`)
+		expect(UiHarness.find(storm, "Line").Visible).toBe(false)
 		expect(UiHarness.find(storm, "Progress").Visible).toBe(false)
+		expect(UiHarness.find(jelly, "Price").Visible).toBe(false)
 		local cloud = UiHarness.find(list, "seat:cloud")
 		expect(UiHarness.find(cloud, "State").Text).toBe("Equipped")
 		expect(UiHarness.find(cloud, "Line").Visible).toBe(false)
 	end)
-	it("picking an Exclusive shows how to get it and no Equip", function()
-		local panel = openSkins(1920, 1080, cloudState(0, 0))
+	it("picking an Exclusive shows how to get it and Buy, which opens Roblox's prompt for Seat_<id>", function()
+		local prompts = {}
+		local c = ctx()
+		c.purchase = {
+			prompt = function(p: any): boolean
+				table.insert(prompts, p)
+				return true
+			end,
+		}
+		local panel = openSkins(1920, 1080, cloudState(0, 0), nil, c)
 		panel.setTab("cloud")
 		UiHarness.fire(UiHarness.find(UiHarness.find(panel.frame, "SeatList"), "seat:storm_cloud"), "Activated")
 		expect(panel.selected()).toBe("storm_cloud")
 		local pane = UiHarness.find(panel.frame, "Pane")
+		local product = Config.EXCLUSIVE_SHOP.products.Seat_storm_cloud
 		expect(UiHarness.find(pane, "PaneTitle").Text).toBe("Storm cloud")
 		expect(UiHarness.find(pane, "Exclusive").Visible).toBe(true)
 		expect(UiHarness.find(UiHarness.find(pane, "How"), "Heading").Text).toBe("How to get it")
 		expect(UiHarness.find(pane, "Equip").Visible).toBe(false)
-		expect(UiHarness.find(pane, "Well").Text).toBe("Exclusive shop")
+		expect(UiHarness.find(pane, "Well").Visible).toBe(false)
+		local buy = UiHarness.find(pane, "Buy")
+		expect(buy.Visible).toBe(true)
+		expect(buy.Text).toBe(`Buy · R${product.robux}`)
+		UiHarness.fire(buy, "Activated")
+		expect(prompts).toEqual({ { kind = "product", id = product.productId } })
 		expect(UiHarness.find(pane, "Slime1")).toBeNil()
+	end)
+	it("an Exclusive not on sale yet opens the Exclusive shop on that seat instead", function()
+		local opened = {}
+		local c = ctx()
+		c.Config = UnsoldConfig
+		c.purchase = {
+			prompt = function(): boolean
+				return true
+			end,
+		}
+		c.openExclusiveShop = function(key: string?)
+			table.insert(opened, key)
+		end
+		local state = cloudState(0, 0)
+		state.exclusiveShop = {}
+		local panel = openSkins(1920, 1080, state, nil, c)
+		panel.setTab("cloud")
+		panel.select("storm_cloud")
+		local pane = UiHarness.find(panel.frame, "Pane")
+		expect(UiHarness.find(pane, "Buy").Visible).toBe(false)
+		local shop = UiHarness.find(pane, "ExclusiveShop")
+		expect(shop.Visible).toBe(true)
+		UiHarness.fire(shop, "Activated")
+		expect(opened).toEqual({ "seat:storm_cloud" })
 	end)
 	it("Equip on an unlocked seat asks the server with EquipPetSeat(seatId)", function()
 		local requests = {}

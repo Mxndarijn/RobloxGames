@@ -16,8 +16,10 @@
 
 	The plot's LockButton gets the same card (FEATURES.FriendsInBase): the server gives its LockPrompt and
 	FriendsPrompt the Custom style, so the owner sees one card titled with the lock status ("LOCKED 1:42" / "OPEN"),
-	the friends switch's state under it, and a row each: E lock (hold) and G friends (instant). The card picks the
-	part most shown prompts sit on, so a slime card and the lock card never mix.
+	the friends switch's state under it, and a row each: E lock and G friends (both hold). The card picks the
+	part most shown prompts sit on, so a slime card and the lock card never mix. While the base is locked its
+	LockPrompt is off, so the card draws a greyed "Locked" row (no key, no input) where the Lock row was: the
+	friends row never moves up under a finger that meant to lock.
 
 	Hatch: the server's owner-only HatchPrompt on a Mystery Egg is on only while the egg is ready to hatch;
 	SlimeKeys gives it the Custom style too, so it gets a row exactly when it can be hatched.
@@ -35,7 +37,7 @@
 	its ObjectText changes never redraw the card), so `tick` (the client's 10 Hz loop) sets the title from the plot's
 	LockUntil attribute, the same clock as LockTimerTag's pill. Only the title text changes; rows and holds stay.
 
-	Pure helpers (ordered, keyLabel, lockText, lockTitle) are tested under Lune (tests/ui/SlimeKeyCard.spec.luau);
+	Pure helpers (ordered, keyLabel, lockText, lockTitle, holdsLockedRow) are tested under Lune (tests/ui/SlimeKeyCard.spec.luau);
 	`start` returns { tick, stop }: `stop` disconnects everything and removes the card.
 ]]
 
@@ -120,6 +122,20 @@ function SlimeKeyCard.footer(names: { string }): string
 		end
 	end
 	return ""
+end
+
+-- The greyed row that keeps the Lock row's place on a locked base's card.
+SlimeKeyCard.LOCKED_ROW = "LockedRow"
+SlimeKeyCard.LOCKED_TEXT = "Locked"
+
+-- True when the card over `parent` should draw the greyed Locked row: it is a LockButton (has a LockPrompt) whose
+-- Lock row is not shown while another of its rows is (the base is locked, so the server turned LockPrompt off).
+-- `names` are the shown rows' prompt names.
+function SlimeKeyCard.holdsLockedRow(parent: Instance, names: { string }): boolean
+	if #names == 0 or table.find(names, Constants.LOCK_PROMPT_NAME) then
+		return false
+	end
+	return parent:FindFirstChild(Constants.LOCK_PROMPT_NAME) ~= nil
 end
 
 -- The world height of the top of a box at `cf` with `size`, however it is turned.
@@ -354,8 +370,15 @@ function SlimeKeyCard.start(opts: Options): Handle
 		tween:Play()
 	end
 
+	-- The greyed Locked row while it is drawn (holdsLockedRow).
+	local lockedRow: Frame? = nil
+
 	-- Removes the rows. Click/tap holds stay: render ends the ones whose prompt is no longer drawn.
 	local function clearRows()
+		if lockedRow then
+			lockedRow:Destroy()
+			lockedRow = nil
+		end
 		for _, row in rows do
 			if row.tween then
 				row.tween:Cancel()
@@ -455,6 +478,41 @@ function SlimeKeyCard.start(opts: Options): Handle
 		return row
 	end
 
+	-- The greyed Locked row at `y`: a plain Frame (not a button), so a tap on it does nothing.
+	local function makeLockedRow(y: number): Frame
+		local rowFrame = create("Frame", {
+			Name = SlimeKeyCard.LOCKED_ROW,
+			BackgroundColor3 = Theme.Glass,
+			BackgroundTransparency = GooPalette.GLASS_TRANSPARENCY,
+			Position = UDim2.fromOffset(C.pad, y),
+			Size = UDim2.new(1, -C.pad * 2, 0, C.rowH),
+			Parent = frame,
+		}, { Widgets.pill() }) :: Frame
+		local inset = (C.rowH - C.keySize) / 2
+		create("Frame", {
+			Name = "Key",
+			BackgroundColor3 = Theme.Info,
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, inset, 0.5, 0),
+			Size = UDim2.fromOffset(C.keySize, C.keySize),
+			ZIndex = 2,
+			Parent = rowFrame,
+		}, { Widgets.pill(), Widgets.stroke(Theme.Ink, C.rowStroke) })
+		local textX = inset + C.keySize + 10
+		Widgets.label({
+			Name = "Action",
+			Text = SlimeKeyCard.LOCKED_TEXT,
+			Font = Theme.Font,
+			TextSize = C.textSize,
+			TextColor3 = Theme.Muted,
+			Position = UDim2.fromOffset(textX, 0),
+			Size = UDim2.new(1, -(textX + 8), 1, 0),
+			ZIndex = 2,
+			Parent = rowFrame,
+		})
+		return rowFrame
+	end
+
 	-- The plot's LockUntil for a LockButton (the plot is an ancestor with that attribute); nil for a slime Body.
 	local function lockUntilOf(part: Instance): unknown
 		if not part:FindFirstChild(Constants.LOCK_PROMPT_NAME) then
@@ -514,9 +572,15 @@ function SlimeKeyCard.start(opts: Options): Handle
 		local y = C.pad + C.titleH + (if perk.Visible then C.perkH else 0) + C.gap
 		local names = {}
 		for _, prompt in list do
+			table.insert(names, prompt.Name)
+		end
+		if SlimeKeyCard.holdsLockedRow(best, names) then
+			lockedRow = makeLockedRow(y)
+			y += C.rowH + C.gap
+		end
+		for _, prompt in list do
 			rows[prompt] = makeRow(prompt, y)
 			y += C.rowH + C.gap
-			table.insert(names, prompt.Name)
 		end
 		foot.Text = SlimeKeyCard.footer(names)
 		foot.Visible = foot.Text ~= ""

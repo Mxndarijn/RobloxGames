@@ -107,12 +107,12 @@ describe("world shop placement", function()
 	end)
 end)
 
-describe("Exclusive Shop jar placement (contract/exclusive-shop.md §7.1)", function()
+describe("Exclusive Shop claw shop placement (contract/exclusive-shop.md §7.1)", function()
 	local spots = WorldLayout.PROP_SPOTS
-	local jar = WorldLayout.EXCLUSIVE_JAR
-	local name = jar.model
+	local claw = WorldLayout.EXCLUSIVE_CLAW
+	local name = claw.model
 	local spot = spots[name]
-	local size = WorldLayout.meshSize(jar.shop, jar.scale)
+	local size = WorldLayout.meshSize(claw.shop, claw.scale)
 	local function dist(a: { number }, b: { number }): number
 		return math.sqrt((a[1] - b[1]) ^ 2 + (a[3] - b[3]) ^ 2)
 	end
@@ -123,8 +123,8 @@ describe("Exclusive Shop jar placement (contract/exclusive-shop.md §7.1)", func
 		expect(spot.pos[1]).toBeCloseTo(at[1], 3)
 		expect(spot.pos[3]).toBeCloseTo(at[2], 3)
 		expect(spot.yaw).toBe(112.5) -- Props front (-Z) towards the fountain
-		expect(jar.scale).toBe(1)
-		expect(spot.scale).toBeNil() -- Props.exclusiveJar builds it at the layout scale
+		expect(claw.scale).toBe(1)
+		expect(spot.scale).toBeNil() -- Props.exclusiveClaw builds it at the layout scale
 	end)
 	it("completes the market row: Upgrade 34.5, Item 67.5, Exclusive 112.5 on the east ring", function()
 		local function bearing(p: { number }): number
@@ -143,10 +143,10 @@ describe("Exclusive Shop jar placement (contract/exclusive-shop.md §7.1)", func
 		end
 		expect(hits).toEqual({})
 	end)
-	it("reserves a clearance circle the size of its round footprint, clear of every ranch prop", function()
+	it("reserves a clearance circle round its footprint, clear of every ranch prop", function()
 		local radius = PropClearance.spotRadius(name)
-		expect(radius).toBeCloseTo(jar.footprint * jar.scale, 6)
-		expect(radius >= math.max(size[1], size[3]) / 2).toBe(true) -- covers the plinth and the counter
+		expect(radius).toBeCloseTo(claw.footprint * claw.scale, 6)
+		expect(radius >= math.sqrt(size[1] ^ 2 + size[3] ^ 2) / 2 - 0.01).toBe(true) -- covers the whole box, counter included
 		for _, prop in WorldLayout.RANCH_PROPS do
 			local rad = math.sqrt(prop.size[1] ^ 2 + prop.size[3] ^ 2) / 2
 			expect(`{prop.name} {dist(prop.pos, spot.pos) >= radius + rad}`).toBe(`{prop.name} true`)

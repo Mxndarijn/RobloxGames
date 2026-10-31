@@ -27,8 +27,10 @@ local NAMES = {
 	"ranch_plaza_signpost",
 	"ranch_item_shop",
 	"ranch_upgrade_cabinet",
-	"exclusive_jar_boutique",
-	"exclusive_jar_boutique_glass",
+	"exclusive_slime_claw_shop",
+	"exclusive_slime_claw_glass",
+	"exclusive_slime_claw_hand",
+	"exclusive_slime_claw_arm",
 	"phoenix_plaza_podium_1",
 	"phoenix_plaza_podium_2",
 	"phoenix_plaza_podium_3",
@@ -49,6 +51,11 @@ local NAMES = {
 	"ranch_feed_sacks",
 	"ranch_fence_stile",
 	"ranch_flower_planter",
+	"decor_goo_crystals",
+	"decor_slime_nest",
+	"decor_slime_topiary",
+	"decor_watering_can",
+	"decor_wildflower_clump",
 	"ranch_goo_bucket",
 	"ranch_goo_hive",
 	"ranch_goo_sign",
@@ -245,13 +252,16 @@ entries["ranch_item_shop"] =
 	{ assetId = 105082858859876, meshId = "rbxassetid://135059318016634", size = { 15.391, 16.558, 8.15 } }
 entries["ranch_upgrade_cabinet"] =
 	{ assetId = 112507254723244, meshId = "rbxassetid://139845226619480", size = { 16.407, 15.29, 9.93 } }
--- The Exclusive Shop's Golden Jar Boutique (contract/exclusive-shop.md §7;
--- models/exclusive_jar_boutique.py split in two): the solid shop (plinth, goo dome, lid, trophy slime, pedestals, shop
--- front, awning, sign board) and the see-through jar wall. Not uploaded yet: no id, so the stand's primitive jar shows.
-entries["exclusive_jar_boutique"] =
-	{ assetId = 131532129772503, meshId = "rbxassetid://102127887082736", size = { 16.86, 20.631, 18.57 } }
-entries["exclusive_jar_boutique_glass"] =
-	{ assetId = 92353179686979, meshId = "rbxassetid://99607808704355", size = { 12.8, 10.5, 12.8 } }
+-- The Exclusive Shop's Slime Claw (contract/exclusive-shop.md §7; models/exclusive_slime_claw.py split in four): the
+-- solid shop, the claw box glass, and the slime's goo hand and arm that the client moves.
+entries["exclusive_slime_claw_shop"] =
+	{ assetId = 74396602912152, meshId = "rbxassetid://135954495671820", size = { 14.6, 22.232, 12.42 } }
+entries["exclusive_slime_claw_glass"] =
+	{ assetId = 84556691531950, meshId = "rbxassetid://90052056080502", size = { 12.6, 7.65, 7.15 } }
+entries["exclusive_slime_claw_hand"] =
+	{ assetId = 102211562972917, meshId = "rbxassetid://87354359770991", size = { 3.134, 3.378, 2.795 } }
+entries["exclusive_slime_claw_arm"] =
+	{ assetId = 112584104329070, meshId = "rbxassetid://102864833743351", size = { 1.138, 1.7, 1.082 } }
 entries["phoenix_plaza_podium_1"] =
 	{ assetId = 77650457545661, meshId = "rbxassetid://94983834296700", size = { 8.923, 7.192, 8.58 } }
 entries["phoenix_plaza_podium_2"] =
@@ -287,6 +297,17 @@ entries["ranch_fence_stile"] =
 	{ assetId = 109953899748949, meshId = "rbxassetid://121810118872882", size = { 4.85, 4.6, 4.1 } }
 entries["ranch_flower_planter"] =
 	{ assetId = 119401948136413, meshId = "rbxassetid://79181201141280", size = { 5.2, 3.191, 2 } }
+-- ground decor scattered between the plots (WorldLayout.scatter): walk-through
+entries["decor_goo_crystals"] =
+	{ assetId = 98549560827765, meshId = "rbxassetid://105532250698187", size = { 4.327, 3.956, 3.387 } }
+entries["decor_slime_nest"] =
+	{ assetId = 78367331209283, meshId = "rbxassetid://110819446945105", size = { 3.482, 1.643, 3.515 } }
+entries["decor_slime_topiary"] =
+	{ assetId = 81153228075438, meshId = "rbxassetid://95451042530760", size = { 3.256, 3.811, 3.209 } }
+entries["decor_watering_can"] =
+	{ assetId = 115477687781361, meshId = "rbxassetid://124731250551357", size = { 4.788, 2.917, 2.7 } }
+entries["decor_wildflower_clump"] =
+	{ assetId = 134185703252264, meshId = "rbxassetid://104962623104512", size = { 3.375, 3.761, 2.928 } }
 entries["ranch_goo_bucket"] =
 	{ assetId = 129790019317485, meshId = "rbxassetid://102042715713279", size = { 2.164, 2.816, 2.09 } }
 entries["ranch_goo_drain"] =
