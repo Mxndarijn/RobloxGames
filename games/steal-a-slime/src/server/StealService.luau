@@ -48,7 +48,8 @@ end
 
 --[[
 	The thief grabs a slime from someone else's pad. `distance` is the
-	server-measured distance from the thief to the slime.
+	server-measured distance from the thief to the slime, `thiefInside` whether
+	the thief stands inside the owner's base on the slime's floor.
 ]]
 function StealService.steal(
 	world: World,
@@ -56,7 +57,8 @@ function StealService.steal(
 	slimeId: string,
 	distance: number,
 	now: number,
-	guard: { recentTeleport: boolean, stealsPaused: boolean }? -- SlimeGuard.stealBlock (Carry.grab)
+	guard: { recentTeleport: boolean, stealsPaused: boolean }?, -- SlimeGuard.stealBlock (Carry.grab)
+	thiefInside: boolean? -- the server view's JarInside.canReach for this thief and slime; nil = not measured
 ): (boolean, string?)
 	local owner, slime = World.ownerOf(world, slimeId)
 	if not owner or not slime then
@@ -84,6 +86,7 @@ function StealService.steal(
 		ownerCanSave = World.canSave(world, owner.userId),
 		recentTeleport = guard and guard.recentTeleport,
 		stealsPaused = guard and guard.stealsPaused,
+		thiefInside = thiefInside,
 	})
 	if not ok then
 		World.track(world, thief.userId, { op = "count", name = "StealBlocked", fields = { `Reason - {reason}` } })
