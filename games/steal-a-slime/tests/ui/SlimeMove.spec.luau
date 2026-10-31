@@ -1,6 +1,6 @@
 --!strict
 -- Move mode rules (src/ui/SlimeMove.luau, FEATURES.MoveSlime): what a place on a pad would do, the nearest
--- unlocked pad, and the bar's texts. The live mode (ghost, tint, input) is checked in a Studio playtest.
+-- unlocked pad, the bar's texts and the head seat. The live mode (ghost, held slime, tint, input) is checked in a Studio playtest.
 local MergeGate = require("../../src/shared/MergeGate")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
@@ -56,16 +56,22 @@ end)
 
 describe("SlimeMove texts", function()
 	it("names what a place would do", function()
-		expect(SlimeMove.statusText("empty", 3)).toBe("Pad 3: empty")
-		expect(SlimeMove.statusText("swap", 2, "Blorp")).toBe("Pad 2: swaps with Blorp")
-		expect(SlimeMove.statusText("locked", 7)).toBe("Pad 7 is locked: buy it first")
-		expect(SlimeMove.statusText("same", 1)).toBe("Pad 1: this slime's own pad")
-		expect(SlimeMove.statusText(nil, nil)).toBe("Point at one of your pads")
+		expect(SlimeMove.statusText("empty", 3)).toBe("Pad 3")
+		expect(SlimeMove.statusText("swap", 2, "Blorp")).toBe("Pad 2: swap with Blorp")
+		expect(SlimeMove.statusText("locked", 7)).toBe("Pad 7 is locked")
+		expect(SlimeMove.statusText("same", 1)).toBe("Pad 1: its own pad")
+		expect(SlimeMove.statusText(nil, nil)).toBe("Point at a pad")
 	end)
-	it("tells each input how to place and cancel", function()
-		expect(SlimeMove.hintText("keyboard")).toBe("Click a pad or the vat, or press E to place · Q to cancel")
-		expect(SlimeMove.hintText("touch")).toBe("Tap a pad or the vat to place it there")
-		expect(SlimeMove.hintText("gamepad")).toBe("X: place on the lit pad or vat · B: cancel")
+	it("names a slime by its species name, an egg by its egg name", function()
+		local function isEgg(s: any): boolean
+			return s.egg == true
+		end
+		local function eggName(_s: any): string
+			return "Golden Mystery Egg"
+		end
+		expect(SlimeMove.shortName({ name = "Froggo", tier = 2 }, isEgg, eggName)).toBe("Froggo")
+		expect(SlimeMove.shortName({ name = "Froggo", egg = true }, isEgg, eggName)).toBe("Golden Mystery Egg")
+		expect(SlimeMove.shortName(nil, isEgg, eggName)).toBe("slime")
 	end)
 end)
 
@@ -80,15 +86,13 @@ describe("SlimeMove into the merge vat", function()
 	it("an empty vat or one of the same rarity with room takes the slime", function()
 		expect(SlimeMove.vatClass({ ids = {} }, slime("a", 1))).toBe("vat")
 		expect(SlimeMove.vatClass({ ids = { "x" }, tier = 1 }, slime("a", 1))).toBe("vat")
-		expect(SlimeMove.vatStatus("vat", "Gummy", 1)).toBe("Merge vat: adds Gummy (2/3)")
+		expect(SlimeMove.vatStatus("vat", 1)).toBe("Merge vat (2/3)")
 	end)
 	it("a rarity the rank can't merge yet still goes in, lit yellow with when it opens", function()
 		local class, why = SlimeMove.vatClass({ ids = {} }, slime("a", 4), EPIC_AT - 1)
 		expect(class).toBe("vatGated")
 		expect(why).toBe(`Epic merges open at Rebirth {EPIC_AT}`)
-		expect(SlimeMove.vatStatus(class, "Blaze", 0, why)).toBe(
-			`Merge vat: adds Blaze (1/3). Epic merges open at Rebirth {EPIC_AT}.`
-		)
+		expect(SlimeMove.vatStatus(class, 0, why)).toBe(`Merge vat (1/3): Epic merges open at Rebirth {EPIC_AT}`)
 		expect(SlimeMove.vatClass({ ids = {} }, slime("a", 4), EPIC_AT)).toBe("vat")
 		expect(SlimeMove.vatClass({ ids = { "x", "y", "z" }, tier = 4 }, slime("a", 4), 1)).toBe("vatRefused")
 	end)
@@ -121,5 +125,19 @@ describe("SlimeMove.ghostTransparency", function()
 	it("a slime in the merge vat (faded on its pad) gets the same ghost as one that isn't", function()
 		expect(SlimeMove.ghostTransparency(0.6, 0)).toBe(SlimeMove.ghostTransparency(0, nil))
 		expect(SlimeMove.ghostTransparency(1, 1)).toBe(1)
+	end)
+end)
+
+describe("SlimeMove.headSeat", function()
+	local CFrame = roblox.CFrame
+	it("puts the held slime's bottom on top of the Head, turned with the root", function()
+		local root = CFrame.new(10, 3, 5) * CFrame.Angles(0, math.pi / 2, 0)
+		local seat = SlimeMove.headSeat(root, Vector3.new(10, 4.5, 5), 1.2)
+		expect((seat.Position - Vector3.new(10, 5.1, 5)).Magnitude < 1e-6).toBe(true)
+		expect((seat.LookVector - root.LookVector).Magnitude < 1e-6).toBe(true)
+	end)
+	it("without a Head it sits HEAD_HEIGHT above the root", function()
+		local seat = SlimeMove.headSeat(CFrame.new(0, 3, 0))
+		expect((seat.Position - Vector3.new(0, 3 + SlimeMove.HEAD_HEIGHT, 0)).Magnitude < 1e-6).toBe(true)
 	end)
 end)
