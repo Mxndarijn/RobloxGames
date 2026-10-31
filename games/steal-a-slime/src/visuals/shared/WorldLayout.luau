@@ -523,7 +523,6 @@ WorldLayout.OBBY = table.freeze({
 	portalDistance = 155,
 	portalRadius = 5, -- studs: stepping inside starts a run
 	exitStep = 10,
-	signStep = 9, -- the status sign stands this far behind the portal, facing the plaza
 	clearRadius = 12, -- keep-clear circle for props round the portal and its sign
 	pathWidth = 10,
 	archDistance = 108, -- the arch, from the map centre: past the ritual circle (Config.RITUAL, bearing 348, r 93)
@@ -539,7 +538,11 @@ WorldLayout.OBBY = table.freeze({
 		clouds = 22,
 		seaDepth = 220, -- the cloud sea's top, below the course origin
 		seaRadius = 1000, -- the flat base under the cloud banks
-		seaRings = table.freeze({ 1, 7, 16 }), -- cloud banks per ring (centre, middle, outer) on the sea
+		-- cloud banks per ring on the sea (centre, middle, outer, then two far rings of bigger banks that carry the
+		-- clouds out to the horizon: without them the sea's edge showed as a flat band of sky under the horizon), and
+		-- each ring's bank size factor; the backdrop's phone budget is 80 pieces in all (tests/ObbyBackdrop.spec)
+		seaRings = table.freeze({ 1, 7, 16, 7, 6 }),
+		seaRingScale = table.freeze({ 1, 1, 1, 1.9, 2.6 }),
 	}),
 })
 
@@ -645,7 +648,7 @@ function WorldLayout.obbyBackdrop(): { ObbyBackdropPiece }
 			tone = k % 2 + 1,
 		})
 	end
-	local ringRadius = { 0, w.seaRadius * 0.32, w.seaRadius * 0.66 }
+	local ringRadius = { 0, w.seaRadius * 0.32, w.seaRadius * 0.66, w.seaRadius * 0.98, w.seaRadius * 1.35 }
 	local n = 0
 	for ring, count in w.seaRings do
 		for i = 1, count do
@@ -656,7 +659,7 @@ function WorldLayout.obbyBackdrop(): { ObbyBackdropPiece }
 				kind = "bank",
 				model = "obby_cloudbank",
 				pos = { w.centreAhead + math.cos(a) * r, -w.seaDepth - 26 + (n * 29) % 34, math.sin(a) * r },
-				radius = 130 + (n * 37) % 60 + r * 0.08,
+				radius = (130 + (n * 37) % 60 + r * 0.08) * w.seaRingScale[ring],
 				yaw = (n * 77) % 360,
 				tone = n % 3 + 1,
 			})

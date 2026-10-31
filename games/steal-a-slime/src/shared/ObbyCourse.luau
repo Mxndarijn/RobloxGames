@@ -4,7 +4,7 @@
 
 	The Obby sky course as data. `pick(slot)` chooses the sections of one rotation (Config.OBBY.ORDER: one
 	section per tier entry, no section twice, none from the course before it inside one chain of CHAIN_SLOTS
-	rotations) and a layout for each. `build(slot)` lays the course out: a start pad (with the Goo Ring back to the yard behind it), then the sections joined by short
+	rotations) and a layout for each. `build(slot)` lays the course out: a start pad (the Goo Ring home standing on its back edge), then the sections joined by short
 	jelly connectors in line with the path (every section starts and ends with a jump), then the finish pad. There are
 	no checkpoints: the server tracks which section a runner is over (`sectionAt`), and a runner that drops
 	`fallHeight` under the lowest platform it could still land on goes straight back to the start pad. Every server
@@ -102,7 +102,7 @@ export type Course = {
 	floors: { Floor }, -- every platform a runner could land on (fallHeight)
 	start: Vec, -- where a runner appears (above the start pad)
 	startTop: number, -- the start pad's top
-	home: Ring, -- the way back to the yard
+	home: Ring, -- the way back to base: the walk-in circle just behind the Goo Ring on the start pad's back edge
 	spans: { Span }, -- one per pick, in order
 	finish: Zone,
 	length: number,
@@ -120,7 +120,8 @@ ObbyCourse.LINK_MIN_WIDTH = 4 -- the connector spans the path's ends next to it,
 ObbyCourse.LINK_MARGIN = 0.5 -- studs past those ends on either side
 ObbyCourse.FALL_REACH = 10 -- studs along the course a falling runner can still drift onto a platform
 ObbyCourse.FINISH_LENGTH = 12
-ObbyCourse.HOME_LENGTH = 7 -- the pad behind the start pad that holds the Goo Ring back to the yard
+ObbyCourse.HOME_LENGTH = 7 -- the catch pad behind the start pad, under the far side of the Goo Ring home
+ObbyCourse.HOME_BACK = 2 -- studs behind the start pad's back edge (where the ring stands) that the walk-in circle sits
 ObbyCourse.HOME_WIDTH = 8
 ObbyCourse.HOME_RADIUS = 2.5 -- studs: stepping inside the Goo Ring ends the run
 ObbyCourse.WIDTH = 12 -- pad width across the course
@@ -1315,14 +1316,14 @@ function ObbyCourse.build(slot: number, picks: { Pick }?): Course
 		floors = floorsOf(parts),
 		start = { ObbyCourse.START_LENGTH / 3, OBBY.RESPAWN_LIFT, 0 },
 		startTop = 0,
-		home = { pos = { -H / 2, 0, 0 }, radius = ObbyCourse.HOME_RADIUS },
+		home = { pos = { -ObbyCourse.HOME_BACK, 0, 0 }, radius = ObbyCourse.HOME_RADIUS },
 		spans = spans,
 		finish = finish,
 		length = x,
 	}
 end
 
--- True when course-local `p` (a root position) stands in the Goo Ring back to the yard.
+-- True when course-local `p` (a root position) has walked into the Goo Ring home.
 function ObbyCourse.inHome(course: Course, p: Vec): boolean
 	local ring = course.home
 	local dx, dz = p[1] - ring.pos[1], p[3] - ring.pos[3]

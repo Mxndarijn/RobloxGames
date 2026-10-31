@@ -61,6 +61,9 @@ RanchProps.CLUSTERS = table.freeze({ "plaza", "entrance", "farm", "yard" })
 -- every MeshAssets entry has a slot today. Add { mesh = reason } here rather
 -- than leaving an asset silently unused (tests/RanchProps.spec enforces it).
 RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
+	obby_goo_ring_eyes = "the Obby's Goo Ring portal: server/ObbyView builds its slots (MeshSwap.applyUnder) and the ring home is filled on the client (ObbyCourseView); decor, walk-through",
+	obby_goo_swirl = "the Obby's Goo Ring portal: server/ObbyView builds its slots (MeshSwap.applyUnder) and the ring home is filled on the client (ObbyCourseView); decor, walk-through",
+	obby_goo_sign = "the Obby's Goo Ring portal: server/ObbyView builds its slots (MeshSwap.applyUnder) and the ring home is filled on the client (ObbyCourseView); decor, walk-through",
 	goo_jar_glass_1_mid = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
 	goo_jar_glass_2_mid = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",
 	goo_jar_glass_3_mid = "goo jar tower upper jars: server/BaseFloors builds them at runtime (WorldLayout.floor), no static slot",

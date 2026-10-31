@@ -39,7 +39,7 @@ local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
 end
 
--- Clear candy sky: a blue zenith fading into a violet-pink horizon band (Haze tints only the low sky), thin enough
+-- Clear candy sky: a blue zenith fading into a cloud-pink horizon (Haze tints only the low sky), thin enough
 -- that the backdrop keeps its edges, low ambient so the sun casts readable shadows on the course, and exposure below
 -- the map's so nothing washes out.
 ObbyLook.LOOK = table.freeze({
@@ -47,11 +47,12 @@ ObbyLook.LOOK = table.freeze({
 	OutdoorAmbient = rgb(132, 114, 164),
 	Brightness = 2.2,
 	ExposureCompensation = -0.1,
-	Density = 0.3,
-	Haze = 1.2,
+	Density = 0.32,
+	Haze = 1.4,
 	Glare = 0,
-	Color = rgb(255, 150, 195),
-	Decay = rgb(255, 170, 210),
+	-- cloud-pink, the cloud sea's own tone, so the far banks fade into the horizon instead of a violet band
+	Color = rgb(244, 214, 238),
+	Decay = rgb(236, 206, 238),
 } :: NightLook.Look)
 
 -- The same world at night (blended in by NightLook.factor): a starry sky fading into an indigo-plum horizon, with

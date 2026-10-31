@@ -154,6 +154,14 @@ safeCall("obby setup", function()
 	ObbyView.buildPortal()
 	ObbyView.build(ObbyService.setup(world, now()))
 end)
+-- The Goo Ring and its signpost are kit meshes (MeshSwap fills the portal's MeshAsset slots; it yields).
+task.spawn(safeCall, "obby portal meshes", function()
+	local obby = workspace:FindFirstChild(Constants.OBBY_FOLDER)
+	local portal = obby and obby:FindFirstChild(Constants.OBBY_PORTAL)
+	if portal then
+		MeshSwap.applyUnder({ portal })
+	end
+end)
 local profiler = Profiler.new() -- FEATURES.ServerProfiler (CONTRACT.md §25); off = every call is a no-op
 
 -- Roblox badges (Badges): BadgeService behind pcall + retries, off the game loop (grant yields).
