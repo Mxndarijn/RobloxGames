@@ -185,6 +185,9 @@ end)
 -- Every mesh has a collision decision --------------------------------------------------------------------------
 -- Every MeshAssets name is either solid (COLLISION) or listed here as decor with its reason, so a new mesh forces a decision.
 local DECOR = {
+	obby_goo_ring_eyes = "the Obby's Goo Ring portal: server/ObbyView builds its slots (MeshSwap.applyUnder) and the ring home is filled on the client (ObbyCourseView); decor, walk-through",
+	obby_goo_swirl = "the Obby's Goo Ring portal: server/ObbyView builds its slots (MeshSwap.applyUnder) and the ring home is filled on the client (ObbyCourseView); decor, walk-through",
+	obby_goo_sign = "the Obby's Goo Ring portal: server/ObbyView builds its slots (MeshSwap.applyUnder) and the ring home is filled on the client (ObbyCourseView); decor, walk-through",
 	goo_jar_foot = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
 	goo_jar_stair = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
 	goo_jar_door = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",

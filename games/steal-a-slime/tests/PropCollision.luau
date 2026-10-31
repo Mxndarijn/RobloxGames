@@ -971,6 +971,18 @@ parts(
 
 -- name -> { owner, reason }
 local UNPLACED: { [string]: { string } } = {
+	obby_goo_ring_eyes = {
+		"jolt",
+		"the Obby's Goo Ring portal: server/ObbyView builds its slots (MeshSwap.applyUnder) and the ring home is filled on the client (ObbyCourseView); decor, walk-through",
+	},
+	obby_goo_swirl = {
+		"jolt",
+		"the Obby's Goo Ring portal: server/ObbyView builds its slots (MeshSwap.applyUnder) and the ring home is filled on the client (ObbyCourseView); decor, walk-through",
+	},
+	obby_goo_sign = {
+		"jolt",
+		"the Obby's Goo Ring portal: server/ObbyView builds its slots (MeshSwap.applyUnder) and the ring home is filled on the client (ObbyCourseView); decor, walk-through",
+	},
 	pet_cloud = {
 		"jolt",
 		"the follow pet's cloud (published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",

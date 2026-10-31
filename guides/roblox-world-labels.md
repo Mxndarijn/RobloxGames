@@ -152,8 +152,8 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 | Leaderboard boards | `visuals/shared/Props.leaderboardBoard`, `ui/WorldLeaderboard` | SG, 40 ppS | 150 | no |
 | Upcoming Events board (on a leaderboard board) | `server/EventBoardView` | SG, 40 ppS (×1.05 model scale) | 150 | no |
 | Ritual rules sign, front and back | `server/RitualView` | SG 6×1.8, 50 ppS, both faces | 80 | no |
-| Obby portal sign (title, this player's boost status, next course), front and back | `server/ObbyView`, text from `ui/ObbyHud` | SG 10×5, 50 ppS, both faces | 200 | no |
-| Obby Goo Ring sign ("Back to the yard", behind the start pad, facing it) | `server/ObbyView` (`HOME`) | SG 6×2.2, 50 ppS, front | 60 | no |
+| Obby portal signpost beside the Goo Ring (title, this player's boost status, next course), front and back | `server/ObbyView`, text from `ui/ObbyHud` | SG 8×3.6, 50 ppS, both faces | 200 | no |
+| Obby "BACK TO BASE" floor label (on the start pad, in front of the Goo Ring home) | `visuals/shared/ObbyParts` (`HOME`) | SG 6.4×1.5 on Top, 50 ppS | 60 | no |
 | BONK / CHOMP popup | `ui/PvpEffects` | px 140×48 | 120 | no |
 | Fun FX text | `ui/PvpFunFx` | px 220×60 × scale | 150 | yes |
 | Slap pop | `ui/StealAlertFx` | px 120×50 | 120 | yes |
