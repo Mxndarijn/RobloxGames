@@ -8,6 +8,7 @@ local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local Income = require("../src/server/Income")
 local PlayerData = require("../src/shared/PlayerData")
+local Progression = require("../src/shared/Progression")
 local Remotes = require("../src/shared/Remotes")
 local ServerFixtures = require("./ServerFixtures")
 local SlimeRoster = require("../src/shared/SlimeRoster")
@@ -175,6 +176,30 @@ describe("MergeVat: a brewing vat locks its slimes", function()
 		expect(res.ok).toBe(false)
 		expect(res.message).toBe("A slime the rebirth needs is brewing in the vat")
 		expect(s.data.rebirths).toBe(0)
+		-- The panel knows too: no button, and the row says it is brewing.
+		expect(Progression.canRebirth(s.data)).toBe(false)
+		local row = Progression.requiredSlimes(s.data)[1]
+		expect(row.owned).toBe(true)
+		expect(row.brewing).toBe(true)
+	end)
+
+	it("a rebirth uses a free copy of a species before the one brewing in the vat", function()
+		local species = Config.REBIRTH_SLIMES[1][1]
+		local tier = 1
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, {
+			slime("free", tier, { species = species, size = 1.5 }),
+			slime("n1", tier, { species = species, size = 0.5 }),
+			slime("n2", tier, { size = 1.5 }),
+			slime("n3", tier, { size = 1.5 }),
+		}, 1e9)
+		fill(world, 1, { "n1", "n2", "n3" })
+		assert(call(world, 1, "VatStart", {}).ok, "start")
+		expect(Progression.requiredSlimes(s.data)[1].brewing).toBe(false)
+		expect(call(world, 1, "Rebirth", {}).ok).toBe(true)
+		expect(s.data.rebirths).toBe(1)
+		expect(PlayerData.findSlime(s.data, "free")).toBe(nil)
+		expect(PlayerData.findSlime(s.data, "n1") ~= nil).toBe(true)
 	end)
 end)
 

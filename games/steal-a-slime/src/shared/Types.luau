@@ -26,7 +26,15 @@ export type RequestResult = { ok: boolean, message: string?, code: string? } -- 
 export type NotifyKind = "info" | "good" | "bad" | "badge"
 
 -- One slime the next rebirth needs (State.rebirthSlimes). A species asked for twice is two rows.
-export type RebirthSlimeView = { id: string, name: string, tier: number, color: { number }, owned: boolean }
+-- `brewing`: the only matching slime is locked in a brewing merge vat, so the rebirth waits for the brew.
+export type RebirthSlimeView = {
+	id: string,
+	name: string,
+	tier: number,
+	color: { number },
+	owned: boolean,
+	brewing: boolean,
+}
 
 export type SlimeView = {
 	slime: SlimeData,
