@@ -12,7 +12,8 @@
 	    one row per slime (Config.REBIRTH_SLIMES; greyed preview and a "Missing" chip until you have it).
 	    A met row ends in a mint tick.
 	  * "You keep" / "Resets" wells side by side.
-	  * The hold-to-confirm Rebirth button (state.canRebirth), else a sunken well saying what is missing.
+	  * The hold-to-confirm Rebirth button (state.canRebirth), else a sunken well saying what is missing (or
+	    that a needed slime is brewing in the merge vat). A refused hold shows the server's reason there.
 	At max rebirths only the crown card shows ("Max rebirth: 30"): your rank, totals and "All rebirths done".
 	Progress.nextRebirth has the numbers; `rank` and `plan` are the pure parts.
 ]]
@@ -108,6 +109,7 @@ Rebirth.COPY = table.freeze({
 	usedUp = "Used up on rebirth",
 	getOne = "Catch or merge one",
 	byMerge = "Obtained by merge (see SlimeDex)", -- a missing merge-only slime (SlimeRoster kind "hybrid")
+	brewing = "Brewing in the vat",
 	missing = "Missing",
 	nextTitle = "Next rebirth",
 	maxTitle = "Max rebirth",
@@ -562,12 +564,13 @@ function Rebirth.new(parent: Instance, ctx: any)
 		row.name.Text = slime.name
 		row.name.TextColor3 = if slime.owned then Theme.Text else Theme.Muted
 		local entry = SlimeRoster.get(slime.id)
-		row.desc.Text = if slime.owned
-			then COPY.usedUp
+		row.desc.Text = if slime.brewing
+			then COPY.brewing
+			elseif slime.owned then COPY.usedUp
 			elseif entry and entry.kind == "hybrid" then COPY.byMerge
 			else COPY.getOne
 		row.state.Visible = not slime.owned
-		setTick(row.frame, slime.owned)
+		setTick(row.frame, slime.owned and not slime.brewing)
 		showSlime(row, slime)
 	end
 
@@ -618,7 +621,14 @@ function Rebirth.new(parent: Instance, ctx: any)
 		Size = UDim2.new(1, 0, 0, Layout.BUTTON),
 		Parent = content,
 	})
-	local btn = Widgets.holdButton(
+	local btn: any
+	-- Until the next State: the reason the server refused the hold, in place of the button.
+	local function showRefusal(message: string)
+		reasonLine.Text = capitalise(message)
+		reasonLine.Visible = true
+		btn.instance.Visible = false
+	end
+	btn = Widgets.holdButton(
 		{
 			Name = "RebirthButton",
 			Text = COPY.button,
@@ -628,7 +638,11 @@ function Rebirth.new(parent: Instance, ctx: any)
 		},
 		Theme.Accent,
 		function()
-			ctx.send("Rebirth")
+			ctx.ask("Rebirth", function(result: any)
+				if type(result) == "table" and result.ok == false then
+					showRefusal(if type(result.message) == "string" then result.message else "Not ready yet")
+				end
+			end)
 		end,
 		ctx.Config.HOLD_CONFIRM_SECONDS
 	)
@@ -760,7 +774,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		end
 
 		-- Checklist.
-		local readyCount = (if cashMet then 1 else 0) + (#needs - #nextUp.missing)
+		local readyCount = (if cashMet then 1 else 0) + (#needs - #nextUp.missing - #nextUp.brewing)
 		local total = #needs + 1
 		head.Position = UDim2.fromOffset(0, plan.headY)
 		count.Position = UDim2.new(1, 0, 0, plan.headY)

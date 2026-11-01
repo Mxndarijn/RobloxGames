@@ -164,11 +164,13 @@ rebirth label.
 `Progression.canRebirth` rejects with `need a <Species Name>` for the first missing one.
 
 The rebirth **uses those slimes up** (`Progression.payment`): for each listed species the
-matching slime cheapest to lose is taken (anything but the favourite first, then the lowest
-income). Every other slime stays where it is; only cash resets.
+matching slime cheapest to lose is taken (a slime brewing in the merge vat last, then anything
+but the favourite, then the lowest income). Every other slime stays where it is; only cash resets.
 
-State has `rebirthSlimes: { { id, name, tier, color, owned } }`, one row per required slime
-(empty at `MAX_REBIRTHS`); `canRebirth` already includes the slime check.
+State has `rebirthSlimes: { { id, name, tier, color, owned, brewing } }`, one row per required slime
+(empty at `MAX_REBIRTHS`); `brewing` is true when the only matching slime is locked in a brewing
+vat (§21). `canRebirth` already includes the slime check and is false while any row is `brewing`:
+the rebirth waits for the brew.
 
 ## 8.9 DataStore schema v3 (superseded by v4, §8.9a)
 

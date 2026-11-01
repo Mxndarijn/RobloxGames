@@ -11,7 +11,6 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
-local VatState = if Shared then require(Shared.VatState) else require("../shared/VatState")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -22,11 +21,6 @@ local Rebirth = {}
 
 function Rebirth.rebirth(world: World, session: Session): (boolean, string?)
 	local rank = Perks.tierIndex(session.data.rebirths)
-	for _, slime in Progression.payment(session.data) do
-		if VatState.isLocked(session.data, slime.id) then
-			return false, "A slime the rebirth needs is brewing in the vat"
-		end
-	end
 	local ok, result = Progression.rebirth(session.data)
 	if not ok then
 		return false, result :: string

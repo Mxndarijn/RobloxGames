@@ -17,12 +17,23 @@ local Genome = if script then require(script.Parent.Genome) else require("./Geno
 local SlimeLooks = if script then require(script.Parent.SlimeLooks) else require("./SlimeLooks")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
+local VatState = if script then require(script.Parent.VatState) else require("./VatState")
 
 type Slime = Genome.Slime
 
-export type Requirement = { id: string, name: string, tier: number, color: { number }, owned: boolean }
+-- `brewing`: the slime it would use is locked in a brewing merge vat, so the rebirth waits for the brew.
+export type Requirement = {
+	id: string,
+	name: string,
+	tier: number,
+	color: { number },
+	owned: boolean,
+	brewing: boolean,
+}
 
 local Progression = {}
+
+Progression.BREWING = "A slime the rebirth needs is brewing in the vat"
 
 ---------------------------------------------------------------------------
 -- Rebirth
@@ -39,7 +50,7 @@ end
 
 --[[
 	The slimes the next rebirth uses up: for each required species the matching slime
-	that is cheapest to lose (not the favourite, then the lowest income). Returns the
+	that is cheapest to lose (not one brewing in the vat, not the favourite, then the lowest income). Returns the
 	picked slimes (in requirement order, nil where nothing matches) and whether every
 	requirement found one.
 ]]
@@ -52,8 +63,11 @@ function Progression.payment(data: PlayerData.Data): ({ [number]: Slime }, boole
 		local bestCost = math.huge
 		for _, s in data.slimes do
 			if not used[s.id] and isSpecies(s, species) then
-				-- The favourite only when nothing else matches; otherwise the lowest income.
-				local cost = Genome.baseIncome(s) + (if s.id == data.favoriteId then 1e300 else 0)
+				-- A brewing slime only when nothing else matches (the rebirth then waits for the brew), the
+				-- favourite only when nothing else free matches; otherwise the lowest income.
+				local cost = Genome.baseIncome(s)
+					+ (if s.id == data.favoriteId then 1e300 else 0)
+					+ (if VatState.isLocked(data, s.id) then 1e302 else 0)
 				if not best or cost < bestCost then
 					best, bestCost = s, cost
 				end
@@ -86,6 +100,7 @@ function Progression.requiredSlimes(data: PlayerData.Data): { Requirement }
 				tier = entry.tier,
 				color = if look then { look.color[1], look.color[2], look.color[3] } else { 170, 220, 170 },
 				owned = picked[i] ~= nil,
+				brewing = picked[i] ~= nil and VatState.isLocked(data, picked[i].id),
 			})
 		end
 	end
@@ -102,6 +117,11 @@ function Progression.canRebirth(data: PlayerData.Data): (boolean, string?)
 	for _, need in Progression.requiredSlimes(data) do
 		if not need.owned then
 			return false, `need a {need.name}`
+		end
+	end
+	for _, need in Progression.requiredSlimes(data) do
+		if need.brewing then
+			return false, Progression.BREWING
 		end
 	end
 	return true, nil
