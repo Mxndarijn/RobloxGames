@@ -384,7 +384,8 @@ function M.grid(layout: Layout): Kit.Section
 			table.insert(parts, Kit.prop(size, pos, "jelly", { tone = 3 }))
 		end
 	end
-	for _, c in layout.bars or {} do
+	local bars: { number } = layout.bars or {}
+	for _, c in bars do
 		local cell = g.cells[c][1]
 		local high = -math.huge
 		for l = 1, 3 do
