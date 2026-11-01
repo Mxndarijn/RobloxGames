@@ -29,6 +29,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local FountainTiers = require(Shared:WaitForChild("FountainTiers") :: any)
 local MergeGate = require(Shared:WaitForChild("MergeGate") :: any)
 local Perks = require(Shared:WaitForChild("Perks") :: any)
+local SlimeRoster = require(Shared:WaitForChild("SlimeRoster") :: any)
 
 local Theme = Widgets.Theme
 local create = Widgets.create
@@ -106,6 +107,7 @@ Rebirth.COPY = table.freeze({
 	button = "Hold to rebirth",
 	usedUp = "Used up on rebirth",
 	getOne = "Catch or merge one",
+	byMerge = "Obtained by merge", -- a missing merge-only slime (SlimeRoster kind "hybrid")
 	missing = "Missing",
 	nextTitle = "Next rebirth",
 	maxTitle = "Max rebirth",
@@ -559,7 +561,11 @@ function Rebirth.new(parent: Instance, ctx: any)
 		row.frame.BackgroundColor3 = if slime.owned then Theme.BgLight else Theme.Row
 		row.name.Text = slime.name
 		row.name.TextColor3 = if slime.owned then Theme.Text else Theme.Muted
-		row.desc.Text = if slime.owned then COPY.usedUp else COPY.getOne
+		local entry = SlimeRoster.get(slime.id)
+		row.desc.Text = if slime.owned
+			then COPY.usedUp
+			elseif entry and entry.kind == "hybrid" then COPY.byMerge
+			else COPY.getOne
 		row.state.Visible = not slime.owned
 		setTick(row.frame, slime.owned)
 		showSlime(row, slime)

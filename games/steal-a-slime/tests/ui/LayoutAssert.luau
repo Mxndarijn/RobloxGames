@@ -80,6 +80,7 @@ local RebirthPanel = {
 		head = "Bring these",
 		button = "Hold to rebirth",
 		getOne = "Catch or merge one",
+		byMerge = "Obtained by merge",
 		missing = "Missing",
 		nextTitle = "Next rebirth",
 		maxTitle = "Max rebirth",
@@ -939,6 +940,7 @@ function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
 		{ name = "Rebirth cost", text = "$987.6Qa", size = c.nameSize, bold = true, w = rowW, h = c.nameH },
 		{ name = "Rebirth slime name", text = "Dragon King", size = c.nameSize, bold = true, w = rowW, h = c.nameH },
 		{ name = "Rebirth slime desc", text = copy.getOne, size = c.labelSize, w = rowW, h = c.subH },
+		{ name = "Rebirth slime merge desc", text = copy.byMerge, size = c.labelSize, w = rowW, h = c.subH },
 		{
 			name = "Rebirth have chip",
 			text = "$987.6Qa",

@@ -386,6 +386,20 @@ describe("Rebirth needs specific slimes and uses them up", function()
 		panel.update(rebirthState(0, 0))
 		expect(row.Visible).toBe(false)
 	end)
+	it("a missing merge-only slime says it comes from a merge", function()
+		local Rebirth = UiHarness.ui("Panels/Rebirth")
+		local panel = Rebirth.new(UiHarness.root(), ctx())
+		local state = stateWith(false, 1e9)
+		state.rebirthSlimes = {
+			need({ id = "moo_shroom", name = "Moo-shroom", tier = 4, color = { 200, 120, 90 } }, false),
+		}
+		panel.update(state)
+		local row = UiHarness.find(panel.frame, "SlimeNeed")
+		expect(UiHarness.find(row, "SlimeDesc").Text).toBe("Obtained by merge")
+		state.rebirthSlimes[1].owned = true
+		panel.update(state)
+		expect(UiHarness.find(row, "SlimeDesc").Text).toBe("Used up on rebirth")
+	end)
 	it("a missing slime is its own species mesh in grey, never a generated look-alike", function()
 		local Rebirth = UiHarness.ui("Panels/Rebirth")
 		local generated = 0
