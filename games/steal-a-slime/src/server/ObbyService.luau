@@ -42,7 +42,7 @@ export type Place = {
 	portal: Vec, -- portal circle centre on the ground
 	portalRadius: number,
 	exit: Vec, -- where a player is set down after a run (in front of the portal)
-	exitYaw: number, -- the way they face there (towards the portal)
+	exitYaw: number, -- the way they face there (towards the plaza, their back to the portal)
 	zone: { centre: Vec, radius: number }, -- the obby world (WorldLayout.inObbyWorld): no one stays there without a run
 }
 

@@ -83,7 +83,7 @@ function ObbyView.place(): ObbyService.Place
 		portal = { portal[1], y, portal[3] },
 		portalRadius = WorldLayout.OBBY.portalRadius,
 		exit = { portal[1] + math.sin(a) * step, y + 3, portal[3] + math.cos(a) * step },
-		exitYaw = (toCentre + 180) % 360,
+		exitYaw = toCentre, -- facing the plaza, back to the portal: the camera lands behind them looking where they go
 		zone = { centre = centre, radius = radius },
 	}
 	place = p
@@ -120,7 +120,7 @@ function ObbyView.buildPortal()
 	local post = Instance.new("Part")
 	post.Name = "SignPost"
 	post.Size = PORTAL.signSize
-	post.CFrame = signCf * CFrame.new(0, PORTAL.signSize.Y / 2, 0)
+	post.CFrame = signCf * CFrame.new(0, PORTAL.signSize.Y / 2, 0) * ObbyParts.GOO.faceTurn -- the kit sign faces +Y too
 	post.Transparency = 1
 	post.Anchored = true
 	post.CanCollide = false
