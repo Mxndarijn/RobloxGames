@@ -1,0 +1,1285 @@
+{
+  "ideas": [
+    {
+      "id": 26,
+      "name": "Aim the Cannon",
+      "approach": "handmade",
+      "approachWhy": "Each layout is a few cannons and islands, and its feel comes from how the swing and the target line up (pause at the ends, a moving island, a wall with a sliding hole, a cracking seat). A generator would mostly roll the same layouts with other numbers, so 18 hand-made ones, each checked for a fair fire window, work better.",
+      "engine": {
+        "have": [
+          "\"cannon\" look and ObbyCourse.CANNON = 75 launch speed (SlimeCannon section)",
+          "slide motion (islands that drift left-right or up-down)",
+          "shrink motion (an island that breathes bigger and smaller)",
+          "swing motion (pendulum) and spin motion, as a base for the barrel's sweep",
+          "fall = back to the start pad; red see-through hazard look",
+          "tests that check every gap against the jump and launch limits",
+          "idea 4 Bounce Chain gave up its cannon variants, so every cannon in the course is an aimed one from this idea"
+        ],
+        "new": [
+          {
+            "what": "Cannon seat controller on the client: walk into the barrel's mouth, the character snaps in, the camera sits behind the barrel, jump fires. No walking out and no auto-fire.",
+            "size": "M"
+          },
+          {
+            "what": "Scripted flight: the shot follows a fixed arc for the aim at the moment you fire (same arc every time), then hands the character back to normal physics just above the landing spot. A miss ends over the void or in red goo, which uses the shared 'hazard touch = back to the start pad' from idea 1.",
+            "size": "M"
+          },
+          {
+            "what": "New motion kind \"aim\": the barrel sweeps its yaw (left-right) between two angles, with an optional short pause at each end (eased like the 'shuttle' slide of ideas 3 and 25: hold, move, hold). Pitch nod for Two Axes runs as a second motion on the same part through the 'two motions on one part' system ideas 9 and 15 plan ('Wobble'), not a separate one.",
+            "size": "S"
+          },
+          {
+            "what": "Aim line visuals: a dotted line from the barrel that follows the real arc and ends in a landing dot; it turns red when the arc would hit goo; a target ring on each island lights green while the dot is inside it.",
+            "size": "S"
+          },
+          {
+            "what": "Test helper: compute the fire window per sweep (time the landing dot sits inside a safe island and the arc misses all goo) and fail if it is under the tier minimum (easy 0.8 s, medium 0.45 s, hard 0.3 s). The arc itself goes through the shared 'launch reach' check (idea 4's launchReaches(), shared with ideas 6, 16, 21); moving islands and the sliding wall hole use idea 3's moving-part gap check.",
+            "size": "M"
+          },
+          {
+            "what": "Catch cannon: a cannon with a wide funnel mouth that grabs you out of the air and starts swinging at once (for cannon-to-cannon variants).",
+            "size": "S"
+          },
+          {
+            "what": "Hot Seat: the cannon's deck cracks and darkens once you sit in it and drops you 3 s later; start it with the shared one-shot stand-on trigger (ideas 3, 21, 24) and the crack look from idea 2's melt, not new code.",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "A fat goo cannon on a turntable with a dotted aim line running out of the barrel to a landing dot; every safe island wears a big target ring that glows green while the dot is on it. A click-click tick plays as the barrel sweeps and a deep thump when it fires.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "First Shot",
+          "tier": "easy",
+          "does": "One cannon sweeps slowly and pauses at each end; one big island sits dead ahead, so the aim passes it twice each sweep.",
+          "numbers": "sweep ±40°, 3.0 s per side, 0.4 s end pause, island 14x14 at 30 studs, window about 0.9 s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M44 48 L160 48"
+            ],
+            [
+              "l",
+              38,
+              48,
+              120,
+              14
+            ],
+            [
+              "l",
+              38,
+              48,
+              120,
+              82
+            ],
+            [
+              "r",
+              150,
+              30,
+              40,
+              36,
+              "pl"
+            ],
+            [
+              "c",
+              170,
+              48,
+              12,
+              "gl"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Pick a Side",
+          "tier": "easy",
+          "does": "The island is off to the left, right where the barrel pauses, so you learn to wait for the end of the sweep.",
+          "numbers": "sweep ±45°, 2.8 s per side, 0.6 s end pause, island 12x12 at 28 studs, 9 studs left",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "l",
+              38,
+              48,
+              120,
+              82
+            ],
+            [
+              "a",
+              "M44 44 L150 18"
+            ],
+            [
+              "r",
+              146,
+              4,
+              34,
+              30,
+              "pl"
+            ],
+            [
+              "c",
+              163,
+              19,
+              10,
+              "gl"
+            ],
+            [
+              "t",
+              150,
+              60,
+              "wait for left"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Lob Up",
+          "tier": "easy",
+          "does": "The cannon throws you up onto a high ledge; the dotted line climbs so you see the shot goes up, not across.",
+          "numbers": "sweep ±35°, 3.0 s per side, island 12x12, 12 studs higher at 24 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              46,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              24,
+              60,
+              22,
+              12,
+              "gl"
+            ],
+            [
+              "c",
+              30,
+              72,
+              5,
+              "dk"
+            ],
+            [
+              "a",
+              "M46 60 Q110 -4 168 40"
+            ],
+            [
+              "r",
+              150,
+              42,
+              60,
+              10,
+              "pl"
+            ],
+            [
+              "e",
+              172,
+              42,
+              14,
+              3,
+              "gl"
+            ],
+            [
+              "t",
+              150,
+              70,
+              "+12 studs"
+            ],
+            [
+              "you",
+              14,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Either Way",
+          "tier": "easy",
+          "does": "Two islands, one left and one right, both lead on, so every sweep gives you two chances.",
+          "numbers": "sweep ±40°, 2.6 s per side, 2 islands 10x10 at 26 studs, 7 studs either side",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M44 44 L148 20"
+            ],
+            [
+              "a",
+              "M44 52 L148 76"
+            ],
+            [
+              "r",
+              146,
+              6,
+              30,
+              28,
+              "pl"
+            ],
+            [
+              "r",
+              146,
+              62,
+              30,
+              28,
+              "pl"
+            ],
+            [
+              "r",
+              188,
+              30,
+              30,
+              36,
+              "pl"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Two Hop",
+          "tier": "easy",
+          "does": "A short shot lands you next to a second cannon; walk in and take a second slow shot.",
+          "numbers": "2 cannons, sweep ±35°, 3.0 s per side, islands 12x12, flights 20 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "c",
+              22,
+              48,
+              7,
+              "dk"
+            ],
+            [
+              "r",
+              22,
+              44,
+              14,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M36 46 L82 34"
+            ],
+            [
+              "r",
+              76,
+              20,
+              36,
+              30,
+              "pl"
+            ],
+            [
+              "c",
+              100,
+              36,
+              7,
+              "dk"
+            ],
+            [
+              "r",
+              100,
+              32,
+              14,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M114 38 L164 60"
+            ],
+            [
+              "r",
+              158,
+              46,
+              40,
+              32,
+              "pl"
+            ],
+            [
+              "you",
+              86,
+              36
+            ]
+          ]
+        },
+        {
+          "name": "Goo Moat",
+          "tier": "easy",
+          "does": "The island sits in a ring of red goo: miss and you splash into goo right away, so you see your miss instead of just falling.",
+          "numbers": "sweep ±40°, 2.8 s per side, island 12x12 inside a 30x30 goo ring at 30 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M44 48 L150 48"
+            ],
+            [
+              "r",
+              120,
+              12,
+              76,
+              72,
+              "hz"
+            ],
+            [
+              "r",
+              140,
+              30,
+              36,
+              36,
+              "pl"
+            ],
+            [
+              "c",
+              158,
+              48,
+              10,
+              "gl"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Quick Swing",
+          "tier": "medium",
+          "does": "No pause at the ends and a faster sweep, with the island off-centre so you fire mid-swing.",
+          "numbers": "sweep ±45°, 1.6 s per side, no pause, island 9x9 at 32 studs, 5 studs right, window about 0.5 s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M28 30 q14 -8 26 0"
+            ],
+            [
+              "a",
+              "M44 50 L160 60"
+            ],
+            [
+              "r",
+              150,
+              48,
+              28,
+              26,
+              "pl"
+            ],
+            [
+              "c",
+              164,
+              61,
+              8,
+              "gl"
+            ],
+            [
+              "t",
+              100,
+              90,
+              "fast, no pause"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Near or Far",
+          "tier": "medium",
+          "does": "The barrel nods up and down instead of left-right, so you aim for distance: fire low and you drop into the red pool in front of the island.",
+          "numbers": "pitch nod 20° to 50°, 2.2 s per side, island 10 deep at 34 studs, goo pool 14 deep before it",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              44,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              22,
+              56,
+              22,
+              12,
+              "gl"
+            ],
+            [
+              "c",
+              28,
+              70,
+              5,
+              "dk"
+            ],
+            [
+              "a",
+              "M30 50 q-8 10 0 18"
+            ],
+            [
+              "a",
+              "M44 58 Q120 -6 176 70"
+            ],
+            [
+              "a",
+              "M44 62 Q90 30 120 76"
+            ],
+            [
+              "r",
+              104,
+              76,
+              44,
+              10,
+              "hz"
+            ],
+            [
+              "r",
+              160,
+              70,
+              50,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              12,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Cannon Chain",
+          "tier": "medium",
+          "does": "Three cannons in a row, each sweeping at its own speed, so you read a new rhythm every shot.",
+          "numbers": "3 cannons, sweeps 2.4 s / 1.9 s / 2.2 s per side, islands 10x10, flights 22 to 26 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "c",
+              16,
+              48,
+              6,
+              "dk"
+            ],
+            [
+              "a",
+              "M22 48 L58 26"
+            ],
+            [
+              "r",
+              52,
+              12,
+              26,
+              26,
+              "pl"
+            ],
+            [
+              "c",
+              66,
+              26,
+              6,
+              "dk"
+            ],
+            [
+              "a",
+              "M72 28 L118 66"
+            ],
+            [
+              "r",
+              110,
+              54,
+              26,
+              26,
+              "pl"
+            ],
+            [
+              "c",
+              124,
+              67,
+              6,
+              "dk"
+            ],
+            [
+              "a",
+              "M130 64 L180 40"
+            ],
+            [
+              "r",
+              176,
+              26,
+              36,
+              30,
+              "pl"
+            ],
+            [
+              "you",
+              60,
+              26
+            ]
+          ]
+        },
+        {
+          "name": "Drifting Island",
+          "tier": "medium",
+          "does": "The island rides a 'shuttle' rail: it holds at left, middle and right stops while the barrel sweeps, so you fire at the stop the aim is passing.",
+          "numbers": "sweep ±40°, 2.6 s per side; island 10x10 holds 1.2 s at 3 stops 7 studs apart, 0.8 s moves, at 30 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M44 46 L150 36"
+            ],
+            [
+              "r",
+              146,
+              24,
+              30,
+              28,
+              "pl"
+            ],
+            [
+              "c",
+              161,
+              38,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M190 30 V12"
+            ],
+            [
+              "a",
+              "M190 54 V82"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Hole in the Wall",
+          "tier": "medium",
+          "does": "A red see-through goo wall stands across the lane with one gap; the dotted line turns red when the shot would hit the wall.",
+          "numbers": "sweep ±40°, 2.2 s per side, wall at 14 studs with an 8 stud gap 4 studs left, island 12x12 at 30 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "r",
+              92,
+              0,
+              8,
+              30,
+              "hz"
+            ],
+            [
+              "r",
+              92,
+              50,
+              8,
+              46,
+              "hz"
+            ],
+            [
+              "a",
+              "M44 46 L150 36"
+            ],
+            [
+              "r",
+              146,
+              22,
+              40,
+              34,
+              "pl"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Cannon to Cannon",
+          "tier": "medium",
+          "does": "You fire straight into the funnel of the next cannon, which catches you and starts swinging at once: three shots with no ground in between.",
+          "numbers": "3 catch cannons, funnels 8 wide, sweeps 2.4 s / 2.0 s / 2.0 s per side, flights 20 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "c",
+              18,
+              48,
+              7,
+              "dk"
+            ],
+            [
+              "a",
+              "M24 46 L64 28"
+            ],
+            [
+              "c",
+              70,
+              26,
+              9,
+              "or"
+            ],
+            [
+              "c",
+              70,
+              26,
+              5,
+              "dk"
+            ],
+            [
+              "a",
+              "M78 30 L118 66"
+            ],
+            [
+              "c",
+              124,
+              68,
+              9,
+              "or"
+            ],
+            [
+              "c",
+              124,
+              68,
+              5,
+              "dk"
+            ],
+            [
+              "a",
+              "M132 64 L178 44"
+            ],
+            [
+              "r",
+              176,
+              28,
+              40,
+              34,
+              "pl"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Breathing Island",
+          "tier": "medium",
+          "does": "The island snaps big on a drum tick and shrinks between ticks (Beat Pads' snap-hold-shrink easing on idea 18's BeatClock); fire on the tick while the aim is on it.",
+          "numbers": "sweep ±35°, 2.4 s per side; island snaps to 14 wide on each 1.5 s tick, holds 0.6 s, shrinks to 6, at 30 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M44 48 L150 48"
+            ],
+            [
+              "r",
+              140,
+              26,
+              44,
+              44,
+              "gh"
+            ],
+            [
+              "r",
+              150,
+              36,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M190 48 H206"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Hot Seat",
+          "tier": "medium",
+          "does": "The cannon's deck cracks and darkens as soon as you climb in and drops you 3 s later, so you take the first good aim instead of waiting for a perfect one.",
+          "numbers": "sweep ±40°, 1.4 s per side with a 0.3 s end pause, seat drops after 3.0 s (two passes), island 10x10 at 30 studs, 6 studs right",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "dk"
+            ],
+            [
+              "l",
+              8,
+              42,
+              20,
+              52
+            ],
+            [
+              "l",
+              16,
+              40,
+              26,
+              56
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "t",
+              4,
+              74,
+              "3 s, then drops"
+            ],
+            [
+              "a",
+              "M44 50 L156 60"
+            ],
+            [
+              "r",
+              148,
+              46,
+              32,
+              30,
+              "pl"
+            ],
+            [
+              "c",
+              164,
+              61,
+              9,
+              "gl"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Moving Chain",
+          "tier": "hard",
+          "does": "Three cannons, and every landing island drifts, so you time the barrel and the island together three times in a row.",
+          "numbers": "3 cannons, sweeps 1.6 s per side; islands 9x9 slide ±6 studs, 2.6 to 3.2 s periods; window about 0.35 s",
+          "view": "top",
+          "sketch": [
+            [
+              "c",
+              16,
+              48,
+              6,
+              "dk"
+            ],
+            [
+              "a",
+              "M22 46 L60 24"
+            ],
+            [
+              "r",
+              52,
+              12,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M82 14 V4"
+            ],
+            [
+              "a",
+              "M72 28 L120 66"
+            ],
+            [
+              "r",
+              112,
+              56,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M142 58 V88"
+            ],
+            [
+              "a",
+              "M130 66 L180 40"
+            ],
+            [
+              "r",
+              176,
+              26,
+              36,
+              30,
+              "pl"
+            ],
+            [
+              "you",
+              60,
+              24
+            ]
+          ]
+        },
+        {
+          "name": "Two Axes",
+          "tier": "hard",
+          "does": "The barrel sweeps left-right and nods up-down on different beats, so the landing dot draws a loop; fire when the loop crosses the ring on a high ledge.",
+          "numbers": "yaw ±35° 2.0 s, pitch 25° to 50° 3.1 s, island 8x8, 8 studs higher at 30 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M120 30 C150 10 180 40 150 60 C120 80 100 50 120 30"
+            ],
+            [
+              "r",
+              140,
+              30,
+              26,
+              26,
+              "pl"
+            ],
+            [
+              "c",
+              153,
+              43,
+              7,
+              "gl"
+            ],
+            [
+              "l",
+              44,
+              48,
+              120,
+              40
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Sliding Hole",
+          "tier": "hard",
+          "does": "The hole in the red goo wall slides left and right on a shuttle rail while the barrel sweeps: the aim, the hole and the island must all line up when you fire.",
+          "numbers": "sweep ±35°, 1.8 s per side; wall at 16 studs, 8 stud hole holds 1.0 s at 2 stops 8 studs apart; island 12x10 at 32 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              38,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              30,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              30,
+              44,
+              16,
+              8,
+              "gl"
+            ],
+            [
+              "r",
+              96,
+              0,
+              8,
+              22,
+              "hz"
+            ],
+            [
+              "r",
+              96,
+              42,
+              8,
+              54,
+              "hz"
+            ],
+            [
+              "a",
+              "M112 24 V40"
+            ],
+            [
+              "t",
+              108,
+              14,
+              "hole slides"
+            ],
+            [
+              "a",
+              "M44 46 L160 34"
+            ],
+            [
+              "r",
+              150,
+              20,
+              46,
+              40,
+              "pl"
+            ],
+            [
+              "c",
+              172,
+              40,
+              9,
+              "gl"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Four Fast Shots",
+          "tier": "hard",
+          "does": "Four cannons, fast sweeps, islands zig-zag left and right, and the last shot must clear a goo wall's gap.",
+          "numbers": "4 cannons, sweeps 1.3 to 1.5 s per side, islands 8x8, flights 20 to 24 studs, last wall gap 8 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "c",
+              10,
+              48,
+              5,
+              "dk"
+            ],
+            [
+              "a",
+              "M14 46 L44 20"
+            ],
+            [
+              "r",
+              40,
+              8,
+              20,
+              20,
+              "pl"
+            ],
+            [
+              "a",
+              "M58 20 L88 74"
+            ],
+            [
+              "r",
+              82,
+              64,
+              20,
+              20,
+              "pl"
+            ],
+            [
+              "a",
+              "M100 72 L130 22"
+            ],
+            [
+              "r",
+              124,
+              10,
+              20,
+              20,
+              "pl"
+            ],
+            [
+              "r",
+              158,
+              0,
+              6,
+              34,
+              "hz"
+            ],
+            [
+              "r",
+              158,
+              56,
+              6,
+              40,
+              "hz"
+            ],
+            [
+              "a",
+              "M144 22 L196 46"
+            ],
+            [
+              "r",
+              190,
+              32,
+              28,
+              30,
+              "pl"
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

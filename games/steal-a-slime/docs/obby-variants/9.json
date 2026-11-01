@@ -1,0 +1,1206 @@
+{
+  "ideas": [
+    {
+      "id": 9,
+      "name": "Merry-go-round",
+      "approach": "handmade",
+      "approachWhy": "The fun comes from how the spins, arm speeds and disk sizes fit together, and a bad mix makes a jump you can never time. A few hand-tuned rides, each checked by a test at its line-up moment, beat a random mixer here. Spin phases can still shift a little per run, since all disks run on server time.",
+      "engine": {
+        "have": [
+          "spin motion: turns a part round its vertical axis with AssemblyAngularVelocity, so a spinning disk carries the player (ObbyFx)",
+          "Spinner builder: a 20-stud jelly disc, a centre post and red goo bars that spin at their own period and height",
+          "disc shape, bar and post props, phase per part, negative period for the other direction",
+          "rock motion (seesaw tip) and slide motion, used today on other pieces",
+          "course tests: gap and rise checks at rest (GAP_MAX 6, RISE_MAX 3.5)"
+        ],
+        "new": [
+          {
+            "what": "Spin arrows round each disk's rim (yellow chevrons that scroll with the spin) plus a soft creak loop that speeds up with the spin",
+            "size": "S"
+          },
+          {
+            "what": "Hazard touch = back to the start pad (the shared one from idea 1; today Spinner bars shove you)",
+            "size": "S"
+          },
+          {
+            "what": "Reversing spin: speed follows a slow wave, so the disk slows, stops for a beat, then turns the other way. Uses the same warning as idea 23's 'turn' motion kind (1 s blink of the arrows + tick before the swap)",
+            "size": "S"
+          },
+          {
+            "what": "Spinning plank (propeller) platform: an 8-wide solid plank on a pivot",
+            "size": "S"
+          },
+          {
+            "what": "Moving-part gap check: reuse idea 3's 'test support' (closest gap between a moving ride and its dock or the next ride, not only at rest) for planks, seats and disk-to-disk line-ups",
+            "size": "M"
+          },
+          {
+            "what": "Wobble (spin plus tip on one part): reuse idea 15's 'a part that carries two motions at once'; check carry still works while it tips",
+            "size": "M"
+          },
+          {
+            "what": "Red goo slice riding on a disk (a hazard wedge welded to the floor, turning with it)",
+            "size": "S"
+          },
+          {
+            "what": "Orbit: small disks circling round a big centre post, like seats on a carousel",
+            "size": "M"
+          },
+          {
+            "what": "Wind Up: reuse idea 3's 'waits-for-you trigger' (client only) so a disk sits still until you step on, then its spin speeds up lap by lap",
+            "size": "S"
+          },
+          {
+            "what": "Spring Ride: reuse idea 4's 'Tilted pad' and 'Bounce on a moving pad', welded to a disk so the throw direction turns with it",
+            "size": "S"
+          },
+          {
+            "what": "Builder generalised from Spinner: a row of disks with size, height, spin, arms, slices and planks per disk, sized to 40-100 studs",
+            "size": "M"
+          }
+        ]
+      },
+      "readability": "Every spinning floor has yellow arrows round its rim pointing the way it turns, and a creak that gets faster with the spin; a disk about to flip blinks its arrows and ticks. Anything red and see-through (arms, slices) sends you back to the start.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "Slow Ride",
+          "tier": "easy",
+          "does": "Two big slow disks with no hazards: you only learn that the floor carries you and that you jump off the moving edge.",
+          "numbers": "2 disks of 20 studs, spin 10 s, same way, 4 stud gaps, about 52 studs long",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              60,
+              14,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              60,
+              62,
+              40,
+              7,
+              "pl"
+            ],
+            [
+              "r",
+              57,
+              62,
+              6,
+              26,
+              "dk"
+            ],
+            [
+              "e",
+              156,
+              62,
+              40,
+              7,
+              "pl"
+            ],
+            [
+              "r",
+              153,
+              62,
+              6,
+              26,
+              "dk"
+            ],
+            [
+              "r",
+              206,
+              60,
+              14,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M30 76 Q60 88 92 74"
+            ],
+            [
+              "a",
+              "M126 76 Q156 88 188 74"
+            ],
+            [
+              "you",
+              50,
+              55
+            ]
+          ]
+        },
+        {
+          "name": "Turn Turn",
+          "tier": "easy",
+          "does": "Three disks that turn opposite ways in turn, so each landing pulls you a new direction.",
+          "numbers": "3 disks of 16 studs, spin 8 s then -8 s then 8 s, 4 stud gaps, about 64 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              38,
+              62,
+              32,
+              7,
+              "pl"
+            ],
+            [
+              "e",
+              110,
+              62,
+              32,
+              7,
+              "pl"
+            ],
+            [
+              "e",
+              182,
+              62,
+              32,
+              7,
+              "pl"
+            ],
+            [
+              "a",
+              "M14 74 Q38 86 64 74"
+            ],
+            [
+              "a",
+              "M134 74 Q110 86 86 74"
+            ],
+            [
+              "a",
+              "M158 74 Q182 86 208 74"
+            ],
+            [
+              "you",
+              30,
+              55
+            ]
+          ]
+        },
+        {
+          "name": "One Sweep",
+          "tier": "easy",
+          "does": "One big disk, turning slowly, with one low red arm going round over it: hop the arm once as it passes, then jump off.",
+          "numbers": "1 disk of 22 studs, spin 9 s, 1 low arm (top 1.7 studs) at 4 s the other way, about 44 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              60,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              110,
+              64,
+              64,
+              9,
+              "pl"
+            ],
+            [
+              "r",
+              106,
+              46,
+              8,
+              18,
+              "dk"
+            ],
+            [
+              "r",
+              60,
+              54,
+              100,
+              5,
+              "hz"
+            ],
+            [
+              "r",
+              190,
+              60,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M60 80 Q110 94 166 78"
+            ],
+            [
+              "a",
+              "M164 46 Q140 32 112 38"
+            ],
+            [
+              "you",
+              80,
+              58
+            ]
+          ]
+        },
+        {
+          "name": "Big, Small, Big",
+          "tier": "easy",
+          "does": "Disk sizes change: the small middle disk turns at the same rate, so its edge is calm, but it gives you little room to land.",
+          "numbers": "disks of 22, 10 and 18 studs, all spin 8 s, 4 stud gaps, about 66 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              46,
+              62,
+              44,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              118,
+              62,
+              20,
+              6,
+              "pl"
+            ],
+            [
+              "e",
+              180,
+              62,
+              36,
+              7,
+              "pl"
+            ],
+            [
+              "r",
+              115,
+              62,
+              6,
+              24,
+              "dk"
+            ],
+            [
+              "a",
+              "M16 76 Q46 88 80 74"
+            ],
+            [
+              "a",
+              "M104 72 Q118 80 134 72"
+            ],
+            [
+              "t",
+              102,
+              50,
+              "small"
+            ],
+            [
+              "you",
+              36,
+              55
+            ]
+          ]
+        },
+        {
+          "name": "Spiral Steps",
+          "tier": "easy",
+          "does": "Each disk sits higher than the last, so you jump up onto a moving floor.",
+          "numbers": "3 disks of 16 studs, each 2.5 studs higher, spin 9 s, 4 stud gaps, rise 7.5, about 64 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              38,
+              74,
+              32,
+              7,
+              "pl"
+            ],
+            [
+              "e",
+              110,
+              60,
+              32,
+              7,
+              "pl"
+            ],
+            [
+              "e",
+              182,
+              46,
+              32,
+              7,
+              "pl"
+            ],
+            [
+              "r",
+              35,
+              74,
+              6,
+              20,
+              "dk"
+            ],
+            [
+              "r",
+              107,
+              60,
+              6,
+              34,
+              "dk"
+            ],
+            [
+              "r",
+              179,
+              46,
+              6,
+              48,
+              "dk"
+            ],
+            [
+              "a",
+              "M54 64 Q74 48 92 54"
+            ],
+            [
+              "a",
+              "M126 50 Q146 34 164 40"
+            ],
+            [
+              "you",
+              30,
+              67
+            ]
+          ]
+        },
+        {
+          "name": "Wind Up",
+          "tier": "easy",
+          "does": "The disk is still until you step on it, then it starts slowly and turns a little faster each lap, so you learn to get off before it gets quick.",
+          "numbers": "1 disk of 20 studs, first lap 12 s, each lap 25% faster down to 5 s, resets when you leave, exit pad 4 studs from the rim, about 40 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              38,
+              52,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              110,
+              48,
+              40,
+              "pl"
+            ],
+            [
+              "c",
+              110,
+              48,
+              4,
+              "dk"
+            ],
+            [
+              "a",
+              "M84 22 Q110 10 136 22"
+            ],
+            [
+              "a",
+              "M146 40 Q156 60 136 76"
+            ],
+            [
+              "a",
+              "M130 80 Q110 90 88 80"
+            ],
+            [
+              "r",
+              168,
+              38,
+              52,
+              20,
+              "pl"
+            ],
+            [
+              "t",
+              76,
+              94,
+              "faster each lap"
+            ],
+            [
+              "you",
+              80,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Propeller",
+          "tier": "easy",
+          "does": "No disk, just a wide plank turning on a pole: step on when an end comes by, ride it round, step off when the other end points at the exit.",
+          "numbers": "1 plank 22 x 8 studs, spin 10 s, the plank's ends pass 1.5 studs from the pads, about 40 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              38,
+              50,
+              20,
+              "pl"
+            ],
+            [
+              "r",
+              170,
+              38,
+              50,
+              20,
+              "pl"
+            ],
+            [
+              "p",
+              "M64 40 L156 40 L156 56 L64 56 Z",
+              "pl"
+            ],
+            [
+              "c",
+              110,
+              48,
+              5,
+              "dk"
+            ],
+            [
+              "a",
+              "M150 30 Q170 10 130 6"
+            ],
+            [
+              "a",
+              "M70 66 Q50 86 90 90"
+            ],
+            [
+              "you",
+              70,
+              48
+            ],
+            [
+              "t",
+              82,
+              30,
+              "lines up"
+            ]
+          ]
+        },
+        {
+          "name": "Two Arms",
+          "tier": "medium",
+          "does": "Two red arms go round the same disk at different speeds and ways, so the safe gap between them keeps moving.",
+          "numbers": "1 disk of 22 studs, spin 8 s, low arms at 3 s and -4.6 s (one full, one half length), about 46 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "c",
+              110,
+              48,
+              42,
+              "pl"
+            ],
+            [
+              "c",
+              110,
+              48,
+              4,
+              "dk"
+            ],
+            [
+              "p",
+              "M70 45 L150 45 L150 51 L70 51 Z",
+              "hz"
+            ],
+            [
+              "p",
+              "M107 48 L113 48 L113 10 L107 10 Z",
+              "hz"
+            ],
+            [
+              "a",
+              "M150 30 Q156 14 140 10"
+            ],
+            [
+              "a",
+              "M90 14 Q72 22 72 36"
+            ],
+            [
+              "r",
+              0,
+              38,
+              60,
+              20,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              38,
+              60,
+              20,
+              "pl"
+            ],
+            [
+              "you",
+              128,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Turnabout",
+          "tier": "medium",
+          "does": "The disk slows, stops and turns the other way every few seconds, with a red arm going round over it; plan your hop around the turn.",
+          "numbers": "2 disks of 18 studs, reverse every 4 s (0.6 s stop, arrows blink 1 s and tick before, as idea 23's turning belts), 1 low arm each at 3.4 s, 5 stud gap, about 56 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              52,
+              64,
+              38,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              160,
+              64,
+              38,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              20,
+              55,
+              64,
+              5,
+              "hz"
+            ],
+            [
+              "r",
+              128,
+              55,
+              64,
+              5,
+              "hz"
+            ],
+            [
+              "a",
+              "M24 78 Q52 90 84 76"
+            ],
+            [
+              "a",
+              "M84 82 Q52 94 22 82"
+            ],
+            [
+              "a",
+              "M132 78 Q160 90 192 76"
+            ],
+            [
+              "t",
+              130,
+              38,
+              "flips every 4 s"
+            ],
+            [
+              "you",
+              44,
+              58
+            ]
+          ]
+        },
+        {
+          "name": "Pizza Line",
+          "tier": "medium",
+          "does": "Each disk has a red slice on its floor that turns with it: land on the safe part, and jump on before the slice comes round to your side.",
+          "numbers": "4 disks of 14 studs, each with a red quarter slice, spin 6 s alternating ways, 4 stud gaps, about 76 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "c",
+              30,
+              48,
+              24,
+              "pl"
+            ],
+            [
+              "p",
+              "M30 48 L30 24 A24 24 0 0 1 54 48 Z",
+              "hz"
+            ],
+            [
+              "c",
+              84,
+              48,
+              24,
+              "pl"
+            ],
+            [
+              "p",
+              "M84 48 L108 48 A24 24 0 0 1 84 72 Z",
+              "hz"
+            ],
+            [
+              "c",
+              138,
+              48,
+              24,
+              "pl"
+            ],
+            [
+              "p",
+              "M138 48 L138 72 A24 24 0 0 1 114 48 Z",
+              "hz"
+            ],
+            [
+              "c",
+              192,
+              48,
+              24,
+              "pl"
+            ],
+            [
+              "p",
+              "M192 48 L168 48 A24 24 0 0 1 192 24 Z",
+              "hz"
+            ],
+            [
+              "you",
+              20,
+              56
+            ]
+          ]
+        },
+        {
+          "name": "Spring Ride",
+          "tier": "medium",
+          "does": "A tilted orange spring pad rides on the disk's rim; its yellow arrow turns with the disk, and you step on it only when the arrow points at the far ledge.",
+          "numbers": "1 disk of 20 studs, spin 8 s, 1 tilted pad (normal bounce, 14 stud throw) on the rim, ledge 12 studs past the rim and 4 higher, about 48 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              38,
+              40,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              96,
+              48,
+              40,
+              "pl"
+            ],
+            [
+              "c",
+              96,
+              48,
+              4,
+              "dk"
+            ],
+            [
+              "r",
+              126,
+              42,
+              12,
+              12,
+              "or"
+            ],
+            [
+              "p",
+              "M140 44 L150 48 L140 52 Z",
+              "yl"
+            ],
+            [
+              "a",
+              "M70 20 Q96 4 124 22"
+            ],
+            [
+              "a",
+              "M150 48 Q172 36 192 46"
+            ],
+            [
+              "r",
+              186,
+              36,
+              34,
+              24,
+              "pl"
+            ],
+            [
+              "you",
+              70,
+              56
+            ]
+          ]
+        },
+        {
+          "name": "Tip and Turn",
+          "tier": "medium",
+          "does": "The disks tip forward and back while they turn, so the jump is easy when the edge dips toward you and long when it lifts.",
+          "numbers": "3 disks of 16 studs, spin 8 s, tip 8 degrees over 3.2 s, 4 stud gaps, about 64 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M8 70 L68 58 L68 64 L8 76 Z",
+              "pl"
+            ],
+            [
+              "r",
+              35,
+              66,
+              6,
+              28,
+              "dk"
+            ],
+            [
+              "p",
+              "M80 58 L140 70 L140 76 L80 64 Z",
+              "pl"
+            ],
+            [
+              "r",
+              107,
+              67,
+              6,
+              27,
+              "dk"
+            ],
+            [
+              "p",
+              "M152 70 L212 58 L212 64 L152 76 Z",
+              "pl"
+            ],
+            [
+              "r",
+              179,
+              66,
+              6,
+              28,
+              "dk"
+            ],
+            [
+              "a",
+              "M60 46 Q60 36 70 40"
+            ],
+            [
+              "a",
+              "M88 82 Q110 92 132 82"
+            ],
+            [
+              "you",
+              26,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Line Them Up",
+          "tier": "medium",
+          "does": "Two turning planks in a row: their ends only touch once each turn, and that is your moment to step across from one to the other (a short step at the line-up, not a jump between passing rides).",
+          "numbers": "2 planks 20 x 8 studs, spin 6 s and -6 s, ends 2 studs apart when lined up, 14 studs apart otherwise, about 52 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              38,
+              16,
+              20,
+              "pl"
+            ],
+            [
+              "p",
+              "M18 42 L82 42 L82 54 L18 54 Z",
+              "pl"
+            ],
+            [
+              "c",
+              50,
+              48,
+              4,
+              "dk"
+            ],
+            [
+              "p",
+              "M86 42 L150 42 L150 54 L86 54 Z",
+              "pl"
+            ],
+            [
+              "c",
+              118,
+              48,
+              4,
+              "dk"
+            ],
+            [
+              "r",
+              156,
+              38,
+              64,
+              20,
+              "pl"
+            ],
+            [
+              "a",
+              "M78 30 Q60 6 40 16"
+            ],
+            [
+              "a",
+              "M90 66 Q110 90 130 78"
+            ],
+            [
+              "you",
+              70,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Carousel Seats",
+          "tier": "medium",
+          "does": "Small disks ride in a circle round a big post, like carousel seats; hop on one as it passes, ride it to the far side, hop off.",
+          "numbers": "3 seat disks of 9 studs on a 9 stud circle, orbit 9 s, seats also spin slowly 6 s, about 48 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              38,
+              48,
+              20,
+              "pl"
+            ],
+            [
+              "r",
+              172,
+              38,
+              48,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              110,
+              48,
+              6,
+              "dk"
+            ],
+            [
+              "c",
+              110,
+              18,
+              13,
+              "pl"
+            ],
+            [
+              "c",
+              136,
+              64,
+              13,
+              "pl"
+            ],
+            [
+              "c",
+              84,
+              64,
+              13,
+              "pl"
+            ],
+            [
+              "a",
+              "M128 14 Q156 24 154 50"
+            ],
+            [
+              "a",
+              "M66 52 Q64 26 92 16"
+            ],
+            [
+              "you",
+              110,
+              18
+            ]
+          ]
+        },
+        {
+          "name": "Blender",
+          "tier": "hard",
+          "does": "A fast disk with two red arms going round opposite ways, then a long jump to a small disk turning the other way.",
+          "numbers": "disk of 20 studs spin 4 s, arms 2.8 s and -3.6 s, then a 6 stud gap to a 10 stud disk spinning -5 s, about 56 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              70,
+              64,
+              58,
+              9,
+              "pl"
+            ],
+            [
+              "r",
+              66,
+              46,
+              8,
+              18,
+              "dk"
+            ],
+            [
+              "r",
+              20,
+              55,
+              100,
+              5,
+              "hz"
+            ],
+            [
+              "r",
+              46,
+              48,
+              50,
+              4,
+              "hz"
+            ],
+            [
+              "e",
+              186,
+              62,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M18 80 Q70 94 124 78"
+            ],
+            [
+              "a",
+              "M128 54 Q152 34 172 54"
+            ],
+            [
+              "you",
+              102,
+              58
+            ]
+          ]
+        },
+        {
+          "name": "Wobble Gauntlet",
+          "tier": "hard",
+          "does": "Three tipping, turning disks that shrink in size, each with its own red arm, and they turn opposite ways in turn.",
+          "numbers": "disks of 18, 12 and 9 studs, spin 6 s / -5 s / 5 s, tip 10 degrees, 1 arm each at 3 s, 5 stud gaps, about 64 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M6 70 L74 58 L74 64 L6 76 Z",
+              "pl"
+            ],
+            [
+              "r",
+              10,
+              56,
+              60,
+              4,
+              "hz"
+            ],
+            [
+              "p",
+              "M90 60 L136 68 L136 74 L90 66 Z",
+              "pl"
+            ],
+            [
+              "r",
+              92,
+              57,
+              42,
+              4,
+              "hz"
+            ],
+            [
+              "p",
+              "M154 68 L188 62 L188 68 L154 74 Z",
+              "pl"
+            ],
+            [
+              "r",
+              156,
+              56,
+              30,
+              4,
+              "hz"
+            ],
+            [
+              "r",
+              196,
+              60,
+              24,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M70 48 Q84 36 98 50"
+            ],
+            [
+              "you",
+              26,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Clockwork",
+          "tier": "hard",
+          "does": "A turning plank with a red arm sweeping along it, on a disk that flips its spin; jump the arm while you wait for the plank to line up with the exit.",
+          "numbers": "plank 22 x 8 studs on a disk of 12, plank spin reverses every 5 s, low arm at -2.6 s over the plank, exit gap 3 studs when lined up, about 44 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              38,
+              44,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              110,
+              48,
+              22,
+              "pl"
+            ],
+            [
+              "p",
+              "M62 41 L158 41 L158 55 L62 55 Z",
+              "pl"
+            ],
+            [
+              "p",
+              "M107 48 L113 48 L113 4 L107 4 Z",
+              "hz"
+            ],
+            [
+              "c",
+              110,
+              48,
+              4,
+              "dk"
+            ],
+            [
+              "r",
+              176,
+              38,
+              44,
+              20,
+              "pl"
+            ],
+            [
+              "a",
+              "M128 10 Q150 18 150 34"
+            ],
+            [
+              "t",
+              72,
+              86,
+              "spin flips every 5 s"
+            ],
+            [
+              "you",
+              140,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Gear Train",
+          "tier": "hard",
+          "does": "Four small disks that flip direction out of step with each other, two of them with a red arm: you must read each disk's arrows before every jump.",
+          "numbers": "4 disks of 11 studs, reverse every 3 s with offsets of 0.75 s, arms on disks 2 and 4 at 2.4 s, 5 stud gaps, rising 1.5 each, about 70 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              26,
+              74,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "e",
+              80,
+              68,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              60,
+              40,
+              4,
+              "hz"
+            ],
+            [
+              "e",
+              134,
+              62,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "e",
+              188,
+              56,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              168,
+              48,
+              40,
+              4,
+              "hz"
+            ],
+            [
+              "a",
+              "M10 84 Q26 92 44 84"
+            ],
+            [
+              "a",
+              "M98 78 Q80 86 62 78"
+            ],
+            [
+              "a",
+              "M118 72 Q134 80 152 72"
+            ],
+            [
+              "you",
+              20,
+              68
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

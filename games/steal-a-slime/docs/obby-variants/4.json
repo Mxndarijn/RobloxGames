@@ -1,0 +1,1332 @@
+{
+  "ideas": [
+    {
+      "id": 4,
+      "name": "Bounce Chain",
+      "approach": "handmade",
+      "approachWhy": "Every bounce is a throw that has to land on something, so each layout is checked against the launch math the tests already use. The pieces are few (ring pads, tilted pads, star pads, sliding pads), so 18 hand-made combinations cover the idea better than a generator would.",
+      "engine": {
+        "have": [
+          "motion kind 'bounce': straight-up throw at a set power (62 = about 9.8 studs high, 75 = about 14 studs high)",
+          "look 'trampoline' (the 'cannon' look also exists, but this idea does not use it, so it is never confused with idea 26's aimed cannons)",
+          "test helper launchReaches(): checks every gap and rise after a launch",
+          "motion 'slide' (moving pads), 'melt' (fades and drops after you land, comes back after 'away' s)",
+          "hazard parts that send you back to the start pad"
+        ],
+        "new": [
+          {
+            "what": "Pad height by look: 1, 2 or 3 orange rings on the pad match a low (45), normal (62) or high (75) bounce; only a per-pad 'power' value plus the ring decal",
+            "size": "S"
+          },
+          {
+            "what": "Tilted pad: bounce gets a sideways or backward 'throw' vector; the pad is a tilted slab (same pitch/tilt piece as idea 14's ramps and idea 6's slope pieces) with a yellow arrow",
+            "size": "S"
+          },
+          {
+            "what": "Bounce on a moving pad: keep the throw working while the pad slides (client reads the pad's current spot)",
+            "size": "S"
+          },
+          {
+            "what": "Super bounce: press jump within 0.25 s of landing on a pad with a star on it for 1.4x power; a ding and a flash say you got it",
+            "size": "M"
+          },
+          {
+            "what": "Ring swap: a pad's power switches between 1 ring and 3 rings on idea 18's client beat clock; the rings light up and the drum ticks on each change",
+            "size": "S"
+          },
+          {
+            "what": "Spent pad: reuse 'melt' with idea 2's 'melt when you leave' trigger, so a pad goes dark and drops once you bounce off it",
+            "size": "S"
+          },
+          {
+            "what": "Test: extend launchReaches() for sideways/backward throws, star power and ring-swap power (shared with idea 21's launch-height test)",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "Everything that throws you is an orange spring pad: rings show how high (1 low, 3 high), a yellow arrow on a tilted pad shows which way, a star means jump as you land. Each bounce makes a springy boing, higher pads a deeper one. No cannons here: aimed cannons belong to idea 26.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "Step Up",
+          "tier": "easy",
+          "does": "Three normal pads, each one bouncing you onto a higher ledge that holds the next pad.",
+          "numbers": "3 pads 8x8, ledges +6 and +12, power 62, 4 stud gaps",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              6,
+              78,
+              30,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              58,
+              60,
+              54,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              82,
+              55,
+              26,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              134,
+              38,
+              80,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M22 72 Q40 20 66 56"
+            ],
+            [
+              "a",
+              "M94 50 Q114 4 146 34"
+            ],
+            [
+              "you",
+              20,
+              78
+            ]
+          ]
+        },
+        {
+          "name": "Hop Line",
+          "tier": "easy",
+          "does": "Four pads in a straight line over red goo: walk forward through each bounce and land on the next pad.",
+          "numbers": "4 pads 8x10, 5 stud gaps, power 62, goo floor below",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              220,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              8,
+              66,
+              34,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              62,
+              66,
+              34,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              116,
+              66,
+              34,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              170,
+              66,
+              44,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M26 60 Q50 16 76 60"
+            ],
+            [
+              "a",
+              "M80 60 Q104 16 130 60"
+            ],
+            [
+              "a",
+              "M134 60 Q158 16 182 60"
+            ],
+            [
+              "you",
+              22,
+              66
+            ]
+          ]
+        },
+        {
+          "name": "Over the Wall",
+          "tier": "easy",
+          "does": "A red goo wall blocks the lane; one pad in front of it throws you up and over to a wide landing.",
+          "numbers": "1 pad 10x10, wall 6 high and 2 thick, 4 studs past the pad, power 62",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              70,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              75,
+              30,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              96,
+              46,
+              10,
+              40,
+              "hz"
+            ],
+            [
+              "r",
+              130,
+              80,
+              90,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M56 70 Q100 0 150 74"
+            ],
+            [
+              "you",
+              20,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Long Spring",
+          "tier": "easy",
+          "does": "One three-ring pad throws you high; keep walking in the air to cross a gap far too wide for a jump.",
+          "numbers": "1 pad 8x8 power 75, 11 stud gap, landing 14 long",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              50,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              24,
+              75,
+              26,
+              5,
+              "or"
+            ],
+            [
+              "t",
+              22,
+              72,
+              "3 rings"
+            ],
+            [
+              "r",
+              150,
+              80,
+              70,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M38 68 Q90 -8 162 74"
+            ],
+            [
+              "t",
+              80,
+              92,
+              "11 stud gap"
+            ],
+            [
+              "you",
+              12,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Ring Count",
+          "tier": "easy",
+          "does": "Two pads side by side: one ring (low) and three rings (high). Only the high one reaches the ledge; the low one drops you back.",
+          "numbers": "pads 8x8 side by side, power 45 and 75, ledge +11",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              120,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              20,
+              75,
+              28,
+              5,
+              "or"
+            ],
+            [
+              "t",
+              20,
+              92,
+              "1 ring"
+            ],
+            [
+              "r",
+              70,
+              75,
+              28,
+              5,
+              "or"
+            ],
+            [
+              "t",
+              68,
+              92,
+              "3 rings"
+            ],
+            [
+              "r",
+              130,
+              32,
+              90,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M34 70 Q36 40 40 68"
+            ],
+            [
+              "a",
+              "M84 70 Q100 0 146 28"
+            ],
+            [
+              "you",
+              8,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Side Throw",
+          "tier": "easy",
+          "does": "Tilted pads with a yellow arrow throw you across the lane, left then right, onto side ledges.",
+          "numbers": "3 tilted pads 8x8, sideways throw 16 studs/s, landings 10 studs across",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              34,
+              30,
+              28,
+              "pl"
+            ],
+            [
+              "r",
+              56,
+              8,
+              30,
+              26,
+              "or"
+            ],
+            [
+              "r",
+              104,
+              60,
+              30,
+              26,
+              "or"
+            ],
+            [
+              "r",
+              152,
+              8,
+              30,
+              26,
+              "or"
+            ],
+            [
+              "r",
+              190,
+              34,
+              28,
+              28,
+              "pl"
+            ],
+            [
+              "a",
+              "M40 46 Q56 34 66 24"
+            ],
+            [
+              "a",
+              "M74 30 Q96 56 114 70"
+            ],
+            [
+              "a",
+              "M124 66 Q146 40 160 24"
+            ],
+            [
+              "a",
+              "M176 26 Q190 34 200 44"
+            ],
+            [
+              "you",
+              22,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Zig-zag Tilt",
+          "tier": "medium",
+          "does": "Five tilted pads over goo, no ledges between: each throw lands you on the next tilted pad, so you never stop.",
+          "numbers": "5 tilted pads 8x8, 10 studs across, 6 forward, throw 16 studs/s, goo floor",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              0,
+              220,
+              96,
+              "hz"
+            ],
+            [
+              "r",
+              6,
+              38,
+              24,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              8,
+              24,
+              22,
+              "or"
+            ],
+            [
+              "r",
+              76,
+              66,
+              24,
+              22,
+              "or"
+            ],
+            [
+              "r",
+              112,
+              8,
+              24,
+              22,
+              "or"
+            ],
+            [
+              "r",
+              148,
+              66,
+              24,
+              22,
+              "or"
+            ],
+            [
+              "r",
+              190,
+              38,
+              26,
+              22,
+              "pl"
+            ],
+            [
+              "a",
+              "M30 46 L48 24"
+            ],
+            [
+              "a",
+              "M58 26 L84 72"
+            ],
+            [
+              "a",
+              "M94 72 L120 24"
+            ],
+            [
+              "a",
+              "M130 26 L156 72"
+            ],
+            [
+              "a",
+              "M166 72 L196 50"
+            ],
+            [
+              "you",
+              16,
+              50
+            ]
+          ]
+        },
+        {
+          "name": "Low Ceiling",
+          "tier": "medium",
+          "does": "Red goo slabs hang over some pads: take the one-ring pads under them and the three-ring pads only where the sky is open.",
+          "numbers": "4 pads (low, high, low, high), power 45/75, goo slabs 12 studs over the low pads (a normal jump or high pad hits them)",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              220,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              20,
+              22,
+              44,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              8,
+              70,
+              28,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              56,
+              70,
+              28,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              112,
+              22,
+              44,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              104,
+              70,
+              28,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              168,
+              50,
+              50,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M22 64 Q44 40 64 64"
+            ],
+            [
+              "a",
+              "M72 64 Q90 4 112 64"
+            ],
+            [
+              "a",
+              "M120 64 Q144 40 176 46"
+            ],
+            [
+              "you",
+              20,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Pad on Rails",
+          "tier": "medium",
+          "does": "The trampoline itself slides back and forth under a high ledge: step on as it passes and ride the bounce up.",
+          "numbers": "1 pad 8x8 sliding 6 studs along the course, 3 s period, ledge +9",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              220,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              0,
+              70,
+              50,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              74,
+              30,
+              5,
+              "or"
+            ],
+            [
+              "a",
+              "M66 84 H124"
+            ],
+            [
+              "r",
+              130,
+              36,
+              90,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M86 68 Q110 6 148 32"
+            ],
+            [
+              "you",
+              24,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Star Bounce",
+          "tier": "medium",
+          "does": "A pad with a star: a plain landing bounces you short of the ledge, but jumping right as you land gives a super bounce that reaches it.",
+          "numbers": "1 star pad power 62, super 1.4x (about 19 studs high), 0.25 s window, ledge +15",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              82,
+              120,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              77,
+              34,
+              5,
+              "or"
+            ],
+            [
+              "c",
+              57,
+              88,
+              3,
+              "yl"
+            ],
+            [
+              "r",
+              130,
+              22,
+              90,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M54 72 Q58 44 64 72"
+            ],
+            [
+              "a",
+              "M60 70 Q86 -18 146 18"
+            ],
+            [
+              "t",
+              4,
+              12,
+              "jump as you land"
+            ],
+            [
+              "you",
+              16,
+              82
+            ]
+          ]
+        },
+        {
+          "name": "Bounce Back",
+          "tier": "medium",
+          "does": "Tilted pads throw you backwards: each one lifts you onto a ledge above the one you came from, so you climb a switchback.",
+          "numbers": "3 tilted pads, back-throw 14 studs/s, ledges +8 each, 8 studs deep",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              220,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              10,
+              80,
+              70,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              75,
+              20,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              110,
+              56,
+              80,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              116,
+              51,
+              20,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              30,
+              32,
+              90,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M70 70 Q100 30 150 52"
+            ],
+            [
+              "a",
+              "M126 46 Q110 4 80 28"
+            ],
+            [
+              "t",
+              150,
+              20,
+              "arrow points back"
+            ],
+            [
+              "you",
+              24,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Spent Springs",
+          "tier": "medium",
+          "does": "Each pad goes dark and drops the moment you bounce off it, so a bounce that falls short lands on a bare island and you wait for the pad to come back.",
+          "numbers": "4 pads on 8x14 islands, power 62, ledges +6, pad gone 4 s after use",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              220,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              4,
+              76,
+              50,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              71,
+              24,
+              5,
+              "gh"
+            ],
+            [
+              "r",
+              80,
+              62,
+              50,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              106,
+              57,
+              24,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              156,
+              48,
+              60,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M42 66 Q60 30 90 58"
+            ],
+            [
+              "a",
+              "M118 52 Q136 16 168 44"
+            ],
+            [
+              "t",
+              8,
+              62,
+              "used: gone"
+            ],
+            [
+              "you",
+              92,
+              62
+            ]
+          ]
+        },
+        {
+          "name": "Ring Swap",
+          "tier": "medium",
+          "does": "One pad flips between 1 ring and 3 rings on the beat; land while it shows 3 to reach the ledge, or get a low hop and try the next beat.",
+          "numbers": "1 pad 10x10, power 45/75, swaps every 1.2 s, ledge +11, safe floor round the pad",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              82,
+              120,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              77,
+              34,
+              5,
+              "or"
+            ],
+            [
+              "c",
+              48,
+              72,
+              3,
+              "yl"
+            ],
+            [
+              "c",
+              57,
+              72,
+              3,
+              "yl"
+            ],
+            [
+              "c",
+              66,
+              72,
+              3,
+              "gh"
+            ],
+            [
+              "r",
+              130,
+              32,
+              90,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M50 72 Q54 52 58 72"
+            ],
+            [
+              "a",
+              "M62 70 Q90 -6 146 28"
+            ],
+            [
+              "t",
+              4,
+              12,
+              "go on 3 rings"
+            ],
+            [
+              "you",
+              16,
+              82
+            ]
+          ]
+        },
+        {
+          "name": "Spring Relay",
+          "tier": "hard",
+          "does": "Three three-ring pads, each throwing you onto the next, over goo the whole way; the last throw lands on a sliding pad.",
+          "numbers": "3 pads 8x8 power 75, 9 stud gaps, final pad 10x10 sliding 5 studs, 3 s period",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              220,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              0,
+              74,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              20,
+              70,
+              22,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              80,
+              70,
+              22,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              140,
+              70,
+              22,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              188,
+              70,
+              30,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M184 82 H218"
+            ],
+            [
+              "a",
+              "M30 64 Q58 0 86 64"
+            ],
+            [
+              "a",
+              "M90 64 Q118 0 146 64"
+            ],
+            [
+              "a",
+              "M150 64 Q178 0 200 66"
+            ],
+            [
+              "you",
+              8,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Tilt Through Pillars",
+          "tier": "hard",
+          "does": "Tilted pads throw you sideways between tall red goo pillars; the throw arcs only miss if you land on the pad's middle.",
+          "numbers": "4 tilted pads 8x8, throw 16 studs/s, goo pillars 3x3 between pads, goo floor",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              6,
+              38,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              10,
+              24,
+              22,
+              "or"
+            ],
+            [
+              "r",
+              82,
+              64,
+              24,
+              22,
+              "or"
+            ],
+            [
+              "r",
+              120,
+              10,
+              24,
+              22,
+              "or"
+            ],
+            [
+              "r",
+              158,
+              64,
+              24,
+              22,
+              "or"
+            ],
+            [
+              "r",
+              194,
+              38,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "c",
+              70,
+              52,
+              6,
+              "hz"
+            ],
+            [
+              "c",
+              110,
+              40,
+              6,
+              "hz"
+            ],
+            [
+              "c",
+              150,
+              52,
+              6,
+              "hz"
+            ],
+            [
+              "a",
+              "M60 30 Q76 52 90 68"
+            ],
+            [
+              "a",
+              "M98 68 Q110 52 128 30"
+            ],
+            [
+              "you",
+              16,
+              50
+            ]
+          ]
+        },
+        {
+          "name": "Star Tower",
+          "tier": "hard",
+          "does": "A climb of three star pads: every ledge needs a super bounce, and a red goo ledge-lip punishes a plain bounce that falls back short.",
+          "numbers": "3 star pads, ledges +15 each (rise 30 over 60 studs), 0.25 s window",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              60,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              26,
+              83,
+              26,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              70,
+              58,
+              64,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              104,
+              53,
+              26,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              148,
+              28,
+              72,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              64,
+              64,
+              6,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              142,
+              34,
+              6,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M38 78 Q50 30 82 54"
+            ],
+            [
+              "a",
+              "M116 48 Q128 0 162 24"
+            ],
+            [
+              "you",
+              10,
+              88
+            ]
+          ]
+        },
+        {
+          "name": "Sliding Chain",
+          "tier": "hard",
+          "does": "Three trampolines slide across the lane out of step over goo; you bounce from one moving pad to the next with no floor between.",
+          "numbers": "3 pads 8x8 sliding 6 studs across, 2.8 s period, phase 1/3 apart, 6 stud gaps",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              0,
+              220,
+              96,
+              "hz"
+            ],
+            [
+              "r",
+              4,
+              36,
+              26,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              12,
+              26,
+              24,
+              "or"
+            ],
+            [
+              "r",
+              94,
+              60,
+              26,
+              24,
+              "or"
+            ],
+            [
+              "r",
+              144,
+              36,
+              26,
+              24,
+              "or"
+            ],
+            [
+              "a",
+              "M57 40 L57 76"
+            ],
+            [
+              "a",
+              "M107 56 L107 18"
+            ],
+            [
+              "a",
+              "M157 30 L157 72"
+            ],
+            [
+              "r",
+              190,
+              36,
+              28,
+              24,
+              "pl"
+            ],
+            [
+              "you",
+              16,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Swap Climb",
+          "tier": "hard",
+          "does": "A chain of ring-swap pads over goo, out of step: each one must be met on its 3-ring beat, since a low hop drops you back on a pad that may swap before you land.",
+          "numbers": "3 swap pads 8x8, power 45/75, 1.2 s swaps, phase 0.4 s apart, ledges +11, goo floor",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              220,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              0,
+              76,
+              40,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              72,
+              30,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              96,
+              58,
+              30,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              148,
+              44,
+              30,
+              5,
+              "or"
+            ],
+            [
+              "r",
+              186,
+              30,
+              34,
+              6,
+              "pl"
+            ],
+            [
+              "t",
+              44,
+              64,
+              "3"
+            ],
+            [
+              "t",
+              96,
+              50,
+              "1"
+            ],
+            [
+              "t",
+              148,
+              36,
+              "3"
+            ],
+            [
+              "a",
+              "M60 66 Q80 30 108 52"
+            ],
+            [
+              "a",
+              "M112 52 Q134 16 160 38"
+            ],
+            [
+              "you",
+              14,
+              76
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

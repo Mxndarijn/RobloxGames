@@ -1,0 +1,1296 @@
+{
+  "ideas": [
+    {
+      "id": 21,
+      "name": "Geyser Field",
+      "approach": "handmade",
+      "approachWhy": "Every geyser layout depends on its beat, launch height and landing spot fitting together, and a random mix easily makes a launch that can't reach or a beat that never lines up. A small hand-tuned set that the tests check is safer and still gives lots of variety.",
+      "engine": {
+        "have": [
+          "bounce motion: throws the local player straight up at a set power (TRAMPOLINE 62 = about 10 studs, CANNON 75 = about 14 studs)",
+          "flip motion: a duty cycle on server time (frac(t / period + phase) < duty), the same clock a geyser beat needs",
+          "melt motion: a per-player trigger when you stand on a part, then a timed reset (the base for a one-shot geyser)",
+          "ghost parts for see-through columns, red hazard look, disc shapes for vents",
+          "tests that check gaps and rises against the launch powers"
+        ],
+        "new": [
+          {
+            "what": "erupt motion kind: a vent with a beat (period, phase, warn time, blow time, power); during the blow window a player on the vent or inside its column is thrown up, outside it the vent is just floor. Its on/off clock is the same duty + phase timer Updraft (idea 5) plans for its 'lift with an on/off timer'; build that timer once and use it in both",
+            "size": "S"
+          },
+          {
+            "what": "one-shot trigger (idea 1 Crusher Alley reuses it for its plates): stepping on the vent starts a short countdown, it blows once, then stays dry for a refill time (melt-style, per player)",
+            "size": "S"
+          },
+          {
+            "what": "blow strength per beat for Third Time: reuse Crusher Alley's (idea 1) 'pattern' motion (a list of beats, same format as Beat Pads' patterns), with a power on each beat (puff, puff, big)",
+            "size": "S"
+          },
+          {
+            "what": "column catch: the lift check also covers a player who jumps sideways into the column while it is up (same live-region check Updraft uses for its columns), for Spout Catch and Pit Spouts",
+            "size": "S"
+          },
+          {
+            "what": "geyser looks in ObbyFx: rim glow that brightens through the warning, bubbles and steam, a goo column that shoots up and falls back, plus a bubbling sound that gets louder and a whoosh on the blow",
+            "size": "M"
+          },
+          {
+            "what": "red hazard geyser: the same erupt motion, its column a red see-through hazard; touching it uses the shared 'hazard touch = back to the start pad' from idea 1",
+            "size": "S"
+          },
+          {
+            "what": "test: extend Bounce Chain's (idea 4) launchReaches() with geyser powers and column catches, and add a wait check: every beat leaves a wait of at most about 4 s",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "A geyser is a round green goo pool with a rock rim: the rim glows brighter, it bubbles louder and steam rises in the last second before it blows, and then a green goo column shoots up. A hazard geyser is the same pool in red see-through goo, so the player learns 'green column lifts me, red column resets me'.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "Old Faithful",
+          "tier": "easy",
+          "does": "One big geyser on a slow, steady beat lifts you to a high ledge; you only have to wait and step on.",
+          "numbers": "1 geyser, 4 s beat, 1.5 s warning, launch 14 high, ledge 10 up",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              60,
+              10,
+              "pl"
+            ],
+            [
+              "e",
+              96,
+              80,
+              18,
+              4,
+              "gl"
+            ],
+            [
+              "r",
+              70,
+              80,
+              52,
+              8,
+              "pl"
+            ],
+            [
+              "p",
+              "M88 80 q8 -66 16 0z",
+              "gl"
+            ],
+            [
+              "a",
+              "M96 22 Q118 6 150 40"
+            ],
+            [
+              "r",
+              150,
+              42,
+              70,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              96,
+              22
+            ],
+            [
+              "t",
+              74,
+              94,
+              "4 s beat"
+            ]
+          ]
+        },
+        {
+          "name": "Hop Pools",
+          "tier": "easy",
+          "does": "Three small geysers all blow together on one beat, each giving a short hop up to the next rock.",
+          "numbers": "3 geysers, same 3 s beat, small hops (about 10 high), each rock 4 up, 6 stud gaps",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              76,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              68,
+              76,
+              12,
+              3,
+              "gl"
+            ],
+            [
+              "r",
+              96,
+              64,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              114,
+              64,
+              12,
+              3,
+              "gl"
+            ],
+            [
+              "r",
+              142,
+              52,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              160,
+              52,
+              12,
+              3,
+              "gl"
+            ],
+            [
+              "r",
+              188,
+              40,
+              32,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M68 56 Q86 40 108 60"
+            ],
+            [
+              "you",
+              68,
+              76
+            ]
+          ]
+        },
+        {
+          "name": "Bubble Countdown",
+          "tier": "easy",
+          "does": "Each geyser has a very long, very loud warning, teaching you to step on while it bubbles, not after it blows.",
+          "numbers": "2 geysers, 4 s beat, 2 s warning, 0.6 s blow, ledges 9 up",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              44,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              54,
+              76,
+              44,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              76,
+              76,
+              14,
+              3,
+              "gl"
+            ],
+            [
+              "c",
+              70,
+              68,
+              2,
+              "gl"
+            ],
+            [
+              "c",
+              80,
+              64,
+              2,
+              "gl"
+            ],
+            [
+              "c",
+              74,
+              58,
+              2,
+              "gl"
+            ],
+            [
+              "r",
+              112,
+              58,
+              44,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              134,
+              58,
+              14,
+              3,
+              "gl"
+            ],
+            [
+              "r",
+              168,
+              40,
+              52,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              76,
+              76
+            ],
+            [
+              "t",
+              60,
+              92,
+              "bubbles = get on"
+            ]
+          ]
+        },
+        {
+          "name": "Red Lesson",
+          "tier": "easy",
+          "does": "A red geyser sits in the walkway between two green ones on its own slow beat: walk past it while it is dry, then ride the green one up.",
+          "numbers": "1 red geyser (4 s beat, 1.5 s warning) on a 10 wide floor, 2 green geysers, ledge 9 up",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              76,
+              150,
+              10,
+              "pl"
+            ],
+            [
+              "e",
+              30,
+              76,
+              12,
+              3,
+              "gl"
+            ],
+            [
+              "e",
+              84,
+              76,
+              12,
+              3,
+              "hz"
+            ],
+            [
+              "p",
+              "M78 76 q6 -50 12 0z",
+              "hz"
+            ],
+            [
+              "e",
+              134,
+              76,
+              12,
+              3,
+              "gl"
+            ],
+            [
+              "r",
+              160,
+              48,
+              60,
+              10,
+              "pl"
+            ],
+            [
+              "a",
+              "M40 70 Q60 60 74 70"
+            ],
+            [
+              "you",
+              50,
+              76
+            ],
+            [
+              "t",
+              62,
+              94,
+              "walk past red"
+            ]
+          ]
+        },
+        {
+          "name": "Fuse Pool",
+          "tier": "easy",
+          "does": "Two one-shot geysers with a long fuse: stand on the vent, it bubbles, it blows once; teaches that these only go when you step on.",
+          "numbers": "2 one-shot geysers, 1.5 s fuse, 3 s refill, ledges 9 up, wide 12 x 12 rocks",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              50,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              30,
+              80,
+              12,
+              3,
+              "gl"
+            ],
+            [
+              "c",
+              26,
+              72,
+              2,
+              "gl"
+            ],
+            [
+              "c",
+              34,
+              68,
+              2,
+              "gl"
+            ],
+            [
+              "r",
+              80,
+              58,
+              60,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              110,
+              58,
+              12,
+              3,
+              "gl"
+            ],
+            [
+              "r",
+              170,
+              36,
+              50,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M30 40 Q54 26 100 54"
+            ],
+            [
+              "you",
+              30,
+              80
+            ],
+            [
+              "t",
+              8,
+              94,
+              "step on = fuse"
+            ]
+          ]
+        },
+        {
+          "name": "Off-Beat Row",
+          "tier": "medium",
+          "does": "Four geysers in a row, each on its own beat, so you must wait on every rock and read which one is next.",
+          "numbers": "4 geysers, beats 2.6 / 3.2 / 2.8 / 3.6 s, 1 s warning, rocks 5 up, 7 stud gaps",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              84,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              38,
+              78,
+              32,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              82,
+              66,
+              32,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              126,
+              54,
+              32,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              170,
+              42,
+              32,
+              8,
+              "pl"
+            ],
+            [
+              "p",
+              "M48 78 q6 -40 12 0z",
+              "gl"
+            ],
+            [
+              "e",
+              98,
+              66,
+              10,
+              3,
+              "gl"
+            ],
+            [
+              "p",
+              "M136 54 q6 -40 12 0z",
+              "gl"
+            ],
+            [
+              "e",
+              186,
+              42,
+              10,
+              3,
+              "gl"
+            ],
+            [
+              "you",
+              98,
+              66
+            ],
+            [
+              "t",
+              60,
+              94,
+              "each its own beat"
+            ]
+          ]
+        },
+        {
+          "name": "One Shot",
+          "tier": "medium",
+          "does": "These geysers only blow once, 1 s after you step on; miss the landing or step off early and the vent dries up and you wait for it to refill.",
+          "numbers": "3 one-shot geysers, 1 s fuse, 5 s refill, ledges 9 up, last ledge off to the side",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              76,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              70,
+              76,
+              12,
+              3,
+              "gl"
+            ],
+            [
+              "r",
+              104,
+              58,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              124,
+              58,
+              12,
+              3,
+              "gh"
+            ],
+            [
+              "r",
+              158,
+              40,
+              62,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M70 50 Q96 34 118 54"
+            ],
+            [
+              "you",
+              70,
+              76
+            ],
+            [
+              "t",
+              108,
+              74,
+              "dry, refilling"
+            ]
+          ]
+        },
+        {
+          "name": "Red Neighbours",
+          "tier": "medium",
+          "does": "Green geysers sit next to red hazard geysers on the same rock; the red column reaches over you, so you go when the red one has just finished.",
+          "numbers": "3 rocks, each 1 green + 1 red geyser, both 3 s beat, red blows 1 s after green, ledges 8 up",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              74,
+              62,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              62,
+              74,
+              10,
+              3,
+              "gl"
+            ],
+            [
+              "p",
+              "M82 74 q8 -54 16 0z",
+              "hz"
+            ],
+            [
+              "r",
+              118,
+              54,
+              62,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              136,
+              54,
+              10,
+              3,
+              "gl"
+            ],
+            [
+              "e",
+              162,
+              54,
+              10,
+              3,
+              "hz"
+            ],
+            [
+              "r",
+              190,
+              34,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M62 40 Q96 24 132 50"
+            ],
+            [
+              "you",
+              62,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Quick Spouts",
+          "tier": "medium",
+          "does": "Fast geysers with a short warning: you have to be on the vent within a short window, so you time your jump onto it, not your wait.",
+          "numbers": "4 geysers, 1.8 s beat, 0.6 s warning, 0.4 s blow, rocks 5 up, 8 stud gaps",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              84,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              46,
+              76,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              61,
+              76,
+              9,
+              3,
+              "gl"
+            ],
+            [
+              "r",
+              92,
+              64,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              107,
+              64,
+              9,
+              3,
+              "gl"
+            ],
+            [
+              "p",
+              "M102 64 q5 -38 10 0z",
+              "gl"
+            ],
+            [
+              "r",
+              138,
+              52,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              184,
+              40,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M30 76 Q44 62 58 72"
+            ],
+            [
+              "you",
+              30,
+              84
+            ],
+            [
+              "t",
+              120,
+              94,
+              "1.8 s beat"
+            ]
+          ]
+        },
+        {
+          "name": "Third Time",
+          "tier": "medium",
+          "does": "Each geyser goes puff, puff, BIG: the two puffs only lift you a little, so stay on the vent through them and ride the big one; stepping off after a puff wastes a whole round.",
+          "numbers": "3 geysers, pattern puff (3 high) / puff / big (14 high) every 1.4 s, rim glow fills a third per beat, ledges 10 up",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              82,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              76,
+              60,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              80,
+              76,
+              14,
+              3,
+              "gl"
+            ],
+            [
+              "p",
+              "M74 76 q6 -12 12 0z",
+              "gl"
+            ],
+            [
+              "p",
+              "M74 60 q6 -12 12 0z",
+              "gh"
+            ],
+            [
+              "a",
+              "M80 30 Q110 14 150 44"
+            ],
+            [
+              "r",
+              140,
+              46,
+              80,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              80,
+              64
+            ],
+            [
+              "t",
+              54,
+              94,
+              "puff, puff, BIG"
+            ]
+          ]
+        },
+        {
+          "name": "Spout Catch",
+          "tier": "medium",
+          "does": "The vent sits at the bottom of a red goo pit, so you can't stand on it: jump off the edge into the green column while it is up and it carries you to the ledge.",
+          "numbers": "1 geyser per pit, 3 s beat, column up 1.2 s, 9 stud jump to the column, ledge 10 up, 2 pits",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              60,
+              60,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              80,
+              70,
+              10,
+              "hz"
+            ],
+            [
+              "e",
+              95,
+              80,
+              10,
+              3,
+              "gl"
+            ],
+            [
+              "p",
+              "M86 80 q9 -76 18 0z",
+              "gl"
+            ],
+            [
+              "a",
+              "M50 52 Q70 38 90 44"
+            ],
+            [
+              "a",
+              "M96 22 Q130 4 160 34"
+            ],
+            [
+              "r",
+              150,
+              36,
+              70,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              50,
+              60
+            ],
+            [
+              "t",
+              70,
+              94,
+              "red pit"
+            ]
+          ]
+        },
+        {
+          "name": "Chain Reaction",
+          "tier": "hard",
+          "does": "The vents are spaced so a launch lands you right on the next vent just as it blows; get the first one right and you chain four launches without stopping, get it wrong and you land in a pool that won't blow for a while.",
+          "numbers": "4 geysers, 3.6 s beat, each 0.9 s after the last, small rocks 8 x 8, 10 stud gaps, rising 3 each",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              86,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              36,
+              80,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              82,
+              72,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              128,
+              64,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              174,
+              56,
+              46,
+              8,
+              "pl"
+            ],
+            [
+              "p",
+              "M44 80 q5 -46 10 0z",
+              "gl"
+            ],
+            [
+              "a",
+              "M49 34 Q72 18 95 70"
+            ],
+            [
+              "a",
+              "M95 30 Q118 14 141 62"
+            ],
+            [
+              "a",
+              "M141 22 Q164 8 186 54"
+            ],
+            [
+              "you",
+              49,
+              34
+            ]
+          ]
+        },
+        {
+          "name": "Red Field",
+          "tier": "hard",
+          "does": "A wide field of pools, green and red, each on its own beat; you pick a path of green geysers while red columns go off around you.",
+          "numbers": "3 x 3 pools on 2 rocks, 4 green + 5 red, beats 2.4 to 3.6 s, exit ledge 10 up",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              20,
+              6,
+              180,
+              84,
+              "pl"
+            ],
+            [
+              "c",
+              50,
+              24,
+              9,
+              "gl"
+            ],
+            [
+              "c",
+              90,
+              24,
+              9,
+              "hz"
+            ],
+            [
+              "c",
+              130,
+              24,
+              9,
+              "hz"
+            ],
+            [
+              "c",
+              50,
+              48,
+              9,
+              "hz"
+            ],
+            [
+              "c",
+              90,
+              48,
+              9,
+              "gl"
+            ],
+            [
+              "c",
+              130,
+              48,
+              9,
+              "gl"
+            ],
+            [
+              "c",
+              50,
+              72,
+              9,
+              "hz"
+            ],
+            [
+              "c",
+              90,
+              72,
+              9,
+              "hz"
+            ],
+            [
+              "c",
+              170,
+              48,
+              9,
+              "gl"
+            ],
+            [
+              "a",
+              "M58 28 Q78 38 84 44"
+            ],
+            [
+              "a",
+              "M98 48 H122"
+            ],
+            [
+              "you",
+              50,
+              24
+            ]
+          ]
+        },
+        {
+          "name": "Dry Run",
+          "tier": "hard",
+          "does": "A chain of one-shot geysers on small rocks with red hazard bars hanging between them; each fires once after a short fuse, so a bad drift means a dry vent and a long wait, or a hazard.",
+          "numbers": "4 one-shot geysers, 0.8 s fuse, 6 s refill, red bars 6 up between rocks, ledges 9 up",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              84,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              78,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              55,
+              78,
+              9,
+              3,
+              "gl"
+            ],
+            [
+              "r",
+              78,
+              46,
+              10,
+              6,
+              "hz"
+            ],
+            [
+              "r",
+              96,
+              62,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "e",
+              111,
+              62,
+              9,
+              3,
+              "gh"
+            ],
+            [
+              "r",
+              134,
+              30,
+              10,
+              6,
+              "hz"
+            ],
+            [
+              "r",
+              152,
+              46,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              190,
+              30,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M55 38 Q90 26 108 58"
+            ],
+            [
+              "you",
+              55,
+              78
+            ]
+          ]
+        },
+        {
+          "name": "Summit Spouts",
+          "tier": "hard",
+          "does": "A tall climb on big launch geysers where every landing ledge also holds a red geyser that blows 1.5 s after you land, so you can't wait there: your green vent must be next.",
+          "numbers": "4 big geysers, 3.4 s beat, launch 14 high, ledges 10 up, 10 x 10, red geyser on each ledge 1.5 s after the green, total climb 40",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              40,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              72,
+              40,
+              6,
+              "pl"
+            ],
+            [
+              "e",
+              52,
+              72,
+              8,
+              3,
+              "gl"
+            ],
+            [
+              "e",
+              70,
+              72,
+              6,
+              3,
+              "hz"
+            ],
+            [
+              "r",
+              96,
+              48,
+              40,
+              6,
+              "pl"
+            ],
+            [
+              "e",
+              108,
+              48,
+              8,
+              3,
+              "gl"
+            ],
+            [
+              "p",
+              "M120 48 q6 -40 12 0z",
+              "hz"
+            ],
+            [
+              "r",
+              152,
+              24,
+              40,
+              6,
+              "pl"
+            ],
+            [
+              "e",
+              164,
+              24,
+              8,
+              3,
+              "gl"
+            ],
+            [
+              "a",
+              "M52 30 Q80 14 104 44"
+            ],
+            [
+              "you",
+              108,
+              48
+            ],
+            [
+              "t",
+              6,
+              10,
+              "red after you land"
+            ]
+          ]
+        },
+        {
+          "name": "Pit Spouts",
+          "tier": "hard",
+          "does": "Three vents at the bottom of red goo pits with no floor between: catch one column, and while it carries you, aim the jump-off into the next column as it comes up.",
+          "numbers": "3 pit geysers, 3 s beat, each 1 s after the last, column up 1 s, 9 stud catches, exit ledge 6 up",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              50,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              84,
+              160,
+              8,
+              "hz"
+            ],
+            [
+              "p",
+              "M46 84 q7 -74 14 0z",
+              "gl"
+            ],
+            [
+              "p",
+              "M100 84 q7 -54 14 0z",
+              "gl"
+            ],
+            [
+              "e",
+              160,
+              84,
+              8,
+              3,
+              "gl"
+            ],
+            [
+              "a",
+              "M53 14 Q78 0 104 32"
+            ],
+            [
+              "a",
+              "M107 32 Q132 18 158 50"
+            ],
+            [
+              "r",
+              190,
+              40,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              53,
+              14
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

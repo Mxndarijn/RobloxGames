@@ -97,6 +97,11 @@ return table.freeze({
 	OBBY_MOTION = "ObbyMotion", -- "slide" | "spin" | "melt" | "flip" | "shrink" | "bounce" | "lift" | "swing" | "rock"
 	-- | "roll" | "punch" | "gust"
 	OBBY_BASE = "ObbyBase", -- CFrame at rest
+	-- Section kit (contract/obby-sections.md §10b): JSON of a part's behaviour fields (course-local), the Course
+	-- model's frame CFrame (X forward, Y up, Z right) and every part's unique id.
+	OBBY_SPEC = "ObbySpec",
+	OBBY_FRAME = "ObbyFrame",
+	OBBY_ID = "ObbyId",
 	OBBY_AXIS = "ObbyAxis", -- slide / punch: world direction (Vector3); gust: the way it blows
 	OBBY_AMP = "ObbyAmp", -- slide / punch: studs; swing / rock: degrees
 	OBBY_PERIOD = "ObbyPeriod", -- slide / spin / roll / flip / shrink / punch / gust: seconds (negative = the other way)

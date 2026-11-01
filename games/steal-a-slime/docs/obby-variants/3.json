@@ -1,0 +1,1283 @@
+{
+  "ideas": [
+    {
+      "id": 3,
+      "name": "Goo Rides",
+      "approach": "handmade",
+      "approachWhy": "Each ride is a small timed puzzle (where it goes, when it stops, when to get off), and the timings have to be tuned by hand so boarding and leaving windows stay fair. A random generator would make many rides that look the same or have impossible handoffs.",
+      "engine": {
+        "have": [
+          "slide motion on x, y or z (sin path, phase per part) that already carries a player standing on it",
+          "phase offsets so several rides run out of step (LilyLift, BobbingDiscs)",
+          "a stand-on trigger for the local player (melt) to copy for sinking rides",
+          "red see-through hazard goo that sends you back to the start",
+          "step gap and rise tests (GAP_MAX 6, RISE_MAX 3.5) for the parts at rest",
+          "red goo touch = back to the start pad (shared hazard reset that ideas 1, 8, 14 and 25 also list)"
+        ],
+        "new": [
+          {
+            "what": "'shuttle' slide (same name and code as idea 25 Sliding Maze): hold at a stop, move, hold at the next stop, instead of a pure sin wave; rides add an optional list of stops so one ride can visit 3 stops in turn (Wrong Stop)",
+            "size": "S"
+          },
+          {
+            "what": "rail line under each ride and a dotted ghost of its next stop (the 'you can tell by' look); the ghost also shows which stop comes next on a multi-stop ride",
+            "size": "S"
+          },
+          {
+            "what": "'sink' motion (same one ideas 2 Melting Floor and 12 Rising Goo plan): lowers while the local player stands on it, rises back once left; here it runs on top of a moving ride",
+            "size": "S"
+          },
+          {
+            "what": "waits-for-you trigger: ride sits at its dock until you step on, runs once, comes back empty (client only); same one-shot stand-on start as idea 21's one-shot geyser and idea 24's collapse clock, so build it once",
+            "size": "M"
+          },
+          {
+            "what": "carry on moving parts: share idea 4's fix (client reads the moving part's live position) so walking across a moving deck and jumping off a moving ride keep you with it; check in Studio that air control does not brake you",
+            "size": "S"
+          },
+          {
+            "what": "test support: check the closest gap between a moving ride and its dock or the next ride, not only at rest (idea 15's swing reach check and idea 4's moving-pad check can share this helper)",
+            "size": "M"
+          }
+        ]
+      },
+      "readability": "Every ride is a wide jelly raft with a rail line under it and a dotted ghost of where it stops next, plus a soft hum that rises as it speeds up. A ride that sinks bubbles and gurgles, and red see-through goo sits where a ride you must leave is heading.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "First Ferry",
+          "tier": "easy",
+          "does": "One wide raft carries you over a gap too long to jump and waits at each end, so you just step on and step off.",
+          "numbers": "1 raft 10x10, 28 stud trip, 2.5 s each way, waits 1.5 s at each dock",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              60,
+              30,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              190,
+              60,
+              30,
+              10,
+              "pl"
+            ],
+            [
+              "l",
+              30,
+              74,
+              190,
+              74
+            ],
+            [
+              "r",
+              34,
+              60,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              152,
+              60,
+              34,
+              8,
+              "gh"
+            ],
+            [
+              "a",
+              "M60 52 H160"
+            ],
+            [
+              "you",
+              48,
+              60
+            ],
+            [
+              "t",
+              62,
+              90,
+              "waits 1.5 s each end"
+            ]
+          ]
+        },
+        {
+          "name": "Waits for You",
+          "tier": "easy",
+          "does": "The raft sits at your dock until you step on, then glows, chimes and sets off, so nobody ever misses it.",
+          "numbers": "1 raft 10x10, 32 stud trip, starts 0.5 s after you board, 3 s trip, comes back empty after 2 s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              60,
+              30,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              60,
+              34,
+              8,
+              "gl"
+            ],
+            [
+              "you",
+              46,
+              60
+            ],
+            [
+              "l",
+              30,
+              74,
+              190,
+              74
+            ],
+            [
+              "a",
+              "M66 50 H180"
+            ],
+            [
+              "r",
+              190,
+              60,
+              30,
+              10,
+              "pl"
+            ],
+            [
+              "t",
+              26,
+              40,
+              "step on: it goes"
+            ]
+          ]
+        },
+        {
+          "name": "Up the Lift",
+          "tier": "easy",
+          "does": "A lift goes straight up a wall far too high to jump; ride it up and walk off onto the high ledge.",
+          "numbers": "1 lift 10x10, rises 16 studs in 3 s, waits 2 s at top and bottom",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              50,
+              10,
+              "pl"
+            ],
+            [
+              "l",
+              56,
+              26,
+              56,
+              90
+            ],
+            [
+              "r",
+              58,
+              76,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              58,
+              30,
+              34,
+              8,
+              "gh"
+            ],
+            [
+              "a",
+              "M75 70 V42"
+            ],
+            [
+              "r",
+              100,
+              30,
+              120,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              72,
+              76
+            ]
+          ]
+        },
+        {
+          "name": "Ferry Line",
+          "tier": "easy",
+          "does": "Three short ferries in a row over three gaps, timed so the next one arrives just as you reach it.",
+          "numbers": "3 rafts 9x9, 14 stud trips, 2 s each way, 1 s wait, each ferry a third of a beat behind the last",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              60,
+              18,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              22,
+              60,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M28 54 H58"
+            ],
+            [
+              "r",
+              70,
+              60,
+              14,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              108,
+              60,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M88 54 H112"
+            ],
+            [
+              "r",
+              140,
+              60,
+              14,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              158,
+              60,
+              22,
+              8,
+              "gh"
+            ],
+            [
+              "r",
+              202,
+              60,
+              18,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              30,
+              60
+            ]
+          ]
+        },
+        {
+          "name": "Side Shuttle",
+          "tier": "easy",
+          "does": "The way on is off to the side of the lane: the shuttle carries you sideways across a gap to where the path goes on.",
+          "numbers": "1 shuttle 9x9 moving across the lane, 14 stud trip, 2.5 s each way, waits 1.5 s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              60,
+              44,
+              30,
+              "pl"
+            ],
+            [
+              "r",
+              48,
+              62,
+              26,
+              26,
+              "pl"
+            ],
+            [
+              "l",
+              61,
+              14,
+              61,
+              88
+            ],
+            [
+              "r",
+              48,
+              8,
+              26,
+              26,
+              "gh"
+            ],
+            [
+              "a",
+              "M61 58 V36"
+            ],
+            [
+              "r",
+              78,
+              4,
+              142,
+              30,
+              "pl"
+            ],
+            [
+              "you",
+              60,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Stair Lifts",
+          "tier": "easy",
+          "does": "Three lifts in a row, each to a higher ledge, so the course climbs one ride at a time.",
+          "numbers": "3 lifts 9x9, rises 8, 10 and 12 studs, 2.5 s each way, waits 1.5 s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              86,
+              26,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              82,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M41 76 V64"
+            ],
+            [
+              "r",
+              56,
+              66,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              86,
+              62,
+              22,
+              6,
+              "gh"
+            ],
+            [
+              "a",
+              "M97 58 V42"
+            ],
+            [
+              "r",
+              112,
+              44,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              142,
+              40,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M153 34 V20"
+            ],
+            [
+              "r",
+              168,
+              18,
+              52,
+              8,
+              "pl"
+            ],
+            [
+              "you",
+              40,
+              82
+            ]
+          ]
+        },
+        {
+          "name": "Drive-by",
+          "tier": "medium",
+          "does": "The ferry never stops: it swings past your dock and you jump on as it comes close, then jump off as it swings past the far dock.",
+          "numbers": "1 raft 10x10, 30 stud swing, 5 s round trip, closest gap 3 studs, about 1 s to board",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              60,
+              34,
+              10,
+              "pl"
+            ],
+            [
+              "l",
+              34,
+              74,
+              186,
+              74
+            ],
+            [
+              "r",
+              92,
+              60,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M140 52 H182"
+            ],
+            [
+              "a",
+              "M80 46 H40"
+            ],
+            [
+              "r",
+              186,
+              60,
+              34,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              24,
+              60
+            ],
+            [
+              "t",
+              76,
+              90,
+              "never stops"
+            ]
+          ]
+        },
+        {
+          "name": "Into the Goo",
+          "tier": "medium",
+          "does": "The ferry heads straight into a red goo wall; the way on is a ledge beside its path halfway, so you must step off sideways in time.",
+          "numbers": "1 raft 9x9, 36 stud trip, 4 s, exit ledge 3 studs to the side at 20 studs, goo wall at the end",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              34,
+              30,
+              28,
+              "pl"
+            ],
+            [
+              "r",
+              34,
+              36,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "l",
+              34,
+              48,
+              196,
+              48
+            ],
+            [
+              "a",
+              "M60 48 H190"
+            ],
+            [
+              "r",
+              196,
+              26,
+              14,
+              44,
+              "hz"
+            ],
+            [
+              "r",
+              110,
+              0,
+              50,
+              30,
+              "pl"
+            ],
+            [
+              "a",
+              "M128 42 V30"
+            ],
+            [
+              "you",
+              46,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Mid-air Swap",
+          "tier": "medium",
+          "does": "Two rides cross in the air, one going across and one going up; jump from the first to the second when they meet, because neither reaches the far ledge alone.",
+          "numbers": "2 rafts 9x9, ferry 20 studs across, lift 14 studs up, both 4 s round trip, meet for about 1.2 s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              70,
+              26,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              70,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M44 64 H100"
+            ],
+            [
+              "l",
+              128,
+              20,
+              128,
+              88
+            ],
+            [
+              "r",
+              112,
+              64,
+              32,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M128 58 V30"
+            ],
+            [
+              "r",
+              160,
+              24,
+              60,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              40,
+              70
+            ],
+            [
+              "t",
+              92,
+              92,
+              "jump when they meet"
+            ]
+          ]
+        },
+        {
+          "name": "Walk the Deck",
+          "tier": "medium",
+          "does": "A wide raft carries you through goo gates that each block half its deck, left then right; you walk across the moving deck to the open side before each gate.",
+          "numbers": "1 raft 10 long x 16 wide, 40 stud trip in 6 s, 3 tall red goo gates 2 s apart, each blocks 8 studs of the deck",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              30,
+              22,
+              36,
+              "pl"
+            ],
+            [
+              "l",
+              22,
+              48,
+              198,
+              48
+            ],
+            [
+              "r",
+              26,
+              24,
+              30,
+              48,
+              "pl"
+            ],
+            [
+              "you",
+              36,
+              62
+            ],
+            [
+              "a",
+              "M44 62 C70 62 70 34 96 34"
+            ],
+            [
+              "r",
+              86,
+              52,
+              10,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M100 34 C124 34 124 62 146 62"
+            ],
+            [
+              "r",
+              136,
+              20,
+              10,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              176,
+              52,
+              10,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              198,
+              30,
+              22,
+              36,
+              "pl"
+            ],
+            [
+              "t",
+              60,
+              92,
+              "gates block half"
+            ]
+          ]
+        },
+        {
+          "name": "Lift to Ferry",
+          "tier": "medium",
+          "does": "Ride a lift up to a ferry line; step across onto the ferry only while both sit at the top together.",
+          "numbers": "lift 9x9 up 14 studs, ferry 9x9 across 24 studs, both 6 s cycle, 1.5 s side by side at the top",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              84,
+              30,
+              10,
+              "pl"
+            ],
+            [
+              "l",
+              36,
+              24,
+              36,
+              90
+            ],
+            [
+              "r",
+              38,
+              80,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M51 74 V40"
+            ],
+            [
+              "r",
+              68,
+              32,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "l",
+              68,
+              44,
+              196,
+              44
+            ],
+            [
+              "a",
+              "M96 26 H186"
+            ],
+            [
+              "r",
+              196,
+              32,
+              24,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              48,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Lift Ladder",
+          "tier": "medium",
+          "does": "Two lifts side by side run out of step; climb a tall shaft by hopping from one to the other each time the low one passes the high one.",
+          "numbers": "2 lifts 9x9, 3 studs apart, each 10 studs up, opposite phase, 4 s cycle, 2 hops to the top ledge",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              86,
+              40,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              80,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              44,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M59 74 V50"
+            ],
+            [
+              "a",
+              "M95 52 V74"
+            ],
+            [
+              "r",
+              116,
+              22,
+              104,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              58,
+              80
+            ],
+            [
+              "t",
+              128,
+              60,
+              "hop across"
+            ]
+          ]
+        },
+        {
+          "name": "Quick Stop",
+          "tier": "medium",
+          "does": "Three ferries in a row that each stop for only half a second at the handoff, so you keep moving: off one, onto the next without waiting.",
+          "numbers": "3 rafts 9x9, 16 stud trips, 1.8 s each way, 0.5 s stop, small pads 6 studs long between",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              60,
+              16,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              20,
+              60,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M26 52 H54"
+            ],
+            [
+              "r",
+              70,
+              60,
+              12,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              86,
+              60,
+              22,
+              8,
+              "gh"
+            ],
+            [
+              "a",
+              "M92 52 H120"
+            ],
+            [
+              "r",
+              136,
+              60,
+              12,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              152,
+              60,
+              22,
+              8,
+              "gh"
+            ],
+            [
+              "r",
+              204,
+              60,
+              16,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              28,
+              60
+            ],
+            [
+              "t",
+              66,
+              88,
+              "0.5 s stops"
+            ]
+          ]
+        },
+        {
+          "name": "Wrong Stop",
+          "tier": "medium",
+          "does": "The ferry takes turns between two stops: one leads on, the other runs under a red goo arch; read the dotted ghost of its next stop and board only for the right trip.",
+          "numbers": "1 raft 10x10, 3 stops (your dock, exit ledge, goo arch), 3 s per leg, waits 2 s at your dock, right trip every other run",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              34,
+              28,
+              28,
+              "pl"
+            ],
+            [
+              "r",
+              32,
+              36,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "you",
+              44,
+              48
+            ],
+            [
+              "l",
+              56,
+              48,
+              120,
+              48
+            ],
+            [
+              "l",
+              120,
+              48,
+              170,
+              16
+            ],
+            [
+              "l",
+              120,
+              48,
+              170,
+              80
+            ],
+            [
+              "r",
+              158,
+              4,
+              24,
+              24,
+              "gh"
+            ],
+            [
+              "r",
+              186,
+              0,
+              34,
+              32,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              66,
+              20,
+              28,
+              "hz"
+            ],
+            [
+              "a",
+              "M64 40 H114 L154 18"
+            ],
+            [
+              "t",
+              112,
+              92,
+              "ghost = next stop"
+            ]
+          ]
+        },
+        {
+          "name": "Sink and Swap",
+          "tier": "hard",
+          "does": "You board a ferry that sinks under you as it crosses red goo, and it never reaches the far side: the only way out is a second ferry passing above, so jump up before you sink too far to reach it.",
+          "numbers": "raft 10x10 sinks 1.5 studs/s; upper ferry 9x9 passes 3 studs above the raft every 4 s; goo 5 studs below",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              54,
+              26,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              36,
+              58,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M53 68 V78"
+            ],
+            [
+              "r",
+              92,
+              42,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M124 36 H186"
+            ],
+            [
+              "r",
+              26,
+              82,
+              170,
+              14,
+              "hz"
+            ],
+            [
+              "r",
+              190,
+              40,
+              30,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              52,
+              58
+            ]
+          ]
+        },
+        {
+          "name": "Triple Transfer",
+          "tier": "hard",
+          "does": "Three ferries with no pads between them, each heading into red goo; jump from ride to ride while they run side by side.",
+          "numbers": "3 rafts 9x9, 20 stud trips, 3 s each way, side by side for about 1 s, goo wall at each ride's far end",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              66,
+              26,
+              26,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              68,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "a",
+              "M54 79 H96"
+            ],
+            [
+              "r",
+              100,
+              66,
+              10,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              80,
+              40,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "a",
+              "M104 51 H146"
+            ],
+            [
+              "r",
+              152,
+              38,
+              10,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              130,
+              10,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "a",
+              "M154 21 H196"
+            ],
+            [
+              "r",
+              200,
+              4,
+              20,
+              30,
+              "pl"
+            ],
+            [
+              "you",
+              40,
+              79
+            ]
+          ]
+        },
+        {
+          "name": "Express",
+          "tier": "hard",
+          "does": "A fast ferry shoots toward red goo; the exit ledge flashes past beside it, so you have well under a second to step off.",
+          "numbers": "1 raft 9x9, 40 stud trip in 2.4 s, 0.5 s stop at your dock, exit ledge at 28 studs, about 0.6 s window",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              34,
+              26,
+              28,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              36,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M56 48 H190"
+            ],
+            [
+              "r",
+              200,
+              22,
+              14,
+              52,
+              "hz"
+            ],
+            [
+              "r",
+              140,
+              0,
+              34,
+              30,
+              "pl"
+            ],
+            [
+              "a",
+              "M156 44 V32"
+            ],
+            [
+              "you",
+              42,
+              48
+            ],
+            [
+              "t",
+              112,
+              86,
+              "0.6 s window"
+            ]
+          ]
+        },
+        {
+          "name": "Shaft Rush",
+          "tier": "hard",
+          "does": "Two fast lifts in a shaft with red goo caps at the top; ride the first up, hop to the second, and step off at the exit before either hits the goo.",
+          "numbers": "2 lifts 9x9, 16 studs up in 2 s, goo cap 3 studs above each lift's top, exit ledge 2 studs below the second cap",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              86,
+              34,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              38,
+              82,
+              28,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M52 76 V40"
+            ],
+            [
+              "r",
+              36,
+              14,
+              32,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              72,
+              54,
+              28,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M86 48 V24"
+            ],
+            [
+              "r",
+              70,
+              4,
+              32,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              106,
+              22,
+              114,
+              10,
+              "pl"
+            ],
+            [
+              "you",
+              50,
+              82
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
