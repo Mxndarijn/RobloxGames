@@ -359,8 +359,9 @@ local ctx: { [string]: any } = {
 	SlimeRoster = SlimeRoster,
 	SlimeLooks = SlimeLooks,
 	setName = SpeciesDex.setName,
-	-- Plot skins menu: each skin's slimes.
+	-- Plot skins menu: each skin's slimes; the Pet tab lists the species that have a kit.
 	PlotSkins = PlotSkins,
+	KitRequest = KitRequest,
 	-- Exclusive shop and its quick-buys: Roblox's purchase prompts (the server grants on ProcessReceipt).
 	purchase = PurchasePrompt.new(MarketplaceService, player),
 	-- The Exclusive shop's gift picker: the players on this server, friends marked.
@@ -1330,7 +1331,7 @@ applyLayout()
 setOpen(nil)
 
 -- Studio-only test hook for the PC watcher (tools/pipeline/pc-watcher): setting the
--- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path ("Skins:cloud": on its Cloud tab)
+-- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path ("Skins:cloud" / "Skins:pet": on that tab)
 -- (contents rendered), "" closes it. Never active in live servers.
 if game:GetService("RunService"):IsStudio() then
 	gui:GetAttributeChangedSignal("PcwOpen"):Connect(function()
@@ -1355,10 +1356,11 @@ if game:GetService("RunService"):IsStudio() then
 			panelByKey.ExclusiveShop.setTab(shopTab)
 			return
 		end
-		if key == "Skins:cloud" then
-			-- the Skins menu on its Cloud tab (scripts can't press the tab)
+		local skinsTab = if type(key) == "string" then string.match(key, "^Skins:(%a+)$") else nil
+		if skinsTab then
+			-- the Skins menu on one tab, "Skins:cloud" / "Skins:pet" (scripts can't press the tab)
 			setOpen("Skins")
-			panelByKey.Skins.setTab("cloud")
+			panelByKey.Skins.setTab(skinsTab)
 			return
 		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)

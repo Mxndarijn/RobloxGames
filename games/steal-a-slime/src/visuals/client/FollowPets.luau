@@ -11,8 +11,12 @@
 	clone of that seat's template the server publishes in ReplicatedStorage.PetCloudMeshes). While that template is
 	not there the pet rides the plain cloud, and without any template an invisible Mount. The pet is made at once
 	and built again (in place) when its seat changes or a better template shows up.
-	The cloud + pet glide after the owner with the pure PetFollow spring (one
-	RenderStepped connection for every pet). Pets live in a local workspace folder "ClientPets"; no remotes, nothing
+	A player who picked a SlimeDex species for the pet (Player attribute PetSpecies, Constants.PET_SPECIES_ATTRIBUTE)
+	gets that species instead: a copy of its kit mesh from this player's kit folder (PlayerGui.SlimeKits, which the
+	server fills for every picked pet in the server), worn like the SlimeDex preview. Until the kit is there the pet is
+	the Auto slime above. A picked pet shows even when its owner has no slime.
+	The cloud + pet fly after the owner on PetFollow's leash (one RenderStepped connection for every pet); the owner's
+	Humanoid (FloorMaterial, Jumping / Freefall state) tells PetFollow when they are in the air, so a jump doesn't throw the cloud up. Pets live in a local workspace folder "ClientPets"; no remotes, nothing
 	replicates.
 ]]
 
@@ -27,17 +31,54 @@ local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild(
 local PetCloud = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("PetCloud"))
 local PetFollow = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("PetFollow"))
 
+local MeshAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MeshAssets"))
+
 local PetRig = require(script.Parent:WaitForChild("PetRig"))
 
 local FollowPets = {}
 
 FollowPets.POLL = 0.5
 FollowPets.MAX_DISTANCE = 200
--- Follow motion (offset behind and right of the owner, spring, bob) lives in PetFollow.
+-- Follow motion (leash, springs, jump hold, bob) lives in PetFollow.
 
+-- `key`: what rides ("slime:<SlimeId>" or "species:<id>"); a new key builds the pet again.
 -- `shown`: the template the pet rides (its mesh name), nil on a Mount.
--- `source`: the replicated model it was cloned from; a hatch or kit rebuild destroys it, so the pet is cloned again.
-type Pet = { model: Model, slimeId: string, source: Model, shown: string?, follow: PetFollow.State }
+-- `source`: the replicated model or kit mesh it was cloned from; a hatch or kit rebuild destroys it, so the pet is
+-- cloned again.
+type Pet = { model: Model, key: string, source: Instance, shown: string?, follow: PetFollow.State }
+
+local IMPORT_TURN = CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
+local KIT_PREFIX = "slime_"
+
+-- The kit mesh of `speciesId` in this player's kit folder, or nil while it is not there.
+local function findKit(speciesId: string): BasePart?
+	local gui = Players.LocalPlayer and Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+	local folder = gui and gui:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	local kit = folder and folder:FindFirstChild(KIT_PREFIX .. speciesId)
+	if kit and kit:IsA("BasePart") then
+		return kit
+	end
+	return nil
+end
+
+-- A pet model of a picked species: its kit mesh worn like the SlimeDex preview (Color white, turned to face -Z),
+-- shrunk to a pet like a cloned slime.
+local function makeSpeciesPet(kit: BasePart, userId: number): Model
+	local pet = Instance.new("Model")
+	pet.Name = `Pet_{userId}`
+	local part = kit:Clone()
+	part.Name = "Mesh"
+	part.Color = Color3.new(1, 1, 1)
+	part.CFrame = IMPORT_TURN
+	PetCloud.decor(part)
+	part.Parent = pet
+	pet.PrimaryPart = part
+	local _, size = PetCloud.visibleBox(pet)
+	pcall(function()
+		pet:ScaleTo(pet:GetScale() * PetCloud.petScale(size))
+	end)
+	return pet
+end
 
 -- The template a pet of `player` should ride: its seat's, else the plain cloud's, else nil.
 local function templateFor(player: Player): BasePart?
@@ -137,31 +178,33 @@ function FollowPets.start()
 		end
 		for _, player in Players:GetPlayers() do
 			local id = player:GetAttribute(Constants.PET_ATTRIBUTE)
+			local species = player:GetAttribute(Constants.PET_SPECIES_ATTRIBUTE)
+			local kit = if type(species) == "string" and species ~= "" then findKit(species) else nil
+			local key = if kit then `species:{species}` elseif type(id) == "string" then `slime:{id}` else nil
 			local pet = pets[player]
 			local template = templateFor(player)
 			local shown = if template then template.Name else nil
-			if type(id) ~= "string" then
+			if key == nil then
 				remove(player)
-			elseif
-				not pet
-				or pet.slimeId ~= id
-				or not pet.model.Parent
-				or not pet.source.Parent
-				or pet.shown ~= shown
-			then
-				-- Same slime on a new seat: keep where it glides, so it doesn't jump.
-				local follow = if pet and pet.slimeId == id then pet.follow else nil
+			elseif not pet or pet.key ~= key or not pet.model.Parent or not pet.source.Parent or pet.shown ~= shown then
+				-- A new pet or seat keeps where it flies, so it doesn't jump.
+				local follow = if pet then pet.follow else nil
 				remove(player)
-				local source = findSource(id)
 				local root = rootOf(player)
-				local slime = source and makePet(source, player.UserId)
-				if slime and root then
+				local source: Instance?, slime: Model? = nil, nil
+				if kit then
+					source, slime = kit, makeSpeciesPet(kit, player.UserId)
+				else
+					local model = findSource(id :: string)
+					source, slime = model, model and makePet(model, player.UserId)
+				end
+				if slime and source and root then
 					local model = PetCloud.mount(slime, player.UserId, template)
 					model.Parent = folder -- PetFollow's first step snaps it next to the owner
 					pets[player] = {
 						model = model,
-						slimeId = id,
-						source = source :: Model,
+						key = key,
+						source = source,
 						shown = shown,
 						follow = follow or PetFollow.new(math.random() * math.pi * 2),
 					}
@@ -198,7 +241,15 @@ function FollowPets.start()
 				if off:Dot(off) < maxSq then
 					local yaw = math.rad(root.Orientation.Y)
 					local f = pet.follow
-					PetFollow.step(f, dt, pos.X, pos.Y, pos.Z, yaw)
+					local humanoid = (root.Parent :: Instance):FindFirstChildOfClass("Humanoid")
+					local state = humanoid and humanoid:GetState()
+					local grounded = humanoid == nil
+						or (
+							humanoid.FloorMaterial ~= Enum.Material.Air
+							and state ~= Enum.HumanoidStateType.Jumping
+							and state ~= Enum.HumanoidStateType.Freefall
+						)
+					PetFollow.step(f, dt, pos.X, pos.Y, pos.Z, yaw, grounded)
 					local half = f.yaw * 0.5
 					pet.model:PivotTo(CFrame.new(f.x, f.y + f.bob, f.z, 0, math.sin(half), 0, math.cos(half)))
 				end

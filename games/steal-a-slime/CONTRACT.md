@@ -326,6 +326,7 @@ The client always replaces its copy and never diffs.
   - `SpeedCoil: boolean?` (`Constants.SPEED_COIL_ATTRIBUTE`): `true` once the Speed Coil is owned (for a cosmetic coil on the character).
   - `PetSlimeId: string?` (`Constants.PET_ATTRIBUTE`): the slime that follows the player (FollowPets, §2 Extras).
   - `PetSeat: string` (`Constants.PET_SEAT_ATTRIBUTE`): the `Config.PET_SEATS` id that pet rides ([pet-seats.md](contract/pet-seats.md)).
+  - `PetSpecies: string?` (`Constants.PET_SPECIES_ATTRIBUTE`): the species the player picked for that pet from their SlimeDex; nil = Auto ([pet-species.md](contract/pet-species.md)).
 
 ### 5.3 World (built by Archer's WorldBuilder, wired by Phoenix)
 
@@ -465,3 +466,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §51 | [settings.md](contract/settings.md) | Settings menu: the gear card (Sound, Game, Visuals, Me), `PlayerSettings`, `Request SetSettings` / `ReplayTutorial`, hidden on boards |
 | §49 | [cash-pads.md](contract/cash-pads.md) | Cash pads: income piles up on a raised gold coin at each slime, only the owner collects by walking over it (`FEATURES.CashPads`) |
 | §52 | [obby.md](contract/obby.md) | Obby: a sky course that rebuilds every 10 min from new sections; clearing it gives x1.5 income for 5 min, then a 5-min cooldown |
+| §53 | [pet-species.md](contract/pet-species.md) | Pet species: pick any found SlimeDex slime for the follow pet, the Skins menu's Pet tab |

@@ -36,6 +36,7 @@ Validate.ACTIONS = table.freeze({
 	EquipPlotSkin = 0.5,
 	EquipPlotBase = 3, -- a swap rebuilds the whole plot
 	EquipPetSeat = 0.5,
+	SetPetSpecies = 0.5,
 	BuyConsumable = 0.5,
 	UseConsumable = 0.5,
 	SetSettings = 0.5,

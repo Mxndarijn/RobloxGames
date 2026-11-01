@@ -22,16 +22,16 @@ local PetFollow = if script then require(script.Parent.PetFollow) else require("
 
 local PetCloud = {}
 
-PetCloud.PET_SIZE = 1.5 -- studs: a pet's longest visible side, whatever the slime's size (a hand-sized pet)
-PetCloud.PET_MAX_SCALE = 0.55 -- a pet is never more than this x the slime as built
+PetCloud.PET_SIZE = 2.25 -- studs: a pet's longest visible side, whatever the slime's size (about hip height)
+PetCloud.PET_MAX_SCALE = 0.825 -- a pet is never more than this x the slime as built
 PetCloud.MESH = "pet_cloud" -- the default seat's MeshAssets name, and its template's name in the folder
 PetCloud.FOLDER = "PetCloudMeshes" -- ReplicatedStorage folder the server publishes the seat templates into
 PetCloud.SEAT_ATTRIBUTE = "SeatHeight" -- on a template: seat surface over the mesh bottom, native studs (nil = its top)
 PetCloud.SEAT_FRACTION = "SeatFraction" -- on a clone: the same as a share of its height, 0..1
-PetCloud.CLOUD_SCALE = 0.55 -- smallest scale, of the native 3.3 x 1.2 x 2.4 mesh
+PetCloud.CLOUD_SCALE = 0.825 -- smallest scale, of the native 3.3 x 1.2 x 2.4 mesh
 PetCloud.CLOUD_FIT = 1.15 -- the cloud is at least this x the slime's visible width and depth
-PetCloud.CLOUD_MAX_SCALE = 0.8 -- a wide pet overhangs its cloud rather than riding a giant one
-PetCloud.CLOUD_SINK = 0.08 -- the slime's foot sinks this far into the cloud's top (studs)
+PetCloud.CLOUD_MAX_SCALE = 1.2 -- a wide pet overhangs its cloud rather than riding a giant one
+PetCloud.CLOUD_SINK = 0.12 -- the slime's foot sinks this far into the cloud's top (studs)
 PetCloud.CLOUD_NAME = "Cloud"
 PetCloud.MOUNT_NAME = "Mount"
 PetCloud.SLIME_NAME = "Slime"
