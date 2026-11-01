@@ -1,0 +1,1090 @@
+[
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 0.4 clears it",
+    "id": "CrusherAlley",
+    "name": "First Slam",
+    "tier": "easy",
+    "variant": 1
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 1.73 clears it",
+    "id": "CrusherAlley",
+    "name": "Slow Trio",
+    "tier": "easy",
+    "variant": 2
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 0 clears it",
+    "id": "CrusherAlley",
+    "name": "Pick a Lane",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 0.33 clears it",
+    "id": "CrusherAlley",
+    "name": "Half Lane",
+    "tier": "easy",
+    "variant": 4
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -4 from t 0.33 clears it",
+    "id": "CrusherAlley",
+    "name": "Big Swing",
+    "tier": "easy",
+    "variant": 5
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 28 of 48 start times (58 %, at most 20 %), first from t 0.33",
+    "id": "CrusherAlley",
+    "name": "Big Swing",
+    "tier": "easy",
+    "variant": 5
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -2 from t 0.77 clears it",
+    "id": "CrusherAlley",
+    "name": "Wall Knock",
+    "tier": "easy",
+    "variant": 6
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 0 clears it from 10 of 48 start times (21 %, at most 20 %), first from t 0.63",
+    "id": "CrusherAlley",
+    "name": "Wall Knock",
+    "tier": "easy",
+    "variant": 6
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 1.37 clears it",
+    "id": "CrusherAlley",
+    "name": "Rare Line-Up",
+    "tier": "medium",
+    "variant": 8
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 2 clears it",
+    "id": "CrusherAlley",
+    "name": "Cross-Punch",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 12 of 48 start times (25 %, at most 20 %), first from t 2",
+    "id": "CrusherAlley",
+    "name": "Cross-Punch",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -4 from t 0.53 clears it",
+    "id": "CrusherAlley",
+    "name": "Low Sweep",
+    "tier": "medium",
+    "variant": 11
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -2 from t 0.67 clears it",
+    "id": "CrusherAlley",
+    "name": "Gauntlet",
+    "tier": "hard",
+    "variant": 16
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 0.13 clears it",
+    "id": "CrusherAlley",
+    "name": "Head-On Wave",
+    "tier": "hard",
+    "variant": 18
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 0 clears it",
+    "id": "MeltingFloor",
+    "name": "Open Field",
+    "tier": "easy",
+    "variant": 4
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -4 from t 0 clears it",
+    "id": "MeltingFloor",
+    "name": "Spreading Melt",
+    "tier": "medium",
+    "variant": 8
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z 0 from t 0 clears it",
+    "id": "MeltingFloor",
+    "name": "Flip-Over",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -4 from t 0 clears it",
+    "id": "MeltingFloor",
+    "name": "Melt Grid A",
+    "tier": "easy",
+    "variant": 17
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 0 clears it",
+    "id": "MeltingFloor",
+    "name": "generator easy",
+    "tier": "easy",
+    "variant": 0
+  },
+  {
+    "check": "masher",
+    "detail": "seed 4: jumping on every landing along z -11 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "MeltingFloor",
+    "name": "generator medium",
+    "tier": "medium",
+    "variant": 0
+  },
+  {
+    "check": "walk",
+    "detail": "seed 5: holding forward along z -11 from t 0 clears it",
+    "id": "MeltingFloor",
+    "name": "generator medium",
+    "tier": "medium",
+    "variant": 0
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 4 clears it from 10 of 48 start times (21 %, at most 20 %), first from t 0",
+    "id": "GooRides",
+    "name": "Side Shuttle",
+    "tier": "easy",
+    "variant": 5
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 13 of 48 start times (27 %, at most 20 %), first from t 1.1",
+    "id": "GooRides",
+    "name": "Stair Lifts",
+    "tier": "easy",
+    "variant": 6
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -6 from t 0 clears it",
+    "id": "BounceChain",
+    "name": "Over the Wall",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z 1 from t 0.97 clears it",
+    "id": "BounceChain",
+    "name": "Sliding Chain",
+    "tier": "hard",
+    "variant": 17
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 12 of 48 start times (25 %, at most 20 %), first from t 0.3",
+    "id": "Updraft",
+    "name": "First Breeze",
+    "tier": "easy",
+    "variant": 1
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 28 of 48 start times (58 %, at most 20 %), first from t 0.07",
+    "id": "Updraft",
+    "name": "Hover Shelf",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -6 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "Updraft",
+    "name": "First Crosswind",
+    "tier": "easy",
+    "variant": 6
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 11 of 48 start times (23 %, at most 20 %), first from t 0",
+    "id": "Updraft",
+    "name": "Blink Column",
+    "tier": "medium",
+    "variant": 7
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -2 clears it from 28 of 48 start times (58 %, at most 20 %), first from t 0",
+    "id": "Updraft",
+    "name": "Relay Fans",
+    "tier": "medium",
+    "variant": 8
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -3 clears it from 12 of 48 start times (25 %, at most 20 %), first from t 0",
+    "id": "Updraft",
+    "name": "Drifting Column",
+    "tier": "medium",
+    "variant": 9
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 23 of 48 start times (48 %, at most 20 %), first from t 1.53",
+    "id": "Updraft",
+    "name": "Crosswind Shelf",
+    "tier": "medium",
+    "variant": 12
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 5 clears it from 10 of 48 start times (21 %, at most 20 %), first from t 0.13",
+    "id": "Updraft",
+    "name": "Spinner Shaft",
+    "tier": "hard",
+    "variant": 14
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 17 of 48 start times (35 %, at most 20 %), first from t 2.2",
+    "id": "Updraft",
+    "name": "Gust Gap",
+    "tier": "hard",
+    "variant": 17
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z 8 from t 0.23 clears it",
+    "id": "IceSlide",
+    "name": "First Slide",
+    "tier": "easy",
+    "variant": 1
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 1 clears it from 23 of 48 start times (48 %, at most 20 %), first from t 0",
+    "id": "IceSlide",
+    "name": "First Slide",
+    "tier": "easy",
+    "variant": 1
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -8 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "IceSlide",
+    "name": "Wide Sweep",
+    "tier": "easy",
+    "variant": 6
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 0 clears it",
+    "id": "IceSlide",
+    "name": "Hairpins",
+    "tier": "medium",
+    "variant": 7
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "IceSlide",
+    "name": "Hairpins",
+    "tier": "medium",
+    "variant": 7
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 23 of 48 start times (48 %, at most 20 %), first from t 0.43",
+    "id": "IceSlide",
+    "name": "Swiss Cheese",
+    "tier": "medium",
+    "variant": 8
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 6 clears it from 23 of 48 start times (48 %, at most 20 %), first from t 0",
+    "id": "IceSlide",
+    "name": "Fork in the Ice",
+    "tier": "medium",
+    "variant": 12
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -8 clears it from 31 of 48 start times (65 %, at most 20 %), first from t 0.1",
+    "id": "IceSlide",
+    "name": "Brake and Go",
+    "tier": "medium",
+    "variant": 13
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -2 clears it from 22 of 48 start times (46 %, at most 20 %), first from t 0",
+    "id": "IceSlide",
+    "name": "Half-Pipe Hop",
+    "tier": "hard",
+    "variant": 14
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -7 clears it from 42 of 48 start times (88 %, at most 20 %), first from t 0",
+    "id": "MerryGoRound",
+    "name": "One Sweep",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 4 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "MerryGoRound",
+    "name": "Wind Up",
+    "tier": "easy",
+    "variant": 6
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -4 from t 1.27 clears it",
+    "id": "MerryGoRound",
+    "name": "Propeller",
+    "tier": "easy",
+    "variant": 7
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 10 of 48 start times (21 %, at most 20 %), first from t 1.37",
+    "id": "MerryGoRound",
+    "name": "Propeller",
+    "tier": "easy",
+    "variant": 7
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -7 clears it from 24 of 48 start times (50 %, at most 20 %), first from t 0.13",
+    "id": "MerryGoRound",
+    "name": "Two Arms",
+    "tier": "medium",
+    "variant": 8
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -1 clears it from 27 of 48 start times (56 %, at most 20 %), first from t 0.3",
+    "id": "MerryGoRound",
+    "name": "Blender",
+    "tier": "hard",
+    "variant": 15
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -5 from t 2.5 clears it",
+    "id": "MerryGoRound",
+    "name": "Clockwork",
+    "tier": "hard",
+    "variant": 17
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "GlowMemory",
+    "name": "Map Behind You",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "walk",
+    "detail": "seed 2: holding forward along z -4 from t 0 clears it",
+    "id": "GlowMemory",
+    "name": "Two Grids, One Look",
+    "tier": "hard",
+    "variant": 12
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "TwoRoads",
+    "name": "One Big Jump",
+    "tier": "easy",
+    "variant": 1
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "TwoRoads",
+    "name": "Over the Hill",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 26 of 48 start times (54 %, at most 20 %), first from t 0",
+    "id": "TwoRoads",
+    "name": "Safety Net",
+    "tier": "easy",
+    "variant": 4
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -1 clears it from 22 of 48 start times (46 %, at most 20 %), first from t 0.5",
+    "id": "TwoRoads",
+    "name": "Beam or Bridge",
+    "tier": "easy",
+    "variant": 5
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "TwoRoads",
+    "name": "Spring Shortcut",
+    "tier": "easy",
+    "variant": 6
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -1 from t 0 clears it",
+    "id": "TwoRoads",
+    "name": "Closing Gate",
+    "tier": "medium",
+    "variant": 8
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -1 clears it from 35 of 48 start times (73 %, at most 20 %), first from t 0",
+    "id": "TwoRoads",
+    "name": "Closing Gate",
+    "tier": "medium",
+    "variant": 8
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "TwoRoads",
+    "name": "Secret Ledge",
+    "tier": "medium",
+    "variant": 9
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 24 of 48 start times (50 %, at most 20 %), first from t 0",
+    "id": "TwoRoads",
+    "name": "Three Floors",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 1.63 clears it",
+    "id": "TwoRoads",
+    "name": "Wait or Walk",
+    "tier": "medium",
+    "variant": 11
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "TwoRoads",
+    "name": "Low Roof",
+    "tier": "medium",
+    "variant": 13
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -9 from t 0 clears it",
+    "id": "TwoRoads",
+    "name": "Boost Gap",
+    "tier": "medium",
+    "variant": 14
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 1 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "TwoRoads",
+    "name": "Boost Gap",
+    "tier": "medium",
+    "variant": 14
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 19 of 48 start times (40 %, at most 20 %), first from t 0.2",
+    "id": "TwoRoads",
+    "name": "Island Hop or Ledge",
+    "tier": "hard",
+    "variant": 15
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 32 of 48 start times (67 %, at most 20 %), first from t 0",
+    "id": "TwoRoads",
+    "name": "Three Roads, No Easy One",
+    "tier": "hard",
+    "variant": 19
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -6 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "RisingGoo",
+    "name": "Low Tide",
+    "tier": "easy",
+    "variant": 2
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -10 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "RisingGoo",
+    "name": "Zigzag Shaft",
+    "tier": "medium",
+    "variant": 8
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "RisingGoo",
+    "name": "Ladder Dash",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -9 clears it from 13 of 48 start times (27 %, at most 20 %), first from t 1.2",
+    "id": "RisingGoo",
+    "name": "Sliding Ledges",
+    "tier": "medium",
+    "variant": 12
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -6 from t 0 clears it",
+    "id": "RisingGoo",
+    "name": "Flooding Basin",
+    "tier": "medium",
+    "variant": 13
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "RisingGoo",
+    "name": "Surge Ladders",
+    "tier": "hard",
+    "variant": 19
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -4 from t 1.97 clears it",
+    "id": "RollingBlobs",
+    "name": "Wall Pockets",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 18 of 48 start times (38 %, at most 20 %), first from t 1.03",
+    "id": "RollingBlobs",
+    "name": "Wall Pockets",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z 0 from t 0.3 clears it",
+    "id": "RollingBlobs",
+    "name": "Two Lanes Swap",
+    "tier": "easy",
+    "variant": 4
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 2.77 clears it",
+    "id": "RollingBlobs",
+    "name": "Slow Giants",
+    "tier": "easy",
+    "variant": 5
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 15 of 48 start times (31 %, at most 20 %), first from t 2.77",
+    "id": "RollingBlobs",
+    "name": "Slow Giants",
+    "tier": "easy",
+    "variant": 5
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -8 clears it from 22 of 48 start times (46 %, at most 20 %), first from t 0",
+    "id": "RollingBlobs",
+    "name": "Burst and Lull",
+    "tier": "easy",
+    "variant": 6
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 0 clears it",
+    "id": "RollingBlobs",
+    "name": "Bouncers",
+    "tier": "medium",
+    "variant": 7
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z 3 from t 9.67 clears it",
+    "id": "RollingBlobs",
+    "name": "Big and Small",
+    "tier": "medium",
+    "variant": 9
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -5 from t 2.83 clears it",
+    "id": "RollingBlobs",
+    "name": "Road Crossing",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 1 clears it from 11 of 48 start times (23 %, at most 20 %), first from t 0.4",
+    "id": "RollingBlobs",
+    "name": "Road Crossing",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 0.23 clears it",
+    "id": "RollingBlobs",
+    "name": "Zigzag Grooves",
+    "tier": "medium",
+    "variant": 13
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 20 of 48 start times (42 %, at most 20 %), first from t 0",
+    "id": "RollingBlobs",
+    "name": "Zigzag Grooves",
+    "tier": "medium",
+    "variant": 13
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 1.87 clears it",
+    "id": "RollingBlobs",
+    "name": "Full Sweep",
+    "tier": "hard",
+    "variant": 15
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -11 from t 1.77 clears it",
+    "id": "RollingBlobs",
+    "name": "Storm Ramp",
+    "tier": "hard",
+    "variant": 17
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -6 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "SpeedStrip",
+    "name": "First Boost",
+    "tier": "easy",
+    "variant": 1
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -6 clears it from 23 of 48 start times (48 %, at most 20 %), first from t 0",
+    "id": "SpeedStrip",
+    "name": "Up a Step",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "SpeedStrip",
+    "name": "Stay in the Yellow",
+    "tier": "easy",
+    "variant": 4
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -6 clears it from 14 of 48 start times (29 %, at most 20 %), first from t 0.17",
+    "id": "SpeedStrip",
+    "name": "Carry the Speed",
+    "tier": "medium",
+    "variant": 8
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -5 clears it from 16 of 48 start times (33 %, at most 20 %), first from t 0.47",
+    "id": "SpeedStrip",
+    "name": "Stepping Boosts",
+    "tier": "medium",
+    "variant": 9
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -6 clears it from 16 of 48 start times (33 %, at most 20 %), first from t 1.47",
+    "id": "SpeedStrip",
+    "name": "Hurdles",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -6 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "SpeedStrip",
+    "name": "No Second Try",
+    "tier": "medium",
+    "variant": 12
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -6 from t 0.67 clears it",
+    "id": "GeyserField",
+    "name": "Third Time",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -4 from t 1.27 clears it",
+    "id": "GeyserField",
+    "name": "Spout Catch",
+    "tier": "medium",
+    "variant": 11
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -7 from t 2 clears it",
+    "id": "GeyserField",
+    "name": "Summit Spouts",
+    "tier": "hard",
+    "variant": 15
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -4 from t 1.7 clears it",
+    "id": "GeyserField",
+    "name": "Pit Spouts",
+    "tier": "hard",
+    "variant": 16
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 16 of 48 start times (33 %, at most 20 %), first from t 1.7",
+    "id": "GeyserField",
+    "name": "Pit Spouts",
+    "tier": "hard",
+    "variant": 16
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -6 from t 0 clears it",
+    "id": "StickyWalls",
+    "name": "Sticky Brakes",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 3 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "StickyWalls",
+    "name": "Sticky Brakes",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 3 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "StickyWalls",
+    "name": "Fast Slide",
+    "tier": "medium",
+    "variant": 8
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -9 from t 0 clears it",
+    "id": "StickyWalls",
+    "name": "Pick Your Height",
+    "tier": "medium",
+    "variant": 9
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 4 clears it from 13 of 48 start times (27 %, at most 20 %), first from t 0.37",
+    "id": "StickyWalls",
+    "name": "Breathing Wall",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -9 from t 0 clears it",
+    "id": "StickyWalls",
+    "name": "Moving Window",
+    "tier": "hard",
+    "variant": 16
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -3 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Follow the Flow",
+    "tier": "easy",
+    "variant": 1
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Rest Stops",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 3 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Loop Back",
+    "tier": "easy",
+    "variant": 5
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -3 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Edge Dumpers",
+    "tier": "medium",
+    "variant": 7
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -10 clears it from 23 of 48 start times (48 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Turn Signal",
+    "tier": "medium",
+    "variant": 9
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -3 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Belt Stairs",
+    "tier": "medium",
+    "variant": 10
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 0 clears it from 18 of 48 start times (38 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Fast Lane Gauntlet",
+    "tier": "hard",
+    "variant": 14
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 5 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Seed A: Two Picks",
+    "tier": "easy",
+    "variant": 15
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -8 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Seed B: Long Carry",
+    "tier": "easy",
+    "variant": 16
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z 4 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Seed C: Three Picks",
+    "tier": "medium",
+    "variant": 17
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -2 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Seed D: One Turner",
+    "tier": "medium",
+    "variant": 18
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "Seed F: Snake",
+    "tier": "hard",
+    "variant": 19
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 22 of 48 start times (46 %, at most 20 %), first from t 1.63",
+    "id": "ArrowMaze",
+    "name": "Seed G: Timed Pair",
+    "tier": "hard",
+    "variant": 20
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
+    "id": "ArrowMaze",
+    "name": "generator easy",
+    "tier": "easy",
+    "variant": 0
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -4 clears it from 13 of 48 start times (27 %, at most 20 %), first from t 0.67",
+    "id": "ArrowMaze",
+    "name": "generator medium",
+    "tier": "medium",
+    "variant": 0
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 18 of 48 start times (38 %, at most 20 %), first from t 0.07",
+    "id": "ArrowMaze",
+    "name": "generator hard",
+    "tier": "hard",
+    "variant": 0
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -5 from t 0 clears it",
+    "id": "CollapsingBridge",
+    "name": "First Crumble",
+    "tier": "easy",
+    "variant": 1
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -5 from t 0 clears it",
+    "id": "CollapsingBridge",
+    "name": "Catch Your Breath",
+    "tier": "easy",
+    "variant": 3
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z 0 from t 0 clears it",
+    "id": "CollapsingBridge",
+    "name": "Big Chunks",
+    "tier": "easy",
+    "variant": 5
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z 0 from t 0 clears it",
+    "id": "CollapsingBridge",
+    "name": "Two Halves",
+    "tier": "easy",
+    "variant": 6
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -5 from t 0 clears it",
+    "id": "CollapsingBridge",
+    "name": "Speeding Up",
+    "tier": "medium",
+    "variant": 7
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -5 from t 0 clears it",
+    "id": "CollapsingBridge",
+    "name": "Two Breathers",
+    "tier": "medium",
+    "variant": 11
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -5 from t 0 clears it",
+    "id": "CollapsingBridge",
+    "name": "Split Bridge",
+    "tier": "medium",
+    "variant": 14
+  },
+  {
+    "check": "walk",
+    "detail": "seed 1: holding forward along z -5 from t 0 clears it",
+    "id": "CollapsingBridge",
+    "name": "Sprint",
+    "tier": "hard",
+    "variant": 15
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -11 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "SlidingMaze",
+    "name": "Lookout Maze",
+    "tier": "easy",
+    "variant": 4
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -5 clears it from 17 of 48 start times (35 %, at most 20 %), first from t 0.5",
+    "id": "MoonJump",
+    "name": "Over and Back",
+    "tier": "medium",
+    "variant": 7
+  },
+  {
+    "check": "masher",
+    "detail": "seed 1: jumping on every landing along z -5 clears it from 21 of 48 start times (44 %, at most 20 %), first from t 0",
+    "id": "MoonJump",
+    "name": "Last Leap",
+    "tier": "hard",
+    "variant": 16
+  },
+  {
+    "check": "masher",
+    "detail": "seed 2: jumping on every landing along z -2 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "ClueDoors",
+    "name": "Blink Board",
+    "tier": "medium",
+    "variant": 11
+  },
+  {
+    "check": "masher",
+    "detail": "seed 3: jumping on every landing along z -2 clears it from 20 of 48 start times (42 %, at most 20 %), first from t 0",
+    "id": "ClueDoors",
+    "name": "Closing Doors",
+    "tier": "hard",
+    "variant": 15
+  },
+  {
+    "check": "masher",
+    "detail": "seed 3: jumping on every landing along z -5 clears it from 48 of 48 start times (100 %, at most 20 %), first from t 0",
+    "id": "ClueDoors",
+    "name": "generator easy",
+    "tier": "easy",
+    "variant": 0
+  },
+  {
+    "check": "masher",
+    "detail": "seed 5: jumping on every landing along z -2 clears it from 14 of 48 start times (29 %, at most 20 %), first from t 0.5",
+    "id": "ClueDoors",
+    "name": "generator medium",
+    "tier": "medium",
+    "variant": 0
+  }
+]

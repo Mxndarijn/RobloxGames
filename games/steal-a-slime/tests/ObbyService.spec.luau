@@ -209,7 +209,7 @@ describe("ObbyService runs", function()
 		expect(session.obbyRun.section).toBe(2)
 		expect(session.obbyRun.startedAt).toBe(T)
 		local fell = analytics(world, "ObbyFell")
-		expect(fell[#fell].fields[1]).toBe(`Section - {ObbyCourse.NAMES[world.obby.picks[2].id]}`)
+		expect(fell[#fell].fields[1]).toBe(`Section - {ObbyCourse.nameOf(world.obby.picks[2].id)}`)
 		-- Back over sections 1 and 2, then on: the run is still valid and earns the boost.
 		local now = T + 18 + OBBY.MOVE_GRACE
 		ObbyService.step(world, PLACE, at(onPad(world, 0)), now)
@@ -244,7 +244,7 @@ describe("ObbyService runs", function()
 		expect(session.obbyRun.startedAt).toBe(T)
 		local fell = analytics(world, "ObbyFell")
 		expect(#fell).toBe(1)
-		expect(fell[1].fields[1]).toBe(`Section - {ObbyCourse.NAMES[world.obby.picks[3].id]}`)
+		expect(fell[1].fields[1]).toBe(`Section - {ObbyCourse.nameOf(world.obby.picks[3].id)}`)
 		-- Walking back onto the start pad is not a reset.
 		local walk = ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 20)
 		expect(#walk.resets).toBe(0)

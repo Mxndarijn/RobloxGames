@@ -1,0 +1,1707 @@
+{
+  "ideas": [
+    {
+      "id": 24,
+      "name": "Collapsing Bridge",
+      "approach": "handmade",
+      "approachWhy": "The whole idea is one number (how fast the collapse chases you) set against the bridge's shape, and every layout has to be checked so a normal runner who jumps every gap still stays ahead. That check is easy by hand per layout, and 18 shapes cover the idea. Climbing chases were left to Rising Goo (idea 12), so this bridge stays mostly level: the chase comes from behind, not from below.",
+      "engine": {
+        "have": [
+          "motion kind 'melt': a part fades and drops away, then comes back after 'away' seconds",
+          "'step' parts in walking order, with tests for gap (at most 6) and rise (at most 3.5) at rest",
+          "fall or hazard touch sends you back to the start pad; course built per client, so each runner sees their own collapse",
+          "red see-through hazard parts, jelly connectors at both ends"
+        ],
+        "new": [
+          {
+            "what": "Motion kind 'collapse': each piece cracks, then drops at headStart + (its distance along the path) / speed, counted from the 'section entry clock' (idea 11; the same per-player step trigger as ideas 3, 10, 12 and 25, built once). Speed can be a curve (start speed, end speed), the same curve format as Rising Goo's flood (idea 12). Not the same as 'melt': pieces fall on a wave behind you, not when you touch them",
+            "size": "M"
+          },
+          {
+            "what": "Crack look: reuse Melting Floor's shared crack / melt warning look (idea 2, ObbyFx), shown on the piece about 0.8 s before it drops. New here only: a low rumble that gets louder as the wave front nears you, and a crunch plus dust puff when a piece falls",
+            "size": "S"
+          },
+          {
+            "what": "Rest island: a grey stone pad with a glowing ring (same look as Rising Goo's rest ledges, idea 12) that pauses the wave while you stand on it, for at most N seconds as the ring drains; the wave goes on when you step off or the ring runs out",
+            "size": "S"
+          },
+          {
+            "what": "Bridge resets for you when you go back to the start pad (all pieces back, clock cleared); the same reset Melting Floor's 'gone until start pad' tiles use (idea 2)",
+            "size": "S"
+          },
+          {
+            "what": "Path distance for bends and forks: the wave follows the walking path (sum of step distances), per branch on a fork, so turns, S-bends and split bridges fall in the right order. Optional side offset so one half of a wide bridge can fall a little earlier (Two Halves)",
+            "size": "S"
+          },
+          {
+            "what": "Boost planks (Boost Plank, Boost or Bust): reuse Speed Strip's client boost controller, chevron look and boost test rule (idea 16); nothing new",
+            "size": "S"
+          },
+          {
+            "what": "Hazard puddles (Goo Spots): the shared 'hazard touch = back to the start pad' from Crusher Alley (idea 1)",
+            "size": "S"
+          },
+          {
+            "what": "Runner test: for every layout, a runner at 16 studs/s (or the boost speed on boost planks) who loses 0.15 s per jump and 0.3 s per turn must stay at least 1 s ahead of the wave at every piece, on every branch. Crusher Alley (1) and Rising Goo (12) reuse this runner",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "The bridge is plank wood with a big crack line painted on the first plank, and as soon as you step on, you hear a rumble and see pieces behind you darken, crack and drop. Rest islands are grey stone with a green ring, so they read as safe.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "First Crumble",
+          "tier": "easy",
+          "does": "A flat, straight bridge with no gaps: just learn that it falls behind you and keep walking forward.",
+          "numbers": "60 studs, 10 planks 6 long x 10 wide, wave 8 studs/s, 2 s head start",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              72,
+              22,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              24,
+              64,
+              22,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              48,
+              56,
+              22,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              72,
+              56,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              96,
+              56,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              56,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              144,
+              56,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              168,
+              56,
+              22,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              192,
+              56,
+              28,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M10 44 H64"
+            ],
+            [
+              "you",
+              100,
+              56
+            ],
+            [
+              "t",
+              4,
+              18,
+              "8 studs/s"
+            ]
+          ]
+        },
+        {
+          "name": "Little Hops",
+          "tier": "easy",
+          "does": "The same slow wave, but the planks have small gaps, so you learn to jump without stopping.",
+          "numbers": "64 studs, 8 planks 6 long, 2.5 stud gaps, wave 8 studs/s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              20,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              28,
+              56,
+              20,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              56,
+              56,
+              20,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              84,
+              56,
+              20,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              112,
+              56,
+              20,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              140,
+              56,
+              20,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              168,
+              56,
+              20,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              196,
+              56,
+              24,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M66 50 Q80 34 92 50"
+            ],
+            [
+              "you",
+              66,
+              56
+            ]
+          ]
+        },
+        {
+          "name": "Catch Your Breath",
+          "tier": "easy",
+          "does": "A stone rest island halfway pauses the wave for up to 4 seconds, so you can look at the second half before you run it.",
+          "numbers": "70 studs, 2 x 5 planks, rest island 10x10, pause 4 s, wave 8 studs/s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              18,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              20,
+              70,
+              18,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              40,
+              56,
+              18,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              64,
+              54,
+              34,
+              10,
+              "pl"
+            ],
+            [
+              "c",
+              81,
+              48,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              104,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              124,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              144,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              164,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              184,
+              56,
+              36,
+              6,
+              "pl"
+            ],
+            [
+              "you",
+              81,
+              54
+            ],
+            [
+              "t",
+              66,
+              20,
+              "safe 4 s"
+            ]
+          ]
+        },
+        {
+          "name": "Corner",
+          "tier": "easy",
+          "does": "One wide right-angle turn: the collapse follows you round the bend, so you can't cut the corner and you can't stop at it.",
+          "numbers": "2 legs of 30 studs, 10 wide, one 90 degree turn, wave 8 studs/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              10,
+              30,
+              22,
+              "gh"
+            ],
+            [
+              "r",
+              32,
+              10,
+              30,
+              22,
+              "dk"
+            ],
+            [
+              "r",
+              64,
+              10,
+              30,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              96,
+              10,
+              30,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              128,
+              10,
+              30,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              136,
+              34,
+              22,
+              26,
+              "pl"
+            ],
+            [
+              "r",
+              136,
+              62,
+              22,
+              30,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              70,
+              60,
+              22,
+              "pl"
+            ],
+            [
+              "a",
+              "M20 21 H110 Q147 21 147 60"
+            ],
+            [
+              "you",
+              110,
+              21
+            ]
+          ]
+        },
+        {
+          "name": "Big Chunks",
+          "tier": "easy",
+          "does": "Only four long slabs that each drop as one big chunk with a loud crash, so the danger is easy to see and hear.",
+          "numbers": "4 slabs 14 long x 12 wide, 3 stud gaps, wave 7 studs/s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              78,
+              48,
+              8,
+              "gh"
+            ],
+            [
+              "r",
+              56,
+              56,
+              48,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              112,
+              56,
+              48,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              168,
+              56,
+              52,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M24 66 V84"
+            ],
+            [
+              "you",
+              92,
+              56
+            ],
+            [
+              "t",
+              4,
+              20,
+              "4 big slabs"
+            ]
+          ]
+        },
+        {
+          "name": "Two Halves",
+          "tier": "easy",
+          "does": "The bridge is two side-by-side halves and the left half falls a little sooner, so you learn to read the cracks and drift to the right half.",
+          "numbers": "60 studs, 2 rows of 8 planks each 12 wide, left row 1 s ahead, wave 8 studs/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              14,
+              26,
+              32,
+              "gh"
+            ],
+            [
+              "r",
+              28,
+              14,
+              26,
+              32,
+              "gh"
+            ],
+            [
+              "r",
+              56,
+              14,
+              26,
+              32,
+              "dk"
+            ],
+            [
+              "r",
+              84,
+              14,
+              26,
+              32,
+              "pl"
+            ],
+            [
+              "r",
+              112,
+              14,
+              26,
+              32,
+              "pl"
+            ],
+            [
+              "r",
+              140,
+              14,
+              26,
+              32,
+              "pl"
+            ],
+            [
+              "r",
+              168,
+              14,
+              52,
+              32,
+              "pl"
+            ],
+            [
+              "r",
+              0,
+              50,
+              26,
+              32,
+              "gh"
+            ],
+            [
+              "r",
+              28,
+              50,
+              26,
+              32,
+              "dk"
+            ],
+            [
+              "r",
+              56,
+              50,
+              26,
+              32,
+              "pl"
+            ],
+            [
+              "r",
+              84,
+              50,
+              26,
+              32,
+              "pl"
+            ],
+            [
+              "r",
+              112,
+              50,
+              108,
+              32,
+              "pl"
+            ],
+            [
+              "a",
+              "M50 30 Q70 30 90 66"
+            ],
+            [
+              "you",
+              90,
+              66
+            ],
+            [
+              "t",
+              150,
+              8,
+              "left falls first"
+            ]
+          ]
+        },
+        {
+          "name": "Speeding Up",
+          "tier": "medium",
+          "does": "The wave starts slow and gets faster as it goes, so a calm start turns into a sprint at the end.",
+          "numbers": "80 studs, 12 planks, 2.5 stud gaps, wave 8 rising to 13 studs/s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              16,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              18,
+              56,
+              16,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              40,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              62,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              84,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              106,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              128,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              150,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              172,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              194,
+              56,
+              26,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M10 46 H40"
+            ],
+            [
+              "a",
+              "M60 40 H160"
+            ],
+            [
+              "you",
+              70,
+              56
+            ],
+            [
+              "t",
+              140,
+              20,
+              "8 > 13/s"
+            ]
+          ]
+        },
+        {
+          "name": "S-Bend",
+          "tier": "medium",
+          "does": "The bridge snakes left and right with three turns, so you steer while you run and the wave never lets you slow down.",
+          "numbers": "75 studs of path, 10 wide, 3 turns, wave 10 studs/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              8,
+              50,
+              20,
+              "gh"
+            ],
+            [
+              "r",
+              40,
+              8,
+              20,
+              44,
+              "dk"
+            ],
+            [
+              "r",
+              40,
+              40,
+              70,
+              20,
+              "pl"
+            ],
+            [
+              "r",
+              100,
+              8,
+              20,
+              52,
+              "pl"
+            ],
+            [
+              "r",
+              100,
+              8,
+              70,
+              20,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              8,
+              20,
+              84,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              72,
+              60,
+              20,
+              "pl"
+            ],
+            [
+              "a",
+              "M10 18 H50 V50 H110 V18 H170 V82 H210"
+            ],
+            [
+              "you",
+              80,
+              50
+            ]
+          ]
+        },
+        {
+          "name": "Downhill Drops",
+          "tier": "medium",
+          "does": "The bridge drops down in big ledges; falling is fast, so the wave is faster too and you must land and go at once.",
+          "numbers": "70 studs, 7 ledges each 3 lower, 3 stud gaps, wave 11 studs/s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              30,
+              26,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              30,
+              22,
+              26,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              62,
+              38,
+              26,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              94,
+              50,
+              26,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              126,
+              62,
+              26,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              158,
+              74,
+              26,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              190,
+              84,
+              30,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M76 32 Q96 30 104 48"
+            ],
+            [
+              "you",
+              76,
+              38
+            ]
+          ]
+        },
+        {
+          "name": "Goo Spots",
+          "tier": "medium",
+          "does": "Some planks carry a small red goo puddle, so you hop over it in-stride instead of just running straight.",
+          "numbers": "72 studs, 12 planks, 3 goo puddles 4x4 off-centre, wave 10 studs/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              30,
+              30,
+              36,
+              "gh"
+            ],
+            [
+              "r",
+              32,
+              30,
+              30,
+              36,
+              "dk"
+            ],
+            [
+              "r",
+              64,
+              30,
+              30,
+              36,
+              "pl"
+            ],
+            [
+              "r",
+              96,
+              30,
+              30,
+              36,
+              "pl"
+            ],
+            [
+              "r",
+              128,
+              30,
+              30,
+              36,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              30,
+              30,
+              36,
+              "pl"
+            ],
+            [
+              "r",
+              192,
+              30,
+              28,
+              36,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              34,
+              14,
+              14,
+              "hz"
+            ],
+            [
+              "r",
+              136,
+              48,
+              14,
+              14,
+              "hz"
+            ],
+            [
+              "r",
+              196,
+              34,
+              14,
+              14,
+              "hz"
+            ],
+            [
+              "a",
+              "M40 48 Q60 56 90 56 Q120 40 150 40"
+            ],
+            [
+              "you",
+              40,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Two Breathers",
+          "tier": "medium",
+          "does": "Three runs split by two rest islands, and the wave restarts faster after each one, so every leg is harder than the last.",
+          "numbers": "90 studs, 3 legs of 4 planks, 2 islands (3 s each), wave 9 then 11 then 13 studs/s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              14,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              16,
+              74,
+              14,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              34,
+              54,
+              26,
+              10,
+              "pl"
+            ],
+            [
+              "c",
+              47,
+              48,
+              5,
+              "gl"
+            ],
+            [
+              "r",
+              64,
+              56,
+              14,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              80,
+              56,
+              14,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              96,
+              56,
+              14,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              114,
+              54,
+              26,
+              10,
+              "pl"
+            ],
+            [
+              "c",
+              127,
+              48,
+              5,
+              "gl"
+            ],
+            [
+              "r",
+              144,
+              56,
+              14,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              56,
+              14,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              176,
+              56,
+              44,
+              6,
+              "pl"
+            ],
+            [
+              "you",
+              84,
+              56
+            ],
+            [
+              "t",
+              60,
+              20,
+              "9 > 11 > 13"
+            ]
+          ]
+        },
+        {
+          "name": "Long Leaps",
+          "tier": "medium",
+          "does": "Few planks with wide gaps: each jump is near your limit, and a short jump means the wave takes you.",
+          "numbers": "60 studs, 6 planks 6 long, 5 stud gaps, wave 10 studs/s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              76,
+              20,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              38,
+              56,
+              20,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              76,
+              56,
+              20,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              114,
+              56,
+              20,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              152,
+              56,
+              20,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              190,
+              56,
+              30,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M90 50 Q104 30 118 50"
+            ],
+            [
+              "you",
+              90,
+              56
+            ],
+            [
+              "t",
+              100,
+              82,
+              "5 stud gaps"
+            ]
+          ]
+        },
+        {
+          "name": "Boost Plank",
+          "tier": "medium",
+          "does": "Halfway the wave speeds up past your walk speed, but a yellow boost plank lets you pull ahead just in time for a long gap.",
+          "numbers": "75 studs, 10 planks, wave 9 then 18 studs/s after plank 6, boost to 26 for 2 s, last gap 9 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              18,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              22,
+              56,
+              18,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              44,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              66,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              88,
+              56,
+              36,
+              6,
+              "yl"
+            ],
+            [
+              "r",
+              128,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              186,
+              56,
+              34,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M30 46 H70"
+            ],
+            [
+              "a",
+              "M136 48 Q160 26 192 48"
+            ],
+            [
+              "you",
+              100,
+              56
+            ],
+            [
+              "t",
+              90,
+              20,
+              "boost"
+            ]
+          ]
+        },
+        {
+          "name": "Split Bridge",
+          "tier": "medium",
+          "does": "The bridge forks: the short branch has long leaps, the long branch has easy hops, and the wave follows whichever one you take.",
+          "numbers": "80 studs, fork after 20, short branch 3 planks with 5 stud gaps, long branch 7 planks, wave 10 studs/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              38,
+              22,
+              22,
+              "gh"
+            ],
+            [
+              "r",
+              24,
+              38,
+              22,
+              22,
+              "dk"
+            ],
+            [
+              "r",
+              48,
+              38,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              90,
+              8,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              134,
+              8,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              76,
+              66,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              100,
+              66,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              124,
+              66,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              148,
+              66,
+              22,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              176,
+              38,
+              44,
+              22,
+              "pl"
+            ],
+            [
+              "a",
+              "M60 49 Q80 19 100 19 H190 V40"
+            ],
+            [
+              "a",
+              "M60 49 Q70 77 90 77 H185 V60"
+            ],
+            [
+              "you",
+              60,
+              49
+            ]
+          ]
+        },
+        {
+          "name": "Sprint",
+          "tier": "hard",
+          "does": "A long bridge with a fast wave and no rest: any pause or miss-timed jump and it catches you.",
+          "numbers": "90 studs, 14 planks, 3 stud gaps, wave 13 studs/s, 1 s head start",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              76,
+              12,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              16,
+              70,
+              12,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              32,
+              56,
+              12,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              48,
+              56,
+              12,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              64,
+              56,
+              12,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              56,
+              12,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              96,
+              56,
+              12,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              112,
+              56,
+              12,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              128,
+              56,
+              12,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              144,
+              56,
+              12,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              56,
+              12,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              176,
+              56,
+              44,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M20 44 H60"
+            ],
+            [
+              "you",
+              68,
+              56
+            ]
+          ]
+        },
+        {
+          "name": "Holes Ahead",
+          "tier": "hard",
+          "does": "Besides the wave behind you, three planks ahead crack and drop early on a fixed timer (not when you touch them), so you read cracks in front and jump the new holes.",
+          "numbers": "80 studs, 12 planks, 3 early drops (1 s of cracks first), wave 11 studs/s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              76,
+              16,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              20,
+              56,
+              16,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              40,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              70,
+              16,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              100,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              140,
+              56,
+              16,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              160,
+              56,
+              16,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              180,
+              56,
+              40,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M66 50 Q86 32 106 50"
+            ],
+            [
+              "you",
+              64,
+              56
+            ],
+            [
+              "t",
+              128,
+              20,
+              "cracks ahead"
+            ]
+          ]
+        },
+        {
+          "name": "Final Dash",
+          "tier": "hard",
+          "does": "Starts calm, then the wave speeds up hard over the last third and the bridge ends in a full-length jump to the finish ledge.",
+          "numbers": "85 studs, 12 planks, wave 9 rising to 14 studs/s, last gap 6 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              18,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              22,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              66,
+              56,
+              18,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              88,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              110,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              132,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              154,
+              56,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              194,
+              52,
+              26,
+              10,
+              "pl"
+            ],
+            [
+              "a",
+              "M164 48 Q180 30 200 48"
+            ],
+            [
+              "you",
+              116,
+              56
+            ],
+            [
+              "t",
+              140,
+              20,
+              "9 > 14/s"
+            ]
+          ]
+        },
+        {
+          "name": "Boost or Bust",
+          "tier": "hard",
+          "does": "The wave is faster than you can walk, so you only stay ahead by landing on every yellow boost plank and keeping the speed through the gaps between them.",
+          "numbers": "80 studs, 4 boost planks 10 long, 4 stud gaps, wave 19 studs/s, boost to 24 for 1.5 s",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              20,
+              6,
+              "gh"
+            ],
+            [
+              "r",
+              24,
+              56,
+              30,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              62,
+              56,
+              30,
+              6,
+              "yl"
+            ],
+            [
+              "r",
+              100,
+              56,
+              30,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              138,
+              56,
+              30,
+              6,
+              "yl"
+            ],
+            [
+              "r",
+              176,
+              56,
+              44,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M10 44 H80"
+            ],
+            [
+              "a",
+              "M84 50 Q96 34 108 50"
+            ],
+            [
+              "you",
+              84,
+              56
+            ],
+            [
+              "t",
+              130,
+              20,
+              "wave 19/s"
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

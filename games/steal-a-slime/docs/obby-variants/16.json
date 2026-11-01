@@ -1,0 +1,1048 @@
+{
+ "ideas": [
+  {
+   "id": 16,
+   "name": "Speed Strip",
+   "approach": "handmade",
+   "approachWhy": "The idea is one clear move (run the strip, leap the gap) and every gap must be checked against the boosted jump, so a small hand-made set is safer and easier to test than a generator. Variants differ in what you do before the jump, not in random lengths.",
+   "engine": {
+    "have": [
+     "Belt part and conveyor surface speed (GooConveyor)",
+     "slide motion for a moving landing pad",
+     "gap and rise checks in ObbyCourse.spec (8.7 stud walking jump, GAP_MAX 6)",
+     "red goo hazard look and reset on touch"
+    ],
+    "new": [
+     {
+      "what": "Client boost controller: on a boost part, raise the local WalkSpeed to `power`, hold it `carry` s after you leave, then ease back to 16; a back strip lowers it to 10. A conveyor alone will not do: the character loses belt speed the moment it leaves the ground. Only new system this idea owns.",
+      "size": "M"
+     },
+     {
+      "what": "Boost look: reuse Arrow Maze's (#23) 'scrolling yellow chevron texture' on every boost strip (back strips scroll toward you), plus a whoosh, speed lines and a small view widen while fast",
+      "size": "S"
+     },
+     {
+      "what": "Boosted jump test: one shared 'launch reach' check with Ice Slide's (#6) slide-jump test and Bounce Chain's (#4) launchReaches(): each boosted gap must be over 8.7 studs (so it needs the boost) and within 80% of the boosted reach (speed 30 reaches about 16 studs, so gaps up to 13)",
+      "size": "S"
+     },
+     {
+      "what": "Blink Boost: reuse Glow Memory's (#10) 'Glow-only motion' (strip stays solid, glow on a timer) with the boost switched by the same timer, and the Beat Pads (#18) 'client beat clock' tick",
+      "size": "S"
+     },
+     {
+      "what": "Downhill Dash: reuse Ice Slide's (#6) 'Slope pieces' / Rolling Blobs' (#14) 'ramps' (one tilted-slab support, not a second one)",
+      "size": "S"
+     },
+     {
+      "what": "No Second Try: reuse Melting Floor's (#2) melt trigger 'melt when you leave (Burnt Bridge)' on the runway tiles",
+      "size": "S"
+     }
+    ]
+   },
+   "readability": "Yellow strips with chevrons that scroll the way they push you (the same chevron texture as Arrow Maze belts, but these sit flat on solid floor and make you fast, not pushed), plus a whoosh, speed lines and a wider view while you are fast. Back strips have chevrons pointing at you and a low slow-down sound.",
+   "generator": null,
+   "variants": [
+    {
+     "name": "First Boost",
+     "tier": "easy",
+     "does": "One long yellow strip, then one gap you can only clear with its speed.",
+     "numbers": "strip 24 studs, boost 30, gap 11, landing 12 deep",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       66,
+       100,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       10,
+       62,
+       86,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M20 56 H88"
+      ],
+      [
+       "a",
+       "M100 60 Q130 36 158 60"
+      ],
+      [
+       "r",
+       156,
+       66,
+       64,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       8,
+       62
+      ],
+      [
+       "t",
+       116,
+       88,
+       "gap 11"
+      ]
+     ]
+    },
+    {
+     "name": "Downhill Dash",
+     "tier": "easy",
+     "does": "The strip runs down a gentle slope and the landing sits lower, so you get extra air time.",
+     "numbers": "strip 20 studs at 8 deg down, boost 30, gap 12, landing 3 lower",
+     "view": "side",
+     "sketch": [
+      [
+       "p",
+       "M0 50 L96 62 L96 70 L0 58 Z",
+       "pl"
+      ],
+      [
+       "p",
+       "M8 47 L92 58 L92 62 L8 51 Z",
+       "yl"
+      ],
+      [
+       "a",
+       "M20 44 L86 52"
+      ],
+      [
+       "a",
+       "M98 56 Q132 40 166 72"
+      ],
+      [
+       "r",
+       160,
+       76,
+       60,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       6,
+       50
+      ]
+     ]
+    },
+    {
+     "name": "Up a Step",
+     "tier": "easy",
+     "does": "The landing is 2.5 studs higher: boost, jump at the very edge and climb onto it.",
+     "numbers": "strip 22 studs, boost 30, gap 10, rise 2.5",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       70,
+       96,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       8,
+       66,
+       84,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M18 60 H86"
+      ],
+      [
+       "a",
+       "M98 64 Q126 32 156 56"
+      ],
+      [
+       "r",
+       152,
+       60,
+       68,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       6,
+       66
+      ],
+      [
+       "t",
+       156,
+       80,
+       "+2.5"
+      ]
+     ]
+    },
+    {
+     "name": "Stay in the Yellow",
+     "tier": "easy",
+     "does": "A wide floor with only a middle stripe of boost: wander off it and you arrive too slow.",
+     "numbers": "floor 24 wide, strip 8 wide x 24 long, boost 30, gap 11",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       0,
+       24,
+       100,
+       48,
+       "pl"
+      ],
+      [
+       "r",
+       8,
+       40,
+       90,
+       16,
+       "yl"
+      ],
+      [
+       "a",
+       "M16 48 H92"
+      ],
+      [
+       "a",
+       "M102 48 H150"
+      ],
+      [
+       "r",
+       150,
+       24,
+       70,
+       48,
+       "pl"
+      ],
+      [
+       "you",
+       8,
+       48
+      ],
+      [
+       "t",
+       104,
+       20,
+       "gap 11"
+      ]
+     ]
+    },
+    {
+     "name": "Two Hops",
+     "tier": "easy",
+     "does": "Two strip-and-gap pairs in a row; the landing of the first jump is the second strip.",
+     "numbers": "2 strips x 16 studs, boost 30, gaps 10 and 10",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       66,
+       62,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       6,
+       62,
+       54,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M62 58 Q80 40 98 60"
+      ],
+      [
+       "r",
+       96,
+       66,
+       62,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       100,
+       62,
+       54,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M158 58 Q176 40 194 60"
+      ],
+      [
+       "r",
+       192,
+       66,
+       28,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       4,
+       62
+      ]
+     ]
+    },
+    {
+     "name": "Wide Landing",
+     "tier": "easy",
+     "does": "The longest jump in the easy tier, but onto a big landing so a late jump still counts.",
+     "numbers": "strip 28 studs, boost 30, gap 12.5, landing 20 deep x 24 wide",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       66,
+       96,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       4,
+       62,
+       90,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M96 58 Q124 34 152 60"
+      ],
+      [
+       "r",
+       148,
+       66,
+       72,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       4,
+       62
+      ],
+      [
+       "t",
+       108,
+       88,
+       "gap 12.5"
+      ]
+     ]
+    },
+    {
+     "name": "Backwash",
+     "tier": "medium",
+     "does": "The first stretch has chevrons pointing back that slow you down; hop over them to reach the real boost.",
+     "numbers": "back strip 8 studs (slows to 10), forward strip 14, boost 30, gap 11",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       66,
+       110,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       14,
+       62,
+       30,
+       4,
+       "pk"
+      ],
+      [
+       "a",
+       "M40 56 H18"
+      ],
+      [
+       "a",
+       "M8 56 Q28 40 50 58"
+      ],
+      [
+       "r",
+       50,
+       62,
+       56,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M54 56 H102"
+      ],
+      [
+       "a",
+       "M110 60 Q140 36 168 60"
+      ],
+      [
+       "r",
+       166,
+       66,
+       54,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       6,
+       62
+      ],
+      [
+       "t",
+       12,
+       84,
+       "back strip"
+      ]
+     ]
+    },
+    {
+     "name": "Carry the Speed",
+     "tier": "medium",
+     "does": "A small plain hop sits between the strip and the long gap: keep moving so the boost does not run out.",
+     "numbers": "strip 16, boost 30 held 1.5 s, small gap 5, plain pad 6, long gap 11",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       66,
+       70,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       4,
+       62,
+       62,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M70 58 Q80 48 90 60"
+      ],
+      [
+       "r",
+       88,
+       66,
+       24,
+       8,
+       "pl"
+      ],
+      [
+       "a",
+       "M112 58 Q140 34 168 60"
+      ],
+      [
+       "r",
+       166,
+       66,
+       54,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       4,
+       62
+      ],
+      [
+       "t",
+       84,
+       86,
+       "no boost"
+      ]
+     ]
+    },
+    {
+     "name": "Stepping Boosts",
+     "tier": "medium",
+     "does": "No long strip, just short boost pads with small gaps; each pad tops up your speed for the next.",
+     "numbers": "4 pads x 5 studs, gaps 5, boost 30 held 1.2 s, last gap 12",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       66,
+       22,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       26,
+       64,
+       20,
+       6,
+       "yl"
+      ],
+      [
+       "r",
+       54,
+       64,
+       20,
+       6,
+       "yl"
+      ],
+      [
+       "r",
+       82,
+       64,
+       20,
+       6,
+       "yl"
+      ],
+      [
+       "a",
+       "M10 58 Q26 46 34 58"
+      ],
+      [
+       "a",
+       "M96 56 Q130 30 166 60"
+      ],
+      [
+       "r",
+       164,
+       66,
+       56,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       8,
+       66
+      ]
+     ]
+    },
+    {
+     "name": "Hurdles",
+     "tier": "medium",
+     "does": "Low red goo bumps sit on the strip; short hops over them keep the boost going.",
+     "numbers": "strip 26, 3 red bumps 1.5 high, boost 30, gap 11",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       66,
+       110,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       6,
+       62,
+       100,
+       4,
+       "yl"
+      ],
+      [
+       "r",
+       30,
+       58,
+       6,
+       4,
+       "hz"
+      ],
+      [
+       "r",
+       56,
+       58,
+       6,
+       4,
+       "hz"
+      ],
+      [
+       "r",
+       82,
+       58,
+       6,
+       4,
+       "hz"
+      ],
+      [
+       "a",
+       "M20 56 Q33 46 44 56"
+      ],
+      [
+       "a",
+       "M110 58 Q140 34 168 60"
+      ],
+      [
+       "r",
+       166,
+       66,
+       54,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       8,
+       62
+      ]
+     ]
+    },
+    {
+     "name": "Sliding Landing",
+     "tier": "medium",
+     "does": "Boost into a jump onto a platform that slides side to side; leave when it lines up with you.",
+     "numbers": "strip 20, boost 30, gap 11, target 10 x 10 sliding 6 studs over 3.2 s",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       0,
+       34,
+       96,
+       28,
+       "pl"
+      ],
+      [
+       "r",
+       6,
+       40,
+       86,
+       16,
+       "yl"
+      ],
+      [
+       "a",
+       "M14 48 H88"
+      ],
+      [
+       "a",
+       "M98 48 H136"
+      ],
+      [
+       "r",
+       136,
+       40,
+       30,
+       28,
+       "pl"
+      ],
+      [
+       "a",
+       "M151 36 V18"
+      ],
+      [
+       "a",
+       "M151 72 V90"
+      ],
+      [
+       "r",
+       184,
+       34,
+       36,
+       28,
+       "pl"
+      ],
+      [
+       "you",
+       8,
+       48
+      ]
+     ]
+    },
+    {
+     "name": "No Second Try",
+     "tier": "medium",
+     "does": "The runway tiles melt a moment after you leave them, so you cannot back up for a second run-up: one boosted run, then the leap.",
+     "numbers": "6 strip tiles x 4 studs, melt 0.6 s after you leave, boost 30, gap 11",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       66,
+       24,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       26,
+       62,
+       14,
+       10,
+       "gh"
+      ],
+      [
+       "r",
+       42,
+       62,
+       14,
+       10,
+       "gh"
+      ],
+      [
+       "r",
+       58,
+       62,
+       14,
+       10,
+       "yl"
+      ],
+      [
+       "r",
+       74,
+       62,
+       14,
+       10,
+       "yl"
+      ],
+      [
+       "r",
+       90,
+       62,
+       14,
+       10,
+       "yl"
+      ],
+      [
+       "a",
+       "M30 54 H96"
+      ],
+      [
+       "a",
+       "M106 58 Q136 34 164 60"
+      ],
+      [
+       "r",
+       162,
+       66,
+       58,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       62,
+       62
+      ],
+      [
+       "t",
+       28,
+       86,
+       "melted behind"
+      ]
+     ]
+    },
+    {
+     "name": "Blink Boost",
+     "tier": "hard",
+     "does": "The strip glows and ticks on and off (it stays solid) and only boosts while lit, so start your run so you reach the edge while it is still lit.",
+     "numbers": "strip 18, lit 1.6 s then off 1.4 s, boost 32, gap 12.5",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       66,
+       96,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       6,
+       62,
+       40,
+       4,
+       "yl"
+      ],
+      [
+       "r",
+       46,
+       62,
+       46,
+       4,
+       "gh"
+      ],
+      [
+       "t",
+       56,
+       56,
+       "off"
+      ],
+      [
+       "a",
+       "M10 56 H88"
+      ],
+      [
+       "a",
+       "M96 58 Q126 32 158 60"
+      ],
+      [
+       "r",
+       156,
+       66,
+       64,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       4,
+       62
+      ]
+     ]
+    },
+    {
+     "name": "Back-and-Forth",
+     "tier": "hard",
+     "does": "Forward and backward strips take turns; jump each back strip, land on the next forward one, and end on a moving pad.",
+     "numbers": "3 forward strips 8, 2 back strips 6, boost 32, last gap 13 to a pad sliding 5 studs",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       66,
+       130,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       4,
+       62,
+       26,
+       4,
+       "yl"
+      ],
+      [
+       "r",
+       30,
+       62,
+       22,
+       4,
+       "pk"
+      ],
+      [
+       "r",
+       52,
+       62,
+       26,
+       4,
+       "yl"
+      ],
+      [
+       "r",
+       78,
+       62,
+       22,
+       4,
+       "pk"
+      ],
+      [
+       "r",
+       100,
+       62,
+       28,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M24 56 Q41 44 56 56"
+      ],
+      [
+       "a",
+       "M130 58 Q160 34 186 58"
+      ],
+      [
+       "r",
+       180,
+       62,
+       36,
+       6,
+       "pl"
+      ],
+      [
+       "a",
+       "M190 80 H212"
+      ],
+      [
+       "you",
+       4,
+       62
+      ]
+     ]
+    },
+    {
+     "name": "Left, Right, Leap",
+     "tier": "hard",
+     "does": "Two boost strips sit in opposite halves of the lane with red goo beside each; cut across a short plain floor at full speed, before the boost runs out, then make the long gap.",
+     "numbers": "2 strips 10 wide x 16, red goo on the other half, plain cross-over 10 deep, carry 1.2 s, boost 32, gap 13",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       0,
+       20,
+       64,
+       28,
+       "yl"
+      ],
+      [
+       "r",
+       0,
+       48,
+       64,
+       28,
+       "hz"
+      ],
+      [
+       "r",
+       64,
+       20,
+       30,
+       56,
+       "pl"
+      ],
+      [
+       "a",
+       "M8 34 H60"
+      ],
+      [
+       "a",
+       "M64 34 Q80 36 96 60"
+      ],
+      [
+       "r",
+       94,
+       48,
+       70,
+       28,
+       "yl"
+      ],
+      [
+       "r",
+       94,
+       20,
+       70,
+       28,
+       "hz"
+      ],
+      [
+       "a",
+       "M100 62 H160"
+      ],
+      [
+       "a",
+       "M166 62 H194"
+      ],
+      [
+       "r",
+       194,
+       20,
+       26,
+       56,
+       "pl"
+      ],
+      [
+       "you",
+       6,
+       34
+      ],
+      [
+       "t",
+       62,
+       88,
+       "cross"
+      ]
+     ]
+    },
+    {
+     "name": "Double Leap Climb",
+     "tier": "hard",
+     "does": "Two boosted leaps, each one up a step, with only a short strip between them to rebuild speed.",
+     "numbers": "strip 20, gap 12 rise 2.5, strip 10, gap 13 rise 2.5, boost 34",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       0,
+       80,
+       70,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       4,
+       76,
+       62,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M70 72 Q90 44 108 62"
+      ],
+      [
+       "r",
+       104,
+       66,
+       50,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       108,
+       62,
+       42,
+       4,
+       "yl"
+      ],
+      [
+       "a",
+       "M154 58 Q174 28 192 46"
+      ],
+      [
+       "r",
+       188,
+       50,
+       32,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       4,
+       76
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

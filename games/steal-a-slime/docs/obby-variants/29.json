@@ -1,0 +1,1704 @@
+{
+  "ideas": [
+    {
+      "id": 29,
+      "name": "Clue Doors",
+      "approach": "mixed",
+      "approachWhy": "The room shapes (where the board stands, how many doors, what you do between board and doors) are hand-made templates, and a seeded generator fills in the clue, the symbols and the right door every rotation. A fixed answer would be learned after one run and passed around, so the answer must be random; the room itself needs hand tuning so the board is always readable on a phone and the jumps stay fair. Each variant below is one template with one example roll.",
+      "engine": {
+        "have": [
+          "Seeded Rng per course slot: pick() already gives every server and client the same layout, so the right door can come from the same seed",
+          "Plain parts and walls for the room, door frames and a roof",
+          "melt motion (drops away when the local player stands on it) for the trapdoor floor behind a wrong door",
+          "slide motion for the sweeping bar and the bobbing jelly hops",
+          "Red see-through hazard goo, falling and the back-to-start rule; sectionAt tells which section you are in",
+          "Step-path gap and rise checks the tests use (GAP_MAX 6, RISE_MAX 3.5)",
+          "flip motion (on and off on a period); used here only through idea 11's Timed gate, not on its own"
+        ],
+        "new": [
+          {
+            "what": "Door curtain look: an opaque, walk-through goo curtain in a frame (no collision, can't see through it), with a symbol plate",
+            "size": "S"
+          },
+          {
+            "what": "Symbol kit: about 8 shapes in 6 colours, dot plates, plus 6 to 8 Dex slime pictures and their dark outlines, built from small Neon and plain parts (no SurfaceGui, so no world-label row needed; if one is ever used it follows the world-labels guide)",
+            "size": "M"
+          },
+          {
+            "what": "Clue board look: framed, lit board that holds 1 to 5 symbols, sized to read from 20 studs on a phone. The same board Glow Memory (idea 10) reuses as its Map board, so build it once in ObbyFx",
+            "size": "S"
+          },
+          {
+            "what": "Clue generator in ObbyCourse: from the slot seed picks clue kind, symbols, distractors and the right door; pure Luau with Lune specs that check the fairness rules (same style as Glow Memory's Glow Path generator, idea 10)",
+            "size": "M"
+          },
+          {
+            "what": "Wrong-door trapdoor: reuse Glow Memory's 'Fake tile' (idea 10: melt kind with a 0.2 s delay and Melting Floor's melt warning look) under each wrong corridor, plus a red flash on the door and a buzzer; the right door gives a chime and a green flash",
+            "size": "S"
+          },
+          {
+            "what": "No-peek room: walls and a roof so the camera can't look over the doors, using Sliding Maze's 'fixed maze walls' look (idea 25, about 9 studs, solid jelly); wrong corridors look exactly like the right one until you step in",
+            "size": "S"
+          },
+          {
+            "what": "Blink Board: reuse the Glow-only motion (ideas 10 and 17: the board stays solid, only its glow and symbols go on and off) timed by Beat Pads' BeatClock (idea 18) for the tick",
+            "size": "S"
+          },
+          {
+            "what": "Closing Doors: reuse Two Roads' 'Timed gate' (idea 11: flip motion on a gate wall, glow and tick on BeatClock), one per door; fairness checked with Collapsing Bridge's runner test (idea 24: 16 studs/s, 0.15 s per jump)",
+            "size": "S"
+          },
+          {
+            "what": "Hazard touch = back to the start pad and the red goo look: the shared piece from Crusher Alley (idea 1), for the sweeping bar",
+            "size": "S"
+          },
+          {
+            "what": "Bobbing hops in Remember It and Side Glance: use the shared 'carry on moving parts' fix (ideas 3 and 4) and Goo Rides' moving-gap test support (idea 3)",
+            "size": "S"
+          },
+          {
+            "what": "Section length cap raised from 36 to about 100 studs in the tests (shared item from Climb, idea 8) for Remember It and Two Rooms",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "A clue room always looks the same: a big framed board with a soft riddle chime as you enter, then a wall of framed goo curtains that each wear one symbol of the same kind as the board. Right door = chime and green flash; wrong door = buzzer, red flash and the floor drops away.",
+      "generator": {
+        "inputs": "The course slot seed, the section tier, and the room template (2 or 3 doors, 1 or 2 rooms, which clue kinds the template allows).",
+        "randomises": "The clue kind (colour, shape, slime, count, cross-out, next in pattern, shadow, mix), the symbols on the board, the distractor symbols, and which door is right, per room.",
+        "guarantees": "Exactly one door fits the clue, checked by the generator. Easy symbols differ in both colour and shape, so colour-blind players can always tell them apart. No words, only shapes, dots and slimes. The board can be read from a safe standing spot, or (moving or blinking boards) is fully visible at least 1 s in every 3.5 s. Doors and corridors look the same from outside. The right door is spread evenly over the positions and is never in the same slot three rooms in a row. Everyone on the server gets the same answer, and the next rotation rolls a new one. At most 3 doors per wall so every corridor floor is 8 studs wide.",
+        "difficulty": "Easy: direct match (same colour, shape or slime), 2 to 3 doors, board right in front. Medium: one rule to apply (count, cross-out, next in pattern, shadow) or a board that is harder to see (sweeping bar, blinking, read while hopping). Hard: two rooms in a row, a clue split over two boards, doors that close on a beat, or a board you must keep in mind over a run of jumps."
+      },
+      "variants": [
+        {
+          "name": "Colour Match",
+          "tier": "easy",
+          "does": "The board shows one coloured shape; the door wearing the same colour and shape is the way on, and the board sits right in front of the doors.",
+          "numbers": "3 doors 6 wide, board 8x6 studs at 14 studs from the doors, 1 jump onto the door step",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              8,
+              24,
+              40,
+              32,
+              "dk"
+            ],
+            [
+              "c",
+              28,
+              40,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              80,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "c",
+              91,
+              46,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              125.5,
+              40.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "p",
+              "M171 39 L178 53 L164 53Z",
+              "yl"
+            ],
+            [
+              "you",
+              20,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Two Doors",
+          "tier": "easy",
+          "does": "Only two doors and a huge board, so the first door room of a course teaches the rule with a 50/50 at worst.",
+          "numbers": "2 doors 8 wide, board 10x7 studs, 6 stud gap jump from the board pad to the door step",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              60,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              80,
+              140,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              8,
+              18,
+              46,
+              36,
+              "dk"
+            ],
+            [
+              "r",
+              24.0,
+              29.0,
+              14,
+              14,
+              "pk"
+            ],
+            [
+              "r",
+              100,
+              28,
+              30,
+              52,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              28,
+              30,
+              52,
+              "pl"
+            ],
+            [
+              "r",
+              109.0,
+              42.0,
+              12,
+              12,
+              "pk"
+            ],
+            [
+              "c",
+              175,
+              48,
+              7,
+              "gl"
+            ],
+            [
+              "a",
+              "M44 74 Q66 54 88 76"
+            ],
+            [
+              "you",
+              30,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Same Slime",
+          "tier": "easy",
+          "does": "The board shows a slime from the game; each door has a different slime on it, and you pick the one you saw.",
+          "numbers": "3 doors, slime pictures from the Dex (3 very different slimes), board at the door step",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              8,
+              24,
+              40,
+              32,
+              "dk"
+            ],
+            [
+              "e",
+              28,
+              44,
+              12,
+              9,
+              "gl"
+            ],
+            [
+              "c",
+              24,
+              40,
+              2,
+              "dk"
+            ],
+            [
+              "c",
+              32,
+              40,
+              2,
+              "dk"
+            ],
+            [
+              "r",
+              80,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "e",
+              91,
+              50,
+              8,
+              6,
+              "pk"
+            ],
+            [
+              "e",
+              131,
+              50,
+              8,
+              6,
+              "gl"
+            ],
+            [
+              "e",
+              171,
+              50,
+              8,
+              6,
+              "or"
+            ],
+            [
+              "you",
+              20,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Shape Only",
+          "tier": "easy",
+          "does": "Every door wears the same colour, so you match by shape alone (the colour-blind friendly room).",
+          "numbers": "3 doors, one colour, shapes circle / square / triangle, board 14 studs back",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              8,
+              24,
+              40,
+              32,
+              "dk"
+            ],
+            [
+              "p",
+              "M28 31 L37 49 L19 49Z",
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "c",
+              91,
+              46,
+              6,
+              "pk"
+            ],
+            [
+              "r",
+              125.5,
+              40.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "p",
+              "M171 39 L178 53 L164 53Z",
+              "pk"
+            ],
+            [
+              "you",
+              20,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Floor Clue",
+          "tier": "easy",
+          "does": "The clue is painted big on the pad you jump onto before the doors, so you read it under your feet as you land.",
+          "numbers": "landing pad 10x10 with the symbol on top, 3 doors 4 studs past it, 5 stud gap in",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              6,
+              30,
+              40,
+              36,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              24,
+              50,
+              48,
+              "pl"
+            ],
+            [
+              "c",
+              85,
+              48,
+              12,
+              "gl"
+            ],
+            [
+              "r",
+              130,
+              8,
+              8,
+              80,
+              "dk"
+            ],
+            [
+              "r",
+              138,
+              14,
+              30,
+              20,
+              "pk"
+            ],
+            [
+              "r",
+              138,
+              38,
+              30,
+              20,
+              "gl"
+            ],
+            [
+              "r",
+              138,
+              62,
+              30,
+              20,
+              "pl"
+            ],
+            [
+              "a",
+              "M30 48 Q46 40 66 48"
+            ],
+            [
+              "you",
+              85,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Count the Dots",
+          "tier": "medium",
+          "does": "The board shows a number of dots and the right door has that many dots, so you count instead of matching a picture.",
+          "numbers": "3 doors with 1 / 2 / 3 dots (up to 5 on a harder roll), board shows 1 to 5 dots",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              8,
+              24,
+              40,
+              32,
+              "dk"
+            ],
+            [
+              "c",
+              18,
+              40,
+              3,
+              "pl"
+            ],
+            [
+              "c",
+              28,
+              40,
+              3,
+              "pl"
+            ],
+            [
+              "c",
+              38,
+              40,
+              3,
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "c",
+              91,
+              46,
+              3,
+              "dk"
+            ],
+            [
+              "c",
+              127,
+              46,
+              3,
+              "dk"
+            ],
+            [
+              "c",
+              135,
+              46,
+              3,
+              "dk"
+            ],
+            [
+              "c",
+              163,
+              46,
+              3,
+              "dk"
+            ],
+            [
+              "c",
+              171,
+              46,
+              3,
+              "dk"
+            ],
+            [
+              "c",
+              179,
+              46,
+              3,
+              "dk"
+            ]
+          ]
+        },
+        {
+          "name": "Cross Out",
+          "tier": "medium",
+          "does": "The board shows two symbols with a cross over each; the right door is the one that is NOT on the board.",
+          "numbers": "3 doors, board shows 2 crossed-out symbols (the cross is a flat painted bar on the board, not goo)",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              4,
+              24,
+              50,
+              32,
+              "dk"
+            ],
+            [
+              "c",
+              18,
+              40,
+              6,
+              "gl"
+            ],
+            [
+              "l",
+              10,
+              32,
+              26,
+              48
+            ],
+            [
+              "r",
+              34.5,
+              34.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "l",
+              32,
+              32,
+              48,
+              48
+            ],
+            [
+              "r",
+              80,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "c",
+              91,
+              46,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              125.5,
+              40.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "p",
+              "M171 39 L178 53 L164 53Z",
+              "yl"
+            ],
+            [
+              "t",
+              160,
+              22,
+              "this one"
+            ]
+          ]
+        },
+        {
+          "name": "What Comes Next",
+          "tier": "medium",
+          "does": "The board shows a short row like circle, square, circle, square, ?, and the right door shows the shape that fills the gap.",
+          "numbers": "patterns AB, ABC or AAB, 4 to 5 symbols then a ?, 3 doors",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              4,
+              26,
+              66,
+              22,
+              "dk"
+            ],
+            [
+              "c",
+              14,
+              37,
+              5,
+              "gl"
+            ],
+            [
+              "r",
+              23.5,
+              32.5,
+              9,
+              9,
+              "pk"
+            ],
+            [
+              "c",
+              42,
+              37,
+              5,
+              "gl"
+            ],
+            [
+              "r",
+              51.5,
+              32.5,
+              9,
+              9,
+              "pk"
+            ],
+            [
+              "t",
+              63,
+              40,
+              "?"
+            ],
+            [
+              "r",
+              90,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              130,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              170,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              95.5,
+              40.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "c",
+              141,
+              46,
+              6,
+              "gl"
+            ],
+            [
+              "p",
+              "M181 39 L188 53 L174 53Z",
+              "yl"
+            ]
+          ]
+        },
+        {
+          "name": "Shadow Clue",
+          "tier": "medium",
+          "does": "The board shows only the dark outline of a slime; the doors show three slimes in full colour and you match the outline.",
+          "numbers": "3 doors, slimes picked with clearly different outlines (ears, horns, round), board 16 studs back",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              8,
+              24,
+              40,
+              32,
+              "dk"
+            ],
+            [
+              "e",
+              28,
+              44,
+              12,
+              8,
+              "dk"
+            ],
+            [
+              "p",
+              "M20 38 L23 28 L27 37Z",
+              "dk"
+            ],
+            [
+              "p",
+              "M36 38 L33 28 L29 37Z",
+              "dk"
+            ],
+            [
+              "r",
+              80,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "e",
+              91,
+              50,
+              8,
+              6,
+              "gl"
+            ],
+            [
+              "e",
+              131,
+              50,
+              8,
+              6,
+              "pk"
+            ],
+            [
+              "p",
+              "M85 46 L87 38 L90 45Z",
+              "pk"
+            ],
+            [
+              "e",
+              171,
+              50,
+              8,
+              6,
+              "or"
+            ]
+          ]
+        },
+        {
+          "name": "Behind the Sweep",
+          "tier": "medium",
+          "does": "A slow red goo bar slides back and forth in front of the board and hides it half the time; you read it in the gaps, standing safely behind a low rail.",
+          "numbers": "bar slide amp 6 studs, period 3 s, board fully visible about 1.5 s per sweep, bar 2 studs past a low rail so you never touch it by accident",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              18,
+              20,
+              40,
+              32,
+              "dk"
+            ],
+            [
+              "r",
+              32.5,
+              30.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "r",
+              10,
+              26,
+              14,
+              18,
+              "hz"
+            ],
+            [
+              "a",
+              "M14 18 L60 18"
+            ],
+            [
+              "r",
+              96,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              134,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              172,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "c",
+              107,
+              46,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              139.5,
+              40.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "p",
+              "M183 39 L190 53 L176 53Z",
+              "yl"
+            ],
+            [
+              "you",
+              36,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Blink Board",
+          "tier": "medium",
+          "does": "The board's glow and symbols switch on only on a beat (pulsing glow and a tick before each flash), so you wait on the safe pad and catch the short moment it shows the clue; it repeats, so missing one flash only costs a few seconds.",
+          "numbers": "board lit 1 s, dark 2.5 s (Glow-only motion on BeatClock, the board stays solid), 3 doors",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              8,
+              24,
+              40,
+              32,
+              "gh"
+            ],
+            [
+              "c",
+              28,
+              40,
+              6,
+              "gh"
+            ],
+            [
+              "t",
+              8,
+              18,
+              "on 1 s / off 2.5 s"
+            ],
+            [
+              "r",
+              80,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "c",
+              91,
+              46,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              125.5,
+              40.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "p",
+              "M171 39 L178 53 L164 53Z",
+              "yl"
+            ],
+            [
+              "you",
+              20,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Side Glance",
+          "tier": "medium",
+          "does": "The board stands off to the side of a row of three jelly hops, with no flat spot facing it, so you read it while hopping.",
+          "numbers": "3 hops with 5 stud gaps, board 12 studs to the side, then 3 doors",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              58,
+              20,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              34,
+              58,
+              16,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              58,
+              16,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              86,
+              58,
+              16,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              6,
+              40,
+              26,
+              "dk"
+            ],
+            [
+              "c",
+              60,
+              19,
+              7,
+              "gl"
+            ],
+            [
+              "r",
+              120,
+              10,
+              6,
+              80,
+              "dk"
+            ],
+            [
+              "r",
+              126,
+              14,
+              40,
+              22,
+              "gl"
+            ],
+            [
+              "r",
+              126,
+              38,
+              40,
+              22,
+              "pk"
+            ],
+            [
+              "r",
+              126,
+              62,
+              40,
+              22,
+              "pl"
+            ],
+            [
+              "a",
+              "M14 66 Q30 54 42 66"
+            ],
+            [
+              "you",
+              14,
+              69
+            ]
+          ]
+        },
+        {
+          "name": "Two Rooms",
+          "tier": "hard",
+          "does": "Two door walls in a row: the first room has its own board, and the board for the second room hangs inside the right corridor of the first.",
+          "numbers": "room 1: 3 doors, room 2: 2 doors, 1 jump between rooms, about 70 studs total",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              30,
+              30,
+              36,
+              "pl"
+            ],
+            [
+              "r",
+              36,
+              4,
+              24,
+              16,
+              "dk"
+            ],
+            [
+              "r",
+              64,
+              6,
+              6,
+              84,
+              "dk"
+            ],
+            [
+              "r",
+              70,
+              8,
+              30,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              36,
+              30,
+              24,
+              "gl"
+            ],
+            [
+              "r",
+              70,
+              64,
+              30,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              106,
+              36,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              136,
+              4,
+              24,
+              16,
+              "dk"
+            ],
+            [
+              "r",
+              166,
+              6,
+              6,
+              84,
+              "dk"
+            ],
+            [
+              "r",
+              172,
+              18,
+              40,
+              26,
+              "pk"
+            ],
+            [
+              "r",
+              172,
+              52,
+              40,
+              26,
+              "pl"
+            ],
+            [
+              "you",
+              20,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Mix Clue",
+          "tier": "hard",
+          "does": "Two boards: one shows only a colour, the other only a shape; the right door has both, and the other doors each share one half to catch you.",
+          "numbers": "board A = colour splash, board B = grey shape, 3 doors (one right, one same colour, one same shape)",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              4,
+              22,
+              30,
+              24,
+              "dk"
+            ],
+            [
+              "c",
+              19,
+              34,
+              7,
+              "gl"
+            ],
+            [
+              "r",
+              40,
+              22,
+              30,
+              24,
+              "dk"
+            ],
+            [
+              "p",
+              "M55 27 L62 41 L48 41Z",
+              "pl"
+            ],
+            [
+              "r",
+              90,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              130,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              170,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "p",
+              "M101 39 L108 53 L94 53Z",
+              "gl"
+            ],
+            [
+              "c",
+              141,
+              46,
+              6,
+              "gl"
+            ],
+            [
+              "p",
+              "M181 39 L188 53 L174 53Z",
+              "pk"
+            ],
+            [
+              "t",
+              90,
+              22,
+              "both = right"
+            ]
+          ]
+        },
+        {
+          "name": "Closing Doors",
+          "tier": "hard",
+          "does": "The doors shut and open on a beat (pulsing glow and tick before they close), so you read the clue and get through the right door while it is open; a shut door is just a wall.",
+          "numbers": "doors open 2.5 s, shut 1.5 s (Two Roads' Timed gate on BeatClock), board 20 studs back, 2 jumps between",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              40,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              80,
+              20,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              80,
+              140,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              4,
+              24,
+              32,
+              30,
+              "dk"
+            ],
+            [
+              "c",
+              20,
+              39,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              100,
+              30,
+              22,
+              50,
+              "gh"
+            ],
+            [
+              "r",
+              140,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              180,
+              30,
+              22,
+              50,
+              "gh"
+            ],
+            [
+              "c",
+              111,
+              46,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              145.5,
+              40.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "p",
+              "M191 39 L198 53 L184 53Z",
+              "yl"
+            ],
+            [
+              "t",
+              104,
+              22,
+              "open 2.5 s"
+            ],
+            [
+              "a",
+              "M36 74 Q46 62 56 76"
+            ]
+          ]
+        },
+        {
+          "name": "Remember It",
+          "tier": "hard",
+          "does": "The clue board stands at the start of the section, then you make four jumps over bobbing jelly before the doors, which have no board at all: you keep one symbol in mind, not a whole path.",
+          "numbers": "board at the entry, 4 hops (bob amp 2, period 2.8 s, 5 stud gaps), then 3 doors, about 80 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              30,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              2,
+              30,
+              26,
+              26,
+              "dk"
+            ],
+            [
+              "r",
+              9.5,
+              37.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "r",
+              44,
+              72,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              74,
+              64,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              104,
+              72,
+              18,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M113 60 L113 50"
+            ],
+            [
+              "r",
+              136,
+              80,
+              84,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              140,
+              34,
+              22,
+              46,
+              "pl"
+            ],
+            [
+              "r",
+              168,
+              34,
+              22,
+              46,
+              "pl"
+            ],
+            [
+              "r",
+              196,
+              34,
+              22,
+              46,
+              "pl"
+            ],
+            [
+              "c",
+              151,
+              50,
+              5,
+              "gl"
+            ],
+            [
+              "r",
+              174.5,
+              45.5,
+              9,
+              9,
+              "pk"
+            ],
+            [
+              "p",
+              "M207 44 L213 56 L201 56Z",
+              "yl"
+            ],
+            [
+              "you",
+              14,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Clue Up High",
+          "tier": "hard",
+          "does": "The board sits on top of a short climb of three blocks off to the side; you climb up to read it, then drop back down and pick the door.",
+          "numbers": "3 steps rising 3 studs each, board on a 9 stud high ledge, 3 doors, the board can't be seen from the low path",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              10,
+              68,
+              16,
+              12,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              56,
+              16,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              44,
+              16,
+              36,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              14,
+              30,
+              24,
+              "dk"
+            ],
+            [
+              "c",
+              65,
+              26,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              100,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              140,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              180,
+              30,
+              22,
+              50,
+              "pl"
+            ],
+            [
+              "p",
+              "M111 39 L118 53 L104 53Z",
+              "yl"
+            ],
+            [
+              "c",
+              151,
+              46,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              185.5,
+              40.5,
+              11,
+              11,
+              "pk"
+            ],
+            [
+              "you",
+              58,
+              44
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

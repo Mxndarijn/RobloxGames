@@ -1,0 +1,1322 @@
+{
+  "ideas": [
+    {
+      "id": 8,
+      "name": "Climb",
+      "approach": "handmade",
+      "approachWhy": "Every climb must be tuned against the real climb speed and the drip beat, and the good shapes (stacked ladders, hanging ladders, chimneys, a tower spiral) are few and distinct. A generator would mostly reshuffle heights and make drip timing unfair, so each variant is hand-made.",
+      "engine": {
+        "have": [
+          "Climbable ladders: shape \"truss\" (StickyLadder already does ladder, ledge, jump, ladder)",
+          "Ledge and pillar slabs, and a section that ends higher than it starts (rise)",
+          "Course tests that skip the jump-rise check for ladder steps (special = \"climb\")",
+          "slide motion (for a ladder that moves sideways) with phase offsets",
+          "Fall back to the start pad when you drop under the lowest platform"
+        ],
+        "new": [
+          {
+            "what": "Hazard touch = back to the start pad (the shared item from idea 1 Crusher Alley; build once for all hazard ideas)",
+            "size": "S"
+          },
+          {
+            "what": "drip motion kind: a red see-through drop swells at a dark nozzle for about 1 s with a gurgle, falls straight down the climb, splats, repeats on period and phase at server time (idea 22's 'Goo Drip' slides down a wall on slide motion instead; same drop look, so make one drop prop for both)",
+            "size": "S"
+          },
+          {
+            "what": "Ladder look: an open lattice of lime jelly rungs you can see through (a real ladder shape), a squelch-pop per rung while you climb. Must NOT be the flat dripping goo sheet with handprints, because idea 22 Sticky Walls owns that look and its walls slide you down",
+            "size": "S"
+          },
+          {
+            "what": "Test step kind \"grab\": jump from a ledge into a ladder hanging over the void (reach check to the ladder face, not to a floor)",
+            "size": "S"
+          },
+          {
+            "what": "Moving ladder: reuse idea 3's 'ride' motion (move between stops, wait at each) so the ladder sits still while lined up. Slide motion already carries a standing player; check in Studio whether a climbing one is carried too, and if not the client carries them",
+            "size": "M"
+          },
+          {
+            "what": "Crumbling ladder piece: idea 2's melt trigger and 'melt warning look' (cracks, darkening, speeding crack sound) on a truss piece, starting when you grab it; comes back after a few seconds",
+            "size": "S"
+          },
+          {
+            "what": "Landing tell for drips that hit pillar tops: reuse idea 1's growing floor shadow",
+            "size": "S"
+          },
+          {
+            "what": "Section length cap raised from 36 to about 100 studs in the tests (shared with the other long ideas)",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "You can climb only the open lattice ladders with lime jelly rungs; plain grey walls and pillars are not climbable, and flat dripping goo sheets are idea 22's sticky walls, not ladders. Red see-through drops swell at a dark nozzle with a gurgle for about a second before they fall, so you see and hear the beat before you commit; a crumbling ladder cracks and darkens from the moment you grab it.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "First Rungs",
+          "tier": "easy",
+          "does": "Two plain rung ladders with a wide ledge and one easy jump between them; teaches walk into the ladder, climb, step off.",
+          "numbers": "ladders 8 and 10 studs tall, ledges 8x10, one 5 stud gap, about 12 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              34,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              34,
+              46,
+              6,
+              40,
+              "gl"
+            ],
+            [
+              "r",
+              40,
+              46,
+              44,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M84 44 Q94 34 104 44"
+            ],
+            [
+              "r",
+              104,
+              46,
+              30,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              134,
+              12,
+              6,
+              40,
+              "gl"
+            ],
+            [
+              "r",
+              140,
+              12,
+              70,
+              6,
+              "pl"
+            ],
+            [
+              "you",
+              18,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Pillar Steps",
+          "tier": "easy",
+          "does": "Hop up three pillars that rise a little each time, then the last tall pillar has a rung ladder on its face: hopping and climbing mixed.",
+          "numbers": "pillars 8x8 tops, +3 studs each, 5 stud gaps, last pillar 12 tall with a ladder, about 10 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              26,
+              12,
+              "pl"
+            ],
+            [
+              "r",
+              38,
+              66,
+              26,
+              20,
+              "pl"
+            ],
+            [
+              "r",
+              76,
+              58,
+              38,
+              28,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              24,
+              50,
+              62,
+              "pl"
+            ],
+            [
+              "r",
+              114,
+              24,
+              6,
+              34,
+              "gl"
+            ],
+            [
+              "a",
+              "M26 72 Q32 60 40 64"
+            ],
+            [
+              "a",
+              "M64 64 Q70 52 78 56"
+            ],
+            [
+              "you",
+              12,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Tower Spiral",
+          "tier": "easy",
+          "does": "Climb round a square tower: a short ladder on each face and a corner ledge between, so the climb turns the corner four times.",
+          "numbers": "tower 12x12, 4 ladders of 5 studs, corner ledges 8x8, about 14 parts",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              82,
+              20,
+              56,
+              56,
+              "dk"
+            ],
+            [
+              "r",
+              76,
+              36,
+              6,
+              24,
+              "gl"
+            ],
+            [
+              "r",
+              98,
+              76,
+              24,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              138,
+              36,
+              6,
+              24,
+              "gl"
+            ],
+            [
+              "r",
+              98,
+              14,
+              24,
+              6,
+              "gl"
+            ],
+            [
+              "a",
+              "M70 64 Q70 86 92 88"
+            ],
+            [
+              "a",
+              "M128 88 Q152 86 152 64"
+            ],
+            [
+              "a",
+              "M152 32 Q150 6 126 6"
+            ],
+            [
+              "t",
+              92,
+              50,
+              "tower"
+            ],
+            [
+              "you",
+              60,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "First Drip",
+          "tier": "easy",
+          "does": "One ladder with one slow drip falling down it: wait beside it, watch the drop splat, then climb before the next one swells.",
+          "numbers": "ladder 12 studs, drip every 3.5 s with a 1 s swell warning, safe wait spot 8x8 beside it, about 8 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              60,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              26,
+              6,
+              60,
+              "gl"
+            ],
+            [
+              "r",
+              54,
+              14,
+              18,
+              8,
+              "dk"
+            ],
+            [
+              "c",
+              63,
+              40,
+              5,
+              "hz"
+            ],
+            [
+              "a",
+              "M63 30 L63 74"
+            ],
+            [
+              "r",
+              66,
+              26,
+              100,
+              6,
+              "pl"
+            ],
+            [
+              "t",
+              90,
+              50,
+              "drip every 3.5 s"
+            ],
+            [
+              "you",
+              36,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Rungs or Plain",
+          "tier": "easy",
+          "does": "Two tall columns side by side: one has a lime rung ladder and climbs, the other is plain stone and you just slide off it; teaches the look with no punishment.",
+          "numbers": "2 columns 10 studs tall, 6 studs apart, top ledge 8x12, about 8 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              220,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              30,
+              14,
+              50,
+              "pl"
+            ],
+            [
+              "r",
+              120,
+              30,
+              14,
+              50,
+              "gl"
+            ],
+            [
+              "r",
+              134,
+              30,
+              70,
+              6,
+              "pl"
+            ],
+            [
+              "t",
+              62,
+              24,
+              "plain: no"
+            ],
+            [
+              "t",
+              62,
+              24,
+              "plain: no"
+            ],
+            [
+              "t",
+              110,
+              24,
+              "rungs: yes"
+            ],
+            [
+              "you",
+              40,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "Drip Shaft",
+          "tier": "medium",
+          "does": "Three ladders stacked up a shaft, each with its own drip on a different beat: climb one, rest on the ledge, read the next drip.",
+          "numbers": "3 ladders of 8 studs, ledges 8x8, drips every 2.8 s, phases 0 / 0.33 / 0.66, about 16 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              82,
+              40,
+              4,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              58,
+              6,
+              28,
+              "gl"
+            ],
+            [
+              "r",
+              46,
+              58,
+              40,
+              5,
+              "pl"
+            ],
+            [
+              "r",
+              86,
+              32,
+              6,
+              30,
+              "gl"
+            ],
+            [
+              "r",
+              92,
+              32,
+              40,
+              5,
+              "pl"
+            ],
+            [
+              "r",
+              132,
+              6,
+              6,
+              30,
+              "gl"
+            ],
+            [
+              "r",
+              138,
+              6,
+              70,
+              5,
+              "pl"
+            ],
+            [
+              "c",
+              43,
+              66,
+              4,
+              "hz"
+            ],
+            [
+              "c",
+              89,
+              44,
+              4,
+              "hz"
+            ],
+            [
+              "c",
+              135,
+              16,
+              4,
+              "hz"
+            ],
+            [
+              "you",
+              20,
+              82
+            ]
+          ]
+        },
+        {
+          "name": "Ladder Notches",
+          "tier": "medium",
+          "does": "One long ladder straight up under a drip; two small side ledges on the way let you step out of the drip line and wait.",
+          "numbers": "ladder 20 studs, drip every 2.4 s, 2 side notches 8x8, about 10 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              86,
+              80,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              8,
+              6,
+              84,
+              "gl"
+            ],
+            [
+              "r",
+              74,
+              0,
+              18,
+              8,
+              "dk"
+            ],
+            [
+              "r",
+              86,
+              58,
+              26,
+              5,
+              "pl"
+            ],
+            [
+              "r",
+              86,
+              32,
+              26,
+              5,
+              "pl"
+            ],
+            [
+              "c",
+              83,
+              22,
+              4,
+              "hz"
+            ],
+            [
+              "a",
+              "M83 28 L83 80"
+            ],
+            [
+              "r",
+              92,
+              8,
+              110,
+              5,
+              "pl"
+            ],
+            [
+              "t",
+              116,
+              52,
+              "step aside"
+            ],
+            [
+              "you",
+              50,
+              86
+            ]
+          ]
+        },
+        {
+          "name": "Sliding Ladder",
+          "tier": "medium",
+          "does": "The ladder rides left and right across the lane and stops for a moment at each end; jump into it while it sits in line with your ledge and climb up.",
+          "numbers": "ladder 10 studs tall, 2 stops 7 studs either side of centre, 1.2 s wait at the stop in line, 4 s round trip, 5 stud jump to grab it, about 8 parts",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              30,
+              54,
+              36,
+              "pl"
+            ],
+            [
+              "r",
+              78,
+              44,
+              10,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M83 40 L83 10"
+            ],
+            [
+              "a",
+              "M83 56 L83 86"
+            ],
+            [
+              "r",
+              112,
+              30,
+              98,
+              36,
+              "pl"
+            ],
+            [
+              "t",
+              130,
+              50,
+              "ledge 10 up"
+            ],
+            [
+              "you",
+              30,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Leap and Grab",
+          "tier": "medium",
+          "does": "The ladder hangs in mid-air with nothing under it: jump off the ledge into the rungs and you grab on, then climb to the top.",
+          "numbers": "6 stud jump to the ladder, ladder 12 tall with its foot 4 studs below the ledge, 2 grabs, about 10 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              62,
+              56,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M56 58 Q72 42 88 50"
+            ],
+            [
+              "r",
+              88,
+              24,
+              6,
+              50,
+              "gl"
+            ],
+            [
+              "r",
+              94,
+              24,
+              40,
+              6,
+              "pl"
+            ],
+            [
+              "a",
+              "M134 20 Q148 6 162 14"
+            ],
+            [
+              "r",
+              162,
+              0,
+              6,
+              40,
+              "gl"
+            ],
+            [
+              "r",
+              168,
+              0,
+              52,
+              6,
+              "pl"
+            ],
+            [
+              "you",
+              34,
+              62
+            ]
+          ]
+        },
+        {
+          "name": "Over the Edge",
+          "tier": "medium",
+          "does": "Each ladder takes you up and outward, so the ledges stick out past the lane edge with open sky under them.",
+          "numbers": "4 ladders of 6 studs, ledges 8x8 stepping 6 studs further out each time, about 12 parts",
+          "view": "top",
+          "sketch": [
+            [
+              "l",
+              0,
+              20,
+              220,
+              20
+            ],
+            [
+              "l",
+              0,
+              66,
+              220,
+              66
+            ],
+            [
+              "r",
+              0,
+              26,
+              40,
+              34,
+              "pl"
+            ],
+            [
+              "r",
+              48,
+              46,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              86,
+              60,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              124,
+              70,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              162,
+              30,
+              50,
+              34,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              52,
+              4,
+              12,
+              "gl"
+            ],
+            [
+              "r",
+              82,
+              66,
+              4,
+              12,
+              "gl"
+            ],
+            [
+              "r",
+              120,
+              76,
+              4,
+              12,
+              "gl"
+            ],
+            [
+              "t",
+              4,
+              16,
+              "lane edge"
+            ],
+            [
+              "you",
+              20,
+              42
+            ]
+          ]
+        },
+        {
+          "name": "Drip Rain Pillars",
+          "tier": "medium",
+          "does": "Pillars with short ladders up their faces, and drips land on the tops on a beat; a growing shadow shows where the next one lands, so you wait on the ladder until it splats.",
+          "numbers": "4 pillars 8x8, ladders 5 studs, drips every 2.6 s, shadow grows 1 s before, about 16 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              76,
+              30,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              60,
+              30,
+              26,
+              "pl"
+            ],
+            [
+              "r",
+              38,
+              60,
+              6,
+              16,
+              "gl"
+            ],
+            [
+              "r",
+              92,
+              44,
+              30,
+              42,
+              "pl"
+            ],
+            [
+              "r",
+              86,
+              44,
+              6,
+              16,
+              "gl"
+            ],
+            [
+              "r",
+              140,
+              28,
+              30,
+              58,
+              "pl"
+            ],
+            [
+              "r",
+              134,
+              28,
+              6,
+              16,
+              "gl"
+            ],
+            [
+              "c",
+              106,
+              20,
+              5,
+              "hz"
+            ],
+            [
+              "a",
+              "M106 26 L106 40"
+            ],
+            [
+              "e",
+              106,
+              44,
+              10,
+              2,
+              "dk"
+            ],
+            [
+              "you",
+              14,
+              76
+            ]
+          ]
+        },
+        {
+          "name": "Crumbling Rungs",
+          "tier": "medium",
+          "does": "Three ladder pieces stacked with stone rest ledges between; each piece cracks and drops 2.5 s after you grab it, so you climb each one without stopping.",
+          "numbers": "3 ladders of 8 studs (about 2 s to climb each, check climb speed), crack 2.5 s after grab, back after 4 s, ledges 8x8, about 12 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              82,
+              44,
+              4,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              58,
+              6,
+              28,
+              "gl"
+            ],
+            [
+              "r",
+              50,
+              58,
+              40,
+              5,
+              "pl"
+            ],
+            [
+              "r",
+              90,
+              32,
+              6,
+              30,
+              "gh"
+            ],
+            [
+              "r",
+              96,
+              32,
+              40,
+              5,
+              "pl"
+            ],
+            [
+              "r",
+              136,
+              6,
+              6,
+              30,
+              "gl"
+            ],
+            [
+              "r",
+              142,
+              6,
+              70,
+              5,
+              "pl"
+            ],
+            [
+              "t",
+              98,
+              46,
+              "cracks after 2.5 s"
+            ],
+            [
+              "a",
+              "M93 64 L93 86"
+            ],
+            [
+              "you",
+              24,
+              82
+            ]
+          ]
+        },
+        {
+          "name": "Drip Gauntlet",
+          "tier": "hard",
+          "does": "A very tall ladder under a fast drip with only one rest notch: climb each half in one go between two drops.",
+          "numbers": "ladder 24 studs, drip every 1.8 s, 1 notch halfway, about 1.1 s of climbing per half (check climb speed), about 8 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              80,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              6,
+              6,
+              88,
+              "gl"
+            ],
+            [
+              "r",
+              74,
+              0,
+              18,
+              6,
+              "dk"
+            ],
+            [
+              "r",
+              86,
+              46,
+              24,
+              5,
+              "pl"
+            ],
+            [
+              "c",
+              83,
+              18,
+              4,
+              "hz"
+            ],
+            [
+              "c",
+              83,
+              64,
+              4,
+              "hz"
+            ],
+            [
+              "a",
+              "M83 24 L83 40"
+            ],
+            [
+              "r",
+              92,
+              6,
+              110,
+              5,
+              "pl"
+            ],
+            [
+              "t",
+              114,
+              40,
+              "1 rest"
+            ],
+            [
+              "you",
+              50,
+              88
+            ]
+          ]
+        },
+        {
+          "name": "Sliding Pair",
+          "tier": "hard",
+          "does": "Two sliding ladders moving opposite ways over the void: grab the first, climb, then jump across to the second when they pass.",
+          "numbers": "2 ladders 8 tall, slide 7 studs, 3.2 s, half a beat apart, 5 stud jump between, about 10 parts",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              30,
+              46,
+              36,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              44,
+              10,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M75 40 L75 12"
+            ],
+            [
+              "r",
+              116,
+              44,
+              10,
+              8,
+              "gl"
+            ],
+            [
+              "a",
+              "M121 56 L121 84"
+            ],
+            [
+              "a",
+              "M82 48 Q98 38 114 48"
+            ],
+            [
+              "r",
+              150,
+              30,
+              60,
+              36,
+              "pl"
+            ],
+            [
+              "you",
+              24,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Hanging Ladders",
+          "tier": "hard",
+          "does": "A row of floating blocks, each with a ladder hanging under its front face: leap from one top to grab the next ladder, three times over the void.",
+          "numbers": "3 blocks 8x8, ladders 6 studs hanging 4 below the top, 6.5 stud leaps, about 9 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              70,
+              34,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              56,
+              50,
+              30,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              50,
+              6,
+              30,
+              "gl"
+            ],
+            [
+              "r",
+              108,
+              34,
+              30,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              102,
+              34,
+              6,
+              30,
+              "gl"
+            ],
+            [
+              "r",
+              160,
+              18,
+              30,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              154,
+              18,
+              6,
+              30,
+              "gl"
+            ],
+            [
+              "a",
+              "M34 66 Q42 56 50 66"
+            ],
+            [
+              "a",
+              "M86 48 Q94 38 102 48"
+            ],
+            [
+              "a",
+              "M138 32 Q146 22 154 32"
+            ],
+            [
+              "you",
+              16,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Leaning Tower Storm",
+          "tier": "hard",
+          "does": "The tower spiral, but the ladders are on the outside over the void and two faces have drips: you go round twice, reading each face's beat.",
+          "numbers": "tower 12x12, 8 ladders of 4 studs, corner ledges 8x8, drips on 2 faces every 2.2 s, about 22 parts",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              82,
+              20,
+              56,
+              56,
+              "dk"
+            ],
+            [
+              "r",
+              76,
+              36,
+              6,
+              24,
+              "gl"
+            ],
+            [
+              "r",
+              98,
+              76,
+              24,
+              6,
+              "gl"
+            ],
+            [
+              "r",
+              138,
+              36,
+              6,
+              24,
+              "gl"
+            ],
+            [
+              "r",
+              98,
+              14,
+              24,
+              6,
+              "gl"
+            ],
+            [
+              "c",
+              79,
+              48,
+              5,
+              "hz"
+            ],
+            [
+              "c",
+              141,
+              48,
+              5,
+              "hz"
+            ],
+            [
+              "a",
+              "M70 64 Q70 86 92 88"
+            ],
+            [
+              "a",
+              "M128 88 Q152 86 152 64"
+            ],
+            [
+              "t",
+              90,
+              50,
+              "x2 laps"
+            ],
+            [
+              "you",
+              60,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Crumble Gauntlet",
+          "tier": "hard",
+          "does": "One tall ladder made of four crumbling pieces under a slow drip, with no ledges: you must keep climbing as each piece cracks, and still read the drip above you.",
+          "numbers": "4 pieces of 6 studs, each cracks 1.5 s after grab, drip every 3 s, no rest, about 9 parts",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              88,
+              80,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              66,
+              6,
+              22,
+              "gh"
+            ],
+            [
+              "r",
+              80,
+              44,
+              6,
+              22,
+              "gl"
+            ],
+            [
+              "r",
+              80,
+              22,
+              6,
+              22,
+              "gl"
+            ],
+            [
+              "r",
+              80,
+              6,
+              6,
+              16,
+              "gl"
+            ],
+            [
+              "r",
+              74,
+              0,
+              18,
+              6,
+              "dk"
+            ],
+            [
+              "c",
+              83,
+              30,
+              4,
+              "hz"
+            ],
+            [
+              "a",
+              "M83 36 L83 50"
+            ],
+            [
+              "r",
+              86,
+              6,
+              116,
+              5,
+              "pl"
+            ],
+            [
+              "t",
+              96,
+              74,
+              "gone behind you"
+            ],
+            [
+              "you",
+              50,
+              88
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
