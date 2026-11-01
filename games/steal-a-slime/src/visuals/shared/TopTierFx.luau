@@ -41,9 +41,10 @@ TopTierFx.FRESH_SECONDS = 5
 
 TopTierFx.PEDESTAL_TRANSPARENCY = 1 -- no rarity disc under a slime; the light and sparkles stay
 
+-- Soft glow (docs/lighting-look.html, Soft 2): was 1.5 / 10 and 2.2 / 12, which washed the slime out.
 local PEDESTALS: { [number]: Pedestal } = {
-	[6] = table.freeze({ diameter = 4, brightness = 1.5, range = 10 }),
-	[7] = table.freeze({ diameter = 4.6, brightness = 2.2, range = 12, column = 6 }),
+	[6] = table.freeze({ diameter = 4, brightness = 0.7, range = 8 }),
+	[7] = table.freeze({ diameter = 4.6, brightness = 1, range = 10, column = 6 }),
 }
 
 function TopTierFx.pedestal(tier: number): Pedestal?

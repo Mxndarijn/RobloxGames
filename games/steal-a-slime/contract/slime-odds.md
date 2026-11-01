@@ -58,7 +58,9 @@ Fountain.roll(rng, id, raining, minTier?, luckMult?,
   `Carry.catchText`: `"<player> caught <Species>!"` (the slime's name), kind `"info"`, no sound (a `"Rare"` sound
   would read as a new drop in `RareAnnounce`).
 - **Looks (client, `src/visuals`, attributes only):**
-  - Aura: `SlimeLayout` tier >= 6 Neon aura in the tier colour (already on the model).
+  - Aura: `SlimeLayout` tier >= 6 Neon aura in the tier colour (already on the model). Every Mythic+ glow (aura,
+    pedestal light, wild `RareSpawn` light) stays faint: the slime's face and shape must read through it in the sun
+    (`docs/lighting-look.html`, "Soft 2").
   - `RareSpawn.TIERS[7]`: the Mythic marker plus `orbit` = 3 Neon motes circling the slime.
   - Fountain beam: while any wild Secret is replicated, one Neon beam (`TopTierFx.FOUNTAIN_BEAM`: 24 studs,
     1 wide, 0.7 transparent) stands on the fountain crown. It is the only rarity beam: slimes never carry one.
