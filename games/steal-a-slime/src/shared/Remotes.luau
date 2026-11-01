@@ -59,6 +59,7 @@ Remotes.ACTIONS = table.freeze({
 	EquipPlotSkin = table.freeze({ args = { "string" } }), -- Config.PLOT_SKINS id (FEATURES.PlotSkins, CONTRACT.md §15)
 	EquipPlotBase = table.freeze({ args = { "string" } }), -- Config.PLOT_BASES id (FEATURES.BaseShapes, CONTRACT.md §44)
 	EquipPetSeat = table.freeze({ args = { "string" } }), -- Config.PET_SEATS id (contract/pet-seats.md)
+	SetPetSpecies = table.freeze({ args = { "cosmetic" } }), -- found species id, "" = Auto (contract/pet-species.md)
 	BuyConsumable = table.freeze({ args = { "string", "string?" } }), -- Config.CONSUMABLES id, slimeId (ignored: buying only adds to the held stack) (FEATURES.Consumables)
 	UseConsumable = table.freeze({ args = { "string", "string?" } }), -- held Config.CONSUMABLES id, unused slot (string?): applies the effect, stack -1 (FEATURES.Consumables)
 	SetSettings = table.freeze({ args = { "settings" } }), -- { [settingId] = value }: changed Settings menu values (PlayerSettings, CONTRACT.md §8.9c)

@@ -31,7 +31,18 @@ the 19 models in `shared/modeling-kit` (`models/pet_cloud.py` and `models/pet_mo
 - **Client (`FollowPets`, `PetCloud`):** the pet rides its owner's seat template; while that is missing, the plain
   cloud; without any template, the invisible Mount. The slime's foot sinks `CLOUD_SINK` into the seat surface
   (`SeatHeight`), so decoration above it (Jelly's cherry, the rainbow arch) does not lift the pet. When the seat or
-  the available template changes, the pet is built again where it glides.
+  the available template changes, the pet is built again where it flies.
+- **Size (`PetCloud`):** a pet's longest visible side is `PET_SIZE` = 2.25 studs (about hip height; 1.5 before
+  2026-11-01), at most `PET_MAX_SCALE` x the slime as built; the cloud is `CLOUD_SCALE` 0.825 to `CLOUD_MAX_SCALE` 1.2
+  of the native mesh.
+- **Flight (`PetFollow`, pure):** a leash. The pet keeps its bearing from the owner and is pulled in to `FOLLOW`
+  (~3.9 flat studs) or pushed out to `NEAR` (2.6); in between it stays put, so the owner turning on the spot moves and
+  turns nothing. While the owner walks (> `WALKING`), the pet swings round to behind-right of the walking direction
+  (`BIAS_RATE`, faster `DODGE_RATE` when walked into from the front), never faster than `SWING_SPEED` round the owner. The goal carries `FEED` of the owner's
+  leash-tugging speed, so it trails at the leash instead of a long spring lag. While the owner's Humanoid
+  FloorMaterial is Air or its state is Jumping / Freefall the pet keeps the take-off height (a drop below it is followed; after `AIR_HOLD` it follows
+  anyway). It faces how it moves, turning at most `YAW_MAX_RATE`, and keeps its facing at rest. The first step or a
+  teleport (> `SNAP_DISTANCE`) snaps it to the owner's back-right offset.
 - **Menu (`Panels/Skins`, `PetSeatsView`):** the menu is titled "Skins" with three tabs, Base (plot skins, §15),
   Building (plot bases, [base-shapes.md](base-shapes.md)) and Cloud; every open starts on Base. Cloud: one row per seat
   with its icon (`PetSeat_<id>`, pictures from `shared/modeling-kit/tools/icons/recipes_seat.py`), its name and
