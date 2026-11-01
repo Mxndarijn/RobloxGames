@@ -56,6 +56,7 @@ jobs:
     needs: games
     if: needs.games.outputs.dirs != '[]'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -78,9 +79,11 @@ jobs:
         if: hashFiles(format('{0}/rokit.toml', matrix.game)) != ''
         run: rokit install --no-trust-check
 
+      # Games with scripts/test-parallel.luau split the suite over the runner's CPUs.
       - name: Lune logic tests
         if: hashFiles(format('{0}/tests/init.luau', matrix.game)) != ''
-        run: lune run tests
+        run: |
+          if [ -f scripts/test-parallel.luau ]; then lune run scripts/test-parallel; else lune run tests; fi
 
       - name: Rojo build
         id: build

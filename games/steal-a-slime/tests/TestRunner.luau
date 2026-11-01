@@ -128,8 +128,10 @@ function TestRunner.expect(actual: any)
 	return matchers
 end
 
-function TestRunner.run(): number
-	local passed, failed = 0, 0
+local passed, failed = 0, 0
+
+-- Runs the tests collected so far (tests/init SPEC_TIMINGS calls it after each spec to time it on its own).
+function TestRunner.flush()
 	for _, test in tests do
 		local ok, err = pcall(test.fn)
 		if ok then
@@ -140,6 +142,11 @@ function TestRunner.run(): number
 			print(`  FAIL  {test.name}\n        {err}`)
 		end
 	end
+	table.clear(tests)
+end
+
+function TestRunner.run(): number
+	TestRunner.flush()
 	print(
 		`\n{passed} passed, {failed} failed, {passed + failed} total`
 			.. if skipped > 0 then `, {skipped} skipped (forced {forced})` else ""

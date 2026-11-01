@@ -47,6 +47,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.slime == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: games/steal-a-slime
@@ -64,8 +65,9 @@ jobs:
         run: wally install
       - name: Rojo build
         run: rojo build -o build.rbxlx
-      - name: Lune tests
-        run: lune run tests
+      # One Lune process per CPU (tests/Shard, weights in tests/SpecWeights); same specs as `lune run tests`.
+      - name: Lune tests (parallel shards)
+        run: lune run scripts/test-parallel
       - name: Cloud-test staging (stage-specs must accept TestRunner)
         run: lune run tools/pipeline/stage-specs "$RUNNER_TEMP/CloudTests"
       - name: Selene
@@ -84,6 +86,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.slime == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -111,6 +114,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.escape == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: games/speed-escape
