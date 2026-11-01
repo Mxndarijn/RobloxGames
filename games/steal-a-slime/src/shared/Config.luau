@@ -2410,6 +2410,7 @@ local Config = {
 	SAVE_DRAIN_SECONDS = 20, -- a load waits at most this long for the same player's saves still in flight
 	SAVE_DRAIN_STEP = 0.25, -- seconds between checks while a load waits for those saves
 	MAX_SLIMES_SAVED = 64,
+	IDLE_REJOIN_AFTER = 18 * 60, -- idle seconds before a player is teleported back in (Roblox kicks at 20 minutes)
 }
 
 local Validate = if script then require(script.Parent.Validate) else require("./Validate")
