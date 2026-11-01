@@ -1205,6 +1205,9 @@ local Config = {
 	-- World
 	PLOT_COUNT = 8, -- one plot per player; server MaxPlayers = 8
 	SLIME_BASE_DIAMETER = 3, -- studs at size 1.0 (ModelFactory)
+	-- MeshPart.Color grey (0-255) a species / shine kit is worn in. It multiplies the kit's baked colours, so 175 draws
+	-- every slime ~30% darker and keeps its own look; 255 was too bright in the sun (docs/lighting-look.html, Soft 2).
+	SLIME_MESH_SHADE = 175,
 	SLIME_MESH_ASSET_ID = 103340234939607, -- Jolt's slime package; server SlimeMesh, procedural fallback
 	STATE_MIN_INTERVAL = 0.25, -- State snapshots are coalesced to at most 4/s per player
 	LEADERBOARD_INTERVAL = 60,
