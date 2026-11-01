@@ -395,7 +395,7 @@ describe("Rebirth needs specific slimes and uses them up", function()
 		}
 		panel.update(state)
 		local row = UiHarness.find(panel.frame, "SlimeNeed")
-		expect(UiHarness.find(row, "SlimeDesc").Text).toBe("Obtained by merge")
+		expect(UiHarness.find(row, "SlimeDesc").Text).toBe("Obtained by merge (see SlimeDex)")
 		state.rebirthSlimes[1].owned = true
 		panel.update(state)
 		expect(UiHarness.find(row, "SlimeDesc").Text).toBe("Used up on rebirth")
