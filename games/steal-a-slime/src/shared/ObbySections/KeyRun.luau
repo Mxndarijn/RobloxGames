@@ -7,9 +7,9 @@
 	touching red goo puts you back on the start pad and every key back where it was (ObbyFx clears keys on a reset).
 
 	Numbers against the checks (tests/ObbyCheck):
-	* Every variant opens with a jump of at least 4 studs (a walker steps over holes up to about 3.6), so holding
-	  forward never even reaches the gate; the gate is the second lock, not the only one (tests/obby/KeyRun.spec takes
-	  the gates away and walks again).
+	* Every hole on the main path is at least 5 studs (a walker steps over same-height holes up to about 4.4), so
+	  holding forward never even reaches the gate, and the path past it needs a jump too: the gate is the second
+	  lock, not the only one (tests/obby/KeyRun.spec takes the gates away and walks again).
 	* A gate is GATE_HIGH tall (over a 7.2-stud jump) and spans the whole lane, or reaches 2 studs past its floor's
 	  edge into the air where the lane goes on beside it, so you can't jump over or round it, not even off a +3
 	  ledge just before it.
@@ -143,7 +143,8 @@ end
 --[[
 	The map (110 long): the entry, a path on the left (z -12..-4) with four spots on the right, a full-width hub with a
 	crusher, a path on the right (z 4..12) with four spots on the left, then the gate pad. Near spots sit 4 studs off
-	the path, far spots 5.5. Every spot is built (empty ones are decoys); the keys go on the picked ones.
+	the path, far spots 5.5. Each row of spots runs on like a path, so the holes between entry, rows, hub and gate pad
+	are 5 studs: no walker crosses them. Every spot is built (empty ones are decoys); the keys go on the picked ones.
 ]]
 local MAP_LENGTH = 110
 local SPOTS = table.freeze({
@@ -151,10 +152,10 @@ local SPOTS = table.freeze({
 	{ x = 21, side = 1, far = true }, -- R2
 	{ x = 30, side = 1, far = false }, -- R3
 	{ x = 39, side = 1, far = true }, -- R4
-	{ x = 63, side = -1, far = true }, -- L1
-	{ x = 72, side = -1, far = false }, -- L2
-	{ x = 81, side = -1, far = true }, -- L3
-	{ x = 90, side = -1, far = false }, -- L4
+	{ x = 65, side = -1, far = true }, -- L1
+	{ x = 74, side = -1, far = false }, -- L2
+	{ x = 83, side = -1, far = true }, -- L3
+	{ x = 92, side = -1, far = false }, -- L4
 })
 local NEAR = { 1, 3, 6, 8 }
 local FAR = { 2, 4, 5, 7 }
@@ -172,7 +173,7 @@ end
 -- The map with keys on `picked` spots (indices into SPOTS); `drifting` (one of them) floats off after the first grab.
 local function scatter(picked: { number }, drifting: number?, tier: string): Kit.Section
 	local parts: { Kit.Part } = {}
-	table.insert(parts, pad(0, 8, -Kit.HALF, Kit.HALF, 0, 3))
+	table.insert(parts, pad(0, 7, -Kit.HALF, Kit.HALF, 0, 3))
 	table.insert(parts, pad(12, 47, -12, -4, 0, 1))
 	local has: { [number]: boolean } = {}
 	for _, i in picked do
@@ -197,21 +198,21 @@ local function scatter(picked: { number }, drifting: number?, tier: string): Kit
 	for i = 1, 4 do
 		spot(i)
 	end
-	table.insert(parts, pad(51, 59, -Kit.HALF, Kit.HALF, 0, 3))
-	table.insert(parts, pad(63, 98, 4, 12, 0, 1))
+	table.insert(parts, pad(52, 60, -Kit.HALF, Kit.HALF, 0, 3))
+	table.insert(parts, pad(65, 100, 4, 12, 0, 1))
 	for i = 5, 8 do
 		spot(i)
 	end
-	table.insert(parts, pad(102, MAP_LENGTH, -Kit.HALF, Kit.HALF, 0, 3))
-	table.insert(parts, crusher(55, 0, Kit.WIDTH, 0, HUB_CRUSH[tier] or HUB_CRUSH.medium))
+	table.insert(parts, pad(105, MAP_LENGTH, -Kit.HALF, Kit.HALF, 0, 3))
+	table.insert(parts, crusher(56, 0, Kit.WIDTH, 0, HUB_CRUSH[tier] or HUB_CRUSH.medium))
 	-- Medium adds a crusher on the left path, hard one on each path (out of step with the hub).
 	if tier ~= "easy" then
 		table.insert(parts, crusher(34, -8, 8, 0, CRUSH[tier] or CRUSH.medium, 0.5))
 	end
 	if tier == "hard" then
-		table.insert(parts, crusher(76, 8, 8, 0, CRUSH.hard, 0.25))
+		table.insert(parts, crusher(78, 8, 8, 0, CRUSH.hard, 0.25))
 	end
-	table.insert(parts, gate(106, 0, #picked))
+	table.insert(parts, gate(107.5, 0, #picked))
 	for _, k in keys do
 		table.insert(parts, k)
 	end
@@ -330,12 +331,12 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {
 				entry(),
-				pad(14, 30, -12, -4, 0, 1),
+				pad(15, 30, -12, -4, 0, 1),
 				island(18, 1),
-				pad(34, 58, -12, -4, 0, 2),
+				pad(35, 58, -12, -4, 0, 2),
 				island(36, 1),
 				island(48, 1),
-				pad(62, 70, -12, -4, 0, 3),
+				pad(63, 70, -12, -4, 0, 3),
 				key(22, 0, 5),
 				key(40, 0, 5),
 				key(52, 0, 5),
@@ -354,7 +355,7 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {
 				entry(),
-				pad(14, 40, -Kit.HALF, Kit.HALF, 0, 1),
+				pad(15, 40, -Kit.HALF, Kit.HALF, 0, 1),
 				pillar(16, 24, -12, -4, 3, 0, 2, { route = "key" }),
 				pillar(24, 32, -12, -4, 6, 0, 3, { route = "key" }),
 				pillar(32, 40, -12, -4, 9, 0, 2, { route = "key" }),
@@ -376,7 +377,7 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {
 				entry(),
-				pad(14, 40, -12, -4, 0, 1),
+				pad(15, 40, -12, -4, 0, 1),
 				island(16, 0),
 				island(28, 0, 3, 3),
 				island(40, 0),
@@ -409,7 +410,7 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {
 				entry(),
-				pad(14, 60, -4, 4, 0, 1),
+				pad(15, 59, -4, 4, 0, 1),
 				pad(24, 40, -Kit.HALF, Kit.HALF, -9, 2, { route = "key" }),
 				pillar(40, 46, 4, 12, -6, -10, 3, { route = "key" }),
 				pillar(46, 52, 4, 12, -3, -10, 2, { route = "key" }),
@@ -432,8 +433,8 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {
 				entry(),
-				pad(14, 42, -Kit.HALF, Kit.HALF, 0, 1),
-				pad(46, 72, -Kit.HALF, Kit.HALF, 0, 2),
+				pad(15, 42, -Kit.HALF, Kit.HALF, 0, 1),
+				pad(47, 72, -Kit.HALF, Kit.HALF, 0, 2),
 				gate(66, 0, 3),
 			}
 			ring(parts, 23, 6.5, "-x", DOOR, 0)
@@ -479,11 +480,11 @@ M.variants = {
 			end
 			local parts = {
 				entry(),
-				pad(14, 36, -12, -4, 0, 1),
+				pad(15, 36, -12, -4, 0, 1),
 				island(24, 0),
-				pad(40, 56, -12, -4, 0, 2),
+				pad(41, 56, -12, -4, 0, 2),
 				island(46, 0),
-				pad(60, 70, -12, -4, 0, 3),
+				pad(61, 70, -12, -4, 0, 3),
 				drifting(18, 0, -8),
 				drifting(28, 0, 4),
 				drifting(50, 0, 4),
@@ -501,11 +502,11 @@ M.variants = {
 			local ride = { kind = "slide", axis = "z", amp = 2, period = 2.6 }
 			local parts = {
 				entry(),
-				pad(14, 34, -12, -4, 0, 1),
+				pad(15, 34, -12, -4, 0, 1),
 				pad(24, 32, 2, 10, 0, 3, { route = "key", motion = table.clone(ride) }),
-				pad(38, 54, -12, -4, 0, 2),
+				pad(39, 54, -12, -4, 0, 2),
 				island(42, 0),
-				pad(58, 66, -12, -4, 0, 3),
+				pad(59, 66, -12, -4, 0, 3),
 				key(18, 0, -8),
 				key(28, 0, 6, { motion = table.clone(ride) }),
 				key(46, 0, 4),
@@ -527,9 +528,9 @@ M.variants = {
 				pad(28, 38, 4, 12, 0, 3, { route = "key" }),
 				pad(42, 52, 4, 12, 0, 2, { route = "key" }),
 				pad(56, 66, 4, 12, 0, 3, { route = "key" }),
-				pad(14, 34, -12, -4, 0, 1),
-				pad(38, 56, -12, -4, 0, 2),
-				pad(60, 76, -12, -4, 0, 1),
+				pad(15, 34, -12, -4, 0, 1),
+				pad(39, 56, -12, -4, 0, 2),
+				pad(61, 76, -12, -4, 0, 1),
 				key(59, 0, 6),
 				key(61.5, 0, 10),
 				key(64, 0, 6),
@@ -548,11 +549,11 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {
 				entry(),
-				pad(14, 30, -Kit.HALF, Kit.HALF, 0, 1),
-				pad(34, 54, -Kit.HALF, Kit.HALF, 0, 2),
-				pad(58, 80, -Kit.HALF, Kit.HALF, 0, 1),
+				pad(15, 30, -Kit.HALF, Kit.HALF, 0, 1),
+				pad(35, 54, -Kit.HALF, Kit.HALF, 0, 2),
+				pad(59, 80, -Kit.HALF, Kit.HALF, 0, 1),
 				pillar(68, 74, 4, 12, 3, 0, 3, { route = "key" }),
-				pad(84, 92, -Kit.HALF, Kit.HALF, 0, 3),
+				pad(85, 92, -Kit.HALF, Kit.HALF, 0, 3),
 				key(18, 0, 0),
 				gate(24, 0, 1),
 				crusher(41, 0, Kit.WIDTH, 0, CRUSH.medium),
