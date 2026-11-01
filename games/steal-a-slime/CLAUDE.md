@@ -32,6 +32,7 @@
 ```sh
 rojo build -o build.rbxlx                     # or -o steal-a-slime.rbxl for an upload
 lune run tests                                # unit + LiveBoot + RequirePaths + Members specs
+lune run scripts/test-parallel                # the same suite split over your CPUs (what CI runs; much faster)
 selene src tests
 stylua --check src tests
 lune run scripts/check-place.luau build.rbxlx # place safety (no DataStoreMode, void-safety)
@@ -39,7 +40,7 @@ scripts/typecheck.sh                          # luau-lsp: fails on src/server + 
 lune run tools/livetest/session build.rbxlx   # stand-in player session on the memory store
 ```
 
-CI: `.github/workflows/pr-checks.yml` runs the list above up to `scripts/typecheck.sh` on every PR that touches this game, plus `lune run scripts/test-flags` with every flag on and every flag off; `cheap-gates.yml` runs the Lune tests and the static UI layout check on every push to `main`. Archer's `lune run src/visuals/tools/build-map.luau` / `check-map.luau` only rebuild and check the unused `src/visuals/static` files; they are not part of the gate.
+CI: `.github/workflows/pr-checks.yml` runs the list above up to `scripts/typecheck.sh` on every PR that touches this game, plus `lune run scripts/test-flags` with every flag on and every flag off; all three run the Lune suite in parallel shards over 2 runners each (`scripts/test-parallel`, `TEST_PART`; a new slow spec gets a row in `tests/SpecWeights.luau` so the shards stay even); `cheap-gates.yml` runs the Lune tests and the static UI layout check on every push to `main`. Archer's `lune run src/visuals/tools/build-map.luau` / `check-map.luau` only rebuild and check the unused `src/visuals/static` files; they are not part of the gate.
 
 Cloud stand-in session on a Saved version: `python3 /workspace/roblox/live-testing/ci/run.py tools/livetest/cloud/session.luau --version N`. Results go to `tools/livetest/results/`.
 

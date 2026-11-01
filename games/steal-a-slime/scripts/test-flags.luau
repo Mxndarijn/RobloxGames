@@ -1,7 +1,7 @@
 --!strict
 -- Runs the whole Lune suite with EVERY Config.FEATURES flag forced on (or off), without touching
 -- the checked-in defaults. Config.FEATURES is frozen at load, so this copies the game into a temp
--- dir, rewrites the flag lines of that copy's Config and runs `lune run tests` there.
+-- dir, rewrites the flag lines of that copy's Config and runs the suite there (scripts/test-parallel).
 -- The child run sees SLIME_FORCE_FEATURES=on|off (tests/Fixtures.forcedFeatures) so specs that pin the
 -- shipped defaults can tell. SPEC_FILTER=<substring> limits the specs, as with a plain `lune run tests`.
 -- Usage (from games/steal-a-slime): lune run scripts/test-flags <on|off>
@@ -57,10 +57,11 @@ assert(count > 0, "no FEATURES flags rewritten")
 fs.writeFile(configPath, string.sub(config, 1, last - 1) .. body .. string.sub(config, close + 1))
 print(`FEATURES forced {value} ({count} flags) in {root}`)
 
--- Own TMPDIR: parallel runs never share spec temp files.
+-- Own TMPDIR: parallel runs never share spec temp files. The suite runs in parallel shards
+-- (scripts/test-parallel; TEST_JOBS sets how many).
 local result = process.exec(
 	"lune",
-	{ "run", "tests" },
+	{ "run", "scripts/test-parallel" },
 	{ cwd = root, stdio = "inherit", env = { SLIME_FORCE_FEATURES = mode, TMPDIR = tmp } }
 )
 for _, link in links do -- unlink first: removeDir must never follow a link into the repo
