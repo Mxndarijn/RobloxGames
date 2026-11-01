@@ -459,12 +459,16 @@ entries["habitat_prop_abyss"] =
 	{ assetId = 117561596629377, meshId = "rbxassetid://98911429200082", size = { 1.247, 1.261, 0.839 } }
 entries["habitat_prop_amethyst"] =
 	{ assetId = 73441082434287, meshId = "rbxassetid://82302448404516", size = { 1.8, 1.022, 1.189 } }
+entries["habitat_prop_astronaut"] =
+	{ assetId = 123238331714254, meshId = "rbxassetid://75605933924407", size = { 1.24, 1.28, 1.066 } }
 entries["habitat_prop_aurora"] =
 	{ assetId = 140451936129339, meshId = "rbxassetid://103706471931313", size = { 1.645, 1.33, 0.6 } }
 entries["habitat_prop_blaze"] =
 	{ assetId = 117663443417690, meshId = "rbxassetid://114554556331189", size = { 1.775, 1.345, 1.096 } }
 entries["habitat_prop_bloom"] =
 	{ assetId = 106019443057703, meshId = "rbxassetid://75639358217707", size = { 1.739, 1.35, 0.397 } }
+entries["habitat_prop_bonsai"] =
+	{ assetId = 96756433233040, meshId = "rbxassetid://135892895559017", size = { 1.8, 1.27, 1.08 } }
 entries["habitat_prop_boo"] =
 	{ assetId = 99187637024558, meshId = "rbxassetid://125464150726273", size = { 1.35, 1.354, 0.513 } }
 entries["habitat_prop_bubbles"] =
@@ -475,18 +479,28 @@ entries["habitat_prop_captain_goo"] =
 	{ assetId = 113378344288610, meshId = "rbxassetid://123787236158403", size = { 1.64, 1.173, 0.925 } }
 entries["habitat_prop_catfish"] =
 	{ assetId = 125735561144570, meshId = "rbxassetid://124834417122427", size = { 0.936, 1.344, 0.913 } }
+entries["habitat_prop_cerberus"] =
+	{ assetId = 124666627445944, meshId = "rbxassetid://71424103262832", size = { 1.633, 0.748, 1.044 } }
 entries["habitat_prop_cheddar"] =
 	{ assetId = 110912109776043, meshId = "rbxassetid://85515206860875", size = { 1.732, 0.98, 0.872 } }
 entries["habitat_prop_chomp"] =
 	{ assetId = 96532731058976, meshId = "rbxassetid://116030040550542", size = { 1.5, 1.384, 0.95 } }
 entries["habitat_prop_chrono"] =
 	{ assetId = 133472868698509, meshId = "rbxassetid://105839716681582", size = { 0.7, 1.354, 0.613 } }
+entries["habitat_prop_constellation"] =
+	{ assetId = 100243784990469, meshId = "rbxassetid://101236443455413", size = { 0.94, 1.39, 0.94 } }
 entries["habitat_prop_cosmo"] =
 	{ assetId = 94378594241996, meshId = "rbxassetid://128740158718429", size = { 1.567, 1.346, 0.927 } }
+entries["habitat_prop_cowboy"] =
+	{ assetId = 76576450703482, meshId = "rbxassetid://127829705881584", size = { 1.19, 0.789, 0.815 } }
 entries["habitat_prop_cyber_ninja"] =
 	{ assetId = 99855480259022, meshId = "rbxassetid://71326787726967", size = { 1.5, 1.24, 0.5 } }
 entries["habitat_prop_disco"] =
 	{ assetId = 134847264549048, meshId = "rbxassetid://83969091390573", size = { 1.2, 1.28, 0.645 } }
+entries["habitat_prop_diver"] =
+	{ assetId = 140418691165634, meshId = "rbxassetid://107200329573184", size = { 1.708, 1.345, 1.069 } }
+entries["habitat_prop_djinn"] =
+	{ assetId = 98479755416497, meshId = "rbxassetid://112847657357243", size = { 1.273, 0.987, 0.95 } }
 entries["habitat_prop_doodle"] =
 	{ assetId = 111051041154707, meshId = "rbxassetid://96835203069663", size = { 1.391, 1.393, 0.974 } }
 entries["habitat_prop_dragon_king"] =
@@ -515,16 +529,22 @@ entries["habitat_prop_goomancer"] =
 	{ assetId = 104287445449189, meshId = "rbxassetid://129874672324395", size = { 1.1, 1.2, 0.799 } }
 entries["habitat_prop_goozilla"] =
 	{ assetId = 82073068602402, meshId = "rbxassetid://97735857772155", size = { 1.7, 1.365, 1 } }
+entries["habitat_prop_griffin"] =
+	{ assetId = 130352602143579, meshId = "rbxassetid://82395730074619", size = { 1.824, 0.88, 0.783 } }
 entries["habitat_prop_gummy"] =
 	{ assetId = 81900365884240, meshId = "rbxassetid://111930301778363", size = { 1.745, 1.033, 1.067 } }
 entries["habitat_prop_honey_toad"] =
 	{ assetId = 109748153884038, meshId = "rbxassetid://107572058024957", size = { 0.866, 1.27, 0.953 } }
+entries["habitat_prop_hydra"] =
+	{ assetId = 90634800800181, meshId = "rbxassetid://134118251401493", size = { 1.652, 1.056, 1.091 } }
 entries["habitat_prop_imp"] =
 	{ assetId = 89059832596188, meshId = "rbxassetid://134080084206738", size = { 1.63, 1.219, 0.982 } }
 entries["habitat_prop_isle"] =
 	{ assetId = 111722155718926, meshId = "rbxassetid://95422539067633", size = { 1.385, 1.39, 1.109 } }
 entries["habitat_prop_jackpot"] =
 	{ assetId = 127413701097902, meshId = "rbxassetid://73847937989069", size = { 1.442, 0.919, 0.975 } }
+entries["habitat_prop_jester"] =
+	{ assetId = 94834831680365, meshId = "rbxassetid://74164816488296", size = { 1.232, 1.046, 0.98 } }
 entries["habitat_prop_king"] =
 	{ assetId = 71234102771983, meshId = "rbxassetid://99781276144423", size = { 1.397, 1.35, 0.892 } }
 entries["habitat_prop_kirin"] =
@@ -539,18 +559,24 @@ entries["habitat_prop_lop"] =
 	{ assetId = 123024522793409, meshId = "rbxassetid://112976587764050", size = { 1.724, 1.167, 1.119 } }
 entries["habitat_prop_lunara"] =
 	{ assetId = 80781709755584, meshId = "rbxassetid://105967141084074", size = { 1.801, 1.325, 0.828 } }
+entries["habitat_prop_mammoth"] =
+	{ assetId = 103176331440258, meshId = "rbxassetid://73509368007285", size = { 1.377, 0.943, 1.101 } }
 entries["habitat_prop_mecha_goo"] =
 	{ assetId = 85984290704627, meshId = "rbxassetid://132083646495710", size = { 1.24, 1.088, 0.868 } }
 entries["habitat_prop_midas"] =
 	{ assetId = 129986135225413, meshId = "rbxassetid://111626332260732", size = { 1.474, 0.611, 0.83 } }
 entries["habitat_prop_mochi"] =
 	{ assetId = 128258146071821, meshId = "rbxassetid://122612146654129", size = { 1.823, 0.555, 1.082 } }
+entries["habitat_prop_monarch"] =
+	{ assetId = 123336503601817, meshId = "rbxassetid://101832482312665", size = { 0.811, 1.294, 0.577 } }
 entries["habitat_prop_moo"] =
 	{ assetId = 90180210468011, meshId = "rbxassetid://123392249892349", size = { 1.14, 1.28, 0.88 } }
 entries["habitat_prop_moo_shroom"] =
 	{ assetId = 83770901677778, meshId = "rbxassetid://86934688008953", size = { 1.679, 1.092, 0.84 } }
 entries["habitat_prop_mushie"] =
 	{ assetId = 126016622902450, meshId = "rbxassetid://140206816711903", size = { 1.89, 0.761, 0.88 } }
+entries["habitat_prop_narwhal"] =
+	{ assetId = 96081754674718, meshId = "rbxassetid://99051578442020", size = { 1.8, 0.852, 1.116 } }
 entries["habitat_prop_nebulon"] =
 	{ assetId = 116201615167766, meshId = "rbxassetid://70961135959524", size = { 1.455, 1.366, 1.088 } }
 entries["habitat_prop_nightwing"] =
@@ -575,20 +601,28 @@ entries["habitat_prop_pumpking"] =
 	{ assetId = 135311280696448, meshId = "rbxassetid://115811986319444", size = { 1.696, 0.813, 1.019 } }
 entries["habitat_prop_queen_jelly"] =
 	{ assetId = 97304124131622, meshId = "rbxassetid://128920460759300", size = { 1.663, 1.11, 0.824 } }
+entries["habitat_prop_reef"] =
+	{ assetId = 88779903704700, meshId = "rbxassetid://111094863303255", size = { 1.657, 1.342, 1.073 } }
 entries["habitat_prop_robo"] =
 	{ assetId = 138216395395711, meshId = "rbxassetid://116798517876827", size = { 1.703, 1.005, 0.854 } }
 entries["habitat_prop_rocky_road"] =
 	{ assetId = 81202349083483, meshId = "rbxassetid://108436585661047", size = { 0.88, 1.366, 0.858 } }
+entries["habitat_prop_ryujin"] =
+	{ assetId = 114085948284196, meshId = "rbxassetid://84063186097822", size = { 1.648, 1.33, 0.38 } }
 entries["habitat_prop_seraph"] =
 	{ assetId = 97892349016617, meshId = "rbxassetid://97724055605750", size = { 1.036, 1.28, 0.8 } }
 entries["habitat_prop_sir_goo"] =
 	{ assetId = 111836183576168, meshId = "rbxassetid://118499862865170", size = { 1.62, 1.37, 0.734 } }
+entries["habitat_prop_siren"] =
+	{ assetId = 128067217995154, meshId = "rbxassetid://97337862386367", size = { 1.262, 0.848, 0.964 } }
 entries["habitat_prop_snow_bunny"] =
 	{ assetId = 72641113937819, meshId = "rbxassetid://129287408173221", size = { 1.555, 0.542, 0.82 } }
 entries["habitat_prop_soda"] =
 	{ assetId = 119927810208068, meshId = "rbxassetid://118611315472329", size = { 1.46, 1.13, 1 } }
 entries["habitat_prop_solaris"] =
 	{ assetId = 112267073473705, meshId = "rbxassetid://114385898360541", size = { 1.109, 1.043, 1.065 } }
+entries["habitat_prop_sphinx"] =
+	{ assetId = 109883969053907, meshId = "rbxassetid://125159262990056", size = { 1.5, 1.3, 1.1 } }
 entries["habitat_prop_sprout"] =
 	{ assetId = 100211425549414, meshId = "rbxassetid://77646747575239", size = { 1.834, 1.208, 0.8 } }
 entries["habitat_prop_star_emperor"] =
@@ -597,14 +631,22 @@ entries["habitat_prop_steam"] =
 	{ assetId = 130609434263558, meshId = "rbxassetid://112607430506115", size = { 1.787, 1.165, 1.079 } }
 entries["habitat_prop_sunny"] =
 	{ assetId = 83709432627823, meshId = "rbxassetid://110172726735660", size = { 1.498, 0.936, 0.78 } }
+entries["habitat_prop_supernova"] =
+	{ assetId = 80908558521703, meshId = "rbxassetid://121950684953911", size = { 1.329, 1.393, 0.826 } }
 entries["habitat_prop_sushi"] =
 	{ assetId = 125426101855510, meshId = "rbxassetid://95664862793035", size = { 1.733, 0.589, 0.92 } }
 entries["habitat_prop_thunderbee"] =
 	{ assetId = 121322833302144, meshId = "rbxassetid://92344010241787", size = { 1.687, 0.977, 1.044 } }
 entries["habitat_prop_truffle"] =
 	{ assetId = 100427393439623, meshId = "rbxassetid://102165682171182", size = { 1.399, 1.138, 0.994 } }
+entries["habitat_prop_valkyrie"] =
+	{ assetId = 75952341415366, meshId = "rbxassetid://107262604305169", size = { 1.345, 1.34, 0.788 } }
+entries["habitat_prop_venus"] =
+	{ assetId = 73513104085323, meshId = "rbxassetid://119592106036459", size = { 1.218, 1.206, 0.76 } }
 entries["habitat_prop_whiskers"] =
 	{ assetId = 125767474425930, meshId = "rbxassetid://102250624972670", size = { 1.443, 1.021, 1.021 } }
+entries["habitat_prop_willow_wisp"] =
+	{ assetId = 110722867652552, meshId = "rbxassetid://82858656782114", size = { 1.401, 1.207, 1.07 } }
 entries["habitat_prop_yeti"] =
 	{ assetId = 140344863696169, meshId = "rbxassetid://75672483175794", size = { 1.827, 1.201, 0.885 } }
 entries["habitat_prop_zap"] =
@@ -1941,6 +1983,33 @@ entries["slime_dragon_king"] =
 	{ assetId = 88961374433419, size = { 5.566, 4.129, 4.424 }, offset = { 0, 2.065, 0.301 } }
 entries["slime_nightwing"] =
 	{ assetId = 112164365401063, size = { 6.262, 4.163, 3.802 }, offset = { 0.036, 2.081, 0.378 } }
+entries["slime_jester"] = { assetId = 107776626699944, size = { 5.089, 4.825, 3.724 }, offset = { 0, 2.412, -0 } }
+entries["slime_cowboy"] = { assetId = 80008029705425, size = { 4.445, 4.423, 4.1 }, offset = { -0.173, 2.212, -0 } }
+entries["slime_venus"] = { assetId = 126075410737678, size = { 5.408, 4.386, 3.049 }, offset = { 0, 2.193, -0.02 } }
+entries["slime_bonsai"] = { assetId = 136559010019362, size = { 4.142, 4.537, 3.28 }, offset = { 0.015, 2.249, -0 } }
+entries["slime_diver"] = { assetId = 126843712813086, size = { 3.432, 5, 3.855 }, offset = { 0, 2.5, 0.212 } }
+entries["slime_narwhal"] = { assetId = 70631190526788, size = { 4.367, 4.349, 4.45 }, offset = { 0, 2.175, 0.468 } }
+entries["slime_astronaut"] =
+	{ assetId = 126263889981010, size = { 4.631, 3.28, 3.901 }, offset = { -0.456, 1.64, 0.336 } }
+entries["slime_griffin"] = { assetId = 98582512631122, size = { 6.855, 3.936, 4.412 }, offset = { 0, 1.968, 0.11 } }
+entries["slime_cerberus"] = { assetId = 130076602879879, size = { 4.823, 2.858, 3.869 }, offset = { 0, 1.429, 0.205 } }
+entries["slime_willow_wisp"] =
+	{ assetId = 96407558966911, size = { 4.229, 4.039, 3.455 }, offset = { 0.042, 2.02, 0.149 } }
+entries["slime_mammoth"] = { assetId = 109563802593479, size = { 3.865, 3.407, 4.597 }, offset = { -0, 1.704, -0.369 } }
+entries["slime_siren"] = { assetId = 113946783211620, size = { 5.036, 3.964, 3.558 }, offset = { 0.23, 1.906, 0.175 } }
+entries["slime_djinn"] =
+	{ assetId = 118379907056121, size = { 3.769, 4.549, 3.288 }, offset = { 0.011, 2.275, -0.084 } }
+entries["slime_sphinx"] = { assetId = 75192951333946, size = { 3.682, 3.156, 4.176 }, offset = { 0, 1.538, 0.06 } }
+entries["slime_monarch"] = { assetId = 113661203251468, size = { 6.431, 5.211, 3.21 }, offset = { 0, 2.605, -0.055 } }
+entries["slime_reef"] = { assetId = 127169709930421, size = { 4.011, 4.14, 4.712 }, offset = { 0, 2.07, 0.054 } }
+entries["slime_supernova"] =
+	{ assetId = 73034302355208, size = { 5.841, 4.368, 5.092 }, offset = { -0.194, 2.184, 0.235 } }
+entries["slime_valkyrie"] =
+	{ assetId = 130641342710989, size = { 5.952, 4.651, 4.13 }, offset = { -0.082, 2.325, 0.151 } }
+entries["slime_hydra"] = { assetId = 118162217093596, size = { 5.569, 4.531, 4.507 }, offset = { 0.191, 2.166, 0.663 } }
+entries["slime_constellation"] =
+	{ assetId = 112863208318729, size = { 6.089, 4.071, 4.416 }, offset = { 0, 2.036, -0 } }
+entries["slime_ryujin"] = { assetId = 97835871505997, size = { 4.783, 4.847, 4.426 }, offset = { -0.293, 2.423, 0.04 } }
 entries["slime_goozilla"] = { assetId = 95597031533993, size = { 3.204, 3.927, 5.049 }, offset = { 0, 1.907, 0.617 } }
 entries["slime_queen_jelly"] =
 	{ assetId = 108716301261458, size = { 4.401, 4.653, 4.403 }, offset = { -0.032, 2.337, 0.024 } }
@@ -1964,20 +2033,27 @@ entries["slime_kitsune"] = { assetId = 129157153377304, size = { 7.571, 5.424, 3
 local MUTATION_KITS: { [string]: { [string]: number } } = {
 	slime_abyss = { gold = 130752526095676, diamond = 99595211141238, rainbow = 84124421629684 },
 	slime_amethyst = { gold = 84278709906678, diamond = 71186579061119, rainbow = 88261177876998 },
+	slime_astronaut = { gold = 136548286598204, diamond = 94001325824886, rainbow = 92434755004712 },
 	slime_aurora = { gold = 136519138661384, diamond = 120837621508915, rainbow = 105724255427244 },
 	slime_blaze = { gold = 135038290808769, diamond = 109212172370883, rainbow = 106910337305634 },
 	slime_bloom = { gold = 116052315338572, diamond = 94969873856756, rainbow = 86871539117607 },
+	slime_bonsai = { gold = 129969608189520, diamond = 97615590460373, rainbow = 104489316251119 },
 	slime_boo = { gold = 70928934024964, diamond = 74825642288313, rainbow = 78370871236505 },
 	slime_bubbles = { gold = 134295301398243, diamond = 107800924435158, rainbow = 111547889653021 },
 	slime_bumble = { gold = 130545766782378, diamond = 134704133573966, rainbow = 90655781731415 },
 	slime_captain_goo = { gold = 110300070027142, diamond = 89174340318594, rainbow = 99403054079535 },
 	slime_catfish = { gold = 110748658492337, diamond = 105732280863227, rainbow = 108774914053403 },
+	slime_cerberus = { gold = 138521283436667, diamond = 117330651797608, rainbow = 126429208766409 },
 	slime_cheddar = { gold = 138566619155001, diamond = 87996814270519, rainbow = 139727493879660 },
 	slime_chomp = { gold = 123023351381862, diamond = 131866935889265, rainbow = 84590715086785 },
 	slime_chrono = { gold = 97302754826453, diamond = 115292627583485, rainbow = 115270812735238 },
+	slime_constellation = { gold = 84152407384452, diamond = 131189843999365, rainbow = 96100858661536 },
 	slime_cosmo = { gold = 139693366547896, diamond = 75883720225623, rainbow = 104390417850984 },
+	slime_cowboy = { gold = 105351595992485, diamond = 124046792481674, rainbow = 77661718087044 },
 	slime_cyber_ninja = { gold = 72579230608567, diamond = 85975313964751, rainbow = 116737312278055 },
 	slime_disco = { gold = 116158235024765, diamond = 125295447538335, rainbow = 139153045518875 },
+	slime_diver = { gold = 129986423843795, diamond = 72799242107237, rainbow = 87095117956785 },
+	slime_djinn = { gold = 74904330308125, diamond = 139388248747762, rainbow = 136162395114294 },
 	slime_doodle = { gold = 111875125532423, diamond = 98956841690152, rainbow = 105573554498703 },
 	slime_dragon_king = { gold = 80982030895976, diamond = 122686640672138, rainbow = 92949441871895 },
 	slime_drako = { gold = 87255040439464, diamond = 98657003399391, rainbow = 135779176995405 },
@@ -1992,11 +2068,14 @@ local MUTATION_KITS: { [string]: { [string]: number } } = {
 	slime_goo_oracle = { gold = 124089853469317, diamond = 92345138680903, rainbow = 79989390452200 },
 	slime_goomancer = { gold = 110095077103476, diamond = 124977267958924, rainbow = 126436943881919 },
 	slime_goozilla = { gold = 79516927192628, diamond = 114401767762372, rainbow = 78414750715171 },
+	slime_griffin = { gold = 85013022493363, diamond = 127383214383638, rainbow = 116272907081132 },
 	slime_gummy = { gold = 109796297282310, diamond = 80126405368205, rainbow = 134648467278318 },
 	slime_honey_toad = { gold = 72220949388576, diamond = 105593769874077, rainbow = 101709493345318 },
+	slime_hydra = { gold = 98269638856648, diamond = 138773039313058, rainbow = 72197998406034 },
 	slime_imp = { gold = 78216038798684, diamond = 118679779091877, rainbow = 73151335820569 },
 	slime_isle = { gold = 131547866360085, diamond = 100669194703638, rainbow = 73093119071591 },
 	slime_jackpot = { gold = 77840749435074, diamond = 100402188007670, rainbow = 122771893003189 },
+	slime_jester = { gold = 128627009982837, diamond = 130300934330091, rainbow = 90880810347344 },
 	slime_king = { gold = 114158119095548, diamond = 78158177464186, rainbow = 131294972470544 },
 	slime_kirin = { gold = 115498826558859, diamond = 97180865512161, rainbow = 84344753067070 },
 	slime_kitsune = { gold = 111290254648607, diamond = 80407267293559, rainbow = 73772203119608 },
@@ -2004,12 +2083,15 @@ local MUTATION_KITS: { [string]: { [string]: number } } = {
 	slime_kraken = { gold = 137466094323805, diamond = 102702723671558, rainbow = 74868165919916 },
 	slime_lop = { gold = 92838711523309, diamond = 95360695872204, rainbow = 86599388226799 },
 	slime_lunara = { gold = 106145059844956, diamond = 104510678821137, rainbow = 112817087580720 },
+	slime_mammoth = { gold = 137702109720670, diamond = 128958044339513, rainbow = 88863525504193 },
 	slime_mecha_goo = { gold = 70479561675819, diamond = 136100240993127, rainbow = 86760621458396 },
 	slime_midas = { gold = 82938555333582, diamond = 77918161552560, rainbow = 73267095716663 },
 	slime_mochi = { gold = 103950149714490, diamond = 126212381520921, rainbow = 112619750529512 },
+	slime_monarch = { gold = 77619662779068, diamond = 140363676325079, rainbow = 131655452962039 },
 	slime_moo = { gold = 111475551674608, diamond = 80955397447064, rainbow = 130037060968913 },
 	slime_moo_shroom = { gold = 110604795743667, diamond = 109975354720528, rainbow = 91987228201821 },
 	slime_mushie = { gold = 94121714043651, diamond = 78451069460247, rainbow = 103870709434167 },
+	slime_narwhal = { gold = 122269320363827, diamond = 94045531626392, rainbow = 115319291233926 },
 	slime_nebulon = { gold = 82907829736337, diamond = 132322877771659, rainbow = 110333504714442 },
 	slime_nightwing = { gold = 100905451630474, diamond = 78841507939956, rainbow = 118158765641959 },
 	slime_ninja = { gold = 130152648545485, diamond = 91527103514069, rainbow = 89669721722951 },
@@ -2022,21 +2104,29 @@ local MUTATION_KITS: { [string]: { [string]: number } } = {
 	slime_prism = { gold = 117781783166257, diamond = 106448708996923, rainbow = 79061622219053 },
 	slime_pumpking = { gold = 108602521849603, diamond = 77865267342356, rainbow = 113445129231871 },
 	slime_queen_jelly = { gold = 84360364505000, diamond = 132493787075448, rainbow = 89139991540834 },
+	slime_reef = { gold = 135957864875942, diamond = 135575305208111, rainbow = 137123494611279 },
 	slime_robo = { gold = 79566222101865, diamond = 121930628967243, rainbow = 92208512757139 },
 	slime_rocky_road = { gold = 89551875816971, diamond = 134759994144094, rainbow = 137226209680315 },
+	slime_ryujin = { gold = 108538099734259, diamond = 137006103426497, rainbow = 116567362671629 },
 	slime_seraph = { gold = 89443376091520, diamond = 71629619284640, rainbow = 130726140871904 },
 	slime_sir_goo = { gold = 136826046378735, diamond = 93496332418178, rainbow = 89186048311564 },
+	slime_siren = { gold = 137683537172462, diamond = 78038615586632, rainbow = 120613601176610 },
 	slime_snow_bunny = { gold = 93951227268562, diamond = 118409542751151, rainbow = 94795012155603 },
 	slime_soda = { gold = 107638507514907, diamond = 71537072111787, rainbow = 80745466870079 },
 	slime_solaris = { gold = 137113796395576, diamond = 132075351659821, rainbow = 93783438093091 },
+	slime_sphinx = { gold = 89438245187873, diamond = 90259573816722, rainbow = 123551990682435 },
 	slime_sprout = { gold = 84024136104950, diamond = 107136418493294, rainbow = 106211813164404 },
 	slime_star_emperor = { gold = 92928146665766, diamond = 79195901213468, rainbow = 73528075971250 },
 	slime_steam = { gold = 121648537435306, diamond = 118488993793004, rainbow = 80313774343563 },
 	slime_sunny = { gold = 134557058862014, diamond = 83372667654524, rainbow = 136693776536142 },
+	slime_supernova = { gold = 117866036748739, diamond = 73454502927851, rainbow = 96326275386444 },
 	slime_sushi = { gold = 87971682363772, diamond = 115448894969726, rainbow = 75980041401133 },
 	slime_thunderbee = { gold = 114764714341420, diamond = 75218905376148, rainbow = 130338595991284 },
 	slime_truffle = { gold = 126094096167605, diamond = 86004917454697, rainbow = 80321373555079 },
+	slime_valkyrie = { gold = 98806420591662, diamond = 70922208312431, rainbow = 109104309096300 },
+	slime_venus = { gold = 127731950006370, diamond = 106170504361369, rainbow = 105052237671787 },
 	slime_whiskers = { gold = 106588493426473, diamond = 105563612078180, rainbow = 99609813211597 },
+	slime_willow_wisp = { gold = 118102899474473, diamond = 89089111745763, rainbow = 92171100542956 },
 	slime_yeti = { gold = 93721856953515, diamond = 109025950288420, rainbow = 96807338556020 },
 	slime_zap = { gold = 130446278002495, diamond = 128300838743825, rainbow = 81665944059253 },
 }

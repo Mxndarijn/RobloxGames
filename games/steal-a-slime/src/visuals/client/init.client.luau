@@ -25,6 +25,7 @@
 	  * the Goo Gauntlet obby's moving parts (ObbyFx): slides, spinners, melting, flipping and shrinking pads
 	  * the obby world's own look (ObbyWorld): Lighting, Atmosphere and a tint swap while the local player is there
 	  * the obby's fall reset (ObbyFall): a runner who drops off the course is put back on the start pad at once
+	  * the obby's character controllers (ObbyMoves): boost, slide, sticky walls, vines, cannons, moon and dark zones
 	  * the Exclusive Shop's claw shop (ShopDisplayFx): the featured seats on its pedestals and the claw show
 	  * carry trails (CarryTrailFx): a player's CarryTrail streams behind them while Carrying
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
@@ -593,6 +594,15 @@ do
 		warn(`[VisualsClient] obby fall reset disabled: {err}`)
 	end
 end
+local obbyMoves: any = nil
+do
+	local ok, err = pcall(function()
+		obbyMoves = require(script:WaitForChild("ObbyMoves")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] obby moves disabled: {err}`)
+	end
+end
 local obbyWorld: any = nil
 do
 	local ok, err = pcall(function()
@@ -689,6 +699,9 @@ RunService.RenderStepped:Connect(function(dt: number)
 	end
 	if obbyFall then
 		obbyFall.tick()
+	end
+	if obbyMoves then
+		obbyMoves.tick(dt)
 	end
 	local camera = workspace.CurrentCamera
 	if not camera then

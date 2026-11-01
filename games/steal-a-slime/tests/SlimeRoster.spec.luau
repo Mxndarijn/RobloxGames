@@ -10,9 +10,9 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 describe("SlimeRoster", function()
 	it(
-		"has 4/3/3/2/2/2 Classic slimes per tier, Midas and Jackpot at Secret, four each at Celestial and Divine",
+		"has 4/3/3/2/4/4 Classic slimes per tier, Midas and Jackpot at Secret, five each at Celestial and Divine",
 		function()
-			local expected = { 4, 3, 3, 2, 2, 2, 2, 4, 4 }
+			local expected = { 4, 3, 3, 2, 4, 4, 2, 5, 5 }
 			expect(#expected).toBe(Config.MAX_TIER)
 			expect(Config.SECRET_TIER).toBe(7)
 			for tier, count in expected do
@@ -58,7 +58,7 @@ describe("SlimeRoster", function()
 		end
 	end)
 
-	it("has 49 spawning species: 26 Classic, Orchard 7, Frost 8, Starlight 8, and six Secrets", function()
+	it("has 67 spawning species: 32 Classic, Orchard 11, Frost 13, Starlight 11, and eight Secrets", function()
 		local byFamily: { [string]: number } = {}
 		local secret = {}
 		local spawning = SlimeRoster.ofKind("spawn")
@@ -69,17 +69,17 @@ describe("SlimeRoster", function()
 				table.insert(secret, entry.id)
 			end
 		end
-		expect(#spawning).toBe(49)
-		expect(byFamily).toEqual({ classic = 26, orchard = 7, frost = 8, starlight = 8 })
+		expect(#spawning).toBe(67)
+		expect(byFamily).toEqual({ classic = 32, orchard = 11, frost = 13, starlight = 11 })
 		table.sort(secret)
-		expect(secret).toEqual({ "abyss", "boo", "eclipse", "gaia", "jackpot", "midas" })
+		expect(secret).toEqual({ "abyss", "boo", "eclipse", "gaia", "jackpot", "midas", "monarch", "reef" })
 	end)
 
-	it("adds 15 hybrids, 6 bosses and 7 event Secrets that never roll as a spawn", function()
-		expect(#SlimeRoster.ofKind("hybrid")).toBe(15)
+	it("adds 18 hybrids, 6 bosses and 7 event Secrets that never roll as a spawn", function()
+		expect(#SlimeRoster.ofKind("hybrid")).toBe(18)
 		expect(#SlimeRoster.ofKind("boss")).toBe(6)
 		expect(#SlimeRoster.ofKind("event")).toBe(7)
-		expect(#SlimeRoster.ROSTER).toBe(77)
+		expect(#SlimeRoster.ROSTER).toBe(98)
 		for _, entry in SlimeRoster.ROSTER do
 			expect(entry.family == nil or entry.kind == "spawn").toBe(true)
 			if entry.kind ~= "spawn" then

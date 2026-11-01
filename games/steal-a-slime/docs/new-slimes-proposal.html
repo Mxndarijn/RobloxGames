@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Rare Slimes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
+<style>
+:root {
+  --page: #eef5f1; --fg: #12302c; --muted: #4f6b66; --rule: #c9ddd5; --card: #ffffff; --accent: #1f9e78; --warn: #b5532f;
+  --leg: #e0a210; --myth: #e23c5a; --sec: #12b3a6; --cel: #c9a227; --div: #c84fc0;
+  --display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #0d1b19; --fg: #e3f2ec; --muted: #9bb7ae; --rule: #24403a; --card: #13261f; --accent: #5fdcae; --warn: #f0926c; --leg: #ffc93d; --myth: #ff6e88; --sec: #3ff0e0; --cel: #ffe896; --div: #ff8af5; color-scheme: dark } }
+:root[data-theme="dark"] { --page: #0d1b19; --fg: #e3f2ec; --muted: #9bb7ae; --rule: #24403a; --card: #13261f; --accent: #5fdcae; --warn: #f0926c; --leg: #ffc93d; --myth: #ff6e88; --sec: #3ff0e0; --cel: #ffe896; --div: #ff8af5; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 32px 16px 64px; display: flex; flex-direction: column; gap: 40px; }
+header, section { display: flex; flex-direction: column; gap: 12px; }
+.eyebrow { font: 700 12px var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 700 clamp(28px, 4vw, 40px)/1.1 var(--display); margin: 0; }
+h2 { font: 600 24px/1.2 var(--display); margin: 0; }
+h3 { font: 600 18px var(--display); margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lede { color: var(--muted); font-size: 17px; }
+.muted { color: var(--muted); font-size: 14px; }
+code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: .88em; background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 1px 5px; border-radius: 5px; }
+.decided { border: 2px dashed var(--rule); border-radius: 14px; padding: 14px 16px; background: var(--card); }
+
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.opt { background: var(--card); border: 2px solid var(--rule); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.opt.rec { border-color: var(--accent); }
+.tag { align-self: flex-start; font: 800 11px var(--body); letter-spacing: .1em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+.tag.bad { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+ul { margin: 0; padding-left: 20px; }
+li { margin: 2px 0; }
+
+.tier { display: flex; flex-direction: column; gap: 12px; }
+.tier-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; border-bottom: 3px solid var(--c); padding-bottom: 6px; }
+.tier-head h3 { color: var(--c); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.slime { background: var(--card); border: 2px solid var(--rule); border-left: 6px solid var(--c); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; }
+.slime:has(input:checked) { border-color: var(--c); box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 35%, transparent); }
+.slime .top { display: flex; align-items: center; gap: 8px; }
+.slime .name { font: 600 18px var(--display); flex: 1; }
+.slime input { width: 22px; height: 22px; accent-color: var(--accent); }
+.slime .look { font-size: 15px; }
+.slime .host { font-size: 13px; color: var(--muted); }
+
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 14px var(--display); color: var(--muted); }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tablewrap { overflow-x: auto; background: var(--card); border-radius: 14px; border: 2px solid var(--rule); }
+
+.bar { position: sticky; bottom: 12px; background: var(--card); border: 2px solid var(--accent); border-radius: 16px; padding: 12px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; box-shadow: 0 6px 24px rgba(0,0,0,.12); }
+.bar .count { font: 600 18px var(--display); flex: 1; min-width: 160px; }
+button { font: 600 16px var(--display); border: 0; border-radius: 12px; padding: 10px 18px; min-height: 44px; background: var(--accent); color: #fff; cursor: pointer; }
+button.ghost { background: transparent; color: var(--accent); border: 2px solid var(--accent); }
+button:focus-visible, .slime:focus-within { outline: 3px solid var(--leg); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Steal a Slime · proposal · 2026-10-31</span>
+  <h1>21 new slimes, Legendary and up</h1>
+  <p class="lede">18 new wild slimes that drop from the fountain like every other slime, plus 3 merge-only slimes: 7 Legendary, 7 Mythic, 3 Secret, 2 Celestial and 2 Divine. Each one earns about the average of its rarity, so income per rarity barely moves. The open question is what they do to the slimes rebirths ask for.</p>
+</header>
+
+<section class="decided">
+  <h2>Decided</h2>
+  <ul>
+    <li><b>Normal wild slimes</b>: they spawn from the fountain, can be stolen, merged, shined and grown like any other slime, and come out of random merges. No variants, no featured weeks. <span class="muted">(Merijn, 2026-10-31)</span></li>
+    <li><b>SlimeDex: bonus entries</b> (option 1): they show in the Dex, but the Dex total stays 50, so Dex milestones, Dex badges and the Rainbow cloud (80%) don't move. <span class="muted">(Merijn, 2026-10-31)</span></li>
+    <li><b>Count</b>: one less Celestial and Divine than the first draft, two more Legendary and Mythic. Comet and Lotus Sage are dropped; Cowboy, Astronaut, Cerberus and Djinn are added. <span class="muted">(Merijn, 2026-10-31)</span></li>
+    <li><b>Merge-only</b>: one Secret, one Celestial and one Divine never drop wild; they only come out of the vat from their recipe (section 2). Picked: Hydra, Constellation and Ryujin. <span class="muted">(Merijn asked for one per rarity, 2026-10-31; which three is the bot's pick)</span></li>
+    <li><b>Merge-only income: like every other hybrid</b> (M2): ×1.2 hybrid bonus times the vat ×2 = ×2.4. <span class="muted">(Merijn, 2026-10-31)</span></li>
+  </ul>
+  <ul>
+    <li><b>Rebirths</b>: one Celestial at 24 (Lunara) and 28 (Solaris), Aurora at 29, Goo Oracle and Kirin at 30. <span class="muted">(Merijn, 2026-10-31)</span></li>
+    <li><b>Still open</b>: whether the new wild slimes should only take drops from slimes no rebirth asks for (X), and whether rebirth 30 keeps two Divines. The pacing sim shows grinders about 25% slower to rebirth 30, and a third not reaching it within 55 days.</li>
+    <li><b>Models</b>: all 21 approved on the model review page after a second pass on Monarch, Djinn, Constellation and Valkyrie. <span class="muted">(Merijn, 2026-10-31)</span></li>
+  </ul>
+</section>
+
+<section>
+  <h2>1 · The slimes</h2>
+  <p class="muted">The set decides when a slime starts dropping: Meadow from the start, Garden from rebirth 3, Frost &amp; Sea from 6, Starlight from 10. Income is the species bonus within its rarity (×1 = the rarity's base), set to the average of the slimes a player has at that point.</p>
+
+  <div class="tier" style="--c: var(--leg)">
+    <div class="tier-head"><h3>Legendary</h3><span class="muted">7 · today 6</span></div>
+    <div class="grid">
+      <label class="slime"><div class="top"><span class="name">Jester</span><input type="checkbox" data-id="jester" data-tier="Legendary" checked></div><span class="look">Jester hat with jingling bells, juggling three tiny slimes</span><span class="host">Meadow · ×1.00</span></label>
+      <label class="slime"><div class="top"><span class="name">Cowboy</span><input type="checkbox" data-id="cowboy" data-tier="Legendary" checked></div><span class="look">Ranch sheriff with a wide hat, star badge and a lasso</span><span class="host">Meadow · ×1.00</span></label>
+      <label class="slime"><div class="top"><span class="name">Venus</span><input type="checkbox" data-id="venus" data-tier="Legendary" checked></div><span class="look">Venus flytrap slime with snapping leaf jaws</span><span class="host">Garden · ×1.05</span></label>
+      <label class="slime"><div class="top"><span class="name">Bonsai</span><input type="checkbox" data-id="bonsai" data-tier="Legendary" checked></div><span class="look">Tiny bonsai tree in a clay pot, calm closed eyes</span><span class="host">Garden · ×1.05</span></label>
+      <label class="slime"><div class="top"><span class="name">Diver</span><input type="checkbox" data-id="diver" data-tier="Legendary" checked></div><span class="look">Brass diving helmet with a round window and bubbles</span><span class="host">Frost &amp; Sea · ×1.10</span></label>
+      <label class="slime"><div class="top"><span class="name">Narwhal</span><input type="checkbox" data-id="narwhal" data-tier="Legendary" checked></div><span class="look">Pale blue whale slime with a long spiral horn</span><span class="host">Frost &amp; Sea · ×1.10</span></label>
+      <label class="slime"><div class="top"><span class="name">Astronaut</span><input type="checkbox" data-id="astronaut" data-tier="Legendary" checked></div><span class="look">White space suit with a round visor and a little flag</span><span class="host">Starlight · ×1.10</span></label>
+    </div>
+  </div>
+
+  <div class="tier" style="--c: var(--myth)">
+    <div class="tier-head"><h3>Mythic</h3><span class="muted">7 · today 7</span></div>
+    <div class="grid">
+      <label class="slime"><div class="top"><span class="name">Griffin</span><input type="checkbox" data-id="griffin" data-tier="Mythic" checked></div><span class="look">Eagle head and wings on a lion-gold body</span><span class="host">Meadow · ×1.00</span></label>
+      <label class="slime"><div class="top"><span class="name">Cerberus</span><input type="checkbox" data-id="cerberus" data-tier="Mythic" checked></div><span class="look">Three-headed puppy slime with spiked collars</span><span class="host">Meadow · ×1.00</span></label>
+      <label class="slime"><div class="top"><span class="name">Willow Wisp</span><input type="checkbox" data-id="willow_wisp" data-tier="Mythic" checked></div><span class="look">Glowing forest spirit carrying a little lantern</span><span class="host">Garden · ×1.05</span></label>
+      <label class="slime"><div class="top"><span class="name">Mammoth</span><input type="checkbox" data-id="mammoth" data-tier="Mythic" checked></div><span class="look">Woolly brown mammoth with curled tusks and a frosty back</span><span class="host">Frost &amp; Sea · ×1.05</span></label>
+      <label class="slime"><div class="top"><span class="name">Siren</span><input type="checkbox" data-id="siren" data-tier="Mythic" checked></div><span class="look">Mermaid slime with a shell crown and a tiny trident</span><span class="host">Frost &amp; Sea · ×1.05</span></label>
+      <label class="slime"><div class="top"><span class="name">Djinn</span><input type="checkbox" data-id="djinn" data-tier="Mythic" checked></div><span class="look">Blue genie rising from a golden lamp</span><span class="host">Starlight · ×1.15</span></label>
+      <label class="slime"><div class="top"><span class="name">Sphinx</span><input type="checkbox" data-id="sphinx" data-tier="Mythic" checked></div><span class="look">Sandstone slime with a striped pharaoh headdress</span><span class="host">Starlight · ×1.15</span></label>
+    </div>
+  </div>
+
+  <div class="tier" style="--c: var(--sec)">
+    <div class="tier-head"><h3>Secret</h3><span class="muted">3 · today 5 plus Jackpot</span></div>
+    <div class="grid">
+      <label class="slime"><div class="top"><span class="name">Monarch</span><input type="checkbox" data-id="monarch" data-tier="Secret" checked></div><span class="look">Huge shimmering butterfly wings, orange and black</span><span class="host">Garden · ×1.05</span></label>
+      <label class="slime"><div class="top"><span class="name">Reef</span><input type="checkbox" data-id="reef" data-tier="Secret" checked></div><span class="look">Living coral reef with tiny fish swimming round it</span><span class="host">Frost &amp; Sea · ×1.10</span></label>
+      <label class="slime"><div class="top"><span class="name">Hydra</span><input type="checkbox" data-id="hydra" data-tier="Secret" checked></div><span class="look">Three-headed sea serpent, green scales, one head always asleep</span><span class="host">Merge only · 3 Sirens</span></label>
+    </div>
+  </div>
+
+  <div class="tier" style="--c: var(--cel)">
+    <div class="tier-head"><h3>Celestial</h3><span class="muted">2 · today 3 plus Star Emperor</span></div>
+    <div class="grid">
+      <label class="slime"><div class="top"><span class="name">Constellation</span><input type="checkbox" data-id="constellation" data-tier="Celestial" checked></div><span class="look">Dark blue body dotted with stars joined by glowing lines</span><span class="host">Merge only · Gaia + Abyss + Monarch</span></label>
+      <label class="slime"><div class="top"><span class="name">Supernova</span><input type="checkbox" data-id="supernova" data-tier="Celestial" checked></div><span class="look">Bursting white-hot star with a shock ring</span><span class="host">Meadow · ×1.10</span></label>
+    </div>
+  </div>
+
+  <div class="tier" style="--c: var(--div)">
+    <div class="tier-head"><h3>Divine</h3><span class="muted">2 · today 3 plus Goo God</span></div>
+    <div class="grid">
+      <label class="slime"><div class="top"><span class="name">Valkyrie</span><input type="checkbox" data-id="valkyrie" data-tier="Divine" checked></div><span class="look">Winged silver helmet and a spear of light</span><span class="host">Meadow · ×1.10</span></label>
+      <label class="slime"><div class="top"><span class="name">Ryujin</span><input type="checkbox" data-id="ryujin" data-tier="Divine" checked></div><span class="look">Long jade cloud dragon holding a glowing pearl</span><span class="host">Merge only · Lunara + Solaris + Supernova</span></label>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2 · Merge-only slimes</h2>
+  <p>A merge-only slime is a recipe hybrid (<code>kind = "hybrid"</code>), like Dragon King or Nightwing: three set species of one rarity in the vat give it, one rarity up. It never drops from the fountain or a random merge, so it doesn't touch the wild odds. Recipe inputs avoid every slime rebirths ask for.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Slime</th><th>Recipe</th><th>Dex hint</th></tr></thead>
+    <tbody>
+      <tr><td>Hydra <span class="muted">Secret</span></td><td>Siren + Siren + Siren (Mythic)</td><td>"Three sirens, one tail."</td></tr>
+      <tr><td>Constellation <span class="muted">Celestial</span></td><td>Gaia + Abyss + Monarch (Secret)</td><td>"Earth, sea and wings, joined by starlight."</td></tr>
+      <tr><td>Ryujin <span class="muted">Divine</span></td><td>Lunara + Solaris + Supernova (Celestial)</td><td>"Moon, sun and a bursting star: a dragon wakes."</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <ul>
+    <li>Ryujin is the first recipe that takes Celestials. Three Celestials can't merge today (<code>MERGE_MAX_TIER = 8</code>: tier 8 and up only merge in a recipe), so it gives top players a new use for spare Celestials.</li>
+    <li>The vat checks recipes before the shine recipe. Three Gold Gaia/Abyss/Monarch would make Constellation instead of a Divine. Fix: let the shine recipe win when all three share a shine.</li>
+  </ul>
+  <h3>Their income: decided M2</h3>
+  <div class="opts">
+    <div class="opt">
+      <span class="tag bad">M1 · not picked</span>
+      <h3>Same as a wild slime of their rarity (×1.0)</h3>
+      <p>Their species bonus is set to ×0.5, so with the vat bonus (<code>RECIPE_INCOME_MULT</code> ×2) they earn ×1.0. Three slimes in, one of the next rarity out: about what a random merge gives today. No economy change.</p>
+    </div>
+    <div class="opt rec">
+      <span class="tag">M2 · picked</span>
+      <h3>Like every other hybrid (×2.4)</h3>
+      <p>The default hybrid bonus ×1.2 times the vat ×2. Ryujin would earn about 19,200 a second against 7,500 for the three Celestials that went in. Consistent with the other 15 hybrids, but a clear income jump at the top end.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>3 · Open: the slimes rebirths ask for</h2>
+  <p>The 18 wild slimes change the odds. Within a rarity, every species shares the drops (<code>Genome.speciesWeight</code> = <code>1 / income⁴</code>). More species means each existing one drops less often, including the ones <code>Config.REBIRTH_SLIMES</code> asks for. Income per rarity stays within 4%, but rebirths that need King, Cosmo or Midas take 2–2.5× as many drops of that rarity.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Asked slime</th><th>Rebirths that ask for it</th><th>Share of its rarity at rebirth 10+, today → with the new slimes</th><th>Income per rarity</th></tr></thead>
+    <tbody>
+      <tr><td>King Goo</td><td class="num">5, 9</td><td class="num">25.6% → 10.4% (at the start: 54.9% → 26.2%)</td><td class="num" rowspan="3">Legendary −1% to −3%</td></tr>
+      <tr><td>Ninja</td><td class="num">10</td><td class="num">14.6% → 6.0%</td></tr>
+      <tr><td>Robo</td><td class="num">14</td><td class="num">9.0% → 3.6%</td></tr>
+      <tr><td>Cosmo</td><td class="num">11, 20, 26</td><td class="num">24.7% → 10.4%</td><td class="num" rowspan="4">Mythic −1% to −4%</td></tr>
+      <tr><td>Seraph</td><td class="num">15, 20</td><td class="num">8.6% → 3.6%</td></tr>
+      <tr><td>Amethyst</td><td class="num">18, 27</td><td class="num">10.1% → 4.2%</td></tr>
+      <tr><td>Prism</td><td class="num">22, 29</td><td class="num">7.4% → 3.1%</td></tr>
+      <tr><td>Midas</td><td class="num">19, 27, 30</td><td class="num">32.0% → 20.8%</td><td class="num" rowspan="3">Secret 0% to −2%</td></tr>
+      <tr><td>Eclipse</td><td class="num">24, 29, 30</td><td class="num">11.2% → 7.3%</td></tr>
+      <tr><td>Boo</td><td class="num">25, 30</td><td class="num">13.1% → 8.5%</td></tr>
+      <tr><td>Celestial, Divine</td><td>none</td><td>not asked</td><td class="num">+0.5%</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="opts">
+    <div class="opt rec">
+      <span class="tag">X · recommended</span>
+      <h3>Rebirth slimes keep their odds</h3>
+      <p>The new slimes still drop wild from the fountain, but their share comes only from slimes no rebirth asks for (Sir Goo, Sunny, Captain Goo, Phoenix, Elder Oak, Yeti, Gaia, Abyss). King, Cosmo, Midas and the rest keep exactly today's odds. Players can't tell the difference: it is only how the drop is weighted.</p>
+    </div>
+    <div class="opt">
+      <span class="tag bad">Y</span>
+      <h3>Plain odds, retune rebirths</h3>
+      <p>Every species shares equally, as in the table. Then re-run the pacing sim (<code>docs/economy-sim</code>) and change <code>REBIRTH_SLIMES</code> or <code>SPECIES_RARITY_POWER</code> so a 30-rebirth run still takes about 150–170 hours, as decided in #561.</p>
+    </div>
+    <div class="opt">
+      <span class="tag bad">Z</span>
+      <h3>Plain odds, accept slower rebirths</h3>
+      <p>Ship as in the table. Rebirths 5–30 get noticeably slower for players who wait for a drop; stealing an asked slime is unchanged.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>4 · What else stays the same</h2>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>System</th><th>Effect</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td>Rarity odds</td><td>Same: the rarity roll doesn't look at species</td><td><code>Genome.rollTier</code></td></tr>
+      <tr><td>Jackpots</td><td>Same 10% share of their rarity</td><td><code>Config.JACKPOT_SHARE</code></td></tr>
+      <tr><td>Dex milestones, badges, Rainbow cloud</td><td>Same: bonus entries, outside <code>SpeciesDex.TOTAL</code>. <code>SpeciesDex</code> needs bonus = event or new-slime instead of event only</td><td><code>SpeciesDex</code>, <code>Config.DEX_MILESTONES</code></td></tr>
+      <tr><td>Starlight plot skin</td><td>Needs a fix: it counts the whole Starlight family, so Astronaut, Djinn and Sphinx would raise its 75% bar. List its current species by name, as Garden and Frost &amp; Sea already do</td><td><code>Config.PLOT_SKINS</code></td></tr>
+      <tr><td>Shines, sizes, growth, brewing, stealing</td><td>Work as on any slime</td><td><code>Genome.baseIncome</code></td></tr>
+      <tr><td>Merge recipes, boss, event Secrets</td><td>Existing recipes untouched; three new recipes (section 2) that use no rebirth slime</td><td><code>MergeRecipes</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>5 · Cost and order</h2>
+  <ul>
+    <li><b>Code</b>: one PR for the 21 roster entries, the 3 recipes, the Dex bonus change (wild and merge-only), the Starlight skin list, and a Lune spec that checks income per rarity and the rebirth slimes' odds before and after.</li>
+    <li><b>Models</b>: 21 meshes through the modeling kit, in batches of about 5, each with a contact sheet for Merijn or Niels before upload. Legendary first, then Mythic, then Secret, Celestial and Divine.</li>
+    <li>A slime with no approved model stays out of the roster, so nothing ships as a placeholder.</li>
+    <li>Everything a new slime needs end to end (model, animations, habitat, icons) is being written up as a separate guide.</li>
+  </ul>
+</section>
+
+<div class="bar" role="region" aria-label="Your picks">
+  <span class="count" id="count">21 picked</span>
+  <button class="ghost" id="none" type="button">Clear all</button>
+  <button id="copy" type="button">Copy picks</button>
+</div>
+
+</div>
+<script>
+(function () {
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.slime input'));
+  var KEY = 'new-slimes-picks-v2';
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved) boxes.forEach(function (b) { b.checked = saved.indexOf(b.dataset.id) !== -1; });
+  } catch (e) {}
+  function update() {
+    var picked = boxes.filter(function (b) { return b.checked; });
+    document.getElementById('count').textContent = picked.length + ' picked';
+    try { localStorage.setItem(KEY, JSON.stringify(picked.map(function (b) { return b.dataset.id; }))); } catch (e) {}
+  }
+  boxes.forEach(function (b) { b.addEventListener('change', update); });
+  document.getElementById('none').addEventListener('click', function () { boxes.forEach(function (b) { b.checked = false; }); update(); });
+  document.getElementById('copy').addEventListener('click', function () {
+    var groups = {};
+    boxes.filter(function (b) { return b.checked; }).forEach(function (b) {
+      (groups[b.dataset.tier] = groups[b.dataset.tier] || []).push(b.closest('.slime').querySelector('.name').textContent);
+    });
+    var text = 'New slimes picks: ' + Object.keys(groups).map(function (t) { return t + ': ' + groups[t].join(', '); }).join(' | ');
+    var btn = this;
+    function done(ok) { btn.textContent = ok ? 'Copied' : 'Copy failed'; setTimeout(function () { btn.textContent = 'Copy picks'; }, 1500); }
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    else done(false);
+  });
+  update();
+})();
+</script>
+</body>
+</html>

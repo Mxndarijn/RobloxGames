@@ -24,8 +24,8 @@ local function orders(list: { string }): { { string } }
 end
 
 describe("MergeRecipes: the recipes", function()
-	it("has one recipe per hybrid: 15, each three spawning species of one tier under it", function()
-		expect(#MergeRecipes.RECIPES).toBe(15)
+	it("has one recipe per hybrid: 18, each three spawning species of one tier under it", function()
+		expect(#MergeRecipes.RECIPES).toBe(18)
 		expect(#MergeRecipes.RECIPES).toBe(#SlimeRoster.ofKind("hybrid"))
 		for _, hybrid in SlimeRoster.ofKind("hybrid") do
 			local recipe = MergeRecipes.recipeFor(hybrid.id) :: MergeRecipes.Recipe
@@ -126,9 +126,11 @@ describe("MergeRecipes: the random fallback", function()
 	it("locked families stay out of the pool until the rank opens them", function()
 		local classic = MergeRecipes.resolve(inputs(5, {}), CLASSIC)
 		expect(classic.tier).toBe(6)
-		expect(table.concat(classic.pool, ",")).toBe("cosmo,phoenix")
+		expect(table.concat(classic.pool, ",")).toBe("cosmo,phoenix,griffin,cerberus")
 		local starlight = MergeRecipes.resolve(inputs(5, {}), ALL)
-		expect(table.concat(starlight.pool, ",")).toBe("cosmo,phoenix,elder_oak,yeti,seraph,amethyst,prism")
+		expect(table.concat(starlight.pool, ",")).toBe(
+			"cosmo,phoenix,elder_oak,yeti,seraph,amethyst,prism,griffin,cerberus,willow_wisp,mammoth,siren,djinn,sphinx"
+		)
 		for tier = 1, Config.MAX_TIER do
 			for _, id in MergeRecipes.pool(tier, CLASSIC) do
 				expect((SlimeRoster.get(id) :: SlimeRoster.Entry).family).toBeNil()
@@ -216,6 +218,19 @@ describe("MergeRecipes: the shine recipe", function()
 			expect(MergeRecipes.resolve(shiny(recipe.from, { "Gold", "Gold", "Gold" }), ALL).tier).toBe(recipe.into)
 		end
 	)
+	it("wins over a species recipe made of the same three Secrets", function()
+		local ctx: MergeRecipes.Ctx = { unlocked = MergeRecipes.everySpecies, rebirths = recipe.rebirths }
+		local three = {
+			{ tier = recipe.from, species = "abyss", shine = "Gold" },
+			{ tier = recipe.from, species = "gaia", shine = "Gold" },
+			{ tier = recipe.from, species = "monarch", shine = "Gold" },
+		}
+		expect(MergeRecipes.resolve(three, ctx).tier).toBe(recipe.into)
+		three[3].shine = nil
+		local plain = MergeRecipes.resolve(three, ctx)
+		expect(plain.kind).toBe("recipe")
+		expect((plain.recipe :: MergeRecipes.Recipe).id).toBe("constellation")
+	end)
 	it("falls back to a Celestial below the rebirths, with a mixed shine, or for another rarity", function()
 		local low: MergeRecipes.Ctx = { unlocked = MergeRecipes.everySpecies, rebirths = recipe.rebirths - 1 }
 		expect(MergeRecipes.resolve(shiny(recipe.from, { "Gold", "Gold", "Gold" }), low).tier).toBe(recipe.from + 1)

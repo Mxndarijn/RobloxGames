@@ -284,13 +284,13 @@ local REBIRTH_SLIMES: { { string } } = {
 	{ "thunderbee" },
 	{ "prism" },
 	{ "cyber_ninja" },
-	{ "eclipse" },
+	{ "eclipse", "lunara" },
 	{ "boo" }, -- 25
 	{ "dragon_king", "cosmo" },
 	{ "midas", "amethyst" },
-	{ "nightwing" },
-	{ "eclipse", "prism" },
-	{ "midas", "eclipse", "boo" }, -- 30
+	{ "nightwing", "solaris" },
+	{ "eclipse", "aurora" },
+	{ "midas", "goo_oracle", "kirin" }, -- 30
 }
 for _, list in REBIRTH_SLIMES do
 	table.freeze(list)
@@ -308,7 +308,7 @@ local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 12, title = "Gel Emperor", income = 0.35 },
 	{ rebirths = 15, title = "Gelatinous Legend", income = 0.5, merge = 6 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1, merge = 7 },
-	{ rebirths = 25, title = "Goo Titan", income = 1.5 },
+	{ rebirths = 25, title = "Goo Titan", income = 1.5, merge = 8 }, -- Celestials only merge in a recipe (Ryujin)
 	{ rebirths = 30, title = "Slime Deity", income = 2 },
 }
 
@@ -511,7 +511,14 @@ local PLOT_SKINS: { PlotSkin } = {
 		trim = { 214, 196, 255 },
 		decor = "plot_skin_crystal",
 	},
-	{ id = "starlight", name = "Starlight", family = "starlight", threshold = 0.75, color = { 250, 212, 118 } },
+	-- Starlight lists its first family species too, so a new Starlight slime never moves the unlock.
+	{
+		id = "starlight",
+		name = "Starlight",
+		species = { "imp", "drako", "robo", "seraph", "amethyst", "prism", "eclipse", "boo" },
+		threshold = 0.75,
+		color = { 250, 212, 118 },
+	},
 	{
 		id = "candy",
 		name = "Candy",
@@ -1683,7 +1690,7 @@ local Config = {
 
 	-- The Obby, a sky course (Shared.ObbyCourse, Shared.ObbyRules, server/ObbyService, contract/obby.md). Seconds
 	-- unless noted. Finishing grants +BONUS income for BOOST_SECONDS; the next run counts COOLDOWN_SECONDS after the
-	-- boost ends. The course rebuilds every ROTATION_SECONDS from SECTIONS in ORDER (tiers), each with one of LAYOUTS.
+	-- boost ends. The course rebuilds every ROTATION_SECONDS: one ObbySections idea per ORDER slot (tiers).
 	OBBY = table.freeze({
 		BONUS = 0.5, -- +50 % income: x1.5
 		BOOST_SECONDS = 5 * 60,
@@ -1691,45 +1698,8 @@ local Config = {
 		ROTATION_SECONDS = 10 * 60,
 		CHAIN_SLOTS = 144, -- rotations per chain (a day): "no section of the last course" holds inside one chain
 		ORDER = table.freeze({ "easy", "easy", "easy", "medium", "medium", "medium", "hard", "hard" }),
-		SECTIONS = table.freeze({
-			easy = table.freeze({
-				"JellySteps",
-				"WobbleBridge",
-				"BubbleHop",
-				"GooConveyor",
-				"TrampolineField",
-				"GooCascade",
-				"GooPipe",
-				"StickyLadder",
-				"GlowTrail",
-				"TwoWays",
-			}),
-			medium = table.freeze({
-				"MeltingTiles",
-				"Spinner",
-				"LilyLift",
-				"JellyWallHop",
-				"BlobPendulums",
-				"FanShaft",
-				"PoppingBubbles",
-				"SlimeSeesaw",
-				"RollingLogs",
-				"GooWave",
-			}),
-			hard = table.freeze({
-				"Tightrope",
-				"FlipFloor",
-				"IceGauntlet",
-				"ShrinkingPads",
-				"SlimeCannon",
-				"GooGates",
-				"BlobDrop",
-				"Turntables",
-				"GooPunchers",
-				"GustyBridge",
-			}),
-		}),
-		LAYOUTS = 6, -- layouts per section
+		-- The sections themselves are the ideas in Shared.ObbySections (one module per idea, variants per tier); ORDER
+		-- says which tier each slot of a course takes (ObbyCourse.pick).
 		MIN_RUN_SECONDS = 19, -- a finish faster than this doesn't count (the whole course at a speed-coil walk takes longer)
 		-- A runner's root this far under the lowest platform it could still land on (ObbyCourse.fallHeight) has fallen:
 		-- the client puts it back on the start pad that frame (ObbyFx). The server checks FALL_DEPTH + SERVER_FALL_SLACK

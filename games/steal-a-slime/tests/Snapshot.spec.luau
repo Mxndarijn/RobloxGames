@@ -234,19 +234,26 @@ describe("Snapshot State.dex", function()
 		expect(e.name).toBe(featured.name)
 		expect(e.hint).toBe(`Featured Secret: week of {SpeciesDex.weekLabel(featured.startsAt)}`)
 		for _, other in SpeciesDex.BONUS do
-			if other.id ~= featured.id then
+			if other.kind == "event" and other.id ~= featured.id then
 				local o = entry(state, other.id)
 				expect(o.name).toBe(other.name)
 				expect(o.hint).toBeNil()
 			end
 		end
 	end)
-	it("State.dex totals match the roster: 49 spawn + 15 hybrids + 6 bosses", function()
-		expect(#SlimeRoster.ofKind("spawn") + #SlimeRoster.ofKind("hybrid") + #SlimeRoster.ofKind("boss")).toBe(
+	it("State.dex totals match the roster: spawn + hybrids + bosses, minus the Dex bonus species", function()
+		local bonus = 0
+		for _, e in SlimeRoster.ROSTER do
+			if e.dexBonus then
+				bonus += 1
+			end
+		end
+		expect(bonus).toBe(21)
+		expect(#SlimeRoster.ofKind("spawn") + #SlimeRoster.ofKind("hybrid") + #SlimeRoster.ofKind("boss") - bonus).toBe(
 			SpeciesDex.TOTAL
 		)
 		expect(SpeciesDex.TOTAL).toBe(70)
-		expect(#SpeciesDex.BONUS).toBe(#SlimeRoster.ofKind("event"))
+		expect(#SpeciesDex.BONUS).toBe(#SlimeRoster.ofKind("event") + bonus)
 	end)
 end)
 

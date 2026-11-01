@@ -1,0 +1,2490 @@
+{
+  "ideas": [
+    {
+      "id": 23,
+      "name": "Arrow Maze",
+      "approach": "mixed",
+      "approachWhy": "A belt grid is just a small table of directions, so a generator can make endless fair mazes and a path search can prove each one solvable. Hand-made layouts are still needed to teach each new piece (dumps, turning belts, fast belts, walls) one at a time.",
+      "engine": {
+        "have": [
+          "belt look with a fixed surface push (`conveyor` in course-local studs/s, set as AssemblyLinearVelocity in ObbyParts) in any direction",
+          "slab parts at any height (cells can step up for Belt Stairs)",
+          "red see-through hazard parts that send you back to the start",
+          "Rng seeded by slot, so every client builds the same generated maze",
+          "fall-back-to-start when you drop off the lane edge"
+        ],
+        "new": [
+          {
+            "what": "scrolling yellow chevron texture on every belt, pointing the way it pushes (belts today only use orange/blue tone for left/right); Speed Strip (#16) reuses this same texture for its boost strips, double chevrons on fast belts",
+            "size": "S"
+          },
+          {
+            "what": "'turn' motion kind: a belt whose push and chevrons swap between two directions on a period; its 1 s pulsing glow and tick before the swap hang on Beat Pads' BeatClock (#18), and Merry-go-round's (#9) Reversing spin uses the same warning",
+            "size": "M"
+          },
+          {
+            "what": "maze wall: reuse Sliding Maze's (#25) 'fixed maze walls' part (about 9 studs, can't jump over) on cell edges, in its safe jelly look (a belt that runs you into it stops you there) and a red see-through hazard version",
+            "size": "S"
+          },
+          {
+            "what": "hazard touch = back to the start pad and the red goo look: the shared piece from Crusher Alley (#1), not a second one",
+            "size": "S"
+          },
+          {
+            "what": "BUILD.ArrowMaze: lays a 3-lane grid of 8x8 cells from a string table, plus walls and red cells",
+            "size": "S"
+          },
+          {
+            "what": "maze generator: built on Sliding Maze's (#25) maze generator + solver grid code, adding a belt rule (a belt cell carries you to the cell its arrow points at; a rest cell or wall stop is a free choice); pure Luau + Lune specs",
+            "size": "M"
+          },
+          {
+            "what": "spec: every layout and many seeds are solvable, cells >= 8 studs, under 80 parts, jumps over hazards <= 10 studs; turning-belt waits checked with Collapsing Bridge's (#24) runner (16 studs/s, 0.15 s per jump); uses the section length cap raised to about 100 studs (shared with Climb, #8)",
+            "size": "S"
+          },
+          {
+            "what": "belt hum sound that pitches up on fast belts, plus a squelch thunk when you step from one belt to another",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "Every belt shows big scrolling yellow chevrons the way it pushes, rest cells are plain jelly with no chevrons, safe walls are plain jelly too, and the exit flag is always in view at the far end. Turning belts are pink and pulse with a tick for 1 s before they swap; fast belts have double chevrons and a higher hum.",
+      "generator": {
+        "inputs": "slot seed, tier, columns (6 to 10), number of choice cells, belt speed, dumps allowed, turning belts (0 to 2), maze walls (0 to 4, safe or red)",
+        "randomises": "the route through the grid (which lanes, where it crosses), where the rest cells (choice points) go, the direction of every decoy belt, where walls and red cells sit, and the phase of turning belts",
+        "guarantees": "A path search models each belt as carrying you to the cell its arrow points at and each rest cell as a free choice; the layout is kept only if the exit is reachable from the start. The route has a rest cell before every turning belt and never two dumps in a row in reach. Easy has no dumps (wrong belts loop back). Every cell is 8 x 8 studs, every jump on the route is 8 studs or less, under 60 parts, and at least a third of all belts point away from the route so it is never just 'hold forward'. If 50 tries fail, it falls back to a hand-made layout.",
+        "difficulty": "Easy: 6-7 columns, 8 studs/s belts you can walk against, 2 choices, wrong picks loop back. Medium: 7-8 columns, 12 studs/s, 3 choices, dumps and walls, at most 1 turning belt. Hard: 9-10 columns, 14-15 studs/s (walking against a belt gets you nowhere), dumps on both edges, 2 turning belts or a jump over a dump."
+      },
+      "variants": [
+        {
+          "name": "Follow the Flow",
+          "tier": "easy",
+          "does": "Both side lanes push you into the middle lane, which carries you to the exit: a first look at reading arrows.",
+          "numbers": "3 x 6 cells of 8 studs, belts 8 studs/s, 0 hazards",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M110.0 16 V32"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19.0 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M110.0 80 V64"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Wrong Way Middle",
+          "tier": "easy",
+          "does": "The middle lane runs backwards; step to either side lane and ride it forward.",
+          "numbers": "3 x 6 cells, belts 8 studs/s, middle lane reversed",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19.0 24.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M201.0 48.0 H19.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19.0 72.0 H201.0"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Rest Stops",
+          "tier": "easy",
+          "does": "Plain rest cells in the middle every third cell; from each one, pick the side belt that hops you forward, the other side loops you back.",
+          "numbers": "3 x 7 cells, 3 rest cells, belts 8 studs/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              12,
+              26.9,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M45.9 24.0 H66.7"
+            ],
+            [
+              "a",
+              "M83.2 16 V32"
+            ],
+            [
+              "r",
+              96.6,
+              12,
+              26.9,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M126.4 24.0 H147.3"
+            ],
+            [
+              "a",
+              "M163.7 16 V32"
+            ],
+            [
+              "r",
+              177.1,
+              12,
+              26.9,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              26.9,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M56.3 56 V40"
+            ],
+            [
+              "a",
+              "M72.7 48.0 H93.6"
+            ],
+            [
+              "r",
+              96.6,
+              36,
+              26.9,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M136.9 56 V40"
+            ],
+            [
+              "a",
+              "M153.3 48.0 H174.1"
+            ],
+            [
+              "r",
+              177.1,
+              36,
+              26.9,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              60,
+              26.9,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M93.6 72.0 H45.9"
+            ],
+            [
+              "r",
+              96.6,
+              60,
+              26.9,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M174.1 72.0 H126.4"
+            ],
+            [
+              "r",
+              177.1,
+              60,
+              26.9,
+              24,
+              "hz"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Side Step",
+          "tier": "easy",
+          "does": "Two red goo cells block the middle lane; a side belt carries you round them and drops you back in.",
+          "numbers": "3 x 6 cells, 2 red cells, belts 8 studs/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              12,
+              31.3,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M50.3 24.0 H169.7"
+            ],
+            [
+              "a",
+              "M188.3 16 V32"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19.0 48.0 H44.3"
+            ],
+            [
+              "a",
+              "M63.0 56 V40"
+            ],
+            [
+              "r",
+              78.7,
+              36,
+              31.3,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              110.0,
+              36,
+              31.3,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              141.3,
+              36,
+              31.3,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M175.7 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M201.0 72.0 H19.0"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Loop Back",
+          "tier": "easy",
+          "does": "Every wrong belt carries you back to the first rest cell instead of into danger, so a bad pick costs time, not the run.",
+          "numbers": "3 x 7 cells, 2 rest cells, belts 8 studs/s, no hazards",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M29.4 16 V32"
+            ],
+            [
+              "a",
+              "M93.6 24.0 H45.9"
+            ],
+            [
+              "a",
+              "M110.0 16 V32"
+            ],
+            [
+              "a",
+              "M201.0 24.0 H126.4"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              26.9,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M56.3 56 V40"
+            ],
+            [
+              "a",
+              "M72.7 48.0 H120.4"
+            ],
+            [
+              "r",
+              123.4,
+              36,
+              26.9,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M163.7 56 V40"
+            ],
+            [
+              "a",
+              "M180.1 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M29.4 80 V64"
+            ],
+            [
+              "a",
+              "M93.6 72.0 H45.9"
+            ],
+            [
+              "a",
+              "M110.0 80 V64"
+            ],
+            [
+              "a",
+              "M201.0 72.0 H126.4"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Dead End Belt",
+          "tier": "medium",
+          "does": "The obvious straight forward belt ends at a red wall; the real route starts on a sideways belt that looks wrong.",
+          "numbers": "3 x 8 cells, belts 12 studs/s, 1 red wall, 1 dump",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              12,
+              23.5,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M42.5 24.0 H177.5"
+            ],
+            [
+              "a",
+              "M192.2 16 V32"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M51.2 56 V40"
+            ],
+            [
+              "a",
+              "M66.0 48.0 H177.5"
+            ],
+            [
+              "r",
+              180.5,
+              36,
+              23.5,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M201.0 72.0 H19.0"
+            ],
+            [
+              "r",
+              179.0,
+              36,
+              3,
+              24,
+              "hz"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Edge Dumpers",
+          "tier": "medium",
+          "does": "Outer lanes are full of belts that shove you off the edge or into red goo; you hop between the few safe middle cells.",
+          "numbers": "3 x 8 cells, belts 12 studs/s, 6 dump cells",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M39.5 32 V16"
+            ],
+            [
+              "a",
+              "M66.0 24.0 H83.5"
+            ],
+            [
+              "a",
+              "M98.2 16 V32"
+            ],
+            [
+              "a",
+              "M133.5 32 V16"
+            ],
+            [
+              "a",
+              "M160.0 24.0 H177.5"
+            ],
+            [
+              "a",
+              "M192.2 16 V32"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M42.5 48.0 H60.0"
+            ],
+            [
+              "a",
+              "M74.8 56 V40"
+            ],
+            [
+              "r",
+              86.5,
+              36,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M113.0 48.0 H154.0"
+            ],
+            [
+              "a",
+              "M168.8 56 V40"
+            ],
+            [
+              "r",
+              180.5,
+              36,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M39.5 64 V80"
+            ],
+            [
+              "r",
+              63.0,
+              60,
+              23.5,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M121.8 64 V80"
+            ],
+            [
+              "r",
+              157.0,
+              60,
+              23.5,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M192.2 64 V80"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Fast Lane, Slow Lane",
+          "tier": "medium",
+          "does": "Top lane is a fast belt straight at red goo; hop down to the middle lane at the one cell that is a rest stop, or take the slow, safe, weaving bottom lane.",
+          "numbers": "fast 20 studs/s (a cell passes every 0.4 s), slow 8 studs/s, 1 rest stop, no jumps",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19 20 H150"
+            ],
+            [
+              "a",
+              "M19 28 H150"
+            ],
+            [
+              "r",
+              155,
+              12,
+              49,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M126 48 H40"
+            ],
+            [
+              "r",
+              131,
+              36,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M158 48 H201"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19 72 H60"
+            ],
+            [
+              "a",
+              "M74 80 V64"
+            ],
+            [
+              "a",
+              "M90 72 H201"
+            ],
+            [
+              "you",
+              8,
+              48
+            ],
+            [
+              "t",
+              112,
+              94,
+              "hop off here"
+            ]
+          ]
+        },
+        {
+          "name": "Turn Signal",
+          "tier": "medium",
+          "does": "Two pink belts on the route swap between forward and sideways every 3 s; wait on the rest cell until the arrows point your way.",
+          "numbers": "3 x 7 cells, 2 turning belts, 3 s swap, 1 s blink warning",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M110.0 16 V32"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              26.9,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              42.9,
+              36,
+              26.9,
+              24,
+              "pk"
+            ],
+            [
+              "a",
+              "M46.9 55 Q64.7 55 64.7 41"
+            ],
+            [
+              "r",
+              69.7,
+              36,
+              26.9,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M99.6 48.0 H120.4"
+            ],
+            [
+              "r",
+              123.4,
+              36,
+              26.9,
+              24,
+              "pk"
+            ],
+            [
+              "a",
+              "M127.4 55 Q145.3 55 145.3 41"
+            ],
+            [
+              "a",
+              "M153.3 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              60,
+              26.9,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M174.1 72.0 H45.9"
+            ],
+            [
+              "r",
+              177.1,
+              60,
+              26.9,
+              24,
+              "hz"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Belt Stairs",
+          "tier": "medium",
+          "does": "The grid climbs: every cell is a step up, and backward belts drop you down a step if you pick them.",
+          "numbers": "3 x 7 cells, +1.5 studs per cell (rise 10.5), belts 10 studs/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M29.4 16 V32"
+            ],
+            [
+              "a",
+              "M93.6 24.0 H45.9"
+            ],
+            [
+              "a",
+              "M110.0 16 V32"
+            ],
+            [
+              "a",
+              "M174.1 24.0 H126.4"
+            ],
+            [
+              "a",
+              "M190.6 16 V32"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19.0 48.0 H39.9"
+            ],
+            [
+              "a",
+              "M56.3 56 V40"
+            ],
+            [
+              "a",
+              "M72.7 48.0 H120.4"
+            ],
+            [
+              "a",
+              "M136.9 56 V40"
+            ],
+            [
+              "a",
+              "M153.3 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M66.7 72.0 H19.0"
+            ],
+            [
+              "a",
+              "M83.2 80 V64"
+            ],
+            [
+              "a",
+              "M147.3 72.0 H99.6"
+            ],
+            [
+              "a",
+              "M163.7 80 V64"
+            ],
+            [
+              "a",
+              "M201.0 72.0 H180.1"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ],
+            [
+              "t",
+              60,
+              94,
+              "each cell 1.5 studs up"
+            ]
+          ]
+        },
+        {
+          "name": "Wall Stops",
+          "tier": "medium",
+          "does": "No rest cells at all: each belt runs you into a safe jelly wall and pins you there, and from that stop you pick the next belt; the belts that skip the walls dump you.",
+          "numbers": "3 x 8 cells, belts 12 studs/s, 3 safe walls, 3 dump belts",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19 48 H84"
+            ],
+            [
+              "r",
+              86,
+              36,
+              4,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M60 32 V16"
+            ],
+            [
+              "a",
+              "M94 24 H144"
+            ],
+            [
+              "r",
+              146,
+              12,
+              4,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M120 40 V56"
+            ],
+            [
+              "r",
+              92,
+              60,
+              58,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M155 48 H201"
+            ],
+            [
+              "you",
+              8,
+              48
+            ],
+            [
+              "t",
+              40,
+              94,
+              "walls stop you"
+            ]
+          ]
+        },
+        {
+          "name": "Rush Hour",
+          "tier": "hard",
+          "does": "Fast belts with nearly every cell a dump; one snaking route with only two rest cells to stop and read.",
+          "numbers": "3 x 10 cells, belts 15 studs/s, 2 rest cells, 4 red walls",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M34.8 32 V16"
+            ],
+            [
+              "a",
+              "M56.6 24.0 H88.2"
+            ],
+            [
+              "a",
+              "M100.6 16 V32"
+            ],
+            [
+              "a",
+              "M128.8 32 V16"
+            ],
+            [
+              "a",
+              "M157.0 16 V32"
+            ],
+            [
+              "a",
+              "M175.8 32 V16"
+            ],
+            [
+              "a",
+              "M188.2 24.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              18.8,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M37.8 48.0 H50.6"
+            ],
+            [
+              "a",
+              "M63.0 56 V40"
+            ],
+            [
+              "r",
+              72.4,
+              36,
+              18.8,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M100.6 40 V56"
+            ],
+            [
+              "r",
+              110.0,
+              36,
+              18.8,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M138.2 56 V40"
+            ],
+            [
+              "a",
+              "M163.4 48.0 H150.6"
+            ],
+            [
+              "a",
+              "M169.4 48.0 H182.2"
+            ],
+            [
+              "a",
+              "M194.6 40 V56"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M53.6 64 V80"
+            ],
+            [
+              "a",
+              "M94.2 72.0 H125.80000000000001"
+            ],
+            [
+              "a",
+              "M138.2 80 V64"
+            ],
+            [
+              "a",
+              "M166.4 64 V80"
+            ],
+            [
+              "a",
+              "M188.2 72.0 H201.0"
+            ],
+            [
+              "r",
+              53.6,
+              58.5,
+              18.8,
+              3,
+              "hz"
+            ],
+            [
+              "r",
+              166.4,
+              34.5,
+              18.8,
+              3,
+              "hz"
+            ],
+            [
+              "r",
+              89.7,
+              12,
+              3,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              146.1,
+              60,
+              3,
+              24,
+              "hz"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Jump the Wrong One",
+          "tier": "hard",
+          "does": "Single dump belts sit right in the route; the only way past is to jump clean over them from the belt before, so you read the next arrow while riding.",
+          "numbers": "3 x 9 cells, belts 14 studs/s, 3 dump cells to jump (8 studs)",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              12,
+              188.0,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19.0 48.0 H54.8"
+            ],
+            [
+              "a",
+              "M68.2 40 V56"
+            ],
+            [
+              "a",
+              "M81.7 48.0 H117.4"
+            ],
+            [
+              "a",
+              "M130.9 56 V40"
+            ],
+            [
+              "a",
+              "M144.3 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              60,
+              188.0,
+              24,
+              "hz"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ],
+            [
+              "t",
+              60,
+              94,
+              "jump the side-pushers"
+            ]
+          ]
+        },
+        {
+          "name": "Fast Lane Gauntlet",
+          "tier": "hard",
+          "does": "Yellow fast belts feed you into two turning belts at full speed; miss the swap and you go over the edge.",
+          "numbers": "fast 20 studs/s, 2 turning belts 2 s swap, 1 rest cell",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M110.0 32 V16"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19.0 44.0 H60.0"
+            ],
+            [
+              "a",
+              "M19.0 52.0 H60.0"
+            ],
+            [
+              "r",
+              63.0,
+              36,
+              23.5,
+              24,
+              "pk"
+            ],
+            [
+              "a",
+              "M67.0 55 Q81.5 55 81.5 41"
+            ],
+            [
+              "r",
+              86.5,
+              36,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M113.0 44.0 H154.0"
+            ],
+            [
+              "a",
+              "M113.0 52.0 H154.0"
+            ],
+            [
+              "r",
+              157.0,
+              36,
+              23.5,
+              24,
+              "pk"
+            ],
+            [
+              "a",
+              "M161.0 55 Q175.5 55 175.5 41"
+            ],
+            [
+              "a",
+              "M183.5 44.0 H201.0"
+            ],
+            [
+              "a",
+              "M183.5 52.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M110.0 64 V80"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Seed A: Two Picks",
+          "tier": "easy",
+          "does": "Generator, easy: 6 cells, 2 rest cells, every wrong belt loops back.",
+          "numbers": "seed 11, 3 x 6, 8 studs/s, 2 choices, 0 dumps",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M31.6 16 V32"
+            ],
+            [
+              "a",
+              "M75.7 24.0 H50.3"
+            ],
+            [
+              "r",
+              78.7,
+              12,
+              31.3,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M113.0 24.0 H169.7"
+            ],
+            [
+              "a",
+              "M188.3 16 V32"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19.0 48.0 H44.3"
+            ],
+            [
+              "a",
+              "M63.0 56 V40"
+            ],
+            [
+              "r",
+              78.7,
+              36,
+              31.3,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M125.7 56 V40"
+            ],
+            [
+              "a",
+              "M144.3 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M75.7 72.0 H19.0"
+            ],
+            [
+              "a",
+              "M94.3 80 V64"
+            ],
+            [
+              "a",
+              "M169.7 72.0 H113.0"
+            ],
+            [
+              "a",
+              "M188.3 80 V64"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Seed B: Long Carry",
+          "tier": "easy",
+          "does": "Generator, easy: long rides between few choices.",
+          "numbers": "seed 27, 3 x 7, 8 studs/s, 2 choices, 1 red cell",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M19.0 24.0 H120.4"
+            ],
+            [
+              "a",
+              "M136.9 16 V32"
+            ],
+            [
+              "a",
+              "M201.0 24.0 H153.3"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              26.9,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M56.3 56 V40"
+            ],
+            [
+              "a",
+              "M93.6 48.0 H72.7"
+            ],
+            [
+              "r",
+              96.6,
+              36,
+              26.9,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M126.4 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              60,
+              26.9,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M201.0 72.0 H45.9"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Seed C: Three Picks",
+          "tier": "medium",
+          "does": "Generator, medium: three choice cells, two dumps on the wrong side.",
+          "numbers": "seed 42, 3 x 8, 12 studs/s, 3 choices, 2 dumps",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M27.8 32 V16"
+            ],
+            [
+              "a",
+              "M42.5 24.0 H60.0"
+            ],
+            [
+              "a",
+              "M74.8 16 V32"
+            ],
+            [
+              "r",
+              86.5,
+              12,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M113.0 24.0 H154.0"
+            ],
+            [
+              "a",
+              "M168.8 16 V32"
+            ],
+            [
+              "a",
+              "M192.2 32 V16"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M51.2 56 V40"
+            ],
+            [
+              "a",
+              "M66.0 48.0 H83.5"
+            ],
+            [
+              "a",
+              "M98.2 56 V40"
+            ],
+            [
+              "a",
+              "M130.5 48.0 H113.0"
+            ],
+            [
+              "r",
+              133.5,
+              36,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M160.0 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M39.5 64 V80"
+            ],
+            [
+              "a",
+              "M83.5 72.0 H66.0"
+            ],
+            [
+              "a",
+              "M98.2 64 V80"
+            ],
+            [
+              "a",
+              "M130.5 72.0 H113.0"
+            ],
+            [
+              "a",
+              "M145.2 80 V64"
+            ],
+            [
+              "a",
+              "M180.5 64 V80"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Seed D: One Turner",
+          "tier": "medium",
+          "does": "Generator, medium: one turning belt on the route with a rest cell before it.",
+          "numbers": "seed 58, 3 x 8, 12 studs/s, 1 turning belt",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M27.8 16 V32"
+            ],
+            [
+              "a",
+              "M83.5 24.0 H42.5"
+            ],
+            [
+              "a",
+              "M98.2 16 V32"
+            ],
+            [
+              "a",
+              "M113.0 24.0 H177.5"
+            ],
+            [
+              "a",
+              "M192.2 16 V32"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M42.5 48.0 H60.0"
+            ],
+            [
+              "r",
+              63.0,
+              36,
+              23.5,
+              24,
+              "pk"
+            ],
+            [
+              "a",
+              "M67.0 55 Q81.5 55 81.5 41"
+            ],
+            [
+              "r",
+              86.5,
+              36,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M121.8 56 V40"
+            ],
+            [
+              "a",
+              "M154.0 48.0 H136.5"
+            ],
+            [
+              "r",
+              157.0,
+              36,
+              23.5,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M183.5 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              60,
+              23.5,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M83.5 72.0 H42.5"
+            ],
+            [
+              "a",
+              "M98.2 80 V64"
+            ],
+            [
+              "a",
+              "M154.0 72.0 H113.0"
+            ],
+            [
+              "a",
+              "M168.8 80 V64"
+            ],
+            [
+              "r",
+              180.5,
+              60,
+              23.5,
+              24,
+              "hz"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Seed F: Snake",
+          "tier": "hard",
+          "does": "Generator, hard: long snaking route with a backward stretch, dumps on both edges.",
+          "numbers": "seed 91, 3 x 10, 15 studs/s, 2 choices, 6 dumps",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M25.4 32 V16"
+            ],
+            [
+              "a",
+              "M37.8 24.0 H144.6"
+            ],
+            [
+              "a",
+              "M157.0 16 V32"
+            ],
+            [
+              "a",
+              "M185.2 32 V16"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              18.8,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M44.2 56 V40"
+            ],
+            [
+              "r",
+              53.6,
+              36,
+              18.8,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M163.4 48.0 H75.4"
+            ],
+            [
+              "r",
+              166.4,
+              36,
+              18.8,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M194.6 40 V56"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M81.8 64 V80"
+            ],
+            [
+              "a",
+              "M157.0 80 V64"
+            ],
+            [
+              "a",
+              "M169.4 72.0 H201.0"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        },
+        {
+          "name": "Seed G: Timed Pair",
+          "tier": "hard",
+          "does": "Generator, hard: two turning belts back to back with opposite phase.",
+          "numbers": "seed 104, 3 x 9, 14 studs/s, 2 turning belts, 1 jump",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              2,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              206,
+              12,
+              12,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              16,
+              12,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M36.9 32 V16"
+            ],
+            [
+              "a",
+              "M68.2 16 V32"
+            ],
+            [
+              "a",
+              "M110.0 32 V16"
+            ],
+            [
+              "a",
+              "M151.8 16 V32"
+            ],
+            [
+              "a",
+              "M183.1 32 V16"
+            ],
+            [
+              "r",
+              16,
+              36,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "r",
+              16.0,
+              36,
+              20.9,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              36.9,
+              36,
+              41.8,
+              24,
+              "pk"
+            ],
+            [
+              "a",
+              "M40.9 55 Q73.7 55 73.7 41"
+            ],
+            [
+              "r",
+              78.7,
+              36,
+              20.9,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M102.6 48.0 H117.4"
+            ],
+            [
+              "r",
+              120.4,
+              36,
+              20.9,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M144.3 48.0 H159.2"
+            ],
+            [
+              "r",
+              162.2,
+              36,
+              20.9,
+              24,
+              "pl"
+            ],
+            [
+              "a",
+              "M186.1 48.0 H201.0"
+            ],
+            [
+              "r",
+              16,
+              60,
+              188,
+              24,
+              "yl"
+            ],
+            [
+              "a",
+              "M36.9 64 V80"
+            ],
+            [
+              "a",
+              "M68.2 80 V64"
+            ],
+            [
+              "a",
+              "M110.0 64 V80"
+            ],
+            [
+              "a",
+              "M151.8 80 V64"
+            ],
+            [
+              "a",
+              "M183.1 64 V80"
+            ],
+            [
+              "you",
+              8,
+              48.0
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

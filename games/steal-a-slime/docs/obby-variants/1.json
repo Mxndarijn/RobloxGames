@@ -1,0 +1,1293 @@
+{
+  "ideas": [
+    {
+      "id": 1,
+      "name": "Crusher Alley",
+      "approach": "handmade",
+      "approachWhy": "The fun is a fair rhythm, and the open windows must be checked against walking speed by hand. Random beats easily make a stretch that is never open, so each variant is tuned and tested on its own.",
+      "engine": {
+        "have": [
+          "slide motion on y (a slow up-and-down crusher)",
+          "punch motion on any axis: shoots out fast, holds, slides back, rests (slam from above on y, wall punch on z)",
+          "swing motion (pendulums, from BlobPendulums)",
+          "per-part period and phase played at server time, so everyone sees the same beat",
+          "puncher, gate and blob looks; NOT_FLOOR list so you can't stand on them",
+          "flat floors and steps that climb, with step gap and rise tests"
+        ],
+        "new": [
+          {
+            "what": "hazard touch = back to the start pad (today punchers and pendulums shove you); one shared reset for every hazard idea (same piece ideas 8, 14 and 25 list)",
+            "size": "S"
+          },
+          {
+            "what": "red half-transparent hazard look for crusher, puncher and blob, plus a slam / thump sound",
+            "size": "S"
+          },
+          {
+            "what": "the tell: a floor shadow that grows as a crusher comes down, and a short wobble before it slams",
+            "size": "S"
+          },
+          {
+            "what": "'pattern' motion: a list of beats (full slam, half drop) instead of one even beat, for Fake Out; use the same beat-list format as Beat Pads' syncopated patterns (idea 18)",
+            "size": "S"
+          },
+          {
+            "what": "speed-up for Don't Dawdle and Hurry Up Hall: a per-player tempo ramp on top of the client beat clock from Beat Pads (idea 18); the beat gets faster while the local player waits at the entry or stays in the section; resets on a fall",
+            "size": "M"
+          },
+          {
+            "what": "fairness test: reuse the Collapsing Bridge runner (idea 24: 16 studs/s, 0.15 s lost per jump, 0.3 s per turn); every hazard must be open long enough for that runner with a margin, and every pocket between hazards must be safe at all times",
+            "size": "S"
+          },
+          {
+            "what": "one-shot trigger from Geyser Field (idea 21): stepping on a plate starts a short countdown, then the crusher above slams once and lifts, refills after a rest (for Trip Plate)",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "Every crusher, puncher and swinging blob is red see-through goo, so you see the path behind it. A crusher's shadow grows on the floor and it wobbles before it slams, with a thump on impact; a puncher pulls back and glows before it shoots out.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "First Slam",
+          "tier": "easy",
+          "does": "One big crusher on a slow beat over a wide floor: learn the shadow and the wobble.",
+          "numbers": "1 crusher 8 x 24, 3.4 s beat, open 2 s, 44 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              220,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              90,
+              12,
+              40,
+              32,
+              "hz"
+            ],
+            [
+              "a",
+              "M110 46 V66"
+            ],
+            [
+              "e",
+              110,
+              73,
+              24,
+              3,
+              "dk"
+            ],
+            [
+              "you",
+              30,
+              74
+            ],
+            [
+              "t",
+              150,
+              30,
+              "3.4 s"
+            ]
+          ]
+        },
+        {
+          "name": "Slow Trio",
+          "tier": "easy",
+          "does": "Three crushers that go up and down together: wait once, then walk through all three.",
+          "numbers": "3 crushers in sync, 3 s beat, open 1.8 s, 6 stud pockets, 60 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              220,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              10,
+              28,
+              30,
+              "hz"
+            ],
+            [
+              "r",
+              100,
+              10,
+              28,
+              30,
+              "hz"
+            ],
+            [
+              "r",
+              150,
+              10,
+              28,
+              30,
+              "hz"
+            ],
+            [
+              "a",
+              "M64 42 V66"
+            ],
+            [
+              "a",
+              "M114 42 V66"
+            ],
+            [
+              "a",
+              "M164 42 V66"
+            ],
+            [
+              "you",
+              22,
+              74
+            ],
+            [
+              "t",
+              80,
+              92,
+              "all together"
+            ]
+          ]
+        },
+        {
+          "name": "Pick a Lane",
+          "tier": "easy",
+          "does": "Three side-by-side lanes, each with one crusher on its own slow beat: look along the row and walk down whichever lane is open now.",
+          "numbers": "3 lanes 8 wide, 1 crusher each, beats 3 / 3.4 / 3.8 s, open 2 s, 44 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              16,
+              220,
+              64,
+              "pl"
+            ],
+            [
+              "r",
+              100,
+              16,
+              30,
+              21,
+              "hz"
+            ],
+            [
+              "r",
+              100,
+              37,
+              30,
+              22,
+              "gh"
+            ],
+            [
+              "r",
+              100,
+              59,
+              30,
+              21,
+              "hz"
+            ],
+            [
+              "l",
+              0,
+              37,
+              220,
+              37
+            ],
+            [
+              "l",
+              0,
+              59,
+              220,
+              59
+            ],
+            [
+              "a",
+              "M24 48 H200"
+            ],
+            [
+              "t",
+              134,
+              52,
+              "open now"
+            ],
+            [
+              "you",
+              16,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Half Lane",
+          "tier": "easy",
+          "does": "Each crusher covers only half the lane and they swap sides: weave to the open half instead of waiting.",
+          "numbers": "4 half-lane crushers 10 x 12, 2.8 s beat, open half always 12 wide, 60 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              16,
+              220,
+              64,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              16,
+              30,
+              32,
+              "hz"
+            ],
+            [
+              "r",
+              90,
+              48,
+              30,
+              32,
+              "hz"
+            ],
+            [
+              "r",
+              140,
+              16,
+              30,
+              32,
+              "hz"
+            ],
+            [
+              "r",
+              190,
+              48,
+              30,
+              32,
+              "hz"
+            ],
+            [
+              "a",
+              "M18 48 Q40 70 70 64 Q95 30 120 32 Q140 66 170 64 Q195 30 210 32"
+            ],
+            [
+              "you",
+              16,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Big Swing",
+          "tier": "easy",
+          "does": "One huge blob swings slowly across the lane: walk under its pivot while it's at the far side.",
+          "numbers": "1 pendulum, arm 14, 60 degrees, 3.8 s swing, blob 6 wide, 44 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              16,
+              220,
+              64,
+              "pl"
+            ],
+            [
+              "l",
+              110,
+              16,
+              110,
+              80
+            ],
+            [
+              "c",
+              110,
+              28,
+              12,
+              "hz"
+            ],
+            [
+              "a",
+              "M110 42 V74"
+            ],
+            [
+              "c",
+              110,
+              48,
+              3,
+              "dk"
+            ],
+            [
+              "you",
+              30,
+              48
+            ],
+            [
+              "t",
+              140,
+              30,
+              "3.8 s"
+            ]
+          ]
+        },
+        {
+          "name": "Wall Knock",
+          "tier": "easy",
+          "does": "Two punchers flash out from the walls and snap straight back, never holding shut: the danger is the quick shot, so walk past right after the snap.",
+          "numbers": "2 wall punchers, reach the whole lane, out in 0.3 s, back at once, 3 s beat, half a beat apart, 46 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              16,
+              220,
+              64,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              16,
+              16,
+              46,
+              "hz"
+            ],
+            [
+              "a",
+              "M78 18 V60"
+            ],
+            [
+              "a",
+              "M74 60 V20"
+            ],
+            [
+              "r",
+              140,
+              58,
+              16,
+              22,
+              "gh"
+            ],
+            [
+              "a",
+              "M148 56 V34"
+            ],
+            [
+              "t",
+              92,
+              30,
+              "snap back"
+            ],
+            [
+              "you",
+              22,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Off-Beat",
+          "tier": "medium",
+          "does": "Four crushers each with their own beat and safe pockets between them: hop pocket to pocket.",
+          "numbers": "4 crushers, beats 2.4 / 2.8 / 3.2 / 2.6 s, 8 stud pockets, 80 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              220,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              8,
+              24,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              78,
+              30,
+              24,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              126,
+              14,
+              24,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              174,
+              40,
+              24,
+              26,
+              "hz"
+            ],
+            [
+              "t",
+              34,
+              4,
+              "2.4"
+            ],
+            [
+              "t",
+              82,
+              26,
+              "2.8"
+            ],
+            [
+              "t",
+              130,
+              10,
+              "3.2"
+            ],
+            [
+              "t",
+              178,
+              36,
+              "2.6"
+            ],
+            [
+              "you",
+              12,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Rare Line-Up",
+          "tier": "medium",
+          "does": "Three crushers on 2, 3 and 4 second beats: all three are up together only once every 12 s, or you go one by one.",
+          "numbers": "3 crushers, beats 2 / 3 / 4 s, line-up every 12 s, 6 stud pockets, 56 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              220,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              8,
+              26,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              110,
+              30,
+              26,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              160,
+              14,
+              26,
+              26,
+              "hz"
+            ],
+            [
+              "t",
+              66,
+              4,
+              "2 s"
+            ],
+            [
+              "t",
+              116,
+              26,
+              "3 s"
+            ],
+            [
+              "t",
+              166,
+              10,
+              "4 s"
+            ],
+            [
+              "t",
+              70,
+              92,
+              "all up: every 12 s"
+            ],
+            [
+              "you",
+              24,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Slam and Jump",
+          "tier": "medium",
+          "does": "Each landing island has a crusher over it: jump the gap only once it has lifted.",
+          "numbers": "3 islands 10 x 24, 7 stud gaps, crushers 2.8 s beat, open 1.6 s, 64 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              74,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              140,
+              74,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              204,
+              74,
+              16,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              76,
+              12,
+              28,
+              30,
+              "hz"
+            ],
+            [
+              "r",
+              146,
+              32,
+              28,
+              30,
+              "hz"
+            ],
+            [
+              "a",
+              "M90 44 V66"
+            ],
+            [
+              "a",
+              "M28 66 Q55 44 82 66"
+            ],
+            [
+              "you",
+              20,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Cross-Punch",
+          "tier": "medium",
+          "does": "Punchers from both walls, close together and staggered: zigzag through as each pulls back.",
+          "numbers": "4 punchers, 2.4 s beat, phase step 0.25, 9 studs apart, 50 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              16,
+              220,
+              64,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              16,
+              14,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              88,
+              56,
+              14,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              132,
+              16,
+              14,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              176,
+              56,
+              14,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M51 42 V60"
+            ],
+            [
+              "a",
+              "M95 54 V36"
+            ],
+            [
+              "you",
+              16,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Low Sweep",
+          "tier": "medium",
+          "does": "A blob swings across the lane at shin height so you jump over it, then a crusher right after.",
+          "numbers": "1 low pendulum 2.6 s (top 3 studs high), then 1 crusher 2.6 s half a beat later, 54 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              220,
+              8,
+              "pl"
+            ],
+            [
+              "l",
+              80,
+              4,
+              80,
+              60
+            ],
+            [
+              "c",
+              80,
+              4,
+              3,
+              "dk"
+            ],
+            [
+              "c",
+              80,
+              66,
+              8,
+              "hz"
+            ],
+            [
+              "a",
+              "M54 72 Q80 40 106 72"
+            ],
+            [
+              "r",
+              146,
+              12,
+              30,
+              30,
+              "hz"
+            ],
+            [
+              "a",
+              "M161 44 V66"
+            ],
+            [
+              "you",
+              40,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Crusher Stairs",
+          "tier": "medium",
+          "does": "The alley climbs: a crusher over each wide step, so you time each step up as well as the slam.",
+          "numbers": "4 steps 12 long, 2 studs up each, 3 crushers 2.8 s, phase step 0.3, 60 studs, rise 6",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              84,
+              55,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              55,
+              72,
+              55,
+              20,
+              "pl"
+            ],
+            [
+              "r",
+              110,
+              60,
+              55,
+              32,
+              "pl"
+            ],
+            [
+              "r",
+              165,
+              48,
+              55,
+              44,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              22,
+              26,
+              18,
+              "hz"
+            ],
+            [
+              "r",
+              125,
+              10,
+              26,
+              18,
+              "hz"
+            ],
+            [
+              "r",
+              180,
+              0,
+              26,
+              14,
+              "hz"
+            ],
+            [
+              "a",
+              "M24 82 Q40 66 60 70"
+            ],
+            [
+              "you",
+              20,
+              84
+            ]
+          ]
+        },
+        {
+          "name": "Fake Out",
+          "tier": "medium",
+          "does": "Crushers play slam, half drop, slam: a half drop still hits, so count the pattern, don't just watch for up.",
+          "numbers": "3 crushers, pattern full / half / full over 3.6 s, open 1.2 s once per pattern, 54 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              220,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              32,
+              30,
+              30,
+              "hz"
+            ],
+            [
+              "r",
+              130,
+              44,
+              30,
+              30,
+              "hz"
+            ],
+            [
+              "t",
+              64,
+              28,
+              "half"
+            ],
+            [
+              "t",
+              134,
+              40,
+              "slam"
+            ],
+            [
+              "a",
+              "M75 64 V70"
+            ],
+            [
+              "t",
+              60,
+              92,
+              "slam, half, slam"
+            ],
+            [
+              "you",
+              24,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Don't Dawdle",
+          "tier": "medium",
+          "does": "Crushers speed up the longer you stand on the entry pad, so going on the first good beat is the easy way.",
+          "numbers": "3 crushers, 3.2 s beat, after 6 s of waiting it drops to 1.8 s, resets when you fall",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              44,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              44,
+              74,
+              176,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              10,
+              28,
+              30,
+              "hz"
+            ],
+            [
+              "r",
+              120,
+              26,
+              28,
+              30,
+              "hz"
+            ],
+            [
+              "r",
+              170,
+              10,
+              28,
+              30,
+              "hz"
+            ],
+            [
+              "c",
+              22,
+              40,
+              10,
+              "dk"
+            ],
+            [
+              "t",
+              2,
+              60,
+              "wait = faster"
+            ],
+            [
+              "you",
+              20,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Trip Plate",
+          "tier": "medium",
+          "does": "Each crusher sleeps until you step on the plate under it, then slams 0.7 s later, so you must keep walking and never stop on a plate.",
+          "numbers": "4 plates 8 x 24 with a crusher each, slam 0.7 s after you step on, rest 2 s, 2 stud gaps, 60 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              220,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              72,
+              36,
+              4,
+              "yl"
+            ],
+            [
+              "r",
+              100,
+              72,
+              36,
+              4,
+              "yl"
+            ],
+            [
+              "r",
+              160,
+              72,
+              36,
+              4,
+              "yl"
+            ],
+            [
+              "r",
+              42,
+              14,
+              32,
+              22,
+              "hz"
+            ],
+            [
+              "r",
+              102,
+              14,
+              32,
+              22,
+              "hz"
+            ],
+            [
+              "a",
+              "M58 38 V64"
+            ],
+            [
+              "t",
+              40,
+              92,
+              "0.7 s after you step"
+            ],
+            [
+              "you",
+              30,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Gauntlet",
+          "tier": "hard",
+          "does": "All three kinds in one run: a slam, a wall punch, a swinging blob and a last slam, each on its own beat.",
+          "numbers": "4 hazards, beats 2.2 / 2 / 2.4 / 1.8 s, 6 stud pockets, 80 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              220,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              34,
+              14,
+              24,
+              28,
+              "hz"
+            ],
+            [
+              "a",
+              "M46 44 V66"
+            ],
+            [
+              "r",
+              80,
+              54,
+              28,
+              16,
+              "hz"
+            ],
+            [
+              "l",
+              140,
+              4,
+              140,
+              52
+            ],
+            [
+              "c",
+              140,
+              58,
+              10,
+              "hz"
+            ],
+            [
+              "r",
+              176,
+              14,
+              24,
+              28,
+              "hz"
+            ],
+            [
+              "a",
+              "M188 44 V66"
+            ],
+            [
+              "you",
+              16,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Double Trouble",
+          "tier": "hard",
+          "does": "A crusher and two wall punchers hit the same square on different beats: go only when all three are back.",
+          "numbers": "2 stations, each 1 crusher 2.4 s + 2 punchers 2 s, open about 0.9 s, 64 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              16,
+              220,
+              64,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              32,
+              32,
+              32,
+              "hz"
+            ],
+            [
+              "r",
+              80,
+              16,
+              12,
+              12,
+              "hz"
+            ],
+            [
+              "r",
+              80,
+              68,
+              12,
+              12,
+              "hz"
+            ],
+            [
+              "r",
+              150,
+              32,
+              32,
+              32,
+              "hz"
+            ],
+            [
+              "r",
+              160,
+              16,
+              12,
+              12,
+              "hz"
+            ],
+            [
+              "r",
+              160,
+              68,
+              12,
+              12,
+              "hz"
+            ],
+            [
+              "t",
+              76,
+              50,
+              "slam"
+            ],
+            [
+              "you",
+              20,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Head-On Wave",
+          "tier": "hard",
+          "does": "Five fast crushers lift in order from the far end toward you, so each is open only as the wave passes you.",
+          "numbers": "5 crushers, 2 s beat, phase step -0.15 (wave comes at you), open 0.8 s each, 4 stud pockets, 66 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              220,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              36,
+              44,
+              22,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              70,
+              34,
+              22,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              104,
+              24,
+              22,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              138,
+              14,
+              22,
+              26,
+              "hz"
+            ],
+            [
+              "r",
+              172,
+              4,
+              22,
+              26,
+              "hz"
+            ],
+            [
+              "a",
+              "M190 36 Q120 64 50 76"
+            ],
+            [
+              "you",
+              18,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Hurry Up Hall",
+          "tier": "hard",
+          "does": "Every crusher gets faster the longer you are inside the section, so a slow, careful run gets harder as it goes.",
+          "numbers": "5 crushers, 2.6 s beat, 0.2 s faster every 5 s down to 1.4 s, 8 stud pockets, 90 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              74,
+              220,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              26,
+              12,
+              22,
+              28,
+              "hz"
+            ],
+            [
+              "r",
+              66,
+              30,
+              22,
+              28,
+              "hz"
+            ],
+            [
+              "r",
+              106,
+              12,
+              22,
+              28,
+              "hz"
+            ],
+            [
+              "r",
+              146,
+              30,
+              22,
+              28,
+              "hz"
+            ],
+            [
+              "r",
+              186,
+              12,
+              22,
+              28,
+              "hz"
+            ],
+            [
+              "t",
+              60,
+              92,
+              "faster every 5 s"
+            ],
+            [
+              "you",
+              10,
+              74
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

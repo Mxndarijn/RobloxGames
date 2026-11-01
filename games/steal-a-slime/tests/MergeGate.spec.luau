@@ -49,7 +49,9 @@ describe("MergeGate ranks", function()
 				{ 15, 6 },
 				{ 19, 6 },
 				{ 20, 7 },
-				{ Config.MAX_REBIRTHS, 7 },
+				{ 24, 7 },
+				{ 25, 8 },
+				{ Config.MAX_REBIRTHS, 8 },
 			}
 			for _, case in cases do
 				expect(MergeGate.topTier(case[1])).toBe(case[2])
@@ -61,20 +63,25 @@ describe("MergeGate ranks", function()
 			expect(MergeGate.rebirthsFor(5)).toBe(5)
 			expect(MergeGate.rebirthsFor(6)).toBe(15)
 			expect(MergeGate.rebirthsFor(7)).toBe(20)
-			expect(MergeGate.rebirthsFor(8)).toBe(nil)
+			expect(MergeGate.rebirthsFor(8)).toBe(25)
+			expect(MergeGate.rebirthsFor(9)).toBe(nil)
 			expect(MergeGate.allows(4, 2)).toBe(false)
 			expect(MergeGate.allows(4, 3)).toBe(true)
-			expect(MergeGate.allows(8, Config.MAX_REBIRTHS)).toBe(false)
+			expect(MergeGate.allows(8, 24)).toBe(false)
+			expect(MergeGate.allows(8, 25)).toBe(true)
+			expect(MergeGate.allows(9, Config.MAX_REBIRTHS)).toBe(false)
 		end
 	)
 
 	it("writes the lock, opens and cap texts", function()
 		expect(MergeGate.lockText(4)).toBe("Rebirth 3 to unlock")
-		expect(MergeGate.lockText(8)).toBe("Locked")
+		expect(MergeGate.lockText(8)).toBe("Rebirth 25 to unlock")
+		expect(MergeGate.lockText(9)).toBe("Locked")
 		expect(MergeGate.opensText(4)).toBe("Epic merges open at Rebirth 3")
-		expect(MergeGate.opensText(8)).toBe("Celestial merges are locked")
+		expect(MergeGate.opensText(8)).toBe("Celestial merges open at Rebirth 25")
+		expect(MergeGate.opensText(9)).toBe("Divine merges are locked")
 		expect(MergeGate.capText(1)).toBe("Up to Uncommon")
-		expect(MergeGate.capText(Config.MAX_REBIRTHS)).toBe("Up to Secret")
+		expect(MergeGate.capText(Config.MAX_REBIRTHS)).toBe("Up to Celestial")
 	end)
 
 	it("never asks a rebirth for a hybrid the player can't brew yet", function()

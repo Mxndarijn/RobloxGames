@@ -1,0 +1,1023 @@
+{
+  "ideas": [
+    {
+      "id": 14,
+      "name": "Rolling Blobs",
+      "approach": "handmade",
+      "approachWhy": "The fun is in tuning ball speed, spacing and size against a 16 stud/s runner, so each layout needs a hand check that a safe line always exists. There are few clean knobs, so a generator would mostly make unfair or boring mixes.",
+      "engine": {
+        "have": [
+          "ball shape and the see-through \"blob\" look (GooDrops already uses 4-stud blob balls)",
+          "slide motion (back-and-forth along one axis, timed from server time with a phase)",
+          "side bays next to a narrow path (GooWave builds these)",
+          "climbing sections with rise; plain slabs for walls, pockets and steps"
+        ],
+        "new": [
+          {
+            "what": "\"travel\" motion: built on Goo Rides' (idea 3) ride motion, a path of points, but one-way with no stops: the ball runs the path once per period, then pops back to the launcher. Several balls share one path with phase offsets, all timed from server time so every player sees the same balls",
+            "size": "M"
+          },
+          {
+            "what": "ball firing order from Crusher Alley's (idea 1) 'pattern' motion: a list of beats per launcher (fire, skip, big ball, small ball) instead of one even beat, for Burst and Lull, Big and Small and Odd One Out",
+            "size": "S"
+          },
+          {
+            "what": "rolling look: the ball spins to match its speed and squashes a little where it lands",
+            "size": "S"
+          },
+          {
+            "what": "bounce option on travel: the ball hops in arcs of a set height between landing points",
+            "size": "S"
+          },
+          {
+            "what": "ramps: reuse Ice Slide's (idea 6) 'slope pieces' (a tilted slab placed at an angle), in plain floor material, so balls and players go up and down a real slope",
+            "size": "S"
+          },
+          {
+            "what": "launcher at the top: a pipe mouth that shows the next ball sitting in it (its real size and lane), glows and rumbles 1 s before it lets go",
+            "size": "S"
+          },
+          {
+            "what": "hazard touch = back to the start pad and the red half-transparent hazard look: shared with every hazard idea (named in Crusher Alley, idea 1); balls only need to use it",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "Red see-through balls with a low rumble, always coming out of a launcher you can see, and the next ball waits glowing in its mouth at its real size. Small balls (3 studs) are low enough to jump; big balls (6 studs and up) are clearly too tall, so you step aside. A ball always rolls or hops along a path; nothing in this idea stands still or swings.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "Lane Watch",
+          "tier": "easy",
+          "does": "Three marked lanes and one ball at a time; the launcher light shows which lane the next ball takes, so you just stand in another lane.",
+          "numbers": "60 stud gentle ramp, 3 lanes of 8, 5-stud balls, 1 ball every 3 s, 10 stud/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              16,
+              196,
+              64,
+              "pl"
+            ],
+            [
+              "l",
+              0,
+              37,
+              196,
+              37
+            ],
+            [
+              "l",
+              0,
+              59,
+              196,
+              59
+            ],
+            [
+              "r",
+              196,
+              16,
+              20,
+              64,
+              "dk"
+            ],
+            [
+              "c",
+              206,
+              26,
+              4,
+              "yl"
+            ],
+            [
+              "c",
+              150,
+              26,
+              8,
+              "hz"
+            ],
+            [
+              "a",
+              "M138 26 L92 26"
+            ],
+            [
+              "you",
+              34,
+              70
+            ],
+            [
+              "t",
+              150,
+              92,
+              "light = next lane"
+            ]
+          ]
+        },
+        {
+          "name": "Pebble Hop",
+          "tier": "easy",
+          "does": "Flat floor and only small balls, so the move is a simple jump over each one as it rolls under you.",
+          "numbers": "50 studs flat, 3-stud balls, 1 every 2.5 s, 9 stud/s, full 24 wide",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              70,
+              196,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              196,
+              50,
+              20,
+              30,
+              "dk"
+            ],
+            [
+              "c",
+              110,
+              65,
+              5,
+              "hz"
+            ],
+            [
+              "c",
+              176,
+              65,
+              5,
+              "hz"
+            ],
+            [
+              "a",
+              "M100 58 L76 58"
+            ],
+            [
+              "a",
+              "M36 66 Q62 34 88 66"
+            ],
+            [
+              "you",
+              30,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Wall Pockets",
+          "tier": "easy",
+          "does": "A narrow 8-wide path with a big ball that fills it; walk from pocket to pocket in the wall and wait while each ball rolls past.",
+          "numbers": "70 studs, path 8 wide, 6x6 pockets every 14 studs, 7-stud ball every 4 s, 9 stud/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              44,
+              220,
+              22,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              24,
+              18,
+              20,
+              "pl"
+            ],
+            [
+              "r",
+              100,
+              24,
+              18,
+              20,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              24,
+              18,
+              20,
+              "pl"
+            ],
+            [
+              "c",
+              140,
+              55,
+              10,
+              "hz"
+            ],
+            [
+              "a",
+              "M126 55 L80 55"
+            ],
+            [
+              "you",
+              49,
+              32
+            ]
+          ]
+        },
+        {
+          "name": "Two Lanes Swap",
+          "tier": "easy",
+          "does": "Balls come down the left and right halves in turn, so you weave: step across each time the ball in your half gets close.",
+          "numbers": "60 stud ramp, 2 lanes of 12, 6-stud balls, left and right alternate every 2 s, 10 stud/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              14,
+              220,
+              34,
+              "pl"
+            ],
+            [
+              "r",
+              0,
+              50,
+              220,
+              34,
+              "pl"
+            ],
+            [
+              "c",
+              120,
+              31,
+              10,
+              "hz"
+            ],
+            [
+              "c",
+              180,
+              67,
+              10,
+              "hz"
+            ],
+            [
+              "a",
+              "M108 31 L70 31"
+            ],
+            [
+              "a",
+              "M166 67 L130 67"
+            ],
+            [
+              "a",
+              "M30 40 Q44 58 62 64"
+            ],
+            [
+              "you",
+              26,
+              31
+            ]
+          ]
+        },
+        {
+          "name": "Slow Giants",
+          "tier": "easy",
+          "does": "A few huge, slow balls down the middle of a wide ramp; there is always room to walk round them on either side.",
+          "numbers": "60 stud ramp, 24 wide, 12-stud balls in the centre, 1 every 5 s, 7 stud/s, 6 studs free each side",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              10,
+              220,
+              76,
+              "pl"
+            ],
+            [
+              "c",
+              150,
+              48,
+              22,
+              "hz"
+            ],
+            [
+              "a",
+              "M124 48 L84 48"
+            ],
+            [
+              "a",
+              "M40 48 Q54 18 100 16"
+            ],
+            [
+              "you",
+              36,
+              48
+            ],
+            [
+              "t",
+              150,
+              94,
+              "walk round it"
+            ]
+          ]
+        },
+        {
+          "name": "Burst and Lull",
+          "tier": "easy",
+          "does": "The launcher fires three balls close together, then rests; you wait out the burst beside the lane and walk up during the long quiet gap.",
+          "numbers": "60 stud ramp, 16 wide, bursts of 3 x 6-stud balls 1 s apart, then 5 s rest, 10 stud/s",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M0 84 L196 44 L196 52 L0 92Z",
+              "pl"
+            ],
+            [
+              "r",
+              196,
+              18,
+              22,
+              34,
+              "dk"
+            ],
+            [
+              "c",
+              120,
+              52,
+              7,
+              "hz"
+            ],
+            [
+              "c",
+              142,
+              48,
+              7,
+              "hz"
+            ],
+            [
+              "c",
+              164,
+              43,
+              7,
+              "hz"
+            ],
+            [
+              "a",
+              "M110 60 L80 66"
+            ],
+            [
+              "you",
+              30,
+              79
+            ],
+            [
+              "t",
+              60,
+              20,
+              "3 balls, then quiet"
+            ]
+          ]
+        },
+        {
+          "name": "Bouncers",
+          "tier": "medium",
+          "does": "Balls bounce down in big arcs instead of rolling; you run under a ball while it is high in the air, then wait out the landing spot.",
+          "numbers": "60 studs, 5-stud balls, hops 8 studs high and 16 studs long, 1 every 2.4 s, 2 lines offset",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              72,
+              196,
+              10,
+              "pl"
+            ],
+            [
+              "r",
+              196,
+              40,
+              22,
+              42,
+              "dk"
+            ],
+            [
+              "c",
+              150,
+              24,
+              7,
+              "hz"
+            ],
+            [
+              "a",
+              "M150 32 Q130 4 108 64"
+            ],
+            [
+              "c",
+              108,
+              65,
+              7,
+              "gh"
+            ],
+            [
+              "a",
+              "M108 66 Q86 30 64 66"
+            ],
+            [
+              "you",
+              50,
+              72
+            ]
+          ]
+        },
+        {
+          "name": "Switchback",
+          "tier": "medium",
+          "does": "The ramp folds back on itself in two legs, so balls you dodged on the upper leg turn the corner and come at you again on the lower one.",
+          "numbers": "2 legs of 40 studs, 10 wide, turn at the end, 5-stud balls every 2.6 s, 11 stud/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              58,
+              180,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              14,
+              24,
+              68,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              14,
+              150,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              14,
+              14,
+              16,
+              24,
+              "dk"
+            ],
+            [
+              "c",
+              80,
+              26,
+              8,
+              "hz"
+            ],
+            [
+              "a",
+              "M92 26 L140 26"
+            ],
+            [
+              "c",
+              130,
+              70,
+              8,
+              "hz"
+            ],
+            [
+              "a",
+              "M118 70 L76 70"
+            ],
+            [
+              "you",
+              26,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Big and Small",
+          "tier": "medium",
+          "does": "One lane mixes jumpable small balls with big ones you must sidestep, so you read each ball's size as it leaves the launcher.",
+          "numbers": "70 stud ramp, 3-stud and 8-stud balls in a set order (S S B S B B), 1 every 2 s, 10 stud/s",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M0 84 L196 40 L196 48 L0 92Z",
+              "pl"
+            ],
+            [
+              "r",
+              196,
+              14,
+              22,
+              34,
+              "dk"
+            ],
+            [
+              "c",
+              168,
+              34,
+              12,
+              "hz"
+            ],
+            [
+              "c",
+              104,
+              62,
+              4,
+              "hz"
+            ],
+            [
+              "a",
+              "M96 62 L70 68"
+            ],
+            [
+              "you",
+              40,
+              75
+            ],
+            [
+              "t",
+              104,
+              52,
+              "jump"
+            ],
+            [
+              "t",
+              168,
+              16,
+              "step aside"
+            ]
+          ]
+        },
+        {
+          "name": "Road Crossing",
+          "tier": "medium",
+          "does": "Launchers on both sides roll balls straight across the course, so you time each crossing row like a road, waiting at the safe strips between them.",
+          "numbers": "60 studs flat, 4 crossing rows 12 apart, 5-stud balls every 2.2 s, rows alternate direction, 12 stud/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              12,
+              220,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              54,
+              2,
+              18,
+              10,
+              "dk"
+            ],
+            [
+              "r",
+              134,
+              84,
+              18,
+              10,
+              "dk"
+            ],
+            [
+              "c",
+              63,
+              44,
+              8,
+              "hz"
+            ],
+            [
+              "a",
+              "M63 54 L63 78"
+            ],
+            [
+              "c",
+              143,
+              52,
+              8,
+              "hz"
+            ],
+            [
+              "a",
+              "M143 42 L143 18"
+            ],
+            [
+              "you",
+              22,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Funnel",
+          "tier": "medium",
+          "does": "The ramp starts 24 wide and narrows to 10 near the launcher, so the room to dodge shrinks the higher you climb.",
+          "numbers": "70 stud ramp, 24 to 10 wide, 5-stud balls from 2 launcher mouths, 1 every 1.8 s, 10 stud/s",
+          "view": "top",
+          "sketch": [
+            [
+              "p",
+              "M0 8 L196 32 L196 64 L0 88Z",
+              "pl"
+            ],
+            [
+              "r",
+              196,
+              32,
+              20,
+              32,
+              "dk"
+            ],
+            [
+              "c",
+              166,
+              40,
+              7,
+              "hz"
+            ],
+            [
+              "c",
+              110,
+              60,
+              7,
+              "hz"
+            ],
+            [
+              "a",
+              "M100 60 L64 66"
+            ],
+            [
+              "you",
+              24,
+              34
+            ]
+          ]
+        },
+        {
+          "name": "Roaming Launcher",
+          "tier": "medium",
+          "does": "The launcher slides side to side across the top, so each ball's line depends on where the launcher was when it fired; watch it, not the balls.",
+          "numbers": "60 stud ramp, launcher slides 16 studs over 4 s, 5-stud ball every 1.6 s, 11 stud/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              10,
+              196,
+              76,
+              "pl"
+            ],
+            [
+              "r",
+              198,
+              22,
+              18,
+              22,
+              "dk"
+            ],
+            [
+              "a",
+              "M207 50 L207 78"
+            ],
+            [
+              "c",
+              160,
+              30,
+              7,
+              "hz"
+            ],
+            [
+              "c",
+              104,
+              66,
+              7,
+              "hz"
+            ],
+            [
+              "a",
+              "M150 32 L118 32"
+            ],
+            [
+              "a",
+              "M94 66 L60 66"
+            ],
+            [
+              "you",
+              30,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Zigzag Grooves",
+          "tier": "medium",
+          "does": "Grooves in the floor send each ball zigzagging from side to side, so the safe spot keeps moving and you follow the groove to see where it goes.",
+          "numbers": "70 stud ramp, groove switches side every 18 studs, 5-stud balls every 2.4 s, 10 stud/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              10,
+              220,
+              76,
+              "pl"
+            ],
+            [
+              "l",
+              210,
+              20,
+              160,
+              76
+            ],
+            [
+              "l",
+              160,
+              76,
+              110,
+              20
+            ],
+            [
+              "l",
+              110,
+              20,
+              60,
+              76
+            ],
+            [
+              "l",
+              60,
+              76,
+              10,
+              20
+            ],
+            [
+              "c",
+              185,
+              48,
+              8,
+              "hz"
+            ],
+            [
+              "a",
+              "M178 58 L166 70"
+            ],
+            [
+              "you",
+              30,
+              66
+            ]
+          ]
+        },
+        {
+          "name": "Odd One Out",
+          "tier": "hard",
+          "does": "Each row is three balls across the whole width with no gap, but one ball is small; find the small one in the launcher and jump it.",
+          "numbers": "80 stud ramp, rows of 2 x 8-stud balls + 1 x 3-stud ball, small ball's lane changes each row, a row every 2.6 s, 11 stud/s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              8,
+              196,
+              80,
+              "pl"
+            ],
+            [
+              "r",
+              196,
+              8,
+              20,
+              80,
+              "dk"
+            ],
+            [
+              "c",
+              150,
+              22,
+              10,
+              "hz"
+            ],
+            [
+              "c",
+              150,
+              48,
+              4,
+              "hz"
+            ],
+            [
+              "c",
+              150,
+              74,
+              10,
+              "hz"
+            ],
+            [
+              "c",
+              80,
+              22,
+              4,
+              "hz"
+            ],
+            [
+              "c",
+              80,
+              48,
+              10,
+              "hz"
+            ],
+            [
+              "c",
+              80,
+              74,
+              10,
+              "hz"
+            ],
+            [
+              "a",
+              "M136 48 L96 48"
+            ],
+            [
+              "you",
+              30,
+              22
+            ],
+            [
+              "t",
+              150,
+              92,
+              "jump the small one"
+            ]
+          ]
+        },
+        {
+          "name": "Full Sweep",
+          "tier": "hard",
+          "does": "Every few seconds a wide roller as wide as the course thunders down, and you must reach one of the pockets in the side walls in time while small balls fill the space between.",
+          "numbers": "80 stud ramp, full-width 6-stud roller every 6 s at 13 stud/s, pockets every 20 studs, 3-stud balls every 1.5 s",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              0,
+              20,
+              220,
+              60,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              6,
+              16,
+              14,
+              "pl"
+            ],
+            [
+              "r",
+              130,
+              80,
+              16,
+              14,
+              "pl"
+            ],
+            [
+              "r",
+              180,
+              20,
+              12,
+              60,
+              "hz"
+            ],
+            [
+              "a",
+              "M176 50 L140 50"
+            ],
+            [
+              "c",
+              100,
+              36,
+              5,
+              "hz"
+            ],
+            [
+              "a",
+              "M94 36 L70 36"
+            ],
+            [
+              "you",
+              58,
+              12
+            ]
+          ]
+        },
+        {
+          "name": "Stair Bounce",
+          "tier": "hard",
+          "does": "You climb real steps you must jump up while balls bounce down them one step at a time, so each jump has to fit between two landings.",
+          "numbers": "6 steps of 10 long and 3 high, 4-stud balls bounce once per step, 1 every 1.8 s",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M0 86 L0 78 L40 78 L40 66 L80 66 L80 54 L120 54 L120 42 L160 42 L160 30 L200 30 L200 86Z",
+              "pl"
+            ],
+            [
+              "r",
+              200,
+              8,
+              18,
+              22,
+              "dk"
+            ],
+            [
+              "c",
+              180,
+              24,
+              6,
+              "hz"
+            ],
+            [
+              "a",
+              "M174 24 Q156 10 140 36"
+            ],
+            [
+              "a",
+              "M136 38 Q118 26 100 48"
+            ],
+            [
+              "you",
+              60,
+              66
+            ],
+            [
+              "a",
+              "M64 62 Q74 46 88 52"
+            ]
+          ]
+        },
+        {
+          "name": "Storm Ramp",
+          "tier": "hard",
+          "does": "A steeper ramp with rollers and bouncers mixed and two launchers out of step, so there is no rhythm to copy; you read each ball as it comes.",
+          "numbers": "80 stud steep ramp (rise 20), 2 launchers, 5-stud rollers and bouncers, combined 1 every 1.2 s, 13 stud/s",
+          "view": "side",
+          "sketch": [
+            [
+              "p",
+              "M0 88 L196 22 L196 30 L0 96Z",
+              "pl"
+            ],
+            [
+              "r",
+              196,
+              0,
+              22,
+              30,
+              "dk"
+            ],
+            [
+              "c",
+              150,
+              32,
+              7,
+              "hz"
+            ],
+            [
+              "a",
+              "M140 40 L110 50"
+            ],
+            [
+              "c",
+              86,
+              30,
+              7,
+              "hz"
+            ],
+            [
+              "a",
+              "M80 36 Q66 20 54 64"
+            ],
+            [
+              "you",
+              30,
+              78
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

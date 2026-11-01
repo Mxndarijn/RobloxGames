@@ -7,7 +7,8 @@ without the Dex fields starts it empty and is re-seeded from the slimes it owns 
 
 - **Entries: 61.** Every `SlimeRoster` species of kind `"spawn"` (40), `"hybrid"` (15) and `"boss"` (6), in roster
   order (`SpeciesDex.ENTRIES`, `SpeciesDex.TOTAL = 61`). The 7 `"event"` Secrets are **bonus entries**
-  (`SpeciesDex.BONUS`): they show on the Dex and count in `bonusFound`, never in `found` / `total` or a milestone.
+  (`SpeciesDex.BONUS`), and so is every species with `SlimeRoster` `dexBonus` (the 21 Legendary-and-up additions,
+  contract/slime-pool.md): they show on the Dex and count in `bonusFound`, never in `found` / `total` or a milestone.
 - **Found.** `data.found[species] = true` the first time the player owns a slime of that species, from any source:
   catch (Carry), steal, merge (recipe or random), a Mystery Egg hatch, consumables / appraisal, a boss win.
   All of them go through `PlayerData.discover(data, slime)` (`PlayerData.addSlime` calls it). A system that credits a

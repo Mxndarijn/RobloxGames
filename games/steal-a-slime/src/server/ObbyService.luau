@@ -94,7 +94,7 @@ end
 
 local function sectionName(course: ObbyCourse.Course, index: number): string
 	local pick = course.picks[index]
-	return if pick then ObbyCourse.NAMES[pick.id] or pick.id else "?"
+	return if pick then ObbyCourse.nameOf(pick.id) else "?"
 end
 
 -- Starts a run for `session`. Returns ok, a player-facing reason, and the move to the start pad.

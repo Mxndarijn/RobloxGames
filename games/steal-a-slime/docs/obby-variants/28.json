@@ -1,0 +1,1099 @@
+{
+  "ideas": [
+    {
+      "id": 28,
+      "name": "Moon Jump",
+      "approach": "handmade",
+      "approachWhy": "Each variant is a small set of islands tuned to one gravity value. The fun is in hand-placed arcs (over walls, round pillars, under ceilings), and a generator would make them samey or unfair. About 16 clean versions cover the idea.",
+      "engine": {
+        "have": [
+          "ghost see-through zone parts (wind, gust) the client checks the local player against",
+          "lift / bounce: the client already pushes the local character inside a zone",
+          "slide motion (bobbing hazard blobs, drifting islands) and flip timing (on/off with period and duty)",
+          "red goo hazard look and the fall-back-to-start rule",
+          "spec helper launchReaches that checks reach from a launch speed and gravity",
+          "hazard touch = back to the start pad, once built for Crusher Alley (idea 1)"
+        ],
+        "new": [
+          {
+            "what": "'moon' zone kind, a sister of Updraft's lift zone (idea 5): same client check of the local root against the zone, but instead of pushing up, a VectorForce carries (1 - gravity) of your weight while inside; removed on leaving. Client only.",
+            "size": "M"
+          },
+          {
+            "what": "bubble dome look (big see-through sphere, sparkles, moon sign; deeper tint = lower gravity) and a jump sparkle trail",
+            "size": "S"
+          },
+          {
+            "what": "spec: moon gaps and rises go through the one shared launch reach check (Bounce Chain's launchReaches, idea 4, also used by Ice Slide 6 and Speed Strip 16) with that zone's gravity and 80% spare; the 6-stud GAP_MAX and 3.5 RISE_MAX only apply outside bubbles",
+            "size": "S"
+          },
+          {
+            "what": "Moon Pulse: the zone's on/off hangs on Beat Pads' BeatClock (idea 18) for its glow and tick, not a timer of its own",
+            "size": "S"
+          },
+          {
+            "what": "soft 'whoom' sound on entering and leaving a bubble so the gravity change is heard",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "A big pale bubble dome with drifting sparkles and a moon sign marks low gravity; the deeper its tint, the floatier it is. Entering plays a soft whoom and your jumps leave a sparkle trail; leaving plays the whoom backwards. Moon jumps start from your own jump, never from a pad or a wind column, so they read apart from Bounce Chain and Updraft.",
+      "generator": null,
+      "variants": [
+        {
+          "name": "First Float",
+          "tier": "easy",
+          "does": "One bubble over three flat gaps a little too wide for a normal jump, so you feel the slow arc safely.",
+          "numbers": "gravity 50% (jump 14 high, 1.1 s air), 3 gaps of 12, islands 12x12, 60 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              110,
+              50,
+              106,
+              44,
+              "wind"
+            ],
+            [
+              "r",
+              4,
+              70,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              64,
+              70,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              122,
+              70,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              180,
+              70,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M30 66 Q50 30 70 66"
+            ],
+            [
+              "a",
+              "M90 66 Q110 30 130 66"
+            ],
+            [
+              "you",
+              22,
+              70
+            ]
+          ]
+        },
+        {
+          "name": "Moon Steps",
+          "tier": "easy",
+          "does": "Climb: each island sits 9 studs higher than the last, a step you could never jump without the bubble.",
+          "numbers": "gravity 50%, 4 steps of +9, gaps 6, islands 10x10, rises 36 over 50 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              112,
+              50,
+              104,
+              44,
+              "wind"
+            ],
+            [
+              "r",
+              8,
+              82,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              58,
+              64,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              104,
+              46,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              150,
+              28,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M34 78 Q50 46 66 62"
+            ],
+            [
+              "a",
+              "M80 60 Q96 28 112 44"
+            ],
+            [
+              "you",
+              22,
+              82
+            ]
+          ]
+        },
+        {
+          "name": "Goo Hedge",
+          "tier": "easy",
+          "does": "A 6-stud-high red goo hedge stands between wide pads; only the tall moon arc clears it.",
+          "numbers": "gravity 45%, 2 hedges 6 high x 3 thick, gaps 14, pads 14x14, 55 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              110,
+              50,
+              106,
+              44,
+              "wind"
+            ],
+            [
+              "r",
+              4,
+              72,
+              44,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              88,
+              72,
+              44,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              172,
+              72,
+              44,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              62,
+              50,
+              10,
+              22,
+              "hz"
+            ],
+            [
+              "r",
+              146,
+              50,
+              10,
+              22,
+              "hz"
+            ],
+            [
+              "a",
+              "M38 68 Q66 14 96 68"
+            ],
+            [
+              "you",
+              24,
+              72
+            ]
+          ]
+        },
+        {
+          "name": "Long Leap",
+          "tier": "easy",
+          "does": "One single huge gap and a big landing pad: jump once, hang in the air for almost two seconds, land.",
+          "numbers": "gravity 30% (jump 24 high, 1.8 s air), 1 gap of 22, landing pad 18x18, 50 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              110,
+              48,
+              106,
+              46,
+              "wind"
+            ],
+            [
+              "r",
+              4,
+              72,
+              46,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              158,
+              72,
+              58,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M40 68 Q104 -10 168 68"
+            ],
+            [
+              "t",
+              82,
+              88,
+              "22 studs"
+            ],
+            [
+              "you",
+              26,
+              72
+            ]
+          ]
+        },
+        {
+          "name": "Bubble, Ground, Bubble",
+          "tier": "easy",
+          "does": "Small bubbles over each gap with plain ground between, so you learn the low gravity is only inside the bubble.",
+          "numbers": "2 bubbles at 50%, gaps 12 inside, a normal 4-stud hop between, 70 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              46,
+              54,
+              34,
+              34,
+              "wind"
+            ],
+            [
+              "e",
+              150,
+              54,
+              34,
+              34,
+              "wind"
+            ],
+            [
+              "r",
+              2,
+              74,
+              24,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              68,
+              74,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              98,
+              74,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              172,
+              74,
+              46,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M22 70 Q46 34 70 70"
+            ],
+            [
+              "a",
+              "M116 70 Q150 34 176 70"
+            ],
+            [
+              "you",
+              12,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Steer Round",
+          "tier": "medium",
+          "does": "Red goo pillars stand on the straight line between islands that sit left and right, so you curve each arc in the air.",
+          "numbers": "gravity 40%, 4 islands 10x10 zig-zag 8 off centre, 3 pillars 4 wide, gaps 16, 70 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              34,
+              26,
+              26,
+              "pl"
+            ],
+            [
+              "r",
+              64,
+              8,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              124,
+              62,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              188,
+              34,
+              28,
+              26,
+              "pl"
+            ],
+            [
+              "c",
+              50,
+              40,
+              7,
+              "hz"
+            ],
+            [
+              "c",
+              108,
+              48,
+              7,
+              "hz"
+            ],
+            [
+              "c",
+              166,
+              56,
+              7,
+              "hz"
+            ],
+            [
+              "a",
+              "M24 44 Q34 10 70 20"
+            ],
+            [
+              "a",
+              "M84 26 Q128 18 134 66"
+            ],
+            [
+              "you",
+              16,
+              46
+            ]
+          ]
+        },
+        {
+          "name": "Over and Back",
+          "tier": "medium",
+          "does": "The next island hides just behind a red goo wall; jump over it, then pull back in the air to drop onto it.",
+          "numbers": "gravity 35%, 2 walls 10 high, landing island 10x10 tucked 3 behind each wall, 60 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              110,
+              50,
+              106,
+              44,
+              "wind"
+            ],
+            [
+              "r",
+              4,
+              74,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              40,
+              8,
+              42,
+              "hz"
+            ],
+            [
+              "r",
+              80,
+              74,
+              28,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              150,
+              40,
+              8,
+              42,
+              "hz"
+            ],
+            [
+              "r",
+              160,
+              74,
+              56,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M30 70 Q60 4 98 16 Q94 40 92 70"
+            ],
+            [
+              "you",
+              18,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Bubble Edge",
+          "tier": "medium",
+          "does": "The bubble ends halfway over the gap: float out, then normal gravity takes over and you drop fast onto a lower island.",
+          "numbers": "gravity 40% inside, bubble edge 10 into each gap, islands 8 lower each time, 3 drops, 65 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              56,
+              40,
+              60,
+              38,
+              "wind"
+            ],
+            [
+              "r",
+              4,
+              40,
+              40,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              132,
+              72,
+              42,
+              8,
+              "pl"
+            ],
+            [
+              "l",
+              116,
+              10,
+              116,
+              90
+            ],
+            [
+              "a",
+              "M36 36 Q80 -4 116 30 Q130 52 146 68"
+            ],
+            [
+              "t",
+              120,
+              20,
+              "gravity back"
+            ],
+            [
+              "you",
+              20,
+              40
+            ]
+          ]
+        },
+        {
+          "name": "Drifting Islands",
+          "tier": "medium",
+          "does": "Each landing island slides slowly side to side; the long airtime lets you watch it and steer to meet it.",
+          "numbers": "gravity 35%, 3 islands 10x10 sliding 7 sideways, 4 s period, gaps 18, 70 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              4,
+              34,
+              28,
+              28,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              20,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              136,
+              50,
+              24,
+              24,
+              "pl"
+            ],
+            [
+              "r",
+              190,
+              34,
+              26,
+              28,
+              "pl"
+            ],
+            [
+              "a",
+              "M82 50 L82 70"
+            ],
+            [
+              "a",
+              "M148 44 L148 22"
+            ],
+            [
+              "a",
+              "M26 44 Q50 30 76 32"
+            ],
+            [
+              "you",
+              18,
+              48
+            ]
+          ]
+        },
+        {
+          "name": "Bobbing Goo",
+          "tier": "medium",
+          "does": "Red goo blobs bob up and down in the middle of each gap; jump when the blob is low to sail over it.",
+          "numbers": "gravity 40%, 2 blobs 6 across, bob 8 up/down, 3.2 s period, gaps 16, 65 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              110,
+              50,
+              106,
+              44,
+              "wind"
+            ],
+            [
+              "r",
+              4,
+              72,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              92,
+              72,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              180,
+              72,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "c",
+              64,
+              60,
+              8,
+              "hz"
+            ],
+            [
+              "c",
+              152,
+              34,
+              8,
+              "hz"
+            ],
+            [
+              "a",
+              "M64 48 L64 72"
+            ],
+            [
+              "a",
+              "M152 46 L152 22"
+            ],
+            [
+              "a",
+              "M32 68 Q62 10 98 68"
+            ],
+            [
+              "you",
+              20,
+              72
+            ]
+          ]
+        },
+        {
+          "name": "Two Moons",
+          "tier": "medium",
+          "does": "A pale bubble (half gravity) then a deep blue one (quarter gravity): the same jump goes much further in the second, so judge each.",
+          "numbers": "bubble 1 at 50% with gaps 12; bubble 2 at 25% with a gap of 26; islands 10x10, 80 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              50,
+              54,
+              48,
+              38,
+              "wind"
+            ],
+            [
+              "e",
+              160,
+              50,
+              58,
+              44,
+              "dk"
+            ],
+            [
+              "r",
+              2,
+              74,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              74,
+              20,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              102,
+              74,
+              20,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              196,
+              74,
+              22,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M20 70 Q40 40 64 70"
+            ],
+            [
+              "a",
+              "M116 70 Q156 4 200 70"
+            ],
+            [
+              "you",
+              12,
+              74
+            ]
+          ]
+        },
+        {
+          "name": "Moon Night",
+          "tier": "medium",
+          "does": "The section goes dark inside the bubble and only the islands' rims glow, so you judge the long, slow arc by a few lit edges.",
+          "numbers": "gravity 40%, Lights Out darkness, glowing island rims, 4 gaps of 14 with 2 at +6, islands 10x10, 70 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              0,
+              220,
+              96,
+              "dk"
+            ],
+            [
+              "e",
+              110,
+              50,
+              106,
+              44,
+              "wind"
+            ],
+            [
+              "r",
+              4,
+              72,
+              32,
+              4,
+              "yl"
+            ],
+            [
+              "r",
+              62,
+              60,
+              30,
+              4,
+              "yl"
+            ],
+            [
+              "r",
+              120,
+              72,
+              30,
+              4,
+              "yl"
+            ],
+            [
+              "r",
+              180,
+              58,
+              36,
+              4,
+              "yl"
+            ],
+            [
+              "a",
+              "M28 68 Q50 22 72 56"
+            ],
+            [
+              "a",
+              "M88 56 Q112 30 130 68"
+            ],
+            [
+              "you",
+              18,
+              72
+            ]
+          ]
+        },
+        {
+          "name": "Moon Pulse",
+          "tier": "hard",
+          "does": "The bubble's low gravity comes and goes on a beat; jump just as it lights up, or gravity returns mid-flight and you drop.",
+          "numbers": "gravity 35% while lit, BeatClock bar: lit 2.4 s / dark 1.2 s with a tick, 3 gaps of 16, islands 9x9, 65 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              110,
+              50,
+              106,
+              44,
+              "wind"
+            ],
+            [
+              "e",
+              110,
+              50,
+              92,
+              36,
+              "gh"
+            ],
+            [
+              "r",
+              4,
+              72,
+              32,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              92,
+              72,
+              30,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              180,
+              72,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M30 68 Q62 10 98 68"
+            ],
+            [
+              "a",
+              "M116 68 Q130 40 140 92"
+            ],
+            [
+              "t",
+              128,
+              22,
+              "glow = float"
+            ],
+            [
+              "you",
+              18,
+              72
+            ]
+          ]
+        },
+        {
+          "name": "Skylights",
+          "tier": "hard",
+          "does": "A red goo roof covers the bubble except for skylight holes right over each take-off edge: jump from under a hole or your tall moon arc hits the roof.",
+          "numbers": "gravity 35% (jump 20 high), ceiling at 14, holes 8 wide over each launch edge, 3 gaps of 16, 65 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              110,
+              50,
+              106,
+              44,
+              "wind"
+            ],
+            [
+              "r",
+              0,
+              14,
+              22,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              42,
+              14,
+              80,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              142,
+              14,
+              78,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              4,
+              72,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              96,
+              72,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              180,
+              72,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M30 68 Q32 -6 104 68"
+            ],
+            [
+              "you",
+              30,
+              72
+            ]
+          ]
+        },
+        {
+          "name": "Goo Sandwich",
+          "tier": "hard",
+          "does": "A long float between a red goo floor and red goo ceiling bars, with small islands far apart; steer the whole arc.",
+          "numbers": "gravity 25% (2.2 s air), goo floor 4 under islands, ceiling bars at 18, 3 gaps of 24, islands 8x8, 90 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              110,
+              48,
+              106,
+              44,
+              "wind"
+            ],
+            [
+              "r",
+              0,
+              86,
+              220,
+              8,
+              "hz"
+            ],
+            [
+              "r",
+              56,
+              10,
+              30,
+              6,
+              "hz"
+            ],
+            [
+              "r",
+              136,
+              10,
+              30,
+              6,
+              "hz"
+            ],
+            [
+              "r",
+              4,
+              62,
+              26,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              98,
+              62,
+              24,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              192,
+              62,
+              24,
+              8,
+              "pl"
+            ],
+            [
+              "a",
+              "M22 58 Q60 22 104 58"
+            ],
+            [
+              "you",
+              14,
+              62
+            ]
+          ]
+        },
+        {
+          "name": "Last Leap",
+          "tier": "hard",
+          "does": "One enormous float across the whole section while red goo blobs drift sideways through the air; dodge them as you glide.",
+          "numbers": "gravity 20% (jump 36 high, 2.7 s air), 1 gap of 32, 3 blobs sliding 9 sideways, 2.6 s, landing 10x10, 60 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "e",
+              110,
+              48,
+              108,
+              46,
+              "dk"
+            ],
+            [
+              "r",
+              4,
+              74,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              180,
+              74,
+              36,
+              8,
+              "pl"
+            ],
+            [
+              "c",
+              74,
+              30,
+              7,
+              "hz"
+            ],
+            [
+              "c",
+              110,
+              18,
+              7,
+              "hz"
+            ],
+            [
+              "c",
+              148,
+              40,
+              7,
+              "hz"
+            ],
+            [
+              "a",
+              "M32 70 Q100 -20 188 70"
+            ],
+            [
+              "you",
+              18,
+              74
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

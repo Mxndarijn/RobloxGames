@@ -614,3 +614,27 @@ describe("base shapes: jar -> each round base -> jar", function()
 		end)
 	end)
 end)
+
+describe("BaseShapes door bridge", function()
+	local FloorLayout = require("../src/visuals/shared/FloorLayout")
+	it("runs every base's bridge out to the plot's edge at BRIDGE_TOP, where the gate ramp ends flush", function()
+		for _, id in { "jar", "factory", "pagoda", "carousel", "rocket", "treehouse", "lighthouse", "snowglobe" } do
+			for _, i in { 1, 4 } do
+				local bridge
+				for _, node in BaseShapes.get(id).floor1(i) do
+					if node.name == "Bridge" then
+						bridge = node
+					end
+				end
+				expect(bridge ~= nil).toBe(true)
+				expect(bridge.pos[2] + bridge.size[2] / 2).toBeCloseTo(WorldLayout.BRIDGE_TOP, 1e-6)
+				-- the bridge lies along the plot's radial line: its outer end is where the ramp ends
+				local r = math.sqrt(bridge.pos[1] ^ 2 + bridge.pos[3] ^ 2)
+				expect(r - bridge.size[3] / 2).toBeCloseTo(FloorLayout.RAMP_END, 1e-6)
+			end
+		end
+		-- the ramp's planks end level with the bridge's planks
+		local rampPlankTop = WorldLayout.gateRampTop() + FloorLayout.RAMP_LOOK.plankRise
+		expect(rampPlankTop).toBeCloseTo(WorldLayout.BRIDGE_TOP + WorldLayout.BRIDGE_LOOK.plankRise, 1e-6)
+	end)
+end)

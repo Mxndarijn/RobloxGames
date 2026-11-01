@@ -249,6 +249,28 @@ local SPECIES_THEME: { [string]: string } = {
 	disco = "party",
 	doodle = "party",
 	glitch = "party",
+	-- Legendary-and-up additions
+	jester = "party",
+	cowboy = "barnyard",
+	venus = "garden",
+	bonsai = "dojo",
+	diver = "reef",
+	narwhal = "ice",
+	astronaut = "space",
+	griffin = "sky",
+	cerberus = "spooky",
+	willow_wisp = "forest",
+	mammoth = "ice",
+	siren = "reef",
+	djinn = "arcane",
+	sphinx = "vault",
+	monarch = "garden",
+	reef = "reef",
+	supernova = "space",
+	valkyrie = "sky",
+	hydra = "reef",
+	constellation = "space",
+	ryujin = "sky",
 }
 
 -- Slimes without a species (merged before species existed): a theme by tier.

@@ -1,0 +1,1335 @@
+{
+  "ideas": [
+    {
+      "id": 25,
+      "name": "Sliding Maze",
+      "approach": "mixed",
+      "approachWhy": "A maze is the one idea where a generator really pays: a seeded maze gives a new route every course, and a timed solver can prove it is always passable. It shares the 3 x N grid and path search with Arrow Maze (idea 23); this idea adds time (walls that move). The special pieces (chaser wall, rewiring wall, plates, climbing maze) are easier to tune by hand, so those stay hand-made.",
+      "engine": {
+        "have": [
+          "slide motion on any axis with period and phase, played at server time so every player sees the same walls",
+          "flip motion (solid / see-through on a duty), for doors that blink instead of slide",
+          "gate look and the Gate Run section: a goo wall on a slide beat, the closest thing to a sliding maze wall today",
+          "seeded random (Rng) already used by the course builder, so a seeded maze is the same on every client",
+          "flat floors and steps that climb, with the step rise tests"
+        ],
+        "new": [
+          {
+            "what": "hazard touch = back to the start pad: the shared piece from Crusher Alley (idea 1), not a second one",
+            "size": "S"
+          },
+          {
+            "what": "'shuttle' slide: hold, slide fast, hold (same name and code as Goo Rides idea 3 and Beat Pads' shuttle easing, idea 18; build once)",
+            "size": "S"
+          },
+          {
+            "what": "sliding walls use Arrow Maze's (idea 23) 'tall red curtain part' (9 studs, see-through, not jumpable), put on a shuttle slide",
+            "size": "S"
+          },
+          {
+            "what": "floor grooves (a dark strip or texture) under every sliding wall, showing exactly where it travels; no extra parts if it is a floor texture",
+            "size": "S"
+          },
+          {
+            "what": "fixed maze walls: a safe solid jelly wall look, about 9 studs tall so the maze can't be jumped over",
+            "size": "S"
+          },
+          {
+            "what": "tick half a second before a wall moves, hung on Beat Pads' BeatClock (idea 18), plus a soft 'shhk' slide sound",
+            "size": "S"
+          },
+          {
+            "what": "maze generator: extend Arrow Maze's (idea 23) grid builder and path search with time steps (cells x time), so one shared module serves both mazes; the walker uses Collapsing Bridge's runner numbers (idea 24: 16 studs/s, 0.15 s per jump, 0.3 s per turn)",
+            "size": "M"
+          },
+          {
+            "what": "chaser wall: starts sliding down the maze when you pass the start arch; the start uses Two Roads' per-player section clock (idea 11) and Rising Goo's start arch (idea 12), and resets at the start pad",
+            "size": "M"
+          },
+          {
+            "what": "pressure plate that opens one wall for a few seconds: Geyser Field's one-shot trigger (idea 21) driving a shuttle slide (Pull the Plug only)",
+            "size": "S"
+          }
+        ]
+      },
+      "readability": "Red see-through walls are the only things that move and the only things that hurt; each one sits on a dark groove in the floor showing where it slides. Fixed walls are solid jelly and safe to touch, and a BeatClock tick plus a 'shhk' sound comes half a second before a wall moves.",
+      "generator": {
+        "inputs": "seed, tier, rows (5 to 12 cells along the course), 3 columns of 8 studs across the 24-stud lane, cell size 8 studs (the same grid as Arrow Maze, idea 23)",
+        "randomises": "the maze itself (a seeded random spanning tree of the 3 x N grid), which passages get a sliding wall instead of an open gap, each wall's phase, how many dead ends are kept, and on hard whether a chaser wall is added",
+        "guarantees": "a timed solver walks the maze with the shared runner (16 studs/s, 0.15 s per jump, 0.3 s per turn) and proves a route exists from any start moment, with at most one full beat of waiting; every open window is at least 1.5x the time to walk through it; walls only travel inside their groove at cell edges, so every cell centre is a safe place to stand and wait; nothing blocks the exit for longer than one beat; the exit flag is visible from the entry; at most 80 parts; if 50 seeds fail, fall back to a hand-made layout",
+        "difficulty": "easy: 5 to 6 rows, all walls on one shared beat, open 1.5 s, no dead ends. Medium: 8 to 9 rows, two beats or each wall its own phase, open 1.0 s, 1 to 2 dead ends. Hard: 10 to 12 rows, each wall its own phase, open 0.7 s, 3 dead ends, maybe a chaser wall"
+      },
+      "variants": [
+        {
+          "name": "Swap Sides",
+          "tier": "easy",
+          "does": "Three red walls cross the lane on grooves, each with one 8-stud gap that jumps a whole cell left or right; the jelly walls beside them mean you stand in a cell and step through, a first look at the maze rules.",
+          "numbers": "3 walls with an 8 stud gap, gap jumps one cell (8 studs) every 2.8 s, hold 1.4 s, 8 stud rooms between, 48 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "l",
+              60,
+              12,
+              60,
+              84
+            ],
+            [
+              "l",
+              110,
+              12,
+              110,
+              84
+            ],
+            [
+              "l",
+              160,
+              12,
+              160,
+              84
+            ],
+            [
+              "r",
+              58,
+              12,
+              4,
+              48,
+              "hz"
+            ],
+            [
+              "a",
+              "M68 30 V58"
+            ],
+            [
+              "r",
+              108,
+              36,
+              4,
+              48,
+              "hz"
+            ],
+            [
+              "a",
+              "M118 66 V40"
+            ],
+            [
+              "r",
+              158,
+              12,
+              4,
+              48,
+              "hz"
+            ],
+            [
+              "a",
+              "M168 30 V58"
+            ],
+            [
+              "you",
+              30,
+              72
+            ]
+          ]
+        },
+        {
+          "name": "Breathing Walls",
+          "tier": "easy",
+          "does": "A small maze whose red walls all open together and all shut together, so you learn the one beat and hop from cell to cell.",
+          "numbers": "3 x 5 cells, 4 sliding walls on one beat, open 1.6 s, shut 1.6 s, 40 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              130,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              50,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              90,
+              36,
+              40,
+              3,
+              "hz"
+            ],
+            [
+              "r",
+              130,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              170,
+              60,
+              40,
+              3,
+              "hz"
+            ],
+            [
+              "a",
+              "M30 72 H70 V48 H150 V24 H200"
+            ],
+            [
+              "t",
+              140,
+              92,
+              "all open 1.6 s"
+            ]
+          ]
+        },
+        {
+          "name": "Stop and Go",
+          "tier": "easy",
+          "does": "Two rows of doors on opposite beats: when the first row opens the second shuts, so you step through one, wait in the room, then go.",
+          "numbers": "2 rows of 3 doors, 8 stud rooms, beat 2.4 s, open 1.2 s, 40 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              80,
+              12,
+              4,
+              72,
+              "gh"
+            ],
+            [
+              "r",
+              140,
+              12,
+              4,
+              72,
+              "hz"
+            ],
+            [
+              "l",
+              82,
+              12,
+              82,
+              84
+            ],
+            [
+              "l",
+              142,
+              12,
+              142,
+              84
+            ],
+            [
+              "t",
+              66,
+              8,
+              "open"
+            ],
+            [
+              "t",
+              128,
+              8,
+              "shut"
+            ],
+            [
+              "you",
+              110,
+              48
+            ],
+            [
+              "a",
+              "M40 48 H104"
+            ]
+          ]
+        },
+        {
+          "name": "Lookout Maze",
+          "tier": "easy",
+          "does": "You start on a raised pad that looks down on the whole maze, so you can plan the route before you drop in; one obvious dead end.",
+          "numbers": "start pad 4 studs up, 3 x 6 cells, 1 dead end, 3 sliding walls on one 3 s beat, 48 studs",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              50,
+              34,
+              8,
+              "pl"
+            ],
+            [
+              "r",
+              34,
+              80,
+              186,
+              6,
+              "pl"
+            ],
+            [
+              "r",
+              70,
+              56,
+              6,
+              24,
+              "dk"
+            ],
+            [
+              "r",
+              120,
+              56,
+              6,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              170,
+              56,
+              6,
+              24,
+              "dk"
+            ],
+            [
+              "you",
+              18,
+              50
+            ],
+            [
+              "a",
+              "M24 44 Q60 36 100 56"
+            ],
+            [
+              "t",
+              96,
+              40,
+              "plan from up here"
+            ]
+          ]
+        },
+        {
+          "name": "Domino Doors",
+          "tier": "medium",
+          "does": "Each door opens a beat after the one before, so a wave of open doors runs down the maze; walk with the wave and you never stop.",
+          "numbers": "5 doors in a zigzag, each 0.5 s after the last, open 1.0 s, 3 x 8 cells, 64 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              46,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              94,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              142,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              46,
+              12,
+              4,
+              24,
+              "gh"
+            ],
+            [
+              "r",
+              94,
+              60,
+              4,
+              24,
+              "gh"
+            ],
+            [
+              "r",
+              142,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              190,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M28 24 H70 V72 H120 V24 H170"
+            ]
+          ]
+        },
+        {
+          "name": "Lane Change",
+          "tier": "medium",
+          "does": "Two long red dividers run along the course and split it into three corridors; a gap travels along each divider, and you slip through it to dodge the dead ends in your corridor.",
+          "numbers": "3 corridors of 8 studs, 2 dividers of red sliding panels, 8 stud gap travels at 4 studs/s, 2 dead ends, 72 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              30,
+              35,
+              180,
+              3,
+              "hz"
+            ],
+            [
+              "r",
+              30,
+              59,
+              180,
+              3,
+              "hz"
+            ],
+            [
+              "r",
+              70,
+              34,
+              16,
+              5,
+              "gh"
+            ],
+            [
+              "a",
+              "M90 30 H122"
+            ],
+            [
+              "r",
+              140,
+              58,
+              16,
+              5,
+              "gh"
+            ],
+            [
+              "a",
+              "M138 68 H106"
+            ],
+            [
+              "r",
+              120,
+              12,
+              4,
+              23,
+              "dk"
+            ],
+            [
+              "r",
+              190,
+              62,
+              4,
+              22,
+              "dk"
+            ],
+            [
+              "you",
+              24,
+              24
+            ],
+            [
+              "t",
+              130,
+              8,
+              "dead end"
+            ]
+          ]
+        },
+        {
+          "name": "Rewire",
+          "tier": "medium",
+          "does": "No doors: one red wall segment slides a cell over every few seconds, so the corridor that led on now leads to a dead end and the other way opens; you read which way the maze is wired right now.",
+          "numbers": "3 x 8 cells, 2 rewiring walls of 8 studs, slide 8 studs, hold 3 s, 64 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              35,
+              170,
+              3,
+              "dk"
+            ],
+            [
+              "r",
+              40,
+              59,
+              170,
+              3,
+              "dk"
+            ],
+            [
+              "r",
+              86,
+              34,
+              16,
+              5,
+              "hz"
+            ],
+            [
+              "r",
+              118,
+              34,
+              16,
+              5,
+              "gh"
+            ],
+            [
+              "a",
+              "M104 28 H118"
+            ],
+            [
+              "r",
+              150,
+              38,
+              4,
+              21,
+              "dk"
+            ],
+            [
+              "you",
+              24,
+              24
+            ],
+            [
+              "t",
+              90,
+              92,
+              "wiring flips 3 s"
+            ]
+          ]
+        },
+        {
+          "name": "Pull the Plug",
+          "tier": "medium",
+          "does": "The way on is a red wall that only slides open while you stand on a glowing plate in a side room; it stays open 4 s after you step off, so you press, then hurry.",
+          "numbers": "2 plates, each opens one wall for 4 s (the walk needs 2.5 s), plate refills after 4 s, 3 x 7 cells, 56 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              20,
+              60,
+              16,
+              16,
+              "yl"
+            ],
+            [
+              "you",
+              28,
+              68
+            ],
+            [
+              "r",
+              60,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              150,
+              12,
+              4,
+              72,
+              "hz"
+            ],
+            [
+              "r",
+              150,
+              12,
+              4,
+              24,
+              "gh"
+            ],
+            [
+              "a",
+              "M36 68 H100 V24 H170"
+            ],
+            [
+              "t",
+              120,
+              92,
+              "open 4 s"
+            ]
+          ]
+        },
+        {
+          "name": "Climbing Maze",
+          "tier": "medium",
+          "does": "The maze sits on three terraces, each 2 studs higher, joined by short ramps, so the way up is also the way through.",
+          "numbers": "3 terraces of 3 x 3 cells, rise 2 studs each, 2 sliding walls per terrace, 2.8 s beat, 72 studs, climbs 6",
+          "view": "side",
+          "sketch": [
+            [
+              "r",
+              0,
+              80,
+              74,
+              6,
+              "pl"
+            ],
+            [
+              "p",
+              "M74 80 L84 74 L84 86 L74 86 Z",
+              "pl"
+            ],
+            [
+              "r",
+              84,
+              74,
+              66,
+              12,
+              "pl"
+            ],
+            [
+              "p",
+              "M150 74 L160 68 L160 86 L150 86 Z",
+              "pl"
+            ],
+            [
+              "r",
+              160,
+              68,
+              60,
+              18,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              58,
+              5,
+              22,
+              "hz"
+            ],
+            [
+              "r",
+              115,
+              52,
+              5,
+              22,
+              "hz"
+            ],
+            [
+              "r",
+              190,
+              46,
+              5,
+              22,
+              "hz"
+            ],
+            [
+              "a",
+              "M20 70 L210 56"
+            ],
+            [
+              "you",
+              18,
+              80
+            ]
+          ]
+        },
+        {
+          "name": "The Chaser",
+          "tier": "hard",
+          "does": "When you step in, a red wall starts sliding down the maze behind you, so you must pick each turn fast while doors ahead open and shut.",
+          "numbers": "3 x 10 cells, chaser 6 studs/s from the start arch (you walk 16), 4 doors open 1.0 s, 80 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              22,
+              12,
+              4,
+              72,
+              "hz"
+            ],
+            [
+              "a",
+              "M30 48 H52"
+            ],
+            [
+              "r",
+              70,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              130,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              100,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              160,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "you",
+              60,
+              72
+            ],
+            [
+              "t",
+              14,
+              92,
+              "chaser wall"
+            ]
+          ]
+        },
+        {
+          "name": "Crossfire",
+          "tier": "hard",
+          "does": "Walls slide both across and along the course on two beats, so a cell that is open one way is shut the other; you zigzag on the gaps.",
+          "numbers": "3 x 9 cells, 5 cross walls + 4 long walls, two beats 0.9 s apart, open 0.7 s, 72 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              60,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              108,
+              36,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              156,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              66,
+              58,
+              40,
+              4,
+              "hz"
+            ],
+            [
+              "r",
+              114,
+              34,
+              40,
+              4,
+              "hz"
+            ],
+            [
+              "a",
+              "M62 40 V50"
+            ],
+            [
+              "a",
+              "M90 66 H72"
+            ],
+            [
+              "you",
+              30,
+              24
+            ]
+          ]
+        },
+        {
+          "name": "Seed: First Steps",
+          "tier": "easy",
+          "does": "Generator example: a short random maze with no dead ends, every wall on one shared beat.",
+          "numbers": "seed 1104, 3 x 5 cells, 3 sliding walls, open 1.5 s, 40 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              50,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              130,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              50,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              90,
+              60,
+              40,
+              3,
+              "hz"
+            ],
+            [
+              "r",
+              170,
+              36,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M24 24 H90 V72 H150 V48 H200"
+            ]
+          ]
+        },
+        {
+          "name": "Seed: Side Steps",
+          "tier": "easy",
+          "does": "Generator example: a random maze that turns a lot but has only one way to go, shared beat.",
+          "numbers": "seed 2290, 3 x 6 cells, 3 sliding walls, open 1.5 s, 48 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              40,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              100,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              160,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              40,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              100,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              160,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "a",
+              "M24 24 V72 H70 V24 H130 V72 H200"
+            ]
+          ]
+        },
+        {
+          "name": "Seed: Fork",
+          "tier": "medium",
+          "does": "Generator example: one dead end near the start and walls on two beats, so the first choice matters.",
+          "numbers": "seed 3817, 3 x 8 cells, 5 sliding walls on 2 beats, open 1.0 s, 1 dead end, 64 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              38,
+              36,
+              48,
+              3,
+              "dk"
+            ],
+            [
+              "r",
+              86,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              134,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              62,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              110,
+              60,
+              24,
+              3,
+              "hz"
+            ],
+            [
+              "r",
+              158,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "t",
+              40,
+              30,
+              "dead end"
+            ],
+            [
+              "you",
+              22,
+              72
+            ]
+          ]
+        },
+        {
+          "name": "Seed: Own Beats",
+          "tier": "medium",
+          "does": "Generator example: every wall has its own phase, so you read each wall instead of one shared beat.",
+          "numbers": "seed 4472, 3 x 9 cells, 6 sliding walls, own phases, open 1.0 s, 2 dead ends, 72 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              34,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              79,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              124,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              169,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              34,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              79,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              124,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              169,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "you",
+              20,
+              30
+            ]
+          ]
+        },
+        {
+          "name": "Seed: Long Haul",
+          "tier": "hard",
+          "does": "Generator example: the full-length maze with three dead ends and short windows.",
+          "numbers": "seed 5903, 3 x 12 cells, 8 sliding walls, own phases, open 0.7 s, 3 dead ends, 96 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              26,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              58,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              90,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              122,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              154,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              186,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              58,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              122,
+              60,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              154,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "you",
+              16,
+              24
+            ]
+          ]
+        },
+        {
+          "name": "Seed: Hunted",
+          "tier": "hard",
+          "does": "Generator example: a random maze plus the chaser wall, with a solver check that you can always stay ahead of it.",
+          "numbers": "seed 6631, 3 x 10 cells, 6 sliding walls, open 0.9 s, 2 dead ends, chaser 5 studs/s, 80 studs",
+          "view": "top",
+          "sketch": [
+            [
+              "r",
+              10,
+              12,
+              200,
+              72,
+              "pl"
+            ],
+            [
+              "r",
+              20,
+              12,
+              4,
+              72,
+              "hz"
+            ],
+            [
+              "a",
+              "M28 48 H46"
+            ],
+            [
+              "r",
+              66,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              114,
+              12,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              162,
+              36,
+              4,
+              48,
+              "dk"
+            ],
+            [
+              "r",
+              66,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "r",
+              140,
+              60,
+              24,
+              3,
+              "hz"
+            ],
+            [
+              "r",
+              162,
+              12,
+              4,
+              24,
+              "hz"
+            ],
+            [
+              "you",
+              50,
+              72
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -43,10 +43,11 @@ jobs:
               - '.github/workflows/**'
 
   steal-a-slime:
-    name: steal-a-slime (rojo, lune, lint, place, types)
+    name: steal-a-slime (rojo, lint, place, types)
     needs: changes
     if: needs.changes.outputs.slime == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: games/steal-a-slime
@@ -64,8 +65,6 @@ jobs:
         run: wally install
       - name: Rojo build
         run: rojo build -o build.rbxlx
-      - name: Lune tests
-        run: lune run tests
       - name: Cloud-test staging (stage-specs must accept TestRunner)
         run: lune run tools/pipeline/stage-specs "$RUNNER_TEMP/CloudTests"
       - name: Selene
@@ -77,17 +76,18 @@ jobs:
       - name: Typecheck (server + shared fatal)
         run: scripts/typecheck.sh
 
-  # The whole Lune suite with every Config.FEATURES flag forced on / off (scripts/test-flags.luau;
-  # tests that cannot run in a forced mode are listed with a reason in tests/ForcedFlags.luau).
-  steal-a-slime-flags:
-    name: steal-a-slime (lune, all flags ${{ matrix.mode }})
+  # The Lune suite, split over 2 runners x one Lune process per CPU (scripts/test-parallel, TEST_PART;
+  # tests/Shard spreads the specs by the weights in tests/SpecWeights). Same specs as `lune run tests`.
+  steal-a-slime-lune:
+    name: steal-a-slime (lune ${{ matrix.part }}/2)
     needs: changes
     if: needs.changes.outputs.slime == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        mode: [on, off]
+        part: [1, 2]
     defaults:
       run:
         working-directory: games/steal-a-slime
@@ -103,7 +103,42 @@ jobs:
         run: rokit install --no-trust-check
       - name: Wally install
         run: wally install
-      - name: Lune tests, every FEATURES flag ${{ matrix.mode }}
+      - name: Lune tests, part ${{ matrix.part }} of 2
+        env:
+          TEST_PART: ${{ matrix.part }}/2
+        run: lune run scripts/test-parallel
+
+  # The whole Lune suite with every Config.FEATURES flag forced on / off (scripts/test-flags.luau;
+  # tests that cannot run in a forced mode are listed with a reason in tests/ForcedFlags.luau).
+  steal-a-slime-flags:
+    name: steal-a-slime (lune, all flags ${{ matrix.mode }}, ${{ matrix.part }}/2)
+    needs: changes
+    if: needs.changes.outputs.slime == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [on, off]
+        part: [1, 2]
+    defaults:
+      run:
+        working-directory: games/steal-a-slime
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Setup Rokit
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          path: games/steal-a-slime
+          cache: "true"
+          token: ${{ github.token }}
+      - name: Install toolchain
+        run: rokit install --no-trust-check
+      - name: Wally install
+        run: wally install
+      - name: Lune tests, every FEATURES flag ${{ matrix.mode }}, part ${{ matrix.part }} of 2
+        env:
+          TEST_PART: ${{ matrix.part }}/2
         run: lune run scripts/test-flags ${{ matrix.mode }}
 
   speed-escape:
@@ -111,6 +146,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.escape == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: games/speed-escape
@@ -144,8 +180,8 @@ jobs:
   # Until then: every-commit rhr stays on the box (see /guides/roblox-automated-tests.md).
 
   # tools/pr-gate checks that the other game jobs don't already cover: layout, budget and the
-  # runtime budget. `logic` (lune run tests) and `typecheck` are left out: the steal-a-slime job
-  # above runs both, and running the Lune suite here again cost ~3 min on every PR.
+  # runtime budget. `logic` (lune run tests) and `typecheck` are left out: the steal-a-slime-lune and steal-a-slime jobs
+  # above run them, and running the Lune suite here again cost ~3 min on every PR.
   # Runs in parallel with the other game jobs; pr-gate below only collects the results.
   steal-a-slime-gate:
     name: steal-a-slime (layout, budget, runtime budget)
@@ -191,7 +227,7 @@ jobs:
   pr-gate:
     name: pr-gate
     if: always()
-    needs: [changes, steal-a-slime, steal-a-slime-flags, steal-a-slime-gate, speed-escape]
+    needs: [changes, steal-a-slime, steal-a-slime-lune, steal-a-slime-flags, steal-a-slime-gate, speed-escape]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -199,13 +235,14 @@ jobs:
         run: |
           changes="${{ needs.changes.result }}"
           slime="${{ needs.steal-a-slime.result }}"
+          lune="${{ needs.steal-a-slime-lune.result }}"
           flags="${{ needs.steal-a-slime-flags.result }}"
           gate="${{ needs.steal-a-slime-gate.result }}"
           escape="${{ needs.speed-escape.result }}"
-          echo "changes=$changes steal-a-slime=$slime steal-a-slime-flags=$flags steal-a-slime-gate=$gate speed-escape=$escape"
+          echo "changes=$changes steal-a-slime=$slime steal-a-slime-lune=$lune steal-a-slime-flags=$flags steal-a-slime-gate=$gate speed-escape=$escape"
           # changes must succeed; skipped game jobs = paths filter said no; anything else fails
           ok_game() { [ "$1" = "success" ] || [ "$1" = "skipped" ]; }
-          if [ "$changes" = "success" ] && ok_game "$slime" && ok_game "$flags" && ok_game "$gate" && ok_game "$escape"; then
+          if [ "$changes" = "success" ] && ok_game "$slime" && ok_game "$lune" && ok_game "$flags" && ok_game "$gate" && ok_game "$escape"; then
             echo "game jobs OK"
             exit 0
           fi

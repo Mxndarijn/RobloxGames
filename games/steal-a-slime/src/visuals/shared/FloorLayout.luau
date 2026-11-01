@@ -17,8 +17,8 @@
 	walk surface and the floor parts sit at most TRIM_TOP above it, so there is no trip lip. Decor never queries or touches.
 
 	THE height: FLOOR_Y. Everything is placed as FLOOR_Y + a layer offset (LAYER), so if the terrain surface moves after
-	Gojo's B1 fix, change FLOOR_Y and nothing else. The gate ramp tops out at the plot Base floor top (Geometry.plotFloorTop,
-	an absolute height).
+	Gojo's B1 fix, change FLOOR_Y and nothing else. The gate ramp tops out at the plot's door bridge (Geometry.rampTop,
+	an absolute height), so its planks meet the bridge's planks flush.
 
 	Snow v2: every surface says what it is with the SnowKind attribute (SnowCover.KIND_ATTRIBUTE): the grass-class surfaces
 	(FieldBand, FieldSand, lawns) go fully white like the terrain grass did and melt last; the path-class ones (deck, boardwalk,
@@ -52,7 +52,7 @@ export type Geometry = {
 	plazaRadius: number,
 	plotRing: number, -- plot centres
 	plotSize: number,
-	plotFloorTop: number, -- absolute top of every plot's Base floor
+	rampTop: number, -- absolute height each gate ramp tops out at, on the plot's edge (WorldLayout.gateRampTop)
 	plots: number, -- spokes / wedges
 	hall: Hall?, -- the Hall of Fame plaza and its path (WorldLayout.HALL_OF_FAME)
 	obbyPath: Walk?, -- the star walk from the ring path out to the obby portal (WorldLayout.obbyPath)
@@ -332,10 +332,10 @@ function FloorLayout.starWalk(walk: Walk, name: string?, starColor: { number }?,
 end
 
 -- The up-ramp from the boardwalk's end to the plot floor: a tilted plank, solid (it is the one walkable floor piece
--- the terrain does not give). Its low end meets the planks flush; its high end meets the plot Base top flush.
-function FloorLayout.ramp(bearing: number, plotFloorTop: number): Node
+-- the terrain does not give). Its low end meets the planks flush; its high end meets the door bridge flush (rampTop).
+function FloorLayout.ramp(bearing: number, rampTop: number): Node
 	local s0, s1 = FloorLayout.RAMP_START, FloorLayout.RAMP_END
-	local y0, y1 = top(FloorLayout.LAYER.plank), plotFloorTop
+	local y0, y1 = top(FloorLayout.LAYER.plank), rampTop
 	local run, rise = s1 - s0, y1 - y0
 	local length = math.sqrt(run * run + rise * rise)
 	local tilt = math.atan2(rise, run)
@@ -503,7 +503,7 @@ function FloorLayout.build(g: Geometry): { Node }
 	local margin, blocks = FloorLayout.LAWN_MARGIN_DEG, FloorLayout.LAWN_BLOCKS
 	for k = 0, g.plots - 1 do
 		local spoke = step * k
-		local ramp = FloorLayout.ramp(spoke, g.plotFloorTop)
+		local ramp = FloorLayout.ramp(spoke, g.rampTop)
 		ramp.name = `GateRamp{k + 1}`
 		table.insert(paths, ramp)
 		table.insert(paths, FloorLayout.rampLook(ramp, k + 1))

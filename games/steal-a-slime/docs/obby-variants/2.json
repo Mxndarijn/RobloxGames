@@ -1,0 +1,1994 @@
+{
+ "ideas": [
+  {
+   "id": 2,
+   "name": "Melting Floor",
+   "approach": "mixed",
+   "approachWhy": "The fun comes from a few distinct tile behaviours (slow slabs, burnt bridge, flip-over, spreading melt, shrinking puddles, melting ferries, bubbles), so those are hand-made. A plain tile grid with holes is a clean fit for a generator that keeps grids fresh each rotation; 6 example outputs follow the 16 hand-made ones.",
+   "engine": {
+    "have": [
+     "melt motion: fades and drops `delay` s after the local player lands, back after `away` s (MeltingTiles)",
+     "flip motion (solid / see-through on a timer, FlipFloor): reusable for the faint outline of a gone tile",
+     "bubble look (pink goo discs) and shrink motion for Bubble Pop's look",
+     "tile look with 3 tones, step flags and the gap/rise tests (jump about 7.2 high, about 8.7 studs flat at WalkSpeed 16)",
+     "per-section layouts picked by seed in pick(slot), so a generator only fills the layout table"
+    ],
+    "new": [
+     {
+      "what": "Crack look (shared with Collapsing Bridge, idea 24): cracks, drips and darkening over the hold time, a crack sound that speeds up, plus a faint outline while a tile is gone (ObbyFx). Glow Memory's fake tile (10) and Clue Doors' trapdoor (29) reuse the same melt trigger and look",
+      "size": "S"
+     },
+     {
+      "what": "Melt trigger options: melt when you leave (Burnt Bridge), and gone until you go back to the start pad (Quick Drips; same reset as Collapsing Bridge's 'bridge resets for you', idea 24)",
+      "size": "S"
+     },
+     {
+      "what": "Spreading melt: a tile starts its neighbours' melt `spread` s after you land (client only)",
+      "size": "S"
+     },
+     {
+      "what": "Shrink on landing: the existing shrink motion, but started by the melt trigger and shrinking once to nothing instead of on a wave (Shrinking Puddles)",
+      "size": "S"
+     },
+     {
+      "what": "Melt on a moving tile: Goo Rides' ride motion (idea 3) plus melt on one part, using the 'part that carries two motions at once' from Vine Swing (idea 15)",
+      "size": "S"
+     },
+     {
+      "what": "Flip-over motion: tile turns 180 degrees after you land, shows a red hazard face for a while, turns back; the red face uses the shared 'hazard touch = back to the start pad' (idea 1)",
+      "size": "M"
+     },
+     {
+      "what": "Bubble pop: swell and wobble during the hold, pop blip, regrow (look and sound on the melt kind)",
+      "size": "S"
+     },
+     {
+      "what": "Melt Grid generator: holes, tile size, hold time, spreading tiles per seed, with a route check (pure Luau + Lune specs)",
+      "size": "M"
+     }
+    ]
+   },
+   "readability": "Melting tiles crack, drip and turn darker from the moment you land, with a crack sound that speeds up; a gone tile leaves a faint outline until it comes back. Spreading tiles are a darker tone with crack lines running to their neighbours, shrinking puddles melt in from the edges, flip-over tiles show a red rim (their red underside), melting ferries sit on a rail, and bubbles are pink and swell before they pop.",
+   "generator": {
+    "inputs": "seed (from the course slot), tier, grid size (2 or 3 lanes across, 5 to 7 columns along)",
+    "randomises": "which cells are holes, tile size (8 or 10 studs), hold time inside the tier's range, which tiles spread their melt, whether tiles come back, a small rise per column",
+    "guarantees": "It first draws one route from start to end and never puts a hole on it. Every route jump is at most 5 studs flat and 2.5 studs up (under the 7.2 high and 8.7 reach the tests use). With spreading on, route tiles two steps apart are never neighbours, so your own spread never melts a tile still ahead of you. The route is flagged step so the existing gap tests run on it. Under 40 parts. A seed that fails the checks is redrawn.",
+    "difficulty": "Easy: hold 0.9 to 1.0 s, 0 to 3 holes, tiles come back, 10 stud tiles allowed. Medium: hold 0.55 to 0.7 s, about half holes, up to 5 spreading tiles, small climb. Hard: hold 0.35 to 0.45 s, most cells holes, spreading on, tiles gone for good, one side jump of 4 to 5 studs."
+   },
+   "variants": [
+    {
+     "name": "Big Slabs",
+     "tier": "easy",
+     "does": "Three huge slabs that each hold for over a second: you learn that standing still drops you, with lots of room to land.",
+     "numbers": "3 slabs 16 long x 24 wide, hold 1.2 s, 4 stud gaps, back after 3 s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       66,
+       40,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       54,
+       66,
+       46,
+       8,
+       "gh"
+      ],
+      [
+       "r",
+       110,
+       66,
+       46,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       166,
+       66,
+       46,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       126,
+       66
+      ],
+      [
+       "t",
+       60,
+       88,
+       "melted"
+      ],
+      [
+       "a",
+       "M130 58 Q155 42 180 58"
+      ]
+     ]
+    },
+    {
+     "name": "Burnt Bridge",
+     "tier": "easy",
+     "does": "A tile only melts once you step off it, so you can stop and think, but you can never go back.",
+     "numbers": "6 tiles 10 x 10, melt 0.3 s after you leave, gone while you run, 4 stud gaps",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       66,
+       26,
+       8,
+       "gh"
+      ],
+      [
+       "r",
+       38,
+       66,
+       26,
+       8,
+       "gh"
+      ],
+      [
+       "r",
+       72,
+       66,
+       26,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       106,
+       66,
+       26,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       140,
+       66,
+       26,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       174,
+       66,
+       26,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       84,
+       66
+      ],
+      [
+       "a",
+       "M60 56 H30"
+      ],
+      [
+       "t",
+       4,
+       88,
+       "gone behind you"
+      ]
+     ]
+    },
+    {
+     "name": "Slow Drip",
+     "tier": "easy",
+     "does": "Two lanes of tiles zigzag left and right; each holds a second, so you get a calm rhythm of side-to-side hops.",
+     "numbers": "8 tiles 10 x 10 in 2 lanes, hold 1.0 s, back after 3 s, 3 stud gaps",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       14,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       38,
+       58,
+       24,
+       24,
+       "gh"
+      ],
+      [
+       "r",
+       70,
+       14,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       102,
+       58,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       134,
+       14,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       166,
+       58,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "you",
+       82,
+       26
+      ],
+      [
+       "a",
+       "M90 34 L112 64"
+      ],
+      [
+       "a",
+       "M120 66 L144 30"
+      ]
+     ]
+    },
+    {
+     "name": "Open Field",
+     "tier": "easy",
+     "does": "A wide grid of tiles with no holes: any route works, you just keep moving and avoid tiles you already melted.",
+     "numbers": "3 x 5 grid of 8 x 8 tiles, 2 stud gaps, hold 0.9 s, back after 2.5 s",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       10,
+       6,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       10,
+       36,
+       26,
+       26,
+       "gh"
+      ],
+      [
+       "r",
+       10,
+       66,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       46,
+       6,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       46,
+       36,
+       26,
+       26,
+       "gh"
+      ],
+      [
+       "r",
+       46,
+       66,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       82,
+       6,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       82,
+       36,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       82,
+       66,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       118,
+       36,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       154,
+       36,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "you",
+       95,
+       49
+      ],
+      [
+       "a",
+       "M100 52 L128 50"
+      ]
+     ]
+    },
+    {
+     "name": "Bubble Pop",
+     "tier": "easy",
+     "does": "Pink goo bubbles swell and wobble after you land, then pop with a loud blip; a new bubble grows back in the same spot.",
+     "numbers": "5 bubbles 10 wide, pop 1.0 s after landing, regrow in 2.5 s, 3 stud gaps",
+     "view": "side",
+     "sketch": [
+      [
+       "e",
+       22,
+       66,
+       18,
+       7,
+       "pk"
+      ],
+      [
+       "e",
+       64,
+       66,
+       18,
+       7,
+       "pk"
+      ],
+      [
+       "e",
+       106,
+       66,
+       22,
+       9,
+       "pk"
+      ],
+      [
+       "e",
+       150,
+       66,
+       18,
+       7,
+       "pk"
+      ],
+      [
+       "e",
+       194,
+       66,
+       18,
+       7,
+       "pk"
+      ],
+      [
+       "you",
+       106,
+       58
+      ],
+      [
+       "t",
+       86,
+       86,
+       "swelling"
+      ],
+      [
+       "a",
+       "M110 56 Q130 40 150 58"
+      ]
+     ]
+    },
+    {
+     "name": "Stepping Stones",
+     "tier": "medium",
+     "does": "Smaller square stones spaced out across the lane, holding just half a second: no time to aim twice.",
+     "numbers": "7 stones 8 x 8, hold 0.5 s, 4 stud gaps, zigzag 8 studs side to side, back after 2.5 s",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       8,
+       22,
+       22,
+       "pl"
+      ],
+      [
+       "r",
+       40,
+       62,
+       22,
+       22,
+       "pl"
+      ],
+      [
+       "r",
+       74,
+       8,
+       22,
+       22,
+       "gh"
+      ],
+      [
+       "r",
+       108,
+       62,
+       22,
+       22,
+       "pl"
+      ],
+      [
+       "r",
+       142,
+       8,
+       22,
+       22,
+       "pl"
+      ],
+      [
+       "r",
+       176,
+       62,
+       22,
+       22,
+       "pl"
+      ],
+      [
+       "you",
+       119,
+       73
+      ],
+      [
+       "a",
+       "M126 66 L148 30"
+      ]
+     ]
+    },
+    {
+     "name": "Melting Ladder",
+     "tier": "medium",
+     "does": "Lane-wide strips one after another: a fast hop-hop-hop rhythm where every strip drops right after you, so you can never stop.",
+     "numbers": "7 strips 24 wide x 8 long, hold 0.4 s, 3 stud gaps, back after 2 s",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       66,
+       22,
+       6,
+       "gh"
+      ],
+      [
+       "r",
+       34,
+       66,
+       22,
+       6,
+       "gh"
+      ],
+      [
+       "r",
+       64,
+       66,
+       22,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       94,
+       66,
+       22,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       124,
+       66,
+       22,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       154,
+       66,
+       22,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       184,
+       66,
+       22,
+       6,
+       "pl"
+      ],
+      [
+       "you",
+       75,
+       66
+      ],
+      [
+       "a",
+       "M80 60 Q92 48 104 62"
+      ],
+      [
+       "a",
+       "M108 60 Q120 48 134 62"
+      ],
+      [
+       "t",
+       4,
+       88,
+       "no stopping"
+      ]
+     ]
+    },
+    {
+     "name": "Spreading Melt",
+     "tier": "medium",
+     "does": "Landing on a tile also melts the tiles beside it a moment later, so a sideways hop lands you on a tile that is already going.",
+     "numbers": "3 x 5 grid of 8 x 8, hold 0.6 s, neighbours start melting 0.3 s after you land",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       10,
+       6,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       10,
+       36,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       10,
+       66,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       48,
+       6,
+       26,
+       26,
+       "gh"
+      ],
+      [
+       "r",
+       48,
+       36,
+       26,
+       26,
+       "dk"
+      ],
+      [
+       "r",
+       48,
+       66,
+       26,
+       26,
+       "gh"
+      ],
+      [
+       "r",
+       86,
+       6,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       86,
+       36,
+       26,
+       26,
+       "gh"
+      ],
+      [
+       "r",
+       86,
+       66,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       124,
+       6,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "r",
+       124,
+       36,
+       26,
+       26,
+       "pl"
+      ],
+      [
+       "you",
+       61,
+       49
+      ],
+      [
+       "a",
+       "M66 46 L94 20"
+      ],
+      [
+       "t",
+       150,
+       90,
+       "cracks spread"
+      ]
+     ]
+    },
+    {
+     "name": "Shrinking Puddles",
+     "tier": "medium",
+     "does": "Each goo puddle melts in from its edges once you land, so where you land matters: hit the middle and you get the most time.",
+     "numbers": "6 puddles 12 x 12, shrink to nothing over 1.2 s after landing, back after 3 s, 4 stud gaps, zigzag",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       30,
+       34,
+       34,
+       "pl"
+      ],
+      [
+       "r",
+       48,
+       6,
+       34,
+       34,
+       "pl"
+      ],
+      [
+       "r",
+       100,
+       40,
+       14,
+       14,
+       "pl"
+      ],
+      [
+       "r",
+       90,
+       30,
+       34,
+       34,
+       "gh"
+      ],
+      [
+       "r",
+       132,
+       50,
+       34,
+       34,
+       "pl"
+      ],
+      [
+       "r",
+       176,
+       20,
+       34,
+       34,
+       "pl"
+      ],
+      [
+       "you",
+       107,
+       47
+      ],
+      [
+       "a",
+       "M112 52 L144 64"
+      ],
+      [
+       "t",
+       86,
+       90,
+       "melts inward"
+      ]
+     ]
+    },
+    {
+     "name": "Flip-Over",
+     "tier": "medium",
+     "does": "A tile turns over 0.6 s after you land and shows its red goo underside for a while, so you can't land on it again until it flips back.",
+     "numbers": "6 tiles 10 x 10 in 2 lanes, flip 0.6 s after landing, red side up 2 s, 3 stud gaps",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       6,
+       66,
+       28,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       44,
+       66,
+       28,
+       8,
+       "hz"
+      ],
+      [
+       "r",
+       82,
+       66,
+       28,
+       8,
+       "pl"
+      ],
+      [
+       "r",
+       120,
+       60,
+       6,
+       22,
+       "pl"
+      ],
+      [
+       "r",
+       158,
+       66,
+       28,
+       8,
+       "pl"
+      ],
+      [
+       "you",
+       96,
+       66
+      ],
+      [
+       "a",
+       "M110 52 Q124 44 132 58"
+      ],
+      [
+       "t",
+       40,
+       88,
+       "red side up"
+      ]
+     ]
+    },
+    {
+     "name": "Melt Stairs",
+     "tier": "medium",
+     "does": "The tiles climb like stairs, so each jump is also a step up and you lose a little time on every landing.",
+     "numbers": "7 tiles 10 x 10, each 2.5 studs higher, hold 0.6 s, 3 stud gaps, climbs 15 studs",
+     "view": "side",
+     "sketch": [
+      [
+       "r",
+       4,
+       84,
+       24,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       34,
+       76,
+       24,
+       6,
+       "gh"
+      ],
+      [
+       "r",
+       64,
+       68,
+       24,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       94,
+       60,
+       24,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       124,
+       52,
+       24,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       154,
+       44,
+       24,
+       6,
+       "pl"
+      ],
+      [
+       "r",
+       184,
+       36,
+       24,
+       6,
+       "pl"
+      ],
+      [
+       "you",
+       76,
+       68
+      ],
+      [
+       "a",
+       "M80 62 Q92 42 104 54"
+      ]
+     ]
+    },
+    {
+     "name": "Back Again",
+     "tier": "medium",
+     "does": "The route crosses itself, so you pass a tile you already melted and must arrive just as it comes back.",
+     "numbers": "6 tiles 8 x 8, hold 0.6 s, back after 2.0 s, the path makes an X across the lane",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       8,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       48,
+       8,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       88,
+       36,
+       24,
+       24,
+       "gh"
+      ],
+      [
+       "r",
+       128,
+       64,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       168,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       88,
+       64,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "you",
+       60,
+       20
+      ],
+      [
+       "a",
+       "M64 30 L94 44"
+      ],
+      [
+       "a",
+       "M112 52 L132 70"
+      ],
+      [
+       "a",
+       "M130 76 L114 76"
+      ],
+      [
+       "a",
+       "M100 66 L100 58"
+      ],
+      [
+       "t",
+       120,
+       8,
+       "wait for it"
+      ]
+     ]
+    },
+    {
+     "name": "Quick Drips",
+     "tier": "hard",
+     "does": "Small stones that melt almost at once and never come back, spaced wide: one clean run or start over.",
+     "numbers": "8 stones 8 x 8, hold 0.3 s, 5 stud gaps, zigzag, gone for good this run",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       8,
+       20,
+       20,
+       "gh"
+      ],
+      [
+       "r",
+       36,
+       66,
+       20,
+       20,
+       "gh"
+      ],
+      [
+       "r",
+       66,
+       8,
+       20,
+       20,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       66,
+       20,
+       20,
+       "pl"
+      ],
+      [
+       "r",
+       126,
+       8,
+       20,
+       20,
+       "pl"
+      ],
+      [
+       "r",
+       156,
+       66,
+       20,
+       20,
+       "pl"
+      ],
+      [
+       "r",
+       186,
+       8,
+       20,
+       20,
+       "pl"
+      ],
+      [
+       "you",
+       76,
+       18
+      ],
+      [
+       "a",
+       "M82 26 L102 70"
+      ]
+     ]
+    },
+    {
+     "name": "One Way Out",
+     "tier": "hard",
+     "does": "A grid with holes where melting spreads to neighbours: only one route never puts you beside a tile you already melted.",
+     "numbers": "3 x 6 grid of 8 x 8, 9 holes, hold 0.45 s, spread 0.25 s, back after 3 s",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       6,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       6,
+       66,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       40,
+       36,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       74,
+       6,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       74,
+       66,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       108,
+       36,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       142,
+       6,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       176,
+       36,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       176,
+       66,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "you",
+       18,
+       18
+      ],
+      [
+       "a",
+       "M24 24 L48 44"
+      ],
+      [
+       "a",
+       "M60 44 L82 22"
+      ],
+      [
+       "a",
+       "M92 22 L114 44"
+      ]
+     ]
+    },
+    {
+     "name": "Melting Ferries",
+     "tier": "hard",
+     "does": "Tiles slide side to side on rails and melt 0.8 s after you land, so you must jump to the next ferry while both are moving, not wait for it to line up.",
+     "numbers": "5 ferries 10 x 10, slide 12 studs across in 2 s (each out of step), hold 0.8 s, 5 stud gaps, back after 3 s",
+     "view": "top",
+     "sketch": [
+      [
+       "l",
+       30,
+       6,
+       30,
+       90
+      ],
+      [
+       "l",
+       80,
+       6,
+       80,
+       90
+      ],
+      [
+       "l",
+       130,
+       6,
+       130,
+       90
+      ],
+      [
+       "l",
+       180,
+       6,
+       180,
+       90
+      ],
+      [
+       "r",
+       18,
+       14,
+       24,
+       24,
+       "gh"
+      ],
+      [
+       "r",
+       68,
+       56,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       118,
+       24,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       168,
+       60,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "you",
+       80,
+       68
+      ],
+      [
+       "a",
+       "M80 54 V36"
+      ],
+      [
+       "a",
+       "M92 64 L118 40"
+      ],
+      [
+       "t",
+       150,
+       10,
+       "on rails"
+      ]
+     ]
+    },
+    {
+     "name": "Pop Sprint",
+     "tier": "hard",
+     "does": "Bubbles that pop fast, some already gone, plus a few small ones: read two bubbles ahead or you run out of floor.",
+     "numbers": "7 bubbles 8 to 10 wide, pop 0.4 s after landing, regrow in 3 s, 4 to 5 stud gaps",
+     "view": "side",
+     "sketch": [
+      [
+       "e",
+       18,
+       66,
+       14,
+       6,
+       "pk"
+      ],
+      [
+       "e",
+       58,
+       66,
+       16,
+       6,
+       "gh"
+      ],
+      [
+       "e",
+       96,
+       62,
+       14,
+       6,
+       "pk"
+      ],
+      [
+       "e",
+       134,
+       66,
+       16,
+       6,
+       "pk"
+      ],
+      [
+       "e",
+       172,
+       60,
+       12,
+       5,
+       "pk"
+      ],
+      [
+       "e",
+       206,
+       66,
+       12,
+       5,
+       "gh"
+      ],
+      [
+       "you",
+       18,
+       60
+      ],
+      [
+       "a",
+       "M24 58 Q58 36 92 56"
+      ],
+      [
+       "t",
+       40,
+       88,
+       "skip the gone one"
+      ]
+     ]
+    },
+    {
+     "name": "Melt Grid A",
+     "tier": "easy",
+     "does": "Generator output: a full 3 x 5 grid with only a few holes and slow tiles, any route works.",
+     "numbers": "seed 11: 3 x 5 grid, 8 x 8 tiles, 3 holes, hold 1.0 s, back after 2.5 s",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       6,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       6,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       36,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       36,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       66,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       66,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       66,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       126,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "you",
+       18,
+       48
+      ],
+      [
+       "a",
+       "M24 44 L36 20"
+      ],
+      [
+       "a",
+       "M44 18 L66 18"
+      ]
+     ]
+    },
+    {
+     "name": "Melt Grid B",
+     "tier": "easy",
+     "does": "Generator output: two lanes of big 10 stud tiles with a few holes that push you from one lane to the other.",
+     "numbers": "seed 27: 2 x 6 grid, 10 x 10 tiles, 3 holes, hold 0.9 s, back after 2.5 s",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       6,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       36,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       66,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       126,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       156,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       156,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "you",
+       18,
+       18
+      ],
+      [
+       "a",
+       "M24 24 L36 48"
+      ],
+      [
+       "a",
+       "M48 44 L66 20"
+      ]
+     ]
+    },
+    {
+     "name": "Melt Grid C",
+     "tier": "medium",
+     "does": "Generator output: about half the grid is holes and the route bends twice, with each column a little higher.",
+     "numbers": "seed 40: 3 x 6 grid, 8 x 8 tiles, 7 holes, hold 0.6 s, +1.5 studs per column",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       36,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       36,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       66,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       126,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       156,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       156,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       66,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       126,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "you",
+       18,
+       48
+      ],
+      [
+       "a",
+       "M24 44 L36 20"
+      ],
+      [
+       "a",
+       "M48 18 L96 18"
+      ],
+      [
+       "a",
+       "M108 26 L126 76"
+      ]
+     ]
+    },
+    {
+     "name": "Melt Grid D",
+     "tier": "medium",
+     "does": "Generator output: spreading tiles (dark) mixed with plain ones; the safe line runs along the plain tiles.",
+     "numbers": "seed 58: 3 x 6 grid, 4 spreading tiles, 5 holes, hold 0.55 s, back after 2.5 s",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       6,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       6,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       36,
+       36,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       36,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       66,
+       6,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       66,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       36,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       96,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       126,
+       36,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       156,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       156,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "you",
+       18,
+       78
+      ],
+      [
+       "a",
+       "M24 78 L36 78"
+      ],
+      [
+       "a",
+       "M48 78 L96 78"
+      ],
+      [
+       "a",
+       "M108 78 L126 56"
+      ]
+     ]
+    },
+    {
+     "name": "Melt Grid E",
+     "tier": "hard",
+     "does": "Generator output: few tiles, fast melt, nothing comes back, and the one route has a wide side jump.",
+     "numbers": "seed 73: 3 x 7 grid, 8 x 8 tiles, 12 holes, hold 0.35 s, gone for good",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       36,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       66,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       126,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       156,
+       36,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       186,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       186,
+       66,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "r",
+       96,
+       6,
+       24,
+       24,
+       "pl"
+      ],
+      [
+       "you",
+       18,
+       48
+      ],
+      [
+       "a",
+       "M24 44 L36 20"
+      ],
+      [
+       "a",
+       "M48 22 L66 74"
+      ],
+      [
+       "a",
+       "M78 78 L96 78"
+      ],
+      [
+       "a",
+       "M108 74 L126 22"
+      ]
+     ]
+    },
+    {
+     "name": "Melt Grid F",
+     "tier": "hard",
+     "does": "Generator output: spreading melt on every tile and a climb, so the route must zigzag to never sit next to a used tile.",
+     "numbers": "seed 91: 3 x 6 grid, all spreading, 6 holes, hold 0.4 s, +2 studs per column",
+     "view": "top",
+     "sketch": [
+      [
+       "r",
+       6,
+       6,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       6,
+       66,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       36,
+       36,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       66,
+       6,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       66,
+       66,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       96,
+       36,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       126,
+       6,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       126,
+       66,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       156,
+       36,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       36,
+       6,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       96,
+       66,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "r",
+       156,
+       6,
+       24,
+       24,
+       "dk"
+      ],
+      [
+       "you",
+       18,
+       18
+      ],
+      [
+       "a",
+       "M24 24 L36 44"
+      ],
+      [
+       "a",
+       "M48 44 L66 24"
+      ],
+      [
+       "a",
+       "M78 24 L96 44"
+      ],
+      [
+       "a",
+       "M108 44 L126 24"
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

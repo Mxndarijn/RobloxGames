@@ -154,6 +154,7 @@ Game: steal-a-slime unless noted. "px" = pixel tag, "SG" = SurfaceGui, "fit" = m
 | Ritual rules sign, front and back | `server/RitualView` | SG 6×1.8, 50 ppS, both faces | 80 | no |
 | Obby portal signpost beside the Goo Ring (title, this player's boost status, next course), front and back | `server/ObbyView`, text from `ui/ObbyHud` | SG 8×3.6, 50 ppS, both faces | 200 | no |
 | Obby "BACK TO BASE" floor label (on the start pad, in front of the Goo Ring home) | `visuals/shared/ObbyParts` (`HOME`) | SG 6.4×1.5 on Top (part 1.5×6.4 turned 90°), 50 ppS | 60 | no |
+| Obby section sign board (a part's `sign:<text>` marker, over its near end, facing the runner) | `visuals/shared/ObbyParts` (`SIGN`) | SG 8×1.8 on Front, 50 ppS, 1.3-st line (reads ~26 st on a phone) | 60 | no |
 | BONK / CHOMP popup | `ui/PvpEffects` | px 140×48 | 120 | no |
 | Fun FX text | `ui/PvpFunFx` | px 220×60 × scale | 150 | yes |
 | Slap pop | `ui/StealAlertFx` | px 120×50 | 120 | yes |
