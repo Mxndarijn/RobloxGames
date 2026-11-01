@@ -202,6 +202,7 @@ return table.freeze({
 	SHOP_EVENT = "ShopEvent", -- RemoteEvent, ServerToClient (CONTRACT.md §27.4)
 	CLAW_PIECE_ATTRIBUTE = "ClawPiece", -- "Hand" | "Arm" on the claw shop parts the client moves in a claw show
 	CLAW_SHOW = "ClawShow", -- RemoteEvent, ServerToClient: a claw show at the Exclusive Shop (contract/exclusive-shop.md §7.2)
+	IDLE_REJOIN = "IdleRejoin", -- RemoteEvent, ClientToServer: the client's idle seconds (Lib.idle.IdleRejoinServer)
 	OPEN_SHOP_ATTRIBUTE = "OpenShop", -- Player: shopId the server has open for them, nil = closed
 	MENU_OPEN_ATTRIBUTE = "MenuOpen", -- PlayerGui.SlimeUI (client only): a menu or popup is open; edge arrows hide
 	UI_GUI_NAME = "SlimeUI", -- the client's main ScreenGui in PlayerGui

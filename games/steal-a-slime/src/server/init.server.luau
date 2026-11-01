@@ -42,6 +42,7 @@ local EventBoardView = require(script.EventBoardView)
 local FountainColliders = require(script.FountainColliders)
 local Friends = require(script.Friends)
 local GroundTerrainView = require(script.GroundTerrainView)
+local IdleRejoinServer = require(ReplicatedStorage.Lib.idle.IdleRejoinServer)
 local LeaderboardView = require(script.LeaderboardView)
 local MeshSwap = require(script.MeshSwap)
 local ObbyService = require(script.ObbyService)
@@ -122,6 +123,17 @@ local pvpEvent = Remotes.get(Constants.PVP_EVENT) :: RemoteEvent
 local shopEventRemote = Remotes.get(Constants.SHOP_EVENT) :: RemoteEvent
 local clawShowRemote = Remotes.get(Constants.CLAW_SHOW) :: RemoteEvent
 local leaderboardEvent = Remotes.get(Constants.LEADERBOARD) :: RemoteEvent
+
+-- Idle players are teleported back in before Roblox's 20-minute idle kick (TeleportService does not work in Studio).
+IdleRejoinServer.start({
+	remote = Remotes.get(Constants.IDLE_REJOIN) :: RemoteEvent,
+	players = Players,
+	teleportService = game:GetService("TeleportService"),
+	placeId = game.PlaceId,
+	jobId = game.JobId,
+	options = { rejoinAfter = Config.IDLE_REJOIN_AFTER },
+	dryRun = game:GetService("RunService"):IsStudio(),
+})
 
 ---------------------------------------------------------------------------
 -- World, saves, ctx
