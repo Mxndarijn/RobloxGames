@@ -59,6 +59,7 @@ local LighthouseMeshes = if script
 	then require(script.Parent.BaseShapeData.LighthouseMeshes)
 	else require("./BaseShapeData/LighthouseMeshes")
 local JarMeshes = if script then require(script.Parent.JarMeshes) else require("./JarMeshes")
+local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
 type Vec = { number }
@@ -71,6 +72,8 @@ export type Guard = {
 	wall: number,
 	square: boolean?, -- true: radii are half-widths of a square (max(|x|, |z|)), not radii
 	extra: { { x: number, z: number, r: number } }?, -- more round rooms inside on every floor (the pagoda's turret)
+	-- the roof's outer surface over plot-local (x, z) while floor `top` is the top one, nil = no roof there (JarInside)
+	ceiling: ((top: number, x: number, z: number) -> number?)?,
 }
 
 export type Shape = {
@@ -118,11 +121,30 @@ end
 
 -- ---------------------------------------------------------------- the goo jar tower
 
+-- The jar's roof over (x, z) while jar `top` is the top one: its dome glass (WorldLayout.topDomeProfile), the straight
+-- glass's top outside the dome's foot and the neck's height inside it (the cork and mascot stand above that).
+local function jarCeiling(top: number, x: number, z: number): number?
+	local profile = WorldLayout.topDomeProfile(math.clamp(top, 1, #WorldLayout.JAR_RADII))
+	local r = math.sqrt(x * x + z * z)
+	local base = WorldLayout.floorTop(top)
+	for k = 1, #profile - 1 do
+		local a, b = profile[k], profile[k + 1] -- radius shrinks and height grows from a to b
+		if r >= b[1] then
+			if r >= a[1] then
+				return base + a[2]
+			end
+			return base + a[2] + (b[2] - a[2]) * (a[1] - r) / (a[1] - b[1])
+		end
+	end
+	return base + profile[#profile][2]
+end
+
 local jarGuard: Guard = table.freeze({
 	radii = WorldLayout.JAR_RADII,
 	floorTop = WorldLayout.PLOT_FLOOR_TOP,
 	floorHeight = WorldLayout.FLOOR_HEIGHT,
 	wall = WorldLayout.JAR_WALL,
+	ceiling = jarCeiling,
 })
 
 local jar: Shape = {
@@ -339,6 +361,97 @@ type Options = {
 	jarFoot: boolean?,
 }
 
+-- Roof sampling for the generated bases: a polar grid (ROOF_GRID.angle degrees by ROOF_GRID.step studs) of the
+-- highest roof collider over each spot, built once per top floor on first use. Only the top floor's "top" colliders
+-- that rise at least ROOF_GRID.above over its floor count (a drop tube guard inside is no roof).
+local ROOF_GRID = table.freeze({ angle = 10, step = 1, above = 5 })
+
+-- Height where a straight-down ray at plot-local (x, z) first hits box part `p` (plot-local), or nil.
+local function hitFromAbove(p: any, m: { { number } }, x: number, z: number): number?
+	local high = 1000
+	local function toLocal(v: Vec): Vec -- the transpose of rotation m
+		return {
+			m[1][1] * v[1] + m[2][1] * v[2] + m[3][1] * v[3],
+			m[1][2] * v[1] + m[2][2] * v[2] + m[3][2] * v[3],
+			m[1][3] * v[1] + m[2][3] * v[2] + m[3][3] * v[3],
+		}
+	end
+	local o = toLocal({ x - p.pos[1], high - p.pos[2], z - p.pos[3] })
+	local d = toLocal({ 0, -1, 0 })
+	local enter, leave = -math.huge, math.huge
+	for k = 1, 3 do
+		local h = p.size[k] / 2
+		if math.abs(d[k]) < 1e-9 then
+			if math.abs(o[k]) > h then
+				return nil
+			end
+		else
+			local t1, t2 = (-h - o[k]) / d[k], (h - o[k]) / d[k]
+			enter = math.max(enter, math.min(t1, t2))
+			leave = math.min(leave, math.max(t1, t2))
+		end
+	end
+	return if enter <= leave then high - enter else nil
+end
+
+local function dataCeiling(data: any, reach: number): (top: number, x: number, z: number) -> number?
+	local angles = math.floor(360 / ROOF_GRID.angle)
+	local rings = math.ceil(reach / ROOF_GRID.step)
+	local grids: { [number]: { [number]: number } } = {}
+	local function grid(top: number): { [number]: number }
+		local cached = grids[top]
+		if cached then
+			return cached
+		end
+		local g: { [number]: number } = {}
+		local floor = WorldLayout.floorTop(top)
+		local roofs = {}
+		for _, p in data.parts do
+			if p.floor == top and p.show == "top" and p.collide then
+				local spread = math.sqrt(p.size[1] ^ 2 + p.size[2] ^ 2 + p.size[3] ^ 2) / 2
+				table.insert(roofs, { p = p, m = LayoutMath.orientation(p.rot), spread = spread })
+			end
+		end
+		for a = 0, angles - 1 do
+			local t = math.rad(a * ROOF_GRID.angle)
+			for k = 0, rings do
+				local x, z = k * ROOF_GRID.step * math.cos(t), k * ROOF_GRID.step * math.sin(t)
+				local best: number? = nil
+				for _, roof in roofs do
+					local p = roof.p
+					if math.abs(x - p.pos[1]) <= roof.spread and math.abs(z - p.pos[3]) <= roof.spread then
+						local y = hitFromAbove(p, roof.m, x, z)
+						if y and y >= floor + ROOF_GRID.above and (best == nil or y > best) then
+							best = y
+						end
+					end
+				end
+				if best then
+					g[a * (rings + 1) + k] = best
+				end
+			end
+		end
+		grids[top] = g
+		return g
+	end
+	return function(top: number, x: number, z: number): number?
+		local g = grid(top)
+		local r = math.sqrt(x * x + z * z) / ROOF_GRID.step
+		local a = (math.deg(math.atan2(z, x)) % 360) / ROOF_GRID.angle
+		-- the lowest of the four grid spots round (x, z): a spot just past a roof's edge has none
+		local low: number? = nil
+		for _, ai in { math.floor(a) % angles, math.ceil(a) % angles } do
+			for _, k in { math.floor(r), math.ceil(r) } do
+				local y = if k <= rings then g[ai * (rings + 1) + k] else nil
+				if y and (low == nil or y < low) then
+					low = y
+				end
+			end
+		end
+		return low
+	end
+end
+
 local function fromData(data: any, opts: Options): Shape
 	local looks, standIns, mascot = opts.looks, opts.standIns, opts.mascot
 	local pads: { [number]: any } = {}
@@ -360,6 +473,7 @@ local function fromData(data: any, opts: Options): Shape
 		wall = 1,
 		square = box,
 		extra = if #extra > 0 then table.freeze(extra) else nil,
+		ceiling = dataCeiling(data, (if box then half * math.sqrt(2) else math.max(table.unpack(radii))) + 4),
 	})
 
 	-- floor f's parts: "floor" = what stands on the floor (all of it, or without the top-only ones when they go in
