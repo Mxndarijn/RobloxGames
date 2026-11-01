@@ -266,7 +266,7 @@ local function slimeModel(): any
 end
 
 describe("SlimeMesh species kits", function()
-	it("wears a kit with an offset at size-1 scale, Color white, and removes the procedural face", function()
+	it("wears a kit with an offset at size-1 scale, Color the shade grey, and removes the procedural face", function()
 		local kit = "slime_gummy"
 		local entry = MeshAssets.get(kit) :: any
 		assert(entry and entry.offset and entry.size, "species kit entry with offset + size")
@@ -296,7 +296,8 @@ describe("SlimeMesh species kits", function()
 		expect(built).toBe(model)
 		local worn = model:FindFirstChild(SlimeMesh.MESH_NAME)
 		assert(worn, "species mesh")
-		expect(worn.Color == roblox.Color3.new(1, 1, 1)).toBe(true)
+		local grey = Config.SLIME_MESH_SHADE
+		expect(worn.Color == roblox.Color3.fromRGB(grey, grey, grey)).toBe(true)
 		local scale = 6 / Config.SLIME_BASE_DIAMETER
 		expect(worn.Size.X).toBeCloseTo(entry.size[1] * scale, 1e-3)
 		expect(worn.Size.Y).toBeCloseTo(entry.size[2] * scale, 1e-3)

@@ -106,3 +106,61 @@ describe("every base: the glass is not enough, the inside rule is", function()
 		end)
 	end
 end)
+
+-- A dome starts below the next storey's height: a player standing on it used to count as inside the base, and a
+-- locked base reported them as an intruder again on every step (and kicked them).
+describe("every base: standing on the roof is not being inside", function()
+	it("jar: a player on the dome is outside, one jumping under it is inside", function()
+		local jar = BaseShapes.get("jar").guard
+		for top = 1, FLOORS do
+			local profile = WorldLayout.topDomeProfile(top)
+			local floor = WorldLayout.floorTop(top)
+			for k = 1, #profile - 1 do
+				local a, b = profile[k], profile[k + 1]
+				local r, h = (a[1] + b[1]) / 2, (a[2] + b[2]) / 2 -- the middle of dome row k
+				for _, was in { false, true } do
+					expect(JarInside.inside(0, floor + h + CHARACTER, r, jar, top, was)).toBe(false)
+					expect(JarInside.inside(r * 0.7, floor + CHARACTER + 7.5, 0, jar, top, was)).toBe(true)
+				end
+			end
+		end
+	end)
+	-- the generated bases' roof pieces, read from their data (not from the guard's own roof sampling)
+	local DATA = {
+		factory = require("../src/visuals/shared/BaseShapeData/Factory"),
+		pagoda = require("../src/visuals/shared/BaseShapeData/Pagoda"),
+		carousel = require("../src/visuals/shared/BaseShapeData/Carousel"),
+		rocket = require("../src/visuals/shared/BaseShapeData/Rocket"),
+		treehouse = require("../src/visuals/shared/BaseShapeData/Treehouse"),
+		lighthouse = require("../src/visuals/shared/BaseShapeData/Lighthouse"),
+		snowglobe = require("../src/visuals/shared/BaseShapeData/Snowglobe"),
+	} :: { [string]: any }
+	for _, base in Config.PLOT_BASES do
+		local id = base.id
+		if id ~= "jar" then
+			it(`{id}: a player standing on any roof piece is outside`, function()
+				local data = DATA[id]
+				expect(data ~= nil).toBe(true)
+				local guard = BaseShapes.get(id).guard
+				local tested = 0
+				for top = 1, math.min(FLOORS, #guard.radii) do
+					local floor = WorldLayout.floorTop(top)
+					expect(JarInside.inside(0, floor + CHARACTER, 0, guard, top, false)).toBe(true)
+					for _, p in data.parts do
+						local roof = p.floor == top
+							and p.show == "top"
+							and p.collide
+							and (p.role == "roof" or p.role == "dome")
+						if roof then
+							-- the middle of a thin roof piece, a standing root above it
+							local x, y, z = p.pos[1], p.pos[2] + p.size[2] / 2 + CHARACTER, p.pos[3]
+							tested += 1
+							expect(JarInside.inside(x, y, z, guard, top, true)).toBe(false)
+						end
+					end
+				end
+				expect(tested > 0).toBe(true)
+			end)
+		end
+	end
+end)

@@ -19,6 +19,9 @@ export type Jar = {
 	wall: number,
 	square: boolean?,
 	extra: { { x: number, z: number, r: number } }?, -- more round rooms inside on every floor (a stair turret)
+	-- Plot-local height of the roof's outer surface over (x, z) while floor `top` is the top built floor (nil = no
+	-- roof there). A dome starts below the next storey's height, so without it a player on the roof counts as inside.
+	ceiling: ((top: number, x: number, z: number) -> number?)?,
 }
 
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
@@ -27,6 +30,9 @@ local JarInside = {}
 
 JarInside.INSIDE_MARGIN = 1.5 -- studs in from the glass before a character counts as inside
 JarInside.OUTSIDE_MARGIN = 2.5 -- studs out past the glass before a character inside counts as out again
+-- A root this far above the roof's outer surface is standing on the roof (a standing root is about 3 studs up; one
+-- inside stays about 3 studs under the glass, its head in between).
+JarInside.ROOF_MARGIN = 0.5
 
 -- Floors standing on a plot whose owner has `padsUnlocked` pads (a free plot counts as one).
 function JarInside.builtFloors(padsUnlocked: number): number
@@ -42,6 +48,7 @@ end
 --[[
 	True when plot-local (x, y, z) is inside one of the `floors` built floors of `jar`. `wasInside` (last tick) keeps a
 	character inside until it is clearly past the glass, so standing against the stopper does not flicker in and out.
+	On the top floor a point above the roof (`ceiling`) is outside: standing on the roof is not being in the base.
 ]]
 function JarInside.inside(x: number, y: number, z: number, jar: Jar, floors: number, wasInside: boolean): boolean
 	local built = math.min(floors, #jar.radii)
@@ -54,6 +61,12 @@ function JarInside.inside(x: number, y: number, z: number, jar: Jar, floors: num
 		return false
 	end
 	local f = JarInside.floorAt(y, jar, built)
+	if f == built and jar.ceiling then
+		local roof = jar.ceiling(built, x, z)
+		if roof and y > roof + JarInside.ROOF_MARGIN + pad then
+			return false
+		end
+	end
 	local r = if jar.square then math.max(math.abs(x), math.abs(z)) else math.sqrt(x * x + z * z)
 	local function within(radius: number, at: number): boolean
 		local limit = if wasInside
