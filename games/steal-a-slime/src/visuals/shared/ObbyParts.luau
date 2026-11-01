@@ -225,8 +225,9 @@ local FX = table.freeze({
 -- front of it (a SurfaceGui on the pad's top: a 1.1-stud line reads from the start pad on a phone).
 local HOME = table.freeze({
 	scale = 0.72, -- of the yard ring: about 9 studs tall, a 6-stud opening a character walks through
-	labelSize = Vector3.new(6.4, 0.05, 1.5), -- studs, lying on the start pad
-	labelInset = 2.1, -- studs from the start pad's back edge to the label's centre
+	labelSize = Vector3.new(1.5, 0.05, 6.4), -- studs, lying on the start pad (a Top canvas is Z wide, X tall)
+	labelInset = 4.6, -- studs from the ring's middle to the label's centre: clear of the ring's puddle
+	labelTurn = 90, -- degrees about Y
 	maxDistance = 60,
 	text = "BACK TO BASE",
 })
@@ -760,6 +761,9 @@ ObbyParts.GOO = table.freeze({
 	centre = 5.914, -- the ring's centre above its foot (the kit model's CZ)
 	swirlBack = 0.3, -- the swirl stands this far behind the ring's middle, so the drips hang in front of it
 	spin = 1.2, -- radians a second the swirl turns (visuals/client/ObbyFx)
+	-- The ring, swirl and sign kit models were built facing kit +Y, so after the import yaw they face the slot's +Z:
+	-- their slots are turned this much so the eyes and the sign's face look along the slot's front (-Z).
+	faceTurn = CFrame.Angles(0, math.pi, 0),
 	glow = Color3.fromRGB(170, 120, 255),
 	sparkle = { Color3.fromRGB(255, 200, 245), Color3.fromRGB(190, 160, 255) },
 })
@@ -784,9 +788,9 @@ end
 function ObbyParts.gooRing(ground: CFrame, scale: number, parent: Instance, prefix: string): Part
 	local G = ObbyParts.GOO
 	local size = G.ringSize * scale
-	meshSlot(prefix .. "GooRing", G.ring, size, ground * CFrame.new(0, size.Y / 2, 0), parent)
+	meshSlot(prefix .. "GooRing", G.ring, size, ground * CFrame.new(0, size.Y / 2, 0) * G.faceTurn, parent)
 	local centre = ground * CFrame.new(0, G.centre * scale, G.swirlBack * scale) -- +Z: away from the way it faces
-	local swirl = meshSlot(prefix .. "GooSwirl", G.swirl, G.swirlSize * scale, centre, parent)
+	local swirl = meshSlot(prefix .. "GooSwirl", G.swirl, G.swirlSize * scale, centre * G.faceTurn, parent)
 	swirl:SetAttribute(Constants.GOO_SPIN, G.spin)
 	swirl:SetAttribute(Constants.GOO_PIVOT, centre)
 	local light = Instance.new("PointLight")
@@ -828,8 +832,10 @@ local function buildHome(frameCf: CFrame, parent: Instance)
 	label.Name = "HomeLabel"
 	label.Size = HOME.labelSize
 	label.Transparency = 1
-	-- lying on the pad's top, its front (-Z) towards the ring so the text reads from the start pad
-	label.CFrame = ground * CFrame.new(0, HOME.labelSize.Y / 2 + 0.01, -HOME.labelInset)
+	-- lying on the pad's top, turned so the text runs across the course and reads from the start pad
+	label.CFrame = ground
+		* CFrame.new(0, HOME.labelSize.Y / 2 + 0.01, -HOME.labelInset)
+		* CFrame.Angles(0, math.rad(HOME.labelTurn), 0)
 	decor(label)
 	label.Parent = parent
 	local gui = Instance.new("SurfaceGui")
