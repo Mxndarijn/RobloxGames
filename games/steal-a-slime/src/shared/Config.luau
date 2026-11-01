@@ -256,25 +256,26 @@ local RARITIES: { Rarity } = {
 
 -- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player to own these SlimeRoster
 -- species (data.slimes, i.e. on a pad; a repeated id needs that many). Every level has its own list, and
--- the rebirth uses them up: those slimes are gone, even the favourite (Progression.rebirth). Each list asks
--- for the rarity players farm at that level; a family species only shows up once that family is open
--- (FountainTiers), merge hybrids start at rebirth 12, and boss and event slimes are never asked for (a boss
--- win gives no slime).
+-- the rebirth uses them up: of each species it takes the one that earns least, the favourite only as the
+-- last one left (Progression.payment). Each list asks for the rarity players farm at that level; a family
+-- species only shows up once that family is open (FountainTiers), merge hybrids start at rebirth 5 (only
+-- once the player can catch and merge the recipe's inputs), and boss and event slimes are never asked for
+-- (a boss win gives no slime).
 local REBIRTH_SLIMES: { { string } } = {
 	{ "bumble" }, -- 1
 	{ "moo" },
 	{ "blaze" },
 	{ "octo" },
-	{ "king" }, -- 5
+	{ "king", "moo_shroom" }, -- 5
 	{ "lop", "octo" },
 	{ "chomp", "blaze" },
-	{ "frostbite" },
+	{ "frostbite", "sushi" },
 	{ "king", "zap" },
-	{ "ninja" }, -- 10
+	{ "ninja", "catfish" }, -- 10
 	{ "cosmo" },
 	{ "steam" },
 	{ "imp", "drako" },
-	{ "robo" },
+	{ "robo", "snow_bunny" },
 	{ "seraph" }, -- 15
 	{ "kraken" },
 	{ "dragon_king" },
