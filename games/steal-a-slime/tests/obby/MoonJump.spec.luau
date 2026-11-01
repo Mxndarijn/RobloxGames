@@ -11,6 +11,7 @@ local describe, it, expect = T.describe, T.it, T.expect
 local Kit = require("../../src/shared/ObbySections/Kit")
 local MoonJump = require("../../src/shared/ObbySections/MoonJump")
 local ObbyCheck = require("../ObbyCheck")
+local ObbyZone = require("../../src/visuals/shared/ObbyZone")
 
 type Part = Kit.Part
 
@@ -44,15 +45,20 @@ local function box(p: Part): (number, number, number, number, number, number)
 	return Kit.bounds(p)
 end
 
--- The moon gravity over a step's middle (1 outside every bubble).
+-- Whether a body with its feet at (x, feet, z) (feet to head) is in moon zone `p`'s bubble: the dome ObbyParts draws,
+-- the ellipsoid in its box, grown `pad` sideways (ObbyMoves: ZONE_PAD to come in, ZONE_PAD + ZONE_HOLD to stay).
+local function inBubble(p: Part, x: number, feet: number, z: number, pad: number): boolean
+	local lx, ly, lz = x - p.pos[1], feet - p.pos[2], z - p.pos[3]
+	local rx, ry, rz = p.size[1] / 2 + pad, p.size[2] / 2, p.size[3] / 2 + pad
+	return ObbyZone.lineInEllipsoid(lx, ly, lz, lx, ly + Kit.HEAD, lz, rx, ry, rz)
+end
+
+-- The moon gravity for a body standing on a step's middle (1 outside every bubble).
 local function gravityOver(section: Kit.Section, s: Part): number
 	local top = s.pos[2] + s.size[2] / 2
 	for _, p in section.parts do
-		if p.zone and p.zone.kind == "moon" then
-			local x0, x1, y0, y1, z0, z1 = box(p)
-			if s.pos[1] >= x0 and s.pos[1] <= x1 and s.pos[3] >= z0 and s.pos[3] <= z1 and top >= y0 and top <= y1 then
-				return p.zone.gravity or 1
-			end
+		if p.zone and p.zone.kind == "moon" and inBubble(p, s.pos[1], top, s.pos[3], 0) then
+			return p.zone.gravity or 1
 		end
 	end
 	return 1
@@ -128,16 +134,20 @@ local function fly(
 	local tx0, tx1, _, ty1 = box(target)
 	local dt = 1 / 240
 	local x, feet, vy, t = x0, top, Kit.JUMP_SPEED, 0
+	-- the bubble the body is in, kept like ObbyMoves keeps it (in by ZONE_PAD, stays in by ZONE_PAD + ZONE_HOLD)
+	local inside: Part? = nil
 	while t < 8 do
-		local g = 1
-		for _, p in section.parts do
-			if p.zone and p.zone.kind == "moon" then
-				local zx0, zx1, zy0, zy1 = box(p)
-				if x >= zx0 and x <= zx1 and feet + 1 >= zy0 and feet + 1 <= zy1 then
-					g = p.zone.gravity or 1
+		local now = inside
+		if not (now and inBubble(now, x, feet, z, 1.0)) then
+			inside = nil
+			for _, p in section.parts do
+				if p.zone and p.zone.kind == "moon" and inBubble(p, x, feet, z, 0.5) then
+					inside = p
+					break
 				end
 			end
 		end
+		local g = if inside then (inside :: Part).zone.gravity or 1 else 1
 		t += dt
 		x += speed * dt
 		vy -= Kit.GRAVITY * g * dt

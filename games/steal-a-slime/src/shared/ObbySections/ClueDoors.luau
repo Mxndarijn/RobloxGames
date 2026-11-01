@@ -18,7 +18,13 @@
 	  slime   same slime (silhouette + colour)  shadow  the board shows a dark outline, the doors full colour slimes
 	  count   as many dots                    cross   the board crosses out every door but one
 	  next    a row like A B A B ? : the door that fills the gap
-	  mix     board A a colour splash, board B a grey shape: the door with both (the others share one half each)
+	  mix     a colour splash and a grey shape: the door with both (the others share one half each)
+
+	Where the clue is (`clueBoard`): one framed board centred over the door wall, facing the runner, in every room, so
+	you never hunt for it: head-on as you walk up, overhead at the doors, sized to read from 26 studs on a phone. Only
+	three rooms put it elsewhere on purpose, still centred in the lane: Floor Clue (painted on the pad you land on),
+	Remember It (over the first hole, none at the doors) and Two Rooms' second room (one board at the end of each
+	first-room corridor; only the right corridor's tells the truth).
 
 	The room (`room`): a 9-stud jelly door wall with 6-wide openings (3 doors, corridors 8 wide) or 8-wide ones (2 doors,
 	corridors 12 wide), a walk-through `pad` curtain in each opening (ghost, opaque) with the symbol on its face, 9-stud
@@ -670,13 +676,59 @@ local function exit(parts: { Part }, x: number, top: number): number
 	return x0 + EXIT_LONG
 end
 
--- Board planes: over the door wall at D (bottom `lift` over the floor top), or floating `back` studs before it.
+-- Board planes: over the door wall at D (bottom `lift` over the floor top), or floating at x.
 local function overWall(D: number, top: number, h: number, z: number?, lift: number?): Plane
 	return { x = D - 0.15, y = top + (lift or WALL_H + 0.4) + h / 2, z = z or 0, facing = "x" }
 end
 
 local function floating(x: number, top: number, h: number, z: number?, lift: number?): Plane
 	return { x = x, y = top + (lift or 7.5) + h / 2, z = z or 0, facing = "x" }
+end
+
+-- Clue board symbol size per clue kind (studs), so a clue reads on a phone: at 26 studs a stud is about 10.7 px and
+-- a main shape needs 14 px (1.3 studs; a dot is 0.3 of the size, so dots need 4.4). A row of six (`next`) at 2.8
+-- still fits the 24-stud door wall.
+local BOARD_S: { [string]: number } = { next = 2.8, count = 4.4, cross = 3.4 }
+local BOARD_S_DEFAULT = 3.6
+local RAISED = 12.6 -- a board's bottom over the floor when a goo bar sweeps in front of it: over a jumping head
+
+type ClueBoardOpts = {
+	s: number?, -- at least this symbol size
+	w: number?,
+	h: number?, -- at least this tall
+	look: string?,
+	blink: { beat: number, on: number }?,
+	lift: number?, -- the board's bottom over the floor top (default just over the door wall)
+}
+
+-- Every symbol of a clue on one row: a split clue (Mix: a colour and a shape) shares the one board.
+local function clueRow(clue: Clue): { Sym }
+	local row = {}
+	for _, syms in clue.boards do
+		for _, sym in syms do
+			table.insert(row, sym)
+		end
+	end
+	return row
+end
+
+-- The board's symbol size and height for a clue.
+local function clueSize(clue: Clue, o: ClueBoardOpts): (number, number)
+	local s = math.max(o.s or 0, BOARD_S[clue.kind] or BOARD_S_DEFAULT)
+	return s, math.max(o.h or 5, math.ceil(1.5 * s))
+end
+
+--[[
+	The clue board: ONE framed board centred over the door wall at D (z = 0, facing the runner), the same place in
+	every room. You see it head-on as you walk up to the doors and overhead while you stand in front of them, and its
+	bottom sits over the wall top, so it never covers a doorway or a door's approach (it is ghost decor). Returns its
+	height.
+]]
+local function clueBoard(parts: { Part }, D: number, top: number, clue: Clue, o: ClueBoardOpts): number
+	local s, h = clueSize(clue, o)
+	local pl = overWall(D, top, h, 0, o.lift)
+	board(parts, pl, clueRow(clue), { s = s, w = o.w, h = h, look = o.look, blink = o.blink })
+	return h
 end
 
 -- A hop: a (moving) 1-thick floor `long` x `wide`; `look` "beam" makes it a narrow beam.
@@ -730,9 +782,10 @@ export type Std = {
 	top: number, -- door floor top (and the exit)
 	floorLong: number, -- door floor length
 	clue: Clue,
-	where: string, -- "wall" | "raised" | "back" | "entry" | "none"
-	back: number?, -- "back": studs before the door wall
-	s: number?, -- board symbol size
+	-- "wall": the centred clue board over the doors; "raised": the same, higher (a goo bar sweeps in front);
+	-- "entry": over the first hole, none at the doors (keep it in mind); "none"
+	where: string,
+	s: number?, -- at least this board symbol size
 	w: number?,
 	h: number?,
 	look: string?,
@@ -768,29 +821,28 @@ local function standard(o: Std): (Kit.Section, { Room })
 	local r = room(parts, D, o.top, o.clue, { gates = o.gates, lintel = o.lintel })
 	local length = exit(parts, r.x1, o.top)
 
-	local s, h = o.s or 3, o.h or 5
-	local boards = o.clue.boards
-	if o.where ~= "none" then
-		for k, syms in boards do
-			local z = if #boards == 2 then (if k == 1 then -6 else 6) else 0
-			local pl: Plane
-			if o.where == "wall" then
-				pl = overWall(D, o.top, h, z)
-			elseif o.where == "raised" then
-				pl = overWall(D, o.top, h, z, 12.6)
-			elseif o.where == "back" then
-				pl = floating(D - (o.back or 14), o.top, h, z)
-			else -- "entry": floating over the hole after the entry pad
-				pl = floating(o.entry + 2, 0, h, z, 5.5)
-			end
-			board(parts, pl, syms, { s = s, w = o.w, h = h, look = o.look, blink = o.blink })
-		end
+	local bo: ClueBoardOpts = { s = o.s, w = o.w, h = o.h, look = o.look, blink = o.blink }
+	local h = o.h or 5
+	if o.where == "entry" then
+		-- Remember It: the one board stands centred over the hole after the entry pad, facing you; none at the doors
+		local s
+		s, h = clueSize(o.clue, bo)
+		board(parts, floating(o.entry + 2, 0, h, 0, 5.5), clueRow(o.clue), {
+			s = s,
+			w = o.w,
+			h = h,
+			look = o.look,
+			blink = o.blink,
+		})
+	elseif o.where ~= "none" then
+		bo.lift = if o.where == "raised" then RAISED else nil
+		h = clueBoard(parts, D, o.top, o.clue, bo)
 	end
 	if o.sweep then
 		-- out of reach (its bottom over a jumping head), it only hides the board half the time
 		table.insert(
 			parts,
-			Kit.hazard({ 0.6, h + 0.4, 6 }, { D - 1.2, o.top + 12.6 + h / 2, 0 }, {
+			Kit.hazard({ 0.6, h + 0.4, 6 }, { D - 1.2, o.top + RAISED + h / 2, 0 }, {
 				motion = slideZ(o.sweep.amp, o.sweep.period, 0),
 			})
 		)
@@ -837,8 +889,8 @@ local function swayHop(gap: number, top: number, amp: number, period: number, ph
 	return { gap = gap, long = 6, top = top, wide = 8, motion = slideZ(amp, period, phase) }
 end
 
--- Colour Match: one coloured shape on a board 14 studs before three doors; a narrow hop off to one side, then a
--- long jump up onto the door floor.
+-- Colour Match: one coloured shape on the board over three doors; a narrow hop off to one side, then a long jump up
+-- onto the 12-stud door floor.
 local function colourMatch(seed: number): (Kit.Section, { Room })
 	local rng = rngFor(seed, 1)
 	local side = if rng:int(1, 2) == 1 then -4 else 4
@@ -849,8 +901,7 @@ local function colourMatch(seed: number): (Kit.Section, { Room })
 		top = 1.5,
 		floorLong = 12,
 		clue = roll(rng, "match", 3),
-		where = "back",
-		back = 14,
+		where = "wall",
 		s = 3.6,
 		w = 8,
 		h = 6,
@@ -906,8 +957,7 @@ local function shapeOnly(seed: number): (Kit.Section, { Room })
 		top = 2.5,
 		floorLong = 12,
 		clue = roll(rng, "shape", 3),
-		where = "back",
-		back = 14,
+		where = "wall",
 		s = 3.6,
 		w = 8,
 		h = 6,
@@ -987,7 +1037,7 @@ local function whatNext(seed: number): (Kit.Section, { Room })
 	})
 end
 
--- Shadow Clue: a dark outline on a light board 14 studs back; the doors show slimes in colour. A side hop, then a
+-- Shadow Clue: a dark outline on a light board over the doors; the doors show slimes in colour. A side hop, then a
 -- bobbing one that only reaches the door floor near its top.
 local function shadowClue(seed: number): (Kit.Section, { Room })
 	local rng = rngFor(seed, 9)
@@ -1001,8 +1051,7 @@ local function shadowClue(seed: number): (Kit.Section, { Room })
 		top = 3.5,
 		floorLong = 10,
 		clue = roll(rng, "shadow", 3),
-		where = "back",
-		back = 14,
+		where = "wall",
 		s = 3.6,
 		w = 8,
 		h = 6,
@@ -1051,7 +1100,8 @@ local function blinkBoard(seed: number): (Kit.Section, { Room })
 	})
 end
 
--- Side Glance: three hops bobbing out of step, the board 12 studs off to the left facing them: read it while hopping.
+-- Side Glance: three hops bobbing out of step, off to the right of the lane, with no flat spot: read the board over
+-- the doors while hopping.
 local function sideGlance(seed: number): (Kit.Section, { Room })
 	local rng = rngFor(seed, 12)
 	local kind = if rng:int(1, 2) == 1 then "match" else "count"
@@ -1059,11 +1109,8 @@ local function sideGlance(seed: number): (Kit.Section, { Room })
 	local parts: { Part } = {}
 	floor(parts, 0, 8, 0, 1)
 	local x = 8
-	local mids = {}
 	for k = 1, 3 do
-		local x0 = x + 5.5
-		x = hop(parts, x0, 6, 0.5 * k, 3, 10, bob(2, 2.6, (k - 1) / 3))
-		mids[k] = x0 + 3
+		x = hop(parts, x + 5.5, 6, 0.5 * k, 3, 10, bob(2, 2.6, (k - 1) / 3))
 	end
 	local top = 2.5
 	local f0 = x + 5.5
@@ -1071,8 +1118,7 @@ local function sideGlance(seed: number): (Kit.Section, { Room })
 	floor(parts, f0, D, top, 1)
 	local r = room(parts, D, top, clue)
 	local length = exit(parts, r.x1, top)
-	local pl: Plane = { x = mids[2], y = 1 + 3.5, z = -11.5, facing = "z" }
-	board(parts, pl, clue.boards[1], { s = 3.2, w = 8, h = 5 })
+	clueBoard(parts, D, top, clue, { w = 8 })
 	return Kit.section(length, top, parts), { r }
 end
 
@@ -1098,8 +1144,9 @@ local function twoRooms(seed: number): (Kit.Section, { Room })
 	floor(parts, f2, D2, top2, 1, nil, nil, { motion = { kind = "melt", on = "land", delay = 2.5, away = 2 } })
 	local r2 = room(parts, D2, top2, clue2)
 	local length = exit(parts, r2.x1, top2)
-	board(parts, overWall(D1, top1, 5), clue1.boards[1], { s = if clue1.kind == "next" then 2.2 else 3, w = 8, h = 5 })
-	-- room 2's boards, one per room-1 corridor, high at its far end
+	clueBoard(parts, D1, top1, clue1, { w = 8 })
+	-- room 2's boards, one per room-1 corridor, high at its far end: centred and head-on in each corridor (the puzzle:
+	-- only the right corridor's board tells the truth, so they can't move over room 2's doors)
 	local wrong2 = if clue2.right == 1 then 2 else 1
 	for i, z in r1.centres do
 		local syms = if i == clue1.right
@@ -1119,7 +1166,7 @@ local function twoRooms(seed: number): (Kit.Section, { Room })
 	return Kit.section(length, top2, parts), { r1, r2 }
 end
 
--- Mix Clue: board A a colour, board B a shape: the door with both. Three narrow hops sway across the lane in
+-- Mix Clue: the board shows a colour and a grey shape side by side: the door with both. Three narrow hops sway across the lane in
 -- opposite phase, close enough to jump between only part of the time.
 local function mixClue(seed: number): (Kit.Section, { Room })
 	local rng = rngFor(seed, 14)
@@ -1142,7 +1189,7 @@ local function mixClue(seed: number): (Kit.Section, { Room })
 end
 
 -- Closing Doors: the doors open 1 s of every 3.6 s beat bar; the door floor cracks 3.4 s after you land, so time the
--- landing too. Read the board 20 studs back while you time the bobbing hop; walk through under the goo lintels.
+-- landing too. Read the board over the doors while you time the bobbing hop; walk through under the goo lintels.
 local function closingDoors(seed: number): (Kit.Section, { Room })
 	local rng = rngFor(seed, 15)
 	local kinds = { "match", "cross", "count" }
@@ -1153,8 +1200,7 @@ local function closingDoors(seed: number): (Kit.Section, { Room })
 		top = 3,
 		floorLong = 6,
 		clue = roll(rng, kinds[rng:int(1, #kinds)], 3, 5),
-		where = "back",
-		back = 20,
+		where = "wall",
 		s = 3.2,
 		w = 8,
 		h = 5,
@@ -1186,8 +1232,8 @@ local function rememberIt(seed: number): (Kit.Section, { Room })
 	})
 end
 
--- Clue Up High: three blocks climb 3 studs each to a ledge 9 up, the middle one bobbing; the board lies flat on the
--- ledge, readable only from up there. Drop down to the door floor and pick.
+-- Clue Up High: three blocks climb 3 studs each to a ledge 9 up, the middle one bobbing; the board stands high over
+-- the doors, at eye level from the ledge (head-on as you climb, overhead from the door floor). Drop down and pick.
 local function clueUpHigh(seed: number): (Kit.Section, { Room })
 	local rng = rngFor(seed, 17)
 	local clue = roll(rng, if rng:int(1, 2) == 1 then "cross" else "shadow", 3)
@@ -1201,13 +1247,8 @@ local function clueUpHigh(seed: number): (Kit.Section, { Room })
 	floor(parts, f0, D, 0, 1)
 	local r = room(parts, D, 0, clue)
 	local length = exit(parts, r.x1, 0)
-	local pl: Plane = { x = 40.5, y = 9 + 0.02 + FACE / 2 + FACE, z = -6, facing = "y" }
-	board(parts, pl, clue.boards[1], {
-		s = if clue.kind == "cross" then 2.6 else 3.6,
-		w = 6.8,
-		h = 6.8,
-		look = if clue.kind == "shadow" then "pad" else nil,
-	})
+	-- 6 tall, its middle 13.5 up: a head on the 9-stud ledge
+	clueBoard(parts, D, 0, clue, { w = 8, h = 6, lift = 10.5, look = if clue.kind == "shadow" then "pad" else nil })
 	return Kit.section(length, 0, parts), { r }
 end
 
@@ -1290,6 +1331,7 @@ local function generate(seed: number, tier: string): (Kit.Section, { Room })
 			top = 0.5 * count + 0.5
 		end
 	end
+	-- "back": a longer door floor, 12 to 16 studs from the jump in to the doors (the board stays over the doors)
 	local back = rng:int(12, 16)
 	local o: Std = {
 		entry = if twist == "remember" then 8 else 10,
@@ -1299,15 +1341,12 @@ local function generate(seed: number, tier: string): (Kit.Section, { Room })
 		floorLong = if twist == "back" then back else 8,
 		clue = clue,
 		where = "wall",
-		s = if kind == "next" then 2.2 else 3.2,
 		w = 8,
 		h = 5,
 		look = if kind == "shadow" then "pad" else nil,
 		lintel = tier ~= "hard",
 	}
-	if twist == "back" then
-		o.where, o.back = "back", back
-	elseif twist == "sweep" then
+	if twist == "sweep" then
 		o.where, o.sweep, o.w = "raised", { amp = 9, period = 3.4 }, 8
 		o.bar = { amp = 7.5, period = rng:int(30, 32) / 10, wide = 9 }
 		o.floorLong = 10
@@ -1319,12 +1358,6 @@ local function generate(seed: number, tier: string): (Kit.Section, { Room })
 		o.floorMelt = 3.4
 	elseif twist == "remember" then
 		o.where = "entry"
-	end
-	if kind == "mix" then
-		o.w = 7 -- two boards side by side
-		if o.where == "raised" then
-			o.where = "wall"
-		end
 	end
 	return standard(o)
 end

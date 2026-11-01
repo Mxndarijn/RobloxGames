@@ -17,6 +17,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local ObbyCourse = require(ReplicatedStorage.Shared.ObbyCourse)
 local ObbyParts = require(ReplicatedStorage.Visuals.ObbyParts)
@@ -82,7 +83,8 @@ function ObbyView.place(): ObbyService.Place
 		frame = { origin = origin, yaw = yaw },
 		portal = { portal[1], y, portal[3] },
 		portalRadius = WorldLayout.OBBY.portalRadius,
-		exit = { portal[1] + math.sin(a) * step, y + 3, portal[3] + math.cos(a) * step },
+		-- a standard root's height over the ground; `apply` adds what a bigger avatar needs (ObbyService.landing)
+		exit = { portal[1] + math.sin(a) * step, y + Config.OBBY.RESPAWN_LIFT, portal[3] + math.cos(a) * step },
 		exitYaw = toCentre, -- facing the plaza, back to the portal: the camera lands behind them looking where they go
 		zone = { centre = centre, radius = radius },
 	}
@@ -179,7 +181,12 @@ function ObbyView.apply(moves: { ObbyService.Move }, moved: (userId: number) -> 
 		local root = WorldView.rootPart(player)
 		if character and root then
 			local a = math.rad(move.yaw)
-			local pos = Vector3.new(move.pos[1], move.pos[2], move.pos[3])
+			-- after server/ObbyAvatar's scale swap, which sets HipHeight and the root's size at once
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			local at = if humanoid
+				then ObbyService.landing(move.pos, humanoid.HipHeight + root.Size.Y / 2)
+				else move.pos
+			local pos = Vector3.new(at[1], at[2], at[3])
 			moved(move.userId)
 			character:PivotTo(CFrame.lookAt(pos, pos + Vector3.new(math.sin(a), 0, math.cos(a))))
 			root.AssemblyLinearVelocity = Vector3.zero

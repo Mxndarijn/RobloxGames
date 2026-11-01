@@ -69,8 +69,9 @@ export type ObbyView = {
 	readyAt: number?, -- a finish earns the boost again (nil = ready now)
 	sections: { string }, -- the current course's section names, in order
 	rotatesAt: number, -- the next course starts
-	run: { section: number, of: number, startedAt: number }?, -- the run in progress (section 0 = the start pad)
-	best: number?, -- best finish on this course, seconds
+	-- the run in progress (section 0 = the start pad); lockRate = the base lock's countdown speed meanwhile (0.5 = half)
+	run: { section: number, of: number, startedAt: number, lockRate: number? }?,
+	best: number?, -- best finish on this course, seconds; set = cleared: the portal waits for the next course
 }
 
 -- Follow-pet passive (CONTRACT.md §14): the favourite slime's perk, text "+5% luck".

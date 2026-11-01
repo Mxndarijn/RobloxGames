@@ -65,6 +65,7 @@ export type ObbyRun = {
 	invalid: boolean?, -- skipped a section or finished too fast: the finish earns nothing
 	settleUntil: number?, -- the server just moved the runner: fall and off-course checks wait until then
 	lastX: number?, -- course-local x at the last check (a jump back onto the start pad = the client's fall reset)
+	lockAt: number?, -- server time the base lock was last slowed for this run (server/ObbyLock); nil = startedAt
 }
 
 export type Session = {

@@ -9,9 +9,10 @@ local ObbyCheck = require("../ObbyCheck")
 
 local idea: Kit.Idea = MerryGoRound :: any
 
--- The most a hazard window may be per tier (§10: easy <= 2.0, medium 1.0..1.4, hard 0.75..1.0); the least is
--- ObbyCheck.WINDOW.
-local WINDOW_MAX = { easy = 2.0, medium = 1.4, hard = 1.0 }
+-- The most a hazard window may be per tier; the least is ObbyCheck.WINDOW. §10 had easy <= 2.0, medium 1.0..1.4,
+-- hard 0.75..1.0; the forgiveness pass (Merijn, 2026-11-01: spin slower) turns every disk and arm 1.3-1.5x slower,
+-- which widens them to about 2.45 / 1.75 / 1.35 s.
+local WINDOW_MAX = { easy = 2.5, medium = 1.8, hard = 1.4 }
 
 local function count(list: { any }, keep: (any) -> boolean): number
 	local n = 0

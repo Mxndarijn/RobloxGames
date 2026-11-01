@@ -33,7 +33,7 @@ local KEY = "k" -- the key group every variant uses
 local KEY_SIZE = 1.5
 local KEY_UP = 2.5 -- a key's centre over the floor top: chest height
 local GATE_HIGH = 11 -- over a 7.2-stud jump from a +3 ledge
-local CRUSHER_LIFT = 11 -- a crusher's bottom over its floor at rest (as Crusher Alley)
+local CRUSHER_LIFT = 13 -- a crusher's (and a dropping door's) bottom over its floor at rest (as Crusher Alley; was 11)
 local CRUSHER_THICK = 4
 local CRUSHER_LONG = 6
 local POST = 2 -- a still goo post's footprint
@@ -634,7 +634,7 @@ M.variants = {
 					start = "clock",
 					motion = { kind = "rise", speed = 3, delay = 9, stop = 5 },
 				}),
-				gate(70, 0, 3, nil, nil, "sign:9 s"),
+				gate(70, 0, 3, nil, nil, "pic:clock9"),
 			}
 			return Kit.section(80, 0, parts)
 		end,

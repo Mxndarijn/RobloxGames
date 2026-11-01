@@ -25,6 +25,9 @@
 local Config = require("../src/shared/Config")
 local Kit = require("../src/shared/ObbySections/Kit")
 local ObbyCourse = require("../src/shared/ObbyCourse")
+local ObbySigns = require("../src/visuals/shared/ObbySigns")
+local ObbyZone = require("../src/visuals/shared/ObbyZone")
+local Vine = require("../src/shared/ObbySections/Vine")
 
 type Part = Kit.Part
 type Section = Kit.Section
@@ -43,7 +46,6 @@ ObbyCheck.LATERAL = 8 -- studs / s the fairness runner can sidestep while it run
 ObbyCheck.BODY = 1 -- half a character's width (studs)
 ObbyCheck.STICKY_PEAK = 45 * 45 / (2 * Kit.GRAVITY) -- a jump off a sticky wall: 45 up ...
 ObbyCheck.STICKY_REACH = 30 * (2 * 45 / Kit.GRAVITY) * 0.8 -- ... and 30 away, back at the same height (20 % spare)
-ObbyCheck.VINE_UP = 20 -- jumping off a vine adds this upward speed
 ObbyCheck.CANNON_SLACK = 2 -- studs: the cannon hands you back to physics 2 studs above the landing
 
 -- Parts each marker kind adds (mirror of visuals/shared/ObbyParts.MARKER_PARTS, which needs Roblox to load).
@@ -58,7 +60,7 @@ ObbyCheck.MARKER_PARTS = table.freeze({
 	star = 2,
 	rail = 2,
 	ghostStop = 2,
-	sign = 1,
+	pic = 0, -- `pic:` on a banner: its pictures and boosters are drawn on the banner itself
 })
 
 local KINDS = table.freeze({
@@ -77,6 +79,7 @@ local KINDS = table.freeze({
 	path = true,
 	sink = true,
 	rise = true,
+	flood = true,
 	drop = true,
 	sweep = true,
 	turn = true,
@@ -150,6 +153,7 @@ local MOTION_FIELDS = set({
 	"depth",
 	"speed",
 	"stop",
+	"keys",
 	"at",
 	"beats",
 })
@@ -157,7 +161,7 @@ local SUB_FIELDS: { [string]: { [string]: boolean } } = {
 	boost = set({ "speed", "carry" }),
 	slide = set({ "pull", "cap" }),
 	sticky = set({ "fall" }),
-	vine = set({ "reach" }),
+	vine = set({ "reach", "hint" }),
 	cannon = set({ "power", "arc" }),
 	zone = set({ "kind", "gravity", "light" }),
 	gate = set({ "group", "need" }),
@@ -180,8 +184,23 @@ local BEAT_KINDS = set({ "slam", "half", "rest" })
 -- Motions that move a part through space (sampled over a period); the rest act in place.
 local MOVING = set({ "slide", "path", "spin", "sweep", "swing", "shrink", "punch", "pattern" })
 -- Motions whose state depends on the time at all (moving, or on / off, or a one-shot clock).
-local TIMED =
-	set({ "slide", "path", "spin", "sweep", "swing", "shrink", "punch", "pattern", "flip", "rise", "drop", "turn" })
+local TIMED = set({
+	"slide",
+	"path",
+	"spin",
+	"sweep",
+	"swing",
+	"shrink",
+	"punch",
+	"pattern",
+	"flip",
+	"rise",
+	"flood",
+	"drop",
+	"turn",
+})
+-- One-shot floods on a `start` clock: `rise` (one speed up to a stop) and `flood` (Kit.floodAt keys). Hazards.
+local FLOODS = set({ "rise", "flood" })
 
 ---------------------------------------------------------------------------
 -- Cases
@@ -296,7 +315,7 @@ local function bodiesOf(section: Section): { Body }
 		}
 		b.floor = b.solid and part.vine == nil and part.gate == nil
 		local x0, x1 = Kit.bounds(part)
-		if b.moving or kind == "rise" then
+		if b.moving or (kind ~= nil and FLOODS[kind]) then
 			for k = 0, ObbyCheck.SAMPLES - 1 do
 				local dx, _, _, dyaw = Kit.offsetAt(part, k / ObbyCheck.SAMPLES * b.period)
 				local r = if dyaw ~= 0 then math.sqrt(b.hx * b.hx + b.hz * b.hz) else 0
@@ -501,14 +520,15 @@ end
 -- budget, widths, fields, challenge
 ---------------------------------------------------------------------------
 
--- Parts the section adds to the world: its parts, the decor parts of their markers and a lock per key a gate needs.
-function ObbyCheck.partCount(section: Section): number
-	local n = #section.parts
+-- Parts the section adds to the world: its parts, the decor parts of their markers, a lock per key a gate needs and a
+-- banner per picture sign the course hangs for it (ObbyCourse.signs; idea `idea` names its entry sign).
+-- A `pic:` marker adds nothing on its own part: it asks for one of those signs.
+function ObbyCheck.partCount(section: Section, idea: string?): number
+	local n = #section.parts + ObbyCourse.SIGN_PARTS * #(ObbyCourse.signs(section, idea))
 	for _, part in section.parts do
 		local marker = part.marker
-		if marker then
-			local kind = if string.sub(marker, 1, 5) == "sign:" then "sign" else marker
-			n += ObbyCheck.MARKER_PARTS[kind] or 0
+		if marker and not ObbyCourse.picsOf(marker) then
+			n += ObbyCheck.MARKER_PARTS[marker] or 0
 		end
 		if part.gate then
 			n += part.gate.need
@@ -542,8 +562,18 @@ local function laneRange(part: Part): (number, number)
 	return z0, z1
 end
 
-function ObbyCheck.budget(section: Section): string?
-	local n = ObbyCheck.partCount(section)
+-- Every picture sign of the section (idea `idea`) found a spot: a banner over the lane, its boosters and hover
+-- clear of every part over its whole motion (ObbyCourse.signs).
+function ObbyCheck.signs(section: Section, idea: string?): string?
+	local _, missed = ObbyCourse.signs(section, idea)
+	if #missed > 0 then
+		return `no clear spot for the sign {table.concat(missed, " / ")}`
+	end
+	return nil
+end
+
+function ObbyCheck.budget(section: Section, idea: string?): string?
+	local n = ObbyCheck.partCount(section, idea)
 	if n > ObbyCheck.PARTS_MAX then
 		return `{n} parts with markers (at most {ObbyCheck.PARTS_MAX})`
 	end
@@ -664,6 +694,11 @@ end
 function ObbyCheck.fields(section: Section): string?
 	local triggers, starts, keys, gates = {}, {}, {}, {}
 	local bodies = bodiesOf(section)
+	for _, id in (if section.sign then string.split(section.sign, ",") else {}) :: { string } do
+		if not ObbySigns.has(id) then
+			return `unknown entry sign picture {id}`
+		end
+	end
 	for i, part in section.parts do
 		local label = `part {i} ({part.look})`
 		for k in part :: any do
@@ -697,7 +732,13 @@ function ObbyCheck.fields(section: Section): string?
 		end
 		if part.marker then
 			local m = part.marker
-			if not MARKERS[m] and string.sub(m, 1, 5) ~= "sign:" then
+			-- Signs are pictures only (Merijn: no words): `pic:<id>,...` with known pictograms; `sign:<text>` is gone.
+			local pics = ObbyCourse.picsOf(m)
+			local known = pics ~= nil and #pics > 0
+			for _, id in pics or {} do
+				known = known and ObbySigns.has(id)
+			end
+			if not MARKERS[m] and not known then
 				return `{label}: unknown marker {m}`
 			end
 		end
@@ -711,10 +752,10 @@ function ObbyCheck.fields(section: Section): string?
 					return `{label}: unknown motion field {k}`
 				end
 			end
-			if (m.kind == "punch" or m.kind == "rise") and not part.hazard then
+			if (m.kind == "punch" or FLOODS[m.kind]) and not part.hazard then
 				return `{label}: a {m.kind} must be a hazard`
 			end
-			if TIMED[m.kind] and m.kind ~= "rise" and m.kind ~= "drop" and not finite(Kit.periodOf(part)) then
+			if TIMED[m.kind] and not FLOODS[m.kind] and m.kind ~= "drop" and not finite(Kit.periodOf(part)) then
 				return `{label}: {m.kind} needs a period`
 			end
 			if m.kind == "drop" and not (part.start and finite(m.at)) then
@@ -722,6 +763,18 @@ function ObbyCheck.fields(section: Section): string?
 			end
 			if m.kind == "rise" and not (part.start and finite(m.speed)) then
 				return `{label}: a rise needs a start group and speed`
+			end
+			if m.kind == "flood" then
+				local floodKeys = m.keys
+				if not (part.start and floodKeys and #floodKeys >= 2) then
+					return `{label}: a flood needs a start group and at least 2 keys`
+				end
+				for k, key in floodKeys do
+					local prev = floodKeys[k - 1]
+					if not (finite(key[1]) and finite(key[2])) or (prev and (key[1] < prev[1] or key[2] < prev[2])) then
+						return `{label}: flood keys must be finite, in time order and never go down`
+					end
+				end
 			end
 			if m.kind == "path" and (m.points == nil or #m.points < 2) then
 				return `{label}: a path needs at least 2 points`
@@ -823,14 +876,24 @@ local function jumpUnderRoof(room: number): number
 	return Kit.WALK * (up + down)
 end
 
--- The gravity factor of a moon zone over (x, y, z), 1 outside every one.
+-- Whether a body standing with its feet at (x, feet, z) (feet to head, like ObbyMoves) is in moon zone `b`'s bubble:
+-- the dome ObbyParts draws, the ellipsoid in its box (turned by its yaw), grown `pad` sideways (ObbyZone).
+local function inBubble(b: Body, x: number, feet: number, z: number, pad: number): boolean
+	local a = math.rad(b.part.yaw or 0)
+	local c, s = math.cos(a), math.sin(a)
+	local px, pz = x - b.cx, z - b.cz
+	-- the inverse turn, as in `covers`
+	local lx, lz = px * c - pz * s, px * s + pz * c
+	local y0 = feet - b.cy
+	return ObbyZone.lineInEllipsoid(lx, y0, lz, lx, y0 + Kit.HEAD, lz, b.hx + pad, b.hy, b.hz + pad)
+end
+
+-- The gravity factor of the moon bubble a body with its feet at (x, y, z) stands in, 1 outside every one.
 local function gravityAt(bodies: { Body }, x: number, y: number, z: number): number
 	for _, b in bodies do
 		local zone = b.part.zone
-		if zone and zone.kind == "moon" and covers(b, x, z, 0, 0, 0, 0, 1) then
-			if y >= b.cy - b.hy - 0.5 and y <= b.cy + b.hy then
-				return zone.gravity or 1
-			end
+		if zone and zone.kind == "moon" and inBubble(b, x, y, z, 0) then
+			return zone.gravity or 1
 		end
 	end
 	return 1
@@ -878,6 +941,208 @@ local STARTED_ALL = setmetatable({}, {
 	end,
 })
 
+---------------------------------------------------------------------------
+-- vine: the rope swing (src/shared/ObbySections/Vine, the same physics as ObbyMoves' vine controller)
+---------------------------------------------------------------------------
+
+ObbyCheck.VINE_PHASES = 16 -- points a period a rope you fly at is measured at
+ObbyCheck.VINE_FLIGHT = 1.5 -- seconds of a let-go flight looked at
+ObbyCheck.VINE_DT = 1 / 60
+
+export type Rope = { px: number, py: number, pz: number, ux: number, uz: number, arm: number }
+
+-- The rope a knob (a `vine` part with a `swing` motion) hangs from: its pivot, the swing's plane (ux, uz) and arm.
+function ObbyCheck.ropeOf(knob: Part): Rope
+	local m = knob.motion or { kind = "swing" }
+	local arm = m.arm or 0
+	local along = m.axis == "x"
+	return {
+		px = knob.pos[1],
+		py = knob.pos[2] + arm,
+		pz = knob.pos[3],
+		ux = if along then 1 else 0,
+		uz = if along then 0 else -1,
+		arm = arm,
+	}
+end
+
+-- Your root (x, y, z) and velocity (vx, vy, vz) right after letting go of `rope` at angle `th`, `w` radians/s.
+function ObbyCheck.letGo(rope: Rope, th: number, w: number): (number, number, number, number, number, number)
+	local s, y = Vine.rootAt(rope.arm, th)
+	local vs, vy = Vine.release(rope.arm, th, w)
+	return rope.px + rope.ux * s, rope.py + y, rope.pz + rope.uz * s, rope.ux * vs, vy, rope.uz * vs
+end
+
+local function boxOf(p: Part, t: number?): (number, number, number, number, number, number)
+	local x0, x1, y0, y1, z0, z1 = Kit.bounds(p)
+	if t ~= nil and p.motion then
+		local dx, dy, dz = Kit.offsetAt(p, t)
+		return x0 + dx, x1 + dx, y0 + dy, y1 + dy, z0 + dz, z1 + dz
+	end
+	return x0, x1, y0, y1, z0, z1
+end
+
+-- Whether a body with its root at (x, y, z) (feet to head) touches hazard `h` (at time `t` when it moves).
+local function bodyInHazard(x: number, y: number, z: number, h: Part, t: number?): boolean
+	local x0, x1, y0, y1, z0, z1 = boxOf(h, t)
+	local pad = 0.5
+	return x >= x0 - pad
+		and x <= x1 + pad
+		and z >= z0 - pad
+		and z <= z1 + pad
+		and y - Vine.FEET <= y1
+		and y + Vine.HEAD >= y0
+end
+
+--[[
+	Whether letting go of the rope at (th, w) gets you onto step `b`: a pad (the feet come down onto its top, within
+	the air steering of STEER), a ladder (the body meets its side) or another rope (the body comes within its reach
+	of the knob at some point of its idle swing). The flight must not touch a hazard of `hazards` first (`t`: the
+	server time of the let go, for moving ones; nil = at rest).
+]]
+function ObbyCheck.vineLands(rope: Rope, th: number, w: number, b: Part, hazards: { Part }, t: number?): boolean
+	local rx, ry, rz, vx, vy, vz = ObbyCheck.letGo(rope, th, w)
+	local g = Kit.GRAVITY
+	local function hit(x: number, y: number, z: number, tau: number): boolean
+		for _, h in hazards do
+			if bodyInHazard(x, y, z, h, if t ~= nil and h.motion then t + tau else nil) then
+				return true
+			end
+		end
+		return false
+	end
+	local dt = ObbyCheck.VINE_DT
+	local steps = math.floor(ObbyCheck.VINE_FLIGHT / dt)
+	if b.vine then
+		local reach = (b.vine :: any).reach or 2
+		local knobs = {}
+		local period = Kit.periodOf(b)
+		local lowest = math.huge
+		for k = 0, ObbyCheck.VINE_PHASES - 1 do
+			local dx, dy, dz = Kit.offsetAt(b, k / ObbyCheck.VINE_PHASES * period)
+			table.insert(knobs, { b.pos[1] + dx, b.pos[2] + dy, b.pos[3] + dz })
+			lowest = math.min(lowest, b.pos[2] + dy)
+		end
+		for k = 1, steps do
+			local tau = k * dt
+			local x, y, z = rx + vx * tau, ry + vy * tau - 0.5 * g * tau * tau, rz + vz * tau
+			if hit(x, y, z, tau) or y < lowest - 12 then
+				return false
+			end
+			for _, n in knobs do
+				if Vine.touches(x, y, z, n[1], n[2], n[3], reach) then
+					return true
+				end
+			end
+		end
+		return false
+	end
+	local x0, x1, y0, y1, z0, z1 = boxOf(b, t)
+	if b.shape == "truss" then
+		for k = 1, steps do
+			local tau = k * dt
+			local x, y, z = rx + vx * tau, ry + vy * tau - 0.5 * g * tau * tau, rz + vz * tau
+			if hit(x, y, z, tau) or y + Vine.HEAD < y0 then
+				return false
+			end
+			local gx = math.max(x0 - x, x - x1, 0)
+			local gz = math.max(z0 - z, z - z1, 0)
+			if math.sqrt(gx * gx + gz * gz) <= 1.5 and y - Vine.FEET <= y1 then
+				return true
+			end
+		end
+		return false
+	end
+	local tl = fallTime(vy, ry - Vine.FEET - y1, g)
+	if not tl or tl <= 0 then
+		return false
+	end
+	local k = 1
+	while k * dt < tl do
+		local tau = k * dt
+		if hit(rx + vx * tau, ry + vy * tau - 0.5 * g * tau * tau, rz + vz * tau, tau) then
+			return false
+		end
+		k += 1
+	end
+	-- the air steering (ObbyMoves' glide) turns and brakes the flight but never speeds it up: the pad may be up to
+	-- STEER's reach to the side or short of the landing, and only 0.5 past it
+	local lx, lz = rx + vx * tl, rz + vz * tl
+	local gx = math.clamp(lx, x0, x1) - lx
+	local gz = math.clamp(lz, z0, z1) - lz
+	local h = math.sqrt(vx * vx + vz * vz)
+	local fx, fz = if h > 1e-6 then vx / h else 1, if h > 1e-6 then vz / h else 0
+	local ahead = gx * fx + gz * fz
+	local side = math.abs(gx * fz - gz * fx)
+	local steer = 0.5 * Vine.STEER * tl * tl + 0.5
+	return ahead <= 0.5 and -ahead <= steer and side <= steer
+end
+
+-- Every let go a player can make: any swing up to AMP_MAX (pumped up or let fade), any angle of it, either way.
+function ObbyCheck.vineReleases(rope: Rope): { { number } }
+	local out = {}
+	local top = Vine.ampMax()
+	for step = 0, 10 do
+		local amp = top * (1 - step * 0.08)
+		for deg = 0, math.floor(math.deg(amp)), 2 do
+			for _, sign in { 1, -1 } do
+				local th = math.rad(deg) * sign
+				local w = Vine.speedAt(rope.arm, th, amp)
+				table.insert(out, { th, w })
+				table.insert(out, { th, -w })
+			end
+		end
+	end
+	return out
+end
+
+-- Whether some let go of rope `a` gets you onto step `b` (memoised: the release does not depend on the time).
+local vineMemo: { [Part]: { [Part]: boolean } } = setmetatable({}, { __mode = "k" }) :: any
+local function vineReach(bodies: { Body }, a: Body, b: Body, _t: number?): boolean
+	local row = vineMemo[a.part]
+	if row == nil then
+		row = setmetatable({}, { __mode = "k" }) :: any
+		vineMemo[a.part] = row
+	end
+	local known = (row :: any)[b.part]
+	if known ~= nil then
+		return known
+	end
+	local hazards = {}
+	local period = 0 -- the longest moving hazard's: let go at VINE_PHASES times of it
+	for _, h in bodies do
+		if h.part.hazard and h.kind ~= "rise" and h.kind ~= "flood" then
+			table.insert(hazards, h.part)
+			if h.moving then
+				period = math.max(period, h.period)
+			end
+		end
+	end
+	local times: { number } = { -1 }
+	if period > 0 then
+		times = {}
+		for k = 0, ObbyCheck.VINE_PHASES - 1 do
+			table.insert(times, k / ObbyCheck.VINE_PHASES * period)
+		end
+	end
+	local rope = ObbyCheck.ropeOf(a.part)
+	local ok = false
+	for _, at in times do
+		for _, r in ObbyCheck.vineReleases(rope) do
+			if ObbyCheck.vineLands(rope, r[1], r[2], b.part, hazards, if at >= 0 then at else nil) then
+				ok = true
+				break
+			end
+		end
+		if ok then
+			break
+		end
+	end
+	local memo: any = row
+	memo[b.part] = ok
+	return ok
+end
+
 -- nil when step `b` can be reached from step `a` at time `t`; otherwise why not.
 local function reachAt(bodies: { Body }, a: Body, b: Body, t: number?): string?
 	local started = if t then STARTED_ALL :: any else nil
@@ -899,6 +1164,10 @@ local function reachAt(bodies: { Body }, a: Body, b: Body, t: number?): string?
 	local bBottom, bTop = bottomOf(b, pb.dy), topOf(b, pb.dy)
 	local aBottom, aTop = bottomOf(a, pa.dy), topOf(a, pa.dy)
 
+	-- Off a rope: let go of it (Vine's swing, any amplitude up to AMP_MAX) onto a pad, a ladder or the next rope.
+	if sa == "vine" then
+		return if vineReach(bodies, a, b, t) then nil else "let go of the rope: misses"
+	end
 	-- Into a ladder or a wind column: walk in, or (a column) jump in from beside it.
 	if sb == "climb" then
 		return if g <= 1.5 then nil else `gap {g} to a ladder`
@@ -925,16 +1194,16 @@ local function reachAt(bodies: { Body }, a: Body, b: Body, t: number?): string?
 		end
 		return `gap {g} to a sticky wall`
 	end
-	-- Grab a rope end: jump at it.
+	-- Grab a rope: its knob comes within reach of your body, walking on the pad or in a jump off it.
 	if sb == "vine" then
 		local reach = (b.part.vine :: any).reach or 2
-		local ex, ey, ez = bx, b.cy + pb.dy - b.hy, bz
+		local ex, ey, ez = bx, b.cy + pb.dy, bz
 		local d = pointGap(ex, ez, pa.poly)
 		local up = ey - topA
-		if d <= Kit.GAP_MAX + reach and up >= -reach - 1 and up <= Kit.JUMP_HEIGHT + Kit.HEAD + reach then
+		if d <= Kit.GAP_MAX + reach and up >= -reach and up <= Kit.JUMP_HEIGHT + Vine.FEET + Vine.HEAD + reach then
 			return nil
 		end
-		return `rope end {d} away, {up} up`
+		return `rope knob {d} away, {up} up`
 	end
 	-- Off a ladder or out of a column: step off at its top (or hover height) onto something at or under it.
 	if sa == "climb" or sa == "lift" then
@@ -956,21 +1225,6 @@ local function reachAt(bodies: { Body }, a: Body, b: Body, t: number?): string?
 		end
 		return `off a sticky wall: gap {g}, rise {topB - aTop}`
 	end
-	-- Let go of a rope end: its swing speed plus a jump.
-	if sa == "vine" then
-		local h = 0.01
-		local dx2, dy2, dz2 = bodyState(a, (t or 0) + h, started)
-		local vx, vy, vz = (dx2 - pa.dx) / h, (dy2 - pa.dy) / h, (dz2 - pa.dz) / h
-		local feet = a.cy + pa.dy - a.hy - 2
-		local tl = fallTime(vy + ObbyCheck.VINE_UP, feet - topB, Kit.GRAVITY)
-		if tl then
-			local lx, lz = ax + vx * tl, az + vz * tl
-			if pointGap(lx, lz, pb.poly) <= Kit.WALK * tl * 0.5 + 0.5 then
-				return nil
-			end
-		end
-		return "let go of the rope: misses"
-	end
 	-- Fired from a cannon: its fixed arc for the barrel's aim now.
 	if sa == "cannon" then
 		local cannon = a.part.cannon :: any
@@ -990,7 +1244,7 @@ local function reachAt(bodies: { Body }, a: Body, b: Body, t: number?): string?
 	-- Launched by a pad (with its throw).
 	if am and am.kind == "bounce" and am.power then
 		local throw = am.throw or { 0, 0, 0 }
-		local grav = gravityAt(bodies, ax, topA + 1, az)
+		local grav = gravityAt(bodies, ax, topA, az)
 		local vy = am.power + throw[2]
 		local peak = vy * vy / (2 * Kit.GRAVITY * grav)
 		if rise > peak - 1.5 then
@@ -1012,7 +1266,7 @@ local function reachAt(bodies: { Body }, a: Body, b: Body, t: number?): string?
 	elseif a.part.slide then
 		factor = math.max(a.part.slide.cap, Kit.WALK) / Kit.WALK
 	end
-	local grav = gravityAt(bodies, ax, topA + 1, az)
+	local grav = gravityAt(bodies, ax, topA, az)
 	local gapMax = Kit.GAP_MAX * factor / grav
 	local riseMax = Kit.RISE_MAX / grav
 	local room = roofOver(bodies, a, b, math.max(topA, topB))
@@ -1279,7 +1533,7 @@ local function prepareWalk(section: Section): Walk
 			or (m ~= nil and (m.kind == "lift" or m.kind == "gust"))
 		-- The longest cycle a walker's start time matters for (one-shot clocks have none).
 		local cyclic = not constant and not p.start
-		if p.start and m and (m.period or p.beat) and m.kind ~= "drop" and m.kind ~= "rise" then
+		if p.start and m and (m.period or p.beat) and m.kind ~= "drop" and not FLOODS[m.kind] then
 			cyclic = true
 		end
 		if cyclic or (p.conveyor and m and m.kind == "turn") then
@@ -1555,7 +1809,7 @@ function ObbyCheck.walkStop(
 						return `caught by a {if part.vine then "rope" else "cannon"} at x {at()}`
 					end
 					local zone = part.zone
-					if zone and zone.kind == "moon" then
+					if zone and zone.kind == "moon" and inBubble(b, x, y, z, 0.5) then
 						grav = zone.gravity or 1
 					end
 					if m and on and m.kind == "lift" and y < highW(w, b, 0) then
@@ -1987,7 +2241,7 @@ function ObbyCheck.windows(section: Section): { Window }
 	local bodies = bodiesOf(section)
 	local hazards = {}
 	for _, b in bodies do
-		if b.part.hazard and b.kind ~= "rise" then
+		if b.part.hazard and not (b.kind and FLOODS[b.kind]) then
 			table.insert(hazards, b)
 		end
 	end
@@ -2181,7 +2435,7 @@ function ObbyCheck.timers(section: Section): string?
 				end
 				for _, flood in bodies do
 					local m = flood.part.motion
-					if m and m.kind == "rise" and flood.part.start == g then
+					if m and FLOODS[m.kind] and flood.part.start == g then
 						for k = k0, #steps do
 							local s = steps[k]
 							local sx0, sx1 = Kit.bounds(s.part)
@@ -2264,7 +2518,18 @@ function ObbyCheck.run(case: Case): { string }
 			seen[key] = true
 			local pick = { id = case.idea.id, tier = case.tier, variant = case.variant, seed = seed }
 			local checks: { { any } } = {
-				{ "budget", ObbyCheck.budget },
+				{
+					"budget",
+					function(s: Section): string?
+						return ObbyCheck.budget(s, case.idea.id)
+					end,
+				},
+				{
+					"signs",
+					function(s: Section): string?
+						return ObbyCheck.signs(s, case.idea.id)
+					end,
+				},
 				{ "widths", ObbyCheck.widths },
 				{ "fields", ObbyCheck.fields },
 				{ "challenge", ObbyCheck.challenge },

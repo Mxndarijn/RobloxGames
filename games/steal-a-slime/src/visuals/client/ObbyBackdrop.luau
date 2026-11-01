@@ -190,6 +190,9 @@ function ObbyBackdrop.build(parent: Instance): Folder
 	local frame = CFrame.fromMatrix(Vector3.new(origin[1], origin[2], origin[3]), forward, Vector3.yAxis, right)
 	local folder = Instance.new("Folder")
 	folder.Name = Constants.OBBY_BACKDROP
+	-- Parented before the pieces spawn: a cached template makes `place` run to the end inside task.spawn, and it
+	-- reads a parentless folder as "left the world" (every visit after the first lost its islands and clouds).
+	folder.Parent = parent
 	for k, piece in WorldLayout.obbyBackdrop() do
 		local at = CFrame.new(frame * Vector3.new(piece.pos[1], piece.pos[2], piece.pos[3]))
 		if piece.kind == "sea" then
@@ -211,7 +214,6 @@ function ObbyBackdrop.build(parent: Instance): Folder
 			task.spawn(place, folder, `{piece.kind}{k}`, piece, at)
 		end
 	end
-	folder.Parent = parent
 	return folder
 end
 

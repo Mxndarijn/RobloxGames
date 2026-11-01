@@ -5,9 +5,11 @@
 	Swaps the look while the local player is in the obby world: each frame (`tick`) it checks the local root against
 	WorldLayout.inObbyWorld. On the frame that changes, the look swaps at once (ObbyLook's mix jumps to 1 inside, 0
 	outside): NightSky re-blends Lighting and the Atmosphere from the map's own day / night and weather look, so the
-	way back restores the map exactly, whatever changed meanwhile. A short neutral veil (ObbyLook.VEIL, its own
-	ColorCorrection "ObbyWorldVeil") hides the swap, and the camera is set behind the player at the zoom and pitch it
-	had, so it doesn't jump with the teleport. While inside this module also tints its own ColorCorrection
+	way back restores the map exactly, whatever changed meanwhile. The camera is set behind the player at the zoom and
+	pitch it had, facing the way they face, in that same frame: one clean cut, with no veil, fade or tween (a grey veil
+	here read as a flash). `tick` runs in RenderStepped, which fires after the camera module's BindToRenderStep step and
+	before the frame is drawn, so the look and the camera land together on the first frame that shows the new place.
+	While inside this module also tints its own ColorCorrection
 	("ObbyWorldTint"), turns the place's Bloom and SunRays down and the Atmosphere Offset up (ObbyLook.BLOOM /
 	SUN_RAYS / ATMOSPHERE; the place values come back exactly on the way out) and builds the world's backdrop
 	(ObbyBackdrop), removing it on the way out. It also keeps ObbyLook's "inside" flag current, which the plot
@@ -26,7 +28,6 @@ local WorldLayout = require(Visuals:WaitForChild("WorldLayout"))
 local ObbyWorld = {}
 
 ObbyWorld.TINT_NAME = "ObbyWorldTint"
-ObbyWorld.VEIL_NAME = "ObbyWorldVeil"
 ObbyWorld.BASE_PREFIX = "ObbyWorldBase_"
 
 -- Sets properties of one of the place's own Lighting children (Bloom, SunRays, Atmosphere) to the obby `target`
@@ -52,13 +53,22 @@ local function swapEffect(className: string, target: { [string]: number }, insid
 	end
 end
 
--- Puts the camera behind the root at the distance and pitch it had, so a teleport doesn't swing or pop it.
+-- Puts the camera behind the root at the distance and pitch it had, so a teleport doesn't swing or pop it. Also when
+-- an obby move holds it Scriptable (ObbyMoves' cannon): ObbyMoves hands it back to Custom later in this same frame,
+-- and the camera module then carries on from here instead of drawing one frame of the obby from the old spot.
 local function steadyCamera(root: BasePart)
 	local camera = workspace.CurrentCamera
-	if not camera or camera.CameraType ~= Enum.CameraType.Custom then
+	if
+		not camera
+		or (camera.CameraType ~= Enum.CameraType.Custom and camera.CameraType ~= Enum.CameraType.Scriptable)
+	then
 		return
 	end
 	local distance = (camera.CFrame.Position - camera.Focus.Position).Magnitude
+	local player = Players.LocalPlayer
+	if player then -- a Scriptable camera's Focus can be stale: keep the distance within the player's zoom range
+		distance = math.clamp(distance, player.CameraMinZoomDistance, player.CameraMaxZoomDistance)
+	end
 	local pitch = math.asin(math.clamp(camera.CFrame.LookVector.Y, -0.99, 0.99))
 	local flat = root.CFrame.LookVector * Vector3.new(1, 0, 1)
 	if flat.Magnitude < 1e-3 then
@@ -66,7 +76,12 @@ local function steadyCamera(root: BasePart)
 	end
 	flat = flat.Unit
 	local look = flat * math.cos(pitch) + Vector3.yAxis * math.sin(pitch)
-	local focus = root.Position + ObbyLook.VEIL.focusLift
+	-- The camera module already moved its Focus to the new place this frame (it runs before RenderStepped), at the
+	-- height it uses for this avatar; a stale one (a Scriptable hold) falls back to the default lift.
+	local focus = camera.Focus.Position
+	if (focus - root.Position).Magnitude > ObbyLook.CAMERA.focusNear then
+		focus = root.Position + ObbyLook.CAMERA.focusLift
+	end
 	camera.CFrame = CFrame.lookAt(focus - look * distance, focus)
 end
 
@@ -80,10 +95,7 @@ end
 
 function ObbyWorld.start(): Controller
 	local tint: ColorCorrectionEffect? = nil
-	local veil: ColorCorrectionEffect? = nil
-	local veilAge = 0
 	local backdrop: Folder? = nil
-	local white = Color3.new(1, 1, 1)
 	local wasInside = false
 
 	local function paint(inside: boolean)
@@ -108,38 +120,7 @@ function ObbyWorld.start(): Controller
 		tint = cc
 	end
 
-	local function clearVeil()
-		if veil then
-			veil:Destroy()
-			veil = nil
-		end
-	end
-
-	local function showVeil()
-		local cc = veil or Instance.new("ColorCorrectionEffect")
-		cc.Name = ObbyWorld.VEIL_NAME
-		cc.TintColor = ObbyLook.VEIL.color
-		cc.Parent = Lighting
-		veil = cc
-		veilAge = 0
-	end
-
-	-- The veil clears with an ease-out over VEIL.seconds.
-	local function fadeVeil(dt: number)
-		local cc = veil
-		if not cc then
-			return
-		end
-		veilAge += dt
-		local t = veilAge / ObbyLook.VEIL.seconds
-		if t >= 1 then
-			clearVeil()
-			return
-		end
-		cc.TintColor = ObbyLook.VEIL.color:Lerp(white, 1 - (1 - t) * (1 - t))
-	end
-
-	local function tick(dt: number)
+	local function tick(_dt: number)
 		local root = localRoot()
 		local inside = false
 		if root then
@@ -147,11 +128,9 @@ function ObbyWorld.start(): Controller
 			inside = WorldLayout.inObbyWorld({ p.X, p.Y, p.Z })
 		end
 		if inside == wasInside then
-			fadeVeil(dt)
 			return
 		end
 		wasInside = inside
-		showVeil()
 		if inside and not backdrop then
 			backdrop = ObbyBackdrop.build(workspace)
 		elseif not inside and backdrop then
@@ -171,7 +150,6 @@ function ObbyWorld.start(): Controller
 		ObbyLook.setInside(false)
 		ObbyLook.set(0)
 		paint(false)
-		clearVeil()
 		if backdrop then
 			backdrop:Destroy()
 			backdrop = nil

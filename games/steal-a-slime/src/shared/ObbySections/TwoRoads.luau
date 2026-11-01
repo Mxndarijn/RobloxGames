@@ -5,8 +5,8 @@
 	The lane splits into roads you can study from the fork: a short, hard road (route "fast", on the right, z > 0)
 	and a long, safe one (the main path, on the left, z < 0), with a see-through divider between them where they run
 	side by side. Some variants stack the roads (a miss on the high road lands on the low one), add a third road
-	("top" / "bottom"), a hidden one ("secret") or a crossing plank ("bail"). A `sign:` marker on each road's first
-	pad says which is which.
+	("top" / "bottom"), a hidden one ("secret") or a crossing plank ("bail"). A picture sign (`pic:` marker: lightning,
+	shield, a terrace, ...) on each road's first pad says which is which.
 
 	Walk-forward rule (contract §9, §11): every walking line needs a same-height hole of 4.4 or more, a ledge over 2
 	studs, a wall or a hazard, so short hops on the safe roads climb 2.5 or more, and level hops leave 5-stud holes.
@@ -127,8 +127,8 @@ local function post(x: number, z: number, top: number, hold: number, period: num
 	})
 end
 
-local FAST = { route = "fast", marker = "sign:FAST" }
-local SAFE = { marker = "sign:SAFE" }
+local FAST = { route = "fast", marker = "pic:fast" }
+local SAFE = { marker = "pic:safe" }
 
 local function fastFirst(i: number, extra: { [string]: any }?): { [string]: any }
 	local e: { [string]: any } = if extra then table.clone(extra) else {}
@@ -351,7 +351,7 @@ M.variants = {
 			end
 			-- The plank: from the second fast pad's left edge to the safe road, through an opening in the divider.
 			local px = (fast[2][1] + fast[2][2]) / 2
-			table.insert(parts, Kit.slab(px, 0, 0.75, 3, 5.5, "beam", { route = "bail", marker = "sign:BAIL" }))
+			table.insert(parts, Kit.slab(px, 0, 0.75, 3, 5.5, "beam", { route = "bail", marker = "pic:bail" }))
 			divider(parts, x0, px - 2, -1, 12)
 			divider(parts, px + 2, x1, -1, 12)
 			exit(parts, length, 0)
@@ -430,7 +430,7 @@ M.variants = {
 			for i, p in lay(8, 72, 5, 5, 0, 0) do
 				local extra: { [string]: any } = { tone = 2 }
 				if i == 1 then
-					extra.marker = "sign:MIDDLE"
+					extra.marker = "pic:middle"
 				elseif i == 3 then
 					extra.motion = { kind = "slide", axis = "x", amp = 1.5, period = 2.6 }
 				end
@@ -442,7 +442,7 @@ M.variants = {
 			for i, p in lay(8, 72, 7, 3, 3, 0) do
 				local extra: { [string]: any } = { route = "bottom", tone = 1 }
 				if i == 1 then
-					extra.marker = "sign:SAFE"
+					extra.marker = "pic:safe"
 				end
 				local top = if i % 2 == 1 then 2 else 0
 				table.insert(parts, slab(p[1], p[2], top, -8, PAD, "jelly", extra))
@@ -755,7 +755,7 @@ M.variants = {
 						LEFT,
 						ROAD,
 						"jelly",
-						if i == 1 then { marker = "sign:DOOR 4s" } else { tone = i % 3 + 1 }
+						if i == 1 then { marker = "pic:door4" } else { tone = i % 3 + 1 }
 					)
 				)
 			end
@@ -851,7 +851,7 @@ M.variants = {
 			for i, p in lay(x0, x1, 5, 5.5, 0, 0) do
 				local extra: { [string]: any } = { tone = 2 }
 				if i == 1 then
-					extra.marker = "sign:MIDDLE"
+					extra.marker = "pic:middle"
 				elseif i == 3 then
 					extra.motion = { kind = "flip", duty = 0.6, period = 2.2 }
 				elseif i == 4 then
@@ -866,7 +866,7 @@ M.variants = {
 			for i, p in lay(x0, x1, 6, 4, 4, 0) do
 				local extra: { [string]: any } = { route = "bottom", tone = 1 }
 				if i == 1 then
-					extra.marker = "sign:LOW"
+					extra.marker = "pic:low"
 				elseif i == 3 then
 					extra.motion = { kind = "slide", axis = "x", amp = 1, period = 2.2 }
 				end
@@ -876,7 +876,7 @@ M.variants = {
 				end
 			end
 			-- top, z 4..12: a stair, then two 6-stud gaps over goo
-			table.insert(parts, slab(8, 13, 3.5, 8, PAD, "jelly", { route = "top", tone = 3, marker = "sign:HIGH" }))
+			table.insert(parts, slab(8, 13, 3.5, 8, PAD, "jelly", { route = "top", tone = 3, marker = "pic:high" }))
 			table.insert(parts, slab(13, 31, 7, 8, PAD, "jelly", { route = "top", tone = 3 }))
 			table.insert(
 				parts,

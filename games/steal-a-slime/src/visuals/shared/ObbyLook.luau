@@ -4,7 +4,8 @@
 
 	The obby world's own look: a clear candy sky world (blue zenith, violet-pink horizon), whatever the time of day or weather on the map.
 	VisualsClient ObbyWorld sets `mix` to 1 (this look) on the frame the local player arrives in the obby world
-	(WorldLayout.inObbyWorld) and back to 0 (the map's look) on the frame they leave, under a short neutral veil;
+	(WorldLayout.inObbyWorld) and back to 0 (the map's look) on the frame they leave, in the same frame as the camera
+	cut (no veil or fade: any dimming read as a flash);
 	NightSky blends the look over its day / night and weather look by that mix, and ObbyWorld swaps its tint and the
 	place's post effects with it.
 
@@ -15,7 +16,7 @@
 	  ObbyLook.target(night): Look     LOOK -> NIGHT by the night factor (0..1, NightLook.factor)
 	  ObbyLook.blend(base, mix, night?): Look
 	                                   base -> target(night) by mix (0..1)
-	  ObbyLook.VEIL                    the swap's veil: start tint, seconds to clear, the camera focus lift
+	  ObbyLook.CAMERA                  where ObbyWorld aims the camera on the swap frame (the focus lift)
 	  ObbyLook.get / set / onChanged   the current mix (client), like WeatherGrade
 	  ObbyLook.isInside / setInside / onInsideChanged
 	                                   whether the local player is in the obby world now (client; ObbyWorld sets it
@@ -27,12 +28,12 @@ local NightLook = if script then require(script.Parent.NightLook) else require("
 
 local ObbyLook = {}
 
--- The swap happens at once under a neutral veil that clears in `seconds`; `focusLift` is where the camera looks
--- above the root (the default camera's focus) when ObbyWorld steadies it after the teleport.
-ObbyLook.VEIL = table.freeze({
-	color = Color3.fromRGB(128, 126, 134),
-	seconds = 0.35,
+-- The swap happens at once, in the frame of the teleport, and ObbyWorld sets the camera behind the player in that
+-- frame, looking at the camera module's own Focus. A Focus further than `focusNear` studs from the root is stale (a
+-- Scriptable hold); then it looks `focusLift` above the root (the default camera's focus on a standard avatar).
+ObbyLook.CAMERA = table.freeze({
 	focusLift = Vector3.new(0, 1.5, 0),
+	focusNear = 10,
 })
 
 local function rgb(r: number, g: number, b: number): Color3

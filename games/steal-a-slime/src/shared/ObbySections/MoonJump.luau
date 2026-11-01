@@ -6,7 +6,8 @@
 	weight) your own jump floats much higher and further, so the gaps and steps here are too big for a normal jump.
 	Moon jumps always start from your own jump, never a pad or a column.
 
-	How the checks see it (tests/ObbyCheck): a jump that starts inside a bubble reaches GAP_MAX / gravity across and
+	How the checks see it (tests/ObbyCheck): a jump that starts inside a bubble (its dome: the ellipsoid in the zone's
+	box, which is what ObbyMoves tests, not the box's corners) reaches GAP_MAX / gravity across and
 	RISE_MAX / gravity up, so every moon gap is sized to that limit (the real float goes about 40 % further; that spare
 	is the same one the 6-stud GAP_MAX keeps on a normal 8.7-stud jump). Every bubble box reaches from below its islands
 	to over the highest arc (7.2 / gravity up plus a head), so gravity never changes mid-flight unless a variant wants
@@ -29,7 +30,6 @@ type Part = Kit.Part
 
 local PAD = 10 -- the entry pad's length
 local PIT_DROP = 8 -- the goo pit's top under the lowest island
-local SIGN = "sign:LOW GRAVITY"
 -- Moon Pulse: the blinking islands' phases. The first is lit for 0 .. 2.4 s of the 3.6 s bar, the second from
 -- 3.0 s on: off the first in its last ~0.95 s, a 1.55 s float lands you on the second while it is lit.
 local PULSE_PHASE = { 0, 1 / 6 }
@@ -59,9 +59,9 @@ local function island(
 	return p
 end
 
--- The entry pad (x 0..long, top 0) with the low gravity sign.
+-- The entry pad (x 0..long, top 0). The course stands the moon picture sign on it (ObbySections.entrySign).
 local function entry(parts: { Part }, long: number?, wide: number?, z: number?): Part
-	return island(parts, 0, long or PAD, 0, z or 0, wide or Kit.WIDTH, 1, { marker = SIGN })
+	return island(parts, 0, long or PAD, 0, z or 0, wide or Kit.WIDTH, 1)
 end
 
 -- A moon bubble over x0..x1 for islands whose tops run from `low` to `high`: tall enough for the whole arc (plus a
@@ -235,14 +235,16 @@ M.variants = {
 	{
 		-- Islands zig-zag 7 off centre at 40 % gravity; a goo pillar taller than the float stands on the straight line
 		-- between each pair and sways 3 side to side, so you curve every arc round it, on the side it leaves open.
+		-- The entry pad is 22 long so the bubble (a dome, round at its ends) is long enough to hold the off-centre
+		-- entry pad's middle and take-off end, not only the box round it.
 		name = "Steer Round",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
-			local g, gap, long, off = 0.4, 14, 10, 7
+			local g, gap, long, off, run = 0.4, 14, 10, 7, 22
 			local parts = {}
 			local pillarTop = apex(g) + Kit.HEAD + 3
-			entry(parts, long, long, -off)
-			local x = long
+			entry(parts, run, long, -off)
+			local x = run
 			for i = 1, 3 do
 				local side = if i % 2 == 1 then 1 else -1
 				table.insert(
@@ -380,7 +382,7 @@ M.variants = {
 			local b = a + 9 + 12
 			island(parts, b, 9, 0, 0, 10, 3)
 			local f = b + 9 + 24
-			island(parts, f, 8, 0, 0, 10, 1, { marker = "sign:LOWER GRAVITY" })
+			island(parts, f, 8, 0, 0, 10, 1, { marker = "pic:moon2" })
 			local length = f + 8
 			bubble(parts, 0, b + 2, 0.5, 0, 0) -- ends 2.5 short of the last take-off island's middle
 			bubble(parts, b + 2, length, 0.25, 0, 0)
@@ -404,7 +406,9 @@ M.variants = {
 				rims(parts, island(parts, x, long, top, 0, 10, 1 + i % 3))
 				x += long
 			end
-			bubble(parts, 0, x, g, 0, top)
+			-- 6 taller than the arc needs: the dome narrows towards its ends, and the last float's high point (near the
+			-- end, 16 up) would poke out of a dome sized to the box
+			bubble(parts, 0, x, g, 0, top + 6)
 			table.insert(
 				parts,
 				Kit.prop(

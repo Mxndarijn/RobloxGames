@@ -364,6 +364,52 @@ describe("Clue Doors", function()
 			end
 		end
 	end)
+	it("shows the clue on one board centred over the doors, the same place in every room", function()
+		-- a clue board's frame is its one "plank" part. Over the doors: centred across the lane, its bottom over the
+		-- wall top (so it covers no doorway), no wider than the lane. Elsewhere on purpose, still centred: Floor Clue
+		-- (on the landing pad), Remember It and the generator's "remember" (over the first hole, none at the doors),
+		-- and Two Rooms' second-room boards (one at the end of each first-room corridor).
+		local ELSEWHERE = { ["Floor Clue"] = true, ["Remember It"] = true }
+		local bad = {}
+		eachCase(function(name, index, tier)
+			local variant = if index > 0 then ClueDoors.variants[index].name else ""
+			for seed = 1, 20 do
+				local section, rooms = ClueDoors.inspect(index, seed, tier)
+				local room = rooms[1]
+				local over, other = 0, 0
+				for _, p in section.parts do
+					if p.look ~= "plank" then
+						continue
+					end
+					local x0, x1, y0, _, z0, z1 = Kit.bounds(p)
+					local z = (z0 + z1) / 2
+					local atWall = math.abs((x0 + x1) / 2 - (room.x0 - 1)) < 0.5
+					if atWall and math.abs(z) < 1e-6 and y0 >= room.top + Kit.WALL_HEIGHT - 1e-6 then
+						over += 1
+						if z1 - z0 > Kit.WIDTH then
+							table.insert(bad, `{name} seed {seed}: the board is {z1 - z0} wide`)
+						end
+					elseif variant == "Two Rooms" and table.find(room.centres, z) and x0 > room.x0 then
+						continue -- a second-room board at the end of a first-room corridor
+					else
+						other += 1
+						if math.abs(z) > 1e-6 then
+							table.insert(bad, `{name} seed {seed}: a clue board off the lane's middle (z {z})`)
+						end
+					end
+				end
+				local ok = if ELSEWHERE[variant]
+					then over == 0 and other == 1
+					elseif index == 0 then over + other == 1
+					else over == 1 and other == 0
+				if not ok then
+					table.insert(bad, `{name} seed {seed}: {over} boards over the doors, {other} elsewhere`)
+				end
+			end
+		end)
+		expect(table.concat(bad, "\n")).toBe("")
+	end)
+
 	it("keeps a wrong corridor too long to run and jump across before its trapdoor drops", function()
 		-- the furthest a runner gets from the door wall over a trapdoor: a jump in (taken at the wall), 0.25 s of
 		-- running, a jump out

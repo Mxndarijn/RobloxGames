@@ -14,6 +14,7 @@ the variants page. Build every variant listed there, tuned per "Difficulty" belo
 src/shared/ObbyCourse.luau          core: types, pick, build, floors, spans, frames (no section builders any more)
 src/shared/ObbySections/init.luau   registry: requires every idea module, exposes ObbySections.ALL / byId
 src/shared/ObbySections/Kit.luau    shared builder helpers (slab, hazard, row, chevrons, ...): see §6
+src/shared/ObbySections/Vine.luau   the rope swing's physics (pure), shared by ObbyMoves and the checks (§7 vine)
 src/shared/ObbySections/<Id>.luau   one module per idea (Id = PascalCase name: CrusherAlley, MeltingFloor, ...)
 src/visuals/client/ObbyFx.luau      plays motions, triggers, keys, hazards (client)
 src/visuals/client/ObbyMoves.luau   character controllers: boost, slide, sticky, vine, cannon, moon, dark (client)
@@ -68,14 +69,14 @@ Existing: `size, pos, look, shape, ghost, motion, conveyor, ice, step, tone, lin
 | `boost` | { speed, carry } | standing on it sets the local WalkSpeed to `speed` (studs/s); it eases back to 16 `carry` s after you leave. `speed < 16` slows (back strips). |
 | `slide` | { pull, cap } | slippery slide controller while standing on it (§7). Implies the ice look. |
 | `sticky` | { fall } | sticky wall: in the air touching it you hold on and slide down at `fall` studs/s; jump throws you off (§7). |
-| `vine` | { reach } | swing rope end: touching within `reach` of the part's bottom grabs it (§7). Use with motion `swing`. |
+| `vine` | { reach, hint } | a rope's grab knob: within `reach` studs of your body (feet to head) grabs you (§7); `hint` = seconds of the let-go flight the dots show. Use with motion `swing` (axis `"x"` along the course, else across). |
 | `cannon` | { power, arc } | cannon seat (§7). Use with motion `sweep`. |
 | `zone` | { kind, ... } | an invisible box the client checks the root against: `kind = "moon"` (`gravity` factor 0.2-0.6), `"dark"` (`light` radius studs), `"lift"` handled by motion lift. Ghost. |
 | `key` | string | a pickup of key group G (§5). Ghost, floats, sparkles. |
 | `gate` | { group, need } | solid until the local player holds `need` keys of `group`; then opens (fades, not solid). |
 | `trigger` | string | touching it (standing on it or entering it) starts the per-player clock of group G (§5). |
 | `start` | string | this part's motion runs on the per-player clock of group G instead of server time (§5). |
-| `marker` | string | readability decor kind to add (§8): "rings1".."rings3", "chevrons", "arrows", "handprints", "cracks", "star", "rail", "ghostStop", "sign:<text>". |
+| `marker` | string | readability decor kind to add (§8): "rings1".."rings3", "chevrons", "arrows", "handprints", "cracks", "star", "rail", "ghostStop", "pic:<id>[,<id>...]" (asks for a picture sign banner over the part, §8b). |
 | `beat` | number | snap this part's motion period to the beat clock: period = `beat` beats at `Kit.BPM`. |
 
 ## 4. Motions (ObbyCourse.Motion `kind`)
@@ -92,7 +93,9 @@ punching part must be a `hazard` (it no longer shoves: touching = reset). Change
 | `path` | `points, period, hold, loop, once` | moves through course-local offsets `points` (first = rest = {0,0,0}); `hold` seconds at each point; `loop = true` returns to the first point by going on, else ping-pongs; `once = true` (with `start`) runs a single trip then stays. Carries a standing player (sets AssemblyLinearVelocity). Rides, sliding walls, rolling balls (`spinRoll = true` turns a ball), drips (one-way: `loop = true` with a `jump` back), orbits (points on a circle). |
 | `sink` | `depth, speed` | lowers while the local player stands on it, rises back once they leave. |
 | `rise` | `speed, delay, stop` | flood: moves up at `speed` studs/s after `delay`, on its `start` clock, up to `stop` studs; a `hazard` part. |
+| `flood` | `keys` | one goo part that grows (Rising Goo; Merijn, 2026-11-01: scale one part, no new part per phase): `keys = { {t, up} }` on its `start` clock, times ascending, `up` never going down; the top surface rises `up` studs over its rest top, piecewise linear between keys (equal heights hold), 0 before the first and the last height after it (`Kit.floodAt`). Its bottom stays put: the client grows Size.Y and moves the centre up by half. The checks read it as the top moving (Kit.offsetAt's dy); a `hazard` part. |
 | `drop` | `at` | collapse: on its `start` clock, cracks 0.8 s before `at` s, then falls away (not solid). `at` per piece (Kit.collapseTimes computes them from the path distance). Back when the player is reset. |
+| `swing` | + `axis` | `axis = "x"` swings along the course (turning round the across axis, +angle forward); default across it. A vine rope is a real pendulum: `period = Vine.period(arm)`. |
 | `sweep` | `amp, period, hold` | turns round its vertical axis between `-amp` and `+amp` degrees with `hold` seconds at each end (cannon aim, turning gates). |
 | `turn` | `period, duty` | a belt whose `conveyor` points one way while `cycle < duty` and the opposite way after; chevrons flip, glow + tick 1 s before. |
 | `pattern` | `beats, period` | a crusher/puncher/flip running a list of beats over one period: `beats = { {at, kind, amount} }` (kind "slam" / "half" / "rest"). Used with `axis`, `amp`. |
@@ -138,12 +141,24 @@ when it ends (WalkSpeed 16, gravity, camera) and on every reset.
   stops the slide.
 * **sticky**: airborne and within 1.2 studs of a `sticky` wall face: horizontal speed into the wall zeroed, fall
   speed held at `sticky.fall`; jump throws you off at 30 studs/s away from the face + 45 up. Squelch on stick.
-* **vine**: touching the rope end grabs it: the root follows the end's CFrame each frame (humanoid PlatformStand);
-  jump lets go with the end's velocity + 20 up. "Jump to let go" hint the first 3 grabs.
+* **vine** (reworked 2026-11-01, Merijn: "they are not fun"; physics in `src/shared/ObbySections/Vine.luau`, shared
+  with the checks): the feel of a classic platformer rope swing. A knob within `vine.reach` of your body grabs you,
+  in a jump or walking at it (on the ground only while you walk at it). You hang under it, arms up on the knob,
+  body leaning with the rope, on a real pendulum (gravity `Vine.G` 110, about 2 s a swing) that keeps 85 % of the
+  speed you came in with; holding the stick along the swing pumps it (26 studs/s²) up to 62°, and it fades slowly
+  when you let go of the stick. A fresh jump press (not a held jump) after 0.25 s lets go: you fly off with the
+  swing's speed along its arc + 12 up, and the air steering only turns or brakes that flight. While you hang, 6
+  dots show the flight's first `vine.hint` s (easy 0.9, medium 0.5, hard 0.3), mint when it ends on a safe floor
+  or in another rope's reach, red otherwise. The rope you leave swings on and eases back to its server-time swing
+  over 0.8 s (ObbyFx reads the held angle from the knob's `ObbyHeldAngle` attribute). Squelch and a goo puff on a
+  grab, a whoosh and a puff on a let go, a Beam from the knob to your hands. "Jump to let go" the first 3 grabs.
 * **cannon**: walking into the barrel snaps you in (PlatformStand, camera behind the barrel); jump fires: your root
   follows the fixed arc for the barrel's current aim (`power`, `arc` degrees up) and is handed back to physics 2
   studs above the landing. A dotted aim line shows the arc (red where it would hit a hazard or miss).
 * **moon**: inside a `moon` zone a VectorForce cancels `(1 - gravity)` of workspace gravity on the character.
+  "Inside" is the bubble dome the zone draws (the ellipsoid inscribed in its box, `ObbyZone` shape `"ellipsoid"`),
+  not the box: its ends and corners are outside, so size the box so the dome holds the route (tests/ObbyCheck and
+  tests/obby/MoonJump.spec test the same dome).
 * **dark**: inside a `dark` zone Lighting fades to night over 0.6 s (via ObbyWorld's restore so nothing leaks) and
   a PointLight of `light` studs sits on the root. Leaving fades back.
 * The fall/hazard reset (`ObbyFall.reset`) ends every controller first.
@@ -154,7 +169,7 @@ One look per behaviour, same everywhere, plus a sound when it acts:
 
 | behaviour | look |
 |---|---|
-| hazard | `hazard`: red (235, 70, 90), transparency 0.45, SmoothPlastic, slight pulse |
+| hazard | `hazard`: danger red (215, 20, 25), transparency 0.25, SmoothPlastic, dark outline on box-shaped hazards (`HAZARD_EDGE` SelectionBox; balls, logs and discs get none, it would cage them), slight pulse. No floor, prop or jelly uses red or pink, so red always means danger |
 | sticky | `sticky`: lime green with drip parts on the bottom edge + `handprints` marker; squelch |
 | bounce | `spring`: orange pad + 1-3 ring markers for its power; boing |
 | slippery | `ice` (exists): glossy pale blue + frost sparkle emitter; skid sound |
@@ -166,8 +181,48 @@ One look per behaviour, same everywhere, plus a sound when it acts:
 | moon / dark zones | see-through bubble dome with sparkles / darker tint |
 
 No Neon on large parts (it blooms); small Neon details are fine. No Glass. Markers are extra decor parts (ghost,
-no collision, CanQuery false) and count toward the part budget. Sounds: use existing game sound helpers if any,
+no collision, CanQuery false) and count toward the part budget. Looks solid means is solid: a ghost part you
+pass through is not an opaque slab at body height or over the void where it reads as a floor, wall or door. A look
+used both ways sets `ghostTransparency` in `LOOKS` (a ghost `fan` vent shows as a see-through grille), and a fan
+under a column over a safe floor lies in that floor (Updraft `Column.floor`). Sounds: use existing game sound helpers if any,
 else `rbxasset://sounds/...` built-ins; never upload audio. Every sound is quiet and short.
+
+## 8b. Picture signs (docs/obby-signs-proposal.html; Merijn, 2026-11-01)
+
+Signs are pictures only: no words (no FAST, SAFE, LOW GRAVITY, ...). Digits and arrows only where the proposal uses
+them (a stopwatch's seconds, Rising Goo's 3 2 1, the cannon's step numbers). A multi-step mechanic shows all its
+steps on one board (the cannon: walk in from behind, it swings, jump when the dots are mint, land on the star).
+
+* One design for every sign (Merijn: "the boards should be overhanging, so from the most left side to the right
+  side ... give it boosters or something so it can fly and look nice and place higher"): a ghost `banner` part
+  spanning the lane (`ObbyCourse.SIGN.width`, left lane edge to right lane edge), its bottom `SIGN.lift` (12) studs
+  over the floor at its spot, held up by a cartoon booster under each end (adornments plus a built-in fire-particle
+  flame blowing down, `ObbySigns.boosters`), hovering `SIGN.bob` up and down over `SIGN.bobPeriod` s (a `slide`
+  motion on the y axis, played by ObbyFx on the shared clock: no loop of its own). No posts.
+* One picture = one square slot (`SIGN.slot`). A sign's slots sit across the banner, each over the part of the lane
+  it is about (`pic:<id>@<z>` on the banner; Two Roads: the shield over the left road, the lightning over the right;
+  terraces low / middle / high left to right), kept `SIGN.pad` apart and on the banner. Entry signs space their slots
+  evenly round the middle; the cannon's four steps are four slots (`cannon1..cannon4`).
+* Pictograms live in `src/visuals/shared/ObbySigns.luau` (ids `ObbySigns.IDS`): Frames, UICorner, UIStroke, rotated
+  Frames and digit TextLabels on a SurfaceGui on the banner's face towards the runner, no uploads. How they are drawn
+  in `ObbySigns.SIZE` (50 px/stud, MaxDistance 60, main shapes >= 1.3 studs; the booster sizes); the banner's
+  geometry in `ObbyCourse.SIGN`.
+* Entry signs: `ObbySections.ENTRY_SIGNS` names the pictures for the 15 ideas the proposal found unclear (Updraft,
+  Climb, Glow Memory, Rolling Blobs, Vine Swing, Speed Strip, Lights Out, Beat Pads, Key Run, Geyser Field, Sticky
+  Walls, Arrow Maze, Aim the Cannon, Moon Jump, Clue Doors). A section can name its own with `Section.sign` (Glow
+  Memory's modes). The banner hangs over the section's first step.
+* Spot signs: a `pic:<id>` marker on a part asks for a banner over that spot (Two Roads' roads, Key Run's stopwatch
+  gate, Rising Goo's countdown arch, Moon Jump's two moons); the marker draws nothing on the part (`ObbyCourse.build`
+  drops it). Marked parts whose near ends lie within `SIGN.group` studs share one banner (a fork's roads); its floor
+  is the highest of their tops.
+* `ObbyCourse.signs(section, idea)` places them all: from the spot it tries banner positions along the course
+  (`SIGN.tries`) inside the section and takes the first where the banner, its boosters (`SIGN.hang`, `SIGN.reach`)
+  and its hover are clear of every part over that part's whole motion (`ObbyCourse.bannerBox`; zones and floods
+  excepted: they cover the section by design) and of the other banners. Banner ids `p<section>-<n>`. Each sign is
+  `ObbyCourse.SIGN_PARTS` (1) part toward the section's budget: the boosters and pictures are adornments, particles
+  and a SurfaceGui on it.
+* `ObbyCheck.fields` refuses a `pic:` id ObbySigns doesn't know and any `sign:<text>` marker; `ObbyCheck.signs`
+  fails a section whose sign finds no clear spot.
 
 ## 9. Checks every variant must pass (tests/ObbyCheck + ObbySections.spec)
 
@@ -234,15 +289,26 @@ The old course was too easy. Tiers shift up one notch from the drafts:
   just walking. Windows <= 2.0 s.
 * **medium** = the drafts' hard-but-fair; two mechanics overlapping (e.g. hazards on moving rides). Windows 1.0-1.4 s.
 * **hard** = tight: windows 0.75-1.0 s, small margins, long sequences without a rest. Still passes every check.
+* **Forgiveness (2026-11-01, Merijn: "make people have less accidents by mistake")**: spinners turn 1.3-1.5x slower
+  (Merry-Go-Round, Ice Slide and Updraft sweepers), crushers rest 13 studs up (a jumping head clears them), and hazards
+  reset only 0.4 studs inside their drawn edge (`ObbyFx.HAZARD_GRACE`). Windows may now run up to 2.5 / 1.8 / 1.4 s
+  (easy / medium / hard); the masher and walk-forward checks still decide what is too easy.
 Where a draft variant is too easy for its tier after this shift, tighten its numbers (shorter windows, longer
 gaps up to the limits, more hazards, faster motions); don't drop it.
+
+Vine Swing's windows are per swing, not per cycle: you hang as long as you like, so a window is the time in one
+full (pumped) swing in which a let go lands on the next step (tests/obby/VineSwing.spec): easy 0.3-0.8 s, medium
+0.2-0.45 s, hard 0.15-0.3 s. The spec's player bot (pumps, lets go when the flight lands) must clear every variant
+from 90 % of start times, and a masher bot (holds forward, jumps on every landing, lets go once it can) from at most
+20 %.
 
 ## 11. Settled while building the kit (these win over earlier wording)
 
 * Rotation: `CFrame.fromEulerAnglesYXZ(rad(pitch), rad(yaw), rad(roll))` in the course frame. A positive `roll`
   lifts the part's forward (+x) end: that is how a ramp climbs (`Kit.ramp` sets it). `pitch` banks sideways.
 * `Pick = { id, tier, variant, seed }`; `variant = 0` is the idea's generator. Part ids: `s` start, `h` home catch
-  pad, `f` finish, `l<n>` connectors, `<section>.<index>` section parts; `motion.next` holds those ids.
+  pad, `f` finish, `l<n>` connectors, `p<section>-<n>` sign banners (§8b), `<section>.<index>` section parts;
+  `motion.next` holds those ids.
 * Motion timing has ONE source of truth: `Kit.offsetAt / pathAt / patternAt / sweepAt / punchAt / conveyorAt`. The
   checks sample them and ObbyFx plays them, so what a player sees is what the checks measured.
 * Markers are anchored direct children of their host part (ObbyFx moves and fades them with it); `ghostStop` stays

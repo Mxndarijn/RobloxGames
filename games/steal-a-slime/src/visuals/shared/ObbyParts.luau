@@ -22,9 +22,11 @@
 	put in the world and sits in the Course model (named "GhostStop", attribute ObbyHost = the host's id). Particles
 	and ring adornments add no parts. MARKER_PARTS lists how many parts each marker adds, for the part budget (§9).
 
-	Signs: a `sign:<text>` marker is a SurfaceGui board (guides/roblox-world-labels.md): its 1.3-stud line reads from
-	about 26 studs on a phone; MaxDistance 60. The Goo Ring sign is a SurfaceGui too: its 1-stud line reads from about
-	20 studs on a phone; the runner appears about 7 studs from it.
+	Signs: a `banner` part (ObbyCourse.signs hangs it over the lane) with a `pic:` marker shows its wordless pictures
+	on a SurfaceGui on the face towards the runner (visuals/shared/ObbySigns; guides/roblox-world-labels.md): main
+	shapes 1.3 studs or more, so it reads from about 26 studs on a phone; MaxDistance 60. ObbySigns.boosters puts a
+	flaming booster under each end; the banner hovers with its `slide` motion (ObbyFx). The Goo Ring sign is a
+	SurfaceGui with text: its 1-stud line reads from about 20 studs on a phone; the runner appears about 7 studs from it.
 ]]
 
 local HttpService = game:GetService("HttpService")
@@ -33,6 +35,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
 local ObbyCourse = require(Shared:WaitForChild("ObbyCourse"))
+local ObbySigns = require(script.Parent:WaitForChild("ObbySigns"))
 
 local ObbyParts = {}
 
@@ -60,18 +63,21 @@ ObbyParts.MARKER_PARTS = table.freeze({
 	star = 2,
 	rail = 2,
 	ghostStop = 2,
-	sign = 1,
+	pic = 0, -- a banner's pictures and boosters are a SurfaceGui, adornments and flames on the banner itself
 })
 
 -- Look per part kind: colour (or three tones), material, transparency. No Neon on big parts: it blooms into blobs
 -- against the obby sky, so even the "glow" tiles are saturated SmoothPlastic. No Glass anywhere.
-type Look = { colors: { Color3 }, material: Enum.Material, transparency: number? }
+-- `ghostTransparency`: the look's transparency on a ghost part (no collision), for a look that is also used solid.
+-- A solid look you fall straight through must not read as a floor (contract §8).
+type Look = { colors: { Color3 }, material: Enum.Material, transparency: number?, ghostTransparency: number? }
 local LOOKS: { [string]: Look } = {
 	start = { colors = { Color3.fromRGB(120, 226, 170) }, material = Enum.Material.SmoothPlastic },
 	pad = { colors = { Color3.fromRGB(214, 226, 238) }, material = Enum.Material.SmoothPlastic },
 	finish = { colors = { Color3.fromRGB(255, 206, 64) }, material = Enum.Material.SmoothPlastic },
 	jelly = {
-		colors = { Color3.fromRGB(255, 120, 190), Color3.fromRGB(120, 220, 120), Color3.fromRGB(110, 170, 255) },
+		-- tone 1 is violet, not pink: red is kept for hazards only
+		colors = { Color3.fromRGB(185, 140, 255), Color3.fromRGB(120, 220, 120), Color3.fromRGB(110, 170, 255) },
 		material = Enum.Material.SmoothPlastic,
 		transparency = 0.15,
 	},
@@ -98,7 +104,13 @@ local LOOKS: { [string]: Look } = {
 		material = Enum.Material.SmoothPlastic,
 	},
 	post = { colors = { Color3.fromRGB(70, 60, 90) }, material = Enum.Material.SmoothPlastic },
-	bar = { colors = { Color3.fromRGB(235, 70, 120) }, material = Enum.Material.SmoothPlastic },
+	-- A picture sign's banner (ObbyCourse.SIGN, ObbyCourse.signs), the sign colour; its pictures are the `pic:` marker.
+	banner = { colors = { Color3.fromRGB(46, 38, 70) }, material = Enum.Material.SmoothPlastic },
+	-- Decor in the hazard red, only where danger comes from: a launcher mouth's rim (`danger`) and the next ball waiting
+	-- in it (`loaded`, see-through like the hazard). Rolling Blobs.
+	danger = { colors = { Color3.fromRGB(215, 20, 25) }, material = Enum.Material.SmoothPlastic },
+	loaded = { colors = { Color3.fromRGB(215, 20, 25) }, material = Enum.Material.SmoothPlastic, transparency = 0.25 },
+	bar = { colors = { Color3.fromRGB(170, 110, 240) }, material = Enum.Material.SmoothPlastic },
 	cannon = { colors = { Color3.fromRGB(70, 66, 96), Color3.fromRGB(255, 140, 40) }, material = Enum.Material.Metal },
 	blob = {
 		colors = { Color3.fromRGB(130, 230, 90) },
@@ -110,8 +122,14 @@ local LOOKS: { [string]: Look } = {
 		material = Enum.Material.SmoothPlastic,
 		transparency = 0.7,
 	},
-	truss = { colors = { Color3.fromRGB(255, 120, 190) }, material = Enum.Material.SmoothPlastic },
-	fan = { colors = { Color3.fromRGB(90, 96, 120) }, material = Enum.Material.DiamondPlate },
+	truss = { colors = { Color3.fromRGB(185, 140, 255) }, material = Enum.Material.SmoothPlastic },
+	-- A fan is solid only where it lies on (or is) a floor; a ghost fan (the vent plate under a column floating over
+	-- the void, a wind tunnel's end plate you hop through) shows see-through, a grille, not a platform.
+	fan = {
+		colors = { Color3.fromRGB(90, 96, 120) },
+		material = Enum.Material.DiamondPlate,
+		ghostTransparency = 0.6,
+	},
 	plank = {
 		colors = { Color3.fromRGB(200, 150, 90), Color3.fromRGB(180, 130, 75) },
 		material = Enum.Material.Wood,
@@ -130,10 +148,12 @@ local LOOKS: { [string]: Look } = {
 		transparency = 0.15,
 	},
 	-- One look per behaviour (contract §8).
+	-- Danger red, darker and more solid than any floor, with a dark outline (HAZARD_EDGE) so it never reads as a pink
+	-- platform. Still see-through enough to see what's behind it.
 	hazard = {
-		colors = { Color3.fromRGB(235, 70, 90) },
+		colors = { Color3.fromRGB(215, 20, 25) },
 		material = Enum.Material.SmoothPlastic,
-		transparency = 0.45,
+		transparency = 0.25,
 	},
 	sticky = {
 		colors = { Color3.fromRGB(175, 240, 40), Color3.fromRGB(150, 215, 30) },
@@ -144,7 +164,8 @@ local LOOKS: { [string]: Look } = {
 		colors = { Color3.fromRGB(255, 150, 50), Color3.fromRGB(255, 120, 40) },
 		material = Enum.Material.SmoothPlastic,
 	},
-	ice = { colors = { Color3.fromRGB(190, 230, 255) }, material = Enum.Material.Ice },
+	-- Glossy see-through ice (Reflectance and the frost, core, streak and icicle adornments: ICE_LOOK, iceDecor).
+	ice = { colors = { Color3.fromRGB(95, 180, 245) }, material = Enum.Material.Ice, transparency = 0.15 },
 	wind = {
 		colors = { Color3.fromRGB(205, 230, 250) },
 		material = Enum.Material.SmoothPlastic,
@@ -175,6 +196,12 @@ local LOOKS: { [string]: Look } = {
 	},
 }
 
+-- The outline every hazard gets (a SelectionBox), so red goo stands out from every floor.
+local HAZARD_EDGE = table.freeze({
+	color = Color3.fromRGB(90, 0, 10),
+	thickness = 0.12, -- studs
+})
+
 -- Old look names some drafts still use, mapped onto the one look for their behaviour.
 local ALIASES: { [string]: string } = {
 	trampoline = "spring",
@@ -199,15 +226,22 @@ local MARK = table.freeze({
 	starSize = 1.6, -- each of the star's two squares
 	starLift = 2.5, -- the star's centre above the top
 	ghostTransparency = 0.82,
-	lockSize = Vector3.new(0.9, 0.8, 0.3), -- body; the shackle is a ring adornment on top
-	lockGap = 1.3, -- lock spacing on the gate face
-})
-
--- Sign boards (sign:<text> markers). The text line is 1.3 studs: about 26 studs read distance on a phone.
-local SIGN = table.freeze({
-	size = Vector3.new(8, 1.8, 0.2),
-	lift = 4.5, -- bottom of the board above the host's top: above a character's head
-	maxDistance = 60,
+	-- A padlock icon (addLocks), sized to read from about 20 studs on a phone (the whole lock is about 2.2 x 3).
+	lockWide = 2.2, -- body width across the gate face
+	lockHigh = 1.8, -- body height
+	lockProud = 0.35, -- how far the body stands out of each gate face (the shackle sits in that slab)
+	lockGap = 3, -- lock spacing on the gate face (centre to centre)
+	shackleOuter = 0.85, -- the shackle's arch: outer radius
+	shackleInner = 0.55, -- inner radius (its bar is 0.3 thick)
+	shackleThick = 0.22, -- the arch's thickness along the runner's line
+	shackleShut = 0.35, -- the arch's centre over the body top, shut
+	shackleOpen = 1, -- popped up, once its key is in
+	shackleLeg = 1.3, -- leg length from the arch's centre down into the body
+	keyholeRadius = 0.25,
+	keyholeSlot = Vector2.new(0.22, 0.6), -- the slot under the keyhole's circle (wide, tall)
+	shackleSteel = Color3.fromRGB(215, 215, 230), -- a shut lock's shackle (ObbyFx turns it gold with the body)
+	keyholeShut = Color3.fromRGB(240, 235, 250), -- light on the dark shut body
+	keyholeOpen = Color3.fromRGB(70, 60, 90), -- dark on the gold open body
 })
 
 -- Particle rates are kept low on purpose: a course can have a dozen ice or wind parts in view.
@@ -233,6 +267,54 @@ local HOME = table.freeze({
 })
 
 local ICE = PhysicalProperties.new(0.9, 0, 0.5, 100, 1)
+
+-- The ice look's extras (iceDecor; the base colour and see-through are LOOKS.ice). All adornments and particles, no
+-- parts, so ice adds nothing to the part budget. Only still box ice gets the adornments: they don't fade with a part
+-- that blinks or moves (ObbyFx fades decor parts only), and a disc or log has no flat top edge. Studs unless noted.
+-- Never dark lines: dark cracks mean "about to fall" (contract §8), so every mark on ice is white or pale blue.
+local ICE_LOOK = table.freeze({
+	reflectance = 0.22, -- glossy: picks up the sky (more washes it out to cloud white)
+	-- A deeper blue block inside the see-through slab, so the ice has depth.
+	core = Color3.fromRGB(40, 125, 220),
+	coreTransparency = 0.35,
+	coreInset = 0.45, -- in from each side of the slab
+	coreDepth = 0.5, -- of the slab's thickness, from its bottom
+	-- A frosty white lip round the top edges (a band just proud of the four side faces).
+	frost = Color3.fromRGB(240, 250, 255),
+	frostTransparency = 0.05,
+	frostBand = 0.22, -- how far down the sides it reaches
+	frostProud = 0.06, -- how far it stands out of the sides
+	-- Shine marks: pairs of short parallel strokes slanted across the run (a cartoon glare), and fine pale fracture lines.
+	-- Strokes along the run read as lane lines, so they are slanted.
+	streak = Color3.fromRGB(255, 255, 255),
+	streakTransparency = 0.5,
+	streakWidth = 0.16,
+	streakLength = NumberRange.new(1.2, 2.6), -- the first stroke; the second is streakSecond of it
+	streakSecond = 0.6,
+	streakGap = 0.45, -- between the two strokes
+	streakAngle = NumberRange.new(28, 42), -- degrees off the run's direction
+	streakEvery = 7, -- one streak per streakEvery x streakEvery studs of top
+	streakMax = 6,
+	crack = Color3.fromRGB(200, 235, 255),
+	crackTransparency = 0.2,
+	crackWidth = 0.08,
+	crackMax = 2,
+	markHeight = 0.04, -- thickness of the flat marks, lifted MARK.lift off the top
+	markMinArea = 40, -- square studs of top a slab needs for marks: on a corkscrew's small pieces they'd crowd
+	-- Icicles under the two long side edges.
+	icicle = Color3.fromRGB(225, 245, 255),
+	icicleTransparency = 0.25,
+	icicleEvery = 3.5, -- one icicle slot per this much edge length
+	icicleMax = 5, -- per side
+	icicleMinRun = 12, -- only on slabs this long: short pieces of a bend overlap, so an icicle would show under the next
+	icicleRadius = NumberRange.new(0.2, 0.35),
+	icicleLength = NumberRange.new(0.7, 1.8),
+	icicleOut = 0.1, -- the cone's axis this far outside the side face: from above it hangs beside the slab, not under it
+	-- Short bright glints on the top, on top of the slow frost mist (FX.frostRate).
+	glintRate = 2.5,
+	glintSize = 0.8,
+	glintLife = NumberRange.new(0.25, 0.45),
+})
 
 -- Behaviour fields that go into ObbySpec (contract §10b), exactly these.
 local SPEC_FIELDS = {
@@ -372,13 +454,149 @@ local function ringAdornment(adornee: BasePart, offset: CFrame, outer: number, i
 	ring.Parent = adornee
 end
 
+-- A box adornment on `adornee` at `offset` (its own frame), drawn in the world (not on top).
+local function boxAdornment(
+	adornee: BasePart,
+	name: string,
+	size: Vector3,
+	offset: CFrame,
+	color: Color3,
+	transparency: number
+)
+	local box = Instance.new("BoxHandleAdornment")
+	box.Name = name
+	box.Adornee = adornee
+	box.Size = size
+	box.CFrame = offset
+	box.Color3 = color
+	box.Transparency = transparency
+	box.ZIndex = 0
+	box.Parent = adornee
+end
+
+-- A stable seed from a part's ObbyId, so the same course always gets the same streaks and icicles.
+local function seedOf(id: string): number
+	local h = 7
+	for i = 1, #id do
+		h = (h * 31 + string.byte(id, i)) % 2147483647
+	end
+	return h
+end
+
+-- The ice look's extras (ICE_LOOK) on box ice part `part` of data size `s`: gloss, glints, and when `still`, a deep
+-- blue core, frosty white lips along the two long sides, shine streaks and pale fracture lines along the top, and
+-- icicles under the long edges. Adornments follow the part's CFrame, so slopes and banks need nothing extra.
+local function iceDecor(part: BasePart, s: Vector3, up: Enum.NormalId, still: boolean)
+	local L = ICE_LOOK
+	part.Reflectance = L.reflectance
+	emitter(part, ColorSequence.new(Color3.new(1, 1, 1)), L.glintRate * math.clamp(s.X * s.Z / 100, 0.3, 2), {
+		EmissionDirection = up,
+		Speed = NumberRange.new(0),
+		Lifetime = L.glintLife,
+		LightEmission = 1,
+		RotSpeed = NumberRange.new(0),
+		Rotation = NumberRange.new(0, 90),
+		Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(0.4, L.glintSize),
+			NumberSequenceKeypoint.new(1, 0),
+		}),
+		Transparency = NumberSequence.new(0),
+	})
+	if not still or up ~= Enum.NormalId.Top or not part:IsA("Part") or part.Shape ~= Enum.PartType.Block then
+		return
+	end
+	local id = part:GetAttribute(Constants.OBBY_ID)
+	local rng = Random.new(seedOf(if type(id) == "string" then id else tostring(s)))
+	local top = s.Y / 2
+
+	-- Deep core.
+	local inset = math.min(L.coreInset, s.X / 4, s.Z / 4)
+	local coreH = s.Y * L.coreDepth
+	boxAdornment(
+		part,
+		"IceCore",
+		Vector3.new(s.X - 2 * inset, coreH, s.Z - 2 * inset),
+		CFrame.new(0, -top + coreH / 2 + 0.01, 0),
+		L.core,
+		L.coreTransparency
+	)
+	-- Frosty lips along the long (Z) sides: pieces of a slide chain along X, so no white bars across the run.
+	local band = math.min(L.frostBand, s.Y)
+	for _, side in { -1, 1 } do
+		boxAdornment(
+			part,
+			"IceFrost",
+			Vector3.new(s.X, band, 2 * L.frostProud),
+			CFrame.new(0, top - band / 2 + L.frostProud / 2, side * s.Z / 2),
+			L.frost,
+			L.frostTransparency
+		)
+	end
+	-- Flat marks lying on the top.
+	local flatY = top + MARK.lift + L.markHeight / 2
+	local halfZ = math.max(0, s.Z / 2 - 1)
+	local area = s.X * s.Z
+	local streaks = if area >= L.markMinArea
+		then math.clamp(math.floor(area / (L.streakEvery * L.streakEvery)), 1, L.streakMax)
+		else 0
+	for _ = 1, streaks do
+		local length = math.min(s.X * 0.6, s.Z * 0.6, rng:NextNumber(L.streakLength.Min, L.streakLength.Max))
+		local reach = math.max(0, s.X / 2 - length)
+		local at = CFrame.new(rng:NextNumber(-reach, reach), flatY, rng:NextNumber(-halfZ, halfZ) * 0.7)
+			* CFrame.Angles(0, math.rad(rng:NextNumber(L.streakAngle.Min, L.streakAngle.Max)), 0)
+		local size = Vector3.new(length, L.markHeight, L.streakWidth)
+		boxAdornment(part, "IceStreak", size, at, L.streak, L.streakTransparency)
+		local second = Vector3.new(length * L.streakSecond, L.markHeight, L.streakWidth)
+		boxAdornment(part, "IceStreak", second, at * CFrame.new(0, 0, L.streakGap), L.streak, L.streakTransparency)
+	end
+	if area >= L.markMinArea then
+		for _ = 1, rng:NextInteger(1, L.crackMax) do
+			-- A crack of two strokes with a kink between them.
+			local x, z = rng:NextNumber(-0.35, 0.35) * s.X, rng:NextNumber(-halfZ, halfZ) * 0.8
+			local a = rng:NextNumber(0, math.pi)
+			for k = 1, 2 do
+				local length = rng:NextNumber(1, 2.4)
+				local dx, dz = math.cos(a), math.sin(a)
+				local cf = CFrame.new(x + dx * length / 2, flatY, z + dz * length / 2) * CFrame.Angles(0, -a, 0)
+				local size = Vector3.new(length, L.markHeight, L.crackWidth)
+				boxAdornment(part, "IceCrack", size, cf, L.crack, L.crackTransparency)
+				x, z = x + dx * length, z + dz * length
+				a += rng:NextNumber(0.5, 0.9) * (if k == 1 and rng:NextNumber() < 0.5 then -1 else 1)
+			end
+		end
+	end
+	-- Icicles hanging under the long edges (a cone adornment's tip points along its LookVector: turned to point down).
+	local slots = if s.X >= L.icicleMinRun then math.min(math.floor(s.X / L.icicleEvery), L.icicleMax) else 0
+	for _, side in { -1, 1 } do
+		for i = 1, slots do
+			if rng:NextNumber() < 0.75 then
+				local x = -s.X / 2 + (i - 0.5 + rng:NextNumber(-0.3, 0.3)) * s.X / slots
+				local cone = Instance.new("ConeHandleAdornment")
+				cone.Name = "Icicle"
+				cone.Adornee = part
+				cone.CFrame = CFrame.new(x, -top + 0.05, side * (s.Z / 2 + L.icicleOut))
+					* CFrame.Angles(-math.pi / 2, 0, 0)
+				cone.Radius = rng:NextNumber(L.icicleRadius.Min, L.icicleRadius.Max)
+				cone.Height = rng:NextNumber(L.icicleLength.Min, L.icicleLength.Max)
+				cone.Color3 = L.icicle
+				cone.Transparency = L.icicleTransparency
+				cone.ZIndex = 0
+				cone.Parent = part
+			end
+		end
+	end
+end
+
 -- The particles and adornments each behaviour look carries. `size` is the data size (x, y, z) and `up` the part's
 -- face that points up (a disc is a cylinder laid on its side: its top is its Right face).
-local function lookFx(part: BasePart, look: string, size: Vector3, up: Enum.NormalId)
+-- `still`: the part has no motion (ice adornments only go on still parts, see ICE_LOOK).
+local function lookFx(part: BasePart, look: string, size: Vector3, up: Enum.NormalId, still: boolean)
 	if look == "ice" then
 		emitter(part, ColorSequence.new(Color3.fromRGB(235, 250, 255)), FX.frostRate, {
 			EmissionDirection = up,
 		})
+		iceDecor(part, size, up, still)
 	elseif look == "wind" then
 		-- Leaves rising up the column, roughly reaching its top.
 		local speed = 10
@@ -608,47 +826,104 @@ local function addMarker(
 			ghost:SetAttribute("ObbyHost", spec.id)
 			ghost.Parent = model
 		end
-	elseif string.sub(kind, 1, 5) == "sign:" then
-		-- A small board over the part's near (-X) end, its face towards the runner coming from -X.
-		local text = string.sub(kind, 6)
-		local at = CFrame.new(-s.X / 2 + 0.5, SIGN.lift + SIGN.size.Y / 2, 0) * CFrame.Angles(0, math.rad(90), 0)
-		local board = stuck(host, "Sign", SIGN.size, top * at, ObbyParts.COLORS.sign)
+	elseif string.sub(kind, 1, 4) == "pic:" then
+		-- A sign banner (ObbyCourse.signs places it): its pictures on the face towards the runner coming from -X (the
+		-- part's Left face), a booster under each end (adornments and flames, no parts). Only a banner carries one.
+		if lookName(spec) ~= "banner" then
+			return
+		end
+		local board = host
 		local gui = Instance.new("SurfaceGui")
 		gui.Name = "SignGui"
-		gui.Face = Enum.NormalId.Front
+		gui.Face = Enum.NormalId.Left
 		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		gui.PixelsPerStud = ObbyParts.PIXELS_PER_STUD
-		gui.MaxDistance = SIGN.maxDistance
+		gui.PixelsPerStud = ObbySigns.SIZE.pixelsPerStud
+		gui.MaxDistance = ObbySigns.SIZE.maxDistance
 		gui.LightInfluence = 0
+		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 		gui.Adornee = board
-		ObbyParts.signLabel(gui, "Text", text, 0.14, 0.72, ObbyParts.PIXELS_PER_STUD)
+		ObbySigns.paint(gui, ObbyCourse.slotsOf(kind) :: { ObbyCourse.Slot })
 		gui.Parent = board
+		ObbySigns.boosters(board)
 	end
 end
 
--- Lock icons on a gate, one per key it needs, across the face the runner meets (the thinner horizontal axis). Each
--- lock body goes through the gate so it shows on both faces; its shackle is a ring adornment. Named "Lock1".."LockN"
--- (attribute ObbyLock = n); ObbyFx turns them gold as keys come in.
+-- One adornment of a lock icon, with its shut and open poses (body-local CFrames) and colours as attributes, which
+-- ObbyFx applies per key (no ObbyOpenColor = the key's gold). Adornments add no parts.
+local function lockAdorn(
+	lock: BasePart,
+	a: HandleAdornment,
+	shut: CFrame,
+	open: CFrame,
+	color: Color3,
+	openColor: Color3?
+)
+	a.Name = "LockAdorn"
+	a.Adornee = lock
+	a.CFrame = shut
+	a.Color3 = color
+	a:SetAttribute("ObbyShut", shut)
+	a:SetAttribute("ObbyOpen", open)
+	a:SetAttribute("ObbyShutColor", color)
+	if openColor then
+		a:SetAttribute("ObbyOpenColor", openColor)
+	end
+	a.Parent = lock
+end
+
+-- Lock icons on a gate, one per key it needs, across the face the runner meets (the thinner horizontal axis). Each is
+-- a padlock: a chunky body through the gate (so it shows on both faces) with a keyhole through it, and on each face a
+-- thin arch shackle standing on the body in the gate's plane (a half-ring adornment plus two leg bars that sink into
+-- the body). One part each (the body); the rest are adornments. Named "Lock1".."LockN" (attribute ObbyLock = n);
+-- once its key is in, ObbyFx turns body and shackle gold and pops the shackle up.
 local function addLocks(host: BasePart, need: number, ref: CFrame, s: Vector3)
 	local thinX = s.X < s.Z
-	local depth = math.min(s.X, s.Z) + 0.12
+	local gateHalf = math.min(s.X, s.Z) / 2
+	local depth = 2 * (gateHalf + MARK.lockProud)
+	local top = MARK.lockHigh / 2
+	local face = gateHalf + MARK.lockProud / 2 -- the shackle's plane on each side, inside the body's proud slab
+	local legAt = (MARK.shackleOuter + MARK.shackleInner) / 2
+	local bar = MARK.shackleOuter - MARK.shackleInner
+	local alongX = CFrame.Angles(0, math.rad(90), 0) -- a cylinder adornment's axis (its Z) along the body's X
 	for i = 1, need do
 		local along = (i - (need + 1) / 2) * MARK.lockGap
 		local at = if thinX
 			then CFrame.new(0, 0, along)
 			else CFrame.new(along, 0, 0) * CFrame.Angles(0, math.rad(90), 0)
-		local size = Vector3.new(depth, MARK.lockSize.Y, MARK.lockSize.X)
+		local size = Vector3.new(depth, MARK.lockHigh, MARK.lockWide)
 		local lock = stuck(host, "Lock" .. i, size, ref * at, MARK.lockOff)
 		lock:SetAttribute("ObbyLock", i)
-		-- The shackle: an upright ring over the body, facing the way the gate does.
-		local shackle = Instance.new("CylinderHandleAdornment")
-		shackle.Adornee = lock
-		shackle.CFrame = CFrame.new(0, MARK.lockSize.Y / 2 + 0.2, 0) * CFrame.Angles(0, math.rad(90), 0)
-		shackle.Radius = 0.32
-		shackle.InnerRadius = 0.2
-		shackle.Height = depth
-		shackle.Color3 = MARK.lockOff
-		shackle.Parent = lock
+		for _, side in { -1, 1 } do
+			local x = side * face
+			local function pose(lift: number): CFrame
+				return CFrame.new(x, top + lift, 0)
+			end
+			-- The arch: the top half of a ring facing the runner.
+			local arch = Instance.new("CylinderHandleAdornment")
+			arch.Radius = MARK.shackleOuter
+			arch.InnerRadius = MARK.shackleInner
+			arch.Height = MARK.shackleThick
+			arch.Angle = 180 -- turned along X, the half it draws is the top one
+			lockAdorn(lock, arch, pose(MARK.shackleShut) * alongX, pose(MARK.shackleOpen) * alongX, MARK.shackleSteel)
+			-- Its legs, down from the arch's ends into the body.
+			for _, z in { -legAt, legAt } do
+				local leg = Instance.new("BoxHandleAdornment")
+				leg.Size = Vector3.new(MARK.shackleThick, MARK.shackleLeg, bar)
+				local down = CFrame.new(0, -MARK.shackleLeg / 2, z)
+				lockAdorn(lock, leg, pose(MARK.shackleShut) * down, pose(MARK.shackleOpen) * down, MARK.shackleSteel)
+			end
+		end
+		-- The keyhole: a circle over a slot, both running through the body so they show on both faces.
+		local through = depth + 0.04
+		local hole = Instance.new("CylinderHandleAdornment")
+		hole.Radius = MARK.keyholeRadius
+		hole.Height = through
+		local holeAt = CFrame.new(0, 0.15, 0) * alongX
+		lockAdorn(lock, hole, holeAt, holeAt, MARK.keyholeShut, MARK.keyholeOpen)
+		local slot = Instance.new("BoxHandleAdornment")
+		slot.Size = Vector3.new(through, MARK.keyholeSlot.Y, MARK.keyholeSlot.X)
+		local slotAt = CFrame.new(0, 0.15 - MARK.keyholeSlot.Y / 2, 0)
+		lockAdorn(lock, slot, slotAt, slotAt, MARK.keyholeShut, MARK.keyholeOpen)
 	end
 end
 
@@ -667,7 +942,7 @@ local function makePart(data: ObbyCourse.Part, frameCf: CFrame, model: Instance)
 	part.Material = look.material
 	local tone = spec.tone or (if spec.boost and spec.boost.speed < 16 then 2 else 1) -- 16 = normal WalkSpeed
 	part.Color = look.colors[math.clamp(tone, 1, #look.colors)]
-	part.Transparency = look.transparency or 0
+	part.Transparency = if spec.ghost and look.ghostTransparency then look.ghostTransparency else look.transparency or 0
 	part.CastShadow = false
 	local turnCf =
 		CFrame.fromEulerAnglesYXZ(math.rad(spec.pitch or 0), math.rad(spec.yaw or 0), math.rad(spec.roll or 0))
@@ -688,8 +963,18 @@ local function makePart(data: ObbyCourse.Part, frameCf: CFrame, model: Instance)
 		part.Size = s
 		part.CFrame = ref
 	end
+	-- Box outline only on box-shaped hazards: on a ball, log or disc it draws a cage round it.
+	if lookId == "hazard" and spec.shape ~= "ball" and spec.shape ~= "log" and spec.shape ~= "disc" then
+		local edge = Instance.new("SelectionBox")
+		edge.Name = "HazardEdge"
+		edge.Color3 = HAZARD_EDGE.color
+		edge.LineThickness = HAZARD_EDGE.thickness
+		edge.SurfaceTransparency = 1
+		edge.Adornee = part
+		edge.Parent = part
+	end
 	if lookId == "moon" then
-		-- The moon zone's box shows as a bubble dome filling it.
+		-- The moon zone's box shows as a bubble dome filling it (the ellipsoid in the box; ObbyMoves tests that shape).
 		local mesh = Instance.new("SpecialMesh")
 		mesh.MeshType = Enum.MeshType.Sphere
 		mesh.Parent = part
@@ -721,7 +1006,7 @@ local function makePart(data: ObbyCourse.Part, frameCf: CFrame, model: Instance)
 	end
 	part.Parent = model
 
-	lookFx(part, lookId, s, if spec.shape == "disc" then Enum.NormalId.Right else Enum.NormalId.Top)
+	lookFx(part, lookId, s, if spec.shape == "disc" then Enum.NormalId.Right else Enum.NormalId.Top, spec.motion == nil)
 	if spec.gate then
 		addLocks(part, math.max(1, spec.gate.need), ref, s)
 	end
@@ -758,7 +1043,10 @@ ObbyParts.GOO = table.freeze({
 	swirl = "obby_goo_swirl",
 	ringSize = Vector3.new(12.489, 12.076, 5.438), -- the ring mesh's native size (studs)
 	swirlSize = Vector3.new(9.2, 9.2, 0.9),
-	centre = 5.914, -- the ring's centre above its foot (the kit model's CZ)
+	-- The hole's centre above the ring's foot, where the swirl sits and turns: measured on the kit mesh (2026-11-01), the
+	-- tube's inner edge is centred 0.105 above the ring's centre line (the kit model's CZ, 5.914), because the goo sags
+	-- fatter at the bottom; sideways it is centred on the bounding box within 0.03, so no sideways offset.
+	centre = 6.02,
 	swirlBack = 0.3, -- the swirl stands this far behind the ring's middle, so the drips hang in front of it
 	spin = 1.2, -- radians a second the swirl turns (visuals/client/ObbyFx)
 	-- The ring, swirl and sign kit models were built facing kit +Y, so after the import yaw they face the slot's +Z:
@@ -823,10 +1111,11 @@ function ObbyParts.gooRing(ground: CFrame, scale: number, parent: Instance, pref
 	return swirl
 end
 
--- The Goo Ring home on the start pad's back edge (x = 0 in the course frame), facing along the course, and the
+-- The Goo Ring home on the start pad's back edge (x = -HOME_AT in the course frame), facing along the course, and the
 -- "BACK TO BASE" label painted on the start pad in front of it.
 local function buildHome(frameCf: CFrame, parent: Instance)
-	local ground = frameCf * CFrame.lookAt(Vector3.zero, Vector3.xAxis) -- course-local: X forward, the eyes look down it
+	local back = Vector3.new(-ObbyCourse.HOME_AT, 0, 0)
+	local ground = frameCf * CFrame.lookAt(back, back + Vector3.xAxis) -- course-local: X forward, the eyes look down it
 	ObbyParts.gooRing(ground, HOME.scale, parent, "Home")
 	local label = Instance.new("Part")
 	label.Name = "HomeLabel"
