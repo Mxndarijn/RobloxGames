@@ -739,6 +739,9 @@ Layout.NOTICE_CARD = table.freeze({
 -- The glass bubble behind each status icon (Hud): white at this transparency over the world. `dim`: the Ink veil
 -- over an icon that only counts down a cooldown (the obby slot between boosts).
 Layout.STATUS_BUBBLE = table.freeze({ transparency = 0.8, dim = 0.45 })
+-- Status pictures that reach into their corners draw this much smaller than the bubble (by slot id), so the whole
+-- picture sits inside the circle. Other slots draw at the bubble's full size.
+Layout.STATUS_ICON_FIT = table.freeze({ Friend = 0.84 } :: { [string]: number })
 
 -- The goo edge under a panel's band (Widgets.gooEdge): drips { x (fraction of the width), width, hang } px. Each
 -- drip is one finger of goo with a round end, hanging `hang` px under the band; that stays under

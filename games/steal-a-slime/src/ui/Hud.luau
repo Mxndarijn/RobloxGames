@@ -234,6 +234,13 @@ function Hud.new(parent: Instance, ctx: any)
 			Position = UDim2.fromScale(0.5, 0),
 			Parent = frame,
 		}, registry)
+		local fit = Layout.STATUS_ICON_FIT[id]
+		if fit then
+			local picture = icon.picture
+			picture.AnchorPoint = Vector2.new(0.5, 0.5)
+			picture.Position = UDim2.fromScale(0.5, 0.5)
+			picture.Size = UDim2.fromScale(fit, fit)
+		end
 		local sm = Layout.statusMetrics(false)
 		local label = Widgets.label({
 			Name = "Timer",
