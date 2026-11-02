@@ -443,6 +443,25 @@ RECIPES.Rebirth = function(p)
 	sparkle(p, 0.18, 0.78, 0.2)
 end
 
+-- A gold cog: eight teeth around a round body with a darker hub, two sparkles.
+RECIPES.Settings = function(p)
+	for i = 0, 7 do
+		local a = math.rad(i * 45 + 22.5)
+		p:shape(
+			0.5 + 0.34 * math.cos(a),
+			0.5 + 0.34 * math.sin(a),
+			0.2,
+			0.2,
+			GOLD,
+			{ round = 0.2, rot = i * 45 + 22.5 }
+		)
+	end
+	p:circle(0.5, 0.5, 0.62, GOLD)
+	p:circle(0.5, 0.5, 0.24, GOLD_D)
+	sparkle(p, 0.84, 0.16, 0.2)
+	sparkle(p, 0.14, 0.84, 0.18)
+end
+
 RECIPES.Cash = coinPile
 
 RECIPES.Gift = function(p)

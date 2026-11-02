@@ -235,7 +235,7 @@ describe("uploaded item icon images", function()
 				)
 			end
 		end
-		expect(n).toBe(68) -- 49 + the 19 pet seats
+		expect(n).toBe(69) -- 50 + the 19 pet seats
 	end)
 	it("ids awaiting an upload are real drawn-group ids with a UI-drawn scene", function()
 		local ItemIconArt = UiHarness.ui("ItemIconArt")
@@ -289,7 +289,7 @@ describe("uploaded item icon images", function()
 
 	it("ItemIconView shows the picture (Fit, transparent) with no tile behind it, and no drawn scene", function()
 		ItemIconView.resetLive()
-		for _, id in { "Lock", "Dex_50", "Badge_Millionaire", "PlotSkin_classic", "Code_WELCOME" } do
+		for _, id in { "Lock", "Dex_50", "Badge_Millionaire", "PlotSkin_classic", "Code_WELCOME", "Settings" } do
 			local icon = ItemIconView.new({ Id = id, Size = 36, Parent = UiHarness.root() }, registry)
 			icon.setActive(true)
 			expect(icon.source).toBe("image")

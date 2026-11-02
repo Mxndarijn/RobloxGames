@@ -1,5 +1,6 @@
 """Reusable props for several icons (padlock, potion, coins, clover, arrows ...)."""
 import math
+import bmesh
 from helpers import *
 
 
@@ -179,3 +180,33 @@ def stack_of_coins(n=6, r=1.5, h=0.42):
     for i in range(n):
         parts.append(coin(f"S{i}", r, h, (0.12 * ((i * 7) % 3 - 1), 0.1 * ((i * 5) % 3 - 1), i * h), (0, 0, i * 31)))
     return group(parts, name="coinstack")
+
+
+def cog_ring(name="Cog", color=None, teeth=8, r_in=1.25, r_root=2.95, r_tip=3.85, depth=0.8):
+    """Flat cog wheel (XZ plane, facing -Y): toothed outside, round hole through the middle, one bevelled mesh."""
+    color = color or C["gold"]
+    step = 360.0 / teeth
+    outer = []
+    for i in range(teeth):
+        for off, r in ((-0.27, r_root), (-0.16, r_tip), (0.16, r_tip), (0.27, r_root), (0.5, r_root)):
+            outer.append((i * step + off * step, r))
+    bm = bmesh.new()
+
+    def ring(y):
+        o = [bm.verts.new((r * math.cos(math.radians(a)), y, r * math.sin(math.radians(a)))) for a, r in outer]
+        i = [bm.verts.new((r_in * math.cos(math.radians(a)), y, r_in * math.sin(math.radians(a)))) for a, _ in outer]
+        return o, i
+
+    fo, fi = ring(-depth / 2)
+    bo, bi = ring(depth / 2)
+    n = len(outer)
+    for k in range(n):
+        j = (k + 1) % n
+        bm.faces.new((fo[k], fo[j], fi[j], fi[k]))
+        bm.faces.new((bo[k], bi[k], bi[j], bo[j]))
+        bm.faces.new((fo[k], bo[k], bo[j], fo[j]))
+        bm.faces.new((fi[k], fi[j], bi[j], bi[k]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    o = obj_from_bm(name, bm, color)
+    bevel(o, 0.12, 1, 50)
+    return o
