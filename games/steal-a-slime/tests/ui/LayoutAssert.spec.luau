@@ -86,6 +86,18 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 			expect(has(read(`src/ui/Panels/{key}.luau`), `Widgets.panel(parent, "{key}Panel", "{title}", `)).toBe(true)
 		end
 	end)
+	it("mirrors the welcome / daily reward card's row and tile geometry", function()
+		local welcome = UiHarness.ui("Panels/Welcome")
+		local copy = LayoutAssert.WELCOME
+		expect(copy.textX).toBe(welcome.ROW.textX)
+		expect(copy.right).toBe(welcome.ROW.right)
+		expect(copy.descH).toBe(welcome.ROW.descH)
+		expect(copy.amountW).toBe(welcome.DAILY.amountW)
+		expect(copy.trackInset).toBe(welcome.DAILY.trackInset)
+		expect(copy.tileGap).toBe(welcome.TILE.gap)
+		expect(copy.lastWeight).toBe(welcome.TILE.lastWeight)
+		expect(copy.offerGap).toBe(welcome.OFFERS.gap)
+	end)
 	it("mirrors the panels' row geometry (WorldShop, Guide)", function()
 		local worldShop = UiHarness.ui("Panels/WorldShop")
 		local copy = LayoutAssert.WORLD_SHOP

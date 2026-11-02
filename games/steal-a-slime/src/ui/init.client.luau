@@ -789,6 +789,9 @@ end
 
 -- The daily reward card on demand (the Goals row's "Open"): the welcome card in its daily mode.
 function ctx.openDaily()
+	if latest == nil or type(latest.daily) ~= "table" then
+		return -- nothing to show yet
+	end
 	welcomePanel.setMode("daily")
 	setOpen("Welcome")
 end
@@ -1619,6 +1622,7 @@ end)
 -- Local countdowns (lock, rain) between State pushes. Each tick runs under its own pcall so one failing
 -- component cannot kill the loop; the error is logged once per component.
 local guardedTick = TickGuard.new(warn)
+local bagWasOpen = false -- the bag closes without syncMenus: pump the welcome / daily card queue then
 
 task.spawn(function()
 	while true do
@@ -1640,6 +1644,13 @@ task.spawn(function()
 					tick(now)
 				end)
 			end
+			guardedTick("popupsAfterBag", function()
+				local bagOpen = inventory.panelOpen()
+				if bagWasOpen and not bagOpen and openKey == nil then
+					pumpPopups(latest)
+				end
+				bagWasOpen = bagOpen
+			end)
 			guardedTick("hud", function()
 				hud.tick(now)
 			end)

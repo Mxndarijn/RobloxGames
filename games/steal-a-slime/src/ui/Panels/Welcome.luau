@@ -277,23 +277,20 @@ function Welcome.new(parent: Instance, ctx: any)
 	local lastAvailable: boolean? = nil
 	local short = false
 
-	-- Each open starts at the top and forgets the last open's claim state.
-	panel.frame:GetPropertyChangedSignal("Visible"):Connect(function()
+	-- Each open or close starts fresh: back at the top, no claim state from the last open, no pending auto-close.
+	-- init.client calls this from syncMenus before the open-time update, so no deferred signal can undo it.
+	function self.setOpen(isOpen: boolean)
 		claimedToken += 1
 		claimedShown = false
 		lastAvailable = nil
-		if panel.frame.Visible then
+		if isOpen then
 			content.CanvasPosition = Vector2.zero
 		end
-	end)
+	end
 
 	-- Why the card opens: "join" (the join report) or "daily". Set before it opens.
 	function self.setMode(m: WelcomeBack.Mode)
 		mode = m
-	end
-
-	function self.mode(): WelcomeBack.Mode
-		return mode
 	end
 
 	-- Row heights, text offsets and gaps for the current screen (Welcome.SHORT on a landscape phone).

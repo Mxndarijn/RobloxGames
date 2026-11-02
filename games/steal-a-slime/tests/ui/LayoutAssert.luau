@@ -177,9 +177,22 @@ local SettingsPanel = {
 	},
 }
 
+-- Copies of Panels/Welcome ROW / DAILY / TILE numbers (checked against the panel by LayoutAssert.spec).
+local WelcomePanel = table.freeze({
+	textX = 74,
+	right = 12,
+	descH = 36,
+	amountW = 96,
+	trackInset = 10,
+	tileGap = 6,
+	lastWeight = 1.5,
+	offerGap = 10,
+})
+
 local LayoutAssert = {}
 
 -- The copied panel numbers, for the spec that checks them against the real panels.
+LayoutAssert.WELCOME = WelcomePanel
 LayoutAssert.REBIRTH = RebirthPanel
 LayoutAssert.WORLD_SHOP = WorldShopPanel
 LayoutAssert.SETTINGS = SettingsPanel
@@ -997,16 +1010,17 @@ end
 -- the day tiles, the offers and the main button at their longest. Mirrors Welcome.ROW / DAILY / TILE / OFFERS.
 function LayoutAssert.welcomeTexts(panel: Rect): { TextDesc }
 	local bodyW = Layout.panelBody(panel).w
-	local textX, right, gap, amountW = 74, 12, 10, 96
+	local W = WelcomePanel
+	local textX, right, gap, amountW = W.textX, W.right, W.offerGap, W.amountW
 	local rowW = bodyW - textX - right
-	local trackW = bodyW - 20
-	local unit = trackW / (6 + 1.5)
-	local tileW, lastW = unit - 6, unit * 1.5 - 6
+	local trackW = bodyW - W.trackInset * 2
+	local unit = trackW / ((Config.DAILY_STREAK_CAP or 7) - 1 + W.lastWeight)
+	local tileW, lastW = unit - W.tileGap, unit * W.lastWeight - W.tileGap
 	local big = Format.formatCash(999.99e15)
 	local title = Layout.panelTitle(panel)
 	local chrome = Layout.PANEL_CHROME
 	local function desc(name: string, text: string): TextDesc
-		return { name = name, text = text, size = 15, w = rowW, h = 36, wrapped = true }
+		return { name = name, text = text, size = 15, w = rowW, h = W.descH, wrapped = true }
 	end
 	return {
 		{

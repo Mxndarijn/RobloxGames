@@ -73,7 +73,7 @@ function PopupQueue.new(): Queue
 		if busy or PopupQueue.blocker(state) ~= nil then
 			return nil
 		end
-		local mode: Mode? = if join then "join" elseif daily then "daily" else nil
+		local mode: Mode? = self.pending()
 		join, daily = false, false
 		return mode
 	end
