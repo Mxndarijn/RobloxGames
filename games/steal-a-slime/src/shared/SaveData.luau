@@ -52,6 +52,8 @@
 	`tutorialStep` onto the new order (TUTORIAL_V11_TO_V12); a player who reached the old Steal or Rebirth step is
 	done. A save from before v3 first moves its Merge / Steal / Rebirth (4..6) up one for the old BuyPad step.
 	petSeat (contract/pet-seats.md, no version bump): a Config.PET_SEATS id; missing / unknown / not unlocked -> "cloud".
+	petSpecies (contract/pet-species.md, no version bump): a found species id with a kit; missing / unknown / not found
+	-> nil (Auto).
 	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, speciesRewards = milestones paid;
 	missing -> empty / 0, unknown ids dropped, owned slimes always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
 	pvp (FEATURES.PvP, CONTRACT.md §26) is optional: { tiers = { Knockback = tier, Blaster = tier }, traps = { [id] = charges },
@@ -80,6 +82,7 @@ local ObbyRules = if script then require(script.Parent.ObbyRules) else require("
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local PlotBases = if script then require(script.Parent.PlotBases) else require("./PlotBases")
 local PetSeats = if script then require(script.Parent.PetSeats) else require("./PetSeats")
+local PetSpecies = if script then require(script.Parent.PetSpecies) else require("./PetSpecies")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require("./SpeciesDex")
@@ -979,6 +982,8 @@ function SaveData.deserialize(stored: any): Data
 	data.perkDays = SaveData.cleanPerkDays(raw.perkDays) -- daily perks (no version bump: missing -> never used)
 	data.wornStyles = SaveData.cleanWornStyles(raw.wornStyles, data.ownedStyles)
 	data.petSeat = SaveData.cleanPetSeat(raw.petSeat, data) -- after found / stats / ownedSeats: pet seat (no version bump: missing / unknown / locked -> "cloud")
+	data.petSpecies = if type(raw.petSpecies) == "string" then raw.petSpecies else nil -- after found: the pet's slime (nil = Auto)
+	PetSpecies.clean(data)
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
 	if type(raw.redeemed) == "table" then
@@ -1099,6 +1104,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		plotSkin = data.plotSkin,
 		plotBase = data.plotBase,
 		petSeat = data.petSeat,
+		petSpecies = PetSpecies.current(data),
 		stealLog = StealAlert.clean(data.stealLog),
 		settings = PlayerSettings.clean(data.settings),
 		allowFriends = if data.allowFriends == true then true else nil,

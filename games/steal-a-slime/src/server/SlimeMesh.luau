@@ -24,7 +24,7 @@
 
 	Species meshes (SlimeLooks.get(species).kit = "slime_<id>", uploaded in
 	MeshAssets with size + offset): load() also fetches each one by its assetId.
-	A species mesh is fully coloured (Color white) and carries its own face,
+	A species mesh is fully coloured (Color a neutral grey, Config.SLIME_MESH_SHADE) and carries its own face,
 	pattern and accessories, so the procedural ones and the ball's goo puddle are destroyed
 	(isReplacedPart; nothing reads them, and hidden parts would still cost physics and
 	replication); the aura / glow shells wrap it;
@@ -76,6 +76,12 @@ export type SlimeMesh = {
 local SlimeMesh = {}
 
 SlimeMesh.MESH_NAME = "Mesh"
+
+-- The MeshPart.Color a kit is worn in: `rgb` (0-255) darkened by Config.SLIME_MESH_SHADE (255 = unchanged).
+function SlimeMesh.shade(rgb: { number }): Color3
+	local k = Config.SLIME_MESH_SHADE / 255
+	return Color3.fromRGB(math.round(rgb[1] * k), math.round(rgb[2] * k), math.round(rgb[3] * k))
+end
 
 function SlimeMesh.new(deps: Deps): SlimeMesh
 	return { deps = deps, template = nil, kits = {}, failedKits = {}, loading = {}, look = "Procedural" }
@@ -283,7 +289,7 @@ local function dress(model: Model, template: MeshPart, kit: string?)
 		local size, cframe = speciesFit(body, entry :: MeshAssets.Entry)
 		mesh.Size = size
 		mesh.CFrame = cframe
-		mesh.Color = Color3.new(1, 1, 1)
+		mesh.Color = SlimeMesh.shade({ 255, 255, 255 })
 	else
 		if kit then
 			local fitted = MeshAssets.fit(kit, { body.Size.X, body.Size.Y, body.Size.Z })
@@ -351,7 +357,7 @@ local function applyShine(model: Model, row: Genome.ShineRow)
 		mesh.Reflectance = row.reflectance
 		local tint = row.tint
 		if tint then
-			mesh.Color = Color3.fromRGB(tint[1], tint[2], tint[3])
+			mesh.Color = SlimeMesh.shade(tint)
 		end
 	end
 end

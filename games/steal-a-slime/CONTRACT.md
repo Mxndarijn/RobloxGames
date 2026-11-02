@@ -152,6 +152,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `Notify` | RemoteEvent | server → client | `FireClient(player, text: string, kind: "info" \| "good" \| "bad", sound: string?, itemId: string?)`. `itemId` (optional) is the UI ItemIcons registry id the toast is about (`"SpeedCoil"`, `"Upgrade_Luck"`, `"PlotSkin_candy"`); absent/unknown ids fall back to the client text heuristic. Global toasts (Slime Rain) use `FireAllClients`. **Oct 18 (B6, Merijn): the client draws no toast any more; a Notify only plays its `sound`.** The server side is unchanged. |
 | `Leaderboard` | RemoteEvent | server → client | `FireClient/FireAllClients(board: { stat: "TotalEarned" \| "WeeklyEarned" \| "Steals" \| "Dex" \| "Merges", entries: { { rank: number, userId: number, name: string, value: number } } })`, one call per board |
 | `ClawShow` | RemoteEvent | server → client | `FireAllClients(event: ClawShow.Event)`: a claw show at the Exclusive Shop after a granted purchase (contract/exclusive-shop.md §7.2) |
+| `IdleRejoin` | RemoteEvent | client → server | `FireServer(idleSeconds: number)` on every `Player.Idled`. After `Config.IDLE_REJOIN_AFTER` idle seconds the server teleports that player back into the same server (any server when that fails), so Roblox's 20-minute idle kick never lands (`Lib.idle.IdleRejoinServer`). In Studio it only logs. |
 
 `Request` actions (from `Remotes.ACTIONS`; rate limits in `Validate.ACTIONS`):
 
@@ -257,7 +258,7 @@ The client always replaces its copy and never diffs.
 	cash: number, incomePerSec: number,
 	padCash: number?, -- FEATURES.CashPads: whole cash waiting on my cash pads; nil with the flag off (contract/cash-pads.md)
 	rebirths: number, rebirthMultiplier: number, rebirthCost: number, canRebirth: boolean,
-	rebirthSlimes: { { id: string, name: string, tier: number, color: { number }, owned: boolean } }, -- §8.8a, empty at max
+	rebirthSlimes: { { id: string, name: string, tier: number, color: { number }, owned: boolean, brewing: boolean } }, -- §8.8a, empty at max
 	padsUnlocked: number, padsMax: number, nextPadCost: number?,
 	nextPadRebirths: number?, -- rebirths the next pad still needs; nil when it can be bought now or all are open
 	nextRebirthMultiplier: number, -- the income multiplier after the next rebirth (= rebirthMultiplier at max)
@@ -325,6 +326,7 @@ The client always replaces its copy and never diffs.
   - `SpeedCoil: boolean?` (`Constants.SPEED_COIL_ATTRIBUTE`): `true` once the Speed Coil is owned (for a cosmetic coil on the character).
   - `PetSlimeId: string?` (`Constants.PET_ATTRIBUTE`): the slime that follows the player (FollowPets, §2 Extras).
   - `PetSeat: string` (`Constants.PET_SEAT_ATTRIBUTE`): the `Config.PET_SEATS` id that pet rides ([pet-seats.md](contract/pet-seats.md)).
+  - `PetSpecies: string?` (`Constants.PET_SPECIES_ATTRIBUTE`): the species the player picked for that pet from their SlimeDex; nil = Auto ([pet-species.md](contract/pet-species.md)).
 
 ### 5.3 World (built by Archer's WorldBuilder, wired by Phoenix)
 
@@ -464,3 +466,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §51 | [settings.md](contract/settings.md) | Settings menu: the gear card (Sound, Game, Visuals, Me), `PlayerSettings`, `Request SetSettings` / `ReplayTutorial`, hidden on boards |
 | §49 | [cash-pads.md](contract/cash-pads.md) | Cash pads: income piles up on a raised gold coin at each slime, only the owner collects by walking over it (`FEATURES.CashPads`) |
 | §52 | [obby.md](contract/obby.md) | Obby: a sky course that rebuilds every 10 min from new sections; clearing it gives x1.5 income for 5 min, then a 5-min cooldown |
+| §53 | [pet-species.md](contract/pet-species.md) | Pet species: pick any found SlimeDex slime for the follow pet, the Skins menu's Pet tab |

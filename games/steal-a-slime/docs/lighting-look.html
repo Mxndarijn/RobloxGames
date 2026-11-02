@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Less Bright Slimes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* One reading column. Each section has its own option switcher; it switches every screenshot in that section. */
+:root {
+  --bg: #eef5f2;
+  --surface: #ffffff;
+  --ink: #0d2b2e;
+  --muted: #4f6b68;
+  --line: #d3e3de;
+  --accent: #1c8f6c;
+  --accent-soft: #d6f2e8;
+  --warn: #a8521c;
+  --warn-soft: #fbe8d8;
+  --code: #e2eeea;
+  --f-display: "Fredoka One", "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1a1c; --surface: #11262a; --ink: #e5f5f0; --muted: #9fbdb6; --line: #23413f;
+    --accent: #6cf2c2; --accent-soft: #143a33; --warn: #f2a56c; --warn-soft: #3a2616; --code: #1a3235;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1a1c; --surface: #11262a; --ink: #e5f5f0; --muted: #9fbdb6; --line: #23413f;
+  --accent: #6cf2c2; --accent-soft: #143a33; --warn: #f2a56c; --warn-soft: #3a2616; --code: #1a3235;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-weight: 600; font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 96px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(34px, 5vw, 50px); }
+h2 { font-size: 30px; margin: 64px 0 12px; }
+h3 { font-size: 22px; margin: 40px 0 6px; }
+p { margin: 0 0 12px; max-width: 68ch; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+.lede { font-size: 18px; color: var(--muted); margin-top: 14px; max-width: 64ch; }
+code { font-family: var(--f-mono); font-size: .85em; background: var(--code); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.note { font-size: 14px; color: var(--muted); }
+
+.callout { background: var(--warn-soft); border-radius: 14px; padding: 14px 18px; margin: 24px 0 0; max-width: 72ch; }
+.callout b { color: var(--warn); }
+
+.options { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 20px 0 0; }
+.opt { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+.opt h4 { font-family: var(--f-display); font-weight: 400; font-size: 19px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tag { font-family: var(--f-mono); font-size: 12px; background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 1px 7px; }
+.opt p { font-size: 15px; color: var(--muted); margin: 0; }
+
+/* Switcher: sticky inside its own section, so each section keeps its buttons in reach. */
+.switch { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 12px 0; margin-top: 24px; border-bottom: 1px solid var(--line); }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg button {
+  font: inherit; font-family: var(--f-display); font-size: 17px; color: var(--ink);
+  min-height: 44px; min-width: 64px; padding: 6px 16px; border-radius: 999px;
+  background: var(--surface); border: 2px solid var(--line); cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.seg button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.switch .hint { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+
+figure { margin: 12px 0 0; }
+figure img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); aspect-ratio: 1280 / 706; }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-display); font-weight: 400; font-size: 15px; }
+td code { white-space: nowrap; }
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-top: 12px; }
+
+.decided { background: var(--surface); border: 2px dashed var(--line); border-radius: 14px; padding: 16px 18px; }
+ul { padding-left: 20px; max-width: 70ch; }
+li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Steal a Slime · world look</div>
+  <h1>Make the slimes less bright</h1>
+  <p class="lede">Merijn: "it's mostly slimes etc that are too bright". These are real Studio screenshots at 14:30 in clear weather, with the same slimes at the same spots. Pick one and only those values change.</p>
+
+  <div class="callout">
+    <b>Why slimes glare:</b> every species mesh has its colours baked in, and the game draws it at full white (<code>Color = 255,255,255</code>, SmoothPlastic). Saturated candy colours at full strength, plus +15% saturation and a strong sun, leave them no room to shade. Darkening the mesh's <code>Color</code> scales all of its baked colours down evenly, so every slime keeps its own look.
+  </div>
+
+  <section data-group="mythic">
+    <h2>Mythic and up: what makes them glare</h2>
+    <p>Merijn's screenshot showed a Mythic Griffin on its pad blown out to white. I rebuilt that in Studio (Mythic Griffins and Cosmos on sky pads) and switched off one thing at a time. Five things sit on a Mythic pad slime:</p>
+    <ul>
+      <li><b>Aura</b>: a 7-stud Neon ball in the rarity colour around the slime (<code>SlimeLayout</code>, tier ≥ 6). This is the pink bubble.</li>
+      <li><b>Floor light</b>: a pink PointLight right under the slime (<code>TopTierFx</code> pedestal, brightness 1.5, range 10). It turns the pad pink.</li>
+      <li><b>Orbit gems</b>: three Neon gems circling it (the pink diamonds).</li>
+      <li><b>Sparkles</b> and the game-wide <b>bloom</b>, which turns every bright spot into a halo.</li>
+      <li>Under all that, the Griffin's <b>own colours</b> are already very pale (white wings, light yellow body) at full white.</li>
+    </ul>
+
+    <div class="switch" role="group" aria-label="Pick a Mythic test shot">
+      <div class="seg">
+        <button type="button" data-v="now" aria-pressed="true">Now</button>
+        <button type="button" data-v="nolight" aria-pressed="false">No floor light</button>
+        <button type="button" data-v="noaura" aria-pressed="false">No aura</button>
+        <button type="button" data-v="nobloom" aria-pressed="false">No bloom</button>
+        <button type="button" data-v="alloff" aria-pressed="false">All off</button>
+        <button type="button" data-v="fix1" aria-pressed="false">Fix 1</button>
+        <button type="button" data-v="fix2" aria-pressed="false">Fix 2</button>
+      </div>
+      <p class="hint">Fix 1: aura and floor light gone, gems no longer Neon, sparkles and bloom kept. Fix 2: Fix 1 plus the slime colour at 175 (option A below).</p>
+    </div>
+    <figure><img data-spot="mythic" alt="A Mythic Griffin on its sky habitat pad" src="lighting-look/mythic-now.jpg" width="1280" height="706"><figcaption></figcaption></figure>
+
+    <div class="callout">
+      <b>What I found:</b> no single effect causes it. The aura and floor light add the pink haze, and removing them clears the Cosmos. The Griffin only becomes readable (wings, face, beak) once its own colour comes down: Fix 1 is still blown out, Fix 2 is not.
+    </div>
+  </section>
+
+  <section data-group="glow">
+    <h2>Keep a soft glow</h2>
+    <p>Merijn: "they should still glow a bit, just not too much". Every level below keeps the aura, the floor light and the Neon gems, only weaker, and uses the darker slime colour (175). Same Griffin, same camera.</p>
+    <div class="options">
+      <div class="opt"><h4>Now</h4><p>Aura 12% visible, floor light 1.5 (range 10), slime colour 255.</p></div>
+      <div class="opt"><h4>No glow</h4><p>Fix 2 from above: no aura, no floor light, matte gems.</p></div>
+      <div class="opt"><h4>Soft 1 <span class="tag">faint</span></h4><p>Aura 4% visible, floor light 0.4 (range 7), Neon gems.</p></div>
+      <div class="opt"><h4>Soft 2 <span class="tag">recommended</span></h4><p>Aura 7% visible, floor light 0.7 (range 8), Neon gems.</p></div>
+      <div class="opt"><h4>Soft 3 <span class="tag">strong</span></h4><p>Aura 10% visible, floor light 1.0 (range 9), Neon gems.</p></div>
+    </div>
+    <div class="switch" role="group" aria-label="Pick a glow level">
+      <div class="seg">
+        <button type="button" data-v="now" aria-pressed="true">Now</button>
+        <button type="button" data-v="off" aria-pressed="false">No glow</button>
+        <button type="button" data-v="soft1" aria-pressed="false">Soft 1</button>
+        <button type="button" data-v="soft2" aria-pressed="false">Soft 2</button>
+        <button type="button" data-v="soft3" aria-pressed="false">Soft 3</button>
+      </div>
+      <p class="hint">Sparkles and bloom stay as they are in every level.</p>
+    </div>
+    <figure><img data-spot="glow" alt="A Mythic Griffin on its pad, seen from the front" src="lighting-look/glow-now.jpg" width="1280" height="706"><figcaption></figcaption></figure>
+    <div class="callout">
+      <b>My pick: Soft 2.</b> The pink gems still shine and a faint rarity glow sits around the slime, so it still reads as Mythic. The face, wings and beak stay clear. The same scaling would go to Secret (and the wild rare-spawn light, which is about 3 times stronger now).
+    </div>
+  </section>
+
+  <section data-group="slime">
+    <h2>Slimes</h2>
+    <div class="options">
+      <div class="opt"><h4>Now</h4><p>Mesh colour 255, sun 2.5, saturation +15%.</p></div>
+      <div class="opt"><h4>A <span class="tag">slimes only</span></h4><p>Slime mesh colour 255 → 175 (about 30% darker). Nothing else changes.</p></div>
+      <div class="opt"><h4>B <span class="tag">light only</span></h4><p>Slimes untouched. Sun 2.2, exposure −0.15, less ambient fill and shine, saturation +5%.</p></div>
+      <div class="opt"><h4>C <span class="tag">both, mild</span></h4><p>B, plus slime mesh colour 200.</p></div>
+      <div class="opt"><h4>D <span class="tag">recommended</span></h4><p>B, plus slime mesh colour 175. Still colourful, no longer glaring.</p></div>
+    </div>
+
+    <div class="switch" role="group" aria-label="Pick a slime look">
+      <div class="seg">
+        <button type="button" data-v="current" aria-pressed="true">Now</button>
+        <button type="button" data-v="a" aria-pressed="false">A</button>
+        <button type="button" data-v="b" aria-pressed="false">B</button>
+        <button type="button" data-v="c" aria-pressed="false">C</button>
+        <button type="button" data-v="d" aria-pressed="false">D</button>
+      </div>
+      <p class="hint">Switches both screenshots below. Keys 0–4 work too. Click back and forth between Now and an option to see the difference.</p>
+    </div>
+
+    <h3>Lineup on the plaza</h3>
+    <p>Nine species side by side on the boardwalk: mochi, bubbles, gummy, bumble, lop, whiskers, octo, blaze, pebble. The wild slimes behind them wander between shots; compare the front row.</p>
+    <figure><img data-spot="slimes" alt="Nine slimes in a row on the plaza boardwalk" src="lighting-look/slimes-current.jpg" width="1280" height="706"><figcaption></figcaption></figure>
+
+    <h3>On your base pads</h3>
+    <p>Plot 1 with whiskers, octo, blaze and a second octo on their habitats.</p>
+    <figure><img data-spot="pads" alt="Slimes on habitat pads inside a base" src="lighting-look/pads-current.jpg" width="1280" height="706"><figcaption></figcaption></figure>
+  </section>
+
+  <section data-group="ground">
+    <h2>The ground (from the first round)</h2>
+    <p>The first round found a second bright thing: the big flat yard around the bases (<code>Map.Field.FieldSand</code>, 230/211/170) turns almost white. "Darker sand" is the light from slime option B plus that sand at 208/182/136. This can ship with the slime change or stay as it is.</p>
+
+    <div class="switch" role="group" aria-label="Pick a ground look">
+      <div class="seg">
+        <button type="button" data-v="current" aria-pressed="true">Now</button>
+        <button type="button" data-v="sand" aria-pressed="false">Darker sand</button>
+      </div>
+    </div>
+
+    <h3>Overview</h3>
+    <figure><img data-spot="overview" alt="Overview of the map" src="lighting-look/overview-current.jpg" width="1280" height="706"><figcaption></figcaption></figure>
+    <h3>Plaza</h3>
+    <figure><img data-spot="plaza" alt="The plaza with the fountain and wild slimes" src="lighting-look/plaza-current.jpg" width="1280" height="706"><figcaption></figcaption></figure>
+    <h3>Your base</h3>
+    <figure><img data-spot="base" alt="A player's base with slimes" src="lighting-look/base-current.jpg" width="1280" height="706"><figcaption></figcaption></figure>
+    <h3>Night (22:00)</h3>
+    <figure><img data-spot="night" alt="The map at night" src="lighting-look/night-current.jpg" width="1280" height="706"><figcaption></figcaption></figure>
+  </section>
+
+  <h2>Exact values</h2>
+  <p class="note">Lighting lives in <code>default.project.json</code> (Lighting, Bloom, BaseGrade). The slime tint would be one Config value that <code>SlimeMesh</code> uses instead of white. The sand colour lives in <code>FloorLayout</code> (FieldSand).</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Setting</th><th>Now</th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead>
+      <tbody>
+        <tr><td>Slime mesh Color</td><td><code>255</code></td><td><code>175</code></td><td><code>255</code></td><td><code>200</code></td><td><code>175</code></td></tr>
+        <tr><td>Lighting.Brightness</td><td><code>2.5</code></td><td><code>2.5</code></td><td><code>2.2</code></td><td><code>2.2</code></td><td><code>2.2</code></td></tr>
+        <tr><td>ExposureCompensation</td><td><code>+0.1</code></td><td><code>+0.1</code></td><td><code>−0.15</code></td><td><code>−0.15</code></td><td><code>−0.15</code></td></tr>
+        <tr><td>OutdoorAmbient</td><td><code>125,120,140</code></td><td><code>125,120,140</code></td><td><code>100,96,112</code></td><td><code>100,96,112</code></td><td><code>100,96,112</code></td></tr>
+        <tr><td>EnvironmentSpecularScale</td><td><code>1</code></td><td><code>1</code></td><td><code>0.4</code></td><td><code>0.4</code></td><td><code>0.4</code></td></tr>
+        <tr><td>Bloom.Intensity</td><td><code>0.6</code></td><td><code>0.6</code></td><td><code>0.35</code></td><td><code>0.35</code></td><td><code>0.35</code></td></tr>
+        <tr><td>BaseGrade.Saturation</td><td><code>0.15</code></td><td><code>0.15</code></td><td><code>0.05</code></td><td><code>0.05</code></td><td><code>0.05</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>What these shots do not show</h2>
+  <ul>
+    <li><b>Not checked on a phone.</b> All shots are PC captures, scaled down. Phone screens are smaller and often brighter.</li>
+    <li><b>Shining and Gold / Diamond / Rainbow slimes were not tested.</b> They get their own colour and material from their shine. A tint would only touch the plain species meshes unless we decide otherwise.</li>
+    <li><b>UI icons and the Dex</b> show slime renders, not the 3D meshes, so they stay as bright as now.</li>
+    <li><b>Wild Mythic and Secret slimes were not shot.</b> In the wild they get a stronger light (<code>RareSpawn</code>: brightness 4, range 24 for Mythic; 4.5 and 26 for Secret) and more sparkles. That likely needs the same treatment.</li>
+    <li><b>Weather was pinned to Clear</b> on the camera client. Rain, snow and starfall add their own grade on top.</li>
+    <li>The tint was set from a test script on the meshes in a Studio playtest. The real change would go into <code>SlimeMesh</code>, so held, carried and stolen slimes would need a quick check too.</li>
+  </ul>
+
+  <h2>Decided</h2>
+  <div class="decided">
+    <p><b>Merijn picked "Soft 2"</b> ("Build Soft 2", 2026-11-01). Built on this branch:</p>
+    <ul>
+      <li>Slime mesh colour 175 for every species and shine kit (<code>Config.SLIME_MESH_SHADE</code>, applied in <code>SlimeMesh</code>).</li>
+      <li>Mythic+ aura 0.88 → 0.93 transparent (<code>SlimeLayout</code>).</li>
+      <li>Pad floor light: Mythic 1.5/10 → 0.7/8, Secret 2.2/12 → 1.0/10 (<code>TopTierFx</code>).</li>
+      <li>Wild light: Mythic 4/24 → 2/20, Secret 4.5/26 → 2.2/22 (<code>RareSpawn</code>).</li>
+    </ul>
+    <p>Not changed: the world light (sun, exposure, bloom), the ground sand and the Neon gems. Those stay open.</p>
+  </div>
+  <div class="options">
+    <figure><img alt="Built: Mythic Griffin from the front" src="lighting-look/built-front.jpg" width="1280" height="706"><figcaption>Built game: Mythic Griffin, front</figcaption></figure>
+    <figure><img alt="Built: Mythic Griffin from the angle of Merijn's screenshot" src="lighting-look/built-angled.jpg" width="1280" height="706"><figcaption>Built game: the angle of Merijn's screenshot</figcaption></figure>
+    <figure><img alt="Built: Secret Midas on its pad" src="lighting-look/built-secret.jpg" width="1280" height="706"><figcaption>Built game: Secret Midas</figcaption></figure>
+  </div>
+</div>
+
+<script>
+(function () {
+  var groups = Array.prototype.slice.call(document.querySelectorAll("section[data-group]"));
+  var names = { current: "Now", a: "A", b: "B", c: "C", d: "D", sand: "Darker sand",
+    now: "Now", nolight: "No floor light", noaura: "No aura", nobloom: "No bloom", alloff: "All off", fix1: "Fix 1", fix2: "Fix 2",
+    off: "No glow", soft1: "Soft 1", soft2: "Soft 2", soft3: "Soft 3" };
+  groups.forEach(function (sec) {
+    var key = "lighting-look-" + sec.dataset.group;
+    var buttons = Array.prototype.slice.call(sec.querySelectorAll(".seg button"));
+    var imgs = Array.prototype.slice.call(sec.querySelectorAll("img[data-spot]"));
+    function show(v) {
+      buttons.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.v === v ? "true" : "false"); });
+      imgs.forEach(function (img) {
+        img.src = "lighting-look/" + img.dataset.spot + "-" + v + ".jpg";
+        img.parentNode.querySelector("figcaption").textContent = "Showing: " + names[v];
+      });
+      sec.dataset.current = v;
+      try { localStorage.setItem(key, v); } catch (e) {}
+    }
+    sec.show = show;
+    sec.buttons = buttons;
+    buttons.forEach(function (b) { b.addEventListener("click", function () { show(b.dataset.v); }); });
+    imgs.forEach(function (img) {
+      buttons.forEach(function (b) { new Image().src = "lighting-look/" + img.dataset.spot + "-" + b.dataset.v + ".jpg"; });
+    });
+    var saved = null;
+    try { saved = localStorage.getItem(key); } catch (e) {}
+    var valid = buttons.some(function (b) { return b.dataset.v === saved; });
+    show(valid ? saved : buttons[0].dataset.v);
+  });
+  // Keys 0-4 drive the slime options section.
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var i = "01234".indexOf(e.key);
+    var sec = groups.filter(function (g) { return g.dataset.group === "slime"; })[0];
+    if (i !== -1 && sec.buttons[i]) sec.show(sec.buttons[i].dataset.v);
+  });
+})();
+</script>
+</body>
+</html>

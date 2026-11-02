@@ -32,6 +32,7 @@ Remotes.DEFINITIONS = table.freeze({
 	table.freeze({ name = Constants.PVP_EVENT, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- FEATURES.PvP only fires (CONTRACT.md §26.1)
 	table.freeze({ name = Constants.SHOP_EVENT, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- CONTRACT.md §27.4
 	table.freeze({ name = Constants.CLAW_SHOW, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- contract/exclusive-shop.md §7.2
+	table.freeze({ name = Constants.IDLE_REJOIN, class = "RemoteEvent", direction = "ClientToServer" } :: RemoteDef), -- CONTRACT.md §3
 } :: { RemoteDef })
 
 Remotes.ACTIONS = table.freeze({
@@ -59,6 +60,7 @@ Remotes.ACTIONS = table.freeze({
 	EquipPlotSkin = table.freeze({ args = { "string" } }), -- Config.PLOT_SKINS id (FEATURES.PlotSkins, CONTRACT.md §15)
 	EquipPlotBase = table.freeze({ args = { "string" } }), -- Config.PLOT_BASES id (FEATURES.BaseShapes, CONTRACT.md §44)
 	EquipPetSeat = table.freeze({ args = { "string" } }), -- Config.PET_SEATS id (contract/pet-seats.md)
+	SetPetSpecies = table.freeze({ args = { "cosmetic" } }), -- found species id, "" = Auto (contract/pet-species.md)
 	BuyConsumable = table.freeze({ args = { "string", "string?" } }), -- Config.CONSUMABLES id, slimeId (ignored: buying only adds to the held stack) (FEATURES.Consumables)
 	UseConsumable = table.freeze({ args = { "string", "string?" } }), -- held Config.CONSUMABLES id, unused slot (string?): applies the effect, stack -1 (FEATURES.Consumables)
 	SetSettings = table.freeze({ args = { "settings" } }), -- { [settingId] = value }: changed Settings menu values (PlayerSettings, CONTRACT.md §8.9c)

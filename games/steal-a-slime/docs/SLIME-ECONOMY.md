@@ -95,7 +95,7 @@ Drop rule change: today 30 % of drops are a family slime (`FAMILY_DROP_CHANCE`, 
 
 Merge-only (x2.4 like every hybrid): `hydra` (siren x3), `constellation` (abyss + gaia + monarch), `ryujin` (lunara + solaris + supernova, the first recipe that takes Celestials). Rebirths 24 and 28 also ask for a Celestial (lunara, solaris), 29 for aurora and 30 for goo_oracle and kirin. Pacing sim (4 seeds, 55 days): the new species thin out the rebirth species of their tiers, and two Divines at rebirth 30 stop about a third of grinders inside 55 days; see the PR.
 
-`REBIRTH_SLIMES`: every rebirth has its own list of one to three species, and the rebirth uses those slimes up (contract/v13-additions.md §8.8a). The list in `Config` climbs through the Classic species, opens a family's species once the family is catchable, mixes in merge hybrids (rebirth 11 asks for Moo-shroom, the first recipe most players can make) and ends on boss slimes and Secrets.
+`REBIRTH_SLIMES`: every rebirth has its own list of one to three species, and the rebirth uses those slimes up (contract/v13-additions.md §8.8a). The list in `Config` climbs through the Classic species, opens a family's species once the family is catchable, mixes in merge hybrids from rebirth 5 on (Moo-shroom at 5, then Sushi at 8, Catfish at 10, Steam at 12 and Snow Bunny at 14; each only once its inputs can be caught and merged) and ends on Secrets, Celestials and Divines. Of each species the rebirth takes the slime that earns least; the favourite goes only when it is the last one.
 
 ---
 

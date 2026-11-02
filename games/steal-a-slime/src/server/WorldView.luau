@@ -52,6 +52,7 @@ local HomeZone = require(ReplicatedStorage.Shared.HomeZone)
 local JarInside = require(ReplicatedStorage.Shared.JarInside)
 local JarRoute = require(script.Parent.JarRoute)
 local KitDelivery = require(script.Parent.KitDelivery)
+local KitRequest = require(ReplicatedStorage.Shared.KitRequest)
 local LaneTraffic = require(ReplicatedStorage.Shared.LaneTraffic)
 local LockPadRing = require(ReplicatedStorage.Shared.LockPadRing)
 local LockPadView = require(script.Parent.LockPadView)
@@ -63,6 +64,7 @@ local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local ParadeView = require(script.Parent.ParadeView)
 local Perks = require(ReplicatedStorage.Shared.Perks)
 local PetSeats = require(ReplicatedStorage.Shared.PetSeats)
+local PetSpecies = require(ReplicatedStorage.Shared.PetSpecies)
 local PlotBases = require(ReplicatedStorage.Shared.PlotBases)
 local PlotGuests = require(script.Parent.PlotGuests)
 local PlotLockGuard = require(script.Parent.PlotLockGuard)
@@ -2116,6 +2118,16 @@ function WorldView.updatePlayer(
 	local pet = World.pet(world, session) -- a stolen pet stops following
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
 	setAttribute(player, Constants.PET_SEAT_ATTRIBUTE, PetSeats.current(data))
+	-- A picked pet slime (contract/pet-species.md): every client draws this pet, so every player gets its kit
+	-- (KitDelivery sends a kit to a player once; a joiner gets it on the next tick).
+	local species = PetSpecies.current(data)
+	setAttribute(player, Constants.PET_SPECIES_ATTRIBUTE, species)
+	local petKit = species and KitRequest.kitOf(species)
+	if petKit then
+		for userId in world.sessions do
+			KitDelivery.request(kitDelivery, userId, { petKit })
+		end
+	end
 	if data.speedCoil then
 		ensureSpeedCoil(player)
 	end

@@ -31,6 +31,9 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | | `Suspicion` | pure, server | Points per player that drain over time and reach "pause" / "kick" levels |
 | `src/pad` | `RingPad` | pure | A round floor pad to stand on, in two styles: `"ring"` (one smooth circle, the light sweeps round) or `"pieces"` (curved pieces with even-width cuts, lit a piece at a time). Its block layout, who stands on it, a stand-to-activate timer, and how many segments a charge or countdown lights |
 | | `RingPadView` | adapter | Builds a RingPad as non-colliding parts (Model `Seg_<i>` per piece), places it on a floor point and yaw, and lights pieces 1..n in a named look; looks and a block template can be overridden |
+| `src/idle` | `IdleRejoin` | pure, server | When an idle player is sent back into the game before Roblox's 20-minute idle kick: idle-seconds threshold, retry gap, tries per idle stretch |
+| | `IdleRejoinServer` | adapter, server | Takes the clients' idle reports from a RemoteEvent and teleports a player back into the same server (any server when that fails); `dryRun` only logs (Studio) |
+| | `IdleRejoinClient` | adapter, client | Sends every `Player.Idled` report (client-only, every 30 s after 2 idle minutes) to the server |
 | `src/settings` | `SettingsSchema` | pure | A list of player settings (toggles, sliders, choices): defaults, cleaning saved values, checking values a client sends, applying changes |
 | `src/ui` | `InputKind` | pure | Which device the player is on (keyboard / touch / gamepad) from the UserInputService it is handed, and the gamepad aim point |
 | | `ButtonClicks` | adapter, client | Every GuiButton under a root plays a click sound; sound name, skip attributes and an on / off switch are injected |

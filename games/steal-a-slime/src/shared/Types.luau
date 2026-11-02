@@ -26,7 +26,15 @@ export type RequestResult = { ok: boolean, message: string?, code: string? } -- 
 export type NotifyKind = "info" | "good" | "bad" | "badge"
 
 -- One slime the next rebirth needs (State.rebirthSlimes). A species asked for twice is two rows.
-export type RebirthSlimeView = { id: string, name: string, tier: number, color: { number }, owned: boolean }
+-- `brewing`: the only matching slime is locked in a brewing merge vat, so the rebirth waits for the brew.
+export type RebirthSlimeView = {
+	id: string,
+	name: string,
+	tier: number,
+	color: { number },
+	owned: boolean,
+	brewing: boolean,
+}
 
 export type SlimeView = {
 	slime: SlimeData,
@@ -279,6 +287,7 @@ export type State = {
 	plotBases: { PlotBaseView }?, -- FEATURES.BaseShapes: every base with its rebirth gate or Exclusive price (nil when off)
 	petSeat: string, -- the seat the follow pet rides (PetSeats.current)
 	petSeats: { PetSeatView }, -- every pet seat with its unlock progress (contract/pet-seats.md)
+	petSpecies: string?, -- species picked for the follow pet; nil = Auto (contract/pet-species.md)
 	padCash: number?, -- FEATURES.CashPads: whole cash waiting on all my cash pads (rebirth keeps it); nil with the flag off (contract/cash-pads.md)
 	welcomeBack: { away: number, cash: number, grown: number, onPads: boolean? }?, -- join report (seconds away, offline cash paid or piled onto the cash pads (onPads, contract/cash-pads.md), pad slimes grown); nil = none (CONTRACT.md §19)
 	notices: { NoticeCards.Notice }, -- live notice cards: bonked, slime back home, base locked (contract/notice-cards.md)

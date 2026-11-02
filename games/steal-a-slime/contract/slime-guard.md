@@ -32,7 +32,7 @@ Owner: Phoenix (`src/server`, `src/shared`). No new remote, State field or attri
 
 ## 41.5 Locked-base intruders
 
-- The server tracks when each character entered each other player's jar (inside jar f's glass on a built floor, with hysteresis so the doorway does not flicker).
+- The server tracks when each character entered each other player's jar (inside jar f's glass on a built floor, with hysteresis so the doorway does not flicker). Standing on the roof is not inside: on the top floor a root more than `JarInside.ROOF_MARGIN` above the roof's outer surface (the base's `guard.ceiling`: the jar's dome, the generated bases' roof colliders) is outside, even though a dome starts below the next storey's height.
 - A non-owner inside a locked plot who entered **after** the lock started (`session.lockStartedAt`), more than `PlotLockGuard.SHUT_GRACE` seconds after (the shutting stopper can push someone in the doorway into the jar), is an intruder, once per visit: any stolen slime they carry goes home and they are told "That base is locked. You can't steal here until it opens." They get `lockedEntry` points unless a server launch put them there. They are **not moved**: the lock never teleports anyone, and a locked base refuses their steals anyway.
 - Guests and former guests are never intruders (§42.1).
 - A non-owner who was already inside when the lock started stays trapped inside until it ends (the LockBarrier blocks both ways, see `CONTRACT.md` §2), as before.

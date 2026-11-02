@@ -26,6 +26,8 @@ local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local PlotBases = if Shared then require(Shared.PlotBases) else require("../shared/PlotBases")
 local PetSeats = if Shared then require(Shared.PetSeats) else require("../shared/PetSeats")
+local PetSpecies = if Shared then require(Shared.PetSpecies) else require("../shared/PetSpecies")
+local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Remotes = if Shared then require(Shared.Remotes) else require("../shared/Remotes")
@@ -407,6 +409,17 @@ local function equipPetSeat(world: World, session: Session, id: string): Result
 	return OK
 end
 
+-- The slime on the follow pet's cloud: a found species id, or "" for Auto (contract/pet-species.md).
+local function setPetSpecies(world: World, session: Session, id: string): Result
+	local ok, reason = PetSpecies.set(session.data, id)
+	if not ok then
+		return fail(reason or "failed")
+	end
+	local entry = if id ~= "" then SlimeRoster.get(id) else nil
+	World.notify(world, session.userId, `Pet: {if entry then entry.name else "Auto"}`, "good", nil)
+	return OK
+end
+
 -- Settings menu values (PlayerSettings): `changes` is already parsed (known ids, valid values only).
 local function setSettings(session: Session, changes: PlayerSettings.Values): Result
 	session.data.settings = PlayerSettings.apply(session.data.settings, changes)
@@ -688,6 +701,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return equipPlotBase(world, session, args[1], ctx)
 	elseif action == "EquipPetSeat" then
 		return equipPetSeat(world, session, args[1])
+	elseif action == "SetPetSpecies" then
+		return setPetSpecies(world, session, args[1])
 	elseif action == "SetSettings" then
 		return setSettings(session, args[1])
 	elseif action == "BuyConsumable" then

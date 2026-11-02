@@ -91,7 +91,8 @@ function Progress.rebirthStatus(state: any, maxRebirths: number): RebirthStatus
 	}
 end
 
-export type SlimeNeed = { id: string, name: string, tier: number, color: { number }, owned: boolean }
+-- `brewing`: owned, but locked in a brewing merge vat (the rebirth waits for the brew).
+export type SlimeNeed = { id: string, name: string, tier: number, color: { number }, owned: boolean, brewing: boolean }
 export type NextRebirth = {
 	maxed: boolean,
 	ready: boolean,
@@ -106,6 +107,7 @@ export type NextRebirth = {
 	lockGain: number, -- extra lock seconds it adds (0 once locks are at LOCK_MAX_SECONDS)
 	slimes: { SlimeNeed }, -- the slimes this rebirth needs and uses up (empty at max)
 	missing: { SlimeNeed }, -- the ones of `slimes` the player doesn't have yet
+	brewing: { SlimeNeed }, -- the ones of `slimes` locked in a brewing merge vat
 }
 
 -- v28 Rebirth panel: only what the NEXT rebirth needs (its cash cost and
@@ -118,6 +120,7 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 	local ready = not maxed and state.canRebirth == true
 	local slimes: { SlimeNeed } = {}
 	local missing: { SlimeNeed } = {}
+	local brewing: { SlimeNeed } = {}
 	local list = if not maxed and type(state.rebirthSlimes) == "table" then state.rebirthSlimes else {}
 	for _, raw in list do
 		if type(raw) == "table" and type(raw.name) == "string" then
@@ -127,10 +130,13 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 				tier = num(raw.tier),
 				color = if type(raw.color) == "table" then raw.color else { 170, 220, 170 },
 				owned = raw.owned == true,
+				brewing = raw.owned == true and raw.brewing == true,
 			}
 			table.insert(slimes, need)
 			if not need.owned then
 				table.insert(missing, need)
+			elseif need.brewing then
+				table.insert(brewing, need)
 			end
 		end
 	end
@@ -153,6 +159,7 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 		lockGain = math.max(0, math.min(lock + cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_SECONDS) - lock),
 		slimes = slimes,
 		missing = missing,
+		brewing = brewing,
 	}
 end
 
@@ -190,6 +197,8 @@ function Progress.rebirthReason(nextUp: NextRebirth): string
 		return `Need {joinAnd(items)}`
 	elseif short > 0 then
 		return `Need {Format.formatCash(short)} more`
+	elseif #nextUp.brewing > 0 then
+		return `Wait for the vat: {nextUp.brewing[1].name} is brewing`
 	end
 	return "Not ready yet" -- every need met but the server has not said so yet
 end

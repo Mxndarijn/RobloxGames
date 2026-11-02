@@ -45,12 +45,13 @@ RareSpawn.TIERS = table.freeze({
 		glow = { brightness = 3, range = 18 },
 		sparkles = 10,
 	},
+	-- Mythic / Secret: about half the old 4 / 24 and 4.5 / 26, which washed the slime out (docs/lighting-look.html)
 	{
-		glow = { brightness = 4, range = 24 },
+		glow = { brightness = 2, range = 20 },
 		sparkles = 14,
 	},
 	{
-		glow = { brightness = 4.5, range = 26 },
+		glow = { brightness = 2.2, range = 22 },
 		sparkles = 16,
 		orbit = 3,
 	},

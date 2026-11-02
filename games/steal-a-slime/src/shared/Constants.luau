@@ -60,6 +60,7 @@ return table.freeze({
 	SPEED_COIL_ATTRIBUTE = "SpeedCoil", -- Player: true once the Speed Coil is owned
 	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FollowPets), nil = none
 	PET_SEAT_ATTRIBUTE = "PetSeat", -- Player: Config.PET_SEATS id their follow pet rides (PetSeats.current)
+	PET_SPECIES_ATTRIBUTE = "PetSpecies", -- Player: species id picked for the follow pet (PetSpecies.current), nil = Auto
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
 	BOSS_MOVE_ATTRIBUTE = "BossMove", -- boss model: its current move (BossChoreo.encode); clients draw it every frame
 	BOSS_TARGETS_ATTRIBUTE = "BossTargets", -- boss model: "x,z;x,z" world spots its windup's spits will land on
@@ -201,6 +202,7 @@ return table.freeze({
 	SHOP_EVENT = "ShopEvent", -- RemoteEvent, ServerToClient (CONTRACT.md §27.4)
 	CLAW_PIECE_ATTRIBUTE = "ClawPiece", -- "Hand" | "Arm" on the claw shop parts the client moves in a claw show
 	CLAW_SHOW = "ClawShow", -- RemoteEvent, ServerToClient: a claw show at the Exclusive Shop (contract/exclusive-shop.md §7.2)
+	IDLE_REJOIN = "IdleRejoin", -- RemoteEvent, ClientToServer: the client's idle seconds (Lib.idle.IdleRejoinServer)
 	OPEN_SHOP_ATTRIBUTE = "OpenShop", -- Player: shopId the server has open for them, nil = closed
 	MENU_OPEN_ATTRIBUTE = "MenuOpen", -- PlayerGui.SlimeUI (client only): a menu or popup is open; edge arrows hide
 	UI_GUI_NAME = "SlimeUI", -- the client's main ScreenGui in PlayerGui

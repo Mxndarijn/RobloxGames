@@ -168,6 +168,9 @@
         },
         "VisualsClient": {
           "$path": "src/visuals/client"
+        },
+        "IdleRejoin": {
+          "$path": "src/client/IdleRejoin.client.luau"
         }
       }
     }

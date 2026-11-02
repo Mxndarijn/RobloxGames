@@ -1,8 +1,8 @@
 --!strict
 --[[
-	Skins menu (Nav key "Skins"). Three tabs under the band: Base (plot skins, contract/plot-skins.md), Building (plot
-	bases, contract/base-shapes.md) and Cloud (pet seats, contract/pet-seats.md); it opens on Base. In the band:
-	"n/m unlocked" for the open tab. Every tab is a list on the left and the selected item's pane on the right.
+	Skins menu (Nav key "Skins"). Four tabs under the band: Base (plot skins, contract/plot-skins.md), Building (plot
+	bases, contract/base-shapes.md), Cloud (pet seats, contract/pet-seats.md) and Pet (the slime on the cloud,
+	PetSpeciesView); it opens on Base. In the band: "n/m unlocked" for the open tab ("n/m found" on Pet). Every tab is a list on the left and the selected item's pane on the right.
 	Base: one row per skin (its icon, name, and a bar with the count toward unlocking it, or Equipped / Unlocked), and
 	the selected skin's pane (PlotSkinsView.detail): a big icon, the name, "Find 4 of these 5 slimes" over a bar, the
 	slimes themselves (found in colour, the rest in grey with their set or "Merge"), and Equip, Equipped or a
@@ -12,6 +12,10 @@
 	and Equipped / Unlocked, or its unlock in one line with a bar and count), and the selected one's pane: a big icon,
 	the name, "How to unlock" / "How to get it" with that line, the bar, and Equip (EquipPlotBase / EquipPetSeat),
 	Equipped or a well saying what is missing.
+	Pet (PetSpeciesView, with State.dex and State.petSpecies): Auto, then one row per SlimeDex species with its live
+	preview (grey until found); the pane shows it big with Equip (SetPetSpecies, "" = Auto), Equipped or "Find it in
+	the SlimeDex first". Only the rows nearest the list's scroll window show a preview: at most
+	SlimePreview.MAX_LIVE together with the pane's.
 	An Exclusive item not owned yet, in any tab, shows a gold Exclusive tag and its Robux price in its row, and its
 	pane's button is Buy · R$<price>: it opens Roblox's prompt (ctx.purchase). While the product is not on sale the
 	button says "Exclusive shop" and opens the shop on that item (ctx.openExclusiveShop, with State.exclusiveShop).
@@ -23,6 +27,7 @@ local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
 local PetSeatsView = require(UI.PetSeatsView)
+local PetSpeciesView = require(UI.PetSpeciesView)
 local PlotBasesView = require(UI.PlotBasesView)
 local PlotSkinsView = require(UI.PlotSkinsView)
 local SlimeDex = require(UI.SlimeDex)
@@ -87,7 +92,10 @@ Skins.TABS = table.freeze({
 	table.freeze({ key = "base", label = "Base" }),
 	table.freeze({ key = "building", label = "Building" }),
 	table.freeze({ key = "cloud", label = "Cloud" }),
+	table.freeze({ key = "pet", label = "Pet" }),
 })
+Skins.PET_TAB = "pet"
+Skins.AUTO_GLYPH = "\u{2728}" -- sparkles: the Auto row's well
 
 -- Building and Cloud draw the same rows and pane; what differs per tab.
 type ItemTab = {
@@ -148,6 +156,7 @@ function Skins.new(parent: Instance, ctx: any)
 		building = Widgets.scrollList({ Name = "BaseList", Visible = false, Parent = content }, STYLE.rowGap),
 		cloud = Widgets.scrollList({ Name = "SeatList", Visible = false, Parent = content }, STYLE.rowGap),
 	}
+	local petList = Widgets.scrollList({ Name = "PetList", Visible = false, Parent = content }, STYLE.rowGap)
 	local pane = Widgets.scroll({
 		Name = "Pane",
 		BackgroundTransparency = 0,
@@ -208,13 +217,16 @@ function Skins.new(parent: Instance, ctx: any)
 		for _, l in itemLists do
 			Widgets.place(l, UDim2.fromOffset(0, top), UDim2.fromOffset(lw, h))
 		end
+		Widgets.place(petList, UDim2.fromOffset(0, top), UDim2.fromOffset(lw, h))
 		empty.Position = UDim2.fromOffset(0, top)
 		paneW = bodyW - lw - c.gutter
 		Widgets.place(pane, UDim2.fromOffset(lw + c.gutter, top), UDim2.fromOffset(paneW, h))
 	end
 
 	local function equip(id: string)
-		if ctx.request then
+		if ctx.request and tab == Skins.PET_TAB then
+			ctx.request("SetPetSpecies", function() end, id)
+		elseif ctx.request then
 			local item = ITEM_TABS[tab]
 			ctx.request(if item then item.equip else "EquipPlotSkin", function() end, id)
 		end
@@ -222,7 +234,7 @@ function Skins.new(parent: Instance, ctx: any)
 
 	-- The id shown in the pane for the open tab.
 	local function current(): string?
-		return if ITEM_TABS[tab] then picks[tab] else selected
+		return if ITEM_TABS[tab] or tab == Skins.PET_TAB then picks[tab] else selected
 	end
 
 	-- An Exclusive row's Robux price, right-aligned at `y`.
@@ -531,6 +543,111 @@ function Skins.new(parent: Instance, ctx: any)
 		end)
 	end
 
+	-- A slime preview well: a ViewportFrame and the glyph shown while it has no model ("?", or Auto's sparkles).
+	local function previewWell(name: string, size: number, holder: Instance): (Frame, ViewportFrame, TextLabel)
+		local well = create("Frame", {
+			Name = name,
+			BackgroundColor3 = Theme.BgLight,
+			Size = UDim2.fromOffset(size, size),
+			Parent = holder,
+		}, { Widgets.corner(Widgets.KIT.radius) :: Instance, Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
+		local viewport = create("ViewportFrame", {
+			Name = "Preview",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Visible = false,
+			Parent = well,
+		}) :: ViewportFrame
+		local glyph = Widgets.label({
+			Name = "Glyph",
+			Text = "?",
+			Font = Theme.Font,
+			TextSize = math.floor(size * 0.45),
+			TextColor3 = Theme.Muted,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.fromScale(1, 1),
+			Visible = false,
+			Parent = well,
+		})
+		return well :: Frame, viewport, glyph
+	end
+
+	-- Pet rows: a preview well, the name, and Equipped / Your favourite / Found / Not found yet.
+	local function makePetRow(row: PetSpeciesView.Row): any
+		local frame = create("TextButton", {
+			Name = row.key,
+			Text = "",
+			AutoButtonColor = false,
+			BackgroundColor3 = Theme.Row,
+			BorderSizePixel = 0,
+			Size = UDim2.new(1, 0, 0, STYLE.rowH),
+		}, { Widgets.corner(Widgets.KIT.rowRadius) :: Instance }) :: TextButton
+		local stroke = Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke)
+		stroke.Parent = frame
+		local image, viewport, glyph = previewWell("Image", STYLE.icon, frame)
+		image.AnchorPoint = Vector2.new(0, 0.5)
+		image.Position = UDim2.new(0, STYLE.rowPad, 0.5, 0)
+		local textX = STYLE.rowPad * 2 + STYLE.icon
+		local title = Widgets.label({
+			Name = "Title",
+			Font = Theme.Font,
+			TextSize = STYLE.name,
+			Position = UDim2.fromOffset(textX, 10),
+			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, STYLE.nameH),
+			Parent = frame,
+		})
+		local stateLabel = Widgets.label({
+			Name = "State",
+			Font = Theme.Font,
+			TextSize = STYLE.state,
+			Position = UDim2.fromOffset(textX, 10 + STYLE.nameH + 4),
+			Size = UDim2.new(1, -(textX + STYLE.rowPad), 0, 18),
+			Parent = frame,
+		})
+		frame.Activated:Connect(function()
+			picks[Skins.PET_TAB] = frame:GetAttribute("PetId") :: string?
+			repaint()
+		end)
+		return {
+			instance = frame,
+			stroke = stroke,
+			image = image,
+			viewport = viewport,
+			glyph = glyph,
+			title = title,
+			state = stateLabel,
+		}
+	end
+
+	local function updatePetRow(r: any, row: PetSpeciesView.Row)
+		local on = row.id == picks[Skins.PET_TAB]
+		r.instance:SetAttribute("PetId", row.id)
+		r.instance:SetAttribute("State", row.state)
+		r.instance:SetAttribute("Selected", on)
+		r.instance.BackgroundColor3 = if on then Theme.BgLight else Theme.Row
+		r.stroke.Color = if on then Theme.Good else Theme.Ink
+		r.stroke.Thickness = if on then STYLE.selectStroke else Widgets.KIT.rowStroke
+		r.image.BackgroundTransparency = if row.found then 0 else 0.6
+		r.glyph.Text = if row.auto then Skins.AUTO_GLYPH else "?"
+		r.glyph.TextColor3 = if row.auto then Theme.Gold else Theme.Muted
+		r.title.Text = row.title
+		r.title.TextColor3 = if row.found then Theme.Text else Theme.Muted
+		r.state.Text = PetSpeciesView.stateText(row)
+		r.state.TextColor3 = if row.state == "equipped" then Theme.Good else Theme.Muted
+		r.row = row
+	end
+
+	local petRows = Widgets.keyedList(
+		petList,
+		function(row: PetSpeciesView.Row)
+			return row.key
+		end,
+		makePetRow,
+		function(r: any, row: PetSpeciesView.Row)
+			updatePetRow(r, row)
+		end
+	)
+
 	-- The pane: built once, its slime cells reused by index.
 	local bigWell = create("Frame", {
 		Name = "BigIcon",
@@ -539,6 +656,10 @@ function Skins.new(parent: Instance, ctx: any)
 		Parent = pane,
 	}, { Widgets.corner(Widgets.KIT.panelRadius), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
 	local bigIcon = ItemIconView.new({ Name = "SkinIcon", Size = STYLE.bigIcon, Parent = bigWell }, icons)
+	-- Pet tab: the selected slime, big.
+	local bigPet, bigPetView, bigPetGlyph = previewWell("BigPreview", STYLE.bigIcon, pane)
+	bigPet.AnchorPoint = Vector2.new(0.5, 0)
+	bigPet.Visible = false
 	local function paneLabel(name: string, size: number, color: Color3, font: any): TextLabel
 		return Widgets.label({
 			Name = name,
@@ -930,6 +1051,143 @@ function Skins.new(parent: Instance, ctx: any)
 		paintItemPane(detail, ITEM_TABS[key].iconPrefix)
 	end
 
+	-- Pet tab previews. A species look for a row (nil for Auto, which shows its glyph).
+	local function petLook(row: any): SlimePreview.SpeciesLook?
+		if row == nil or row.auto then
+			return nil
+		end
+		return { key = row.id, found = row.found, tier = row.tier, speciesColor = row.speciesColor }
+	end
+	local function unmountWell(viewport: ViewportFrame)
+		if viewport:GetAttribute("Look") ~= nil then
+			SlimePreview.unmount(viewport)
+			viewport:SetAttribute("Look", nil)
+		end
+		viewport.Visible = false
+	end
+	-- Shows `row` in a well; returns whether a model is mounted.
+	local function mountWell(viewport: ViewportFrame, glyph: TextLabel, row: any)
+		local look = petLook(row)
+		local ok = look ~= nil and SlimePreview.mountSpecies(viewport, look :: any, builders, SlimeDex.genome)
+		if look == nil then
+			unmountWell(viewport)
+		end
+		glyph.Visible = not ok
+	end
+	local function unmountPetPreviews()
+		for _, r in petRows.rows do
+			unmountWell(r.viewport)
+		end
+		unmountWell(bigPetView)
+	end
+	-- The pane's preview plus the rows nearest the middle of the list's scroll window, MAX_LIVE in all.
+	local function refreshPetPreviews()
+		if not open or tab ~= Skins.PET_TAB or not petList.Visible then
+			return
+		end
+		local centre = petList.CanvasPosition.Y + petList.Size.Y.Offset / 2
+		local order: { any } = {}
+		for _, r in petRows.rows do
+			table.insert(order, r)
+		end
+		table.sort(order, function(a, b)
+			local ya, yb = a.instance.Position.Y.Offset, b.instance.Position.Y.Offset
+			local da, db = math.abs(ya + STYLE.rowH / 2 - centre), math.abs(yb + STYLE.rowH / 2 - centre)
+			if da ~= db then
+				return da < db
+			end
+			return ya < yb
+		end)
+		for i, r in order do
+			if i < SlimePreview.MAX_LIVE then -- one slot is the pane's
+				mountWell(r.viewport, r.glyph, r.row)
+			else
+				unmountWell(r.viewport)
+				r.glyph.Visible = r.row ~= nil and (r.row.auto or not r.row.found)
+			end
+		end
+	end
+	petList:GetPropertyChangedSignal("CanvasPosition"):Connect(refreshPetPreviews)
+
+	-- The Pet tab's pane: the big preview, the name, one line and Equip / Equipped / a well.
+	local function paintPetPane(detail: PetSpeciesView.Detail?)
+		pane.Visible = detail ~= nil
+		for _, cl in cells do
+			cl.frame.Visible = false
+			SlimePreview.unmount(cl.preview)
+			cl.preview:SetAttribute("Look", nil)
+		end
+		paneTag.Visible = false
+		how.Visible = false
+		paneBar.Visible = false
+		paneCount.Visible = false
+		if detail == nil then
+			buyButton.instance.Visible = false
+			shopButton.instance.Visible = false
+			unmountWell(bigPetView)
+			return
+		end
+		local inner = math.max(paneW - STYLE.pad * 2, 1)
+		local y = STYLE.pad
+		bigPet.Position = UDim2.new(0.5, 0, 0, y)
+		bigPet.BackgroundTransparency = if detail.found then 0 else 0.6
+		bigPetGlyph.Text = if detail.auto then Skins.AUTO_GLYPH else "?"
+		bigPetGlyph.TextColor3 = if detail.auto then Theme.Gold else Theme.Muted
+		if open then
+			mountWell(bigPetView, bigPetGlyph, detail)
+		end
+		y += STYLE.bigIcon + 6
+		local function put(label: TextLabel, size: number, text: string, gapAfter: number)
+			local h = math.ceil(Layout.wrappedHeight(text, size, inner, true))
+			label.Text = text
+			label.Visible = true
+			label.Position = UDim2.fromOffset(STYLE.pad, y)
+			label.Size = UDim2.fromOffset(inner, h)
+			y += h + gapAfter
+		end
+		put(paneTitle, STYLE.title, detail.title, 4)
+		put(paneLine, STYLE.line, detail.line, 10)
+		y = paintAction(detail, y, inner)
+		pane.CanvasSize = UDim2.fromOffset(0, y)
+	end
+
+	local function repaintPet()
+		list.Visible = false
+		for _, l in itemLists do
+			l.Visible = false
+		end
+		local cards = SlimeDex.cards(latest.dex, ctx.Config, function(id: string)
+			local entry = if ctx.SlimeRoster then ctx.SlimeRoster.get(id) else nil
+			local look = if ctx.SlimeLooks then ctx.SlimeLooks.get(id) else nil
+			return if entry then entry.name else nil, if look then look.color else nil, nil
+		end)
+		local hasKit = if ctx.KitRequest
+			then function(id: string): boolean
+				return ctx.KitRequest.kitOf(id) ~= nil
+			end
+			else nil
+		local petRowsList = PetSpeciesView.rows(cards, latest.petSpecies, hasKit)
+		empty.Visible = false
+		petList.Visible = true
+		summary.Visible = true
+		summary.Text = PetSpeciesView.summary(petRowsList)
+		local known = false
+		for _, row in petRowsList do
+			known = known or row.id == picks[Skins.PET_TAB]
+		end
+		if not known then
+			picks[Skins.PET_TAB] = PetSpeciesView.firstSelected(petRowsList)
+		end
+		if not open then
+			return
+		end
+		attach()
+		petRows.sync(petRowsList)
+		local id = picks[Skins.PET_TAB]
+		paintPetPane(if id == nil then nil else PetSpeciesView.detail(petRowsList, id))
+		refreshPetPreviews()
+	end
+
 	function repaint()
 		for key, button in tabs do
 			button.setColor(if key == tab then Theme.Accent else Theme.Info)
@@ -938,6 +1196,15 @@ function Skins.new(parent: Instance, ctx: any)
 		if latest == nil then
 			return
 		end
+		local onPet = tab == Skins.PET_TAB
+		bigWell.Visible = not onPet
+		bigPet.Visible = onPet
+		if onPet then
+			repaintPet()
+			return
+		end
+		petList.Visible = false
+		unmountPetPreviews()
 		if ITEM_TABS[tab] then
 			repaintItems(tab)
 			return
@@ -995,6 +1262,7 @@ function Skins.new(parent: Instance, ctx: any)
 		end
 		bigIcon.setActive(isOpen)
 		if not isOpen then
+			unmountPetPreviews()
 			for _, cl in cells do
 				SlimePreview.unmount(cl.preview)
 				cl.preview:SetAttribute("Look", nil)
@@ -1017,14 +1285,20 @@ function Skins.new(parent: Instance, ctx: any)
 		return current()
 	end
 	function self.select(id: string)
-		if ITEM_TABS[tab] then
+		if ITEM_TABS[tab] or tab == Skins.PET_TAB then
 			picks[tab] = id
 		else
 			selected = id
 		end
 		repaint()
 	end
-	-- The open tab ("base" / "building" / "cloud") and switching it (the tab buttons do the same).
+	-- A species kit arrived (init.client): the Pet tab's previews switch to the better model.
+	function self.refreshPreviews()
+		if open and tab == Skins.PET_TAB then
+			repaint()
+		end
+	end
+	-- The open tab ("base" / "building" / "cloud" / "pet") and switching it (the tab buttons do the same).
 	function self.tab(): string
 		return tab
 	end

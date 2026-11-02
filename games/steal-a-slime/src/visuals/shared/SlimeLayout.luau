@@ -440,7 +440,8 @@ local function addTier(ctx: Ctx, tier: number, tierColor: Vec, bodyColor: Vec)
 
 	if tier >= 6 then
 		local aura = 1.3 * d
-		push(ctx, part("Aura", "Ball", { aura, aura, aura }, ctx.centre, { 0, 0, 0 }, tierColor, "Neon", 0.88))
+		-- 0.93: a faint rarity glow; 0.88 washed Mythic+ slimes out in the sun (docs/lighting-look.html, Soft 2)
+		push(ctx, part("Aura", "Ball", { aura, aura, aura }, ctx.centre, { 0, 0, 0 }, tierColor, "Neon", 0.93))
 		local orbit = { { 35, 0.95 }, { 155, 1.35 }, { 275, 1.1 } }
 		for i, o in orbit do
 			local n = LayoutMath.direction(o[1], 0)
