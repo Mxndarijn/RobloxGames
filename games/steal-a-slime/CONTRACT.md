@@ -436,7 +436,7 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §19 | [fountain-tiers.md](contract/fountain-tiers.md) | v19: fountain tiers + slime families (`FEATURES.FountainTiers`) |
 | §21 | [merge-vat.md](contract/merge-vat.md) | Merge vat: three slimes of one rarity brew into one |
 | §22 | [restocking-shop.md](contract/restocking-shop.md) | v29 #13: restocking consumables shop (2026-10-16) |
-| §24 | [welcome-back.md](contract/welcome-back.md) | v20: welcome-back card (2026-10-17) |
+| §24 | [welcome-back.md](contract/welcome-back.md) | Welcome back + daily reward card |
 | §25 | [server-profiler.md](contract/server-profiler.md) | v23: server performance profiler (`FEATURES.ServerProfiler`) |
 | §26 | [pvp.md](contract/pvp.md) | PvP: rules, gloves, traps, blasters, fun items (`FEATURES.PvP`) |
 | §27 | [world-shops.md](contract/world-shops.md) | World shops: Item Shop and Upgrade Shop |

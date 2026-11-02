@@ -17,7 +17,7 @@ The player's own settings, in one card opened from the gear (⚙️) in the top-
 | | `buttonClicks` | toggle, on | Off: `Lib.ui.ButtonClicks` plays nothing |
 | Game | `holdToSell` | toggle, on | Off: the pad Sell prompt is a tap (`SlimeKeys.setSellHold(0)`) |
 | | `tutorialHints` | toggle, on | Off: no tutorial card, no Goals ring, no tutorial arrow. The server still tracks the step |
-| | `dailyPopup` | toggle, on | Off: the daily popup does not open by itself; the reward waits in Goals ("Daily reward" row with Open, a `!` on the Goals tile) |
+| | `dailyPopup` | toggle, on | Off: the daily reward card does not open by itself for a new day (the welcome back card after a long break still shows it); the reward waits in Goals ("Daily reward" row with Open, a `!` on the Goals tile) |
 | Visuals | `reducedMotion` | toggle, off | Same as Roblox's Reduced Motion (`ReducedMotion` attribute): no habitat tweens / puffs, no camera shake, no hatch zoom |
 | | `effects` | `low` / `full`, full | Low: fewer particles (`visuals/shared/EffectPrefs.LOW_SCALE`): client Emit counts, PvP and weather effects, habitat bursts, and server-made emitters dimmed locally (`visuals/client/EffectsDimmer`) |
 | | `cameraShake` | toggle, on | Off: no PvP hit shake, no shake at a Secret's fountain show, no hatch zoom |
