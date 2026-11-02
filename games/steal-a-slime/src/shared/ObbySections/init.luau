@@ -30,7 +30,6 @@ local IDS = {
 	"BeatPads", -- 18
 	"KeyRun", -- 20
 	"GeyserField", -- 21
-	"StickyWalls", -- 22
 	"ArrowMaze", -- 23
 	"CollapsingBridge", -- 24
 	"SlidingMaze", -- 25
@@ -39,14 +38,22 @@ local IDS = {
 	"ClueDoors", -- 29
 }
 
--- The picture sign at the entry of every section of these ideas (visuals/shared/ObbySigns pictogram ids, one per
--- slot, comma-separated): the 15 mechanics docs/obby-signs-proposal.html found unclear (Merijn: a board on a post,
--- every step on one board, no words). A section can name its own (`Section.sign`, e.g. a Glow Memory mode); the other
--- ideas explain themselves.
+-- The picture sign at the entry of every section of every idea (visuals/shared/ObbySigns pictogram ids, one per
+-- slot, comma-separated; Merijn: every step on one board, no words, and every section shows its board). A section
+-- can name its own (`Section.sign`: a Glow Memory mode, or the idea's picture plus one for a mechanic borrowed from
+-- another idea, like a spring pad in a Key Run).
 local ENTRY_SIGNS: { [string]: string } = {
+	CrusherAlley = "crusher", -- 1
+	MeltingFloor = "melt", -- 2
+	GooRides = "ride", -- 3
+	BounceChain = "bounce", -- 4
 	Updraft = "updraft", -- 5
+	IceSlide = "ice", -- 6
 	Climb = "drips", -- 8
+	MerryGoRound = "spin", -- 9
 	GlowMemory = "glow", -- 10
+	TwoRoads = "fork", -- 11
+	RisingGoo = "rising", -- 12
 	RollingBlobs = "blobs", -- 14
 	VineSwing = "vine", -- 15
 	SpeedStrip = "speed", -- 16
@@ -54,8 +61,9 @@ local ENTRY_SIGNS: { [string]: string } = {
 	BeatPads = "beat", -- 18
 	KeyRun = "key", -- 20
 	GeyserField = "geyser", -- 21
-	StickyWalls = "sticky", -- 22
 	ArrowMaze = "belts", -- 23
+	CollapsingBridge = "collapse", -- 24
+	SlidingMaze = "panels", -- 25
 	AimTheCannon = "cannon1,cannon2,cannon3,cannon4", -- 26: walk in, it swings, jump on mint, land
 	MoonJump = "moon", -- 28
 	ClueDoors = "clue", -- 29

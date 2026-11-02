@@ -432,7 +432,13 @@ M.variants = {
 	{ name = "Walk the Deck", tier = "medium", build = walkTheDeck },
 	{ name = "Lift to Ferry", tier = "medium", build = liftToFerry },
 	{ name = "Lift Ladder", tier = "medium", build = liftLadder },
-	{ name = "Quick Stop", tier = "medium", build = quickStop },
+	{
+		name = "Quick Stop",
+		tier = "medium",
+		build = function(seed: number): Kit.Section
+			return Kit.signed(quickStop(seed), "ride,melt")
+		end,
+	},
 	{ name = "Wrong Stop", tier = "medium", build = wrongStop },
 	{ name = "Sink and Swap", tier = "hard", build = sinkAndSwap },
 	{ name = "Triple Transfer", tier = "hard", build = tripleTransfer },

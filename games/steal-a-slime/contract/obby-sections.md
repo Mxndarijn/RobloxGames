@@ -1,6 +1,7 @@
 # Obby sections: the section kit (contract)
 
-The obby course is rebuilt from 25 section ideas (Merijn's picks, 2026-10-31), each with many variants. This file is
+The obby course is rebuilt from 24 section ideas (Merijn's picks, 2026-10-31; Sticky Walls removed 2026-11-02, Merijn:
+"Remove the Slime wall section completely"), each with many variants. This file is
 the one contract every piece builds against: the section module format, the part fields, motions, triggers, keys,
 zones and controllers, the looks, and the test rules. `contract/obby.md` still holds the run rules (portal, no
 checkpoints, finish, boost); where they disagree on sections, this file wins.
@@ -17,7 +18,7 @@ src/shared/ObbySections/Kit.luau    shared builder helpers (slab, hazard, row, c
 src/shared/ObbySections/Vine.luau   the rope swing's physics (pure), shared by ObbyMoves and the checks (§7 vine)
 src/shared/ObbySections/<Id>.luau   one module per idea (Id = PascalCase name: CrusherAlley, MeltingFloor, ...)
 src/visuals/client/ObbyFx.luau      plays motions, triggers, keys, hazards (client)
-src/visuals/client/ObbyMoves.luau   character controllers: boost, slide, sticky, vine, cannon, moon, dark (client)
+src/visuals/client/ObbyMoves.luau   character controllers: boost, slide, vine, cannon, moon, dark (client)
 src/visuals/client/ObbyFall.luau    fall + hazard reset (exposes ObbyFall.reset(reason))
 src/visuals/shared/ObbyParts.luau   Part -> Instance, looks, attributes, readability decor
 tests/ObbyCheck.luau                reusable checks (makeable path, reach, part count, widths, fairness runner)
@@ -49,9 +50,14 @@ return M
   may ignore it. A generator variant must be deterministic for a seed (use `Rng`).
 * Every variant starts with a step at x in [0, 4] and y = 0 and ends with a step reaching `x = length`, top at
   `rise`. The course adds a jelly connector between sections and keeps the lane centred.
+* Joins are flush (`tests/ObbyJoins.spec`): the first step starts at exactly x = 0 with its top at 0, the last step
+  ends at exactly `x = length` with its top at `rise`, and no part's top face reaches outside x in [0, length] (a
+  turn, ramp or decor that pokes back over the connector shows under it at another height). In whole courses the
+  start pad, every connector and the finish meet the steps next to them with no step, gap or overlap and span them
+  across the lane.
 * Parts flagged `step = true` are the walking path in order (`route` tags allow branches, §3).
 
-Picking (ObbyCourse.pick): ORDER stays 3 easy, 3 medium, 2 hard. For each slot it picks an idea not used in this
+Picking (ObbyCourse.pick): ORDER is 2 easy, 2 medium, 2 hard (6 sections; it was 3/3/2 until Merijn asked for a 25% shorter obby on 2026-11-02). For each slot it picks an idea not used in this
 course nor the one before (chain rule as today), then a variant of that idea with that tier (or the idea's
 generator if it covers the tier; a generator counts as one more variant). An idea with no variant of a tier is
 skipped for that slot. `Pick = { id, tier, variant, seed }`. `ObbyCourse.NAMES` is replaced by
@@ -68,7 +74,6 @@ Existing: `size, pos, look, shape, ghost, motion, conveyor, ice, step, tone, lin
 | `route` | string | branch tag for steps: nil = main path, else "fast" / "safe" / "secret" / "key" / any name. Checks run per route (main + that route). |
 | `boost` | { speed, carry } | standing on it sets the local WalkSpeed to `speed` (studs/s); it eases back to 16 `carry` s after you leave. `speed < 16` slows (back strips). |
 | `slide` | { pull, cap } | slippery slide controller while standing on it (§7). Implies the ice look. |
-| `sticky` | { fall } | sticky wall: in the air touching it you hold on and slide down at `fall` studs/s; jump throws you off (§7). |
 | `vine` | { reach, hint } | a rope's grab knob: within `reach` studs of your body (feet to head) grabs you (§7); `hint` = seconds of the let-go flight the dots show. Use with motion `swing` (axis `"x"` along the course, else across). |
 | `cannon` | { power, arc } | cannon seat (§7). Use with motion `sweep`. |
 | `zone` | { kind, ... } | an invisible box the client checks the root against: `kind = "moon"` (`gravity` factor 0.2-0.6), `"dark"` (`light` radius studs), `"lift"` handled by motion lift. Ghost. |
@@ -86,7 +91,7 @@ punching part must be a `hazard` (it no longer shoves: touching = reset). Change
 
 | kind | params | behaviour |
 |---|---|---|
-| `melt` | `delay, away, on, spread` | `on = "land"` (default) or `"leave"`; `away = -1` = gone until the player is reset to the start pad; `spread` = seconds after this tile melts that tiles listed in `next` (indices into the section's parts, resolved to names by ObbyParts) start melting. Warning look: cracks + darkening over `delay`, faster crack ticks. |
+| `melt` | `delay, away, on, spread` | `on = "land"` (default) or `"leave"`; `away = -1` = gone until the player is reset to the start pad; `spread` = seconds after this tile melts that tiles listed in `next` (indices into the section's parts, resolved to names by ObbyParts) start melting. Warning look: cracks + darkening over `delay`, faster crack ticks. **Trapdoor** (`Kit.trap()`: `delay = 0`, `on = "land"`, `away = -1`): the floor of every wrong choice (Glow Memory fakes, Clue Doors wrong corridors) never holds a runner, not even for a jump: ObbyParts builds it with `CanCollide = false`, ObbyFx plays its crack and fade (`TRAP_FADE`) once the local root is over it, and tests/ObbyCheck treats it as no floor (walker and masher fall through). Safe tiles that melt keep a `delay` over 0. |
 | `flip` | + `solid` | `solid = true`: only the glow blinks on and off (glow-only pulse); the part stays solid. |
 | `bounce` | + `throw, duty, period, phase` | `throw = {x,y,z}` course-local launch velocity added on top of `power` up (tilted pads). With `duty`, it only throws while `cycle < duty` (geysers: rim glows `warn` s before). |
 | `lift` | + `duty, period, phase, cap` | timed column when `duty` is set (on while `cycle < duty`, swirl fades 0.8 s before off). `cap` = height above the part bottom where you hover instead of rising. Entering sets your upward speed (catches a fall). |
@@ -129,6 +134,11 @@ Pure Luau, no Roblox APIs. At least:
 * `Kit.rng(seed)` = `Rng.new(seed)`.
 * Gap/rise constants the checks use: `Kit.GAP_MAX = 6`, `Kit.RISE_MAX = 3.5` (walk + jump), `Kit.GRAVITY = 196.2`,
   `Kit.WALK = 16`, `Kit.launchReach(power, rise, throw?)`.
+* Jump pads: every bounce motion's `power` is built as `Kit.bounce(n)` = n x `Config.OBBY.BOUNCE_BOOST` (1.1, one
+  tunable for every pad and geyser), so layouts and checks see the thrown speed. Measured in Studio: a launch under
+  the jump speed (about 53) is just a jump, and air control wears a `throw` down at `Kit.AIR_DECEL` (120 studs/s^2),
+  so a throw adds only throw^2 / 240 studs to a hop (14: 0.8, 16 across: 1.1). `launchReach`, the makeable check and
+  the walker use that, not the full throw over the whole flight.
 
 ## 7. Character controllers (src/visuals/client/ObbyMoves.luau)
 
@@ -137,10 +147,8 @@ when it ends (WalkSpeed 16, gravity, camera) and on every reset.
 
 * **boost**: WalkSpeed to `boost.speed` while on the part, eases to 16 over 0.3 s, `carry` s after leaving.
 * **slide**: on a `slide` part you keep your horizontal velocity, the slope adds `pull` downhill, walking input
-  only steers (a quarter of normal accel), speed capped at `cap`. Brake goo (`sticky` look floor, not a wall)
+  only steers (a quarter of normal accel), speed capped at `cap`. Brake goo (a `sticky` look floor)
   stops the slide.
-* **sticky**: airborne and within 1.2 studs of a `sticky` wall face: horizontal speed into the wall zeroed, fall
-  speed held at `sticky.fall`; jump throws you off at 30 studs/s away from the face + 45 up. Squelch on stick.
 * **vine** (reworked 2026-11-01, Merijn: "they are not fun"; physics in `src/shared/ObbySections/Vine.luau`, shared
   with the checks): the feel of a classic platformer rope swing. A knob within `vine.reach` of your body grabs you,
   in a jump or walking at it (on the ground only while you walk at it). You hang under it, arms up on the knob,
@@ -169,8 +177,8 @@ One look per behaviour, same everywhere, plus a sound when it acts:
 
 | behaviour | look |
 |---|---|
-| hazard | `hazard`: danger red (215, 20, 25), transparency 0.25, SmoothPlastic, dark outline on box-shaped hazards (`HAZARD_EDGE` SelectionBox; balls, logs and discs get none, it would cage them), slight pulse. No floor, prop or jelly uses red or pink, so red always means danger |
-| sticky | `sticky`: lime green with drip parts on the bottom edge + `handprints` marker; squelch |
+| hazard | `hazard`: one look for every hazard of every idea, set once in `ObbyParts.HAZARD`: danger red (215, 20, 25), transparency 0.25, SmoothPlastic, and a dark outline (90, 0, 10), 0.12 studs, on every shape (a box: a SelectionBox; a ball, log or disc: rings round its round edges plus a silhouette that faces the camera, adornments only, no parts). Whenever it can hurt you it shows exactly this. Tells and beat pulses flash toward a brighter red (255, 45, 30), never toward white (that reads pink). A hazard that is off (a flip in its off share, a fallen piece) is far more see-through with no outline. No floor, prop or jelly uses red or pink, so red always means danger; the only other hazard-red things are Rolling Blobs' launcher rim (`danger`) and the next ball waiting in it (`loaded`), and ObbyMoves' "bad" aim dots |
+| brake goo | `sticky`: lime green goo with drips falling off it (Ice Slide's brake floor) |
 | bounce | `spring`: orange pad + 1-3 ring markers for its power; boing |
 | slippery | `ice` (exists): glossy pale blue + frost sparkle emitter; skid sound |
 | wind / lift | `wind` column with rising leaf particles and rings at the top; fan hum |
@@ -205,12 +213,15 @@ steps on one board (the cannon: walk in from behind, it swings, jump when the do
   evenly round the middle; the cannon's four steps are four slots (`cannon1..cannon4`).
 * Pictograms live in `src/visuals/shared/ObbySigns.luau` (ids `ObbySigns.IDS`): Frames, UICorner, UIStroke, rotated
   Frames and digit TextLabels on a SurfaceGui on the banner's face towards the runner, no uploads. How they are drawn
-  in `ObbySigns.SIZE` (50 px/stud, MaxDistance 60, main shapes >= 1.3 studs; the booster sizes); the banner's
+  in `ObbySigns.SIZE` (50 px/stud, MaxDistance 200, main shapes >= 1.3 studs; the booster sizes); the banner's
   geometry in `ObbyCourse.SIGN`.
-* Entry signs: `ObbySections.ENTRY_SIGNS` names the pictures for the 15 ideas the proposal found unclear (Updraft,
-  Climb, Glow Memory, Rolling Blobs, Vine Swing, Speed Strip, Lights Out, Beat Pads, Key Run, Geyser Field, Sticky
-  Walls, Arrow Maze, Aim the Cannon, Moon Jump, Clue Doors). A section can name its own with `Section.sign` (Glow
-  Memory's modes). The banner hangs over the section's first step.
+* Entry signs: `ObbySections.ENTRY_SIGNS` names the pictures for every idea (Merijn, 2026-11-02: every section
+  shows its board; the ten the proposal had skipped got crusher, melt, ride, bounce, ice, spin, fork, rising,
+  collapse and panels). A section can name its own with `Section.sign` (`Kit.signed`): Glow Memory's modes, and the
+  idea's picture plus one per mechanic a variant borrows from another idea (a spring pad in Key Run: `key,bounce`;
+  keys, boosts, the dark, melting floors, wind columns likewise). The banner hangs over the section's first step;
+  when nothing in the section leaves it room (a shaft walled up both sides), over the connector before it (x down to
+  `SIGN.reach - LINK_LENGTH`).
 * Spot signs: a `pic:<id>` marker on a part asks for a banner over that spot (Two Roads' roads, Key Run's stopwatch
   gate, Rising Goo's countdown arch, Moon Jump's two moons); the marker draws nothing on the part (`ObbyCourse.build`
   drops it). Marked parts whose near ends lie within `SIGN.group` studs share one banner (a fork's roads); its floor
@@ -232,7 +243,7 @@ steps on one board (the cannon: walk in from behind, it swings, jump when the do
   check: every `step` part has min(size.x, size.z) >= 3 and steps that are not beams (`look ~= "beam"`) >= 8 wide
   across the walking direction.
 * Makeable path per route: every step reachable from the one before by walk/jump (gap <= GAP_MAX, rise <=
-  RISE_MAX), launch (`launchReach`), lift, climb, sticky chain, vine release, cannon arc or boost jump, measured
+  RISE_MAX), launch (`launchReach`), lift, climb, vine release, cannon arc or boost jump, measured
   at the worst point of any motion (moving parts: closest-gap over 32 samples of a period).
 * No straight-forward walk crosses the section (the existing check, routes included).
 * Hazard fairness: a runner at 16 studs/s who loses 0.15 s per jump must find every hazard open for at least
@@ -256,17 +267,15 @@ steps on one board (the cannon: walk in from behind, it swings, jump when the do
     it from any height clears the section.
   * Slide parts run the ObbyMoves slide controller (speed kept, `pull` downhill, holding forward adds 16 studs/s²,
     capped at `cap`; the speed carries off the end in the air). Belts, rides, boosts, pads (with `throw`), lifts and
-    gusts carry it; leaving a floor keeps the floor's own speed. In the air by a sticky wall's face it holds on and
-    slides along it at `fall`.
+    gusts carry it; leaving a floor keeps the floor's own speed.
   * A wall stops its forward speed, not the walker: it keeps pressing on until it has made no headway for the
     longest period + 2 s (at once when wall and floor never change). Hazards (a 1 x 2 x 5 box, a ball by its real
-    sphere) reset it; melting tiles go `delay` s after it lands or leaves (ObbyFx defaults 0.7 / 2.5), spread to
+    sphere) reset it; melting tiles go `delay` s after it lands or leaves (ObbyFx defaults 0.7 / 2.5; a trapdoor is no floor at all), spread to
     `next`, come back; drops go at `at`.
   * Every line across the lane (1 stud apart) and 48 start times over the longest period (on a 1/30 s tick grid).
 * `ObbyCheck.straightWalk`: the walker without jumping must fail for every line and every start time.
 * `ObbyCheck.masher`: the same walker jumping (JumpPower 50: 6.4 studs up, so ledges up to about 8.3 with the hip
-  catch; a 9-stud wall stops it) every time it is on a floor, and thrown off a sticky wall 0.2 s after it sticks
-  (the held jump). On its best line it may clear the section from at most 20 % of the start times
+  catch; a 9-stud wall stops it) every time it is on a floor. On its best line it may clear the section from at most 20 % of the start times
   (`ObbyCheck.MASHER_SHARE`); the failure names the variant, the line and the share.
 
 ## 10b. How data reaches the client (fixed, so the pieces can be built in parallel)
@@ -274,7 +283,7 @@ steps on one board (the cannon: walk in from behind, it swings, jump when the do
 * `ObbyCourse.build` gives every part a unique `id` string `"<section>.<index>"` (start/finish/links: `"s"`, `"f"`,
   `"l<n>"`) and rewrites section-local references (`motion.next` indices) to those ids.
 * ObbyParts sets on the Course model `ObbyFrame` (CFrame: origin, X forward, Y up, Z right, i.e. the course frame).
-* Every part gets `ObbyId` (its id). A part with any behaviour (motion, hazard, boost, slide, sticky, vine, cannon,
+* Every part gets `ObbyId` (its id). A part with any behaviour (motion, hazard, boost, slide, vine, cannon,
   zone, key, gate, trigger, start, beat, conveyor, marker) also gets `ObbySpec`: `HttpService:JSONEncode` of exactly
   those fields, values course-local as in the data, and `ObbyBase` (its rest CFrame in world space). The old
   per-field attributes (ObbyMotion, ObbyAxis, ...) are dropped; ObbyFx and ObbyMoves read `ObbySpec` and convert
@@ -317,7 +326,7 @@ from 90 % of start times, and a masher bot (holds forward, jumps on every landin
 * Walk-forward check: see the walk model in §9. Every walking line needs a same-height hole of at least 4.4 studs, a
   wall the walker can't climb (over 2 studs; 8.4 or more against the masher), or a hazard it can't slip past at any
   start time. Pads, lifts, belts, boosts, slides and moving floors carry the walker.
-* Width check exempts ladders, wind columns, sticky walls, vines and cannons; bounce pads still need 8.
+* Width check exempts ladders, wind columns, vines and cannons; bounce pads still need 8.
 * Sounds: only the built-in `rbxasset://sounds/` files (volume_slider, action_jump, action_jump_land,
   action_footsteps_plastic, impact_water) at different pitches, through `ObbyFx.sound(name)`.
 * Dark zones tint with their own ColorCorrection ("ObbyMovesDark"), never writing Lighting.

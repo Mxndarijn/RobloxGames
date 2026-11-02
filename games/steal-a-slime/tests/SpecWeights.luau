@@ -80,7 +80,6 @@ SpecWeights.seconds = {
 	["obby/Climb.spec"] = 1.6,
 	["obby/SpeedStrip.spec"] = 1.5,
 	["JarTower.spec"] = 1.3,
-	["obby/StickyWalls.spec"] = 1.3,
 	["Rarity.spec"] = 1.2,
 	["RanchProps.spec"] = 1.1,
 	["AmbiguousCall.spec"] = 1.0,

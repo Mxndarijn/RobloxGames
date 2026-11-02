@@ -11,8 +11,7 @@ local ObbyCheck = require("../ObbyCheck")
 local SEEDS = 120 -- more than the shared 20
 
 local function isFake(p: Kit.Part): boolean
-	local m = p.motion
-	return m ~= nil and m.kind == "melt" and (m.delay or 0) <= 0.2
+	return Kit.isTrap(p.motion)
 end
 
 -- A floor you can stand on at time t (nil = at rest): solid, not a fake, there now.
@@ -252,7 +251,7 @@ describe("GlowMemory", function()
 			for _, p in section.parts do
 				if p.step and p.look == "glow" then
 					local m = p.motion
-					if not (m and m.kind == "melt" and (m.delay or 0) > 0.2 and (m.delay or 0) <= 2) then
+					if not (m and m.kind == "melt" and (m.delay or 0) > 0 and (m.delay or 0) <= 2) then
 						table.insert(bad, `{name} seed {seed}: safe tile {p.pos[1]},{p.pos[3]} holds you forever`)
 						return
 					end

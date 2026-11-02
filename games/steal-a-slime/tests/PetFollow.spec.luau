@@ -1,5 +1,6 @@
 --!strict
 -- PetFollow: how the follow pet + cloud flies after its owner (src/visuals/shared/PetFollow). Pure numbers, no Roblox.
+local Config = require("../src/shared/Config")
 local PetFollow = require("../src/visuals/shared/PetFollow")
 local TestRunner = require("./TestRunner")
 
@@ -67,6 +68,43 @@ describe("PetFollow snap", function()
 	it("the snap spot is on the leash", function()
 		expect(PetFollow.FOLLOW).toBeCloseTo(math.sqrt(OX * OX + OZ * OZ), 1e-9)
 		expect(PetFollow.NEAR < PetFollow.FOLLOW).toBe(true)
+	end)
+	it("snaps into the obby world and back home in one step each", function()
+		local s = settled()
+		PetFollow.step(s, DT, 0, 403, -9004, 0) -- the portal drop, 400 up and 9000 out
+		expect(s.x).toBeCloseTo(OX)
+		expect(s.y).toBeCloseTo(403 + OY)
+		expect(s.z).toBeCloseTo(-9004 + OZ)
+		PetFollow.step(s, DT, -59, 4, 150, 0) -- the home ring
+		expect(s.x).toBeCloseTo(-59 + OX)
+		expect(s.y).toBeCloseTo(4 + OY)
+		expect(s.z).toBeCloseTo(150 + OZ)
+	end)
+end)
+
+describe("PetFollow drawn", function()
+	it("always draws your own pet, however far the camera is", function()
+		expect(PetFollow.drawn(true, 0, 403, -9004, -59, 10, 170)).toBe(true)
+	end)
+	it("draws another player's pet only within DRAW_DISTANCE of the camera", function()
+		local d = PetFollow.DRAW_DISTANCE
+		expect(PetFollow.drawn(false, d - 1, 0, 0, 0, 0, 0)).toBe(true)
+		expect(PetFollow.drawn(false, 0, 0, d + 1, 0, 0, 0)).toBe(false)
+		expect(PetFollow.drawn(false, 0, 403, -9004, -59, 10, 170)).toBe(false) -- they went into the obby
+	end)
+	it("a hidden pet snaps next to its owner when it is drawn again, even after a short way", function()
+		local s = settled()
+		PetFollow.hide(s)
+		local far = PetFollow.SNAP_DISTANCE / 2 -- below the snap distance: a drawn pet would fly this
+		PetFollow.step(s, DT, far, 0, 0, 0)
+		expect(s.x).toBeCloseTo(far + OX)
+		expect(s.z).toBeCloseTo(OZ)
+		expect(s.vx).toBe(0)
+	end)
+	it("reads its distances from Config", function()
+		expect(PetFollow.SNAP_DISTANCE).toBe(Config.PET_FOLLOW.SNAP_DISTANCE)
+		expect(PetFollow.DRAW_DISTANCE).toBe(Config.PET_FOLLOW.DRAW_DISTANCE)
+		expect(PetFollow.SNAP_DISTANCE < PetFollow.DRAW_DISTANCE).toBe(true)
 	end)
 end)
 

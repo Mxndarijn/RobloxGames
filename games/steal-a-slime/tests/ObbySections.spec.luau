@@ -183,14 +183,6 @@ describe("ObbyCheck models", function()
 		expect(ObbyCheck.walkStop(section({ floor(0, 40), low }, 40), 0, 0) ~= nil).toBe(true)
 	end)
 
-	it("walk bot: a walker in the air by a sticky wall slides along it, holding forward", function()
-		local wall = part({ 20, 10, 1 }, { 18, 2, -11 }, { look = "sticky", sticky = { fall = 2 } })
-		local pit = Kit.hazard({ 20, 0.6, Kit.WIDTH }, { 18, -6, 0 })
-		local s = section({ floor(0, 8), wall, pit, floorAt(28, 40, -2) }, 40, -2)
-		expect(ObbyCheck.walkStop(s, -9.5, 0)).toBeNil()
-		expect(ObbyCheck.walkStop(s, -5, 0) ~= nil).toBe(true)
-	end)
-
 	it("masher: jumping on every landing outclimbs a slow flood up 3-stud steps a walker can't climb", function()
 		local function stairs(speed: number): Kit.Section
 			local parts = {}

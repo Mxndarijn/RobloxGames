@@ -58,6 +58,7 @@ Validate.ACTIONS = table.freeze({
 	SendGift = 0.5,
 	SetHotbar = 0.3,
 	RequestKits = 0.25,
+	ObbyVine = 0.1, -- the client sends only its latest hold, at most this often (visuals/shared/ObbyVineSend)
 	Admin = 0.25,
 })
 

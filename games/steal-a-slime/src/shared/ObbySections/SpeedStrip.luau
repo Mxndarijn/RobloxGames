@@ -360,7 +360,7 @@ M.variants = {
 			table.insert(parts, canopy(4, 28 - LEAP_ROOM, 0, 0, Kit.WIDTH))
 			table.insert(parts, sweeper(18, 0, 0, 10, 5, MEDIUM))
 			table.insert(parts, plain(39, length, 0, 0, Kit.WIDTH, 3)) -- gap 11
-			return Kit.section(length, 0, parts)
+			return Kit.signed(Kit.section(length, 0, parts), "speed,melt")
 		end,
 	},
 	{

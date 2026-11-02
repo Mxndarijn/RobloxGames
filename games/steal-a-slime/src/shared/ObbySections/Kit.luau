@@ -18,6 +18,7 @@
 ]]
 
 local Rng = if script then require(script.Parent.Parent.Rng) else require("../Rng")
+local Config = if script then require(script.Parent.Parent.Config) else require("../Config")
 
 export type Vec = { number } -- { x, y, z }
 
@@ -77,7 +78,6 @@ export type Part = {
 	route: string?,
 	boost: { speed: number, carry: number? }?,
 	slide: { pull: number, cap: number }?,
-	sticky: { fall: number }?,
 	vine: { reach: number }?,
 	cannon: { power: number, arc: number }?,
 	zone: { kind: string, gravity: number?, light: number? }?,
@@ -124,6 +124,16 @@ Kit.JUMP_HEIGHT = 7.2
 Kit.JUMP_SPEED = math.sqrt(2 * Kit.GRAVITY * Kit.JUMP_HEIGHT)
 Kit.HEAD = 5 -- feet to the top of the head
 Kit.JUMP_LOSS = 0.15 -- seconds a runner loses on every jump (fairness runner)
+Kit.BOUNCE_BOOST = Config.OBBY.BOUNCE_BOOST
+-- Measured in Studio (R15, WalkSpeed 16): air control pulls any horizontal speed over the walk back down at about
+-- this rate (studs / s^2), so a pad's sideways or forward `throw` adds only throw^2 / (2 * AIR_DECEL) studs to a hop.
+Kit.AIR_DECEL = 120
+
+-- The launch speed a jump pad or geyser of section number `power` throws at (every bounce motion's `power` is built
+-- with it: Config.OBBY.BOUNCE_BOOST).
+function Kit.bounce(power: number): number
+	return power * Kit.BOUNCE_BOOST
+end
 
 -- A punch's beat as shares of its period: out, held, back, then resting (same as ObbyFx).
 Kit.PUNCH_OUT = 0.1
@@ -260,7 +270,8 @@ function Kit.launchReach(power: number, rise: number, throw: Vec?): number?
 	end
 	local t = (vy + math.sqrt(vy * vy - 2 * Kit.GRAVITY * rise)) / Kit.GRAVITY
 	local across = if throw then math.sqrt(throw[1] * throw[1] + throw[3] * throw[3]) else 0
-	return (Kit.WALK * 0.8 + across) * t
+	-- air control wears the throw down: it carries across^2 / (2 * AIR_DECEL) studs at most
+	return Kit.WALK * 0.8 * t + math.min(across * t, across * across / (2 * Kit.AIR_DECEL))
 end
 
 ---------------------------------------------------------------------------
@@ -491,6 +502,19 @@ function Kit.sweepAt(motion: Motion, s: number, period: number): number
 end
 
 --[[
+	A trapdoor: the floor of a wrong choice (a Glow Memory fake, a Clue Doors wrong corridor). A `melt` with
+	`delay = 0`: it never holds a runner, so no one lands on it and jumps on. ObbyParts builds it without collision,
+	ObbyFx plays its crack and drop as you fall through it, tests/ObbyCheck walks it as no floor.
+]]
+function Kit.trap(): Motion
+	return { kind = "melt", on = "land", delay = 0, away = -1 }
+end
+
+function Kit.isTrap(m: { [string]: any }?): boolean
+	return m ~= nil and m.kind == "melt" and m.on ~= "leave" and m.delay == 0
+end
+
+--[[
 	Where a part is at time `t` on its clock (server time, or seconds since its `start` group began; nil = not
 	started, at rest). Returns the offset of its centre (dx, dy, dz), an extra turn round its vertical axis (dyaw,
 	degrees), its footprint scale (shrink) and whether it is there / acting (`on`: flip solid, duty on, not dropped).
@@ -600,6 +624,13 @@ function Kit.section(length: number, rise: number, parts: { Part }): Section
 	assert(math.abs(x1 - length) <= EPS, `obby section: last step ends at x {x1}, length {length}`)
 	assert(math.abs(far - rise) <= EPS, `obby section: last step top {far}, rise {rise}`)
 	return { length = length, rise = rise, parts = parts }
+end
+
+-- `section` with its own entry sign (`Section.sign`, ObbySections.entrySign): the idea's picture plus one for each
+-- mechanic the variant borrows from another idea, comma-separated (visuals/shared/ObbySigns ids).
+function Kit.signed(section: Section, sign: string): Section
+	section.sign = sign
+	return section
 end
 
 return table.freeze(Kit)

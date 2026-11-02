@@ -33,25 +33,6 @@ local DEPS = {
 local SEEDS = 3
 local EPS = 1e-6
 
--- The 15 mechanics the proposal gives a sign: 12 needed, 3 nice to have (all picked).
-local SIGNED = {
-	"AimTheCannon",
-	"RollingBlobs",
-	"Climb",
-	"GlowMemory",
-	"BeatPads",
-	"KeyRun",
-	"ClueDoors",
-	"StickyWalls",
-	"MoonJump",
-	"SpeedStrip",
-	"ArrowMaze",
-	"LightsOut",
-	"VineSwing",
-	"GeyserField",
-	"Updraft",
-}
-
 local function eachCase(visit: (any, any) -> ())
 	for _, idea in ObbySections.ALL do
 		for _, case in ObbyCheck.cases(idea) do
@@ -93,17 +74,16 @@ local function boxesOf(part)
 end
 
 describe("Obby picture signs: data", function()
-	it("gives exactly the 15 proposal mechanics an entry sign, every picture known", function()
+	it("gives every idea an entry sign, every picture known", function()
 		local count = 0
 		for id, pics in ObbySections.ENTRY_SIGNS do
 			count += 1
-			expect(table.find(SIGNED, id) ~= nil).toBe(true)
 			expect(ObbySections.byId[id] ~= nil).toBe(true)
 			for _, pic in string.split(pics, ",") do
 				expect(ObbySigns.has(pic)).toBe(true)
 			end
 		end
-		expect(count).toBe(#SIGNED)
+		expect(count).toBe(#ObbySections.ALL)
 		expect(ObbySections.ENTRY_SIGNS.AimTheCannon).toBe("cannon1,cannon2,cannon3,cannon4")
 	end)
 
@@ -151,7 +131,7 @@ describe("Obby picture signs: data", function()
 		local s = Kit.section(40, 0, { Kit.slab(20, 0, 0, 40, Kit.WIDTH, "pad", { marker = "pic:fast" }) })
 		expect(ObbyCheck.partCount(s)).toBe(1 + ObbyCourse.SIGN_PARTS)
 		expect(ObbyCheck.partCount(s, "AimTheCannon")).toBe(1 + 2 * ObbyCourse.SIGN_PARTS)
-		expect(ObbyCheck.partCount(s, "CrusherAlley")).toBe(1 + ObbyCourse.SIGN_PARTS)
+		expect(ObbyCheck.partCount(s, "CrusherAlley")).toBe(1 + 2 * ObbyCourse.SIGN_PARTS)
 	end)
 
 	it("puts the marked parts' pictures of one spot on one banner, each over the part it marks", function()
@@ -319,8 +299,9 @@ describe("Obby picture signs: in the course", function()
 				if not b.ghost or not (b.motion and b.motion.kind == "slide" and b.motion.axis == "y") then
 					table.insert(problems, `{label}: not a hovering ghost`)
 				end
+				-- (an entry sign with no room in its section hangs over the connector before it)
 				local x0, x1 = b.pos[1] - SIGN.reach, b.pos[1] + SIGN.reach
-				if x0 < dx - EPS or x1 > dx + section.length + EPS then
+				if x0 < dx - ObbyCourse.LINK_LENGTH - EPS or x1 > dx + section.length + EPS then
 					table.insert(problems, `{label}: outside its section`)
 				end
 				-- the same height over its floor
@@ -371,8 +352,8 @@ describe("Obby picture signs: in the course", function()
 		local course = ObbyCourse.build(1, { { id = "TwoRoads", tier = "easy", variant = 1, seed = 1 } })
 		local found = false
 		for _, part in course.parts do
-			if part.look == "banner" then
-				local slots = ObbyCourse.slotsOf(part.marker)
+			local slots = ObbyCourse.slotsOf(part.marker)
+			if part.look == "banner" and slots and slots[1].id ~= "fork" then -- not the entry sign
 				expect(slots[1].id).toBe("safe")
 				expect(slots[1].z < 0).toBe(true)
 				expect(slots[2].id).toBe("fast")

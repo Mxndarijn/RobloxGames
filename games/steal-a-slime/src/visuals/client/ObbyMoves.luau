@@ -12,13 +12,12 @@
 	  slide   on a slide part you keep your speed, the slope pulls you downhill at `slide.pull` studs/s², walking
 	          only steers (STEER_ACCEL, a quarter of a normal start) and the speed is capped at `slide.cap`. The
 	          speed carries through a jump off the end; landing on any other floor (brake goo) ends it
-	  sticky  in the air next to a sticky wall's side face you hold on and slide down at `sticky.fall`; jump throws
-	          you off, away from the face and up
 	  vine    a rope swing (physics in shared ObbySections/Vine, the same the checks use): a knob within `vine.reach`
 	          of your body (feet to head) grabs you, in a jump or walking at it. You hang from it, arms up, on a real
 	          pendulum that keeps your run; holding the way you swing pumps it. A fresh jump press lets go with the
 	          swing's speed plus a hop; a few dots show the flight's start (`vine.hint` s, mint when it lands safe
-	          or on a rope). The rope you leave eases back to its server-time swing. "Jump to let go" on the first grabs
+	          or on a rope). The rope you leave eases back to its server-time swing. Other clients see the hold through
+	          ObbyVineSync (`held`, `rope`). "Jump to let go" on the first grabs
 	  cannon  walking into a barrel snaps you in (PlatformStand, camera behind the barrel); a dotted line shows the
 	          shot's arc for the barrel's aim now (red when it ends in goo or misses); jump fires: you follow that
 	          fixed arc and are handed back to physics HAND_LIFT studs above the landing
@@ -28,10 +27,9 @@
 
 	"Inside" is your body, not the root's centre (ObbyZone): a moon or dark zone holds you while any of you from the
 	feet to the head is within ZONE_PAD of its shape (ZONE_PAD + ZONE_HOLD once you are in, so its edge never flickers;
-	a moon zone's shape is the bubble dome ObbyParts draws, the ellipsoid in its box, not the box),
-	and a sticky wall grips while your legs to shoulders are within reach of its side face, whichever way you face.
+	a moon zone's shape is the bubble dome ObbyParts draws, the ellipsoid in its box, not the box).
 
-	The momentum a controller hands back (a slide's end jump, a wall throw, a vine release, a cannon landing) is kept
+	The momentum a controller hands back (a slide's end jump, a vine release, a cannon landing) is kept
 	in the air by the same "drive" that steers the slide: it calls Humanoid:Move right after the control script, so
 	the humanoid's own air control does not brake it. Every controller puts the character back exactly when it ends
 	(the WalkSpeed it found, PlatformStand off, the camera type and subject it found, no force or light left) and
@@ -55,6 +53,8 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local ObbyFall = require(script.Parent:WaitForChild("ObbyFall"))
 local ObbyLook = require(Visuals:WaitForChild("ObbyLook"))
+local ObbyParts = require(Visuals:WaitForChild("ObbyParts"))
+local ObbyVinePose = require(script.Parent:WaitForChild("ObbyVinePose"))
 local ObbyZone = require(Visuals:WaitForChild("ObbyZone"))
 local Vine = require(Shared:WaitForChild("ObbySections"):WaitForChild("Vine"))
 
@@ -72,17 +72,6 @@ ObbyMoves.FLAT_SLOPE = math.cos(math.rad(2)) -- a floor flatter than 2° has no 
 ObbyMoves.GLIDE_MIN = 0.1 -- seconds in the air before a landing ends the kept momentum (the take-off frame)
 ObbyMoves.GLIDE_MAX = 3 -- seconds of kept momentum at most
 
--- sticky
-ObbyMoves.STICK_REACH = 1.2 -- studs between your side and the wall face that still grip
-ObbyMoves.THROW_AWAY = 30 -- studs/s away from the face on a jump off
-ObbyMoves.THROW_UP = 45 -- studs/s up on a jump off
-ObbyMoves.RESTICK = 0.3 -- seconds after a throw before any wall grips again
-ObbyMoves.SAME_WALL = 0.6 -- seconds after a throw before the same wall grips again
-ObbyMoves.SIDE_FACE = 0.5 -- a face whose normal has |Y| under this is a wall face (not a top or bottom)
-ObbyMoves.STICK_HOLD = 0.5 -- extra studs of reach the wall you hold keeps you by (so sliding along it never flickers)
-ObbyMoves.STICK_DOWN = 2.5 -- the body line a wall grips: from this far under the root (the shins) ...
-ObbyMoves.STICK_UP = 1.5 -- ... to this far over it (the shoulders)
-
 -- zones (moon, dark)
 ObbyMoves.HEAD_UP = 2.5 -- studs from the root's centre to the top of the head
 ObbyMoves.ZONE_PAD = 0.5 -- studs round a zone's box (sideways) the body counts as in it when it comes in
@@ -97,9 +86,6 @@ ObbyMoves.RETURN = 0.8 -- seconds a rope you let go of takes to ease back to its
 ObbyMoves.PRESS_GAP = 0.12 -- a jump request this long after the last one is a fresh press (held jump repeats)
 ObbyMoves.VINE_DOTS = 6 -- dots of the let-go flight while you hang
 ObbyMoves.VINE_DOT = 0.4
-ObbyMoves.ARM_UP = math.rad(165) -- the shoulders turn the arms this far up (round the torso's back axis) ...
-ObbyMoves.ARM_FORWARD = math.rad(12) -- ... and this far forward, hands on the knob over your head
-ObbyMoves.ROPE_WIDTH = 0.35 -- the Beam from the knob to your hands
 ObbyMoves.PUFF = "rbxasset://textures/particles/smoke_main.dds" -- built-in (never uploaded)
 ObbyMoves.HINT_GRABS = 3 -- the "Jump to let go" hint shows on this many grabs
 ObbyMoves.HINT_TEXT = "Jump to let go"
@@ -151,16 +137,23 @@ local function rgb(c: { number }): Color3
 	return Color3.fromRGB(c[1], c[2], c[3])
 end
 local DOT_OK = rgb(GooPalette.Mint)
-local DOT_BAD = Color3.fromRGB(215, 20, 25) -- the hazard look's red (ObbyParts / contract §8)
+local DOT_BAD = ObbyParts.HAZARD.color -- the hazard look's red (contract §8)
 
-export type Controller = { tick: (dt: number) -> (), stop: () -> () }
+-- `held`: the ObbyId of the vine rope the local player hangs on ("" = none), for ObbyVineSync to send.
+-- `rope`: the course's vine rope with that ObbyId (its knob, ghost rope part, pivot and plane), nil if none.
+export type Controller = {
+	tick: (dt: number) -> (),
+	stop: () -> (),
+	held: () -> string,
+	rope: (id: string) -> Rope?,
+}
 
 type Spec = { [string]: any }
-type Item = { part: BasePart, spec: Spec }
+export type Item = { part: BasePart, spec: Spec }
 
 -- A rope you hold: its knob item, the ghost rope part on the same pivot, the pivot (world), the swing's plane
 -- direction (+angle) and up, its arm (pivot to the knob's centre) and the knob's grab reach and dot seconds.
-type Rope = {
+export type Rope = {
 	item: Item,
 	ropePart: BasePart?,
 	pivot: Vector3,
@@ -257,7 +250,6 @@ function ObbyMoves.start(): Controller
 	local slot: any = nil
 	local frame = CFrame.identity
 	local specOf: { [BasePart]: Spec } = {}
-	local stickies: { Item } = {}
 	local vines: { Item } = {}
 	local cannons: { Item } = {}
 	local moons: { Item } = {}
@@ -272,12 +264,11 @@ function ObbyMoves.start(): Controller
 	local walkBase: number? = nil -- the WalkSpeed found before a controller first changed it
 	local platformBase: boolean? = nil -- the PlatformStand found before a hold
 	local drive: Drive? = nil
-	local hold: string? = nil -- "vine" | "cannon" | "flight" | "sticky" while one owns the character
+	local hold: string? = nil -- "vine" | "cannon" | "flight" while one owns the character
 	local wasInside = false
 
 	-- per controller
 	local boost = { speed = nil :: number?, from = 0, lastOn = 0, carry = 0 }
-	local stick = { item = nil :: Item?, normal = Vector3.zero, at = 0, freeAt = 0, last = nil :: Item?, lastUntil = 0 }
 	local vine = {
 		item = nil :: Item?,
 		at = 0,
@@ -289,7 +280,7 @@ function ObbyMoves.start(): Controller
 		w = 0, -- its angular speed
 		from = Vector3.zero, -- the root where the grab took it
 		returns = {} :: { Return }, -- ropes let go of, easing back to their own swing
-		arms = {} :: { { joint: Instance, c0: CFrame } }, -- each shoulder's C0 (or torso attachment) before the arms went up
+		arms = {} :: ObbyVinePose.Saved, -- each shoulder's C0 (or torso attachment) before the arms went up
 		beam = nil :: Beam?,
 		hands = nil :: Attachment?,
 	}
@@ -475,13 +466,6 @@ function ObbyMoves.start(): Controller
 
 	------------------------------------------------------------------ ending
 
-	local function endStick()
-		stick.item = nil
-		if hold == "sticky" then
-			hold = nil
-		end
-	end
-
 	-- The held rope's look: its angle on the knob and the rope part, shown `fade` (0..1) over its own swing (ObbyFx).
 	local function showRope(knob: BasePart, ropePart: BasePart?, th: number?, fade: number?)
 		knob:SetAttribute(Vine.HELD_ANGLE, th)
@@ -500,49 +484,16 @@ function ObbyMoves.start(): Controller
 		table.clear(vine.returns)
 	end
 
-	-- Arms up on the knob while you hang: each shoulder turned in the torso's frame (a Motor6D's C0, or the torso
-	-- attachment of the new rig's AnimationConstraint), put back exactly after.
+	-- Arms up on the knob while you hang (ObbyVinePose), put back exactly after.
 	local function armsUp(on: boolean)
 		if not on then
-			for _, a in vine.arms do
-				local j = a.joint
-				if j.Parent then
-					if j:IsA("Motor6D") then
-						j.C0 = a.c0
-					elseif j:IsA("Attachment") then
-						j.CFrame = a.c0
-					end
-				end
-			end
-			table.clear(vine.arms)
+			ObbyVinePose.lower(vine.arms)
 			return
 		end
 		if #vine.arms > 0 or not character then
 			return
 		end
-		for _, d in (character :: Model):GetDescendants() do
-			local name = d.Name
-			local side = if name == "RightShoulder" or name == "Right Shoulder"
-				then -1
-				elseif name == "LeftShoulder" or name == "Left Shoulder" then 1
-				else 0
-			if side == 0 then
-				continue
-			end
-			local turn = CFrame.Angles(-ObbyMoves.ARM_FORWARD, 0, 0) * CFrame.Angles(0, 0, side * ObbyMoves.ARM_UP)
-			if d:IsA("Motor6D") then
-				local c0 = d.C0
-				table.insert(vine.arms, { joint = d :: Instance, c0 = c0 })
-				d.C0 = CFrame.new(c0.Position) * turn * c0.Rotation
-			elseif d:IsA("AnimationConstraint") then
-				local a0 = d.Attachment0
-				if a0 then
-					local c0 = a0.CFrame
-					table.insert(vine.arms, { joint = a0 :: Instance, c0 = c0 })
-					a0.CFrame = CFrame.new(c0.Position) * turn * c0.Rotation
-				end
-			end
-		end
+		vine.arms = ObbyVinePose.raise(character :: Model)
 	end
 
 	-- The stick, in the world (flat): the control module's move vector turned by the camera. Humanoid.MoveDirection
@@ -677,7 +628,6 @@ function ObbyMoves.start(): Controller
 		if not h and character then
 			h = character:FindFirstChildOfClass("Humanoid")
 		end
-		endStick()
 		endVine(h)
 		clearVineReturns()
 		endCannon(h)
@@ -698,7 +648,7 @@ function ObbyMoves.start(): Controller
 
 	local function scan(model: Instance)
 		specOf = {}
-		stickies, vines, cannons, moons, darks, hazards = {}, {}, {}, {}, {}, {}
+		vines, cannons, moons, darks, hazards = {}, {}, {}, {}, {}
 		local f = model:GetAttribute(Constants.OBBY_FRAME)
 		frame = if typeof(f) == "CFrame" then f else CFrame.identity
 		for _, d in model:GetDescendants() do
@@ -711,9 +661,6 @@ function ObbyMoves.start(): Controller
 			end
 			specOf[d] = spec
 			local item = { part = d, spec = spec }
-			if type(spec.sticky) == "table" then
-				table.insert(stickies, item)
-			end
 			if type(spec.vine) == "table" then
 				table.insert(vines, item)
 			end
@@ -748,7 +695,7 @@ function ObbyMoves.start(): Controller
 				scan(model)
 			else
 				specOf = {}
-				stickies, vines, cannons, moons, darks, hazards = {}, {}, {}, {}, {}, {}
+				vines, cannons, moons, darks, hazards = {}, {}, {}, {}, {}
 			end
 		end
 		return course
@@ -851,81 +798,6 @@ function ObbyMoves.start(): Controller
 		m.root.AssemblyLinearVelocity = Vector3.new(h.X, v.Y, h.Z)
 	end
 
-	------------------------------------------------------------------ sticky
-
-	-- The sticky wall face next to the body (shins to shoulders): the item and the face's outward normal, or nil. The
-	-- reach is from the root's centre, the same whichever way you face; the wall you hold keeps you STICK_HOLD further.
-	local function wallNear(root: BasePart, clock: number): (Item?, Vector3)
-		local reach = root.Size.X / 2 + ObbyMoves.STICK_REACH
-		local a, b = ObbyZone.body(root.Position, ObbyMoves.STICK_DOWN, ObbyMoves.STICK_UP)
-		local best: Item? = nil
-		local bestNormal = Vector3.zero
-		local bestDistance = math.huge
-		for _, item in stickies do
-			local part = item.part
-			if not part.Parent or (item == stick.last and clock < stick.lastUntil) then
-				continue
-			end
-			local distance, normal = ObbyZone.nearestFace(part.CFrame, part.Size, a, b)
-			local limit = if item == stick.item then reach + ObbyMoves.STICK_HOLD else reach
-			if distance > limit or distance >= bestDistance then
-				continue
-			end
-			if math.abs(normal.Y) < ObbyMoves.SIDE_FACE then
-				best, bestNormal, bestDistance = item, normal, distance
-			end
-		end
-		return best, bestNormal
-	end
-
-	local function stepSticky(m: Me)
-		if hold ~= nil and hold ~= "sticky" then
-			return
-		end
-		if m.grounded or m.clock < stick.freeAt then
-			if stick.item then
-				endStick()
-			end
-			return
-		end
-		local item, normal = wallNear(m.root, m.clock)
-		if not item then
-			if stick.item then
-				endStick()
-			end
-			return
-		end
-		if stick.item == nil then
-			playSound("squelch", m.root)
-			stick.at = m.clock
-			drive = nil
-		end
-		stick.item = item
-		stick.normal = normal
-		hold = "sticky"
-		if takeJump(stick.at + ObbyMoves.JUMP_GRACE) then
-			-- thrown off: away from the face and up, the momentum kept through the air
-			local throw = flat(normal).Unit * ObbyMoves.THROW_AWAY + Vector3.new(0, ObbyMoves.THROW_UP, 0)
-			m.root.AssemblyLinearVelocity = throw
-			m.humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
-			stick.last = item
-			stick.lastUntil = m.clock + ObbyMoves.SAME_WALL
-			stick.freeAt = m.clock + ObbyMoves.RESTICK
-			endStick()
-			glide(throw, m.clock)
-			return
-		end
-		local v = m.root.AssemblyLinearVelocity
-		local h = flat(v)
-		local n = flat(normal).Unit
-		local into = h:Dot(-n)
-		if into > 0 then
-			h += n * into
-		end
-		local fall = num(item.spec.sticky, "fall", 0)
-		m.root.AssemblyLinearVelocity = Vector3.new(h.X, -math.abs(fall), h.Z)
-	end
-
 	------------------------------------------------------------------ vine
 
 	-- The rope a knob hangs from, in the world: the pivot `arm` over the knob's rest centre, the swing's plane
@@ -1025,47 +897,15 @@ function ObbyMoves.start(): Controller
 		local knob = r.item.part
 		local hands = vine.hands
 		if not vine.beam or not hands then
-			local a0 = knob:FindFirstChild("ObbyVineGrip")
-			if not (a0 and a0:IsA("Attachment")) then
-				local made = Instance.new("Attachment")
-				made.Name = "ObbyVineGrip"
-				made.Parent = knob
-				a0 = made
-			end
-			local a1 = Instance.new("Attachment")
-			a1.Name = "ObbyVineHands"
-			a1.Parent = workspace.Terrain
-			local beam = Instance.new("Beam")
-			beam.Attachment0 = a0 :: Attachment
-			beam.Attachment1 = a1
-			beam.Width0 = ObbyMoves.ROPE_WIDTH
-			beam.Width1 = ObbyMoves.ROPE_WIDTH
-			beam.Color = ColorSequence.new(knob.Color)
-			beam.FaceCamera = true
-			beam.Segments = 1
-			beam.LightEmission = 0
-			beam.Transparency = NumberSequence.new(0)
-			beam.Parent = knob
+			local beam, a1 = ObbyVinePose.rope(knob)
 			vine.beam = beam
 			vine.hands = a1
 			hands = a1
 		end
-		local grip = knob.Position
 		local c = character
-		if c then
-			local right = c:FindFirstChild("RightHand") or c:FindFirstChild("Right Arm")
-			local left = c:FindFirstChild("LeftHand") or c:FindFirstChild("Left Arm")
-			if right and left and right:IsA("BasePart") and left:IsA("BasePart") then
-				local function tip(p: BasePart): Vector3
-					-- a hand's middle; an R6 arm (one part) its far end along the raised arm
-					return if p.Name == "RightHand" or p.Name == "LeftHand"
-						then p.Position
-						else (p.CFrame * CFrame.new(0, -p.Size.Y / 2, 0)).Position
-				end
-				grip = (tip(right) + tip(left)) / 2
-			end
-		end
-		(hands :: Attachment).WorldPosition = grip
+		local grip = if c then ObbyVinePose.grip(c) else nil
+		local at = hands :: Attachment
+		at.WorldPosition = grip or knob.Position
 	end
 
 	-- Ropes let go of swing on by themselves and fade back to their server-time swing over RETURN.
@@ -1520,7 +1360,6 @@ function ObbyMoves.start(): Controller
 		end
 		stepCannon(m)
 		stepVine(m)
-		stepSticky(m)
 		if hold == nil then
 			stepSlide(m)
 		end
@@ -1562,7 +1401,22 @@ function ObbyMoves.start(): Controller
 		me = nil
 	end
 
-	return { tick = tick, stop = stop }
+	local function held(): string
+		local item = vine.item
+		local id = if item then item.part:GetAttribute(Constants.OBBY_ID) else nil
+		return if type(id) == "string" then id else ""
+	end
+
+	local function rope(id: string): Rope?
+		for _, item in vines do
+			if item.part:GetAttribute(Constants.OBBY_ID) == id then
+				return ropeOf(item)
+			end
+		end
+		return nil
+	end
+
+	return { tick = tick, stop = stop, held = held, rope = rope }
 end
 
 return ObbyMoves

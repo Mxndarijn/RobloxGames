@@ -2,7 +2,7 @@
 --[[
 	ObbyZone (pure; CFrame and Vector3 maths only, no Roblox API at load time)
 
-	"Is the player in this zone?" for the obby's controllers (ObbyMoves: moon, dark and sticky walls; ObbyFx: lift
+	"Is the player in this zone?" for the obby's controllers (ObbyMoves: moon and dark zones; ObbyFx: lift
 	columns and gusts). The player is a vertical line from `a` (low, near the feet) to `b` (high, near the head), not
 	only the root's centre, so a body that visibly stands in a zone counts even while the root is just outside it.
 	Zones are tested in their own frame, so a turned part (yaw, pitch or roll) and a moved part (pass the CFrame it
@@ -17,8 +17,6 @@
 	  ObbyZone.lineInEllipsoid(ax, ay, az, bx, by, bz, rx, ry, rz)
 	                                                       -> boolean  exact: the line a..b (in the ellipsoid's frame,
 	                                                                    from its centre) meets the ellipsoid of radii r
-	  ObbyZone.nearestFace(cf, size, a, b)                 -> (number, Vector3)  studs from the line to the box and the
-	                                                                    outward (world) normal of the face it is off
 	  ObbyZone.bottomY(cf, size)                           -> number   the lowest world height of the box
 	  ObbyZone.shapeOf(part)                               -> string   "box" | "ball" | "cylinder" | "ellipsoid"
 
@@ -113,41 +111,6 @@ function ObbyZone.touches(cf: CFrame, size: Vector3, shape: string, a: Vector3, 
 		end
 	end
 	return false
-end
-
-function ObbyZone.nearestFace(cf: CFrame, size: Vector3, a: Vector3, b: Vector3): (number, Vector3)
-	local h = size / 2
-	local n = count(a, b)
-	local best = math.huge
-	local bestQ = Vector3.zero
-	local bestD = Vector3.zero
-	for i = 0, n do
-		local q = cf:PointToObjectSpace(a + (b - a) * (i / n))
-		local c = Vector3.new(math.clamp(q.X, -h.X, h.X), math.clamp(q.Y, -h.Y, h.Y), math.clamp(q.Z, -h.Z, h.Z))
-		local d = q - c
-		local distance = d.Magnitude
-		if distance < best then
-			best, bestQ, bestD = distance, q, d
-		end
-	end
-	local axis: Vector3
-	if best > 1e-4 then
-		-- off the face it sticks out of most
-		local ax, ay, az = math.abs(bestD.X), math.abs(bestD.Y), math.abs(bestD.Z)
-		axis = if ax >= ay and ax >= az
-			then Vector3.new(if bestD.X < 0 then -1 else 1, 0, 0)
-			elseif az >= ay then Vector3.new(0, 0, if bestD.Z < 0 then -1 else 1)
-			else Vector3.new(0, if bestD.Y < 0 then -1 else 1, 0)
-	else
-		-- inside the box (it moved into you): the face it is least deep behind
-		local px, py, pz = h.X - math.abs(bestQ.X), h.Y - math.abs(bestQ.Y), h.Z - math.abs(bestQ.Z)
-		axis = if px <= py and px <= pz
-			then Vector3.new(if bestQ.X < 0 then -1 else 1, 0, 0)
-			elseif pz <= py then Vector3.new(0, 0, if bestQ.Z < 0 then -1 else 1)
-			else Vector3.new(0, if bestQ.Y < 0 then -1 else 1, 0)
-		best = 0
-	end
-	return best, cf:VectorToWorldSpace(axis)
 end
 
 function ObbyZone.bottomY(cf: CFrame, size: Vector3): number

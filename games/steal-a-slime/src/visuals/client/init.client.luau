@@ -24,8 +24,10 @@
 	  * the obby course itself (ObbyCourseView: client-only, built from the slot the server publishes)
 	  * the Goo Gauntlet obby's moving parts (ObbyFx): slides, spinners, melting, flipping and shrinking pads
 	  * the obby world's own look (ObbyWorld): Lighting, Atmosphere and a tint swap while the local player is there
+	  * the obby's picture sign banners fade out once the local runner has passed them (ObbySignFade)
 	  * the obby's fall reset (ObbyFall): a runner who drops off the course is put back on the start pad at once
-	  * the obby's character controllers (ObbyMoves): boost, slide, sticky walls, vines, cannons, moon and dark zones
+	  * the obby's character controllers (ObbyMoves): boost, slide, vines, cannons, moon and dark zones
+	  * the obby's vine ropes for everyone (ObbyVineSync): sends the rope the local player holds, draws the others'
 	  * the Exclusive Shop's claw shop (ShopDisplayFx): the featured seats on its pedestals and the claw show
 	  * carry trails (CarryTrailFx): a player's CarryTrail streams behind them while Carrying
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
@@ -603,6 +605,15 @@ do
 		warn(`[VisualsClient] obby moves disabled: {err}`)
 	end
 end
+local obbyVineSync: any = nil
+if obbyMoves then
+	local ok, err = pcall(function()
+		obbyVineSync = require(script:WaitForChild("ObbyVineSync")).start(obbyMoves)
+	end)
+	if not ok then
+		warn(`[VisualsClient] obby vine sync disabled: {err}`)
+	end
+end
 local obbyWorld: any = nil
 do
 	local ok, err = pcall(function()
@@ -610,6 +621,15 @@ do
 	end)
 	if not ok then
 		warn(`[VisualsClient] obby world look disabled: {err}`)
+	end
+end
+local obbySignFade: any = nil
+do
+	local ok, err = pcall(function()
+		obbySignFade = require(script:WaitForChild("ObbySignFade")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] obby sign fade disabled: {err}`)
 	end
 end
 local shopDisplayFx: any = nil
@@ -703,6 +723,9 @@ RunService.RenderStepped:Connect(function(dt: number)
 	if obbyMoves then
 		obbyMoves.tick(dt)
 	end
+	if obbyVineSync then
+		obbyVineSync.tick(dt) -- other players' ropes, before ObbyFx turns them
+	end
 	local camera = workspace.CurrentCamera
 	if not camera then
 		return
@@ -730,6 +753,9 @@ RunService.RenderStepped:Connect(function(dt: number)
 	end
 	if obbyFx then
 		obbyFx.tick(camera)
+	end
+	if obbySignFade then
+		obbySignFade.tick(dt)
 	end
 	if shopDisplayFx then
 		shopDisplayFx.tick(camera)

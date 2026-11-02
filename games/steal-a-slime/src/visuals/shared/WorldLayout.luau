@@ -579,6 +579,7 @@ WorldLayout.OBBY = table.freeze({
 	bearing = 337.5,
 	portalDistance = 155,
 	portalRadius = 5, -- studs: stepping inside starts a run
+	portalBack = 2.72, -- the ring's half depth (ObbyParts.GOO.ringSize.Z / 2): the path ends flush with its back face
 	exitStep = 18, -- the camera behind a landed runner (about 13 studs at the default zoom) stays clear of the ring
 	clearRadius = 12, -- keep-clear circle for props round the portal and its sign
 	pathWidth = 10,
@@ -631,12 +632,13 @@ function WorldLayout.inObbyWorld(pos: Vec): boolean
 	return (pos[1] - c[1]) ^ 2 + (pos[3] - c[3]) ^ 2 < r * r
 end
 
--- The obby path for FloorLayout.starWalk: from where the ring's outer rail crosses its edges out to the portal.
+-- The obby path for FloorLayout.starWalk: from where the ring's outer rail crosses its edges out to the portal's back
+-- face, so the ring stands on the path's end.
 function WorldLayout.obbyPath(): { x: number, z: number, width: number, length: number, bearing: number }
 	local o = WorldLayout.OBBY
 	local railOut = WorldLayout.RING_PATH_RADIUS + WorldLayout.RING_PATH_WIDTH / 2 + WorldLayout.RING_RAIL_WIDTH
 	local from = math.sqrt(railOut ^ 2 - (o.pathWidth / 2) ^ 2)
-	local to = o.portalDistance - o.portalRadius
+	local to = o.portalDistance + o.portalBack
 	local a = math.rad(o.bearing)
 	local mid = (from + to) / 2
 	return { x = math.sin(a) * mid, z = math.cos(a) * mid, width = o.pathWidth, length = to - from, bearing = o.bearing }
@@ -648,7 +650,11 @@ function WorldLayout.onObbyPath(pos: Vec, pad: number): boolean
 	local a = math.rad(o.bearing)
 	local along = pos[1] * math.sin(a) + pos[3] * math.cos(a)
 	local across = math.abs(-pos[1] * math.cos(a) + pos[3] * math.sin(a))
-	if along > WorldLayout.RING_PATH_RADIUS and along < o.portalDistance and across < o.pathWidth / 2 + pad then
+	if
+		along > WorldLayout.RING_PATH_RADIUS
+		and along < o.portalDistance + o.portalBack
+		and across < o.pathWidth / 2 + pad
+	then
 		return true
 	end
 	local portal = WorldLayout.obbyPortal()

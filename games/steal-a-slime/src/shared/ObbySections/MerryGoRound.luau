@@ -354,7 +354,7 @@ M.variants = {
 	},
 	{
 		-- Ride the disk to the orange spring pad; it only throws while its rim glows (every 2.5 s), forward onto a
-		-- ledge 12 studs on and 4 higher. A red arm goes round the disk the other way while you wait. (Kit: the pad
+		-- ledge 8 studs on and 4 higher (too far for a jump; the throw, worn down by air control, carries about 10.5). A red arm goes round the disk the other way while you wait. (Kit: the pad
 		-- can't ride the disk's rim, so its aim doesn't turn.)
 		name = "Spring Ride",
 		tier = "medium",
@@ -365,14 +365,20 @@ M.variants = {
 			table.insert(
 				parts,
 				Kit.slab(px + 4, 0, 0, 8, 8, "spring", {
-					motion = { kind = "bounce", power = 60, throw = { 14, 0, 0 }, duty = 0.35, period = 2.5 },
+					motion = {
+						kind = "bounce",
+						power = Kit.bounce(60),
+						throw = { 14, 0, 0 },
+						duty = 0.35,
+						period = 2.5,
+					},
 					marker = "rings2",
 				})
 			)
-			local lx = px + 8 + 12
+			local lx = px + 8 + 8
 			local length = lx + PAD + 2
 			table.insert(parts, pad(lx, length, 4, 3))
-			return Kit.section(length, 4, parts)
+			return Kit.signed(Kit.section(length, 4, parts), "spin,bounce")
 		end,
 	},
 	{

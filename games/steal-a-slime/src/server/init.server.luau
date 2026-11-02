@@ -274,6 +274,10 @@ request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.
 	if not ok then
 		return { ok = false, message = "server error" }
 	end
+	-- ObbyVine is QUIET (ran = false): its rope shows on every client at once, not on the next view tick.
+	if action == "ObbyVine" then
+		PlayerAttributes.syncObbyVine(world, player)
+	end
 	-- Refused before dispatch (unknown action, too fast, ...): nothing changed, so skip the world-wide refresh;
 	-- a client spamming Request must not buy a WorldView.reconcile per call.
 	if not ran then

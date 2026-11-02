@@ -24,7 +24,7 @@
 
 	Signs: a `banner` part (ObbyCourse.signs hangs it over the lane) with a `pic:` marker shows its wordless pictures
 	on a SurfaceGui on the face towards the runner (visuals/shared/ObbySigns; guides/roblox-world-labels.md): main
-	shapes 1.3 studs or more, so it reads from about 26 studs on a phone; MaxDistance 60. ObbySigns.boosters puts a
+	shapes 1.3 studs or more, so it reads from about 26 studs on a phone; MaxDistance 200. ObbySigns.boosters puts a
 	flaming booster under each end; the banner hovers with its `slide` motion (ObbyFx). The Goo Ring sign is a
 	SurfaceGui with text: its 1-stud line reads from about 20 studs on a phone; the runner appears about 7 studs from it.
 ]]
@@ -34,6 +34,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Constants = require(Shared:WaitForChild("Constants"))
+local Kit = require(Shared:WaitForChild("ObbySections"):WaitForChild("Kit"))
 local ObbyCourse = require(Shared:WaitForChild("ObbyCourse"))
 local ObbySigns = require(script.Parent:WaitForChild("ObbySigns"))
 
@@ -65,6 +66,103 @@ ObbyParts.MARKER_PARTS = table.freeze({
 	ghostStop = 2,
 	pic = 0, -- a banner's pictures and boosters are a SurfaceGui, adornments and flames on the banner itself
 })
+
+-- The one hazard look (contract §8), for every hazard of every section and whatever draws in hazard red (ObbyFx's
+-- tells, ObbyMoves' "bad" aim dots). Whenever a hazard can hurt you it shows exactly this: `color` at `transparency`
+-- with the dark `edge` outline, `edgeThickness` wide: a SelectionBox "HazardEdge" on a box; on a ball, log or disc
+-- (where a box would draw a cage) rings round its round edges and a silhouette that faces the camera (roundEdge,
+-- ObbyParts.faceEdge, turned by ObbyFx each frame). All adornments: no parts. Tells flash toward `hot`, a brighter
+-- red, never toward white (that reads pink). A hazard that is off (harmless for now) is far more see-through with no
+-- outline (ObbyFx hides every "HazardEdge*" child).
+ObbyParts.HAZARD = table.freeze({
+	color = Color3.fromRGB(215, 20, 25),
+	transparency = 0.25,
+	hot = Color3.fromRGB(255, 45, 30),
+	edge = Color3.fromRGB(90, 0, 10),
+	edgeThickness = 0.12, -- studs
+})
+local HAZARD = ObbyParts.HAZARD
+
+-- A ring adornment in the hazard edge colour on `part`, `radius` its inner edge, at `cf` (its axis along cf's Z).
+local function edgeRing(part: BasePart, name: string, radius: number, cf: CFrame)
+	local ring = Instance.new("CylinderHandleAdornment")
+	ring.Name = name
+	ring.Radius = radius + HAZARD.edgeThickness
+	ring.InnerRadius = radius
+	ring.Height = HAZARD.edgeThickness
+	ring.CFrame = cf
+	ring.Color3 = HAZARD.edge
+	ring.Adornee = part
+	ring.Parent = part
+end
+
+-- The outline of a round hazard (Ball or Cylinder part). A ball: one ring on its silhouette ("HazardEdgeFace"). A
+-- cylinder (a log or a disc; its axis is the part's X): a ring round each end ("HazardEdge") and two bars along its
+-- length on the silhouette ("HazardEdgeSide"). ObbyParts.faceEdge puts the silhouette pieces where the camera sees it.
+local function roundEdge(part: Part)
+	local size = part.Size
+	if part.Shape == Enum.PartType.Ball then
+		edgeRing(part, "HazardEdgeFace", math.min(size.X, size.Y, size.Z) / 2, CFrame.identity)
+		return
+	end
+	local r = math.min(size.Y, size.Z) / 2
+	local endTurn = CFrame.Angles(0, math.rad(90), 0) -- the ring's axis along the part's X
+	for _, side in { -1, 1 } do
+		edgeRing(part, "HazardEdge", r, CFrame.new(side * size.X / 2, 0, 0) * endTurn)
+		local bar = Instance.new("BoxHandleAdornment")
+		bar.Name = "HazardEdgeSide"
+		bar.Size = Vector3.new(size.X, HAZARD.edgeThickness, HAZARD.edgeThickness)
+		bar.CFrame = CFrame.new(0, side * (r + HAZARD.edgeThickness / 2), 0)
+		bar.Color3 = HAZARD.edge
+		bar.Adornee = part
+		bar.Parent = part
+	end
+end
+
+-- Puts a round hazard's silhouette outline (roundEdge) where a camera at `camPos` sees the part's edge: the circle
+-- where the view grazes a ball, the two lines where it grazes a cylinder. Exact for a perspective camera. Does
+-- nothing when the camera is inside the part's round shape.
+function ObbyParts.faceEdge(part: BasePart, camPos: Vector3)
+	local t = HAZARD.edgeThickness
+	local size = part.Size
+	local cam = part.CFrame:PointToObjectSpace(camPos)
+	if part:IsA("Part") and part.Shape == Enum.PartType.Ball then
+		local ring = part:FindFirstChild("HazardEdgeFace")
+		local r = math.min(size.X, size.Y, size.Z) / 2
+		local d = cam.Magnitude
+		if not (ring and ring:IsA("CylinderHandleAdornment")) or d <= r then
+			return
+		end
+		local dir = cam / d
+		local inner = r * math.sqrt(1 - (r / d) ^ 2) -- the silhouette circle sits r²/d towards the camera
+		local up = if math.abs(dir.Y) > 0.99 then Vector3.xAxis else Vector3.yAxis
+		ring.CFrame = CFrame.lookAt(dir * (r * r / d), dir * (r * r / d + 1), up)
+		ring.InnerRadius = inner
+		ring.Radius = inner + t
+		return
+	end
+	local r = math.min(size.Y, size.Z) / 2
+	local across = Vector3.new(0, cam.Y, cam.Z) -- the camera seen down the cylinder's axis (X)
+	local d = across.Magnitude
+	if d <= r then
+		return
+	end
+	local toward = across / d
+	local side = Vector3.new(0, -toward.Z, toward.Y) -- the axis crossed with `toward`
+	local k = r / d
+	local i = 0
+	for _, bar in part:GetChildren() do
+		if bar.Name == "HazardEdgeSide" and bar:IsA("BoxHandleAdornment") then
+			local sign = if i == 0 then 1 else -1
+			i += 1
+			local out = toward * k + side * (sign * math.sqrt(1 - k * k)) -- unit: the grazing point's direction
+			bar.CFrame = CFrame.new(out * (r + t / 2))
+			if bar.Size.X ~= size.X then
+				bar.Size = Vector3.new(size.X, t, t)
+			end
+		end
+	end
+end
 
 -- Look per part kind: colour (or three tones), material, transparency. No Neon on big parts: it blooms into blobs
 -- against the obby sky, so even the "glow" tiles are saturated SmoothPlastic. No Glass anywhere.
@@ -108,8 +206,8 @@ local LOOKS: { [string]: Look } = {
 	banner = { colors = { Color3.fromRGB(46, 38, 70) }, material = Enum.Material.SmoothPlastic },
 	-- Decor in the hazard red, only where danger comes from: a launcher mouth's rim (`danger`) and the next ball waiting
 	-- in it (`loaded`, see-through like the hazard). Rolling Blobs.
-	danger = { colors = { Color3.fromRGB(215, 20, 25) }, material = Enum.Material.SmoothPlastic },
-	loaded = { colors = { Color3.fromRGB(215, 20, 25) }, material = Enum.Material.SmoothPlastic, transparency = 0.25 },
+	danger = { colors = { HAZARD.color }, material = Enum.Material.SmoothPlastic },
+	loaded = { colors = { HAZARD.color }, material = Enum.Material.SmoothPlastic, transparency = HAZARD.transparency },
 	bar = { colors = { Color3.fromRGB(170, 110, 240) }, material = Enum.Material.SmoothPlastic },
 	cannon = { colors = { Color3.fromRGB(70, 66, 96), Color3.fromRGB(255, 140, 40) }, material = Enum.Material.Metal },
 	blob = {
@@ -148,12 +246,12 @@ local LOOKS: { [string]: Look } = {
 		transparency = 0.15,
 	},
 	-- One look per behaviour (contract §8).
-	-- Danger red, darker and more solid than any floor, with a dark outline (HAZARD_EDGE) so it never reads as a pink
+	-- Danger red, darker and more solid than any floor, with a dark outline (HAZARD.edge) so it never reads as a pink
 	-- platform. Still see-through enough to see what's behind it.
 	hazard = {
-		colors = { Color3.fromRGB(215, 20, 25) },
+		colors = { HAZARD.color },
 		material = Enum.Material.SmoothPlastic,
-		transparency = 0.25,
+		transparency = HAZARD.transparency,
 	},
 	sticky = {
 		colors = { Color3.fromRGB(175, 240, 40), Color3.fromRGB(150, 215, 30) },
@@ -196,12 +294,6 @@ local LOOKS: { [string]: Look } = {
 	},
 }
 
--- The outline every hazard gets (a SelectionBox), so red goo stands out from every floor.
-local HAZARD_EDGE = table.freeze({
-	color = Color3.fromRGB(90, 0, 10),
-	thickness = 0.12, -- studs
-})
-
 -- Old look names some drafts still use, mapped onto the one look for their behaviour.
 local ALIASES: { [string]: string } = {
 	trampoline = "spring",
@@ -213,7 +305,7 @@ local ALIASES: { [string]: string } = {
 local MARK = table.freeze({
 	ink = Color3.fromRGB(40, 30, 60), -- chevrons and arrows on light floors
 	light = Color3.fromRGB(255, 255, 255), -- chevrons and arrows on dark floors, rings, rails
-	print = Color3.fromRGB(95, 145, 20), -- handprints on sticky walls
+	print = Color3.fromRGB(95, 145, 20), -- handprints (the vine knobs)
 	crack = Color3.fromRGB(60, 40, 45),
 	star = Color3.fromRGB(255, 220, 80),
 	lockOff = Color3.fromRGB(70, 60, 90), -- a lock still shut (ObbyFx turns it gold per key)
@@ -322,7 +414,6 @@ local SPEC_FIELDS = {
 	"hazard",
 	"boost",
 	"slide",
-	"sticky",
 	"vine",
 	"cannon",
 	"zone",
@@ -355,7 +446,6 @@ type PartSpec = {
 	hazard: boolean?,
 	boost: { speed: number, carry: number? }?,
 	slide: { [string]: any }?,
-	sticky: { [string]: any }?,
 	vine: { [string]: any }?,
 	cannon: { [string]: any }?,
 	zone: { kind: string, [string]: any }?,
@@ -396,8 +486,6 @@ local function lookName(spec: PartSpec): string
 		return "moon"
 	elseif spec.zone and spec.zone.kind == "dark" then
 		return "dark"
-	elseif spec.sticky then
-		return "sticky"
 	elseif spec.slide then
 		return "ice"
 	end
@@ -963,12 +1051,14 @@ local function makePart(data: ObbyCourse.Part, frameCf: CFrame, model: Instance)
 		part.Size = s
 		part.CFrame = ref
 	end
-	-- Box outline only on box-shaped hazards: on a ball, log or disc it draws a cage round it.
-	if lookId == "hazard" and spec.shape ~= "ball" and spec.shape ~= "log" and spec.shape ~= "disc" then
+	-- The hazard outline: on a ball, log or disc a box would draw a cage round it, so those get the round one.
+	if lookId == "hazard" and (spec.shape == "ball" or spec.shape == "log" or spec.shape == "disc") then
+		roundEdge(part :: Part)
+	elseif lookId == "hazard" then
 		local edge = Instance.new("SelectionBox")
 		edge.Name = "HazardEdge"
-		edge.Color3 = HAZARD_EDGE.color
-		edge.LineThickness = HAZARD_EDGE.thickness
+		edge.Color3 = HAZARD.edge
+		edge.LineThickness = HAZARD.edgeThickness
 		edge.SurfaceTransparency = 1
 		edge.Adornee = part
 		edge.Parent = part
@@ -987,6 +1077,9 @@ local function makePart(data: ObbyCourse.Part, frameCf: CFrame, model: Instance)
 		part.CanCollide = false
 		part.CanQuery = false
 		part.CanTouch = touchy == true
+	end
+	if Kit.isTrap(spec.motion) then
+		part.CanCollide = false -- a trapdoor never holds you; ObbyFx sees you fall through it and drops it
 	end
 	if spec.ice or spec.slide then
 		part.CustomPhysicalProperties = ICE

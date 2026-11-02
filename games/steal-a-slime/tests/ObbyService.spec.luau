@@ -206,7 +206,8 @@ describe("ObbyService runs", function()
 	it("a finish during the cooldown counts the time but earns no boost", function()
 		local world, session = setup()
 		enter(world, T)
-		local _, now = runAll(world, T, 8)
+		-- a 72 s run, whatever the number of sections
+		local _, now = runAll(world, T, 72 / (#world.obby.spans + 1))
 		local untilAt = session.data.obbyUntil
 		-- the next course (the cleared one refuses entry): boost over, still cooling down
 		local later = ObbyCourse.slotStart(world.obby.slot + 1) + 10

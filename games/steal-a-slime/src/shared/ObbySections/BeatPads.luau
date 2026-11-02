@@ -381,7 +381,10 @@ M.variants = {
 		name = "Night Groove",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
-			return lay({ tier = "hard", pads = run(6, { long = 9, beats = 4, min = 0.2 }), dark = 7 })
+			return Kit.signed(
+				lay({ tier = "hard", pads = run(6, { long = 9, beats = 4, min = 0.2 }), dark = 7 }),
+				"beat,dark"
+			)
 		end,
 	},
 }

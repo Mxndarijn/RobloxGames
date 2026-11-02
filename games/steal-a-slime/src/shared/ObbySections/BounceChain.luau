@@ -6,7 +6,9 @@
 	normal (62), 3 rings = high (75); an arrow pad is tilted the way its `throw` goes; a star pad is a timed high pad
 	(85) that only throws while its rim glows (`duty`, snapped to the beat). Red goo under the gaps (see SIDEWAYS_PIT).
 
-	Numbers (Kit.GRAVITY 196.2): a pad throws you `power^2 / 392` studs up (45: 5.2, 62: 9.8, 75: 14.3, 85: 18.4).
+	Numbers (Kit.GRAVITY 196.2): a pad throws at Kit.bounce(power) (x Config.OBBY.BOUNCE_BOOST 1.1), `v^2 / 392`
+	studs up (45: 6.3, but under the jump speed it is just a jump of 7.2; 62: 11.9, 75: 17.4, 85: 22.3). An arrow
+	pad's `throw` is worn down by air control (Kit.AIR_DECEL): it shifts a hop a stud or so; you steer the rest.
 	Holding forward you fly 16 studs / s, so from where the pad throws you (its near edge when you walk on) you carry
 	CARRY(power, rise) studs. Every walked-on pad is laid out so that near-edge throw still lands (pad depth + gap
 	<= carry - a few tenths); chained pads keep their pitch under the carry, so you can always shorten to fit.
@@ -101,7 +103,7 @@ local function pad(
 	extra: { [string]: any }?
 ): Kit.Part
 	local part = Kit.slab((x0 + x1) / 2, top, z, x1 - x0, wide, "spring", {
-		motion = { kind = "bounce", power = power },
+		motion = { kind = "bounce", power = Kit.bounce(power) },
 		marker = ringsOf(power),
 	})
 	return merge(part, extra)
@@ -118,7 +120,7 @@ local function arrowPad(
 	throw: Kit.Vec
 ): Kit.Part
 	local part = Kit.slab((x0 + x1) / 2, top, z, x1 - x0, wide, "spring", {
-		motion = { kind = "bounce", power = power, throw = throw },
+		motion = { kind = "bounce", power = Kit.bounce(power), throw = throw },
 		marker = "arrows",
 	})
 	-- lean towards the throw: a +z throw tips the normal to +z (pitch), a -x throw tips it back (roll lifts +x)
@@ -143,7 +145,7 @@ local function timedPad(
 	marker: string
 ): Kit.Part
 	return Kit.slab((x0 + x1) / 2, top, z, x1 - x0, wide, "spring", {
-		motion = { kind = "bounce", power = power, duty = duty, phase = phase },
+		motion = { kind = "bounce", power = Kit.bounce(power), duty = duty, phase = phase },
 		beat = PAD_BEATS,
 		marker = marker,
 	})
@@ -290,8 +292,9 @@ M.variants = {
 		end,
 	},
 	{
-		-- Two pads side by side, twice: count the rings. First two against three (only three reaches the ledge 11 up),
-		-- then one against two (the ledge is 8 up).
+		-- Two pads side by side, twice: count the rings. First two against three (only three reaches the ledge 14.5
+		-- up: two rings throw 11.9), then one against two (the ledge is 10 up: one ring is no more than a jump). Each
+		-- ledge is over 2 (a stumble) above the weaker pad's throw.
 		name = "Ring Count",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
@@ -300,12 +303,11 @@ M.variants = {
 			add(parts, floor(FROM, 20, 0, 0, Kit.WIDTH, 2))
 			-- the ledge is on the decoy's side: the high pad throws you up, you steer across onto it
 			add(parts, decoy(pad(20, 24, 0, -6.5, 9, MID)), pad(20, 24, 0, 6.75, 9, HIGH))
-			add(parts, floor(27, 36, 11, -6.125, 11.75, 3), floor(36, 42, 11, 0, Kit.WIDTH, 1))
-			-- 8 up is over the two-ring pad's reach less 0.3; a near-edge throw carries 7.2, it needs 7
-			add(parts, decoy(pad(42, 46, 11, -6.5, 9, LOW)), pad(42, 46, 11, 6.75, 9, MID))
-			add(parts, floor(48.5, 56.5, 19, 0, 12, 2), floor(56.5, 62, 19, 0, Kit.WIDTH, 3))
+			add(parts, floor(27, 36, 14.5, -6.125, 11.75, 3), floor(36, 42, 14.5, 0, Kit.WIDTH, 1))
+			add(parts, decoy(pad(42, 46, 14.5, -6.5, 9, LOW)), pad(42, 46, 14.5, 6.75, 9, MID))
+			add(parts, floor(48.5, 56.5, 24.5, 0, 12, 2), floor(56.5, 62, 24.5, 0, Kit.WIDTH, 3))
 			add(parts, pit(ENTRY, FROM, 0)) -- goo only in the opening hole (see SIDEWAYS_PIT)
-			return Kit.section(62, 19, parts)
+			return Kit.section(62, 24.5, parts)
 		end,
 	},
 	{
@@ -323,7 +325,7 @@ M.variants = {
 			add(parts, melting(36, 44, 0, -7.5, 9, 2, 1.5), arrowPad(48.5, 56.5, 0, -7.5, 8, MID, { 0, 0, SIDE }))
 			add(parts, floor(58.5, 70.5, 0, 0, Kit.WIDTH, 1))
 			add(parts, pit(ENTRY, FROM, 0)) -- goo only in the opening hole (see SIDEWAYS_PIT)
-			return Kit.section(70.5, 0, parts)
+			return Kit.signed(Kit.section(70.5, 0, parts), "bounce,melt")
 		end,
 	},
 	{
@@ -335,18 +337,19 @@ M.variants = {
 			local parts = {}
 			entry(parts)
 			add(parts, floor(FROM, 20, 0, 0, 16, 2))
-			-- 15 across and only 7 forward a throw: hold forward through it and you outrun the pads
+			-- 15 across and 10 forward a throw: steer across with it. Pads on one side are 20 apart, past a straight
+			-- hop's 11 (air control wears the side throw down to about a stud), so holding forward drops between them.
 			for i = 0, 5 do
 				local side = if i % 2 == 0 then -1 else 1
-				local x0 = 20 + i * 7
+				local x0 = 20 + i * 10
 				table.insert(parts, arrowPad(x0, x0 + 8, 0, 7.5 * side, 8, MID, { 0, 0, -SIDE * side }))
 			end
 			-- the slider rides 4 either way along the lane: land on it as it comes, hop off as it nears the exit
 			local slide = { kind = "slide", axis = "x", amp = 4, period = 2.4 }
-			add(parts, floor(66, 74, 0, -4, 8, 3, { motion = slide, marker = "rail" }))
-			add(parts, floor(79, 89, 0, 0, Kit.WIDTH, 1))
+			add(parts, floor(81, 89, 0, -4, 8, 3, { motion = slide, marker = "rail" }))
+			add(parts, floor(94, 104, 0, 0, Kit.WIDTH, 1))
 			add(parts, pit(ENTRY, FROM, 0)) -- goo only in the opening hole (see SIDEWAYS_PIT)
-			return Kit.section(89, 0, parts)
+			return Kit.section(104, 0, parts)
 		end,
 	},
 	{
@@ -378,7 +381,7 @@ M.variants = {
 			add(parts, decoy(pad(62, 65, 10, 6, 10, LOW)), pad(62, 65, 10, -6, 10, HIGH))
 			add(parts, floor(68, 80, 20, 0, Kit.WIDTH, 1))
 			add(parts, pit(ENTRY, 68, 0))
-			return Kit.section(80, 20, parts)
+			return Kit.signed(Kit.section(80, 20, parts), "bounce,melt")
 		end,
 	},
 	{
@@ -440,9 +443,9 @@ M.variants = {
 					marker = "cracks",
 				})
 			end
-			-- levels 9 apart: the ledge right past a pad sits 3.7 over its throw's top, out of a stumble's reach, so
-			-- holding forward up a pad can't skip a level
-			local up = 9
+			-- levels 10.5 apart: the ledge right past a pad (two levels up) sits 3.6 over its throw's top (17.4), out of
+			-- a stumble's reach, so holding forward up a pad can't skip a level
+			local up = 10.5
 			add(parts, floor(FROM, 22, 0, -7, 10, 2), arrowPad(22, 30, 0, -7, 10, HIGH, back))
 			add(parts, floor(10, 18, up, 7, 10, 3), beam(30, up, 10, 24))
 			add(parts, arrowPad(42, 50, up, 7, 10, HIGH, back))
@@ -451,7 +454,7 @@ M.variants = {
 			add(parts, floor(50, 58, 3 * up, 7, 10, 3), beam(64, 3 * up, 10, 12))
 			add(parts, floor(70, 82, 3 * up, 0, Kit.WIDTH, 1))
 			add(parts, pit(ENTRY, 70, 0))
-			return Kit.section(82, 3 * up, parts)
+			return Kit.signed(Kit.section(82, 3 * up, parts), "bounce,melt")
 		end,
 	},
 	{
@@ -472,7 +475,7 @@ M.variants = {
 			end
 			add(parts, floor(87, 97, 30, 0, Kit.WIDTH, 1))
 			add(parts, pit(ENTRY, 87, 0))
-			return Kit.section(97, 30, parts)
+			return Kit.signed(Kit.section(97, 30, parts), "bounce,melt")
 		end,
 	},
 	{
@@ -569,7 +572,7 @@ M.variants = {
 			end
 			add(parts, floor(59, 65, 45, -7.5, 9, 2), floor(65, 71, 45, 0, Kit.WIDTH, 1))
 			add(parts, pit(ENTRY, FROM, 0)) -- goo only in the opening hole (see SIDEWAYS_PIT)
-			return Kit.section(71, 45, parts)
+			return Kit.signed(Kit.section(71, 45, parts), "bounce,melt")
 		end,
 	},
 	{
@@ -621,7 +624,7 @@ M.variants = {
 			end
 			add(parts, floor(75, 80, 40, -6.625, 10.75, 3), floor(80, 86, 40, 0, Kit.WIDTH, 1))
 			add(parts, pit(ENTRY, FROM, 0)) -- goo only in the opening hole (see SIDEWAYS_PIT)
-			return Kit.section(86, 40, parts)
+			return Kit.signed(Kit.section(86, 40, parts), "bounce,melt")
 		end,
 	},
 }

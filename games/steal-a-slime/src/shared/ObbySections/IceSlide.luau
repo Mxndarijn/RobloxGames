@@ -796,7 +796,10 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local sl = SPIRAL
 			local parts = {}
-			local cx, rin, rout = 8, 2.5, 10.5
+			-- The tower stands far enough in that the turn's back (cx - rout, and its slabs' tilted corners) stays
+			-- inside the section, clear of the connector before it. The run-up also sets where a jump masher comes
+			-- down: from 10.7 to 15 its hops carry it off the first quarter turn onto the exit ice (ObbyCheck masher).
+			local cx, rin, rout = 17, 2.5, 10.5
 			local rm, wide = (rin + rout) / 2, rout - rin
 			local slope = 11
 			local perRad = rm * tan(slope) -- studs of drop per radian of turn

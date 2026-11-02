@@ -3,8 +3,8 @@
 	Glow Memory (obby idea 10, docs/obby-variants/10.json; contract/obby-sections.md)
 
 	A grid of same-looking green tiles, a row at a time across the lane, with a 4.5+ stud hole between rows (too long
-	to walk over). One tile per row is safe; the others are fakes that crack and drop 0.2 s after you land
-	(`melt`, gone until you are reset). The safe path is shown for a moment, then every tile looks the same again:
+	to walk over). One tile per row is safe; the others are fakes (`Kit.trap`): they give way the moment
+	you touch them (no standing, no jump-off), crack and drop, and stay gone until you are reset. The safe path is shown for a moment, then every tile looks the same again:
 	remember it and hop it.
 
 	The path is seeded (`pathOf`): the next safe tile is in the same lane or the one next to it, never more than
@@ -44,7 +44,6 @@ local GAP = 4.5 -- studs between rows: over the 3.6 a walker crosses without jum
 local ENTRY_LONG = 8
 local EXIT_LONG = 6
 local MID_LONG = 8 -- the rest pad between two grids
-local FAKE_DELAY = 0.2 -- seconds a fake tile holds you: its crack is the only tell
 local POP_UP = 0.6 -- studs an overlay rises out of its tile while shown
 local POP_STEP = 0.25 -- seconds per hold point of an overlay's path (glow times are multiples of it)
 local ONCE = 600 -- the period of a glow on a start clock: it does not come back before a reset
@@ -70,10 +69,6 @@ type Opts = {
 	sign: string?, -- the entry sign's picture for this mode (visuals/shared/ObbySigns), nil = the plain glow one
 	salt: number,
 }
-
-local function fake(): Kit.Motion
-	return { kind = "melt", on = "land", delay = FAKE_DELAY, away = -1 }
-end
 
 -- A glow-only flip: lit from `from` for `on` seconds of every `period` (the tile stays solid).
 local function glow(from: number, on: number, period: number): Kit.Motion
@@ -244,7 +239,7 @@ local function build(o: Opts, seed: number): Kit.Section
 				tile.step = true
 			end
 			if not safe[k][l] then
-				tile.motion = fake()
+				tile.motion = Kit.trap()
 				if mode == "pink" then
 					table.insert(extra, pop(tile, "jelly", 1, 0, on, period))
 				end

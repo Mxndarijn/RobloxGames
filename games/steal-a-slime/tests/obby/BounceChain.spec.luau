@@ -227,10 +227,10 @@ describe("BounceChain", function()
 			if m and m.kind == "bounce" then
 				local x0 = Kit.bounds(part)
 				local under = hits(part, x0, part.pos[3], Kit.WALK, 0, ceilings)
-				if m.power == 45 and part.step then
+				if m.power == Kit.bounce(45) and part.step then
 					low += 1
 					expect(under).toBe(false)
-				elseif m.power == 75 and part.step == nil then
+				elseif m.power == Kit.bounce(75) and part.step == nil then
 					high += 1
 					expect(under).toBe(true) -- the high decoys sit under the ceilings
 				end

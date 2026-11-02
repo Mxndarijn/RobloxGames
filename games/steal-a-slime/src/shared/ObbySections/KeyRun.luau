@@ -455,7 +455,7 @@ M.variants = {
 				Kit.slab(24, 0, 4, 8, 8, "spring", {
 					route = "key",
 					marker = "rings1",
-					motion = { kind = "bounce", power = 65, duty = 0.45, period = 2.4 },
+					motion = { kind = "bounce", power = Kit.bounce(65), duty = 0.45, period = 2.4 },
 				}),
 				pad(31, 39, 0, 8, 9, 3, { route = "key" }),
 				pad(32, 44, -12, -4, 0, 2),
@@ -466,7 +466,7 @@ M.variants = {
 				crusher(21, -8, 8, 0, CRUSH.medium),
 				gate(55, 0, 3),
 			}
-			return Kit.section(64, 0, parts)
+			return Kit.signed(Kit.section(64, 0, parts), "key,bounce")
 		end,
 	},
 	{
@@ -592,7 +592,7 @@ M.variants = {
 					{ zone = { kind = "dark", light = 10 }, ghost = true }
 				),
 			}
-			return Kit.section(72, 0, parts)
+			return Kit.signed(Kit.section(72, 0, parts), "key,dark")
 		end,
 	},
 	{

@@ -775,6 +775,41 @@ Layout.MENU_HEIGHTS = table.freeze({
 })
 Layout.BANNER_WIDTH = 560
 
+-- The obby run card (ui/ObbyHud), design px: top centre in the banner strip, under the banners. Three rows: the
+-- section and the run clock, one pip per section, the base lock. `w` shrinks to the strip on phones.
+Layout.OBBY_CARD = table.freeze({
+	w = 260,
+	pad = 10,
+	gap = 6,
+	headH = 26,
+	titleSize = 20,
+	clockSize = 18,
+	pip = 26,
+	pipGap = 6,
+	pipText = 14,
+	lockH = 26,
+	lockSize = 16,
+	noteSize = 15,
+	chipPad = 10, -- Widgets.chip's side padding
+	corner = 18,
+	stroke = 2,
+	ring = 3, -- the furthest section's pip ring
+	transparency = 0.15,
+})
+
+-- The run card's height (design px).
+function Layout.obbyCardHeight(): number
+	local C = Layout.OBBY_CARD
+	return C.pad * 2 + C.headH + C.gap + C.pip + C.gap + C.lockH
+end
+
+-- The run card's box on `s` (a Layout.screen), `top` design px from the top (default the banner strip's top).
+function Layout.obbyCard(s: Screen, top: number?): Rect
+	local b = s.banners
+	local w = math.min(Layout.OBBY_CARD.w, b.w)
+	return Layout.rect(b.x + math.floor((b.w - w) / 2), top or b.y, w, Layout.obbyCardHeight())
+end
+
 -- How far the bottom row is lifted off the thumbstick / jump button: phones in portrait and tablets, but not a
 -- landscape phone (it hugs the bottom edge). `s` is a Layout.screen.
 function Layout.rowRise(s: Screen): number

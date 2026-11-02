@@ -8,7 +8,7 @@
 	the State coalescing window), calls the system and returns a RequestResult
 	plus `ran` (true once the call got past every guard and was dispatched; the
 	adapter only refreshes the world view then). Never errors. A QUIET action
-	(RequestKits) changes no game state: it never marks the session dirty and
+	(RequestKits, ObbyVine) changes no game state: it never marks the session dirty and
 	reports ran = false, so it costs no State push or view refresh.
 
 	`ctx` (Context) gives the adapter's world queries, the PvP engine access (PvpService.Context fields) and
@@ -47,6 +47,7 @@ local ConsumableShop = if script then require(script.Parent.ConsumableShop) else
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local LockBreak = if script then require(script.Parent.LockBreak) else require("./LockBreak")
+local ObbyService = if script then require(script.Parent.ObbyService) else require("./ObbyService")
 local PlotGuests = if script then require(script.Parent.PlotGuests) else require("./PlotGuests")
 local GameAnalytics = if script then require(script.Parent.GameAnalytics) else require("./GameAnalytics")
 local Purchases = if script then require(script.Parent.Purchases) else require("./Purchases")
@@ -637,6 +638,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 			ctx.sendKits(session.userId, args[1])
 		end
 		return OK
+	elseif action == "ObbyVine" then
+		return result(ObbyService.holdVine(world, session, args[1]))
 	elseif action == "OpenShop" then
 		return openShop(world, session, args[1], ctx)
 	elseif action == "CloseShop" then
@@ -749,7 +752,7 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 end
 
 -- Actions that change no game state: no dirty mark, no view refresh.
-local QUIET: { [string]: boolean } = table.freeze({ RequestKits = true })
+local QUIET: { [string]: boolean } = table.freeze({ RequestKits = true, ObbyVine = true })
 
 -- Sync can't push State faster than the coalescing window anyway, so a spammed Sync is refused before it costs a refresh.
 local function allowSync(session: Session, now: number): boolean

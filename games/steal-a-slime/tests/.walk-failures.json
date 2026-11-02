@@ -792,54 +792,6 @@
     "variant": 16
   },
   {
-    "check": "walk",
-    "detail": "seed 1: holding forward along z -6 from t 0 clears it",
-    "id": "StickyWalls",
-    "name": "Sticky Brakes",
-    "tier": "easy",
-    "variant": 3
-  },
-  {
-    "check": "masher",
-    "detail": "seed 1: jumping on every landing along z 3 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
-    "id": "StickyWalls",
-    "name": "Sticky Brakes",
-    "tier": "easy",
-    "variant": 3
-  },
-  {
-    "check": "masher",
-    "detail": "seed 1: jumping on every landing along z 3 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
-    "id": "StickyWalls",
-    "name": "Fast Slide",
-    "tier": "medium",
-    "variant": 8
-  },
-  {
-    "check": "walk",
-    "detail": "seed 1: holding forward along z -9 from t 0 clears it",
-    "id": "StickyWalls",
-    "name": "Pick Your Height",
-    "tier": "medium",
-    "variant": 9
-  },
-  {
-    "check": "masher",
-    "detail": "seed 1: jumping on every landing along z 4 clears it from 13 of 48 start times (27 %, at most 20 %), first from t 0.37",
-    "id": "StickyWalls",
-    "name": "Breathing Wall",
-    "tier": "medium",
-    "variant": 10
-  },
-  {
-    "check": "walk",
-    "detail": "seed 1: holding forward along z -9 from t 0 clears it",
-    "id": "StickyWalls",
-    "name": "Moving Window",
-    "tier": "hard",
-    "variant": 16
-  },
-  {
     "check": "masher",
     "detail": "seed 1: jumping on every landing along z -3 clears it from 1 of 1 start times (100 %, at most 20 %), first from t 0",
     "id": "ArrowMaze",

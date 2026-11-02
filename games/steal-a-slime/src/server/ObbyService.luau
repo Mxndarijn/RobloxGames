@@ -23,7 +23,8 @@
 	  * a new rotation (ObbyCourse.slot) rebuilds the course once no one is running, or after OBBY.REBUILD_GRACE
 	    seconds, sending the runners still on it back to the portal
 	`refresh` keeps data.obbyBonus (read by Perks) in step with the saved timers, also across rejoins.
-	Players never send anything; there is no remote.
+	The one thing a player sends is the vine rope they hang on (`holdVine`, Request ObbyVine): looks only, so other
+	clients draw that rope carrying them (the Player's ObbyVine attribute, `heldVine`). Everything else the server reads.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -374,6 +375,42 @@ function ObbyService.view(world: World, session: Session, now: number): View?
 			else nil,
 		best = if best and best.slot == course.slot then best.seconds else nil,
 	}
+end
+
+-- The vine rope `id` (a course part's id, "" = let go) the runner says they hold now (Request ObbyVine). Looks only:
+-- other clients draw that rope carrying them. Refused off a run, on another course or for a part that is no rope.
+function ObbyService.holdVine(world: World, session: Session, id: string): (boolean, string?)
+	local run = session.obbyRun
+	if id == "" then
+		if run then
+			run.vine = nil
+		end
+		return true, nil
+	end
+	local course = world.obby
+	if not run or not course or run.slot ~= course.slot then
+		return false, "not on a run"
+	end
+	for _, part in course.parts do
+		if part.id == id then
+			if part.vine == nil then
+				return false, "not a vine"
+			end
+			run.vine = id
+			return true, nil
+		end
+	end
+	return false, "not a vine"
+end
+
+-- The vine rope part id `session` holds now (the Player's ObbyVine attribute), nil = none or no run on this course.
+function ObbyService.heldVine(world: World, session: Session): string?
+	local run = session.obbyRun
+	local course = world.obby
+	if not run or not course or run.slot ~= course.slot then
+		return nil
+	end
+	return run.vine
 end
 
 return ObbyService
