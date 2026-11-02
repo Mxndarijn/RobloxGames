@@ -69,13 +69,16 @@ local function divider(parts: { Part }, x0: number, x1: number, y0: number, y1: 
 	table.insert(parts, Kit.prop({ x1 - x0, y1 - y0, 1 }, { (x0 + x1) / 2, (y0 + y1) / 2, 0 }, "pipe"))
 end
 
--- A red goo sweeper: a bar across a road `road` wide, two studs short of it, sliding side to side so the way past
--- opens on one side, then the other. SWEEP[tier] is its period: the open window it leaves a runner is about 1.7 s
--- (easy), 1.1 s (medium) or 0.9 s (hard) (tests/ObbyCheck.windows).
-local SWEEP = table.freeze({ easy = 4, medium = 2.8, hard = 2.4 })
+-- A red goo sweeper: a bar across a road `road` wide, BLOB_ROOM studs short of it, sliding BLOB_ROOM / 2 side to side
+-- so the way past opens on one side, then the other. At the far end of a slide the open side is BLOB_ROOM wide: a
+-- real character needs about 3.2 (arms 1.5 out from the middle, and the reset box), so a smaller room is a wall.
+-- SWEEP[tier] is its period, so the open window it leaves a runner (tests/ObbyCheck.windows) stays in the tier's band
+-- (tests/obby/TwoRoads.spec).
+local SWEEP = table.freeze({ easy = 3.6, medium = 2.6, hard = 2.4 })
+local BLOB_ROOM = 4
 local function blob(x: number, z: number, top: number, road: number, period: number, phase: number): Part
-	local wide = road - 2
-	local amp = math.min(if road >= ROAD then 1 else 1.5, Kit.HALF - math.abs(z) - wide / 2)
+	local wide = road - BLOB_ROOM
+	local amp = math.min(BLOB_ROOM / 2, Kit.HALF - math.abs(z) - wide / 2)
 	return Kit.hazard({ BLOB_LONG, BLOB_TALL, wide }, { x, top + BLOB_TALL / 2, z }, {
 		motion = { kind = "slide", axis = "z", amp = amp, period = period, phase = phase },
 	})
@@ -531,7 +534,7 @@ M.variants = {
 			): ({ Part }, { Part })
 				local tops = { 1.5, 3, 4.5 }
 				local safe = {}
-				for i, p in lay(x0, x1, 3, 2.5, 2.5, 2.5) do
+				for i, p in lay(x0, x1, 3, 4.5, 0.5, 0.5) do
 					table.insert(
 						safe,
 						slab(
@@ -890,6 +893,8 @@ M.variants = {
 			table.insert(parts, pool(31, 37, 4, 8, PAD))
 			table.insert(parts, pool(45, 51, 4, 8, PAD))
 			table.insert(parts, blob(66, 8, 7, PAD, SWEEP.hard, 0))
+			-- a goo bar over the last top pad, before the sweeper: walk under it to time the sweeper, jump and touch it
+			table.insert(parts, bar(57, 61, 7, 8, PAD))
 			exit(parts, length, rise)
 			return Kit.section(length, rise, parts)
 		end,

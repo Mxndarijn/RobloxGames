@@ -9,9 +9,12 @@
 
 	Timing: the checks don't time melts, so every hold is set from a runner model (tests/obby/MeltingFloor.spec): a
 	jump carries about 90 % of its full reach (less going up), a re-jump costs 0.1 s, so the time a runner must stand
-	on a tile is (its length along the way - what the jump in carried over) / 16 + 0.1. `holdFor` computes it and the
-	grids never set a hold under it. Every walking line meets a hole of 5 studs (a walker drops through 4.4 or more;
-	the grids space their columns 5 apart), a lane change it misses, or a floor that melts away under a walker before
+	on a tile is (its length along the way - what the jump in carried over) / 16 + 0.1. `holdFor` computes it for a
+	straight run; the route check (`runnerProblem`) also pays for the way across when the route steps to another row.
+	That runner is a near-perfect one (a Studio bot that jumps a stud before every edge keeps within about 0.05 s of
+	it), so every route tile outlasts it by SLACK[tier] on top (`settle` raises a hold that doesn't): the time a person
+	needs for a late jump or a short stumble. Every walking line meets a hole of 5 studs (a walker drops through 4.4
+	or more; the grids space their columns 5 apart), a lane change it misses, or a floor that melts away under a walker before
 	it crosses (the ladder), so holding forward never clears a variant, and jumping on every landing doesn't either.
 
 	Kit gaps (simplified, see the variants): no shrink or flip started by landing (Shrinking Puddles breathe on a
@@ -27,7 +30,9 @@ local ENTRY = 6 -- entry pad length (full lane width)
 local EXIT = 6 -- exit pad length
 local REJUMP = 0.1 -- seconds from landing to the next take-off when you don't need to run
 local REACH = 0.9 -- share of a full running jump a runner counts on
-local MARGIN = 0.03 -- seconds a melting route tile must outlast the runner on it
+-- Seconds a melting route tile must outlast the runner on it, per tier: with under 0.1 s the Studio bot already
+-- falls when it waits 0.1 s on each tile, so no person makes it.
+local SLACK = { easy = 0.25, medium = 0.25, hard = 0.2 }
 
 local function melt(delay: number, away: number, extra: { [string]: any }?): Kit.Motion
 	local m: { [string]: any } = { kind = "melt", delay = delay, away = away }
@@ -89,18 +94,51 @@ local function gapOf(a: Part, b: Part): number
 	return math.sqrt(dx * dx + dz * dz)
 end
 
+-- Studs inside a tile's side edge a runner aims for when the route steps sideways (nobody lands on the very edge).
+local AIM_INSET = 2.5
+
+-- The flat way from (ax, az) to (bx, bz): unit x, unit z, length.
+local function towards(ax: number, az: number, bx: number, bz: number): (number, number, number)
+	local dx, dz = bx - ax, bz - az
+	local d = math.sqrt(dx * dx + dz * dz)
+	if d < 1e-6 then
+		return 1, 0, 0
+	end
+	return dx / d, dz / d, d
+end
+
+-- How far `p` reaches from its centre along the flat unit way (ux, uz) (a disc by its radius).
+local function halfAlong(p: Part, ux: number, uz: number): number
+	if p.shape == "disc" then
+		return p.size[1] / 2
+	end
+	local hx = if math.abs(ux) > 1e-6 then p.size[1] / 2 / math.abs(ux) else math.huge
+	local hz = if math.abs(uz) > 1e-6 then p.size[3] / 2 / math.abs(uz) else math.huge
+	return math.min(hx, hz)
+end
+
 --[[
 	The runner model over the main route: it lands on each step after a jump, runs what the jump didn't carry, takes
-	off again (REJUMP). Every melt tile starts on landing or `spread` s after a spreading neighbour is gone. Returns
-	nil when every melting route tile is still there when the runner leaves it, else the first one that is not.
+	off again (REJUMP). It runs along each step's middle line, moved sideways only as far as it must to stay AIM_INSET
+	inside the next step, so a hop to the side costs its way across too. Every melt tile starts on landing or `spread`
+	s after a spreading neighbour is gone. Returns nil when every melting route tile is still there `slack` s (default
+	0) after the runner leaves it, else the first one that is not.
 ]]
-local function runnerProblem(section: Kit.Section): (number?, boolean)
+local function runnerProblem(section: Kit.Section, slack: number?): (number?, boolean)
 	local parts = section.parts
 	local steps: { number } = {}
 	for i, p in parts do
 		if p.step and p.route == nil then
 			table.insert(steps, i)
 		end
+	end
+	-- where across each step the runner goes (its z), from the step before
+	local aim: { [number]: number } = {}
+	for k, i in steps do
+		local p = parts[i]
+		local half = (if p.shape == "disc" then p.size[1] else p.size[3]) / 2
+		local room = math.max(0, half - AIM_INSET)
+		aim[i] = if k == 1 then p.pos[3] else math.clamp(aim[steps[k - 1]], p.pos[3] - room, p.pos[3] + room)
 	end
 	local land: { [number]: number } = {}
 	local leave: { [number]: number } = {}
@@ -124,10 +162,20 @@ local function runnerProblem(section: Kit.Section): (number?, boolean)
 			local v, g = Kit.JUMP_SPEED, Kit.GRAVITY
 			local air = (v + math.sqrt(math.max(v * v - 2 * g * math.max(rise, 0), 0))) / g
 			land[i] = t + air
-			local into = math.max(0, jumpReach(rise) - gapOf(parts[from], p))
-			local prev, nxt = parts[steps[k - 1]], parts[steps[math.min(k + 1, #steps)]]
-			local dx, dz = math.abs(nxt.pos[1] - prev.pos[1]), math.abs(nxt.pos[3] - prev.pos[3])
-			local long = if dx >= dz then p.size[1] else p.size[3]
+			-- in from the take-off step, out to the next step, between the aim points
+			local a = parts[from]
+			local ux, uz, d = towards(a.pos[1], aim[from], p.pos[1], aim[i])
+			local gap = math.max(0, d - halfAlong(a, ux, uz) - halfAlong(p, ux, uz))
+			local into = math.max(0, jumpReach(rise) - gap)
+			local vx, vz = ux, uz
+			if k < #steps then
+				local n = steps[k + 1]
+				local wx, wz, e = towards(p.pos[1], aim[i], parts[n].pos[1], aim[n])
+				if e > 1e-6 then
+					vx, vz = wx, wz
+				end
+			end
+			local long = halfAlong(p, ux, uz) + halfAlong(p, vx, vz)
 			leave[i] = land[i] + math.max(0, long - into) / Kit.WALK + REJUMP
 			t = leave[i]
 		end
@@ -159,7 +207,7 @@ local function runnerProblem(section: Kit.Section): (number?, boolean)
 	for k, i in steps do
 		local m = parts[i].motion
 		if k > 1 and k < #steps and m and m.kind == "melt" and m.on ~= "leave" then
-			if start[i] + (m.delay or 0) < leave[i] + MARGIN then
+			if start[i] + (m.delay or 0) < leave[i] + (slack or 0) - 1e-9 then
 				return i, start[i] < land[i] - 1e-9
 			end
 		end
@@ -167,11 +215,12 @@ local function runnerProblem(section: Kit.Section): (number?, boolean)
 	return nil, false
 end
 
--- Until the runner model outruns every melt (0.05 s at a time): a tile that goes under the runner by itself holds
--- longer, a spreading melt that catches it up spreads slower. A grid is always solvable.
-local function settle(section: Kit.Section): Kit.Section
+-- Until the runner model outruns every melt by SLACK[tier] (0.05 s at a time): a tile that goes under the runner by
+-- itself holds longer, a spreading melt that catches it up spreads slower. A grid is always solvable.
+local function settle(section: Kit.Section, tier: string): Kit.Section
+	local slack = SLACK[tier]
 	for _ = 1, 80 do
-		local i, bySpread = runnerProblem(section)
+		local i, bySpread = runnerProblem(section, slack)
 		if i == nil then
 			return section
 		end
@@ -187,7 +236,7 @@ local function settle(section: Kit.Section): Kit.Section
 			m.delay = math.floor(((m.delay or 0) + 0.05) * 100 + 0.5) / 100
 		end
 	end
-	error(`MeltingFloor: a grid the runner can't outrun (part {runnerProblem(section)})`)
+	error(`MeltingFloor: a grid the runner can't outrun (part {runnerProblem(section, slack)})`)
 end
 
 ---------------------------------------------------------------------------
@@ -196,6 +245,7 @@ end
 
 export type GridConfig = {
 	seed: number,
+	tier: string, -- sets the slack every route tile keeps over the runner (SLACK)
 	cols: number, -- columns along the course (5..7)
 	rows: number, -- 2 (10-wide tiles) or 3 (8-wide tiles)
 	tile: number, -- tile length along the course (8 or 10)
@@ -290,7 +340,7 @@ local function buildGrid(cfg: GridConfig): Kit.Section
 		local hold = cfg.hold
 		if onRoute then
 			-- what the runner model needs on this tile (the route only moves forward: its length along x)
-			hold = math.max(hold, roundUp(holdFor(cfg.tile, cfg.gap, cfg.rise) + MARGIN))
+			hold = math.max(hold, roundUp(holdFor(cfg.tile, cfg.gap, cfg.rise) + SLACK[cfg.tier]))
 		end
 		local spreading = spreads[key] == true
 		local extra: { [string]: any } = {
@@ -323,7 +373,7 @@ local function buildGrid(cfg: GridConfig): Kit.Section
 		end
 	end
 	local length = exit(parts, ENTRY + cfg.gap + cols * pitch, (cols + 1) * cfg.rise)
-	return settle(Kit.section(length, (cols + 1) * cfg.rise, parts))
+	return settle(Kit.section(length, (cols + 1) * cfg.rise, parts), cfg.tier)
 end
 
 ---------------------------------------------------------------------------
@@ -355,9 +405,10 @@ local function tileRun(
 	return x
 end
 
-local function grid(seed: number, cfg: { [string]: any }): Kit.Section
+local function grid(seed: number, tier: string, cfg: { [string]: any }): Kit.Section
 	local full = table.clone(cfg)
 	full.seed = seed
+	full.tier = tier
 	return buildGrid(full :: any)
 end
 
@@ -366,6 +417,7 @@ M.id = "MeltingFloor"
 M.name = "Melting Floor"
 M.idea = 2
 M.holdFor = holdFor
+M.SLACK = table.freeze(SLACK)
 M.buildGrid = buildGrid
 M.runnerProblem = runnerProblem
 
@@ -380,7 +432,7 @@ M.variants = {
 			local x = tileRun(parts, ENTRY, 5, { { 14, 24 }, { 14, 24 }, { 14, 24 }, { 14, 24 } }, "tile", function()
 				return melt(1.1, 2.5)
 			end)
-			return Kit.section(exit(parts, x + 5, 0), 0, parts)
+			return settle(Kit.section(exit(parts, x + 5, 0), 0, parts), "easy")
 		end,
 	},
 	{
@@ -403,7 +455,7 @@ M.variants = {
 			end, function(i)
 				return if i % 2 == 0 then { tone = 3, marker = "cracks" } else nil
 			end)
-			return Kit.section(exit(parts, x + 5, 0), 0, parts)
+			return settle(Kit.section(exit(parts, x + 5, 0), 0, parts), "easy")
 		end,
 	},
 	{
@@ -421,7 +473,7 @@ M.variants = {
 			local x = tileRun(parts, ENTRY, 2, list, "tile", function()
 				return melt(0.9, 2.5)
 			end)
-			return Kit.section(exit(parts, x + 2, 0), 0, parts)
+			return settle(Kit.section(exit(parts, x + 2, 0), 0, parts), "easy")
 		end,
 	},
 	{
@@ -430,7 +482,7 @@ M.variants = {
 		name = "Open Field",
 		tier = "easy",
 		build = function(seed: number): Kit.Section
-			return grid(seed, {
+			return grid(seed, "easy", {
 				cols = 5,
 				rows = 3,
 				tile = 8,
@@ -460,11 +512,11 @@ M.variants = {
 			end, function()
 				return { shape = "disc" }
 			end)
-			return Kit.section(exit(parts, x + 4, 0), 0, parts)
+			return settle(Kit.section(exit(parts, x + 4, 0), 0, parts), "easy")
 		end,
 	},
 	{
-		-- Square stones scattered over three lanes, up and down a step, holding under half a second: read where the
+		-- Square stones scattered over three lanes, up and down a step, holding three quarters of a second: read where the
 		-- next one is while you are still in the air, no time to aim twice.
 		name = "Stepping Stones",
 		tier = "medium",
@@ -478,15 +530,15 @@ M.variants = {
 				table.insert(list, { 8, 8, z, tops[i] })
 			end
 			local x = tileRun(parts, ENTRY, 4, list, "tile", function()
-				return melt(0.45, 2.5)
+				return melt(0.75, 2.5)
 			end)
-			return Kit.section(exit(parts, x + 4, 3), 3, parts)
+			return settle(Kit.section(exit(parts, x + 4, 3), 3, parts), "medium")
 		end,
 	},
 	{
-		-- Lane-wide strips one after another: hop-hop-hop, each strip drops 0.4 s after you land, faster than you can
-		-- walk across it, so holding forward falls through. Red goo blocks sit on every other strip, left then right:
-		-- weave while you hop.
+		-- Lane-wide strips one after another: hop-hop-hop, each strip drops 0.55 s after you land, so a stop drops
+		-- you. Red goo blocks sit on every other strip, left then right: weave while you hop (holding forward runs into
+		-- one).
 		name = "Melting Ladder",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
@@ -497,14 +549,14 @@ M.variants = {
 				table.insert(list, { 8, 24 })
 			end
 			local x = tileRun(parts, ENTRY, 3, list, "tile", function()
-				return melt(0.4, 2)
+				return melt(0.55, 2)
 			end)
 			for i = 2, 8, 2 do
 				local cx = ENTRY + i * 11 - 4
 				local z = if i % 4 == 2 then -6 else 6
 				table.insert(parts, Kit.hazard({ 3, 3, 12 }, { cx, 1.5, z }))
 			end
-			return Kit.section(exit(parts, x + 3, 0), 0, parts)
+			return settle(Kit.section(exit(parts, x + 3, 0), 0, parts), "medium")
 		end,
 	},
 	{
@@ -513,7 +565,7 @@ M.variants = {
 		name = "Spreading Melt",
 		tier = "medium",
 		build = function(seed: number): Kit.Section
-			return grid(seed, {
+			return grid(seed, "medium", {
 				cols = 5,
 				rows = 3,
 				tile = 8,
@@ -593,9 +645,9 @@ M.variants = {
 				table.insert(list, { 10, 10, if i % 2 == 1 then -2 else 2, (i - 1) * 3 })
 			end
 			local x = tileRun(parts, ENTRY, 3, list, "tile", function()
-				return melt(0.55, 2.5)
+				return melt(0.75, 2.5)
 			end)
-			return Kit.section(exit(parts, x + 3, 18), 18, parts)
+			return settle(Kit.section(exit(parts, x + 3, 18), 18, parts), "medium")
 		end,
 	},
 	{
@@ -606,7 +658,7 @@ M.variants = {
 		build = function(_seed: number): Kit.Section
 			local parts = {}
 			entry(parts)
-			local hold, away = 0.5, 2
+			local hold, away = 0.75, 2
 			-- 2: near-left, 3: centre
 			table.insert(parts, Kit.slab(16, 0, -8, 8, 8, "tile", { tone = 1, motion = melt(hold, away) }))
 			table.insert(parts, Kit.slab(28, 0, 0, 8, 8, "tile", { tone = 2, motion = melt(hold, away) }))
@@ -628,7 +680,7 @@ M.variants = {
 				})
 			)
 			-- the exit sits on the left only: the far-left tile is the one way to it
-			return Kit.section(exit(parts, 48, 0, -8, 8), 0, parts)
+			return settle(Kit.section(exit(parts, 48, 0, -8, 8), 0, parts), "medium")
 		end,
 	},
 	{
@@ -643,9 +695,9 @@ M.variants = {
 				table.insert(list, { 6, 8, if i % 2 == 1 then -5 else 5 })
 			end
 			local x = tileRun(parts, ENTRY, 5, list, "tile", function()
-				return melt(0.35, -1)
+				return melt(0.65, -1)
 			end)
-			return Kit.section(exit(parts, x + 5, 0), 0, parts)
+			return settle(Kit.section(exit(parts, x + 5, 0), 0, parts), "hard")
 		end,
 	},
 	{
@@ -661,7 +713,7 @@ M.variants = {
 			entry(parts)
 			local zs = { -8, 0, 8 }
 			local index = {}
-			local hold = math.max(0.4, roundUp(holdFor(8, 4, 0) + MARGIN))
+			local hold = math.max(0.4, roundUp(holdFor(8, 4, 0) + SLACK.hard))
 			for c = 1, 6 do
 				for r = 1, 3 do
 					local key = c * 10 + r
@@ -694,12 +746,12 @@ M.variants = {
 				local m = parts[i].motion :: Kit.Motion
 				m.next = nextList
 			end
-			return settle(Kit.section(exit(parts, ENTRY + 4 + 6 * 12, 0), 0, parts))
+			return settle(Kit.section(exit(parts, ENTRY + 4 + 6 * 12, 0), 0, parts), "hard")
 		end,
 	},
 	{
 		-- Ferries slide side to side on rails, each out of step, with a melting stone between every two: wait on the
-		-- ferry if you like, but a stone gives you 0.4 s and never comes back, so jump on it only when the next ferry
+		-- ferry if you like, but a stone gives you half a second and never comes back, so jump on it only when the next ferry
 		-- will be in front of you. (Kit: a part carries one motion, so the ferries slide and the stones melt.)
 		name = "Melting Ferries",
 		tier = "hard",
@@ -713,13 +765,13 @@ M.variants = {
 			local period = 2.4
 			local x = tileRun(parts, ENTRY, 5, list, "tile", function(i)
 				if i % 2 == 0 then
-					return melt(0.4, -1)
+					return melt(0.5, -1)
 				end
 				return { kind = "slide", axis = "z", amp = 6, period = period, phase = ((i - 1) * 0.175) % 1 } :: any
 			end, function(i)
 				return if i % 2 == 1 then { marker = "rail" } else { tone = 3 }
 			end)
-			return Kit.section(exit(parts, x + 5, 0), 0, parts)
+			return settle(Kit.section(exit(parts, x + 5, 0), 0, parts), "hard")
 		end,
 	},
 	{
@@ -734,24 +786,24 @@ M.variants = {
 			local blink = { [3] = true, [6] = true }
 			local list = {}
 			for i, d in sizes do
-				table.insert(list, { d, d, if i % 2 == 1 then -2 else 2 })
+				table.insert(list, { d, d, if i % 2 == 1 then -3 else 3 })
 			end
 			local x = tileRun(parts, ENTRY, 4, list, "bubble", function(i)
 				if blink[i] then
 					return { kind = "flip", period = 2.4, duty = 0.6, phase = (i * 0.37) % 1 } :: any
 				end
-				return melt(roundUp(holdFor(sizes[i], 4, 0) + 0.05), 3)
+				return melt(roundUp(holdFor(sizes[i], 4, 0) + SLACK.hard), 3)
 			end, function(i)
 				return { shape = "disc", tone = if blink[i] then 3 else 1 + i % 2 }
 			end)
-			return Kit.section(exit(parts, x + 4, 0), 0, parts)
+			return settle(Kit.section(exit(parts, x + 4, 0), 0, parts), "hard")
 		end,
 	},
 	{
 		name = "Melt Grid A",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
-			return grid(11, {
+			return grid(11, "easy", {
 				cols = 5,
 				rows = 3,
 				tile = 8,
@@ -768,7 +820,7 @@ M.variants = {
 		name = "Melt Grid B",
 		tier = "easy",
 		build = function(_seed: number): Kit.Section
-			return grid(27, {
+			return grid(27, "easy", {
 				cols = 6,
 				rows = 2,
 				tile = 10,
@@ -785,7 +837,7 @@ M.variants = {
 		name = "Melt Grid C",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
-			return grid(40, {
+			return grid(40, "medium", {
 				cols = 6,
 				rows = 3,
 				tile = 8,
@@ -803,7 +855,7 @@ M.variants = {
 		name = "Melt Grid D",
 		tier = "medium",
 		build = function(_seed: number): Kit.Section
-			return grid(58, {
+			return grid(58, "medium", {
 				cols = 6,
 				rows = 3,
 				tile = 8,
@@ -821,7 +873,7 @@ M.variants = {
 		name = "Melt Grid E",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
-			return grid(73, {
+			return grid(73, "hard", {
 				cols = 7,
 				rows = 3,
 				tile = 8,
@@ -838,7 +890,7 @@ M.variants = {
 		name = "Melt Grid F",
 		tier = "hard",
 		build = function(_seed: number): Kit.Section
-			return grid(91, {
+			return grid(91, "hard", {
 				cols = 6,
 				rows = 3,
 				tile = 8,
@@ -860,7 +912,7 @@ local function generate(seed: number, tier: string): Kit.Section
 	local rows = if rng:int(1, 3) == 1 then 2 else 3
 	local cols = rng:int(5, 7)
 	local cells = rows * cols
-	local cfg: { [string]: any } = { seed = seed, rows = rows, cols = cols, gap = 5, spread = 0.3 }
+	local cfg: { [string]: any } = { seed = seed, tier = tier, rows = rows, cols = cols, gap = 5, spread = 0.3 }
 	if tier == "easy" then
 		cfg.tile = if rng:int(1, 2) == 1 then 8 else 10
 		cfg.holes = rng:int(0, 3)
