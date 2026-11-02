@@ -451,10 +451,10 @@ describe("item icons on the surfaces", function()
 		}
 	end
 
-	it("Codes, Goals and the Daily popup draw item icons", function()
+	it("Codes, Goals and the daily reward card draw item icons", function()
 		local codes = UiHarness.ui("Panels/Codes").new(UiHarness.root(), ctx())
 		expect(find(codes.frame, "BoostIcon"):GetAttribute("ItemId")).toBe("Boost_Code")
-		local daily = UiHarness.ui("Panels/DailyPopup").new(UiHarness.root(), ctx())
+		local daily = UiHarness.ui("Panels/Welcome").new(UiHarness.root(), ctx())
 		expect(find(daily.frame, "Day1Icon"):GetAttribute("ItemId")).toBe("Cash")
 		local goals = UiHarness.ui("Panels/Goals").new(UiHarness.root(), ctx())
 		goals.update({ slimes = {}, padsUnlocked = 4, padsMax = 8, cash = 0 })

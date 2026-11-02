@@ -20,11 +20,8 @@ function MenuClose.promptMenus(guidePrompt: string): { [string]: string }
 	return { [guidePrompt] = "Guide" }
 end
 
--- What Esc / B closes: the Daily popup sits over every card, so it wins; the bag panel only shows with no card open.
-function MenuClose.topKey(openKey: string?, dailyOpen: boolean, bagOpen: boolean?): string?
-	if dailyOpen then
-		return "Daily"
-	end
+-- What Esc / B closes: the open card, else the bag panel (it only shows with no card open).
+function MenuClose.topKey(openKey: string?, bagOpen: boolean?): string?
 	return openKey or (if bagOpen then MenuClose.BAG else nil)
 end
 

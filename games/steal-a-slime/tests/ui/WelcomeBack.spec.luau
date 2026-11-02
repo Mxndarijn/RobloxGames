@@ -1,9 +1,8 @@
 --!strict
--- v20 welcome-back card: contents, content-sized panel and queue ordering with Daily / tutorial.
+-- The welcome back / daily reward card: what it shows per mode, its buttons, and its size on clamped screens.
 local Config = require("../../src/shared/Config")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
-local PopupQueue = require("../../src/ui/PopupQueue")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 local WelcomeBack = require("../../src/ui/WelcomeBack")
@@ -13,12 +12,9 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local function state(extra: { [string]: any }?): any
 	local s: any = {
 		tutorialStepId = nil,
-		welcomeBack = { away = 19800, cash = 12400, grown = 3 },
-		daily = { available = false, streak = 4, amount = 100, day = 4 },
-		goals = {
-			{ id = "a", title = "Catch 10 slimes", progress = 10, target = 10, done = true },
-			{ id = "b", title = "Merge 5 times", progress = 2, target = 5, done = false },
-		},
+		rebirthMultiplier = 1,
+		welcomeBack = { away = 19800, cash = 12400, grown = 3, onPads = true },
+		daily = { available = true, streak = 2, amount = 300, day = 3 },
 	}
 	for k, v in extra or {} do
 		s[k] = v
@@ -26,173 +22,241 @@ local function state(extra: { [string]: any }?): any
 	return s
 end
 
+-- A State that offers both Robux buttons: an unused offline payout to double and a broken streak to keep.
+local function withOffers(s: any): any
+	s.exclusiveShop = { offlineDouble = { available = true, cash = 12400, used = false }, streakKeepable = true }
+	return s
+end
+
 describe("WelcomeBack.view", function()
-	it("is nil without a report", function()
-		expect(WelcomeBack.view(state({ welcomeBack = false }))).toBeNil()
-		expect(WelcomeBack.view(nil)).toBeNil()
-	end)
-	it("summarises away time, offline cash, growth, streak and the next goal", function()
-		local view = WelcomeBack.view(state())
+	it("join mode: cash on the pads, the daily row with seven tiles, growth, and Claim", function()
+		local view = WelcomeBack.view(state(), "join", Config)
 		assert(view, "view")
-		expect(view.away).toBe("You were away 5h 30m")
-		expect(#view.rows).toBe(4)
-		expect(view.rows[1].name).toBe("Cash")
-		expect(string.find(view.rows[1].text, "earned while away", 1, true) ~= nil).toBe(true)
-		expect(view.rows[2].text).toBe("3 slimes grew on your pads")
-		expect(view.rows[3].text).toBe("Daily streak: 4 days")
-		expect(view.rows[4].text).toBe("Merge 5 times (2/5)")
+		expect(view.title).toBe("Welcome back")
+		expect((view.cash :: any).name).toBe("+$12.4K")
+		expect((view.cash :: any).desc).toBe("Earned in 5h 30m, waiting on your cash pads")
+		local daily = view.daily :: any
+		expect(daily.name).toBe("Daily reward")
+		expect(daily.amount).toBe("$300")
+		expect(daily.status).toBe("Day 3 of your streak")
+		expect(#daily.tiles).toBe(Config.DAILY_STREAK_CAP)
+		expect(daily.tiles[2].state).toBe("claimed")
+		expect(daily.tiles[3].state).toBe("today")
+		expect(daily.tiles[3].label).toBe("Day 3")
+		expect(daily.tiles[4].amount).toBe(`${Config.DAILY_BASE * 4}`)
+		expect((view.growth :: any).name).toBe("3 slimes grew")
+		expect(view.action.kind).toBe("claim")
+		expect(view.action.text).toBe("Claim $300")
 	end)
-	it("shows a ready daily reward, singular growth and skips missing rows", function()
-		local s = state({ daily = { available = true, streak = 1, amount = 250, day = 2 }, goals = {} })
-		s.welcomeBack = { away = 90000, cash = 0, grown = 1 }
-		local view = WelcomeBack.view(s)
-		assert(view, "view")
-		expect(view.away).toBe("You were away 1d 1h")
-		expect(view.rows[2].text).toBe("1 slime grew on your pads")
-		expect(string.find(view.rows[3].text, "Daily reward ready", 1, true) ~= nil).toBe(true)
-		expect(#view.rows).toBe(3)
+	it("cash pads off: the cash was already added; no cash earned says so", function()
+		local s = state()
+		s.welcomeBack = { away = 19800, cash = 12400, grown = 0 }
+		local view = WelcomeBack.view(s, "join", Config) :: any
+		expect(view.cash.desc).toBe("Earned in 5h 30m, added to your cash")
+		s.welcomeBack = { away = 90000, cash = 0, grown = 0 }
+		view = WelcomeBack.view(s, "join", Config) :: any
+		expect(view.cash.name).toBe("Away 1d 1h")
 	end)
-	it("every row names an item icon", function()
-		for _, row in (WelcomeBack.view(state()) :: any).rows do
-			expect(#row.icon > 0).toBe(true)
+	it("no growth row when no slime grew (or slimes don't grow)", function()
+		local s = state()
+		s.welcomeBack.grown = 0
+		expect((WelcomeBack.view(s, "join", Config) :: any).growth).toBeNil()
+	end)
+	it("daily already claimed: tomorrow's amount and Got it", function()
+		local view = WelcomeBack.view(
+			state({ daily = { available = false, streak = 3, amount = 300, day = 3 } }),
+			"join",
+			Config
+		) :: any
+		expect(view.daily.name).toBe("Daily reward claimed")
+		expect(view.daily.status).toBe(`${Config.DAILY_BASE * 4} tomorrow`)
+		expect(view.daily.amount).toBeNil()
+		expect(view.daily.tiles[3].state).toBe("claimed")
+		expect(view.action.kind).toBe("close")
+		expect(view.action.text).toBe("Got it")
+	end)
+	it("a broken streak says so", function()
+		local s = withOffers(state({ daily = { available = true, streak = 3, amount = 100, day = 1 } }))
+		expect((WelcomeBack.view(s, "join", Config) :: any).daily.status).toBe("Your 3-day streak broke")
+	end)
+	it("daily mode (and join without a report): only the daily row, titled Daily reward", function()
+		for _, v in
+			{
+				WelcomeBack.view(state(), "daily", Config),
+				WelcomeBack.view(state({ welcomeBack = false }), "join", Config),
+			}
+		do
+			local view = v :: any
+			expect(view.mode).toBe("daily")
+			expect(view.title).toBe("Daily reward")
+			expect(view.cash).toBeNil()
+			expect(view.growth).toBeNil()
+			expect(view.daily ~= nil).toBe(true)
 		end
+	end)
+	it("daily mode leads with the streak and tomorrow's amount; the title and Claim say the rest", function()
+		local view = WelcomeBack.view(state(), "daily", Config) :: any
+		expect(view.daily.name).toBe("Day 3 of your streak")
+		expect(view.daily.status).toBe(`${Config.DAILY_BASE * 4} tomorrow`)
+		expect(view.daily.amountShown).toBe(false)
+		expect(view.action.text).toBe("Claim $300")
+		local s = state({ daily = { available = false, streak = 3, amount = 300, day = 3 } })
+		expect((WelcomeBack.view(s, "daily", Config) :: any).daily.name).toBe("Claimed today")
+		expect((WelcomeBack.view(state(), "join", Config) :: any).daily.amountShown).toBe(true)
+	end)
+	it("is nil with nothing to show", function()
+		expect(WelcomeBack.view(nil, "join", Config)).toBeNil()
+		expect(WelcomeBack.view({ welcomeBack = false }, "daily", Config)).toBeNil()
+	end)
+	it("formats the away time", function()
+		expect(WelcomeBack.awayText(19200)).toBe("5h 20m")
+		expect(WelcomeBack.awayText(90000)).toBe("1d 1h")
+		expect(WelcomeBack.awayText(720)).toBe("12m")
 	end)
 end)
 
 describe("Welcome panel", function()
-	local function build(): any
-		local ctx: any = { Config = Config, togglePanel = function() end }
-		return UiHarness.ui("Panels/Welcome").new(UiHarness.root(), ctx)
+	local function build(): (any, { any }, { string })
+		local sent, toggled = {}, {}
+		local ctx: any = {
+			Config = Config,
+			send = function(...)
+				table.insert(sent, { ... })
+			end,
+			togglePanel = function(key: string)
+				table.insert(toggled, key)
+			end,
+		}
+		return UiHarness.ui("Panels/Welcome").new(UiHarness.root(), ctx), sent, toggled
 	end
-	it("starts hidden and fills its rows from State", function()
+
+	it("starts hidden; join mode fills the cash, daily and growth rows", function()
 		local panel = build()
 		expect(panel.frame.Visible).toBe(false)
+		panel.setMode("join")
 		panel.update(state())
-		expect(UiHarness.find(panel.frame, "Row4").Visible).toBe(true)
-		panel.update(state({ goals = {} }))
-		expect(UiHarness.find(panel.frame, "Row4").Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "Title").Text).toBe("Welcome back")
+		expect(UiHarness.find(panel.frame, "CashRow").Visible).toBe(true)
+		expect(UiHarness.find(UiHarness.find(panel.frame, "CashRow"), "Name").Text).toBe("+$12.4K")
+		expect(UiHarness.find(panel.frame, "DailyRow").Visible).toBe(true)
+		expect(UiHarness.find(panel.frame, "GrowthRow").Visible).toBe(true)
 	end)
-	it("sizes its card to its rows plus Collect", function()
-		local Widgets = UiHarness.ui("Widgets")
+	it("daily mode shows the daily row alone", function()
 		local panel = build()
+		panel.setMode("daily")
 		panel.update(state())
-		local full = Widgets.contentHeight(UiHarness.find(panel.frame, "Body"))
-		panel.update(state({ goals = {} }))
-		local fewer = Widgets.contentHeight(UiHarness.find(panel.frame, "Body"))
-		expect(fewer < full).toBe(true)
-		expect(Layout.cardHeight(full) <= Layout.menuHeight("Welcome") + 120).toBe(true)
+		expect(UiHarness.find(panel.frame, "Title").Text).toBe("Daily reward")
+		expect(UiHarness.find(panel.frame, "CashRow").Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "GrowthRow").Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "DailyRow").Visible).toBe(true)
 	end)
-end)
-
-describe("PopupQueue with the welcome-back card", function()
-	it("opens Welcome once, then Daily after it closes (no overlap)", function()
-		local q = PopupQueue.new()
-		local s = state({ daily = { available = true, streak = 1, amount = 100 } })
-		expect(q.update(s)).toBe("Welcome")
-		expect(q.update(s, true)).toBeNil() -- Welcome on screen: Daily waits
-		expect(q.has("Daily")).toBe(true)
-		expect(q.update(s, false)).toBe("Daily")
-		expect(q.update(s)).toBeNil() -- welcome is shown once per join
-	end)
-	it("is held back by the tutorial like the Daily popup", function()
-		local q = PopupQueue.new()
-		expect(q.update(state({ tutorialStepId = "Grab" }))).toBeNil()
-		expect(q.queued()[1]).toBe("Welcome")
-		expect(q.update(state({ tutorialStepId = "Lock" }))).toBeNil()
-		expect(q.update(state())).toBe("Welcome")
-	end)
-	it("does nothing without a report", function()
-		local q = PopupQueue.new()
-		expect(q.update(state({ welcomeBack = false }))).toBeNil()
-	end)
-end)
-
-describe("Welcome panel look", function()
-	local function build(): any
-		local ctx: any = { Config = Config, togglePanel = function() end }
-		return UiHarness.ui("Panels/Welcome").new(UiHarness.root(), ctx)
-	end
-	it("puts the earnings in a big gold headline under the away line", function()
+	it("today's tile is gold, claimed tiles show the check", function()
 		local Theme = UiHarness.ui("Widgets").Theme
 		local panel = build()
 		panel.update(state())
-		expect(UiHarness.find(panel.frame, "Away").Text).toBe("You were away for 5h 30m and earned")
-		local earned = UiHarness.find(panel.frame, "Earned")
-		expect(earned.Visible).toBe(true)
-		expect(earned.Text).toBe("+$12.4K")
-		expect(earned.TextColor3).toBe(Theme.Gold)
-		local s = state()
-		s.welcomeBack = { away = 19800, cash = 0, grown = 0 }
-		panel.update(s)
-		expect(UiHarness.find(panel.frame, "Away").Text).toBe("You were away for 5h 30m")
-		expect(UiHarness.find(panel.frame, "Earned").Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "Day3").BackgroundColor3).toBe(Theme.Gold)
+		expect(UiHarness.find(panel.frame, "Day4").BackgroundColor3).toBe(Theme.Row)
+		expect(UiHarness.find(UiHarness.find(panel.frame, "Day1"), "Claimed").Visible).toBe(true)
 	end)
-	it("shows the ready daily amount on the right and the goal as a bar with its count", function()
+	it("Claim sends Daily; with nothing to claim the button reads Got it and closes the card", function()
+		local panel, sent, toggled = build()
+		panel.setMode("join")
+		panel.update(state())
+		local action = UiHarness.find(panel.frame, "Action")
+		expect(action.Text).toBe("Claim $300")
+		UiHarness.fire(action, "Activated")
+		expect(#sent).toBe(1)
+		expect(sent[1][1]).toBe("Daily")
+		expect(#toggled).toBe(0)
+		panel.update(state({ daily = { available = false, streak = 3, amount = 300, day = 3 } }))
+		expect(action.Text).toBe("Got it")
+		UiHarness.fire(action, "Activated")
+		expect(toggled[1]).toBe("Welcome")
+	end)
+	it("a claim while the card is open shows a Claimed well", function()
 		local panel = build()
-		panel.update(state({ daily = { available = true, streak = 1, amount = 500 } }))
-		local daily = UiHarness.find(panel.frame, "Row3")
-		expect(UiHarness.find(daily, "Name").Text).toBe("Daily reward ready")
-		expect(UiHarness.find(daily, "Amount").Visible).toBe(true)
-		expect(UiHarness.find(daily, "Amount").Text).toBe("$500")
-		local goal = UiHarness.find(panel.frame, "Row4")
-		expect(UiHarness.find(goal, "Name").Text).toBe("Merge 5 times")
-		expect(UiHarness.find(goal, "Count").Text).toBe("2/5")
-		expect(UiHarness.find(goal, "Bar").Visible).toBe(true)
-		expect(UiHarness.find(goal, "Amount").Visible).toBe(false)
+		panel.frame.Visible = true
+		panel.update(state())
+		panel.update(state({ daily = { available = false, streak = 3, amount = 300, day = 3 } }))
+		expect(UiHarness.find(panel.frame, "Action").Text).toBe("Claimed")
+	end)
+	it("shows both Robux offers side by side under the rows, none without the shop", function()
+		local panel = build()
+		panel.setMode("join")
+		panel.update(withOffers(state({ daily = { available = true, streak = 3, amount = 100, day = 1 } })))
+		local double = UiHarness.find(panel.frame, "DoubleIt")
+		local keep = UiHarness.find(panel.frame, "KeepStreak")
+		expect(double.Visible).toBe(true)
+		expect(keep.Visible).toBe(true)
+		expect(double.Parent.Name).toBe("Offers")
+		expect(keep.Position.X.Scale).toBe(0.5)
+		panel.update(state())
+		expect(double.Visible).toBe(false)
+		expect(keep.Visible).toBe(false)
+		expect(UiHarness.find(panel.frame, "Offers").Visible).toBe(false)
+	end)
+	it("sizes its card to its rows: daily mode is shorter than join mode", function()
+		local Widgets = UiHarness.ui("Widgets")
+		local panel = build()
+		panel.setMode("join")
+		panel.update(state())
+		local join = Widgets.contentHeight(UiHarness.find(panel.frame, "Body"))
+		panel.setMode("daily")
+		panel.update(state())
+		local daily = Widgets.contentHeight(UiHarness.find(panel.frame, "Body"))
+		expect(daily < join).toBe(true)
 	end)
 end)
 
-describe("Welcome card on a clamped screen", function()
+describe("Welcome card on real screens", function()
 	local Widgets = UiHarness.ui("Widgets")
 
-	-- The card init.client places on `screen` for the full four-row report, its body box, and the body's parts.
+	-- The card init.client places on `screen` for the worst case (join, both offers), its body box and content.
 	local function place(screen: any): (any, any, any, any)
-		local ctx: any = { Config = Config, togglePanel = function() end }
+		local ctx: any = { Config = Config, togglePanel = function() end, send = function() end }
 		local panel = UiHarness.ui("Panels/Welcome").new(UiHarness.root(), ctx)
-		panel.update(state({ daily = { available = true, streak = 2, amount = 250 } }))
-		local body = UiHarness.find(panel.frame, "Body")
-		local content = Widgets.contentHeight(body)
-		local card = Layout.panelFor(screen, "Welcome", content)
+		panel.setMode("join")
+		panel.update(withOffers(state({ daily = { available = true, streak = 3, amount = 100, day = 1 } })))
+		local card = Layout.panelFor(screen, "Welcome", Widgets.contentHeight(UiHarness.find(panel.frame, "Body")))
+		panel.layout(card, screen)
+		local content = Widgets.contentHeight(UiHarness.find(panel.frame, "Body"))
+		card = Layout.panelFor(screen, "Welcome", content)
 		return panel, card, Layout.panelBody(card), content
 	end
 
-	-- Top of a body child in body px, for a body `h` tall.
 	local function topIn(h: number, inst: any): number
 		return inst.Position.Y.Scale * h + inst.Position.Y.Offset
 	end
 
-	-- Landscape phone ScreenGuis short enough to clamp the four-row card.
-	local phones = { { name = "800x334", w = 800, h = 334 }, { name = "844x332", w = 844, h = 332 } }
-	for _, vp in phones do
-		it(`{vp.name} touch: Collect sits inside the clamped card and the rows scroll above it`, function()
-			local screen = Layout.screen(vp.w, vp.h, { touch = true })
-			local panel, card, b, content = place(screen)
-			expect(UiHarness.find(panel.frame, "Row4").Visible).toBe(true)
-			expect(Layout.cardHeight(content) > card.h).toBe(true) -- the screen clamps this card
-			local collect = UiHarness.find(panel.frame, "Collect")
-			local top = topIn(b.h, collect)
-			expect(top >= 0).toBe(true)
-			expect(top + collect.Size.Y.Offset <= b.h + 0.5).toBe(true)
-			local check = LayoutAssert.new(vp.name, screen)
-			check.inside("Collect", Layout.rect(b.x, b.y + top, b.w, collect.Size.Y.Offset), "card", card)
-			expect(#check.problems).toBe(0)
-			local scroll = UiHarness.find(panel.frame, "Content")
-			local view = b.h - Layout.BUTTON
-			expect(topIn(b.h, scroll) + view <= top + 0.5).toBe(true) -- the rows end where Collect starts
-			local row4 = UiHarness.find(panel.frame, "Row4")
-			expect(scroll.CanvasSize.Y.Offset > view).toBe(true)
-			expect(scroll.CanvasSize.Y.Offset >= row4.Position.Y.Offset + row4.Size.Y.Offset).toBe(true)
-		end)
+	for _, vp in { { name = "800x334", w = 800, h = 334 }, { name = "844x332", w = 844, h = 332 } } do
+		it(
+			`{vp.name} landscape phone: offers sit in their rows, growth joins the cash row, the button stays in the card`,
+			function()
+				local screen = Layout.screen(vp.w, vp.h, { touch = true })
+				expect(screen.short).toBe(true)
+				local panel, card, b, content = place(screen)
+				expect(UiHarness.find(panel.frame, "DoubleIt").Parent.Name).toBe("CashRow")
+				expect(UiHarness.find(panel.frame, "KeepStreak").Parent.Name).toBe("DailyRow")
+				expect(UiHarness.find(panel.frame, "GrowthRow").Visible).toBe(false)
+				local desc = UiHarness.find(UiHarness.find(panel.frame, "CashRow"), "Desc").Text
+				expect(string.find(desc, "3 slimes grew", 1, true) ~= nil).toBe(true)
+				expect(card.h).toBe(Layout.cardHeight(content)) -- fits without scrolling
+				local action = UiHarness.find(panel.frame, "Action")
+				local top = topIn(b.h, action)
+				local check = LayoutAssert.new(vp.name, screen)
+				check.inside("Action", Layout.rect(b.x, b.y + top, b.w, action.Size.Y.Offset), "card", card)
+				expect(#check.problems).toBe(0)
+			end
+		)
 	end
 
-	it("1920x1080: the card fits its content and Collect sits the collect gap under the last row", function()
+	it("1920x1080: the card fits its content and the button sits under the last row", function()
 		local panel, card, b, content = place(Layout.screen(1920, 1080))
 		expect(card.h).toBe(Layout.cardHeight(content))
-		local row4 = UiHarness.find(panel.frame, "Row4")
-		local collect = UiHarness.find(panel.frame, "Collect")
-		local rowsEnd = row4.Position.Y.Offset + row4.Size.Y.Offset
-		expect(math.abs(topIn(b.h, collect) - (rowsEnd + UiHarness.ui("Panels/Welcome").ROWS.collectGap)) < 0.5).toBe(
-			true
-		)
+		local offers = UiHarness.find(panel.frame, "Offers")
+		local action = UiHarness.find(panel.frame, "Action")
+		local offersEnd = offers.Position.Y.Offset + offers.Size.Y.Offset
+		local Welcome = UiHarness.ui("Panels/Welcome")
+		expect(math.abs(topIn(b.h, action) - (offersEnd + Welcome.ACTION_GAP)) < 0.5).toBe(true)
 	end)
 end)

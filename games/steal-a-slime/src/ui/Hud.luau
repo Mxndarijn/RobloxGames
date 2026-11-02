@@ -649,7 +649,7 @@ function Hud.new(parent: Instance, ctx: any)
 		setTooltip(id)
 	end
 
-	-- An open overlay (menu card, daily popup, bag panel: MenuState.noticesVisible) hides the whole banner stack
+	-- An open overlay (menu card or bag panel: MenuState.noticesVisible) hides the whole banner stack
 	-- and the tooltip: nothing can cover a card's title or X.
 	function self.setMenuOpen(isOpen: boolean)
 		if menuOpen ~= isOpen then

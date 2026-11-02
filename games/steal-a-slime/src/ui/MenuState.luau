@@ -22,10 +22,10 @@ function MenuState.view(openKey: string?, keys: { string }): View
 end
 
 -- The top-centre notices (the banner stack, the boss card, the thief arrow) sit right over a
--- content-sized card's title and X on phones: they show only with no overlay open, so no menu card, no
--- daily popup (`dailyOpen`) and no open bag panel (`bagOpen`). Closing it brings them back.
-function MenuState.noticesVisible(openKey: string?, dailyOpen: boolean?, bagOpen: boolean?): boolean
-	return openKey == nil and not dailyOpen and not bagOpen
+-- content-sized card's title and X on phones: they show only with no overlay open, so no menu card (the
+-- welcome / daily reward card included) and no open bag panel (`bagOpen`). Closing it brings them back.
+function MenuState.noticesVisible(openKey: string?, bagOpen: boolean?): boolean
+	return openKey == nil and not bagOpen
 end
 
 -- The tutorial card and its hint ring / bubble sit over a content-sized card's
@@ -34,13 +34,6 @@ end
 -- The step itself is untouched; closing the menu or the bag brings the same card back.
 function MenuState.tutorialVisible(openKey: string?, bagOpen: boolean?): boolean
 	return openKey == nil and not bagOpen
-end
-
--- The daily popup is not a menu key; the tutorial cards hide while it is open
--- too, so the player deals with one thing at a time. (The welcome-back card is a menu key, so tutorialVisible
--- already covers it.) `bagOpen`: as tutorialVisible.
-function MenuState.tutorialShown(openKey: string?, dailyOpen: boolean, bagOpen: boolean?): boolean
-	return MenuState.tutorialVisible(openKey, bagOpen) and not dailyOpen
 end
 
 return MenuState
