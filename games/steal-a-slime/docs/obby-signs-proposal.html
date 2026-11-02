@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obby Picture Signs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #f2f5f9; --surface: #ffffff; --ink: #1c2230; --muted: #5a6478; --line: #dbe1ea;
+  --sky: #2f7fd8; --sky-soft: #dceafb; --goo: #1f9e83; --goo-soft: #d8f1ea;
+  --warn: #c0392b; --warn-soft: #fbe2df; --med: #b07510; --med-soft: #fbefd8;
+  --f-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151c; --surface: #19202a; --ink: #e6eaf0; --muted: #9aa5b6; --line: #2a3340;
+    --sky: #6aa9f0; --sky-soft: #172b44; --goo: #45c9a8; --goo-soft: #173a33;
+    --warn: #f07a6e; --warn-soft: #3d1f1c; --med: #f0b24a; --med-soft: #3a2d14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151c; --surface: #19202a; --ink: #e6eaf0; --muted: #9aa5b6; --line: #2a3340;
+  --sky: #6aa9f0; --sky-soft: #172b44; --goo: #45c9a8; --goo-soft: #173a33;
+  --warn: #f07a6e; --warn-soft: #3d1f1c; --med: #f0b24a; --med-soft: #3a2d14;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6;
+  padding: 40px max(16px, env(safe-area-inset-right, 0px)) 80px max(16px, env(safe-area-inset-left, 0px)); }
+main { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 56px; }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.2; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; }
+h2 { font-size: 26px; font-weight: 600; }
+h3 { font-size: 20px; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+.style dl { grid-template-columns: auto minmax(0, 1fr); }
+code { font-family: var(--f-mono); font-size: .86em; background: var(--sky-soft); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--sky); margin: 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lede { font-size: 18px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 72ch; }
+.note { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--sky); border-radius: 10px; padding: 14px 18px; display: grid; gap: 8px; }
+.tag { font-family: var(--f-mono); font-size: 11px; padding: 1px 8px; border-radius: 999px; letter-spacing: .04em; }
+.tag.must { background: var(--goo-soft); color: var(--goo); }
+.tag.nice { background: var(--med-soft); color: var(--med); }
+
+.styles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.style { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; align-content: start; font-size: 14px; }
+.style h3 { font-size: 18px; }
+.style dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; }
+.style dt { color: var(--muted); }
+.style dd { margin: 0; }
+.style .verdict { font-weight: 600; }
+.good { color: var(--goo); } .bad { color: var(--warn); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 16px; }
+.card-head { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 18px; align-items: start; }
+.card-head > div { display: grid; gap: 6px; }
+.hero svg { width: 112px; height: 112px; display: block; }
+.why { color: var(--muted); font-size: 15px; }
+.says { font-size: 15px; }
+.opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+figure { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; background: var(--bg); }
+figure svg { display: block; width: 100%; height: auto; }
+figcaption { font-size: 13px; color: var(--muted); padding: 8px 10px; }
+.pick { position: absolute; top: 8px; left: 8px; font-family: var(--f-display); font-weight: 600; font-size: 13px; background: var(--ink); color: var(--bg); padding: 2px 10px; border-radius: 999px; }
+details { font-size: 14px; }
+details summary { cursor: pointer; color: var(--sky); font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+details p { margin-top: 6px; color: var(--muted); }
+
+.strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.step svg { width: 100%; height: auto; display: block; border-radius: 10px; }
+.step b { font-family: var(--f-display); font-weight: 600; }
+.step span { font-size: 14px; color: var(--muted); }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-display); font-weight: 600; font-size: 13px; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+
+.decided { background: var(--surface); border: 2px dashed var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 12px; }
+.decided .row { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.decided .row:last-child { border-bottom: 0; }
+.decided .blank { color: var(--muted); font-style: italic; }
+
+.bob { animation: bob 2.4s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-3px); } }
+.cyc { opacity: 0; animation: cyc 4s steps(1, end) infinite; }
+.cyc1 { animation-delay: 0s; } .cyc2 { animation-delay: -3s; } .cyc3 { animation-delay: -2s; } .cyc4 { animation-delay: -1s; }
+@keyframes cyc { 0% { opacity: 1; } 25% { opacity: 0; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bob { animation: none; } .cyc { animation: none; opacity: 0; } .cyc3 { opacity: 1; } }
+
+@media (max-width: 760px) {
+  .styles, .opts { grid-template-columns: minmax(0, 1fr); }
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card-head { grid-template-columns: 72px minmax(0, 1fr); gap: 12px; }
+  .hero svg { width: 72px; height: 72px; }
+  .decided .row { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe0f7"/><stop offset="1" stop-color="#e8f3fb"/></linearGradient><symbol id="fig" viewBox="0 0 20 40"><circle cx="10" cy="7" r="6.5" fill="#ffffff"/><rect x="3" y="15" width="14" height="25" rx="7" fill="#ffffff"/></symbol><symbol id="figd" viewBox="0 0 20 40"><circle cx="10" cy="7" r="6.5" fill="#4a5468"/><rect x="3" y="15" width="14" height="25" rx="7" fill="#4a5468"/></symbol><symbol id="p-blobs" viewBox="0 0 100 100">
+<path d="M30,10 L70,10 L96,96 L4,96Z" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linejoin="round" opacity=".55"/>
+<g stroke="#ffffff" stroke-width="4" stroke-linecap="round"><path d="M38,18 L38,32"/><path d="M48,14 L48,30"/><path d="M58,18 L58,32"/></g>
+<circle cx="48" cy="52" r="17" fill="#d71419" stroke="#5a000a" stroke-width="4"/>
+<circle cx="42" cy="46" r="4" fill="#ff8a8a"/>
+<use href="#fig" x="74" y="62" width="15.0" height="30"/>
+<path d="M44,86 Q58,94 70,86" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+<path d="M7,0 L-4.8999999999999995,5.6000000000000005 L-4.8999999999999995,-5.6000000000000005Z" fill="#ffffff" transform="translate(72,84) rotate(-30)"/>
+</symbol><symbol id="p-drips" viewBox="0 0 100 100">
+<rect x="38" y="6" width="24" height="12" rx="3" fill="#8c88a6" stroke="#ffffff" stroke-width="2.5"/>
+<g stroke="#96e646" stroke-width="6" stroke-linecap="round"><path d="M30,22 L30,96"/><path d="M70,22 L70,96"/>
+<path d="M30,38 L70,38"/><path d="M30,56 L70,56"/><path d="M30,74 L70,74"/><path d="M30,92 L70,92"/></g>
+<path d="M50,26 C58,40 60,46 60,51 A10,10 0 0 1 40,51 C40,46 42,40 50,26Z" fill="#d71419" stroke="#5a000a" stroke-width="3.5"/>
+<path d="M88,30 L88,70" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/><path d="M9,0 L-6.3,7.2 L-6.3,-7.2Z" fill="#ffffff" transform="translate(88,74) rotate(90)"/>
+<use href="#fig" x="4" y="58" width="17.0" height="34"/>
+</symbol><symbol id="p-glow" viewBox="0 0 100 100">
+<path d="M30,15 Q50,0 70,15 Q50,30 30,15Z" fill="#ffffff"/><circle cx="50" cy="15" r="6" fill="#2e2646"/>
+<rect x="18" y="32" width="20" height="20" rx="4" fill="#4f7a4a" stroke="#ffffff" stroke-width="2" stroke-opacity=".5"/><rect x="43" y="29" width="26" height="26" rx="6" fill="#ffcd3c" opacity=".35"/><rect x="46" y="32" width="20" height="20" rx="4" fill="#ffcd3c"/><rect x="74" y="32" width="20" height="20" rx="4" fill="#4f7a4a" stroke="#ffffff" stroke-width="2" stroke-opacity=".5"/><rect x="15" y="51" width="26" height="26" rx="6" fill="#ffcd3c" opacity=".35"/><rect x="18" y="54" width="20" height="20" rx="4" fill="#ffcd3c"/><rect x="46" y="54" width="20" height="20" rx="4" fill="#4f7a4a" stroke="#ffffff" stroke-width="2" stroke-opacity=".5"/><rect x="74" y="54" width="20" height="20" rx="4" fill="#4f7a4a" stroke="#ffffff" stroke-width="2" stroke-opacity=".5"/><rect x="18" y="76" width="20" height="20" rx="4" fill="#4f7a4a" stroke="#ffffff" stroke-width="2" stroke-opacity=".5"/><rect x="43" y="73" width="26" height="26" rx="6" fill="#ffcd3c" opacity=".35"/><rect x="46" y="76" width="20" height="20" rx="4" fill="#ffcd3c"/><rect x="74" y="76" width="20" height="20" rx="4" fill="#4f7a4a" stroke="#ffffff" stroke-width="2" stroke-opacity=".5"/>
+<path d="M80,80 l4,-6 l-5,-3 l5,-6" fill="none" stroke="#d71419" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</symbol><symbol id="p-beat" viewBox="0 0 100 100">
+<circle cx="28" cy="14" r="5" fill="#ffffff" opacity=".5"/><circle cx="50" cy="14" r="5" fill="#ffffff" opacity=".5"/><circle cx="72" cy="14" r="8" fill="#ffcd3c"/>
+<ellipse cx="24" cy="84" rx="20" ry="7" fill="#b98cff" stroke="#ffffff" stroke-width="2.5"/>
+<ellipse cx="78" cy="84" rx="20" ry="7" fill="#b98cff" stroke="#ffffff" stroke-width="2.5"/>
+<ellipse cx="78" cy="84" rx="8" ry="3" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="3 3" opacity=".7"/>
+<use href="#fig" x="17" y="50" width="15.0" height="30"/>
+<circle cx="34.0" cy="48.0" r="2.6" fill="#ffffff"/><circle cx="38.0" cy="42.4" r="2.6" fill="#ffffff"/><circle cx="42.0" cy="38.7" r="2.6" fill="#ffffff"/><circle cx="46.0" cy="36.7" r="2.6" fill="#ffffff"/><circle cx="50.0" cy="36.4" r="2.6" fill="#ffffff"/><circle cx="54.0" cy="38.0" r="2.6" fill="#ffffff"/><circle cx="58.0" cy="41.3" r="2.6" fill="#ffffff"/><circle cx="62.0" cy="46.4" r="2.6" fill="#ffffff"/><circle cx="66.0" cy="53.3" r="2.6" fill="#ffffff"/><circle cx="70.0" cy="62.0" r="2.6" fill="#ffffff"/>
+<path d="M7,0 L-4.8999999999999995,5.6000000000000005 L-4.8999999999999995,-5.6000000000000005Z" fill="#ffffff" transform="translate(72,66) rotate(60)"/>
+</symbol><symbol id="p-key" viewBox="0 0 100 100">
+<circle cx="20" cy="50" r="13" fill="none" stroke="#ffcd3c" stroke-width="7"/>
+<path d="M33,50 L56,50" stroke="#ffcd3c" stroke-width="7" stroke-linecap="round"/>
+<path d="M50,50 L50,60 M44,50 L44,58" stroke="#ffcd3c" stroke-width="6" stroke-linecap="round"/>
+<path d="M60,50 L66,50" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/><path d="M6,0 L-4.199999999999999,4.800000000000001 L-4.199999999999999,-4.800000000000001Z" fill="#ffffff" transform="translate(68,50) rotate(0)"/>
+<rect x="72" y="14" width="24" height="76" rx="3" fill="#965adc" opacity=".45" stroke="#ffffff" stroke-width="2.5"/>
+<path d="M78,44 L78,34 A6,6 0 0 1 90,34" fill="none" stroke="#ffcd3c" stroke-width="4" stroke-linecap="round"/>
+<rect x="75" y="44" width="18" height="15" rx="3" fill="#ffcd3c"/>
+</symbol><symbol id="p-clue" viewBox="0 0 100 100">
+<rect x="30" y="4" width="40" height="32" rx="4" fill="none" stroke="#ffffff" stroke-width="3.5"/>
+<polygon points="50,10 61,30 39,30" fill="#b98cff"/>
+<path d="M4,96 L4,62 A11,11 0 0 1 26,62 L26,96" fill="none" stroke="#ffffff" stroke-width="3.5"/><circle cx="15" cy="76" r="7" fill="#6cf2c2"/>
+<path d="M39,96 L39,62 A11,11 0 0 1 61,62 L61,96" fill="none" stroke="#ffffff" stroke-width="3.5"/><rect x="43" y="69" width="14" height="14" rx="2" fill="#ff9632"/>
+<path d="M74,96 L74,62 A11,11 0 0 1 96,62 L96,96" fill="none" stroke="#ffffff" stroke-width="3.5"/><polygon points="85,68 93,83 77,83" fill="#b98cff"/>
+<path d="M72,22 Q86,26 86,46" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/><path d="M7,0 L-4.8999999999999995,5.6000000000000005 L-4.8999999999999995,-5.6000000000000005Z" fill="#ffffff" transform="translate(86,50) rotate(90)"/>
+</symbol><symbol id="p-sticky" viewBox="0 0 100 100">
+<rect x="6" y="14" width="18" height="74" rx="3" fill="#afF028"/>
+<rect x="76" y="6" width="18" height="74" rx="3" fill="#afF028"/>
+<g fill="#afF028"><path d="M10,88 q2,8 4,0Z"/><path d="M18,88 q2,6 4,0Z"/><path d="M80,80 q2,8 4,0Z"/><path d="M88,80 q2,6 4,0Z"/></g>
+<g fill="#5f9114"><circle cx="15" cy="34" r="5"/><rect x="10" y="22" width="2.4" height="8" rx="1.2"/><rect x="13.5" y="21" width="2.4" height="9" rx="1.2"/><rect x="17" y="22" width="2.4" height="8" rx="1.2"/></g>
+<use href="#fig" x="25" y="50" width="15.0" height="30"/>
+<path d="M30,62 L30,74" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 3"/>
+<circle cx="42.0" cy="52.0" r="2.6" fill="#ffffff"/><circle cx="45.8" cy="42.1" r="2.6" fill="#ffffff"/><circle cx="49.5" cy="34.5" r="2.6" fill="#ffffff"/><circle cx="53.2" cy="29.1" r="2.6" fill="#ffffff"/><circle cx="57.0" cy="26.0" r="2.6" fill="#ffffff"/><circle cx="60.8" cy="25.1" r="2.6" fill="#ffffff"/><circle cx="64.5" cy="26.5" r="2.6" fill="#ffffff"/><circle cx="68.2" cy="30.1" r="2.6" fill="#ffffff"/><circle cx="72.0" cy="36.0" r="2.6" fill="#ffffff"/>
+<path d="M7,0 L-4.8999999999999995,5.6000000000000005 L-4.8999999999999995,-5.6000000000000005Z" fill="#ffffff" transform="translate(73,38) rotate(30)"/>
+</symbol><symbol id="p-moon" viewBox="0 0 100 100">
+<path d="M6,94 A44,44 0 0 1 94,94Z" fill="#c8beff" opacity=".35" stroke="#ffffff" stroke-width="3.5"/>
+<path d="M40,18 A10,10 0 1 0 54,30 A8,8 0 1 1 40,18Z" fill="#ffdc50"/>
+<rect x="64" y="50" width="26" height="6" rx="2" fill="#ffffff"/>
+<use href="#fig" x="14" y="62" width="15.0" height="30"/>
+<circle cx="30.0" cy="60.0" r="2.6" fill="#ffffff"/><circle cx="34.6" cy="50.5" r="2.6" fill="#ffffff"/><circle cx="39.2" cy="42.7" r="2.6" fill="#ffffff"/><circle cx="43.8" cy="36.7" r="2.6" fill="#ffffff"/><circle cx="48.4" cy="32.5" r="2.6" fill="#ffffff"/><circle cx="53.0" cy="30.0" r="2.6" fill="#ffffff"/><circle cx="57.6" cy="29.3" r="2.6" fill="#ffffff"/><circle cx="62.2" cy="30.3" r="2.6" fill="#ffffff"/><circle cx="66.8" cy="33.1" r="2.6" fill="#ffffff"/><circle cx="71.4" cy="37.7" r="2.6" fill="#ffffff"/><circle cx="76.0" cy="44.0" r="2.6" fill="#ffffff"/>
+<path d="M18,40 L18,52" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/><path d="M7,0 L-4.8999999999999995,5.6000000000000005 L-4.8999999999999995,-5.6000000000000005Z" fill="#ffffff" transform="translate(18,36) rotate(-90)"/>
+</symbol><symbol id="p-speed" viewBox="0 0 100 100">
+<rect x="4" y="12" width="92" height="30" rx="5" fill="#ffd732"/>
+<path d="M10,19 L18,27 L10,35" fill="none" stroke="#2e2646" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M26,19 L34,27 L26,35" fill="none" stroke="#2e2646" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M42,19 L50,27 L42,35" fill="none" stroke="#2e2646" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M72,14 L62,29 L70,29 L64,41 L80,24 L72,24 L78,14Z" fill="#2e2646"/>
+<rect x="4" y="58" width="92" height="30" rx="5" fill="#6e78c8"/>
+<path d="M18,65 L10,73 L18,81" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M34,65 L26,73 L34,81" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M50,65 L42,73 L50,81" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="74" cy="70" r="8" fill="none" stroke="#ffffff" stroke-width="3"/><path d="M74,70 m-3,0 a3,3 0 1 1 3,3" fill="none" stroke="#ffffff" stroke-width="2"/>
+<path d="M62,80 L90,80 Q92,76 88,74 L86,66" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+</symbol><symbol id="p-belts" viewBox="0 0 100 100">
+<rect x="4" y="30" width="44" height="58" rx="4" fill="#ff9632"/>
+<path d="M12,78 L34,78" stroke="#2e2646" stroke-width="6" stroke-linecap="round"/><path d="M9,0 L-6.3,7.2 L-6.3,-7.2Z" fill="#2e2646" transform="translate(38,78) rotate(0)"/>
+<g stroke="#2e2646" stroke-width="3" stroke-linecap="round"><path d="M8,46 L16,46"/><path d="M8,54 L16,54"/></g>
+<use href="#fig" x="20" y="32" width="15.0" height="30"/>
+<rect x="54" y="30" width="42" height="58" rx="4" fill="#ff7ec2"/>
+<path d="M62,50 L86,50" stroke="#2e2646" stroke-width="5" stroke-linecap="round"/><path d="M7,0 L-4.8999999999999995,5.6000000000000005 L-4.8999999999999995,-5.6000000000000005Z" fill="#2e2646" transform="translate(89,50) rotate(0)"/>
+<path d="M88,70 L64,70" stroke="#2e2646" stroke-width="5" stroke-linecap="round"/><path d="M7,0 L-4.8999999999999995,5.6000000000000005 L-4.8999999999999995,-5.6000000000000005Z" fill="#2e2646" transform="translate(61,70) rotate(180)"/>
+</symbol><symbol id="p-dark" viewBox="0 0 100 100">
+<rect x="2" y="2" width="96" height="96" rx="8" fill="#0d0a1a"/>
+<path d="M14,10 A9,9 0 1 0 26,22 A7,7 0 1 1 14,10Z" fill="#ffffff" opacity=".8"/>
+<circle cx="22" cy="66" r="20" fill="#ffe2aa" opacity=".22"/>
+<use href="#fig" x="16" y="52" width="14.0" height="28"/>
+<rect x="8" y="80" width="28" height="5" rx="2" fill="#ffffff" opacity=".5"/>
+<circle cx="76" cy="58" r="17" fill="#50d778" opacity=".25"/>
+<path d="M66,66 Q66,50 76,50 Q86,50 86,66Z" fill="#50d778"/>
+<rect x="62" y="66" width="28" height="5" rx="2" fill="#50d778"/>
+<circle cx="34.0" cy="52.0" r="2.6" fill="#ffffff"/><circle cx="38.0" cy="41.9" r="2.6" fill="#ffffff"/><circle cx="42.0" cy="35.1" r="2.6" fill="#ffffff"/><circle cx="46.0" cy="31.6" r="2.6" fill="#ffffff"/><circle cx="50.0" cy="31.3" r="2.6" fill="#ffffff"/><circle cx="54.0" cy="34.2" r="2.6" fill="#ffffff"/><circle cx="58.0" cy="40.5" r="2.6" fill="#ffffff"/><circle cx="62.0" cy="50.0" r="2.6" fill="#ffffff"/>
+<path d="M7,0 L-4.8999999999999995,5.6000000000000005 L-4.8999999999999995,-5.6000000000000005Z" fill="#ffffff" transform="translate(64,52) rotate(45)"/>
+</symbol><symbol id="p-vine" viewBox="0 0 100 100">
+<rect x="26" y="6" width="48" height="7" rx="3" fill="#ffffff"/>
+<path d="M50,12 L32,54" stroke="#96e646" stroke-width="5" stroke-linecap="round"/>
+<circle cx="31" cy="57" r="7" fill="#96e646" stroke="#ffffff" stroke-width="2"/>
+<use href="#fig" x="24" y="62" width="14.0" height="28"/>
+<path d="M14,58 A44,44 0 0 0 86,58" fill="none" stroke="#ffffff" stroke-width="3" stroke-dasharray="4 5" opacity=".6"/>
+<path d="M80,50 L88,36" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/><path d="M7,0 L-4.8999999999999995,5.6000000000000005 L-4.8999999999999995,-5.6000000000000005Z" fill="#ffffff" transform="translate(90,32) rotate(-60)"/>
+<circle cx="80" cy="84" r="10" fill="none" stroke="#ffffff" stroke-width="3.5"/><path d="M75.5,86.0 L80,80.0 L84.5,86.0" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</symbol><symbol id="p-geyser" viewBox="0 0 100 100">
+<path d="M50,6 L50,94" stroke="#ffffff" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/>
+<ellipse cx="24" cy="86" rx="18" ry="6" fill="#a8623a"/>
+<use href="#fig" x="17" y="54" width="15.0" height="30"/>
+<path d="M16,10 L32,10 L24,22 L32,34 L16,34 L24,22Z" fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+<ellipse cx="76" cy="86" rx="22" ry="8" fill="none" stroke="#ffcd3c" stroke-width="3"/>
+<ellipse cx="76" cy="86" rx="17" ry="6" fill="#ff9632"/>
+<g stroke="#ffcd3c" stroke-width="3" stroke-linecap="round"><path d="M56,80 L52,76"/><path d="M96,80 L100,76"/></g>
+<path d="M76,74 L76,44" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/><path d="M9,0 L-6.3,7.2 L-6.3,-7.2Z" fill="#ffffff" transform="translate(76,40) rotate(-90)"/>
+<use href="#fig" x="69" y="6" width="14.0" height="28"/>
+</symbol><symbol id="p-updraft" viewBox="0 0 100 100">
+<rect x="4" y="66" width="30" height="8" rx="2" fill="#ffffff"/>
+<rect x="50" y="8" width="38" height="80" rx="4" fill="#cde6fa" opacity=".35" stroke="#ffffff" stroke-width="2.5"/>
+<rect x="48" y="86" width="42" height="9" rx="2" fill="#8c88a6"/>
+<g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".85"><path d="M58,74 q6,-6 0,-12"/><path d="M80,64 q-6,-6 0,-12"/><path d="M60,40 q6,-6 0,-12"/></g>
+<use href="#fig" x="62" y="20" width="14.0" height="28"/>
+<path d="M84,44 L84,30" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/><path d="M7,0 L-4.8999999999999995,5.6000000000000005 L-4.8999999999999995,-5.6000000000000005Z" fill="#ffffff" transform="translate(84,26) rotate(-90)"/>
+<use href="#fig" x="14" y="38" width="14.0" height="28"/>
+<circle cx="28.0" cy="40.0" r="2.4" fill="#ffffff"/><circle cx="32.3" cy="34.0" r="2.4" fill="#ffffff"/><circle cx="36.7" cy="30.7" r="2.4" fill="#ffffff"/><circle cx="41.0" cy="30.0" r="2.4" fill="#ffffff"/><circle cx="45.3" cy="32.0" r="2.4" fill="#ffffff"/><circle cx="49.7" cy="36.7" r="2.4" fill="#ffffff"/><circle cx="54.0" cy="44.0" r="2.4" fill="#ffffff"/>
+</symbol><symbol id="p-cannon" viewBox="0 0 100 100">
+<path d="M6,78 Q22,62 38,78" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity=".8"/>
+<path d="M6,0 L-4.199999999999999,4.800000000000001 L-4.199999999999999,-4.800000000000001Z" fill="#ffffff" transform="translate(6,78) rotate(135)"/><path d="M6,0 L-4.199999999999999,4.800000000000001 L-4.199999999999999,-4.800000000000001Z" fill="#ffffff" transform="translate(38,78) rotate(45)"/>
+<g transform="translate(22,54) rotate(-30) scale(1.0)"><rect x="-16" y="-9" width="34" height="18" rx="8" fill="#46425f" stroke="#ffffff" stroke-width="2.5"/><rect x="10" y="-11" width="8" height="22" rx="3" fill="#ff9632"/></g><circle cx="20" cy="66.0" r="7.0" fill="#8c88a6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="36.0" cy="52.0" r="2.8" fill="#6cf2c2"/><circle cx="40.6" cy="40.1" r="2.8" fill="#6cf2c2"/><circle cx="45.2" cy="31.3" r="2.8" fill="#6cf2c2"/><circle cx="49.8" cy="25.5" r="2.8" fill="#6cf2c2"/><circle cx="54.4" cy="22.7" r="2.8" fill="#6cf2c2"/><circle cx="59.0" cy="23.0" r="2.8" fill="#6cf2c2"/><circle cx="63.6" cy="26.3" r="2.8" fill="#6cf2c2"/><circle cx="68.2" cy="32.7" r="2.8" fill="#6cf2c2"/><circle cx="72.8" cy="42.1" r="2.8" fill="#6cf2c2"/><circle cx="77.4" cy="54.5" r="2.8" fill="#6cf2c2"/><circle cx="82.0" cy="70.0" r="2.8" fill="#6cf2c2"/>
+<rect x="68" y="78" width="28" height="7" rx="2" fill="#ffffff" opacity=".7"/>
+<polygon points="82.0,61.0 84.4,66.7 90.6,67.2 85.9,71.3 87.3,77.3 82.0,74.0 76.7,77.3 78.1,71.3 73.4,67.2 79.6,66.7" fill="#ffdc50"/>
+<circle cx="82" cy="22" r="11" fill="none" stroke="#ffffff" stroke-width="3.5"/><path d="M77.05,24.2 L82,17.6 L86.95,24.2" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</symbol><symbol id="p-c1" viewBox="0 0 100 100">
+<g transform="translate(62,58) rotate(-25) scale(1.2)"><rect x="-16" y="-9" width="34" height="18" rx="8" fill="#46425f" stroke="#ffffff" stroke-width="2.5"/><rect x="10" y="-11" width="8" height="22" rx="3" fill="#ff9632"/></g><circle cx="60" cy="72.4" r="8.4" fill="#8c88a6" stroke="#ffffff" stroke-width="2"/>
+<use href="#fig" x="8" y="48" width="17.0" height="34"/>
+<path d="M30,66 L42,66" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/><path d="M8,0 L-5.6,6.4 L-5.6,-6.4Z" fill="#ffffff" transform="translate(46,66) rotate(0)"/>
+<rect x="4" y="84" width="92" height="6" rx="2" fill="#ffffff" opacity=".5"/>
+</symbol><symbol id="p-c2" viewBox="0 0 100 100">
+<path d="M18,70 Q50,40 82,70" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+<path d="M8,0 L-5.6,6.4 L-5.6,-6.4Z" fill="#ffffff" transform="translate(18,70) rotate(135)"/><path d="M8,0 L-5.6,6.4 L-5.6,-6.4Z" fill="#ffffff" transform="translate(82,70) rotate(45)"/>
+<g transform="translate(50,74)"><rect x="-12" y="-16" width="24" height="32" rx="10" fill="#46425f" stroke="#ffffff" stroke-width="2.5"/><rect x="-14" y="-18" width="28" height="7" rx="3" fill="#ff9632"/></g>
+<circle cx="50.0" cy="50.0" r="2.6" fill="#d71419"/><circle cx="44.7" cy="39.1" r="2.6" fill="#d71419"/><circle cx="39.3" cy="30.4" r="2.6" fill="#d71419"/><circle cx="34.0" cy="24.0" r="2.6" fill="#d71419"/><circle cx="28.7" cy="19.8" r="2.6" fill="#d71419"/><circle cx="23.3" cy="17.8" r="2.6" fill="#d71419"/><circle cx="18.0" cy="18.0" r="2.6" fill="#d71419"/>
+<circle cx="50.0" cy="50.0" r="2.6" fill="#d71419"/><circle cx="55.7" cy="38.7" r="2.6" fill="#d71419"/><circle cx="61.3" cy="30.0" r="2.6" fill="#d71419"/><circle cx="67.0" cy="24.0" r="2.6" fill="#d71419"/><circle cx="72.7" cy="20.7" r="2.6" fill="#d71419"/><circle cx="78.3" cy="20.0" r="2.6" fill="#d71419"/><circle cx="84.0" cy="22.0" r="2.6" fill="#d71419"/>
+</symbol><symbol id="p-c3" viewBox="0 0 100 100">
+<g transform="translate(22,60) rotate(-30) scale(1.0)"><rect x="-16" y="-9" width="34" height="18" rx="8" fill="#46425f" stroke="#ffffff" stroke-width="2.5"/><rect x="10" y="-11" width="8" height="22" rx="3" fill="#ff9632"/></g><circle cx="20" cy="72.0" r="7.0" fill="#8c88a6" stroke="#ffffff" stroke-width="2"/>
+<circle cx="36.0" cy="50.0" r="2.8" fill="#6cf2c2"/><circle cx="40.8" cy="37.9" r="2.8" fill="#6cf2c2"/><circle cx="45.6" cy="28.9" r="2.8" fill="#6cf2c2"/><circle cx="50.4" cy="22.9" r="2.8" fill="#6cf2c2"/><circle cx="55.2" cy="19.9" r="2.8" fill="#6cf2c2"/><circle cx="60.0" cy="20.0" r="2.8" fill="#6cf2c2"/><circle cx="64.8" cy="23.1" r="2.8" fill="#6cf2c2"/><circle cx="69.6" cy="29.3" r="2.8" fill="#6cf2c2"/><circle cx="74.4" cy="38.5" r="2.8" fill="#6cf2c2"/><circle cx="79.2" cy="50.7" r="2.8" fill="#6cf2c2"/><circle cx="84.0" cy="66.0" r="2.8" fill="#6cf2c2"/>
+<polygon points="84.0,57.0 86.4,62.7 92.6,63.2 87.9,67.3 89.3,73.3 84.0,70.0 78.7,73.3 80.1,67.3 75.4,63.2 81.6,62.7" fill="#ffdc50"/>
+<rect x="70" y="76" width="28" height="6" rx="2" fill="#ffffff" opacity=".7"/>
+<circle cx="50" cy="84" r="12" fill="none" stroke="#ffffff" stroke-width="3.5"/><path d="M44.6,86.4 L50,79.2 L55.4,86.4" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<g stroke="#ffcd3c" stroke-width="3" stroke-linecap="round"><path d="M34,84 L28,84"/><path d="M36,74 L31,70"/><path d="M64,74 L69,70"/><path d="M66,84 L72,84"/></g>
+</symbol><symbol id="p-c4" viewBox="0 0 100 100">
+<circle cx="4.0" cy="40.0" r="2.6" fill="#6cf2c2"/><circle cx="9.2" cy="28.9" r="2.6" fill="#6cf2c2"/><circle cx="14.5" cy="21.5" r="2.6" fill="#6cf2c2"/><circle cx="19.8" cy="17.9" r="2.6" fill="#6cf2c2"/><circle cx="25.0" cy="18.0" r="2.6" fill="#6cf2c2"/><circle cx="30.2" cy="21.9" r="2.6" fill="#6cf2c2"/><circle cx="35.5" cy="29.5" r="2.6" fill="#6cf2c2"/><circle cx="40.8" cy="40.9" r="2.6" fill="#6cf2c2"/><circle cx="46.0" cy="56.0" r="2.6" fill="#6cf2c2"/>
+<rect x="30" y="74" width="56" height="10" rx="3" fill="#ffffff" opacity=".8"/>
+<polygon points="58.0,54.0 61.2,61.6 69.4,62.3 63.1,67.7 65.1,75.7 58.0,71.4 50.9,75.7 52.9,67.7 46.6,62.3 54.8,61.6" fill="#ffdc50"/>
+<use href="#fig" x="50" y="36" width="15.0" height="30"/>
+<g stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity=".8"><path d="M38,70 L32,66"/><path d="M80,70 L86,66"/></g>
+</symbol></defs></svg>
+<main>
+<section>
+  <p class="eyebrow">Steal a Slime · Obby · proposal · 2026-11-01</p>
+  <h1>Picture signs for the obby</h1>
+  <p class="lede">Signs that explain the unclear sections with pictures only: no words, at most an arrow or a number. 15 mechanics get a sign, 10 are skipped because they explain themselves. Every sign is shown in three styles; pick a style (A, B or C) and which signs you want.</p>
+  <div class="note">
+    <p><b>What you pick:</b> 1) one style for all signs, 2) which mechanics get a sign (the "Needed" ones, or also the "Nice to have"), 3) whether the old text signs (FAST, LOW GRAVITY, ...) become pictures too.</p>
+    <p><b>Nothing needs an upload.</b> Every pictogram is built in code from Frames, UICorner (circles, pills), UIStroke (outlines, rings), rotated Frames (arrows, chevrons, cracks) and a few TextLabel glyphs (▲ ★ ⚡ ⌛). Curves are chains of round dots, like the cannon's aim line already is.</p>
+  </div>
+</section>
+
+<section id="styles">
+  <h2>The three styles</h2>
+  <p>Read distance on a phone (landscape, 390 px tall): one stud at 26 studs covers about 10.7 px (<code>guides/roblox-world-labels.md</code>). A shape is spotted at 6 px and read at 14 px, so every main shape in a pictogram is at least 1.3 studs on the sign and outlines are at least 0.5 stud.</p>
+  <div class="styles">
+    <div class="style">
+      <h3>A · Board on a post</h3>
+      <p>A 6 × 6 stud dark board (the existing sign colour, white rim) on a post at the section entry, bottom 4.5 studs up (over your head), facing the runner. Same place as today's <code>sign:</code> boards.</p>
+      <dl>
+        <dt>Built as</dt><dd><code>SurfaceGui</code> Front, 50 ppS (300 px canvas), a new <code>pic:&lt;id&gt;</code> marker next to <code>sign:</code></dd>
+        <dt>At 26 studs</dt><dd class="good">board ≈ 64 px, main shapes ≥ 14 px: reads</dd>
+        <dt>MaxDistance</dt><dd>60 (same as the text sign)</dd>
+        <dt>Parts</dt><dd>2 (board + post) of the 80-part budget</dd>
+        <dt>Upload</dt><dd>none</dd>
+      </dl>
+    </div>
+    <div class="style">
+      <h3>B · Painted on the floor</h3>
+      <p>An 8 × 8 stud picture on the entry pad's top face, like the "back to base" floor label. Nothing stands in the way.</p>
+      <dl>
+        <dt>Built as</dt><dd><code>SurfaceGui</code> Top on the entry pad, 50 ppS</dd>
+        <dt>At 26 studs</dt><dd class="bad">seen flat: ≈ 86 × 26 px, too squashed to read; reads from about 12 studs or when you stand on it</dd>
+        <dt>MaxDistance</dt><dd>40</dd>
+        <dt>Parts</dt><dd>0 (it's painted on a part that's already there)</dd>
+        <dt>Upload</dt><dd>none</dd>
+      </dl>
+    </div>
+    <div class="style">
+      <h3>C · Floating icon</h3>
+      <p>A round bubble that hangs over the spot itself (the ladder top, the launcher, the barrel), always facing the camera, bobbing gently.</p>
+      <dl>
+        <dt>Built as</dt><dd><code>BillboardGui</code>, hybrid size <code>UDim2.new(4, 20, 4, 20)</code> (4 studs + 20 px, the px part scaled by LabelFit), <code>StudsOffset</code> above the host part, AlwaysOnTop off</dd>
+        <dt>At 26 studs</dt><dd class="good">≈ 55 px and never squashed: reads</dd>
+        <dt>MaxDistance</dt><dd>70</dd>
+        <dt>Parts</dt><dd>0 (Adornee = the hazard or barrel part)</dd>
+        <dt>Upload</dt><dd>none: the same Frames work inside a BillboardGui. An image upload would only buy smoother curves; not needed.</dd>
+      </dl>
+    </div>
+  </div>
+  <p>Each style is a new world label, so the build PR adds its row to the label registry in <code>guides/roblox-world-labels.md</code>.</p>
+  <div class="note"><p><b>Recommendation: A, the board on a post.</b> It reads from 26 studs on a phone, faces the runner before the section starts, sits where the text boards already stand (so it's one swap in ObbyParts), and is one look everywhere. B is too flat to read until you're on the pad. C reads well, but a bubble over every hazard is more on screen while you play; it's worth it for the cannon only (the four-step bubble over the barrel), as an extra on top of A.</p></div>
+</section>
+
+<section id="cannon">
+  <h2>How to use the cannon</h2>
+  <p>From <code>AimTheCannon.luau</code> and the cannon controller in <code>ObbyMoves.luau</code>: you walk into the barrel (from behind, within 1.5 studs of it) and snap in; the camera moves behind the barrel. You don't aim: the barrel sweeps left and right by itself, and a dotted line shows where the shot lands right now: <b>mint</b> on a target, <b>red</b> when it would miss or hit goo. Jump fires (a press in the first 0.2 s doesn't count). You fly the arc and land on the island with the gold star. After a shot the same cannon won't take you for 1 s.</p>
+  <div class="strip">
+    <div class="step"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#2e2646"/><use href="#p-c1" x="4" y="4" width="92" height="92"/></svg><b>1 · Walk in</b><span>Walk into the barrel from behind.</span></div>
+    <div class="step"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#2e2646"/><use href="#p-c2" x="4" y="4" width="92" height="92"/></svg><b>2 · It swings</b><span>The barrel swings by itself. Red dots: not yet.</span></div>
+    <div class="step"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#2e2646"/><use href="#p-c3" x="4" y="4" width="92" height="92"/></svg><b>3 · Jump to fire</b><span>Dots are mint and end on the star: press jump.</span></div>
+    <div class="step"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#2e2646"/><use href="#p-c4" x="4" y="4" width="92" height="92"/></svg><b>4 · Land</b><span>You fly the arc and land on the star.</span></div>
+  </div>
+  <p>The step numbers are the only marks on the sign. In style A it's one wide board (12 × 3.5 studs, each panel 3 studs: readable from about 15 studs, which is the length of the cannon pad). In B it's four tiles on the floor leading up to the barrel. In C the bubble over the barrel steps through the four panels, one second each, and hides while you're seated so it never covers the aim dots.</p>
+</section>
+
+<section id="signs">
+  <h2>The signs</h2>
+  <p>One card per mechanic. The square on the left is the pictogram itself; the three pictures show it in each style. "How it's built" lists the GuiObjects for each one.</p>
+  
+<article class="card" id="m-cannon">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-cannon" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 26 <span class="tag must">Needed</span></p>
+      <h3>Aim the Cannon</h3>
+      <p class="why">Nothing tells you to walk into the barrel from behind, that the barrel swings by itself (you don't steer it), or that Jump fires. The dots go mint when the shot lands on a star and red when it misses: that's the only aim hint, and it only shows once you're seated.</p>
+      <p class="says"><b>The picture says:</b> Walk into the barrel → it swings by itself → jump when the dots are mint → land on the star.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Wide board with four steps"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="40" y="70" width="5" height="60" fill="#46425f"/><rect x="175" y="70" width="5" height="60" fill="#46425f"/><rect x="16" y="16" width="190" height="56" rx="7" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-c1" x="22" y="22" width="42" height="42"/><text x="25" y="30" font-size="9" font-weight="700" fill="#ffffff" font-family="Fredoka, sans-serif">1</text><use href="#p-c2" x="68" y="22" width="42" height="42"/><text x="71" y="30" font-size="9" font-weight="700" fill="#ffffff" font-family="Fredoka, sans-serif">2</text><use href="#p-c3" x="114" y="22" width="42" height="42"/><text x="117" y="30" font-size="9" font-weight="700" fill="#ffffff" font-family="Fredoka, sans-serif">3</text><use href="#p-c4" x="160" y="22" width="42" height="42"/><text x="163" y="30" font-size="9" font-weight="700" fill="#ffffff" font-family="Fredoka, sans-serif">4</text><use href="#figd" x="196" y="92" width="18.0" height="36"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Four floor tiles leading to the cannon"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,128) scale(1.25,0.42) translate(-25,-25)"><rect width="50" height="50" rx="5" fill="#2e2646"/><use href="#p-c1" x="3" y="3" width="44" height="44"/></g><g transform="translate(110,108) scale(1.07,0.37) translate(-25,-25)"><rect width="50" height="50" rx="5" fill="#2e2646"/><use href="#p-c2" x="3" y="3" width="44" height="44"/></g><g transform="translate(110,88) scale(0.89,0.32) translate(-25,-25)"><rect width="50" height="50" rx="5" fill="#2e2646"/><use href="#p-c3" x="3" y="3" width="44" height="44"/></g><g transform="translate(110,68) scale(0.71,0.27) translate(-25,-25)"><rect width="50" height="50" rx="5" fill="#2e2646"/><use href="#p-c4" x="3" y="3" width="44" height="44"/></g><g transform="translate(110,46) scale(.8)"><g transform="translate(0,0) rotate(0) scale(1.0)"><rect x="-16" y="-9" width="34" height="18" rx="8" fill="#46425f" stroke="#ffffff" stroke-width="2.5"/><rect x="10" y="-11" width="8" height="22" rx="3" fill="#ff9632"/></g><circle cx="-2" cy="12.0" r="7.0" fill="#8c88a6" stroke="#ffffff" stroke-width="2"/></g></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><g transform="translate(112,120) scale(.7)"><g transform="translate(0,0) rotate(0) scale(1.0)"><rect x="-16" y="-9" width="34" height="18" rx="8" fill="#46425f" stroke="#ffffff" stroke-width="2.5"/><rect x="10" y="-11" width="8" height="22" rx="3" fill="#ff9632"/></g><circle cx="-2" cy="12.0" r="7.0" fill="#8c88a6" stroke="#ffffff" stroke-width="2"/></g><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use class="cyc cyc1" href="#p-c1" x="80" y="16" width="60" height="60"/><use class="cyc cyc2" href="#p-c2" x="80" y="16" width="60" height="60"/><use class="cyc cyc3" href="#p-c3" x="80" y="16" width="60" height="60"/><use class="cyc cyc4" href="#p-c4" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>A: a wide board (12 × 3.5 studs) with the four steps of the strip below, one Frame cell each. Barrel = rounded Frame + orange band Frame, rotated 25-30°. Dots = 10 round Frames (UICorner 1,0) placed on the arc in code. Jump button = round Frame with UIStroke + a rotated-bar chevron (2 Frames). Star = a TextLabel ★ glyph in gold, or the same two rotated squares as the existing <code>star</code> marker. About 22 GuiObjects per panel.</p><p>C: the bubble floats over the barrel and steps through the 4 panels, one second each (4 Frames, Visible toggled by ObbyFx's clock). Hide it while you're seated, so it never covers the aim dots.</p></details>
+</article>
+<article class="card" id="m-blobs">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-blobs" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 14 <span class="tag must">Needed</span></p>
+      <h3>Rolling Blobs</h3>
+      <p class="why">Red balls drop out of a dark launcher and roll down at you. New players walk straight into the first one: there's no hint to step to the side or wait for a gap.</p>
+      <p class="says"><b>The picture says:</b> Red balls roll down at you → step aside.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-blobs" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-blobs" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><path d="M70,132 L150,132 L134,110 L86,110Z" fill="#b9c8d8"/><circle cx="110" cy="116" r="7" fill="#d71419" opacity=".85"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-blobs" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Road = 2 rotated thin Frames + the top bar. Ball = round Frame (UICorner 1,0), red, UIStroke dark red 4 px + a small light round Frame for shine. Motion lines = 3 thin Frames. Figure = head circle + capsule body (2 Frames). Curved arrow = 5 small dots + a rotated triangle (TextLabel ▲ or 2 rotated bars). About 16 GuiObjects.</p><p>C: over the launcher's mouth at the top of the slope.</p></details>
+</article>
+<article class="card" id="m-drips">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-drips" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 8 <span class="tag must">Needed</span></p>
+      <h3>Climb (red drips)</h3>
+      <p class="why">Red drops swell under a nozzle and fall down the ladder. It looks like decoration until one sends you back. You also can't tell that only the green lattice can be climbed.</p>
+      <p class="says"><b>The picture says:</b> Red drops fall down the ladder → wait for the drop to pass, then climb.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-drips" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-drips" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><g stroke="#96e646" stroke-width="3"><path d="M102,108 L102,132"/><path d="M118,108 L118,132"/><path d="M102,116 L118,116"/><path d="M102,124 L118,124"/></g><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-drips" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Nozzle = grey Frame with UIStroke. Ladder = 2 rails + 4 rungs (6 green Frames). Drop = round Frame + a rotated square on top (makes the teardrop point), red with a dark UIStroke. Down arrow = bar Frame + triangle. Figure = 2 Frames. About 14 GuiObjects.</p><p>C: at the top of each ladder, beside the nozzle (not in front of it).</p></details>
+</article>
+<article class="card" id="m-glow">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-glow" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 10 <span class="tag must">Needed</span></p>
+      <h3>Glow Memory</h3>
+      <p class="why">The safe path only glows for a moment, then every tile looks the same. Players who look away miss the glow and don't know that the plain tiles crack. The current text sign "Remember the glow" uses words.</p>
+      <p class="says"><b>The picture says:</b> Watch (eye) → the glowing tiles are the path → the other tiles crack.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-glow" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-glow" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><g fill="#7fa37a"><rect x="88" y="118" width="12" height="8"/><rect x="104" y="118" width="12" height="8" fill="#ffcd3c"/><rect x="120" y="118" width="12" height="8"/></g><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-glow" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Eye = 1 Frame (rotated 45° square with UICorner gives an almond) + round pupil Frame. Grid = 9 rounded Frames; the 3 path tiles are gold with a bigger see-through gold Frame behind for glow. Crack = 3 short rotated red bars. About 17 GuiObjects. Can even blink the gold tiles in step with the real glow (same clock).</p><p>C: over the back of the entry pad, facing the grid.</p></details>
+</article>
+<article class="card" id="m-beat">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-beat" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 18 <span class="tag must">Needed</span></p>
+      <h3>Beat Pads</h3>
+      <p class="why">Pads shrink and grow on the beat, and you have to jump when the next pad is at full size. Without a hint it feels random: players jump too early and blame the jump.</p>
+      <p class="says"><b>The picture says:</b> Count the beat (three dots, the last is gold) → jump on the gold beat from full pad to full pad.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-beat" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-beat" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><ellipse cx="96" cy="124" rx="12" ry="4" fill="#b98cff"/><ellipse cx="126" cy="124" rx="12" ry="4" fill="#b98cff"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-beat" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Beat dots = 3 round Frames; the gold one can pulse with Kit.BPM (same clock as the pads). Pads = 2 flat round Frames (UICorner 1,0 on a 40 × 14 Frame) + a dashed small ring (UIStroke on a see-through Frame: dashes aren't possible, so a thin solid ring). Arc = 9 dots + triangle. Figure = 2 Frames. About 18 GuiObjects.</p><p>C: over the first moving pad, pulsing with the beat.</p></details>
+</article>
+<article class="card" id="m-key">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-key" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 20 <span class="tag must">Needed</span></p>
+      <h3>Key Run</h3>
+      <p class="why">The gate looks like a wall. Players don't link the floating gold keys off the path to the lock icons on the gate, so they try to get past the gate or turn back.</p>
+      <p class="says"><b>The picture says:</b> Grab the gold keys → the gate opens.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-key" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-key" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="104" y="106" width="12" height="26" fill="#965adc" opacity=".6"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-key" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Key = ring Frame (UIStroke gold, see-through fill) + shaft Frame + 2 teeth Frames. Arrow = bar + triangle. Gate = see-through violet Frame with UIStroke. Open lock = gold body Frame + an open shackle (a ring Frame cropped by a ClipsDescendants Frame, or two bars). About 11 GuiObjects. Could show the real lock count (1-3 small locks) from the gate's <code>need</code>.</p><p>C: over the gate itself (it already has lock icons, so the bubble only shows key → open lock).</p></details>
+</article>
+<article class="card" id="m-clue">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-clue" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 29 <span class="tag must">Needed</span></p>
+      <h3>Clue Doors</h3>
+      <p class="why">Three curtains with symbols and a board with a symbol above them: nothing says that the board is the clue and you walk through the matching door. A wrong door is a trapdoor, so a guess feels unfair.</p>
+      <p class="says"><b>The picture says:</b> The board's symbol → walk through the door with the same symbol.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-clue" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-clue" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="88" y="106" width="44" height="26" fill="#b9c8d8"/><g fill="#5a6478"><rect x="92" y="114" width="9" height="18"/><rect x="106" y="114" width="9" height="18"/><rect x="120" y="114" width="9" height="18"/></g><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-clue" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Board = see-through Frame with UIStroke. Symbols: circle = round Frame, square = Frame, triangle = TextLabel ▲ glyph (or the slime emoji silhouette for the slime clue). Doors = 3 Frames with only top corners rounded (a UICorner Frame plus a covering Frame for the bottom). Curved arrow = dots + triangle. About 15 GuiObjects. The symbols are generic: the sign explains the rule, not this room's answer.</p><p>C: over the clue board, pointing down at it.</p></details>
+</article>
+<article class="card" id="m-sticky">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-sticky" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 22 <span class="tag must">Needed</span></p>
+      <h3>Sticky Walls</h3>
+      <p class="why">The gap is too wide to jump, and nothing says that the dripping green walls catch you in the air and that Jump throws you off them.</p>
+      <p class="says"><b>The picture says:</b> Jump at the green wall → you stick → jump again to throw yourself to the next wall.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-sticky" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-sticky" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="96" y="104" width="8" height="28" fill="#afF028"/><rect x="118" y="100" width="8" height="28" fill="#afF028"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-sticky" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Walls = 2 lime Frames + 4 small drip Frames (rotated squares). Handprint = palm circle + 3 finger bars (4 Frames, the same handprint as the in-world marker). Figure = 2 Frames. Slide-down = 2 short dashed bars. Arc = 8 dots + triangle. About 20 GuiObjects.</p><p>C: over the first sticky wall.</p></details>
+</article>
+<article class="card" id="m-moon">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-moon" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 28 <span class="tag must">Needed</span></p>
+      <h3>Moon Jump</h3>
+      <p class="why">The bubble dome is see-through and looks like decoration. Players don't try the far jumps because they don't know their jump floats higher inside it. The current sign says "LOW GRAVITY" in words.</p>
+      <p class="says"><b>The picture says:</b> Inside the bubble (moon) your jump goes high and far.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-moon" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-moon" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><path d="M86,132 A24,24 0 0 1 134,132Z" fill="#c8beff" opacity=".5"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-moon" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Dome = a big round Frame cropped to its top half by a ClipsDescendants Frame, see-through lilac with UIStroke. Moon = gold round Frame with a board-coloured round Frame over its side (crescent). Up arrow = bar + triangle. High platform = bar. Arc = 10 dots. Figure = 2 Frames. About 18 GuiObjects.</p><p>C: inside the first bubble, up high.</p></details>
+</article>
+<article class="card" id="m-speed">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-speed" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 16 <span class="tag must">Needed</span></p>
+      <h3>Speed Strip (back strips)</h3>
+      <p class="why">Yellow strips speed you up; the dusky blue back strips slow you. Most players never notice the second kind and miss the gap without knowing why.</p>
+      <p class="says"><b>The picture says:</b> Yellow = fast (lightning). Blue = slow (snail).</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-speed" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-speed" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="84" y="122" width="52" height="8" fill="#ffd732"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-speed" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Strips = 2 rounded Frames. Chevrons = 6 pairs of rotated bars (12 Frames), the same chevrons the strips already wear. Lightning = TextLabel ⚡ glyph (emoji) or 3 rotated bars. Snail = a round Frame with UIStroke (shell) + a flat body Frame + 1 bar for the feeler. About 20 GuiObjects.</p><p>C: over the first back strip only (the yellow ones are clear on their own).</p></details>
+</article>
+<article class="card" id="m-belts">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-belts" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 23 <span class="tag must">Needed</span></p>
+      <h3>Arrow Maze (belts)</h3>
+      <p class="why">Belt cells carry you the way their arrow points, and pink cells flip their direction. Without a hint players think the floor is broken, or walk against a belt.</p>
+      <p class="says"><b>The picture says:</b> The floor carries you the arrow's way → pink tiles switch direction.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-belts" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-belts" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="88" y="120" width="20" height="10" fill="#ff9632"/><rect x="112" y="120" width="20" height="10" fill="#ff7ec2"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-belts" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Tiles = 2 rounded Frames (orange, pink). Arrows = bar Frames + triangle heads (TextLabel ▶ or 2 rotated bars). Speed lines = 2 bars. Figure = 2 Frames. About 14 GuiObjects.</p><p>C: over the first pink (turning) cell, or over the first belt row if the variant has none.</p></details>
+</article>
+<article class="card" id="m-dark">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-dark" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 17 <span class="tag must">Needed</span></p>
+      <h3>Lights Out</h3>
+      <p class="why">The screen goes dark and only a small light shows round you. Players don't know that the glowing green things are the safe places to jump to.</p>
+      <p class="says"><b>The picture says:</b> In the dark, jump to the glowing green.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-dark" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-dark" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="80" y="104" width="60" height="28" fill="#1a1530"/><circle cx="122" cy="118" r="4" fill="#50d778"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-dark" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Night panel = near-black Frame. Moon = crescent (2 round Frames). Your light = a big see-through warm round Frame. Green slime = a round-topped Frame (UICorner on top only, via a covering Frame) + a see-through green glow circle + a platform bar. Arc = 7 dots + triangle. Figure = 2 Frames. About 15 GuiObjects. Set LightInfluence 0 so it stays bright in the dark zone.</p><p>C: at the section entry, before the dark starts (inside the dark it would be the brightest thing and pull the eye).</p></details>
+</article>
+<article class="card" id="m-vine">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-vine" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 15 <span class="tag nice">Nice to have</span></p>
+      <h3>Vine Swing</h3>
+      <p class="why">You have to jump at the knob to grab it, then press Jump to let go. The only hint is the text toast "Jump to let go" on the first 3 grabs, and nothing explains the grab.</p>
+      <p class="says"><b>The picture says:</b> Jump to the green knob → swing → press jump to let go.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-vine" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-vine" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><path d="M110,104 L104,126" stroke="#96e646" stroke-width="3"/><circle cx="104" cy="127" r="3.5" fill="#96e646"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-vine" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Rail = 1 bar. Rope = 1 rotated bar Frame. Knob = round Frame. Swing arc = 8 dots (dashed look). Release arrow = rotated bar + triangle. Jump button = round Frame with UIStroke + chevron (3 Frames), the same as the cannon's. Figure = 2 Frames. About 17 GuiObjects.</p><p>C: over the first rope's rail. Could later replace the "Jump to let go" text toast (a separate question).</p></details>
+</article>
+<article class="card" id="m-geyser">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-geyser" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 21 <span class="tag nice">Nice to have</span></p>
+      <h3>Geyser Field</h3>
+      <p class="why">Orange vents only throw you while their rim glows. Standing on a dead vent does nothing, so it reads as a broken spring pad.</p>
+      <p class="says"><b>The picture says:</b> Dead vent: wait (hourglass). Glowing rim: it throws you up.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-geyser" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-geyser" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><ellipse cx="110" cy="128" rx="14" ry="4" fill="#ff9632"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-geyser" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Divider = 4 short bars. Vents = 2 flat round Frames; the lit one gets a gold UIStroke ring + 2 ray bars. Hourglass = TextLabel ⌛ glyph (emoji), or 2 rotated squares. Up arrow = bar + triangle. Figures = 4 Frames. About 16 GuiObjects.</p><p>C: over the first timed vent.</p></details>
+</article>
+<article class="card" id="m-updraft">
+  <header class="card-head">
+    <div class="hero"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="12" fill="#2e2646"/><use href="#p-updraft" x="6" y="6" width="88" height="88"/></svg></div>
+    <div>
+      <p class="eyebrow">Idea 5 <span class="tag nice">Nice to have</span></p>
+      <h3>Updraft</h3>
+      <p class="why">The wind column is very see-through (transparency 0.85) and floats 3.5 studs over the pad behind a kerb. Players walk up to the kerb and stop: they don't see that you jump into the wind.</p>
+      <p class="says"><b>The picture says:</b> Jump into the wind column → it carries you up.</p>
+    </div>
+  </header>
+  <div class="opts">
+    <figure><span class="pick">Pick A</span><svg viewBox="0 0 220 150" role="img" aria-label="Board on a post at the section entry"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,128 L220,128 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="138" y="80" width="6" height="50" fill="#46425f"/><rect x="104" y="10" width="74" height="74" rx="8" fill="#2e2646" stroke="#ffffff" stroke-width="2.5"/><use href="#p-updraft" x="110" y="16" width="62" height="62"/><use href="#figd" x="44" y="70" width="29.0" height="58"/></svg><figcaption>Board on a post at the entry</figcaption></figure>
+    <figure><span class="pick">Pick B</span><svg viewBox="0 0 220 150" role="img" aria-label="Pictogram painted on the entry pad floor"><rect width="220" height="150" fill="url(#sky)"/><path d="M14,146 L206,146 L168,58 L52,58Z" fill="#d6e2ee" stroke="#9fb0c4" stroke-width="1.5"/><g transform="translate(110,104) scale(1.45,0.5) translate(-36,-36)"><rect width="72" height="72" rx="7" fill="#2e2646"/><use href="#p-updraft" x="5" y="5" width="62" height="62"/></g><use href="#figd" x="100" y="30" width="15.0" height="30"/></svg><figcaption>Painted on the entry pad</figcaption></figure>
+    <figure><span class="pick">Pick C</span><svg viewBox="0 0 220 150" role="img" aria-label="Floating icon over the spot"><rect width="220" height="150" fill="url(#sky)"/><path d="M0,132 L220,132 L220,150 L0,150Z" fill="#c9d6e4"/><rect x="100" y="104" width="20" height="28" fill="#cde6fa" opacity=".7"/><path d="M110,92 L110,108" stroke="#5a6478" stroke-width="1.5" stroke-dasharray="3 3"/><g class="bob"><circle cx="110" cy="46" r="38" fill="#2e2646" stroke="#ffffff" stroke-width="3"/><path d="M102,82 L110,92 L118,82Z" fill="#2e2646"/><use href="#p-updraft" x="80" y="16" width="60" height="60"/></g></svg><figcaption>Floating icon over the spot</figcaption></figure>
+  </div>
+  <details><summary>How it's built (no upload)</summary><p>Column = see-through pale-blue Frame with UIStroke. Fan = grey bar. Swirls = 3 short arcs (use small rotated bars or a TextLabel ~ glyph). Up arrow = bar + triangle. Ledge = bar. Arc = 6 dots. 2 figures = 4 Frames. About 17 GuiObjects.</p><p>C: over the first column, at hover height.</p></details>
+</article>
+</section>
+
+<section id="skipped">
+  <h2>Skipped: already clear</h2>
+  <div class="tbl"><table><thead><tr><th>Section</th><th>Why no sign</th></tr></thead><tbody>
+  <tr><td>Crusher Alley (1)</td><td>Red crushers slamming down are obvious; red already means danger.</td></tr><tr><td>Melting Floor (2)</td><td>Tiles crack, darken and tick before they drop: you see it happen under you.</td></tr><tr><td>Goo Rides (3)</td><td>Every ride shows a ghost of its stop and a rail line under its path.</td></tr><tr><td>Bounce Chain (4)</td><td>Orange spring pads with rings are a well-known obby object; the first bounce teaches it.</td></tr><tr><td>Ice Slide (6)</td><td>Glossy ice that slides is felt at once; brake goo is the only green floor.</td></tr><tr><td>Merry-go-round (9)</td><td>Spinning disks wear arrows that turn with them.</td></tr><tr><td>Two Roads (11)</td><td>The fork is visible from the start. It already has text signs (FAST, SAFE, ...); see the text-sign question below.</td></tr><tr><td>Rising Goo (12)</td><td>The red goo rising after you is the clearest hazard there is; it already has a 3..2..1 sign (text).</td></tr><tr><td>Collapsing Bridge (24)</td><td>The first plank wears a painted crack and the planks visibly fall behind you.</td></tr><tr><td>Sliding Maze (25)</td><td>Red panels move in plain sight, blue walls are safe: same rule as everywhere.</td></tr>
+  </tbody></table></div>
+</section>
+
+<section id="textsigns">
+  <h2>Question: the old text signs</h2>
+  <p>Some variants still use the text <code>sign:&lt;text&gt;</code> board. If the rule is "only pictures", these would change too. Proposed swaps:</p>
+  <div class="tbl"><table><thead><tr><th>Module</th><th>Text now</th><th>Picture instead</th></tr></thead><tbody>
+  <tr><td><code>CollapsingBridge</code></td><td>REST, SHORT</td><td>REST: a pause icon on a stone. SHORT: drop it (the short fork is visible).</td></tr><tr><td><code>GlowMemory</code></td><td>Remember the glow</td><td>Replaced by the Glow Memory pictogram above.</td></tr><tr><td><code>KeyRun</code></td><td>9 s</td><td>A clock face with a 9: numbers are allowed.</td></tr><tr><td><code>MoonJump</code></td><td>LOW GRAVITY, LOWER GRAVITY</td><td>Replaced by the Moon Jump pictogram; LOWER = the same with two moons.</td></tr><tr><td><code>RisingGoo</code></td><td>3..2..1</td><td>Keep as numbers only (3 2 1 with no dots), already wordless.</td></tr><tr><td><code>TwoRoads</code></td><td>FAST, SAFE, BAIL, MIDDLE, HIGH, LOW, DOOR 4s</td><td>FAST = lightning, SAFE = shield, BAIL = arrow down to the low road, HIGH / LOW / MIDDLE = an arrow up / down / straight, DOOR 4s = a door with a 4.</td></tr>
+  </tbody></table></div>
+</section>
+
+<section id="decided">
+  <h2>Decided</h2>
+  <div class="decided">
+    <div class="row"><b>Merijn (2026-11-01)</b><span>“Looks good, all the steps should be on one sign, and there should be no other text like SAFE FAST ETC”</span></div>
+    <div class="row"><b>Style</b><span class="blank">(A, B or C)</span></div>
+    <div class="row"><b>Which signs</b><span class="blank">(all Needed / plus Nice to have / a list)</span></div>
+    <div class="row"><b>Cannon how-to</b><span class="blank">(strip as shown / changes)</span></div>
+    <div class="row"><b>Old text signs</b><span class="blank">(swap to pictures / keep)</span></div>
+    <div class="row"><b>Changes to a pictogram</b><span class="blank">(per card)</span></div>
+  </div>
+</section>
+</main>
+</body>
+</html>

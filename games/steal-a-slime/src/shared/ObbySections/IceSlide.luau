@@ -53,7 +53,7 @@ local SPIRAL: Slide = { pull = 24, cap = 16 } -- slow enough to hold a 6.5-stud 
 -- Timing and spacing per variant, tuned against the checks and the idea spec's steering planner: each sits one
 -- step short of where a check (or the steering) would fail.
 local P = {
-	firstSweep = 3.8, -- First Slide: the sweeper's turn (s)
+	firstSweep = 5.7, -- First Slide: the sweeper's turn (s); 3.8 before the forgiveness pass (2026-11-01: spin slower)
 	firstRight = 54, -- First Slide: where the right-hand goo strip starts (the left one ends at x 38)
 	dodgeGap = 13, -- Dodge: ice between one strip's end and the next one's start
 	greenGoo = 17, -- Steer to the Green: the goo strip's length
@@ -71,8 +71,10 @@ local P = {
 	forkPeriod = 8, -- Fork: the right lane's blinking patch
 	forkDuty = 0.8,
 	slalomGap = 21, -- Slalom: gate to gate
-	brakeSweep = { 3.5, 3.5, 3.5 }, -- Brake and Go: each sweeper's turn
-	brakePhase = { 0, 0.3, 0.15 }, -- each paddle's start in its turn: a run that never stops meets one of them
+	brakeSweep = { 4.9, 4.9, 4.9 }, -- Brake and Go: each sweeper's turn; 3.5 before the forgiveness pass
+	-- each paddle's start in its turn: a run that never stops meets one of them (was 0, 0.3, 0.15; re-picked for the
+	-- slower turn so mashing jump stays no way across)
+	brakePhase = { 0, 0.4, 0.8 },
 	brakeRadius = 7, -- paddle arm length
 	brakeTall = 6, -- paddle height: taller than a hop, so it is timed, not jumped
 	brakeWide = 12, -- the track (the brake patch is 8 of it)
@@ -186,7 +188,9 @@ local function sweeper(
 			})
 		)
 	end
-	local post = centre - top + 0.5
+	-- The post stands half a stud into the ice and stops under the bar: the bar is see-through, so a post running up
+	-- into it shows through as a dark stub poking out of the goo.
+	local post = centre - h / 2 - top + 0.5
 	table.insert(parts, Kit.prop({ 1.2, post, 1.2 }, { x, top - 0.5 + post / 2, z }, "post"))
 end
 

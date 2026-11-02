@@ -5,7 +5,9 @@
 	Server side of the Obby (the sky course). `world.obby` is the course standing now (ObbyCourse); `session.obbyRun`
 	a player's run. `step` gets where every player stands (the adapter reads root positions) and returns the
 	teleports the adapter must make:
-	  * stepping into the portal circle starts a run (not while carrying a slime) and lifts the player to the start pad
+	  * stepping into the portal circle starts a run (not while carrying a slime, nor on a course they already cleared:
+	    `cleared`) and lifts the player to the start pad
+	  * while running, the runner's base lock counts down at OBBY.LOCK_RATE (ObbyLock.step, every tick)
 	  * there are no checkpoints: the server tracks the furthest section the runner has been over (ObbyCourse.sectionAt),
 	    in order. Skipping a section, or finishing faster than OBBY.MIN_RUN_SECONDS, marks the run invalid (it still
 	    finishes, but earns nothing)
@@ -28,6 +30,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local ObbyCourse = if Shared then require(Shared.ObbyCourse) else require("../shared/ObbyCourse")
 local ObbyRules = if Shared then require(Shared.ObbyRules) else require("../shared/ObbyRules")
+local ObbyLock = if script then require(script.Parent.ObbyLock) else require("./ObbyLock")
 local World = if script then require(script.Parent.World) else require("./World")
 
 local OBBY = Config.OBBY
@@ -58,7 +61,8 @@ export type View = {
 	readyAt: number?, -- a finish earns the boost again (server time); nil = ready now
 	sections: { string }, -- the current course's section names, in order
 	rotatesAt: number, -- server time the next rotation starts
-	run: { section: number, of: number, startedAt: number }?, -- the run in progress
+	-- the run in progress; `lockRate` = how fast the runner's base lock counts down meanwhile (OBBY.LOCK_RATE)
+	run: { section: number, of: number, startedAt: number, lockRate: number }?,
 	best: number?, -- best finish on the current course, seconds
 }
 
@@ -67,6 +71,14 @@ local ObbyService = {}
 ObbyService.OFF_COURSE = 40 -- studs past the course's ends or sides (course-local) that end a run
 ObbyService.PORTAL_HEIGHT = 8 -- studs above the portal centre that still count as standing in it
 ObbyService.RESET_JUMP = 20 -- studs back along the course in one tick, onto the start pad: the client put the runner back
+
+-- A Move's `pos` is where a standard avatar's root goes: OBBY.RESPAWN_LIFT above the floor. `landing` shifts it by how
+-- much higher this character's root stands (`rootHeight`: its HipHeight plus half its root part's height), so a
+-- runner whose own body scales just came back (server/ObbyAvatar) lands on their feet at the exit, instead of in the
+-- ground with the Humanoid pushing them (and the camera) up over the next frames.
+function ObbyService.landing(pos: Vec, rootHeight: number): Vec
+	return { pos[1], pos[2] + rootHeight - OBBY.RESPAWN_LIFT, pos[3] }
+end
 
 local function clock(seconds: number): string
 	local s = math.max(0, math.ceil(seconds))
@@ -97,6 +109,13 @@ local function sectionName(course: ObbyCourse.Course, index: number): string
 	return if pick then ObbyCourse.nameOf(pick.id) else "?"
 end
 
+-- True when `session` finished the course of rotation `slot` with a run that counted (session.obbyBest is set by
+-- every counted finish): the portal lets them in again on the next course.
+function ObbyService.cleared(session: Session, slot: number): boolean
+	local best = session.obbyBest
+	return best ~= nil and best.slot == slot
+end
+
 -- Starts a run for `session`. Returns ok, a player-facing reason, and the move to the start pad.
 function ObbyService.enter(world: World, session: Session, place: Place, now: number): (boolean, string?, Move?)
 	local course = world.obby
@@ -111,6 +130,10 @@ function ObbyService.enter(world: World, session: Session, place: Place, now: nu
 	end
 	if course.slot ~= ObbyCourse.slot(now) then
 		return false, "A new course is on its way. Back in a moment!", nil
+	end
+	if ObbyService.cleared(session, course.slot) then
+		local rotatesAt = ObbyCourse.slotStart(course.slot + 1)
+		return false, `You cleared this course! New one in {clock(rotatesAt - now)}`, nil
 	end
 	session.obbyRun = { slot = course.slot, section = 0, startedAt = now, settleUntil = now + OBBY.MOVE_GRACE }
 	World.markDirty(session)
@@ -283,6 +306,7 @@ function ObbyService.step(world: World, place: Place, positions: { [number]: Vec
 			ObbyService.cancel(session) -- died or no character: the run is over
 			session.obbyOnPortal = nil
 		elseif session.obbyRun then
+			ObbyLock.step(session, now) -- the base lock runs at OBBY.LOCK_RATE while running
 			local move, reset = progress(world, session, place, pos, now)
 			if move then
 				table.insert(moves, move)
@@ -345,7 +369,9 @@ function ObbyService.view(world: World, session: Session, now: number): View?
 		readyAt = boost.readyAt,
 		sections = ObbyCourse.names(course.picks),
 		rotatesAt = ObbyCourse.slotStart(ObbyCourse.slot(now) + 1),
-		run = if run then { section = run.section, of = #course.spans, startedAt = run.startedAt } else nil,
+		run = if run
+			then { section = run.section, of = #course.spans, startedAt = run.startedAt, lockRate = ObbyLock.rate() }
+			else nil,
 		best = if best and best.slot == course.slot then best.seconds else nil,
 	}
 end

@@ -4,6 +4,7 @@
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local ObbyCourse = require("../src/shared/ObbyCourse")
+local ObbyLock = require("../src/server/ObbyLock")
 local ObbyService = require("../src/server/ObbyService")
 local Perks = require("../src/shared/Perks")
 local SaveData = require("../src/shared/SaveData")
@@ -90,6 +91,27 @@ local function below(world: any, i: number, clientOnly: boolean?): { number }
 	p[2] = ObbyCourse.fallHeight(world.obby, p, depth) - 2
 	return ObbyCourse.toWorld(PLACE.frame, p)
 end
+
+describe("ObbyService landing", function()
+	it("leaves a standard avatar's move where it is", function()
+		local spot = ObbyService.landing(PLACE.exit, OBBY.RESPAWN_LIFT)
+		expect(spot[1]).toBe(PLACE.exit[1])
+		expect(spot[2]).toBeCloseTo(PLACE.exit[2], 1e-9)
+		expect(spot[3]).toBe(PLACE.exit[3])
+	end)
+
+	it("lifts a taller avatar so it lands on its feet, and lowers a smaller one", function()
+		-- an R15 at body height 1.5: HipHeight 3.01 plus half its 3-stud root
+		expect(ObbyService.landing(PLACE.exit, 4.51)[2]).toBeCloseTo(PLACE.exit[2] + 4.51 - OBBY.RESPAWN_LIFT, 1e-9)
+		expect(ObbyService.landing(PLACE.exit, 2.4)[2]).toBeCloseTo(PLACE.exit[2] - (OBBY.RESPAWN_LIFT - 2.4), 1e-9)
+	end)
+
+	it("does not change the move it was given", function()
+		local pos = { 1, 2, 3 }
+		ObbyService.landing(pos, 5)
+		expect(pos[2]).toBe(2)
+	end)
+end)
 
 describe("ObbyService portal", function()
 	it("stepping into the portal starts a run and lifts the player to the start pad", function()
@@ -186,10 +208,13 @@ describe("ObbyService runs", function()
 		enter(world, T)
 		local _, now = runAll(world, T, 8)
 		local untilAt = session.data.obbyUntil
-		local later = untilAt + 30 -- boost over, cooling down
+		-- the next course (the cleared one refuses entry): boost over, still cooling down
+		local later = ObbyCourse.slotStart(world.obby.slot + 1) + 10
+		expect(later > untilAt and later + 60 < session.data.obbyReadyAt).toBe(true)
 		ObbyService.refresh(world, later)
 		enter(world, later)
-		runAll(world, later, 8)
+		expect(session.obbyRun ~= nil).toBe(true)
+		runAll(world, later, 5)
 		expect(session.data.obbyUntil).toBe(untilAt)
 		expect(session.data.obbyBonus).toBeNil()
 		expect(now < later).toBe(true)
@@ -360,5 +385,128 @@ describe("ObbyService rotation and boost", function()
 		expect(boosted.endsAt).toBe(session.data.obbyUntil)
 		expect(boosted.readyAt).toBe(session.data.obbyReadyAt)
 		expect(boosted.best ~= nil).toBe(true)
+	end)
+end)
+
+-- Steps a runner standing on the start pad every 0.1 s (the server loop's rate) from `from` to `to`.
+local function standOnStart(world: any, from: number, to: number)
+	local start = onPad(world, 0)
+	local now = from
+	while now < to - 1e-9 do
+		now = math.min(to, now + 0.1)
+		ObbyService.step(world, PLACE, at(start), now)
+	end
+end
+
+describe("ObbyLock: the base lock runs at half speed during a run", function()
+	it("the math: a tick of dt real seconds uses LOCK_RATE x dt lock seconds", function()
+		expect(OBBY.LOCK_RATE).toBe(0.5)
+		expect(ObbyLock.slowed(200, 0, 100, 110, 0.5)).toBeCloseTo(205, 1e-9) -- 100 s left, 10 s run: 95 s left
+		expect(ObbyLock.slowed(200, 0, 100, 110, 1)).toBeCloseTo(200, 1e-9) -- rate 1 = no change
+		expect(ObbyLock.slowed(50, 0, 100, 110, 0.5)).toBe(50) -- an expired lock stays as it is
+		expect(ObbyLock.slowed(0, 0, 100, 110, 0.5)).toBe(0) -- no lock
+		expect(ObbyLock.slowed(103, 0, 100, 110, 0.5)).toBeCloseTo(106, 1e-9) -- 3 s left runs out after 6 s
+		expect(ObbyLock.slowed(120, 105, 100, 110, 0.5)).toBeCloseTo(122.5, 1e-9) -- began mid-tick: counts from 105
+		expect(ObbyLock.slowed(200, 0, 100, 110, 0)).toBeCloseTo(209, 1e-9) -- the rate never goes under MIN_RATE (0.1)
+	end)
+
+	it("over a 10 s run the lock loses 5 s, and every tick in between counts at half speed", function()
+		local world, session = setup()
+		local lockUntil = session.lockUntil -- the join lock: 120 s from T
+		enter(world, T)
+		standOnStart(world, T, T + 10)
+		expect(session.obbyRun ~= nil).toBe(true)
+		local left = session.lockUntil - (T + 10)
+		expect(left).toBeCloseTo(lockUntil - T - 5, 1e-6)
+		standOnStart(world, T + 10, T + 30)
+		expect(session.lockUntil - (T + 30)).toBeCloseTo(lockUntil - T - 15, 1e-6)
+	end)
+
+	it("a lock that runs out mid-run ends at the slow rate and stays ended", function()
+		local world, session = setup()
+		enter(world, T)
+		session.lockUntil = T + 3 -- 3 s left as the run starts
+		standOnStart(world, T, T + 10)
+		expect(session.lockUntil).toBeCloseTo(T + 6, 1e-6)
+		expect(session.lockUntil < T + 10).toBe(true) -- unlocked now
+		standOnStart(world, T + 10, T + 20)
+		expect(session.lockUntil).toBeCloseTo(T + 6, 1e-6) -- an expired lock is never revived
+	end)
+
+	it("a lock that starts mid-run counts from its start", function()
+		local world, session = setup()
+		session.lockUntil = 0
+		enter(world, T)
+		standOnStart(world, T, T + 5)
+		expect(session.lockUntil).toBe(0) -- no lock, nothing to slow
+		session.lockStartedAt = T + 5
+		session.lockUntil = T + 5 + 30 -- e.g. the breather lock after a steal
+		session.breatherUntil = session.lockUntil
+		standOnStart(world, T + 5, T + 15)
+		expect(session.lockUntil).toBeCloseTo(T + 5 + 30 + 5, 1e-6)
+		expect(session.breatherUntil).toBe(session.lockUntil) -- still the breather (LockBreak.inBreather)
+	end)
+
+	it("no slowdown outside a run, nor after it ends", function()
+		local world, session = setup()
+		local lockUntil = session.lockUntil
+		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), T + 1)
+		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), T + 5)
+		expect(session.lockUntil).toBe(lockUntil)
+		enter(world, T + 10)
+		standOnStart(world, T + 10, T + 14)
+		ObbyService.step(world, PLACE, {}, T + 14.1) -- no character: the run is over
+		expect(session.obbyRun).toBeNil()
+		local after = session.lockUntil
+		expect(after).toBeCloseTo(lockUntil + 2, 1e-6)
+		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), T + 20)
+		expect(session.lockUntil).toBe(after)
+	end)
+
+	it("State.obby.run tells the client the lock's rate", function()
+		local world, session = setup()
+		enter(world, T)
+		local running = Snapshot.build(world, session, T + 1).obby :: any
+		expect(running.run.lockRate).toBe(OBBY.LOCK_RATE)
+	end)
+end)
+
+describe("ObbyService entry: only on a course you have not cleared", function()
+	it("refuses a player who cleared this course, with the time to the next one", function()
+		local world, session = setup()
+		enter(world, T)
+		local _, now = runAll(world, T, 8)
+		expect(ObbyService.cleared(session, world.obby.slot)).toBe(true)
+		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), now + 5) -- walk away from the exit
+		local result = enter(world, now + 10)
+		expect(session.obbyRun).toBeNil()
+		expect(#result.moves).toBe(0)
+		local texts = ServerFixtures.notifications(world, 1)
+		local rotatesAt = ObbyCourse.slotStart(world.obby.slot + 1)
+		local s = math.ceil(rotatesAt - (now + 10))
+		expect(texts[#texts]).toBe(`You cleared this course! New one in {string.format("%d:%02d", s // 60, s % 60)}`)
+		local sign = Snapshot.build(world, session, now + 10).obby :: any
+		expect(sign.best ~= nil).toBe(true) -- the portal sign reads it: "Cleared! Next course soon"
+	end)
+
+	it("lets them in again on the next course", function()
+		local world, session = setup()
+		enter(world, T)
+		runAll(world, T, 8)
+		local nextSlot = world.obby.slot + 1
+		enter(world, ObbyCourse.slotStart(nextSlot) + 5)
+		expect(world.obby.slot).toBe(nextSlot)
+		expect(session.obbyRun ~= nil).toBe(true)
+	end)
+
+	it("a run that didn't count does not block another try", function()
+		local world, session = setup()
+		enter(world, T)
+		ObbyService.step(world, PLACE, at(onPad(world, #world.obby.spans + 1)), T + 60) -- straight to the finish
+		expect(session.obbyRun).toBeNil()
+		expect(ObbyService.cleared(session, world.obby.slot)).toBe(false)
+		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), T + 65)
+		enter(world, T + 70)
+		expect(session.obbyRun ~= nil).toBe(true)
 	end)
 end)

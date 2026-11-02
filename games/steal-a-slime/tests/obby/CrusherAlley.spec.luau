@@ -135,7 +135,7 @@ describe("Crusher Alley timing twists", function()
 				n += 1
 				local plate = plates[c.start :: string]
 				expect(plate ~= nil).toBe(true)
-				expect(headroom(section, c, nil)).toBeCloseTo(11, 1e-6) -- asleep: up at rest
+				expect(headroom(section, c, nil)).toBeCloseTo(13, 1e-6) -- asleep: up at rest
 				-- Up (over a head) for the first 0.7 s after you land on the plate.
 				for k = 0, 69 do
 					expect(headroom(section, c, k / 100) > Kit.HEAD).toBe(true)

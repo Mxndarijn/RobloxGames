@@ -14,14 +14,22 @@
 	          speed carries through a jump off the end; landing on any other floor (brake goo) ends it
 	  sticky  in the air next to a sticky wall's side face you hold on and slide down at `sticky.fall`; jump throws
 	          you off, away from the face and up
-	  vine    touching a rope within `vine.reach` of its bottom grabs it: you hang under the rope end (PlatformStand)
-	          and jump lets go with the rope end's speed plus a kick up. "Jump to let go" shows on the first grabs
+	  vine    a rope swing (physics in shared ObbySections/Vine, the same the checks use): a knob within `vine.reach`
+	          of your body (feet to head) grabs you, in a jump or walking at it. You hang from it, arms up, on a real
+	          pendulum that keeps your run; holding the way you swing pumps it. A fresh jump press lets go with the
+	          swing's speed plus a hop; a few dots show the flight's start (`vine.hint` s, mint when it lands safe
+	          or on a rope). The rope you leave eases back to its server-time swing. "Jump to let go" on the first grabs
 	  cannon  walking into a barrel snaps you in (PlatformStand, camera behind the barrel); a dotted line shows the
 	          shot's arc for the barrel's aim now (red when it ends in goo or misses); jump fires: you follow that
 	          fixed arc and are handed back to physics HAND_LIFT studs above the landing
 	  moon    inside a moon zone a VectorForce carries (1 - `zone.gravity`) of your weight
 	  dark    inside a dark zone the screen fades to night over DARK_SECONDS and a PointLight of `zone.light` studs
 	          sits on you; leaving fades it back
+
+	"Inside" is your body, not the root's centre (ObbyZone): a moon or dark zone holds you while any of you from the
+	feet to the head is within ZONE_PAD of its shape (ZONE_PAD + ZONE_HOLD once you are in, so its edge never flickers;
+	a moon zone's shape is the bubble dome ObbyParts draws, the ellipsoid in its box, not the box),
+	and a sticky wall grips while your legs to shoulders are within reach of its side face, whichever way you face.
 
 	The momentum a controller hands back (a slide's end jump, a wall throw, a vine release, a cannon landing) is kept
 	in the air by the same "drive" that steers the slide: it calls Humanoid:Move right after the control script, so
@@ -47,6 +55,8 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local GooPalette = require(Shared:WaitForChild("GooPalette"))
 local ObbyFall = require(script.Parent:WaitForChild("ObbyFall"))
 local ObbyLook = require(Visuals:WaitForChild("ObbyLook"))
+local ObbyZone = require(Visuals:WaitForChild("ObbyZone"))
+local Vine = require(Shared:WaitForChild("ObbySections"):WaitForChild("Vine"))
 
 local ObbyMoves = {}
 
@@ -69,12 +79,28 @@ ObbyMoves.THROW_UP = 45 -- studs/s up on a jump off
 ObbyMoves.RESTICK = 0.3 -- seconds after a throw before any wall grips again
 ObbyMoves.SAME_WALL = 0.6 -- seconds after a throw before the same wall grips again
 ObbyMoves.SIDE_FACE = 0.5 -- a face whose normal has |Y| under this is a wall face (not a top or bottom)
+ObbyMoves.STICK_HOLD = 0.5 -- extra studs of reach the wall you hold keeps you by (so sliding along it never flickers)
+ObbyMoves.STICK_DOWN = 2.5 -- the body line a wall grips: from this far under the root (the shins) ...
+ObbyMoves.STICK_UP = 1.5 -- ... to this far over it (the shoulders)
 
--- vine
-ObbyMoves.HANG = 2.5 -- studs from the rope's end down to your root (hands up on the knob)
-ObbyMoves.RELEASE_UP = 20 -- studs/s added up when you let go
-ObbyMoves.REGRAB_SAME = 0.8 -- seconds before the rope you let go of grabs you again
-ObbyMoves.REGRAB_ANY = 0.25 -- seconds before any rope grabs you again
+-- zones (moon, dark)
+ObbyMoves.HEAD_UP = 2.5 -- studs from the root's centre to the top of the head
+ObbyMoves.ZONE_PAD = 0.5 -- studs round a zone's box (sideways) the body counts as in it when it comes in
+ObbyMoves.ZONE_HOLD = 0.5 -- extra studs it stays in by once it is in
+
+-- vine (the physics and its numbers are in shared ObbySections/Vine)
+ObbyMoves.REGRAB_SAME = 1.2 -- seconds before the rope you let go of grabs you again
+ObbyMoves.REGRAB_ANY = 0.15 -- seconds before any rope grabs you again (a chain catches the next rope at once)
+ObbyMoves.WALK_IN = 0.3 -- on the ground a rope only grabs you while you walk at it (MoveDirection · way to it)
+ObbyMoves.GRAB_EASE = 0.12 -- seconds the body and the rope take to meet after a grab
+ObbyMoves.RETURN = 0.8 -- seconds a rope you let go of takes to ease back to its server-time swing
+ObbyMoves.PRESS_GAP = 0.12 -- a jump request this long after the last one is a fresh press (held jump repeats)
+ObbyMoves.VINE_DOTS = 6 -- dots of the let-go flight while you hang
+ObbyMoves.VINE_DOT = 0.4
+ObbyMoves.ARM_UP = math.rad(165) -- the shoulders turn the arms this far up (round the torso's back axis) ...
+ObbyMoves.ARM_FORWARD = math.rad(12) -- ... and this far forward, hands on the knob over your head
+ObbyMoves.ROPE_WIDTH = 0.35 -- the Beam from the knob to your hands
+ObbyMoves.PUFF = "rbxasset://textures/particles/smoke_main.dds" -- built-in (never uploaded)
 ObbyMoves.HINT_GRABS = 3 -- the "Jump to let go" hint shows on this many grabs
 ObbyMoves.HINT_TEXT = "Jump to let go"
 ObbyMoves.JUMP_GRACE = 0.2 -- seconds after a grab or a seat in which a jump press does not count (the held jump)
@@ -125,12 +151,26 @@ local function rgb(c: { number }): Color3
 	return Color3.fromRGB(c[1], c[2], c[3])
 end
 local DOT_OK = rgb(GooPalette.Mint)
-local DOT_BAD = Color3.fromRGB(235, 70, 90) -- the hazard look's red (ObbyParts / contract §8)
+local DOT_BAD = Color3.fromRGB(215, 20, 25) -- the hazard look's red (ObbyParts / contract §8)
 
 export type Controller = { tick: (dt: number) -> (), stop: () -> () }
 
 type Spec = { [string]: any }
 type Item = { part: BasePart, spec: Spec }
+
+-- A rope you hold: its knob item, the ghost rope part on the same pivot, the pivot (world), the swing's plane
+-- direction (+angle) and up, its arm (pivot to the knob's centre) and the knob's grab reach and dot seconds.
+type Rope = {
+	item: Item,
+	ropePart: BasePart?,
+	pivot: Vector3,
+	dir: Vector3,
+	up: Vector3,
+	arm: number,
+	hint: number,
+}
+-- A rope you let go of, swinging on by itself while it eases back to its server-time swing.
+type Return = { knob: BasePart, ropePart: BasePart?, arm: number, th: number, w: number, at: number }
 
 -- The local player this frame.
 type Me = {
@@ -243,15 +283,25 @@ function ObbyMoves.start(): Controller
 		at = 0,
 		last = nil :: Item?,
 		lastAt = -math.huge,
-		prev = nil :: Vector3?,
-		velocity = Vector3.zero,
 		grabs = 0,
+		rope = nil :: Rope?, -- the held rope's pivot, plane and parts
+		th = 0, -- its angle (radians, Vine's)
+		w = 0, -- its angular speed
+		from = Vector3.zero, -- the root where the grab took it
+		returns = {} :: { Return }, -- ropes let go of, easing back to their own swing
+		arms = {} :: { { joint: Instance, c0: CFrame } }, -- each shoulder's C0 (or torso attachment) before the arms went up
+		beam = nil :: Beam?,
+		hands = nil :: Attachment?,
 	}
+	local pressAt = -math.huge -- os.clock of the last fresh jump press (not a held jump's repeat)
+	local requestAt = -math.huge
+	local usedPress = -math.huge
 	local cannon =
 		{ item = nil :: Item?, at = 0, last = nil :: Item?, lastAt = -math.huge, arc = nil :: Arc?, flightT = 0 }
 	local camera = { kind = nil :: Enum.CameraType?, subject = nil :: Instance? }
-	local moon = { inside = false, attachment = nil :: Attachment?, force = nil :: VectorForce? }
+	local moon = { inside = false, zone = nil :: Item?, attachment = nil :: Attachment?, force = nil :: VectorForce? }
 	local dark = {
+		zone = nil :: Item?,
 		amount = 0,
 		light = ObbyMoves.DEFAULT_LIGHT,
 		effect = nil :: ColorCorrectionEffect?,
@@ -432,13 +482,145 @@ function ObbyMoves.start(): Controller
 		end
 	end
 
+	-- The held rope's look: its angle on the knob and the rope part, shown `fade` (0..1) over its own swing (ObbyFx).
+	local function showRope(knob: BasePart, ropePart: BasePart?, th: number?, fade: number?)
+		knob:SetAttribute(Vine.HELD_ANGLE, th)
+		knob:SetAttribute(Vine.HELD_FADE, fade)
+		if ropePart then
+			ropePart:SetAttribute(Vine.HELD_ANGLE, th)
+			ropePart:SetAttribute(Vine.HELD_FADE, fade)
+		end
+	end
+
+	-- Every rope let go of goes straight back to its own swing (a reset, a rebuild, leaving the obby).
+	local function clearVineReturns()
+		for _, r in vine.returns do
+			showRope(r.knob, r.ropePart, nil, nil)
+		end
+		table.clear(vine.returns)
+	end
+
+	-- Arms up on the knob while you hang: each shoulder turned in the torso's frame (a Motor6D's C0, or the torso
+	-- attachment of the new rig's AnimationConstraint), put back exactly after.
+	local function armsUp(on: boolean)
+		if not on then
+			for _, a in vine.arms do
+				local j = a.joint
+				if j.Parent then
+					if j:IsA("Motor6D") then
+						j.C0 = a.c0
+					elseif j:IsA("Attachment") then
+						j.CFrame = a.c0
+					end
+				end
+			end
+			table.clear(vine.arms)
+			return
+		end
+		if #vine.arms > 0 or not character then
+			return
+		end
+		for _, d in (character :: Model):GetDescendants() do
+			local name = d.Name
+			local side = if name == "RightShoulder" or name == "Right Shoulder"
+				then -1
+				elseif name == "LeftShoulder" or name == "Left Shoulder" then 1
+				else 0
+			if side == 0 then
+				continue
+			end
+			local turn = CFrame.Angles(-ObbyMoves.ARM_FORWARD, 0, 0) * CFrame.Angles(0, 0, side * ObbyMoves.ARM_UP)
+			if d:IsA("Motor6D") then
+				local c0 = d.C0
+				table.insert(vine.arms, { joint = d :: Instance, c0 = c0 })
+				d.C0 = CFrame.new(c0.Position) * turn * c0.Rotation
+			elseif d:IsA("AnimationConstraint") then
+				local a0 = d.Attachment0
+				if a0 then
+					local c0 = a0.CFrame
+					table.insert(vine.arms, { joint = a0 :: Instance, c0 = c0 })
+					a0.CFrame = CFrame.new(c0.Position) * turn * c0.Rotation
+				end
+			end
+		end
+	end
+
+	-- The stick, in the world (flat): the control module's move vector turned by the camera. Humanoid.MoveDirection
+	-- reads zero while PlatformStand is on, so the rope reads the controls themselves.
+	local controls: any = nil
+	local function vineStick(): Vector3
+		if controls == nil then
+			local scripts = player and player:FindFirstChild("PlayerScripts")
+			local module = scripts and scripts:FindFirstChild("PlayerModule")
+			if module and module:IsA("ModuleScript") then
+				local ok, pm = pcall(require, module)
+				controls = if ok and type(pm) == "table" and pm.GetControls then pm:GetControls() else false
+			else
+				return Vector3.zero
+			end
+		end
+		local cam = workspace.CurrentCamera
+		if not controls or not cam then
+			return Vector3.zero
+		end
+		local ok, mv = pcall(controls.GetMoveVector, controls)
+		if not ok or typeof(mv) ~= "Vector3" then
+			return Vector3.zero
+		end
+		local look = unitOr(flat(cam.CFrame.LookVector), Vector3.zero)
+		local right = unitOr(flat(cam.CFrame.RightVector), Vector3.zero)
+		return right * mv.X - look * mv.Z
+	end
+
+	-- A small puff of goo where a grab or a let go happens (a built-in smoke texture, gone in a second).
+	local function puff(at: Vector3, color: Color3, count: number)
+		local holder = Instance.new("Attachment")
+		holder.Name = "ObbyVinePuff"
+		holder.WorldPosition = at
+		local e = Instance.new("ParticleEmitter")
+		e.Texture = ObbyMoves.PUFF
+		e.Color = ColorSequence.new(color)
+		e.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
+		e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 1.6) })
+		e.Lifetime = NumberRange.new(0.35, 0.55)
+		e.Speed = NumberRange.new(4, 8)
+		e.SpreadAngle = Vector2.new(180, 180)
+		e.Drag = 6
+		e.Rate = 0
+		e.LightEmission = 0
+		e.Parent = holder
+		holder.Parent = workspace.Terrain
+		e:Emit(count)
+		Debris:AddItem(holder, 1.2)
+	end
+
 	local function endVine(h: Humanoid?)
+		local r = vine.rope
 		if vine.item then
 			vine.last = vine.item
 			vine.lastAt = os.clock()
 		end
+		if r then
+			-- the rope swings on from where you left it and eases back to its own swing
+			table.insert(
+				vine.returns,
+				{ knob = r.item.part, ropePart = r.ropePart, arm = r.arm, th = vine.th, w = vine.w, at = os.clock() }
+			)
+		end
 		vine.item = nil
-		vine.prev = nil
+		vine.rope = nil
+		armsUp(false)
+		if vine.beam then
+			vine.beam:Destroy()
+			vine.beam = nil
+		end
+		if vine.hands then
+			vine.hands:Destroy()
+			vine.hands = nil
+		end
+		if hold == "vine" then
+			clearDots()
+		end
 		if h then
 			platform(h, false)
 		end
@@ -497,9 +679,12 @@ function ObbyMoves.start(): Controller
 		end
 		endStick()
 		endVine(h)
+		clearVineReturns()
 		endCannon(h)
 		endMoon()
 		endDark()
+		moon.zone = nil
+		dark.zone = nil
 		drive = nil
 		boost.speed = nil
 		releaseWalk(h)
@@ -668,9 +853,11 @@ function ObbyMoves.start(): Controller
 
 	------------------------------------------------------------------ sticky
 
-	-- The sticky wall face next to the root: the item and the face's outward normal, or nil.
+	-- The sticky wall face next to the body (shins to shoulders): the item and the face's outward normal, or nil. The
+	-- reach is from the root's centre, the same whichever way you face; the wall you hold keeps you STICK_HOLD further.
 	local function wallNear(root: BasePart, clock: number): (Item?, Vector3)
 		local reach = root.Size.X / 2 + ObbyMoves.STICK_REACH
+		local a, b = ObbyZone.body(root.Position, ObbyMoves.STICK_DOWN, ObbyMoves.STICK_UP)
 		local best: Item? = nil
 		local bestNormal = Vector3.zero
 		local bestDistance = math.huge
@@ -679,25 +866,11 @@ function ObbyMoves.start(): Controller
 			if not part.Parent or (item == stick.last and clock < stick.lastUntil) then
 				continue
 			end
-			local q = part.CFrame:PointToObjectSpace(root.Position)
-			local half = part.Size / 2
-			local c = Vector3.new(
-				math.clamp(q.X, -half.X, half.X),
-				math.clamp(q.Y, -half.Y, half.Y),
-				math.clamp(q.Z, -half.Z, half.Z)
-			)
-			local d = q - c
-			local distance = d.Magnitude
-			if distance <= 1e-4 or distance > reach or distance >= bestDistance then
+			local distance, normal = ObbyZone.nearestFace(part.CFrame, part.Size, a, b)
+			local limit = if item == stick.item then reach + ObbyMoves.STICK_HOLD else reach
+			if distance > limit or distance >= bestDistance then
 				continue
 			end
-			-- the face it is off: the axis it sticks out along most
-			local ax, ay, az = math.abs(d.X), math.abs(d.Y), math.abs(d.Z)
-			local axis = if ax >= ay and ax >= az
-				then Vector3.xAxis * math.sign(d.X)
-				elseif az >= ay then Vector3.zAxis * math.sign(d.Z)
-				else Vector3.yAxis * math.sign(d.Y)
-			local normal = part.CFrame:VectorToWorldSpace(axis)
 			if math.abs(normal.Y) < ObbyMoves.SIDE_FACE then
 				best, bestNormal, bestDistance = item, normal, distance
 			end
@@ -755,72 +928,263 @@ function ObbyMoves.start(): Controller
 
 	------------------------------------------------------------------ vine
 
-	local function vineEnd(part: BasePart): Vector3
-		return (part.CFrame * CFrame.new(0, -part.Size.Y / 2, 0)).Position
-	end
-
-	local function stepVine(m: Me)
-		local item = vine.item
-		if item == nil then
-			if hold ~= nil then
-				return
-			end
-			if m.clock - vine.lastAt < ObbyMoves.REGRAB_ANY then
-				return
-			end
-			for _, candidate in vines do
-				local part = candidate.part
-				if not part.Parent then
-					continue
-				end
-				if candidate == vine.last and m.clock - vine.lastAt < ObbyMoves.REGRAB_SAME then
-					continue
-				end
-				local reach = num(candidate.spec.vine, "reach", 3)
-				if (m.root.Position - vineEnd(part)).Magnitude <= reach then
-					item = candidate
-					vine.item = candidate
-					vine.at = m.clock
-					vine.prev = nil
-					vine.velocity = Vector3.zero
-					vine.grabs += 1
-					hold = "vine"
-					drive = nil
-					platform(m.humanoid, true)
-					playSound("squelch", m.root)
-					showHint(vine.grabs <= ObbyMoves.HINT_GRABS)
+	-- The rope a knob hangs from, in the world: the pivot `arm` over the knob's rest centre, the swing's plane
+	-- (+angle along the course for axis "x", else -z as Kit's swing) and the ghost rope part on the same pivot.
+	local function ropeOf(item: Item): Rope?
+		local motion = item.spec.motion
+		if type(motion) ~= "table" or motion.kind ~= "swing" then
+			return nil
+		end
+		local arm = num(motion, "arm", 0)
+		local up = frame.YVector
+		local function restOf(p: BasePart): Vector3
+			local base = p:GetAttribute(Constants.OBBY_BASE)
+			return if typeof(base) == "CFrame" then base.Position else p.Position
+		end
+		local pivot = restOf(item.part) + up * arm
+		local ropePart: BasePart? = nil
+		for p, spec in specOf do
+			local m = spec.motion
+			if p ~= item.part and spec.vine == nil and type(m) == "table" and m.kind == "swing" then
+				if (restOf(p) + up * num(m, "arm", 0) - pivot).Magnitude < 0.05 then
+					ropePart = p
 					break
 				end
 			end
-			if item == nil then
+		end
+		return {
+			item = item,
+			ropePart = ropePart,
+			pivot = pivot,
+			dir = if motion.axis == "x" then frame.XVector else -frame.ZVector,
+			up = up,
+			arm = arm,
+			hint = num(item.spec.vine, "hint", Vine.HINT.medium),
+		}
+	end
+
+	-- Where your root hangs on rope `r` at angle `th`, and its velocity at `w` radians/s (plus `kick` up).
+	local function hangOf(r: Rope, th: number, w: number, kick: number): (Vector3, Vector3)
+		local s, y = Vine.rootAt(r.arm, th)
+		local vs, vy = Vine.velocityAt(r.arm, th, w)
+		return r.pivot + r.dir * s + r.up * y, r.dir * vs + r.up * (vy + kick)
+	end
+
+	-- The let-go flight's first `r.hint` seconds as dots: mint when it ends on a safe floor or in another rope's
+	-- reach, red when it ends in goo or nowhere (the same rules as the checks: tests/ObbyCheck vineLands).
+	local function vineHint(m: Me, r: Rope, origin: Vector3, velocity: Vector3)
+		local g = workspace.Gravity
+		local drop = Vector3.new(0, m.humanoid.HipHeight + m.root.Size.Y / 2, 0)
+		local stopT, good = ObbyMoves.ARC_SECONDS, false
+		local prev = origin
+		local t = 0
+		while t < ObbyMoves.ARC_SECONDS do
+			local nextT = t + ObbyMoves.ARC_STEP
+			local p = origin + velocity * nextT + Vector3.new(0, -0.5 * g * nextT * nextT, 0)
+			if inHazard(p) then
+				stopT = nextT
+				break
+			end
+			local caught = false
+			for _, other in vines do
+				local k = other.part
+				if other ~= r.item and k.Parent then
+					local q = k.Position
+					if Vine.touches(p.X, p.Y, p.Z, q.X, q.Y, q.Z, num(other.spec.vine, "reach", 3)) then
+						caught = true
+						break
+					end
+				end
+			end
+			if caught then
+				stopT, good = nextT, true
+				break
+			end
+			local hit = workspace:Raycast(prev - drop, p - prev, params)
+			if hit and (hit.Instance :: BasePart).CanCollide then
+				local spec = specOf[hit.Instance :: BasePart]
+				stopT, good = nextT, not (spec and spec.hazard == true)
+				break
+			end
+			prev = p
+			t = nextT
+		end
+		local color = if good then DOT_OK else DOT_BAD
+		local shown = math.min(stopT, r.hint)
+		for i = 1, ObbyMoves.VINE_DOTS do
+			local d = dot(i, ObbyMoves.VINE_DOT)
+			local tt = shown * i / ObbyMoves.VINE_DOTS
+			d.Color = color
+			d.Transparency = 0
+			d.CFrame = CFrame.new(origin + velocity * tt + Vector3.new(0, -0.5 * g * tt * tt, 0))
+		end
+	end
+
+	-- The rope between the knob and your hands: a Beam from the knob's centre to between the hands.
+	local function vineBeam(r: Rope)
+		local knob = r.item.part
+		local hands = vine.hands
+		if not vine.beam or not hands then
+			local a0 = knob:FindFirstChild("ObbyVineGrip")
+			if not (a0 and a0:IsA("Attachment")) then
+				local made = Instance.new("Attachment")
+				made.Name = "ObbyVineGrip"
+				made.Parent = knob
+				a0 = made
+			end
+			local a1 = Instance.new("Attachment")
+			a1.Name = "ObbyVineHands"
+			a1.Parent = workspace.Terrain
+			local beam = Instance.new("Beam")
+			beam.Attachment0 = a0 :: Attachment
+			beam.Attachment1 = a1
+			beam.Width0 = ObbyMoves.ROPE_WIDTH
+			beam.Width1 = ObbyMoves.ROPE_WIDTH
+			beam.Color = ColorSequence.new(knob.Color)
+			beam.FaceCamera = true
+			beam.Segments = 1
+			beam.LightEmission = 0
+			beam.Transparency = NumberSequence.new(0)
+			beam.Parent = knob
+			vine.beam = beam
+			vine.hands = a1
+			hands = a1
+		end
+		local grip = knob.Position
+		local c = character
+		if c then
+			local right = c:FindFirstChild("RightHand") or c:FindFirstChild("Right Arm")
+			local left = c:FindFirstChild("LeftHand") or c:FindFirstChild("Left Arm")
+			if right and left and right:IsA("BasePart") and left:IsA("BasePart") then
+				local function tip(p: BasePart): Vector3
+					-- a hand's middle; an R6 arm (one part) its far end along the raised arm
+					return if p.Name == "RightHand" or p.Name == "LeftHand"
+						then p.Position
+						else (p.CFrame * CFrame.new(0, -p.Size.Y / 2, 0)).Position
+				end
+				grip = (tip(right) + tip(left)) / 2
+			end
+		end
+		(hands :: Attachment).WorldPosition = grip
+	end
+
+	-- Ropes let go of swing on by themselves and fade back to their server-time swing over RETURN.
+	local function stepReturns(m: Me)
+		for i = #vine.returns, 1, -1 do
+			local r = vine.returns[i]
+			local fade = 1 - (m.clock - r.at) / ObbyMoves.RETURN
+			if fade <= 0 or not r.knob.Parent then
+				showRope(r.knob, r.ropePart, nil, nil)
+				table.remove(vine.returns, i)
+			else
+				r.th, r.w = Vine.step(r.arm, r.th, r.w, 0, m.dt)
+				showRope(r.knob, r.ropePart, r.th, fade * fade * (3 - 2 * fade))
+			end
+		end
+	end
+
+	-- A knob within reach grabs you (in the air, or on the ground while you walk at it). True when one did.
+	local function grabRope(m: Me): boolean
+		if m.clock - vine.lastAt < ObbyMoves.REGRAB_ANY then
+			return false
+		end
+		local p = m.root.Position
+		local walk = flat(m.humanoid.MoveDirection)
+		for _, candidate in vines do
+			local knob = candidate.part
+			if not knob.Parent then
+				continue
+			end
+			if candidate == vine.last and m.clock - vine.lastAt < ObbyMoves.REGRAB_SAME then
+				continue
+			end
+			local q = knob.Position
+			if not Vine.touches(p.X, p.Y, p.Z, q.X, q.Y, q.Z, num(candidate.spec.vine, "reach", 3)) then
+				continue
+			end
+			-- on the ground only while you walk at it (never a rope behind you on a landing pad)
+			if m.grounded and walk:Dot(unitOr(flat(q - p), Vector3.zero)) < ObbyMoves.WALK_IN then
+				continue
+			end
+			local r = ropeOf(candidate)
+			if not r then
+				continue
+			end
+			-- the rope swings to your angle and keeps CARRY of your speed along the swing, plus some of its own
+			local rel = p - r.pivot
+			local v = m.root.AssemblyLinearVelocity
+			local ka = q - r.pivot
+			local kth = math.atan2(ka:Dot(r.dir), -ka:Dot(r.up))
+			local tangent = r.dir * math.cos(kth) + r.up * math.sin(kth)
+			local ropeW = if r.arm > 1e-3 then knob.AssemblyLinearVelocity:Dot(tangent) / r.arm else 0
+			vine.th, vine.w = Vine.grab(r.arm, rel:Dot(r.dir), rel:Dot(r.up), v:Dot(r.dir), v:Dot(r.up), ropeW)
+			vine.item = candidate
+			vine.rope = r
+			vine.at = m.clock
+			vine.from = p
+			vine.grabs += 1
+			-- a rope still easing back from your last let go is yours again
+			for i = #vine.returns, 1, -1 do
+				if vine.returns[i].knob == knob then
+					table.remove(vine.returns, i)
+				end
+			end
+			hold = "vine"
+			drive = nil
+			platform(m.humanoid, true)
+			armsUp(true)
+			playSound("squelch", m.root)
+			puff(q, knob.Color, 8)
+			showHint(vine.grabs <= ObbyMoves.HINT_GRABS)
+			return true
+		end
+		return false
+	end
+
+	local function stepVine(m: Me)
+		stepReturns(m)
+		if vine.item == nil then
+			if hold ~= nil or not grabRope(m) then
 				return
 			end
 		end
-		local part = (item :: Item).part
-		if not part.Parent then
+		local r = vine.rope :: Rope
+		local knob = r.item.part
+		if not knob.Parent then
 			endVine(m.humanoid)
 			return
 		end
-		local at = vineEnd(part)
-		if vine.prev and m.dt > 0 then
-			vine.velocity = (at - (vine.prev :: Vector3)) / m.dt
-		end
-		vine.prev = at
-		if takeJump(vine.at + ObbyMoves.JUMP_GRACE) then
-			local release = vine.velocity + Vector3.new(0, ObbyMoves.RELEASE_UP, 0)
+		-- the pump: the stick along the swing's plane
+		local push = math.clamp(vineStick():Dot(unitOr(flat(r.dir), Vector3.zero)), -1, 1)
+		vine.th, vine.w = Vine.step(r.arm, vine.th, vine.w, push, m.dt)
+		local hang, velocity = hangOf(r, vine.th, vine.w, 0)
+		local k = math.clamp((m.clock - vine.at) / ObbyMoves.GRAB_EASE, 0, 1)
+		local ease = k * k * (3 - 2 * k)
+		showRope(knob, r.ropePart, vine.th, ease)
+		if pressAt > vine.at + Vine.GRACE and pressAt > usedPress then
+			usedPress = pressAt
+			usedJump = math.max(usedJump, jumpAt)
+			local _, release = hangOf(r, vine.th, vine.w, Vine.UP)
 			endVine(m.humanoid)
 			m.humanoid.Jump = false
 			m.root.AssemblyLinearVelocity = release
 			m.root.AssemblyAngularVelocity = Vector3.zero
 			m.humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
 			glide(release, m.clock)
+			playSound("whoom", m.root)
+			puff(knob.Position, Color3.new(1, 1, 1), 6)
 			return
 		end
-		local forward = unitOr(flat(frame.XVector), Vector3.xAxis)
-		local hang = at - Vector3.new(0, ObbyMoves.HANG, 0)
-		m.root.CFrame = CFrame.lookAt(hang, hang + forward)
-		m.root.AssemblyLinearVelocity = vine.velocity
+		-- the body leans with the rope (TILT of its angle), facing down the course
+		local pos = vine.from:Lerp(hang, ease)
+		local face = unitOr(flat(frame.XVector), Vector3.xAxis)
+		local lean = CFrame.fromAxisAngle(unitOr(r.dir:Cross(r.up), Vector3.zAxis), Vine.TILT * vine.th)
+		m.root.CFrame = CFrame.new(pos) * lean * CFrame.lookAt(Vector3.zero, face)
+		m.root.AssemblyLinearVelocity = velocity
 		m.root.AssemblyAngularVelocity = Vector3.zero
+		local _, release = hangOf(r, vine.th, vine.w, Vine.UP)
+		vineHint(m, r, hang, release)
+		vineBeam(r)
 	end
 
 	------------------------------------------------------------------ cannon
@@ -989,9 +1353,24 @@ function ObbyMoves.start(): Controller
 
 	------------------------------------------------------------------ moon
 
-	local function zoneAt(list: { Item }, p: Vector3): Item?
+	-- The zone of `list` the body (feet to head) is in: `current` (the one it was in) while it stays within
+	-- ZONE_PAD + ZONE_HOLD, else the first within ZONE_PAD.
+	local function zoneAt(list: { Item }, m: Me, current: Item?): Item?
+		local a = m.root.Position - Vector3.new(0, feetDrop(m), 0)
+		local b = m.root.Position + Vector3.new(0, ObbyMoves.HEAD_UP, 0)
+		local function isIn(item: Item, pad: number): boolean
+			local part = item.part
+			-- a moon bubble is the dome ObbyParts draws (a Sphere mesh: the ellipsoid in the box), even before its
+			-- mesh has streamed in
+			local zone = item.spec.zone
+			local shape = if zone and zone.kind == "moon" then "ellipsoid" else ObbyZone.shapeOf(part)
+			return part.Parent ~= nil and ObbyZone.touches(part.CFrame, part.Size, shape, a, b, pad)
+		end
+		if current and table.find(list, current) and isIn(current, ObbyMoves.ZONE_PAD + ObbyMoves.ZONE_HOLD) then
+			return current
+		end
 		for _, item in list do
-			if item.part.Parent and inBox(item.part, p, 0) then
+			if isIn(item, ObbyMoves.ZONE_PAD) then
 				return item
 			end
 		end
@@ -999,7 +1378,8 @@ function ObbyMoves.start(): Controller
 	end
 
 	local function stepMoon(m: Me)
-		local zone = zoneAt(moons, m.root.Position)
+		local zone = zoneAt(moons, m, moon.zone)
+		moon.zone = zone
 		if not zone then
 			if moon.inside then
 				playSound("whoom", m.root)
@@ -1035,7 +1415,8 @@ function ObbyMoves.start(): Controller
 	------------------------------------------------------------------ dark
 
 	local function stepDark(m: Me)
-		local zone = zoneAt(darks, m.root.Position)
+		local zone = zoneAt(darks, m, dark.zone)
+		dark.zone = zone
 		if zone then
 			dark.light = num(zone.spec.zone, "light", ObbyMoves.DEFAULT_LIGHT)
 		end
@@ -1157,7 +1538,13 @@ function ObbyMoves.start(): Controller
 	end
 
 	local jumpConnection = UserInputService.JumpRequest:Connect(function()
-		jumpAt = os.clock()
+		local now = os.clock()
+		-- a held jump repeats its request: only one after a gap is a fresh press (the vine lets go on those)
+		if now - requestAt > ObbyMoves.PRESS_GAP then
+			pressAt = now
+		end
+		requestAt = now
+		jumpAt = now
 	end)
 	local removeReset = ObbyFall.onReset(function()
 		endAll()

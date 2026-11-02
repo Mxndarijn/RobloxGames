@@ -275,6 +275,109 @@ local function lamp(st: Stretch, z: number, period: number, fire: number, lead: 
 	})
 end
 
+-- The launcher's mouths (Merijn 2026-11-01: the bare dark housings read as "pins" nobody understood). Under the
+-- housing, right over the spot where a line's ball lands, sits a danger-red rim round a dark hole with the next ball
+-- hanging out of it at its real size, so you read "red balls drop out of here" before the first one does. The real
+-- ball's rest centre (`mouth`) is just inside, so every ball visibly drops out through it. Decor only (ghost): touching
+-- it does nothing and no ball's timing changes. One mouth per line and housing, sized for the biggest ball on it; a
+-- housing that moves (Roaming Launcher) gets one mouth in its middle that rides along.
+local PEEK = 1.2 -- how far the waiting ball hangs under the housing: its bottom (LIFT - PEEK over the floor) clears a head
+local RIM = 0.6 -- red rim width round the hole
+
+local function mouths(parts: { Part })
+	local houses: { Part } = {}
+	for _, p in parts do
+		if p.look == "post" and not p.ghost then
+			table.insert(houses, p)
+		end
+	end
+	type Mouth = { x: number, y: number, z: number, d: number, log: number?, follow: Kit.Motion? }
+	local found: { [string]: Mouth } = {}
+	local order: { string } = {}
+	for _, p in parts do
+		local m = p.motion
+		if p.hazard and m and m.kind == "path" then
+			local d = p.size[2]
+			local bottom = p.pos[2] - d / 2 - 0.5 -- the housing's underside (rollSpec: mouth = bottom + 0.5 + r)
+			local x, z = p.pos[1], p.pos[3]
+			local key = string.format("%.2f %.2f %.2f", x, bottom, z)
+			local follow: Kit.Motion? = nil
+			for i, h in houses do
+				local under = math.abs(h.pos[1] - x) <= h.size[1] / 2 + 0.01
+					and math.abs(h.pos[2] - h.size[2] / 2 - bottom) < 0.01
+				if under and h.motion then
+					key, z, follow = `house{i}`, h.pos[3], table.clone(h.motion)
+				end
+			end
+			local log = if p.shape == "log" then p.size[1] else nil
+			local had = found[key]
+			if not had then
+				table.insert(order, key)
+				found[key] = { x = x, y = bottom, z = z, d = d, log = log, follow = follow }
+			elseif d > had.d or (log and not had.log) then
+				had.d, had.log = math.max(d, had.d), log or had.log
+			end
+		end
+	end
+	for _, key in order do
+		local o = found[key]
+		-- A roller's slot spans the lane: the small balls of that housing drop out of it too (Full Sweep).
+		local inSlot = false
+		for _, other in found do
+			if other.log and not o.log and math.abs(other.x - o.x) < 0.01 and math.abs(other.y - o.y) < 0.01 then
+				inSlot = true
+			end
+		end
+		if inSlot then
+			continue
+		end
+		local extra = function(more: { [string]: any }?): { [string]: any }
+			local e: { [string]: any } = { ghost = true, motion = if o.follow then table.clone(o.follow) else nil }
+			if more then
+				for k, v in more do
+					e[k] = v
+				end
+			end
+			return e
+		end
+		if o.log then
+			-- A roller: a slot across the lane, the next roller lying in it.
+			local across = math.min(o.log + 2 * RIM, Kit.WIDTH)
+			table.insert(parts, Kit.prop({ o.d + 2 * RIM, 0.3, across }, { o.x, o.y - 0.15, o.z }, "danger", extra()))
+			table.insert(
+				parts,
+				Kit.prop({ o.d + 0.2, 0.34, across - 2 * RIM + 0.2 }, { o.x, o.y - 0.17, o.z }, "post", extra())
+			)
+			table.insert(
+				parts,
+				Kit.prop(
+					{ o.log, o.d, o.d },
+					{ o.x, o.y - PEEK + o.d / 2, o.z },
+					"loaded",
+					extra({ shape = "log", yaw = 90 })
+				)
+			)
+		else
+			-- Kept inside the lane (z in [-HALF, HALF]) on lines that hug an edge.
+			local f = o.follow
+			local reach = math.abs(o.z) + (if f and f.kind == "slide" and f.axis == "z" then f.amp or 0 else 0)
+			local rim = math.min(o.d + 2 * RIM, 2 * (Kit.HALF - reach))
+			table.insert(
+				parts,
+				Kit.prop({ rim, 0.3, rim }, { o.x, o.y - 0.15, o.z }, "danger", extra({ shape = "disc" }))
+			)
+			table.insert(
+				parts,
+				Kit.prop({ rim - RIM, 0.34, rim - RIM }, { o.x, o.y - 0.17, o.z }, "post", extra({ shape = "disc" }))
+			)
+			table.insert(
+				parts,
+				Kit.prop({ o.d, o.d, o.d }, { o.x, o.y - PEEK + o.d / 2, o.z }, "loaded", extra({ shape = "ball" }))
+			)
+		end
+	end
+end
+
 -- A thin painted strip on the floor between two { x, z } points (lane lines, grooves).
 local function paint(st: Stretch, a: Vec, b: Vec, wide: number, look: string): Part
 	local dx, dz = b[1] - a[1], b[2] - a[2]
@@ -889,5 +992,15 @@ M.variants = {
 		end,
 	},
 }
+
+-- Every variant's launchers get their mouths (after the build, so the balls say where the mouths go).
+for _, variant in M.variants do
+	local build = variant.build
+	variant.build = function(seed: number): Kit.Section
+		local section = build(seed)
+		mouths(section.parts)
+		return section
+	end
+end
 
 return M

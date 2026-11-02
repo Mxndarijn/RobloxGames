@@ -31,10 +31,12 @@ local DESIGN = {
 	"Blind Crest",
 }
 
--- Hazard windows a tier earns (contract §10); a window longer than STILL s is still goo (steer round it).
+-- Hazard windows a tier earns (contract §10); a window longer than STILL s is still goo (steer round it). Medium's
+-- ceiling was 1.4: the forgiveness pass (Merijn, 2026-11-01: spin slower) turns Brake and Go's paddles 1.4x slower,
+-- which opens it to 1.6.
 local BAND = {
 	easy = { lo = 1.4, hi = 2.0 },
-	medium = { lo = 1.0, hi = 1.4 },
+	medium = { lo = 1.0, hi = 1.7 },
 	hard = { lo = 0.75, hi = 1.0 },
 }
 local STILL = 5

@@ -27,6 +27,8 @@ local LockPad = require(script.Parent.LockPad)
 local LockPadView = require(script.Parent.LockPadView)
 local MoveGuard = require(ReplicatedStorage.Shared.MoveGuard)
 local MoveWatch = require(script.Parent.MoveWatch)
+local ObbyAvatar = require(script.Parent.ObbyAvatar)
+local ObbyAvatarView = require(script.Parent.ObbyAvatarView)
 local ObbyService = require(script.Parent.ObbyService)
 local ObbyView = require(script.Parent.ObbyView)
 local PlayerAttributes = require(script.Parent.PlayerAttributes)
@@ -65,6 +67,7 @@ export type Deps = {
 export type Loop = Deps & {
 	homeZoneFull: { [number]: string }, -- userId -> slime id told "plot full" during this zone visit
 	cashPads: CashPadView.State, -- FEATURES.CashPads discs and visitor nag timers
+	obbyAvatar: ObbyAvatar.State, -- runners' own body scales while the obby normalises them
 	shopCheckedAt: { [number]: number },
 	lastView: number,
 	lastClock: number,
@@ -79,6 +82,7 @@ function ServerLoop.new(deps: Deps): Loop
 	local loop: any = table.clone(deps)
 	loop.homeZoneFull = {}
 	loop.cashPads = CashPadView.new()
+	loop.obbyAvatar = ObbyAvatar.new()
 	loop.shopCheckedAt = {}
 	loop.lastView = 0
 	loop.lastClock = -math.huge
@@ -91,6 +95,7 @@ function ServerLoop.forget(loop: Loop, userId: number)
 	loop.homeZoneFull[userId] = nil
 	loop.shopCheckedAt[userId] = nil
 	CashPadView.forget(loop.cashPads, userId)
+	ObbyAvatar.forget(loop.obbyAvatar, userId)
 	SlimeGuard.forget(loop.world, userId)
 	SlimeGuardView.forget(userId)
 end
@@ -189,6 +194,10 @@ local function stepPlayers(loop: Loop, t: number)
 			if result.rebuilt and world.obby then
 				ObbyView.build(world.obby)
 			end
+			-- Standard body scales on a run, own ones back after: before the moves, so runners land at their run size.
+			loop.safeCall("obby avatar", function()
+				ObbyAvatarView.sync(loop.obbyAvatar, world)
+			end)
 			ObbyView.apply(result.moves, function(userId: number)
 				SlimeGuard.serverMoved(world, userId, t) -- the anti-cheat must not read the lift as a teleport hack
 			end)

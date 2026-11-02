@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obby Geyser Look</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #f2f5f9; --surface: #ffffff; --ink: #1c2230; --muted: #5a6478; --line: #dbe1ea;
+  --sky: #2f7fd8; --sky-soft: #dceafb; --goo: #1f9e83; --goo-soft: #d8f1ea;
+  --warn: #c0392b; --warn-soft: #fbe2df; --med: #b07510; --med-soft: #fbefd8;
+  --scene: #d6ecff;
+  --f-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151c; --surface: #19202a; --ink: #e6eaf0; --muted: #9aa5b6; --line: #2a3340;
+    --sky: #6aa9f0; --sky-soft: #172b44; --goo: #45c9a8; --goo-soft: #173a33;
+    --warn: #f07a6e; --warn-soft: #3d1f1c; --med: #f0b24a; --med-soft: #3a2d14;
+    --scene: #b9d9f5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151c; --surface: #19202a; --ink: #e6eaf0; --muted: #9aa5b6; --line: #2a3340;
+  --sky: #6aa9f0; --sky-soft: #172b44; --goo: #45c9a8; --goo-soft: #173a33;
+  --warn: #f07a6e; --warn-soft: #3d1f1c; --med: #f0b24a; --med-soft: #3a2d14;
+  --scene: #b9d9f5;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6;
+  padding: 40px 16px 80px; }
+main { max-width: 1040px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.2; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; }
+h2 { font-size: 26px; font-weight: 600; }
+h3 { font-size: 20px; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+section { display: grid; gap: 16px; }
+code { font-family: var(--f-mono); font-size: .86em; background: var(--sky-soft); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--sky); margin: 0; }
+.lede { font-size: 18px; color: var(--muted); }
+ul.plain { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 72ch; }
+.note { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--sky); border-radius: 10px; padding: 14px 18px; display: grid; gap: 8px; }
+.note.alert { border-left-color: var(--med); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 18px; }
+.card-head { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.pick { font-family: var(--f-display); font-weight: 700; font-size: 15px; background: var(--ink); color: var(--bg); padding: 4px 14px; border-radius: 999px; white-space: nowrap; }
+.why { color: var(--muted); }
+.live { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.live figure { margin: 0; }
+figure { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--scene); }
+figure svg { display: block; width: 100%; height: auto; }
+figcaption { font-size: 14px; color: var(--muted); padding: 8px 10px; background: var(--surface); border-top: 1px solid var(--line); }
+figcaption b { color: var(--ink); }
+.timeline { position: relative; display: grid; grid-template-columns: 60fr 20fr 20fr; font-size: 12px; font-family: var(--f-mono); background: var(--surface); border-top: 1px solid var(--line); }
+.timeline span { padding: 6px 8px; border-right: 1px solid var(--line); }
+.timeline span:nth-child(2) { background: var(--med-soft); color: var(--med); }
+.timeline span:nth-child(3) { background: var(--warn-soft); color: var(--warn); border-right: 0; }
+.timeline i { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--ink); left: 0; }
+.states { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.reads { display: grid; gap: 10px; align-content: start; font-size: 15px; }
+.reads dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; }
+.reads dt { font-weight: 700; }
+.reads dd { margin: 0; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--f-display); font-weight: 600; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.build { display: grid; gap: 10px; font-size: 15px; }
+.build h4 { margin: 0; font-family: var(--f-display); font-size: 16px; font-weight: 600; }
+.risk { color: var(--warn); }
+.good { color: var(--goo); }
+.decided { border: 2px dashed var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 10px; }
+.decided .blank { color: var(--muted); font-style: italic; }
+.today { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 760px) {
+  .live, .today { grid-template-columns: 1fr; }
+  .states { grid-template-columns: 1fr; }
+  .states figure svg { max-height: 240px; }
+}
+@media (min-width: 480px) and (max-width: 760px) {
+  .states { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .states figcaption { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<header style="display:grid;gap:12px">
+  <p class="eyebrow">Steal a Slime · Obby · Geyser Field (idea 21) · proposal</p>
+  <h1>A new look for the geysers</h1>
+  <p class="lede">Today a geyser is hard to read: you can't tell when it will go off. Below are three looks, each shown quiet, about to blow, and erupting. They all keep the same timing. Pick one, A, B or C.</p>
+</header>
+
+<section>
+  <h2>What a geyser does</h2>
+  <ul class="plain">
+    <li><b>Vent (the orange one).</b> This is a timed spring. It throws you 9 to 14 studs up, but only while it blows: 0.4 to 1.0 s out of every 1.8 to 4 s. The rest of the time it is a plain floor. Today the only warning is its colour turning whiter over the last <b>0.8 s</b> (<code>BOUNCE_WARN</code>).</li>
+    <li><b>Red geyser.</b> A red column that is only there while it blows. If you touch it then, you go back to the start pad. When it's off it is see-through and harmless, and it blinks for 0.5 s before it comes back.</li>
+    <li><b>Pit column.</b> A column out of a red goo pit that you ride up and hover in while it blows. It fades over 0.8 s before it cuts out.</li>
+    <li><b>One-shot vent.</b> A bubble cap over the vent. Touching it lights a fuse of 0.75 to 1.4 s, then the vent blows once and refills.</li>
+    <li><b>What is safe.</b> A vent never hurts you: if you miss its blow, you just wait for the next one. Only the red parts hurt. Vents under a red column have a 3-stud strip the red never reaches, which is where you wait.</li>
+  </ul>
+  <p>So the new look has to make three moments obvious: <b>"not yet"</b>, <b>"get on now, it's about to go"</b> (the 0.8 s warning) and <b>"it's throwing"</b>.</p>
+</section>
+
+<section>
+  <h2>Today</h2>
+  <div class="today">
+    <figure>
+      <svg viewBox="0 0 300 250" role="img" aria-label="Today's look: a dark navy diamond-plate square with white rings floating above it and a thin yellow square frame">
+        <rect width="300" height="250" fill="#d6ecff"/>
+        <defs><pattern id="dp" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#5a6078"/><rect width="3" height="8" fill="#6c7290"/></pattern></defs>
+        <rect x="0" y="210" width="300" height="40" fill="#6eaaff"/>
+        <rect x="110" y="204" width="80" height="8" fill="url(#dp)"/>
+        <rect x="110" y="70" width="80" height="140" fill="#cde6fa" opacity=".25"/>
+        <ellipse cx="150" cy="82" rx="40" ry="7" fill="none" stroke="#fff" stroke-width="3"/>
+        <ellipse cx="150" cy="92" rx="32" ry="5" fill="none" stroke="#fff" stroke-width="2.5"/>
+        <rect x="110" y="118" width="80" height="2" fill="none" stroke="#ffc832" stroke-width="2"/>
+        <g fill="#96dc5a"><circle cx="134" cy="160" r="2"/><circle cx="162" cy="130" r="2"/><circle cx="148" cy="185" r="2"/></g>
+      </svg>
+      <figcaption>Redrawn from Merijn's screenshot.</figcaption>
+    </figure>
+    <div class="note alert">
+      <p><b>This screenshot is probably not a Geyser Field vent.</b> A dark diamond-plate base, white rings at the top and a yellow frame make up the <b>Updraft</b> wind column (idea 5): a <code>fan</code> base, the <code>wind</code> look's top rings and the <code>glow</code> hover frame. A Geyser Field vent is an orange <code>spring</code> disc with 1 to 3 flat white rings. Its pit column is the same <code>wind</code> look, but with no fan or frame.</p>
+      <p>Either way, both read as "machine" rather than "geyser", and neither shows the timing well. The options below cover vents, red geysers and pit columns. See the questions at the end about Updraft.</p>
+    </div>
+  </div>
+</section>
+
+<section class="note">
+  <h3>The same in every option</h3>
+  <ul class="plain">
+    <li><b>Orange still means "throws you" and red still means "hurts"</b> (contract §8, one look per behaviour). The 1 to 3 power rings stay on the vent.</li>
+    <li><b>The timing doesn't change.</b> The tells look ahead on the same <code>Kit</code> clock the checks use, and the warning stays 0.8 s (Dry Run's fuse is only 0.75 s, so a longer warning would never show in full).</li>
+    <li><b>Nothing new to upload.</b> Parts and cylinders, <code>CylinderHandleAdornment</code> / <code>SphereHandleAdornment</code> rings and eyes (these add no parts), and ParticleEmitters with built-in textures only: <code>rbxasset://textures/whiteCircle.png</code> (already used by CarryTrail), <code>particles/smoke_main.dds</code> and <code>particles/sparkles_main.dds</code> (both already used by Effects and WeatherFx).</li>
+    <li><b>No Neon on the column and no Glass.</b> Columns are SmoothPlastic, partly see-through. Only particles get <code>LightEmission</code>.</li>
+    <li><b>Every new piece is a ghost decor part</b> (no collision, no query, no touch), so it never changes what you stand on or what hurts you. The vent pad itself stays the only thing that throws.</li>
+    <li><b>Sound is not part of this pick.</b> The existing "boing" stays. A warning rumble would be a separate proposal.</li>
+  </ul>
+</section>
+
+<!-- ========================= OPTION A ========================= -->
+<section class="card" id="opt-a">
+  <div class="card-head"><span class="pick">Pick A</span><h2>Goo Fountain</h2></div>
+  <p class="why">The vent is a little orange goo pool. When it's about to blow, the goo swells and bubbles hard. Then a thick wobbly goo column shoots up and splashes. This is the most "slime world" option and the closest to a real geyser.</p>
+  <div class="live">
+    <figure><div class="scene" data-opt="A" data-live></div><div class="timeline" aria-hidden="true"><span>Quiet</span><span>Warn 0.8 s</span><span>Blow</span><i></i></div><figcaption><b>Live loop</b> of one 4 s cycle.</figcaption></figure>
+    <div class="reads"><dl>
+      <dt>Quiet</dt><dd>A flat orange pool in a darker orange rim, with two or three lazy bubbles.</dd>
+      <dt>Warn</dt><dd>The goo domes up, lightens toward white (the glow we have today), shakes, and bubbles come faster and faster.</dd>
+      <dt>Blow</dt><dd>A wobbly goo column as tall as the throw, with a splash crown and droplets raining off it. It sinks back as the blow ends.</dd>
+    </dl></div>
+  </div>
+  <div class="states">
+    <figure><div class="scene" data-opt="A" data-t="1.0"></div><figcaption><b>Quiet</b></figcaption></figure>
+    <figure><div class="scene" data-opt="A" data-t="2.98"></div><figcaption><b>About to blow</b></figcaption></figure>
+    <figure><div class="scene" data-opt="A" data-t="3.42"></div><figcaption><b>Erupting</b></figcaption></figure>
+  </div>
+  <div class="build">
+    <h4>Build note</h4>
+    <ul class="plain">
+      <li><b>+2 parts per vent:</b> a <code>Rim</code> cylinder (spring tone 2, a little wider than the pad, its top 0.3 studs over it) and a <code>Column</code> cylinder (spring tone 1, transparency 0.3, hidden at 1 when quiet). ObbyFx sets the column's height every frame: up to the throw height in 0.15 s, then it sinks over the last 30% of the blow.</li>
+      <li><b>2 emitters</b> (they add no parts): <code>Bubbles</code> on the pad (whiteCircle, orange tint, Rate 2, ramping to 18 over the warning) and <code>Spray</code> on an attachment at the column top (whiteCircle, Acceleration -40, one <code>Emit(20)</code> when the blow starts, Rate 0 otherwise).</li>
+      <li><b>Warning:</b> the pad's own colour glow (as today), plus the rim and pad shaking ±0.08 studs, done locally per player.</li>
+      <li><b>Red geyser:</b> the same goo column in hazard red, keeping the dark edge, plus a red pool part at its foot (+1) that bubbles red during the 0.5 s blink.</li>
+      <li><b>Pit column:</b> a goo column that stays up while it runs, with bubbles rising inside (one emitter), fading over its 0.8 s.</li>
+      <li><b>Budget:</b> the busiest section, Red Field (4 vents and 5 red), goes from about 17 to about 30 parts, under the cap of 80. It has 9 emitters in idle, and the busy rates last 0.8 s each.</li>
+    </ul>
+    <p class="risk">Risk: an orange column next to the orange spring pads could look like "a spring that grew". Fix: the column only shows while the vent throws, which is exactly what it means.</p>
+  </div>
+</section>
+
+<!-- ========================= OPTION B ========================= -->
+<section class="card" id="opt-b">
+  <div class="card-head"><span class="pick">Pick B</span><h2>Steam Vent with a closing ring</h2></div>
+  <p class="why">A stony cone with the orange pad in its mouth. Steam wisps rise from it. When it's about to blow, a white ring appears wide around the vent and closes in. When the ring shuts, a white water column blasts up in a burst of mist. This option shows the timing most exactly: you can watch it count down.</p>
+  <div class="live">
+    <figure><div class="scene" data-opt="B" data-live></div><div class="timeline" aria-hidden="true"><span>Quiet</span><span>Warn 0.8 s</span><span>Blow</span><i></i></div><figcaption><b>Live loop</b> of one 4 s cycle.</figcaption></figure>
+    <div class="reads"><dl>
+      <dt>Quiet</dt><dd>A stone cone with one or two thin steam wisps.</dd>
+      <dt>Warn</dt><dd>A bright ring appears at about twice the vent's width and shrinks to its middle over the 0.8 s. The steam thickens, the cone rumbles, and the pad glows.</dd>
+      <dt>Blow</dt><dd>A white-and-cyan water column, a cloud of mist at its top, and blue-white drops falling around it.</dd>
+    </dl></div>
+  </div>
+  <div class="states">
+    <figure><div class="scene" data-opt="B" data-t="1.0"></div><figcaption><b>Quiet</b></figcaption></figure>
+    <figure><div class="scene" data-opt="B" data-t="2.6"></div><figcaption><b>About to blow</b></figcaption></figure>
+    <figure><div class="scene" data-opt="B" data-t="3.42"></div><figcaption><b>Erupting</b></figcaption></figure>
+  </div>
+  <div class="build">
+    <h4>Build note</h4>
+    <ul class="plain">
+      <li><b>+2 parts per vent:</b> a <code>Cone</code> (a cylinder ring round the pad in a new stone tone, lilac-grey (139, 134, 166), so it is neither a floor colour nor red) and a <code>Column</code> cylinder (white-cyan (234, 249, 255), transparency 0.35, scaled per frame like A's).</li>
+      <li><b>1 adornment:</b> the <b>closing ring</b>, a <code>CylinderHandleAdornment</code> whose Radius goes from 2 × the vent radius to 0.5 over the warning. It adds no parts and is the one thing that says "now".</li>
+      <li><b>2 emitters:</b> <code>Steam</code> (smoke_main, white, Rate 1 → 8 over the warning) and <code>Mist</code> at the column top (smoke_main and whiteCircle, one <code>Emit(15)</code> when the blow starts).</li>
+      <li><b>Red geyser:</b> a red column with red steam, and its own closing ring during the 0.5 s blink. Every geyser counts down the same way.</li>
+      <li><b>Pit column:</b> a water column you ride; the ring closes on it during the 0.8 s fade, meaning "get off".</li>
+      <li><b>Budget:</b> the same as A, about 30 parts in Red Field. Smoke particles cost a little more fill on phones, so keep them to 8 at most per vent.</li>
+    </ul>
+    <p class="risk">Risk: a white column looks like the pale <code>wind</code> look, and steam on stone feels more "volcano park" than goo. It is the least cute of the three.</p>
+  </div>
+</section>
+
+<!-- ========================= OPTION C ========================= -->
+<section class="card" id="opt-c">
+  <div class="card-head"><span class="pick">Pick C</span><h2>Sleepy Slime</h2></div>
+  <p class="why">Each vent is a squat orange slime with the pad on its head. It dozes. When it's about to blow, its eyes pop open, it puffs up and shakes. Then it squishes down and spits a goo column. This option has the most character, and the timing has a face: eyes shut means wait, eyes wide means get on now.</p>
+  <div class="live">
+    <figure><div class="scene" data-opt="C" data-live></div><div class="timeline" aria-hidden="true"><span>Quiet</span><span>Warn 0.8 s</span><span>Blow</span><i></i></div><figcaption><b>Live loop</b> of one 4 s cycle.</figcaption></figure>
+    <div class="reads"><dl>
+      <dt>Quiet</dt><dd>Eyes shut, slow breathing, little "z" bubbles.</dd>
+      <dt>Warn</dt><dd>The eyes snap wide open, the body puffs up about 30%, it shakes, a sweat drop appears, and it lightens toward white.</dd>
+      <dt>Blow</dt><dd>It squishes flat with its eyes squeezed shut and spits a goo column with a splash, as in A.</dd>
+    </dl></div>
+  </div>
+  <div class="states">
+    <figure><div class="scene" data-opt="C" data-t="1.0"></div><figcaption><b>Quiet</b></figcaption></figure>
+    <figure><div class="scene" data-opt="C" data-t="2.98"></div><figcaption><b>About to blow</b></figcaption></figure>
+    <figure><div class="scene" data-opt="C" data-t="3.42"></div><figcaption><b>Erupting</b></figcaption></figure>
+  </div>
+  <div class="build">
+    <h4>Build note</h4>
+    <ul class="plain">
+      <li><b>+2 parts per vent:</b> a <code>Body</code> cylinder ring round the pad (spring tone 2, 1.2 studs proud, scaled per frame to breathe, puff and squash) and a <code>Column</code>, as in A.</li>
+      <li><b>About 6 adornments</b> (they add no parts) for the face on the side you walk up from: two <code>SphereHandleAdornment</code> eye whites and two pupils for "open", and two thin <code>BoxHandleAdornment</code> bars for "shut" and "squeezed". ObbyFx turns them on and off by state.</li>
+      <li><b>2 emitters:</b> <code>Doze</code> (whiteCircle, Rate 0.7, quiet only) and <code>Spray</code> at the column top, as in A.</li>
+      <li><b>Red geyser:</b> a grumpy red slime (angry brows made from two small box adornments) under the red column.</li>
+      <li><b>Pit column:</b> no face (the pit is red goo). A goo column, as in A.</li>
+      <li><b>Budget:</b> the same part count as A. It has the most adornments, but those are cheap.</li>
+    </ul>
+    <p class="risk">Risk: the face only reads from the side you approach from, and in Quick Spouts and Summit Spouts you often see a vent from above or behind. An orange slime that is not a slime you can steal could also confuse new players. The face also needs the most tuning in Studio.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Side by side</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th></th><th>A · Goo Fountain</th><th>B · Steam Vent</th><th>C · Sleepy Slime</th></tr></thead>
+    <tbody>
+      <tr><th>Fits the goo world</th><td class="good">Best</td><td>Weakest</td><td class="good">Very cute</td></tr>
+      <tr><th>"When exactly?"</th><td>Bubbles speed up</td><td class="good">Ring closes: most exact</td><td>Eyes pop open</td></tr>
+      <tr><th>Reads from above or behind</th><td class="good">Yes</td><td class="good">Yes</td><td class="risk">Face only from the front</td></tr>
+      <tr><th>Extra parts per vent</th><td>2</td><td>2</td><td>2</td></tr>
+      <tr><th>Emitters / adornments</th><td>2 / 0</td><td>2 / 1</td><td>2 / about 6</td></tr>
+      <tr><th>Work in ObbyFx</th><td>Small</td><td>Small</td><td>Medium (states for the face)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="note">
+  <h2>Recommendation</h2>
+  <p><b>A, the Goo Fountain, with B's closing ring added.</b> A's goo pool and column fit the slime world best and read from any angle, and its eruption is the clearest "it's throwing" of the three. B's closing ring is one adornment with no part cost, and it turns the warning from "bubbling more" into an exact countdown. C is the most charming, but its face fails from above or behind, which is how you see a lot of these vents.</p>
+</section>
+
+<section>
+  <h2>Questions for Merijn</h2>
+  <ul class="plain">
+    <li>Was your screenshot the <b>Updraft</b> wind column (dark fan, rings, yellow frame) rather than a Geyser Field vent? If so, should Updraft get a matching rework (for example, a fan that spins up during its fade) or keep its machine look?</li>
+    <li>Should the pick also restyle the <b>pit columns</b> and <b>red geysers</b>, as each option describes, or only the orange vents?</li>
+    <li>A short warning rumble sound: yes or no? It would come as a separate proposal; nothing would be uploaded.</li>
+  </ul>
+</section>
+
+<section class="decided" id="decided">
+  <h2>Decided</h2>
+  <p class="blank">Not decided yet. Merijn's pick and answers go here.</p>
+</section>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var CYCLE = 4, WARN_AT = 2.4, BLOW_AT = 3.2;
+  var GROUND = 210, VX = 150, THROW = 126; // 9 px per stud: a 14-stud throw
+  var uid = 0;
+  var C = {
+    orange: "#ff9632", orange2: "#ff7828", orangeDeep: "#d9621c", rock: "#6eaaff", ledge: "#78dc78",
+    ink: "#281e3c", stone: "#8b86a6", stoneDark: "#6c6789", water: "#eaf9ff", waterEdge: "#8fd3f2"
+  };
+  function fr(x) { return x - Math.floor(x); }
+  function hex(c) { return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)]; }
+  function mix(a, b, k) {
+    var x = hex(a), y = hex(b);
+    return "rgb(" + x.map(function (v, i) { return Math.round(v + (y[i] - v) * k); }).join(",") + ")";
+  }
+  function glow(c, k) { return mix(c, "#ffffff", 0.55 * k); } // ObbyFx.GLOW
+  function phase(t) {
+    t = ((t % CYCLE) + CYCLE) % CYCLE;
+    if (t < WARN_AT) return { s: "quiet", k: 0, b: 0, t: t };
+    if (t < BLOW_AT) return { s: "warn", k: (t - WARN_AT) / (BLOW_AT - WARN_AT), b: 0, t: t };
+    return { s: "blow", k: 1, b: (t - BLOW_AT) / (CYCLE - BLOW_AT), t: t };
+  }
+  function height(b) {
+    var up = Math.min(1, b / 0.18); up = 1 - Math.pow(1 - up, 3);
+    var down = b > 0.7 ? 1 - ((b - 0.7) / 0.3) * 0.75 : 1;
+    return THROW * up * down;
+  }
+  function avatar(x, foot) {
+    return '<g>' +
+      '<rect x="' + (x - 6) + '" y="' + (foot - 14) + '" width="5" height="14" rx="1" fill="#3a4a7a"/>' +
+      '<rect x="' + (x + 1) + '" y="' + (foot - 14) + '" width="5" height="14" rx="1" fill="#3a4a7a"/>' +
+      '<rect x="' + (x - 8) + '" y="' + (foot - 30) + '" width="16" height="16" rx="2" fill="#2f9e83"/>' +
+      '<rect x="' + (x - 6) + '" y="' + (foot - 43) + '" width="12" height="12" rx="3" fill="#ffd8a8"/>' +
+      '<circle cx="' + (x + 2) + '" cy="' + (foot - 38) + '" r="1.3" fill="' + C.ink + '"/></g>';
+  }
+  function ground() {
+    return '<rect x="0" y="' + GROUND + '" width="300" height="40" fill="' + C.rock + '" opacity=".92"/>' +
+      '<rect x="0" y="' + GROUND + '" width="300" height="3" fill="#9cc6ff"/>' +
+      '<rect x="236" y="96" width="64" height="18" rx="2" fill="' + C.ledge + '" opacity=".92"/>' +
+      '<rect x="236" y="96" width="64" height="3" fill="#a6eaa6"/>';
+  }
+  function gooColumn(H, t, w, bottom, top, edge) {
+    if (H < 2) return "";
+    var id = "g" + (++uid), L = [], R = [], y;
+    for (y = 0; y <= H; y += 6) {
+      var taper = 1 - (y / H) * 0.15;
+      L.push((VX - (w / 2) * taper - Math.sin(y * 0.09 + t * 14) * 2.5).toFixed(1) + "," + (GROUND - 4 - y).toFixed(1));
+      R.push((VX + (w / 2) * taper + Math.cos(y * 0.08 + t * 13) * 2.5).toFixed(1) + "," + (GROUND - 4 - y).toFixed(1));
+    }
+    var pts = L.concat(R.reverse()).join(" ");
+    var topY = GROUND - 4 - H;
+    return '<defs><linearGradient id="' + id + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="' + bottom + '"/><stop offset="1" stop-color="' + top + '"/></linearGradient></defs>' +
+      '<polygon points="' + pts + '" fill="url(#' + id + ')" stroke="' + edge + '" stroke-width="1.5" opacity=".88"/>' +
+      '<rect x="' + (VX - w * 0.22) + '" y="' + (topY + 10) + '" width="4" height="' + Math.max(0, H - 24) + '" rx="2" fill="#fff" opacity=".35"/>' +
+      '<g fill="' + top + '" stroke="' + edge + '" stroke-width="1.2">' +
+      '<circle cx="' + (VX - 13) + '" cy="' + (topY + 2) + '" r="9"/><circle cx="' + (VX + 12) + '" cy="' + (topY + 1) + '" r="10"/>' +
+      '<circle cx="' + VX + '" cy="' + (topY - 6) + '" r="12"/></g>';
+  }
+  function spray(topY, b, color, n) {
+    var out = "", i;
+    for (i = 0; i < n; i++) {
+      var s = fr(b * 1.6 + i / n);
+      var ang = -1 + 2 * fr(i * 0.618);
+      var x = VX + ang * 60 * s, y = topY - (55 + (i % 4) * 12) * s + 150 * s * s;
+      out += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (2.2 + (i % 3) * 0.9) + '" fill="' + color + '" opacity="' + (1 - s * 0.6).toFixed(2) + '"/>';
+    }
+    return out;
+  }
+  function rider(p) {
+    if (p.s !== "blow") return avatar(62, GROUND);
+    var H = height(p.b);
+    var lift = Math.min(1, p.b / 0.45);
+    var foot = GROUND - 4 - Math.max(H, THROW * (1 - Math.pow(1 - lift, 2))) - 4;
+    var x = VX + Math.max(0, p.b - 0.45) / 0.55 * 110;
+    return avatar(x, Math.min(foot, GROUND));
+  }
+
+  // ---- A · Goo Fountain
+  function drawA(p) {
+    var shake = p.s === "warn" ? Math.sin(p.t * 70) * 2 * p.k : 0;
+    var body = "";
+    body += '<g transform="translate(' + shake.toFixed(2) + ',0)">';
+    body += '<rect x="108" y="200" width="84" height="12" rx="6" fill="' + C.orange2 + '" stroke="' + C.orangeDeep + '" stroke-width="1.5"/>';
+    var ry = 5 + 9 * p.k, cy = 202 - 4 * p.k;
+    if (p.s === "blow") { ry = 3; cy = 203; }
+    body += '<ellipse cx="' + VX + '" cy="' + cy + '" rx="34" ry="' + ry + '" fill="' + glow(C.orange, p.k) + '" stroke="' + C.orangeDeep + '" stroke-width="1"/>';
+    body += '<ellipse cx="' + (VX - 12) + '" cy="' + (cy - ry * 0.4) + '" rx="8" ry="' + (ry * 0.25 + 0.5) + '" fill="#fff" opacity=".45"/>';
+    body += "</g>";
+    var n = p.s === "blow" ? 0 : Math.round(3 + 9 * p.k), i, bub = "";
+    for (i = 0; i < n; i++) {
+      var per = 1.3 - 0.75 * p.k, u = fr(p.t / per + i * 0.37);
+      var bx = VX + ((i * 53) % 56) - 28, by = cy - ry * 0.5 - u * (16 + 26 * p.k), r = 2 + (i % 3);
+      bub += '<circle cx="' + bx + '" cy="' + by.toFixed(1) + '" r="' + r + '" fill="#ffe1bf" stroke="' + C.orange + '" stroke-width="1" opacity="' + (1 - u).toFixed(2) + '"/>';
+    }
+    var col = "";
+    if (p.s === "blow") {
+      var H = height(p.b);
+      col = gooColumn(H, p.t, 46, C.orange2, "#ffc46a", C.orangeDeep) + spray(GROUND - 4 - H, p.b, "#ffb050", 14);
+    }
+    return ground() + col + body + bub + rider(p);
+  }
+
+  // ---- B · Steam Vent
+  function drawB(p) {
+    var shake = p.s === "warn" ? Math.sin(p.t * 80) * 1.6 * p.k : 0;
+    var out = ground();
+    var steamN = p.s === "blow" ? 0 : Math.round(2 + 6 * p.k), i;
+    var steam = "";
+    for (i = 0; i < steamN; i++) {
+      var per = 2.2 - 1.2 * p.k, u = fr(p.t / per + i * 0.29);
+      var sx = VX + ((i * 37) % 30) - 15 + Math.sin(u * 6 + i) * 6, sy = 194 - u * (45 + 35 * p.k);
+      steam += '<circle cx="' + sx.toFixed(1) + '" cy="' + sy.toFixed(1) + '" r="' + (4 + u * 11).toFixed(1) + '" fill="#fff" opacity="' + (0.6 * (1 - u)).toFixed(2) + '"/>';
+    }
+    if (p.s === "blow") {
+      var H = height(p.b), topY = GROUND - 4 - H, w = 40;
+      out += '<rect x="' + (VX - w / 2) + '" y="' + topY + '" width="' + w + '" height="' + H + '" rx="10" fill="' + C.water + '" stroke="' + C.waterEdge + '" stroke-width="2" opacity=".92"/>';
+      for (i = 0; i < 4; i++) {
+        var ry = topY + fr(p.t * 2 + i / 4) * H;
+        out += '<path d="M' + (VX - w / 2 + 5) + ' ' + ry.toFixed(1) + ' q ' + (w / 4 - 2) + ' -6 ' + (w / 2 - 5) + ' 0 t ' + (w / 2 - 5) + ' 0" fill="none" stroke="' + C.waterEdge + '" stroke-width="1.5" opacity=".7"/>';
+      }
+      if (H > 20) {
+        out += '<g fill="#fff" opacity=".92"><circle cx="' + (VX - 22) + '" cy="' + (topY + 4) + '" r="14"/><circle cx="' + (VX + 20) + '" cy="' + (topY + 2) + '" r="15"/><circle cx="' + VX + '" cy="' + (topY - 10) + '" r="17"/></g>';
+      }
+      out += spray(topY, p.b, "#bfe9fb", 16);
+    }
+    out += '<g transform="translate(' + shake.toFixed(2) + ',0)">';
+    out += '<polygon points="102,212 120,194 180,194 198,212" fill="' + C.stone + '" stroke="' + C.stoneDark + '" stroke-width="1.5"/>';
+    out += '<path d="M128 212 l6 -9 l-3 -5 M168 212 l-5 -10" stroke="' + C.stoneDark + '" stroke-width="1.3" fill="none"/>';
+    out += '<ellipse cx="' + VX + '" cy="195" rx="29" ry="4" fill="' + glow(C.orange, p.k) + '" stroke="' + C.orangeDeep + '" stroke-width="1"/>';
+    out += "</g>";
+    if (p.s === "warn") {
+      var rx = 74 - 66 * p.k;
+      out += '<ellipse cx="' + VX + '" cy="196" rx="' + rx.toFixed(1) + '" ry="' + (rx * 0.18 + 1).toFixed(1) + '" fill="none" stroke="#fff" stroke-width="3.5"/>';
+      out += '<ellipse cx="' + VX + '" cy="196" rx="' + rx.toFixed(1) + '" ry="' + (rx * 0.18 + 1).toFixed(1) + '" fill="none" stroke="' + C.orange + '" stroke-width="1.2" stroke-dasharray="4 4"/>';
+    }
+    return out + steam + rider(p);
+  }
+
+  // ---- C · Sleepy Slime
+  function drawC(p) {
+    var h = 24, w = 92, shake = 0;
+    if (p.s === "quiet") h = 24 * (1 + 0.05 * Math.sin(p.t * 2.4));
+    if (p.s === "warn") { h = 24 * (1 + 0.32 * p.k); w = 92 + 10 * p.k; shake = Math.sin(p.t * 75) * 2 * p.k; }
+    if (p.s === "blow") { var sq = p.b < 0.8 ? 1 : 1 - (p.b - 0.8) / 0.2; h = 24 - 8 * sq; w = 92 + 14 * sq; }
+    var x0 = VX - w / 2 + shake, x1 = VX + w / 2 + shake, cx = VX + shake;
+    var topY = GROUND - 0.82 * h;
+    var col = "";
+    if (p.s === "blow") {
+      var H = height(p.b);
+      col = gooColumn(H, p.t, 40, C.orange2, "#ffc46a", C.orangeDeep) + spray(GROUND - 4 - H, p.b, "#ffb050", 14);
+    }
+    var fill = glow(C.orange, p.k);
+    var s = '<path d="M' + x0 + ' ' + GROUND + ' C ' + x0 + ' ' + (GROUND - h * 1.1) + ' ' + x1 + ' ' + (GROUND - h * 1.1) + ' ' + x1 + ' ' + GROUND + ' Z" fill="' + fill + '" stroke="' + C.orangeDeep + '" stroke-width="1.6"/>';
+    s += '<ellipse cx="' + cx + '" cy="' + (topY + 2) + '" rx="' + (w * 0.3) + '" ry="3" fill="' + glow(C.orange2, p.k) + '" stroke="' + C.orangeDeep + '" stroke-width="1"/>';
+    s += '<ellipse cx="' + (cx - w * 0.26) + '" cy="' + (GROUND - h * 0.62) + '" rx="6" ry="3" fill="#fff" opacity=".45" transform="rotate(-25 ' + (cx - w * 0.26) + ' ' + (GROUND - h * 0.62) + ')"/>';
+    var ey = GROUND - h * 0.4, ex = w * 0.17;
+    [-1, 1].forEach(function (d) {
+      var x = cx + d * ex;
+      if (p.s === "quiet") {
+        s += '<path d="M' + (x - 5) + ' ' + ey + ' q 5 4 10 0" fill="none" stroke="' + C.ink + '" stroke-width="2.2" stroke-linecap="round"/>';
+      } else if (p.s === "warn") {
+        var r = 4.5 + 2 * p.k;
+        s += '<circle cx="' + x + '" cy="' + (ey - 1) + '" r="' + r + '" fill="#fff" stroke="' + C.ink + '" stroke-width="1.5"/>';
+        s += '<circle cx="' + (x + d * 0.5) + '" cy="' + (ey - 1) + '" r="' + (2.2 + 0.4 * p.k) + '" fill="' + C.ink + '"/>';
+      } else {
+        s += '<path d="M' + (x - d * 5) + ' ' + (ey - 4) + ' l ' + (d * 6) + ' 3.5 l ' + (-d * 6) + ' 3.5" fill="none" stroke="' + C.ink + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';
+      }
+    });
+    if (p.s === "warn" && p.k > 0.25) {
+      var dx = x1 - 10, dy = GROUND - h * 0.85;
+      s += '<path d="M' + dx + ' ' + dy + ' q 4 6 0 8 q -4 -2 0 -8" fill="#bfe9fb" stroke="#6fb8db" stroke-width="1"/>';
+    }
+    if (p.s === "quiet") {
+      for (var i = 0; i < 2; i++) {
+        var u = fr(p.t / 2.2 + i * 0.5), zx = x1 - 4 + u * 16, zy = topY - 6 - u * 30, z = 4 + u * 3;
+        s += '<path d="M' + zx + ' ' + zy + ' h ' + z + ' l ' + (-z) + ' ' + z + ' h ' + z + '" fill="none" stroke="' + C.ink + '" stroke-width="1.6" opacity="' + (1 - u).toFixed(2) + '" stroke-linejoin="round"/>';
+      }
+    }
+    return ground() + col + s + rider(p);
+  }
+
+  var DRAW = { A: drawA, B: drawB, C: drawC };
+  var LABEL = { quiet: "quiet", warn: "about to blow", blow: "erupting" };
+  function render(el, t) {
+    var p = phase(t), opt = el.getAttribute("data-opt");
+    el.innerHTML = '<svg viewBox="30 28 270 216" role="img" aria-label="Option ' + opt + ', ' + LABEL[p.s] + '">' +
+      '<rect width="300" height="250" fill="#d6ecff"/>' + DRAW[opt](p) + "</svg>";
+  }
+  var scenes = Array.prototype.slice.call(document.querySelectorAll(".scene"));
+  scenes.forEach(function (el) { render(el, parseFloat(el.getAttribute("data-t") || "1")); });
+  var lives = scenes.filter(function (el) { return el.hasAttribute("data-live"); });
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (still) {
+    lives.forEach(function (el) { render(el, 2.98); });
+    return;
+  }
+  var t0 = null;
+  function frame(ts) {
+    if (t0 === null) t0 = ts;
+    var t = ((ts - t0) / 1000) % CYCLE;
+    lives.forEach(function (el) {
+      render(el, t);
+      var bar = el.parentNode.querySelector(".timeline i");
+      if (bar) bar.style.left = (t / CYCLE * 100).toFixed(2) + "%";
+    });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

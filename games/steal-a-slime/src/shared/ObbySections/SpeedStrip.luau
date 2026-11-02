@@ -416,7 +416,7 @@ M.variants = {
 			local length = 71
 			local speed = 35
 			local crossFrom, crossTo = 20, 32
-			local lift = 11
+			local lift = 13 -- the crusher's bottom at rest (was 11): a jump under it at rest no longer clips it
 			return Kit.section(length, 0, {
 				plain(0, 4, 0, 0, Kit.WIDTH, 1),
 				strip(4, crossFrom, 0, -6.5, 11, speed, { boost = { speed = speed, carry = 1.2 } }),

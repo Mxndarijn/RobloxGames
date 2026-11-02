@@ -1,7 +1,8 @@
 --!strict
 -- Melting Floor (obby idea 2): every variant through ObbyCheck, plus what the shared checks don't time: a runner
--- model crosses the route and every melting tile it stands on must still be there when it leaves (spreading melt
--- from tiles behind included), and the generator stays solvable and deterministic over many more seeds.
+-- model crosses the route and every melting tile it stands on must still be there MeltingFloor.SLACK[tier] s after it
+-- leaves (spreading melt from tiles behind included), and the generator stays solvable and deterministic over many
+-- more seeds.
 local T = require("../TestRunner")
 local describe, it, expect = T.describe, T.it, T.expect
 local Kit = require("../../src/shared/ObbySections/Kit")
@@ -39,14 +40,44 @@ local function gapOf(a: Part, b: Part): number
 	return math.sqrt(dx * dx + dz * dz)
 end
 
--- nil when the runner model crosses the main route before any melting tile under it goes; else why not.
-local function runnerProblem(section: Kit.Section): string?
+local AIM_INSET = 2.5 -- studs inside a step's side edge the runner aims for when the route steps sideways
+
+-- The flat way from (ax, az) to (bx, bz): unit x, unit z, length.
+local function towards(ax: number, az: number, bx: number, bz: number): (number, number, number)
+	local dx, dz = bx - ax, bz - az
+	local d = math.sqrt(dx * dx + dz * dz)
+	if d < 1e-6 then
+		return 1, 0, 0
+	end
+	return dx / d, dz / d, d
+end
+
+-- How far `p` reaches from its centre along the flat unit way (ux, uz) (a disc by its radius).
+local function halfAlong(p: Part, ux: number, uz: number): number
+	if p.shape == "disc" then
+		return p.size[1] / 2
+	end
+	local hx = if math.abs(ux) > 1e-6 then p.size[1] / 2 / math.abs(ux) else math.huge
+	local hz = if math.abs(uz) > 1e-6 then p.size[3] / 2 / math.abs(uz) else math.huge
+	return math.min(hx, hz)
+end
+
+-- nil when the runner model crosses the main route with every melting tile under it lasting `slack` s longer; else
+-- why not. The runner keeps to each step's middle line, moved sideways only as far as it must to stay AIM_INSET
+-- inside the next step.
+local function runnerProblem(section: Kit.Section, slack: number): string?
 	local parts = section.parts
 	local steps: { number } = {}
 	for i, p in parts do
 		if p.step and p.route == nil then
 			table.insert(steps, i)
 		end
+	end
+	local aim: { [number]: number } = {}
+	for k, i in steps do
+		local p = parts[i]
+		local room = math.max(0, (if p.shape == "disc" then p.size[1] else p.size[3]) / 2 - AIM_INSET)
+		aim[i] = if k == 1 then p.pos[3] else math.clamp(aim[steps[k - 1]], p.pos[3] - room, p.pos[3] + room)
 	end
 	-- each step's way in: the step before, or the nearest earlier step when that one is out of jump reach
 	local land: { [number]: number } = {}
@@ -68,11 +99,20 @@ local function runnerProblem(section: Kit.Section): string?
 				end
 			end
 			land[i] = t + airTime(topOf(p) - topOf(parts[from]))
-			local into = math.max(0, Kit.WALK * airTime(topOf(p) - topOf(parts[from])) * REACH - gapOf(parts[from], p))
-			-- length along the way: the dominant axis from the step before to the step after
-			local prev, nxt = parts[steps[k - 1]], parts[steps[math.min(k + 1, #steps)]]
-			local dx, dz = math.abs(nxt.pos[1] - prev.pos[1]), math.abs(nxt.pos[3] - prev.pos[3])
-			local long = if dx >= dz then p.size[1] else p.size[3]
+			-- the way in from the take-off step and out to the next step, between the aim points
+			local a = parts[from]
+			local ux, uz, d = towards(a.pos[1], aim[from], p.pos[1], aim[i])
+			local gap = math.max(0, d - halfAlong(a, ux, uz) - halfAlong(p, ux, uz))
+			local into = math.max(0, Kit.WALK * airTime(topOf(p) - topOf(a)) * REACH - gap)
+			local vx, vz = ux, uz
+			if k < #steps then
+				local n = steps[k + 1]
+				local wx, wz, e = towards(p.pos[1], aim[i], parts[n].pos[1], aim[n])
+				if e > 1e-6 then
+					vx, vz = wx, wz
+				end
+			end
+			local long = halfAlong(p, ux, uz) + halfAlong(p, vx, vz)
 			leave[i] = land[i] + math.max(0, long - into) / Kit.WALK + REJUMP
 			t = leave[i]
 		end
@@ -112,10 +152,10 @@ local function runnerProblem(section: Kit.Section): string?
 		local m = parts[i].motion
 		if k > 1 and k < #steps and m and m.kind == "melt" and m.on ~= "leave" then
 			local gone = start[i] + (m.delay or 0)
-			if gone < leave[i] - 1e-6 then
+			if gone < leave[i] + slack - 1e-6 then
 				return `step {k} (part {i}) goes at {math.floor(gone * 100) / 100} s, the runner leaves it at {math.floor(
 					leave[i] * 100
-				) / 100} s`
+				) / 100} s ({slack} s to spare needed)`
 			end
 		end
 	end
@@ -133,11 +173,11 @@ describe("MeltingFloor", function()
 		expect(table.concat(problems, "\n")).toBe("")
 	end)
 
-	it("the runner leaves every melting tile before it goes (variants, seeds 1..20)", function()
+	it("the runner leaves every melting tile the tier's slack before it goes (variants, seeds 1..20)", function()
 		local problems = {}
 		for _, case in ObbyCheck.cases(MeltingFloor :: any) do
 			for seed = 1, ObbyCheck.SEEDS do
-				local why = runnerProblem(case.build(seed))
+				local why = runnerProblem(case.build(seed), MeltingFloor.SLACK[case.tier])
 				if why then
 					table.insert(problems, `{case.name} seed {seed}: {why}`)
 					break
@@ -162,7 +202,7 @@ describe("MeltingFloor", function()
 						table.insert(problems, `{tier} seed {seed}: {why}`)
 					end
 				end
-				local why = runnerProblem(a)
+				local why = runnerProblem(a, MeltingFloor.SLACK[tier])
 				if why then
 					table.insert(problems, `{tier} seed {seed}: {why}`)
 				end
@@ -185,24 +225,21 @@ describe("MeltingFloor", function()
 		expect(table.concat(problems, "\n")).toBe("")
 	end)
 
-	it(
-		"tiers earn their holds: easy tiles hold 0.9..2 s, medium under 0.75 s, hard under 0.6 s on the route",
-		function()
-			local limits = { easy = { 0.85, 2.0 }, medium = { 0.35, 0.75 }, hard = { 0.3, 0.6 } }
-			local problems = {}
-			for _, case in ObbyCheck.cases(MeltingFloor :: any) do
-				local section = case.build(1)
-				for i, p in section.parts do
-					local m = p.motion
-					if p.step and m and m.kind == "melt" and m.on ~= "leave" then
-						local lim = limits[case.tier]
-						if (m.delay or 0) < lim[1] - 1e-6 or (m.delay or 0) > lim[2] + 1e-6 then
-							table.insert(problems, `{case.name}: part {i} holds {m.delay} s`)
-						end
+	it("tiers earn their holds: easy tiles hold 0.85..2 s, medium and hard under 0.9 s on the route", function()
+		local limits = { easy = { 0.85, 2.0 }, medium = { 0.35, 0.9 }, hard = { 0.3, 0.9 } }
+		local problems = {}
+		for _, case in ObbyCheck.cases(MeltingFloor :: any) do
+			local section = case.build(1)
+			for i, p in section.parts do
+				local m = p.motion
+				if p.step and m and m.kind == "melt" and m.on ~= "leave" then
+					local lim = limits[case.tier]
+					if (m.delay or 0) < lim[1] - 1e-6 or (m.delay or 0) > lim[2] + 1e-6 then
+						table.insert(problems, `{case.name}: part {i} holds {m.delay} s`)
 					end
 				end
 			end
-			expect(table.concat(problems, "\n")).toBe("")
 		end
-	)
+		expect(table.concat(problems, "\n")).toBe("")
+	end)
 end)

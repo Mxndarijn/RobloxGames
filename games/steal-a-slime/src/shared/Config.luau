@@ -1713,6 +1713,19 @@ local Config = {
 		REBUILD_GRACE = 90, -- a new rotation waits this long for runners to finish before it sends them home
 		RESPAWN_LIFT = 3, -- studs above the start pad a runner appears (on entering and after a fall)
 		MOVE_GRACE = 1.5, -- after the server moves a runner, their old position may still arrive once: no fall / off-course checks
+		-- During a run the runner's base lock counts down at this rate: lock seconds lost per real second (0.5 = 50 %
+		-- slower; server/ObbyLock pushes lockUntil out). Kept within 0.1..1, so a run never holds a lock forever.
+		LOCK_RATE = 0.5,
+		-- A runner's R15 body scales during a run (server/ObbyAvatar): the standard avatar the course is tuned for, so
+		-- tall or wide avatars fit its gaps, ceilings and beams. Their own scales come back when the run ends.
+		AVATAR_SCALES = table.freeze({
+			BodyHeightScale = 1,
+			BodyWidthScale = 1,
+			BodyDepthScale = 1,
+			HeadScale = 1,
+			BodyTypeScale = 0,
+			BodyProportionScale = 0,
+		}),
 	}),
 
 	-- Boss event (server/BossEvent, Shared.BossFight, contract/boss-event.md). Seconds unless noted.

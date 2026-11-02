@@ -5,7 +5,8 @@
 	The Obby on this player's screen, from State.obby:
 	  * a run card at the top of the screen while a run is on: the section the runner is on (x / 5) and the run clock
 	  * the portal sign's two lines (workspace.Obby.Portal, server/ObbyView), filled locally for this player: their
-	    boost status ("Step in: x1.5 income!", "Boost 3:12", "Boost ready in 1:40") and when the course changes
+	    boost status ("Step in: x1.5 income!", "Boost 3:12", "Boost ready in 1:40"; "Cleared! Next course soon" once
+	    they cleared this course, which the portal then refuses) and when the course changes
 	The boost itself shows in the HUD's status row (HudClusters.obby). Text comes from the pure functions below
 	(tested in tests/ui/ObbyHud.spec); `new` only draws them.
 ]]
@@ -23,8 +24,8 @@ export type View = {
 	readyAt: number?,
 	sections: { string },
 	rotatesAt: number,
-	run: { section: number, of: number, startedAt: number }?,
-	best: number?,
+	run: { section: number, of: number, startedAt: number, lockRate: number? }?,
+	best: number?, -- set = cleared this course
 }
 
 local ObbyHud = {}
@@ -57,7 +58,9 @@ function ObbyHud.statusText(view: View?, now: number): string
 	end
 	local v = view :: View
 	local mult = Format.formatMultiplier(1 + v.bonus)
-	if v.endsAt and v.endsAt > now then
+	if v.best then
+		return "Cleared! Next course soon" -- the portal waits for the next course (the line below says when)
+	elseif v.endsAt and v.endsAt > now then
 		return `{mult} income · {clock(v.endsAt - now)} left`
 	elseif v.readyAt and v.readyAt > now then
 		return `Boost ready in {clock(v.readyAt - now)}`

@@ -67,7 +67,7 @@ type Opts = {
 	melt: number?, -- seconds a safe tile holds you (nil = it stays)
 	maxRun: number?,
 	snake: boolean?,
-	sign: string?,
+	sign: string?, -- the entry sign's picture for this mode (visuals/shared/ObbySigns), nil = the plain glow one
 	salt: number,
 }
 
@@ -164,8 +164,7 @@ local function build(o: Opts, seed: number): Kit.Section
 	local mode = o.mode
 
 	local parts: { Part } = {}
-	local entry =
-		Kit.slab(entryLong / 2, 0, 0, entryLong, Kit.WIDTH, "pad", { marker = `sign:{o.sign or "Remember the glow"}` })
+	local entry = Kit.slab(entryLong / 2, 0, 0, entryLong, Kit.WIDTH, "pad")
 	table.insert(parts, entry)
 	local grid: { { Part } } = {}
 	local x = entryLong + gap
@@ -315,7 +314,9 @@ local function build(o: Opts, seed: number): Kit.Section
 	for _, p in extra do
 		table.insert(parts, p)
 	end
-	return Kit.section(length, rise, parts)
+	local section = Kit.section(length, rise, parts)
+	section.sign = o.sign -- the mode's picture on the entry sign; nil = the idea's ("glow")
+	return section
 end
 
 local function variant(name: string, tier: string, o: Opts): Kit.Variant
@@ -357,7 +358,7 @@ M.variants = {
 	variant(
 		"Show Me Pad",
 		"medium",
-		{ mode = "trigger", rows = 7, on = 2, period = 8, melt = 1.4, sign = "Step on the button", salt = 5 }
+		{ mode = "trigger", rows = 7, on = 2, period = 8, melt = 1.4, sign = "glowButton", salt = 5 }
 	),
 	-- The path changes lane every row.
 	variant(
@@ -369,7 +370,7 @@ M.variants = {
 	variant(
 		"Pink Traps",
 		"medium",
-		{ mode = "pink", rows = 7, on = 2, period = 10, melt = 1.4, sign = "Pink = fake", salt = 7 }
+		{ mode = "pink", rows = 7, on = 2, period = 10, melt = 1.4, sign = "glowPink", salt = 7 }
 	),
 	-- Each row 2.5 studs higher: you lose sight of the top rows as you climb.
 	variant(
@@ -387,7 +388,7 @@ M.variants = {
 	variant(
 		"Map Behind You",
 		"medium",
-		{ mode = "board", rows = 7, entry = 8, melt = 1.4, sign = "Map behind you", salt = 10 }
+		{ mode = "board", rows = 7, entry = 8, melt = 1.4, sign = "glowBehind", salt = 10 }
 	),
 	-- Eight rows, a 1.5 s flash every 10 s.
 	variant("Quick Flash", "hard", {
@@ -414,14 +415,14 @@ M.variants = {
 		exit = 4,
 		on = 2.5,
 		maxRun = 2,
-		sign = "One look only",
+		sign = "glowOnce",
 		salt = 12,
 	}),
 	-- Two paths take turns every 8 s: the other path's own tiles fade out, mid-run too.
 	variant(
 		"New Every Round",
 		"hard",
-		{ mode = "rounds", rows = 7, on = 2, period = 8, maxRun = 2, sign = "New path every 8 s", salt = 13 }
+		{ mode = "rounds", rows = 7, on = 2, period = 8, maxRun = 2, sign = "glowRounds", salt = 13 }
 	),
 	-- One tile lit at a time, 0.5 s apart: faster than you run.
 	variant("Trail Run", "hard", {
@@ -450,7 +451,7 @@ M.variants = {
 		period = 10,
 		melt = 0.75,
 		maxRun = 2,
-		sign = "Don't stop!",
+		sign = "glowRush",
 		salt = 15,
 	}),
 }
@@ -514,15 +515,15 @@ M.generator = {
 		elseif mode == "trail" then
 			o.mode, o.stagger, o.lit, o.period = "seq", 0.5, 0.75, 8
 		elseif mode == "pink" then
-			o.sign = "Pink = fake"
+			o.sign = "glowPink"
 		elseif mode == "trigger" then
-			o.sign, o.period = "Step on the button", 8
+			o.sign, o.period = "glowButton", 8
 		elseif mode == "board" then
-			o.entry, o.sign = 10, "Map behind you"
+			o.entry, o.sign = 10, "glowBehind"
 		elseif mode == "hot" then
-			o.melt, o.sign = 0.75, "Don't stop!"
+			o.melt, o.sign = 0.75, "glowRush"
 		elseif mode == "rounds" then
-			o.period, o.on, o.melt, o.sign = 8, 2, nil, "New path every 8 s"
+			o.period, o.on, o.melt, o.sign = 8, 2, nil, "glowRounds"
 		end
 		return build(o, seed)
 	end,

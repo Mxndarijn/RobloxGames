@@ -6,11 +6,10 @@
 	the goo sends you back to the start pad (it is a `hazard`). The goo starts on the per-player clock "goo", which the
 	first step (or the arch in Head Start Gate) starts when you touch it, and resets with every reset.
 
-	The goo is built from `rise` parts. One rise part goes up at one speed after a delay, up to a stop. A goo surface
-	that pauses, surges or speeds up is several rise parts stacked in the same pool, each starting a little lower and
-	a little narrower (no z-fighting) and timed so the highest of them traces the planned curve: a pause is the next
-	part starting later, a surge or a faster stretch is a steeper part catching up from below. That only works while
-	the speed never drops between pauses (`flood` asserts it), so "slow between surges" is a full pause here.
+	Each pool of goo is one `flood` part. Its plan (rise at a speed up to a height, or wait) becomes the motion's
+	`keys`, { time, rise } on the goo clock, and its top surface follows them piecewise linearly (Kit.floodAt): a
+	pause is two keys at the same height, a surge or a faster stretch a steeper line. The part's bottom stays GOO_FLOOR
+	under the rest surface and the client grows it upward (ObbyFx PLAY.flood), so a new phase never adds a part.
 
 	Fairness: tests/ObbyCheck.timers walks the steps at 16 studs / s (0.15 s per jump) from the trigger and needs every
 	step clear of the goo 1 s after the runner leaves it. tests/obby/RisingGoo.spec adds a slower runner (0.3 s per
@@ -22,8 +21,7 @@ local Kit = if script then require(script.Parent.Kit) else require("./Kit")
 
 local GOO = "goo" -- the start group every flood reads
 local GOO_TOP = -1.5 -- the goo surface at rest: just under the entry floor (its bottom is at -1)
-local GOO_FLOOR = 6 -- studs of goo kept under the surface when a flood has risen all the way
-local NUDGE = 0.1 -- each stacked flood part sits this much lower and narrower than the one before
+local GOO_FLOOR = 6 -- studs of goo under the rest surface: a flood's fixed bottom
 
 -- One stretch of a flood plan: rise at `v` studs / s up to surface height `to`, or `wait` seconds.
 type Seg = { v: number?, to: number?, wait: number? }
@@ -43,37 +41,26 @@ end
 ]]
 local function flood(parts: { Kit.Part }, x0: number, x1: number, delay: number, plan: { Seg }): (number, number)
 	local t, h = delay, GOO_TOP
-	local n, lastV = 0, 0
+	local keys = { { t, 0 } }
 	for _, seg in plan do
 		if seg.wait then
 			t += seg.wait
-			lastV = 0
 		else
 			local v, to = seg.v :: number, seg.to :: number
-			assert(v >= lastV - 1e-9, "RisingGoo flood: the speed may only grow between pauses")
-			assert(to > h, "RisingGoo flood: a stretch must rise")
-			local base = GOO_TOP - NUDGE * n
-			local inset = NUDGE / 2 * n
-			-- The part's line passes (t, h) at speed v: it left its rest height `(h - base) / v` s earlier.
-			local start = t - (h - base) / v
-			assert(start >= -1e-9, "RisingGoo flood: a part would have to start before the clock")
-			local stop = to - base
-			local deep = stop + GOO_FLOOR
-			table.insert(
-				parts,
-				Kit.hazard(
-					{ x1 - x0 - 2 * inset, deep, Kit.WIDTH - 2 * inset },
-					{ (x0 + x1) / 2, base - deep / 2, 0 },
-					{
-						motion = { kind = "rise", speed = v, delay = math.max(start, 0), stop = stop },
-						start = GOO,
-					}
-				)
-			)
+			assert(v > 0 and to > h, "RisingGoo flood: a stretch must rise")
 			t += (to - h) / v
-			h, lastV, n = to, v, n + 1
+			h = to
 		end
+		table.insert(keys, { t, h - GOO_TOP })
 	end
+	-- One part: GOO_FLOOR deep at rest, its bottom stays put while its top follows the keys (ObbyFx grows it).
+	table.insert(
+		parts,
+		Kit.hazard({ x1 - x0, GOO_FLOOR, Kit.WIDTH }, { (x0 + x1) / 2, GOO_TOP - GOO_FLOOR / 2, 0 }, {
+			motion = { kind = "flood", keys = keys },
+			start = GOO,
+		})
+	)
 	return t, h
 end
 
@@ -311,8 +298,15 @@ M.variants = {
 				step(0, 16, 0, 0, Kit.WIDTH, "jelly", { tone = 1 }),
 				Kit.prop({ 1, 10, 1 }, { 10.5, 5, -Kit.HALF + 0.5 }, "post"),
 				Kit.prop({ 1, 10, 1 }, { 10.5, 5, Kit.HALF - 0.5 }, "post"),
-				Kit.prop({ 1, 1, Kit.WIDTH }, { 10.5, 9.5, 0 }, "glow", { tone = 1, marker = "sign:3..2..1" }),
-				Kit.prop({ 1, 9, Kit.WIDTH - 2 }, { 10.5, 4.5, 0 }, "glow", { ghost = true, tone = 1, trigger = GOO }),
+				Kit.prop({ 1, 1, Kit.WIDTH }, { 10.5, 9.5, 0 }, "glow", { tone = 1, marker = "pic:countdown" }),
+				-- the arch's opening: a see-through bubble skin you run through (a ghost trigger, as GeyserField's
+				-- bubble caps), not an opaque glow wall that reads as a closed door
+				Kit.prop(
+					{ 1, 9, Kit.WIDTH - 2 },
+					{ 10.5, 4.5, 0 },
+					"bubble",
+					{ ghost = true, tone = 1, trigger = GOO }
+				),
 			}
 			for k = 1, 7 do
 				local x0 = 20 + 13 * (k - 1)
