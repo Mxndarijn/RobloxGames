@@ -5,8 +5,8 @@
 	The lane splits into roads you can study from the fork: a short, hard road (route "fast", on the right, z > 0)
 	and a long, safe one (the main path, on the left, z < 0), with a see-through divider between them where they run
 	side by side. Some variants stack the roads (a miss on the high road lands on the low one), add a third road
-	("top" / "bottom"), a hidden one ("secret") or a crossing plank ("bail"). A `sign:` marker on each road's first
-	pad says which is which.
+	("top" / "bottom"), a hidden one ("secret") or a crossing plank ("bail"). A picture sign (`pic:` marker: lightning,
+	shield, a terrace, ...) on each road's first pad says which is which.
 
 	Walk-forward rule (contract §9, §11): every walking line needs a same-height hole of 4.4 or more, a ledge over 2
 	studs, a wall or a hazard, so short hops on the safe roads climb 2.5 or more, and level hops leave 5-stud holes.
@@ -69,13 +69,16 @@ local function divider(parts: { Part }, x0: number, x1: number, y0: number, y1: 
 	table.insert(parts, Kit.prop({ x1 - x0, y1 - y0, 1 }, { (x0 + x1) / 2, (y0 + y1) / 2, 0 }, "pipe"))
 end
 
--- A red goo sweeper: a bar across a road `road` wide, two studs short of it, sliding side to side so the way past
--- opens on one side, then the other. SWEEP[tier] is its period: the open window it leaves a runner is about 1.7 s
--- (easy), 1.1 s (medium) or 0.9 s (hard) (tests/ObbyCheck.windows).
-local SWEEP = table.freeze({ easy = 4, medium = 2.8, hard = 2.4 })
+-- A red goo sweeper: a bar across a road `road` wide, BLOB_ROOM studs short of it, sliding BLOB_ROOM / 2 side to side
+-- so the way past opens on one side, then the other. At the far end of a slide the open side is BLOB_ROOM wide: a
+-- real character needs about 3.2 (arms 1.5 out from the middle, and the reset box), so a smaller room is a wall.
+-- SWEEP[tier] is its period, so the open window it leaves a runner (tests/ObbyCheck.windows) stays in the tier's band
+-- (tests/obby/TwoRoads.spec).
+local SWEEP = table.freeze({ easy = 3.6, medium = 2.6, hard = 2.4 })
+local BLOB_ROOM = 4
 local function blob(x: number, z: number, top: number, road: number, period: number, phase: number): Part
-	local wide = road - 2
-	local amp = math.min(if road >= ROAD then 1 else 1.5, Kit.HALF - math.abs(z) - wide / 2)
+	local wide = road - BLOB_ROOM
+	local amp = math.min(BLOB_ROOM / 2, Kit.HALF - math.abs(z) - wide / 2)
 	return Kit.hazard({ BLOB_LONG, BLOB_TALL, wide }, { x, top + BLOB_TALL / 2, z }, {
 		motion = { kind = "slide", axis = "z", amp = amp, period = period, phase = phase },
 	})
@@ -127,8 +130,8 @@ local function post(x: number, z: number, top: number, hold: number, period: num
 	})
 end
 
-local FAST = { route = "fast", marker = "sign:FAST" }
-local SAFE = { marker = "sign:SAFE" }
+local FAST = { route = "fast", marker = "pic:fast" }
+local SAFE = { marker = "pic:safe" }
 
 local function fastFirst(i: number, extra: { [string]: any }?): { [string]: any }
 	local e: { [string]: any } = if extra then table.clone(extra) else {}
@@ -351,7 +354,7 @@ M.variants = {
 			end
 			-- The plank: from the second fast pad's left edge to the safe road, through an opening in the divider.
 			local px = (fast[2][1] + fast[2][2]) / 2
-			table.insert(parts, Kit.slab(px, 0, 0.75, 3, 5.5, "beam", { route = "bail", marker = "sign:BAIL" }))
+			table.insert(parts, Kit.slab(px, 0, 0.75, 3, 5.5, "beam", { route = "bail", marker = "pic:bail" }))
 			divider(parts, x0, px - 2, -1, 12)
 			divider(parts, px + 2, x1, -1, 12)
 			exit(parts, length, 0)
@@ -430,7 +433,7 @@ M.variants = {
 			for i, p in lay(8, 72, 5, 5, 0, 0) do
 				local extra: { [string]: any } = { tone = 2 }
 				if i == 1 then
-					extra.marker = "sign:MIDDLE"
+					extra.marker = "pic:middle"
 				elseif i == 3 then
 					extra.motion = { kind = "slide", axis = "x", amp = 1.5, period = 2.6 }
 				end
@@ -442,7 +445,7 @@ M.variants = {
 			for i, p in lay(8, 72, 7, 3, 3, 0) do
 				local extra: { [string]: any } = { route = "bottom", tone = 1 }
 				if i == 1 then
-					extra.marker = "sign:SAFE"
+					extra.marker = "pic:safe"
 				end
 				local top = if i % 2 == 1 then 2 else 0
 				table.insert(parts, slab(p[1], p[2], top, -8, PAD, "jelly", extra))
@@ -531,7 +534,7 @@ M.variants = {
 			): ({ Part }, { Part })
 				local tops = { 1.5, 3, 4.5 }
 				local safe = {}
-				for i, p in lay(x0, x1, 3, 2.5, 2.5, 2.5) do
+				for i, p in lay(x0, x1, 3, 4.5, 0.5, 0.5) do
 					table.insert(
 						safe,
 						slab(
@@ -755,7 +758,7 @@ M.variants = {
 						LEFT,
 						ROAD,
 						"jelly",
-						if i == 1 then { marker = "sign:DOOR 4s" } else { tone = i % 3 + 1 }
+						if i == 1 then { marker = "pic:door4" } else { tone = i % 3 + 1 }
 					)
 				)
 			end
@@ -851,7 +854,7 @@ M.variants = {
 			for i, p in lay(x0, x1, 5, 5.5, 0, 0) do
 				local extra: { [string]: any } = { tone = 2 }
 				if i == 1 then
-					extra.marker = "sign:MIDDLE"
+					extra.marker = "pic:middle"
 				elseif i == 3 then
 					extra.motion = { kind = "flip", duty = 0.6, period = 2.2 }
 				elseif i == 4 then
@@ -866,7 +869,7 @@ M.variants = {
 			for i, p in lay(x0, x1, 6, 4, 4, 0) do
 				local extra: { [string]: any } = { route = "bottom", tone = 1 }
 				if i == 1 then
-					extra.marker = "sign:LOW"
+					extra.marker = "pic:low"
 				elseif i == 3 then
 					extra.motion = { kind = "slide", axis = "x", amp = 1, period = 2.2 }
 				end
@@ -876,7 +879,7 @@ M.variants = {
 				end
 			end
 			-- top, z 4..12: a stair, then two 6-stud gaps over goo
-			table.insert(parts, slab(8, 13, 3.5, 8, PAD, "jelly", { route = "top", tone = 3, marker = "sign:HIGH" }))
+			table.insert(parts, slab(8, 13, 3.5, 8, PAD, "jelly", { route = "top", tone = 3, marker = "pic:high" }))
 			table.insert(parts, slab(13, 31, 7, 8, PAD, "jelly", { route = "top", tone = 3 }))
 			table.insert(
 				parts,
@@ -890,6 +893,8 @@ M.variants = {
 			table.insert(parts, pool(31, 37, 4, 8, PAD))
 			table.insert(parts, pool(45, 51, 4, 8, PAD))
 			table.insert(parts, blob(66, 8, 7, PAD, SWEEP.hard, 0))
+			-- a goo bar over the last top pad, before the sweeper: walk under it to time the sweeper, jump and touch it
+			table.insert(parts, bar(57, 61, 7, 8, PAD))
 			exit(parts, length, rise)
 			return Kit.section(length, rise, parts)
 		end,

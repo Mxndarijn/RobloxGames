@@ -62,19 +62,19 @@
           }
         ]
       },
-      "readability": "A clue room always looks the same: a big framed board with a soft riddle chime as you enter, then a wall of framed goo curtains that each wear one symbol of the same kind as the board. Right door = chime and green flash; wrong door = buzzer, red flash and the floor drops away.",
+      "readability": "A clue room always looks the same: a wall of framed goo curtains with one big framed board centred over them (a soft riddle chime as you enter); each curtain wears one symbol of the same kind as the board. Right door = chime and green flash; wrong door = buzzer, red flash and the floor drops away.",
       "generator": {
         "inputs": "The course slot seed, the section tier, and the room template (2 or 3 doors, 1 or 2 rooms, which clue kinds the template allows).",
         "randomises": "The clue kind (colour, shape, slime, count, cross-out, next in pattern, shadow, mix), the symbols on the board, the distractor symbols, and which door is right, per room.",
         "guarantees": "Exactly one door fits the clue, checked by the generator. Easy symbols differ in both colour and shape, so colour-blind players can always tell them apart. No words, only shapes, dots and slimes. The board can be read from a safe standing spot, or (moving or blinking boards) is fully visible at least 1 s in every 3.5 s. Doors and corridors look the same from outside. The right door is spread evenly over the positions and is never in the same slot three rooms in a row. Everyone on the server gets the same answer, and the next rotation rolls a new one. At most 3 doors per wall so every corridor floor is 8 studs wide.",
-        "difficulty": "Easy: direct match (same colour, shape or slime), 2 to 3 doors, board right in front. Medium: one rule to apply (count, cross-out, next in pattern, shadow) or a board that is harder to see (sweeping bar, blinking, read while hopping). Hard: two rooms in a row, a clue split over two boards, doors that close on a beat, or a board you must keep in mind over a run of jumps."
+        "difficulty": "Easy: direct match (same colour, shape or slime), 2 to 3 doors, board right in front. Medium: one rule to apply (count, cross-out, next in pattern, shadow) or a board that is harder to see (sweeping bar, blinking, read while hopping). Hard: two rooms in a row, a clue split in two halves (colour and shape), doors that close on a beat, or a board you must keep in mind over a run of jumps."
       },
       "variants": [
         {
           "name": "Colour Match",
           "tier": "easy",
           "does": "The board shows one coloured shape; the door wearing the same colour and shape is the way on, and the board sits right in front of the doors.",
-          "numbers": "3 doors 6 wide, board 8x6 studs at 14 studs from the doors, 1 jump onto the door step",
+          "numbers": "3 doors 6 wide, board 8x6 studs centred over the doors, 1 jump onto the door step",
           "view": "side",
           "sketch": [
             [
@@ -336,7 +336,7 @@
           "name": "Shape Only",
           "tier": "easy",
           "does": "Every door wears the same colour, so you match by shape alone (the colour-blind friendly room).",
-          "numbers": "3 doors, one colour, shapes circle / square / triangle, board 14 studs back",
+          "numbers": "3 doors, one colour, shapes circle / square / triangle, board centred over the doors",
           "view": "side",
           "sketch": [
             [
@@ -809,7 +809,7 @@
           "name": "Shadow Clue",
           "tier": "medium",
           "does": "The board shows only the dark outline of a slime; the doors show three slimes in full colour and you match the outline.",
-          "numbers": "3 doors, slimes picked with clearly different outlines (ears, horns, round), board 16 studs back",
+          "numbers": "3 doors, slimes picked with clearly different outlines (ears, horns, round), board centred over the doors",
           "view": "side",
           "sketch": [
             [
@@ -1085,8 +1085,8 @@
         {
           "name": "Side Glance",
           "tier": "medium",
-          "does": "The board stands off to the side of a row of three jelly hops, with no flat spot facing it, so you read it while hopping.",
-          "numbers": "3 hops with 5 stud gaps, board 12 studs to the side, then 3 doors",
+          "does": "Three jelly hops off to the side of the lane, with no flat spot, so you read the board over the doors while hopping.",
+          "numbers": "3 hops with 5 stud gaps, board centred over the doors, then 3 doors",
           "view": "top",
           "sketch": [
             [
@@ -1284,8 +1284,8 @@
         {
           "name": "Mix Clue",
           "tier": "hard",
-          "does": "Two boards: one shows only a colour, the other only a shape; the right door has both, and the other doors each share one half to catch you.",
-          "numbers": "board A = colour splash, board B = grey shape, 3 doors (one right, one same colour, one same shape)",
+          "does": "The board shows only a colour and, beside it, only a shape; the right door has both, and the other doors each share one half to catch you.",
+          "numbers": "one board over the doors: a colour splash and a grey shape side by side, 3 doors (one right, one same colour, one same shape)",
           "view": "side",
           "sketch": [
             [
@@ -1377,7 +1377,7 @@
           "name": "Closing Doors",
           "tier": "hard",
           "does": "The doors shut and open on a beat (pulsing glow and tick before they close), so you read the clue and get through the right door while it is open; a shut door is just a wall.",
-          "numbers": "doors open 2.5 s, shut 1.5 s (Two Roads' Timed gate on BeatClock), board 20 studs back, 2 jumps between",
+          "numbers": "doors open 2.5 s, shut 1.5 s (Two Roads' Timed gate on BeatClock), board centred over the doors, 2 jumps between",
           "view": "side",
           "sketch": [
             [
@@ -1596,8 +1596,8 @@
         {
           "name": "Clue Up High",
           "tier": "hard",
-          "does": "The board sits on top of a short climb of three blocks off to the side; you climb up to read it, then drop back down and pick the door.",
-          "numbers": "3 steps rising 3 studs each, board on a 9 stud high ledge, 3 doors, the board can't be seen from the low path",
+          "does": "A short climb of three blocks off to the side brings you level with the board high over the doors; read it head-on from the top, then drop back down and pick the door.",
+          "numbers": "3 steps rising 3 studs each, 9 stud high ledge, board centred over the doors at eye level from the ledge, 3 doors",
           "view": "side",
           "sketch": [
             [

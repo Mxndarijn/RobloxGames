@@ -19,7 +19,8 @@
 	  * lift    the local player inside the wind column rises at `power`; entering catches a fall; at `cap` studs
 	            above the column's bottom they hover; with `duty` it runs only while `cycle < duty` and fades 0.8 s
 	            before it stops
-	  * swing   a pendulum swinging across the course, `arm` studs below its pivot (shoves what it hits)
+	  * swing   a pendulum swinging across the course (axis "x": along it), `arm` studs below its pivot (shoves what
+	            it hits); a vine rope the local player holds swings at ObbyMoves' angle instead (Vine.HELD_ANGLE)
 	  * rock    a seesaw plank tipping forward and back round its centre
 	  * roll    a log rolling round its own length; its turn carries a player standing on it sideways
 	  * punch   shoots out along its axis, holds, slides back and rests; always a hazard (touching it resets you)
@@ -28,6 +29,8 @@
 	            to the first point is instant), `once` with a `start` clock; carries a rider; `spinRoll` rolls a ball
 	  * sink    lowers `depth` studs at `speed` while the local player stands on it, rises back once they leave
 	  * rise    a flood: rises at `speed` after `delay` on its `start` clock, up to `stop` studs
+	  * flood   one goo part that grows: its top follows `keys` ({ t, up }, Kit.floodAt) on its `start` clock, its
+	            bottom stays put (Size.Y and the centre change each frame)
 	  * drop    a collapsing piece: on its `start` clock it cracks 0.8 s before `at`, then falls away until the reset
 	  * sweep   turns between -`amp` and +`amp` degrees round its vertical axis, `hold` s at each end
 	  * turn    a belt whose conveyor runs one way while `cycle < duty` and the other way after; its chevrons flip
@@ -41,8 +44,8 @@ the player-driven melt, sink, bounce landings and lift columns are timed here.
 Per-player parts (contract §5, the clocks and keys in ObbyClock): a `trigger` part starts its clock on the first
 	touch; a `start` part plays on that clock and sits at rest until it starts; a `key` part is picked up on touch; a
 	`gate` opens once the player holds its `need` keys. Hazards: the frame the local player's root or any limb is
-	inside a `hazard` part (its box grown by HAZARD_PAD), ObbyFall.reset("hazard"). Every reset (ObbyFall.onReset)
-	clears the clocks, keys, melted tiles and collapsed pieces and puts every part back at rest.
+	inside a `hazard` part (its box grown by HAZARD_PAD less HAZARD_GRACE), ObbyFall.reset("hazard"). Every reset
+	(ObbyFall.onReset) clears the clocks, keys, melted tiles and collapsed pieces and puts every part back at rest.
 	Warnings are the part's own Color and Transparency (no extra parts). Decor parts parented under a part (its
 	markers) move and fade with it. A part's `beat` snaps its period to the beat clock, and it pulses on the beat.
 	It also turns the Goo Rings' swirls (the portal's and the ring home's: the "Mesh" swapped into a slot with
@@ -62,8 +65,10 @@ local Constants = require(Shared:WaitForChild("Constants"))
 local ObbyClock = require(script.Parent:WaitForChild("ObbyClock"))
 local ObbyFall = require(script.Parent:WaitForChild("ObbyFall"))
 local ObbyLook = require(Visuals:WaitForChild("ObbyLook"))
+local ObbyZone = require(Visuals:WaitForChild("ObbyZone"))
 -- The one source of motion timing (contract §11): the checks sample the same functions.
 local Kit = require(Shared:WaitForChild("ObbySections"):WaitForChild("Kit"))
+local Vine = require(Shared:WaitForChild("ObbySections"):WaitForChild("Vine"))
 
 local ObbyFx = {}
 
@@ -78,6 +83,12 @@ ObbyFx.GUST_OFF_TRANSPARENCY = 0.96
 ObbyFx.GUST_WARN = 0.6 -- seconds a gust flickers before it starts blowing
 ObbyFx.LIFT_FADE = 0.8 -- seconds a timed lift fades before it stops (contract §4)
 ObbyFx.LIFT_HOVER_GAIN = 4 -- studs/s of upward speed per stud under a lift's cap (a soft spring to the hover height)
+-- A lift or gust takes the root when it is within WIND_PAD studs of the column's side (about half the body sticks in;
+-- never lower than the column's drawn bottom, so a standing walker under a HOP column stays out), and keeps it until
+-- it is WIND_PAD + WIND_HOLD out, so steering along the edge never flickers it off (ObbyZone).
+ObbyFx.WIND_PAD = 0.5
+ObbyFx.WIND_HOLD = 0.5
+ObbyFx.FLOOR_SIDE = 0.8 -- studs off the root's centre the extra floor rays look (standing on a pad's edge)
 ObbyFx.MELT_DARKEN = 0.55 -- share of the way to black a melting tile darkens by the time it drops
 ObbyFx.MELT_FADE = 0.35 -- share of the way to GONE a melting tile fades by the time it drops
 ObbyFx.CRACK_SLOW = 0.35 -- seconds between crack ticks when the warning starts
@@ -94,6 +105,10 @@ ObbyFx.BLINK_RATE = 8 -- blinks a second in a blinking tell
 ObbyFx.GATE_FADE = 0.5 -- seconds an opened gate takes to fade out
 ObbyFx.LOCK_FULL = Color3.fromRGB(255, 205, 60) -- a filled lock icon on a gate: the key's gold
 ObbyFx.HAZARD_PAD = 0.5 -- studs a hazard's box grows by for the limb test (about half a limb's thickness)
+-- Forgiveness (Merijn, 2026-11-01: fewer accidental hits): the hazard that resets you is this much smaller than the
+-- one you see on every side, so a graze along its edge is not a reset (the classic obby trick). The checks
+-- (tests/ObbyCheck) still measure the full drawn size, so every window they pass has this to spare.
+ObbyFx.HAZARD_GRACE = 0.4
 ObbyFx.TOUCH_PAD = 0.6 -- studs for triggers
 ObbyFx.KEY_PAD = 1.5 -- studs for keys (they float, so grabbing them is generous)
 ObbyFx.TOUCH_REACH = 6 -- studs past a part's half diagonal before the limb test is skipped
@@ -154,7 +169,7 @@ type Mover = {
 	nextCrack: number,
 	readyAt: number, -- bounce: local clock time it may throw again
 	offset: number, -- sink: studs it has gone down
-	inside: boolean, -- lift: the root was inside last frame
+	inside: boolean, -- lift / gust: the root was inside last frame
 	warned: boolean, -- turn: the tick for the coming change has played
 	wasOut: boolean, -- pattern: it was out of its rest position last frame (a slam sounds as it leaves)
 	fell: boolean, -- drop: the fall sound has played
@@ -490,6 +505,14 @@ local function touching(part: BasePart, me: Local, pad: number): boolean
 	return false
 end
 
+-- True when the root is in a wind zone (lift or gust) where it is drawn now: within WIND_PAD of its side to come in,
+-- WIND_PAD + WIND_HOLD to stay in (`was`: it was in last frame). Round zones (a disc puff) by their round shape.
+local function inWind(part: BasePart, root: BasePart, was: boolean): boolean
+	local p = root.Position
+	local pad = ObbyFx.WIND_PAD + (if was then ObbyFx.WIND_HOLD else 0)
+	return ObbyZone.touches(part.CFrame, part.Size, ObbyZone.shapeOf(part), p, p, pad)
+end
+
 ---------------------------------------------------------------------------
 -- Motions: Kit's clocks (src/shared/ObbySections/Kit) put into the world
 ---------------------------------------------------------------------------
@@ -565,6 +588,18 @@ function PLAY.rise(m, now)
 	translate(m, now)
 end
 
+-- One part that grows: its bottom stays at rest and its top rises Kit's `dy` (Kit.floodAt), so Size.Y grows by dy
+-- and the centre goes up dy / 2 along the part's own up. A flat colour (SmoothPlastic) does not stretch.
+function PLAY.flood(m, now)
+	local _, dy = Kit.offsetAt(m.kit, now.t)
+	local size = m.size
+	local grown = Vector3.new(size.X, size.Y + dy, size.Z)
+	if m.part.Size ~= grown then
+		m.part.Size = grown
+	end
+	place(m, m.base + m.base.UpVector * (dy / 2))
+end
+
 -- spin and sweep: Kit's turn round the course's vertical axis through the part's centre.
 function PLAY.spin(m, now)
 	local off, dyaw = kitAt(m, now.t)
@@ -576,17 +611,29 @@ end
 PLAY.sweep = PLAY.spin
 
 function PLAY.swing(m, now)
-	-- Kit gives the centre's offset round a pivot `arm` above the rest position, swinging across the course; the part
-	-- turns with it round the course's forward axis, by the angle read back from that offset.
+	-- Kit gives the centre's offset round a pivot `arm` above the rest position, swinging across the course (or
+	-- along it, axis "x": a vine rope); the part turns with it round the course's forward (or across) axis, by the
+	-- angle read back from that offset.
 	local off = kitAt(m, now.t)
 	local arm = num(m.motion, "arm", 0)
+	local along = m.motion.axis == "x"
 	local angle = 0
 	if math.abs(arm) > 1e-3 then
 		local o = m.frame:VectorToObjectSpace(off)
-		angle = math.atan2(-o.Z / arm, 1 - o.Y / arm)
+		angle = if along then math.atan2(o.X / arm, 1 - o.Y / arm) else math.atan2(-o.Z / arm, 1 - o.Y / arm)
 	end
-	local turn = CFrame.fromAxisAngle(m.frame.XVector, angle)
-	place(m, CFrame.new(m.base.Position + off) * turn * m.base.Rotation, m.vel0 + velAt(m, now.t, off))
+	local vel = m.vel0 + velAt(m, now.t, off)
+	-- a rope the local player holds (ObbyMoves' vine): its angle from the player's swing, faded in over its own
+	local held = m.part:GetAttribute(Vine.HELD_ANGLE)
+	if type(held) == "number" then
+		local fade = m.part:GetAttribute(Vine.HELD_FADE)
+		angle += (held - angle) * (if type(fade) == "number" then math.clamp(fade, 0, 1) else 1)
+		local side = if along then Vector3.new(math.sin(angle), 0, 0) else Vector3.new(0, 0, -math.sin(angle))
+		off = m.frame:VectorToWorldSpace((side + Vector3.new(0, 1 - math.cos(angle), 0)) * arm)
+		vel = m.vel0
+	end
+	local turn = CFrame.fromAxisAngle(if along then m.frame.ZVector else m.frame.XVector, angle)
+	place(m, CFrame.new(m.base.Position + off) * turn * m.base.Rotation, vel)
 end
 
 function PLAY.rock(m, now)
@@ -640,7 +687,9 @@ function PLAY.gust(m, now)
 	end
 	look(m, true, transparency)
 	local root = now.me.root
-	if on and root and inside(part, root.Position, 0) then
+	local isIn = on and root ~= nil and inWind(part, root, m.inside)
+	m.inside = isIn
+	if isIn and root then
 		local power = math.abs(num(m.motion, "power", 0))
 		local v = root.AssemblyLinearVelocity
 		local along = v:Dot(m.axis)
@@ -701,21 +750,27 @@ function PLAY.lift(m, now)
 	end
 	look(m, true, transparency)
 	local root = now.me.root
-	local isIn = on and root ~= nil and inside(m.part, root.Position, 0)
+	local isIn = on and root ~= nil and inWind(m.part, root, m.inside)
 	if root and isIn then
 		local power = num(motion, "power", 50)
 		local v = root.AssemblyLinearVelocity
 		local cap = motion.cap
 		local vy = v.Y
 		if type(cap) == "number" then
-			local q = m.part.CFrame:PointToObjectSpace(root.Position)
-			local height = q.Y + m.part.Size.Y / 2
+			-- the root's height over the column's bottom in the world (a disc puff is a cylinder laid on its side: its
+			-- own Y axis runs across, not up)
+			local height = root.Position.Y - ObbyZone.bottomY(m.part.CFrame, m.part.Size)
 			vy = math.clamp((cap - height) * ObbyFx.LIFT_HOVER_GAIN, -power, power)
 			if not m.inside then
 				vy = math.max(vy, 0) -- entering catches a fall
 			end
 		elseif vy < power or not m.inside then
 			vy = power
+		end
+		local humanoid = now.me.humanoid
+		if vy > 0 and humanoid and humanoid.FloorMaterial ~= Enum.Material.Air then
+			-- standing (on a vent under a puff, a kerb's edge): the humanoid's ground hold would eat the lift
+			humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
 		end
 		root.AssemblyLinearVelocity = Vector3.new(v.X, vy, v.Z)
 	end
@@ -913,12 +968,25 @@ end
 -- The controller
 ---------------------------------------------------------------------------
 
--- The part under the local player's feet (a short ray down from the root), or nil.
-local function floorUnder(root: BasePart?, params: RaycastParams): BasePart?
+local FLOOR_OFFSETS = { Vector3.xAxis, -Vector3.xAxis, Vector3.zAxis, -Vector3.zAxis }
+
+-- The part under the local player's feet (a short ray down from the root), or nil. Standing on a pad's edge (the
+-- humanoid is on a floor but the centre ray misses it) four rays FLOOR_SIDE off the centre look too, so a vent or pad
+-- under one foot still counts.
+local function floorUnder(root: BasePart?, humanoid: Humanoid?, params: RaycastParams): BasePart?
 	if not root then
 		return nil
 	end
-	local hit = workspace:Raycast(root.Position, Vector3.new(0, -4.5, 0), params)
+	local down = Vector3.new(0, -4.5, 0)
+	local hit = workspace:Raycast(root.Position, down, params)
+	if not hit and humanoid and humanoid.FloorMaterial ~= Enum.Material.Air then
+		for _, o in FLOOR_OFFSETS do
+			hit = workspace:Raycast(root.Position + o * ObbyFx.FLOOR_SIDE, down, params)
+			if hit then
+				break
+			end
+		end
+	end
 	return if hit and hit.Instance:IsA("BasePart") then hit.Instance else nil
 end
 
@@ -958,6 +1026,29 @@ local function locks(m: Mover): { Decor }
 		return a.part.Name < b.part.Name
 	end)
 	return out
+end
+
+-- A lock icon's adornments (shackle, keyhole; visuals/shared/ObbyParts addLocks): the open or shut pose and colour
+-- from their attributes (no ObbyOpenColor = the key's gold), and faded with the lock (look fades only parts).
+local function setLock(lock: BasePart, open: boolean)
+	for _, a in lock:GetChildren() do
+		if a:IsA("HandleAdornment") then
+			local cf = a:GetAttribute(if open then "ObbyOpen" else "ObbyShut")
+			local color = a:GetAttribute(if open then "ObbyOpenColor" else "ObbyShutColor")
+			if open and color == nil then
+				color = ObbyFx.LOCK_FULL
+			end
+			if typeof(cf) == "CFrame" and a.CFrame ~= cf then
+				a.CFrame = cf
+			end
+			if typeof(color) == "Color3" and a.Color3 ~= color then
+				a.Color3 = color
+			end
+			if a.Transparency ~= lock.Transparency then
+				a.Transparency = lock.Transparency
+			end
+		end
+	end
 end
 
 function ObbyFx.start(): Controller
@@ -1114,7 +1205,7 @@ function ObbyFx.start(): Controller
 		local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 		local alive = humanoid ~= nil and humanoid.Health > 0
 		return {
-			standingOn = if alive then floorUnder(root, params) else nil,
+			standingOn = if alive then floorUnder(root, humanoid, params) else nil,
 			root = if alive then root else nil,
 			humanoid = humanoid,
 			limbs = if alive then limbs else {},
@@ -1152,6 +1243,7 @@ function ObbyFx.start(): Controller
 				if icon.part.Color ~= want then
 					icon.part.Color = want
 				end
+				setLock(icon.part, i <= held)
 			end
 			if held >= need then
 				if m.openedAt == nil then
@@ -1247,7 +1339,7 @@ function ObbyFx.start(): Controller
 		end
 		perPlayer(me, clock)
 		for _, m in hazards do
-			if m.live and m.part.Parent ~= nil and touching(m.part, me, ObbyFx.HAZARD_PAD) then
+			if m.live and m.part.Parent ~= nil and touching(m.part, me, ObbyFx.HAZARD_PAD - ObbyFx.HAZARD_GRACE) then
 				ObbyFx.sound("splat")
 				if ObbyFall.reset("hazard") then
 					return

@@ -52,6 +52,13 @@ describe("Obby portal sign", function()
 		expect(ObbyHud.statusText(nil, 1000)).toBe("Step in to start!")
 	end)
 
+	it("says the course is cleared once this player finished it (the portal waits for the next one)", function()
+		expect(ObbyHud.statusText(view({ best = 41.2 }), 1000)).toBe("Cleared! Next course soon")
+		expect(ObbyHud.statusText(view({ best = 41.2, endsAt = 1192, readyAt = 1492 }), 1000)).toBe(
+			"Cleared! Next course soon"
+		)
+	end)
+
 	it("counts down to the next course", function()
 		expect(ObbyHud.courseText(view(), 1235)).toBe("New course in 6:05")
 	end)

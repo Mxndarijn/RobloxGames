@@ -20,7 +20,14 @@
 
 local Kit = if script then require(script.Parent.Kit) else require("./Kit")
 
-local CRUSHER_LIFT = 11 -- studs from the floor to a crusher's bottom at rest: well over a head (5) plus a jump
+-- Studs from the floor to a crusher's bottom at rest: well over a head (5) plus a jump (a jumping head reaches 11.4).
+-- 13, was 11 (forgiveness pass, Merijn 2026-11-01: "place it by default a bit higher"): a jump under a resting
+-- crusher no longer clips it, and it spends longer over a head on every slam (the open window is about 3 % of a period
+-- longer).
+local CRUSHER_LIFT = 13
+-- The old rest height, kept where the higher one lets mashing jump through (ObbyCheck.masher over 20 %): there the
+-- resting crusher catching a jumper is what stops it.
+local CRUSHER_LIFT_TIGHT = 11
 local CRUSHER_THICK = 4 -- crusher block height
 local CRUSHER_LONG = 8 -- along the course: about half a second to walk under
 local ENTRY_LONG = 10 -- the entry pad before the jump in
@@ -30,7 +37,7 @@ local PUNCHER_TALL = 4 -- a wall puncher's height, its bottom half a stud over t
 local ROPE = 0.6 -- a pendulum rope's thickness
 
 -- A crusher `long` (default CRUSHER_LONG) x `wide` centred on (x, z) over a floor whose top is `top`, slamming every
--- `period` s.
+-- `period` s, its bottom `lift` (default CRUSHER_LIFT) over the floor at rest.
 local function crusher(
 	x: number,
 	z: number,
@@ -38,11 +45,13 @@ local function crusher(
 	top: number,
 	period: number,
 	phase: number,
-	long: number?
+	long: number?,
+	lift: number?
 ): Kit.Part
-	local bottom = top + CRUSHER_LIFT
+	local up = lift or CRUSHER_LIFT
+	local bottom = top + up
 	return Kit.hazard({ long or CRUSHER_LONG, CRUSHER_THICK, wide }, { x, bottom + CRUSHER_THICK / 2, z }, {
-		motion = { kind = "punch", axis = "y", amp = -CRUSHER_LIFT, period = period, phase = phase },
+		motion = { kind = "punch", axis = "y", amp = -up, period = period, phase = phase },
 	})
 end
 
@@ -183,7 +192,7 @@ M.variants = {
 				parts,
 				Kit.slab((FLOOR_FROM + floorTo) / 2, 0, 0, floorTo - FLOOR_FROM, Kit.WIDTH, "goo", { tone = 2 })
 			)
-			table.insert(parts, crusher(27, 0, Kit.WIDTH, 0, 3.7, 0))
+			table.insert(parts, crusher(27, 0, Kit.WIDTH, 0, 3.7, 0, nil, CRUSHER_LIFT_TIGHT))
 			local ledge = length - (floorTo + 2)
 			table.insert(parts, Kit.slab(length - ledge / 2, rise, 0, ledge, Kit.WIDTH, "jelly", { tone = 3 }))
 			return Kit.section(length, rise, parts)
@@ -231,9 +240,10 @@ M.variants = {
 			local outer = Kit.HALF - split - 0.5
 			local x = 27
 			-- Faster than the draft (3 / 3.4 / 3.8 s): one lane alone gives 0.7..1.2 s, picking the open lane about 2 s.
-			table.insert(parts, crusher(x, -(split + 0.5 + outer / 2), outer, 0, 2.2, 0))
-			table.insert(parts, crusher(x, 0, 2 * split - 1, 0, 2.5, 0.3))
-			table.insert(parts, crusher(x, split + 0.5 + outer / 2, outer, 0, 2.8, 0.6))
+			local lift = CRUSHER_LIFT_TIGHT
+			table.insert(parts, crusher(x, -(split + 0.5 + outer / 2), outer, 0, 2.2, 0, nil, lift))
+			table.insert(parts, crusher(x, 0, 2 * split - 1, 0, 2.5, 0.3, nil, lift))
+			table.insert(parts, crusher(x, split + 0.5 + outer / 2, outer, 0, 2.8, 0.6, nil, lift))
 			return Kit.section(length, 0, parts)
 		end,
 	},
@@ -546,7 +556,7 @@ M.variants = {
 			local step = (long + pocket) / Kit.WALK / period -- a walker reaches the next crusher one step later
 			for i = 0, 4 do
 				local x = FLOOR_FROM + 3 + long / 2 + i * (long + pocket)
-				table.insert(parts, crusher(x, 0, Kit.WIDTH, 0, period, (-i * step) % 1, long))
+				table.insert(parts, crusher(x, 0, Kit.WIDTH, 0, period, (-i * step) % 1, long, CRUSHER_LIFT_TIGHT))
 			end
 			return Kit.section(length, 0, parts)
 		end,

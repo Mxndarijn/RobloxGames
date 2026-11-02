@@ -188,7 +188,7 @@ end
 
 -- A grey stone rest island from x0 (`long` x WIDE).
 local function island(x0: number, long: number): Part
-	return Kit.slab(x0 + long / 2, 0, 0, long, WIDE, "pad", { marker = "sign:REST" })
+	return Kit.slab(x0 + long / 2, 0, 0, long, WIDE, "pad")
 end
 
 local function append(list: { Part }, more: { Part })
@@ -547,7 +547,6 @@ M.variants = {
 				table.insert(right, p)
 				x += 6
 			end
-			right[1].marker = "sign:SHORT"
 			wave(left, { group = "left", speed = steady(15), tier = "medium" })
 			wave(right, { group = "right", speed = steady(15), tier = "medium" })
 			exit(parts, to, to + 8)

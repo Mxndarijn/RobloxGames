@@ -12,9 +12,9 @@
 	lifts the forward (+x) end, which is how `Kit.ramp` climbs; `pitch` banks it sideways; a positive `yaw` turns +x
 	towards -z.
 
-	Motion clocks (`Kit.offsetAt`, `Kit.punchAt`, `Kit.pathAt`, `Kit.sweepAt`, `Kit.patternAt`) are where a moving part
-	is at a time. The checks measure fairness with them; ObbyFx can play the same curves so what is tested is what
-	players see.
+	Motion clocks (`Kit.offsetAt`, `Kit.punchAt`, `Kit.pathAt`, `Kit.sweepAt`, `Kit.patternAt`, `Kit.floodAt`) are
+	where a moving part is at a time. The checks measure fairness with them; ObbyFx can play the same curves so what is
+	tested is what players see.
 ]]
 
 local Rng = if script then require(script.Parent.Parent.Rng) else require("../Rng")
@@ -53,6 +53,7 @@ export type Motion = {
 	depth: number?, -- sink
 	speed: number?, -- sink / rise: studs per second
 	stop: number?, -- rise: studs it rises at most
+	keys: { { number } }?, -- flood: { { t, up } } times on its clock and the top's rise there (Kit.floodAt)
 	at: number?, -- drop: seconds on its `start` clock it falls away
 	beats: { Beat }?, -- pattern
 }
@@ -89,7 +90,8 @@ export type Part = {
 	id: string?, -- set by ObbyCourse.build: "<section>.<index>", "s", "h", "f", "l<n>"
 }
 
-export type Section = { length: number, rise: number, parts: { Part } }
+-- `sign`: the picture sign at the section's entry when it differs from its idea's (ObbySections.entrySign).
+export type Section = { length: number, rise: number, parts: { Part }, sign: string? }
 
 export type Variant = { name: string, tier: string, build: (seed: number) -> Section }
 export type Generator = { tiers: { string }, build: (seed: number, tier: string) -> Section, examples: number? }
@@ -443,6 +445,27 @@ function Kit.pathAt(motion: Motion, s: number, period: number): Vec
 	return table.clone(points[legs[#legs][2]])
 end
 
+--[[
+	How far a flood's top surface has risen over its rest top `t` seconds on its clock: piecewise linear through
+	`keys` ({ { t, up } }, times ascending; two keys at the same height hold it there), 0 before the first key and the
+	last key's height after the last one. One part, one curve: a pause, a surge or a speed-up is just another key.
+]]
+function Kit.floodAt(motion: Motion, t: number): number
+	local keys = motion.keys or {}
+	local n = #keys
+	if n == 0 or t < keys[1][1] then
+		return 0
+	end
+	for i = 2, n do
+		local a, b = keys[i - 1], keys[i]
+		if t < b[1] then
+			local span = b[1] - a[1]
+			return if span > 0 then a[2] + (b[2] - a[2]) * (t - a[1]) / span else b[2]
+		end
+	end
+	return keys[n][2]
+end
+
 -- Turn (degrees) of a sweep motion `s` seconds into its period: centre -> +amp, hold, -> -amp, hold, -> centre.
 function Kit.sweepAt(motion: Motion, s: number, period: number): number
 	local amp, hold = motion.amp or 0, motion.hold or 0
@@ -482,6 +505,9 @@ function Kit.offsetAt(part: Part, t: number?): (number, number, number, number, 
 	if kind == "rise" then
 		local up = if t then math.clamp((t - (m.delay or 0)) * (m.speed or 0), 0, m.stop or math.huge) else 0
 		return 0, up, 0, 0, 1, true
+	elseif kind == "flood" then
+		-- dy is the top surface's rise; the client grows the part up from its fixed bottom (ObbyFx PLAY.flood)
+		return 0, if t then Kit.floodAt(m, t) else 0, 0, 0, 1, true
 	elseif kind == "drop" then
 		return 0, 0, 0, 0, 1, t == nil or t < (m.at or 0)
 	end
@@ -513,6 +539,10 @@ function Kit.offsetAt(part: Part, t: number?): (number, number, number, number, 
 		-- Across the course round a pivot `arm` above the rest position (as ObbyFx: CFrame.Angles(angle, 0, 0)).
 		local angle = math.rad(m.amp or 0) * math.sin(TAU * cycle)
 		local arm = m.arm or 0
+		if m.axis == "x" then
+			-- along the course (a vine rope): turning round the course's across axis, +angle forward (+x)
+			return arm * math.sin(angle), arm * (1 - math.cos(angle)), 0, 0, 1, true
+		end
 		return 0, arm * (1 - math.cos(angle)), -arm * math.sin(angle), 0, 1, true
 	elseif kind == "path" then
 		local o = Kit.pathAt(m, if m.once and t then math.min(t, period) else cycle * period, period)

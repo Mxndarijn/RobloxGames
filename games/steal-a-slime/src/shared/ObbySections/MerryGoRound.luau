@@ -28,9 +28,17 @@ local ARM_LOW = 0.5 -- a low arm's bottom over its floor ...
 local ARM_THICK = 1.2 -- ... and its height: the top sits 1.7 over the floor, an easy hop
 local ARM_WIDE = 1.2
 local HUB = 1.6 -- the pivot post on a disk with arms
+local STAND = 6 -- how far a stand reaches down under a disk
 local CANOPY = Kit.HEAD + 0.5 -- a canopy beam's bottom over its floor: clear of a head, not of a jump
 local CANOPY_WIDE = 3
 local TAU = 2 * math.pi
+-- Forgiveness pass (Merijn, 2026-11-01: "have the circle rotate less so it's easier"): every turning disk, plank,
+-- arm, spoke and carousel seat takes this many times as long per turn as the period written in its variant, so floors
+-- turn slower and arms sweep by slower. Easy slows the most; hard stays a challenge.
+local SLOWER = table.freeze({ easy = 1.5, medium = 1.4, hard = 1.3 })
+-- Variants that can't take their tier's factor: Line Them Up's planks stay lined up so long at 1.4 that a straight
+-- walk crosses (ObbyCheck.straightWalk; 1.2 already does), so it slows less.
+local SLOWER_ONLY: { [string]: number } = table.freeze({ ["Line Them Up"] = 1.15 })
 
 local function spin(period: number, phase: number?): Kit.Motion
 	return { kind = "spin", period = period, phase = phase }
@@ -54,8 +62,7 @@ end
 
 -- The stand under a disk (decor, out of the way of every jump).
 local function stand(cx: number, top: number, cz: number?): Kit.Part
-	local h = 6
-	return Kit.prop({ 3, h, 3 }, { cx, top - Kit.THICK - h / 2, cz or 0 }, "post", { shape = "disc" })
+	return Kit.prop({ 3, STAND, 3 }, { cx, top - Kit.THICK - STAND / 2, cz or 0 }, "post", { shape = "disc" })
 end
 
 -- The pivot post on top of a disk that has arms.
@@ -415,7 +422,12 @@ M.variants = {
 			local parts = { pad(0, PAD, 0) }
 			local r, d, period = 7, 9, 7
 			local cx = PAD + 1.5 + r + d / 2
-			table.insert(parts, Kit.prop({ 4, 8, 4 }, { cx, 4, 0 }, "post", { shape = "disc" }))
+			-- the pole reaches as far down as a disk's stand would under the seats, so it doesn't end in mid-air
+			local poleBottom = 1.5 - Kit.THICK - STAND
+			table.insert(
+				parts,
+				Kit.prop({ 4, 8 - poleBottom, 4 }, { cx, (8 + poleBottom) / 2, 0 }, "post", { shape = "disc" })
+			)
 			for i = 0, 2 do
 				table.insert(parts, seat(cx, 1.5, d, r, 180 + 120 * i, period))
 			end
@@ -505,5 +517,21 @@ M.variants = {
 		end,
 	},
 }
+
+-- Slow every turning motion (spin, sweep, a seat's orbit) by its tier's SLOWER factor. Spokes keep their disk's
+-- period, so they stay welded.
+for _, v in M.variants do
+	local build, factor = v.build, SLOWER_ONLY[v.name] or SLOWER[v.tier] or 1
+	v.build = function(seed: number): Kit.Section
+		local section = build(seed)
+		for _, part in section.parts do
+			local m = part.motion
+			if m and m.period and (m.kind == "spin" or m.kind == "sweep" or m.kind == "path") then
+				m.period *= factor
+			end
+		end
+		return section
+	end
+end
 
 return M

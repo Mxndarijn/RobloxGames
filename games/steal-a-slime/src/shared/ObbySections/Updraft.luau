@@ -34,6 +34,7 @@ local LIFT = 30 -- default column speed (studs / s)
 local GUST = 24 -- forward push in a wind tunnel (over WalkSpeed 16, so it really carries you)
 local ROOT = 3 -- feet to the root part a lift acts on
 local POST_DEPTH = 10 -- a fan's post reaches this far under its fan
+local FAN_PROUD = 0.05 -- a fan set into a floor stands this far over the floor's top (no z-fighting)
 
 type Parts = { Kit.Part }
 
@@ -52,6 +53,9 @@ export type Column = {
 	post: boolean?, -- a thin post under the fan (columns floating over the void)
 	tunnel: boolean?, -- a wind tunnel along the course: fan plate on its start face, no post
 	solidFan: boolean?, -- the fan is a floor you can land on (Catch the Fall's pit)
+	-- the top of a safe floor running on under a column that floats over it (Hand-Off): the fan lies in that floor,
+	-- not at the column's bottom, so no plate hangs at chest height over the floor to walk through
+	floor: number?,
 }
 
 -- The motion of a column.
@@ -90,6 +94,9 @@ local function column(parts: Parts, c: Column)
 		)
 	elseif c.solidFan then
 		table.insert(parts, Kit.prop({ w, 1, d }, { cx, c.bottom - 0.5, cz }, "fan"))
+	elseif c.floor then
+		-- set into the floor, its top FAN_PROUD over it: solid, you walk over it
+		table.insert(parts, Kit.prop({ w - 1, 0.6, d - 1 }, { cx, c.floor + FAN_PROUD - 0.3, cz }, "fan"))
 	else
 		table.insert(parts, Kit.prop({ w - 1, 0.6, d - 1 }, { cx, c.bottom - 0.3, cz }, "fan", { ghost = true }))
 		if c.post then
@@ -154,9 +161,9 @@ end
 -- First Breeze and Blink Column: the ledge runs on the far half of the lane up to here, then the whole lane.
 local SIDE_TO = 28
 -- First Breeze's goo bar on the ledge, as wide as the lane (seconds a turn).
-local BREEZE_SPIN = 3.5
+local BREEZE_SPIN = 5.25 -- 3.5 before the forgiveness pass (Merijn, 2026-11-01: spin slower), easy x1.5
 -- Blink Column's spinning bar (seconds a turn).
-local BLINK_SPIN = 2.5
+local BLINK_SPIN = 3.5 -- 2.5 before the forgiveness pass, medium x1.4
 -- Drifting Column's column comes on 0.6 s before the drifting ledge is back in front of it (at t = 4.4 of 5 s).
 local DRIFT_PHASE = 1 - 4.4 / 5
 -- Moving Exit's column comes on at t = 3.6 of the 6 s lift cycle, as the moving ledge sinks to its low point.
@@ -165,7 +172,7 @@ local EXIT_PHASE = 1 - 3.6 / 6
 -- `lag` of a cycle after the one below.
 local RING = { deep = 6, amp = 2, period = 2, lag = 0.25 }
 -- Spinner Shaft's propeller (seconds a turn).
-local SPINNER = 3
+local SPINNER = 3 -- kept in the forgiveness pass: any slower and a rider always gets past it (tests/obby/Updraft.spec)
 -- Hover Shelf's goo bar sinks into the shelf's front: up `hold` s, down `hold` s, 0.4 s moving each way (about 1.9 s
 -- under your feet).
 local HOVER_DOOR = { hold = 1.6, period = 4 }
@@ -301,7 +308,10 @@ M.variants = {
 			table.insert(parts, Kit.slab(floorTo / 2, 0, 0, floorTo, Kit.WIDTH, "jelly", { tone = 1 }))
 			local x0, x1 = 12, 20
 			table.insert(parts, Kit.wall(x0 - 0.5, -7.5, 9, KERB, false, { tone = 2 }))
-			column(parts, { x0 = x0, x1 = x1, z0 = -Kit.HALF, z1 = -4, bottom = HOP, top = 15, hover = 13.5 })
+			column(
+				parts,
+				{ x0 = x0, x1 = x1, z0 = -Kit.HALF, z1 = -4, bottom = HOP, top = 15, hover = 13.5, floor = 0 }
+			)
 			column(parts, { x0 = x0, x1 = x1, z0 = -3, z1 = 5, bottom = 11.5, top = rise + 4, on = 2.1, off = 1.6 })
 			ledge(parts, x1 + 1, length, -3, Kit.HALF, rise)
 			return Kit.section(length, rise, parts)

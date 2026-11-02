@@ -279,7 +279,7 @@ describe("RisingGoo", function()
 		expect(table.concat(bad, "\n")).toBe("")
 	end)
 
-	it("stacked floods trace a surface that only goes up", function()
+	it("the flood surface only goes up", function()
 		for _, v in RisingGoo.variants do
 			local s = v.build(1)
 			if chase(s) then
@@ -292,6 +292,60 @@ describe("RisingGoo", function()
 				end
 			end
 		end
+	end)
+
+	it("every pool is one flood part whose top matches the old stacked rise slabs", function()
+		-- The old build: one `rise` slab per stretch of the plan, each NUDGE lower than the one before and timed so
+		-- the highest traces the plan (the max over the slabs is the goo surface). Rebuilt here from the flood's own
+		-- keys and sampled against Kit.floodAt over the whole timeline.
+		local NUDGE = 0.1
+		local function stacked(rest: number, keys: { { number } }): { { base: number, motion: Kit.Motion } }
+			local slabs = {}
+			local h = rest
+			for i = 2, #keys do
+				local a, b = keys[i - 1], keys[i]
+				if b[2] > a[2] + 1e-9 then
+					local v = (b[2] - a[2]) / (b[1] - a[1])
+					local to = rest + b[2]
+					local base = rest - NUDGE * #slabs
+					local start = a[1] - (h - base) / v
+					table.insert(slabs, {
+						base = base,
+						motion = { kind = "rise", speed = v, delay = math.max(start, 0), stop = to - base },
+					})
+					h = to
+				end
+			end
+			return slabs
+		end
+		local bad = {}
+		for _, v in RisingGoo.variants do
+			local s = v.build(1)
+			for _, p in s.parts do
+				local m = p.motion
+				expect(m == nil or m.kind ~= "rise" or not p.hazard).toBe(true)
+				if p.hazard and m and m.kind == "flood" then
+					local rest = p.pos[2] + p.size[2] / 2
+					local keys = m.keys :: { { number } }
+					local slabs = stacked(rest, keys)
+					local horizon = keys[#keys][1] + 5
+					for t = 0, horizon, 0.02 do
+						local old = rest
+						for _, slab in slabs do
+							local probe = { size = { 1, 1, 1 }, pos = { 0, 0, 0 }, look = "", motion = slab.motion }
+							local _, up = Kit.offsetAt(probe, t)
+							old = math.max(old, slab.base + up)
+						end
+						local _, dy = Kit.offsetAt(p, t)
+						if math.abs(rest + dy - old) > 0.05 then
+							table.insert(bad, `{v.name} at {t} s: flood {rest + dy}, stacked slabs {old}`)
+							break
+						end
+					end
+				end
+			end
+		end
+		expect(table.concat(bad, "\n")).toBe("")
 	end)
 
 	it("Float Up: the rafts ride on the goo and never sink into it", function()

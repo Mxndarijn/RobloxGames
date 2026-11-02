@@ -39,6 +39,28 @@ local IDS = {
 	"ClueDoors", -- 29
 }
 
+-- The picture sign at the entry of every section of these ideas (visuals/shared/ObbySigns pictogram ids, one per
+-- slot, comma-separated): the 15 mechanics docs/obby-signs-proposal.html found unclear (Merijn: a board on a post,
+-- every step on one board, no words). A section can name its own (`Section.sign`, e.g. a Glow Memory mode); the other
+-- ideas explain themselves.
+local ENTRY_SIGNS: { [string]: string } = {
+	Updraft = "updraft", -- 5
+	Climb = "drips", -- 8
+	GlowMemory = "glow", -- 10
+	RollingBlobs = "blobs", -- 14
+	VineSwing = "vine", -- 15
+	SpeedStrip = "speed", -- 16
+	LightsOut = "dark", -- 17
+	BeatPads = "beat", -- 18
+	KeyRun = "key", -- 20
+	GeyserField = "geyser", -- 21
+	StickyWalls = "sticky", -- 22
+	ArrowMaze = "belts", -- 23
+	AimTheCannon = "cannon1,cannon2,cannon3,cannon4", -- 26: walk in, it swings, jump on mint, land
+	MoonJump = "moon", -- 28
+	ClueDoors = "clue", -- 29
+}
+
 -- The idea module `id`, or nil when it isn't written yet. A module that exists but fails to load still errors.
 local function load(id: string): Kit.Idea?
 	if script then
@@ -72,6 +94,7 @@ end)
 local ObbySections = {}
 
 ObbySections.IDS = table.freeze(IDS)
+ObbySections.ENTRY_SIGNS = table.freeze(ENTRY_SIGNS)
 ObbySections.ALL = table.freeze(ALL)
 ObbySections.byId = table.freeze(byId)
 ObbySections.Kit = Kit
@@ -80,6 +103,11 @@ ObbySections.Kit = Kit
 function ObbySections.nameOf(id: string): string
 	local idea = byId[id]
 	return if idea then idea.name else id
+end
+
+-- The picture sign at the entry of `section` (of idea `id`), or nil for none.
+function ObbySections.entrySign(id: string, section: Kit.Section): string?
+	return section.sign or ENTRY_SIGNS[id]
 end
 
 return table.freeze(ObbySections)
