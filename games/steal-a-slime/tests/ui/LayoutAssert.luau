@@ -177,9 +177,22 @@ local SettingsPanel = {
 	},
 }
 
+-- Copies of Panels/Welcome ROW / DAILY / TILE numbers (checked against the panel by LayoutAssert.spec).
+local WelcomePanel = table.freeze({
+	textX = 74,
+	right = 12,
+	descH = 36,
+	amountW = 96,
+	trackInset = 10,
+	tileGap = 6,
+	lastWeight = 1.5,
+	offerGap = 10,
+})
+
 local LayoutAssert = {}
 
 -- The copied panel numbers, for the spec that checks them against the real panels.
+LayoutAssert.WELCOME = WelcomePanel
 LayoutAssert.REBIRTH = RebirthPanel
 LayoutAssert.WORLD_SHOP = WorldShopPanel
 LayoutAssert.SETTINGS = SettingsPanel
@@ -563,49 +576,6 @@ function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 		wrapped = true,
 	})
 	return out
-end
-
--- Daily popup card texts at their longest.
-function LayoutAssert.dailyTexts(screen: Layout.Screen): { TextDesc }
-	-- Mirrors DailyPopup.ROWS / TILE / CHIP_SHARE inside the shared panel frame.
-	local card = Layout.rect(0, 0, screen.daily.w, screen.daily.h)
-	local bodyW = Layout.panelBody(card).w
-	local gap, lastWeight, chipShare = 6, 1.6, 0.58
-	local unit = bodyW / (6 + lastWeight)
-	local tileW, lastW = unit - gap, unit * lastWeight - gap
-	local big = Format.formatCash(987.6e12)
-	return {
-		{ name = "Daily tile today", text = "Day 6", size = 12, bold = true, w = tileW, h = 17 },
-		{ name = "Daily tile last", text = "Day 7", size = 14, bold = true, w = lastW, h = 17 },
-		{ name = "Daily tile amount", text = big, size = 8, bold = true, w = tileW - 4, h = 16 },
-		{ name = "Daily tile amount (full size)", text = "$3.5K", size = 13, bold = true, w = tileW - 4, h = 16 },
-		{
-			name = "Daily title",
-			text = "Daily reward",
-			size = Layout.PANEL_CHROME.titleSize,
-			bold = true,
-			w = Layout.panelTitle(card).w,
-			h = Layout.PANEL_CHROME.close,
-		},
-		{ name = "Daily streak", text = "Streak: 77 days", size = 15, w = bodyW * (1 - chipShare) - gap, h = 26 },
-		{
-			name = "Daily streak day",
-			text = "Day 7 of your streak",
-			size = 15,
-			w = bodyW * (1 - chipShare) - gap,
-			h = 26,
-		},
-		{
-			name = "Daily tomorrow chip",
-			text = `Come back tomorrow for {big}`,
-			size = 8,
-			bold = true,
-			w = bodyW * chipShare - 20,
-			h = 26,
-		},
-		{ name = "Daily amount", text = `+{big}`, size = 40, bold = true, w = bodyW, h = 46 },
-		{ name = "Daily claim", text = "Claimed", size = 22, bold = true, w = bodyW, h = Layout.BUTTON },
-	}
 end
 
 -- Carry card: name / status beside Drop (TextWrapped status, 2 lines).
@@ -1036,37 +1006,69 @@ function LayoutAssert.guideTexts(panel: Rect): { TextDesc }
 	return out
 end
 
--- Welcome-back card (Panels/Welcome): the away line, the gold headline and each card's name /
--- description / amount / count at their longest. Mirrors Welcome.ROWS / CARD.
+-- Welcome back / daily reward card (Panels/Welcome): each row's name and wrapped description, the daily amount,
+-- the day tiles, the offers and the main button at their longest. Mirrors Welcome.ROW / DAILY / TILE / OFFERS.
 function LayoutAssert.welcomeTexts(panel: Rect): { TextDesc }
 	local bodyW = Layout.panelBody(panel).w
-	local textX, right, sideGap, amountW, countW = 62, 12, 8, 110, 84
-	local plainW = bodyW - textX - right
+	local W = WelcomePanel
+	local textX, right, gap, amountW = W.textX, W.right, W.offerGap, W.amountW
+	local rowW = bodyW - textX - right
+	local trackW = bodyW - W.trackInset * 2
+	local unit = trackW / ((Config.DAILY_STREAK_CAP or 7) - 1 + W.lastWeight)
+	local tileW, lastW = unit - W.tileGap, unit * W.lastWeight - W.tileGap
 	local big = Format.formatCash(999.99e15)
+	local title = Layout.panelTitle(panel)
+	local chrome = Layout.PANEL_CHROME
+	local function desc(name: string, text: string): TextDesc
+		return { name = name, text = text, size = 15, w = rowW, h = W.descH, wrapped = true }
+	end
 	return {
-		{ name = "Welcome away", text = "You were away for 99d 23h and earned", size = 16, w = bodyW, h = 22 },
-		{ name = "Welcome headline", text = `+{big}`, size = 44, bold = true, w = bodyW, h = 52 },
-		{ name = "Welcome growth", text = "12 slimes grew", size = 18, bold = true, w = plainW, h = 22 },
-		{ name = "Welcome growth desc", text = "on your pads while you were gone", size = 14, w = plainW, h = 18 },
-		{ name = "Welcome streak", text = "Daily streak: 77 days", size = 18, bold = true, w = plainW, h = 22 },
 		{
-			name = "Welcome daily",
-			text = "Daily reward ready",
-			size = 18,
+			name = "Welcome title",
+			text = "Welcome back",
+			size = chrome.titleSize,
 			bold = true,
-			w = plainW - amountW - sideGap,
-			h = 22,
+			w = title.w,
+			h = chrome.close,
 		},
-		{ name = "Welcome daily amount", text = big, size = 20, bold = true, w = amountW, h = 24 },
 		{
-			name = "Welcome goal",
-			text = "Lock your base 1000 times",
-			size = 18,
+			name = "Daily title",
+			text = "Daily reward",
+			size = chrome.titleSize,
 			bold = true,
-			w = plainW - countW - sideGap,
-			h = 22,
+			w = title.w,
+			h = chrome.close,
 		},
-		{ name = "Welcome goal count", text = "999/1000", size = 15, bold = true, w = countW, h = 22 },
+		{ name = "Welcome cash", text = `+{big}`, size = 20, bold = true, w = rowW, h = 24 },
+		desc("Welcome cash desc", "Earned in 99d 23h, waiting on your cash pads"),
+		desc("Welcome cash desc + growth", "Earned in 99d 23h, waiting on your cash pads. 12 slimes grew."),
+		{ name = "Welcome growth", text = "12 slimes grew", size = 20, bold = true, w = rowW, h = 24 },
+		desc("Welcome growth desc", "on your pads while you were gone"),
+		{ name = "Welcome daily", text = "Daily reward", size = 20, bold = true, w = rowW - amountW - gap, h = 24 },
+		{ name = "Welcome daily claimed", text = "Daily reward claimed", size = 20, bold = true, w = rowW, h = 24 },
+		{ name = "Welcome daily amount", text = "$350K", size = 20, bold = true, w = amountW, h = 24 },
+		{
+			name = "Daily streak (daily card)",
+			text = "Your 77-day streak broke",
+			size = 20,
+			bold = true,
+			w = rowW,
+			h = 24,
+		},
+		desc("Welcome streak broke", "Your 77-day streak broke"),
+		desc("Welcome tomorrow", `{big} tomorrow`),
+		{ name = "Welcome tile today", text = "Day 6", size = 14, bold = true, w = tileW, h = 17 },
+		{ name = "Welcome tile last", text = "Day 7", size = 14, bold = true, w = lastW, h = 17 },
+		{ name = "Welcome tile amount", text = "$3.5K", size = 14, bold = true, w = tileW - 4, h = 17 },
+		{
+			name = "Welcome offer",
+			text = "Keep my streak · R$25",
+			size = Layout.MIN_TEXT,
+			bold = true,
+			w = (bodyW - gap) / 2,
+			h = Layout.MIN_TOUCH_DESIGN,
+		},
+		{ name = "Welcome action", text = `Claim {big}`, size = 22, bold = true, w = bodyW, h = Layout.BUTTON },
 	}
 end
 
@@ -1639,7 +1641,6 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	check.noOverlap("Carry", screen.carry, "Nav", screen.nav)
 
 	-- Overlays.
-	check.onScreen("Daily", screen.daily, m)
 	check.onScreen("Banners", screen.banners, m)
 
 	-- Hints for every step that points at a button.
@@ -1672,7 +1673,6 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			LayoutAssert.statusTexts(screen),
 			LayoutAssert.navTexts(screen),
 			LayoutAssert.tutorialTexts(screen),
-			LayoutAssert.dailyTexts(screen),
 			LayoutAssert.carryTexts(screen),
 			LayoutAssert.worldShopTexts(Layout.panelFor(panelScreen, "WorldShop")),
 			LayoutAssert.rebirthTexts(Layout.panelFor(panelScreen, "Rebirth")),

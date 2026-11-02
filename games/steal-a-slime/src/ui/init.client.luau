@@ -10,9 +10,9 @@
 	`Request:InvokeServer(action, ...)` (§3). The client never decides outcomes.
 
 	Every top-level box comes from Layout.screen (v18 mobile-first): the bottom money / status
-	clusters and a 2-column grid of nav tiles (Oct 18: no top bar, no toasts). One modal at a
-	time (PopupQueue: the tutorial holds the daily popup back) and a "tap here" hint for tutorial
-	steps that need a menu button (Hint).
+	clusters and a 2-column grid of nav tiles (no top bar, no toasts). One modal at a
+	time (PopupQueue: the welcome back / daily reward card waits for the tutorial and open menus) and a
+	"tap here" hint for tutorial steps that need a menu button (Hint).
 ]]
 
 local AssetService = game:GetService("AssetService")
@@ -93,7 +93,6 @@ local AdminPanel = require(Panels.Admin)
 local BossMeterPanel = require(Panels.BossMeter)
 local CarryPanel = require(Panels.Carry)
 local CodesPanel = require(Panels.Codes)
-local DailyPopup = require(Panels.DailyPopup)
 local DexPanel = require(Panels.Dex)
 local ExclusiveShopPanel = require(Panels.ExclusiveShop)
 local GoalsPanel = require(Panels.Goals)
@@ -437,7 +436,6 @@ local ObbyLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild(
 bossMeter.setAway(ObbyLook.isInside())
 ObbyLook.onInsideChanged(bossMeter.setAway)
 local obbyHud = require(script.ObbyHud).new(gui) -- Obby run card and portal sign lines
-local dailyPopup = DailyPopup.new(gui, ctx)
 local tutorial = TutorialCard.new(gui, ctx, 2) -- just above the hotbar
 ctx.tutorial = tutorial -- the Guide offers "Show the tutorial again" and Skip
 local hintOverlay = HintOverlay.new(gui)
@@ -486,7 +484,8 @@ for _, key in { "Merge", "WorldShop", "ExclusiveShop" } do
 	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
 end
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
-table.insert(allPanels, { key = "Welcome", nav = nil, panel = WelcomePanel.new(gui, ctx) })
+local welcomePanel = WelcomePanel.new(gui, ctx)
+table.insert(allPanels, { key = "Welcome", nav = nil, panel = welcomePanel })
 settings.onChanged(panelByKey.Settings.refresh)
 
 local allKeys: { string } = {}
@@ -527,7 +526,7 @@ end
 -- highlight and hint follow it, so a card shown or hidden any other way than
 -- setOpen (Esc, a script, a debug tool) can never strand a dim overlay.
 local wasOpen: { [string]: boolean } = {}
-local wasPumped = false -- the Welcome card was open at the last syncMenus: pump the queue when it closes
+local wasMenuOpen = false -- a menu was open at the last syncMenus: pump the queue when the last one closes
 
 -- Studio-only PC watcher hook: the SlimeUI attribute "PcwRebirthSlime" ("owned" / "missing")
 -- forces the Rebirth panel's required-slime state so both shots can be taken without a real
@@ -599,13 +598,13 @@ local function forceStealAlert(state: any): any
 	return view
 end
 
--- Studio-only: the SlimeUI attribute "PcwWelcome" = true fakes State.welcomeBack (5 h 30 m away) for the welcome-back card.
+-- Studio-only: the SlimeUI attribute "PcwWelcome" = true fakes State.welcomeBack (5 h 30 m away, cash on the pads) for the welcome card.
 local function forceWelcome(state: any): any
 	if not isStudio or gui:GetAttribute("PcwWelcome") ~= true or state.welcomeBack ~= nil then
 		return state
 	end
 	local view = table.clone(state)
-	view.welcomeBack = { away = 19800, cash = 12400, grown = 3 }
+	view.welcomeBack = { away = 19800, cash = 12400, grown = 3, onPads = true }
 	return view
 end
 
@@ -717,13 +716,13 @@ local function panelState(key: string, realState: any): any
 	return view
 end
 
--- The tutorial card and the top notices step aside for an open menu card, the daily popup and the open bag panel.
+-- The tutorial card and the top notices step aside for an open menu card and the open bag panel.
 local function syncTutorial()
 	-- Settings: "Tutorial hints" off hides the card for good (the server still tracks the step).
 	local hintsOff = not PlayerSettings.on(player, "tutorialHints")
-	tutorial.setMenuOpen(hintsOff or not MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen()))
+	tutorial.setMenuOpen(hintsOff or not MenuState.tutorialVisible(openKey, inventory.panelOpen()))
 	-- The top notices (banners, boss card, thief arrow) step aside for the same overlays, so none covers a card.
-	local noticesHidden = not MenuState.noticesVisible(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+	local noticesHidden = not MenuState.noticesVisible(openKey, inventory.panelOpen())
 	hud.setMenuOpen(noticesHidden)
 	cashFly.setMenuOpen(noticesHidden)
 	bossMeter.setMenuOpen(noticesHidden)
@@ -766,9 +765,9 @@ local function syncMenus()
 	elseif closed then
 		SoundController.play("MenuClose")
 	end
-	if latest and wasPumped ~= (visibleKey == "Welcome") then
-		wasPumped = visibleKey == "Welcome"
-		if not wasPumped then
+	if wasMenuOpen ~= (visibleKey ~= nil) then
+		wasMenuOpen = visibleKey ~= nil
+		if latest and not wasMenuOpen then
 			pumpPopups(latest)
 		end
 	end
@@ -788,12 +787,13 @@ local function setOpen(key: string?)
 	syncMenus()
 end
 
--- The daily reward popup on demand (the Goals row's "Open"): it shows over the world, so the menu closes first.
+-- The daily reward card on demand (the Goals row's "Open"): the welcome card in its daily mode.
 function ctx.openDaily()
-	setOpen(nil)
-	if not dailyPopup.isOpen() then
-		dailyPopup.open()
+	if latest == nil or type(latest.daily) ~= "table" then
+		return -- nothing to show yet
 	end
+	welcomePanel.setMode("daily")
+	setOpen("Welcome")
 end
 
 -- The Exclusive shop on card `key` ("seat:ufo"; nil = Featured), `withDetails` with its odds open. Only while
@@ -1315,7 +1315,6 @@ function applyLayout()
 	if slimeMove then
 		slimeMove.layout(s)
 	end
-	dailyPopup.layout(s, GuiService:GetGuiInset())
 	layoutNav(s)
 	syncMenus() -- the nav's phone / desktop visibility follows the new size
 	local guiInset = GuiService:GetGuiInset()
@@ -1394,12 +1393,10 @@ end
 -- Gamepad B always closes the open menu or the bag (same as its X), and Esc too while
 -- Layout.CLOSE_WITH_ESCAPE is true (v27 default); see MenuClose.
 local closeMenuAction = MenuClose.bind(ContextActionService, Layout.CLOSE_WITH_ESCAPE, function()
-	return MenuClose.topKey(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+	return MenuClose.topKey(openKey, inventory.panelOpen())
 end, function()
-	local top = MenuClose.topKey(openKey, dailyPopup.isOpen(), inventory.panelOpen())
-	if top == "Daily" then
-		dailyPopup.close()
-	elseif top == MenuClose.BAG then
+	local top = MenuClose.topKey(openKey, inventory.panelOpen())
+	if top == MenuClose.BAG then
 		inventory.setPanelOpen(false)
 	else
 		setOpen(nil)
@@ -1466,13 +1463,14 @@ local updateAdminMenu = AdminMenu.start({
 	end,
 })
 
--- Queued popups (welcome-back card, then the daily popup) wait for the tutorial and for each other.
+-- The welcome back / daily reward card opens by itself once the tutorial and any open menu or bag allow it.
+-- Settings "Daily popup" off: a new day's reward waits in Goals (and the Goals tile badge); the join card still shows.
 function pumpPopups(state: Types.State)
-	local next = popups.update(state, openKey == "Welcome")
-	if next == "Welcome" then
+	local mode: PopupQueue.Mode? =
+		popups.update(state, openKey ~= nil or inventory.panelOpen(), PlayerSettings.on(player, "dailyPopup"))
+	if mode then
+		welcomePanel.setMode(mode)
 		setOpen("Welcome")
-	elseif next == "Daily" and not dailyPopup.isOpen() and PlayerSettings.on(player, "dailyPopup") then
-		dailyPopup.open() -- Settings: with the popup off the reward waits in Goals (and the Goals tile badge)
 	end
 end
 
@@ -1499,7 +1497,6 @@ local function render(realState: Types.State)
 	carry.update(state)
 	bossMeter.update(state)
 	obbyHud.update(state)
-	dailyPopup.update(state)
 	tutorial.update(state)
 	updateBadges(state)
 	pumpPopups(state)
@@ -1625,7 +1622,7 @@ end)
 -- Local countdowns (lock, rain) between State pushes. Each tick runs under its own pcall so one failing
 -- component cannot kill the loop; the error is logged once per component.
 local guardedTick = TickGuard.new(warn)
-local dailyWasOpen = false
+local bagWasOpen = false -- the bag closes without syncMenus: pump the welcome / daily card queue then
 
 task.spawn(function()
 	while true do
@@ -1647,12 +1644,12 @@ task.spawn(function()
 					tick(now)
 				end)
 			end
-			-- The daily popup opens and closes itself (queue, Claim, X, auto-close): re-sync the tutorial card.
-			guardedTick("dailyPopup", function()
-				if dailyWasOpen ~= dailyPopup.isOpen() then
-					dailyWasOpen = dailyPopup.isOpen()
-					syncMenus()
+			guardedTick("popupsAfterBag", function()
+				local bagOpen = inventory.panelOpen()
+				if bagWasOpen and not bagOpen and openKey == nil then
+					pumpPopups(latest)
 				end
+				bagWasOpen = bagOpen
 			end)
 			guardedTick("hud", function()
 				hud.tick(now)
@@ -1693,7 +1690,7 @@ task.spawn(function()
 					now,
 					PlayerSettings.on(player, "tutorialHints")
 						and (tutorial.shown() or tutorial.finishedShowing())
-						and MenuState.tutorialShown(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+						and MenuState.tutorialVisible(openKey, inventory.panelOpen())
 				)
 			end)
 			guardedTick("pvpFun", function()

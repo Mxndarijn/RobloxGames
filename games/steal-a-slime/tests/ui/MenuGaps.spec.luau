@@ -40,10 +40,10 @@ local function ctx(): any
 	}
 end
 
-describe("Esc / B closes the Daily popup", function()
-	-- Mirrors init.client: the popup wins over the open card.
-	local function client(dailyOpen: boolean, menu: string?)
-		local c: any = { daily = dailyOpen, menu = menu, handler = nil }
+describe("Esc / B closes the open card, else the bag panel", function()
+	-- Mirrors init.client.
+	local function client(menu: string?, bag: boolean?)
+		local c: any = { menu = menu, bag = bag == true, handler = nil }
 		MenuClose.bind(
 			{
 				BindAction = function(_: any, _name: string, handler: any)
@@ -52,11 +52,11 @@ describe("Esc / B closes the Daily popup", function()
 			},
 			true,
 			function()
-				return MenuClose.topKey(c.menu, c.daily)
+				return MenuClose.topKey(c.menu, c.bag)
 			end,
 			function()
-				if c.daily then
-					c.daily = false
+				if MenuClose.topKey(c.menu, c.bag) == MenuClose.BAG then
+					c.bag = false
 				else
 					c.menu = nil
 				end
@@ -65,27 +65,21 @@ describe("Esc / B closes the Daily popup", function()
 		return c
 	end
 
-	it("closes the Daily popup alone and sinks the key", function()
-		local c = client(true, nil)
+	it("closes the welcome / daily reward card like any card and sinks the key", function()
+		local c = client("Welcome")
 		expect(c.handler("CloseMenu", Enum.UserInputState.Begin)).toBe(Enum.ContextActionResult.Sink)
-		expect(c.daily).toBe(false)
-	end)
-	it("closes the popup first when a card is open under it, then the card", function()
-		local c = client(true, "WorldShop")
-		c.handler("CloseMenu", Enum.UserInputState.Begin)
-		expect(c.daily).toBe(false)
-		expect(c.menu).toBe("WorldShop")
-		c.handler("CloseMenu", Enum.UserInputState.Begin)
 		expect(c.menu).toBe(nil)
 	end)
-	it("closes the bag panel when no card or popup is open", function()
-		expect(MenuClose.topKey(nil, false, true)).toBe(MenuClose.BAG)
-		expect(MenuClose.topKey("WorldShop", false, true)).toBe("WorldShop")
-		expect(MenuClose.topKey(nil, true, true)).toBe("Daily")
-		expect(MenuClose.topKey(nil, false, false)).toBe(nil)
+	it("closes the bag panel when no card is open", function()
+		expect(MenuClose.topKey(nil, true)).toBe(MenuClose.BAG)
+		expect(MenuClose.topKey("WorldShop", true)).toBe("WorldShop")
+		expect(MenuClose.topKey(nil, false)).toBe(nil)
+		local c = client(nil, true)
+		c.handler("CloseMenu", Enum.UserInputState.Begin)
+		expect(c.bag).toBe(false)
 	end)
 	it("still passes the key on with nothing open", function()
-		local c = client(false, nil)
+		local c = client(nil)
 		expect(c.handler("CloseMenu", Enum.UserInputState.Begin)).toBe(Enum.ContextActionResult.Pass)
 	end)
 end)

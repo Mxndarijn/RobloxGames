@@ -1,22 +1,19 @@
 --!strict
 --[[
-	Welcome-back card: what happened while the player was away and one Collect button. Opened by
-	the PopupQueue after a long absence (init.client), closed like every menu (Collect, X, Esc, B,
-	tap outside). Not in the nav. The cash was already paid at join, so Collect only closes it.
+	The welcome back / daily reward card (contract/welcome-back.md): one content-sized menu card, not in the nav.
+	WelcomeBack.view decides what shows for the mode the card opened in (`setMode`: "join" for the join report,
+	"daily" for a new daily claim or Goals "Open"): a cash row, the daily row with one tile per streak day, a
+	growth row, the Robux offers ("Double it", "Keep my streak") and one main button pinned to the bottom.
 
-	WelcomeBack.view decides which rows show, in which order and with which icon. The cash row is
-	the headline (a big gold amount under the away time); the others are cards with a name, a short
-	description and, for the daily reward, its amount or, for the next goal, a progress bar.
-	A "Double it · R$49" button sits under the amount while that payout can still be
-	doubled (ExclusiveShopView.doubleQuickBuy); it opens Roblox's prompt, the server pays.
-	Content-sized: the card is as tall as its rows plus the button. When the screen clamps the card (a
-	landscape phone), the away line, the amount and the rows scroll above Collect, which stays pinned
-	to the bottom.
+	The main button claims the daily reward (`Request("Daily")`) while one is ready, else it only closes the card.
+	After a claim it reads "Claimed" and closes the card CLAIMED_CLOSE seconds later, unless another menu took its
+	place. Closed like every menu too (X, Esc, B, tap outside).
+	When the screen clamps the card, the rows scroll above the pinned button. On a landscape phone (`short`) the
+	offers sit in the rows they belong to and the growth line joins the cash row, so the card stays short.
 ]]
 
 local UI = script.Parent.Parent
 local ExclusiveShopView = require(UI.ExclusiveShopView)
-local Format = require(UI.Format)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
@@ -24,108 +21,63 @@ local WelcomeBack = require(UI.WelcomeBack)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
+local create = Widgets.create
 
 local Welcome = {}
 
--- Design px, top to bottom. The cards start at `rowsAt`, or at `rowsAtNoCash` when nothing was
--- earned and the gold headline hides.
-Welcome.ROWS = table.freeze({
-	away = { y = 0, h = 22, size = 16 },
-	earned = { y = 22, h = 52, size = 44 },
-	rowsAt = 82,
-	rowsAtNoCash = 30,
-	collectGap = 12,
+-- Design px. A plain row: icon, a name and a description under it.
+Welcome.ROW = table.freeze({
+	h = 76,
+	gap = 10,
+	icon = 52,
+	pad = 10, -- icon inset from the row's left edge
+	textX = 74, -- pad + icon + 12
+	right = 12,
+	nameY = 10,
+	nameH = 24,
+	nameSize = 20,
+	descY = 34,
+	descH = 36, -- two lines: the description wraps
+	descSize = 15,
 })
-Welcome.ROW_H = 60
-Welcome.GAP = 8
-Welcome.ICON = 44
-Welcome.CARD = table.freeze({
-	pad = 8, -- icon inset from the card's left edge
-	textX = 62, -- name / description / bar start (pad + ICON + 10)
-	right = 12, -- inset of the amount / count from the card's right edge
-	nameY = 8,
-	nameH = 22,
-	nameSize = 18,
-	descY = 31,
-	descH = 18,
-	descSize = 14,
-	amountW = 110,
-	amountH = 24,
-	amountSize = 20,
-	countW = 84,
-	countSize = 15,
-	barY = 36,
-	barH = 10,
-	sideGap = 8, -- between the name and the amount / count on its right
+-- The daily row: the same head as a plain row, the track of day tiles under it.
+Welcome.DAILY = table.freeze({ h = 156, trackY = 72, trackH = 72, trackInset = 10, amountW = 96 })
+-- One tile per streak day; the last (cap) day is LAST_WEIGHT times wider with a bigger pile.
+Welcome.TILE = table.freeze({
+	gap = 6,
+	lastWeight = 1.5,
+	labelY = 4,
+	labelH = 17,
+	labelSize = Layout.MIN_TEXT,
+	iconY = 22,
+	icon = 24,
+	lastIcon = 30,
+	amountH = 17,
+	amountInset = 5,
+	amountSize = Layout.MIN_TEXT,
+	lastAmountSize = 15,
 })
-Welcome.COLLECT_SIZE = 22
-Welcome.DOUBLE = table.freeze({ w = 240, h = Layout.MIN_TOUCH_DESIGN, size = 18, gap = 8 })
+-- A landscape phone (Layout.screen `short`): tighter rows and gaps, so the card fits without scrolling.
+Welcome.SHORT = table.freeze({ rowH = 70, nameY = 8, descY = 32, dailyH = 144, trackY = 60, gap = 6, actionGap = 8 })
+-- The Robux offers: a row of two under the list, or (short screens) one at the right of its row.
+Welcome.OFFERS = table.freeze({ h = Layout.MIN_TOUCH_DESIGN, gap = 10, size = 17, inlineW = 212 })
+Welcome.ACTION_SIZE = 22
+Welcome.ACTION_GAP = 12 -- between the last row and the pinned main button
+Welcome.CLAIMED_CLOSE = 1.5
 
-local function plural(n: number, word: string): string
-	return `{n} {word}{if n == 1 then "" else "s"}`
-end
-
-local function firstOpenGoal(state: any): any
-	if type(state.goals) ~= "table" then
-		return nil
-	end
-	for _, goal in state.goals do
-		if not goal.done then
-			return goal
-		end
-	end
-	return nil
-end
-
-export type Card = { name: string, desc: string, amount: string?, progress: number?, count: string? }
-
--- What one non-cash card shows, from the same State fields WelcomeBack.view reads (pure).
-function Welcome.card(rowName: string, state: any): Card
-	if rowName == "Growth" then
-		local grown = state.welcomeBack.grown
-		if grown > 0 then
-			return { name = `{plural(grown, "slime")} grew`, desc = "on your pads while you were gone" }
-		end
-		return { name = "All grown", desc = "Your slimes are fully grown" }
-	elseif rowName == "Daily" then
-		local daily = state.daily
-		if daily.available then
-			return {
-				name = "Daily reward ready",
-				desc = "Claim it after this",
-				amount = Format.formatCash(daily.amount),
-			}
-		end
-		return { name = `Daily streak: {plural(daily.streak, "day")}`, desc = "Come back tomorrow for more" }
-	elseif rowName == "Goal" then
-		local goal = firstOpenGoal(state)
-		if goal then
-			local target = goal.target or goal.progress
-			local done = math.min(goal.progress, target)
-			return {
-				name = goal.title,
-				desc = "",
-				progress = if target > 0 then done / target else 0,
-				count = `{done}/{goal.target or 0}`,
-			}
-		end
-	end
-	return { name = rowName, desc = "" }
-end
-
--- "You were away for 5h 30m and earned" over the headline; no "and earned" when nothing was (pure).
-function Welcome.awayLine(report: any): string
-	local away = `You were away for {WelcomeBack.awayText(report.away)}`
-	return if report.cash > 0 then `{away} and earned` else away
-end
+type Row = { frame: Frame, pic: any, name: TextLabel, desc: TextLabel }
+type Tile = { frame: Frame, stroke: UIStroke, label: TextLabel, amount: TextLabel }
 
 function Welcome.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "WelcomePanel", "Welcome back", "👋")
+	local panel = Widgets.panel(parent, "WelcomePanel", "Welcome back", "👋") -- WelcomeBack.view sets the mode's title
 	local body = panel.body
-	local layout = Welcome.ROWS
-	local card = Welcome.CARD
+	local row = Welcome.ROW
+	local tileSpec = Welcome.TILE
+	local offers = Welcome.OFFERS
+	local icons = ItemIcons.of(ctx)
+	local cap: number = ctx.Config.DAILY_STREAK_CAP or 7
 
-	-- Everything but Collect; its canvas is set in update to the rows' bottom plus the gap above Collect.
+	-- Everything but the main button; its canvas is set in update to the rows' bottom plus ACTION_GAP.
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,
@@ -133,220 +85,415 @@ function Welcome.new(parent: Instance, ctx: any)
 		Parent = body,
 	})
 
-	local away = Widgets.label({
-		Name = "Away",
-		TextSize = layout.away.size,
-		TextColor3 = Theme.Muted,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Position = UDim2.fromOffset(0, layout.away.y),
-		Size = UDim2.new(1, 0, 0, layout.away.h),
-		Parent = content,
-	})
-	local earned = Widgets.label({
-		Name = "Earned",
-		Font = Theme.Font,
-		TextSize = layout.earned.size,
-		TextColor3 = Theme.Gold,
-		TextStrokeColor3 = Theme.Ink,
-		TextStrokeTransparency = 0,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Position = UDim2.fromOffset(0, layout.earned.y),
-		Size = UDim2.new(1, 0, 0, layout.earned.h),
-		Parent = content,
-	})
-
-	-- Row{i} shows view.rows[i]; row 1 (cash) is the headline above, so the cards are rows 2..MAX_ROWS.
-	local icons = ItemIcons.of(ctx)
-	type Row = {
-		frame: Frame,
-		pic: any,
-		name: TextLabel,
-		desc: TextLabel,
-		amount: TextLabel,
-		count: TextLabel,
-		bar: Frame,
-		setBar: (number) -> (),
-	}
-	local rows: { [number]: Row } = {}
-	for i = 2, WelcomeBack.MAX_ROWS do
-		local frame = Widgets.rowFrame({
-			Name = `Row{i}`,
-			Size = UDim2.new(1, 0, 0, Welcome.ROW_H),
-			Parent = content,
-		})
+	local function makeRow(name: string, h: number, icon: string): Row
+		local frame = Widgets.rowFrame({ Name = name, Size = UDim2.new(1, 0, 0, h), Parent = content })
 		local pic = ItemIconView.new({
 			Name = "Pic",
-			Size = Welcome.ICON,
-			Position = UDim2.new(0, card.pad, 0.5, -Welcome.ICON / 2),
+			Id = icon,
+			Size = row.icon,
+			Position = UDim2.fromOffset(row.pad, (row.h - row.icon) / 2),
 			Parent = frame,
 		}, icons)
-		local name = Widgets.label({
+		pic.setActive(true)
+		local nameLabel = Widgets.label({
 			Name = "Name",
 			Font = Theme.Font,
-			TextSize = card.nameSize,
-			Position = UDim2.fromOffset(card.textX, card.nameY),
-			Size = UDim2.new(1, -(card.textX + card.right), 0, card.nameH),
+			TextSize = row.nameSize,
+			Position = UDim2.fromOffset(row.textX, row.nameY),
+			Size = UDim2.new(1, -(row.textX + row.right), 0, row.nameH),
 			Parent = frame,
 		})
 		local desc = Widgets.label({
 			Name = "Desc",
-			TextSize = card.descSize,
+			TextSize = row.descSize,
 			TextColor3 = Theme.Muted,
-			Position = UDim2.fromOffset(card.textX, card.descY),
-			Size = UDim2.new(1, -(card.textX + card.right), 0, card.descH),
+			TextWrapped = true,
+			TextTruncate = Enum.TextTruncate.None,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			Position = UDim2.fromOffset(row.textX, row.descY),
+			Size = UDim2.new(1, -(row.textX + row.right), 0, row.descH),
 			Parent = frame,
 		})
+		return { frame = frame, pic = pic, name = nameLabel, desc = desc }
+	end
+
+	local cashRow = makeRow("CashRow", row.h, "Cash")
+	cashRow.name.TextColor3 = Theme.Gold
+	cashRow.name.TextStrokeColor3 = Theme.Ink
+	cashRow.name.TextStrokeTransparency = 0
+	local dailyRow = makeRow("DailyRow", Welcome.DAILY.h, "Daily")
+	local growthRow = makeRow("GrowthRow", row.h, "Goal_Pads")
+
+	-- Today's amount, right of the daily row's name.
+	local dailyAmount = Widgets.label({
+		Name = "Amount",
+		Font = Theme.Font,
+		TextSize = row.nameSize,
+		TextColor3 = Theme.Gold,
+		TextStrokeColor3 = Theme.Ink,
+		TextStrokeTransparency = 0,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -row.right, 0, row.nameY),
+		Size = UDim2.fromOffset(Welcome.DAILY.amountW, row.nameH),
+		Parent = dailyRow.frame,
+	})
+
+	local inset = Welcome.DAILY.trackInset
+	local track = create("Frame", {
+		Name = "Track",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(inset, Welcome.DAILY.trackY),
+		Size = UDim2.new(1, -inset * 2, 0, Welcome.DAILY.trackH),
+		Parent = dailyRow.frame,
+	}, { Widgets.list(Enum.FillDirection.Horizontal, tileSpec.gap, Enum.HorizontalAlignment.Center) })
+	local weightSum = (cap - 1) + tileSpec.lastWeight
+	-- A claimed tile's check, where its day label was (built the first time the day is claimed).
+	local CLAIMED = table.freeze({
+		Name = "Claimed",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, tileSpec.labelY),
+	})
+	local tiles: { Tile } = {}
+	for day = 1, cap do
+		local last = day == cap
+		local frame = Widgets.rowFrame({
+			Name = `Day{day}`,
+			LayoutOrder = day,
+			Size = UDim2.new((if last then tileSpec.lastWeight else 1) / weightSum, -tileSpec.gap, 1, 0),
+			Parent = track,
+		})
+		Widgets.shade(frame)
+		local label = Widgets.label({
+			Name = "DayLabel",
+			Font = Theme.Font,
+			TextSize = tileSpec.labelSize,
+			TextColor3 = Theme.Muted,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextTruncate = Enum.TextTruncate.None,
+			Size = UDim2.new(1, 0, 0, tileSpec.labelH),
+			Position = UDim2.fromOffset(0, tileSpec.labelY),
+			Parent = frame,
+		})
+		local iconSize = if last then tileSpec.lastIcon else tileSpec.icon
+		ItemIconView.new({
+			Name = `Day{day}Icon`,
+			Id = "Cash",
+			Size = iconSize,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, tileSpec.iconY + (tileSpec.icon - iconSize) / 2),
+			Parent = frame,
+		}, icons).setActive(true)
 		local amount = Widgets.label({
-			Name = "Amount",
+			Name = "DayAmount",
 			Font = Theme.Font,
-			TextSize = card.amountSize,
+			TextSize = if last then tileSpec.lastAmountSize else tileSpec.amountSize,
+			TextScaled = true,
 			TextColor3 = Theme.Gold,
-			TextStrokeColor3 = Theme.Ink,
-			TextStrokeTransparency = 0,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -card.right, 0.5, 0),
-			Size = UDim2.fromOffset(card.amountW, card.amountH),
-			Visible = false,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.new(1, -4, 0, tileSpec.amountH),
+			Position = UDim2.new(0, 2, 1, -(tileSpec.amountH + tileSpec.amountInset)),
 			Parent = frame,
 		})
-		local count = Widgets.label({
-			Name = "Count",
-			Font = Theme.Font,
-			TextSize = card.countSize,
-			TextColor3 = Theme.Muted,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -card.right, 0, card.nameY),
-			Size = UDim2.fromOffset(card.countW, card.nameH),
-			Visible = false,
-			Parent = frame,
+		create("UITextSizeConstraint", {
+			MinTextSize = Layout.MIN_TEXT,
+			MaxTextSize = if last then tileSpec.lastAmountSize else tileSpec.amountSize,
+			Parent = amount,
 		})
-		local bar, setBar = Widgets.bar(
-			frame,
-			Theme.Good,
-			UDim2.new(1, -(card.textX + card.right), 0, card.barH),
-			UDim2.fromOffset(card.textX, card.barY)
-		)
-		bar.Name = "Bar"
-		bar.Visible = false
-		rows[i] = {
+		tiles[day] = {
 			frame = frame,
-			pic = pic,
-			name = name,
-			desc = desc,
+			stroke = frame:FindFirstChildOfClass("UIStroke") :: UIStroke,
+			label = label,
 			amount = amount,
-			count = count,
-			bar = bar,
-			setBar = setBar,
 		}
 	end
 
-	local collect = Widgets.button(
-		{
-			Name = "Collect",
-			Text = "Collect",
-			TextSize = Welcome.COLLECT_SIZE,
-			Position = UDim2.new(0, 0, 1, -Layout.BUTTON),
-			Size = UDim2.new(1, 0, 0, Layout.BUTTON),
-		},
-		Theme.Gold,
-		function()
-			ctx.togglePanel("Welcome")
+	-- The Robux offers, built the first time one is offered (never with the shop off). Each opens Roblox's
+	-- prompt; the server pays.
+	local latestState: any = nil
+	local offerRow = create("Frame", {
+		Name = "Offers",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, offers.h),
+		Parent = content,
+	})
+	local made: { [string]: Widgets.Button } = {}
+	local function offerButton(name: string, quickBuy: (any, any) -> any): Widgets.Button
+		if made[name] then
+			return made[name]
 		end
-	)
-	collect.instance.Parent = body
-
-	-- "Double it", built the first time a payout can be doubled (never with the shop off).
-	local double: Widgets.Button? = nil
-	local doubleBuy: ExclusiveShopView.QuickBuy? = nil
-	local function doubleButton(): Widgets.Button
-		if double then
-			return double
-		end
-		local d = Welcome.DOUBLE
-		local made = Widgets.button(
+		local b = Widgets.button(
 			{
-				Name = "DoubleIt",
+				Name = name,
 				Text = "",
-				TextSize = d.size,
-				AnchorPoint = Vector2.new(0.5, 0),
-				Size = UDim2.fromOffset(d.w, d.h),
+				TextSize = offers.size,
+				TextScaled = true,
+				Visible = false,
+				Size = UDim2.new(0.5, -offers.gap / 2, 0, offers.h),
 			},
-			Theme.Accent,
+			Theme.Info,
 			function()
-				local q = doubleBuy
+				local q = quickBuy(latestState, ctx.Config)
 				if q and q.mode == "buy" and q.purchase and ctx.purchase then
 					ctx.purchase.prompt(q.purchase)
 				end
 			end
 		)
-		made.instance.Parent = content
-		double = made
-		return made
+		create(
+			"UITextSizeConstraint",
+			{ MinTextSize = Layout.MIN_TEXT, MaxTextSize = offers.size, Parent = b.instance }
+		)
+		b.instance.Parent = offerRow
+		made[name] = b
+		return b
 	end
+
+	local mode: WelcomeBack.Mode = "daily"
+	local actionKind: "claim" | "close" = "close"
+	local action = Widgets.button(
+		{
+			Name = "Action",
+			Text = "",
+			TextSize = Welcome.ACTION_SIZE,
+			Position = UDim2.new(0, 0, 1, -Layout.BUTTON),
+			Size = UDim2.new(1, 0, 0, Layout.BUTTON),
+		},
+		Theme.Gold,
+		function()
+			if actionKind == "claim" then
+				ctx.send("Daily")
+			else
+				ctx.togglePanel("Welcome")
+			end
+		end
+	)
+	action.instance.Parent = body
 
 	local self = { frame = panel.frame, close = panel.close }
 
-	-- Each time the card opens it starts at the top (the away line and the amount), wherever it was left.
-	panel.frame:GetPropertyChangedSignal("Visible"):Connect(function()
-		if panel.frame.Visible then
+	-- The claim just went through while the card was open: "Claimed" until it closes.
+	local claimedToken = 0
+	local claimedShown = false
+	local lastAvailable: boolean? = nil
+	local short = false
+
+	-- Each open or close starts fresh: back at the top, no claim state from the last open, no pending auto-close.
+	-- init.client calls this from syncMenus before the open-time update, so no deferred signal can undo it.
+	function self.setOpen(isOpen: boolean)
+		claimedToken += 1
+		claimedShown = false
+		lastAvailable = nil
+		if isOpen then
 			content.CanvasPosition = Vector2.zero
 		end
-	end)
+	end
 
-	-- Cards hide when the view has fewer rows (no daily / every goal done): the card shrinks with them.
+	-- Why the card opens: "join" (the join report) or "daily". Set before it opens.
+	function self.setMode(m: WelcomeBack.Mode)
+		mode = m
+	end
+
+	-- Row heights, text offsets and gaps for the current screen (Welcome.SHORT on a landscape phone).
+	type Metrics = {
+		rowH: number,
+		nameY: number,
+		descY: number,
+		dailyH: number,
+		trackY: number,
+		gap: number,
+		actionGap: number,
+	}
+	local NORMAL: Metrics = {
+		rowH = row.h,
+		nameY = row.nameY,
+		descY = row.descY,
+		dailyH = Welcome.DAILY.h,
+		trackY = Welcome.DAILY.trackY,
+		gap = row.gap,
+		actionGap = Welcome.ACTION_GAP,
+	}
+	local metrics: Metrics = NORMAL
+	local function applyMetrics()
+		metrics = if short then Welcome.SHORT :: any else NORMAL
+		for _, r in { cashRow, dailyRow, growthRow } do
+			r.name.Position = UDim2.fromOffset(row.textX, metrics.nameY)
+			r.desc.Position = UDim2.fromOffset(row.textX, metrics.descY)
+			r.pic.instance.Position = UDim2.fromOffset(row.pad, (metrics.rowH - row.icon) / 2)
+		end
+		cashRow.frame.Size = UDim2.new(1, 0, 0, metrics.rowH)
+		growthRow.frame.Size = UDim2.new(1, 0, 0, metrics.rowH)
+		dailyRow.frame.Size = UDim2.new(1, 0, 0, metrics.dailyH)
+		dailyAmount.Position = UDim2.new(1, -row.right, 0, metrics.nameY)
+		track.Position = UDim2.fromOffset(inset, metrics.trackY)
+	end
+
+	-- Shows the offer `name` for quick-buy `q` (hides it for nil): in `inRow` at its right, or in the offers row at
+	-- `x` (0 = left, 0.5 = right half) and `width`.
+	local function showOffer(name: string, quickBuy: (any, any) -> any, q: any, inRow: Row?, x: number, width: UDim2)
+		if q == nil then
+			if made[name] then
+				made[name].instance.Visible = false
+			end
+			return
+		end
+		local b = offerButton(name, quickBuy)
+		b.instance.Visible = true
+		b.setText(q.text)
+		b.setEnabled(q.mode == "buy" and ctx.purchase ~= nil)
+		if inRow then
+			b.instance.Parent = inRow.frame
+			b.instance.AnchorPoint = Vector2.new(1, 0.5)
+			b.instance.Position = UDim2.new(1, -row.right, 0, metrics.rowH / 2)
+			b.instance.Size = UDim2.fromOffset(offers.inlineW, offers.h)
+		else
+			b.instance.Parent = offerRow
+			b.instance.AnchorPoint = Vector2.zero
+			b.instance.Position = UDim2.new(x, if x > 0 then offers.gap / 2 else 0, 0, 0)
+			b.instance.Size = width
+		end
+	end
+
+	-- Name / description width for a row with `side` px taken at its right (an amount or an inline offer).
+	local function fitText(r: Row, side: number)
+		local reserve = row.textX + row.right + (if side > 0 then side + offers.gap else 0)
+		r.name.Size = UDim2.new(1, -reserve, 0, row.nameH)
+		r.desc.Size = UDim2.new(1, -reserve, 0, row.descH)
+	end
+
 	function self.update(state: any)
-		local view = WelcomeBack.view(state)
+		latestState = state
+		local view = WelcomeBack.view(state, mode, ctx.Config)
 		if view == nil then
 			return
 		end
-		local report = state.welcomeBack
-		local hasCash = report.cash > 0
-		away.Text = Welcome.awayLine(report)
-		earned.Text = `+{Format.formatCash(report.cash)}`
-		earned.Visible = hasCash
-		local y = if hasCash then layout.rowsAt else layout.rowsAtNoCash
-		local q = if hasCash then ExclusiveShopView.doubleQuickBuy(state, ctx.Config) else nil
-		doubleBuy = q
-		if q then
-			local b = doubleButton()
-			b.instance.Visible = true
-			b.instance.Position = UDim2.new(0.5, 0, 0, y - Welcome.DOUBLE.gap)
-			b.setText(q.text)
-			b.setEnabled(q.mode == "buy" and ctx.purchase ~= nil)
-			y += Welcome.DOUBLE.h + Welcome.DOUBLE.gap
-		elseif double then
-			double.instance.Visible = false
+		panel.title.Text = view.title
+		panel.icon.Text = view.icon
+
+		-- Just claimed while open: keep "Claimed" up, then close (unless another menu replaced the card).
+		local available = view.action.kind == "claim"
+		if lastAvailable == true and not available and panel.frame.Visible and not claimedShown then
+			claimedShown = true
+			claimedToken += 1
+			local token = claimedToken
+			task.delay(Welcome.CLAIMED_CLOSE, function()
+				if token == claimedToken and panel.frame.Visible then
+					ctx.togglePanel("Welcome")
+				end
+			end)
 		end
-		local bottom = y
-		for i = 2, WelcomeBack.MAX_ROWS do
-			local row = rows[i]
-			local data = view.rows[i]
-			row.frame.Visible = data ~= nil
-			if data then
-				local info = Welcome.card(data.name, state)
-				row.frame.Position = UDim2.fromOffset(0, y)
-				bottom = y + Welcome.ROW_H
-				y = bottom + Welcome.GAP
-				row.pic.set(data.icon)
-				row.pic.setActive(true)
-				row.name.Text = info.name
-				row.desc.Text = info.desc
-				row.desc.Visible = info.desc ~= ""
-				row.amount.Text = info.amount or ""
-				row.amount.Visible = info.amount ~= nil
-				row.count.Text = info.count or ""
-				row.count.Visible = info.count ~= nil
-				row.bar.Visible = info.progress ~= nil
-				row.setBar(info.progress or 0)
-				local side = if info.amount then card.amountW elseif info.count then card.countW else 0
-				local reserve = card.textX + card.right + (if side > 0 then side + card.sideGap else 0)
-				row.name.Size = UDim2.new(1, -reserve, 0, card.nameH)
-				row.desc.Size = UDim2.new(1, -reserve, 0, card.descH)
+		lastAvailable = available
+
+		local q2 = if view.cash then ExclusiveShopView.doubleQuickBuy(state, ctx.Config) else nil
+		local q3 = if view.daily and view.daily.amount then ExclusiveShopView.streakQuickBuy(state, ctx.Config) else nil
+
+		local y = 0
+		local function place(r: Row, show: boolean, h: number)
+			r.frame.Visible = show
+			if show then
+				r.frame.Position = UDim2.fromOffset(0, y)
+				y += h + metrics.gap
 			end
 		end
-		content.CanvasSize = UDim2.fromOffset(0, bottom + layout.collectGap)
+
+		-- Cash row (join only); on a short screen the growth line joins it.
+		local growth = view.growth
+		local cash = view.cash
+		if cash then
+			cashRow.name.Text = cash.name
+			cashRow.desc.Text = if short and growth then `{cash.desc}. {growth.name}.` else cash.desc
+		end
+		place(cashRow, cash ~= nil, metrics.rowH)
+
+		local daily = view.daily
+		if daily then
+			dailyRow.name.Text = daily.name
+			dailyRow.desc.Text = daily.status
+			dailyAmount.Text = daily.amount or ""
+			dailyAmount.Visible = daily.amountShown
+			for _, t in daily.tiles do
+				local tile = tiles[t.day]
+				if tile then
+					local today = t.state == "today"
+					local fill = if today then Theme.Gold else Theme.Row
+					tile.frame.BackgroundColor3 = fill
+					tile.stroke.Thickness = if today then Widgets.KIT.stroke else Widgets.KIT.rowStroke
+					tile.label.Text = t.label
+					tile.amount.Text = t.amount
+					Widgets.showCheck(tile.frame, t.state == "claimed", tileSpec.labelH, CLAIMED)
+					if today then
+						Widgets.inkOn(tile.label, fill)
+						Widgets.inkOn(tile.amount, fill)
+					else
+						tile.label.TextColor3 = Theme.Muted
+						tile.label.TextStrokeTransparency = 1
+						tile.amount.TextColor3 = if t.state == "claimed" then Theme.Muted else Theme.Gold
+						tile.amount.TextStrokeTransparency = 1
+					end
+				end
+			end
+		end
+		place(dailyRow, daily ~= nil, metrics.dailyH)
+
+		if growth then
+			growthRow.name.Text = growth.name
+			growthRow.desc.Text = growth.desc
+		end
+		place(growthRow, growth ~= nil and not short, metrics.rowH)
+
+		-- Offers: inline in their rows on a short screen, else a row of two (or one, full width) under the list.
+		local both = q2 ~= nil and q3 ~= nil
+		local width = if both then UDim2.new(0.5, -offers.gap / 2, 0, offers.h) else UDim2.new(1, 0, 0, offers.h)
+		showOffer("DoubleIt", ExclusiveShopView.doubleQuickBuy, q2, if short then cashRow else nil, 0, width)
+		showOffer(
+			"KeepStreak",
+			ExclusiveShopView.streakQuickBuy,
+			q3,
+			if short then dailyRow else nil,
+			if both then 0.5 else 0,
+			width
+		)
+		fitText(cashRow, if short and q2 then offers.inlineW else 0)
+		fitText(
+			dailyRow,
+			if short and q3 then offers.inlineW else (if daily and daily.amountShown then Welcome.DAILY.amountW else 0)
+		)
+		if short and q3 then
+			dailyAmount.Visible = false -- the Claim button names the amount
+		end
+		local offersBelow = not short and (q2 ~= nil or q3 ~= nil)
+		offerRow.Visible = offersBelow
+		if offersBelow then
+			offerRow.Position = UDim2.fromOffset(0, y)
+			y += offers.h + metrics.gap
+		end
+
+		-- The main button: Claim (gold), Got it (mint), or a "Claimed" well after a claim.
+		if claimedShown then
+			actionKind = "close"
+			action.setText("Claimed")
+			action.setEnabled(false)
+		else
+			actionKind = view.action.kind
+			action.setColor(if actionKind == "claim" then Theme.Gold else Theme.Accent)
+			action.setText(view.action.text)
+			action.setEnabled(true)
+		end
+
+		content.CanvasSize = UDim2.fromOffset(0, math.max(0, y - metrics.gap) + metrics.actionGap)
+	end
+
+	-- A landscape phone (Layout.screen `short`) puts the offers in their rows: re-flow and re-size the card once.
+	function self.layout(_: Layout.Rect, s: Layout.Screen)
+		if s.short ~= short then
+			short = s.short
+			applyMetrics()
+			if latestState then
+				self.update(latestState)
+				if ctx.relayout then
+					ctx.relayout()
+				end
+			end
+		end
 	end
 
 	return self
