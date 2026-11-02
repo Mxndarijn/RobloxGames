@@ -94,10 +94,10 @@ end
 
 describe("ObbyService landing", function()
 	it("leaves a standard avatar's move where it is", function()
-		local at = ObbyService.landing(PLACE.exit, OBBY.RESPAWN_LIFT)
-		expect(at[1]).toBe(PLACE.exit[1])
-		expect(at[2]).toBeCloseTo(PLACE.exit[2], 1e-9)
-		expect(at[3]).toBe(PLACE.exit[3])
+		local spot = ObbyService.landing(PLACE.exit, OBBY.RESPAWN_LIFT)
+		expect(spot[1]).toBe(PLACE.exit[1])
+		expect(spot[2]).toBeCloseTo(PLACE.exit[2], 1e-9)
+		expect(spot[3]).toBe(PLACE.exit[3])
 	end)
 
 	it("lifts a taller avatar so it lands on its feet, and lowers a smaller one", function()
