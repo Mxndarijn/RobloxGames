@@ -346,7 +346,7 @@ describe("Moon Jump real arcs", function()
 		end
 	end)
 
-	it("Moon Pulse: off the first blinking island in a ~1 s window, the float lands while the second is lit", function()
+	it("Moon Pulse: the second island goes out after the first; a float onto it lands for 2 s of a bar", function()
 		local section = variantNamed("Moon Pulse").build(1)
 		local blink = {}
 		for _, s in steps(section) do
@@ -358,28 +358,50 @@ describe("Moon Jump real arcs", function()
 		local grav = gravityOver(section, blink[1])
 		local flight = 2 * Kit.JUMP_SPEED / (Kit.GRAVITY * grav)
 		local period = Kit.periodOf(blink[1])
-		expect(period).toBeCloseTo(3.6, 1e-6)
+		expect(period).toBeCloseTo(4.8, 1e-6)
 		local function lit(p: Part, t: number): boolean
 			local _, _, _, _, _, on = Kit.offsetAt(p, t)
 			return on
 		end
-		-- Seconds of a bar you can leave the first and still land on the second (lit for 0.3 s after you land).
-		local ok, dt = 0, 0.01
+		local dt, slack = 0.01, ObbyCheck.TIME_SLACK
+		-- Merijn 2026-11-03: the order you meet them is the order they go out (the old bar put the second out first)
+		local function goesOut(p: Part): number
+			for k = 1, math.floor(period / dt) do
+				if lit(p, (k - 1) * dt) and not lit(p, k * dt) then
+					return k * dt
+				end
+			end
+			error("never goes out")
+		end
+		local out1, out2 = goesOut(blink[1]), goesOut(blink[2])
+		-- the second goes out 2.4 s after the first (half a bar), not before it
+		expect(((out2 - out1) % period)).toBeCloseTo(2.4, 0.02)
+		-- Seconds of a bar you can leave the first (lit `slack` after) and land on the second (lit `slack` before and
+		-- `slack` + a re-jump after you land).
+		local ok = 0
 		for k = 0, math.floor(period / dt) - 1 do
 			local t = k * dt
-			if lit(blink[1], t) and lit(blink[2], t + flight) and lit(blink[2], t + flight + 0.3) then
+			if
+				lit(blink[1], t)
+				and lit(blink[1], t + slack)
+				and lit(blink[2], t + flight - slack)
+				and lit(blink[2], t + flight + ObbyCheck.REJUMP + slack)
+			then
 				ok += dt
 			end
 		end
-		expect(ok >= BAND.hard.lo - 1e-6 and ok <= BAND.hard.hi + 1e-6).toBe(true)
-		-- and the pad to the first: you can always time it (it is lit 2.4 s a bar)
+		expect(ok >= 2).toBe(true)
+		-- and the pad to the first: lit with slack round the landing most of a bar
 		local fromPad = 0
 		for k = 0, math.floor(period / dt) - 1 do
-			if lit(blink[1], k * dt + flight) then
+			local t = k * dt + flight
+			if lit(blink[1], t - slack) and lit(blink[1], t + slack + 1) then
 				fromPad += dt
 			end
 		end
 		expect(fromPad > 2).toBe(true)
+		-- the shared timing check finds a run with time to spare
+		expect(ObbyCheck.timing(section)).toBeNil()
 	end)
 
 	it("Goo Hedge and Over and Back: a wall that is up stops every float; one that is down lets one through", function()

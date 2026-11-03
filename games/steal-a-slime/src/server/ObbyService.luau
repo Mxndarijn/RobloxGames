@@ -8,8 +8,10 @@
 	  * stepping into the portal circle starts a run (not while carrying a slime, nor on a course they already cleared:
 	    `cleared`) and lifts the player to the start pad
 	  * while running, the runner's base lock counts down at OBBY.LOCK_RATE (ObbyLock.step, every tick)
+	  * the run's clock starts the first tick the runner is past the start pad's front edge (over section 1 or on);
+	    standing on the start pad doesn't count. A fall back to the start pad keeps it running
 	  * there are no checkpoints: the server tracks the furthest section the runner has been over (ObbyCourse.sectionAt),
-	    in order. Skipping a section, or finishing faster than OBBY.MIN_RUN_SECONDS, marks the run invalid (it still
+	    in order, and the one they are over now (State.obby.run.at, the run card's section). Skipping a section, or finishing faster than OBBY.MIN_RUN_SECONDS, marks the run invalid (it still
 	    finishes, but earns nothing)
 	  * a fall sends the runner back to the start pad; the clock keeps running and the sections already done stay
 	    done. The client puts its own runner back the moment its root drops OBBY.FALL_DEPTH under the lowest platform
@@ -62,8 +64,10 @@ export type View = {
 	readyAt: number?, -- a finish earns the boost again (server time); nil = ready now
 	sections: { string }, -- the current course's section names, in order
 	rotatesAt: number, -- server time the next rotation starts
-	-- the run in progress; `lockRate` = how fast the runner's base lock counts down meanwhile (OBBY.LOCK_RATE)
-	run: { section: number, of: number, startedAt: number, lockRate: number }?,
+	-- the run in progress: `section` = the furthest section reached, `at` = the one the runner is over now (0 = the
+	-- start pad, of + 1 = the finish pad), `startedAt` = when the clock started (nil = still on the start pad),
+	-- `lockRate` = how fast the runner's base lock counts down meanwhile (OBBY.LOCK_RATE)
+	run: { section: number, at: number, of: number, startedAt: number?, lockRate: number }?,
 	best: number?, -- best finish on the current course, seconds
 }
 
@@ -136,7 +140,7 @@ function ObbyService.enter(world: World, session: Session, place: Place, now: nu
 		local rotatesAt = ObbyCourse.slotStart(course.slot + 1)
 		return false, `You cleared this course! New one in {clock(rotatesAt - now)}`, nil
 	end
-	session.obbyRun = { slot = course.slot, section = 0, startedAt = now, settleUntil = now + OBBY.MOVE_GRACE }
+	session.obbyRun = { slot = course.slot, section = 0, at = 0, enteredAt = now, settleUntil = now + OBBY.MOVE_GRACE }
 	World.markDirty(session)
 	World.track(world, session.userId, { op = "event", name = "ObbyStarted" })
 	local status = ObbyRules.phase(session.data, now)
@@ -156,7 +160,7 @@ function ObbyService.cancel(session: Session)
 end
 
 local function finish(world: World, session: Session, run: World.ObbyRun, course: ObbyCourse.Course, now: number)
-	local seconds = now - run.startedAt
+	local seconds = now - (run.startedAt or now) -- the clock started when the runner left the start pad
 	if seconds < OBBY.MIN_RUN_SECONDS then
 		run.invalid = true
 	end
@@ -207,6 +211,22 @@ local function trackFall(world: World, session: Session, course: ObbyCourse.Cour
 	})
 end
 
+-- Starts the run's clock the first time the runner is past the start pad (`at` > 0).
+local function startClock(session: Session, run: World.ObbyRun, at: number, now: number)
+	if run.startedAt == nil and at > 0 then
+		run.startedAt = now
+		World.markDirty(session)
+	end
+end
+
+-- The part of the course the runner is over now (State.obby.run.at).
+local function setAt(session: Session, run: World.ObbyRun, at: number)
+	if run.at ~= at then
+		run.at = at
+		World.markDirty(session)
+	end
+end
+
 -- One runner's tick. Returns the move the adapter must make, if any, and true when the client put the runner back
 -- on the start pad after a fall.
 local function progress(world: World, session: Session, place: Place, pos: Vec, now: number): (Move?, boolean)
@@ -216,11 +236,16 @@ local function progress(world: World, session: Session, place: Place, pos: Vec, 
 		ObbyService.cancel(session)
 		return nil, false
 	end
+	local p = ObbyCourse.toLocal(place.frame, pos)
 	if run.settleUntil and now < run.settleUntil then
 		run.lastX = nil
-		return nil, false -- the lift or respawn may not have reached the client yet
+		-- the lift or respawn may not have reached the client yet; a runner already off the pad's front (a quick
+		-- start) still starts the clock
+		if run.startedAt == nil and p[1] <= course.length and math.abs(p[3]) <= ObbyCourse.WIDTH / 2 then
+			startClock(session, run, ObbyCourse.sectionAt(course, p), now)
+		end
+		return nil, false
 	end
-	local p = ObbyCourse.toLocal(place.frame, pos)
 	local off = ObbyService.OFF_COURSE
 	if p[1] < -off or p[1] > course.length + off or math.abs(p[3]) > off then
 		ObbyService.cancel(session)
@@ -234,12 +259,15 @@ local function progress(world: World, session: Session, place: Place, pos: Vec, 
 	local at = ObbyCourse.sectionAt(course, p)
 	local lastX = run.lastX
 	run.lastX = p[1]
+	startClock(session, run, at, now)
 	if p[2] < ObbyCourse.fallHeight(course, p, OBBY.FALL_DEPTH + OBBY.SERVER_FALL_SLACK) then
 		trackFall(world, session, course, at)
 		run.settleUntil = now + OBBY.MOVE_GRACE
 		run.lastX = nil
+		setAt(session, run, 0) -- back on the start pad
 		return worldMove(place, session.userId, course.start), false
 	end
+	setAt(session, run, at)
 	if at == 0 and lastX and lastX - p[1] > ObbyService.RESET_JUMP then
 		trackFall(world, session, course, ObbyCourse.sectionAt(course, { lastX, p[2], p[3] }))
 		return nil, true
@@ -371,7 +399,13 @@ function ObbyService.view(world: World, session: Session, now: number): View?
 		sections = ObbyCourse.names(course.picks),
 		rotatesAt = ObbyCourse.slotStart(ObbyCourse.slot(now) + 1),
 		run = if run
-			then { section = run.section, of = #course.spans, startedAt = run.startedAt, lockRate = ObbyLock.rate() }
+			then {
+				section = run.section,
+				at = run.at,
+				of = #course.spans,
+				startedAt = run.startedAt,
+				lockRate = ObbyLock.rate(),
+			}
 			else nil,
 		best = if best and best.slot == course.slot then best.seconds else nil,
 	}

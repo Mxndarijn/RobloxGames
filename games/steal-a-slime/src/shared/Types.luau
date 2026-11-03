@@ -77,8 +77,10 @@ export type ObbyView = {
 	readyAt: number?, -- a finish earns the boost again (nil = ready now)
 	sections: { string }, -- the current course's section names, in order
 	rotatesAt: number, -- the next course starts
-	-- the run in progress (section 0 = the start pad); lockRate = the base lock's countdown speed meanwhile (0.5 = half)
-	run: { section: number, of: number, startedAt: number, lockRate: number? }?,
+	-- the run in progress: section = the furthest reached, at = the one the runner is over now (0 = the start pad,
+	-- of + 1 = the finish pad); startedAt = when the clock started (nil = still on the start pad); lockRate = the base
+	-- lock's countdown speed meanwhile (0.5 = half)
+	run: { section: number, at: number?, of: number, startedAt: number?, lockRate: number? }?,
 	best: number?, -- best finish on this course, seconds; set = cleared: the portal waits for the next course
 }
 
