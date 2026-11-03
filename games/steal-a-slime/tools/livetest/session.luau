@@ -836,9 +836,9 @@ scenario("boss", function()
 		wildAfter += 1
 	end
 	check(
-		"boss: bat hits fill a meter that scales with players; it sheds slimes on the way",
+		"boss: bat hits fill a meter that scales with fighters; it sheds slimes on the way",
 		fight.phase == "haul" and wildAfter - 1 > wildBefore,
-		`{swings} swing rounds, {players} players (target {BOSS.POINTS_PER_PLAYER * players}), hits {fight.contributions[USER_ID]} / {fight.contributions[HELPER_ID]}, wild {wildBefore} -> {wildAfter}`
+		`{swings} swing rounds, {players} players, hits {fight.contributions[USER_ID]} / {fight.contributions[HELPER_ID]}, wild {wildBefore} -> {wildAfter}`
 	)
 	local haulPos = S.WorldView.slimePosition(id)
 	local moved = if haulPos and lastFightPos

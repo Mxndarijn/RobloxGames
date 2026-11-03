@@ -59,14 +59,6 @@ local function origin(ctx: Context?): (number, number)
 	return if o then o.X else 0, if o then o.Z else 0
 end
 
-local function playerCount(world: World): number
-	local n = 0
-	for _ in world.sessions do
-		n += 1
-	end
-	return n
-end
-
 local function nameOf(world: World, userId: number?): string?
 	local session = if userId then world.sessions[userId] else nil
 	return session and session.name
@@ -341,8 +333,7 @@ local function healIfGuardsHeld(world: World, event: World.BossEvent, rise: Boss
 	end
 	for _, g in event.guards do
 		if g.alive then
-			local target = BossFight.target(playerCount(world))
-			event.fight.points = math.max(0, event.fight.points - heal * target)
+			BossFight.heal(event.fight, heal)
 			local entry = SlimeRoster.get(event.fight.species)
 			World.notify(
 				world,
@@ -377,7 +368,7 @@ local function advance(world: World, event: World.BossEvent, now: number, all: {
 		local endAt = move.at + move.seconds
 		local start = if now - endAt < 0.5 then endAt else now
 		local players, target = fighters(event, all, move.tx, move.tz)
-		local slots = BossAttacks.available(species, BossFight.meter(event.fight, playerCount(world)))
+		local slots = BossAttacks.available(species, BossFight.meter(event.fight))
 		local due = if start >= event.nextAttackAt and #slots > 0 then slots[event.attackIndex % #slots + 1] else nil
 		local prev = move
 		if prev.kind == "rise" then
@@ -612,12 +603,12 @@ function settle(world: World, event: World.BossEvent, now: number, ctx: Context?
 	local fight = event.fight
 	local dt = math.max(0, now - event.lastStepAt)
 	event.lastStepAt = now
-	local before = BossFight.meter(fight, playerCount(world))
+	local before = BossFight.meter(fight)
 	local wild = bossWild(world, event)
 	local kind = wild and wild.move and wild.move.kind
 	local paused = kind == "windup" or kind == "attack" or kind == "hop" or kind == "rise" or kind == "land"
 	-- a "stage" event (every STAGE_EVERY of the meter) only speeds it up (speedOf): nothing spawns
-	for _, e in BossFight.step(fight, now, dt, playerCount(world), paused) do
+	for _, e in BossFight.step(fight, now, dt, paused) do
 		if e.kind == "fight" then
 			arrive(world, event, now, ctx)
 		elseif e.kind == "haul" then
@@ -628,7 +619,7 @@ function settle(world: World, event: World.BossEvent, now: number, ctx: Context?
 		World.markAllDirty(world)
 	end
 	-- The drain moves the meter without an action: push when it shows a new percent.
-	if math.floor(BossFight.meter(fight, playerCount(world)) * 100) ~= math.floor(before * 100) then
+	if math.floor(BossFight.meter(fight) * 100) ~= math.floor(before * 100) then
 		World.markAllDirty(world)
 	end
 end
@@ -661,7 +652,7 @@ function BossEvent.hit(world: World, session: Session, now: number, from: Vec?, 
 		return false, "stunned"
 	end
 	local wild = bossWild(world, event)
-	local meter = BossFight.meter(event.fight, playerCount(world))
+	local meter = BossFight.meter(event.fight)
 	local points, why = BossAttacks.hitValue(event.fight.species, meter, wild and wild.move, now, plaza(from, ctx))
 	if not points then
 		return false, why
@@ -793,7 +784,7 @@ function BossEvent.view(world: World, session: Session, now: number): Types.Boss
 		kind = fight.species,
 		name = if entry then entry.name else fight.species,
 		tier = if entry then entry.tier else nil,
-		meter = BossFight.meter(fight, playerCount(world)),
+		meter = BossFight.meter(fight),
 		endsAt = fight.endsAt,
 		nextAt = world.nextBossAt,
 		yourPoints = fight.contributions[session.userId] or 0,

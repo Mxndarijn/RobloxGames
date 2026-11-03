@@ -1785,11 +1785,13 @@ local Config = {
 		HAUL_SECONDS = 90,
 		LINGER_SECONDS = 6, -- the won / failed result stays in State.boss
 		PRIORITY_SECONDS = 5, -- head start for the top contributor in the haul
-		POINTS_PER_PLAYER = 110, -- meter target = this x players on the server (dazed hits count DAZED_MULTIPLIER)
+		POINTS_PER_PLAYER = 110, -- meter target = this x fighters (dazed hits count DAZED_MULTIPLIER)
+		FIGHTER_WINDOW = 20, -- seconds: a fighter is a player with FIGHTER_MIN_HITS counted hits within this long
+		FIGHTER_MIN_HITS = 5, -- counted hits (guard pops too) in FIGHTER_WINDOW that make a player a fighter
 		HIT_GAP = 0.4, -- one meter point per player per this many seconds
 		HIT_REACH = 13, -- studs from the swinger's root to the boss Body (about the boss's radius at SCALE + a bat's reach)
-		DRAIN_PER_SECOND = 0.02, -- share of the target lost per second with nobody hitting
-		DRAIN_GRACE = 1, -- seconds without a hit before the drain starts
+		DRAIN_PER_SECOND = 0.005, -- meter share lost per second with nobody hitting (never below the last stage)
+		DRAIN_GRACE = 4, -- seconds without a hit before the drain starts (a knockback and the walk back)
 		STAGE_EVERY = 0.25, -- meter share between stages (it speeds up at each; no slimes drop)
 		MVP_BONUS = 0.5, -- Boss Champion boost, for the player who brings the boss home: +50 % income ...
 		MVP_SPEED = 0.15, -- ... and +15 % walk speed (Shop.walkSpeed) ...
