@@ -3,6 +3,7 @@
 local AudioLogic = require("../../src/ui/AudioLogic")
 local Config = require("../../src/shared/Config")
 local DayNight = require("../../src/shared/DayNight")
+local SoundCues = require("../../src/ui/SoundCues")
 local Sounds = require("../../src/ui/Sounds")
 local TestRunner = require("../TestRunner")
 
@@ -206,6 +207,14 @@ describe("AudioLogic layers", function()
 		expect(t.music_boss ~= nil).toBe(true)
 		expect(t.music_night).toBe(nil)
 	end)
+	it("in the obby world the boss track gives way to the day / night music, and comes back on the way out", function()
+		local inObby = AudioLogic.layerTargets({ clockTime = 0, boss = true, away = true }, lcfg, DayNight)
+		expect(inObby.music_boss).toBe(nil)
+		expect(inObby.music_night ~= nil).toBe(true)
+		local back = AudioLogic.layerTargets({ clockTime = 0, boss = true, away = false }, lcfg, DayNight)
+		expect(back.music_boss ~= nil).toBe(true)
+		expect(back.music_night).toBe(nil)
+	end)
 	it("rain adds its bed and ducks the day bed; a weather without an id adds nothing", function()
 		local t = AudioLogic.layerTargets({ clockTime = 12, weather = "Rain" }, lcfg, DayNight)
 		expect(t.weather_Rain.id).toBe("rbxassetid://6")
@@ -283,5 +292,35 @@ describe("AudioLogic one-shot spec and variants", function()
 		expect(AudioLogic.pick({ "a", "b", "c" }, fixed(0.99))).toBe("c")
 		expect(AudioLogic.pick({ "a", "b", "c" }, fixed(1))).toBe("c")
 		expect(AudioLogic.pick({}, fixed(0.5))).toBe(nil)
+	end)
+end)
+
+describe("AudioLogic.silentAway", function()
+	it("silences every boss fight sound in the obby world, and nothing on the map", function()
+		for name in Sounds.BOSS_EVENT do
+			expect(AudioLogic.silentAway(name, true)).toBe(true)
+			expect(AudioLogic.silentAway(name, false)).toBe(false)
+			expect(AudioLogic.silentAway(name, nil)).toBe(false)
+		end
+	end)
+	it("keeps the obby's own sounds and the rest of the game", function()
+		-- BossMvp is the obby clear's fanfare too
+		for _, name in { "BossMvp", "Click", "Alarm", "Deposit", "click" } do
+			expect(AudioLogic.silentAway(name, true)).toBe(false)
+		end
+	end)
+	it("lists only registry sounds, and every variant of the boss hit", function()
+		for name in Sounds.BOSS_EVENT do
+			expect(Sounds.IDS[name] ~= nil).toBe(true)
+		end
+		for _, name in Sounds.VARIANTS.BossHit do
+			expect(Sounds.BOSS_EVENT[name]).toBe(true)
+		end
+	end)
+	it("covers the boss warning toast and the boss win cue", function()
+		expect(Sounds.BOSS_EVENT.BossWarn).toBe(true) -- server/BossEvent notifies it to everyone
+		local cues = SoundCues.diff({ boss = { phase = "fight" } } :: any, { boss = { phase = "won" } } :: any)
+		expect(#cues).toBe(1)
+		expect(AudioLogic.silentAway(cues[1].name, true)).toBe(true)
 	end)
 end)
