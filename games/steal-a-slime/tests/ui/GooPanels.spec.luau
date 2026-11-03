@@ -106,11 +106,14 @@ describe("Goo menus: no text under Layout.MIN_TEXT", function()
 			expect(table.concat(tooSmall(panel.frame), ", ")).toBe("")
 		end)
 	end
-	it("Daily reward on a real State", function()
-		local popup = UiHarness.ui("Panels/DailyPopup").new(UiHarness.root(), ctx())
-		popup.update(realState())
-		popup.open()
-		expect(table.concat(tooSmall(popup.frame), ", ")).toBe("")
+	it("Welcome in its join mode on a real State with a report", function()
+		local panel = UiHarness.ui("Panels/Welcome").new(UiHarness.root(), ctx())
+		local state = realState()
+		state.welcomeBack = { away = 19800, cash = 12400, grown = 3, onPads = true }
+		panel.setMode("join")
+		panel.frame.Visible = true
+		panel.update(state)
+		expect(table.concat(tooSmall(panel.frame), ", ")).toBe("")
 	end)
 	for _, shopId in { "ItemShop", "UpgradeShop" } do
 		it(`{shopId} on a real State`, function()
@@ -223,10 +226,6 @@ describe("Menu cards block taps to the backdrop behind them", function()
 			expect(panel.frame.InputSink).toBe(Activate)
 		end)
 	end
-	it("Daily reward card sinks taps", function()
-		local popup = UiHarness.ui("Panels/DailyPopup").new(UiHarness.root(), ctx())
-		expect(UiHarness.find(popup.frame, "Card").InputSink).toBe(Activate)
-	end)
 end)
 
 describe("A backdrop tap closes the menu only outside the card", function()

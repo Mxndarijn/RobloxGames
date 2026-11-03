@@ -138,7 +138,6 @@ function PerfMeasure.measure(): { [string]: any }
 		serverNow = ctx.serverNow,
 	})
 	UiHarness.ui("Panels/Carry").new(gui, ctx)
-	UiHarness.ui("Panels/DailyPopup").new(gui, ctx)
 	UiHarness.ui("TutorialCard").new(gui, ctx, 2)
 	UiHarness.ui("Panels/HintOverlay").new(gui)
 

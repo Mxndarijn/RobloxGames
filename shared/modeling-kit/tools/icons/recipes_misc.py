@@ -53,6 +53,14 @@ def cash():
     return [coin_pile("$")]
 
 
+@icon("Settings", view=(0, 10))
+def settings():
+    cog = cog_ring("Cog", C["gold"])
+    cog.rotation_euler = (0, math.radians(22.5), 0)
+    spots = ((-3.6, 3.4, 0.5), (3.7, -3.0, 0.45), (0.6, 4.9, 0.38))
+    return [cog] + [sparkle((x, -1.0, z), s, C["gold_l"], f"S{i}") for i, (x, z, s) in enumerate(spots)]
+
+
 @icon("Gift", view=(22, 22))
 def gift():
     return gift_box()

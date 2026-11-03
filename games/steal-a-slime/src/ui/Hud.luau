@@ -234,6 +234,9 @@ function Hud.new(parent: Instance, ctx: any)
 			Position = UDim2.fromScale(0.5, 0),
 			Parent = frame,
 		}, registry)
+		-- Centred, so a picture drawn smaller than the bubble (Layout.STATUS_ICON_FIT) stays in the middle.
+		icon.picture.AnchorPoint = Vector2.new(0.5, 0.5)
+		icon.picture.Position = UDim2.fromScale(0.5, 0.5)
 		local sm = Layout.statusMetrics(false)
 		local label = Widgets.label({
 			Name = "Timer",
@@ -617,6 +620,8 @@ function Hud.new(parent: Instance, ctx: any)
 					entry.frame:SetAttribute("IconId", slot.icon)
 					entry.icon.set(slot.icon)
 					entry.icon.setActive(true)
+					local fit = Layout.STATUS_ICON_FIT[slot.icon] or 1
+					entry.icon.picture.Size = UDim2.fromScale(fit, fit)
 				end
 				entry.label.Text = slot.text
 				entry.label.Size =
@@ -649,7 +654,7 @@ function Hud.new(parent: Instance, ctx: any)
 		setTooltip(id)
 	end
 
-	-- An open overlay (menu card, daily popup, bag panel: MenuState.noticesVisible) hides the whole banner stack
+	-- An open overlay (menu card or bag panel: MenuState.noticesVisible) hides the whole banner stack
 	-- and the tooltip: nothing can cover a card's title or X.
 	function self.setMenuOpen(isOpen: boolean)
 		if menuOpen ~= isOpen then

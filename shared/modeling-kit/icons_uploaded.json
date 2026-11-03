@@ -657,6 +657,13 @@
     "sha256": "92ec48812e27193bcbedb32b79e00d0ed603834e41a3e836e5a635918e508f6a",
     "uploadedAt": "2026-10-17T12:46:03Z"
   },
+  "Settings": {
+    "assetId": "101126801450968",
+    "assetType": "Decal",
+    "imageId": "104055387014454",
+    "sha256": "36493beedd09dbd14075c43bb3cb41073d99b93b060edc82f7be982313203042",
+    "uploadedAt": "2026-11-02T22:39:15Z"
+  },
   "Slap": {
     "assetId": "131747088908242",
     "assetType": "Decal",

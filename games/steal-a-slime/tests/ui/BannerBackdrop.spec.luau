@@ -48,7 +48,6 @@ describe("tutorial UI never covers an open menu card", function()
 		expect(MenuState.tutorialVisible(nil, true)).toBe(false)
 		expect(MenuState.tutorialVisible("Shop", false)).toBe(false)
 		expect(MenuState.tutorialVisible("Shop", true)).toBe(false)
-		expect(MenuState.tutorialShown(nil, true)).toBe(false) -- the daily popup
 	end)
 	it("the card hides with a menu open and returns on the same step", function()
 		local card = newCard()

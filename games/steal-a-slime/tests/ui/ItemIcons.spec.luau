@@ -235,7 +235,7 @@ describe("uploaded item icon images", function()
 				)
 			end
 		end
-		expect(n).toBe(68) -- 49 + the 19 pet seats
+		expect(n).toBe(69) -- 50 + the 19 pet seats
 	end)
 	it("ids awaiting an upload are real drawn-group ids with a UI-drawn scene", function()
 		local ItemIconArt = UiHarness.ui("ItemIconArt")
@@ -289,7 +289,7 @@ describe("uploaded item icon images", function()
 
 	it("ItemIconView shows the picture (Fit, transparent) with no tile behind it, and no drawn scene", function()
 		ItemIconView.resetLive()
-		for _, id in { "Lock", "Dex_50", "Badge_Millionaire", "PlotSkin_classic", "Code_WELCOME" } do
+		for _, id in { "Lock", "Dex_50", "Badge_Millionaire", "PlotSkin_classic", "Code_WELCOME", "Settings" } do
 			local icon = ItemIconView.new({ Id = id, Size = 36, Parent = UiHarness.root() }, registry)
 			icon.setActive(true)
 			expect(icon.source).toBe("image")
@@ -451,10 +451,10 @@ describe("item icons on the surfaces", function()
 		}
 	end
 
-	it("Codes, Goals and the Daily popup draw item icons", function()
+	it("Codes, Goals and the daily reward card draw item icons", function()
 		local codes = UiHarness.ui("Panels/Codes").new(UiHarness.root(), ctx())
 		expect(find(codes.frame, "BoostIcon"):GetAttribute("ItemId")).toBe("Boost_Code")
-		local daily = UiHarness.ui("Panels/DailyPopup").new(UiHarness.root(), ctx())
+		local daily = UiHarness.ui("Panels/Welcome").new(UiHarness.root(), ctx())
 		expect(find(daily.frame, "Day1Icon"):GetAttribute("ItemId")).toBe("Cash")
 		local goals = UiHarness.ui("Panels/Goals").new(UiHarness.root(), ctx())
 		goals.update({ slimes = {}, padsUnlocked = 4, padsMax = 8, cash = 0 })

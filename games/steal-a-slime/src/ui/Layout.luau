@@ -57,7 +57,6 @@ export type Screen = {
 	menuX: number, -- left edge of every menu card (Layout.panelFor)
 	menuW: number, -- width of every menu card
 	carry: Rect,
-	daily: Rect,
 }
 
 local Layout = {}
@@ -69,13 +68,11 @@ Layout.CLOSE_WITH_ESCAPE = true
 
 -- Top-level ZIndex per overlay (ScreenGui uses ZIndexBehavior.Sibling, so
 -- children render with their parent). Higher draws on top: banners (steal
--- and tutorial cards) over menu panels, the daily popup over them, and the
--- carry panel (Drop) over all.
+-- and tutorial cards) over menu panels, and the carry panel (Drop) over all.
 Layout.ZINDEX = table.freeze({
 	Base = 1, -- bottom clusters, nav, the menu backdrop
 	Menu = 2, -- menu cards (over the backdrop, whatever their sibling order)
 	Banners = 3, -- HUD banners, the notice cards (steal, tutorial) and the tutorial hint
-	Daily = 5,
 	Carry = 30,
 })
 
@@ -189,7 +186,7 @@ function Layout.fitsInViewport(r: Rect, width: number, height: number, margin: n
 	return r.w >= 0 and r.h >= 0 and r.x >= m and r.y >= m and r.x + r.w <= width - m and r.y + r.h <= height - m
 end
 
--- Which of two overlay layers draws on top ("Banners" < "Daily" < "Carry").
+-- Which of two overlay layers draws on top ("Menu" < "Banners" < "Carry").
 function Layout.drawsAbove(top: string, below: string): boolean
 	local z = Layout.ZINDEX :: any
 	local a, b = z[top], z[below]
@@ -688,7 +685,6 @@ end
 Layout.CARRY = table.freeze({ w = 420, h = 96 })
 -- Carry card text column = card width minus this (swatch left, Drop right).
 Layout.CARRY_TEXT_RESERVE = 190
-Layout.DAILY = table.freeze({ w = 420, h = 324 })
 Layout.PHONE_SHORT_HEIGHT = 500 -- viewport px: a compact screen shorter than this is a landscape phone
 
 -- Menu panel chrome (Widgets.panel): the coloured title band holds the
@@ -739,6 +735,9 @@ Layout.NOTICE_CARD = table.freeze({
 -- The glass bubble behind each status icon (Hud): white at this transparency over the world. `dim`: the Ink veil
 -- over an icon that only counts down a cooldown (the obby slot between boosts).
 Layout.STATUS_BUBBLE = table.freeze({ transparency = 0.8, dim = 0.45 })
+-- Status pictures that reach into their corners draw this much smaller than the bubble (by ItemIcons id), so the
+-- whole picture sits inside the circle. Other pictures draw at the bubble's full size.
+Layout.STATUS_ICON_FIT = table.freeze({ Boost_Friend = 0.84 } :: { [string]: number })
 
 -- The goo edge under a panel's band (Widgets.gooEdge): drips { x (fraction of the width), width, hang } px. Each
 -- drip is one finger of goo with a round end, hanging `hang` px under the band; that stays under
@@ -1048,10 +1047,6 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local bannerX, bannerW = centredIn(span, W, Layout.BANNER_WIDTH)
 	local banners = Layout.rect(bannerX, Layout.TOP, bannerW, 0)
 
-	local dailyW = math.min(Layout.DAILY.w, W - m * 2)
-	local dailyH = math.min(Layout.DAILY.h, H - m * 2)
-	local daily = Layout.rect((W - dailyW) / 2, (H - dailyH) / 2, dailyW, dailyH)
-
 	return {
 		viewportW = viewportW,
 		viewportH = viewportH,
@@ -1075,7 +1070,6 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		menuX = menuX,
 		menuW = menuW,
 		carry = carry,
-		daily = daily,
 	}
 end
 

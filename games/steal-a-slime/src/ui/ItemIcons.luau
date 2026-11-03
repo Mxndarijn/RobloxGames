@@ -128,6 +128,7 @@ ItemIcons.IMAGES = {
 	Pvp_KnockGlove5 = 70956878049152,
 	Quest = 134202290579149,
 	Rebirth = 111386939880268,
+	Settings = 104055387014454,
 	Slap = 126349026044270,
 	SpeedCoil = 122726751933466,
 	Upgrade_CarrySpeed = 78961904430736,
@@ -158,7 +159,7 @@ ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 
 -- Items an artist must still render: in a DRAWN group but with no recipe worth shipping. Empty now.
 -- The H1 HUD icons (group "hud", not drawn) keep their tile + glyph until Archer renders them.
-ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost", "Settings" } :: { string })
+ItemIcons.FOR_ARCHER = table.freeze({ "Income" } :: { string })
 
 -- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
 -- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet, the Boss MVP and Obby
@@ -386,20 +387,12 @@ local HAND: { Hand } = {
 		brief = "A green up-arrow rising out of a small stack of gold coins; front view.",
 	},
 	{
-		id = "FriendBoost",
-		name = "Friend boost",
-		group = "hud",
-		color = { 90, 200, 120 },
-		glyph = "👥",
-		brief = "Two smiling slimes (green and pink) side by side with a small gold plus sign; front view.",
-	},
-	{
 		id = "Settings",
 		name = "Settings",
-		group = "hud",
+		group = "misc",
 		color = { 250, 200, 90 },
 		glyph = "⚙️",
-		brief = "A chunky silver cog with a small green slime drip on one tooth; front view.",
+		brief = "A flat gold cog wheel with a round hole and gold sparkles, in the Rebirth icon's style; front view.",
 	},
 	{
 		id = "Gift",

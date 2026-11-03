@@ -1,14 +1,15 @@
 --!strict
--- One modal at a time; the early tutorial steps hold the daily popup back (src/ui/PopupQueue.luau).
+-- When the welcome back / daily reward card opens by itself, and in which mode (src/ui/PopupQueue.luau).
 local PopupQueue = require("../../src/ui/PopupQueue")
 local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-local function state(step: string?, daily: boolean?): any
+local function state(step: string?, daily: boolean?, report: boolean?): any
 	return {
 		tutorialStepId = step,
-		daily = if daily == nil then nil else { available = daily, streak = 1, amount = 100 },
+		daily = if daily == nil then nil else { available = daily, streak = 1, amount = 100, day = 2 },
+		welcomeBack = if report then { away = 19800, cash = 100, grown = 0 } else nil,
 	}
 end
 
@@ -26,66 +27,69 @@ describe("PopupQueue.blocker", function()
 	end)
 end)
 
-describe("PopupQueue.update", function()
-	it("opens the daily popup at once when there is no tutorial", function()
+describe("PopupQueue.update: the daily mode", function()
+	it("opens at once when a claim is ready and nothing blocks, then not again while it stays ready", function()
 		local q = PopupQueue.new()
-		expect(q.update(state(nil, true))).toBe("Daily")
-		expect(q.has("Daily")).toBe(false) -- taken off the queue
-		expect(q.update(state(nil, true))).toBeNil() -- not again while still available
-	end)
-	it("keeps the daily popup queued during the tutorial, opens it when finished", function()
-		local q = PopupQueue.new()
-		expect(q.update(state("Grab", true))).toBeNil()
-		expect(q.has("Daily")).toBe(true)
-		expect(q.update(state("Lock", true))).toBeNil()
-		expect(q.update(state("BuyPad", true))).toBeNil()
-		expect(q.queued()[1]).toBe("Daily")
-		expect(q.update(state(nil, true))).toBe("Daily")
+		expect(q.update(state(nil, true))).toBe("daily")
+		expect(q.pending()).toBeNil()
 		expect(q.update(state(nil, true))).toBeNil()
 	end)
-	it("opens the queued daily popup during the steps that don't block", function()
+	it("waits through the blocking tutorial steps and opens on the others", function()
 		for _, id in { "Leaderboard", "Guide", "Merge", "BuyItem" } do
 			local q = PopupQueue.new()
 			expect(q.update(state("Grab", true))).toBeNil()
-			expect(q.update(state(id, true))).toBe("Daily")
-			expect(q.update(state(id, true))).toBeNil()
+			expect(q.update(state("BuyPad", true))).toBeNil()
+			expect(q.pending()).toBe("daily")
+			expect(q.update(state(id, true))).toBe("daily")
 		end
 	end)
-	it("opens the welcome-back card from Merge onward, before the daily popup", function()
+	it("never replaces an open menu or the bag: it waits until they close", function()
 		local q = PopupQueue.new()
-		local s = state("BuyPad", true)
-		s.welcomeBack = {}
-		expect(q.update(s)).toBeNil()
-		s.tutorialStepId = "Merge"
-		expect(q.update(s)).toBe("Welcome")
-		expect(q.update(s, true)).toBeNil()
-		expect(q.update(s)).toBe("Daily")
+		expect(q.update(state(nil, true), true)).toBeNil()
+		expect(q.update(state(nil, true), true)).toBeNil()
+		expect(q.update(state(nil, true), false)).toBe("daily")
 	end)
-	it("drops the queued daily when the claim goes away (claimed from the HUD)", function()
+	it("drops the queued claim when it goes away, and queues again on the next edge", function()
 		local q = PopupQueue.new()
 		q.update(state("Grab", true))
 		expect(q.update(state("Grab", false))).toBeNil()
-		expect(q.has("Daily")).toBe(false)
-		expect(q.update(state(nil, false))).toBeNil()
+		expect(q.pending()).toBeNil()
+		expect(q.update(state(nil, true))).toBe("daily")
 	end)
-	it("queues again on the next availability edge", function()
+	it("Settings 'Daily popup' off: a new day's claim does not open the card", function()
 		local q = PopupQueue.new()
-		expect(q.update(state(nil, true))).toBe("Daily")
-		q.update(state(nil, false))
-		expect(q.update(state(nil, true))).toBe("Daily")
+		expect(q.update(state(nil, true), false, false)).toBeNil()
+		expect(q.update(state(nil, true), false, true)).toBeNil() -- the edge is gone
 	end)
-	it("ignores states without daily; manual enqueue / remove", function()
-		local q = PopupQueue.new()
-		expect(q.update(state(nil))).toBeNil()
-		q.enqueue("Daily")
-		expect(q.has("Daily")).toBe(true)
-		q.remove("Daily")
-		expect(#q.queued()).toBe(0)
+	it("ignores States without a daily view", function()
+		expect(PopupQueue.new().update(state(nil))).toBeNil()
 	end)
-	it("never holds a daily popup without a claim to show", function()
+end)
+
+describe("PopupQueue.update: the join mode", function()
+	it("opens once per join and takes the pending daily with it", function()
 		local q = PopupQueue.new()
-		q.enqueue("Daily")
-		expect(q.update(state(nil, false))).toBeNil()
-		expect(q.has("Daily")).toBe(false)
+		local s = state(nil, true, true)
+		expect(q.update(s)).toBe("join")
+		expect(q.pending()).toBeNil()
+		expect(q.update(s)).toBeNil() -- closing it without claiming does not reopen it
+	end)
+	it("shows even with Settings 'Daily popup' off", function()
+		expect(PopupQueue.new().update(state(nil, true, true), false, false)).toBe("join")
+	end)
+	it("waits for the blocking tutorial steps and open menus", function()
+		local q = PopupQueue.new()
+		expect(q.update(state("BuyPad", true, true))).toBeNil()
+		expect(q.update(state("Merge", true, true), true)).toBeNil()
+		expect(q.update(state("Merge", true, true))).toBe("join")
+	end)
+	it("a later new day opens the daily mode", function()
+		local q = PopupQueue.new()
+		expect(q.update(state(nil, true, true))).toBe("join")
+		q.update(state(nil, false, true))
+		expect(q.update(state(nil, true, true))).toBe("daily")
+	end)
+	it("with the daily already claimed it still opens for the report", function()
+		expect(PopupQueue.new().update(state(nil, false, true))).toBe("join")
 	end)
 end)
