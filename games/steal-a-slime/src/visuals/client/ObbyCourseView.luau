@@ -73,12 +73,29 @@ local function fill(slot: BasePart, name: string)
 	local mesh = base:Clone()
 	mesh.Name = "Mesh"
 	mesh.Size = Vector3.new(size[1], size[2], size[3])
-	mesh.CFrame = slot.CFrame * CFrame.new(0, -drop, 0) * CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
+	local rel = CFrame.new(0, -drop, 0) * CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
+	mesh.CFrame = slot.CFrame * rel
+	mesh:SetAttribute(Constants.OBBY_MESH_REL, rel) -- ObbyFx moves it with the slot
 	mesh.Anchored = true
 	mesh.CanCollide = false
 	mesh.CanQuery = false
 	mesh.CanTouch = false
 	mesh.CastShadow = true
+	local host = slot.Parent
+	if slot:GetAttribute(Constants.OBBY_SKIN) and host and host:IsA("BasePart") then
+		-- a skin: the mesh is the part's look now; its own block and icon adornments hide (only on this client, so
+		-- ObbyFx keeps driving the part's Transparency and fades the mesh with it)
+		host.LocalTransparencyModifier = 1
+		local tint = slot:GetAttribute("ObbyShutColor") -- a vault lock piece: its shut tint (ObbyFx sets it per key)
+		if typeof(tint) == "Color3" then
+			mesh.Color = tint
+		end
+		for _, a in host:GetChildren() do
+			if a:IsA("HandleAdornment") or a:IsA("SelectionBox") then
+				(a :: any).Visible = false
+			end
+		end
+	end
 	mesh.Parent = slot
 end
 

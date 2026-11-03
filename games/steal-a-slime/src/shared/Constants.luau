@@ -98,6 +98,9 @@ return table.freeze({
 	-- is filled by each client (ui/ObbyHud) from State.obby
 	OBBY_BOARD = "Board",
 	OBBY_BOARD_STATUS = "ObbyBoardStatus", -- workspace attribute: the board's store, "Ok" | "Memory" | "Error"
+	-- Obby course "Skin" slot attribute (visuals/shared/ObbyParts.skinSlot): its kit mesh replaces its parent part's look
+	OBBY_SKIN = "ObbySkin",
+	OBBY_MESH_REL = "ObbyMeshRel", -- a filled slot's Mesh attribute: its CFrame in the slot's (ObbyCourseView.fill)
 	GOO_SPIN = "GooSpin", -- Goo Ring swirl part attribute: radians a second it turns (visuals/client/ObbyFx)
 	GOO_PIVOT = "GooPivot", -- Goo Ring swirl part attribute: CFrame of the ring centre it turns round (its Z axis)
 	-- Course part attributes (ObbyCourse.Motion, played by visuals/client/ObbyFx)

@@ -124,6 +124,7 @@ local PART_FIELDS = set({
 	"marker",
 	"beat",
 	"id",
+	"skin",
 })
 local MOTION_FIELDS = set({
 	"kind",
