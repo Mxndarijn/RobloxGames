@@ -240,6 +240,13 @@ function ObbyCheck.cases(idea: Kit.Idea): { Case }
 	return out
 end
 
+-- True when the case's runner must get through on one line: its idea's sign shows walking straight through
+-- (`Idea.straight`) and the variant does not ask you to weave across the lane (`Variant.weave`).
+function ObbyCheck.straight(case: Case): boolean
+	local v = if case.variant > 0 then case.idea.variants[case.variant] else nil
+	return case.idea.straight == true and not (v and v.weave == true)
+end
+
 -- A canonical string of any value (sorted keys): same string = same data.
 function ObbyCheck.encode(value: any): string
 	local kind = type(value)
@@ -2619,7 +2626,8 @@ local SLICE = 0.5 -- studs between the runner's x slices
 local START_STEP = 0.05 -- seconds between the start times tried
 local RUN_STEP = 0.05 -- seconds between the runner's samples while it crosses
 
-type Slice = { x: number, free: { Interval }, low: number, high: number, floor: boolean }
+-- `still`: there is floor here and none of it moves (a place a runner can stand and wait on).
+type Slice = { x: number, free: { Interval }, low: number, high: number, floor: boolean, still: boolean }
 
 -- What is under the runner at every slice: the z intervals it can run on (walls taken out) and the floor heights.
 local function slicesOf(section: Section, bodies: { Body }): { Slice }
@@ -2631,10 +2639,12 @@ local function slicesOf(section: Section, bodies: { Body }): { Slice }
 		local x = k * SLICE
 		local free: { Interval } = {}
 		local low, high = math.huge, -math.huge
+		local still = true
 		for _, b in bodies do
 			if b.part.step and b.floor then
 				local z0, z1 = zRangeIn(footprint(b, 0, 0, 0, 1), x - 1e-6, x + 1e-6)
 				if z0 and z1 then
+					still = still and b.part.motion == nil
 					table.insert(free, { z0, z1 })
 					local top = topAt(b, x, (z0 + z1) / 2, 0)
 					low, high = math.min(low, top), math.max(high, top)
@@ -2657,15 +2667,18 @@ local function slicesOf(section: Section, bodies: { Body }): { Slice }
 				end
 			end
 		end
-		table.insert(out, { x = x, free = free, low = low, high = high, floor = floor })
+		table.insert(out, { x = x, free = free, low = low, high = high, floor = floor, still = floor and still })
 	end
 	return out
 end
 
 export type Window = { from: number, to: number, slack: number, cross: number }
 
--- Every stretch of hazards along the section and the seconds the runner has to set off into it.
-function ObbyCheck.windows(section: Section): { Window }
+-- Every stretch of hazards along the section and the seconds the runner has to set off into it. `straight`: the
+-- runner holds one line across the lane through each stretch (no sidestep), as a sign that shows walking straight
+-- through asks.
+function ObbyCheck.windows(section: Section, straight: boolean?): { Window }
+	local lateral = if straight then 0 else ObbyCheck.LATERAL
 	local bodies = bodiesOf(section)
 	local hazards = {}
 	for _, b in bodies do
@@ -2696,8 +2709,20 @@ function ObbyCheck.windows(section: Section): { Window }
 				k += 1
 			end
 			local last = zones[#zones]
-			-- a pocket under two bodies wide is no place to wait: one stretch
-			if last and (a - last[2]) * SLICE < 2 * ObbyCheck.BODY then
+			-- A pocket under two bodies wide is no place to wait: one stretch. Nor is a gap between two still floors
+			-- with under two bodies of floor in it: you jump it in one go (a ride or a spinning disc you can stay on
+			-- is left to the idea's spec).
+			local merge = false
+			if last then
+				local standable, row = 0, 0
+				for j = last[2] + 1, a - 1 do
+					row = if slices[j].floor then row + 1 else 0
+					standable = math.max(standable, row)
+				end
+				merge = (a - last[2]) * SLICE < 2 * ObbyCheck.BODY
+					or ((standable + 1) * SLICE < 2 * ObbyCheck.BODY and slices[last[2]].still and slices[a].still)
+			end
+			if merge then
 				last[2] = k - 1
 			else
 				table.insert(zones, { a, k - 1 })
@@ -2786,7 +2811,7 @@ function ObbyCheck.windows(section: Section): { Window }
 					end
 				end
 				local i = math.clamp(math.floor(x / SLICE + 0.5) + 1, 1, #slices)
-				alive = intersect(dilate(alive, ObbyCheck.LATERAL * cross / n), blocked(i, t, started))
+				alive = intersect(dilate(alive, lateral * cross / n), blocked(i, t, started))
 			end
 			return #alive > 0
 		end
@@ -2806,11 +2831,12 @@ function ObbyCheck.windows(section: Section): { Window }
 	return out
 end
 
-function ObbyCheck.fairness(section: Section, tier: string): string?
+function ObbyCheck.fairness(section: Section, tier: string, straight: boolean?): string?
 	local need = ObbyCheck.WINDOW[tier] or ObbyCheck.WINDOW.easy
-	for _, w in ObbyCheck.windows(section) do
+	for _, w in ObbyCheck.windows(section, straight) do
 		if w.slack < need - 1e-6 then
-			return `hazards at x {w.from}..{w.to}: open {w.slack} s past the {math.floor(w.cross * 100) / 100} s crossing (at least {need})`
+			local how = if straight then " on one line" else ""
+			return `hazards at x {w.from}..{w.to}: open {w.slack} s{how} past the {math.floor(w.cross * 100) / 100} s crossing (at least {need})`
 		end
 	end
 	return nil
@@ -2973,7 +2999,7 @@ function ObbyCheck.run(case: Case): { string }
 					table.insert(problems, `{case.name} seed {seed}: {check[1]}: {why}`)
 				end
 			end
-			local unfair = ObbyCheck.fairness(section, case.tier)
+			local unfair = ObbyCheck.fairness(section, case.tier, ObbyCheck.straight(case))
 			if unfair then
 				table.insert(problems, `{case.name} seed {seed}: fairness: {unfair}`)
 			end

@@ -312,6 +312,14 @@ adult non-gamer and an icon designer):
 * No straight-forward walk crosses the section (the existing check, routes included).
 * Hazard fairness: a runner at 16 studs/s who loses 0.15 s per jump must find every hazard open for at least
   `WINDOW[tier]` seconds (easy 1.4, medium 1.0, hard 0.75) in some cycle; flood/collapse leave at least 1 s spare.
+  The runner may sidestep (8 studs/s) inside a stretch, and it waits only on floor: a pocket between two still floors
+  with under 2 studs of floor in it (a gap you jump) is part of one stretch, not a place to wait.
+* **The route the sign shows must work (Merijn, 2026-11-03: "I cannot go through the middle and have to jump
+  sideways").** An idea whose sign shows walking straight through its hazards sets `straight = true`
+  (Crusher Alley); each of its variants must leave `WINDOW[tier]` to a runner who holds **one line** across the
+  lane through every stretch (`ObbyCheck.windows(section, true)`), not only to one who sidesteps. A variant whose
+  way through is weaving across the lane says so with `weave = true` on the variant (Crusher Alley's Half Lane,
+  Cross-Punch) and keeps the sidestepping runner.
 * Only motion kinds and fields from this file. Every `start` group has a `trigger`; every `gate` has enough keys
   reachable on its route.
 * Fall height never resets a runner above a platform they could land on (existing check).
