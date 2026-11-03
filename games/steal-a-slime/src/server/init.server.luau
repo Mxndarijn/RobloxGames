@@ -45,6 +45,7 @@ local GroundTerrainView = require(script.GroundTerrainView)
 local IdleRejoinServer = require(ReplicatedStorage.Lib.idle.IdleRejoinServer)
 local LeaderboardView = require(script.LeaderboardView)
 local MeshSwap = require(script.MeshSwap)
+local ObbyBoardView = require(script.ObbyBoardView)
 local ObbyService = require(script.ObbyService)
 local ObbyView = require(script.ObbyView)
 local Outbox = require(script.Outbox)
@@ -164,14 +165,25 @@ local leaderboard = LeaderboardView.new(world, persistence.boardStore, leaderboa
 -- The obby (contract/obby.md): the portal once, this rotation's course (ServerLoop rebuilds it).
 safeCall("obby setup", function()
 	ObbyView.buildPortal()
+	ObbyBoardView.buildSign()
 	ObbyView.build(ObbyService.setup(world, now()))
 end)
--- The Goo Ring and its signpost are kit meshes (MeshSwap fills the portal's MeshAsset slots; it yields).
+-- The course's fastest-time board, shared by every server (memory mode / Studio: this server only).
+local obbyBoardMode
+ctx.obbyBoardStore, obbyBoardMode = ObbyBoardView.store(persistence.memoryMode)
+safeCall("obby board", ObbyBoardView.start, world, ctx, obbyBoardMode, now)
+-- The Goo Ring, the sign board and the course board are kit meshes (MeshSwap fills their MeshAsset slots; it yields).
 task.spawn(safeCall, "obby portal meshes", function()
 	local obby = workspace:FindFirstChild(Constants.OBBY_FOLDER)
-	local portal = obby and obby:FindFirstChild(Constants.OBBY_PORTAL)
-	if portal then
-		MeshSwap.applyUnder({ portal })
+	local slots = {}
+	for _, name in { Constants.OBBY_PORTAL, Constants.OBBY_SIGN, Constants.OBBY_BOARD } do
+		local slot = obby and obby:FindFirstChild(name)
+		if slot then
+			table.insert(slots, slot)
+		end
+	end
+	if #slots > 0 then
+		MeshSwap.applyUnder(slots)
 	end
 end)
 local profiler = Profiler.new() -- FEATURES.ServerProfiler (CONTRACT.md §25); off = every call is a no-op

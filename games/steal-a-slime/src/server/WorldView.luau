@@ -2138,7 +2138,7 @@ function WorldView.updatePlayer(
 		World.markDirty(session) -- State.walkSpeed changes
 	end
 	local target = Carry.targetWalkSpeed(session, now) -- PvP holds / slows multiply in (PvpSlow, PvpFun)
-	if Config.FEATURES.PvP and PvpFun.frozen(session, now) then
+	if Config.FEATURES.PvP and PvpFun.frozen(session, now) and not session.obbyRun then
 		target = 0 -- Fun bubble lift / pancake / dance (<= CONTROL_MAX_SECONDS)
 	end
 	setAttribute(player, Constants.WALK_SPEED_ATTRIBUTE, target)

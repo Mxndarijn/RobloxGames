@@ -1704,8 +1704,20 @@ local Config = {
 		BONUS = 0.5, -- +50 % income: x1.5
 		BOOST_SECONDS = 5 * 60,
 		COOLDOWN_SECONDS = 5 * 60, -- counted from the end of the boost
-		ROTATION_SECONDS = 10 * 60,
-		CHAIN_SLOTS = 144, -- rotations per chain (a day): "no section of the last course" holds inside one chain
+		ROTATION_SECONDS = 30 * 60, -- one course on every server for this long
+		CHAIN_SLOTS = 48, -- rotations per chain (a day): "no section of the last course" holds inside one chain
+		-- The fastest-time board of each course, shared by every server (server/ObbyBoard, contract/obby.md §7). A
+		-- course's board is Obby_<slot>_<hash> (ObbyCourse.hash: the built parts plus COURSE_VERSION, so servers
+		-- building other course code never mix times); bump COURSE_VERSION to start every board afresh. Players see
+		-- "Course #N", counted from COURSE_EPOCH (the first slot of the release, 2026-11-03 00:00 UTC).
+		COURSE_VERSION = 1,
+		COURSE_EPOCH = 996480,
+		BOARD = table.freeze({
+			REFRESH = 30, -- seconds between reads of the top RANK_DEPTH
+			SIZE = 10, -- rows on the world board
+			RANK_DEPTH = 100, -- ranks shown down to this; deeper reads "#100+"
+			EXPIRE_AFTER = 3600, -- a board stays this long after its course ends ("last course" on the board)
+		}),
 		ORDER = table.freeze({ "easy", "easy", "medium", "medium", "hard", "hard" }), -- 6 sections (was 8: 25% shorter, Merijn 2026-11-02)
 		-- The sections themselves are the ideas in Shared.ObbySections (one module per idea, variants per tier); ORDER
 		-- says which tier each slot of a course takes (ObbyCourse.pick).

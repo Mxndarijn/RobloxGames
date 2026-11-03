@@ -155,6 +155,7 @@ end
 -- Adds the points for one flag. With ENFORCE on, a stolen carry goes home and a kick undoes recent steals.
 function SlimeGuard.report(world: World, session: Session, kind: string, detail: string, now: number): Report
 	local e = SlimeGuard.entry(world, session.userId, now)
+	e.flaggedAt = now -- a run timed across a flag never reaches the obby board (ObbyBoard.eligible)
 	local level = Suspicion.add(e.suspicion, G.POINTS[kind] or 1, now)
 	local enforced = SlimeGuard.mode(world) == "enforce"
 	if enforced then
