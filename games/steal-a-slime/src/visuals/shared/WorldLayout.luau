@@ -219,10 +219,11 @@ WorldLayout.STAIR_TOP = table.freeze({ landing = 120, step = 30 })
 WorldLayout.STAIR_NEWEL = table.freeze({ radius = 1.7, height = 4 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; the top jar's hatch sits at this angle, the tube lands in the goo moat.
--- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass), its width, and how far
--- along the moat a dropped player lands from the tube's foot (clear of its solid upright, still on the splash pool).
+-- DROP_TUBE: how far the tube's centre stands out from each jar's glass (WorldLayout.dropTubePath), the width of its
+-- solid core (just inside the kit's 3.8-wide glass, so the glass is what you bump into), and how far along the moat a
+-- dropped player lands from the tube's mouth (clear of it, still on the splash pool).
 WorldLayout.DROP_ANGLE = 70
-WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3, landSide = 2.8 })
+WorldLayout.DROP_TUBE = table.freeze({ out = 3.2, width = 3.6, landSide = 2.85 })
 -- Jar 1's ground pieces (plot-local; angles as above). The bridge crosses the moat to the door. Floor 1's pads spread
 -- evenly from FLOOR1_PAD_ARC[1] to FLOOR1_PAD_ARC[2] degrees round from the door, leaving the front either side of the
 -- door free: the MergeVat and the LockButton stand there, one each side, the first things you see coming in (inside
@@ -2330,6 +2331,62 @@ function WorldLayout.dropLanding(): Vec
 	return { pool[1] - math.sin(a) * side, WorldLayout.PLOT_FLOOR_TOP + 3, pool[3] + math.cos(a) * side }
 end
 
+-- The drop tube's centre line for a tower of `version` jars, all on the back at DROP_ANGLE, as { radius out from the
+-- jar axis, plot-local height } control points: out of a hatch low on the top jar, a short elbow out, then straight
+-- down DROP_TUBE.out off each jar's glass, easing out over each wider jar below, down past jar 1 and out over the
+-- moat to the mouth above the splash pool. The kit's tube meshes run a smooth spline through these points
+-- (scripts/export-jar-dims writes them to goo_jar_dims.json); the solid tube follows the straight lines between them.
+function WorldLayout.dropTubePath(version: number): { { number } }
+	local out = WorldLayout.DROP_TUBE.out
+	local r = WorldLayout.jarRadius
+	local top = WorldLayout.floorTop(version) - 1
+	local points =
+		{ { r(version) - 0.4, top + 3.0 }, { r(version) + out * 0.6, top + 3.4 }, { r(version) + out, top + 1.0 } }
+	for f = version - 1, 1, -1 do
+		local z = WorldLayout.floorTop(f + 1) - 1 -- the floor of jar f + 1 / top of jar f
+		table.insert(points, { r(f + 1) + out, z + 0.5 })
+		table.insert(points, { r(f) + out, z - 3.5 })
+	end
+	local pool = WorldLayout.dropPool() -- the mouth hangs over the splash pool's middle
+	local lr = math.sqrt(pool[1] ^ 2 + pool[3] ^ 2)
+	local ground = WorldLayout.floorTop(1) - 1
+	table.insert(points, { r(1) + out, ground + 4.5 })
+	table.insert(points, { (r(1) + out + lr) / 2, ground + 3.0 })
+	table.insert(points, { lr, ground + 2.6 })
+	return points
+end
+
+-- The stretch of the tube's centre line that floor f's solid tube covers: from floor f's hatch height down to floor
+-- f - 1's (floor 2's runs on to the mouth), as { radius, height } points, top first. Below the top jar's elbow the
+-- line only goes down, and it is the same whichever jar is on top, so each floor keeps its stretch as the tower grows.
+function WorldLayout.dropTubeStretch(f: number): { { number } }
+	local hi = WorldLayout.floorTop(f) + 2
+	local lo = if f == 2 then -math.huge else WorldLayout.floorTop(f - 1) + 2
+	local path = WorldLayout.dropTubePath(#Config.BASE_FLOORS)
+	local line = { table.unpack(path, 3) } -- from the elbow's foot down
+	if line[1][2] < hi then
+		table.insert(line, 1, { line[1][1], hi })
+	end
+	local out: { { number } } = {}
+	local function cut(a: { number }, b: { number }, y: number): { number }
+		local t = (y - a[2]) / (b[2] - a[2])
+		return { a[1] + (b[1] - a[1]) * t, y }
+	end
+	for k = 1, #line - 1 do
+		local a, b = line[k], line[k + 1]
+		if a[2] > lo and b[2] < hi then
+			if #out == 0 then
+				table.insert(out, if a[2] > hi then cut(a, b, hi) else a)
+			end
+			table.insert(out, if b[2] < lo then cut(a, b, lo) else b)
+			if b[2] <= lo then
+				break
+			end
+		end
+	end
+	return out
+end
+
 -- The plot-local angles of the glass segments either side of the drop hatch (the DropShield's segments).
 function WorldLayout.dropShieldAngles(): { number }
 	local step = 360 / WorldLayout.JAR_WALL_SEGMENTS
@@ -2472,38 +2529,54 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 		shield.transparency = 1
 		table.insert(children, shield)
 	end
-	-- The goo tube: an arm from the hatch out through the glass, and this floor's length of the upright tube down to the
-	-- next arm below (floor 2's reaches the ground and its splash pool). The arm is decor (out of reach); the upright is
-	-- solid so nobody stands inside the tube, and smooth and straight up so nobody climbs it.
+	-- The goo tube: an arm from the hatch out through the glass, and this floor's stretch of the tube down to the next
+	-- arm below (floor 2's reaches the mouth over the splash pool), along the same line as the tube mesh. The arm is
+	-- decor (out of reach); the stretch is solid so nobody stands inside the tube: straight cylinders Tube_1.. from
+	-- point to point of WorldLayout.dropTubeStretch, smooth so nobody climbs them.
 	local tube = WorldLayout.DROP_TUBE
 	local armIn = WorldLayout.jarRadius(f) + WorldLayout.JAR_WALL
+	local armOut = WorldLayout.jarRadius(f) + tube.out
 	local armY = WorldLayout.floorTop(f) + 2
 	local arm = radial(
 		"TubeArm",
-		{ tube.width, tube.width, tube.radius - armIn },
-		(armIn + tube.radius) / 2,
+		{ tube.width, tube.width, armOut - armIn },
+		(armIn + armOut) / 2,
 		WorldLayout.DROP_ANGLE,
 		armY,
 		at,
 		yaw
 	)
-	local lo = if f == 2 then WorldLayout.PLOT_FLOOR_TOP else WorldLayout.floorTop(f - 1) + 2
-	local tx, tz = polar(tube.radius, WorldLayout.DROP_ANGLE)
-	local pipe = disc(
-		"Tube",
-		armY + tube.width / 2 - lo,
-		tube.width,
-		at({ tx, (lo + armY + tube.width / 2) / 2, tz }),
-		JAR_GOO,
-		WorldLayout.JAR_GLASS_MATERIAL,
-		yaw
-	)
-	for _, node in { arm, pipe } do
+	local tubeNodes = { arm }
+	local stretch = WorldLayout.dropTubeStretch(f)
+	for k = 1, #stretch - 1 do
+		local a, b = stretch[k], stretch[k + 1]
+		local dr, dy = b[1] - a[1], b[2] - a[2]
+		local len = math.sqrt(dr * dr + dy * dy)
+		-- each piece runs half a width on into its neighbours, so no gap opens on the outside of a bend
+		local back = if k > 1 then tube.width / 2 else 0
+		local on = if k < #stretch - 1 then tube.width / 2 else 0
+		local mid = (len + on - back) / 2 / len -- the piece's middle, as a fraction of the way from a to b
+		local x, z = polar(a[1] + dr * mid, WorldLayout.DROP_ANGLE)
+		local piece = disc(
+			`Tube_{k}`,
+			len + back + on,
+			tube.width,
+			at({ x, a[2] + dy * mid, z }),
+			JAR_GOO,
+			WorldLayout.JAR_GLASS_MATERIAL
+		)
+		-- cylinders run along X: turn X out along the drop angle, then tilt it up to the piece's slope
+		piece.rot = { 0, yaw - WorldLayout.DROP_ANGLE, math.deg(math.atan2(dy, dr)) }
+		table.insert(tubeNodes, piece)
+	end
+	for _, node in tubeNodes do
 		node.color, node.material, node.transparency =
 			JAR_GOO, WorldLayout.JAR_GLASS_MATERIAL, WorldLayout.JAR_GLASS_TRANSPARENCY
 		table.insert(children, standIn(ghost(node, WorldLayout.JAR_GLASS_TRANSPARENCY), `goo_drop_tube_goo_{f}`))
+		if node ~= arm then
+			node.canCollide = true
+		end
 	end
-	pipe.canCollide = true
 	if f == 2 then
 		local land = WorldLayout.dropPool()
 		table.insert(
