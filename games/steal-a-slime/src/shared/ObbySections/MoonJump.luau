@@ -21,7 +21,7 @@
 	variant has a red goo pit or a timed hazard (contract §10).
 
 	Moon Pulse is simplified: zones have no on / off in the kit, so the bubble stays and its landing islands blink on
-	the beat instead (a `flip` snapped to 6 beats: lit 2.4 s, gone 1.2 s, each a third of a bar after the one before).
+	the beat instead (a `flip` snapped to 8 beats: lit 3.6 s, gone 1.2 s, the second half a bar after the first).
 ]]
 
 local Kit = if script then require(script.Parent.Kit) else require("./Kit")
@@ -30,9 +30,14 @@ type Part = Kit.Part
 
 local PAD = 10 -- the entry pad's length
 local PIT_DROP = 8 -- the goo pit's top under the lowest island
--- Moon Pulse: the blinking islands' phases. The first is lit for 0 .. 2.4 s of the 3.6 s bar, the second from
--- 3.0 s on: off the first in its last ~0.95 s, a 1.55 s float lands you on the second while it is lit.
-local PULSE_PHASE = { 0, 1 / 6 }
+-- Moon Pulse: the blinking islands, one 8-beat bar (4.8 s) each: lit 6 beats (3.6 s), gone 2 (1.2 s). The first is
+-- lit 0 .. 3.6 s of the bar, the second 2.4 .. 6.0 s: it lights while the first is still lit and goes out after it, so
+-- the order you meet them is the order they go out. A 1.55 s float off the first between 1.1 and 3.35 s (2.25 s, with
+-- 0.25 s to spare at both ends) lands on the second while it is lit; one the moment you land (if you came on while it
+-- lit up) or once the second lights up both work. Merijn 2026-11-03: the old 6-beat bar, the second a sixth behind,
+-- went out before the first, and only a blind float in a 0.95 s window landed.
+local PULSE_BEATS, PULSE_LIT = 8, 6
+local PULSE_PHASE = { 0, 0.5 }
 
 -- How high a jump floats at `gravity` (studs of the feet over the take-off).
 local function apex(gravity: number): number
@@ -424,8 +429,8 @@ M.variants = {
 	},
 	{
 		-- Simplified (a zone has no on / off in the kit): the bubble stays at 35 % and its two 8 x 9 landing islands
-		-- blink on the beat, lit 2.4 s and gone 1.2 s. The second lights 3 s after the first, so from the first you
-		-- go in the last second it is lit (about a second before the next lights up) or one of them is gone under you.
+		-- blink on the beat, lit 3.6 s and gone 1.2 s. The second lights 2.4 s after the first and goes out 2.4 s
+		-- after it: float onto the first while it is lit with time to spare, then on before it goes (PULSE_PHASE).
 		-- Three 17-stud gaps.
 		name = "Moon Pulse",
 		tier = "hard",
@@ -437,8 +442,13 @@ M.variants = {
 			for i = 1, 2 do
 				x += gap
 				island(parts, x, long, 0, 0, 9, 1 + i, {
-					beat = 6,
-					motion = { kind = "flip", duty = 4 / 6, period = Kit.beat(6), phase = PULSE_PHASE[i] },
+					beat = PULSE_BEATS,
+					motion = {
+						kind = "flip",
+						duty = PULSE_LIT / PULSE_BEATS,
+						period = Kit.beat(PULSE_BEATS),
+						phase = PULSE_PHASE[i],
+					},
 				})
 				x += long
 			end

@@ -6,7 +6,7 @@
 	one end time (`session.lockUntil`, the plot's LockUntil attribute), so every client countdown, the lock pad ring, the
 	door and the steal checks read the slower lock with no change of their own: each obby tick pushes lockUntil out by
 	the part of the tick the lock did not use.
-	  * Only while `session.obbyRun` is set; from the run's last tick (`run.lockAt`, else `startedAt`) to now.
+	  * Only while `session.obbyRun` is set; from the run's last tick (`run.lockAt`, else `enteredAt`) to now.
 	  * A lock that started mid-tick counts from its start (`session.lockStartedAt`); an expired lock or no lock is
 	    left alone; a lock that runs out mid-tick ends at the moment it would have at the slow rate (in the past).
 	  * The breather lock (SlimeGuard.breather) keeps its mark: `breatherUntil` moves with lockUntil.
@@ -58,7 +58,7 @@ function ObbyLock.step(session: Session, now: number): boolean
 	if not run then
 		return false
 	end
-	local from = run.lockAt or run.startedAt
+	local from = run.lockAt or run.enteredAt
 	run.lockAt = now
 	local before = session.lockUntil
 	local after = ObbyLock.slowed(before, session.lockStartedAt, from, now, ObbyLock.rate())
