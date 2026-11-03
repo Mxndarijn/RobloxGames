@@ -13,6 +13,21 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local OUT = "../../shared/modeling-kit/inputs/goo_jar_dims.json"
 
+-- The drop tube's centre line per tower height (WorldLayout.dropTubePath): { version, points = { { r, z } } }, z up
+-- from the plot ground (the kit's origin), so the tube meshes and the game's solid tube share one line.
+local function dropTubePaths(): { any }
+	local ground = WorldLayout.floorTop(1) - 1
+	local out = {}
+	for v = 2, #Config.BASE_FLOORS do
+		local points = {}
+		for _, p in WorldLayout.dropTubePath(v) do
+			table.insert(points, { p[1], p[2] - ground })
+		end
+		table.insert(out, { version = v, points = points })
+	end
+	return out
+end
+
 local function dims(): { [string]: any }
 	local floors = {}
 	for f = 1, #Config.BASE_FLOORS do
@@ -68,6 +83,7 @@ local function dims(): { [string]: any }
 		dropAngle = WorldLayout.DROP_ANGLE,
 		dropTube = WorldLayout.DROP_TUBE,
 		dropLanding = WorldLayout.dropLanding(),
+		dropTubePaths = dropTubePaths(),
 		vatSpot = WorldLayout.VAT_SPOT,
 		lockButtonSpot = WorldLayout.LOCK_BUTTON_SPOT,
 		doorSwing = WorldLayout.DOOR_SWING,
