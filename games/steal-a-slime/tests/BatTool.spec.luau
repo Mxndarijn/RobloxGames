@@ -16,6 +16,11 @@ local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+
+-- Puts a session on an obby run (no items or hits there) or takes it off.
+local function onRun(session: any, on: boolean)
+	session.obbyRun = if on then {} else nil
+end
 local T0 = ServerFixtures.T0
 local ORIGIN = { X = 200, Y = 3, Z = -200 }
 local LOOK = { X = 1, Y = 0, Z = 0 } -- facing +X (never reassigned)
@@ -229,6 +234,21 @@ describe("BatTool.swing with PvP on", function()
 		expect(again).toBe(false)
 		expect(againWhy).toBe("slap on cooldown")
 		expect(#moves).toBe(1)
+		done()
+	end)
+	it("no hits on an obby run: a runner can't swing, and a runner is never the one pushed", function()
+		local world, owner, thief, bystander = pvpSetup()
+		onRun(owner, true)
+		local hit, why = BatTool.swing(world, owner, T0 + 101, bat, true)
+		expect(hit).toBe(false)
+		expect(why).toBe("not in the obby")
+		expect(#moves).toBe(0)
+		onRun(owner, false)
+		onRun(thief, true)
+		onRun(bystander, true)
+		local again = BatTool.swing(world, owner, T0 + 102, bat, true)
+		expect(again).toBe(false)
+		expect(#moves).toBe(0)
 		done()
 	end)
 	it("a player who just joined is pushed like anyone else", function()

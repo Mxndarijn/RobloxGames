@@ -141,12 +141,15 @@ function BatTool.swing(
 	if BossEvent.stunned(session, now) then
 		return false, "stunned" -- a boss attack knocked the bat out of their hands for a moment
 	end
+	if session.obbyRun then
+		return false, "not in the obby" -- no items or hits on an obby run (contract/obby.md)
+	end
 	local pvp = PvpService.enabled(flag)
 	local thieves: { BatRules.Candidate } = {}
 	local others: { BatRules.Candidate } = {}
 	local positions: { [number]: Vec } = {}
 	for userId, other in world.sessions do
-		if userId ~= session.userId then
+		if userId ~= session.userId and not other.obbyRun then -- an obby runner can't be hit
 			local position = pose(userId)
 			if position then
 				positions[userId] = position

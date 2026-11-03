@@ -13,6 +13,11 @@ local StealService = require("../src/server/StealService")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+
+-- Puts a session on an obby run (no items or hits there) or takes it off.
+local function onRun(session: any, on: boolean)
+	session.obbyRun = if on then {} else nil
+end
 local T0 = ServerFixtures.T0
 local ATTACKER = { X = 200, Y = 3, Z = -200 }
 local TIERS = { "KnockGlove1", "KnockGlove2", "KnockGlove3", "KnockGlove4", "KnockGlove5" }
@@ -178,6 +183,21 @@ describe("Knockback use", function()
 		expect(#moves).toBe(0)
 		expect(#events()).toBe(0)
 		expect(next((PvpService.state(a) :: any).cooldowns)).toBeNil()
+		done()
+	end)
+	it("nothing on an obby run: a runner can't use an item and can't be targeted, with no push or cooldown", function()
+		local world, a, b = setup()
+		onRun(a, true)
+		local ok, why = use(world, a, nil, T0 + 10)
+		expect(ok).toBe(false)
+		expect(why).toBe("not in the obby")
+		onRun(a, false)
+		onRun(b, true)
+		local ok2, why2 = use(world, a, nil, T0 + 11)
+		expect(ok2).toBe(false)
+		expect(why2).toBe("not in the obby")
+		expect(#moves).toBe(0)
+		expect(PvpRules.ready(PvpService.state(a) :: any, "KnockGlove1", T0 + 11)).toBe(true)
 		done()
 	end)
 	it("works on anyone anywhere, also by and on players who just joined", function()
