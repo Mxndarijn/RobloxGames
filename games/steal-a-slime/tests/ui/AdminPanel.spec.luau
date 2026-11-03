@@ -86,7 +86,6 @@ describe("Admin panel", function()
 				"Skin_space",
 				"Skin_haunted",
 				"LockStyle_sleepy",
-				"Fanfare_confetti",
 				"Hat_witch",
 				"Seat_pumpkin",
 				"BoutiqueBundle",

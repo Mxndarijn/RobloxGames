@@ -225,7 +225,6 @@ TestHooks.COSMETIC_KINDS = table.freeze({
 	seat = true,
 	trail = true,
 	batSkin = true,
-	fanfare = true,
 	lockStyle = true,
 	hat = true,
 	plotSkin = true,

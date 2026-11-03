@@ -72,7 +72,7 @@ The shop is the fairground carousel. Suggested **tabs for the shop UI** (one lis
 | C1 | 16 Exclusive pet clouds | cosmetic (Dev Product, saved) | S-L | ✅ |
 | C2 | Exclusive plot skins | cosmetic (Dev Product, saved) | M-L | ✅ |
 | C3 | Carry trails | cosmetic | S-M | ✅ |
-| C4 | Deposit fanfares | cosmetic | S | ✅ |
+| C4 | Deposit fanfares (removed) | cosmetic | S | ✅ |
 | C5 | Lock-sign and stopper styles | cosmetic | S | ✅ |
 | C6 | Bat skins | cosmetic | S-M | ✅ |
 | C7 | Slime hats (pad decorations) | cosmetic | S-M | ✅ |
@@ -110,7 +110,7 @@ The shop is the fairground carousel. Suggested **tabs for the shop UI** (one lis
 - **Fairness:** ✅ and slightly good for PvP: a trail makes a thief easier to spot. Rule: a trail may never be transparent, tiny or hide the carried slime.
 - **Code areas:** `server/Carry.luau` (carry start/stop already exists), a small client effect module hooked into the one client frame loop, Style save field.
 
-### C4. Deposit fanfares
+### C4. Deposit fanfares (removed from the game)
 
 - **What:** the moment a slime lands on your pad: a confetti burst, a carousel jingle, a goo splash. Reuses the Lucky Charm show style (`server/LuckyShow.luau`).
 - **Where/when:** Style tab. **Type:** cosmetic. **Tier:** S (49-99).

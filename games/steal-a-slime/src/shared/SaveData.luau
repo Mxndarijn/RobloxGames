@@ -592,15 +592,11 @@ function SaveData.cleanEquipped(raw: any, owned: { string }): string?
 	return nil
 end
 
--- The Config catalogue of a style kind (fanfare / lockStyle / hat / plotSkin / plotBase): the ids that exist.
+-- The Config catalogue of a style kind (lockStyle / hat / plotSkin / plotBase): the ids that exist.
 local function styleIds(kind: string): { [string]: boolean }
 	local out: { [string]: boolean } = {}
 	local shop = Config.EXCLUSIVE_SHOP :: any
-	local list = if kind == "fanfare"
-		then shop.fanfares
-		elseif kind == "lockStyle" then shop.lockStyles
-		elseif kind == "hat" then shop.hats
-		else nil
+	local list = if kind == "lockStyle" then shop.lockStyles elseif kind == "hat" then shop.hats else nil
 	if kind == "plotSkin" then
 		for _, skin in Config.PLOT_SKINS do
 			if skin.exclusive then
@@ -619,7 +615,7 @@ local function styleIds(kind: string): { [string]: boolean }
 	end
 	return out
 end
-SaveData.STYLE_KINDS = table.freeze({ "fanfare", "lockStyle", "hat", "plotSkin", "plotBase" })
+SaveData.STYLE_KINDS = table.freeze({ "lockStyle", "hat", "plotSkin", "plotBase" })
 
 -- Owned Exclusive styles by kind (no version bump): unknown kinds and ids dropped, repeats dropped.
 function SaveData.cleanOwnedStyles(raw: any): { [string]: { string } }
@@ -644,14 +640,14 @@ function SaveData.cleanOwnedStyles(raw: any): { [string]: { string } }
 	return out
 end
 
--- Worn styles by kind: only owned ids of fanfare / lockStyle / hat (a plot skin / base is worn as data.plotSkin /
+-- Worn styles by kind: only owned ids of lockStyle / hat (a plot skin / base is worn as data.plotSkin /
 -- data.plotBase).
 function SaveData.cleanWornStyles(raw: any, owned: { [string]: { string } }): { [string]: string }
 	local out: { [string]: string } = {}
 	if type(raw) ~= "table" then
 		return out
 	end
-	for _, kind in { "fanfare", "lockStyle", "hat" } do
+	for _, kind in { "lockStyle", "hat" } do
 		local id = raw[kind]
 		if type(id) == "string" and owned[kind] and table.find(owned[kind], id) then
 			out[kind] = id

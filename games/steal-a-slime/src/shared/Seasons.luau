@@ -66,8 +66,6 @@ function Seasons.ofProduct(productKey: string): string?
 		end
 	elseif kind == "hat" then
 		return seasonOfStyle(shop.hats, grant.style)
-	elseif kind == "fanfare" then
-		return seasonOfStyle(shop.fanfares, grant.style)
 	elseif kind == "lockStyle" then
 		return seasonOfStyle(shop.lockStyles, grant.style)
 	elseif kind == "gift" then

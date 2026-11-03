@@ -623,15 +623,8 @@ function ItemIcons.build(config: any)
 		})
 	end
 
-	-- Fanfares, lock styles and slime hats (§15): UI-drawn glyph tiles until pictures are rendered.
+	-- Lock styles and slime hats (§15): UI-drawn glyph tiles until pictures are rendered.
 	local STYLE_ICONS = {
-		{
-			list = "fanfares",
-			prefix = "Fanfare_",
-			glyph = "🎉",
-			color = { 252, 216, 110 },
-			what = "deposit fanfare burst",
-		},
 		{
 			list = "lockStyles",
 			prefix = "LockStyle_",

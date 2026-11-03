@@ -46,7 +46,6 @@ local NAMED = table.freeze({
 	plotBase = true,
 	hat = true,
 	lockStyle = true,
-	fanfare = true,
 })
 
 local ClawShowService = {}

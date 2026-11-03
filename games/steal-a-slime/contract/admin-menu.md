@@ -42,7 +42,7 @@ Each entry: `{ id, tab, level, label }`; `level` is `"cheat"` (test save only, r
 | Me | `resetSave` | cheat | none | `TestHooks.resetSave`: the save becomes a new player's; refused while carrying or while one of your slimes is busy |
 | Me | `goHome` / `goHub` | admin | none | moves your character home (`ctx.dropDown`) or onto the hub spawn (`ctx.toHub`) |
 | Items | `grantProduct` | cheat | text = any `EXCLUSIVE_SHOP.products` key but `Gift_*` (cosmetics, bundles, boosts, quick-buys; seasonal ones on any date) | `TestHooks.grantProduct` → `Purchases.grant` (same grant as a receipt, no receipt id; a boost that can't start becomes a credit) |
-| Items | `grantCosmetics` | cheat | none | every cosmetic product (`TestHooks.COSMETIC_KINDS`: seats, base skins and bases, lock styles, trails, fanfares, hats, Bat skins) |
+| Items | `grantCosmetics` | cheat | none | every cosmetic product (`TestHooks.COSMETIC_KINDS`: seats, base skins and bases, lock styles, trails, hats, Bat skins) |
 | Items | `setPass` | cheat | text = an `EXCLUSIVE_SHOP.passes` key, amount 1 on / 0 off | `TestHooks.setPass` → `Purchases.applyPasses` (this session; a rejoin asks Roblox again) |
 | Items | `setSubscription` | cheat | text = an `EXCLUSIVE_SHOP.subscriptions` key, amount 1 / 0 | `TestHooks.setSubscription` → `Purchases.applySubscriptions` (today's Club credits) |
 | Items | `setPaidRandom` | cheat | amount 1 allowed / 0 restricted | `TestHooks.setPaidRandom`: the PolicyService answer for this session (hides the potion, Slime Rain, totem, Lucky Charm+) |
