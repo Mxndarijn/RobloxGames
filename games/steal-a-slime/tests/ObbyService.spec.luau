@@ -148,7 +148,7 @@ describe("ObbyService portal", function()
 end)
 
 describe("ObbyService runs", function()
-	it("a clean run to the finish earns x1.5 income for 5 minutes and sets the player down by the portal", function()
+	it("a clean run to the finish earns x2 income for 5 minutes and sets the player down by the portal", function()
 		local world, session = setup()
 		enter(world, T)
 		local before = Perks.bonusMultiplier(session.data)
@@ -156,9 +156,12 @@ describe("ObbyService runs", function()
 		expect(session.obbyRun).toBeNil()
 		expect(session.data.obbyUntil).toBe(now + OBBY.BOOST_SECONDS)
 		expect(session.data.obbyReadyAt).toBe(now + OBBY.BOOST_SECONDS + OBBY.COOLDOWN_SECONDS)
+		expect(OBBY.BONUS).toBe(1)
 		expect(session.data.obbyBonus).toBe(OBBY.BONUS)
 		expect(math.abs(Perks.bonusMultiplier(session.data) - before * (1 + OBBY.BONUS)) < 1e-9).toBe(true)
 		expect(result.moves[1].pos[1]).toBe(PLACE.exit[1])
+		local texts = ServerFixtures.notifications(world, 1)
+		expect(string.find(texts[#texts], "· x2 income for 5 min", 1, true) ~= nil).toBe(true)
 		expect(session.obbyBest.seconds).toBe(now - (T + 8)) -- the clock started on section 1
 	end)
 
@@ -195,15 +198,77 @@ describe("ObbyService runs", function()
 		expect(session.data.obbyUntil).toBe(0)
 	end)
 
-	it("a finish faster than the minimum run time earns nothing", function()
+	it("a finish faster than the minimum run time counts no time and its last section pays nothing", function()
 		local world, session = setup()
 		enter(world, T)
-		local gap = OBBY.MIN_RUN_SECONDS / (#world.obby.spans + 2)
+		local n = #world.obby.spans
+		local gap = OBBY.MIN_RUN_SECONDS / (n + 2)
 		runAll(world, T + OBBY.MOVE_GRACE, gap)
-		expect(session.data.obbyUntil).toBe(0)
-		expect(session.data.obbyBonus).toBeNil()
+		expect(session.obbyBest).toBeNil()
+		expect(session.data.obbyBonus).toBeCloseTo((n - 1) * ObbyRules.share(n), 1e-9)
 		local texts = ServerFixtures.notifications(world, 1)
 		expect(texts[#texts]).toBe("That run didn't count. Try again!")
+	end)
+
+	it("each section cleared adds one share and starts the 5 minutes again", function()
+		local world, session = setup()
+		enter(world, T)
+		local n = #world.obby.spans
+		local share = ObbyRules.share(n)
+		expect(share).toBeCloseTo(OBBY.BONUS / n, 1e-12)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 8)
+		expect(session.data.obbyBonus).toBeNil() -- over section 1: not cleared yet
+		ObbyService.step(world, PLACE, at(onPad(world, 2)), T + 16)
+		expect(session.data.obbyBonus).toBeCloseTo(share, 1e-12)
+		expect(session.data.obbyUntil).toBe(T + 16 + OBBY.BOOST_SECONDS)
+		ObbyService.step(world, PLACE, at(onPad(world, 3)), T + 24)
+		expect(session.data.obbyBonus).toBeCloseTo(2 * share, 1e-12)
+		expect(session.data.obbyUntil).toBe(T + 24 + OBBY.BOOST_SECONDS)
+		expect(session.data.obbyReadyAt).toBe(T + 24 + OBBY.BOOST_SECONDS + OBBY.COOLDOWN_SECONDS)
+		local view = Snapshot.build(world, session, T + 24).obby :: any
+		expect(view.run.paid).toBe(2)
+		expect(view.bonus).toBeCloseTo(2 * share, 1e-12)
+		-- leaving through the Goo Ring keeps what the run earned
+		local home = world.obby.home
+		ObbyService.step(world, PLACE, at(ObbyCourse.toWorld(PLACE.frame, { home.pos[1], 3, 0 })), T + 30)
+		expect(session.obbyRun).toBeNil()
+		expect(session.data.obbyBonus).toBeCloseTo(2 * share, 1e-12)
+		-- a new run while that boost runs earns nothing
+		enter(world, T + 40)
+		runAll(world, T + 40, 8)
+		expect(session.data.obbyBonus).toBeCloseTo(2 * share, 1e-12)
+		expect(session.data.obbyUntil).toBe(T + 24 + OBBY.BOOST_SECONDS)
+	end)
+
+	it("falling and clearing the same sections again adds nothing: each section counts once per run", function()
+		local world, session = setup()
+		enter(world, T)
+		local share = ObbyRules.share(#world.obby.spans)
+		local now = T
+		for _ = 1, 5 do
+			now += 8
+			ObbyService.step(world, PLACE, at(onPad(world, 1)), now)
+			ObbyService.step(world, PLACE, at(onPad(world, 2)), now + 4) -- section 1 cleared
+			ObbyService.step(world, PLACE, at(onPad(world, 0)), now + 4.1) -- the client's fall reset
+		end
+		expect(session.data.obbyBonus).toBeCloseTo(share, 1e-12)
+		expect(session.obbyRun.paid).toBe(1)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), now + 10)
+		ObbyService.step(world, PLACE, at(onPad(world, 2)), now + 14)
+		ObbyService.step(world, PLACE, at(onPad(world, 3)), now + 18) -- a new section: one more share
+		expect(session.data.obbyBonus).toBeCloseTo(2 * share, 1e-12)
+	end)
+
+	it("a movement flag during the run stops the shares", function()
+		local world, session = setup()
+		enter(world, T)
+		local share = ObbyRules.share(#world.obby.spans)
+		ObbyService.step(world, PLACE, at(onPad(world, 1)), T + 8)
+		ObbyService.step(world, PLACE, at(onPad(world, 2)), T + 16)
+		world.guard[1] = { flaggedAt = T + 17 } :: any
+		ObbyService.step(world, PLACE, at(onPad(world, 3)), T + 24)
+		expect(session.data.obbyBonus).toBeCloseTo(share, 1e-12)
+		expect(session.obbyRun.paid).toBe(1)
 	end)
 
 	it("a finish during the cooldown counts the time but earns no boost", function()
@@ -416,6 +481,7 @@ describe("ObbyService rotation and boost", function()
 		local copy = SaveData.deserialize(SaveData.serialize(session.data, now))
 		expect(copy.obbyUntil).toBe(session.data.obbyUntil)
 		expect(copy.obbyReadyAt).toBe(session.data.obbyReadyAt)
+		expect(copy.obbyEarned).toBe(OBBY.BONUS)
 		expect(copy.obbyBonus).toBeNil() -- runtime only: refresh sets it again after a rejoin
 		ObbyService.refresh(world, session.data.obbyUntil)
 		expect(session.data.obbyBonus).toBeNil()
@@ -489,7 +555,7 @@ describe("ObbyService run clock and current section", function()
 		standOnStart(world, T, T + 30)
 		local gap = OBBY.MIN_RUN_SECONDS / (#world.obby.spans + 2)
 		runAll(world, T + 30, gap)
-		expect(session.data.obbyUntil).toBe(0)
+		expect(session.obbyBest).toBeNil()
 		local texts = ServerFixtures.notifications(world, 1)
 		expect(texts[#texts]).toBe("That run didn't count. Try again!")
 	end)
@@ -683,7 +749,7 @@ describe("ObbyService course board: when a time counts", function()
 		expect(post.map).toBe(ObbyBoard.name(world.obby.slot, ObbyCourse.hash(world.obby)))
 		local texts = ServerFixtures.notifications(world, 1)
 		expect(texts[#texts]).toBe(
-			`Cleared in {ObbyRules.timeText(post.entry.score)}! New best: #1 on this course · x1.5 income for 5 min`
+			`Cleared in {ObbyRules.timeText(post.entry.score)}! New best: #1 on this course · x2 income for 5 min`
 		)
 		local view = Snapshot.build(world, session, now + 1).obby :: any
 		expect(view.best).toBe(post.entry.score / 10)

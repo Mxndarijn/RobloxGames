@@ -84,7 +84,8 @@ export type Data = {
 	mvpBonus: number?, -- runtime only (never saved): Boss Champion income bonus, also +BOSS.MVP_SPEED walk speed (BossCredit); nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
 	obbyUntil: number, -- server time the Obby boost ends (ObbyRules; 0 = never earned; no version bump)
-	obbyReadyAt: number, -- server time a finish earns the boost again (ObbyRules; 0 = now)
+	obbyReadyAt: number, -- server time a run earns the boost again (ObbyRules; 0 = now)
+	obbyEarned: number, -- the income bonus the Obby boost gives while it runs (ObbyRules: a share per section cleared)
 	obbyBonus: number?, -- runtime only (never saved): the Obby income bonus while boosted (ObbyService); nil = none
 	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
 	settings: PlayerSettings.Values, -- Settings menu values (save v6; PlayerSettings, missing ids -> defaults)
@@ -154,6 +155,7 @@ function PlayerData.new(): Data
 		boostUntil = 0,
 		obbyUntil = 0,
 		obbyReadyAt = 0,
+		obbyEarned = 0,
 		stealLog = {},
 		settings = PlayerSettings.defaults(),
 		consumables = { slot = 0, bought = {}, held = {} },

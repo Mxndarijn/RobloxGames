@@ -229,7 +229,7 @@ function HudClusters.mvp(view: Blessed?, now: number): Slot?
 end
 
 -- The obby slot (State.obby): the boost's time left while it runs, then a dimmed "cooldown" countdown until a
--- finish earns it again; nil when ready, malformed or never earned.
+-- run earns it again; nil when ready, malformed or never earned.
 function HudClusters.obby(view: ObbyBoost?, now: number): Slot?
 	if type(view) ~= "table" or type(view.bonus) ~= "number" then
 		return nil
@@ -241,7 +241,7 @@ function HudClusters.obby(view: ObbyBoost?, now: number): Slot?
 			slot.id = "Obby"
 			slot.icon = HudClusters.ICONS.Obby
 			slot.name = HudClusters.OBBY_NAME
-			slot.effect = `{income} income for clearing the obby.`
+			slot.effect = `{income} income from the obby sections you cleared.`
 			return slot
 		end
 	end
@@ -258,7 +258,7 @@ function HudClusters.obby(view: ObbyBoost?, now: number): Slot?
 		text = Format.formatDuration(wait),
 		kind = "cooldown",
 		name = HudClusters.OBBY_NAME,
-		effect = `Clear the obby again after this for another {income} income boost.`,
+		effect = `Run the obby again after this: every section adds income, up to {income}.`,
 	}
 end
 

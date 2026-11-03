@@ -1698,10 +1698,10 @@ local Config = {
 	}),
 
 	-- The Obby, a sky course (Shared.ObbyCourse, Shared.ObbyRules, server/ObbyService, contract/obby.md). Seconds
-	-- unless noted. Finishing grants +BONUS income for BOOST_SECONDS; the next run counts COOLDOWN_SECONDS after the
-	-- boost ends. The course rebuilds every ROTATION_SECONDS: one ObbySections idea per ORDER slot (tiers).
+	-- unless noted. Each section a run clears adds BONUS / (sections) income and starts BOOST_SECONDS again, so a full
+	-- clear gives +BONUS; a run earns again COOLDOWN_SECONDS after the boost ends. The course rebuilds every ROTATION_SECONDS: one ObbySections idea per ORDER slot (tiers).
 	OBBY = table.freeze({
-		BONUS = 0.5, -- +50 % income: x1.5
+		BONUS = 1, -- a full clear: +100 % income, x2 (each of the 6 sections adds a sixth)
 		BOOST_SECONDS = 5 * 60,
 		COOLDOWN_SECONDS = 5 * 60, -- counted from the end of the boost
 		ROTATION_SECONDS = 30 * 60, -- one course on every server for this long

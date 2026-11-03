@@ -2,9 +2,11 @@
 --[[
 	ObbyRules (pure, contract/obby.md)
 
-	The Obby boost over two saved server times on PlayerData: `obbyUntil` (the boost ends) and
-	`obbyReadyAt` (a finish earns the boost again: the end of the boost plus Config.OBBY.COOLDOWN_SECONDS). Both 0 =
-	never earned. A finish while not ready still counts as a run (time, best) but earns nothing. Also the course
+	The Obby boost over three saved values on PlayerData: `obbyUntil` (the boost ends), `obbyReadyAt` (a run earns
+	the boost again: the end of the boost plus Config.OBBY.COOLDOWN_SECONDS; both 0 = never earned) and `obbyEarned`
+	(the income bonus the boost gives). Each section a run clears adds an equal share (`share`: OBBY.BONUS over the
+	course's sections, so a full clear gives +OBBY.BONUS) and starts BOOST_SECONDS again (`earn`). A run that starts
+	while the boost is on or cooling down earns nothing, but still counts as a run (time, best). Also the course
 	board's shared text: run times in tenths (`tenths`, `timeText`), the course number and ranks.
 ]]
 
@@ -13,7 +15,7 @@ local Config = if script then require(script.Parent.Config) else require("./Conf
 local OBBY = Config.OBBY
 
 -- The fields ObbyRules reads and writes (a PlayerData.Data satisfies it).
-export type Timers = { obbyUntil: number, obbyReadyAt: number }
+export type Timers = { obbyUntil: number, obbyReadyAt: number, obbyEarned: number }
 
 export type Phase = "ready" | "boosted" | "cooling"
 
@@ -37,23 +39,43 @@ end
 
 -- The income bonus right now (Perks reads it as data.obbyBonus); nil when not boosted.
 function ObbyRules.bonus(data: Timers, now: number): number?
-	return if now < data.obbyUntil then OBBY.BONUS else nil
+	return if now < data.obbyUntil and data.obbyEarned > 0 then data.obbyEarned else nil
 end
 
--- A finish earns the boost: returns true when it did (the player was ready).
-function ObbyRules.grant(data: Timers, now: number): boolean
-	if not ObbyRules.ready(data, now) then
+-- One section's share of the full clear's bonus on a course of `sections` sections.
+function ObbyRules.share(sections: number): number
+	return OBBY.BONUS / math.max(1, sections)
+end
+
+--[[
+	A cleared section adds `add` to the boost: returns true when it did. The first share of a run needs the boost
+	ready and starts it from zero; `continuing` (this run already earned a share) adds to it while it runs. Either way
+	the boost runs BOOST_SECONDS from now, the cooldown after it, and the bonus never passes OBBY.BONUS.
+]]
+function ObbyRules.earn(data: Timers, now: number, add: number, continuing: boolean): boolean
+	local base = 0
+	if continuing and now < data.obbyUntil then
+		base = data.obbyEarned
+	elseif not ObbyRules.ready(data, now) then
 		return false
 	end
+	local earned = base + math.max(0, add)
+	data.obbyEarned = if earned > OBBY.BONUS - 1e-9 then OBBY.BONUS else earned -- the last share lands on the full bonus
 	data.obbyUntil = now + OBBY.BOOST_SECONDS
 	data.obbyReadyAt = data.obbyUntil + OBBY.COOLDOWN_SECONDS
 	return true
 end
 
+-- A full clear in one go (every share at once): returns true when it earned (the player was ready).
+function ObbyRules.grant(data: Timers, now: number): boolean
+	return ObbyRules.earn(data, now, OBBY.BONUS, false)
+end
+
+-- State.obby's boost part: `bonus` = the bonus running now while boosted, else what a full clear earns.
 function ObbyRules.view(data: Timers, now: number): View
 	local phase = ObbyRules.phase(data, now)
 	return {
-		bonus = OBBY.BONUS,
+		bonus = if phase == "boosted" then data.obbyEarned else OBBY.BONUS,
 		endsAt = if phase == "boosted" then data.obbyUntil else nil,
 		readyAt = if phase ~= "ready" then data.obbyReadyAt else nil,
 	}
@@ -97,14 +119,16 @@ function ObbyRules.rankText(rank: number?): string?
 	return if rank > depth then `#{depth}+` else `#{math.floor(rank)}`
 end
 
--- Cleans saved timers: numbers in a sane range, the ready time never before the boost end; junk -> 0.
+-- Cleans saved timers: numbers in a sane range, the ready time never before the boost end, the bonus within
+-- 0..OBBY.BONUS; junk -> 0. A boost saved without its bonus counts as a full clear.
 function ObbyRules.clean(raw: any): Timers
 	local function num(v: any): number
 		return if type(v) == "number" and v == v and v >= 0 and v <= 1e11 then v else 0
 	end
 	local t = if type(raw) == "table" then raw else {}
 	local untilAt = num(t.untilAt)
-	return { obbyUntil = untilAt, obbyReadyAt = math.max(num(t.readyAt), untilAt) }
+	local earned = if t.bonus == nil and untilAt > 0 then OBBY.BONUS else math.min(num(t.bonus), OBBY.BONUS)
+	return { obbyUntil = untilAt, obbyReadyAt = math.max(num(t.readyAt), untilAt), obbyEarned = earned }
 end
 
 return table.freeze(ObbyRules)

@@ -18,7 +18,7 @@
 	from ~11 studs on a phone, ~20 on 720p), the title ~1 stud.
 
 	`buildSign()` puts the OBBY sign board on the ring's other side (WorldLayout.OBBY.sign): the same frame, title
-	"OBBY" over three cards: the boost status and "Course #N · m:ss left" (Constants.OBBY_SIGN_STATUS /
+	"OBBY" over three cards: the boost status ("Step in: up to x2 income!" before a client fills it) and "Course #N · m:ss left" (Constants.OBBY_SIGN_STATUS /
 	OBBY_SIGN_COURSE, filled per player by ui/ObbyHud) and the lock rule ("Base locks run 50% slower in a run", from
 	Config.OBBY.LOCK_RATE). Its card text is ~1.1 studs at scale 0.8 (twice the rows'), MaxDistance 200.
 ]]
@@ -232,7 +232,7 @@ function ObbyBoardView.buildSign(): Model?
 	header.Position = UDim2.fromOffset(stroke, stroke)
 	header.Size = UDim2.new(1, -2 * stroke, S.header, -stroke)
 	local lines: { { string } } = {
-		{ Constants.OBBY_SIGN_STATUS, "Step in: x1.5 income!" },
+		{ Constants.OBBY_SIGN_STATUS, `Step in: up to x{1 + Config.OBBY.BONUS} income!` },
 		{ Constants.OBBY_SIGN_COURSE, ObbyView.everyText() },
 	}
 	local lock = ObbyBoardView.lockLine(Config.OBBY.LOCK_RATE)

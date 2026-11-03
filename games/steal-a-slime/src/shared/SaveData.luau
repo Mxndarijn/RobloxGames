@@ -997,7 +997,7 @@ function SaveData.deserialize(stored: any): Data
 	end
 	-- Obby timers (added without a version bump: missing -> never earned).
 	local obby = ObbyRules.clean(raw.obby)
-	data.obbyUntil, data.obbyReadyAt = obby.obbyUntil, obby.obbyReadyAt
+	data.obbyUntil, data.obbyReadyAt, data.obbyEarned = obby.obbyUntil, obby.obbyReadyAt, obby.obbyEarned
 	if type(raw.boost) == "table" then
 		local until_ = num(raw.boost.untilAt, 0, 0, 1e11)
 		local mult = num(raw.boost.mult, 1, 1, Config.CODE_BOOST_MAX_MULT)
@@ -1110,7 +1110,11 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		allowFriends = if data.allowFriends == true then true else nil,
 		redeemed = redeemed,
 		boost = { mult = data.boostMult, untilAt = num(data.boostUntil, 0, 0, 1e11) },
-		obby = { untilAt = num(data.obbyUntil, 0, 0, 1e11), readyAt = num(data.obbyReadyAt, 0, 0, 1e11) },
+		obby = {
+			untilAt = num(data.obbyUntil, 0, 0, 1e11),
+			readyAt = num(data.obbyReadyAt, 0, 0, 1e11),
+			bonus = num(data.obbyEarned, 0, 0, Config.OBBY.BONUS),
+		},
 		consumables = {
 			slot = data.consumables.slot,
 			bought = table.clone(data.consumables.bought),
