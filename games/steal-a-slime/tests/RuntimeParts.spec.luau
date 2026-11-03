@@ -141,10 +141,18 @@ describe("runtime part budget", function()
 		expect(obby ~= nil).toBe(true)
 		local slot = obby:GetAttribute(Constants.OBBY_SLOT)
 		expect(type(slot)).toBe("number")
+		-- the portal, the sign board and the course board are fixed props, the same on every rotation
 		local portal = obby:FindFirstChild(Constants.OBBY_PORTAL)
+		local sign = obby:FindFirstChild(Constants.OBBY_SIGN)
+		local board = obby:FindFirstChild(Constants.OBBY_BOARD)
 		local courseOnServer = 0
 		for _, d in obby:GetDescendants() do
-			if d:IsA("BasePart") and not (portal and d:IsDescendantOf(portal)) then
+			if
+				d:IsA("BasePart")
+				and not (portal and d:IsDescendantOf(portal))
+				and not (sign and d:IsDescendantOf(sign))
+				and not (board and d:IsDescendantOf(board))
+			then
 				courseOnServer += 1
 			end
 		end

@@ -2,16 +2,14 @@
 --[[
 	ObbyView (Roblox adapter, contract/obby.md)
 
-	Builds workspace.Obby: the portal (the Goo Ring at the end of the obby path, ObbyParts.gooRing, and a goo-topped
-	status signpost beside it; kit meshes swapped in by server/MeshSwap; no light column, the path and the OBBY arch
-	lead players there) once. The course itself is client-only:
+	Builds workspace.Obby: the portal (the Goo Ring at the end of the obby path, ObbyParts.gooRing; kit meshes swapped
+	in by server/MeshSwap; no light column, the path and the OBBY arch lead players there) once. The course itself is client-only:
 	`build` publishes the slot standing now (Constants.OBBY_SLOT on workspace.Obby) and every client builds the
 	course from it in the obby's own world (visuals/client/ObbyCourseView with visuals/shared/ObbyParts; the backdrop
 	is visuals/client/ObbyBackdrop), so the server's part budget never carries it. `positions` reads every live
 	character's root position for ObbyService.step and `apply` makes its teleports. Holds no rules.
 
-	The portal sign is a SurfaceGui (landmark, guides/roblox-world-labels.md): a 1.4-stud title reads from about 25
-	studs on a phone, the 1-stud status lines from about 20; the client fills the two lines per player (ui/ObbyHud).
+	The OBBY sign board and the course board on either side of the ring are server/ObbyBoardView.
 ]]
 
 local Players = game:GetService("Players")
@@ -26,19 +24,6 @@ local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 local WorldView = require(script.Parent.WorldView)
 
 local ObbyView = {}
-
-local PORTAL = table.freeze({
-	sign = "obby_goo_sign", -- MeshAsset: the goo-topped signpost beside the ring (shared/modeling-kit)
-	signSize = Vector3.new(10.516, 7.67, 3.066), -- its native size
-	-- Where it stands from the ring's foot, in the ring's own axes (X right as you face the ring, Z towards you), and
-	-- how far it turns towards the path.
-	signAt = Vector3.new(11.5, 0, -1.5),
-	signTurn = 22, -- degrees
-	-- The board's face on the sign mesh, from the mesh box's bottom centre (the box's -Z is the sign's front): text
-	-- goes on an invisible part over it, both faces.
-	face = { size = Vector3.new(8, 3.6, 0.76), at = Vector3.new(0.45, 4.9, 0.91) },
-	maxDistance = 200, -- landmark sign; past ~60 studs it reads only as a shape (400 x 180 canvas)
-})
 
 local folder: Folder? = nil
 local place: ObbyService.Place? = nil
@@ -98,6 +83,11 @@ function ObbyView.build(course: ObbyCourse.Course)
 	getFolder():SetAttribute(Constants.OBBY_SLOT, course.slot)
 end
 
+-- The sign's course line before the client fills it: "A new course every 30 min".
+function ObbyView.everyText(): string
+	return `A new course every {math.floor(Config.OBBY.ROTATION_SECONDS / 60 + 0.5)} min`
+end
+
 -- Builds workspace.Obby.Portal (once).
 function ObbyView.buildPortal()
 	local root = getFolder()
@@ -108,54 +98,13 @@ function ObbyView.buildPortal()
 	local model = Instance.new("Model")
 	model.Name = Constants.OBBY_PORTAL
 	local base = Vector3.new(p.portal[1], p.portal[2], p.portal[3])
-	-- The Goo Ring faces the plaza: you walk through it along the obby path. Its meshes and the sign's are swapped in
+	-- The Goo Ring faces the plaza: you walk through it along the obby path. Its meshes are swapped in
 	-- by server/MeshSwap (init.server calls MeshSwap.applyUnder on the portal).
 	local _, yaw = WorldLayout.obbyPortal()
 	local a = math.rad(yaw)
 	local towards = Vector3.new(math.sin(a), 0, math.cos(a)) -- towards the map centre
 	local ground = CFrame.lookAt(base, base + towards)
 	ObbyParts.gooRing(ground, 1, model, "")
-	-- The signpost beside the ring, a little in front of it and turned towards the path.
-	local signCf = ground
-		* CFrame.new(PORTAL.signAt.X, 0, -PORTAL.signAt.Z)
-		* CFrame.Angles(0, math.rad(PORTAL.signTurn), 0)
-	local post = Instance.new("Part")
-	post.Name = "SignPost"
-	post.Size = PORTAL.signSize
-	post.CFrame = signCf * CFrame.new(0, PORTAL.signSize.Y / 2, 0) * ObbyParts.GOO.faceTurn -- the kit sign faces +Y too
-	post.Transparency = 1
-	post.Anchored = true
-	post.CanCollide = false
-	post.CanQuery = false
-	post.CanTouch = false
-	post:SetAttribute("MeshAsset", PORTAL.sign)
-	post.Parent = model
-	local sign = Instance.new("Part")
-	sign.Name = "Sign"
-	sign.Size = PORTAL.face.size
-	sign.CFrame = signCf * CFrame.new(PORTAL.face.at)
-	sign.Transparency = 1
-	sign.Anchored = true
-	sign.CanCollide = false
-	sign.CanQuery = false
-	sign.CanTouch = false
-	sign.Parent = model
-	-- The same sign on both faces: from the plaza and from the portal side. ObbyHud fills every Status and
-	-- CourseInfo label it finds.
-	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
-		local gui = Instance.new("SurfaceGui")
-		gui.Name = `SignGui{face.Name}`
-		gui.Face = face
-		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		gui.PixelsPerStud = ObbyParts.PIXELS_PER_STUD
-		gui.MaxDistance = PORTAL.maxDistance
-		gui.LightInfluence = 0
-		gui.Adornee = sign
-		ObbyParts.signLabel(gui, "Title", "OBBY", 0.04, 0.38, 80)
-		ObbyParts.signLabel(gui, Constants.OBBY_SIGN_STATUS, "Step in: x1.5 income!", 0.46, 0.26, 50)
-		ObbyParts.signLabel(gui, Constants.OBBY_SIGN_COURSE, "A new course every 10 min", 0.75, 0.2, 40)
-		gui.Parent = sign
-	end
 	model.Parent = root
 end
 

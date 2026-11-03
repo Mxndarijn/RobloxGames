@@ -54,15 +54,35 @@ describe("Obby portal sign", function()
 		expect(ObbyHud.statusText(nil, 1000)).toBe("Step in to start!")
 	end)
 
-	it("says the course is cleared once this player finished it (the portal waits for the next one)", function()
-		expect(ObbyHud.statusText(view({ best = 41.2 }), 1000)).toBe("Cleared! Next course soon")
+	it("keeps the boost status after a clear: the portal lets you in again to beat your time", function()
+		expect(ObbyHud.statusText(view({ best = 41.2 }), 1000)).toBe("Step in: x1.5 income!")
 		expect(ObbyHud.statusText(view({ best = 41.2, endsAt = 1192, readyAt = 1492 }), 1000)).toBe(
-			"Cleared! Next course soon"
+			"x1.5 income · 3:12 left"
 		)
 	end)
 
-	it("counts down to the next course", function()
+	it("names the course and counts down to the next one", function()
+		expect(ObbyHud.courseText(view({ course = 1204 }), 1235)).toBe("Course #1,204 · 6:05 left")
+		expect(ObbyHud.courseText(view({ course = 7 }), 1235)).toBe("Course #7 · 6:05 left")
 		expect(ObbyHud.courseText(view(), 1235)).toBe("New course in 6:05")
+		expect(ObbyHud.courseText(nil, 1235)).toBe(
+			`A new course every {math.floor(Config.OBBY.ROTATION_SECONDS / 60 + 0.5)} min`
+		)
+	end)
+end)
+
+describe("Obby course board: my line", function()
+	it("tints my row when I'm in the top 10, else shows the You line, nothing without a time", function()
+		local size = Config.OBBY.BOARD.SIZE
+		expect(ObbyHud.boardYou(view({ best = 44.9, rank = 6 }), size).row).toBe(6)
+		local you = ObbyHud.boardYou(view({ best = 51.4, rank = 23 }), size)
+		expect(you.row).toBeNil()
+		expect(you.name).toBe("You #23")
+		expect(you.value).toBe("0:51.4")
+		expect(ObbyHud.boardYou(view({ best = 51.4, rank = 101 }), size).name).toBe("You #100+")
+		expect(ObbyHud.boardYou(view({ best = 51.4 }), size).name).toBe("You")
+		expect(ObbyHud.boardYou(view(), size).name).toBeNil()
+		expect(ObbyHud.boardYou(nil, size).row).toBeNil()
 	end)
 end)
 
@@ -77,6 +97,16 @@ describe("Obby run card", function()
 		expect(clock).toBe("1:43.5")
 		title = ObbyHud.runText(view({ run = { section = 6, at = 7, of = 6, startedAt = 900 } }), 1000)
 		expect(title).toBe("Finish")
+	end)
+
+	it("shows my best and rank on this course once I have a time on it", function()
+		local best, rank = ObbyHud.bestText(view({ best = 51.4, rank = 23 }))
+		expect(best).toBe("Best 0:51.4")
+		expect(rank).toBe("#23")
+		best, rank = ObbyHud.bestText(view({ best = 61.0 }))
+		expect(best).toBe("Best 1:01.0")
+		expect(rank).toBeNil()
+		expect(ObbyHud.bestText(view())).toBeNil()
 	end)
 
 	it("after a fall shows where the runner is, not the furthest section reached", function()
@@ -132,7 +162,7 @@ describe("Obby run card", function()
 	it("says the lock's time left and how much slower it runs, or that the base is open", function()
 		local time, note = ObbyHud.lockText(102, 0.5)
 		expect(time).toBe("🔒 1:42")
-		expect(note).toBe("50% slower")
+		expect(note).toBe("50% slower locks")
 		time, note = ObbyHud.lockText(102, 1)
 		expect(time).toBe("🔒 1:42")
 		expect(note).toBeNil()
@@ -157,8 +187,13 @@ describe("Obby run card layout", function()
 				local s = Layout.screen(vp.w, vp.h, { touch = touch })
 				local check = LayoutAssert.new(label, s)
 				-- under the tallest banner stack the card can meet (one notice card)
-				local r =
-					Layout.obbyCard(s, s.banners.y + Layout.NOTICE_CARD.icon + Layout.NOTICE_CARD.pad * 2 + Layout.GAP)
+				local split = ObbyHud.lockSplit(Layout.obbyCard(s).w)
+				local r = Layout.obbyCard(
+					s,
+					s.banners.y + Layout.NOTICE_CARD.icon + Layout.NOTICE_CARD.pad * 2 + Layout.GAP,
+					true, -- with the best-time row: the tallest card
+					split
+				)
 				check.onScreen("ObbyRunCard", r, Layout.MARGIN)
 				check.noOverlap("ObbyRunCard", r, "Nav", s.nav)
 				check.noOverlap("ObbyRunCard", r, "Hotbar", s.hotbar)
@@ -183,14 +218,22 @@ describe("Obby run card layout", function()
 					check.fail(`{of} pips need {pipsW} px, have {inner}`)
 				end
 				local time, note = ObbyHud.lockText(Config.LOCK_MAX_SECONDS, Config.OBBY.LOCK_RATE)
-				local lockW = Layout.lineWidth(time, C.lockSize, true)
-					+ Layout.lineWidth(note or "", C.noteSize, true)
-					+ C.chipPad * 4
-					+ C.gap
+				-- side by side, or one chip per line on a split card
+				local timeW = Layout.lineWidth(time, C.lockSize, true) + C.chipPad * 2
+				local noteW = Layout.lineWidth(note or "", C.noteSize, true) + C.chipPad * 2
+				local lockW = if split then math.max(timeW, noteW) else timeW + noteW + C.gap
 				if lockW > inner then
 					check.fail(`lock row needs {lockW} px, has {inner}`)
 				end
-				for _, size in { C.titleSize, C.clockSize, C.pipText, C.lockSize, C.noteSize } do
+				local best, rank = ObbyHud.bestText(view({ best = 3599.9, rank = Config.OBBY.BOARD.RANK_DEPTH + 1 }))
+				local bestW = Layout.lineWidth(best :: string, C.bestSize, true)
+					+ Layout.lineWidth(rank :: string, C.bestSize, true)
+					+ C.chipPad * 2
+					+ C.gap
+				if bestW > inner then
+					check.fail(`best row needs {bestW} px, has {inner}`)
+				end
+				for _, size in { C.titleSize, C.clockSize, C.pipText, C.lockSize, C.noteSize, C.bestSize } do
 					if size < Layout.MIN_TEXT then
 						check.fail(`text size {size} < MIN_TEXT {Layout.MIN_TEXT}`)
 					end

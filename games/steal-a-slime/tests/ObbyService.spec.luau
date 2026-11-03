@@ -1,10 +1,13 @@
 --!strict
 -- The Obby over World (src/server/ObbyService.luau, contract/obby.md): the portal, section progress in order, falls,
 -- the finish and its boost, the cooldown, the rotation, the income bonus and State.obby.
+local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
+local ObbyBoard = require("../src/server/ObbyBoard")
 local ObbyCourse = require("../src/shared/ObbyCourse")
 local ObbyLock = require("../src/server/ObbyLock")
+local ObbyRules = require("../src/shared/ObbyRules")
 local ObbyService = require("../src/server/ObbyService")
 local Perks = require("../src/shared/Perks")
 local SaveData = require("../src/shared/SaveData")
@@ -209,10 +212,11 @@ describe("ObbyService runs", function()
 		-- a 72 s run, whatever the number of sections
 		local _, now = runAll(world, T, 72 / (#world.obby.spans + 1))
 		local untilAt = session.data.obbyUntil
-		-- the next course (the cleared one refuses entry): boost over, still cooling down
-		local later = ObbyCourse.slotStart(world.obby.slot + 1) + 10
-		expect(later > untilAt and later + 60 < session.data.obbyReadyAt).toBe(true)
+		-- a retry on the same course once the boost is over, still cooling down
+		local later = untilAt + 10
+		expect(later + 60 < session.data.obbyReadyAt).toBe(true)
 		ObbyService.refresh(world, later)
+		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), later - 1)
 		enter(world, later)
 		expect(session.obbyRun ~= nil).toBe(true)
 		runAll(world, later, 5)
@@ -560,22 +564,19 @@ describe("ObbyLock: the base lock runs at half speed during a run", function()
 	end)
 end)
 
-describe("ObbyService entry: only on a course you have not cleared", function()
-	it("refuses a player who cleared this course, with the time to the next one", function()
+describe("ObbyService entry: retries on a cleared course", function()
+	it("lets a player who cleared this course in again, tracked as a retry", function()
 		local world, session = setup()
 		enter(world, T)
 		local _, now = runAll(world, T, 8)
 		expect(ObbyService.cleared(session, world.obby.slot)).toBe(true)
 		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), now + 5) -- walk away from the exit
 		local result = enter(world, now + 10)
-		expect(session.obbyRun).toBeNil()
-		expect(#result.moves).toBe(0)
-		local texts = ServerFixtures.notifications(world, 1)
-		local rotatesAt = ObbyCourse.slotStart(world.obby.slot + 1)
-		local s = math.ceil(rotatesAt - (now + 10))
-		expect(texts[#texts]).toBe(`You cleared this course! New one in {string.format("%d:%02d", s // 60, s % 60)}`)
-		local sign = Snapshot.build(world, session, now + 10).obby :: any
-		expect(sign.best ~= nil).toBe(true) -- the portal sign reads it: "Cleared! Next course soon"
+		expect(session.obbyRun ~= nil).toBe(true)
+		expect(#result.moves).toBe(1)
+		local starts = analytics(world, "ObbyStarted")
+		expect(starts[1].fields[1]).toBe("Run - First try")
+		expect(starts[2].fields[1]).toBe("Run - Retry")
 	end)
 
 	it("lets them in again on the next course", function()
@@ -597,5 +598,112 @@ describe("ObbyService entry: only on a course you have not cleared", function()
 		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), T + 65)
 		enter(world, T + 70)
 		expect(session.obbyRun ~= nil).toBe(true)
+	end)
+end)
+
+describe("ObbyService course board: when a time counts", function()
+	local function boarded(): (any, any, ObbyBoard.State)
+		local world, session = setup()
+		local board = ObbyBoard.new("Memory", function(userId: number): string
+			return `P{userId}`
+		end)
+		world.obbyBoard = board
+		return world, session, board
+	end
+
+	it("a counted finish posts one write, ranks it and tells the player", function()
+		local world, session, board = boarded()
+		enter(world, T)
+		local _, now = runAll(world, T, 8)
+		expect(#board.pending).toBe(1)
+		local post = board.pending[1]
+		expect(post.userId).toBe(1)
+		expect(post.entry.score).toBe(ObbyRules.tenths(now - (T + 8))) -- the clock starts on section 1, one step in
+		expect(post.entry.name).toBe("P1")
+		expect(post.map).toBe(ObbyBoard.name(world.obby.slot, ObbyCourse.hash(world.obby)))
+		local texts = ServerFixtures.notifications(world, 1)
+		expect(texts[#texts]).toBe(
+			`Cleared in {ObbyRules.timeText(post.entry.score)}! New best: #1 on this course · x1.5 income for 5 min`
+		)
+		local view = Snapshot.build(world, session, now + 1).obby :: any
+		expect(view.best).toBe(post.entry.score / 10)
+		expect(view.rank).toBe(1)
+		expect(view.course).toBe(ObbyRules.courseNumber(world.obby.slot))
+		local best = analytics(world, "ObbyNewBest")
+		expect(best[1].value).toBe(1)
+		expect(best[1].fields[1]).toBe("Rank - Top 3")
+	end)
+
+	it("a slower retry posts nothing and shows the best; a faster one posts again", function()
+		local world, session, board = boarded()
+		enter(world, T)
+		local _, now = runAll(world, T, 8)
+		local first = board.pending[1].entry.score
+		table.clear(board.pending)
+		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), now + 1)
+		enter(world, now + 2)
+		local _, slow = runAll(world, now + 2, 10)
+		expect(#board.pending).toBe(0)
+		local texts = ServerFixtures.notifications(world, 1)
+		local slowTime = ObbyRules.timeText(ObbyRules.tenths(slow - (now + 2 + 10)))
+		expect(texts[#texts]).toBe(`Cleared in {slowTime}. Your best: {ObbyRules.timeText(first)} (#1)`)
+		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), slow + 1)
+		enter(world, slow + 2)
+		runAll(world, slow + 2, 6)
+		expect(#board.pending).toBe(1)
+		expect(board.pending[1].entry.score < first).toBe(true)
+		expect(ObbyRules.tenths(session.obbyBest.seconds)).toBe(board.pending[1].entry.score)
+	end)
+
+	it("an invalid run, a movement flag during the run or a save this server can't write posts nothing", function()
+		local world, session, board = boarded()
+		enter(world, T)
+		ObbyService.step(world, PLACE, at(onPad(world, #world.obby.spans + 1)), T + 60) -- straight to the finish
+		expect(#board.pending).toBe(0)
+		-- a flag during the run
+		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), T + 61)
+		enter(world, T + 62)
+		world.guard[1] = { flaggedAt = T + 70 } :: any
+		local _, now = runAll(world, T + 62, 8)
+		expect(#board.pending).toBe(0)
+		expect(session.obbyBest).toBeNil()
+		local texts = ServerFixtures.notifications(world, 1)
+		expect(string.find(texts[#texts], "New best", 1, true)).toBeNil()
+		-- a flag from before the run doesn't count against it
+		ObbyService.step(world, PLACE, at({ 0, 3, 0 }), now + 1)
+		enter(world, now + 2)
+		local _, later = runAll(world, now + 2, 8)
+		expect(#board.pending).toBe(1)
+		-- a Studio fallback profile (can't save)
+		local other, otherSession, otherBoard = boarded()
+		other.canSave = function(_userId: number): boolean
+			return false
+		end
+		enter(other, T)
+		runAll(other, T, 8)
+		expect(#otherBoard.pending).toBe(0)
+		expect(otherSession.obbyBest).toBeNil()
+		expect(later > now).toBe(true)
+	end)
+
+	it("a finish past its course's window plus the rebuild grace never counts", function()
+		local world, session = setup()
+		local run = { slot = world.obby.slot, section = 6, enteredAt = T, startedAt = T }
+		local close = ObbyCourse.slotStart(world.obby.slot + 1) + OBBY.REBUILD_GRACE
+		expect(ObbyBoard.eligible(world, session, run :: any, close)).toBe(true)
+		local ok, reason = ObbyBoard.eligible(world, session, run :: any, close + 0.1)
+		expect(ok).toBe(false)
+		expect(reason).toBe("late")
+	end)
+
+	it("everyone runs at the base walk speed during a run: no Speed Coil", function()
+		local world, session = setup()
+		session.data.speedCoil = true
+		session.coilHeld = true
+		expect(Carry.targetWalkSpeed(session, T)).toBe(Config.SPEED_COIL_WALK_SPEED)
+		enter(world, T)
+		expect(Carry.targetWalkSpeed(session, T + 1)).toBe(Config.BASE_WALK_SPEED)
+		runAll(world, T, 8)
+		expect(Carry.targetWalkSpeed(session, T + 80)).toBe(Config.SPEED_COIL_WALK_SPEED)
 	end)
 end)

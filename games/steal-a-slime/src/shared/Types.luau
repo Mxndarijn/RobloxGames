@@ -81,7 +81,9 @@ export type ObbyView = {
 	-- of + 1 = the finish pad); startedAt = when the clock started (nil = still on the start pad); lockRate = the base
 	-- lock's countdown speed meanwhile (0.5 = half)
 	run: { section: number, at: number?, of: number, startedAt: number?, lockRate: number? }?,
-	best: number?, -- best finish on this course, seconds; set = cleared: the portal waits for the next course
+	best: number?, -- best counted finish on this course, seconds (whole tenths); retries may beat it
+	rank: number?, -- that best's rank on the course board (OBBY.BOARD.RANK_DEPTH + 1 = deeper); nil = none yet
+	course: number, -- the course number players see ("Course #1,204", ObbyRules.courseNumber)
 }
 
 -- Follow-pet passive (CONTRACT.md §14): the favourite slime's perk, text "+5% luck".

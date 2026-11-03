@@ -4,7 +4,8 @@
 
 	The Obby boost over two saved server times on PlayerData: `obbyUntil` (the boost ends) and
 	`obbyReadyAt` (a finish earns the boost again: the end of the boost plus Config.OBBY.COOLDOWN_SECONDS). Both 0 =
-	never earned. A finish while not ready still counts as a run (time, best) but earns nothing.
+	never earned. A finish while not ready still counts as a run (time, best) but earns nothing. Also the course
+	board's shared text: run times in tenths (`tenths`, `timeText`), the course number and ranks.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -56,6 +57,44 @@ function ObbyRules.view(data: Timers, now: number): View
 		endsAt = if phase == "boosted" then data.obbyUntil else nil,
 		readyAt = if phase ~= "ready" then data.obbyReadyAt else nil,
 	}
+end
+
+-- A run's seconds as the board keeps them: whole tenths (the server times runs at its 0.1 s tick).
+function ObbyRules.tenths(seconds: number): number
+	if type(seconds) ~= "number" or seconds ~= seconds or seconds < 0 then
+		return 0
+	end
+	return math.floor(seconds * 10 + 0.5)
+end
+
+-- Tenths as the board and the run card show them: "0:42.3".
+function ObbyRules.timeText(tenths: number): string
+	local t = math.max(0, math.floor(tenths))
+	return string.format("%d:%02d.%d", t // 600, (t // 10) % 60, t % 10)
+end
+
+-- The course number players see ("Course #1,204"): rotations since OBBY.COURSE_EPOCH, from 1.
+function ObbyRules.courseNumber(slot: number): number
+	return math.max(1, slot - OBBY.COURSE_EPOCH + 1)
+end
+
+-- "Course #1,204" for a course number (courseNumber).
+function ObbyRules.courseLabel(number: number): string
+	local text = tostring(math.max(0, math.floor(number)))
+	local count
+	repeat
+		text, count = string.gsub(text, "^(%d+)(%d%d%d)", "%1,%2")
+	until count == 0
+	return `Course #{text}`
+end
+
+-- "#23"; past OBBY.BOARD.RANK_DEPTH "#100+"; nil without a rank.
+function ObbyRules.rankText(rank: number?): string?
+	if type(rank) ~= "number" or rank < 1 then
+		return nil
+	end
+	local depth = OBBY.BOARD.RANK_DEPTH
+	return if rank > depth then `#{depth}+` else `#{math.floor(rank)}`
 end
 
 -- Cleans saved timers: numbers in a sane range, the ready time never before the boost end; junk -> 0.

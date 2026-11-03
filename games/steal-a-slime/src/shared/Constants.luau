@@ -91,8 +91,13 @@ return table.freeze({
 	OBBY_SLOT = "CourseSlot", -- workspace.Obby attribute: the rotation slot of the course standing now (server/ObbyView)
 	OBBY_PORTAL = "Portal", -- workspace.Obby.Portal: the standing Goo Ring, its floor glow and the status plaque
 	OBBY_BACKDROP = "ObbyBackdrop", -- client-only Folder in workspace: the obby world's islands and clouds (decor only)
+	OBBY_SIGN = "SignBoard", -- workspace.Obby.SignBoard: the OBBY board beside the ring (server/ObbyBoardView.buildSign)
 	OBBY_SIGN_STATUS = "Status", -- TextLabel on the portal sign the client fills with its own boost status
 	OBBY_SIGN_COURSE = "CourseInfo", -- TextLabel on the portal sign the client fills with the course and rotation
+	-- The course board by the portal (server/ObbyBoardView, contract/obby.md §7): workspace.Obby.Board; its "You" row
+	-- is filled by each client (ui/ObbyHud) from State.obby
+	OBBY_BOARD = "Board",
+	OBBY_BOARD_STATUS = "ObbyBoardStatus", -- workspace attribute: the board's store, "Ok" | "Memory" | "Error"
 	GOO_SPIN = "GooSpin", -- Goo Ring swirl part attribute: radians a second it turns (visuals/client/ObbyFx)
 	GOO_PIVOT = "GooPivot", -- Goo Ring swirl part attribute: CFrame of the ring centre it turns round (its Z axis)
 	-- Course part attributes (ObbyCourse.Motion, played by visuals/client/ObbyFx)
